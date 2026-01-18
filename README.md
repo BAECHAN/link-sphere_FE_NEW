@@ -55,13 +55,4 @@ pnpm format
 
 ## 프로젝트 구조
 
-```
-src/
-├── components/     # 재사용 가능한 컴포넌트
-├── lib/           # 유틸리티 함수
-├── hooks/         # 커스텀 훅
-├── App.tsx        # 메인 앱 컴포넌트
-├── main.tsx       # 진입점
-└── index.css      # 글로벌 스타일
-```
 # link-sphere_FE_NEW

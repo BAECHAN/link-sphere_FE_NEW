@@ -1,0 +1,23 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "dsznajder.es7-react-js-snippets",
+    "eamodio.gitlens",
+    "esbenp.prettier-vscode",
+    "formulahendry.auto-rename-tag",
+    "kisstkondoros.vscode-gutter-preview",
+    "mikestead.dotenv",
+    "ms-ceintl.vscode-language-pack-ko",
+    "ms-vscode.js-debug-nightly",
+    "naumovs.color-highlight",
+    "pkief.material-icon-theme",
+    "styled-components.vscode-styled-components",
+    "usernamehw.errorlens",
+    "visualstudioexptteam.intellicode-api-usage-examples",
+    "visualstudioexptteam.vscodeintellicode",
+    "pranaygp.vscode-css-peek",
+    "wayou.vscode-todo-highlight",
+    "wix.vscode-import-cost",
+    "xabikos.reactsnippets"
+  ]
+}
