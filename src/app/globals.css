@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import '../../public/fonts/web/static/pretendard-subset.css';
+@import url('/fonts/web/static/pretendard-subset.css');
 
 @custom-variant dark (&:is(.dark *));
 
