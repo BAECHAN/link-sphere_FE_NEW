@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { Outlet, type RouteObject } from 'react-router-dom';
+import { Navigate, Outlet, type RouteObject } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { AppLayout } from '@/shared/ui/layouts/AppLayout';
 
@@ -9,8 +9,10 @@ const NotFoundPage = lazy(() =>
 const ForbiddenPage = lazy(() =>
   import('@/pages/403/ForbiddenPage').then((module) => ({ default: module.ForbiddenPage }))
 );
-const Home = lazy(() => import('@/pages/home/Home').then((module) => ({ default: module.Home })));
-
+const Post = lazy(() => import('@/pages/post').then((module) => ({ default: module.Post })));
+const PostSubmit = lazy(() =>
+  import('@/pages/post/Submit').then((module) => ({ default: module.PostSubmit }))
+);
 /**
  * Lazy 컴포넌트를 Suspense로 감싸는 래퍼
  * 각 페이지별로 로딩 상태를 관리하여 깜빡임 방지
@@ -39,7 +41,15 @@ export const appRoutes: RouteObject[] = [
     children: [
       {
         path: ROUTES_PATHS.HOME,
-        element: withSuspense(Home),
+        element: <Navigate to={ROUTES_PATHS.POST.ROOT} replace />,
+      },
+      {
+        path: ROUTES_PATHS.POST.ROOT,
+        element: withSuspense(Post),
+      },
+      {
+        path: ROUTES_PATHS.POST.SUBMIT,
+        element: withSuspense(PostSubmit),
       },
     ],
   },

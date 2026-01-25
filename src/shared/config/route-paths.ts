@@ -1,6 +1,9 @@
 const ROUTES_PATHS = {
   HOME: '/',
-
+  POST: {
+    ROOT: '/post',
+    SUBMIT: '/post/submit',
+  },
   // Error
   FORBIDDEN: '/403',
   NOT_FOUND: '*',

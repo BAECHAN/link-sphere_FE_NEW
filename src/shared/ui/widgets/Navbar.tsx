@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
 import { useState } from 'react';
 import { Input } from '@/shared/ui/atoms/input';
 import { Kbd } from '@/shared/ui/atoms/kbd';
+import { ROUTES_PATHS } from '@/shared/config/route-paths';
 
 export function Navbar() {
   const [session, setSession] = useState<{ user: { name: string; image: string } }>({
@@ -35,16 +36,22 @@ export function Navbar() {
       <div className="container max-w-6xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4 md:gap-8">
           <Link
-            to="/"
+            to={ROUTES_PATHS.HOME}
             className="flex items-center space-x-2 font-bold text-xl md:text-2xl tracking-tight"
           >
             LinkSphere
           </Link>
           <div className="hidden md:flex gap-6">
-            <Link to="/" className="text-sm font-medium transition-colors hover:text-primary">
-              Feed
+            <Link
+              to={ROUTES_PATHS.POST.ROOT}
+              className="text-sm font-medium transition-colors hover:text-primary"
+            >
+              Post
             </Link>
-            <Link to="/submit" className="text-sm font-medium transition-colors hover:text-primary">
+            <Link
+              to={ROUTES_PATHS.POST.SUBMIT}
+              className="text-sm font-medium transition-colors hover:text-primary"
+            >
               Submit
             </Link>
           </div>
