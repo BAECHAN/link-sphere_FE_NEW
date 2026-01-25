@@ -2,6 +2,8 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import compression from 'vite-plugin-compression'; // 추가
+import mkcert from 'vite-plugin-mkcert';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig(({ mode }) => {
   // 현재 모드(mode)에 따라 .env 파일들을 로드
@@ -16,6 +18,13 @@ export default defineConfig(({ mode }) => {
       compression({
         algorithm: 'gzip',
         ext: '.gz',
+      }),
+      mkcert(),
+      visualizer({
+        open: true,
+        filename: 'dist/stats.html',
+        gzipSize: true,
+        brotliSize: true,
       }),
     ],
     base: '/',
@@ -76,13 +85,49 @@ export default defineConfig(({ mode }) => {
               // 나머지 node_modules는 별도 청크로
               return 'vendor';
             }
+
+            // 큰 라이브러리들을 별도 청크로 분리
+            if (id.includes('recharts')) {
+              return 'chart-vendor';
+            }
+            if (id.includes('@mantine/charts')) {
+              return 'mantine-chart-vendor';
+            }
+            if (id.includes('@tanstack/react-table')) {
+              return 'table-vendor';
+            }
             // 내부 모듈도 청크 분리 (선택적)
             // 큰 페이지나 위젯은 별도 청크로 분리 가능
           },
           // 사용하지 않는 export 제거
           exports: 'named',
         },
+        treeshake: {
+          moduleSideEffects: (id) => {
+            // CSS 파일은 side effect가 있음
+            if (id.includes('.css')) return true;
+            // 나머지는 false
+            return false;
+          },
+          propertyReadSideEffects: false,
+          tryCatchDeoptimization: false,
+        },
       },
+    },
+    optimizeDeps: {
+      // 개발 모드에서도 최적화
+      include: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        '@tanstack/react-query',
+        '@tanstack/react-table',
+        'react-hook-form',
+        '@hookform/resolvers',
+        'zod',
+        'zustand',
+        'dayjs',
+      ],
     },
     resolve: {
       alias: {

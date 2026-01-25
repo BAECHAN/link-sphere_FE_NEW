@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type RefObject } from 'react';
 
 type KeyCombo = {
   key: string;
@@ -13,6 +13,11 @@ type UseKeydownOptions = {
    * 기본값: true (입력 필드에 포커스가 있으면 단축키 무시)
    */
   ignoreInputFocus?: boolean;
+  /**
+   * 특정 요소나 그 하위 요소에 포커스가 있을 때만 단축키가 동작하도록 제한합니다.
+   * RefObject를 전달하면 해당 요소 내부에 포커스가 있을 때만 콜백이 실행됩니다.
+   */
+  targetRef?: RefObject<HTMLElement | null>;
 };
 
 /**
@@ -60,14 +65,19 @@ export function useKeydown(
   callback: (event?: KeyboardEvent) => void,
   options: UseKeydownOptions = {}
 ) {
-  const { ignoreInputFocus = true } = options;
+  const { ignoreInputFocus = true, targetRef } = options;
 
   useEffect(() => {
     // macOS 확인 (데스크톱 환경만 고려)
     const isMac = /Mac/i.test(navigator.userAgent);
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      // 입력 필드에 포커스가 있고 ignoreInputFocus가 true이면 단축키 무시
+      // 1. targetRef가 제공된 경우, 포커스가 해당 요소 내부에 있는지 확인
+      if (targetRef?.current && !targetRef.current.contains(document.activeElement)) {
+        return;
+      }
+
+      // 2. 입력 필드에 포커스가 있고 ignoreInputFocus가 true이면 단축키 무시
       if (ignoreInputFocus && isInputFocused(event)) {
         return;
       }
@@ -94,5 +104,5 @@ export function useKeydown(
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [callback, keyCombo, ignoreInputFocus]);
+  }, [callback, keyCombo, ignoreInputFocus, targetRef]);
 }

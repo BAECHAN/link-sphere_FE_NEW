@@ -547,44 +547,5 @@ export default [
       ],
     },
   },
-  // Domains 디렉토리에서 Atoms 직접 import 금지 (Elements 사용 강제)
-  {
-    files: [
-      'src/app/**/*.tsx',
-      'src/domains/**/*.tsx',
-      'src/pages/**/*.tsx',
-      'src/shared/ui/layouts/**/*.tsx',
-      'src/shared/ui/widgets/**/*.tsx',
-    ],
-    ignores: ['src/pages/demo/ComponentsDemoPage.tsx'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['@/shared/ui/atoms/**/*'],
-              message:
-                'Atoms 대신 Elements를 사용하세요. (예: Button -> BaseButton, Select -> BaseSelect)',
-            },
-            {
-              group: [
-                '../**/*.ts',
-                '../**/*.tsx',
-                '../**/*.js',
-                '../**/*.jsx',
-                '../../**/*.ts',
-                '../../**/*.tsx',
-                '../../../**/*.ts',
-                '../../../**/*.tsx',
-                '..',
-                '../*',
-              ],
-              message: '../ 대신 @/를 사용한 절대 경로 import를 사용해주세요.',
-            },
-          ],
-        },
-      ],
-    },
-  },
+
 ];

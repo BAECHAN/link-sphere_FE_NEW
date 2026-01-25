@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 
 import { TEXTS } from '@/shared/config/texts';
+import { Navbar } from '@/shared/ui/widgets/Navbar';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -9,7 +10,7 @@ interface AppLayoutProps {
 export function AppLayout({ children }: Readonly<AppLayoutProps>) {
   return (
     <div aria-label={TEXTS.ariaLabels.appLayout}>
-      <div>Header</div>
+      <Navbar />
       <div aria-label={TEXTS.ariaLabels.bodyContainer}>
         <div aria-label={TEXTS.ariaLabels.sidebarWrapper}>
           <div>Sidebar</div>
