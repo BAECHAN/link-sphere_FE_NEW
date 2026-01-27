@@ -12,6 +12,10 @@ const API_ENDPOINTS = {
     refreshToken: '/auth/refresh-token',
   },
 
+  post: {
+    root: '/post',
+  },
+
   common: {
     base: '/common',
   },

@@ -8,17 +8,10 @@
 export const TEXTS = {
   pages: {
     home: '홈',
-    dashboard: '대시보드',
-    adminDashboard: {
-      ROOT: '운영자 대시보드',
-      PREDICTION_NOTICE_LIST: '공고별 예측값 조회',
-      MONITORING_DATA_PIPELINE: 'I/F 및 전처리 모니터링',
-      PREDICTION_TREND: '예측값 추이',
+    post: {
+      ROOT: '링크',
+      SUBMIT: '링크 등록',
     },
-
-    userDashboard: '사용자 대시보드',
-    members: '전체 회원 관리',
-    components: '컴포넌트 데모',
   },
   labels: {
     userId: '아이디',
@@ -55,28 +48,15 @@ export const TEXTS = {
     warning: {
       memberDeleteConfirm: '정말 이 회원을 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.',
     },
-    success: {
-      // 회원 관련
-      memberCreated: '회원이 생성되었습니다.',
-      memberUpdated: '회원 정보가 수정되었습니다.',
-      memberRoleUpdated: '회원 권한이 수정되었습니다.',
-      memberDeleted: '회원 삭제가 완료되었습니다.',
-      // 계정 관련
-      accountUpdated: '계정 정보가 수정되었습니다.',
+    post: {
+      success: {
+        postCreated: '링크가 생성되었습니다.',
+      },
+      error: {
+        postCreateFailed: '링크 생성에 실패했습니다.',
+      },
     },
     error: {
-      // 회원 관련
-      memberDetailFetchFailed: '회원 상세 정보 조회에 실패했습니다.',
-      memberCreateFailed: '회원 생성에 실패했습니다.',
-      memberUpdateFailed: '회원 정보 수정에 실패했습니다.',
-      memberDeleteFailed: '회원 삭제에 실패했습니다.',
-      memberRoleUpdateFailed: '회원 권한 수정에 실패했습니다.',
-
-      // 계정 관련
-      accountNotFound: '계정 정보를 찾을 수 없습니다.',
-      accountFetchFailed: '계정 정보 조회에 실패했습니다.',
-      accountUpdateFailed: '계정 정보 수정에 실패했습니다.',
-
       // 공통
       defaultError: '오류가 발생했습니다.',
       unknownError: '알 수 없는 오류가 발생했습니다.',
@@ -92,15 +72,6 @@ export const TEXTS = {
       authRestoreFailed: '인증 복원 실패:',
       loginError: '로그인 실패:',
       userInfoNotFound: '사용자 정보를 찾을 수 없습니다.',
-
-      // 대시보드 관련
-      excelDownloadFailed: '엑셀 다운로드에 실패했습니다.',
-      predictionNoticeListFetchFailed: '공고별 예측값 조회에 실패했습니다.',
-      predictionSummaryFetchFailed: '예측값 요약 조회에 실패했습니다.',
-      predictionHistoryFetchFailed: '예측값 추이 조회에 실패했습니다.',
-      monitoringDataPipelineListFetchFailed: 'I/F 및 전처리 모니터링 조회에 실패했습니다.',
-      monitoringDataPipelineErrorCountFetchFailed:
-        'I/F 및 전처리 모니터링 오류 카운트 조회에 실패했습니다.',
     },
   },
   shortcuts: {
@@ -116,10 +87,6 @@ export const TEXTS = {
     mainContent: '메인 컨텐츠',
     pageContainer: '페이지 컨테이너',
     // 페이지 레이아웃
-    dashboardLayout: '대시보드 레이아웃',
-    dashboardContent: '대시보드 컨텐츠',
-    memberLayout: '회원 관리 레이아웃',
-    memberContent: '회원 관리 컨텐츠',
     authLayout: '인증 레이아웃',
     authContent: '인증 컨텐츠',
     errorLayout: '에러 레이아웃',
@@ -147,13 +114,6 @@ export const TEXTS = {
     profileEdit: '프로필 수정',
     logout: '로그아웃',
 
-    // 대시보드
-    DashboardSearchContainer: '대시보드 검색 컨테이너',
-    DashboardSearchDateRange: '대시보드 검색 기간',
-    DashboardSearchOrderer: '대시보드 검색 발주처',
-    DashboardSearchLicense: '대시보드 검색 면허',
-    DashboardSearchAnnouncement: '대시보드 검색 공고번호',
-    DashboardSearchAction: '대시보드 검색 액션',
     // 입력 필드
     inputClear: '입력값 지우기',
   },
