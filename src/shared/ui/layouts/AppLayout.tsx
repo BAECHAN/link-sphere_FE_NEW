@@ -10,14 +10,16 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: Readonly<AppLayoutProps>) {
   return (
-    <div aria-label={TEXTS.ariaLabels.appLayout}>
-      <Navbar />
-      <main
-        className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-[4000px]"
-        aria-label={TEXTS.ariaLabels.mainContent}
-      >
-        {children}
-      </main>
+    <div aria-label={TEXTS.ariaLabels.appLayout} className="min-h-screen flex flex-col">
+      <div className="flex-1">
+        <Navbar />
+        <main
+          className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-[4000px]"
+          aria-label={TEXTS.ariaLabels.mainContent}
+        >
+          {children}
+        </main>
+      </div>
       <ScrollToTop />
     </div>
   );

@@ -4,6 +4,10 @@ const ROUTES_PATHS = {
     ROOT: '/post',
     SUBMIT: '/post/submit',
   },
+  AUTH: {
+    LOGIN: '/login',
+    REGISTER: '/register',
+  },
   // Error
   FORBIDDEN: '/403',
   NOT_FOUND: '*',

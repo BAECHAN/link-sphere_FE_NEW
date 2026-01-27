@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { createBrowserRouter, RouterProvider as RRRouterProvider } from 'react-router-dom';
 import { appRoutes } from '@/app/routes';
+import { Spinner } from '@/shared/ui/atoms/spinner';
 
 const router = createBrowserRouter(appRoutes, {
   future: {
@@ -10,7 +11,7 @@ const router = createBrowserRouter(appRoutes, {
 
 export function RouterProvider() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<Spinner className="size-10 animate-spin" />}>
       <RRRouterProvider
         router={router}
         future={{

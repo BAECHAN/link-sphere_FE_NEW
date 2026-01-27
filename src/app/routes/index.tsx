@@ -1,7 +1,11 @@
 import React, { lazy, Suspense } from 'react';
-import { Navigate, Outlet, type RouteObject } from 'react-router-dom';
+import { Navigate, useLocation, type RouteObject } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
-import { AppLayout } from '@/shared/ui/layouts/AppLayout';
+import { ProtectedLayout } from './layouts/ProtectedLayout';
+import { PublicLayout } from '@/app/routes/layouts/PublicLayout';
+import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
+import { MemberRole } from '@/domains/member/_common/model/member.schema';
+import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 
 const NotFoundPage = lazy(() =>
   import('@/pages/404/NotFoundPage').then((module) => ({ default: module.NotFoundPage }))
@@ -13,6 +17,9 @@ const Post = lazy(() => import('@/pages/post').then((module) => ({ default: modu
 const PostSubmit = lazy(() =>
   import('@/pages/post/Submit').then((module) => ({ default: module.PostSubmit }))
 );
+const LoginPage = lazy(() =>
+  import('@/pages/auth/LoginPage').then((module) => ({ default: module.LoginPage }))
+);
 /**
  * Lazy 컴포넌트를 Suspense로 감싸는 래퍼
  * 각 페이지별로 로딩 상태를 관리하여 깜빡임 방지
@@ -20,11 +27,75 @@ const PostSubmit = lazy(() =>
  */
 const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType<any>>) => {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<SpinnerOverlay />}>
       <Component />
     </Suspense>
   );
 };
+
+/** 권한별 접근 가능한 경로 Prefix 정의 */
+const ROLE_ACCESS_PATHS: Record<MemberRole, string[]> = {
+  ADMIN: ['/admin', '/user'],
+  USER: ['/user'],
+};
+
+/** 권한별 기본 대시보드 경로 반환 */
+const getRootPath = (role: MemberRole | null) => {
+  if (role === 'ADMIN') {
+    return ROUTES_PATHS.HOME;
+  }
+  return ROUTES_PATHS.POST.ROOT;
+};
+
+/** 해당 권한으로 경로에 접근 가능한지 확인 */
+const canAccessPath = (role: MemberRole | null, path: string) => {
+  if (!role) return false;
+  const allowedPrefixes = ROLE_ACCESS_PATHS[role] || [];
+  return allowedPrefixes.some((prefix) => path.startsWith(prefix));
+};
+
+interface LocationState {
+  from?: Location;
+}
+
+/**
+ * 비로그인 사용자 전용 가드 (Guest Guard)
+ * 로그인된 상태에서 접근 시 이전 페이지 또는 루트 경로로 리다이렉트합니다.
+ */
+function GuestGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, role } = useAuthStore();
+  const location = useLocation();
+
+  // 이미 로그인된 상태라면 리다이렉트 처리
+  if (isAuthenticated) {
+    const state = location.state as LocationState | null;
+    const previousPath = state?.from?.pathname;
+
+    // 1. 이전 경로가 있고, 현재 권한으로 접근 가능하다면 그곳으로 이동
+    if (previousPath && canAccessPath(role, previousPath)) {
+      return <Navigate to={previousPath} replace />;
+    }
+
+    // 2. 그 외에는 권한별 루트 경로로 이동
+    return <Navigate to={getRootPath(role)} replace />;
+  }
+
+  // 비로그인 상태면 정상 렌더링
+  return <>{children}</>;
+}
+
+/**
+ * 루트 경로('/') 접근 시 리다이렉트 처리
+ */
+function RootRedirect() {
+  const { role, isAuthenticated } = useAuthStore();
+
+  if (!isAuthenticated) {
+    return <Navigate to={ROUTES_PATHS.AUTH.LOGIN} replace />;
+  }
+
+  return <Navigate to={getRootPath(role)} replace />;
+}
 
 /**
  * App Routes Configuration
@@ -33,15 +104,11 @@ const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType<a
  */
 export const appRoutes: RouteObject[] = [
   {
-    element: (
-      <AppLayout>
-        <Outlet />
-      </AppLayout>
-    ),
+    element: <ProtectedLayout />,
     children: [
       {
         path: ROUTES_PATHS.HOME,
-        element: <Navigate to={ROUTES_PATHS.POST.ROOT} replace />,
+        element: <RootRedirect />,
       },
       {
         path: ROUTES_PATHS.POST.ROOT,
@@ -50,6 +117,20 @@ export const appRoutes: RouteObject[] = [
       {
         path: ROUTES_PATHS.POST.SUBMIT,
         element: withSuspense(PostSubmit),
+      },
+    ],
+  },
+  // Public Routes Group (Guest Only)
+  {
+    element: (
+      <GuestGuard>
+        <PublicLayout />
+      </GuestGuard>
+    ),
+    children: [
+      {
+        path: ROUTES_PATHS.AUTH.LOGIN,
+        element: withSuspense(LoginPage),
       },
     ],
   },

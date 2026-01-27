@@ -1,6 +1,9 @@
 import { API_BASE_URL } from '@/shared/config/api';
 import { TEXTS } from '@/shared/config/texts';
 import { ApiError, ApiErrorResponse } from '@/shared/types/common.type';
+import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
+import { authApi } from '@/domains/auth/_common/api/auth.api';
 
 import { FormUtil } from '@/shared/utils/form.util';
 
@@ -22,6 +25,11 @@ class ApiClient {
 
   private getAuthHeaders(): Record<string, string> {
     const headers: Record<string, string> = {};
+    const accessToken = useAuthStore.getState().accessToken;
+
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
 
     return headers;
   }
@@ -29,7 +37,7 @@ class ApiClient {
   private isAuthEndpoint(endpoint: string): boolean {
     // 토큰이 만료되어도 401에러가 뜨지 않고 통과되어야 하는 API 목록
     // 로그인 API는 인증 없이 호출 가능해야 함
-    const authEndpoints = ['/auth/login'];
+    const authEndpoints = ['/auth/v1/token'];
     return authEndpoints.some((path) => endpoint.includes(path));
   }
 
@@ -56,7 +64,7 @@ class ApiClient {
     options?: ApiRequestOptions,
     retryCount = 0
   ): Promise<T> {
-    let url = `${this.baseURL}${endpoint}`;
+    let url = endpoint.startsWith('http') ? endpoint : `${this.baseURL}${endpoint}`;
     const isAuth = this.isAuthEndpoint(endpoint);
 
     // 쿼리 파라미터 처리
@@ -90,20 +98,34 @@ class ApiClient {
       const response = await fetch(url, {
         ...options,
         headers,
-        credentials: 'include', // 쿠키 전송을 위해 필요 (필요 시)
+        credentials: options?.credentials || 'same-origin',
       });
 
-      // 498 에러 처리 (accessToken 만료) - 인증 필요 경로에서만 처리
-      // 401 에러도 토큰 만료로 처리하는 경우가 많으므로 확인 필요하지만 일단 기존 로직(498) 유지
-      if (response.status === 498 && !isAuth && retryCount === 0) {
-        // 토큰 갱신 시도
+      // 401 Unauthorized: 토큰 만료 처리
+      if (response.status === 401 && !isAuth && retryCount === 0) {
         if (!this.isRefreshing) {
           this.isRefreshing = true;
+          try {
+            const data = await authApi.refresh();
+            useAuthStore.getState().setAuth(data.accessToken, data.user.role);
+            this.isRefreshing = false;
 
-          return this.request<T>(endpoint, options, retryCount + 1);
+            // 새 토큰으로 헤더 업데이트 후 재시도
+            const newHeaders = {
+              ...headers,
+              Authorization: `Bearer ${data.accessToken}`,
+            };
+            return this.request<T>(endpoint, { ...options, headers: newHeaders }, retryCount + 1);
+          } catch (refreshError) {
+            this.isRefreshing = false;
+            useAuthStore.getState().clearAuth();
+            // window.location.href 대신 상태 변화를 통해 가드에서 처리하도록 유도하거나 
+            // 필요한 경우에만 최소한으로 사용합니다.
+            throw refreshError;
+          }
         } else {
-          // 이미 갱신 중이면 잠시 대기 후 재시도
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          // 이미 갱신 중이면 대기 후 재시도
+          await new Promise((resolve) => setTimeout(resolve, 500));
           return this.request<T>(endpoint, options, retryCount + 1);
         }
       }

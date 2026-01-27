@@ -1,5 +1,5 @@
 import { Moon, Sun, Search, SearchIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/atoms/button';
 import {
   DropdownMenu,
@@ -12,14 +12,14 @@ import { useState } from 'react';
 import { Input } from '@/shared/ui/atoms/input';
 import { Kbd } from '@/shared/ui/atoms/kbd';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
+import { useLogoutMutation } from '@/domains/auth/_common/api/auth.queries';
 
 export function Navbar() {
-  const [session, setSession] = useState<{ user: { name: string; image: string } }>({
-    user: {
-      name: 'John Doe',
-      image: 'https://github.com/shadcn.png',
-    },
-  });
+  const { user, isAuthenticated } = useAuthStore();
+  const { mutate: logout } = useLogoutMutation();
+  const navigate = useNavigate();
+
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -99,30 +99,22 @@ export function Navbar() {
             <span className="sr-only">Toggle theme</span>
           </Button>
 
-          {session ? (
+          {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-2">
                   <Avatar className="h-8 w-8 border">
-                    <AvatarImage src={session.user?.image || ''} alt={session.user?.name || ''} />
-                    <AvatarFallback>{session.user?.name?.[0] || 'U'}</AvatarFallback>
+                    <AvatarImage src={''} alt={user?.name || ''} />
+                    <AvatarFallback>{user?.name?.[0] || 'U'}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setSession({ user: { name: '', image: '' } })}>
-                  Log out
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => logout()}>Log out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button
-              onClick={() =>
-                setSession({ user: { name: 'John Doe', image: 'https://github.com/shadcn.png' } })
-              }
-              size="sm"
-              className="ml-2"
-            >
+            <Button onClick={() => navigate(ROUTES_PATHS.AUTH.LOGIN)} size="sm" className="ml-2">
               Log in
             </Button>
           )}
