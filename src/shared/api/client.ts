@@ -1,7 +1,6 @@
 import { API_BASE_URL } from '@/shared/config/api';
 import { TEXTS } from '@/shared/config/texts';
 import { ApiError, ApiErrorResponse } from '@/shared/types/common.type';
-import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
 import { authApi } from '@/domains/auth/_common/api/auth.api';
 
@@ -36,8 +35,14 @@ class ApiClient {
 
   private isAuthEndpoint(endpoint: string): boolean {
     // 토큰이 만료되어도 401에러가 뜨지 않고 통과되어야 하는 API 목록
-    // 로그인 API는 인증 없이 호출 가능해야 함
-    const authEndpoints = ['/auth/v1/token'];
+    // 로그인, 회원가입, 리프레시 요청은 인증 헤더 없이 호출 가능해야 함 (혹은 리프레시는 쿠키 사용)
+    const authEndpoints = [
+      '/auth/login',
+      '/auth/signup',
+      '/auth/refresh',
+      '/auth/logout',
+      '/auth/v1/token',
+    ];
     return authEndpoints.some((path) => endpoint.includes(path));
   }
 
@@ -107,7 +112,11 @@ class ApiClient {
           this.isRefreshing = true;
           try {
             const data = await authApi.refresh();
-            useAuthStore.getState().setAuth(data.accessToken, data.user.role);
+            // Backend now returns { accessToken: string }. User info might need to be fetched separately or inferred.
+            // For now, let's assume we keep the existing user or only update the token.
+            // If the backend doesn't return user, we might need a separate /me call or just update token.
+            // The LoginResponse interface in frontend might need check.
+            useAuthStore.getState().setAuth(data.accessToken, useAuthStore.getState().user!);
             this.isRefreshing = false;
 
             // 새 토큰으로 헤더 업데이트 후 재시도
@@ -119,7 +128,7 @@ class ApiClient {
           } catch (refreshError) {
             this.isRefreshing = false;
             useAuthStore.getState().clearAuth();
-            // window.location.href 대신 상태 변화를 통해 가드에서 처리하도록 유도하거나 
+            // window.location.href 대신 상태 변화를 통해 가드에서 처리하도록 유도하거나
             // 필요한 경우에만 최소한으로 사용합니다.
             throw refreshError;
           }

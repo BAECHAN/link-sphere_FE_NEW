@@ -5,19 +5,27 @@ const API_BASE_URL: string = import.meta.env.DEV
   ? '/api'
   : (import.meta.env.VITE_API_BASE_URL as string);
 
+/** API 경로 prefix. 엔드포인트 조합 및 외부 재사용용 */
+const API_BASES = {
+  auth: '/auth',
+  common: '/common',
+  post: '/post',
+} as const;
+
 const API_ENDPOINTS = {
   auth: {
-    login: '/auth/login',
-    logout: '/auth/logout',
-    refreshToken: '/auth/refresh-token',
+    login: `${API_BASES.auth}/login`,
+    logout: `${API_BASES.auth}/logout`,
+    refreshToken: `${API_BASES.auth}/refresh-token`,
   },
 
   post: {
-    root: '/post',
+    base: API_BASES.post,
   },
 
   common: {
-    base: '/common',
+    base: API_BASES.common,
+    categoryOption: `${API_BASES.common}/category-option`,
   },
 } as const;
 

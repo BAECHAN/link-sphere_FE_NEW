@@ -50,10 +50,10 @@ export const TEXTS = {
     },
     post: {
       success: {
-        postCreated: '링크가 생성되었습니다.',
+        postCreated: '포스트가 생성되었습니다.',
       },
       error: {
-        postCreateFailed: '링크 생성에 실패했습니다.',
+        postCreateFailed: '포스트 생성에 실패했습니다.',
       },
     },
     error: {

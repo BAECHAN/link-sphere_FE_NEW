@@ -141,7 +141,7 @@ export default defineConfig(({ mode }) => {
       fs: {
         deny: ['..'],
       },
-      port: 51119,
+      port: 31119,
       proxy: {
         '/api': {
           target: API_URL,

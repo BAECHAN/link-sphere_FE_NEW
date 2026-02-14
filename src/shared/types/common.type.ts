@@ -102,7 +102,6 @@ export type SelectOptionType<T = unknown> = {
 export type CodeType<T extends string | number> = {
   code: T;
   codeName: string;
-  subCode?: T;
 };
 
 export type CodeTypeResponse<T extends string | number> = ApiResponse<CodeType<T>[]>;

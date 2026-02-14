@@ -1,12 +1,17 @@
+const ROUTES_BASE = {
+  POST: '/post',
+  AUTH: '/auth',
+};
+
 const ROUTES_PATHS = {
   HOME: '/',
   POST: {
-    ROOT: '/post',
-    SUBMIT: '/post/submit',
+    ROOT: ROUTES_BASE.POST,
+    SUBMIT: `${ROUTES_BASE.POST}/submit`,
   },
   AUTH: {
-    LOGIN: '/login',
-    REGISTER: '/register',
+    LOGIN: `${ROUTES_BASE.AUTH}/login`,
+    REGISTER: `${ROUTES_BASE.AUTH}/register`,
   },
   // Error
   FORBIDDEN: '/403',
