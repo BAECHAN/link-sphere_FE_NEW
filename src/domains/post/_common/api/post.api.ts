@@ -8,7 +8,7 @@ import { CreatePost, CreatePostResponse } from '@/domains/post/_common/model/pos
  * @returns CreatePostResponse
  */
 const createPost = async (payload: CreatePost): Promise<CreatePostResponse> => {
-  const response = await apiClient.post<CreatePostResponse>(API_ENDPOINTS.post.root, payload);
+  const response = await apiClient.post<CreatePostResponse>(API_ENDPOINTS.post.base, payload);
   return response;
 };
 

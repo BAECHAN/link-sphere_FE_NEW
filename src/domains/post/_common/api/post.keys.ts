@@ -1,12 +1,13 @@
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 
-const rootKey = ['members'] as const;
+const rootKey = ['post'] as const;
 
 export const postKeys = {
   root: rootKey,
   listRoot: [...rootKey, 'list'] as const,
   list: () => [...rootKey, 'list'] as const,
   detail: (id: number | undefined) => [...rootKey, 'detail', id] as const,
+  categoryOptionList: () => [...rootKey, 'category-option-list'] as const,
 };
 
 export const postInvalidateQueries = {
