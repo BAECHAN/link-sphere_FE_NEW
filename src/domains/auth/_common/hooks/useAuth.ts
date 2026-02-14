@@ -15,11 +15,15 @@ type AuthActions = {
   setAuth: (accessToken: string | null, user?: Member | null) => void;
 };
 
-type AuthState = {
-  isAuthenticated: boolean;
-  accessToken: string | null;
-  user: any;
-};
+type AuthState =
+  | {
+      isAuthenticated: false;
+      accessToken: null;
+    }
+  | {
+      isAuthenticated: true;
+      accessToken: string;
+    };
 
 type UseAuthReturn = AuthState &
   AuthActions & {
@@ -32,13 +36,12 @@ type UseAuthReturn = AuthState &
  * 통합 인증 관리 훅
  */
 export const useAuth = (): UseAuthReturn => {
-  const { accessToken, setAuth, clearAuth, isAuthenticated, user } = useAuthStore(
+  const { accessToken, setAuth, clearAuth, isAuthenticated } = useAuthStore(
     useShallow((state) => ({
       accessToken: state.accessToken,
       setAuth: state.setAuth,
       clearAuth: state.clearAuth,
       isAuthenticated: state.isAuthenticated,
-      user: state.user,
     }))
   );
 
@@ -71,7 +74,7 @@ export const useAuth = (): UseAuthReturn => {
         return false;
       }
 
-      setAuth(authData.accessToken, authData.user);
+      setAuth(authData.accessToken);
       return true;
     } catch (error) {
       console.error('Auth restore failed', error);
@@ -80,14 +83,29 @@ export const useAuth = (): UseAuthReturn => {
     }
   }, [accessToken, isAuthenticated, setAuth, clearAuth]);
 
-  return {
-    isAuthenticated,
-    accessToken,
-    user,
+  // 공통 액션
+  const actions = {
     login,
     restoreAuth,
     logout,
     setAuth,
     isLoginPending,
+  };
+
+  // Discriminated Union 반환
+  // isAuthenticated가 true이고 모든 필수 데이터가 있으면 AuthenticatedState
+  if (isAuthenticated && accessToken) {
+    return {
+      isAuthenticated: true,
+      accessToken,
+      ...actions,
+    };
+  }
+
+  // 그 외는 UnauthenticatedState
+  return {
+    isAuthenticated: false,
+    accessToken: null,
+    ...actions,
   };
 };

@@ -1,28 +1,23 @@
 import { create } from 'zustand';
-import { Member } from '@/domains/member/_common/model/member.schema';
+import { devtools } from 'zustand/middleware';
 
 interface AuthState {
   accessToken: string | null;
-  user: Member | null;
   isAuthenticated: boolean;
-  setAuth: (accessToken: string | null, user?: Member | null) => void;
+  setAuth: (token: string | null) => void;
+  setAccessToken: (token: string | null) => void; // 하위 호환성 유지
   clearAuth: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  accessToken: null,
-  user: null,
-  isAuthenticated: false,
-  setAuth: (accessToken, user = null) =>
-    set({
-      accessToken,
-      user,
-      isAuthenticated: !!accessToken,
-    }),
-  clearAuth: () =>
-    set({
+export const useAuthStore = create<AuthState>()(
+  devtools(
+    (set) => ({
       accessToken: null,
-      user: null,
       isAuthenticated: false,
+      setAuth: (token) => set({ accessToken: token, isAuthenticated: !!token }),
+      setAccessToken: (token) => set({ accessToken: token, isAuthenticated: !!token }),
+      clearAuth: () => set({ accessToken: null, isAuthenticated: false }),
     }),
-}));
+    { name: 'auth-store' }
+  )
+);

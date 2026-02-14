@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/domains/auth/_common/api/auth.api';
 import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
 import { LoginRequest } from '@/domains/auth/_common/model/auth.schema';
+import { AuthUtil } from '@/domains/auth/_common/utils/auth.util';
 
 export const authKeys = {
   root: ['auth'] as const,
@@ -20,15 +21,12 @@ export const useLoginMutation = () => {
       // 1. 기존 캐시 초기화
       queryClient.clear();
       // 2. 인메모리 스토어에 토큰 및 유저 정보 저장
-      setAuth(data.accessToken, data.user);
+      setAuth(data.accessToken);
     },
   });
 };
 
 export const useLogoutMutation = () => {
-  const queryClient = useQueryClient();
-  const clearAuth = useAuthStore((state) => state.clearAuth);
-
   const mutation = useMutation({
     mutationFn: () => authApi.logout(),
     meta: {
@@ -39,16 +37,12 @@ export const useLogoutMutation = () => {
   // 서버 응답을 기다리는 래퍼 함수
   const logout = async () => {
     try {
-      // 1. 진행 중인 모든 쿼리 취소 및 캐시 초기화 (데이터 유출 방지)
-      queryClient.cancelQueries();
-      queryClient.clear();
-
       // 2. 서버 요청 전송 (에러가 나더라도 무시하고 클라이언트 정리는 진행)
       await mutation.mutateAsync();
     } catch (error) {
       console.error('Logout request failed:', error);
     } finally {
-      clearAuth();
+      AuthUtil.clearAll();
     }
   };
 
