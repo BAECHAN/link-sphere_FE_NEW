@@ -65,9 +65,8 @@ function RootRedirect() {
     return <Navigate to={ROUTES_PATHS.AUTH.LOGIN} replace />;
   }
 
-  return <Navigate to={ROUTES_PATHS.HOME} replace />;
+  return <Navigate to={ROUTES_PATHS.POST.ROOT} replace />;
 }
-
 /**
  * App Routes Configuration
  * Route Objects 배열 방식으로 라우팅 설정
