@@ -63,7 +63,7 @@ export const TEXTS = {
       apiRequestFailed: 'API 요청 실패:',
 
       // 인증 관련
-      noAccessToken: '액세스 토큰을 받을 수 없습니다.',
+      unauthorizedAccessToken: '액세스 토큰이 유효하지 않습니다.',
       unauthorizedRefreshToken: '리프레시 토큰이 유효하지 않습니다.',
       loginFailed: '로그인에 실패했습니다.',
       loginFailedPasswordMismatch: '아이디 또는 비밀번호가 일치하지 않습니다.',

@@ -19,5 +19,6 @@ const ROUTES_PATHS = {
 } as const;
 
 // 인증이 필요없는 공개 경로들
+const PUBLIC_PATHS = [ROUTES_PATHS.AUTH.LOGIN, ROUTES_PATHS.AUTH.REGISTER] as const;
 
-export { ROUTES_PATHS };
+export { ROUTES_PATHS, PUBLIC_PATHS };

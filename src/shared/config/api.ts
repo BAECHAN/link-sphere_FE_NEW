@@ -16,7 +16,7 @@ const API_ENDPOINTS = {
   auth: {
     login: `${API_BASES.auth}/login`,
     logout: `${API_BASES.auth}/logout`,
-    refreshToken: `${API_BASES.auth}/refresh-token`,
+    refresh: `${API_BASES.auth}/refresh`,
   },
 
   post: {

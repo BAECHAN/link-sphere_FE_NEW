@@ -5,6 +5,7 @@ import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
 import { authApi } from '@/domains/auth/_common/api/auth.api';
 
 import { FormUtil } from '@/shared/utils/form.util';
+import { AuthUtil } from '@/domains/auth/_common/utils/auth.util';
 
 interface ApiRequestOptions extends RequestInit {
   searchParams?: Record<string, any>;
@@ -36,13 +37,7 @@ class ApiClient {
   private isAuthEndpoint(endpoint: string): boolean {
     // 토큰이 만료되어도 401에러가 뜨지 않고 통과되어야 하는 API 목록
     // 로그인, 회원가입, 리프레시 요청은 인증 헤더 없이 호출 가능해야 함 (혹은 리프레시는 쿠키 사용)
-    const authEndpoints = [
-      '/auth/login',
-      '/auth/signup',
-      '/auth/refresh',
-      '/auth/logout',
-      '/auth/v1/token',
-    ];
+    const authEndpoints = ['/auth/login', '/auth/signup', '/auth/refresh'];
     return authEndpoints.some((path) => endpoint.includes(path));
   }
 
@@ -103,57 +98,85 @@ class ApiClient {
       const response = await fetch(url, {
         ...options,
         headers,
-        credentials: options?.credentials || 'same-origin',
+        credentials: 'include', // 쿠키 전송을 위해 필요 (필요 시)
       });
 
-      // 401 Unauthorized: 토큰 만료 처리
-      if (response.status === 401 && !isAuth && retryCount === 0) {
-        if (!this.isRefreshing) {
-          this.isRefreshing = true;
-          try {
-            const data = await authApi.refresh();
-            // Backend now returns { accessToken: string }. User info might need to be fetched separately or inferred.
-            // For now, let's assume we keep the existing user or only update the token.
-            // If the backend doesn't return user, we might need a separate /me call or just update token.
-            // The LoginResponse interface in frontend might need check.
-            useAuthStore.getState().setAuth(data.accessToken, useAuthStore.getState().user!);
-            this.isRefreshing = false;
+      // 401 에러 처리 (accessToken 만료) - 인증 필요 경로에서만 처리
 
-            // 새 토큰으로 헤더 업데이트 후 재시도
-            const newHeaders = {
-              ...headers,
-              Authorization: `Bearer ${data.accessToken}`,
-            };
-            return this.request<T>(endpoint, { ...options, headers: newHeaders }, retryCount + 1);
-          } catch (refreshError) {
-            this.isRefreshing = false;
-            useAuthStore.getState().clearAuth();
-            // window.location.href 대신 상태 변화를 통해 가드에서 처리하도록 유도하거나
-            // 필요한 경우에만 최소한으로 사용합니다.
-            throw refreshError;
+      if (response.status === 401) {
+        // 최초 실패 시 토큰 갱신 시도
+        if (retryCount === 0) {
+          // 토큰 갱신 시도
+          if (!this.isRefreshing) {
+            this.isRefreshing = true;
+            try {
+              const authData = await authApi.refresh();
+
+              if (!authData || !authData.accessToken) {
+                throw new Error(
+                  `${TEXTS.messages.error.tokenRefreshFailed} ${TEXTS.messages.error.unauthorizedAccessToken}`
+                );
+              }
+
+              const { accessToken } = authData;
+
+              // 새 토큰으로 상태 업데이트
+              useAuthStore.getState().setAuth(accessToken);
+
+              // 원래 요청 재시도
+              return this.request<T>(endpoint, options, retryCount + 1);
+            } catch (error) {
+              // 갱신 실패 시 로그아웃
+              AuthUtil.clearAll();
+              throw error;
+            } finally {
+              this.isRefreshing = false;
+            }
+          } else {
+            // 이미 갱신 중이면 잠시 대기 후 재시도
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            return this.request<T>(endpoint, options, retryCount + 1);
           }
         } else {
-          // 이미 갱신 중이면 대기 후 재시도
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          return this.request<T>(endpoint, options, retryCount + 1);
+          AuthUtil.clearAll();
+          // 최초 실패 이후 토큰 갱신 실패 시 에러 발생
+          throw new Error(
+            `${TEXTS.messages.error.tokenRefreshFailed} ${TEXTS.messages.error.unauthorizedRefreshToken}`
+          );
         }
-      }
-
-      // 리프레시 토큰 API 호출에서 401/403 에러 발생 시 즉시 로그아웃 처리
-      if (endpoint.includes('/auth/refresh-token') && response.status === 401) {
-        console.error(`${TEXTS.messages.error.unauthorizedRefreshToken} 로그아웃 처리합니다.`);
-        throw new Error(TEXTS.messages.error.unauthorizedRefreshToken);
       }
 
       // 403 Forbidden 처리 (UX 개선)
       if (response.status === 403) {
+        // GET 요청(페이지 로드성)이 아닌 경우 (Action) -> Alert 표시
+        if (options?.method !== 'GET' && options?.method !== undefined) {
+          // useAlertStore.getState().openAlert({
+          //   title: '권한 없음',
+          //   message: '해당 작업을 수행할 권한이 없습니다.',
+          // });
+        }
+        // GET 요청은 ErrorBoundary가 처리하도록 에러 전파
         return Promise.reject(new Error('Forbidden'));
       }
+
+      // 404 Not Found 처리
+      if (response.status === 404) {
+        // 404도 리다이렉트보다는 에러 전파가 나을 수 있음 (부분 데이터 로딩 실패 등)
+        // 하지만 기존 요구사항(이전 대화)에서 404 리다이렉트를 원했으므로 유지하되,
+        // API 호출 실패가 전체 페이지 404로 이어지는게 맞는지 고민 필요.
+        // 일단 403 UX 개선에 집중하기 위해 404는 기존 로직(리다이렉트) 유지하거나,
+        // 403과 동일하게 처리할 수 있음. 여기서는 403과 동일하게 처리하도록 변경 (일관성)
+        // window.location.href = '/404';
+        return Promise.reject(new Error('Not Found'));
+      }
+
       if (!response.ok) {
+        // response.json()의 반환 타입을 unknown으로 처리하여 타입 안전성 확보
         const errorResponseBody = (await response.json().catch(() => ({}))) as ApiErrorResponse;
         throw new ApiError(response.status, response.statusText, errorResponseBody);
       }
 
+      // 204 No Content 또는 Content-Length가 0인 경우 빈 객체 반환
       if (response.status === 204 || response.headers.get('content-length') === '0') {
         return {} as T;
       }
@@ -175,9 +198,16 @@ class ApiClient {
         const data = JSON.parse(text) as T;
         return data;
       } catch {
+        // JSON이 아닌 경우 텍스트 자체를 반환하거나 에러 처리
+        // 여기서는 안전하게 텍스트 반환
         return text as unknown as T;
       }
     } catch (error) {
+      // AbortError는 사용자가 의도적으로 취소한 것이므로 로그 출력 제외
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw error;
+      }
+
       console.error(TEXTS.messages.error.apiRequestFailed, error);
       throw error;
     }

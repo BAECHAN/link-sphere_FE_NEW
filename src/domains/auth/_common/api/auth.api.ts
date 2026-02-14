@@ -28,7 +28,7 @@ export const authApi = {
    */
   refresh: async (): Promise<LoginResponse> => {
     // refreshToken은 쿠키에 있으므로 별도 전송 불필요
-    const response = await apiClient.post<LoginResponse>(API_ENDPOINTS.auth.refreshToken, {});
+    const response = await apiClient.post<LoginResponse>(API_ENDPOINTS.auth.refresh, {});
 
     return response;
   },
