@@ -25,7 +25,6 @@ export function useCreatePost() {
     try {
       await createPost(formData, {
         onSuccess: () => {
-          console.log('onSuccess in useCreatePost');
           onFormReset();
           navigate(ROUTES_PATHS.POST.ROOT);
         },

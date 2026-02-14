@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/atoms/button';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
 
 export function Post() {
+  useFetchCategoryOptionQuery();
+
   return (
     <div className="w-full space-y-6 md:space-y-8">
       <div className="flex items-center justify-between gap-2">

@@ -14,7 +14,6 @@ export const useCreatePostMutation = () => {
       errorMessage: TEXTS.messages.post.error.postCreateFailed,
     },
     onSuccess: () => {
-      console.log('onSuccess in post.queries');
       postInvalidateQueries.list();
     },
   });
