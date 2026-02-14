@@ -1,105 +1,35 @@
 import { apiClient } from '@/shared/api/client';
 import { LoginRequest, LoginResponse } from '@/domains/auth/_common/model/auth.schema';
-import { LocalStorageUtil } from '@/shared/utils/storage.util';
-
-interface SupabaseTokenResponse {
-  access_token: string;
-  refresh_token: string;
-  user: {
-    id: string;
-    email: string;
-    user_metadata?: {
-      role?: string;
-    };
-  };
-}
-
-const env = import.meta.env as Record<string, string | undefined>;
-const SUPABASE_URL = env.VITE_SUPABASE_URL ?? '';
-const SUPABASE_KEY = env.VITE_SUPABASE_ANON_KEY ?? '';
+import { API_ENDPOINTS } from '@/shared/config/api';
 
 export const authApi = {
   /**
-   * Supabase Auth API로 로그인 요청
+   * Backend Auth API로 로그인 요청
    */
   login: async (payload: LoginRequest): Promise<LoginResponse> => {
-    const response = await apiClient.post<SupabaseTokenResponse>(
-      `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
-      {
-        email: payload.email,
-        password: payload.password,
-      },
-      {
-        headers: {
-          apikey: SUPABASE_KEY,
-        },
-      }
-    );
+    const response = await apiClient.post<LoginResponse>(API_ENDPOINTS.auth.login, {
+      email: payload.email,
+      password: payload.password,
+    });
 
-    // Refresh Token은 로컬 스토리지에 저장
-    if (response.refresh_token) {
-      LocalStorageUtil.setItem('refreshToken', response.refresh_token);
-    }
-
-    return {
-      accessToken: response.access_token,
-      refreshToken: response.refresh_token,
-      user: {
-        id: response.user.id,
-        email: response.user.email,
-        role: (response.user.user_metadata?.role as any) || 'USER',
-      },
-    };
+    // Refresh Token은 벡엔드에서 쿠키로 설정하므로 클라이언트 저장 불필요
+    return response;
   },
 
   /**
-   * Supabase 로그아웃 요청
+   * 로그아웃 요청
    */
   logout: async (): Promise<void> => {
-    await apiClient.post(
-      `${SUPABASE_URL}/auth/v1/logout`,
-      {},
-      {
-        headers: {
-          apikey: SUPABASE_KEY,
-        },
-      }
-    );
+    await apiClient.post(API_ENDPOINTS.auth.logout, {});
   },
 
   /**
-   * 로컬 스토리지의 refreshToken을 사용하여 토큰 갱신
+   * 쿠키의 refreshToken을 사용하여 토큰 갱신
    */
   refresh: async (): Promise<LoginResponse> => {
-    const refreshToken = LocalStorageUtil.getItem<string>('refreshToken');
+    // refreshToken은 쿠키에 있으므로 별도 전송 불필요
+    const response = await apiClient.post<LoginResponse>(API_ENDPOINTS.auth.refreshToken, {});
 
-    if (!refreshToken) throw new Error('No refresh token found');
-
-    const response = await apiClient.post<SupabaseTokenResponse>(
-      `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
-      {
-        refresh_token: refreshToken,
-      },
-      {
-        headers: {
-          apikey: SUPABASE_KEY,
-        },
-      }
-    );
-
-    // 새 리프레시 토큰 저장
-    if (response.refresh_token) {
-      LocalStorageUtil.setItem('refreshToken', response.refresh_token);
-    }
-
-    return {
-      accessToken: response.access_token,
-      refreshToken: response.refresh_token,
-      user: {
-        id: response.user.id,
-        email: response.user.email,
-        role: (response.user.user_metadata?.role as any) || 'USER',
-      },
-    };
+    return response;
   },
 };

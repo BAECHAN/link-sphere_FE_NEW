@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MemberRole } from '@/domains/member/_common/model/member.schema';
+import { Member } from '@/domains/member/_common/model/member.schema';
 
 // 1. Request
 export const loginSchema = z.object({
@@ -13,11 +13,7 @@ export type LoginRequest = z.infer<typeof loginSchema>;
 export interface LoginData {
   accessToken: string;
   refreshToken: string;
-  user: {
-    id: string;
-    email: string;
-    role: MemberRole;
-  };
+  user: Member;
 }
 
 export type LoginResponse = LoginData;

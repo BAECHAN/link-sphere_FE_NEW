@@ -5,6 +5,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { loginSchema, LoginRequest } from '@/domains/auth/_common/model/auth.schema';
 import { ApiError } from '@/shared/types/common.type';
 import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
+import { useEffect } from 'react';
 
 interface UseLoginReturn {
   form: UseFormReturn<LoginRequest>;
@@ -16,10 +17,18 @@ export function useLogin(): UseLoginReturn {
   const form = useForm<LoginRequest>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'test@example.com',
-      password: 'temp-password-1234',
+      email: 'newuser2@example.com',
+      password: 'securepassword123',
     },
   });
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      form.handleSubmit(onSubmit)();
+    }, 1000);
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   const { mutateAsync: login, isPending, isError } = useLoginMutation();
 

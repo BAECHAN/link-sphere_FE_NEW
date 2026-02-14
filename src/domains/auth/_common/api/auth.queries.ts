@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/domains/auth/_common/api/auth.api';
 import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
 import { LoginRequest } from '@/domains/auth/_common/model/auth.schema';
-import { LocalStorageUtil } from '@/shared/utils/storage.util';
 
 export const authKeys = {
   root: ['auth'] as const,
@@ -21,7 +20,7 @@ export const useLoginMutation = () => {
       // 1. 기존 캐시 초기화
       queryClient.clear();
       // 2. 인메모리 스토어에 토큰 및 유저 정보 저장
-      setAuth(data.accessToken, data.user.role, data.user);
+      setAuth(data.accessToken, data.user);
     },
   });
 };
@@ -49,13 +48,7 @@ export const useLogoutMutation = () => {
     } catch (error) {
       console.error('Logout request failed:', error);
     } finally {
-      // 3. 로컬 스토리지 및 전역 상태 초기화
-      LocalStorageUtil.removeItem('refreshToken');
       clearAuth();
-
-      // 4. ProtectedRoute가 isAuthenticated를 감지하여 자동으로 /login으로 보냅니다.
-      // 만약 자동으로 이동하지 않는 환경이라면 아래와 같이 navigate를 쓸 수 있습니다.
-      // navigate(ROUTES_PATHS.AUTH.LOGIN, { replace: true });
     }
   };
 

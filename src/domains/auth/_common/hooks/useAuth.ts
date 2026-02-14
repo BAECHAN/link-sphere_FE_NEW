@@ -3,9 +3,8 @@ import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
 import { useShallow } from 'zustand/react/shallow';
 import { authApi } from '@/domains/auth/_common/api/auth.api';
 import { useLoginMutation, useLogoutMutation } from '@/domains/auth/_common/api/auth.queries';
-import { MemberRole } from '@/domains/member/_common/model/member.schema';
+import { Member } from '@/domains/member/_common/model/member.schema';
 import { LoginRequest } from '@/domains/auth/_common/model/auth.schema';
-import { isMemberRole } from '@/domains/member/_common/util/member.util';
 
 // ==================== Types ====================
 
@@ -13,13 +12,12 @@ type AuthActions = {
   login: (data: LoginRequest) => Promise<void>;
   restoreAuth: () => Promise<boolean>;
   logout: () => void;
-  setAuth: (accessToken: string | null, role: MemberRole | null) => void;
+  setAuth: (accessToken: string | null, user?: Member | null) => void;
 };
 
 type AuthState = {
   isAuthenticated: boolean;
   accessToken: string | null;
-  role: MemberRole | null;
   user: any;
 };
 
@@ -34,13 +32,12 @@ type UseAuthReturn = AuthState &
  * 통합 인증 관리 훅
  */
 export const useAuth = (): UseAuthReturn => {
-  const { accessToken, setAuth, clearAuth, isAuthenticated, role, user } = useAuthStore(
+  const { accessToken, setAuth, clearAuth, isAuthenticated, user } = useAuthStore(
     useShallow((state) => ({
       accessToken: state.accessToken,
       setAuth: state.setAuth,
       clearAuth: state.clearAuth,
       isAuthenticated: state.isAuthenticated,
-      role: state.role,
       user: state.user,
     }))
   );
@@ -74,11 +71,7 @@ export const useAuth = (): UseAuthReturn => {
         return false;
       }
 
-      if (!isMemberRole(authData.user.role)) {
-        throw new Error('Invalid role');
-      }
-
-      setAuth(authData.accessToken, authData.user.role, authData.user);
+      setAuth(authData.accessToken, authData.user);
       return true;
     } catch (error) {
       console.error('Auth restore failed', error);
@@ -90,7 +83,6 @@ export const useAuth = (): UseAuthReturn => {
   return {
     isAuthenticated,
     accessToken,
-    role,
     user,
     login,
     restoreAuth,
