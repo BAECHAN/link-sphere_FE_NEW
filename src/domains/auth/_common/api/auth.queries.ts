@@ -1,25 +1,27 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { authApi } from '@/domains/auth/_common/api/auth.api';
 import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
 import { LoginRequest } from '@/domains/auth/_common/model/auth.schema';
 import { AuthUtil } from '@/domains/auth/_common/utils/auth.util';
+import { STALE_TIME_ONE_DAY } from '@/shared/config/const';
+import { TEXTS } from '@/shared/config/texts';
 
 export const authKeys = {
   root: ['auth'] as const,
   login: () => [...authKeys.root, 'login'] as const,
   logout: () => [...authKeys.root, 'logout'] as const,
   refreshToken: () => [...authKeys.root, 'refresh-token'] as const,
+  account: () => [...authKeys.root, 'account'] as const,
 };
 
 export const useLoginMutation = () => {
-  const queryClient = useQueryClient();
   const setAuth = useAuthStore((state) => state.setAuth);
 
   return useMutation({
     mutationFn: (payload: LoginRequest) => authApi.login(payload),
     onSuccess: (data) => {
       // 1. 기존 캐시 초기화
-      queryClient.clear();
+      AuthUtil.clearAll();
       // 2. 인메모리 스토어에 토큰 및 유저 정보 저장
       setAuth(data.accessToken);
     },
@@ -50,4 +52,16 @@ export const useLogoutMutation = () => {
     ...mutation,
     mutate: logout, // 래핑된 함수를 mutate로 노출
   };
+};
+
+export const useFetchAccountQuery = (options?: { enabled?: boolean }) => {
+  return useQuery({
+    queryKey: authKeys.account(),
+    queryFn: () => authApi.fetchAccount(),
+    enabled: options?.enabled !== false,
+    staleTime: STALE_TIME_ONE_DAY,
+    meta: {
+      errorMessage: TEXTS.messages.error.fetchAccount,
+    },
+  });
 };

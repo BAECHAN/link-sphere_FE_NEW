@@ -1,6 +1,7 @@
 import { apiClient } from '@/shared/api/client';
 import { LoginRequest, LoginResponse } from '@/domains/auth/_common/model/auth.schema';
 import { API_ENDPOINTS } from '@/shared/config/api';
+import { Account } from '@/domains/auth/_common/model/auth.schema';
 
 export const authApi = {
   /**
@@ -30,6 +31,11 @@ export const authApi = {
     // refreshToken은 쿠키에 있으므로 별도 전송 불필요
     const response = await apiClient.post<LoginResponse>(API_ENDPOINTS.auth.refresh, {});
 
+    return response;
+  },
+
+  fetchAccount: async (): Promise<Account> => {
+    const response = await apiClient.get<Account>(API_ENDPOINTS.auth.account);
     return response;
   },
 };

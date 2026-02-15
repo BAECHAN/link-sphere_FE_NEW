@@ -7,6 +7,7 @@ const API_BASE_URL: string = import.meta.env.DEV
 
 /** API 경로 prefix. 엔드포인트 조합 및 외부 재사용용 */
 const API_BASES = {
+  account: '/account',
   auth: '/auth',
   common: '/common',
   post: '/post',
@@ -17,6 +18,7 @@ const API_ENDPOINTS = {
     login: `${API_BASES.auth}/login`,
     logout: `${API_BASES.auth}/logout`,
     refresh: `${API_BASES.auth}/refresh`,
+    account: `${API_BASES.auth}/account`,
   },
 
   post: {
