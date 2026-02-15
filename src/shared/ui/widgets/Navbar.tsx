@@ -13,12 +13,16 @@ import { Input } from '@/shared/ui/atoms/input';
 import { Kbd } from '@/shared/ui/atoms/kbd';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
-import { useLogoutMutation } from '@/domains/auth/_common/api/auth.queries';
+import { useAuth } from '@/domains/auth/_common/hooks/useAuth';
+import { useAccount } from '@/domains/auth/_common/hooks/useAccount';
 
 export function Navbar() {
-  const { user, isAuthenticated } = useAuthStore();
-  const { mutate: logout } = useLogoutMutation();
+  const { isAuthenticated } = useAuthStore();
+
+  const { logout } = useAuth();
   const navigate = useNavigate();
+
+  const { account } = useAccount();
 
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,7 +50,7 @@ export function Navbar() {
               to={ROUTES_PATHS.POST.ROOT}
               className="text-sm font-medium transition-colors hover:text-primary"
             >
-              Post
+              Feed
             </Link>
             <Link
               to={ROUTES_PATHS.POST.SUBMIT}
@@ -104,8 +108,8 @@ export function Navbar() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-2">
                   <Avatar className="h-8 w-8 border">
-                    <AvatarImage src={''} alt={user?.name || ''} />
-                    <AvatarFallback>{user?.name?.[0] || 'U'}</AvatarFallback>
+                    <AvatarImage src={account?.image || ''} alt={account?.name || ''} />
+                    <AvatarFallback>{account?.name?.[0] || 'U'}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>

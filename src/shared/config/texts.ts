@@ -40,6 +40,9 @@ export const TEXTS = {
   validation: {
     idRequired: '아이디를 입력해주세요.',
     passwordRequired: '비밀번호를 입력해주세요.',
+    passwordRegex: '비밀번호는 8자 이상, 영문, 숫자, 특수문자 조합으로 입력해주세요.',
+    passwordMaxLength: '비밀번호는 20자 이하로 입력해주세요.',
+    emailRegex: '이메일 형식이 올바르지 않습니다.',
   },
   messages: {
     info: {
@@ -72,6 +75,7 @@ export const TEXTS = {
       authRestoreFailed: '인증 복원 실패:',
       loginError: '로그인 실패:',
       userInfoNotFound: '사용자 정보를 찾을 수 없습니다.',
+      fetchAccount: '계정 정보 조회 실패:',
     },
   },
   shortcuts: {
