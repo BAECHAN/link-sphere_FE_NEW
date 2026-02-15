@@ -28,7 +28,7 @@ export function CreatePostForm() {
           <FormProvider {...form}>
             <form onSubmit={onSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label>링크</Label>
+                <Label>URL</Label>
                 <FormInput
                   name="url"
                   placeholder="https://example.com/amazing-article"

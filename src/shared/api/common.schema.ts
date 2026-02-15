@@ -9,3 +9,20 @@ export const categoryOptionSchema = z.object({
 });
 
 export type CategoryOption = z.infer<typeof categoryOptionSchema>;
+
+export const paginationRequestSchema = z.object({
+  page: z.number().int().nonnegative().default(0),
+  size: z.number().int().positive().default(10),
+});
+
+export type PaginationRequest = z.infer<typeof paginationRequestSchema>;
+
+export const paginationResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
+  z.object({
+    page: z.number().int().nonnegative().default(0),
+    size: z.number().int().positive().default(10),
+    content: z.array(itemSchema),
+    totalElements: z.number().int().nonnegative(),
+    totalPages: z.number().int().nonnegative(),
+    last: z.boolean(),
+  });

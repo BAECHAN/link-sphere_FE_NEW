@@ -49,19 +49,6 @@ export const commonSearchRequestSchema = paginationSchema.merge(dateRangeSchema)
 
 export type CommonSearchRequest = z.infer<typeof commonSearchRequestSchema>;
 
-/**
- * 공통 API 응답 타입
- */
-export interface ApiResponse<T = unknown> {
-  code: number;
-  message: string;
-  data: T;
-}
-
-export interface ApiResponseWithPage<T = unknown> extends ApiResponse<T> {
-  page: PageType;
-}
-
 export interface ApiErrorResponse {
   code: number;
   message: string;
@@ -103,8 +90,6 @@ export type CodeType<T extends string | number> = {
   code: T;
   codeName: string;
 };
-
-export type CodeTypeResponse<T extends string | number> = ApiResponse<CodeType<T>[]>;
 
 export type FormType = {
   register: UseFormRegister<any>;
