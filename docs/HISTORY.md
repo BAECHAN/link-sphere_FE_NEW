@@ -61,3 +61,52 @@
 - `fix`: 툴팁 텍스트 사이즈 조정 (모바일/데스크탑 분기 처리)
 - `fix`: 모바일 화면 스크롤 방지를 위한 패딩 조정
 - `docs`: 에러 핸들링 아키텍처 문서 추가 및 개발 이력 업데이트
+
+## 7단계: Form 리팩토링 및 회원가입 구현 (Form Refactoring & Signup)
+
+### Form 컴포넌트 구조 개선
+
+- `a6593dd` refactor: Form 컴포넌트 구조 개선 및 form 디렉토리로 이동
+  - `FormField`, `FormInput`, `FormInputPassword`, `FormCheckboxGroup`을 `form/` 디렉토리로 재구조화
+  - `FormField` 기본 컴포넌트 추가 (레이블, 설명, 에러 메시지 통합 관리)
+
+### 회원가입 기능 및 UI 개선
+
+- `2a23878` feat: 회원가입 기능 추가 및 인증 폼 개선
+  - 회원가입 페이지(`SignUpPage`), 폼(`SignUpForm`), hooks(`useSignUp`) 추가
+  - 로그인 폼 및 페이지 개선
+- `d8d1026` feat: TooltipWrapper 컴포넌트 추가 및 Button 컴포넌트 개선
+  - Tooltip 기능을 제공하는 래퍼 컴포넌트 추가
+  - Button 컴포넌트 개선
+
+### 설정 및 에러 핸들링
+
+- `9936f4f` chore: 라우트 경로, 텍스트 설정 및 React Query 에러 핸들링 개선
+  - 라우트 설정, 텍스트 상수 업데이트
+  - React Query 에러 핸들링 로직 개선
+
+### Auth 도메인 리팩토링
+
+- `6000f79` refactor: Auth API 및 스키마 구조 개선
+  - Account 중심의 스키마 구조로 통일 (LoginRequest → Login, Member → Account)
+  - `useCreateAccountMutation` 추가 및 409 Conflict 에러 핸들링 구현
+  - 로그인/회원가입 스키마 및 hooks 개선
+
+### API 및 도메인 정리
+
+- `b13d88e` refactor: API 클라이언트 에러 처리 개선 및 Member 도메인 제거
+  - API 에러 응답 JSON 파싱 개선 (텍스트 응답 처리)
+  - signup 엔드포인트 추가
+  - 미사용 Member 도메인 스키마 및 유틸 제거
+
+### Post 스키마 통일
+
+- `42c9da5` refactor: Post 스키마 개선 및 의존성 업데이트
+  - Post 스키마를 Account 기반으로 통일
+  - 앱 라우팅 업데이트 (SignUpPage 추가)
+  - shadcn/ui sonner 패키지 추가 (Toast 알림용)
+
+### 백엔드 테스트
+
+- `f942091` test: MemberService 테스트 추가
+  - MemberService 단위 테스트 구현
