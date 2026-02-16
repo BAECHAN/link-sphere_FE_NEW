@@ -16,6 +16,9 @@ const Post = lazy(() => import('@/pages/post').then((module) => ({ default: modu
 const PostSubmitPage = lazy(() =>
   import('@/pages/post/PostSubmitPage').then((module) => ({ default: module.PostSubmitPage }))
 );
+const SignUpPage = lazy(() =>
+  import('@/pages/auth/SignUpPage').then((module) => ({ default: module.SignUpPage }))
+);
 const LoginPage = lazy(() =>
   import('@/pages/auth/LoginPage').then((module) => ({ default: module.LoginPage }))
 );
@@ -101,6 +104,10 @@ export const appRoutes: RouteObject[] = [
       {
         path: ROUTES_PATHS.AUTH.LOGIN,
         element: withSuspense(LoginPage),
+      },
+      {
+        path: ROUTES_PATHS.AUTH.SIGNUP,
+        element: withSuspense(SignUpPage),
       },
     ],
   },

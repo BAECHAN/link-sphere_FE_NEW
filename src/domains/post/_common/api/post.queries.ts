@@ -12,8 +12,8 @@ export const useCreatePostMutation = () => {
       return await postApi.createPost(payload);
     },
     meta: {
-      successMessage: TEXTS.messages.post.success.postCreated,
-      errorMessage: TEXTS.messages.post.error.postCreateFailed,
+      successMessage: TEXTS.messages.success.postCreated,
+      errorMessage: TEXTS.messages.error.postCreateFailed,
     },
     onSuccess: () => {
       postInvalidateQueries.list();

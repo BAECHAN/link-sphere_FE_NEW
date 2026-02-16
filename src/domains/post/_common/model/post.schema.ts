@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import { categoryOptionSchema, paginationResponseSchema } from '@/shared/api/common.schema';
+import { TEXTS } from '@/shared/config/texts';
 
 const aiStatusEnum = z.enum(['NONE', 'PENDING', 'COMPLETED', 'FAILED']);
+
+// ==================== 1. Domain Model Schema ====================
 
 /**
  * DB의 posts 테이블 스키마를 기반으로 한 Zod 스키마입니다.
@@ -9,8 +12,8 @@ const aiStatusEnum = z.enum(['NONE', 'PENDING', 'COMPLETED', 'FAILED']);
 export const postSchema = z.object({
   id: z.string(),
   userId: z.string(),
-  url: z.string(),
-  title: z.string().min(1, '제목을 입력해주세요.'),
+  url: z.string().url(TEXTS.validation.urlFormat),
+  title: z.string().min(1, TEXTS.validation.titleRequired),
   description: z.string().nullable(),
   tags: z.array(z.string()).nullable(),
   categories: z.array(categoryOptionSchema).nullable(),
@@ -21,10 +24,7 @@ export const postSchema = z.object({
   createdAt: z.coerce.date(),
 });
 
-/**
- * 포스트 데이터 타입
- */
-export type Post = z.infer<typeof postSchema>;
+export const PostListResponseSchema = paginationResponseSchema(postSchema);
 
 /**
  * 포스트 등록(생성)을 위한 스키마
@@ -33,8 +33,6 @@ export type Post = z.infer<typeof postSchema>;
 export const createPostSchema = postSchema.pick({ url: true }).extend({
   categoryIds: z.array(z.coerce.number()).optional(),
 });
-
-export type CreatePost = z.infer<typeof createPostSchema>;
 
 export const createPostResponseSchema = postSchema.pick({
   id: true,
@@ -51,11 +49,13 @@ export const createPostResponseSchema = postSchema.pick({
   createdAt: true,
 });
 
-export type CreatePostResponse = z.infer<typeof createPostResponseSchema>;
+// ==================== 2. DTO ====================
 
 /**
- * 포스트 목록 페이지네이션 응답 스키마
+ * 포스트 데이터 타입
  */
-export const PostListResponseSchema = paginationResponseSchema(postSchema);
-
+export type Post = z.infer<typeof postSchema>;
 export type PostListResponse = z.infer<typeof PostListResponseSchema>;
+
+export type CreatePost = z.infer<typeof createPostSchema>;
+export type CreatePostResponse = z.infer<typeof createPostResponseSchema>;
