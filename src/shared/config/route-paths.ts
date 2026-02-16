@@ -11,7 +11,7 @@ const ROUTES_PATHS = {
   },
   AUTH: {
     LOGIN: `${ROUTES_BASE.AUTH}/login`,
-    REGISTER: `${ROUTES_BASE.AUTH}/register`,
+    SIGNUP: `${ROUTES_BASE.AUTH}/sign-up`,
   },
   // Error
   FORBIDDEN: '/403',
@@ -19,6 +19,6 @@ const ROUTES_PATHS = {
 } as const;
 
 // 인증이 필요없는 공개 경로들
-const PUBLIC_PATHS = [ROUTES_PATHS.AUTH.LOGIN, ROUTES_PATHS.AUTH.REGISTER] as const;
+const PUBLIC_PATHS = [ROUTES_PATHS.AUTH.LOGIN, ROUTES_PATHS.AUTH.SIGNUP] as const;
 
 export { ROUTES_PATHS, PUBLIC_PATHS };

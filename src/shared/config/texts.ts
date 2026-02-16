@@ -14,14 +14,16 @@ export const TEXTS = {
     },
   },
   labels: {
-    userId: '아이디',
+    name: '이름',
+    email: '이메일',
     password: '비밀번호',
     message: '메시지',
   },
   placeholders: {
-    userId: '아이디를 입력하세요',
-    password: '비밀번호를 입력하세요',
-    message: '메시지를 입력하세요',
+    name: '한글/영문 2~10자 이내',
+    email: 'example@email.com',
+    password: '비밀번호 입력',
+    message: '메시지를 입력하세요.',
   },
   buttons: {
     retry: '다시 시도',
@@ -37,12 +39,19 @@ export const TEXTS = {
     title: '로그인',
     description: '아이디와 비밀번호를 입력해주세요',
   },
+  descriptions: {
+    passwordGuide: '영문, 숫자, 특수문자 조합 8자 이상',
+  },
   validation: {
+    urlFormat: '유효하지 않은 URL 형식입니다.',
+    urlRequired: 'URL을 입력해주세요.',
+    titleRequired: '제목을 입력해주세요.',
     idRequired: '아이디를 입력해주세요.',
     passwordRequired: '비밀번호를 입력해주세요.',
     passwordRegex: '비밀번호는 8자 이상, 영문, 숫자, 특수문자 조합으로 입력해주세요.',
     passwordMaxLength: '비밀번호는 20자 이하로 입력해주세요.',
-    emailRegex: '이메일 형식이 올바르지 않습니다.',
+    emailRegex: '올바른 이메일 형식(예: user@mail.com)인지 확인해 주세요.',
+    nameRegex: '닉네임은 2자 이상 10자 이하로 입력해주세요.',
   },
   messages: {
     info: {
@@ -51,31 +60,33 @@ export const TEXTS = {
     warning: {
       memberDeleteConfirm: '정말 이 회원을 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.',
     },
-    post: {
-      success: {
-        postCreated: '포스트가 생성되었습니다.',
-      },
-      error: {
-        postCreateFailed: '포스트 생성에 실패했습니다.',
-      },
+    success: {
+      accountCreated: '회원이 생성되었습니다.',
+      postCreated: '포스트가 생성되었습니다.',
     },
     error: {
       // 공통
       defaultError: '오류가 발생했습니다.',
+      serverError: '서버 오류가 발생했습니다.',
       unknownError: '알 수 없는 오류가 발생했습니다.',
-      apiRequestFailed: 'API 요청 실패:',
+      apiRequestFailed: 'API 요청 실패',
 
       // 인증 관련
       unauthorizedAccessToken: '액세스 토큰이 유효하지 않습니다.',
       unauthorizedRefreshToken: '리프레시 토큰이 유효하지 않습니다.',
       loginFailed: '로그인에 실패했습니다.',
       loginFailedPasswordMismatch: '아이디 또는 비밀번호가 일치하지 않습니다.',
-      logoutError: '로그아웃 처리 중 오류 발생:',
-      tokenRefreshFailed: '토큰 갱신 실패:',
-      authRestoreFailed: '인증 복원 실패:',
-      loginError: '로그인 실패:',
+      logoutError: '로그아웃 처리 중 오류 발생',
+      tokenRefreshFailed: '토큰 갱신 실패',
+      authRestoreFailed: '인증 복원 실패',
+      loginError: '로그인 실패',
       userInfoNotFound: '사용자 정보를 찾을 수 없습니다.',
-      fetchAccount: '계정 정보 조회 실패:',
+      fetchAccount: '계정 정보 조회 실패',
+      accountCreateFailed: '계정 생성 실패',
+      accountCreateFailedDuplicateAccount: '해당 이메일로 가입된 계정이 존재합니다.',
+
+      // 포스트 관련
+      postCreateFailed: '포스트 생성에 실패했습니다.',
     },
   },
   shortcuts: {

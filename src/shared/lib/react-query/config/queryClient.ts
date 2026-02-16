@@ -1,12 +1,13 @@
 import { MutationCache, QueryCache, QueryClient, type Mutation } from '@tanstack/react-query';
 import { ApiError } from '@/shared/types/common.type';
 import { TEXTS } from '@/shared/config/texts';
+import { toast } from 'sonner';
 
 // 1. 커스텀 Meta 타입 정의 (모듈 확장 대신 로컬 인터페이스 활용 고려)
 interface CustomMutationMeta {
   successMessage?: string;
   errorMessage?: string;
-  ignoreError?: boolean;
+  manualErrorHandling?: boolean;
 }
 
 // 2. 모듈 확장을 통해 React Query 타입에 반영
@@ -26,11 +27,10 @@ const mutationErrorHandler = (
   _context: unknown,
   mutation: Mutation<unknown, unknown, unknown, unknown>
 ) => {
-  // 모듈 확장이 파일 내부에서 인식되지 않을 경우를 대비해 any 단언 사용
   const meta = mutation.meta as CustomMutationMeta | undefined;
 
   // 1. 에러 무시 설정이 있으면 종료
-  if (meta?.ignoreError) {
+  if (meta?.manualErrorHandling) {
     return;
   }
 
@@ -43,18 +43,13 @@ const mutationErrorHandler = (
     // 보안 및 UX를 위해 서버 에러 메시지를 직접 노출하지 않음
     // 상세 에러는 콘솔에 남기고 사용자에게는 일반적인 에러 메시지 표시
     console.error(`[API Mutation Error] ${error.message}`, error.data);
-    message = TEXTS.messages.error.defaultError;
+    message = TEXTS.messages.error.serverError;
   } else if (error instanceof Error) {
     console.error(`[Mutation Error] ${error.message}`);
-    message = TEXTS.messages.error.defaultError;
+    message = TEXTS.messages.error.serverError;
   }
 
-  // showToast({
-  //   message,
-  //   type: 'error',
-  // });
-
-  console.error(message);
+  toast.error(message);
 };
 
 /**
@@ -69,10 +64,7 @@ const mutationSuccessHandler = (
   const meta = mutation.meta as CustomMutationMeta | undefined;
 
   if (meta?.successMessage) {
-    // useAlertStore.getState().openAlert({
-    //   title: '알림',
-    //   message: meta.successMessage,
-    // });
+    toast.success(meta.successMessage);
   }
 };
 
@@ -83,11 +75,11 @@ export const queryClient = new QueryClient({
 
       // Query 에러 처리
       if (meta?.errorMessage) {
-        //showToast({ message: meta.errorMessage, type: 'error' });
+        toast.error(meta.errorMessage);
       } else if (error instanceof ApiError) {
         // 보안 및 UX를 위해 서버 에러 메시지를 직접 노출하지 않음
         console.error(`[API Query Error] ${error.message}`, error.data);
-        //showToast({ message: TEXTS.messages.error.defaultError, type: 'error' });
+        toast.error(TEXTS.messages.error.serverError);
       }
     },
   }),
