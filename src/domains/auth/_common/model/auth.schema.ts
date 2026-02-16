@@ -1,24 +1,49 @@
 import { z } from 'zod';
-import {
-  Member,
-  memberSchema,
-  passwordValidationSchema,
-} from '@/domains/member/_common/model/member.schema';
+import { TEXTS } from '@/shared/config/texts';
+
+const roleEnum = z.enum(['USER', 'ADMIN']);
+
+export const nameValidationSchema = z
+  .string()
+  .regex(/^[a-zA-Z0-9가-힣_.-]{2,10}$/, TEXTS.validation.nameRegex);
+
+/** 재사용 가능한 비밀번호 검증 스키마 */
+export const passwordValidationSchema = z
+  .string()
+  .regex(
+    /^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\-=[\]{};':",./< >?]).{8,}$/,
+    TEXTS.validation.passwordRegex
+  )
+  .max(20, TEXTS.validation.passwordMaxLength);
+
+export const emailValidationSchema = z.string().email(TEXTS.validation.emailRegex);
 
 // ==================== 1. Domain Model Schema ====================
 
 export const loginSchema = z.object({
-  email: z.string().email('올바른 이메일 형식이 아닙니다.'),
-  password: z.string().min(1, '비밀번호를 입력해주세요.'),
+  email: emailValidationSchema,
+  password: passwordValidationSchema,
 });
 
-const accountSchema = memberSchema;
+export const loginResponseSchema = z.object({
+  accessToken: z.string(),
+});
 
-export type Account = z.infer<typeof accountSchema>;
+export const accountSchema = z.object({
+  id: z.string(),
+  name: nameValidationSchema,
+  email: emailValidationSchema,
+  image: z.string().optional(),
+  role: roleEnum,
+  created_at: z.string(),
+  updated_at: z.string(),
+});
 
-// ==================== 2. Request DTO ====================
-
-export type LoginRequest = z.infer<typeof loginSchema>;
+export const createAccountSchema = z.object({
+  name: nameValidationSchema,
+  email: emailValidationSchema,
+  password: passwordValidationSchema,
+});
 
 // 수정 요청 (Partial 사용)
 // password는 memberSchema에 없으므로 extend로 추가
@@ -31,14 +56,10 @@ export const updateAccountSchema = accountSchema
   })
   .partial();
 
-export type UpdateAccountRequest = z.infer<typeof updateAccountSchema>;
+// ==================== 2. DTO ====================
 
-// ==================== 3. Response DTO ====================
-
-export interface LoginData {
-  accessToken: string;
-  refreshToken: string;
-  user: Member;
-}
-
-export type LoginResponse = LoginData;
+export type Login = z.infer<typeof loginSchema>;
+export type LoginResponse = z.infer<typeof loginResponseSchema>;
+export type Account = z.infer<typeof accountSchema>;
+export type CreateAccount = z.infer<typeof createAccountSchema>;
+export type UpdateAccount = z.infer<typeof updateAccountSchema>;

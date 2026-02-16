@@ -1,10 +1,12 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { authApi } from '@/domains/auth/_common/api/auth.api';
 import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
-import { LoginRequest } from '@/domains/auth/_common/model/auth.schema';
+import { ApiError } from '@/shared/types/common.type';
+import { Login, CreateAccount } from '@/domains/auth/_common/model/auth.schema';
 import { AuthUtil } from '@/domains/auth/_common/utils/auth.util';
 import { STALE_TIME_ONE_DAY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
+import { toast } from 'sonner';
 
 export const authKeys = {
   root: ['auth'] as const,
@@ -18,7 +20,7 @@ export const useLoginMutation = () => {
   const setAuth = useAuthStore((state) => state.setAuth);
 
   return useMutation({
-    mutationFn: (payload: LoginRequest) => authApi.login(payload),
+    mutationFn: (payload: Login) => authApi.login(payload),
     onSuccess: (data) => {
       // 1. 기존 캐시 초기화
       AuthUtil.clearAll();
@@ -62,6 +64,27 @@ export const useFetchAccountQuery = (options?: { enabled?: boolean }) => {
     staleTime: STALE_TIME_ONE_DAY,
     meta: {
       errorMessage: TEXTS.messages.error.fetchAccount,
+    },
+  });
+};
+
+export const useCreateAccountMutation = () => {
+  return useMutation({
+    mutationFn: async (payload: CreateAccount) => {
+      return await authApi.createAccount(payload);
+    },
+    meta: {
+      successMessage: TEXTS.messages.success.accountCreated,
+      manualErrorHandling: true,
+    },
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        if (error.status === 409) {
+          toast.error(TEXTS.messages.error.accountCreateFailedDuplicateAccount);
+        } else {
+          toast.error(TEXTS.messages.error.accountCreateFailed);
+        }
+      }
     },
   });
 };

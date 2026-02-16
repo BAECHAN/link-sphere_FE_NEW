@@ -3,16 +3,16 @@ import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
 import { useShallow } from 'zustand/react/shallow';
 import { authApi } from '@/domains/auth/_common/api/auth.api';
 import { useLoginMutation, useLogoutMutation } from '@/domains/auth/_common/api/auth.queries';
-import { Member } from '@/domains/member/_common/model/member.schema';
-import { LoginRequest } from '@/domains/auth/_common/model/auth.schema';
+import { Login } from '@/domains/auth/_common/model/auth.schema';
+import { Account } from '@/domains/auth/_common/model/auth.schema';
 
 // ==================== Types ====================
 
 type AuthActions = {
-  login: (data: LoginRequest) => Promise<void>;
+  login: (data: Login) => Promise<void>;
   restoreAuth: () => Promise<boolean>;
   logout: () => void;
-  setAuth: (accessToken: string | null, user?: Member | null) => void;
+  setAuth: (accessToken: string | null, user?: Account | null) => void;
 };
 
 type AuthState =
@@ -50,7 +50,7 @@ export const useAuth = (): UseAuthReturn => {
 
   // 로그인 처리 함수
   const login = useCallback(
-    async (data: LoginRequest) => {
+    async (data: Login) => {
       try {
         await loginMutation(data);
       } catch (error) {

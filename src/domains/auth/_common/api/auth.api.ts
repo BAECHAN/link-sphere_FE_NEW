@@ -1,13 +1,13 @@
 import { apiClient } from '@/shared/api/client';
-import { LoginRequest, LoginResponse } from '@/domains/auth/_common/model/auth.schema';
+import { Login, LoginResponse } from '@/domains/auth/_common/model/auth.schema';
 import { API_ENDPOINTS } from '@/shared/config/api';
-import { Account } from '@/domains/auth/_common/model/auth.schema';
+import { Account, CreateAccount } from '@/domains/auth/_common/model/auth.schema';
 
 export const authApi = {
   /**
    * Backend Auth API로 로그인 요청
    */
-  login: async (payload: LoginRequest): Promise<LoginResponse> => {
+  login: async (payload: Login): Promise<LoginResponse> => {
     const response = await apiClient.post<LoginResponse>(API_ENDPOINTS.auth.login, {
       email: payload.email,
       password: payload.password,
@@ -36,6 +36,11 @@ export const authApi = {
 
   fetchAccount: async (): Promise<Account> => {
     const response = await apiClient.get<Account>(API_ENDPOINTS.auth.account);
+    return response;
+  },
+
+  createAccount: async (payload: CreateAccount): Promise<Account> => {
+    const response = await apiClient.post<Account>(API_ENDPOINTS.auth.signup, payload);
     return response;
   },
 };
