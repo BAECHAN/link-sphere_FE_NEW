@@ -14,7 +14,7 @@ export function AppLayout({ children }: Readonly<AppLayoutProps>) {
       <div className="flex-1">
         <Navbar />
         <main
-          className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-[4000px]"
+          className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8"
           aria-label={TEXTS.ariaLabels.mainContent}
         >
           {children}
