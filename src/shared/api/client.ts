@@ -171,8 +171,20 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        // response.json()의 반환 타입을 unknown으로 처리하여 타입 안전성 확보
-        const errorResponseBody = (await response.json().catch(() => ({}))) as ApiErrorResponse;
+        const text = await response.text();
+        let errorResponseBody: ApiErrorResponse;
+
+        try {
+          errorResponseBody = JSON.parse(text) as ApiErrorResponse;
+        } catch {
+          // JSON 파싱 실패 시 텍스트를 메시지로 사용
+          errorResponseBody = {
+            code: response.status,
+            message: text,
+            error: response.statusText,
+          };
+        }
+
         throw new ApiError(response.status, response.statusText, errorResponseBody);
       }
 
