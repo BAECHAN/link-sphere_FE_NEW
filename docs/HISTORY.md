@@ -55,3 +55,9 @@
 - `refactor`: Auth 도메인 API 구조 개선
   - `auth.api.ts`, `auth.keys.ts`, `auth.queries.ts` 외 파일 구조 정리
   - `account` 관련 로직을 `auth` 도메인으로 통합
+
+## 6단계: UI/UX 개선 및 아키텍처 문서화 (UI/UX Improvement & Architecture)
+
+- `fix`: 툴팁 텍스트 사이즈 조정 (모바일/데스크탑 분기 처리)
+- `fix`: 모바일 화면 스크롤 방지를 위한 패딩 조정
+- `docs`: 에러 핸들링 아키텍처 문서 추가 및 개발 이력 업데이트
