@@ -49,34 +49,40 @@ export const commonSearchRequestSchema = paginationSchema.merge(dateRangeSchema)
 
 export type CommonSearchRequest = z.infer<typeof commonSearchRequestSchema>;
 
-export interface ApiErrorResponse {
-  code: number;
+/**
+ * Standard API Response Structure
+ */
+export interface ApiResponse<T> {
+  status: number;
   message: string;
-  error: string;
+  data: T;
+  timestamp: string;
 }
 
 /**
- * API 에러 응답 타입
+ * Standard API Error Structure
+ * Matches Backend ErrorResponse
  */
-export interface ApiErrorHTTPResponse {
+export interface ApiErrorResponse {
   status: number;
-  statusText: string;
-  data: ApiErrorResponse;
+  code: string;
+  message: string;
+  timestamp: string;
 }
 
 /**
  * API 에러 클래스
  */
-export class ApiError extends Error implements ApiErrorHTTPResponse {
+export class ApiError extends Error {
   status: number;
-  statusText: string;
+  code: string;
   data: ApiErrorResponse;
 
-  constructor(status: number, statusText: string, data: ApiErrorResponse) {
-    super(`${status} ${statusText}`);
+  constructor(data: ApiErrorResponse) {
+    super(data.message);
     this.name = 'ApiError';
-    this.status = status;
-    this.statusText = statusText;
+    this.status = data.status;
+    this.code = data.code;
     this.data = data;
   }
 }

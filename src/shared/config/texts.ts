@@ -70,6 +70,7 @@ export const TEXTS = {
       serverError: '서버 오류가 발생했습니다.',
       unknownError: '알 수 없는 오류가 발생했습니다.',
       apiRequestFailed: 'API 요청 실패',
+      loginRequired: '로그인이 필요합니다.',
 
       // 인증 관련
       unauthorizedAccessToken: '액세스 토큰이 유효하지 않습니다.',
@@ -87,6 +88,9 @@ export const TEXTS = {
 
       // 포스트 관련
       postCreateFailed: '포스트 생성에 실패했습니다.',
+
+      // 권한 관련
+      accessDenied: '접근 권한이 없습니다.',
     },
   },
   shortcuts: {

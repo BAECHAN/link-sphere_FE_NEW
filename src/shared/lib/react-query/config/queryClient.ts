@@ -2,6 +2,7 @@ import { MutationCache, QueryCache, QueryClient, type Mutation } from '@tanstack
 import { ApiError } from '@/shared/types/common.type';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from 'sonner';
+import { AuthUtil } from '@/domains/auth/_common/utils/auth.util';
 
 // 1. 커스텀 Meta 타입 정의 (모듈 확장 대신 로컬 인터페이스 활용 고려)
 interface CustomMutationMeta {
@@ -40,6 +41,19 @@ const mutationErrorHandler = (
   if (meta?.errorMessage) {
     message = meta.errorMessage;
   } else if (error instanceof ApiError) {
+    // 401 인증 에러 처리 (로그인 필요, 유효하지 않은 토큰)
+    if (error.code === 'NOT_LOGGED_IN' || error.code === 'INVALID_TOKEN') {
+      AuthUtil.clearAll();
+      window.location.href = '/auth/login';
+      return;
+    }
+
+    // 403 권한 에러 처리
+    if (error.code === 'ACCESS_DENIED') {
+      toast.error(TEXTS.messages.error.accessDenied || '접근 권한이 없습니다.');
+      return;
+    }
+
     // 보안 및 UX를 위해 서버 에러 메시지를 직접 노출하지 않음
     // 상세 에러는 콘솔에 남기고 사용자에게는 일반적인 에러 메시지 표시
     console.error(`[API Mutation Error] ${error.message}`, error.data);
@@ -77,6 +91,20 @@ export const queryClient = new QueryClient({
       if (meta?.errorMessage) {
         toast.error(meta.errorMessage);
       } else if (error instanceof ApiError) {
+        // 401 인증 에러 처리 (로그인 필요, 유효하지 않은 토큰)
+        if (error.code === 'NOT_LOGGED_IN' || error.code === 'INVALID_TOKEN') {
+          AuthUtil.clearAll();
+          toast.error(TEXTS.messages.error.loginRequired || '로그인이 필요합니다.');
+          window.location.href = '/auth/login';
+          return;
+        }
+
+        // 403 권한 에러 처리
+        if (error.code === 'ACCESS_DENIED') {
+          toast.error(TEXTS.messages.error.accessDenied || '접근 권한이 없습니다.');
+          return;
+        }
+
         // 보안 및 UX를 위해 서버 에러 메시지를 직접 노출하지 않음
         console.error(`[API Query Error] ${error.message}`, error.data);
         toast.error(TEXTS.messages.error.serverError);

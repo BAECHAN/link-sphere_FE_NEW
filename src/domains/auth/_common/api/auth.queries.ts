@@ -27,6 +27,15 @@ export const useLoginMutation = () => {
       // 2. 인메모리 스토어에 토큰 및 유저 정보 저장
       setAuth(data.accessToken);
     },
+    onError: (error) => {
+      console.log(error);
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
+          const errorMessage = error.data.message;
+          toast.error(errorMessage);
+        }
+      }
+    },
   });
 };
 

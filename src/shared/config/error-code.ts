@@ -1,0 +1,12 @@
+export const SERVER_ERROR_CODE = {
+  // Auth
+  TOKEN_EXPIRED: 'TOKEN_EXPIRED',
+  INVALID_TOKEN: 'INVALID_TOKEN',
+  NOT_LOGGED_IN: 'NOT_LOGGED_IN',
+  ACCESS_DENIED: 'ACCESS_DENIED',
+
+  // Common
+  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
+} as const;
+
+export type ServerErrorCode = keyof typeof SERVER_ERROR_CODE;
