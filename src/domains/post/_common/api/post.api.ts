@@ -4,9 +4,8 @@ import {
   CreatePost,
   CreatePostResponse,
   PostListResponse,
+  PostListRequest,
 } from '@/domains/post/_common/model/post.schema';
-
-import { PaginationRequest } from '@/shared/api/common.schema';
 
 export const postApi = {
   /**
@@ -15,20 +14,25 @@ export const postApi = {
    * @returns CreatePostResponse
    */
   createPost: async (payload: CreatePost): Promise<CreatePostResponse> => {
-    const response = await apiClient.post<CreatePostResponse>(API_ENDPOINTS.post.base, payload);
-    return response;
+    return await apiClient.post<CreatePostResponse>(API_ENDPOINTS.post.base, payload);
   },
 
   /**
    * 포스트 목록 조회
-   * @param params - 페이지네이션 정보
+   * @param payload - 페이지네이션 정보 + 검색 필터
    * @returns PostListResponse
    */
-  fetchPostList: async (params: PaginationRequest): Promise<PostListResponse> => {
-    const response = await apiClient.get<PostListResponse>(API_ENDPOINTS.post.base, {
-      searchParams: { page: params.page, size: params.size },
-    });
+  fetchPostList: async (payload: PostListRequest): Promise<PostListResponse> => {
+    const { page, size, search, category, filter } = payload;
 
-    return response;
+    const searchParams: PostListRequest = {
+      page,
+      size,
+      ...(search && { search }),
+      ...(category && { category }),
+      ...(filter && { filter }),
+    };
+
+    return await apiClient.get<PostListResponse>(API_ENDPOINTS.post.base, { searchParams });
   },
 };

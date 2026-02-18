@@ -1,13 +1,14 @@
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
+import { Post } from '@/domains/post/_common/model/post.schema';
 
 const rootKey = ['post'] as const;
 
 export const postKeys = {
   root: rootKey,
   listRoot: [...rootKey, 'list'] as const,
-  list: () => [...rootKey, 'list'] as const,
-  detail: (id: number | undefined) => [...rootKey, 'detail', id] as const,
-  categoryOptionList: () => [...rootKey, 'category-option-list'] as const,
+  list: (filters?: { search?: string; category?: string; filter?: string }) =>
+    [...rootKey, 'list', filters] as const,
+  detail: (postId: Post['id']) => [...rootKey, 'detail', postId] as const,
 };
 
 export const postInvalidateQueries = {
@@ -15,17 +16,18 @@ export const postInvalidateQueries = {
     queryClient.invalidateQueries({ queryKey: rootKey });
   },
   list: () => {
-    // 검색 조건과 관계없이 모든 목록 쿼리 무효화
     queryClient.invalidateQueries({ queryKey: postKeys.listRoot });
   },
-  detail: (id: number | undefined) => {
-    if (id) {
-      queryClient.invalidateQueries({ queryKey: postKeys.detail(id) });
-    }
+  detail: (postId: Post['id']) => {
+    queryClient.invalidateQueries({ queryKey: postKeys.detail(postId) });
   },
 };
 
-export const handlePostCreateSuccess = (id: number) => {
-  postInvalidateQueries.detail(id);
+export const handlePostCreateSuccess = () => {
+  postInvalidateQueries.list();
+};
+
+export const handlePostUpdateSuccess = (postId: Post['id']) => {
+  postInvalidateQueries.detail(postId);
   postInvalidateQueries.list();
 };

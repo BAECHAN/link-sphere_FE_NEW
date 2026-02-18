@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/atoms/button';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
+import { PostList } from '@/domains/post/features/post-list/ui/PostList';
+import { PostListSearch } from '@/domains/post/features/post-list/ui/PostListSearch';
 
 export function Post() {
   useFetchCategoryOptionQuery();
@@ -16,6 +18,9 @@ export function Post() {
           </Button>
         </Link>
       </div>
+
+      <PostListSearch />
+      <PostList />
     </div>
   );
 }

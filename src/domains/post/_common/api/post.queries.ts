@@ -1,6 +1,6 @@
-import { useInfiniteQuery, useMutation } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useSuspenseInfiniteQuery } from '@tanstack/react-query';
 import { postApi } from '@/domains/post/_common/api/post.api';
-import { CreatePost } from '@/domains/post/_common/model/post.schema';
+import { CreatePost, PostListRequest } from '@/domains/post/_common/model/post.schema';
 import { TEXTS } from '@/shared/config/texts';
 import { postInvalidateQueries, postKeys } from '@/domains/post/_common/api/post.keys';
 import { POST_PAGE_SIZE } from '@/domains/post/_common/config/const';
@@ -21,11 +21,47 @@ export const useCreatePostMutation = () => {
   });
 };
 
-export const useFetchPostListQuery = () => {
+export const useFetchPostListQuery = (
+  payload?: Pick<PostListRequest, 'search' | 'category' | 'filter'>
+) => {
   return useInfiniteQuery({
-    queryKey: postKeys.list(),
+    queryKey: postKeys.list(payload),
     queryFn: ({ pageParam }: { pageParam: PaginationRequest['page'] }) => {
-      return postApi.fetchPostList({ page: pageParam, size: POST_PAGE_SIZE });
+      return postApi.fetchPostList({
+        page: pageParam,
+        size: POST_PAGE_SIZE,
+        search: payload?.search,
+        category: payload?.category,
+        filter: payload?.filter,
+      });
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.last) return undefined;
+      return lastPage.page + 1;
+    },
+    select: (data) => ({
+      pages: data.pages,
+      pageParams: data.pageParams,
+      posts: data.pages.flatMap((page) => page.content),
+      totalElements: data.pages[0]?.totalElements ?? 0,
+    }),
+  });
+};
+
+export const useSuspenseFetchPostListQuery = (
+  payload?: Pick<PostListRequest, 'search' | 'category' | 'filter'>
+) => {
+  return useSuspenseInfiniteQuery({
+    queryKey: postKeys.list(payload),
+    queryFn: ({ pageParam }: { pageParam: PaginationRequest['page'] }) => {
+      return postApi.fetchPostList({
+        page: pageParam,
+        size: POST_PAGE_SIZE,
+        search: payload?.search,
+        category: payload?.category,
+        filter: payload?.filter,
+      });
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => {
