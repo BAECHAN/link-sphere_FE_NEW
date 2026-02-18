@@ -3,17 +3,62 @@ import { useSuspenseFetchPostListQuery } from '@/domains/post/_common/api/post.q
 import { parseSearchQuery } from '@/domains/post/features/post-list/utils/search-parser';
 import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
 
-export const usePostList = () => {
+/**
+ * URL의 검색 파라미터(q, filter)와 이를 제어하는 액션들을 관리하는 훅
+ * 데이터 페칭을 포함하지 않으므로 Suspense를 유발하지 않습니다.
+ */
+export const usePostListParams = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const q = searchParams.get('q') || '';
   const filter = searchParams.get('filter') || undefined;
 
   const { category, search } = parseSearchQuery(q);
 
+  const setSearch = (newSearch: string) => {
+    if (!newSearch) {
+      searchParams.delete('q');
+    } else {
+      searchParams.set('q', newSearch);
+    }
+    setSearchParams(searchParams);
+  };
+
+  const toggleFilter = (targetFilter: string) => {
+    const currentFilter = searchParams.get('filter');
+    if (currentFilter === targetFilter) {
+      searchParams.delete('filter');
+    } else {
+      searchParams.set('filter', targetFilter);
+    }
+    setSearchParams(searchParams);
+  };
+
+  const clearSearch = () => {
+    setSearchParams({});
+  };
+
+  return {
+    searchQuery: q,
+    currentFilter: filter,
+    category,
+    search,
+    setSearch,
+    toggleFilter,
+    clearSearch,
+  };
+};
+
+/**
+ * 게시글 목록 데이터와 무한 스크롤 로직을 포함하는 훅
+ * useSuspenseFetchPostListQuery를 호출하므로 사용하는 컴포넌트가 Suspense에 의해 정지될 수 있습니다.
+ */
+export const usePostList = () => {
+  const { category, search, currentFilter, ...params } = usePostListParams();
+
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useSuspenseFetchPostListQuery({
     search,
     category,
-    filter,
+    filter: currentFilter,
   });
 
   const ref = useIntersectionObserver({
@@ -25,34 +70,6 @@ export const usePostList = () => {
     enabled: hasNextPage && !isFetchingNextPage,
   });
 
-  // URL 업데이트 헬퍼 함수들
-  const setSearch = (newSearch: string) => {
-    // 빈 검색어면 q 파라미터 제거, 아니면 설정
-    if (!newSearch) {
-      searchParams.delete('q');
-    } else {
-      searchParams.set('q', newSearch);
-    }
-    // 검색 시 페이지 1로 초기화되는 것은 react-query key change로 자동 처리됨
-    setSearchParams(searchParams);
-  };
-
-  const toggleFilter = (targetFilter: string) => {
-    const currentFilter = searchParams.get('filter');
-
-    if (currentFilter === targetFilter) {
-      searchParams.delete('filter');
-    } else {
-      searchParams.set('filter', targetFilter);
-    }
-
-    setSearchParams(searchParams);
-  };
-
-  const clearSearch = () => {
-    setSearchParams({});
-  };
-
   const posts = data?.pages.flatMap((page) => page.content) || [];
 
   return {
@@ -61,11 +78,7 @@ export const usePostList = () => {
     hasNextPage,
     isFetchingNextPage,
     observerRef: ref,
-    // Search State & Actions
-    searchQuery: q,
-    currentFilter: filter,
-    setSearch,
-    toggleFilter,
-    clearSearch,
+    currentFilter,
+    ...params,
   };
 };

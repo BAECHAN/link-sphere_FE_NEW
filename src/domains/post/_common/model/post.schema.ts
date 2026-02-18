@@ -74,58 +74,11 @@ export const createPostResponseSchema = postSchema.pick({
   createdAt: true,
 });
 
-// ==================== 3. Interaction Schemas ====================
+// ==================== 3. Interaction & Comment Schemas ====================
+// Moved to interaction.schema.ts and comment.schema.ts
 
-// --- Bookmark ---
-export const bookmarkSchema = z.object({
-  userId: z.string(),
-  postId: z.string(),
-  createdAt: z.coerce.date(),
-});
-
-// --- Reaction ---
-export const reactionTypeEnum = z.enum(['LIKE', 'LOVE', 'CLAP', 'IDEA', 'THINKING']);
-export const targetTypeEnum = z.enum(['POST', 'COMMENT']);
-
-export const reactionSchema = z.object({
-  userId: z.string(),
-  targetId: z.string(),
-  targetType: targetTypeEnum,
-  reactionType: reactionTypeEnum,
-  createdAt: z.coerce.date(),
-});
-
-export const createReactionSchema = reactionSchema.pick({
-  targetId: true,
-  targetType: true,
-  reactionType: true,
-});
-
-// --- Comment ---
-export const commentSchema = z.object({
-  id: z.string(),
-  postId: z.string(),
-  userId: z.string(),
-  content: z.string().min(1, '내용을 입력해주세요.'),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
-});
-
-export const createCommentSchema = commentSchema.pick({
-  postId: true,
-  content: true,
-});
-
-export const updateCommentSchema = commentSchema.pick({
-  content: true,
-});
-
-export type Bookmark = z.infer<typeof bookmarkSchema>;
-export type Reaction = z.infer<typeof reactionSchema>;
-export type CreateReaction = z.infer<typeof createReactionSchema>;
-export type Comment = z.infer<typeof commentSchema>;
-export type CreateComment = z.infer<typeof createCommentSchema>;
-export type UpdateComment = z.infer<typeof updateCommentSchema>;
+export * from './interaction.schema';
+export * from './comment.schema';
 
 export type Post = z.infer<typeof postSchema>;
 export type PostListRequest = z.infer<typeof postListRequestSchema>;

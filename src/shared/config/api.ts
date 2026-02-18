@@ -11,6 +11,7 @@ const API_BASES = {
   auth: '/auth',
   common: '/common',
   post: '/post',
+  comment: '/comment',
 } as const;
 
 const API_ENDPOINTS = {
@@ -24,6 +25,11 @@ const API_ENDPOINTS = {
 
   post: {
     base: API_BASES.post,
+    togglePostLike: (postId: string) => `${API_BASES.post}/${postId}/like`,
+    postBookmark: (postId: string) => `${API_BASES.post}/${postId}/bookmark`,
+    postComment: (postId: string) => `${API_BASES.post}/${postId}/comment`,
+    toggleCommentLike: (commentId: string) => `${API_BASES.comment}/${commentId}/like`,
+    commentReply: (commentId: string) => `${API_BASES.comment}/${commentId}/reply`,
   },
 
   common: {

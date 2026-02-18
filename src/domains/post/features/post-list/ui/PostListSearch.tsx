@@ -3,12 +3,12 @@ import { Button } from '@/shared/ui/atoms/button';
 import { SearchInput } from '@/shared/ui/elements/SearchInput';
 import { RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { usePostList } from '@/domains/post/features/post-list/hooks/usePostList';
+import { usePostListParams } from '@/domains/post/features/post-list/hooks/usePostList';
 import { TEXTS } from '@/shared/config/texts';
 
 export function PostListSearch() {
   const { data: categories } = useFetchCategoryOptionQuery();
-  const { searchQuery, currentFilter, setSearch, toggleFilter, clearSearch } = usePostList();
+  const { searchQuery, currentFilter, setSearch, toggleFilter, clearSearch } = usePostListParams();
 
   const [searchInput, setSearchInput] = useState(searchQuery);
 
@@ -53,7 +53,7 @@ export function PostListSearch() {
               return (
                 <button
                   key={category.value}
-                  id={category.value}
+                  id={`category-${category.value}`}
                   name={category.value}
                   onClick={() => {
                     let newSearch = searchInput;
