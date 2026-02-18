@@ -25,6 +25,14 @@ import {
 import { MoreVertical, Trash } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  useLikePostMutation,
+  useBookmarkPostMutation,
+} from '@/domains/interaction/_common/api/interaction.queries';
+import { cn } from '@/shared/lib/tailwind/utils';
+import { usePostDelete } from '@/domains/post/features/delete-post/hooks/usePostDelete';
+import { toast } from 'sonner';
+import { TEXTS } from '@/shared/config/texts';
 
 interface PostCardProps {
   post: Post;
@@ -36,7 +44,37 @@ export function PostCard({ post }: PostCardProps) {
 
   const isOwner = account?.id === author?.id;
 
+  const likeMutation = useLikePostMutation(post.id);
+  const bookmarkMutation = useBookmarkPostMutation(post.id);
+  const { onDelete } = usePostDelete();
+
   const [isAiSummaryExpanded, setIsAiSummaryExpanded] = useState(false);
+
+  const handleLike = (e: React.MouseEvent) => {
+    e.preventDefault();
+    likeMutation.mutate();
+  };
+
+  const handleBookmark = (e: React.MouseEvent) => {
+    e.preventDefault();
+    bookmarkMutation.mutate();
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onDelete(post.id);
+  };
+
+  const handleCopyLink = async () => {
+    const url = `${window.location.origin}/post/${post.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success(TEXTS.messages.success.linkCopied);
+    } catch (error) {
+      console.error('Copy failed', error);
+      toast.error(TEXTS.messages.error.linkCopyFailed);
+    }
+  };
 
   return (
     <Card className="flex flex-col overflow-hidden hover:shadow-md transition-shadow">
@@ -67,7 +105,10 @@ export function PostCard({ post }: PostCardProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => {}} className="text-red-600 focus:text-red-600">
+                <DropdownMenuItem
+                  onClick={handleDelete}
+                  className="text-red-600 focus:text-red-600"
+                >
                   <Trash className="mr-2 h-4 w-4" />
                   Delete
                 </DropdownMenuItem>
@@ -170,10 +211,19 @@ export function PostCard({ post }: PostCardProps) {
           <Button
             variant="ghost"
             size="sm"
-            className={`gap-1 md:gap-1.5 h-6 md:h-8 px-2 md:px-3 text-[10px] md:text-sm rounded-full hover:bg-background/80`}
-            onClick={() => {}}
+            className={cn(
+              'gap-1 md:gap-1.5 h-6 md:h-8 px-2 md:px-3 text-[10px] md:text-sm rounded-full hover:bg-background/80',
+              post.userInteractions.isLiked && 'text-red-500 hover:text-red-600'
+            )}
+            onClick={handleLike}
+            disabled={likeMutation.isPending}
           >
-            <ThumbsUp className={'h-3 w-3 md:h-4 md:w-4'} />
+            <ThumbsUp
+              className={cn(
+                'h-3 w-3 md:h-4 md:w-4',
+                post.userInteractions.isLiked && 'fill-current'
+              )}
+            />
             <span className="font-bold">{post.stats.likeCount}</span>
           </Button>
           <div className="w-px h-3 bg-muted-foreground/20 mx-0.5 md:mx-1" />
@@ -194,7 +244,8 @@ export function PostCard({ post }: PostCardProps) {
             variant="ghost"
             size="icon"
             className={`h-8 w-8 md:h-9 md:w-9 rounded-full ${post.userInteractions.isBookmarked ? 'text-yellow-500 hover:text-yellow-600' : 'text-muted-foreground'}`}
-            onClick={() => {}}
+            onClick={handleBookmark}
+            disabled={bookmarkMutation.isPending}
           >
             <Bookmark
               className={`h-3.5 w-3.5 md:h-4.5 md:w-4.5 ${post.userInteractions.isBookmarked ? 'fill-current' : ''}`}
@@ -205,7 +256,7 @@ export function PostCard({ post }: PostCardProps) {
             variant="ghost"
             size="icon"
             className={`h-8 w-8 md:h-9 md:w-9 rounded-full text-muted-foreground`}
-            onClick={() => {}}
+            onClick={handleCopyLink}
           >
             <Share2
               className={`h-3.5 w-3.5 md:h-4.5 md:w-4.5 ${post.userInteractions.isBookmarked ? 'fill-current' : ''}`}
