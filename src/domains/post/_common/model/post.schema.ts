@@ -25,12 +25,16 @@ export const postSchema = z.object({
   ogImage: z.string().nullable(),
   aiSummary: z.string().nullable(),
   aiStatus: aiStatusEnum,
-  viewCount: z.number().int().nonnegative().default(0),
-  isBookmarked: z.boolean().default(false),
-  bookmarkCount: z.number().int().nonnegative().default(0),
-  isReacted: z.boolean().default(false), // or specific reaction type string if needed
-  reactionCount: z.number().int().nonnegative().default(0),
-  commentCount: z.number().int().nonnegative().default(0),
+  stats: z.object({
+    viewCount: z.number().int().nonnegative().default(0),
+    likeCount: z.number().int().nonnegative().default(0),
+    commentCount: z.number().int().nonnegative().default(0),
+    bookmarkCount: z.number().int().nonnegative().default(0),
+  }),
+  userInteractions: z.object({
+    isLiked: z.boolean().default(false),
+    isBookmarked: z.boolean().default(false),
+  }),
   createdAt: z.coerce.date(),
   author: accountSchema.pick({
     id: true,
@@ -66,7 +70,7 @@ export const createPostResponseSchema = postSchema.pick({
   ogImage: true,
   aiSummary: true,
   aiStatus: true,
-  viewCount: true,
+  stats: true,
   createdAt: true,
 });
 

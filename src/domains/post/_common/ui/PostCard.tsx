@@ -174,7 +174,7 @@ export function PostCard({ post }: PostCardProps) {
             onClick={() => {}}
           >
             <ThumbsUp className={'h-3 w-3 md:h-4 md:w-4'} />
-            <span className="font-bold">{post.reactionCount}</span>
+            <span className="font-bold">{post.stats.likeCount}</span>
           </Button>
           <div className="w-px h-3 bg-muted-foreground/20 mx-0.5 md:mx-1" />
           <Link to={`/post/${post.id}`}>
@@ -184,7 +184,7 @@ export function PostCard({ post }: PostCardProps) {
               className={`gap-1 md:gap-1.5 text-muted-foreground h-6 md:h-8 px-2 md:px-3 text-[10px] md:text-sm rounded-full hover:bg-background/80`}
             >
               <MessageSquare className={'h-3 w-3 md:h-4 md:w-4'} />
-              <span className={'sm:inline'}>{post.commentCount || 0}</span>
+              <span className={'sm:inline'}>{post.stats.commentCount || 0}</span>
             </Button>
           </Link>
         </div>
@@ -193,11 +193,11 @@ export function PostCard({ post }: PostCardProps) {
           <Button
             variant="ghost"
             size="icon"
-            className={`h-8 w-8 md:h-9 md:w-9 rounded-full ${post.isBookmarked ? 'text-yellow-500 hover:text-yellow-600' : 'text-muted-foreground'}`}
+            className={`h-8 w-8 md:h-9 md:w-9 rounded-full ${post.userInteractions.isBookmarked ? 'text-yellow-500 hover:text-yellow-600' : 'text-muted-foreground'}`}
             onClick={() => {}}
           >
             <Bookmark
-              className={`h-3.5 w-3.5 md:h-4.5 md:w-4.5 ${post.isBookmarked ? 'fill-current' : ''}`}
+              className={`h-3.5 w-3.5 md:h-4.5 md:w-4.5 ${post.userInteractions.isBookmarked ? 'fill-current' : ''}`}
             />
             <span className="sr-only">Bookmark</span>
           </Button>
@@ -208,7 +208,7 @@ export function PostCard({ post }: PostCardProps) {
             onClick={() => {}}
           >
             <Share2
-              className={`h-3.5 w-3.5 md:h-4.5 md:w-4.5 ${post.isBookmarked ? 'fill-current' : ''}`}
+              className={`h-3.5 w-3.5 md:h-4.5 md:w-4.5 ${post.userInteractions.isBookmarked ? 'fill-current' : ''}`}
             />
             <span className="sr-only">Share</span>
           </Button>
@@ -216,7 +216,7 @@ export function PostCard({ post }: PostCardProps) {
 
         <div className={`items-center gap-1 text-muted-foreground text-xs flex`}>
           <Eye className="h-3 w-3" />
-          <span>{post.viewCount || 0}</span>
+          <span>{post.stats.viewCount || 0}</span>
         </div>
       </CardFooter>
     </Card>

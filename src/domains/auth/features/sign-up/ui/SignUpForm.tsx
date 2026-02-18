@@ -29,10 +29,10 @@ export const SignUpForm = () => {
           <FormProvider {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
               <FormInput
-                name="name"
-                label="Name"
+                name="nickname"
+                label="Nickname"
                 type="text"
-                placeholder={TEXTS.placeholders.name}
+                placeholder={TEXTS.placeholders.nickname}
                 required
                 disabled={isPending}
               />
