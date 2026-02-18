@@ -32,7 +32,7 @@ export const postSchema = z.object({
   reactionCount: z.number().int().nonnegative().default(0),
   commentCount: z.number().int().nonnegative().default(0),
   createdAt: z.coerce.date(),
-  author: accountSchema.pick({
+  user: accountSchema.pick({
     id: true,
     name: true,
     image: true,

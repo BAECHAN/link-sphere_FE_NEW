@@ -32,9 +32,9 @@ interface PostCardProps {
 
 export function PostCard({ post }: PostCardProps) {
   const { data: account } = useFetchAccountQuery();
-  const { author } = post;
+  const { user } = post;
 
-  const isOwner = account?.id === author?.id;
+  const isOwner = account?.id === user?.id;
 
   const [isAiSummaryExpanded, setIsAiSummaryExpanded] = useState(false);
 
@@ -44,10 +44,10 @@ export function PostCard({ post }: PostCardProps) {
         <div className="space-y-1 flex-1 min-w-0">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
             <Avatar className={`h-6 w-6 flex`}>
-              <AvatarImage src={author?.image || ''} />
-              <AvatarFallback>{author?.name?.[0] || 'U'}</AvatarFallback>
+              <AvatarImage src={user?.image || ''} />
+              <AvatarFallback>{user?.name?.[0] || 'U'}</AvatarFallback>
             </Avatar>
-            <span className={`truncate`}>{author?.name || 'Anonymous'}</span>
+            <span className={`truncate`}>{user?.name || 'Anonymous'}</span>
             <span className={`text-xs`}>•</span>
             <span className={`text-xs`}>{DateUtil.formatRelativeShort(post.createdAt)}</span>
           </div>
