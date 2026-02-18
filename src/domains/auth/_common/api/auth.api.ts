@@ -1,7 +1,11 @@
 import { apiClient } from '@/shared/api/client';
-import { Login, LoginResponse } from '@/domains/auth/_common/model/auth.schema';
+import {
+  Login,
+  LoginResponse,
+  Account,
+  CreateAccount,
+} from '@/domains/auth/_common/model/auth.schema';
 import { API_ENDPOINTS } from '@/shared/config/api';
-import { Account, CreateAccount } from '@/domains/auth/_common/model/auth.schema';
 
 export const authApi = {
   /**

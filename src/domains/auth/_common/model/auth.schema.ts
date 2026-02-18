@@ -3,9 +3,9 @@ import { TEXTS } from '@/shared/config/texts';
 
 const roleEnum = z.enum(['USER', 'ADMIN']);
 
-export const nameValidationSchema = z
+export const nicknameValidationSchema = z
   .string()
-  .regex(/^[a-zA-Z0-9가-힣_.-]{2,10}$/, TEXTS.validation.nameRegex);
+  .regex(/^[a-zA-Z0-9가-힣_.-]{2,10}$/, TEXTS.validation.nicknameRegex);
 
 /** 재사용 가능한 비밀번호 검증 스키마 */
 export const passwordValidationSchema = z
@@ -31,7 +31,7 @@ export const loginResponseSchema = z.object({
 
 export const accountSchema = z.object({
   id: z.string(),
-  name: nameValidationSchema,
+  nickname: nicknameValidationSchema,
   email: emailValidationSchema,
   image: z.string().optional(),
   role: roleEnum,
@@ -40,7 +40,7 @@ export const accountSchema = z.object({
 });
 
 export const createAccountSchema = z.object({
-  name: nameValidationSchema,
+  nickname: nicknameValidationSchema,
   email: emailValidationSchema,
   password: passwordValidationSchema,
 });
@@ -49,7 +49,7 @@ export const createAccountSchema = z.object({
 // password는 memberSchema에 없으므로 extend로 추가
 export const updateAccountSchema = accountSchema
   .pick({
-    name: true,
+    nickname: true,
   })
   .extend({
     password: passwordValidationSchema.or(z.literal('')),

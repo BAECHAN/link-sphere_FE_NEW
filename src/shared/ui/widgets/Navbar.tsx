@@ -62,7 +62,7 @@ export function Navbar() {
 
         {/* Search Bar - Hidden on mobile, shown on larger screens */}
         <form onSubmit={() => {}} className="hidden md:flex flex-1 max-w-md mx-4">
-          <NavbarSearch shortcut="" />
+          <NavbarSearch />
         </form>
 
         <div className="flex items-center gap-2">
@@ -95,8 +95,8 @@ export function Navbar() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-2">
                   <Avatar className="h-8 w-8 border">
-                    <AvatarImage src={account?.image || ''} alt={account?.name || ''} />
-                    <AvatarFallback>{account?.name?.[0] || 'U'}</AvatarFallback>
+                    <AvatarImage src={account?.image || ''} alt={account?.nickname || ''} />
+                    <AvatarFallback>{account?.nickname?.[0] || 'U'}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
