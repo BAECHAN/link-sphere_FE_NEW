@@ -34,6 +34,9 @@ export const TEXTS = {
     profileEdit: '프로필 수정',
     logout: '로그아웃',
     excelDownload: '엑셀 다운로드',
+    reset: '초기화',
+    bookmarkOnly: '북마크만',
+    search: '검색',
   },
   auth: {
     title: '로그인',
@@ -56,6 +59,7 @@ export const TEXTS = {
   messages: {
     info: {
       noData: '조회할 데이터가 없습니다.',
+      noPosts: '등록된 링크가 없거나 검색 결과가 없습니다.',
     },
     warning: {
       memberDeleteConfirm: '정말 이 회원을 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.',
@@ -88,6 +92,7 @@ export const TEXTS = {
 
       // 포스트 관련
       postCreateFailed: '포스트 생성에 실패했습니다.',
+      fetchPosts: '포스트를 불러오는 중 오류가 발생했습니다.',
 
       // 권한 관련
       accessDenied: '접근 권한이 없습니다.',

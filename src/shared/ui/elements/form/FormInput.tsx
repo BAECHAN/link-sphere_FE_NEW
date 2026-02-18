@@ -6,9 +6,17 @@ interface FormInputProps extends React.ComponentProps<'input'> {
   name: string;
   label?: string;
   description?: string;
+  enableClear?: boolean;
 }
 
-export const FormInput = ({ name, label, className, description, ...props }: FormInputProps) => {
+export const FormInput = ({
+  name,
+  label,
+  className,
+  description,
+  enableClear,
+  ...props
+}: FormInputProps) => {
   const { control } = useFormContext<FieldValues>();
   const { field, fieldState } = useController<FieldValues>({
     name,
@@ -23,6 +31,7 @@ export const FormInput = ({ name, label, className, description, ...props }: For
         value={field.value as string}
         onChange={field.onChange}
         onBlur={field.onBlur}
+        onClear={enableClear && field.value ? () => field.onChange('') : undefined}
         ref={field.ref}
         className={fieldState.error ? 'border-destructive focus-visible:ring-destructive' : ''}
         {...props}
