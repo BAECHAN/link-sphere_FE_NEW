@@ -37,6 +37,7 @@ export const TEXTS = {
     reset: '초기화',
     bookmarkOnly: '북마크만',
     search: '검색',
+    delete: '삭제',
   },
   auth: {
     title: '로그인',
@@ -48,6 +49,7 @@ export const TEXTS = {
   validation: {
     urlFormat: '유효하지 않은 URL 형식입니다.',
     urlRequired: 'URL을 입력해주세요.',
+    contentRequired: '내용을 입력해주세요.',
     titleRequired: '제목을 입력해주세요.',
     idRequired: '아이디를 입력해주세요.',
     passwordRequired: '비밀번호를 입력해주세요.',
@@ -63,10 +65,13 @@ export const TEXTS = {
     },
     warning: {
       memberDeleteConfirm: '정말 이 회원을 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.',
+      postDeleteConfirm: '정말 이 포스트를 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.',
     },
     success: {
       accountCreated: '회원이 생성되었습니다.',
       postCreated: '포스트가 생성되었습니다.',
+      postDeleted: '포스트가 삭제되었습니다.',
+      linkCopied: '링크가 복사되었습니다.',
     },
     error: {
       // 공통
@@ -93,9 +98,13 @@ export const TEXTS = {
       // 포스트 관련
       postCreateFailed: '포스트 생성에 실패했습니다.',
       fetchPosts: '포스트를 불러오는 중 오류가 발생했습니다.',
+      postDeleteFailed: '포스트 삭제에 실패했습니다.',
 
       // 권한 관련
       accessDenied: '접근 권한이 없습니다.',
+
+      // 유틸
+      linkCopyFailed: '링크 복사에 실패했습니다.',
     },
   },
   shortcuts: {
