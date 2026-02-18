@@ -5,6 +5,7 @@ import {
   CreatePostResponse,
   PostListResponse,
   PostListRequest,
+  Post,
 } from '@/domains/post/_common/model/post.schema';
 
 export const postApi = {
@@ -34,5 +35,13 @@ export const postApi = {
     };
 
     return await apiClient.get<PostListResponse>(API_ENDPOINTS.post.base, { searchParams });
+  },
+
+  fetchPostDetail: async (postId: string): Promise<Post> => {
+    return await apiClient.get<Post>(`${API_ENDPOINTS.post.base}/${postId}`);
+  },
+
+  deletePost: async (postId: string): Promise<void> => {
+    return await apiClient.delete<void>(`${API_ENDPOINTS.post.base}/${postId}`);
   },
 };

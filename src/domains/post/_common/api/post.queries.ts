@@ -1,4 +1,9 @@
-import { useInfiniteQuery, useMutation, useSuspenseInfiniteQuery } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useSuspenseInfiniteQuery,
+  useQuery,
+} from '@tanstack/react-query';
 import { postApi } from '@/domains/post/_common/api/post.api';
 import { CreatePost, PostListRequest } from '@/domains/post/_common/model/post.schema';
 import { TEXTS } from '@/shared/config/texts';
@@ -74,5 +79,28 @@ export const useSuspenseFetchPostListQuery = (
       posts: data.pages.flatMap((page) => page.content),
       totalElements: data.pages[0]?.totalElements ?? 0,
     }),
+  });
+};
+
+export const useFetchPostDetailQuery = (postId: string) => {
+  return useQuery({
+    queryKey: postKeys.detail(postId),
+    queryFn: () => postApi.fetchPostDetail(postId),
+    enabled: !!postId,
+  });
+};
+
+export const useDeletePostMutation = () => {
+  return useMutation({
+    mutationFn: async (postId: string) => {
+      return await postApi.deletePost(postId);
+    },
+    meta: {
+      successMessage: TEXTS.messages.success.postDeleted,
+      errorMessage: TEXTS.messages.error.postDeleteFailed,
+    },
+    onSuccess: () => {
+      postInvalidateQueries.list();
+    },
   });
 };

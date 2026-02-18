@@ -4,6 +4,7 @@ import { RouterProvider } from '@/app/providers/RouterProvider';
 import { AuthProvider } from '@/app/providers/AuthProvider';
 import { Toaster } from '@/shared/ui/atoms/sonner';
 import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
+import { GlobalAlerts } from '@/shared/ui/elements/modal/alert/Alert';
 
 export function App() {
   return (
@@ -14,6 +15,7 @@ export function App() {
             <TooltipProvider delayDuration={0}>
               <RouterProvider />
               <Toaster />
+              <GlobalAlerts />
             </TooltipProvider>
           </AuthProvider>
         </AsyncBoundary>
