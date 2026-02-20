@@ -21,6 +21,21 @@ jobs:
           node-version: 20
           cache: 'npm'
 
+      # [추가] 빌드 환경 및 버전 확인
+      - name: Debug Build Environment
+        run: |
+          echo "=== Build Environment Debug ==="
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Current Commit: $GITHUB_SHA"
+
+          if [ -f "package-lock.json" ]; then
+            echo "package-lock.json found. Calculating hash..."
+            sha256sum package-lock.json
+          else
+            echo "WARNING: package-lock.json not found!"
+          fi
+
       - name: Install dependencies
         run: npm install
 
@@ -28,7 +43,18 @@ jobs:
         # Vite 빌드 시 백엔드 주소 등 환경변수가 필요하면 여기서 주입합니다.
         run: npm run build
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+      # [추가] 빌드 결과물 검증
+      - name: Verify Build Artifacts
+        run: |
+          echo "=== Verify Build Artifacts ==="
+          if [ ! -d "dist" ] || [ -z "$(ls -A dist)" ]; then
+            echo "ERROR: Build failed or dist directory is empty."
+            ls -la
+            exit 1
+          fi
+          echo "Build successful. Listing dist contents:"
+          ls -la dist/
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -37,13 +63,61 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
+      # [추가] AWS 연결 및 리소스 상태 확인
+      - name: Debug AWS Connection & Resources
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET_NAME }}
+          CLOUDFRONT_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+        run: |
+          echo "=== AWS Connection Debug ==="
+          aws --version
+
+          echo "Checking AWS Identity..."
+          aws sts get-caller-identity
+
+          echo "=== Checking Target Resources ==="
+          echo "Target Bucket: $S3_BUCKET"
+          echo "Target Distribution ID: $CLOUDFRONT_ID"
+
+          # CloudFront 배포 확인
+          if [ -z "$CLOUDFRONT_ID" ]; then
+            echo "ERROR: CLOUDFRONT_DISTRIBUTION_ID secret is not set."
+            exit 1
+          fi
+
+          if aws cloudfront get-distribution --id "$CLOUDFRONT_ID" >/dev/null 2>&1; then
+            echo "✓ CloudFront Distribution found."
+            aws cloudfront get-distribution --id "$CLOUDFRONT_ID" --query 'Distribution.{Id:Id,Status:Status,DomainName:DomainName}' --output table
+          else
+            echo "❌ CloudFront Distribution not found or access denied."
+            echo "Listing available distributions..."
+            aws cloudfront list-distributions --query 'DistributionList.Items[].{Id:Id,DomainName:DomainName,Status:Status}' --output table || echo "Cannot list distributions."
+            exit 1
+          fi
+
+          # S3 버킷 상태 확인 (배포 전)
+          echo "=== S3 Bucket Status (Before Sync) ==="
+          aws s3 ls "s3://$S3_BUCKET/" --summarize | tail -5
+
       - name: Upload to S3
         # 빌드 결과물(dist/)을 S3 버킷으로 동기화합니다.
         run: aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
 
+      # [추가] 배포 후 S3 상태 확인
+      - name: Verify S3 Deployment
+        run: |
+          echo "=== S3 Bucket Status (After Sync) ==="
+          aws s3 ls "s3://${{ secrets.S3_BUCKET_NAME }}/" --summarize | tail -5
+
       - name: CloudFront Invalidation
         # 새 파일이 반영되도록 캐시를 무효화합니다.
         run: |
-          aws cloudfront create-invalidation \
+          echo "=== Starting CloudFront Invalidation ==="
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
             --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/*"
+            --paths "/*" \
+            --query 'Invalidation.Id' \
+            --output text)
+
+          echo "CloudFront Invalidation started. ID: $INVALIDATION_ID"
+          echo "Check status in AWS Console or wait for completion."
