@@ -1,16 +1,12 @@
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/ko';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import isToday from 'dayjs/plugin/isToday';
-import isYesterday from 'dayjs/plugin/isYesterday';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 
 // 플러그인 적용
 dayjs.extend(relativeTime);
-dayjs.extend(isToday);
-dayjs.extend(isYesterday);
 dayjs.extend(customParseFormat);
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -172,7 +168,7 @@ export class DateUtil {
     const d = this.toDayjs(date);
     if (!d.isValid()) return '';
 
-    const now = dayjs();
+    const now = dayjs().tz();
     const diffMinutes = now.diff(d, 'minute');
 
     // 1분 미만: 방금 전
@@ -192,12 +188,12 @@ export class DateUtil {
     }
 
     // 오늘: 오늘 오전/오후 시간
-    if (d.isToday()) {
+    if (d.isSame(now, 'day')) {
       return `오늘 ${this.formatKoreanTime(date)}`;
     }
 
     // 어제: 어제 오전/오후 시간
-    if (d.isYesterday()) {
+    if (d.isSame(now.subtract(1, 'day'), 'day')) {
       return `어제 ${this.formatKoreanTime(date)}`;
     }
 
@@ -219,7 +215,7 @@ export class DateUtil {
     const d = this.toDayjs(date);
     if (!d.isValid()) return '';
 
-    const now = dayjs();
+    const now = dayjs().tz();
     const diffMinutes = now.diff(d, 'minute');
 
     if (diffMinutes < 1) {
@@ -265,15 +261,15 @@ export class DateUtil {
     const d = this.toDayjs(date);
     if (!d.isValid()) return '';
 
-    if (d.isToday()) {
+    const now = dayjs().tz();
+
+    if (d.isSame(now, 'day')) {
       return this.formatKoreanTime(date);
     }
 
-    if (d.isYesterday()) {
+    if (d.isSame(now.subtract(1, 'day'), 'day')) {
       return '어제';
     }
-
-    const now = dayjs();
     const diffDays = now.diff(d, 'day');
 
     if (diffDays < 7) {

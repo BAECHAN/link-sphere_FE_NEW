@@ -6,6 +6,7 @@ import { authApi } from '@/domains/auth/_common/api/auth.api';
 
 import { FormUtil } from '@/shared/utils/form.util';
 import { AuthUtil } from '@/domains/auth/_common/utils/auth.util';
+import { DateUtil } from '@/shared/utils/date.util';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { toast } from 'sonner';
 
@@ -123,7 +124,7 @@ class ApiClient {
                   : typeof parsed?.error === 'string'
                     ? parsed.error
                     : text,
-              timestamp: new Date().toISOString(),
+              timestamp: DateUtil.formatISO(new Date()),
             };
           }
         } catch {
