@@ -3,7 +3,6 @@ import { useForm, UseFormReturn } from 'react-hook-form';
 import { useLoginMutation } from '@/domains/auth/_common/api/auth.queries';
 import { loginSchema, Login } from '@/domains/auth/_common/model/auth.schema';
 import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
-import { useEffect } from 'react';
 
 interface UseLoginReturn {
   form: UseFormReturn<Login>;
@@ -15,18 +14,10 @@ export function useLogin(): UseLoginReturn {
   const form = useForm<Login>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'newuser2@example.com',
-      password: 'securepassword123!',
+      email: '',
+      password: '',
     },
   });
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      form.handleSubmit(onSubmit)();
-    }, 1000);
-
-    return () => clearTimeout(timeout);
-  }, []);
 
   const { mutateAsync: login, isPending, isError } = useLoginMutation();
 
