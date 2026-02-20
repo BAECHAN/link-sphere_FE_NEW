@@ -5,8 +5,9 @@ on:
     branches: ['main']
 
 permissions:
-  id-token: write
+  id-token: write # AWS OIDC 인증을 위해 필수입니다.
   contents: read
+  pages: none     # GitHub Pages 배포 권한을 명시적으로 차단
 
 jobs:
   deploy:
