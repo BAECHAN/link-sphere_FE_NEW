@@ -110,3 +110,24 @@
 
 - `f942091` test: MemberService 테스트 추가
   - MemberService 단위 테스트 구현
+
+## 8단계: 배포 자동화 및 기능 개선 (Deployment & Features)
+
+### 배포 (Deployment)
+
+- `feat`: S3 및 CloudFront 배포를 위한 GitHub Actions 워크플로우 추가
+  - 빌드, S3 업로드, CloudFront 캐시 무효화 자동화
+  - OIDC 인증 방식 적용 및 보안 강화
+- `fix`: 배포 환경 변수 및 권한 설정 수정
+  - Vite API URL 환경 변수 업데이트
+  - GitHub Pages 권한 제거 및 AWS OIDC 권한 명시
+
+### 기능 (Features)
+
+- `feat`: 게시글 상세 페이지 및 삭제 기능 구현
+  - 게시글 상세 조회 및 삭제 로직 추가
+  - 공통 모달 시스템 도입
+- `feat`: 날짜 유틸리티 개선
+  - `DateUtil` 도입으로 타임스탬프 포맷팅 표준화 (Asia/Seoul 기준)
+- `refactor`: 로그인 훅 리팩토링
+  - 불필요한 기본값 및 useEffect 제거로 로직 간소화

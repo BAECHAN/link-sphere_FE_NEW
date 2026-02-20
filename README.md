@@ -40,6 +40,12 @@ pnpm lint
 pnpm format
 ```
 
+## 문서
+
+- [아키텍처 문서](docs/ARCHITECTURE.md)
+- [배포 가이드](docs/DEPLOY.md)
+- [개발 이력](docs/HISTORY.md)
+
 ## 기술 스택
 
 - **React 18** - UI 라이브러리
