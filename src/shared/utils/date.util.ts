@@ -4,13 +4,19 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import isToday from 'dayjs/plugin/isToday';
 import isYesterday from 'dayjs/plugin/isYesterday';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 
 // 플러그인 적용
 dayjs.extend(relativeTime);
 dayjs.extend(isToday);
 dayjs.extend(isYesterday);
 dayjs.extend(customParseFormat);
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 dayjs.locale('ko');
+dayjs.tz.setDefault('Asia/Seoul');
 
 type DateInput = string | number | Date | Dayjs | null | undefined;
 
@@ -23,9 +29,9 @@ export class DateUtil {
   private static toDayjs(date: DateInput): Dayjs {
     // null은 허용
     if (date === undefined) {
-      return dayjs();
+      return dayjs().tz();
     }
-    return dayjs(date);
+    return dayjs(date).tz();
   }
 
   /**
