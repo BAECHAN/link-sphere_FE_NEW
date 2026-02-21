@@ -16,6 +16,6 @@ export const commentApi = {
   },
 
   deleteComment: async (commentId: string) => {
-    await apiClient.delete(API_ENDPOINTS.post.postComment(commentId));
+    await apiClient.delete(API_ENDPOINTS.post.comment(commentId));
   },
 };
