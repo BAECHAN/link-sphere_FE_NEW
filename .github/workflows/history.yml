@@ -1,0 +1,23 @@
+name: Gemini History Updater
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+      - run: npm install @google/genai
+      - run: node scripts/generate-history.js
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Commit & Push
+        run: |
+          git config --local user.name "Gemini-Bot"
+          git add HISTORY.md
+          git commit -m "docs: auto-update history by Gemini [skip ci]"
+          git push origin main
