@@ -44,3 +44,12 @@ export const useDeleteCommentMutation = (postId: string) => {
     },
   });
 };
+export const useUpdateCommentMutation = (postId: string) => {
+  return useMutation({
+    mutationFn: ({ commentId, content }: { commentId: string; content: string }) =>
+      commentApi.updateComment(commentId, { content }),
+    onSuccess: () => {
+      commentInvalidateQueries.list(postId);
+    },
+  });
+};

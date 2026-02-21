@@ -18,4 +18,8 @@ export const commentApi = {
   deleteComment: async (commentId: string) => {
     await apiClient.delete(API_ENDPOINTS.post.comment(commentId));
   },
+
+  updateComment: async (commentId: string, payload: { content: string }) => {
+    return await apiClient.patch<Comment>(API_ENDPOINTS.post.comment(commentId), payload);
+  },
 };

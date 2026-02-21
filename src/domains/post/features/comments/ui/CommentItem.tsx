@@ -2,12 +2,17 @@ import { Comment } from '@/domains/post/_common/model/comment.schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
 import { DateUtil } from '@/shared/utils/date.util';
 import { useState } from 'react';
-import { useDeleteCommentMutation } from '@/domains/post/_common/api/comment.queries';
+import {
+  useDeleteCommentMutation,
+  useUpdateCommentMutation,
+} from '@/domains/post/_common/api/comment.queries';
 import { useLikeCommentMutation as useLikeMutation } from '@/domains/interaction/_common/api/interaction.queries';
 import { CommentForm } from '@/domains/post/features/comments/ui/CommentForm';
-import { Heart, MessageSquare, Trash2 } from 'lucide-react';
+import { Heart, MessageSquare, Trash2, Edit2, X, Check } from 'lucide-react';
 import { useFetchAccountQuery } from '@/domains/auth/_common/api/auth.queries';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { Button } from '@/shared/ui/atoms/button';
+import { Textarea } from '@/shared/ui/atoms/textarea';
 
 interface CommentItemProps {
   comment: Comment;
@@ -18,8 +23,11 @@ interface CommentItemProps {
 export function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
   const { data: account } = useFetchAccountQuery();
   const [isReplying, setIsReplying] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
 
   const deleteMutation = useDeleteCommentMutation(postId);
+  const updateMutation = useUpdateCommentMutation(postId);
   const likeMutation = useLikeMutation(comment.id, postId);
 
   const isOwner = account?.id === comment.author.id;
@@ -38,6 +46,21 @@ export function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
 
   const handleLike = () => {
     likeMutation.mutate();
+  };
+
+  const handleUpdate = () => {
+    if (!editContent.trim()) return;
+    updateMutation.mutate(
+      { commentId: comment.id, content: editContent },
+      {
+        onSuccess: () => setIsEditing(false),
+      }
+    );
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditContent(comment.content);
   };
 
   if (isDeleted && comment.replies.length === 0) {
@@ -65,18 +88,52 @@ export function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
           </span>
         </div>
 
-        <div
-          className={cn(
-            'text-gray-800 dark:text-gray-200 leading-relaxed',
-            isDeleted && 'text-muted-foreground italic'
-          )}
-        >
-          {comment.content}
-        </div>
+        {isEditing ? (
+          <div className="space-y-2">
+            <Textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="min-h-[80px] text-sm"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleCancelEdit}
+                className="h-8 px-2 text-xs"
+              >
+                <X className="mr-1 h-3 w-3" />
+                취소
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleUpdate}
+                disabled={!editContent.trim() || updateMutation.isPending}
+                className="h-8 px-2 text-xs"
+              >
+                <Check className="mr-1 h-3 w-3" />
+                {updateMutation.isPending ? '저장 중...' : '저장'}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div
+            className={cn(
+              'text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap break-all',
+              isDeleted && 'text-muted-foreground italic'
+            )}
+          >
+            {comment.content}
+          </div>
+        )}
 
         {!isDeleted && (
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <button
+              type="button"
               onClick={handleLike}
               className={cn(
                 'flex items-center gap-1 hover:text-red-500 transition-colors',
@@ -89,6 +146,7 @@ export function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
 
             {canReply && (
               <button
+                type="button"
                 onClick={() => setIsReplying(!isReplying)}
                 className="flex items-center gap-1 hover:text-blue-500 transition-colors"
               >
@@ -98,13 +156,24 @@ export function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
             )}
 
             {isOwner && (
-              <button
-                onClick={handleDelete}
-                className="flex items-center gap-1 hover:text-red-600 transition-colors"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                <span>삭제</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                  <span>수정</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="flex items-center gap-1 hover:text-red-600 transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>삭제</span>
+                </button>
+              </>
             )}
           </div>
         )}
