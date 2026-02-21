@@ -131,3 +131,11 @@
   - `DateUtil` 도입으로 타임스탬프 포맷팅 표준화 (Asia/Seoul 기준)
 - `refactor`: 로그인 훅 리팩토링
   - 불필요한 기본값 및 useEffect 제거로 로직 간소화
+
+## 9단계: 댓글 상호작용 및 UI 고도화 (Comment Interactions & UI Enhancement)
+
+- `feat`: 댓글 수정 기능 구현 및 UI 개선
+  - `CommentItem` 수정 모드(textarea) 및 저장/취소 기능 구현
+  - 댓글 내용 줄바꿈(`whitespace-pre-wrap`) 및 단어 끊김 방지 적용
+  - `useUpdateCommentMutation` 추가 및 실시간 목록 무효화 연동
+  - 버튼 타입 명시 및 시맨틱 마크업 보완
