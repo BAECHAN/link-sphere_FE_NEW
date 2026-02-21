@@ -121,6 +121,7 @@
 - `fix`: 배포 환경 변수 및 권한 설정 수정
   - Vite API URL 환경 변수 업데이트
   - GitHub Pages 권한 제거 및 AWS OIDC 권한 명시
+- `chore`: GitHub Actions 배포 워크플로우 최적화 (`paths` 허용 리스트 방식 적용)
 
 ### 기능 (Features)
 
