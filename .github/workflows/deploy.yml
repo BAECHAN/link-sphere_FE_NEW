@@ -3,6 +3,17 @@ name: Frontend Deploy (S3 + CloudFront)
 on:
   push:
     branches: ['main']
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'pnpm-lock.yaml'
+      - 'vite.config.ts'
+      - 'tailwind.config.ts'
+      - 'postcss.config.js'
+      - 'index.html'
+      - 'tsconfig*.json'
 
 permissions:
   id-token: write # AWS OIDC 인증을 위해 필수입니다.
