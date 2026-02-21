@@ -224,7 +224,7 @@ export function PostCard({ post }: PostCardProps) {
                 post.userInteractions.isLiked && 'fill-current'
               )}
             />
-            <span className="font-bold">{post.stats.likeCount}</span>
+            <span className="font-bold select-none">{post.stats.likeCount}</span>
           </Button>
           <div className="w-px h-3 bg-muted-foreground/20 mx-0.5 md:mx-1" />
           <Link to={`/post/${post.id}`}>
