@@ -1,7 +1,18 @@
 name: Gemini History Updater
 on:
   push:
-    tags: ['v*']
+    branches: ['main']
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'pnpm-lock.yaml'
+      - 'vite.config.ts'
+      - 'tailwind.config.ts'
+      - 'postcss.config.js'
+      - 'index.html'
+      - 'tsconfig*.json'
 
 jobs:
   update:
