@@ -24,7 +24,7 @@ export const postApi = {
    * @returns PostListResponse
    */
   fetchPostList: async (payload: PostListRequest): Promise<PostListResponse> => {
-    const { page, size, search, category, filter } = payload;
+    const { page, size, search, category, filter, nickname } = payload;
 
     const searchParams: PostListRequest = {
       page,
@@ -32,6 +32,7 @@ export const postApi = {
       ...(search && { search }),
       ...(category && { category }),
       ...(filter && { filter }),
+      ...(nickname && { nickname }),
     };
 
     return await apiClient.get<PostListResponse>(API_ENDPOINTS.post.base, { searchParams });

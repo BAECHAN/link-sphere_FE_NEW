@@ -12,7 +12,7 @@ export const usePostListParams = () => {
   const q = searchParams.get('q') || '';
   const filter = searchParams.get('filter') || undefined;
 
-  const { category, search } = parseSearchQuery(q);
+  const { category, nickname, search } = parseSearchQuery(q);
 
   const setSearch = (newSearch: string) => {
     if (!newSearch) {
@@ -50,6 +50,7 @@ export const usePostListParams = () => {
     searchQuery: q,
     currentFilter: filter,
     category,
+    nickname,
     search,
     setSearch,
     toggleFilter,
@@ -62,11 +63,12 @@ export const usePostListParams = () => {
  * useSuspenseFetchPostListQuery를 호출하므로 사용하는 컴포넌트가 Suspense에 의해 정지될 수 있습니다.
  */
 export const usePostList = () => {
-  const { category, search, currentFilter, ...params } = usePostListParams();
+  const { category, nickname, search, currentFilter, ...params } = usePostListParams();
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useSuspenseFetchPostListQuery({
     search,
     category,
+    nickname,
     filter: currentFilter,
   });
 

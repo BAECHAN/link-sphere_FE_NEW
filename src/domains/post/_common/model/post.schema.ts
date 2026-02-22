@@ -48,6 +48,7 @@ export const postListRequestSchema = paginationRequestSchema.extend({
   search: z.string().optional(),
   category: z.string().optional(),
   filter: z.string().optional(),
+  nickname: z.string().optional(),
 });
 
 export const PostListResponseSchema = paginationResponseSchema(postSchema);

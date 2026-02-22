@@ -40,7 +40,7 @@ export function PostListSearch() {
             <SearchInput
               name="search-input"
               id="search-input"
-              placeholder="키워드나 @카테고리로 검색..."
+              placeholder="키워드나 @카테고리, #닉네임으로 검색..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onClear={handleClear}

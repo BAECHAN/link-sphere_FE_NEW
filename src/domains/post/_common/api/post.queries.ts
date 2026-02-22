@@ -31,7 +31,7 @@ export const useCreatePostMutation = () => {
 };
 
 export const useFetchPostListQuery = (
-  payload?: Pick<PostListRequest, 'search' | 'category' | 'filter'>
+  payload?: Pick<PostListRequest, 'search' | 'category' | 'filter' | 'nickname'>
 ) => {
   return useInfiniteQuery({
     queryKey: postKeys.list(payload),
@@ -41,6 +41,7 @@ export const useFetchPostListQuery = (
         size: POST_PAGE_SIZE,
         search: payload?.search,
         category: payload?.category,
+        nickname: payload?.nickname,
         filter: payload?.filter,
       });
     },
@@ -59,7 +60,7 @@ export const useFetchPostListQuery = (
 };
 
 export const useSuspenseFetchPostListQuery = (
-  payload?: Pick<PostListRequest, 'search' | 'category' | 'filter'>
+  payload?: Pick<PostListRequest, 'search' | 'category' | 'filter' | 'nickname'>
 ) => {
   return useSuspenseInfiniteQuery({
     queryKey: postKeys.list(payload),
@@ -69,6 +70,7 @@ export const useSuspenseFetchPostListQuery = (
         size: POST_PAGE_SIZE,
         search: payload?.search,
         category: payload?.category,
+        nickname: payload?.nickname,
         filter: payload?.filter,
       });
     },
