@@ -25,9 +25,9 @@ async function main() {
   const result = await model.generateContent(prompt);
   const aiResponse = result.response.text();
 
-  // 3. HISTORY.md 파일 상단에 추가
-  const currentHistory = fs.readFileSync('HISTORY.md', 'utf8');
-  fs.writeFileSync('HISTORY.md', `${aiResponse}\n\n${currentHistory}`);
+  // 3. docs/HISTORY.md 파일 상단에 추가
+  const currentHistory = fs.readFileSync('docs/HISTORY.md', 'utf8');
+  fs.writeFileSync('docs/HISTORY.md', `${aiResponse}\n\n${currentHistory}`);
 }
 
 main();

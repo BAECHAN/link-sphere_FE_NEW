@@ -30,6 +30,6 @@ jobs:
         run: |
           git config --local user.name "Gemini-Bot"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git add HISTORY.md
+          git add docs/HISTORY.md
           git commit -m "docs: auto-update history by Gemini [skip ci]"
           git push origin main
