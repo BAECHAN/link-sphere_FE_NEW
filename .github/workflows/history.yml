@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: actions/setup-node@v4
-      - run: npm install @google/genai
+      - run: npm install @google/generative-ai
       - run: node scripts/generate-history.js
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
