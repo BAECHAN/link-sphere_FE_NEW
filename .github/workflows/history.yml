@@ -26,6 +26,8 @@ jobs:
       - run: node scripts/generate-history.js
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
       - name: Commit & Push
         run: |
           git config --local user.name "Gemini-Bot"
