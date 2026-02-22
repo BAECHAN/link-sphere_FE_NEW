@@ -4,6 +4,7 @@ import { useCreatePost } from '@/domains/post/features/create-post/hooks/useCrea
 import { FormProvider } from 'react-hook-form';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { FormCheckboxGroup } from '@/shared/ui/elements/form/FormCheckboxGroup';
+import { FormCheckbox } from '@/shared/ui/elements/form/FormCheckbox';
 import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
@@ -45,6 +46,15 @@ export function CreatePostForm() {
                 options={categoryOptionList ?? []}
                 disabled={isCreating}
               />
+
+              <div className="pt-2">
+                <FormCheckbox
+                  name="isPrivate"
+                  label="나만 보기 (비공개)"
+                  description="체크하면 팀원들에게 공유되지 않고 나만 볼 수 있는 게시물로 저장됩니다."
+                  disabled={isCreating}
+                />
+              </div>
 
               <TooltipWrapper
                 content={

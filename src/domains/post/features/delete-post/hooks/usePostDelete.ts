@@ -7,12 +7,13 @@ export function usePostDelete() {
   const { mutateAsync: deletePost, isPending: isDeleting } = useDeletePostMutation();
   const { openConfirm } = useAlert();
 
-  const handleDeleteClick = (postId: string) => {
+  const handleDeleteClick = (postId: string, options?: { onSuccess?: () => void }) => {
     openConfirm({
       message: TEXTS.messages.warning.postDeleteConfirm,
       confirmText: TEXTS.buttons.delete,
       onConfirm: async () => {
         await deletePost(postId);
+        options?.onSuccess?.();
       },
     });
   };

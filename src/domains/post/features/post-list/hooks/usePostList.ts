@@ -24,11 +24,20 @@ export const usePostListParams = () => {
   };
 
   const toggleFilter = (targetFilter: string) => {
-    const currentFilter = searchParams.get('filter');
-    if (currentFilter === targetFilter) {
+    const currentFilter = searchParams.get('filter') || '';
+    const filters = currentFilter ? currentFilter.split(',') : [];
+
+    let newFilters: string[];
+    if (filters.includes(targetFilter)) {
+      newFilters = filters.filter((f) => f !== targetFilter);
+    } else {
+      newFilters = [...filters, targetFilter];
+    }
+
+    if (newFilters.length === 0) {
       searchParams.delete('filter');
     } else {
-      searchParams.set('filter', targetFilter);
+      searchParams.set('filter', newFilters.join(','));
     }
     setSearchParams(searchParams);
   };

@@ -27,7 +27,10 @@ export function PostListSearch() {
     clearSearch();
   };
 
-  const isClickedBookmark = currentFilter === 'isBookmarked';
+  const activeFilters = currentFilter ? currentFilter.split(',') : [];
+  const isClickedBookmark = activeFilters.includes('isBookmarked');
+  const isClickedMyPosts = activeFilters.includes('isMyPosts');
+  const isClickedPrivate = activeFilters.includes('isPrivate');
 
   return (
     <>
@@ -90,6 +93,28 @@ export function PostListSearch() {
               }`}
             >
               {TEXTS.buttons.bookmarkOnly}
+            </button>
+
+            <button
+              onClick={() => toggleFilter('isMyPosts')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                isClickedMyPosts
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+              }`}
+            >
+              {TEXTS.buttons.myPosts}
+            </button>
+
+            <button
+              onClick={() => toggleFilter('isPrivate')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                isClickedPrivate
+                  ? 'bg-purple-500 text-white shadow-sm'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+              }`}
+            >
+              {TEXTS.buttons.privateOnly}
             </button>
 
             <Button

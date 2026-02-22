@@ -104,3 +104,18 @@ export const useDeletePostMutation = () => {
     },
   });
 };
+
+export const useUpdatePostVisibilityMutation = () => {
+  return useMutation({
+    mutationFn: async ({ postId, isPrivate }: { postId: string; isPrivate: boolean }) => {
+      return await postApi.updatePostVisibility(postId, isPrivate);
+    },
+    meta: {
+      successMessage: '게시물 공개 설정이 변경되었습니다.',
+      errorMessage: '게시물 공개 설정 변경에 실패했습니다.',
+    },
+    onSuccess: () => {
+      postInvalidateQueries.list();
+    },
+  });
+};

@@ -41,6 +41,12 @@ export const postApi = {
     return await apiClient.get<Post>(`${API_ENDPOINTS.post.base}/${postId}`);
   },
 
+  updatePostVisibility: async (postId: string, isPrivate: boolean): Promise<Post> => {
+    return await apiClient.patch<Post>(`${API_ENDPOINTS.post.base}/${postId}/visibility`, {
+      isPrivate,
+    });
+  },
+
   deletePost: async (postId: string): Promise<void> => {
     return await apiClient.delete<void>(`${API_ENDPOINTS.post.base}/${postId}`);
   },

@@ -9,6 +9,8 @@ import {
   ExternalLink,
   Eye,
   Lightbulb,
+  Lock,
+  Unlock,
   MessageSquare,
   Share2,
   ThumbsUp,
@@ -29,10 +31,12 @@ import {
   useLikePostMutation,
   useBookmarkPostMutation,
 } from '@/domains/interaction/_common/api/interaction.queries';
+import { useUpdatePostVisibilityMutation } from '@/domains/post/_common/api/post.queries';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { usePostDelete } from '@/domains/post/features/delete-post/hooks/usePostDelete';
 import { toast } from 'sonner';
 import { TEXTS } from '@/shared/config/texts';
+import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
 
 interface PostCardProps {
   post: Post;
@@ -47,8 +51,11 @@ export function PostCard({ post }: PostCardProps) {
   const likeMutation = useLikePostMutation(post.id);
   const bookmarkMutation = useBookmarkPostMutation(post.id);
   const { onDelete } = usePostDelete();
+  const updateVisibilityMutation = useUpdatePostVisibilityMutation();
+  const { openConfirm } = useAlert();
 
   const [isAiSummaryExpanded, setIsAiSummaryExpanded] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLike = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -62,7 +69,35 @@ export function PostCard({ post }: PostCardProps) {
 
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
-    onDelete(post.id);
+    onDelete(post.id, {
+      onSuccess: () => {
+        setIsMenuOpen(false);
+      },
+    });
+  };
+
+  const handleToggleVisibility = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!isOwner) return;
+
+    const actionText = post.isPrivate ? '전체 공개로' : '나만 보기(비공개)로';
+
+    openConfirm({
+      title: '공개 설정 변경',
+      message: `이 게시물을 ${actionText} 전환하시겠습니까?`,
+      confirmText: '확인',
+      cancelText: '취소',
+      onConfirm: () => {
+        updateVisibilityMutation.mutate(
+          { postId: post.id, isPrivate: !post.isPrivate },
+          {
+            onSuccess: () => {
+              setIsMenuOpen(false);
+            },
+          }
+        );
+      },
+    });
   };
 
   const handleCopyLink = async () => {
@@ -96,9 +131,22 @@ export function PostCard({ post }: PostCardProps) {
           </Link>
         </div>
 
-        {isOwner && (
-          <div className={`flex items-center gap-0.5 md:gap-1 shrink-0`}>
-            <DropdownMenu>
+        <div className={`flex items-center gap-0.5 md:gap-1 shrink-0`}>
+          {isOwner && post.isPrivate && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 md:h-8 md:w-8"
+              onClick={handleToggleVisibility}
+              disabled={updateVisibilityMutation.isPending}
+              title={post.isPrivate ? '전체 공개로 전환' : '비공개로 전환'}
+            >
+              <Lock className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+            </Button>
+          )}
+
+          {isOwner && (
+            <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7 md:h-8 md:w-8">
                   <MoreVertical className="h-3 w-3 md:h-4 md:w-4" />
@@ -106,16 +154,32 @@ export function PostCard({ post }: PostCardProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
+                  onClick={handleToggleVisibility}
+                  disabled={updateVisibilityMutation.isPending}
+                >
+                  {post.isPrivate ? (
+                    <>
+                      <Unlock className="mr-2 h-4 w-4" />
+                      전체 공개
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="mr-2 h-4 w-4" />
+                      나만 보기
+                    </>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={handleDelete}
                   className="text-red-600 focus:text-red-600"
                 >
                   <Trash className="mr-2 h-4 w-4" />
-                  Delete
+                  {TEXTS.buttons.delete}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-        )}
+          )}
+        </div>
       </CardHeader>
 
       <CardContent className="p-3 pt-0 flex flex-col">
@@ -220,8 +284,9 @@ export function PostCard({ post }: PostCardProps) {
           >
             <ThumbsUp
               className={cn(
-                'h-3 w-3 md:h-4 md:w-4',
-                post.userInteractions.isLiked && 'fill-current'
+                'h-3.5 w-3.5 md:h-4 md:w-4',
+                post.userInteractions.isLiked && 'fill-current',
+                likeMutation.isPending && 'animate-pulse opacity-50'
               )}
             />
             <span className="font-bold select-none">{post.stats.likeCount}</span>
@@ -248,7 +313,11 @@ export function PostCard({ post }: PostCardProps) {
             disabled={bookmarkMutation.isPending}
           >
             <Bookmark
-              className={`h-3.5 w-3.5 md:h-4.5 md:w-4.5 ${post.userInteractions.isBookmarked ? 'fill-current' : ''}`}
+              className={cn(
+                'h-3.5 w-3.5 md:h-4.5 md:w-4.5',
+                post.userInteractions.isBookmarked ? 'fill-current' : '',
+                bookmarkMutation.isPending && 'animate-pulse opacity-50'
+              )}
             />
             <span className="sr-only">Bookmark</span>
           </Button>

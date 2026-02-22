@@ -36,6 +36,7 @@ export const postSchema = z.object({
     isBookmarked: z.boolean().default(false),
   }),
   createdAt: z.coerce.date(),
+  isPrivate: z.boolean().default(false),
   author: accountSchema.pick({
     id: true,
     nickname: true,
@@ -55,8 +56,10 @@ export const PostListResponseSchema = paginationResponseSchema(postSchema);
  * 포스트 등록(생성)을 위한 스키마
  * 사용자가 입력하는 url과 categories만 필수값으로 설정합니다.
  */
-export const createPostSchema = postSchema.pick({ url: true }).extend({
+export const createPostSchema = z.object({
+  url: postSchema.shape.url,
   categoryIds: z.array(z.coerce.number()).optional(),
+  isPrivate: z.boolean(),
 });
 
 export const createPostResponseSchema = postSchema.pick({
@@ -72,6 +75,7 @@ export const createPostResponseSchema = postSchema.pick({
   aiStatus: true,
   stats: true,
   createdAt: true,
+  isPrivate: true,
 });
 
 // ==================== 3. Interaction & Comment Schemas ====================

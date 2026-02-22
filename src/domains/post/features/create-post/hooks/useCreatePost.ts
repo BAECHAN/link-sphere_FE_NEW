@@ -8,6 +8,7 @@ import { ROUTES_PATHS } from '@/shared/config/route-paths';
 const DEFAULT_VALUES: CreatePost = {
   url: '',
   categoryIds: [],
+  isPrivate: false,
 };
 
 export function useCreatePost() {
