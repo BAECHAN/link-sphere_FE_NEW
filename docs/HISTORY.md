@@ -2,6 +2,15 @@
 
 이 문서는 프로젝트의 개발 내역을 시간 순서대로 기록합니다.
 
+## 10단계: 검색 기능 확장 및 UX 편의성 개선 (Search Expansion & UX Improvements)
+
+- `feat`: 게시물 목록 검색에 닉네임 필터링 기능 추가 및 연동
+  - 닉네임 `#` 프리픽스를 인식하는 파서 구조 추가 및 백엔드 API 검색 연동
+- `feat`: 목록과 상세 페이지 간 이동 시 이전 스크롤 위치 보존 기능 구현
+- `feat`: 게시물 목록 최초 로딩 시 상단 NProgress 바를 표시하여 응답성 시각화
+- `fix`: PostCard 컴포넌트 내부 드롭다운 메뉴 사용 시 `pointer-events: none` 속성이 해제되지 않던 버그 수정 (비모달 방식 변경)
+- `chore`: GitHub Actions History 워크플로우를 위한 패키지 및 SHA 환경변수 전달 로직 수정
+
 ## 초기 설정 (Initial Setup)
 
 ### Backend
