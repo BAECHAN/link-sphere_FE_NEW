@@ -51,7 +51,7 @@ export function PostCard({ post }: PostCardProps) {
   const likeMutation = useLikePostMutation(post.id);
   const bookmarkMutation = useBookmarkPostMutation(post.id);
   const { onDelete } = usePostDelete();
-  const updateVisibilityMutation = useUpdatePostVisibilityMutation();
+  const updateVisibilityMutation = useUpdatePostVisibilityMutation(post.id);
   const { openConfirm } = useAlert();
 
   const [isAiSummaryExpanded, setIsAiSummaryExpanded] = useState(false);

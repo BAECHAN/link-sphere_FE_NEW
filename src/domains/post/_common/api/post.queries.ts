@@ -7,7 +7,11 @@ import {
 import { postApi } from '@/domains/post/_common/api/post.api';
 import { CreatePost, PostListRequest } from '@/domains/post/_common/model/post.schema';
 import { TEXTS } from '@/shared/config/texts';
-import { postInvalidateQueries, postKeys } from '@/domains/post/_common/api/post.keys';
+import {
+  handlePostUpdateSuccess,
+  postInvalidateQueries,
+  postKeys,
+} from '@/domains/post/_common/api/post.keys';
 import { POST_PAGE_SIZE } from '@/domains/post/_common/config/const';
 import { PaginationRequest } from '@/shared/api/common.schema';
 
@@ -105,7 +109,7 @@ export const useDeletePostMutation = () => {
   });
 };
 
-export const useUpdatePostVisibilityMutation = () => {
+export const useUpdatePostVisibilityMutation = (postId: string) => {
   return useMutation({
     mutationFn: async ({ postId, isPrivate }: { postId: string; isPrivate: boolean }) => {
       return await postApi.updatePostVisibility(postId, isPrivate);
@@ -115,7 +119,7 @@ export const useUpdatePostVisibilityMutation = () => {
       errorMessage: '게시물 공개 설정 변경에 실패했습니다.',
     },
     onSuccess: () => {
-      postInvalidateQueries.list();
+      handlePostUpdateSuccess(postId);
     },
   });
 };
