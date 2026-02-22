@@ -72,9 +72,6 @@ export function PostCard({ post }: PostCardProps) {
     onDelete(post.id, {
       onSuccess: () => {
         setIsMenuOpen(false);
-        if (!open) {
-          document.body.style = '';
-        }
       },
     });
   };
@@ -96,9 +93,6 @@ export function PostCard({ post }: PostCardProps) {
           {
             onSuccess: () => {
               setIsMenuOpen(false);
-              if (!open) {
-                document.body.style = '';
-              }
             },
           }
         );
@@ -152,7 +146,7 @@ export function PostCard({ post }: PostCardProps) {
           )}
 
           {isOwner && (
-            <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <DropdownMenu modal={false} open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7 md:h-8 md:w-8">
                   <MoreVertical className="h-3 w-3 md:h-4 md:w-4" />
