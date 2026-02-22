@@ -72,6 +72,9 @@ export function PostCard({ post }: PostCardProps) {
     onDelete(post.id, {
       onSuccess: () => {
         setIsMenuOpen(false);
+        if (!open) {
+          document.body.style = '';
+        }
       },
     });
   };
@@ -93,6 +96,9 @@ export function PostCard({ post }: PostCardProps) {
           {
             onSuccess: () => {
               setIsMenuOpen(false);
+              if (!open) {
+                document.body.style = '';
+              }
             },
           }
         );
