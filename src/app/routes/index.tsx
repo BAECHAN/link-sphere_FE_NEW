@@ -3,6 +3,7 @@ import { Navigate, useLocation, type RouteObject } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { ProtectedLayout } from './layouts/ProtectedLayout';
 import { PublicLayout } from '@/app/routes/layouts/PublicLayout';
+import { RootLayout } from '@/app/routes/layouts/RootLayout';
 import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 
@@ -80,52 +81,57 @@ function RootRedirect() {
  */
 export const appRoutes: RouteObject[] = [
   {
-    element: <ProtectedLayout />,
+    element: <RootLayout />,
     children: [
       {
-        path: ROUTES_PATHS.HOME,
-        element: <RootRedirect />,
+        element: <ProtectedLayout />,
+        children: [
+          {
+            path: ROUTES_PATHS.HOME,
+            element: <RootRedirect />,
+          },
+          {
+            path: ROUTES_PATHS.POST.ROOT,
+            element: withSuspense(Post),
+          },
+          {
+            path: ROUTES_PATHS.POST.SUBMIT,
+            element: withSuspense(PostSubmitPage),
+          },
+          {
+            path: '/post/:id',
+            element: withSuspense(PostDetailPage),
+          },
+        ],
       },
+      // Public Routes Group (Guest Only)
       {
-        path: ROUTES_PATHS.POST.ROOT,
-        element: withSuspense(Post),
+        element: (
+          <GuestGuard>
+            <PublicLayout />
+          </GuestGuard>
+        ),
+        children: [
+          {
+            path: ROUTES_PATHS.AUTH.LOGIN,
+            element: withSuspense(LoginPage),
+          },
+          {
+            path: ROUTES_PATHS.AUTH.SIGNUP,
+            element: withSuspense(SignUpPage),
+          },
+        ],
       },
+      // 403 Forbidden
       {
-        path: ROUTES_PATHS.POST.SUBMIT,
-        element: withSuspense(PostSubmitPage),
+        path: ROUTES_PATHS.FORBIDDEN,
+        element: withSuspense(ForbiddenPage),
       },
+      // 404 Not Found
       {
-        path: '/post/:id',
-        element: withSuspense(PostDetailPage),
+        path: ROUTES_PATHS.NOT_FOUND,
+        element: withSuspense(NotFoundPage),
       },
     ],
-  },
-  // Public Routes Group (Guest Only)
-  {
-    element: (
-      <GuestGuard>
-        <PublicLayout />
-      </GuestGuard>
-    ),
-    children: [
-      {
-        path: ROUTES_PATHS.AUTH.LOGIN,
-        element: withSuspense(LoginPage),
-      },
-      {
-        path: ROUTES_PATHS.AUTH.SIGNUP,
-        element: withSuspense(SignUpPage),
-      },
-    ],
-  },
-  // 403 Forbidden
-  {
-    path: ROUTES_PATHS.FORBIDDEN,
-    element: withSuspense(ForbiddenPage),
-  },
-  // 404 Not Found
-  {
-    path: ROUTES_PATHS.NOT_FOUND,
-    element: withSuspense(NotFoundPage),
   },
 ];
