@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import url('/fonts/web/static/pretendard-subset.css');
+@import 'nprogress/nprogress.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -119,4 +120,17 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* NProgress Theme Overrides */
+#nprogress .bar {
+  @apply !bg-primary;
+}
+
+#nprogress .peg {
+  @apply !shadow-[0_0_10px_var(--color-primary),0_0_5px_var(--color-primary)];
+}
+
+#nprogress .spinner-icon {
+  @apply !border-t-primary !border-l-primary;
 }

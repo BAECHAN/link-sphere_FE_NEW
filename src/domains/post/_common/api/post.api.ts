@@ -1,4 +1,5 @@
 import { apiClient } from '@/shared/api/client';
+import NProgress from 'nprogress';
 import { API_ENDPOINTS } from '@/shared/config/api';
 import {
   CreatePost,
@@ -26,16 +27,26 @@ export const postApi = {
   fetchPostList: async (payload: PostListRequest): Promise<PostListResponse> => {
     const { page, size, search, category, filter, nickname } = payload;
 
-    const searchParams: PostListRequest = {
-      page,
-      size,
-      ...(search && { search }),
-      ...(category && { category }),
-      ...(filter && { filter }),
-      ...(nickname && { nickname }),
-    };
+    if (page === 0) {
+      NProgress.start();
+    }
 
-    return await apiClient.get<PostListResponse>(API_ENDPOINTS.post.base, { searchParams });
+    try {
+      const searchParams: PostListRequest = {
+        page,
+        size,
+        ...(search && { search }),
+        ...(category && { category }),
+        ...(filter && { filter }),
+        ...(nickname && { nickname }),
+      };
+
+      return await apiClient.get<PostListResponse>(API_ENDPOINTS.post.base, { searchParams });
+    } finally {
+      if (page === 0) {
+        NProgress.done();
+      }
+    }
   },
 
   fetchPostDetail: async (postId: string): Promise<Post> => {
