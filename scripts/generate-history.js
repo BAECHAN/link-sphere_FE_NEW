@@ -63,7 +63,7 @@ async function main() {
   const prompt = `
     다음은 GitHub 커밋 로그들이다. 이를 바탕으로 채용 담당자가 보기 좋게
     기술적인 성과 위주로 HISTORY.md에 들어갈 릴리스 노트를 작성해줘.
-    형식: ### [YYYY-MM-DD] \n - 요약내용
+    형식: ### ${new Date().toISOString().split('T')[0]} \n - 요약내용
     로그:
     ${logs}
   `;
