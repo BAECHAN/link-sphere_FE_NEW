@@ -5,7 +5,7 @@ const roleEnum = z.enum(['USER', 'ADMIN']);
 
 export const nicknameValidationSchema = z
   .string()
-  .regex(/^[a-zA-Z0-9가-힣_.-]{2,10}$/, TEXTS.validation.nicknameRegex);
+  .regex(/^[a-zA-Z0-9가-힣_.-]{2,20}$/, TEXTS.validation.nicknameRegex);
 
 /** 재사용 가능한 비밀번호 검증 스키마 */
 export const passwordValidationSchema = z

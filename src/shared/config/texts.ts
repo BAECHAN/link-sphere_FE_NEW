@@ -20,7 +20,7 @@ export const TEXTS = {
     message: '메시지',
   },
   placeholders: {
-    nickname: '한글/영문 2~10자 이내',
+    nickname: '한글/영문 2~20자 이내',
     email: 'example@email.com',
     password: '비밀번호 입력',
     message: '메시지를 입력하세요.',
@@ -58,7 +58,7 @@ export const TEXTS = {
     passwordRegex: '비밀번호는 8자 이상, 영문, 숫자, 특수문자 조합으로 입력해주세요.',
     passwordMaxLength: '비밀번호는 20자 이하로 입력해주세요.',
     emailRegex: '올바른 이메일 형식(예: user@mail.com)인지 확인해 주세요.',
-    nicknameRegex: '닉네임은 2자 이상 10자 이하로 입력해주세요.',
+    nicknameRegex: '닉네임은 2자 이상 20자 이하로 입력해주세요.',
   },
   messages: {
     info: {
