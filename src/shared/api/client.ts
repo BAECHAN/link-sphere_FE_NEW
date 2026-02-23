@@ -244,7 +244,7 @@ class ApiClient {
     return this.request<T>(endpoint, { ...options, method: 'GET' });
   }
 
-  async post<T>(endpoint: string, data: unknown, options?: ApiRequestOptions): Promise<T> {
+  async post<T>(endpoint: string, data?: unknown, options?: ApiRequestOptions): Promise<T> {
     const bodyData = this.processRequestData(data);
 
     return this.request<T>(endpoint, {
