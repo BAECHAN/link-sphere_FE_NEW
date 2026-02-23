@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@/shared/config/api';
+import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { TEXTS } from '@/shared/config/texts';
 import { ApiError, ApiResponse, ApiErrorResponse } from '@/shared/types/common.type';
 import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
@@ -40,7 +40,7 @@ class ApiClient {
   private isAuthEndpoint(endpoint: string): boolean {
     // 토큰이 만료되어도 401에러가 뜨지 않고 통과되어야 하는 API 목록
     // 로그인, 회원가입, 리프레시 요청은 인증 헤더 없이 호출 가능해야 함 (혹은 리프레시는 쿠키 사용)
-    const authEndpoints = ['/auth/login', '/auth/signup', '/auth/refresh'];
+    const authEndpoints = [API_ENDPOINTS.auth.login, API_ENDPOINTS.auth.signup];
     return authEndpoints.some((path) => endpoint.includes(path));
   }
 
