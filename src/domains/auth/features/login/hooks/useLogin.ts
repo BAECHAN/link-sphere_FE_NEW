@@ -1,21 +1,34 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { useLoginMutation } from '@/domains/auth/_common/api/auth.queries';
-import { loginSchema, Login } from '@/domains/auth/_common/model/auth.schema';
+import { loginSchema } from '@/domains/auth/_common/model/auth.schema';
 import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
+import { z } from 'zod';
+import { LocalStorageUtil } from '@/shared/utils/storage.util';
+
+const SAVED_ID_KEY = 'savedLinkSphereEmail';
+
+const loginFormSchema = loginSchema.extend({
+  saveEmail: z.boolean(),
+});
+
+type LoginFormInput = z.infer<typeof loginFormSchema>;
 
 interface UseLoginReturn {
-  form: UseFormReturn<Login>;
-  onSubmit: (data: Login) => Promise<void>;
+  form: UseFormReturn<LoginFormInput>;
+  onSubmit: (data: LoginFormInput) => Promise<void>;
   isPending: boolean;
 }
 
 export function useLogin(): UseLoginReturn {
-  const form = useForm<Login>({
-    resolver: zodResolver(loginSchema),
+  const savedEmail = LocalStorageUtil.getItem<string>(SAVED_ID_KEY) || '';
+
+  const form = useForm<LoginFormInput>({
+    resolver: zodResolver(loginFormSchema),
     defaultValues: {
-      email: '',
+      email: savedEmail,
       password: '',
+      saveEmail: !!savedEmail,
     },
   });
 
@@ -23,8 +36,14 @@ export function useLogin(): UseLoginReturn {
 
   const isDelayPending = useMinimumLoading(isPending, 3000, isError); // 최소 로딩 시간 보장 ( 로딩 후 중간에 로그인 텍스트 깜빡임 방지)
 
-  const onSubmit = async (data: Login) => {
-    await login(data);
+  const onSubmit = async (data: LoginFormInput) => {
+    await login({ email: data.email, password: data.password });
+
+    if (data.saveEmail) {
+      LocalStorageUtil.setItem(SAVED_ID_KEY, data.email);
+    } else {
+      LocalStorageUtil.removeItem(SAVED_ID_KEY);
+    }
   };
 
   return {

@@ -148,6 +148,7 @@ export const TEXTS = {
     homeLink: '홈으로 이동',
     profileEdit: '프로필 수정',
     logout: '로그아웃',
+    saveEmail: 'Save Email',
 
     // 입력 필드
     inputClear: '입력값 지우기',

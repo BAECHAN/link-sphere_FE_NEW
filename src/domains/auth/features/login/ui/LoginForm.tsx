@@ -5,7 +5,9 @@ import { FormProvider } from 'react-hook-form';
 import { useLogin } from '@/domains/auth/features/login/hooks/useLogin';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { FormInputPassword } from '@/shared/ui/elements/form/FormInputPassword';
+import { FormCheckbox } from '@/shared/ui/elements/form/FormCheckbox';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { TEXTS } from '@/shared/config/texts';
 
 export const LoginForm = () => {
   const { form, onSubmit, isPending } = useLogin();
@@ -29,6 +31,11 @@ export const LoginForm = () => {
                 disabled={isPending}
               />
               <FormInputPassword name="password" label="Password" required disabled={isPending} />
+              <FormCheckbox
+                name="saveEmail"
+                label={TEXTS.ariaLabels.saveEmail}
+                disabled={isPending}
+              />
               <Button type="submit" className="w-full h-11" disabled={isPending}>
                 {isPending ? 'Signing In...' : 'Sign In'}
               </Button>
