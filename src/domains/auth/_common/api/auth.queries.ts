@@ -7,6 +7,8 @@ import { AuthUtil } from '@/domains/auth/_common/utils/auth.util';
 import { STALE_TIME_ONE_DAY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from 'sonner';
+import { API_ENDPOINTS } from '@/shared/config/api';
+import { useNavigate } from 'react-router-dom';
 
 export const authKeys = {
   root: ['auth'] as const,
@@ -78,6 +80,8 @@ export const useFetchAccountQuery = (options?: { enabled?: boolean }) => {
 };
 
 export const useCreateAccountMutation = () => {
+  const navigate = useNavigate();
+
   return useMutation({
     mutationFn: async (payload: CreateAccount) => {
       return await authApi.createAccount(payload);
@@ -94,6 +98,9 @@ export const useCreateAccountMutation = () => {
           toast.error(TEXTS.messages.error.accountCreateFailed);
         }
       }
+    },
+    onSuccess: () => {
+      navigate(API_ENDPOINTS.auth.login);
     },
   });
 };
