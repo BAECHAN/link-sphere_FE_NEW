@@ -1,20 +1,43 @@
 #!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
 
-echo "🔍 커밋 전 검사 시작..."
+echo "🔍 pre-commit hook 시작..."
 
-# TypeScript 타입 체크
-echo "📝 TypeScript 타입 체크 실행 중..."
-npm run type-check || {
-  echo "❌ TypeScript 타입 에러가 있습니다. 커밋을 중단합니다."
+# 1. NVM 로드 (GUI 클라이언트 호환성)
+export NVM_DIR="$HOME/.nvm"
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  echo "📦 NVM 로드 중..."
+  . "$NVM_DIR/nvm.sh"
+else
+  echo "⚠️ NVM을 찾을 수 없습니다 ($NVM_DIR/nvm.sh). 시스템 Node를 사용합니다."
+fi
+
+# 2. .nvmrc 버전 사용 (실패해도 계속 진행)
+if [ -f ".nvmrc" ] && command -v nvm >/dev/null 2>&1; then
+  echo "📦 .nvmrc 버전 적용 중..."
+  nvm use || echo "⚠️ .nvmrc 버전 적용 실패, 현재 버전을 사용합니다."
+fi
+
+# 3. lint-staged 실행
+echo "🔍 lint-staged 실행..."
+if command -v npx >/dev/null 2>&1; then
+  npx lint-staged
+else
+  echo "❌ npx 명령어를 찾을 수 없습니다. PATH 설정을 확인해주세요."
+  echo "PATH: $PATH"
   exit 1
-}
+fi
 
-# ESLint 검사 (staged 파일만)
-echo "🔍 ESLint 린트 검사 실행 중..."
-npx lint-staged || {
-  echo "❌ ESLint 에러가 있습니다. 커밋을 중단합니다."
+if [ $? -ne 0 ]; then
+  echo "❌ lint-staged 검사 실패. 커밋을 중단합니다."
   exit 1
-}
+fi
+
+# 4. 타입 체크
+echo "🔍 TypeScript 타입 체크..."
+npm run type-check
+if [ $? -ne 0 ]; then
+  echo "❌ 타입 체크 실패. 커밋을 중단합니다."
+  exit 1
+fi
 
 echo "✅ 모든 검사 통과!"
