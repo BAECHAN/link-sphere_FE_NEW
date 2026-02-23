@@ -1,5 +1,4 @@
 #!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
 
 # LOCAL_SHA가 0000000000000000000000000000000000000000 이면 브랜치 삭제를 의미하므로 스킵
 while read local_ref local_sha remote_ref remote_sha
@@ -17,7 +16,9 @@ do
   if ! git diff --quiet docs/HISTORY.md; then
     echo "[Husky] HISTORY.md 파일이 변경되었습니다. 커밋을 생성합니다."
     git add docs/HISTORY.md
-    git commit -m "docs: auto-update history by Gemini [skip ci]"
+
+    # 자동 생성되는 커밋이므로 불필요한 pre-commit 훅 중복 실행을 생략합니다 (--no-verify)
+    git commit -m "docs: auto-update history by Gemini [skip ci]" --no-verify
 
     echo "[Husky] 새로운 커밋을 원격 저장소로 자동 푸시합니다..."
     # --no-verify를 사용하여 pre-push 훅이 무한 루프에 빠지지 않도록 방지하며 백그라운드 푸시
