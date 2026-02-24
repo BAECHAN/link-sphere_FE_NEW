@@ -6,9 +6,10 @@ import { Loader2 } from 'lucide-react';
 
 interface CommentListProps {
   postId: string;
+  postAuthorId: string;
 }
 
-export function CommentList({ postId }: CommentListProps) {
+export function CommentList({ postId, postAuthorId }: CommentListProps) {
   const { data: comments, isLoading, error } = useComments(postId);
 
   if (isLoading) {
@@ -35,7 +36,12 @@ export function CommentList({ postId }: CommentListProps) {
       <div className="space-y-6">
         {comments && comments.length > 0 ? (
           comments.map((comment: PostComment) => (
-            <CommentItem key={comment.id} comment={comment} postId={postId} />
+            <CommentItem
+              key={comment.id}
+              comment={comment}
+              postId={postId}
+              postAuthorId={postAuthorId}
+            />
           ))
         ) : (
           <div className="text-center py-8 text-muted-foreground text-sm">

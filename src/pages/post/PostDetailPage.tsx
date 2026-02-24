@@ -41,7 +41,7 @@ export function PostDetailPage() {
 
       <div className="pt-6 border-t">
         <h2 className="text-lg font-bold mb-6">Comments</h2>
-        <CommentList postId={post.id} />
+        <CommentList postId={post.id} postAuthorId={post.author.id} />
       </div>
     </div>
   );

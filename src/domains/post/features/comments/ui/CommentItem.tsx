@@ -1,5 +1,6 @@
 import { Comment } from '@/domains/post/_common/model/comment.schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
+import { Badge } from '@/shared/ui/atoms/badge';
 import { DateUtil } from '@/shared/utils/date.util';
 import { useState } from 'react';
 import {
@@ -17,10 +18,11 @@ import { Textarea } from '@/shared/ui/atoms/textarea';
 interface CommentItemProps {
   comment: Comment;
   postId: string;
+  postAuthorId: string;
   depth?: number;
 }
 
-export function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
+export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: CommentItemProps) {
   const { data: account } = useFetchAccountQuery();
   const [isReplying, setIsReplying] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -31,6 +33,7 @@ export function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
   const likeMutation = useLikeMutation(comment.id, postId);
 
   const isOwner = account?.id === comment.author.id;
+  const isPostAuthor = comment.author.id === postAuthorId;
   const isDeleted = comment.isDeleted;
 
   // Max depth check: If depth >= 1, cannot reply (UI restriction)
@@ -83,6 +86,11 @@ export function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
       <div className="flex-1 space-y-2">
         <div className="flex items-center gap-2">
           <span className="font-semibold">{comment.author.nickname}</span>
+          {isPostAuthor && (
+            <Badge variant="default" className="px-1.5 py-0 text-[10px] h-4 bg-purple-600">
+              작성자
+            </Badge>
+          )}
           <span className="text-xs text-muted-foreground">
             {DateUtil.formatRelativeShort(comment.createdAt)}
           </span>
@@ -193,7 +201,13 @@ export function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
         {comment.replies.length > 0 && (
           <div className="mt-2">
             {comment.replies.map((reply) => (
-              <CommentItem key={reply.id} comment={reply} postId={postId} depth={depth + 1} />
+              <CommentItem
+                key={reply.id}
+                comment={reply}
+                postId={postId}
+                postAuthorId={postAuthorId}
+                depth={depth + 1}
+              />
             ))}
           </div>
         )}
