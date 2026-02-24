@@ -112,12 +112,14 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* 폰트 설정 (Variable Font) */
+/* Pretendard 가변 폰트: public/fonts/web/variable/woff2/PretendardVariable.woff2
+   - format('woff2-variations') 필수 (일반 woff2로 쓰면 OTS 파싱 오류) */
 @font-face {
   font-family: 'Pretendard';
   font-weight: 45 920;
+  font-style: normal;
   font-display: swap;
-  src: url('/fonts/web/variable/woff2/PretendardVariable.woff2') format('woff2');
+  src: url('/fonts/web/variable/woff2/PretendardVariable.woff2') format('woff2-variations');
 }
 
 @layer base {
