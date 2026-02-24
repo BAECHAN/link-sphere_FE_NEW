@@ -7,11 +7,12 @@ import {
   useCreateCommentMutation,
   useCreateReplyMutation,
 } from '@/domains/post/_common/api/comment.queries';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 
 // Schema for the form, picking content only as postId/parentId are passed via props
 const formSchema = z.object({
-  content: z.string().min(1, '내용을 입력해주세요.'),
+  content: z.string(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -39,11 +40,16 @@ export function CommentForm({
   const isReply = !!parentId;
   const isPending = createCommentMutation.isPending || createReplyMutation.isPending;
 
+  const [pastedImage, setPastedImage] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
     reset,
     setFocus,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -53,28 +59,64 @@ export function CommentForm({
   });
 
   useEffect(() => {
+    if (pastedImage) {
+      clearErrors('content');
+      const url = URL.createObjectURL(pastedImage);
+      setImagePreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setImagePreviewUrl(null);
+    }
+  }, [pastedImage, clearErrors]);
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          setPastedImage(file);
+          // 이미지를 텍스트 영역에 문자열로 붙여넣는 것을 방지
+          e.preventDefault();
+          break; // 단일 이미지 업로드만 지원
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
     if (autoFocus) {
       setFocus('content');
     }
   }, [autoFocus, setFocus]);
 
   const onSubmit = (data: FormValues) => {
+    const content = data.content || '';
+    if (!content.trim() && !pastedImage) {
+      setError('content', { type: 'manual', message: '내용 또는 이미지를 추가해주세요.' });
+      return;
+    }
+
     if (isReply && parentId) {
       createReplyMutation.mutate(
-        { commentId: parentId, content: data.content },
+        { commentId: parentId, content, image: pastedImage },
         {
           onSuccess: () => {
             reset();
+            setPastedImage(null);
             onSuccess?.();
           },
         }
       );
     } else {
       createCommentMutation.mutate(
-        { postId, content: data.content },
+        { content, image: pastedImage },
         {
           onSuccess: () => {
             reset();
+            setPastedImage(null);
             onSuccess?.();
           },
         }
@@ -86,14 +128,33 @@ export function CommentForm({
     <form onSubmit={handleSubmit(onSubmit)} className={`space-y-2 ${className}`}>
       <div className="relative">
         <Textarea
-          placeholder={isReply ? '답글을 작성하세요...' : '댓글을 작성하세요...'}
+          placeholder={
+            isReply
+              ? '답글을 작성하세요... (이미지 복사+붙여넣기 가능)'
+              : '댓글을 작성하세요... (이미지 복사+붙여넣기 가능)'
+          }
           className="min-h-[80px] resize-none pr-20" // space for button if we want absolute
           {...register('content')}
           disabled={isPending}
+          onPaste={handlePaste}
         />
         {errors.content && <p className="text-xs text-red-500 mt-1">{errors.content.message}</p>}
       </div>
-      <div className="flex justify-end gap-2">
+
+      {imagePreviewUrl && (
+        <div className="relative inline-block mt-2 border border-gray-200 dark:border-gray-800 rounded-md overflow-hidden group">
+          <img src={imagePreviewUrl} alt="Pasted preview" className="max-h-32 object-contain" />
+          <button
+            type="button"
+            onClick={() => setPastedImage(null)}
+            className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            title="이미지 삭제"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+      <div className="flex justify-end gap-2 mt-2">
         {onCancel && (
           <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isPending}>
             취소

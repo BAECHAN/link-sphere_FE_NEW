@@ -1,6 +1,5 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { commentApi } from '@/domains/post/_common/api/comment.api';
-import { CreateComment } from '@/domains/post/_common/model/comment.schema';
 import { commentKeys, commentInvalidateQueries } from '@/domains/post/_common/api/comment.keys';
 import {
   postInvalidateQueries,
@@ -16,7 +15,8 @@ export const useComments = (postId: string) => {
 
 export const useCreateCommentMutation = (postId: string) => {
   return useMutation({
-    mutationFn: (payload: CreateComment) => commentApi.createComment(postId, payload),
+    mutationFn: (payload: { content?: string; image?: File | null }) =>
+      commentApi.createComment(postId, payload),
     onSuccess: () => {
       commentInvalidateQueries.list(postId);
       handlePostUpdateSuccess(postId);
@@ -26,8 +26,15 @@ export const useCreateCommentMutation = (postId: string) => {
 
 export const useCreateReplyMutation = (postId: string) => {
   return useMutation({
-    mutationFn: ({ commentId, content }: { commentId: string; content: string }) =>
-      commentApi.createReply(commentId, { content }),
+    mutationFn: ({
+      commentId,
+      content,
+      image,
+    }: {
+      commentId: string;
+      content?: string;
+      image?: File | null;
+    }) => commentApi.createReply(commentId, { content, image }),
     onSuccess: () => {
       commentInvalidateQueries.list(postId);
       postInvalidateQueries.detail(postId);
@@ -46,8 +53,15 @@ export const useDeleteCommentMutation = (postId: string) => {
 };
 export const useUpdateCommentMutation = (postId: string) => {
   return useMutation({
-    mutationFn: ({ commentId, content }: { commentId: string; content: string }) =>
-      commentApi.updateComment(commentId, { content }),
+    mutationFn: ({
+      commentId,
+      content,
+      image,
+    }: {
+      commentId: string;
+      content?: string;
+      image?: File | null;
+    }) => commentApi.updateComment(commentId, { content, image }),
     onSuccess: () => {
       commentInvalidateQueries.list(postId);
     },

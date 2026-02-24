@@ -86,8 +86,9 @@ class ApiClient {
       }
     }
 
+    const isFormData = options?.body instanceof FormData;
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...this.getAuthHeaders(),
       ...((options?.headers as Record<string, string>) || {}),
     };
@@ -245,32 +246,35 @@ class ApiClient {
   }
 
   async post<T>(endpoint: string, data?: unknown, options?: ApiRequestOptions): Promise<T> {
-    const bodyData = this.processRequestData(data);
+    const isFormData = data instanceof FormData;
+    const bodyData = isFormData ? data : this.processRequestData(data);
 
     return this.request<T>(endpoint, {
       ...options,
       method: 'POST',
-      body: JSON.stringify(bodyData),
+      body: isFormData ? (bodyData as FormData) : JSON.stringify(bodyData),
     });
   }
 
   async put<T>(endpoint: string, data: unknown, options?: ApiRequestOptions): Promise<T> {
-    const bodyData = this.processRequestData(data);
+    const isFormData = data instanceof FormData;
+    const bodyData = isFormData ? data : this.processRequestData(data);
 
     return this.request<T>(endpoint, {
       ...options,
       method: 'PUT',
-      body: JSON.stringify(bodyData),
+      body: isFormData ? (bodyData as FormData) : JSON.stringify(bodyData),
     });
   }
 
   async patch<T>(endpoint: string, data: unknown, options?: ApiRequestOptions): Promise<T> {
-    const bodyData = this.processRequestData(data);
+    const isFormData = data instanceof FormData;
+    const bodyData = isFormData ? data : this.processRequestData(data);
 
     return this.request<T>(endpoint, {
       ...options,
       method: 'PATCH',
-      body: JSON.stringify(bodyData),
+      body: isFormData ? (bodyData as FormData) : JSON.stringify(bodyData),
     });
   }
 

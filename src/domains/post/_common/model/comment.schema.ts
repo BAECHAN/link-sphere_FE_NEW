@@ -27,7 +27,6 @@ export const commentSchema: z.ZodType<Comment> = commentBaseSchema.extend({
 });
 
 export const createCommentSchema = commentBaseSchema.pick({
-  postId: true,
   content: true,
 });
 

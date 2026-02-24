@@ -14,6 +14,60 @@ import { useFetchAccountQuery } from '@/domains/auth/_common/api/auth.queries';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { Button } from '@/shared/ui/atoms/button';
 import { Textarea } from '@/shared/ui/atoms/textarea';
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
+
+/**
+ * 콘텐츠에 포함된 링크를 추출하여 링크 형태로 렌더링합니다.
+ * @param content - 콘텐츠 텍스트
+ * @param isMobile - 모바일 여부
+ * @returns 링크 형태로 렌더링된 콘텐츠
+ */
+
+const renderContentWithLinks = (content: string, isMobile: boolean) => {
+  if (!content) return null;
+
+  // 일반 URL을 찾되, 이미지 확장자인지 여부도 확인
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = content.split(urlRegex);
+  const elements: React.ReactNode[] = [];
+
+  parts.forEach((part, index) => {
+    if (!part) return;
+
+    if (part.match(urlRegex)) {
+      // 이미지 URL 여부 체크 (간단한 확장자 검사)
+      const isImageUrl = /\.(jpeg|jpg|gif|png|webp|avif|heic|heif)(\?.*)?$/i.test(part);
+
+      if (isImageUrl) {
+        elements.push(
+          <img
+            key={index}
+            src={part}
+            alt="comment attachment"
+            className="max-w-full max-h-60 rounded-md my-2 object-contain"
+          />
+        );
+      } else {
+        elements.push(
+          <a
+            key={index}
+            href={part}
+            target={isMobile ? '_self' : '_blank'}
+            rel={!isMobile ? 'noopener noreferrer' : undefined}
+            className="text-blue-500 hover:text-blue-600 hover:underline transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+          </a>
+        );
+      }
+    } else {
+      elements.push(<span key={index}>{part}</span>);
+    }
+  });
+
+  return elements;
+};
 
 interface CommentItemProps {
   comment: Comment;
@@ -24,6 +78,7 @@ interface CommentItemProps {
 
 export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: CommentItemProps) {
   const { data: account } = useFetchAccountQuery();
+  const isMobile = useIsMobile();
   const [isReplying, setIsReplying] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
@@ -134,7 +189,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
               isDeleted && 'text-muted-foreground italic'
             )}
           >
-            {comment.content}
+            {renderContentWithLinks(comment.content, isMobile)}
           </div>
         )}
 
