@@ -108,7 +108,7 @@ export function PostCard({ post }: PostCardProps) {
         await navigator.share({ url });
       } else {
         await navigator.clipboard.writeText(url);
-        toast.success(TEXTS.messages.success.linkCopied);
+        if (!isMobile) toast.success(TEXTS.messages.success.linkCopied);
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return;
