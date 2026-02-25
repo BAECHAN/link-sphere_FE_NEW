@@ -102,10 +102,16 @@ export function PostCard({ post }: PostCardProps) {
 
   const handleCopyLink = async () => {
     const url = `${window.location.origin}/post/${post.id}`;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     try {
-      await navigator.clipboard.writeText(url);
-      toast.success(TEXTS.messages.success.linkCopied);
+      if (isMobile && navigator.share) {
+        await navigator.share({ url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success(TEXTS.messages.success.linkCopied);
+      }
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return;
       console.error('Copy failed', error);
       toast.error(TEXTS.messages.error.linkCopyFailed);
     }

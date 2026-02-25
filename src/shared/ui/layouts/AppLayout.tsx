@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { useMatch } from 'react-router-dom';
 
 import { TEXTS } from '@/shared/config/texts';
 import { Navbar } from '@/shared/ui/widgets/Navbar';
@@ -9,6 +10,8 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: Readonly<AppLayoutProps>) {
+  const isDetailPage = useMatch('/post/:id');
+
   return (
     <div aria-label={TEXTS.ariaLabels.appLayout} className="min-h-screen flex flex-col">
       <div className="flex-1">
@@ -20,7 +23,7 @@ export function AppLayout({ children }: Readonly<AppLayoutProps>) {
           {children}
         </main>
       </div>
-      <ScrollToTop />
+      {!isDetailPage && <ScrollToTop />}
     </div>
   );
 }

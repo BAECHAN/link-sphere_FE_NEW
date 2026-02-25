@@ -2,7 +2,7 @@ import { Comment } from '@/domains/post/_common/model/comment.schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
 import { Badge } from '@/shared/ui/atoms/badge';
 import { DateUtil } from '@/shared/utils/date.util';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   useDeleteCommentMutation,
   useUpdateCommentMutation,
@@ -15,59 +15,7 @@ import { cn } from '@/shared/lib/tailwind/utils';
 import { Button } from '@/shared/ui/atoms/button';
 import { Textarea } from '@/shared/ui/atoms/textarea';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
-
-/**
- * 콘텐츠에 포함된 링크를 추출하여 링크 형태로 렌더링합니다.
- * @param content - 콘텐츠 텍스트
- * @param isMobile - 모바일 여부
- * @returns 링크 형태로 렌더링된 콘텐츠
- */
-
-const renderContentWithLinks = (content: string, isMobile: boolean) => {
-  if (!content) return null;
-
-  // 일반 URL을 찾되, 이미지 확장자인지 여부도 확인
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const parts = content.split(urlRegex);
-  const elements: React.ReactNode[] = [];
-
-  parts.forEach((part, index) => {
-    if (!part) return;
-
-    if (part.match(urlRegex)) {
-      // 이미지 URL 여부 체크 (간단한 확장자 검사)
-      const isImageUrl = /\.(jpeg|jpg|gif|png|webp|avif|heic|heif)(\?.*)?$/i.test(part);
-
-      if (isImageUrl) {
-        elements.push(
-          <img
-            key={index}
-            src={part}
-            alt="comment attachment"
-            className="max-w-full max-h-60 rounded-md my-2 object-contain"
-          />
-        );
-      } else {
-        elements.push(
-          <a
-            key={index}
-            href={part}
-            target={isMobile ? '_self' : '_blank'}
-            rel={!isMobile ? 'noopener noreferrer' : undefined}
-            className="text-blue-500 hover:text-blue-600 hover:underline transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {part}
-          </a>
-        );
-      }
-    } else {
-      elements.push(<span key={index}>{part}</span>);
-    }
-  });
-
-  return elements;
-};
+import { MarkdownContent } from '@/domains/post/features/comments/ui/MarkdownContent';
 
 interface CommentItemProps {
   comment: Comment;
@@ -82,6 +30,18 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
   const [isReplying, setIsReplying] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
+  const [editPastedImage, setEditPastedImage] = useState<File | null>(null);
+  const [editImagePreviewUrl, setEditImagePreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (editPastedImage) {
+      const url = URL.createObjectURL(editPastedImage);
+      setEditImagePreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setEditImagePreviewUrl(null);
+    }
+  }, [editPastedImage]);
 
   const deleteMutation = useDeleteCommentMutation(postId);
   const updateMutation = useUpdateCommentMutation(postId);
@@ -106,12 +66,31 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
     likeMutation.mutate();
   };
 
+  const handleEditPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          setEditPastedImage(file);
+          e.preventDefault();
+          break;
+        }
+      }
+    }
+  };
+
   const handleUpdate = () => {
-    if (!editContent.trim()) return;
+    if (!editContent.trim() && !editPastedImage) return;
     updateMutation.mutate(
-      { commentId: comment.id, content: editContent },
+      { commentId: comment.id, content: editContent, image: editPastedImage },
       {
-        onSuccess: () => setIsEditing(false),
+        onSuccess: () => {
+          setIsEditing(false);
+          setEditPastedImage(null);
+        },
       }
     );
   };
@@ -119,6 +98,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditContent(comment.content);
+    setEditPastedImage(null);
   };
 
   if (isDeleted && comment.replies.length === 0) {
@@ -157,8 +137,33 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               className="min-h-[80px] text-sm"
+              placeholder="수정할 내용을 입력하세요... (이미지 복사+붙여넣기 가능)"
               autoFocus
+              onPaste={handleEditPaste}
             />
+            {editContent && (
+              <div className="rounded-md border bg-muted/30 p-3 text-sm">
+                <p className="text-xs text-muted-foreground mb-1.5">미리보기</p>
+                <MarkdownContent content={editContent} isMobile={isMobile} />
+              </div>
+            )}
+            {editImagePreviewUrl && (
+              <div className="relative inline-block border border-gray-200 dark:border-gray-800 rounded-md overflow-hidden group">
+                <img
+                  src={editImagePreviewUrl}
+                  alt="Pasted preview"
+                  className="max-h-32 object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={() => setEditPastedImage(null)}
+                  className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="이미지 삭제"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <Button
                 type="button"
@@ -174,7 +179,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
                 type="button"
                 size="sm"
                 onClick={handleUpdate}
-                disabled={!editContent.trim() || updateMutation.isPending}
+                disabled={(!editContent.trim() && !editPastedImage) || updateMutation.isPending}
                 className="h-8 px-2 text-xs"
               >
                 <Check className="mr-1 h-3 w-3" />
@@ -183,14 +188,14 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
             </div>
           </div>
         ) : (
-          <div
+          <MarkdownContent
+            content={comment.content}
+            isMobile={isMobile}
             className={cn(
-              'text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap break-all',
+              'text-gray-800 dark:text-gray-200',
               isDeleted && 'text-muted-foreground italic'
             )}
-          >
-            {renderContentWithLinks(comment.content, isMobile)}
-          </div>
+          />
         )}
 
         {!isDeleted && (

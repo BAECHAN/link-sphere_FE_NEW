@@ -9,6 +9,7 @@ import {
 } from '@/domains/post/_common/api/comment.queries';
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import { MarkdownContent } from '@/domains/post/features/comments/ui/MarkdownContent';
 
 // Schema for the form, picking content only as postId/parentId are passed via props
 const formSchema = z.object({
@@ -50,6 +51,7 @@ export function CommentForm({
     setFocus,
     setError,
     clearErrors,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -57,6 +59,8 @@ export function CommentForm({
       content: '',
     },
   });
+
+  const contentValue = watch('content');
 
   useEffect(() => {
     if (pastedImage) {
@@ -140,6 +144,13 @@ export function CommentForm({
         />
         {errors.content && <p className="text-xs text-red-500 mt-1">{errors.content.message}</p>}
       </div>
+
+      {contentValue && (
+        <div className="rounded-md border bg-muted/30 p-3 text-sm">
+          <p className="text-xs text-muted-foreground mb-1.5">미리보기</p>
+          <MarkdownContent content={contentValue} />
+        </div>
+      )}
 
       {imagePreviewUrl && (
         <div className="relative inline-block mt-2 border border-gray-200 dark:border-gray-800 rounded-md overflow-hidden group">
