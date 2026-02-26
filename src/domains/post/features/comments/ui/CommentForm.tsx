@@ -97,7 +97,8 @@ export function CommentForm({
   }, [autoFocus, setFocus]);
 
   const onSubmit = (data: FormValues) => {
-    const content = data.content || '';
+    // 개행 유지: CRLF/CR을 LF로 통일해 서버 전송 시 개행이 보존되도록 함
+    const content = (data.content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     if (!content.trim() && !pastedImage) {
       setError('content', { type: 'manual', message: '내용 또는 이미지를 추가해주세요.' });
       return;
@@ -132,11 +133,7 @@ export function CommentForm({
     <form onSubmit={handleSubmit(onSubmit)} className={`space-y-2 ${className}`}>
       <div className="relative">
         <Textarea
-          placeholder={
-            isReply
-              ? '답글을 작성하세요... (이미지 복사+붙여넣기 가능)'
-              : '댓글을 작성하세요... (이미지 복사+붙여넣기 가능)'
-          }
+          placeholder={isReply ? '답글을 작성하세요...' : '댓글을 작성하세요...'}
           className="min-h-[80px] resize-none pr-20" // space for button if we want absolute
           {...register('content')}
           disabled={isPending}

@@ -82,8 +82,8 @@ function parseMarkdown(text: string, isMobile: boolean): React.ReactNode[] {
       return;
     }
 
-    // 줄 단위로 헤딩 / 일반 텍스트 처리
-    segment.split('\n').forEach((line, lineIndex) => {
+    // 줄 단위로 헤딩 / 일반 텍스트 처리 (개행: LF, CRLF, CR 모두 처리)
+    segment.split(/\r\n|\r|\n/).forEach((line, lineIndex) => {
       const key = `${segIndex}-${lineIndex}`;
 
       if (line.startsWith('#### ')) {
