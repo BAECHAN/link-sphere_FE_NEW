@@ -1,10 +1,11 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useFetchPostDetailQuery } from '@/domains/post/_common/api/post.queries';
 import { PostCard } from '@/domains/post/_common/ui/PostCard';
 import { CommentList } from '@/domains/post/features/comments/ui/CommentList';
 import { Button } from '@/shared/ui/atoms/button';
 import { ArrowLeft } from 'lucide-react';
 import { Spinner } from '@/shared/ui/atoms/spinner';
+import { ROUTES_PATHS } from '@/shared/config/route-paths';
 
 export function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,9 +32,9 @@ export function PostDetailPage() {
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <Link to={ROUTES_PATHS.POST.ROOT}>
           <ArrowLeft className="h-5 w-5" />
-        </Button>
+        </Link>
         <h1 className="text-xl font-bold">Post Details</h1>
       </div>
 
