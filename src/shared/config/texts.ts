@@ -72,6 +72,7 @@ export const TEXTS = {
     success: {
       accountCreated: '회원이 생성되었습니다.',
       postCreated: '포스트가 생성되었습니다.',
+      postUpdated: '포스트가 수정되었습니다.',
       postDeleted: '포스트가 삭제되었습니다.',
       linkCopied: '링크가 복사되었습니다.',
     },
@@ -99,6 +100,7 @@ export const TEXTS = {
 
       // 포스트 관련
       postCreateFailed: '포스트 생성에 실패했습니다.',
+      postUpdateFailed: '포스트 수정에 실패했습니다.',
       fetchPosts: '포스트를 불러오는 중 오류가 발생했습니다.',
       postDeleteFailed: '포스트 삭제에 실패했습니다.',
 

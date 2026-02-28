@@ -7,6 +7,7 @@ import {
   PostListResponse,
   PostListRequest,
   Post,
+  UpdatePost,
 } from '@/domains/post/_common/model/post.schema';
 
 export const postApi = {
@@ -57,6 +58,10 @@ export const postApi = {
     return await apiClient.patch<Post>(`${API_ENDPOINTS.post.base}/${postId}/visibility`, {
       isPrivate,
     });
+  },
+
+  updatePost: async (postId: string, payload: UpdatePost): Promise<Post> => {
+    return await apiClient.patch<Post>(`${API_ENDPOINTS.post.base}/${postId}`, payload);
   },
 
   deletePost: async (postId: string): Promise<void> => {

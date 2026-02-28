@@ -20,6 +20,9 @@ const PostSubmitPage = lazy(() =>
 const PostDetailPage = lazy(() =>
   import('@/pages/post/PostDetailPage').then((module) => ({ default: module.PostDetailPage }))
 );
+const PostEditPage = lazy(() =>
+  import('@/pages/post/PostEditPage').then((module) => ({ default: module.PostEditPage }))
+);
 const SignUpPage = lazy(() =>
   import('@/pages/auth/SignUpPage').then((module) => ({ default: module.SignUpPage }))
 );
@@ -101,6 +104,10 @@ export const appRoutes: RouteObject[] = [
           {
             path: '/post/:id',
             element: withSuspense(PostDetailPage),
+          },
+          {
+            path: ROUTES_PATHS.POST.EDIT,
+            element: withSuspense(PostEditPage),
           },
         ],
       },

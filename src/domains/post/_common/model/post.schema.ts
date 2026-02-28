@@ -59,6 +59,13 @@ export const PostListResponseSchema = paginationResponseSchema(postSchema);
  */
 export const createPostSchema = z.object({
   url: postSchema.shape.url,
+  title: z.string().optional(),
+  categoryIds: z.array(z.coerce.number()).optional(),
+  isPrivate: z.boolean(),
+});
+
+export const updatePostSchema = z.object({
+  title: z.string().min(1, TEXTS.validation.titleRequired),
   categoryIds: z.array(z.coerce.number()).optional(),
   isPrivate: z.boolean(),
 });
@@ -91,3 +98,4 @@ export type PostListResponse = z.infer<typeof PostListResponseSchema>;
 
 export type CreatePost = z.infer<typeof createPostSchema>;
 export type CreatePostResponse = z.infer<typeof createPostResponseSchema>;
+export type UpdatePost = z.infer<typeof updatePostSchema>;

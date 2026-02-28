@@ -8,6 +8,7 @@ const ROUTES_PATHS = {
   POST: {
     ROOT: ROUTES_BASE.POST,
     SUBMIT: `${ROUTES_BASE.POST}/submit`,
+    EDIT: `${ROUTES_BASE.POST}/edit/:id`,
   },
   AUTH: {
     LOGIN: `${ROUTES_BASE.AUTH}/login`,

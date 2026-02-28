@@ -40,6 +40,12 @@ export function CreatePostForm() {
                 required
                 disabled={isCreating}
               />
+              <FormInput
+                name="title"
+                label="제목"
+                placeholder="제목 (비워두면 자동으로 가져옵니다)"
+                disabled={isCreating}
+              />
               <FormCheckboxGroup
                 name="categoryIds"
                 label="관심 분야 (선택사항)"

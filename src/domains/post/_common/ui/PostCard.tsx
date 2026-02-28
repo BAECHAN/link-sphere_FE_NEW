@@ -24,9 +24,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/shared/ui/atoms/dropdown-menu';
-import { MoreVertical, Trash } from 'lucide-react';
+import { MoreVertical, Pencil, Trash } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   useLikePostMutation,
   useBookmarkPostMutation,
@@ -37,6 +37,7 @@ import { usePostDelete } from '@/domains/post/features/delete-post/hooks/usePost
 import { toast } from 'sonner';
 import { TEXTS } from '@/shared/config/texts';
 import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
+import { ROUTES_PATHS } from '@/shared/config/route-paths';
 
 interface PostCardProps {
   post: Post;
@@ -45,6 +46,7 @@ interface PostCardProps {
 export function PostCard({ post }: PostCardProps) {
   const { data: account } = useFetchAccountQuery();
   const { author } = post;
+  const navigate = useNavigate();
 
   const isOwner = account?.id === author?.id;
 
@@ -159,6 +161,16 @@ export function PostCard({ post }: PostCardProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsMenuOpen(false);
+                    navigate(ROUTES_PATHS.POST.EDIT.replace(':id', post.id));
+                  }}
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  수정
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleToggleVisibility}
                   disabled={updateVisibilityMutation.isPending}

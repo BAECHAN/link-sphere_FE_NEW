@@ -5,7 +5,7 @@ import {
   useQuery,
 } from '@tanstack/react-query';
 import { postApi } from '@/domains/post/_common/api/post.api';
-import { CreatePost, PostListRequest } from '@/domains/post/_common/model/post.schema';
+import { CreatePost, PostListRequest, UpdatePost } from '@/domains/post/_common/model/post.schema';
 import { TEXTS } from '@/shared/config/texts';
 import {
   handlePostUpdateSuccess,
@@ -107,6 +107,21 @@ export const useDeletePostMutation = () => {
     },
     onSuccess: () => {
       postInvalidateQueries.list();
+    },
+  });
+};
+
+export const useUpdatePostMutation = (postId: string) => {
+  return useMutation({
+    mutationFn: async (payload: UpdatePost) => {
+      return await postApi.updatePost(postId, payload);
+    },
+    meta: {
+      successMessage: TEXTS.messages.success.postUpdated,
+      errorMessage: TEXTS.messages.error.postUpdateFailed,
+    },
+    onSuccess: () => {
+      handlePostUpdateSuccess(postId);
     },
   });
 };
