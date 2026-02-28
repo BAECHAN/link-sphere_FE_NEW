@@ -79,6 +79,7 @@ export const usePostList = () => {
       }
     },
     enabled: hasNextPage && !isFetchingNextPage,
+    rootMargin: '0px 0px 600px 0px',
   });
 
   const posts = data?.pages.flatMap((page) => page.content) || [];
