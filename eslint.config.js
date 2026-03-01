@@ -50,6 +50,28 @@ export default [
                 return name && hookPattern.test(name);
               }
 
+              // 함수가 React.memo/forwardRef 등에 전달된 컴포넌트인지 확인
+              function isWrappedByReactComponentWrapper(node) {
+                if (
+                  node.parent &&
+                  node.parent.type === 'CallExpression' &&
+                  node.parent.arguments &&
+                  node.parent.arguments[0] === node
+                ) {
+                  const callee = node.parent.callee;
+                  if (!callee) return false;
+                  // React.memo(...), memo(...), React.forwardRef(...), forwardRef(...)
+                  const name =
+                    callee.type === 'Identifier'
+                      ? callee.name
+                      : callee.type === 'MemberExpression' && callee.property
+                        ? callee.property.name
+                        : null;
+                  return name === 'memo' || name === 'forwardRef';
+                }
+                return false;
+              }
+
               // 함수가 React 컴포넌트나 커스텀 훅인지 확인
               function isReactComponentOrHook(node) {
                 // 함수 선언
@@ -62,6 +84,11 @@ export default [
                   (node.type === 'ArrowFunctionExpression' || node.type === 'FunctionExpression') &&
                   node.parent
                 ) {
+                  // React.memo(() => {}) / forwardRef(() => {}) 내부는 컴포넌트로 간주
+                  if (isWrappedByReactComponentWrapper(node)) {
+                    return true;
+                  }
+
                   // 변수 선언: const Component = () => {}
                   if (node.parent.type === 'VariableDeclarator' && node.parent.id) {
                     return (
@@ -179,7 +206,8 @@ export default [
         },
       ],
       'prefer-const': 'error',
-      '@typescript-eslint/no-explicit-any': 'off',
+      // [금지] any 타입: 타입 안전성을 파괴하고 런타임 에러를 은닉함. unknown + 타입 가드를 사용할 것
+      '@typescript-eslint/no-explicit-any': 'error',
       // TypeScript 타입 체크 강화
       // 타입 정보가 필요한 규칙이지만, 타입 에러가 있어도 ESLint가 실패하지 않도록 warn으로 설정
       '@typescript-eslint/no-unsafe-assignment': 'warn',
@@ -190,6 +218,7 @@ export default [
       // React Hooks 규칙
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      'custom-react-hooks/no-hooks-in-regular-functions': 'error',
     },
   },
   // 스타일 파일에 대한 특별 규칙
@@ -317,6 +346,7 @@ export default [
                   // src/shared/ui/atoms/ 또는 src/app/ 경로에 있는 파일만 허용
                   const isAllowedPath =
                     normalizedPath.includes('/src/shared/ui/atoms/') ||
+                    normalizedPath.includes('/src/shared/config/') ||
                     normalizedPath.includes('/src/app/');
 
                   if (!isAllowedPath) {
@@ -424,17 +454,28 @@ export default [
     files: ['src/**/*.tsx'],
     ignores: [
       'src/main.tsx',
-      'src/App.tsx',
+      'src/app/App.tsx',
       '**/index.tsx',
-      'src/shared/ui/atoms/**/*.tsx', // atoms 폴더는 위 규칙에서 처리
       // 약어로 시작하는 파일명 허용 (UI, URL 등)
       ...ALLOWED_ACRONYMS.map((acronym) => `**/${acronym}*.tsx`),
+      // Custom Hook 파일 제외 (camelCase 사용)
+      '**/use*.tsx',
     ],
     plugins: {
       unicorn: unicornPlugin,
     },
     rules: {
       'unicorn/filename-case': ['error', { case: 'pascalCase' }],
+    },
+  },
+  // Custom Hook 파일: camelCase (use*.tsx)
+  {
+    files: ['src/**/use*.tsx'],
+    plugins: {
+      unicorn: unicornPlugin,
+    },
+    rules: {
+      'unicorn/filename-case': ['error', { case: 'camelCase' }],
     },
   },
   // 스타일 파일: PascalCase.styles.ts
@@ -529,23 +570,234 @@ export default [
   // Mutation: use{Action}{Entity}Mutation (예: useCreatePostMutation)
   // 참고: 네이밍 규칙은 일관성을 위해 권장되지만 강제되지 않습니다.
 
-  // Zustand Best Practice 규칙
+  // ============================================================
+  // 프로젝트 금지 패턴 (no-restricted-syntax)
+  // ============================================================
   {
     files: ['src/**/*.{ts,tsx}'],
     rules: {
-      // 1. 컴포넌트/훅 내부에서 getState() 직접 사용 금지 (구독이 안됨)
-      // 대신 useStore((state) => state.value) Selector 패턴 사용
       'no-restricted-syntax': [
         'error',
+        // [금지] Zustand getState() 직접 호출
+        // 이유: getState()는 상태 변경을 구독하지 않아 값이 바뀌어도 UI가 리렌더링되지 않음
         {
-          // React 컴포넌트(PascalCase 함수)나 Hook(use* 함수) 내부에서 getState() 호출 감지
           selector:
             ':matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression)[id.name=/^use|^[A-Z]/] CallExpression[callee.property.name="getState"]',
           message:
-            '컴포넌트나 Hook 내부에서는 getState() 대신 useStore((state) => state.value)와 같은 Selector 패턴을 사용하세요. getState()는 상태 변경을 구독하지 않아 리렌더링되지 않습니다.',
+            'getState() 대신 useStore((state) => state.value) Selector 패턴을 사용하세요. getState()는 상태 변경을 구독하지 않아 리렌더링되지 않습니다.',
+        },
+        // [금지] 클래스 컴포넌트 (extends Component)
+        // 이유: Hooks 사용 불가, 로직 재사용 어려움(HOC/render props 필요), 번들 크기 증가, 테스트 복잡도 상승
+        {
+          selector: 'ClassDeclaration[superClass.name=/^(Pure)?Component$/]',
+          message:
+            '클래스 컴포넌트는 사용할 수 없습니다. 함수형 컴포넌트를 사용하세요. (Hooks 호환성, 코드 재사용성, 번들 크기 최적화)',
+        },
+        // [금지] 클래스 컴포넌트 (extends React.Component)
+        {
+          selector: 'ClassDeclaration[superClass.property.name=/^(Pure)?Component$/]',
+          message:
+            '클래스 컴포넌트는 사용할 수 없습니다. 함수형 컴포넌트를 사용하세요. (Hooks 호환성, 코드 재사용성, 번들 크기 최적화)',
         },
       ],
     },
   },
 
+  // ============================================================
+  // [금지] UI 컴포넌트에서 React Query 직접 import
+  // 이유: UI(렌더링)와 데이터 fetching(비즈니스 로직)의 관심사 분리.
+  //       UI는 props/hooks 반환값만 받아 렌더링하고, 데이터 로직은 hooks/로 분리해야
+  //       테스트 용이성, 재사용성, 유지보수성이 보장됨
+  // ============================================================
+  {
+    files: ['src/**/ui/**/*.{ts,tsx}'],
+    plugins: {
+      'custom-ui-rules': {
+        rules: {
+          'no-direct-query-import': {
+            meta: {
+              type: 'problem',
+              docs: {
+                description: 'UI 컴포넌트에서 @tanstack/react-query 직접 import 금지',
+              },
+              messages: {
+                directQueryImport:
+                  'UI 컴포넌트에서 @tanstack/react-query를 직접 import할 수 없습니다. 데이터 fetching 로직은 hooks/ 디렉토리의 커스텀 훅으로 분리하세요. (관심사 분리: UI는 렌더링만 담당)',
+              },
+            },
+            create(context) {
+              return {
+                ImportDeclaration(node) {
+                  const source = node.source.value;
+                  if (typeof source === 'string' && source.startsWith('@tanstack/react-query')) {
+                    context.report({ node, messageId: 'directQueryImport' });
+                  }
+                },
+              };
+            },
+          },
+        },
+      },
+    },
+    rules: {
+      'custom-ui-rules/no-direct-query-import': 'error',
+    },
+  },
+  // Domains 디렉토리에서 Atoms 직접 import 금지 (Elements 사용 강제)
+  {
+    files: [
+      'src/app/**/*.tsx',
+      'src/domains/**/*.tsx',
+      'src/pages/**/*.tsx',
+      'src/shared/ui/layouts/**/*.tsx',
+      'src/shared/ui/widgets/**/*.tsx',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/shared/ui/atoms/**/*'],
+              message:
+                'Atoms 대신 Elements를 사용하세요. (예: Button -> BaseButton, Select -> BaseSelect)',
+            },
+            {
+              group: [
+                '../**/*.ts',
+                '../**/*.tsx',
+                '../**/*.js',
+                '../**/*.jsx',
+                '../../**/*.ts',
+                '../../**/*.tsx',
+                '../../../**/*.ts',
+                '../../../**/*.tsx',
+                '..',
+                '../*',
+              ],
+              message: '../ 대신 @/를 사용한 절대 경로 import를 사용해주세요.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // ============================================================
+  // [금지] 배럴 파일(index.ts) import
+  // 이유: 배럴 파일은 수천 개의 모듈을 한꺼번에 로드하여 dev server 부팅 15-70% 지연,
+  //       빌드 28% 지연, cold start 40% 지연을 유발함. 직접 파일 경로로 import해야
+  //       Tree Shaking이 정상 동작하고 번들 크기가 최적화됨
+  // ============================================================
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['**/index.{ts,tsx}'],
+    plugins: {
+      'custom-barrel-rules': {
+        rules: {
+          'no-barrel-import': {
+            meta: {
+              type: 'problem',
+              docs: {
+                description: '배럴 파일(index.ts)에서 import 금지',
+              },
+              messages: {
+                barrelImport:
+                  '배럴 파일(index.ts)에서 import하지 마세요. 구체적인 파일 경로를 사용하세요. (예: @/shared/ui/atoms/button/Button) Tree Shaking 최적화를 위해 직접 import만 허용합니다.',
+              },
+            },
+            create(context) {
+              return {
+                ImportDeclaration(node) {
+                  const source = node.source.value;
+                  if (typeof source !== 'string') return;
+
+                  if (
+                    source.match(/\/index(['"]|$)/) ||
+                    source.endsWith('/index.ts') ||
+                    source.endsWith('/index.tsx')
+                  ) {
+                    context.report({ node, messageId: 'barrelImport' });
+                  }
+                },
+              };
+            },
+          },
+        },
+      },
+    },
+    rules: {
+      'custom-barrel-rules/no-barrel-import': 'error',
+    },
+  },
+
+  // 레이어 순서 enforcement: app → pages → domains → shared
+  // shared (최하위)는 상위 레이어 import 불가
+  {
+    files: ['src/shared/**/*.ts', 'src/shared/**/*.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/domains/**'],
+              message: 'shared 레이어는 domains 레이어를 import할 수 없습니다. (역방향 의존성)',
+            },
+            {
+              group: ['@/pages/**'],
+              message: 'shared 레이어는 pages 레이어를 import할 수 없습니다. (역방향 의존성)',
+            },
+            {
+              group: ['@/app/**'],
+              message: 'shared 레이어는 app 레이어를 import할 수 없습니다. (역방향 의존성)',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // domains (하위)는 pages, app import 불가
+  {
+    files: ['src/domains/**/*.ts', 'src/domains/**/*.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/pages/**'],
+              message:
+                'domains 레이어는 pages 레이어를 import할 수 없습니다. (app → pages → domains 순서만 허용)',
+            },
+            {
+              group: ['@/app/**'],
+              message:
+                'domains 레이어는 app 레이어를 import할 수 없습니다. (app → pages → domains 순서만 허용)',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // pages (중간)는 app import 불가
+  {
+    files: ['src/pages/**/*.ts', 'src/pages/**/*.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/app/**'],
+              message:
+                'pages 레이어는 app 레이어를 import할 수 없습니다. (app → pages 순서만 허용)',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
