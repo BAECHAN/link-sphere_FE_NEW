@@ -3,7 +3,6 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/shared/ui/atoms/car
 import { Badge } from '@/shared/ui/atoms/badge';
 import { Button } from '@/shared/ui/atoms/button';
 import {
-  Bookmark,
   ChevronDown,
   ChevronUp,
   ExternalLink,
@@ -13,9 +12,8 @@ import {
   Unlock,
   MessageSquare,
   Share2,
-  ThumbsUp,
 } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
+import { UserAvatar } from '@/domains/post/_common/ui/UserAvatar';
 import { DateUtil } from '@/shared/utils/date.util';
 import { useFetchAccountQuery } from '@/domains/auth/_common/api/auth.queries';
 import {
@@ -27,12 +25,9 @@ import {
 import { MoreVertical, Pencil, Trash } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  useLikePostMutation,
-  useBookmarkPostMutation,
-} from '@/domains/interaction/_common/api/interaction.queries';
+import { LikePostButton } from '@/domains/post/features/like-post/ui/LikePostButton';
+import { BookmarkPostButton } from '@/domains/post/features/bookmark-post/ui/BookmarkPostButton';
 import { useUpdatePostVisibilityMutation } from '@/domains/post/_common/api/post.queries';
-import { cn } from '@/shared/lib/tailwind/utils';
 import { usePostDelete } from '@/domains/post/features/delete-post/hooks/usePostDelete';
 import { toast } from 'sonner';
 import { TEXTS } from '@/shared/config/texts';
@@ -50,24 +45,13 @@ export function PostCard({ post }: PostCardProps) {
 
   const isOwner = account?.id === author?.id;
 
-  const likeMutation = useLikePostMutation(post.id);
-  const bookmarkMutation = useBookmarkPostMutation(post.id);
   const { onDelete } = usePostDelete();
-  const updateVisibilityMutation = useUpdatePostVisibilityMutation(post.id);
+  const { mutateAsync: updateVisibility, isPending: isUpdatingVisibility } =
+    useUpdatePostVisibilityMutation(post.id);
   const { openConfirm } = useAlert();
 
   const [isAiSummaryExpanded, setIsAiSummaryExpanded] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  const handleLike = (e: React.MouseEvent) => {
-    e.preventDefault();
-    likeMutation.mutate();
-  };
-
-  const handleBookmark = (e: React.MouseEvent) => {
-    e.preventDefault();
-    bookmarkMutation.mutate();
-  };
 
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -90,7 +74,7 @@ export function PostCard({ post }: PostCardProps) {
       confirmText: '확인',
       cancelText: '취소',
       onConfirm: () => {
-        updateVisibilityMutation.mutate(
+        updateVisibility(
           { postId: post.id, isPrivate: !post.isPrivate },
           {
             onSuccess: () => {
@@ -124,10 +108,12 @@ export function PostCard({ post }: PostCardProps) {
       <CardHeader className="p-3 pb-1 flex flex-row items-start justify-between space-y-0">
         <div className="space-y-1 flex-1 min-w-0">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-            <Avatar className={`h-6 w-6 flex`}>
-              <AvatarImage src={author?.image || ''} />
-              <AvatarFallback>{author?.nickname?.[0] || 'U'}</AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              image={author?.image}
+              nickname={author?.nickname}
+              size="sm"
+              className="flex"
+            />
             <span className={`truncate`}>{author?.nickname || 'Anonymous'}</span>
             <span className={`text-xs`}>•</span>
             <span className={`text-xs`}>{DateUtil.formatRelativeShort(post.createdAt)}</span>
@@ -146,7 +132,7 @@ export function PostCard({ post }: PostCardProps) {
               size="icon"
               className="h-7 w-7 md:h-8 md:w-8"
               onClick={handleToggleVisibility}
-              disabled={updateVisibilityMutation.isPending}
+              disabled={isUpdatingVisibility}
               title={post.isPrivate ? '전체 공개로 전환' : '비공개로 전환'}
             >
               <Lock className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
@@ -171,10 +157,7 @@ export function PostCard({ post }: PostCardProps) {
                   <Pencil className="mr-2 h-4 w-4" />
                   수정
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleToggleVisibility}
-                  disabled={updateVisibilityMutation.isPending}
-                >
+                <DropdownMenuItem onClick={handleToggleVisibility} disabled={isUpdatingVisibility}>
                   {post.isPrivate ? (
                     <>
                       <Unlock className="mr-2 h-4 w-4" />
@@ -290,25 +273,11 @@ export function PostCard({ post }: PostCardProps) {
 
       <CardFooter className="p-3 pt-0 flex gap-2 flex-wrap items-center">
         <div className="flex items-center bg-muted/50 rounded-full p-0.5 md:p-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              'gap-1 md:gap-1.5 h-6 md:h-8 px-2 md:px-3 text-[10px] md:text-sm rounded-full hover:bg-background/80',
-              post.userInteractions.isLiked && 'text-red-500 hover:text-red-600'
-            )}
-            onClick={handleLike}
-            disabled={likeMutation.isPending}
-          >
-            <ThumbsUp
-              className={cn(
-                'h-3.5 w-3.5 md:h-4 md:w-4',
-                post.userInteractions.isLiked && 'fill-current',
-                likeMutation.isPending && 'animate-pulse opacity-50'
-              )}
-            />
-            <span className="font-bold select-none">{post.stats.likeCount}</span>
-          </Button>
+          <LikePostButton
+            postId={post.id}
+            isLiked={post.userInteractions.isLiked}
+            likeCount={post.stats.likeCount}
+          />
           <div className="w-px h-3 bg-muted-foreground/20 mx-0.5 md:mx-1" />
           <Link to={`/post/${post.id}`}>
             <Button
@@ -323,22 +292,7 @@ export function PostCard({ post }: PostCardProps) {
         </div>
 
         <div className="flex items-center gap-1 md:gap-1.5 ml-auto">
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-8 w-8 md:h-9 md:w-9 rounded-full ${post.userInteractions.isBookmarked ? 'text-yellow-500 hover:text-yellow-600' : 'text-muted-foreground'}`}
-            onClick={handleBookmark}
-            disabled={bookmarkMutation.isPending}
-          >
-            <Bookmark
-              className={cn(
-                'h-3.5 w-3.5 md:h-4.5 md:w-4.5',
-                post.userInteractions.isBookmarked ? 'fill-current' : '',
-                bookmarkMutation.isPending && 'animate-pulse opacity-50'
-              )}
-            />
-            <span className="sr-only">Bookmark</span>
-          </Button>
+          <BookmarkPostButton postId={post.id} isBookmarked={post.userInteractions.isBookmarked} />
           <Button
             variant="ghost"
             size="icon"
