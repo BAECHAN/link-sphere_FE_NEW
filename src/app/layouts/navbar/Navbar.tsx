@@ -10,11 +10,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
 import { useState } from 'react';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
-import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
+import { useAuthStore } from '@/shared/store/auth.store';
 import { useAuth } from '@/domains/auth/_common/hooks/useAuth';
 import { useAccount } from '@/domains/auth/_common/hooks/useAccount';
-import { NavbarSearch } from '@/shared/ui/widgets/NavbarSearch';
-import { MobileNavbarSearch } from '@/shared/ui/widgets/MobileNavbarSearch';
+import { NavbarSearch } from '@/app/layouts/navbar/NavbarSearch';
+import { MobileNavbarSearch } from '@/app/layouts/navbar/MobileNavbarSearch';
 
 export function Navbar() {
   const { isAuthenticated } = useAuthStore();
