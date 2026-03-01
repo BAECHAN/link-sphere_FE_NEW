@@ -1,49 +1,368 @@
-# 프론트엔드 아키텍처 문서
+# Link-Sphere FE — Architecture & Pattern Guide
 
-## 1. React Query 설정
+## 1. Tech Stack
 
-### `queryClient.ts`
+| 항목          | 버전/라이브러리                            |
+| ------------- | ------------------------------------------ |
+| Framework     | React 18 + TypeScript + Vite               |
+| Server State  | TanStack Query 5 (`@tanstack/react-query`) |
+| Form          | React Hook Form 7 + Zod 3                  |
+| Client State  | Zustand 5                                  |
+| UI Components | Shadcn/ui (Radix UI 기반)                  |
+| Styling       | TailwindCSS + CVA                          |
+| Toast         | Sonner                                     |
+| Dev Port      | 31119                                      |
 
-애플리케이션은 `src/shared/lib/react-query/config/queryClient.ts`에 정의된 중앙 집중식 `QueryClient` 인스턴스를 사용합니다.
+---
 
-#### 전역 설정
+## 2. Directory Structure
 
-- **Stale Time**: 3분 (`3 * 60 * 1000`)
-- **GC Time**: 5분 (`5 * 60 * 1000`)
-- **Retry**: 실패 시 1회 재시도
-- **Refetch**: 윈도우 포커스 및 마운트 시
+```
+src/
+├── app/                          # 앱 초기화, providers, routing, layouts
+│   ├── providers/                # RouterProvider, ThemeProvider, AuthProvider, QueryProvider
+│   └── layouts/
+│       └── navbar/               # Navbar, NavbarSearch, MobileNavbarSearch
+├── domains/<domain>/
+│   ├── _common/
+│   │   ├── api/
+│   │   │   ├── <entity>.api.ts      # 순수 async fetch 호출만 (React 의존 없음)
+│   │   │   ├── <entity>.keys.ts     # 쿼리 키 + invalidation helpers + success handlers
+│   │   │   └── <entity>.queries.ts  # 얇은 React Query 훅 래퍼
+│   │   ├── model/
+│   │   │   └── <entity>.schema.ts   # Zod 스키마 + TypeScript 타입
+│   │   ├── hooks/                   # 도메인 공통 훅 (feature 비특화)
+│   │   ├── config/                  # 도메인 설정 (const 등)
+│   │   └── ui/                      # 도메인 공통 UI (UserAvatar, MarkdownContent 등)
+│   └── features/<feature-name>/
+│       ├── hooks/
+│       │   └── use<FeatureName>.ts  # 비즈니스 로직 (form, mutations, state, navigation)
+│       └── ui/
+│           └── <FeatureName>.tsx    # 얇은 UI — 훅 호출 + JSX 렌더링만
+├── shared/
+│   ├── api/
+│   │   ├── client.ts              # HTTP 클라이언트 (apiClient)
+│   │   ├── common.schema.ts       # 공통 Zod 스키마 (PaginationResponse 등)
+│   │   ├── common.keys.ts
+│   │   └── common.queries.ts
+│   ├── config/
+│   │   ├── texts.ts               # 모든 UI 문자열 (TEXTS)
+│   │   ├── api.ts                 # 모든 API 엔드포인트 (API_ENDPOINTS)
+│   │   ├── route-paths.ts         # 라우트 경로 상수 (ROUTES_PATHS)
+│   │   ├── const.ts               # 앱 전역 상수
+│   │   └── error-code.ts          # 에러 코드 상수
+│   ├── hooks/                     # 재사용 훅 (useToggle, useDebounce, useIntersectionObserver,
+│   │                              #   useIsMobile, useImagePaste, useKeydown, useMinimumLoading 등)
+│   ├── lib/
+│   │   ├── react-query/config/queryClient.ts   # 중앙 QueryClient 인스턴스
+│   │   ├── react-table/utils.ts
+│   │   └── tailwind/utils.ts      # cn() helper
+│   ├── store/
+│   │   └── auth.store.ts          # Zustand 인증 스토어 (useAuthStore)
+│   ├── types/
+│   │   ├── common.type.ts
+│   │   └── auth.type.ts
+│   ├── ui/
+│   │   ├── atoms/                 # CVA 기반 Shadcn 기본 컴포넌트
+│   │   │                          # (Button, Input, Card, Badge, Select, Checkbox,
+│   │   │                          #  Avatar, Dialog, DropdownMenu, Textarea, Tooltip, Kbd, Sonner 등)
+│   │   ├── elements/              # 조합 컴포넌트
+│   │   │   ├── form/              # FormInput, FormInputPassword, FormCheckbox, FormCheckboxGroup
+│   │   │   │   └── _base/FormField.tsx
+│   │   │   ├── modal/alert/       # Alert.tsx, alert.store.ts (useAlert)
+│   │   │   ├── ActionButton.tsx
+│   │   │   ├── AsyncBoundary.tsx
+│   │   │   ├── SearchInput.tsx
+│   │   │   ├── SpinnerOverlay.tsx
+│   │   │   ├── TooltipWrapper.tsx
+│   │   │   └── ScrollToTop.tsx
+│   │   └── layouts/               # AuthLayout, ErrorLayout
+│   └── utils/                     # auth.util, common.util, date.util, file.util, form.util, storage.util
+└── pages/
+    ├── post/                      # PostSubmitPage, PostDetailPage, PostEditPage
+    ├── auth/                      # LoginPage, SignUpPage
+    ├── 403/                       # ForbiddenPage
+    └── 404/                       # NotFoundPage
+```
 
-## 2. 에러 핸들링 전략
+---
 
-애플리케이션은 사용자 경험과 개발자 제어의 균형을 맞추기 위해 계층화된 에러 핸들링 전략을 구현합니다.
+## 3. 현재 도메인
+
+| 도메인   | 엔티티                     | Features                                                                                                                                                            | 위치                  |
+| -------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `post`   | post, comment, interaction | create-post, update-post, delete-post, post-list, post-detail, create-comment, update-comment, delete-comment, comment-list, like-post, like-comment, bookmark-post | `src/domains/post/`   |
+| `auth`   | auth (login, sign-up)      | login, sign-up                                                                                                                                                      | `src/domains/auth/`   |
+| `member` | member (profile)           | —                                                                                                                                                                   | `src/domains/member/` |
+
+---
+
+## 4. 3-Layer API 패턴
+
+**절대로 레이어를 건너뛰거나 합치지 않는다.**
+
+### Layer 1 — `<entity>.api.ts` (순수 async, React 없음)
+
+```typescript
+import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/config/api';
+
+export const entityApi = {
+  createEntity: async (payload: CreateEntity): Promise<Entity> =>
+    apiClient.post<Entity>(API_ENDPOINTS.domain.base, payload),
+
+  fetchEntityList: async (): Promise<Entity[]> =>
+    apiClient.get<Entity[]>(API_ENDPOINTS.domain.base),
+
+  fetchEntity: async (id: string): Promise<Entity> =>
+    apiClient.get<Entity>(`${API_ENDPOINTS.domain.base}/${id}`),
+
+  updateEntity: async (id: string, payload: UpdateEntity): Promise<Entity> =>
+    apiClient.patch<Entity>(`${API_ENDPOINTS.domain.base}/${id}`, payload),
+
+  deleteEntity: async (id: string): Promise<void> =>
+    apiClient.delete<void>(`${API_ENDPOINTS.domain.base}/${id}`),
+};
+```
+
+### Layer 2 — `<entity>.keys.ts` (쿼리 키 + success handlers)
+
+```typescript
+import { queryClient } from '@/shared/lib/react-query/config/queryClient';
+
+const rootKey = ['entity'] as const;
+
+export const entityKeys = {
+  root: rootKey,
+  listRoot: [...rootKey, 'list'] as const,
+  list: (filters?: Record<string, unknown>) => [...rootKey, 'list', filters] as const,
+  detail: (id: Entity['id']) => [...rootKey, 'detail', id] as const,
+};
+
+export const entityInvalidateQueries = {
+  all: () => queryClient.invalidateQueries({ queryKey: rootKey }),
+  list: () => queryClient.invalidateQueries({ queryKey: entityKeys.listRoot }),
+  detail: (id: Entity['id']) => queryClient.invalidateQueries({ queryKey: entityKeys.detail(id) }),
+};
+
+export const handleEntityCreateSuccess = () => {
+  entityInvalidateQueries.list();
+};
+export const handleEntityUpdateSuccess = (id: Entity['id']) => {
+  entityInvalidateQueries.detail(id);
+  entityInvalidateQueries.list();
+};
+export const handleEntityDeleteSuccess = () => {
+  entityInvalidateQueries.list();
+};
+```
+
+### Layer 3 — `<entity>.queries.ts` (얇은 React Query 래퍼)
+
+```typescript
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { entityApi } from './entity.api';
+import { entityKeys, handleEntityCreateSuccess } from './entity.keys';
+import { TEXTS } from '@/shared/config/texts';
+
+export const useCreateEntityMutation = () =>
+  useMutation({
+    mutationFn: (payload: CreateEntity) => entityApi.createEntity(payload),
+    meta: {
+      successMessage: TEXTS.messages.success.entityCreated,
+      errorMessage: TEXTS.messages.error.entityCreateFailed,
+    },
+    onSuccess: () => handleEntityCreateSuccess(),
+  });
+
+export const useFetchEntityQuery = (id: string) =>
+  useQuery({
+    queryKey: entityKeys.detail(id),
+    queryFn: () => entityApi.fetchEntity(id),
+    enabled: !!id,
+  });
+```
+
+---
+
+## 5. Feature Hook 패턴
+
+feature hook = 모든 비즈니스 로직. UI 파일은 훅을 호출하고 JSX만 렌더링.
+
+```typescript
+// domains/<domain>/features/<feature-name>/hooks/use<FeatureName>.ts
+export function useCreateEntity() {
+  const navigate = useNavigate();
+  const { mutateAsync: createEntity, isPending: isCreating } = useCreateEntityMutation();
+
+  const form = useForm<CreateEntity>({
+    resolver: zodResolver(createEntitySchema),
+    defaultValues: { name: '' },
+    mode: 'onChange',
+  });
+
+  const onSubmit = form.handleSubmit(async (data) => {
+    try {
+      await createEntity(data, {
+        onSuccess: () => {
+          form.reset();
+          navigate(ROUTES_PATHS.ENTITY.ROOT);
+        },
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  });
+
+  return { form, onSubmit, isCreating };
+}
+```
+
+---
+
+## 6. UI Component 패턴 (얇은 레이어)
+
+```typescript
+// domains/<domain>/features/<feature-name>/ui/<FeatureName>Form.tsx
+export function CreateEntityForm() {
+  const { form, onSubmit, isCreating } = useCreateEntity();
+  const { isDirty, isValid } = form.formState;
+  const canSubmit = isDirty && isValid && !isCreating;
+
+  return (
+    <FormProvider {...form}>
+      <form onSubmit={onSubmit} noValidate>
+        <FormInput name="name" label="이름" required disabled={isCreating} />
+        <Button type="submit" disabled={!canSubmit}>
+          {isCreating ? '처리 중...' : '제출'}
+        </Button>
+      </form>
+    </FormProvider>
+  );
+}
+```
+
+---
+
+## 7. Zod Schema 패턴
+
+```typescript
+// _common/model/<entity>.schema.ts
+// 도메인 모델 (서버 응답 전체)
+export const entitySchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, TEXTS.validation.nameRequired),
+  content: z.string().nullable(), // nullable 필드는 .nullable() 사용
+  createdAt: z.coerce.date(), // 날짜 필드는 z.coerce.date() 사용
+  updatedAt: z.coerce.date(),
+});
+
+// Form 입력 스키마 (도메인 모델과 별도)
+export const createEntitySchema = z.object({ name: z.string().min(1) });
+export const updateEntitySchema = z.object({ name: z.string().min(1) });
+
+export type Entity = z.infer<typeof entitySchema>;
+export type CreateEntity = z.infer<typeof createEntitySchema>;
+export type UpdateEntity = z.infer<typeof updateEntitySchema>;
+```
+
+---
+
+## 8. Delete with Confirm 패턴
+
+**절대로** native `confirm()` 사용 금지. 항상 `useAlert` + `openConfirm` 사용.
+
+```typescript
+import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
+
+const { openConfirm } = useAlert();
+const onDelete = (id: string) => {
+  openConfirm({
+    message: TEXTS.messages.warning.entityDeleteConfirm,
+    confirmText: TEXTS.buttons.delete,
+    onConfirm: async () => {
+      await deleteEntity(id);
+    },
+  });
+};
+```
+
+---
+
+## 9. Optimistic Update 패턴
+
+참조: `src/domains/post/_common/api/interaction.queries.ts` (`useLikePostMutation`)
+
+```typescript
+onMutate: async () => {
+  await queryClient.cancelQueries({ queryKey: entityKeys.detail(id) });
+  const previous = queryClient.getQueryData<Entity>(entityKeys.detail(id));
+  queryClient.setQueryData<Entity>(entityKeys.detail(id), (old) =>
+    old ? { ...old, isLiked: !old.isLiked } : old
+  );
+  return { previous };
+},
+onSuccess: () => {},
+onError: (_err, _vars, context) => {
+  queryClient.setQueryData(entityKeys.detail(id), context?.previous);
+},
+```
+
+목록까지 업데이트할 때:
+
+```typescript
+queryClient.setQueriesData<InfiniteData<EntityListResponse>>(
+  { queryKey: entityKeys.listRoot },
+  (oldData) => {
+    if (!oldData) return oldData;
+    return {
+      ...oldData,
+      pages: oldData.pages.map((page) => ({
+        ...page,
+        content: page.content.map((item) =>
+          item.id === id ? { ...item, isLiked: !item.isLiked } : item
+        ),
+      })),
+    };
+  }
+);
+```
+
+---
+
+## 10. React Query 설정
+
+`src/shared/lib/react-query/config/queryClient.ts`
+
+| 설정       | 값                         |
+| ---------- | -------------------------- |
+| Stale Time | 3분 (`3 * 60 * 1000`)      |
+| GC Time    | 5분 (`5 * 60 * 1000`)      |
+| Retry      | 실패 시 1회 재시도         |
+| Refetch    | 윈도우 포커스 및 마운트 시 |
+
+전역 에러 핸들러는 `mutationCache`와 `queryCache`에 정의되어 있으며, 모든 mutation/query 에러를 자동으로 처리한다.
+
+---
+
+## 11. 에러 핸들링 전략
 
 ### 전역 에러 핸들링
 
-전역 에러 핸들러는 `queryClient.ts` 내의 `mutationCache`와 `queryCache`에 정의되어 있습니다.
+전역 에러 핸들러는 `queryClient.ts` 내의 `mutationCache`와 `queryCache`에 정의:
 
-- **API 에러 (`ApiError`)**:
-  - 상세한 에러 데이터와 함께 자동으로 콘솔에 로깅됩니다.
-  - 보안과 UX 일관성을 위해 사용자에게는 일반적인 "서버 에러" 메시지를 토스트 알림으로 표시합니다.
-- **알 수 없는 에러**:
-  - 콘솔에 로깅됩니다.
-  - 일반적인 에러 메시지를 토스트로 표시합니다.
+- **API 에러 (`ApiError`)**: 자동으로 콘솔에 로깅 + 사용자에게 일반적인 "서버 에러" 토스트 표시
+- **알 수 없는 에러**: 콘솔에 로깅 + 일반적인 에러 토스트 표시
 
 ### 수동 에러 핸들링 (`manualErrorHandling`)
 
-특정 기능에서 맞춤형 에러 핸들링 로직이 필요한 경우가 있습니다(예: 서버에서 받은 유효성 검사 에러를 폼 필드에 표시). 이런 경우 전역 에러 핸들러를 우회할 수 있습니다.
-
-#### 사용 방법
-
-mutation 또는 query의 `meta` 옵션에 `manualErrorHandling: true`를 추가합니다.
+form 필드에 서버 유효성 검사 에러를 매핑하는 등 맞춤 처리가 필요할 때 전역 핸들러를 우회:
 
 ```typescript
 const { mutate } = useMutation({
   mutationFn: someApiFunction,
-  meta: {
-    manualErrorHandling: true, // 전역 토스트 에러 비활성화
-  },
+  meta: { manualErrorHandling: true }, // 전역 토스트 에러 비활성화
   onError: (error) => {
-    // 여기에 맞춤 에러 핸들링 로직 구현
     if (error instanceof ApiError && error.status === 409) {
       form.setError('email', { message: '이미 존재하는 이메일입니다' });
     }
@@ -53,65 +372,78 @@ const { mutate } = useMutation({
 
 ### 커스텀 에러 메시지
 
-전역 핸들러를 완전히 비활성화하지 않고도 `meta`를 통해 커스텀 에러 메시지를 제공할 수 있습니다.
+전역 핸들러를 완전히 비활성화하지 않고 커스텀 메시지 제공:
 
 ```typescript
-const { mutate } = useMutation({
+useMutation({
   mutationFn: someApiFunction,
-  meta: {
-    errorMessage: '프로필 업데이트에 실패했습니다. 다시 시도해주세요.',
-  },
+  meta: { errorMessage: '프로필 업데이트에 실패했습니다.' },
 });
 ```
 
-## 3. 토스트 알림 (Sonner)
+---
 
-애플리케이션은 전역 에러 핸들링 시스템과 통합된 [Sonner](https://sonner.emilkowal.ski/)를 토스트 알림에 사용합니다.
+## 12. Toast 알림 (Sonner)
 
-- **시스템 에러**: 전역 에러 핸들러에 의해 자동으로 트리거됩니다.
-- **성공 메시지**: `meta`에 `successMessage`를 추가하여 자동으로 트리거할 수 있습니다.
+- **에러**: 전역 에러 핸들러가 자동으로 트리거
+- **성공**: `meta.successMessage` 추가 시 자동 트리거
 
 ```typescript
-const { mutate } = useMutation({
+useMutation({
   mutationFn: updateProfile,
-  meta: {
-    successMessage: '프로필이 성공적으로 업데이트되었습니다!',
-  },
+  meta: { successMessage: '프로필이 업데이트되었습니다!' },
 });
 ```
 
-## 4. Form 컴포넌트 구조
+---
 
-Form 관련 컴포넌트는 `src/shared/ui/elements/form/` 디렉토리에 구조화되어 있습니다.
+## 13. Mutation/Query Meta 옵션
 
-### 디렉토리 구조
+| 키                    | 타입      | 효과                                                    |
+| --------------------- | --------- | ------------------------------------------------------- |
+| `successMessage`      | `string`  | 자동으로 Sonner 성공 토스트 표시                        |
+| `errorMessage`        | `string`  | 기본 대신 커스텀 Sonner 에러 토스트 표시                |
+| `manualErrorHandling` | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용) |
 
+---
+
+## 14. Form 컴포넌트 구조
+
+`src/shared/ui/elements/form/`
+
+| 컴포넌트               | 용도                                                       |
+| ---------------------- | ---------------------------------------------------------- |
+| `FormField` (`_base/`) | 레이블, 설명, 에러 메시지 관리 (모든 form 컴포넌트의 기반) |
+| `FormInput`            | 일반 텍스트 입력 필드                                      |
+| `FormInputPassword`    | 비밀번호 입력 필드 (토글 표시)                             |
+| `FormCheckbox`         | 단일 체크박스                                              |
+| `FormCheckboxGroup`    | 체크박스 그룹                                              |
+
+**FormField props**: `label`, `description` (optional, 에러 시 대체됨), `required` (optional), `name`
+
+**사용 패턴**: `FormProvider`로 감싸고 `name` prop으로 react-hook-form 필드에 연결.
+
+```typescript
+<FormProvider {...form}>
+  <form onSubmit={onSubmit} noValidate>
+    <FormInput name="title" label="제목" required disabled={isPending} />
+    <FormInputPassword name="password" label="비밀번호" required />
+    <Button type="submit" disabled={!isDirty || !isValid || isPending}>
+      제출
+    </Button>
+  </form>
+</FormProvider>
 ```
-src/shared/ui/elements/form/
-├── _base/
-│   └── FormField.tsx        # 레이블, 에러 메시지 관리
-├── FormInput.tsx            # 일반 입력 필드
-├── FormInputPassword.tsx    # 비밀번호 입력 필드
-└── FormCheckboxGroup.tsx    # 체크박스 그룹
-```
 
-### FormField (기본 컴포넌트)
+---
 
-`FormField`는 폼 필드의 레이블, 설명, 에러 메시지를 일관되게 관리하는 래퍼 컴포넌트입니다.
+## 15. Auth 도메인 구조
 
-- **props**:
-  - `label`: 필드 레이블
-  - `description` (optional): 안내 텍스트 (에러 발생 시 에러 메시지로 대체됨)
-  - `required` (optional): 필수 필드 표시
-  - `name`: react-hook-form 필드 이름
+인증 관련 로직은 `src/domains/auth/` 에 구조화되어 있습니다.
 
-## 5. 인증 (Auth) 도메인 구조
+### 스키마
 
-인증 관련 로직은 `src/domains/auth/` 디렉토리에 구조화되어 있습니다.
-
-### 스키마 구조
-
-모든 인증 관련 스키마는 `Account` 중심으로 통일되어 있습니다:
+모든 인증 관련 스키마는 `Account` 중심으로 통일:
 
 - **Account**: 사용자 계정 정보 (id, email, name, avatarUrl, createdAt, updatedAt)
 - **Login**: 로그인 요청 스키마
@@ -131,14 +463,14 @@ export const authApi = {
 };
 
 // auth.queries.ts
-export const useLoginMutation = () => {...}
-export const useCreateAccountMutation = () => {...}
-export const useFetchAccountQuery = () => {...}
+export const useLoginMutation = () => { ... }
+export const useCreateAccountMutation = () => { ... }
+export const useFetchAccountQuery = () => { ... }
 ```
 
 ### 에러 핸들링
 
-회원가입(`useCreateAccountMutation`)은 `manualErrorHandling: true`를 사용하여 409 Conflict 에러를 특별히 처리합니다:
+회원가입(`useCreateAccountMutation`)은 `manualErrorHandling: true`를 사용하여 409 Conflict 에러를 특별히 처리:
 
 ```typescript
 onError: (error) => {
@@ -151,3 +483,72 @@ onError: (error) => {
   }
 };
 ```
+
+---
+
+## 16. 핵심 설정 파일 위치
+
+| 목적               | 파일                                                | export          |
+| ------------------ | --------------------------------------------------- | --------------- |
+| 모든 UI 문자열     | `src/shared/config/texts.ts`                        | `TEXTS`         |
+| API 엔드포인트     | `src/shared/config/api.ts`                          | `API_ENDPOINTS` |
+| 라우트 경로        | `src/shared/config/route-paths.ts`                  | `ROUTES_PATHS`  |
+| HTTP 클라이언트    | `src/shared/api/client.ts`                          | `apiClient`     |
+| QueryClient        | `src/shared/lib/react-query/config/queryClient.ts`  | `queryClient`   |
+| Alert/Confirm 모달 | `src/shared/ui/elements/modal/alert/alert.store.ts` | `useAlert`      |
+| Auth 스토어        | `src/shared/store/auth.store.ts`                    | `useAuthStore`  |
+
+---
+
+## 17. 네이밍 컨벤션
+
+| 항목             | 규칙                                     | 예시                             |
+| ---------------- | ---------------------------------------- | -------------------------------- |
+| Feature 디렉토리 | kebab-case                               | `create-post/`                   |
+| Shared 디렉토리  | camelCase                                | `hooks/`, `utils/`               |
+| 컴포넌트 파일    | PascalCase.tsx                           | `CreatePostForm.tsx`             |
+| Feature 훅       | `use<FeatureName>.ts`                    | `useCreatePost.ts`               |
+| Mutation 훅      | `use<Action><Entity>Mutation`            | `useCreatePostMutation`          |
+| Query 훅         | `useFetch<Entity>Query`                  | `useFetchPostDetailQuery`        |
+| 쿼리 키 객체     | `<entity>Keys`                           | `postKeys`                       |
+| Invalidate 헬퍼  | `<entity>InvalidateQueries`              | `postInvalidateQueries`          |
+| Success 핸들러   | `handle<Entity><Action>Success`          | `handlePostCreateSuccess`        |
+| API 객체         | `<entity>Api`                            | `postApi`                        |
+| Zod 스키마       | `<entity>Schema`, `create<Entity>Schema` | `postSchema`, `createPostSchema` |
+| TS 타입          | 스키마와 동일 (PascalCase)               | `Post`, `CreatePost`             |
+
+---
+
+## 18. 개발 커맨드
+
+```bash
+pnpm dev            # 개발 서버 (port 31119, localhost 모드)
+pnpm build          # TypeScript 컴파일 + Vite 빌드
+pnpm lint           # ESLint 검사
+pnpm lint:fix       # ESLint 자동 수정
+pnpm format         # Prettier 포맷
+pnpm type-check     # tsc --noEmit
+pnpm storybook      # Storybook (port 6006)
+```
+
+---
+
+## 19. 체크리스트: 기존 도메인에 새 기능 추가
+
+- [ ] `_common/model/<entity>.schema.ts` — Zod 스키마 + 타입 추가/확인
+- [ ] `_common/api/<entity>.api.ts` — API 함수 추가
+- [ ] `_common/api/<entity>.keys.ts` — 쿼리 키, invalidation, success handler 추가
+- [ ] `_common/api/<entity>.queries.ts` — React Query 훅 추가
+- [ ] `src/shared/config/texts.ts` — 새 TEXTS 키 추가 (success/error/warning 메시지)
+- [ ] `src/shared/config/api.ts` — 새 API_ENDPOINTS 추가
+- [ ] `domains/<domain>/features/<feature-name>/hooks/use<FeatureName>.ts` — 비즈니스 로직
+- [ ] `domains/<domain>/features/<feature-name>/ui/<FeatureName>.tsx` — 얇은 UI
+- [ ] `src/pages/<domain>/` 페이지에 연결
+
+## 20. 체크리스트: 새 도메인 추가
+
+- [ ] 위 "새 기능 추가" 체크리스트 전부
+- [ ] `src/domains/<domain>/_common/` 디렉토리 구조 생성
+- [ ] `src/shared/config/route-paths.ts` — 라우트 상수 추가
+- [ ] `src/app/routes/index.tsx` — 라우트 등록
+- [ ] `src/pages/<domain>/` — 페이지 파일 생성
