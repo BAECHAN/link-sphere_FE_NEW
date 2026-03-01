@@ -40,12 +40,12 @@ export function PostListSearch() {
             <SearchInput
               name="search-input"
               id="search-input"
-              placeholder="키워드나 @카테고리, #닉네임으로 검색..."
+              placeholder={TEXTS.placeholders.postSearch}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onClear={handleClear}
             />
-            <Button type="submit" className="h-12 px-6 rounded-xl font-bold md:hidden">
+            <Button type="submit" className="h-10 px-6 rounded-xl  font-bold md:hidden">
               {TEXTS.buttons.search}
             </Button>
           </form>

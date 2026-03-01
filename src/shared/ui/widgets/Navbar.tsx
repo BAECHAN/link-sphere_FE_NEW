@@ -1,4 +1,4 @@
-import { Moon, Sun, Search, SearchIcon } from 'lucide-react';
+import { Moon, Sun, Search } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/atoms/button';
 import {
@@ -9,12 +9,12 @@ import {
 } from '@/shared/ui/atoms/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
 import { useState } from 'react';
-import { Input } from '@/shared/ui/atoms/input';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
 import { useAuth } from '@/domains/auth/_common/hooks/useAuth';
 import { useAccount } from '@/domains/auth/_common/hooks/useAccount';
 import { NavbarSearch } from '@/shared/ui/widgets/NavbarSearch';
+import { MobileNavbarSearch } from '@/shared/ui/widgets/MobileNavbarSearch';
 
 export function Navbar() {
   const { isAuthenticated } = useAuthStore();
@@ -24,11 +24,6 @@ export function Navbar() {
   const { account } = useAccount();
 
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-  };
 
   const toggleMobileSearch = () => {
     setIsMobileSearchOpen(!isMobileSearchOpen);
@@ -61,9 +56,9 @@ export function Navbar() {
         </div>
 
         {/* Search Bar - Hidden on mobile, shown on larger screens */}
-        <form onSubmit={() => {}} className="hidden md:flex flex-1 max-w-md mx-4">
+        <div className="hidden md:flex flex-1 max-w-md mx-4">
           <NavbarSearch />
-        </form>
+        </div>
 
         <div className="flex items-center gap-2">
           <Button
@@ -115,20 +110,7 @@ export function Navbar() {
       {/* Mobile Search Bar Expansion */}
       {isMobileSearchOpen && (
         <div className="md:hidden border-t p-4 bg-background">
-          <form onSubmit={handleSearch} className="w-full flex gap-2">
-            <div className="relative flex-1">
-              <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="mobile-search-input"
-                autoFocus
-                placeholder="키워드나 @카테고리..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 bg-muted/50"
-              />
-            </div>
-            <Button type="submit">검색</Button>
-          </form>
+          <MobileNavbarSearch />
         </div>
       )}
     </nav>
