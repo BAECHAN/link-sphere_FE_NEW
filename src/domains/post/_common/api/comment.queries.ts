@@ -1,10 +1,11 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { commentApi } from '@/domains/post/_common/api/comment.api';
-import { commentKeys, commentInvalidateQueries } from '@/domains/post/_common/api/comment.keys';
 import {
-  postInvalidateQueries,
-  handlePostUpdateSuccess,
-} from '@/domains/post/_common/api/post.keys';
+  commentKeys,
+  handleCommentCreateSuccess,
+  handleCommentDeleteSuccess,
+  handleCommentUpdateSuccess,
+} from '@/domains/post/_common/api/comment.keys';
 
 export const useComments = (postId: string) => {
   return useQuery({
@@ -18,8 +19,7 @@ export const useCreateCommentMutation = (postId: string) => {
     mutationFn: (payload: { content?: string; image?: File | null }) =>
       commentApi.createComment(postId, payload),
     onSuccess: () => {
-      commentInvalidateQueries.list(postId);
-      handlePostUpdateSuccess(postId);
+      handleCommentCreateSuccess(postId);
     },
   });
 };
@@ -36,8 +36,7 @@ export const useCreateReplyMutation = (postId: string) => {
       image?: File | null;
     }) => commentApi.createReply(commentId, { content, image }),
     onSuccess: () => {
-      commentInvalidateQueries.list(postId);
-      postInvalidateQueries.detail(postId);
+      handleCommentCreateSuccess(postId);
     },
   });
 };
@@ -46,11 +45,11 @@ export const useDeleteCommentMutation = (postId: string) => {
   return useMutation({
     mutationFn: (commentId: string) => commentApi.deleteComment(commentId),
     onSuccess: () => {
-      commentInvalidateQueries.list(postId);
-      handlePostUpdateSuccess(postId);
+      handleCommentDeleteSuccess(postId);
     },
   });
 };
+
 export const useUpdateCommentMutation = (postId: string) => {
   return useMutation({
     mutationFn: ({
@@ -63,7 +62,7 @@ export const useUpdateCommentMutation = (postId: string) => {
       image?: File | null;
     }) => commentApi.updateComment(commentId, { content, image }),
     onSuccess: () => {
-      commentInvalidateQueries.list(postId);
+      handleCommentUpdateSuccess(postId);
     },
   });
 };

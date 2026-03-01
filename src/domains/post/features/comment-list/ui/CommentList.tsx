@@ -1,8 +1,8 @@
-import { useComments } from '@/domains/post/_common/api/comment.queries';
-import { CommentForm } from '@/domains/post/features/comments/ui/CommentForm';
-import { CommentItem } from '@/domains/post/features/comments/ui/CommentItem';
+import { CommentForm } from '@/domains/post/features/create-comment/ui/CommentForm';
+import { CommentItem } from '@/domains/post/features/comment-list/ui/CommentItem';
 import { Comment as PostComment } from '@/domains/post/_common/model/comment.schema';
 import { Loader2 } from 'lucide-react';
+import { useCommentList } from '@/domains/post/features/comment-list/hooks/useCommentList';
 
 interface CommentListProps {
   postId: string;
@@ -10,7 +10,7 @@ interface CommentListProps {
 }
 
 export function CommentList({ postId, postAuthorId }: CommentListProps) {
-  const { data: comments, isLoading, error } = useComments(postId);
+  const { comments, isLoading, error, isEmpty } = useCommentList({ postId });
 
   if (isLoading) {
     return (
@@ -34,7 +34,7 @@ export function CommentList({ postId, postAuthorId }: CommentListProps) {
       </div>
 
       <div className="space-y-6">
-        {comments && comments.length > 0 ? (
+        {!isEmpty ? (
           comments.map((comment: PostComment) => (
             <CommentItem
               key={comment.id}

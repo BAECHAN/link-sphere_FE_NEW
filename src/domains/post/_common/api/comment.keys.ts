@@ -1,5 +1,6 @@
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { Post } from '@/domains/post/_common/model/post.schema';
+import { postInvalidateQueries } from '@/domains/post/_common/api/post.keys';
 
 const rootKey = ['comments'] as const;
 
@@ -15,6 +16,22 @@ export const commentInvalidateQueries = {
   list: (postId: Post['id']) => {
     queryClient.invalidateQueries({ queryKey: commentKeys.list(postId) });
   },
+};
+
+export const handleCommentCreateSuccess = (postId: Post['id']) => {
+  commentInvalidateQueries.list(postId);
+  postInvalidateQueries.detail(postId);
+  postInvalidateQueries.list();
+};
+
+export const handleCommentDeleteSuccess = (postId: Post['id']) => {
+  commentInvalidateQueries.list(postId);
+  postInvalidateQueries.detail(postId);
+  postInvalidateQueries.list();
+};
+
+export const handleCommentUpdateSuccess = (postId: Post['id']) => {
+  commentInvalidateQueries.list(postId);
 };
 
 export const handleCommentMutateSuccess = (postId: Post['id']) => {

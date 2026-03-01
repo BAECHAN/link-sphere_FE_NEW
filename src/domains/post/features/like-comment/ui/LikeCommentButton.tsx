@@ -1,0 +1,35 @@
+import { Comment } from '@/domains/post/_common/model/comment.schema';
+import { Post } from '@/domains/post/_common/model/post.schema';
+import { Heart } from 'lucide-react';
+import { cn } from '@/shared/lib/tailwind/utils';
+import { useLikeComment } from '@/domains/post/features/like-comment/hooks/useLikeComment';
+
+interface LikeCommentButtonProps {
+  commentId: Comment['id'];
+  postId: Post['id'];
+  isLiked: boolean;
+  likeCount: number;
+}
+
+export function LikeCommentButton({
+  commentId,
+  postId,
+  isLiked,
+  likeCount,
+}: LikeCommentButtonProps) {
+  const likeMutation = useLikeComment(commentId, postId);
+
+  return (
+    <button
+      type="button"
+      onClick={() => likeMutation.mutate()}
+      className={cn(
+        'flex items-center gap-1 hover:text-red-500 transition-colors',
+        isLiked && 'text-red-500 font-medium'
+      )}
+    >
+      <Heart className={cn('h-3.5 w-3.5', isLiked && 'fill-current')} />
+      <span>{likeCount > 0 ? likeCount : '좋아요'}</span>
+    </button>
+  );
+}
