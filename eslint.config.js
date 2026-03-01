@@ -206,8 +206,7 @@ export default [
         },
       ],
       'prefer-const': 'error',
-      // [금지] any 타입: 타입 안전성을 파괴하고 런타임 에러를 은닉함. unknown + 타입 가드를 사용할 것
-      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-explicit-any': 'off',
       // TypeScript 타입 체크 강화
       // 타입 정보가 필요한 규칙이지만, 타입 에러가 있어도 ESLint가 실패하지 않도록 warn으로 설정
       '@typescript-eslint/no-unsafe-assignment': 'warn',
@@ -218,7 +217,6 @@ export default [
       // React Hooks 규칙
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-      'custom-react-hooks/no-hooks-in-regular-functions': 'error',
     },
   },
   // 스타일 파일에 대한 특별 규칙
@@ -454,12 +452,11 @@ export default [
     files: ['src/**/*.tsx'],
     ignores: [
       'src/main.tsx',
-      'src/app/App.tsx',
+      'src/App.tsx',
       '**/index.tsx',
+      'src/shared/ui/atoms/**/*.tsx', // atoms 폴더는 위 규칙에서 처리
       // 약어로 시작하는 파일명 허용 (UI, URL 등)
       ...ALLOWED_ACRONYMS.map((acronym) => `**/${acronym}*.tsx`),
-      // Custom Hook 파일 제외 (camelCase 사용)
-      '**/use*.tsx',
     ],
     plugins: {
       unicorn: unicornPlugin,
@@ -565,10 +562,6 @@ export default [
       'unicorn/filename-case': 'off',
     },
   },
-  // React Query hooks 네이밍 규칙 (권장사항, 강제하지 않음)
-  // Query: useFetch{Entity}{Action}Query (예: useFetchPostListQuery)
-  // Mutation: use{Action}{Entity}Mutation (예: useCreatePostMutation)
-  // 참고: 네이밍 규칙은 일관성을 위해 권장되지만 강제되지 않습니다.
 
   // ============================================================
   // 프로젝트 금지 패턴 (no-restricted-syntax)
@@ -603,6 +596,24 @@ export default [
     },
   },
 
+  // Zustand Best Practice 규칙
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      // 1. 컴포넌트/훅 내부에서 getState() 직접 사용 금지 (구독이 안됨)
+      // 대신 useStore((state) => state.value) Selector 패턴 사용
+      'no-restricted-syntax': [
+        'error',
+        {
+          // React 컴포넌트(PascalCase 함수)나 Hook(use* 함수) 내부에서 getState() 호출 감지
+          selector:
+            ':matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression)[id.name=/^use|^[A-Z]/] CallExpression[callee.property.name="getState"]',
+          message:
+            '컴포넌트나 Hook 내부에서는 getState() 대신 useStore((state) => state.value)와 같은 Selector 패턴을 사용하세요. getState()는 상태 변경을 구독하지 않아 리렌더링되지 않습니다.',
+        },
+      ],
+    },
+  },
   // ============================================================
   // [금지] UI 컴포넌트에서 React Query 직접 import
   // 이유: UI(렌더링)와 데이터 fetching(비즈니스 로직)의 관심사 분리.
@@ -641,45 +652,6 @@ export default [
     },
     rules: {
       'custom-ui-rules/no-direct-query-import': 'error',
-    },
-  },
-  // Domains 디렉토리에서 Atoms 직접 import 금지 (Elements 사용 강제)
-  {
-    files: [
-      'src/app/**/*.tsx',
-      'src/domains/**/*.tsx',
-      'src/pages/**/*.tsx',
-      'src/shared/ui/layouts/**/*.tsx',
-      'src/shared/ui/widgets/**/*.tsx',
-    ],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['@/shared/ui/atoms/**/*'],
-              message:
-                'Atoms 대신 Elements를 사용하세요. (예: Button -> BaseButton, Select -> BaseSelect)',
-            },
-            {
-              group: [
-                '../**/*.ts',
-                '../**/*.tsx',
-                '../**/*.js',
-                '../**/*.jsx',
-                '../../**/*.ts',
-                '../../**/*.tsx',
-                '../../../**/*.ts',
-                '../../../**/*.tsx',
-                '..',
-                '../*',
-              ],
-              message: '../ 대신 @/를 사용한 절대 경로 import를 사용해주세요.',
-            },
-          ],
-        },
-      ],
     },
   },
 

@@ -5,7 +5,7 @@ import {
   paginationResponseSchema,
 } from '@/shared/api/common.schema';
 import { TEXTS } from '@/shared/config/texts';
-import { accountSchema } from '@/domains/auth/_common/model/auth.schema';
+import { accountSchema } from '@/shared/types/auth.type';
 
 const aiStatusEnum = z.enum(['NONE', 'PENDING', 'COMPLETED', 'FAILED']);
 

@@ -4,7 +4,7 @@ import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { ProtectedLayout } from './layouts/ProtectedLayout';
 import { PublicLayout } from '@/app/routes/layouts/PublicLayout';
 import { RootLayout } from '@/app/routes/layouts/RootLayout';
-import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
+import { useAuthStore } from '@/shared/store/auth.store';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 
 const NotFoundPage = lazy(() =>

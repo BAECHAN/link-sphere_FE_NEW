@@ -1,14 +1,14 @@
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { TEXTS } from '@/shared/config/texts';
 import { ApiError, ApiResponse, ApiErrorResponse } from '@/shared/types/common.type';
-import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
-import { authApi } from '@/domains/auth/_common/api/auth.api';
+import { useAuthStore } from '@/shared/store/auth.store';
 
 import { FormUtil } from '@/shared/utils/form.util';
-import { AuthUtil } from '@/domains/auth/_common/utils/auth.util';
+import { AuthUtil } from '@/shared/utils/auth.util';
 import { DateUtil } from '@/shared/utils/date.util';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { toast } from 'sonner';
+import { LoginResponse } from '@/shared/types/auth.type';
 
 interface ApiRequestOptions extends RequestInit {
   searchParams?: Record<string, any>;
@@ -145,7 +145,7 @@ class ApiClient {
               if (!this.isRefreshing) {
                 this.isRefreshing = true;
                 try {
-                  const authData = await authApi.refresh();
+                  const authData = await apiClient.post<LoginResponse>(API_ENDPOINTS.auth.refresh);
                   if (!authData || !authData.accessToken) {
                     throw new Error(
                       `${TEXTS.messages.error.tokenRefreshFailed} ${TEXTS.messages.error.unauthorizedAccessToken}`

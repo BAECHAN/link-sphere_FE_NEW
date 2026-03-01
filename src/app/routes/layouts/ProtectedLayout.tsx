@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { ProtectedRoute } from '@/app/routes/ProtectedRoute';
-import { AppLayout } from '@/shared/ui/layouts/AppLayout';
+import { AppLayout } from '@/app/layouts/app-layout/AppLayout';
 import { usePostAIEvents } from '@/domains/post/_common/hooks/usePostAIEvents';
 
 export function ProtectedLayout() {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { API_BASE_URL } from '@/shared/config/api';
-import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
+import { useAuthStore } from '@/shared/store/auth.store';
 import { postInvalidateQueries } from '@/domains/post/_common/api/post.keys';
 import { authApi } from '@/domains/auth/_common/api/auth.api';
 
