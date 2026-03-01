@@ -69,6 +69,7 @@ export const TEXTS = {
     warning: {
       memberDeleteConfirm: '정말 이 회원을 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.',
       postDeleteConfirm: '정말 이 포스트를 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.',
+      commentDeleteConfirm: '정말 이 댓글을 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.',
     },
     success: {
       accountCreated: '회원이 생성되었습니다.',

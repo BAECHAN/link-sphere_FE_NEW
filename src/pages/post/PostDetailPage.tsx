@@ -1,7 +1,7 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useFetchPostDetailQuery } from '@/domains/post/_common/api/post.queries';
-import { PostCard } from '@/domains/post/_common/ui/PostCard';
-import { CommentList } from '@/domains/post/features/comments/ui/CommentList';
+import { PostCard } from '@/domains/post/features/post-detail/ui/PostCard';
+import { CommentList } from '@/domains/post/features/comment-list/ui/CommentList';
 import { Button } from '@/shared/ui/atoms/button';
 import { ArrowLeft } from 'lucide-react';
 import { Spinner } from '@/shared/ui/atoms/spinner';

@@ -1,4 +1,4 @@
-import { PostCard } from '@/domains/post/_common/ui/PostCard';
+import { PostCard } from '@/domains/post/features/post-detail/ui/PostCard';
 import { Loader2 } from 'lucide-react';
 import { usePostList } from '@/domains/post/features/post-list/hooks/usePostList';
 
