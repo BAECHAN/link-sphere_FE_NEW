@@ -1,4 +1,4 @@
-import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
+import { useAuthStore } from '@/shared/store/auth.store';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 
 export class AuthUtil {

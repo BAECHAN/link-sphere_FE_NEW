@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
-import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
+import { useAuthStore } from '@/shared/store/auth.store';
 import { useShallow } from 'zustand/react/shallow';
 import { authApi } from '@/domains/auth/_common/api/auth.api';
 import { useLoginMutation, useLogoutMutation } from '@/domains/auth/_common/api/auth.queries';
-import { Login } from '@/domains/auth/_common/model/auth.schema';
-import { Account } from '@/domains/auth/_common/model/auth.schema';
+import { Login } from '@/shared/types/auth.type';
+import { Account } from '@/shared/types/auth.type';
 
 // ==================== Types ====================
 

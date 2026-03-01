@@ -1,9 +1,9 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { authApi } from '@/domains/auth/_common/api/auth.api';
-import { useAuthStore } from '@/domains/auth/_common/model/auth.store';
+import { useAuthStore } from '@/shared/store/auth.store';
 import { ApiError } from '@/shared/types/common.type';
-import { Login, CreateAccount } from '@/domains/auth/_common/model/auth.schema';
-import { AuthUtil } from '@/domains/auth/_common/utils/auth.util';
+import { Login, CreateAccount } from '@/shared/types/auth.type';
+import { AuthUtil } from '@/shared/utils/auth.util';
 import { STALE_TIME_ONE_DAY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from 'sonner';
@@ -14,7 +14,6 @@ export const authKeys = {
   root: ['auth'] as const,
   login: () => [...authKeys.root, 'login'] as const,
   logout: () => [...authKeys.root, 'logout'] as const,
-  refreshToken: () => [...authKeys.root, 'refresh-token'] as const,
   account: () => [...authKeys.root, 'account'] as const,
 };
 

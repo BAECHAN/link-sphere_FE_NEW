@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { useLoginMutation } from '@/domains/auth/_common/api/auth.queries';
-import { loginSchema } from '@/domains/auth/_common/model/auth.schema';
+import { loginSchema } from '@/shared/types/auth.type';
 import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
 import { z } from 'zod';
 import { LocalStorageUtil } from '@/shared/utils/storage.util';

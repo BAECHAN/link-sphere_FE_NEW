@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createAccountSchema, CreateAccount } from '@/domains/auth/_common/model/auth.schema';
+import { createAccountSchema, CreateAccount } from '@/shared/types/auth.type';
 import { useCreateAccountMutation } from '@/domains/auth/_common/api/auth.queries';
 
 const DEFAULT_VALUES = {

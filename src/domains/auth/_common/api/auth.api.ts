@@ -1,10 +1,5 @@
 import { apiClient } from '@/shared/api/client';
-import {
-  Login,
-  LoginResponse,
-  Account,
-  CreateAccount,
-} from '@/domains/auth/_common/model/auth.schema';
+import { Login, LoginResponse, Account, CreateAccount } from '@/shared/types/auth.type';
 import { API_ENDPOINTS } from '@/shared/config/api';
 
 export const authApi = {
