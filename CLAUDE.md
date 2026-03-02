@@ -1,6 +1,6 @@
 # Link-Sphere FE — Claude Code Guide
 
-@docs/ARCHITECTURE.md
+@docs/FE-ARCHITECTURE.md
 
 ---
 

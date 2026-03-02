@@ -1,5 +1,7 @@
 # Link-Sphere FE — Architecture & Pattern Guide
 
+시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를 참고하세요.
+
 ## 1. Tech Stack
 
 | 항목          | 버전/라이브러리                            |
