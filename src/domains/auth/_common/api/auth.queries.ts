@@ -9,6 +9,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { toast } from 'sonner';
 import { API_ENDPOINTS } from '@/shared/config/api';
 import { useNavigate } from 'react-router-dom';
+import { requestAndRegisterFcmToken, unregisterFcmToken } from '@/shared/lib/firebase/fcm';
 
 export const authKeys = {
   root: ['auth'] as const,
@@ -27,6 +28,8 @@ export const useLoginMutation = () => {
       AuthUtil.clearAll();
       // 2. 인메모리 스토어에 토큰 및 유저 정보 저장
       setAuth(data.accessToken);
+      // 3. FCM 토큰 등록 (브라우저 알림 권한 요청 + 서버 등록)
+      void requestAndRegisterFcmToken();
     },
     onError: (error) => {
       console.log(error);
@@ -56,6 +59,8 @@ export const useLogoutMutation = () => {
     } catch (error) {
       console.error('Logout request failed:', error);
     } finally {
+      // FCM 토큰 삭제 (로그아웃 시 기기 토큰 해제)
+      await unregisterFcmToken();
       AuthUtil.clearAll();
     }
   };

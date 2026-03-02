@@ -1,10 +1,16 @@
 # Link-Sphere FE — Claude Code Guide
 
+> 패턴·컨벤션 상세 버전: [FE-ARCHITECTURE.md](../docs/FE-ARCHITECTURE.md)
+> 시스템·배포 다이어그램: [SYSTEM-ARCHITECTURE.md](../docs/SYSTEM-ARCHITECTURE.md)
+
 ## Project Structure
 
 ```
 src/
-├── app/                        # 앱 초기화, providers, routing, layouts
+├── app/                          # 앱 초기화, providers, routing, layouts
+│   ├── providers/                # RouterProvider, ThemeProvider, AuthProvider, QueryProvider
+│   └── layouts/
+│       └── navbar/               # Navbar, NavbarSearch, MobileNavbarSearch
 ├── domains/<domain>/
 │   ├── _common/
 │   │   ├── api/
@@ -14,34 +20,66 @@ src/
 │   │   ├── model/
 │   │   │   └── <entity>.schema.ts   # Zod 스키마 + TypeScript 타입
 │   │   ├── hooks/                   # 도메인 공통 훅 (feature 비특화)
-│   │   ├── config/                  # 도메인 설정
-│   │   └── ui/                      # 도메인 공통 UI
+│   │   ├── config/                  # 도메인 설정 (const 등)
+│   │   └── ui/                      # 도메인 공통 UI (UserAvatar, MarkdownContent 등)
 │   └── features/<feature-name>/
 │       ├── hooks/
 │       │   └── use<FeatureName>.ts  # 비즈니스 로직 (form, mutations, state, navigation)
 │       └── ui/
 │           └── <FeatureName>.tsx    # 얇은 UI — 훅 호출 + JSX 렌더링만
 ├── shared/
-│   ├── api/          # client.ts, common.schema.ts, common.queries.ts
-│   ├── config/       # texts.ts (TEXTS), api.ts (API_ENDPOINTS), route-paths.ts
-│   ├── hooks/        # 재사용 가능한 제네릭 훅
-│   ├── lib/          # react-query/config/queryClient.ts
-│   ├── store/        # Zustand 스토어
-│   ├── types/        # common.type.ts, auth.type.ts
+│   ├── api/
+│   │   ├── client.ts              # HTTP 클라이언트 (apiClient)
+│   │   ├── common.schema.ts       # 공통 Zod 스키마 (PaginationResponse 등)
+│   │   ├── common.keys.ts
+│   │   └── common.queries.ts
+│   ├── config/
+│   │   ├── texts.ts               # 모든 UI 문자열 (TEXTS)
+│   │   ├── api.ts                 # 모든 API 엔드포인트 (API_ENDPOINTS)
+│   │   ├── route-paths.ts         # 라우트 경로 상수 (ROUTES_PATHS)
+│   │   ├── const.ts               # 앱 전역 상수
+│   │   └── error-code.ts          # 에러 코드 상수
+│   ├── hooks/                     # useToggle, useDebounce, useIntersectionObserver,
+│   │                              #   useIsMobile, useImagePaste, useKeydown, useMinimumLoading 등
+│   ├── lib/
+│   │   ├── react-query/config/queryClient.ts   # 중앙 QueryClient 인스턴스
+│   │   ├── react-table/utils.ts
+│   │   └── tailwind/utils.ts      # cn() helper
+│   ├── store/
+│   │   └── auth.store.ts          # Zustand 인증 스토어 (useAuthStore)
+│   ├── types/
+│   │   ├── common.type.ts
+│   │   └── auth.type.ts
 │   ├── ui/
-│   │   ├── atoms/    # CVA 기반 Shadcn 기본 컴포넌트 (Button, Input, Card 등)
-│   │   └── elements/ # 조합 컴포넌트 (FormInput, ActionButton, modal/alert)
-│   └── utils/
-└── pages/            # 페이지 컴포넌트, 얇은 래퍼
+│   │   ├── atoms/                 # CVA 기반 Shadcn 기본 컴포넌트
+│   │   │                          # (Button, Input, Card, Badge, Select, Checkbox,
+│   │   │                          #  Avatar, Dialog, DropdownMenu, Textarea, Tooltip, Kbd, Sonner 등)
+│   │   └── elements/
+│   │       ├── form/              # FormInput, FormInputPassword, FormCheckbox, FormCheckboxGroup
+│   │       │   └── _base/FormField.tsx
+│   │       ├── modal/alert/       # Alert.tsx, alert.store.ts (useAlert)
+│   │       ├── ActionButton.tsx
+│   │       ├── AsyncBoundary.tsx
+│   │       ├── SearchInput.tsx
+│   │       ├── SpinnerOverlay.tsx
+│   │       ├── TooltipWrapper.tsx
+│   │       └── ScrollToTop.tsx
+│   └── utils/                     # auth.util, common.util, date.util, file.util, form.util, storage.util
+└── pages/
+    ├── post/                      # PostSubmitPage, PostDetailPage, PostEditPage
+    ├── auth/                      # LoginPage, SignUpPage
+    ├── mypage/                    # MyPage
+    ├── 403/                       # ForbiddenPage
+    └── 404/                       # NotFoundPage
 ```
 
 ## 현재 도메인
 
-| 도메인   | 엔티티                     | 위치                  |
-| -------- | -------------------------- | --------------------- |
-| `post`   | post, comment, interaction | `src/domains/post/`   |
-| `auth`   | auth (login, sign-up)      | `src/domains/auth/`   |
-| `member` | member (profile)           | `src/domains/member/` |
+| 도메인   | 엔티티                     | Features                                                                                                                                                            | 위치                  |
+| -------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `post`   | post, comment, interaction | create-post, update-post, delete-post, post-list, post-detail, create-comment, update-comment, delete-comment, comment-list, like-post, like-comment, bookmark-post | `src/domains/post/`   |
+| `auth`   | auth (login, sign-up)      | login, sign-up                                                                                                                                                      | `src/domains/auth/`   |
+| `member` | member (profile)           | —                                                                                                                                                                   | `src/domains/member/` |
 
 ---
 
@@ -196,11 +234,12 @@ export function CreateEntityForm() {
 
 ```typescript
 // _common/model/<entity>.schema.ts
-// 도메인 모델 (서버 응답 전체)
 export const entitySchema = z.object({
   id: z.string(),
   name: z.string().min(1, TEXTS.validation.nameRequired),
-  createdAt: z.coerce.date(),
+  content: z.string().nullable(), // nullable 필드는 .nullable() 사용 (null 허용, undefined 불가)
+  createdAt: z.coerce.date(), // 날짜 필드는 z.coerce.date() 사용
+  updatedAt: z.coerce.date(),
 });
 
 // Form 입력 스키마 (도메인 모델과 별도)
@@ -248,10 +287,107 @@ onMutate: async () => {
   );
   return { previous };
 },
+onSuccess: () => {},
 onError: (_err, _vars, context) => {
   queryClient.setQueryData(entityKeys.detail(id), context?.previous);
 },
 ```
+
+목록(InfiniteData)까지 함께 업데이트할 때:
+
+```typescript
+queryClient.setQueriesData<InfiniteData<EntityListResponse>>(
+  { queryKey: entityKeys.listRoot },
+  (oldData) => {
+    if (!oldData) return oldData;
+    return {
+      ...oldData,
+      pages: oldData.pages.map((page) => ({
+        ...page,
+        content: page.content.map((item) =>
+          item.id === id ? { ...item, isLiked: !item.isLiked } : item
+        ),
+      })),
+    };
+  }
+);
+```
+
+---
+
+## React Query 설정
+
+`src/shared/lib/react-query/config/queryClient.ts`
+
+| 설정       | 값                         |
+| ---------- | -------------------------- |
+| Stale Time | 3분 (`3 * 60 * 1000`)      |
+| GC Time    | 5분 (`5 * 60 * 1000`)      |
+| Retry      | 실패 시 1회 재시도         |
+| Refetch    | 윈도우 포커스 및 마운트 시 |
+
+전역 에러 핸들러는 `mutationCache`와 `queryCache`에 정의되어 있으며, 모든 mutation/query 에러를 자동으로 처리한다.
+
+---
+
+## 에러 핸들링 전략
+
+### 전역 에러 핸들링 (자동)
+
+- **API 에러 (`ApiError`)**: 자동으로 콘솔 로깅 + 일반 "서버 에러" 토스트 표시
+- **알 수 없는 에러**: 콘솔 로깅 + 일반 에러 토스트 표시
+
+### 수동 에러 핸들링 (`manualErrorHandling`)
+
+form 필드에 서버 유효성 검사 에러를 매핑할 때 전역 핸들러를 우회:
+
+```typescript
+useMutation({
+  mutationFn: someApiFunction,
+  meta: { manualErrorHandling: true }, // 전역 토스트 에러 비활성화
+  onError: (error) => {
+    if (error instanceof ApiError && error.status === 409) {
+      form.setError('email', { message: '이미 존재하는 이메일입니다' });
+    }
+  },
+});
+```
+
+---
+
+## Mutation/Query Meta 옵션
+
+| 키                    | 타입      | 효과                                                    |
+| --------------------- | --------- | ------------------------------------------------------- |
+| `successMessage`      | `string`  | 자동으로 Sonner 성공 토스트 표시                        |
+| `errorMessage`        | `string`  | 기본 대신 커스텀 Sonner 에러 토스트 표시                |
+| `manualErrorHandling` | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용) |
+
+---
+
+## Form 컴포넌트
+
+`src/shared/ui/elements/form/`
+
+| 컴포넌트               | 용도                                                       |
+| ---------------------- | ---------------------------------------------------------- |
+| `FormField` (`_base/`) | 레이블, 설명, 에러 메시지 관리 (모든 form 컴포넌트의 기반) |
+| `FormInput`            | 일반 텍스트 입력 필드                                      |
+| `FormInputPassword`    | 비밀번호 입력 필드 (토글 표시)                             |
+| `FormCheckbox`         | 단일 체크박스                                              |
+| `FormCheckboxGroup`    | 체크박스 그룹                                              |
+
+**사용 패턴**: `FormProvider`로 감싸고 `name` prop으로 react-hook-form 필드에 연결.
+
+---
+
+## Auth 도메인
+
+`src/domains/auth/`
+
+- **Account**: 사용자 계정 정보 (id, email, name, avatarUrl, createdAt, updatedAt)
+- **스키마**: `Account`, `Login`, `CreateAccount`, `AuthTokens`
+- 회원가입(`useCreateAccountMutation`)은 `manualErrorHandling: true` → 409 Conflict 에러 직접 처리
 
 ---
 
@@ -288,9 +424,32 @@ onError: (_err, _vars, context) => {
 
 ---
 
+## 개발 커맨드
+
+```bash
+pnpm dev              # 개발 서버 (port 31119, /api → BE 51119 프록시)
+pnpm build            # TypeScript 컴파일 + Vite 빌드
+pnpm preview          # 빌드 결과물 미리보기
+pnpm type-check       # tsc --noEmit
+pnpm lint             # ESLint 검사
+pnpm lint:fix         # ESLint 자동 수정
+pnpm format           # Prettier 포맷
+pnpm check            # 타입 + 린트 + 포맷 일괄 검사
+pnpm check:fix        # 린트·포맷 자동 수정 후 타입 검사
+pnpm storybook        # Storybook (port 6006)
+pnpm test             # 테스트 1회 실행 (CI / pre-push 동일)
+pnpm test:watch       # 테스트 감시 모드 (TDD 루프)
+pnpm test:coverage    # 커버리지 리포트 → coverage/index.html
+```
+
+> `git push` 시 pre-push 훅으로 테스트가 자동 실행되며, 실패 시 push가 차단됩니다.
+> 상세 패턴·MSW·픽스처·트러블슈팅: [TESTING.md](../docs/TESTING.md)
+
+---
+
 ## 체크리스트: 기존 도메인에 새 기능 추가
 
-- [ ] `_common/model/<entity>.schema.ts` — Zod 스키마 + 타입 추가
+- [ ] `_common/model/<entity>.schema.ts` — Zod 스키마 + 타입 추가/확인
 - [ ] `_common/api/<entity>.api.ts` — API 함수 추가
 - [ ] `_common/api/<entity>.keys.ts` — 쿼리 키, invalidation, success handler 추가
 - [ ] `_common/api/<entity>.queries.ts` — React Query 훅 추가
@@ -307,30 +466,6 @@ onError: (_err, _vars, context) => {
 - [ ] `src/shared/config/route-paths.ts` — 라우트 상수 추가
 - [ ] `src/app/routes/index.tsx` — 라우트 등록
 - [ ] `src/pages/<domain>/` — 페이지 파일 생성
-
----
-
-## Mutation/Query Meta 옵션
-
-| 키                    | 타입      | 효과                                                    |
-| --------------------- | --------- | ------------------------------------------------------- |
-| `successMessage`      | `string`  | 자동으로 Sonner 성공 토스트 표시                        |
-| `errorMessage`        | `string`  | 기본 대신 커스텀 Sonner 에러 토스트 표시                |
-| `manualErrorHandling` | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용) |
-
----
-
-## 개발 커맨드
-
-```bash
-pnpm dev            # 개발 서버 (port 31119, localhost 모드)
-pnpm build          # TypeScript 컴파일 + Vite 빌드
-pnpm lint           # ESLint 검사
-pnpm lint:fix       # ESLint 자동 수정
-pnpm format         # Prettier 포맷
-pnpm type-check     # tsc --noEmit
-pnpm storybook      # Storybook (port 6006)
-```
 
 ---
 
