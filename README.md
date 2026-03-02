@@ -30,6 +30,12 @@ pnpm build
 pnpm preview
 ```
 
+### 스토리북
+
+```bash
+pnpm storybook
+```
+
 ## 개발 명령어
 
 | 명령어            | 설명                                |
