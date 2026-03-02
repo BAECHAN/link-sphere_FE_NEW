@@ -6,11 +6,10 @@
   "scripts": {
     "dev": "vite --mode localhost",
     "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "start": "npm run preview",
-    "dev:local": "npm run dev -- --mode localhost",
     "build:dev": "npm run build -- --mode development",
     "build:prod": "npm run build -- --mode production",
+    "preview": "vite preview",
+    "start": "npm run preview",
     "type-check": "tsc -b --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -20,14 +19,14 @@
     "check:fix": "npm run lint:fix && npm run format && npm run type-check",
     "validate": "npm run check:env && npm run check",
     "check:env": "node -e \"if (!require('fs').existsSync('.env')) { console.error('⚠️ .env missing'); process.exit(1); }\"",
-    "clean": "rimraf dist node_modules/.vite node_modules/.tmp",
-    "prepare": "husky",
-    "postinstall": "npm run prepare",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "clean": "rimraf dist node_modules/.vite node_modules/.tmp",
+    "prepare": "husky",
+    "postinstall": "npm run prepare"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",

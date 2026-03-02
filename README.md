@@ -56,31 +56,35 @@ pnpm storybook
 
 ## 개발 명령어
 
-| 명령어            | 설명                                |
-| ----------------- | ----------------------------------- |
-| `pnpm dev`        | 로컬 개발 서버 실행 (포트 31119)    |
-| `pnpm build`      | 프로덕션 빌드                       |
-| `pnpm preview`    | 빌드 결과물 미리보기                |
-| `pnpm type-check` | TypeScript 타입 검사                |
-| `pnpm lint`       | ESLint 검사                         |
-| `pnpm lint:fix`   | ESLint 자동 수정                    |
-| `pnpm format`     | Prettier 포맷팅                     |
-| `pnpm check`      | 타입 + 린트 + 포맷 일괄 검사        |
-| `pnpm check:fix`  | 린트·포맷 자동 수정 후 타입 검사    |
-| `pnpm storybook`  | Storybook 컴포넌트 개발 서버 (6006) |
+| 명령어               | 설명                                         |
+| -------------------- | -------------------------------------------- |
+| `pnpm dev`           | 로컬 개발 서버 실행 (포트 31119)             |
+| `pnpm build`         | 프로덕션 빌드                                |
+| `pnpm preview`       | 빌드 결과물 미리보기                         |
+| `pnpm type-check`    | TypeScript 타입 검사                         |
+| `pnpm lint`          | ESLint 검사                                  |
+| `pnpm lint:fix`      | ESLint 자동 수정                             |
+| `pnpm format`        | Prettier 포맷팅                              |
+| `pnpm check`         | 타입 + 린트 + 포맷 일괄 검사                 |
+| `pnpm check:fix`     | 린트·포맷 자동 수정 후 타입 검사             |
+| `pnpm storybook`     | Storybook 컴포넌트 개발 서버 (6006)          |
+| `pnpm test`          | 테스트 1회 실행 (CI / pre-push 동일)         |
+| `pnpm test:watch`    | 테스트 감시 모드 (파일 변경 시 재실행)       |
+| `pnpm test:coverage` | 커버리지 리포트 생성 (`coverage/index.html`) |
 
 ## 기술 스택
 
-| 항목         | 기술                                      |
-| ------------ | ----------------------------------------- |
-| Framework    | React 18, TypeScript 5.7, Vite 6          |
-| Routing      | React Router 6                            |
-| Server State | TanStack Query 5                          |
-| Client State | Zustand 5                                 |
-| Form         | React Hook Form 7, Zod 3                  |
-| UI           | Shadcn/ui (Radix UI), TailwindCSS 4, CVA  |
-| 기타         | Sonner, Supabase JS, dayjs, framer-motion |
-| 개발 도구    | ESLint 9, Prettier 3, Husky, Storybook 10 |
+| 항목         | 기술                                                         |
+| ------------ | ------------------------------------------------------------ |
+| Framework    | React 18, TypeScript 5.7, Vite 6                             |
+| Routing      | React Router 6                                               |
+| Server State | TanStack Query 5                                             |
+| Client State | Zustand 5                                                    |
+| Form         | React Hook Form 7, Zod 3                                     |
+| UI           | Shadcn/ui (Radix UI), TailwindCSS 4, CVA                     |
+| 기타         | Sonner, Supabase JS, dayjs, framer-motion                    |
+| 개발 도구    | ESLint 9, Prettier 3, Husky, Storybook 10                    |
+| 테스트       | Vitest 4, jsdom, Testing Library, MSW 2, @vitest/coverage-v8 |
 
 ## 프로젝트 구조
 
@@ -144,9 +148,18 @@ features/<feature-name>/
 └── ui/            # 얇은 UI 컴포넌트 (hook 사용)
 ```
 
+## 테스트
+
+- **1회 실행**: `pnpm test` (CI / pre-push와 동일)
+- **감시 모드**: `pnpm test:watch` (TDD 루프)
+- **커버리지**: `pnpm test:coverage` → `coverage/index.html`에서 확인
+
+`git push` 시 pre-push 훅으로 테스트가 자동 실행되며, 실패 시 push가 차단됩니다. 상세한 패턴·MSW·픽스처·트러블슈팅은 [테스트 가이드](docs/TESTING.md)를 참고하세요.
+
 ## 문서
 
 - [FE 아키텍처](docs/FE-ARCHITECTURE.md) — 프론트엔드 앱 구조·패턴
 - [시스템 아키텍처](docs/SYSTEM-ARCHITECTURE.md) — 전체 시스템·배포·다이어그램
+- [테스트 가이드](docs/TESTING.md) — Vitest, Testing Library, MSW 사용법·패턴·커버리지
 - [배포 가이드](docs/DEPLOY.md)
 - [개발 이력](docs/HISTORY.md)
