@@ -106,7 +106,8 @@ export default defineConfig(({ mode }) => {
           moduleSideEffects: (id) => {
             // CSS 파일은 side effect가 있음
             if (id.includes('.css')) return true;
-            // 나머지는 false
+            // Firebase는 서비스 등록을 side effect에 의존하므로 반드시 유지
+            if (id.includes('firebase') || id.includes('@firebase')) return true;
             return false;
           },
           propertyReadSideEffects: false,
