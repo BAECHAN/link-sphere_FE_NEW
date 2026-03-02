@@ -14,14 +14,16 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      react(), // Gzip 압축 파일(.gz) 생성
+      react(),
       compression({
         algorithm: 'gzip',
         ext: '.gz',
+        // firebase-messaging-sw.js는 SW 특성상 압축 제외
+        filter: /^(?!.*firebase-messaging-sw).*\.(js|css|html|json|svg)$/,
       }),
-      mkcert(),
+      mode === 'localhost' && mkcert(),
       visualizer({
-        open: true,
+        open: false,
         filename: 'dist/stats.html',
         gzipSize: true,
         brotliSize: true,
