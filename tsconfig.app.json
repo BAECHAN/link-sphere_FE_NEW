@@ -30,7 +30,8 @@
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
   "include": ["src", "vite.config.ts", "src/shared/ui/atoms/Spinner/.tsx"],
   "exclude": ["node_modules", "dist"],

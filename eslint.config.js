@@ -452,8 +452,9 @@ export default [
     files: ['src/**/*.tsx'],
     ignores: [
       'src/main.tsx',
-      'src/App.tsx',
+      'src/app/App.tsx',
       '**/index.tsx',
+      'src/test/**/*.{ts,tsx}',
       'src/shared/ui/atoms/**/*.tsx', // atoms 폴더는 위 규칙에서 처리
       // 약어로 시작하는 파일명 허용 (UI, URL 등)
       ...ALLOWED_ACRONYMS.map((acronym) => `**/${acronym}*.tsx`),

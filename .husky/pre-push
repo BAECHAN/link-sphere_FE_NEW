@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🧪 푸시 전 테스트 실행 중..."
+
+npm run test || {
+  echo "❌ 테스트 실패. 푸시를 중단합니다."
+  exit 1
+}
+
+echo "✅ 테스트 통과! 푸시를 진행합니다."

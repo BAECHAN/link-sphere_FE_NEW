@@ -35,6 +35,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Run tests
+        run: npm run test
+        env:
+          VITE_API_BASE_URL: http://localhost
+
       - name: Build
         # Vite 빌드 시 백엔드 주소 등 환경변수가 필요하면 여기서 주입합니다.
         run: npm run build
