@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { TEXTS } from '@/shared/config/texts';
 
-interface AuthLayoutProps {
+export interface AuthLayoutProps {
   children: ReactNode;
 }
 

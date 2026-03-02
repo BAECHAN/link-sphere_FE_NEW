@@ -3,7 +3,7 @@ import { Checkbox } from '@/shared/ui/atoms/checkbox';
 import { Label } from '@/shared/ui/atoms/label';
 import { cn } from '@/shared/lib/tailwind/utils';
 
-interface FormCheckboxProps {
+export interface FormCheckboxProps {
   name: string;
   label: string;
   description?: string;

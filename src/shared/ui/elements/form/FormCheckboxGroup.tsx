@@ -3,7 +3,7 @@ import { useController, useFormContext, type FieldValues } from 'react-hook-form
 import type { SelectOptionType } from '@/shared/types/common.type';
 import { FormField } from '@/shared/ui/elements/form/_base/FormField';
 
-interface FormCheckboxGroupProps {
+export interface FormCheckboxGroupProps {
   name: string;
   label?: string;
   options: SelectOptionType[];

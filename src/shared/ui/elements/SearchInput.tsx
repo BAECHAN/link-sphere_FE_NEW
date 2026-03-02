@@ -6,7 +6,7 @@ import { forwardRef, useRef } from 'react';
 import { useMergedRef } from '@/shared/hooks/useMergedRef';
 import { SearchIcon } from 'lucide-react';
 
-interface SearchInputProps extends InputProps {
+export interface SearchInputProps extends InputProps {
   shortcut?: string;
 }
 

@@ -3,7 +3,7 @@ import { ReactNode } from 'react';
 import { TEXTS } from '@/shared/config/texts';
 import { Button } from '@/shared/ui/atoms/button';
 
-interface ErrorLayoutProps {
+export interface ErrorLayoutProps {
   title: string;
   description?: string;
   children?: ReactNode;

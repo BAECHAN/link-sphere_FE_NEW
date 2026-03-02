@@ -2,7 +2,7 @@ import { Input } from '@/shared/ui/atoms/input';
 import { useController, useFormContext, type FieldValues } from 'react-hook-form';
 import { FormField } from '@/shared/ui/elements/form/_base/FormField';
 
-interface FormInputPasswordProps extends React.ComponentProps<'input'> {
+export interface FormInputPasswordProps extends React.ComponentProps<'input'> {
   name: string;
   label?: string;
   description?: string;

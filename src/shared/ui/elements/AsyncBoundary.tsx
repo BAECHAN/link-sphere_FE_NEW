@@ -4,7 +4,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { ErrorLayout } from '@/shared/ui/layouts/ErrorLayout';
 
-interface AsyncBoundaryProps {
+export interface AsyncBoundaryProps {
   children: ReactNode;
   /**
    * 로딩 중 표시할 컴포넌트

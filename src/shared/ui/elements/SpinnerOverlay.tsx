@@ -2,7 +2,7 @@ import { Spinner } from '@/shared/ui/atoms/spinner';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
 
-interface SpinnerOverlayProps {
+export interface SpinnerOverlayProps {
   className?: string;
   spinnerClassName?: string;
   delay?: number;

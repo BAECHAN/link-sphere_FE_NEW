@@ -1,7 +1,7 @@
 import { LucideIcon } from 'lucide-react';
 import { cn } from '@/shared/lib/tailwind/utils';
 
-interface ActionButtonProps {
+export interface ActionButtonProps {
   label: string;
   onClick: () => void;
   className?: string;
