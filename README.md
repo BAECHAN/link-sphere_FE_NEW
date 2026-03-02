@@ -2,6 +2,24 @@
 
 React + Vite + TypeScript 기반의 링크 공유 소셜 플랫폼 프론트엔드입니다.
 
+# 배포 URL
+
+https://dbw3brui6htwk.cloudfront.net/post
+
+## 테스트 계정
+
+### ID
+
+```
+test_account@linksphere.com
+```
+
+### PW
+
+```
+Gk8#pW2!vN9x
+```
+
 ## 시작하기
 
 ### 설치
