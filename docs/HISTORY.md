@@ -1,4 +1,11 @@
 ### 2026-03-02
+- Service Worker 배포 안정성 및 신뢰성 개선:
+  - `firebase-messaging-sw.js` 파일이 `vite-plugin-compression`에 의해 잘못 `.gz` 압축되어 브라우저에서 MIME 타입 불일치 오류로 Service Worker 등록이 실패하던 문제를 해결했습니다. (압축 플러그인에서 해당 파일 제외)
+  - Service Worker 파일이 CloudFront에 캐시되어 새 버전 배포 시 브라우저가 이전 버전을 계속 사용하는 문제를 방지하기 위해, `deploy.yml`에서 SW 파일을 `no-cache` 및 `text/javascript` Content-Type으로 개별 업로드하도록 수정했습니다.
+- 빌드 프로세스 성능 및 안정성 최적화:
+  - `mkcert()` 함수가 CI 환경을 포함한 프로덕션 빌드에서 불필요하게 실행되어 빌드 속도를 저하시키거나 실패를 유발할 수 있던 문제를 해결했습니다. 이제 `localhost` 개발 모드에서만 활성화됩니다.
+
+### 2026-03-02
 - 배포 시 발생하던 흰 화면 문제를 성공적으로 해결하여, 서비스가 정상적으로 표시되도록 개선했습니다.
 
 ### 2026-03-02
