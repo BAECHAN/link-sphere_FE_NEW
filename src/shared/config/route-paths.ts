@@ -16,6 +16,7 @@ const ROUTES_PATHS = {
   },
   // Error
   FORBIDDEN: '/403',
+  SERVER_ERROR: '/500',
   NOT_FOUND: '*',
 } as const;
 

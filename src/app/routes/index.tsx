@@ -13,6 +13,9 @@ const NotFoundPage = lazy(() =>
 const ForbiddenPage = lazy(() =>
   import('@/pages/403/ForbiddenPage').then((module) => ({ default: module.ForbiddenPage }))
 );
+const ServerErrorPage = lazy(() =>
+  import('@/pages/500/ServerErrorPage').then((module) => ({ default: module.ServerErrorPage }))
+);
 const Post = lazy(() => import('@/pages/post').then((module) => ({ default: module.Post })));
 const PostSubmitPage = lazy(() =>
   import('@/pages/post/PostSubmitPage').then((module) => ({ default: module.PostSubmitPage }))
@@ -133,6 +136,11 @@ export const appRoutes: RouteObject[] = [
       {
         path: ROUTES_PATHS.FORBIDDEN,
         element: withSuspense(ForbiddenPage),
+      },
+      // 500 Server Error
+      {
+        path: ROUTES_PATHS.SERVER_ERROR,
+        element: withSuspense(ServerErrorPage),
       },
       // 404 Not Found
       {
