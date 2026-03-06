@@ -1,3 +1,9 @@
+### 2026-03-06
+- **댓글 정렬 순서 결정: 오래된순(ASC) 유지**
+  - BE `CommentService`의 `findAllByPostIdOrderByCreatedAtAsc` 정렬 방식을 유지하기로 확정.
+  - 소셜 피드 특성상 대화 흐름이 위→아래로 이어지는 오래된순이 자연스럽고, Instagram·YouTube 등 주요 SNS 레퍼런스와도 일치.
+  - 루트 댓글 및 답글(replies) 모두 동일하게 ASC 적용.
+
 ### 2026-03-02
 - Service Worker 배포 안정성 및 신뢰성 개선:
   - `firebase-messaging-sw.js` 파일이 `vite-plugin-compression`에 의해 잘못 `.gz` 압축되어 브라우저에서 MIME 타입 불일치 오류로 Service Worker 등록이 실패하던 문제를 해결했습니다. (압축 플러그인에서 해당 파일 제외)
