@@ -1,4 +1,7 @@
 ### 2026-03-06
+- AI 이벤트 처리를 위한 기존 SSE(Server-Sent Events) 훅인 `usePostAIEvents`를 제거하고, `ProtectedLayout`에서 관련 호출을 정리하여 코드베이스를 효율화했습니다.
+
+### 2026-03-06
 - **댓글 정렬 순서 결정: 오래된순(ASC) 유지**
   - BE `CommentService`의 `findAllByPostIdOrderByCreatedAtAsc` 정렬 방식을 유지하기로 확정.
   - 소셜 피드 특성상 대화 흐름이 위→아래로 이어지는 오래된순이 자연스럽고, Instagram·YouTube 등 주요 SNS 레퍼런스와도 일치.
