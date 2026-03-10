@@ -2,6 +2,10 @@
 
 React + Vite + TypeScript 기반의 링크 공유 소셜 플랫폼 프론트엔드입니다.
 
+# Link Sphere - Backend
+
+https://github.com/BAECHAN/link-sphere_BE_NEW
+
 # 배포 URL
 
 https://dbw3brui6htwk.cloudfront.net/post
