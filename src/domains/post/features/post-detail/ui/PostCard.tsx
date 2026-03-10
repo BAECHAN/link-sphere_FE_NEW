@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { UserAvatar } from '@/domains/post/_common/ui/UserAvatar';
 import { DateUtil } from '@/shared/utils/date.util';
-import { useFetchAccountQuery } from '@/domains/auth/_common/api/auth.queries';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,85 +22,32 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/atoms/dropdown-menu';
 import { MoreVertical, Pencil, Trash } from 'lucide-react';
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { LikePostButton } from '@/domains/post/features/like-post/ui/LikePostButton';
 import { BookmarkPostButton } from '@/domains/post/features/bookmark-post/ui/BookmarkPostButton';
-import { useUpdatePostVisibilityMutation } from '@/domains/post/_common/api/post.queries';
-import { usePostDelete } from '@/domains/post/features/delete-post/hooks/usePostDelete';
-import { toast } from 'sonner';
 import { TEXTS } from '@/shared/config/texts';
-import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
-import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { usePostCard } from '@/domains/post/features/post-detail/hooks/usePostCard';
 
 interface PostCardProps {
   post: Post;
+  isDetail?: boolean;
 }
 
-export function PostCard({ post }: PostCardProps) {
-  const { data: account } = useFetchAccountQuery();
+export function PostCard({ post, isDetail = false }: PostCardProps) {
   const { author } = post;
-  const navigate = useNavigate();
 
-  const isOwner = account?.id === author?.id;
-
-  const { onDelete } = usePostDelete();
-  const { mutateAsync: updateVisibility, isPending: isUpdatingVisibility } =
-    useUpdatePostVisibilityMutation(post.id);
-  const { openConfirm } = useAlert();
-
-  const [isAiSummaryExpanded, setIsAiSummaryExpanded] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  const handleDelete = (e: React.MouseEvent) => {
-    e.preventDefault();
-    onDelete(post.id, {
-      onSuccess: () => {
-        setIsMenuOpen(false);
-      },
-    });
-  };
-
-  const handleToggleVisibility = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (!isOwner) return;
-
-    const actionText = post.isPrivate ? '전체 공개로' : '나만 보기(비공개)로';
-
-    openConfirm({
-      title: '공개 설정 변경',
-      message: `이 게시물을 ${actionText} 전환하시겠습니까?`,
-      confirmText: '확인',
-      cancelText: '취소',
-      onConfirm: () => {
-        updateVisibility(
-          { postId: post.id, isPrivate: !post.isPrivate },
-          {
-            onSuccess: () => {
-              setIsMenuOpen(false);
-            },
-          }
-        );
-      },
-    });
-  };
-
-  const handleCopyLink = async () => {
-    const url = `${window.location.origin}/post/${post.id}`;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    try {
-      if (isMobile && navigator.share) {
-        await navigator.share({ url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        if (!isMobile) toast.success(TEXTS.messages.success.linkCopied);
-      }
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') return;
-      console.error('Copy failed', error);
-      toast.error(TEXTS.messages.error.linkCopyFailed);
-    }
-  };
+  const {
+    isOwner,
+    isUpdatingVisibility,
+    isAiSummaryExpanded,
+    setIsAiSummaryExpanded,
+    isMenuOpen,
+    setIsMenuOpen,
+    handleDelete,
+    handleToggleVisibility,
+    handleCopyLink,
+    handleNavigateToEdit,
+  } = usePostCard(post);
 
   return (
     <Card className="flex flex-col overflow-hidden hover:shadow-md transition-shadow">
@@ -150,8 +96,7 @@ export function PostCard({ post }: PostCardProps) {
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.preventDefault();
-                    setIsMenuOpen(false);
-                    navigate(ROUTES_PATHS.POST.EDIT.replace(':id', post.id));
+                    handleNavigateToEdit();
                   }}
                 >
                   <Pencil className="mr-2 h-4 w-4" />
@@ -185,7 +130,7 @@ export function PostCard({ post }: PostCardProps) {
 
       <CardContent className="p-3 pt-0 flex flex-col">
         {post.description && (
-          <p className={`text-sm text-muted-foreground line-clamp-2 mb-2 block min-h-[2.5rem]}`}>
+          <p className={`text-sm text-muted-foreground mb-2 ${isDetail ? '' : 'line-clamp-3'}`}>
             {post.description}
           </p>
         )}

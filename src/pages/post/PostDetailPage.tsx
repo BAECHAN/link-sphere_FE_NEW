@@ -38,7 +38,7 @@ export function PostDetailPage() {
         <h1 className="text-xl font-bold">Post Details</h1>
       </div>
 
-      <PostCard post={post} />
+      <PostCard post={post} isDetail />
 
       <div className="pt-6 border-t">
         <h2 className="text-lg font-bold mb-6">Comments</h2>
