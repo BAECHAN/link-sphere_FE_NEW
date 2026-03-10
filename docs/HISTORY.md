@@ -1,3 +1,8 @@
+```markdown
+### 2026-03-10
+- PostCard 컴포넌트의 핵심 로직을 `usePostCard` 훅으로 분리하여 코드의 재사용성과 유지보수성을 향상시켰습니다.
+```
+
 ### 2026-03-06
 - AI 이벤트 처리를 위한 기존 SSE(Server-Sent Events) 훅인 `usePostAIEvents`를 제거하고, `ProtectedLayout`에서 관련 호출을 정리하여 코드베이스를 효율화했습니다.
 
