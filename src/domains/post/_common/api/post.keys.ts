@@ -3,6 +3,13 @@ import { Post } from '@/domains/post/_common/model/post.schema';
 
 const rootKey = ['post'] as const;
 
+export const postMutationKeys = {
+  create: [...rootKey, 'create'] as const,
+  update: (postId: string) => [...rootKey, 'update', postId] as const,
+  delete: [...rootKey, 'delete'] as const,
+  updateVisibility: (postId: string) => [...rootKey, 'updateVisibility', postId] as const,
+};
+
 export const postKeys = {
   root: rootKey,
   listRoot: [...rootKey, 'list'] as const,
@@ -24,7 +31,7 @@ export const postInvalidateQueries = {
 };
 
 export const handlePostCreateSuccess = () => {
-  postInvalidateQueries.list();
+  queryClient.resetQueries({ queryKey: postKeys.listRoot });
 };
 
 export const handlePostUpdateSuccess = (postId: Post['id']) => {

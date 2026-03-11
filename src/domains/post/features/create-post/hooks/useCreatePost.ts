@@ -15,7 +15,7 @@ const DEFAULT_VALUES: CreatePost = {
 export function useCreatePost() {
   const navigate = useNavigate();
 
-  const { mutateAsync: createPost, isPending: isCreating } = useCreatePostMutation();
+  const { mutate: createPost, isPending: isCreating } = useCreatePostMutation();
 
   const form = useForm<CreatePost>({
     resolver: zodResolver(createPostSchema),
@@ -23,17 +23,10 @@ export function useCreatePost() {
     mode: 'onChange',
   });
 
-  const onSubmit = form.handleSubmit(async (formData: CreatePost) => {
-    try {
-      await createPost(formData, {
-        onSuccess: () => {
-          onFormReset();
-          navigate(ROUTES_PATHS.POST.ROOT);
-        },
-      });
-    } catch (error) {
-      console.error(error);
-    }
+  const onSubmit = form.handleSubmit((formData: CreatePost) => {
+    createPost(formData);
+    onFormReset();
+    navigate(ROUTES_PATHS.POST.ROOT);
   });
 
   const onFormReset = () => {

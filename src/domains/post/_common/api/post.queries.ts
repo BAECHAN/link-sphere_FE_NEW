@@ -8,15 +8,18 @@ import { postApi } from '@/domains/post/_common/api/post.api';
 import { CreatePost, PostListRequest, UpdatePost } from '@/domains/post/_common/model/post.schema';
 import { TEXTS } from '@/shared/config/texts';
 import {
+  handlePostCreateSuccess,
   handlePostUpdateSuccess,
   postInvalidateQueries,
   postKeys,
+  postMutationKeys,
 } from '@/domains/post/_common/api/post.keys';
 import { POST_PAGE_SIZE } from '@/domains/post/_common/config/const';
 import { PaginationRequest } from '@/shared/api/common.schema';
 
 export const useCreatePostMutation = () => {
   return useMutation({
+    mutationKey: postMutationKeys.create,
     mutationFn: async (payload: CreatePost) => {
       return await postApi.createPost(payload);
     },
@@ -25,7 +28,7 @@ export const useCreatePostMutation = () => {
       errorMessage: TEXTS.messages.error.postCreateFailed,
     },
     onSuccess: () => {
-      postInvalidateQueries.list();
+      handlePostCreateSuccess();
     },
   });
 };
@@ -50,12 +53,18 @@ export const useFetchPostListQuery = (
       if (lastPage.last) return undefined;
       return lastPage.page + 1;
     },
-    select: (data) => ({
-      pages: data.pages,
-      pageParams: data.pageParams,
-      posts: data.pages.flatMap((page) => page.content),
-      totalElements: data.pages[0]?.totalElements ?? 0,
-    }),
+    select: (data) => {
+      const seen = new Set<string>();
+      const posts = data.pages
+        .flatMap((page) => page.content)
+        .filter((post) => (seen.has(post.id) ? false : seen.add(post.id) && true));
+      return {
+        pages: data.pages,
+        pageParams: data.pageParams,
+        posts,
+        totalElements: data.pages[0]?.totalElements ?? 0,
+      };
+    },
   });
 };
 
@@ -79,12 +88,18 @@ export const useSuspenseFetchPostListQuery = (
       if (lastPage.last) return undefined;
       return lastPage.page + 1;
     },
-    select: (data) => ({
-      pages: data.pages,
-      pageParams: data.pageParams,
-      posts: data.pages.flatMap((page) => page.content),
-      totalElements: data.pages[0]?.totalElements ?? 0,
-    }),
+    select: (data) => {
+      const seen = new Set<string>();
+      const posts = data.pages
+        .flatMap((page) => page.content)
+        .filter((post) => (seen.has(post.id) ? false : seen.add(post.id) && true));
+      return {
+        pages: data.pages,
+        pageParams: data.pageParams,
+        posts,
+        totalElements: data.pages[0]?.totalElements ?? 0,
+      };
+    },
   });
 };
 
@@ -98,6 +113,7 @@ export const useFetchPostDetailQuery = (postId: string) => {
 
 export const useDeletePostMutation = () => {
   return useMutation({
+    mutationKey: postMutationKeys.delete,
     mutationFn: async (postId: string) => {
       return await postApi.deletePost(postId);
     },
@@ -113,6 +129,7 @@ export const useDeletePostMutation = () => {
 
 export const useUpdatePostMutation = (postId: string) => {
   return useMutation({
+    mutationKey: postMutationKeys.update(postId),
     mutationFn: async (payload: UpdatePost) => {
       return await postApi.updatePost(postId, payload);
     },
@@ -128,6 +145,7 @@ export const useUpdatePostMutation = (postId: string) => {
 
 export const useUpdatePostVisibilityMutation = (postId: string) => {
   return useMutation({
+    mutationKey: postMutationKeys.updateVisibility(postId),
     mutationFn: async ({ postId, isPrivate }: { postId: string; isPrivate: boolean }) => {
       return await postApi.updatePostVisibility(postId, isPrivate);
     },

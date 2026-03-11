@@ -15,6 +15,7 @@ import { useAuth } from '@/domains/auth/_common/hooks/useAuth';
 import { useAccount } from '@/domains/auth/_common/hooks/useAccount';
 import { NavbarSearch } from '@/app/layouts/navbar/NavbarSearch';
 import { MobileNavbarSearch } from '@/app/layouts/navbar/MobileNavbarSearch';
+import { PostCreationLoadingBadge } from '@/shared/ui/elements/PostCreationLoadingBadge';
 
 export function Navbar() {
   const { isAuthenticated } = useAuthStore();
@@ -61,6 +62,7 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
+          <PostCreationLoadingBadge />
           <Button
             variant="ghost"
             size="icon"

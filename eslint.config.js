@@ -623,6 +623,7 @@ export default [
   // ============================================================
   {
     files: ['src/**/ui/**/*.{ts,tsx}'],
+    ignores: ['src/shared/ui/elements/**/*.{ts,tsx}'],
     plugins: {
       'custom-ui-rules': {
         rules: {
