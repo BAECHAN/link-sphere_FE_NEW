@@ -1,4 +1,4 @@
-import { CreatePostForm } from '@/domains/post/features/create-post/ui/CreatePostForm';
+import { CreatePostForm } from '@/features/post/create/ui/CreatePostForm';
 
 export function PostSubmitPage() {
   return <CreatePostForm />;

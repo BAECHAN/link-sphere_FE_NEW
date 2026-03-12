@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { UpdatePostForm } from '@/domains/post/features/update-post/ui/UpdatePostForm';
+import { UpdatePostForm } from '@/features/post/update/ui/UpdatePostForm';
 
 export function PostEditPage() {
   const { id } = useParams<{ id: string }>();

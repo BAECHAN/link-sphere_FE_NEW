@@ -1,4 +1,4 @@
-import type { Post, PostListResponse } from '@/domains/post/_common/model/post.schema';
+import type { Post, PostListResponse } from '@/entities/post/model/post.schema';
 import { mockAccount } from '@/mocks/fixtures/auth.fixtures';
 
 export const mockPost: Post = {

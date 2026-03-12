@@ -19,7 +19,7 @@ Parse:
 
 ## Files to create
 
-### 1. `src/domains/<domain>/_common/api/<entity>.api.ts`
+### 1. `src/entities/<entity>/api/<entity>.api.ts`
 
 ```typescript
 import { apiClient } from '@/shared/api/client';
@@ -44,7 +44,7 @@ export const <entity>Api = {
 };
 ```
 
-### 2. `src/domains/<domain>/_common/api/<entity>.keys.ts`
+### 2. `src/entities/<entity>/api/<entity>.keys.ts`
 
 ```typescript
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
@@ -74,7 +74,7 @@ export const handle<Entity>UpdateSuccess = (id: <Entity>['id']) => {
 export const handle<Entity>DeleteSuccess = () => { <entity>InvalidateQueries.list(); };
 ```
 
-### 3. `src/domains/<domain>/_common/api/<entity>.queries.ts`
+### 3. `src/entities/<entity>/api/<entity>.queries.ts`
 
 ```typescript
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -167,6 +167,6 @@ warning: {
 
 ## Notes
 
-- If the schema file doesn't exist, create it first following the pattern in `src/domains/post/_common/model/post.schema.ts`
+- If the schema file doesn't exist, create it first following the pattern in `src/entities/post/model/post.schema.ts`
 - If only some CRUD operations are needed, omit the unused functions from api.ts and their corresponding hooks from queries.ts
 - For cross-domain invalidation (e.g. creating a comment also invalidates the post), import and call the other domain's `InvalidateQueries` in the success handler in `<entity>.keys.ts`

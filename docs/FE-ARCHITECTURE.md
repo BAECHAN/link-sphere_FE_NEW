@@ -17,85 +17,157 @@
 
 ---
 
-## 2. Directory Structure
+## 2. Directory Structure (FSD)
+
+레이어 의존 방향: `app → pages → widgets → features → entities → shared`
+(하위 레이어는 상위 레이어를 import할 수 없음. ESLint로 강제 적용.)
 
 ```
 src/
-├── app/                          # 앱 초기화, providers, routing, layouts
+├── app/                          # 앱 초기화, providers, routing
 │   ├── providers/                # RouterProvider, ThemeProvider, AuthProvider, QueryProvider
+│   ├── routes/                   # 라우트 설정, ProtectedRoute, layout wrappers
 │   └── layouts/
-│       └── navbar/               # Navbar, NavbarSearch, MobileNavbarSearch
-├── domains/<domain>/
-│   ├── _common/
+│       └── app-layout/           # AppLayout (Navbar 포함한 앱 셸)
+│
+├── pages/                        # 라우팅 진입점 — widgets/features 조합
+│   ├── post/                     # PostSubmitPage, PostDetailPage, PostEditPage, index(PostListPage)
+│   ├── auth/                     # LoginPage, SignUpPage
+│   ├── 403/                      # ForbiddenPage
+│   ├── 404/                      # NotFoundPage
+│   └── 500/                      # ServerErrorPage
+│
+├── widgets/                      # 복합 UI 블록 — features + entities 조합
+│   ├── navbar/
+│   │   └── ui/                   # Navbar, NavbarSearch, MobileNavbarSearch
+│   ├── post-list/
+│   │   ├── hooks/                # usePostList
+│   │   ├── ui/                   # PostList, PostListSearch
+│   │   └── utils/                # search-parser
+│   ├── post-card/
+│   │   ├── hooks/                # usePostCard
+│   │   └── ui/                   # PostCard (PostCard 모든 액션 포함)
+│   └── comment-list/
+│       ├── hooks/                # useCommentList
+│       └── ui/                   # CommentList, CommentItem
+│
+├── features/                     # 사용자 상호작용 — mutation + trigger UI
+│   ├── auth-login/
+│   │   ├── hooks/                # useLogin
+│   │   └── ui/                   # LoginForm
+│   ├── auth-signup/
+│   │   ├── hooks/                # useSignUp
+│   │   └── ui/                   # SignUpForm
+│   ├── create-post/
+│   │   ├── hooks/                # useCreatePost
+│   │   └── ui/                   # CreatePostForm
+│   ├── update-post/
+│   │   ├── hooks/                # useUpdatePost
+│   │   └── ui/                   # UpdatePostForm
+│   ├── delete-post/
+│   │   └── hooks/                # usePostDelete
+│   ├── like-post/
+│   │   ├── hooks/                # useLikePost
+│   │   └── ui/                   # LikePostButton
+│   ├── bookmark-post/
+│   │   ├── hooks/                # useBookmarkPost
+│   │   └── ui/                   # BookmarkPostButton
+│   ├── create-comment/
+│   │   ├── hooks/                # useCreateComment
+│   │   └── ui/                   # CommentForm
+│   ├── update-comment/
+│   │   ├── hooks/                # useUpdateComment
+│   │   └── ui/                   # CommentEditForm
+│   ├── delete-comment/
+│   │   └── hooks/                # useDeleteComment
+│   └── like-comment/
+│       ├── hooks/                # useLikeComment
+│       └── ui/                   # LikeCommentButton
+│
+├── entities/                     # 비즈니스 엔티티 — data layer + basic display
+│   ├── post/
 │   │   ├── api/
-│   │   │   ├── <entity>.api.ts      # 순수 async fetch 호출만 (React 의존 없음)
-│   │   │   ├── <entity>.keys.ts     # 쿼리 키 + invalidation helpers + success handlers
-│   │   │   └── <entity>.queries.ts  # 얇은 React Query 훅 래퍼
+│   │   │   ├── post.api.ts       # 순수 async fetch 호출
+│   │   │   ├── post.keys.ts      # 쿼리 키 + invalidation helpers + success handlers
+│   │   │   └── post.queries.ts   # 얇은 React Query 훅 래퍼
 │   │   ├── model/
-│   │   │   └── <entity>.schema.ts   # Zod 스키마 + TypeScript 타입
-│   │   ├── hooks/                   # 도메인 공통 훅 (feature 비특화)
-│   │   ├── config/                  # 도메인 설정 (const 등)
-│   │   └── ui/                      # 도메인 공통 UI (UserAvatar, MarkdownContent 등)
-│   └── features/<feature-name>/
+│   │   │   └── post.schema.ts    # Zod 스키마 + TypeScript 타입 (interaction/comment re-export 포함)
+│   │   └── config/
+│   │       └── const.ts          # POST_PAGE_SIZE 등
+│   ├── comment/
+│   │   ├── api/
+│   │   │   ├── comment.api.ts
+│   │   │   ├── comment.keys.ts
+│   │   │   └── comment.queries.ts
+│   │   └── model/
+│   │       └── comment.schema.ts
+│   ├── interaction/
+│   │   ├── api/
+│   │   │   ├── interaction.api.ts
+│   │   │   └── interaction.queries.ts   # Optimistic updates (like, bookmark)
+│   │   └── model/
+│   │       └── interaction.schema.ts    # Canonical 위치
+│   └── user/
+│       ├── api/
+│       │   ├── auth.api.ts
+│       │   ├── auth.keys.ts
+│       │   └── auth.queries.ts   # useLoginMutation, useLogoutMutation, useFetchAccountQuery
 │       ├── hooks/
-│       │   └── use<FeatureName>.ts  # 비즈니스 로직 (form, mutations, state, navigation)
+│       │   ├── useAuth.ts        # 통합 인증 관리 훅
+│       │   ├── useAccount.ts
+│       │   ├── useAuthInitialization.ts
+│       │   └── useAppInitialization.ts
 │       └── ui/
-│           └── <FeatureName>.tsx    # 얇은 UI — 훅 호출 + JSX 렌더링만
-├── shared/
-│   ├── api/
-│   │   ├── client.ts              # HTTP 클라이언트 (apiClient)
-│   │   ├── common.schema.ts       # 공통 Zod 스키마 (PaginationResponse 등)
-│   │   ├── common.keys.ts
-│   │   └── common.queries.ts
-│   ├── config/
-│   │   ├── texts.ts               # 모든 UI 문자열 (TEXTS)
-│   │   ├── api.ts                 # 모든 API 엔드포인트 (API_ENDPOINTS)
-│   │   ├── route-paths.ts         # 라우트 경로 상수 (ROUTES_PATHS)
-│   │   ├── const.ts               # 앱 전역 상수
-│   │   └── error-code.ts          # 에러 코드 상수
-│   ├── hooks/                     # 재사용 훅 (useToggle, useDebounce, useIntersectionObserver,
-│   │                              #   useIsMobile, useImagePaste, useKeydown, useMinimumLoading 등)
-│   ├── lib/
-│   │   ├── react-query/config/queryClient.ts   # 중앙 QueryClient 인스턴스
-│   │   ├── react-table/utils.ts
-│   │   └── tailwind/utils.ts      # cn() helper
-│   ├── store/
-│   │   └── auth.store.ts          # Zustand 인증 스토어 (useAuthStore)
-│   ├── types/
-│   │   ├── common.type.ts
-│   │   └── auth.type.ts
-│   ├── ui/
-│   │   ├── atoms/                 # CVA 기반 Shadcn 기본 컴포넌트
-│   │   │                          # (Button, Input, Card, Badge, Select, Checkbox,
-│   │   │                          #  Avatar, Dialog, DropdownMenu, Textarea, Tooltip, Kbd, Sonner 등)
-│   │   ├── elements/              # 조합 컴포넌트
-│   │   │   ├── form/              # FormInput, FormInputPassword, FormCheckbox, FormCheckboxGroup
-│   │   │   │   └── _base/FormField.tsx
-│   │   │   ├── modal/alert/       # Alert.tsx, alert.store.ts (useAlert)
-│   │   │   ├── ActionButton.tsx
-│   │   │   ├── AsyncBoundary.tsx
-│   │   │   ├── SearchInput.tsx
-│   │   │   ├── SpinnerOverlay.tsx
-│   │   │   ├── TooltipWrapper.tsx
-│   │   │   └── ScrollToTop.tsx
-│   │   └── layouts/               # AuthLayout, ErrorLayout
-│   └── utils/                     # auth.util, common.util, date.util, file.util, form.util, storage.util
-└── pages/
-    ├── post/                      # PostSubmitPage, PostDetailPage, PostEditPage
-    ├── auth/                      # LoginPage, SignUpPage
-    ├── 403/                       # ForbiddenPage
-    └── 404/                       # NotFoundPage
+│           └── UserAvatar.tsx
+│
+└── shared/                       # 순수 유틸, UI 원자, API client, config
+    ├── api/
+    │   ├── client.ts             # HTTP 클라이언트 (apiClient)
+    │   ├── common.schema.ts      # 공통 Zod 스키마 (PaginationResponse 등)
+    │   ├── common.keys.ts
+    │   └── common.queries.ts
+    ├── config/
+    │   ├── texts.ts              # 모든 UI 문자열 (TEXTS)
+    │   ├── api.ts                # 모든 API 엔드포인트 (API_ENDPOINTS)
+    │   ├── route-paths.ts        # 라우트 경로 상수 (ROUTES_PATHS)
+    │   ├── const.ts              # 앱 전역 상수
+    │   └── error-code.ts         # 에러 코드 상수
+    ├── hooks/                    # 재사용 훅 (useToggle, useDebounce, useIntersectionObserver 등)
+    ├── lib/
+    │   ├── react-query/config/queryClient.ts   # 중앙 QueryClient 인스턴스
+    │   └── tailwind/utils.ts     # cn() helper
+    ├── store/
+    │   └── auth.store.ts         # Zustand 인증 스토어 (useAuthStore)
+    ├── types/
+    │   ├── common.type.ts
+    │   └── auth.type.ts
+    ├── ui/
+    │   ├── atoms/                # CVA 기반 Shadcn 기본 컴포넌트
+    │   ├── elements/             # 조합 컴포넌트 (MarkdownContent 포함)
+    │   │   ├── form/
+    │   │   ├── modal/alert/      # Alert.tsx, alert.store.ts (useAlert)
+    │   │   └── ...
+    │   └── layouts/              # AuthLayout, ErrorLayout
+    └── utils/                    # auth.util, date.util, file.util, form.util, storage.util
 ```
 
 ---
 
-## 3. 현재 도메인
+## 3. 현재 Entities & Features
 
-| 도메인   | 엔티티                     | Features                                                                                                                                                            | 위치                  |
-| -------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| `post`   | post, comment, interaction | create-post, update-post, delete-post, post-list, post-detail, create-comment, update-comment, delete-comment, comment-list, like-post, like-comment, bookmark-post | `src/domains/post/`   |
-| `auth`   | auth (login, sign-up)      | login, sign-up                                                                                                                                                      | `src/domains/auth/`   |
-| `member` | member (profile)           | —                                                                                                                                                                   | `src/domains/member/` |
+| Entity        | 위치                    | 설명                            |
+| ------------- | ----------------------- | ------------------------------- |
+| `post`        | `entities/post/`        | 포스트 CRUD + 쿼리              |
+| `comment`     | `entities/comment/`     | 댓글 CRUD + 쿼리                |
+| `interaction` | `entities/interaction/` | like/bookmark optimistic update |
+| `user`        | `entities/user/`        | 인증 API + 훅 + UserAvatar      |
+
+| Widget         | 위치                    | 설명                                          |
+| -------------- | ----------------------- | --------------------------------------------- |
+| `post-list`    | `widgets/post-list/`    | 포스트 목록 (무한스크롤 + 검색)               |
+| `post-card`    | `widgets/post-card/`    | 포스트 카드 (모든 액션: like, bookmark, 관리) |
+| `comment-list` | `widgets/comment-list/` | 댓글 목록 (댓글 아이템 + 생성 폼)             |
+| `navbar`       | `widgets/navbar/`       | 네비게이션 바                                 |
 
 ---
 
@@ -112,9 +184,6 @@ import { API_ENDPOINTS } from '@/shared/config/api';
 export const entityApi = {
   createEntity: async (payload: CreateEntity): Promise<Entity> =>
     apiClient.post<Entity>(API_ENDPOINTS.domain.base, payload),
-
-  fetchEntityList: async (): Promise<Entity[]> =>
-    apiClient.get<Entity[]>(API_ENDPOINTS.domain.base),
 
   fetchEntity: async (id: string): Promise<Entity> =>
     apiClient.get<Entity>(`${API_ENDPOINTS.domain.base}/${id}`),
@@ -154,17 +223,14 @@ export const handleEntityUpdateSuccess = (id: Entity['id']) => {
   entityInvalidateQueries.detail(id);
   entityInvalidateQueries.list();
 };
-export const handleEntityDeleteSuccess = () => {
-  entityInvalidateQueries.list();
-};
 ```
 
 ### Layer 3 — `<entity>.queries.ts` (얇은 React Query 래퍼)
 
 ```typescript
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { entityApi } from './entity.api';
-import { entityKeys, handleEntityCreateSuccess } from './entity.keys';
+import { entityApi } from '@/entities/<entity>/api/entity.api';
+import { entityKeys, handleEntityCreateSuccess } from '@/entities/<entity>/api/entity.keys';
 import { TEXTS } from '@/shared/config/texts';
 
 export const useCreateEntityMutation = () =>
@@ -192,7 +258,7 @@ export const useFetchEntityQuery = (id: string) =>
 feature hook = 모든 비즈니스 로직. UI 파일은 훅을 호출하고 JSX만 렌더링.
 
 ```typescript
-// domains/<domain>/features/<feature-name>/hooks/use<FeatureName>.ts
+// features/<feature-name>/hooks/use<FeatureName>.ts
 export function useCreateEntity() {
   const navigate = useNavigate();
   const { mutateAsync: createEntity, isPending: isCreating } = useCreateEntityMutation();
@@ -225,7 +291,7 @@ export function useCreateEntity() {
 ## 6. UI Component 패턴 (얇은 레이어)
 
 ```typescript
-// domains/<domain>/features/<feature-name>/ui/<FeatureName>Form.tsx
+// features/<feature-name>/ui/<FeatureName>Form.tsx
 export function CreateEntityForm() {
   const { form, onSubmit, isCreating } = useCreateEntity();
   const { isDirty, isValid } = form.formState;
@@ -249,17 +315,14 @@ export function CreateEntityForm() {
 ## 7. Zod Schema 패턴
 
 ```typescript
-// _common/model/<entity>.schema.ts
-// 도메인 모델 (서버 응답 전체)
+// entities/<entity>/model/<entity>.schema.ts
 export const entitySchema = z.object({
   id: z.string(),
   name: z.string().min(1, TEXTS.validation.nameRequired),
   content: z.string().nullable(), // nullable 필드는 .nullable() 사용
   createdAt: z.coerce.date(), // 날짜 필드는 z.coerce.date() 사용
-  updatedAt: z.coerce.date(),
 });
 
-// Form 입력 스키마 (도메인 모델과 별도)
 export const createEntitySchema = z.object({ name: z.string().min(1) });
 export const updateEntitySchema = z.object({ name: z.string().min(1) });
 
@@ -293,7 +356,7 @@ const onDelete = (id: string) => {
 
 ## 9. Optimistic Update 패턴
 
-참조: `src/domains/post/_common/api/interaction.queries.ts` (`useLikePostMutation`)
+참조: `src/entities/interaction/api/interaction.queries.ts` (`useLikePostMutation`)
 
 ```typescript
 onMutate: async () => {
@@ -310,26 +373,6 @@ onError: (_err, _vars, context) => {
 },
 ```
 
-목록까지 업데이트할 때:
-
-```typescript
-queryClient.setQueriesData<InfiniteData<EntityListResponse>>(
-  { queryKey: entityKeys.listRoot },
-  (oldData) => {
-    if (!oldData) return oldData;
-    return {
-      ...oldData,
-      pages: oldData.pages.map((page) => ({
-        ...page,
-        content: page.content.map((item) =>
-          item.id === id ? { ...item, isLiked: !item.isLiked } : item
-        ),
-      })),
-    };
-  }
-);
-```
-
 ---
 
 ## 10. React Query 설정
@@ -342,8 +385,6 @@ queryClient.setQueriesData<InfiniteData<EntityListResponse>>(
 | GC Time    | 5분 (`5 * 60 * 1000`)      |
 | Retry      | 실패 시 1회 재시도         |
 | Refetch    | 윈도우 포커스 및 마운트 시 |
-
-전역 에러 핸들러는 `mutationCache`와 `queryCache`에 정의되어 있으며, 모든 mutation/query 에러를 자동으로 처리한다.
 
 ---
 
@@ -358,28 +399,15 @@ queryClient.setQueriesData<InfiniteData<EntityListResponse>>(
 
 ### 수동 에러 핸들링 (`manualErrorHandling`)
 
-form 필드에 서버 유효성 검사 에러를 매핑하는 등 맞춤 처리가 필요할 때 전역 핸들러를 우회:
-
 ```typescript
 const { mutate } = useMutation({
   mutationFn: someApiFunction,
-  meta: { manualErrorHandling: true }, // 전역 토스트 에러 비활성화
+  meta: { manualErrorHandling: true },
   onError: (error) => {
     if (error instanceof ApiError && error.status === 409) {
       form.setError('email', { message: '이미 존재하는 이메일입니다' });
     }
   },
-});
-```
-
-### 커스텀 에러 메시지
-
-전역 핸들러를 완전히 비활성화하지 않고 커스텀 메시지 제공:
-
-```typescript
-useMutation({
-  mutationFn: someApiFunction,
-  meta: { errorMessage: '프로필 업데이트에 실패했습니다.' },
 });
 ```
 
@@ -389,13 +417,6 @@ useMutation({
 
 - **에러**: 전역 에러 핸들러가 자동으로 트리거
 - **성공**: `meta.successMessage` 추가 시 자동 트리거
-
-```typescript
-useMutation({
-  mutationFn: updateProfile,
-  meta: { successMessage: '프로필이 업데이트되었습니다!' },
-});
-```
 
 ---
 
@@ -421,74 +442,9 @@ useMutation({
 | `FormCheckbox`         | 단일 체크박스                                              |
 | `FormCheckboxGroup`    | 체크박스 그룹                                              |
 
-**FormField props**: `label`, `description` (optional, 에러 시 대체됨), `required` (optional), `name`
-
-**사용 패턴**: `FormProvider`로 감싸고 `name` prop으로 react-hook-form 필드에 연결.
-
-```typescript
-<FormProvider {...form}>
-  <form onSubmit={onSubmit} noValidate>
-    <FormInput name="title" label="제목" required disabled={isPending} />
-    <FormInputPassword name="password" label="비밀번호" required />
-    <Button type="submit" disabled={!isDirty || !isValid || isPending}>
-      제출
-    </Button>
-  </form>
-</FormProvider>
-```
-
 ---
 
-## 15. Auth 도메인 구조
-
-인증 관련 로직은 `src/domains/auth/` 에 구조화되어 있습니다.
-
-### 스키마
-
-모든 인증 관련 스키마는 `Account` 중심으로 통일:
-
-- **Account**: 사용자 계정 정보 (id, email, name, avatarUrl, createdAt, updatedAt)
-- **Login**: 로그인 요청 스키마
-- **CreateAccount**: 회원가입 요청 스키마
-- **AuthTokens**: 인증 토큰 (accessToken, refreshToken)
-
-### API 및 Query 구조
-
-```typescript
-// auth.api.ts
-export const authApi = {
-  login: (payload: Login) => Promise<LoginResponse>,
-  createAccount: (payload: CreateAccount) => Promise<Account>,
-  logout: () => Promise<void>,
-  refreshToken: () => Promise<AuthTokens>,
-  fetchAccount: () => Promise<Account>,
-};
-
-// auth.queries.ts
-export const useLoginMutation = () => { ... }
-export const useCreateAccountMutation = () => { ... }
-export const useFetchAccountQuery = () => { ... }
-```
-
-### 에러 핸들링
-
-회원가입(`useCreateAccountMutation`)은 `manualErrorHandling: true`를 사용하여 409 Conflict 에러를 특별히 처리:
-
-```typescript
-onError: (error) => {
-  if (error instanceof ApiError) {
-    if (error.status === 409) {
-      toast.error('이미 존재하는 계정입니다');
-    } else {
-      toast.error('계정 생성에 실패했습니다');
-    }
-  }
-};
-```
-
----
-
-## 16. 핵심 설정 파일 위치
+## 15. 핵심 설정 파일 위치
 
 | 목적               | 파일                                                | export          |
 | ------------------ | --------------------------------------------------- | --------------- |
@@ -502,7 +458,7 @@ onError: (error) => {
 
 ---
 
-## 17. 네이밍 컨벤션
+## 16. 네이밍 컨벤션
 
 | 항목             | 규칙                                     | 예시                             |
 | ---------------- | ---------------------------------------- | -------------------------------- |
@@ -521,36 +477,39 @@ onError: (error) => {
 
 ---
 
-## 18. 개발 커맨드
+## 17. 개발 커맨드
 
 ```bash
-pnpm dev            # 개발 서버 (port 31119, localhost 모드)
-pnpm build          # TypeScript 컴파일 + Vite 빌드
-pnpm lint           # ESLint 검사
-pnpm lint:fix       # ESLint 자동 수정
-pnpm format         # Prettier 포맷
-pnpm type-check     # tsc --noEmit
-pnpm storybook      # Storybook (port 6006)
+npm run dev            # 개발 서버 (port 31119, localhost 모드)
+npm run build          # TypeScript 컴파일 + Vite 빌드
+npm run lint           # ESLint 검사
+npm run lint:fix       # ESLint 자동 수정
+npm run format         # Prettier 포맷
+npm run test           # Vitest 테스트 실행 (CI)
+npm run test:watch     # Vitest 테스트 감시 모드
+npm run storybook      # Storybook (port 6006)
 ```
 
 ---
 
-## 19. 체크리스트: 기존 도메인에 새 기능 추가
+## 18. 체크리스트: 기존 엔티티에 새 기능 추가
 
-- [ ] `_common/model/<entity>.schema.ts` — Zod 스키마 + 타입 추가/확인
-- [ ] `_common/api/<entity>.api.ts` — API 함수 추가
-- [ ] `_common/api/<entity>.keys.ts` — 쿼리 키, invalidation, success handler 추가
-- [ ] `_common/api/<entity>.queries.ts` — React Query 훅 추가
+- [ ] `entities/<entity>/model/<entity>.schema.ts` — Zod 스키마 + 타입 추가/확인
+- [ ] `entities/<entity>/api/<entity>.api.ts` — API 함수 추가
+- [ ] `entities/<entity>/api/<entity>.keys.ts` — 쿼리 키, invalidation, success handler 추가
+- [ ] `entities/<entity>/api/<entity>.queries.ts` — React Query 훅 추가
 - [ ] `src/shared/config/texts.ts` — 새 TEXTS 키 추가 (success/error/warning 메시지)
 - [ ] `src/shared/config/api.ts` — 새 API_ENDPOINTS 추가
-- [ ] `domains/<domain>/features/<feature-name>/hooks/use<FeatureName>.ts` — 비즈니스 로직
-- [ ] `domains/<domain>/features/<feature-name>/ui/<FeatureName>.tsx` — 얇은 UI
-- [ ] `src/pages/<domain>/` 페이지에 연결
+- [ ] `features/<feature-name>/hooks/use<FeatureName>.ts` — 비즈니스 로직
+- [ ] `features/<feature-name>/ui/<FeatureName>.tsx` — 얇은 UI
+- [ ] `src/pages/<page>/` 페이지에 연결
 
-## 20. 체크리스트: 새 도메인 추가
+## 19. 체크리스트: 새 Entity/Widget 추가
 
 - [ ] 위 "새 기능 추가" 체크리스트 전부
-- [ ] `src/domains/<domain>/_common/` 디렉토리 구조 생성
+- [ ] `src/entities/<entity>/` 디렉토리 구조 생성 (api/, model/)
+- [ ] 복합 UI가 필요하면 `src/widgets/<widget>/` 생성 (hooks/, ui/)
 - [ ] `src/shared/config/route-paths.ts` — 라우트 상수 추가
 - [ ] `src/app/routes/index.tsx` — 라우트 등록
-- [ ] `src/pages/<domain>/` — 페이지 파일 생성
+- [ ] `src/pages/<page>/` — 페이지 파일 생성
+- [ ] ESLint 레이어 경계 확인 (상위 레이어 import 없는지)

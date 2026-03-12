@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { useMatch } from 'react-router-dom';
 
 import { TEXTS } from '@/shared/config/texts';
-import { Navbar } from '@/app/layouts/navbar/Navbar';
+import { Navbar } from '@/widgets/layout/navbar/ui/Navbar';
 import { ScrollToTop } from '@/shared/ui/elements/ScrollToTop';
 
 interface AppLayoutProps {

@@ -8,12 +8,12 @@ If no argument is provided, run `git diff HEAD` to get all uncommitted changes, 
 
 ## Project context
 
-Architecture: DDD + Feature-Based with strict layer separation.
+Architecture: FSD (Feature-Sliced Design) with strict layer separation.
 Reference files for correct patterns:
 
-- `src/domains/post/_common/api/post.keys.ts` — keys pattern
-- `src/domains/post/features/create-post/hooks/useCreatePost.ts` — feature hook pattern
-- `src/domains/post/_common/api/interaction.queries.ts` — optimistic update pattern
+- `src/entities/post/api/post.keys.ts` — keys pattern
+- `src/features/post/create/hooks/useCreatePost.ts` — feature hook pattern
+- `src/entities/interaction/api/interaction.queries.ts` — optimistic update pattern
 
 ## Review checklist
 
@@ -23,12 +23,12 @@ Reference files for correct patterns:
 - [ ] React Query hooks only in `<entity>.queries.ts` — not in feature hooks, not in UI
 - [ ] Business logic (form, navigation, confirm dialogs) only in feature hooks
 - [ ] UI components are thin — call one hook, render JSX, nothing else
-- [ ] Zod schemas and types only in `_common/model/<entity>.schema.ts`
+- [ ] Zod schemas and types only in `entities/<entity>/model/<entity>.schema.ts`
 - [ ] Query key constants come from `<entity>.keys.ts` — no inline `['entity', 'list']` strings
 
 ### Naming Conventions
 
-- [ ] Feature directories use kebab-case (`create-post/`, not `createPost/`)
+- [ ] Feature directories use kebab-case domain-grouping: `features/<domain>/<slice>/` (e.g. `post/create/`, `comment/like/`)
 - [ ] Mutation hooks named `use<Action><Entity>Mutation`
 - [ ] Query hooks named `useFetch<Entity>Query` or `useSuspenseFetch<Entity>Query`
 - [ ] Success handlers follow `handle<Entity><Action>Success`

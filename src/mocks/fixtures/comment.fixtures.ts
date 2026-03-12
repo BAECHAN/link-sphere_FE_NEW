@@ -1,4 +1,4 @@
-import type { Comment } from '@/domains/post/_common/model/comment.schema';
+import type { Comment } from '@/entities/comment/model/comment.schema';
 import { mockAccount } from '@/mocks/fixtures/auth.fixtures';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 

@@ -14,11 +14,11 @@ Parse:
 ## Before creating the file
 
 Read `src/shared/config/texts.ts` to understand existing validation messages.
-Check `src/domains/post/_common/model/post.schema.ts` for style reference.
+Check `src/entities/post/model/post.schema.ts` for style reference.
 
 ## File to create
 
-`src/domains/<domain>/_common/model/<entity>.schema.ts`
+`src/entities/<entity>/model/<entity>.schema.ts`
 
 ```typescript
 import { z } from 'zod';
@@ -26,7 +26,7 @@ import { TEXTS } from '@/shared/config/texts';
 // Import shared schemas if the entity uses pagination:
 // import { paginationResponseSchema } from '@/shared/api/common.schema';
 // Import other entity schemas if composing:
-// import { accountSchema } from '@/domains/auth/_common/model/auth.schema';
+// import { accountSchema } from '@/entities/user/model/auth.schema';
 
 // ==================== 1. Domain Model Schema ====================
 /**

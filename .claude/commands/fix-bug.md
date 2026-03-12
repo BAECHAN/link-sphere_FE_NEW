@@ -8,7 +8,7 @@ $ARGUMENTS
 
 Link-Sphere FE — React 18 + TypeScript, TanStack Query 5, React Hook Form 7 + Zod 3, Zustand 5, TailwindCSS + Shadcn/ui.
 
-Architecture: DDD + Feature-Based with strict layer separation:
+Architecture: FSD (Feature-Sliced Design) with strict layer separation:
 
 - `<entity>.api.ts` — pure API calls only
 - `<entity>.keys.ts` — query keys + invalidation + success handlers
@@ -20,12 +20,12 @@ Architecture: DDD + Feature-Based with strict layer separation:
 
 Search for relevant code in this order:
 
-1. Feature hook: `domains/<domain>/features/<feature>/hooks/`
-2. Query/mutation hooks: `domains/<domain>/_common/api/<entity>.queries.ts`
-3. Keys + invalidation: `domains/<domain>/_common/api/<entity>.keys.ts`
-4. API layer: `domains/<domain>/_common/api/<entity>.api.ts`
-5. Schema: `domains/<domain>/_common/model/<entity>.schema.ts`
-6. UI component: `domains/<domain>/features/<feature>/ui/`
+1. Feature hook: `features/<domain>/<slice>/hooks/`
+2. Query/mutation hooks: `entities/<entity>/api/<entity>.queries.ts`
+3. Keys + invalidation: `entities/<entity>/api/<entity>.keys.ts`
+4. API layer: `entities/<entity>/api/<entity>.api.ts`
+5. Schema: `entities/<entity>/model/<entity>.schema.ts`
+6. UI component: `features/<domain>/<slice>/ui/`
 7. Shared config: `src/shared/config/`
 8. Shared utilities: `src/shared/`
 

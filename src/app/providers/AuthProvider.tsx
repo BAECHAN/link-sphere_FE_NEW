@@ -1,4 +1,4 @@
-import { useAppInitialization } from '@/domains/auth/_common/hooks/useAppInitialization';
+import { useAppInitialization } from '@/entities/user/hooks/useAppInitialization';
 
 interface AuthProviderProps {
   children: React.ReactNode;

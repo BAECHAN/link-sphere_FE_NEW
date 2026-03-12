@@ -2,7 +2,7 @@ Create a complete new domain called "$ARGUMENTS" in the Link-Sphere FE project.
 
 ## Project context
 
-Architecture: DDD + Feature-Based. All domains live at `src/domains/<domain-name>/`.
+Architecture: FSD (Feature-Sliced Design). 레이어: app → pages → widgets → features → entities → shared
 
 Parse "$ARGUMENTS":
 
@@ -13,13 +13,13 @@ Parse "$ARGUMENTS":
 
 Before creating any files, read these reference files to match the exact style:
 
-- `src/domains/post/_common/api/post.keys.ts` — keys + success handler pattern
-- `src/domains/post/_common/api/post.queries.ts` — mutation/query hook pattern
-- `src/domains/post/_common/model/post.schema.ts` — Zod schema pattern
+- `src/entities/post/api/post.keys.ts` — keys + success handler pattern
+- `src/entities/post/api/post.queries.ts` — mutation/query hook pattern
+- `src/entities/post/model/post.schema.ts` — Zod schema pattern
 
 ## Step 2: Create files in this exact order
 
-### 1. `src/domains/$ARGUMENTS/_common/model/<entity>.schema.ts`
+### 1. `src/entities/<entity>/model/<entity>.schema.ts`
 
 ```typescript
 import { z } from 'zod';
@@ -46,7 +46,7 @@ export type Create<Entity> = z.infer<typeof create<Entity>Schema>;
 export type Update<Entity> = z.infer<typeof update<Entity>Schema>;
 ```
 
-### 2. `src/domains/$ARGUMENTS/_common/api/<entity>.api.ts`
+### 2. `src/entities/<entity>/api/<entity>.api.ts`
 
 ```typescript
 import { apiClient } from '@/shared/api/client';
@@ -71,7 +71,7 @@ export const <entity>Api = {
 };
 ```
 
-### 3. `src/domains/$ARGUMENTS/_common/api/<entity>.keys.ts`
+### 3. `src/entities/<entity>/api/<entity>.keys.ts`
 
 ```typescript
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
@@ -101,7 +101,7 @@ export const handle<Entity>UpdateSuccess = (id: <Entity>['id']) => {
 export const handle<Entity>DeleteSuccess = () => { <entity>InvalidateQueries.list(); };
 ```
 
-### 4. `src/domains/$ARGUMENTS/_common/api/<entity>.queries.ts`
+### 4. `src/entities/<entity>/api/<entity>.queries.ts`
 
 ```typescript
 import { useMutation, useQuery } from '@tanstack/react-query';

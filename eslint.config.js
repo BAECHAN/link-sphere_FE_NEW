@@ -705,8 +705,12 @@ export default [
     },
   },
 
-  // 레이어 순서 enforcement: app → pages → domains → shared
-  // shared (최하위)는 상위 레이어 import 불가
+  // ============================================================
+  // FSD 레이어 경계 규칙: app → pages → widgets → features → entities → shared
+  // 하위 레이어는 상위 레이어를 import할 수 없음
+  // ============================================================
+
+  // shared (최하위): entities, features, widgets, pages, app import 불가
   {
     files: ['src/shared/**/*.ts', 'src/shared/**/*.tsx'],
     rules: {
@@ -715,8 +719,16 @@ export default [
         {
           patterns: [
             {
-              group: ['@/domains/**'],
-              message: 'shared 레이어는 domains 레이어를 import할 수 없습니다. (역방향 의존성)',
+              group: ['@/entities/**'],
+              message: 'shared 레이어는 entities 레이어를 import할 수 없습니다. (역방향 의존성)',
+            },
+            {
+              group: ['@/features/**'],
+              message: 'shared 레이어는 features 레이어를 import할 수 없습니다. (역방향 의존성)',
+            },
+            {
+              group: ['@/widgets/**'],
+              message: 'shared 레이어는 widgets 레이어를 import할 수 없습니다. (역방향 의존성)',
             },
             {
               group: ['@/pages/**'],
@@ -732,23 +744,29 @@ export default [
     },
   },
 
-  // domains (하위)는 pages, app import 불가
+  // entities: features, widgets, pages, app import 불가 (shared OK)
   {
-    files: ['src/domains/**/*.ts', 'src/domains/**/*.tsx'],
+    files: ['src/entities/**/*.ts', 'src/entities/**/*.tsx'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
             {
+              group: ['@/features/**'],
+              message: 'entities 레이어는 features 레이어를 import할 수 없습니다. (역방향 의존성)',
+            },
+            {
+              group: ['@/widgets/**'],
+              message: 'entities 레이어는 widgets 레이어를 import할 수 없습니다. (역방향 의존성)',
+            },
+            {
               group: ['@/pages/**'],
-              message:
-                'domains 레이어는 pages 레이어를 import할 수 없습니다. (app → pages → domains 순서만 허용)',
+              message: 'entities 레이어는 pages 레이어를 import할 수 없습니다. (역방향 의존성)',
             },
             {
               group: ['@/app/**'],
-              message:
-                'domains 레이어는 app 레이어를 import할 수 없습니다. (app → pages → domains 순서만 허용)',
+              message: 'entities 레이어는 app 레이어를 import할 수 없습니다. (역방향 의존성)',
             },
           ],
         },
@@ -756,7 +774,55 @@ export default [
     },
   },
 
-  // pages (중간)는 app import 불가
+  // features: widgets, pages, app import 불가 (entities, shared OK)
+  {
+    files: ['src/features/**/*.ts', 'src/features/**/*.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/widgets/**'],
+              message: 'features 레이어는 widgets 레이어를 import할 수 없습니다. (역방향 의존성)',
+            },
+            {
+              group: ['@/pages/**'],
+              message: 'features 레이어는 pages 레이어를 import할 수 없습니다. (역방향 의존성)',
+            },
+            {
+              group: ['@/app/**'],
+              message: 'features 레이어는 app 레이어를 import할 수 없습니다. (역방향 의존성)',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // widgets: pages, app import 불가 (features, entities, shared OK)
+  {
+    files: ['src/widgets/**/*.ts', 'src/widgets/**/*.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/pages/**'],
+              message: 'widgets 레이어는 pages 레이어를 import할 수 없습니다. (역방향 의존성)',
+            },
+            {
+              group: ['@/app/**'],
+              message: 'widgets 레이어는 app 레이어를 import할 수 없습니다. (역방향 의존성)',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // pages: app import 불가 (widgets, features, entities, shared OK)
   {
     files: ['src/pages/**/*.ts', 'src/pages/**/*.tsx'],
     rules: {

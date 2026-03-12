@@ -14,22 +14,22 @@ Parse:
 
 ## Before creating files
 
-1. Read the existing domain's `_common/api/` to understand which mutations/queries already exist
-2. Read an existing feature hook (e.g. `src/domains/post/features/create-post/hooks/useCreatePost.ts`) to match the exact style
+1. Read the existing entity's `entities/<entity>/api/` to understand which mutations/queries already exist
+2. Read an existing feature hook (e.g. `src/features/post/create/hooks/useCreatePost.ts`) to match the exact style
 3. If the required mutation/query hook doesn't exist yet in `<entity>.queries.ts`, create it there first
 
 ## Files to create
 
-### 1. `src/domains/<domain>/features/<feature-name>/hooks/use<FeatureName>.ts`
+### 1. `src/features/<domain>/<slice>/hooks/use<FeatureName>.ts`
 
 **Form-based feature (create/update):**
 
 ```typescript
-import { use<Action><Entity>Mutation } from '@/domains/<domain>/_common/api/<entity>.queries';
+import { use<Action><Entity>Mutation } from '@/entities/<entity>/api/<entity>.queries';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { <FormType>, <formSchema> } from '@/domains/<domain>/_common/model/<entity>.schema';
+import { <FormType>, <formSchema> } from '@/entities/<entity>/model/<entity>.schema';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 
 const DEFAULT_VALUES: <FormType> = {
@@ -66,7 +66,7 @@ export function use<FeatureName>() {
 **Delete-only feature (no form):**
 
 ```typescript
-import { useDelete<Entity>Mutation } from '@/domains/<domain>/_common/api/<entity>.queries';
+import { useDelete<Entity>Mutation } from '@/entities/<entity>/api/<entity>.queries';
 import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
 import { TEXTS } from '@/shared/config/texts';
 
@@ -92,7 +92,7 @@ export function use<FeatureName>() {
 **Toggle/action feature (no form, no confirm):**
 
 ```typescript
-import { use<Action><Entity>Mutation } from '@/domains/<domain>/_common/api/<entity>.queries';
+import { use<Action><Entity>Mutation } from '@/entities/<entity>/api/<entity>.queries';
 
 export function use<FeatureName>(<entity>Id: string) {
   const { mutateAsync: <action><Entity>, isPending: is<Action>ing } = use<Action><Entity>Mutation(<entity>Id);
@@ -103,7 +103,7 @@ export function use<FeatureName>(<entity>Id: string) {
 }
 ```
 
-### 2. `src/domains/<domain>/features/<feature-name>/ui/<FeatureName>.tsx`
+### 2. `src/features/<domain>/<slice>/ui/<FeatureName>.tsx`
 
 **Form UI:**
 
