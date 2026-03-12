@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 echo "🔍 커밋 전 검사 시작..."
 
 # TypeScript 타입 체크
