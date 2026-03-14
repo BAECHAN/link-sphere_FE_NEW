@@ -8,6 +8,8 @@ import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
 import { useUpdatePost } from '@/features/post/update/hooks/useUpdatePost';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { TEXTS } from '@/shared/config/texts';
+import { Copy } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface UpdatePostFormProps {
   postId: string;
@@ -34,8 +36,18 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
         </CardHeader>
         <CardContent>
           {post && (
-            <div className="mb-4 p-3 bg-muted/40 rounded-md text-sm text-muted-foreground truncate">
-              {post.url}
+            <div className="mb-4 p-3 bg-muted/40 rounded-md text-sm text-muted-foreground flex items-center gap-2">
+              <span className="truncate flex-1">{post.url}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(post.url);
+                  toast.success(TEXTS.messages.success.linkCopied);
+                }}
+                className="shrink-0 hover:text-foreground transition-colors"
+              >
+                <Copy size={14} />
+              </button>
             </div>
           )}
           <FormProvider {...form}>

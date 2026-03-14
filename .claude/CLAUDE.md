@@ -8,6 +8,7 @@
 - **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만
 - **Never** 인라인 쿼리 키 → 항상 `<entity>Keys.*` 사용
 - **Never** 인라인 문자열 → 항상 `TEXTS.*` 사용
+- **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반 Tailwind 클래스 사용 (`text-destructive`, `bg-success`, `text-warning` 등)
 - **Never** 인라인 API 경로 → 항상 `API_ENDPOINTS.*` 사용
 - **Never** feature hook에서 직접 `queryClient.invalidateQueries` → 항상 `.keys.ts` success handlers 사용
 - **Never** 하위 레이어에서 상위 레이어 import → ESLint 강제 (레이어 방향 위반)
@@ -411,6 +412,81 @@ useMutation({
 | QueryClient        | `src/shared/lib/react-query/config/queryClient.ts`  | `queryClient`   |
 | Alert/Confirm 모달 | `src/shared/ui/elements/modal/alert/alert.store.ts` | `useAlert`      |
 | Auth 스토어        | `src/shared/store/auth.store.ts`                    | `useAuthStore`  |
+
+---
+
+## TEXTS 구조 (`src/shared/config/texts.ts`)
+
+모든 UI 문자열은 `TEXTS.*`로 참조. 새 문자열 추가 시 반드시 `texts.ts`에 먼저 키를 추가한 뒤 사용.
+
+```
+TEXTS
+├── pages.home / pages.post.ROOT / pages.post.SUBMIT
+├── labels.nickname / email / password / message
+├── placeholders.nickname / email / password / message / postSearch
+├── buttons.retry / refresh / home / back / login / logout / delete / search / ...
+├── auth.login.* / auth.signup.*
+├── nav.brand / feed / submit / logIn / logOut / toggleSearch / toggleTheme / saving
+├── post.form.create.* (title, description1/2, urlLabel, urlPlaceholder, titleLabel, ...)
+├── post.form.update.* (title, description, titleLabel, titlePlaceholder, updating, update, ...)
+├── post.card.* (anonymous, visitWebsite, aiSummary, edit, saving, ...)
+├── post.detail.* (notFound, back, heading, commentsHeading)
+├── comment.list.* (loadError, heading, empty)
+├── comment.form.* (replyPlaceholder, commentPlaceholder, preview, cancel, submitting, ...)
+├── descriptions.passwordGuide
+├── validation.urlFormat / urlRequired / titleRequired / passwordRegex / emailRegex / ...
+├── messages.info.noData / noPosts
+├── messages.warning.postDeleteConfirm / commentDeleteConfirm / memberDeleteConfirm
+├── messages.success.postCreated / postUpdated / postDeleted / linkCopied / accountCreated
+├── messages.error.defaultError / loginFailed / postCreateFailed / linkCopyFailed / ...
+├── shortcuts.sidebarToggle / sidebarToggleMac
+└── ariaLabels.* (레이아웃, 헤더, 사이드바, 입력 필드 등)
+```
+
+---
+
+## 디자인 토큰 (`src/app/globals.css`)
+
+Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금지** — 아래 의미론적 클래스를 사용한다.
+
+### 주요 색상 토큰 → Tailwind 클래스
+
+| 의미        | CSS 변수        | Tailwind 클래스                             | 사용 예              |
+| ----------- | --------------- | ------------------------------------------- | -------------------- |
+| 기본 배경   | `--background`  | `bg-background`                             | 페이지 배경          |
+| 기본 텍스트 | `--foreground`  | `text-foreground`                           | 본문 텍스트          |
+| 카드        | `--card`        | `bg-card`, `text-card-foreground`           | Card 컴포넌트        |
+| 기본 강조   | `--primary`     | `bg-primary`, `text-primary-foreground`     | 주요 버튼, CTA       |
+| 보조        | `--secondary`   | `bg-secondary`, `text-secondary-foreground` | 보조 버튼            |
+| 음소거      | `--muted`       | `bg-muted`, `text-muted-foreground`         | 비활성 텍스트, 힌트  |
+| 강조        | `--accent`      | `bg-accent`, `text-accent-foreground`       | 호버, 선택 상태      |
+| 파괴적 액션 | `--destructive` | `text-destructive`, `bg-destructive`        | 삭제 버튼, 에러 상태 |
+| 성공        | `--success`     | `text-success`, `bg-success`                | 완료, 성공 상태      |
+| 경고        | `--warning`     | `text-warning`, `bg-warning`                | 주의 상태            |
+| 정보        | `--info`        | `text-info`, `bg-info`                      | 안내, 정보 배지      |
+| 카테고리    | `--category`    | `bg-category`, `text-category-foreground`   | 카테고리 배지        |
+| 테두리      | `--border`      | `border-border`                             | 구분선               |
+| 입력        | `--input`       | `border-input`                              | 입력 필드 테두리     |
+| 링          | `--ring`        | `ring-ring`                                 | 포커스 링            |
+
+### 반경 토큰
+
+| 토큰          | 클래스       | 값                          |
+| ------------- | ------------ | --------------------------- |
+| `--radius-sm` | `rounded-sm` | `calc(var(--radius) - 4px)` |
+| `--radius-md` | `rounded-md` | `calc(var(--radius) - 2px)` |
+| `--radius-lg` | `rounded-lg` | `var(--radius)`             |
+| `--radius-xl` | `rounded-xl` | `calc(var(--radius) + 4px)` |
+
+### 다크 모드
+
+- 모든 토큰은 `.dark` 클래스에서 자동 override — 별도 `dark:` prefix 불필요
+- ThemeProvider가 `<html>`에 `.dark` 클래스를 토글
+
+### 폰트
+
+- 기본 폰트: `Pretendard` (가변 폰트, woff2-variations)
+- Tailwind: `font-sans` → Pretendard > Inter > sans-serif
 
 ---
 
