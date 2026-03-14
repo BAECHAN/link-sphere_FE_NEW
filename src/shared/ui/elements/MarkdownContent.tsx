@@ -41,7 +41,7 @@ function renderInlineLinks(text: string, keyPrefix: string, isMobile: boolean): 
             href={part}
             target={isMobile ? '_self' : '_blank'}
             rel={!isMobile ? 'noopener noreferrer' : undefined}
-            className="text-blue-500 hover:text-blue-600 hover:underline transition-colors"
+            className="text-info hover:text-info/80 hover:underline transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
             {part}

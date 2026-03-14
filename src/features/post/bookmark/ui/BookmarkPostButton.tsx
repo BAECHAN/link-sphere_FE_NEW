@@ -21,7 +21,7 @@ export function BookmarkPostButton({ postId, isBookmarked }: BookmarkPostButtonP
     <Button
       variant="ghost"
       size="icon"
-      className={`h-8 w-8 md:h-9 md:w-9 rounded-full ${isBookmarked ? 'text-yellow-500 hover:text-yellow-600' : 'text-muted-foreground'}`}
+      className={`h-8 w-8 md:h-9 md:w-9 rounded-full ${isBookmarked ? 'text-warning hover:text-warning/80' : 'text-muted-foreground'}`}
       onClick={handleBookmark}
       disabled={isBookmarking}
     >

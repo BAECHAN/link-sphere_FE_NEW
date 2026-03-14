@@ -16,8 +16,8 @@ export const LoginForm = () => {
     <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle>Welcome to LinkSphere</CardTitle>
-          <CardDescription>Sign in to share and discover links</CardDescription>
+          <CardTitle>{TEXTS.auth.login.title}</CardTitle>
+          <CardDescription>{TEXTS.auth.login.subtitle}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <FormProvider {...form}>
@@ -37,15 +37,15 @@ export const LoginForm = () => {
                 disabled={isPending}
               />
               <Button type="submit" className="w-full h-11" disabled={isPending}>
-                {isPending ? 'Signing In...' : 'Sign In'}
+                {isPending ? TEXTS.auth.login.signingIn : TEXTS.auth.login.signIn}
               </Button>
             </form>
           </FormProvider>
         </CardContent>
         <div className="px-6 pb-6 text-center text-sm text-muted-foreground">
-          {`Don't have an account? `}
+          {`${TEXTS.auth.login.noAccount} `}
           <Link to={ROUTES_PATHS.AUTH.SIGNUP} className="text-primary hover:underline font-medium">
-            Sign Up
+            {TEXTS.auth.login.signUp}
           </Link>
         </div>
       </Card>

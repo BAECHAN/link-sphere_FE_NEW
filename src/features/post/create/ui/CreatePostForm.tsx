@@ -23,11 +23,11 @@ export function CreatePostForm() {
     <div className="flex justify-center w-full md:py-8">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="text-2xl">링크 공유하기</CardTitle>
+          <CardTitle className="text-2xl">{TEXTS.post.form.create.title}</CardTitle>
           <CardDescription>
-            {`팀원들과 공유하고 싶은 유용한 아티클이나 리소스의 URL을 입력하세요.`}
+            {TEXTS.post.form.create.description1}
             <br />
-            {`자동으로 제목과 이미지를 가져오고 태그를 생성합니다.`}
+            {TEXTS.post.form.create.description2}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -36,19 +36,19 @@ export function CreatePostForm() {
               <FormInput
                 name="url"
                 label="URL"
-                placeholder="https://example.com/amazing-article"
+                placeholder={TEXTS.post.form.create.urlPlaceholder}
                 required
                 disabled={isCreating}
               />
               <FormInput
                 name="title"
-                label="제목"
-                placeholder="제목 (비워두면 자동으로 가져옵니다)"
+                label={TEXTS.post.form.create.titleLabel}
+                placeholder={TEXTS.post.form.create.titlePlaceholder}
                 disabled={isCreating}
               />
               <FormCheckboxGroup
                 name="categoryIds"
-                label="관심 분야 (선택사항)"
+                label={TEXTS.post.form.create.categoryLabel}
                 options={categoryOptionList ?? []}
                 disabled={isCreating}
               />
@@ -56,8 +56,8 @@ export function CreatePostForm() {
               <div className="pt-2">
                 <FormCheckbox
                   name="isPrivate"
-                  label="나만 보기 (비공개)"
-                  description="체크하면 팀원들에게 공유되지 않고 나만 볼 수 있는 게시물로 저장됩니다."
+                  label={TEXTS.post.form.create.privateLabel}
+                  description={TEXTS.post.form.create.privateDescription}
                   disabled={isCreating}
                 />
               </div>
@@ -73,7 +73,7 @@ export function CreatePostForm() {
                 className="w-full"
               >
                 <Button className="w-full h-11 text-base" disabled={!canSubmit}>
-                  {isCreating ? '공유하는 중...' : '링크 공유하기'}
+                  {isCreating ? TEXTS.post.form.create.submitting : TEXTS.post.form.create.submit}
                 </Button>
               </TooltipWrapper>
             </form>

@@ -24,8 +24,8 @@ export function LikeCommentButton({
       type="button"
       onClick={() => likeMutation.mutate()}
       className={cn(
-        'flex items-center gap-1 hover:text-red-500 transition-colors',
-        isLiked && 'text-red-500 font-medium'
+        'flex items-center gap-1 hover:text-destructive transition-colors',
+        isLiked && 'text-destructive font-medium'
       )}
     >
       <Heart className={cn('h-3.5 w-3.5', isLiked && 'fill-current')} />

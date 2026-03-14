@@ -3,6 +3,7 @@ import { CommentItem } from '@/widgets/comment/comment-list/ui/CommentItem';
 import { Comment as PostComment } from '@/entities/comment/model/comment.schema';
 import { Loader2 } from 'lucide-react';
 import { useComments } from '@/entities/comment/api/comment.queries';
+import { TEXTS } from '@/shared/config/texts';
 
 interface CommentListProps {
   postId: string;
@@ -23,14 +24,14 @@ export function CommentList({ postId, postAuthorId }: CommentListProps) {
 
   if (error) {
     return (
-      <div className="text-red-500 p-4 text-center text-sm">댓글을 불러오는데 실패했습니다.</div>
+      <div className="text-destructive p-4 text-center text-sm">{TEXTS.comment.list.loadError}</div>
     );
   }
 
   return (
     <div className="space-y-6">
       <div className="border-b pb-6">
-        <h3 className="text-lg font-semibold mb-4">댓글</h3>
+        <h3 className="text-lg font-semibold mb-4">{TEXTS.comment.list.heading}</h3>
         <CommentForm postId={postId} />
       </div>
 
@@ -46,7 +47,7 @@ export function CommentList({ postId, postAuthorId }: CommentListProps) {
           ))
         ) : (
           <div className="text-center py-8 text-muted-foreground text-sm">
-            첫 번째 댓글을 남겨보세요!
+            {TEXTS.comment.list.empty}
           </div>
         )}
       </div>

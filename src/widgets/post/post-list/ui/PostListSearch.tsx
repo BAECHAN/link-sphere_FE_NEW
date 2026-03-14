@@ -88,7 +88,7 @@ export function PostListSearch() {
               onClick={() => toggleFilter('isBookmarked')}
               className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
                 isClickedBookmark
-                  ? 'bg-yellow-500 text-white shadow-sm'
+                  ? 'bg-warning text-warning-foreground shadow-sm'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
               }`}
             >
@@ -99,7 +99,7 @@ export function PostListSearch() {
               onClick={() => toggleFilter('isMyPosts')}
               className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
                 isClickedMyPosts
-                  ? 'bg-blue-500 text-white shadow-sm'
+                  ? 'bg-info text-info-foreground shadow-sm'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
               }`}
             >
@@ -110,7 +110,7 @@ export function PostListSearch() {
               onClick={() => toggleFilter('isPrivate')}
               className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
                 isClickedPrivate
-                  ? 'bg-purple-500 text-white shadow-sm'
+                  ? 'bg-category text-category-foreground shadow-sm'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
               }`}
             >
@@ -121,7 +121,7 @@ export function PostListSearch() {
               variant="ghost"
               size="sm"
               onClick={handleClear}
-              className="h-8 px-2 text-xs text-muted-foreground hover:text-red-500 gap-1"
+              className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1"
             >
               <RotateCcw className="h-3 w-3" />
               {TEXTS.buttons.reset}

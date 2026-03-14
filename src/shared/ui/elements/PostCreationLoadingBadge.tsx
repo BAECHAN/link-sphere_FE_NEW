@@ -20,7 +20,7 @@ export function PostCreationLoadingBadge() {
     <div
       className={`flex items-center gap-1.5 rounded-full transition-all duration-500 ${
         isHighlighted
-          ? 'bg-lime-100 text-lime-600 dark:bg-lime-900/30 dark:text-lime-400 px-2.5 py-1 text-sm font-medium'
+          ? 'bg-success/10 text-success px-2.5 py-1 text-sm font-medium'
           : 'text-xs text-muted-foreground px-0 py-0'
       }`}
     >

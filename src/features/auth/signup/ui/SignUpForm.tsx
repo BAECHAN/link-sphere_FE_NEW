@@ -22,8 +22,8 @@ export const SignUpForm = () => {
     <div className="flex h-[calc(100vh-10rem)] items-center justify-center px-4">
       <Card className="w-full max-w-md shadow-lg border-muted-foreground/10">
         <CardHeader className="text-center space-y-1">
-          <CardTitle className="text-2xl font-bold">Create an Account</CardTitle>
-          <CardDescription>Join LinkSphere to start sharing links</CardDescription>
+          <CardTitle className="text-2xl font-bold">{TEXTS.auth.signup.title}</CardTitle>
+          <CardDescription>{TEXTS.auth.signup.subtitle}</CardDescription>
         </CardHeader>
         <CardContent>
           <FormProvider {...form}>
@@ -53,16 +53,16 @@ export const SignUpForm = () => {
                 description={TEXTS.descriptions.passwordGuide}
               />
               <Button className="w-full h-11" disabled={isPending}>
-                {isPending ? 'Signing Up...' : 'Sign Up'}
+                {isPending ? TEXTS.auth.signup.signingUp : TEXTS.auth.signup.signUp}
               </Button>
             </form>
           </FormProvider>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-sm text-center text-muted-foreground">
-            Already have an account?{' '}
+            {TEXTS.auth.signup.alreadyAccount}{' '}
             <Link to={ROUTES_PATHS.AUTH.LOGIN} className="text-primary hover:underline font-medium">
-              Sign In
+              {TEXTS.auth.signup.signIn}
             </Link>
           </div>
         </CardFooter>

@@ -60,7 +60,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
         <div className="flex items-center gap-2">
           <span className="font-semibold">{comment.author.nickname}</span>
           {isPostAuthor && (
-            <Badge variant="default" className="px-1.5 py-0 text-[10px] h-4 bg-purple-600">
+            <Badge variant="default" className="px-1.5 py-0 text-[10px] h-4 bg-category">
               작성자
             </Badge>
           )}
@@ -86,10 +86,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
           <MarkdownContent
             content={comment.content}
             isMobile={isMobile}
-            className={cn(
-              'text-gray-800 dark:text-gray-200',
-              isDeleted && 'text-muted-foreground italic'
-            )}
+            className={cn('text-foreground', isDeleted && 'text-muted-foreground italic')}
           />
         )}
 
@@ -107,7 +104,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
                 icon={MessageSquare}
                 label="답글 달기"
                 onClick={() => setIsReplying(!isReplying)}
-                className="hover:text-blue-500"
+                className="hover:text-info"
               />
             )}
 
@@ -117,13 +114,13 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
                   icon={Edit2}
                   label="수정"
                   onClick={startEditing}
-                  className="hover:text-blue-600"
+                  className="hover:text-info"
                 />
                 <ActionButton
                   icon={Trash2}
                   label="삭제"
                   onClick={() => onDelete(comment.id)}
-                  className="hover:text-red-600"
+                  className="hover:text-destructive"
                 />
               </>
             )}

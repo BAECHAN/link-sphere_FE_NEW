@@ -6,6 +6,7 @@ import { Button } from '@/shared/ui/atoms/button';
 import { ArrowLeft } from 'lucide-react';
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { TEXTS } from '@/shared/config/texts';
 
 export function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,8 +24,8 @@ export function PostDetailPage() {
   if (isError || !post) {
     return (
       <div className="flex h-[400px] flex-col items-center justify-center gap-4">
-        <p className="text-muted-foreground">포스트를 찾을 수 없습니다.</p>
-        <Button onClick={() => navigate(-1)}>뒤로 가기</Button>
+        <p className="text-muted-foreground">{TEXTS.post.detail.notFound}</p>
+        <Button onClick={() => navigate(-1)}>{TEXTS.post.detail.back}</Button>
       </div>
     );
   }
@@ -35,13 +36,13 @@ export function PostDetailPage() {
         <Link to={ROUTES_PATHS.POST.ROOT}>
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-xl font-bold">Post Details</h1>
+        <h1 className="text-xl font-bold">{TEXTS.post.detail.heading}</h1>
       </div>
 
       <PostCard post={post} isDetail />
 
       <div className="pt-6 border-t">
-        <h2 className="text-lg font-bold mb-6">Comments</h2>
+        <h2 className="text-lg font-bold mb-6">{TEXTS.post.detail.commentsHeading}</h2>
         <CommentList postId={post.id} postAuthorId={post.author.id} />
       </div>
     </div>

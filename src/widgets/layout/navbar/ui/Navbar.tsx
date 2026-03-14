@@ -16,6 +16,7 @@ import { useAccount } from '@/entities/user/hooks/useAccount';
 import { NavbarSearch } from '@/widgets/layout/navbar/ui/NavbarSearch';
 import { MobileNavbarSearch } from '@/widgets/layout/navbar/ui/MobileNavbarSearch';
 import { PostCreationLoadingBadge } from '@/shared/ui/elements/PostCreationLoadingBadge';
+import { TEXTS } from '@/shared/config/texts';
 
 export function Navbar() {
   const { isAuthenticated } = useAuthStore();
@@ -38,20 +39,20 @@ export function Navbar() {
             to={ROUTES_PATHS.HOME}
             className="flex items-center space-x-2 font-bold text-xl md:text-2xl tracking-tight"
           >
-            LinkSphere
+            {TEXTS.nav.brand}
           </Link>
           <div className="hidden md:flex gap-6">
             <Link
               to={ROUTES_PATHS.POST.ROOT}
               className="text-sm font-medium transition-colors hover:text-primary"
             >
-              Feed
+              {TEXTS.nav.feed}
             </Link>
             <Link
               to={ROUTES_PATHS.POST.SUBMIT}
               className="text-sm font-medium transition-colors hover:text-primary"
             >
-              Submit
+              {TEXTS.nav.submit}
             </Link>
           </div>
         </div>
@@ -70,7 +71,7 @@ export function Navbar() {
             onClick={toggleMobileSearch}
           >
             <Search className="h-5 w-5" />
-            <span className="sr-only">Toggle search</span>
+            <span className="sr-only">{TEXTS.nav.toggleSearch}</span>
           </Button>
 
           <Button
@@ -84,7 +85,7 @@ export function Navbar() {
           >
             <Sun className="h-4 w-4 md:h-5 md:w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-4 w-4 md:h-5 md:w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            <span className="sr-only">Toggle theme</span>
+            <span className="sr-only">{TEXTS.nav.toggleTheme}</span>
           </Button>
 
           {isAuthenticated ? (
@@ -98,12 +99,12 @@ export function Navbar() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => logout()}>Log out</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => logout()}>{TEXTS.nav.logOut}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <Button onClick={() => navigate(ROUTES_PATHS.AUTH.LOGIN)} size="sm" className="ml-2">
-              Log in
+              {TEXTS.nav.logIn}
             </Button>
           )}
         </div>

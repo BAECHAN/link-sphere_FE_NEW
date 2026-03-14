@@ -21,16 +21,44 @@ function isServerError(error: unknown): boolean {
 }
 
 /**
+ * 새 배포 후 구 청크 파일 fetch 실패 여부를 판단
+ * (dynamic import 실패 = "Failed to fetch dynamically imported module: ...")
+ */
+function isChunkLoadError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return (
+    error.message.includes('Failed to fetch dynamically imported module') ||
+    error.message.includes('Importing a module script failed') ||
+    error.message.includes('error loading dynamically imported module')
+  );
+}
+
+const CHUNK_RELOAD_KEY = 'chunk-reload-attempted';
+
+/**
  * 전역 ErrorBoundary 폴백
+ * - 청크 로드 실패 → 새 배포 가능성, 한 번 자동 새로고침 (무한 루프 방지)
  * - 5xx / 네트워크 에러 → /500 페이지로 리다이렉트
  * - 그 외 에러 → 현재 위치에서 인라인 에러 메시지 표시 (Router 외부라 navigate 불가)
  */
 function GlobalErrorFallback({ error }: FallbackProps) {
   useEffect(() => {
+    if (isChunkLoadError(error)) {
+      const alreadyReloaded = sessionStorage.getItem(CHUNK_RELOAD_KEY);
+      if (!alreadyReloaded) {
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
+        window.location.reload();
+      }
+      return;
+    }
     if (isServerError(error)) {
       window.location.replace(ROUTES_PATHS.SERVER_ERROR);
     }
   }, [error]);
+
+  if (isChunkLoadError(error)) {
+    return <SpinnerOverlay />;
+  }
 
   if (isServerError(error)) {
     return <SpinnerOverlay />;

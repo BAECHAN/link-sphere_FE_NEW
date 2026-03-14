@@ -60,7 +60,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
               size="sm"
               className="flex"
             />
-            <span className={`truncate`}>{author?.nickname || 'Anonymous'}</span>
+            <span className={`truncate`}>{author?.nickname || TEXTS.post.card.anonymous}</span>
             <span className={`text-xs`}>•</span>
             <span className={`text-xs`}>{DateUtil.formatRelativeShort(post.createdAt)}</span>
           </div>
@@ -79,7 +79,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
               className="h-7 w-7 md:h-8 md:w-8"
               onClick={handleToggleVisibility}
               disabled={isUpdatingVisibility}
-              title={post.isPrivate ? '전체 공개로 전환' : '비공개로 전환'}
+              title={post.isPrivate ? TEXTS.post.card.makePublic : TEXTS.post.card.makePrivate}
             >
               <Lock className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
             </Button>
@@ -100,24 +100,24 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
                   }}
                 >
                   <Pencil className="mr-2 h-4 w-4" />
-                  수정
+                  {TEXTS.post.card.edit}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleToggleVisibility} disabled={isUpdatingVisibility}>
                   {post.isPrivate ? (
                     <>
                       <Unlock className="mr-2 h-4 w-4" />
-                      전체 공개
+                      {TEXTS.post.card.publicLabel}
                     </>
                   ) : (
                     <>
                       <Lock className="mr-2 h-4 w-4" />
-                      나만 보기
+                      {TEXTS.post.card.privateLabel}
                     </>
                   )}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleDelete}
-                  className="text-red-600 focus:text-red-600"
+                  className="text-destructive focus:text-destructive"
                 >
                   <Trash className="mr-2 h-4 w-4" />
                   {TEXTS.buttons.delete}
@@ -136,28 +136,24 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
         )}
 
         {post.aiSummary && (
-          <div
-            className={`mb-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md overflow-hidden block`}
-          >
+          <div className={`mb-2 bg-info/10 border border-info/20 rounded-md overflow-hidden block`}>
             <button
               onClick={() => setIsAiSummaryExpanded(!isAiSummaryExpanded)}
-              className="w-full flex items-center justify-between p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+              className="w-full flex items-center justify-between p-2 hover:bg-info/15 transition-colors"
             >
               <div className="flex items-center gap-2">
-                <Lightbulb className="h-3 w-3 md:h-4 md:w-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                  AI 요약
-                </span>
+                <Lightbulb className="h-3 w-3 md:h-4 md:w-4 text-info" />
+                <span className="text-xs font-semibold text-info">{TEXTS.post.card.aiSummary}</span>
               </div>
               {isAiSummaryExpanded ? (
-                <ChevronUp className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                <ChevronUp className="h-3 w-3 text-info" />
               ) : (
-                <ChevronDown className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                <ChevronDown className="h-3 w-3 text-info" />
               )}
             </button>
             {isAiSummaryExpanded && (
-              <div className="p-2 pt-0 border-t border-blue-100 dark:border-blue-900/50">
-                <p className="text-xs md:text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
+              <div className="p-2 pt-0 border-t border-info/15">
+                <p className="text-xs md:text-sm text-foreground/80 leading-relaxed">
                   {post.aiSummary}
                 </p>
               </div>
@@ -185,7 +181,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
               {post.url}
             </span>
             <div className="flex items-center gap-1 text-xs font-medium text-primary shrink-0">
-              <span className="hidden md:inline">Visit Website</span>
+              <span className="hidden md:inline">{TEXTS.post.card.visitWebsite}</span>
               <ExternalLink className="h-3 w-3" />
             </div>
           </div>
@@ -197,7 +193,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
               <Badge
                 key={category?.id}
                 variant="default"
-                className="text-xs bg-purple-600 hover:bg-purple-700"
+                className="text-xs bg-category hover:bg-category/90"
               >
                 {category?.name}
               </Badge>
