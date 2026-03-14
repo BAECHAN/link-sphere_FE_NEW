@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { useLoginMutation } from '@/entities/user/api/auth.queries';
 import { loginSchema } from '@/shared/types/auth.type';
-import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
 import { z } from 'zod';
 import { LocalStorageUtil } from '@/shared/utils/storage.util';
 
@@ -32,9 +31,7 @@ export function useLogin(): UseLoginReturn {
     },
   });
 
-  const { mutateAsync: login, isPending, isError } = useLoginMutation();
-
-  const isDelayPending = useMinimumLoading(isPending, 3000, isError); // 최소 로딩 시간 보장 ( 로딩 후 중간에 로그인 텍스트 깜빡임 방지)
+  const { mutateAsync: login, isPending } = useLoginMutation();
 
   const onSubmit = async (data: LoginFormInput) => {
     await login({ email: data.email, password: data.password });
@@ -49,6 +46,6 @@ export function useLogin(): UseLoginReturn {
   return {
     form,
     onSubmit,
-    isPending: isDelayPending,
+    isPending,
   };
 }
