@@ -2,6 +2,7 @@ import {
   useInfiniteQuery,
   useMutation,
   useSuspenseInfiniteQuery,
+  useSuspenseQuery,
   useQuery,
 } from '@tanstack/react-query';
 import { postApi } from '@/entities/post/api/post.api';
@@ -108,6 +109,13 @@ export const useFetchPostDetailQuery = (postId: string) => {
     queryKey: postKeys.detail(postId),
     queryFn: () => postApi.fetchPostDetail(postId),
     enabled: !!postId,
+  });
+};
+
+export const useSuspenseFetchPostDetailQuery = (postId: string) => {
+  return useSuspenseQuery({
+    queryKey: postKeys.detail(postId),
+    queryFn: () => postApi.fetchPostDetail(postId),
   });
 };
 

@@ -2,6 +2,8 @@ import { Button } from '@/shared/ui/atoms/button';
 import { Textarea } from '@/shared/ui/atoms/textarea';
 import { X, Check } from 'lucide-react';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
+import { cn } from '@/shared/lib/tailwind/utils';
+import { TEXTS } from '@/shared/config/texts';
 
 interface CommentEditFormProps {
   editContent: string;
@@ -34,27 +36,33 @@ export function CommentEditForm({
         value={editContent}
         onChange={(e) => setEditContent(e.target.value)}
         className="min-h-[80px] text-sm"
-        placeholder="수정할 내용을 입력하세요... (이미지 복사+붙여넣기 가능)"
+        placeholder={TEXTS.comment.form.editPlaceholder}
         autoFocus
         onPaste={handleEditPaste}
       />
       {editContent && (
         <div className="rounded-md border bg-muted/30 p-3 text-sm">
-          <p className="text-xs text-muted-foreground mb-1.5">미리보기</p>
+          <p className="text-xs text-muted-foreground mb-1.5">{TEXTS.comment.form.preview}</p>
           <MarkdownContent content={editContent} isMobile={isMobile} />
         </div>
       )}
       {editImagePreviewUrl && (
-        <div className="relative inline-block border border-gray-200 dark:border-gray-800 rounded-md overflow-hidden group">
+        <div className="relative inline-block border border-border rounded-md overflow-hidden group">
           <img src={editImagePreviewUrl} alt="Pasted preview" className="max-h-32 object-contain" />
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={clearEditImage}
-            className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="이미지 삭제"
+            title={TEXTS.comment.form.removeImage}
+            className={cn(
+              'absolute top-1 right-1 h-auto w-auto p-1',
+              'bg-black/50 text-white rounded-full',
+              'opacity-0 group-hover:opacity-100 transition-opacity',
+              'hover:bg-black/70'
+            )}
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       )}
       <div className="flex justify-end gap-2">
@@ -66,7 +74,7 @@ export function CommentEditForm({
           className="h-8 px-2 text-xs"
         >
           <X className="mr-1 h-3 w-3" />
-          취소
+          {TEXTS.comment.form.cancel}
         </Button>
         <Button
           type="button"
@@ -76,7 +84,7 @@ export function CommentEditForm({
           className="h-8 px-2 text-xs"
         >
           <Check className="mr-1 h-3 w-3" />
-          {isUpdating ? '저장 중...' : '저장'}
+          {isUpdating ? TEXTS.comment.form.saving : TEXTS.comment.form.save}
         </Button>
       </div>
     </div>

@@ -137,9 +137,11 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
 
         {post.aiSummary && (
           <div className={`mb-2 bg-info/10 border border-info/20 rounded-md overflow-hidden block`}>
-            <button
+            <Button
+              type="button"
+              variant="ghost"
               onClick={() => setIsAiSummaryExpanded(!isAiSummaryExpanded)}
-              className="w-full flex items-center justify-between p-2 hover:bg-info/15 transition-colors"
+              className="w-full flex items-center justify-between h-auto p-2 hover:bg-info/15 transition-colors rounded-none"
             >
               <div className="flex items-center gap-2">
                 <Lightbulb className="h-3 w-3 md:h-4 md:w-4 text-info" />
@@ -150,7 +152,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
               ) : (
                 <ChevronDown className="h-3 w-3 text-info" />
               )}
-            </button>
+            </Button>
             {isAiSummaryExpanded && (
               <div className="p-2 pt-0 border-t border-info/15">
                 <p className="text-xs md:text-sm text-foreground/80 leading-relaxed">

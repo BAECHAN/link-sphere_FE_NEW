@@ -1,4 +1,5 @@
 import { Button } from '@/shared/ui/atoms/button';
+import { cn } from '@/shared/lib/tailwind/utils';
 import { Textarea } from '@/shared/ui/atoms/textarea';
 import { X } from 'lucide-react';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
@@ -65,14 +66,20 @@ export function CommentForm({
       {imagePreviewUrl && (
         <div className="relative inline-block mt-2 border border-border rounded-md overflow-hidden group">
           <img src={imagePreviewUrl} alt="Pasted preview" className="max-h-32 object-contain" />
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={clearImage}
-            className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
             title={TEXTS.comment.form.removeImage}
+            className={cn(
+              'absolute top-1 right-1 h-auto w-auto p-1',
+              'bg-black/50 text-white rounded-full',
+              'opacity-0 group-hover:opacity-100 transition-opacity',
+              'hover:bg-black/70'
+            )}
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       )}
 

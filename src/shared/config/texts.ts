@@ -129,9 +129,12 @@ export const TEXTS = {
     form: {
       replyPlaceholder: '답글을 작성하세요...',
       commentPlaceholder: '댓글을 작성하세요...',
+      editPlaceholder: '수정할 내용을 입력하세요...',
       preview: '미리보기',
       removeImage: '이미지 삭제',
       cancel: '취소',
+      save: '저장',
+      saving: '저장 중...',
       submitting: '등록 중...',
       submitReply: '답글 등록',
       submitComment: '댓글 등록',

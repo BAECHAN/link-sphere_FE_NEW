@@ -1,5 +1,6 @@
 import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
 import { Button } from '@/shared/ui/atoms/button';
+import { FilterChip } from '@/shared/ui/elements/FilterChip';
 import { SearchInput } from '@/shared/ui/elements/SearchInput';
 import { RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -54,10 +55,13 @@ export function PostListSearch() {
             {categories?.map((category) => {
               const isSelected = searchInput.includes(`@${category.label}`);
               return (
-                <button
+                <FilterChip
                   key={category.value}
                   id={`category-${category.value}`}
                   name={category.value}
+                  label={category.label}
+                  isActive={isSelected}
+                  activeClassName="bg-primary text-primary-foreground"
                   onClick={() => {
                     let newSearch = searchInput;
                     const tag = `@${category.label}`;
@@ -69,53 +73,34 @@ export function PostListSearch() {
                     }
 
                     setSearchInput(newSearch);
-                    setSearch(newSearch); // 카테고리 클릭 시 바로 검색 적용
+                    setSearch(newSearch);
                   }}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all transform active:scale-95 ${
-                    isSelected
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-transparent'
-                  }`}
-                >
-                  {category.label}
-                </button>
+                />
               );
             })}
 
-            <div className="h-4 w-[1px] bg-border mx-2" />
+            <div className="h-4 w-px bg-border mx-2" />
 
-            <button
+            <FilterChip
+              label={TEXTS.buttons.bookmarkOnly}
+              isActive={isClickedBookmark}
+              activeClassName="bg-warning text-warning-foreground"
               onClick={() => toggleFilter('isBookmarked')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                isClickedBookmark
-                  ? 'bg-warning text-warning-foreground shadow-sm'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
-              }`}
-            >
-              {TEXTS.buttons.bookmarkOnly}
-            </button>
+            />
 
-            <button
+            <FilterChip
+              label={TEXTS.buttons.myPosts}
+              isActive={isClickedMyPosts}
+              activeClassName="bg-info text-info-foreground"
               onClick={() => toggleFilter('isMyPosts')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                isClickedMyPosts
-                  ? 'bg-info text-info-foreground shadow-sm'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
-              }`}
-            >
-              {TEXTS.buttons.myPosts}
-            </button>
+            />
 
-            <button
+            <FilterChip
+              label={TEXTS.buttons.privateOnly}
+              isActive={isClickedPrivate}
+              activeClassName="bg-category text-category-foreground"
               onClick={() => toggleFilter('isPrivate')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                isClickedPrivate
-                  ? 'bg-category text-category-foreground shadow-sm'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
-              }`}
-            >
-              {TEXTS.buttons.privateOnly}
-            </button>
+            />
 
             <Button
               variant="ghost"

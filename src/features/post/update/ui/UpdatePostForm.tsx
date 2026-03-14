@@ -38,16 +38,18 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
           {post && (
             <div className="mb-4 p-3 bg-muted/40 rounded-md text-sm text-muted-foreground flex items-center gap-2">
               <span className="truncate flex-1">{post.url}</span>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-sm"
                 onClick={() => {
                   navigator.clipboard.writeText(post.url);
                   toast.success(TEXTS.messages.success.linkCopied);
                 }}
-                className="shrink-0 hover:text-foreground transition-colors"
+                className="shrink-0 hover:text-foreground"
               >
                 <Copy size={14} />
-              </button>
+              </Button>
             </div>
           )}
           <FormProvider {...form}>
