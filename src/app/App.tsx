@@ -33,6 +33,7 @@ function isChunkLoadError(error: unknown): boolean {
   );
 }
 
+// main.tsx의 vite:preload-error 핸들러와 동일한 키 사용
 const CHUNK_RELOAD_KEY = 'chunk-reload-attempted';
 
 /**
