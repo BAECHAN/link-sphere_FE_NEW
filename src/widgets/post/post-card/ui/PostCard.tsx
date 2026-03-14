@@ -47,7 +47,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
     handleToggleVisibility,
     handleCopyLink,
     handleNavigateToEdit,
-  } = usePostCard(post);
+  } = usePostCard(post, isDetail);
 
   return (
     <Card className="flex flex-col overflow-hidden hover:shadow-md transition-shadow">

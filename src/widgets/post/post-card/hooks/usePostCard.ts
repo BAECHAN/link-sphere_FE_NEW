@@ -9,7 +9,7 @@ import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
 import { TEXTS } from '@/shared/config/texts';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 
-export function usePostCard(post: Post) {
+export function usePostCard(post: Post, isDetail = false) {
   const { data: account } = useFetchAccountQuery();
   const navigate = useNavigate();
 
@@ -28,6 +28,9 @@ export function usePostCard(post: Post) {
     onDelete(post.id, {
       onSuccess: () => {
         setIsMenuOpen(false);
+        if (isDetail) {
+          navigate(ROUTES_PATHS.POST.ROOT);
+        }
       },
     });
   };
