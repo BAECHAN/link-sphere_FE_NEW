@@ -26,8 +26,8 @@ export function useLogin(): UseLoginReturn {
   const form = useForm<LoginFormInput>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
-      email: 'newuser3@example.com',
-      password: 'sbdbwj123456!',
+      email: '',
+      password: '',
       saveEmail: !!savedEmail,
     },
   });
