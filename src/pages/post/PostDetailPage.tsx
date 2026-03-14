@@ -1,34 +1,15 @@
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useFetchPostDetailQuery } from '@/entities/post/api/post.queries';
+import { useParams, Link } from 'react-router-dom';
+import { useSuspenseFetchPostDetailQuery } from '@/entities/post/api/post.queries';
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { CommentList } from '@/widgets/comment/comment-list/ui/CommentList';
-import { Button } from '@/shared/ui/atoms/button';
 import { ArrowLeft } from 'lucide-react';
-import { Spinner } from '@/shared/ui/atoms/spinner';
+import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 
-export function PostDetailPage() {
+function PostDetailContent() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { data: post, isLoading, isError } = useFetchPostDetailQuery(id || '');
-
-  if (isLoading) {
-    return (
-      <div className="flex h-[400px] items-center justify-center">
-        <Spinner className="h-10 w-10 animate-spin" />
-      </div>
-    );
-  }
-
-  if (isError || !post) {
-    return (
-      <div className="flex h-[400px] flex-col items-center justify-center gap-4">
-        <p className="text-muted-foreground">{TEXTS.post.detail.notFound}</p>
-        <Button onClick={() => navigate(-1)}>{TEXTS.post.detail.back}</Button>
-      </div>
-    );
-  }
+  const { data: post } = useSuspenseFetchPostDetailQuery(id || '');
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
@@ -46,5 +27,13 @@ export function PostDetailPage() {
         <CommentList postId={post.id} postAuthorId={post.author.id} />
       </div>
     </div>
+  );
+}
+
+export function PostDetailPage() {
+  return (
+    <AsyncBoundary>
+      <PostDetailContent />
+    </AsyncBoundary>
   );
 }

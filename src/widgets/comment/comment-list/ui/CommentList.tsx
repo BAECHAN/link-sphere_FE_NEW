@@ -1,8 +1,8 @@
 import { CommentForm } from '@/features/comment/create/ui/CommentForm';
 import { CommentItem } from '@/widgets/comment/comment-list/ui/CommentItem';
 import { Comment as PostComment } from '@/entities/comment/model/comment.schema';
-import { Loader2 } from 'lucide-react';
-import { useComments } from '@/entities/comment/api/comment.queries';
+import { useSuspenseComments } from '@/entities/comment/api/comment.queries';
+import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { TEXTS } from '@/shared/config/texts';
 
 interface CommentListProps {
@@ -10,23 +10,9 @@ interface CommentListProps {
   postAuthorId: string;
 }
 
-export function CommentList({ postId, postAuthorId }: CommentListProps) {
-  const { data: comments = [], isLoading, error } = useComments(postId);
-  const isEmpty = !isLoading && !error && comments.length === 0;
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-destructive p-4 text-center text-sm">{TEXTS.comment.list.loadError}</div>
-    );
-  }
+function CommentListContent({ postId, postAuthorId }: CommentListProps) {
+  const { data: comments } = useSuspenseComments(postId);
+  const isEmpty = comments.length === 0;
 
   return (
     <div className="space-y-6">
@@ -52,5 +38,13 @@ export function CommentList({ postId, postAuthorId }: CommentListProps) {
         )}
       </div>
     </div>
+  );
+}
+
+export function CommentList({ postId, postAuthorId }: CommentListProps) {
+  return (
+    <AsyncBoundary>
+      <CommentListContent postId={postId} postAuthorId={postAuthorId} />
+    </AsyncBoundary>
   );
 }

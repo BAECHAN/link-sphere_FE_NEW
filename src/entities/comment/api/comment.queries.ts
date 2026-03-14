@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { commentApi } from '@/entities/comment/api/comment.api';
 import {
   commentKeys,
@@ -9,6 +9,13 @@ import {
 
 export const useComments = (postId: string) => {
   return useQuery({
+    queryKey: commentKeys.list(postId),
+    queryFn: () => commentApi.getComments(postId),
+  });
+};
+
+export const useSuspenseComments = (postId: string) => {
+  return useSuspenseQuery({
     queryKey: commentKeys.list(postId),
     queryFn: () => commentApi.getComments(postId),
   });
