@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { CommentForm } from '@/features/comment/create/ui/CommentForm';
 import { CommentItem } from '@/widgets/comment/comment-list/ui/CommentItem';
 import { Comment as PostComment } from '@/entities/comment/model/comment.schema';
@@ -12,7 +13,10 @@ interface CommentListProps {
 
 function CommentListContent({ postId, postAuthorId }: CommentListProps) {
   const { data: comments } = useSuspenseComments(postId);
-  const isEmpty = comments.length === 0;
+  const sorted = [...comments].sort(
+    (a, b) => dayjs(b.createdAt).valueOf() - dayjs(a.createdAt).valueOf()
+  );
+  const isEmpty = sorted.length === 0;
 
   return (
     <div className="space-y-6">
@@ -23,7 +27,7 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
 
       <div className="space-y-6">
         {!isEmpty ? (
-          comments.map((comment: PostComment) => (
+          sorted.map((comment: PostComment) => (
             <CommentItem
               key={comment.id}
               comment={comment}

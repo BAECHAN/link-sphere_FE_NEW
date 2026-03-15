@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { useCreateComment } from '@/features/comment/create/hooks/useCreateComment';
 import { TEXTS } from '@/shared/config/texts';
+import { Kbd } from '@/shared/ui/atoms/kbd';
 
 interface CommentFormProps {
   postId: string;
@@ -50,6 +51,12 @@ export function CommentForm({
           {...register('content')}
           disabled={isPending}
           onPaste={handlePaste}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && e.metaKey) {
+              e.preventDefault();
+              onSubmit(e as unknown as React.FormEvent);
+            }
+          }}
         />
         {errors.content && (
           <p className="text-xs text-destructive mt-1">{errors.content.message}</p>
@@ -99,12 +106,23 @@ export function CommentForm({
             {TEXTS.comment.form.cancel}
           </Button>
         )}
-        <Button type="submit" size="sm" disabled={isPending}>
+        <Button type="submit" size="sm" disabled={isPending} className="gap-1.5">
           {isPending
             ? TEXTS.comment.form.submitting
             : isReply
               ? TEXTS.comment.form.submitReply
               : TEXTS.comment.form.submitComment}
+          {!isPending && (
+            <Kbd
+              className="font-sans"
+              style={{
+                backgroundColor: 'var(--kbd-in-primary-bg)',
+                color: 'var(--kbd-in-primary-color)',
+              }}
+            >
+              ⌘ + Enter
+            </Kbd>
+          )}
         </Button>
       </div>
     </form>

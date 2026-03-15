@@ -21,9 +21,19 @@ interface ApiRequestOptions extends RequestInit {
 class ApiClient {
   private baseURL: string;
   private isRefreshing = false;
+  private refreshSubscribers: Array<(token: string) => void> = [];
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
+  }
+
+  private subscribeTokenRefresh(cb: (token: string) => void) {
+    this.refreshSubscribers.push(cb);
+  }
+
+  private notifySubscribers(token: string) {
+    this.refreshSubscribers.forEach((cb) => cb(token));
+    this.refreshSubscribers = [];
   }
 
   private getAuthHeaders(): Record<string, string> {
@@ -141,36 +151,34 @@ class ApiClient {
         if (response.status === 401) {
           // 토큰 만료 처리
           if (errorResponse.code === SERVER_ERROR_CODE.TOKEN_EXPIRED) {
-            if (retryCount === 0) {
-              if (!this.isRefreshing) {
-                this.isRefreshing = true;
-                try {
-                  const authData = await apiClient.post<LoginResponse>(API_ENDPOINTS.auth.refresh);
-                  if (!authData || !authData.accessToken) {
-                    throw new Error(
-                      `${TEXTS.messages.error.tokenRefreshFailed} ${TEXTS.messages.error.unauthorizedAccessToken}`
-                    );
-                  }
-                  const { accessToken } = authData;
-                  useAuthStore.getState().setAuth(accessToken);
-                  return this.request<T>(endpoint, options, retryCount + 1);
-                } catch (error) {
-                  console.error(error);
-
-                  AuthUtil.clearAll();
-                  return new Promise(() => {});
-                } finally {
-                  this.isRefreshing = false;
+            if (!this.isRefreshing) {
+              this.isRefreshing = true;
+              try {
+                const authData = await apiClient.post<LoginResponse>(API_ENDPOINTS.auth.refresh);
+                if (!authData || !authData.accessToken) {
+                  throw new Error(
+                    `${TEXTS.messages.error.tokenRefreshFailed} ${TEXTS.messages.error.unauthorizedAccessToken}`
+                  );
                 }
-              } else {
-                // 이미 갱신 중이라면 대기 후 재요청
-                await new Promise((resolve) => setTimeout(resolve, 100));
+                const { accessToken } = authData;
+                useAuthStore.getState().setAuth(accessToken);
+                this.notifySubscribers(accessToken);
                 return this.request<T>(endpoint, options, retryCount + 1);
+              } catch (error) {
+                console.error(error);
+                this.refreshSubscribers = [];
+                AuthUtil.clearAll();
+                return new Promise(() => {});
+              } finally {
+                this.isRefreshing = false;
               }
             } else {
-              // 재시도 실패 시 로그아웃
-              AuthUtil.clearAll();
-              return new Promise(() => {});
+              // 이미 갱신 중이라면 새 토큰 발급 완료까지 대기 후 재시도
+              return new Promise<T>((resolve) => {
+                this.subscribeTokenRefresh(() => {
+                  resolve(this.request<T>(endpoint, options, retryCount + 1));
+                });
+              });
             }
           } else if (
             errorResponse.code === SERVER_ERROR_CODE.NOT_LOGGED_IN ||
