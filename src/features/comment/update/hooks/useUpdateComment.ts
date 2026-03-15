@@ -15,11 +15,11 @@ export function useUpdateComment({ comment, postId }: UseUpdateCommentOptions) {
   const [editContent, setEditContent] = useState(comment.content);
 
   const {
-    pastedImage: editPastedImage,
-    setPastedImage: setEditPastedImage,
-    imagePreviewUrl: editImagePreviewUrl,
+    pastedImages: editPastedImages,
+    imagePreviewUrls: editImagePreviewUrls,
     handlePaste: handleEditPaste,
     clearImage: clearEditImage,
+    clearAllImages: clearAllEditImages,
   } = useImagePaste();
 
   const startEditing = useCallback(() => {
@@ -29,28 +29,28 @@ export function useUpdateComment({ comment, postId }: UseUpdateCommentOptions) {
   const cancelEditing = useCallback(() => {
     setIsEditing(false);
     setEditContent(comment.content);
-    setEditPastedImage(null);
-  }, [comment.content, setEditPastedImage]);
+    clearAllEditImages();
+  }, [comment.content, clearAllEditImages]);
 
   const handleUpdate = useCallback(() => {
-    if (!editContent.trim() && !editPastedImage) return;
+    if (!editContent.trim() && editPastedImages.length === 0) return;
     updateComment(
-      { commentId: comment.id, content: editContent, image: editPastedImage },
+      { commentId: comment.id, content: editContent, images: editPastedImages },
       {
         onSuccess: () => {
           setIsEditing(false);
-          setEditPastedImage(null);
+          clearAllEditImages();
         },
       }
     );
-  }, [comment.id, editContent, editPastedImage, updateComment, setEditPastedImage]);
+  }, [comment.id, editContent, editPastedImages, updateComment, clearAllEditImages]);
 
-  const canSubmit = (editContent.trim().length > 0 || !!editPastedImage) && !isUpdating;
+  const canSubmit = (editContent.trim().length > 0 || editPastedImages.length > 0) && !isUpdating;
 
   return {
     isEditing,
     editContent,
-    editImagePreviewUrl,
+    editImagePreviewUrls,
     isUpdating,
     canSubmit,
     setEditContent,

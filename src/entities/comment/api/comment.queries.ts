@@ -23,7 +23,7 @@ export const useSuspenseComments = (postId: string) => {
 
 export const useCreateCommentMutation = (postId: string) => {
   return useMutation({
-    mutationFn: (payload: { content?: string; image?: File | null }) =>
+    mutationFn: (payload: { content?: string; images?: File[] }) =>
       commentApi.createComment(postId, payload),
     onSuccess: () => {
       handleCommentCreateSuccess(postId);
@@ -36,12 +36,12 @@ export const useCreateReplyMutation = (postId: string) => {
     mutationFn: ({
       commentId,
       content,
-      image,
+      images,
     }: {
       commentId: string;
       content?: string;
-      image?: File | null;
-    }) => commentApi.createReply(commentId, { content, image }),
+      images?: File[];
+    }) => commentApi.createReply(commentId, { content, images }),
     onSuccess: () => {
       handleCommentCreateSuccess(postId);
     },
@@ -62,12 +62,12 @@ export const useUpdateCommentMutation = (postId: string) => {
     mutationFn: ({
       commentId,
       content,
-      image,
+      images,
     }: {
       commentId: string;
       content?: string;
-      image?: File | null;
-    }) => commentApi.updateComment(commentId, { content, image }),
+      images?: File[];
+    }) => commentApi.updateComment(commentId, { content, images }),
     onSuccess: () => {
       handleCommentUpdateSuccess(postId);
     },

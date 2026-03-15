@@ -30,7 +30,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
   const {
     isEditing,
     editContent,
-    editImagePreviewUrl,
+    editImagePreviewUrls,
     isUpdating,
     canSubmit,
     setEditContent,
@@ -72,7 +72,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
         {isEditing ? (
           <CommentEditForm
             editContent={editContent}
-            editImagePreviewUrl={editImagePreviewUrl}
+            editImagePreviewUrls={editImagePreviewUrls}
             isUpdating={isUpdating}
             canSubmit={canSubmit}
             isMobile={isMobile}

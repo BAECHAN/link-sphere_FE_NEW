@@ -7,20 +7,20 @@ import { TEXTS } from '@/shared/config/texts';
 
 interface CommentEditFormProps {
   editContent: string;
-  editImagePreviewUrl: string | null;
+  editImagePreviewUrls: string[];
   isUpdating: boolean;
   canSubmit: boolean;
   isMobile: boolean;
   setEditContent: (content: string) => void;
   cancelEditing: () => void;
   handleEditPaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
-  clearEditImage: () => void;
+  clearEditImage: (index: number) => void;
   handleUpdate: () => void;
 }
 
 export function CommentEditForm({
   editContent,
-  editImagePreviewUrl,
+  editImagePreviewUrls,
   isUpdating,
   canSubmit,
   isMobile,
@@ -46,23 +46,33 @@ export function CommentEditForm({
           <MarkdownContent content={editContent} isMobile={isMobile} />
         </div>
       )}
-      {editImagePreviewUrl && (
-        <div className="relative inline-block border border-border rounded-md overflow-hidden group">
-          <img src={editImagePreviewUrl} alt="Pasted preview" className="max-h-32 object-contain" />
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={clearEditImage}
-            title={TEXTS.comment.form.removeImage}
-            className={cn(
-              'absolute top-1 right-1 h-auto w-auto p-1',
-              'bg-black/50 text-white rounded-full',
-              'opacity-0 group-hover:opacity-100 transition-opacity',
-              'hover:bg-black/70'
-            )}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+      {editImagePreviewUrls.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {editImagePreviewUrls.map((url, index) => (
+            <div
+              key={url}
+              className="relative inline-block border border-border rounded-md overflow-visible"
+            >
+              <img
+                src={url}
+                alt={`Pasted preview ${index + 1}`}
+                className="max-h-32 object-contain rounded-md"
+              />
+              <button
+                type="button"
+                onClick={() => clearEditImage(index)}
+                title={TEXTS.comment.form.removeImage}
+                className={cn(
+                  'absolute -top-2 -right-2 h-5 w-5 rounded-full',
+                  'bg-black border border-black shadow-sm',
+                  'text-white hover:bg-zinc-700 hover:scale-110',
+                  'flex items-center justify-center transition-all duration-150 cursor-pointer'
+                )}
+              >
+                <X className="h-3 w-3" strokeWidth={2.5} />
+              </button>
+            </div>
+          ))}
         </div>
       )}
       <div className="flex justify-end gap-2">

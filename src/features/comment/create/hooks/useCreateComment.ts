@@ -43,9 +43,11 @@ export function useCreateComment({
   const { reset, setFocus, setError, clearErrors, watch } = form;
   const contentValue = watch('content');
 
-  const { pastedImage, setPastedImage, imagePreviewUrl, handlePaste, clearImage } = useImagePaste({
-    onImageSet: () => clearErrors('content'),
-  });
+  const { pastedImages, imagePreviewUrls, handlePaste, clearImage, clearAllImages } = useImagePaste(
+    {
+      onImageSet: () => clearErrors('content'),
+    }
+  );
 
   useEffect(() => {
     if (autoFocus) {
@@ -56,24 +58,24 @@ export function useCreateComment({
   const onSubmit = form.handleSubmit((data: FormValues) => {
     const content = (data.content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    if (!content.trim() && !pastedImage) {
+    if (!content.trim() && pastedImages.length === 0) {
       setError('content', { type: 'manual', message: '내용 또는 이미지를 추가해주세요.' });
       return;
     }
 
     const handleSuccess = () => {
       reset();
-      setPastedImage(null);
+      clearAllImages();
       onSuccess?.();
     };
 
     if (isReply && parentId) {
       createReply(
-        { commentId: parentId, content, image: pastedImage },
+        { commentId: parentId, content, images: pastedImages },
         { onSuccess: handleSuccess }
       );
     } else {
-      createComment({ content, image: pastedImage }, { onSuccess: handleSuccess });
+      createComment({ content, images: pastedImages }, { onSuccess: handleSuccess });
     }
   });
 
@@ -83,9 +85,10 @@ export function useCreateComment({
     isPending,
     isReply,
     contentValue,
-    pastedImage,
-    imagePreviewUrl,
+    pastedImages,
+    imagePreviewUrls,
     handlePaste,
     clearImage,
+    clearAllImages,
   };
 }

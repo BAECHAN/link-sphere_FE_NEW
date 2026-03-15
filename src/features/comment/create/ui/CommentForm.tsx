@@ -29,7 +29,7 @@ export function CommentForm({
     isPending,
     isReply,
     contentValue,
-    imagePreviewUrl,
+    imagePreviewUrls,
     handlePaste,
     clearImage,
   } = useCreateComment({ postId, parentId, onSuccess, autoFocus });
@@ -63,23 +63,33 @@ export function CommentForm({
         </div>
       )}
 
-      {imagePreviewUrl && (
-        <div className="relative inline-block mt-2 border border-border rounded-md overflow-hidden group">
-          <img src={imagePreviewUrl} alt="Pasted preview" className="max-h-32 object-contain" />
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={clearImage}
-            title={TEXTS.comment.form.removeImage}
-            className={cn(
-              'absolute top-1 right-1 h-auto w-auto p-1',
-              'bg-black/50 text-white rounded-full',
-              'opacity-0 group-hover:opacity-100 transition-opacity',
-              'hover:bg-black/70'
-            )}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+      {imagePreviewUrls.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {imagePreviewUrls.map((url, index) => (
+            <div
+              key={url}
+              className="relative inline-block border border-border rounded-md overflow-visible"
+            >
+              <img
+                src={url}
+                alt={`Pasted preview ${index + 1}`}
+                className="max-h-32 object-contain rounded-md"
+              />
+              <button
+                type="button"
+                onClick={() => clearImage(index)}
+                title={TEXTS.comment.form.removeImage}
+                className={cn(
+                  'absolute -top-2 -right-2 h-5 w-5 rounded-full',
+                  'bg-black border border-black shadow-sm',
+                  'text-white hover:bg-zinc-700 hover:scale-110',
+                  'flex items-center justify-center transition-all duration-150 cursor-pointer'
+                )}
+              >
+                <X className="h-3 w-3" strokeWidth={2.5} />
+              </button>
+            </div>
+          ))}
         </div>
       )}
 

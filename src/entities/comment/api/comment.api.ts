@@ -7,18 +7,18 @@ export const commentApi = {
     return await apiClient.get<Comment[]>(API_ENDPOINTS.post.postComment(postId));
   },
 
-  createComment: async (postId: string, payload: { content?: string; image?: File | null }) => {
+  createComment: async (postId: string, payload: { content?: string; images?: File[] }) => {
     const formData = new FormData();
     if (payload.content) formData.append('content', payload.content);
-    if (payload.image) formData.append('image', payload.image);
+    payload.images?.forEach((img) => formData.append('images', img));
 
     return await apiClient.post<Comment>(API_ENDPOINTS.post.postComment(postId), formData);
   },
 
-  createReply: async (commentId: string, payload: { content?: string; image?: File | null }) => {
+  createReply: async (commentId: string, payload: { content?: string; images?: File[] }) => {
     const formData = new FormData();
     if (payload.content) formData.append('content', payload.content);
-    if (payload.image) formData.append('image', payload.image);
+    payload.images?.forEach((img) => formData.append('images', img));
 
     return await apiClient.post<Comment>(API_ENDPOINTS.post.commentReply(commentId), formData);
   },
@@ -27,10 +27,10 @@ export const commentApi = {
     await apiClient.delete(API_ENDPOINTS.post.comment(commentId));
   },
 
-  updateComment: async (commentId: string, payload: { content?: string; image?: File | null }) => {
+  updateComment: async (commentId: string, payload: { content?: string; images?: File[] }) => {
     const formData = new FormData();
     if (payload.content) formData.append('content', payload.content);
-    if (payload.image) formData.append('image', payload.image);
+    payload.images?.forEach((img) => formData.append('images', img));
 
     return await apiClient.patch<Comment>(API_ENDPOINTS.post.comment(commentId), formData);
   },
