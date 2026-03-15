@@ -18,6 +18,7 @@ vi.mock('@/shared/lib/firebase/fcm', () => ({
 vi.mock('@/entities/user/api/auth.keys', () => ({
   authInvalidateQueries: { account: vi.fn(), all: vi.fn() },
   authKeys: { root: () => ['auth'], account: () => ['auth', 'account'] },
+  handleAccountUpdateSuccess: vi.fn(),
 }));
 
 // URL.createObjectURL stub — URL 클래스 자체는 유지하고 메서드만 추가

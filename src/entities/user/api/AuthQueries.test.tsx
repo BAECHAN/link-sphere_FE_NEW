@@ -20,10 +20,12 @@ vi.mock('@/shared/lib/firebase/fcm', () => ({
 }));
 
 const mockInvalidateAccount = vi.fn();
+const mockHandleAccountUpdateSuccess = vi.fn();
 
 vi.mock('@/entities/user/api/auth.keys', () => ({
   authInvalidateQueries: { account: () => mockInvalidateAccount(), all: vi.fn() },
   authKeys: { root: () => ['auth'], account: () => ['auth', 'account'] },
+  handleAccountUpdateSuccess: () => mockHandleAccountUpdateSuccess(),
 }));
 
 function createWrapper(queryClient: QueryClient) {
@@ -52,7 +54,7 @@ describe('useUpdateAccountMutation', () => {
     result.current.mutate({ nickname: 'newNick' });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(mockInvalidateAccount).toHaveBeenCalled();
+    expect(mockHandleAccountUpdateSuccess).toHaveBeenCalled();
   });
 
   it('409 에러 시 isError가 true가 된다', async () => {
