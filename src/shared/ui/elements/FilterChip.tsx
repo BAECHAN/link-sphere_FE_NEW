@@ -29,7 +29,7 @@ export function FilterChip({
         'rounded-full px-3 py-1.5 h-auto text-xs font-bold transition-all transform active:scale-95',
         isActive
           ? cn(activeClassName, 'shadow-sm')
-          : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-transparent'
+          : 'bg-muted text-muted-foreground border border-transparent hover:bg-muted hover:text-muted-foreground'
       )}
     >
       {label}

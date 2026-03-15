@@ -4,6 +4,7 @@ import { FilterChip } from '@/shared/ui/elements/FilterChip';
 import { SearchInput } from '@/shared/ui/elements/SearchInput';
 import { RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { usePostListParams } from '@/widgets/post/post-list/hooks/usePostList';
 import { TEXTS } from '@/shared/config/texts';
 
@@ -18,6 +19,26 @@ export function PostListSearch() {
     setSearchInput(searchQuery);
   }, [searchQuery]);
 
+  const activeFilters = currentFilter ? currentFilter.split(',') : [];
+  const [optimisticFilters, setOptimisticFilters] = useState<string[]>(activeFilters);
+
+  // transition 완료 후 URL과 동기화 (뒤로가기 등 외부 URL 변경 대응)
+  useEffect(() => {
+    setOptimisticFilters(currentFilter ? currentFilter.split(',') : []);
+  }, [currentFilter]);
+
+  const handleToggleFilter = (targetFilter: string) => {
+    // flushSync로 강제 동기 커밋 → toggleFilter의 startTransition 배칭에서 분리
+    flushSync(() => {
+      setOptimisticFilters((prev) =>
+        prev.includes(targetFilter)
+          ? prev.filter((f) => f !== targetFilter)
+          : [...prev, targetFilter]
+      );
+    });
+    toggleFilter(targetFilter);
+  };
+
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     setSearch(searchInput);
@@ -28,10 +49,9 @@ export function PostListSearch() {
     clearSearch();
   };
 
-  const activeFilters = currentFilter ? currentFilter.split(',') : [];
-  const isClickedBookmark = activeFilters.includes('isBookmarked');
-  const isClickedMyPosts = activeFilters.includes('isMyPosts');
-  const isClickedPrivate = activeFilters.includes('isPrivate');
+  const isClickedBookmark = optimisticFilters.includes('isBookmarked');
+  const isClickedMyPosts = optimisticFilters.includes('isMyPosts');
+  const isClickedPrivate = optimisticFilters.includes('isPrivate');
 
   return (
     <>
@@ -84,22 +104,22 @@ export function PostListSearch() {
             <FilterChip
               label={TEXTS.buttons.bookmarkOnly}
               isActive={isClickedBookmark}
-              activeClassName="bg-warning text-warning-foreground"
-              onClick={() => toggleFilter('isBookmarked')}
+              activeClassName="bg-warning text-warning-foreground hover:bg-warning hover:text-warning-foreground"
+              onClick={() => handleToggleFilter('isBookmarked')}
             />
 
             <FilterChip
               label={TEXTS.buttons.myPosts}
               isActive={isClickedMyPosts}
-              activeClassName="bg-info text-info-foreground"
-              onClick={() => toggleFilter('isMyPosts')}
+              activeClassName="bg-info text-info-foreground hover:bg-info hover:text-info-foreground"
+              onClick={() => handleToggleFilter('isMyPosts')}
             />
 
             <FilterChip
               label={TEXTS.buttons.privateOnly}
               isActive={isClickedPrivate}
-              activeClassName="bg-category text-category-foreground"
-              onClick={() => toggleFilter('isPrivate')}
+              activeClassName="bg-category text-category-foreground hover:bg-category hover:text-category-foreground"
+              onClick={() => handleToggleFilter('isPrivate')}
             />
 
             <Button
