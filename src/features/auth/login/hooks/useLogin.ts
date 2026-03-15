@@ -5,7 +5,7 @@ import { loginSchema } from '@/shared/types/auth.type';
 import { z } from 'zod';
 import { LocalStorageUtil } from '@/shared/utils/storage.util';
 
-const SAVED_ID_KEY = 'savedLinkSphereEmail';
+const SAVED_ID_KEY = 'saved_email_linksphere';
 
 const loginFormSchema = loginSchema.extend({
   saveEmail: z.boolean(),
