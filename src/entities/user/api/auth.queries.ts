@@ -1,8 +1,9 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { authApi } from '@/entities/user/api/auth.api';
+import { handleAccountUpdateSuccess } from '@/entities/user/api/auth.keys';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { ApiError } from '@/shared/types/common.type';
-import { Login, CreateAccount } from '@/shared/types/auth.type';
+import { Login, CreateAccount, UpdateAccount } from '@/shared/types/auth.type';
 import { AuthUtil } from '@/shared/utils/auth.util';
 import { STALE_TIME_ONE_DAY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
@@ -44,30 +45,23 @@ export const useLoginMutation = () => {
 };
 
 export const useLogoutMutation = () => {
-  const mutation = useMutation({
-    mutationFn: () => authApi.logout(),
-    meta: {
-      ignoreError: true,
-    },
-  });
+  const logout = () => {
+    // 1. API 요청 먼저 시작 (토큰이 아직 스토어에 있으므로 Authorization 헤더 포함됨)
+    authApi.logout().catch((error) => {
+      console.error('[LOGOUT] Error logging out:', error);
+    });
 
-  // 서버 응답을 기다리는 래퍼 함수
-  const logout = async () => {
-    try {
-      // 2. 서버 요청 전송 (에러가 나더라도 무시하고 클라이언트 정리는 진행)
-      await mutation.mutateAsync();
-    } catch (error) {
-      console.error('Logout request failed:', error);
-    } finally {
-      // FCM 토큰 삭제 (로그아웃 시 기기 토큰 해제)
-      await unregisterFcmToken();
-      AuthUtil.clearAll();
-    }
+    // 2. auth 상태 즉시 초기화 → ProtectedRoute가 즉시 로그인 페이지로 redirect
+    AuthUtil.clearAll();
+
+    // 3. FCM 토큰 해제는 백그라운드로 처리
+    unregisterFcmToken().catch((error) => {
+      console.error('[LOGOUT] Error unregistering FCM token:', error);
+    });
   };
 
   return {
-    ...mutation,
-    mutate: logout, // 래핑된 함수를 mutate로 노출
+    mutate: logout,
   };
 };
 
@@ -105,6 +99,34 @@ export const useCreateAccountMutation = () => {
     },
     onSuccess: () => {
       navigate(API_ENDPOINTS.auth.login);
+    },
+  });
+};
+
+export const useUpdateAccountMutation = () => {
+  return useMutation({
+    mutationFn: (payload: UpdateAccount) => authApi.updateAccount(payload),
+    meta: { manualErrorHandling: true },
+    onSuccess: () => {
+      handleAccountUpdateSuccess();
+      toast.success(TEXTS.messages.success.accountUpdated);
+    },
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 409) {
+        toast.error(TEXTS.messages.error.nicknameDuplicate);
+      } else {
+        toast.error(TEXTS.messages.error.accountUpdateFailed);
+      }
+    },
+  });
+};
+
+export const useUploadAvatarMutation = () => {
+  return useMutation({
+    mutationFn: (file: File) => authApi.uploadAvatar(file),
+    meta: { manualErrorHandling: true },
+    onError: () => {
+      toast.error(TEXTS.messages.error.avatarUploadFailed);
     },
   });
 };

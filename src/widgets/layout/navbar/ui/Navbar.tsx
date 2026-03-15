@@ -5,6 +5,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/atoms/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
@@ -16,6 +17,7 @@ import { useAccount } from '@/entities/user/hooks/useAccount';
 import { NavbarSearch } from '@/widgets/layout/navbar/ui/NavbarSearch';
 import { MobileNavbarSearch } from '@/widgets/layout/navbar/ui/MobileNavbarSearch';
 import { PostCreationLoadingBadge } from '@/shared/ui/elements/PostCreationLoadingBadge';
+import { MyPageModal } from '@/widgets/layout/mypage/ui/MyPageModal';
 import { TEXTS } from '@/shared/config/texts';
 
 export function Navbar() {
@@ -26,96 +28,109 @@ export function Navbar() {
   const { account } = useAccount();
 
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isMyPageOpen, setIsMyPageOpen] = useState(false);
 
   const toggleMobileSearch = () => {
     setIsMobileSearchOpen(!isMobileSearchOpen);
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-      <div className="container max-w-6xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-4 md:gap-8">
-          <Link
-            to={ROUTES_PATHS.HOME}
-            className="flex items-center space-x-2 font-bold text-xl md:text-2xl tracking-tight"
-          >
-            {TEXTS.nav.brand}
-          </Link>
-          <div className="hidden md:flex gap-6">
+    <>
+      <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+        <div className="container max-w-6xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4 md:gap-8">
             <Link
-              to={ROUTES_PATHS.POST.ROOT}
-              className="text-sm font-medium transition-colors hover:text-primary"
+              to={ROUTES_PATHS.HOME}
+              className="flex items-center space-x-2 font-bold text-xl md:text-2xl tracking-tight"
             >
-              {TEXTS.nav.feed}
+              {TEXTS.nav.brand}
             </Link>
-            <Link
-              to={ROUTES_PATHS.POST.SUBMIT}
-              className="text-sm font-medium transition-colors hover:text-primary"
+            <div className="hidden md:flex gap-6">
+              <Link
+                to={ROUTES_PATHS.POST.ROOT}
+                className="text-sm font-medium transition-colors hover:text-primary"
+              >
+                {TEXTS.nav.feed}
+              </Link>
+              <Link
+                to={ROUTES_PATHS.POST.SUBMIT}
+                className="text-sm font-medium transition-colors hover:text-primary"
+              >
+                {TEXTS.nav.submit}
+              </Link>
+            </div>
+          </div>
+
+          {/* Search Bar - Hidden on mobile, shown on larger screens */}
+          <div className="hidden md:flex flex-1 max-w-md mx-4">
+            <NavbarSearch />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <PostCreationLoadingBadge />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden h-9 w-9"
+              onClick={toggleMobileSearch}
             >
-              {TEXTS.nav.submit}
-            </Link>
+              <Search className="h-5 w-5" />
+              <span className="sr-only">{TEXTS.nav.toggleSearch}</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => {
+                const html = document.documentElement;
+                html.classList.toggle('dark');
+              }}
+            >
+              <Sun className="h-4 w-4 md:h-5 md:w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-4 w-4 md:h-5 md:w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">{TEXTS.nav.toggleTheme}</span>
+            </Button>
+
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-2">
+                    <Avatar className="h-8 w-8 border">
+                      <AvatarImage src={account?.image ?? ''} alt={account?.nickname ?? ''} />
+                      {!account?.image && (
+                        <AvatarFallback>
+                          {account?.nickname?.[0]?.toUpperCase() ?? 'U'}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsMyPageOpen(true)}>
+                    {TEXTS.buttons.profileEdit}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => logout()}>{TEXTS.nav.logOut}</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button onClick={() => navigate(ROUTES_PATHS.AUTH.LOGIN)} size="sm" className="ml-2">
+                {TEXTS.nav.logIn}
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Search Bar - Hidden on mobile, shown on larger screens */}
-        <div className="hidden md:flex flex-1 max-w-md mx-4">
-          <NavbarSearch />
-        </div>
+        {/* Mobile Search Bar Expansion */}
+        {isMobileSearchOpen && (
+          <div className="md:hidden border-t p-4 bg-background">
+            <MobileNavbarSearch />
+          </div>
+        )}
+      </nav>
 
-        <div className="flex items-center gap-2">
-          <PostCreationLoadingBadge />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden h-9 w-9"
-            onClick={toggleMobileSearch}
-          >
-            <Search className="h-5 w-5" />
-            <span className="sr-only">{TEXTS.nav.toggleSearch}</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9"
-            onClick={() => {
-              const html = document.documentElement;
-              html.classList.toggle('dark');
-            }}
-          >
-            <Sun className="h-4 w-4 md:h-5 md:w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-4 w-4 md:h-5 md:w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            <span className="sr-only">{TEXTS.nav.toggleTheme}</span>
-          </Button>
-
-          {isAuthenticated ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-2">
-                  <Avatar className="h-8 w-8 border">
-                    <AvatarImage src={account?.image || ''} alt={account?.nickname || ''} />
-                    <AvatarFallback>{account?.nickname?.[0] || 'U'}</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => logout()}>{TEXTS.nav.logOut}</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button onClick={() => navigate(ROUTES_PATHS.AUTH.LOGIN)} size="sm" className="ml-2">
-              {TEXTS.nav.logIn}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Mobile Search Bar Expansion */}
-      {isMobileSearchOpen && (
-        <div className="md:hidden border-t p-4 bg-background">
-          <MobileNavbarSearch />
-        </div>
-      )}
-    </nav>
+      <MyPageModal open={isMyPageOpen} onOpenChange={setIsMyPageOpen} />
+    </>
   );
 }

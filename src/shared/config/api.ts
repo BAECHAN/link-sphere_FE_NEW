@@ -20,6 +20,8 @@ const API_ENDPOINTS = {
     logout: `${API_BASES.auth}/logout`,
     refresh: `${API_BASES.auth}/refresh`,
     account: `${API_BASES.auth}/account`,
+    updateAccount: `${API_BASES.auth}/account`,
+    uploadAvatar: `${API_BASES.auth}/account/avatar`,
     signup: `${API_BASES.auth}/signup`,
   },
 

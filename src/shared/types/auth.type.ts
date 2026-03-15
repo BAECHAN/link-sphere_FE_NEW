@@ -45,16 +45,15 @@ export const createAccountSchema = z.object({
   password: passwordValidationSchema,
 });
 
-// 수정 요청 (Partial 사용)
-// password는 memberSchema에 없으므로 extend로 추가
-export const updateAccountSchema = accountSchema
-  .pick({
-    nickname: true,
-  })
-  .extend({
-    password: passwordValidationSchema.or(z.literal('')),
-  })
-  .partial();
+// 수정 요청 — nickname 필수, image는 BE가 null로 반환할 수 있으므로 nullish
+export const updateAccountSchema = z.object({
+  nickname: nicknameValidationSchema,
+  image: z.string().nullish(),
+});
+
+export const avatarUploadResponseSchema = z.object({
+  imageUrl: z.string(),
+});
 
 // ==================== 2. DTO ====================
 
@@ -63,3 +62,4 @@ export type LoginResponse = z.infer<typeof loginResponseSchema>;
 export type Account = z.infer<typeof accountSchema>;
 export type CreateAccount = z.infer<typeof createAccountSchema>;
 export type UpdateAccount = z.infer<typeof updateAccountSchema>;
+export type AvatarUploadResponse = z.infer<typeof avatarUploadResponseSchema>;

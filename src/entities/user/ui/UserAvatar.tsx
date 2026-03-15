@@ -14,10 +14,11 @@ const sizeClasses = {
 };
 
 export function UserAvatar({ image, nickname, size = 'md', className }: UserAvatarProps) {
+  const nicknameInitial = nickname?.[0]?.toUpperCase() ?? '?';
   return (
     <Avatar className={cn(sizeClasses[size], className)}>
-      <AvatarImage src={image || ''} />
-      <AvatarFallback>{nickname?.[0] || '?'}</AvatarFallback>
+      <AvatarImage src={image ?? ''} />
+      {!image && <AvatarFallback>{nicknameInitial}</AvatarFallback>}
     </Avatar>
   );
 }

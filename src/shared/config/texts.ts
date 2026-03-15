@@ -72,6 +72,13 @@ export const TEXTS = {
     toggleTheme: 'Toggle theme',
     saving: '저장 중...',
   },
+  mypage: {
+    title: '프로필 수정',
+    description: '닉네임과 프로필 이미지를 변경할 수 있습니다.',
+    save: '저장하기',
+    saving: '저장 중...',
+    changeImage: '이미지 변경',
+  },
   post: {
     form: {
       create: {
@@ -167,6 +174,7 @@ export const TEXTS = {
     },
     success: {
       accountCreated: '회원이 생성되었습니다.',
+      accountUpdated: '프로필이 업데이트되었습니다.',
       postCreated: '포스트가 생성되었습니다.',
       postUpdated: '포스트가 수정되었습니다.',
       postDeleted: '포스트가 삭제되었습니다.',
@@ -193,6 +201,9 @@ export const TEXTS = {
       fetchAccount: '계정 정보 조회 실패',
       accountCreateFailed: '계정 생성 실패',
       accountCreateFailedDuplicateAccount: '해당 이메일로 가입된 계정이 존재합니다.',
+      accountUpdateFailed: '프로필 업데이트에 실패했습니다.',
+      nicknameDuplicate: '이미 사용 중인 닉네임입니다.',
+      avatarUploadFailed: '이미지 업로드에 실패했습니다.',
 
       // 포스트 관련
       postCreateFailed: '포스트 생성에 실패했습니다.',

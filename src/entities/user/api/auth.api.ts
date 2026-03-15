@@ -1,5 +1,12 @@
 import { apiClient } from '@/shared/api/client';
-import { Login, LoginResponse, Account, CreateAccount } from '@/shared/types/auth.type';
+import {
+  Login,
+  LoginResponse,
+  Account,
+  CreateAccount,
+  UpdateAccount,
+  AvatarUploadResponse,
+} from '@/shared/types/auth.type';
 import { API_ENDPOINTS } from '@/shared/config/api';
 
 export const authApi = {
@@ -40,6 +47,21 @@ export const authApi = {
 
   createAccount: async (payload: CreateAccount): Promise<Account> => {
     const response = await apiClient.post<Account>(API_ENDPOINTS.auth.signup, payload);
+    return response;
+  },
+
+  updateAccount: async (payload: UpdateAccount): Promise<Account> => {
+    const response = await apiClient.patch<Account>(API_ENDPOINTS.auth.updateAccount, payload);
+    return response;
+  },
+
+  uploadAvatar: async (file: File): Promise<AvatarUploadResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post<AvatarUploadResponse>(
+      API_ENDPOINTS.auth.uploadAvatar,
+      formData
+    );
     return response;
   },
 };
