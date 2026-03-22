@@ -76,6 +76,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
             isUpdating={isUpdating}
             canSubmit={canSubmit}
             isMobile={isMobile}
+            linkMetadata={comment.linkMetadata}
             setEditContent={setEditContent}
             cancelEditing={cancelEditing}
             handleEditPaste={handleEditPaste}
@@ -83,11 +84,43 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
             handleUpdate={handleUpdate}
           />
         ) : (
-          <MarkdownContent
-            content={comment.content}
-            isMobile={isMobile}
-            className={cn('text-foreground', isDeleted && 'text-muted-foreground italic')}
-          />
+          <>
+            <MarkdownContent
+              content={comment.content}
+              isMobile={isMobile}
+              className={cn('text-foreground', isDeleted && 'text-muted-foreground italic')}
+            />
+            {!isDeleted && comment.linkMetadata && (
+              <a
+                href={comment.linkMetadata.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block mt-2 border rounded-lg overflow-hidden hover:border-primary/50 transition-colors"
+                style={{ maxWidth: '400px' }}
+              >
+                {comment.linkMetadata.ogImage && (
+                  <div className="relative aspect-video w-full overflow-hidden bg-muted">
+                    <img
+                      src={comment.linkMetadata.ogImage}
+                      alt={comment.linkMetadata.title}
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                )}
+                <div className="p-2 bg-muted/30">
+                  <p className="text-xs font-semibold truncate">{comment.linkMetadata.title}</p>
+                  {comment.linkMetadata.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                      {comment.linkMetadata.description}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground truncate mt-1">
+                    {comment.linkMetadata.url}
+                  </p>
+                </div>
+              </a>
+            )}
+          </>
         )}
 
         {!isDeleted && (

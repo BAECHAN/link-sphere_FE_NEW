@@ -5,8 +5,20 @@
 # <type>(<scope>): <한글 subject>
 # |<------ 제목은 최대 72자 이내 ------>|
 #
-# [본문 - 선택사항]
-# WHY를 설명한다 (WHAT이 아니라). 72자마다 줄바꿈.
+# ── 변경 이유 (WHY) ──────────────────────────────────
+# 왜 이 변경이 필요했는지 설명한다.
+# 예) 기존 방식의 문제점, UX 개선, 요구사항 변경 등
+#
+# ── 변경 내용 (WHAT) ─────────────────────────────────
+# - 변경된 컴포넌트/훅/파일을 bullet로 나열한다.
+# - 예) comment.schema.ts: LinkMetadata Zod 스키마 및 타입 추가
+# - 예) CommentItem.tsx: linkMetadata 존재 시 링크 미리보기 카드 렌더링
+# - 예) CommentEditForm.tsx: 수정 미리보기 영역에 링크 카드 표시 추가
+#
+# ── 영향 범위 ────────────────────────────────────────
+# API 스펙 변경 의존, UI 변경, 타입 변경 등 주의할 사항을 기술한다.
+# 예) BE API 변경 의존: CommentResponse에 linkMetadata 필드 필요
+# 예) 기존 댓글 데이터에는 linkMetadata가 null로 내려와 미리보기 미표시
 #
 # [꼬리말 - 선택사항]
 # Closes #123
@@ -26,15 +38,30 @@
 #   build    빌드 시스템, 외부 의존성 변경
 #   revert   이전 커밋 되돌리기
 # ──────────────────────────────────────────────────
+# scope 예시 (FE):
+#   comment, post, auth, user, interaction, shared
+#   schema, ui, hook, query, form, widget, feature
+# ──────────────────────────────────────────────────
 # 작성 규칙:
 #   - 제목은 명령형으로 (영문: "Add feature" not "Added feature")
 #   - 제목 끝에 마침표 금지
 #   - 제목과 본문 사이 빈 줄 하나
-#   - scope는 변경된 범위 (선택사항): auth, button, api, member 등
+#   - 본문 각 섹션 사이 빈 줄 하나
+#   - 72자마다 줄바꿈
 # ──────────────────────────────────────────────────
 # 예시:
-#   feat(auth): OAuth2 로그인 기능 추가
-#   fix(member): 프로필 이미지 업로드 수정
-#   docs: README 설정 가이드 업데이트
-#   refactor(api): 에러 처리 로직 단순화
+#   feat(comment): 댓글 링크 미리보기 카드 표시
+#
+#   댓글에 URL이 포함된 경우 링크 정보를 시각적으로 확인할 수 있도록
+#   BE에서 추출한 linkMetadata를 카드 형태로 렌더링하도록 변경함
+#
+#   - comment.schema.ts: LinkMetadata Zod 스키마 및 타입 추가,
+#     commentBaseSchema에 linkMetadata 옵셔널 필드 추가
+#   - CommentItem.tsx: isDeleted가 false이고 linkMetadata 존재 시
+#     최대 너비 400px 링크 미리보기 카드 렌더링
+#   - CommentEditForm.tsx: linkMetadata prop 추가, 수정 미리보기
+#     영역에도 링크 카드 표시
+#
+#   BE API 변경 의존: CommentResponse에 linkMetadata 필드 필요
+#   기존 댓글은 linkMetadata null → 미리보기 미표시 (하위 호환)
 # ──────────────────────────────────────────────────

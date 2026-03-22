@@ -1,6 +1,15 @@
 import { z } from 'zod';
 import { TEXTS } from '@/shared/config/texts';
 
+const linkMetadataSchema = z.object({
+  url: z.string(),
+  title: z.string(),
+  description: z.string().nullable(),
+  ogImage: z.string().nullable(),
+});
+
+export type LinkMetadata = z.infer<typeof linkMetadataSchema>;
+
 const commentBaseSchema = z.object({
   id: z.string(),
   postId: z.string(),
@@ -16,6 +25,7 @@ const commentBaseSchema = z.object({
   }),
   likeCount: z.number().int().nonnegative(),
   isLiked: z.boolean(),
+  linkMetadata: linkMetadataSchema.nullable().optional(),
 });
 
 export type Comment = z.infer<typeof commentBaseSchema> & {

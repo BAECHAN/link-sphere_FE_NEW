@@ -4,6 +4,7 @@ import { X, Check } from 'lucide-react';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
+import { LinkMetadata } from '@/entities/comment/model/comment.schema';
 
 interface CommentEditFormProps {
   editContent: string;
@@ -11,6 +12,7 @@ interface CommentEditFormProps {
   isUpdating: boolean;
   canSubmit: boolean;
   isMobile: boolean;
+  linkMetadata?: LinkMetadata | null;
   setEditContent: (content: string) => void;
   cancelEditing: () => void;
   handleEditPaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
@@ -24,6 +26,7 @@ export function CommentEditForm({
   isUpdating,
   canSubmit,
   isMobile,
+  linkMetadata,
   setEditContent,
   cancelEditing,
   handleEditPaste,
@@ -44,6 +47,34 @@ export function CommentEditForm({
         <div className="rounded-md border bg-muted/30 p-3 text-sm">
           <p className="text-xs text-muted-foreground mb-1.5">{TEXTS.comment.form.preview}</p>
           <MarkdownContent content={editContent} isMobile={isMobile} />
+          {linkMetadata && (
+            <a
+              href={linkMetadata.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block mt-2 border rounded-lg overflow-hidden hover:border-primary/50 transition-colors"
+              style={{ maxWidth: '400px' }}
+            >
+              {linkMetadata.ogImage && (
+                <div className="relative aspect-video w-full overflow-hidden bg-muted">
+                  <img
+                    src={linkMetadata.ogImage}
+                    alt={linkMetadata.title}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+              )}
+              <div className="p-2 bg-muted/30">
+                <p className="text-xs font-semibold truncate">{linkMetadata.title}</p>
+                {linkMetadata.description && (
+                  <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                    {linkMetadata.description}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground truncate mt-1">{linkMetadata.url}</p>
+              </div>
+            </a>
+          )}
         </div>
       )}
       {editImagePreviewUrls.length > 0 && (
