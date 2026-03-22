@@ -179,6 +179,7 @@ export const TEXTS = {
       postUpdated: '포스트가 수정되었습니다.',
       postDeleted: '포스트가 삭제되었습니다.',
       linkCopied: '링크가 복사되었습니다.',
+      originalLinkCopied: '원본 링크가 복사되었습니다.',
     },
     error: {
       // 공통

@@ -5,7 +5,7 @@ import { Button } from '@/shared/ui/atoms/button';
 import {
   ChevronDown,
   ChevronUp,
-  ExternalLink,
+  Copy,
   Eye,
   Lightbulb,
   Lock,
@@ -46,6 +46,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
     handleDelete,
     handleToggleVisibility,
     handleCopyLink,
+    handleCopyOriginalUrl,
     handleNavigateToEdit,
   } = usePostCard(post, isDetail);
 
@@ -182,9 +183,17 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
             <span className="text-xs md:text-sm text-muted-foreground truncate flex-1 pr-2 md:pr-4">
               {post.url}
             </span>
-            <div className="flex items-center gap-1 text-xs font-medium text-primary shrink-0">
-              <span className="hidden md:inline">{TEXTS.post.card.visitWebsite}</span>
-              <ExternalLink className="h-3 w-3" />
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 rounded-full p-0 text-muted-foreground hover:text-foreground"
+                onClick={handleCopyOriginalUrl}
+                title="원본 링크 복사"
+              >
+                <Copy className="h-3 w-3" />
+                <span className="sr-only">원본 링크 복사</span>
+              </Button>
             </div>
           </div>
         </a>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Post } from '@/entities/post/model/post.schema';
@@ -76,6 +76,17 @@ export function usePostCard(post: Post, isDetail = false) {
     }
   };
 
+  const handleCopyOriginalUrl = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(post.url);
+      toast.success(TEXTS.messages.success.originalLinkCopied);
+    } catch {
+      toast.error(TEXTS.messages.error.linkCopyFailed);
+    }
+  };
+
   const handleNavigateToEdit = () => {
     setIsMenuOpen(false);
     navigate(ROUTES_PATHS.POST.EDIT.replace(':id', post.id));
@@ -91,6 +102,7 @@ export function usePostCard(post: Post, isDetail = false) {
     handleDelete,
     handleToggleVisibility,
     handleCopyLink,
+    handleCopyOriginalUrl,
     handleNavigateToEdit,
   };
 }
