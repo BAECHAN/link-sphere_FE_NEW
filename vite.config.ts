@@ -151,7 +151,6 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           credentials: true,
           secure: false,
-          rewrite: (path) => path.replace(/^\/api/, ''), // /api 제거
           cookieDomainRewrite: { '*': '' },
           cookiePathRewrite: { '*': '' },
         },
