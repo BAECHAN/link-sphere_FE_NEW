@@ -16,6 +16,43 @@
 
 ---
 
+## 변경 범위 원칙
+
+- **요청된 것만 수정** — 명시적으로 요청받지 않은 파일, 함수, 타입은 건드리지 않는다
+- **기존 함수 시그니처 변경 금지** — 인자 추가/제거/변경, 반환 타입 변경은 명시적 요청 없이 불가
+- **새 기능은 새 코드로** — 기존 함수/훅 확장보다 새 hook/util을 별도 작성
+- **수정 전 읽기** — 파일을 수정하기 전 반드시 현재 내용을 읽고 기존 동작 파악
+- **레이어 계약 유지** — entities 레이어 hook의 인터페이스를 features 요구에 맞춰 바꾸지 않는다
+  → features 레이어에서 해결 방법을 찾는다
+
+---
+
+## 작업 후 검증
+
+모든 코드 수정 후 반드시 순서대로 실행:
+
+1. `npm run type-check` — TypeScript 컴파일 에러 확인 (필수)
+2. `npm run test` — 관련 테스트 실행 (테스트 파일이 존재하는 경우)
+3. `npm run lint` — ESLint 레이어 경계 위반 확인 (import 변경 시)
+
+에러가 있으면 진행 전 반드시 수정.
+
+---
+
+## React Query 라이프사이클 주의
+
+| 위치                          | 실행 조건                           | 용도                                      |
+| ----------------------------- | ----------------------------------- | ----------------------------------------- |
+| `mutate(vars, { onSuccess })` | 컴포넌트 **마운트 상태**에서만 실행 | 컴포넌트 내부 상태 업데이트               |
+| `useMutation({ onSuccess })`  | 컴포넌트 언마운트 후에도 실행       | toast, cache invalidation, 전역 부수 효과 |
+
+**navigate() 후 toast/side-effect 필요한 경우**:
+
+- `useMutation({ onSuccess })` 레벨에서 처리 (entities 레이어 또는 hook 초기화 시점)
+- `mutate(vars, { onSuccess })` 에 넣으면 navigate 후 컴포넌트 unmount로 실행 안 됨
+
+---
+
 ## Architecture — FSD (Feature-Sliced Design)
 
 레이어 의존 방향: `app → pages → widgets → features → entities → shared`
