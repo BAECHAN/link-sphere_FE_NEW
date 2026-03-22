@@ -184,9 +184,13 @@ class ApiClient {
             errorResponse.code === SERVER_ERROR_CODE.NOT_LOGGED_IN ||
             errorResponse.code === SERVER_ERROR_CODE.INVALID_TOKEN
           ) {
+            if (endpoint.includes(API_ENDPOINTS.auth.refresh)) {
+              // 앱 초기화 시 자동 호출되는 refresh는 조용히 실패 (toast/navigate 불필요)
+              throw new ApiError(errorResponse);
+            }
             toast.error(TEXTS.messages.error.loginRequired);
             AuthUtil.clearAll();
-            return new Promise(() => {});
+            throw new ApiError(errorResponse);
           }
         }
 
