@@ -131,7 +131,8 @@ describe('ApiClient — 인증 오류 처리', () => {
       server.use(http.post(COMMENT_HANDLER_URL, () => make401('NOT_LOGGED_IN')));
 
       // auth store는 비어있는 상태 (로그인 안 됨)
-      apiClient.post(COMMENT_PATH, makeCommentFormData());
+      // NOT_LOGGED_IN은 throw로 처리되므로 unhandled rejection 방지
+      apiClient.post(COMMENT_PATH, makeCommentFormData()).catch(() => {});
 
       await vi.waitFor(() => {
         expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.AUTH.LOGIN, {
@@ -152,7 +153,8 @@ describe('ApiClient — 인증 오류 처리', () => {
 
       useAuthStore.getState().setAuth('malformed-token');
 
-      apiClient.post(COMMENT_PATH, makeCommentFormData());
+      // INVALID_TOKEN은 throw로 처리되므로 unhandled rejection 방지
+      apiClient.post(COMMENT_PATH, makeCommentFormData()).catch(() => {});
 
       await vi.waitFor(() => {
         expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.AUTH.LOGIN, {
