@@ -3,7 +3,7 @@
 // 배포 환경에서는 환경변수(VITE_API_BASE_URL)를 직접 사용합니다.
 const API_BASE_URL: string = import.meta.env.DEV
   ? '/api'
-  : (import.meta.env.VITE_API_BASE_URL as string);
+  : (import.meta.env.VITE_API_BASE_URL ?? '/api');
 
 /** API 경로 prefix. 엔드포인트 조합 및 외부 재사용용 */
 const API_BASES = {
