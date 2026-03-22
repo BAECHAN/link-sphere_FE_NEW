@@ -4,9 +4,16 @@ import {
   useSuspenseInfiniteQuery,
   useSuspenseQuery,
   useQuery,
+  InfiniteData,
 } from '@tanstack/react-query';
 import { postApi } from '@/entities/post/api/post.api';
-import { CreatePost, PostListRequest, UpdatePost } from '@/entities/post/model/post.schema';
+import {
+  CreatePost,
+  PostListRequest,
+  PostListResponse,
+  UpdatePost,
+} from '@/entities/post/model/post.schema';
+import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { TEXTS } from '@/shared/config/texts';
 import {
   handlePostCreateSuccess,
@@ -128,6 +135,37 @@ export const useDeletePostMutation = () => {
     meta: {
       successMessage: TEXTS.messages.success.postDeleted,
       errorMessage: TEXTS.messages.error.postDeleteFailed,
+    },
+    onMutate: async (postId: string) => {
+      await queryClient.cancelQueries({ queryKey: postKeys.listRoot });
+
+      const previousData = queryClient.getQueriesData<InfiniteData<PostListResponse>>({
+        queryKey: postKeys.listRoot,
+      });
+
+      queryClient.setQueriesData<InfiniteData<PostListResponse>>(
+        { queryKey: postKeys.listRoot },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              content: page.content.filter((post) => post.id !== postId),
+              totalElements: page.totalElements - 1,
+            })),
+          };
+        }
+      );
+
+      return { previousData };
+    },
+    onError: (_err, _postId, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
     },
     onSuccess: () => {
       postInvalidateQueries.list();
