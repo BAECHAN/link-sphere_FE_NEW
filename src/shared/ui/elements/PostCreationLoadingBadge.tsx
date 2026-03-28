@@ -1,3 +1,4 @@
+import { TEXTS } from '@/shared/config/texts';
 import { useIsMutating } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -27,7 +28,7 @@ export function PostCreationLoadingBadge() {
       <Loader2
         className={`animate-spin transition-all duration-500 ${isHighlighted ? 'h-4 w-4' : 'h-3.5 w-3.5'}`}
       />
-      <span>저장 중...</span>
+      <span>{TEXTS.common.submitting}</span>
     </div>
   );
 }

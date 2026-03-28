@@ -31,7 +31,7 @@ export const postInvalidateQueries = {
 };
 
 export const handlePostCreateSuccess = () => {
-  queryClient.resetQueries({ queryKey: postKeys.listRoot });
+  postInvalidateQueries.list();
 };
 
 export const handlePostUpdateSuccess = (postId: Post['id']) => {

@@ -5,7 +5,24 @@
  * 다국어 지원을 위한 기반이 될 수 있습니다.
  */
 
+// 여러 곳에서 재사용되는 공통 텍스트
+
+const COMMON_TEXT = {
+  saving: '저장 중...',
+  back: '뒤로 가기',
+  submitting: '등록 중...',
+} as const;
+
+// post 폼 create/update 공통 필드
+const POST_FORM_COMMON = {
+  titleLabel: '제목',
+  categoryLabel: '관심 분야 (선택사항)',
+  privateLabel: '나만 보기 (비공개)',
+  privateDescription: '체크하면 팀원들에게 공유되지 않고 나만 볼 수 있는 게시물로 저장됩니다.',
+} as const;
+
 export const TEXTS = {
+  common: { ...COMMON_TEXT },
   pages: {
     home: '홈',
     post: {
@@ -30,7 +47,7 @@ export const TEXTS = {
     retry: '다시 시도',
     refresh: '새로고침',
     home: '홈으로 이동',
-    back: '뒤로 가기',
+    back: COMMON_TEXT.back,
     login: '로그인',
     profileEdit: '프로필 수정',
     logout: '로그아웃',
@@ -70,13 +87,13 @@ export const TEXTS = {
     logOut: 'Log out',
     toggleSearch: 'Toggle search',
     toggleTheme: 'Toggle theme',
-    saving: '저장 중...',
+    saving: COMMON_TEXT.saving,
   },
   mypage: {
     title: '프로필 수정',
     description: '닉네임과 프로필 이미지를 변경할 수 있습니다.',
     save: '저장하기',
-    saving: '저장 중...',
+    saving: COMMON_TEXT.saving,
     changeImage: '이미지 변경',
   },
   post: {
@@ -87,24 +104,21 @@ export const TEXTS = {
         description2: '자동으로 제목과 이미지를 가져오고 태그를 생성합니다.',
         urlLabel: 'URL',
         urlPlaceholder: 'https://example.com/amazing-article',
-        titleLabel: '제목',
+        titleLabel: POST_FORM_COMMON.titleLabel,
         titlePlaceholder: '제목 (비워두면 자동으로 가져옵니다)',
-        categoryLabel: '관심 분야 (선택사항)',
-        privateLabel: '나만 보기 (비공개)',
-        privateDescription:
-          '체크하면 팀원들에게 공유되지 않고 나만 볼 수 있는 게시물로 저장됩니다.',
-        submitting: '공유하는 중...',
+        categoryLabel: POST_FORM_COMMON.categoryLabel,
+        privateLabel: POST_FORM_COMMON.privateLabel,
+        privateDescription: POST_FORM_COMMON.privateDescription,
         submit: '링크 공유하기',
       },
       update: {
         title: '링크 수정하기',
         description: '제목, 관심 분야, 공개 설정을 수정할 수 있습니다.',
-        titleLabel: '제목',
+        titleLabel: POST_FORM_COMMON.titleLabel,
         titlePlaceholder: '제목을 입력하세요',
-        categoryLabel: '관심 분야 (선택사항)',
-        privateLabel: '나만 보기 (비공개)',
-        privateDescription:
-          '체크하면 팀원들에게 공유되지 않고 나만 볼 수 있는 게시물로 저장됩니다.',
+        categoryLabel: POST_FORM_COMMON.categoryLabel,
+        privateLabel: POST_FORM_COMMON.privateLabel,
+        privateDescription: POST_FORM_COMMON.privateDescription,
         updating: '수정하는 중...',
         update: '수정하기',
       },
@@ -118,11 +132,11 @@ export const TEXTS = {
       edit: '수정',
       publicLabel: '전체 공개',
       privateLabel: '나만 보기',
-      saving: '저장 중...',
+      saving: COMMON_TEXT.saving,
     },
     detail: {
       notFound: '포스트를 찾을 수 없습니다.',
-      back: '뒤로 가기',
+      back: COMMON_TEXT.back,
       heading: 'Post Details',
       commentsHeading: 'Comments',
     },
@@ -141,8 +155,8 @@ export const TEXTS = {
       removeImage: '이미지 삭제',
       cancel: '취소',
       save: '저장',
-      saving: '저장 중...',
-      submitting: '등록 중...',
+      saving: COMMON_TEXT.saving,
+      submitting: COMMON_TEXT.submitting,
       submitReply: '답글 등록',
       submitComment: '댓글 등록',
     },

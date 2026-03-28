@@ -18,7 +18,6 @@ import { TEXTS } from '@/shared/config/texts';
 import {
   handlePostCreateSuccess,
   handlePostUpdateSuccess,
-  postInvalidateQueries,
   postKeys,
   postMutationKeys,
 } from '@/entities/post/api/post.keys';
@@ -166,9 +165,6 @@ export const useDeletePostMutation = () => {
           queryClient.setQueryData(queryKey, data);
         });
       }
-    },
-    onSuccess: () => {
-      postInvalidateQueries.list();
     },
   });
 };
