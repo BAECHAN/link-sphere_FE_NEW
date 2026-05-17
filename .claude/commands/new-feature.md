@@ -95,7 +95,7 @@ export function use<FeatureName>() {
 import { use<Action><Entity>Mutation } from '@/entities/<entity>/api/<entity>.queries';
 
 export function use<FeatureName>(<entity>Id: string) {
-  const { mutateAsync: <action><Entity>, isPending: is<Action>ing } = use<Action><Entity>Mutation(<entity>Id);
+  const { mutate: <action><Entity>, isPending: is<Action>ing } = use<Action><Entity>Mutation(<entity>Id);
 
   const handle<Action> = () => { <action><Entity>(); };
 
