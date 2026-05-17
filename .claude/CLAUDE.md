@@ -599,6 +599,49 @@ Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금
 
 ---
 
+## 폴더 네이밍 규칙
+
+### 폴더 네이밍 원칙
+
+| 위치                          | 규칙                                  | ✅                            | ❌                                |
+| ----------------------------- | ------------------------------------- | ----------------------------- | --------------------------------- |
+| `features/<domain>/` 슬라이스 | **동사(액션)만**                      | `create/`, `like/`, `delete/` | `create-post/`, `createPost/`     |
+| `widgets/<domain>/` 슬라이스  | **`<entity>-<role>`** kebab-case 명사 | `post-card/`, `post-list/`    | `postCard/`, `PostCard/`          |
+| `app/layouts/`                | **`<name>-layout`**                   | `app-layout/`, `auth-layout/` | `appLayout/`, `AppLayout/`        |
+| 슬라이스 내부                 | **역할명 단수 소문자**                | `hooks/`, `ui/`, `utils/`     | `hook/`, `UI/`, `utils-fn/`       |
+| 도메인 폴더                   | **단수 소문자**                       | `post/`, `comment/`, `user/`  | `posts/`, `Post/`, `user-domain/` |
+| 내부 전용 폴더                | **`_` 접두사**                        | `_base/`                      | `base/`, `__base__/`              |
+| `shared/lib/`                 | **라이브러리명 그대로**               | `react-query/`, `firebase/`   | `reactQuery/`, `query/`           |
+| 에러 페이지                   | **HTTP 상태코드**                     | `404/`, `500/`                | `not-found/`, `error/`            |
+| `pages/` 복합어               | **붙여쓰기**                          | `mypage/`                     | `my-page/`, `myPage/`             |
+
+### 실제 폴더 구조 예시
+
+```
+features/
+  post/
+    create/       ← 동사만 (create-post ❌)
+      hooks/
+      ui/
+    like/
+    delete/
+    bookmark/
+widgets/
+  post/
+    post-card/    ← <entity>-<role> kebab-case
+      hooks/
+      ui/
+    post-list/
+shared/
+  ui/
+    atoms/        ← 집합 명사 단수 (atom ❌)
+    elements/
+      form/
+        _base/    ← 내부 전용은 _ 접두사
+```
+
+---
+
 ## 네이밍 컨벤션
 
 | 항목             | 규칙                                     | 예시                                     |
@@ -668,6 +711,23 @@ pnpm check            # 타입 + 린트 + 포맷 일괄 검사
 pnpm check:fix        # 린트·포맷 자동 수정 후 타입 검사
 pnpm storybook        # Storybook (port 6006)
 ```
+
+---
+
+## 코드 스타일 레퍼런스
+
+새 기능 구현 전 아래 파일들을 읽어 스타일을 학습한다. 위 섹션의 패턴 예시가 추상적으로 느껴질 때 이 파일들을 직접 읽으면 된다.
+
+| 역할              | 레퍼런스 파일                                         | 핵심 패턴                                                                                |
+| ----------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Feature Hook      | `src/features/post/create/hooks/useCreatePost.ts`     | `DEFAULT_VALUES` + `useForm/zodResolver` + `onSubmit` 핸들러 분리, 반환값 객체           |
+| Widget Hook       | `src/widgets/post/post-card/hooks/usePostCard.ts`     | Props(엔티티+옵션) + 권한 체크 + `toast` + `openConfirm` + try-catch                     |
+| API 함수          | `src/entities/post/api/post.api.ts`                   | `postApi` 객체 export, JSDoc 한글, 조건부 스프레드, `NProgress`                          |
+| Query Keys        | `src/entities/post/api/post.keys.ts`                  | `rootKey` + `mutationKeys` + `queryKeys` + `invalidateQueries` 헬퍼 + `handleXxxSuccess` |
+| Query Hooks       | `src/entities/post/api/post.queries.ts`               | `useMutation(meta 메시지)` + `useInfiniteQuery(select 변환)` + 낙관적 업데이트           |
+| Optimistic Update | `src/entities/interaction/api/interaction.queries.ts` | `onMutate → cancelQueries → setQueryData → return previous`                              |
+| 텍스트 상수       | `src/shared/config/texts.ts`                          | 계층적 namespace(`TEXTS.xxx.yyy`), `as const`, 한국어                                    |
+| API 설정          | `src/shared/config/api.ts`                            | `API_BASES` + `API_ENDPOINTS`(함수형/상수형 혼합), DEV 분기                              |
 
 ---
 
