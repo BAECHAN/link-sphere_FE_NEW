@@ -117,6 +117,14 @@ export function Navbar() {
         )}
       </nav>
 
+      {/* Mobile Search Backdrop */}
+      {isMobileSearchOpen && (
+        <div
+          className="md:hidden fixed inset-0 top-16 z-40 bg-black/40"
+          onClick={toggleMobileSearch}
+        />
+      )}
+
       <MyPageModal open={isMyPageOpen} onOpenChange={setIsMyPageOpen} />
     </>
   );

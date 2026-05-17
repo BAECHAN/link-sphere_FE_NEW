@@ -131,7 +131,7 @@ export function Sidebar() {
       {/* 모바일: 드로어 백드롭 */}
       {isOpen && (
         <div
-          className="md:hidden fixed inset-0 z-40 bg-black/50"
+          className="md:hidden fixed inset-0 z-55 bg-black/50"
           onClick={close}
           aria-hidden="true"
         />
