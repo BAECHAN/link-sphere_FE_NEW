@@ -19,6 +19,7 @@ import { MobileNavbarSearch } from '@/widgets/layout/navbar/ui/MobileNavbarSearc
 import { PostCreationLoadingBadge } from '@/shared/ui/elements/PostCreationLoadingBadge';
 import { MyPageModal } from '@/widgets/layout/mypage/ui/MyPageModal';
 import { TEXTS } from '@/shared/config/texts';
+import { useToggle } from '@/shared/hooks/useToggle';
 
 export function Navbar() {
   const { isAuthenticated } = useAuthStore();
@@ -27,12 +28,8 @@ export function Navbar() {
 
   const { account } = useAccount();
 
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const { value: isMobileSearchOpen, toggle: toggleMobileSearch } = useToggle(false);
   const [isMyPageOpen, setIsMyPageOpen] = useState(false);
-
-  const toggleMobileSearch = () => {
-    setIsMobileSearchOpen(!isMobileSearchOpen);
-  };
 
   return (
     <>

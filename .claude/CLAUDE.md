@@ -634,3 +634,13 @@ pnpm storybook        # Storybook (port 6006)
 | `/add-schema`     | `/add-schema member address`      | Zod 스키마 파일 생성        |
 | `/fix-bug`        | `/fix-bug 삭제 후 목록 갱신 안됨` | 버그 분석 + 수정            |
 | `/code-review`    | `/code-review`                    | 아키텍처 준수 리뷰          |
+
+---
+
+## 프로젝트 공통 컨텍스트
+
+- **BE**: Spring Boot + Kotlin, port 8080, context-path `/api`
+- **FE**: React + TypeScript + Vite, FSD 아키텍처, port 31119
+- **배포**: CloudFront → `/api/*` Lambda(BE), `/*` S3(FE)
+- **개발 프록시**: `vite.config.ts` — `/api/*` → `localhost:8080` (rewrite 없음)
+- **커밋**: 작업 전 `.gitmessage` 파일 먼저 읽고 형식 준수
