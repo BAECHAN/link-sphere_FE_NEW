@@ -1,4 +1,4 @@
-import { Moon, Sun, Search } from 'lucide-react';
+import { Moon, Sun, Search, Menu } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/atoms/button';
 import {
@@ -20,6 +20,7 @@ import { PostCreationLoadingBadge } from '@/shared/ui/elements/PostCreationLoadi
 import { MyPageModal } from '@/widgets/layout/mypage/ui/MyPageModal';
 import { TEXTS } from '@/shared/config/texts';
 import { useToggle } from '@/shared/hooks/useToggle';
+import { useSidebarStore } from '@/shared/store/sidebar.store';
 
 export function Navbar() {
   const { isAuthenticated } = useAuthStore();
@@ -30,40 +31,29 @@ export function Navbar() {
 
   const { value: isMobileSearchOpen, toggle: toggleMobileSearch } = useToggle(false);
   const [isMyPageOpen, setIsMyPageOpen] = useState(false);
+  const { toggle: toggleSidebar } = useSidebarStore();
 
   return (
     <>
-      <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-        <div className="container max-w-6xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4 md:gap-8">
-            <Link
-              to={ROUTES_PATHS.HOME}
-              className="flex items-center space-x-2 font-bold text-xl md:text-2xl tracking-tight"
-            >
+      <nav className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+        <div className="flex h-16 items-center justify-between px-4">
+          {/* Mobile only: hamburger + logo */}
+          <div className="flex md:hidden items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+              <Menu className="size-6" />
+              <span className="sr-only">{TEXTS.nav.toggleMenu}</span>
+            </Button>
+            <Link to={ROUTES_PATHS.HOME} className="font-bold text-xl tracking-tight">
               {TEXTS.nav.brand}
             </Link>
-            <div className="hidden md:flex gap-6">
-              <Link
-                to={ROUTES_PATHS.POST.ROOT}
-                className="text-sm font-medium transition-colors hover:text-primary"
-              >
-                {TEXTS.nav.feed}
-              </Link>
-              <Link
-                to={ROUTES_PATHS.POST.SUBMIT}
-                className="text-sm font-medium transition-colors hover:text-primary"
-              >
-                {TEXTS.nav.submit}
-              </Link>
-            </div>
           </div>
 
-          {/* Search Bar - Hidden on mobile, shown on larger screens */}
+          {/* Desktop: search bar */}
           <div className="hidden md:flex flex-1 max-w-md mx-4">
             <NavbarSearch />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-auto">
             <PostCreationLoadingBadge />
             <Button
               variant="ghost"

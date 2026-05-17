@@ -85,6 +85,7 @@ export const TEXTS = {
     submit: 'Submit',
     logIn: 'Log in',
     logOut: 'Log out',
+    toggleMenu: 'Toggle menu',
     toggleSearch: 'Toggle search',
     toggleTheme: 'Toggle theme',
     saving: COMMON_TEXT.saving,

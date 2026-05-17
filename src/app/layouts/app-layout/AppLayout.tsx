@@ -3,6 +3,7 @@ import { useMatch } from 'react-router-dom';
 
 import { TEXTS } from '@/shared/config/texts';
 import { Navbar } from '@/widgets/layout/navbar/ui/Navbar';
+import { Sidebar } from '@/widgets/layout/sidebar/ui/Sidebar';
 import { ScrollToTop } from '@/shared/ui/elements/ScrollToTop';
 
 interface AppLayoutProps {
@@ -13,11 +14,12 @@ export function AppLayout({ children }: Readonly<AppLayoutProps>) {
   const isDetailPage = useMatch('/post/:id');
 
   return (
-    <div aria-label={TEXTS.ariaLabels.appLayout} className="min-h-screen flex flex-col">
-      <div className="flex-1">
+    <div aria-label={TEXTS.ariaLabels.appLayout} className="min-h-screen flex">
+      <Sidebar />
+      <div className="flex flex-col flex-1 min-w-0">
         <Navbar />
         <main
-          className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8"
+          className="flex-1 container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8"
           aria-label={TEXTS.ariaLabels.mainContent}
         >
           {children}
