@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Home, Link2, Menu } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
@@ -98,6 +99,17 @@ function SidebarHeader({ expanded, onToggle, onLogoClick }: SidebarHeaderProps) 
 
 export function Sidebar() {
   const { isOpen, toggle, close } = useSidebarStore();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+        e.preventDefault();
+        toggle();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggle]);
 
   return (
     <>
