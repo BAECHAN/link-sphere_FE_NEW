@@ -6,12 +6,11 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 // Vite 동적 청크 로드 실패 처리 (새 배포 후 구 청크 hash 불일치)
-// ErrorBoundary가 못 잡는 vendor 청크 실패까지 커버
-const CHUNK_RELOAD_KEY = 'chunk-reload-attempted';
+// 재시도 키에 현재 pathname을 포함시켜, 다른 페이지 이동 시 재시도를 허용
 window.addEventListener('vite:preload-error', () => {
-  const alreadyReloaded = sessionStorage.getItem(CHUNK_RELOAD_KEY);
-  if (!alreadyReloaded) {
-    sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
+  const reloadKey = `chunk-reload:${location.pathname}`;
+  if (!sessionStorage.getItem(reloadKey)) {
+    sessionStorage.setItem(reloadKey, '1');
     window.location.reload();
   }
 });
