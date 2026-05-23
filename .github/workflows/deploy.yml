@@ -69,11 +69,14 @@ jobs:
           aws s3 cp dist/firebase-messaging-sw.js s3://${{ secrets.S3_BUCKET_NAME }}/firebase-messaging-sw.js \
             --cache-control "no-cache, no-store, must-revalidate" \
             --content-type "text/javascript"
-          # assets (hash 포함) — 장기 캐시 적용, 구 파일 삭제
+          # assets (hash 포함) — 장기 캐시, 구 파일 유지 (접속 중 유저가 구 청크 요청 가능)
+          aws s3 sync dist/assets/ s3://${{ secrets.S3_BUCKET_NAME }}/assets/ \
+            --cache-control "public, max-age=31536000, immutable"
+          # 그 외 파일 (favicon, manifest 등) — 최신 유지
           aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete \
             --exclude "index.html" \
             --exclude "firebase-messaging-sw.js" \
-            --cache-control "public, max-age=31536000, immutable"
+            --exclude "assets/*"
 
       - name: CloudFront Invalidation
         # 새 파일이 반영되도록 캐시를 무효화합니다.
