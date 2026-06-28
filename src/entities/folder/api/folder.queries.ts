@@ -33,10 +33,11 @@ import { PaginationRequest } from '@/shared/api/common.schema';
 
 // ==================== Queries ====================
 
-export const useFolderListQuery = () => {
+export const useFolderListQuery = (options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: folderKeys.list,
     queryFn: folderApi.fetchFolderList,
+    enabled: options?.enabled ?? true,
   });
 };
 
