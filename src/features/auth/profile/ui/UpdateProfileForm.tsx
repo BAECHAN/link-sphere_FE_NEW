@@ -12,35 +12,10 @@ interface UpdateProfileFormProps {
 }
 
 export function UpdateProfileForm({ onSuccess }: UpdateProfileFormProps) {
-  const {
-    form,
-    avatarPreview,
-    handleAvatarChange,
-    onSubmit,
-    isPending,
-    isDirty,
-    account,
-    debugLog,
-  } = useUpdateProfile(onSuccess);
+  const { form, avatarPreview, handleAvatarChange, onSubmit, isPending, isDirty, account } =
+    useUpdateProfile(onSuccess);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // DEBUG: 로그 복사 (확인 후 제거)
-  const copyDebug = async () => {
-    const text = debugLog.join('\n');
-    try {
-      await navigator.clipboard.writeText(text);
-      alert('copied');
-    } catch {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      alert('copied (fallback)');
-    }
-  };
 
   return (
     <FormProvider {...form}>
@@ -87,26 +62,6 @@ export function UpdateProfileForm({ onSuccess }: UpdateProfileFormProps) {
         <Button type="submit" className="w-full" disabled={isPending || !isDirty}>
           {isPending ? TEXTS.mypage.saving : TEXTS.mypage.save}
         </Button>
-
-        {/* ===== DEBUG: 임시 진단 패널 (확인 후 제거) ===== */}
-        <div className="mt-4 rounded border border-red-300 bg-red-50 p-2">
-          <div className="mb-1 flex items-center justify-between">
-            <span className="text-xs font-bold text-red-600">DEBUG LOG</span>
-            <button
-              type="button"
-              onClick={copyDebug}
-              className="rounded bg-red-600 px-2 py-1 text-xs text-white"
-            >
-              Copy
-            </button>
-          </div>
-          <textarea
-            readOnly
-            value={debugLog.join('\n')}
-            className="h-40 w-full resize-y rounded border border-red-200 bg-white p-1 font-mono text-[10px] leading-tight"
-          />
-        </div>
-        {/* ===== /DEBUG ===== */}
       </form>
     </FormProvider>
   );
