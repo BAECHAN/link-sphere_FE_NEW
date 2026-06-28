@@ -44,6 +44,7 @@ const mutationErrorHandler = (
     // 401 인증 에러 처리 (로그인 필요, 유효하지 않은 토큰)
     if (error.code === 'NOT_LOGGED_IN' || error.code === 'INVALID_TOKEN') {
       AuthUtil.clearAll();
+      toast.error(TEXTS.messages.error.loginRequired);
       window.location.href = '/auth/login';
       return;
     }

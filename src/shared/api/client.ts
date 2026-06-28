@@ -7,7 +7,6 @@ import { FormUtil } from '@/shared/utils/form.util';
 import { AuthUtil } from '@/shared/utils/auth.util';
 import { DateUtil } from '@/shared/utils/date.util';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
-import { toast } from 'sonner';
 import { LoginResponse } from '@/shared/types/auth.type';
 
 interface ApiRequestOptions extends RequestInit {
@@ -188,23 +187,14 @@ class ApiClient {
               // 앱 초기화 시 자동 호출되는 refresh는 조용히 실패 (toast/navigate 불필요)
               throw new ApiError(errorResponse);
             }
-            toast.error(TEXTS.messages.error.loginRequired);
+            // 토스트는 React Query 전역 핸들러(queryClient)가 단일 소유
             AuthUtil.clearAll();
             throw new ApiError(errorResponse);
           }
         }
 
-        // 2. 403 Forbidden
-        if (response.status === 403) {
-          if (
-            errorResponse.code === SERVER_ERROR_CODE.ACCESS_DENIED ||
-            (options?.method !== 'GET' && options?.method !== undefined)
-          ) {
-            toast.error(TEXTS.messages.error.accessDenied);
-          }
-        }
-
-        // 3. 404 Not Found 및 기타 에러
+        // 2. 403 Forbidden / 404 Not Found 및 기타 에러
+        // 사용자 토스트는 React Query 전역 핸들러가 담당
         throw new ApiError(errorResponse);
       }
 

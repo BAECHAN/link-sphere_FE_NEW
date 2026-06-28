@@ -80,6 +80,7 @@ export const useCreateFolderMutation = () => {
   return useMutation({
     mutationKey: folderMutationKeys.create,
     mutationFn: (payload: CreateFolderRequest) => folderApi.createFolder(payload),
+    meta: { manualErrorHandling: true },
     onSuccess: () => {
       handleFolderCreateSuccess();
     },
@@ -90,6 +91,7 @@ export const useUpdateFolderMutation = (folderId: string) => {
   return useMutation({
     mutationKey: folderMutationKeys.update(folderId),
     mutationFn: (payload: UpdateFolderRequest) => folderApi.updateFolder(folderId, payload),
+    meta: { manualErrorHandling: true },
     onSuccess: () => {
       handleFolderUpdateSuccess();
     },
@@ -100,6 +102,7 @@ export const useDeleteFolderMutation = (folderId: string) => {
   return useMutation({
     mutationKey: folderMutationKeys.delete(folderId),
     mutationFn: () => folderApi.deleteFolder(folderId),
+    meta: { manualErrorHandling: true },
     onSuccess: () => {
       handleFolderDeleteSuccess();
     },
@@ -110,6 +113,7 @@ export const useReorderFoldersMutation = () => {
   return useMutation({
     mutationKey: folderMutationKeys.reorder,
     mutationFn: (payload: ReorderFoldersRequest) => folderApi.reorderFolders(payload),
+    meta: { manualErrorHandling: true },
     onMutate: async (payload) => {
       await queryClient.cancelQueries({ queryKey: folderKeys.list });
       const previous = queryClient.getQueryData<FolderList>(folderKeys.list);
@@ -150,6 +154,7 @@ export const useMoveBookmarkMutation = (postId: string) => {
   return useMutation({
     mutationKey: folderMutationKeys.moveBookmark(postId),
     mutationFn: (payload: MoveBookmarkRequest) => folderApi.moveBookmark(postId, payload),
+    meta: { manualErrorHandling: true },
 
     onMutate: async (payload) => {
       await queryClient.cancelQueries({ queryKey: postKeys.detail(postId) });

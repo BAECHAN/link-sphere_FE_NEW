@@ -24,6 +24,7 @@ export const useLoginMutation = () => {
 
   return useMutation({
     mutationFn: (payload: Login) => authApi.login(payload),
+    meta: { manualErrorHandling: true },
     onSuccess: (data) => {
       // 1. 기존 캐시 초기화
       AuthUtil.clearAll();

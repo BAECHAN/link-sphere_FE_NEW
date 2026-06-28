@@ -9,6 +9,7 @@ import { Comment } from '@/entities/comment/model/comment.schema';
 export const useLikePostMutation = (postId: Post['id']) => {
   return useMutation({
     mutationFn: () => interactionApi.toggleLikePost(postId),
+    meta: { manualErrorHandling: true },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: postKeys.detail(postId) });
       await queryClient.cancelQueries({ queryKey: postKeys.listRoot });
@@ -74,6 +75,7 @@ export const useLikePostMutation = (postId: Post['id']) => {
 export const useBookmarkPostMutation = (postId: Post['id']) => {
   return useMutation({
     mutationFn: () => interactionApi.toggleBookmarkPost(postId),
+    meta: { manualErrorHandling: true },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: postKeys.detail(postId) });
       await queryClient.cancelQueries({ queryKey: postKeys.listRoot });
@@ -140,6 +142,7 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
 export const useLikeCommentMutation = (commentId: Comment['id'], postId: Post['id']) => {
   return useMutation({
     mutationFn: () => interactionApi.toggleLikeComment(commentId),
+    meta: { manualErrorHandling: true },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: commentKeys.list(postId) });
 
