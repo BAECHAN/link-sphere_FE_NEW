@@ -20,6 +20,7 @@ import {
 } from '@/shared/ui/atoms/dropdown-menu';
 import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { TEXTS } from '@/shared/config/texts';
 import {
   useCreateFolderMutation,
   useDeleteFolderMutation,
@@ -43,21 +44,23 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
       <section className="rounded-lg border bg-card">
         <FixedRow
           icon={<FolderIcon className="h-5 w-5" />}
-          label="전체"
+          label={TEXTS.bookmark.folder.all}
           count={folders?.reduce((sum, f) => sum + f.bookmarkCount, 0)}
           onClick={() => onSelect('all')}
         />
         <div className="border-t" />
         <FixedRow
           icon={<Inbox className="h-5 w-5" />}
-          label="미분류"
+          label={TEXTS.bookmark.folder.uncategorized}
           onClick={() => onSelect('uncategorized')}
         />
       </section>
 
       {/* 내 폴더 그리드 */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground px-1">내 폴더</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground px-1">
+          {TEXTS.bookmark.folder.myFolders}
+        </h2>
         {isLoading ? (
           <div className="flex items-center justify-center py-10">
             <Spinner />
@@ -123,10 +126,10 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
     submittingRef.current = true;
     try {
       await updateFolder({ name: next });
-      toast.success('폴더 이름 변경됨');
+      toast.success(TEXTS.messages.success.folderRenamed);
       setRenaming(false);
     } catch {
-      toast.error('이름 변경 실패');
+      toast.error(TEXTS.messages.error.folderRenameFailed);
       setName(folder.name);
     } finally {
       submittingRef.current = false;
@@ -135,16 +138,16 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
 
   const handleDelete = () => {
     openConfirm({
-      title: `"${folder.name}" 폴더 삭제`,
-      message: '폴더 안의 북마크는 미분류로 이동합니다.',
-      confirmText: '삭제',
-      cancelText: '취소',
+      title: TEXTS.bookmark.folder.deleteConfirmTitle(folder.name),
+      message: TEXTS.bookmark.folder.deleteConfirmMessage,
+      confirmText: TEXTS.buttons.delete,
+      cancelText: TEXTS.buttons.cancel,
       onConfirm: async () => {
         try {
           await deleteFolder();
-          toast.success('폴더가 삭제됐어요');
+          toast.success(TEXTS.messages.success.folderDeleted);
         } catch {
-          toast.error('폴더 삭제 실패');
+          toast.error(TEXTS.messages.error.folderDeleteFailed);
         }
       },
     });
@@ -191,15 +194,17 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
             variant="ghost"
             size="icon"
             className="absolute top-1 right-1 h-7 w-7"
-            aria-label="폴더 메뉴"
+            aria-label={TEXTS.ariaLabels.folderMenu}
           >
             <MoreVertical className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setRenaming(true)}>이름 수정</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setRenaming(true)}>
+            {TEXTS.bookmark.folder.rename}
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-            삭제
+            {TEXTS.buttons.delete}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -220,11 +225,11 @@ function CreateFolderCard() {
     submittingRef.current = true;
     try {
       const created = await createFolder({ name: trimmed });
-      toast.success(`폴더 "${created.name}" 생성됨`);
+      toast.success(TEXTS.messages.success.folderCreated(created.name));
       setCreating(false);
       setName('');
     } catch {
-      toast.error('폴더 생성 실패');
+      toast.error(TEXTS.messages.error.folderCreateFailed);
     } finally {
       submittingRef.current = false;
     }
@@ -249,12 +254,16 @@ function CreateFolderCard() {
               setName('');
             }
           }}
-          placeholder="새 폴더 이름"
+          placeholder={TEXTS.bookmark.folder.namePlaceholder}
           disabled={isPending}
           className="h-8"
         />
         <Button size="sm" onClick={submit} disabled={!name.trim() || isPending} className="h-7">
-          {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : '생성'}
+          {isPending ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            TEXTS.bookmark.folder.createSubmit
+          )}
         </Button>
       </div>
     );
@@ -267,7 +276,7 @@ function CreateFolderCard() {
       className="rounded-lg border border-dashed bg-card p-3 flex flex-col gap-2 active:bg-accent text-muted-foreground"
     >
       <Plus className="h-5 w-5" />
-      <div className="font-medium">새 폴더</div>
+      <div className="font-medium">{TEXTS.bookmark.folder.new}</div>
       <div className="text-xs">&nbsp;</div>
     </button>
   );

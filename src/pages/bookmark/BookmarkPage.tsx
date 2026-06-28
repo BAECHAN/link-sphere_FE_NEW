@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/shared/ui/atoms/select';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
+import { TEXTS } from '@/shared/config/texts';
 import { BookmarkPostList } from '@/widgets/bookmark/bookmark-post-list/BookmarkPostList';
 import { FolderTree } from '@/widgets/bookmark/folder-tree/FolderTree';
 import { MobileFolderList } from '@/widgets/bookmark/folder-tree/MobileFolderList';
@@ -16,10 +17,10 @@ import { FolderKey, FolderSort } from '@/entities/folder/model/folder.schema';
 import { useFolderListQuery } from '@/entities/folder/api/folder.queries';
 
 const SORT_LABELS: Record<FolderSort, string> = {
-  latest: '최신 북마크순',
-  oldest: '오래된순',
-  title: '제목순',
-  views: '조회수순',
+  latest: TEXTS.bookmark.folder.sort.latest,
+  oldest: TEXTS.bookmark.folder.sort.oldest,
+  title: TEXTS.bookmark.folder.sort.title,
+  views: TEXTS.bookmark.folder.sort.views,
 };
 
 const VALID_SORTS: FolderSort[] = ['latest', 'oldest', 'title', 'views'];
@@ -51,10 +52,11 @@ export function BookmarkPage() {
 
   const currentFolderName =
     activeFolderKey === 'all'
-      ? '전체'
+      ? TEXTS.bookmark.folder.all
       : activeFolderKey === 'uncategorized'
-        ? '미분류'
-        : (folders?.find((f) => f.id === activeFolderKey)?.name ?? '폴더');
+        ? TEXTS.bookmark.folder.uncategorized
+        : (folders?.find((f) => f.id === activeFolderKey)?.name ??
+          TEXTS.bookmark.folder.fallbackName);
 
   const setFolderKey = (key: FolderKey) => {
     if (key === 'all' && !isMobile) searchParams.delete('folder');
@@ -77,7 +79,7 @@ export function BookmarkPage() {
   if (isMobileListMode) {
     return (
       <div className="px-4 py-4">
-        <h1 className="text-lg font-semibold mb-4">북마크</h1>
+        <h1 className="text-lg font-semibold mb-4">{TEXTS.bookmark.folder.pageTitle}</h1>
         <MobileFolderList onSelect={setFolderKey} />
       </div>
     );
@@ -93,14 +95,14 @@ export function BookmarkPage() {
             size="icon"
             className="h-8 w-8 -ml-2"
             onClick={goToFolderList}
-            aria-label="폴더 목록으로"
+            aria-label={TEXTS.ariaLabels.backToFolderList}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-base font-semibold flex-1 truncate">{currentFolderName}</h1>
           <Select value={sort} onValueChange={(v) => setSort(v as FolderSort)}>
             <SelectTrigger className="w-32 h-8 text-xs">
-              <SelectValue placeholder="정렬" />
+              <SelectValue placeholder={TEXTS.bookmark.folder.sortPlaceholder} />
             </SelectTrigger>
             <SelectContent>
               {VALID_SORTS.map((s) => (
@@ -129,7 +131,7 @@ export function BookmarkPage() {
           <h1 className="text-xl font-semibold truncate">{currentFolderName}</h1>
           <Select value={sort} onValueChange={(v) => setSort(v as FolderSort)}>
             <SelectTrigger className="w-36">
-              <SelectValue placeholder="정렬" />
+              <SelectValue placeholder={TEXTS.bookmark.folder.sortPlaceholder} />
             </SelectTrigger>
             <SelectContent>
               {VALID_SORTS.map((s) => (

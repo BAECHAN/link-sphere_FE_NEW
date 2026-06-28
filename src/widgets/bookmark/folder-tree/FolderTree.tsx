@@ -12,6 +12,7 @@ import {
 } from '@/shared/ui/atoms/dropdown-menu';
 import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { TEXTS } from '@/shared/config/texts';
 import {
   useCreateFolderMutation,
   useDeleteFolderMutation,
@@ -34,13 +35,13 @@ export function FolderTree({ selectedKey, onSelect, className }: FolderTreeProps
     <aside className={cn('flex flex-col gap-1 py-2', className)}>
       <FixedItem
         icon={<FolderIcon className="h-4 w-4" />}
-        label="전체"
+        label={TEXTS.bookmark.folder.all}
         selected={selectedKey === 'all'}
         onClick={() => onSelect('all')}
       />
       <FixedItem
         icon={<Inbox className="h-4 w-4" />}
-        label="미분류"
+        label={TEXTS.bookmark.folder.uncategorized}
         selected={selectedKey === 'uncategorized'}
         onClick={() => onSelect('uncategorized')}
       />
@@ -75,10 +76,10 @@ export function FolderChips({ selectedKey, onSelect, className }: FolderTreeProp
   return (
     <div className={cn('flex items-center gap-2 overflow-x-auto py-2 px-1', className)}>
       <Chip selected={selectedKey === 'all'} onClick={() => onSelect('all')}>
-        전체
+        {TEXTS.bookmark.folder.all}
       </Chip>
       <Chip selected={selectedKey === 'uncategorized'} onClick={() => onSelect('uncategorized')}>
-        미분류
+        {TEXTS.bookmark.folder.uncategorized}
       </Chip>
       {folders?.map((folder) => (
         <Chip
@@ -100,7 +101,8 @@ export function FolderChips({ selectedKey, onSelect, className }: FolderTreeProp
           onClick={() => setCreating(true)}
           className="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm border border-dashed text-muted-foreground hover:bg-accent shrink-0"
         >
-          <Plus className="h-3.5 w-3.5" />새 폴더
+          <Plus className="h-3.5 w-3.5" />
+          {TEXTS.bookmark.folder.new}
         </button>
       )}
     </div>
@@ -157,10 +159,10 @@ function FolderItem({ folder, selected, onClick }: FolderItemProps) {
     submittingRef.current = true;
     try {
       await updateFolder({ name: next });
-      toast.success('폴더 이름 변경됨');
+      toast.success(TEXTS.messages.success.folderRenamed);
       setRenaming(false);
     } catch {
-      toast.error('이름 변경 실패');
+      toast.error(TEXTS.messages.error.folderRenameFailed);
       setName(folder.name);
     } finally {
       submittingRef.current = false;
@@ -169,16 +171,16 @@ function FolderItem({ folder, selected, onClick }: FolderItemProps) {
 
   const handleDelete = () => {
     openConfirm({
-      title: `"${folder.name}" 폴더 삭제`,
-      message: '폴더 안의 북마크는 미분류로 이동합니다.',
-      confirmText: '삭제',
-      cancelText: '취소',
+      title: TEXTS.bookmark.folder.deleteConfirmTitle(folder.name),
+      message: TEXTS.bookmark.folder.deleteConfirmMessage,
+      confirmText: TEXTS.buttons.delete,
+      cancelText: TEXTS.buttons.cancel,
       onConfirm: async () => {
         try {
           await deleteFolder();
-          toast.success('폴더가 삭제됐어요');
+          toast.success(TEXTS.messages.success.folderDeleted);
         } catch {
-          toast.error('폴더 삭제 실패');
+          toast.error(TEXTS.messages.error.folderDeleteFailed);
         }
       },
     });
@@ -227,15 +229,17 @@ function FolderItem({ folder, selected, onClick }: FolderItemProps) {
             variant="ghost"
             size="icon"
             className="h-7 w-7 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
-            aria-label="폴더 메뉴"
+            aria-label={TEXTS.ariaLabels.folderMenu}
           >
             <MoreVertical className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setRenaming(true)}>이름 수정</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setRenaming(true)}>
+            {TEXTS.bookmark.folder.rename}
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-            삭제
+            {TEXTS.buttons.delete}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -255,7 +259,8 @@ function CreateFolderInput() {
       onClick={() => setCreating(true)}
       className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-accent"
     >
-      <Plus className="h-4 w-4" />새 폴더 만들기
+      <Plus className="h-4 w-4" />
+      {TEXTS.bookmark.folder.create}
     </button>
   );
 }
@@ -276,10 +281,10 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
     submittingRef.current = true;
     try {
       const created = await createFolder({ name: trimmed });
-      toast.success(`폴더 "${created.name}" 생성됨`);
+      toast.success(TEXTS.messages.success.folderCreated(created.name));
       onClose();
     } catch {
-      toast.error('폴더 생성 실패');
+      toast.error(TEXTS.messages.error.folderCreateFailed);
     } finally {
       submittingRef.current = false;
     }
@@ -300,12 +305,16 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
         onChange={(e) => setName(e.target.value)}
         onBlur={() => !name && onClose()}
         onKeyDown={handleKeyDown}
-        placeholder="새 폴더 이름"
+        placeholder={TEXTS.bookmark.folder.namePlaceholder}
         disabled={isPending}
         className="h-7 flex-1"
       />
       <Button size="sm" onClick={submit} disabled={!name.trim() || isPending}>
-        {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : '생성'}
+        {isPending ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          TEXTS.bookmark.folder.createSubmit
+        )}
       </Button>
     </div>
   );

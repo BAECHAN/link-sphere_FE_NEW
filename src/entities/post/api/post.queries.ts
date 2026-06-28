@@ -192,8 +192,8 @@ export const useUpdatePostVisibilityMutation = (postId: string) => {
       return await postApi.updatePostVisibility(postId, isPrivate);
     },
     meta: {
-      successMessage: '게시물 공개 설정이 변경되었습니다.',
-      errorMessage: '게시물 공개 설정 변경에 실패했습니다.',
+      successMessage: TEXTS.messages.success.postVisibilityUpdated,
+      errorMessage: TEXTS.messages.error.postVisibilityUpdateFailed,
     },
     onSuccess: () => {
       handlePostUpdateSuccess(postId);

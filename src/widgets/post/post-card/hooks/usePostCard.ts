@@ -39,13 +39,15 @@ export function usePostCard(post: Post, isDetail = false) {
     e.preventDefault();
     if (!isOwner) return;
 
-    const actionText = post.isPrivate ? '전체 공개로' : '나만 보기(비공개)로';
+    const actionText = post.isPrivate
+      ? TEXTS.post.card.visibilityToPublic
+      : TEXTS.post.card.visibilityToPrivate;
 
     openConfirm({
-      title: '공개 설정 변경',
-      message: `이 게시물을 ${actionText} 전환하시겠습니까?`,
-      confirmText: '확인',
-      cancelText: '취소',
+      title: TEXTS.post.card.visibilityConfirmTitle,
+      message: TEXTS.post.card.visibilityConfirmMessage(actionText),
+      confirmText: TEXTS.buttons.confirm,
+      cancelText: TEXTS.buttons.cancel,
       onConfirm: () => {
         updateVisibility(
           { postId: post.id, isPrivate: !post.isPrivate },

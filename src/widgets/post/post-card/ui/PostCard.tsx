@@ -189,10 +189,10 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
                 size="icon"
                 className="h-6 w-6 rounded-full p-0 text-muted-foreground hover:text-foreground"
                 onClick={handleCopyOriginalUrl}
-                title="원본 링크 복사"
+                title={TEXTS.post.card.copyOriginalLink}
               >
                 <Copy className="h-3 w-3" />
-                <span className="sr-only">원본 링크 복사</span>
+                <span className="sr-only">{TEXTS.post.card.copyOriginalLink}</span>
               </Button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/entities/user/hooks/useAuth';
+import { TEXTS } from '@/shared/config/texts';
 
 /**
  * 앱 초기화 전담 훅
@@ -22,7 +23,7 @@ export const useAppInitialization = () => {
           await restoreAuth();
         }
       } catch (error) {
-        console.error('앱 초기화 실패:', error);
+        console.error(TEXTS.messages.error.appInitFailed, error);
       } finally {
         setIsInitialized(true);
       }

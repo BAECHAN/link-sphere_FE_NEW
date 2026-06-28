@@ -3,6 +3,7 @@ import { Bookmark } from 'lucide-react';
 import { Post } from '@/entities/post/model/post.schema';
 import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { TEXTS } from '@/shared/config/texts';
 import { FolderSelector } from '@/features/post/bookmark/ui/FolderSelector';
 
 interface BookmarkPostButtonProps {
@@ -39,7 +40,7 @@ export function BookmarkPostButton({
           isBookmarked ? 'text-warning hover:text-warning/80' : 'text-muted-foreground'
         )}
         onClick={handleClick}
-        aria-label={isBookmarked ? '북마크 폴더 변경' : '북마크 저장'}
+        aria-label={isBookmarked ? TEXTS.ariaLabels.bookmarkChange : TEXTS.ariaLabels.bookmarkSave}
       >
         <Bookmark className={cn('h-3.5 w-3.5 md:h-4.5 md:w-4.5', isBookmarked && 'fill-current')} />
         <span className="sr-only">Bookmark</span>

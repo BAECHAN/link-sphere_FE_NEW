@@ -7,6 +7,7 @@ import {
   useCreateReplyMutation,
 } from '@/entities/comment/api/comment.queries';
 import { useImagePaste } from '@/shared/hooks/useImagePaste';
+import { TEXTS } from '@/shared/config/texts';
 
 const formSchema = z.object({
   content: z.string(),
@@ -59,7 +60,7 @@ export function useCreateComment({
     const content = (data.content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
     if (!content.trim() && pastedImages.length === 0) {
-      setError('content', { type: 'manual', message: '내용 또는 이미지를 추가해주세요.' });
+      setError('content', { type: 'manual', message: TEXTS.validation.commentOrImageRequired });
       return;
     }
 

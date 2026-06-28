@@ -2,6 +2,7 @@ import { Comment } from '@/entities/comment/model/comment.schema';
 import { Post } from '@/entities/post/model/post.schema';
 import { Heart } from 'lucide-react';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { TEXTS } from '@/shared/config/texts';
 import { useLikeComment } from '@/features/comment/like/hooks/useLikeComment';
 import { Button } from '@/shared/ui/atoms/button';
 
@@ -32,7 +33,7 @@ export function LikeCommentButton({
       )}
     >
       <Heart className={cn('h-3.5 w-3.5', isLiked && 'fill-current')} />
-      <span>{likeCount > 0 ? likeCount : '좋아요'}</span>
+      <span>{likeCount > 0 ? likeCount : TEXTS.comment.item.like}</span>
     </Button>
   );
 }

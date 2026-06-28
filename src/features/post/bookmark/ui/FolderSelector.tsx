@@ -7,6 +7,7 @@ import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { TEXTS } from '@/shared/config/texts';
 import { useCreateFolderMutation, useFolderListQuery } from '@/entities/folder/api/folder.queries';
 import { useBookmarkWithFolder } from '@/features/post/bookmark/hooks/useBookmarkWithFolder';
 
@@ -58,10 +59,10 @@ export function FolderSelector({
     setPendingFolderId(folderId);
     try {
       await saveToFolder(folderId);
-      toast.success(`${folderName}에 저장됨`);
+      toast.success(TEXTS.messages.success.bookmarkSavedTo(folderName));
       close();
     } catch {
-      toast.error('저장에 실패했습니다.');
+      toast.error(TEXTS.messages.error.bookmarkSaveFailed);
       setPendingFolderId(undefined);
     }
   };
@@ -69,10 +70,10 @@ export function FolderSelector({
   const handleRemove = async () => {
     try {
       await removeBookmark();
-      toast.success('북마크 제거됨');
+      toast.success(TEXTS.messages.success.bookmarkRemoved);
       close();
     } catch {
-      toast.error('북마크 제거에 실패했습니다.');
+      toast.error(TEXTS.messages.error.bookmarkRemoveFailed);
     }
   };
 
@@ -85,7 +86,7 @@ export function FolderSelector({
       const created = await createFolder({ name });
       await handleSelect(created.id, created.name);
     } catch {
-      toast.error('폴더 생성에 실패했습니다.');
+      toast.error(TEXTS.messages.error.folderCreateFailedFull);
     } finally {
       submittingRef.current = false;
     }
@@ -105,10 +106,18 @@ export function FolderSelector({
         {/* 헤더 */}
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div>
-            <DialogTitle className="text-base">보관함</DialogTitle>
-            <DialogDescription className="text-xs">폴더를 탭하면 바로 저장돼요</DialogDescription>
+            <DialogTitle className="text-base">{TEXTS.bookmark.folder.selectorTitle}</DialogTitle>
+            <DialogDescription className="text-xs">
+              {TEXTS.bookmark.folder.selectorDescription}
+            </DialogDescription>
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={close} aria-label="닫기">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={close}
+            aria-label={TEXTS.ariaLabels.close}
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -124,10 +133,10 @@ export function FolderSelector({
               {/* 미분류 */}
               <FolderRow
                 icon={<Bookmark className="h-4 w-4" />}
-                name="미분류"
+                name={TEXTS.bookmark.folder.uncategorized}
                 isSelected={isBookmarked && currentFolderId === null}
                 isPending={pendingFolderId === null}
-                onClick={() => handleSelect(null, '미분류')}
+                onClick={() => handleSelect(null, TEXTS.bookmark.folder.uncategorized)}
               />
 
               {/* 폴더 목록 */}
@@ -149,7 +158,7 @@ export function FolderSelector({
                   <FolderPlus className="h-4 w-4 text-muted-foreground" />
                   <Input
                     autoFocus
-                    placeholder="새 폴더 이름"
+                    placeholder={TEXTS.bookmark.folder.namePlaceholder}
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
                     onKeyDown={(e) => {
@@ -169,7 +178,11 @@ export function FolderSelector({
                     onClick={handleCreateAndSelect}
                     disabled={!newFolderName.trim() || isCreating}
                   >
-                    {isCreating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : '생성'}
+                    {isCreating ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      TEXTS.bookmark.folder.createSubmit
+                    )}
                   </Button>
                 </li>
               ) : (
@@ -179,7 +192,8 @@ export function FolderSelector({
                     onClick={() => setCreatingMode(true)}
                     className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-muted-foreground hover:bg-accent border-t"
                   >
-                    <Plus className="h-4 w-4" />새 폴더 만들기
+                    <Plus className="h-4 w-4" />
+                    {TEXTS.bookmark.folder.create}
                   </button>
                 </li>
               )}
@@ -193,7 +207,7 @@ export function FolderSelector({
                     className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 border-t"
                   >
                     <BookmarkX className="h-4 w-4" />
-                    북마크 제거
+                    {TEXTS.bookmark.folder.removeBookmark}
                   </button>
                 </li>
               )}

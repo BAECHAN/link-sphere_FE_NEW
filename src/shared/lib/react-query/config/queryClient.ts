@@ -50,7 +50,7 @@ const mutationErrorHandler = (
 
     // 403 권한 에러 처리
     if (error.code === 'ACCESS_DENIED') {
-      toast.error(TEXTS.messages.error.accessDenied || '접근 권한이 없습니다.');
+      toast.error(TEXTS.messages.error.accessDenied);
       return;
     }
 
@@ -94,14 +94,14 @@ export const queryClient = new QueryClient({
         // 401 인증 에러 처리 (로그인 필요, 유효하지 않은 토큰)
         if (error.code === 'NOT_LOGGED_IN' || error.code === 'INVALID_TOKEN') {
           AuthUtil.clearAll();
-          toast.error(TEXTS.messages.error.loginRequired || '로그인이 필요합니다.');
+          toast.error(TEXTS.messages.error.loginRequired);
           window.location.href = '/auth/login';
           return;
         }
 
         // 403 권한 에러 처리
         if (error.code === 'ACCESS_DENIED') {
-          toast.error(TEXTS.messages.error.accessDenied || '접근 권한이 없습니다.');
+          toast.error(TEXTS.messages.error.accessDenied);
           return;
         }
 

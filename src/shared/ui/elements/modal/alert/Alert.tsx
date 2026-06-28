@@ -10,6 +10,7 @@ import {
 } from '@/shared/ui/atoms/dialog';
 import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { TEXTS } from '@/shared/config/texts';
 
 interface AlertProps {
   alert: AlertData;
@@ -20,7 +21,15 @@ function Alert({ alert }: AlertProps) {
     useShallow((state) => ({ close: state.close, remove: state.remove }))
   );
 
-  const { id, title, message, confirmText = '확인', cancelText = '취소', type, isOpen } = alert;
+  const {
+    id,
+    title,
+    message,
+    confirmText = TEXTS.buttons.confirm,
+    cancelText = TEXTS.buttons.cancel,
+    type,
+    isOpen,
+  } = alert;
 
   const handleConfirm = () => {
     alert.onConfirm?.();

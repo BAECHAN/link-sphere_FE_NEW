@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TEXTS } from '@/shared/config/texts';
 
 // 폴더 항목 — BE FolderResponse 와 매핑
 export const folderSchema = z.object({
@@ -14,7 +15,7 @@ export const folderListSchema = z.array(folderSchema);
 
 // 생성 / 수정
 export const createFolderSchema = z.object({
-  name: z.string().min(1, '폴더 이름을 입력해주세요.'),
+  name: z.string().min(1, TEXTS.validation.folderNameRequired),
 });
 
 export const updateFolderSchema = createFolderSchema;

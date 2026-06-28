@@ -3,6 +3,7 @@ import { onMessage } from 'firebase/messaging';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { messaging } from '@/shared/lib/firebase/firebase';
+import { TEXTS } from '@/shared/config/texts';
 
 export function useFcmForegroundMessage() {
   const navigate = useNavigate();
@@ -11,7 +12,7 @@ export function useFcmForegroundMessage() {
     if (!messaging) return;
 
     const unsubscribe = onMessage(messaging, (payload) => {
-      const title = payload.notification?.title ?? '새로운 알림';
+      const title = payload.notification?.title ?? TEXTS.notification.defaultTitle;
       const body = payload.notification?.body ?? '';
       const postId = payload.data?.postId;
 
@@ -19,7 +20,7 @@ export function useFcmForegroundMessage() {
         description: body,
         ...(postId && {
           action: {
-            label: '보러가기',
+            label: TEXTS.notification.viewAction,
             onClick: () => navigate(`/post/${postId}`),
           },
           closeButton: false,

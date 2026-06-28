@@ -706,6 +706,73 @@ export default [
   },
 
   // ============================================================
+  // [금지] 한글 UI 문자열 하드코딩
+  // 이유: 모든 사용자 노출 문자열은 src/shared/config/texts.ts의 TEXTS로
+  //       중앙 관리해야 함. 직접 작성 시 다국어/문구 일관성 관리가 불가능해짐.
+  //       texts.ts 자기 자신과 테스트/목 픽스처는 예외.
+  // ============================================================
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: [
+      'src/shared/config/texts.ts', // TEXTS 단일 소스
+      'src/test/**/*.{ts,tsx}', // 테스트 인프라
+      'src/mocks/**/*.{ts,tsx}', // MSW 목/픽스처
+      '**/*.test.{ts,tsx}', // 콜로케이션 테스트
+      '**/*.stories.{ts,tsx}', // Storybook
+      'src/shared/utils/date.util.ts', // 날짜 로케일 포맷 (i18n 예외)
+      'src/shared/utils/common.util.ts', // 숫자/통화 로케일 포맷 (i18n 예외)
+      '**/*.styles.ts',
+      '**/*.styles.tsx',
+    ],
+    plugins: {
+      'custom-i18n': {
+        rules: {
+          'no-hardcoded-hangul': {
+            meta: {
+              type: 'problem',
+              docs: {
+                description: '한글 UI 문자열 하드코딩 금지 (TEXTS로 중앙 관리)',
+              },
+              messages: {
+                hardcodedHangul:
+                  '한글 UI 문자열은 직접 작성할 수 없습니다. src/shared/config/texts.ts의 TEXTS.*에 키를 추가한 뒤 참조하세요.',
+              },
+            },
+            create(context) {
+              // 한글(완성형/자모/호환자모) 감지
+              const hangulRegex = /[가-힣ᄀ-ᇿ㄰-㆏]/;
+
+              function report(node, value) {
+                if (typeof value === 'string' && hangulRegex.test(value)) {
+                  context.report({ node, messageId: 'hardcodedHangul' });
+                }
+              }
+
+              return {
+                JSXText(node) {
+                  report(node, node.value);
+                },
+                Literal(node) {
+                  // import 경로 등은 Literal이지만 한글이 없으므로 자연히 통과
+                  report(node, node.value);
+                },
+                TemplateLiteral(node) {
+                  for (const quasi of node.quasis) {
+                    report(quasi, quasi.value.raw);
+                  }
+                },
+              };
+            },
+          },
+        },
+      },
+    },
+    rules: {
+      'custom-i18n/no-hardcoded-hangul': 'error',
+    },
+  },
+
+  // ============================================================
   // FSD 레이어 경계 규칙: app → pages → widgets → features → entities → shared
   // 하위 레이어는 상위 레이어를 import할 수 없음
   // ============================================================

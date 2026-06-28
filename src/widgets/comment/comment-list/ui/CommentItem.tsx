@@ -9,6 +9,7 @@ import { CommentEditForm } from '@/features/comment/update/ui/CommentEditForm';
 import { MessageSquare, Trash2, Edit2 } from 'lucide-react';
 import { useFetchAccountQuery } from '@/entities/user/api/auth.queries';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { TEXTS } from '@/shared/config/texts';
 import { ActionButton } from '@/shared/ui/elements/ActionButton';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
@@ -61,7 +62,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
           <span className="font-semibold">{comment.author.nickname}</span>
           {isPostAuthor && (
             <Badge variant="default" className="px-1.5 py-0 text-[10px] h-4 bg-category">
-              작성자
+              {TEXTS.comment.item.authorBadge}
             </Badge>
           )}
           <span className="text-xs text-muted-foreground">
@@ -135,7 +136,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
             {canReply && (
               <ActionButton
                 icon={MessageSquare}
-                label="답글 달기"
+                label={TEXTS.comment.item.reply}
                 onClick={() => setIsReplying(!isReplying)}
                 className="hover:text-info"
               />
@@ -145,13 +146,13 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
               <>
                 <ActionButton
                   icon={Edit2}
-                  label="수정"
+                  label={TEXTS.comment.item.edit}
                   onClick={startEditing}
                   className="hover:text-info"
                 />
                 <ActionButton
                   icon={Trash2}
-                  label="삭제"
+                  label={TEXTS.buttons.delete}
                   onClick={() => onDelete(comment.id)}
                   className="hover:text-destructive"
                 />

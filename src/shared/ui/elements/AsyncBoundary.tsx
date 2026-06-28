@@ -49,7 +49,7 @@ export function AsyncBoundary({
 }: AsyncBoundaryProps) {
   const defaultErrorFallback = ({ error }: FallbackProps) => {
     const errorMessage = error instanceof Error ? error.message : TEXTS.messages.error.defaultError;
-    return <ErrorLayout title="오류 발생" description={errorMessage} />;
+    return <ErrorLayout title={TEXTS.errors.errorOccurred} description={errorMessage} />;
   };
 
   return (

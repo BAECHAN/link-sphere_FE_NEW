@@ -9,6 +9,7 @@ import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
 import { GlobalAlerts } from '@/shared/ui/elements/modal/alert/Alert';
 import { ApiError } from '@/shared/types/common.type';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { TEXTS } from '@/shared/config/texts';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 
 /**
@@ -65,11 +66,11 @@ function GlobalErrorFallback({ error }: FallbackProps) {
     return <SpinnerOverlay />;
   }
 
-  const message = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+  const message = error instanceof Error ? error.message : TEXTS.messages.error.unknownError;
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-480 text-center">
-        <h1 className="text-6xl font-bold text-gray-900 mb-4">오류 발생</h1>
+        <h1 className="text-6xl font-bold text-gray-900 mb-4">{TEXTS.errors.errorOccurred}</h1>
         <p className="text-xl text-gray-600">{message}</p>
       </div>
     </div>

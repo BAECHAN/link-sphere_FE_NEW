@@ -1,6 +1,7 @@
 import { ErrorLayout } from '@/shared/ui/layouts/ErrorLayout';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { TEXTS } from '@/shared/config/texts';
 
 export function ServerErrorPage() {
   const navigate = useNavigate();
@@ -8,7 +9,7 @@ export function ServerErrorPage() {
   return (
     <ErrorLayout
       title="500"
-      description="서버에 문제가 발생했습니다. 잠시 후 다시 시도해 주세요."
+      description={TEXTS.errors.serverError.description}
       onHomeClick={() => navigate(ROUTES_PATHS.HOME)}
     />
   );
