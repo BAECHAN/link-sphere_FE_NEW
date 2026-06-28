@@ -474,15 +474,34 @@ queryClient.setQueriesData<InfiniteData<EntityListResponse>>(
 
 ## 에러 핸들링 전략
 
+### 토스트 단일 소유 원칙 (중복 방지)
+
+**에러 토스트의 유일한 기본 소유자는 React Query 전역 핸들러(`queryClient.ts`)다.**
+
+- transport 레이어(`shared/api/client.ts`)는 UI 토스트를 띄우지 않는다 — 인증 정리·throw만.
+- mutation 에러는 전부 `mutationErrorHandler`를 지나가며, `meta.manualErrorHandling`이 없으면 거기서 토스트 1개가 자동으로 뜬다 ([queryClient.ts](src/shared/lib/react-query/config/queryClient.ts) `if (meta?.manualErrorHandling) return;`).
+
+> ⚠️ **Never** mutation `onError`나 그 mutation을 쓰는 컴포넌트 `catch`에서 `toast.`를 직접 부르면서 `meta.manualErrorHandling`을 빼먹지 말 것 → 전역 토스트와 겹쳐 **두 번 뜬다**. 직접 토스트를 띄우면 반드시 `manualErrorHandling: true`.
+
 ### 전역 자동 처리 (queryClient)
 
 - `ApiError` → 콘솔 로깅 + 에러 토스트 자동 표시
 - mutation `meta.successMessage` → 성공 토스트 자동 표시
 - mutation `meta.errorMessage` → 커스텀 에러 토스트
+- (query는 opt-in: `meta.errorMessage`가 있을 때만 토스트. mutation은 opt-out: 기본 표시)
+
+### 새 mutation 만들 때 토스트 결정표
+
+| 원하는 동작                           | 설정                                  | 결과                     |
+| ------------------------------------- | ------------------------------------- | ------------------------ |
+| 일반 에러 토스트면 충분               | (없음)                                | 전역이 `serverError` 1개 |
+| 메시지만 커스텀                       | `meta: { errorMessage }`              | 전역이 그 메시지 1개     |
+| `onError`/컴포넌트에서 **직접** toast | `meta: { manualErrorHandling: true }` | 내 토스트만 1개          |
+| 옵티미스틱 토글(실패 시 롤백만)       | `meta: { manualErrorHandling: true }` | 토스트 없이 롤백         |
 
 ### 수동 처리 (`manualErrorHandling`)
 
-form 필드에 서버 오류 매핑 시 전역 핸들러 우회:
+form 필드에 서버 오류 매핑 시, 또는 컴포넌트/플로우가 자체 토스트를 띄울 때 전역 핸들러 우회:
 
 ```typescript
 useMutation({
