@@ -775,3 +775,24 @@ pnpm storybook        # Storybook (port 6006)
 - **배포**: CloudFront → `/api/*` Lambda(BE), `/*` S3(FE)
 - **개발 프록시**: `vite.config.ts` — `/api/*` → `localhost:8080` (rewrite 없음)
 - **커밋**: 작업 전 `.gitmessage` 파일 먼저 읽고 형식 준수
+
+---
+
+## 릴리즈노트 (CHANGELOG) 관리
+
+레포 루트 `CHANGELOG.md`로 변경 이력을 관리한다. 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/) + [SemVer](https://semver.org/lang/ko/), **한글 작성**.
+
+**규칙**
+
+- `feat` / `fix` / `perf` / 동작이 바뀌는 `refactor` 커밋 시 → **`CHANGELOG.md`의 `[Unreleased]` 섹션에 항목 추가**를 같은 커밋에 포함한다.
+- 섹션: `Added` / `Changed` / `Fixed` / `Removed`. BE API 의존 사항은 `Notes`, 테스트 추가는 `Tests` 섹션 활용.
+- `docs` / `style` / `chore` 등 사용자 영향 없는 변경은 기록하지 않는다.
+
+**릴리즈 시점** (버전 확정)
+
+1. `[Unreleased]` 항목들을 새 버전 섹션 `## [X.Y.Z] - YYYY-MM-DD` 으로 승격
+2. `git tag -a vX.Y.Z` → `git push origin vX.Y.Z`
+3. `gh release create vX.Y.Z --notes-file <노트>` 로 GitHub Release 생성
+4. 하단 compare/release 링크 갱신 (`https://github.com/BAECHAN/link-sphere_FE_NEW`)
+
+- 현재 버전 기준점: `0.1.0` (정식 릴리즈 전 개발 단계 = `0.x`)
