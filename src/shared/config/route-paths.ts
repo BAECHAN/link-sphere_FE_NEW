@@ -14,6 +14,7 @@ const ROUTES_PATHS = {
     LOGIN: `${ROUTES_BASE.AUTH}/login`,
     SIGNUP: `${ROUTES_BASE.AUTH}/sign-up`,
   },
+  BOOKMARK: '/bookmark',
   // Error
   FORBIDDEN: '/403',
   SERVER_ERROR: '/500',

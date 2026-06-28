@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Home, Link2, Menu } from 'lucide-react';
+import { Bookmark, Home, Link2, Menu, X } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/shared/lib/tailwind/utils';
@@ -31,6 +31,12 @@ const NAV_ITEMS: NavItemConfig[] = [
     label: TEXTS.nav.submit,
     isActive: (pathname) =>
       pathname.startsWith('/post/submit') || pathname.startsWith('/post/edit'),
+  },
+  {
+    to: ROUTES_PATHS.BOOKMARK,
+    icon: Bookmark,
+    label: TEXTS.nav.bookmark,
+    isActive: (pathname) => pathname.startsWith(ROUTES_PATHS.BOOKMARK),
   },
 ];
 
@@ -73,15 +79,23 @@ interface SidebarHeaderProps {
   expanded: boolean;
   onToggle: () => void;
   onLogoClick?: () => void;
+  /** true 면 햄버거 대신 X 아이콘 표시 — 모바일 드로어가 열린 상태용 */
+  showCloseIcon?: boolean;
 }
 
-function SidebarHeader({ expanded, onToggle, onLogoClick }: SidebarHeaderProps) {
+function SidebarHeader({
+  expanded,
+  onToggle,
+  onLogoClick,
+  showCloseIcon = false,
+}: SidebarHeaderProps) {
+  const Icon = showCloseIcon ? X : Menu;
   return (
     <div
       className={cn('h-16 flex items-center shrink-0', expanded ? 'px-3 gap-3' : 'justify-center')}
     >
       <Button variant="ghost" size="icon" onClick={onToggle}>
-        <Menu className="size-6" />
+        <Icon className="size-6" />
         <span className="sr-only">{TEXTS.nav.toggleMenu}</span>
       </Button>
       {expanded && (
@@ -145,7 +159,7 @@ export function Sidebar() {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <SidebarHeader expanded onToggle={close} onLogoClick={close} />
+        <SidebarHeader expanded onToggle={close} onLogoClick={close} showCloseIcon />
         <nav className="flex flex-col gap-1 py-4 px-2">
           {NAV_ITEMS.map((item) => (
             <NavItem key={item.to} {...item} expanded onClick={close} />

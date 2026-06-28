@@ -244,7 +244,11 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
         </div>
 
         <div className="flex items-center gap-1 md:gap-1.5 ml-auto">
-          <BookmarkPostButton postId={post.id} isBookmarked={post.userInteractions.isBookmarked} />
+          <BookmarkPostButton
+            postId={post.id}
+            isBookmarked={post.userInteractions.isBookmarked}
+            bookmarkFolderId={post.userInteractions.bookmarkFolderId}
+          />
           <Button
             variant="ghost"
             size="icon"

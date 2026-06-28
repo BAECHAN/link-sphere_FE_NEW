@@ -12,6 +12,7 @@ const API_BASES = {
   common: '/common',
   post: '/post',
   comment: '/comment',
+  bookmark: '/bookmark',
 } as const;
 
 const API_ENDPOINTS = {
@@ -40,6 +41,17 @@ const API_ENDPOINTS = {
   common: {
     base: API_BASES.common,
     categoryOption: `${API_BASES.common}/category-option`,
+  },
+
+  bookmark: {
+    base: API_BASES.bookmark,
+    folders: `${API_BASES.bookmark}/folders`,
+    folder: (folderId: string) => `${API_BASES.bookmark}/folders/${folderId}`,
+    reorder: `${API_BASES.bookmark}/folders/reorder`,
+    folderPosts: (folderKey: string) => `${API_BASES.bookmark}/folders/${folderKey}/posts`,
+    moveBookmark: (postId: string) => `${API_BASES.bookmark}/${postId}/folder`,
+    batchMove: `${API_BASES.bookmark}/batch/move`,
+    batchDelete: `${API_BASES.bookmark}/batch/delete`,
   },
 } as const;
 

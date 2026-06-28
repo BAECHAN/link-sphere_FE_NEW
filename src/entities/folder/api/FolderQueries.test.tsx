@@ -1,0 +1,122 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { renderHook, waitFor, act } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
+import { type ReactNode } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { server } from '@/mocks/server';
+import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { queryClient } from '@/shared/lib/react-query/config/queryClient';
+import { postKeys } from '@/entities/post/api/post.keys';
+import { folderKeys } from '@/entities/folder/api/folder.keys';
+import { mockPost } from '@/mocks/fixtures/post.fixtures';
+import type { Post } from '@/entities/post/model/post.schema';
+import type { FolderList } from '@/entities/folder/model/folder.schema';
+import { useMoveBookmarkMutation } from '@/entities/folder/api/folder.queries';
+
+const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
+
+const okResponse = () =>
+  HttpResponse.json({ status: 200, message: 'ok', data: null, timestamp: '' }, { status: 200 });
+
+function Wrapper({ children }: { children: ReactNode }) {
+  // 옵티미스틱 업데이트가 싱글톤 queryClient를 직접 조작하므로 동일 인스턴스를 provider로 사용
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}
+
+const POST_ID = mockPost.id;
+const FOLDER_ID = 'folder-uuid-1';
+
+const seedFolderList: FolderList = [
+  {
+    id: FOLDER_ID,
+    name: '읽을거리',
+    sortOrder: 0,
+    bookmarkCount: 2,
+    createdAt: new Date('2025-01-01'),
+    updatedAt: new Date('2025-01-01'),
+  },
+];
+
+describe('useMoveBookmarkMutation', () => {
+  beforeEach(() => {
+    queryClient.clear();
+    // 현재 미분류(bookmarkFolderId = null) 상태인 북마크된 포스트를 캐시에 주입
+    const seededPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderId: null },
+    };
+    queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
+    queryClient.setQueryData(folderKeys.list, seedFolderList);
+  });
+
+  afterEach(() => {
+    queryClient.clear();
+  });
+
+  it('폴더로 이동 시 PATCH /bookmark/{postId}/folder를 호출하고 성공한다', async () => {
+    let receivedBody: unknown;
+    server.use(
+      http.patch(url(API_ENDPOINTS.bookmark.moveBookmark(POST_ID)), async ({ request }) => {
+        receivedBody = await request.json();
+        return okResponse();
+      })
+    );
+
+    const { result } = renderHook(() => useMoveBookmarkMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ folderId: FOLDER_ID });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(receivedBody).toEqual({ folderId: FOLDER_ID });
+  });
+
+  it('옵티미스틱 업데이트로 post.detail과 folder.list 캐시를 즉시 갱신한다', async () => {
+    server.use(http.patch(url(API_ENDPOINTS.bookmark.moveBookmark(POST_ID)), () => okResponse()));
+
+    const { result } = renderHook(() => useMoveBookmarkMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ folderId: FOLDER_ID });
+    });
+
+    // post.detail: bookmarkFolderId가 대상 폴더로 즉시 변경
+    await waitFor(() => {
+      const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
+      expect(post?.userInteractions.bookmarkFolderId).toBe(FOLDER_ID);
+      expect(post?.userInteractions.isBookmarked).toBe(true);
+    });
+
+    // folder.list: 대상 폴더 bookmarkCount 증가 (2 → 3)
+    const folders = queryClient.getQueryData<FolderList>(folderKeys.list);
+    expect(folders?.find((f) => f.id === FOLDER_ID)?.bookmarkCount).toBe(3);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
+  it('서버 에러 시 옵티미스틱 변경을 롤백한다', async () => {
+    server.use(
+      http.patch(url(API_ENDPOINTS.bookmark.moveBookmark(POST_ID)), () =>
+        HttpResponse.json(
+          { status: 404, code: 'BOOKMARK_NOT_FOUND', message: 'not found', timestamp: '' },
+          { status: 404 }
+        )
+      )
+    );
+
+    const { result } = renderHook(() => useMoveBookmarkMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ folderId: FOLDER_ID });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    // 롤백 확인: post.detail은 다시 미분류(null), folder.list bookmarkCount는 원복
+    const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
+    expect(post?.userInteractions.bookmarkFolderId).toBe(null);
+    const folders = queryClient.getQueryData<FolderList>(folderKeys.list);
+    expect(folders?.find((f) => f.id === FOLDER_ID)?.bookmarkCount).toBe(2);
+  });
+});

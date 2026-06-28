@@ -83,6 +83,7 @@ export const TEXTS = {
     brand: 'LinkSphere',
     feed: 'Feed',
     submit: 'Submit',
+    bookmark: 'Bookmark',
     logIn: 'Log in',
     logOut: 'Log out',
     toggleMenu: 'Toggle menu',
@@ -160,6 +161,13 @@ export const TEXTS = {
       submitting: COMMON_TEXT.submitting,
       submitReply: '답글 등록',
       submitComment: '댓글 등록',
+    },
+  },
+  bookmark: {
+    empty: {
+      all: '아직 북마크가 없어요.',
+      uncategorized: '미분류 북마크가 없어요.',
+      folder: '이 폴더는 비어있어요.',
     },
   },
   descriptions: {

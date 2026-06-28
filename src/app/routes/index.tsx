@@ -26,6 +26,9 @@ const PostDetailPage = lazy(() =>
 const PostEditPage = lazy(() =>
   import('@/pages/post/PostEditPage').then((module) => ({ default: module.PostEditPage }))
 );
+const BookmarkPage = lazy(() =>
+  import('@/pages/bookmark/BookmarkPage').then((module) => ({ default: module.BookmarkPage }))
+);
 const SignUpPage = lazy(() =>
   import('@/pages/auth/SignUpPage').then((module) => ({ default: module.SignUpPage }))
 );
@@ -111,6 +114,10 @@ export const appRoutes: RouteObject[] = [
           {
             path: ROUTES_PATHS.POST.EDIT,
             element: withSuspense(PostEditPage),
+          },
+          {
+            path: ROUTES_PATHS.BOOKMARK,
+            element: withSuspense(BookmarkPage),
           },
         ],
       },

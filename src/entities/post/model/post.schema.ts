@@ -34,6 +34,7 @@ export const postSchema = z.object({
   userInteractions: z.object({
     isLiked: z.boolean().default(false),
     isBookmarked: z.boolean().default(false),
+    bookmarkFolderId: z.string().nullable().default(null),
   }),
   createdAt: z.coerce.date(),
   isPrivate: z.boolean().default(false),
