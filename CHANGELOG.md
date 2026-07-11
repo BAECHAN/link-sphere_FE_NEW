@@ -7,11 +7,18 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-11
+
 ### Added
 
 - **북마크 페이지 내 검색** — 북마크 페이지에 전용 검색창 추가. 이제 전체 피드가
   아니라 현재 선택된 폴더(전체 · 미분류 · 사용자 폴더) 범위 내에서만 제목·설명·태그로
   검색됨. 검색어는 URL 쿼리 `q`로 동기화. (상단 네비바 전역 검색은 기존대로 전체 피드)
+
+### Notes
+
+- BE API 의존: `GET /bookmark/folders/{folderKey}/posts` 의 `search` 파라미터 필요
+  (BE `v0.2.0`)
 
 ## [0.1.1] - 2026-06-28
 
@@ -65,6 +72,7 @@
   `PostResponse.userInteractions.bookmarkFolderId` 필요
 - 드래그앤드랍 · 다중 선택 · 폴더 공유는 차후 별도 작업
 
-[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/releases/tag/v0.1.0
