@@ -11,6 +11,7 @@ import {
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { TEXTS } from '@/shared/config/texts';
 import { BookmarkPostList } from '@/widgets/bookmark/bookmark-post-list/BookmarkPostList';
+import { BookmarkSearch } from '@/widgets/bookmark/bookmark-search/BookmarkSearch';
 import { FolderTree } from '@/widgets/bookmark/folder-tree/FolderTree';
 import { MobileFolderList } from '@/widgets/bookmark/folder-tree/MobileFolderList';
 import { FolderKey, FolderSort } from '@/entities/folder/model/folder.schema';
@@ -43,6 +44,7 @@ export function BookmarkPage() {
   const folderParam = searchParams.get('folder');
   const folderKey = parseFolderKey(folderParam);
   const sort = parseSort(searchParams.get('sort'));
+  const search = searchParams.get('q') ?? '';
 
   const { data: folders } = useFolderListQuery();
 
@@ -113,7 +115,8 @@ export function BookmarkPage() {
             </SelectContent>
           </Select>
         </header>
-        <BookmarkPostList folderKey={activeFolderKey} sort={sort} />
+        <BookmarkSearch className="mb-4" />
+        <BookmarkPostList folderKey={activeFolderKey} sort={sort} search={search} />
       </div>
     );
   }
@@ -142,7 +145,8 @@ export function BookmarkPage() {
             </SelectContent>
           </Select>
         </header>
-        <BookmarkPostList folderKey={activeFolderKey} sort={sort} />
+        <BookmarkSearch className="mb-4" />
+        <BookmarkPostList folderKey={activeFolderKey} sort={sort} search={search} />
       </main>
     </div>
   );

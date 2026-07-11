@@ -48,14 +48,19 @@ export const useSuspenseFolderListQuery = () => {
   });
 };
 
-export const useFolderPostsInfiniteQuery = (folderKey: FolderKey, sort?: FolderSort) => {
+export const useFolderPostsInfiniteQuery = (
+  folderKey: FolderKey,
+  sort?: FolderSort,
+  search?: string
+) => {
   return useInfiniteQuery({
-    queryKey: folderKeys.posts(folderKey, sort),
+    queryKey: folderKeys.posts(folderKey, sort, search),
     queryFn: ({ pageParam }: { pageParam: PaginationRequest['page'] }) =>
       folderApi.fetchFolderPosts(folderKey, {
         page: pageParam,
         size: POST_PAGE_SIZE,
         sort,
+        search,
       }),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.page + 1),

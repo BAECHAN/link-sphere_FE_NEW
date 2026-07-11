@@ -9,12 +9,13 @@ import { cn } from '@/shared/lib/tailwind/utils';
 interface BookmarkPostListProps {
   folderKey: FolderKey;
   sort: FolderSort;
+  search?: string;
   className?: string;
 }
 
-export function BookmarkPostList({ folderKey, sort, className }: BookmarkPostListProps) {
+export function BookmarkPostList({ folderKey, sort, search, className }: BookmarkPostListProps) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useFolderPostsInfiniteQuery(folderKey, sort);
+    useFolderPostsInfiniteQuery(folderKey, sort, search);
 
   const observerRef = useIntersectionObserver({
     onIntersect: () => {
@@ -42,11 +43,13 @@ export function BookmarkPostList({ folderKey, sort, className }: BookmarkPostLis
           className
         )}
       >
-        {folderKey === 'all'
-          ? TEXTS.bookmark.empty.all
-          : folderKey === 'uncategorized'
-            ? TEXTS.bookmark.empty.uncategorized
-            : TEXTS.bookmark.empty.folder}
+        {search
+          ? TEXTS.bookmark.empty.searchNoResult
+          : folderKey === 'all'
+            ? TEXTS.bookmark.empty.all
+            : folderKey === 'uncategorized'
+              ? TEXTS.bookmark.empty.uncategorized
+              : TEXTS.bookmark.empty.folder}
       </div>
     );
   }

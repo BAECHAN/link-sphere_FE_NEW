@@ -41,11 +41,12 @@ export const folderApi = {
   /** 폴더별 게시글 조회 — folderKey: 'all' | 'uncategorized' | UUID */
   fetchFolderPosts: async (
     folderKey: FolderKey,
-    payload: PostListRequest & { sort?: FolderSort }
+    payload: PostListRequest & { sort?: FolderSort; search?: string }
   ): Promise<PostListResponse> => {
-    const { page, size, sort } = payload;
+    const { page, size, sort, search } = payload;
     const searchParams: Record<string, string | number> = { page, size };
     if (sort) searchParams.sort = sort;
+    if (search) searchParams.search = search;
     return await apiClient.get<PostListResponse>(API_ENDPOINTS.bookmark.folderPosts(folderKey), {
       searchParams,
     });

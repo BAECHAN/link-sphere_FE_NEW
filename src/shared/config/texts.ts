@@ -44,6 +44,7 @@ export const TEXTS = {
     password: '비밀번호 입력',
     message: '메시지를 입력하세요.',
     postSearch: '키워드나 @카테고리, #닉네임으로 검색...',
+    bookmarkSearch: '북마크 내 검색...',
   },
   buttons: {
     retry: '다시 시도',
@@ -183,6 +184,7 @@ export const TEXTS = {
       all: '아직 북마크가 없어요.',
       uncategorized: '미분류 북마크가 없어요.',
       folder: '이 폴더는 비어있어요.',
+      searchNoResult: '검색 결과가 없어요.',
     },
     folder: {
       all: '전체',

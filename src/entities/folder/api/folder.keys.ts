@@ -16,8 +16,8 @@ export const folderKeys = {
   root: rootKey,
   list: [...rootKey, 'list'] as const,
   postsRoot: [...rootKey, 'posts'] as const,
-  posts: (folderKey: FolderKey, sort?: FolderSort) =>
-    [...rootKey, 'posts', folderKey, sort ?? 'latest'] as const,
+  posts: (folderKey: FolderKey, sort?: FolderSort, search?: string) =>
+    [...rootKey, 'posts', folderKey, sort ?? 'latest', search ?? ''] as const,
 };
 
 export const folderInvalidateQueries = {
