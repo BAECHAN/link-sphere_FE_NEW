@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 
 import { cn } from '@/shared/lib/tailwind/utils';
+import { Button } from '@/shared/ui/atoms/button';
 
 import { X } from 'lucide-react';
 
@@ -24,14 +25,16 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {props.value && onClear && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={onClear}
-            className="cursor-pointer absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-0.5 transition-colors hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+            className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full text-muted-foreground hover:text-foreground"
           >
-            <X className="size-6" />
+            <X className="size-4" />
             <span className="sr-only">Clear</span>
-          </button>
+          </Button>
         )}
       </>
     );

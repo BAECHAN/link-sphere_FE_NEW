@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { useState } from 'react';
 import { Input } from '@/shared/ui/atoms/input';
 // Label import removed as it was unused
 
@@ -14,7 +15,7 @@ const meta = {
   argTypes: {
     type: {
       control: 'select',
-      options: ['text', 'password', 'email', 'number', 'date', 'file'],
+      options: ['text', 'email', 'number', 'date', 'file'],
     },
     disabled: { control: 'boolean' },
     placeholder: { control: 'text' },
@@ -30,13 +31,6 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
-
-export const Password: Story = {
-  args: {
-    type: 'password',
-    placeholder: 'Password',
-  },
-};
 
 export const Email: Story = {
   args: {
@@ -70,4 +64,22 @@ export const WithLabel: Story = {
       <Input {...args} id="email" />
     </div>
   ),
+};
+
+function WithClearStory() {
+  const [value, setValue] = useState('지울 수 있는 값');
+  return (
+    <div className="relative w-full max-w-sm">
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onClear={() => setValue('')}
+        placeholder="입력 후 X 버튼으로 지울 수 있습니다."
+      />
+    </div>
+  );
+}
+
+export const WithClear: Story = {
+  render: () => <WithClearStory />,
 };
