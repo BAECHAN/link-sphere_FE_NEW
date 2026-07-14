@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-14
+
 ### Added
 
 - **모바일 하단 탭바** — 모바일 화면에 항상 보이는 하단 탭바 추가(홈 · 링크 등록 ·
@@ -102,7 +104,8 @@
   `PostResponse.userInteractions.bookmarkFolderId` 필요
 - 드래그앤드랍 · 다중 선택 · 폴더 공유는 차후 별도 작업
 
-[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/releases/tag/v0.1.0
