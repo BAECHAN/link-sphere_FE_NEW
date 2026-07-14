@@ -60,6 +60,14 @@ export const handleFolderReorderSuccess = () => {
 };
 
 /**
+ * 북마크 토글(추가/제거) 후 — 폴더 목록(bookmarkCount) + 모든 폴더별 게시글(totalElements) 재검증
+ */
+export const handleBookmarkToggleSuccess = () => {
+  folderInvalidateQueries.list();
+  folderInvalidateQueries.postsRoot();
+};
+
+/**
  * 북마크 폴더 이동 후 — 폴더 목록(bookmarkCount 변경) + 모든 폴더별 게시글 + post 목록/detail 갱신
  */
 export const handleMoveBookmarkSuccess = (postId: string) => {

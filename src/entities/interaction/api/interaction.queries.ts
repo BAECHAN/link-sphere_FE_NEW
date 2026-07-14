@@ -3,7 +3,9 @@ import { interactionApi } from '@/entities/interaction/api/interaction.api';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { commentKeys } from '@/entities/comment/api/comment.keys';
+import { folderKeys, handleBookmarkToggleSuccess } from '@/entities/folder/api/folder.keys';
 import { Post, PostListResponse } from '@/entities/post/model/post.schema';
+import { FolderList } from '@/entities/folder/model/folder.schema';
 import { Comment } from '@/entities/comment/model/comment.schema';
 
 export const useLikePostMutation = (postId: Post['id']) => {
@@ -79,6 +81,8 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: postKeys.detail(postId) });
       await queryClient.cancelQueries({ queryKey: postKeys.listRoot });
+      await queryClient.cancelQueries({ queryKey: folderKeys.list });
+      await queryClient.cancelQueries({ queryKey: folderKeys.postsRoot });
 
       const previousPost = queryClient.getQueryData<Post>(postKeys.detail(postId));
 
@@ -128,13 +132,66 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
         }
       );
 
-      return { previousPost };
+      // 북마크 화면(folder 캐시) 낙관적 반영 — 폴더 목록에 존재하면 '제거' 케이스로 간주
+      const previousFolderPosts = queryClient.getQueriesData<InfiniteData<PostListResponse>>({
+        queryKey: folderKeys.postsRoot,
+      });
+      const previousFolderList = queryClient.getQueryData<FolderList>(folderKeys.list);
+
+      const bookmarkedPost = previousFolderPosts
+        .flatMap(([, data]) => data?.pages.flatMap((page) => page.content) ?? [])
+        .find((post) => post.id === postId);
+
+      if (bookmarkedPost) {
+        // 카드 제거 + totalElements 감소
+        queryClient.setQueriesData<InfiniteData<PostListResponse>>(
+          { queryKey: folderKeys.postsRoot },
+          (oldData) => {
+            if (!oldData) return oldData;
+            const contains = oldData.pages.some((page) =>
+              page.content.some((post) => post.id === postId)
+            );
+            if (!contains) return oldData;
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page) => ({
+                ...page,
+                content: page.content.filter((post) => post.id !== postId),
+                totalElements: Math.max(0, page.totalElements - 1),
+              })),
+            };
+          }
+        );
+
+        // 폴더 건수 감소 (미분류 null 은 folder.list 에 없음)
+        const folderId = bookmarkedPost.userInteractions.bookmarkFolderId;
+        if (previousFolderList && folderId !== null) {
+          queryClient.setQueryData<FolderList>(
+            folderKeys.list,
+            previousFolderList.map((folder) =>
+              folder.id === folderId
+                ? { ...folder, bookmarkCount: Math.max(0, folder.bookmarkCount - 1) }
+                : folder
+            )
+          );
+        }
+      }
+
+      return { previousPost, previousFolderPosts, previousFolderList };
     },
-    onSuccess: () => {},
+    onSuccess: () => {
+      handleBookmarkToggleSuccess();
+    },
     onError: (_err, _variables, context) => {
       if (context?.previousPost) {
         queryClient.setQueryData(postKeys.detail(postId), context.previousPost);
       }
+      if (context?.previousFolderList) {
+        queryClient.setQueryData(folderKeys.list, context.previousFolderList);
+      }
+      context?.previousFolderPosts?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
     },
   });
 };
