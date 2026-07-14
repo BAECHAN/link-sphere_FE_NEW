@@ -95,6 +95,7 @@ export function FolderSelector({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        showCloseButton={false}
         className={cn(
           // 모바일: 하단 시트
           isMobile
