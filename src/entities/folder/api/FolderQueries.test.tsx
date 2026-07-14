@@ -119,4 +119,50 @@ describe('useMoveBookmarkMutation', () => {
     const folders = queryClient.getQueryData<FolderList>(folderKeys.list);
     expect(folders?.find((f) => f.id === FOLDER_ID)?.bookmarkCount).toBe(2);
   });
+
+  it('post.detail 캐시가 없어도 folder 게시글 캐시에서 원본 폴더를 찾아 카운트를 감소시킨다', async () => {
+    // 북마크 화면 재현: post.detail 없음, 카드는 folder 게시글 캐시에서만 옴
+    queryClient.removeQueries({ queryKey: postKeys.detail(POST_ID) });
+
+    const SOURCE_ID = 'folder-uuid-source';
+    const TARGET_ID = 'folder-uuid-target';
+    const now = new Date('2025-01-01');
+    queryClient.setQueryData<FolderList>(folderKeys.list, [
+      { id: SOURCE_ID, name: 'AI', sortOrder: 0, bookmarkCount: 1, createdAt: now, updatedAt: now },
+      {
+        id: TARGET_ID,
+        name: '호주',
+        sortOrder: 1,
+        bookmarkCount: 4,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ]);
+
+    const postInSource: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderId: SOURCE_ID },
+    };
+    queryClient.setQueryData(folderKeys.posts(SOURCE_ID, 'latest', ''), {
+      pages: [
+        { page: 0, size: 10, content: [postInSource], totalElements: 1, totalPages: 1, last: true },
+      ],
+      pageParams: [0],
+    });
+
+    server.use(http.patch(url(API_ENDPOINTS.bookmark.moveBookmark(POST_ID)), () => okResponse()));
+
+    const { result } = renderHook(() => useMoveBookmarkMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ folderId: TARGET_ID });
+    });
+
+    // 원본 폴더 -1, 대상 폴더 +1 (기존엔 원본이 감소하지 않던 버그)
+    await waitFor(() => {
+      const folders = queryClient.getQueryData<FolderList>(folderKeys.list);
+      expect(folders?.find((f) => f.id === SOURCE_ID)?.bookmarkCount).toBe(0);
+      expect(folders?.find((f) => f.id === TARGET_ID)?.bookmarkCount).toBe(5);
+    });
+  });
 });

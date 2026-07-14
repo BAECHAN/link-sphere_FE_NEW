@@ -168,8 +168,20 @@ export const useMoveBookmarkMutation = (postId: string) => {
       await queryClient.cancelQueries({ queryKey: folderKeys.postsRoot });
 
       const previousPost = queryClient.getQueryData<Post>(postKeys.detail(postId));
+
+      // post.detail 이 없으면(북마크 화면 등) folder 게시글 캐시에서 현재 폴더 조회
+      const cachedFolderPost = previousPost
+        ? undefined
+        : queryClient
+            .getQueriesData<InfiniteData<PostListResponse>>({ queryKey: folderKeys.postsRoot })
+            .flatMap(([, data]) => data?.pages.flatMap((page) => page.content) ?? [])
+            .find((post) => post.id === postId);
+
       const previousFolderList = queryClient.getQueryData<FolderList>(folderKeys.list);
-      const previousFolderId = previousPost?.userInteractions.bookmarkFolderId ?? null;
+      const previousFolderId =
+        previousPost?.userInteractions.bookmarkFolderId ??
+        cachedFolderPost?.userInteractions.bookmarkFolderId ??
+        null;
       const nextFolderId = payload.folderId;
 
       // 1) post.detail
