@@ -1,44 +1,12 @@
 import { useEffect } from 'react';
-import type { LucideIcon } from 'lucide-react';
-import { Bookmark, Home, Link2, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
+import { NAV_ITEMS, type NavItemConfig } from '@/shared/config/nav-items';
 import { useSidebarStore } from '@/shared/store/sidebar.store';
-
-interface NavItemConfig {
-  to: string;
-  icon: LucideIcon;
-  label: string;
-  isActive: (pathname: string) => boolean;
-}
-
-const NAV_ITEMS: NavItemConfig[] = [
-  {
-    to: ROUTES_PATHS.POST.ROOT,
-    icon: Home,
-    label: TEXTS.nav.feed,
-    isActive: (pathname) =>
-      pathname.startsWith('/post') &&
-      !pathname.startsWith('/post/submit') &&
-      !pathname.startsWith('/post/edit'),
-  },
-  {
-    to: ROUTES_PATHS.POST.SUBMIT,
-    icon: Link2,
-    label: TEXTS.nav.submit,
-    isActive: (pathname) =>
-      pathname.startsWith('/post/submit') || pathname.startsWith('/post/edit'),
-  },
-  {
-    to: ROUTES_PATHS.BOOKMARK,
-    icon: Bookmark,
-    label: TEXTS.nav.bookmark,
-    isActive: (pathname) => pathname.startsWith(ROUTES_PATHS.BOOKMARK),
-  },
-];
 
 function NavItem({
   to,
@@ -154,7 +122,7 @@ export function Sidebar() {
       {/* 모바일: 드로어 패널 */}
       <aside
         className={cn(
-          'md:hidden fixed top-0 left-0 z-[60] h-full w-64 bg-background border-r flex flex-col',
+          'md:hidden fixed top-0 left-0 z-60 h-full w-64 bg-background border-r flex flex-col',
           'transition-transform duration-200',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
