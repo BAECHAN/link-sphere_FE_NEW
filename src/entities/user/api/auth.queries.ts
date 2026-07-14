@@ -1,9 +1,10 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { authApi } from '@/entities/user/api/auth.api';
 import { handleAccountUpdateSuccess } from '@/entities/user/api/auth.keys';
+import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { ApiError } from '@/shared/types/common.type';
-import { Login, CreateAccount, UpdateAccount } from '@/shared/types/auth.type';
+import { Account, Login, CreateAccount, UpdateAccount } from '@/shared/types/auth.type';
 import { AuthUtil } from '@/shared/utils/auth.util';
 import { STALE_TIME_ONE_DAY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
@@ -108,11 +109,26 @@ export const useUpdateAccountMutation = () => {
   return useMutation({
     mutationFn: (payload: UpdateAccount) => authApi.updateAccount(payload),
     meta: { manualErrorHandling: true },
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: authKeys.account() });
+      const previous = queryClient.getQueryData<Account>(authKeys.account());
+      if (previous) {
+        queryClient.setQueryData<Account>(authKeys.account(), {
+          ...previous,
+          nickname: payload.nickname,
+          image: payload.image ?? undefined,
+        });
+      }
+      return { previous };
+    },
     onSuccess: () => {
       handleAccountUpdateSuccess();
       toast.success(TEXTS.messages.success.accountUpdated);
     },
-    onError: (error) => {
+    onError: (error, _payload, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(authKeys.account(), context.previous);
+      }
       if (error instanceof ApiError && error.status === 409) {
         toast.error(TEXTS.messages.error.nicknameDuplicate);
       } else {

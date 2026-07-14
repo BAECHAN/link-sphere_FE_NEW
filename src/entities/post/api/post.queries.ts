@@ -9,6 +9,7 @@ import {
 import { postApi } from '@/entities/post/api/post.api';
 import {
   CreatePost,
+  Post,
   PostListRequest,
   PostListResponse,
   UpdatePost,
@@ -179,7 +180,22 @@ export const useUpdatePostMutation = (postId: string) => {
       successMessage: TEXTS.messages.success.postUpdated,
       errorMessage: TEXTS.messages.error.postUpdateFailed,
     },
-    onSuccess: () => {
+    onSuccess: (updated) => {
+      // 서버가 반환한 수정본을 캐시에 직접 반영 → 목록 재진입 시 옛 데이터 잔상 방지
+      queryClient.setQueryData<Post>(postKeys.detail(postId), updated);
+      queryClient.setQueriesData<InfiniteData<PostListResponse>>(
+        { queryKey: postKeys.listRoot },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              content: page.content.map((post) => (post.id === postId ? updated : post)),
+            })),
+          };
+        }
+      );
       handlePostUpdateSuccess(postId);
     },
   });

@@ -97,6 +97,22 @@ export const useUpdateFolderMutation = (folderId: string) => {
     mutationKey: folderMutationKeys.update(folderId),
     mutationFn: (payload: UpdateFolderRequest) => folderApi.updateFolder(folderId, payload),
     meta: { manualErrorHandling: true },
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: folderKeys.list });
+      const previous = queryClient.getQueryData<FolderList>(folderKeys.list);
+      if (previous) {
+        queryClient.setQueryData<FolderList>(
+          folderKeys.list,
+          previous.map((f) => (f.id === folderId ? { ...f, name: payload.name } : f))
+        );
+      }
+      return { previous };
+    },
+    onError: (_err, _payload, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(folderKeys.list, context.previous);
+      }
+    },
     onSuccess: () => {
       handleFolderUpdateSuccess();
     },
