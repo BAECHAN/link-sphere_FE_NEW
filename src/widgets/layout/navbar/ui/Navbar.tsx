@@ -1,5 +1,5 @@
 import { Moon, Sun, Search, Menu } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/shared/ui/atoms/button';
 import {
   DropdownMenu,
@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/atoms/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useAuth } from '@/entities/user/hooks/useAuth';
@@ -29,9 +29,22 @@ export function Navbar() {
 
   const { account } = useAccount();
 
-  const { value: isMobileSearchOpen, toggle: toggleMobileSearch } = useToggle(false);
+  const {
+    value: isMobileSearchOpen,
+    toggle: toggleMobileSearch,
+    close: closeMobileSearch,
+  } = useToggle(false);
   const [isMyPageOpen, setIsMyPageOpen] = useState(false);
   const { toggle: toggleSidebar } = useSidebarStore();
+
+  const { pathname } = useLocation();
+
+  useEffect(
+    function closeSearchOnRouteChange() {
+      closeMobileSearch();
+    },
+    [pathname, closeMobileSearch]
+  );
 
   return (
     <>
