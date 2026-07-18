@@ -24,4 +24,14 @@ const ROUTES_PATHS = {
 // 인증이 필요없는 공개 경로들
 const PUBLIC_PATHS = [ROUTES_PATHS.AUTH.LOGIN, ROUTES_PATHS.AUTH.SIGNUP] as const;
 
-export { ROUTES_PATHS, PUBLIC_PATHS };
+// 로그인이 필요한(ProtectedRoute로 감싸진) 경로인지 판별
+const isProtectedPath = (pathname: string): boolean => {
+  const editPrefix = ROUTES_PATHS.POST.EDIT.replace('/:id', ''); // '/post/edit'
+  return (
+    pathname.startsWith(ROUTES_PATHS.POST.SUBMIT) ||
+    pathname.startsWith(editPrefix) ||
+    pathname.startsWith(ROUTES_PATHS.BOOKMARK)
+  );
+};
+
+export { ROUTES_PATHS, PUBLIC_PATHS, isProtectedPath };

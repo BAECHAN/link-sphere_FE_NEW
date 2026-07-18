@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { FolderSelector } from '@/features/post/bookmark/ui/FolderSelector';
+import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
 
 interface BookmarkPostButtonProps {
   postId: Post['id'];
@@ -23,11 +24,12 @@ export function BookmarkPostButton({
   bookmarkFolderId,
 }: BookmarkPostButtonProps) {
   const [open, setOpen] = useState(false);
+  const guard = useAuthGuard();
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setOpen(true);
+    guard(() => setOpen(true));
   };
 
   return (

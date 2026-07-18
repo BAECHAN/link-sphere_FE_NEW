@@ -7,22 +7,33 @@ import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { NAV_ITEMS, type NavItemConfig } from '@/shared/config/nav-items';
 import { useSidebarStore } from '@/shared/store/sidebar.store';
+import { useProtectedNavigate } from '@/entities/user/hooks/useProtectedNavigate';
 
 function NavItem({
   to,
   icon: Icon,
   label,
   isActive,
+  requiresAuth,
   expanded,
   onClick,
 }: NavItemConfig & { expanded: boolean; onClick?: () => void }) {
   const { pathname } = useLocation();
+  const protectedNavigate = useProtectedNavigate();
   const active = isActive(pathname);
+
+  const handleClick = (e: React.MouseEvent) => {
+    onClick?.(); // 모바일 드로어 닫기
+    if (requiresAuth) {
+      e.preventDefault();
+      protectedNavigate(to);
+    }
+  };
 
   return (
     <Link
       to={to}
-      onClick={onClick}
+      onClick={handleClick}
       className={cn(
         'flex items-center rounded-xl w-full hover:bg-accent',
         expanded ? 'flex-row gap-3 px-4 py-3' : 'flex-col gap-1 justify-center py-3 px-2',

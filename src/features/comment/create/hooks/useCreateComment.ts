@@ -7,6 +7,7 @@ import {
   useCreateReplyMutation,
 } from '@/entities/comment/api/comment.queries';
 import { useImagePaste } from '@/shared/hooks/useImagePaste';
+import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
 import { TEXTS } from '@/shared/config/texts';
 
 const formSchema = z.object({
@@ -33,6 +34,7 @@ export function useCreateComment({
   const { mutateAsync: createComment, isPending: isCreatingComment } =
     useCreateCommentMutation(postId);
   const { mutateAsync: createReply, isPending: isCreatingReply } = useCreateReplyMutation(postId);
+  const guard = useAuthGuard();
 
   const isPending = isCreatingComment || isCreatingReply;
 
@@ -57,27 +59,29 @@ export function useCreateComment({
   }, [autoFocus, setFocus]);
 
   const onSubmit = form.handleSubmit((data: FormValues) => {
-    const content = (data.content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    guard(() => {
+      const content = (data.content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    if (!content.trim() && pastedImages.length === 0) {
-      setError('content', { type: 'manual', message: TEXTS.validation.commentOrImageRequired });
-      return;
-    }
+      if (!content.trim() && pastedImages.length === 0) {
+        setError('content', { type: 'manual', message: TEXTS.validation.commentOrImageRequired });
+        return;
+      }
 
-    const handleSuccess = () => {
-      reset();
-      clearAllImages();
-      onSuccess?.();
-    };
+      const handleSuccess = () => {
+        reset();
+        clearAllImages();
+        onSuccess?.();
+      };
 
-    if (isReply && parentId) {
-      createReply(
-        { commentId: parentId, content, images: pastedImages },
-        { onSuccess: handleSuccess }
-      );
-    } else {
-      createComment({ content, images: pastedImages }, { onSuccess: handleSuccess });
-    }
+      if (isReply && parentId) {
+        createReply(
+          { commentId: parentId, content, images: pastedImages },
+          { onSuccess: handleSuccess }
+        );
+      } else {
+        createComment({ content, images: pastedImages }, { onSuccess: handleSuccess });
+      }
+    });
   });
 
   return {

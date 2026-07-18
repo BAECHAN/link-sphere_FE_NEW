@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { Navigate, useLocation, type RouteObject } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { ProtectedLayout } from './layouts/ProtectedLayout';
+import { AppShellLayout } from '@/app/routes/layouts/AppShellLayout';
 import { PublicLayout } from '@/app/routes/layouts/PublicLayout';
 import { RootLayout } from '@/app/routes/layouts/RootLayout';
 import { useAuthStore } from '@/shared/store/auth.store';
@@ -72,15 +73,10 @@ function GuestGuard({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * 루트 경로('/') 접근 시 리다이렉트 처리
+ * 루트 경로('/') 접근 시 게시글 목록으로 리다이렉트
+ * 비로그인 사용자도 공개 목록을 진입점으로 사용한다.
  */
 function RootRedirect() {
-  const { isAuthenticated } = useAuthStore();
-
-  if (!isAuthenticated) {
-    return <Navigate to={ROUTES_PATHS.AUTH.LOGIN} replace />;
-  }
-
   return <Navigate to={ROUTES_PATHS.POST.ROOT} replace />;
 }
 /**
@@ -92,8 +88,9 @@ export const appRoutes: RouteObject[] = [
   {
     element: <RootLayout />,
     children: [
+      // Public Content Group (shell 있음, 인증 게이트 없음 — 비로그인 열람 가능)
       {
-        element: <ProtectedLayout />,
+        element: <AppShellLayout />,
         children: [
           {
             path: ROUTES_PATHS.HOME,
@@ -104,12 +101,18 @@ export const appRoutes: RouteObject[] = [
             element: withSuspense(Post),
           },
           {
-            path: ROUTES_PATHS.POST.SUBMIT,
-            element: withSuspense(PostSubmitPage),
-          },
-          {
             path: '/post/:id',
             element: withSuspense(PostDetailPage),
+          },
+        ],
+      },
+      // Protected Content Group (인증 필요 — 쓰기/소유 행위)
+      {
+        element: <ProtectedLayout />,
+        children: [
+          {
+            path: ROUTES_PATHS.POST.SUBMIT,
+            element: withSuspense(PostSubmitPage),
           },
           {
             path: ROUTES_PATHS.POST.EDIT,

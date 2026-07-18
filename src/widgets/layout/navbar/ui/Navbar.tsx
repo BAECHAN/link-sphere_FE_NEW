@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/atoms/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
+import { Spinner } from '@/shared/ui/atoms/spinner';
 import { useEffect, useState } from 'react';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useAuthStore } from '@/shared/store/auth.store';
@@ -35,7 +36,17 @@ export function Navbar() {
     close: closeMobileSearch,
   } = useToggle(false);
   const [isMyPageOpen, setIsMyPageOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { toggle: toggleSidebar } = useSidebarStore();
+
+  // 로그아웃이 처리되고 있음을 잠깐 보여준 뒤 실제 로그아웃 (즉시 로그인 버튼으로 바뀌어
+  // 정말 로그아웃됐는지 사용자가 의심하는 것을 방지)
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    logout();
+    setIsLoggingOut(false);
+  };
 
   const { pathname } = useLocation();
 
@@ -92,7 +103,12 @@ export function Navbar() {
               <span className="sr-only">{TEXTS.nav.toggleTheme}</span>
             </Button>
 
-            {isAuthenticated ? (
+            {isLoggingOut ? (
+              <Button variant="ghost" size="sm" disabled className="ml-2 gap-2">
+                <Spinner className="h-4 w-4 animate-spin" />
+                {TEXTS.nav.loggingOut}
+              </Button>
+            ) : isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-2">
@@ -111,7 +127,7 @@ export function Navbar() {
                     {TEXTS.buttons.profileEdit}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => logout()}>{TEXTS.nav.logOut}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>{TEXTS.nav.logOut}</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (

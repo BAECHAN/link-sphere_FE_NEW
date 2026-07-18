@@ -8,6 +8,8 @@ export interface NavItemConfig {
   icon: LucideIcon;
   label: string;
   isActive: (pathname: string) => boolean;
+  /** 인증이 필요한 항목 — 비로그인 클릭 시 이동 대신 로그인 모달을 띄운다 */
+  requiresAuth?: boolean;
 }
 
 // '/post/edit/:id' → '/post/edit' (prefix 매칭용, usePostCard의 EDIT.replace 컨벤션과 동일)
@@ -29,11 +31,13 @@ export const NAV_ITEMS: NavItemConfig[] = [
     label: TEXTS.nav.submit,
     isActive: (pathname) =>
       pathname.startsWith(ROUTES_PATHS.POST.SUBMIT) || pathname.startsWith(POST_EDIT_PATH),
+    requiresAuth: true,
   },
   {
     to: ROUTES_PATHS.BOOKMARK,
     icon: Bookmark,
     label: TEXTS.nav.bookmark,
     isActive: (pathname) => pathname.startsWith(ROUTES_PATHS.BOOKMARK),
+    requiresAuth: true,
   },
 ];

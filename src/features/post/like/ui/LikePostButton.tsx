@@ -3,6 +3,7 @@ import { Button } from '@/shared/ui/atoms/button';
 import { ThumbsUp } from 'lucide-react';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { useLikePost } from '@/features/post/like/hooks/useLikePost';
+import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
 
 interface LikePostButtonProps {
   postId: Post['id'];
@@ -12,10 +13,11 @@ interface LikePostButtonProps {
 
 export function LikePostButton({ postId, isLiked, likeCount }: LikePostButtonProps) {
   const { mutateAsync: likePost, isPending: isLiking } = useLikePost(postId);
+  const guard = useAuthGuard();
 
   const handleLike = (e: React.MouseEvent) => {
     e.preventDefault();
-    likePost();
+    guard(() => likePost());
   };
 
   return (

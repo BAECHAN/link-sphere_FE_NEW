@@ -6,6 +6,7 @@ import { useAuthStore } from '@/shared/store/auth.store';
 import { ApiError } from '@/shared/types/common.type';
 import { Account, Login, CreateAccount, UpdateAccount } from '@/shared/types/auth.type';
 import { AuthUtil } from '@/shared/utils/auth.util';
+import { ROUTES_PATHS, isProtectedPath } from '@/shared/config/route-paths';
 import { STALE_TIME_ONE_DAY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from 'sonner';
@@ -27,10 +28,13 @@ export const useLoginMutation = () => {
     mutationFn: (payload: Login) => authApi.login(payload),
     meta: { manualErrorHandling: true },
     onSuccess: (data) => {
-      // 1. 기존 캐시 초기화
-      AuthUtil.clearAll();
-      // 2. 인메모리 스토어에 토큰 및 유저 정보 저장
+      // 1. 새 토큰 저장 (인증 상태 전환)
       setAuth(data.accessToken);
+      // 2. 캐시를 clear()하지 않고 invalidate만 한다. 인라인 모달 로그인은 페이지 이동
+      //    없이 제자리에서 일어나므로, clear()로 캐시를 비우면 마운트된 화면(댓글 목록 등)의
+      //    옵저버가 깨져 이후 갱신이 화면에 반영되지 않는다. invalidate는 옵저버를 유지한 채
+      //    새 인증 상태로 다시 불러온다(내 좋아요/북마크/계정 등).
+      void queryClient.invalidateQueries();
       // 3. FCM 토큰 등록 (브라우저 알림 권한 요청 + 서버 등록)
       void requestAndRegisterFcmToken();
     },
@@ -53,8 +57,14 @@ export const useLogoutMutation = () => {
       console.error('[LOGOUT] Error logging out:', error);
     });
 
-    // 2. auth 상태 즉시 초기화 → ProtectedRoute가 즉시 로그인 페이지로 redirect
-    AuthUtil.clearAll();
+    // 2. auth 상태 즉시 초기화. 현재 화면이 보호 페이지면 공개 피드로 이동하고,
+    //    비로그인도 볼 수 있는 페이지면 그대로 머문다(이동 없음).
+    if (isProtectedPath(window.location.pathname)) {
+      AuthUtil.clearAll(ROUTES_PATHS.POST.ROOT);
+    } else {
+      AuthUtil.clearAuth();
+      AuthUtil.clearQueries();
+    }
 
     // 3. FCM 토큰 해제는 백그라운드로 처리
     unregisterFcmToken().catch((error) => {
@@ -68,10 +78,12 @@ export const useLogoutMutation = () => {
 };
 
 export const useFetchAccountQuery = (options?: { enabled?: boolean }) => {
+  // 비로그인 상태에선 계정 조회를 하지 않는다 (401 → 전역 로그인 리다이렉트 방지)
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   return useQuery({
     queryKey: authKeys.account(),
     queryFn: () => authApi.fetchAccount(),
-    enabled: options?.enabled !== false,
+    enabled: isAuthenticated && options?.enabled !== false,
     staleTime: STALE_TIME_ONE_DAY,
     meta: {
       errorMessage: TEXTS.messages.error.fetchAccount,

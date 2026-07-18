@@ -1,5 +1,6 @@
 import { Outlet, ScrollRestoration } from 'react-router-dom';
 import { useFcmForegroundMessage } from '@/shared/lib/firebase/useFcmForegroundMessage';
+import { LoginModal } from '@/features/auth/login/ui/LoginModal';
 
 /**
  * Root Layout
@@ -12,6 +13,7 @@ export function RootLayout() {
     <>
       <ScrollRestoration />
       <Outlet />
+      <LoginModal />
     </>
   );
 }

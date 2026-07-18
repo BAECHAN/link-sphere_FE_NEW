@@ -25,9 +25,9 @@ export class AuthUtil {
     queryClient.clear();
   }
 
-  static clearAll(): void {
+  static clearAll(redirectTo: string = ROUTES_PATHS.AUTH.LOGIN): void {
     this.clearAuth();
     this.clearQueries();
-    NavigationService.navigate(ROUTES_PATHS.AUTH.LOGIN, { replace: true });
+    NavigationService.navigate(redirectTo, { replace: true });
   }
 }

@@ -4,6 +4,7 @@ import { Heart } from 'lucide-react';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { useLikeComment } from '@/features/comment/like/hooks/useLikeComment';
+import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
 import { Button } from '@/shared/ui/atoms/button';
 
 interface LikeCommentButtonProps {
@@ -20,13 +21,14 @@ export function LikeCommentButton({
   likeCount,
 }: LikeCommentButtonProps) {
   const likeMutation = useLikeComment(commentId, postId);
+  const guard = useAuthGuard();
 
   return (
     <Button
       type="button"
       variant="ghost"
       size="sm"
-      onClick={() => likeMutation.mutate()}
+      onClick={() => guard(() => likeMutation.mutate())}
       className={cn(
         'flex items-center gap-1 h-auto px-2 hover:text-destructive transition-colors',
         isLiked && 'text-destructive font-medium'

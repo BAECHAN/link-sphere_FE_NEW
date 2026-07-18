@@ -67,6 +67,9 @@ export const TEXTS = {
   auth: {
     title: '로그인',
     description: '아이디와 비밀번호를 입력해주세요',
+    guard: {
+      title: '로그인이 필요한 서비스입니다.',
+    },
     login: {
       title: 'Welcome to LinkSphere',
       subtitle: 'Sign in to share and discover links',
@@ -91,6 +94,7 @@ export const TEXTS = {
     bookmark: 'Bookmark',
     logIn: 'Log in',
     logOut: 'Log out',
+    loggingOut: '로그아웃 중...',
     toggleMenu: 'Toggle menu',
     toggleSearch: 'Toggle search',
     toggleTheme: 'Toggle theme',

@@ -1,13 +1,10 @@
-import { Outlet } from 'react-router-dom';
 import { ProtectedRoute } from '@/app/routes/ProtectedRoute';
-import { AppLayout } from '@/app/layouts/app-layout/AppLayout';
+import { AppShellLayout } from '@/app/routes/layouts/AppShellLayout';
 
 export function ProtectedLayout() {
   return (
     <ProtectedRoute>
-      <AppLayout>
-        <Outlet />
-      </AppLayout>
+      <AppShellLayout />
     </ProtectedRoute>
   );
 }
