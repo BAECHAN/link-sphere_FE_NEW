@@ -6,6 +6,7 @@ import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { useCreateComment } from '@/features/comment/create/hooks/useCreateComment';
 import { TEXTS } from '@/shared/config/texts';
 import { Kbd } from '@/shared/ui/atoms/kbd';
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
 interface CommentFormProps {
   postId: string;
@@ -39,6 +40,8 @@ export function CommentForm({
     register,
     formState: { errors },
   } = form;
+
+  const isMobile = useIsMobile();
 
   return (
     <form onSubmit={onSubmit} className={`space-y-2 ${className}`}>
@@ -112,7 +115,7 @@ export function CommentForm({
             : isReply
               ? TEXTS.comment.form.submitReply
               : TEXTS.comment.form.submitComment}
-          {!isPending && (
+          {!isPending && !isMobile && (
             <Kbd
               className="font-sans"
               style={{
