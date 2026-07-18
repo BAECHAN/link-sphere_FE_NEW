@@ -1,5 +1,5 @@
 import { Moon, Sun, Search, Menu } from 'lucide-react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/shared/ui/atoms/button';
 import {
   DropdownMenu,
@@ -22,11 +22,11 @@ import { MyPageModal } from '@/widgets/layout/mypage/ui/MyPageModal';
 import { TEXTS } from '@/shared/config/texts';
 import { useToggle } from '@/shared/hooks/useToggle';
 import { useSidebarStore } from '@/shared/store/sidebar.store';
+import { useLoginModalStore } from '@/shared/store/loginModal.store';
 
 export function Navbar() {
   const { isAuthenticated } = useAuthStore();
   const { logout } = useAuth();
-  const navigate = useNavigate();
 
   const { account } = useAccount();
 
@@ -38,6 +38,7 @@ export function Navbar() {
   const [isMyPageOpen, setIsMyPageOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { toggle: toggleSidebar } = useSidebarStore();
+  const openLoginModal = useLoginModalStore((state) => state.open);
 
   // 로그아웃이 처리되고 있음을 잠깐 보여준 뒤 실제 로그아웃 (즉시 로그인 버튼으로 바뀌어
   // 정말 로그아웃됐는지 사용자가 의심하는 것을 방지)
@@ -131,7 +132,7 @@ export function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button onClick={() => navigate(ROUTES_PATHS.AUTH.LOGIN)} size="sm" className="ml-2">
+              <Button onClick={() => openLoginModal()} size="sm" className="ml-2">
                 {TEXTS.nav.logIn}
               </Button>
             )}
