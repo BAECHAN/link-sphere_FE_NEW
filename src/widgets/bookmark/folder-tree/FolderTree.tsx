@@ -14,21 +14,24 @@ import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import {
+  prefetchFolderPosts,
   useCreateFolderMutation,
   useDeleteFolderMutation,
   useFolderListQuery,
   useUpdateFolderMutation,
 } from '@/entities/folder/api/folder.queries';
-import { Folder, FolderKey } from '@/entities/folder/model/folder.schema';
+import { Folder, FolderKey, FolderSort } from '@/entities/folder/model/folder.schema';
 
 interface FolderTreeProps {
   selectedKey: FolderKey;
   onSelect: (key: FolderKey) => void;
+  sort?: FolderSort;
+  search?: string;
   className?: string;
 }
 
 /** 데스크탑 — 좌측 사이드바 트리 */
-export function FolderTree({ selectedKey, onSelect, className }: FolderTreeProps) {
+export function FolderTree({ selectedKey, onSelect, sort, search, className }: FolderTreeProps) {
   const { data: folders, isLoading } = useFolderListQuery();
 
   return (
@@ -38,12 +41,14 @@ export function FolderTree({ selectedKey, onSelect, className }: FolderTreeProps
         label={TEXTS.bookmark.folder.all}
         selected={selectedKey === 'all'}
         onClick={() => onSelect('all')}
+        onPrefetch={() => prefetchFolderPosts('all', sort, search)}
       />
       <FixedItem
         icon={<Inbox className="h-4 w-4" />}
         label={TEXTS.bookmark.folder.uncategorized}
         selected={selectedKey === 'uncategorized'}
         onClick={() => onSelect('uncategorized')}
+        onPrefetch={() => prefetchFolderPosts('uncategorized', sort, search)}
       />
 
       <div className="my-1 border-t" />
@@ -59,6 +64,7 @@ export function FolderTree({ selectedKey, onSelect, className }: FolderTreeProps
             folder={folder}
             selected={selectedKey === folder.id}
             onClick={() => onSelect(folder.id)}
+            onPrefetch={() => prefetchFolderPosts(folder.id, sort, search)}
           />
         ))
       )}
@@ -116,13 +122,16 @@ interface FixedItemProps {
   label: string;
   selected: boolean;
   onClick: () => void;
+  onPrefetch?: () => void;
 }
 
-function FixedItem({ icon, label, selected, onClick }: FixedItemProps) {
+function FixedItem({ icon, label, selected, onClick, onPrefetch }: FixedItemProps) {
   return (
     <button
       type="button"
       onClick={onClick}
+      onMouseEnter={onPrefetch}
+      onFocus={onPrefetch}
       className={cn(
         'flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-accent',
         selected && 'bg-accent font-medium'
@@ -138,9 +147,10 @@ interface FolderItemProps {
   folder: Folder;
   selected: boolean;
   onClick: () => void;
+  onPrefetch?: () => void;
 }
 
-function FolderItem({ folder, selected, onClick }: FolderItemProps) {
+function FolderItem({ folder, selected, onClick, onPrefetch }: FolderItemProps) {
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(folder.name);
   const { mutateAsync: updateFolder, isPending: isUpdating } = useUpdateFolderMutation(folder.id);
@@ -217,7 +227,13 @@ function FolderItem({ folder, selected, onClick }: FolderItemProps) {
         selected && 'bg-accent font-medium'
       )}
     >
-      <button type="button" onClick={onClick} className="flex items-center gap-3 flex-1 py-1">
+      <button
+        type="button"
+        onClick={onClick}
+        onMouseEnter={onPrefetch}
+        onFocus={onPrefetch}
+        className="flex items-center gap-3 flex-1 py-1"
+      >
         <Bookmark className={cn('h-4 w-4', selected ? 'text-primary' : 'text-muted-foreground')} />
         <span className="flex-1 text-left truncate">{folder.name}</span>
         <span className="text-xs text-muted-foreground">{folder.bookmarkCount}</span>

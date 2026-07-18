@@ -126,6 +126,14 @@ export const useSuspenseFetchPostDetailQuery = (postId: string) => {
   });
 };
 
+/** hover 시 게시글 상세 미리 로드 — useSuspenseFetchPostDetailQuery 와 동일 키/queryFn */
+export const prefetchPostDetail = (postId: string) => {
+  queryClient.prefetchQuery({
+    queryKey: postKeys.detail(postId),
+    queryFn: () => postApi.fetchPostDetail(postId),
+  });
+};
+
 export const useDeletePostMutation = () => {
   return useMutation({
     mutationKey: postMutationKeys.delete,

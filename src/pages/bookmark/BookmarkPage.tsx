@@ -127,6 +127,8 @@ export function BookmarkPage() {
       <FolderTree
         selectedKey={activeFolderKey}
         onSelect={setFolderKey}
+        sort={sort}
+        search={search}
         className="w-60 shrink-0 sticky top-4 self-start"
       />
       <main className="flex-1 min-w-0">

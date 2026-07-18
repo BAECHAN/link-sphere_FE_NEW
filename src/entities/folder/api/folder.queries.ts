@@ -79,6 +79,23 @@ export const useFolderPostsInfiniteQuery = (
   });
 };
 
+/** hover 시 폴더 게시글 첫 페이지 미리 로드 — useFolderPostsInfiniteQuery 와 동일 키/queryFn */
+export const prefetchFolderPosts = (folderKey: FolderKey, sort?: FolderSort, search?: string) => {
+  queryClient.prefetchInfiniteQuery({
+    queryKey: folderKeys.posts(folderKey, sort, search),
+    queryFn: ({ pageParam }: { pageParam: PaginationRequest['page'] }) =>
+      folderApi.fetchFolderPosts(folderKey, {
+        page: pageParam,
+        size: POST_PAGE_SIZE,
+        sort,
+        search,
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: PostListResponse) =>
+      lastPage.last ? undefined : lastPage.page + 1,
+  });
+};
+
 // ==================== Mutations ====================
 
 export const useCreateFolderMutation = () => {

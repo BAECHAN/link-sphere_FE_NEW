@@ -23,6 +23,7 @@ import {
 } from '@/shared/ui/atoms/dropdown-menu';
 import { MoreVertical, Pencil, Trash } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { prefetchPostDetail } from '@/entities/post/api/post.queries';
 import { LikePostButton } from '@/features/post/like/ui/LikePostButton';
 import { BookmarkPostButton } from '@/features/post/bookmark/ui/BookmarkPostButton';
 import { TEXTS } from '@/shared/config/texts';
@@ -65,7 +66,12 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
             <span className={`text-xs`}>•</span>
             <span className={`text-xs`}>{DateUtil.formatRelativeShort(post.createdAt)}</span>
           </div>
-          <Link to={`/post/${post.id}`} className="hover:underline block">
+          <Link
+            to={`/post/${post.id}`}
+            className="hover:underline block"
+            onMouseEnter={() => prefetchPostDetail(post.id)}
+            onFocus={() => prefetchPostDetail(post.id)}
+          >
             <h3 className={`font-bold leading-tight line-clamp-2 mb-0.5 text-sm md:text-lg`}>
               {post.title}
             </h3>
