@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-18
+
 ### Added
 
 - **비로그인 콘텐츠 열람 지원** — 로그인하지 않아도 게시글 목록·상세·댓글을 열람할 수
@@ -43,6 +45,11 @@
 - **모바일에서 ⌘ + Enter 단축키 힌트 숨김** — 물리 키보드 단축키를 쓸 수 없는
   모바일 환경에서 댓글 작성 버튼에 불필요하게 노출되던 힌트를 데스크톱에서만
   표시하도록 변경.
+
+### Notes
+
+- BE API 의존: 비로그인 콘텐츠 열람은 BE의 비로그인 GET 엔드포인트 공개가
+  필요 (BE `v0.3.0`)
 
 ## [0.3.0] - 2026-07-14
 
@@ -141,7 +148,8 @@
   `PostResponse.userInteractions.bookmarkFolderId` 필요
 - 드래그앤드랍 · 다중 선택 · 폴더 공유는 차후 별도 작업
 
-[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.1.0...v0.1.1
