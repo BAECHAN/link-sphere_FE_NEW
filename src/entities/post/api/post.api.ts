@@ -1,6 +1,8 @@
 import { apiClient } from '@/shared/api/client';
 import NProgress from 'nprogress';
 import { API_ENDPOINTS } from '@/shared/config/api';
+
+NProgress.configure({ showSpinner: false });
 import {
   CreatePost,
   CreatePostResponse,
