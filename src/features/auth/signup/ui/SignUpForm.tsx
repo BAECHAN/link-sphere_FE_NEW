@@ -22,7 +22,13 @@ export const SignUpForm = () => {
     <div className="flex h-[calc(100vh-10rem)] items-center justify-center px-4">
       <Card className="w-full max-w-md shadow-lg border-muted-foreground/10">
         <CardHeader className="text-center space-y-1">
-          <CardTitle className="text-2xl font-bold">{TEXTS.auth.signup.title}</CardTitle>
+          <Link
+            to={ROUTES_PATHS.POST.ROOT}
+            className="font-bold text-3xl tracking-tight hover:opacity-80 transition-opacity"
+          >
+            {TEXTS.nav.brand}
+          </Link>
+          <CardTitle>{TEXTS.auth.signup.title}</CardTitle>
           <CardDescription>{TEXTS.auth.signup.subtitle}</CardDescription>
         </CardHeader>
         <CardContent>
