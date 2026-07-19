@@ -53,7 +53,9 @@ export function FolderSelector({
   const [wasBookmarkedOnOpen, setWasBookmarkedOnOpen] = useState(isBookmarked);
   useEffect(
     function snapshotBookmarkStateOnOpen() {
-      if (open) setWasBookmarkedOnOpen(isBookmarked);
+      if (open) {
+        setWasBookmarkedOnOpen(isBookmarked);
+      }
       // open 이 true 로 전환되는 순간에만 스냅샷 — 저장 중 isBookmarked 변화는 의도적으로 무시
     },
     [open]
@@ -68,6 +70,7 @@ export function FolderSelector({
 
   const handleSelect = async (folderId: string | null, folderName: string) => {
     setPendingFolderId(folderId);
+
     try {
       await saveToFolder(folderId);
       toast.success(TEXTS.messages.success.bookmarkSavedTo(folderName));
@@ -89,10 +92,18 @@ export function FolderSelector({
   };
 
   const handleCreateAndSelect = async () => {
-    if (submittingRef.current || isCreating) return;
+    if (submittingRef.current || isCreating) {
+      return;
+    }
+
     const name = newFolderName.trim();
-    if (!name) return;
+
+    if (!name) {
+      return;
+    }
+
     submittingRef.current = true;
+
     try {
       const created = await createFolder({ name });
       await handleSelect(created.id, created.name);
@@ -175,8 +186,14 @@ export function FolderSelector({
                     onChange={(e) => setNewFolderName(e.target.value)}
                     onKeyDown={(e) => {
                       // IME(한글 등) 조합 중 엔터는 무시
-                      if (e.nativeEvent.isComposing) return;
-                      if (e.key === 'Enter') handleCreateAndSelect();
+                      if (e.nativeEvent.isComposing) {
+                        return;
+                      }
+
+                      if (e.key === 'Enter') {
+                        handleCreateAndSelect();
+                      }
+
                       if (e.key === 'Escape') {
                         setCreatingMode(false);
                         setNewFolderName('');

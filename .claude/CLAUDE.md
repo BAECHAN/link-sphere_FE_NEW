@@ -86,6 +86,46 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - **Never** 날짜 처리에 `new Date()` / `.getTime()` 직접 사용 → 항상 `dayjs` 사용 (`dayjs(value).valueOf()`, `dayjs().format()` 등)
 - **Never** 대상 파일 양식 무시하고 코드 생성 → 항상 붙여넣을 파일(및 인접 코드)을 **먼저 읽고** 들여쓰기·네이밍·import 순서·따옴표·주석 밀도·정렬을 그대로 맞춘다. 본인 스타일을 강요하거나 기존 코드를 재포맷하지 않는다
 - **Never** raw HTML 요소로 UI를 일회성 구현 → 항상 공통 컴포넌트(`shared/ui/atoms`·`elements`·`widgets`) 우선. 반복되는 UI는 공통 컴포넌트를 만들거나 기존 것을 사용해 디자인을 단일 관리한다 (예: 버튼은 raw `<button>` 대신 `Button` 컴포넌트). 신규 코드 기준
+- **Never** `if`문을 인라인으로 작성 (`if (x) return;`) → 항상 중괄호 블록으로 감싼다 (`if (x) {\n  return;\n}`). 한 줄짜리 본문도 예외 없음 (ESLint `curly` 규칙으로 강제 예정)
+- **Never** 문장을 다닥다닥 붙여 논리 그룹을 뭉개지 않는다 → 가드절(`if (...) { return; }`) 뒤, 그리고 `if`/`try` 같은 제어 블록 **앞뒤**에 **빈 줄 1줄**을 넣어 논리 단위를 분리한다 (Prettier가 아닌 컨벤션 — 아래 예시 참고)
+
+```typescript
+// ✅ 블록화 + 논리 그룹마다 빈 줄 (가드절 뒤, try 블록 앞)
+const handleCreateAndSelect = async () => {
+  if (submittingRef.current || isCreating) {
+    return;
+  }
+
+  const name = newFolderName.trim();
+
+  if (!name) {
+    return;
+  }
+
+  submittingRef.current = true;
+
+  try {
+    const created = await createFolder({ name });
+    await handleSelect(created.id, created.name);
+  } finally {
+    submittingRef.current = false;
+  }
+};
+
+// ❌ 인라인 if + 문장 다닥다닥 + try 붙임
+const handleCreateAndSelect = async () => {
+  if (submittingRef.current || isCreating) return;
+  const name = newFolderName.trim();
+  if (!name) return;
+  submittingRef.current = true;
+  try {
+    const created = await createFolder({ name });
+    await handleSelect(created.id, created.name);
+  } finally {
+    submittingRef.current = false;
+  }
+};
+```
 
 ---
 
