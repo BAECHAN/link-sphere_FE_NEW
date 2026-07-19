@@ -64,6 +64,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
             folder={folder}
             selected={selectedKey === folder.id}
             onClick={() => onSelect(folder.id)}
+            onDeleted={() => onSelect('all')}
             onPrefetch={() => prefetchFolderPosts(folder.id, sort, search)}
           />
         ))
@@ -147,10 +148,11 @@ interface FolderItemProps {
   folder: Folder;
   selected: boolean;
   onClick: () => void;
+  onDeleted: () => void;
   onPrefetch?: () => void;
 }
 
-function FolderItem({ folder, selected, onClick, onPrefetch }: FolderItemProps) {
+function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: FolderItemProps) {
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(folder.name);
   const { mutateAsync: updateFolder, isPending: isUpdating } = useUpdateFolderMutation(folder.id);
@@ -186,6 +188,8 @@ function FolderItem({ folder, selected, onClick, onPrefetch }: FolderItemProps) 
       confirmText: TEXTS.buttons.delete,
       cancelText: TEXTS.buttons.cancel,
       onConfirm: async () => {
+        // 현재 보고 있는 폴더면 먼저 전체로 이동 → 삭제 후 invalidate 시 죽은 폴더 쿼리가 refetch(404)되지 않도록 언마운트
+        if (selected) onDeleted();
         try {
           await deleteFolder();
           toast.success(TEXTS.messages.success.folderDeleted);

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/shared/ui/atoms/button';
@@ -27,13 +28,22 @@ const SORT_LABELS: Record<FolderSort, string> = {
 const VALID_SORTS: FolderSort[] = ['latest', 'oldest', 'title', 'views'];
 
 function parseFolderKey(raw: string | null): FolderKey | null {
-  if (!raw) return null;
-  if (raw === 'uncategorized' || raw === 'all') return raw;
+  if (!raw) {
+    return null;
+  }
+
+  if (raw === 'uncategorized' || raw === 'all') {
+    return raw;
+  }
+
   return raw; // UUID assumed
 }
 
 function parseSort(raw: string | null): FolderSort {
-  if (raw && (VALID_SORTS as string[]).includes(raw)) return raw as FolderSort;
+  if (raw && (VALID_SORTS as string[]).includes(raw)) {
+    return raw as FolderSort;
+  }
+
   return 'latest';
 }
 
@@ -61,14 +71,22 @@ export function BookmarkPage() {
           TEXTS.bookmark.folder.fallbackName);
 
   const setFolderKey = (key: FolderKey) => {
-    if (key === 'all' && !isMobile) searchParams.delete('folder');
-    else searchParams.set('folder', key);
+    if (key === 'all' && !isMobile) {
+      searchParams.delete('folder');
+    } else {
+      searchParams.set('folder', key);
+    }
+
     setSearchParams(searchParams, { replace: false });
   };
 
   const setSort = (next: FolderSort) => {
-    if (next === 'latest') searchParams.delete('sort');
-    else searchParams.set('sort', next);
+    if (next === 'latest') {
+      searchParams.delete('sort');
+    } else {
+      searchParams.set('sort', next);
+    }
+
     setSearchParams(searchParams, { replace: true });
   };
 
@@ -76,6 +94,27 @@ export function BookmarkPage() {
     searchParams.delete('folder');
     setSearchParams(searchParams, { replace: false });
   };
+
+  // 삭제됐거나 존재하지 않는 폴더 UUID가 URL에 남으면 → 전체로 리다이렉트 (404 FOLDER_NOT_FOUND 방지)
+  useEffect(
+    function redirectWhenFolderMissing() {
+      if (!folders) {
+        return;
+      }
+
+      if (!folderKey || folderKey === 'all' || folderKey === 'uncategorized') {
+        return;
+      }
+
+      if (folders.some((f) => f.id === folderKey)) {
+        return;
+      }
+
+      searchParams.delete('folder');
+      setSearchParams(searchParams, { replace: true });
+    },
+    [folders, folderKey, searchParams, setSearchParams]
+  );
 
   // ============== 모바일 — 폴더 목록 모드 ==============
   if (isMobileListMode) {
