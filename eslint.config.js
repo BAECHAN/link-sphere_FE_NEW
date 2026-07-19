@@ -191,6 +191,8 @@ export default [
       // Prettier 규칙 통합
       'prettier/prettier': 'error',
       eqeqeq: 'error',
+      // if/else/for/while 등 제어문은 항상 중괄호 블록 사용 (인라인 금지)
+      curly: ['error', 'all'],
       'no-var': 'error',
       'no-empty-pattern': 'error',
       'no-undef': 'off',

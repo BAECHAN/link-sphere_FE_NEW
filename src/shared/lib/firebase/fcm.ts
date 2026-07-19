@@ -9,7 +9,9 @@ const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY as string;
  * 로그인 성공 직후 호출하세요.
  */
 export async function requestAndRegisterFcmToken(): Promise<void> {
-  if (!messaging) return;
+  if (!messaging) {
+    return;
+  }
   if (!VAPID_KEY) {
     console.warn('[FCM] VITE_FIREBASE_VAPID_KEY is not set');
     return;
@@ -44,7 +46,9 @@ export async function requestAndRegisterFcmToken(): Promise<void> {
  * 로그아웃 시 서버에서 FCM 토큰을 삭제합니다.
  */
 export async function unregisterFcmToken(): Promise<void> {
-  if (!messaging) return;
+  if (!messaging) {
+    return;
+  }
 
   try {
     const { deleteToken } = await import('firebase/messaging');
@@ -63,12 +67,16 @@ export async function unregisterFcmToken(): Promise<void> {
 
 async function registerTokenToServer(token: string): Promise<void> {
   // 동일 토큰을 중복 등록하지 않도록 세션에 캐싱
-  if (sessionStorage.getItem('fcmToken') === token) return;
+  if (sessionStorage.getItem('fcmToken') === token) {
+    return;
+  }
 
   const baseUrl = import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL as string);
 
   const accessToken = getAccessTokenFromStore();
-  if (!accessToken) return;
+  if (!accessToken) {
+    return;
+  }
 
   const res = await fetch(`${baseUrl}/fcm/token`, {
     method: 'POST',
@@ -89,7 +97,9 @@ async function deleteTokenFromServer(token: string): Promise<void> {
   const baseUrl = import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL as string);
 
   const accessToken = getAccessTokenFromStore();
-  if (!accessToken) return;
+  if (!accessToken) {
+    return;
+  }
 
   await fetch(`${baseUrl}/fcm/token`, {
     method: 'DELETE',

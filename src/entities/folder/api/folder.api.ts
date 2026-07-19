@@ -45,8 +45,12 @@ export const folderApi = {
   ): Promise<PostListResponse> => {
     const { page, size, sort, search } = payload;
     const searchParams: Record<string, string | number> = { page, size };
-    if (sort) searchParams.sort = sort;
-    if (search) searchParams.search = search;
+    if (sort) {
+      searchParams.sort = sort;
+    }
+    if (search) {
+      searchParams.search = search;
+    }
     return await apiClient.get<PostListResponse>(API_ENDPOINTS.bookmark.folderPosts(folderKey), {
       searchParams,
     });

@@ -24,7 +24,9 @@ type UseKeydownOptions = {
  * 입력 필드 요소인지 확인하는 함수
  */
 function isInputElement(element: EventTarget | null): boolean {
-  if (!element || !(element instanceof HTMLElement)) return false;
+  if (!element || !(element instanceof HTMLElement)) {
+    return false;
+  }
 
   const tagName = element.tagName.toLowerCase();
   const isInput = tagName === 'input' || tagName === 'textarea';

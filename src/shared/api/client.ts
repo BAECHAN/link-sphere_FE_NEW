@@ -57,7 +57,9 @@ class ApiClient {
    * 데이터 전처리 (NFC 정규화 -> 빈 문자열 null 처리)
    */
   private processRequestData(data: unknown): unknown {
-    if (!data || typeof data !== 'object') return data;
+    if (!data || typeof data !== 'object') {
+      return data;
+    }
 
     // 1. 모든 문자열 NFC 정규화 (Mac/Window 한글 호환)
     const normalizedData = FormUtil.normalizePayload(data);

@@ -36,13 +36,17 @@ export function useImagePaste({ onImageSet }: UseImagePasteOptions = {}) {
 
   const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const items = e.clipboardData?.items;
-    if (!items) return;
+    if (!items) {
+      return;
+    }
 
     const imageFiles: File[] = [];
     for (const item of Array.from(items)) {
       if (item.type.startsWith('image/')) {
         const file = item.getAsFile();
-        if (file) imageFiles.push(file);
+        if (file) {
+          imageFiles.push(file);
+        }
       }
     }
 

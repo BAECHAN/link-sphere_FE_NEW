@@ -16,8 +16,12 @@ import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
  * 5xx 서버 에러 또는 네트워크 단절 여부를 판단
  */
 function isServerError(error: unknown): boolean {
-  if (error instanceof ApiError && error.status >= 500) return true;
-  if (error instanceof TypeError && error.message === 'Failed to fetch') return true;
+  if (error instanceof ApiError && error.status >= 500) {
+    return true;
+  }
+  if (error instanceof TypeError && error.message === 'Failed to fetch') {
+    return true;
+  }
   return false;
 }
 
@@ -26,7 +30,9 @@ function isServerError(error: unknown): boolean {
  * (dynamic import 실패 = "Failed to fetch dynamically imported module: ...")
  */
 function isChunkLoadError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
+  if (!(error instanceof Error)) {
+    return false;
+  }
   return (
     error.message.includes('Failed to fetch dynamically imported module') ||
     error.message.includes('Importing a module script failed') ||

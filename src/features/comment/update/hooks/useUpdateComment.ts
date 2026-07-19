@@ -33,7 +33,9 @@ export function useUpdateComment({ comment, postId }: UseUpdateCommentOptions) {
   }, [comment.content, clearAllEditImages]);
 
   const handleUpdate = useCallback(() => {
-    if (!editContent.trim() && editPastedImages.length === 0) return;
+    if (!editContent.trim() && editPastedImages.length === 0) {
+      return;
+    }
     updateComment(
       { commentId: comment.id, content: editContent, images: editPastedImages },
       {

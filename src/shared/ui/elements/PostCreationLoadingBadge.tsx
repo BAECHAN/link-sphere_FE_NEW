@@ -15,7 +15,9 @@ export function PostCreationLoadingBadge() {
     }
   }, [isMutating]);
 
-  if (!isMutating) return null;
+  if (!isMutating) {
+    return null;
+  }
 
   return (
     <div

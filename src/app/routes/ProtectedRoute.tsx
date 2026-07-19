@@ -22,7 +22,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   );
 
   useEffect(() => {
-    if (!isVerifying) return;
+    if (!isVerifying) {
+      return;
+    }
     restoreAuth().finally(() => setIsVerifying(false));
   }, [isVerifying, restoreAuth]);
 
@@ -30,13 +32,17 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // - 처음부터 비로그인 = 보호 페이지 "접근 시도" → 로그인 모달을 띄운다.
   // - 로그인 상태였다가 false = 로그아웃/세션만료 → 모달 없이 조용히 피드로 보낸다.
   const hasBeenAuthenticated = useRef(isAuthenticated);
-  if (isAuthenticated) hasBeenAuthenticated.current = true;
+  if (isAuthenticated) {
+    hasBeenAuthenticated.current = true;
+  }
 
   // 비로그인 접근 시도일 때만: 로그인 페이지로 튕기지 않고 공개 피드를 배경으로
   // 두고 로그인 모달을 띄운다. 로그인 성공 시 원래 페이지로 복귀.
   const intendedPath = location.pathname + location.search;
   useEffect(() => {
-    if (isVerifying || isAuthenticated || hasBeenAuthenticated.current) return;
+    if (isVerifying || isAuthenticated || hasBeenAuthenticated.current) {
+      return;
+    }
     openLoginModal(() => navigate(intendedPath, { replace: true }));
   }, [isVerifying, isAuthenticated, openLoginModal, navigate, intendedPath]);
 

@@ -37,7 +37,9 @@ export const useLikePostMutation = (postId: Post['id']) => {
       queryClient.setQueriesData<InfiniteData<PostListResponse>>(
         { queryKey: postKeys.listRoot },
         (oldData) => {
-          if (!oldData) return oldData;
+          if (!oldData) {
+            return oldData;
+          }
           return {
             ...oldData,
             pages: oldData.pages.map((page) => ({
@@ -105,7 +107,9 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
       queryClient.setQueriesData<InfiniteData<PostListResponse>>(
         { queryKey: postKeys.listRoot },
         (oldData) => {
-          if (!oldData) return oldData;
+          if (!oldData) {
+            return oldData;
+          }
           return {
             ...oldData,
             pages: oldData.pages.map((page) => ({
@@ -147,11 +151,15 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
         queryClient.setQueriesData<InfiniteData<PostListResponse>>(
           { queryKey: folderKeys.postsRoot },
           (oldData) => {
-            if (!oldData) return oldData;
+            if (!oldData) {
+              return oldData;
+            }
             const contains = oldData.pages.some((page) =>
               page.content.some((post) => post.id === postId)
             );
-            if (!contains) return oldData;
+            if (!contains) {
+              return oldData;
+            }
             return {
               ...oldData,
               pages: oldData.pages.map((page) => ({

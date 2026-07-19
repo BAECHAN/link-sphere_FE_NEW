@@ -30,7 +30,9 @@ export function useBookmarkWithFolder(
   };
 
   const removeBookmark = async () => {
-    if (isBookmarked) await toggleBookmark();
+    if (isBookmarked) {
+      await toggleBookmark();
+    }
   };
 
   return { saveToFolder, removeBookmark };

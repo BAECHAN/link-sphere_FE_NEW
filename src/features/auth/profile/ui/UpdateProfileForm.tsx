@@ -46,7 +46,9 @@ export function UpdateProfileForm({ onSuccess }: UpdateProfileFormProps) {
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) handleAvatarChange(file);
+              if (file) {
+                handleAvatarChange(file);
+              }
               e.target.value = '';
             }}
           />

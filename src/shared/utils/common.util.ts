@@ -24,8 +24,12 @@ export class CommonUtil {
    * @returns 문자열이 비어있으면 true, 아니면 false
    */
   static isEmpty(str: string) {
-    if (!str) return true;
-    if (str.length === 0) return true;
+    if (!str) {
+      return true;
+    }
+    if (str.length === 0) {
+      return true;
+    }
     return str.trim().length === 0;
   }
 
@@ -119,9 +123,15 @@ export class CommonUtil {
    * @returns 두 배열이 같으면 true, 다르면 false
    */
   static isEqualArray<T>(arr1: T[], arr2: T[]): boolean {
-    if (arr1 === arr2) return true;
-    if (!arr1 || !arr2) return false;
-    if (arr1.length !== arr2.length) return false;
+    if (arr1 === arr2) {
+      return true;
+    }
+    if (!arr1 || !arr2) {
+      return false;
+    }
+    if (arr1.length !== arr2.length) {
+      return false;
+    }
 
     return arr1.every((item, index) => this.isDeepEqual(item, arr2[index]));
   }
@@ -142,14 +152,24 @@ export class CommonUtil {
    * @private
    */
   private static _deepEqual(value1: unknown, value2: unknown, visited: WeakSet<object>): boolean {
-    if (value1 === value2) return true;
+    if (value1 === value2) {
+      return true;
+    }
 
-    if (value1 === null || value2 === null) return value1 === value2;
-    if (value1 === undefined || value2 === undefined) return value1 === value2;
+    if (value1 === null || value2 === null) {
+      return value1 === value2;
+    }
+    if (value1 === undefined || value2 === undefined) {
+      return value1 === value2;
+    }
 
-    if (typeof value1 !== typeof value2) return false;
+    if (typeof value1 !== typeof value2) {
+      return false;
+    }
 
-    if (typeof value1 !== 'object') return value1 === value2;
+    if (typeof value1 !== 'object') {
+      return value1 === value2;
+    }
 
     const obj1 = value1 as object;
     const obj2 = value2 as object;
@@ -175,12 +195,16 @@ export class CommonUtil {
 
       // 배열 비교
       if (Array.isArray(value1) && Array.isArray(value2)) {
-        if (value1.length !== value2.length) return false;
+        if (value1.length !== value2.length) {
+          return false;
+        }
 
         return value1.every((item, index) => this._deepEqual(item, value2[index], visited));
       }
 
-      if (Array.isArray(value1) || Array.isArray(value2)) return false;
+      if (Array.isArray(value1) || Array.isArray(value2)) {
+        return false;
+      }
 
       // 객체 비교
       const obj1Record = value1 as Record<string, unknown>;
@@ -188,13 +212,17 @@ export class CommonUtil {
       const keys1 = Object.keys(obj1Record);
       const keys2 = Object.keys(obj2Record);
 
-      if (keys1.length !== keys2.length) return false;
+      if (keys1.length !== keys2.length) {
+        return false;
+      }
 
       // Set을 사용하여 O(1) 조회 성능 향상
       const keys2Set = new Set(keys2);
 
       return keys1.every((key) => {
-        if (!key || !keys2Set.has(key)) return false;
+        if (!key || !keys2Set.has(key)) {
+          return false;
+        }
 
         const val1 = obj1Record[key];
         const val2 = obj2Record[key];
@@ -215,7 +243,9 @@ export class CommonUtil {
    * @returns 배열의 마지막 요소, 배열이 비어있거나 null/undefined이면 undefined
    */
   static getLastItem<T>(arr: T[] | null | undefined): T | undefined {
-    if (!arr || arr.length === 0) return undefined;
+    if (!arr || arr.length === 0) {
+      return undefined;
+    }
     return arr[arr.length - 1];
   }
 
@@ -373,7 +403,9 @@ export class CommonUtil {
    * @private
    */
   private static _formatToKRWUnits(value: number): string {
-    if (value === 0) return '0';
+    if (value === 0) {
+      return '0';
+    }
 
     const units = [
       { value: 1000000000000, label: '조' },
@@ -411,7 +443,9 @@ export class CommonUtil {
    * @private
    */
   private static _formatToKoreanNumber(value: number): string {
-    if (value === 0) return '영';
+    if (value === 0) {
+      return '영';
+    }
 
     const koreanDigits = ['영', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
     const koreanUnits = [

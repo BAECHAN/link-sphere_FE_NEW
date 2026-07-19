@@ -25,7 +25,9 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
 
   const canSubmit = isDirty && isValid && !isUpdating;
 
-  if (isLoading) return <SpinnerOverlay />;
+  if (isLoading) {
+    return <SpinnerOverlay />;
+  }
 
   return (
     <div className="flex justify-center w-full md:py-8">

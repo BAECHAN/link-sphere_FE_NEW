@@ -19,7 +19,9 @@ export function BookmarkPostList({ folderKey, sort, search, className }: Bookmar
 
   const observerRef = useIntersectionObserver({
     onIntersect: () => {
-      if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+      if (hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
     },
     enabled: hasNextPage && !isFetchingNextPage,
     rootMargin: '0px 0px 1200px 0px',

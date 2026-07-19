@@ -15,7 +15,9 @@ export interface SpinnerOverlayProps {
 export function SpinnerOverlay({ className, spinnerClassName, delay = 500 }: SpinnerOverlayProps) {
   const isDelayedLoading = useDelayedLoading(true, delay);
 
-  if (!isDelayedLoading) return null;
+  if (!isDelayedLoading) {
+    return null;
+  }
 
   return (
     <div className={cn('flex h-full w-full items-center justify-center p-10', className)}>

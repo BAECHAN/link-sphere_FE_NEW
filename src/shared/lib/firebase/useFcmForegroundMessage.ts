@@ -9,7 +9,9 @@ export function useFcmForegroundMessage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!messaging) return;
+    if (!messaging) {
+      return;
+    }
 
     const unsubscribe = onMessage(messaging, (payload) => {
       const title = payload.notification?.title ?? TEXTS.notification.defaultTitle;

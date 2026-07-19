@@ -37,7 +37,9 @@ export function usePostCard(post: Post, isDetail = false) {
 
   const handleToggleVisibility = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (!isOwner) return;
+    if (!isOwner) {
+      return;
+    }
 
     const actionText = post.isPrivate
       ? TEXTS.post.card.visibilityToPublic
@@ -69,10 +71,14 @@ export function usePostCard(post: Post, isDetail = false) {
         await navigator.share({ url });
       } else {
         await navigator.clipboard.writeText(url);
-        if (!isMobile) toast.success(TEXTS.messages.success.linkCopied);
+        if (!isMobile) {
+          toast.success(TEXTS.messages.success.linkCopied);
+        }
       }
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') return;
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
       console.error('Copy failed', error);
       toast.error(TEXTS.messages.error.linkCopyFailed);
     }

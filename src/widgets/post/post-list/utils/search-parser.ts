@@ -9,7 +9,9 @@ export interface SearchParams {
  * 예: "@DevOps #테스트 리액트" -> { category: 'DevOps', nickname: '테스트', search: '리액트' }
  */
 export const parseSearchQuery = (query: string): SearchParams => {
-  if (!query) return {};
+  if (!query) {
+    return {};
+  }
 
   // 모든 @카테고리 패턴 추출
   const categoryMatches = query.match(/@(\S+)/g);

@@ -161,7 +161,9 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
   const submittingRef = useRef(false);
 
   const submitRename = async () => {
-    if (submittingRef.current || isUpdating) return;
+    if (submittingRef.current || isUpdating) {
+      return;
+    }
     const next = name.trim();
     if (!next || next === folder.name) {
       setRenaming(false);
@@ -189,7 +191,9 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
       cancelText: TEXTS.buttons.cancel,
       onConfirm: async () => {
         // 현재 보고 있는 폴더면 먼저 전체로 이동 → 삭제 후 invalidate 시 죽은 폴더 쿼리가 refetch(404)되지 않도록 언마운트
-        if (selected) onDeleted();
+        if (selected) {
+          onDeleted();
+        }
         try {
           await deleteFolder();
           toast.success(TEXTS.messages.success.folderDeleted);
@@ -210,8 +214,12 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
           onChange={(e) => setName(e.target.value)}
           onBlur={submitRename}
           onKeyDown={(e) => {
-            if (e.nativeEvent.isComposing) return;
-            if (e.key === 'Enter') submitRename();
+            if (e.nativeEvent.isComposing) {
+              return;
+            }
+            if (e.key === 'Enter') {
+              submitRename();
+            }
             if (e.key === 'Escape') {
               setRenaming(false);
               setName(folder.name);
@@ -295,9 +303,13 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
   const submittingRef = useRef(false);
 
   const submit = async () => {
-    if (submittingRef.current || isPending) return;
+    if (submittingRef.current || isPending) {
+      return;
+    }
     const trimmed = name.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      return;
+    }
     submittingRef.current = true;
     try {
       const created = await createFolder({ name: trimmed });
@@ -312,9 +324,15 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     // IME(한글 등) 조합 중 엔터는 무시 — 조합 완료 + Enter 가 동시 발생해 submit 중복 호출되는 것을 방지
-    if (e.nativeEvent.isComposing) return;
-    if (e.key === 'Enter') submit();
-    if (e.key === 'Escape') onClose();
+    if (e.nativeEvent.isComposing) {
+      return;
+    }
+    if (e.key === 'Enter') {
+      submit();
+    }
+    if (e.key === 'Escape') {
+      onClose();
+    }
   };
 
   return (

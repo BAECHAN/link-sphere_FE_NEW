@@ -43,7 +43,9 @@ export function useMinimumLoading(
       startTimeRef.current = Date.now();
       setShowLoading(true);
 
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
     } else {
       // 로딩이 끝났을 때
       if (startTimeRef.current) {
@@ -67,7 +69,9 @@ export function useMinimumLoading(
     }
 
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
     };
   }, [isLoading, minDuration]);
 

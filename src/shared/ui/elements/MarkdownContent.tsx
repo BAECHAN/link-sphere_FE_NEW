@@ -8,7 +8,9 @@ interface MarkdownContentProps {
 }
 
 export function MarkdownContent({ content, isMobile = false, className }: MarkdownContentProps) {
-  if (!content) return null;
+  if (!content) {
+    return null;
+  }
   return (
     <div className={cn('leading-relaxed break-all', className)}>
       {parseMarkdown(content, isMobile)}
@@ -22,7 +24,9 @@ function renderInlineLinks(text: string, keyPrefix: string, isMobile: boolean): 
   const nodes: React.ReactNode[] = [];
 
   parts.forEach((part, i) => {
-    if (!part) return;
+    if (!part) {
+      return;
+    }
     if (/^https?:\/\/[^\s]+$/.test(part)) {
       const isImage = /\.(jpeg|jpg|gif|png|webp|avif|heic|heif)(\?.*)?$/i.test(part);
       if (isImage) {
@@ -57,7 +61,9 @@ function renderInlineLinks(text: string, keyPrefix: string, isMobile: boolean): 
 }
 
 function parseMarkdown(text: string, isMobile: boolean): React.ReactNode[] {
-  if (!text) return [];
+  if (!text) {
+    return [];
+  }
   const elements: React.ReactNode[] = [];
 
   // 닫힌 코드 블럭(``` ... ```)과 나머지 텍스트를 분리

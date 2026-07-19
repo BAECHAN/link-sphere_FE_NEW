@@ -13,7 +13,9 @@ export const useAppInitialization = () => {
 
   useEffect(() => {
     // 중복 실행 방지
-    if (hasInitialized.current) return;
+    if (hasInitialized.current) {
+      return;
+    }
     hasInitialized.current = true;
 
     const initialize = async () => {

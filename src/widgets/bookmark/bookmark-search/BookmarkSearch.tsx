@@ -22,8 +22,11 @@ export function BookmarkSearch({ className }: BookmarkSearchProps) {
 
   const applySearch = (value: string) => {
     const trimmed = value.trim();
-    if (trimmed) searchParams.set('q', trimmed);
-    else searchParams.delete('q');
+    if (trimmed) {
+      searchParams.set('q', trimmed);
+    } else {
+      searchParams.delete('q');
+    }
     setSearchParams(searchParams, { replace: true });
   };
 

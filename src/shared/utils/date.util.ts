@@ -72,7 +72,9 @@ export class DateUtil {
    */
   static formatKoreanTime(date: DateInput): string {
     const d = this.toDayjs(date);
-    if (!d.isValid()) return '';
+    if (!d.isValid()) {
+      return '';
+    }
 
     const hour = d.hour();
     const minute = d.minute();
@@ -91,7 +93,9 @@ export class DateUtil {
    */
   static formatKoreanDateTime(date: DateInput): string {
     const d = this.toDayjs(date);
-    if (!d.isValid()) return '';
+    if (!d.isValid()) {
+      return '';
+    }
 
     const dateStr = d.format('YYYY년 M월 D일');
     const timeStr = this.formatKoreanTime(date);
@@ -104,7 +108,9 @@ export class DateUtil {
    */
   static formatKoreanDateTimeWithDay(date: DateInput): string {
     const d = this.toDayjs(date);
-    if (!d.isValid()) return '';
+    if (!d.isValid()) {
+      return '';
+    }
 
     const dateStr = d.format('YYYY년 M월 D일 dddd');
     const timeStr = this.formatKoreanTime(date);
@@ -126,7 +132,9 @@ export class DateUtil {
    */
   static formatTimeWithPeriod(date: DateInput): string {
     const d = this.toDayjs(date);
-    if (!d.isValid()) return '';
+    if (!d.isValid()) {
+      return '';
+    }
 
     const hour = d.hour();
     const period = hour < 12 ? '오전' : '오후';
@@ -166,7 +174,9 @@ export class DateUtil {
    */
   static formatRelative(date: DateInput): string {
     const d = this.toDayjs(date);
-    if (!d.isValid()) return '';
+    if (!d.isValid()) {
+      return '';
+    }
 
     const now = dayjs().tz();
     const diffMinutes = now.diff(d, 'minute');
@@ -213,7 +223,9 @@ export class DateUtil {
    */
   static formatRelativeShort(date: DateInput): string {
     const d = this.toDayjs(date);
-    if (!d.isValid()) return '';
+    if (!d.isValid()) {
+      return '';
+    }
 
     const now = dayjs().tz();
     const diffMinutes = now.diff(d, 'minute');
@@ -259,7 +271,9 @@ export class DateUtil {
    */
   static formatBoard(date: DateInput): string {
     const d = this.toDayjs(date);
-    if (!d.isValid()) return '';
+    if (!d.isValid()) {
+      return '';
+    }
 
     const now = dayjs().tz();
 
@@ -287,9 +301,15 @@ export class DateUtil {
     const start = this.toDayjs(startDate);
     const end = this.toDayjs(endDate);
 
-    if (!start.isValid() && !end.isValid()) return '';
-    if (!start.isValid()) return this.formatKorean(endDate);
-    if (!end.isValid()) return this.formatKorean(startDate);
+    if (!start.isValid() && !end.isValid()) {
+      return '';
+    }
+    if (!start.isValid()) {
+      return this.formatKorean(endDate);
+    }
+    if (!end.isValid()) {
+      return this.formatKorean(startDate);
+    }
 
     return `${this.formatKorean(startDate)}${separator}${this.formatKorean(endDate)}`;
   }

@@ -7,9 +7,13 @@ export class AuthUtil {
   static isTokenExpired(token: string): boolean {
     try {
       const parts = token.split('.');
-      if (parts.length < 2) return true;
+      if (parts.length < 2) {
+        return true;
+      }
       const payload = JSON.parse(atob(parts[1]!)) as { exp?: number };
-      if (typeof payload.exp !== 'number') return true;
+      if (typeof payload.exp !== 'number') {
+        return true;
+      }
       return Date.now() / 1000 > payload.exp - 30;
     } catch {
       return true;

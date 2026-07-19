@@ -116,7 +116,9 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
   const submittingRef = useRef(false);
 
   const submitRename = async () => {
-    if (submittingRef.current || isUpdating) return;
+    if (submittingRef.current || isUpdating) {
+      return;
+    }
     const next = name.trim();
     if (!next || next === folder.name) {
       setRenaming(false);
@@ -163,8 +165,12 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
           onChange={(e) => setName(e.target.value)}
           onBlur={submitRename}
           onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-            if (e.nativeEvent.isComposing) return;
-            if (e.key === 'Enter') submitRename();
+            if (e.nativeEvent.isComposing) {
+              return;
+            }
+            if (e.key === 'Enter') {
+              submitRename();
+            }
             if (e.key === 'Escape') {
               setRenaming(false);
               setName(folder.name);
@@ -219,9 +225,13 @@ function CreateFolderCard() {
   const submittingRef = useRef(false);
 
   const submit = async () => {
-    if (submittingRef.current || isPending) return;
+    if (submittingRef.current || isPending) {
+      return;
+    }
     const trimmed = name.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      return;
+    }
     submittingRef.current = true;
     try {
       const created = await createFolder({ name: trimmed });
@@ -244,11 +254,17 @@ function CreateFolderCard() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           onBlur={() => {
-            if (!name && !isPending) setCreating(false);
+            if (!name && !isPending) {
+              setCreating(false);
+            }
           }}
           onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-            if (e.nativeEvent.isComposing) return;
-            if (e.key === 'Enter') submit();
+            if (e.nativeEvent.isComposing) {
+              return;
+            }
+            if (e.key === 'Enter') {
+              submit();
+            }
             if (e.key === 'Escape') {
               setCreating(false);
               setName('');

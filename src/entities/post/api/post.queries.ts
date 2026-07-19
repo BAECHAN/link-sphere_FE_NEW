@@ -59,7 +59,9 @@ export const useFetchPostListQuery = (
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => {
-      if (lastPage.last) return undefined;
+      if (lastPage.last) {
+        return undefined;
+      }
       return lastPage.page + 1;
     },
     select: (data) => {
@@ -94,7 +96,9 @@ export const useSuspenseFetchPostListQuery = (
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => {
-      if (lastPage.last) return undefined;
+      if (lastPage.last) {
+        return undefined;
+      }
       return lastPage.page + 1;
     },
     select: (data) => {
@@ -155,7 +159,9 @@ export const useDeletePostMutation = () => {
       queryClient.setQueriesData<InfiniteData<PostListResponse>>(
         { queryKey: postKeys.listRoot },
         (old) => {
-          if (!old) return old;
+          if (!old) {
+            return old;
+          }
           return {
             ...old,
             pages: old.pages.map((page) => ({
@@ -199,7 +205,9 @@ export const useUpdatePostMutation = (postId: string) => {
       queryClient.setQueriesData<InfiniteData<PostListResponse>>(
         { queryKey: postKeys.listRoot },
         (old) => {
-          if (!old) return old;
+          if (!old) {
+            return old;
+          }
           return {
             ...old,
             pages: old.pages.map((page) => ({

@@ -233,7 +233,9 @@ export const useMoveBookmarkMutation = (postId: string) => {
       queryClient.setQueriesData<InfiniteData<PostListResponse>>(
         { queryKey: postKeys.listRoot },
         (oldData) => {
-          if (!oldData) return oldData;
+          if (!oldData) {
+            return oldData;
+          }
           return {
             ...oldData,
             pages: oldData.pages.map((page) => ({
@@ -260,9 +262,12 @@ export const useMoveBookmarkMutation = (postId: string) => {
         queryClient.setQueryData<FolderList>(
           folderKeys.list,
           previousFolderList.map((f) => {
-            if (f.id === previousFolderId)
+            if (f.id === previousFolderId) {
               return { ...f, bookmarkCount: Math.max(0, f.bookmarkCount - 1) };
-            if (f.id === nextFolderId) return { ...f, bookmarkCount: f.bookmarkCount + 1 };
+            }
+            if (f.id === nextFolderId) {
+              return { ...f, bookmarkCount: f.bookmarkCount + 1 };
+            }
             return f;
           })
         );
