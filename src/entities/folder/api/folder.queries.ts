@@ -20,7 +20,7 @@ import {
 import {
   CreateFolderRequest,
   FolderKey,
-  FolderList,
+  FolderListResponse,
   FolderSort,
   MoveBookmarkRequest,
   ReorderFoldersRequest,
@@ -116,12 +116,14 @@ export const useUpdateFolderMutation = (folderId: string) => {
     meta: { manualErrorHandling: true },
     onMutate: async (payload) => {
       await queryClient.cancelQueries({ queryKey: folderKeys.list });
-      const previous = queryClient.getQueryData<FolderList>(folderKeys.list);
+      const previous = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
       if (previous) {
-        queryClient.setQueryData<FolderList>(
-          folderKeys.list,
-          previous.map((f) => (f.id === folderId ? { ...f, name: payload.name } : f))
-        );
+        queryClient.setQueryData<FolderListResponse>(folderKeys.list, {
+          ...previous,
+          folders: previous.folders.map((f) =>
+            f.id === folderId ? { ...f, name: payload.name } : f
+          ),
+        });
       }
       return { previous };
     },
@@ -154,16 +156,19 @@ export const useReorderFoldersMutation = () => {
     meta: { manualErrorHandling: true },
     onMutate: async (payload) => {
       await queryClient.cancelQueries({ queryKey: folderKeys.list });
-      const previous = queryClient.getQueryData<FolderList>(folderKeys.list);
+      const previous = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
       if (previous) {
-        const byId = new Map(previous.map((f) => [f.id, f]));
+        const byId = new Map(previous.folders.map((f) => [f.id, f]));
         const next = payload.folderIds
           .map((id, idx) => {
             const f = byId.get(id);
             return f ? { ...f, sortOrder: idx } : null;
           })
           .filter((f): f is NonNullable<typeof f> => f !== null);
-        queryClient.setQueryData<FolderList>(folderKeys.list, next);
+        queryClient.setQueryData<FolderListResponse>(folderKeys.list, {
+          ...previous,
+          folders: next,
+        });
       }
       return { previous };
     },
@@ -184,7 +189,7 @@ export const useReorderFoldersMutation = () => {
  * Optimistic update:
  * - post.detail: userInteractions.bookmarkFolderId/isBookmarked 즉시 갱신
  * - post.list: 같은 postId 모두 갱신
- * - folder.list: oldFolderId/newFolderId 의 bookmarkCount 증감 (null = 미분류, 카운트 대상 아님)
+ * - folder.list: oldFolderId/newFolderId 의 bookmarkCount 증감 (null = 미분류 → uncategorizedCount 증감)
  *
  * BE는 본인 북마크가 없으면 404 BOOKMARK_NOT_FOUND 반환 → 호출 측에서 사전에 토글 처리하거나 에러 핸들링 필요.
  */
@@ -210,7 +215,7 @@ export const useMoveBookmarkMutation = (postId: string) => {
             .flatMap(([, data]) => data?.pages.flatMap((page) => page.content) ?? [])
             .find((post) => post.id === postId);
 
-      const previousFolderList = queryClient.getQueryData<FolderList>(folderKeys.list);
+      const previousFolderList = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
       const previousFolderId =
         previousPost?.userInteractions.bookmarkFolderId ??
         cachedFolderPost?.userInteractions.bookmarkFolderId ??
@@ -257,11 +262,16 @@ export const useMoveBookmarkMutation = (postId: string) => {
         }
       );
 
-      // 3) folder.list — bookmarkCount 증감 (미분류 null 은 list 에 없음)
+      // 3) folder.list — 폴더 bookmarkCount 증감 + 미분류(null)면 uncategorizedCount 증감
       if (previousFolderList && previousFolderId !== nextFolderId) {
-        queryClient.setQueryData<FolderList>(
-          folderKeys.list,
-          previousFolderList.map((f) => {
+        const nextUncategorizedCount =
+          previousFolderList.uncategorizedCount +
+          (previousFolderId === null ? -1 : 0) +
+          (nextFolderId === null ? 1 : 0);
+        queryClient.setQueryData<FolderListResponse>(folderKeys.list, {
+          ...previousFolderList,
+          uncategorizedCount: Math.max(0, nextUncategorizedCount),
+          folders: previousFolderList.folders.map((f) => {
             if (f.id === previousFolderId) {
               return { ...f, bookmarkCount: Math.max(0, f.bookmarkCount - 1) };
             }
@@ -269,8 +279,8 @@ export const useMoveBookmarkMutation = (postId: string) => {
               return { ...f, bookmarkCount: f.bookmarkCount + 1 };
             }
             return f;
-          })
-        );
+          }),
+        });
       }
 
       return { previousPost, previousFolderList };

@@ -5,7 +5,7 @@ import {
   CreateFolderRequest,
   Folder,
   FolderKey,
-  FolderList,
+  FolderListResponse,
   FolderSort,
   MoveBookmarkRequest,
   ReorderFoldersRequest,
@@ -13,9 +13,9 @@ import {
 } from '@/entities/folder/model/folder.schema';
 
 export const folderApi = {
-  /** 내 폴더 목록 (bookmarkCount 포함, sortOrder ASC) */
-  fetchFolderList: async (): Promise<FolderList> => {
-    return await apiClient.get<FolderList>(API_ENDPOINTS.bookmark.folders);
+  /** 내 폴더 목록 (bookmarkCount 포함, sortOrder ASC) + 미분류 개수 */
+  fetchFolderList: async (): Promise<FolderListResponse> => {
+    return await apiClient.get<FolderListResponse>(API_ENDPOINTS.bookmark.folders);
   },
 
   /** 폴더 생성 — sort_order = max+1 */

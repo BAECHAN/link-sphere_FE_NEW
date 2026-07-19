@@ -56,7 +56,8 @@ export function BookmarkPage() {
   const sort = parseSort(searchParams.get('sort'));
   const search = searchParams.get('q') ?? '';
 
-  const { data: folders } = useFolderListQuery();
+  const { data: folderData } = useFolderListQuery();
+  const folders = folderData?.folders;
 
   // 모바일: folder 쿼리 없으면 폴더 목록 모드 / 데스크탑: 항상 'all' 디폴트
   const isMobileListMode = isMobile && !folderKey;

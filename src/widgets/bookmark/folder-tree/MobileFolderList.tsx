@@ -36,7 +36,11 @@ interface MobileFolderListProps {
 
 /** 모바일 — 폴더 목록 페이지 (drill-down 패턴) */
 export function MobileFolderList({ onSelect, className }: MobileFolderListProps) {
-  const { data: folders, isLoading } = useFolderListQuery();
+  const { data, isLoading } = useFolderListQuery();
+  const folders = data?.folders;
+  const uncategorizedCount = data?.uncategorizedCount ?? 0;
+  const totalCount =
+    (folders?.reduce((sum, f) => sum + f.bookmarkCount, 0) ?? 0) + uncategorizedCount;
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -45,13 +49,14 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
         <FixedRow
           icon={<FolderIcon className="h-5 w-5" />}
           label={TEXTS.bookmark.folder.all}
-          count={folders?.reduce((sum, f) => sum + f.bookmarkCount, 0)}
+          count={data ? totalCount : undefined}
           onClick={() => onSelect('all')}
         />
         <div className="border-t" />
         <FixedRow
           icon={<Inbox className="h-5 w-5" />}
           label={TEXTS.bookmark.folder.uncategorized}
+          count={data ? uncategorizedCount : undefined}
           onClick={() => onSelect('uncategorized')}
         />
       </section>

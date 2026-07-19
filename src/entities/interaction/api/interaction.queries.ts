@@ -5,7 +5,7 @@ import { postKeys } from '@/entities/post/api/post.keys';
 import { commentKeys } from '@/entities/comment/api/comment.keys';
 import { folderKeys, handleBookmarkToggleSuccess } from '@/entities/folder/api/folder.keys';
 import { Post, PostListResponse } from '@/entities/post/model/post.schema';
-import { FolderList } from '@/entities/folder/model/folder.schema';
+import { FolderListResponse } from '@/entities/folder/model/folder.schema';
 import { Comment } from '@/entities/comment/model/comment.schema';
 
 export const useLikePostMutation = (postId: Post['id']) => {
@@ -140,7 +140,7 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
       const previousFolderPosts = queryClient.getQueriesData<InfiniteData<PostListResponse>>({
         queryKey: folderKeys.postsRoot,
       });
-      const previousFolderList = queryClient.getQueryData<FolderList>(folderKeys.list);
+      const previousFolderList = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
 
       const bookmarkedPost = previousFolderPosts
         .flatMap(([, data]) => data?.pages.flatMap((page) => page.content) ?? [])
@@ -171,16 +171,24 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
           }
         );
 
-        // 폴더 건수 감소 (미분류 null 은 folder.list 에 없음)
+        // 폴더 건수 감소 — 미분류(null)면 uncategorizedCount, 그 외엔 해당 폴더 bookmarkCount
         const folderId = bookmarkedPost.userInteractions.bookmarkFolderId;
-        if (previousFolderList && folderId !== null) {
-          queryClient.setQueryData<FolderList>(
+        if (previousFolderList) {
+          queryClient.setQueryData<FolderListResponse>(
             folderKeys.list,
-            previousFolderList.map((folder) =>
-              folder.id === folderId
-                ? { ...folder, bookmarkCount: Math.max(0, folder.bookmarkCount - 1) }
-                : folder
-            )
+            folderId === null
+              ? {
+                  ...previousFolderList,
+                  uncategorizedCount: Math.max(0, previousFolderList.uncategorizedCount - 1),
+                }
+              : {
+                  ...previousFolderList,
+                  folders: previousFolderList.folders.map((folder) =>
+                    folder.id === folderId
+                      ? { ...folder, bookmarkCount: Math.max(0, folder.bookmarkCount - 1) }
+                      : folder
+                  ),
+                }
           );
         }
       }

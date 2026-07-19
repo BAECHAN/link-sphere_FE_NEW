@@ -32,13 +32,18 @@ interface FolderTreeProps {
 
 /** 데스크탑 — 좌측 사이드바 트리 */
 export function FolderTree({ selectedKey, onSelect, sort, search, className }: FolderTreeProps) {
-  const { data: folders, isLoading } = useFolderListQuery();
+  const { data, isLoading } = useFolderListQuery();
+  const folders = data?.folders;
+  const uncategorizedCount = data?.uncategorizedCount ?? 0;
+  const totalCount =
+    (folders?.reduce((sum, f) => sum + f.bookmarkCount, 0) ?? 0) + uncategorizedCount;
 
   return (
     <aside className={cn('flex flex-col gap-1 py-2', className)}>
       <FixedItem
         icon={<FolderIcon className="h-4 w-4" />}
         label={TEXTS.bookmark.folder.all}
+        count={data ? totalCount : undefined}
         selected={selectedKey === 'all'}
         onClick={() => onSelect('all')}
         onPrefetch={() => prefetchFolderPosts('all', sort, search)}
@@ -46,6 +51,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
       <FixedItem
         icon={<Inbox className="h-4 w-4" />}
         label={TEXTS.bookmark.folder.uncategorized}
+        count={data ? uncategorizedCount : undefined}
         selected={selectedKey === 'uncategorized'}
         onClick={() => onSelect('uncategorized')}
         onPrefetch={() => prefetchFolderPosts('uncategorized', sort, search)}
@@ -77,16 +83,24 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
 
 /** 모바일 — 상단 가로 칩 (선택 + 새 폴더만, ⋮ rename/delete 는 데스크탑 전용) */
 export function FolderChips({ selectedKey, onSelect, className }: FolderTreeProps) {
-  const { data: folders } = useFolderListQuery();
+  const { data } = useFolderListQuery();
+  const folders = data?.folders;
+  const uncategorizedCount = data?.uncategorizedCount ?? 0;
+  const totalCount =
+    (folders?.reduce((sum, f) => sum + f.bookmarkCount, 0) ?? 0) + uncategorizedCount;
   const [creating, setCreating] = useState(false);
 
   return (
     <div className={cn('flex items-center gap-2 overflow-x-auto py-2 px-1', className)}>
       <Chip selected={selectedKey === 'all'} onClick={() => onSelect('all')}>
         {TEXTS.bookmark.folder.all}
+        {totalCount > 0 && <span className="ml-1.5 text-xs opacity-70">{totalCount}</span>}
       </Chip>
       <Chip selected={selectedKey === 'uncategorized'} onClick={() => onSelect('uncategorized')}>
         {TEXTS.bookmark.folder.uncategorized}
+        {uncategorizedCount > 0 && (
+          <span className="ml-1.5 text-xs opacity-70">{uncategorizedCount}</span>
+        )}
       </Chip>
       {folders?.map((folder) => (
         <Chip
@@ -121,12 +135,13 @@ export function FolderChips({ selectedKey, onSelect, className }: FolderTreeProp
 interface FixedItemProps {
   icon: React.ReactNode;
   label: string;
+  count?: number;
   selected: boolean;
   onClick: () => void;
   onPrefetch?: () => void;
 }
 
-function FixedItem({ icon, label, selected, onClick, onPrefetch }: FixedItemProps) {
+function FixedItem({ icon, label, count, selected, onClick, onPrefetch }: FixedItemProps) {
   return (
     <button
       type="button"
@@ -140,6 +155,7 @@ function FixedItem({ icon, label, selected, onClick, onPrefetch }: FixedItemProp
     >
       <span className={selected ? 'text-primary' : 'text-muted-foreground'}>{icon}</span>
       <span className="flex-1 text-left">{label}</span>
+      {typeof count === 'number' && <span className="text-xs text-muted-foreground">{count}</span>}
     </button>
   );
 }

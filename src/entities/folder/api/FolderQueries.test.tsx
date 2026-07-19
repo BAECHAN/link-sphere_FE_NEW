@@ -10,7 +10,7 @@ import { postKeys } from '@/entities/post/api/post.keys';
 import { folderKeys } from '@/entities/folder/api/folder.keys';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import type { Post } from '@/entities/post/model/post.schema';
-import type { FolderList } from '@/entities/folder/model/folder.schema';
+import type { FolderListResponse } from '@/entities/folder/model/folder.schema';
 import { useMoveBookmarkMutation } from '@/entities/folder/api/folder.queries';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
@@ -26,16 +26,20 @@ function Wrapper({ children }: { children: ReactNode }) {
 const POST_ID = mockPost.id;
 const FOLDER_ID = 'folder-uuid-1';
 
-const seedFolderList: FolderList = [
-  {
-    id: FOLDER_ID,
-    name: '읽을거리',
-    sortOrder: 0,
-    bookmarkCount: 2,
-    createdAt: new Date('2025-01-01'),
-    updatedAt: new Date('2025-01-01'),
-  },
-];
+const seedFolderList: FolderListResponse = {
+  folders: [
+    {
+      id: FOLDER_ID,
+      name: '읽을거리',
+      sortOrder: 0,
+      bookmarkCount: 2,
+      createdAt: new Date('2025-01-01'),
+      updatedAt: new Date('2025-01-01'),
+    },
+  ],
+  // 현재 미분류(bookmarkFolderId = null)인 seededPost 1건을 반영
+  uncategorizedCount: 1,
+};
 
 describe('useMoveBookmarkMutation', () => {
   beforeEach(() => {
@@ -88,9 +92,10 @@ describe('useMoveBookmarkMutation', () => {
       expect(post?.userInteractions.isBookmarked).toBe(true);
     });
 
-    // folder.list: 대상 폴더 bookmarkCount 증가 (2 → 3)
-    const folders = queryClient.getQueryData<FolderList>(folderKeys.list);
-    expect(folders?.find((f) => f.id === FOLDER_ID)?.bookmarkCount).toBe(3);
+    // folder.list: 대상 폴더 bookmarkCount 증가 (2 → 3), 미분류 감소 (1 → 0)
+    const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+    expect(folders?.folders.find((f) => f.id === FOLDER_ID)?.bookmarkCount).toBe(3);
+    expect(folders?.uncategorizedCount).toBe(0);
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
   });
@@ -113,11 +118,12 @@ describe('useMoveBookmarkMutation', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 
-    // 롤백 확인: post.detail은 다시 미분류(null), folder.list bookmarkCount는 원복
+    // 롤백 확인: post.detail은 다시 미분류(null), folder.list bookmarkCount/미분류는 원복
     const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
     expect(post?.userInteractions.bookmarkFolderId).toBe(null);
-    const folders = queryClient.getQueryData<FolderList>(folderKeys.list);
-    expect(folders?.find((f) => f.id === FOLDER_ID)?.bookmarkCount).toBe(2);
+    const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+    expect(folders?.folders.find((f) => f.id === FOLDER_ID)?.bookmarkCount).toBe(2);
+    expect(folders?.uncategorizedCount).toBe(1);
   });
 
   it('post.detail 캐시가 없어도 folder 게시글 캐시에서 원본 폴더를 찾아 카운트를 감소시킨다', async () => {
@@ -127,17 +133,27 @@ describe('useMoveBookmarkMutation', () => {
     const SOURCE_ID = 'folder-uuid-source';
     const TARGET_ID = 'folder-uuid-target';
     const now = new Date('2025-01-01');
-    queryClient.setQueryData<FolderList>(folderKeys.list, [
-      { id: SOURCE_ID, name: 'AI', sortOrder: 0, bookmarkCount: 1, createdAt: now, updatedAt: now },
-      {
-        id: TARGET_ID,
-        name: '호주',
-        sortOrder: 1,
-        bookmarkCount: 4,
-        createdAt: now,
-        updatedAt: now,
-      },
-    ]);
+    queryClient.setQueryData<FolderListResponse>(folderKeys.list, {
+      folders: [
+        {
+          id: SOURCE_ID,
+          name: 'AI',
+          sortOrder: 0,
+          bookmarkCount: 1,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: TARGET_ID,
+          name: '호주',
+          sortOrder: 1,
+          bookmarkCount: 4,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      uncategorizedCount: 0,
+    });
 
     const postInSource: Post = {
       ...mockPost,
@@ -160,9 +176,34 @@ describe('useMoveBookmarkMutation', () => {
 
     // 원본 폴더 -1, 대상 폴더 +1 (기존엔 원본이 감소하지 않던 버그)
     await waitFor(() => {
-      const folders = queryClient.getQueryData<FolderList>(folderKeys.list);
-      expect(folders?.find((f) => f.id === SOURCE_ID)?.bookmarkCount).toBe(0);
-      expect(folders?.find((f) => f.id === TARGET_ID)?.bookmarkCount).toBe(5);
+      const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+      expect(folders?.folders.find((f) => f.id === SOURCE_ID)?.bookmarkCount).toBe(0);
+      expect(folders?.folders.find((f) => f.id === TARGET_ID)?.bookmarkCount).toBe(5);
+    });
+  });
+
+  it('폴더 → 미분류 이동 시 폴더 카운트 감소 + uncategorizedCount 증가', async () => {
+    // seededPost를 폴더에 소속시킨 상태로 재설정
+    const postInFolder: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderId: FOLDER_ID },
+    };
+    queryClient.setQueryData(postKeys.detail(POST_ID), postInFolder);
+    queryClient.setQueryData<FolderListResponse>(folderKeys.list, seedFolderList);
+
+    server.use(http.patch(url(API_ENDPOINTS.bookmark.moveBookmark(POST_ID)), () => okResponse()));
+
+    const { result } = renderHook(() => useMoveBookmarkMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ folderId: null });
+    });
+
+    // 폴더 2 → 1, 미분류 1 → 2
+    await waitFor(() => {
+      const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+      expect(folders?.folders.find((f) => f.id === FOLDER_ID)?.bookmarkCount).toBe(1);
+      expect(folders?.uncategorizedCount).toBe(2);
     });
   });
 });

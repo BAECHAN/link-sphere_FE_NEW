@@ -13,6 +13,12 @@ export const folderSchema = z.object({
 
 export const folderListSchema = z.array(folderSchema);
 
+// 폴더 목록 응답 — BE FolderListResponse 와 매핑 (folders + 미분류 개수)
+export const folderListResponseSchema = z.object({
+  folders: folderListSchema,
+  uncategorizedCount: z.number().int().nonnegative(),
+});
+
 // 생성 / 수정
 export const createFolderSchema = z.object({
   name: z.string().min(1, TEXTS.validation.folderNameRequired),
@@ -38,6 +44,7 @@ export type FolderKey = 'all' | 'uncategorized' | (string & {});
 
 export type Folder = z.infer<typeof folderSchema>;
 export type FolderList = z.infer<typeof folderListSchema>;
+export type FolderListResponse = z.infer<typeof folderListResponseSchema>;
 export type CreateFolderRequest = z.infer<typeof createFolderSchema>;
 export type UpdateFolderRequest = z.infer<typeof updateFolderSchema>;
 export type ReorderFoldersRequest = z.infer<typeof reorderFoldersSchema>;

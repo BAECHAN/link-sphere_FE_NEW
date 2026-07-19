@@ -33,9 +33,10 @@ export function FolderSelector({
   onOpenChange,
 }: FolderSelectorProps) {
   const isMobile = useIsMobile();
-  const { data: folders, isLoading } = useFolderListQuery({ enabled: open });
+  const { data, isLoading } = useFolderListQuery({ enabled: open });
   // 잘못 라우팅된 응답(HTML 등) 방어 — 배열이 아니면 빈 목록으로 처리해 피드 전체 크래시 방지
-  const folderList = Array.isArray(folders) ? folders : [];
+  const folderList = Array.isArray(data?.folders) ? data.folders : [];
+  const uncategorizedCount = data?.uncategorizedCount ?? 0;
   const { saveToFolder, removeBookmark } = useBookmarkWithFolder(
     postId,
     isBookmarked,
@@ -157,6 +158,7 @@ export function FolderSelector({
               <FolderRow
                 icon={<Bookmark className="h-4 w-4" />}
                 name={TEXTS.bookmark.folder.uncategorized}
+                count={uncategorizedCount}
                 isSelected={isBookmarked && currentFolderId === null}
                 isPending={pendingFolderId === null}
                 onClick={() => handleSelect(null, TEXTS.bookmark.folder.uncategorized)}
