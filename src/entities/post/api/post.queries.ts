@@ -23,6 +23,7 @@ import {
   postMutationKeys,
 } from '@/entities/post/api/post.keys';
 import { POST_PAGE_SIZE } from '@/entities/post/config/const';
+import { handlePostDeleteSuccess } from '@/entities/folder/api/folder.keys';
 import { PaginationRequest } from '@/shared/api/common.schema';
 
 export const useCreatePostMutation = () => {
@@ -174,6 +175,10 @@ export const useDeletePostMutation = () => {
           queryClient.setQueryData(queryKey, data);
         });
       }
+    },
+    onSuccess: () => {
+      // 북마크 폴더 페이지의 목록(folder posts) + 폴더별 bookmarkCount 재검증
+      handlePostDeleteSuccess();
     },
   });
 };

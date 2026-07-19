@@ -68,6 +68,15 @@ export const handleBookmarkToggleSuccess = () => {
 };
 
 /**
+ * 게시글 삭제 후 — 폴더 목록(bookmarkCount) + 모든 폴더별 게시글(목록에서 제거) 재검증
+ * (post 목록은 삭제 mutation의 optimistic update로 이미 반영됨)
+ */
+export const handlePostDeleteSuccess = () => {
+  folderInvalidateQueries.list();
+  folderInvalidateQueries.postsRoot();
+};
+
+/**
  * 북마크 폴더 이동 후 — 폴더 목록(bookmarkCount 변경) + 모든 폴더별 게시글 + post 목록/detail 갱신
  */
 export const handleMoveBookmarkSuccess = (postId: string) => {
