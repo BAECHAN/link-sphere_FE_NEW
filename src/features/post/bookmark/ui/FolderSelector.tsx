@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Bookmark, BookmarkX, Check, FolderPlus, Loader2, Plus, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/shared/ui/atoms/dialog';
@@ -47,6 +47,17 @@ export function FolderSelector({
   const [newFolderName, setNewFolderName] = useState('');
   const [pendingFolderId, setPendingFolderId] = useState<string | null | undefined>(undefined);
   const submittingRef = useRef(false);
+
+  // 셀렉터를 연 시점의 북마크 여부를 고정한다. 저장 중 낙관적 갱신으로 isBookmarked가
+  // true로 바뀌어도, 닫힘 애니메이션 동안 '삭제하기' 버튼이 깜빡이지 않도록 방지한다.
+  const [wasBookmarkedOnOpen, setWasBookmarkedOnOpen] = useState(isBookmarked);
+  useEffect(
+    function snapshotBookmarkStateOnOpen() {
+      if (open) setWasBookmarkedOnOpen(isBookmarked);
+      // open 이 true 로 전환되는 순간에만 스냅샷 — 저장 중 isBookmarked 변화는 의도적으로 무시
+    },
+    [open]
+  );
 
   const close = () => {
     onOpenChange(false);
@@ -199,8 +210,9 @@ export function FolderSelector({
                 </li>
               )}
 
-              {/* 북마크 제거 — 이미 북마크된 경우만 */}
-              {isBookmarked && (
+              {/* 북마크 제거 — 셀렉터를 연 시점에 이미 북마크된 경우만 노출.
+                  신규 등록 저장 중 낙관적 갱신이 삭제 UI로 새어나오지 않도록 스냅샷 값을 사용 */}
+              {wasBookmarkedOnOpen && (
                 <li>
                   <button
                     type="button"
