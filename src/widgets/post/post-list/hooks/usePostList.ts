@@ -65,12 +65,13 @@ export const usePostListParams = () => {
 export const usePostList = () => {
   const { category, nickname, search, currentFilter, ...params } = usePostListParams();
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useSuspenseFetchPostListQuery({
-    search,
-    category,
-    nickname,
-    filter: currentFilter,
-  });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
+    useSuspenseFetchPostListQuery({
+      search,
+      category,
+      nickname,
+      filter: currentFilter,
+    });
 
   const ref = useIntersectionObserver({
     onIntersect: () => {
@@ -89,6 +90,8 @@ export const usePostList = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    refetch,
+    isRefetching,
     observerRef: ref,
     currentFilter,
     ...params,
