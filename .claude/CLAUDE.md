@@ -150,6 +150,11 @@ const handleCreateAndSelect = async () => {
 
 에러가 있으면 진행 전 반드시 수정.
 
+> **⚠️ 타입체크는 반드시 `npm run type-check`(= `tsc -b --noEmit`)로.** 루트 `tsconfig.json`은
+> `files: []` + `references`만 있는 솔루션 스타일이라 `tsc -p tsconfig.json`으로 돌리면 **0개 파일을
+> 검사**(무의미)한다. 실제 소스는 `tsconfig.app.json`(`strict` + `noUncheckedIndexedAccess: true`)에서
+> 검사되며, build 모드(`-b`)라야 references를 따라가 이 설정까지 검사한다.
+
 ---
 
 ## React Query 라이프사이클 주의
@@ -764,7 +769,7 @@ pnpm test:coverage   # 커버리지 → coverage/index.html
 ```bash
 pnpm dev              # 개발 서버 (port 31119, /api → BE 51119 프록시)
 pnpm build            # TypeScript 컴파일 + Vite 빌드
-pnpm type-check       # tsc --noEmit
+pnpm type-check       # tsc -b --noEmit (build 모드 — references 따라 app/node 설정까지 검사)
 pnpm lint             # ESLint 검사
 pnpm lint:fix         # ESLint 자동 수정
 pnpm format           # Prettier 포맷
