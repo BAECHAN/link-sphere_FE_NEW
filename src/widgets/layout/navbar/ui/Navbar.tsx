@@ -68,7 +68,7 @@ export function Navbar() {
               <Menu className="size-6" />
               <span className="sr-only">{TEXTS.nav.toggleMenu}</span>
             </Button>
-            <Link to={ROUTES_PATHS.HOME} className="font-bold text-xl tracking-tight">
+            <Link to={ROUTES_PATHS.POST.ROOT} className="font-bold text-xl tracking-tight">
               {TEXTS.nav.brand}
             </Link>
           </div>

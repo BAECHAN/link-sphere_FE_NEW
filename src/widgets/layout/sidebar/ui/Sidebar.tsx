@@ -79,7 +79,7 @@ function SidebarHeader({
       </Button>
       {expanded && (
         <Link
-          to={ROUTES_PATHS.HOME}
+          to={ROUTES_PATHS.POST.ROOT}
           onClick={onLogoClick}
           className="font-bold text-xl tracking-tight truncate"
         >
