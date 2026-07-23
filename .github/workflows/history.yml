@@ -25,7 +25,9 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
       - run: npm install --no-save @google/generative-ai
+      # 배포와 무관한 부가 작업이므로 실패해도 워크플로 전체를 실패로 만들지 않는다
       - run: node scripts/generate-history.js
+        continue-on-error: true
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           BEFORE_SHA: ${{ github.event.before }}

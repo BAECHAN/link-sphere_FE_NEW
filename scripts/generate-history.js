@@ -59,7 +59,9 @@ async function main() {
   if (!logs) return console.log('새로운 커밋이 없습니다.');
 
   // 2. Gemini에게 요약 요청
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  // 릴리스 노트 요약은 품질 요구가 낮으므로, 일일 한도가 넉넉한 Flash Lite를 쓴다.
+  // (서비스용 요약·분류가 쓰는 gemini-2.5-flash의 무료 등급 20 RPD를 나눠 쓰지 않기 위함)
+  const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite' });
   const prompt = `
     다음은 GitHub 커밋 로그들이다.
     기술적인 성과 위주로 HISTORY.md에 들어갈 릴리스 노트를 작성해줘.
@@ -68,8 +70,15 @@ async function main() {
     ${logs}
   `;
 
-  const result = await model.generateContent(prompt);
-  const aiResponse = result.response.text();
+  // 쿼터 소진(429)·과부하(503)로 실패해도 배포와 무관한 부가 작업이므로 갱신만 건너뛴다
+  let aiResponse;
+  try {
+    const result = await model.generateContent(prompt);
+    aiResponse = result.response.text();
+  } catch (error) {
+    console.error('Gemini 요약 실패, HISTORY.md 갱신을 건너뜁니다:', error.message);
+    return;
+  }
 
   // 3. docs/HISTORY.md 파일 상단에 추가
   const currentHistory = fs.readFileSync('docs/HISTORY.md', 'utf8');
