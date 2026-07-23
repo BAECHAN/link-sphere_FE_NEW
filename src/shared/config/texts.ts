@@ -11,6 +11,7 @@ const COMMON_TEXT = {
   saving: '저장 중...',
   back: '뒤로 가기',
   submitting: '등록 중...',
+  updating: '수정 중...',
   confirm: '확인',
   cancel: '취소',
 } as const;
@@ -124,9 +125,12 @@ export const TEXTS = {
       },
       update: {
         title: '링크 수정하기',
-        description: '제목, 관심 분야, 공개 설정을 수정할 수 있습니다.',
+        description: 'URL, 제목, 관심 분야, 공개 설정을 수정할 수 있습니다.',
+        urlLabel: 'URL',
+        urlPlaceholder: 'https://example.com/amazing-article',
+        urlChangedNotice: 'URL을 바꾸면 제목·설명·이미지·AI 요약을 새 링크에서 다시 가져옵니다.',
         titleLabel: POST_FORM_COMMON.titleLabel,
-        titlePlaceholder: '제목을 입력하세요',
+        titlePlaceholder: '제목 (비워두면 자동으로 가져옵니다)',
         categoryLabel: POST_FORM_COMMON.categoryLabel,
         privateLabel: POST_FORM_COMMON.privateLabel,
         privateDescription: POST_FORM_COMMON.privateDescription,

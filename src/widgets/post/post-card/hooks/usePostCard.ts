@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useIsMutating } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Post } from '@/entities/post/model/post.schema';
 import { useFetchAccountQuery } from '@/entities/user/api/auth.queries';
 import { useUpdatePostVisibilityMutation } from '@/entities/post/api/post.queries';
+import { postMutationKeys } from '@/entities/post/api/post.keys';
 import { usePostDelete } from '@/features/post/delete/hooks/usePostDelete';
 import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
 import { TEXTS } from '@/shared/config/texts';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+
+/** 수정이 이 시간보다 오래 걸릴 때만 진행 표시를 띄운다 (빠른 수정에서 깜빡임 방지) */
+const UPDATING_INDICATOR_DELAY_MS = 300;
 
 export function usePostCard(post: Post, isDetail = false) {
   const { data: account } = useFetchAccountQuery();
@@ -22,6 +27,23 @@ export function usePostCard(post: Post, isDetail = false) {
 
   const [isAiSummaryExpanded, setIsAiSummaryExpanded] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // 이 게시글의 수정 요청이 진행 중인지 (수정 폼에서 이탈한 뒤에도 mutation은 계속 돌아간다)
+  const updatingCount = useIsMutating({ mutationKey: postMutationKeys.update(post.id) });
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(
+    function showUpdatingIndicatorAfterDelay() {
+      if (!updatingCount) {
+        setIsUpdating(false);
+        return;
+      }
+
+      const timer = setTimeout(() => setIsUpdating(true), UPDATING_INDICATOR_DELAY_MS);
+      return () => clearTimeout(timer);
+    },
+    [updatingCount]
+  );
 
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -102,6 +124,7 @@ export function usePostCard(post: Post, isDetail = false) {
 
   return {
     isOwner,
+    isUpdating,
     isUpdatingVisibility,
     isAiSummaryExpanded,
     setIsAiSummaryExpanded,

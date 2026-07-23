@@ -8,8 +8,6 @@ import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
 import { useUpdatePost } from '@/features/post/update/hooks/useUpdatePost';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { TEXTS } from '@/shared/config/texts';
-import { Copy } from 'lucide-react';
-import { toast } from 'sonner';
 
 interface UpdatePostFormProps {
   postId: string;
@@ -24,6 +22,7 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
   } = form;
 
   const canSubmit = isDirty && isValid && !isUpdating;
+  const isUrlChanged = Boolean(post) && form.watch('url') !== post?.url;
 
   if (isLoading) {
     return <SpinnerOverlay />;
@@ -37,30 +36,20 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
           <CardDescription>{TEXTS.post.form.update.description}</CardDescription>
         </CardHeader>
         <CardContent>
-          {post && (
-            <div className="mb-4 p-3 bg-muted/40 rounded-md text-sm text-muted-foreground flex items-center gap-2">
-              <span className="truncate flex-1">{post.url}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(post.url);
-                  toast.success(TEXTS.messages.success.linkCopied);
-                }}
-                className="shrink-0 hover:text-foreground"
-              >
-                <Copy size={14} />
-              </Button>
-            </div>
-          )}
           <FormProvider {...form}>
             <form onSubmit={onSubmit} className="space-y-4 md:space-y-6" noValidate>
+              <FormInput
+                name="url"
+                label={TEXTS.post.form.update.urlLabel}
+                placeholder={TEXTS.post.form.update.urlPlaceholder}
+                description={isUrlChanged ? TEXTS.post.form.update.urlChangedNotice : undefined}
+                required
+                disabled={isUpdating}
+              />
               <FormInput
                 name="title"
                 label={TEXTS.post.form.update.titleLabel}
                 placeholder={TEXTS.post.form.update.titlePlaceholder}
-                required
                 disabled={isUpdating}
               />
               <FormCheckboxGroup

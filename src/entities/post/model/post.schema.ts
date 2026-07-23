@@ -66,7 +66,9 @@ export const createPostSchema = z.object({
 });
 
 export const updatePostSchema = z.object({
-  title: z.string().min(1, TEXTS.validation.titleRequired),
+  url: postSchema.shape.url,
+  // URL을 바꾸면 새 링크에서 제목을 다시 가져오므로 비워둘 수 있다.
+  title: z.string().optional(),
   categoryIds: z.array(z.coerce.number()).optional(),
   isPrivate: z.boolean(),
 });

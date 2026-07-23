@@ -23,7 +23,10 @@ import {
   postMutationKeys,
 } from '@/entities/post/api/post.keys';
 import { POST_PAGE_SIZE } from '@/entities/post/config/const';
-import { handlePostDeleteSuccess } from '@/entities/folder/api/folder.keys';
+import {
+  handlePostContentUpdateSuccess,
+  handlePostDeleteSuccess,
+} from '@/entities/folder/api/folder.keys';
 import { PaginationRequest } from '@/shared/api/common.schema';
 
 export const useCreatePostMutation = () => {
@@ -218,6 +221,8 @@ export const useUpdatePostMutation = (postId: string) => {
         }
       );
       handlePostUpdateSuccess(postId);
+      // 북마크 폴더 페이지의 게시글 목록도 갱신 (post 키와 별도 캐시)
+      handlePostContentUpdateSuccess();
     },
   });
 };
@@ -234,6 +239,7 @@ export const useUpdatePostVisibilityMutation = (postId: string) => {
     },
     onSuccess: () => {
       handlePostUpdateSuccess(postId);
+      handlePostContentUpdateSuccess();
     },
   });
 };

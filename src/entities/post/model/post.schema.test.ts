@@ -98,17 +98,28 @@ describe('createPostSchema', () => {
 });
 
 describe('updatePostSchema', () => {
-  it('title과 isPrivate만 있어도 유효하다', () => {
+  it('url, title, isPrivate만 있어도 유효하다', () => {
     const result = updatePostSchema.safeParse({
+      url: 'https://example.com',
       title: 'Updated Title',
       isPrivate: false,
     });
     expect(result.success).toBe(true);
   });
 
-  it('title이 빈 문자열이면 파싱에 실패한다', () => {
+  it('title이 비어 있어도 유효하다 (URL 변경 시 새 링크에서 가져옴)', () => {
     const result = updatePostSchema.safeParse({
+      url: 'https://example.com',
       title: '',
+      isPrivate: false,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('url 형식이 아니면 파싱에 실패한다', () => {
+    const result = updatePostSchema.safeParse({
+      url: 'not-a-url',
+      title: 'Updated Title',
       isPrivate: false,
     });
     expect(result.success).toBe(false);

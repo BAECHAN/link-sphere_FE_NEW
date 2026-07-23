@@ -10,6 +10,7 @@ import {
   Lightbulb,
   Lock,
   Unlock,
+  Loader2,
   MessageSquare,
   Share2,
 } from 'lucide-react';
@@ -39,6 +40,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
 
   const {
     isOwner,
+    isUpdating,
     isUpdatingVisibility,
     isAiSummaryExpanded,
     setIsAiSummaryExpanded,
@@ -51,9 +53,24 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
     handleNavigateToEdit,
   } = usePostCard(post, isDetail);
 
+  // 수정 중에는 내용을 흐리게 하고 상호작용을 막아 같은 게시글에 대한 중복 요청을 차단한다
+  const dimmedClassName = isUpdating ? 'opacity-40 pointer-events-none' : '';
+
   return (
-    <Card className="flex flex-col overflow-hidden hover:shadow-md transition-shadow">
-      <CardHeader className="p-3 pb-1 flex flex-row items-start justify-between space-y-0">
+    <Card
+      className="relative flex flex-col overflow-hidden hover:shadow-md transition-shadow"
+      aria-busy={isUpdating}
+    >
+      {isUpdating && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-background/60">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">{TEXTS.common.updating}</span>
+        </div>
+      )}
+
+      <CardHeader
+        className={`p-3 pb-1 flex flex-row items-start justify-between space-y-0 ${dimmedClassName}`}
+      >
         <div className="space-y-1 flex-1 min-w-0">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
             <UserAvatar
@@ -135,7 +152,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="p-3 pt-0 flex flex-col">
+      <CardContent className={`p-3 pt-0 flex flex-col ${dimmedClassName}`}>
         {post.description && (
           <p className={`text-sm text-muted-foreground mb-2 ${isDetail ? '' : 'line-clamp-3'}`}>
             {post.description}
@@ -229,7 +246,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
         )}
       </CardContent>
 
-      <CardFooter className="p-3 pt-0 flex gap-2 flex-wrap items-center">
+      <CardFooter className={`p-3 pt-0 flex gap-2 flex-wrap items-center ${dimmedClassName}`}>
         <div className="flex items-center bg-muted/50 rounded-full p-0.5 md:p-1">
           <LikePostButton
             postId={post.id}

@@ -17,7 +17,7 @@ import { useAuth } from '@/entities/user/hooks/useAuth';
 import { useAccount } from '@/entities/user/hooks/useAccount';
 import { NavbarSearch } from '@/widgets/layout/navbar/ui/NavbarSearch';
 import { MobileNavbarSearch } from '@/widgets/layout/navbar/ui/MobileNavbarSearch';
-import { PostCreationLoadingBadge } from '@/shared/ui/elements/PostCreationLoadingBadge';
+import { PostMutationLoadingBadge } from '@/shared/ui/elements/PostMutationLoadingBadge';
 import { MyPageModal } from '@/widgets/layout/mypage/ui/MyPageModal';
 import { TEXTS } from '@/shared/config/texts';
 import { useToggle } from '@/shared/hooks/useToggle';
@@ -79,7 +79,7 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-2 ml-auto">
-            <PostCreationLoadingBadge />
+            <PostMutationLoadingBadge />
             <Button
               variant="ghost"
               size="icon"

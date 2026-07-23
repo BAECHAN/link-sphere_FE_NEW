@@ -77,6 +77,14 @@ export const handlePostDeleteSuccess = () => {
 };
 
 /**
+ * 게시글 내용 수정 후 — 폴더별 게시글 목록 갱신 (제목·설명·이미지·카테고리·공개설정이 바뀜)
+ * 북마크 개수는 변하지 않으므로 폴더 목록(list)은 건드리지 않는다.
+ */
+export const handlePostContentUpdateSuccess = () => {
+  folderInvalidateQueries.postsRoot();
+};
+
+/**
  * 북마크 폴더 이동 후 — 폴더 목록(bookmarkCount 변경) + 모든 폴더별 게시글 + post 목록/detail 갱신
  */
 export const handleMoveBookmarkSuccess = (postId: string) => {
