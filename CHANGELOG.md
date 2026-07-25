@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-25
+
 ### Added
 
 - **목록 로딩 중 스켈레톤 표시** — 링크 목록을 불러오는 동안 가운데 스피너 하나만 돌던 것을
@@ -215,7 +217,8 @@
   `PostResponse.userInteractions.bookmarkFolderId` 필요
 - 드래그앤드랍 · 다중 선택 · 폴더 공유는 차후 별도 작업
 
-[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.1.1...v0.2.0
