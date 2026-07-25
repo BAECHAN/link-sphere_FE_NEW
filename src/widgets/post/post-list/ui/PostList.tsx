@@ -2,6 +2,7 @@ import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { usePostList } from '@/widgets/post/post-list/hooks/usePostList';
+import { PostListSkeleton } from '@/widgets/post/post-list/ui/PostCardSkeleton';
 
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { Spinner } from '@/shared/ui/atoms/spinner';
@@ -12,11 +13,7 @@ import { cn } from '@/shared/lib/tailwind/utils';
 export function PostList() {
   return (
     <AsyncBoundary
-      loadingFallback={
-        <div className="flex justify-center py-12">
-          <Loader2 className="size-8 animate-spin text-primary" />
-        </div>
-      }
+      loadingFallback={<PostListSkeleton />}
       errorFallback={() => (
         <div className="text-center py-12 text-destructive">{TEXTS.messages.error.fetchPosts}</div>
       )}
