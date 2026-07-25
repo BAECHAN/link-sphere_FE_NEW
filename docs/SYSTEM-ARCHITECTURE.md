@@ -14,31 +14,37 @@ flowchart LR
   subgraph user [User]
     Browser[Browser]
   end
+  subgraph edge [CloudFront]
+    CF[CloudFront]
+  end
   subgraph fe [Frontend]
-    CloudFront[CloudFront]
-    CloudFront --> S3
+    S3[(S3 정적 호스팅)]
   end
   subgraph be [Backend]
-    AppRunner["App Runner / BE"]
+    Lambda["AWS Lambda (SnapStart)<br/>Function URL"]
   end
   subgraph external [External]
     Supabase[(Supabase DB + Storage)]
     Gemini[Gemini API]
   end
-  Browser -->|HTTPS| CloudFront
-  Browser -->|API calls| AppRunner
-  AppRunner --> Supabase
-  AppRunner --> Gemini
+  Browser -->|HTTPS| CF
+  CF -->|"/*"| S3
+  CF -->|"/api/*"| Lambda
+  Lambda --> Supabase
+  Lambda --> Gemini
 ```
+
+FE·BE가 **같은 오리진(CloudFront)** 을 쓴다. 브라우저는 BE를 직접 호출하지 않고
+CloudFront가 경로로 분기한다(`/api/*` → Lambda, 그 외 → S3). 그래서 운영에서 CORS 문제가 없다.
 
 ### 환경별 동작
 
-| 환경     | 프론트엔드                                                                | 백엔드 연동                                                             |
-| -------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| **운영** | CloudFront → S3 정적 배포. 브라우저가 `VITE_API_BASE_URL`로 API 직접 호출 | BE는 context-path `/api`, 포트 51119. App Runner 등에서 ECR 이미지 실행 |
-| **개발** | Vite dev server (포트 31119). `/api` 요청을 proxy로 BE로 전달             | BE 로컬 (포트 51119). Supabase(DB·Storage), Gemini API 연동             |
+| 환경     | 프론트엔드                                                          | 백엔드 연동                                                                           |
+| -------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **운영** | CloudFront → S3 정적 배포. `VITE_API_BASE_URL`은 `/api` (상대 경로) | CloudFront `/api/*` behavior → Lambda Function URL(`prod` alias). context-path `/api` |
+| **개발** | Vite dev server (포트 31119). `/api` 요청을 proxy로 BE로 전달       | BE 로컬 (포트 **8080**). Supabase(DB·Storage), Gemini API 연동                        |
 
-개발 시: Browser → Vite(31119) → proxy `/api` → BE(51119) → Supabase / Gemini.
+개발 시: Browser → Vite(31119) → proxy `/api` → BE(8080) → Supabase / Gemini.
 
 ---
 
@@ -57,9 +63,12 @@ flowchart LR
   end
   subgraph be_deploy [BE Deploy]
     BE_Trigger["push main / paths"]
-    BE_Jar["./gradlew bootJar"]
-    BE_ECR["Build and Push to ECR"]
-    BE_Trigger --> BE_Jar --> BE_ECR
+    BE_Jar["./gradlew shadowJar"]
+    BE_S3["S3 업로드"]
+    BE_Code["update-function-code"]
+    BE_Ver["publish-version<br/>(SnapStart 스냅샷)"]
+    BE_Alias["update-alias prod"]
+    BE_Trigger --> BE_Jar --> BE_S3 --> BE_Code --> BE_Ver --> BE_Alias
   end
 ```
 
@@ -73,15 +82,18 @@ flowchart LR
 | **Secrets** | `VITE_API_BASE_URL`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, `CLOUDFRONT_DISTRIBUTION_ID`                                                                                  |
 | **리전**    | ap-northeast-1                                                                                                                                                                                     |
 
-### BE 배포 (Deploy to App Runner)
+### BE 배포 (Deploy to AWS Lambda)
 
-| 항목        | 내용                                                                                                    |
-| ----------- | ------------------------------------------------------------------------------------------------------- |
-| **파일**    | `.github/workflows/deploy.yml` (BE 저장소)                                                              |
-| **트리거**  | `push` to `main`, paths: `src/**`, `build.gradle.kts`, `settings.gradle.kts`, `gradle/**`, `Dockerfile` |
-| **단계**    | Checkout → Set up JDK 17 → `./gradlew bootJar` → Configure AWS → Login to ECR → Docker build & push     |
-| **Secrets** | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`                                                            |
-| **ECR**     | 리포지토리 `link-sphere/link-sphere-be`, 리전 ap-northeast-1                                            |
+| 항목        | 내용                                                                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **파일**    | `.github/workflows/deploy.yml` (BE 저장소)                                                                                                             |
+| **트리거**  | `push` to `main`, paths: `src/**`, `build.gradle.kts`, `settings.gradle.kts`, `gradle/**`, `.github/workflows/deploy.yml`                              |
+| **단계**    | Checkout → JDK 17 → `./gradlew ktlintCheck shadowJar` → S3 업로드 → `update-function-code` → `publish-version`(SnapStart 스냅샷) → `update-alias prod` |
+| **Secrets** | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `FIREBASE_SERVICE_ACCOUNT_JSON`                                                                          |
+| **런타임**  | java17 / arm64 / 2048MB / SnapStart `PublishedVersions`, 리전 ap-northeast-1                                                                           |
+
+> **App Runner·ECR 방식은 더 이상 쓰지 않는다.** 컨테이너 이미지 배포는 SnapStart를 쓸 수 없어
+> Shadow JAR 직접 배포로 전환했다. 상세는 BE 저장소 `docs/DEPLOY.md` 참고.
 
 ---
 
@@ -193,19 +205,20 @@ flowchart TB
 
 ### BE 스택·설정 요약
 
-| 항목     | 기술                                         |
-| -------- | -------------------------------------------- |
-| Runtime  | Kotlin 2.1, Java 17, Spring Boot 3.5.8       |
-| Web      | spring-boot-starter-web, Tomcat (war)        |
-| Data     | JPA, Hibernate, PostgreSQL (Supabase pooler) |
-| Security | Spring Security, OAuth2 Client, JWT (jjwt)   |
-| API 문서 | SpringDoc OpenAPI 2.7.0                      |
-| 기타     | Jsoup, Actuator (health), SSE                |
+| 항목      | 기술                                                                                                                      |
+| --------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Runtime   | Kotlin 2.1, Java 17, Spring Boot 3.5.8                                                                                    |
+| 실행 형태 | AWS Lambda (Shadow JAR, SnapStart + CRaC). `LambdaHandler`가 MockMvc로 `DispatcherServlet` 직접 호출 — Tomcat 소켓 미사용 |
+| Web       | spring-boot-starter-web (서블릿 스택)                                                                                     |
+| Data      | JPA, Hibernate, PostgreSQL (Supabase pooler)                                                                              |
+| Security  | Spring Security, OAuth2 Client, JWT (jjwt)                                                                                |
+| API 문서  | SpringDoc OpenAPI 2.7.0                                                                                                   |
+| 기타      | Jsoup, Actuator (health), SSE                                                                                             |
 
 | 설정         | 값                                 |
 | ------------ | ---------------------------------- |
-| 서버 포트    | 51119                              |
-| context-path | `/api` (Dockerfile)                |
+| 서버 포트    | 8080 (`application.yml`)           |
+| context-path | `/api` (`application.yml`)         |
 | DDL          | none (마이그레이션 별도)           |
 | CORS         | localhost:31119, CloudFront 도메인 |
 
