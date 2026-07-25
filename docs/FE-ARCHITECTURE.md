@@ -115,7 +115,6 @@ src/
 │       ├── hooks/
 │       │   ├── useAuth.ts        # 통합 인증 관리 훅
 │       │   ├── useAccount.ts
-│       │   ├── useAuthInitialization.ts
 │       │   └── useAppInitialization.ts
 │       └── ui/
 │           └── UserAvatar.tsx
