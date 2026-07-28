@@ -18,6 +18,9 @@ export function useUpdatePost(postId: string) {
     mode: 'onChange',
   });
 
+  const initializedUrlRef = useRef<string | null>(null);
+  const wasUrlChangedRef = useRef(false);
+
   useEffect(
     function resetFormWithFetchedPost() {
       if (post) {
@@ -27,6 +30,8 @@ export function useUpdatePost(postId: string) {
           categoryIds: (post.categories?.map((c) => String(c.id)) ?? []) as unknown as number[],
           isPrivate: post.isPrivate,
         });
+        initializedUrlRef.current = post.url;
+        wasUrlChangedRef.current = false;
       }
     },
     [post, form]
@@ -35,22 +40,23 @@ export function useUpdatePost(postId: string) {
   // URL을 바꾸는 순간 제목·관심 분야는 옛 링크 기준이 되므로 비운다.
   // 비운 채로 저장하면 서버가 새 링크의 제목과 AI 자동 분류로 채우고, 원하면 직접 다시 고를 수 있다.
   const urlValue = form.watch('url');
-  const wasUrlChangedRef = useRef(false);
 
   useEffect(
     function clearDerivedFieldsOnUrlChange() {
-      if (!post) {
+      if (initializedUrlRef.current === null) {
         return;
       }
 
-      const isUrlChanged = urlValue !== post.url;
+      // urlValue는 reset()이 반영되기 전 렌더에서 캡처될 수 있어(stale) 비교에 쓰지 않고,
+      // effect 실행 시점의 최신 값을 다시 읽어 초기 로드 시 오탐(false positive)을 막는다.
+      const isUrlChanged = form.getValues('url') !== initializedUrlRef.current;
       if (isUrlChanged && !wasUrlChangedRef.current) {
         form.setValue('title', '', { shouldDirty: true, shouldValidate: true });
         form.setValue('categoryIds', [], { shouldDirty: true });
       }
       wasUrlChangedRef.current = isUrlChanged;
     },
-    [urlValue, post, form]
+    [urlValue, form]
   );
 
   // 등록과 동일하게 요청을 백그라운드로 보내고 곧바로 목록으로 이동한다.
