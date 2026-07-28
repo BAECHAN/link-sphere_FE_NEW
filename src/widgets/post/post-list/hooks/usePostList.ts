@@ -84,9 +84,11 @@ export const usePostList = () => {
   });
 
   const posts = data?.pages.flatMap((page) => page.content) || [];
+  const correctedSearch = data?.pages[0]?.correctedSearch;
 
   return {
     posts,
+    correctedSearch,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,

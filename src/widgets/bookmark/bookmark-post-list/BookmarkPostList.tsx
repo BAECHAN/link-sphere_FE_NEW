@@ -58,6 +58,12 @@ export function BookmarkPostList({ folderKey, sort, search, className }: Bookmar
 
   return (
     <div className={cn('space-y-6', className)}>
+      {data?.correctedSearch && (
+        <div className="text-sm text-muted-foreground text-center">
+          {TEXTS.post.search.corrected(data.correctedSearch)}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />

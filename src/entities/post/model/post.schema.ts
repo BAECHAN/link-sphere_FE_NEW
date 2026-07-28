@@ -52,7 +52,10 @@ export const postListRequestSchema = paginationRequestSchema.extend({
   nickname: z.string().optional(),
 });
 
-export const PostListResponseSchema = paginationResponseSchema(postSchema);
+export const PostListResponseSchema = paginationResponseSchema(postSchema).extend({
+  // 한/영 자판 미스매칭 보정으로 재검색했을 때만 채워진다 (예: spdlqj -> 네이버)
+  correctedSearch: z.string().optional(),
+});
 
 /**
  * 포스트 등록(생성)을 위한 스키마

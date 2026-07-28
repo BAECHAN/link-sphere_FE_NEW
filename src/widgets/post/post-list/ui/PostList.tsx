@@ -26,8 +26,15 @@ export function PostList() {
 const PULL_INDICATOR_HEIGHT = 44;
 
 function PostListContent() {
-  const { posts, hasNextPage, isFetchingNextPage, observerRef, refetch, isRefetching } =
-    usePostList();
+  const {
+    posts,
+    correctedSearch,
+    hasNextPage,
+    isFetchingNextPage,
+    observerRef,
+    refetch,
+    isRefetching,
+  } = usePostList();
   const { pullDistance, isPulling, isReady } = usePullToRefresh({ onRefresh: refetch });
 
   if (posts.length === 0) {
@@ -42,6 +49,12 @@ function PostListContent() {
 
   return (
     <div className="space-y-6">
+      {correctedSearch && (
+        <div className="text-sm text-muted-foreground text-center">
+          {TEXTS.post.search.corrected(correctedSearch)}
+        </div>
+      )}
+
       <motion.div
         className="flex items-end justify-center overflow-hidden"
         initial={false}

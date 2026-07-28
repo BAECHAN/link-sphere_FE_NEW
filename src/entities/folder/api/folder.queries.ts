@@ -74,6 +74,7 @@ export const useFolderPostsInfiniteQuery = (
         pageParams: data.pageParams,
         posts,
         totalElements: data.pages[0]?.totalElements ?? 0,
+        correctedSearch: data.pages[0]?.correctedSearch,
       };
     },
   });

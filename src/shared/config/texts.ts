@@ -160,6 +160,9 @@ export const TEXTS = {
       heading: 'Post Details',
       commentsHeading: 'Comments',
     },
+    search: {
+      corrected: (query: string) => `'${query}'(으)로 검색한 결과입니다`,
+    },
   },
   comment: {
     list: {
