@@ -189,8 +189,11 @@ class ApiClient {
               // 앱 초기화 시 자동 호출되는 refresh는 조용히 실패 (toast/navigate 불필요)
               throw new ApiError(errorResponse);
             }
-            // 토스트는 React Query 전역 핸들러(queryClient)가 단일 소유
-            AuthUtil.clearAll();
+            // 로그아웃 처리 중(clearQueries의 배경 재요청) 온 401은 세션 만료가 아니라 레이스이므로 재이동하지 않는다
+            if (!AuthUtil.isLoggingOut()) {
+              // 토스트는 React Query 전역 핸들러(queryClient)가 단일 소유
+              AuthUtil.clearAll();
+            }
             throw new ApiError(errorResponse);
           }
         }

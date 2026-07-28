@@ -43,6 +43,10 @@ const mutationErrorHandler = (
   } else if (error instanceof ApiError) {
     // 401 인증 에러 처리 (로그인 필요, 유효하지 않은 토큰)
     if (error.code === 'NOT_LOGGED_IN' || error.code === 'INVALID_TOKEN') {
+      // 로그아웃 처리 중(clearQueries의 배경 재요청) 온 401은 세션 만료가 아니라 레이스이므로 무시
+      if (AuthUtil.isLoggingOut()) {
+        return;
+      }
       AuthUtil.clearAll();
       toast.error(TEXTS.messages.error.loginRequired);
       window.location.href = '/auth/login';
@@ -88,6 +92,16 @@ export const queryClient = new QueryClient({
     onError: (error, query) => {
       const meta = query.meta as CustomMutationMeta | undefined;
 
+      // 로그아웃 처리 중(clearQueries의 배경 재요청) 온 401은 세션 만료가 아니라 레이스이므로
+      // meta의 커스텀 에러 메시지보다 먼저 걸러 어떤 토스트도 뜨지 않게 한다.
+      if (
+        error instanceof ApiError &&
+        (error.code === 'NOT_LOGGED_IN' || error.code === 'INVALID_TOKEN') &&
+        AuthUtil.isLoggingOut()
+      ) {
+        return;
+      }
+
       // Query 에러 처리
       if (meta?.errorMessage) {
         toast.error(meta.errorMessage);
@@ -103,6 +117,12 @@ export const queryClient = new QueryClient({
         // 403 권한 에러 처리
         if (error.code === 'ACCESS_DENIED') {
           toast.error(TEXTS.messages.error.accessDenied);
+          return;
+        }
+
+        // 404는 서버 장애가 아니라 화면이 처리해야 할 도메인 상태다(삭제·비공개 글 등).
+        // 전역 토스트 대신 각 화면의 ErrorBoundary가 안내를 소유한다.
+        if (error.status === 404) {
           return;
         }
 

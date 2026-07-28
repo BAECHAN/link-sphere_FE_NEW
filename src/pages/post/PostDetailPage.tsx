@@ -1,9 +1,14 @@
-import { useParams } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { FallbackProps } from 'react-error-boundary';
+import { toast } from 'sonner';
 import { useSuspenseFetchPostDetailQuery } from '@/entities/post/api/post.queries';
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { CommentList } from '@/widgets/comment/comment-list/ui/CommentList';
 import { ArrowLeft } from 'lucide-react';
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
+import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
+import { ApiError } from '@/shared/types/common.type';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { useGoBack } from '@/shared/hooks/useGoBack';
@@ -32,9 +37,37 @@ function PostDetailContent() {
   );
 }
 
+/**
+ * 비공개·삭제 글(404)은 서버 장애가 아니라 접근 불가 상태다.
+ * 안내 토스트 후 목록으로 돌려보낸다. 그 외 에러는 화면 안에서 인라인으로 알린다.
+ */
+function PostDetailErrorFallback({ error }: FallbackProps) {
+  const navigate = useNavigate();
+  const isNotFound = error instanceof ApiError && error.status === 404;
+
+  useEffect(
+    function redirectWhenPostUnavailable() {
+      if (!isNotFound) {
+        return;
+      }
+      toast.error(TEXTS.post.detail.notFound, { id: 'post-detail-not-found' });
+      navigate(ROUTES_PATHS.POST.ROOT, { replace: true });
+    },
+    [isNotFound, navigate]
+  );
+
+  if (isNotFound) {
+    return <SpinnerOverlay />;
+  }
+
+  return (
+    <div className="text-center py-12 text-destructive">{TEXTS.messages.error.fetchPosts}</div>
+  );
+}
+
 export function PostDetailPage() {
   return (
-    <AsyncBoundary>
+    <AsyncBoundary errorFallback={PostDetailErrorFallback}>
       <PostDetailContent />
     </AsyncBoundary>
   );

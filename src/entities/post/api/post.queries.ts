@@ -131,6 +131,8 @@ export const useSuspenseFetchPostDetailQuery = (postId: string) => {
   return useSuspenseQuery({
     queryKey: postKeys.detail(postId),
     queryFn: () => postApi.fetchPostDetail(postId),
+    // 비공개·삭제 글은 404가 그대로 정답이므로 재시도해도 결과가 같다 (리다이렉트만 늦춰짐)
+    retry: false,
   });
 };
 
