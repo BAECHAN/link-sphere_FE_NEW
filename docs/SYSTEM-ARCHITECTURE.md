@@ -37,11 +37,24 @@ flowchart LR
 FE·BE가 **같은 오리진(CloudFront)** 을 쓴다. 브라우저는 BE를 직접 호출하지 않고
 CloudFront가 경로로 분기한다(`/api/*` → Lambda, 그 외 → S3). 그래서 운영에서 CORS 문제가 없다.
 
-### SPA 라우팅 폴백 (CloudFront Function)
+### `infra/` — AWS 인프라 직접 배포 코드
+
+저장소 루트의 `infra/`는 Vite 빌드에 포함되지 않고 **AWS 리소스에 직접 배포되는 코드**를 모아두는
+디렉토리다. `src/`(앱 코드)와 달리 브라우저에서 실행되지 않고, GitHub Actions `deploy.yml`도
+이 디렉토리를 배포 대상으로 보지 않는다(트리거 경로에 없음) — 여기 있는 것들은 AWS CLI로
+수동 배포·관리된다. 현재는 아래 CloudFront Function 하나만 있다.
+
+```
+infra/
+└── cloudfront-functions/
+    └── spa-fallback.js   # CloudFront Function 소스 (아래 참고)
+```
+
+#### SPA 라우팅 폴백 (CloudFront Function)
 
 `/post/abc123`처럼 실제 S3 오브젝트가 아닌 클라이언트 라우트를 새로고침/직접 진입해도 되도록,
 **기본(S3) 비헤이비어의 viewer-request에만** CloudFront Function(`link-sphere-spa-fallback`)을
-연결해 확장자 없는 요청을 `/index.html`로 리라이트한다. 소스: FE 저장소
+연결해 확장자 없는 요청을 `/index.html`로 리라이트한다. 소스:
 [`infra/cloudfront-functions/spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js).
 
 과거에는 배포 레벨 `CustomErrorResponses`(403/404 → `/index.html`)로 이 역할을 했는데, 이 설정은

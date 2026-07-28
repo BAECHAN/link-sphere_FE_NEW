@@ -64,7 +64,8 @@ SPA 클라이언트 라우팅 폴백(`/post/abc123` 같은 경로를 `/index.htm
 - **반드시 기본(S3) 비헤이비어의 `viewer-request`에만 연결한다.** `/api/*` 비헤이비어에 연결하면
   BE(Lambda)의 정상 403/404 응답까지 `/index.html`로 가려버린다 — 실제로 2026-07-28에 이
   문제(구 방식인 배포 레벨 `CustomErrorResponses`가 원인)를 발견하고 이 Function으로 교체했다.
-  자세한 배경은 `docs/SYSTEM-ARCHITECTURE.md`의 "SPA 라우팅 폴백" 절 참고.
+  `infra/` 디렉토리 자체의 역할과 자세한 배경은
+  [`docs/SYSTEM-ARCHITECTURE.md`](./SYSTEM-ARCHITECTURE.md)의 "infra/ — AWS 인프라 직접 배포 코드" 절 참고.
 
 ```bash
 # 1. 함수 코드 수정 후 업데이트 (기존 함수가 있으면 update-function, ETag 필요)
