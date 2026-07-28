@@ -14,7 +14,7 @@ export default [
   ...tseslint.configs.recommended,
   prettierConfig,
   {
-    ignores: ['dist/**/*', 'node_modules/**/*', '**/*.md', '**/*.svg'],
+    ignores: ['dist/**/*', 'node_modules/**/*', '**/*.md', '**/*.svg', 'infra/**/*'],
   },
   {
     files: ['src/**/*.{ts,tsx}'],

@@ -38,13 +38,13 @@
 
 GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서 다음 Secrets를 설정해야 합니다.
 
-| Secret 이름 | 설명 | 비고 |
-| :--- | :--- | :--- |
-| `AWS_ACCESS_KEY_ID` | AWS IAM 사용자 액세스 키 | S3 및 CloudFront 권한 필요 |
-| `AWS_SECRET_ACCESS_KEY` | AWS IAM 사용자 시크릿 키 | |
-| `S3_BUCKET_NAME` | 배포할 S3 버킷 이름 | 예: `link-sphere-frontend` |
-| `CLOUDFRONT_DISTRIBUTION_ID` | CloudFront 배포 ID | 예: `E1234567890ABC` |
-| `VITE_API_BASE_URL` | 백엔드 API 기본 URL | 빌드 시점에 주입됨 |
+| Secret 이름                  | 설명                     | 비고                       |
+| :--------------------------- | :----------------------- | :------------------------- |
+| `AWS_ACCESS_KEY_ID`          | AWS IAM 사용자 액세스 키 | S3 및 CloudFront 권한 필요 |
+| `AWS_SECRET_ACCESS_KEY`      | AWS IAM 사용자 시크릿 키 |                            |
+| `S3_BUCKET_NAME`             | 배포할 S3 버킷 이름      | 예: `link-sphere-frontend` |
+| `CLOUDFRONT_DISTRIBUTION_ID` | CloudFront 배포 ID       | 예: `E1234567890ABC`       |
+| `VITE_API_BASE_URL`          | 백엔드 API 기본 URL      | 빌드 시점에 주입됨         |
 
 ## AWS IAM 권한 요구사항
 
@@ -52,6 +52,36 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
 
 - **S3**: `s3:PutObject`, `s3:ListBucket`, `s3:DeleteObject` (버킷 동기화용)
 - **CloudFront**: `cloudfront:CreateInvalidation` (캐시 무효화용)
+
+## CloudFront Function (수동 관리)
+
+SPA 클라이언트 라우팅 폴백(`/post/abc123` 같은 경로를 `/index.html`로 리라이트)은
+`link-sphere-spa-fallback`이라는 CloudFront Function이 담당한다. 소스는 이 저장소의
+[`infra/cloudfront-functions/spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js).
+
+- **이 Function은 위 `deploy.yml` 파이프라인이 배포하지 않는다** — `src/**` 변경 트리거 대상이
+  아니고, 함수 코드가 바뀌는 일도 거의 없다. 변경이 필요하면 아래 절차를 수동으로 다시 실행한다.
+- **반드시 기본(S3) 비헤이비어의 `viewer-request`에만 연결한다.** `/api/*` 비헤이비어에 연결하면
+  BE(Lambda)의 정상 403/404 응답까지 `/index.html`로 가려버린다 — 실제로 2026-07-28에 이
+  문제(구 방식인 배포 레벨 `CustomErrorResponses`가 원인)를 발견하고 이 Function으로 교체했다.
+  자세한 배경은 `docs/SYSTEM-ARCHITECTURE.md`의 "SPA 라우팅 폴백" 절 참고.
+
+```bash
+# 1. 함수 코드 수정 후 업데이트 (기존 함수가 있으면 update-function, ETag 필요)
+aws cloudfront describe-function --name link-sphere-spa-fallback --stage DEVELOPMENT
+aws cloudfront update-function --name link-sphere-spa-fallback \
+  --if-match <위 ETag> \
+  --function-config '{"Comment":"SPA 클라이언트 라우팅 폴백 (기본 비헤이비어 전용; api 비헤이비어 미연결)","Runtime":"cloudfront-js-1.0"}' \
+  --function-code fileb://infra/cloudfront-functions/spa-fallback.js
+
+# 2. 테스트 (선택, 실배포 전 검증)
+aws cloudfront test-function --name link-sphere-spa-fallback \
+  --if-match <update 응답의 ETag> --stage DEVELOPMENT \
+  --event-object fileb://<테스트 이벤트 JSON>
+
+# 3. LIVE로 배포 (이미 비헤이비어에 연결돼 있다면 이걸로 자동 반영됨 — 배포 설정 재변경 불필요)
+aws cloudfront publish-function --name link-sphere-spa-fallback --if-match <최신 ETag>
+```
 
 ## 수동 배포 (참고)
 
