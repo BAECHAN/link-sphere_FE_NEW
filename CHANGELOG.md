@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-31
+
 ### Added
 
 - **북마크 다중 폴더 소속 지원** — 북마크 하나를 여러 폴더에 동시에 저장할 수 있게 됨.
@@ -290,7 +292,8 @@
   `PostResponse.userInteractions.bookmarkFolderId` 필요
 - 드래그앤드랍 · 다중 선택 · 폴더 공유는 차후 별도 작업
 
-[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.3.0...v0.4.0
