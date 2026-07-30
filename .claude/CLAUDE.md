@@ -65,6 +65,23 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Impact Check Before Changes
+
+**Enumerate what can break before writing code. Both directions: the new work, and what already works.**
+
+Before implementing, check and report:
+
+- **CRUD failure points** — walk 등록(create) / 수정(update) / 읽기(read) / 삭제(delete) for the
+  data this change touches. Name what breaks at each: missing rows, duplicate/idempotency,
+  ownership & visibility checks, cascade behavior, count/pagination correctness, concurrent requests.
+- **Regression on existing features** — list every existing behavior that could break, with the file
+  that owns it. Include: shared queries and cache/invalidation paths, derived counts, existing tests
+  that encode the old contract, docs and user-facing text that assert the old behavior, and dead or
+  unused code paths that still compile against it.
+
+Report both lists before the first edit, not after. If the change alters a data contract
+(schema, DTO, API shape), say explicitly what the deploy order is and what breaks in between.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

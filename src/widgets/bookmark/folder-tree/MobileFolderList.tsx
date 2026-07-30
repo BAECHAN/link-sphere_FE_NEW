@@ -39,8 +39,6 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
   const { data, isLoading } = useFolderListQuery();
   const folders = data?.folders;
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
-  const totalCount =
-    (folders?.reduce((sum, f) => sum + f.bookmarkCount, 0) ?? 0) + uncategorizedCount;
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -49,7 +47,6 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
         <FixedRow
           icon={<FolderIcon className="h-5 w-5" />}
           label={TEXTS.bookmark.folder.all}
-          count={data ? totalCount : undefined}
           onClick={() => onSelect('all')}
         />
         <div className="border-t" />

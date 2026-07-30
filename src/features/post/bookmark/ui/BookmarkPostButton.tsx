@@ -10,7 +10,7 @@ import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
 interface BookmarkPostButtonProps {
   postId: Post['id'];
   isBookmarked: boolean;
-  bookmarkFolderId: string | null;
+  bookmarkFolderIds: string[];
 }
 
 /**
@@ -21,7 +21,7 @@ interface BookmarkPostButtonProps {
 export function BookmarkPostButton({
   postId,
   isBookmarked,
-  bookmarkFolderId,
+  bookmarkFolderIds,
 }: BookmarkPostButtonProps) {
   const [open, setOpen] = useState(false);
   const guard = useAuthGuard();
@@ -51,7 +51,7 @@ export function BookmarkPostButton({
       <FolderSelector
         postId={postId}
         isBookmarked={isBookmarked}
-        currentFolderId={bookmarkFolderId}
+        bookmarkFolderIds={bookmarkFolderIds}
         open={open}
         onOpenChange={setOpen}
       />

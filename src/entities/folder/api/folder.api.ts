@@ -2,12 +2,12 @@ import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/config/api';
 import { PostListRequest, PostListResponse } from '@/entities/post/model/post.schema';
 import {
+  BookmarkFoldersResponse,
   CreateFolderRequest,
   Folder,
   FolderKey,
   FolderListResponse,
   FolderSort,
-  MoveBookmarkRequest,
   ReorderFoldersRequest,
   UpdateFolderRequest,
 } from '@/entities/folder/model/folder.schema';
@@ -28,7 +28,7 @@ export const folderApi = {
     return await apiClient.patch<Folder>(API_ENDPOINTS.bookmark.folder(folderId), payload);
   },
 
-  /** 폴더 삭제 — 안의 북마크는 미분류로 자동 이동 (BE ON DELETE SET NULL) */
+  /** 폴더 삭제 — 이 폴더에만 있던 북마크만 미분류로 이동 (다른 폴더에도 있으면 그대로 유지) */
   deleteFolder: async (folderId: string): Promise<void> => {
     return await apiClient.delete<void>(API_ENDPOINTS.bookmark.folder(folderId));
   },
@@ -56,8 +56,27 @@ export const folderApi = {
     });
   },
 
-  /** 단건 북마크 폴더 이동 — folderId=null 이면 미분류로 */
-  moveBookmark: async (postId: string, payload: MoveBookmarkRequest): Promise<void> => {
-    return await apiClient.patch<void>(API_ENDPOINTS.bookmark.moveBookmark(postId), payload);
+  /** 폴더에 추가 — 북마크가 없으면 자동 생성 (북마크 보장 + 소속 보장) */
+  addBookmarkFolder: async (postId: string, folderId: string): Promise<BookmarkFoldersResponse> => {
+    return await apiClient.post<BookmarkFoldersResponse>(
+      API_ENDPOINTS.bookmark.postFolder(postId, folderId)
+    );
+  },
+
+  /** 그 폴더에서만 제거 — 북마크 자체는 유지 (마지막 폴더였어도 미분류로 생존) */
+  removeBookmarkFolder: async (
+    postId: string,
+    folderId: string
+  ): Promise<BookmarkFoldersResponse> => {
+    return await apiClient.delete<BookmarkFoldersResponse>(
+      API_ENDPOINTS.bookmark.postFolder(postId, folderId)
+    );
+  },
+
+  /** 폴더 소속 전부 해제 — 미분류로. 북마크 자체는 건드리지 않음 */
+  clearBookmarkFolders: async (postId: string): Promise<BookmarkFoldersResponse> => {
+    return await apiClient.delete<BookmarkFoldersResponse>(
+      API_ENDPOINTS.bookmark.postFolders(postId)
+    );
   },
 };

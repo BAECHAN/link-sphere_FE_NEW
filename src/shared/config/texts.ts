@@ -213,7 +213,8 @@ export const TEXTS = {
       selectorDescription: '폴더를 탭하면 바로 저장돼요',
       removeBookmark: '북마크 제거',
       deleteConfirmTitle: (name: string) => `"${name}" 폴더 삭제`,
-      deleteConfirmMessage: '폴더 안의 북마크는 미분류로 이동합니다.',
+      deleteConfirmMessage:
+        '이 폴더를 삭제할까요? 이 폴더에만 있던 북마크는 미분류로 이동합니다. (다른 폴더에도 있으면 그대로 유지됩니다)',
       sort: {
         latest: '최신 북마크순',
         oldest: '오래된순',
@@ -284,6 +285,7 @@ export const TEXTS = {
       folderCreated: (name: string) => `폴더 "${name}" 생성됨`,
       bookmarkSavedTo: (folderName: string) => `${folderName}에 저장됨`,
       bookmarkRemoved: '북마크 제거됨',
+      bookmarkRemovedFromFolder: (folderName: string) => `${folderName} 폴더에서 제거됨`,
     },
     error: {
       // 공통
@@ -324,6 +326,7 @@ export const TEXTS = {
       folderCreateFailedFull: '폴더 생성에 실패했습니다.',
       bookmarkSaveFailed: '저장에 실패했습니다.',
       bookmarkRemoveFailed: '북마크 제거에 실패했습니다.',
+      bookmarkRemoveFromFolderFailed: '폴더에서 제거하지 못했습니다.',
 
       // 권한 관련
       accessDenied: '접근 권한이 없습니다.',

@@ -7,6 +7,38 @@
 
 ## [Unreleased]
 
+### Added
+
+- **북마크 다중 폴더 소속 지원** — 북마크 하나를 여러 폴더에 동시에 저장할 수 있게 됨.
+  폴더 선택 모달(`FolderSelector`)에서 소속된 **모든 폴더에 ✓**가 표시되고, 탭할
+  때마다 그 폴더에 추가/제거된다(즉시 저장, 확인 단계 없음). 미분류 행은 소속 폴더가
+  0개인 상태를 뜻하며, 이미 미분류인 상태에서 미분류 행을 다시 탭하면 아무 일도
+  일어나지 않는다(오탭으로 북마크가 사라지는 것 방지). (`FolderSelector`,
+  `useBookmarkFolders`, `useAddBookmarkFolderMutation`,
+  `useRemoveBookmarkFolderMutation`, `useClearBookmarkFoldersMutation`) — BE API
+  의존, 동시 배포 필요
+
+### Changed
+
+- 사이드바/모바일 폴더 목록의 **`전체` 행에서 개수 배지를 제거**함 — 다중 폴더에서는
+  `폴더별 개수 합 + 미분류`가 같은 북마크를 중복 집계해 부정확해지는데, 정확한 값을
+  보여주려면 서버 필드가 필요해서 이번엔 숫자 자체를 표시하지 않기로 함. `전체` 목록
+  자체(카드 나열)는 여전히 중복 없이 한 번만 보여준다. (`FolderTree`, `MobileFolderList`)
+- 폴더 삭제 확인 문구를 조건부로 변경 — "폴더 안의 북마크는 미분류로 이동합니다" →
+  "이 폴더에만 있던 북마크는 미분류로 이동합니다 (다른 폴더에도 있으면 그대로 유지)".
+  BE가 더 이상 폴더 삭제 시 안의 북마크를 전부 미분류로 옮기지 않기 때문.
+  (`TEXTS.bookmark.folder.deleteConfirmMessage`)
+- `post.userInteractions.bookmarkFolderId: string | null` →
+  `bookmarkFolderIds: string[]` — 게시글이 속한 모든 폴더 ID 배열로 변경.
+
+### Removed
+
+- 단건 폴더 이동 API(`moveBookmark`)와 관련 스키마(`moveBookmarkSchema`,
+  `MoveBookmarkRequest`) 제거 — 폴더별 추가/제거 API로 대체됨. `useBookmarkWithFolder`
+  훅(toggle→move 2단 호출)도 함께 제거 — 새 API가 북마크 없을 때 자동 생성해줘서
+  탭 1회 = 요청 1회로 단순해짐.
+- 미사용 `batchMove` 엔드포인트 상수 제거 (`shared/config/api.ts`).
+
 ### Fixed
 
 - **비공개·삭제된 글에 접근했을 때 "서버 오류" 화면이 뜨던 문제** — BE가 비공개 글

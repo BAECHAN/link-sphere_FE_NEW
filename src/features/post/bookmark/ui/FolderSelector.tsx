@@ -9,12 +9,12 @@ import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { useCreateFolderMutation, useFolderListQuery } from '@/entities/folder/api/folder.queries';
-import { useBookmarkWithFolder } from '@/features/post/bookmark/hooks/useBookmarkWithFolder';
+import { useBookmarkFolders } from '@/features/post/bookmark/hooks/useBookmarkFolders';
 
 interface FolderSelectorProps {
   postId: string;
   isBookmarked: boolean;
-  currentFolderId: string | null;
+  bookmarkFolderIds: string[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -23,12 +23,12 @@ interface FolderSelectorProps {
  * 북마크 폴더 선택 UI.
  * - 데스크탑: 중앙 모달
  * - 모바일: 하단 BottomSheet 슬라이드업
- * - 폴더 탭 = 즉시 저장 + 닫힘
+ * - 폴더 탭 = 즉시 저장/제거 + 닫힘. 소속된 모든 폴더에 ✓ 표시 (다중 폴더 소속 가능)
  */
 export function FolderSelector({
   postId,
   isBookmarked,
-  currentFolderId,
+  bookmarkFolderIds,
   open,
   onOpenChange,
 }: FolderSelectorProps) {
@@ -37,10 +37,10 @@ export function FolderSelector({
   // 잘못 라우팅된 응답(HTML 등) 방어 — 배열이 아니면 빈 목록으로 처리해 피드 전체 크래시 방지
   const folderList = Array.isArray(data?.folders) ? data.folders : [];
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
-  const { saveToFolder, removeBookmark } = useBookmarkWithFolder(
+  const { selectUncategorized, selectFolder, removeBookmark } = useBookmarkFolders(
     postId,
     isBookmarked,
-    currentFolderId
+    bookmarkFolderIds
   );
   const { mutateAsync: createFolder, isPending: isCreating } = useCreateFolderMutation();
 
@@ -69,15 +69,49 @@ export function FolderSelector({
     setPendingFolderId(undefined);
   };
 
-  const handleSelect = async (folderId: string | null, folderName: string) => {
-    setPendingFolderId(folderId);
+  const isUncategorizedSelected = isBookmarked && bookmarkFolderIds.length === 0;
 
+  const handleSelectUncategorized = async () => {
+    // 이미 미분류(✓)면 아무 것도 하지 않는다 — "미분류에서 제거"는 곧 북마크 해제인데,
+    // 그건 아래 '북마크 제거' 행과 중복이라 오탭으로 북마크가 사라지는 걸 막기 위함.
+    if (isUncategorizedSelected) {
+      return;
+    }
+
+    setPendingFolderId(null);
     try {
-      await saveToFolder(folderId);
-      toast.success(TEXTS.messages.success.bookmarkSavedTo(folderName));
+      await selectUncategorized();
+      toast.success(TEXTS.messages.success.bookmarkSavedTo(TEXTS.bookmark.folder.uncategorized));
       close();
     } catch {
       toast.error(TEXTS.messages.error.bookmarkSaveFailed);
+      setPendingFolderId(undefined);
+    }
+  };
+
+  const handleSelectFolder = async (folderId: string, folderName: string) => {
+    const wasSelected = bookmarkFolderIds.includes(folderId);
+    // 이게 마지막 폴더였다면 제거 후 결과가 미분류이므로, 새 문구를 만들지 않고
+    // 1·3번 케이스와 같은 "미분류에 저장됨" 토스트를 재사용한다 (§4-1 결정).
+    const isLastFolder = wasSelected && bookmarkFolderIds.length === 1;
+
+    setPendingFolderId(folderId);
+    try {
+      await selectFolder(folderId);
+      if (isLastFolder) {
+        toast.success(TEXTS.messages.success.bookmarkSavedTo(TEXTS.bookmark.folder.uncategorized));
+      } else if (wasSelected) {
+        toast.success(TEXTS.messages.success.bookmarkRemovedFromFolder(folderName));
+      } else {
+        toast.success(TEXTS.messages.success.bookmarkSavedTo(folderName));
+      }
+      close();
+    } catch {
+      toast.error(
+        wasSelected
+          ? TEXTS.messages.error.bookmarkRemoveFromFolderFailed
+          : TEXTS.messages.error.bookmarkSaveFailed
+      );
       setPendingFolderId(undefined);
     }
   };
@@ -107,7 +141,7 @@ export function FolderSelector({
 
     try {
       const created = await createFolder({ name });
-      await handleSelect(created.id, created.name);
+      await handleSelectFolder(created.id, created.name);
     } catch {
       toast.error(TEXTS.messages.error.folderCreateFailedFull);
     } finally {
@@ -159,21 +193,21 @@ export function FolderSelector({
                 icon={<Bookmark className="h-4 w-4" />}
                 name={TEXTS.bookmark.folder.uncategorized}
                 count={uncategorizedCount}
-                isSelected={isBookmarked && currentFolderId === null}
+                isSelected={isUncategorizedSelected}
                 isPending={pendingFolderId === null}
-                onClick={() => handleSelect(null, TEXTS.bookmark.folder.uncategorized)}
+                onClick={handleSelectUncategorized}
               />
 
-              {/* 폴더 목록 */}
+              {/* 폴더 목록 — 소속된 모든 폴더에 ✓ 표시 (다중 폴더 소속 가능) */}
               {folderList.map((folder) => (
                 <FolderRow
                   key={folder.id}
                   icon={<Bookmark className="h-4 w-4" />}
                   name={folder.name}
                   count={folder.bookmarkCount}
-                  isSelected={isBookmarked && currentFolderId === folder.id}
+                  isSelected={bookmarkFolderIds.includes(folder.id)}
                   isPending={pendingFolderId === folder.id}
-                  onClick={() => handleSelect(folder.id, folder.name)}
+                  onClick={() => handleSelectFolder(folder.id, folder.name)}
                 />
               ))}
 

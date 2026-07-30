@@ -9,7 +9,9 @@ export const folderMutationKeys = {
   update: (folderId: string) => [...rootKey, 'update', folderId] as const,
   delete: (folderId: string) => [...rootKey, 'delete', folderId] as const,
   reorder: [...rootKey, 'reorder'] as const,
-  moveBookmark: (postId: string) => [...rootKey, 'moveBookmark', postId] as const,
+  addBookmarkFolder: (postId: string) => [...rootKey, 'addBookmarkFolder', postId] as const,
+  removeBookmarkFolder: (postId: string) => [...rootKey, 'removeBookmarkFolder', postId] as const,
+  clearBookmarkFolders: (postId: string) => [...rootKey, 'clearBookmarkFolders', postId] as const,
 };
 
 export const folderKeys = {
@@ -46,7 +48,7 @@ export const handleFolderUpdateSuccess = () => {
 };
 
 /**
- * 폴더 삭제 후 — 폴더 목록 + 모든 폴더별 게시글 + post 목록(bookmarkFolderId가 null로 바뀌므로) 갱신
+ * 폴더 삭제 후 — 폴더 목록 + 모든 폴더별 게시글 + post 목록(그 폴더가 소속에서 빠지므로) 갱신
  */
 export const handleFolderDeleteSuccess = () => {
   folderInvalidateQueries.list();
@@ -85,9 +87,10 @@ export const handlePostContentUpdateSuccess = () => {
 };
 
 /**
- * 북마크 폴더 이동 후 — 폴더 목록(bookmarkCount 변경) + 모든 폴더별 게시글 + post 목록/detail 갱신
+ * 폴더 소속 변경(추가/제거/전체해제) 후 — 폴더 목록(bookmarkCount 변경) + 모든 폴더별 게시글 + post 목록/detail 갱신.
+ * postsRoot 무효화가 새로 소속된 폴더 목록에 카드가 등장하는 걸 처리하므로, 낙관적 레이어는 삽입을 시도하지 않는다.
  */
-export const handleMoveBookmarkSuccess = (postId: string) => {
+export const handleBookmarkFolderChangeSuccess = (postId: string) => {
   folderInvalidateQueries.list();
   folderInvalidateQueries.postsRoot();
   postInvalidateQueries.detail(postId);

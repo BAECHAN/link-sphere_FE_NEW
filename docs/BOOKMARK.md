@@ -44,16 +44,24 @@ src/
 │       ├── bookmark-post-list/
 │       │   └── BookmarkPostList.tsx      # search prop 소비 + 무한스크롤 + 빈 상태 분기
 │       └── folder-tree/
-│           ├── FolderTree.tsx            # 데스크탑 사이드바 (폴더 트리)
+│           ├── FolderTree.tsx            # 데스크탑 사이드바 (폴더 트리, 전체 행은 숫자 없음)
 │           └── MobileFolderList.tsx      # 모바일 폴더 그리드 (drill-down)
+├── features/
+│   └── post/
+│       └── bookmark/
+│           ├── hooks/
+│           │   └── useBookmarkFolders.ts # add/remove/clear/toggle 라우팅 (§ FolderSelector 표)
+│           └── ui/
+│               ├── BookmarkPostButton.tsx # 카드의 북마크 버튼 — 클릭 시 FolderSelector 오픈
+│               └── FolderSelector.tsx     # 폴더 선택 모달/바텀시트 (탭=즉시 저장/제거)
 ├── entities/
 │   └── folder/
 │       ├── api/
-│       │   ├── folder.api.ts             # 폴더 CRUD + 폴더별 게시글(search) API
-│       │   ├── folder.queries.ts         # useFolderListQuery, useFolderPostsInfiniteQuery, mutations
+│       │   ├── folder.api.ts             # 폴더 CRUD + 소속 추가/제거/전체해제 + 폴더별 게시글 API
+│       │   ├── folder.queries.ts         # useFolderListQuery, mutations (낙관적 갱신 공용 헬퍼 포함)
 │       │   └── folder.keys.ts            # posts(folderKey, sort, search) 쿼리 키 + cross-invalidation
 │       └── model/
-│           └── folder.schema.ts          # Folder, FolderKey, FolderSort, Request 스키마
+│           └── folder.schema.ts          # Folder, FolderKey, FolderSort, BookmarkFoldersResponse 등
 └── shared/
     ├── ui/elements/
     │   └── SearchInput.tsx               # 공통 검색 입력 (아이콘 + 단축키 Kbd)
@@ -62,25 +70,33 @@ src/
         └── texts.ts                      # placeholders.bookmarkSearch, bookmark.empty.searchNoResult 등
 ```
 
+테스트: `src/mocks/fixtures/folder.fixtures.ts`, `src/mocks/handlers/folder.handlers.ts`
+(폴더 목록 + 소속 3개 엔드포인트 기본 핸들러).
+
 ---
 
 ## API 엔드포인트
 
 `src/entities/folder/api/folder.api.ts` 기준 (`API_ENDPOINTS.bookmark`, `shared/config/api.ts`).
 
-| 메서드   | 경로                                                  | 설명                                                              |
-| -------- | ----------------------------------------------------- | ----------------------------------------------------------------- |
-| `GET`    | `/bookmark/folders`                                   | 내 폴더 목록 (bookmarkCount 포함, sortOrder ASC)                  |
-| `POST`   | `/bookmark/folders`                                   | 폴더 생성 (`sort_order = max+1`)                                  |
-| `PATCH`  | `/bookmark/folders/{id}`                              | 폴더 이름 수정                                                    |
-| `DELETE` | `/bookmark/folders/{id}`                              | 폴더 삭제 (안의 북마크는 미분류로 이동 — BE `ON DELETE SET NULL`) |
-| `PATCH`  | `/bookmark/folders/reorder`                           | 폴더 순서 재정렬 (`folderIds` 전체)                               |
-| `GET`    | `/bookmark/folders/{key}/posts?page&size&sort&search` | 폴더별 게시글 조회 (검색 포함)                                    |
-| `PATCH`  | `/bookmark/{postId}/folder`                           | 단건 북마크 폴더 이동 (`folderId=null` → 미분류)                  |
+| 메서드   | 경로                                                  | 설명                                                                           |
+| -------- | ----------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `GET`    | `/bookmark/folders`                                   | 내 폴더 목록 (bookmarkCount 포함, sortOrder ASC)                               |
+| `POST`   | `/bookmark/folders`                                   | 폴더 생성 (`sort_order = max+1`)                                               |
+| `PATCH`  | `/bookmark/folders/{id}`                              | 폴더 이름 수정                                                                 |
+| `DELETE` | `/bookmark/folders/{id}`                              | 폴더 삭제 (**이 폴더에만 있던** 북마크만 미분류로 — 다른 폴더에도 있으면 유지) |
+| `PATCH`  | `/bookmark/folders/reorder`                           | 폴더 순서 재정렬 (`folderIds` 전체)                                            |
+| `GET`    | `/bookmark/folders/{key}/posts?page&size&sort&search` | 폴더별 게시글 조회 (검색 포함)                                                 |
+| `POST`   | `/bookmark/{postId}/folders/{folderId}`               | 폴더에 추가 (북마크 없으면 자동 생성)                                          |
+| `DELETE` | `/bookmark/{postId}/folders/{folderId}`               | 그 폴더에서만 제거 (북마크 자체는 유지)                                        |
+| `DELETE` | `/bookmark/{postId}/folders`                          | 폴더 소속 전부 해제 → 미분류                                                   |
 
 - `folderKey`(경로의 `{key}`): `'all' | 'uncategorized' | UUID`
 - `sort`: `'latest' | 'oldest' | 'title' | 'views'`
 - `search`: 값이 있을 때만 쿼리에 붙습니다 (`folder.api.ts`의 `if (search) searchParams.search = search`).
+- 폴더 소속 관련 3개 엔드포인트(추가/제거/전체해제)는 모두 **멱등** — 이미 그 상태여도
+  200을 반환하고 404를 던지지 않습니다. 응답은 세 엔드포인트 공통으로
+  `{ postId, isBookmarked, folderIds }`(`BookmarkFoldersResponse`)입니다.
 
 ---
 
@@ -142,6 +158,45 @@ posts: (folderKey: FolderKey, sort?: FolderSort, search?: string) =>
 
 `BookmarkPostList`는 `search`가 있을 때 빈 상태 문구를
 `TEXTS.bookmark.empty.searchNoResult`('검색 결과가 없어요.')로 전환합니다.
+
+---
+
+## 다중 폴더 소속 모델
+
+북마크 하나가 **여러 폴더에 동시에 소속**될 수 있습니다(N:M). 기존(폴더 하나만 지정
+가능)과 달라진 개념 3가지:
+
+- **미분류 = 소속 폴더가 0개인 상태.** "폴더가 없는 상태"가 아니라 "폴더 중 어디에도
+  속하지 않은 상태"입니다. `post.userInteractions.bookmarkFolderIds: string[]`가
+  빈 배열이면 미분류입니다.
+- **`전체` 행에는 숫자를 표시하지 않습니다.** 폴더별 개수 합산은 다중 소속에서
+  중복 집계되어 부정확하고, 정확한 값을 내려주려면 서버 필드가 필요한데 이번엔
+  숫자 자체를 안 보여주는 쪽으로 결정했습니다. 다만 **목록 자체는 중복 없이** 한
+  북마크가 여러 폴더에 있어도 `전체`에는 한 번만 나옵니다(BE가 EXISTS 세미조인으로
+  보장).
+- **폴더에서 제거 ≠ 북마크 제거.** 소속된 폴더 중 하나에서 빼도 다른 폴더 소속이나
+  북마크 자체는 그대로입니다. 마지막 폴더에서 빠지면 미분류로 남을 뿐, 북마크가
+  사라지지 않습니다. 완전히 삭제하려면 `북마크 제거` 행을 따로 눌러야 합니다.
+
+### FolderSelector 행 동작 표
+
+`BookmarkPostButton`을 누르면 열리는 모달(`features/post/bookmark/ui/FolderSelector.tsx`)의
+전체 동작입니다. 탭 = 즉시 저장/제거 + 모달 닫힘(확인 단계 없음).
+
+| 행          | 상태                      | 탭하면                           | 토스트                                           |
+| ----------- | ------------------------- | -------------------------------- | ------------------------------------------------ |
+| 미분류      | 북마크 아님               | 북마크 켜기 (미분류로 생성)      | `{folderName}에 저장됨` (미분류)                 |
+| 미분류      | 북마크 O, 소속 0개(✓)     | **아무 것도 안 함** (no-op)      | 없음                                             |
+| 미분류      | 북마크 O, 소속 1개 이상   | 소속 전부 해제                   | `{folderName}에 저장됨` (미분류)                 |
+| 폴더 X      | 비소속                    | 그 폴더에 추가 (자동 북마크)     | `{folderName}에 저장됨`                          |
+| 폴더 X      | 소속(✓), 다른 폴더도 있음 | 그 폴더에서만 제거               | `{folderName} 폴더에서 제거됨`                   |
+| 폴더 X      | 소속(✓), **마지막 폴더**  | 그 폴더에서만 제거 → 미분류가 됨 | `{folderName}에 저장됨` (미분류로, 새 문구 없음) |
+| 북마크 제거 | —                         | 북마크 완전 삭제 (소속도 전부)   | `북마크 제거됨`                                  |
+
+체크된 미분류가 no-op인 이유: "미분류에서 제거"는 곧 북마크 해제인데 그건 `북마크 제거`
+행과 중복되고, 오탭 한 번으로 북마크가 조용히 사라지면 안 되기 때문입니다. 소속된 모든
+폴더에 **동일한 ✓ 아이콘**이 표시됩니다(다중 선택 UI가 아니라, 탭할 때마다 즉시
+반영되는 토글 방식).
 
 ---
 

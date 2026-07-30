@@ -49,8 +49,9 @@ const API_ENDPOINTS = {
     folder: (folderId: string) => `${API_BASES.bookmark}/folders/${folderId}`,
     reorder: `${API_BASES.bookmark}/folders/reorder`,
     folderPosts: (folderKey: string) => `${API_BASES.bookmark}/folders/${folderKey}/posts`,
-    moveBookmark: (postId: string) => `${API_BASES.bookmark}/${postId}/folder`,
-    batchMove: `${API_BASES.bookmark}/batch/move`,
+    postFolder: (postId: string, folderId: string) =>
+      `${API_BASES.bookmark}/${postId}/folders/${folderId}`,
+    postFolders: (postId: string) => `${API_BASES.bookmark}/${postId}/folders`,
     batchDelete: `${API_BASES.bookmark}/batch/delete`,
   },
 } as const;

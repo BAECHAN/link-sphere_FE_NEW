@@ -29,7 +29,7 @@ export const mockPost: Post = {
   userInteractions: {
     isLiked: false,
     isBookmarked: false,
-    bookmarkFolderId: null,
+    bookmarkFolderIds: [],
   },
   createdAt: new Date('2025-01-01T00:00:00.000Z'),
   isPrivate: false,

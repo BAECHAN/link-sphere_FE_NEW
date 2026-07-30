@@ -31,9 +31,11 @@ export const reorderFoldersSchema = z.object({
   folderIds: z.array(z.string()).min(1),
 });
 
-// 북마크 폴더 이동 — folderId null = 미분류
-export const moveBookmarkSchema = z.object({
-  folderId: z.string().nullable(),
+// 소속 변경 API(추가/제거/전체해제) 공통 응답 — 변경 후 권위 상태를 그대로 반환한다
+export const bookmarkFoldersResponseSchema = z.object({
+  postId: z.string(),
+  isBookmarked: z.boolean(),
+  folderIds: z.array(z.string()),
 });
 
 // 폴더 페이지 조회용 sort
@@ -48,5 +50,5 @@ export type FolderListResponse = z.infer<typeof folderListResponseSchema>;
 export type CreateFolderRequest = z.infer<typeof createFolderSchema>;
 export type UpdateFolderRequest = z.infer<typeof updateFolderSchema>;
 export type ReorderFoldersRequest = z.infer<typeof reorderFoldersSchema>;
-export type MoveBookmarkRequest = z.infer<typeof moveBookmarkSchema>;
+export type BookmarkFoldersResponse = z.infer<typeof bookmarkFoldersResponseSchema>;
 export type FolderSort = z.infer<typeof folderSortEnum>;

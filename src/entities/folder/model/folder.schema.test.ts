@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  bookmarkFoldersResponseSchema,
   createFolderSchema,
   folderSchema,
   folderSortEnum,
-  moveBookmarkSchema,
   reorderFoldersSchema,
 } from '@/entities/folder/model/folder.schema';
 
@@ -56,17 +56,20 @@ describe('createFolderSchema', () => {
   });
 });
 
-describe('moveBookmarkSchema', () => {
-  it('folderId가 UUID 문자열이면 유효하다', () => {
-    expect(moveBookmarkSchema.safeParse({ folderId: 'folder-uuid-1' }).success).toBe(true);
+describe('bookmarkFoldersResponseSchema', () => {
+  const valid = { postId: 'post-uuid-1', isBookmarked: true, folderIds: ['folder-uuid-1'] };
+
+  it('유효한 응답을 파싱한다', () => {
+    expect(bookmarkFoldersResponseSchema.safeParse(valid).success).toBe(true);
   });
 
-  it('folderId가 null이면(미분류) 유효하다', () => {
-    expect(moveBookmarkSchema.safeParse({ folderId: null }).success).toBe(true);
+  it('folderIds가 빈 배열이어도(미분류) 유효하다', () => {
+    expect(bookmarkFoldersResponseSchema.safeParse({ ...valid, folderIds: [] }).success).toBe(true);
   });
 
-  it('folderId 키가 없으면 파싱에 실패한다', () => {
-    expect(moveBookmarkSchema.safeParse({}).success).toBe(false);
+  it('folderIds 키가 없으면 파싱에 실패한다', () => {
+    const { folderIds: _folderIds, ...rest } = valid;
+    expect(bookmarkFoldersResponseSchema.safeParse(rest).success).toBe(false);
   });
 });
 

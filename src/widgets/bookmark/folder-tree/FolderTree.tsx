@@ -35,15 +35,12 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
   const { data, isLoading } = useFolderListQuery();
   const folders = data?.folders;
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
-  const totalCount =
-    (folders?.reduce((sum, f) => sum + f.bookmarkCount, 0) ?? 0) + uncategorizedCount;
 
   return (
     <aside className={cn('flex flex-col gap-1 py-2', className)}>
       <FixedItem
         icon={<FolderIcon className="h-4 w-4" />}
         label={TEXTS.bookmark.folder.all}
-        count={data ? totalCount : undefined}
         selected={selectedKey === 'all'}
         onClick={() => onSelect('all')}
         onPrefetch={() => prefetchFolderPosts('all', sort, search)}
@@ -86,15 +83,12 @@ export function FolderChips({ selectedKey, onSelect, className }: FolderTreeProp
   const { data } = useFolderListQuery();
   const folders = data?.folders;
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
-  const totalCount =
-    (folders?.reduce((sum, f) => sum + f.bookmarkCount, 0) ?? 0) + uncategorizedCount;
   const [creating, setCreating] = useState(false);
 
   return (
     <div className={cn('flex items-center gap-2 overflow-x-auto py-2 px-1', className)}>
       <Chip selected={selectedKey === 'all'} onClick={() => onSelect('all')}>
         {TEXTS.bookmark.folder.all}
-        {totalCount > 0 && <span className="ml-1.5 text-xs opacity-70">{totalCount}</span>}
       </Chip>
       <Chip selected={selectedKey === 'uncategorized'} onClick={() => onSelect('uncategorized')}>
         {TEXTS.bookmark.folder.uncategorized}

@@ -270,7 +270,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
           <BookmarkPostButton
             postId={post.id}
             isBookmarked={post.userInteractions.isBookmarked}
-            bookmarkFolderId={post.userInteractions.bookmarkFolderId}
+            bookmarkFolderIds={post.userInteractions.bookmarkFolderIds}
           />
           <Button
             variant="ghost"
