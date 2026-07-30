@@ -162,6 +162,7 @@ features/<feature-name>/
 
 ## 문서
 
+- [변경 이력](CHANGELOG.md) — 버전별 변경 사항 (Keep a Changelog)
 - [FE 아키텍처](docs/FE-ARCHITECTURE.md) — 프론트엔드 앱 구조·패턴
 - [시스템 아키텍처](docs/SYSTEM-ARCHITECTURE.md) — 전체 시스템·배포·다이어그램
 - [테스트 가이드](docs/TESTING.md) — Vitest, Testing Library, MSW 사용법·패턴·커버리지
