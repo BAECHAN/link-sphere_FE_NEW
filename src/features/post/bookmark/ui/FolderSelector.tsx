@@ -78,10 +78,18 @@ export function FolderSelector({
       return;
     }
 
+    // 이미 1개 이상의 폴더에 소속돼 있었다면 이번 탭은 "전체 해제" — 폴더 하나가 아니라
+    // 여러 폴더에서 한꺼번에 빠졌다는 걸 알려야 하므로 일반 저장 문구와 구분한다.
+    const wasInFolders = isBookmarked && bookmarkFolderIds.length > 0;
+
     setPendingFolderId(null);
     try {
       await selectUncategorized();
-      toast.success(TEXTS.messages.success.bookmarkSavedTo(TEXTS.bookmark.folder.uncategorized));
+      toast.success(
+        wasInFolders
+          ? TEXTS.messages.success.bookmarkClearedAllFolders
+          : TEXTS.messages.success.bookmarkSavedTo(TEXTS.bookmark.folder.uncategorized)
+      );
       close();
     } catch {
       toast.error(TEXTS.messages.error.bookmarkSaveFailed);

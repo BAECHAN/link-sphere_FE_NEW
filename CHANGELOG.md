@@ -13,10 +13,11 @@
   폴더 선택 모달(`FolderSelector`)에서 소속된 **모든 폴더에 ✓**가 표시되고, 탭할
   때마다 그 폴더에 추가/제거된다(즉시 저장, 확인 단계 없음). 미분류 행은 소속 폴더가
   0개인 상태를 뜻하며, 이미 미분류인 상태에서 미분류 행을 다시 탭하면 아무 일도
-  일어나지 않는다(오탭으로 북마크가 사라지는 것 방지). (`FolderSelector`,
-  `useBookmarkFolders`, `useAddBookmarkFolderMutation`,
-  `useRemoveBookmarkFolderMutation`, `useClearBookmarkFoldersMutation`) — BE API
-  의존, 동시 배포 필요
+  일어나지 않는다(오탭으로 북마크가 사라지는 것 방지). 폴더 1개 이상에 소속된 상태에서
+  미분류 행을 탭하면 소속 전부를 한 번에 해제하며, 이때는 "모든 폴더에서 제거됨"으로
+  안내해 단순 저장 문구와 구분한다. (`FolderSelector`, `useBookmarkFolders`,
+  `useAddBookmarkFolderMutation`, `useRemoveBookmarkFolderMutation`,
+  `useClearBookmarkFoldersMutation`) — BE API 의존, 동시 배포 필요
 
 ### Changed
 

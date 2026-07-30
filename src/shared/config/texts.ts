@@ -286,6 +286,7 @@ export const TEXTS = {
       bookmarkSavedTo: (folderName: string) => `${folderName}에 저장됨`,
       bookmarkRemoved: '북마크 제거됨',
       bookmarkRemovedFromFolder: (folderName: string) => `${folderName} 폴더에서 제거됨`,
+      bookmarkClearedAllFolders: '모든 폴더에서 제거됨',
     },
     error: {
       // 공통
