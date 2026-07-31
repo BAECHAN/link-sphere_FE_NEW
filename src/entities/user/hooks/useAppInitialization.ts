@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useAuth } from '@/entities/user/hooks/useAuth';
 import { useAuthStore, hasStoredSession } from '@/shared/store/auth.store';
 import { TEXTS } from '@/shared/config/texts';
+import { postInvalidateQueries } from '@/entities/post/api/post.keys';
 
 /**
  * 앱 초기화 전담 훅
@@ -27,7 +28,12 @@ export const useAppInitialization = () => {
         // 리프레시 쿠키가 있을 가능성이 있을 때만 호출한다.
         // 비로그인 방문자는 여기서 네트워크 요청 없이 즉시 끝난다.
         if (!accessToken && hasStoredSession()) {
-          await restoreAuth();
+          const restored = await restoreAuth();
+          // 인증 복원 전에 비로그인 상태로 이미 나간 공개 목록 요청(post 목록 등)이
+          // 있을 수 있으므로, 복원된 인증 상태로 다시 가져오도록 무효화한다.
+          if (restored) {
+            postInvalidateQueries.list();
+          }
         }
       } catch (error) {
         console.error(TEXTS.messages.error.appInitFailed, error);
