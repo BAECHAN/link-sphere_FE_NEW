@@ -99,6 +99,7 @@ Report both lists before the first edit, not after. If the change alters a data 
 - **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반 Tailwind 클래스 사용 (`text-destructive`, `bg-success`, `text-warning` 등)
 - **Never** 인라인 API 경로 → 항상 `API_ENDPOINTS.*` 사용
 - **Never** feature hook에서 직접 `queryClient.invalidateQueries` → 항상 `.keys.ts` success handlers 사용
+- **Never** 다른 엔티티의 raw 쿼리 키를 재구성해 `queryClient.invalidateQueries`를 직접 호출 → 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()` 래퍼만 사용. 크로스 엔티티 무효화가 필요하면 자기 엔티티의 `.keys.ts`에 `handle<Event>Success` 함수를 만들어 그 안에서 호출한다 (아래 "크로스 엔티티 무효화" 참고)
 - **Never** 하위 레이어에서 상위 레이어 import → ESLint 강제 (레이어 방향 위반)
 - **Never** 날짜 처리에 `new Date()` / `.getTime()` 직접 사용 → 항상 `dayjs` 사용 (`dayjs(value).valueOf()`, `dayjs().format()` 등)
 - **Never** 대상 파일 양식 무시하고 코드 생성 → 항상 붙여넣을 파일(및 인접 코드)을 **먼저 읽고** 들여쓰기·네이밍·import 순서·따옴표·주석 밀도·정렬을 그대로 맞춘다. 본인 스타일을 강요하거나 기존 코드를 재포맷하지 않는다
@@ -346,6 +347,32 @@ export const handleEntityUpdateSuccess = (id: Entity['id']) => {
 };
 export const handleEntityDeleteSuccess = () => entityInvalidateQueries.list();
 ```
+
+#### 크로스 엔티티 무효화 (다른 엔티티 캐시까지 갱신해야 할 때)
+
+다른 엔티티의 캐시도 함께 갱신해야 하면, 그 엔티티가 공개한
+`<entity>InvalidateQueries.xxx()` 래퍼만 import해서 부른다. 그 엔티티의 raw
+쿼리 키를 재구성해서 `queryClient.invalidateQueries`를 직접 호출하지 않는다
+(캡슐화가 깨지고, 그 엔티티의 키 구조가 바뀌면 여기도 같이 고쳐야 한다).
+
+```typescript
+// entities/comment/api/comment.keys.ts
+import { postInvalidateQueries } from '@/entities/post/api/post.keys';
+
+export const handleCommentCreateSuccess = (postId: Post['id']) => {
+  commentInvalidateQueries.list(postId); // 1. 자기 엔티티
+  postInvalidateQueries.detail(postId); // 2. 댓글 수가 반영되는 포스트 상세
+  postInvalidateQueries.list(); // 3. 목록의 댓글 수 배지
+};
+```
+
+`handle<Event>Success`가 어느 엔티티의 `.keys.ts`에 사는지는 "어떤 이벤트가
+트리거인가"가 아니라 "어떤 캐시가 영향받는가"로 정한다 — 트리거가 다른
+엔티티(post 삭제, 좋아요/북마크 토글)여도 영향받는 캐시를 소유한 엔티티
+(folder)가 핸들러를 호스팅할 수 있다 (`folder.keys.ts`의
+`handlePostDeleteSuccess`, `handleBookmarkToggleSuccess`). 참고 파일:
+`comment.keys.ts`, `folder.keys.ts`, `auth.keys.ts`(`handleAccountUpdateSuccess`,
+`handleAuthRestoreSuccess`).
 
 ### Layer 3 — `<entity>.queries.ts` (얇은 React Query 래퍼)
 
