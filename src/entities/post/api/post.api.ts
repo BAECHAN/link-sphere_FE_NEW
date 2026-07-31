@@ -19,7 +19,11 @@ export const postApi = {
    * @returns CreatePostResponse
    */
   createPost: async (payload: CreatePost): Promise<CreatePostResponse> => {
-    return await apiClient.post<CreatePostResponse>(API_ENDPOINTS.post.base, payload);
+    // keepalive: 제출 직후 폼을 리셋하고 페이지를 이동하므로, 탭을 닫아도
+    // 브라우저가 이미 시작된 요청을 끝까지 전송하도록 보장한다.
+    return await apiClient.post<CreatePostResponse>(API_ENDPOINTS.post.base, payload, {
+      keepalive: true,
+    });
   },
 
   /**
