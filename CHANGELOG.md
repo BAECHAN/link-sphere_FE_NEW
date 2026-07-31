@@ -7,6 +7,19 @@
 
 ## [Unreleased]
 
+### Changed
+
+- 북마크 개별 폴더 체크를 해제했을 때 그게 마지막 소속 폴더였다면 미분류로 자동
+  이동하는데, "미분류에 저장됨" 토스트만 봐서는 왜 미분류가 됐는지 알기 어려웠다.
+  같은 토스트에 "마지막 폴더에서 제거되어 미분류로 이동되었습니다." description을
+  추가해 이유를 안내한다. (`FolderSelector`)
+- 북마크/폴더 성공 토스트 문구의 종결 어미를 통일 — `folderRenamed`, `folderDeleted`,
+  `folderCreated`, `bookmarkSavedTo`, `bookmarkRemoved`, `bookmarkRemovedFromFolder`,
+  `bookmarkClearedAllFolders`가 개조식(`-됨`)·해요체(`-됐어요`)로 섞여 있던 것을
+  나머지 `messages.success`(`accountCreated` 등)와 같은 합쇼체(`-되었습니다.`)로
+  통일. 표시 문구만 바뀌고 동작은 동일. 이후 다른 톤이 섞여 들어가면 바로 잡아내도록
+  회귀 테스트(`texts.test.ts`)도 추가. (`texts.ts`)
+
 ## [0.7.0] - 2026-07-31
 
 ### Added

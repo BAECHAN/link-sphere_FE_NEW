@@ -635,6 +635,16 @@ TEXTS
 └── ariaLabels.* (레이아웃, 헤더, 사이드바, 입력 필드 등)
 ```
 
+### 톤 규칙
+
+`messages.success`는 합쇼체 `-되었습니다.`로 통일한다 (`accountCreated`, `postCreated`
+등 원래 다수였던 톤). 개조식 `-됨`이나 해요체 `-됐어요/-돼요`를 새로 섞지 않는다.
+새 성공 메시지를 추가할 때도 이 톤을 따른다.
+
+- 예: `messages.success.bookmarkSavedTo`, `bookmarkRemoved`, `folderRenamed`,
+  `folderCreated` 모두 `-되었습니다.`로 통일됨 (2026-07-31, 기존 `-됨`/`-됐어요` 혼재를
+  정리).
+
 ---
 
 ## 디자인 토큰 (`src/app/globals.css`)

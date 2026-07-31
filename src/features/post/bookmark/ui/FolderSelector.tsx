@@ -99,15 +99,17 @@ export function FolderSelector({
 
   const handleSelectFolder = async (folderId: string, folderName: string) => {
     const wasSelected = bookmarkFolderIds.includes(folderId);
-    // 이게 마지막 폴더였다면 제거 후 결과가 미분류이므로, 새 문구를 만들지 않고
-    // 1·3번 케이스와 같은 "미분류에 저장됨" 토스트를 재사용한다 (§4-1 결정).
+    // 이게 마지막 폴더였다면 제거 후 결과가 미분류이므로, "미분류에 저장되었습니다."
+    // 토스트를 재사용하되 왜 미분류가 됐는지 헷갈리지 않도록 description으로 이유를 덧붙인다.
     const isLastFolder = wasSelected && bookmarkFolderIds.length === 1;
 
     setPendingFolderId(folderId);
     try {
       await selectFolder(folderId);
       if (isLastFolder) {
-        toast.success(TEXTS.messages.success.bookmarkSavedTo(TEXTS.bookmark.folder.uncategorized));
+        toast.success(TEXTS.messages.success.bookmarkSavedTo(TEXTS.bookmark.folder.uncategorized), {
+          description: TEXTS.messages.success.bookmarkAutoUncategorizedDescription,
+        });
       } else if (wasSelected) {
         toast.success(TEXTS.messages.success.bookmarkRemovedFromFolder(folderName));
       } else {
