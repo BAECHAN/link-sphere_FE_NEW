@@ -26,7 +26,7 @@ import {
   UpdateFolderRequest,
 } from '@/entities/folder/model/folder.schema';
 import { POST_PAGE_SIZE } from '@/entities/post/config/const';
-import { postKeys } from '@/entities/post/api/post.keys';
+import { postInvalidateQueries, postKeys } from '@/entities/post/api/post.keys';
 import { Post, PostListResponse } from '@/entities/post/model/post.schema';
 import { PaginationRequest } from '@/shared/api/common.schema';
 
@@ -311,7 +311,7 @@ function rollbackBookmarkFolderMutation(
     queryClient.setQueryData(folderKeys.list, context.previousFolderList);
   }
   folderInvalidateQueries.postsRoot();
-  queryClient.invalidateQueries({ queryKey: postKeys.listRoot });
+  postInvalidateQueries.list();
 }
 
 /**
