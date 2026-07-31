@@ -1,0 +1,77 @@
+name: Auto Release
+
+# CHANGELOG.md에 새 버전 섹션(## [X.Y.Z] - YYYY-MM-DD)이 추가되어 push되면
+# 해당 버전의 태그·GitHub Release가 아직 없는 경우에만 자동으로 생성한다.
+# 이미 존재하면 아무 것도 하지 않는 멱등 동작이라, CHANGELOG만 갱신되고
+# 태그/릴리즈가 누락되는 상황을 방지한다.
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'CHANGELOG.md'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (전체 히스토리 + 태그)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: CHANGELOG.md에서 최신 릴리즈 버전 추출
+        id: version
+        run: |
+          LINE=$(grep -m1 -E '^## \[[0-9]+\.[0-9]+\.[0-9]+\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$' CHANGELOG.md || true)
+          if [ -z "$LINE" ]; then
+            echo "릴리즈된 버전 섹션 없음 (Unreleased만 존재) — 종료"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          VERSION=$(echo "$LINE" | sed -E 's/^## \[([0-9]+\.[0-9]+\.[0-9]+)\].*/\1/')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: 이미 태그가 있으면 스킵
+        id: check
+        if: steps.version.outputs.skip == 'false'
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "태그 $TAG 이미 존재 — 스킵"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 릴리즈 노트 추출 (해당 버전 섹션 본문)
+        if: steps.version.outputs.skip == 'false' && steps.check.outputs.skip == 'false'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          awk -v ver="$VERSION" '
+            /^## \[/{
+              if(found){exit}
+              if($0 ~ "\\[" ver "\\]"){found=1; next}
+            }
+            found{print}
+          ' CHANGELOG.md > /tmp/release-notes.md
+
+      - name: 태그 생성 및 push
+        if: steps.version.outputs.skip == 'false' && steps.check.outputs.skip == 'false'
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "chore(release): $TAG"
+          git push origin "$TAG"
+
+      - name: GitHub Release 생성
+        if: steps.version.outputs.skip == 'false' && steps.check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+          gh release create "$TAG" --title "$TAG" --notes-file /tmp/release-notes.md
