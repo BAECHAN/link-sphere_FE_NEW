@@ -13,6 +13,10 @@ on:
       - 'postcss.config.js'
       - 'index.html'
       - 'tsconfig*.json'
+  # BE 레포(history-dispatch.yml)가 자기 커밋 로그를 계산해서 보내는 이벤트.
+  # BE 레포를 체크아웃할 필요 없이 client_payload.logs를 그대로 사용한다.
+  repository_dispatch:
+    types: [be-history-update]
 
 jobs:
   update:
@@ -32,13 +36,17 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           BEFORE_SHA: ${{ github.event.before }}
           CURRENT_SHA: ${{ github.sha }}
+          # repository_dispatch(BE)면 이미 계산된 로그를 그대로 쓰고, push(FE)면 비어서
+          # 스크립트가 기존처럼 BEFORE_SHA/CURRENT_SHA로 직접 git log를 계산한다.
+          PRECOMPUTED_LOGS: ${{ github.event.client_payload.logs }}
+          SOURCE_LABEL: ${{ github.event.client_payload.source || 'FE' }}
       - name: Commit & Push
         run: |
           git config --local user.name "Gemini-Bot"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/HISTORY.md
           if ! git diff --staged --quiet; then
-            git commit -m "docs: auto-update history by Gemini [skip ci]"
+            git commit -m "docs: auto-update history by Gemini (${{ github.event.client_payload.source || 'FE' }}) [skip ci]"
             git push origin main
           else
             echo "No changes to commit"
