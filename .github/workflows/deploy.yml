@@ -72,11 +72,15 @@ jobs:
           # assets (hash 포함) — 장기 캐시, 구 파일 유지 (접속 중 유저가 구 청크 요청 가능)
           aws s3 sync dist/assets/ s3://${{ secrets.S3_BUCKET_NAME }}/assets/ \
             --cache-control "public, max-age=31536000, immutable"
+          # fonts — 파일명에 해시가 없지만 내용이 거의 바뀌지 않아 장기 캐시
+          aws s3 sync dist/fonts/ s3://${{ secrets.S3_BUCKET_NAME }}/fonts/ \
+            --cache-control "public, max-age=31536000, immutable"
           # 그 외 파일 (favicon, manifest 등) — 최신 유지
           aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete \
             --exclude "index.html" \
             --exclude "firebase-messaging-sw.js" \
-            --exclude "assets/*"
+            --exclude "assets/*" \
+            --exclude "fonts/*"
 
       - name: CloudFront Invalidation
         # 새 파일이 반영되도록 캐시를 무효화합니다.
