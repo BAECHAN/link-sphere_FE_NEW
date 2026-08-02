@@ -1,6 +1,7 @@
 import { getToken } from 'firebase/messaging';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { messaging } from '@/shared/lib/firebase/firebase';
+import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY as string;
 
@@ -54,10 +55,10 @@ export async function unregisterFcmToken(): Promise<void> {
     const { deleteToken } = await import('firebase/messaging');
     const deleted = await deleteToken(messaging);
     if (deleted) {
-      const storedToken = sessionStorage.getItem('fcmToken');
+      const storedToken = sessionStorage.getItem(STORAGE_KEYS.FCM.TOKEN);
       if (storedToken) {
         await deleteTokenFromServer(storedToken);
-        sessionStorage.removeItem('fcmToken');
+        sessionStorage.removeItem(STORAGE_KEYS.FCM.TOKEN);
       }
     }
   } catch (error) {
@@ -67,7 +68,7 @@ export async function unregisterFcmToken(): Promise<void> {
 
 async function registerTokenToServer(token: string): Promise<void> {
   // 동일 토큰을 중복 등록하지 않도록 세션에 캐싱
-  if (sessionStorage.getItem('fcmToken') === token) {
+  if (sessionStorage.getItem(STORAGE_KEYS.FCM.TOKEN) === token) {
     return;
   }
 
@@ -88,7 +89,7 @@ async function registerTokenToServer(token: string): Promise<void> {
   });
 
   if (res.ok) {
-    sessionStorage.setItem('fcmToken', token);
+    sessionStorage.setItem(STORAGE_KEYS.FCM.TOKEN, token);
     console.info('[FCM] Token registered to server');
   }
 }

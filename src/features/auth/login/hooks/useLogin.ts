@@ -4,8 +4,9 @@ import { useLoginMutation } from '@/entities/user/api/auth.queries';
 import { loginSchema } from '@/shared/types/auth.type';
 import { z } from 'zod';
 import { LocalStorageUtil } from '@/shared/utils/storage.util';
+import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 
-const SAVED_ID_KEY = 'saved_email_linksphere';
+const SAVED_ID_KEY = STORAGE_KEYS.AUTH.SAVED_EMAIL;
 
 const loginFormSchema = loginSchema.extend({
   saveEmail: z.boolean(),

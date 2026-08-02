@@ -23,6 +23,14 @@
   ESLint로 `sonner`의 `toast` 직접 import를 차단. 모바일 하단 탭바에 토스트가
   가리지 않도록 반응형 offset도 함께 추가. (`shared/lib/toast/toast.ts`,
   `sonner.tsx`, `globals.css`, `eslint.config.js`)
+- localStorage/sessionStorage 키 이름이 `ls_has_session`, `saved_email_linksphere`,
+  `fcmToken`, `chunk-reload-attempted` 등 스타일이 제각각이고 한 곳에 모여 있지도
+  않았음. `shared/config/storage-keys.ts`에 `linksphere:` 접두사 + 콜론 네임스페이스
+  규칙으로 전부 모아 통일 (`linksphere:auth:has-session` 등). next-themes의 기본 키
+  `theme`도 `linksphere:theme`로 편입. 마이그레이션 없이 키만 교체했으므로 기존
+  사용자는 재로그인 1회, 저장된 이메일·최근 검색어·테마 선택이 초기화됨 — 세션
+  스토리지 키는 탭을 닫으면 어차피 사라지므로 영향 없음. (`storage-keys.ts`,
+  `auth.store.ts`, `useLogin.ts`, `useRecentSearches.ts`, `fcm.ts`)
 
 ### Fixed
 
@@ -40,6 +48,12 @@
   `assets/`와 동일하게 1년 장기 캐시 추가. (`globals.css`, `index.html`,
   `deploy.yml`)
 
+- 청크 로드 실패(새 배포 후 구 청크 hash 불일치) 시 재시도를 막는 세션 스토리지
+  플래그를 `main.tsx`의 `vite:preload-error` 핸들러와 `App.tsx`의 전역
+  ErrorBoundary 폴백이 서로 다른 키로 관리하고 있어, 한쪽이 이미 새로고침을
+  했어도 다른 쪽이 그걸 모르고 한 번 더 새로고침을 실행할 수 있었다. 두 곳 모두
+  경로별 키(`chunkReloadKey(pathname)`)를 공유하도록 통일. (`main.tsx`, `App.tsx`,
+  `storage-keys.ts`)
 - 게시글 등록 제출 직후 폼을 리셋하고 페이지를 이동하는데, 그 사이 탭을 닫거나
   이동하면 진행 중이던 등록 요청이 중단되어 게시글이 유실될 수 있었다. 요청에
   `keepalive: true`를 추가해 탭 종료/이동 후에도 이미 시작된 요청은 끝까지

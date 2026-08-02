@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { LocalStorageUtil } from '@/shared/utils/storage.util';
+import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 
 /**
  * 세션 존재 플래그 키.
@@ -12,7 +13,7 @@ import { LocalStorageUtil } from '@/shared/utils/storage.util';
  * 플래그와 실제 쿠키가 어긋나면(쿠키만 만료) refresh가 401을 내고 clearAuth로 플래그가
  * 정리되므로 자가 복구된다.
  */
-const SESSION_FLAG_KEY = 'ls_has_session';
+const SESSION_FLAG_KEY = STORAGE_KEYS.AUTH.HAS_SESSION;
 
 export const hasStoredSession = (): boolean =>
   LocalStorageUtil.getItem<boolean>(SESSION_FLAG_KEY) === true;

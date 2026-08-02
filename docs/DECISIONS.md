@@ -30,7 +30,7 @@
    → 라우트 청크 다운로드와 목록 조회가 인증과 **병렬**로 시작된다.
 2. 인증 복원 완료 여부를 `auth.store`의 `isAuthResolved`로 승격하고,
    **`ProtectedRoute`가 이 값을 기다린다.**
-3. localStorage에 세션 존재 플래그(`ls_has_session`)를 두고, 그 흔적이 있을 때만
+3. localStorage에 세션 존재 플래그(`linksphere:auth:has-session`)를 두고, 그 흔적이 있을 때만
    `/auth/refresh`를 호출한다.
 
 **이유 / 주의점**

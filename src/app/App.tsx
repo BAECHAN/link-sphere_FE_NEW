@@ -11,6 +11,7 @@ import { ApiError } from '@/shared/types/common.type';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
+import { chunkReloadKey } from '@/shared/config/storage-keys';
 
 /**
  * 5xx 서버 에러 또는 네트워크 단절 여부를 판단
@@ -40,9 +41,6 @@ function isChunkLoadError(error: unknown): boolean {
   );
 }
 
-// main.tsx의 vite:preload-error 핸들러와 동일한 키 사용
-const CHUNK_RELOAD_KEY = 'chunk-reload-attempted';
-
 /**
  * 전역 ErrorBoundary 폴백
  * - 청크 로드 실패 → 새 배포 가능성, 한 번 자동 새로고침 (무한 루프 방지)
@@ -52,9 +50,10 @@ const CHUNK_RELOAD_KEY = 'chunk-reload-attempted';
 function GlobalErrorFallback({ error }: FallbackProps) {
   useEffect(() => {
     if (isChunkLoadError(error)) {
-      const alreadyReloaded = sessionStorage.getItem(CHUNK_RELOAD_KEY);
+      const reloadKey = chunkReloadKey(window.location.pathname);
+      const alreadyReloaded = sessionStorage.getItem(reloadKey);
       if (!alreadyReloaded) {
-        sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
+        sessionStorage.setItem(reloadKey, '1');
         window.location.reload();
       }
       return;

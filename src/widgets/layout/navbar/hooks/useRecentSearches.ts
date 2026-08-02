@@ -1,6 +1,7 @@
 import { useAppLocalStorage } from '@/shared/hooks/useAppLocalStorage';
+import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 
-const RECENT_SEARCHES_KEY = 'ls_recent_searches';
+const RECENT_SEARCHES_KEY = STORAGE_KEYS.SEARCH.RECENT;
 const MAX_RECENT_SEARCHES = 10;
 
 /**

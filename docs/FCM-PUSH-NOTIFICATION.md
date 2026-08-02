@@ -77,14 +77,14 @@ sequenceDiagram
   FE->>BE: POST /fcm/token { token, platform: "WEB" }
   BE->>DB: INSERT (중복 토큰이면 skip)
   BE-->>FE: 200 OK
-  FE->>FE: sessionStorage.setItem('fcmToken', token)
+  FE->>FE: sessionStorage.setItem('linksphere:fcm:token', token)
 
   Note over User,DB: 로그아웃 시 토큰 해제
   User->>FE: 로그아웃
   FE->>FE: deleteToken(messaging)
   FE->>BE: DELETE /fcm/token { token }
   BE->>DB: DELETE WHERE token = ?
-  FE->>FE: sessionStorage.removeItem('fcmToken')
+  FE->>FE: sessionStorage.removeItem('linksphere:fcm:token')
 ```
 
 ---
@@ -180,9 +180,9 @@ export async function requestAndRegisterFcmToken(): Promise<void> {
 
 ```typescript
 async function registerTokenToServer(token: string): Promise<void> {
-  if (sessionStorage.getItem('fcmToken') === token) return; // 중복 방지
+  if (sessionStorage.getItem('linksphere:fcm:token') === token) return; // 중복 방지
   // ...POST /fcm/token...
-  sessionStorage.setItem('fcmToken', token);
+  sessionStorage.setItem('linksphere:fcm:token', token);
 }
 ```
 
@@ -195,10 +195,10 @@ export async function unregisterFcmToken(): Promise<void> {
   const { deleteToken } = await import('firebase/messaging'); // 지연 임포트
   const deleted = await deleteToken(messaging);
   if (deleted) {
-    const storedToken = sessionStorage.getItem('fcmToken');
+    const storedToken = sessionStorage.getItem('linksphere:fcm:token');
     if (storedToken) {
       await deleteTokenFromServer(storedToken);
-      sessionStorage.removeItem('fcmToken');
+      sessionStorage.removeItem('linksphere:fcm:token');
     }
   }
 }
