@@ -47,7 +47,7 @@ export function CommentEditForm({
         <div className="rounded-md border bg-muted/30 p-3 text-sm">
           <p className="text-xs text-muted-foreground mb-1.5">{TEXTS.comment.form.preview}</p>
           <MarkdownContent content={editContent} isMobile={isMobile} />
-          {linkMetadata && (
+          {linkMetadata && editContent.includes(linkMetadata.url) && (
             <a
               href={linkMetadata.url}
               target="_blank"

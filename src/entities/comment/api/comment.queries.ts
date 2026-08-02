@@ -63,11 +63,13 @@ export const useUpdateCommentMutation = (postId: string) => {
       commentId,
       content,
       images,
+      existingImages,
     }: {
       commentId: string;
       content?: string;
       images?: File[];
-    }) => commentApi.updateComment(commentId, { content, images }),
+      existingImages?: string[];
+    }) => commentApi.updateComment(commentId, { content, images, existingImages }),
     onSuccess: () => {
       handleCommentUpdateSuccess(postId);
     },

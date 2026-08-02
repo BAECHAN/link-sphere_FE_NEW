@@ -35,8 +35,12 @@ export const commentApi = {
     await apiClient.delete(API_ENDPOINTS.post.comment(commentId));
   },
 
-  updateComment: async (commentId: string, payload: { content?: string; images?: File[] }) => {
-    const images = await uploadCommentImages(payload.images);
+  updateComment: async (
+    commentId: string,
+    payload: { content?: string; images?: File[]; existingImages?: string[] }
+  ) => {
+    const uploaded = await uploadCommentImages(payload.images);
+    const images = [...(payload.existingImages ?? []), ...uploaded];
     return await apiClient.patch<Comment>(API_ENDPOINTS.post.comment(commentId), {
       content: payload.content,
       images,
