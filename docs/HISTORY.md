@@ -1,3 +1,8 @@
+### 2026-08-02 (BE)
+- 댓글 이미지 및 아바타 업로드 방식을 Presigned URL 직접 업로드로 전환하여 서버 부하 감소
+- Lambda 환경에서 멀티파트 요청 시 @RequestParam이 null로 바인딩되던 데이터 바인딩 오류 수정
+- AI 비동기 처리 결과 확인을 위한 재조회 방식 API 명세 보완
+
 ### 2026-08-02 (FE)
 - 스토리지 키 네이밍 규칙 정립 및 일관성 확보
   - localStorage 및 sessionStorage 사용 시의 키 네이밍 체계 통일 (Refactor)
