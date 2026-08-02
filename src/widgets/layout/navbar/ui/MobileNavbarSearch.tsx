@@ -1,38 +1,50 @@
 import { Input } from '@/shared/ui/atoms/input';
-import { SearchIcon, XIcon } from 'lucide-react';
+import { ArrowLeftIcon, SearchIcon, XIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 
-export const MobileNavbarSearch = () => {
+interface MobileNavbarSearchProps {
+  onClose: () => void;
+  onSubmit: (query: string) => void;
+}
+
+export const MobileNavbarSearch = ({ onClose, onSubmit }: MobileNavbarSearchProps) => {
   const [searchInput, setSearchInput] = useState('');
-  const navigate = useNavigate();
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    const params = searchInput ? `?q=${encodeURIComponent(searchInput)}` : '';
-    navigate(`${ROUTES_PATHS.POST.ROOT}${params}`);
-    setSearchInput('');
+    onSubmit(searchInput);
+  };
+
+  const handleTrailingIconClick = () => {
+    if (searchInput) {
+      setSearchInput('');
+    } else {
+      onClose();
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="relative w-full">
-      <SearchIcon className="absolute left-2 top-2.5 size-4 text-muted-foreground" />
-      <Input
-        id="mobile-search-input"
-        autoFocus
-        placeholder={TEXTS.placeholders.postSearch}
-        value={searchInput}
-        onChange={(e) => setSearchInput(e.target.value)}
-        className="pl-8 pr-10 bg-muted/50 border-none transition-all focus:bg-background focus:ring-1 focus:ring-primary/20"
+    <form onSubmit={handleSubmit} className="flex items-center gap-2 w-full">
+      <ArrowLeftIcon
+        className="size-5 shrink-0 text-muted-foreground cursor-pointer"
+        onClick={onClose}
       />
-      {searchInput.length > 0 && (
+      <div className="relative flex-1">
+        <SearchIcon className="absolute left-2 top-2.5 size-4 text-muted-foreground" />
+        <Input
+          id="mobile-search-input"
+          autoFocus
+          placeholder={TEXTS.placeholders.postSearch}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="pl-8 pr-10 bg-muted/50 border-none transition-all focus:bg-background focus:ring-1 focus:ring-primary/20"
+        />
         <XIcon
           className="absolute right-2 top-2.5 size-4 text-muted-foreground cursor-pointer"
-          onClick={() => setSearchInput('')}
+          onClick={handleTrailingIconClick}
         />
-      )}
+      </div>
     </form>
   );
 };

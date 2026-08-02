@@ -108,6 +108,12 @@ export const TEXTS = {
     saving: COMMON_TEXT.saving,
     changeImage: '이미지 변경',
   },
+  recentSearch: {
+    title: '최근 검색',
+    clearAll: '모두 지우기',
+    empty: '최근 검색어가 없습니다.',
+    removeItem: '검색어 삭제',
+  },
   post: {
     form: {
       create: {
