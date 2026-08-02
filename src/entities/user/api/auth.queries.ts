@@ -9,7 +9,7 @@ import { AuthUtil } from '@/shared/utils/auth.util';
 import { ROUTES_PATHS, isProtectedPath } from '@/shared/config/route-paths';
 import { STALE_TIME_ONE_DAY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
-import { toast } from 'sonner';
+import { toast } from '@/shared/lib/toast/toast';
 import { API_ENDPOINTS } from '@/shared/config/api';
 import { useNavigate } from 'react-router-dom';
 import { requestAndRegisterFcmToken, unregisterFcmToken } from '@/shared/lib/firebase/fcm';

@@ -1,6 +1,6 @@
 import { useRef, useState, KeyboardEvent } from 'react';
 import { Bookmark, Folder as FolderIcon, Inbox, Loader2, MoreVertical, Plus } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/shared/lib/toast/toast';
 import { Button } from '@/shared/ui/atoms/button';
 import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';

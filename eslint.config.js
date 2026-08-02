@@ -317,6 +317,39 @@ export default [
               };
             },
           },
+          'no-sonner-toast-direct-import': {
+            meta: {
+              type: 'problem',
+              docs: {
+                description:
+                  "'sonner'에서 toast를 직접 import 금지. @/shared/lib/toast/toast 를 사용해야 카테고리별 위치 정책(성공=하단, 오류=상단)이 적용됨",
+              },
+              messages: {
+                sonnerDirectImport:
+                  "'sonner'에서 toast를 직접 import할 수 없습니다. @/shared/lib/toast/toast 를 사용해주세요. (카테고리별 위치 정책 적용)",
+              },
+            },
+            create(context) {
+              return {
+                ImportDeclaration(node) {
+                  const importPath = node.source.value;
+                  if (importPath !== 'sonner') return;
+
+                  const filename = context.getFilename().replace(/\\/g, '/');
+                  if (filename.includes('/src/shared/lib/toast/')) return;
+
+                  const hasToastSpecifier = node.specifiers.some(
+                    (specifier) =>
+                      specifier.type === 'ImportSpecifier' && specifier.imported.name === 'toast'
+                  );
+
+                  if (hasToastSpecifier) {
+                    context.report({ node, messageId: 'sonnerDirectImport' });
+                  }
+                },
+              };
+            },
+          },
           'no-mantine-ui-direct-import': {
             meta: {
               type: 'problem',
@@ -364,6 +397,7 @@ export default [
     },
     rules: {
       'custom-import/no-relative-import-except-styles': 'error',
+      'custom-import/no-sonner-toast-direct-import': 'error',
       'custom-import/no-mantine-ui-direct-import': 'error',
       'no-restricted-imports': [
         'error',

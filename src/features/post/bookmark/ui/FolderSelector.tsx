@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { toast } from '@/shared/lib/toast/toast';
 import { Bookmark, BookmarkX, Check, FolderPlus, Loader2, Plus, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/shared/ui/atoms/dialog';
 import { Button } from '@/shared/ui/atoms/button';
@@ -8,6 +9,7 @@ import { Spinner } from '@/shared/ui/atoms/spinner';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
+import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useCreateFolderMutation, useFolderListQuery } from '@/entities/folder/api/folder.queries';
 import { useBookmarkFolders } from '@/features/post/bookmark/hooks/useBookmarkFolders';
 
@@ -33,6 +35,7 @@ export function FolderSelector({
   onOpenChange,
 }: FolderSelectorProps) {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const { data, isLoading } = useFolderListQuery({ enabled: open });
   // 잘못 라우팅된 응답(HTML 등) 방어 — 배열이 아니면 빈 목록으로 처리해 피드 전체 크래시 방지
   const folderList = Array.isArray(data?.folders) ? data.folders : [];
@@ -69,6 +72,16 @@ export function FolderSelector({
     setPendingFolderId(undefined);
   };
 
+  // 저장 결과를 바로 확인할 수 있게 저장된 폴더로 데려간다. 액션과 닫기 버튼이 자리를 다투므로
+  // FCM 알림 토스트와 동일하게 액션이 있을 때는 닫기 버튼을 끈다.
+  const viewSavedOptions = (folderKey: string) => ({
+    action: {
+      label: TEXTS.bookmark.folder.viewAction,
+      onClick: () => navigate(`${ROUTES_PATHS.BOOKMARK}?folder=${folderKey}`),
+    },
+    closeButton: false,
+  });
+
   const isUncategorizedSelected = isBookmarked && bookmarkFolderIds.length === 0;
 
   const handleSelectUncategorized = async () => {
@@ -88,7 +101,8 @@ export function FolderSelector({
       toast.success(
         wasInFolders
           ? TEXTS.messages.success.bookmarkClearedAllFolders
-          : TEXTS.messages.success.bookmarkSavedTo(TEXTS.bookmark.folder.uncategorized)
+          : TEXTS.messages.success.bookmarkSavedTo(TEXTS.bookmark.folder.uncategorized),
+        viewSavedOptions('uncategorized')
       );
       close();
     } catch {
@@ -109,11 +123,15 @@ export function FolderSelector({
       if (isLastFolder) {
         toast.success(TEXTS.messages.success.bookmarkSavedTo(TEXTS.bookmark.folder.uncategorized), {
           description: TEXTS.messages.success.bookmarkAutoUncategorizedDescription,
+          ...viewSavedOptions('uncategorized'),
         });
       } else if (wasSelected) {
         toast.success(TEXTS.messages.success.bookmarkRemovedFromFolder(folderName));
       } else {
-        toast.success(TEXTS.messages.success.bookmarkSavedTo(folderName));
+        toast.success(
+          TEXTS.messages.success.bookmarkSavedTo(folderName),
+          viewSavedOptions(folderId)
+        );
       }
       close();
     } catch {

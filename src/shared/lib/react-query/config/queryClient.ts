@@ -1,7 +1,7 @@
 import { MutationCache, QueryCache, QueryClient, type Mutation } from '@tanstack/react-query';
 import { ApiError } from '@/shared/types/common.type';
 import { TEXTS } from '@/shared/config/texts';
-import { toast } from 'sonner';
+import { toast } from '@/shared/lib/toast/toast';
 import { AuthUtil } from '@/shared/utils/auth.util';
 
 // 1. 커스텀 Meta 타입 정의 (모듈 확장 대신 로컬 인터페이스 활용 고려)

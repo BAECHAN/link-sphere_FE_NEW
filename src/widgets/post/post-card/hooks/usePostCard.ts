@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMutating } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { toast } from '@/shared/lib/toast/toast';
 import { Post } from '@/entities/post/model/post.schema';
 import { useFetchAccountQuery } from '@/entities/user/api/auth.queries';
 import { useUpdatePostVisibilityMutation } from '@/entities/post/api/post.queries';

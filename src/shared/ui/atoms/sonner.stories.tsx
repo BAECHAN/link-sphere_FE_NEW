@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Toaster } from '@/shared/ui/atoms/sonner';
-import { toast } from 'sonner';
+import { toast } from '@/shared/lib/toast/toast';
 import { Button } from '@/shared/ui/atoms/button';
 
 const meta = {

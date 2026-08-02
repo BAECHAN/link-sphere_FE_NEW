@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { onMessage } from 'firebase/messaging';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { toast } from '@/shared/lib/toast/toast';
 import { messaging } from '@/shared/lib/firebase/firebase';
 import { TEXTS } from '@/shared/config/texts';
 

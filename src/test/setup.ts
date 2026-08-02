@@ -55,6 +55,13 @@ Object.defineProperty(navigator, 'clipboard', {
 window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
 
 // sonner toast 모킹 — queryClient 에러 핸들러에서 toast.error() 호출 방지
+// @/shared/lib/toast/toast 래퍼가 기본 toast() 호출과 dismiss도 참조하므로 함께 모킹
 vi.mock('sonner', () => ({
-  toast: { error: vi.fn(), success: vi.fn(), warning: vi.fn(), info: vi.fn() },
+  toast: Object.assign(vi.fn(), {
+    error: vi.fn(),
+    success: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    dismiss: vi.fn(),
+  }),
 }));

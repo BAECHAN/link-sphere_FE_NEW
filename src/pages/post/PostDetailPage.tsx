@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FallbackProps } from 'react-error-boundary';
-import { toast } from 'sonner';
+import { toast } from '@/shared/lib/toast/toast';
 import { useSuspenseFetchPostDetailQuery } from '@/entities/post/api/post.queries';
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { CommentList } from '@/widgets/comment/comment-list/ui/CommentList';

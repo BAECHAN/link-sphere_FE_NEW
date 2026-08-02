@@ -235,6 +235,17 @@ Licensed under the SIL Open Font License, Version 1.1. http://scripts.sil.org/OF
   }
 }
 
+/* 하단 toast는 모바일 하단 탭바(h-16 + safe-area) 위로 띄운다.
+   sonner의 모바일 CSS는 600px 기준이지만 탭바는 md(768px) 기준이라 변수로 직접 맞춘다. */
+:root {
+  --toast-offset-bottom: 24px;
+}
+@media (max-width: 767px) {
+  :root {
+    --toast-offset-bottom: calc(4rem + env(safe-area-inset-bottom) + 0.75rem);
+  }
+}
+
 /* NProgress Theme Overrides */
 #nprogress .bar {
   @apply !bg-primary;

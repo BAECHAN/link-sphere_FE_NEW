@@ -15,6 +15,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
       position="top-center"
       richColors
       closeButton
+      offset={{ bottom: 'var(--toast-offset-bottom)' }}
+      mobileOffset={{ bottom: 'var(--toast-offset-bottom)' }}
       toastOptions={{
         classNames: {
           toast:

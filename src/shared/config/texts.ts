@@ -212,6 +212,7 @@ export const TEXTS = {
       selectorTitle: '보관함',
       selectorDescription: '폴더를 탭하면 바로 저장돼요',
       removeBookmark: '북마크 제거',
+      viewAction: '보기',
       deleteConfirmTitle: (name: string) => `"${name}" 폴더 삭제`,
       deleteConfirmMessage:
         '이 폴더를 삭제할까요? 이 폴더에만 있던 북마크는 미분류로 이동합니다. (다른 폴더에도 있으면 그대로 유지됩니다)',
