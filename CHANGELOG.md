@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-03
+
 ### Changed
 
 - **댓글 이미지 첨부·아바타 업로드를 스토리지 직접 업로드 방식으로 전환** — 기존엔
@@ -24,7 +26,7 @@
   호출부는 변경 없음.
 
 BE API 의존: 댓글 생성/답글/수정 요청 바디가 `multipart/form-data`에서 JSON으로
-바뀜(BE v0.5.2 이상 필요, `images`가 파일이 아닌 URL 배열). BE를 먼저 배포해야 한다.
+바뀜(BE v0.6.0 이상 필요, `images`가 파일이 아닌 URL 배열). BE를 먼저 배포해야 한다.
 
 ## [0.8.0] - 2026-08-02
 
@@ -408,7 +410,8 @@ BE API 의존: 댓글 생성/답글/수정 요청 바디가 `multipart/form-data
   `PostResponse.userInteractions.bookmarkFolderId` 필요
 - 드래그앤드랍 · 다중 선택 · 폴더 공유는 차후 별도 작업
 
-[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.5.0...v0.6.0
