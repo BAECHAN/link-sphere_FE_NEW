@@ -7,11 +7,23 @@
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-08-02
+
 ### Added
 
 - 북마크 저장 토스트에 [보기] 액션 버튼을 추가해 눌렀을 때 저장된 폴더
   (`/bookmark?folder=...`)로 바로 이동할 수 있게 함. 폴더 제거/해제처럼 볼
   대상이 남지 않는 토스트에는 붙이지 않음. (`FolderSelector.tsx`)
+- 모바일 네비바 검색을 인스타그램 스타일의 전체화면 검색 모드로 전환. 기존에는
+  검색 패널을 닫을 방법이 마땅치 않았다 — 뒤로가기(하드웨어 버튼·엣지 스와이프)를
+  눌러도 패널이 히스토리에 전혀 참여하지 않아 실제로는 이전 페이지로 이동해버렸고
+  (첫 진입이면 사이트 이탈), 검색 제출 후에도 라우트 변경 감지가 `pathname`만 봐서
+  쿼리스트링만 바뀌는 제출에는 반응하지 않아 패널이 안 닫혔다. 검색 패널 열림
+  상태를 `location.state`에 실어 히스토리 엔트리로 만들어 뒤로가기·← 버튼이
+  동일하게 패널만 닫도록 하고, 검색 모드에서는 상단 바 전체를 `← 입력창 ✕`로
+  교체. 최근 검색어를 로컬스토리지에 최대 10개까지 저장해 탭하면 바로 재검색,
+  개별/전체 삭제도 지원. (`Navbar.tsx`, `MobileNavbarSearch.tsx`,
+  `RecentSearchPanel.tsx`, `useRecentSearches.ts`, `texts.ts`)
 
 ### Changed
 
@@ -31,6 +43,16 @@
   사용자는 재로그인 1회, 저장된 이메일·최근 검색어·테마 선택이 초기화됨 — 세션
   스토리지 키는 탭을 닫으면 어차피 사라지므로 영향 없음. (`storage-keys.ts`,
   `auth.store.ts`, `useLogin.ts`, `useRecentSearches.ts`, `fcm.ts`)
+- 북마크 개별 폴더 체크를 해제했을 때 그게 마지막 소속 폴더였다면 미분류로 자동
+  이동하는데, "미분류에 저장됨" 토스트만 봐서는 왜 미분류가 됐는지 알기 어려웠다.
+  같은 토스트에 "마지막 폴더에서 제거되어 미분류로 이동되었습니다." description을
+  추가해 이유를 안내한다. (`FolderSelector`)
+- 북마크/폴더 성공 토스트 문구의 종결 어미를 통일 — `folderRenamed`, `folderDeleted`,
+  `folderCreated`, `bookmarkSavedTo`, `bookmarkRemoved`, `bookmarkRemovedFromFolder`,
+  `bookmarkClearedAllFolders`가 개조식(`-됨`)·해요체(`-됐어요`)로 섞여 있던 것을
+  나머지 `messages.success`(`accountCreated` 등)와 같은 합쇼체(`-되었습니다.`)로
+  통일. 표시 문구만 바뀌고 동작은 동일. 이후 다른 톤이 섞여 들어가면 바로 잡아내도록
+  회귀 테스트(`texts.test.ts`)도 추가. (`texts.ts`)
 
 ### Fixed
 
@@ -47,7 +69,6 @@
   매번 새로 받고 있었음 — 해시 없는 정적 자산이지만 내용이 거의 안 바뀌므로
   `assets/`와 동일하게 1년 장기 캐시 추가. (`globals.css`, `index.html`,
   `deploy.yml`)
-
 - 청크 로드 실패(새 배포 후 구 청크 hash 불일치) 시 재시도를 막는 세션 스토리지
   플래그를 `main.tsx`의 `vite:preload-error` 핸들러와 `App.tsx`의 전역
   ErrorBoundary 폴백이 서로 다른 키로 관리하고 있어, 한쪽이 이미 새로고침을
@@ -75,35 +96,6 @@
   해도 이전 검색어가 함께 걸려 의도와 다른 결과가 나왔다. 라벨 클릭 시 자유
   검색어는 초기화하고 이미 선택돼 있던 다른 카테고리 태그만 유지하도록 수정.
   (`PostListSearch.tsx`)
-
-### Changed
-
-- 북마크 개별 폴더 체크를 해제했을 때 그게 마지막 소속 폴더였다면 미분류로 자동
-  이동하는데, "미분류에 저장됨" 토스트만 봐서는 왜 미분류가 됐는지 알기 어려웠다.
-  같은 토스트에 "마지막 폴더에서 제거되어 미분류로 이동되었습니다." description을
-  추가해 이유를 안내한다. (`FolderSelector`)
-- 북마크/폴더 성공 토스트 문구의 종결 어미를 통일 — `folderRenamed`, `folderDeleted`,
-  `folderCreated`, `bookmarkSavedTo`, `bookmarkRemoved`, `bookmarkRemovedFromFolder`,
-  `bookmarkClearedAllFolders`가 개조식(`-됨`)·해요체(`-됐어요`)로 섞여 있던 것을
-  나머지 `messages.success`(`accountCreated` 등)와 같은 합쇼체(`-되었습니다.`)로
-  통일. 표시 문구만 바뀌고 동작은 동일. 이후 다른 톤이 섞여 들어가면 바로 잡아내도록
-  회귀 테스트(`texts.test.ts`)도 추가. (`texts.ts`)
-
-### Added
-
-- 모바일 네비바 검색을 인스타그램 스타일의 전체화면 검색 모드로 전환. 기존에는
-  검색 패널을 닫을 방법이 마땅치 않았다 — 뒤로가기(하드웨어 버튼·엣지 스와이프)를
-  눌러도 패널이 히스토리에 전혀 참여하지 않아 실제로는 이전 페이지로 이동해버렸고
-  (첫 진입이면 사이트 이탈), 검색 제출 후에도 라우트 변경 감지가 `pathname`만 봐서
-  쿼리스트링만 바뀌는 제출에는 반응하지 않아 패널이 안 닫혔다. 검색 패널 열림
-  상태를 `location.state`에 실어 히스토리 엔트리로 만들어 뒤로가기·← 버튼이
-  동일하게 패널만 닫도록 하고, 검색 모드에서는 상단 바 전체를 `← 입력창 ✕`로
-  교체. 최근 검색어를 로컬스토리지에 최대 10개까지 저장해 탭하면 바로 재검색,
-  개별/전체 삭제도 지원. (`Navbar.tsx`, `MobileNavbarSearch.tsx`,
-  `RecentSearchPanel.tsx`, `useRecentSearches.ts`, `texts.ts`)
-
-### Fixed
-
 - 게시글 목록 검색을 재실행해도 결과가 바뀌었는지 알 수 있는 신호가 없었다.
   라우터의 `v7_startTransition` 설정 때문에 검색 제출이 전환(transition)으로
   처리되어 새 결과가 준비될 때까지 기존 화면을 조용히 유지하는데, 특히 이미
@@ -397,7 +389,8 @@
   `PostResponse.userInteractions.bookmarkFolderId` 필요
 - 드래그앤드랍 · 다중 선택 · 폴더 공유는 차후 별도 작업
 
-[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.4.0...v0.5.0
