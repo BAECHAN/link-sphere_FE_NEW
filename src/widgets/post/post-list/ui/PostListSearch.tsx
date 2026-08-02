@@ -1,9 +1,10 @@
 import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
 import { Button } from '@/shared/ui/atoms/button';
+import { Spinner } from '@/shared/ui/atoms/spinner';
 import { FilterChip } from '@/shared/ui/elements/FilterChip';
 import { SearchInput } from '@/shared/ui/elements/SearchInput';
 import { RotateCcw } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { flushSync } from 'react-dom';
 import { usePostListParams } from '@/widgets/post/post-list/hooks/usePostList';
 import { TEXTS } from '@/shared/config/texts';
@@ -11,6 +12,7 @@ import { TEXTS } from '@/shared/config/texts';
 export function PostListSearch() {
   const { data: categories } = useFetchCategoryOptionQuery();
   const { searchQuery, currentFilter, setSearch, toggleFilter, clearSearch } = usePostListParams();
+  const [isSearchPending, startSearchTransition] = useTransition();
 
   const [searchInput, setSearchInput] = useState(searchQuery);
 
@@ -41,7 +43,12 @@ export function PostListSearch() {
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    setSearch(searchInput);
+    // setSearch(setSearchParams)는 라우터의 v7_startTransition으로 이미 감싸여 있어
+    // 검색 직후에도 결과가 도착할 때까지 화면이 조용히 그대로 유지된다.
+    // 동일한 전환을 여기서도 시작해 isPending으로 버튼에 로딩 상태를 노출한다.
+    startSearchTransition(() => {
+      setSearch(searchInput);
+    });
   };
 
   const handleClear = () => {
@@ -66,8 +73,12 @@ export function PostListSearch() {
               onChange={(e) => setSearchInput(e.target.value)}
               onClear={handleClear}
             />
-            <Button type="submit" className="h-10 px-6 rounded-xl  font-bold md:hidden">
-              {TEXTS.buttons.search}
+            <Button
+              type="submit"
+              disabled={isSearchPending}
+              className="h-10 px-6 rounded-xl  font-bold md:hidden"
+            >
+              {isSearchPending ? <Spinner className="h-4 w-4" /> : TEXTS.buttons.search}
             </Button>
           </form>
 
@@ -83,14 +94,12 @@ export function PostListSearch() {
                   isActive={isSelected}
                   activeClassName="bg-primary text-primary-foreground"
                   onClick={() => {
-                    let newSearch = searchInput;
+                    // 라벨 클릭 시 기존 자유 검색어는 초기화하고, 이미 선택된 @카테고리/#닉네임 태그만 유지한다.
                     const tag = `@${category.label}`;
-
-                    if (isSelected) {
-                      newSearch = newSearch.replace(tag, '').replace(/\s+/g, ' ').trim();
-                    } else {
-                      newSearch = `${newSearch} ${tag}`.trim();
-                    }
+                    const existingTags = searchInput.match(/[@#]\S+/g) ?? [];
+                    const tagsWithoutSelf = existingTags.filter((t) => t !== tag);
+                    const newTags = isSelected ? tagsWithoutSelf : [...tagsWithoutSelf, tag];
+                    const newSearch = newTags.join(' ');
 
                     setSearchInput(newSearch);
                     setSearch(newSearch);
