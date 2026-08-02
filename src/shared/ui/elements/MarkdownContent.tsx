@@ -1,5 +1,7 @@
 import React from 'react';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { useImageViewerStore } from '@/shared/ui/elements/modal/image-viewer/imageViewer.store';
+import { TEXTS } from '@/shared/config/texts';
 
 interface MarkdownContentProps {
   content: string;
@@ -31,12 +33,19 @@ function renderInlineLinks(text: string, keyPrefix: string, isMobile: boolean): 
       const isImage = /\.(jpeg|jpg|gif|png|webp|avif|heic|heif)(\?.*)?$/i.test(part);
       if (isImage) {
         nodes.push(
-          <img
+          <button
             key={`${keyPrefix}-${i}`}
-            src={part}
-            alt="attachment"
-            className="max-w-full max-h-60 rounded-md my-2 object-contain"
-          />
+            type="button"
+            onClick={() => useImageViewerStore.getState().open({ src: part, alt: 'attachment' })}
+            className="block cursor-pointer"
+            aria-label={TEXTS.ariaLabels.imageZoom}
+          >
+            <img
+              src={part}
+              alt="attachment"
+              className="max-w-full max-h-60 rounded-md my-2 object-contain"
+            />
+          </button>
         );
       } else {
         nodes.push(

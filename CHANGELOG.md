@@ -7,6 +7,13 @@
 
 ## [Unreleased]
 
+### Added
+
+- 댓글에 첨부한 이미지를 클릭하면 화면에 꽉 차게 확대해서 볼 수 있는 라이트박스를 추가.
+  기존에는 첨부 이미지가 `max-h-60`으로 잘려 표시되고 클릭해도 반응이 없어, 세로로 긴
+  스크린샷 등은 내용을 확인할 방법이 없었다. 배경 클릭·ESC·닫기 버튼으로 닫을 수 있다.
+  (`shared/ui/elements/modal/image-viewer/`, `MarkdownContent.tsx`)
+
 ### Fixed
 
 - 댓글 수정 시 기존에 첨부돼 있던 이미지가 삭제 가능한 썸네일이 아니라 textarea 안에

@@ -7,6 +7,7 @@ import { AuthProvider } from '@/app/providers/AuthProvider';
 import { Toaster } from '@/shared/ui/atoms/sonner';
 import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
 import { GlobalAlerts } from '@/shared/ui/elements/modal/alert/Alert';
+import { GlobalImageViewer } from '@/shared/ui/elements/modal/image-viewer/ImageViewer';
 import { ApiError } from '@/shared/types/common.type';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
@@ -92,6 +93,7 @@ export function App() {
               <RouterProvider />
               <Toaster />
               <GlobalAlerts />
+              <GlobalImageViewer />
             </TooltipProvider>
           </AuthProvider>
         </AsyncBoundary>
