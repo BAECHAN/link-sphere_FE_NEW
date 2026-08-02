@@ -88,6 +88,16 @@
   개별/전체 삭제도 지원. (`Navbar.tsx`, `MobileNavbarSearch.tsx`,
   `RecentSearchPanel.tsx`, `useRecentSearches.ts`, `texts.ts`)
 
+### Fixed
+
+- 게시글 목록 검색을 재실행해도 결과가 바뀌었는지 알 수 있는 신호가 없었다.
+  라우터의 `v7_startTransition` 설정 때문에 검색 제출이 전환(transition)으로
+  처리되어 새 결과가 준비될 때까지 기존 화면을 조용히 유지하는데, 특히 이미
+  캐시된 검색어로 재검색하면 전환이 사실상 순식간에 끝나 로딩 신호가 사람이
+  인지하기엔 너무 짧게(수 ms) 지나갔다. 검색 제출을 자체 `startTransition`으로
+  감싸 `isPending`을 노출하고, `useMinimumLoading`으로 최소 400ms는 검색
+  버튼에 스피너·비활성화가 유지되도록 함. (`PostListSearch.tsx`)
+
 ## [0.7.0] - 2026-07-31
 
 ### Added

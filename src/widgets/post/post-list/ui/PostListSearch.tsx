@@ -7,12 +7,17 @@ import { RotateCcw } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
 import { flushSync } from 'react-dom';
 import { usePostListParams } from '@/widgets/post/post-list/hooks/usePostList';
+import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
 import { TEXTS } from '@/shared/config/texts';
+
+const SEARCH_LOADING_MIN_DURATION_MS = 400;
 
 export function PostListSearch() {
   const { data: categories } = useFetchCategoryOptionQuery();
   const { searchQuery, currentFilter, setSearch, toggleFilter, clearSearch } = usePostListParams();
   const [isSearchPending, startSearchTransition] = useTransition();
+  // 캐시 히트 등으로 전환이 순식간에 끝나도 "검색이 실행됐다"는 신호를 사람이 인지할 수 있게 최소 시간 보장
+  const showSearchLoading = useMinimumLoading(isSearchPending, SEARCH_LOADING_MIN_DURATION_MS);
 
   const [searchInput, setSearchInput] = useState(searchQuery);
 
@@ -75,10 +80,10 @@ export function PostListSearch() {
             />
             <Button
               type="submit"
-              disabled={isSearchPending}
+              disabled={showSearchLoading}
               className="h-10 px-6 rounded-xl  font-bold md:hidden"
             >
-              {isSearchPending ? <Spinner className="h-4 w-4" /> : TEXTS.buttons.search}
+              {showSearchLoading ? <Spinner className="h-4 w-4" /> : TEXTS.buttons.search}
             </Button>
           </form>
 
