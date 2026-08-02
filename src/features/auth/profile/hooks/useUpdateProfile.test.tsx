@@ -108,22 +108,31 @@ describe('useUpdateProfile', () => {
     );
   });
 
-  it('이미지와 닉네임 모두 변경 시 uploadAvatar 후 updateAccount가 호출된다', async () => {
+  it('이미지와 닉네임 모두 변경 시 서명 URL 발급→직접 업로드 후 updateAccount가 호출된다', async () => {
+    const signUrlCalled = vi.fn();
     const uploadCalled = vi.fn();
     const patchCalled = vi.fn();
 
     server.use(
-      http.post(url(API_ENDPOINTS.auth.uploadAvatar), () => {
-        uploadCalled();
+      http.post(url(API_ENDPOINTS.upload.signedUrl), () => {
+        signUrlCalled();
         return HttpResponse.json(
           {
-            status: 200,
+            status: 201,
             message: 'ok',
-            data: { imageUrl: 'https://example.com/new-avatar.png' },
+            data: {
+              uploadUrl: 'https://fake-storage.test/upload',
+              token: 'fake-token',
+              publicUrl: 'https://example.com/new-avatar.png',
+            },
             timestamp: '',
           },
-          { status: 200 }
+          { status: 201 }
         );
+      }),
+      http.put('https://fake-storage.test/upload', () => {
+        uploadCalled();
+        return new HttpResponse(null, { status: 200 });
       }),
       http.patch(url(API_ENDPOINTS.auth.updateAccount), async ({ request }) => {
         patchCalled(await request.json());
@@ -152,6 +161,7 @@ describe('useUpdateProfile', () => {
     });
 
     await waitFor(() => {
+      expect(signUrlCalled).toHaveBeenCalled();
       expect(uploadCalled).toHaveBeenCalled();
       expect(patchCalled).toHaveBeenCalledWith(
         expect.objectContaining({ image: 'https://example.com/new-avatar.png' })

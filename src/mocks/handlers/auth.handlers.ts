@@ -68,17 +68,4 @@ export const authHandlers = [
       { status: 200 }
     );
   }),
-
-  // POST /auth/account/avatar
-  http.post(url(API_ENDPOINTS.auth.uploadAvatar), () => {
-    return HttpResponse.json(
-      {
-        status: 200,
-        message: 'ok',
-        data: { imageUrl: 'https://supabase.co/storage/v1/object/public/avatars/test.png' },
-        timestamp: new Date().toISOString(),
-      },
-      { status: 200 }
-    );
-  }),
 ];

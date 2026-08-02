@@ -93,8 +93,6 @@ describe('useUploadAvatarMutation', () => {
     result.current.mutate(file);
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.imageUrl).toBe(
-      'https://supabase.co/storage/v1/object/public/avatars/test.png'
-    );
+    expect(result.current.data?.imageUrl).toBe('https://mock-storage.test/public/mock-file.png');
   });
 });

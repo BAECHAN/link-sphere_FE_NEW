@@ -6,9 +6,9 @@ import {
   CreateAccount,
   UpdateAccount,
   AvatarUploadResponse,
-  avatarUploadResponseSchema,
 } from '@/shared/types/auth.type';
 import { API_ENDPOINTS } from '@/shared/config/api';
+import { uploadImageAndGetUrl } from '@/entities/upload/api/upload.api';
 
 export const authApi = {
   /**
@@ -57,15 +57,7 @@ export const authApi = {
   },
 
   uploadAvatar: async (file: File): Promise<AvatarUploadResponse> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    const response = await apiClient.post<AvatarUploadResponse>(
-      API_ENDPOINTS.auth.uploadAvatar,
-      formData
-    );
-    // 일부 인앱 브라우저(예: 네이버 인앱)는 multipart 업로드를 정상 전송하지 못해
-    // imageUrl 없는 비정상 응답이 200으로 내려온다. 이 경우 실패로 처리해
-    // image=undefined가 저장되는 것을 막고 업로드 실패 토스트가 뜨도록 한다.
-    return avatarUploadResponseSchema.parse(response);
+    const imageUrl = await uploadImageAndGetUrl(file);
+    return { imageUrl };
   },
 };

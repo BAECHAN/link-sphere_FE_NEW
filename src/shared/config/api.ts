@@ -13,6 +13,7 @@ const API_BASES = {
   post: '/post',
   comment: '/comment',
   bookmark: '/bookmark',
+  upload: '/upload',
 } as const;
 
 const API_ENDPOINTS = {
@@ -22,8 +23,11 @@ const API_ENDPOINTS = {
     refresh: `${API_BASES.auth}/refresh`,
     account: `${API_BASES.auth}/account`,
     updateAccount: `${API_BASES.auth}/account`,
-    uploadAvatar: `${API_BASES.auth}/account/avatar`,
     signup: `${API_BASES.auth}/signup`,
+  },
+
+  upload: {
+    signedUrl: `${API_BASES.upload}/signed-url`,
   },
 
   post: {

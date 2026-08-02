@@ -7,6 +7,25 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **댓글 이미지 첨부·아바타 업로드를 스토리지 직접 업로드 방식으로 전환** — 기존엔
+  이미지를 FormData로 BE에 보내면 BE가 대신 Supabase Storage에 올려줬는데, CloudFront에
+  붙은 WAF가 요청 바디 8KB 초과 시 무조건 차단해 실제 사진 첨부가 거의 항상 실패했다.
+  이제 BE에서 서명된 업로드 URL을 발급받아(`POST /upload/signed-url`) 이미지 바이트를
+  스토리지에 직접 전송하고, 결과 URL만 BE에 JSON으로 전달한다. 이미지 바이트가
+  CloudFront/WAF를 거치지 않아 이 문제가 원천적으로 해결된다.
+  (`entities/upload/api/upload.api.ts` 신설, `comment.api.ts`, `auth.api.ts`)
+
+### Removed
+
+- `authApi.uploadAvatar`가 더 이상 `POST /auth/account/avatar`(제거된 BE 엔드포인트)를
+  호출하지 않음 — 반환 타입(`{ imageUrl }`)은 동일하게 유지되어 `useUpdateProfile` 등
+  호출부는 변경 없음.
+
+BE API 의존: 댓글 생성/답글/수정 요청 바디가 `multipart/form-data`에서 JSON으로
+바뀜(BE v0.5.2 이상 필요, `images`가 파일이 아닌 URL 배열). BE를 먼저 배포해야 한다.
+
 ## [0.8.0] - 2026-08-02
 
 ### Added
