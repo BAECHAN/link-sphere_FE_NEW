@@ -910,9 +910,16 @@ pnpm storybook        # Storybook (port 6006)
 
 **릴리즈 시점** (버전 확정)
 
-1. `[Unreleased]` 항목들을 새 버전 섹션 `## [X.Y.Z] - YYYY-MM-DD` 으로 승격
-2. `git tag -a vX.Y.Z` → `git push origin vX.Y.Z`
-3. `gh release create vX.Y.Z --notes-file <노트>` 로 GitHub Release 생성
-4. 하단 compare/release 링크 갱신 (`https://github.com/BAECHAN/link-sphere_FE_NEW`)
+1. `[Unreleased]` 항목들을 새 버전 섹션 `## [X.Y.Z] - YYYY-MM-DD` 으로 승격 (빈 `[Unreleased]` 유지), 하단 compare 링크 갱신 (`https://github.com/BAECHAN/link-sphere_FE_NEW`)
+2. API 계약(BE 의존 사항)이 바뀌었다면 `docs/VERSION-COMPATIBILITY.md`에도 상대 레포 최소 버전 행 추가
+3. `chore(release): vX.Y.Z` 커밋 → `git push origin main`
+4. **태그·GitHub Release는 수동으로 만들지 않는다** — `.github/workflows/release.yml`이 `CHANGELOG.md` push를 감지해 최신 버전 섹션을 파싱, 동명 태그가 없으면 자동으로 태그 생성 + `gh release create`까지 수행한다(이미 있으면 스킵하는 멱등 동작). `git tag`/`gh release create`를 직접 실행할 필요 없음.
 
 - 현재 버전 기준점: `0.1.0` (정식 릴리즈 전 개발 단계 = `0.x`)
+
+## 문서 파일 위치
+
+루트에는 `README.md`·`CHANGELOG.md`만 둔다 — GitHub 생태계에서 관례적으로 루트에 두는
+특수 파일(LICENSE·CONTRIBUTING과 같은 급)이고, CHANGELOG는 Keep a Changelog 스펙 자체가
+루트 배치를 표준으로 규정한다. 그 외 모든 문서(아키텍처, 배포 가이드, 테스트 가이드,
+버전 호환 매트릭스 등)는 전부 `docs/`에 둔다.
