@@ -1,4 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { toast } from '@/shared/lib/toast/toast';
+import { TEXTS } from '@/shared/config/texts';
+
+const MAX_IMAGE_SIZE_MB = 10;
+const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
 
 interface UseImagePasteOptions {
   onImageSet?: () => void;
@@ -41,18 +46,32 @@ export function useImagePaste({ onImageSet }: UseImagePasteOptions = {}) {
     }
 
     const imageFiles: File[] = [];
+    let hasOversized = false;
     for (const item of Array.from(items)) {
       if (item.type.startsWith('image/')) {
         const file = item.getAsFile();
-        if (file) {
+        if (!file) {
+          continue;
+        }
+        if (file.size > MAX_IMAGE_SIZE_BYTES) {
+          hasOversized = true;
+        } else {
           imageFiles.push(file);
         }
       }
     }
 
+    if (imageFiles.length === 0 && !hasOversized) {
+      return;
+    }
+
+    e.preventDefault();
+
+    if (hasOversized) {
+      toast.error(TEXTS.validation.imageTooLarge(MAX_IMAGE_SIZE_MB));
+    }
     if (imageFiles.length > 0) {
       setPastedImages((prev) => [...prev, ...imageFiles]);
-      e.preventDefault();
     }
   }, []);
 

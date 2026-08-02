@@ -267,6 +267,7 @@ export const TEXTS = {
     categorySlugRequired: '카테고리 슬러그를 입력해주세요.',
     invalidIdFormat: '유효하지 않은 ID 형식입니다.',
     commentOrImageRequired: '내용 또는 이미지를 추가해주세요.',
+    imageTooLarge: (maxSizeMB: number) => `이미지 용량은 ${maxSizeMB}MB를 초과할 수 없습니다.`,
   },
   messages: {
     info: {
@@ -387,6 +388,8 @@ export const TEXTS = {
     profileEdit: '프로필 수정',
     logout: '로그아웃',
     saveEmail: 'Save Email',
+    imageZoom: '이미지 확대',
+    imageViewer: '확대된 이미지',
 
     // 입력 필드
     inputClear: '입력값 지우기',
