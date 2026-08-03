@@ -14,6 +14,16 @@
   스크린샷 등은 내용을 확인할 방법이 없었다. 배경 클릭·ESC·닫기 버튼으로 닫을 수 있다.
   (`shared/ui/elements/modal/image-viewer/`, `MarkdownContent.tsx`)
 
+### Changed
+
+- **댓글·답글 등록이 서버 응답(링크 프리뷰 크롤링·재조회)을 기다리지 않고 즉시 화면에
+  반영되도록 변경** — 기존에는 등록 폼이 서버 응답까지 잠겨 있다가, 응답 후에도 댓글
+  목록을 통째로 다시 조회(`GET`)한 뒤에야 화면에 나타났다. 이제 제출 즉시 임시 댓글을
+  목록에 꽂아 넣고 폼을 비우며, 서버 응답이 오면 id 기준으로 실제 댓글로 조용히 치환한다
+  (재조회 없음). 실패 시에는 이전 목록으로 롤백된다. 첨부 이미지는 업로드 완료 전까지
+  로컬 미리보기(blob URL)로 보여준다. (`entities/comment/api/comment.queries.ts`,
+  `features/comment/create/hooks/useCreateComment.ts`, `MarkdownContent.tsx`)
+
 ### Fixed
 
 - 프로필 사진·댓글 첨부 이미지가 24~32px 아바타에도 원본 그대로(최대 1MB대) 전송되어

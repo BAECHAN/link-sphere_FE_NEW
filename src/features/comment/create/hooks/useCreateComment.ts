@@ -8,6 +8,7 @@ import {
 } from '@/entities/comment/api/comment.queries';
 import { useImagePaste } from '@/shared/hooks/useImagePaste';
 import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
+import { useAccount } from '@/entities/user/hooks/useAccount';
 import { TEXTS } from '@/shared/config/texts';
 
 const formSchema = z.object({
@@ -31,10 +32,10 @@ export function useCreateComment({
 }: UseCreateCommentOptions) {
   const isReply = !!parentId;
 
-  const { mutateAsync: createComment, isPending: isCreatingComment } =
-    useCreateCommentMutation(postId);
-  const { mutateAsync: createReply, isPending: isCreatingReply } = useCreateReplyMutation(postId);
+  const { mutate: createComment, isPending: isCreatingComment } = useCreateCommentMutation(postId);
+  const { mutate: createReply, isPending: isCreatingReply } = useCreateReplyMutation(postId);
   const guard = useAuthGuard();
+  const { account } = useAccount();
 
   const isPending = isCreatingComment || isCreatingReply;
 
@@ -60,6 +61,10 @@ export function useCreateComment({
 
   const onSubmit = form.handleSubmit((data: FormValues) => {
     guard(() => {
+      if (!account) {
+        return;
+      }
+
       const content = (data.content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
       if (!content.trim() && pastedImages.length === 0) {
@@ -67,19 +72,19 @@ export function useCreateComment({
         return;
       }
 
-      const handleSuccess = () => {
-        reset();
-        clearAllImages();
-        onSuccess?.();
-      };
+      const author = { id: account.id, nickname: account.nickname, image: account.image ?? null };
+      const images = pastedImages;
+
+      // 서버 응답을 기다리지 않고 즉시 폼을 비운다 - 낙관적 업데이트가 목록에 바로 반영하므로
+      // 여기서 기다릴 이유가 없다 (mutation 실패 시 목록 쪽에서 롤백된다).
+      reset();
+      clearAllImages();
+      onSuccess?.();
 
       if (isReply && parentId) {
-        createReply(
-          { commentId: parentId, content, images: pastedImages },
-          { onSuccess: handleSuccess }
-        );
+        createReply({ commentId: parentId, content, images, author });
       } else {
-        createComment({ content, images: pastedImages }, { onSuccess: handleSuccess });
+        createComment({ content, images, author });
       }
     });
   });

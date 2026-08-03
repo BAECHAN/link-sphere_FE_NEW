@@ -22,7 +22,9 @@ export function MarkdownContent({ content, isMobile = false, className }: Markdo
 }
 
 function renderInlineLinks(text: string, keyPrefix: string, isMobile: boolean): React.ReactNode[] {
-  const urlPattern = /(https?:\/\/[^\s]+)/g;
+  // blob: URL은 낙관적으로 삽입한 임시 댓글이 업로드 전 이미지를 미리 보여줄 때만 등장한다
+  // (아직 서버에 없는 파일이라 http(s) URL이 아님) - 서버 응답이 오면 실제 URL로 교체된다.
+  const urlPattern = /(blob:https?:\/\/[^\s]+|https?:\/\/[^\s]+)/g;
   const parts = text.split(urlPattern);
   const nodes: React.ReactNode[] = [];
 
@@ -30,8 +32,9 @@ function renderInlineLinks(text: string, keyPrefix: string, isMobile: boolean): 
     if (!part) {
       return;
     }
-    if (/^https?:\/\/[^\s]+$/.test(part)) {
-      const isImage = /\.(jpeg|jpg|gif|png|webp|avif|heic|heif)(\?.*)?$/i.test(part);
+    if (/^(blob:https?:\/\/[^\s]+|https?:\/\/[^\s]+)$/.test(part)) {
+      const isImage =
+        part.startsWith('blob:') || /\.(jpeg|jpg|gif|png|webp|avif|heic|heif)(\?.*)?$/i.test(part);
       if (isImage) {
         nodes.push(
           <button

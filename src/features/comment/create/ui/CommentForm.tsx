@@ -52,7 +52,6 @@ export function CommentForm({
           }
           className="min-h-[80px] resize-none pr-20"
           {...register('content')}
-          disabled={isPending}
           onPaste={handlePaste}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && e.metaKey) {

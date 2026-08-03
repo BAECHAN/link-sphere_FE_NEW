@@ -19,7 +19,9 @@ export const commentInvalidateQueries = {
 };
 
 export const handleCommentCreateSuccess = (postId: Post['id']) => {
-  commentInvalidateQueries.list(postId);
+  // 댓글 목록은 mutation의 onMutate/onSuccess가 낙관적으로 직접 갱신하므로 여기서 다시
+  // invalidate하지 않는다 - 그러면 방금 그려진 결과를 지우고 GET을 한 번 더 태우게 된다.
+  // commentCount가 걸린 게시글 상세/목록만 갱신한다.
   postInvalidateQueries.detail(postId);
   postInvalidateQueries.list();
 };

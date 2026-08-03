@@ -47,10 +47,19 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
   const isOwner = account?.id === comment.author.id;
   const isPostAuthor = comment.author.id === postAuthorId;
   const isDeleted = comment.isDeleted;
-  const canReply = depth < 1 && !isDeleted;
+  // 서버 응답을 기다리는 동안 목록에 낙관적으로 꽂아 넣은 임시 댓글 - 아직 실제 id가 없어
+  // 좋아요/수정/삭제/답글 같은 서버 액션을 걸면 404가 난다.
+  const isOptimistic = comment.id.startsWith('temp-');
+  const canReply = depth < 1 && !isDeleted && !isOptimistic;
 
   return (
-    <div className={cn('group flex gap-3 text-sm animate-in fade-in', depth > 0 && 'ml-8 mt-4')}>
+    <div
+      className={cn(
+        'group flex gap-3 text-sm animate-in fade-in',
+        depth > 0 && 'ml-8 mt-4',
+        isOptimistic && 'opacity-60'
+      )}
+    >
       <UserAvatar
         image={comment.author.image}
         nickname={comment.author.nickname}
@@ -124,7 +133,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
           </>
         )}
 
-        {!isDeleted && (
+        {!isDeleted && !isOptimistic && (
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <LikeCommentButton
               commentId={comment.id}
