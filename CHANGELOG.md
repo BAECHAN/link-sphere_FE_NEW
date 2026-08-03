@@ -30,6 +30,10 @@
   시작해 매번 늦게 뜨던 문제 — 직전 세션에서 저장해둔 아바타 URL을 앱 시작 시 두 API
   응답을 기다리지 않고 먼저 워밍하도록 수정 (`entities/user/hooks/useAppInitialization.ts`,
   `entities/user/hooks/useAccount.ts`).
+- 애니메이션이 깨져서 리사이즈를 건너뛰는 GIF·SVG 아바타·댓글 이미지에 크기 상한이
+  없어, 매우 큰 파일도 원본 그대로 업로드를 시도하던 문제 — 다른 업로드 경로와 동일한
+  Supabase 버킷 용량 제한(10MB)을 넘으면 업로드를 시도하기 전에 에러로 막도록 수정.
+  (`shared/lib/image/resizeImage.ts`)
 - 댓글 수정 시 기존에 첨부돼 있던 이미지가 삭제 가능한 썸네일이 아니라 textarea 안에
   raw URL 텍스트로 그대로 노출되던 문제 — 새 댓글 작성 때처럼 기존 이미지도 썸네일로
   보여주고, 유지한 채 새 이미지를 추가하거나 개별 삭제할 수 있도록 수정.

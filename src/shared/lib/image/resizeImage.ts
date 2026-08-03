@@ -1,6 +1,11 @@
+import { TEXTS } from '@/shared/config/texts';
+
 const SKIP_EXTENSIONS = ['gif', 'svg'];
 const SKIP_MIME_TYPES = ['image/gif', 'image/svg+xml'];
 const WEBP_QUALITY = 0.85;
+// Supabase 버킷 업로드 용량 제한과 동일 (useImagePaste.ts의 MAX_IMAGE_SIZE_MB 참고)
+const MAX_UNRESIZABLE_FILE_SIZE_MB = 10;
+const MAX_UNRESIZABLE_FILE_SIZE_BYTES = MAX_UNRESIZABLE_FILE_SIZE_MB * 1024 * 1024;
 
 function shouldSkipResize(file: File): boolean {
   if (SKIP_MIME_TYPES.includes(file.type)) {
@@ -23,6 +28,9 @@ function canvasToWebpBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
  */
 export async function resizeImageFile(file: File, maxDimension: number): Promise<File> {
   if (shouldSkipResize(file)) {
+    if (file.size > MAX_UNRESIZABLE_FILE_SIZE_BYTES) {
+      throw new Error(TEXTS.validation.imageTooLarge(MAX_UNRESIZABLE_FILE_SIZE_MB));
+    }
     return file;
   }
 
