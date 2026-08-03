@@ -2,10 +2,10 @@ import { useRef } from 'react';
 import { FormProvider } from 'react-hook-form';
 import { Camera } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { TEXTS } from '@/shared/config/texts';
 import { useUpdateProfile } from '@/features/auth/profile/hooks/useUpdateProfile';
+import { UserAvatar } from '@/entities/user/ui/UserAvatar';
 
 interface UpdateProfileFormProps {
   onSuccess?: () => void;
@@ -27,14 +27,12 @@ export function UpdateProfileForm({ onSuccess }: UpdateProfileFormProps) {
             role="button"
             aria-label={TEXTS.mypage.changeImage}
           >
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={avatarPreview ?? ''} alt={account?.nickname ?? ''} />
-              {!avatarPreview && (
-                <AvatarFallback className="text-xl">
-                  {account?.nickname?.[0]?.toUpperCase() ?? 'U'}
-                </AvatarFallback>
-              )}
-            </Avatar>
+            <UserAvatar
+              image={avatarPreview}
+              nickname={account?.nickname}
+              size="lg"
+              className="text-xl"
+            />
             <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
               <Camera className="text-white h-5 w-5" />
             </div>

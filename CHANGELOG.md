@@ -16,6 +16,20 @@
 
 ### Fixed
 
+- 프로필 사진·댓글 첨부 이미지가 24~32px 아바타에도 원본 그대로(최대 1MB대) 전송되어
+  로딩이 느리던 문제 — 읽을 때는 Supabase 이미지 변환 엔드포인트로 실제 표시 크기에 맞게
+  리사이즈해서 받고(`shared/lib/image/supabaseImage.ts` 신설), 업로드 전에는 캔버스로
+  webp 재인코딩해 상한(아바타 512px, 댓글 이미지 1024px) 이하로 축소한다
+  (`shared/lib/image/resizeImage.ts` 신설, `upload.api.ts`). 애니메이션 GIF·SVG·변환
+  실패 시에는 원본을 그대로 사용한다.
+- 아바타 이미지가 아직 로딩 중이거나 깨진 경우 빈 원만 보이던 문제 — 로딩 중엔 회색
+  배경만 보이다가 이미지가 도착하면 그 위에 바로 그려지도록 수정. 닉네임 이니셜은
+  이미지가 아예 없거나 로드가 실패했을 때만 표시하고, 닉네임 정보가 아직 없을 땐
+  물음표(`?`) 같은 임시 문자도 보여주지 않는다(`entities/user/ui/UserAvatar.tsx`).
+- 로그인 사용자의 아바타가 `/auth/refresh`→`/auth/account` 응답을 받은 뒤에야 요청을
+  시작해 매번 늦게 뜨던 문제 — 직전 세션에서 저장해둔 아바타 URL을 앱 시작 시 두 API
+  응답을 기다리지 않고 먼저 워밍하도록 수정 (`entities/user/hooks/useAppInitialization.ts`,
+  `entities/user/hooks/useAccount.ts`).
 - 댓글 수정 시 기존에 첨부돼 있던 이미지가 삭제 가능한 썸네일이 아니라 textarea 안에
   raw URL 텍스트로 그대로 노출되던 문제 — 새 댓글 작성 때처럼 기존 이미지도 썸네일로
   보여주고, 유지한 채 새 이미지를 추가하거나 개별 삭제할 수 있도록 수정.

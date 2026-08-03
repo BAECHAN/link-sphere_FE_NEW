@@ -8,13 +8,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/atoms/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import { useState } from 'react';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useAuth } from '@/entities/user/hooks/useAuth';
 import { useAccount } from '@/entities/user/hooks/useAccount';
+import { UserAvatar } from '@/entities/user/ui/UserAvatar';
 import { NavbarSearch } from '@/widgets/layout/navbar/ui/NavbarSearch';
 import { MobileNavbarSearch } from '@/widgets/layout/navbar/ui/MobileNavbarSearch';
 import { RecentSearchPanel } from '@/widgets/layout/navbar/ui/RecentSearchPanel';
@@ -149,14 +149,12 @@ export function Navbar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-2">
-                    <Avatar className="h-8 w-8 border">
-                      <AvatarImage src={account?.image ?? ''} alt={account?.nickname ?? ''} />
-                      {!account?.image && (
-                        <AvatarFallback>
-                          {account?.nickname?.[0]?.toUpperCase() ?? 'U'}
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
+                    <UserAvatar
+                      image={account?.image}
+                      nickname={account?.nickname}
+                      size="md"
+                      className="border"
+                    />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">

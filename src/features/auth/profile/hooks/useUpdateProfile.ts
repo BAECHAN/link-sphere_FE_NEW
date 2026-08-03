@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { updateAccountSchema, UpdateAccount } from '@/shared/types/auth.type';
@@ -28,6 +28,7 @@ export function useUpdateProfile(onSuccess?: () => void) {
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(account?.image ?? null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (account?.image && !pendingFile) {
@@ -35,9 +36,23 @@ export function useUpdateProfile(onSuccess?: () => void) {
     }
   }, [account?.image, pendingFile]);
 
+  // 선택했지만 제출하지 않고 다른 파일로 바꾸거나 폼을 닫는 경우 blob URL이 누적되므로 정리한다
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+      }
+    };
+  }, []);
+
   const handleAvatarChange = (file: File) => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+    }
+    const objectUrl = URL.createObjectURL(file);
+    objectUrlRef.current = objectUrl;
     setPendingFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarPreview(objectUrl);
   };
 
   const onSubmit = form.handleSubmit(async (formData) => {

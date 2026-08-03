@@ -2,6 +2,7 @@ import React from 'react';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { useImageViewerStore } from '@/shared/ui/elements/modal/image-viewer/imageViewer.store';
 import { TEXTS } from '@/shared/config/texts';
+import { getTransformedImageUrl } from '@/shared/lib/image/supabaseImage';
 
 interface MarkdownContentProps {
   content: string;
@@ -41,7 +42,7 @@ function renderInlineLinks(text: string, keyPrefix: string, isMobile: boolean): 
             aria-label={TEXTS.ariaLabels.imageZoom}
           >
             <img
-              src={part}
+              src={getTransformedImageUrl(part, { width: 800 })}
               alt="attachment"
               className="max-w-full max-h-60 rounded-md my-2 object-contain"
             />

@@ -13,6 +13,7 @@ const STORAGE_KEYS = {
   AUTH: {
     HAS_SESSION: `${STORAGE_PREFIX}:auth:has-session`,
     SAVED_EMAIL: `${STORAGE_PREFIX}:auth:saved-email`,
+    LAST_AVATAR: `${STORAGE_PREFIX}:auth:last-avatar`,
   },
   SEARCH: {
     RECENT: `${STORAGE_PREFIX}:search:recent`,

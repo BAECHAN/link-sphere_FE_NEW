@@ -57,7 +57,7 @@ export const authApi = {
   },
 
   uploadAvatar: async (file: File): Promise<AvatarUploadResponse> => {
-    const imageUrl = await uploadImageAndGetUrl(file);
+    const imageUrl = await uploadImageAndGetUrl(file, 512);
     return { imageUrl };
   },
 };

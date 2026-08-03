@@ -55,6 +55,7 @@ export const useAuthStore = create<AuthState>()(
       setAuthResolved: (resolved) => set({ isAuthResolved: resolved }),
       clearAuth: () => {
         syncSessionFlag(null);
+        LocalStorageUtil.removeItem(STORAGE_KEYS.AUTH.LAST_AVATAR);
         set({ accessToken: null, isAuthenticated: false });
       },
     }),

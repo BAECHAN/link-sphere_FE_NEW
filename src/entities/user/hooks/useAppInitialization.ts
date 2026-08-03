@@ -3,6 +3,21 @@ import { useAuth } from '@/entities/user/hooks/useAuth';
 import { useAuthStore, hasStoredSession } from '@/shared/store/auth.store';
 import { TEXTS } from '@/shared/config/texts';
 import { handleAuthRestoreSuccess } from '@/entities/user/api/auth.keys';
+import { LocalStorageUtil } from '@/shared/utils/storage.util';
+import { STORAGE_KEYS } from '@/shared/config/storage-keys';
+import { getTransformedImageUrl } from '@/shared/lib/image/supabaseImage';
+
+/**
+ * 지난 방문에서 저장해둔 아바타 URL을 즉시 워밍한다.
+ * /auth/refresh → /auth/account 왕복이 끝나기 전에 이미지 요청을 먼저 출발시켜,
+ * 계정 응답이 도착했을 때 같은 URL이면 브라우저 캐시로 바로 그려지게 한다.
+ */
+function prefetchLastAvatar(): void {
+  const cached = LocalStorageUtil.getItem<string>(STORAGE_KEYS.AUTH.LAST_AVATAR);
+  if (cached) {
+    new Image().src = getTransformedImageUrl(cached, { width: 64 });
+  }
+}
 
 /**
  * 앱 초기화 전담 훅
@@ -22,6 +37,9 @@ export const useAppInitialization = () => {
       return;
     }
     hasInitialized.current = true;
+
+    // 인증 복원을 기다리지 않고 먼저 출발시킨다 (병렬 워밍)
+    prefetchLastAvatar();
 
     const initialize = async () => {
       try {
