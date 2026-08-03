@@ -26,6 +26,13 @@
 
 ### Fixed
 
+- 댓글·답글을 수정하고 저장하면 폼이 닫히는 순간 수정 전 내용이 한 프레임 스쳐 보인 뒤
+  새 내용으로 바뀌던 문제 — `isEditing`은 PATCH 응답 시점에 꺼지는데, 목록 캐시는 그
+  응답을 버리고 무효화(`invalidateQueries`)만 해서 별도 재조회가 끝나야 새 내용으로
+  바뀌는 두 시점 차이가 원인이었다. 서버 응답을 캐시에 먼저 병합해 쓴 뒤 폼을 닫도록
+  순서를 맞춤. PATCH 응답이 `replies`/`likeCount`/`isLiked`를 항상 기본값으로 내려주는
+  BE 특성 때문에 통째로 치환하지 않고 바뀐 필드만 병합한다.
+  (`entities/comment/api/comment.queries.ts`, `features/comment/update/hooks/useUpdateComment.ts`)
 - 프로필 사진·댓글 첨부 이미지가 24~32px 아바타에도 원본 그대로(최대 1MB대) 전송되어
   로딩이 느리던 문제 — 읽을 때는 Supabase 이미지 변환 엔드포인트로 실제 표시 크기에 맞게
   리사이즈해서 받고(`shared/lib/image/supabaseImage.ts` 신설), 업로드 전에는 캔버스로

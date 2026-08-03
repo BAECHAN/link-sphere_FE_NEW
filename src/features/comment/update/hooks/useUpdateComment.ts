@@ -10,7 +10,7 @@ interface UseUpdateCommentOptions {
 }
 
 export function useUpdateComment({ comment, postId }: UseUpdateCommentOptions) {
-  const { mutateAsync: updateComment, isPending: isUpdating } = useUpdateCommentMutation(postId);
+  const { mutate: updateComment, isPending: isUpdating } = useUpdateCommentMutation(postId);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);

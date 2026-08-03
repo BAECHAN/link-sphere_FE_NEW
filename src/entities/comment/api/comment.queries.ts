@@ -47,6 +47,25 @@ function buildOptimisticComment({
   };
 }
 
+// 트리(루트+답글)에서 id가 일치하는 댓글에 patch를 병합한다. PATCH 응답(CommentResponse)은
+// replies/likeCount/isLiked를 항상 기본값으로 내려주므로(BE toCommentResponse), 통째로
+// 치환하면 답글이 사라지거나 좋아요가 리셋된다 - 응답에서 실제로 바뀐 필드만 병합해야 한다.
+function patchCommentRecursively(
+  comments: Comment[],
+  targetId: string,
+  patch: Partial<Comment>
+): Comment[] {
+  return comments.map((comment) => {
+    if (comment.id === targetId) {
+      return { ...comment, ...patch };
+    }
+    if (comment.replies.length > 0) {
+      return { ...comment, replies: patchCommentRecursively(comment.replies, targetId, patch) };
+    }
+    return comment;
+  });
+}
+
 export const useComments = (postId: string) => {
   return useQuery({
     queryKey: commentKeys.list(postId),
@@ -186,7 +205,16 @@ export const useUpdateCommentMutation = (postId: string) => {
       images?: File[];
       existingImages?: string[];
     }) => commentApi.updateComment(commentId, { content, images, existingImages }),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // 응답을 캐시에 먼저 반영한 뒤(mutation-level onSuccess) 호출부의 onSuccess(폼 닫기)가
+      // 실행되므로, 폼이 닫히는 순간엔 이미 새 내용이 캐시에 있다 - 옛 내용이 스치지 않는다.
+      queryClient.setQueryData<Comment[]>(commentKeys.list(postId), (old = []) =>
+        patchCommentRecursively(old, data.id, {
+          content: data.content,
+          updatedAt: data.updatedAt,
+          linkMetadata: data.linkMetadata,
+        })
+      );
       handleCommentUpdateSuccess(postId);
     },
   });

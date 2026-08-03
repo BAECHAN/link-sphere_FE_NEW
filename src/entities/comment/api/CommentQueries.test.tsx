@@ -13,6 +13,7 @@ import type { Comment } from '@/entities/comment/model/comment.schema';
 import {
   useCreateCommentMutation,
   useCreateReplyMutation,
+  useUpdateCommentMutation,
 } from '@/entities/comment/api/comment.queries';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
@@ -166,5 +167,124 @@ describe('useCreateReplyMutation', () => {
     const settled = (queryClient.getQueryData<Comment[]>(commentKeys.list(POST_ID)) ?? [])[0];
     expect(settled?.replies).toHaveLength(1);
     expect(settled?.replies[0]?.id).toBe('reply-uuid-1');
+  });
+});
+
+describe('useUpdateCommentMutation', () => {
+  it('루트 댓글 수정 성공 시 content는 응답으로 바뀌고 likeCount·isLiked·replies는 캐시 값을 유지한다', async () => {
+    // BE PATCH 응답은 replies/likeCount/isLiked를 항상 기본값(lossy)으로 내려준다 -
+    // 그대로 덮어쓰면 좋아요 수가 0으로 리셋되고 답글이 사라지는 회귀가 생긴다.
+    const reply: Comment = { ...mockComment, id: 'reply-1', content: '답글' };
+    const target: Comment = {
+      ...mockComment,
+      id: 'comment-existing',
+      content: '수정 전',
+      likeCount: 3,
+      isLiked: true,
+      replies: [reply],
+    };
+    queryClient.setQueryData(commentKeys.list(POST_ID), [target]);
+
+    server.use(
+      http.patch(url(API_ENDPOINTS.post.comment('comment-existing')), () =>
+        HttpResponse.json(
+          {
+            status: 200,
+            message: 'ok',
+            data: {
+              ...mockComment,
+              id: 'comment-existing',
+              content: '수정 후',
+              likeCount: 0,
+              isLiked: false,
+              replies: [],
+            },
+            timestamp: new Date().toISOString(),
+          },
+          { status: 200 }
+        )
+      )
+    );
+
+    const { result } = renderHook(() => useUpdateCommentMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ commentId: 'comment-existing', content: '수정 후' });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const settled = (queryClient.getQueryData<Comment[]>(commentKeys.list(POST_ID)) ?? [])[0];
+    expect(settled?.content).toBe('수정 후');
+    expect(settled?.likeCount).toBe(3);
+    expect(settled?.isLiked).toBe(true);
+    expect(settled?.replies).toEqual([reply]);
+  });
+
+  it('답글 수정 성공 시 부모의 replies에서 해당 답글만 갱신되고 형제 답글은 그대로다', async () => {
+    const editedReply: Comment = { ...mockComment, id: 'reply-1', content: '답글 수정 전' };
+    const siblingReply: Comment = { ...mockComment, id: 'reply-2', content: '형제 답글' };
+    const parent: Comment = {
+      ...mockComment,
+      id: 'parent-comment',
+      replies: [editedReply, siblingReply],
+    };
+    queryClient.setQueryData(commentKeys.list(POST_ID), [parent]);
+
+    server.use(
+      http.patch(url(API_ENDPOINTS.post.comment('reply-1')), () =>
+        HttpResponse.json(
+          {
+            status: 200,
+            message: 'ok',
+            data: { ...mockComment, id: 'reply-1', content: '답글 수정 후' },
+            timestamp: new Date().toISOString(),
+          },
+          { status: 200 }
+        )
+      )
+    );
+
+    const { result } = renderHook(() => useUpdateCommentMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ commentId: 'reply-1', content: '답글 수정 후' });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const settled = (queryClient.getQueryData<Comment[]>(commentKeys.list(POST_ID)) ?? [])[0];
+    expect(settled?.replies.find((r) => r.id === 'reply-1')?.content).toBe('답글 수정 후');
+    expect(settled?.replies.find((r) => r.id === 'reply-2')).toEqual(siblingReply);
+  });
+
+  it('수정 성공 후에도 댓글 목록 쿼리를 invalidate한다 (정합성 백스톱)', async () => {
+    const target: Comment = { ...mockComment, id: 'comment-existing', content: '수정 전' };
+    queryClient.setQueryData(commentKeys.list(POST_ID), [target]);
+
+    server.use(
+      http.patch(url(API_ENDPOINTS.post.comment('comment-existing')), () =>
+        HttpResponse.json(
+          {
+            status: 200,
+            message: 'ok',
+            data: { ...mockComment, id: 'comment-existing', content: '수정 후' },
+            timestamp: new Date().toISOString(),
+          },
+          { status: 200 }
+        )
+      )
+    );
+
+    const { result } = renderHook(() => useUpdateCommentMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ commentId: 'comment-existing', content: '수정 후' });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    await waitFor(() => {
+      expect(queryClient.getQueryState(commentKeys.list(POST_ID))?.isInvalidated).toBe(true);
+    });
   });
 });
