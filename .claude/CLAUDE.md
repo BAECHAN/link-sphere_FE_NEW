@@ -82,6 +82,22 @@ Before implementing, check and report:
 Report both lists before the first edit, not after. If the change alters a data contract
 (schema, DTO, API shape), say explicitly what the deploy order is and what breaks in between.
 
+## 6. Precedent Before Invention
+
+**Find how this codebase already solves it. Copy that shape.**
+
+Before designing anything new:
+
+- Search for an existing feature in the same class of problem, and read it.
+- Name the precedent by file path before you write code.
+- Follow its shape: layering, naming, cache/rollback strategy, error ownership.
+- Deviate only for a stated reason - and state the reason.
+
+This is about reusing the established _shape_, not about extending existing functions.
+Writing a new hook/util that follows the precedent is the expected outcome.
+
+The test: "Which existing file did I model this on?" should always have an answer.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
