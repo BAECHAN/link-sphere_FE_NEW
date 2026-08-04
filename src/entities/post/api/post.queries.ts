@@ -151,7 +151,6 @@ export const useDeletePostMutation = () => {
       return await postApi.deletePost(postId);
     },
     meta: {
-      successMessage: TEXTS.messages.success.postDeleted,
       errorMessage: TEXTS.messages.error.postDeleteFailed,
     },
     onMutate: async (postId: string) => {
@@ -201,7 +200,6 @@ export const useUpdatePostMutation = (postId: string) => {
       return await postApi.updatePost(postId, payload);
     },
     meta: {
-      successMessage: TEXTS.messages.success.postUpdated,
       errorMessage: TEXTS.messages.error.postUpdateFailed,
     },
     onSuccess: (updated) => {
@@ -236,7 +234,6 @@ export const useUpdatePostVisibilityMutation = (postId: string) => {
       return await postApi.updatePostVisibility(postId, isPrivate);
     },
     meta: {
-      successMessage: TEXTS.messages.success.postVisibilityUpdated,
       errorMessage: TEXTS.messages.error.postVisibilityUpdateFailed,
     },
     onSuccess: () => {

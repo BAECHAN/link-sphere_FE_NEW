@@ -183,7 +183,6 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
     submittingRef.current = true;
     try {
       await updateFolder({ name: next });
-      toast.success(TEXTS.messages.success.folderRenamed);
       setRenaming(false);
     } catch {
       toast.error(TEXTS.messages.error.folderRenameFailed);
@@ -206,7 +205,6 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
         }
         try {
           await deleteFolder();
-          toast.success(TEXTS.messages.success.folderDeleted);
         } catch {
           toast.error(TEXTS.messages.error.folderDeleteFailed);
         }
@@ -322,8 +320,7 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
     }
     submittingRef.current = true;
     try {
-      const created = await createFolder({ name: trimmed });
-      toast.success(TEXTS.messages.success.folderCreated(created.name));
+      await createFolder({ name: trimmed });
       onClose();
     } catch {
       toast.error(TEXTS.messages.error.folderCreateFailed);

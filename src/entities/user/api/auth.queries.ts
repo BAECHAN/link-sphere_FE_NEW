@@ -151,7 +151,6 @@ export const useUpdateAccountMutation = () => {
       // 서버 응답(실제 업로드 URL 등)으로 캐시를 치환한다 - invalidate 재조회 없이 바로 반영
       queryClient.setQueryData<Account>(authKeys.account(), data);
       handleAccountUpdateSuccess();
-      toast.success(TEXTS.messages.success.accountUpdated);
       if (variables.previewUrl) {
         URL.revokeObjectURL(variables.previewUrl);
       }

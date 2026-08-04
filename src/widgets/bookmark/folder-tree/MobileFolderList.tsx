@@ -130,7 +130,6 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
     submittingRef.current = true;
     try {
       await updateFolder({ name: next });
-      toast.success(TEXTS.messages.success.folderRenamed);
       setRenaming(false);
     } catch {
       toast.error(TEXTS.messages.error.folderRenameFailed);
@@ -149,7 +148,6 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
       onConfirm: async () => {
         try {
           await deleteFolder();
-          toast.success(TEXTS.messages.success.folderDeleted);
         } catch {
           toast.error(TEXTS.messages.error.folderDeleteFailed);
         }
@@ -236,8 +234,7 @@ function CreateFolderCard() {
     }
     submittingRef.current = true;
     try {
-      const created = await createFolder({ name: trimmed });
-      toast.success(TEXTS.messages.success.folderCreated(created.name));
+      await createFolder({ name: trimmed });
       setCreating(false);
       setName('');
     } catch {

@@ -31,7 +31,7 @@
   메뉴·파일 선택창을 여는 기존 클릭 동작을 그대로 두기 위해 이번 확대 대상에서 제외했다.
   (`entities/user/ui/UserAvatar.tsx`)
 - 마이페이지 프로필 수정 시 닉네임 타이핑을 멈추면(500ms 디바운스) 중복 여부를 미리 조회해
-  사용 가능하면 "사용 가능한 닉네임입니다", 다른 사람이 쓰는 중이면 인라인 오류를 보여준다
+  사용 가능하면 "사용 가능한 닉네임이에요", 다른 사람이 쓰는 중이면 인라인 오류를 보여준다
   (BE 새 엔드포인트: `GET /auth/account/nickname-availability`). 디바운스가 정착하지
   않았거나 검사가 진행 중이면 저장 버튼이 비활성 상태로 그려져, 검사 결과를 기다리지 않고
   누른 클릭이 애초에 통과하지 않는다. (`useUpdateProfile`, `authApi.checkNicknameAvailability`)
@@ -53,6 +53,20 @@
   (재조회 없음). 실패 시에는 이전 목록으로 롤백된다. 첨부 이미지는 업로드 완료 전까지
   로컬 미리보기(blob URL)로 보여준다. (`entities/comment/api/comment.queries.ts`,
   `features/comment/create/hooks/useCreateComment.ts`, `MarkdownContent.tsx`)
+- **사용자 노출 문구의 종결어미를 해요체로 통일** — 토스트·확인 다이얼로그·에러 안내 등이
+  합쇼체("-습니다.")·격식 청유형("-시겠습니까?")·개조식 명사 종결("폴더 생성 실패") 등으로
+  제각각이었다. 국내 서비스 UX 라이팅 사례(토스 공식 UX 라이팅 가이드 — 해요체 통일, 능동형
+  문장("되었어요"→"했어요"), 긍정 표현, "-시겠어요?" 같은 과도한 경어 지양)를 참고해 전면
+  통일. 예: "회원이 생성되었습니다." → "가입을 완료했어요."(능동형), "정말 이
+  포스트를 삭제하시겠습니까?" → "정말 이 포스트를 삭제할까요?", "폴더 생성 실패"(토스트
+  노출) → "폴더 생성에 실패했어요." 완료를 나타내는 성공 메시지는 능동형으로, 원인이
+  불분명하거나 상태를 서술하는 문구(삭제된 글 안내 등)는 그대로 수동형 유지. 제목류
+  (다이얼로그·페이지 타이틀)는 마침표 없이, 본문·설명·토스트류는 마침표 있게
+  통일. 콘솔 로그 전용 문구(`apiRequestFailed` 등)는 대상에서 제외. 가드 테스트
+  (`texts.test.ts`)를 `messages.success` 전용 긍정 매칭에서 `TEXTS` 전체를 재귀 순회하며
+  구 합쇼체·격식 청유형(`-습니다/-니까?` 계열, `-ㅂ니다`형인 "가져옵니다" 포함) 잔존 여부를
+  검사하는 부정 매칭으로 확장해, 이후 새 문구가 다른 톤으로 섞여 들어가면 자동으로 잡아낸다.
+  (`shared/config/texts.ts`, `shared/config/texts.test.ts`)
 
 ### Fixed
 
@@ -118,6 +132,28 @@
   업로드를 끝까지 시도한 뒤에야 실패해, 느린 네트워크에서는 "등록 중..." 상태로 오래
   멈춰있는 것처럼 보이던 문제 — 붙여넣는 즉시 파일 크기를 검사해 초과 시 업로드 시도
   없이 바로 에러 토스트를 표시하도록 수정. (`useImagePaste.ts`)
+
+### Removed
+
+- **낙관적 업데이트로 화면에 결과가 이미 즉시 반영되는 액션의 성공 토스트 8개를 제거** —
+  프로필 수정, 게시글 수정·삭제·공개 설정 변경, 폴더 이름 변경·삭제·생성, 북마크 제거는
+  전부 결과가 화면에 바로 보이는데(모달이 닫히고 갱신됨/목록에서 사라짐/아이콘 상태 전환
+  등) "성공했습니다" 토스트까지 뜨는 건 이미 본 결과를 텍스트로 한 번 더 말해주는 중복
+  신호였다. 반대로 클립보드 복사처럼 화면 변화가 전혀 없는 액션(`linkCopied`)이나 "어느
+  폴더에 저장됐는지"처럼 단순 성공 이상의 정보를 전달하는 토스트(`bookmarkSavedTo` 등)는
+  유지. **게시글 생성(`postCreated`)은 처음에 같이 제거했다가 복원했다** — 제출 즉시 응답을
+  기다리지 않고 피드로 이동하고, 목록도 낙관적 삽입이 아니라 `invalidateQueries`(재조회)라
+  이동 시점엔 아직 옛 목록이고, 여러 사용자가 동시에 글을 올릴 수 있는 공개 피드라 "최신순
+  맨 위 = 내 글"도 보장되지 않는다 — `accountCreated`(가입 후 리다이렉트, 결과가 화면에
+  안 드러남)와 같은 패턴이라 가시성 기준에 안 맞았다. 판단 기준(가시성·정보량·실행취소
+  여부)을 `.claude/CLAUDE.md` "성공 토스트 표시 기준"에 문서화해 앞으로 새 성공 메시지를
+  추가할 때도 동일하게 적용한다. `messages.success`에서 해당 8개 키(`accountUpdated`,
+  `postUpdated`, `postDeleted`, `postVisibilityUpdated`, `folderRenamed`, `folderDeleted`,
+  `folderCreated`, `bookmarkRemoved`)도 더 이상 쓰이지 않아 함께 제거.
+  (`shared/config/texts.ts`, `entities/post/api/post.queries.ts`,
+  `entities/user/api/auth.queries.ts`,
+  `widgets/bookmark/folder-tree/FolderTree.tsx`, `MobileFolderList.tsx`,
+  `features/post/bookmark/ui/FolderSelector.tsx`)
 
 ## [0.9.0] - 2026-08-03
 

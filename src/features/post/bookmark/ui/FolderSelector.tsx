@@ -147,7 +147,6 @@ export function FolderSelector({
   const handleRemove = async () => {
     try {
       await removeBookmark();
-      toast.success(TEXTS.messages.success.bookmarkRemoved);
       close();
     } catch {
       toast.error(TEXTS.messages.error.bookmarkRemoveFailed);

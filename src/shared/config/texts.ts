@@ -21,7 +21,7 @@ const POST_FORM_COMMON = {
   titleLabel: '제목',
   categoryLabel: '관심 분야 (선택사항)',
   privateLabel: '나만 보기 (비공개)',
-  privateDescription: '체크하면 팀원들에게 공유되지 않고 나만 볼 수 있는 게시물로 저장됩니다.',
+  privateDescription: '체크하면 팀원들에게 공유되지 않고 나만 볼 수 있는 게시물로 저장돼요.',
 } as const;
 
 export const TEXTS = {
@@ -67,9 +67,9 @@ export const TEXTS = {
   },
   auth: {
     title: '로그인',
-    description: '아이디와 비밀번호를 입력해주세요',
+    description: '아이디와 비밀번호를 입력해주세요.',
     guard: {
-      title: '로그인이 필요한 서비스입니다.',
+      title: '로그인이 필요한 서비스예요',
     },
     login: {
       title: 'Welcome to LinkSphere',
@@ -103,18 +103,18 @@ export const TEXTS = {
   },
   mypage: {
     title: '프로필 수정',
-    description: '닉네임과 프로필 이미지를 변경할 수 있습니다.',
+    description: '닉네임과 프로필 이미지를 변경할 수 있어요.',
     save: '저장하기',
     saving: COMMON_TEXT.saving,
     changeImage: '이미지 변경',
     reopen: '다시 열기',
     checkingNickname: '확인 중...',
-    nicknameAvailable: '사용 가능한 닉네임입니다.',
+    nicknameAvailable: '사용 가능한 닉네임이에요.',
   },
   recentSearch: {
     title: '최근 검색',
     clearAll: '모두 지우기',
-    empty: '최근 검색어가 없습니다.',
+    empty: '최근 검색어가 없어요.',
     removeItem: '검색어 삭제',
   },
   post: {
@@ -122,11 +122,11 @@ export const TEXTS = {
       create: {
         title: '링크 공유하기',
         description1: '팀원들과 공유하고 싶은 유용한 아티클이나 리소스의 URL을 입력하세요.',
-        description2: '자동으로 제목과 이미지를 가져오고 태그를 생성합니다.',
+        description2: '자동으로 제목과 이미지를 가져오고 태그를 생성해요.',
         urlLabel: 'URL',
         urlPlaceholder: 'https://example.com/amazing-article',
         titleLabel: POST_FORM_COMMON.titleLabel,
-        titlePlaceholder: '제목 (비워두면 자동으로 가져옵니다)',
+        titlePlaceholder: '제목 (비워두면 자동으로 가져와요)',
         categoryLabel: POST_FORM_COMMON.categoryLabel,
         privateLabel: POST_FORM_COMMON.privateLabel,
         privateDescription: POST_FORM_COMMON.privateDescription,
@@ -134,12 +134,12 @@ export const TEXTS = {
       },
       update: {
         title: '링크 수정하기',
-        description: 'URL, 제목, 관심 분야, 공개 설정을 수정할 수 있습니다.',
+        description: 'URL, 제목, 관심 분야, 공개 설정을 수정할 수 있어요.',
         urlLabel: 'URL',
         urlPlaceholder: 'https://example.com/amazing-article',
-        urlChangedNotice: 'URL을 바꾸면 제목·설명·이미지·AI 요약을 새 링크에서 다시 가져옵니다.',
+        urlChangedNotice: 'URL을 바꾸면 제목·설명·이미지·AI 요약을 새 링크에서 다시 가져와요.',
         titleLabel: POST_FORM_COMMON.titleLabel,
-        titlePlaceholder: '제목 (비워두면 자동으로 가져옵니다)',
+        titlePlaceholder: '제목 (비워두면 자동으로 가져와요)',
         categoryLabel: POST_FORM_COMMON.categoryLabel,
         privateLabel: POST_FORM_COMMON.privateLabel,
         privateDescription: POST_FORM_COMMON.privateDescription,
@@ -161,21 +161,21 @@ export const TEXTS = {
       visibilityConfirmTitle: '공개 설정 변경',
       visibilityToPublic: '전체 공개로',
       visibilityToPrivate: '나만 보기(비공개)로',
-      visibilityConfirmMessage: (action: string) => `이 게시물을 ${action} 전환하시겠습니까?`,
+      visibilityConfirmMessage: (action: string) => `이 게시물을 ${action} 전환할까요?`,
     },
     detail: {
-      notFound: '포스트를 찾을 수 없습니다.',
+      notFound: '포스트를 찾을 수 없어요.',
       back: COMMON_TEXT.back,
       heading: 'Post Details',
       commentsHeading: 'Comments',
     },
     search: {
-      corrected: (query: string) => `'${query}'(으)로 검색한 결과입니다`,
+      corrected: (query: string) => `'${query}'(으)로 검색한 결과예요.`,
     },
   },
   comment: {
     list: {
-      loadError: '댓글을 불러오는데 실패했습니다.',
+      loadError: '댓글을 불러오는데 실패했어요.',
       heading: '댓글',
       empty: '첫 번째 댓글을 남겨보세요!',
     },
@@ -219,12 +219,12 @@ export const TEXTS = {
       namePlaceholder: '새 폴더 이름',
       sortPlaceholder: '정렬',
       selectorTitle: '보관함',
-      selectorDescription: '폴더를 탭하면 바로 저장돼요',
+      selectorDescription: '폴더를 탭하면 바로 저장돼요.',
       removeBookmark: '북마크 제거',
       viewAction: '보기',
       deleteConfirmTitle: (name: string) => `"${name}" 폴더 삭제`,
       deleteConfirmMessage:
-        '이 폴더를 삭제할까요? 이 폴더에만 있던 북마크는 미분류로 이동합니다. (다른 폴더에도 있으면 그대로 유지됩니다)',
+        '이 폴더를 삭제할까요? 이 폴더에만 있던 북마크는 미분류로 이동해요. (다른 폴더에도 있으면 그대로 유지돼요)',
       sort: {
         latest: '최신 북마크순',
         oldest: '오래된순',
@@ -236,15 +236,15 @@ export const TEXTS = {
   errors: {
     errorOccurred: '오류 발생',
     notFound: {
-      title: '페이지를 찾을 수 없습니다',
-      description: '요청하신 페이지가 존재하지 않거나 삭제되었습니다.',
+      title: '페이지를 찾을 수 없어요',
+      description: '요청하신 페이지가 존재하지 않거나 삭제됐어요.',
     },
     forbidden: {
-      title: '접근 권한이 없습니다',
-      description: '요청하신 페이지에 접근할 수 없습니다.',
+      title: '접근 권한이 없어요',
+      description: '요청하신 페이지에 접근할 수 없어요.',
     },
     serverError: {
-      description: '서버에 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+      description: '서버에 문제가 발생했어요. 잠시 후 다시 시도해주세요.',
     },
   },
   notification: {
@@ -255,7 +255,7 @@ export const TEXTS = {
     passwordGuide: '영문, 숫자, 특수문자 조합 8자 이상',
   },
   validation: {
-    urlFormat: '유효하지 않은 URL 형식입니다.',
+    urlFormat: '유효하지 않은 URL 형식이에요.',
     urlRequired: 'URL을 입력해주세요.',
     contentRequired: '내용을 입력해주세요.',
     titleRequired: '제목을 입력해주세요.',
@@ -263,7 +263,7 @@ export const TEXTS = {
     passwordRequired: '비밀번호를 입력해주세요.',
     passwordRegex: '비밀번호는 8자 이상, 영문, 숫자, 특수문자 조합으로 입력해주세요.',
     passwordMaxLength: '비밀번호는 20자 이하로 입력해주세요.',
-    emailRegex: '올바른 이메일 형식(예: user@mail.com)인지 확인해 주세요.',
+    emailRegex: '올바른 이메일 형식(예: user@mail.com)인지 확인해주세요.',
     // "닉네임" 레이블 바로 옆(같은 줄, 오른쪽 정렬)에 뜨는 메시지라 "닉네임은" 주어를 반복하지
     // 않고 짧게 쓴다 - 길면 라벨과 한 줄에 안 들어가 줄바꿈되면서 레이아웃이 밀린다.
     nicknameLength: '2자 이상 20자 이하로 입력해주세요.',
@@ -271,87 +271,79 @@ export const TEXTS = {
     folderNameRequired: '폴더 이름을 입력해주세요.',
     categoryNameRequired: '카테고리 이름을 입력해주세요.',
     categorySlugRequired: '카테고리 슬러그를 입력해주세요.',
-    invalidIdFormat: '유효하지 않은 ID 형식입니다.',
+    invalidIdFormat: '유효하지 않은 ID 형식이에요.',
     commentOrImageRequired: '내용 또는 이미지를 추가해주세요.',
-    imageTooLarge: (maxSizeMB: number) => `이미지 용량은 ${maxSizeMB}MB를 초과할 수 없습니다.`,
+    imageTooLarge: (maxSizeMB: number) => `이미지 용량은 ${maxSizeMB}MB를 초과할 수 없어요.`,
   },
   messages: {
     info: {
-      noData: '조회할 데이터가 없습니다.',
-      noPosts: '등록된 링크가 없거나 검색 결과가 없습니다.',
+      noData: '조회할 데이터가 없어요.',
+      noPosts: '등록된 링크가 없거나 검색 결과가 없어요.',
     },
     warning: {
-      memberDeleteConfirm: '정말 이 회원을 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.',
-      postDeleteConfirm: '정말 이 포스트를 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.',
-      commentDeleteConfirm: '정말 이 댓글을 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.',
+      memberDeleteConfirm: '정말 이 회원을 삭제할까요? 삭제된 데이터는 복구할 수 없어요.',
+      postDeleteConfirm: '정말 이 포스트를 삭제할까요? 삭제된 데이터는 복구할 수 없어요.',
+      commentDeleteConfirm: '정말 이 댓글을 삭제할까요? 삭제된 데이터는 복구할 수 없어요.',
     },
     success: {
-      accountCreated: '회원이 생성되었습니다.',
-      accountUpdated: '프로필이 업데이트되었습니다.',
-      postCreated: '포스트가 생성되었습니다.',
-      postUpdated: '포스트가 수정되었습니다.',
-      postDeleted: '포스트가 삭제되었습니다.',
-      linkCopied: '링크가 복사되었습니다.',
-      originalLinkCopied: '원본 링크가 복사되었습니다.',
-      postVisibilityUpdated: '게시물 공개 설정이 변경되었습니다.',
-      folderRenamed: '폴더 이름이 변경되었습니다.',
-      folderDeleted: '폴더가 삭제되었습니다.',
-      folderCreated: (name: string) => `폴더 "${name}"이 생성되었습니다.`,
-      bookmarkSavedTo: (folderName: string) => `${folderName}에 저장되었습니다.`,
-      bookmarkRemoved: '북마크가 제거되었습니다.',
-      bookmarkRemovedFromFolder: (folderName: string) => `${folderName} 폴더에서 제거되었습니다.`,
-      bookmarkClearedAllFolders: '모든 폴더에서 제거되었습니다.',
-      bookmarkAutoUncategorizedDescription: '마지막 폴더에서 제거되어 미분류로 이동되었습니다.',
+      accountCreated: '가입을 완료했어요.',
+      postCreated: '포스트를 생성했어요.',
+      linkCopied: '링크를 복사했어요.',
+      originalLinkCopied: '원본 링크를 복사했어요.',
+      bookmarkSavedTo: (folderName: string) => `${folderName}에 저장했어요.`,
+      bookmarkRemovedFromFolder: (folderName: string) => `${folderName} 폴더에서 제거했어요.`,
+      bookmarkClearedAllFolders: '모든 폴더에서 제거했어요.',
+      bookmarkAutoUncategorizedDescription: '마지막 폴더에서 제거되어 미분류로 이동했어요.',
     },
     error: {
       // 공통
-      defaultError: '오류가 발생했습니다.',
-      serverError: '서버 오류가 발생했습니다.',
-      unknownError: '알 수 없는 오류가 발생했습니다.',
-      apiRequestFailed: 'API 요청 실패',
-      loginRequired: '로그인이 필요합니다.',
+      defaultError: '오류가 발생했어요.',
+      serverError: '서버 오류가 발생했어요.',
+      unknownError: '알 수 없는 오류가 발생했어요.',
+      apiRequestFailed: 'API 요청 실패', // 콘솔 로그 전용 - 톤 규칙 대상 아님
+      loginRequired: '로그인이 필요해요.',
 
       // 인증 관련
-      unauthorizedAccessToken: '액세스 토큰이 유효하지 않습니다.',
-      unauthorizedRefreshToken: '리프레시 토큰이 유효하지 않습니다.',
-      loginFailed: '로그인에 실패했습니다.',
-      loginFailedPasswordMismatch: '아이디 또는 비밀번호가 일치하지 않습니다.',
-      logoutError: '로그아웃 처리 중 오류 발생',
-      tokenRefreshFailed: '토큰 갱신 실패',
-      authRestoreFailed: '인증 복원 실패',
-      loginError: '로그인 실패',
-      userInfoNotFound: '사용자 정보를 찾을 수 없습니다.',
-      fetchAccount: '계정 정보 조회 실패',
-      accountCreateFailed: '계정 생성 실패',
-      accountCreateFailedDuplicateAccount: '해당 이메일로 가입된 계정이 존재합니다.',
-      accountUpdateFailed: '프로필 업데이트에 실패했습니다.',
-      nicknameDuplicate: '이미 사용 중인 닉네임입니다.',
-      avatarUploadFailed: '이미지 업로드에 실패했습니다.',
+      unauthorizedAccessToken: '액세스 토큰이 유효하지 않아요.',
+      unauthorizedRefreshToken: '리프레시 토큰이 유효하지 않아요.',
+      loginFailed: '로그인에 실패했어요.',
+      loginFailedPasswordMismatch: '아이디 또는 비밀번호가 일치하지 않아요.',
+      logoutError: '로그아웃 처리 중 오류가 발생했어요.',
+      tokenRefreshFailed: '토큰 갱신 실패', // 콘솔 로그 전용 - 톤 규칙 대상 아님
+      authRestoreFailed: '인증 복원에 실패했어요.',
+      loginError: '로그인에 실패했어요.',
+      userInfoNotFound: '사용자 정보를 찾을 수 없어요.',
+      fetchAccount: '계정 정보 조회에 실패했어요.',
+      accountCreateFailed: '계정 생성에 실패했어요.',
+      accountCreateFailedDuplicateAccount: '해당 이메일로 가입된 계정이 존재해요.',
+      accountUpdateFailed: '프로필 업데이트에 실패했어요.',
+      nicknameDuplicate: '이미 사용 중인 닉네임이에요.',
+      avatarUploadFailed: '이미지 업로드에 실패했어요.',
 
       // 포스트 관련
-      postCreateFailed: '포스트 생성에 실패했습니다.',
-      postUpdateFailed: '포스트 수정에 실패했습니다.',
-      fetchPosts: '포스트를 불러오는 중 오류가 발생했습니다.',
-      postDeleteFailed: '포스트 삭제에 실패했습니다.',
-      postVisibilityUpdateFailed: '게시물 공개 설정 변경에 실패했습니다.',
+      postCreateFailed: '포스트 생성에 실패했어요.',
+      postUpdateFailed: '포스트 수정에 실패했어요.',
+      fetchPosts: '포스트를 불러오는 중 오류가 발생했어요.',
+      postDeleteFailed: '포스트 삭제에 실패했어요.',
+      postVisibilityUpdateFailed: '게시물 공개 설정 변경에 실패했어요.',
 
       // 북마크 폴더 관련
-      folderRenameFailed: '이름 변경 실패',
-      folderDeleteFailed: '폴더 삭제 실패',
-      folderCreateFailed: '폴더 생성 실패',
-      folderCreateFailedFull: '폴더 생성에 실패했습니다.',
-      bookmarkSaveFailed: '저장에 실패했습니다.',
-      bookmarkRemoveFailed: '북마크 제거에 실패했습니다.',
-      bookmarkRemoveFromFolderFailed: '폴더에서 제거하지 못했습니다.',
+      folderRenameFailed: '이름 변경에 실패했어요.',
+      folderDeleteFailed: '폴더 삭제에 실패했어요.',
+      folderCreateFailed: '폴더 생성에 실패했어요.',
+      folderCreateFailedFull: '폴더 생성에 실패했어요.',
+      bookmarkSaveFailed: '저장에 실패했어요.',
+      bookmarkRemoveFailed: '북마크 제거에 실패했어요.',
+      bookmarkRemoveFromFolderFailed: '폴더에서 제거하지 못했어요.',
 
       // 권한 관련
-      accessDenied: '접근 권한이 없습니다.',
+      accessDenied: '접근 권한이 없어요.',
 
       // 앱 초기화
-      appInitFailed: '앱 초기화 실패:',
+      appInitFailed: '앱 초기화 실패:', // 콘솔 로그 전용 - 톤 규칙 대상 아님
 
       // 유틸
-      linkCopyFailed: '링크 복사에 실패했습니다.',
+      linkCopyFailed: '링크 복사에 실패했어요.',
     },
   },
   shortcuts: {
