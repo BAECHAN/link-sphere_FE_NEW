@@ -87,6 +87,18 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * 클라이언트 코드가 의도적으로 던지는, 메시지를 그대로 사용자에게 보여줘도 되는 에러
+ * (예: 이미지 용량 초과). 네트워크 실패 등 예상치 못한 일반 Error와 구분해, 전역 에러 핸들러가
+ * 후자는 날것 그대로(영어 브라우저 메시지 등) 노출하지 않고 일반 실패 메시지로 감싸도록 한다.
+ */
+export class UserFacingError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'UserFacingError';
+  }
+}
+
 export type SelectOptionType<T = unknown> = {
   label: string;
   value: string;

@@ -3,15 +3,17 @@ import { useIsMutating } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-// shared 레이어라 entities의 postMutationKeys를 import할 수 없어 키 배열을 직접 사용한다.
+// shared 레이어라 entities의 postMutationKeys/authMutationKeys를 import할 수 없어 키 배열을 직접 사용한다.
 // ['post', 'update']는 prefix 매칭이라 ['post', 'update', postId] 전부를 잡는다.
 const CREATE_MUTATION_KEY = ['post', 'create'];
 const UPDATE_MUTATION_KEY = ['post', 'update'];
+const ACCOUNT_MUTATION_KEY = ['auth', 'updateAccount'];
 
 export function PostMutationLoadingBadge() {
   const creatingCount = useIsMutating({ mutationKey: CREATE_MUTATION_KEY });
   const updatingCount = useIsMutating({ mutationKey: UPDATE_MUTATION_KEY });
-  const isMutating = creatingCount + updatingCount;
+  const accountUpdatingCount = useIsMutating({ mutationKey: ACCOUNT_MUTATION_KEY });
+  const isMutating = creatingCount + updatingCount + accountUpdatingCount;
   const [isHighlighted, setIsHighlighted] = useState(false);
 
   useEffect(

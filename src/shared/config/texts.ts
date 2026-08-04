@@ -107,6 +107,9 @@ export const TEXTS = {
     save: '저장하기',
     saving: COMMON_TEXT.saving,
     changeImage: '이미지 변경',
+    reopen: '다시 열기',
+    checkingNickname: '확인 중...',
+    nicknameAvailable: '사용 가능한 닉네임입니다.',
   },
   recentSearch: {
     title: '최근 검색',
@@ -261,7 +264,10 @@ export const TEXTS = {
     passwordRegex: '비밀번호는 8자 이상, 영문, 숫자, 특수문자 조합으로 입력해주세요.',
     passwordMaxLength: '비밀번호는 20자 이하로 입력해주세요.',
     emailRegex: '올바른 이메일 형식(예: user@mail.com)인지 확인해 주세요.',
-    nicknameRegex: '닉네임은 2자 이상 20자 이하로 입력해주세요.',
+    // "닉네임" 레이블 바로 옆(같은 줄, 오른쪽 정렬)에 뜨는 메시지라 "닉네임은" 주어를 반복하지
+    // 않고 짧게 쓴다 - 길면 라벨과 한 줄에 안 들어가 줄바꿈되면서 레이아웃이 밀린다.
+    nicknameLength: '2자 이상 20자 이하로 입력해주세요.',
+    nicknameCharset: '한글·영문·숫자·_ . -만 사용해주세요.',
     folderNameRequired: '폴더 이름을 입력해주세요.',
     categoryNameRequired: '카테고리 이름을 입력해주세요.',
     categorySlugRequired: '카테고리 슬러그를 입력해주세요.',
@@ -390,6 +396,7 @@ export const TEXTS = {
     saveEmail: 'Save Email',
     imageZoom: '이미지 확대',
     imageViewer: '확대된 이미지',
+    profileImageZoom: '프로필 사진 확대',
 
     // 입력 필드
     inputClear: '입력값 지우기',

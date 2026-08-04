@@ -8,9 +8,10 @@ export function useAccount() {
 
   // 다음 방문 시 useAppInitialization이 이 URL로 아바타를 선반입할 수 있도록 저장한다.
   // (React Query v5는 useQuery에 onSuccess가 없어 effect로 대체)
+  // blob: URL(프로필 저장 중 낙관적 미리보기)은 문서 생명주기에 묶여 새로고침 후엔 깨지므로 제외한다.
   useEffect(
     function persistLastAvatar() {
-      if (account?.image) {
+      if (account?.image && !account.image.startsWith('blob:')) {
         LocalStorageUtil.setItem(STORAGE_KEYS.AUTH.LAST_AVATAR, account.image);
       }
     },

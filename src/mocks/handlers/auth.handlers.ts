@@ -68,4 +68,18 @@ export const authHandlers = [
       { status: 200 }
     );
   }),
+
+  // GET /auth/account/nickname-availability - 'taken'만 중복으로 취급
+  http.get(url(API_ENDPOINTS.auth.nicknameAvailability), ({ request }) => {
+    const nickname = new URL(request.url).searchParams.get('nickname');
+    return HttpResponse.json(
+      {
+        status: 200,
+        message: 'ok',
+        data: { available: nickname !== 'taken' },
+        timestamp: new Date().toISOString(),
+      },
+      { status: 200 }
+    );
+  }),
 ];

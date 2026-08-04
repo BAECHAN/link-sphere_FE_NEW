@@ -24,6 +24,7 @@ import { MyPageModal } from '@/widgets/layout/mypage/ui/MyPageModal';
 import { TEXTS } from '@/shared/config/texts';
 import { useSidebarStore } from '@/shared/store/sidebar.store';
 import { useLoginModalStore } from '@/shared/store/loginModal.store';
+import { useMyPageModalStore } from '@/shared/store/mypage.store';
 import { cn } from '@/shared/lib/tailwind/utils';
 
 interface NavbarLocationState {
@@ -36,7 +37,9 @@ export function Navbar() {
 
   const { account } = useAccount();
 
-  const [isMyPageOpen, setIsMyPageOpen] = useState(false);
+  const isMyPageOpen = useMyPageModalStore((state) => state.isOpen);
+  const openMyPage = useMyPageModalStore((state) => state.open);
+  const closeMyPage = useMyPageModalStore((state) => state.close);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { toggle: toggleSidebar } = useSidebarStore();
   const openLoginModal = useLoginModalStore((state) => state.open);
@@ -158,7 +161,7 @@ export function Navbar() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setIsMyPageOpen(true)}>
+                  <DropdownMenuItem onClick={openMyPage}>
                     {TEXTS.buttons.profileEdit}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -184,7 +187,10 @@ export function Navbar() {
         />
       )}
 
-      <MyPageModal open={isMyPageOpen} onOpenChange={setIsMyPageOpen} />
+      <MyPageModal
+        open={isMyPageOpen}
+        onOpenChange={(open) => (open ? openMyPage() : closeMyPage())}
+      />
     </>
   );
 }

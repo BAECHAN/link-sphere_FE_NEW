@@ -6,6 +6,9 @@ export interface FormInputProps extends React.ComponentProps<'input'> {
   name: string;
   label?: string;
   description?: string;
+  descriptionVariant?: 'default' | 'success';
+  reserveDescriptionSpace?: boolean;
+  messageInLabelRow?: boolean;
   enableClear?: boolean;
 }
 
@@ -14,6 +17,9 @@ export const FormInput = ({
   label,
   className,
   description,
+  descriptionVariant,
+  reserveDescriptionSpace,
+  messageInLabelRow,
   enableClear,
   ...props
 }: FormInputProps) => {
@@ -24,7 +30,15 @@ export const FormInput = ({
   });
 
   return (
-    <FormField name={name} label={label} className={className} description={description}>
+    <FormField
+      name={name}
+      label={label}
+      className={className}
+      description={description}
+      descriptionVariant={descriptionVariant}
+      reserveDescriptionSpace={reserveDescriptionSpace}
+      messageInLabelRow={messageInLabelRow}
+    >
       <Input
         id={name}
         name={name}

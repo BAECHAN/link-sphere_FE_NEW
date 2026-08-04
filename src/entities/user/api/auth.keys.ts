@@ -6,18 +6,22 @@ export const authKeys = {
   account: () => [...authKeys.root(), 'account'] as const,
 };
 
+export const authMutationKeys = {
+  updateAccount: [...authKeys.root(), 'updateAccount'] as const,
+};
+
 export const authInvalidateQueries = {
   all: () => {
     queryClient.invalidateQueries({ queryKey: authKeys.root() });
   },
-  account: () => {
-    queryClient.invalidateQueries({ queryKey: authKeys.account() });
-  },
 };
 
-/** 프로필(닉네임·이미지) 변경 시 account + 포스트 목록 동시 갱신 */
+/**
+ * 프로필(닉네임·이미지) 변경 시 포스트 목록만 갱신한다 - account는 mutation의
+ * onMutate/onSuccess가 낙관적으로 캐시를 직접 쓰므로 여기서 다시 invalidate하지 않는다
+ * (handleCommentCreateSuccess와 동일한 이유: 이미 쓴 값을 지우고 GET을 한 번 더 태우게 된다).
+ */
 export const handleAccountUpdateSuccess = () => {
-  authInvalidateQueries.account();
   postInvalidateQueries.list();
 };
 

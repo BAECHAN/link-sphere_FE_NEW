@@ -23,6 +23,7 @@ const API_ENDPOINTS = {
     refresh: `${API_BASES.auth}/refresh`,
     account: `${API_BASES.auth}/account`,
     updateAccount: `${API_BASES.auth}/account`,
+    nicknameAvailability: `${API_BASES.auth}/account/nickname-availability`,
     signup: `${API_BASES.auth}/signup`,
   },
 
