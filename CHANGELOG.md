@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-08-04
+
 ### Changed
 
 - **게시글 카드의 제목 노출을 2줄에서 3줄로 늘림** — 데스크톱 3단 그리드 기준 2줄에는 한글
@@ -558,7 +560,8 @@ BE API 의존: 댓글 생성/답글/수정 요청 바디가 `multipart/form-data
   `PostResponse.userInteractions.bookmarkFolderId` 필요
 - 드래그앤드랍 · 다중 선택 · 폴더 공유는 차후 별도 작업
 
-[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.6.0...v0.7.0
