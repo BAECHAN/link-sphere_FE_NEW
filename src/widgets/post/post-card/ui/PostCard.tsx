@@ -78,6 +78,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
               nickname={author?.nickname}
               size="sm"
               className="flex"
+              zoomable
             />
             <span className={`truncate`}>{author?.nickname || TEXTS.post.card.anonymous}</span>
             <span className={`text-xs`}>•</span>

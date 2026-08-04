@@ -13,6 +13,11 @@
   기존에는 첨부 이미지가 `max-h-60`으로 잘려 표시되고 클릭해도 반응이 없어, 세로로 긴
   스크린샷 등은 내용을 확인할 방법이 없었다. 배경 클릭·ESC·닫기 버튼으로 닫을 수 있다.
   (`shared/ui/elements/modal/image-viewer/`, `MarkdownContent.tsx`)
+- 게시글 카드·댓글의 작성자 프로필 사진을 클릭하면 위 라이트박스로 원본 크기 확대해서
+  볼 수 있도록 `UserAvatar`에 `zoomable` prop을 추가. 목록 썸네일은 계속 리사이즈된
+  이미지를 쓰고 확대 시에만 원본 URL을 넘긴다. 네비바·마이페이지 아바타는 각각 드롭다운
+  메뉴·파일 선택창을 여는 기존 클릭 동작을 그대로 두기 위해 이번 확대 대상에서 제외했다.
+  (`entities/user/ui/UserAvatar.tsx`)
 
 ### Changed
 

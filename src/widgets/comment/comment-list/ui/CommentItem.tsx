@@ -64,6 +64,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
         image={comment.author.image}
         nickname={comment.author.nickname}
         className="shrink-0"
+        zoomable
       />
 
       <div className="flex-1 space-y-2">
