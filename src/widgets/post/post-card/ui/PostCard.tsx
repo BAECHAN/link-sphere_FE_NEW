@@ -90,7 +90,9 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
             onMouseEnter={() => prefetchPostDetail(post.id)}
             onFocus={() => prefetchPostDetail(post.id)}
           >
-            <h3 className={`font-bold leading-tight line-clamp-2 mb-0.5 text-sm md:text-lg`}>
+            <h3
+              className={`font-bold leading-tight mb-0.5 text-sm md:text-lg ${isDetail ? '' : 'line-clamp-3'}`}
+            >
               {post.title}
             </h3>
           </Link>
