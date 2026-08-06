@@ -25,16 +25,8 @@ export function CommentForm({
   className,
   autoFocus,
 }: CommentFormProps) {
-  const {
-    form,
-    onSubmit,
-    isPending,
-    isReply,
-    contentValue,
-    imagePreviewUrls,
-    handlePaste,
-    clearImage,
-  } = useCreateComment({ postId, parentId, onSuccess, autoFocus });
+  const { form, onSubmit, isReply, contentValue, imagePreviewUrls, handlePaste, clearImage } =
+    useCreateComment({ postId, parentId, onSuccess, autoFocus });
 
   const {
     register,
@@ -104,17 +96,13 @@ export function CommentForm({
 
       <div className="flex justify-end gap-2 mt-2">
         {onCancel && (
-          <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isPending}>
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
             {TEXTS.comment.form.cancel}
           </Button>
         )}
-        <Button type="submit" size="sm" disabled={isPending} className="gap-1.5">
-          {isPending
-            ? TEXTS.comment.form.submitting
-            : isReply
-              ? TEXTS.comment.form.submitReply
-              : TEXTS.comment.form.submitComment}
-          {!isPending && !isMobile && (
+        <Button type="submit" size="sm" className="gap-1.5">
+          {isReply ? TEXTS.comment.form.submitReply : TEXTS.comment.form.submitComment}
+          {!isMobile && (
             <Kbd
               className="font-sans"
               style={{

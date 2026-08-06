@@ -38,19 +38,16 @@ export function CreatePostForm() {
                 label="URL"
                 placeholder={TEXTS.post.form.create.urlPlaceholder}
                 required
-                disabled={isCreating}
               />
               <FormInput
                 name="title"
                 label={TEXTS.post.form.create.titleLabel}
                 placeholder={TEXTS.post.form.create.titlePlaceholder}
-                disabled={isCreating}
               />
               <FormCheckboxGroup
                 name="categoryIds"
                 label={TEXTS.post.form.create.categoryLabel}
                 options={categoryOptionList ?? []}
-                disabled={isCreating}
               />
 
               <div className="pt-2">
@@ -58,7 +55,6 @@ export function CreatePostForm() {
                   name="isPrivate"
                   label={TEXTS.post.form.create.privateLabel}
                   description={TEXTS.post.form.create.privateDescription}
-                  disabled={isCreating}
                 />
               </div>
 
@@ -73,7 +69,7 @@ export function CreatePostForm() {
                 className="w-full"
               >
                 <Button className="w-full h-11 text-base" disabled={!canSubmit}>
-                  {isCreating ? TEXTS.common.submitting : TEXTS.post.form.create.submit}
+                  {TEXTS.post.form.create.submit}
                 </Button>
               </TooltipWrapper>
             </form>

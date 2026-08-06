@@ -94,7 +94,7 @@ export function UpdateProfileForm({ onSuccess }: UpdateProfileFormProps) {
             !!form.formState.errors.nickname
           }
         >
-          {isPending ? TEXTS.mypage.saving : TEXTS.mypage.save}
+          {TEXTS.mypage.save}
         </Button>
       </form>
     </FormProvider>

@@ -33,12 +33,10 @@ export function useCreateComment({
 }: UseCreateCommentOptions) {
   const isReply = !!parentId;
 
-  const { mutate: createComment, isPending: isCreatingComment } = useCreateCommentMutation(postId);
-  const { mutate: createReply, isPending: isCreatingReply } = useCreateReplyMutation(postId);
+  const { mutate: createComment } = useCreateCommentMutation(postId);
+  const { mutate: createReply } = useCreateReplyMutation(postId);
   const guard = useAuthGuard();
   const { account } = useAccount();
-
-  const isPending = isCreatingComment || isCreatingReply;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -98,7 +96,6 @@ export function useCreateComment({
   return {
     form,
     onSubmit,
-    isPending,
     isReply,
     contentValue,
     pastedImages,

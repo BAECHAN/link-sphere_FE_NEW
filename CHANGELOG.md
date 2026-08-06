@@ -38,6 +38,16 @@
   적용해 `useUpdatePostMutation`에도 완료 토스트를 추가했다 — 토스트는 라우터 트리
   바깥(`App.tsx`)에 떠 있어 이 리마운트와 무관하게 항상 뜬다.
   (`entities/post/api/post.queries.ts`, `shared/config/texts.ts`)
+- **댓글 답글 작성·프로필 저장에서도 게시글 수정과 같은 패턴의 깜빡임이 있던 문제** —
+  둘 다 같은 논블로킹 설계(제출 즉시 폼/모달을 닫고 백그라운드로 요청)를 쓰는데, 닫히는
+  화면 쪽에 남아있던 pending 라벨·disabled 처리가 잠깐 그려졌다 사라졌다. 답글 폼은
+  `onSuccess`로 접히는 게 곧 폼 언마운트라 `전송 중...` 라벨이 노출됐고, 프로필 모달은
+  Radix Dialog의 종료 애니메이션(약 150~300ms) 동안 폼이 DOM에 남아 있어 `저장 중...`이
+  더 뚜렷하게 보였다. 두 곳 다 pending UI를 제거했다. 같은 원인으로 게시글 등록 폼에도
+  동일한 죽은 분기가 있었는데(`replace` 네비게이션이 동기 처리라 현재는 화면에 안
+  보이지만) 같은 이유로 함께 제거했다. (`features/comment/create/ui/CommentForm.tsx`,
+  `features/comment/create/hooks/useCreateComment.ts`,
+  `features/auth/profile/ui/UpdateProfileForm.tsx`, `features/post/create/ui/CreatePostForm.tsx`)
 - **이미지 뷰어(라이트박스)에서 스크린리더 이용자에게 모달 용도가 전달되지 않던 문제** —
   `DialogContent`에 `DialogDescription`이 없어 개발 콘솔에도 Radix의 "Missing
   Description" 경고가 계속 떴다. sr-only `DialogDescription`을 추가해 닫는 방법을
