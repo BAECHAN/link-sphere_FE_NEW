@@ -19,8 +19,12 @@ interface AlertProps {
 }
 
 function Alert({ alert }: AlertProps) {
-  const { close, remove } = useAlertStore(
-    useShallow((state) => ({ close: state.close, remove: state.remove }))
+  const { close, remove, cancelAlert } = useAlertStore(
+    useShallow((state) => ({
+      close: state.close,
+      remove: state.remove,
+      cancelAlert: state.cancelAlert,
+    }))
   );
 
   const {
@@ -39,19 +43,9 @@ function Alert({ alert }: AlertProps) {
     setTimeout(() => remove(id), 300);
   };
 
-  const handleCancel = () => {
-    alert.onCancel?.();
-    close(id);
-    setTimeout(() => remove(id), 300);
-  };
-
-  const handleClose = () => {
-    if (type === 'confirm') {
-      alert.onCancel?.();
-    }
-    close(id);
-    setTimeout(() => remove(id), 300);
-  };
+  // 취소 버튼 클릭과 오버레이 바깥에서의 취소(뒤로가기 등)가 같은 동작이라 스토어 액션 하나로 합친다.
+  const handleCancel = () => cancelAlert(id);
+  const handleClose = () => cancelAlert(id);
 
   // 히스토리에 묶이지 않은 대화상자라 뒤로가기가 라우트만 바꿔도 알아채지 못하고 배경만
   // 바뀐 채로 계속 떠 있는다 - 열려있던 위치를 벗어나면 취소로 간주해 닫는다.

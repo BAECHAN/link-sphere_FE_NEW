@@ -169,14 +169,53 @@ DevTools의 "기기 툴바 토글"(모바일 기기 에뮬레이션)을 켜야 �
 좁은 창이든 진짜 모바일 기기든)에서는 애초에 나타나지 않는, **테스트 방법론
 자체의 함정**이었다. 재발 방지용 체크리스트를 `docs/TESTING.md`에 남겼다.
 
+**추가 발견 — T0(Alert/Confirm)이 열려있어도 뒤로가기가 페이지를 이동시켜버리는 문제**
+
+위 "T0(Alert/Confirm)의 별도 결함" 수정(pathname/key 감시로 자동 닫기)은 **사후
+정리**일 뿐이었다 — 뒤로가기를 누르면 페이지는 이미 이동해버린 뒤에야 Alert가
+그 사실을 알아채고 닫힌다. 삭제 확인창이 열려 있는 채로 뒤로가기를 누르면 T1
+오버레이(모달만 닫히고 페이지는 그대로)와 달리 **페이지 자체가 목록 등으로
+이동해버리는** 차이가 사용자 눈에 보였다.
+
+이건 "히스토리에 안 묶었다"는 기술적 선택이 낳은 **부수적인 UX 결과**였는데,
+처음엔 이걸 NN/g 리서치가 뒷받침하는 의도된 설계인 것처럼 설명했다 — 잘못이었다.
+NN/g 리서치는 T1(화면 덮는 오버레이)에 대한 권고이지 T0(Alert/Confirm)를 다룬
+게 아니다. "페이지까지 이동해버리는" 동작은 `useUnsavedChangesGuard`의
+`useBlocker`와 안 겹치려고 내가 선택한 결과였을 뿐, 근거 있는 결정이 아니었다.
+이 일을 계기로 `.claude/CLAUDE.md`에 "§7 User-Facing Tradeoffs Need Sign-Off"
+원칙을 추가했다 — 기술적 제약에서 나온 부수 효과라도 사용자가 체감하는 UX라면
+독단으로 정하지 말고 확인받는다.
+
+**결정**: 삭제 확인창도 T1처럼 "뒤로가기 한 번 = 모달만 취소, 페이지는 그대로"
+동작하도록 구현한다(사용자 확인 후 진행).
+
+**구현**: react-router는 앱 전체에서 `useBlocker` 인스턴스를 하나만 유효하게
+평가한다 — `useUnsavedChangesGuard`가 이미 그 자리를 쓰고 있어 별도 blocker를
+더 달 수 없다. 그 자리를 확장해 Alert/Confirm이 열려 있으면(`getOpenAlertId()`)
+pathname 일치 여부와 무관하게 모든 네비게이션을 막고, 막힌 시점에 "저장하지 않은
+변경사항" 확인 모달을 새로 띄우는 대신 열려 있던 Alert를 취소 처리
+(`alert.store.ts`의 `cancelAlert`)하고 `blocker.reset()`한다. `Alert.tsx`의 취소
+버튼 클릭과 동일한 결과라 로직을 스토어 액션으로 합쳤다.
+
+**직접 잡은 회귀 위험**: 로그아웃/세션만료로 `ProtectedRoute`가 강제
+리다이렉트하는 분기는 원래도 blocker가 막지 않는 예외였다. Alert 체크를
+그보다 앞에 두면, 마침 Alert가 열려 있는 상태에서 세션이 만료됐을 때 강제
+리다이렉트까지 막혀버려 사용자가 갇힌다 — 반드시 인증 체크를 Alert 체크보다
+먼저 평가하도록 순서를 잡았다.
+
+**검증**: Playwright로 회원가입 → 게시글 작성 → 삭제 확인창 오픈 → 뒤로가기
+1회를 재현. URL 불변, 모달만 닫힘을 확인(코드 리뷰가 아니라 실제 브라우저
+동작으로 검증).
+
 **상태**
 
-적용 완료(Dialog 수정, NavItem 레이스 수정). 마지막 발견 건은 앱 버그가 아님을
-확인, 조치 불필요. 관련 파일: `shared/hooks/useHistoryOverlay.ts`,
+적용 완료(Dialog 수정, NavItem 레이스 수정, T0 blocker 확장). 마지막 "DevTools
+에뮬레이션 아티팩트" 발견 건은 앱 버그가 아님을 확인, 조치 불필요. 관련 파일:
+`shared/hooks/useHistoryOverlay.ts`,
 `shared/store/{sidebar,mypage,loginModal,imageViewer}.store.ts`,
 `app/routes/ProtectedRoute.tsx`, `shared/lib/router/navigation.ts`,
-`shared/ui/elements/modal/alert/Alert.tsx`, `shared/ui/atoms/dialog.tsx`,
-`widgets/layout/sidebar/ui/Sidebar.tsx`.
+`shared/ui/elements/modal/alert/{Alert.tsx,alert.store.ts}`, `shared/ui/atoms/dialog.tsx`,
+`widgets/layout/sidebar/ui/Sidebar.tsx`, `shared/hooks/useUnsavedChangesGuard.ts`.
 
 ---
 

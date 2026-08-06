@@ -80,6 +80,17 @@
   삭제 확인을 띄우고 뒤로가기를 누르면 목록 페이지가 배경으로 바뀐 채 모달만 계속 떠 있는
   형태로 재현됐다. 모달이 열렸던 경로를 벗어나면(pathname 변경) 취소로 간주해 닫도록
   고쳤다. (`shared/ui/elements/modal/alert/Alert.tsx`)
+- **위 수정 이후에도 삭제 확인 등 Alert/Confirm이 열린 채로 뒤로가기를 누르면 모달만
+  닫혀야 할 자리에서 페이지 자체가 목록 등으로 이동해버리던 문제** — 앞선 수정은 이동이
+  끝난 뒤에야 Alert가 닫히는 사후 처리였을 뿐, 이동 자체를 막지는 못했다. 페이지 이동
+  없이 모달만 취소되는 T1 오버레이와 동작이 달라 보였다. react-router는 앱 전체에서
+  `useBlocker`를 하나만 평가하는데, 이미 `useUnsavedChangesGuard`가 그 자리를 쓰고
+  있어 그 blocker를 확장했다 — Alert/Confirm이 열려 있으면 네비게이션을 막고, 막힌
+  시점에 열려 있던 Alert를 취소 처리한 뒤(`alert.store.ts`의 `cancelAlert`) 이동을
+  취소한다. 로그아웃·세션만료로 인한 강제 리다이렉트는 이 체크보다 먼저 통과시켜 갇히지
+  않도록 순서를 잡았다.
+  (`shared/hooks/useUnsavedChangesGuard.ts`,
+  `shared/ui/elements/modal/alert/{Alert.tsx,alert.store.ts}`)
 - **글쓰기 등록 후 뒤로가기를 누르면 방금 제출을 끝낸 빈 폼으로 되돌아가던 문제** —
   제출 성공 시 목록으로 `navigate()`(PUSH)해 히스토리가 `목록 → 글쓰기 → 목록`으로
   쌓였다. `replace: true`로 폼 엔트리를 결과 화면으로 대체해 뒤로가기가 폼을 건너뛴다.
