@@ -13,6 +13,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { ActionButton } from '@/shared/ui/elements/ActionButton';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
+import { LinkThumbnail } from '@/shared/ui/atoms/link-thumbnail';
 import { useUpdateComment } from '@/features/comment/update/hooks/useUpdateComment';
 import { useDeleteComment } from '@/features/comment/delete/hooks/useDeleteComment';
 
@@ -109,15 +110,10 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
                 className="block mt-2 border rounded-lg overflow-hidden hover:border-primary/50 transition-colors"
                 style={{ maxWidth: '400px' }}
               >
-                {comment.linkMetadata.ogImage && (
-                  <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                    <img
-                      src={comment.linkMetadata.ogImage}
-                      alt={comment.linkMetadata.title}
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                )}
+                <LinkThumbnail
+                  src={comment.linkMetadata.ogImage}
+                  alt={comment.linkMetadata.title}
+                />
                 <div className="p-2 bg-muted/30">
                   <p className="text-xs font-semibold truncate">{comment.linkMetadata.title}</p>
                   {comment.linkMetadata.description && (

@@ -2,6 +2,7 @@ import { Post } from '@/entities/post/model/post.schema';
 import { Card, CardContent, CardFooter, CardHeader } from '@/shared/ui/atoms/card';
 import { Badge } from '@/shared/ui/atoms/badge';
 import { Button } from '@/shared/ui/atoms/button';
+import { LinkThumbnail } from '@/shared/ui/atoms/link-thumbnail';
 import {
   ChevronDown,
   ChevronUp,
@@ -196,15 +197,11 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
           rel="noopener noreferrer"
           className={`block group border rounded-lg overflow-hidden hover:border-primary/50 transition-colors mt-1`}
         >
-          {post.ogImage && (
-            <div className="relative aspect-video w-full overflow-hidden bg-muted">
-              <img
-                src={post.ogImage}
-                alt={post.title}
-                className="object-cover group-hover:scale-105 transition-transform duration-300 w-full h-full"
-              />
-            </div>
-          )}
+          <LinkThumbnail
+            src={post.ogImage}
+            alt={post.title}
+            className="group-hover:scale-105 transition-transform duration-300"
+          />
           <div className="p-2 md:p-3 bg-muted/30 flex items-center justify-between group-hover:bg-muted/50 transition-colors">
             <span className="text-xs md:text-sm text-muted-foreground truncate flex-1 pr-2 md:pr-4">
               {post.url}

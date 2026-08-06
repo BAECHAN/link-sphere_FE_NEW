@@ -7,6 +7,19 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **게시글/댓글 링크 미리보기 썸네일이 브라우저 기본 깨진 이미지 아이콘으로 보이던 문제**
+  — 원인을 조사해보니 두 가지가 섞여 있었다. (1) 일부 CDN(예: 네이버 blogthumb)이
+  요청의 Referer로 우리 도메인이 노출되면 핫링크로 간주해 403을 반환했다 — 이미지
+  요소에 `referrerPolicy="no-referrer"`를 붙여 Referer를 아예 보내지 않게 하면
+  정상 응답한다. (2) 원본 사이트가 이미지를 이미 삭제했거나 무효화한 경우(예: namu.wiki)는
+  어떤 헤더로도 복구할 수 없어, 로드 실패 시 썸네일 영역을 통째로 숨기도록 했다(폴백은
+  `ogImage`가 애초에 없는 게시글과 동일한 모습이 된다). 두 컴포넌트가 동일한 마크업을
+  복제하고 있어 신규 공통 컴포넌트로 추출했다.
+  (`shared/ui/atoms/link-thumbnail.tsx`, `widgets/post/post-card/ui/PostCard.tsx`,
+  `widgets/comment/comment-list/ui/CommentItem.tsx`)
+
 ### Changed
 
 - **페이지 하단 여백을 16px에서 48px(데스크톱 64px)로 확대** — 상세 페이지에서 마지막
