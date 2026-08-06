@@ -346,6 +346,12 @@ export const TEXTS = {
       linkCopyFailed: '링크 복사에 실패했어요.',
     },
   },
+  unsavedChanges: {
+    title: '작성 중인 내용이 있어요',
+    message: '이 페이지를 벗어나면 입력한 내용이 사라져요. 그래도 나갈까요?',
+    confirm: '나가기',
+    cancel: '계속 작성',
+  },
   shortcuts: {
     sidebarToggle: 'Ctrl + B',
     sidebarToggleMac: '⌘ + B',

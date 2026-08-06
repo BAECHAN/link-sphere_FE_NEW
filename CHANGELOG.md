@@ -7,6 +7,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- 게시글 등록/수정, 댓글·답글 작성, 댓글 수정 중 저장하지 않은 내용이 있으면 페이지 이탈
+  시 확인 모달로 한 번 막는다. 새로고침·탭 닫기는 브라우저 기본 경고를 띄운다. 상세 페이지에
+  댓글·답글·수정 폼이 동시에 여러 개 열릴 수 있어 react-router가 지원하는 단일 blocker로는
+  폼별 감지가 불가능했고, 전역 dirty 키 레지스트리(`useUnsavedChanges`) + 루트 레이아웃의
+  단일 가드(`useUnsavedChangesGuard`) 구조로 해결했다.
+  (`shared/store/unsavedChanges.store.ts`, `shared/hooks/useUnsavedChanges*.ts`)
+
 ### Fixed
 
 - **게시글/댓글 링크 미리보기 썸네일이 브라우저 기본 깨진 이미지 아이콘으로 보이던 문제**

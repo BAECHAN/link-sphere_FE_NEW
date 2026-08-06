@@ -6,6 +6,49 @@
 
 ---
 
+## 2026-08-06 — 폼 이탈 시 저장하지 않은 내용 보호: 전역 blocker 레지스트리
+
+**배경**
+
+게시글 등록/수정, 댓글·답글 작성, 댓글 수정 폼에서 입력 중인 내용이 있어도 경고 없이
+페이지를 벗어날 수 있었다(사이드바 클릭, 뒤로가기, 새로고침 등). 실수로 이탈하면 작성
+중이던 내용이 그대로 사라졌다.
+
+**검토**
+
+react-router의 `useBlocker`는 동시에 하나만 등록 가능하다(`@remix-run/router`가 마지막
+등록분만 평가하고 "A router only supports one blocker at a time" 경고를 낸다). 상세
+페이지에는 댓글 폼 + 답글 폼 + 수정 폼이 동시에 여러 개 열릴 수 있어, 폼마다 개별
+`useBlocker`를 다는 방식은 성립하지 않는다(나중에 연 폼이 먼저 연 폼의 감지를 덮어씀).
+
+**결정**
+
+- 각 폼은 자기 dirty 상태를 전역 레지스트리(zustand `unsavedChanges.store.ts`)에 키로만
+  등록한다.
+- 실제 네비게이션 차단·확인 모달은 `RootLayout` 한 곳에서 도는 단일 가드
+  (`useUnsavedChangesGuard`)가 담당한다. 등록된 키가 하나라도 있으면 앱 내 이동은 확인
+  모달로, 새로고침·탭 닫기는 브라우저 기본 `beforeunload` 경고로 막는다.
+- 정상 제출 성공 시에는 이동 직전 `clearNow()`로 동기적으로 dirty를 해제해 모달이 뜨지
+  않게 한다.
+- 로그아웃·세션 만료 상태에서는 검사하지 않는다 — 그렇지 않으면 `ProtectedRoute`의 강제
+  리다이렉트까지 막혀 폼에 갇힌다.
+
+**구현 중 발견한 버그**
+
+`useAlert()`가 매 렌더마다 `openConfirm`을 새 함수로 감싸 반환하는데, 이를
+`useEffect` 의존성에 넣었더니 "openConfirm 호출 → store 갱신 → 재렌더 → 새 참조 →
+effect 재실행"이 반복되는 무한 루프(`Maximum update depth exceeded`)가 발생했다.
+`useAlertStore((state) => state.openConfirm)` 셀렉터로 안정적인 참조를 직접
+구독하도록 수정해 해결했다.
+
+**결과**
+
+동작 상세는 [docs/UNSAVED-CHANGES-GUARD.md](./UNSAVED-CHANGES-GUARD.md) 참고.
+
+**상태**: 완료 (2026-08-06)
+
+---
+
 ## 2026-08-04 — 게시글 제목 말줄임: 글자수 제한·툴팁 대신 3줄 노출 + 상세 전문
 
 **배경**

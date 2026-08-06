@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { CreatePost, createPostSchema } from '@/entities/post/model/post.schema';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 
 const DEFAULT_VALUES: CreatePost = {
   url: '',
@@ -23,8 +24,11 @@ export function useCreatePost() {
     mode: 'onChange',
   });
 
+  const { clearNow } = useUnsavedChanges('post-create', form.formState.isDirty);
+
   const onSubmit = form.handleSubmit((formData: CreatePost) => {
     createPost(formData);
+    clearNow();
     onFormReset();
     navigate(ROUTES_PATHS.POST.ROOT);
   });

@@ -3,6 +3,7 @@ import { useFetchPostDetailQuery } from '@/entities/post/api/post.queries';
 import { UpdatePost, updatePostSchema } from '@/entities/post/model/post.schema';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useGoBack } from '@/shared/hooks/useGoBack';
+import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
@@ -59,10 +60,13 @@ export function useUpdatePost(postId: string) {
     [urlValue, form]
   );
 
+  const { clearNow } = useUnsavedChanges(`post-update:${postId}`, form.formState.isDirty);
+
   // 등록과 동일하게 요청을 백그라운드로 보내고 곧바로 목록으로 이동한다.
   // (URL 변경 시 재크롤링 + AI 재분석 때문에 응답이 늦으므로 폼에서 기다리지 않는다)
   const onSubmit = form.handleSubmit((formData: UpdatePost) => {
     updatePost(formData);
+    clearNow();
     // 수정 화면에 들어온 곳으로 되돌아간다 (목록 스크롤 위치 유지).
     goBack();
   });

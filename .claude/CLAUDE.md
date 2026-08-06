@@ -975,3 +975,17 @@ pnpm storybook        # Storybook (port 6006)
 특수 파일(LICENSE·CONTRIBUTING과 같은 급)이고, CHANGELOG는 Keep a Changelog 스펙 자체가
 루트 배치를 표준으로 규정한다. 그 외 모든 문서(아키텍처, 배포 가이드, 테스트 가이드,
 버전 호환 매트릭스 등)는 전부 `docs/`에 둔다.
+
+### docs/ 내부 분류
+
+- **독립 기능 문서** (`docs/<기능명>.md`) — 자기 완결적인 동작 스펙을 가진 기능.
+  화면 유무와 무관, "지금 어떻게 동작하는가"를 항상 최신으로 유지하는 매뉴얼 역할.
+  참고: `BOOKMARK.md`, `MYPAGE.md`, `FCM-PUSH-NOTIFICATION.md`, `UNSAVED-CHANGES-GUARD.md`.
+- **아키텍처 패턴** (`FE-ARCHITECTURE.md` 내 섹션) — 여러 기능이 재사용하는 구현
+  방법으로, 그 자체가 독립된 동작 단위는 아닌 것. 새 파일을 만들지 않고 기존
+  패턴 목록(Delete with Confirm, Optimistic Update 등)에 섹션만 추가한다.
+- **설계 결정 기록** (`DECISIONS.md`) — 코드만으로 드러나지 않는 "왜"(대안을
+  버린 이유, 트레이드오프). 기능 문서는 "어떻게 동작하는가"만 쓰고, "왜 이렇게
+  설계했는가"는 DECISIONS.md를 참조 링크로 연결한다.
+
+feat 커밋 시 CHANGELOG.md 갱신과 같은 타이밍에, 해당하는 문서도 함께 반영한다.

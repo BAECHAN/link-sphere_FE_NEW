@@ -7,6 +7,7 @@ import {
   useCreateReplyMutation,
 } from '@/entities/comment/api/comment.queries';
 import { useImagePaste } from '@/shared/hooks/useImagePaste';
+import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
 import { useAccount } from '@/entities/user/hooks/useAccount';
 import { TEXTS } from '@/shared/config/texts';
@@ -51,6 +52,11 @@ export function useCreateComment({
     {
       onImageSet: () => clearErrors('content'),
     }
+  );
+
+  useUnsavedChanges(
+    `comment-create:${postId}:${parentId ?? 'root'}`,
+    contentValue.trim().length > 0 || pastedImages.length > 0
   );
 
   useEffect(() => {

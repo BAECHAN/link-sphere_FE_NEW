@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useUpdateCommentMutation } from '@/entities/comment/api/comment.queries';
 import { Comment } from '@/entities/comment/model/comment.schema';
 import { useImagePaste } from '@/shared/hooks/useImagePaste';
+import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { splitContentImages } from '@/shared/lib/content/imageContent';
 
 interface UseUpdateCommentOptions {
@@ -26,11 +27,15 @@ export function useUpdateComment({ comment, postId }: UseUpdateCommentOptions) {
 
   const editImagePreviewUrls = [...existingImageUrls, ...pastedPreviewUrls];
 
+  // 수정을 시작할 때의 원본 스냅샷 - 편집 중인 값과 비교해 실제로 변경했는지 판단한다.
+  const originalSnapshotRef = useRef({ text: '', imageUrls: [] as string[] });
+
   const startEditing = useCallback(() => {
     const { text, imageUrls } = splitContentImages(comment.content);
     setEditContent(text);
     setExistingImageUrls(imageUrls);
     setIsEditing(true);
+    originalSnapshotRef.current = { text, imageUrls };
   }, [comment.content]);
 
   const cancelEditing = useCallback(() => {
@@ -83,6 +88,14 @@ export function useUpdateComment({ comment, postId }: UseUpdateCommentOptions) {
       editPastedImages.length > 0 ||
       existingImageUrls.length > 0) &&
     !isUpdating;
+
+  const isDirty =
+    isEditing &&
+    (editContent !== originalSnapshotRef.current.text ||
+      editPastedImages.length > 0 ||
+      existingImageUrls.length !== originalSnapshotRef.current.imageUrls.length);
+
+  useUnsavedChanges(`comment-update:${comment.id}`, isDirty);
 
   return {
     isEditing,
