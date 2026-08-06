@@ -27,10 +27,15 @@ export function LinkThumbnail({ src, alt, className }: LinkThumbnailProps) {
     return null;
   }
 
+  // 크롤링된 og:image가 http인 사이트가 있다 - https 페이지에서 그대로 쓰면 Mixed
+  // Content 경고가 뜬다. 브라우저가 어차피 https로 자동 업그레이드해 로딩하므로 직접
+  // 치환해도 동작은 동일하고 경고만 없어진다.
+  const httpsSrc = src.replace(/^http:\/\//, 'https://');
+
   return (
     <div className="relative aspect-video w-full overflow-hidden bg-muted">
       <img
-        src={src}
+        src={httpsSrc}
         alt={alt}
         className={cn('object-cover w-full h-full', className)}
         // 우리 도메인이 Referer로 노출되면 핫링크 차단으로 403을 주는 CDN이 있다(네이버

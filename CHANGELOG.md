@@ -44,6 +44,11 @@
   복제하고 있어 신규 공통 컴포넌트로 추출했다.
   (`shared/ui/atoms/link-thumbnail.tsx`, `widgets/post/post-card/ui/PostCard.tsx`,
   `widgets/comment/comment-list/ui/CommentItem.tsx`)
+- **HTTPS 페이지인 /post 목록에서 Mixed Content 콘솔 경고가 뜨던 문제** — 크롤링
+  대상 사이트가 `og:image`를 http URL로 내리는 경우가 있어, 그 값을 검증 없이 그대로
+  `<img src>`에 썼다. 브라우저가 어차피 https로 자동 업그레이드해 로딩 자체는 되고
+  있었지만, 렌더링 직전 http를 https로 치환해 경고를 없앴다(신규 크롤링 건은 BE에서도
+  저장 전에 정규화). (`shared/ui/atoms/link-thumbnail.tsx`)
 
 ### Changed
 
