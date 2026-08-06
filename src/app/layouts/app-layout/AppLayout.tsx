@@ -20,7 +20,7 @@ export function AppLayout({ children }: Readonly<AppLayoutProps>) {
       <div className="flex flex-col flex-1 min-w-0">
         <Navbar />
         <main
-          className="flex-1 container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pb-20 md:py-4 md:pb-4"
+          className="flex-1 container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pb-28 md:py-4 md:pb-16"
           aria-label={TEXTS.ariaLabels.mainContent}
         >
           {children}
