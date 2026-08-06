@@ -44,19 +44,16 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
                 placeholder={TEXTS.post.form.update.urlPlaceholder}
                 description={isUrlChanged ? TEXTS.post.form.update.urlChangedNotice : undefined}
                 required
-                disabled={isUpdating}
               />
               <FormInput
                 name="title"
                 label={TEXTS.post.form.update.titleLabel}
                 placeholder={TEXTS.post.form.update.titlePlaceholder}
-                disabled={isUpdating}
               />
               <FormCheckboxGroup
                 name="categoryIds"
                 label={TEXTS.post.form.update.categoryLabel}
                 options={categoryOptionList ?? []}
-                disabled={isUpdating}
               />
 
               <div className="pt-2">
@@ -64,12 +61,11 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
                   name="isPrivate"
                   label={TEXTS.post.form.update.privateLabel}
                   description={TEXTS.post.form.update.privateDescription}
-                  disabled={isUpdating}
                 />
               </div>
 
               <Button className="w-full h-11 text-base" disabled={!canSubmit}>
-                {isUpdating ? TEXTS.post.form.update.updating : TEXTS.post.form.update.update}
+                {TEXTS.post.form.update.update}
               </Button>
             </form>
           </FormProvider>

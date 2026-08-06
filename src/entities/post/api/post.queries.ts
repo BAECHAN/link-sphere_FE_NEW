@@ -200,6 +200,7 @@ export const useUpdatePostMutation = (postId: string) => {
       return await postApi.updatePost(postId, payload);
     },
     meta: {
+      successMessage: TEXTS.messages.success.postUpdated,
       errorMessage: TEXTS.messages.error.postUpdateFailed,
     },
     onSuccess: (updated) => {

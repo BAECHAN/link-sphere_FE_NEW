@@ -18,6 +18,26 @@
 
 ### Fixed
 
+- **게시글 수정 버튼을 누르면 로딩 표시가 나타났다가 거의 즉시 사라져 화면이 깜빡이던
+  문제** — 낙관적 업데이트 때문이 아니라, 같은 수정 동작에 지연·최소 노출 시간이 서로
+  다른(또는 없는) 인디케이터 3개가 동시에 반응하고 있었다. 네비바 배지와 수정 폼 버튼은
+  아무 타이밍 가드가 없어 API 응답이 빠르면 그대로 번쩍였고, 카드 오버레이는 지연만 있고
+  최소 노출이 없어 응답이 딱 지연 시간대(300~600ms)일 때만 짧게 스쳤다. 수정 폼은 제출
+  즉시 목록으로 벗어나므로 pending UI(버튼 라벨·입력 disabled)를 아예 없앴고, 네비바
+  배지와 카드 오버레이는 지연·최소 노출을 공용 상수(`LOADING_INDICATOR_DELAY_MS`,
+  `LOADING_INDICATOR_MIN_DURATION_MS`)로 통일했다. 배지는 최소 노출 구간 막바지에
+  등록/수정 카운트가 엇갈려 라벨이 뒤바뀌는 것을 막기 위해 진행 중 라벨을 고정(latch)했다.
+  (`shared/config/const.ts`, `shared/ui/elements/PostMutationLoadingBadge.tsx`,
+  `widgets/post/post-card/hooks/usePostCard.ts`, `features/post/update/ui/UpdatePostForm.tsx`)
+- **게시글 수정이 끝나도 등록과 달리 완료를 알려주는 토스트가 없던 문제** — 수정은
+  제출 즉시 목록으로 이탈하는 논블로킹 설계라(커밋 917a578, URL 변경 시 재크롤링·AI
+  재분석으로 응답이 늦어질 수 있어 폼에서 기다리지 않는다) 네비바 배지가 유일한 진행
+  신호였는데, 라우터 트리에서 목록 화면이 수정 화면과 다른 레이아웃 그룹(`AppShellLayout`
+  인스턴스가 별도)에 속해 화면 전환 시 배지가 통째로 리마운트되며 짧은 요청은 놓칠 수
+  있었다. `useCreatePostMutation`에는 이미 있던 `meta.successMessage` 패턴을 그대로
+  적용해 `useUpdatePostMutation`에도 완료 토스트를 추가했다 — 토스트는 라우터 트리
+  바깥(`App.tsx`)에 떠 있어 이 리마운트와 무관하게 항상 뜬다.
+  (`entities/post/api/post.queries.ts`, `shared/config/texts.ts`)
 - **이미지 뷰어(라이트박스)에서 스크린리더 이용자에게 모달 용도가 전달되지 않던 문제** —
   `DialogContent`에 `DialogDescription`이 없어 개발 콘솔에도 Radix의 "Missing
   Description" 경고가 계속 떴다. sr-only `DialogDescription`을 추가해 닫는 방법을
