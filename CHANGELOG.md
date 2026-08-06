@@ -48,6 +48,17 @@
   보이지만) 같은 이유로 함께 제거했다. (`features/comment/create/ui/CommentForm.tsx`,
   `features/comment/create/hooks/useCreateComment.ts`,
   `features/auth/profile/ui/UpdateProfileForm.tsx`, `features/post/create/ui/CreatePostForm.tsx`)
+- **네비바 배지가 게시글 등록·수정이 흔한 응답 속도(약 300~500ms)일 때 목록 화면 도착
+  직후 잠깐 떴다 사라지는 것처럼 보이던 문제** — 배지는 지연 없이 즉시 뜨도록 만들어져
+  있었는데, 이는 당시 배지가 유일한 완료 확인 수단이었기 때문이다. 이번에 등록·수정 모두
+  완료 토스트를 갖추면서 그 전제가 사라졌다. 처음엔 카드 오버레이와 같은 300ms 지연을
+  넣었는데, 이 값이 흔한 요청 속도의 경계값과 겹쳐 여전히 눈에 띄어 500ms로 늘렸다(카드
+  오버레이는 목적이 달라 300ms 그대로 유지, 그래서 공용 상수 대신 배지 전용
+  `BADGE_DELAY_MS`를 뒀다). 참고로 수정 화면 자체도 목록과 다른 라우터 레이아웃
+  그룹이라 화면 전환마다 배지가 리마운트되는데(격리된 재현 테스트로 확인: 인스턴스가
+  매번 새로 생성됨), 그 덕에 지연은 이미 "목록 도착 시점" 기준으로 정확히 재고 있었다 —
+  문제는 기준 시점이 아니라 임계값 자체였다. 500ms를 넘는 요청만 뜬 뒤 최소 400ms
+  유지된다. (`shared/ui/elements/PostMutationLoadingBadge.tsx`)
 - **모바일 사이드바 드로어가 열린 상태에서 로그인 없이 보호된 메뉴(북마크 등)를 누르면,
   로그인 모달이 뜨자마자 자기 스스로 닫혀버리던 문제** — 메뉴 클릭 핸들러가 드로어를
   닫는 `navigate(-1)`(비동기)과 로그인 모달을 여는 `navigate(push)`(동기)를 같은 틱에
