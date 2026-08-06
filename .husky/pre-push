@@ -1,6 +1,6 @@
 echo "🧪 푸시 전 테스트 실행 중..."
 
-npm run test || {
+pnpm test || {
   echo "❌ 테스트 실패. 푸시를 중단합니다."
   exit 1
 }

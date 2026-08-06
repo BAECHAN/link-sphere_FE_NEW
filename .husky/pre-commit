@@ -2,14 +2,14 @@ echo "🔍 커밋 전 검사 시작..."
 
 # TypeScript 타입 체크
 echo "📝 TypeScript 타입 체크 실행 중..."
-npm run type-check || {
+pnpm type-check || {
   echo "❌ TypeScript 타입 에러가 있습니다. 커밋을 중단합니다."
   exit 1
 }
 
 # ESLint 검사 (staged 파일만)
 echo "🔍 ESLint 린트 검사 실행 중..."
-npx lint-staged || {
+pnpm exec lint-staged || {
   echo "❌ ESLint 에러가 있습니다. 커밋을 중단합니다."
   exit 1
 }
