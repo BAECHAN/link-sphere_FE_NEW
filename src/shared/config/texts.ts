@@ -397,6 +397,7 @@ export const TEXTS = {
     saveEmail: 'Save Email',
     imageZoom: '이미지 확대',
     imageViewer: '확대된 이미지',
+    imageViewerDescription: '바깥 영역이나 닫기 버튼을 클릭하면 닫혀요.',
     profileImageZoom: '프로필 사진 확대',
 
     // 입력 필드

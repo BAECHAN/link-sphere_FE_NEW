@@ -1,7 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/shared/ui/atoms/dialog';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from '@/shared/ui/atoms/dialog';
 import { useImageViewerStore } from '@/shared/ui/elements/modal/image-viewer/imageViewer.store';
 import { TEXTS } from '@/shared/config/texts';
 
@@ -50,6 +56,9 @@ export function GlobalImageViewer() {
         className="flex max-w-none w-auto items-center justify-center gap-0 border-0 bg-transparent p-0 shadow-none sm:rounded-none"
       >
         <DialogTitle className="sr-only">{TEXTS.ariaLabels.imageViewer}</DialogTitle>
+        <DialogDescription className="sr-only">
+          {TEXTS.ariaLabels.imageViewerDescription}
+        </DialogDescription>
         {image && (
           <img
             src={image.src}

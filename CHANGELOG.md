@@ -18,6 +18,11 @@
 
 ### Fixed
 
+- **이미지 뷰어(라이트박스)에서 스크린리더 이용자에게 모달 용도가 전달되지 않던 문제** —
+  `DialogContent`에 `DialogDescription`이 없어 개발 콘솔에도 Radix의 "Missing
+  Description" 경고가 계속 떴다. sr-only `DialogDescription`을 추가해 닫는 방법을
+  안내하고 경고도 함께 없앴다.
+  (`shared/ui/elements/modal/image-viewer/ImageViewer.tsx`, `shared/config/texts.ts`)
 - **라우트에서 예상치 못한 에러가 터지면 react-router의 원본 에러 화면(영어 "Unexpected
   Application Error!" + `error.message` + 전체 스택 트레이스)이 프로덕션에서도 그대로
   노출되던 문제** — 아무 라우트도 `errorElement`를 선언하지 않아, 라우트 트리 안에서
