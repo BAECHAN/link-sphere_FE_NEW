@@ -13,6 +13,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
 import { API_ENDPOINTS } from '@/shared/config/api';
 import { useNavigate } from 'react-router-dom';
+import { NavigationService } from '@/shared/lib/router/navigation';
 import { requestAndRegisterFcmToken, unregisterFcmToken } from '@/shared/lib/firebase/fcm';
 
 interface UpdateAccountPayload extends UpdateAccount {
@@ -181,17 +182,23 @@ export const useUpdateAccountMutation = () => {
       // 모달은 이미 닫힌 뒤라 실패를 놓치기 쉽다 - 자동으로 사라지지 않게 하고, "다시 열기"로
       // 시도했던 값(파일 포함) 그대로 모달을 복원한다. previewUrl은 여기서 해제하지 않는다 -
       // 재오픈 시 미리보기로 다시 쓰이므로, 성공 시에만 정리한다.
+      // 이 콜백은 React 트리 밖(토스트 라이브러리의 DOM 클릭 핸들러)에서 실행되어 훅을 쓸 수
+      // 없으므로, 모달 열림은 NavigationService로 현재 위치에 히스토리 엔트리를 직접 push한다.
       toast.error(message, {
         id: 'profile-update-error',
         duration: Infinity,
         action: {
           label: TEXTS.mypage.reopen,
-          onClick: () =>
-            useMyPageModalStore.getState().openWith({
+          onClick: () => {
+            useMyPageModalStore.getState().setRestoreValues({
               nickname: variables.nickname,
               imagePreview: variables.previewUrl ?? variables.image ?? null,
               pendingFile: variables.file ?? null,
-            }),
+            });
+            NavigationService.navigate(`${window.location.pathname}${window.location.search}`, {
+              state: { myPageOpen: true },
+            });
+          },
         },
       });
     },

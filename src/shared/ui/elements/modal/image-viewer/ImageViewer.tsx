@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import { useShallow } from 'zustand/react/shallow';
 import {
   Dialog,
   DialogClose,
@@ -9,16 +8,16 @@ import {
   DialogTitle,
 } from '@/shared/ui/atoms/dialog';
 import { useImageViewerStore } from '@/shared/ui/elements/modal/image-viewer/imageViewer.store';
+import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { TEXTS } from '@/shared/config/texts';
 
 /**
  * 전역 이미지 라이트박스(확대 뷰어)
- * App 최상위에 배치하여 사용합니다.
+ * RootLayout에 배치하여 사용합니다 (히스토리 훅이 라우터 컨텍스트를 필요로 함).
  */
 export function GlobalImageViewer() {
-  const { image, isOpen, close } = useImageViewerStore(
-    useShallow((state) => ({ image: state.image, isOpen: state.isOpen, close: state.close }))
-  );
+  const image = useImageViewerStore((state) => state.image);
+  const { isOpen, close } = useHistoryOverlay('imageViewerOpen');
 
   const wasOpenRef = useRef(false);
 

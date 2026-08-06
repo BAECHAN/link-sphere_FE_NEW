@@ -30,7 +30,8 @@ export function useCreatePost() {
     createPost(formData);
     clearNow();
     onFormReset();
-    navigate(ROUTES_PATHS.POST.ROOT);
+    // replace: 제출이 끝난 폼 엔트리를 결과 화면으로 대체 → 뒤로가기 시 빈 폼으로 돌아가지 않음
+    navigate(ROUTES_PATHS.POST.ROOT, { replace: true });
   });
 
   const onFormReset = () => {

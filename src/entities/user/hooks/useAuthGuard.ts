@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useLoginModalStore } from '@/shared/store/loginModal.store';
+import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 
 /**
  * 인증 가드 훅.
@@ -10,7 +11,8 @@ import { useLoginModalStore } from '@/shared/store/loginModal.store';
  */
 export function useAuthGuard() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const openLoginModal = useLoginModalStore((state) => state.open);
+  const setLoginOnSuccess = useLoginModalStore((state) => state.setOnSuccess);
+  const { open: openLoginModal } = useHistoryOverlay('loginModalOpen');
 
   return useCallback(
     (action: () => void) => {
@@ -18,8 +20,10 @@ export function useAuthGuard() {
         action();
         return;
       }
+      // 이전에 열렸을 때의 콜백이 남아 있지 않도록 비운다 - 이 가드는 로그인만 유도한다
+      setLoginOnSuccess(undefined);
       openLoginModal();
     },
-    [isAuthenticated, openLoginModal]
+    [isAuthenticated, setLoginOnSuccess, openLoginModal]
   );
 }

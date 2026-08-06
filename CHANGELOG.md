@@ -48,6 +48,32 @@
   보이지만) 같은 이유로 함께 제거했다. (`features/comment/create/ui/CommentForm.tsx`,
   `features/comment/create/hooks/useCreateComment.ts`,
   `features/auth/profile/ui/UpdateProfileForm.tsx`, `features/post/create/ui/CreatePostForm.tsx`)
+- **모바일 사이드바 드로어가 열린 상태에서 로그인 없이 보호된 메뉴(북마크 등)를 누르면,
+  로그인 모달이 뜨자마자 자기 스스로 닫혀버리던 문제** — 메뉴 클릭 핸들러가 드로어를
+  닫는 `navigate(-1)`(비동기)과 로그인 모달을 여는 `navigate(push)`(동기)를 같은 틱에
+  연달아 호출하고 있었다. 동기 push가 먼저 반영된 뒤 뒤늦게 처리된 비동기 `-1`이 방금
+  push한 로그인모달 엔트리를 엉뚱하게 pop해, 모달이 열리자마자 닫히는 것처럼 보였다.
+  두 네비게이션 모두 새 위치로 이동하므로 드로어는 어차피 자연히 닫혀 — 레이스를 만드는
+  드로어의 `navigate(-1)` 호출을 제거했다. (`widgets/layout/sidebar/ui/Sidebar.tsx`)
+- **마우스 뒤로가기(옆면) 버튼을 한 번만 눌러도 모달이 닫히면서 페이지가 예상보다 더
+  멀리 이동해버리던 문제** — 그 클릭이 브라우저 내비게이션뿐 아니라 페이지에도
+  `pointerdown` 이벤트를 발생시키는데, 클릭 좌표가 다이얼로그 바깥이라 Radix Dialog의
+  "바깥 클릭 시 닫기"가 이를 오인해 `navigate(-1)`을 먼저 실행했다. 그 직후 브라우저의
+  실제 back navigation이 또 한 번 겹쳐, 클릭 한 번이 히스토리를 두 단계 소모했다.
+  공유 `Dialog` 컴포넌트에서 뒤로가기/앞으로가기 버튼(`button === 3 || 4`)으로 인한
+  바깥 클릭은 무시하도록 고쳐, 이 컴포넌트를 쓰는 모든 다이얼로그(Alert·이미지뷰어·
+  마이페이지·로그인모달)에 한 번에 적용된다. (`shared/ui/atoms/dialog.tsx`)
+- **삭제 확인 등 Alert/Confirm 모달을 띄운 채 뒤로가기를 누르면, 모달은 열린 채로 배경
+  페이지만 다른 곳으로 바뀌던 문제** — Alert/Confirm은 의도적으로 히스토리에 묶지 않았는데
+  (아래 Changed 항목 참고), 그 결과 어떤 네비게이션에도 반응하지 않게 됐다. 상세페이지에서
+  삭제 확인을 띄우고 뒤로가기를 누르면 목록 페이지가 배경으로 바뀐 채 모달만 계속 떠 있는
+  형태로 재현됐다. 모달이 열렸던 경로를 벗어나면(pathname 변경) 취소로 간주해 닫도록
+  고쳤다. (`shared/ui/elements/modal/alert/Alert.tsx`)
+- **글쓰기 등록 후 뒤로가기를 누르면 방금 제출을 끝낸 빈 폼으로 되돌아가던 문제** —
+  제출 성공 시 목록으로 `navigate()`(PUSH)해 히스토리가 `목록 → 글쓰기 → 목록`으로
+  쌓였다. `replace: true`로 폼 엔트리를 결과 화면으로 대체해 뒤로가기가 폼을 건너뛴다.
+  같은 이유로 수정 화면에 링크로 직접 진입해 저장한 뒤 뒤로가기하는 경우도 함께 고쳤다.
+  (`features/post/create/hooks/useCreatePost.ts`, `shared/hooks/useGoBack.ts`)
 - **이미지 뷰어(라이트박스)에서 스크린리더 이용자에게 모달 용도가 전달되지 않던 문제** —
   `DialogContent`에 `DialogDescription`이 없어 개발 콘솔에도 Radix의 "Missing
   Description" 경고가 계속 떴다. sr-only `DialogDescription`을 추가해 닫는 방법을
@@ -82,6 +108,16 @@
 
 ### Changed
 
+- **모바일 사이드바·마이페이지·이미지뷰어·로그인 모달을 뒤로가기로 닫을 수 있도록 변경** —
+  기존에는 이 오버레이들이 zustand `isOpen` 불리언일 뿐 히스토리에 없어서, 열어둔 채
+  뒤로가기를 누르면 오버레이가 닫히는 대신 페이지가 통째로 바뀌었다. 열 때
+  `location.state`에 히스토리 엔트리를 push하는 공통 훅(`useHistoryOverlay`)으로
+  옮겨 뒤로가기가 오버레이 하나만 자연스럽게 닫도록 했다(Navbar 모바일 검색 패널이 이미
+  쓰던 패턴을 일반화). Alert/Confirm·토스트 등 한 번의 결정만 받고 사라지는 것은 대상에서
+  제외했다 — 설계 배경은 `docs/DECISIONS.md` 참고.
+  (`shared/hooks/useHistoryOverlay.ts`,
+  `shared/store/{sidebar,mypage,loginModal,imageViewer}.store.ts`,
+  `app/routes/ProtectedRoute.tsx`)
 - **페이지 하단 여백을 16px에서 48px(데스크톱 64px)로 확대** — 상세 페이지에서 마지막
   댓글과 답글 폼이 화면 끝·하단 탭바에 붙어 답답했다. 여백을 한 곳에서 관리하는 기존
   구조를 유지하기 위해 댓글 영역이 아닌 전역 레이아웃에서 조정했다.

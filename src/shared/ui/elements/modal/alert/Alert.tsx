@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { AlertData, useAlertStore } from '@/shared/ui/elements/modal/alert/alert.store';
 import { useShallow } from 'zustand/react/shallow';
 import {
@@ -50,6 +52,19 @@ function Alert({ alert }: AlertProps) {
     close(id);
     setTimeout(() => remove(id), 300);
   };
+
+  // 히스토리에 묶이지 않은 대화상자라 뒤로가기가 라우트만 바꿔도 알아채지 못하고 배경만
+  // 바뀐 채로 계속 떠 있는다 - 열려있던 위치를 벗어나면 취소로 간주해 닫는다.
+  // pathname이 아니라 key를 본다 - 북마크 페이지처럼 폴더 이동이 쿼리 파라미터로만
+  // 표현되는 경우 pathname은 안 바뀌지만 key는 navigate마다 항상 새로 발급된다.
+  const location = useLocation();
+  const openedKeyRef = useRef(location.key);
+  useEffect(() => {
+    if (isOpen && location.key !== openedKeyRef.current) {
+      handleClose();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
 
   return (
     <Dialog

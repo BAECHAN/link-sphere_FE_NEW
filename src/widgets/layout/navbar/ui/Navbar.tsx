@@ -22,9 +22,9 @@ import { useRecentSearches } from '@/widgets/layout/navbar/hooks/useRecentSearch
 import { PostMutationLoadingBadge } from '@/shared/ui/elements/PostMutationLoadingBadge';
 import { MyPageModal } from '@/widgets/layout/mypage/ui/MyPageModal';
 import { TEXTS } from '@/shared/config/texts';
-import { useSidebarStore } from '@/shared/store/sidebar.store';
 import { useLoginModalStore } from '@/shared/store/loginModal.store';
 import { useMyPageModalStore } from '@/shared/store/mypage.store';
+import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { cn } from '@/shared/lib/tailwind/utils';
 
 interface NavbarLocationState {
@@ -37,12 +37,16 @@ export function Navbar() {
 
   const { account } = useAccount();
 
-  const isMyPageOpen = useMyPageModalStore((state) => state.isOpen);
-  const openMyPage = useMyPageModalStore((state) => state.open);
-  const closeMyPage = useMyPageModalStore((state) => state.close);
+  const setMyPageRestoreValues = useMyPageModalStore((state) => state.setRestoreValues);
+  const {
+    isOpen: isMyPageOpen,
+    open: openMyPage,
+    close: closeMyPage,
+  } = useHistoryOverlay('myPageOpen');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { toggle: toggleSidebar } = useSidebarStore();
-  const openLoginModal = useLoginModalStore((state) => state.open);
+  const { open: openSidebar } = useHistoryOverlay('sidebarOpen');
+  const setLoginOnSuccess = useLoginModalStore((state) => state.setOnSuccess);
+  const { open: openLoginModal } = useHistoryOverlay('loginModalOpen');
 
   // 로그아웃이 처리되고 있음을 잠깐 보여준 뒤 실제 로그아웃 (즉시 로그인 버튼으로 바뀌어
   // 정말 로그아웃됐는지 사용자가 의심하는 것을 방지)
@@ -97,7 +101,7 @@ export function Navbar() {
             </div>
           ) : (
             <div className="flex md:hidden items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+              <Button variant="ghost" size="icon" onClick={openSidebar}>
                 <Menu className="size-6" />
                 <span className="sr-only">{TEXTS.nav.toggleMenu}</span>
               </Button>
@@ -161,7 +165,12 @@ export function Navbar() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={openMyPage}>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setMyPageRestoreValues(null);
+                      openMyPage();
+                    }}
+                  >
                     {TEXTS.buttons.profileEdit}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -169,7 +178,14 @@ export function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button onClick={() => openLoginModal()} size="sm" className="ml-2">
+              <Button
+                onClick={() => {
+                  setLoginOnSuccess(undefined);
+                  openLoginModal();
+                }}
+                size="sm"
+                className="ml-2"
+              >
                 {TEXTS.nav.logIn}
               </Button>
             )}

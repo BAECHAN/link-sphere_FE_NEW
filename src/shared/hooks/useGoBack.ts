@@ -15,7 +15,8 @@ export function useGoBack(fallbackPath: string) {
   return useCallback(() => {
     // react-router는 세션의 첫 진입 항목에만 'default' key를 부여한다 (= 뒤로 갈 이력 없음)
     if (location.key === 'default') {
-      navigate(fallbackPath);
+      // replace: 폼 엔트리를 fallback으로 대체 → 이후 뒤로가기가 폼으로 돌아가지 않음
+      navigate(fallbackPath, { replace: true });
       return;
     }
 

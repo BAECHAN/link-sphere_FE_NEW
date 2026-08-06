@@ -98,6 +98,27 @@ Writing a new hook/util that follows the precedent is the expected outcome.
 
 The test: "Which existing file did I model this on?" should always have an answer.
 
+## 7. User-Facing Tradeoffs Need Sign-Off
+
+**A technical constraint's side effect can still be a UX decision. Don't absorb it silently.**
+
+Some decisions look purely technical ("we can't bind X to history because of Y") but have a
+consequence the user actually experiences ("so pressing back will navigate the page instead of
+just closing the dialog"). That consequence is a UX call, not a technical inevitability — even
+though it followed logically from the constraint. Surface it and ask before treating it as
+settled.
+
+- Don't cite research/precedent more strongly than it supports. If a source covers a related but
+  different scenario, say so plainly ("X source is about Y, not exactly this case") — don't imply
+  it validates the current decision.
+- When challenged on a past decision, re-verify the reasoning before defending it. Check whether
+  the original claim actually holds up instead of restating it with more confidence.
+- If you can't point to the moment the user was asked and agreed, you decided for them — flag it
+  and ask, even after the fact.
+
+The test: could the user tell, from what you told them, that this was a judgment call they didn't
+get to weigh in on? If not, you decided for them.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

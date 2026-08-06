@@ -30,11 +30,22 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { showCloseButton?: boolean }
->(({ className, children, showCloseButton = true, ...props }, ref) => (
+>(({ className, children, showCloseButton = true, onPointerDownOutside, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      onPointerDownOutside={(e) => {
+        // 마우스 뒤로가기/앞으로가기 버튼 클릭은 페이지에도 pointerdown을 발생시킨다.
+        // 그 좌표가 다이얼로그 바깥이면 "바깥 클릭으로 닫기"로 오인되어, 브라우저의
+        // 실제 back navigation과 별개로 다이얼로그가 먼저 닫히며(오버레이에 따라
+        // navigate(-1)까지 실행) 클릭 한 번이 히스토리를 두 단계 소모하게 된다.
+        if (e.detail.originalEvent.button === 3 || e.detail.originalEvent.button === 4) {
+          e.preventDefault();
+          return;
+        }
+        onPointerDownOutside?.(e);
+      }}
       className={cn(
         'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg',
         className

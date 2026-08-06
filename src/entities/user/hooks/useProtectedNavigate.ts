@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useLoginModalStore } from '@/shared/store/loginModal.store';
+import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 
 /**
  * 보호 페이지로의 이동 가드.
@@ -10,7 +11,8 @@ import { useLoginModalStore } from '@/shared/store/loginModal.store';
  */
 export function useProtectedNavigate() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const openLoginModal = useLoginModalStore((state) => state.open);
+  const setLoginOnSuccess = useLoginModalStore((state) => state.setOnSuccess);
+  const { open: openLoginModal } = useHistoryOverlay('loginModalOpen');
   const navigate = useNavigate();
 
   return useCallback(
@@ -19,8 +21,9 @@ export function useProtectedNavigate() {
         navigate(to);
         return;
       }
-      openLoginModal(() => navigate(to));
+      setLoginOnSuccess(() => navigate(to));
+      openLoginModal();
     },
-    [isAuthenticated, openLoginModal, navigate]
+    [isAuthenticated, setLoginOnSuccess, openLoginModal, navigate]
   );
 }

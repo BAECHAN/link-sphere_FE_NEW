@@ -7,6 +7,7 @@ import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { NAV_ITEMS, type NavItemConfig } from '@/shared/config/nav-items';
 import { useSidebarStore } from '@/shared/store/sidebar.store';
+import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { useProtectedNavigate } from '@/entities/user/hooks/useProtectedNavigate';
 
 function NavItem({
@@ -16,14 +17,16 @@ function NavItem({
   isActive,
   requiresAuth,
   expanded,
-  onClick,
-}: NavItemConfig & { expanded: boolean; onClick?: () => void }) {
+}: NavItemConfig & { expanded: boolean }) {
   const { pathname } = useLocation();
   const protectedNavigate = useProtectedNavigate();
   const active = isActive(pathname);
 
+  // 모바일 드로어를 별도로 닫지 않는다 - 아래 두 분기 모두 어차피 새 위치로 navigate하고,
+  // 그 위치의 location.state엔 sidebarOpen이 없어 드로어는 자연히 사라진다. 여기서
+  // navigate(-1)(드로어 close)까지 같이 호출하면 비동기 go(-1)이 뒤늦게 처리되면서
+  // 방금 push한(비로그인 시 로그인모달 open 등) 엔트리를 엉뚱하게 삼켜버리는 레이스가 생겼다.
   const handleClick = (e: React.MouseEvent) => {
-    onClick?.(); // 모바일 드로어 닫기
     if (requiresAuth) {
       e.preventDefault();
       protectedNavigate(to);
@@ -57,17 +60,11 @@ function NavItem({
 interface SidebarHeaderProps {
   expanded: boolean;
   onToggle: () => void;
-  onLogoClick?: () => void;
   /** true 면 햄버거 대신 X 아이콘 표시 — 모바일 드로어가 열린 상태용 */
   showCloseIcon?: boolean;
 }
 
-function SidebarHeader({
-  expanded,
-  onToggle,
-  onLogoClick,
-  showCloseIcon = false,
-}: SidebarHeaderProps) {
+function SidebarHeader({ expanded, onToggle, showCloseIcon = false }: SidebarHeaderProps) {
   const Icon = showCloseIcon ? X : Menu;
   return (
     <div
@@ -78,11 +75,7 @@ function SidebarHeader({
         <span className="sr-only">{TEXTS.nav.toggleMenu}</span>
       </Button>
       {expanded && (
-        <Link
-          to={ROUTES_PATHS.POST.ROOT}
-          onClick={onLogoClick}
-          className="font-bold text-xl tracking-tight truncate"
-        >
+        <Link to={ROUTES_PATHS.POST.ROOT} className="font-bold text-xl tracking-tight truncate">
           {TEXTS.nav.brand}
         </Link>
       )}
@@ -91,7 +84,9 @@ function SidebarHeader({
 }
 
 export function Sidebar() {
-  const { isOpen, toggle, close } = useSidebarStore();
+  const { isOpen, toggle } = useSidebarStore(); // 데스크톱 접힘/펼침 상태
+  // 모바일 드로어는 뒤로가기로 닫혀야 하므로 히스토리 엔트리로 관리한다 (데스크톱 접힘 상태와는 별개)
+  const { isOpen: isMobileOpen, close } = useHistoryOverlay('sidebarOpen');
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -122,7 +117,7 @@ export function Sidebar() {
       </aside>
 
       {/* 모바일: 드로어 백드롭 */}
-      {isOpen && (
+      {isMobileOpen && (
         <div
           className="md:hidden fixed inset-0 z-55 bg-black/50"
           onClick={close}
@@ -135,13 +130,13 @@ export function Sidebar() {
         className={cn(
           'md:hidden fixed top-0 left-0 z-60 h-full w-64 bg-background border-r flex flex-col',
           'transition-transform duration-200',
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <SidebarHeader expanded onToggle={close} onLogoClick={close} showCloseIcon />
+        <SidebarHeader expanded onToggle={close} showCloseIcon />
         <nav className="flex flex-col gap-1 py-4 px-2">
           {NAV_ITEMS.map((item) => (
-            <NavItem key={item.to} {...item} expanded onClick={close} />
+            <NavItem key={item.to} {...item} expanded />
           ))}
         </nav>
       </aside>

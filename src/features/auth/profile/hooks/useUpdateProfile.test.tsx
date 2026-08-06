@@ -47,7 +47,7 @@ describe('useUpdateProfile', () => {
     // QueryClient 캐시에 account 데이터를 직접 주입 → GET 요청 없이 즉시 account 반환
     queryClient.setQueryData(['auth', 'account'], mockAccount);
     // 모달 스토어는 싱글톤이라 이전 테스트의 재오픈 값이 새지 않도록 초기화
-    useMyPageModalStore.setState({ isOpen: false, restoreValues: null });
+    useMyPageModalStore.setState({ restoreValues: null });
   });
 
   it('초기값이 account 데이터로 세팅된다', async () => {

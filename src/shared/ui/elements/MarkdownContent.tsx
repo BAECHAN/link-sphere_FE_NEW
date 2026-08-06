@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { useImageViewerStore } from '@/shared/ui/elements/modal/image-viewer/imageViewer.store';
+import { NavigationService } from '@/shared/lib/router/navigation';
 import { TEXTS } from '@/shared/config/texts';
 import { getTransformedImageUrl } from '@/shared/lib/image/supabaseImage';
 
@@ -40,7 +41,14 @@ function renderInlineLinks(text: string, keyPrefix: string, isMobile: boolean): 
           <button
             key={`${keyPrefix}-${i}`}
             type="button"
-            onClick={() => useImageViewerStore.getState().open({ src: part, alt: 'attachment' })}
+            onClick={() => {
+              // renderInlineLinks는 훅을 쓸 수 없는 일반 함수라 히스토리 오버레이를
+              // NavigationService로 직접 연다 (auth.queries.ts의 마이페이지 재오픈과 동일한 이유)
+              useImageViewerStore.getState().setImage({ src: part, alt: 'attachment' });
+              NavigationService.navigate(`${window.location.pathname}${window.location.search}`, {
+                state: { imageViewerOpen: true },
+              });
+            }}
             className="block cursor-pointer"
             aria-label={TEXTS.ariaLabels.imageZoom}
           >

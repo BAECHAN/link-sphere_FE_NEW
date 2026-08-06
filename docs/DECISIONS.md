@@ -6,6 +6,180 @@
 
 ---
 
+## 2026-08-07 — 뒤로가기 정책: 오버레이는 히스토리로, 대화상자는 아니다
+
+**배경**
+
+모바일 사이드바·마이페이지 모달·이미지뷰어·로그인 모달을 연 상태에서 뒤로가기를 누르면
+오버레이가 닫히는 대신 페이지가 통째로 바뀌었다. 이 오버레이들은 zustand `isOpen`
+불리언일 뿐 히스토리에 존재하지 않았기 때문이다. 별개로, 글쓰기 제출 후 목록으로
+`navigate()`(PUSH)하는 바람에 뒤로가기를 누르면 방금 제출을 끝낸 빈 폼이 다시 떴다.
+
+**검토**
+
+"모든 오버레이를 히스토리에 넣는다"와 "아무것도 안 넣는다" 둘 다 아니고, 업계 사례는
+3단으로 갈렸다.
+
+- NN/g 사용성 리서치는 화면을 덮는 오버레이에 대해 "브라우저·폰 뒤로가기로 닫을 수 있게
+  하라"고 명시하면서, 동시에 **오버레이 중첩**을 실패 패턴으로 지목했다(월마트·링크드인·
+  인스타그램에서 X 버튼 한 번에 스택 전체가 닫혀 사용자가 길을 잃는 사례).
+- "대화상자는 URL·히스토리에 넣지 말라"는 UX 컨벤션은 Alert/Confirm처럼 한 번의 결정만
+  받고 사라지는 것에 대한 이야기였다 — 화면을 덮는 오버레이와는 대상이 다르다.
+- Pairs(eureka) 엔지니어링의 `backdropLocation` 패턴(모달을 URL로 만드는 방식)은 저자
+  스스로 "단순 모달 하나만 지원, 웹 히스토리는 선형이라 분기 컨텍스트는 복잡해진다"고
+  한계를 밝혔다 — 공유가 필요 없는 우리 오버레이엔 과한 해법.
+- 토스페이먼츠 Flow 모듈(`pageCount`로 다단계 퍼널 관리)도 저자가 깨짐·가독성 저하를
+  인정한 무거운 해법이었다 — 우리 퍼널은 1스텝이라 `replace: true`로 충분.
+
+**결정**
+
+오버레이를 3계층으로 나눈다.
+
+| 계층                    | 대상                                                                     | 히스토리                                                    |
+| ----------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| **T0 순간적**           | Alert/Confirm, 토스트, 드롭다운, 툴팁                                    | ❌ 넣지 않음                                                |
+| **T1 화면 덮는 상태**   | 모바일 사이드바 드로어, 마이페이지, 이미지뷰어, 로그인 모달, 모바일 검색 | ✅ `location.state` push (URL 불변)                         |
+| **T2 공유 가능 콘텐츠** | 게시글 상세 등                                                           | ✅ 실제 URL 경로 (이미 페이지로 분리돼 있어 추가 작업 없음) |
+
+T1은 `useHistoryOverlay(key)`(`shared/hooks/useHistoryOverlay.ts`) 공통 훅으로 처리한다.
+`Navbar`의 모바일 검색 패널이 이미 이 패턴(열 때 `state`로 push, 닫을 때 `navigate(-1)`)을
+쓰고 있었고, 그 로직을 키 기반으로 일반화한 것이다. 오버레이의 부가 데이터(이미지 뷰어의
+`image`, 마이페이지의 `restoreValues`, 로그인 모달의 `onSuccess` 콜백)는 `location.state`에
+못 싣는 값(File 객체·함수)이라 zustand 스토어에 그대로 남기고, `isOpen`만 훅으로 이관했다.
+
+글쓰기 제출 후 이동은 `navigate(path, { replace: true })`로 바꿔 폼 엔트리를 결과 화면으로
+대체한다.
+
+**적용 중 발견한 두 가지 함정**
+
+1. `GlobalImageViewer`가 `App.tsx`에서 `<RouterProvider />`의 형제로 렌더되고 있었다 —
+   `useHistoryOverlay`가 필요로 하는 라우터 컨텍스트 밖이라 그대로 두면 크래시난다.
+   `RootLayout.tsx`(`<LoginModal />`이 이미 있던 자리)로 옮겼다.
+2. `ProtectedRoute`가 비로그인 접근 시 로그인 모달을 여는 지점은 `<Navigate replace>`
+   리다이렉트와 **같은 렌더에서 동시에** 일어난다. 여기서 별도로 `navigate(path, {state})`를
+   호출하면 리다이렉트의 `replace`와 순서가 겹쳐 레이스(모달이 열린 채 URL이 도로
+   보호 페이지로 돌아가는 루프 위험)가 생긴다. `<Navigate>`의 `state` prop에
+   `{ loginModalOpen: true }`를 실어 리다이렉트와 원자적으로 처리해 해결했다. 단, 이
+   분기는 로그아웃/세션만료 시에도 타므로 `hasBeenAuthenticated` 조건으로 그 경우엔
+   `state`를 비워, 로그아웃할 때마다 로그인 모달이 뜨는 회귀를 막았다.
+
+**금지 사항**
+
+- `popstate`에서 `history.go(1)`로 되돌리기 — 무한루프.
+- raw `popstate` 리스너 의존 — 크롬은 사용자 인터랙션 없이 `popstate`를 쏘지 않는다.
+- 오버레이 중첩 — `useHistoryOverlay`는 "닫는 오버레이가 스택 최상단"을 전제로 한다.
+- Navigation API로 "롱프레스 다단계 뒤로가기 점프"를 가로채 1단계로 제한하는 것 미도입
+  — 브라우저 미지원 때문이 아니다(Safari 26.2+/Firefox 147+ 둘 다 지원, 2026-01
+  Baseline 진입 — caniuse.com 실측 완료). 진짜 이유는 [WICG 스펙](https://github.com/WICG/navigation-api/blob/main/README.md)
+  자체가 user-initiated traversal의 취소를 막아놨다는 것: `event.preventDefault()`는
+  "consumable activation"(페이지 자체와의 클릭 등에서 생기는 수 초짜리 토큰)이 남아있을
+  때만 먹히는데, 마우스 뒤로가기 버튼 롱프레스는 브라우저 크롬 안에서만 일어나 페이지
+  DOM과 무관하다 — 즉 된다/안 된다가 아니라 클릭-뒤로가기 사이 시간차에 따라 랜덤하게
+  동작해 신뢰할 수 없다. 업계 사례 재검색(Vue Router 가드·Bootstrap 모달·Pairs/eureka·
+  Next.js 디스커션 등)에서도 이 클래스의 시도를 해결한 사례가 전무했고, 오히려 이런 시도를
+  "back button hijacking"으로 보고 브라우저가 [적극적으로 막는 방향](https://www.techradar.com/news/chrome-will-soon-protect-against-malicious-websites-breaking-your-back-button)임을 확인했다.
+
+**추가 발견 — T0(Alert/Confirm)의 별도 결함**
+
+배포 전 실브라우저 검증(Playwright)에서, 상세페이지에서 삭제 확인 모달을 띄운 뒤
+뒤로가기를 누르면 **모달은 열린 채로 배경 페이지만 목록으로 바뀌는** 현상을 발견했다.
+T0로 분류해 히스토리에 안 묶은 것 자체는 옳은 결정이었지만(§ 위 "검토" 참고 —
+`useUnsavedChangesGuard`의 `useBlocker`와 얽힘), 그 대가로 Alert/Confirm은 **어떤
+네비게이션에도 무관심**해진다는 걸 놓쳤다 — 뒤로가기든 다른 링크 클릭이든, 열려 있던
+페이지를 벗어나도 계속 떠 있는다.
+
+해결: `GlobalAlerts`(→ 라우터 컨텍스트가 필요해 `App.tsx`에서 `RootLayout.tsx`로 이동,
+`GlobalImageViewer`와 동일한 이유)의 `Alert` 컴포넌트가 `useLocation()`으로 pathname을
+지켜보다가, 열려 있던 pathname과 달라지면 취소(`onCancel`)로 간주하고 닫는다.
+`useUnsavedChangesGuard`의 confirm은 `useBlocker`가 이동을 막고 있는 동안 pathname이
+실제로 안 바뀌므로 이 로직과 충돌하지 않는다(직접 재확인함).
+
+**추가 발견 — 마우스 뒤로가기 버튼 클릭 한 번이 히스토리를 두 단계 소모하는 문제**
+
+"길게 누르지도 않았는데 뒤로가기 한 번에 라이트박스가 닫히면서 페이지도 더 멀리
+이동한다"는 제보. §0(Navigation API 조사)의 "롱프레스로 다단계를 의도적으로 고르는
+경우"와는 다른 현상이라 별도로 원인을 추적했다.
+
+**원인**: 마우스 뒤로가기(X1) 버튼 클릭은 브라우저 내비게이션만 트리거하는 게 아니라
+페이지에도 `pointerdown` 이벤트를 발생시킨다(`PointerEvent.button === 3`). 클릭 좌표는
+(다이얼로그 바깥) 커서가 있던 자리이므로, Radix Dialog의 "바깥 클릭 시 닫기"
+(`onPointerDownOutside`)가 이를 일반 바깥 클릭으로 오인해 `onOpenChange`를 먼저
+실행시킨다. `useHistoryOverlay`처럼 `close()`가 `navigate(-1)`을 호출하는 오버레이는
+이 시점에 이미 한 단계를 스스로 소모하고, 그 직후 브라우저가 진짜 back navigation을
+별도로 처리하며 popstate가 한 번 더 발생한다 — 클릭 한 번에 실제로는 두 번의
+navigate가 겹쳐 발생하는 것.
+
+임시 계측(`console.log` + `popstate` 카운터)으로 실제 로그를 확인해 검증했다:
+`close()`가 정확히 1회만 호출됐음에도(중복 호출 아님) `popstate`가 2번 찍혔고,
+1번째(같은 경로, 우리 `navigate(-1)`이 만든 것)와 2번째(다른 경로, 브라우저 자체
+처리, 약 130ms 후) 타이밍이 뚜렷이 분리되어 있었다. Alert/Confirm에서도 동일하게
+`handleClose()`가 popstate보다 먼저 호출되는 패턴이 재현되어, 특정 오버레이만의
+문제가 아니라 공유 `Dialog` 컴포넌트 전체에 걸친 문제임을 확인했다.
+
+**해결**: 오버레이마다 고치지 않고 `shared/ui/atoms/dialog.tsx`의 `DialogContent`
+한 곳에서 `onPointerDownOutside`를 가로채, 클릭한 버튼이 뒤로가기/앞으로가기
+(`button === 3 || button === 4`)면 `preventDefault()`로 무시한다. Alert·
+이미지뷰어·마이페이지·로그인모달 등 이 컴포넌트를 쓰는 모든 다이얼로그가 한 번에
+해결된다.
+
+**추가 발견 — 모바일 사이드바 드로어에서 보호된 메뉴 클릭 시 로그인 모달이 바로 닫혀버리는 문제**
+
+위 Dialog 수정 후 체크리스트를 돌리다 발견. 모바일 드로어가 열린 상태에서 로그인
+없이 보호된 메뉴(Bookmark 등)를 클릭하면, 로그인 모달이 뜨는 순간 자기 스스로
+닫혀버리고 페이지도 이동하지 않았다 — 이건 마우스 뒤로가기와 무관한 **순수 레이스
+컨디션**이었다.
+
+**원인**: `NavItem.handleClick`이 `onClick?.()`(드로어 `close()` → `navigate(-1)`,
+**비동기** `history.go(-1)`)를 호출한 직후 곧바로 `protectedNavigate(to)`(비로그인 시
+로그인모달 `open()` → `navigate(path, {state})`, **동기** `pushState`)를 호출했다.
+동기 push가 먼저 스택에 반영된 뒤, 뒤늦게 처리되는 비동기 `go(-1)`이 그 시점의
+"현재 위치" 기준으로 실행되면서 방금 push한 로그인모달 엔트리를 엉뚱하게
+pop해버렸다. 계측 로그로 정확히 이 순서(`close()` 호출 → 같은 ms에 `open()` 호출 →
+popstate → `state: null`로 착지)를 확인했다.
+
+**해결**: 드로어를 별도로 닫을 필요가 없다는 점에 착안했다 — 어차피 두 분기(일반
+네비게이션·보호된 메뉴) 모두 새 위치로 navigate하고, 그 위치의 `location.state`엔
+`sidebarOpen`이 없으니 드로어는 자연히 사라진다. 레이스를 만드는 `close()` 호출
+자체를 `NavItem`과 `SidebarHeader`의 로고 링크(둘 다 같은 패턴)에서 제거했다.
+**일반화되는 교훈**: `navigate(-1)`(비동기)과 다른 `navigate()`(동기 push/replace)를
+같은 동기 핸들러 안에서 연달아 호출하지 않는다 — 처리 순서가 뒤바뀌어 엉뚱한
+엔트리를 조작하는 레이스가 생긴다.
+
+**추가 발견 (오진 → 정정) — "마우스 뒤로가기 버튼이 모바일 드로어 상태에서 반응 없음"은 앱 버그가 아니라 DevTools 기기 에뮬레이션 아티팩트였다**
+
+모바일 드로어가 열린 상태에서는 마우스 뒤로가기 버튼을 눌러도 반응이 없다는 제보.
+`window` 캡처 단계에 `pointerdown`/`mousedown`/`mouseup`/`click`/`auxclick`/
+`contextmenu`를 전부 잡는 계측을 깔고 재현했는데 **어떤 이벤트도 페이지에
+도달하지 않았다** — `popstate`조차 발생하지 않음. 반면 키보드 Alt+방향키는 같은
+상태에서 정상적으로 뒤로가기로 인식되어 드로어를 닫았다. 이 시점엔 "브라우저/OS/
+드라이버가 이 조합의 입력을 페이지에 전달하지 않는다"고 결론 내리고 대응하지
+않기로 했었다.
+
+**그런데 이 결론이 틀렸다.** 모바일 드로어는 `md:hidden`이라 재현하려면 반드시
+DevTools의 "기기 툴바 토글"(모바일 기기 에뮬레이션)을 켜야 했는데, 반면 앞서
+정상 동작을 확인했던 이미지뷰어 등은 에뮬레이션 없이 일반 데스크톱 뷰포트에서
+테스트했었다 — 즉 "안 되는 경우"만 매번 에뮬레이션을 거쳤다는 공통점을 놓치고
+있었다. 실제로 DevTools 에뮬레이션 대신 **브라우저 창 자체를 768px 이하로
+좁혀서**(`md:hidden`은 순수 CSS 미디어쿼리라 이걸로도 동일한 모바일 레이아웃이
+뜬다) 같은 걸 재현했더니 마우스 뒤로가기 버튼이 정상 작동했다.
+
+기기 에뮬레이션은 마우스 입력을 터치 이벤트로 변환해 시뮬레이션한다 — 실제
+모바일 기기엔 애초에 "마우스 옆면 버튼"이라는 입력 자체가 없으니, 에뮬레이터가
+이 조합을 실제와 동일하게 재현해야 할 이유가 없다. 즉 이건 실사용(진짜 데스크톱
+좁은 창이든 진짜 모바일 기기든)에서는 애초에 나타나지 않는, **테스트 방법론
+자체의 함정**이었다. 재발 방지용 체크리스트를 `docs/TESTING.md`에 남겼다.
+
+**상태**
+
+적용 완료(Dialog 수정, NavItem 레이스 수정). 마지막 발견 건은 앱 버그가 아님을
+확인, 조치 불필요. 관련 파일: `shared/hooks/useHistoryOverlay.ts`,
+`shared/store/{sidebar,mypage,loginModal,imageViewer}.store.ts`,
+`app/routes/ProtectedRoute.tsx`, `shared/lib/router/navigation.ts`,
+`shared/ui/elements/modal/alert/Alert.tsx`, `shared/ui/atoms/dialog.tsx`,
+`widgets/layout/sidebar/ui/Sidebar.tsx`.
+
+---
+
 ## 2026-08-06 — 폼 이탈 시 저장하지 않은 내용 보호: 전역 blocker 레지스트리
 
 **배경**

@@ -6,8 +6,6 @@ import { RouterProvider } from '@/app/providers/RouterProvider';
 import { AuthProvider } from '@/app/providers/AuthProvider';
 import { Toaster } from '@/shared/ui/atoms/sonner';
 import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
-import { GlobalAlerts } from '@/shared/ui/elements/modal/alert/Alert';
-import { GlobalImageViewer } from '@/shared/ui/elements/modal/image-viewer/ImageViewer';
 
 /**
  * Router 트리 바깥(Provider·RouterProvider 자체)에서 터진 에러의 최후 방어선.
@@ -26,8 +24,6 @@ export function App() {
             <TooltipProvider delayDuration={0}>
               <RouterProvider />
               <Toaster />
-              <GlobalAlerts />
-              <GlobalImageViewer />
             </TooltipProvider>
           </AuthProvider>
         </AsyncBoundary>
