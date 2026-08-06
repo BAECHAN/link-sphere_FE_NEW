@@ -234,7 +234,6 @@ export const TEXTS = {
     },
   },
   errors: {
-    errorOccurred: '오류 발생',
     notFound: {
       title: '페이지를 찾을 수 없어요',
       description: '요청하신 페이지가 존재하지 않거나 삭제됐어요.',
@@ -245,6 +244,10 @@ export const TEXTS = {
     },
     serverError: {
       description: '서버에 문제가 발생했어요. 잠시 후 다시 시도해주세요.',
+    },
+    unexpected: {
+      title: '문제가 발생했어요',
+      description: '일시적인 오류로 화면을 표시하지 못했어요. 잠시 후 다시 시도해주세요.',
     },
   },
   notification: {

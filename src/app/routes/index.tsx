@@ -5,6 +5,7 @@ import { ProtectedLayout } from './layouts/ProtectedLayout';
 import { AppShellLayout } from '@/app/routes/layouts/AppShellLayout';
 import { PublicLayout } from '@/app/routes/layouts/PublicLayout';
 import { RootLayout } from '@/app/routes/layouts/RootLayout';
+import { RouteErrorBoundary } from '@/app/routes/RouteErrorBoundary';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 
@@ -87,6 +88,7 @@ function RootRedirect() {
 export const appRoutes: RouteObject[] = [
   {
     element: <RootLayout />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       // Public Content Group (shell 있음, 인증 게이트 없음 — 비로그인 열람 가능)
       {

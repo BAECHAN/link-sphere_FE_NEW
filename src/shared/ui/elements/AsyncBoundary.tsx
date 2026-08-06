@@ -3,6 +3,7 @@ import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
 import { TEXTS } from '@/shared/config/texts';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { ErrorLayout } from '@/shared/ui/layouts/ErrorLayout';
+import { ErrorUtil } from '@/shared/utils/error.util';
 
 export interface AsyncBoundaryProps {
   children: ReactNode;
@@ -28,6 +29,19 @@ export interface AsyncBoundaryProps {
 }
 
 /**
+ * 기본 에러 폴백 - 날것의 error.message를 사용자에게 노출하지 않는다.
+ * 실제 에러는 AsyncBoundary의 onError에서 console.error로 남긴다.
+ */
+function DefaultErrorFallback({ error }: FallbackProps) {
+  return (
+    <ErrorLayout
+      title={TEXTS.errors.unexpected.title}
+      description={ErrorUtil.resolveMessage(error)}
+    />
+  );
+}
+
+/**
  * AsyncBoundary
  *
  * Suspense와 ErrorBoundary를 조합한 래퍼 컴포넌트
@@ -47,15 +61,15 @@ export function AsyncBoundary({
   onError,
   onReset,
 }: AsyncBoundaryProps) {
-  const defaultErrorFallback = ({ error }: FallbackProps) => {
-    const errorMessage = error instanceof Error ? error.message : TEXTS.messages.error.defaultError;
-    return <ErrorLayout title={TEXTS.errors.errorOccurred} description={errorMessage} />;
+  const handleError = (error: Error, info: ErrorInfo) => {
+    console.error('[AsyncBoundary]', error);
+    onError?.(error, info);
   };
 
   return (
     <ErrorBoundary
-      FallbackComponent={errorFallback || defaultErrorFallback}
-      onError={onError}
+      FallbackComponent={errorFallback || DefaultErrorFallback}
+      onError={handleError}
       onReset={onReset}
     >
       <Suspense fallback={loadingFallback}>{children}</Suspense>

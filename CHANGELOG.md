@@ -18,6 +18,17 @@
 
 ### Fixed
 
+- **라우트에서 예상치 못한 에러가 터지면 react-router의 원본 에러 화면(영어 "Unexpected
+  Application Error!" + `error.message` + 전체 스택 트레이스)이 프로덕션에서도 그대로
+  노출되던 문제** — 아무 라우트도 `errorElement`를 선언하지 않아, 라우트 트리 안에서
+  던져진 에러(`RootLayout` 자신의 렌더 실패 포함)가 앱 자체의 에러 폴백보다 먼저
+  react-router의 내장 기본 화면으로 샜다. 루트 라우트에 전용 에러 경계
+  (`RouteErrorBoundary`)를 추가해 이 앱 스타일의 안내 화면으로 대체하고, `UserFacingError`가
+  아닌 이상 날것의 `error.message`는 노출하지 않는다(기존 `auth.queries.ts`의 정책과
+  동일하게 통일). 부수적으로, lazy 라우트 청크 로드 실패 시 자동 새로고침으로 복구하는
+  기존 로직도 같은 이유로 지금까지 도달 불가능했는데 이번에 함께 살아났다.
+  (`app/routes/RouteErrorBoundary.tsx`, `shared/ui/elements/AppErrorFallback.tsx`,
+  `shared/utils/error.util.ts`)
 - **게시글/댓글 링크 미리보기 썸네일이 브라우저 기본 깨진 이미지 아이콘으로 보이던 문제**
   — 원인을 조사해보니 두 가지가 섞여 있었다. (1) 일부 CDN(예: 네이버 blogthumb)이
   요청의 Referer로 우리 도메인이 노출되면 핫링크로 간주해 403을 반환했다 — 이미지
