@@ -34,6 +34,20 @@
     - 배포 후 즉시 변경 사항이 반영되도록 CloudFront 캐시를 무효화합니다.
     - 대상 경로: `/*`
 
+### GitHub Actions 수동 재실행
+
+`main` push 시 자동 트리거 외에, GitHub Actions 자체 장애 등으로 push 이벤트가
+워크플로우를 트리거하지 못했을 때를 대비해 `workflow_dispatch`도 열어뒀다
+(2026-08-06 GitHub Actions 장애로 실제로 이 문제가 발생 — 아래 "수동 배포"의
+로컬 AWS CLI 방식과 달리 AWS 자격증명 없이, Actions 탭이나 `gh workflow run
+deploy.yml`만으로 CI 파이프라인을 그대로 재실행할 수 있다).
+
+```bash
+gh workflow run deploy.yml --repo BAECHAN/link-sphere_FE_NEW --ref main
+```
+
+또는 GitHub 저장소 → Actions → "Frontend Deploy (S3 + CloudFront)" → Run workflow.
+
 ## 환경 변수 및 Secrets 설정
 
 GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서 다음 Secrets를 설정해야 합니다.
@@ -87,6 +101,7 @@ aws cloudfront publish-function --name link-sphere-spa-fallback --if-match <최�
 ## 수동 배포 (참고)
 
 로컬 환경에서 수동으로 배포해야 할 경우 다음 명령어를 사용할 수 있습니다 (AWS CLI 설정 필요).
+CI 파이프라인 자체를 재실행하려면(AWS 자격증명 불필요) 위 "GitHub Actions 수동 재실행"을 대신 쓴다.
 
 ```bash
 # 1. 빌드
