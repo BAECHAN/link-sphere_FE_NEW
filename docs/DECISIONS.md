@@ -6,6 +6,80 @@
 
 ---
 
+## 2026-08-07 — 프로덕션 배포 파이프라인 장애: 수정사항 3개가 반영 안 된 채 테스트하고 있었다
+
+**배경**
+
+바로 아래 "뒤로가기 정책" 작업을 마치고 실기기(안드로이드 Chrome)·프로덕션
+(CloudFront)에서 검증하던 중, 로그인모달이 뒤로가기 한 번에 두 단계를 소모하고
+마이페이지 모달은 아예 안 닫히는 등 로컬 dev 서버에서는 재현되지 않는 증상이
+나왔다. 처음엔 Radix Dialog의 포커스/이벤트 처리가 모바일에서만 다르게
+동작하는 코드 버그로 의심하고 Playwright로 여러 재현을 시도했으나(연속 탭
+클릭 레이스, 레이아웃 그룹 경계 넘기 등) 전부 로컬에서는 실패했다.
+
+**원인**
+
+프로덕션에 대해 직접 Playwright로 같은 시나리오를 돌려보니 재현됐고,
+`history.pushState`를 계측해보니 `openMyPage()`가 호출한 `navigate()`가
+**`pushState`를 아예 트리거하지 않고 있었다** — 즉 그날 세션에서 만든
+`useHistoryOverlay` 기반 T1 오버레이 코드 자체가 프로덕션에 없었다.
+`gh api .../actions/runs`로 확인한 결과:
+
+- 그날 만든 첫 수정 커밋(`7bb1f89`, T1 오버레이 히스토리화)의 "Frontend
+  Deploy" 워크플로우가 `The job was not acquired by Runner of type hosted
+even after multiple attempts`로 실패.
+- 이후 push된 커밋 2개(`26dcd40`, `3e1ca51`)는 `src/**`를 건드려 배포
+  조건을 만족했는데도 워크플로우 실행 자체가 안 잡혔다.
+- 사용자가 [GitHub 공식 상태 페이지](https://www.githubstatus.com)에서
+  직접 확인: 같은 날짜에 "Incident with Actions"(resolved)가 있었다 —
+  우리 쪽 설정 문제가 아니라 GitHub Actions 인프라 장애였다.
+
+BE 레포도 하루 전날 같은 장애로 커밋(`fbd32eb`)의 Lambda 배포를 놓친 적이
+있었고, 그날 아침 이미 `deploy.yml`에 `workflow_dispatch`(수동 재실행
+트리거)를 추가해 대응해뒀다는 게 커밋 메시지로 확인됐다 — FE만 아직
+같은 대응이 안 돼 있었다.
+
+**부수 사고**
+
+장애 복구 여부를 확인하려고 빈 커밋을 push하던 중 cwd가 BE 레포로 되돌아가
+있는 걸 놓쳐, BE main에 FE용 커밋 메시지를 단 빈 커밋(`91613d3`)이 실수로
+들어갔다. 파일 변경이 없어 BE의 `deploy.yml`/`history-dispatch.yml`(둘 다
+`src/**` 등 paths 필터 있음)은 트리거되지 않았음을 `gh api`로 확인했고,
+사용자 확인 하에 그대로 둔다(git 히스토리에 맥락 안 맞는 메시지 하나 외엔
+영향 없음).
+
+**해결**
+
+- FE `.github/workflows/deploy.yml`에 `workflow_dispatch:` 추가(BE와 동일
+  패턴 — `push` 트리거·`paths` 필터는 그대로 유지).
+- FE·BE 양쪽 `docs/DEPLOY.md`에 "GitHub Actions 수동 재실행" 절 추가.
+  FE는 기존 "수동 배포(로컬 AWS CLI로 직접 build+sync+invalidation)" 절과
+  헷갈리지 않도록 용도를 구분해뒀다 — 이건 AWS 자격증명이 필요한 별개의
+  기존 수단이고, 새로 추가한 쪽은 자격증명 없이 CI 파이프라인 자체를
+  재실행하는 것이다.
+- `gh workflow run deploy.yml`로 최신 커밋 기준 배포를 수동 트리거, 성공
+  확인 후 프로덕션에서 같은 시나리오를 재검증 — 정상(모달만 닫힘, 페이지
+  안 튐)으로 확인됐다.
+
+**일반화되는 교훈**
+
+- 실기기·프로덕션에서만 재현되고 로컬 dev에서는 재현 안 되는 증상을 만나면,
+  코드 로직 차이를 의심하기 전에 **"그 수정사항이 실제로 배포됐는가"부터
+  확인**한다. `gh api repos/<owner>/<repo>/actions/runs`로 대상 커밋의
+  워크플로우 실행 여부·결론을 바로 확인할 수 있다.
+- push 트리거만 있는 배포 워크플로우는 GitHub 자체 장애 등으로 트리거가
+  누락되면 **재시도할 방법이 없다** — `workflow_dispatch`를 항상 같이
+  열어둔다(이번에 FE·BE 둘 다 확보).
+- 이 세션 내내 BE 레포가 Bash 기본 cwd였고, FE 작업 중간중간 cwd가 조용히
+  BE로 되돌아가는 일이 반복됐다(관련: `feedback_git_cwd_fe_be` 메모리) —
+  이번엔 실제로 잘못된 레포에 push까지 됐다. git 명령 직전엔 `pwd`와
+  `git remote -v`를 습관적으로 찍어 확인한다.
+
+**상태**: 완료. 관련 파일: `.github/workflows/deploy.yml`, `docs/DEPLOY.md`
+(FE·BE 둘 다).
+
+---
+
 ## 2026-08-07 — 뒤로가기 정책: 오버레이는 히스토리로, 대화상자는 아니다
 
 **배경**
