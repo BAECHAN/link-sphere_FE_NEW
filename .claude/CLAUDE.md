@@ -14,6 +14,10 @@ Before implementing:
 - If multiple interpretations exist, present them - don't pick silently.
 - If a simpler approach exists, say so. Push back when warranted.
 - If something is unclear, stop. Name what's confusing. Ask.
+- When asserting how the existing system currently works ("we follow pattern X", "this mirrors
+  framework Y"), trace the actual code path first — don't infer architecture from a
+  similarly-shaped utility or an external framework's mechanism. State plainly when a claim is
+  traced vs. inferred.
 
 ## 2. Simplicity First
 
