@@ -633,6 +633,24 @@ export default [
     },
   },
 
+  // Zustand Best Practice 규칙
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      // 1. 컴포넌트/훅 내부에서 getState() 직접 사용 금지 (구독이 안됨)
+      // 대신 useStore((state) => state.value) Selector 패턴 사용
+      'no-restricted-syntax': [
+        'error',
+        {
+          // React 컴포넌트(PascalCase 함수)나 Hook(use* 함수) 내부에서 getState() 호출 감지
+          selector:
+            ':matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression)[id.name=/^use|^[A-Z]/] CallExpression[callee.property.name="getState"]',
+          message:
+            '컴포넌트나 Hook 내부에서는 getState() 대신 useStore((state) => state.value)와 같은 Selector 패턴을 사용하세요. getState()는 상태 변경을 구독하지 않아 리렌더링되지 않습니다.',
+        },
+      ],
+    },
+  },
   // ============================================================
   // [금지] UI 컴포넌트에서 React Query 직접 import
   // 이유: UI(렌더링)와 데이터 fetching(비즈니스 로직)의 관심사 분리.
