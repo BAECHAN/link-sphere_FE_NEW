@@ -1,120 +1,107 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useUpdateCommentMutation } from '@/entities/comment/api/comment.queries';
 import { Comment } from '@/entities/comment/model/comment.schema';
 import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/const';
 import { useImageAttachments } from '@/shared/hooks/useImageAttachments';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { splitContentImages } from '@/shared/lib/content/imageContent';
+import { TEXTS } from '@/shared/config/texts';
+import { toast } from '@/shared/lib/toast/toast';
+
+const formSchema = z.object({
+  content: z.string(),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 interface UseUpdateCommentOptions {
   comment: Comment;
   postId: string;
+  onSuccess?: () => void;
 }
 
-export function useUpdateComment({ comment, postId }: UseUpdateCommentOptions) {
+export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommentOptions) {
   const { mutate: updateComment, isPending: isUpdating } = useUpdateCommentMutation(postId);
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(comment.content);
-  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
+  // 편집 세션은 컴포넌트 마운트~언마운트 동안만 유지되므로, 시작 시점 스냅샷은 한 번만 계산한다.
+  const [initialSnapshot] = useState(() => splitContentImages(comment.content));
+  const [existingImageUrls, setExistingImageUrls] = useState(initialSnapshot.imageUrls);
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { content: initialSnapshot.text },
+  });
+
+  const { watch, formState } = form;
+  const contentValue = watch('content');
 
   const {
     images: editImages,
-    imagePreviewUrls: editPastedPreviewUrls,
-    isDraggingOver: isEditDraggingOver,
-    addFiles: addEditFiles,
-    handlePaste: handleEditPaste,
-    handleDrop: handleEditDrop,
-    handleDragOver: handleEditDragOver,
-    handleDragEnter: handleEditDragEnter,
-    handleDragLeave: handleEditDragLeave,
-    clearImage: clearEditPastedImage,
-    clearAllImages: clearAllEditImages,
+    imagePreviewUrls: pastedPreviewUrls,
+    isDraggingOver,
+    addFiles,
+    handlePaste,
+    handleDrop,
+    handleDragOver,
+    handleDragEnter,
+    handleDragLeave,
+    clearImage: clearPastedImage,
   } = useImageAttachments({
     maxCount: MAX_COMMENT_IMAGES,
     reservedCount: existingImageUrls.length,
   });
 
-  const editImagePreviewUrls = [...existingImageUrls, ...editPastedPreviewUrls];
+  const imagePreviewUrls = [...existingImageUrls, ...pastedPreviewUrls];
 
-  // 수정을 시작할 때의 원본 스냅샷 - 편집 중인 값과 비교해 실제로 변경했는지 판단한다.
-  const originalSnapshotRef = useRef({ text: '', imageUrls: [] as string[] });
-
-  const startEditing = useCallback(() => {
-    const { text, imageUrls } = splitContentImages(comment.content);
-    setEditContent(text);
-    setExistingImageUrls(imageUrls);
-    setIsEditing(true);
-    originalSnapshotRef.current = { text, imageUrls };
-  }, [comment.content]);
-
-  const cancelEditing = useCallback(() => {
-    setIsEditing(false);
-    setEditContent(comment.content);
-    setExistingImageUrls([]);
-    clearAllEditImages();
-  }, [comment.content, clearAllEditImages]);
-
-  const clearEditImage = useCallback(
-    (index: number) => {
-      if (index < existingImageUrls.length) {
-        setExistingImageUrls((prev) => prev.filter((_, i) => i !== index));
-      } else {
-        clearEditPastedImage(index - existingImageUrls.length);
-      }
-    },
-    [existingImageUrls.length, clearEditPastedImage]
-  );
-
-  const handleUpdate = useCallback(() => {
-    if (!editContent.trim() && editImages.length === 0 && existingImageUrls.length === 0) {
-      return;
+  const clearImage = (index: number) => {
+    if (index < existingImageUrls.length) {
+      setExistingImageUrls((prev) => prev.filter((_, i) => i !== index));
+    } else {
+      clearPastedImage(index - existingImageUrls.length);
     }
-    updateComment(
-      {
-        commentId: comment.id,
-        content: editContent,
-        images: editImages,
-        existingImages: existingImageUrls,
-      },
-      {
-        onSuccess: () => {
-          setIsEditing(false);
-          clearAllEditImages();
-        },
-      }
-    );
-  }, [comment.id, editContent, editImages, existingImageUrls, updateComment, clearAllEditImages]);
-
-  const canSubmit =
-    (editContent.trim().length > 0 || editImages.length > 0 || existingImageUrls.length > 0) &&
-    !isUpdating;
+  };
 
   const isDirty =
-    isEditing &&
-    (editContent !== originalSnapshotRef.current.text ||
-      editImages.length > 0 ||
-      existingImageUrls.length !== originalSnapshotRef.current.imageUrls.length);
+    formState.isDirty ||
+    editImages.length > 0 ||
+    existingImageUrls.length !== initialSnapshot.imageUrls.length;
 
   useUnsavedChanges(`comment-update:${comment.id}`, isDirty);
 
+  const onSubmit = form.handleSubmit((data: FormValues) => {
+    const content = (data.content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    if (!content.trim() && editImages.length === 0 && existingImageUrls.length === 0) {
+      toast.error(TEXTS.validation.commentRequired);
+      return;
+    }
+
+    updateComment(
+      { commentId: comment.id, content, images: editImages, existingImages: existingImageUrls },
+      { onSuccess: () => onSuccess?.() }
+    );
+  });
+
+  const canSubmit =
+    (!!contentValue.trim() || editImages.length > 0 || existingImageUrls.length > 0) && !isUpdating;
+
   return {
-    isEditing,
-    editContent,
-    editImagePreviewUrls,
-    isEditDraggingOver,
+    form,
+    onSubmit,
+    contentValue,
     isUpdating,
     canSubmit,
-    setEditContent,
-    startEditing,
-    cancelEditing,
-    addEditFiles,
-    handleEditPaste,
-    handleEditDrop,
-    handleEditDragOver,
-    handleEditDragEnter,
-    handleEditDragLeave,
-    clearEditImage,
-    handleUpdate,
+    imagePreviewUrls,
+    isDraggingOver,
+    addFiles,
+    handlePaste,
+    handleDrop,
+    handleDragOver,
+    handleDragEnter,
+    handleDragLeave,
+    clearImage,
   };
 }

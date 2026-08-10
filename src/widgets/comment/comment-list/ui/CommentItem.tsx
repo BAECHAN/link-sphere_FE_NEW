@@ -14,7 +14,6 @@ import { ActionButton } from '@/shared/ui/elements/ActionButton';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { LinkThumbnail } from '@/shared/ui/atoms/link-thumbnail';
-import { useUpdateComment } from '@/features/comment/update/hooks/useUpdateComment';
 import { useDeleteComment } from '@/features/comment/delete/hooks/useDeleteComment';
 
 interface CommentItemProps {
@@ -28,26 +27,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
   const { data: account } = useFetchAccountQuery();
   const isMobile = useIsMobile();
   const [isReplying, setIsReplying] = useState(false);
-
-  const {
-    isEditing,
-    editContent,
-    editImagePreviewUrls,
-    isEditDraggingOver,
-    isUpdating,
-    canSubmit,
-    setEditContent,
-    startEditing,
-    cancelEditing,
-    addEditFiles,
-    handleEditPaste,
-    handleEditDrop,
-    handleEditDragOver,
-    handleEditDragEnter,
-    handleEditDragLeave,
-    clearEditImage,
-    handleUpdate,
-  } = useUpdateComment({ comment, postId });
+  const [isEditing, setIsEditing] = useState(false);
 
   const { onDelete } = useDeleteComment({ postId });
 
@@ -89,23 +69,10 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
 
         {isEditing ? (
           <CommentEditForm
-            editContent={editContent}
-            editImagePreviewUrls={editImagePreviewUrls}
-            isEditDraggingOver={isEditDraggingOver}
-            isUpdating={isUpdating}
-            canSubmit={canSubmit}
-            isMobile={isMobile}
-            linkMetadata={comment.linkMetadata}
-            setEditContent={setEditContent}
-            cancelEditing={cancelEditing}
-            addEditFiles={addEditFiles}
-            handleEditPaste={handleEditPaste}
-            handleEditDrop={handleEditDrop}
-            handleEditDragOver={handleEditDragOver}
-            handleEditDragEnter={handleEditDragEnter}
-            handleEditDragLeave={handleEditDragLeave}
-            clearEditImage={clearEditImage}
-            handleUpdate={handleUpdate}
+            comment={comment}
+            postId={postId}
+            onCancel={() => setIsEditing(false)}
+            onSuccess={() => setIsEditing(false)}
           />
         ) : (
           <>
@@ -165,7 +132,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
                 <ActionButton
                   icon={Edit2}
                   label={TEXTS.comment.item.edit}
-                  onClick={startEditing}
+                  onClick={() => setIsEditing(true)}
                   className="hover:text-info"
                 />
                 <ActionButton

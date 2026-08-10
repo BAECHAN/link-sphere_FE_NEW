@@ -61,6 +61,18 @@
   없어요."만 남겼다.
   (`features/auth/profile/ui/UpdateProfileForm.tsx`, `shared/config/texts.ts`)
 
+- **댓글 수정 폼(`CommentEditForm`)을 댓글 등록 폼과 동일한 구조(React Hook Form + `<form>`)로
+  전면 마이그레이션** — 기존엔 유일하게 `useState` + 수동 dirty 비교 + `<div>`(진짜 `<form>`
+  아님) 구조라, ⌘+Enter 저장이 없었고 위 TooltipWrapper의 "같은 폼의 다른 입력창에 타이핑하면
+  억제" 로직도 `closest('form')`이 못 찾아 적용되지 않았다. `CommentItem.tsx`가 훅을 호출해
+  12개 prop을 내려주던 구조도 답글 폼처럼 컴포넌트가 자기 훅을 직접 호출하는 형태로 바꿔,
+  `isEditing` 로컬 boolean만 남기고 나머지는 마운트가 곧 "편집 시작"이 되도록 정리했다. 이제
+  댓글 등록과 완전히 동일하게 ⌘+Enter(및 그 힌트 뱃지), 빈 상태 스크롤+테두리 강조, hover
+  이유 툴팁이 전부 동작한다.
+  (`features/comment/update/hooks/useUpdateComment.ts`,
+  `features/comment/update/ui/CommentEditForm.tsx`,
+  `widgets/comment/comment-list/ui/CommentItem.tsx`)
+
 ## [0.11.0] - 2026-08-10
 
 ### Added

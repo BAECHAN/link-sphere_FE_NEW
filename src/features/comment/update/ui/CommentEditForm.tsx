@@ -1,59 +1,65 @@
+import { useRef, useState } from 'react';
 import { Button } from '@/shared/ui/atoms/button';
 import { Textarea } from '@/shared/ui/atoms/textarea';
 import { X, Check, ImagePlus } from 'lucide-react';
+import { Kbd } from '@/shared/ui/atoms/kbd';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { ImageAttachmentField } from '@/shared/ui/elements/ImageAttachmentField';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/const';
-import { LinkMetadata } from '@/entities/comment/model/comment.schema';
+import { Comment } from '@/entities/comment/model/comment.schema';
+import { useUpdateComment } from '@/features/comment/update/hooks/useUpdateComment';
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
 interface CommentEditFormProps {
-  editContent: string;
-  editImagePreviewUrls: string[];
-  isEditDraggingOver: boolean;
-  isUpdating: boolean;
-  canSubmit: boolean;
-  isMobile: boolean;
-  linkMetadata?: LinkMetadata | null;
-  setEditContent: (content: string) => void;
-  cancelEditing: () => void;
-  addEditFiles: (files: FileList) => void;
-  handleEditPaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
-  handleEditDrop: (e: React.DragEvent<HTMLElement>) => void;
-  handleEditDragOver: (e: React.DragEvent<HTMLElement>) => void;
-  handleEditDragEnter: (e: React.DragEvent<HTMLElement>) => void;
-  handleEditDragLeave: (e: React.DragEvent<HTMLElement>) => void;
-  clearEditImage: (index: number) => void;
-  handleUpdate: () => void;
+  comment: Comment;
+  postId: string;
+  onCancel: () => void;
+  onSuccess: () => void;
 }
 
-export function CommentEditForm({
-  editContent,
-  editImagePreviewUrls,
-  isEditDraggingOver,
-  isUpdating,
-  canSubmit,
-  isMobile,
-  linkMetadata,
-  setEditContent,
-  cancelEditing,
-  addEditFiles,
-  handleEditPaste,
-  handleEditDrop,
-  handleEditDragOver,
-  handleEditDragEnter,
-  handleEditDragLeave,
-  clearEditImage,
-  handleUpdate,
-}: CommentEditFormProps) {
+export function CommentEditForm({ comment, postId, onCancel, onSuccess }: CommentEditFormProps) {
+  const {
+    form,
+    onSubmit,
+    contentValue,
+    isUpdating,
+    canSubmit,
+    imagePreviewUrls,
+    isDraggingOver,
+    addFiles,
+    handlePaste,
+    handleDrop,
+    handleDragOver,
+    handleDragEnter,
+    handleDragLeave,
+    clearImage,
+  } = useUpdateComment({ comment, postId, onSuccess });
+
+  const { register } = form;
+  const isMobile = useIsMobile();
+  const linkMetadata = comment.linkMetadata;
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [showValidationHighlight, setShowValidationHighlight] = useState(false);
+
+  // ⌘+Enter로 빈 상태 제출 시, 토스트만으로는 어느 폼인지 알기 어려워 그 폼 자신을 화면
+  // 중앙으로 스크롤하고 잠깐 강조한다.
+  function highlightEmptyForm() {
+    containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setShowValidationHighlight(true);
+    setTimeout(() => setShowValidationHighlight(false), 1300);
+  }
+
   return (
-    <div className="space-y-2">
+    <form onSubmit={onSubmit} className="space-y-2" noValidate>
       <div
+        ref={containerRef}
         className={cn(
-          'relative rounded-md transition-colors',
-          isEditDraggingOver && 'ring-2 ring-primary ring-offset-2'
+          'relative rounded-md transition-shadow duration-300',
+          isDraggingOver && 'ring-2 ring-primary ring-offset-2'
         )}
       >
         <div
@@ -63,33 +69,42 @@ export function CommentEditForm({
           // DOM 순서상 이 레이어보다 나중에 오더라도 이벤트를 가로채지 못한다.
           className={cn(
             'absolute -inset-18 z-20',
-            isEditDraggingOver ? 'pointer-events-auto' : 'pointer-events-none'
+            isDraggingOver ? 'pointer-events-auto' : 'pointer-events-none'
           )}
-          onDrop={handleEditDrop}
-          onDragOver={handleEditDragOver}
-          onDragEnter={handleEditDragEnter}
-          onDragLeave={handleEditDragLeave}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
         />
-        {isEditDraggingOver && (
+        {isDraggingOver && (
           <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-primary bg-primary/10">
             <ImagePlus className="h-6 w-6 text-primary" />
             <span className="text-sm font-medium text-primary">{TEXTS.comment.form.dropHere}</span>
           </div>
         )}
         <Textarea
-          value={editContent}
-          onChange={(e) => setEditContent(e.target.value)}
+          aria-invalid={showValidationHighlight}
+          autoFocus
           className="min-h-[80px] text-sm"
           placeholder={TEXTS.comment.form.editPlaceholder}
-          autoFocus
-          onPaste={handleEditPaste}
+          {...register('content')}
+          onPaste={handlePaste}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && e.metaKey) {
+              e.preventDefault();
+              if (!canSubmit) {
+                highlightEmptyForm();
+              }
+              onSubmit(e as unknown as React.FormEvent);
+            }
+          }}
         />
       </div>
-      {editContent && (
+      {contentValue && (
         <div className="rounded-md border bg-muted/30 p-3 text-sm">
           <p className="text-xs text-muted-foreground mb-1.5">{TEXTS.comment.form.preview}</p>
-          <MarkdownContent content={editContent} isMobile={isMobile} />
-          {linkMetadata && editContent.includes(linkMetadata.url) && (
+          <MarkdownContent content={contentValue} isMobile={isMobile} />
+          {linkMetadata && contentValue.includes(linkMetadata.url) && (
             <a
               href={linkMetadata.url}
               target="_blank"
@@ -121,18 +136,18 @@ export function CommentEditForm({
       )}
       <div className="flex items-center justify-between gap-2">
         <ImageAttachmentField
-          previewUrls={editImagePreviewUrls}
-          count={editImagePreviewUrls.length}
+          previewUrls={imagePreviewUrls}
+          count={imagePreviewUrls.length}
           maxCount={MAX_COMMENT_IMAGES}
-          onAttach={addEditFiles}
-          onRemove={clearEditImage}
+          onAttach={addFiles}
+          onRemove={clearImage}
         />
         <div className="flex gap-2">
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            onClick={cancelEditing}
+            onClick={onCancel}
             className="h-8 px-2 text-xs"
           >
             <X className="mr-1 h-3 w-3" />
@@ -142,19 +157,24 @@ export function CommentEditForm({
             content={!canSubmit && !isUpdating ? TEXTS.validation.commentOrImageRequired : null}
             disabled={!canSubmit}
           >
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleUpdate}
-              disabled={!canSubmit}
-              className="h-8 px-2 text-xs"
-            >
+            <Button type="submit" size="sm" disabled={!canSubmit} className="h-8 px-2 text-xs">
               <Check className="mr-1 h-3 w-3" />
               {isUpdating ? TEXTS.comment.form.saving : TEXTS.comment.form.save}
+              {!isMobile && (
+                <Kbd
+                  className="font-sans"
+                  style={{
+                    backgroundColor: 'var(--kbd-in-primary-bg)',
+                    color: 'var(--kbd-in-primary-color)',
+                  }}
+                >
+                  ⌘ + Enter
+                </Kbd>
+              )}
             </Button>
           </TooltipWrapper>
         </div>
       </div>
-    </div>
+    </form>
   );
 }
