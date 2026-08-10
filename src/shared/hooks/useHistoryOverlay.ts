@@ -16,7 +16,12 @@ export function useHistoryOverlay(key: string) {
   const isOpen = Boolean((location.state as Record<string, boolean> | null)?.[key]);
 
   const open = useCallback(() => {
-    navigate(`${location.pathname}${location.search}`, { state: { [key]: true } });
+    // preventScrollReset 없으면 <ScrollRestoration/>이 이 PUSH를 새 페이지로 보고
+    // window.scrollTo(0, 0)을 실행해 배경 스크롤이 최상단으로 튄다.
+    navigate(`${location.pathname}${location.search}`, {
+      state: { [key]: true },
+      preventScrollReset: true,
+    });
   }, [navigate, location.pathname, location.search, key]);
 
   const close = useCallback(() => {

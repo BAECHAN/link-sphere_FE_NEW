@@ -148,6 +148,13 @@
   `<img src>`에 썼다. 브라우저가 어차피 https로 자동 업그레이드해 로딩 자체는 되고
   있었지만, 렌더링 직전 http를 https로 치환해 경고를 없앴다(신규 크롤링 건은 BE에서도
   저장 전에 정규화). (`shared/ui/atoms/link-thumbnail.tsx`)
+- **이미지 라이트박스·로그인 모달·마이페이지 패널·모바일 사이드바 드로어를 열면 배경
+  메인 스크롤이 최상단으로 튀던 문제** — 이 오버레이들은 뒤로가기로 자연스럽게 닫히도록
+  히스토리 엔트리를 push해서 여는데(`useHistoryOverlay`), `<ScrollRestoration/>`이 이
+  PUSH를 새 페이지 이동으로 보고 `window.scrollTo(0, 0)`을 실행했다. 오버레이를 여는
+  모든 navigate 호출에 `preventScrollReset: true`를 추가해 배경 위치를 그대로 유지한다.
+  (`shared/hooks/useHistoryOverlay.ts`, `shared/lib/router/navigation.ts`,
+  `shared/ui/elements/MarkdownContent.tsx`, `entities/user/api/auth.queries.ts`)
 - **mermaid.js 등에서 내보낸 SVG를 댓글에 첨부하면 미리보기에 안 보이던 문제** — 루트
   `<svg>`가 `width="100%"`고 `height`가 없는 경우, `<img src="blob:...">`로 불러올 때
   브라우저가 퍼센트 너비의 기준을 찾지 못해 intrinsic 크기를 못 구해 렌더링 자체가

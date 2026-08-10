@@ -69,6 +69,7 @@ function renderInlineLinks(
               useImageViewerStore.getState().setImages(images, startIndex);
               NavigationService.navigate(`${window.location.pathname}${window.location.search}`, {
                 state: { imageViewerOpen: true },
+                preventScrollReset: true,
               });
             }}
             className="block cursor-pointer"

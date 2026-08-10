@@ -197,6 +197,7 @@ export const useUpdateAccountMutation = () => {
             });
             NavigationService.navigate(`${window.location.pathname}${window.location.search}`, {
               state: { myPageOpen: true },
+              preventScrollReset: true,
             });
           },
         },
