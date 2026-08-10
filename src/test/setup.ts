@@ -17,23 +17,29 @@ afterAll(() => server.close());
 
 // jsdom 미구현 Browser API 스텁
 
+// 화살표 함수는 new로 생성할 수 없어(JS 자체의 제약), 실제 코드가 new IntersectionObserver(...)
+// 처럼 생성자로 호출하면 "is not a constructor"로 터진다 - 일반 함수로 스텁해야 한다.
 vi.stubGlobal(
   'IntersectionObserver',
-  vi.fn(() => ({
-    disconnect: vi.fn(),
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    takeRecords: vi.fn(),
-  }))
+  vi.fn(function IntersectionObserverMock() {
+    return {
+      disconnect: vi.fn(),
+      observe: vi.fn(),
+      unobserve: vi.fn(),
+      takeRecords: vi.fn(),
+    };
+  })
 );
 
 vi.stubGlobal(
   'ResizeObserver',
-  vi.fn(() => ({
-    disconnect: vi.fn(),
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-  }))
+  vi.fn(function ResizeObserverMock() {
+    return {
+      disconnect: vi.fn(),
+      observe: vi.fn(),
+      unobserve: vi.fn(),
+    };
+  })
 );
 
 vi.stubGlobal('matchMedia', (query: string) => ({

@@ -37,6 +37,16 @@ export function UpdateProfileForm({ onSuccess }: UpdateProfileFormProps) {
       ? TEXTS.mypage.nicknameAvailable
       : undefined;
 
+  const isSaveDisabled =
+    isPending ||
+    !isDirty ||
+    !hasDebounceSettled ||
+    isCheckingNickname ||
+    // 닉네임 형식 오류(길이·문자 규칙)까지 포함해서 막는다 - 중복 체크(hasNicknameError)만
+    // 보면 형식 오류일 때는 버튼이 멀쩡해 보이는데 눌러도 RHF가 내부적으로 제출을 막아
+    // 아무 반응이 없는 것처럼 보였다.
+    !!form.formState.errors.nickname;
+
   return (
     <FormProvider {...form}>
       <form onSubmit={onSubmit} className="space-y-6" noValidate>
@@ -82,29 +92,11 @@ export function UpdateProfileForm({ onSuccess }: UpdateProfileFormProps) {
         />
 
         <TooltipWrapper
-          content={
-            !isDirty
-              ? TEXTS.validation.noChanges
-              : !hasDebounceSettled || isCheckingNickname
-                ? TEXTS.validation.nicknameChecking
-                : null
-          }
+          content={!isDirty ? TEXTS.validation.noChanges : null}
+          disabled={isSaveDisabled}
           className="w-full"
         >
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={
-              isPending ||
-              !isDirty ||
-              !hasDebounceSettled ||
-              isCheckingNickname ||
-              // 닉네임 형식 오류(길이·문자 규칙)까지 포함해서 막는다 - 중복 체크(hasNicknameError)만
-              // 보면 형식 오류일 때는 버튼이 멀쩡해 보이는데 눌러도 RHF가 내부적으로 제출을 막아
-              // 아무 반응이 없는 것처럼 보였다.
-              !!form.formState.errors.nickname
-            }
-          >
+          <Button type="submit" className="w-full" disabled={isSaveDisabled}>
             {TEXTS.mypage.save}
           </Button>
         </TooltipWrapper>

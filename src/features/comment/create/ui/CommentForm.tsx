@@ -132,7 +132,10 @@ export function CommentForm({
               {TEXTS.comment.form.cancel}
             </Button>
           )}
-          <TooltipWrapper content={canSubmit ? null : TEXTS.validation.commentOrImageRequired}>
+          <TooltipWrapper
+            content={canSubmit ? null : TEXTS.validation.commentOrImageRequired}
+            disabled={!canSubmit}
+          >
             <Button type="submit" size="sm" className="gap-1.5" disabled={!canSubmit}>
               {isReply ? TEXTS.comment.form.submitReply : TEXTS.comment.form.submitComment}
               {!isMobile && (

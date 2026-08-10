@@ -140,6 +140,7 @@ export function CommentEditForm({
           </Button>
           <TooltipWrapper
             content={!canSubmit && !isUpdating ? TEXTS.validation.commentOrImageRequired : null}
+            disabled={!canSubmit}
           >
             <Button
               type="button"

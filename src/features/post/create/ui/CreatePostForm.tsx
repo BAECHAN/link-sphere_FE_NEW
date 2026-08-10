@@ -66,6 +66,7 @@ export function CreatePostForm() {
                       ? TEXTS.validation.urlFormat
                       : null
                 }
+                disabled={!canSubmit}
                 className="w-full"
               >
                 <Button className="w-full h-11 text-base" disabled={!canSubmit}>
