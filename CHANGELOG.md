@@ -20,6 +20,12 @@
   붙여넣기·첨부 버튼·드래그앤드롭 세 경로가 모두 같은 진입점(`addFiles`)을 거치며 개수·
   크기 검증을 공유한다. (`shared/hooks/useImageAttachments.ts`(구 `useImagePaste.ts`),
   `shared/ui/elements/ImageAttachmentField.tsx`, `entities/comment/config/const.ts`)
+- **라이트박스(이미지 확대 뷰어)에 이전/다음 네비게이션 추가** — 댓글에 이미지가 여러 장
+  붙을 수 있게 된 만큼, 화살표 버튼·좌우 방향키·`N / M` 인디케이터로 한 댓글 안의 이미지를
+  넘겨 볼 수 있다. 아바타 확대 등 기존 단일 이미지 호출부는 그대로 동작한다(하위호환).
+  (`shared/ui/elements/modal/image-viewer/imageViewer.store.ts`,
+  `shared/ui/elements/modal/image-viewer/ImageViewer.tsx`,
+  `shared/ui/elements/MarkdownContent.tsx`)
 
 ### Changed
 

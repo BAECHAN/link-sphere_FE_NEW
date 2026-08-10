@@ -11,22 +11,44 @@ interface MarkdownContentProps {
   className?: string;
 }
 
+const URL_PATTERN = /(blob:https?:\/\/[^\s]+|https?:\/\/[^\s]+)/g;
+const IMAGE_EXT_PATTERN = /\.(jpeg|jpg|gif|png|webp|avif|heic|heif)(\?.*)?$/i;
+
+function isImageUrl(url: string): boolean {
+  // blob: URL은 낙관적으로 삽입한 임시 댓글이 업로드 전 이미지를 미리 보여줄 때만 등장한다
+  // (아직 서버에 없는 파일이라 http(s) URL이 아님) - 서버 응답이 오면 실제 URL로 교체된다.
+  return url.startsWith('blob:') || IMAGE_EXT_PATTERN.test(url);
+}
+
+/**
+ * content 전체에서 이미지로 렌더링될 URL만 순서대로 뽑는다. 라이트박스에 "같은 댓글의 다른
+ * 이미지들"을 함께 넘겨 이전/다음 네비게이션이 가능하게 하려면, 클릭 시점에 이 댓글에 이미지가
+ * 총 몇 개인지 미리 알아야 한다.
+ */
+function extractImageUrls(content: string): string[] {
+  const matches = content.match(URL_PATTERN) ?? [];
+  return matches.filter(isImageUrl);
+}
+
 export function MarkdownContent({ content, isMobile = false, className }: MarkdownContentProps) {
   if (!content) {
     return null;
   }
+  const imageUrls = extractImageUrls(content);
   return (
     <div className={cn('leading-relaxed break-all', className)}>
-      {parseMarkdown(content, isMobile)}
+      {parseMarkdown(content, isMobile, imageUrls)}
     </div>
   );
 }
 
-function renderInlineLinks(text: string, keyPrefix: string, isMobile: boolean): React.ReactNode[] {
-  // blob: URL은 낙관적으로 삽입한 임시 댓글이 업로드 전 이미지를 미리 보여줄 때만 등장한다
-  // (아직 서버에 없는 파일이라 http(s) URL이 아님) - 서버 응답이 오면 실제 URL로 교체된다.
-  const urlPattern = /(blob:https?:\/\/[^\s]+|https?:\/\/[^\s]+)/g;
-  const parts = text.split(urlPattern);
+function renderInlineLinks(
+  text: string,
+  keyPrefix: string,
+  isMobile: boolean,
+  imageUrls: string[]
+): React.ReactNode[] {
+  const parts = text.split(URL_PATTERN);
   const nodes: React.ReactNode[] = [];
 
   parts.forEach((part, i) => {
@@ -34,9 +56,7 @@ function renderInlineLinks(text: string, keyPrefix: string, isMobile: boolean): 
       return;
     }
     if (/^(blob:https?:\/\/[^\s]+|https?:\/\/[^\s]+)$/.test(part)) {
-      const isImage =
-        part.startsWith('blob:') || /\.(jpeg|jpg|gif|png|webp|avif|heic|heif)(\?.*)?$/i.test(part);
-      if (isImage) {
+      if (isImageUrl(part)) {
         nodes.push(
           <button
             key={`${keyPrefix}-${i}`}
@@ -44,7 +64,9 @@ function renderInlineLinks(text: string, keyPrefix: string, isMobile: boolean): 
             onClick={() => {
               // renderInlineLinks는 훅을 쓸 수 없는 일반 함수라 히스토리 오버레이를
               // NavigationService로 직접 연다 (auth.queries.ts의 마이페이지 재오픈과 동일한 이유)
-              useImageViewerStore.getState().setImage({ src: part, alt: 'attachment' });
+              const images = imageUrls.map((url) => ({ src: url, alt: 'attachment' }));
+              const startIndex = Math.max(imageUrls.indexOf(part), 0);
+              useImageViewerStore.getState().setImages(images, startIndex);
               NavigationService.navigate(`${window.location.pathname}${window.location.search}`, {
                 state: { imageViewerOpen: true },
               });
@@ -81,7 +103,7 @@ function renderInlineLinks(text: string, keyPrefix: string, isMobile: boolean): 
   return nodes;
 }
 
-function parseMarkdown(text: string, isMobile: boolean): React.ReactNode[] {
+function parseMarkdown(text: string, isMobile: boolean, imageUrls: string[]): React.ReactNode[] {
   if (!text) {
     return [];
   }
@@ -116,25 +138,25 @@ function parseMarkdown(text: string, isMobile: boolean): React.ReactNode[] {
       if (line.startsWith('#### ')) {
         elements.push(
           <h4 key={key} className="text-sm font-bold mt-1">
-            {renderInlineLinks(line.slice(5), key, isMobile)}
+            {renderInlineLinks(line.slice(5), key, isMobile, imageUrls)}
           </h4>
         );
       } else if (line.startsWith('### ')) {
         elements.push(
           <h3 key={key} className="text-sm font-semibold mt-1">
-            {renderInlineLinks(line.slice(4), key, isMobile)}
+            {renderInlineLinks(line.slice(4), key, isMobile, imageUrls)}
           </h3>
         );
       } else if (line.startsWith('## ')) {
         elements.push(
           <h2 key={key} className="text-base font-bold mt-1">
-            {renderInlineLinks(line.slice(3), key, isMobile)}
+            {renderInlineLinks(line.slice(3), key, isMobile, imageUrls)}
           </h2>
         );
       } else if (line.startsWith('# ')) {
         elements.push(
           <h1 key={key} className="text-base font-bold mt-1">
-            {renderInlineLinks(line.slice(2), key, isMobile)}
+            {renderInlineLinks(line.slice(2), key, isMobile, imageUrls)}
           </h1>
         );
       } else if (line === '') {
@@ -142,7 +164,7 @@ function parseMarkdown(text: string, isMobile: boolean): React.ReactNode[] {
       } else {
         elements.push(
           <span key={key} className="block">
-            {renderInlineLinks(line, key, isMobile)}
+            {renderInlineLinks(line, key, isMobile, imageUrls)}
           </span>
         );
       }
