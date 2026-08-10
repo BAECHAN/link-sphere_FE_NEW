@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-08-10
+
 ### Added
 
 - 게시글 등록/수정, 댓글·답글 작성, 댓글 수정 중 저장하지 않은 내용이 있으면 페이지 이탈
@@ -770,7 +772,8 @@ BE API 의존: 댓글 생성/답글/수정 요청 바디가 `multipart/form-data
   `PostResponse.userInteractions.bookmarkFolderId` 필요
 - 드래그앤드랍 · 다중 선택 · 폴더 공유는 차후 별도 작업
 
-[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.7.0...v0.8.0
