@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { useUpdateCommentMutation } from '@/entities/comment/api/comment.queries';
 import { Comment } from '@/entities/comment/model/comment.schema';
-import { useImagePaste } from '@/shared/hooks/useImagePaste';
+import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/const';
+import { useImageAttachments } from '@/shared/hooks/useImageAttachments';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { splitContentImages } from '@/shared/lib/content/imageContent';
 
@@ -18,14 +19,23 @@ export function useUpdateComment({ comment, postId }: UseUpdateCommentOptions) {
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
 
   const {
-    pastedImages: editPastedImages,
-    imagePreviewUrls: pastedPreviewUrls,
+    images: editImages,
+    imagePreviewUrls: editPastedPreviewUrls,
+    isDraggingOver: isEditDraggingOver,
+    addFiles: addEditFiles,
     handlePaste: handleEditPaste,
-    clearImage: clearPastedImage,
+    handleDrop: handleEditDrop,
+    handleDragOver: handleEditDragOver,
+    handleDragEnter: handleEditDragEnter,
+    handleDragLeave: handleEditDragLeave,
+    clearImage: clearEditPastedImage,
     clearAllImages: clearAllEditImages,
-  } = useImagePaste();
+  } = useImageAttachments({
+    maxCount: MAX_COMMENT_IMAGES,
+    reservedCount: existingImageUrls.length,
+  });
 
-  const editImagePreviewUrls = [...existingImageUrls, ...pastedPreviewUrls];
+  const editImagePreviewUrls = [...existingImageUrls, ...editPastedPreviewUrls];
 
   // 수정을 시작할 때의 원본 스냅샷 - 편집 중인 값과 비교해 실제로 변경했는지 판단한다.
   const originalSnapshotRef = useRef({ text: '', imageUrls: [] as string[] });
@@ -50,21 +60,21 @@ export function useUpdateComment({ comment, postId }: UseUpdateCommentOptions) {
       if (index < existingImageUrls.length) {
         setExistingImageUrls((prev) => prev.filter((_, i) => i !== index));
       } else {
-        clearPastedImage(index - existingImageUrls.length);
+        clearEditPastedImage(index - existingImageUrls.length);
       }
     },
-    [existingImageUrls.length, clearPastedImage]
+    [existingImageUrls.length, clearEditPastedImage]
   );
 
   const handleUpdate = useCallback(() => {
-    if (!editContent.trim() && editPastedImages.length === 0 && existingImageUrls.length === 0) {
+    if (!editContent.trim() && editImages.length === 0 && existingImageUrls.length === 0) {
       return;
     }
     updateComment(
       {
         commentId: comment.id,
         content: editContent,
-        images: editPastedImages,
+        images: editImages,
         existingImages: existingImageUrls,
       },
       {
@@ -74,25 +84,16 @@ export function useUpdateComment({ comment, postId }: UseUpdateCommentOptions) {
         },
       }
     );
-  }, [
-    comment.id,
-    editContent,
-    editPastedImages,
-    existingImageUrls,
-    updateComment,
-    clearAllEditImages,
-  ]);
+  }, [comment.id, editContent, editImages, existingImageUrls, updateComment, clearAllEditImages]);
 
   const canSubmit =
-    (editContent.trim().length > 0 ||
-      editPastedImages.length > 0 ||
-      existingImageUrls.length > 0) &&
+    (editContent.trim().length > 0 || editImages.length > 0 || existingImageUrls.length > 0) &&
     !isUpdating;
 
   const isDirty =
     isEditing &&
     (editContent !== originalSnapshotRef.current.text ||
-      editPastedImages.length > 0 ||
+      editImages.length > 0 ||
       existingImageUrls.length !== originalSnapshotRef.current.imageUrls.length);
 
   useUnsavedChanges(`comment-update:${comment.id}`, isDirty);
@@ -101,12 +102,18 @@ export function useUpdateComment({ comment, postId }: UseUpdateCommentOptions) {
     isEditing,
     editContent,
     editImagePreviewUrls,
+    isEditDraggingOver,
     isUpdating,
     canSubmit,
     setEditContent,
     startEditing,
     cancelEditing,
+    addEditFiles,
     handleEditPaste,
+    handleEditDrop,
+    handleEditDragOver,
+    handleEditDragEnter,
+    handleEditDragLeave,
     clearEditImage,
     handleUpdate,
   };

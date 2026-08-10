@@ -6,7 +6,8 @@ import {
   useCreateCommentMutation,
   useCreateReplyMutation,
 } from '@/entities/comment/api/comment.queries';
-import { useImagePaste } from '@/shared/hooks/useImagePaste';
+import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/const';
+import { useImageAttachments } from '@/shared/hooks/useImageAttachments';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
 import { useAccount } from '@/entities/user/hooks/useAccount';
@@ -46,15 +47,26 @@ export function useCreateComment({
   const { reset, setFocus, setError, clearErrors, watch } = form;
   const contentValue = watch('content');
 
-  const { pastedImages, imagePreviewUrls, handlePaste, clearImage, clearAllImages } = useImagePaste(
-    {
-      onImageSet: () => clearErrors('content'),
-    }
-  );
+  const {
+    images,
+    imagePreviewUrls,
+    isDraggingOver,
+    addFiles,
+    handlePaste,
+    handleDrop,
+    handleDragOver,
+    handleDragEnter,
+    handleDragLeave,
+    clearImage,
+    clearAllImages,
+  } = useImageAttachments({
+    maxCount: MAX_COMMENT_IMAGES,
+    onImageSet: () => clearErrors('content'),
+  });
 
   useUnsavedChanges(
     `comment-create:${postId}:${parentId ?? 'root'}`,
-    contentValue.trim().length > 0 || pastedImages.length > 0
+    contentValue.trim().length > 0 || images.length > 0
   );
 
   useEffect(() => {
@@ -71,13 +83,12 @@ export function useCreateComment({
 
       const content = (data.content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-      if (!content.trim() && pastedImages.length === 0) {
+      if (!content.trim() && images.length === 0) {
         setError('content', { type: 'manual', message: TEXTS.validation.commentOrImageRequired });
         return;
       }
 
       const author = { id: account.id, nickname: account.nickname, image: account.image ?? null };
-      const images = pastedImages;
 
       // 서버 응답을 기다리지 않고 즉시 폼을 비운다 - 낙관적 업데이트가 목록에 바로 반영하므로
       // 여기서 기다릴 이유가 없다 (mutation 실패 시 목록 쪽에서 롤백된다).
@@ -98,9 +109,15 @@ export function useCreateComment({
     onSubmit,
     isReply,
     contentValue,
-    pastedImages,
+    images,
     imagePreviewUrls,
+    isDraggingOver,
+    addFiles,
     handlePaste,
+    handleDrop,
+    handleDragOver,
+    handleDragEnter,
+    handleDragLeave,
     clearImage,
     clearAllImages,
   };

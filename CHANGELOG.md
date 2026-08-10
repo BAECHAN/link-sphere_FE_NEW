@@ -15,6 +15,21 @@
   폼별 감지가 불가능했고, 전역 dirty 키 레지스트리(`useUnsavedChanges`) + 루트 레이아웃의
   단일 가드(`useUnsavedChangesGuard`) 구조로 해결했다.
   (`shared/store/unsavedChanges.store.ts`, `shared/hooks/useUnsavedChanges*.ts`)
+- **댓글 이미지 첨부 버튼·드래그앤드롭 추가, 최대 5장 제한** — 기존엔 텍스트영역에
+  붙여넣기(Ctrl+V)로만 이미지를 첨부할 수 있어 모바일에서는 사실상 쓸 수 없었다.
+  붙여넣기·첨부 버튼·드래그앤드롭 세 경로가 모두 같은 진입점(`addFiles`)을 거치며 개수·
+  크기 검증을 공유한다. (`shared/hooks/useImageAttachments.ts`(구 `useImagePaste.ts`),
+  `shared/ui/elements/ImageAttachmentField.tsx`, `entities/comment/config/const.ts`)
+
+### Changed
+
+- **댓글 이미지 붙여넣기 크기 상한을 10MB에서 30MB(SVG·GIF는 15MB)로 통일** — 붙여넣기만
+  10MB 하드코딩이었고 실제 업로드 검증(`resizeImage.ts`)은 30/15MB라 기준이 어긋나 있었다.
+  전 경로가 `getImageFileSizeError()` 하나로 통일된다. 어차피 클라이언트에서 1024px 이하로
+  리사이즈해 업로드하므로 저장 용량에는 영향이 없다. (`shared/hooks/useImageAttachments.ts`)
+- **댓글 이미지 화질 상한을 1024px에서 1600px로 상향** — 원본을 저장하지 않는 구조라 이
+  값이 곧 영구 화질 상한이다. 레티나 디스플레이에서 라이트박스로 확대했을 때 스크린샷
+  속 글자를 더 잘 알아볼 수 있게 됐다. (`entities/upload/api/upload.api.ts`)
 
 ### Fixed
 
@@ -127,6 +142,12 @@
   `<img src>`에 썼다. 브라우저가 어차피 https로 자동 업그레이드해 로딩 자체는 되고
   있었지만, 렌더링 직전 http를 https로 치환해 경고를 없앴다(신규 크롤링 건은 BE에서도
   저장 전에 정규화). (`shared/ui/atoms/link-thumbnail.tsx`)
+- **mermaid.js 등에서 내보낸 SVG를 댓글에 첨부하면 미리보기에 안 보이던 문제** — 루트
+  `<svg>`가 `width="100%"`고 `height`가 없는 경우, `<img src="blob:...">`로 불러올 때
+  브라우저가 퍼센트 너비의 기준을 찾지 못해 intrinsic 크기를 못 구해 렌더링 자체가
+  안 됐다(인라인 SVG나 새 탭 직접 열기는 문제없음 — `<img>` 태그로 불러올 때만 생기는
+  잘 알려진 제약). 첨부 시점에 SVG를 파싱해 `viewBox`로부터 절대 `width`/`height`를
+  계산해 주입한다. (`shared/lib/image/resizeImage.ts`)
 
 ### Changed
 
@@ -144,6 +165,22 @@
   댓글과 답글 폼이 화면 끝·하단 탭바에 붙어 답답했다. 여백을 한 곳에서 관리하는 기존
   구조를 유지하기 위해 댓글 영역이 아닌 전역 레이아웃에서 조정했다.
   (`app/layouts/app-layout/AppLayout.tsx`)
+- **댓글 이미지 드롭존을 폼 영역에 정확히 올려야만 반응하던 것을 완화** — 뷰포트 어디로든
+  파일을 드래그해 들어오는 순간 현재 열려 있는 모든 댓글 폼의 드롭존 오버레이가 동시에
+  뜨고(실제 드랍은 각 폼 영역만 인식), 실제 드랍 판정 영역도 보이는 점선 박스보다 사방
+  72px 넓게 잡아 정확히 겨냥하지 않아도 인식되게 했다. `position: absolute` + `z-index`로
+  확장 레이어를 얹었는데, `position` 없는 형제 요소(미리보기 박스·버튼 줄)는 음수
+  마진만으로는 페인트 순서상 그 위를 덮어버려 히트 영역이 무력화되는 문제가 있어
+  z-index로 명시적으로 이겼다. (`shared/hooks/useImageAttachments.ts`,
+  `features/comment/create/ui/CommentForm.tsx`,
+  `features/comment/update/ui/CommentEditForm.tsx`)
+- **이미지첨부 버튼 클릭 영역을 32px에서 44px(iOS/Android 최소 터치 타겟 기준)로 확대,
+  문구를 GitHub 스타일로 통합** — 기존엔 패딩 없는 raw 버튼이라 클릭 영역이 텍스트
+  줄 높이 정도였다. 같은 줄의 취소/저장 버튼과 같은 `Button` 아톰으로 교체하고,
+  GitHub 첨부 버튼처럼 화면 폭에 따라 "이미지 첨부 0/5"(좁은 화면) ↔ "클릭·드래그·
+  붙여넣기로 이미지 첨부 0/5"(넓은 화면)로 전환되는 라벨을 추가해 버튼을 몰라도
+  드래그·붙여넣기가 된다는 걸 알 수 있게 했다. (`shared/ui/elements/ImageAttachmentField.tsx`,
+  `shared/config/texts.ts`)
 
 ## [0.10.0] - 2026-08-04
 

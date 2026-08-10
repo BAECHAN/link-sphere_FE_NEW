@@ -56,7 +56,7 @@ function canvasToWebpBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
 /**
  * resizeImageFile이 이 파일을 거부할지(그리고 어떤 메시지로 거부할지) 실제 리사이즈를 실행하지
  * 않고 동기적으로 미리 판정한다. 파일 선택 즉시(업로드를 시도하기 전에) 크기를 검증할 때 쓴다 -
- * useImagePaste.ts가 댓글 이미지 붙여넣기 시점에 하는 것과 동일한 fail-fast 패턴.
+ * useImageAttachments.ts가 댓글 이미지 첨부 시점에 하는 것과 동일한 fail-fast 패턴.
  * 통과하면 null을 반환한다. resizeImageFile과 같은 기준(shouldSkipResize)을 공유해 둘이 어긋나지 않는다.
  */
 export function getImageFileSizeError(
@@ -130,6 +130,63 @@ export async function resizeImageFile(
       bitmap.close();
     }
   } catch {
+    return file;
+  }
+}
+
+/**
+ * SVG의 루트 width/height가 없거나 퍼센트(예: mermaid.js의 width="100%")면 viewBox에서
+ * 계산한 절대값으로 채워 넣는다. <img src="...">로 불러올 때 브라우저가 intrinsic 크기를
+ * 못 구하면(퍼센트는 이 문맥에서 참조할 기준이 없음) 아예 렌더링되지 않는 문제가 있다 -
+ * 인라인 SVG나 새 탭으로 직접 열 때는 문제없이 보이지만 <img> 태그로만 불러올 때 생긴다.
+ */
+export async function normalizeSvgDimensions(file: File): Promise<File> {
+  if (!isSvg(file)) {
+    return file;
+  }
+
+  try {
+    const text = await file.text();
+    const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
+    const svgEl = doc.documentElement;
+    if (svgEl.nodeName !== 'svg' || doc.querySelector('parsererror')) {
+      return file;
+    }
+
+    const hasUsableWidth =
+      svgEl.hasAttribute('width') && !svgEl.getAttribute('width')!.includes('%');
+    const hasUsableHeight =
+      svgEl.hasAttribute('height') && !svgEl.getAttribute('height')!.includes('%');
+    if (hasUsableWidth && hasUsableHeight) {
+      return file; // 이미 명시적 크기가 있으면 손대지 않는다.
+    }
+
+    const viewBox = svgEl.getAttribute('viewBox');
+    if (!viewBox) {
+      return file; // viewBox도 없으면 계산할 방법이 없다.
+    }
+    const parts = viewBox
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number);
+    if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) {
+      return file;
+    }
+    // parts.length === 4를 위에서 이미 확인했으므로 non-null 단언이 안전하다.
+    const vbWidth = parts[2]!;
+    const vbHeight = parts[3]!;
+    if (vbWidth <= 0 || vbHeight <= 0) {
+      return file;
+    }
+
+    svgEl.setAttribute('width', String(vbWidth));
+    svgEl.setAttribute('height', String(vbHeight));
+
+    const newSvgText = new XMLSerializer().serializeToString(doc);
+    return new File([newSvgText], file.name, { type: SVG_MIME_TYPE });
+  } catch {
+    // 파싱 실패 등 어떤 이유로든 실패하면 원본 그대로 진행한다 - "크기 상한만 지키면
+    // 업로드는 항상 성공해야 한다"는 이 파일의 기존 원칙(resizeImageFile)과 동일하게 맞춘다.
     return file;
   }
 }

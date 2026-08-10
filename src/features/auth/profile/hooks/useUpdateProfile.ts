@@ -63,8 +63,8 @@ export function useUpdateProfile(onSuccess?: () => void) {
   }, []);
 
   const handleAvatarChange = (file: File) => {
-    // 업로드(제출) 시점까지 기다리지 않고 파일을 고르는 즉시 크기를 검증한다 - useImagePaste.ts가
-    // 댓글 이미지 붙여넣기에서 쓰는 것과 동일한 fail-fast 패턴. resizeImageFile과 같은 기준을
+    // 업로드(제출) 시점까지 기다리지 않고 파일을 고르는 즉시 크기를 검증한다 - useImageAttachments.ts가
+    // 댓글 이미지 첨부에서 쓰는 것과 동일한 fail-fast 패턴. resizeImageFile과 같은 기준을
     // 쓰므로(skipGifResize: false - 아바타는 항상 작게 표시됨) 실제 업로드 단계와 판정이 어긋나지 않는다.
     const sizeError = getImageFileSizeError(file, { skipGifResize: false });
     if (sizeError) {

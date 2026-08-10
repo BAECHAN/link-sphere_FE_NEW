@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resizeImageFile } from '@/shared/lib/image/resizeImage';
+import { resizeImageFile, normalizeSvgDimensions } from '@/shared/lib/image/resizeImage';
 import { TEXTS } from '@/shared/config/texts';
 
 /** File.size는 읽기 전용이라 실제 큰 버퍼를 만들지 않고 원하는 크기로 흉내낸다 */
@@ -7,6 +7,11 @@ function fakeFile(name: string, type: string, sizeInBytes: number): File {
   const file = new File([], name, { type });
   Object.defineProperty(file, 'size', { value: sizeInBytes });
   return file;
+}
+
+/** normalizeSvgDimensions는 file.text()로 실제 내용을 읽으므로 진짜 SVG 텍스트가 필요하다 */
+function svgFile(name: string, svgText: string): File {
+  return new File([svgText], name, { type: 'image/svg+xml' });
 }
 
 const MB = 1024 * 1024;
@@ -51,5 +56,61 @@ describe('resizeImageFile - 크기 상한', () => {
     await expect(resizeImageFile(file, 512, { skipGifResize: false })).rejects.toThrow(
       TEXTS.validation.imageTooLarge(15)
     );
+  });
+});
+
+describe('normalizeSvgDimensions', () => {
+  it('width가 퍼센트고 height가 없어도 viewBox가 있으면 절대 width/height를 주입한다', async () => {
+    // mermaid.js가 내보내는 SVG의 전형적인 형태 - <img>로 불러오면 퍼센트 width가 참조할
+    // 기준이 없어 intrinsic 크기를 못 구해 렌더링되지 않는 문제의 재현 케이스.
+    const file = svgFile(
+      'diagram.svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 300 150"><rect/></svg>'
+    );
+
+    const result = await normalizeSvgDimensions(file);
+
+    expect(result).not.toBe(file);
+    const text = await result.text();
+    expect(text).toContain('width="300"');
+    expect(text).toContain('height="150"');
+  });
+
+  it('이미 명시적 width/height가 있으면 손대지 않고 원본을 그대로 반환한다', async () => {
+    const file = svgFile(
+      'icon.svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><rect/></svg>'
+    );
+
+    const result = await normalizeSvgDimensions(file);
+
+    expect(result).toBe(file);
+  });
+
+  it('viewBox도 없으면 계산할 방법이 없어 원본을 그대로 반환한다', async () => {
+    const file = svgFile(
+      'no-viewbox.svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" width="100%"><rect/></svg>'
+    );
+
+    const result = await normalizeSvgDimensions(file);
+
+    expect(result).toBe(file);
+  });
+
+  it('파싱 자체가 실패해도 예외 없이 원본을 그대로 반환한다', async () => {
+    const file = svgFile('broken.svg', '<svg><rect width="100%"</svg>');
+
+    const result = await normalizeSvgDimensions(file);
+
+    expect(result).toBe(file);
+  });
+
+  it('SVG가 아닌 파일은 그대로 반환한다', async () => {
+    const file = new File([], 'photo.png', { type: 'image/png' });
+
+    const result = await normalizeSvgDimensions(file);
+
+    expect(result).toBe(file);
   });
 });

@@ -6,6 +6,62 @@
 
 ---
 
+## 2026-08-10 — 댓글 이미지 다중 첨부 확장: 저장 방식 유지, 5장/30MB 근거, 클라이언트 압축 유지
+
+**배경**
+
+댓글에 이미지 여러 장을 붙여넣기(Ctrl+V)로만 첨부할 수 있어 첨부 버튼이 없다는 사실 자체가
+사용자에게 안 보였고, 모바일에서는 클립보드 붙여넣기가 사실상 불가능해 아예 쓸 수 없었다.
+첨부 버튼·드래그앤드롭을 추가하고 5장 상한을 두는 작업에서 네 가지를 결정했다.
+
+**검토 1 — 저장 방식: `comment_images` 테이블 분리 vs 현행 유지**
+
+이미지는 `comments.content` 텍스트 끝에 URL을 줄바꿈으로 이어붙이는 방식이다
+(`CommentService.buildFinalContent` ↔ FE `splitContentImages`가 정확한 역함수). 테이블로
+분리하면 정규식 기반 SQL 백필 + `CommentResponse.images` 필드 추가 + "BE 먼저 배포" 순서
+제약이 따라온다. 5장 제한은 BE의 `images.size` 검증만으로 완전히 강제되므로 테이블 분리가
+있어야만 이번 기능이 되는 게 아니다 → **현행 유지**, 테이블 분리는 별도 작업으로 미룬다.
+
+**검토 2 — 최대 장수**
+
+GitHub은 개수 제한 없음(파일당 10MB), Discord 10장, Slack 20장, X 4장. X(4)와 Discord(10)
+사이에서 **5장**으로 정했다.
+
+**검토 3 — 크기 상한 통일**
+
+붙여넣기 경로만 10MB 하드코딩이 있었고 실제 업로드 검증(`resizeImage.ts`)은 30MB(리사이즈
+대상)/15MB(SVG·GIF)로 서로 어긋나 있었다. GitHub·Discord의 10MB는 원본을 서버에 올린 뒤
+서버가 재압축하는 전제인데, 우리는 브라우저에서 먼저 1024px(→1600px로 상향) WebP로 줄인
+뒤 올린다 — 30MB는 "저장 용량"이 아니라 "고를 수 있는 원본" 상한이고, 실제 저장은 수백KB다.
+`getImageFileSizeError()`로 통일했다.
+
+**검토 4 — 압축 지점을 서버로 옮길지**
+
+WAF `SizeRestrictions_BODY`가 요청 바디를 8KB로 막아(BE 0.6.0) 이미지 바이트가 애초에
+서버를 지나가지 않는다 — 서버 압축(GitHub·Discord 방식)도, 원본을 저장해두고 표시 시점에
+변환하는 방식(Cloudinary·imgix 방식)도 이 제약 때문에 선택지에서 빠진다. 클라이언트 리사이즈
+유지가 유일한 실질 선택지였다. 대가: 원본이 영구 소실되고(1024→1600px가 되돌릴 수 없는
+화질 상한), 서버 측 업로드 크기 검증이 없어(Supabase 버킷 설정이 유일한 백스톱) 5장 확장으로
+노출이 커진다.
+
+**결정**
+
+- 저장 방식(content-append) 유지, `comment_images` 테이블 분리는 보류
+- 최대 5장, 크기 상한 30MB(SVG·GIF 15MB)로 통일
+- 클라이언트 단독 리사이즈 유지, 화질 상한 1024→1600px 상향
+- 서버 측 크기 미검증 노출을 낮추기 위해 Supabase 버킷 파일 크기 제한을 배포 체크리스트에 추가
+- 서명 URL 미제출 고아 이미지 정리는 admin/role 개념이 없는 이 코드베이스에서 REST
+  엔드포인트로 노출하지 않고, `@Profile` 가드된 로컬 전용 `CommandLineRunner`로 구현
+
+**상태**
+
+적용 완료. 관련 파일: `shared/hooks/useImageAttachments.ts`,
+`shared/ui/elements/ImageAttachmentField.tsx`, `entities/upload/api/upload.api.ts`,
+`entities/comment/api/comment.api.ts` (BE `CommentService.kt`, `UploadService.kt`,
+`tools/OrphanImageCleanupRunner.kt`).
+
+---
+
 ## 2026-08-07 — 프로덕션 배포 파이프라인 장애: 수정사항 3개가 반영 안 된 채 테스트하고 있었다
 
 **배경**

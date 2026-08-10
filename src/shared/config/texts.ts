@@ -183,6 +183,9 @@ export const TEXTS = {
       editPlaceholder: '수정할 내용을 입력하세요...',
       preview: '미리보기',
       removeImage: '이미지 삭제',
+      attachImage: '이미지 첨부',
+      dropHere: '이미지를 여기에 놓으세요',
+      attachHint: '클릭·드래그·붙여넣기로 이미지 첨부',
       cancel: '취소',
       save: '저장',
       saving: COMMON_TEXT.saving,
@@ -274,6 +277,8 @@ export const TEXTS = {
     invalidIdFormat: '유효하지 않은 ID 형식이에요.',
     commentOrImageRequired: '내용 또는 이미지를 추가해주세요.',
     imageTooLarge: (maxSizeMB: number) => `이미지 용량은 ${maxSizeMB}MB를 초과할 수 없어요.`,
+    imageCountExceeded: (max: number) => `이미지는 최대 ${max}장까지 첨부할 수 있어요.`,
+    imageFileOnly: '이미지 파일만 첨부할 수 있어요.',
   },
   messages: {
     info: {
