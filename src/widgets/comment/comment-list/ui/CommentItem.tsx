@@ -33,12 +33,18 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
     isEditing,
     editContent,
     editImagePreviewUrls,
+    isEditDraggingOver,
     isUpdating,
     canSubmit,
     setEditContent,
     startEditing,
     cancelEditing,
+    addEditFiles,
     handleEditPaste,
+    handleEditDrop,
+    handleEditDragOver,
+    handleEditDragEnter,
+    handleEditDragLeave,
     clearEditImage,
     handleUpdate,
   } = useUpdateComment({ comment, postId });
@@ -85,13 +91,19 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
           <CommentEditForm
             editContent={editContent}
             editImagePreviewUrls={editImagePreviewUrls}
+            isEditDraggingOver={isEditDraggingOver}
             isUpdating={isUpdating}
             canSubmit={canSubmit}
             isMobile={isMobile}
             linkMetadata={comment.linkMetadata}
             setEditContent={setEditContent}
             cancelEditing={cancelEditing}
+            addEditFiles={addEditFiles}
             handleEditPaste={handleEditPaste}
+            handleEditDrop={handleEditDrop}
+            handleEditDragOver={handleEditDragOver}
+            handleEditDragEnter={handleEditDragEnter}
+            handleEditDragLeave={handleEditDragLeave}
             clearEditImage={clearEditImage}
             handleUpdate={handleUpdate}
           />
@@ -130,7 +142,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
           </>
         )}
 
-        {!isDeleted && !isOptimistic && (
+        {!isDeleted && !isOptimistic && !isEditing && (
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <LikeCommentButton
               commentId={comment.id}
