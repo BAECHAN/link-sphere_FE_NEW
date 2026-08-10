@@ -12,6 +12,7 @@ import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
 import { useAccount } from '@/entities/user/hooks/useAccount';
 import { TEXTS } from '@/shared/config/texts';
+import { toast } from '@/shared/lib/toast/toast';
 
 const formSchema = z.object({
   content: z.string(),
@@ -44,7 +45,7 @@ export function useCreateComment({
     defaultValues: { content: '' },
   });
 
-  const { reset, setFocus, setError, clearErrors, watch } = form;
+  const { reset, setFocus, watch } = form;
   const contentValue = watch('content');
 
   const {
@@ -61,7 +62,6 @@ export function useCreateComment({
     clearAllImages,
   } = useImageAttachments({
     maxCount: MAX_COMMENT_IMAGES,
-    onImageSet: () => clearErrors('content'),
   });
 
   useUnsavedChanges(
@@ -84,7 +84,7 @@ export function useCreateComment({
       const content = (data.content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
       if (!content.trim() && images.length === 0) {
-        setError('content', { type: 'manual', message: TEXTS.validation.commentOrImageRequired });
+        toast.error(isReply ? TEXTS.validation.replyRequired : TEXTS.validation.commentRequired);
         return;
       }
 

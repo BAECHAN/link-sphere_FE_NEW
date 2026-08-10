@@ -3,6 +3,7 @@ import { Textarea } from '@/shared/ui/atoms/textarea';
 import { X, Check, ImagePlus } from 'lucide-react';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { ImageAttachmentField } from '@/shared/ui/elements/ImageAttachmentField';
+import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/const';
@@ -137,16 +138,20 @@ export function CommentEditForm({
             <X className="mr-1 h-3 w-3" />
             {TEXTS.comment.form.cancel}
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleUpdate}
-            disabled={!canSubmit}
-            className="h-8 px-2 text-xs"
+          <TooltipWrapper
+            content={!canSubmit && !isUpdating ? TEXTS.validation.commentOrImageRequired : null}
           >
-            <Check className="mr-1 h-3 w-3" />
-            {isUpdating ? TEXTS.comment.form.saving : TEXTS.comment.form.save}
-          </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleUpdate}
+              disabled={!canSubmit}
+              className="h-8 px-2 text-xs"
+            >
+              <Check className="mr-1 h-3 w-3" />
+              {isUpdating ? TEXTS.comment.form.saving : TEXTS.comment.form.save}
+            </Button>
+          </TooltipWrapper>
         </div>
       </div>
     </div>

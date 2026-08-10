@@ -7,6 +7,7 @@ import { FormCheckbox } from '@/shared/ui/elements/form/FormCheckbox';
 import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
 import { useUpdatePost } from '@/features/post/update/hooks/useUpdatePost';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
+import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
 
 interface UpdatePostFormProps {
@@ -64,9 +65,14 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
                 />
               </div>
 
-              <Button className="w-full h-11 text-base" disabled={!canSubmit}>
-                {TEXTS.post.form.update.update}
-              </Button>
+              <TooltipWrapper
+                content={!isDirty ? TEXTS.validation.noChanges : null}
+                className="w-full"
+              >
+                <Button className="w-full h-11 text-base" disabled={!canSubmit}>
+                  {TEXTS.post.form.update.update}
+                </Button>
+              </TooltipWrapper>
             </form>
           </FormProvider>
         </CardContent>

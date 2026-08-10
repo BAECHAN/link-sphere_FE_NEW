@@ -26,6 +26,14 @@
   (`shared/ui/elements/modal/image-viewer/imageViewer.store.ts`,
   `shared/ui/elements/modal/image-viewer/ImageViewer.tsx`,
   `shared/ui/elements/MarkdownContent.tsx`)
+- **비활성 버튼에 이유 툴팁 표시** — 게시글 수정, 프로필 저장, 댓글 등록/수정 버튼이 눌리지
+  않을 때 마우스 호버 시 이유(변경 없음, 닉네임 확인 중, 내용 없음 등)를 알려준다. 유효성
+  에러처럼 이미 화면에 표시되는 이유는 중복이라 제외했다. `TooltipWrapper`는
+  `pointerType === 'touch'`일 때 Radix 툴팁이 열리지 않는 한계가 있어, 터치로 탭하면 같은
+  이유를 토스트로 대신 보여준다. (`shared/ui/elements/TooltipWrapper.tsx`,
+  `features/post/update/ui/UpdatePostForm.tsx`,
+  `features/auth/profile/ui/UpdateProfileForm.tsx`,
+  `features/comment/update/ui/CommentEditForm.tsx`)
 
 ### Changed
 
@@ -36,6 +44,16 @@
 - **댓글 이미지 화질 상한을 1024px에서 1600px로 상향** — 원본을 저장하지 않는 구조라 이
   값이 곧 영구 화질 상한이다. 레티나 디스플레이에서 라이트박스로 확대했을 때 스크린샷
   속 글자를 더 잘 알아볼 수 있게 됐다. (`entities/upload/api/upload.api.ts`)
+- **댓글 등록 버튼을 빈 상태에서 비활성으로 전환** — 기존엔 빈 상태로 눌러야만 에러가 뜨고,
+  그 메시지가 텍스트영역 아래 끼어들며 레이아웃이 밀렸다(이미지 첨부 시 사라지며 다시 밀림).
+  버튼을 처음부터 비활성으로 두고 이유는 툴팁/토스트로 보여주는 방식으로 바꿔 시프트를
+  없앴다. ⌘+Enter 제출 경로의 검증 실패도 `setError` 대신 토스트로 알리며, 메인 댓글창인지
+  답글창인지에 따라 문구가 갈린다(토스트가 화면 상단에 고정돼 있어 텍스트영역 위치와
+  분리돼 있다). 그래서 실패 시 그 폼을 화면 중앙으로 스크롤하고 텍스트영역 테두리를 잠깐
+  `aria-invalid` 상태(회색→destructive)로 바꿔, 답글창이 여러 개 열려 있어도 정확히 어느 폼인지
+  보여준다.
+  (`features/comment/create/ui/CommentForm.tsx`,
+  `features/comment/create/hooks/useCreateComment.ts`)
 
 ### Fixed
 
