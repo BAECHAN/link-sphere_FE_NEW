@@ -44,4 +44,26 @@ describe('useHistoryOverlay', () => {
 
     expect(navigateSpy).not.toHaveBeenCalled();
   });
+
+  it('열린 상태에서 close를 연속 두 번 호출해도 navigate(-1)은 한 번만 호출한다', () => {
+    // navigate(-1)은 popstate를 거쳐 비동기로 반영되므로, isOpen이 아직 true인 사이에 close가
+    // 다시 불려도(예: ESC 조합 중 keydown 중복 발생) 히스토리를 두 번 pop해선 안 된다.
+    function OpenWrapper({ children }: { children: ReactNode }) {
+      return (
+        <MemoryRouter initialEntries={[{ pathname: '/post/1', state: { imageViewerOpen: true } }]}>
+          {children}
+        </MemoryRouter>
+      );
+    }
+
+    const { result } = renderHook(() => useHistoryOverlay('imageViewerOpen'), {
+      wrapper: OpenWrapper,
+    });
+
+    result.current.close();
+    result.current.close();
+
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(navigateSpy).toHaveBeenCalledWith(-1);
+  });
 });

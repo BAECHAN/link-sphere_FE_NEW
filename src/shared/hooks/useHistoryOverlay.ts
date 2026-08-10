@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 /**
@@ -24,11 +24,25 @@ export function useHistoryOverlay(key: string) {
     });
   }, [navigate, location.pathname, location.search, key]);
 
+  // navigate(-1)은 popstate를 거쳐 비동기로 반영된다 - 그 사이 close()가 한 번 더 불리면
+  // isOpen이 아직 true라 위 가드를 그냥 통과해 back이 두 번 나가고 배경 페이지까지
+  // 넘어간다(예: ESC 조합 중 keydown이 중복 발생하는 경우). 엔트리별로 한 번만 보내도록 래치한다.
+  const backSentRef = useRef(false);
+
+  useEffect(
+    function rearmForCurrentEntry() {
+      backSentRef.current = false;
+    },
+    [location.key, isOpen]
+  );
+
   const close = useCallback(() => {
     // 이미 닫혀 있는데 back하면 이 엔트리가 없어 실제 페이지를 떠나므로 반드시 가드한다
-    if (isOpen) {
-      navigate(-1);
+    if (!isOpen || backSentRef.current) {
+      return;
     }
+    backSentRef.current = true;
+    navigate(-1);
   }, [isOpen, navigate]);
 
   return { isOpen, open, close };

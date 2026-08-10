@@ -337,10 +337,50 @@ pathname 일치 여부와 무관하게 모든 네비게이션을 막고, 막힌 
 1회를 재현. URL 불변, 모달만 닫힘을 확인(코드 리뷰가 아니라 실제 브라우저
 동작으로 검증).
 
+**추가 발견(2026-08-11) — T1 오버레이에서 ESC 한 번이 `navigate(-1)`을 두 번
+보내 배경 페이지까지 넘기는 문제**
+
+프로필 수정 모달에서 닉네임에 한글을 입력하던 중(IME 조합 중) ESC를 누르면
+모달만 닫히지 않고 배경 페이지까지 뒤로 이동했다. `useHistoryOverlay`의
+`close()`는 `isOpen`을 가드로 쓰는데, `navigate(-1)`은 popstate를 거쳐
+**비동기로** 반영된다 — 그 사이 `close()`가 한 번 더 불리면 가드를 그냥
+통과해 `navigate(-1)`이 두 번 나간다. `7bb1f89`의 Sidebar 레이스, 이 문서
+바로 위 섹션의 마우스 back 버튼발 `pointerdown` 중복과 같은 계열(비동기
+`navigate(-1)`을 동기 가드로만 막으려던 것)의 세 번째 재발이다.
+
+두 번째 keydown이 왜 발생하는지는 실브라우저 IME 세션으로 직접 재현·측정하지
+못했다 — 대신 이 레포가 이미 같은 문제를 겪고 고친 흔적(`FolderSelector.tsx`,
+`FolderTree.tsx`, `MobileFolderList.tsx`의 인라인 입력창들이 전부
+`if (e.nativeEvent.isComposing) return;`로 Escape를 가드하고 있음)을 정황
+근거로 삼았다 — **코드 추적으로 확인한 사실이 아니라 기존 패턴에 근거한
+추정**이다. 다만 이 추정이 틀리더라도(원인이 IME가 아니라 다른 경로의 중복
+keydown이더라도) 아래 수정 1은 "엔트리당 back 1회"를 무조건 보장하므로
+증상 자체는 해결된다.
+
+**결정 및 구현**
+
+1. `useHistoryOverlay.close()`에 엔트리별 1회 래치(`backSentRef`)를 추가해
+   `isOpen`이 아직 갱신되지 않은 구간에도 중복 `navigate(-1)`을 막는다.
+   `myPageOpen`·`loginModalOpen`·`imageViewerOpen`·`sidebarOpen` 4개
+   오버레이 전부에 한 번에 적용된다.
+2. 공유 `Dialog`(`shared/ui/atoms/dialog.tsx`)에 `onEscapeKeyDown` 가드를
+   추가해 IME 조합 중(`event.isComposing`) ESC는 dismiss로 처리하지 않는다.
+   같은 파일의 `onPointerDownOutside` 가드(마우스 back 버튼 무시)와 동일한
+   형태. 이 컴포넌트를 쓰는 Alert·이미지뷰어·마이페이지·로그인모달에 함께
+   적용된다.
+
+**검증 범위**: 사용자가 실브라우저(로컬 `npm run dev`)에서 마이페이지 모달
+기준으로 재현 → 수정 후 정상 동작을 직접 확인했다. `useHistoryOverlay`는
+4개 오버레이가 완전히 같은 코드 경로를 공유하므로 로그인 모달·이미지뷰어·
+모바일 사이드바도 동일하게 고쳐졌을 것으로 판단하지만, 이 3곳은 개별
+재현·재확인을 거치지 않았다 — 회귀 테스트(아래)와 코드 추적으로만
+뒷받침된 상태다.
+
 **상태**
 
-적용 완료(Dialog 수정, NavItem 레이스 수정, T0 blocker 확장). 마지막 "DevTools
-에뮬레이션 아티팩트" 발견 건은 앱 버그가 아님을 확인, 조치 불필요. 관련 파일:
+적용 완료(Dialog 수정, NavItem 레이스 수정, T0 blocker 확장, T1 ESC 중복
+navigate(-1) 래치). 마지막 "DevTools 에뮬레이션 아티팩트" 발견 건은 앱
+버그가 아님을 확인, 조치 불필요. 관련 파일:
 `shared/hooks/useHistoryOverlay.ts`,
 `shared/store/{sidebar,mypage,loginModal,imageViewer}.store.ts`,
 `app/routes/ProtectedRoute.tsx`, `shared/lib/router/navigation.ts`,
