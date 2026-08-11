@@ -71,20 +71,18 @@ export function CommentForm({
           isDraggingOver && 'ring-2 ring-primary ring-offset-2'
         )}
       >
-        <div
-          // 점선 박스보다 사방 72px 넓게 실제 드랍 판정 영역을 확장한다. 드래그 중에만
-          // pointer-events를 켜서 평소엔 텍스트영역 클릭·포커스를 가리지 않는다. position이 없는
-          // 형제(미리보기 박스·버튼 줄)는 z-index와 무관하게 항상 더 아래 페인트 레이어에 그려지므로,
-          // DOM 순서상 이 레이어보다 나중에 오더라도 이벤트를 가로채지 못한다.
-          className={cn(
-            'absolute -inset-18 z-20',
-            isDraggingOver ? 'pointer-events-auto' : 'pointer-events-none'
-          )}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-        />
+        {isDraggingOver && (
+          <div
+            // 점선 박스보다 상하 72px 넓게 실제 드랍 판정 영역을 확장한다(좌우는 페이지 패딩만큼만 —
+            // 그 이상 넓히면 모바일에서 가로 스크롤이 생긴다). 드래그 중에만 마운트하므로 평소엔
+            // 텍스트영역 클릭·포커스를 가리지 않는다.
+            className="absolute -inset-x-4 -inset-y-18 z-20"
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+          />
+        )}
         {isDraggingOver && (
           <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-primary bg-primary/10">
             <ImagePlus className="h-6 w-6 text-primary" />

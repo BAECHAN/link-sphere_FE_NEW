@@ -9,6 +9,15 @@
 
 ### Fixed
 
+- **모바일 좁은 화면에서 댓글 작성창이 있는 화면(게시글 상세 등)에 가로 스크롤이 생기던
+  문제** — 댓글 드래그앤드롭 판정 영역이 점선 박스보다 사방 72px(`-inset-18`) 넓은 채로
+  `pointer-events`만 토글되며 평소에도 항상 DOM에 남아 있어, 페이지 좌우 패딩을 넘어서는
+  약 56px가 뷰포트 밖으로 삐져나와 문서 전체를 가로로 밀었다. 이 오버레이를 드래그 중일
+  때만 마운트하고, 확장 폭도 좌우는 페이지 패딩만큼으로 좁혔다(상하 72px는 유지). 함께
+  `CommentItem`의 작성자 영역에 `min-w-0`·닉네임 말줄임을 추가하고 이미지 첨부 미리보기가
+  긴 이미지로 인해 폭을 밀어내지 않도록 손봤다.
+  (`features/comment/create/ui/CommentForm.tsx`, `features/comment/update/ui/CommentEditForm.tsx`,
+  `widgets/comment/comment-list/ui/CommentItem.tsx`, `shared/ui/elements/ImageAttachmentField.tsx`)
 - **URL 앞뒤나 중간에 공백이 있으면 게시글 등록·수정이 항상 실패하던 문제** — 입력 검증에
   쓰는 `zod .url()`(브라우저 `URL` 파서)은 공백이 섞인 URL도 유효하다고 통과시키지만, BE
   `SafeUrlValidator`가 쓰는 `java.net.URI`는 RFC 2396 엄격 파서라 생 공백을 거부해

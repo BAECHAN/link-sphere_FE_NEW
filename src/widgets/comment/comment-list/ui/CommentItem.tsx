@@ -54,15 +54,15 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
         zoomable
       />
 
-      <div className="flex-1 space-y-2">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold">{comment.author.nickname}</span>
+      <div className="flex-1 min-w-0 space-y-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-semibold truncate">{comment.author.nickname}</span>
           {isPostAuthor && (
-            <Badge variant="default" className="px-1.5 py-0 text-[10px] h-4 bg-category">
+            <Badge variant="default" className="px-1.5 py-0 text-[10px] h-4 bg-category shrink-0">
               {TEXTS.comment.item.authorBadge}
             </Badge>
           )}
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground shrink-0">
             {DateUtil.formatRelativeShort(comment.createdAt)}
           </span>
         </div>

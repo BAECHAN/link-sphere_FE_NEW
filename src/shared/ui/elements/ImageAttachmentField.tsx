@@ -28,7 +28,7 @@ export function ImageAttachmentField({
   const isFull = count >= maxCount;
 
   return (
-    <div>
+    <div className="min-w-0">
       <Button
         type="button"
         variant="ghost"
@@ -70,7 +70,7 @@ export function ImageAttachmentField({
               <img
                 src={url}
                 alt={`Pasted preview ${index + 1}`}
-                className="max-h-32 object-contain rounded-md"
+                className="max-h-32 max-w-full object-contain rounded-md"
               />
               <button
                 type="button"
