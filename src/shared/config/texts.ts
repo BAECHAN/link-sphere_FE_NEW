@@ -86,6 +86,12 @@ export const TEXTS = {
       signUp: 'Sign Up',
       alreadyAccount: 'Already have an account?',
       signIn: 'Sign In',
+      // 이메일·닉네임 실시간 중복확인 문구 - 마이페이지(TEXTS.mypage.*)와 별개 화면이라 키를
+      // 공유하지 않는다
+      checking: '확인 중이에요...',
+      emailAvailable: '사용 가능한 이메일이에요.',
+      emailDuplicate: '이미 가입된 이메일이에요.',
+      nicknameAvailable: '사용 가능한 닉네임이에요.',
     },
   },
   nav: {

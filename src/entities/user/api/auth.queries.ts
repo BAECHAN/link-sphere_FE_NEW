@@ -12,6 +12,7 @@ import { STALE_TIME_ONE_DAY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
 import { API_ENDPOINTS } from '@/shared/config/api';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { useNavigate } from 'react-router-dom';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { requestAndRegisterFcmToken, unregisterFcmToken } from '@/shared/lib/firebase/fcm';
@@ -111,12 +112,18 @@ export const useCreateAccountMutation = () => {
       manualErrorHandling: true,
     },
     onError: (error) => {
+      // ApiError가 아닌 경우(오프라인·CORS·DNS 실패 등 네트워크 자체 실패)도 반드시 토스트를
+      // 띄운다 - 이 분기가 없으면 버튼만 다시 활성화되고 아무 안내 없이 조용히 실패한다.
       if (error instanceof ApiError) {
-        if (error.status === 409) {
+        if (error.code === SERVER_ERROR_CODE.DUPLICATE_NICKNAME) {
+          toast.error(TEXTS.messages.error.nicknameDuplicate);
+        } else if (error.status === 409) {
           toast.error(TEXTS.messages.error.accountCreateFailedDuplicateAccount);
         } else {
           toast.error(TEXTS.messages.error.accountCreateFailed);
         }
+      } else {
+        toast.error(TEXTS.messages.error.accountCreateFailed);
       }
     },
     onSuccess: () => {

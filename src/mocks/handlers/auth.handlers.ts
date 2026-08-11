@@ -19,9 +19,17 @@ export const authHandlers = [
     );
   }),
 
-  // POST /auth/signup
+  // POST /auth/signup - 실제 BE는 ApiResponse로 감싼 AccountResponse를 돌려준다(빈 바디 아님)
   http.post(url(API_ENDPOINTS.auth.signup), () => {
-    return new HttpResponse(null, { status: 201 });
+    return HttpResponse.json(
+      {
+        status: 201,
+        message: 'ok',
+        data: mockAccount,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 201 }
+    );
   }),
 
   // POST /auth/refresh
@@ -77,6 +85,20 @@ export const authHandlers = [
         status: 200,
         message: 'ok',
         data: { available: nickname !== 'taken' },
+        timestamp: new Date().toISOString(),
+      },
+      { status: 200 }
+    );
+  }),
+
+  // GET /auth/email-availability - 'taken@example.com'만 중복으로 취급 (가입 화면 전용)
+  http.get(url(API_ENDPOINTS.auth.emailAvailability), ({ request }) => {
+    const email = new URL(request.url).searchParams.get('email');
+    return HttpResponse.json(
+      {
+        status: 200,
+        message: 'ok',
+        data: { available: email !== 'taken@example.com' },
         timestamp: new Date().toISOString(),
       },
       { status: 200 }

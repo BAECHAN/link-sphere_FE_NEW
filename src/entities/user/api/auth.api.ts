@@ -77,4 +77,13 @@ export const authApi = {
     );
     return response.available;
   },
+
+  /** 이메일 가용성 사전 조회. 가입 화면(비로그인) 전용 - fail-open 여부는 호출부에서 결정한다. */
+  checkEmailAvailability: async (email: string): Promise<boolean> => {
+    const response = await apiClient.get<{ available: boolean }>(
+      API_ENDPOINTS.auth.emailAvailability,
+      { searchParams: { email } }
+    );
+    return response.available;
+  },
 };
