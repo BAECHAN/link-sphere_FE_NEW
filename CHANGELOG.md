@@ -9,6 +9,15 @@
 
 ### Fixed
 
+- **포스트 상세에서 본인 댓글을 볼 때(특히 좁은 화면) 좌우 스크롤이 생기던 문제** — 댓글
+  액션 행(좋아요·답글 달기·수정·삭제)이 텍스트 라벨을 그대로 노출하고 있었는데, 공용
+  `Button`에 `whitespace-nowrap shrink-0`이 기본으로 박혀 있어 좁은 화면에서 줄어들지도
+  줄바꿈되지도 않고 그대로 페이지를 밀었다(depth-1 답글 기준 iPhone SE~표준 크기,
+  390px까지 재현). `PostCard`의 북마크·공유 버튼과 동일하게 아이콘 + `sr-only` 라벨
+  형태로 바꾸고, 좋아요도 게시글과 통일해 항상 숫자만 표시하도록 맞췄다. 액션 행에는
+  안전망으로 `flex-wrap`도 추가했다.
+  (`shared/ui/elements/ActionButton.tsx`, `features/comment/like/ui/LikeCommentButton.tsx`,
+  `widgets/comment/comment-list/ui/CommentItem.tsx`)
 - **모바일 좁은 화면에서 댓글 작성창이 있는 화면(게시글 상세 등)에 가로 스크롤이 생기던
   문제** — 댓글 드래그앤드롭 판정 영역이 점선 박스보다 사방 72px(`-inset-18`) 넓은 채로
   `pointer-events`만 토글되며 평소에도 항상 DOM에 남아 있어, 페이지 좌우 패딩을 넘어서는

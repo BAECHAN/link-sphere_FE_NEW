@@ -110,7 +110,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
         )}
 
         {!isDeleted && !isOptimistic && !isEditing && (
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
             <LikeCommentButton
               commentId={comment.id}
               postId={postId}
@@ -124,6 +124,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
                 label={TEXTS.comment.item.reply}
                 onClick={() => setIsReplying(!isReplying)}
                 className="hover:text-info"
+                iconOnly
               />
             )}
 
@@ -134,12 +135,14 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
                   label={TEXTS.comment.item.edit}
                   onClick={() => setIsEditing(true)}
                   className="hover:text-info"
+                  iconOnly
                 />
                 <ActionButton
                   icon={Trash2}
                   label={TEXTS.buttons.delete}
                   onClick={() => onDelete(comment.id)}
                   className="hover:text-destructive"
+                  iconOnly
                 />
               </>
             )}
