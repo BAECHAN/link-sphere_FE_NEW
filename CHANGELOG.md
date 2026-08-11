@@ -9,6 +9,14 @@
 
 ### Fixed
 
+- **URL 앞뒤나 중간에 공백이 있으면 게시글 등록·수정이 항상 실패하던 문제** — 입력 검증에
+  쓰는 `zod .url()`(브라우저 `URL` 파서)은 공백이 섞인 URL도 유효하다고 통과시키지만, BE
+  `SafeUrlValidator`가 쓰는 `java.net.URI`는 RFC 2396 엄격 파서라 생 공백을 거부해
+  400으로 떨어졌다. 제출 직전 브라우저 표준과 동일한 방식으로 URL을 정리한다 — 앞뒤 공백
+  제거, 내부 공백은 `%20`으로 인코딩. 한글 등 다른 문자는 그대로 둔다(전면 정규화는 한글
+  URL을 퍼센트 인코딩으로 바꿔 저장값을 훼손하므로 채택하지 않음).
+  (`shared/utils/url.util.ts`, `features/post/create/hooks/useCreatePost.ts`,
+  `features/post/update/hooks/useUpdatePost.ts`)
 - **프로필 수정 모달에서 닉네임 입력 중(특히 한글 조합 중) ESC를 누르면 모달만 닫히지 않고
   배경 페이지까지 뒤로 이동해버리던 문제** — 마이페이지·로그인 모달·이미지뷰어·모바일
   사이드바는 열림 상태를 히스토리 엔트리로 관리해 닫을 때 `navigate(-1)`을 한 번만 보내야

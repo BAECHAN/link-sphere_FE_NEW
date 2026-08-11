@@ -5,6 +5,7 @@ import { CreatePost, createPostSchema } from '@/entities/post/model/post.schema'
 import { useNavigate } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
+import { UrlUtil } from '@/shared/utils/url.util';
 
 const DEFAULT_VALUES: CreatePost = {
   url: '',
@@ -27,7 +28,7 @@ export function useCreatePost() {
   const { clearNow } = useUnsavedChanges('post-create', form.formState.isDirty);
 
   const onSubmit = form.handleSubmit((formData: CreatePost) => {
-    createPost(formData);
+    createPost({ ...formData, url: UrlUtil.normalizeUrl(formData.url) });
     clearNow();
     onFormReset();
     // replace: 제출이 끝난 폼 엔트리를 결과 화면으로 대체 → 뒤로가기 시 빈 폼으로 돌아가지 않음
