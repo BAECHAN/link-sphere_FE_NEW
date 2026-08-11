@@ -6,6 +6,7 @@ export interface FormInputPasswordProps extends React.ComponentProps<'input'> {
   name: string;
   label?: string;
   description?: string;
+  reserveDescriptionSpace?: boolean;
 }
 
 export const FormInputPassword = ({
@@ -13,6 +14,7 @@ export const FormInputPassword = ({
   label,
   className,
   description,
+  reserveDescriptionSpace,
   ...props
 }: FormInputPasswordProps) => {
   const { control } = useFormContext<FieldValues>();
@@ -22,7 +24,13 @@ export const FormInputPassword = ({
   });
 
   return (
-    <FormField name={name} label={label} className={className} description={description}>
+    <FormField
+      name={name}
+      label={label}
+      className={className}
+      description={description}
+      reserveDescriptionSpace={reserveDescriptionSpace}
+    >
       <PasswordInput
         id={name}
         name={name}

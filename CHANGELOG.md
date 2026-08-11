@@ -23,6 +23,16 @@
 
 ### Fixed
 
+- **모바일 폭에서 회원가입·로그인·마이페이지 닉네임 수정 폼의 검증/상태 메시지가
+  라벨과 한 줄을 억지로 나눠 쓰다 잘려 보이던 문제** — `FormField.tsx`의
+  `messageInLabelRow` 레이아웃(라벨 옆에 `truncate` 적용)이 원인이었다. 라벨과
+  줄을 나누지 않고 입력창 아래 자기 줄 전체를 쓰는 기존 레이아웃(줄바꿈 허용,
+  `truncate` 없음)으로 통일해 잘림을 없앴다. 메시지가 나타날 때 아래 요소가
+  밀리는 레이아웃 시프트는 감수하기로 했다 — 자리를 상시 확보해두면 평소(메시지
+  없음) 상태에서 폼 전체 간격이 넓어 보이는 부작용이 더 크다고 판단했다.
+  `messageInLabelRow` prop과 분기는 이 변경으로 호출처가 0곳이 돼 함께 제거했다.
+  (`shared/ui/elements/form/_base/FormField.tsx`, `shared/ui/elements/form/FormInput.tsx`,
+  `shared/ui/elements/form/FormInputPassword.tsx`, `features/auth/profile/ui/UpdateProfileForm.tsx`)
 - **회원가입 폼의 닉네임 입력이 첫 렌더에서 uncontrolled로 시작해 React 경고가 뜨던
   문제** — `useSignUp.ts`의 기본값 객체가 실제 필드명(`nickname`)이 아닌 `name`이라는
   존재하지 않는 키를 쓰고 있어, 닉네임 입력이 `undefined`로 시작한 뒤 첫 타이핑에서야

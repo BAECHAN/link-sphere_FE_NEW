@@ -8,7 +8,6 @@ export interface FormInputProps extends React.ComponentProps<'input'> {
   description?: string;
   descriptionVariant?: 'default' | 'success';
   reserveDescriptionSpace?: boolean;
-  messageInLabelRow?: boolean;
   enableClear?: boolean;
 }
 
@@ -19,7 +18,6 @@ export const FormInput = ({
   description,
   descriptionVariant,
   reserveDescriptionSpace,
-  messageInLabelRow,
   enableClear,
   ...props
 }: FormInputProps) => {
@@ -37,7 +35,6 @@ export const FormInput = ({
       description={description}
       descriptionVariant={descriptionVariant}
       reserveDescriptionSpace={reserveDescriptionSpace}
-      messageInLabelRow={messageInLabelRow}
     >
       <Input
         id={name}

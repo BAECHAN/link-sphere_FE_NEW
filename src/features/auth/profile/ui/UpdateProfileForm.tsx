@@ -88,7 +88,6 @@ export function UpdateProfileForm({ onSuccess }: UpdateProfileFormProps) {
           placeholder={TEXTS.placeholders.nickname}
           description={nicknameStatusText}
           descriptionVariant={isNicknameAvailable ? 'success' : 'default'}
-          messageInLabelRow
         />
 
         <TooltipWrapper
