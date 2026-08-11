@@ -9,9 +9,6 @@ export interface ActionButtonProps {
 
   icon?: LucideIcon;
   iconClassName?: string;
-  /** true면 라벨을 시각적으로 숨기고 sr-only로만 남긴다 (아이콘만 표시) - PostCard의
-   * 북마크·공유 버튼과 동일한 패턴 */
-  iconOnly?: boolean;
 }
 
 export function ActionButton({
@@ -20,7 +17,6 @@ export function ActionButton({
   className,
   icon: Icon,
   iconClassName,
-  iconOnly,
 }: ActionButtonProps) {
   return (
     <Button
@@ -30,7 +26,7 @@ export function ActionButton({
       className={cn('flex items-center gap-1 transition-colors h-auto p-0', className)}
     >
       {Icon && <Icon className={cn('h-3.5 w-3.5', iconClassName)} />}
-      <span className={cn(iconOnly && 'sr-only')}>{label}</span>
+      <span>{label}</span>
     </Button>
   );
 }

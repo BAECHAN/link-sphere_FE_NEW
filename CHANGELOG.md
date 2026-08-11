@@ -7,17 +7,39 @@
 
 ## [Unreleased]
 
+### Added
+
+- **회원가입 화면 이메일·닉네임 실시간 중복확인** — 지금까지는 가입 버튼을 눌러 409를
+  받아야만 중복 여부를 알 수 있었다. 마이페이지 닉네임 중복확인(`useUpdateProfile.ts`)과
+  동일한 디바운스(500ms)·취소·상태머신 형태를 이메일에도 함께 쓸 수 있도록 일반화한
+  `useAvailabilityCheck` 훅을 새로 만들어 적용했다. 형식이 유효한 값에만 서버를 호출하고,
+  조회 자체가 실패(네트워크 오류 등)하면 확인됐다고 속이지 않고 조용히 idle로 남아 제출을
+  막지 않는다 — 실제 중복이면 제출 시점에 서버가 409로 다시 막아준다. 이메일 중복 시에는
+  로그인 페이지 링크를 함께 보여준다. BE에 새로 생긴 `GET /auth/email-availability`와,
+  비로그인도 쓸 수 있게 확장된 `GET /auth/account/nickname-availability`가 필요하다(BE
+  `docs/VERSION-COMPATIBILITY.md` 참고).
+  (`features/auth/signup/hooks/useAvailabilityCheck.ts`, `features/auth/signup/hooks/useSignUp.ts`,
+  `features/auth/signup/ui/SignUpForm.tsx`, `entities/user/api/auth.api.ts`)
+
 ### Fixed
 
-- **포스트 상세에서 본인 댓글을 볼 때(특히 좁은 화면) 좌우 스크롤이 생기던 문제** — 댓글
-  액션 행(좋아요·답글 달기·수정·삭제)이 텍스트 라벨을 그대로 노출하고 있었는데, 공용
-  `Button`에 `whitespace-nowrap shrink-0`이 기본으로 박혀 있어 좁은 화면에서 줄어들지도
-  줄바꿈되지도 않고 그대로 페이지를 밀었다(depth-1 답글 기준 iPhone SE~표준 크기,
-  390px까지 재현). `PostCard`의 북마크·공유 버튼과 동일하게 아이콘 + `sr-only` 라벨
-  형태로 바꾸고, 좋아요도 게시글과 통일해 항상 숫자만 표시하도록 맞췄다. 액션 행에는
-  안전망으로 `flex-wrap`도 추가했다.
-  (`shared/ui/elements/ActionButton.tsx`, `features/comment/like/ui/LikeCommentButton.tsx`,
-  `widgets/comment/comment-list/ui/CommentItem.tsx`)
+- **회원가입 폼의 닉네임 입력이 첫 렌더에서 uncontrolled로 시작해 React 경고가 뜨던
+  문제** — `useSignUp.ts`의 기본값 객체가 실제 필드명(`nickname`)이 아닌 `name`이라는
+  존재하지 않는 키를 쓰고 있어, 닉네임 입력이 `undefined`로 시작한 뒤 첫 타이핑에서야
+  값이 생겨 controlled로 바뀌었다. (`features/auth/signup/hooks/useSignUp.ts`)
+- **가입 실패가 네트워크 오류 등 서버발 에러가 아닌 경우(오프라인·CORS 실패 등) 아무 안내
+  없이 조용히 실패하던 문제** — `useCreateAccountMutation`의 `onError`가
+  `error instanceof ApiError` 안에서만 토스트를 띄우고 있어, 그 조건을 벗어나는 에러는
+  버튼만 다시 활성화되고 사용자에게 아무 피드백이 없었다. `useUpdateAccountMutation`과
+  동일하게 `else` 분기로 일반 실패 메시지를 띄우도록 맞췄다.
+  (`entities/user/api/auth.queries.ts`)
+- **닉네임이 중복인데도 "이메일로 가입된 계정이 존재해요"로 잘못 안내되던 문제** — BE가
+  이메일·닉네임 중복을 모두 같은 409(`DUPLICATE_MEMBER`)로 응답해 FE가 status만 보고
+  무조건 이메일 중복 문구를 띄우고 있었다. BE가 새로 분리한 `DUPLICATE_NICKNAME` 코드를
+  받아 이미 있던 `TEXTS.messages.error.nicknameDuplicate` 문구로 분기했다(BE
+  `docs/VERSION-COMPATIBILITY.md` 참고). (`shared/config/error-code.ts`,
+  `entities/user/api/auth.queries.ts`)
+
 - **모바일 좁은 화면에서 댓글 작성창이 있는 화면(게시글 상세 등)에 가로 스크롤이 생기던
   문제** — 댓글 드래그앤드롭 판정 영역이 점선 박스보다 사방 72px(`-inset-18`) 넓은 채로
   `pointer-events`만 토글되며 평소에도 항상 DOM에 남아 있어, 페이지 좌우 패딩을 넘어서는
