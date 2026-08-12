@@ -9,6 +9,21 @@
 
 ## [Unreleased]
 
+### Added
+
+- `bookmark` 게시글 목록에 "최근 열람순" 정렬 옵션 추가
+  <details><summary>배경·구현</summary>
+
+  북마크 폴더 목록에 붙인 "최근 저장한 폴더"의 연장선. 정렬 드롭다운에 `viewed`
+  옵션을 추가했다 — `VALID_SORTS`/`SORT_LABELS`가 이미 배열 기반이라 `BookmarkPostList`는
+  코드 변경 없이 새 값을 그대로 API에 전달한다. BE의 새 `sort=viewed` 값이 필요하다
+  (BE `docs/VERSION-COMPATIBILITY.md` 확인 불필요 — 신규 옵션 추가라 하위 호환, 구 BE에서는
+  해당 값이 `latest`로 폴백될 뿐 에러 없음).
+  (`entities/folder/model/folder.schema.ts`, `pages/bookmark/BookmarkPage.tsx`,
+  `shared/config/texts.ts`)
+
+  </details>
+
 ## [0.12.0] - 2026-08-13
 
 ### Added

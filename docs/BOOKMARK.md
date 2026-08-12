@@ -96,7 +96,8 @@ src/
 | `DELETE` | `/bookmark/{postId}/folders`                          | 폴더 소속 전부 해제 → 미분류                                                   |
 
 - `folderKey`(경로의 `{key}`): `'all' | 'uncategorized' | UUID`
-- `sort`: `'latest' | 'oldest' | 'title' | 'views'`
+- `sort`: `'latest' | 'oldest' | 'title' | 'views' | 'viewed'` — `viewed`(최근 열람순)는
+  개인별 열람 기록(BE `post_views` 테이블) 기준. 한 번도 안 연 글은 항상 맨 뒤
 - `search`: 값이 있을 때만 쿼리에 붙습니다 (`folder.api.ts`의 `if (search) searchParams.search = search`).
 - 폴더 소속 관련 3개 엔드포인트(추가/제거/전체해제)는 모두 **멱등** — 이미 그 상태여도
   200을 반환하고 404를 던지지 않습니다. 응답은 세 엔드포인트 공통으로

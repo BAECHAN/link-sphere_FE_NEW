@@ -108,8 +108,8 @@ describe('reorderFoldersSchema', () => {
 });
 
 describe('folderSortEnum', () => {
-  it('latest/oldest/title/views를 허용한다', () => {
-    for (const sort of ['latest', 'oldest', 'title', 'views']) {
+  it('latest/oldest/title/views/viewed를 허용한다', () => {
+    for (const sort of ['latest', 'oldest', 'title', 'views', 'viewed']) {
       expect(folderSortEnum.safeParse(sort).success).toBe(true);
     }
   });

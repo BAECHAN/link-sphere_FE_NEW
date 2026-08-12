@@ -45,7 +45,7 @@ export const bookmarkFoldersResponseSchema = z.object({
 });
 
 // 폴더 페이지 조회용 sort
-export const folderSortEnum = z.enum(['latest', 'oldest', 'title', 'views']);
+export const folderSortEnum = z.enum(['latest', 'oldest', 'title', 'views', 'viewed']);
 
 // folderKey: 'all' | 'uncategorized' | UUID
 export type FolderKey = 'all' | 'uncategorized' | (string & {});

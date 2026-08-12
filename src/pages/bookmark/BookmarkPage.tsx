@@ -23,9 +23,10 @@ const SORT_LABELS: Record<FolderSort, string> = {
   oldest: TEXTS.bookmark.folder.sort.oldest,
   title: TEXTS.bookmark.folder.sort.title,
   views: TEXTS.bookmark.folder.sort.views,
+  viewed: TEXTS.bookmark.folder.sort.viewed,
 };
 
-const VALID_SORTS: FolderSort[] = ['latest', 'oldest', 'title', 'views'];
+const VALID_SORTS: FolderSort[] = ['latest', 'oldest', 'title', 'views', 'viewed'];
 
 function parseFolderKey(raw: string | null): FolderKey | null {
   if (!raw) {
