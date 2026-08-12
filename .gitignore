@@ -32,3 +32,6 @@ dist-ssr
 
 *storybook.log
 storybook-static
+
+# === Claude Code worktrees (동시 세션 격리) ===
+.claude/worktrees/
