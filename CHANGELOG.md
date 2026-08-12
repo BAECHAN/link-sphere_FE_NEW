@@ -110,6 +110,16 @@
   여부는 `content`로 독립적으로 판단하도록 분리했다.
   (`shared/ui/elements/TooltipWrapper.tsx`, 호출부 5곳)
 
+- **모바일에서 사이드바 드로어나 댓글 입력바가 열린 상태로 페이지를 벗어나려 하면
+  이탈 확인 모달이 그 뒤에 가려 버튼을 누를 수 없던 문제** — 공용 `Dialog`(오버레이·
+  콘텐츠 모두 `z-50`)가 사이드바 드로어(`z-55`/`z-60`)나 확장된 `MobileCommentBar`
+  (`z-55`)보다 낮아 역전돼 있었다. `Dialog`를 고정 UI 사다리 최상단인 `z-70`으로
+  올리고, `Dialog` 안에서 함께 쓰이는 포털 팝오버(tooltip·dropdown-menu·select,
+  기존 `z-50`)는 `z-80`으로 올려 모달 뒤에 숨지 않도록 했다. 사다리 전체는
+  `.claude/skills/responsive-ux/SKILL.md`에 문서화했다.
+  (`shared/ui/atoms/dialog.tsx`, `shared/ui/atoms/tooltip.tsx`,
+  `shared/ui/atoms/dropdown-menu.tsx`, `shared/ui/atoms/select.tsx`)
+
 ### Changed
 
 - **프로필 저장 버튼의 "닉네임을 확인하고 있어요." 툴팁 제거** — 닉네임 형식(정규식) 오류는
