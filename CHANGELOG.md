@@ -23,6 +23,9 @@
   표기가 갈리던 것도 함께 통일했다. 등록 폼의 `BookmarkFolderPicker`에도 동일 적용.
   (`FolderSelector.tsx`, `FolderTree.tsx`, `BookmarkFolderPicker.tsx`,
   `docs/BOOKMARK.md` §5)
+
+  </details>
+
 ### Added
 
 - `bookmark` 게시글 목록에 "최근 열람순" 정렬 옵션 추가
