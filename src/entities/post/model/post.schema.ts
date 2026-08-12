@@ -94,6 +94,9 @@ export const createPostResponseSchema = postSchema.pick({
   stats: true,
   createdAt: true,
   isPrivate: true,
+  // 등록 직후 목록 캐시에 낙관적으로 꽂아 넣을 때(post.queries.ts) Post와 동일한 모양이어야 하므로 포함
+  userInteractions: true,
+  author: true,
 });
 
 // ==================== 3. Interaction & Comment Schemas ====================

@@ -40,7 +40,51 @@ export const useCreatePostMutation = () => {
       successMessage: TEXTS.messages.success.postCreated,
       errorMessage: TEXTS.messages.error.postCreateFailed,
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: async (created, variables) => {
+      // useCreatePost.onSubmit이 mutate 완료를 기다리지 않고 즉시 피드로 navigate하므로,
+      // 피드의 목록 쿼리가 이 등록 요청과 거의 동시에(완료 전에) 첫 fetch를 시작해버린다.
+      // 그 in-flight 요청이 이 시점 이후에 뒤늦게 응답하면 아래에서 꽂아 넣은 값을 다시
+      // 덮어써버리므로, 먼저 취소해 stale 응답이 캐시를 되돌리지 못하게 막는다.
+      const unfilteredListPredicate = (query: { queryKey: readonly unknown[] }) => {
+        const filters = query.queryKey[2] as PostListRequest | undefined;
+        return !filters?.search && !filters?.category && !filters?.filter && !filters?.nickname;
+      };
+      await queryClient.cancelQueries({
+        queryKey: postKeys.listRoot,
+        predicate: unfilteredListPredicate,
+      });
+
+      // 필터 없는(전체) 목록 캐시에 새 글을 직접 꽂아 넣어 새로고침 없이도 확정적으로
+      // 보이게 한다. 필터가 걸린 목록은 새 글이 그 조건에 맞는지 알 수 없으므로 건드리지
+      // 않고 invalidate로만 갱신한다.
+      queryClient.setQueriesData<InfiniteData<PostListResponse>>(
+        { queryKey: postKeys.listRoot, predicate: unfilteredListPredicate },
+        (old) => {
+          if (!old || old.pages.length === 0) {
+            return old;
+          }
+          const firstPage = old.pages[0];
+          if (!firstPage || firstPage.content.some((post) => post.id === created.id)) {
+            return old;
+          }
+          // 새 글 1개만큼 뒤 페이지들이 실제로는 한 칸씩 밀렸는데 여기서 그 재계산은 할 수
+          // 없다. page 0만 남기고 이후 캐시된 페이지는 버려 — 서버 오프셋과 어긋난 옛
+          // page 1+이 page 0과 겹쳐 카드가 중복 렌더링되는 걸 막는다. 스크롤해서 다음
+          // 페이지가 필요해지면 그때 서버에서 올바른 오프셋으로 다시 받아온다.
+          return {
+            ...old,
+            pages: [
+              {
+                ...firstPage,
+                content: [created, ...firstPage.content],
+                totalElements: firstPage.totalElements + 1,
+              },
+            ],
+            pageParams: old.pageParams.slice(0, 1),
+          };
+        }
+      );
+
       handlePostCreateSuccess();
       // 등록과 함께 북마크가 생겼으면 폴더 목록(bookmarkCount)·폴더별 게시글도 낡는다.
       if (variables.bookmark || variables.folderIds.length > 0) {
