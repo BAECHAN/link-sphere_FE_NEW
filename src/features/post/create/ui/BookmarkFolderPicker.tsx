@@ -166,6 +166,13 @@ export function BookmarkFolderPicker() {
                   onClick={handleSelectUncategorized}
                 />
 
+                {/* 내 폴더 */}
+                {folderList.length > 0 && (
+                  <li className="px-4 pt-3 pb-1 text-xs font-semibold text-muted-foreground border-t">
+                    {TEXTS.bookmark.folder.myFolders}
+                  </li>
+                )}
+
                 {/* 폴더 목록 — 소속시킬 모든 폴더에 ✓ 표시 (다중 폴더 소속 가능) */}
                 {folderList.map((folder) => (
                   <FolderRow
