@@ -37,11 +37,11 @@ interface MobileFolderListProps {
 
 /** 모바일 — 폴더 목록 페이지 (drill-down 패턴) */
 export function MobileFolderList({ onSelect, className }: MobileFolderListProps) {
-  const { data, isLoading } = useFolderListQuery();
+  const { data, isLoading, isFetching } = useFolderListQuery();
   const folders = data?.folders;
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
   // 상단 "최근 저장한 폴더" 구획 — 페이지 방문(마운트) 동안 1회 스냅샷, 그 뒤로는 고정
-  const { recentFolders } = useRecentFolders(folders ?? [], isLoading);
+  const { recentFolders } = useRecentFolders(folders ?? [], isFetching);
 
   return (
     <div className={cn('space-y-6', className)}>

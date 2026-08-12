@@ -24,10 +24,12 @@ import {
 } from '@/entities/post/api/post.keys';
 import { POST_PAGE_SIZE } from '@/entities/post/config/const';
 import {
+  folderKeys,
   handleBookmarkToggleSuccess,
   handlePostContentUpdateSuccess,
   handlePostDeleteSuccess,
 } from '@/entities/folder/api/folder.keys';
+import { FolderListResponse } from '@/entities/folder/model/folder.schema';
 import { PaginationRequest } from '@/shared/api/common.schema';
 
 export const useCreatePostMutation = () => {
@@ -204,10 +206,27 @@ export const useDeletePostMutation = () => {
     },
     onMutate: async (postId: string) => {
       await queryClient.cancelQueries({ queryKey: postKeys.listRoot });
+      await queryClient.cancelQueries({ queryKey: folderKeys.list });
+      await queryClient.cancelQueries({ queryKey: folderKeys.postsRoot });
 
       const previousData = queryClient.getQueriesData<InfiniteData<PostListResponse>>({
         queryKey: postKeys.listRoot,
       });
+      const previousFolderList = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+      const previousFolderPosts = queryClient.getQueriesData<InfiniteData<PostListResponse>>({
+        queryKey: folderKeys.postsRoot,
+      });
+
+      // 삭제 대상의 북마크 상태 — detail 캐시에 없으면(북마크 페이지에서 삭제 등) post 목록 →
+      // 폴더별 게시글 캐시 순으로 조회 (선례: interaction.queries.ts previousPost/cachedFolderPost)
+      const cachedPost =
+        queryClient.getQueryData<Post>(postKeys.detail(postId)) ??
+        previousData
+          .flatMap(([, data]) => data?.pages.flatMap((page) => page.content) ?? [])
+          .find((post) => post.id === postId) ??
+        previousFolderPosts
+          .flatMap(([, data]) => data?.pages.flatMap((page) => page.content) ?? [])
+          .find((post) => post.id === postId);
 
       queryClient.setQueriesData<InfiniteData<PostListResponse>>(
         { queryKey: postKeys.listRoot },
@@ -226,7 +245,49 @@ export const useDeletePostMutation = () => {
         }
       );
 
-      return { previousData };
+      // 북마크 화면(folder 캐시) 낙관적 반영 — 카드 제거는 항상, 폴더 카운트는 북마크된
+      // 글일 때만(refetch 대기 중 옛 숫자·옛 카드가 그대로 보이는 걸 막는다)
+      queryClient.setQueriesData<InfiniteData<PostListResponse>>(
+        { queryKey: folderKeys.postsRoot },
+        (old) => {
+          if (!old) {
+            return old;
+          }
+          const contains = old.pages.some((page) =>
+            page.content.some((post) => post.id === postId)
+          );
+          if (!contains) {
+            return old;
+          }
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              content: page.content.filter((post) => post.id !== postId),
+              totalElements: Math.max(0, page.totalElements - 1),
+            })),
+          };
+        }
+      );
+
+      if (cachedPost?.userInteractions.isBookmarked && previousFolderList) {
+        const folderIds = cachedPost.userInteractions.bookmarkFolderIds;
+        const folderIdSet = new Set(folderIds);
+        queryClient.setQueryData<FolderListResponse>(folderKeys.list, {
+          ...previousFolderList,
+          uncategorizedCount: Math.max(
+            0,
+            previousFolderList.uncategorizedCount - (folderIds.length === 0 ? 1 : 0)
+          ),
+          folders: previousFolderList.folders.map((folder) =>
+            folderIdSet.has(folder.id)
+              ? { ...folder, bookmarkCount: Math.max(0, folder.bookmarkCount - 1) }
+              : folder
+          ),
+        });
+      }
+
+      return { previousData, previousFolderList, previousFolderPosts };
     },
     onError: (_err, _postId, context) => {
       if (context?.previousData) {
@@ -234,6 +295,12 @@ export const useDeletePostMutation = () => {
           queryClient.setQueryData(queryKey, data);
         });
       }
+      if (context?.previousFolderList) {
+        queryClient.setQueryData(folderKeys.list, context.previousFolderList);
+      }
+      context?.previousFolderPosts?.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
     },
     onSuccess: () => {
       // 북마크 폴더 페이지의 목록(folder posts) + 폴더별 bookmarkCount 재검증
