@@ -237,10 +237,15 @@ export function FolderSelector({
                       onClick={() => handleSelectFolder(folder.id, folder.name)}
                     />
                   ))}
-                  {/* 최근 구획과 아래 본 목록 사이 구분선 — 없으면 같은 폴더가 위아래에
-                      바로 붙어 보여서(중복 표시가 의도인데) 목록이 깨진 것처럼 보인다 */}
-                  <li className="border-t" />
                 </>
+              )}
+
+              {/* 내 폴더 — 위 "최근 저장한 폴더"와 겹치더라도 그대로 중복 표시한다.
+                  헤더가 최근 구획과의 경계선 역할도 겸한다 */}
+              {folderList.length > 0 && (
+                <li className="px-4 pt-3 pb-1 text-xs font-semibold text-muted-foreground border-t">
+                  {TEXTS.bookmark.folder.myFolders}
+                </li>
               )}
 
               {/* 폴더 목록 — 소속된 모든 폴더에 ✓ 표시 (다중 폴더 소속 가능) */}
