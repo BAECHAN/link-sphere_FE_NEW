@@ -3,6 +3,7 @@ import { toast as sonnerToast, type ExternalToast } from 'sonner';
 /**
  * 토스트 위치 정책 — 카테고리별로 위치를 다르게 둔다.
  * - 성공/액션 확인: 방금 한 행동의 결과이므로 손가락(모바일)·시선(데스크탑)에 가까운 하단.
+ * - 진행 중(loading): 곧 성공/실패 토스트로 교대될 결과 계열이라 성공과 같은 하단.
  * - 오류/경고/시스템 알림: 주의를 끌어야 하므로 상단.
  */
 const SUCCESS_POSITION = 'bottom-center' as const;
@@ -29,6 +30,8 @@ export const toast = Object.assign(
   {
     success: (message: ToastMessage, options?: ExternalToast) =>
       sonnerToast.success(message, at(SUCCESS_POSITION, options)),
+    loading: (message: ToastMessage, options?: ExternalToast) =>
+      sonnerToast.loading(message, at(SUCCESS_POSITION, options)),
     error: (message: ToastMessage, options?: ExternalToast) =>
       sonnerToast.error(message, at(ALERT_POSITION, options)),
     warning: (message: ToastMessage, options?: ExternalToast) =>

@@ -77,6 +77,15 @@
   겹쳐 카드가 중복 렌더링되는 걸 막기 위해 page 0만 남기고 나머지는 버려 다음 스크롤
   때 서버에서 새로 받는다. (`entities/post/api/post.queries.ts`,
   `entities/post/model/post.schema.ts`)
+- **모바일 좁은 화면에서 게시글 등록/수정 진행 배지("등록 중...")가 두 줄로 개행되던
+  문제** — 상단바 우측(메뉴·검색·테마·프로필과 한 줄)에 공간이 부족한 게 근본 원인이라
+  `whitespace-nowrap`만 붙이면 이번엔 가로 스크롤이 생겼다. 상단바 배지를 없애고, 같은
+  진행 상태를 완료 토스트(`포스트를 생성했어요.` 등)와 동일한 자리인 하단 토스트로
+  옮겨 폭 제약 자체를 없앴다 — 진행→완료가 한 자리에서 이어진다(위치 정책은
+  `shared/lib/toast/toast.ts` 참고, 알림 종류로 위치를 정하므로 데스크톱도 동일하게
+  이동). 500ms 지연·400ms 최소 노출 등 기존 타이밍은 그대로 유지했다.
+  (`shared/ui/elements/PostMutationLoadingToast.tsx`(신규, `PostMutationLoadingBadge.tsx`
+  대체), `shared/lib/toast/toast.ts`, `app/App.tsx`, `widgets/layout/navbar/ui/Navbar.tsx`)
 - **댓글 작성/수정 폼에서 이미지를 첨부하면 취소·등록(저장) 버튼이 이미지 옆 허공에 붕
   떠 보이던 문제** — 이미지 첨부 영역과 버튼을 한 줄(`flex items-center justify-between`)에
   나란히 두고 있어, 썸네일이 쌓여 그 줄의 높이가 늘어나면 버튼만 수직 중앙에 그대로

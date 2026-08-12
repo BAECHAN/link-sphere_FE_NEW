@@ -6,6 +6,61 @@
 
 ---
 
+## 2026-08-13 — 게시글 등록 진행 표시: 상단바 배지 → 하단 진행 토스트
+
+**배경**
+
+모바일에서 게시글 등록/수정 중 `등록 중...` 배지(`Navbar` 우측)가 두 줄로 개행되는 제보.
+원인을 추적해보니 이 배지(`PostMutationLoadingBadge.tsx`)는 순수 `div`로,
+공통 `Badge` atom(`shared/ui/atoms/badge.tsx`)이 가진 `whitespace-nowrap shrink-0 w-fit`이
+없었다. 게다가 `Navbar` 우측 그룹(메뉴·검색·테마·프로필과 한 줄)은 375~390px 화면에서
+배지에 남는 폭이 실측 46~68px밖에 안 되는데 배지 자체 필요 폭은 ~99px — **공간 자체가
+부족한 게 근본 원인**이었다. 한글은 글자 사이 줄바꿈이 가능해 `등록`/`중...`으로 쪼개졌다.
+
+**검토**
+
+1. `whitespace-nowrap shrink-0`만 추가 — 기각. 공간 부족이 원인이라 개행이 375px
+   가로 스크롤로 형태만 바뀐다(`responsive-ux` 스킬의 "375px에서 가로 스크롤 0" 점검
+   항목 위반).
+2. 모바일에서 라벨을 `sr-only`로 숨기고 스피너만 노출 — 기각. [NN/g](https://www.nngroup.com/articles/progress-indicators/)는
+   2–10초 대기에 스피너+설명 텍스트를 권장하고, [Shopify Polaris](https://polaris.shopify.com/components/feedback-indicators/spinner)/[Mobbin](https://mobbin.com/glossary/loading-indicator)은
+   "4초 초과 + 사용자가 화면을 이탈"하는 경우 라벨을 유지하라고 명시한다. 이 플로우는
+   `useCreatePost.ts`가 제출 직후 목록으로 `navigate`하고 BE `PostService.createPost`가
+   URL 크롤링(`UrlMetadataExtractor`)을 동기로 수행해 대기 시간이 수 초대라, 컨텍스트
+   이탈이 설계상 기본값이다 — 라벨을 빼는 근거가 약하다.
+3. 모바일에서 배지 자체를 숨김 — 기각. [NN/g 시스템 상태 가시성](https://www.nngroup.com/articles/visibility-system-status/)
+   원칙 위반(피드백 있는 대기가 11~15% 더 빠르게 느껴진다는 연구 결과 존재).
+4. 하단에 별도 fixed pill을 새로 만듦 — 기각. safe-area·z-index·
+   `--toast-offset-bottom` 오프셋을 손으로 다시 계산해야 하는데, 이미 그 문제를 풀어둔
+   토스트 시스템을 놔두고 중복 구현하는 셈이다.
+
+**결정**
+
+상단바 배지를 없애고, 같은 진행 상태를 **완료 토스트와 동일한 자리(하단)** 인
+`toast.loading`으로 발행한다. Gmail의 `Sending… → Message sent`와 같은 형태 —
+진행과 완료가 한 곳에서 교대된다. `shared/lib/toast/toast.ts`의 위치 정책은 기기가
+아니라 **알림 종류**로 위치를 정한다(성공/진행 = 하단, 오류/경고 = 상단이며 화면 크기별
+분기는 없다) — 등록 완료 토스트(`toast.success`)가 데스크톱에서도 하단이므로, 진행
+토스트를 하단에 두면 데스크톱도 함께 자연스럽게 통일된다(사용자 확인 완료).
+[SAP Fiori](https://www.sap.com/design-system/fiori-design-web/v1-136/foundations/interaction/wrapping-and-truncation)의
+"툴바처럼 한 줄·제한 폭 컨트롤엔 wrapping이 아니라 truncation을 쓰라"는 지침과,
+[모바일 내비 UX 가이드](https://www.designstudiouiux.com/blog/mobile-navigation-ux/)의
+"상단바 항목 수를 늘리지 말라"는 지침도 상단바에 라벨 달린 상태 표시를 유지하지 않는
+방향을 지지한다.
+
+기존 타이밍 로직(500ms 지연 → 노출, 400ms 최소 노출, mutation 종류별 라벨 latch)은
+그대로 이관했고, 배지의 2초 하이라이트 효과는 토스트 자체가 그 역할을 하므로 제거했다.
+
+**상태**
+
+적용 완료. 관련 파일: `shared/ui/elements/PostMutationLoadingToast.tsx`(신규,
+`PostMutationLoadingBadge.tsx` 대체), `shared/lib/toast/toast.ts`(`toast.loading` 추가),
+`app/App.tsx`(마운트 위치를 라우터 트리 밖 최상단으로 이동 — 화면 전환마다
+리마운트되지 않아 500ms 지연이 mutation 시작 시점 기준으로 정확해지는 부수 효과 있음),
+`widgets/layout/navbar/ui/Navbar.tsx`(배지 제거).
+
+---
+
 ## 2026-08-10 — 댓글 이미지 다중 첨부 확장: 저장 방식 유지, 5장/30MB 근거, 클라이언트 압축 유지
 
 **배경**

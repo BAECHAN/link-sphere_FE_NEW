@@ -19,7 +19,6 @@ import { NavbarSearch } from '@/widgets/layout/navbar/ui/NavbarSearch';
 import { MobileNavbarSearch } from '@/widgets/layout/navbar/ui/MobileNavbarSearch';
 import { RecentSearchPanel } from '@/widgets/layout/navbar/ui/RecentSearchPanel';
 import { useRecentSearches } from '@/widgets/layout/navbar/hooks/useRecentSearches';
-import { PostMutationLoadingBadge } from '@/shared/ui/elements/PostMutationLoadingBadge';
 import { MyPageModal } from '@/widgets/layout/mypage/ui/MyPageModal';
 import { TEXTS } from '@/shared/config/texts';
 import { useLoginModalStore } from '@/shared/store/loginModal.store';
@@ -148,7 +147,6 @@ export function Navbar() {
               isMobileSearchOpen ? 'hidden md:flex' : 'flex'
             )}
           >
-            <PostMutationLoadingBadge />
             <Button
               variant="ghost"
               size="icon"
