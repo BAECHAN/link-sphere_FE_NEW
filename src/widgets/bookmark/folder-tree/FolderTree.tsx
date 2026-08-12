@@ -33,11 +33,11 @@ interface FolderTreeProps {
 
 /** 데스크탑 — 좌측 사이드바 트리 */
 export function FolderTree({ selectedKey, onSelect, sort, search, className }: FolderTreeProps) {
-  const { data, isLoading } = useFolderListQuery();
+  const { data, isLoading, isFetching } = useFolderListQuery();
   const folders = data?.folders;
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
   // 상단 "최근 저장한 폴더" 구획 — 페이지 방문(마운트) 동안 1회 스냅샷, 그 뒤로는 고정
-  const { recentFolders } = useRecentFolders(folders ?? [], isLoading);
+  const { recentFolders } = useRecentFolders(folders ?? [], isFetching);
 
   return (
     <aside className={cn('flex flex-col gap-1 py-2', className)}>

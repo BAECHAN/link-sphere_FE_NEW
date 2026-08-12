@@ -9,8 +9,13 @@ import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { folderKeys } from '@/entities/folder/api/folder.keys';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
-import type { Post } from '@/entities/post/model/post.schema';
-import { useCreatePostMutation, useUpdatePostMutation } from '@/entities/post/api/post.queries';
+import type { Post, PostListResponse } from '@/entities/post/model/post.schema';
+import type { FolderListResponse } from '@/entities/folder/model/folder.schema';
+import {
+  useCreatePostMutation,
+  useDeletePostMutation,
+  useUpdatePostMutation,
+} from '@/entities/post/api/post.queries';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
@@ -165,5 +170,161 @@ describe('useCreatePostMutation', () => {
 
     const cached = queryClient.getQueryData<{ pages: { content: Post[] }[] }>(filteredKey);
     expect(cached?.pages[0]?.content.map((post) => post.id)).toEqual([mockPost.id]);
+  });
+});
+
+describe('useDeletePostMutation', () => {
+  const FOLDER_A = 'folder-uuid-a';
+  const FOLDER_B = 'folder-uuid-b';
+  const now = new Date('2025-01-01');
+  const seedFolderList: FolderListResponse = {
+    folders: [
+      {
+        id: FOLDER_A,
+        name: '개발',
+        sortOrder: 0,
+        bookmarkCount: 2,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: FOLDER_B,
+        name: '나중에 읽기',
+        sortOrder: 1,
+        bookmarkCount: 4,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ],
+    uncategorizedCount: 1,
+  };
+
+  beforeEach(() => {
+    queryClient.clear();
+    server.use(
+      http.delete(
+        url(`${API_ENDPOINTS.post.base}/${POST_ID}`),
+        () => new HttpResponse(null, { status: 204 })
+      )
+    );
+  });
+
+  afterEach(() => {
+    queryClient.clear();
+  });
+
+  it('북마크된 글 삭제 시 소속 폴더의 bookmarkCount가 즉시 -1 된다', async () => {
+    const seededPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [FOLDER_A] },
+    };
+    queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
+    queryClient.setQueryData(folderKeys.list, seedFolderList);
+
+    const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate(POST_ID);
+    });
+
+    // invalidate로 서버 값이 오기 전, onMutate 낙관적 반영만으로 이미 감소해 있어야 한다
+    await waitFor(() => {
+      const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+      expect(folders?.folders.find((f) => f.id === FOLDER_A)?.bookmarkCount).toBe(1);
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
+  it('미분류(소속 폴더 없음) 글 삭제 시 uncategorizedCount가 -1 된다', async () => {
+    const seededPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [] },
+    };
+    queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
+    queryClient.setQueryData(folderKeys.list, seedFolderList);
+
+    const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate(POST_ID);
+    });
+
+    await waitFor(() => {
+      const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+      expect(folders?.uncategorizedCount).toBe(0);
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
+  it('북마크 페이지(폴더별 게시글 캐시)에서만 조회되는 글도 카드 제거 + 폴더 카운트가 즉시 반영된다', async () => {
+    // post.detail 캐시가 없는 상태 — 북마크 페이지에서 다른 글의 상세를 연 적이 없는 경우를 재현
+    const bookmarkedPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [FOLDER_A] },
+    };
+    const folderPostsKey = folderKeys.posts(FOLDER_A);
+    const folderPostsCache: { pages: PostListResponse[]; pageParams: number[] } = {
+      pages: [
+        {
+          page: 0,
+          size: 10,
+          content: [bookmarkedPost],
+          totalElements: 1,
+          totalPages: 1,
+          last: true,
+        },
+      ],
+      pageParams: [0],
+    };
+    queryClient.setQueryData(folderPostsKey, folderPostsCache);
+    queryClient.setQueryData(folderKeys.list, seedFolderList);
+
+    const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate(POST_ID);
+    });
+
+    await waitFor(() => {
+      const cachedFolderPosts = queryClient.getQueryData<typeof folderPostsCache>(folderPostsKey);
+      expect(cachedFolderPosts?.pages[0]?.content).toEqual([]);
+      expect(cachedFolderPosts?.pages[0]?.totalElements).toBe(0);
+    });
+
+    const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+    expect(folders?.folders.find((f) => f.id === FOLDER_A)?.bookmarkCount).toBe(1);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
+  it('삭제 실패 시 folder.list와 폴더별 게시글 캐시를 롤백한다', async () => {
+    server.use(
+      http.delete(url(`${API_ENDPOINTS.post.base}/${POST_ID}`), () =>
+        HttpResponse.json(
+          { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'boom', timestamp: '' },
+          { status: 500 }
+        )
+      )
+    );
+
+    const seededPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [FOLDER_A] },
+    };
+    queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
+    queryClient.setQueryData(folderKeys.list, seedFolderList);
+
+    const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate(POST_ID);
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+    expect(folders?.folders.find((f) => f.id === FOLDER_A)?.bookmarkCount).toBe(2);
   });
 });
