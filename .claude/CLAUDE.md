@@ -225,6 +225,12 @@ const handleCreateAndSelect = async () => {
 - **Never** `EnterWorktree` 기본값(`fresh` = `origin/main` 기준)을 확인 없이 사용 → 다른 세션이
   로컬 main에만 커밋하고 아직 push하지 않았다면 그 커밋이 빠진 채로 새 워크트리가 갈라진다.
   작업 시작 전 `git log origin/main..main`으로 미푸시 커밋이 있는지 먼저 확인한다
+- **Never** 작업 끝난 워크트리를 `keep`으로 방치 → 병합·push까지 끝나면 `ExitWorktree`를
+  `action: "remove"`로 정리한다. 세션이 정상 종료되면 harness가 keep/remove를 물어보지만,
+  강제 종료·크래시 시엔 이 프롬프트가 안 뜬다(BE `.claude/worktrees/ci-guardrails/` 잔존 사례로
+  확인됨). 새 워크트리를 만들기 전 `git worktree list`로 오래된 워크트리가 남아있는지 먼저
+  훑고, 디렉토리는 있는데 목록엔 없는 경우(비정상 종료로 등록이 깨진 경우) `git worktree prune`
+  으로 정리한다
 
 ---
 
@@ -1027,6 +1033,26 @@ pnpm storybook        # Storybook (port 6006)
 - `feat` / `fix` / `perf` / 동작이 바뀌는 `refactor` 커밋 시 → **`CHANGELOG.md`의 `[Unreleased]` 섹션에 항목 추가**를 같은 커밋에 포함한다.
 - 섹션: `Added` / `Changed` / `Fixed` / `Removed`. BE API 의존 사항은 `Notes`, 테스트 추가는 `Tests` 섹션 활용.
 - `docs` / `style` / `chore` 등 사용자 영향 없는 변경은 기록하지 않는다.
+
+**항목 포맷** — 한 줄 요약 + 접힌 상세로 훑어볼 수 있게 쓴다.
+
+```markdown
+- `post` 게시글 등록 시 북마크 폴더를 함께 지정 가능
+  <details><summary>배경·구현</summary>
+
+  지금까지는 등록 후 목록에서 북마크 버튼을 다시 눌러야 했다. 카테고리 선택 아래에
+  북마크 필드를 추가해, 등록 제출 한 번으로 함께 처리한다.
+  (`features/post/create/ui/BookmarkFolderPicker.tsx`(신규))
+
+  </details>
+```
+
+- 요약 줄: `` `스코프` `` + 공백 + 한 줄(72자 이내, 줄바꿈·마침표 없음). 굵게(`**`) 쓰지 않는다.
+  스코프는 `post` `comment` `auth` `user` `bookmark` `shared` 중 하나.
+- 상세 블록: `<summary>`는 `배경·구현`으로 통일. `<summary>` 다음과 `</details>` 앞에 빈 줄을
+  반드시 넣는다(없으면 GitHub이 안의 마크다운을 파싱하지 않는다). 배경·트레이드오프·영향
+  파일 목록을 요약 없이 그대로 적는다 — 짧은 항목은 상세 블록을 생략해도 된다.
+- `### Notes`는 접지 않는다 — BE 배포 순서 정보라 항상 보여야 한다.
 
 **릴리즈 시점** (버전 확정)
 
