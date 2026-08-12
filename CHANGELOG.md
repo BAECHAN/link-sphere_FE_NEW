@@ -37,7 +37,8 @@
   호출해 북마크 목록 캐시를 무효화하도록 했다 — 같은 패턴(폭넓은 무효화)을 이미
   `handleBookmarkToggleSuccess` 등 다른 cross-invalidation 지점에서도 쓰고 있다.
   (`pages/post/PostDetailPage.tsx`)
-### Fixed
+
+  </details>
 
 - `bookmark` 게시글 삭제 후 북마크 페이지에서 폴더 카운트가 옛 값으로 남던 문제 수정
   <details><summary>배경·구현</summary>
