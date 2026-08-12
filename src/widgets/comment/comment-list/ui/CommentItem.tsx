@@ -43,14 +43,14 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
     <div
       className={cn(
         'group flex gap-3 text-sm animate-in fade-in',
-        depth > 0 && 'ml-8 mt-4',
+        depth > 0 && 'mt-4 ml-4 border-l pl-3 md:ml-8 md:border-l-0 md:pl-0',
         isOptimistic && 'opacity-60'
       )}
     >
       <UserAvatar
         image={comment.author.image}
         nickname={comment.author.nickname}
-        className="shrink-0"
+        className={cn('shrink-0', depth > 0 && 'h-6 w-6 md:h-8 md:w-8')}
         zoomable
       />
 
@@ -110,7 +110,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
         )}
 
         {!isDeleted && !isOptimistic && !isEditing && (
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground md:gap-4">
             <LikeCommentButton
               commentId={comment.id}
               postId={postId}
@@ -123,7 +123,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
                 icon={MessageSquare}
                 label={TEXTS.comment.item.reply}
                 onClick={() => setIsReplying(!isReplying)}
-                className="hover:text-info"
+                className="min-h-11 px-2 hover:text-info md:min-h-0 md:px-0"
               />
             )}
 
@@ -133,13 +133,13 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
                   icon={Edit2}
                   label={TEXTS.comment.item.edit}
                   onClick={() => setIsEditing(true)}
-                  className="hover:text-info"
+                  className="min-h-11 px-2 hover:text-info md:min-h-0 md:px-0"
                 />
                 <ActionButton
                   icon={Trash2}
                   label={TEXTS.buttons.delete}
                   onClick={() => onDelete(comment.id)}
-                  className="hover:text-destructive"
+                  className="min-h-11 px-2 hover:text-destructive md:min-h-0 md:px-0"
                 />
               </>
             )}

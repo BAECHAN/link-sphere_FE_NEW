@@ -141,6 +141,15 @@
   `features/comment/update/ui/CommentEditForm.tsx`,
   `widgets/comment/comment-list/ui/CommentItem.tsx`)
 
+- **모바일 화면의 댓글 답글·터치 타깃 개선** — 답글이 `ml-8` 고정 들여쓰기로 좁은 화면에서
+  본문 폭이 지나치게 좁아지던 문제를 모바일에서 들여쓰기를 줄이고 좌측 스레드 라인으로
+  대체해 완화했다(데스크톱은 기존 그대로). 좋아요·답글·수정·삭제 버튼이 44px 터치 타깃
+  기준에 못 미치던 것도 모바일에서만 히트 영역을 넓혔다. 겸사겸사 `useIsMobile`의
+  초기값이 항상 `false`로 시작해 모바일에서 첫 렌더에 데스크톱 UI가 잠깐 보였다 바뀌던
+  깜빡임도 lazy init으로 없앴다.
+  (`widgets/comment/comment-list/ui/CommentItem.tsx`, `features/comment/like/ui/LikeCommentButton.tsx`,
+  `shared/hooks/useIsMobile.ts`)
+
 ## [0.11.0] - 2026-08-10
 
 ### Added
