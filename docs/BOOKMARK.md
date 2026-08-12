@@ -47,7 +47,7 @@ src/
 │           ├── FolderTree.tsx            # 데스크탑 사이드바 (폴더 트리, 전체 행은 숫자 없음)
 │           └── MobileFolderList.tsx      # 모바일 폴더 그리드 (drill-down)
 │                                          # 위 둘 + FolderPickerDialog(아래) 모두 "최근 저장한
-│                                          # 폴더" 상단 구획 포함
+│                                          # 폴더" + "내 폴더" 두 구획 포함(§5)
 ├── features/
 │   └── post/
 │       └── bookmark/
@@ -196,6 +196,12 @@ Shneiderman의 split menu 연구를 따라 **상단에 최근 저장한 폴더 �
   동일). `useRecentFolders`의 정렬 비교는 이 때문에 `new Date(...)`로 감싸
   문자열·Date 어느 쪽이 와도 안전하게 처리합니다 — 다른 곳에서 `folder.lastUsedAt`을
   `Date` 메서드로 직접 다룰 땐 이 갭을 기억하세요.
+- **본 목록 헤더 "내 폴더"**: 최근 구획 바로 아래(또는 최근 구획이 없으면 미분류
+  바로 아래)에 폴더가 1개 이상이면 항상 뜹니다. 최근 구획 노출 여부와 무관하게
+  독립적으로 판단합니다 — 헤더 없이 본 목록이 바로 이어지면 최근 구획과의 중복
+  표시가 "목록이 깨졌다"로 오인되기 쉬웠고, `MobileFolderList`에는 이미 같은
+  헤더(`myFolders`)가 있어 화면마다 표기가 갈리던 것도 통일했습니다. `FolderPickerDialog`
+  (`FolderSelector`·`BookmarkFolderPicker` 공용)와 `FolderTree` 모두 적용합니다.
 
 ### 6. 링크 등록 폼의 폴더 선택 (`BookmarkFolderPicker`) — 이 페이지가 아닌 다른 화면
 

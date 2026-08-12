@@ -98,6 +98,15 @@ describe('BookmarkFolderPicker', () => {
     expect(screen.getByTestId('folderIds-value')).toHaveTextContent('');
   });
 
+  it('폴더가 있으면 "내 폴더" 구획 헤더가 뜬다', async () => {
+    const user = userEvent.setup();
+    renderPicker();
+
+    await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
+
+    await waitFor(() => expect(dialog().getByText('내 폴더')).toBeInTheDocument());
+  });
+
   it('폴더를 탭하면 선택되고 폼 값이 즉시 반영된다 (제출 전 지연 선택)', async () => {
     const user = userEvent.setup();
     renderPicker();

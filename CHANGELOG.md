@@ -9,6 +9,23 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `bookmark` 폴더 선택 목록에 "내 폴더" 구획 헤더 추가
+  <details><summary>배경·구현</summary>
+
+  북마크 버튼을 눌러 여는 폴더 선택 시트(`FolderSelector`)와 데스크탑 사이드바
+  (`FolderTree`)에서, 상단 "최근 저장한 폴더" 구획엔 라벨이 있는데 그 아래 본
+  목록엔 라벨 없이 바로 이어져 같은 폴더가 위아래에 중복 표시되는 게(의도된 split
+  menu 설계) "목록이 깨졌다"로 오인되기 쉬웠다. 본 목록에 "내 폴더" 헤더를 상시
+  추가해(폴더 1개 이상일 때, 최근 구획 노출 여부와 무관) 구분을 명확히 했다.
+  모바일 폴더 목록 페이지(`MobileFolderList`)엔 이미 같은 헤더가 있어 화면마다
+  표기가 갈리던 것도 함께 통일했다. 등록 폼의 `BookmarkFolderPicker`에도 동일 적용.
+  (`FolderSelector.tsx`, `FolderTree.tsx`, `BookmarkFolderPicker.tsx`,
+  `docs/BOOKMARK.md` §5)
+
+  </details>
+
 ### Added
 
 - `bookmark` 게시글 목록에 "최근 열람순" 정렬 옵션 추가
@@ -57,6 +74,22 @@
   `features/post/bookmark/ui/FolderSelector.tsx`,
   `features/post/create/ui/BookmarkFolderPicker.tsx`,
   `features/post/bookmark/hooks/useBookmarkFolders.ts`, `docs/BOOKMARK.md`)
+
+  </details>
+
+### Fixed
+
+- `bookmark` "최근 열람순" 정렬이 방금 본 글을 반영하지 않고 새로고침해야만 보이던 문제
+  <details><summary>배경·구현</summary>
+
+  게시글 상세 조회가 BE `post_views`를 갱신해도(정렬 기준 데이터가 바뀌어도), 북마크
+  목록의 `sort=viewed` 쿼리는 완전히 별개 캐시 키라 그 갱신을 알 방법이 없었다.
+  React Query 기본 `staleTime`(3분) 안에서는 캐시를 그대로 서빙해 방금 본 글이 목록에
+  반영되지 않고, 캐시가 초기화되는 강제 새로고침을 해야만 제대로 보였다.
+  `PostDetailPage`가 게시글 상세를 보여줄 때마다 `folderInvalidateQueries.postsRoot()`를
+  호출해 북마크 목록 캐시를 무효화하도록 했다 — 같은 패턴(폭넓은 무효화)을 이미
+  `handleBookmarkToggleSuccess` 등 다른 cross-invalidation 지점에서도 쓰고 있다.
+  (`pages/post/PostDetailPage.tsx`)
 
   </details>
 

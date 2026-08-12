@@ -156,6 +156,14 @@ describe('FolderSelector', () => {
     expect(clearCalled).toBe(false);
   });
 
+  it('폴더가 1개 이상이면 "내 폴더" 구획 헤더가 뜬다 (최근 구획 임계값 미달이어도)', async () => {
+    renderSelector();
+
+    // folderListResponse는 폴더 2개뿐이라 최근 구획(6개 임계값)은 안 뜨지만, 내 폴더 헤더는 뜬다
+    await waitFor(() => expect(screen.getByText('내 폴더')).toBeInTheDocument());
+    expect(screen.queryByText('최근 저장한 폴더')).not.toBeInTheDocument();
+  });
+
   it('북마크 제거 행을 누르면 토글(해제) 요청을 보낸다', async () => {
     const user = userEvent.setup();
     let toggleCalled = false;
@@ -251,6 +259,8 @@ describe('FolderSelector', () => {
 
       // 상단 구획 + 아래 본 목록 두 곳 모두에 렌더된다 (원칙1: 중복 표시, 빼지 않음)
       expect(screen.getAllByText('최근폴더')).toHaveLength(2);
+      // 본 목록에도 "내 폴더" 헤더가 함께 뜬다
+      expect(screen.getByText('내 폴더')).toBeInTheDocument();
     });
 
     it('상단 구획의 폴더를 탭해도 본 목록과 동일하게 추가 요청을 보낸다', async () => {
