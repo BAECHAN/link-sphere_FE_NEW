@@ -5,12 +5,16 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 따르며,
 버전 표기는 [유의적 버전(SemVer)](https://semver.org/lang/ko/)을 사용합니다.
 
+각 항목은 `스코프` + 한 줄 요약이며, 배경·구현은 접힌 `배경·구현` 블록에 있습니다.
+
 ## [Unreleased]
 
 ### Added
 
-- **댓글 작성 폼에 취소 버튼, 데스크톱 댓글 영역에 플로팅 "댓글 작성" 버튼 추가** — ①
-  답글·수정 폼과 달리 목록 맨 위에 항상 떠 있는 최상위 댓글 작성 폼에는 취소 버튼이
+- `comment` 작성 폼에 취소 버튼, 데스크톱에 플로팅 "댓글 작성" 버튼 추가
+  <details><summary>배경·구현</summary>
+
+  ① 답글·수정 폼과 달리 목록 맨 위에 항상 떠 있는 최상위 댓글 작성 폼에는 취소 버튼이
   없었다. 이 폼은 답글처럼 "닫히지" 않으므로, 입력 중이던 텍스트·이미지를 즉시 지우는
   용도의 취소 버튼을 추가했다(지울 내용이 있을 때만 노출, 확인 없이 즉시 초기화 — 답글
   취소와 동일한 방식). ② 데스크톱에서 댓글이 길어 작성 폼이 스크롤로 화면 밖에 나가면
@@ -27,213 +31,322 @@
   `widgets/comment/comment-list/ui/CommentList.tsx`, `widgets/layout/navbar/ui/Navbar.tsx`,
   `shared/config/texts.ts`)
 
-- **회원가입 화면 이메일·닉네임 실시간 중복확인** — 지금까지는 가입 버튼을 눌러 409를
-  받아야만 중복 여부를 알 수 있었다. 마이페이지 닉네임 중복확인(`useUpdateProfile.ts`)과
-  동일한 디바운스(500ms)·취소·상태머신 형태를 이메일에도 함께 쓸 수 있도록 일반화한
-  `useAvailabilityCheck` 훅을 새로 만들어 적용했다. 형식이 유효한 값에만 서버를 호출하고,
-  조회 자체가 실패(네트워크 오류 등)하면 확인됐다고 속이지 않고 조용히 idle로 남아 제출을
-  막지 않는다 — 실제 중복이면 제출 시점에 서버가 409로 다시 막아준다. 이메일 중복 시에는
-  로그인 페이지 링크를 함께 보여준다. BE에 새로 생긴 `GET /auth/email-availability`와,
-  비로그인도 쓸 수 있게 확장된 `GET /auth/account/nickname-availability`가 필요하다(BE
-  `docs/VERSION-COMPATIBILITY.md` 참고).
-  (`features/auth/signup/hooks/useAvailabilityCheck.ts`, `features/auth/signup/hooks/useSignUp.ts`,
-  `features/auth/signup/ui/SignUpForm.tsx`, `entities/user/api/auth.api.ts`)
-- **북마크 폴더 목록에 "최근 저장한 폴더" 상단 구획 추가 (split menu 방식)** — 폴더 순서를
-  고정할지 최근 사용순으로 올릴지 반복되던 고민에 대한 결론. Sears & Shneiderman의 split
-  menu 연구를 따라, 최근에 저장한 폴더 최대 3개를 상단에 별도로 보여주되 아래 본 목록
-  순서는 절대 바꾸지 않는다(위치가 계속 바뀌는 전체 재정렬 방식은 MS Office 2000
-  "개인화 메뉴"가 예측 불가능성 때문에 폐기된 선례가 있어 기각). 상단 폴더도 아래 본
-  목록에서 빼지 않고 그대로 중복 표시한다 — 빼면 본 목록의 나머지 위치가 흔들려 공간기억이
-  깨지기 때문. 노출 조건은 폴더 6개 이상 + 저장 이력 있는 폴더 3개 이상일 때만, 모달이
-  열려 있는 동안(또는 페이지 방문 동안)은 스냅샷을 고정해 재정렬 애니메이션이 없다. BE의
-  새 `FolderResponse.lastUsedAt` 필드가 필요하다(BE `docs/VERSION-COMPATIBILITY.md` 확인
-  불필요 — nullable 추가 필드라 하위 호환, 구 BE에서도 상단 구획만 안 뜰 뿐 정상 동작).
-  (`entities/folder/model/useRecentFolders.ts`, `features/post/bookmark/ui/FolderSelector.tsx`,
-  `widgets/bookmark/folder-tree/FolderTree.tsx`, `widgets/bookmark/folder-tree/MobileFolderList.tsx`)
-- **링크 등록 폼에서 북마크 폴더 선택 가능** — 지금까지는 등록 후 목록에서 방금 올린
-  카드를 찾아 북마크 버튼을 다시 눌러야 했다. 카테고리 선택 아래에 북마크 필드를 추가해,
-  탭하면 `FolderSelector`와 같은 모달(데스크탑)/바텀시트(모바일) 선택기가 뜬다. 다만 여기는
-  "지연 선택"이다 — 행을 탭해도 즉시 저장하지 않고 폼의 `bookmark`/`folderIds` 값만 바꾸고,
-  실제 북마크 생성은 등록 제출(`POST /post`) 한 번에 BE가 함께 처리한다 — BE API 의존,
-  BE 먼저 배포 필요(구 BE는 `bookmark`/`folderIds` 필드를 조용히 무시해 등록은 되지만
-  북마크만 안 생김). 모바일 바텀시트 전환 className은 `FolderSelector`에서 처음 쓰인
-  패턴을 `SheetDialogContent` 공통 컴포넌트로 추출해 재사용했다. 아무 폴더도 고르지 않으면
-  기존과 동일하게 북마크가 생기지 않는다.
-  (`features/post/create/ui/BookmarkFolderPicker.tsx`(신규),
-  `shared/ui/elements/modal/SheetDialogContent.tsx`(신규),
+  </details>
+
+- `auth` 회원가입 화면 이메일·닉네임 실시간 중복확인
+  <details><summary>배경·구현</summary>
+
+  지금까지는 가입 버튼을 눌러 409를 받아야만 중복 여부를 알 수 있었다. 마이페이지 닉네임
+  중복확인(`useUpdateProfile.ts`)과 동일한 디바운스(500ms)·취소·상태머신 형태를 이메일에도
+  함께 쓸 수 있도록 일반화한 `useAvailabilityCheck` 훅을 새로 만들어 적용했다. 형식이
+  유효한 값에만 서버를 호출하고, 조회 자체가 실패(네트워크 오류 등)하면 확인됐다고 속이지
+  않고 조용히 idle로 남아 제출을 막지 않는다 — 실제 중복이면 제출 시점에 서버가 409로 다시
+  막아준다. 이메일 중복 시에는 로그인 페이지 링크를 함께 보여준다. BE에 새로 생긴
+  `GET /auth/email-availability`와, 비로그인도 쓸 수 있게 확장된
+  `GET /auth/account/nickname-availability`가 필요하다(BE `docs/VERSION-COMPATIBILITY.md`
+  참고). (`features/auth/signup/hooks/useAvailabilityCheck.ts`,
+  `features/auth/signup/hooks/useSignUp.ts`, `features/auth/signup/ui/SignUpForm.tsx`,
+  `entities/user/api/auth.api.ts`)
+
+  </details>
+
+- `bookmark` 폴더 목록에 "최근 저장한 폴더" 상단 구획 추가 (split menu 방식)
+  <details><summary>배경·구현</summary>
+
+  폴더 순서를 고정할지 최근 사용순으로 올릴지 반복되던 고민에 대한 결론. Sears &
+  Shneiderman의 split menu 연구를 따라, 최근에 저장한 폴더 최대 3개를 상단에 별도로
+  보여주되 아래 본 목록 순서는 절대 바꾸지 않는다(위치가 계속 바뀌는 전체 재정렬 방식은
+  MS Office 2000 "개인화 메뉴"가 예측 불가능성 때문에 폐기된 선례가 있어 기각). 상단
+  폴더도 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 — 빼면 본 목록의 나머지 위치가
+  흔들려 공간기억이 깨지기 때문. 노출 조건은 폴더 6개 이상 + 저장 이력 있는 폴더 3개
+  이상일 때만, 모달이 열려 있는 동안(또는 페이지 방문 동안)은 스냅샷을 고정해 재정렬
+  애니메이션이 없다. BE의 새 `FolderResponse.lastUsedAt` 필드가 필요하다(BE
+  `docs/VERSION-COMPATIBILITY.md` 확인 불필요 — nullable 추가 필드라 하위 호환, 구
+  BE에서도 상단 구획만 안 뜰 뿐 정상 동작). (`entities/folder/model/useRecentFolders.ts`,
+  `features/post/bookmark/ui/FolderSelector.tsx`,
+  `widgets/bookmark/folder-tree/FolderTree.tsx`,
+  `widgets/bookmark/folder-tree/MobileFolderList.tsx`)
+
+  </details>
+
+- `post` 등록 폼에서 북마크 폴더 선택 가능
+  <details><summary>배경·구현</summary>
+
+  지금까지는 등록 후 목록에서 방금 올린 카드를 찾아 북마크 버튼을 다시 눌러야 했다.
+  카테고리 선택 아래에 북마크 필드를 추가해, 탭하면 `FolderSelector`와 같은
+  모달(데스크탑)/바텀시트(모바일) 선택기가 뜬다. 다만 여기는 "지연 선택"이다 — 행을
+  탭해도 즉시 저장하지 않고 폼의 `bookmark`/`folderIds` 값만 바꾸고, 실제 북마크 생성은
+  등록 제출(`POST /post`) 한 번에 BE가 함께 처리한다 — BE API 의존, BE 먼저 배포 필요
+  (구 BE는 `bookmark`/`folderIds` 필드를 조용히 무시해 등록은 되지만 북마크만 안 생김).
+  모바일 바텀시트 전환 className은 `FolderSelector`에서 처음 쓰인 패턴을
+  `SheetDialogContent` 공통 컴포넌트로 추출해 재사용했다. 아무 폴더도 고르지 않으면
+  기존과 동일하게 북마크가 생기지 않는다. (`features/post/create/ui/BookmarkFolderPicker.tsx`
+  (신규), `shared/ui/elements/modal/SheetDialogContent.tsx`(신규),
   `features/post/bookmark/ui/FolderSelector.tsx`, `features/post/create/hooks/useCreatePost.ts`,
   `entities/post/model/post.schema.ts`, `entities/post/api/post.queries.ts`)
 
+  </details>
+
 ### Fixed
 
-- **북마크 폴더 선택 모달에서 "최근 저장한 폴더"와 아래 본 목록이 구분선 없이 붙어 보이던
-  문제** — 최근 구획 시작 지점(라벨 위)에만 구분선이 있고 끝나는 지점엔 없어서, 같은
-  폴더가 최근 구획 마지막 행과 본 목록 첫 행으로 바로 이어져 목록이 깨진 것처럼 보였다.
-  데스크탑 사이드바(`FolderTree.tsx`)엔 이미 있던 닫는 구분선을 `FolderSelector.tsx`에
-  똑같이 추가했다 — 이 컴포넌트는 모바일 바텀시트·데스크탑 모달이 같은 리스트 마크업을
-  공유해 두 환경 모두에 영향이 있었다. (`features/post/bookmark/ui/FolderSelector.tsx`)
-- **게시글 등록 직후 피드로 이동하면 방금 등록한(북마크 선택 포함) 글이 바로 보이지
-  않던 문제** — `useCreatePost.onSubmit`이 등록 요청 완료를 기다리지 않고 즉시 피드로
-  `navigate`하는 기존 fire-and-forget 흐름 자체는 유지했지만, 그 타이밍 때문에 피드의
-  목록 쿼리가 등록 요청과 경합해 완료 전 상태로 먼저 fetch를 시작해버렸다.
-  `invalidateQueries`만으로는 이미 그 시점에 진행 중이던 fetch가 나중에 응답하며 갱신을
-  덮어써 새 글이 다시 사라지는 경우까지 있었다 — 등록 응답이 오면 진행 중이던 목록
-  fetch를 먼저 취소한 뒤, 필터 없는(전체) 목록 캐시 맨 앞에 새 글을 직접 꽂아 넣도록
-  했다. 페이지네이션 오프셋이 실제로는 한 칸씩 밀리므로, 이미 캐시된 다음 페이지들과
-  겹쳐 카드가 중복 렌더링되는 걸 막기 위해 page 0만 남기고 나머지는 버려 다음 스크롤
-  때 서버에서 새로 받는다. (`entities/post/api/post.queries.ts`,
-  `entities/post/model/post.schema.ts`)
-- **모바일 좁은 화면에서 게시글 등록/수정 진행 배지("등록 중...")가 두 줄로 개행되던
-  문제** — 상단바 우측(메뉴·검색·테마·프로필과 한 줄)에 공간이 부족한 게 근본 원인이라
+- `bookmark` "최근 저장한 폴더"와 본 목록 사이 구분선이 없어 붙어 보이던 문제
+  <details><summary>배경·구현</summary>
+
+  최근 구획 시작 지점(라벨 위)에만 구분선이 있고 끝나는 지점엔 없어서, 같은 폴더가 최근
+  구획 마지막 행과 본 목록 첫 행으로 바로 이어져 목록이 깨진 것처럼 보였다. 데스크탑
+  사이드바(`FolderTree.tsx`)엔 이미 있던 닫는 구분선을 `FolderSelector.tsx`에 똑같이
+  추가했다 — 이 컴포넌트는 모바일 바텀시트·데스크탑 모달이 같은 리스트 마크업을 공유해
+  두 환경 모두에 영향이 있었다. (`features/post/bookmark/ui/FolderSelector.tsx`)
+
+  </details>
+
+- `post` 등록 직후 피드로 이동해도 새 글이 바로 보이지 않던 문제
+  <details><summary>배경·구현</summary>
+
+  `useCreatePost.onSubmit`이 등록 요청 완료를 기다리지 않고 즉시 피드로 `navigate`하는
+  기존 fire-and-forget 흐름 자체는 유지했지만, 그 타이밍 때문에 피드의 목록 쿼리가 등록
+  요청과 경합해 완료 전 상태로 먼저 fetch를 시작해버렸다. `invalidateQueries`만으로는
+  이미 그 시점에 진행 중이던 fetch가 나중에 응답하며 갱신을 덮어써 새 글이 다시 사라지는
+  경우까지 있었다 — 등록 응답이 오면 진행 중이던 목록 fetch를 먼저 취소한 뒤, 필터
+  없는(전체) 목록 캐시 맨 앞에 새 글을 직접 꽂아 넣도록 했다. 페이지네이션 오프셋이
+  실제로는 한 칸씩 밀리므로, 이미 캐시된 다음 페이지들과 겹쳐 카드가 중복 렌더링되는 걸
+  막기 위해 page 0만 남기고 나머지는 버려 다음 스크롤 때 서버에서 새로 받는다.
+  (`entities/post/api/post.queries.ts`, `entities/post/model/post.schema.ts`)
+
+  </details>
+
+- `post` 모바일 좁은 화면에서 등록/수정 진행 배지가 두 줄로 개행되던 문제
+  <details><summary>배경·구현</summary>
+
+  상단바 우측(메뉴·검색·테마·프로필과 한 줄)에 공간이 부족한 게 근본 원인이라
   `whitespace-nowrap`만 붙이면 이번엔 가로 스크롤이 생겼다. 상단바 배지를 없애고, 같은
-  진행 상태를 완료 토스트(`포스트를 생성했어요.` 등)와 동일한 자리인 하단 토스트로
-  옮겨 폭 제약 자체를 없앴다 — 진행→완료가 한 자리에서 이어진다(위치 정책은
+  진행 상태를 완료 토스트(`포스트를 생성했어요.` 등)와 동일한 자리인 하단 토스트로 옮겨
+  폭 제약 자체를 없앴다 — 진행→완료가 한 자리에서 이어진다(위치 정책은
   `shared/lib/toast/toast.ts` 참고, 알림 종류로 위치를 정하므로 데스크톱도 동일하게
   이동). 500ms 지연·400ms 최소 노출 등 기존 타이밍은 그대로 유지했다.
   (`shared/ui/elements/PostMutationLoadingToast.tsx`(신규, `PostMutationLoadingBadge.tsx`
   대체), `shared/lib/toast/toast.ts`, `app/App.tsx`, `widgets/layout/navbar/ui/Navbar.tsx`)
-- **댓글 작성/수정 폼에서 이미지를 첨부하면 취소·등록(저장) 버튼이 이미지 옆 허공에 붕
-  떠 보이던 문제** — 이미지 첨부 영역과 버튼을 한 줄(`flex items-center justify-between`)에
-  나란히 두고 있어, 썸네일이 쌓여 그 줄의 높이가 늘어나면 버튼만 수직 중앙에 그대로
-  남아 어색해 보였다. 이미지 첨부/미리보기를 독립된 줄로, 취소·등록 버튼을 그 아래
-  우측 정렬된 별도 줄로 분리해 이미지 개수와 무관하게 버튼 위치가 항상 고정되도록
-  했다. `ImageAttachmentField` 자체는 그대로 두고 두 폼의 바깥 wrapper만 손봤다.
-  (`features/comment/create/ui/CommentForm.tsx`, `features/comment/update/ui/CommentEditForm.tsx`)
-- **모바일 폭에서 회원가입·로그인·마이페이지 닉네임 수정 폼의 검증/상태 메시지가
-  라벨과 한 줄을 억지로 나눠 쓰다 잘려 보이던 문제** — `FormField.tsx`의
-  `messageInLabelRow` 레이아웃(라벨 옆에 `truncate` 적용)이 원인이었다. 라벨과
-  줄을 나누지 않고 입력창 아래 자기 줄 전체를 쓰는 기존 레이아웃(줄바꿈 허용,
-  `truncate` 없음)으로 통일해 잘림을 없앴다. 메시지가 나타날 때 아래 요소가
-  밀리는 레이아웃 시프트는 감수하기로 했다 — 자리를 상시 확보해두면 평소(메시지
-  없음) 상태에서 폼 전체 간격이 넓어 보이는 부작용이 더 크다고 판단했다.
-  `messageInLabelRow` prop과 분기는 이 변경으로 호출처가 0곳이 돼 함께 제거했다.
-  (`shared/ui/elements/form/_base/FormField.tsx`, `shared/ui/elements/form/FormInput.tsx`,
-  `shared/ui/elements/form/FormInputPassword.tsx`, `features/auth/profile/ui/UpdateProfileForm.tsx`)
-- **회원가입 폼의 닉네임 입력이 첫 렌더에서 uncontrolled로 시작해 React 경고가 뜨던
-  문제** — `useSignUp.ts`의 기본값 객체가 실제 필드명(`nickname`)이 아닌 `name`이라는
-  존재하지 않는 키를 쓰고 있어, 닉네임 입력이 `undefined`로 시작한 뒤 첫 타이핑에서야
-  값이 생겨 controlled로 바뀌었다. (`features/auth/signup/hooks/useSignUp.ts`)
-- **가입 실패가 네트워크 오류 등 서버발 에러가 아닌 경우(오프라인·CORS 실패 등) 아무 안내
-  없이 조용히 실패하던 문제** — `useCreateAccountMutation`의 `onError`가
+
+  </details>
+
+- `comment` 이미지 첨부 시 취소·등록 버튼이 허공에 떠 보이던 문제
+  <details><summary>배경·구현</summary>
+
+  댓글 작성/수정 폼에서 이미지 첨부 영역과 버튼을 한 줄
+  (`flex items-center justify-between`)에 나란히 두고 있어, 썸네일이 쌓여 그 줄의 높이가
+  늘어나면 버튼만 수직 중앙에 그대로 남아 어색해 보였다. 이미지 첨부/미리보기를 독립된
+  줄로, 취소·등록 버튼을 그 아래 우측 정렬된 별도 줄로 분리해 이미지 개수와 무관하게
+  버튼 위치가 항상 고정되도록 했다. `ImageAttachmentField` 자체는 그대로 두고 두 폼의
+  바깥 wrapper만 손봤다. (`features/comment/create/ui/CommentForm.tsx`,
+  `features/comment/update/ui/CommentEditForm.tsx`)
+
+  </details>
+
+- `shared` 모바일 폭에서 폼 검증 메시지가 라벨과 겹쳐 잘려 보이던 문제
+  <details><summary>배경·구현</summary>
+
+  회원가입·로그인·마이페이지 닉네임 수정 폼에서, `FormField.tsx`의 `messageInLabelRow`
+  레이아웃(라벨 옆에 `truncate` 적용)이 원인이었다. 라벨과 줄을 나누지 않고 입력창 아래
+  자기 줄 전체를 쓰는 기존 레이아웃(줄바꿈 허용, `truncate` 없음)으로 통일해 잘림을
+  없앴다. 메시지가 나타날 때 아래 요소가 밀리는 레이아웃 시프트는 감수하기로 했다 —
+  자리를 상시 확보해두면 평소(메시지 없음) 상태에서 폼 전체 간격이 넓어 보이는 부작용이
+  더 크다고 판단했다. `messageInLabelRow` prop과 분기는 이 변경으로 호출처가 0곳이 돼
+  함께 제거했다. (`shared/ui/elements/form/_base/FormField.tsx`,
+  `shared/ui/elements/form/FormInput.tsx`, `shared/ui/elements/form/FormInputPassword.tsx`,
+  `features/auth/profile/ui/UpdateProfileForm.tsx`)
+
+  </details>
+
+- `auth` 회원가입 닉네임 입력이 uncontrolled로 시작해 경고가 뜨던 문제
+  <details><summary>배경·구현</summary>
+
+  `useSignUp.ts`의 기본값 객체가 실제 필드명(`nickname`)이 아닌 `name`이라는 존재하지
+  않는 키를 쓰고 있어, 닉네임 입력이 `undefined`로 시작한 뒤 첫 타이핑에서야 값이 생겨
+  controlled로 바뀌었다(React 경고 발생). (`features/auth/signup/hooks/useSignUp.ts`)
+
+  </details>
+
+- `auth` 가입 실패 시 서버발 에러가 아니면 아무 안내 없이 조용히 실패하던 문제
+  <details><summary>배경·구현</summary>
+
+  네트워크 오류·CORS 실패 등의 경우, `useCreateAccountMutation`의 `onError`가
   `error instanceof ApiError` 안에서만 토스트를 띄우고 있어, 그 조건을 벗어나는 에러는
   버튼만 다시 활성화되고 사용자에게 아무 피드백이 없었다. `useUpdateAccountMutation`과
   동일하게 `else` 분기로 일반 실패 메시지를 띄우도록 맞췄다.
   (`entities/user/api/auth.queries.ts`)
-- **닉네임이 중복인데도 "이메일로 가입된 계정이 존재해요"로 잘못 안내되던 문제** — BE가
-  이메일·닉네임 중복을 모두 같은 409(`DUPLICATE_MEMBER`)로 응답해 FE가 status만 보고
-  무조건 이메일 중복 문구를 띄우고 있었다. BE가 새로 분리한 `DUPLICATE_NICKNAME` 코드를
-  받아 이미 있던 `TEXTS.messages.error.nicknameDuplicate` 문구로 분기했다(BE
-  `docs/VERSION-COMPATIBILITY.md` 참고). (`shared/config/error-code.ts`,
+
+  </details>
+
+- `auth` 닉네임이 중복인데 "이메일 중복" 문구가 잘못 뜨던 문제
+  <details><summary>배경·구현</summary>
+
+  BE가 이메일·닉네임 중복을 모두 같은 409(`DUPLICATE_MEMBER`)로 응답해 FE가 status만
+  보고 무조건 "이메일로 가입된 계정이 존재해요" 문구를 띄우고 있었다. BE가 새로 분리한
+  `DUPLICATE_NICKNAME` 코드를 받아 이미 있던 `TEXTS.messages.error.nicknameDuplicate`
+  문구로 분기했다(BE `docs/VERSION-COMPATIBILITY.md` 참고). (`shared/config/error-code.ts`,
   `entities/user/api/auth.queries.ts`)
 
-- **모바일 좁은 화면에서 댓글 작성창이 있는 화면(게시글 상세 등)에 가로 스크롤이 생기던
-  문제** — 댓글 드래그앤드롭 판정 영역이 점선 박스보다 사방 72px(`-inset-18`) 넓은 채로
-  `pointer-events`만 토글되며 평소에도 항상 DOM에 남아 있어, 페이지 좌우 패딩을 넘어서는
-  약 56px가 뷰포트 밖으로 삐져나와 문서 전체를 가로로 밀었다. 이 오버레이를 드래그 중일
-  때만 마운트하고, 확장 폭도 좌우는 페이지 패딩만큼으로 좁혔다(상하 72px는 유지). 함께
-  `CommentItem`의 작성자 영역에 `min-w-0`·닉네임 말줄임을 추가하고 이미지 첨부 미리보기가
-  긴 이미지로 인해 폭을 밀어내지 않도록 손봤다.
-  (`features/comment/create/ui/CommentForm.tsx`, `features/comment/update/ui/CommentEditForm.tsx`,
-  `widgets/comment/comment-list/ui/CommentItem.tsx`, `shared/ui/elements/ImageAttachmentField.tsx`)
-- **URL 앞뒤나 중간에 공백이 있으면 게시글 등록·수정이 항상 실패하던 문제** — 입력 검증에
-  쓰는 `zod .url()`(브라우저 `URL` 파서)은 공백이 섞인 URL도 유효하다고 통과시키지만, BE
-  `SafeUrlValidator`가 쓰는 `java.net.URI`는 RFC 2396 엄격 파서라 생 공백을 거부해
-  400으로 떨어졌다. 제출 직전 브라우저 표준과 동일한 방식으로 URL을 정리한다 — 앞뒤 공백
-  제거, 내부 공백은 `%20`으로 인코딩. 한글 등 다른 문자는 그대로 둔다(전면 정규화는 한글
-  URL을 퍼센트 인코딩으로 바꿔 저장값을 훼손하므로 채택하지 않음).
-  (`shared/utils/url.util.ts`, `features/post/create/hooks/useCreatePost.ts`,
+  </details>
+
+- `comment` 작성창이 있는 화면에서 가로 스크롤이 생기던 문제
+  <details><summary>배경·구현</summary>
+
+  모바일 좁은 화면에서, 댓글 드래그앤드롭 판정 영역이 점선 박스보다 사방
+  72px(`-inset-18`) 넓은 채로 `pointer-events`만 토글되며 평소에도 항상 DOM에 남아 있어,
+  페이지 좌우 패딩을 넘어서는 약 56px가 뷰포트 밖으로 삐져나와 문서 전체를 가로로 밀었다.
+  이 오버레이를 드래그 중일 때만 마운트하고, 확장 폭도 좌우는 페이지 패딩만큼으로
+  좁혔다(상하 72px는 유지). 함께 `CommentItem`의 작성자 영역에 `min-w-0`·닉네임 말줄임을
+  추가하고 이미지 첨부 미리보기가 긴 이미지로 인해 폭을 밀어내지 않도록 손봤다.
+  (`features/comment/create/ui/CommentForm.tsx`,
+  `features/comment/update/ui/CommentEditForm.tsx`,
+  `widgets/comment/comment-list/ui/CommentItem.tsx`,
+  `shared/ui/elements/ImageAttachmentField.tsx`)
+
+  </details>
+
+- `post` URL 앞뒤·중간 공백이 있으면 등록·수정이 항상 실패하던 문제
+  <details><summary>배경·구현</summary>
+
+  입력 검증에 쓰는 `zod .url()`(브라우저 `URL` 파서)은 공백이 섞인 URL도 유효하다고
+  통과시키지만, BE `SafeUrlValidator`가 쓰는 `java.net.URI`는 RFC 2396 엄격 파서라 생
+  공백을 거부해 400으로 떨어졌다. 제출 직전 브라우저 표준과 동일한 방식으로 URL을
+  정리한다 — 앞뒤 공백 제거, 내부 공백은 `%20`으로 인코딩. 한글 등 다른 문자는 그대로
+  둔다(전면 정규화는 한글 URL을 퍼센트 인코딩으로 바꿔 저장값을 훼손하므로 채택하지
+  않음). (`shared/utils/url.util.ts`, `features/post/create/hooks/useCreatePost.ts`,
   `features/post/update/hooks/useUpdatePost.ts`)
-- **프로필 수정 모달에서 닉네임 입력 중(특히 한글 조합 중) ESC를 누르면 모달만 닫히지 않고
-  배경 페이지까지 뒤로 이동해버리던 문제** — 마이페이지·로그인 모달·이미지뷰어·모바일
-  사이드바는 열림 상태를 히스토리 엔트리로 관리해 닫을 때 `navigate(-1)`을 한 번만 보내야
-  하는데(`useHistoryOverlay`), 이 `navigate(-1)`은 popstate를 거쳐 비동기로 반영된다. 그
-  사이에 ESC keydown이 한 번 더 들어오면(한글 등 IME 조합 중 ESC는 브라우저가 조합
-  취소분과 실제 Escape로 keydown을 두 번 보낼 수 있다) 아직 갱신되지 않은 `isOpen` 가드를
-  통과해 `navigate(-1)`이 두 번 나가 히스토리를 한 칸 더 소모했다. 엔트리별로 back을 한
-  번만 보내도록 래치를 추가하고, 공유 `Dialog` 컴포넌트에는 IME 조합 중 ESC를 무시하는
-  가드를 더해 원인 자체도 함께 줄였다. 이 컴포넌트를 쓰는 모든 다이얼로그(마이페이지·
-  로그인모달·이미지뷰어·Alert)에 한 번에 적용된다.
+
+  </details>
+
+- `shared` 닉네임 입력 중 ESC를 누르면 모달과 함께 배경 페이지도 이동하던 문제
+  <details><summary>배경·구현</summary>
+
+  프로필 수정 모달에서 닉네임 입력 중(특히 한글 조합 중) ESC를 누르면 모달만 닫히지
+  않고 배경 페이지까지 뒤로 이동해버렸다. 마이페이지·로그인 모달·이미지뷰어·모바일
+  사이드바는 열림 상태를 히스토리 엔트리로 관리해 닫을 때 `navigate(-1)`을 한 번만
+  보내야 하는데(`useHistoryOverlay`), 이 `navigate(-1)`은 popstate를 거쳐 비동기로
+  반영된다. 그 사이에 ESC keydown이 한 번 더 들어오면(한글 등 IME 조합 중 ESC는
+  브라우저가 조합 취소분과 실제 Escape로 keydown을 두 번 보낼 수 있다) 아직 갱신되지
+  않은 `isOpen` 가드를 통과해 `navigate(-1)`이 두 번 나가 히스토리를 한 칸 더 소모했다.
+  엔트리별로 back을 한 번만 보내도록 래치를 추가하고, 공유 `Dialog` 컴포넌트에는 IME
+  조합 중 ESC를 무시하는 가드를 더해 원인 자체도 함께 줄였다. 이 컴포넌트를 쓰는 모든
+  다이얼로그(마이페이지·로그인모달·이미지뷰어·Alert)에 한 번에 적용된다.
   (`shared/hooks/useHistoryOverlay.ts`, `shared/ui/atoms/dialog.tsx`)
 
-- **프로필(닉네임·이미지) 변경이 포스트 상세의 댓글·글 작성자 정보와 북마크 폴더 게시글
-  카드에 반영되지 않던 문제** — 댓글·게시글의 작성자 정보는 BE가 매 요청 `members` 테이블에서
-  조인해 내려주므로(스냅샷 컬럼도 서버 캐시도 없음) 재조회만 하면 바로 최신값이 온다. 그런데
-  프로필 저장 성공 핸들러(`handleAccountUpdateSuccess`)가 포스트 목록 캐시만 무효화하고 있어,
-  댓글 목록·포스트 상세·폴더별 게시글 캐시는 갱신되지 않은 채로 남아 새로고침 전까지 이전
-  닉네임·아바타가 계속 보였다. 작성자 정보가 비정규화되어 실려오는 캐시(포스트 목록+상세,
-  댓글 목록, 폴더별 게시글)를 모두 무효화하도록 변경했다.
+  </details>
+
+- `user` 프로필 변경이 댓글·게시글의 작성자 정보에 반영되지 않던 문제
+  <details><summary>배경·구현</summary>
+
+  프로필(닉네임·이미지) 변경이 포스트 상세의 댓글·글 작성자 정보와 북마크 폴더 게시글
+  카드에 반영되지 않았다. 댓글·게시글의 작성자 정보는 BE가 매 요청 `members` 테이블에서
+  조인해 내려주므로(스냅샷 컬럼도 서버 캐시도 없음) 재조회만 하면 바로 최신값이 온다.
+  그런데 프로필 저장 성공 핸들러(`handleAccountUpdateSuccess`)가 포스트 목록 캐시만
+  무효화하고 있어, 댓글 목록·포스트 상세·폴더별 게시글 캐시는 갱신되지 않은 채로 남아
+  새로고침 전까지 이전 닉네임·아바타가 계속 보였다. 작성자 정보가 비정규화되어 실려오는
+  캐시(포스트 목록+상세, 댓글 목록, 폴더별 게시글)를 모두 무효화하도록 변경했다.
   (`entities/user/api/auth.keys.ts`)
 
-- **비활성 버튼 이유 툴팁이 Tab 포커스만 줘도 열리고, 호버 중 입력하면 등장 애니메이션이
-  깜빡이던 문제** — 프로필 수정에서 닉네임을 입력하는 동안 저장 버튼 위에 마우스를 올려두면
-  겪는 문제였다. 포커스로도 여는 것은 Radix `TooltipTrigger`에 `onFocus` 오픈이 내장돼 있어
-  트리거를 포커스 불가(`tabIndex={-1}`)로 만드는 것 외엔 끄는 방법이 없었다(키보드만 쓰는
-  사용자는 이 이유를 볼 수 없게 되는 트레이드오프를 감수). 깜빡임은 Radix가 아니라 우리
-  조건부 렌더(`content` 유무로 `<TooltipContent>`를 언마운트→재마운트)가 원인이었다 — 열려
-  있는 동안은 호버 시작 시점의 문구를 고정하고, 닫힌 뒤에만 최신값을 반영한다. 추가로, 마우스가
-  저장 버튼 위에 그대로 있어도 같은 폼의 다른 입력창(닉네임 등)에 실제로 타이핑하면(포커스
-  이탈이 아니라 입력(`input`) 이벤트 기준) 즉시 닫는다. 시간이 지난다고 저절로 다시 뜨지는
-  않는다 — Radix는 포인터가 트리거를 실제로 벗어났다가 다시 들어와야만 "새로 진입"으로 인식해
-  다시 열기를 시도하므로, 마우스를 뺐다가 다시 넣어야만 최신 이유로 다시 뜬다.
-  (`shared/ui/elements/TooltipWrapper.tsx`)
+  </details>
 
-- **비활성 버튼에 `cursor-not-allowed` 커서가 일부 상황에서 안 뜨던 문제** — 게시글 등록·수정,
-  댓글 등록·수정, 프로필 저장 버튼 5곳 모두에서 발생했다. 버튼이 `disabled:pointer-events-none`
-  이라 비활성 버튼 자신은 마우스 이벤트를 안 받고 부모 `TooltipWrapper`의 `<span>`으로 넘기는데,
-  그 span의 `cursor-not-allowed`가 "보여줄 이유(`content`)가 있는지"로 결정되고 있었다.
-  로딩 중·형식 오류 등 의도적으로 툴팁을 안 보여주는 disabled 사유에서는 `content`가 `null`이라
-  커서도 같이 빠졌다. `disabled` 여부를 별도 필수 prop으로 받아 커서는 그 값으로, 툴팁 표시
-  여부는 `content`로 독립적으로 판단하도록 분리했다.
-  (`shared/ui/elements/TooltipWrapper.tsx`, 호출부 5곳)
+- `shared` 비활성 버튼 이유 툴팁이 Tab 포커스로 열리고 깜빡이던 문제
+  <details><summary>배경·구현</summary>
 
-- **모바일에서 사이드바 드로어나 댓글 입력바가 열린 상태로 페이지를 벗어나려 하면
-  이탈 확인 모달이 그 뒤에 가려 버튼을 누를 수 없던 문제** — 공용 `Dialog`(오버레이·
-  콘텐츠 모두 `z-50`)가 사이드바 드로어(`z-55`/`z-60`)나 확장된 `MobileCommentBar`
-  (`z-55`)보다 낮아 역전돼 있었다. `Dialog`를 고정 UI 사다리 최상단인 `z-70`으로
-  올리고, `Dialog` 안에서 함께 쓰이는 포털 팝오버(tooltip·dropdown-menu·select,
-  기존 `z-50`)는 `z-80`으로 올려 모달 뒤에 숨지 않도록 했다. 사다리 전체는
-  `.claude/skills/responsive-ux/SKILL.md`에 문서화했다.
-  (`shared/ui/atoms/dialog.tsx`, `shared/ui/atoms/tooltip.tsx`,
+  프로필 수정에서 닉네임을 입력하는 동안 저장 버튼 위에 마우스를 올려두면 겪는
+  문제였다. 포커스로도 여는 것은 Radix `TooltipTrigger`에 `onFocus` 오픈이 내장돼 있어
+  트리거를 포커스 불가(`tabIndex={-1}`)로 만드는 것 외엔 끄는 방법이 없었다(키보드만
+  쓰는 사용자는 이 이유를 볼 수 없게 되는 트레이드오프를 감수). 깜빡임은 Radix가 아니라
+  우리 조건부 렌더(`content` 유무로 `<TooltipContent>`를 언마운트→재마운트)가
+  원인이었다 — 열려 있는 동안은 호버 시작 시점의 문구를 고정하고, 닫힌 뒤에만 최신값을
+  반영한다. 추가로, 마우스가 저장 버튼 위에 그대로 있어도 같은 폼의 다른 입력창(닉네임
+  등)에 실제로 타이핑하면(포커스 이탈이 아니라 입력(`input`) 이벤트 기준) 즉시 닫는다.
+  시간이 지난다고 저절로 다시 뜨지는 않는다 — Radix는 포인터가 트리거를 실제로
+  벗어났다가 다시 들어와야만 "새로 진입"으로 인식해 다시 열기를 시도하므로, 마우스를
+  뺐다가 다시 넣어야만 최신 이유로 다시 뜬다. (`shared/ui/elements/TooltipWrapper.tsx`)
+
+  </details>
+
+- `shared` 비활성 버튼에 `cursor-not-allowed`가 일부 상황에서 안 뜨던 문제
+  <details><summary>배경·구현</summary>
+
+  게시글 등록·수정, 댓글 등록·수정, 프로필 저장 버튼 5곳 모두에서 발생했다. 버튼이
+  `disabled:pointer-events-none`이라 비활성 버튼 자신은 마우스 이벤트를 안 받고 부모
+  `TooltipWrapper`의 `<span>`으로 넘기는데, 그 span의 `cursor-not-allowed`가 "보여줄
+  이유(`content`)가 있는지"로 결정되고 있었다. 로딩 중·형식 오류 등 의도적으로 툴팁을
+  안 보여주는 disabled 사유에서는 `content`가 `null`이라 커서도 같이 빠졌다. `disabled`
+  여부를 별도 필수 prop으로 받아 커서는 그 값으로, 툴팁 표시 여부는 `content`로
+  독립적으로 판단하도록 분리했다. (`shared/ui/elements/TooltipWrapper.tsx`, 호출부 5곳)
+
+  </details>
+
+- `shared` 모바일에서 이탈 확인 모달이 사이드바·댓글 입력바 뒤에 가려지던 문제
+  <details><summary>배경·구현</summary>
+
+  사이드바 드로어나 댓글 입력바가 열린 상태로 페이지를 벗어나려 하면 이탈 확인 모달이
+  그 뒤에 가려 버튼을 누를 수 없었다. 공용 `Dialog`(오버레이·콘텐츠 모두 `z-50`)가
+  사이드바 드로어(`z-55`/`z-60`)나 확장된 `MobileCommentBar`(`z-55`)보다 낮아 역전돼
+  있었다. `Dialog`를 고정 UI 사다리 최상단인 `z-70`으로 올리고, `Dialog` 안에서 함께
+  쓰이는 포털 팝오버(tooltip·dropdown-menu·select, 기존 `z-50`)는 `z-80`으로 올려 모달
+  뒤에 숨지 않도록 했다. 사다리 전체는 `.claude/skills/responsive-ux/SKILL.md`에
+  문서화했다. (`shared/ui/atoms/dialog.tsx`, `shared/ui/atoms/tooltip.tsx`,
   `shared/ui/atoms/dropdown-menu.tsx`, `shared/ui/atoms/select.tsx`)
+
+  </details>
 
 ### Changed
 
-- **프로필 저장 버튼의 "닉네임을 확인하고 있어요." 툴팁 제거** — 닉네임 형식(정규식) 오류는
-  이미 입력창 라벨 옆에 에러 메시지로 보이고, 서버 중복 확인이 300ms 넘게 걸릴 때만 같은
-  자리에 "확인 중..."이 뜬다(`nicknameStatusText`, 빨리 끝나는 대부분의 경우엔 깜빡이지
-  않도록 지연 표시). 툴팁이 같은 정보를 중복으로 알려주고 있어 제거하고, "변경한 내용이
-  없어요."만 남겼다.
-  (`features/auth/profile/ui/UpdateProfileForm.tsx`, `shared/config/texts.ts`)
+- `auth` 프로필 저장 버튼의 중복 안내 툴팁 제거
+  <details><summary>배경·구현</summary>
 
-- **댓글 수정 폼(`CommentEditForm`)을 댓글 등록 폼과 동일한 구조(React Hook Form + `<form>`)로
-  전면 마이그레이션** — 기존엔 유일하게 `useState` + 수동 dirty 비교 + `<div>`(진짜 `<form>`
-  아님) 구조라, ⌘+Enter 저장이 없었고 위 TooltipWrapper의 "같은 폼의 다른 입력창에 타이핑하면
-  억제" 로직도 `closest('form')`이 못 찾아 적용되지 않았다. `CommentItem.tsx`가 훅을 호출해
-  12개 prop을 내려주던 구조도 답글 폼처럼 컴포넌트가 자기 훅을 직접 호출하는 형태로 바꿔,
-  `isEditing` 로컬 boolean만 남기고 나머지는 마운트가 곧 "편집 시작"이 되도록 정리했다. 이제
-  댓글 등록과 완전히 동일하게 ⌘+Enter(및 그 힌트 뱃지), 빈 상태 스크롤+테두리 강조, hover
-  이유 툴팁이 전부 동작한다.
+  "닉네임을 확인하고 있어요." 툴팁 제거 — 닉네임 형식(정규식) 오류는 이미 입력창 라벨
+  옆에 에러 메시지로 보이고, 서버 중복 확인이 300ms 넘게 걸릴 때만 같은 자리에 "확인
+  중..."이 뜬다(`nicknameStatusText`, 빨리 끝나는 대부분의 경우엔 깜빡이지 않도록 지연
+  표시). 툴팁이 같은 정보를 중복으로 알려주고 있어 제거하고, "변경한 내용이 없어요."만
+  남겼다. (`features/auth/profile/ui/UpdateProfileForm.tsx`, `shared/config/texts.ts`)
+
+  </details>
+
+- `comment` 수정 폼을 등록 폼과 동일한 구조로 전면 마이그레이션
+  <details><summary>배경·구현</summary>
+
+  `CommentEditForm`을 댓글 등록 폼과 동일한 구조(React Hook Form + `<form>`)로
+  전환했다. 기존엔 유일하게 `useState` + 수동 dirty 비교 + `<div>`(진짜 `<form>` 아님)
+  구조라, ⌘+Enter 저장이 없었고 TooltipWrapper의 "같은 폼의 다른 입력창에 타이핑하면
+  억제" 로직도 `closest('form')`이 못 찾아 적용되지 않았다. `CommentItem.tsx`가 훅을
+  호출해 12개 prop을 내려주던 구조도 답글 폼처럼 컴포넌트가 자기 훅을 직접 호출하는
+  형태로 바꿔, `isEditing` 로컬 boolean만 남기고 나머지는 마운트가 곧 "편집 시작"이
+  되도록 정리했다. 이제 댓글 등록과 완전히 동일하게 ⌘+Enter(및 그 힌트 뱃지), 빈 상태
+  스크롤+테두리 강조, hover 이유 툴팁이 전부 동작한다.
   (`features/comment/update/hooks/useUpdateComment.ts`,
   `features/comment/update/ui/CommentEditForm.tsx`,
   `widgets/comment/comment-list/ui/CommentItem.tsx`)
 
-- **모바일 화면의 댓글 답글·터치 타깃 개선** — 답글이 `ml-8` 고정 들여쓰기로 좁은 화면에서
-  본문 폭이 지나치게 좁아지던 문제를 모바일에서 들여쓰기를 줄이고 좌측 스레드 라인으로
-  대체해 완화했다(데스크톱은 기존 그대로). 좋아요·답글·수정·삭제 버튼이 44px 터치 타깃
-  기준에 못 미치던 것도 모바일에서만 히트 영역을 넓혔다. 겸사겸사 `useIsMobile`의
-  초기값이 항상 `false`로 시작해 모바일에서 첫 렌더에 데스크톱 UI가 잠깐 보였다 바뀌던
-  깜빡임도 lazy init으로 없앴다.
-  (`widgets/comment/comment-list/ui/CommentItem.tsx`, `features/comment/like/ui/LikeCommentButton.tsx`,
-  `shared/hooks/useIsMobile.ts`)
+  </details>
 
-- **게시글 상세 댓글 섹션의 중복 헤딩·구분선 정리** — 페이지가 그리는 영어 `Comments`
-  헤딩과 댓글 위젯이 그리는 한글 `댓글` 헤딩이 같은 자리에 겹쳐 렌더돼 라벨이 두 줄로
-  보였다. 위젯이 자기 섹션 헤딩을 소유하도록 페이지 쪽 헤딩을 제거하고, 남은 헤딩에
-  답글·삭제된 톰스톤까지 포함한 전체 댓글 수를 표시했다. 댓글 작성 폼 아래 구분선은
-  폼이 실제로 렌더되는 데스크톱에서만 그려지도록 해, 폼이 하단 sticky 바로 빠지는
-  모바일에서 헤딩 바로 밑에 혼자 남던 구분선도 함께 없앴다.
-  (`pages/post/PostDetailPage.tsx`, `widgets/comment/comment-list/ui/CommentList.tsx`,
+- `comment` 모바일 화면의 답글 들여쓰기·터치 타깃 개선
+  <details><summary>배경·구현</summary>
+
+  답글이 `ml-8` 고정 들여쓰기로 좁은 화면에서 본문 폭이 지나치게 좁아지던 문제를
+  모바일에서 들여쓰기를 줄이고 좌측 스레드 라인으로 대체해 완화했다(데스크톱은 기존
+  그대로). 좋아요·답글·수정·삭제 버튼이 44px 터치 타깃 기준에 못 미치던 것도
+  모바일에서만 히트 영역을 넓혔다. 겸사겸사 `useIsMobile`의 초기값이 항상 `false`로
+  시작해 모바일에서 첫 렌더에 데스크톱 UI가 잠깐 보였다 바뀌던 깜빡임도 lazy init으로
+  없앴다. (`widgets/comment/comment-list/ui/CommentItem.tsx`,
+  `features/comment/like/ui/LikeCommentButton.tsx`, `shared/hooks/useIsMobile.ts`)
+
+  </details>
+
+- `comment` 게시글 상세 댓글 섹션의 중복 헤딩·구분선 정리
+  <details><summary>배경·구현</summary>
+
+  페이지가 그리는 영어 `Comments` 헤딩과 댓글 위젯이 그리는 한글 `댓글` 헤딩이 같은
+  자리에 겹쳐 렌더돼 라벨이 두 줄로 보였다. 위젯이 자기 섹션 헤딩을 소유하도록 페이지
+  쪽 헤딩을 제거하고, 남은 헤딩에 답글·삭제된 톰스톤까지 포함한 전체 댓글 수를
+  표시했다. 댓글 작성 폼 아래 구분선은 폼이 실제로 렌더되는 데스크톱에서만 그려지도록
+  해, 폼이 하단 sticky 바로 빠지는 모바일에서 헤딩 바로 밑에 혼자 남던 구분선도 함께
+  없앴다. (`pages/post/PostDetailPage.tsx`, `widgets/comment/comment-list/ui/CommentList.tsx`,
   `shared/config/texts.ts`)
+
+  </details>
 
 ## [0.11.0] - 2026-08-10
 
