@@ -66,6 +66,10 @@ export const createPostSchema = z.object({
   title: z.string().optional(),
   categoryIds: z.array(z.coerce.number()).optional(),
   isPrivate: z.boolean(),
+  // 폴더 없이 북마크만(미분류)
+  bookmark: z.boolean(),
+  // 소속시킬 폴더들
+  folderIds: z.array(z.string()),
 });
 
 export const updatePostSchema = z.object({

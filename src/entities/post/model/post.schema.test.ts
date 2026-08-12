@@ -70,6 +70,8 @@ describe('createPostSchema', () => {
     const result = createPostSchema.safeParse({
       url: 'https://example.com',
       isPrivate: false,
+      bookmark: false,
+      folderIds: [],
     });
     expect(result.success).toBe(true);
   });
@@ -92,6 +94,26 @@ describe('createPostSchema', () => {
       url: 'https://example.com',
       isPrivate: true,
       categoryIds: [1, 2],
+      bookmark: false,
+      folderIds: [],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('bookmark나 folderIds가 없으면 파싱에 실패한다', () => {
+    const result = createPostSchema.safeParse({
+      url: 'https://example.com',
+      isPrivate: false,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('folderIds에 폴더 여러 개를 담을 수 있다', () => {
+    const result = createPostSchema.safeParse({
+      url: 'https://example.com',
+      isPrivate: false,
+      bookmark: true,
+      folderIds: ['folder-uuid-1', 'folder-uuid-2'],
     });
     expect(result.success).toBe(true);
   });

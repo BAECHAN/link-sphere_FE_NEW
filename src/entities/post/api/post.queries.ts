@@ -24,6 +24,7 @@ import {
 } from '@/entities/post/api/post.keys';
 import { POST_PAGE_SIZE } from '@/entities/post/config/const';
 import {
+  handleBookmarkToggleSuccess,
   handlePostContentUpdateSuccess,
   handlePostDeleteSuccess,
 } from '@/entities/folder/api/folder.keys';
@@ -39,8 +40,12 @@ export const useCreatePostMutation = () => {
       successMessage: TEXTS.messages.success.postCreated,
       errorMessage: TEXTS.messages.error.postCreateFailed,
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       handlePostCreateSuccess();
+      // 등록과 함께 북마크가 생겼으면 폴더 목록(bookmarkCount)·폴더별 게시글도 낡는다.
+      if (variables.bookmark || variables.folderIds.length > 0) {
+        handleBookmarkToggleSuccess();
+      }
     },
   });
 };

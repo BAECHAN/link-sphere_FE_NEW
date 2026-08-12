@@ -12,6 +12,8 @@ const DEFAULT_VALUES: CreatePost = {
   title: '',
   categoryIds: [],
   isPrivate: false,
+  bookmark: false,
+  folderIds: [],
 };
 
 export function useCreatePost() {
