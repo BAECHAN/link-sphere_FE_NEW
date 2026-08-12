@@ -38,12 +38,12 @@ export function FolderSelector({
 }: FolderSelectorProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { data, isLoading } = useFolderListQuery({ enabled: open });
+  const { data, isLoading, isFetching } = useFolderListQuery({ enabled: open });
   // 잘못 라우팅된 응답(HTML 등) 방어 — 배열이 아니면 빈 목록으로 처리해 피드 전체 크래시 방지
   const folderList = Array.isArray(data?.folders) ? data.folders : [];
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
   // 상단 "최근 저장한 폴더" 구획 — 열 때마다(open) 새로 스냅샷, 열려있는 동안은 고정
-  const { recentFolders } = useRecentFolders(folderList, isLoading, open);
+  const { recentFolders } = useRecentFolders(folderList, isFetching, open);
   const { selectUncategorized, selectFolder, removeBookmark } = useBookmarkFolders(
     postId,
     isBookmarked,

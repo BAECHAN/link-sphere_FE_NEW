@@ -37,6 +37,24 @@
   호출해 북마크 목록 캐시를 무효화하도록 했다 — 같은 패턴(폭넓은 무효화)을 이미
   `handleBookmarkToggleSuccess` 등 다른 cross-invalidation 지점에서도 쓰고 있다.
   (`pages/post/PostDetailPage.tsx`)
+### Fixed
+
+- `bookmark` 게시글 삭제 후 북마크 페이지에서 폴더 카운트가 옛 값으로 남던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  북마크된 게시글을 삭제하고 북마크 페이지로 이동하면, 새로고침 전까지 폴더의 게시글 개수와
+  "최근 저장한 폴더" 구획이 삭제 전 값 그대로 보였다. 원인은 BE·React Query 무효화가 아니라
+  `useRecentFolders`의 스냅샷 방식 — 세션 중 순서를 고정하려던 의도(split menu 공간기억)가
+  `Folder` 객체 전체(카운트 포함)를 얼렸고, 스냅샷 시점도 `isLoading`(캐시가 없을 때만
+  true) 기준이라 재방문 시 stale 캐시로 곧장 확정돼버려 뒤이은 refetch 결과가 반영되지
+  않았다. 스냅샷 대상을 폴더 id 목록만으로 좁히고(순서는 고정, 값은 매 렌더 최신 `folders`에서
+  재조회), 스냅샷 시점을 `isFetching`이 꺼지는 순간(재검증 완료 후)으로 옮겼다. 더불어
+  `useDeletePostMutation`에만 없던 낙관적 폴더 카운트 감소를 다른 북마크 변경 mutation과
+  동일한 패턴으로 추가해, invalidate 응답을 기다리는 동안의 순간적인 stale 노출도 없앴다.
+  (`entities/folder/model/useRecentFolders.ts`,
+  `widgets/bookmark/folder-tree/FolderTree.tsx`,
+  `widgets/bookmark/folder-tree/MobileFolderList.tsx`,
+  `features/post/bookmark/ui/FolderSelector.tsx`, `entities/post/api/post.queries.ts`)
 
   </details>
 
