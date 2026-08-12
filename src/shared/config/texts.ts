@@ -242,6 +242,7 @@ export const TEXTS = {
         oldest: '오래된순',
         title: '제목순',
         views: '조회수순',
+        viewed: '최근 열람순',
       },
     },
   },
