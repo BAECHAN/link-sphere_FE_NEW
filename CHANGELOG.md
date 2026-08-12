@@ -41,6 +41,42 @@
 
   </details>
 
+- `bookmark` 등록 폼 폴더 선택기에도 "최근 저장한 폴더" 상단 구획 노출
+  <details><summary>배경·구현</summary>
+
+  보관함 모달(`FolderSelector`)에만 있던 "최근 저장한 폴더" 상단 구획(§5, split menu)이
+  등록 폼(`BookmarkFolderPicker`)에는 없었다. 두 화면이 공통 프레젠테이션 컴포넌트
+  (`entities/folder/ui/FolderPickerDialog`, 아래 Changed 항목)를 공유하도록 합치면서
+  자동으로 확보됐다 — 노출 조건·개수·스냅샷 규칙은 기존과 동일.
+  (`entities/folder/ui/FolderPickerDialog.tsx`(신규),
+  `features/post/create/ui/BookmarkFolderPicker.tsx`)
+
+  </details>
+
+### Changed
+
+- `bookmark` 등록 폼 폴더 선택기에 '북마크 안 함' 행 추가 및 미분류 재탭 규칙 통일
+  <details><summary>배경·구현</summary>
+
+  등록 폼에는 북마크를 끄는 전용 수단이 없어 '미분류' 행을 다시 탭하는 것이 곧
+  해제였는데, 이는 보관함 모달(`FolderSelector`)의 "체크된 미분류 재탭 = no-op"과
+  반대라 같은 모양의 UI가 화면마다 다르게 동작했다. 목록 맨 아래에 destructive
+  '북마크 안 함' 행을 추가하고 미분류 재탭은 양쪽 모두 no-op으로 통일했다. 이 행은
+  조건부로 감추면 탭할 때마다 나타났다 사라져 하단 '확인' 버튼 위치가 흔들리므로
+  항상 노출한다. 폴더/미분류 행과 달리 더 고를 게 남지 않는 종결 동작이라(보관함
+  모달의 '북마크 제거' 행과 동일한 성격) 누르면 선택을 비우고 바로 모달을 닫는다.
+  함께, 두 화면이 각자 들고 있던 폴더 목록 다이얼로그 마크업을 공통 프레젠테이션
+  컴포넌트로 합치고 저장 동작만 콜백으로 주입하도록 바꿨다(보관함 모달의 즉시 저장·
+  토스트·행별 스피너 동작은 그대로). 이 과정에서 보관함 모달의 폴더 행에도 모바일
+  최소 터치 높이(44px)를 등록 폼과 동일하게 맞춰, 보관함 모달의 모바일 행 높이가
+  조금 커졌다.
+  (`entities/folder/ui/FolderPickerDialog.tsx`(신규),
+  `features/post/bookmark/ui/FolderSelector.tsx`,
+  `features/post/create/ui/BookmarkFolderPicker.tsx`,
+  `features/post/bookmark/hooks/useBookmarkFolders.ts`, `docs/BOOKMARK.md`)
+
+  </details>
+
 ### Fixed
 
 - `bookmark` "최근 열람순" 정렬이 방금 본 글을 반영하지 않고 새로고침해야만 보이던 문제
