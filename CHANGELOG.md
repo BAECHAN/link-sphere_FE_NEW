@@ -9,6 +9,23 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `bookmark` 폴더 선택 목록에 "내 폴더" 구획 헤더 추가
+  <details><summary>배경·구현</summary>
+
+  북마크 버튼을 눌러 여는 폴더 선택 시트(`FolderSelector`)와 데스크탑 사이드바
+  (`FolderTree`)에서, 상단 "최근 저장한 폴더" 구획엔 라벨이 있는데 그 아래 본
+  목록엔 라벨 없이 바로 이어져 같은 폴더가 위아래에 중복 표시되는 게(의도된 split
+  menu 설계) "목록이 깨졌다"로 오인되기 쉬웠다. 본 목록에 "내 폴더" 헤더를 상시
+  추가해(폴더 1개 이상일 때, 최근 구획 노출 여부와 무관) 구분을 명확히 했다.
+  모바일 폴더 목록 페이지(`MobileFolderList`)엔 이미 같은 헤더가 있어 화면마다
+  표기가 갈리던 것도 함께 통일했다. 등록 폼의 `BookmarkFolderPicker`에도 동일 적용.
+  (`FolderSelector.tsx`, `FolderTree.tsx`, `BookmarkFolderPicker.tsx`,
+  `docs/BOOKMARK.md` §5)
+
+  </details>
+
 ## [0.12.0] - 2026-08-13
 
 ### Added

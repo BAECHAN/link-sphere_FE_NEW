@@ -79,6 +79,13 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
         </>
       )}
 
+      {/* 내 폴더 — 위 "최근 저장한 폴더"와 겹치더라도 그대로 중복 표시한다 */}
+      {(folders?.length ?? 0) > 0 && (
+        <div className="px-3 pt-1 pb-1 text-xs font-semibold text-muted-foreground">
+          {TEXTS.bookmark.folder.myFolders}
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex items-center justify-center py-4">
           <Spinner />
