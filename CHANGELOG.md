@@ -9,6 +9,24 @@
 
 ### Added
 
+- **댓글 작성 폼에 취소 버튼, 데스크톱 댓글 영역에 플로팅 "댓글 작성" 버튼 추가** — ①
+  답글·수정 폼과 달리 목록 맨 위에 항상 떠 있는 최상위 댓글 작성 폼에는 취소 버튼이
+  없었다. 이 폼은 답글처럼 "닫히지" 않으므로, 입력 중이던 텍스트·이미지를 즉시 지우는
+  용도의 취소 버튼을 추가했다(지울 내용이 있을 때만 노출, 확인 없이 즉시 초기화 — 답글
+  취소와 동일한 방식). ② 데스크톱에서 댓글이 길어 작성 폼이 스크롤로 화면 밖에 나가면
+  다시 위로 스크롤해야 했던 문제를, 게시글 목록의 `ScrollToTop`과 동일한 자리(우측 하단
+  플로팅 버튼)에 "댓글 작성"으로 이동하는 버튼을 추가해 해결했다. 두 컴포넌트는 쓰이는
+  페이지가 겹치지 않아(`ScrollToTop`은 상세 페이지에서 꺼짐) 자리 충돌이 없다. 클릭하면
+  스크롤만 하지 않고 텍스트영역까지 포커스돼 바로 타이핑할 수 있다(포커스는
+  `CommentForm`에 `forwardRef`+`useImperativeHandle`로 노출, `preventScroll: true`로
+  브라우저 자동 스크롤과 충돌하지 않게 했다). ③ 댓글 미리보기가 입력 즉시 항상 펼쳐져
+  화면을 많이 차지하던 것을 모바일 기본 접힘으로 바꾸고(데스크톱은 기존처럼 항상 펼침),
+  펼침/접힘 토글 버튼도 헤더 줄 전체가 클릭 영역이 되도록 넓혔다.
+  (`features/comment/create/ui/CommentForm.tsx`,
+  `features/comment/create/ui/ScrollToCommentFormButton.tsx`(신규),
+  `widgets/comment/comment-list/ui/CommentList.tsx`, `widgets/layout/navbar/ui/Navbar.tsx`,
+  `shared/config/texts.ts`)
+
 - **회원가입 화면 이메일·닉네임 실시간 중복확인** — 지금까지는 가입 버튼을 눌러 409를
   받아야만 중복 여부를 알 수 있었다. 마이페이지 닉네임 중복확인(`useUpdateProfile.ts`)과
   동일한 디바운스(500ms)·취소·상태머신 형태를 이메일에도 함께 쓸 수 있도록 일반화한
@@ -23,6 +41,13 @@
 
 ### Fixed
 
+- **댓글 작성/수정 폼에서 이미지를 첨부하면 취소·등록(저장) 버튼이 이미지 옆 허공에 붕
+  떠 보이던 문제** — 이미지 첨부 영역과 버튼을 한 줄(`flex items-center justify-between`)에
+  나란히 두고 있어, 썸네일이 쌓여 그 줄의 높이가 늘어나면 버튼만 수직 중앙에 그대로
+  남아 어색해 보였다. 이미지 첨부/미리보기를 독립된 줄로, 취소·등록 버튼을 그 아래
+  우측 정렬된 별도 줄로 분리해 이미지 개수와 무관하게 버튼 위치가 항상 고정되도록
+  했다. `ImageAttachmentField` 자체는 그대로 두고 두 폼의 바깥 wrapper만 손봤다.
+  (`features/comment/create/ui/CommentForm.tsx`, `features/comment/update/ui/CommentEditForm.tsx`)
 - **모바일 폭에서 회원가입·로그인·마이페이지 닉네임 수정 폼의 검증/상태 메시지가
   라벨과 한 줄을 억지로 나눠 쓰다 잘려 보이던 문제** — `FormField.tsx`의
   `messageInLabelRow` 레이아웃(라벨 옆에 `truncate` 적용)이 원인이었다. 라벨과
@@ -149,6 +174,15 @@
   깜빡임도 lazy init으로 없앴다.
   (`widgets/comment/comment-list/ui/CommentItem.tsx`, `features/comment/like/ui/LikeCommentButton.tsx`,
   `shared/hooks/useIsMobile.ts`)
+
+- **게시글 상세 댓글 섹션의 중복 헤딩·구분선 정리** — 페이지가 그리는 영어 `Comments`
+  헤딩과 댓글 위젯이 그리는 한글 `댓글` 헤딩이 같은 자리에 겹쳐 렌더돼 라벨이 두 줄로
+  보였다. 위젯이 자기 섹션 헤딩을 소유하도록 페이지 쪽 헤딩을 제거하고, 남은 헤딩에
+  답글·삭제된 톰스톤까지 포함한 전체 댓글 수를 표시했다. 댓글 작성 폼 아래 구분선은
+  폼이 실제로 렌더되는 데스크톱에서만 그려지도록 해, 폼이 하단 sticky 바로 빠지는
+  모바일에서 헤딩 바로 밑에 혼자 남던 구분선도 함께 없앴다.
+  (`pages/post/PostDetailPage.tsx`, `widgets/comment/comment-list/ui/CommentList.tsx`,
+  `shared/config/texts.ts`)
 
 ## [0.11.0] - 2026-08-10
 

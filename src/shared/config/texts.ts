@@ -171,7 +171,6 @@ export const TEXTS = {
       notFound: '포스트를 찾을 수 없어요.',
       back: COMMON_TEXT.back,
       heading: 'Post Details',
-      commentsHeading: 'Comments',
     },
     search: {
       corrected: (query: string) => `'${query}'(으)로 검색한 결과예요.`,
@@ -197,6 +196,9 @@ export const TEXTS = {
       saving: COMMON_TEXT.saving,
       submitReply: '답글 등록',
       submitComment: '댓글 등록',
+      showPreview: '미리보기 펼치기',
+      hidePreview: '미리보기 접기',
+      mobileBarTrigger: '댓글을 작성하세요...',
     },
     item: {
       authorBadge: '작성자',
@@ -413,6 +415,8 @@ export const TEXTS = {
     imageViewerPrev: '이전 이미지',
     imageViewerNext: '다음 이미지',
     profileImageZoom: '프로필 사진 확대',
+    commentBarExpand: '댓글 작성창 펼치기',
+    scrollToCommentForm: '댓글 작성창으로 이동',
 
     // 입력 필드
     inputClear: '입력값 지우기',

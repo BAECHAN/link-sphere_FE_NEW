@@ -30,7 +30,6 @@ function PostDetailContent() {
       <PostCard post={post} isDetail />
 
       <div className="pt-6 border-t">
-        <h2 className="text-lg font-bold mb-6">{TEXTS.post.detail.commentsHeading}</h2>
         <CommentList postId={post.id} postAuthorId={post.author.id} />
       </div>
     </div>

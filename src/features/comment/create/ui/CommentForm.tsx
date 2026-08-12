@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { ImagePlus } from 'lucide-react';
+import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import { ImagePlus, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { Textarea } from '@/shared/ui/atoms/textarea';
@@ -21,14 +21,14 @@ interface CommentFormProps {
   autoFocus?: boolean;
 }
 
-export function CommentForm({
-  postId,
-  parentId,
-  onCancel,
-  onSuccess,
-  className,
-  autoFocus,
-}: CommentFormProps) {
+export interface CommentFormHandle {
+  focus: () => void;
+}
+
+export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(function CommentForm(
+  { postId, parentId, onCancel, onSuccess, className, autoFocus },
+  ref
+) {
   const {
     form,
     onSubmit,
@@ -44,6 +44,7 @@ export function CommentForm({
     handleDragEnter,
     handleDragLeave,
     clearImage,
+    clearAllImages,
   } = useCreateComment({ postId, parentId, onSuccess, autoFocus });
 
   const { register } = form;
@@ -52,7 +53,17 @@ export function CommentForm({
   const canSubmit = !!contentValue.trim() || images.length > 0;
 
   const containerRef = useRef<HTMLDivElement>(null);
+  // 병합 콜백 ref에서 직접 .current를 대입해야 해서 MutableRefObject가 되도록
+  // null을 타입에 포함시킨다(useRef<T>(null)은 readonly RefObject를 반환함).
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [showValidationHighlight, setShowValidationHighlight] = useState(false);
+  // 모바일에서는 미리보기가 화면을 많이 차지해 기본 접힘 - 데스크톱은 기존처럼 항상 펼침
+  const [showPreview, setShowPreview] = useState(!isMobile);
+
+  // 부모(스크롤 이동 버튼 등)가 이 폼의 텍스트영역에 포커스를 줄 수 있도록 노출한다.
+  useImperativeHandle(ref, () => ({
+    focus: () => textareaRef.current?.focus({ preventScroll: true }),
+  }));
 
   // ⌘+Enter로 빈 상태 제출 시, 토스트만으로는 어느 폼(답글창이 여러 개 열려 있을 수 있음)인지
   // 알기 어려워 그 폼 자신을 화면 중앙으로 스크롤하고 잠깐 강조한다.
@@ -61,6 +72,15 @@ export function CommentForm({
     setShowValidationHighlight(true);
     setTimeout(() => setShowValidationHighlight(false), 1300);
   }
+
+  // onCancel이 없는 최상위 작성 폼(답글처럼 닫히는 개념이 없음)에서는 취소 버튼이
+  // 입력 중이던 내용을 지우는 역할을 한다.
+  function handleClearDraft() {
+    form.reset();
+    clearAllImages();
+  }
+
+  const { ref: registerContentRef, ...contentRegister } = register('content');
 
   return (
     <form onSubmit={onSubmit} className={`space-y-2 ${className}`}>
@@ -95,7 +115,11 @@ export function CommentForm({
             isReply ? TEXTS.comment.form.replyPlaceholder : TEXTS.comment.form.commentPlaceholder
           }
           className="min-h-[80px] resize-none pr-20"
-          {...register('content')}
+          {...contentRegister}
+          ref={(el) => {
+            registerContentRef(el);
+            textareaRef.current = el;
+          }}
           onPaste={handlePaste}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && e.metaKey) {
@@ -111,12 +135,24 @@ export function CommentForm({
 
       {contentValue && (
         <div className="rounded-md border bg-muted/30 p-3 text-sm">
-          <p className="text-xs text-muted-foreground mb-1.5">{TEXTS.comment.form.preview}</p>
-          <MarkdownContent content={contentValue} />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-auto min-h-0 w-full justify-between gap-1 p-0 text-xs text-muted-foreground mb-1.5 hover:bg-transparent"
+            aria-label={
+              showPreview ? TEXTS.comment.form.hidePreview : TEXTS.comment.form.showPreview
+            }
+            onClick={() => setShowPreview((prev) => !prev)}
+          >
+            {TEXTS.comment.form.preview}
+            {showPreview ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          </Button>
+          {showPreview && <MarkdownContent content={contentValue} />}
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-2 mt-2">
+      <div className="mt-2 space-y-2">
         <ImageAttachmentField
           previewUrls={imagePreviewUrls}
           count={images.length}
@@ -124,11 +160,17 @@ export function CommentForm({
           onAttach={addFiles}
           onRemove={clearImage}
         />
-        <div className="flex gap-2">
-          {onCancel && (
+        <div className="flex justify-end gap-2">
+          {onCancel ? (
             <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
               {TEXTS.comment.form.cancel}
             </Button>
+          ) : (
+            canSubmit && (
+              <Button type="button" variant="ghost" size="sm" onClick={handleClearDraft}>
+                {TEXTS.comment.form.cancel}
+              </Button>
+            )
           )}
           <TooltipWrapper
             content={canSubmit ? null : TEXTS.validation.commentOrImageRequired}
@@ -153,4 +195,6 @@ export function CommentForm({
       </div>
     </form>
   );
-}
+});
+
+CommentForm.displayName = 'CommentForm';

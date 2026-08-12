@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/atoms/dropdown-menu';
 import { Spinner } from '@/shared/ui/atoms/spinner';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useAuth } from '@/entities/user/hooks/useAuth';
@@ -80,6 +80,29 @@ export function Navbar() {
   const { recentSearches, addRecentSearch, removeRecentSearch, clearRecentSearches } =
     useRecentSearches();
 
+  const navRef = useRef<HTMLElement>(null);
+
+  // Navbar 실제 렌더 높이를 --navbar-height로 게시한다. Navbar CSS가 바뀌어도(반응형
+  // 높이 변경 포함) 이 값을 참조하는 쪽(댓글 작성 폼 스크롤 오프셋 등)이 자동으로 따라간다.
+  useLayoutEffect(function publishNavbarHeight() {
+    const node = navRef.current;
+
+    if (!node) {
+      return;
+    }
+
+    function updateNavbarHeight() {
+      document.documentElement.style.setProperty('--navbar-height', `${node!.offsetHeight}px`);
+    }
+
+    updateNavbarHeight();
+
+    const observer = new ResizeObserver(updateNavbarHeight);
+    observer.observe(node);
+
+    return () => observer.disconnect();
+  }, []);
+
   const handleSearchSubmit = (query: string) => {
     const trimmed = query.trim();
     if (trimmed) {
@@ -92,7 +115,10 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+      <nav
+        ref={navRef}
+        className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60"
+      >
         <div className="flex h-16 items-center justify-between px-4">
           {/* Mobile 검색 모드: 뒤로가기 + 입력창 + 지우기가 상단 바 전체를 대체 */}
           {isMobileSearchOpen ? (

@@ -132,7 +132,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
           )}
         </div>
       )}
-      <div className="flex items-center justify-between gap-2">
+      <div className="space-y-2">
         <ImageAttachmentField
           previewUrls={imagePreviewUrls}
           count={imagePreviewUrls.length}
@@ -140,7 +140,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
           onAttach={addFiles}
           onRemove={clearImage}
         />
-        <div className="flex gap-2">
+        <div className="flex justify-end gap-2">
           <Button
             type="button"
             variant="ghost"
