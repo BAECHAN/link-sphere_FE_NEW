@@ -38,6 +38,31 @@
   `docs/VERSION-COMPATIBILITY.md` 참고).
   (`features/auth/signup/hooks/useAvailabilityCheck.ts`, `features/auth/signup/hooks/useSignUp.ts`,
   `features/auth/signup/ui/SignUpForm.tsx`, `entities/user/api/auth.api.ts`)
+- **북마크 폴더 목록에 "최근 저장한 폴더" 상단 구획 추가 (split menu 방식)** — 폴더 순서를
+  고정할지 최근 사용순으로 올릴지 반복되던 고민에 대한 결론. Sears & Shneiderman의 split
+  menu 연구를 따라, 최근에 저장한 폴더 최대 3개를 상단에 별도로 보여주되 아래 본 목록
+  순서는 절대 바꾸지 않는다(위치가 계속 바뀌는 전체 재정렬 방식은 MS Office 2000
+  "개인화 메뉴"가 예측 불가능성 때문에 폐기된 선례가 있어 기각). 상단 폴더도 아래 본
+  목록에서 빼지 않고 그대로 중복 표시한다 — 빼면 본 목록의 나머지 위치가 흔들려 공간기억이
+  깨지기 때문. 노출 조건은 폴더 6개 이상 + 저장 이력 있는 폴더 3개 이상일 때만, 모달이
+  열려 있는 동안(또는 페이지 방문 동안)은 스냅샷을 고정해 재정렬 애니메이션이 없다. BE의
+  새 `FolderResponse.lastUsedAt` 필드가 필요하다(BE `docs/VERSION-COMPATIBILITY.md` 확인
+  불필요 — nullable 추가 필드라 하위 호환, 구 BE에서도 상단 구획만 안 뜰 뿐 정상 동작).
+  (`entities/folder/model/useRecentFolders.ts`, `features/post/bookmark/ui/FolderSelector.tsx`,
+  `widgets/bookmark/folder-tree/FolderTree.tsx`, `widgets/bookmark/folder-tree/MobileFolderList.tsx`)
+- **링크 등록 폼에서 북마크 폴더 선택 가능** — 지금까지는 등록 후 목록에서 방금 올린
+  카드를 찾아 북마크 버튼을 다시 눌러야 했다. 카테고리 선택 아래에 북마크 필드를 추가해,
+  탭하면 `FolderSelector`와 같은 모달(데스크탑)/바텀시트(모바일) 선택기가 뜬다. 다만 여기는
+  "지연 선택"이다 — 행을 탭해도 즉시 저장하지 않고 폼의 `bookmark`/`folderIds` 값만 바꾸고,
+  실제 북마크 생성은 등록 제출(`POST /post`) 한 번에 BE가 함께 처리한다 — BE API 의존,
+  BE 먼저 배포 필요(구 BE는 `bookmark`/`folderIds` 필드를 조용히 무시해 등록은 되지만
+  북마크만 안 생김). 모바일 바텀시트 전환 className은 `FolderSelector`에서 처음 쓰인
+  패턴을 `SheetDialogContent` 공통 컴포넌트로 추출해 재사용했다. 아무 폴더도 고르지 않으면
+  기존과 동일하게 북마크가 생기지 않는다.
+  (`features/post/create/ui/BookmarkFolderPicker.tsx`(신규),
+  `shared/ui/elements/modal/SheetDialogContent.tsx`(신규),
+  `features/post/bookmark/ui/FolderSelector.tsx`, `features/post/create/hooks/useCreatePost.ts`,
+  `entities/post/model/post.schema.ts`, `entities/post/api/post.queries.ts`)
 
 ### Fixed
 
