@@ -28,6 +28,7 @@ import {
   useUpdateFolderMutation,
 } from '@/entities/folder/api/folder.queries';
 import { Folder, FolderKey } from '@/entities/folder/model/folder.schema';
+import { useRecentFolders } from '@/entities/folder/model/useRecentFolders';
 
 interface MobileFolderListProps {
   onSelect: (key: FolderKey) => void;
@@ -39,6 +40,8 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
   const { data, isLoading } = useFolderListQuery();
   const folders = data?.folders;
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
+  // 상단 "최근 저장한 폴더" 구획 — 페이지 방문(마운트) 동안 1회 스냅샷, 그 뒤로는 고정
+  const { recentFolders } = useRecentFolders(folders ?? [], isLoading);
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -57,6 +60,20 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
           onClick={() => onSelect('uncategorized')}
         />
       </section>
+
+      {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 그리드에서 빼지 않고 그대로 중복 표시한다 */}
+      {recentFolders.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-muted-foreground px-1">
+            {TEXTS.bookmark.folder.recentSection}
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            {recentFolders.map((folder) => (
+              <FolderCard key={`recent-${folder.id}`} folder={folder} onSelect={onSelect} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 내 폴더 그리드 */}
       <section className="space-y-3">

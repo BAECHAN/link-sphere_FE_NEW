@@ -21,6 +21,7 @@ import {
   useUpdateFolderMutation,
 } from '@/entities/folder/api/folder.queries';
 import { Folder, FolderKey, FolderSort } from '@/entities/folder/model/folder.schema';
+import { useRecentFolders } from '@/entities/folder/model/useRecentFolders';
 
 interface FolderTreeProps {
   selectedKey: FolderKey;
@@ -35,6 +36,8 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
   const { data, isLoading } = useFolderListQuery();
   const folders = data?.folders;
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
+  // 상단 "최근 저장한 폴더" 구획 — 페이지 방문(마운트) 동안 1회 스냅샷, 그 뒤로는 고정
+  const { recentFolders } = useRecentFolders(folders ?? [], isLoading);
 
   return (
     <aside className={cn('flex flex-col gap-1 py-2', className)}>
@@ -55,6 +58,26 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
       />
 
       <div className="my-1 border-t" />
+
+      {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 */}
+      {recentFolders.length > 0 && (
+        <>
+          <div className="px-3 pt-1 pb-1 text-xs font-semibold text-muted-foreground">
+            {TEXTS.bookmark.folder.recentSection}
+          </div>
+          {recentFolders.map((folder) => (
+            <FolderItem
+              key={`recent-${folder.id}`}
+              folder={folder}
+              selected={selectedKey === folder.id}
+              onClick={() => onSelect(folder.id)}
+              onDeleted={() => onSelect('all')}
+              onPrefetch={() => prefetchFolderPosts(folder.id, sort, search)}
+            />
+          ))}
+          <div className="my-1 border-t" />
+        </>
+      )}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-4">

@@ -169,4 +169,111 @@ describe('FolderSelector', () => {
 
     await waitFor(() => expect(toggleCalled).toBe(true));
   });
+
+  describe('최근 저장한 폴더 (split menu 상단 구획)', () => {
+    // 임계값: 폴더 6개 이상 + lastUsedAt 있는 폴더 3개 이상이어야 노출된다
+    const RECENT_A = 'folder-uuid-recent-a';
+    const manyFoldersResponse: FolderListResponse = {
+      folders: [
+        {
+          id: FOLDER_A,
+          name: '개발',
+          sortOrder: 0,
+          bookmarkCount: 2,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: FOLDER_B,
+          name: '나중에 읽기',
+          sortOrder: 1,
+          bookmarkCount: 4,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: RECENT_A,
+          name: '최근폴더',
+          sortOrder: 2,
+          bookmarkCount: 1,
+          createdAt: now,
+          updatedAt: now,
+          lastUsedAt: new Date('2025-01-05'),
+        },
+        {
+          id: 'folder-uuid-c',
+          name: '디자인',
+          sortOrder: 3,
+          bookmarkCount: 0,
+          createdAt: now,
+          updatedAt: now,
+          lastUsedAt: new Date('2025-01-04'),
+        },
+        {
+          id: 'folder-uuid-d',
+          name: '읽을거리',
+          sortOrder: 4,
+          bookmarkCount: 0,
+          createdAt: now,
+          updatedAt: now,
+          lastUsedAt: new Date('2025-01-03'),
+        },
+        {
+          id: 'folder-uuid-e',
+          name: '기타',
+          sortOrder: 5,
+          bookmarkCount: 0,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      uncategorizedCount: 1,
+    };
+
+    beforeEach(() => {
+      server.use(
+        http.get(url(API_ENDPOINTS.bookmark.folders), () =>
+          HttpResponse.json(
+            { status: 200, message: 'ok', data: manyFoldersResponse, timestamp: '' },
+            { status: 200 }
+          )
+        )
+      );
+    });
+
+    it('임계값을 넘으면 상단에 최근 저장한 폴더 구획이 뜨고, 아래 본 목록에서도 그대로 중복 표시된다', async () => {
+      renderSelector();
+
+      await waitFor(() => expect(screen.getByText('최근 저장한 폴더')).toBeInTheDocument());
+
+      // 상단 구획 + 아래 본 목록 두 곳 모두에 렌더된다 (원칙1: 중복 표시, 빼지 않음)
+      expect(screen.getAllByText('최근폴더')).toHaveLength(2);
+    });
+
+    it('상단 구획의 폴더를 탭해도 본 목록과 동일하게 추가 요청을 보낸다', async () => {
+      const user = userEvent.setup();
+      let called = false;
+      server.use(
+        http.post(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, RECENT_A)), () => {
+          called = true;
+          return HttpResponse.json(
+            {
+              status: 200,
+              message: 'ok',
+              data: bookmarkFoldersResponse([FOLDER_A, RECENT_A]),
+              timestamp: '',
+            },
+            { status: 200 }
+          );
+        })
+      );
+      renderSelector();
+
+      await waitFor(() => expect(screen.getAllByText('최근폴더')).toHaveLength(2));
+      // 상단 구획 쪽(첫 번째 매치)을 클릭
+      await user.click(screen.getAllByText('최근폴더')[0]!);
+
+      await waitFor(() => expect(called).toBe(true));
+    });
+  });
 });

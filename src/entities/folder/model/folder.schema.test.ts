@@ -44,6 +44,30 @@ describe('folderSchema', () => {
     const result = folderSchema.safeParse({ ...validFolder, bookmarkCount: -1 });
     expect(result.success).toBe(false);
   });
+
+  it('lastUsedAt이 없어도(구 BE 응답) 유효하다', () => {
+    const result = folderSchema.safeParse(validFolder);
+    expect(result.success).toBe(true);
+  });
+
+  it('lastUsedAt이 null이면(미사용 폴더) 그대로 null로 유지되고 1970-01-01로 coerce되지 않는다', () => {
+    const result = folderSchema.safeParse({ ...validFolder, lastUsedAt: null });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.lastUsedAt).toBeNull();
+    }
+  });
+
+  it('lastUsedAt 문자열을 Date 객체로 변환한다', () => {
+    const result = folderSchema.safeParse({
+      ...validFolder,
+      lastUsedAt: '2025-01-03T00:00:00.000Z',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.lastUsedAt).toBeInstanceOf(Date);
+    }
+  });
 });
 
 describe('createFolderSchema', () => {

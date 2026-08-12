@@ -123,6 +123,26 @@ settled.
 The test: could the user tell, from what you told them, that this was a judgment call they didn't
 get to weigh in on? If not, you decided for them.
 
+## 8. Ground UI/UX Decisions in Research & Precedent
+
+**Don't design UI/UX from taste alone. Cite the evidence.**
+
+When a task involves a UI/UX judgment call (layout, ordering, interaction pattern, information
+architecture — not just visual polish), treat it like any other engineering decision that needs
+evidence, not intuition:
+
+- Search for relevant HCI/psychology research and cite what it actually found — don't rely on
+  what sounds plausible from memory.
+- Look at how established products solved the same problem, including documented failures (a
+  shipped-then-removed feature is often stronger evidence than a success story).
+- Compare alternatives explicitly (a table works well) and record why the rejected options lost,
+  not just which one won.
+- Keep the evidence in the project's design-decision record (`docs/DECISIONS.md` or the relevant
+  feature doc, e.g. `docs/BOOKMARK.md`) so the reasoning survives past this conversation.
+
+The test: if someone challenges the decision later, can you point to a specific study or product
+precedent — or did you just say "this feels better"?
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

@@ -46,6 +46,7 @@ src/
 │       └── folder-tree/
 │           ├── FolderTree.tsx            # 데스크탑 사이드바 (폴더 트리, 전체 행은 숫자 없음)
 │           └── MobileFolderList.tsx      # 모바일 폴더 그리드 (drill-down)
+│                                          # 위 둘 + FolderSelector 모두 "최근 저장한 폴더" 상단 구획 포함
 ├── features/
 │   └── post/
 │       └── bookmark/
@@ -54,6 +55,8 @@ src/
 │           └── ui/
 │               ├── BookmarkPostButton.tsx # 카드의 북마크 버튼 — 클릭 시 FolderSelector 오픈
 │               └── FolderSelector.tsx     # 폴더 선택 모달/바텀시트 (탭=즉시 저장/제거)
+│                                          # 링크 등록 폼의 BookmarkFolderPicker(§6)와 다이얼로그
+│                                          # shell(SheetDialogContent)을 공유하지만 탭=지연 선택
 ├── entities/
 │   └── folder/
 │       ├── api/
@@ -61,7 +64,8 @@ src/
 │       │   ├── folder.queries.ts         # useFolderListQuery, mutations (낙관적 갱신 공용 헬퍼 포함)
 │       │   └── folder.keys.ts            # posts(folderKey, sort, search) 쿼리 키 + cross-invalidation
 │       └── model/
-│           └── folder.schema.ts          # Folder, FolderKey, FolderSort, BookmarkFoldersResponse 등
+│           ├── folder.schema.ts          # Folder, FolderKey, FolderSort, BookmarkFoldersResponse 등
+│           └── useRecentFolders.ts       # "최근 저장한 폴더" 상단 구획 선정 훅 (§5)
 └── shared/
     ├── ui/elements/
     │   └── SearchInput.tsx               # 공통 검색 입력 (아이콘 + 단축키 Kbd)
@@ -81,7 +85,7 @@ src/
 
 | 메서드   | 경로                                                  | 설명                                                                           |
 | -------- | ----------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `GET`    | `/bookmark/folders`                                   | 내 폴더 목록 (bookmarkCount 포함, sortOrder ASC)                               |
+| `GET`    | `/bookmark/folders`                                   | 내 폴더 목록 (bookmarkCount·lastUsedAt 포함, sortOrder ASC)                    |
 | `POST`   | `/bookmark/folders`                                   | 폴더 생성 (`sort_order = max+1`)                                               |
 | `PATCH`  | `/bookmark/folders/{id}`                              | 폴더 이름 수정                                                                 |
 | `DELETE` | `/bookmark/folders/{id}`                              | 폴더 삭제 (**이 폴더에만 있던** 북마크만 미분류로 — 다른 폴더에도 있으면 유지) |
@@ -158,6 +162,53 @@ posts: (folderKey: FolderKey, sort?: FolderSort, search?: string) =>
 
 `BookmarkPostList`는 `search`가 있을 때 빈 상태 문구를
 `TEXTS.bookmark.empty.searchNoResult`('검색 결과가 없어요.')로 전환합니다.
+
+### 5. "최근 저장한 폴더" 상단 구획 (split menu)
+
+폴더 목록 순서를 고정할지 최근 사용순으로 올릴지에 대한 결론입니다. Sears &
+Shneiderman의 split menu 연구를 따라 **상단에 최근 저장한 폴더 최대 3개를 별도
+구획으로 보여주되, 아래 본 목록 순서는 절대 바꾸지 않습니다.** 상단 구획의 폴더도
+아래 본 목록에서 빼지 않고 그대로 중복 표시합니다 — 빼면 본 목록의 나머지 위치가
+흔들려 공간기억이 깨지기 때문입니다.
+
+`entities/folder/model/useRecentFolders.ts`가 선정 로직을 담당합니다.
+
+- **노출 조건**: 폴더 총 6개 이상 **AND** 저장 이력(`lastUsedAt` not null) 있는
+  폴더 3개 이상. 둘 중 하나라도 안 되면 상단 구획 자체가 안 뜹니다.
+- **고정 개수**: 정확히 3개. 임계값을 채우지 못하면 0개(미노출)만 있고 1~2개인
+  중간 상태는 없습니다 — 개수가 흔들리면 아래 본 목록의 시작 위치도 흔들립니다.
+- **스냅샷 시점**: `useFolderListQuery`가 로딩 중일 땐 `folders`가 빈 배열이라,
+  데이터가 도착한(`isLoading`이 꺼지는) 시점에 1회만 계산해 고정합니다. 그 뒤
+  `folders`가 바뀌어도(재검증, 다른 탭에서 저장 등) 다시 계산하지 않습니다.
+  - `FolderSelector`(모달)는 `open`을 `sessionKey`로 넘겨 열 때마다 새로
+    스냅샷을 찍습니다.
+  - `FolderTree`/`MobileFolderList`(상시 마운트 화면)는 `sessionKey`를 넘기지
+    않아 페이지 방문(마운트) 동안 한 번만 계산합니다.
+- **`lastUsedAt`의 실제 런타임 타입에 주의**: `Folder.lastUsedAt`은 타입상
+  `Date`지만, `folderApi.fetchFolderList`가 `apiClient.get<T>()`로 제네릭
+  캐스팅만 할 뿐 `folderSchema`로 실제 파싱(`.parse()`)하지 않기 때문에
+  런타임엔 BE가 보낸 원시 ISO 문자열 그대로 들어옵니다(`createdAt`/`updatedAt`도
+  동일). `useRecentFolders`의 정렬 비교는 이 때문에 `new Date(...)`로 감싸
+  문자열·Date 어느 쪽이 와도 안전하게 처리합니다 — 다른 곳에서 `folder.lastUsedAt`을
+  `Date` 메서드로 직접 다룰 땐 이 갭을 기억하세요.
+
+### 6. 링크 등록 폼의 폴더 선택 (`BookmarkFolderPicker`) — 이 페이지가 아닌 다른 화면
+
+`src/features/post/create/ui/BookmarkFolderPicker.tsx`는 `/bookmark` 페이지가 아니라
+**링크 등록 폼**(`CreatePostForm`)에 있는 필드입니다. `FolderSelector`와 행 구성·모바일
+바텀시트 전환(`SheetDialogContent` 공용 컴포넌트, `FolderSelector`에서 처음 쓰인 패턴을
+추출)은 동일하지만, 핵심 동작이 다릅니다.
+
+|                  | `FolderSelector` (이 페이지)          | `BookmarkFolderPicker` (등록 폼)                    |
+| ---------------- | ------------------------------------- | --------------------------------------------------- |
+| 대상             | 이미 존재하는 북마크                  | 아직 만들어지지 않은 게시글                         |
+| 행 탭            | 즉시 API 호출로 저장/제거 + 모달 닫힘 | 폼의 `bookmark`/`folderIds` 값만 변경, 모달 안 닫힘 |
+| 확정 시점        | 탭하는 순간                           | 등록 제출(`POST /post`) 시 BE가 한 번에 처리        |
+| '북마크 제거' 행 | 있음                                  | 없음 (아직 북마크가 없으므로 미분류 재탭으로 충분)  |
+
+폼 스키마(`entities/post/model/post.schema.ts`의 `createPostSchema`)에 `bookmark: boolean`,
+`folderIds: string[]` 두 필드가 있고, 등록 성공 시 `useCreatePostMutation`이 이 값을 보고
+`folder.list`/`folder.postsRoot` 캐시를 조건부로 무효화합니다(`post.queries.ts`).
 
 ---
 

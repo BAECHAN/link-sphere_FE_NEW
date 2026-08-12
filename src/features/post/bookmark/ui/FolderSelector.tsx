@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/shared/lib/toast/toast';
 import { Bookmark, BookmarkX, Check, FolderPlus, Loader2, Plus, X } from 'lucide-react';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/shared/ui/atoms/dialog';
+import { Dialog, DialogTitle, DialogDescription } from '@/shared/ui/atoms/dialog';
+import { SheetDialogContent } from '@/shared/ui/elements/modal/SheetDialogContent';
 import { Button } from '@/shared/ui/atoms/button';
 import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';
@@ -11,6 +12,7 @@ import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useCreateFolderMutation, useFolderListQuery } from '@/entities/folder/api/folder.queries';
+import { useRecentFolders } from '@/entities/folder/model/useRecentFolders';
 import { useBookmarkFolders } from '@/features/post/bookmark/hooks/useBookmarkFolders';
 
 interface FolderSelectorProps {
@@ -40,6 +42,8 @@ export function FolderSelector({
   // 잘못 라우팅된 응답(HTML 등) 방어 — 배열이 아니면 빈 목록으로 처리해 피드 전체 크래시 방지
   const folderList = Array.isArray(data?.folders) ? data.folders : [];
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
+  // 상단 "최근 저장한 폴더" 구획 — 열 때마다(open) 새로 스냅샷, 열려있는 동안은 고정
+  const { recentFolders } = useRecentFolders(folderList, isLoading, open);
   const { selectUncategorized, selectFolder, removeBookmark } = useBookmarkFolders(
     postId,
     isBookmarked,
@@ -178,16 +182,7 @@ export function FolderSelector({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        showCloseButton={false}
-        className={cn(
-          // 모바일: 하단 시트
-          isMobile
-            ? 'bottom-0 top-auto left-0 right-0 translate-x-0 translate-y-0 max-w-full w-full rounded-t-2xl rounded-b-none border-b-0 p-0 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom'
-            : 'max-w-sm p-0',
-          'gap-0 overflow-hidden'
-        )}
-      >
+      <SheetDialogContent isMobile={isMobile}>
         {/* 헤더 */}
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div>
@@ -224,6 +219,26 @@ export function FolderSelector({
                 isPending={pendingFolderId === null}
                 onClick={handleSelectUncategorized}
               />
+
+              {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 */}
+              {recentFolders.length > 0 && (
+                <>
+                  <li className="px-4 pt-3 pb-1 text-xs font-semibold text-muted-foreground border-t">
+                    {TEXTS.bookmark.folder.recentSection}
+                  </li>
+                  {recentFolders.map((folder) => (
+                    <FolderRow
+                      key={`recent-${folder.id}`}
+                      icon={<Bookmark className="h-4 w-4" />}
+                      name={folder.name}
+                      count={folder.bookmarkCount}
+                      isSelected={bookmarkFolderIds.includes(folder.id)}
+                      isPending={pendingFolderId === folder.id}
+                      onClick={() => handleSelectFolder(folder.id, folder.name)}
+                    />
+                  ))}
+                </>
+              )}
 
               {/* 폴더 목록 — 소속된 모든 폴더에 ✓ 표시 (다중 폴더 소속 가능) */}
               {folderList.map((folder) => (
@@ -307,7 +322,7 @@ export function FolderSelector({
             </ul>
           )}
         </div>
-      </DialogContent>
+      </SheetDialogContent>
     </Dialog>
   );
 }

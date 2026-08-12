@@ -231,6 +231,7 @@ export const TEXTS = {
       sortPlaceholder: '정렬',
       selectorTitle: '보관함',
       selectorDescription: '폴더를 탭하면 바로 저장돼요.',
+      recentSection: '최근 저장한 폴더',
       removeBookmark: '북마크 제거',
       viewAction: '보기',
       deleteConfirmTitle: (name: string) => `"${name}" 폴더 삭제`,
