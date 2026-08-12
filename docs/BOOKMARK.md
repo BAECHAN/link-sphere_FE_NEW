@@ -46,7 +46,8 @@ src/
 │       └── folder-tree/
 │           ├── FolderTree.tsx            # 데스크탑 사이드바 (폴더 트리, 전체 행은 숫자 없음)
 │           └── MobileFolderList.tsx      # 모바일 폴더 그리드 (drill-down)
-│                                          # 위 둘 + FolderSelector 모두 "최근 저장한 폴더" 상단 구획 포함
+│                                          # 위 둘 + FolderPickerDialog(아래) 모두 "최근 저장한
+│                                          # 폴더" 상단 구획 포함
 ├── features/
 │   └── post/
 │       └── bookmark/
@@ -54,18 +55,21 @@ src/
 │           │   └── useBookmarkFolders.ts # add/remove/clear/toggle 라우팅 (§ FolderSelector 표)
 │           └── ui/
 │               ├── BookmarkPostButton.tsx # 카드의 북마크 버튼 — 클릭 시 FolderSelector 오픈
-│               └── FolderSelector.tsx     # 폴더 선택 모달/바텀시트 (탭=즉시 저장/제거)
-│                                          # 링크 등록 폼의 BookmarkFolderPicker(§6)와 다이얼로그
-│                                          # shell(SheetDialogContent)을 공유하지만 탭=지연 선택
+│               └── FolderSelector.tsx     # 즉시 저장(탭=바로 저장/제거+닫힘) 동작만 소유하고,
+│                                          # 모달 마크업은 FolderPickerDialog(아래)에 위임
 ├── entities/
 │   └── folder/
 │       ├── api/
 │       │   ├── folder.api.ts             # 폴더 CRUD + 소속 추가/제거/전체해제 + 폴더별 게시글 API
 │       │   ├── folder.queries.ts         # useFolderListQuery, mutations (낙관적 갱신 공용 헬퍼 포함)
 │       │   └── folder.keys.ts            # posts(folderKey, sort, search) 쿼리 키 + cross-invalidation
-│       └── model/
-│           ├── folder.schema.ts          # Folder, FolderKey, FolderSort, BookmarkFoldersResponse 등
-│           └── useRecentFolders.ts       # "최근 저장한 폴더" 상단 구획 선정 훅 (§5)
+│       ├── model/
+│       │   ├── folder.schema.ts          # Folder, FolderKey, FolderSort, BookmarkFoldersResponse 등
+│       │   └── useRecentFolders.ts       # "최근 저장한 폴더" 상단 구획 선정 훅 (§5)
+│       └── ui/
+│           └── FolderPickerDialog.tsx    # 폴더 선택 모달/바텀시트 공용 프레젠테이션 (§6) —
+│                                          # FolderSelector·BookmarkFolderPicker가 공유하고
+│                                          # 저장 동작만 콜백으로 주입받는다
 └── shared/
     ├── ui/elements/
     │   └── SearchInput.tsx               # 공통 검색 입력 (아이콘 + 단축키 Kbd)
@@ -181,8 +185,8 @@ Shneiderman의 split menu 연구를 따라 **상단에 최근 저장한 폴더 �
 - **스냅샷 시점**: `useFolderListQuery`가 로딩 중일 땐 `folders`가 빈 배열이라,
   데이터가 도착한(`isLoading`이 꺼지는) 시점에 1회만 계산해 고정합니다. 그 뒤
   `folders`가 바뀌어도(재검증, 다른 탭에서 저장 등) 다시 계산하지 않습니다.
-  - `FolderSelector`(모달)는 `open`을 `sessionKey`로 넘겨 열 때마다 새로
-    스냅샷을 찍습니다.
+  - `FolderPickerDialog`(모달, `FolderSelector`·`BookmarkFolderPicker` 공용)는 `open`을
+    `sessionKey`로 넘겨 열 때마다 새로 스냅샷을 찍습니다.
   - `FolderTree`/`MobileFolderList`(상시 마운트 화면)는 `sessionKey`를 넘기지
     않아 페이지 방문(마운트) 동안 한 번만 계산합니다.
 - **`lastUsedAt`의 실제 런타임 타입에 주의**: `Folder.lastUsedAt`은 타입상
@@ -196,16 +200,20 @@ Shneiderman의 split menu 연구를 따라 **상단에 최근 저장한 폴더 �
 ### 6. 링크 등록 폼의 폴더 선택 (`BookmarkFolderPicker`) — 이 페이지가 아닌 다른 화면
 
 `src/features/post/create/ui/BookmarkFolderPicker.tsx`는 `/bookmark` 페이지가 아니라
-**링크 등록 폼**(`CreatePostForm`)에 있는 필드입니다. `FolderSelector`와 행 구성·모바일
-바텀시트 전환(`SheetDialogContent` 공용 컴포넌트, `FolderSelector`에서 처음 쓰인 패턴을
-추출)은 동일하지만, 핵심 동작이 다릅니다.
+**링크 등록 폼**(`CreatePostForm`)에 있는 필드입니다. `FolderSelector`와 같은
+`entities/folder/ui/FolderPickerDialog`를 쓰고 주입하는 콜백만 다릅니다 — 저장 동작을
+콜백으로 넘기는 쪽이 즉시 저장인지 지연 선택인지에 따라 핵심 동작이 갈립니다.
 
-|                  | `FolderSelector` (이 페이지)          | `BookmarkFolderPicker` (등록 폼)                    |
-| ---------------- | ------------------------------------- | --------------------------------------------------- |
-| 대상             | 이미 존재하는 북마크                  | 아직 만들어지지 않은 게시글                         |
-| 행 탭            | 즉시 API 호출로 저장/제거 + 모달 닫힘 | 폼의 `bookmark`/`folderIds` 값만 변경, 모달 안 닫힘 |
-| 확정 시점        | 탭하는 순간                           | 등록 제출(`POST /post`) 시 BE가 한 번에 처리        |
-| '북마크 제거' 행 | 있음                                  | 없음 (아직 북마크가 없으므로 미분류 재탭으로 충분)  |
+|                       | `FolderSelector`                      | `BookmarkFolderPicker` (등록 폼)                                                     |
+| --------------------- | ------------------------------------- | ------------------------------------------------------------------------------------ |
+| 대상                  | 이미 존재하는 북마크                  | 아직 만들어지지 않은 게시글                                                          |
+| 행 탭                 | 즉시 API 호출로 저장/제거 + 모달 닫힘 | 폼의 `bookmark`/`folderIds` 값만 변경, 모달 안 닫힘                                  |
+| 확정 시점             | 탭하는 순간                           | 등록 제출(`POST /post`) 시 BE가 한 번에 처리                                         |
+| 확인 버튼             | 없음                                  | 있음 (하단 고정, 지연 선택을 닫아 확정)                                              |
+| 하단 destructive 행   | `북마크 제거` (열 때 북마크였을 때만) | `북마크 안 함` (항상 노출) — 폴더/미분류 행과 달리 탭하면 확인 없이 바로 모달을 닫음 |
+| 미분류 재탭           | no-op                                 | no-op (동일)                                                                         |
+| 최근 저장한 폴더 구획 | 있음                                  | 있음                                                                                 |
+| 행별 pending 스피너   | 있음                                  | 없음 (핸들러가 동기라 표시될 틈이 없음)                                              |
 
 폼 스키마(`entities/post/model/post.schema.ts`의 `createPostSchema`)에 `bookmark: boolean`,
 `folderIds: string[]` 두 필드가 있고, 등록 성공 시 `useCreatePostMutation`이 이 값을 보고
@@ -232,8 +240,9 @@ Shneiderman의 split menu 연구를 따라 **상단에 최근 저장한 폴더 �
 
 ### FolderSelector 행 동작 표
 
-`BookmarkPostButton`을 누르면 열리는 모달(`features/post/bookmark/ui/FolderSelector.tsx`)의
-전체 동작입니다. 탭 = 즉시 저장/제거 + 모달 닫힘(확인 단계 없음).
+`BookmarkPostButton`을 누르면 열리는 모달(`features/post/bookmark/ui/FolderSelector.tsx`,
+실제 마크업은 `entities/folder/ui/FolderPickerDialog`)의 전체 동작입니다.
+탭 = 즉시 저장/제거 + 모달 닫힘(확인 단계 없음).
 
 | 행          | 상태                      | 탭하면                           | 토스트                                                                                                      |
 | ----------- | ------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -248,7 +257,8 @@ Shneiderman의 split menu 연구를 따라 **상단에 최근 저장한 폴더 �
 체크된 미분류가 no-op인 이유: "미분류에서 제거"는 곧 북마크 해제인데 그건 `북마크 제거`
 행과 중복되고, 오탭 한 번으로 북마크가 조용히 사라지면 안 되기 때문입니다. 소속된 모든
 폴더에 **동일한 ✓ 아이콘**이 표시됩니다(다중 선택 UI가 아니라, 탭할 때마다 즉시
-반영되는 토글 방식).
+반영되는 토글 방식). 등록 폼(`BookmarkFolderPicker`)도 미분류 재탭은 동일하게 no-op이며,
+해제는 하단 `북마크 안 함` 행이 전담합니다.
 
 ---
 
