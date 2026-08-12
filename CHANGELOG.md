@@ -24,6 +24,22 @@
 
   </details>
 
+### Fixed
+
+- `bookmark` "최근 열람순" 정렬이 방금 본 글을 반영하지 않고 새로고침해야만 보이던 문제
+  <details><summary>배경·구현</summary>
+
+  게시글 상세 조회가 BE `post_views`를 갱신해도(정렬 기준 데이터가 바뀌어도), 북마크
+  목록의 `sort=viewed` 쿼리는 완전히 별개 캐시 키라 그 갱신을 알 방법이 없었다.
+  React Query 기본 `staleTime`(3분) 안에서는 캐시를 그대로 서빙해 방금 본 글이 목록에
+  반영되지 않고, 캐시가 초기화되는 강제 새로고침을 해야만 제대로 보였다.
+  `PostDetailPage`가 게시글 상세를 보여줄 때마다 `folderInvalidateQueries.postsRoot()`를
+  호출해 북마크 목록 캐시를 무효화하도록 했다 — 같은 패턴(폭넓은 무효화)을 이미
+  `handleBookmarkToggleSuccess` 등 다른 cross-invalidation 지점에서도 쓰고 있다.
+  (`pages/post/PostDetailPage.tsx`)
+
+  </details>
+
 ## [0.12.0] - 2026-08-13
 
 ### Added
