@@ -237,6 +237,9 @@ export function FolderSelector({
                       onClick={() => handleSelectFolder(folder.id, folder.name)}
                     />
                   ))}
+                  {/* 최근 구획과 아래 본 목록 사이 구분선 — 없으면 같은 폴더가 위아래에
+                      바로 붙어 보여서(중복 표시가 의도인데) 목록이 깨진 것처럼 보인다 */}
+                  <li className="border-t" />
                 </>
               )}
 
