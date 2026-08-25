@@ -79,6 +79,33 @@
 
 ### Fixed
 
+- `auth` 보호 라우트로 이동시키는 로그인 모달이 로그인 성공 후 안 닫히고 X·ESC도 무반응이던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  사이드바 Bookmark·Submit처럼 인증이 필요한 페이지로 이동시키는 `useProtectedNavigate`
+  경로에서, 로그인 성공 후 모달이 닫히지 않고 X·ESC·배경 클릭도 전혀 반응하지 않는다는
+  보고가 들어와 운영서버에서 Playwright로 재현했다. 원인은 두 가지가 겹쳐 있었다.
+
+  ① `useProtectedNavigate`의 `onSuccess`가 `navigate(to)`(push)로 원래 가려던 페이지로
+  이동시키는데, 로그인 모달을 여는 `open()`도 push라 모달 엔트리 바로 위에 새 엔트리가
+  쌓인다. 뒤이어 `close()`가 부르는 `navigate(-1)`은 그 새 엔트리에서 한 칸 뒤인 모달
+  엔트리 자기 자신으로 되돌아가버려, 모달이 닫히기는커녕 같은 위치로 재확정된다.
+  `location.key`가 처음 열었을 때와 같은 값으로 귀결되다 보니 `useHistoryOverlay`의
+  `backSentRef` 재무장 effect가 "변화 없음"으로 판단해 실행되지 않고, 이후 `close()`를
+  아무리 불러도 첫 줄에서 조용히 return — X·ESC·backdrop이 전부 죽는다.
+  `ProtectedRoute.tsx`가 이미 쓰던 `{ replace: true }`로 통일해 모달 엔트리를 아예
+  대체하도록 고쳤다.
+
+  ② 로컬 재현 중 두 번째 버그를 추가로 발견했다: `LoginModal`의 로그인 성공 effect가
+  `setOnSuccess(undefined)`를 부르면 zustand 구독으로 리렌더가 한 번 더 일어나는데, 그
+  재실행 시점엔 `onSuccess`가 이미 비워진 뒤라 원래 안 타야 할 `close()` 분기로 잘못
+  빠졌다. `handledSuccessRef`로 모달이 열려있는 한 주기당 분기를 한 번만 태우도록 막았다.
+
+  onSuccess가 없는 경로(Navbar 로그인 버튼 등)는 기존 `close()` 로직 그대로라 영향 없다.
+  (`entities/user/hooks/useProtectedNavigate.ts`, `features/auth/login/ui/LoginModal.tsx`)
+
+  </details>
+
 - `bookmark` "최근 열람순" 정렬이 방금 본 글을 반영하지 않고 새로고침해야만 보이던 문제
   <details><summary>배경·구현</summary>
 
