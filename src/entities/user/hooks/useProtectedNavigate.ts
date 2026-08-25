@@ -21,7 +21,9 @@ export function useProtectedNavigate() {
         navigate(to);
         return;
       }
-      setLoginOnSuccess(() => navigate(to));
+      // ProtectedRoute.tsx의 리다이렉트와 동일하게 replace를 쓴다 - push하면 로그인모달이 열려있던
+      // 엔트리 위에 쌓여, 그 엔트리가 히스토리에 orphan으로 남는다(뒤로가기 시 모달 재등장)
+      setLoginOnSuccess(() => navigate(to, { replace: true }));
       openLoginModal();
     },
     [isAuthenticated, setLoginOnSuccess, openLoginModal, navigate]
