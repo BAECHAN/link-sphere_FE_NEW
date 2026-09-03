@@ -105,7 +105,7 @@ flowchart LR
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **파일**    | `.github/workflows/deploy.yml` (FE 저장소)                                                                                                                                                         |
 | **트리거**  | `push` to `main`, paths: `src/**`, `public/**`, `package.json`, `package-lock.json`, `pnpm-lock.yaml`, `vite.config.ts`, `tailwind.config.ts`, `postcss.config.js`, `index.html`, `tsconfig*.json` |
-| **단계**    | Checkout → Set up Node 20 → `npm install` → `pnpm check`(type-check·lint·format) → `npm run build` (env: `VITE_API_BASE_URL`) → Configure AWS → `aws s3 sync dist/` → CloudFront invalidation      |
+| **단계**    | Checkout → Set up Node 24 → `npm install` → `pnpm check`(type-check·lint·format) → `npm run build` (env: `VITE_API_BASE_URL`) → Configure AWS → `aws s3 sync dist/` → CloudFront invalidation      |
 | **Secrets** | `VITE_API_BASE_URL`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, `CLOUDFRONT_DISTRIBUTION_ID`                                                                                  |
 | **리전**    | ap-northeast-1                                                                                                                                                                                     |
 
