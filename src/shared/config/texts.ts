@@ -9,7 +9,6 @@
 
 const COMMON_TEXT = {
   saving: '저장 중...',
-  back: '뒤로 가기',
   submitting: '등록 중...',
   updating: '수정 중...',
   confirm: '확인',
@@ -51,7 +50,7 @@ export const TEXTS = {
     retry: '다시 시도',
     refresh: '새로고침',
     home: '홈으로 이동',
-    back: COMMON_TEXT.back,
+    back: '뒤로 가기',
     login: '로그인',
     profileEdit: '프로필 수정',
     logout: '로그아웃',
@@ -172,8 +171,7 @@ export const TEXTS = {
     },
     detail: {
       notFound: '포스트를 찾을 수 없어요.',
-      back: COMMON_TEXT.back,
-      heading: 'Post Details',
+      backToList: '목록으로',
     },
     search: {
       corrected: (query: string) => `'${query}'(으)로 검색한 결과예요.`,
