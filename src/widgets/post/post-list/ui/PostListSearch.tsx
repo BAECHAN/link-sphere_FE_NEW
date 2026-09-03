@@ -1,6 +1,7 @@
 import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
 import { Button } from '@/shared/ui/atoms/button';
 import { Spinner } from '@/shared/ui/atoms/spinner';
+import { Switch } from '@/shared/ui/atoms/switch';
 import { FilterChip } from '@/shared/ui/elements/FilterChip';
 import { SearchInput } from '@/shared/ui/elements/SearchInput';
 import { RotateCcw } from 'lucide-react';
@@ -64,6 +65,7 @@ export function PostListSearch() {
   const isClickedBookmark = optimisticFilters.includes('isBookmarked');
   const isClickedMyPosts = optimisticFilters.includes('isMyPosts');
   const isClickedPrivate = optimisticFilters.includes('isPrivate');
+  const isHideBots = optimisticFilters.includes('excludeBots');
 
   return (
     <>
@@ -135,6 +137,21 @@ export function PostListSearch() {
               activeClassName="bg-category text-category-foreground hover:bg-category hover:text-category-foreground"
               onClick={() => handleToggleFilter('isPrivate')}
             />
+
+            <div className="h-4 w-px bg-border mx-2" />
+
+            {/* 칩이 아니라 별도 스위치 - 기본 OFF(봇 글 보임), 켜면 filter=excludeBots가 붙는다 */}
+            <label
+              htmlFor="hide-bots-switch"
+              className="flex items-center gap-2 min-h-11 md:min-h-0 cursor-pointer select-none text-sm text-muted-foreground"
+            >
+              <span>{TEXTS.buttons.hideBots}</span>
+              <Switch
+                id="hide-bots-switch"
+                checked={isHideBots}
+                onCheckedChange={() => handleToggleFilter('excludeBots')}
+              />
+            </label>
 
             <Button
               variant="ghost"
