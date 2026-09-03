@@ -7,6 +7,7 @@ import { folderInvalidateQueries } from '@/entities/folder/api/folder.keys';
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { CommentList } from '@/widgets/comment/comment-list/ui/CommentList';
 import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/shared/ui/atoms/button';
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { ApiError } from '@/shared/types/common.type';
@@ -31,12 +32,15 @@ function PostDetailContent() {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <button type="button" onClick={goBack} aria-label={TEXTS.common.back}>
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <h1 className="text-xl font-bold">{TEXTS.post.detail.heading}</h1>
-      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={goBack}
+        className="-ml-2 min-h-11 md:min-h-0 text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-5 w-5" />
+        {TEXTS.post.detail.backToList}
+      </Button>
 
       <PostCard post={post} isDetail />
 

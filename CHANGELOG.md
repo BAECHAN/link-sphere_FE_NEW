@@ -11,6 +11,18 @@
 
 ### Changed
 
+- `post` 게시글 상세 상단을 클릭 가능한 "목록으로" 버튼으로 변경
+  <details><summary>배경·구현</summary>
+
+  화살표 아이콘만 클릭 가능하고 바로 옆 "Post Details" 제목은 텍스트일 뿐이라,
+  사용자가 제목을 눌러보고 반응이 없어 헷갈리는 사례가 있었다. "Post Details"
+  제목을 없애고 화살표와 "목록으로" 텍스트를 하나의 버튼으로 합쳐 클릭 가능
+  영역을 넓혔다(모바일 44px 터치 타깃 기준 충족). 이동 동작(뒤로가기 이력이
+  있으면 이전 화면, 없으면 링크 목록)은 기존 `useGoBack` 그대로 유지했다.
+  (`PostDetailPage.tsx`, `texts.ts`)
+
+  </details>
+
 - `bookmark` 폴더 선택 목록에 "내 폴더" 구획 헤더 추가
   <details><summary>배경·구현</summary>
 
