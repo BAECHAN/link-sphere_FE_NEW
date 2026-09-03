@@ -153,6 +153,9 @@ precedent — or did you just say "this feels better"?
 
 ## Critical Rules
 
+- **Never** Node 20으로 작업 진행 → 이 레포는 Node 24(`.nvmrc`) 고정이다. 작업 전 `node -v`가
+  `v24`가 아니면 `nvm use`로 맞춘다. `package.json`의 `engines.node`가 강제하므로 다른 버전이면
+  `pnpm install`부터 막힌다
 - **Never** native `confirm()` → 항상 `useAlert` + `openConfirm` 사용
 - **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만
 - **Never** 인라인 쿼리 키 → 항상 `<entity>Keys.*` 사용

@@ -79,8 +79,8 @@ ignore 패턴(`'dist/**/*'`, 루트 상대 경로)에 안 걸려서 그대로 �
 얹었다.
 
 새 `ci.yml`은 기존 `deploy.yml`의 pnpm/Node 셋업 스텝을 그대로 재사용했다
-(Node 20 — 별도로 진행 중인 Node 24 업그레이드는 아직 미병합 상태라 맞추지
-않음, 8장).
+(Node 20 — 이후 Node 24 업그레이드 병합 시 `.nvmrc` 기준(`node-version-file`)으로
+함께 맞춰졌다, 8장).
 
 ## 5. 운영 파라미터
 
@@ -91,7 +91,7 @@ ignore 패턴(`'dist/**/*'`, 루트 상대 경로)에 안 걸려서 그대로 �
 | Prettier ignore 추가분  | `.claude/worktrees`, `docs/HISTORY.md`(봇 생성 파일)                                            | `.prettierignore`                                                  |
 | PR CI 트리거            | `pull_request` → `main`                                                                         | `.github/workflows/ci.yml`                                         |
 | 동시 실행 제어          | 같은 브랜치 새 커밋 push 시 이전 실행 자동 취소                                                 | `ci.yml`의 `concurrency` 블록                                      |
-| Node 버전               | 20 (기존 `deploy.yml`과 동일)                                                                   | `ci.yml`·`deploy.yml` 공통                                         |
+| Node 버전               | 24 (`.nvmrc` 기준, `node-version-file`로 참조)                                                  | `.nvmrc`, `ci.yml`·`deploy.yml` 공통                               |
 | 배포 게이트 위치        | `pnpm install` 직후, `pnpm test` 이전                                                           | `deploy.yml` "Type check, lint & format check" 스텝                |
 
 ## 6. 검증 결과
@@ -172,9 +172,9 @@ ignore 패턴만 고친 시점의 중간 검증: `pnpm exec eslint .` → **0 pr
 
 ## 8. 남은 것
 
-- 별도로 진행 중인 Node 20→24 업그레이드(`worktree-node-lts-update`,
-  미병합)가 합쳐지면 `ci.yml`의 `node-version: 20`도 같이 24로 맞춰야 한다 —
-  지금은 기존 `deploy.yml`과 맞추기 위해 의도적으로 20 유지
+- Node 20→24 업그레이드가 병합됐다. `ci.yml`·`deploy.yml` 모두
+  `node-version-file: '.nvmrc'`로 바뀌어 이번처럼 한쪽만 버전이 뒤처지는
+  드리프트가 재발하지 않는다
 - 이번 검증은 직접 `push`로 `deploy.yml` 경로만 확인됐다 — `ci.yml`이 실제
   **PR 이벤트**로 트리거되는 것은 다음 PR에서 처음 확인하게 된다
 - `docs/SYSTEM-ARCHITECTURE.md`의 FE 배포 단계 표에 있던 기존 오기(`npm

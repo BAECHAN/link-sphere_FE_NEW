@@ -18,7 +18,7 @@
 1.  **Trigger**: `main` 브랜치에 코드가 푸시되면 워크플로우가 시작됩니다.
 2.  **Environment Setup**:
     - Ubuntu Latest 환경에서 실행됩니다.
-    - Node.js 20 버전을 사용합니다.
+    - Node.js 24 버전을 사용합니다 (`.nvmrc` 기준).
 3.  **Install Dependencies**:
     - `npm install`을 통해 의존성을 설치합니다.
 4.  **Build**:
