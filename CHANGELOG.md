@@ -9,6 +9,28 @@
 
 ## [Unreleased]
 
+### Added
+
+- `post` 게시글 목록에 "봇 글 숨기기" 스위치 추가
+  <details><summary>배경·구현</summary>
+
+  BE가 봇 계정 명의로 RSS 피드 글을 매일 자동 등록하는 기능을 추가하면서, 원하는
+  사용자는 그 글을 숨길 수 있게 했다. 기존 필터 3개(북마크한/내가 작성한/나만 볼
+  수 있는)와 달리 칩이 아니라 별도 ON/OFF 스위치로 뒀다 — 기본이 무조건 켜지는
+  칩들과 시각적으로 구분하고 싶었고, 기본 OFF(봇 글이 보이는 상태)를 유지해야
+  URL에 `filter` 파라미터가 안 붙어 `post.queries.ts`의 낙관적 목록 삽입
+  (`unfilteredListPredicate`)이 그대로 동작한다. `shared/ui`에 스위치류 컴포넌트가
+  없어 shadcn 공식 레지스트리(`@radix-ui/react-switch`)를 새로 설치해 다른 atom
+  13개와 같은 방식(radix 프리미티브 래핑)으로 추가했다.
+  (`shared/ui/atoms/switch.tsx`(신규), `PostListSearch.tsx`, `TEXTS.buttons.hideBots`)
+
+  </details>
+
+### Notes
+
+- BE API 의존: `GET /post`의 `filter` 파라미터에 `excludeBots` 값 지원 필요.
+  배포 순서 무관 — 구버전 BE는 모르는 filter 값을 조용히 무시한다.
+
 ### Changed
 
 - `post` 게시글 상세 상단을 클릭 가능한 "목록으로" 버튼으로 변경

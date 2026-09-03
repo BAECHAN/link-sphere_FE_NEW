@@ -59,6 +59,7 @@ export const TEXTS = {
     bookmarkOnly: '북마크한',
     myPosts: '내가 작성한',
     privateOnly: '나만 볼 수 있는',
+    hideBots: '봇 글 숨기기',
     search: '검색',
     delete: '삭제',
     confirm: COMMON_TEXT.confirm,
