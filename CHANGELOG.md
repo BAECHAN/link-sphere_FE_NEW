@@ -33,6 +33,25 @@
 
 ### Changed
 
+- `infra` PR·배포 파이프라인에 `pnpm check`(type-check·lint·format) 게이트 추가
+  <details><summary>배경·구현</summary>
+
+  `pnpm check`는 사람이 수동으로 실행할 때만 돌았다 — pre-commit(`lint-staged`)은
+  staged 파일만, pre-push는 테스트만, `deploy.yml`은 테스트+빌드만 검사해 레포
+  전체 lint/format을 도는 곳이 하나도 없었다. 그 결과 `eslint.config.js`의 ignore
+  패턴(`'dist/**/*'`)이 중첩 경로(`.claude/worktrees/*/dist/`)를 못 잡는 버그를
+  아무도 못 봤고, 방치된 Claude 워크트리의 빌드 산출물이 `pnpm check` 결과를 2,370건
+  에러로 오염시켰다(실제 소스 문제는 warning 4건뿐이었음). ignore 패턴을 `**/dist/**`
+  형태로 고치고, PR CI(`ci.yml`, 신규)와 `deploy.yml` 양쪽에 `pnpm check`를 게이트로
+  추가했다. 남은 warning 4건도 원인 해결(누락된 `ImportMetaEnv` 타입 선언, 테스트
+  mock의 암시적 `any` 반환)로 없앤 뒤 `--max-warnings 0`을 걸어 재발을 막는다.
+  (`eslint.config.js`, `.prettierignore`, `src/vite-env.d.ts`,
+  `src/entities/user/api/AuthQueries.test.tsx`,
+  `src/features/post/bookmark/ui/FolderSelector.tsx`, `package.json`,
+  `.github/workflows/ci.yml`(신규), `.github/workflows/deploy.yml`)
+
+  </details>
+
 - `post` 게시글 상세 상단을 클릭 가능한 "목록으로" 버튼으로 변경
   <details><summary>배경·구현</summary>
 

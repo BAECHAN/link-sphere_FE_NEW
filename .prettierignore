@@ -3,5 +3,7 @@ dist
 build
 coverage
 .husky
+.claude/worktrees
+docs/HISTORY.md
 *.min.js
 *.min.css

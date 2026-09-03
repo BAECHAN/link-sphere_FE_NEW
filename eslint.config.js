@@ -14,7 +14,15 @@ export default [
   ...tseslint.configs.recommended,
   prettierConfig,
   {
-    ignores: ['dist/**/*', 'node_modules/**/*', '**/*.md', '**/*.svg', 'infra/**/*'],
+    // '**/' 없이 'dist/**/*'로만 쓰면 중첩 경로(.claude/worktrees/*/dist/ 등)를 못 잡는다.
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '.claude/worktrees/**',
+      '**/*.md',
+      '**/*.svg',
+      'infra/**/*',
+    ],
   },
   {
     files: ['src/**/*.{ts,tsx}'],

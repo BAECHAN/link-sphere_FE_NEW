@@ -25,7 +25,12 @@ vi.mock('@/shared/lib/firebase/fcm', () => ({
 
 const mockToastError = vi.fn();
 vi.mock('@/shared/lib/toast/toast', () => ({
-  toast: { error: (...args: unknown[]) => mockToastError(...args), success: vi.fn() },
+  toast: {
+    error: (...args: unknown[]) => {
+      mockToastError(...args);
+    },
+    success: vi.fn(),
+  },
 }));
 
 const mockHandleAccountUpdateSuccess = vi.fn();
@@ -34,7 +39,9 @@ vi.mock('@/entities/user/api/auth.keys', () => ({
   authInvalidateQueries: { all: vi.fn() },
   authKeys: { root: () => ['auth'], account: () => ['auth', 'account'] },
   authMutationKeys: { updateAccount: ['auth', 'updateAccount'] },
-  handleAccountUpdateSuccess: () => mockHandleAccountUpdateSuccess(),
+  handleAccountUpdateSuccess: () => {
+    mockHandleAccountUpdateSuccess();
+  },
 }));
 
 // 옵티미스틱 업데이트가 싱글톤 queryClient를 직접 조작하므로 동일 인스턴스를 provider로 사용

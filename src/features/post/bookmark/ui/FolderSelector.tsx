@@ -44,6 +44,7 @@ export function FolderSelector({
       }
       // open 이 true 로 전환되는 순간에만 스냅샷 — 저장 중 isBookmarked 변화는 의도적으로 무시
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [open]
   );
 

@@ -1,0 +1,40 @@
+name: CI
+
+# PR에 대해 type-check·lint·format·test를 검증한다. 지금까지는 deploy.yml(push:main)만 있어서
+# PR 단계에서 검사가 전혀 안 됐고, pnpm check(lint+format)는 사람이 수동으로 돌릴 때만 실행돼서
+# .claude/worktrees/ 안의 빌드 산출물이 몇 달치 안 걸리고 쌓이는 걸 아무도 몰랐다.
+on:
+  pull_request:
+    branches: ['main']
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check, lint & format check
+        run: pnpm check
+
+      - name: Run tests
+        run: pnpm test
+        env:
+          VITE_API_BASE_URL: http://localhost
