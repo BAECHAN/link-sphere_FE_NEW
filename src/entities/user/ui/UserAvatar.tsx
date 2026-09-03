@@ -70,7 +70,7 @@ export function UserAvatar({
   return (
     <button
       type="button"
-      className="inline-flex shrink-0 cursor-pointer rounded-full"
+      className="inline-flex shrink-0 rounded-full"
       aria-label={TEXTS.ariaLabels.profileImageZoom}
       onClick={() => openImageViewer({ src: image, alt: nickname ?? '' })}
     >

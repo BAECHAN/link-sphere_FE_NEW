@@ -72,7 +72,7 @@ function renderInlineLinks(
                 preventScrollReset: true,
               });
             }}
-            className="block cursor-pointer"
+            className="block"
             aria-label={TEXTS.ariaLabels.imageZoom}
           >
             <img

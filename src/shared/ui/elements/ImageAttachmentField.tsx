@@ -80,7 +80,7 @@ export function ImageAttachmentField({
                   'absolute -top-2 -right-2 h-5 w-5 rounded-full',
                   'bg-black border border-black shadow-sm',
                   'text-white hover:bg-zinc-700 hover:scale-110',
-                  'flex items-center justify-center transition-all duration-150 cursor-pointer'
+                  'flex items-center justify-center transition-all duration-150'
                 )}
               >
                 <X className="h-3 w-3" strokeWidth={2.5} />

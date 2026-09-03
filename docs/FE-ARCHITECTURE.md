@@ -491,7 +491,44 @@ npm run storybook      # Storybook (port 6006)
 
 ---
 
-## 18. 체크리스트: 기존 엔티티에 새 기능 추가
+## 18. 클릭 가능한 요소와 커서 규칙
+
+`src/app/globals.css`의 `@layer base`에서 전역으로 처리한다 — 개별 컴포넌트에
+`cursor-pointer`를 직접 붙이지 않는다. 배경은 `docs/DECISIONS.md`의 2026-09-03
+항목 참고.
+
+### 자동으로 pointer가 붙는 대상
+
+| 분류       | 대상                                                                                                              |
+| ---------- | ----------------------------------------------------------------------------------------------------------------- |
+| 태그       | `button`, `summary`, `select`, `input[type=checkbox\|radio\|file]`                                                |
+| ARIA role  | `button`, `link`, `menuitem`, `menuitemcheckbox`, `menuitemradio`, `option`, `tab`, `switch`, `checkbox`, `radio` |
+| 형제 label | `[role=checkbox]`/`[role=radio]` 바로 뒤의 `label` (예: `FormCheckbox`, `FormCheckboxGroup`)                      |
+
+`:disabled` / `aria-disabled="true"` / `[data-disabled]`는 제외된다 — 비활성 버튼·메뉴
+항목은 그대로 `default` 커서를 유지한다.
+
+### 새 컴포넌트를 만들 때
+
+1. `Button`(`shared/ui/atoms/button.tsx`) 또는 raw `<button>`을 쓴다 → 아무것도 안 해도 pointer가 붙는다.
+2. Radix 프리미티브를 새로 감쌀 때는 그 프리미티브가 `button`이나 위 role을 렌더링하는지
+   확인한다(Radix 소스에서 확인 가능) → 대부분 자동으로 커버된다.
+3. 불가피하게 `div`/`span`에 `onClick`을 달아야 하면 `role="button"`을 반드시 함께
+   지정한다. ESLint `custom-a11y/clickable-needs-interactive-element`(`eslint.config.js`)가
+   이를 강제한다 — `role`도 `aria-hidden="true"`도 없이 `onClick`만 달면 린트가 막는다.
+4. 클릭이 아니라 포인터 오버로 발생하는 어포던스(예: `SelectScrollUpButton`/
+   `SelectScrollDownButton`의 자동 스크롤)는 대상이 아니다 — `cursor-default`를 유지한다.
+
+### shadcn 컴포넌트 재생성 시 주의
+
+`dropdown-menu.tsx`(`SubTrigger`/`Item`/`CheckboxItem`/`RadioItem`)와 `select.tsx`
+(`SelectItem`)는 shadcn 기본값(`cursor-default`)을 의도적으로 제거해뒀다. shadcn
+CLI로 이 컴포넌트를 다시 생성하면 `cursor-default`가 되돌아오므로, 재생성 후 해당
+클래스를 다시 지워야 한다.
+
+---
+
+## 19. 체크리스트: 기존 엔티티에 새 기능 추가
 
 - [ ] `entities/<entity>/model/<entity>.schema.ts` — Zod 스키마 + 타입 추가/확인
 - [ ] `entities/<entity>/api/<entity>.api.ts` — API 함수 추가
@@ -503,7 +540,7 @@ npm run storybook      # Storybook (port 6006)
 - [ ] `features/<feature-name>/ui/<FeatureName>.tsx` — 얇은 UI
 - [ ] `src/pages/<page>/` 페이지에 연결
 
-## 19. 체크리스트: 새 Entity/Widget 추가
+## 20. 체크리스트: 새 Entity/Widget 추가
 
 - [ ] 위 "새 기능 추가" 체크리스트 전부
 - [ ] `src/entities/<entity>/` 디렉토리 구조 생성 (api/, model/)

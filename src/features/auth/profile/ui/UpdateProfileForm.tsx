@@ -52,7 +52,7 @@ export function UpdateProfileForm({ onSuccess }: UpdateProfileFormProps) {
       <form onSubmit={onSubmit} className="space-y-6" noValidate>
         <div className="flex flex-col items-center gap-3">
           <div
-            className="relative cursor-pointer"
+            className="relative"
             onClick={() => fileInputRef.current?.click()}
             role="button"
             aria-label={TEXTS.mypage.changeImage}

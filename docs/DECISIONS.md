@@ -6,6 +6,68 @@
 
 ---
 
+## 2026-09-03 — 클릭 가능한 요소의 커서: Tailwind v4 preflight 회귀 수정 + 규칙 일원화
+
+**배경**
+
+Tailwind v4(현재 버전 4.1.18)의 preflight에는 v3에 있던
+`button, [role="button"] { cursor: pointer }`가 없다(`node_modules/tailwindcss/preflight.css`
+소스 확인 — cursor 규칙 자체가 없음). 그 결과 `<button>`이 브라우저 기본 커서(`default`)를
+쓰게 됐고, 컴포넌트마다 개별적으로 `cursor-pointer` 유틸을 손으로 붙여 대응해왔다(12곳).
+raw `<button>` 20곳과 Radix가 `div` + `role`로 렌더링하는 메뉴·옵션 항목들은 그마저도
+빠져 있었다 — 새 컴포넌트를 만들 때마다 놓치기 쉬운 구조였다.
+
+**검토**
+
+1. 개별 컴포넌트에 `cursor-pointer`를 계속 붙임 — 기각. 이미 반복되고 있었고 근본 수정이
+   아니라 대증 요법이다.
+2. `@layer base`에 `button` 요소만 커버 — 기각. `DropdownMenuItem`/`CheckboxItem`/
+   `RadioItem`/`SelectItem` 등 Radix가 `div` + `role`로 렌더링하는 요소가 빠진다. ARIA
+   역할까지 포함하기로 하고(`role="button"`부터 `role="option"`까지), 지금은 쓰이지 않는
+   role(`link`/`tab`/`switch`)도 미리 넣어 해당 컴포넌트가 나중에 추가될 때 또 개별
+   대응하지 않게 했다.
+3. shadcn 기본값(`DropdownMenuItem`/`SelectItem` 등의 `cursor-default`)을 그대로 둠 —
+   기각. utilities 레이어가 base보다 우선이라 base 규칙만으로는 안 바뀌고, "메뉴 항목만
+   예외"라는 의도치 않은 불일치가 남는다. "clickable = pointer" 원칙을 예외 없이 적용하기로
+   하고 `cursor-default`를 제거했다. 단, 이건 shadcn 기본값에서 의도적으로 이탈하는
+   것이라 **다음에 해당 컴포넌트를 shadcn CLI로 재생성하면 되돌아간다** — 재생성 시
+   다시 제거해야 한다.
+4. `Select`의 스크롤 버튼(`SelectScrollUpButton`/`DownButton`)도 pointer로 통일 — 기각.
+   Radix 소스 확인 결과 이 둘은 role 없는 `Primitive.div`이고, 클릭이 아니라 포인터가
+   위/아래 가장자리에 머무르면 자동 스크롤되는 어포던스라 "클릭 가능 = pointer" 원칙의
+   대상이 아니다. `cursor-default`를 그대로 뒀다.
+
+**결정**
+
+`globals.css`에 `@layer base` 규칙을 한 번 추가해 `button`·`summary`·`select`·체크박스/
+라디오/파일 `input`과 위 ARIA role 전체에 `cursor: pointer`를 적용하고, 비활성
+(`:disabled`/`aria-disabled`/`data-disabled`)은 제외했다. 체크박스·라디오의 형제
+`label`도 같은 클릭 대상이라 형제 결합자(`~`)로 포함했다 — 이 코드베이스의 체크박스는
+label의 자식이 아니라 형제라 `:has()`는 마크업과 맞지 않는다. 기존 12곳의 수동
+`cursor-pointer`는 제거해 규칙을 한 곳으로 모았다. 앞으로의 회귀를 막기 위해 ESLint
+커스텀 룰(`custom-a11y/clickable-needs-interactive-element`)을 추가해 `onClick`만 달린
+`div`/`span`/아이콘 컴포넌트 등을 차단한다(`role="button"` 또는 `aria-hidden="true"`가
+있으면 통과).
+
+부수 변경: 검색바 아이콘(닫기 X, 뒤로가기 화살표) 3곳은 `<svg onClick>`으로 직접 클릭을
+받고 있어 새 ESLint 룰에도 걸리고 키보드로 도달할 수 없었다 → `<button>`으로 감쌌다
+(위치·크기는 그대로, aria-label은 기존 `TEXTS.ariaLabels.*` 재사용). 클릭 영역 크기
+자체는 전후 동일해 터치 타깃 44px 기준(`responsive-ux` 스킬)은 이번 변경의 범위가
+아니다 — 세 지점 모두 이전부터 그 기준에 못 미쳤다는 점만 확인하고 별도 이슈로 남겼다.
+
+**상태**
+
+적용 완료. 관련 파일: `src/app/globals.css`, `shared/ui/atoms/button.tsx`,
+`shared/ui/atoms/dropdown-menu.tsx`, `shared/ui/atoms/select.tsx`,
+`shared/ui/elements/modal/image-viewer/ImageViewer.tsx`,
+`shared/ui/elements/MarkdownContent.tsx`, `shared/ui/elements/ImageAttachmentField.tsx`,
+`shared/ui/elements/form/FormCheckboxGroup.tsx`, `entities/user/ui/UserAvatar.tsx`,
+`features/auth/profile/ui/UpdateProfileForm.tsx`, `widgets/layout/navbar/ui/NavbarSearch.tsx`,
+`widgets/layout/navbar/ui/MobileNavbarSearch.tsx`, `eslint.config.js`. 선택자 목록과
+예외는 `docs/FE-ARCHITECTURE.md`의 "클릭 가능한 요소와 커서 규칙" 섹션 참고.
+
+---
+
 ## 2026-08-13 — 게시글 등록 진행 표시: 상단바 배지 → 하단 진행 토스트
 
 **배경**

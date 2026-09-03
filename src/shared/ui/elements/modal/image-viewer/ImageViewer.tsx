@@ -118,7 +118,7 @@ export function GlobalImageViewer() {
                 e.stopPropagation();
                 prev();
               }}
-              className="fixed left-2 top-1/2 -translate-y-1/2 cursor-pointer rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/80 disabled:opacity-0"
+              className="fixed left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/80 disabled:opacity-0"
             >
               <ChevronLeft className="size-5" />
               <span className="sr-only">{TEXTS.ariaLabels.imageViewerPrev}</span>
@@ -130,7 +130,7 @@ export function GlobalImageViewer() {
                 e.stopPropagation();
                 next();
               }}
-              className="fixed right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/80 disabled:opacity-0"
+              className="fixed right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/80 disabled:opacity-0"
             >
               <ChevronRight className="size-5" />
               <span className="sr-only">{TEXTS.ariaLabels.imageViewerNext}</span>
@@ -141,7 +141,7 @@ export function GlobalImageViewer() {
           </>
         )}
         <DialogClose
-          className="fixed right-2 top-4 cursor-pointer rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/80"
+          className="fixed right-2 top-4 rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/80"
           onClick={(e) => e.stopPropagation()}
         >
           <X className="size-5" />

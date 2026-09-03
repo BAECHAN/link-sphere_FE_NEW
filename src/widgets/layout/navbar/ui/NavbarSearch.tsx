@@ -36,10 +36,14 @@ export const NavbarSearch = () => {
         className="pl-8 pr-10 bg-muted/50 border-none transition-all focus:bg-background focus:ring-1 focus:ring-primary/20"
       />
       {searchInput.length > 0 ? (
-        <XIcon
-          className="absolute right-2 top-2.5 size-4 text-muted-foreground cursor-pointer"
+        <button
+          type="button"
+          aria-label={TEXTS.ariaLabels.inputClear}
+          className="absolute right-2 top-2.5"
           onClick={() => setSearchInput('')}
-        />
+        >
+          <XIcon className="size-4 text-muted-foreground" />
+        </button>
       ) : (
         <Kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border bg-white px-1.5 font-mono text-[10px] font-medium opacity-100 flex size-5">
           <span className="text-xs">/</span>

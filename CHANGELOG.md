@@ -26,6 +26,24 @@
 
   </details>
 
+- `shared` 클릭 가능한 요소(버튼·메뉴·체크박스 등)의 커서를 pointer로 전역 통일
+  <details><summary>배경·구현</summary>
+
+  Tailwind v4 preflight엔 v3에 있던 `button, [role="button"] { cursor: pointer }`가
+  없어(버전 확인: 4.1.18) `<button>`이 브라우저 기본 커서를 썼고, 컴포넌트마다
+  `cursor-pointer`를 개별로 붙여 대응해왔다(12곳, raw `<button>` 20곳은 그마저도 누락).
+  `globals.css`의 `@layer base`에 button·ARIA role 전체를 커버하는 규칙을 한 번
+  추가하고, 흩어져 있던 수동 처리를 모두 제거했다. shadcn 기본값(`cursor-default`)이던
+  드롭다운 메뉴 항목·셀렉트 옵션도 이번에 pointer로 통일했다(포인터 오버로 자동
+  스크롤되는 셀렉트 스크롤 버튼은 클릭 대상이 아니라 제외). 앞으로의 회귀를 막기
+  위해 `onClick`만 달린 `div`/`span`을 차단하는 ESLint 룰
+  (`custom-a11y/clickable-needs-interactive-element`)도 추가했다.
+  (`src/app/globals.css`, `shared/ui/atoms/button.tsx`, `shared/ui/atoms/dropdown-menu.tsx`,
+  `shared/ui/atoms/select.tsx`, `eslint.config.js`, 상세 배경은 `docs/DECISIONS.md`
+  2026-09-03 항목)
+
+  </details>
+
 ### Added
 
 - `bookmark` 게시글 목록에 "최근 열람순" 정렬 옵션 추가

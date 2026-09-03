@@ -39,7 +39,7 @@ export const FormCheckboxGroup = ({ name, label, options, disabled }: FormCheckb
             />
             <label
               htmlFor={`${name}-${option.value}`}
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer select-none"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 select-none"
             >
               {option.label}
             </label>

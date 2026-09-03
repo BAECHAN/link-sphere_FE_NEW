@@ -424,6 +424,123 @@ export default [
       ],
     },
   },
+  // 클릭 가능한 요소는 인터랙티브 시맨틱(button/role)이 필요 - 커스텀 규칙
+  // onClick만 달린 div/span 등은 커서(globals.css 인터랙션 커서 규칙)와 키보드 접근성이
+  // 모두 빠진다. INTERACTIVE_ROLES는 globals.css의 커서 규칙 선택자 목록과 동일하게 유지한다.
+  {
+    files: ['src/**/*.tsx'],
+    ignores: ['**/*.stories.tsx', 'src/test/**/*.tsx'],
+    plugins: {
+      'custom-a11y': {
+        rules: {
+          'clickable-needs-interactive-element': {
+            meta: {
+              type: 'problem',
+              docs: {
+                description:
+                  'onClick이 있는 비-인터랙티브 요소(div/span 등)는 Button 또는 role 지정 필요',
+              },
+              messages: {
+                needsInteractiveElement:
+                  '"{{tag}}"에 onClick만 달려 있습니다. @/shared/ui/atoms/button 의 Button(또는 <button>)을 사용하거나, 불가피하면 role="button"과 키보드 핸들러(onKeyDown)를 함께 지정해주세요.',
+              },
+            },
+            create(context) {
+              const NON_INTERACTIVE_TAGS = new Set([
+                'div',
+                'span',
+                'li',
+                'p',
+                'img',
+                'svg',
+                'section',
+                'article',
+                'ul',
+                'ol',
+                'td',
+                'tr',
+                'header',
+                'footer',
+                'nav',
+                'main',
+                'aside',
+                'figure',
+                'h1',
+                'h2',
+                'h3',
+                'h4',
+                'h5',
+                'h6',
+              ]);
+              const INTERACTIVE_ROLES = new Set([
+                'button',
+                'link',
+                'menuitem',
+                'menuitemcheckbox',
+                'menuitemradio',
+                'option',
+                'tab',
+                'switch',
+                'checkbox',
+                'radio',
+              ]);
+
+              function isIconComponent(name) {
+                return /^[A-Z].*Icon$/.test(name);
+              }
+
+              return {
+                JSXOpeningElement(node) {
+                  if (node.name.type !== 'JSXIdentifier') {
+                    return;
+                  }
+                  const tag = node.name.name;
+                  if (!NON_INTERACTIVE_TAGS.has(tag) && !isIconComponent(tag)) {
+                    return;
+                  }
+
+                  const hasOnClick = node.attributes.some(
+                    (attr) => attr.type === 'JSXAttribute' && attr.name?.name === 'onClick'
+                  );
+                  if (!hasOnClick) {
+                    return;
+                  }
+
+                  const ariaHiddenAttr = node.attributes.find(
+                    (attr) => attr.type === 'JSXAttribute' && attr.name?.name === 'aria-hidden'
+                  );
+                  const isAriaHiddenTrue =
+                    ariaHiddenAttr?.value?.type === 'Literal' &&
+                    ariaHiddenAttr.value.value === 'true';
+                  if (isAriaHiddenTrue) {
+                    return;
+                  }
+
+                  const roleAttr = node.attributes.find(
+                    (attr) => attr.type === 'JSXAttribute' && attr.name?.name === 'role'
+                  );
+                  if (roleAttr) {
+                    // role이 문자열 리터럴이 아니면(동적 계산 등) 판단할 수 없으니 통과시킨다
+                    if (roleAttr.value?.type !== 'Literal') {
+                      return;
+                    }
+                    if (INTERACTIVE_ROLES.has(roleAttr.value.value)) {
+                      return;
+                    }
+                  }
+
+                  context.report({ node, messageId: 'needsInteractiveElement', data: { tag } });
+                },
+              };
+            },
+          },
+        },
+      },
+    },
+    rules: {
+      'custom-a11y/clickable-needs-interactive-element': 'error',
+    },
+  },
   // 파일 명명 규칙 (unicorn/filename-case)
   // 비-ASCII 문자 검사 (한글 등) - 커스텀 규칙
   {
