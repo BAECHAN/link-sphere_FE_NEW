@@ -1,5 +1,14 @@
 # Link-Sphere FE — CI 검사 게이트 정비 (2026-09-03)
 
+> **문서 성격**: 독립 기능 문서(서사형)
+>
+> **대상 독자**: 이 레포 FE를 처음 보거나 오랜만에 돌아온 개발자.
+>
+> **읽고 나면**: `pnpm check`가 실제로 어느 시점에 도는지, ignore 패턴을 추가하거나
+> PR 게이트에 스텝을 더할 때 어디를 고치면 되는지 안다.
+>
+> **마지막 검토**: 2026-09-04
+
 ## 1. 쉬운 설명
 
 맞춤법 검사기를 생각해보자. 폴더 전체를 검사하는 "전체 검사" 버튼이 있는데,
@@ -15,7 +24,34 @@
 방치된 작업 폴더) 안에 남아 있던 빌드 산출물(번들된 JS 파일) 하나에서 나온
 가짜 오류였다.
 
-## 2. 사용한 도구·기술
+검사가 실제로 도는 지점은 4곳이다 — 이번에 고친 건 뒤 두 곳이다.
+
+```mermaid
+flowchart LR
+  Commit["git commit"] --> PreCommit["pre-commit 훅<br/>type-check 전체 + lint-staged(변경 파일만)"]
+  Push["git push"] --> PrePush["pre-push 훅<br/>테스트만"]
+  PR["Pull Request"] --> CI["ci.yml (신규)<br/>pnpm check + test"]
+  Merge["main에 merge"] --> Deploy["deploy.yml<br/>pnpm check 게이트 추가 + test + build + 배포"]
+```
+
+`pre-commit`·`pre-push`는 이미 있었지만 각각 "변경 파일만" 또는 "테스트만" 봐서
+`pnpm check` 전체를 훑는 지점이 아니었다. PR과 배포 단계에도 `pnpm check`가 걸려
+있지 않아서, `.claude/worktrees/` 안에 방치된 빌드 산출물이 몇 달째 아무 검사에도
+안 걸리고 쌓여 있었다.
+
+## 2. 전제 지식
+
+ESLint·Prettier·pre-commit 훅(`lint-staged`)의 기본 동작(무엇을 검사하고 무엇을
+자동 수정하는지)은 안다고 가정한다.
+
+가정하지 않는 것:
+
+- ESLint 9의 flat config(`eslint.config.js`)가 legacy `.eslintrc`와 ignore 패턴을
+  다루는 방식이 다르다는 점 → §12 용어 사전
+- `EnterWorktree`(Claude Code 워크트리 도구) 자체 → §12 용어 사전
+- 배포 파이프라인 전체 구조 → [`DEPLOY.md`](./DEPLOY.md), [`SYSTEM-ARCHITECTURE.md`](./SYSTEM-ARCHITECTURE.md)
+
+## 3. 사용한 도구·기술
 
 **기능 자체를 이루는 것**
 
@@ -32,19 +68,18 @@
 
 - **Node 일회성 스크립트** — `eslint . -f json`으로 뽑은 결과를 파일 경로별·
   규칙별로 집계해, 2,370건 중 몇 건이 워크트리 안 파일이고 몇 건이 진짜
-  소스인지 정량적으로 분리(6장)
+  소스인지 정량적으로 분리(§8)
 - **`gh` CLI**(`gh run list`, `gh run watch`) — 새 워크플로우가 실제 배포에서
   게이트로 작동하는지 확인
 - **웹 검색** — ESLint flat config의 ignore 패턴 동작 방식, 업계의 pre-commit
-  vs CI 게이트 관행을 사전 확인 후 설계에 반영(9장 대신 결론만; 상세 근거는
-  이 문서에는 안 옮기고 작업 당시 대화에만 남음)
+  vs CI 게이트 관행을 사전 확인 후 설계에 반영(결론만 이 문서에 남기고, 상세
+  근거는 작업 당시 대화에만 남음)
 
-## 3. 왜 만들었나
+## 4. 왜 만들었나
 
-사용자가 `npm run check`(정확히는 `pnpm check`)를 실행했다가 "문제가 엄청
-많은데 왜 지금까지 체크 못했는지 확인하고 이런 일 없도록 하라"고 요청한 게
-시작이었다. 조사해보니 `pnpm check`가 **사람이 수동으로 칠 때만** 도는
-상태였다:
+사용자가 `pnpm check`를 실행했다가 "문제가 엄청 많은데 왜 지금까지 체크 못했는지
+확인하고 이런 일 없도록 하라"고 요청한 게 시작이었다. 조사해보니 `pnpm check`가
+**사람이 수동으로 칠 때만** 도는 상태였다:
 
 | 검사 지점                    | 실행 대상                                        | `dist/` 산출물이 걸리나?             |
 | ---------------------------- | ------------------------------------------------ | ------------------------------------ |
@@ -60,7 +95,7 @@
 ignore 패턴(`'dist/**/*'`, 루트 상대 경로)에 안 걸려서 그대로 린트 대상이
 됐다.
 
-## 4. 구조 — 두 가지 원인, 두 가지 수정
+## 5. 구조 — 두 가지 원인, 두 가지 수정
 
 ```
 [원인 1] ignore 패턴이 중첩 경로를 못 잡음
@@ -80,29 +115,48 @@ ignore 패턴(`'dist/**/*'`, 루트 상대 경로)에 안 걸려서 그대로 �
 
 새 `ci.yml`은 기존 `deploy.yml`의 pnpm/Node 셋업 스텝을 그대로 재사용했다
 (Node 20 — 이후 Node 24 업그레이드 병합 시 `.nvmrc` 기준(`node-version-file`)으로
-함께 맞춰졌다, 8장).
+함께 맞춰졌다, §10).
 
-## 5. 운영 파라미터
+## 6. 운영 파라미터
 
-| 파라미터                | 값                                                                                              | 실제 위치                                                          |
-| ----------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `--max-warnings` 임계값 | 0                                                                                               | `package.json`의 `lint`/`lint:fix`/`lint-staged.*.{ts,tsx,js,jsx}` |
-| ESLint 글로벌 ignore    | `**/dist/**`, `**/node_modules/**`, `.claude/worktrees/**`, `**/*.md`, `**/*.svg`, `infra/**/*` | `eslint.config.js`                                                 |
-| Prettier ignore 추가분  | `.claude/worktrees`, `docs/HISTORY.md`(봇 생성 파일)                                            | `.prettierignore`                                                  |
-| PR CI 트리거            | `pull_request` → `main`                                                                         | `.github/workflows/ci.yml`                                         |
-| 동시 실행 제어          | 같은 브랜치 새 커밋 push 시 이전 실행 자동 취소                                                 | `ci.yml`의 `concurrency` 블록                                      |
-| Node 버전               | 24 (`.nvmrc` 기준, `node-version-file`로 참조)                                                  | `.nvmrc`, `ci.yml`·`deploy.yml` 공통                               |
-| 배포 게이트 위치        | `pnpm install` 직후, `pnpm test` 이전                                                           | `deploy.yml` "Type check, lint & format check" 스텝                |
+| 파라미터                | 값                                                                                              | 실제 위치                                                                  |
+| ----------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `--max-warnings` 임계값 | 0                                                                                               | `package.json:18-19`(`lint`/`lint:fix`), `package.json:123`(`lint-staged`) |
+| ESLint 글로벌 ignore    | `**/dist/**`, `**/node_modules/**`, `.claude/worktrees/**`, `**/*.md`, `**/*.svg`, `infra/**/*` | `eslint.config.js:19-24`                                                   |
+| Prettier ignore 추가분  | `.claude/worktrees`, `docs/HISTORY.md`(봇 생성 파일)                                            | `.prettierignore:6-7`                                                      |
+| PR CI 트리거            | `pull_request` → `main`                                                                         | `.github/workflows/ci.yml:7`                                               |
+| 동시 실행 제어          | 같은 브랜치 새 커밋 push 시 이전 실행 자동 취소                                                 | `.github/workflows/ci.yml:11` `concurrency` 블록                           |
+| Node 버전               | 24(`.nvmrc` 기준, `node-version-file`로 참조)                                                   | `.nvmrc`, `ci.yml:28`·`deploy.yml` 공통                                    |
+| 배포 게이트 위치        | `pnpm install` 직후, `pnpm test` 이전                                                           | `deploy.yml` "Type check, lint & format check" 스텝                        |
 
-## 6. 검증 결과
+## 7. 코드 지도와 자주 하는 수정
+
+| 무엇을 바꾸려면              | 파일                                                                                                |
+| ---------------------------- | --------------------------------------------------------------------------------------------------- |
+| ignore 패턴 추가·수정        | `eslint.config.js:19-24`(ESLint), `.prettierignore`(Prettier — 별도 파일, ESLint와 문법 공유 안 함) |
+| PR 게이트에 검사 스텝 추가   | `.github/workflows/ci.yml`                                                                          |
+| 배포 게이트에 검사 스텝 추가 | `.github/workflows/deploy.yml`의 "Type check, lint & format check" 스텝                             |
+| Node 버전 변경               | `.nvmrc` 한 곳만 — `ci.yml`·`deploy.yml` 둘 다 `node-version-file`로 그 값을 읽는다                 |
+| `--max-warnings` 임계값 변경 | `package.json:18-19,123`                                                                            |
+
+### 자주 하는 수정
+
+| 하고 싶은 것                              | 방법                                                                                                      |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 새 중첩 경로가 또 lint에 걸린다           | `eslint.config.js`의 ignore 패턴에 `**/` prefix가 빠졌는지 먼저 의심(§4의 원인 1과 같은 패턴)             |
+| PR 게이트를 일시적으로 우회해야 한다      | 게이트 자체를 끄지 말고, 무엇이 실패했는지 원인을 먼저 본다 — 우회가 필요한 상황이면 사용자에게 먼저 확인 |
+| 로컬에서 전체 검사를 미리 돌려보고 싶다   | `pnpm check`                                                                                              |
+| 검사 스크립트가 정확히 뭘 실행하는지 확인 | `package.json`의 `check` 스크립트 조합을 직접 확인(이 문서는 "타입체크+lint+포맷"이라고만 요약함)         |
+
+## 8. 검증 결과
 
 `eslint . -f json` 결과를 노드 스크립트로 집계한 최초 breakdown:
 
-| 구분                           | 건수                            |
-| ------------------------------ | ------------------------------- |
-| 전체 문제                      | 2,370 (2,366 error + 4 warning) |
-| `.claude/worktrees/**` 안 문제 | 2,366 (전체의 99.8%)            |
-| 실제 `src/` 소스 문제          | 0 error, **4 warning**          |
+| 구분                           | 건수                           |
+| ------------------------------ | ------------------------------ |
+| 전체 문제                      | 2,370(2,366 error + 4 warning) |
+| `.claude/worktrees/**` 안 문제 | 2,366(전체의 99.8%)            |
+| 실제 `src/` 소스 문제          | 0 error, **4 warning**         |
 
 워크트리 안 상위 규칙(`no-unused-expressions` 2,106건이 minified 번들 파일
 하나에서 나옴):
@@ -144,9 +198,9 @@ ignore 패턴만 고친 시점의 중간 검증: `pnpm exec eslint .` → **0 pr
   ✓ CloudFront Invalidation
 ```
 
-## 7. 시행착오
+## 9. 시행착오
 
-### 7.1 `react-hooks/exhaustive-deps` disable 주석 위치 실수
+### 9.1 `react-hooks/exhaustive-deps` disable 주석 위치 실수
 
 `FolderSelector.tsx`의 의도적 dep 누락에 `eslint-disable-next-line` 주석을
 처음에는 `useEffect` 콜백 **본문 안쪽**(닫는 `}` 바로 위)에 넣었다가 lint가
@@ -154,7 +208,7 @@ ignore 패턴만 고친 시점의 중간 검증: `pnpm exec eslint .` → **0 pr
 경고를 앵커링하기 때문에, `eslint-disable-next-line`도 그 배열 줄 바로 위로
 옮겨야 했다.
 
-### 7.2 문서를 고치다가 그 문서가 검사에 걸림
+### 9.2 문서를 고치다가 그 문서가 검사에 걸림
 
 `docs/SYSTEM-ARCHITECTURE.md`의 배포 단계 표를 수정한 뒤 `pnpm check`를
 돌렸더니 그 파일 자체가 `format:check`(Prettier)에 걸렸다 — 표 안 셀 너비가
@@ -162,7 +216,7 @@ ignore 패턴만 고친 시점의 중간 검증: `pnpm exec eslint .` → **0 pr
 만들고 있는 바로 그 검사 게이트가 작업 중 실수를 그 자리에서 잡아낸
 사례라 기록해둔다.
 
-### 7.3 (참고) 같은 세션에서 BE 쪽에 있었던 실수
+### 9.3 (참고) 같은 세션에서 BE 쪽에 있었던 실수
 
 같은 작업 세션에서 BE 레포 작업 중 (1) `git commit` 인자 순서 실수, (2)
 `EnterWorktree`가 셸의 잔여 `cd` 상태 때문에 의도한 레포가 아닌 곳에
@@ -170,7 +224,7 @@ ignore 패턴만 고친 시점의 중간 검증: `pnpm exec eslint .` → **0 pr
 있었다. FE 작업에서는 이 경험을 반영해 (3)은 매번 push 전 사용자 확인을
 거쳤다. 상세는 BE 레포(`link-sphere_BE_NEW`) `docs/CI-CHECK-GATE.md` 참고.
 
-## 8. 남은 것
+## 10. 남은 것
 
 - Node 20→24 업그레이드가 병합됐다. `ci.yml`·`deploy.yml` 모두
   `node-version-file: '.nvmrc'`로 바뀌어 이번처럼 한쪽만 버전이 뒤처지는
@@ -182,11 +236,24 @@ install`/`npm run build`로 표기돼 있지만 실제는 pnpm, `package-lock.js
   언급, Firebase 관련 시크릿 누락)는 이번 변경과 무관한 기존 문제라 손대지
   않았다 — 별도로 정리 필요
 
-## 관련 문서
+## 11. 용어 사전
+
+- **flat config** — ESLint 9의 설정 형식(`eslint.config.js`). legacy
+  `.eslintrc`와 달리 `.gitignore`를 자동으로 읽지 않고, ignore 패턴을 설정
+  파일 안에 직접 배열로 적는다 — 이번 사고의 근본 원인이 이 차이다
+- **`lint-staged`** — pre-commit 훅에서 **staged된 파일만** 검사·자동수정하는
+  도구. 워크트리 산출물은 애초에 git add되지 않으니 이 경로로는 절대 안 잡힌다
+- **`node-version-file`** — GitHub Actions `actions/setup-node`의 입력값.
+  Node 버전을 워크플로 YAML에 하드코딩하지 않고 `.nvmrc` 파일을 읽게 한다
+- **`EnterWorktree`** — Claude Code가 동시 세션을 격리하려고 별도 git
+  워크트리를 만드는 도구. 이번 사고의 발단이 된 방치 워크트리도 이걸로
+  만들어졌다
+
+## 12. 관련 문서
 
 - [`CHANGELOG.md`](../CHANGELOG.md) — `[Unreleased]`/`Changed`의 `infra` 항목
 - [`.claude/CLAUDE.md`](../.claude/CLAUDE.md) — ignore 패턴 `**/` prefix 규칙
 - [`docs/SYSTEM-ARCHITECTURE.md`](./SYSTEM-ARCHITECTURE.md) — 배포 단계 표
   (이번에 새 검사 스텝 반영)
 - BE 레포(`link-sphere_BE_NEW`) `docs/CI-CHECK-GATE.md` — 같은 작업의 BE
-  관점 (별도 git 저장소라 링크 대신 경로만 표기)
+  관점(별도 git 저장소라 링크 대신 경로만 표기)
