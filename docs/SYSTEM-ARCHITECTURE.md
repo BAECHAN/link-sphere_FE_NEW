@@ -255,5 +255,6 @@ flowchart TB
 ## 관련 문서
 
 - [FE-ARCHITECTURE.md](./FE-ARCHITECTURE.md) — FE 패턴, 3-Layer API, 네이밍, 체크리스트
+- [CI-CHECK-GATE.md](./CI-CHECK-GATE.md) — 위 배포 파이프라인에 걸려 있는 PR·배포 검사 게이트
 - FE 배포: [.github/workflows/deploy.yml](../.github/workflows/deploy.yml)
 - BE 배포: link-sphere_BE_NEW `.github/workflows/deploy.yml`
