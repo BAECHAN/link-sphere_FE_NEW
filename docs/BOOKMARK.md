@@ -150,7 +150,7 @@ Shneiderman의 split menu 연구를 따라 **상단에 최근 저장한 폴더 �
 공간기억이 깨지기 때문이다.
 
 `entities/folder/model/useRecentFolders.ts`가 선정 로직을 담당한다(노출 조건·개수는
-운영 파라미터라 §7로 뺐다). 스냅샷 동작은 §11 시행착오에서 실제로 버그가 났던
+운영 파라미터라 §7로 뺐다). 스냅샷 동작은 §10 시행착오에서 실제로 버그가 났던
 부분이라 함께 읽으면 이해가 빠르다.
 
 ### 링크 등록 폼의 폴더 선택(`BookmarkFolderPicker`) — 이 페이지가 아닌 다른 화면
@@ -262,7 +262,7 @@ src/
 │       │   └── folder.keys.ts            # §6 쿼리 키 + cross-invalidation
 │       ├── model/
 │       │   ├── folder.schema.ts          # §6 Folder 스키마
-│       │   └── useRecentFolders.ts       # "최근 저장한 폴더" 선정 로직 (§5, §7, §11)
+│       │   └── useRecentFolders.ts       # "최근 저장한 폴더" 선정 로직 (§5, §7, §10)
 │       └── ui/
 │           └── FolderPickerDialog.tsx    # 폴더 선택 모달/바텀시트 공용 프레젠테이션 —
 │                                          # FolderSelector·BookmarkFolderPicker가 공유하고
