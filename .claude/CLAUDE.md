@@ -209,14 +209,7 @@ don't build a preview for a bug fix with an obvious right answer.
 - **Never** 코드/설정을 바꾼 뒤 그 동작을 서술하는 문서 갱신 누락 → 인프라·배포·아키텍처뿐 아니라 **기능 동작(상태 저장 방식, API 계약 등)을 바꿀 때도** 반대편 BE 레포의 문서(특히 `docs/*-BOT.md` 같은 서사형 문서)가 그 동작을 서술하고 있는지 확인한다(2026-09-06, FE 봇 글 숨기기 토글의 저장 방식을 URL→localStorage로 바꿨을 때 BE `docs/RSS-FEED-BOT.md`가 옛 URL 기반 서술로 남아있던 사례 — BE `.claude/CLAUDE.md`의 같은 규칙 참고). 고쳤으면 **최종 보고에 "문서 X를 Y로 갱신함"을 별도 항목으로 명시**한다
 - **Never** CloudFront WAF의 바디 크기 제한 룰(`SizeRestrictions_BODY` 등)을 "왜 있는지" 확인 없이 완화·비활성화하지 않는다 → 이런 룰은 WAF가 바디를 검사할 수 있는 한도(CloudFront 기본 16KB) 너머는 애초에 못 본다는 전제에서 온다 — 한도를 넘은 요청을 그냥 통과시키면 그 너머에 숨은 XSS·LFI·RFI·Log4j 페이로드가 무검사로 뚫린다("검사 못 할 바엔 막는다"는 논리). 2026-09-06 댓글 등록 403 조사 중 `SizeRestrictions_BODY`(8,192바이트 초과 차단)를 완화하려다가, 대체 크기 제한 룰(`SizeConstraintStatement`)이 **CloudFront Pro 플랜(월 $15 정액제) 전용**이라 이 계정(Free 플랜)에서는 만들 수 없다는 걸 확인했다. Count로만 오버라이드하면 WAF의 바디 크기 방어가 완전히 사라져(Lambda 자체 한도 6MB까지 통과, 300KB 페이로드로 실측) 비용·우회 위험이 새로 생기므로 **원복했다** — 이 룰은 지금도 8,192바이트 초과를 그대로 차단 중이다. 그 벽 안에서 동작하도록 앱이 자체 상한(`CommentService.MAX_COMMENT_CONTENT_BYTES`)을 두는 쪽으로 대신 풀었다. Pro 업그레이드 없이는 이 8KB 벽을 건드리지 말 것(`docs/DEPLOY.md`의 "CloudFront WAF (수동 관리)" 절, `docs/DECISIONS.md` 2026-09-06 항목 참고)
 - **Never** 폼 검증 실패를 버튼 `disabled`만으로 처리하지 않는다(사용자에게 이유를 알려야 하는 경우) → `disabled` 버튼은 클릭 이벤트 자체가 발생하지 않아 `handleSubmit`의 검증 실패 콜백(에러 토스트 등)이 실행될 기회조차 없어진다. 2026-09-06 댓글 길이 제한 UI에서 이 문제로 "왜 제출이 안 되는지" 사용자가 전혀 알 수 없었다(대체용 호버 툴팁도 데스크톱 한정이라 발견성이 낮았다). 진짜 "할 게 없음"(빈 입력) 상태만 `disabled`로 막고, 그 외 검증 실패(길이 초과 등)는 버튼을 눌러지게 둔 채 zod resolver + `onInvalid` 콜백으로 차단하면서 상시 보이는 인라인 안내 문구를 함께 둔다(`useCreateComment.ts`, `CommentForm.tsx` 참고)
-- **Never** 멱등한 버튼(초기화·지우기·해제 등 "특정 상태로 만든다"는 뜻의 버튼)을 "할 게
-  없음"이라는 이유만으로 `disabled` 처리하지 않는다 → `disabled`는 탭 순서에서도 빠져
-  키보드만 쓰는 사용자는 버튼도 이유도 볼 수 없다(`TooltipWrapper`가 `tabIndex={-1}`로
-  호버·터치 전용인 것과 맞물린 구멍, 2026-09-06 필터 초기화 버튼에서 발견). 항상 활성
-  상태로 두고 클릭 핸들러에서 조용히 early return한다(`PostListSearch.tsx`의
-  `handleClearSearch` 참고). 단, **저장·등록처럼 "눌렀으면 반영됐다"는 피드백을 기대하는
-  버튼에는 이 패턴을 확장하지 않는다** — 무음 return이 고장으로 읽힌다. 기존 `disabled`
-  - 이유 안내(`UpdatePostForm.tsx` 등)를 유지한다(`docs/DECISIONS.md` 2026-09-06 항목 참고)
+- **Never** 멱등한 버튼(초기화·지우기·해제 등 "특정 상태로 만든다"는 뜻의 버튼)을 "할 게 없음"이라는 이유만으로 `disabled` 처리하지 않는다 → `disabled`는 탭 순서에서도 빠져 키보드만 쓰는 사용자는 버튼도 이유도 볼 수 없다(`TooltipWrapper`가 `tabIndex={-1}`로 호버·터치 전용인 것과 맞물린 구멍, 2026-09-06 필터 초기화 버튼에서 발견). 항상 활성 상태로 두고 클릭 핸들러에서 조용히 early return한다(`PostListSearch.tsx`의 `handleClearSearch` 참고). 단, **저장·등록처럼 "눌렀으면 반영됐다"는 피드백을 기대하는 버튼에는 이 패턴을 확장하지 않는다** — 무음 return이 고장으로 읽힌다. 기존 `disabled`와 이유 안내(`UpdatePostForm.tsx` 등) 방식을 그대로 유지한다(`docs/DECISIONS.md` 2026-09-06 항목 참고)
 
 ```typescript
 // ✅ 블록화 + 논리 그룹마다 빈 줄 (가드절 뒤, try 블록 앞)
