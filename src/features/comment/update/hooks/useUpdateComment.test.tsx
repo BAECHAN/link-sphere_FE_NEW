@@ -11,6 +11,8 @@ import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/const';
+import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
+import { TEXTS } from '@/shared/config/texts';
 
 // 기본 commentHandlers는 API_BASE_URL 접두사(/api) 없이 등록돼 있어 테스트 환경 요청 경로와
 // 매칭되지 않는다(CommentQueries.test.tsx와 동일한 이유) - url()로 명시 등록.
@@ -110,6 +112,42 @@ describe('useUpdateComment', () => {
 
     expect(requested).toBe(false);
     expect(errorSpy).toHaveBeenCalledWith(expect.anything());
+  });
+
+  it('원본 바이트는 상한 밑이어도 줄바꿈이 많아 실제 전송량이 넘으면 요청을 보내지 않는다', async () => {
+    // 개행은 JSON 직렬화 시 \n(2바이트)으로 이스케이프된다 - 원본이 전부 개행에 가까우면
+    // content 원본 바이트 체크(MAX_COMMENT_CONTENT_BYTES)는 통과해도 실제 전송 바이트는
+    // 훨씬 커진다. 앞에 문자 하나를 둬서 trim()이 빈 문자열로 만들지 않게 한다.
+    const content = `x${'\n'.repeat(5999)}`;
+    expect(getUtf8ByteLength(content)).toBeLessThanOrEqual(MAX_COMMENT_CONTENT_BYTES);
+
+    let requested = false;
+    server.use(
+      http.patch(url(API_ENDPOINTS.post.comment(mockComment.id)), () => {
+        requested = true;
+        return HttpResponse.json(
+          { status: 200, message: 'ok', data: mockComment, timestamp: new Date().toISOString() },
+          { status: 200 }
+        );
+      })
+    );
+    const errorSpy = vi.spyOn(toast, 'error');
+
+    const { result } = renderHook(
+      () => useUpdateComment({ comment: mockComment, postId: mockComment.postId }),
+      { wrapper: createWrapper(queryClient) }
+    );
+
+    act(() => {
+      result.current.form.setValue('content', content, { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(requested).toBe(false);
+    expect(errorSpy).toHaveBeenCalledWith(TEXTS.validation.commentPayloadTooLarge);
   });
 
   it('제출에 성공하면 onSuccess가 호출된다', async () => {

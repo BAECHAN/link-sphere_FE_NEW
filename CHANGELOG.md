@@ -82,6 +82,30 @@
 
   </details>
 
+- `comment` 줄바꿈이 많거나 이미지를 여러 장 붙인 댓글이 실제 전송 바이트 기준으로
+  WAF 벽을 넘던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  위 항목의 `MAX_COMMENT_CONTENT_BYTES` 체크는 `content` 원본 UTF-8 바이트만 잰다.
+  하지만 WAF가 실제로 재는 건 `JSON.stringify({content, images})`한 전송 바이트다 -
+  JSON 문자열의 `\n`은 `\`+`n` 2바이트로 이스케이프되므로, 짧은 줄이 아주 많은 글은
+  원본 바이트로는 상한 밑인데도 전송 시점엔 그보다 훨씬 커진다(실사용자 재현
+  사례: 6,000바이트 밑인데 줄바꿈이 대부분이라 실제 전송량이 8,192바이트를 넘음).
+  이미지 URL도 마찬가지로 `content` 필드만 보는 기존 체크에 안 잡힌다.
+
+  제출 시점(줄바꿈·이미지 개수와 무관하게 마지막 관문)에 실제 전송될 JSON과 같은
+  모양을 만들어 그 바이트를 재는 안전망을 추가했다 - 개행 개수를 세거나 JSON
+  문법 오버헤드를 손계산하는 대신, 아직 업로드 전이라 URL을 모르는 이미지는
+  추정 길이(Supabase 공개 URL 실측치에 여유를 둔 200바이트)의 자리표시자로 채워
+  `JSON.stringify`를 그대로 재현한다. 8,192바이트 벽 대비 약 700바이트 여유(7,500)를
+  뒀다. 넘으면 기존과 다른 문구("댓글 용량이 너무 커요")로 안내한다 - 원인이
+  글자수가 아니라 줄바꿈·이미지 조합이라 "2,000자" 안내를 재사용하면 부정확하다.
+  (`entities/comment/model/estimateCommentPayloadBytes.ts`(신규),
+  `entities/comment/config/const.ts`의 `MAX_COMMENT_PAYLOAD_BYTES`,
+  `ESTIMATED_IMAGE_URL_BYTES`)
+
+  </details>
+
 - `post` 게시글 검색 필터 영역을 기능별 행으로 재구성
   <details><summary>배경·구현</summary>
 
