@@ -409,6 +409,19 @@
 
   </details>
 
+- `infra` 게시글 상세 화면 폰트 preload 목록에 SemiBold(굵기 600) 누락 보완
+  <details><summary>배경·구현</summary>
+
+  이전 폰트 서빙 최적화(0.12.0 `Fixed` 항목 참고)가 실제 쓰는 굵기를
+  400/500/600/700(Regular/Medium/SemiBold/Bold)이라고 명시했음에도, `index.html`
+  preload 목록에는 Regular/Medium/Bold 세 개만 있고 SemiBold가 빠져 있었다.
+  `font-semibold`가 필요한 시점(댓글 섹션 "댓글" 헤딩 등)에야 뒤늦게 요청되어
+  `font-display: swap`으로 폴백 폰트가 잠깐 보이는 원인이 될 수 있었다. 위 댓글
+  영역 레이아웃 시프트 조사 과정에서 발견한 별개의 이슈로, 다른 세 굵기와 같은
+  preload `<link>`를 추가해 문서화된 의도와 실제 구현을 맞췄다. (`index.html`)
+
+  </details>
+
 ## [0.12.0] - 2026-08-13
 
 ### Added
