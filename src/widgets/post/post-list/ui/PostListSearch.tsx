@@ -152,7 +152,7 @@ export function PostListSearch() {
           localStorage(useHideBotsStore)에 영속화한다. 기본 OFF(봇 글 보임) */}
       <label
         htmlFor="hide-bots-switch"
-        className="flex items-center justify-between min-h-11 md:min-h-0 cursor-pointer select-none text-sm text-muted-foreground"
+        className="self-end inline-flex items-center gap-2 min-h-11 md:min-h-0 cursor-pointer select-none text-sm text-muted-foreground"
       >
         <span>{TEXTS.buttons.hideBots}</span>
         <Switch

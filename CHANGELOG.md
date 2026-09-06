@@ -85,6 +85,15 @@
   포기).
   (`PostListSearch.tsx`, `FilterChip.tsx`, `docs/DECISIONS.md`)
 
+  **재보정**: 이 리팩터링에서 봇 스위치 행의 클래스를 건드리며 바로 위 "여백만"
+  보정에서 승인받은 `inline-flex gap-2`(라벨+스위치 한 덩어리)를 의도치 않게
+  `justify-between`으로 되돌렸다. `self-end inline-flex gap-2`로 다시 붙여 카드
+  오른쪽 끝에 정렬했다. 같은 자리에서 "초기화" 버튼과 우측 세로 라인을 맞춰
+  달라는 요청도 받았는데, 실측(Playwright `boundingBox()`)해 보니 ghost 버튼의
+  내부 패딩은 텍스트만 안쪽으로 밀 뿐 버튼 박스 우측 끝은 이미 스위치 우측 끝과
+  일치했다 — 추가 마진 없이 그대로 두었다.
+  (`PostListSearch.tsx`, `docs/DECISIONS.md`)
+
   </details>
 
 - `post` "봇 글 숨기기" 스위치를 URL 파라미터 대신 기기별 localStorage 설정으로 변경
