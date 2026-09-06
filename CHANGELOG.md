@@ -26,18 +26,6 @@
 
   </details>
 
-- `post` 필터 카드 초기화 버튼이 비활성 상태일 때 사유 툴팁 표시
-  <details><summary>배경·구현</summary>
-
-  적용된 조건이 없으면 초기화 버튼이 회색으로 비활성화되는데, hover해도 왜
-  눌리지 않는지 알려주는 게 없었다. 이 레포에서 disabled 버튼에 툴팁을 붙일
-  때 이미 쓰던 유일한 패턴(`TooltipWrapper`로 감싸기 — Radix Tooltip이
-  `disabled` 버튼 자체에서는 pointer-events가 막혀 안 열리는 문제를, 버튼을
-  감싸는 `<span>`을 트리거로 써서 우회. `CommentForm.tsx` 등 5곳에서 이미 같은
-  방식 사용)를 그대로 따랐다. 옆에 있는 "조건 N개 적용 중" 텍스트는 조건이
-  0개일 때 빈 문자열이 돼 정확히 툴팁이 필요한 순간에는 아무 설명도 없었다.
-  (`PostListSearch.tsx`, `texts.ts`(`post.search.resetDisabledReason` 추가))
-
 - `comment` 댓글·답글 등록이 실패하면 입력했던 내용과 이미지가 폼에 복원됨
   <details><summary>배경·구현</summary>
 
@@ -58,6 +46,20 @@
   배포 순서 무관 — 구버전 BE는 모르는 filter 값을 조용히 무시한다.
 
 ### Changed
+
+- `post` 필터 카드 초기화 버튼을 조건이 없어도 항상 눌리게 변경
+  <details><summary>배경·구현</summary>
+
+  적용된 조건이 없으면 초기화 버튼을 `disabled`로 막고 `TooltipWrapper`로 이유를
+  안내했는데, disabled 버튼은 탭 순서에서 빠져 키보드만 쓰는 사용자는 버튼도 이유도
+  볼 수 없었다(`TooltipWrapper.tsx`가 `tabIndex={-1}`로 호버·터치 전용인 것과 맞물린
+  구멍). 초기화는 "필터 없는 상태로 만든다"는 멱등한 동작이라 이미 그 상태에서
+  눌러도 이상하지 않으므로, disabled 대신 버튼을 항상 활성으로 두고 조건이 없으면
+  클릭 핸들러가 조용히 return하도록 바꿨다. `TooltipWrapper` 래핑과 안내 문구
+  (`resetDisabledReason`)는 더 이상 필요 없어 제거했다.
+  (`PostListSearch.tsx`, `texts.ts`)
+
+  </details>
 
 - `comment` 댓글·답글 본문 길이를 한글 기준 약 2,000자(UTF-8 6,000바이트)로 제한
   <details><summary>배경·구현</summary>
@@ -419,6 +421,25 @@
   `font-display: swap`으로 폴백 폰트가 잠깐 보이는 원인이 될 수 있었다. 위 댓글
   영역 레이아웃 시프트 조사 과정에서 발견한 별개의 이슈로, 다른 세 굵기와 같은
   preload `<link>`를 추가해 문서화된 의도와 실제 구현을 맞췄다. (`index.html`)
+- `comment` 댓글 수정 폼 미리보기에서 썸네일 로드 실패 시 깨진 이미지 아이콘 노출
+  <details><summary>배경·구현</summary>
+
+  게시글 카드·댓글 목록의 링크 썸네일은 공통 `LinkThumbnail`을 써서 로드 실패 시
+  영역째 감추는데, 댓글 수정 폼(`CommentEditForm`)의 미리보기만 raw `<img>`를 직접
+  렌더해 `onError` 폴백이 없었다. 외부 CDN이 핫링크를 차단하는 이미지(나무위키 등)를
+  만나면 브라우저 기본 깨진 아이콘이 그대로 보였다. 다른 두 곳과 동일하게
+  `LinkThumbnail`을 쓰도록 교체했다(`referrerPolicy="no-referrer"`·https 치환도
+  함께 적용됨). (`CommentEditForm.tsx`)
+
+  </details>
+
+- `common` PWA manifest 아이콘이 실제 파일 위치와 달라 404
+  <details><summary>배경·구현</summary>
+
+  `site.webmanifest`가 아이콘을 `/android-chrome-*.png`(루트)로 참조했는데 실제
+  파일은 `public/favicons/` 아래에 있어 브라우저가 아이콘을 못 찾았다. 같은
+  디렉토리의 `firebase-messaging-sw.js`는 이미 `/favicons/...`로 올바르게
+  참조 중이라 그 경로에 맞춰 수정했다. (`public/favicons/site.webmanifest`)
 
   </details>
 
