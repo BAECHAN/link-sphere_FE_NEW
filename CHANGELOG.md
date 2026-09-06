@@ -99,8 +99,8 @@
   비교해(A: 봇 숨기기↔초기화만 붙임 / B: 범위 필터 칩부터 전부 붙임) B를
   채택했고, 같은 자리에서 모바일 터치 타깃도 44px→28px로 줄이기로 했다(칩과
   동일 높이로 통일 — `FilterChip`이 같은 이유로 이미 28px로 정리된 전례를
-  따름). 범위 필터 칩·봇 스위치·초기화 행을 gap 없는 `<div className="flex
-flex-col">`로 묶어 카테고리 칩과의 경계 gap만 바깥 컨테이너에 남겼다.
+  따름). 범위 필터 칩·봇 스위치·초기화 행을 gap 없는 `<div className="flex flex-col">`
+  로 묶어 카테고리 칩과의 경계 gap만 바깥 컨테이너에 남겼다.
   (`PostListSearch.tsx`, `docs/DECISIONS.md`)
 
   </details>
