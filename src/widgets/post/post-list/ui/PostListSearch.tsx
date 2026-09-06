@@ -8,11 +8,17 @@ import { RotateCcw } from 'lucide-react';
 import { startTransition, useEffect, useState, useTransition } from 'react';
 import { flushSync } from 'react-dom';
 import { usePostListParams } from '@/widgets/post/post-list/hooks/usePostList';
+import { parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
 import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
+import { useToggle } from '@/shared/hooks/useToggle';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
+import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 
 const SEARCH_LOADING_MIN_DURATION_MS = 400;
+const VISIBLE_CATEGORY_COUNT = 4;
+const SCOPE_FILTERS = ['isBookmarked', 'isMyPosts', 'isPrivate'] as const;
+const CATEGORY_GROUP_ID = 'post-category-filter-group';
 
 export function PostListSearch() {
   const { data: categories } = useFetchCategoryOptionQuery();
@@ -22,6 +28,8 @@ export function PostListSearch() {
   const [isSearchPending, startSearchTransition] = useTransition();
   // 캐시 히트 등으로 전환이 순식간에 끝나도 "검색이 실행됐다"는 신호를 사람이 인지할 수 있게 최소 시간 보장
   const showSearchLoading = useMinimumLoading(isSearchPending, SEARCH_LOADING_MIN_DURATION_MS);
+  // 모바일에서 카테고리 칩을 앞 N개만 보이게 접어둔다. 데스크톱은 CSS(md:)로 항상 전부 노출
+  const { value: showAllCategories, toggle: toggleShowAllCategories } = useToggle();
 
   const [searchInput, setSearchInput] = useState(searchQuery);
 
@@ -88,105 +96,161 @@ export function PostListSearch() {
   const isClickedMyPosts = optimisticFilters.includes('isMyPosts');
   const isClickedPrivate = optimisticFilters.includes('isPrivate');
 
+  // "조건 N개 적용 중" 카운트 — 봇 글 숨기기(localStorage 개인 설정, 초기화 대상 아님)는 제외.
+  // 키워드는 미제출 로컬 값(searchInput)이 아니라 실제 적용된 URL(searchQuery) 기준으로 센다.
+  const { category: selectedCategoryTags } = parseSearchQuery(searchInput);
+  const selectedCategories = new Set(selectedCategoryTags ? selectedCategoryTags.split(',') : []);
+
+  const hiddenCategories = categories?.slice(VISIBLE_CATEGORY_COUNT) ?? [];
+  const hasHiddenCategorySelected = hiddenCategories.some((category) =>
+    selectedCategories.has(category.label)
+  );
+  const isCategoryExpanded = showAllCategories || hasHiddenCategorySelected;
+
+  const { nickname: appliedNicknameTags, search: appliedKeyword } = parseSearchQuery(searchQuery);
+  const appliedNicknameCount = appliedNicknameTags ? appliedNicknameTags.split(',').length : 0;
+  const appliedScopeCount = SCOPE_FILTERS.filter((filter) =>
+    optimisticFilters.includes(filter)
+  ).length;
+  const appliedCount =
+    selectedCategories.size + appliedNicknameCount + appliedScopeCount + (appliedKeyword ? 1 : 0);
+
   return (
-    <>
-      <div className="flex flex-col gap-4 p-5 md:p-6 bg-card rounded-2xl border shadow-sm hover:shadow-md transition-shadow">
-        <div className="space-y-4">
-          <form onSubmit={handleSubmit} className="flex gap-2 group">
-            <SearchInput
-              name="search-input"
-              id="search-input"
-              placeholder={TEXTS.placeholders.postSearch}
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onClear={handleClear}
-            />
-            <Button
-              type="submit"
-              disabled={showSearchLoading}
-              className="h-10 px-6 rounded-xl  font-bold md:hidden"
+    <div className="flex flex-col gap-3 md:gap-4 p-5 md:p-6 bg-card rounded-2xl border shadow-sm hover:shadow-md transition-shadow">
+      <form onSubmit={handleSubmit} className="flex gap-2 group">
+        <SearchInput
+          name="search-input"
+          id="search-input"
+          placeholder={TEXTS.placeholders.postSearch}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onClear={handleClear}
+        />
+        <Button
+          type="submit"
+          disabled={showSearchLoading}
+          className="h-10 px-6 rounded-xl  font-bold md:hidden"
+        >
+          {showSearchLoading ? <Spinner className="h-4 w-4" /> : TEXTS.buttons.search}
+        </Button>
+      </form>
+
+      <div
+        id={CATEGORY_GROUP_ID}
+        role="group"
+        aria-label={TEXTS.ariaLabels.postCategoryFilters}
+        className="flex flex-wrap gap-2 border-t pt-3 md:pt-4"
+      >
+        {categories?.map((category, index) => {
+          const isSelected = selectedCategories.has(category.label);
+          return (
+            <span
+              key={category.value}
+              className={cn(
+                'inline-flex',
+                index >= VISIBLE_CATEGORY_COUNT && !isCategoryExpanded && 'hidden md:inline-flex'
+              )}
             >
-              {showSearchLoading ? <Spinner className="h-4 w-4" /> : TEXTS.buttons.search}
-            </Button>
-          </form>
+              <FilterChip
+                id={`category-${category.value}`}
+                name={category.value}
+                label={`@${category.label}`}
+                isActive={isSelected}
+                activeClassName="bg-primary text-primary-foreground"
+                onClick={() => {
+                  // 라벨 클릭 시 기존 자유 검색어는 초기화하고, 이미 선택된 @카테고리/#닉네임 태그만 유지한다.
+                  const tag = `@${category.label}`;
+                  const existingTags = searchInput.match(/[@#]\S+/g) ?? [];
+                  const tagsWithoutSelf = existingTags.filter((t) => t !== tag);
+                  const newTags = isSelected ? tagsWithoutSelf : [...tagsWithoutSelf, tag];
+                  const newSearch = newTags.join(' ');
 
-          <div className="flex flex-wrap items-center gap-2">
-            {categories?.map((category) => {
-              const isSelected = searchInput.includes(`@${category.label}`);
-              return (
-                <FilterChip
-                  key={category.value}
-                  id={`category-${category.value}`}
-                  name={category.value}
-                  label={category.label}
-                  isActive={isSelected}
-                  activeClassName="bg-primary text-primary-foreground"
-                  onClick={() => {
-                    // 라벨 클릭 시 기존 자유 검색어는 초기화하고, 이미 선택된 @카테고리/#닉네임 태그만 유지한다.
-                    const tag = `@${category.label}`;
-                    const existingTags = searchInput.match(/[@#]\S+/g) ?? [];
-                    const tagsWithoutSelf = existingTags.filter((t) => t !== tag);
-                    const newTags = isSelected ? tagsWithoutSelf : [...tagsWithoutSelf, tag];
-                    const newSearch = newTags.join(' ');
-
-                    setSearchInput(newSearch);
-                    setSearch(newSearch);
-                  }}
-                />
-              );
-            })}
-
-            <div className="h-4 w-px bg-border mx-2" />
-
-            <FilterChip
-              label={TEXTS.buttons.bookmarkOnly}
-              isActive={isClickedBookmark}
-              activeClassName="bg-warning text-warning-foreground hover:bg-warning hover:text-warning-foreground"
-              onClick={() => handleToggleFilter('isBookmarked')}
-            />
-
-            <FilterChip
-              label={TEXTS.buttons.myPosts}
-              isActive={isClickedMyPosts}
-              activeClassName="bg-info text-info-foreground hover:bg-info hover:text-info-foreground"
-              onClick={() => handleToggleFilter('isMyPosts')}
-            />
-
-            <FilterChip
-              label={TEXTS.buttons.privateOnly}
-              isActive={isClickedPrivate}
-              activeClassName="bg-category text-category-foreground hover:bg-category hover:text-category-foreground"
-              onClick={() => handleToggleFilter('isPrivate')}
-            />
-
-            <div className="h-4 w-px bg-border mx-2" />
-
-            {/* 칩이 아니라 별도 스위치 - 나머지 필터(URL)와 달리 기기별 개인 설정이라
-                localStorage(useHideBotsStore)에 영속화한다. 기본 OFF(봇 글 보임) */}
-            <label
-              htmlFor="hide-bots-switch"
-              className="flex items-center gap-2 min-h-11 md:min-h-0 cursor-pointer select-none text-sm text-muted-foreground"
-            >
-              <span>{TEXTS.buttons.hideBots}</span>
-              <Switch
-                id="hide-bots-switch"
-                checked={optimisticHideBots}
-                onCheckedChange={handleToggleHideBots}
+                  setSearchInput(newSearch);
+                  setSearch(newSearch);
+                }}
               />
-            </label>
+            </span>
+          );
+        })}
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClear}
-              className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1"
-            >
-              <RotateCcw className="h-3 w-3" />
-              {TEXTS.buttons.reset}
-            </Button>
-          </div>
-        </div>
+        {hiddenCategories.length > 0 && !hasHiddenCategorySelected && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={toggleShowAllCategories}
+            aria-expanded={isCategoryExpanded}
+            aria-controls={CATEGORY_GROUP_ID}
+            aria-label={
+              isCategoryExpanded
+                ? TEXTS.ariaLabels.collapseCategories
+                : TEXTS.ariaLabels.expandCategories
+            }
+            className="md:hidden rounded-full px-3 py-1.5 h-auto min-h-11 text-xs font-bold text-muted-foreground"
+          >
+            {isCategoryExpanded
+              ? TEXTS.post.search.collapseCategories
+              : TEXTS.post.search.expandCategories(hiddenCategories.length)}
+          </Button>
+        )}
       </div>
-    </>
+
+      <div
+        role="group"
+        aria-label={TEXTS.ariaLabels.postScopeFilters}
+        className="flex flex-wrap gap-2 border-t pt-3 md:pt-4"
+      >
+        <FilterChip
+          label={TEXTS.buttons.bookmarkOnly}
+          isActive={isClickedBookmark}
+          activeClassName="bg-warning text-warning-foreground hover:bg-warning hover:text-warning-foreground"
+          onClick={() => handleToggleFilter('isBookmarked')}
+        />
+
+        <FilterChip
+          label={TEXTS.buttons.myPosts}
+          isActive={isClickedMyPosts}
+          activeClassName="bg-info text-info-foreground hover:bg-info hover:text-info-foreground"
+          onClick={() => handleToggleFilter('isMyPosts')}
+        />
+
+        <FilterChip
+          label={TEXTS.buttons.privateOnly}
+          isActive={isClickedPrivate}
+          activeClassName="bg-category text-category-foreground hover:bg-category hover:text-category-foreground"
+          onClick={() => handleToggleFilter('isPrivate')}
+        />
+      </div>
+
+      {/* 칩이 아니라 별도 스위치 - 나머지 필터(URL)와 달리 기기별 개인 설정이라
+          localStorage(useHideBotsStore)에 영속화한다. 기본 OFF(봇 글 보임) */}
+      <label
+        htmlFor="hide-bots-switch"
+        className="flex w-full items-center justify-between min-h-11 md:min-h-0 cursor-pointer select-none text-sm text-muted-foreground border-t pt-3 md:pt-4"
+      >
+        <span>{TEXTS.buttons.hideBots}</span>
+        <Switch
+          id="hide-bots-switch"
+          checked={optimisticHideBots}
+          onCheckedChange={handleToggleHideBots}
+        />
+      </label>
+
+      <div className="flex items-center justify-between gap-2 border-t pt-3 md:pt-4">
+        <span aria-live="polite" className="text-xs text-muted-foreground">
+          {appliedCount > 0 ? TEXTS.post.search.appliedCount(appliedCount) : ''}
+        </span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={handleClear}
+          disabled={appliedCount === 0}
+          className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1"
+        >
+          <RotateCcw className="h-3 w-3" />
+          {TEXTS.buttons.reset}
+        </Button>
+      </div>
+    </div>
   );
 }

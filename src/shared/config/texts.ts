@@ -176,6 +176,9 @@ export const TEXTS = {
     },
     search: {
       corrected: (query: string) => `'${query}'(으)로 검색한 결과예요.`,
+      appliedCount: (count: number) => `조건 ${count}개 적용 중`,
+      expandCategories: (count: number) => `+${count}`,
+      collapseCategories: '접기',
     },
   },
   comment: {
@@ -431,5 +434,11 @@ export const TEXTS = {
     backToFolderList: '폴더 목록으로',
     bookmarkChange: '북마크 폴더 변경',
     bookmarkSave: '북마크 저장',
+
+    // 게시글 검색 필터
+    postCategoryFilters: '카테고리 검색 태그',
+    postScopeFilters: '게시글 범위 필터',
+    expandCategories: '카테고리 더 보기',
+    collapseCategories: '카테고리 접기',
   },
 } as const;
