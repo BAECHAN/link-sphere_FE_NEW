@@ -1,13 +1,13 @@
 import { beforeEach, afterEach, describe, expect, it } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { renderWithProviders, userEvent } from '@/test/utils';
+import { useLocation } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
 import { TEXTS } from '@/shared/config/texts';
-import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
 import { PostListSearch } from '@/widgets/post/post-list/ui/PostListSearch';
 
 // "조건 N개 적용 중" 카운트는 URL 파라미터·검색어 토큰을 조합해 파생되는 값이라,
@@ -15,13 +15,19 @@ import { PostListSearch } from '@/widgets/post/post-list/ui/PostListSearch';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
+// MemoryRouter 내부 URL은 화면에 안 보이므로, 초기화 버튼 클릭 후 URL이 그대로인지
+// 검증하기 위한 테스트 전용 프로브.
+function LocationSearchProbe() {
+  const location = useLocation();
+  return <div data-testid="location-search">{location.search}</div>;
+}
+
 function renderSearch(initialEntry: string) {
-  // renderWithProviders에는 TooltipProvider가 없으므로 직접 감싼다 — 초기화
-  // 버튼이 TooltipWrapper로 감싸여 있어 없으면 렌더 자체가 에러난다.
   return renderWithProviders(
-    <TooltipProvider>
+    <>
       <PostListSearch />
-    </TooltipProvider>,
+      <LocationSearchProbe />
+    </>,
     {
       wrapperOptions: { queryClient, initialEntries: [initialEntry] },
     }
@@ -51,13 +57,18 @@ afterEach(() => {
 });
 
 describe('PostListSearch — 조건 N개 적용 중 카운트', () => {
-  it('옛 공유 링크의 레거시 필터(?filter=excludeBots)는 카운트에 안 잡히고 초기화 버튼이 비활성화된다', async () => {
+  it('옛 공유 링크의 레거시 필터(?filter=excludeBots)는 카운트에 안 잡히고, 초기화를 눌러도 URL이 그대로다', async () => {
+    const user = userEvent.setup();
     renderSearch('/?filter=excludeBots');
 
     const resetButton = await screen.findByRole('button', { name: TEXTS.buttons.reset });
 
     expect(screen.queryByText(/조건 \d+개 적용 중/)).not.toBeInTheDocument();
-    expect(resetButton).toBeDisabled();
+    expect(resetButton).not.toBeDisabled();
+
+    await user.click(resetButton);
+
+    expect(screen.getByTestId('location-search')).toHaveTextContent('?filter=excludeBots');
   });
 
   it('@카테고리만 있는 검색어는 카운트 1로 잡힌다 (카테고리+키워드 이중집계 안 됨)', async () => {

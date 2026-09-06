@@ -2,7 +2,6 @@ import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
 import { Button } from '@/shared/ui/atoms/button';
 import { Switch } from '@/shared/ui/atoms/switch';
 import { FilterChip } from '@/shared/ui/elements/FilterChip';
-import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { RotateCcw } from 'lucide-react';
 import { startTransition, useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -86,6 +85,15 @@ export function PostListSearch() {
   ).length;
   const appliedCount =
     selectedCategories.size + appliedNicknameCount + appliedScopeCount + (appliedKeyword ? 1 : 0);
+
+  const handleClearSearch = () => {
+    // 적용된 조건이 없으면 아무것도 하지 않는다 — clearSearch는 replace 없이
+    // setSearchParams를 호출하므로 같은 URL로 history entry만 쌓인다.
+    if (appliedCount === 0) {
+      return;
+    }
+    clearSearch();
+  };
 
   return (
     <div className="flex flex-col gap-2 md:gap-3 p-5 md:p-6 bg-card rounded-2xl border shadow-sm hover:shadow-md transition-shadow">
@@ -172,22 +180,16 @@ export function PostListSearch() {
           <span aria-live="polite" className="text-xs text-muted-foreground">
             {appliedCount > 0 ? TEXTS.post.search.appliedCount(appliedCount) : ''}
           </span>
-          <TooltipWrapper
-            content={appliedCount === 0 ? TEXTS.post.search.resetDisabledReason : null}
-            disabled={appliedCount === 0}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleClearSearch}
+            className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1"
           >
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={clearSearch}
-              disabled={appliedCount === 0}
-              className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1"
-            >
-              <RotateCcw className="h-3 w-3" />
-              {TEXTS.buttons.reset}
-            </Button>
-          </TooltipWrapper>
+            <RotateCcw className="h-3 w-3" />
+            {TEXTS.buttons.reset}
+          </Button>
         </div>
       </div>
     </div>
