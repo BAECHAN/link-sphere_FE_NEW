@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { updateAccountSchema, UpdateAccount } from '@/shared/types/auth.type';
 import { useUpdateAccountMutation } from '@/entities/user/api/auth.queries';
 import { authApi } from '@/entities/user/api/auth.api';
-import { useAccount } from '@/entities/user/hooks/useAccount';
+import { useAccount } from '@/entities/user/model/useAccount';
 import { useMyPageModalStore } from '@/shared/store/mypage.store';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { getImageFileSizeError } from '@/shared/lib/image/resizeImage';

@@ -236,11 +236,11 @@ src/
 │       └── BookmarkPage.tsx              # 3분기 렌더링 + folder/sort/q URL 파라미터 wiring
 ├── widgets/
 │   └── bookmark/
-│       ├── bookmark-search/
+│       ├── bookmark-search/ui/
 │       │   └── BookmarkSearch.tsx        # 검색 위젯 (q URL 파라미터 자체 관리)
-│       ├── bookmark-post-list/
+│       ├── bookmark-post-list/ui/
 │       │   └── BookmarkPostList.tsx      # search prop 소비 + 무한스크롤 + 빈 상태 분기
-│       └── folder-tree/
+│       └── folder-tree/ui/
 │           ├── FolderTree.tsx            # 데스크탑 사이드바 (폴더 트리, 전체 행은 숫자 없음)
 │           └── MobileFolderList.tsx      # 모바일 폴더 그리드 (drill-down)
 │                                          # 위 둘 + FolderPickerDialog(아래) 모두 "최근 저장한
@@ -317,8 +317,8 @@ mutation과 동일한 패턴으로 추가해, invalidate 응답을 기다리는 
 노출도 없앴다.
 
 영향 파일: `entities/folder/model/useRecentFolders.ts`,
-`widgets/bookmark/folder-tree/FolderTree.tsx`,
-`widgets/bookmark/folder-tree/MobileFolderList.tsx`,
+`widgets/bookmark/folder-tree/ui/FolderTree.tsx`,
+`widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`,
 `features/post/bookmark/ui/FolderSelector.tsx`, `entities/post/api/post.queries.ts`.
 
 ## 11. 남은 것

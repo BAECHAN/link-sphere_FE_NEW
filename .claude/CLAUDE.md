@@ -387,7 +387,7 @@ src/
 │   │   └── model/                # interaction.schema.ts (canonical)
 │   └── user/
 │       ├── api/                  # auth.api.ts, auth.keys.ts, auth.queries.ts
-│       ├── hooks/                # useAuth.ts, useAccount.ts, useAppInitialization.ts
+│       ├── model/                # useAuth.ts, useAccount.ts, useAppInitialization.ts, useAuthGuard.ts, useProtectedNavigate.ts
 │       └── ui/                   # UserAvatar.tsx
 │
 ├── shared/                       # 순수 유틸, UI atoms, API client, config
@@ -927,6 +927,20 @@ Tailwind v4 preflight엔 v3에 있던 `button, [role="button"] { cursor: pointer
 | `shared/lib/`                 | **라이브러리명 그대로**               | `react-query/`, `firebase/`   | `reactQuery/`, `query/`           |
 | 에러 페이지                   | **HTTP 상태코드**                     | `404/`, `500/`                | `not-found/`, `error/`            |
 | `pages/` 복합어               | **붙여쓰기**                          | `mypage/`                     | `my-page/`, `myPage/`             |
+
+### 레이어별 허용 세그먼트
+
+위 표가 이름 "형식"(소문자·단수 등) 규칙이라면, 아래는 레이어별로 어떤 세그먼트를
+쓸지에 대한 "허용 목록" 규칙이다. 새 슬라이스를 만들 때 이 표부터 확인한다 — 암묵적으로
+트리 예시만 보고 유추하면 레이어마다 다른 세그먼트가 섞이게 된다(2026-09-06,
+`entities/user/hooks/`·`widgets/bookmark/*`가 각각 이 표의 규칙을 어긴 채로 만들어졌다가
+뒤늦게 `model/`·`ui/`로 통일한 사례).
+
+| 레이어                | 허용 세그먼트                        | 규칙                                                                                   |
+| --------------------- | ------------------------------------ | -------------------------------------------------------------------------------------- |
+| `entities`            | `api/`, `model/`, `ui/`, `config/`   | 훅을 포함한 모든 로직은 `model/`에 둔다. 별도 `hooks/` 세그먼트를 만들지 않는다        |
+| `widgets`, `features` | `hooks/`, `ui/`, `utils/`, `config/` | 컴포넌트가 하나라도 있으면 반드시 `ui/` 아래에 둔다 — 슬라이스 루트에 직접 두지 않는다 |
+| `pages`               | 세그먼트 없음                        | 페이지 컴포넌트를 슬라이스 폴더에 바로 둔다                                            |
 
 ### 실제 폴더 구조 예시
 

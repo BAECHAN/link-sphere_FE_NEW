@@ -5,7 +5,7 @@ import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { FolderSelector } from '@/features/post/bookmark/ui/FolderSelector';
-import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
+import { useAuthGuard } from '@/entities/user/model/useAuthGuard';
 
 interface BookmarkPostButtonProps {
   postId: Post['id'];

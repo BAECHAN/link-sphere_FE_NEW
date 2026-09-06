@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useAuth } from '@/entities/user/hooks/useAuth';
+import { useAuth } from '@/entities/user/model/useAuth';
 import { useAuthStore, hasStoredSession } from '@/shared/store/auth.store';
 import { TEXTS } from '@/shared/config/texts';
 import { handleAuthRestoreSuccess } from '@/entities/user/api/auth.keys';

@@ -11,10 +11,10 @@ import {
 } from '@/shared/ui/atoms/select';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { TEXTS } from '@/shared/config/texts';
-import { BookmarkPostList } from '@/widgets/bookmark/bookmark-post-list/BookmarkPostList';
-import { BookmarkSearch } from '@/widgets/bookmark/bookmark-search/BookmarkSearch';
-import { FolderTree } from '@/widgets/bookmark/folder-tree/FolderTree';
-import { MobileFolderList } from '@/widgets/bookmark/folder-tree/MobileFolderList';
+import { BookmarkPostList } from '@/widgets/bookmark/bookmark-post-list/ui/BookmarkPostList';
+import { BookmarkSearch } from '@/widgets/bookmark/bookmark-search/ui/BookmarkSearch';
+import { FolderTree } from '@/widgets/bookmark/folder-tree/ui/FolderTree';
+import { MobileFolderList } from '@/widgets/bookmark/folder-tree/ui/MobileFolderList';
 import { FolderKey, FolderSort } from '@/entities/folder/model/folder.schema';
 import { useFolderListQuery } from '@/entities/folder/api/folder.queries';
 

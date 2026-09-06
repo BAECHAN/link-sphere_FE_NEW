@@ -3,7 +3,7 @@ import { Button } from '@/shared/ui/atoms/button';
 import { ThumbsUp } from 'lucide-react';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { useLikePost } from '@/features/post/like/hooks/useLikePost';
-import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
+import { useAuthGuard } from '@/entities/user/model/useAuthGuard';
 
 interface LikePostButtonProps {
   postId: Post['id'];
