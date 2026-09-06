@@ -177,6 +177,7 @@ export const TEXTS = {
     search: {
       corrected: (query: string) => `'${query}'(으)로 검색한 결과예요.`,
       appliedCount: (count: number) => `조건 ${count}개 적용 중`,
+      resetDisabledReason: '적용된 조건이 없어요',
     },
   },
   comment: {

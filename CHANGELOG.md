@@ -26,6 +26,20 @@
 
   </details>
 
+- `post` 필터 카드 초기화 버튼이 비활성 상태일 때 사유 툴팁 표시
+  <details><summary>배경·구현</summary>
+
+  적용된 조건이 없으면 초기화 버튼이 회색으로 비활성화되는데, hover해도 왜
+  눌리지 않는지 알려주는 게 없었다. 이 레포에서 disabled 버튼에 툴팁을 붙일
+  때 이미 쓰던 유일한 패턴(`TooltipWrapper`로 감싸기 — Radix Tooltip이
+  `disabled` 버튼 자체에서는 pointer-events가 막혀 안 열리는 문제를, 버튼을
+  감싸는 `<span>`을 트리거로 써서 우회. `CommentForm.tsx` 등 5곳에서 이미 같은
+  방식 사용)를 그대로 따랐다. 옆에 있는 "조건 N개 적용 중" 텍스트는 조건이
+  0개일 때 빈 문자열이 돼 정확히 툴팁이 필요한 순간에는 아무 설명도 없었다.
+  (`PostListSearch.tsx`, `texts.ts`(`post.search.resetDisabledReason` 추가))
+
+  </details>
+
 ### Notes
 
 - BE API 의존: `GET /post`의 `filter` 파라미터에 `excludeBots` 값 지원 필요.

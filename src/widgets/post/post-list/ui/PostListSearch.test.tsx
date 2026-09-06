@@ -7,6 +7,7 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
 import { TEXTS } from '@/shared/config/texts';
+import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
 import { PostListSearch } from '@/widgets/post/post-list/ui/PostListSearch';
 
 // "조건 N개 적용 중" 카운트는 URL 파라미터·검색어 토큰을 조합해 파생되는 값이라,
@@ -15,9 +16,16 @@ import { PostListSearch } from '@/widgets/post/post-list/ui/PostListSearch';
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
 function renderSearch(initialEntry: string) {
-  return renderWithProviders(<PostListSearch />, {
-    wrapperOptions: { queryClient, initialEntries: [initialEntry] },
-  });
+  // renderWithProviders에는 TooltipProvider가 없으므로 직접 감싼다 — 초기화
+  // 버튼이 TooltipWrapper로 감싸여 있어 없으면 렌더 자체가 에러난다.
+  return renderWithProviders(
+    <TooltipProvider>
+      <PostListSearch />
+    </TooltipProvider>,
+    {
+      wrapperOptions: { queryClient, initialEntries: [initialEntry] },
+    }
+  );
 }
 
 beforeEach(() => {

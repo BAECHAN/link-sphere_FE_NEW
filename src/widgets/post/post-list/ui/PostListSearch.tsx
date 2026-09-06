@@ -2,6 +2,7 @@ import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
 import { Button } from '@/shared/ui/atoms/button';
 import { Switch } from '@/shared/ui/atoms/switch';
 import { FilterChip } from '@/shared/ui/elements/FilterChip';
+import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { RotateCcw } from 'lucide-react';
 import { startTransition, useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -170,17 +171,22 @@ export function PostListSearch() {
           <span aria-live="polite" className="text-xs text-muted-foreground">
             {appliedCount > 0 ? TEXTS.post.search.appliedCount(appliedCount) : ''}
           </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={clearSearch}
+          <TooltipWrapper
+            content={appliedCount === 0 ? TEXTS.post.search.resetDisabledReason : null}
             disabled={appliedCount === 0}
-            className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1"
           >
-            <RotateCcw className="h-3 w-3" />
-            {TEXTS.buttons.reset}
-          </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={clearSearch}
+              disabled={appliedCount === 0}
+              className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1"
+            >
+              <RotateCcw className="h-3 w-3" />
+              {TEXTS.buttons.reset}
+            </Button>
+          </TooltipWrapper>
         </div>
       </div>
     </div>
