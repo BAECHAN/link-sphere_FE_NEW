@@ -388,6 +388,28 @@
 
   </details>
 
+- `comment` 댓글 수정 폼 미리보기에서 썸네일 로드 실패 시 깨진 이미지 아이콘 노출
+  <details><summary>배경·구현</summary>
+
+  게시글 카드·댓글 목록의 링크 썸네일은 공통 `LinkThumbnail`을 써서 로드 실패 시
+  영역째 감추는데, 댓글 수정 폼(`CommentEditForm`)의 미리보기만 raw `<img>`를 직접
+  렌더해 `onError` 폴백이 없었다. 외부 CDN이 핫링크를 차단하는 이미지(나무위키 등)를
+  만나면 브라우저 기본 깨진 아이콘이 그대로 보였다. 다른 두 곳과 동일하게
+  `LinkThumbnail`을 쓰도록 교체했다(`referrerPolicy="no-referrer"`·https 치환도
+  함께 적용됨). (`CommentEditForm.tsx`)
+
+  </details>
+
+- `common` PWA manifest 아이콘이 실제 파일 위치와 달라 404
+  <details><summary>배경·구현</summary>
+
+  `site.webmanifest`가 아이콘을 `/android-chrome-*.png`(루트)로 참조했는데 실제
+  파일은 `public/favicons/` 아래에 있어 브라우저가 아이콘을 못 찾았다. 같은
+  디렉토리의 `firebase-messaging-sw.js`는 이미 `/favicons/...`로 올바르게
+  참조 중이라 그 경로에 맞춰 수정했다. (`public/favicons/site.webmanifest`)
+
+  </details>
+
 ## [0.12.0] - 2026-08-13
 
 ### Added
