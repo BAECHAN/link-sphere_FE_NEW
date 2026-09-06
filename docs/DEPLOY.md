@@ -115,14 +115,21 @@ us-east-1)이 붙어 있다. 이름에서 보이듯 CloudFront 콘솔에서 보�
   직접 반환하는 HTML(`403 ERROR` / `Request blocked.`)이라 BE `GlobalExceptionHandler`를
   전혀 타지 않는다 — 403 응답 body가 JSON이 아니라 HTML이면 이 문서를 먼저 볼 것.
   실제 영향은 댓글 등록·수정처럼 긴 텍스트를 보내는 API였다(BE `CHANGELOG.md` 참고).
+- **바디 크기를 다시 차단하는 자체 룰은 만들지 않았다(중요, 처음 계획과 다름).** WAF의
+  `SizeConstraintStatement`(커스텀 크기 제한 룰)는 CloudFront **Pro 플랜($15/월 정액제)
+  이상에서만 지원**된다 — 이 계정은 Free 플랜이라
+  `WAFFeatureNotIncludedInPricingPlanException`으로 거부됐다(2026-09-06 실측). Pro 업그레이드는
+  비용이 걸린 결정이라 보류하고, `SizeRestrictions_BODY`를 Count로 오버라이드만 했다.
+  **결과적으로 WAF 레이어의 바디 크기 방어선은 없다** — Lambda Function URL 자체 페이로드
+  한도(6MB)까지는 뭐든 통과한다(300KB 페이로드로 실측 확인). 댓글 본문에 대한 유일한 크기
+  방어는 이제 앱 레벨 검증(BE `CommentService.MAX_COMMENT_CONTENT_BYTES` = 12,000바이트)
+  뿐이고, 그 외 엔드포인트는 크기 기반 방어가 전혀 없는 상태다. Pro 플랜으로 올리면 아래
+  `BlockOversizedBody` 룰(주석 처리된 부분)을 추가해 이 갭을 메울 수 있다.
 - 현재 룰 구성(우선순위순):
   1. `AWS-AWSManagedRulesAmazonIpReputationList` (관리형, 기본값)
-  2. `BlockOversizedBody` (커스텀) — 바디 16,384바이트 초과 시 Block. inspection limit이
-     16KB이므로 이 룰이 그 이상을 다시 걸러낸다.
-  3. `AWS-AWSManagedRulesCommonRuleSet` — `SizeRestrictions_BODY`만 `RuleActionOverrides`로
-     Count 처리(위 커스텀 룰이 대신 막으므로). 다른 서브룰(XSS·LFI·RFI·Log4j 등)은
-     그대로 Block.
-  4. `AWS-AWSManagedRulesKnownBadInputsRuleSet` (관리형, 기본값)
+  2. `AWS-AWSManagedRulesCommonRuleSet` — `SizeRestrictions_BODY`만 `RuleActionOverrides`로
+     Count 처리(바디 크기로는 막지 않음). 다른 서브룰(XSS·LFI·RFI·Log4j 등)은 그대로 Block.
+  3. `AWS-AWSManagedRulesKnownBadInputsRuleSet` (관리형, 기본값)
 
 ```bash
 # 현재 설정 조회 (Rules 배열을 백업해두고 수정한다 - update-web-acl은 전체를 다시 보내야 함)
@@ -138,16 +145,42 @@ aws wafv2 update-web-acl --scope CLOUDFRONT --region us-east-1 \
   --visibility-config SampledRequestsEnabled=true,CloudWatchMetricsEnabled=true,MetricName=CreatedByCloudFront-bcd729fb
 ```
 
-이 IAM 사용자는 `wafv2:UpdateWebACL`·`wafv2:GetSampledRequests` 권한이 없어 위 CLI가
-`AccessDeniedException`으로 막힐 수 있다 — 그럴 땐 AWS 콘솔(WAF & Shield → Web ACLs →
-Global(CloudFront))에서 동일한 구성을 수동으로 적용한다.
+`update-web-acl`은 Web ACL 리소스 자체 권한 외에 관리형 룰 오버라이드용 리소스
+(`arn:...:global/managedruleset/*/*`)에 대한 권한도 별도로 필요하다 — `wafv2:UpdateWebACL`을
+이 두 리소스 모두에 허용해야 한다. `wafv2:GetSampledRequests`(차단 샘플 조회, 진단용)도
+같이 붙여두면 다음에 비슷한 문제가 생겼을 때 원인 파악이 빠르다.
+
+**Pro 플랜으로 업그레이드해 바디 크기 차단을 되살리려면** 위 `waf-rules.json`의
+`AWS-AWSManagedRulesCommonRuleSet` 앞(Priority 1)에 아래 룰을 추가한다 — inspection
+limit(기본 16KB)과 같은 값으로 잡아야 검사 사각지대가 안 생긴다:
+
+```json
+{
+  "Name": "BlockOversizedBody",
+  "Priority": 1,
+  "Statement": {
+    "SizeConstraintStatement": {
+      "FieldToMatch": { "Body": { "OversizeHandling": "MATCH" } },
+      "ComparisonOperator": "GT",
+      "Size": 16384,
+      "TextTransformations": [{ "Priority": 0, "Type": "NONE" }]
+    }
+  },
+  "Action": { "Block": {} },
+  "VisibilityConfig": {
+    "SampledRequestsEnabled": true,
+    "CloudWatchMetricsEnabled": true,
+    "MetricName": "BlockOversizedBody"
+  }
+}
+```
 
 ```bash
-# 검증: 정상 크기는 통과(401 = 인증만 실패, Lambda 도달), 16KB 초과는 커스텀 룰이 차단(403)
+# 검증: 정상 크기는 통과(401 = 인증만 실패, Lambda 도달)
 URL="https://<cloudfront-domain>/api/post/00000000-0000-0000-0000-000000000000/comment"
 BODY=$(python3 -c "import json;print(json.dumps({'content':'가'*4000,'images':[]},ensure_ascii=False))")
 curl -sS -o /dev/null -w '%{http_code}\n' -X POST "$URL" -H 'Content-Type: application/json' --data-binary "$BODY"
-# 기대: 401
+# 기대: 401 (Pro 업그레이드 후 BlockOversizedBody를 추가했다면, 16KB 초과 페이로드는 403이어야 함)
 ```
 
 ## 수동 배포 (참고)

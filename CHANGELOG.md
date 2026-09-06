@@ -50,10 +50,11 @@
 - `comment` 댓글·답글 본문 길이를 한글 기준 약 4,000자(UTF-8 12,000바이트)로 제한
   <details><summary>배경·구현</summary>
 
-  긴 댓글을 등록하면 CloudFront WAF가 요청 바디 크기(원래 8KB, 과차단이라 16KB로
-  조정 — BE `docs/DEPLOY.md`의 "CloudFront WAF (수동 관리)" 절 참고)를 넘겼다는
-  이유로 앱에 닿기도 전에 403 HTML을 돌려줬다. 이 응답은 앱 에러 처리를 전혀 타지
-  않아 사용자는 이유를 알 수 없었다. 앱이 먼저 제출을 막고 이유를 말하도록
+  긴 댓글을 등록하면 CloudFront WAF가 요청 바디 크기(8KB) 초과라는 이유로 앱에 닿기도
+  전에 403 HTML을 돌려줬다. 이 응답은 앱 에러 처리를 전혀 타지 않아 사용자는 이유를
+  알 수 없었다. WAF의 8KB 차단은 없앴지만(계정이 CloudFront Free 플랜이라 대체
+  크기 제한 룰은 만들 수 없어 완전히 해제됨 — `docs/DEPLOY.md`의 "CloudFront WAF
+  (수동 관리)" 절 참고), 앱이 먼저 제출을 막고 이유를 말하도록
   `commentContentFormSchema`(바이트 기준 zod refine)를 작성·수정 폼이 공유하게
   했고, 제출 버튼은 기존 "내용/이미지 필요" 툴팁과 같은 언어로 초과 시에만
   안내한다(상시 글자수 카운터는 넣지 않음). BE `CommentService.MAX_COMMENT_CONTENT_BYTES`와
