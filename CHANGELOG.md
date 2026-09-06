@@ -388,6 +388,27 @@
 
   </details>
 
+- `comment` 게시글 상세 화면에서 스크롤 중 댓글 작성 폼이 화면에 들고 날 때마다 본문이
+  한 번씩 밀리던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  데스크톱 전용 "댓글쓰기로 이동" 플로팅 버튼(`ScrollToCommentFormButton`)이
+  `CommentList`의 실제 콘텐츠(댓글 목록 등)와 같은 `space-y-6` 형제 목록 안에서
+  조건부 마운트되고 있었다. Tailwind v4의 `space-y-6`는 `:where(& > :not(:last-child))`
+  선택자로 마진을 주는데, 이 선택자는 화면에 실제로 보이는지와 무관하게 DOM 순서만으로
+  "마지막 자식"을 판단한다. 이 버튼은 `position: fixed`라 화면에는 안 보이지만 DOM에는
+  실재하므로, 스크롤에 따라 마운트/언마운트될 때마다 그 앞의 댓글 목록이 "마지막 자식"인지
+  아닌지가 바뀌면서 `margin-block-end: 24px`가 붙었다 떨어졌다 했다. 그 결과 페이지
+  전체 높이가 스크롤 중 24px씩 흔들렸고, 사용자가 페이지 하단 근처에 있을 때 이 흔들림이
+  일어나면 브라우저가 스크롤 위치를 새 문서 높이에 맞춰 보정하면서 본문이 살짝 밀리는
+  것처럼 보였다 — 레이아웃 시프트가 아니라 스크롤 위치 보정이라 Chrome DevTools의
+  Layout Shift 감지에는 잡히지 않았다. 실 배포 사이트에서 댓글 수가 다른 두 글로 각각
+  재현하고 Chromium·Firefox(재현) / WebKit(미재현)까지 교차 확인해 메커니즘을 특정했다.
+  같은 문제가 있던 모바일 전용 `MobileCommentBar`와 함께 `space-y-6` 형제 목록 밖으로
+  옮겨 근본 원인을 제거했다. (`widgets/comment/comment-list/ui/CommentList.tsx`)
+
+  </details>
+
 ## [0.12.0] - 2026-08-13
 
 ### Added
