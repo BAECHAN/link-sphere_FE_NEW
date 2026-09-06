@@ -364,6 +364,10 @@ export const TEXTS = {
       // 권한 관련
       accessDenied: '접근 권한이 없어요.',
 
+      // 보안 정책(CloudFront/WAF)에 앱 도달 전 차단된 경우
+      edgeBlocked:
+        '요청이 보안 정책에 막혔어요. 내용이 너무 길거나 허용되지 않는 문자가 포함됐을 수 있어요.',
+
       // 앱 초기화
       appInitFailed: '앱 초기화 실패:', // 콘솔 로그 전용 - 톤 규칙 대상 아님
 

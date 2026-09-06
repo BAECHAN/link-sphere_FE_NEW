@@ -6,6 +6,8 @@ import { useAuthStore } from '@/shared/store/auth.store';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { ApiError } from '@/shared/types/common.type';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 
 // NavigationService 모듈 전체를 mock — vi.spyOn 중첩 문제 방지
 vi.mock('@/shared/lib/router/navigation', () => ({
@@ -163,6 +165,61 @@ describe('ApiClient — 인증 오류 처리', () => {
       });
 
       expect(useAuthStore.getState().accessToken).toBeNull();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Case 5: WAF가 앱 도달 전 차단 (403 + HTML, JSON 아님)
+  // ─────────────────────────────────────────────────────────────
+  describe('Case 5: CloudFront/WAF 차단 (403 + non-JSON)', () => {
+    it('댓글 요청 → 403 + HTML 응답 → ApiError.code가 EDGE_BLOCKED로 설정된다', async () => {
+      server.use(
+        http.post(
+          COMMENT_HANDLER_URL,
+          () =>
+            new HttpResponse(
+              '<html><head><title>ERROR: The request could not be satisfied</title></head><body><h1>403 ERROR</h1>Request blocked.</body></html>',
+              { status: 403, headers: { 'Content-Type': 'text/html' } }
+            )
+        )
+      );
+
+      useAuthStore.getState().setAuth('valid-access-token');
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toMatchObject({
+        code: SERVER_ERROR_CODE.EDGE_BLOCKED,
+        status: 403,
+      });
+    });
+
+    it('우리 앱이 낸 403 JSON(ACCESS_DENIED)은 EDGE_BLOCKED로 바뀌지 않는다', async () => {
+      server.use(
+        http.post(
+          COMMENT_HANDLER_URL,
+          () =>
+            new HttpResponse(
+              JSON.stringify({
+                status: 403,
+                code: 'ACCESS_DENIED',
+                message: 'forbidden',
+                timestamp: new Date().toISOString(),
+              }),
+              { status: 403, headers: { 'Content-Type': 'application/json' } }
+            )
+        )
+      );
+
+      useAuthStore.getState().setAuth('valid-access-token');
+
+      let caught: unknown;
+      try {
+        await apiClient.post(COMMENT_PATH, makeCommentFormData());
+      } catch (e) {
+        caught = e;
+      }
+
+      expect(caught).toBeInstanceOf(ApiError);
+      expect((caught as ApiError).code).toBe('ACCESS_DENIED');
     });
   });
 });

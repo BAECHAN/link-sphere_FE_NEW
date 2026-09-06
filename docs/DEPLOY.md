@@ -143,21 +143,56 @@ us-east-1)이 붙어 있다. 이름에서 보이듯 CloudFront 콘솔에서 보�
   8KB보다 넉넉한 한도로 다시 열 수 있다. `update-web-acl`은 Web ACL 리소스 자체 권한 외에
   관리형 룰 오버라이드용 리소스(`arn:...:global/managedruleset/*/*`)에 대한
   `wafv2:UpdateWebACL` 권한도 별도로 필요하다.
-- 현재 룰 구성은 AWS 기본값 그대로다(우선순위순): `AWS-AWSManagedRulesAmazonIpReputationList` →
-  `AWS-AWSManagedRulesCommonRuleSet`(오버라이드 없음, `SizeRestrictions_BODY` 포함 전체 Block) →
-  `AWS-AWSManagedRulesKnownBadInputsRuleSet`.
+- **`CrossSiteScripting_BODY`는 2026-09-06부터 Block이 아니라 Count다(오탐 완화, 아래
+  참고).** `SizeRestrictions_BODY`는 여전히 Block — 위 8KB 차단은 그대로 유효하다.
+
+### `CrossSiteScripting_BODY` 오탐 완화 (2026-09-06)
+
+`AWSManagedRulesCommonRuleSet`의 `CrossSiteScripting_BODY` 룰이 XSS와 무관한 정상
+요청까지 광범위하게 오탐 차단하고 있었다. 실측(curl로 프로덕션에 직접 검증):
+
+| 요청 본문                                                            | 결과      |
+| -------------------------------------------------------------------- | --------- |
+| `<META>` 태그 하나만                                                 | 403       |
+| `<script>`, `<style>`, `<iframe>`, `onerror=`, `javascript:` 포함    | 403       |
+| `React에서 <Button onClick={handleClick}>를 쓰면 됩니다` (정상 댓글) | 403       |
+| `<a href="...">`, `<img src="...">`, `<div>안녕하세요</div>`         | 통과(401) |
+
+`POST /post`(게시글 등록)·`PATCH /comment/{id}`(댓글 수정)도 동일 조건에서 403이 나
+전역 문제였다. CloudWatch `AWS/WAFV2` `BlockedRequests`(`ManagedRuleGroupRule=
+CrossSiteScripting_BODY`) 지표로 실제 이 룰의 차단임을 확정했다.
+
+FE에 `dangerouslySetInnerHTML`·마크다운 라이브러리·HTML sanitizer가 전혀 없어(댓글은
+`shared/ui/elements/MarkdownContent.tsx`가 HTML 문자열을 만들지 않는 자체 파서로
+React 엘리먼트를 직접 조립) 이 룰이 막아주던 실질 위험이 거의 없다고 판단해
+**Count로 완화**했다. 판단 근거·포기한 것(방어가 "FE가 React라서"에만 의존하게 됨)은
+`docs/DECISIONS.md`의 2026-09-06 항목("크기가 아니라 WAF의 XSS 탐지 룰이 근본
+원인이었다")에 상세 기록.
+
+현재 룰 구성(우선순위순): `AWS-AWSManagedRulesAmazonIpReputationList` (오버라이드 없음) →
+`AWS-AWSManagedRulesCommonRuleSet`(`CrossSiteScripting_BODY`만 Count, 나머지는 Block —
+`SizeRestrictions_BODY` 포함) → `AWS-AWSManagedRulesKnownBadInputsRuleSet`(오버라이드 없음).
 
 ```bash
 # 조회 (수정 전 반드시 백업 - update-web-acl은 전체 Rules 배열을 다시 보내야 함)
 aws wafv2 get-web-acl --scope CLOUDFRONT --region us-east-1 \
   --name CreatedByCloudFront-bcd729fb --id 16fc99ed-1f67-4dec-9951-04806ce95699
 
-# 검증: 8KB 이내는 통과(401 = 인증만 실패, Lambda 도달), 초과는 403(WAF 차단)
+# 검증 1: 8KB 이내는 통과(401 = 인증만 실패, Lambda 도달), 초과는 403(WAF 차단)
 URL="https://<cloudfront-domain>/api/post/00000000-0000-0000-0000-000000000000/comment"
 BODY=$(python3 -c "import json;print(json.dumps({'content':'가'*2000,'images':[]},ensure_ascii=False))")
 curl -sS -o /dev/null -w '%{http_code}\n' -X POST "$URL" -H 'Content-Type: application/json' --data-binary "$BODY"
 # 기대: 401
+
+# 검증 2: XSS 오탐 완화 확인 - 아래는 이제 401(통과)이어야 한다
+BODY2=$(python3 -c "import json;print(json.dumps({'content':'React에서 <Button onClick={x}>를 씁니다','images':[]},ensure_ascii=False))")
+curl -sS -o /dev/null -w '%{http_code}\n' -X POST "$URL" -H 'Content-Type: application/json' --data-binary "$BODY2"
+# 기대: 401 (Count로 내리기 전에는 403이었다)
 ```
+
+**되돌리려면**(재발 시): `AWS-AWSManagedRulesCommonRuleSet`의
+`RuleActionOverrides`에서 `CrossSiteScripting_BODY` 항목을 제거하고
+`update-web-acl`로 재적용.
 
 ## 수동 배포 (참고)
 

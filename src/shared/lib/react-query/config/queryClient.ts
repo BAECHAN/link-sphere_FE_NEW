@@ -3,6 +3,7 @@ import { ApiError } from '@/shared/types/common.type';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
 import { AuthUtil } from '@/shared/utils/auth.util';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 
 // 1. 커스텀 Meta 타입 정의 (모듈 확장 대신 로컬 인터페이스 활용 고려)
 interface CustomMutationMeta {
@@ -35,9 +36,17 @@ const mutationErrorHandler = (
     return;
   }
 
+  // 2. 보안 정책(CloudFront/WAF)에 앱 도달 전 차단된 경우 - meta의 커스텀 에러 메시지보다
+  // 먼저 처리한다. 그러지 않으면 게시글 등록처럼 errorMessage를 쓰는 mutation은 이 원인을
+  // "게시글 등록에 실패했어요" 같은 일반 메시지로 덮어써 사용자가 실제 원인을 알 수 없다.
+  if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.EDGE_BLOCKED) {
+    toast.error(TEXTS.messages.error.edgeBlocked);
+    return;
+  }
+
   let message: string = TEXTS.messages.error.unknownError;
 
-  // 2. meta에 정의된 커스텀 에러 메시지가 있으면 우선 사용
+  // 3. meta에 정의된 커스텀 에러 메시지가 있으면 우선 사용
   if (meta?.errorMessage) {
     message = meta.errorMessage;
   } else if (error instanceof ApiError) {
@@ -99,6 +108,12 @@ export const queryClient = new QueryClient({
         (error.code === 'NOT_LOGGED_IN' || error.code === 'INVALID_TOKEN') &&
         AuthUtil.isLoggingOut()
       ) {
+        return;
+      }
+
+      // 보안 정책(CloudFront/WAF)에 앱 도달 전 차단된 경우 - meta의 커스텀 에러 메시지보다 먼저 처리한다.
+      if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.EDGE_BLOCKED) {
+        toast.error(TEXTS.messages.error.edgeBlocked);
         return;
       }
 

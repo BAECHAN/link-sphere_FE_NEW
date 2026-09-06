@@ -140,9 +140,13 @@ class ApiClient {
             };
           }
         } catch {
+          // JSON이 아닌 응답 - 우리 앱의 403(GlobalExceptionHandler)은 항상 JSON이라
+          // 여기 걸릴 수 없다. 즉 403 + 파싱 실패는 CloudFront/WAF가 앱 앞에서
+          // 막았다는 신호로 안전하게 쓸 수 있다.
           errorResponse = {
             status: response.status,
-            code: String(response.status),
+            code:
+              response.status === 403 ? SERVER_ERROR_CODE.EDGE_BLOCKED : String(response.status),
             message: text || 'Unknown Error',
             timestamp: new Date().toISOString(),
           };

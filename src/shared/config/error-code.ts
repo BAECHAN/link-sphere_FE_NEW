@@ -10,6 +10,8 @@ export const SERVER_ERROR_CODE = {
 
   // Common
   INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
+  // CloudFront/WAF가 앱에 닿기 전에 막은 요청 (403 + 비-JSON HTML 응답)
+  EDGE_BLOCKED: 'EDGE_BLOCKED',
 } as const;
 
 export type ServerErrorCode = keyof typeof SERVER_ERROR_CODE;

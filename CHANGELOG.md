@@ -44,6 +44,10 @@
 
 - BE API 의존: `GET /post`의 `filter` 파라미터에 `excludeBots` 값 지원 필요.
   배포 순서 무관 — 구버전 BE는 모르는 filter 값을 조용히 무시한다.
+- CloudFront WAF `CrossSiteScripting_BODY` 룰 완화(Block→Count)는 AWS 콘솔/CLI로
+  적용한 **수동 인프라 변경**이라 이 코드 배포에 포함되지 않는다 — 이미 적용
+  완료됐고, 코드는 그와 별개로 WAF 차단 시 안내 UX만 개선한다. `docs/DEPLOY.md`
+  "CloudFront WAF (수동 관리)" 절 참고.
 
 ### Changed
 
@@ -431,6 +435,36 @@
   만나면 브라우저 기본 깨진 아이콘이 그대로 보였다. 다른 두 곳과 동일하게
   `LinkThumbnail`을 쓰도록 교체했다(`referrerPolicy="no-referrer"`·https 치환도
   함께 적용됨). (`CommentEditForm.tsx`)
+
+  </details>
+
+- `comment` 짧은 댓글도 태그·특수문자가 섞이면 원인 불명의 403으로 막히던 문제
+  <details><summary>배경·구현</summary>
+
+  기존 댓글 길이 제한(6,000바이트)을 훨씬 밑도는 짧은 댓글인데도 403 HTML이
+  뜨는 재현 사례가 들어왔다. curl로 프로덕션에 직접 이분 탐색해보니 크기와
+  무관했고, CloudFront WAF `AWSManagedRulesCommonRuleSet` > `CrossSiteScripting_BODY`
+  룰의 오탐이었다 — `<META>` 태그 하나, 심지어 `React에서 <Button onClick={x}>를
+쓰면 됩니다` 같은 정상적인 개발 댓글까지 XSS로 오판해 차단했다(CloudWatch
+  `BlockedRequests` 지표로 확정). `POST /post`(게시글 등록)도 동일 조건에서
+  막혀 댓글만의 문제가 아니었다.
+
+  FE 전체에 `dangerouslySetInnerHTML`·마크다운 라이브러리·HTML sanitizer가 없어
+  (댓글은 `MarkdownContent.tsx`가 HTML 문자열을 만들지 않는 자체 파서로 React
+  엘리먼트를 직접 조립) 이 룰이 막던 실질 위험이 거의 없다고 보고, WAF의
+  `CrossSiteScripting_BODY`만 Block에서 Count로 내렸다(`SizeRestrictions_BODY`
+  등 나머지 룰은 그대로 유지 — 레포에 코드로 없는 수동 인프라 변경이라 코드
+  배포와 무관하게 즉시 반영됨, `docs/DEPLOY.md`의 "CloudFront WAF" 절 참고).
+
+  그와 별개로, WAF가 어떤 이유로든 앱보다 먼저 요청을 막았을 때(403 + 비-JSON
+  HTML 응답 — 우리 앱의 403은 항상 JSON이라 이 조합은 WAF 차단의 안전한 신호로
+  쓸 수 있다) 일반 "서버 오류가 발생했어요" 대신 전용 안내가 뜨도록 `EDGE_BLOCKED`
+  에러 코드를 신설했다. 게시글 등록처럼 `meta.errorMessage`를 쓰는 mutation이
+  이 원인을 삼키지 않도록, 전역 에러 핸들러에서 `errorMessage` 우선순위보다
+  앞에 두었다.
+  (`shared/config/error-code.ts`의 `EDGE_BLOCKED`, `shared/api/client.ts`,
+  `shared/lib/react-query/config/queryClient.ts`, `docs/DECISIONS.md`
+  2026-09-06 "크기가 아니라 WAF의 XSS 탐지 룰이 근본 원인이었다" 항목)
 
   </details>
 

@@ -160,6 +160,66 @@ edge case"로 접어뒀던 위험이 하루도 안 돼 실제로 발생한 것�
 7,500바이트). 이미지는 업로드 전이라 실제 URL을 모르므로 Supabase 공개 URL
 실측치에 여유를 둔 200바이트 자리표시자로 채워 잰다.
 
+**추가 발견 (같은 날, 며칠 뒤) — 크기가 아니라 WAF의 XSS 탐지 룰이 근본 원인이었다**
+
+위 대응(전송 바이트 안전망)을 배포한 뒤에도 403이 또 재현됐는데, 이번엔 결정적인
+단서가 있었다 — 사용자가 "긴 문서는 우리 길이 안내가 정상 작동하는데, 짧은
+콘솔 로그를 붙여넣으면 403이 난다"고 정확히 대조해줬다. `curl`로 프로덕션에
+직접 이분 탐색한 결과, 문제의 짧은 입력(4,162바이트 — 상한 6,000의 2/3)은
+크기와 무관하게 막혔고, 범인은 `AWSManagedRulesCommonRuleSet` >
+**`CrossSiteScripting_BODY`** 였다(CloudWatch `BlockedRequests` 지표로 확정 —
+테스트에서 403이 난 횟수와 이 룰의 차단 횟수가 정확히 일치).
+
+**핵심 재현**: `<META>` 태그 하나만 있어도, `React에서 <Button onClick={x}>를
+쓰면 됩니다` 같은 지극히 정상적인 개발 댓글도 403으로 막혔다. 이건 붙여넣기
+실수가 아니라 **개발 아티클을 공유하는 서비스에서 실사용자가 매일 마주칠 수
+있는 결함**이었다. 대조군으로 `POST /post`(게시글 등록)·`PATCH /comment/{id}`
+(댓글 수정)도 같은 조건에서 403이 남을 확인해, 댓글 폼만의 문제가 아니라
+**모든 요청 본문에 걸리는 전역 문제**임을 확인했다.
+
+**왜 이 룰을 꺼도 안전한지 조사**: FE 전체에 `dangerouslySetInnerHTML`·
+`innerHTML`·`insertAdjacentHTML`·`document.write`·`eval` 사용처가 **0건**이었다.
+`shared/ui/elements/MarkdownContent.tsx`는 이름과 달리 HTML 문자열을 만들지
+않고 React 엘리먼트 객체를 직접 조립하는 자체 파서라 `<script>alert(1)</script>`도
+글자 그대로 렌더된다. `javascript:` URI는 `MarkdownContent.tsx`의 URL 정규식
+(http/https/blob만 매칭)과 BE `SafeUrlValidator.kt`(스킴 화이트리스트)에서
+이중으로 막혀 DB 저장 자체가 불가능하다. 마크다운 라이브러리·HTML sanitizer는
+아예 도입돼 있지 않다 — 즉 sink가 없으니 이 룰이 실제로 막아주던 위험이
+거의 없었다.
+
+**결정**
+
+- WAF `CrossSiteScripting_BODY`만 **Block → Count**로 내린다(오탐 완화).
+  `SizeRestrictions_BODY`를 비롯한 나머지 룰(SQLi·LFI·RFI·Log4J·IP 평판·
+  KnownBadInputs)은 전부 그대로 Block 유지 — 위 회귀 위험 인식(16KB 검사
+  한도를 넘겨 다른 시그니처 탐지를 우회하는 새 노출)은 크기 룰에만 해당했고,
+  XSS 룰 하나를 Count로 내리는 것은 그 우회로를 만들지 않는다.
+- 댓글 길이 상한(6,000B/7,500B)은 그대로 둔다 — `SizeRestrictions_BODY`는
+  여전히 Block이라 이 방어선은 계속 필요하다.
+- 그와 별개로, FE에 `EDGE_BLOCKED` 전용 에러 코드를 신설해 "WAF가 앱보다
+  먼저 채간" 모든 경우(이 룰이 아니어도, 앞으로 다른 룰이 오탐을 내도)에
+  사용자가 이유를 알 수 있게 했다(`shared/api/client.ts`, `error-code.ts`,
+  `queryClient.ts`). `meta.errorMessage`가 최우선인 전역 에러 핸들러 구조상,
+  게시글처럼 `errorMessage`를 쓰는 mutation이 이 원인을 삼키지 않도록
+  `EDGE_BLOCKED` 판정을 그 앞에 둬야 했다.
+
+**포기한 것 — 무엇을 받아들였는가**
+
+이 결정으로 **저장형 XSS 방어가 사실상 "FE가 React라서, 그리고 지금 아무도
+`dangerouslySetInnerHTML`이나 마크다운 라이브러리를 안 써서"라는 단일
+전제에만 의존**하게 됐다. CSP 헤더도 없다(FE `index.html`·BE
+`SecurityConfig.kt` 모두 미설정). BE는 댓글/게시글 본문을 sanitize 없이
+원문 그대로 저장한다(store-raw / escape-on-output). 즉 **향후 누군가
+`dangerouslySetInnerHTML`을 쓰거나, 마크다운 렌더러를 새로 붙이거나, 서버
+렌더 HTML·이메일 템플릿·FCM 알림 본문처럼 React 밖에서 이 content를
+소비하는 코드를 추가하는 순간 즉시 저장형 XSS가 열린다.** 이 조건이 깨지면
+이 결정 전체를 재검토해야 한다. CSP 도입은 이번 범위 밖으로 남겨뒀다.
+
+**상태**: WAF 룰 완화는 적용 완료(실측 재검증: 위 오탐 사례 전부 401로 통과,
+`SizeRestrictions_BODY`는 여전히 403 유지 — 라이브 인프라라 코드 배포와 별개로
+즉시 반영됨). FE `EDGE_BLOCKED`는 코드 작성·테스트 완료, main 병합·배포는
+별도 확인 후 진행.
+
 ---
 
 ## 2026-09-06 — 콘솔의 `reportAllChanges` TypeError: 브라우저 보안 확장이 원인, 조치 안 함
