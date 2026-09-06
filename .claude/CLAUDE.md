@@ -205,7 +205,11 @@ don't build a preview for a bug fix with an obvious right answer.
   파일만 건드렸다면 `gh workflow run "Frontend Deploy (S3 + CloudFront)" --ref main`
   으로 수동 트리거해야 한다(안 그러면 워크플로우 자체가 안 돌아 조용히
   미배포로 남는다). 2026-09-06 실제로 이 순서를 건너뛰어 배포 실패를 놓친
-  사고 발생(`docs/CI-CHECK-GATE.md` §9.3, `docs/DEPLOY.md` "Trigger" 참고)
+  사고 발생(`docs/CI-CHECK-GATE.md` §9.3, `docs/DEPLOY.md` "Trigger" 참고).
+  최종 성공을 확인했더라도 그 과정에 실패한 run이 있었다면(예: 첫 push가
+  실패하고 후속 커밋으로 고쳐 재푸시·수동 트리거로 성공한 경우) **최종 보고에
+  그 경위를 함께 밝힌다** — "배포 완료"만 말하면 사용자가 실패 run을 GitHub에서
+  직접 발견하고 나서야 전체 경위를 되묻게 된다(2026-09-06 실제 사례)
 - **Never** 코드/설정을 바꾼 뒤 그 동작을 서술하는 문서 갱신 누락 → 인프라·배포·아키텍처뿐 아니라 **기능 동작(상태 저장 방식, API 계약 등)을 바꿀 때도** 반대편 BE 레포의 문서(특히 `docs/*-BOT.md` 같은 서사형 문서)가 그 동작을 서술하고 있는지 확인한다(2026-09-06, FE 봇 글 숨기기 토글의 저장 방식을 URL→localStorage로 바꿨을 때 BE `docs/RSS-FEED-BOT.md`가 옛 URL 기반 서술로 남아있던 사례 — BE `.claude/CLAUDE.md`의 같은 규칙 참고). 고쳤으면 **최종 보고에 "문서 X를 Y로 갱신함"을 별도 항목으로 명시**한다
 - **Never** CloudFront WAF의 바디 크기 제한 룰(`SizeRestrictions_BODY` 등)을 "왜 있는지" 확인 없이 완화·비활성화하지 않는다 → 이런 룰은 WAF가 바디를 검사할 수 있는 한도(CloudFront 기본 16KB) 너머는 애초에 못 본다는 전제에서 온다 — 한도를 넘은 요청을 그냥 통과시키면 그 너머에 숨은 XSS·LFI·RFI·Log4j 페이로드가 무검사로 뚫린다("검사 못 할 바엔 막는다"는 논리). 2026-09-06 댓글 등록 403 조사 중 `SizeRestrictions_BODY`(8,192바이트 초과 차단)를 완화하려다가, 대체 크기 제한 룰(`SizeConstraintStatement`)이 **CloudFront Pro 플랜(월 $15 정액제) 전용**이라 이 계정(Free 플랜)에서는 만들 수 없다는 걸 확인했다. Count로만 오버라이드하면 WAF의 바디 크기 방어가 완전히 사라져(Lambda 자체 한도 6MB까지 통과, 300KB 페이로드로 실측) 비용·우회 위험이 새로 생기므로 **원복했다** — 이 룰은 지금도 8,192바이트 초과를 그대로 차단 중이다. 그 벽 안에서 동작하도록 앱이 자체 상한(`CommentService.MAX_COMMENT_CONTENT_BYTES`)을 두는 쪽으로 대신 풀었다. Pro 업그레이드 없이는 이 8KB 벽을 건드리지 말 것(`docs/DEPLOY.md`의 "CloudFront WAF (수동 관리)" 절, `docs/DECISIONS.md` 2026-09-06 항목 참고)
 - **Never** 폼 검증 실패를 버튼 `disabled`만으로 처리하지 않는다(사용자에게 이유를 알려야 하는 경우) → `disabled` 버튼은 클릭 이벤트 자체가 발생하지 않아 `handleSubmit`의 검증 실패 콜백(에러 토스트 등)이 실행될 기회조차 없어진다. 2026-09-06 댓글 길이 제한 UI에서 이 문제로 "왜 제출이 안 되는지" 사용자가 전혀 알 수 없었다(대체용 호버 툴팁도 데스크톱 한정이라 발견성이 낮았다). 진짜 "할 게 없음"(빈 입력) 상태만 `disabled`로 막고, 그 외 검증 실패(길이 초과 등)는 버튼을 눌러지게 둔 채 zod resolver + `onInvalid` 콜백으로 차단하면서 상시 보이는 인라인 안내 문구를 함께 둔다(`useCreateComment.ts`, `CommentForm.tsx` 참고)
@@ -1062,6 +1066,18 @@ pnpm storybook        # Storybook (port 6006)
   반드시 넣는다(없으면 GitHub이 안의 마크다운을 파싱하지 않는다). 배경·트레이드오프·영향
   파일 목록을 요약 없이 그대로 적는다 — 짧은 항목은 상세 블록을 생략해도 된다.
 - `### Notes`는 접지 않는다 — BE 배포 순서 정보라 항상 보여야 한다.
+- **상세 블록 안 문단을 손으로 여러 줄로 줄바꿈하지 않는다.** 리스트 항목(`- `) 안의
+  `<details>` 블록은 이어지는 모든 줄이 그 리스트의 들여쓰기(2칸)를 따라야 하는데,
+  사람이 임의로 줄바꿈하면 그 규칙을 놓친 줄이 생기기 쉽다. 그러면 Prettier의 마크다운
+  포맷터가 **파일을 다시 포맷할 때마다 `</details>` 들여쓰기가 계속 늘어나는
+  non-idempotent 상태**가 된다 — `git commit`의 `lint-staged`(`prettier --write` 1회만
+  실행)는 이 상태를 못 잡고 그대로 커밋시키며, CI의 `pnpm check`(`format:check`)에서야
+  뒤늦게 걸린다(2026-09-06 하루에 서로 다른 두 세션에서 각각 재현 —
+  `docs/CI-CHECK-GATE.md` §9.3, `docs/DECISIONS.md`). **문단은 아무리 길어도 한 줄로
+  써서 Prettier(`proseWrap: preserve`이므로 줄바꿈 없이 그대로 유지됨)가 줄바꿈을
+  전담하게 한다.** 부득이 손으로 줄바꿈했다면 커밋 전 `pnpm lint`가 아니라
+  `pnpm format:check`(또는 `pnpm check` 전체)를 직접 실행해 확인한다 — lint 통과가
+  format:check 통과를 보장하지 않는다.
 
 **릴리즈 시점** (버전 확정)
 
