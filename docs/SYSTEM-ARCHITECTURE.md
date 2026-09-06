@@ -229,7 +229,7 @@ flowchart TB
 | interaction | InteractionController | InteractionService         | 좋아요, 북마크                                                                                                                      |
 | category    | CategoryController    | CategoryService            |                                                                                                                                     |
 | member      | —                     | MemberService              | Repository만 사용                                                                                                                   |
-| feed        | —                     | FeedCrawlService           | 컨트롤러 없음 — EventBridge cron(1일 1회)가 직접 호출. RSS 피드를 봇 계정 명의로 게시글 등록, 상세는 BE 저장소 `docs/DEPLOY.md` 8장 |
+| feed        | —                     | FeedCrawlService           | 컨트롤러 없음 — EventBridge cron(4일 1회)가 직접 호출. RSS 피드를 봇 계정 명의로 게시글 등록, 상세는 BE 저장소 `docs/DEPLOY.md` 8장 |
 
 ### BE 스택·설정 요약
 
