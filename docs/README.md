@@ -33,7 +33,7 @@
 
 | 문서                                                     | 무엇을 담고 있는가                                                                              |
 | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md)             | FSD 구조, 3-Layer API·Feature Hook 등 재사용 패턴, 네이밍 컨벤션                                |
+| [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md)             | FSD 변형 구조(정식 FSD와 다른 점 포함), 3-Layer API·Feature Hook 등 재사용 패턴, 네이밍 컨벤션  |
 | [`SYSTEM-ARCHITECTURE.md`](./SYSTEM-ARCHITECTURE.md)     | 시스템 컨텍스트·배포 파이프라인·FE/BE 구조를 Mermaid로 정리                                     |
 | [`VERSION-COMPATIBILITY.md`](./VERSION-COMPATIBILITY.md) | BE·FE 버전 호환 매트릭스                                                                        |
 | [`HISTORY.md`](./HISTORY.md)                             | 커밋 기반 변경 이력 — **`.github/workflows/history.yml`이 자동 생성한다. 직접 편집하지 않는다** |
