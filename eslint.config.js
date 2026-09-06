@@ -358,78 +358,12 @@ export default [
               };
             },
           },
-          'no-mantine-ui-direct-import': {
-            meta: {
-              type: 'problem',
-              docs: {
-                description:
-                  '@mantine/core, @mantine/dates, @mantine/charts 등 Mantine UI 라이브러리에서 직접 import 금지. shared/ui/atoms/ 또는 src/app/에서만 허용',
-              },
-              messages: {
-                mantineDirectImport:
-                  '@mantine/core, @mantine/dates, @mantine/charts 등 Mantine UI 라이브러리에서 직접 import하는 것은 금지됩니다. 대신 @/shared/ui/elements/에서 해당 컴포넌트를 import해주세요. (단, shared/ui/elements/ 내부 파일과 src/app/ 내부 파일에서는 예외)',
-              },
-            },
-            create(context) {
-              return {
-                ImportDeclaration(node) {
-                  const importPath = node.source.value;
-                  if (typeof importPath !== 'string') return;
-
-                  // @mantine/core에서 import하는 경우만 체크
-                  if (importPath !== '@mantine/core') return;
-
-                  const filename = context.getFilename();
-                  // 파일 경로를 정규화 (백슬래시를 슬래시로 변환)
-                  const normalizedPath = filename.replace(/\\/g, '/');
-
-                  // 허용된 경로 체크
-                  // src/shared/ui/atoms/ 또는 src/app/ 경로에 있는 파일만 허용
-                  const isAllowedPath =
-                    normalizedPath.includes('/src/shared/ui/atoms/') ||
-                    normalizedPath.includes('/src/shared/config/') ||
-                    normalizedPath.includes('/src/app/');
-
-                  if (!isAllowedPath) {
-                    context.report({
-                      node,
-                      messageId: 'mantineDirectImport',
-                    });
-                  }
-                },
-              };
-            },
-          },
         },
       },
     },
     rules: {
       'custom-import/no-relative-import-except-styles': 'error',
       'custom-import/no-sonner-toast-direct-import': 'error',
-      'custom-import/no-mantine-ui-direct-import': 'error',
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              // 상위 디렉토리로 가는 상대 경로 금지 (일반 파일)
-              group: [
-                '../**/*.ts',
-                '../**/*.tsx',
-                '../**/*.js',
-                '../**/*.jsx',
-                '../../**/*.ts',
-                '../../**/*.tsx',
-                '../../../**/*.ts',
-                '../../../**/*.tsx',
-                '..',
-                '../*',
-              ],
-              message: '../ 대신 @/를 사용한 절대 경로 import를 사용해주세요.',
-            },
-          ],
-        },
-      ],
     },
   },
   // 클릭 가능한 요소는 인터랙티브 시맨틱(button/role)이 필요 - 커스텀 규칙
