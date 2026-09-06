@@ -182,6 +182,10 @@ export default [
         // 타입 정보가 필요한 규칙을 사용하므로 project 옵션 유지
         // 단, 스타일 파일은 제외
         project: ['./tsconfig.app.json'],
+        // 워크트리(.claude/worktrees/<name>/)마다 자기 tsconfig.json을 가진 서브 체크아웃이라
+        // 명시하지 않으면 typescript-eslint가 기준 디렉터리 후보를 여러 개 찾아 파싱 에러를 낸다
+        // (에디터의 ESLint 확장에서만 재현됨 — CLI는 .claude/worktrees/** 를 ignores로 안 봄)
+        tsconfigRootDir: import.meta.dirname,
       },
       globals: {
         console: true,
