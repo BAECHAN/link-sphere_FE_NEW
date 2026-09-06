@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
+import { toast } from '@/shared/lib/toast/toast';
 import { createTestQueryClient } from '@/test/utils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
@@ -9,6 +10,7 @@ import { useUpdateComment } from '@/features/comment/update/hooks/useUpdateComme
 import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/const';
 
 // 기본 commentHandlers는 API_BASE_URL 접두사(/api) 없이 등록돼 있어 테스트 환경 요청 경로와
 // 매칭되지 않는다(CommentQueries.test.tsx와 동일한 이유) - url()로 명시 등록.
@@ -56,6 +58,58 @@ describe('useUpdateComment', () => {
     });
 
     expect(result.current.canSubmit).toBe(false);
+  });
+
+  it('본문이 상한을 넘으면 isOverLimit이 true가 되지만 canSubmit은 막지 않는다', () => {
+    // canSubmit(버튼 disabled)이 길이 초과까지 막으면 클릭 이벤트 자체가 안 먹어
+    // onSubmit의 zod 검증(→ 초과 안내 토스트)이 실행될 기회가 없어진다 - 그래서
+    // 길이 초과는 isOverLimit(인라인 안내용)으로만 노출하고, 실제 제출 차단은
+    // onSubmit 내부의 zod resolver가 담당한다.
+    const { result } = renderHook(
+      () => useUpdateComment({ comment: mockComment, postId: mockComment.postId }),
+      {
+        wrapper: createWrapper(queryClient),
+      }
+    );
+
+    const overLong = '가'.repeat(Math.ceil(MAX_COMMENT_CONTENT_BYTES / 3) + 1);
+    act(() => {
+      result.current.form.setValue('content', overLong, { shouldDirty: true });
+    });
+
+    expect(result.current.isOverLimit).toBe(true);
+    expect(result.current.canSubmit).toBe(true);
+  });
+
+  it('본문이 상한을 넘은 채 제출을 시도하면 요청을 보내지 않고 안내 토스트를 띄운다', async () => {
+    let requested = false;
+    server.use(
+      http.patch(url(API_ENDPOINTS.post.comment(mockComment.id)), () => {
+        requested = true;
+        return HttpResponse.json(
+          { status: 200, message: 'ok', data: mockComment, timestamp: new Date().toISOString() },
+          { status: 200 }
+        );
+      })
+    );
+    const errorSpy = vi.spyOn(toast, 'error');
+
+    const { result } = renderHook(
+      () => useUpdateComment({ comment: mockComment, postId: mockComment.postId }),
+      { wrapper: createWrapper(queryClient) }
+    );
+
+    const overLong = '가'.repeat(Math.ceil(MAX_COMMENT_CONTENT_BYTES / 3) + 1);
+    act(() => {
+      result.current.form.setValue('content', overLong, { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(requested).toBe(false);
+    expect(errorSpy).toHaveBeenCalledWith(expect.anything());
   });
 
   it('제출에 성공하면 onSuccess가 호출된다', async () => {

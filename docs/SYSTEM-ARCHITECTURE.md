@@ -44,6 +44,10 @@ CloudFront가 경로로 분기한다(`/api/*` → Lambda, 그 외 → S3). 그�
 이 디렉토리를 배포 대상으로 보지 않는다(트리거 경로에 없음) — 여기 있는 것들은 AWS CLI로
 수동 배포·관리된다. 현재는 아래 CloudFront Function 하나만 있다.
 
+같은 CloudFront 배포에 WAF(Web ACL)도 콘솔 전용으로 붙어 있는데, 이건 소스 코드 자체가
+없어(설정값만 있음) 이 디렉토리에 담을 수 없다 — 룰 구성과 재적용 절차는
+[`docs/DEPLOY.md`](./DEPLOY.md)의 "CloudFront WAF (수동 관리)" 절 참고.
+
 ```
 infra/
 └── cloudfront-functions/

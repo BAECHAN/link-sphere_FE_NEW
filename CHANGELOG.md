@@ -38,6 +38,18 @@
   0개일 때 빈 문자열이 돼 정확히 툴팁이 필요한 순간에는 아무 설명도 없었다.
   (`PostListSearch.tsx`, `texts.ts`(`post.search.resetDisabledReason` 추가))
 
+- `comment` 댓글·답글 등록이 실패하면 입력했던 내용과 이미지가 폼에 복원됨
+  <details><summary>배경·구현</summary>
+
+  기존엔 서버 응답을 기다리지 않고 제출 즉시 폼을 비웠는데(낙관적 업데이트가 목록에
+  바로 반영되므로), 등록이 실패하면 방금 쓴 내용이 그대로 사라졌다. `reset()`은
+  지금처럼 즉시 실행해 비우는 UX는 유지하되, "폼을 닫는" `onSuccess`만 mutate
+  콜백으로 미뤘다 — 답글 폼·모바일 바는 `onSuccess`에서 폼 컴포넌트를 언마운트하는데,
+  React Query는 뮤테이션이 끝나기 전에 컴포넌트가 언마운트되면 `mutate()`의 스코프
+  콜백(`onError` 포함)을 호출하지 않는다. 그 사이 사용자가 새로 입력을 시작했으면
+  덮어쓰지 않는다.
+  (`features/comment/create/hooks/useCreateComment.ts`)
+
   </details>
 
 ### Notes
@@ -46,6 +58,29 @@
   배포 순서 무관 — 구버전 BE는 모르는 filter 값을 조용히 무시한다.
 
 ### Changed
+
+- `comment` 댓글·답글 본문 길이를 한글 기준 약 2,000자(UTF-8 6,000바이트)로 제한
+  <details><summary>배경·구현</summary>
+
+  긴 댓글을 등록하면 CloudFront WAF가 요청 바디 크기(8,192바이트) 초과라는 이유로
+  앱에 닿기도 전에 403 HTML을 돌려줬다. 이 응답은 앱 에러 처리를 전혀 타지 않아
+  사용자는 이유를 알 수 없었다. WAF의 이 차단은 건드리지 않았다 - 완화를 시도했으나
+  대체 크기 제한 룰이 CloudFront Pro 플랜 전용이라 이 계정(Free 플랜)에서 만들 수
+  없었고, 차단만 풀면 WAF의 바디 크기 방어가 완전히 사라져 비용·보안 노출이 생기므로
+  원복했다(`docs/DECISIONS.md` 참고). 대신 앱이 그 8KB 벽 안쪽에서 여유 있게 동작하도록
+  상한을 잡고, WAF 403 대신 앱이 먼저 제출을 막고 이유를 말하도록
+  `commentContentFormSchema`(바이트 기준 zod refine)를 작성·수정 폼이 공유하게 했다.
+  BE `CommentService.MAX_COMMENT_CONTENT_BYTES`와 반드시 같은 값이어야 한다.
+
+  제출 버튼은 길이 초과로는 비활성화하지 않는다 - 비활성 버튼은 클릭 이벤트 자체가
+  안 먹어 제출을 시도해도 안내가 뜨지 않는 문제가 있었다(구현 중 발견). 대신 텍스트
+  영역 아래 상시 안내 문구(초과 시에만 표시)로 알리고, 실제 제출은 zod가 막아
+  실패 시 토스트를 띄운다.
+  (`entities/comment/config/const.ts`의 `MAX_COMMENT_CONTENT_BYTES`,
+  `entities/comment/model/comment.schema.ts`의 `commentContentFormSchema`,
+  `shared/lib/content/textBytes.ts`(신규))
+
+  </details>
 
 - `post` 게시글 검색 필터 영역을 기능별 행으로 재구성
   <details><summary>배경·구현</summary>

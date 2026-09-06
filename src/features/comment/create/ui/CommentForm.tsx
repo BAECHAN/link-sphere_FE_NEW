@@ -34,6 +34,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
     onSubmit,
     isReply,
     contentValue,
+    isOverLimit,
     images,
     imagePreviewUrls,
     isDraggingOver,
@@ -50,6 +51,9 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
   const { register } = form;
 
   const isMobile = useIsMobile();
+  // 길이 초과는 버튼을 막지 않는다 - 비활성 버튼은 클릭 이벤트 자체가 안 먹어서
+  // onSubmit의 zod 검증(→ 초과 안내 토스트)이 실행될 기회조차 없어진다. 대신 아래
+  // 인라인 안내 문구로 항상 보이게 하고, 실제 제출은 zod가 막는다.
   const canSubmit = !!contentValue.trim() || images.length > 0;
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -110,7 +114,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
           </div>
         )}
         <Textarea
-          aria-invalid={showValidationHighlight}
+          aria-invalid={showValidationHighlight || isOverLimit}
           placeholder={
             isReply ? TEXTS.comment.form.replyPlaceholder : TEXTS.comment.form.commentPlaceholder
           }
@@ -132,6 +136,10 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
           }}
         />
       </div>
+
+      {isOverLimit && (
+        <p className="text-xs text-destructive">{TEXTS.validation.commentContentTooLong}</p>
+      )}
 
       {contentValue && (
         <div className="rounded-md border bg-muted/30 p-3 text-sm">
