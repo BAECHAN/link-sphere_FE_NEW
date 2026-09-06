@@ -6,6 +6,7 @@ import { Kbd } from '@/shared/ui/atoms/kbd';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { ImageAttachmentField } from '@/shared/ui/elements/ImageAttachmentField';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
+import { LinkThumbnail } from '@/shared/ui/atoms/link-thumbnail';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/const';
@@ -114,15 +115,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
               className="block mt-2 border rounded-lg overflow-hidden hover:border-primary/50 transition-colors"
               style={{ maxWidth: '400px' }}
             >
-              {linkMetadata.ogImage && (
-                <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                  <img
-                    src={linkMetadata.ogImage}
-                    alt={linkMetadata.title}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              )}
+              <LinkThumbnail src={linkMetadata.ogImage} alt={linkMetadata.title} />
               <div className="p-2 bg-muted/30">
                 <p className="text-xs font-semibold truncate">{linkMetadata.title}</p>
                 {linkMetadata.description && (
