@@ -1,44 +1,15 @@
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { SearchInput } from '@/shared/ui/elements/SearchInput';
 import { Button } from '@/shared/ui/atoms/button';
 import { TEXTS } from '@/shared/config/texts';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { useBookmarkSearch } from '@/widgets/bookmark/bookmark-search/hooks/useBookmarkSearch';
 
 interface BookmarkSearchProps {
   className?: string;
 }
 
 export function BookmarkSearch({ className }: BookmarkSearchProps) {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const searchQuery = searchParams.get('q') ?? '';
-
-  const [searchInput, setSearchInput] = useState(searchQuery);
-
-  // URL이 변경되면 로컬 상태도 동기화 (예: 뒤로가기)
-  useEffect(() => {
-    setSearchInput(searchQuery);
-  }, [searchQuery]);
-
-  const applySearch = (value: string) => {
-    const trimmed = value.trim();
-    if (trimmed) {
-      searchParams.set('q', trimmed);
-    } else {
-      searchParams.delete('q');
-    }
-    setSearchParams(searchParams, { replace: true });
-  };
-
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    applySearch(searchInput);
-  };
-
-  const handleClear = () => {
-    setSearchInput('');
-    applySearch('');
-  };
+  const { searchInput, setSearchInput, handleSubmit, handleClear } = useBookmarkSearch();
 
   return (
     <form onSubmit={handleSubmit} className={cn('flex gap-2', className)}>

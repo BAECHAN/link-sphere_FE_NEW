@@ -1,6 +1,4 @@
-import { useRef, useState, KeyboardEvent } from 'react';
 import { Bookmark, Folder as FolderIcon, Inbox, Loader2, MoreVertical, Plus } from 'lucide-react';
-import { toast } from '@/shared/lib/toast/toast';
 import { Button } from '@/shared/ui/atoms/button';
 import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';
@@ -10,18 +8,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/shared/ui/atoms/dropdown-menu';
-import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
-import {
-  prefetchFolderPosts,
-  useCreateFolderMutation,
-  useDeleteFolderMutation,
-  useFolderListQuery,
-  useUpdateFolderMutation,
-} from '@/entities/folder/api/folder.queries';
 import { Folder, FolderKey, FolderSort } from '@/entities/folder/model/folder.schema';
-import { useRecentFolders } from '@/entities/folder/model/useRecentFolders';
+import {
+  useCreateFolderInput,
+  useFolderChips,
+  useFolderItem,
+  useFolderTree,
+  useInlineCreateFolderInput,
+} from '@/widgets/bookmark/folder-tree/hooks/useFolderTree';
 
 interface FolderTreeProps {
   selectedKey: FolderKey;
@@ -33,11 +29,10 @@ interface FolderTreeProps {
 
 /** 데스크탑 — 좌측 사이드바 트리 */
 export function FolderTree({ selectedKey, onSelect, sort, search, className }: FolderTreeProps) {
-  const { data, isLoading, isFetching } = useFolderListQuery();
-  const folders = data?.folders;
-  const uncategorizedCount = data?.uncategorizedCount ?? 0;
-  // 상단 "최근 저장한 폴더" 구획 — 페이지 방문(마운트) 동안 1회 스냅샷, 그 뒤로는 고정
-  const { recentFolders } = useRecentFolders(folders ?? [], isFetching);
+  const { folders, uncategorizedCount, recentFolders, isLoading, prefetchFolder } = useFolderTree(
+    sort,
+    search
+  );
 
   return (
     <aside className={cn('flex flex-col gap-1 py-2', className)}>
@@ -46,15 +41,15 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
         label={TEXTS.bookmark.folder.all}
         selected={selectedKey === 'all'}
         onClick={() => onSelect('all')}
-        onPrefetch={() => prefetchFolderPosts('all', sort, search)}
+        onPrefetch={() => prefetchFolder('all')}
       />
       <FixedItem
         icon={<Inbox className="h-4 w-4" />}
         label={TEXTS.bookmark.folder.uncategorized}
-        count={data ? uncategorizedCount : undefined}
+        count={uncategorizedCount}
         selected={selectedKey === 'uncategorized'}
         onClick={() => onSelect('uncategorized')}
-        onPrefetch={() => prefetchFolderPosts('uncategorized', sort, search)}
+        onPrefetch={() => prefetchFolder('uncategorized')}
       />
 
       <div className="my-1 border-t" />
@@ -72,7 +67,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
               selected={selectedKey === folder.id}
               onClick={() => onSelect(folder.id)}
               onDeleted={() => onSelect('all')}
-              onPrefetch={() => prefetchFolderPosts(folder.id, sort, search)}
+              onPrefetch={() => prefetchFolder(folder.id)}
             />
           ))}
           <div className="my-1 border-t" />
@@ -98,7 +93,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
             selected={selectedKey === folder.id}
             onClick={() => onSelect(folder.id)}
             onDeleted={() => onSelect('all')}
-            onPrefetch={() => prefetchFolderPosts(folder.id, sort, search)}
+            onPrefetch={() => prefetchFolder(folder.id)}
           />
         ))
       )}
@@ -110,10 +105,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
 
 /** 모바일 — 상단 가로 칩 (선택 + 새 폴더만, ⋮ rename/delete 는 데스크탑 전용) */
 export function FolderChips({ selectedKey, onSelect, className }: FolderTreeProps) {
-  const { data } = useFolderListQuery();
-  const folders = data?.folders;
-  const uncategorizedCount = data?.uncategorizedCount ?? 0;
-  const [creating, setCreating] = useState(false);
+  const { folders, uncategorizedCount, creating, startCreating, stopCreating } = useFolderChips();
 
   return (
     <div className={cn('flex items-center gap-2 overflow-x-auto py-2 px-1', className)}>
@@ -139,11 +131,11 @@ export function FolderChips({ selectedKey, onSelect, className }: FolderTreeProp
         </Chip>
       ))}
       {creating ? (
-        <InlineCreateFolderInput onClose={() => setCreating(false)} />
+        <InlineCreateFolderInput onClose={stopCreating} />
       ) : (
         <button
           type="button"
-          onClick={() => setCreating(true)}
+          onClick={startCreating}
           className="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm border border-dashed text-muted-foreground hover:bg-accent shrink-0"
         >
           <Plus className="h-3.5 w-3.5" />
@@ -193,54 +185,16 @@ interface FolderItemProps {
 }
 
 function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: FolderItemProps) {
-  const [renaming, setRenaming] = useState(false);
-  const [name, setName] = useState(folder.name);
-  const { mutateAsync: updateFolder, isPending: isUpdating } = useUpdateFolderMutation(folder.id);
-  const { mutateAsync: deleteFolder } = useDeleteFolderMutation(folder.id);
-  const { openConfirm } = useAlert();
-  const submittingRef = useRef(false);
-
-  const submitRename = async () => {
-    if (submittingRef.current || isUpdating) {
-      return;
-    }
-    const next = name.trim();
-    if (!next || next === folder.name) {
-      setRenaming(false);
-      setName(folder.name);
-      return;
-    }
-    submittingRef.current = true;
-    try {
-      await updateFolder({ name: next });
-      setRenaming(false);
-    } catch {
-      toast.error(TEXTS.messages.error.folderRenameFailed);
-      setName(folder.name);
-    } finally {
-      submittingRef.current = false;
-    }
-  };
-
-  const handleDelete = () => {
-    openConfirm({
-      title: TEXTS.bookmark.folder.deleteConfirmTitle(folder.name),
-      message: TEXTS.bookmark.folder.deleteConfirmMessage,
-      confirmText: TEXTS.buttons.delete,
-      cancelText: TEXTS.buttons.cancel,
-      onConfirm: async () => {
-        // 현재 보고 있는 폴더면 먼저 전체로 이동 → 삭제 후 invalidate 시 죽은 폴더 쿼리가 refetch(404)되지 않도록 언마운트
-        if (selected) {
-          onDeleted();
-        }
-        try {
-          await deleteFolder();
-        } catch {
-          toast.error(TEXTS.messages.error.folderDeleteFailed);
-        }
-      },
-    });
-  };
+  const {
+    renaming,
+    startRename,
+    name,
+    setName,
+    isUpdating,
+    submitRename,
+    handleRenameKeyDown,
+    handleDelete,
+  } = useFolderItem(folder, selected, onDeleted);
 
   if (renaming) {
     return (
@@ -251,18 +205,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
           value={name}
           onChange={(e) => setName(e.target.value)}
           onBlur={submitRename}
-          onKeyDown={(e) => {
-            if (e.nativeEvent.isComposing) {
-              return;
-            }
-            if (e.key === 'Enter') {
-              submitRename();
-            }
-            if (e.key === 'Escape') {
-              setRenaming(false);
-              setName(folder.name);
-            }
-          }}
+          onKeyDown={handleRenameKeyDown}
           disabled={isUpdating}
           className="h-7 flex-1"
         />
@@ -301,9 +244,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setRenaming(true)}>
-            {TEXTS.bookmark.folder.rename}
-          </DropdownMenuItem>
+          <DropdownMenuItem onClick={startRename}>{TEXTS.bookmark.folder.rename}</DropdownMenuItem>
           <DropdownMenuItem onClick={handleDelete} className="text-destructive">
             {TEXTS.buttons.delete}
           </DropdownMenuItem>
@@ -314,15 +255,15 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
 }
 
 function CreateFolderInput() {
-  const [creating, setCreating] = useState(false);
+  const { creating, startCreating, stopCreating } = useCreateFolderInput();
 
   if (creating) {
-    return <InlineCreateFolderInput onClose={() => setCreating(false)} />;
+    return <InlineCreateFolderInput onClose={stopCreating} />;
   }
   return (
     <button
       type="button"
-      onClick={() => setCreating(true)}
+      onClick={startCreating}
       className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-accent"
     >
       <Plus className="h-4 w-4" />
@@ -336,41 +277,8 @@ interface InlineCreateFolderInputProps {
 }
 
 function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
-  const [name, setName] = useState('');
-  const { mutateAsync: createFolder, isPending } = useCreateFolderMutation();
-  const submittingRef = useRef(false);
-
-  const submit = async () => {
-    if (submittingRef.current || isPending) {
-      return;
-    }
-    const trimmed = name.trim();
-    if (!trimmed) {
-      return;
-    }
-    submittingRef.current = true;
-    try {
-      await createFolder({ name: trimmed });
-      onClose();
-    } catch {
-      toast.error(TEXTS.messages.error.folderCreateFailed);
-    } finally {
-      submittingRef.current = false;
-    }
-  };
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    // IME(한글 등) 조합 중 엔터는 무시 — 조합 완료 + Enter 가 동시 발생해 submit 중복 호출되는 것을 방지
-    if (e.nativeEvent.isComposing) {
-      return;
-    }
-    if (e.key === 'Enter') {
-      submit();
-    }
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
+  const { name, setName, isPending, submit, handleKeyDown, handleBlur } =
+    useInlineCreateFolderInput(onClose);
 
   return (
     <div className="flex items-center gap-1 px-2 py-1 shrink-0">
@@ -378,7 +286,7 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
-        onBlur={() => !name && onClose()}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         placeholder={TEXTS.bookmark.folder.namePlaceholder}
         disabled={isPending}
