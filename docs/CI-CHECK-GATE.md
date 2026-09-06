@@ -7,7 +7,7 @@
 > **읽고 나면**: `pnpm check`가 실제로 어느 시점에 도는지, ignore 패턴을 추가하거나
 > PR 게이트에 스텝을 더할 때 어디를 고치면 되는지 안다.
 >
-> **마지막 검토**: 2026-09-04
+> **마지막 검토**: 2026-09-06
 
 ## 1. 쉬운 설명
 
@@ -216,7 +216,49 @@ ignore 패턴만 고친 시점의 중간 검증: `pnpm exec eslint .` → **0 pr
 만들고 있는 바로 그 검사 게이트가 작업 중 실수를 그 자리에서 잡아낸
 사례라 기록해둔다.
 
-### 9.3 (참고) 같은 세션에서 BE 쪽에 있었던 실수
+### 9.3 문단 줄바꿈 들여쓰기 누락 + 경로 필터로 인해 조용히 미배포된 사고 (2026-09-06)
+
+`CHANGELOG.md`에 긴 문단을 추가하면서 한 줄을 수동으로 줄바꿈했는데, 계속줄에
+마크다운 리스트 항목이 요구하는 2칸 들여쓰기(이 항목의 `<details>` 블록 전체가
+`- ` 리스트 안에 있어, 계속되는 모든 줄이 그 리스트 항목의 들여쓰기를 따라야
+한다)를 빠뜨렸다. `git commit` 시 `lint-staged`의 `prettier --write`가 이걸
+잡아 고쳐줄 거라 가정했는데(9.2와 같은 기대), 실제로는 그대로 커밋됐다 —
+`deploy.yml`의 `pnpm check`(`format:check`)에서야 처음 걸렸다.
+
+여기서 그치지 않고 두 번째 문제가 이어졌다. 수정 커밋(`CHANGELOG.md`만 변경)을
+다시 push했는데 **`Frontend Deploy` 워크플로우 자체가 실행되지 않았다.**
+`deploy.yml`의 트리거가
+
+```yaml
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'vite.config.ts'
+      - 'tailwind.config.ts'
+      - 'postcss.config.js'
+      - 'index.html'
+      - 'tsconfig*.json'
+```
+
+로 경로 제한이 걸려 있어서다(`docs/**`·`CHANGELOG.md`는 이 목록에 없음). 즉
+**직전 push(`src/` 변경 포함)의 배포가 이미 실패한 채로 남아있는데, 그걸 고친
+커밋이 docs만 건드리면 재배포가 조용히 안 걸린다** — 실패 알림도 없고 성공
+알림도 없으니, `gh run list`로 직접 들여다보지 않으면 "고쳤으니 배포됐겠지"라고
+착각하기 쉽다. `workflow_dispatch`로 수동 트리거해서 해결했다(§7의 "GitHub
+Actions 수동 재실행"과 같은 도구, 다른 상황).
+
+**교훈**: `main`에 push한 뒤에는 `gh run list --branch main --workflow
+"Frontend Deploy (S3 + CloudFront)"`로 **그 커밋의 SHA가 실제로 성공했는지**
+직접 확인하기 전까지 배포됐다고 보고하지 않는다 — push 명령이 성공한 것과
+그 push가 실제로 배포를 완료한 것은 다른 사건이다(`.claude/CLAUDE.md` Critical
+Rules에 규칙으로 명문화).
+
+### 9.4 (참고) 같은 세션에서 BE 쪽에 있었던 실수
 
 같은 작업 세션에서 BE 레포 작업 중 (1) `git commit` 인자 순서 실수, (2)
 `EnterWorktree`가 셸의 잔여 `cd` 상태 때문에 의도한 레포가 아닌 곳에
@@ -235,6 +277,10 @@ ignore 패턴만 고친 시점의 중간 검증: `pnpm exec eslint .` → **0 pr
 install`/`npm run build`로 표기돼 있지만 실제는 pnpm, `package-lock.json`
   언급, Firebase 관련 시크릿 누락)는 이번 변경과 무관한 기존 문제라 손대지
   않았다 — 별도로 정리 필요
+- `deploy.yml`의 경로 필터(§9.3)는 의도된 최적화(문서만 바뀐 push에 매번
+  빌드·배포하지 않기 위함)라 없애는 게 답은 아니다. 다만 "직전 배포가 실패한
+  채 방치된 상태에서 후속 커밋이 그 경로 필터에 안 걸리는" 조합은 여전히
+  재발 가능 — 근본 해법(예: 배포 실패를 Slack/이슈로 알림)은 아직 없음
 
 ## 11. 용어 사전
 

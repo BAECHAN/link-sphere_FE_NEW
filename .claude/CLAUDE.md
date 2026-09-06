@@ -196,6 +196,16 @@ don't build a preview for a bug fix with an obvious right answer.
 - **Never** `if`문을 인라인으로 작성 (`if (x) return;`) → 항상 중괄호 블록으로 감싼다 (`if (x) {\n  return;\n}`). 한 줄짜리 본문도 예외 없음 (ESLint `curly` 규칙으로 강제 예정)
 - **Never** 문장을 다닥다닥 붙여 논리 그룹을 뭉개지 않는다 → 가드절(`if (...) { return; }`) 뒤, 그리고 `if`/`try` 같은 제어 블록 **앞뒤**에 **빈 줄 1줄**을 넣어 논리 단위를 분리한다 (Prettier가 아닌 컨벤션 — 아래 예시 참고)
 - **Never** 클릭 가능한 요소에 `cursor-pointer`를 개별로 붙인다 → `globals.css`의 `@layer base` 규칙이 `button`/ARIA role 전체를 전역으로 처리한다(디자인 토큰 섹션의 "인터랙션 커서" 참고). `div`/`span`에 `onClick`만 다는 것도 금지 — `Button`/`<button>`을 쓰거나, 불가피하면 `role="button"`을 함께 지정한다 (ESLint `custom-a11y/clickable-needs-interactive-element`가 차단)
+- **Never** `main`에 push한 뒤 워크플로우 결과를 확인하지 않고 "배포됨"이라 보고 →
+  push 명령이 성공한 것과 배포가 실제로 완료된 것은 다른 사건이다. 항상
+  `gh run list --branch main --workflow "Frontend Deploy (S3 + CloudFront)"`
+  (또는 `gh run watch <id>`)로 그 push의 커밋 SHA가 실제로 success인지 확인한
+  뒤에만 사용자에게 결과를 보고한다. 실패했으면 원인을 고쳐 재검증하고, 후속
+  수정 커밋이 `docs/`나 `CHANGELOG.md`처럼 `deploy.yml`의 경로 필터에 안 걸리는
+  파일만 건드렸다면 `gh workflow run "Frontend Deploy (S3 + CloudFront)" --ref main`
+  으로 수동 트리거해야 한다(안 그러면 워크플로우 자체가 안 돌아 조용히
+  미배포로 남는다). 2026-09-06 실제로 이 순서를 건너뛰어 배포 실패를 놓친
+  사고 발생(`docs/CI-CHECK-GATE.md` §9.3, `docs/DEPLOY.md` "Trigger" 참고)
 - **Never** 코드/설정을 바꾼 뒤 그 동작을 서술하는 문서 갱신 누락 → 인프라·배포·아키텍처뿐 아니라 **기능 동작(상태 저장 방식, API 계약 등)을 바꿀 때도** 반대편 BE 레포의 문서(특히 `docs/*-BOT.md` 같은 서사형 문서)가 그 동작을 서술하고 있는지 확인한다(2026-09-06, FE 봇 글 숨기기 토글의 저장 방식을 URL→localStorage로 바꿨을 때 BE `docs/RSS-FEED-BOT.md`가 옛 URL 기반 서술로 남아있던 사례 — BE `.claude/CLAUDE.md`의 같은 규칙 참고). 고쳤으면 **최종 보고에 "문서 X를 Y로 갱신함"을 별도 항목으로 명시**한다
 
 ```typescript
