@@ -9,6 +9,7 @@ import { useUpdateComment } from '@/features/comment/update/hooks/useUpdateComme
 import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/const';
 
 // 기본 commentHandlers는 API_BASE_URL 접두사(/api) 없이 등록돼 있어 테스트 환경 요청 경로와
 // 매칭되지 않는다(CommentQueries.test.tsx와 동일한 이유) - url()로 명시 등록.
@@ -55,6 +56,23 @@ describe('useUpdateComment', () => {
       result.current.form.setValue('content', '', { shouldDirty: true });
     });
 
+    expect(result.current.canSubmit).toBe(false);
+  });
+
+  it('본문이 상한을 넘으면 canSubmit이 false가 된다', () => {
+    const { result } = renderHook(
+      () => useUpdateComment({ comment: mockComment, postId: mockComment.postId }),
+      {
+        wrapper: createWrapper(queryClient),
+      }
+    );
+
+    const overLong = '가'.repeat(Math.ceil(MAX_COMMENT_CONTENT_BYTES / 3) + 1);
+    act(() => {
+      result.current.form.setValue('content', overLong, { shouldDirty: true });
+    });
+
+    expect(result.current.isOverLimit).toBe(true);
     expect(result.current.canSubmit).toBe(false);
   });
 

@@ -99,6 +99,57 @@ aws cloudfront test-function --name link-sphere-spa-fallback \
 aws cloudfront publish-function --name link-sphere-spa-fallback --if-match <최신 ETag>
 ```
 
+## CloudFront WAF (수동 관리)
+
+CloudFront 배포에 `CreatedByCloudFront-bcd729fb`라는 WAF Web ACL(CLOUDFRONT 스코프,
+us-east-1)이 붙어 있다. 이름에서 보이듯 CloudFront 콘솔에서 보안 보호를 켤 때 자동
+생성된 것이고, 레포 어디에도 이 설정이 코드로 없다.
+
+- **이 Web ACL은 어떤 파이프라인도 배포하지 않는다** — 콘솔 또는 AWS CLI로만 바꿀 수 있고,
+  바뀐 사실이 git 이력에 전혀 남지 않는다. 바꿀 때마다 이 절을 갱신한다.
+- **AWS 관리형 룰 `AWSManagedRulesCommonRuleSet`의 `SizeRestrictions_BODY`가 기본값
+  그대로면 요청 바디 8,192바이트 초과를 무조건 차단한다.** 이 값은 ALB/AppSync
+  기준이고, CloudFront는 원래 16KB(16,384바이트)까지 검사할 수 있는데도 8KB에서
+  잘렸다 — 2026-09-06 발견 당시 실측으로 8,189바이트는 Lambda까지 도달(401),
+  8,219바이트는 이 룰에 차단(403)됐다. 응답은 BE가 만든 JSON이 아니라 CloudFront가
+  직접 반환하는 HTML(`403 ERROR` / `Request blocked.`)이라 BE `GlobalExceptionHandler`를
+  전혀 타지 않는다 — 403 응답 body가 JSON이 아니라 HTML이면 이 문서를 먼저 볼 것.
+  실제 영향은 댓글 등록·수정처럼 긴 텍스트를 보내는 API였다(BE `CHANGELOG.md` 참고).
+- 현재 룰 구성(우선순위순):
+  1. `AWS-AWSManagedRulesAmazonIpReputationList` (관리형, 기본값)
+  2. `BlockOversizedBody` (커스텀) — 바디 16,384바이트 초과 시 Block. inspection limit이
+     16KB이므로 이 룰이 그 이상을 다시 걸러낸다.
+  3. `AWS-AWSManagedRulesCommonRuleSet` — `SizeRestrictions_BODY`만 `RuleActionOverrides`로
+     Count 처리(위 커스텀 룰이 대신 막으므로). 다른 서브룰(XSS·LFI·RFI·Log4j 등)은
+     그대로 Block.
+  4. `AWS-AWSManagedRulesKnownBadInputsRuleSet` (관리형, 기본값)
+
+```bash
+# 현재 설정 조회 (Rules 배열을 백업해두고 수정한다 - update-web-acl은 전체를 다시 보내야 함)
+aws wafv2 get-web-acl --scope CLOUDFRONT --region us-east-1 \
+  --name CreatedByCloudFront-bcd729fb --id 16fc99ed-1f67-4dec-9951-04806ce95699
+
+# 재적용 (LockToken은 위 조회 응답의 최신 값으로 매번 교체)
+aws wafv2 update-web-acl --scope CLOUDFRONT --region us-east-1 \
+  --name CreatedByCloudFront-bcd729fb --id 16fc99ed-1f67-4dec-9951-04806ce95699 \
+  --lock-token <위 LockToken> \
+  --default-action Allow={} \
+  --rules file://waf-rules.json \
+  --visibility-config SampledRequestsEnabled=true,CloudWatchMetricsEnabled=true,MetricName=CreatedByCloudFront-bcd729fb
+```
+
+이 IAM 사용자는 `wafv2:UpdateWebACL`·`wafv2:GetSampledRequests` 권한이 없어 위 CLI가
+`AccessDeniedException`으로 막힐 수 있다 — 그럴 땐 AWS 콘솔(WAF & Shield → Web ACLs →
+Global(CloudFront))에서 동일한 구성을 수동으로 적용한다.
+
+```bash
+# 검증: 정상 크기는 통과(401 = 인증만 실패, Lambda 도달), 16KB 초과는 커스텀 룰이 차단(403)
+URL="https://<cloudfront-domain>/api/post/00000000-0000-0000-0000-000000000000/comment"
+BODY=$(python3 -c "import json;print(json.dumps({'content':'가'*4000,'images':[]},ensure_ascii=False))")
+curl -sS -o /dev/null -w '%{http_code}\n' -X POST "$URL" -H 'Content-Type: application/json' --data-binary "$BODY"
+# 기대: 401
+```
+
 ## 수동 배포 (참고)
 
 로컬 환경에서 수동으로 배포해야 할 경우 다음 명령어를 사용할 수 있습니다 (AWS CLI 설정 필요).

@@ -34,6 +34,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
     onSubmit,
     isReply,
     contentValue,
+    isOverLimit,
     images,
     imagePreviewUrls,
     isDraggingOver,
@@ -50,7 +51,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
   const { register } = form;
 
   const isMobile = useIsMobile();
-  const canSubmit = !!contentValue.trim() || images.length > 0;
+  const canSubmit = (!!contentValue.trim() || images.length > 0) && !isOverLimit;
 
   const containerRef = useRef<HTMLDivElement>(null);
   // 병합 콜백 ref에서 직접 .current를 대입해야 해서 MutableRefObject가 되도록
@@ -173,7 +174,13 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
             )
           )}
           <TooltipWrapper
-            content={canSubmit ? null : TEXTS.validation.commentOrImageRequired}
+            content={
+              isOverLimit
+                ? TEXTS.validation.commentContentTooLong
+                : canSubmit
+                  ? null
+                  : TEXTS.validation.commentOrImageRequired
+            }
             disabled={!canSubmit}
           >
             <Button type="submit" size="sm" className="gap-1.5" disabled={!canSubmit}>

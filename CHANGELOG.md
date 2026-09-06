@@ -26,12 +26,43 @@
 
   </details>
 
+- `comment` 댓글·답글 등록이 실패하면 입력했던 내용과 이미지가 폼에 복원됨
+  <details><summary>배경·구현</summary>
+
+  기존엔 서버 응답을 기다리지 않고 제출 즉시 폼을 비웠는데(낙관적 업데이트가 목록에
+  바로 반영되므로), 등록이 실패하면 방금 쓴 내용이 그대로 사라졌다. `reset()`은
+  지금처럼 즉시 실행해 비우는 UX는 유지하되, "폼을 닫는" `onSuccess`만 mutate
+  콜백으로 미뤘다 — 답글 폼·모바일 바는 `onSuccess`에서 폼 컴포넌트를 언마운트하는데,
+  React Query는 뮤테이션이 끝나기 전에 컴포넌트가 언마운트되면 `mutate()`의 스코프
+  콜백(`onError` 포함)을 호출하지 않는다. 그 사이 사용자가 새로 입력을 시작했으면
+  덮어쓰지 않는다.
+  (`features/comment/create/hooks/useCreateComment.ts`)
+
+  </details>
+
 ### Notes
 
 - BE API 의존: `GET /post`의 `filter` 파라미터에 `excludeBots` 값 지원 필요.
   배포 순서 무관 — 구버전 BE는 모르는 filter 값을 조용히 무시한다.
 
 ### Changed
+
+- `comment` 댓글·답글 본문 길이를 한글 기준 약 4,000자(UTF-8 12,000바이트)로 제한
+  <details><summary>배경·구현</summary>
+
+  긴 댓글을 등록하면 CloudFront WAF가 요청 바디 크기(원래 8KB, 과차단이라 16KB로
+  조정 — BE `docs/DEPLOY.md`의 "CloudFront WAF (수동 관리)" 절 참고)를 넘겼다는
+  이유로 앱에 닿기도 전에 403 HTML을 돌려줬다. 이 응답은 앱 에러 처리를 전혀 타지
+  않아 사용자는 이유를 알 수 없었다. 앱이 먼저 제출을 막고 이유를 말하도록
+  `commentContentFormSchema`(바이트 기준 zod refine)를 작성·수정 폼이 공유하게
+  했고, 제출 버튼은 기존 "내용/이미지 필요" 툴팁과 같은 언어로 초과 시에만
+  안내한다(상시 글자수 카운터는 넣지 않음). BE `CommentService.MAX_COMMENT_CONTENT_BYTES`와
+  반드시 같은 값이어야 한다.
+  (`entities/comment/config/const.ts`의 `MAX_COMMENT_CONTENT_BYTES`,
+  `entities/comment/model/comment.schema.ts`의 `commentContentFormSchema`,
+  `shared/lib/content/textBytes.ts`(신규))
+
+  </details>
 
 - `post` 게시글 검색 필터 영역을 기능별 행으로 재구성
   <details><summary>배경·구현</summary>

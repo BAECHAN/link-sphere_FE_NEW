@@ -27,6 +27,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
     contentValue,
     isUpdating,
     canSubmit,
+    isOverLimit,
     imagePreviewUrls,
     isDraggingOver,
     addFiles,
@@ -152,7 +153,13 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
             {TEXTS.comment.form.cancel}
           </Button>
           <TooltipWrapper
-            content={!canSubmit && !isUpdating ? TEXTS.validation.commentOrImageRequired : null}
+            content={
+              isOverLimit
+                ? TEXTS.validation.commentContentTooLong
+                : !canSubmit && !isUpdating
+                  ? TEXTS.validation.commentOrImageRequired
+                  : null
+            }
             disabled={!canSubmit}
           >
             <Button type="submit" size="sm" disabled={!canSubmit} className="h-8 px-2 text-xs">
