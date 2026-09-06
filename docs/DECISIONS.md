@@ -11,11 +11,10 @@
 **배경**
 
 필터 카드의 검색창 placeholder 잘림 문제를 고치려던 중, 코드를 추적해보니
-데스크톱 헤더(`NavbarSearch.tsx`)와 모바일 헤더 검색(`MobileNavbarSearch.tsx`
-
-- `Navbar.tsx`의 `handleSearchSubmit`)이 이미 있고, 제출하면 이 필터 카드의
-  검색창과 **완전히 동일하게** `/post?q=<검색어>`로 이동한다는 걸 확인했다.
-  검색창이 사실상 2곳에 중복 존재하던 것이다.
+데스크톱 헤더(`NavbarSearch.tsx`)와 모바일 헤더 검색(`MobileNavbarSearch.tsx`,
+`Navbar.tsx`의 `handleSearchSubmit`)이 이미 있고, 제출하면 이 필터 카드의
+검색창과 **완전히 동일하게** `/post?q=<검색어>`로 이동한다는 걸 확인했다.
+검색창이 사실상 2곳에 중복 존재하던 것이다.
 
 **검토 — 문제 발생 가능성 (Impact Check)**
 
