@@ -1,10 +1,9 @@
 import { Loader2 } from 'lucide-react';
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
-import { useFolderPostsInfiniteQuery } from '@/entities/folder/api/folder.queries';
 import { FolderKey, FolderSort } from '@/entities/folder/model/folder.schema';
-import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
 import { TEXTS } from '@/shared/config/texts';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { useBookmarkPostList } from '@/widgets/bookmark/bookmark-post-list/hooks/useBookmarkPostList';
 
 interface BookmarkPostListProps {
   folderKey: FolderKey;
@@ -14,18 +13,8 @@ interface BookmarkPostListProps {
 }
 
 export function BookmarkPostList({ folderKey, sort, search, className }: BookmarkPostListProps) {
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useFolderPostsInfiniteQuery(folderKey, sort, search);
-
-  const observerRef = useIntersectionObserver({
-    onIntersect: () => {
-      if (hasNextPage && !isFetchingNextPage) {
-        fetchNextPage();
-      }
-    },
-    enabled: hasNextPage && !isFetchingNextPage,
-    rootMargin: '0px 0px 1200px 0px',
-  });
+  const { posts, correctedSearch, isLoading, hasNextPage, isFetchingNextPage, observerRef } =
+    useBookmarkPostList(folderKey, sort, search);
 
   if (isLoading) {
     return (
@@ -34,8 +23,6 @@ export function BookmarkPostList({ folderKey, sort, search, className }: Bookmar
       </div>
     );
   }
-
-  const posts = data?.posts ?? [];
 
   if (posts.length === 0) {
     return (
@@ -58,9 +45,9 @@ export function BookmarkPostList({ folderKey, sort, search, className }: Bookmar
 
   return (
     <div className={cn('space-y-6', className)}>
-      {data?.correctedSearch && (
+      {correctedSearch && (
         <div className="text-sm text-muted-foreground text-center">
-          {TEXTS.post.search.corrected(data.correctedSearch)}
+          {TEXTS.post.search.corrected(correctedSearch)}
         </div>
       )}
 

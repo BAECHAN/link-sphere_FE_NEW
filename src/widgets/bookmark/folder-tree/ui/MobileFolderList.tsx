@@ -1,4 +1,3 @@
-import { useRef, useState, KeyboardEvent } from 'react';
 import {
   Bookmark,
   ChevronRight,
@@ -8,7 +7,6 @@ import {
   MoreVertical,
   Plus,
 } from 'lucide-react';
-import { toast } from '@/shared/lib/toast/toast';
 import { Button } from '@/shared/ui/atoms/button';
 import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';
@@ -18,17 +16,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/shared/ui/atoms/dropdown-menu';
-import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
-import {
-  useCreateFolderMutation,
-  useDeleteFolderMutation,
-  useFolderListQuery,
-  useUpdateFolderMutation,
-} from '@/entities/folder/api/folder.queries';
 import { Folder, FolderKey } from '@/entities/folder/model/folder.schema';
-import { useRecentFolders } from '@/entities/folder/model/useRecentFolders';
+import { useFolderActions } from '@/widgets/bookmark/folder-tree/hooks/useFolderActions';
+import {
+  useCreateFolderCard,
+  useMobileFolderList,
+} from '@/widgets/bookmark/folder-tree/hooks/useMobileFolderList';
 
 interface MobileFolderListProps {
   onSelect: (key: FolderKey) => void;
@@ -37,11 +32,7 @@ interface MobileFolderListProps {
 
 /** 모바일 — 폴더 목록 페이지 (drill-down 패턴) */
 export function MobileFolderList({ onSelect, className }: MobileFolderListProps) {
-  const { data, isLoading, isFetching } = useFolderListQuery();
-  const folders = data?.folders;
-  const uncategorizedCount = data?.uncategorizedCount ?? 0;
-  // 상단 "최근 저장한 폴더" 구획 — 페이지 방문(마운트) 동안 1회 스냅샷, 그 뒤로는 고정
-  const { recentFolders } = useRecentFolders(folders ?? [], isFetching);
+  const { folders, uncategorizedCount, recentFolders, isLoading } = useMobileFolderList();
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -56,7 +47,7 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
         <FixedRow
           icon={<Inbox className="h-5 w-5" />}
           label={TEXTS.bookmark.folder.uncategorized}
-          count={data ? uncategorizedCount : undefined}
+          count={uncategorizedCount}
           onClick={() => onSelect('uncategorized')}
         />
       </section>
@@ -127,50 +118,16 @@ interface FolderCardProps {
 }
 
 function FolderCard({ folder, onSelect }: FolderCardProps) {
-  const [renaming, setRenaming] = useState(false);
-  const [name, setName] = useState(folder.name);
-  const { mutateAsync: updateFolder, isPending: isUpdating } = useUpdateFolderMutation(folder.id);
-  const { mutateAsync: deleteFolder } = useDeleteFolderMutation(folder.id);
-  const { openConfirm } = useAlert();
-  const submittingRef = useRef(false);
-
-  const submitRename = async () => {
-    if (submittingRef.current || isUpdating) {
-      return;
-    }
-    const next = name.trim();
-    if (!next || next === folder.name) {
-      setRenaming(false);
-      setName(folder.name);
-      return;
-    }
-    submittingRef.current = true;
-    try {
-      await updateFolder({ name: next });
-      setRenaming(false);
-    } catch {
-      toast.error(TEXTS.messages.error.folderRenameFailed);
-      setName(folder.name);
-    } finally {
-      submittingRef.current = false;
-    }
-  };
-
-  const handleDelete = () => {
-    openConfirm({
-      title: TEXTS.bookmark.folder.deleteConfirmTitle(folder.name),
-      message: TEXTS.bookmark.folder.deleteConfirmMessage,
-      confirmText: TEXTS.buttons.delete,
-      cancelText: TEXTS.buttons.cancel,
-      onConfirm: async () => {
-        try {
-          await deleteFolder();
-        } catch {
-          toast.error(TEXTS.messages.error.folderDeleteFailed);
-        }
-      },
-    });
-  };
+  const {
+    renaming,
+    startRename,
+    name,
+    setName,
+    isUpdating,
+    submitRename,
+    handleRenameKeyDown,
+    handleDelete,
+  } = useFolderActions({ folder });
 
   if (renaming) {
     return (
@@ -181,18 +138,7 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           onBlur={submitRename}
-          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-            if (e.nativeEvent.isComposing) {
-              return;
-            }
-            if (e.key === 'Enter') {
-              submitRename();
-            }
-            if (e.key === 'Escape') {
-              setRenaming(false);
-              setName(folder.name);
-            }
-          }}
+          onKeyDown={handleRenameKeyDown}
           disabled={isUpdating}
           className="h-8"
         />
@@ -223,9 +169,7 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setRenaming(true)}>
-            {TEXTS.bookmark.folder.rename}
-          </DropdownMenuItem>
+          <DropdownMenuItem onClick={startRename}>{TEXTS.bookmark.folder.rename}</DropdownMenuItem>
           <DropdownMenuItem onClick={handleDelete} className="text-destructive">
             {TEXTS.buttons.delete}
           </DropdownMenuItem>
@@ -236,30 +180,8 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
 }
 
 function CreateFolderCard() {
-  const [creating, setCreating] = useState(false);
-  const [name, setName] = useState('');
-  const { mutateAsync: createFolder, isPending } = useCreateFolderMutation();
-  const submittingRef = useRef(false);
-
-  const submit = async () => {
-    if (submittingRef.current || isPending) {
-      return;
-    }
-    const trimmed = name.trim();
-    if (!trimmed) {
-      return;
-    }
-    submittingRef.current = true;
-    try {
-      await createFolder({ name: trimmed });
-      setCreating(false);
-      setName('');
-    } catch {
-      toast.error(TEXTS.messages.error.folderCreateFailed);
-    } finally {
-      submittingRef.current = false;
-    }
-  };
+  const { creating, startCreating, name, setName, isPending, submit, handleKeyDown, handleBlur } =
+    useCreateFolderCard();
 
   if (creating) {
     return (
@@ -269,23 +191,8 @@ function CreateFolderCard() {
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
-          onBlur={() => {
-            if (!name && !isPending) {
-              setCreating(false);
-            }
-          }}
-          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-            if (e.nativeEvent.isComposing) {
-              return;
-            }
-            if (e.key === 'Enter') {
-              submit();
-            }
-            if (e.key === 'Escape') {
-              setCreating(false);
-              setName('');
-            }
-          }}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
           placeholder={TEXTS.bookmark.folder.namePlaceholder}
           disabled={isPending}
           className="h-8"
@@ -304,7 +211,7 @@ function CreateFolderCard() {
   return (
     <button
       type="button"
-      onClick={() => setCreating(true)}
+      onClick={startCreating}
       className="rounded-lg border border-dashed bg-card p-3 flex flex-col gap-2 active:bg-accent text-muted-foreground"
     >
       <Plus className="h-5 w-5" />
