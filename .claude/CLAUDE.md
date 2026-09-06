@@ -342,99 +342,11 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 레이어 의존 방향: `app → pages → widgets → features → entities → shared`
 도메인 그룹핑: `features/<domain>/<slice>/`, `widgets/<domain>/<slice>/`
 
-```
-src/
-├── app/                          # 앱 초기화, providers, routing, layouts
-│   ├── providers/                # RouterProvider, ThemeProvider, AuthProvider, QueryProvider
-│   ├── routes/                   # index.tsx, ProtectedRoute.tsx, layouts/
-│   └── layouts/
-│       ├── app-layout/           # AppLayout.tsx
-│       ├── auth-layout/
-│       └── error-layout/
-│
-├── pages/                        # 라우팅 진입점 — widgets/features만 조합
-│   ├── post/                     # PostSubmitPage, PostDetailPage, PostEditPage
-│   ├── auth/                     # LoginPage, SignUpPage
-│   ├── mypage/
-│   ├── 403/ 404/ 500/
-│   └── index.tsx
-│
-├── widgets/                      # 복합 UI 블록 — 도메인 그룹핑
-│   ├── post/
-│   │   ├── post-list/            # hooks/usePostList.ts, ui/, utils/search-parser.ts
-│   │   └── post-card/            # hooks/usePostCard.ts, ui/PostCard.tsx
-│   ├── comment/
-│   │   └── comment-list/         # ui/CommentList.tsx, ui/CommentItem.tsx
-│   └── layout/
-│       └── navbar/               # ui/Navbar.tsx, NavbarSearch.tsx, MobileNavbarSearch.tsx
-│
-├── features/                     # mutation + trigger UI — 도메인 그룹핑
-│   ├── post/
-│   │   ├── create/               # hooks/useCreatePost.ts, ui/CreatePostForm.tsx
-│   │   ├── update/               # hooks/useUpdatePost.ts, ui/UpdatePostForm.tsx
-│   │   ├── delete/               # hooks/useDeletePost.ts (UI 없음)
-│   │   ├── like/                 # hooks/useLikePost.ts, ui/LikePostButton.tsx
-│   │   └── bookmark/             # hooks/useBookmarkPost.ts, ui/BookmarkPostButton.tsx
-│   ├── comment/
-│   │   ├── create/               # hooks/useCreateComment.ts, ui/CommentForm.tsx
-│   │   ├── update/               # hooks/useUpdateComment.ts, ui/CommentEditForm.tsx
-│   │   ├── delete/               # hooks/useDeleteComment.ts (UI 없음)
-│   │   └── like/                 # hooks/useLikeComment.ts, ui/LikeCommentButton.tsx
-│   └── auth/
-│       ├── login/                # hooks/useLogin.ts, ui/LoginForm.tsx
-│       └── signup/               # hooks/useSignUp.ts, ui/SignUpForm.tsx
-│
-├── entities/                     # data layer + basic display UI
-│   ├── post/
-│   │   ├── api/                  # post.api.ts, post.keys.ts, post.queries.ts
-│   │   ├── model/                # post.schema.ts (+ test)
-│   │   └── config/               # const.ts
-│   ├── comment/
-│   │   ├── api/                  # comment.api.ts, comment.keys.ts, comment.queries.ts
-│   │   └── model/                # comment.schema.ts
-│   ├── interaction/
-│   │   ├── api/                  # interaction.api.ts, interaction.queries.ts
-│   │   └── model/                # interaction.schema.ts (canonical)
-│   └── user/
-│       ├── api/                  # auth.api.ts, auth.keys.ts, auth.queries.ts
-│       ├── model/                # useAuth.ts, useAccount.ts, useAppInitialization.ts, useAuthGuard.ts, useProtectedNavigate.ts
-│       └── ui/                   # UserAvatar.tsx
-│
-├── shared/                       # 순수 유틸, UI atoms, API client, config
-│   ├── api/                      # client.ts, common.schema.ts, common.keys.ts
-│   ├── config/                   # texts.ts (TEXTS), api.ts (API_ENDPOINTS), route-paths.ts, const.ts
-│   ├── hooks/                    # useToggle, useDebounce, useIntersectionObserver, useIsMobile, ...
-│   ├── lib/
-│   │   ├── firebase/             # firebase.ts, fcm.ts
-│   │   ├── react-query/config/   # queryClient.ts
-│   │   └── tailwind/             # utils.ts (cn)
-│   ├── store/                    # auth.store.ts (useAuthStore)
-│   ├── types/                    # common.type.ts, auth.type.ts
-│   ├── ui/
-│   │   ├── atoms/                # Button, Input, Card, Badge, Select, Checkbox, Avatar, Dialog, ...
-│   │   ├── elements/
-│   │   │   ├── form/             # FormInput, FormInputPassword, FormCheckbox, FormCheckboxGroup
-│   │   │   │   └── _base/        # FormField.tsx
-│   │   │   ├── modal/alert/      # Alert.tsx, alert.store.ts (useAlert)
-│   │   │   ├── ActionButton.tsx
-│   │   │   ├── AsyncBoundary.tsx
-│   │   │   ├── MarkdownContent.tsx
-│   │   │   ├── PostCreationLoadingBadge.tsx
-│   │   │   ├── SearchInput.tsx
-│   │   │   ├── ScrollToTop.tsx
-│   │   │   ├── SpinnerOverlay.tsx
-│   │   │   └── TooltipWrapper.tsx
-│   │   └── layouts/              # AuthLayout.tsx, ErrorLayout.tsx
-│   └── utils/                    # auth.util, common.util, date.util, file.util, form.util, storage.util
-│
-├── mocks/
-│   ├── handlers/                 # MSW handler 파일들
-│   ├── fixtures/                 # 테스트 픽스처 (auth, post, comment)
-│   └── server.ts
-└── test/
-    ├── setup.ts                  # MSW 글로벌 셋업
-    └── utils.tsx                 # renderWithProviders(), createTestQueryClient()
-```
+전체 디렉터리 트리와 "정식 FSD와 다른 점"은 여기 복사해두지 않는다 —
+[`docs/FE-ARCHITECTURE.md`](../docs/FE-ARCHITECTURE.md) §1·§3이 정본이다. 새 도메인·슬라이스를
+추가하거나 기존 구조를 확인해야 할 때 그 문서를 먼저 읽는다(두 곳에 같은 트리를 유지하면
+한쪽만 갱신되고 다른 쪽이 낡는 문제가 실제로 있었다 — 2026-09-06). 세그먼트 사용 규칙은
+아래 "폴더 네이밍 규칙" 절 참고.
 
 ---
 
