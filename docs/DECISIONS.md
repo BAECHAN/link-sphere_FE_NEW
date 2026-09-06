@@ -162,6 +162,36 @@ edge case"로 접어뒀던 위험이 하루도 안 돼 실제로 발생한 것�
 
 ---
 
+## 2026-09-06 — 콘솔의 `reportAllChanges` TypeError: 브라우저 보안 확장이 원인, 조치 안 함
+
+**배경**
+
+배포 환경 콘솔에 `Uncaught TypeError: Cannot read properties of undefined (reading
+'startTime')`가 `VM<n>`(익명 eval 컨텍스트) 안의 `reportAllChanges`에서 반복 신고됐다.
+FE 코드·의존성 전체에 web-vitals·`reportAllChanges` 사용처가 없음을 grep으로 확인했고
+(0건), Playwright로 확장이 전혀 없는 브라우저에서 같은 프로덕션 URL을 로드해도 재현되지
+않았다(콘솔 에러 0건, 로드되는 script도 전부 우리 번들뿐) — 우리 코드·인프라 문제가
+아님을 실측으로 확인했다.
+
+시크릿모드에서도 재현된다는 재보고를 받았는데, Chrome 시크릿모드는 확장을 기본
+차단하지만 "시크릿모드에서 허용"이 켜진 확장은 그대로 실행된다는 점에 착안해
+`chrome://extensions` 목록을 확인했다. INISAFE CrossWeb EX / INISAFE SmartManagerEX /
+TouchEn PC보안 확장(전부 라온시큐어 제품, 한국 인터넷뱅킹·공공기관 사이트 접속용 보안
+플러그인 — 방문하는 모든 페이지에 스크립트를 주입해 검사하는 방식이라 사이트와 무관하게
+이런 콘솔 노이즈를 일으키는 것으로 알려짐)을 유력 후보로 지목했고, 사용자가 직접
+껐다 켰다 대조한 결과 이 셋이 켜져 있을 때만 에러가 재현됨을 확인했다.
+
+**결정**
+
+조치하지 않는다. 원인이 우리 코드·배포 밖(사용자 로컬 보안 소프트웨어)에 있고, 에러가
+던져지는 지점이 우리 페이지 로직과 무관한 별도 eval 컨텍스트라 화면 기능에도 영향이 없다.
+
+**상태**: 조치 없음 확정. 같은 증상(`VM<n>:...`에서 `reportAllChanges`류 함수명의
+`Cannot read properties of undefined (reading 'startTime')`)이 재보고되면 이 항목을
+링크해 반복 조사를 생략한다.
+
+---
+
 ## 2026-09-06 — 검색창 헤더 통합 + 모바일 칩 높이 되돌림
 
 **배경**
