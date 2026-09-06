@@ -5,10 +5,11 @@ import { Switch } from '@/shared/ui/atoms/switch';
 import { FilterChip } from '@/shared/ui/elements/FilterChip';
 import { SearchInput } from '@/shared/ui/elements/SearchInput';
 import { RotateCcw } from 'lucide-react';
-import { useEffect, useState, useTransition } from 'react';
+import { startTransition, useEffect, useState, useTransition } from 'react';
 import { flushSync } from 'react-dom';
 import { usePostListParams } from '@/widgets/post/post-list/hooks/usePostList';
 import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
+import { useHideBotsStore } from '@/shared/store/hideBots.store';
 import { TEXTS } from '@/shared/config/texts';
 
 const SEARCH_LOADING_MIN_DURATION_MS = 400;
@@ -16,6 +17,8 @@ const SEARCH_LOADING_MIN_DURATION_MS = 400;
 export function PostListSearch() {
   const { data: categories } = useFetchCategoryOptionQuery();
   const { searchQuery, currentFilter, setSearch, toggleFilter, clearSearch } = usePostListParams();
+  const hideBots = useHideBotsStore((state) => state.hideBots);
+  const setHideBots = useHideBotsStore((state) => state.setHideBots);
   const [isSearchPending, startSearchTransition] = useTransition();
   // 캐시 히트 등으로 전환이 순식간에 끝나도 "검색이 실행됐다"는 신호를 사람이 인지할 수 있게 최소 시간 보장
   const showSearchLoading = useMinimumLoading(isSearchPending, SEARCH_LOADING_MIN_DURATION_MS);
@@ -47,6 +50,25 @@ export function PostListSearch() {
     toggleFilter(targetFilter);
   };
 
+  // 봇 숨기기는 store(localStorage) 값이라 URL과 달리 라우터의 v7_startTransition 보호를
+  // 받지 못한다. 그대로 두면 토글할 때마다 목록이 스켈레톤으로 떨어지므로, 스위치 자체는
+  // flushSync로 즉시 반응시키고 실제 store 갱신(=재조회)만 startTransition으로 감싼다.
+  const [optimisticHideBots, setOptimisticHideBots] = useState(hideBots);
+
+  useEffect(() => {
+    setOptimisticHideBots(hideBots);
+  }, [hideBots]);
+
+  const handleToggleHideBots = () => {
+    const next = !optimisticHideBots;
+    flushSync(() => {
+      setOptimisticHideBots(next);
+    });
+    startTransition(() => {
+      setHideBots(next);
+    });
+  };
+
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     // setSearch(setSearchParams)는 라우터의 v7_startTransition으로 이미 감싸여 있어
@@ -65,7 +87,6 @@ export function PostListSearch() {
   const isClickedBookmark = optimisticFilters.includes('isBookmarked');
   const isClickedMyPosts = optimisticFilters.includes('isMyPosts');
   const isClickedPrivate = optimisticFilters.includes('isPrivate');
-  const isHideBots = optimisticFilters.includes('excludeBots');
 
   return (
     <>
@@ -140,7 +161,8 @@ export function PostListSearch() {
 
             <div className="h-4 w-px bg-border mx-2" />
 
-            {/* 칩이 아니라 별도 스위치 - 기본 OFF(봇 글 보임), 켜면 filter=excludeBots가 붙는다 */}
+            {/* 칩이 아니라 별도 스위치 - 나머지 필터(URL)와 달리 기기별 개인 설정이라
+                localStorage(useHideBotsStore)에 영속화한다. 기본 OFF(봇 글 보임) */}
             <label
               htmlFor="hide-bots-switch"
               className="flex items-center gap-2 min-h-11 md:min-h-0 cursor-pointer select-none text-sm text-muted-foreground"
@@ -148,8 +170,8 @@ export function PostListSearch() {
               <span>{TEXTS.buttons.hideBots}</span>
               <Switch
                 id="hide-bots-switch"
-                checked={isHideBots}
-                onCheckedChange={() => handleToggleFilter('excludeBots')}
+                checked={optimisticHideBots}
+                onCheckedChange={handleToggleHideBots}
               />
             </label>
 

@@ -21,6 +21,9 @@ const STORAGE_KEYS = {
   FCM: {
     TOKEN: `${STORAGE_PREFIX}:fcm:token`,
   },
+  PREFERENCES: {
+    HIDE_BOTS: `${STORAGE_PREFIX}:preferences:hide-bots`,
+  },
   THEME: `${STORAGE_PREFIX}:theme`,
 } as const;
 
