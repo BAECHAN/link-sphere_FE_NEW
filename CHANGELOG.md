@@ -9,6 +9,8 @@
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-09-06
+
 ### Added
 
 - `post` 게시글 목록에 "봇 글 숨기기" 스위치 추가
@@ -1586,7 +1588,8 @@ BE API 의존: 댓글 생성/답글/수정 요청 바디가 `multipart/form-data
   `PostResponse.userInteractions.bookmarkFolderId` 필요
 - 드래그앤드랍 · 다중 선택 · 폴더 공유는 차후 별도 작업
 
-[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.9.0...v0.10.0
