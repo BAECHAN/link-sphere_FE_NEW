@@ -143,6 +143,30 @@ evidence, not intuition:
 The test: if someone challenges the decision later, can you point to a specific study or product
 precedent — or did you just say "this feels better"?
 
+## 9. Preview Visual Changes Before Applying Them
+
+**Spacing, alignment, dividers, color — show the screen, don't describe it.**
+
+Some changes are functionally correct but visually a matter of taste: gap sizes, whether a
+divider line helps or clutters, alignment choices. Text descriptions of these are unreliable in
+both directions — the reader can't always predict how a description will look, and the writer
+can't always predict how a description will land. Shipping the code first and finding out after
+deployment ("this gap is too wide") is the failure mode this rule exists to prevent (see
+`docs/DECISIONS.md`, 2026-09-06, for the incident that prompted it).
+
+- Before writing the real change, build a static preview — a screenshot of the actual running
+  component, or a lightweight mockup that reuses the real Tailwind classes and `globals.css`
+  color tokens — so it looks like the real thing, not an approximation.
+- If there is more than one reasonable option, build them side by side in one place (one
+  Artifact page works well) rather than asking the user to imagine each from a description.
+  Parallel comparison surfaces a better pick than serial one-at-a-time review (parallel
+  prototyping research — see `docs/DECISIONS.md`, 2026-09-06).
+- Only write the change to the real component after the user has seen the preview and picked
+  (or approved) an option.
+
+This applies to visual/layout polish, not to functional changes with a single correct behavior —
+don't build a preview for a bug fix with an obvious right answer.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

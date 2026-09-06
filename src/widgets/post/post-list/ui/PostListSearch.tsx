@@ -10,15 +10,11 @@ import { flushSync } from 'react-dom';
 import { usePostListParams } from '@/widgets/post/post-list/hooks/usePostList';
 import { parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
 import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
-import { useToggle } from '@/shared/hooks/useToggle';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
-import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 
 const SEARCH_LOADING_MIN_DURATION_MS = 400;
-const VISIBLE_CATEGORY_COUNT = 4;
 const SCOPE_FILTERS = ['isBookmarked', 'isMyPosts', 'isPrivate'] as const;
-const CATEGORY_GROUP_ID = 'post-category-filter-group';
 
 export function PostListSearch() {
   const { data: categories } = useFetchCategoryOptionQuery();
@@ -28,8 +24,6 @@ export function PostListSearch() {
   const [isSearchPending, startSearchTransition] = useTransition();
   // 캐시 히트 등으로 전환이 순식간에 끝나도 "검색이 실행됐다"는 신호를 사람이 인지할 수 있게 최소 시간 보장
   const showSearchLoading = useMinimumLoading(isSearchPending, SEARCH_LOADING_MIN_DURATION_MS);
-  // 모바일에서 카테고리 칩을 앞 N개만 보이게 접어둔다. 데스크톱은 CSS(md:)로 항상 전부 노출
-  const { value: showAllCategories, toggle: toggleShowAllCategories } = useToggle();
 
   const [searchInput, setSearchInput] = useState(searchQuery);
 
@@ -101,12 +95,6 @@ export function PostListSearch() {
   const { category: selectedCategoryTags } = parseSearchQuery(searchInput);
   const selectedCategories = new Set(selectedCategoryTags ? selectedCategoryTags.split(',') : []);
 
-  const hiddenCategories = categories?.slice(VISIBLE_CATEGORY_COUNT) ?? [];
-  const hasHiddenCategorySelected = hiddenCategories.some((category) =>
-    selectedCategories.has(category.label)
-  );
-  const isCategoryExpanded = showAllCategories || hasHiddenCategorySelected;
-
   const { nickname: appliedNicknameTags, search: appliedKeyword } = parseSearchQuery(searchQuery);
   const appliedNicknameCount = appliedNicknameTags ? appliedNicknameTags.split(',').length : 0;
   const appliedScopeCount = SCOPE_FILTERS.filter((filter) =>
@@ -116,7 +104,7 @@ export function PostListSearch() {
     selectedCategories.size + appliedNicknameCount + appliedScopeCount + (appliedKeyword ? 1 : 0);
 
   return (
-    <div className="flex flex-col gap-3 md:gap-4 p-5 md:p-6 bg-card rounded-2xl border shadow-sm hover:shadow-md transition-shadow">
+    <div className="flex flex-col gap-2 md:gap-3 p-5 md:p-6 bg-card rounded-2xl border shadow-sm hover:shadow-md transition-shadow">
       <form onSubmit={handleSubmit} className="flex gap-2 group">
         <SearchInput
           name="search-input"
@@ -136,68 +124,40 @@ export function PostListSearch() {
       </form>
 
       <div
-        id={CATEGORY_GROUP_ID}
         role="group"
         aria-label={TEXTS.ariaLabels.postCategoryFilters}
-        className="flex flex-wrap gap-2 border-t pt-3 md:pt-4"
+        className="flex flex-wrap gap-2"
       >
-        {categories?.map((category, index) => {
+        {categories?.map((category) => {
           const isSelected = selectedCategories.has(category.label);
           return (
-            <span
+            <FilterChip
               key={category.value}
-              className={cn(
-                'inline-flex',
-                index >= VISIBLE_CATEGORY_COUNT && !isCategoryExpanded && 'hidden md:inline-flex'
-              )}
-            >
-              <FilterChip
-                id={`category-${category.value}`}
-                name={category.value}
-                label={`@${category.label}`}
-                isActive={isSelected}
-                activeClassName="bg-primary text-primary-foreground"
-                onClick={() => {
-                  // 라벨 클릭 시 기존 자유 검색어는 초기화하고, 이미 선택된 @카테고리/#닉네임 태그만 유지한다.
-                  const tag = `@${category.label}`;
-                  const existingTags = searchInput.match(/[@#]\S+/g) ?? [];
-                  const tagsWithoutSelf = existingTags.filter((t) => t !== tag);
-                  const newTags = isSelected ? tagsWithoutSelf : [...tagsWithoutSelf, tag];
-                  const newSearch = newTags.join(' ');
+              id={`category-${category.value}`}
+              name={category.value}
+              label={`@${category.label}`}
+              isActive={isSelected}
+              activeClassName="bg-primary text-primary-foreground"
+              onClick={() => {
+                // 라벨 클릭 시 기존 자유 검색어는 초기화하고, 이미 선택된 @카테고리/#닉네임 태그만 유지한다.
+                const tag = `@${category.label}`;
+                const existingTags = searchInput.match(/[@#]\S+/g) ?? [];
+                const tagsWithoutSelf = existingTags.filter((t) => t !== tag);
+                const newTags = isSelected ? tagsWithoutSelf : [...tagsWithoutSelf, tag];
+                const newSearch = newTags.join(' ');
 
-                  setSearchInput(newSearch);
-                  setSearch(newSearch);
-                }}
-              />
-            </span>
+                setSearchInput(newSearch);
+                setSearch(newSearch);
+              }}
+            />
           );
         })}
-
-        {hiddenCategories.length > 0 && !hasHiddenCategorySelected && (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={toggleShowAllCategories}
-            aria-expanded={isCategoryExpanded}
-            aria-controls={CATEGORY_GROUP_ID}
-            aria-label={
-              isCategoryExpanded
-                ? TEXTS.ariaLabels.collapseCategories
-                : TEXTS.ariaLabels.expandCategories
-            }
-            className="md:hidden rounded-full px-3 py-1.5 h-auto min-h-11 text-xs font-bold text-muted-foreground"
-          >
-            {isCategoryExpanded
-              ? TEXTS.post.search.collapseCategories
-              : TEXTS.post.search.expandCategories(hiddenCategories.length)}
-          </Button>
-        )}
       </div>
 
       <div
         role="group"
         aria-label={TEXTS.ariaLabels.postScopeFilters}
-        className="flex flex-wrap gap-2 border-t pt-3 md:pt-4"
+        className="flex flex-wrap gap-2"
       >
         <FilterChip
           label={TEXTS.buttons.bookmarkOnly}
@@ -225,17 +185,17 @@ export function PostListSearch() {
           localStorage(useHideBotsStore)에 영속화한다. 기본 OFF(봇 글 보임) */}
       <label
         htmlFor="hide-bots-switch"
-        className="flex w-full items-center justify-between min-h-11 md:min-h-0 cursor-pointer select-none text-sm text-muted-foreground border-t pt-3 md:pt-4"
+        className="inline-flex items-center gap-2 min-h-11 md:min-h-0 cursor-pointer select-none text-sm text-muted-foreground"
       >
-        <span>{TEXTS.buttons.hideBots}</span>
         <Switch
           id="hide-bots-switch"
           checked={optimisticHideBots}
           onCheckedChange={handleToggleHideBots}
         />
+        <span>{TEXTS.buttons.hideBots}</span>
       </label>
 
-      <div className="flex items-center justify-between gap-2 border-t pt-3 md:pt-4">
+      <div className="flex items-center justify-between gap-2">
         <span aria-live="polite" className="text-xs text-muted-foreground">
           {appliedCount > 0 ? TEXTS.post.search.appliedCount(appliedCount) : ''}
         </span>
