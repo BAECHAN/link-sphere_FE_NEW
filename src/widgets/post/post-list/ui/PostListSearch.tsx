@@ -121,62 +121,67 @@ export function PostListSearch() {
         })}
       </div>
 
-      <div
-        role="group"
-        aria-label={TEXTS.ariaLabels.postScopeFilters}
-        className="flex flex-wrap gap-2"
-      >
-        <FilterChip
-          label={TEXTS.buttons.bookmarkOnly}
-          isActive={isClickedBookmark}
-          activeClassName="bg-warning text-warning-foreground hover:bg-warning hover:text-warning-foreground"
-          onClick={() => handleToggleFilter('isBookmarked')}
-        />
-
-        <FilterChip
-          label={TEXTS.buttons.myPosts}
-          isActive={isClickedMyPosts}
-          activeClassName="bg-info text-info-foreground hover:bg-info hover:text-info-foreground"
-          onClick={() => handleToggleFilter('isMyPosts')}
-        />
-
-        <FilterChip
-          label={TEXTS.buttons.privateOnly}
-          isActive={isClickedPrivate}
-          activeClassName="bg-category text-category-foreground hover:bg-category hover:text-category-foreground"
-          onClick={() => handleToggleFilter('isPrivate')}
-        />
-      </div>
-
-      {/* 칩이 아니라 별도 스위치 - 나머지 필터(URL)와 달리 기기별 개인 설정이라
-          localStorage(useHideBotsStore)에 영속화한다. 기본 OFF(봇 글 보임) */}
-      <label
-        htmlFor="hide-bots-switch"
-        className="self-end inline-flex items-center gap-2 min-h-11 md:min-h-0 cursor-pointer select-none text-sm text-muted-foreground"
-      >
-        <span>{TEXTS.buttons.hideBots}</span>
-        <Switch
-          id="hide-bots-switch"
-          checked={optimisticHideBots}
-          onCheckedChange={handleToggleHideBots}
-        />
-      </label>
-
-      <div className="flex items-center justify-between gap-2">
-        <span aria-live="polite" className="text-xs text-muted-foreground">
-          {appliedCount > 0 ? TEXTS.post.search.appliedCount(appliedCount) : ''}
-        </span>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={clearSearch}
-          disabled={appliedCount === 0}
-          className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1"
+      {/* 범위 필터 칩·봇 숨기기·초기화는 이미 줄바꿈으로 구분되므로 이 안에서는
+          간격을 두지 않는다(카테고리 칩과의 경계만 바깥 컨테이너의 gap으로 유지). */}
+      <div className="flex flex-col">
+        <div
+          role="group"
+          aria-label={TEXTS.ariaLabels.postScopeFilters}
+          className="flex flex-wrap gap-2"
         >
-          <RotateCcw className="h-3 w-3" />
-          {TEXTS.buttons.reset}
-        </Button>
+          <FilterChip
+            label={TEXTS.buttons.bookmarkOnly}
+            isActive={isClickedBookmark}
+            activeClassName="bg-warning text-warning-foreground hover:bg-warning hover:text-warning-foreground"
+            onClick={() => handleToggleFilter('isBookmarked')}
+          />
+
+          <FilterChip
+            label={TEXTS.buttons.myPosts}
+            isActive={isClickedMyPosts}
+            activeClassName="bg-info text-info-foreground hover:bg-info hover:text-info-foreground"
+            onClick={() => handleToggleFilter('isMyPosts')}
+          />
+
+          <FilterChip
+            label={TEXTS.buttons.privateOnly}
+            isActive={isClickedPrivate}
+            activeClassName="bg-category text-category-foreground hover:bg-category hover:text-category-foreground"
+            onClick={() => handleToggleFilter('isPrivate')}
+          />
+        </div>
+
+        {/* 칩이 아니라 별도 스위치 - 나머지 필터(URL)와 달리 기기별 개인 설정이라
+            localStorage(useHideBotsStore)에 영속화한다. 기본 OFF(봇 글 보임).
+            터치 타깃은 FilterChip과 같은 28px로 통일(2026-09-06). */}
+        <label
+          htmlFor="hide-bots-switch"
+          className="self-end inline-flex items-center gap-2 min-h-7 cursor-pointer select-none text-sm text-muted-foreground"
+        >
+          <span>{TEXTS.buttons.hideBots}</span>
+          <Switch
+            id="hide-bots-switch"
+            checked={optimisticHideBots}
+            onCheckedChange={handleToggleHideBots}
+          />
+        </label>
+
+        <div className="flex items-center justify-between gap-2">
+          <span aria-live="polite" className="text-xs text-muted-foreground">
+            {appliedCount > 0 ? TEXTS.post.search.appliedCount(appliedCount) : ''}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={clearSearch}
+            disabled={appliedCount === 0}
+            className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1"
+          >
+            <RotateCcw className="h-3 w-3" />
+            {TEXTS.buttons.reset}
+          </Button>
+        </div>
       </div>
     </div>
   );
