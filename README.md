@@ -161,4 +161,4 @@ features/<도메인>/<액션>/
 
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — 되돌리기 어렵고 대안을 비교해 선택한 설계·UX 결정 (append-only)
 
-> 분류 기준과 문서 작성 규칙은 [`docs/README.md`](docs/README.md) 참고.
+> 문서 분류 기준과 작성 규칙은 [`.claude/CLAUDE.md`](.claude/CLAUDE.md)의 "docs/ 내부 분류" 절 참고.
