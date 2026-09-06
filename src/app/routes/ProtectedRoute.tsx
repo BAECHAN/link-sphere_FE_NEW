@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/entities/user/hooks/useAuth';
+import { useAuth } from '@/entities/user/model/useAuth';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { AuthUtil } from '@/shared/utils/auth.util';

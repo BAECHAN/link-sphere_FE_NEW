@@ -8,7 +8,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { NAV_ITEMS, type NavItemConfig } from '@/shared/config/nav-items';
 import { useSidebarStore } from '@/shared/store/sidebar.store';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
-import { useProtectedNavigate } from '@/entities/user/hooks/useProtectedNavigate';
+import { useProtectedNavigate } from '@/entities/user/model/useProtectedNavigate';
 
 function NavItem({
   to,

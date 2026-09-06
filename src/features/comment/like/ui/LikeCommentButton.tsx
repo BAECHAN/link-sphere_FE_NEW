@@ -4,7 +4,7 @@ import { Heart } from 'lucide-react';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { useLikeComment } from '@/features/comment/like/hooks/useLikeComment';
-import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
+import { useAuthGuard } from '@/entities/user/model/useAuthGuard';
 import { Button } from '@/shared/ui/atoms/button';
 
 interface LikeCommentButtonProps {

@@ -37,13 +37,13 @@ API)를 성능을 이유로 정반대로 채택**하고, 그 위에 도메인 �
 
 ### 정식 FSD와 다른 점
 
-| FSD 규칙                                                          | 채택 여부                               | 이유 / 실태                                                                                                                                                                                  | 강제 수단                                                                                                                                                                                                |
-| ----------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 레이어 6종 + 하향 의존만 허용                                     | ✅ 채택                                 | FSD 원칙 그대로                                                                                                                                                                              | ESLint `no-restricted-imports` 5블록 (`eslint.config.js:936-1070`)                                                                                                                                       |
-| Public API — 슬라이스는 `index.ts` 배럴로만 외부에 노출           | ❌ **정반대로 채택** (배럴 자체를 금지) | dev 서버 부팅 15-70%·빌드 28%·콜드스타트 40% 지연이라는 성능 트레이드오프 때문에 의도적으로 뒤집음                                                                                           | ESLint `custom-barrel-rules/no-barrel-import` (`eslint.config.js:821-867`) — 전 레이어에서 `index.ts`/`index.tsx` import 시 에러                                                                         |
-| 동일 레이어 슬라이스 격리 (entities는 `@x` 표기로 교차 참조 허용) | ❌ 미채택, 미강제                       | 별도 표기 없이 상시 교차 참조 발생                                                                                                                                                           | 없음 — `entities/post/model/post.schema.ts:105-106`이 comment·interaction 스키마를 `export *`로 재수출, `entities/interaction/api/interaction.queries.ts:4-6`이 post·comment·folder의 keys를 직접 import |
-| 세그먼트는 목적 기준 명명 (`ui`/`api`/`model`/`lib`/`config`)     | ⚠️ 혼재                                 | `hooks/`·`utils/`를 세그먼트로도 쓴다(`entities/user/hooks/`, `features/*/hooks/`, `widgets/post/post-list/utils/`). 동시에 `entities/folder/model/useRecentFolders.ts`처럼 정식 위치도 존재 | 없음                                                                                                                                                                                                     |
-| 슬라이스 그룹 폴더 허용 (그룹 폴더 자체엔 공유 코드 금지)         | ✅ 채택                                 | 그룹 폴더(`features/post/`, `widgets/layout/` 등)에는 파일이 없고 슬라이스만 있음                                                                                                            | —                                                                                                                                                                                                        |
+| FSD 규칙                                                          | 채택 여부                               | 이유 / 실태                                                                                                                                                                                                                                                                       | 강제 수단                                                                                                                                                                                                |
+| ----------------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 레이어 6종 + 하향 의존만 허용                                     | ✅ 채택                                 | FSD 원칙 그대로                                                                                                                                                                                                                                                                   | ESLint `no-restricted-imports` 5블록 (`eslint.config.js:936-1070`)                                                                                                                                       |
+| Public API — 슬라이스는 `index.ts` 배럴로만 외부에 노출           | ❌ **정반대로 채택** (배럴 자체를 금지) | dev 서버 부팅 15-70%·빌드 28%·콜드스타트 40% 지연이라는 성능 트레이드오프 때문에 의도적으로 뒤집음                                                                                                                                                                                | ESLint `custom-barrel-rules/no-barrel-import` (`eslint.config.js:821-867`) — 전 레이어에서 `index.ts`/`index.tsx` import 시 에러                                                                         |
+| 동일 레이어 슬라이스 격리 (entities는 `@x` 표기로 교차 참조 허용) | ❌ 미채택, 미강제                       | 별도 표기 없이 상시 교차 참조 발생                                                                                                                                                                                                                                                | 없음 — `entities/post/model/post.schema.ts:105-106`이 comment·interaction 스키마를 `export *`로 재수출, `entities/interaction/api/interaction.queries.ts:4-6`이 post·comment·folder의 keys를 직접 import |
+| 세그먼트는 목적 기준 명명 (`ui`/`api`/`model`/`lib`/`config`)     | ⚠️ 부분 채택                            | `hooks/`·`utils/`를 세그먼트로도 쓴다(`features/*/hooks/`, `widgets/post/post-list/utils/`) — 정식 FSD 세그먼트명은 아니지만 widgets·features 안에서는 일관되게 쓰인다. 레이어 안에서 세그먼트가 뒤섞이는 것(예: 같은 entities인데 `user`만 `hooks/`, 나머지는 `model/`)만은 금지 | `.claude/CLAUDE.md`의 "레이어별 허용 세그먼트" 표 (문서 규칙, ESLint 미강제)                                                                                                                             |
+| 슬라이스 그룹 폴더 허용 (그룹 폴더 자체엔 공유 코드 금지)         | ✅ 채택                                 | 그룹 폴더(`features/post/`, `widgets/layout/` 등)에는 파일이 없고 슬라이스만 있음                                                                                                                                                                                                 | —                                                                                                                                                                                                        |
 
 **즉 이 레포에서 실질적으로 강제되는 FSD 규칙은 "레이어 하향 의존" 하나뿐이다.** 나머지는
 미채택이거나 성능상의 이유로 정반대로 뒤집혀 있다. 아래 §2가 그 강제 규칙 전체 목록이다.
@@ -133,10 +133,10 @@ src/
 │   ├── comment/
 │   │   └── comment-list/
 │   │       └── ui/               # CommentList, CommentItem
-│   ├── bookmark/                 # 세그먼트 없음 — 파일이 슬라이스 루트에 직접 위치
-│   │   ├── bookmark-post-list/   # BookmarkPostList
-│   │   ├── bookmark-search/      # BookmarkSearch
-│   │   └── folder-tree/          # FolderTree, MobileFolderList
+│   ├── bookmark/
+│   │   ├── bookmark-post-list/ui/  # BookmarkPostList
+│   │   ├── bookmark-search/ui/     # BookmarkSearch
+│   │   └── folder-tree/ui/         # FolderTree, MobileFolderList
 │   └── layout/
 │       ├── navbar/
 │       │   ├── hooks/            # useRecentSearches
@@ -182,7 +182,7 @@ src/
 │   │   └── api/                  # upload.api.ts
 │   └── user/
 │       ├── api/                  # auth.api.ts, auth.keys.ts, auth.queries.ts
-│       ├── hooks/                # useAuth, useAccount, useAppInitialization
+│       ├── model/                # useAuth, useAccount, useAppInitialization, useAuthGuard, useProtectedNavigate
 │       └── ui/                   # UserAvatar
 │
 └── shared/                       # 순수 유틸, UI 원자, API client, config

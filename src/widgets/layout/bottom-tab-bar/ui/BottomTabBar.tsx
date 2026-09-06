@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { NAV_ITEMS } from '@/shared/config/nav-items';
-import { useProtectedNavigate } from '@/entities/user/hooks/useProtectedNavigate';
+import { useProtectedNavigate } from '@/entities/user/model/useProtectedNavigate';
 
 export function BottomTabBar() {
   const { pathname } = useLocation();
