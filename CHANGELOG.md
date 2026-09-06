@@ -400,6 +400,16 @@
 
   </details>
 
+- `common` PWA manifest 아이콘이 실제 파일 위치와 달라 404
+  <details><summary>배경·구현</summary>
+
+  `site.webmanifest`가 아이콘을 `/android-chrome-*.png`(루트)로 참조했는데 실제
+  파일은 `public/favicons/` 아래에 있어 브라우저가 아이콘을 못 찾았다. 같은
+  디렉토리의 `firebase-messaging-sw.js`는 이미 `/favicons/...`로 올바르게
+  참조 중이라 그 경로에 맞춰 수정했다. (`public/favicons/site.webmanifest`)
+
+  </details>
+
 ## [0.12.0] - 2026-08-13
 
 ### Added
