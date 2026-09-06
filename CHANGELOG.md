@@ -69,6 +69,22 @@
   노출한다.
   (`PostListSearch.tsx`, `texts.ts`)
 
+  **검색창을 헤더로 통합**: 코드를 추적해보니 데스크톱 헤더(`NavbarSearch`)와
+  모바일 헤더 검색(`MobileNavbarSearch`)이 이미 있고, 제출하면 이 필터 카드의
+  검색창과 완전히 동일하게 `/post?q=`로 이동해 — 검색창이 2곳에 중복돼 있었다.
+  카드에서 검색 입력행(입력창+모바일 "검색" 버튼)을 완전히 제거하고 헤더
+  검색만 남겼다. 카테고리 칩의 `@라벨` 토큰 병합 기준을 로컬 미입력 상태
+  (`searchInput`)에서 URL(`searchQuery`)로 옮기면서, 범위 필터 칩과 같은 이유로
+  (`setSearchParams`가 라우터 `startTransition`에 감싸여 있어 그대로 두면 칩이
+  늦게 반응한다) 카테고리 전용 `flushSync` 낙관적 미러(`optimisticCategoryTags`)
+  를 새로 추가해 반응성을 유지했다. 부수 효과로 지금까지 씨름하던 모바일
+  placeholder 잘림 문제도 이 카드에서는 아예 사라졌다(헤더 검색창은 폭이
+  넉넉함). 또한 지난 세션에서 승인했던 모바일 칩 터치 타깃 확대(28px→44px)를
+  사용자 확인 후 28px로 되돌렸다 — 데스크톱과 시각적으로 통일하기 위한
+  의도적 트레이드오프(WCAG 최소 기준인 24px는 여전히 만족, 44px 권장 기준은
+  포기).
+  (`PostListSearch.tsx`, `FilterChip.tsx`, `docs/DECISIONS.md`)
+
   </details>
 
 - `post` "봇 글 숨기기" 스위치를 URL 파라미터 대신 기기별 localStorage 설정으로 변경

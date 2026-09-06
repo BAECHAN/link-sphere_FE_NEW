@@ -1,19 +1,15 @@
 import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
 import { Button } from '@/shared/ui/atoms/button';
-import { Spinner } from '@/shared/ui/atoms/spinner';
 import { Switch } from '@/shared/ui/atoms/switch';
 import { FilterChip } from '@/shared/ui/elements/FilterChip';
-import { SearchInput } from '@/shared/ui/elements/SearchInput';
 import { RotateCcw } from 'lucide-react';
-import { startTransition, useEffect, useState, useTransition } from 'react';
+import { startTransition, useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { usePostListParams } from '@/widgets/post/post-list/hooks/usePostList';
 import { parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
-import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
 import { TEXTS } from '@/shared/config/texts';
 
-const SEARCH_LOADING_MIN_DURATION_MS = 400;
 const SCOPE_FILTERS = ['isBookmarked', 'isMyPosts', 'isPrivate'] as const;
 
 export function PostListSearch() {
@@ -21,16 +17,6 @@ export function PostListSearch() {
   const { searchQuery, currentFilter, setSearch, toggleFilter, clearSearch } = usePostListParams();
   const hideBots = useHideBotsStore((state) => state.hideBots);
   const setHideBots = useHideBotsStore((state) => state.setHideBots);
-  const [isSearchPending, startSearchTransition] = useTransition();
-  // 캐시 히트 등으로 전환이 순식간에 끝나도 "검색이 실행됐다"는 신호를 사람이 인지할 수 있게 최소 시간 보장
-  const showSearchLoading = useMinimumLoading(isSearchPending, SEARCH_LOADING_MIN_DURATION_MS);
-
-  const [searchInput, setSearchInput] = useState(searchQuery);
-
-  // URL이 변경되면 로컬 상태도 동기화 (예: 뒤로가기)
-  useEffect(() => {
-    setSearchInput(searchQuery);
-  }, [searchQuery]);
 
   const activeFilters = currentFilter ? currentFilter.split(',') : [];
   const [optimisticFilters, setOptimisticFilters] = useState<string[]>(activeFilters);
@@ -52,6 +38,18 @@ export function PostListSearch() {
     toggleFilter(targetFilter);
   };
 
+  // 카테고리 태그(@라벨)는 검색어(q) 안에 들어가는 값이라 URL(searchQuery)이 기준이다.
+  // 검색창이 헤더로 이동하면서 로컬 미러가 사라졌으므로, 범위 필터 칩과 같은 이유로
+  // (setSearch도 라우터 startTransition에 감싸여 있어 그대로 두면 칩이 늦게 반응한다)
+  // 여기서도 flushSync 낙관적 미러를 둔다.
+  const [optimisticCategoryTags, setOptimisticCategoryTags] = useState(
+    () => parseSearchQuery(searchQuery).category ?? ''
+  );
+
+  useEffect(() => {
+    setOptimisticCategoryTags(parseSearchQuery(searchQuery).category ?? '');
+  }, [searchQuery]);
+
   // 봇 숨기기는 store(localStorage) 값이라 URL과 달리 라우터의 v7_startTransition 보호를
   // 받지 못한다. 그대로 두면 토글할 때마다 목록이 스켈레톤으로 떨어지므로, 스위치 자체는
   // flushSync로 즉시 반응시키고 실제 store 갱신(=재조회)만 startTransition으로 감싼다.
@@ -71,29 +69,14 @@ export function PostListSearch() {
     });
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    // setSearch(setSearchParams)는 라우터의 v7_startTransition으로 이미 감싸여 있어
-    // 검색 직후에도 결과가 도착할 때까지 화면이 조용히 그대로 유지된다.
-    // 동일한 전환을 여기서도 시작해 isPending으로 버튼에 로딩 상태를 노출한다.
-    startSearchTransition(() => {
-      setSearch(searchInput);
-    });
-  };
-
-  const handleClear = () => {
-    setSearchInput('');
-    clearSearch();
-  };
-
   const isClickedBookmark = optimisticFilters.includes('isBookmarked');
   const isClickedMyPosts = optimisticFilters.includes('isMyPosts');
   const isClickedPrivate = optimisticFilters.includes('isPrivate');
 
   // "조건 N개 적용 중" 카운트 — 봇 글 숨기기(localStorage 개인 설정, 초기화 대상 아님)는 제외.
-  // 키워드는 미제출 로컬 값(searchInput)이 아니라 실제 적용된 URL(searchQuery) 기준으로 센다.
-  const { category: selectedCategoryTags } = parseSearchQuery(searchInput);
-  const selectedCategories = new Set(selectedCategoryTags ? selectedCategoryTags.split(',') : []);
+  const selectedCategories = new Set(
+    optimisticCategoryTags ? optimisticCategoryTags.split(',') : []
+  );
 
   const { nickname: appliedNicknameTags, search: appliedKeyword } = parseSearchQuery(searchQuery);
   const appliedNicknameCount = appliedNicknameTags ? appliedNicknameTags.split(',').length : 0;
@@ -105,24 +88,6 @@ export function PostListSearch() {
 
   return (
     <div className="flex flex-col gap-2 md:gap-3 p-5 md:p-6 bg-card rounded-2xl border shadow-sm hover:shadow-md transition-shadow">
-      <form onSubmit={handleSubmit} className="flex gap-2 group">
-        <SearchInput
-          name="search-input"
-          id="search-input"
-          placeholder={TEXTS.placeholders.postSearch}
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          onClear={handleClear}
-        />
-        <Button
-          type="submit"
-          disabled={showSearchLoading}
-          className="h-10 px-6 rounded-xl  font-bold md:hidden"
-        >
-          {showSearchLoading ? <Spinner className="h-4 w-4" /> : TEXTS.buttons.search}
-        </Button>
-      </form>
-
       <div
         role="group"
         aria-label={TEXTS.ariaLabels.postCategoryFilters}
@@ -141,12 +106,14 @@ export function PostListSearch() {
               onClick={() => {
                 // 라벨 클릭 시 기존 자유 검색어는 초기화하고, 이미 선택된 @카테고리/#닉네임 태그만 유지한다.
                 const tag = `@${category.label}`;
-                const existingTags = searchInput.match(/[@#]\S+/g) ?? [];
+                const existingTags = searchQuery.match(/[@#]\S+/g) ?? [];
                 const tagsWithoutSelf = existingTags.filter((t) => t !== tag);
                 const newTags = isSelected ? tagsWithoutSelf : [...tagsWithoutSelf, tag];
                 const newSearch = newTags.join(' ');
 
-                setSearchInput(newSearch);
+                flushSync(() => {
+                  setOptimisticCategoryTags(parseSearchQuery(newSearch).category ?? '');
+                });
                 setSearch(newSearch);
               }}
             />
@@ -185,14 +152,14 @@ export function PostListSearch() {
           localStorage(useHideBotsStore)에 영속화한다. 기본 OFF(봇 글 보임) */}
       <label
         htmlFor="hide-bots-switch"
-        className="inline-flex items-center gap-2 min-h-11 md:min-h-0 cursor-pointer select-none text-sm text-muted-foreground"
+        className="flex items-center justify-between min-h-11 md:min-h-0 cursor-pointer select-none text-sm text-muted-foreground"
       >
+        <span>{TEXTS.buttons.hideBots}</span>
         <Switch
           id="hide-bots-switch"
           checked={optimisticHideBots}
           onCheckedChange={handleToggleHideBots}
         />
-        <span>{TEXTS.buttons.hideBots}</span>
       </label>
 
       <div className="flex items-center justify-between gap-2">
@@ -203,7 +170,7 @@ export function PostListSearch() {
           type="button"
           variant="ghost"
           size="sm"
-          onClick={handleClear}
+          onClick={clearSearch}
           disabled={appliedCount === 0}
           className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1"
         >
