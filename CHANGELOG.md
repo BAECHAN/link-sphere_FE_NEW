@@ -449,6 +449,7 @@
   XSS로 오판해 차단했다(CloudWatch
   `BlockedRequests` 지표로 확정). `POST /post`(게시글 등록)도 동일 조건에서
   막혀 댓글만의 문제가 아니었다.
+  룰의 오탐이었다 — `<META>` 태그 하나, 심지어 `React에서 <Button onClick={x}>를 쓰면 됩니다` 같은 정상적인 개발 댓글까지 XSS로 오판해 차단했다(CloudWatch `BlockedRequests` 지표로 확정). `POST /post`(게시글 등록)도 동일 조건에서 막혀 댓글만의 문제가 아니었다.
 
   FE 전체에 `dangerouslySetInnerHTML`·마크다운 라이브러리·HTML sanitizer가 없어
   (댓글은 `MarkdownContent.tsx`가 HTML 문자열을 만들지 않는 자체 파서로 React
