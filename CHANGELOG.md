@@ -47,18 +47,23 @@
 
 ### Changed
 
-- `comment` 댓글·답글 본문 길이를 한글 기준 약 4,000자(UTF-8 12,000바이트)로 제한
+- `comment` 댓글·답글 본문 길이를 한글 기준 약 2,000자(UTF-8 6,000바이트)로 제한
   <details><summary>배경·구현</summary>
 
-  긴 댓글을 등록하면 CloudFront WAF가 요청 바디 크기(8KB) 초과라는 이유로 앱에 닿기도
-  전에 403 HTML을 돌려줬다. 이 응답은 앱 에러 처리를 전혀 타지 않아 사용자는 이유를
-  알 수 없었다. WAF의 8KB 차단은 없앴지만(계정이 CloudFront Free 플랜이라 대체
-  크기 제한 룰은 만들 수 없어 완전히 해제됨 — `docs/DEPLOY.md`의 "CloudFront WAF
-  (수동 관리)" 절 참고), 앱이 먼저 제출을 막고 이유를 말하도록
-  `commentContentFormSchema`(바이트 기준 zod refine)를 작성·수정 폼이 공유하게
-  했고, 제출 버튼은 기존 "내용/이미지 필요" 툴팁과 같은 언어로 초과 시에만
-  안내한다(상시 글자수 카운터는 넣지 않음). BE `CommentService.MAX_COMMENT_CONTENT_BYTES`와
-  반드시 같은 값이어야 한다.
+  긴 댓글을 등록하면 CloudFront WAF가 요청 바디 크기(8,192바이트) 초과라는 이유로
+  앱에 닿기도 전에 403 HTML을 돌려줬다. 이 응답은 앱 에러 처리를 전혀 타지 않아
+  사용자는 이유를 알 수 없었다. WAF의 이 차단은 건드리지 않았다 - 완화를 시도했으나
+  대체 크기 제한 룰이 CloudFront Pro 플랜 전용이라 이 계정(Free 플랜)에서 만들 수
+  없었고, 차단만 풀면 WAF의 바디 크기 방어가 완전히 사라져 비용·보안 노출이 생기므로
+  원복했다(`docs/DECISIONS.md` 참고). 대신 앱이 그 8KB 벽 안쪽에서 여유 있게 동작하도록
+  상한을 잡고, WAF 403 대신 앱이 먼저 제출을 막고 이유를 말하도록
+  `commentContentFormSchema`(바이트 기준 zod refine)를 작성·수정 폼이 공유하게 했다.
+  BE `CommentService.MAX_COMMENT_CONTENT_BYTES`와 반드시 같은 값이어야 한다.
+
+  제출 버튼은 길이 초과로는 비활성화하지 않는다 - 비활성 버튼은 클릭 이벤트 자체가
+  안 먹어 제출을 시도해도 안내가 뜨지 않는 문제가 있었다(구현 중 발견). 대신 텍스트
+  영역 아래 상시 안내 문구(초과 시에만 표시)로 알리고, 실제 제출은 zod가 막아
+  실패 시 토스트를 띄운다.
   (`entities/comment/config/const.ts`의 `MAX_COMMENT_CONTENT_BYTES`,
   `entities/comment/model/comment.schema.ts`의 `commentContentFormSchema`,
   `shared/lib/content/textBytes.ts`(신규))

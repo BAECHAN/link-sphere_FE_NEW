@@ -89,10 +89,10 @@ export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommen
 
   const isOverLimit = getUtf8ByteLength(contentValue) > MAX_COMMENT_CONTENT_BYTES;
 
+  // 길이 초과는 버튼을 막지 않는다 - 비활성 버튼은 클릭 이벤트 자체가 안 먹어서 onSubmit의
+  // zod 검증(→ 초과 안내 토스트)이 실행될 기회조차 없어진다. 실제 제출은 zod가 막는다.
   const canSubmit =
-    (!!contentValue.trim() || editImages.length > 0 || existingImageUrls.length > 0) &&
-    !isOverLimit &&
-    !isUpdating;
+    (!!contentValue.trim() || editImages.length > 0 || existingImageUrls.length > 0) && !isUpdating;
 
   return {
     form,

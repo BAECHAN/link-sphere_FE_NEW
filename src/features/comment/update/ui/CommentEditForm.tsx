@@ -82,7 +82,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
           </div>
         )}
         <Textarea
-          aria-invalid={showValidationHighlight}
+          aria-invalid={showValidationHighlight || isOverLimit}
           autoFocus
           className="min-h-[80px] text-sm"
           placeholder={TEXTS.comment.form.editPlaceholder}
@@ -99,6 +99,9 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
           }}
         />
       </div>
+      {isOverLimit && (
+        <p className="text-xs text-destructive">{TEXTS.validation.commentContentTooLong}</p>
+      )}
       {contentValue && (
         <div className="rounded-md border bg-muted/30 p-3 text-sm">
           <p className="text-xs text-muted-foreground mb-1.5">{TEXTS.comment.form.preview}</p>
@@ -153,13 +156,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
             {TEXTS.comment.form.cancel}
           </Button>
           <TooltipWrapper
-            content={
-              isOverLimit
-                ? TEXTS.validation.commentContentTooLong
-                : !canSubmit && !isUpdating
-                  ? TEXTS.validation.commentOrImageRequired
-                  : null
-            }
+            content={!canSubmit && !isUpdating ? TEXTS.validation.commentOrImageRequired : null}
             disabled={!canSubmit}
           >
             <Button type="submit" size="sm" disabled={!canSubmit} className="h-8 px-2 text-xs">

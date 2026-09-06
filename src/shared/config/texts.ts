@@ -291,7 +291,7 @@ export const TEXTS = {
     commentOrImageRequired: '내용 또는 이미지를 추가해주세요.',
     commentRequired: '댓글에 내용 또는 이미지를 추가해주세요.',
     replyRequired: '답글에 내용 또는 이미지를 추가해주세요.',
-    commentContentTooLong: '댓글은 한글 4,000자까지 작성할 수 있어요.',
+    commentContentTooLong: '댓글은 한글 2,000자까지 작성할 수 있어요.',
     noChanges: '변경한 내용이 없어요.',
     imageTooLarge: (maxSizeMB: number) => `이미지 용량은 ${maxSizeMB}MB를 초과할 수 없어요.`,
     imageCountExceeded: (max: number) => `이미지는 최대 ${max}장까지 첨부할 수 있어요.`,
