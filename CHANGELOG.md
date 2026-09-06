@@ -33,6 +33,32 @@
 
 ### Changed
 
+- `post` 게시글 검색 필터 영역을 기능별 행으로 재구성
+  <details><summary>배경·구현</summary>
+
+  카테고리 칩·범위 필터 칩 3개·봇 글 숨기기 스위치·초기화 버튼이 세로 구분선
+  2개만 사이에 두고 한 줄 `flex-wrap`에 평평하게 나열돼 있어, 줄바꿈 위치에 따라
+  구분선이 줄 끝/시작에 걸려 그룹 경계 역할을 잃고 초기화 버튼 위치도 매번
+  달라졌다. GitHub Issues·Linear의 그룹 구분선 패턴(Baymard 사용성 테스트: 적용
+  필터 개요를 상단에 명확히 두지 않는 사이트가 42%)을 참고해 검색바 → 카테고리 →
+  범위 필터 → 봇 숨기기 → "조건 N개 적용 중"+초기화 순으로 행을 나누고, 경계는
+  텍스트 라벨 없이 `border-t`만 사용했다. 가로 스크롤은 쓰지 않기로 하고
+  (GitLab이 검색 토큰 가로 스크롤에 대해 반복적으로 wrap 요청을 받은 사례),
+  모바일에서만 카테고리를 앞 4개로 접고 `+N` 버튼으로 펼치되(Material 3 chip
+  overflow 가이드), 그 값은 `useState`가 아니라 `categories`·`searchInput`의
+  파생값으로 계산해 카테고리 쿼리가 늦게 도착해도 깜빡이지 않게 했다. 카테고리
+  칩 라벨에 `@`를 노출해 검색어 토큰(필터가 아님)임을 드러내면서, 선택 판정을
+  기존 부분문자열 매칭(`@AI개발` 입력 시 `@AI` 칩이 오탐으로 켜지던 문제)에서
+  `parseSearchQuery` 토큰 비교로 바꿨다. "조건 N개" 카운트는 봇 글 숨기기
+  (localStorage 개인 설정, 초기화 대상 아님)를 제외하고 URL에 실제 적용된
+  값(`searchQuery`) 기준으로 세어, 옛 `?filter=excludeBots` 공유 링크나 타이핑
+  중인 미제출 검색어가 잘못 잡히지 않게 했다. `FilterChip`은 모바일 터치 타깃을
+  44px로 키우며 shared 컴포넌트 스토리를 신규 추가했다.
+  (`PostListSearch.tsx`, `FilterChip.tsx`, `FilterChip.stories.tsx`(신규),
+  `texts.ts`, `docs/DECISIONS.md`)
+
+  </details>
+
 - `post` "봇 글 숨기기" 스위치를 URL 파라미터 대신 기기별 localStorage 설정으로 변경
   <details><summary>배경·구현</summary>
 
