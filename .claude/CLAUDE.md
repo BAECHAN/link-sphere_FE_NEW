@@ -1055,7 +1055,8 @@ pnpm storybook        # Storybook (port 6006)
 
   지금까지는 등록 후 목록에서 북마크 버튼을 다시 눌러야 했다. 카테고리 선택 아래에
   북마크 필드를 추가해, 등록 제출 한 번으로 함께 처리한다.
-  (`features/post/create/ui/BookmarkFolderPicker.tsx`(신규))
+  (`features/post/create/ui/BookmarkFolderPicker.tsx`(신규),
+  [PR #21](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/21))
 
   </details>
 ```
@@ -1065,6 +1066,7 @@ pnpm storybook        # Storybook (port 6006)
 - 상세 블록: `<summary>`는 `배경·구현`으로 통일. `<summary>` 다음과 `</details>` 앞에 빈 줄을
   반드시 넣는다(없으면 GitHub이 안의 마크다운을 파싱하지 않는다). 배경·트레이드오프·영향
   파일 목록을 요약 없이 그대로 적는다 — 짧은 항목은 상세 블록을 생략해도 된다.
+- **PR이 만들어지면 그 항목의 파일 목록 끝에 PR 링크를 추가한다.** 처음 커밋 시점엔 PR 번호를 아직 모르므로 `[Unreleased]` 항목 추가 커밋에는 포함하지 못한다 — `gh pr create`로 PR을 만든 직후 그 URL을 `[PR #NN](URL)` 형식으로 파일 목록 괄호 끝에 덧붙이고, 이 한 줄만 고치는 작은 후속 커밋(`docs(changelog): PR 링크 추가` 등, amend 아님 — Git Safety Protocol)을 머지 전에 같은 브랜치에 push한다. 커밋 해시가 아니라 PR을 가리키는 이유: 이 레포는 항상 워크트리+PR을 거쳐 머지되어 PR이 늘 존재하고, PR 번호는 생성 시점에 고정돼 이후 같은 브랜치에 커밋이 늘거나 rebase가 일어나도 바뀌지 않는 반면 커밋 해시는 amend·force-push로 쉽게 깨진다. PR 없이 직접 머지하는 예외 상황이면 커밋 해시 링크로 대체한다. 이 규칙은 지금부터의 새 항목에만 적용하고 기존 항목은 소급 적용하지 않는다(전체 기록: `docs/DECISIONS.md` "CHANGELOG 항목에서 커밋/PR 상세로 연결되는 링크 추가" 참고).
 - `### Notes`는 접지 않는다 — BE 배포 순서 정보라 항상 보여야 한다.
 - **상세 블록 안 문단을 손으로 여러 줄로 줄바꿈하지 않는다.** 리스트 항목(`- `) 안의
   `<details>` 블록은 이어지는 모든 줄이 그 리스트의 들여쓰기(2칸)를 따라야 하는데,
