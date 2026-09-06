@@ -57,6 +57,18 @@
   (`PostListSearch.tsx`, `FilterChip.tsx`, `FilterChip.stories.tsx`(신규),
   `texts.ts`, `docs/DECISIONS.md`)
 
+  **배포 후 보정**: 실제로 보니 바깥 여백(`gap`)과 각 줄의 구분선 위쪽 여백
+  (`border-t pt-*`)이 겹쳐 경계마다 이중으로 쌓여(약 25~33px) 간격이 과했고,
+  색·모양으로 이미 구분되는 UI에 구분선까지 더한 것도 과했다. 후보 3개(여백만
+  / 옅은 구분선 / 행동줄 앞에만 구분선)를 실제 색 토큰 그대로 재현한 정적
+  Artifact 목업으로 나란히 비교해 선택받은 뒤 반영했다 — "여백만" 채택,
+  `border-t` 전부 제거하고 바깥 여백을 `gap-2 md:gap-3`(8/12px)로 줄였다.
+  "봇 글 숨기기"는 라벨을 스위치 반대편으로 벌리던 `justify-between`을 버리고
+  라벨+스위치를 한 덩어리로 붙였다(`inline-flex gap-2`). 카테고리는 8개뿐이라
+  모바일 접기(`+N`/`useToggle`)가 과한 추상화였다고 판단해 제거하고 항상 전부
+  노출한다.
+  (`PostListSearch.tsx`, `texts.ts`)
+
   </details>
 
 - `post` "봇 글 숨기기" 스위치를 URL 파라미터 대신 기기별 localStorage 설정으로 변경
