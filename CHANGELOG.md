@@ -33,6 +33,26 @@
 
 ### Changed
 
+- `post` "봇 글 숨기기" 스위치를 URL 파라미터 대신 기기별 localStorage 설정으로 변경
+  <details><summary>배경·구현</summary>
+
+  기존엔 `?filter=excludeBots` URL 쿼리가 유일한 저장소라, 홈 로고 클릭·사이드바
+  이동처럼 쿼리가 없는 경로로 재진입하면 매번 OFF로 돌아갔다. 로그인 화면의
+  "아이디 저장"(`useLogin.ts`)과 같은 성격의 기기별 개인 설정으로 보고 localStorage에
+  옮겼다. 다만 스위치(`PostListSearch`)와 목록 조회(`usePostList`)가 형제 컴포넌트라
+  `useAppLocalStorage`(다른 탭 전용 동기화)로는 같은 탭 안에서 값이 전달되지 않아,
+  `auth.store.ts`의 "zustand + `LocalStorageUtil` 수동 동기화" 선례를 따라 신규
+  `useHideBotsStore`를 추가했다. URL의 `filter`(북마크한/내가 작성한/비공개)는 그대로
+  두고, `usePostList`가 그 값과 store의 `hideBots`를 합쳐 최종 필터를 만든다 — 옛
+  `?filter=excludeBots` 링크가 남아 있어도 그 토큰은 무시한다. 초기화 버튼은 검색어·
+  URL 필터만 되돌리고 봇 토글은 건드리지 않는다. store 갱신은 URL 갱신과 달리 라우터의
+  `v7_startTransition` 보호를 받지 못해 그대로 두면 토글 때마다 목록이 스켈레톤으로
+  떨어지므로, 기존 필터 칩과 같은 flushSync 낙관적 패턴 + `startTransition`으로 감쌌다.
+  (`shared/store/hideBots.store.ts`(신규), `shared/config/storage-keys.ts`,
+  `usePostList.ts`, `PostListSearch.tsx`)
+
+  </details>
+
 - `infra` PR·배포 파이프라인에 `pnpm check`(type-check·lint·format) 게이트 추가
   <details><summary>배경·구현</summary>
 
