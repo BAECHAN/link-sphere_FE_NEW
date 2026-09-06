@@ -92,53 +92,24 @@ pnpm storybook
 
 ## 프로젝트 구조
 
-```
-src/
-├── main.tsx                    # 앱 진입점
-│
-├── app/                        # 앱 셸 (라우터, 프로바이더, 레이아웃, 네비게이션)
-│   ├── layouts/                # AppLayout, AuthLayout, ErrorLayout, Navbar
-│   ├── providers/              # QueryProvider, AuthProvider, RouterProvider, ThemeProvider
-│   └── routes/                 # 라우트 정의, ProtectedRoute
-│
-├── domains/                    # 도메인별 비즈니스 로직 (DDD)
-│   ├── auth/                   # 로그인, 회원가입
-│   │   ├── _common/api/        # auth.api.ts · auth.keys.ts · auth.queries.ts
-│   │   └── features/           # login/ · sign-up/
-│   ├── post/                   # 게시물 + 댓글 도메인
-│   │   ├── _common/api/        # post · comment · interaction (api/keys/queries)
-│   │   ├── _common/model/      # post · comment · interaction (schema/types)
-│   │   └── features/           # create-post · update-post · delete-post
-│   │                           # post-list · post-detail
-│   │                           # like-post · bookmark-post
-│   │                           # comment-list · create-comment · update-comment
-│   │                           # delete-comment · like-comment
-│   └── member/                 # 사용자 프로필
-│       └── _common/            # member.api.ts · member.schema.ts
-│
-├── pages/                      # 라우트 단위 페이지 컴포넌트
-│   ├── auth/                   # LoginPage · SignUpPage
-│   ├── post/                   # PostDetailPage · PostEditPage · PostSubmitPage
-│   ├── mypage/                 # MyPage
-│   ├── 403/                    # Forbidden
-│   └── 404/                    # NotFound
-│
-└── shared/                     # 도메인 독립적인 공통 레이어
-    ├── api/                    # Axios 클라이언트 (client.ts) + 공통 API
-    ├── config/                 # API 엔드포인트, 라우트 경로, 텍스트 상수
-    ├── hooks/                  # useDebounce · useIsMobile · useToggle 등
-    ├── lib/                    # queryClient, react-table, tailwind 유틸
-    ├── store/                  # Zustand 전역 스토어 (auth)
-    ├── ui/
-    │   ├── atoms/              # Shadcn/ui 기본 컴포넌트 (Button, Input, Dialog …)
-    │   └── elements/           # 복합 컴포넌트 (Form, Modal/Alert, AsyncBoundary …)
-    └── utils/                  # auth · date · file · form · storage 유틸
-```
+Feature-Sliced Design(FSD)을 뼈대로 하되 일부 규칙을 다르게 채택한 변형이다 — 상세 트리·
+정식 FSD와 다른 점은 [`docs/FE-ARCHITECTURE.md`](docs/FE-ARCHITECTURE.md)가 정본이다.
 
-### 도메인 내 3-Layer API 패턴
+레이어(하향 의존만 허용): `app → pages → widgets → features → entities → shared`
+
+| 레이어     | 역할                                         |
+| ---------- | -------------------------------------------- |
+| `app`      | 라우터, 프로바이더, 앱 셸 레이아웃           |
+| `pages`    | 라우트 단위 페이지 컴포넌트                  |
+| `widgets`  | 복합 UI 블록 (`<도메인>/<슬라이스>/`)        |
+| `features` | 사용자 상호작용 (`<도메인>/<액션>/`)         |
+| `entities` | 비즈니스 엔티티 — data layer + basic display |
+| `shared`   | 도메인 독립적인 공통 유틸·UI 원자·API client |
+
+### Entity 내 3-Layer API 패턴
 
 ```
-_common/api/
+entities/<entity>/api/
 ├── *.api.ts       # 순수 async 함수 (React 의존 없음)
 ├── *.keys.ts      # 쿼리 키 팩토리 + 캐시 invalidation 핸들러
 └── *.queries.ts   # useQuery / useMutation 래퍼 훅
@@ -147,7 +118,7 @@ _common/api/
 ### Feature 폴더 구조
 
 ```
-features/<feature-name>/
+features/<도메인>/<액션>/
 ├── hooks/         # 비즈니스 로직 (form, mutation, state)
 └── ui/            # 얇은 UI 컴포넌트 (hook 사용)
 ```
@@ -181,7 +152,7 @@ features/<feature-name>/
 
 **레퍼런스** — "지금 값이 뭔가"
 
-- [`docs/FE-ARCHITECTURE.md`](docs/FE-ARCHITECTURE.md) — FSD 구조, 3-Layer API·Feature Hook 등 재사용 패턴, 네이밍 컨벤션
+- [`docs/FE-ARCHITECTURE.md`](docs/FE-ARCHITECTURE.md) — FSD 변형 구조(정식 FSD와 다른 점 포함), 3-Layer API·Feature Hook 등 재사용 패턴, 네이밍 컨벤션
 - [`docs/SYSTEM-ARCHITECTURE.md`](docs/SYSTEM-ARCHITECTURE.md) — 시스템 컨텍스트·배포 파이프라인·FE/BE 구조 (Mermaid)
 - [`docs/VERSION-COMPATIBILITY.md`](docs/VERSION-COMPATIBILITY.md) — BE·FE 버전 호환 매트릭스
 - [`docs/HISTORY.md`](docs/HISTORY.md) — 커밋 기반 변경 이력 (자동 생성, 직접 편집 금지)
