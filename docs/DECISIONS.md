@@ -6,6 +6,59 @@
 
 ---
 
+## 2026-09-06 — 필터 초기화 버튼: disabled 대신 항상 활성 + 조용한 early return
+
+**배경**
+
+게시글 목록 필터 카드의 **초기화** 버튼은 적용된 조건이 없으면 `disabled` 처리되고,
+`TooltipWrapper`가 "적용된 조건이 없어요"라는 이유를 hover/터치로 안내했다. 문제는
+`disabled` 버튼이 **탭 순서에서 빠진다**는 점이다. `TooltipWrapper`는 의도적으로
+`tabIndex={-1}`(호버 전용, 키보드 포커스로는 안 열림)이라, 키보드만 쓰는 사용자에게는
+버튼 자체도 이유도 존재하지 않게 된다. 마우스(툴팁)·터치(`TooltipWrapper`의 토스트
+폴백)는 이미 커버돼 있어 구멍은 키보드 경로 하나였다.
+
+**검토 — 버튼을 성격별로 나눠 판단**
+
+- **멱등한 버튼(초기화·지우기·해제)**: 누르면 "특정 상태로 만든다"는 뜻이라, 이미 그
+  상태여도 눌러서 이상할 게 없다. `disabled`로 막을 논리적 근거가 원래 약하다.
+- **결과를 기대하는 버튼(저장·등록)**: "눌렀으면 반영됐다"는 피드백을 기대하는
+  성격이라, 무음으로 아무 일도 안 일어나면 "고장인가?"로 읽힌다. 여기는 기존 방식
+  (`disabled` + 이유 툴팁, `UpdatePostForm.tsx`/`UpdateProfileForm.tsx`/
+  `CreatePostForm.tsx`)을 그대로 유지하기로 사용자와 합의했다 — Critical Rules
+  L211(`useUpdateComment.ts`)이 다루는 "진짜 빈 입력만 disabled" 규칙과는 별개 축이다.
+- **선례**: `useFolderActions.ts`의 폴더 이름 변경 핸들러가 이미 "이름이 안 바뀌었으면
+  토스트 없이 조용히 편집 모드만 닫고 return"하는 패턴을 쓰고 있었다.
+
+**결정**
+
+- 초기화 버튼(`PostListSearch.tsx`)만 `disabled`·`TooltipWrapper`를 제거하고 항상
+  활성 상태로 둔다. 클릭 핸들러(`handleClearSearch`)가 `appliedCount === 0`이면
+  아무 것도 하지 않고 조용히 return한다(토스트도 안내도 없음 — 조건 뱃지가 이미
+  화면에 없다는 사실 자체가 "지울 게 없다"는 신호이므로 별도 안내가 불필요하다는
+  판단, `RecentSearchPanel.tsx`의 "모두 지우기"가 조건부 렌더로 아예 숨기는 것과
+  같은 결의 선택).
+- 적용 범위는 이 버튼 하나로 한정한다 — 저장·등록 버튼에는 이 패턴을 확장하지 않는다.
+- 부수 근거: `clearSearch`는 `usePostList.ts`에서 `setSearchParams({})`를 replace
+  없이 호출하므로, 조건이 없는데도 실행되면 같은 URL로 history entry가 쌓여 뒤로가기가
+  한 번 먹통이 될 수 있다(react-router 기본 push 동작에서의 추론, 재현 검증은 안 함).
+  early return이 이 가드도 겸한다.
+- `resetDisabledReason` 텍스트 상수는 이 변경으로 유일한 사용처가 사라져 함께 제거했다.
+  이 문구는 아직 릴리즈되지 않은 상태였다(disabled+툴팁 자체가 `v0.12.0`에 미포함) —
+  그래서 `CHANGELOG.md`에도 "추가했다 되돌림"이 아니라 미출시 `Added` 항목을 지우고
+  최종 동작만 `Changed`로 남겼다.
+
+**향후 비슷한 버튼에 적용하는 기준**
+
+새 버튼을 만들 때 "조건이 없어서/할 게 없어서" disabled를 고려하고 있다면:
+멱등한 동작이면 항상 활성 + early return, 결과를 기대하는 동작이면 기존처럼
+`disabled` + 이유 안내(툴팁 또는 인라인 문구)를 쓴다. 판단이 애매하면 "눌렀는데
+아무 반응이 없으면 사용자가 고장으로 오인할지"를 기준으로 삼는다.
+
+**상태**: 구현·배포 완료. `worktree-reset-button-no-disable` → PR #18 → `main` 머지
+(merge commit `210506e`) → Frontend Deploy 워크플로우 성공 확인.
+
+---
+
 ## 2026-09-06 — 댓글 등록 403: CloudFront WAF 과차단 + 앱 본문 길이 상한
 
 **배경**
