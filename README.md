@@ -26,6 +26,13 @@ Gk8#pW2!vN9x
 
 ## 시작하기
 
+### 전제 조건
+
+- Node 24 이상(`.nvmrc` 고정) — `nvm use`로 맞춘다. `package.json`의 `engines.node`가
+  강제하므로 다른 버전이면 `pnpm install`부터 막힌다
+- pnpm (버전은 `package.json`의 `packageManager` 참고)
+- 루트에 `.env` 파일 필요 — 없으면 `pnpm validate`/`pnpm check:env`가 실패한다
+
 ### 설치
 
 ```bash
@@ -38,7 +45,8 @@ pnpm install
 pnpm dev
 ```
 
-> 기본 포트: **31119** — `/api` 요청은 BE(8080)로 프록시됩니다.
+> 기본 포트: **31119** — `/api` 요청은 `VITE_API_BASE_URL` 환경변수(`.env`)가 가리키는
+> BE로 프록시됩니다.
 
 ### 빌드
 
@@ -86,7 +94,7 @@ pnpm storybook
 | Client State | Zustand 5                                                    |
 | Form         | React Hook Form 7, Zod 3                                     |
 | UI           | Shadcn/ui (Radix UI), TailwindCSS 4, CVA                     |
-| 기타         | Sonner, Supabase JS, dayjs, framer-motion                    |
+| 기타         | Sonner, Supabase JS, dayjs, framer-motion, Firebase(FCM)     |
 | 개발 도구    | ESLint 9, Prettier 3, Husky, Storybook 10                    |
 | 테스트       | Vitest 4, jsdom, Testing Library, MSW 2, @vitest/coverage-v8 |
 
@@ -106,7 +114,10 @@ Feature-Sliced Design(FSD)을 뼈대로 하되 일부 규칙을 다르게 채택
 | `entities` | 비즈니스 엔티티 — data layer + basic display |
 | `shared`   | 도메인 독립적인 공통 유틸·UI 원자·API client |
 
-### Entity 내 3-Layer API 패턴
+레이어에 속하지 않는 최상위 디렉터리도 있다 — `src/mocks/`(MSW), `src/test/`(Vitest 셋업),
+`src/types/`(전역 타입 선언). 상세는 FE-ARCHITECTURE.md §3 참고.
+
+### Entity 내 3-Layer API 패턴 (표준형)
 
 ```
 entities/<entity>/api/
@@ -115,7 +126,10 @@ entities/<entity>/api/
 └── *.queries.ts   # useQuery / useMutation 래퍼 훅
 ```
 
-### Feature 폴더 구조
+일부 엔티티는 예외다 — `interaction`은 `keys.ts` 없이 다른 엔티티의 키를 직접 쓰고,
+`upload`는 `api.ts`만 있다. 상세는 FE-ARCHITECTURE.md §3·§4 참고.
+
+### Feature 폴더 구조 (표준형)
 
 ```
 features/<도메인>/<액션>/
@@ -123,13 +137,15 @@ features/<도메인>/<액션>/
 └── ui/            # 얇은 UI 컴포넌트 (hook 사용)
 ```
 
+컴포넌트가 필요 없는 슬라이스(`post/delete`, `comment/delete`)는 `hooks/`만 갖는다.
+
 ## 테스트
 
 - **1회 실행**: `pnpm test` (CI / pre-push와 동일)
 - **감시 모드**: `pnpm test:watch` (TDD 루프)
 - **커버리지**: `pnpm test:coverage` → `coverage/index.html`에서 확인
 
-`git push` 시 pre-push 훅으로 테스트가 자동 실행되며, 실패 시 push가 차단됩니다. 상세한 패턴·MSW·픽스처·트러블슈팅은 [테스트 가이드](docs/TESTING.md)를 참고하세요.
+`git commit` 시 pre-commit 훅으로 타입 체크 + lint-staged가, `git push` 시 pre-push 훅으로 테스트가 자동 실행되며, 실패 시 각각 커밋·push가 차단됩니다. 상세한 패턴·MSW·픽스처·트러블슈팅은 [테스트 가이드](docs/TESTING.md)를 참고하세요.
 
 ## 문서
 

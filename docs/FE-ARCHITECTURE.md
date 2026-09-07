@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-09-06
+> **마지막 검토**: 2026-09-07
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -19,13 +19,15 @@
 이 프로젝트는 **Feature-Sliced Design(FSD)을 뼈대로 쓰되, FSD의 핵심 규칙 중 하나(Public
 API)를 성능을 이유로 정반대로 채택**하고, 그 위에 도메인 그룹핑·3-Layer API 등 여러 패턴을
 얹은 변형이다. "FSD를 그대로 쓴다"고 기대하면 두 가지에서 어긋난다 — 슬라이스는 `index.ts`
-배럴로 캡슐화되지 않고(오히려 금지), 같은 레이어 안 슬라이스끼리도 자유롭게 서로를 참조한다.
+배럴로 캡슐화되지 않고(import 문자열이 `/index`로 끝나는 배럴 import만 금지 — 디렉터리
+암묵 해석으로 진입점을 노출하는 배럴 파일 자체는 존재한다, 예: `src/mocks/handlers/index.ts`),
+같은 레이어 안 슬라이스끼리도 자유롭게 서로를 참조한다.
 
 ### 조합된 개념
 
 | 개념                                  | 출처                              | 이 레포에서 담당하는 것                                                                         | 대표 위치                                                     |
 | ------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| FSD (Feature-Sliced Design)           | feature-sliced.design             | 레이어 6종(`app→pages→widgets→features→entities→shared`) + 하향 의존만 허용                     | `eslint.config.js:936-1070`                                   |
+| FSD (Feature-Sliced Design)           | feature-sliced.design             | 레이어 6종(`app→pages→widgets→features→entities→shared`) + 하향 의존만 허용                     | `eslint.config.js`의 `no-restricted-imports` 5블록(레이어별)  |
 | 도메인 우선 슬라이스 그룹핑           | FSD의 "slice group"을 필수 규칙화 | `features/<도메인>/<액션>/`, `widgets/<도메인>/<슬라이스>/` 처럼 한 단계 더 묶음                | `features/post/create/`, `widgets/post/post-card/`            |
 | 3-Layer API 분리                      | 이 레포 자체 규약                 | `*.api.ts`(순수 fetch) → `*.keys.ts`(쿼리 키+무효화) → `*.queries.ts`(React Query 훅) 3단 분리  | `entities/post/api/{post.api,post.keys,post.queries}.ts`      |
 | Query Key Factory + 중앙 invalidation | TanStack Query 커뮤니티 패턴      | `<entity>Keys`·`<entity>InvalidateQueries`·`handle<Entity><Action>Success`로 캐시 무효화 캡슐화 | §5 참고                                                       |
@@ -39,8 +41,8 @@ API)를 성능을 이유로 정반대로 채택**하고, 그 위에 도메인 �
 
 | FSD 규칙                                                          | 채택 여부                               | 이유 / 실태                                                                                                                                                                                                                                                                       | 강제 수단                                                                                                                                                                                                |
 | ----------------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 레이어 6종 + 하향 의존만 허용                                     | ✅ 채택                                 | FSD 원칙 그대로                                                                                                                                                                                                                                                                   | ESLint `no-restricted-imports` 5블록 (`eslint.config.js:936-1070`)                                                                                                                                       |
-| Public API — 슬라이스는 `index.ts` 배럴로만 외부에 노출           | ❌ **정반대로 채택** (배럴 자체를 금지) | dev 서버 부팅 15-70%·빌드 28%·콜드스타트 40% 지연이라는 성능 트레이드오프 때문에 의도적으로 뒤집음                                                                                                                                                                                | ESLint `custom-barrel-rules/no-barrel-import` (`eslint.config.js:821-867`) — 전 레이어에서 `index.ts`/`index.tsx` import 시 에러                                                                         |
+| 레이어 6종 + 하향 의존만 허용                                     | ✅ 채택                                 | FSD 원칙 그대로                                                                                                                                                                                                                                                                   | ESLint `no-restricted-imports` 5블록 (`eslint.config.js`)                                                                                                                                                |
+| Public API — 슬라이스는 `index.ts` 배럴로만 외부에 노출           | ❌ **정반대로 채택** (배럴 자체를 금지) | dev 서버 부팅 15-70%·빌드 28%·콜드스타트 40% 지연이라는 성능 트레이드오프 때문에 의도적으로 뒤집음                                                                                                                                                                                | ESLint `custom-barrel-rules/no-barrel-import` (`eslint.config.js`) — import 문자열이 `/index`로 끝날 때 에러(디렉터리 암묵 해석은 예외 — `@/mocks/handlers`처럼 실제로 쓰인다)                           |
 | 동일 레이어 슬라이스 격리 (entities는 `@x` 표기로 교차 참조 허용) | ❌ 미채택, 미강제                       | 별도 표기 없이 상시 교차 참조 발생                                                                                                                                                                                                                                                | 없음 — `entities/post/model/post.schema.ts:105-106`이 comment·interaction 스키마를 `export *`로 재수출, `entities/interaction/api/interaction.queries.ts:4-6`이 post·comment·folder의 keys를 직접 import |
 | 세그먼트는 목적 기준 명명 (`ui`/`api`/`model`/`lib`/`config`)     | ⚠️ 부분 채택                            | `hooks/`·`utils/`를 세그먼트로도 쓴다(`features/*/hooks/`, `widgets/post/post-list/utils/`) — 정식 FSD 세그먼트명은 아니지만 widgets·features 안에서는 일관되게 쓰인다. 레이어 안에서 세그먼트가 뒤섞이는 것(예: 같은 entities인데 `user`만 `hooks/`, 나머지는 `model/`)만은 금지 | `.claude/CLAUDE.md`의 "레이어별 허용 세그먼트" 표 (문서 규칙, ESLint 미강제)                                                                                                                             |
 | 슬라이스 그룹 폴더 허용 (그룹 폴더 자체엔 공유 코드 금지)         | ✅ 채택                                 | 그룹 폴더(`features/post/`, `widgets/layout/` 등)에는 파일이 없고 슬라이스만 있음                                                                                                                                                                                                 | —                                                                                                                                                                                                        |
@@ -88,15 +90,20 @@ flowchart TD
 레이어 하향 의존 외에, 문서 어디에도 안 적혀 있지만 실제로 커밋을 막는 규칙들이다. 아래를
 모르고 코드를 쓰면 린트에서 막힌다.
 
-| 규칙                                             | 무엇을 막나                                                                          | 위치                       |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------ | -------------------------- |
-| `custom-barrel-rules/no-barrel-import`           | 모든 `index.ts`/`index.tsx` import (배럴 금지)                                       | `eslint.config.js:821-867` |
-| `custom-ui-rules/no-direct-query-import`         | `**/ui/**`에서 `@tanstack/react-query` 직접 import — Container/Presentational 강제   | `eslint.config.js:779-818` |
-| `custom-i18n/no-hardcoded-hangul`                | 한글 UI 문자열 하드코딩 — `TEXTS`만 허용                                             | `eslint.config.js:876-934` |
-| `custom-import/no-sonner-toast-direct-import`    | `sonner` 직접 import — `@/shared/lib/toast/toast` 경유 강제                          | `eslint.config.js:408`     |
-| `custom-import/no-relative-import-except-styles` | 상대 경로 import(`../`) 금지, `.styles.ts` 파일만 예외                               | `eslint.config.js:407`     |
-| `no-restricted-syntax` (Zustand)                 | 컴포넌트/훅 내부에서 스토어 `getState()` 직접 호출 금지 — 셀렉터 훅 사용 강제        | `eslint.config.js:731-777` |
-| 파일명 규칙                                      | `*.api.ts`·`*.queries.ts`·`*.schema.ts`·`config/`·`utils/` 등 세그먼트별 파일명 패턴 | `eslint.config.js:656-719` |
+줄 번호는 리팩터링 때마다 바뀌므로 규칙명으로만 가리킨다 — 정확한 위치는
+`grep -n "<규칙명>" eslint.config.js`로 직접 찾는다.
+
+| 규칙                                              | 무엇을 막나                                                                          |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `custom-barrel-rules/no-barrel-import`            | `/index`로 끝나는 import (배럴 금지)                                                 |
+| `custom-ui-rules/no-direct-query-import`          | `**/ui/**`에서 `@tanstack/react-query` 직접 import — Container/Presentational 강제   |
+| `custom-i18n/no-hardcoded-hangul`                 | 한글 UI 문자열 하드코딩 — `TEXTS`만 허용                                             |
+| `custom-import/no-sonner-toast-direct-import`     | `sonner` 직접 import — `@/shared/lib/toast/toast` 경유 강제                          |
+| `custom-import/no-relative-import-except-styles`  | 상대 경로 import(`../`) 금지, `.styles.ts` 파일만 예외                               |
+| `no-restricted-syntax` (Zustand)                  | 컴포넌트/훅 내부에서 스토어 `getState()` 직접 호출 금지 — 셀렉터 훅 사용 강제        |
+| 파일명 규칙                                       | `*.api.ts`·`*.queries.ts`·`*.schema.ts`·`config/`·`utils/` 등 세그먼트별 파일명 패턴 |
+| `custom-a11y/clickable-needs-interactive-element` | `div`/`span`에 `onClick`만 달기 — `role="button"` 없이는 금지                        |
+| `curly` (`['error', 'all']`)                      | 인라인 `if`문 (`if (x) return;`) — 항상 중괄호 블록 강제                             |
 
 ---
 
@@ -105,16 +112,19 @@ flowchart TD
 ```
 src/
 ├── main.tsx                     # 앱 진입점
+├── styled.d.ts, vite-env.d.ts   # 전역 타입 선언
 │
 ├── app/                          # 앱 초기화, providers, routing
+│   ├── App.tsx                   # 최상위 App 컴포넌트
+│   ├── globals.css               # 디자인 토큰(CSS 변수) + Tailwind 레이어
 │   ├── providers/                # AuthProvider, QueryProvider, RouterProvider, ThemeProvider
 │   ├── routes/                   # 라우트 설정, ProtectedRoute, RouteErrorBoundary
 │   │   └── layouts/              # AppShellLayout, ProtectedLayout, PublicLayout, RootLayout
 │   └── layouts/
-│       └── app-layout/           # AppLayout
+│       └── app-layout/           # AppLayout — 현재 어디서도 import되지 않는 미사용 컴포넌트
 │
 ├── pages/                        # 라우팅 진입점 — widgets/features 조합. 세그먼트 없음
-│   ├── post/                     # index(PostListPage), PostDetailPage, PostEditPage, PostSubmitPage
+│   ├── post/                     # index(Post), PostDetailPage, PostEditPage, PostSubmitPage
 │   ├── auth/                     # LoginPage, SignUpPage
 │   ├── bookmark/                 # BookmarkPage
 │   ├── 403/                      # ForbiddenPage
@@ -134,9 +144,9 @@ src/
 │   │   └── comment-list/
 │   │       └── ui/               # CommentList, CommentItem
 │   ├── bookmark/
-│   │   ├── bookmark-post-list/ui/  # BookmarkPostList
-│   │   ├── bookmark-search/ui/     # BookmarkSearch
-│   │   └── folder-tree/ui/         # FolderTree, MobileFolderList
+│   │   ├── bookmark-post-list/{hooks,ui}  # useBookmarkPostList, BookmarkPostList
+│   │   ├── bookmark-search/{hooks,ui}     # useBookmarkSearch, BookmarkSearch
+│   │   └── folder-tree/{hooks,ui}         # useFolderTree 외 4개, FolderTree, MobileFolderList
 │   └── layout/
 │       ├── navbar/
 │       │   ├── hooks/            # useRecentSearches
@@ -153,7 +163,7 @@ src/
 │   │   ├── like/{hooks,ui}       # useLikePost, LikePostButton
 │   │   └── bookmark/{hooks,ui}   # useBookmarkFolders, BookmarkPostButton, FolderSelector
 │   ├── comment/
-│   │   ├── create/{hooks,ui}     # useCreateComment, CommentForm, MobileCommentBar
+│   │   ├── create/{hooks,ui}     # useCreateComment, CommentForm, MobileCommentBar, ScrollToCommentFormButton
 │   │   ├── update/{hooks,ui}     # useUpdateComment, CommentEditForm
 │   │   ├── delete/hooks          # useDeleteComment
 │   │   └── like/{hooks,ui}       # useLikeComment, LikeCommentButton
@@ -169,8 +179,8 @@ src/
 │   │   └── config/                # const.ts (POST_PAGE_SIZE)
 │   ├── comment/
 │   │   ├── api/                  # comment.api.ts, comment.keys.ts, comment.queries.ts
-│   │   ├── model/                # comment.schema.ts
-│   │   └── config/                # const.ts (MAX_COMMENT_CONTENT_BYTES)
+│   │   ├── model/                # comment.schema.ts, estimateCommentPayloadBytes.ts
+│   │   └── config/                # const.ts (MAX_COMMENT_CONTENT_BYTES 외)
 │   ├── interaction/
 │   │   ├── api/                  # interaction.api.ts, interaction.queries.ts (keys.ts 없음 — post/comment/folder keys 직접 사용)
 │   │   └── model/                # interaction.schema.ts
@@ -197,9 +207,11 @@ src/
     │   ├── storage-keys.ts
     │   ├── const.ts
     │   └── error-code.ts          # SERVER_ERROR_CODE
-    ├── hooks/                     # 재사용 훅 19개 (useToggle, useDebounce, useIntersectionObserver, usePullToRefresh 등)
+    ├── hooks/                     # 재사용 훅 (useToggle, useDebounce, useIntersectionObserver, usePullToRefresh 등)
     ├── lib/
-    │   ├── react-query/config/queryClient.ts   # 중앙 QueryClient 인스턴스
+    │   ├── react-query/
+    │   │   ├── config/queryClient.ts   # 중앙 QueryClient 인스턴스
+    │   │   └── utils/hooks.ts          # React Query 관련 재사용 훅
     │   ├── toast/toast.ts         # sonner 래퍼 (직접 import 금지, 이걸 통해서만 사용)
     │   ├── firebase/, image/, content/, react-table/, router/
     │   └── tailwind/utils.ts      # cn() helper
@@ -211,7 +223,8 @@ src/
     │   ├── atoms/                 # CVA 기반 Shadcn 기본 컴포넌트
     │   ├── elements/              # 조합 컴포넌트 (MarkdownContent 포함)
     │   │   ├── form/
-    │   │   └── modal/{alert,image-viewer}/
+    │   │   ├── modal/{alert,image-viewer}/
+    │   │   └── modal/SheetDialogContent.tsx
     │   └── layouts/                # AuthLayout, ErrorLayout
     └── utils/                     # auth, date, file, form, storage, url, common, error (.util.ts)
 ```
@@ -300,6 +313,30 @@ export const handleEntityUpdateSuccess = (id: Entity['id']) => {
   entityInvalidateQueries.list();
 };
 ```
+
+#### 크로스 엔티티 무효화 (다른 엔티티 캐시까지 갱신해야 할 때)
+
+다른 엔티티의 캐시도 함께 갱신해야 하면, 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()`
+래퍼만 import해서 부른다. 그 엔티티의 raw 쿼리 키를 재구성해서 `queryClient.invalidateQueries`를
+직접 호출하지 않는다(캡슐화가 깨지고, 그 엔티티의 키 구조가 바뀌면 여기도 같이 고쳐야 한다).
+
+```typescript
+// entities/comment/api/comment.keys.ts
+import { postInvalidateQueries } from '@/entities/post/api/post.keys';
+
+export const handleCommentCreateSuccess = (postId: Post['id']) => {
+  commentInvalidateQueries.list(postId); // 1. 자기 엔티티
+  postInvalidateQueries.detail(postId); // 2. 댓글 수가 반영되는 포스트 상세
+  postInvalidateQueries.list(); // 3. 목록의 댓글 수 배지
+};
+```
+
+`handle<Event>Success`가 어느 엔티티의 `.keys.ts`에 사는지는 "어떤 이벤트가 트리거인가"가
+아니라 "어떤 캐시가 영향받는가"로 정한다 — 트리거가 다른 엔티티(post 삭제, 좋아요/북마크
+토글)여도 영향받는 캐시를 소유한 엔티티(folder)가 핸들러를 호스팅할 수 있다
+(`folder.keys.ts`의 `handlePostDeleteSuccess`, `handleBookmarkToggleSuccess`). 참고 파일:
+`comment.keys.ts`, `folder.keys.ts`, `auth.keys.ts`(`handleAccountUpdateSuccess`,
+`handleAuthRestoreSuccess`).
 
 ### Layer 3 — `<entity>.queries.ts` (얇은 React Query 래퍼)
 
@@ -392,14 +429,36 @@ export function CreateEntityForm() {
 
 ---
 
-## 8. Zod Schema 패턴
+## 8. Widget Hook 패턴
+
+widget hook = 여러 entity query 조합 + UI 블록 특화 파생 상태. 뮤테이션 로직은 포함하지 않는다.
+
+```typescript
+// widgets/<domain>/<widget>/hooks/use<Widget>.ts
+export function usePostList(filter: PostFilter) {
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    usePostListQuery(filter);
+
+  const posts = data?.pages.flatMap((page) => page.content) ?? [];
+  const isEmpty = !isLoading && posts.length === 0;
+
+  return { posts, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, isEmpty };
+}
+```
+
+widget hook이 **불필요한 경우**: entity query 1개 + trivial 파생만이면 컴포넌트에서 직접 사용한다.
+
+---
+
+## 9. Zod Schema 패턴
 
 ```typescript
 // entities/<entity>/model/<entity>.schema.ts
 export const entitySchema = z.object({
   id: z.string(),
   name: z.string().min(1, TEXTS.validation.nameRequired),
-  content: z.string().nullable(), // nullable 필드는 .nullable() 사용
+  content: z.string().nullable(), // nullable: null 허용, undefined 불가
+  image: z.string().optional(), // optional: undefined 허용, null 불가
   createdAt: z.coerce.date(), // 날짜 필드는 z.coerce.date() 사용
 });
 
@@ -413,7 +472,7 @@ export type UpdateEntity = z.infer<typeof updateEntitySchema>;
 
 ---
 
-## 9. Delete with Confirm 패턴
+## 10. Delete with Confirm 패턴
 
 **절대로** native `confirm()` 사용 금지. 항상 `useAlert` + `openConfirm` 사용.
 
@@ -434,7 +493,7 @@ const onDelete = (id: string) => {
 
 ---
 
-## 10. Optimistic Update 패턴
+## 11. Optimistic Update 패턴
 
 참조: `src/entities/interaction/api/interaction.queries.ts` (`useLikePostMutation`)
 
@@ -453,9 +512,29 @@ onError: (_err, _vars, context) => {
 },
 ```
 
+목록(InfiniteData)까지 함께 업데이트:
+
+```typescript
+queryClient.setQueriesData<InfiniteData<EntityListResponse>>(
+  { queryKey: entityKeys.listRoot },
+  (oldData) => {
+    if (!oldData) return oldData;
+    return {
+      ...oldData,
+      pages: oldData.pages.map((page) => ({
+        ...page,
+        content: page.content.map((item) =>
+          item.id === id ? { ...item, isLiked: !item.isLiked } : item
+        ),
+      })),
+    };
+  }
+);
+```
+
 ---
 
-## 11. React Query 설정
+## 12. React Query 설정
 
 `src/shared/lib/react-query/config/queryClient.ts`
 
@@ -468,7 +547,7 @@ onError: (_err, _vars, context) => {
 
 ---
 
-## 12. 에러 핸들링 전략
+## 13. 에러 핸들링 전략
 
 ### 전역 에러 핸들링
 
@@ -497,7 +576,7 @@ const { mutate } = useMutation({
 
 ---
 
-## 13. Toast 알림 (Sonner)
+## 14. Toast 알림 (Sonner)
 
 Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toast-direct-import`가
 막는다. 항상 래퍼 `@/shared/lib/toast/toast`의 `toast`를 사용한다 (성공/액션 확인은
@@ -508,7 +587,7 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ---
 
-## 14. Mutation/Query Meta 옵션
+## 15. Mutation/Query Meta 옵션
 
 | 키                    | 타입      | 효과                                                    |
 | --------------------- | --------- | ------------------------------------------------------- |
@@ -518,7 +597,7 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ---
 
-## 15. Form 컴포넌트 구조
+## 16. Form 컴포넌트 구조
 
 `src/shared/ui/elements/form/`
 
@@ -532,7 +611,7 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ---
 
-## 16. 핵심 설정 파일 위치
+## 17. 핵심 설정 파일 위치
 
 | 목적               | 파일                                                | export          |
 | ------------------ | --------------------------------------------------- | --------------- |
@@ -547,27 +626,27 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ---
 
-## 17. 네이밍 컨벤션
+## 18. 네이밍 컨벤션
 
-| 항목             | 규칙                                     | 예시                             |
-| ---------------- | ---------------------------------------- | -------------------------------- |
-| Feature 디렉토리 | `<도메인>/<액션>` kebab-case             | `post/create/`                   |
-| Widget 디렉토리  | `<도메인>/<슬라이스>` kebab-case         | `post/post-card/`                |
-| Shared 디렉토리  | camelCase                                | `hooks/`, `utils/`               |
-| 컴포넌트 파일    | PascalCase.tsx                           | `CreatePostForm.tsx`             |
-| Feature 훅       | `use<FeatureName>.ts`                    | `useCreatePost.ts`               |
-| Mutation 훅      | `use<Action><Entity>Mutation`            | `useCreatePostMutation`          |
-| Query 훅         | `useFetch<Entity>Query`                  | `useFetchPostDetailQuery`        |
-| 쿼리 키 객체     | `<entity>Keys`                           | `postKeys`                       |
-| Invalidate 헬퍼  | `<entity>InvalidateQueries`              | `postInvalidateQueries`          |
-| Success 핸들러   | `handle<Entity><Action>Success`          | `handlePostCreateSuccess`        |
-| API 객체         | `<entity>Api`                            | `postApi`                        |
-| Zod 스키마       | `<entity>Schema`, `create<Entity>Schema` | `postSchema`, `createPostSchema` |
-| TS 타입          | 스키마와 동일 (PascalCase)               | `Post`, `CreatePost`             |
+| 항목             | 규칙                                                                                                                                                                                                                   | 예시                             |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Feature 디렉토리 | `<도메인>/<액션>` kebab-case                                                                                                                                                                                           | `post/create/`                   |
+| Widget 디렉토리  | `<도메인>/<슬라이스>` kebab-case                                                                                                                                                                                       | `post/post-card/`                |
+| Shared 디렉토리  | camelCase                                                                                                                                                                                                              | `hooks/`, `utils/`               |
+| 컴포넌트 파일    | PascalCase.tsx                                                                                                                                                                                                         | `CreatePostForm.tsx`             |
+| Feature 훅       | `use<FeatureName>.ts`                                                                                                                                                                                                  | `useCreatePost.ts`               |
+| Mutation 훅      | `use<Action><Entity>Mutation`                                                                                                                                                                                          | `useCreatePostMutation`          |
+| Query 훅         | `useFetch<Entity>Query` (표준). 기존 코드엔 `use<Entity>s`(`useComments`), `use<Entity>ListQuery`(`useFolderListQuery`), `use<Entity>InfiniteQuery`(`useFolderPostsInfiniteQuery`)도 있다 — 새로 만들 땐 표준형을 쓴다 | `useFetchPostDetailQuery`        |
+| 쿼리 키 객체     | `<entity>Keys`                                                                                                                                                                                                         | `postKeys`                       |
+| Invalidate 헬퍼  | `<entity>InvalidateQueries`                                                                                                                                                                                            | `postInvalidateQueries`          |
+| Success 핸들러   | `handle<Entity><Action>Success`                                                                                                                                                                                        | `handlePostCreateSuccess`        |
+| API 객체         | `<entity>Api`                                                                                                                                                                                                          | `postApi`                        |
+| Zod 스키마       | `<entity>Schema`, `create<Entity>Schema`                                                                                                                                                                               | `postSchema`, `createPostSchema` |
+| TS 타입          | 스키마와 동일 (PascalCase)                                                                                                                                                                                             | `Post`, `CreatePost`             |
 
 ---
 
-## 18. 개발 커맨드
+## 19. 개발 커맨드
 
 ```bash
 pnpm dev            # 개발 서버 (port 31119, localhost 모드)
@@ -587,7 +666,7 @@ pnpm storybook      # Storybook (port 6006)
 
 ---
 
-## 19. 클릭 가능한 요소와 커서 규칙
+## 20. 클릭 가능한 요소와 커서 규칙
 
 `src/app/globals.css`의 `@layer base`에서 전역으로 처리한다 — 개별 컴포넌트에
 `cursor-pointer`를 직접 붙이지 않는다. 배경은 `docs/DECISIONS.md`의 2026-09-03
@@ -624,7 +703,7 @@ CLI로 이 컴포넌트를 다시 생성하면 `cursor-default`가 되돌아오�
 
 ---
 
-## 20. 체크리스트: 기존 엔티티에 새 기능 추가
+## 21. 체크리스트: 기존 엔티티에 새 기능 추가
 
 - [ ] `entities/<entity>/model/<entity>.schema.ts` — Zod 스키마 + 타입 추가/확인
 - [ ] `entities/<entity>/api/<entity>.api.ts` — API 함수 추가
@@ -636,7 +715,7 @@ CLI로 이 컴포넌트를 다시 생성하면 `cursor-default`가 되돌아오�
 - [ ] `features/<도메인>/<액션>/ui/<FeatureName>.tsx` — 얇은 UI
 - [ ] `src/pages/<page>/` 페이지에 연결
 
-## 21. 체크리스트: 새 Entity/Widget 추가
+## 22. 체크리스트: 새 Entity/Widget 추가
 
 - [ ] 위 "새 기능 추가" 체크리스트 전부
 - [ ] `src/entities/<entity>/` 디렉토리 구조 생성 (api/, model/)
