@@ -102,6 +102,8 @@ src/
 
 순수 함수는 MSW나 React 없이 가장 단순하게 테스트합니다.
 
+<!-- check-docs-ignore: 새로 만들 파일의 예시 경로, 아직 존재하지 않음 -->
+
 ```typescript
 // src/shared/utils/my-util.test.ts
 import { describe, expect, it } from 'vitest';
@@ -190,6 +192,8 @@ describe('createPostSchema', () => {
 
 `renderHook`과 MSW를 함께 사용합니다.
 
+<!-- check-docs-ignore: 새로 만들 파일의 예시 경로, 아직 존재하지 않음 -->
+
 ```typescript
 // src/features/post/create/hooks/useCreatePost.test.tsx
 import { renderHook, act } from '@testing-library/react';
@@ -261,6 +265,8 @@ describe('useCreatePost', () => {
 
 `renderWithProviders`로 컴포넌트를 렌더하고 사용자 인터랙션을 테스트합니다.
 
+<!-- check-docs-ignore: 새로 만들 파일의 예시 경로, 아직 존재하지 않음 -->
+
 ```typescript
 // src/widgets/post/post-card/ui/PostCard.test.tsx
 import { describe, expect, it } from 'vitest';
@@ -320,6 +326,8 @@ screen.getByTestId('submit-button');
 없는 새 도메인(`notification`)을 추가하는 가정의 예시입니다 — 실존하는 핸들러는
 [`src/mocks/handlers/`](../src/mocks/handlers/)의 `auth`·`post`·`comment`·`folder`·`upload`
 5종을 참고하세요.
+
+<!-- check-docs-ignore: 새로 만들 파일의 예시 경로, 아직 존재하지 않음 -->
 
 ```typescript
 // src/mocks/handlers/notification.handlers.ts
@@ -411,6 +419,8 @@ server.use(
 
 새로운 도메인의 목 데이터는 `src/mocks/fixtures/`에 추가합니다. 위와 같은 가정의
 `notification` 도메인이라면:
+
+<!-- check-docs-ignore: 새로 만들 파일의 예시 경로, 아직 존재하지 않음 -->
 
 ```typescript
 // src/mocks/fixtures/notification.fixtures.ts

@@ -7,7 +7,7 @@
 > **읽고 나면**: `pnpm check`가 실제로 어느 시점에 도는지, ignore 패턴을 추가하거나
 > PR 게이트에 스텝을 더할 때 어디를 고치면 되는지 안다.
 >
-> **마지막 검토**: 2026-09-06
+> **마지막 검토**: 2026-09-07
 
 ## 1. 쉬운 설명
 
@@ -119,25 +119,28 @@ ignore 패턴(`'dist/**/*'`, 루트 상대 경로)에 안 걸려서 그대로 �
 
 ## 6. 운영 파라미터
 
-| 파라미터                | 값                                                                                              | 실제 위치                                                                  |
-| ----------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `--max-warnings` 임계값 | 0                                                                                               | `package.json:18-19`(`lint`/`lint:fix`), `package.json:122`(`lint-staged`) |
-| ESLint 글로벌 ignore    | `**/dist/**`, `**/node_modules/**`, `.claude/worktrees/**`, `**/*.md`, `**/*.svg`, `infra/**/*` | `eslint.config.js:19-24`                                                   |
-| Prettier ignore 추가분  | `.claude/worktrees`, `docs/HISTORY.md`(봇 생성 파일)                                            | `.prettierignore:6-7`                                                      |
-| PR CI 트리거            | `pull_request` → `main`                                                                         | `.github/workflows/ci.yml:7`                                               |
-| 동시 실행 제어          | 같은 브랜치 새 커밋 push 시 이전 실행 자동 취소                                                 | `.github/workflows/ci.yml:11` `concurrency` 블록                           |
-| Node 버전               | 24(`.nvmrc` 기준, `node-version-file`로 참조)                                                   | `.nvmrc`, `ci.yml:28`·`deploy.yml` 공통                                    |
-| 배포 게이트 위치        | `pnpm install` 직후, `pnpm test` 이전                                                           | `deploy.yml` "Type check, lint & format check" 스텝                        |
+| 파라미터                  | 값                                                                                              | 실제 위치                                                                  |
+| ------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `--max-warnings` 임계값   | 0                                                                                               | `package.json:18-19`(`lint`/`lint:fix`), `package.json:122`(`lint-staged`) |
+| ESLint 글로벌 ignore      | `**/dist/**`, `**/node_modules/**`, `.claude/worktrees/**`, `**/*.md`, `**/*.svg`, `infra/**/*` | `eslint.config.js:19-24`                                                   |
+| Prettier ignore 추가분    | `.claude/worktrees`, `docs/HISTORY.md`(봇 생성 파일)                                            | `.prettierignore:6-7`                                                      |
+| PR CI 트리거              | `pull_request` → `main`                                                                         | `.github/workflows/ci.yml:7`                                               |
+| 동시 실행 제어            | 같은 브랜치 새 커밋 push 시 이전 실행 자동 취소                                                 | `.github/workflows/ci.yml:11` `concurrency` 블록                           |
+| Node 버전                 | 24(`.nvmrc` 기준, `node-version-file`로 참조)                                                   | `.nvmrc`, `ci.yml:28`·`deploy.yml` 공통                                    |
+| 배포 게이트 위치          | `pnpm install` 직후, `pnpm test` 이전                                                           | `deploy.yml` "Type check, lint & format check" 스텝                        |
+| 문서-코드 참조 게이트     | `pnpm test` 이후 (PR CI 전용, 배포는 막지 않음)                                                 | `scripts/check-docs.js`, `ci.yml` "Check docs" 스텝                        |
+| "마지막 검토" 신선도 기준 | 30일 초과 시 경고(exit 0, 게이트 통과에 영향 없음)                                              | `scripts/check-docs.js`의 `STALE_REVIEW_DAYS`                              |
 
 ## 7. 코드 지도와 자주 하는 수정
 
-| 무엇을 바꾸려면              | 파일                                                                                                |
-| ---------------------------- | --------------------------------------------------------------------------------------------------- |
-| ignore 패턴 추가·수정        | `eslint.config.js:19-24`(ESLint), `.prettierignore`(Prettier — 별도 파일, ESLint와 문법 공유 안 함) |
-| PR 게이트에 검사 스텝 추가   | `.github/workflows/ci.yml`                                                                          |
-| 배포 게이트에 검사 스텝 추가 | `.github/workflows/deploy.yml`의 "Type check, lint & format check" 스텝                             |
-| Node 버전 변경               | `.nvmrc` 한 곳만 — `ci.yml`·`deploy.yml` 둘 다 `node-version-file`로 그 값을 읽는다                 |
-| `--max-warnings` 임계값 변경 | `package.json:18-19,122`                                                                            |
+| 무엇을 바꾸려면                    | 파일                                                                                                |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------- |
+| ignore 패턴 추가·수정              | `eslint.config.js:19-24`(ESLint), `.prettierignore`(Prettier — 별도 파일, ESLint와 문법 공유 안 함) |
+| PR 게이트에 검사 스텝 추가         | `.github/workflows/ci.yml`                                                                          |
+| 배포 게이트에 검사 스텝 추가       | `.github/workflows/deploy.yml`의 "Type check, lint & format check" 스텝                             |
+| Node 버전 변경                     | `.nvmrc` 한 곳만 — `ci.yml`·`deploy.yml` 둘 다 `node-version-file`로 그 값을 읽는다                 |
+| `--max-warnings` 임계값 변경       | `package.json:18-19,122`                                                                            |
+| 문서-코드 참조 검사 규칙 추가·수정 | `scripts/check-docs.js` — 경로 실존/줄 번호 범위/README↔docs 동기화/검토일 신선도 4종               |
 
 ### 자주 하는 수정
 
@@ -265,6 +268,28 @@ Rules에 규칙으로 명문화).
 워크트리를 만든 사례, (3) 확인 없이 `main`에 직접 push한 프로세스 위반이
 있었다. FE 작업에서는 이 경험을 반영해 (3)은 매번 push 전 사용자 확인을
 거쳤다. 상세는 BE 레포(`link-sphere_BE_NEW`) `docs/CI-CHECK-GATE.md` 참고.
+
+### 9.5 이 문서가 겪은 것과 같은 패턴이 문서에서도 재현됨 (2026-09-07)
+
+`docs/TESTING.md`가 FSD 도입 이전의 `src/domains/` 레이어를 파일 위치 규칙과
+코드 예제 6곳에서 정본처럼 서술한 채로 한 달 넘게(mtime 08-07) 방치돼 있었다.
+이 문서(§4 "왜 만들었나")가 이미 겪었던 것과 근본 원인이 같다 — **검사가
+없으면 사람이 우연히 다시 읽기 전까지 문제가 존재하는지조차 알 수 없다.**
+`docs/FE-ARCHITECTURE.md`의 `eslint.config.js` 줄 번호 인용 9곳이 그 문서를
+정합화한 지 몇 시간 뒤(같은 날 `3e6d047` ESLint 규칙 정리 커밋으로) 전부
+어긋난 것도 같은 패턴이다.
+
+`pnpm check`에 lint·format·type-check만 있고 "문서가 가리키는 코드가 실제로
+있는가"를 보는 검사가 없었다는 점에서 §4의 문제와 사실상 동일해, 새 검사를
+따로 만들지 않고 이 문서가 이미 정리해 둔 게이트 구조(§5 "PR 게이트")에
+`check:docs` 스텝을 얹었다. 스크립트는 `src/`·`.github/`·`infra/` 경로
+실존, `파일:줄` 참조가 파일 범위 안인지, README `## 문서` 목록과 `docs/`
+실제 파일의 양방향 동기화, "마지막 검토" 30일 초과 경고 4가지를 본다
+(`scripts/check-docs.js`). 줄 번호가 파일 범위 안에 있는지만 볼 뿐 "그
+줄에 실제로 그 내용이 있는가"는 검증하지 못하는 정직한 한계가 있어서,
+`eslint.config.js`처럼 자주 바뀌는 파일은 애초에 줄 번호 대신 규칙명으로
+인용하도록 `FE-ARCHITECTURE.md` 쪽도 함께 고쳤다 — 자동 검사와 인용 방식
+변경을 병행해야 한다는 게 이번에 얻은 교훈이다.
 
 ## 10. 남은 것
 

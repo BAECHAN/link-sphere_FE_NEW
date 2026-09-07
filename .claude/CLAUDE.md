@@ -320,6 +320,8 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 1. `npm run type-check` — TypeScript 컴파일 에러 확인 (필수)
 2. `npm run test` — 관련 테스트 실행 (테스트 파일이 존재하는 경우)
 3. `npm run lint` — ESLint 레이어 경계 위반 확인 (import 변경 시)
+4. `npm run check:docs` — README/docs/CLAUDE.md가 가리키는 경로·줄 번호가 실제와
+   맞는지 확인 (`README.md`, `docs/*.md`, `.claude/CLAUDE.md`를 수정한 경우)
 
 에러가 있으면 진행 전 반드시 수정.
 

@@ -20,6 +20,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "pnpm type-check && pnpm lint && pnpm format:check",
+    "check:docs": "node scripts/check-docs.js",
     "check:fix": "pnpm lint:fix && pnpm format && pnpm type-check",
     "validate": "pnpm check:env && pnpm check",
     "check:env": "node -e \"if (!require('fs').existsSync('.env')) { console.error('⚠️ .env missing'); process.exit(1); }\"",
