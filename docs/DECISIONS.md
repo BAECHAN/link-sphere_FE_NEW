@@ -1228,7 +1228,10 @@ effect 재실행"이 반복되는 무한 루프(`Maximum update depth exceeded`)
 전혀 없어 **어느 글자부터 잘리는지 예측할 수 없다**는 제보. 조사해보니 `PostCard.tsx`의
 `isDetail` 플래그가 본문 설명의 줄 제한만 풀고 제목엔 적용되지 않아, **상세페이지조차 제목이
 2줄로 잘려 전문을 볼 방법이 없는** 상태였다(실질적 버그). AI는 제목을 만들지 않는다 —
-자동 제목의 출처는 URL 크롤링(`og:title`/`<title>`/YouTube oEmbed)뿐이다.
+자동 제목의 출처는 URL 크롤링(`og:title`/`<title>`/YouTube 인라인 JSON·oEmbed)뿐이다
+(2026-09-07 BE 변경: YouTube는 `videoDetails.title`을 우선 소스로 추가했고, oEmbed는
+그중 하나라도 비었을 때만 호출하는 폴백으로 격하됐다 — 자세한 배경은 BE
+`docs/AI-ASYNC-PROCESSING.md` §5.5 참고).
 
 **검토**
 
