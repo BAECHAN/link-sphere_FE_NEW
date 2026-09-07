@@ -1,7 +1,7 @@
 import { Input } from '@/shared/ui/atoms/input';
 import { ArrowLeftIcon, SearchIcon, XIcon } from 'lucide-react';
-import { useState } from 'react';
 import { TEXTS } from '@/shared/config/texts';
+import { useNavbarSearch } from '@/widgets/layout/navbar/hooks/useNavbarSearch';
 
 interface MobileNavbarSearchProps {
   onClose: () => void;
@@ -9,7 +9,7 @@ interface MobileNavbarSearchProps {
 }
 
 export const MobileNavbarSearch = ({ onClose, onSubmit }: MobileNavbarSearchProps) => {
-  const [searchInput, setSearchInput] = useState('');
+  const { searchInput, setSearchInput } = useNavbarSearch();
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
