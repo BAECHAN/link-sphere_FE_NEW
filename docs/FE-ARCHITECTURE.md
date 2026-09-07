@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-09-06
+> **마지막 검토**: 2026-09-07
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -314,6 +314,30 @@ export const handleEntityUpdateSuccess = (id: Entity['id']) => {
 };
 ```
 
+#### 크로스 엔티티 무효화 (다른 엔티티 캐시까지 갱신해야 할 때)
+
+다른 엔티티의 캐시도 함께 갱신해야 하면, 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()`
+래퍼만 import해서 부른다. 그 엔티티의 raw 쿼리 키를 재구성해서 `queryClient.invalidateQueries`를
+직접 호출하지 않는다(캡슐화가 깨지고, 그 엔티티의 키 구조가 바뀌면 여기도 같이 고쳐야 한다).
+
+```typescript
+// entities/comment/api/comment.keys.ts
+import { postInvalidateQueries } from '@/entities/post/api/post.keys';
+
+export const handleCommentCreateSuccess = (postId: Post['id']) => {
+  commentInvalidateQueries.list(postId); // 1. 자기 엔티티
+  postInvalidateQueries.detail(postId); // 2. 댓글 수가 반영되는 포스트 상세
+  postInvalidateQueries.list(); // 3. 목록의 댓글 수 배지
+};
+```
+
+`handle<Event>Success`가 어느 엔티티의 `.keys.ts`에 사는지는 "어떤 이벤트가 트리거인가"가
+아니라 "어떤 캐시가 영향받는가"로 정한다 — 트리거가 다른 엔티티(post 삭제, 좋아요/북마크
+토글)여도 영향받는 캐시를 소유한 엔티티(folder)가 핸들러를 호스팅할 수 있다
+(`folder.keys.ts`의 `handlePostDeleteSuccess`, `handleBookmarkToggleSuccess`). 참고 파일:
+`comment.keys.ts`, `folder.keys.ts`, `auth.keys.ts`(`handleAccountUpdateSuccess`,
+`handleAuthRestoreSuccess`).
+
 ### Layer 3 — `<entity>.queries.ts` (얇은 React Query 래퍼)
 
 ```typescript
@@ -405,14 +429,36 @@ export function CreateEntityForm() {
 
 ---
 
-## 8. Zod Schema 패턴
+## 8. Widget Hook 패턴
+
+widget hook = 여러 entity query 조합 + UI 블록 특화 파생 상태. 뮤테이션 로직은 포함하지 않는다.
+
+```typescript
+// widgets/<domain>/<widget>/hooks/use<Widget>.ts
+export function usePostList(filter: PostFilter) {
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    usePostListQuery(filter);
+
+  const posts = data?.pages.flatMap((page) => page.content) ?? [];
+  const isEmpty = !isLoading && posts.length === 0;
+
+  return { posts, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, isEmpty };
+}
+```
+
+widget hook이 **불필요한 경우**: entity query 1개 + trivial 파생만이면 컴포넌트에서 직접 사용한다.
+
+---
+
+## 9. Zod Schema 패턴
 
 ```typescript
 // entities/<entity>/model/<entity>.schema.ts
 export const entitySchema = z.object({
   id: z.string(),
   name: z.string().min(1, TEXTS.validation.nameRequired),
-  content: z.string().nullable(), // nullable 필드는 .nullable() 사용
+  content: z.string().nullable(), // nullable: null 허용, undefined 불가
+  image: z.string().optional(), // optional: undefined 허용, null 불가
   createdAt: z.coerce.date(), // 날짜 필드는 z.coerce.date() 사용
 });
 
@@ -426,7 +472,7 @@ export type UpdateEntity = z.infer<typeof updateEntitySchema>;
 
 ---
 
-## 9. Delete with Confirm 패턴
+## 10. Delete with Confirm 패턴
 
 **절대로** native `confirm()` 사용 금지. 항상 `useAlert` + `openConfirm` 사용.
 
@@ -447,7 +493,7 @@ const onDelete = (id: string) => {
 
 ---
 
-## 10. Optimistic Update 패턴
+## 11. Optimistic Update 패턴
 
 참조: `src/entities/interaction/api/interaction.queries.ts` (`useLikePostMutation`)
 
@@ -466,9 +512,29 @@ onError: (_err, _vars, context) => {
 },
 ```
 
+목록(InfiniteData)까지 함께 업데이트:
+
+```typescript
+queryClient.setQueriesData<InfiniteData<EntityListResponse>>(
+  { queryKey: entityKeys.listRoot },
+  (oldData) => {
+    if (!oldData) return oldData;
+    return {
+      ...oldData,
+      pages: oldData.pages.map((page) => ({
+        ...page,
+        content: page.content.map((item) =>
+          item.id === id ? { ...item, isLiked: !item.isLiked } : item
+        ),
+      })),
+    };
+  }
+);
+```
+
 ---
 
-## 11. React Query 설정
+## 12. React Query 설정
 
 `src/shared/lib/react-query/config/queryClient.ts`
 
@@ -481,7 +547,7 @@ onError: (_err, _vars, context) => {
 
 ---
 
-## 12. 에러 핸들링 전략
+## 13. 에러 핸들링 전략
 
 ### 전역 에러 핸들링
 
@@ -510,7 +576,7 @@ const { mutate } = useMutation({
 
 ---
 
-## 13. Toast 알림 (Sonner)
+## 14. Toast 알림 (Sonner)
 
 Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toast-direct-import`가
 막는다. 항상 래퍼 `@/shared/lib/toast/toast`의 `toast`를 사용한다 (성공/액션 확인은
@@ -521,7 +587,7 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ---
 
-## 14. Mutation/Query Meta 옵션
+## 15. Mutation/Query Meta 옵션
 
 | 키                    | 타입      | 효과                                                    |
 | --------------------- | --------- | ------------------------------------------------------- |
@@ -531,7 +597,7 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ---
 
-## 15. Form 컴포넌트 구조
+## 16. Form 컴포넌트 구조
 
 `src/shared/ui/elements/form/`
 
@@ -545,7 +611,7 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ---
 
-## 16. 핵심 설정 파일 위치
+## 17. 핵심 설정 파일 위치
 
 | 목적               | 파일                                                | export          |
 | ------------------ | --------------------------------------------------- | --------------- |
@@ -560,27 +626,27 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ---
 
-## 17. 네이밍 컨벤션
+## 18. 네이밍 컨벤션
 
-| 항목             | 규칙                                     | 예시                             |
-| ---------------- | ---------------------------------------- | -------------------------------- |
-| Feature 디렉토리 | `<도메인>/<액션>` kebab-case             | `post/create/`                   |
-| Widget 디렉토리  | `<도메인>/<슬라이스>` kebab-case         | `post/post-card/`                |
-| Shared 디렉토리  | camelCase                                | `hooks/`, `utils/`               |
-| 컴포넌트 파일    | PascalCase.tsx                           | `CreatePostForm.tsx`             |
-| Feature 훅       | `use<FeatureName>.ts`                    | `useCreatePost.ts`               |
-| Mutation 훅      | `use<Action><Entity>Mutation`            | `useCreatePostMutation`          |
-| Query 훅         | `useFetch<Entity>Query`                  | `useFetchPostDetailQuery`        |
-| 쿼리 키 객체     | `<entity>Keys`                           | `postKeys`                       |
-| Invalidate 헬퍼  | `<entity>InvalidateQueries`              | `postInvalidateQueries`          |
-| Success 핸들러   | `handle<Entity><Action>Success`          | `handlePostCreateSuccess`        |
-| API 객체         | `<entity>Api`                            | `postApi`                        |
-| Zod 스키마       | `<entity>Schema`, `create<Entity>Schema` | `postSchema`, `createPostSchema` |
-| TS 타입          | 스키마와 동일 (PascalCase)               | `Post`, `CreatePost`             |
+| 항목             | 규칙                                                                                                                                                                                                                   | 예시                             |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Feature 디렉토리 | `<도메인>/<액션>` kebab-case                                                                                                                                                                                           | `post/create/`                   |
+| Widget 디렉토리  | `<도메인>/<슬라이스>` kebab-case                                                                                                                                                                                       | `post/post-card/`                |
+| Shared 디렉토리  | camelCase                                                                                                                                                                                                              | `hooks/`, `utils/`               |
+| 컴포넌트 파일    | PascalCase.tsx                                                                                                                                                                                                         | `CreatePostForm.tsx`             |
+| Feature 훅       | `use<FeatureName>.ts`                                                                                                                                                                                                  | `useCreatePost.ts`               |
+| Mutation 훅      | `use<Action><Entity>Mutation`                                                                                                                                                                                          | `useCreatePostMutation`          |
+| Query 훅         | `useFetch<Entity>Query` (표준). 기존 코드엔 `use<Entity>s`(`useComments`), `use<Entity>ListQuery`(`useFolderListQuery`), `use<Entity>InfiniteQuery`(`useFolderPostsInfiniteQuery`)도 있다 — 새로 만들 땐 표준형을 쓴다 | `useFetchPostDetailQuery`        |
+| 쿼리 키 객체     | `<entity>Keys`                                                                                                                                                                                                         | `postKeys`                       |
+| Invalidate 헬퍼  | `<entity>InvalidateQueries`                                                                                                                                                                                            | `postInvalidateQueries`          |
+| Success 핸들러   | `handle<Entity><Action>Success`                                                                                                                                                                                        | `handlePostCreateSuccess`        |
+| API 객체         | `<entity>Api`                                                                                                                                                                                                          | `postApi`                        |
+| Zod 스키마       | `<entity>Schema`, `create<Entity>Schema`                                                                                                                                                                               | `postSchema`, `createPostSchema` |
+| TS 타입          | 스키마와 동일 (PascalCase)                                                                                                                                                                                             | `Post`, `CreatePost`             |
 
 ---
 
-## 18. 개발 커맨드
+## 19. 개발 커맨드
 
 ```bash
 pnpm dev            # 개발 서버 (port 31119, localhost 모드)
@@ -600,7 +666,7 @@ pnpm storybook      # Storybook (port 6006)
 
 ---
 
-## 19. 클릭 가능한 요소와 커서 규칙
+## 20. 클릭 가능한 요소와 커서 규칙
 
 `src/app/globals.css`의 `@layer base`에서 전역으로 처리한다 — 개별 컴포넌트에
 `cursor-pointer`를 직접 붙이지 않는다. 배경은 `docs/DECISIONS.md`의 2026-09-03
@@ -637,7 +703,7 @@ CLI로 이 컴포넌트를 다시 생성하면 `cursor-default`가 되돌아오�
 
 ---
 
-## 20. 체크리스트: 기존 엔티티에 새 기능 추가
+## 21. 체크리스트: 기존 엔티티에 새 기능 추가
 
 - [ ] `entities/<entity>/model/<entity>.schema.ts` — Zod 스키마 + 타입 추가/확인
 - [ ] `entities/<entity>/api/<entity>.api.ts` — API 함수 추가
@@ -649,7 +715,7 @@ CLI로 이 컴포넌트를 다시 생성하면 `cursor-default`가 되돌아오�
 - [ ] `features/<도메인>/<액션>/ui/<FeatureName>.tsx` — 얇은 UI
 - [ ] `src/pages/<page>/` 페이지에 연결
 
-## 21. 체크리스트: 새 Entity/Widget 추가
+## 22. 체크리스트: 새 Entity/Widget 추가
 
 - [ ] 위 "새 기능 추가" 체크리스트 전부
 - [ ] `src/entities/<entity>/` 디렉토리 구조 생성 (api/, model/)
