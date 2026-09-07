@@ -363,7 +363,7 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 
 아래 패턴들은 코드 예제와 함께 [`docs/FE-ARCHITECTURE.md`](../docs/FE-ARCHITECTURE.md)에
 정본으로 있다 — 여기 복사해두지 않는다(두 곳에 같은 코드를 유지하면 한쪽만 갱신되고 다른
-쪽이 낡는 문제가 실제로 있었다, 2026-09-07).
+쪽이 낡는 문제가 실제로 있었다, 2026-09-07). 패턴을 쓸 때는 해당 절을 **먼저 읽는다**.
 
 | 패턴                                                                           | 정본 | 한 줄 요약                                                                                     |
 | ------------------------------------------------------------------------------ | ---- | ---------------------------------------------------------------------------------------------- |
@@ -397,13 +397,14 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 | 옵티미스틱 토글(실패 시 롤백만)       | `meta: { manualErrorHandling: true }` | 토스트 없이 롤백         |
 
 전역 자동 처리 규칙 상세와 `manualErrorHandling` 코드 예제는
-[`docs/FE-ARCHITECTURE.md`](../docs/FE-ARCHITECTURE.md) §13 참고.
+[`docs/FE-ARCHITECTURE.md`](../docs/FE-ARCHITECTURE.md) §13을 먼저 읽는다.
 
 ---
 
 ## React Query 설정 / 핵심 설정 파일
 
-값과 경로 목록은 [`docs/FE-ARCHITECTURE.md`](../docs/FE-ARCHITECTURE.md) §12·§17이 정본이다.
+값과 경로 목록은 [`docs/FE-ARCHITECTURE.md`](../docs/FE-ARCHITECTURE.md) §12·§17이 정본이다 —
+값이 필요할 때 먼저 읽는다.
 
 ---
 
@@ -607,7 +608,8 @@ shared/
 ## 네이밍 컨벤션 / Form 컴포넌트
 
 디렉토리·파일·훅·쿼리 키 네이밍 규칙과 Form 컴포넌트 목록은
-[`docs/FE-ARCHITECTURE.md`](../docs/FE-ARCHITECTURE.md) §16·§18이 정본이다.
+[`docs/FE-ARCHITECTURE.md`](../docs/FE-ARCHITECTURE.md) §16·§18이 정본이다 —
+이름을 정할 때 먼저 읽는다.
 
 ---
 
@@ -632,7 +634,7 @@ pnpm test:coverage   # 커버리지 → coverage/index.html
 
 ## 개발 커맨드
 
-전체 목록은 [`docs/FE-ARCHITECTURE.md`](../docs/FE-ARCHITECTURE.md) §19 참고. `/api` 프록시
+전체 목록은 [`docs/FE-ARCHITECTURE.md`](../docs/FE-ARCHITECTURE.md) §19를 먼저 읽는다. `/api` 프록시
 대상은 하드코딩된 포트가 아니라 `VITE_API_BASE_URL` 환경변수(`.env`)다.
 
 ---
@@ -657,7 +659,8 @@ pnpm test:coverage   # 커버리지 → coverage/index.html
 ## 체크리스트
 
 기존 엔티티에 새 기능을 추가할 때, 새 도메인을 추가할 때의 체크리스트는
-[`docs/FE-ARCHITECTURE.md`](../docs/FE-ARCHITECTURE.md) §21·§22이 정본이다.
+[`docs/FE-ARCHITECTURE.md`](../docs/FE-ARCHITECTURE.md) §21·§22이 정본이다 —
+작업 시작 전 먼저 읽는다.
 
 ---
 
