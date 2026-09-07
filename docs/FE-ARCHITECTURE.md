@@ -19,13 +19,15 @@
 이 프로젝트는 **Feature-Sliced Design(FSD)을 뼈대로 쓰되, FSD의 핵심 규칙 중 하나(Public
 API)를 성능을 이유로 정반대로 채택**하고, 그 위에 도메인 그룹핑·3-Layer API 등 여러 패턴을
 얹은 변형이다. "FSD를 그대로 쓴다"고 기대하면 두 가지에서 어긋난다 — 슬라이스는 `index.ts`
-배럴로 캡슐화되지 않고(오히려 금지), 같은 레이어 안 슬라이스끼리도 자유롭게 서로를 참조한다.
+배럴로 캡슐화되지 않고(import 문자열이 `/index`로 끝나는 배럴 import만 금지 — 디렉터리
+암묵 해석으로 진입점을 노출하는 배럴 파일 자체는 존재한다, 예: `src/mocks/handlers/index.ts`),
+같은 레이어 안 슬라이스끼리도 자유롭게 서로를 참조한다.
 
 ### 조합된 개념
 
 | 개념                                  | 출처                              | 이 레포에서 담당하는 것                                                                         | 대표 위치                                                     |
 | ------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| FSD (Feature-Sliced Design)           | feature-sliced.design             | 레이어 6종(`app→pages→widgets→features→entities→shared`) + 하향 의존만 허용                     | `eslint.config.js:936-1070`                                   |
+| FSD (Feature-Sliced Design)           | feature-sliced.design             | 레이어 6종(`app→pages→widgets→features→entities→shared`) + 하향 의존만 허용                     | `eslint.config.js`의 `no-restricted-imports` 5블록(레이어별)  |
 | 도메인 우선 슬라이스 그룹핑           | FSD의 "slice group"을 필수 규칙화 | `features/<도메인>/<액션>/`, `widgets/<도메인>/<슬라이스>/` 처럼 한 단계 더 묶음                | `features/post/create/`, `widgets/post/post-card/`            |
 | 3-Layer API 분리                      | 이 레포 자체 규약                 | `*.api.ts`(순수 fetch) → `*.keys.ts`(쿼리 키+무효화) → `*.queries.ts`(React Query 훅) 3단 분리  | `entities/post/api/{post.api,post.keys,post.queries}.ts`      |
 | Query Key Factory + 중앙 invalidation | TanStack Query 커뮤니티 패턴      | `<entity>Keys`·`<entity>InvalidateQueries`·`handle<Entity><Action>Success`로 캐시 무효화 캡슐화 | §5 참고                                                       |
@@ -39,8 +41,8 @@ API)를 성능을 이유로 정반대로 채택**하고, 그 위에 도메인 �
 
 | FSD 규칙                                                          | 채택 여부                               | 이유 / 실태                                                                                                                                                                                                                                                                       | 강제 수단                                                                                                                                                                                                |
 | ----------------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 레이어 6종 + 하향 의존만 허용                                     | ✅ 채택                                 | FSD 원칙 그대로                                                                                                                                                                                                                                                                   | ESLint `no-restricted-imports` 5블록 (`eslint.config.js:936-1070`)                                                                                                                                       |
-| Public API — 슬라이스는 `index.ts` 배럴로만 외부에 노출           | ❌ **정반대로 채택** (배럴 자체를 금지) | dev 서버 부팅 15-70%·빌드 28%·콜드스타트 40% 지연이라는 성능 트레이드오프 때문에 의도적으로 뒤집음                                                                                                                                                                                | ESLint `custom-barrel-rules/no-barrel-import` (`eslint.config.js:821-867`) — 전 레이어에서 `index.ts`/`index.tsx` import 시 에러                                                                         |
+| 레이어 6종 + 하향 의존만 허용                                     | ✅ 채택                                 | FSD 원칙 그대로                                                                                                                                                                                                                                                                   | ESLint `no-restricted-imports` 5블록 (`eslint.config.js`)                                                                                                                                                |
+| Public API — 슬라이스는 `index.ts` 배럴로만 외부에 노출           | ❌ **정반대로 채택** (배럴 자체를 금지) | dev 서버 부팅 15-70%·빌드 28%·콜드스타트 40% 지연이라는 성능 트레이드오프 때문에 의도적으로 뒤집음                                                                                                                                                                                | ESLint `custom-barrel-rules/no-barrel-import` (`eslint.config.js`) — import 문자열이 `/index`로 끝날 때 에러(디렉터리 암묵 해석은 예외 — `@/mocks/handlers`처럼 실제로 쓰인다)                           |
 | 동일 레이어 슬라이스 격리 (entities는 `@x` 표기로 교차 참조 허용) | ❌ 미채택, 미강제                       | 별도 표기 없이 상시 교차 참조 발생                                                                                                                                                                                                                                                | 없음 — `entities/post/model/post.schema.ts:105-106`이 comment·interaction 스키마를 `export *`로 재수출, `entities/interaction/api/interaction.queries.ts:4-6`이 post·comment·folder의 keys를 직접 import |
 | 세그먼트는 목적 기준 명명 (`ui`/`api`/`model`/`lib`/`config`)     | ⚠️ 부분 채택                            | `hooks/`·`utils/`를 세그먼트로도 쓴다(`features/*/hooks/`, `widgets/post/post-list/utils/`) — 정식 FSD 세그먼트명은 아니지만 widgets·features 안에서는 일관되게 쓰인다. 레이어 안에서 세그먼트가 뒤섞이는 것(예: 같은 entities인데 `user`만 `hooks/`, 나머지는 `model/`)만은 금지 | `.claude/CLAUDE.md`의 "레이어별 허용 세그먼트" 표 (문서 규칙, ESLint 미강제)                                                                                                                             |
 | 슬라이스 그룹 폴더 허용 (그룹 폴더 자체엔 공유 코드 금지)         | ✅ 채택                                 | 그룹 폴더(`features/post/`, `widgets/layout/` 등)에는 파일이 없고 슬라이스만 있음                                                                                                                                                                                                 | —                                                                                                                                                                                                        |
@@ -88,15 +90,20 @@ flowchart TD
 레이어 하향 의존 외에, 문서 어디에도 안 적혀 있지만 실제로 커밋을 막는 규칙들이다. 아래를
 모르고 코드를 쓰면 린트에서 막힌다.
 
-| 규칙                                             | 무엇을 막나                                                                          | 위치                       |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------ | -------------------------- |
-| `custom-barrel-rules/no-barrel-import`           | 모든 `index.ts`/`index.tsx` import (배럴 금지)                                       | `eslint.config.js:821-867` |
-| `custom-ui-rules/no-direct-query-import`         | `**/ui/**`에서 `@tanstack/react-query` 직접 import — Container/Presentational 강제   | `eslint.config.js:779-818` |
-| `custom-i18n/no-hardcoded-hangul`                | 한글 UI 문자열 하드코딩 — `TEXTS`만 허용                                             | `eslint.config.js:876-934` |
-| `custom-import/no-sonner-toast-direct-import`    | `sonner` 직접 import — `@/shared/lib/toast/toast` 경유 강제                          | `eslint.config.js:408`     |
-| `custom-import/no-relative-import-except-styles` | 상대 경로 import(`../`) 금지, `.styles.ts` 파일만 예외                               | `eslint.config.js:407`     |
-| `no-restricted-syntax` (Zustand)                 | 컴포넌트/훅 내부에서 스토어 `getState()` 직접 호출 금지 — 셀렉터 훅 사용 강제        | `eslint.config.js:731-777` |
-| 파일명 규칙                                      | `*.api.ts`·`*.queries.ts`·`*.schema.ts`·`config/`·`utils/` 등 세그먼트별 파일명 패턴 | `eslint.config.js:656-719` |
+줄 번호는 리팩터링 때마다 바뀌므로 규칙명으로만 가리킨다 — 정확한 위치는
+`grep -n "<규칙명>" eslint.config.js`로 직접 찾는다.
+
+| 규칙                                              | 무엇을 막나                                                                          |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `custom-barrel-rules/no-barrel-import`            | `/index`로 끝나는 import (배럴 금지)                                                 |
+| `custom-ui-rules/no-direct-query-import`          | `**/ui/**`에서 `@tanstack/react-query` 직접 import — Container/Presentational 강제   |
+| `custom-i18n/no-hardcoded-hangul`                 | 한글 UI 문자열 하드코딩 — `TEXTS`만 허용                                             |
+| `custom-import/no-sonner-toast-direct-import`     | `sonner` 직접 import — `@/shared/lib/toast/toast` 경유 강제                          |
+| `custom-import/no-relative-import-except-styles`  | 상대 경로 import(`../`) 금지, `.styles.ts` 파일만 예외                               |
+| `no-restricted-syntax` (Zustand)                  | 컴포넌트/훅 내부에서 스토어 `getState()` 직접 호출 금지 — 셀렉터 훅 사용 강제        |
+| 파일명 규칙                                       | `*.api.ts`·`*.queries.ts`·`*.schema.ts`·`config/`·`utils/` 등 세그먼트별 파일명 패턴 |
+| `custom-a11y/clickable-needs-interactive-element` | `div`/`span`에 `onClick`만 달기 — `role="button"` 없이는 금지                        |
+| `curly` (`['error', 'all']`)                      | 인라인 `if`문 (`if (x) return;`) — 항상 중괄호 블록 강제                             |
 
 ---
 
