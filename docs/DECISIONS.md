@@ -6,6 +6,81 @@
 
 ---
 
+## 2026-09-07 — 헤더 검색어 유지: 경로 게이트 + X 버튼은 입력만 비움
+
+**배경**
+
+사용자가 "검색하고 나면 검색어가 input에 남아있지 않는데, 문서에 반영돼 있는지"
+물어 조사한 결과 두 가지가 함께 드러났다. 첫째, `docs/` 13개 문서·`README.md`·
+`CHANGELOG.md`·`.claude/CLAUDE.md`를 전수 조사해도 "제출 후 input이 비워진다"를
+명시한 문장이 한 곳도 없었다 — 의도된 결정인지 리팩터링(2026-09-06 검색창 헤더
+통합) 부작용인지 판단할 근거가 없었다. 둘째, 이 동작 자체가 업계 다수 관행과
+어긋났다 — [Baymard 가이드라인 #346 "Always Persist the User's Search Query on
+the Results Page"](https://baymard.com/blog/persist-search-queries)에 따르면
+데스크톱 33%·모바일 42%만 제출 후 검색어를 비우는 소수파(2017년 43%에서 감소,
+업계가 유지 쪽으로 이동 중)이고, 사용자는 평균 2.2회 쿼리를 고쳐 쓰며("dresses"
+→ "red dresses") 검색어가 사라지면 재입력 오타가 누적돼 검색을 포기한 사례가
+관찰됐다. 같은 앱 안의 북마크 검색(`useBookmarkSearch.ts`)은 이미 URL→input
+역방향 동기화로 검색어를 유지하고 있어, 포스트 검색과 북마크 검색의 동작이
+서로 불일치하기도 했다.
+
+**검토**
+
+- **URL `q`를 무조건 미러** — 기각. 헤더 검색(`NavbarSearch`)은 `Navbar.tsx`에서
+  전 페이지에 렌더되는데, 북마크 페이지도 같은 이름의 `q` 파라미터를 쓴다
+  (`useBookmarkSearch.ts`). 게이트 없이 `q`를 그대로 읽으면 `/bookmark?q=...`
+  상태에서 헤더 검색창에 북마크 검색어가 잘못 표시된다.
+- **X 버튼이 URL `q`까지 함께 지우게 만들기** — 기각. 웹 조사 결과 [Google 결과
+  페이지의 Clear 버튼](https://9to5google.com/2019/11/12/google-search-clear-text-desktop/)과
+  네이티브 `<input type="search">`의 X 모두 입력만 비우고 결과는 그대로 둔다.
+  반대 근거는 [D2L Brightspace 디자인 시스템](https://github.com/BrightspaceUI/core/blob/main/components/inputs/docs/input-search.md)의
+  "결과 초기화용 _별도_ 컨트롤을 만들지 말라" 하나뿐인데, 이 레포는 이미
+  `PostListSearch`에 필터까지 함께 지우는 별도 초기화 버튼이 있어 해당 사항이
+  아니다.
+- **URL `q`를 키워드만 분해해 미러** — 기각. `q`에는 자유 키워드뿐 아니라
+  `@카테고리`·`#닉네임` 토큰까지 통째로 들어간다(`search-parser.ts`). 원본을
+  그대로 미러하면 placeholder(`키워드나 @카테고리, #닉네임으로 검색...`)와
+  일관되고 제출 시 토큰이 보존되지만, 키워드만 분리하면 제출할 때마다 기존
+  토큰을 재조립해야 하고 실패하면 칩이 조용히 풀린다.
+
+**결정**
+
+- `widgets/layout/navbar/hooks/useNavbarSearch.ts` 신규: `pathname ===
+ROUTES_PATHS.POST.ROOT`(정확 일치, `/post/:id` 상세 제외)일 때만 URL `q`를
+  input에 미러하고, 그 외 페이지에서는 빈 값을 반환한다.
+- 데스크톱(`NavbarSearch.tsx`) 제출 시 더 이상 input을 비우지 않는다. `.trim()`을
+  추가해 모바일·최근검색과 정렬한다. `/` 단축키는 `focus()` 뒤에 `select()`를
+  추가해 검색어가 남아있는 상태에서 새로 시작할 때 기존 값이 전체 선택되게 한다
+  (검색어 유지가 실제로 만드는 유일한 회귀 — Baymard가 이 케이스의 표준 처방으로
+  드는 "select-all on re-focus").
+- X 버튼(데스크톱·모바일 모두)은 **로컬 input만 비우고 URL `q`는 건드리지
+  않는다.** 모바일 X는 이 결정이 사실상 강제된다 — 모바일 검색 패널의 열림
+  상태가 `location.state.mobileSearchOpen`에 실려 있는데, `setSearchParams`가
+  내부적으로 `navigate`를 호출하며 `state`를 날려 URL을 건드리면 패널이 스스로
+  닫힌다.
+- 카테고리 칩 클릭 시 헤더 input의 값이 자유 검색어에서 `@토큰`으로 바뀌는 것은
+  **의도된 가시화로 그대로 둔다** — 칩 클릭이 자유 검색어를 버리는 동작은
+  2026-09-06 헤더 통합 때 이미 있던 것이고, 그때 "입력 지점이 멀어지며 더 눈에
+  띌 수 있음"으로 고지했던 지점이 이번에 최대치로 드러날 뿐이다.
+
+**범위 밖 (보고만)**
+
+- 데스크톱 제출이 `addRecentSearch`를 호출하지 않아 최근 검색어를 기록하지
+  않는다(`NavbarSearch.tsx`). 최근검색 UI가 모바일 전용이라 지금까지 티가 안
+  났다.
+- 데스크톱 제출(`navigate('/post?q=X')`)이 search 문자열을 통째로 교체해
+  `filter` 파라미터를 버린다.
+- 데스크톱 제출이 `replace` 없이 push해 history가 누적된다. 다만 이번 변경으로
+  뒤로가기 시 이전 검색어가 input에 복원되는 push의 장점이 처음으로 눈에
+  보이게 되므로 그대로 둔다.
+
+**상태**
+
+적용 완료. 관련 파일: `useNavbarSearch.ts`(신규), `NavbarSearch.tsx`,
+`MobileNavbarSearch.tsx`. 기능 전체 서술은 [`docs/SEARCH.md`](./SEARCH.md) 참고.
+
+---
+
 ## 2026-09-06 — CHANGELOG 항목에서 커밋/PR 상세로 연결되는 링크 추가
 
 **배경**

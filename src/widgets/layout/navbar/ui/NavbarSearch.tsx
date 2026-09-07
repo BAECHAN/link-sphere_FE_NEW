@@ -1,27 +1,29 @@
 import { Input } from '@/shared/ui/atoms/input';
 import { SearchIcon } from 'lucide-react';
 import { Kbd } from '@/shared/ui/atoms/kbd';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useKeydown } from '@/shared/hooks/useKeydown';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { XIcon } from 'lucide-react';
+import { useNavbarSearch } from '@/widgets/layout/navbar/hooks/useNavbarSearch';
 
 export const NavbarSearch = () => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [searchInput, setSearchInput] = useState('');
+  const { searchInput, setSearchInput } = useNavbarSearch();
   const navigate = useNavigate();
 
   useKeydown({ key: '/' }, () => {
     inputRef.current?.focus();
+    inputRef.current?.select();
   });
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    const params = searchInput ? `?q=${encodeURIComponent(searchInput)}` : '';
+    const trimmed = searchInput.trim();
+    const params = trimmed ? `?q=${encodeURIComponent(trimmed)}` : '';
     navigate(`${ROUTES_PATHS.POST.ROOT}${params}`);
-    setSearchInput('');
   };
 
   return (

@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `post` 검색 실행 후에도 헤더 검색창에 검색어가 그대로 유지됨
+  <details><summary>배경·구현</summary>
+
+  지금까지는 헤더 검색창에서 검색을 실행하면 입력값이 즉시 비워졌는데, 이는 데스크톱 33%·모바일 42%만 검색어를 비우는 소수파 관행이었고([Baymard 가이드라인 #346](https://baymard.com/blog/persist-search-queries)) 같은 앱의 북마크 검색과도 동작이 달랐다. 헤더 검색창이 게시글 목록(`/post`) URL의 검색어(`q`)를 되비추도록 동기화 훅을 추가했다. 북마크 페이지도 같은 이름의 `q` 파라미터를 쓰기 때문에 `/post`에 있을 때만 미러하도록 경로를 가렸고, `@카테고리`·`#닉네임` 태그가 섞인 원본 검색어를 그대로 보여준다. 데스크톱 제출에는 trim을 추가했고, `/` 단축키로 포커스할 때 기존 검색어가 전체 선택되도록 해 새 검색을 바로 시작할 수 있게 했다. X 버튼은 Google·네이티브 `<input type="search">` 관행을 따라 입력값만 비우고 검색 결과는 그대로 둔다.
+  (`widgets/layout/navbar/hooks/useNavbarSearch.ts`(신규), `NavbarSearch.tsx`, `MobileNavbarSearch.tsx`, `docs/SEARCH.md`(신규), [PR #24](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/24))
+
+  </details>
+
 ## [0.13.0] - 2026-09-06
 
 ### Added
