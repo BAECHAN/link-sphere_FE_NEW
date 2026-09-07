@@ -1,65 +1,68 @@
 # CLAUDE.md
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+흔한 LLM 코딩 실수를 줄이기 위한 행동 지침이다. 프로젝트별 지침과 병합해서 사용한다.
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+**트레이드오프:** 이 지침은 속도보다 신중함을 우선한다. 사소한 작업에는 판단력을 발휘한다.
 
-## 1. Think Before Coding
+> 원문 출처: [multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills)의
+> `CLAUDE.md`. §1~7은 그 문서를 옮기고 이 레포 사정에 맞게 확장한 것이고, §8·§9는 여기서 직접 추가했다.
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+## 1. 코딩 전에 먼저 생각한다
 
-Before implementing:
+**추측하지 않는다. 혼란을 숨기지 않는다. 트레이드오프를 드러낸다.**
 
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-- When asserting how the existing system currently works ("we follow pattern X", "this mirrors
-  framework Y"), trace the actual code path first — don't infer architecture from a
-  similarly-shaped utility or an external framework's mechanism. State plainly when a claim is
-  traced vs. inferred.
+구현하기 전에:
 
-## 2. Simplicity First
+- 가정을 명시적으로 밝힌다. 확신이 없으면 묻는다.
+- 여러 해석이 가능하면 모두 제시한다 — 조용히 하나를 고르지 않는다.
+- 더 단순한 접근이 있으면 그렇게 말한다. 타당하면 반대 의견을 낸다.
+- 무언가 불분명하면 멈춘다. 무엇이 헷갈리는지 명시한다. 묻는다.
+- 기존 시스템이 지금 어떻게 동작하는지 주장할 때("우리는 X 패턴을 따른다", "이건 Y
+  프레임워크를 그대로 따른 것이다") 먼저 실제 코드 경로를 추적한다 — 비슷하게 생긴
+  유틸리티나 외부 프레임워크의 동작 방식으로부터 아키텍처를 추측하지 않는다. 그 주장이
+  추적한 사실인지 추측인지 명확히 밝힌다.
 
-**Minimum code that solves the problem. Nothing speculative.**
+## 2. 단순함이 우선이다
 
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
+**문제를 해결하는 최소한의 코드. 추측성 코드는 없다.**
 
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+- 요청받지 않은 기능은 넣지 않는다.
+- 한 번만 쓰이는 코드에 추상화를 두지 않는다.
+- 요청받지 않은 "유연성"이나 "설정 가능성"을 넣지 않는다.
+- 일어날 수 없는 상황에 대한 에러 처리를 하지 않는다.
+- 200줄을 썼는데 50줄로 줄일 수 있다면 다시 쓴다.
 
-## 3. Surgical Changes
+스스로에게 묻는다: "시니어 엔지니어가 보면 과하게 복잡하다고 할까?" 그렇다면 단순화한다.
 
-**Touch only what you must. Clean up only your own mess.**
+## 3. 최소 범위만 수정한다
 
-When editing existing code:
+**꼭 필요한 것만 건드린다. 자신이 만든 것만 정리한다.**
 
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
+기존 코드를 수정할 때:
 
-When your changes create orphans:
+- 인접한 코드·주석·포맷을 "개선"하지 않는다.
+- 고장 나지 않은 것을 리팩터링하지 않는다.
+- 자신의 취향과 다르더라도 기존 스타일을 그대로 따른다.
+- 무관한 죽은 코드를 발견하면 언급만 하고 지우지 않는다.
 
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
+내 변경으로 고아가 생기면:
 
-The test: Every changed line should trace directly to the user's request.
+- 내 변경으로 인해 쓰이지 않게 된 import/변수/함수는 제거한다.
+- 원래 있던 죽은 코드는 요청이 없으면 지우지 않는다.
 
-## 4. Goal-Driven Execution
+기준: 변경한 모든 줄이 사용자의 요청으로 바로 설명돼야 한다.
 
-**Define success criteria. Loop until verified.**
+## 4. 목표 기반으로 실행한다
 
-Transform tasks into verifiable goals:
+**성공 기준을 정의한다. 검증될 때까지 반복한다.**
 
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
+작업을 검증 가능한 목표로 바꾼다:
 
-For multi-step tasks, state a brief plan:
+- "검증 추가" → "잘못된 입력에 대한 테스트를 작성하고, 통과시킨다"
+- "버그 수정" → "버그를 재현하는 테스트를 작성하고, 통과시킨다"
+- "X 리팩터링" → "리팩터링 전후로 테스트가 통과하는지 확인한다"
+
+여러 단계로 이뤄진 작업이면 짧은 계획을 먼저 밝힌다:
 
 ```
 1. [Step] → verify: [check]
@@ -67,109 +70,110 @@ For multi-step tasks, state a brief plan:
 3. [Step] → verify: [check]
 ```
 
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+강한 성공 기준이 있으면 혼자서도 반복 작업이 가능하다. 약한 기준("일단 되게 만들기")은 계속 확인을 요구하게 만든다.
 
-## 5. Impact Check Before Changes
+## 5. 수정 전에 영향 범위를 점검한다
 
-**Enumerate what can break before writing code. Both directions: the new work, and what already works.**
+**코드를 쓰기 전에 무엇이 깨질 수 있는지 나열한다. 새로 만드는 것과 이미 동작하는 것, 양쪽 다.**
 
-Before implementing, check and report:
+구현하기 전에 다음을 점검하고 보고한다:
 
-- **CRUD failure points** — walk 등록(create) / 수정(update) / 읽기(read) / 삭제(delete) for the
-  data this change touches. Name what breaks at each: missing rows, duplicate/idempotency,
-  ownership & visibility checks, cascade behavior, count/pagination correctness, concurrent requests.
-- **Regression on existing features** — list every existing behavior that could break, with the file
-  that owns it. Include: shared queries and cache/invalidation paths, derived counts, existing tests
-  that encode the old contract, docs and user-facing text that assert the old behavior, and dead or
-  unused code paths that still compile against it.
+- **CRUD 실패 지점** — 이 변경이 건드리는 데이터에 대해 등록(create) / 수정(update) /
+  읽기(read) / 삭제(delete)를 하나씩 짚는다. 각 단계에서 무엇이 깨지는지 명시한다:
+  누락된 행, 중복/멱등성, 소유권·가시성 체크, cascade 동작, count/페이지네이션 정확성,
+  동시 요청.
+- **기존 기능의 회귀** — 깨질 수 있는 모든 기존 동작을 그 동작을 소유한 파일과 함께
+  나열한다. 공유 쿼리와 캐시/무효화 경로, 파생 카운트, 이전 계약을 담고 있는 기존
+  테스트, 이전 동작을 단정하는 문서·사용자 노출 문구, 여전히 컴파일되는 죽은/미사용
+  코드 경로를 포함한다.
 
-Report both lists before the first edit, not after. If the change alters a data contract
-(schema, DTO, API shape), say explicitly what the deploy order is and what breaks in between.
+두 목록 모두 첫 수정 전에 보고한다, 수정 후가 아니라. 변경이 데이터 계약(스키마, DTO,
+API 형태)을 바꾼다면 배포 순서와 그 사이에 무엇이 깨지는지 명시적으로 밝힌다.
 
-## 6. Precedent Before Invention
+## 6. 새로 만들기 전에 선례를 찾는다
 
-**Find how this codebase already solves it. Copy that shape.**
+**이 코드베이스가 이미 어떻게 풀었는지 찾는다. 그 형태를 그대로 따른다.**
 
-Before designing anything new:
+새로운 것을 설계하기 전에:
 
-- Search for an existing feature in the same class of problem, and read it.
-- Name the precedent by file path before you write code.
-- Follow its shape: layering, naming, cache/rollback strategy, error ownership.
-- Deviate only for a stated reason - and state the reason.
+- 같은 부류의 문제를 푼 기존 기능을 찾아 읽는다.
+- 코드를 쓰기 전에 그 선례를 파일 경로로 명시한다.
+- 그 형태를 따른다: 레이어링, 네이밍, 캐시/롤백 전략, 에러 소유권.
+- 명시한 이유가 있을 때만 벗어난다 — 그리고 그 이유를 밝힌다.
 
-This is about reusing the established _shape_, not about extending existing functions.
-Writing a new hook/util that follows the precedent is the expected outcome.
+이건 기존 함수를 확장하는 게 아니라 이미 자리 잡은 *형태*를 재사용하는 것이다.
+선례를 따르는 새 hook/util을 작성하는 것이 기대되는 결과다.
 
-The test: "Which existing file did I model this on?" should always have an answer.
+기준: "어떤 기존 파일을 본떠 만들었는가?"에 항상 답할 수 있어야 한다.
 
-## 7. User-Facing Tradeoffs Need Sign-Off
+## 7. 사용자가 체감하는 트레이드오프는 승인을 받는다
 
-**A technical constraint's side effect can still be a UX decision. Don't absorb it silently.**
+**기술적 제약의 부수 효과도 UX 결정일 수 있다. 조용히 떠안지 않는다.**
 
-Some decisions look purely technical ("we can't bind X to history because of Y") but have a
-consequence the user actually experiences ("so pressing back will navigate the page instead of
-just closing the dialog"). That consequence is a UX call, not a technical inevitability — even
-though it followed logically from the constraint. Surface it and ask before treating it as
-settled.
+어떤 결정은 순전히 기술적으로 보이지만("Y 때문에 X를 히스토리에 묶을 수 없다")
+사용자가 실제로 체감하는 결과를 낳는다("그래서 뒤로가기를 누르면 모달만 닫히는 게
+아니라 페이지가 이동한다"). 그 결과는 논리적으로 제약에서 나왔더라도 기술적으로
+불가피한 게 아니라 UX 결정이다. 확정된 것으로 취급하기 전에 드러내고 확인받는다.
 
-- Don't cite research/precedent more strongly than it supports. If a source covers a related but
-  different scenario, say so plainly ("X source is about Y, not exactly this case") — don't imply
-  it validates the current decision.
-- When challenged on a past decision, re-verify the reasoning before defending it. Check whether
-  the original claim actually holds up instead of restating it with more confidence.
-- If you can't point to the moment the user was asked and agreed, you decided for them — flag it
-  and ask, even after the fact.
+- 근거가 뒷받침하는 것보다 리서치/선례를 더 강하게 인용하지 않는다. 어떤 출처가
+  관련은 있지만 다른 상황을 다룬다면 그렇게 그대로 말한다("X 출처는 Y에 관한 것이지
+  정확히 이 케이스는 아니다") — 지금 결정을 뒷받침하는 것처럼 암시하지 않는다.
+- 과거 결정에 이의가 제기되면, 방어하기 전에 근거를 다시 검증한다. 더 확신에 찬
+  말투로 되풀이하기보다 원래 주장이 실제로 성립하는지 확인한다.
+- 사용자에게 묻고 동의를 받은 순간을 짚을 수 없다면, 대신 결정해버린 것이다 —
+  뒤늦게라도 그 사실을 알리고 확인받는다.
 
-The test: could the user tell, from what you told them, that this was a judgment call they didn't
-get to weigh in on? If not, you decided for them.
+기준: 내가 전달한 내용만 보고도 사용자가 "이건 내가 관여하지 못한 판단이었다"는 걸
+알아챌 수 있는가? 그렇지 않다면 사용자 대신 결정한 것이다.
 
-## 8. Ground UI/UX Decisions in Research & Precedent
+## 8. UI/UX 결정은 리서치와 선례에 근거한다
 
-**Don't design UI/UX from taste alone. Cite the evidence.**
+**취향만으로 UI/UX를 설계하지 않는다. 근거를 인용한다.**
 
-When a task involves a UI/UX judgment call (layout, ordering, interaction pattern, information
-architecture — not just visual polish), treat it like any other engineering decision that needs
-evidence, not intuition:
+작업이 UI/UX 판단(레이아웃, 순서, 인터랙션 패턴, 정보 구조 — 단순 시각적 다듬기가
+아닌)을 포함한다면, 직관이 아니라 근거가 필요한 다른 모든 엔지니어링 결정과 동일하게
+다룬다:
 
-- Search for relevant HCI/psychology research and cite what it actually found — don't rely on
-  what sounds plausible from memory.
-- Look at how established products solved the same problem, including documented failures (a
-  shipped-then-removed feature is often stronger evidence than a success story).
-- Compare alternatives explicitly (a table works well) and record why the rejected options lost,
-  not just which one won.
-- Keep the evidence in the project's design-decision record (`docs/DECISIONS.md` or the relevant
-  feature doc, e.g. `docs/BOOKMARK.md`) so the reasoning survives past this conversation.
+- 관련 HCI/심리학 리서치를 찾아 실제로 무엇을 발견했는지 인용한다 — 기억에 그럴듯하게
+  남아있는 것에 의존하지 않는다.
+- 이미 자리 잡은 제품들이 같은 문제를 어떻게 풀었는지, 문서화된 실패 사례를 포함해서
+  살펴본다(출시했다가 없앤 기능이 성공 사례보다 더 강한 근거인 경우가 많다).
+- 대안을 명시적으로 비교하고(표가 잘 맞는다) 채택되지 않은 선택지가 왜 졌는지도
+  같이 기록한다 — 무엇이 이겼는지만 남기지 않는다.
+- 근거를 프로젝트의 설계 결정 기록(`docs/DECISIONS.md` 또는 해당 기능 문서, 예:
+  `docs/BOOKMARK.md`)에 남겨 이 대화가 끝난 뒤에도 그 근거가 남게 한다.
 
-The test: if someone challenges the decision later, can you point to a specific study or product
-precedent — or did you just say "this feels better"?
+기준: 나중에 이 결정에 이의가 제기되면, 구체적인 연구나 제품 선례를 짚을 수 있는가
+— 아니면 그냥 "이게 더 나아 보인다"고만 말했는가?
 
-## 9. Preview Visual Changes Before Applying Them
+## 9. 시각적 변경은 반영 전에 먼저 보여준다
 
-**Spacing, alignment, dividers, color — show the screen, don't describe it.**
+**간격, 정렬, 구분선, 색 — 화면을 보여준다, 설명하지 않는다.**
 
-Some changes are functionally correct but visually a matter of taste: gap sizes, whether a
-divider line helps or clutters, alignment choices. Text descriptions of these are unreliable in
-both directions — the reader can't always predict how a description will look, and the writer
-can't always predict how a description will land. Shipping the code first and finding out after
-deployment ("this gap is too wide") is the failure mode this rule exists to prevent (see
-`docs/DECISIONS.md`, 2026-09-06, for the incident that prompted it).
+어떤 변경은 기능적으로는 맞지만 시각적으로는 취향의 문제다: 간격 크기, 구분선이
+도움이 되는지 방해가 되는지, 정렬 방식. 이런 것에 대한 텍스트 설명은 양방향으로
+믿을 수 없다 — 읽는 사람은 설명만으로 실제 모습을 예측하기 어렵고, 쓰는 사람도 그
+설명이 어떻게 읽힐지 예측하기 어렵다. 코드부터 반영하고 배포 후에야 알아채는 것
+("이 간격 너무 넓다")이 이 규칙이 막으려는 실패 패턴이다(이 규칙을 만들게 된 사건은
+`docs/DECISIONS.md`, 2026-09-06 참고).
 
-- Before writing the real change, build a static preview — a screenshot of the actual running
-  component, or a lightweight mockup that reuses the real Tailwind classes and `globals.css`
-  color tokens — so it looks like the real thing, not an approximation.
-- If there is more than one reasonable option, build them side by side in one place (one
-  Artifact page works well) rather than asking the user to imagine each from a description.
-  Parallel comparison surfaces a better pick than serial one-at-a-time review (parallel
-  prototyping research — see `docs/DECISIONS.md`, 2026-09-06).
-- Only write the change to the real component after the user has seen the preview and picked
-  (or approved) an option.
+- 실제 변경을 작성하기 전에, 정적 미리보기를 먼저 만든다 — 실제로 동작 중인
+  컴포넌트의 스크린샷이거나, 실제 Tailwind 클래스와 `globals.css` 색 토큰을 그대로
+  재사용한 가벼운 목업이어야 한다 — 근사치가 아니라 실물처럼 보여야 한다.
+- 합리적인 옵션이 둘 이상이면, 사용자가 설명만으로 각각을 상상하게 하지 말고 한
+  자리에 나란히 배치해서 만든다(Artifact 페이지 하나면 충분하다). 나란히 비교하면
+  하나씩 순서대로 보는 것보다 더 나은 선택이 나온다(parallel prototyping 리서치 —
+  `docs/DECISIONS.md`, 2026-09-06 참고).
+- 사용자가 미리보기를 보고 옵션을 고르거나 승인한 뒤에만 실제 컴포넌트에 반영한다.
 
-This applies to visual/layout polish, not to functional changes with a single correct behavior —
-don't build a preview for a bug fix with an obvious right answer.
+이건 시각/레이아웃 다듬기에 적용되는 것이지, 정답이 하나뿐인 기능적 변경에는
+적용하지 않는다 — 정답이 명백한 버그 수정에는 미리보기를 만들지 않는다.
 
 ---
 
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+**이 지침들이 잘 작동하고 있다는 신호:** diff에 불필요한 변경이 줄어들고, 과하게
+복잡하게 만들어 다시 쓰는 일이 줄어들고, 구현 후가 아니라 구현 전에 확인 질문이
+나온다.
 
 # Link-Sphere FE — Claude Code Guide
 
