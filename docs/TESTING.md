@@ -84,10 +84,10 @@ src/
 ├── shared/utils/
 │   ├── date.util.ts
 │   └── date.util.test.ts          ← 유틸 테스트
-├── domains/post/_common/model/
+├── entities/post/model/
 │   ├── post.schema.ts
 │   └── post.schema.test.ts        ← 스키마 테스트
-└── domains/post/features/create-post/
+└── features/post/create/
     ├── hooks/
     │   ├── useCreatePost.ts
     │   └── useCreatePost.test.tsx  ← 훅 테스트
@@ -101,6 +101,8 @@ src/
 ## 패턴 A — 유틸 함수 테스트
 
 순수 함수는 MSW나 React 없이 가장 단순하게 테스트합니다.
+
+<!-- check-docs-ignore: 새로 만들 파일의 예시 경로, 아직 존재하지 않음 -->
 
 ```typescript
 // src/shared/utils/my-util.test.ts
@@ -148,7 +150,7 @@ describe('시간 의존 테스트', () => {
 `safeParse()`로 유효/무효 케이스를 검증합니다.
 
 ```typescript
-// src/domains/post/_common/model/post.schema.test.ts
+// src/entities/post/model/post.schema.test.ts
 import { describe, expect, it } from 'vitest';
 import { createPostSchema } from './post.schema';
 
@@ -157,6 +159,8 @@ describe('createPostSchema', () => {
     const result = createPostSchema.safeParse({
       url: 'https://example.com',
       isPrivate: false,
+      bookmark: false,
+      folderIds: [],
     });
     expect(result.success).toBe(true);
   });
@@ -165,6 +169,8 @@ describe('createPostSchema', () => {
     const result = createPostSchema.safeParse({
       url: 'not-a-url',
       isPrivate: false,
+      bookmark: false,
+      folderIds: [],
     });
     expect(result.success).toBe(false);
     // 에러 메시지도 확인 가능
@@ -175,6 +181,9 @@ describe('createPostSchema', () => {
 });
 ```
 
+> `bookmark`·`folderIds`는 옵셔널이 아니라 필수 필드다 — 빠뜨리면 유효한 입력도 파싱에
+> 실패한다. 실제 케이스는 [`post.schema.test.ts`](../src/entities/post/model/post.schema.test.ts) 참고.
+
 > **주의**: `postSchema.author.image`는 `z.string().optional()` — `null`을 허용하지 않고 `undefined`만 허용합니다.
 
 ---
@@ -183,15 +192,15 @@ describe('createPostSchema', () => {
 
 `renderHook`과 MSW를 함께 사용합니다.
 
+<!-- check-docs-ignore: 새로 만들 파일의 예시 경로, 아직 존재하지 않음 -->
+
 ```typescript
-// src/domains/post/features/create-post/hooks/useCreatePost.test.tsx
-import { renderHook, waitFor, act } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
+// src/features/post/create/hooks/useCreatePost.test.tsx
+import { renderHook, act } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
-import { server } from '@/mocks/server';
 import { createTestQueryClient } from '@/test/utils';
 import { useCreatePost } from './useCreatePost';
 
@@ -224,46 +233,31 @@ describe('useCreatePost', () => {
     expect(result.current.isCreating).toBe(false);
   });
 
-  it('성공 시 /post 로 navigate한다', async () => {
+  it('제출하면 서버 응답을 기다리지 않고 목록으로 navigate한다', async () => {
     const { result } = renderHook(() => useCreatePost(), {
       wrapper: createWrapper(),
     });
 
-    await act(async () => {
-      result.current.form.setValue('url', 'https://example.com');
-      result.current.form.setValue('isPrivate', false);
-      await result.current.onSubmit(/* form event */);
-    });
-
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/post');
-    });
-  });
-
-  it('서버 에러 시 navigate를 호출하지 않는다', async () => {
-    // 이 테스트에서만 핸들러를 오버라이드
-    server.use(
-      http.post('http://localhost/post', () => {
-        return HttpResponse.json({ message: 'Server Error' }, { status: 500 });
-      })
-    );
-
-    const { result } = renderHook(() => useCreatePost(), {
-      wrapper: createWrapper(),
+    act(() => {
+      result.current.form.setValue('url', 'https://example.com', { shouldDirty: true });
+      result.current.form.setValue('isPrivate', false, { shouldDirty: true });
     });
 
     await act(async () => {
-      result.current.form.setValue('url', 'https://example.com');
-      result.current.form.setValue('isPrivate', false);
-      await result.current.onSubmit(/* form event */);
+      await result.current.onSubmit();
     });
 
-    await waitFor(() => {
-      expect(mockNavigate).not.toHaveBeenCalled();
-    });
+    expect(mockNavigate).toHaveBeenCalledWith('/post', { replace: true });
   });
 });
 ```
+
+> `useCreatePost`는 `mutate()`를 fire-and-forget으로 호출한 뒤 **서버 응답을 기다리지 않고
+> 바로 navigate한다**(`useCreatePost.ts` 참고) — "성공 시에만 navigate"가 아니다. 성공/실패에
+> 따라 navigate 여부가 갈리는 훅을 테스트할 땐 `server.use()`로 핸들러를 오버라이드하고
+> `waitFor`로 결과를 기다리는 패턴을 쓴다. 실제 예시:
+> [`useCreateComment.test.tsx`](../src/features/comment/create/hooks/useCreateComment.test.tsx)
+> (성공/실패에 따라 폼이 비워지거나 복원되는 케이스를 MSW 오버라이드로 검증).
 
 ---
 
@@ -271,11 +265,13 @@ describe('useCreatePost', () => {
 
 `renderWithProviders`로 컴포넌트를 렌더하고 사용자 인터랙션을 테스트합니다.
 
+<!-- check-docs-ignore: 새로 만들 파일의 예시 경로, 아직 존재하지 않음 -->
+
 ```typescript
-// src/domains/post/features/post-detail/ui/PostCard.test.tsx
+// src/widgets/post/post-card/ui/PostCard.test.tsx
 import { describe, expect, it } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
-import { renderWithProviders, userEvent } from '@/test/utils';
+import { screen } from '@testing-library/react';
+import { renderWithProviders } from '@/test/utils';
 import { PostCard } from './PostCard';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 
@@ -283,18 +279,6 @@ describe('PostCard', () => {
   it('포스트 제목을 렌더한다', () => {
     renderWithProviders(<PostCard post={mockPost} />);
     expect(screen.getByText(mockPost.title)).toBeInTheDocument();
-  });
-
-  it('좋아요 버튼 클릭 시 API가 호출된다', async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<PostCard post={mockPost} />);
-
-    await user.click(screen.getByRole('button', { name: /좋아요/i }));
-
-    // MSW가 핸들러를 통해 응답하므로 UI 변화를 확인
-    await waitFor(() => {
-      expect(screen.getByText('1')).toBeInTheDocument(); // likeCount 증가
-    });
   });
 
   it('특정 경로로 렌더할 수 있다', () => {
@@ -305,6 +289,15 @@ describe('PostCard', () => {
   });
 });
 ```
+
+> **좋아요·북마크처럼 아이콘형 액션 버튼은 `getByRole('button', { name: /.../i })`로 특정하기
+> 어렵다** — `LikePostButton`(`features/post/like/ui/LikePostButton.tsx`)은 아이콘 옆에
+> 카운트 숫자만 있고 별도 텍스트·`aria-label`이 없다. 이런 버튼의 클릭 인터랙션은
+> `PostCard` 전체가 아니라 **그 버튼 컴포넌트를 단위로 분리해서** 테스트한다(props로 상태를
+> 직접 주입할 수 있어 쿼리가 훨씬 단순해진다). 폼 제출·검색 입력처럼 접근 가능한 이름이
+> 있는 인터랙션의 실전 예시는
+> [`NavbarSearch.test.tsx`](../src/widgets/layout/navbar/ui/NavbarSearch.test.tsx),
+> [`useCreateComment.test.tsx`](../src/features/comment/create/hooks/useCreateComment.test.tsx) 참고.
 
 **쿼리 우선순위** (접근성 좋은 순서대로):
 
@@ -329,16 +322,21 @@ screen.getByTestId('submit-button');
 
 ### 기본 핸들러 추가
 
-새로운 API 엔드포인트가 생기면 `src/mocks/handlers/`에 핸들러를 추가합니다.
+새로운 API 엔드포인트가 생기면 `src/mocks/handlers/`에 핸들러를 추가합니다. 아래는 아직
+없는 새 도메인(`notification`)을 추가하는 가정의 예시입니다 — 실존하는 핸들러는
+[`src/mocks/handlers/`](../src/mocks/handlers/)의 `auth`·`post`·`comment`·`folder`·`upload`
+5종을 참고하세요.
+
+<!-- check-docs-ignore: 새로 만들 파일의 예시 경로, 아직 존재하지 않음 -->
 
 ```typescript
-// src/mocks/handlers/member.handlers.ts
+// src/mocks/handlers/notification.handlers.ts
 import { http, HttpResponse } from 'msw';
 
 const BASE = 'http://localhost';
 
-export const memberHandlers = [
-  http.get(`${BASE}/account/profile`, () => {
+export const notificationHandlers = [
+  http.get(`${BASE}/notification`, () => {
     return HttpResponse.json({
       status: 200,
       message: 'ok',
@@ -349,7 +347,7 @@ export const memberHandlers = [
     });
   }),
 
-  http.patch(`${BASE}/account/profile`, async ({ request }) => {
+  http.patch(`${BASE}/notification/:id/read`, async ({ request }) => {
     const body = await request.json();
     return HttpResponse.json({
       status: 200,
@@ -364,13 +362,15 @@ export const memberHandlers = [
 그리고 `src/mocks/handlers/index.ts`에 등록합니다.
 
 ```typescript
-import { memberHandlers } from './member.handlers'; // 추가
+import { notificationHandlers } from './notification.handlers'; // 추가
 
 export const handlers = [
   ...authHandlers,
   ...postHandlers,
   ...commentHandlers,
-  ...memberHandlers, // 추가
+  ...folderHandlers,
+  ...uploadHandlers,
+  ...notificationHandlers, // 추가
 ];
 ```
 
@@ -417,19 +417,20 @@ server.use(
 
 ## 픽스처 추가
 
-새로운 도메인의 목 데이터는 `src/mocks/fixtures/`에 추가합니다.
+새로운 도메인의 목 데이터는 `src/mocks/fixtures/`에 추가합니다. 위와 같은 가정의
+`notification` 도메인이라면:
+
+<!-- check-docs-ignore: 새로 만들 파일의 예시 경로, 아직 존재하지 않음 -->
 
 ```typescript
-// src/mocks/fixtures/member.fixtures.ts
-import type { MemberProfile } from '@/domains/member/_common/model/member.schema';
+// src/mocks/fixtures/notification.fixtures.ts
+import type { Notification } from '@/entities/notification/model/notification.schema';
 
-export const mockMemberProfile: MemberProfile = {
-  id: 'user-uuid-1',
-  nickname: 'testuser',
-  bio: '테스트 유저입니다.',
-  postCount: 5,
-  followerCount: 10,
-  followingCount: 3,
+export const mockNotification: Notification = {
+  id: 'notification-uuid-1',
+  message: '댓글이 달렸어요.',
+  isRead: false,
+  createdAt: new Date('2025-01-01T00:00:00.000Z'),
 };
 ```
 
@@ -452,12 +453,13 @@ git push  # → pre-push 훅이 npm run test 실행
 
 ### GitHub Actions (CI/CD)
 
-`main` 브랜치에 push 시 자동으로 다음 순서로 실행됩니다.
+PR을 만들면 `ci.yml`이 `pnpm check`(타입+린트+포맷)와 `pnpm test`를 검증합니다. `main`에
+push되면 `deploy.yml`이 같은 검증을 다시 거친 뒤 빌드·배포합니다.
 
 ```
-Install dependencies → Run tests → Build → Deploy to S3
-                            ↑
-                       실패 시 여기서 중단
+Install dependencies → Type check/lint/format(check) → Run tests → Build → Deploy to S3
+                                                              ↑
+                                                        실패 시 여기서 중단
 ```
 
 ### 테스트를 통과하지 않고 push하는 방법 (비상시)

@@ -1300,7 +1300,8 @@ effect 재실행"이 반복되는 무한 루프(`Maximum update depth exceeded`)
 **상태**
 
 검토 완료, 조치 없음(현행 유지). 관련 파일: `entities/comment/api/comment.queries.ts`,
-`features/comment/create/hooks/useCreateComment.ts`, `shared/hooks/useImagePaste.ts`.
+`features/comment/create/hooks/useCreateComment.ts`, `shared/hooks/useImagePaste.ts`(현재
+파일명: `useImageAttachments.ts`).
 
 ---
 

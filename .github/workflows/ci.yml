@@ -1,8 +1,11 @@
 name: CI
 
-# PR에 대해 type-check·lint·format·test를 검증한다. 지금까지는 deploy.yml(push:main)만 있어서
-# PR 단계에서 검사가 전혀 안 됐고, pnpm check(lint+format)는 사람이 수동으로 돌릴 때만 실행돼서
-# .claude/worktrees/ 안의 빌드 산출물이 몇 달치 안 걸리고 쌓이는 걸 아무도 몰랐다.
+# PR에 대해 type-check·lint·format·test·문서 참조 정합성을 검증한다. 지금까지는
+# deploy.yml(push:main)만 있어서 PR 단계에서 검사가 전혀 안 됐고, pnpm check(lint+format)는
+# 사람이 수동으로 돌릴 때만 실행돼서 .claude/worktrees/ 안의 빌드 산출물이 몇 달치 안 걸리고
+# 쌓이는 걸 아무도 몰랐다. 문서 참조 검사(check:docs)도 같은 이유로 추가했다 — docs/TESTING.md가
+# 폐기된 레이어를 한 달 넘게 정본처럼 서술하고 있던 걸 사람이 우연히 발견하기 전까진 아무도
+# 몰랐다(2026-09-07, docs/CI-CHECK-GATE.md 참고).
 on:
   pull_request:
     branches: ['main']
@@ -38,3 +41,6 @@ jobs:
         run: pnpm test
         env:
           VITE_API_BASE_URL: http://localhost
+
+      - name: Check docs
+        run: pnpm check:docs
