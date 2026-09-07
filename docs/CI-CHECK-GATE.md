@@ -121,7 +121,7 @@ ignore 패턴(`'dist/**/*'`, 루트 상대 경로)에 안 걸려서 그대로 �
 
 | 파라미터                | 값                                                                                              | 실제 위치                                                                  |
 | ----------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `--max-warnings` 임계값 | 0                                                                                               | `package.json:18-19`(`lint`/`lint:fix`), `package.json:123`(`lint-staged`) |
+| `--max-warnings` 임계값 | 0                                                                                               | `package.json:18-19`(`lint`/`lint:fix`), `package.json:122`(`lint-staged`) |
 | ESLint 글로벌 ignore    | `**/dist/**`, `**/node_modules/**`, `.claude/worktrees/**`, `**/*.md`, `**/*.svg`, `infra/**/*` | `eslint.config.js:19-24`                                                   |
 | Prettier ignore 추가분  | `.claude/worktrees`, `docs/HISTORY.md`(봇 생성 파일)                                            | `.prettierignore:6-7`                                                      |
 | PR CI 트리거            | `pull_request` → `main`                                                                         | `.github/workflows/ci.yml:7`                                               |
@@ -137,7 +137,7 @@ ignore 패턴(`'dist/**/*'`, 루트 상대 경로)에 안 걸려서 그대로 �
 | PR 게이트에 검사 스텝 추가   | `.github/workflows/ci.yml`                                                                          |
 | 배포 게이트에 검사 스텝 추가 | `.github/workflows/deploy.yml`의 "Type check, lint & format check" 스텝                             |
 | Node 버전 변경               | `.nvmrc` 한 곳만 — `ci.yml`·`deploy.yml` 둘 다 `node-version-file`로 그 값을 읽는다                 |
-| `--max-warnings` 임계값 변경 | `package.json:18-19,123`                                                                            |
+| `--max-warnings` 임계값 변경 | `package.json:18-19,122`                                                                            |
 
 ### 자주 하는 수정
 

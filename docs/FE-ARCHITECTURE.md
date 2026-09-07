@@ -112,16 +112,19 @@ flowchart TD
 ```
 src/
 ├── main.tsx                     # 앱 진입점
+├── styled.d.ts, vite-env.d.ts   # 전역 타입 선언
 │
 ├── app/                          # 앱 초기화, providers, routing
+│   ├── App.tsx                   # 최상위 App 컴포넌트
+│   ├── globals.css               # 디자인 토큰(CSS 변수) + Tailwind 레이어
 │   ├── providers/                # AuthProvider, QueryProvider, RouterProvider, ThemeProvider
 │   ├── routes/                   # 라우트 설정, ProtectedRoute, RouteErrorBoundary
 │   │   └── layouts/              # AppShellLayout, ProtectedLayout, PublicLayout, RootLayout
 │   └── layouts/
-│       └── app-layout/           # AppLayout
+│       └── app-layout/           # AppLayout — 현재 어디서도 import되지 않는 미사용 컴포넌트
 │
 ├── pages/                        # 라우팅 진입점 — widgets/features 조합. 세그먼트 없음
-│   ├── post/                     # index(PostListPage), PostDetailPage, PostEditPage, PostSubmitPage
+│   ├── post/                     # index(Post), PostDetailPage, PostEditPage, PostSubmitPage
 │   ├── auth/                     # LoginPage, SignUpPage
 │   ├── bookmark/                 # BookmarkPage
 │   ├── 403/                      # ForbiddenPage
@@ -141,9 +144,9 @@ src/
 │   │   └── comment-list/
 │   │       └── ui/               # CommentList, CommentItem
 │   ├── bookmark/
-│   │   ├── bookmark-post-list/ui/  # BookmarkPostList
-│   │   ├── bookmark-search/ui/     # BookmarkSearch
-│   │   └── folder-tree/ui/         # FolderTree, MobileFolderList
+│   │   ├── bookmark-post-list/{hooks,ui}  # useBookmarkPostList, BookmarkPostList
+│   │   ├── bookmark-search/{hooks,ui}     # useBookmarkSearch, BookmarkSearch
+│   │   └── folder-tree/{hooks,ui}         # useFolderTree 외 4개, FolderTree, MobileFolderList
 │   └── layout/
 │       ├── navbar/
 │       │   ├── hooks/            # useRecentSearches
@@ -160,7 +163,7 @@ src/
 │   │   ├── like/{hooks,ui}       # useLikePost, LikePostButton
 │   │   └── bookmark/{hooks,ui}   # useBookmarkFolders, BookmarkPostButton, FolderSelector
 │   ├── comment/
-│   │   ├── create/{hooks,ui}     # useCreateComment, CommentForm, MobileCommentBar
+│   │   ├── create/{hooks,ui}     # useCreateComment, CommentForm, MobileCommentBar, ScrollToCommentFormButton
 │   │   ├── update/{hooks,ui}     # useUpdateComment, CommentEditForm
 │   │   ├── delete/hooks          # useDeleteComment
 │   │   └── like/{hooks,ui}       # useLikeComment, LikeCommentButton
@@ -176,8 +179,8 @@ src/
 │   │   └── config/                # const.ts (POST_PAGE_SIZE)
 │   ├── comment/
 │   │   ├── api/                  # comment.api.ts, comment.keys.ts, comment.queries.ts
-│   │   ├── model/                # comment.schema.ts
-│   │   └── config/                # const.ts (MAX_COMMENT_CONTENT_BYTES)
+│   │   ├── model/                # comment.schema.ts, estimateCommentPayloadBytes.ts
+│   │   └── config/                # const.ts (MAX_COMMENT_CONTENT_BYTES 외)
 │   ├── interaction/
 │   │   ├── api/                  # interaction.api.ts, interaction.queries.ts (keys.ts 없음 — post/comment/folder keys 직접 사용)
 │   │   └── model/                # interaction.schema.ts
@@ -204,9 +207,11 @@ src/
     │   ├── storage-keys.ts
     │   ├── const.ts
     │   └── error-code.ts          # SERVER_ERROR_CODE
-    ├── hooks/                     # 재사용 훅 19개 (useToggle, useDebounce, useIntersectionObserver, usePullToRefresh 등)
+    ├── hooks/                     # 재사용 훅 (useToggle, useDebounce, useIntersectionObserver, usePullToRefresh 등)
     ├── lib/
-    │   ├── react-query/config/queryClient.ts   # 중앙 QueryClient 인스턴스
+    │   ├── react-query/
+    │   │   ├── config/queryClient.ts   # 중앙 QueryClient 인스턴스
+    │   │   └── utils/hooks.ts          # React Query 관련 재사용 훅
     │   ├── toast/toast.ts         # sonner 래퍼 (직접 import 금지, 이걸 통해서만 사용)
     │   ├── firebase/, image/, content/, react-table/, router/
     │   └── tailwind/utils.ts      # cn() helper
@@ -218,7 +223,8 @@ src/
     │   ├── atoms/                 # CVA 기반 Shadcn 기본 컴포넌트
     │   ├── elements/              # 조합 컴포넌트 (MarkdownContent 포함)
     │   │   ├── form/
-    │   │   └── modal/{alert,image-viewer}/
+    │   │   ├── modal/{alert,image-viewer}/
+    │   │   └── modal/SheetDialogContent.tsx
     │   └── layouts/                # AuthLayout, ErrorLayout
     └── utils/                     # auth, date, file, form, storage, url, common, error (.util.ts)
 ```
