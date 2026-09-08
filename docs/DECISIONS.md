@@ -11,7 +11,8 @@
 **배경**
 
 두 가지 지적에서 시작했다: (1) 어떤 파일엔 테스트가 있고 어떤 파일엔 없는데
-(`CreatePostForm.tsx`는 없고 같은 폴더의 `BookmarkFolderField.tsx`는 있는 식)
+(`CreatePostForm.tsx`는 없고 같은 폴더의 `BookmarkFolderField.tsx`(현재
+`PostCreateBookmarkFolderField.tsx`)는 있는 식)
 기준이 뭔지 불명확하다. (2) `.claude/CLAUDE.md`의 "features 슬라이스는 동사만"
 규칙이 있는데 `auth/login`·`auth/signup`·`auth/profile`은 명사이고,
 `features/post/bookmark/hooks/useBookmarkFolders.ts`처럼 슬라이스명과 파일명
@@ -52,7 +53,8 @@ to do" — 품사 규칙이 없다. 공식 [Authentication 가이드](https://fe
 판단해 승격을 택했다. 실제 영향 범위를 확인한 결과 외부 참조는 `PostCard.tsx`
 1곳뿐이라 비용도 작았다.
 
-`features/post/create/hooks/useBookmarkFolderField.ts`는 옮기지 않았다 — 등록 폼
+`features/post/create/hooks/useBookmarkFolderField.ts`(현재
+`usePostCreateBookmarkFolderField.ts`)는 옮기지 않았다 — 등록 폼
 필드 제어 코드라 create 액션에 종속된 게 맞고, FolderPickerModal을 재사용할 뿐
 "북마크 액션"은 아니기 때문이다.
 

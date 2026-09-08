@@ -5,13 +5,13 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
-import { BookmarkFolderModal } from '@/features/bookmark/toggle/ui/BookmarkFolderModal';
+import { PostCardBookmarkFolderModal } from '@/features/bookmark/toggle/ui/PostCardBookmarkFolderModal';
 import type {
   BookmarkFoldersResponse,
   FolderListResponse,
 } from '@/entities/bookmark/folder/model/folder.schema';
 
-// BookmarkFolderModal는 공통 프레젠테이션(entities/bookmark/folder/ui/FolderPickerModal)에
+// PostCardBookmarkFolderModal는 공통 프레젠테이션(entities/bookmark/folder/ui/FolderPickerModal)에
 // 얇게 위임하므로, 아래 케이스들은 FolderPickerModal의 행 렌더링·최근 구획도 함께 검증한다.
 
 // 데스크탑 모달 스타일로 고정 — matchMedia 스텁만으로는 useIsMobile 값이 effect 이후에나 정해져 불안정하다
@@ -39,10 +39,12 @@ const folderListResponse: FolderListResponse = {
   uncategorizedCount: 1,
 };
 
-function renderModal(props: Partial<React.ComponentProps<typeof BookmarkFolderModal>> = {}) {
+function renderModal(
+  props: Partial<React.ComponentProps<typeof PostCardBookmarkFolderModal>> = {}
+) {
   const onOpenChange = vi.fn();
   const result = renderWithProviders(
-    <BookmarkFolderModal
+    <PostCardBookmarkFolderModal
       postId={POST_ID}
       isBookmarked
       bookmarkFolderIds={[FOLDER_A]}
@@ -76,7 +78,7 @@ function bookmarkFoldersResponse(folderIds: string[]): BookmarkFoldersResponse {
   return { postId: POST_ID, isBookmarked: true, folderIds };
 }
 
-describe('BookmarkFolderModal', () => {
+describe('PostCardBookmarkFolderModal', () => {
   it('소속된 모든 폴더 행에 체크 표시가 뜬다', async () => {
     renderModal({ bookmarkFolderIds: [FOLDER_A, FOLDER_B] });
 

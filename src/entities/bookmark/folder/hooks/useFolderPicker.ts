@@ -46,7 +46,7 @@ export function useFolderPicker({
   const submittingRef = useRef(false);
 
   // 다이얼로그가 닫히면 생성 입력 상태를 리셋한다 — 열려 있는 동안만 스스로 닫히는 즉시 저장
-  // 경로(BookmarkFolderModal)와 달리, 지연 선택(BookmarkFolderField)은 확인 버튼으로 닫히므로
+  // 경로(PostCardBookmarkFolderModal)와 달리, 지연 선택(PostCreateBookmarkFolderField)은 확인 버튼으로 닫히므로
   // 여기서 공통으로 처리해야 다음에 열 때 입력창이 남아있지 않는다.
   useEffect(() => {
     if (!open) {

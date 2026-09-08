@@ -7,11 +7,11 @@ import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { TEXTS } from '@/shared/config/texts';
-import { BookmarkFolderField } from '@/features/post/create/ui/BookmarkFolderField';
+import { PostCreateBookmarkFolderField } from '@/features/post/create/ui/PostCreateBookmarkFolderField';
 import type { CreatePost } from '@/entities/post/model/post.schema';
 import type { FolderListResponse } from '@/entities/bookmark/folder/model/folder.schema';
 
-// BookmarkFolderField는 공통 프레젠테이션(entities/bookmark/folder/ui/FolderPickerModal)에 얇게
+// PostCreateBookmarkFolderField는 공통 프레젠테이션(entities/bookmark/folder/ui/FolderPickerModal)에 얇게
 // 위임하므로, 아래 케이스들은 FolderPickerModal의 행 렌더링·최근 구획도 함께 검증한다.
 
 // 데스크탑 모달 스타일로 고정 — matchMedia 스텁만으로는 useIsMobile 값이 effect 이후에나 정해져 불안정하다
@@ -47,7 +47,7 @@ const DEFAULT_VALUES: CreatePost = {
   folderIds: [],
 };
 
-// BookmarkFolderField 는 자체 useForm 없이 useFormContext 로만 동작하므로,
+// PostCreateBookmarkFolderField 는 자체 useForm 없이 useFormContext 로만 동작하므로,
 // 등록 폼(useCreatePost)을 흉내 낸 최소 harness로 감싸고 현재 폼 값을 화면에 노출해 검증한다.
 function Harness() {
   const form = useForm<CreatePost>({ defaultValues: DEFAULT_VALUES });
@@ -58,7 +58,7 @@ function Harness() {
     <FormProvider {...form}>
       <div data-testid="bookmark-value">{String(bookmark)}</div>
       <div data-testid="folderIds-value">{folderIds.join(',')}</div>
-      <BookmarkFolderField />
+      <PostCreateBookmarkFolderField />
     </FormProvider>
   );
 }
@@ -89,7 +89,7 @@ afterEach(() => {
   queryClient.clear();
 });
 
-describe('BookmarkFolderField', () => {
+describe('PostCreateBookmarkFolderField', () => {
   it('아무것도 선택하지 않으면 트리거에 "북마크 안 함"이 보인다', () => {
     renderField();
 
@@ -237,7 +237,7 @@ describe('BookmarkFolderField', () => {
 
   it('임계값을 넘으면 등록 폼에서도 최근 저장한 폴더 구획이 뜬다', async () => {
     // 임계값: 폴더 6개 이상 + lastUsedAt 있는 폴더 3개 이상이어야 노출된다
-    // (BookmarkFolderModal.test.tsx의 manyFoldersResponse와 동일한 픽스처)
+    // (PostCardBookmarkFolderModal.test.tsx의 manyFoldersResponse와 동일한 픽스처)
     const RECENT_A = 'folder-uuid-recent-a';
     const manyFoldersResponse: FolderListResponse = {
       folders: [

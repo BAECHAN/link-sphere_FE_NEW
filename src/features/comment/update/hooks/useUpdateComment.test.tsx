@@ -10,7 +10,7 @@ import { useUpdateComment } from '@/features/comment/update/hooks/useUpdateComme
 import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/const';
+import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/comment.const';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
 import { TEXTS } from '@/shared/config/texts';
 

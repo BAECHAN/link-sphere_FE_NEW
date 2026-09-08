@@ -8,7 +8,7 @@ import {
   MAX_COMMENT_IMAGES,
   MAX_COMMENT_CONTENT_BYTES,
   MAX_COMMENT_PAYLOAD_BYTES,
-} from '@/entities/comment/config/const';
+} from '@/entities/comment/config/comment.const';
 import { useImageAttachments } from '@/shared/hooks/useImageAttachments';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { splitContentImages } from '@/shared/lib/content/imageContent';

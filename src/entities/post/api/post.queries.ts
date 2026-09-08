@@ -22,7 +22,7 @@ import {
   postKeys,
   postMutationKeys,
 } from '@/entities/post/api/post.keys';
-import { POST_PAGE_SIZE } from '@/entities/post/config/const';
+import { POST_PAGE_SIZE } from '@/entities/post/config/post.const';
 import {
   folderKeys,
   handleBookmarkToggleSuccess,

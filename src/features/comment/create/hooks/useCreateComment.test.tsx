@@ -11,7 +11,7 @@ import { authKeys } from '@/entities/user/api/auth.queries';
 import { mockAccount } from '@/mocks/fixtures/auth.fixtures';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/const';
+import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/comment.const';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';

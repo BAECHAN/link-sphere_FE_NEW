@@ -181,7 +181,8 @@ src/shared/config/api.ts:4            no-unsafe-assignment
 entities/user/api/AuthQueries.test.tsx:28,37   no-unsafe-return ×2  # 당시 경로,
                                                     # 2026-09-08 auth.queries.test.ts로 개명
 features/post/bookmark/ui/FolderSelector.tsx:47  exhaustive-deps  # 당시 경로, 2026-09-08
-                                                                    # BookmarkFolderModal.tsx로 개명
+                                                                    # BookmarkFolderModal.tsx로,
+                                                                    # 이후 PostCardBookmarkFolderModal.tsx로 개명
 ```
 
 ignore 패턴만 고친 시점의 중간 검증: `pnpm exec eslint .` → **0 problems**
@@ -207,7 +208,7 @@ ignore 패턴만 고친 시점의 중간 검증: `pnpm exec eslint .` → **0 pr
 
 ### 9.1 `react-hooks/exhaustive-deps` disable 주석 위치 실수
 
-`FolderSelector.tsx`(현재 `BookmarkFolderModal.tsx`)의 의도적 dep 누락에
+`FolderSelector.tsx`(현재 `PostCardBookmarkFolderModal.tsx`)의 의도적 dep 누락에
 `eslint-disable-next-line` 주석을
 처음에는 `useEffect` 콜백 **본문 안쪽**(닫는 `}` 바로 위)에 넣었다가 lint가
 그대로 잡아냈다. 이 규칙은 콜백 본문이 아니라 **의존성 배열 줄**(`[open]`)에

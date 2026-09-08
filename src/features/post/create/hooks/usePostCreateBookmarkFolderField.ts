@@ -6,10 +6,11 @@ import type { Folder } from '@/entities/bookmark/folder/model/folder.schema';
 import type { CreatePost } from '@/entities/post/model/post.schema';
 
 /**
- * BookmarkFolderField의 로직 전부 — 등록 폼의 bookmark/folderIds 필드 제어, 트리거 버튼
- * 표시 문구, 지연 선택 핸들러(탭해도 즉시 저장하지 않고 폼 값만 바꿈)를 소유한다.
+ * PostCreateBookmarkFolderField의 로직 전부 — 등록 폼의 bookmark/folderIds 필드 제어,
+ * 트리거 버튼 표시 문구, 지연 선택 핸들러(탭해도 즉시 저장하지 않고 폼 값만 바꿈)를
+ * 소유한다.
  */
-export function useBookmarkFolderField() {
+export function usePostCreateBookmarkFolderField() {
   const { control } = useFormContext<CreatePost>();
   const { field: bookmarkField } = useController<CreatePost, 'bookmark'>({
     name: 'bookmark',
@@ -41,7 +42,7 @@ export function useBookmarkFolderField() {
   const handleSelectFolder = (folder: Folder) => {
     if (folderIds.includes(folder.id)) {
       const next = folderIds.filter((id) => id !== folder.id);
-      // 마지막 폴더에서 빠져도 미분류로 남는다(북마크 자체는 유지) — BookmarkFolderModal과 동일 규칙.
+      // 마지막 폴더에서 빠져도 미분류로 남는다(북마크 자체는 유지) — PostCardBookmarkFolderModal과 동일 규칙.
       applySelection(true, next);
     } else {
       applySelection(true, [...folderIds, folder.id]);

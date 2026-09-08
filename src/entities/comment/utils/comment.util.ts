@@ -1,5 +1,5 @@
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
-import { ESTIMATED_IMAGE_URL_BYTES } from '@/entities/comment/config/const';
+import { ESTIMATED_IMAGE_URL_BYTES } from '@/entities/comment/config/comment.const';
 
 export class CommentUtil {
   /**
