@@ -7,7 +7,7 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-import { type ReactNode } from 'react';
+import { createElement, type ReactNode } from 'react';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import {
   useUpdateAccountMutation,
@@ -46,10 +46,10 @@ vi.mock('@/entities/user/api/auth.keys', () => ({
 
 // 옵티미스틱 업데이트가 싱글톤 queryClient를 직접 조작하므로 동일 인스턴스를 provider로 사용
 function Wrapper({ children }: { children: ReactNode }) {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>{children}</MemoryRouter>
-    </QueryClientProvider>
+  return createElement(
+    QueryClientProvider,
+    { client: queryClient },
+    createElement(MemoryRouter, null, children)
   );
 }
 

@@ -178,7 +178,8 @@ no-require-imports         1
 
 ```
 src/shared/config/api.ts:4            no-unsafe-assignment
-src/entities/user/api/AuthQueries.test.tsx:28,37   no-unsafe-return ×2
+entities/user/api/AuthQueries.test.tsx:28,37   no-unsafe-return ×2  # 당시 경로,
+                                                    # 2026-09-08 auth.queries.test.ts로 개명
 features/post/bookmark/ui/FolderSelector.tsx:47  exhaustive-deps  # 당시 경로, 2026-09-08
                                                                     # BookmarkFolderModal.tsx로 개명
 ```
