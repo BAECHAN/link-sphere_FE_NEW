@@ -1,5 +1,3 @@
-import { useEffect, useRef, useState } from 'react';
-import { toast } from '@/shared/lib/toast/toast';
 import { Bookmark, BookmarkX, Check, FolderPlus, Loader2, Plus, X } from 'lucide-react';
 import { Dialog, DialogTitle, DialogDescription } from '@/shared/ui/atoms/dialog';
 import { SheetDialogContent } from '@/shared/ui/elements/modal/SheetDialogContent';
@@ -10,20 +8,15 @@ import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import {
-  useCreateFolderMutation,
-  useFolderListQuery,
-} from '@/entities/bookmark/folder/api/folder.queries';
-import { useRecentFolders } from '@/entities/bookmark/folder/hooks/useRecentFolders';
+  useFolderPicker,
+  UNCATEGORIZED_PENDING_KEY,
+} from '@/entities/bookmark/folder/hooks/useFolderPicker';
 import type { Folder } from '@/entities/bookmark/folder/model/folder.schema';
 
-// 미분류 행의 pending 식별자 — folderKey 관례('all' | 'uncategorized' | UUID)와 동일한 sentinel이라
-// 실제 폴더 UUID와 충돌하지 않는다.
-const UNCATEGORIZED_PENDING_KEY = 'uncategorized';
-
-interface FolderPickerDialogProps {
+interface FolderPickerModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** 헤더 보조 문구 — 즉시 저장(FolderSelector)인지 지연 선택(BookmarkFolderPicker)인지가 달라 호출부가 정한다 */
+  /** 헤더 보조 문구 — 즉시 저장(BookmarkFolderModal)인지 지연 선택(BookmarkFolderField)인지가 달라 호출부가 정한다 */
   description: string;
   isBookmarked: boolean;
   selectedFolderIds: string[];
@@ -36,13 +29,14 @@ interface FolderPickerDialogProps {
 }
 
 /**
- * 북마크 폴더 선택 UI — 보관함의 즉시 저장(FolderSelector)과 등록 폼의 지연 선택
- * (BookmarkFolderPicker)이 공유하는 프레젠테이션 컴포넌트. 저장 동작은 콜백으로 주입받는다.
+ * 북마크 폴더 선택 UI — 보관함의 즉시 저장(BookmarkFolderModal)과 등록 폼의 지연 선택
+ * (BookmarkFolderField)이 공유하는 프레젠테이션 컴포넌트. 저장 동작은 콜백으로 주입받는다.
+ * 로직 전부는 useFolderPicker가 소유하고, 여기는 JSX만 남긴다.
  * - 데스크탑: 중앙 모달 / 모바일: 하단 BottomSheet
  * - 미분류 행이 이미 체크된 상태에서 재탭하면 no-op(오탭으로 북마크가 조용히 사라지는 것 방지) —
  *   두 호출부 모두 이 규칙을 그대로 따른다.
  */
-export function FolderPickerDialog({
+export function FolderPickerModal({
   open,
   onOpenChange,
   description,
@@ -52,81 +46,30 @@ export function FolderPickerDialog({
   onSelectFolder,
   dangerAction,
   showConfirmButton,
-}: FolderPickerDialogProps) {
+}: FolderPickerModalProps) {
   const isMobile = useIsMobile();
-  const { data, isLoading, isFetching } = useFolderListQuery({ enabled: open });
-  // 잘못 라우팅된 응답(HTML 등) 방어 — 배열이 아니면 빈 목록으로 처리해 화면 전체 크래시 방지
-  const folderList = Array.isArray(data?.folders) ? data.folders : [];
-  const uncategorizedCount = data?.uncategorizedCount ?? 0;
-  // 상단 "최근 저장한 폴더" 구획 — 열 때마다(open) 새로 스냅샷, 열려있는 동안은 고정
-  const { recentFolders } = useRecentFolders(folderList, isFetching, open);
-  const { mutateAsync: createFolder, isPending: isCreating } = useCreateFolderMutation();
-
-  const [creatingMode, setCreatingMode] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-  const [pendingKey, setPendingKey] = useState<string | null>(null);
-  const submittingRef = useRef(false);
-
-  // 다이얼로그가 닫히면 생성 입력 상태를 리셋한다 — 열려 있는 동안만 스스로 닫히는 즉시 저장
-  // 경로(FolderSelector)와 달리, 지연 선택(BookmarkFolderPicker)은 확인 버튼으로 닫히므로
-  // 여기서 공통으로 처리해야 다음에 열 때 입력창이 남아있지 않는다.
-  useEffect(() => {
-    if (!open) {
-      setCreatingMode(false);
-      setNewFolderName('');
-    }
-  }, [open]);
-
-  const isUncategorizedSelected = isBookmarked && selectedFolderIds.length === 0;
-
-  const handleSelectUncategorized = async () => {
-    // 이미 미분류(✓)면 아무 것도 하지 않는다 — "미분류에서 제거"는 곧 북마크 해제인데,
-    // 그건 하단 destructive 행과 중복이라 오탭으로 북마크가 사라지는 걸 막기 위함.
-    if (isUncategorizedSelected) {
-      return;
-    }
-
-    setPendingKey(UNCATEGORIZED_PENDING_KEY);
-    try {
-      await onSelectUncategorized();
-    } finally {
-      setPendingKey(null);
-    }
-  };
-
-  const handleSelectFolder = async (folder: Folder) => {
-    setPendingKey(folder.id);
-    try {
-      await onSelectFolder(folder);
-    } finally {
-      setPendingKey(null);
-    }
-  };
-
-  const handleCreateAndSelect = async () => {
-    if (submittingRef.current || isCreating) {
-      return;
-    }
-
-    const name = newFolderName.trim();
-
-    if (!name) {
-      return;
-    }
-
-    submittingRef.current = true;
-
-    try {
-      const created = await createFolder({ name });
-      setNewFolderName('');
-      setCreatingMode(false);
-      await handleSelectFolder(created);
-    } catch {
-      toast.error(TEXTS.messages.error.folderCreateFailedFull);
-    } finally {
-      submittingRef.current = false;
-    }
-  };
+  const {
+    isLoading,
+    folderList,
+    uncategorizedCount,
+    recentFolders,
+    isUncategorizedSelected,
+    pendingKey,
+    creatingMode,
+    setCreatingMode,
+    newFolderName,
+    setNewFolderName,
+    isCreating,
+    handleSelectUncategorized,
+    handleSelectFolder,
+    handleCreateAndSelect,
+  } = useFolderPicker({
+    open,
+    isBookmarked,
+    selectedFolderIds,
+    onSelectUncategorized,
+    onSelectFolder,
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

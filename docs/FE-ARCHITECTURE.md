@@ -156,11 +156,11 @@ src/
 │
 ├── features/                     # 사용자 상호작용 — 도메인 그룹 → 액션 슬라이스
 │   ├── post/
-│   │   ├── create/{hooks,ui}     # useCreatePost, CreatePostForm, BookmarkFolderPicker
+│   │   ├── create/{hooks,ui}     # useCreatePost, useBookmarkFolderField, CreatePostForm, BookmarkFolderField
 │   │   ├── update/{hooks,ui}     # useUpdatePost, UpdatePostForm
 │   │   ├── delete/hooks          # usePostDelete
 │   │   ├── like/{hooks,ui}       # useLikePost, LikePostButton
-│   │   └── bookmark/{hooks,ui}   # useBookmarkFolders, BookmarkPostButton, FolderSelector
+│   │   └── bookmark/{hooks,ui}   # useBookmarkFolders, useBookmarkFolderModal, BookmarkPostButton, BookmarkFolderModal
 │   ├── comment/
 │   │   ├── create/{hooks,ui}     # useCreateComment, CommentForm, MobileCommentBar, ScrollToCommentFormButton
 │   │   ├── update/{hooks,ui}     # useUpdateComment, CommentEditForm
@@ -191,8 +191,8 @@ src/
 │   │       ├── model/            # folder.schema.ts
 │   │       ├── config/           # const.ts (RECENT_FOLDER_COUNT 외)
 │   │       ├── utils/            # folder.util.ts (pickRecentFolders)
-│   │       ├── hooks/            # useRecentFolders.ts
-│   │       └── ui/               # FolderPickerDialog
+│   │       ├── hooks/            # useRecentFolders.ts, useFolderPicker.ts
+│   │       └── ui/               # FolderPickerModal
 │   ├── upload/
 │   │   └── api/                  # upload.api.ts
 │   └── user/

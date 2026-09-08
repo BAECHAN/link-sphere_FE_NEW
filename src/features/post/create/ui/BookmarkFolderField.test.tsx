@@ -7,12 +7,12 @@ import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { TEXTS } from '@/shared/config/texts';
-import { BookmarkFolderPicker } from '@/features/post/create/ui/BookmarkFolderPicker';
+import { BookmarkFolderField } from '@/features/post/create/ui/BookmarkFolderField';
 import type { CreatePost } from '@/entities/post/model/post.schema';
 import type { FolderListResponse } from '@/entities/bookmark/folder/model/folder.schema';
 
-// BookmarkFolderPicker는 공통 프레젠테이션(entities/folder/ui/FolderPickerDialog)에 얇게
-// 위임하므로, 아래 케이스들은 FolderPickerDialog의 행 렌더링·최근 구획도 함께 검증한다.
+// BookmarkFolderField는 공통 프레젠테이션(entities/bookmark/folder/ui/FolderPickerModal)에 얇게
+// 위임하므로, 아래 케이스들은 FolderPickerModal의 행 렌더링·최근 구획도 함께 검증한다.
 
 // 데스크탑 모달 스타일로 고정 — matchMedia 스텁만으로는 useIsMobile 값이 effect 이후에나 정해져 불안정하다
 vi.mock('@/shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }));
@@ -47,7 +47,7 @@ const DEFAULT_VALUES: CreatePost = {
   folderIds: [],
 };
 
-// BookmarkFolderPicker 는 자체 useForm 없이 useFormContext 로만 동작하므로,
+// BookmarkFolderField 는 자체 useForm 없이 useFormContext 로만 동작하므로,
 // 등록 폼(useCreatePost)을 흉내 낸 최소 harness로 감싸고 현재 폼 값을 화면에 노출해 검증한다.
 function Harness() {
   const form = useForm<CreatePost>({ defaultValues: DEFAULT_VALUES });
@@ -58,12 +58,12 @@ function Harness() {
     <FormProvider {...form}>
       <div data-testid="bookmark-value">{String(bookmark)}</div>
       <div data-testid="folderIds-value">{folderIds.join(',')}</div>
-      <BookmarkFolderPicker />
+      <BookmarkFolderField />
     </FormProvider>
   );
 }
 
-function renderPicker() {
+function renderField() {
   return renderWithProviders(<Harness />, { wrapperOptions: { queryClient } });
 }
 
@@ -89,9 +89,9 @@ afterEach(() => {
   queryClient.clear();
 });
 
-describe('BookmarkFolderPicker', () => {
+describe('BookmarkFolderField', () => {
   it('아무것도 선택하지 않으면 트리거에 "북마크 안 함"이 보인다', () => {
-    renderPicker();
+    renderField();
 
     expect(screen.getByRole('button', { name: '북마크 안 함' })).toBeInTheDocument();
     expect(screen.getByTestId('bookmark-value')).toHaveTextContent('false');
@@ -100,7 +100,7 @@ describe('BookmarkFolderPicker', () => {
 
   it('폴더가 있으면 "내 폴더" 구획 헤더가 뜬다', async () => {
     const user = userEvent.setup();
-    renderPicker();
+    renderField();
 
     await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
 
@@ -109,7 +109,7 @@ describe('BookmarkFolderPicker', () => {
 
   it('폴더를 탭하면 선택되고 폼 값이 즉시 반영된다 (제출 전 지연 선택)', async () => {
     const user = userEvent.setup();
-    renderPicker();
+    renderField();
 
     await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
     await waitFor(() => expect(dialog().getByText('개발')).toBeInTheDocument());
@@ -121,7 +121,7 @@ describe('BookmarkFolderPicker', () => {
 
   it('선택된 마지막 폴더를 다시 탭하면 미분류로 남는다 (북마크는 유지)', async () => {
     const user = userEvent.setup();
-    renderPicker();
+    renderField();
 
     await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
     await waitFor(() => expect(dialog().getByText('개발')).toBeInTheDocument());
@@ -136,7 +136,7 @@ describe('BookmarkFolderPicker', () => {
 
   it('미분류 행을 탭하면 북마크가 켜지고 폴더는 비어 있다', async () => {
     const user = userEvent.setup();
-    renderPicker();
+    renderField();
 
     await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
     await waitFor(() => expect(dialog().getByText('미분류')).toBeInTheDocument());
@@ -148,7 +148,7 @@ describe('BookmarkFolderPicker', () => {
 
   it('체크된 미분류를 다시 탭해도 해제되지 않는다 (no-op)', async () => {
     const user = userEvent.setup();
-    renderPicker();
+    renderField();
 
     await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
     await waitFor(() => expect(dialog().getByText('미분류')).toBeInTheDocument());
@@ -163,7 +163,7 @@ describe('BookmarkFolderPicker', () => {
 
   it('"북마크 안 함" 행을 누르면 선택이 전부 해제되고 모달이 닫힌다', async () => {
     const user = userEvent.setup();
-    renderPicker();
+    renderField();
 
     await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
     await waitFor(() => expect(dialog().getByText('개발')).toBeInTheDocument());
@@ -179,7 +179,7 @@ describe('BookmarkFolderPicker', () => {
 
   it('"북마크 안 함" 행은 아무것도 선택하지 않은 상태에서도 항상 보인다', async () => {
     const user = userEvent.setup();
-    renderPicker();
+    renderField();
 
     await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
 
@@ -189,7 +189,7 @@ describe('BookmarkFolderPicker', () => {
 
   it('확인 버튼을 누르면 모달이 닫힌다', async () => {
     const user = userEvent.setup();
-    renderPicker();
+    renderField();
 
     await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
@@ -221,7 +221,7 @@ describe('BookmarkFolderPicker', () => {
         )
       )
     );
-    renderPicker();
+    renderField();
 
     await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
     await waitFor(() => expect(screen.getByText('새 폴더 만들기')).toBeInTheDocument());
@@ -237,7 +237,7 @@ describe('BookmarkFolderPicker', () => {
 
   it('임계값을 넘으면 등록 폼에서도 최근 저장한 폴더 구획이 뜬다', async () => {
     // 임계값: 폴더 6개 이상 + lastUsedAt 있는 폴더 3개 이상이어야 노출된다
-    // (FolderSelector.test.tsx의 manyFoldersResponse와 동일한 픽스처)
+    // (BookmarkFolderModal.test.tsx의 manyFoldersResponse와 동일한 픽스처)
     const RECENT_A = 'folder-uuid-recent-a';
     const manyFoldersResponse: FolderListResponse = {
       folders: [
@@ -304,7 +304,7 @@ describe('BookmarkFolderPicker', () => {
       )
     );
     const user = userEvent.setup();
-    renderPicker();
+    renderField();
 
     await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
 
