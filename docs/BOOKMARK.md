@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-09-04
+> **마지막 검토**: 2026-09-08
 
 ## 1. 쉬운 설명
 
@@ -61,8 +61,9 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
   URL에 저장해 새로고침·뒤로가기에도 상태가 유지되게 한다
 - **TanStack Query** — 폴더 목록·폴더별 게시글 무한 스크롤·낙관적 업데이트
 - **Zod** — `folder.schema.ts`의 폴더·요청/응답 스키마
-- **Radix Dialog/Popover 기반 `FolderPickerDialog`** — 데스크탑 Popover / 모바일 Bottom
-  Sheet 공용 프레젠테이션
+- **Radix Dialog 기반 `FolderPickerModal`** — 데스크탑 중앙 모달 / 모바일 Bottom Sheet
+  (`SheetDialogContent`) 공용 프레젠테이션. (2026-09-08 정정: 이전엔 "Popover 기반"으로
+  적혀 있었으나 실제 코드는 Popover를 쓴 적이 없다 — `Dialog` + `SheetDialogContent`뿐)
 
 **구현·검증 과정에서 쓴 도구**
 
@@ -120,10 +121,10 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
   북마크 자체는 그대로다. 마지막 폴더에서 빠지면 미분류로 남을 뿐, 북마크가 사라지지
   않는다. 완전히 삭제하려면 `북마크 제거` 행을 따로 눌러야 한다.
 
-### `FolderSelector` 행 동작
+### `BookmarkFolderModal` 행 동작
 
-`BookmarkPostButton`을 누르면 열리는 모달(`features/post/bookmark/ui/FolderSelector.tsx`,
-실제 마크업은 `entities/folder/ui/FolderPickerDialog`)의 전체 동작이다. 탭 = 즉시
+`BookmarkPostButton`을 누르면 열리는 모달(`features/post/bookmark/ui/BookmarkFolderModal.tsx`,
+실제 마크업은 `entities/bookmark/folder/ui/FolderPickerModal`)의 전체 동작이다. 탭 = 즉시
 저장/제거 + 모달 닫힘(확인 단계 없음).
 
 | 행          | 상태                      | 탭하면                           | 토스트                                                                                         |
@@ -149,18 +150,19 @@ Shneiderman의 split menu 연구를 따라 **상단에 최근 저장한 폴더 �
 본 목록에서 빼지 않고 그대로 중복 표시한다 — 빼면 본 목록의 나머지 위치가 흔들려
 공간기억이 깨지기 때문이다.
 
-`entities/folder/model/useRecentFolders.ts`가 선정 로직을 담당한다(노출 조건·개수는
-운영 파라미터라 §7로 뺐다). 스냅샷 동작은 §10 시행착오에서 실제로 버그가 났던
-부분이라 함께 읽으면 이해가 빠르다.
+`entities/bookmark/folder/hooks/useRecentFolders.ts`가 스냅샷 로직을,
+`entities/bookmark/folder/utils/folder.util.ts`의 `pickRecentFolders`가 선정 로직을
+담당한다(노출 조건·개수는 운영 파라미터라 §7로 뺐다). 스냅샷 동작은 §10 시행착오에서
+실제로 버그가 났던 부분이라 함께 읽으면 이해가 빠르다.
 
-### 링크 등록 폼의 폴더 선택(`BookmarkFolderPicker`) — 이 페이지가 아닌 다른 화면
+### 링크 등록 폼의 폴더 선택(`BookmarkFolderField`) — 이 페이지가 아닌 다른 화면
 
-`src/features/post/create/ui/BookmarkFolderPicker.tsx`는 `/bookmark` 페이지가 아니라
-**링크 등록 폼**(`CreatePostForm`)에 있는 필드다. `FolderSelector`와 같은
-`entities/folder/ui/FolderPickerDialog`를 쓰고 주입하는 콜백만 다르다 — 저장 동작을
-콜백으로 넘기는 쪽이 즉시 저장인지 지연 선택인지에 따라 핵심 동작이 갈린다.
+`src/features/post/create/ui/BookmarkFolderField.tsx`는 `/bookmark` 페이지가 아니라
+**링크 등록 폼**(`CreatePostForm`)에 있는 필드다. `BookmarkFolderModal`과 같은
+`entities/bookmark/folder/ui/FolderPickerModal`을 쓰고 주입하는 콜백만 다르다 — 저장
+동작을 콜백으로 넘기는 쪽이 즉시 저장인지 지연 선택인지에 따라 핵심 동작이 갈린다.
 
-|                       | `FolderSelector`(북마크 페이지)       | `BookmarkFolderPicker`(등록 폼)                               |
+|                       | `BookmarkFolderModal`(북마크 페이지)  | `BookmarkFolderField`(등록 폼)                                |
 | --------------------- | ------------------------------------- | ------------------------------------------------------------- |
 | 대상                  | 이미 존재하는 북마크                  | 아직 만들어지지 않은 게시글                                   |
 | 행 탭                 | 즉시 API 호출로 저장/제거 + 모달 닫힘 | 폼의 `bookmark`/`folderIds` 값만 변경, 모달 안 닫힘           |
@@ -178,7 +180,7 @@ Shneiderman의 split menu 연구를 따라 **상단에 최근 저장한 폴더 �
 
 ## 6. 상태 모델
 
-### `folderKeys` 쿼리 키 계층 (`entities/folder/api/folder.keys.ts`)
+### `folderKeys` 쿼리 키 계층 (`entities/bookmark/folder/api/folder.keys.ts`)
 
 ```typescript
 const rootKey = ['folder'] as const;
@@ -196,7 +198,7 @@ folderKeys.posts(folderKey, sort, search);
 `folderKeys.list` + `folderKeys.postsRoot` + `post.detail`/`post.list`까지 무효화한다.
 원본은 옮겨적지 않는다 — 정확한 최신 목록은 `folder.keys.ts`를 직접 확인한다.
 
-### `Folder` 스키마 (`entities/folder/model/folder.schema.ts`)
+### `Folder` 스키마 (`entities/bookmark/folder/model/folder.schema.ts`)
 
 | 필드                      | 타입                        | 비고                                                            |
 | ------------------------- | --------------------------- | --------------------------------------------------------------- |
@@ -211,18 +213,20 @@ folderKeys.posts(folderKey, sort, search);
 제네릭 캐스팅만 할 뿐 이 스키마로 실제 파싱(`.parse()`)하지 않는다. 그래서
 `lastUsedAt`은 타입상 `Date`지만 **런타임엔 BE가 보낸 원시 ISO 문자열 그대로**
 들어온다(`createdAt`/`updatedAt`도 동일). `Date` 메서드를 직접 호출하지 말고
-`new Date(value)`로 감싸야 문자열·`Date` 어느 쪽이 와도 안전하다
-(`useRecentFolders.ts`의 `toTimestamp` 참고).
+`dayjs(value)`로 감싸야 문자열·`Date` 어느 쪽이 와도 안전하다(2026-09-08:
+CLAUDE.md의 `new Date()`/`.getTime()` 금지 규칙에 맞춰 `new Date(value)` 방어
+코드를 `dayjs(value)`로 치환 — `entities/bookmark/folder/utils/folder.util.ts`의
+`pickRecentFolders` 참고).
 
 ## 7. 운영 파라미터
 
 "최근 저장한 폴더" 상단 구획 노출 기준.
 
-| 파라미터                                     | 값  | 실제 위치                                                              |
-| -------------------------------------------- | --- | ---------------------------------------------------------------------- |
-| 상단 구획 노출 최소 전체 폴더 수             | 6   | `useRecentFolders.ts:10` `MIN_FOLDER_COUNT_TO_SHOW_RECENT`             |
-| 상단 구획 노출 최소 "저장 이력 있는" 폴더 수 | 3   | `pickRecentFolders`(`useRecentFolders.ts:20-30`)가 두 조건을 함께 검사 |
-| 상단 구획 고정 노출 개수                     | 3   | `useRecentFolders.ts:6` `RECENT_FOLDER_COUNT`                          |
+| 파라미터                                     | 값  | 실제 위치                                                                                  |
+| -------------------------------------------- | --- | ------------------------------------------------------------------------------------------ |
+| 상단 구획 노출 최소 전체 폴더 수             | 6   | `entities/bookmark/folder/config/const.ts`의 `MIN_FOLDER_COUNT_TO_SHOW_RECENT`             |
+| 상단 구획 노출 최소 "저장 이력 있는" 폴더 수 | 3   | `pickRecentFolders`(`entities/bookmark/folder/utils/folder.util.ts`)가 두 조건을 함께 검사 |
+| 상단 구획 고정 노출 개수                     | 3   | `entities/bookmark/folder/config/const.ts`의 `RECENT_FOLDER_COUNT`                         |
 
 둘 중 하나라도 못 채우면 상단 구획 자체가 안 뜬다(0개 아니면 3개, 1~2개인 중간
 상태는 없음) — 개수가 흔들리면 아래 본 목록의 시작 위치도 흔들리기 때문이다.
@@ -243,30 +247,47 @@ src/
 │       └── folder-tree/ui/
 │           ├── FolderTree.tsx            # 데스크탑 사이드바 (폴더 트리, 전체 행은 숫자 없음)
 │           └── MobileFolderList.tsx      # 모바일 폴더 그리드 (drill-down)
-│                                          # 위 둘 + FolderPickerDialog(아래) 모두 "최근 저장한
+│                                          # 위 둘 + FolderPickerModal(아래) 모두 "최근 저장한
 │                                          # 폴더" + "내 폴더" 두 구획 포함(§5)
 ├── features/
 │   └── post/
-│       └── bookmark/
+│       ├── bookmark/
+│       │   ├── hooks/
+│       │   │   ├── useBookmarkFolders.ts      # add/remove/clear/toggle 라우팅
+│       │   │   └── useBookmarkFolderModal.ts  # 즉시 저장 동작 + 토스트 분기 + 닫힘 애니메이션
+│       │   │                                  # 중 버튼 깜빡임 방지 스냅샷 (BookmarkFolderModal 전용)
+│       │   └── ui/
+│       │       ├── BookmarkPostButton.tsx     # 카드의 북마크 버튼 — 클릭 시 BookmarkFolderModal 오픈
+│       │       └── BookmarkFolderModal.tsx    # JSX만 — 로직은 useBookmarkFolderModal,
+│       │                                      # 모달 마크업은 FolderPickerModal(아래)에 위임
+│       └── create/
 │           ├── hooks/
-│           │   └── useBookmarkFolders.ts # add/remove/clear/toggle 라우팅
+│           │   └── useBookmarkFolderField.ts  # 등록 폼 bookmark/folderIds 필드 제어 + 지연
+│           │                                  # 선택 핸들러 (BookmarkFolderField 전용)
 │           └── ui/
-│               ├── BookmarkPostButton.tsx # 카드의 북마크 버튼 — 클릭 시 FolderSelector 오픈
-│               └── FolderSelector.tsx     # 즉시 저장(탭=바로 저장/제거+닫힘) 동작만 소유하고,
-│                                          # 모달 마크업은 FolderPickerDialog(아래)에 위임
+│               └── BookmarkFolderField.tsx    # JSX만 — 로직은 useBookmarkFolderField
 ├── entities/
-│   └── folder/
-│       ├── api/
-│       │   ├── folder.api.ts             # 폴더 CRUD + 소속 추가/제거/전체해제 + 폴더별 게시글 API
-│       │   ├── folder.queries.ts         # useFolderListQuery, mutations (낙관적 갱신 공용 헬퍼 포함)
-│       │   └── folder.keys.ts            # §6 쿼리 키 + cross-invalidation
-│       ├── model/
-│       │   ├── folder.schema.ts          # §6 Folder 스키마
-│       │   └── useRecentFolders.ts       # "최근 저장한 폴더" 선정 로직 (§5, §7, §10)
-│       └── ui/
-│           └── FolderPickerDialog.tsx    # 폴더 선택 모달/바텀시트 공용 프레젠테이션 —
-│                                          # FolderSelector·BookmarkFolderPicker가 공유하고
-│                                          # 저장 동작만 콜백으로 주입받는다
+│   └── bookmark/
+│       └── folder/
+│           ├── api/
+│           │   ├── folder.api.ts             # 폴더 CRUD + 소속 추가/제거/전체해제 + 폴더별 게시글 API
+│           │   ├── folder.queries.ts         # useFolderListQuery, mutations (낙관적 갱신 공용 헬퍼 포함)
+│           │   └── folder.keys.ts            # §6 쿼리 키 + cross-invalidation
+│           ├── model/
+│           │   └── folder.schema.ts          # §6 Folder 스키마
+│           ├── config/
+│           │   └── const.ts                  # RECENT_FOLDER_COUNT, MIN_FOLDER_COUNT_TO_SHOW_RECENT
+│           ├── utils/
+│           │   └── folder.util.ts            # pickRecentFolders — "최근 저장한 폴더" 선정 로직(§7)
+│           ├── hooks/
+│           │   ├── useRecentFolders.ts       # 스냅샷 로직 (§5, §10)
+│           │   └── useFolderPicker.ts        # FolderPickerModal의 로직 전부(조회·생성·
+│           │                                 # 행별 pending·미분류 재탭 no-op)
+│           └── ui/
+│               └── FolderPickerModal.tsx     # JSX만 — 폴더 선택 모달/바텀시트 공용
+│                                             # 프레젠테이션. BookmarkFolderModal·
+│                                             # BookmarkFolderField가 공유하고 저장 동작만
+│                                             # 콜백으로 주입받는다
 └── shared/
     ├── api/client.ts                     # apiClient — 공통 HTTP 클라이언트
     ├── ui/elements/
@@ -281,23 +302,26 @@ src/
 
 이 문서에서 파일명만으로 등장하는 식별자의 위치: `activeFolderKey`는
 `BookmarkPage.tsx:65`의 로컬 변수(`folderKey ?? 'all'`), `sessionKey`는
-`useRecentFolders`의 세 번째 매개변수(`useRecentFolders.ts:57`)다.
+`useRecentFolders`의 세 번째 매개변수(`entities/bookmark/folder/hooks/useRecentFolders.ts:25`)다.
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                             | 방법                                                                                                                      |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| "최근 저장한 폴더" 노출 개수·임계값 조정 | `useRecentFolders.ts:6,10`의 두 상수                                                                                      |
-| 정렬 옵션 추가                           | `folder.schema.ts`의 `folderSortEnum`에 값 추가 + BE 대응 필요                                                            |
-| 폴더 내 검색 빈 상태 문구 변경           | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                           |
-| 모바일 감지 기준 변경                    | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                           |
-| 테스트 실행                              | `npx vitest run src/entities/folder src/features/post/bookmark src/features/post/create/ui/BookmarkFolderPicker.test.tsx` |
+| 하고 싶은 것                             | 방법                                                                                                                              |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| "최근 저장한 폴더" 노출 개수·임계값 조정 | `entities/bookmark/folder/config/const.ts`의 두 상수                                                                              |
+| 정렬 옵션 추가                           | `folder.schema.ts`의 `folderSortEnum`에 값 추가 + BE 대응 필요                                                                    |
+| 폴더 내 검색 빈 상태 문구 변경           | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                   |
+| 모바일 감지 기준 변경                    | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                   |
+| 테스트 실행                              | `npx vitest run src/entities/bookmark/folder src/features/post/bookmark src/features/post/create/ui/BookmarkFolderField.test.tsx` |
 
 ## 9. 검증 결과
 
-관련 테스트 5개 파일, 50개 테스트 모두 통과(2026-09-04 재확인):
+관련 테스트 5개 파일, 50개 테스트 모두 통과(2026-09-08 재확인, 3형제 로직 분리·개명 후):
 `useRecentFolders.test.ts`(7) · `folder.schema.test.ts`(16) · `FolderQueries.test.tsx`(8)
-· `FolderSelector.test.tsx`(8) · `BookmarkFolderPicker.test.tsx`(11).
+· `BookmarkFolderModal.test.tsx`(8) · `BookmarkFolderField.test.tsx`(11) — 로직을
+훅으로 옮기고 컴포넌트를 개명(`FolderSelector`→`BookmarkFolderModal`,
+`BookmarkFolderPicker`→`BookmarkFolderField`)했지만 각 테스트의 단언은 한 줄도
+바뀌지 않았다.
 
 ## 10. 시행착오 — "최근 저장한 폴더"가 삭제 후 옛 값으로 굳어 있던 문제
 
@@ -316,10 +340,12 @@ src/
 mutation과 동일한 패턴으로 추가해, invalidate 응답을 기다리는 동안의 순간적인 stale
 노출도 없앴다.
 
-영향 파일: `entities/folder/model/useRecentFolders.ts`,
+영향 파일(당시 경로): `entities/folder/model/useRecentFolders.ts`(현재
+`entities/bookmark/folder/hooks/useRecentFolders.ts`),
 `widgets/bookmark/folder-tree/ui/FolderTree.tsx`,
 `widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`,
-`features/post/bookmark/ui/FolderSelector.tsx`, `entities/post/api/post.queries.ts`.
+`features/post/bookmark/ui/FolderSelector.tsx`(현재
+`features/post/bookmark/ui/BookmarkFolderModal.tsx`), `entities/post/api/post.queries.ts`.
 
 ## 11. 남은 것
 
@@ -330,13 +356,15 @@ mutation과 동일한 패턴으로 추가해, invalidate 응답을 기다리는 
 - **`activeFolderKey`** — `BookmarkPage.tsx:65`의 로컬 변수. URL의 `folder` 파라미터를
   `FolderKey`(`'all' | 'uncategorized' | UUID`)로 정규화한 값(`folderKey ?? 'all'`)
 - **`sessionKey`** — `useRecentFolders`의 세 번째 매개변수(`unknown` 타입). 값이
-  바뀔 때마다 "최근 저장한 폴더" 스냅샷을 새로 찍는다. 모달(`FolderPickerDialog`)은
+  바뀔 때마다 "최근 저장한 폴더" 스냅샷을 새로 찍는다. 모달(`FolderPickerModal`)은
   열림 상태를 넘겨 열 때마다 새 세션으로 취급하고, 상시 마운트 화면(`FolderTree`
   등)은 넘기지 않아 마운트 수명 전체가 한 세션이 된다
 - **`apiClient`** — `src/shared/api/client.ts`의 공통 HTTP 클라이언트
 - **`TEXTS`** — `src/shared/config/texts.ts`의 문구 상수 객체
-- **`BookmarkFolderPicker`** — §5 "링크 등록 폼의 폴더 선택" 참고. `FolderSelector`와
-  헷갈리기 쉬운 별개 컴포넌트
+- **`BookmarkFolderField`** — §5 "링크 등록 폼의 폴더 선택" 참고. 등록 폼 전용이고,
+  북마크 페이지의 `BookmarkFolderModal`과는 별개 컴포넌트다(2026-09-08 이전에는 각각
+  `BookmarkFolderPicker`·`FolderSelector`로 불려 이름만으로 구분이 안 됐다 — 접미사
+  `Modal`(즉시 저장 모달)·`Field`(폼 필드)로 정리)
 
 ## 13. 관련 문서
 
