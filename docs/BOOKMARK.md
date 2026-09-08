@@ -317,7 +317,7 @@ src/
 ## 9. 검증 결과
 
 관련 테스트 5개 파일, 50개 테스트 모두 통과(2026-09-08 재확인, 3형제 로직 분리·개명 후):
-`useRecentFolders.test.ts`(7) · `folder.schema.test.ts`(16) · `FolderQueries.test.tsx`(8)
+`useRecentFolders.test.ts`(7) · `folder.schema.test.ts`(16) · `folder.queries.test.ts`(8)
 · `BookmarkFolderModal.test.tsx`(8) · `BookmarkFolderField.test.tsx`(11) — 로직을
 훅으로 옮기고 컴포넌트를 개명(`FolderSelector`→`BookmarkFolderModal`,
 `BookmarkFolderPicker`→`BookmarkFolderField`)했지만 각 테스트의 단언은 한 줄도

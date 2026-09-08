@@ -6,6 +6,41 @@
 
 ---
 
+## 2026-09-08 — `*Queries.test.tsx` 5개를 소스와 같은 dot-case `.ts`로 개명
+
+**배경**
+
+entities 세그먼트 규칙 조사(바로 아래 항목) 중 발견한 별개 문제. `entities/*/api/`의
+React Query 훅 테스트 5개(`FolderQueries.test.tsx`·`PostQueries.test.tsx`·
+`CommentQueries.test.tsx`·`AuthQueries.test.tsx`·`InteractionQueries.test.tsx`)가
+대응하는 소스 파일(`folder.queries.ts` 등, dot-case)과 이름 케이스가 달랐다.
+
+**원인**
+
+파일 안 `Wrapper` 함수가 JSX(`<QueryClientProvider>...</QueryClientProvider>`)를 써서
+`.tsx`가 필요했고, ESLint `unicorn/filename-case`가 `.tsx` 파일에는 PascalCase를
+강제한다(`eslint.config.js`) — `folder.queries.test.tsx`처럼 소문자로 시작하면
+그 자체로 린트 에러였다. 업계 관행(테스트 파일명·확장자는 대상 소스 파일을 따른다)과
+같은 폴더의 `comment.api.test.ts`·`auth.keys.test.ts` 관례 둘 다에서 벗어난 상태였지만,
+5개월 넘게(2026-03-15 `AuthQueries.test.tsx` 최초 작성) 아무도 원인을 찾지 않았다.
+
+**결정**
+
+`Wrapper`를 JSX 대신 `React.createElement`로 작성해 `.tsx`일 필요 자체를 없앴다.
+그러면 확장자 제약이 사라져 소스와 같은 dot-case `.ts`로 개명할 수 있다 —
+`FolderQueries.test.tsx` → `folder.queries.test.ts` 등. `AuthQueries.test.tsx`만
+`<QueryClientProvider><MemoryRouter>{children}</MemoryRouter></QueryClientProvider>`로
+중첩돼 있어 `createElement` 중첩 호출이 JSX보다 읽기 불편해지는 트레이드오프가
+있었지만, 5개 파일의 일관성을 위해 동일하게 적용했다. 레포에 컴포넌트용
+`React.createElement` 선례가 없어 이번이 처음 도입한 패턴이다(기존 `createElement`
+사용은 `document.createElement`뿐).
+
+**상태**
+
+적용 완료. 테스트 케이스·단언은 무수정, 파일명·`Wrapper` 구현만 변경.
+
+---
+
 ## 2026-09-08 — entities 세그먼트 규칙: FSD 공식 세그먼트명 미채택, UI 배치만 공식 따름
 
 **배경**

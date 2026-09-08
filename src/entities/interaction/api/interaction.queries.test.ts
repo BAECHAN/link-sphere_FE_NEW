@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { type ReactNode } from 'react';
+import { createElement, type ReactNode } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
@@ -17,7 +17,7 @@ const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
 function Wrapper({ children }: { children: ReactNode }) {
   // 옵티미스틱 업데이트가 싱글톤 queryClient를 직접 조작하므로 동일 인스턴스를 provider로 사용
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return createElement(QueryClientProvider, { client: queryClient }, children);
 }
 
 const POST_ID = mockPost.id;
