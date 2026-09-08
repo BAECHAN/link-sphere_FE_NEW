@@ -424,14 +424,15 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 정본으로 있다 — 여기 복사해두지 않는다(두 곳에 같은 코드를 유지하면 한쪽만 갱신되고 다른
 쪽이 낡는 문제가 실제로 있었다, 2026-09-07). 패턴을 쓸 때는 해당 절을 **먼저 읽는다**.
 
-| 패턴                                                                           | 정본 | 한 줄 요약                                                                                     |
-| ------------------------------------------------------------------------------ | ---- | ---------------------------------------------------------------------------------------------- |
-| 3-Layer API (`*.api.ts` → `*.keys.ts` → `*.queries.ts`) + 크로스 엔티티 무효화 | §5   | 레이어를 건너뛰거나 합치지 않는다. 다른 엔티티 캐시는 그 엔티티의 `InvalidateQueries` 래퍼로만 |
-| Feature Hook (`hooks/`에 로직 전부, `ui/`는 JSX만)                             | §6   | UI 파일은 훅 호출 + 렌더링만                                                                   |
-| Widget Hook (entity query 조합 + 파생 상태, mutation 없음)                     | §8   | query 1개 + trivial 파생만이면 컴포넌트에서 직접 사용                                          |
-| Zod Schema (`z.infer`로 타입 파생)                                             | §9   | `nullable()`=null 허용, `optional()`=undefined 허용                                            |
-| Delete with Confirm                                                            | §10  | native `confirm()` 금지, 항상 `useAlert` + `openConfirm`                                       |
-| Optimistic Update (`onMutate` → `cancelQueries` → `setQueryData` → 롤백)       | §11  | 참조 구현: `entities/interaction/api/interaction.queries.ts`                                   |
+| 패턴                                                                               | 정본 | 한 줄 요약                                                                                     |
+| ---------------------------------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------- |
+| 3-Layer API (`*.api.ts` → `*.keys.ts` → `*.queries.ts`) + 크로스 엔티티 무효화     | §5   | 레이어를 건너뛰거나 합치지 않는다. 다른 엔티티 캐시는 그 엔티티의 `InvalidateQueries` 래퍼로만 |
+| Feature Hook (`hooks/`에 로직 전부, `ui/`는 JSX만)                                 | §6   | UI 파일은 훅 호출 + 렌더링만                                                                   |
+| Widget Hook (entity query 조합 + 파생 상태, mutation 없음)                         | §8   | query 1개 + trivial 파생만이면 컴포넌트에서 직접 사용                                          |
+| Zod Schema (`z.infer`로 타입 파생)                                                 | §9   | `nullable()`=null 허용, `optional()`=undefined 허용                                            |
+| Delete with Confirm                                                                | §10  | native `confirm()` 금지, 항상 `useAlert` + `openConfirm`                                       |
+| Optimistic Update (`onMutate` → `cancelQueries` → `setQueryData` → 롤백)           | §11  | 참조 구현: `entities/interaction/api/interaction.queries.ts`                                   |
+| Util Class (`*.util.ts`는 바레 함수 대신 `export class <Name>Util { static ... }`) | §23  | 함수 하나뿐이어도 클래스로 감싼다 — `shared/utils/`의 7/8 파일이 이 형태                       |
 
 ---
 

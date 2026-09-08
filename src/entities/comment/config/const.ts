@@ -17,7 +17,7 @@ export const MAX_COMMENT_CONTENT_BYTES = 6_000;
  * 이스케이프로 \n이 2바이트가 됨)이나 이미지를 여러 장 붙인 경우엔 원본 바이트로는
  * 상한 밑인데도 실제 전송량은 WAF의 8,192바이트 벽을 넘을 수 있다(2026-09-06 실사용자
  * 재현: 짧은 줄이 매우 많은 글). 7,500은 그 벽 대비 약 700바이트 여유를 둔 값 -
- * `estimateCommentPayloadBytes`로 실제 전송될 JSON과 같은 모양을 만들어 재므로
+ * `CommentUtil.estimateCommentPayloadBytes`로 실제 전송될 JSON과 같은 모양을 만들어 재므로
  * 이스케이프·배열 문법 오버헤드까지 정확히 반영된다.
  */
 export const MAX_COMMENT_PAYLOAD_BYTES = 7_500;

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Folder } from '@/entities/bookmark/folder/model/folder.schema';
-import { pickRecentFolders } from '@/entities/bookmark/folder/utils/folder.util';
+import { FolderUtil } from '@/entities/bookmark/folder/utils/folder.util';
 
 /**
  * "최근 저장한 폴더" 상단 구획 — Sears & Shneiderman split menu 방식.
@@ -32,7 +32,7 @@ export function useRecentFolders(folders: Folder[], isFetching: boolean, session
         return;
       }
       snapshottedForSessionRef.current = sessionKey;
-      setRecentFolderIds(pickRecentFolders(folders).map((folder) => folder.id));
+      setRecentFolderIds(FolderUtil.pickRecentFolders(folders).map((folder) => folder.id));
     },
     [folders, isFetching, sessionKey]
   );
