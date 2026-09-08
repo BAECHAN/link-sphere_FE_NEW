@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import dayjs from 'dayjs';
 import { Folder } from '@/entities/folder/model/folder.schema';
 
 // 상단 "최근 저장한 폴더" 구획에 노출할 개수 — split menu 문헌 기준 고정 개수.
@@ -11,10 +12,9 @@ const MIN_FOLDER_COUNT_TO_SHOW_RECENT = 6;
 
 // folderApi.fetchFolderList는 apiClient.get<FolderListResponse>()로 캐싱만 할 뿐 folderSchema로
 // 파싱하지 않는다 — 그래서 lastUsedAt은 (Folder 타입상 Date로 보여도) 실제로는 BE가 보낸 원시
-// ISO 문자열 그대로 들어온다. Date 인스턴스라고 가정하고 .getTime()을 바로 부르면 프로덕션에서
-// 크래시난다. new Date(...)로 감싸면 문자열·Date 어느 쪽이 와도 안전하다.
+// ISO 문자열 그대로 들어온다. dayjs(value)는 문자열·Date 어느 쪽이 와도 안전하게 파싱한다.
 function toTimestamp(lastUsedAt: Folder['lastUsedAt']): number {
-  return new Date(lastUsedAt as string | Date).getTime();
+  return dayjs(lastUsedAt).valueOf();
 }
 
 function pickRecentFolders(folders: Folder[]): Folder[] {

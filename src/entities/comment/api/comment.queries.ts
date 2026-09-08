@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import dayjs from 'dayjs';
 import { commentApi } from '@/entities/comment/api/comment.api';
 import {
   commentKeys,
@@ -37,8 +38,8 @@ function buildOptimisticComment({
     userId: author.id,
     content: finalContent,
     isDeleted: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: dayjs().toDate(),
+    updatedAt: dayjs().toDate(),
     author,
     replies: [],
     likeCount: 0,

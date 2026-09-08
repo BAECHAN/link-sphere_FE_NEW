@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+
 export class CommonUtil {
   // ==================== 검증 함수들 ====================
 
@@ -185,7 +187,7 @@ export class CommonUtil {
     try {
       // Date 객체 비교
       if (value1 instanceof Date && value2 instanceof Date) {
-        return value1.getTime() === value2.getTime();
+        return dayjs(value1).isSame(value2);
       }
 
       // RegExp 객체 비교
