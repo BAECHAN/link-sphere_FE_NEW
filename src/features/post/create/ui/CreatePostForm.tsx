@@ -5,7 +5,7 @@ import { FormProvider } from 'react-hook-form';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { FormCheckboxGroup } from '@/shared/ui/elements/form/FormCheckboxGroup';
 import { FormCheckbox } from '@/shared/ui/elements/form/FormCheckbox';
-import { BookmarkFolderPicker } from '@/features/post/create/ui/BookmarkFolderPicker';
+import { BookmarkFolderField } from '@/features/post/create/ui/BookmarkFolderField';
 import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
@@ -51,7 +51,7 @@ export function CreatePostForm() {
                 options={categoryOptionList ?? []}
               />
 
-              <BookmarkFolderPicker />
+              <BookmarkFolderField />
 
               <div className="pt-2">
                 <FormCheckbox
