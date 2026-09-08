@@ -178,4 +178,8 @@ features/<도메인>/<액션>/
 
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — 되돌리기 어렵고 대안을 비교해 선택한 설계·UX 결정 (append-only)
 
+**작업 계획** — "무엇을 하기로 했는지"
+
+- [`docs/plans/`](docs/plans/) — plan mode로 세운 계획의 스냅샷 (append-only, 파일마다 여기 개별 등록하지 않음)
+
 > 문서 분류 기준과 작성 규칙은 [`.claude/CLAUDE.md`](.claude/CLAUDE.md)의 "docs/ 내부 분류" 절 참고.
