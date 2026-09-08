@@ -50,6 +50,28 @@ export const commonSearchRequestSchema = paginationSchema.merge(dateRangeSchema)
 export type CommonSearchRequest = z.infer<typeof commonSearchRequestSchema>;
 
 /**
+ * BE 페이지네이션 요청/응답 스키마 — 위 paginationSchema(URL 쿼리 문자열용, page 1부터
+ * 시작하는 UI 관례)와는 다르다. 이건 BE API 요청 바디/파라미터용으로 page가 0부터
+ * 시작하는 API 관례를 따른다. 혼동하지 않도록 별도 이름을 유지한다.
+ */
+export const paginationRequestSchema = z.object({
+  page: z.number().int().nonnegative().default(0),
+  size: z.number().int().positive().default(10),
+});
+
+export type PaginationRequest = z.infer<typeof paginationRequestSchema>;
+
+export const paginationResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
+  z.object({
+    page: z.number().int().nonnegative().default(0),
+    size: z.number().int().positive().default(10),
+    content: z.array(itemSchema),
+    totalElements: z.number().int().nonnegative(),
+    totalPages: z.number().int().nonnegative(),
+    last: z.boolean(),
+  });
+
+/**
  * Standard API Response Structure
  */
 export interface ApiResponse<T> {

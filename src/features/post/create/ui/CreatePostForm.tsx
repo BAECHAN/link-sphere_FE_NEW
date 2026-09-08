@@ -6,7 +6,7 @@ import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { FormCheckboxGroup } from '@/shared/ui/elements/form/FormCheckboxGroup';
 import { FormCheckbox } from '@/shared/ui/elements/form/FormCheckbox';
 import { BookmarkFolderField } from '@/features/post/create/ui/BookmarkFolderField';
-import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
+import { useFetchCategoryOptionQuery } from '@/entities/category/api/category.queries';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
 

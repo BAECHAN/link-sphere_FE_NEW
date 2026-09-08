@@ -1,17 +1,17 @@
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 
-const rootKey = ['common'] as const;
+const rootKey = ['category'] as const;
 
-export const commonKeys = {
+export const categoryKeys = {
   root: rootKey,
   categoryOption: [...rootKey, 'category-option'] as const,
 };
 
-export const commonInvalidateQueries = {
+export const categoryInvalidateQueries = {
   all: () => {
     queryClient.invalidateQueries({ queryKey: rootKey });
   },
   categoryOption: () => {
-    queryClient.invalidateQueries({ queryKey: commonKeys.categoryOption });
+    queryClient.invalidateQueries({ queryKey: categoryKeys.categoryOption });
   },
 };

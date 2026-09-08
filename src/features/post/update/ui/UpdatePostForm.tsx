@@ -4,7 +4,7 @@ import { FormProvider } from 'react-hook-form';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { FormCheckboxGroup } from '@/shared/ui/elements/form/FormCheckboxGroup';
 import { FormCheckbox } from '@/shared/ui/elements/form/FormCheckbox';
-import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
+import { useFetchCategoryOptionQuery } from '@/entities/category/api/category.queries';
 import { useUpdatePost } from '@/features/post/update/hooks/useUpdatePost';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';

@@ -1,4 +1,4 @@
-import { useFetchCategoryOptionQuery } from '@/shared/api/common.queries';
+import { useFetchCategoryOptionQuery } from '@/entities/category/api/category.queries';
 import { Button } from '@/shared/ui/atoms/button';
 import { Switch } from '@/shared/ui/atoms/switch';
 import { FilterChip } from '@/shared/ui/elements/FilterChip';

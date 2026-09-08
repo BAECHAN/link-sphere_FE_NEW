@@ -28,7 +28,7 @@ import {
 import { POST_PAGE_SIZE } from '@/entities/post/config/const';
 import { postInvalidateQueries, postKeys } from '@/entities/post/api/post.keys';
 import { Post, PostListResponse } from '@/entities/post/model/post.schema';
-import { PaginationRequest } from '@/shared/api/common.schema';
+import { PaginationRequest } from '@/shared/types/common.type';
 
 // ==================== Queries ====================
 
