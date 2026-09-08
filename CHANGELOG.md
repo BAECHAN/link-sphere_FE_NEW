@@ -23,7 +23,7 @@
   <details><summary>배경·구현</summary>
 
   수정 폼 placeholder는 원래부터 "제목 (비워두면 자동으로 가져와요)"라고 약속하고 있었지만, BE `PostService.updatePost`는 URL이 바뀔 때만 재크롤링해 제목만 비운 수정은 조용히 무시되고 기존 제목이 그대로 남아 있었다. BE가 재수집 트리거를 "URL 변경 OR 제목 비움"으로 넓혔고(제목만 비운 경우는 설명·태그·AI 요약을 덮지 않는 순수 폴백), 곁들여 YouTube 크롤링이 껍데기 페이지를 받았을 때 제목이 "- YouTube"로 오염되던 문제도 함께 고쳤다. FE는 로직 변경이 없고, 제목을 비우면 "제목을 비우면 링크에서 제목을 다시 가져와요. 가져오지 못하면 기존 제목이 유지돼요"라는 안내를 입력창 아래에 띄워 재수집이 또 실패해도 사용자가 헤매지 않게 했다(URL을 바꾼 경우엔 기존 `urlChangedNotice`가 이미 있어 중복 노출하지 않는다).
-  (`features/post/update/ui/UpdatePostForm.tsx`, `shared/config/texts.ts`)
+  (`features/post/update/ui/UpdatePostForm.tsx`, `shared/config/texts.ts`, [PR #31](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/31))
 
   </details>
 
