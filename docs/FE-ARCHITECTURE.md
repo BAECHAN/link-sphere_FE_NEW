@@ -189,6 +189,8 @@ src/
 │   │   └── folder/
 │   │       ├── api/              # folder.api.ts, folder.keys.ts, folder.queries.ts
 │   │       ├── model/            # folder.schema.ts
+│   │       ├── config/           # const.ts (RECENT_FOLDER_COUNT 외)
+│   │       ├── utils/            # folder.util.ts (pickRecentFolders)
 │   │       ├── hooks/            # useRecentFolders.ts
 │   │       └── ui/               # FolderPickerDialog
 │   ├── upload/
