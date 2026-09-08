@@ -172,7 +172,7 @@ src/
 │   └── bookmark/                 # 2026-09-08 post/bookmark에서 승격 — entities/widgets/pages와
 │       │                         # bookmark 도메인 그룹을 통일(FSD nukeapp 사례 참고)
 │       └── toggle/{hooks,ui}     # useBookmarkFolders, usePostCardBookmarkFolderModal, BookmarkPostButton,
-│                                 # PostCardBookmarkFolderModal(2026-09-08, entities의 FolderPickerModal과
+│                                 # PostCardBookmarkFolderModal(2026-09-08, entities의 FolderSelectModal과
 │                                 # 이름이 겹쳐 호출 맥락(PostCard) 접두사를 붙여 개명)
 │
 ├── entities/                     # 비즈니스 엔티티 — data layer + basic display
@@ -195,8 +195,8 @@ src/
 │   │       ├── model/            # folder.schema.ts
 │   │       ├── config/           # folder.const.ts (RECENT_FOLDER_COUNT 외)
 │   │       ├── utils/            # folder.util.ts (pickRecentFolders)
-│   │       ├── hooks/            # useRecentFolders.ts, useFolderPicker.ts
-│   │       └── ui/               # FolderPickerModal(PostCardBookmarkFolderModal·PostCreateBookmarkFolderField가 공유)
+│   │       ├── hooks/            # useRecentFolders.ts, useFolderSelect.ts
+│   │       └── ui/               # FolderSelectModal(PostCardBookmarkFolderModal·PostCreateBookmarkFolderField가 공유)
 │   ├── category/
 │   │   ├── api/                  # category.api.ts, category.keys.ts, category.queries.ts
 │   │   └── model/                # category.schema.ts

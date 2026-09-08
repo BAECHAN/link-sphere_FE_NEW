@@ -61,7 +61,7 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
   URL에 저장해 새로고침·뒤로가기에도 상태가 유지되게 한다
 - **TanStack Query** — 폴더 목록·폴더별 게시글 무한 스크롤·낙관적 업데이트
 - **Zod** — `folder.schema.ts`의 폴더·요청/응답 스키마
-- **Radix Dialog 기반 `FolderPickerModal`** — 데스크탑 중앙 모달 / 모바일 Bottom Sheet
+- **Radix Dialog 기반 `FolderSelectModal`** — 데스크탑 중앙 모달 / 모바일 Bottom Sheet
   (`SheetDialogContent`) 공용 프레젠테이션. (2026-09-08 정정: 이전엔 "Popover 기반"으로
   적혀 있었으나 실제 코드는 Popover를 쓴 적이 없다 — `Dialog` + `SheetDialogContent`뿐)
 
@@ -124,7 +124,7 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 ### `PostCardBookmarkFolderModal` 행 동작
 
 `BookmarkPostButton`을 누르면 열리는 모달(`features/bookmark/toggle/ui/PostCardBookmarkFolderModal.tsx`,
-실제 마크업은 `entities/bookmark/folder/ui/FolderPickerModal`)의 전체 동작이다. 탭 = 즉시
+실제 마크업은 `entities/bookmark/folder/ui/FolderSelectModal`)의 전체 동작이다. 탭 = 즉시
 저장/제거 + 모달 닫힘(확인 단계 없음).
 
 | 행          | 상태                      | 탭하면                           | 토스트                                                                                         |
@@ -159,7 +159,7 @@ Shneiderman의 split menu 연구를 따라 **상단에 최근 저장한 폴더 �
 
 `src/features/post/create/ui/PostCreateBookmarkFolderField.tsx`는 `/bookmark` 페이지가
 아니라 **링크 등록 폼**(`CreatePostForm`)에 있는 필드다. `PostCardBookmarkFolderModal`과
-같은 `entities/bookmark/folder/ui/FolderPickerModal`을 쓰고 주입하는 콜백만 다르다 —
+같은 `entities/bookmark/folder/ui/FolderSelectModal`을 쓰고 주입하는 콜백만 다르다 —
 저장 동작을 콜백으로 넘기는 쪽이 즉시 저장인지 지연 선택인지에 따라 핵심 동작이 갈린다.
 
 |                       | `PostCardBookmarkFolderModal`(북마크 페이지) | `PostCreateBookmarkFolderField`(등록 폼)                      |
@@ -247,7 +247,7 @@ src/
 │       └── folder-tree/ui/
 │           ├── FolderTree.tsx            # 데스크탑 사이드바 (폴더 트리, 전체 행은 숫자 없음)
 │           └── MobileFolderList.tsx      # 모바일 폴더 그리드 (drill-down)
-│                                          # 위 둘 + FolderPickerModal(아래) 모두 "최근 저장한
+│                                          # 위 둘 + FolderSelectModal(아래) 모두 "최근 저장한
 │                                          # 폴더" + "내 폴더" 두 구획 포함(§5)
 ├── features/
 │   ├── bookmark/                     # 2026-09-08 post/bookmark에서 승격 — entities/widgets/
@@ -262,10 +262,10 @@ src/
 │   │           ├── BookmarkPostButton.tsx            # 카드의 북마크 버튼 — 클릭 시
 │   │           │                                     # PostCardBookmarkFolderModal 오픈
 │   │           └── PostCardBookmarkFolderModal.tsx   # JSX만(2026-09-08, BookmarkFolderModal에서
-│   │                                                 # 개명 — 아래 FolderPickerModal과 이름이
+│   │                                                 # 개명 — 아래 FolderSelectModal과 이름이
 │   │                                                 # 겹쳐 호출 맥락(PostCard) 접두사를 붙임) —
 │   │                                                 # 로직은 usePostCardBookmarkFolderModal,
-│   │                                                 # 모달 마크업은 FolderPickerModal(아래)에 위임
+│   │                                                 # 모달 마크업은 FolderSelectModal(아래)에 위임
 │   └── post/
 │       └── create/
 │           ├── hooks/
@@ -291,10 +291,10 @@ src/
 │           │   └── folder.util.ts            # pickRecentFolders — "최근 저장한 폴더" 선정 로직(§7)
 │           ├── hooks/
 │           │   ├── useRecentFolders.ts       # 스냅샷 로직 (§5, §10)
-│           │   └── useFolderPicker.ts        # FolderPickerModal의 로직 전부(조회·생성·
+│           │   └── useFolderSelect.ts        # FolderSelectModal의 로직 전부(조회·생성·
 │           │                                 # 행별 pending·미분류 재탭 no-op)
 │           └── ui/
-│               └── FolderPickerModal.tsx     # JSX만 — 폴더 선택 모달/바텀시트 공용
+│               └── FolderSelectModal.tsx     # JSX만 — 폴더 선택 모달/바텀시트 공용
 │                                             # 프레젠테이션. PostCardBookmarkFolderModal·
 │                                             # PostCreateBookmarkFolderField가 공유하고 저장
 │                                             # 동작만 콜백으로 주입받는다
@@ -332,9 +332,9 @@ src/
 로직을 훅으로 옮기고 컴포넌트를 개명(`FolderSelector`→`BookmarkFolderModal`,
 `BookmarkFolderPicker`→`BookmarkFolderField`)했지만 각 테스트의 단언은 한 줄도
 바뀌지 않았다. 같은 날 두 번째 개명(`BookmarkFolderModal`→`PostCardBookmarkFolderModal`,
-`BookmarkFolderField`→`PostCreateBookmarkFolderField` — `entities/bookmark/folder/ui/FolderPickerModal`과
-이름·JSDoc이 겹쳐 구분이 안 된다는 지적에 따라 호출 맥락 접두사를 붙임)에서도 동일하게
-5개 파일·50개 테스트 그대로 재확인됐다.
+`BookmarkFolderField`→`PostCreateBookmarkFolderField` — `entities/bookmark/folder/ui/FolderPickerModal`
+(현재 `FolderSelectModal`)과 이름·JSDoc이 겹쳐 구분이 안 된다는 지적에 따라 호출 맥락
+접두사를 붙임)에서도 동일하게 5개 파일·50개 테스트 그대로 재확인됐다.
 
 ## 10. 시행착오 — "최근 저장한 폴더"가 삭제 후 옛 값으로 굳어 있던 문제
 
@@ -369,17 +369,21 @@ mutation과 동일한 패턴으로 추가해, invalidate 응답을 기다리는 
 - **`activeFolderKey`** — `BookmarkPage.tsx:65`의 로컬 변수. URL의 `folder` 파라미터를
   `FolderKey`(`'all' | 'uncategorized' | UUID`)로 정규화한 값(`folderKey ?? 'all'`)
 - **`sessionKey`** — `useRecentFolders`의 세 번째 매개변수(`unknown` 타입). 값이
-  바뀔 때마다 "최근 저장한 폴더" 스냅샷을 새로 찍는다. 모달(`FolderPickerModal`)은
+  바뀔 때마다 "최근 저장한 폴더" 스냅샷을 새로 찍는다. 모달(`FolderSelectModal`)은
   열림 상태를 넘겨 열 때마다 새 세션으로 취급하고, 상시 마운트 화면(`FolderTree`
   등)은 넘기지 않아 마운트 수명 전체가 한 세션이 된다
 - **`apiClient`** — `src/shared/api/client.ts`의 공통 HTTP 클라이언트
 - **`TEXTS`** — `src/shared/config/texts.ts`의 문구 상수 객체
+- **`FolderSelectModal`** — entities 소유의 공용 폴더 선택 프레젠테이션(§8 코드 지도).
+  2026-09-08 이전 이름은 `FolderPickerModal`("Picker") — Radix 드롭다운 원자
+  (`shared/ui/atoms/select.tsx`)와 무관하게, 내부 props(`onSelectFolder` 등)가 이미
+  "select" 어휘를 쓰고 있어 접미사를 "Select"로 통일했다.
 - **`PostCreateBookmarkFolderField`** — §5 "링크 등록 폼의 폴더 선택" 참고. 등록 폼
   전용이고, 북마크 페이지의 `PostCardBookmarkFolderModal`과는 별개 컴포넌트다
   (2026-09-08 이전에는 각각 `BookmarkFolderPicker`·`FolderSelector`로, 그 뒤
-  `BookmarkFolderField`·`BookmarkFolderModal`로 불렸으나 `entities/bookmark/folder/ui/FolderPickerModal`과
-  이름·설명이 겹쳐 구분이 안 돼 호출 맥락 접두사 `PostCreate`·`PostCard`를 붙여
-  다시 개명했다)
+  `BookmarkFolderField`·`BookmarkFolderModal`로 불렸으나 `entities/bookmark/folder/ui/FolderPickerModal`
+  (현재 `FolderSelectModal`)과 이름·설명이 겹쳐 구분이 안 돼 호출 맥락 접두사
+  `PostCreate`·`PostCard`를 붙여 다시 개명했다)
 
 ## 13. 관련 문서
 

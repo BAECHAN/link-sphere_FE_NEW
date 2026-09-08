@@ -11,8 +11,8 @@ import type {
   FolderListResponse,
 } from '@/entities/bookmark/folder/model/folder.schema';
 
-// PostCardBookmarkFolderModal는 공통 프레젠테이션(entities/bookmark/folder/ui/FolderPickerModal)에
-// 얇게 위임하므로, 아래 케이스들은 FolderPickerModal의 행 렌더링·최근 구획도 함께 검증한다.
+// PostCardBookmarkFolderModal는 공통 프레젠테이션(entities/bookmark/folder/ui/FolderSelectModal)에
+// 얇게 위임하므로, 아래 케이스들은 FolderSelectModal의 행 렌더링·최근 구획도 함께 검증한다.
 
 // 데스크탑 모달 스타일로 고정 — matchMedia 스텁만으로는 useIsMobile 값이 effect 이후에나 정해져 불안정하다
 vi.mock('@/shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }));
