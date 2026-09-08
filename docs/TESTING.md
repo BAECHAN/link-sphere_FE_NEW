@@ -136,8 +136,15 @@ vs 컴포넌트 등 코드 성질로는 그 21%의 경계선이 설명되지 않
    - 경계값·에러 경로·조기 return처럼 틀릴 수 있는 분기가 있는가
 
    둘 중 하나라도 아니면 쓰지 않는다. 이번에 이 기준으로 추가한 예:
-   `search-parser.test.ts`(순수 함수, `usePostList.ts`에서 실사용), `auth.util
-.test.ts`(30초 만료 마진 경계), `ProtectedRoute.test.tsx`(권한 분기 4갈래).
+   `search-parser.test.ts`(순수 함수, `usePostList.ts`에서 실사용),
+   `auth.util.test.ts`(30초 만료 마진 경계), `ProtectedRoute.test.tsx`(권한
+   분기 4갈래).
+
+   파일 보유율만으로는 실제 검증 범위를 못 읽는다는 점도 이번에 실측했다 —
+   테스트 파일 33개(15.2%)였을 때 `pnpm test:coverage` 실측 statements는
+   40.15%였다(간접 커버: 예를 들어 `src/shared/store/`는 직접 테스트가
+   `imageViewer.store.ts` 하나뿐인데도 다른 테스트가 그 스토어를 거쳐가며
+   70%가 커버됐다). "테스트가 없다"가 "검증이 안 됐다"와 같은 말이 아니다.
 
 **따라서 새 컴포넌트/훅을 만들었는데 테스트가 없어도 그 자체로는 이 레포의 관례
 위반이 아니다.** 반대로, 로직을 리팩터로 다른 훅에 옮길 때 원래 있던 테스트를
