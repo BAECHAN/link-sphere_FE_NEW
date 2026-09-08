@@ -26,7 +26,7 @@ export function usePostCreateBookmarkFolderField() {
 
   const [open, setOpen] = useState(false);
   // 모달이 닫혀 있을 때도 트리거에 폴더명을 보여줘야 해 여기서도 목록을 읽는다.
-  // FolderPickerModal 내부 호출과 같은 쿼리 키라 요청·캐시가 공유된다.
+  // FolderSelectModal 내부 호출과 같은 쿼리 키라 요청·캐시가 공유된다.
   const { data } = useFolderListQuery({ enabled: open });
   const folderList = Array.isArray(data?.folders) ? data.folders : [];
 

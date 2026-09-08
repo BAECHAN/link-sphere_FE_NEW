@@ -12,7 +12,7 @@ import type { Folder } from '@/entities/bookmark/folder/model/folder.schema';
 // 실제 폴더 UUID와 충돌하지 않는다.
 export const UNCATEGORIZED_PENDING_KEY = 'uncategorized';
 
-interface UseFolderPickerParams {
+interface UseFolderSelectParams {
   open: boolean;
   isBookmarked: boolean;
   selectedFolderIds: string[];
@@ -21,17 +21,17 @@ interface UseFolderPickerParams {
 }
 
 /**
- * 폴더 선택 모달(FolderPickerModal)의 로직 전부 — 폴더 목록 조회·생성·행별 pending 상태·
+ * 폴더 선택 모달(FolderSelectModal)의 로직 전부 — 폴더 목록 조회·생성·행별 pending 상태·
  * 미분류 재탭 no-op 규칙을 소유한다. 저장 동작 자체(성공 토스트·닫기·라우팅)는 호출부가
  * 콜백으로 넘긴다.
  */
-export function useFolderPicker({
+export function useFolderSelect({
   open,
   isBookmarked,
   selectedFolderIds,
   onSelectUncategorized,
   onSelectFolder,
-}: UseFolderPickerParams) {
+}: UseFolderSelectParams) {
   const { data, isLoading, isFetching } = useFolderListQuery({ enabled: open });
   // 잘못 라우팅된 응답(HTML 등) 방어 — 배열이 아니면 빈 목록으로 처리해 화면 전체 크래시 방지
   const folderList = Array.isArray(data?.folders) ? data.folders : [];
