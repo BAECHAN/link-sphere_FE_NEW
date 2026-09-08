@@ -1,10 +1,4 @@
-import {
-  InfiniteData,
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useSuspenseQuery,
-} from '@tanstack/react-query';
+import { InfiniteData, useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { folderApi } from '@/entities/bookmark/folder/api/folder.api';
 import {
@@ -37,13 +31,6 @@ export const useFolderListQuery = (options?: { enabled?: boolean }) => {
     queryKey: folderKeys.list,
     queryFn: folderApi.fetchFolderList,
     enabled: options?.enabled ?? true,
-  });
-};
-
-export const useSuspenseFolderListQuery = () => {
-  return useSuspenseQuery({
-    queryKey: folderKeys.list,
-    queryFn: folderApi.fetchFolderList,
   });
 };
 

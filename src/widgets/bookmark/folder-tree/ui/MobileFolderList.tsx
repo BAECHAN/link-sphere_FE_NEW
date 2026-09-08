@@ -32,7 +32,7 @@ interface MobileFolderListProps {
 
 /** 모바일 — 폴더 목록 페이지 (drill-down 패턴) */
 export function MobileFolderList({ onSelect, className }: MobileFolderListProps) {
-  const { folders, uncategorizedCount, recentFolders, isLoading } = useMobileFolderList();
+  const { folderList, uncategorizedCount, recentFolders, isLoading } = useMobileFolderList();
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -77,7 +77,7 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {folders?.map((folder) => (
+            {folderList?.map((folder) => (
               <FolderCard key={folder.id} folder={folder} onSelect={onSelect} />
             ))}
             <CreateFolderCard />

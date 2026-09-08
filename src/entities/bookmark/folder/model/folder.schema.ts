@@ -51,7 +51,6 @@ export const folderSortEnum = z.enum(['latest', 'oldest', 'title', 'views', 'vie
 export type FolderKey = 'all' | 'uncategorized' | (string & {});
 
 export type Folder = z.infer<typeof folderSchema>;
-export type FolderList = z.infer<typeof folderListSchema>;
 export type FolderListResponse = z.infer<typeof folderListResponseSchema>;
 export type CreateFolderRequest = z.infer<typeof createFolderSchema>;
 export type UpdateFolderRequest = z.infer<typeof updateFolderSchema>;

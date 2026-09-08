@@ -29,10 +29,8 @@ interface FolderTreeProps {
 
 /** 데스크탑 — 좌측 사이드바 트리 */
 export function FolderTree({ selectedKey, onSelect, sort, search, className }: FolderTreeProps) {
-  const { folders, uncategorizedCount, recentFolders, isLoading, prefetchFolder } = useFolderTree(
-    sort,
-    search
-  );
+  const { folderList, uncategorizedCount, recentFolders, isLoading, prefetchFolder } =
+    useFolderTree(sort, search);
 
   return (
     <aside className={cn('flex flex-col gap-1 py-2', className)}>
@@ -75,7 +73,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
       )}
 
       {/* 내 폴더 — 위 "최근 저장한 폴더"와 겹치더라도 그대로 중복 표시한다 */}
-      {(folders?.length ?? 0) > 0 && (
+      {(folderList?.length ?? 0) > 0 && (
         <div className="px-3 pt-1 pb-1 text-xs font-semibold text-muted-foreground">
           {TEXTS.bookmark.folder.myFolders}
         </div>
@@ -86,7 +84,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
           <Spinner />
         </div>
       ) : (
-        folders?.map((folder) => (
+        folderList?.map((folder) => (
           <FolderItem
             key={folder.id}
             folder={folder}
@@ -105,7 +103,8 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
 
 /** 모바일 — 상단 가로 칩 (선택 + 새 폴더만, ⋮ rename/delete 는 데스크탑 전용) */
 export function FolderChips({ selectedKey, onSelect, className }: FolderTreeProps) {
-  const { folders, uncategorizedCount, creating, startCreating, stopCreating } = useFolderChips();
+  const { folderList, uncategorizedCount, creating, startCreating, stopCreating } =
+    useFolderChips();
 
   return (
     <div className={cn('flex items-center gap-2 overflow-x-auto py-2 px-1', className)}>
@@ -118,7 +117,7 @@ export function FolderChips({ selectedKey, onSelect, className }: FolderTreeProp
           <span className="ml-1.5 text-xs opacity-70">{uncategorizedCount}</span>
         )}
       </Chip>
-      {folders?.map((folder) => (
+      {folderList?.map((folder) => (
         <Chip
           key={folder.id}
           selected={selectedKey === folder.id}

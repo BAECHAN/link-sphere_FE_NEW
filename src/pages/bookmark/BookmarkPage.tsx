@@ -58,7 +58,7 @@ export function BookmarkPage() {
   const search = searchParams.get('q') ?? '';
 
   const { data: folderData } = useFolderListQuery();
-  const folders = folderData?.folders;
+  const folderList = folderData?.folders;
 
   // 모바일: folder 쿼리 없으면 폴더 목록 모드 / 데스크탑: 항상 'all' 디폴트
   const isMobileListMode = isMobile && !folderKey;
@@ -69,7 +69,7 @@ export function BookmarkPage() {
       ? TEXTS.bookmark.folder.all
       : activeFolderKey === 'uncategorized'
         ? TEXTS.bookmark.folder.uncategorized
-        : (folders?.find((f) => f.id === activeFolderKey)?.name ??
+        : (folderList?.find((f) => f.id === activeFolderKey)?.name ??
           TEXTS.bookmark.folder.fallbackName);
 
   const setFolderKey = (key: FolderKey) => {
@@ -100,7 +100,7 @@ export function BookmarkPage() {
   // 삭제됐거나 존재하지 않는 폴더 UUID가 URL에 남으면 → 전체로 리다이렉트 (404 FOLDER_NOT_FOUND 방지)
   useEffect(
     function redirectWhenFolderMissing() {
-      if (!folders) {
+      if (!folderList) {
         return;
       }
 
@@ -108,14 +108,14 @@ export function BookmarkPage() {
         return;
       }
 
-      if (folders.some((f) => f.id === folderKey)) {
+      if (folderList.some((f) => f.id === folderKey)) {
         return;
       }
 
       searchParams.delete('folder');
       setSearchParams(searchParams, { replace: true });
     },
-    [folders, folderKey, searchParams, setSearchParams]
+    [folderList, folderKey, searchParams, setSearchParams]
   );
 
   // ============== 모바일 — 폴더 목록 모드 ==============
