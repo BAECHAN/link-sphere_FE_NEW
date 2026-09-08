@@ -674,7 +674,10 @@ features/
       ui/
     like/
     delete/
-    bookmark/
+  bookmark/
+    toggle/       ← 컬렉션(폴더) 도메인 그룹 — post의 액션이 아니라 bookmark의 액션
+      hooks/
+      ui/
 widgets/
   post/
     post-card/    ← <entity>-<role> kebab-case

@@ -59,7 +59,7 @@ API)를 성능을 이유로 정반대로 채택**하고, 그 위에 도메인 �
 flowchart TD
   App["app<br/>providers · routes · layouts"] --> Pages["pages<br/>post · auth · bookmark · 403 · 404 · 500"]
   Pages --> Widgets["widgets<br/>post · comment · bookmark · layout"]
-  Widgets --> Features["features<br/>post · comment · auth"]
+  Widgets --> Features["features<br/>post · comment · auth · bookmark"]
   Features --> Entities["entities<br/>post · comment · interaction · user · bookmark/folder · category"]
   Entities --> Shared["shared<br/>api · config · hooks · lib · store · types · ui · utils"]
 
@@ -159,17 +159,19 @@ src/
 │   │   ├── create/{hooks,ui}     # useCreatePost, useBookmarkFolderField, CreatePostForm, BookmarkFolderField
 │   │   ├── update/{hooks,ui}     # useUpdatePost, UpdatePostForm
 │   │   ├── delete/hooks          # usePostDelete
-│   │   ├── like/{hooks,ui}       # useLikePost, LikePostButton
-│   │   └── bookmark/{hooks,ui}   # useBookmarkFolders, useBookmarkFolderModal, BookmarkPostButton, BookmarkFolderModal
+│   │   └── like/{hooks,ui}       # useLikePost, LikePostButton
 │   ├── comment/
 │   │   ├── create/{hooks,ui}     # useCreateComment, CommentForm, MobileCommentBar, ScrollToCommentFormButton
 │   │   ├── update/{hooks,ui}     # useUpdateComment, CommentEditForm
 │   │   ├── delete/hooks          # useDeleteComment
 │   │   └── like/{hooks,ui}       # useLikeComment, LikeCommentButton
-│   └── auth/
-│       ├── login/{hooks,ui}      # useLogin, LoginForm, LoginModal
-│       ├── signup/{hooks,ui}     # useSignUp, useAvailabilityCheck, SignUpForm
-│       └── profile/{hooks,ui}    # useUpdateProfile, UpdateProfileForm
+│   ├── auth/
+│   │   ├── login/{hooks,ui}      # useLogin, LoginForm, LoginModal
+│   │   ├── signup/{hooks,ui}     # useSignUp, useAvailabilityCheck, SignUpForm
+│   │   └── profile/{hooks,ui}    # useUpdateProfile, UpdateProfileForm
+│   └── bookmark/                 # 2026-09-08 post/bookmark에서 승격 — entities/widgets/pages와
+│       │                         # bookmark 도메인 그룹을 통일(FSD nukeapp 사례 참고)
+│       └── toggle/{hooks,ui}     # useBookmarkFolders, useBookmarkFolderModal, BookmarkPostButton, BookmarkFolderModal
 │
 ├── entities/                     # 비즈니스 엔티티 — data layer + basic display
 │   ├── post/

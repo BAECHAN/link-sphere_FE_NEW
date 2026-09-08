@@ -125,7 +125,7 @@ React Query 훅 테스트 5개(`FolderQueries.test.tsx`·`PostQueries.test.tsx`�
 
 1. **entities 세그먼트 구조는 원래 방식(hooks/model 분리)으로 되돌린다.** `model/`은 스키마·타입 정의 전용(`*.schema.ts`)으로 좁히고, 훅·비즈니스 로직은 `hooks/`, 상수는 `config/`, 순수 함수는 `<entity>.util.ts`로 `utils/`에 둔다. FSD 공식 세그먼트명(`lib` 등)으로 전면 전환하는 대안도 검토했으나 채택하지 않았다 — 이미 `features`·`widgets`가 `hooks/`·`utils/`를 레이어 전체에서 일관되게 쓰고 있어(18개 디렉터리), 전면 전환은 그보다 훨씬 큰 변경이 되고 이번 문제의 원인(날조된 근거)과 무관하다.
 2. **UI 배치만 FSD 공식 정의를 따른다.** [FSD 공식 레이어 정의](https://feature-sliced.design/docs/reference/layers)는 `entities/ui`를 _"the visual representation of this entity in the interface... reused across several pages"_, `features/ui`를 *"the UI to perform the interaction like a form"*로 구분한다. 이 레포의 `features/*/ui` 15개는 전부 폼·버튼(인터랙션)이라 현재 자리가 맞고, "entities가 모든 UI를 담당한다"는 방향은 채택하지 않았다.
-3. **entities에도 그룹 폴더를 도입한다.** `entities/folder`라는 이름만으로 북마크 폴더인지 구분이 안 됐다. 복합명(`bookmark-folder/`)은 "도메인 폴더는 단수 소문자" 규칙과 충돌하므로, `features/post/bookmark/`·`widgets/bookmark/folder-tree/`가 이미 쓰는 그룹 폴더 패턴을 entities에도 적용해 `entities/bookmark/folder/`로 옮긴다.
+3. **entities에도 그룹 폴더를 도입한다.** `entities/folder`라는 이름만으로 북마크 폴더인지 구분이 안 됐다. 복합명(`bookmark-folder/`)은 "도메인 폴더는 단수 소문자" 규칙과 충돌하므로, `features/post/bookmark/`(2026-09-08 후속 결정으로 `features/bookmark/toggle/`로 승격됨 — 아래 "features 네이밍 규칙 완화..." 항목 참고)·`widgets/bookmark/folder-tree/`가 이미 쓰는 그룹 폴더 패턴을 entities에도 적용해 `entities/bookmark/folder/`로 옮긴다.
 
 **부수 발견 — dayjs 규칙 위반이 5개월간 안 잡힌 경위**
 

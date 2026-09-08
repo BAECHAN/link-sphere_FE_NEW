@@ -4,7 +4,7 @@ import { Post } from '@/entities/post/model/post.schema';
 import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
-import { BookmarkFolderModal } from '@/features/post/bookmark/ui/BookmarkFolderModal';
+import { BookmarkFolderModal } from '@/features/bookmark/toggle/ui/BookmarkFolderModal';
 import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
 
 interface BookmarkPostButtonProps {

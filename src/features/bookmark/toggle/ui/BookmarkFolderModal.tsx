@@ -1,6 +1,6 @@
 import { TEXTS } from '@/shared/config/texts';
 import { FolderPickerModal } from '@/entities/bookmark/folder/ui/FolderPickerModal';
-import { useBookmarkFolderModal } from '@/features/post/bookmark/hooks/useBookmarkFolderModal';
+import { useBookmarkFolderModal } from '@/features/bookmark/toggle/hooks/useBookmarkFolderModal';
 
 interface BookmarkFolderModalProps {
   postId: string;
