@@ -155,6 +155,7 @@ features/<도메인>/<액션>/
 
 **독립 기능 문서(서사형)** — "지금 어떻게 동작하는가"
 
+- [`docs/AUTH.md`](docs/AUTH.md) — 인증·세션·토큰 갱신: 세 개의 독립된 인증 게이트, 상태 저장 위치, 401 자동 갱신
 - [`docs/BOOKMARK.md`](docs/BOOKMARK.md) — 북마크 페이지: 폴더 분류, 반응형 3분기, 폴더 내 검색
 - [`docs/CI-CHECK-GATE.md`](docs/CI-CHECK-GATE.md) — `pnpm check`가 실제로는 아무 데도 안 걸려 있던 문제와 PR·배포 게이트 정비
 - [`docs/FCM-PUSH-NOTIFICATION.md`](docs/FCM-PUSH-NOTIFICATION.md) — 댓글·답글 FCM 웹 푸시: 토큰 수명주기, 서비스워커, 알림 클릭 딥링크

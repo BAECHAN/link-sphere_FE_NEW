@@ -134,14 +134,12 @@ describe('ProtectedRoute', () => {
     expect(useLoginModalStore.getState().onSuccess).toBeUndefined();
   });
 
-  it('[알려진 동작] 만료된 accessToken이 있어도 restoreAuth는 refresh를 호출하지 않고 통과시킨다', async () => {
-    // 이 케이스는 버그를 고정한다 — 고치는 게 아니라 드러낸다.
-    // 컴포넌트 주석(:24)은 "액세스 토큰이 있지만 만료됐으면 즉시 리프레시 시도"라고 말하지만,
-    // useAuth.ts의 restoreAuth()는 `if (accessToken && isAuthenticated) return true`로 조기
-    // 반환한다. accessToken이 존재하면 auth.store의 setAuth가 isAuthenticated도 항상 함께
-    // true로 설정하므로(만료 여부와 무관), 이 가드는 토큰이 하나라도 있으면 항상 true를
-    // 반환해 refresh를 호출하지 않는다 - "만료 시 즉시 재검증"이 실제로는 죽은 경로다.
-    // 실측: server.use()로 요청 카운터를 심어 REQUEST COUNT: 0을 직접 확인했다.
+  it('[설계] 만료된 accessToken이 있어도 이 컴포넌트는 사전에 refresh를 호출하지 않고 통과시킨다', async () => {
+    // 버그가 아니다 — 만료 토큰의 실제 재검증은 이 컴포넌트가 아니라 client.ts의 401
+    // 인터셉터가 실제 API 요청 시점에 담당한다(client.test.ts Case 1이 그 경로를 검증한다).
+    // 여기서 restoreAuth()가 accessToken 존재만으로 조기 반환하는 건 그 책임 분리를
+    // 반영한 것뿐이다. 자세한 경위와 두 레이어의 책임 분리는 docs/AUTH.md 참고
+    // (2026-09-09, 이 동작을 "버그"로 오진했다가 재검증 끝에 정정한 사건이 §10에 있다).
     let requested = 0;
     server.use(
       http.post(url(API_ENDPOINTS.auth.refresh), () => {
@@ -160,7 +158,9 @@ describe('ProtectedRoute', () => {
 
     await waitFor(() => expect(screen.getByTestId('protected-content')).toBeInTheDocument());
     expect(requested).toBe(0);
-    // 토큰도 갱신되지 않은 채(만료된 그대로) 남는다.
+    // 이 테스트 범위 안에서는 토큰이 갱신되지 않은 채 남는다 - protected-content가 실제
+    // API를 호출하지 않는 더미이기 때문이다. 실제 앱에서는 그 지점에서 client.ts 인터셉터가
+    // 갱신을 대신한다(docs/AUTH.md §8-B).
     expect(useAuthStore.getState().accessToken).toBe(expiredToken);
   });
 });

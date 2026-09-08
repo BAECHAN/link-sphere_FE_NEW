@@ -1552,6 +1552,8 @@ effect 재실행"이 반복되는 무한 루프(`Maximum update depth exceeded`)
 **상태**
 
 적용 완료. 목록 로딩 자리는 스피너 대신 `PostCardSkeleton`으로 교체.
+전체 인증 아키텍처(이 결정이 만든 `ProtectedRoute`가 왜 보안 장치가 아닌지, 만료 토큰의
+실제 처리는 어느 레이어가 하는지)는 [`docs/AUTH.md`](AUTH.md) 참고.
 
 ---
 

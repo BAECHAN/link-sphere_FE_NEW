@@ -138,7 +138,7 @@ vs 컴포넌트 등 코드 성질로는 그 21%의 경계선이 설명되지 않
    둘 중 하나라도 아니면 쓰지 않는다. 이번에 이 기준으로 추가한 예:
    `search-parser.test.ts`(순수 함수, `usePostList.ts`에서 실사용),
    `auth.util.test.ts`(30초 만료 마진 경계), `ProtectedRoute.test.tsx`(권한
-   분기 4갈래).
+   분기 케이스 전체 — 두 인증 게이트의 책임 분리는 [`docs/AUTH.md`](AUTH.md) 참고).
 
    파일 보유율만으로는 실제 검증 범위를 못 읽는다는 점도 이번에 실측했다 —
    테스트 파일 33개(15.2%)였을 때 `pnpm test:coverage` 실측 statements는
