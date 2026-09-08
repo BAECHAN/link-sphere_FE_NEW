@@ -40,7 +40,7 @@ export function useUpdatePost(postId: string) {
   );
 
   // URL을 바꾸는 순간 제목·관심 분야는 옛 링크 기준이 되므로 비운다.
-  // 비운 채로 저장하면 서버가 새 링크의 제목과 AI 자동 분류로 채우고, 원하면 직접 다시 고를 수 있다.
+  // 제목을 비우고 저장하면(URL 변경 여부와 무관하게) 서버가 링크에서 제목을 다시 가져온다.
   const urlValue = form.watch('url');
 
   useEffect(

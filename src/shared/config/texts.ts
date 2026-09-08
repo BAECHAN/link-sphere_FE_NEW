@@ -146,6 +146,9 @@ export const TEXTS = {
         urlLabel: 'URL',
         urlPlaceholder: 'https://example.com/amazing-article',
         urlChangedNotice: 'URL을 바꾸면 제목·설명·이미지·AI 요약을 새 링크에서 다시 가져와요.',
+        // 제목만 비운 경우는 제목만 다시 가져온다(설명·태그·AI 요약은 그대로) - BE updatePost 참고.
+        titleClearedNotice:
+          '제목을 비우면 링크에서 제목을 다시 가져와요. 가져오지 못하면 기존 제목이 유지돼요.',
         titleLabel: POST_FORM_COMMON.titleLabel,
         titlePlaceholder: '제목 (비워두면 자동으로 가져와요)',
         categoryLabel: POST_FORM_COMMON.categoryLabel,
