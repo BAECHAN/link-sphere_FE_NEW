@@ -733,3 +733,37 @@ CLI로 이 컴포넌트를 다시 생성하면 `cursor-default`가 되돌아오�
 - [ ] `src/app/routes/index.tsx` — 라우트 등록
 - [ ] `src/pages/<page>/` — 페이지 파일 생성
 - [ ] ESLint 레이어 경계 확인 (상위 레이어 import 없는지)
+
+---
+
+## 23. Util Class 패턴
+
+`*.util.ts`(디렉터리는 복수 `utils/`, 파일 접미사는 단수 `.util.ts`)는 바레 함수를
+export하지 않고 `export class <Name>Util { static ... }` 형태로 정적 메서드를 묶는다 —
+`shared/utils/`의 8개 파일 중 7개(`AuthUtil`·`CommonUtil`·`DateUtil`·`ErrorUtil`·
+`FormUtil`·`LocalStorageUtil`/`SessionStorageUtil`·`UrlUtil`)가 이 형태이고,
+`file.util.ts`(객체 리터럴)만 예외다. `entities/*/utils/`도 같은 형태를 따른다.
+
+참조: `src/shared/utils/common.util.ts`
+
+```typescript
+export class CommentUtil {
+  /**
+   * 댓글 등록/수정 요청이 실제로 전송할 JSON 바디와 같은 모양을 만들어 그 UTF-8 바이트를 잰다.
+   */
+  static estimateCommentPayloadBytes(
+    content: string,
+    existingImageUrls: string[],
+    pendingImageCount: number
+  ): number {
+    // ...
+  }
+}
+
+// 호출부
+CommentUtil.estimateCommentPayloadBytes(content, existingImageUrls, pendingImageCount);
+```
+
+파일에 함수가 하나뿐이어도 클래스로 감싼다 — 나중에 관련 함수가 늘어날 때 같은
+`<Name>Util` 네임스페이스에 자연스럽게 모이고, 다른 `*.util.ts`와 import 시
+구조분해 없이 `<Name>Util.method()` 형태로 일관되게 호출할 수 있다.

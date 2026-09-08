@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useUpdateCommentMutation } from '@/entities/comment/api/comment.queries';
 import { Comment, commentContentFormSchema } from '@/entities/comment/model/comment.schema';
-import { estimateCommentPayloadBytes } from '@/entities/comment/utils/comment.util';
+import { CommentUtil } from '@/entities/comment/utils/comment.util';
 import {
   MAX_COMMENT_IMAGES,
   MAX_COMMENT_CONTENT_BYTES,
@@ -85,7 +85,7 @@ export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommen
       // JSON 이스케이프로, 이미지가 많으면 URL 길이로 실제 전송량이 늘어나 WAF의 8,192바이트
       // 벽을 넘을 수 있다. 그러면 앱 에러 처리를 못 타는 403 HTML을 그대로 받는다.
       if (
-        estimateCommentPayloadBytes(content, existingImageUrls, editImages.length) >
+        CommentUtil.estimateCommentPayloadBytes(content, existingImageUrls, editImages.length) >
         MAX_COMMENT_PAYLOAD_BYTES
       ) {
         toast.error(TEXTS.validation.commentPayloadTooLarge);
