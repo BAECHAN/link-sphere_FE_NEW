@@ -1,4 +1,4 @@
-import type { Folder, FolderListResponse } from '@/entities/folder/model/folder.schema';
+import type { Folder, FolderListResponse } from '@/entities/bookmark/folder/model/folder.schema';
 
 export const mockFolder: Folder = {
   id: 'folder-uuid-1',

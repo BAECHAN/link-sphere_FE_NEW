@@ -5,9 +5,9 @@ import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { FormField } from '@/shared/ui/elements/form/_base/FormField';
-import { useFolderListQuery } from '@/entities/folder/api/folder.queries';
-import { FolderPickerDialog } from '@/entities/folder/ui/FolderPickerDialog';
-import type { Folder } from '@/entities/folder/model/folder.schema';
+import { useFolderListQuery } from '@/entities/bookmark/folder/api/folder.queries';
+import { FolderPickerDialog } from '@/entities/bookmark/folder/ui/FolderPickerDialog';
+import type { Folder } from '@/entities/bookmark/folder/model/folder.schema';
 import type { CreatePost } from '@/entities/post/model/post.schema';
 
 /**

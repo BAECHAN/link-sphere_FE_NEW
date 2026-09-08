@@ -1,6 +1,9 @@
 import { KeyboardEvent, useState } from 'react';
-import { prefetchFolderPosts, useFolderListQuery } from '@/entities/folder/api/folder.queries';
-import { Folder, FolderKey, FolderSort } from '@/entities/folder/model/folder.schema';
+import {
+  prefetchFolderPosts,
+  useFolderListQuery,
+} from '@/entities/bookmark/folder/api/folder.queries';
+import { Folder, FolderKey, FolderSort } from '@/entities/bookmark/folder/model/folder.schema';
 import { useFolderSections } from '@/widgets/bookmark/folder-tree/hooks/useFolderSections';
 import { useFolderActions } from '@/widgets/bookmark/folder-tree/hooks/useFolderActions';
 import { useCreateFolderForm } from '@/widgets/bookmark/folder-tree/hooks/useCreateFolderForm';

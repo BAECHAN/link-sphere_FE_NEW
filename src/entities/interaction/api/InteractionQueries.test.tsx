@@ -7,10 +7,10 @@ import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { postKeys } from '@/entities/post/api/post.keys';
-import { folderKeys } from '@/entities/folder/api/folder.keys';
+import { folderKeys } from '@/entities/bookmark/folder/api/folder.keys';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import type { Post } from '@/entities/post/model/post.schema';
-import type { FolderListResponse } from '@/entities/folder/model/folder.schema';
+import type { FolderListResponse } from '@/entities/bookmark/folder/model/folder.schema';
 import { useBookmarkPostMutation } from '@/entities/interaction/api/interaction.queries';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;

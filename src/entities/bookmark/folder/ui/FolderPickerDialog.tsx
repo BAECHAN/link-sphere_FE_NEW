@@ -9,9 +9,12 @@ import { Spinner } from '@/shared/ui/atoms/spinner';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
-import { useCreateFolderMutation, useFolderListQuery } from '@/entities/folder/api/folder.queries';
-import { useRecentFolders } from '@/entities/folder/model/useRecentFolders';
-import type { Folder } from '@/entities/folder/model/folder.schema';
+import {
+  useCreateFolderMutation,
+  useFolderListQuery,
+} from '@/entities/bookmark/folder/api/folder.queries';
+import { useRecentFolders } from '@/entities/bookmark/folder/model/useRecentFolders';
+import type { Folder } from '@/entities/bookmark/folder/model/folder.schema';
 
 // 미분류 행의 pending 식별자 — folderKey 관례('all' | 'uncategorized' | UUID)와 동일한 sentinel이라
 // 실제 폴더 UUID와 충돌하지 않는다.

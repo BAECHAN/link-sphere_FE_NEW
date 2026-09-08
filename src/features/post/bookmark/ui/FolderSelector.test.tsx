@@ -9,7 +9,7 @@ import { FolderSelector } from '@/features/post/bookmark/ui/FolderSelector';
 import type {
   BookmarkFoldersResponse,
   FolderListResponse,
-} from '@/entities/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/model/folder.schema';
 
 // FolderSelector는 공통 프레젠테이션(entities/folder/ui/FolderPickerDialog)에 얇게 위임하므로,
 // 아래 케이스들은 FolderPickerDialog의 행 렌더링·최근 구획도 함께 검증한다.

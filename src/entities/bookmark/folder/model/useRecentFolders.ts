@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { Folder } from '@/entities/folder/model/folder.schema';
+import { Folder } from '@/entities/bookmark/folder/model/folder.schema';
 
 // 상단 "최근 저장한 폴더" 구획에 노출할 개수 — split menu 문헌 기준 고정 개수.
 // 흔들리면(2→3→2) 아래 본 목록의 시작 위치도 흔들려 공간기억이 깨진다.

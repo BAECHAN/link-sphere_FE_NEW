@@ -5,7 +5,7 @@ import {
   folderSchema,
   folderSortEnum,
   reorderFoldersSchema,
-} from '@/entities/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/model/folder.schema';
 
 describe('folderSchema', () => {
   const validFolder = {

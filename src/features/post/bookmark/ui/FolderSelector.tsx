@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
-import { FolderPickerDialog } from '@/entities/folder/ui/FolderPickerDialog';
-import type { Folder } from '@/entities/folder/model/folder.schema';
+import { FolderPickerDialog } from '@/entities/bookmark/folder/ui/FolderPickerDialog';
+import type { Folder } from '@/entities/bookmark/folder/model/folder.schema';
 import { useBookmarkFolders } from '@/features/post/bookmark/hooks/useBookmarkFolders';
 
 interface FolderSelectorProps {

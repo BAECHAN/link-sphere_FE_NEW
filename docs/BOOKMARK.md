@@ -82,7 +82,7 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 
 ### API 엔드포인트
 
-`src/entities/folder/api/folder.api.ts` 기준(`API_ENDPOINTS.bookmark`,
+`src/entities/bookmark/folder/api/folder.api.ts` 기준(`API_ENDPOINTS.bookmark`,
 `shared/config/api.ts`).
 
 | 메서드   | 경로                                                  | 설명                                                                          |
