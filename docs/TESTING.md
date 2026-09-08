@@ -108,14 +108,14 @@ src/
 
 **이 레포는 커버리지 목표를 두지 않는다.** `vitest.config.ts`에 coverage threshold가
 없고, pre-push/CI는 "기존 테스트가 통과하는가"만 확인하며, 스캐폴딩 커맨드
-(`/new-feature`, `/add-entity-api` 등)에도 테스트 파일 생성 스텝이 없다. 그 결과
-features/widgets/entities 소스 파일의 테스트 보유율은 21%(95개 중 20개)이고, 파일
-크기·분기 수·훅 vs 컴포넌트 등 코드 성질로는 그 21%의 경계선이 설명되지 않는다
-(가장 크고 복잡한 컴포넌트 다수가 테스트 없음, 반대로 40~60줄 얇은 파일에 테스트가
-있는 경우가 많음).
+(`/new-feature`, `/add-entity-api` 등)에도 테스트 파일 생성 스텝이 없다. 2026-09-08
+실측(features/widgets/entities 95개 파일 중 20개, 21%) 당시엔 파일 크기·분기 수·훅
+vs 컴포넌트 등 코드 성질로는 그 21%의 경계선이 설명되지 않았다(가장 크고 복잡한
+컴포넌트 다수가 테스트 없음, 반대로 40~60줄 얇은 파일에 테스트가 있는 경우가 많음).
 
-**실제로 작동하는 유일한 기준은 `.claude/CLAUDE.md`의 "버그 수정 → 재현 테스트를
-작성한다"뿐이다.** 테스트가 있는 파일은 대부분 다음 중 하나다:
+**실제로 작동하는 기준은 두 가지다.** 하나는 사후적(`.claude/CLAUDE.md`의 "버그 수정
+→ 재현 테스트를 작성한다"), 하나는 사전적(고위험 공백 선별)이다. 테스트가 있는
+파일은 대부분 다음 중 하나다:
 
 1. 실제 버그 리포트를 받은 파일(회귀 방지) — 예: `useUpdatePost.test.tsx`는
    "링크 수정 화면 진입 시 관심 분야가 초기화되는" 버그를 고치며 추가됐다.
@@ -123,6 +123,28 @@ features/widgets/entities 소스 파일의 테스트 보유율은 21%(95개 중 
    쉬운 영역이라 entities의 `*.queries.ts` 5개(`post`·`comment`·`folder`·
    `interaction`·`auth`)는 전부 테스트를 갖고 있다.
 3. Zod 스키마 — BE 응답 계약이 깨지면 파싱 단계에서 조용히 실패하기 쉽다.
+4. **호출부가 실제로 있고, 틀릴 수 있는 분기가 있는 코드** — 버그가 나기 전에
+   붙이는 사전적 기준. "순수 함수라서" 또는 "인증 코드라서" 자체는 판별 기준이
+   아니다 — `common.util.ts`가 정확히 그 반례다: 메서드 24개 전부가 순수
+   함수지만 실사용은 `emptyStringToNull` 1개뿐이라 나머지 23개는 테스트 대상에서
+   제외했다(2026-09-08 조사, "순수 함수니까 테스트한다"였다면 이 파일 전체가
+   편입됐을 것이다). 반대로 `ProtectedRoute.tsx`처럼 호출부가 확실하고(모든
+   보호 페이지) 분기마다 다른 결과(스피너/리다이렉트/통과)가 나오는 코드는
+   깨지면 권한 누출이나 화면이 영원히 멈추는 형태로 나타나 회귀가 나기 전에
+   잡는 편이 싸다. 판단은 두 조건을 **모두** 확인해서 한다:
+   - 호출부가 실제로 존재하는가 (`grep`으로 확인)
+   - 경계값·에러 경로·조기 return처럼 틀릴 수 있는 분기가 있는가
+
+   둘 중 하나라도 아니면 쓰지 않는다. 이번에 이 기준으로 추가한 예:
+   `search-parser.test.ts`(순수 함수, `usePostList.ts`에서 실사용),
+   `auth.util.test.ts`(30초 만료 마진 경계), `ProtectedRoute.test.tsx`(권한
+   분기 케이스 전체 — 두 인증 게이트의 책임 분리는 [`docs/AUTH.md`](AUTH.md) 참고).
+
+   파일 보유율만으로는 실제 검증 범위를 못 읽는다는 점도 이번에 실측했다 —
+   테스트 파일 33개(15.2%)였을 때 `pnpm test:coverage` 실측 statements는
+   40.15%였다(간접 커버: 예를 들어 `src/shared/store/`는 직접 테스트가
+   `imageViewer.store.ts` 하나뿐인데도 다른 테스트가 그 스토어를 거쳐가며
+   70%가 커버됐다). "테스트가 없다"가 "검증이 안 됐다"와 같은 말이 아니다.
 
 **따라서 새 컴포넌트/훅을 만들었는데 테스트가 없어도 그 자체로는 이 레포의 관례
 위반이 아니다.** 반대로, 로직을 리팩터로 다른 훅에 옮길 때 원래 있던 테스트를
@@ -634,6 +656,42 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 ```
+
+---
+
+### 7. `isAuthResolved`가 테스트 사이에 샌다
+
+**원인**: `src/test/setup.ts`의 `afterEach`는 `useAuthStore.getState().clearAuth()`만
+호출하는데, `auth.store.ts`의 `clearAuth()`는 `accessToken`·`isAuthenticated`만
+되돌리고 `isAuthResolved`는 건드리지 않는다. 앞선 테스트가 `setAuthResolved(true)`로
+만들어 놓으면 그 값이 다음 테스트로 그대로 넘어온다.
+
+**해결**: `isAuthResolved`를 다루는 테스트(`ProtectedRoute.test.tsx`,
+`useAppInitialization.test.tsx` 등)는 `beforeEach`/`afterEach` 양쪽에서 명시적으로
+`setAuthResolved(false)`로 되돌린다. `--sequence.shuffle`로 순서를 무작위 실행해
+누수 여부를 확인할 수 있다.
+
+---
+
+### 8. `SpinnerOverlay`가 렌더 직후엔 안 보인다
+
+**원인**: `useDelayedLoading(true, delay)`은 `delay=0`이어도 내부적으로
+`setTimeout(fn, 0)` 매크로태스크를 거쳐야 `true`가 된다. `render()` 직후
+동기 `getByRole('status')`는 아직 아무것도 못 찾는다.
+
+**해결**: `await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())`로
+기다린다.
+
+---
+
+### 9. `act`를 `vitest`에서 import하면 조용히 깨진다
+
+**원인**: `act`는 `@testing-library/react`가 내보내는 함수다. `vitest`에서 `act`를
+import해도 타입 에러 없이 통과하다가(둘 다 이름이 같은 export를 갖고 있지 않아 실제로는
+`undefined`가 잡혀) 호출 시점에 `TypeError: ... is not a function`으로 터진다.
+
+**해결**: 훅이 `navigate()`처럼 렌더 트리 바깥에서 상태를 바꾸는 호출을 감쌀 때는
+`import { act } from '@testing-library/react'`를 쓴다.
 
 ---
 

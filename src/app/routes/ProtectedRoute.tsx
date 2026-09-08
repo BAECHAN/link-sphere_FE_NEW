@@ -21,7 +21,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // 보호 페이지를 새로고침할 때 피드로 튕기고 로그인 모달까지 뜬다.
   const isAuthResolved = useAuthStore((state) => state.isAuthResolved);
 
-  // 액세스 토큰이 있지만 만료됐으면 즉시 리프레시 시도 (콘텐츠 flash 방지)
+  // isAuthenticated는 항상 accessToken 존재 여부와 동치라(auth.store.ts) 아래 restoreAuth()는
+  // accessToken이 있으면 실제로 refresh를 호출하지 않고 즉시 통과시킨다 — 만료된 토큰의 실제
+  // 재검증은 여기가 아니라 shared/api/client.ts의 401 인터셉터가 실제 요청 시점에 담당한다.
+  // 상세: docs/AUTH.md
   const [isVerifying, setIsVerifying] = useState(
     () => !!accessToken && AuthUtil.isTokenExpired(accessToken)
   );
