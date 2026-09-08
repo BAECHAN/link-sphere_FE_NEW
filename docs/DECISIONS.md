@@ -6,6 +6,76 @@
 
 ---
 
+## 2026-09-08 — features 네이밍 규칙 완화 + 테스트 정책 명문화 + bookmark 구조 재검토
+
+**배경**
+
+두 가지 지적에서 시작했다: (1) 어떤 파일엔 테스트가 있고 어떤 파일엔 없는데
+(`CreatePostForm.tsx`는 없고 같은 폴더의 `BookmarkFolderField.tsx`는 있는 식)
+기준이 뭔지 불명확하다. (2) `.claude/CLAUDE.md`의 "features 슬라이스는 동사만"
+규칙이 있는데 `auth/login`·`auth/signup`·`auth/profile`은 명사이고,
+`features/post/bookmark/hooks/useBookmarkFolders.ts`처럼 슬라이스명과 파일명
+어휘가 안 맞는 경우도 있다.
+
+**결정 1 — "동사만" 규칙을 완화하고 예외를 명문화한다**
+
+이 규칙은 FSD가 강제하는 게 아니었다. [FSD 공식 FAQ](https://feature-sliced.design/docs/get-started/faq):
+"entity = a real-life concept, feature = an interaction ... the thing people want
+to do" — 품사 규칙이 없다. 공식 [Authentication 가이드](https://feature-sliced.design/docs/guides/examples/auth)도
+`features/login/`을 그대로 쓴다. 자주 인용되는 레퍼런스 구현
+[realworld-react-fsd v1.2.1](https://github.com/yurisldk/realworld-react-fsd/tree/v1.2.1)도
+`features/session/{login,logout,register,update}`처럼 인증은 명사(행위 자체를
+가리키는)를 쓴다. 반면 이 레포의 `auth/login`·`auth/signup`·`auth/profile`은
+"동사만" 규칙(`84931ba`, 2026-05-17 문서화)보다 **먼저**(2026-03-12/03-15) 만들어졌고
+소급 정리도 예외 명시도 없었다 — 규칙이 실제보다 늦게 왔을 뿐 예외가 아니었다.
+`.claude/CLAUDE.md` "폴더 네이밍 원칙" 표를 "원칙적으로 동사, 단 슬라이스 자체가
+완결된 사용자 액션/flow일 때는 명사 허용"으로 정정하고 `login/`·`signup/`을
+근거 예시로 추가했다.
+
+**결정 2 — `features/post/bookmark/`를 `features/bookmark/toggle/`로 승격한다**
+
+현재 구조는 레이어마다 다른 축으로 bookmark를 다룬다 — `entities/bookmark/folder`,
+`widgets/bookmark/*`, `pages/bookmark/`는 bookmark를 **도메인 그룹**으로 쓰는데
+`features/post/bookmark/`만 post를 도메인 그룹으로 쓰고 bookmark를 그 안의 액션
+슬라이스로 둔다. FSD 공식 [Slices and segments](https://feature-sliced.design/docs/reference/slices-segments)는
+슬라이스 그룹이 "코드 공유 없는 순수 폴더"일 뿐이라 두 배치 다 규칙상 합법이라고
+말한다 — 정오 문제가 아니라 판단의 문제다.
+
+가장 가까운 FSD 공식 등재 사례([nukeapp](https://github.com/noveogroup-amorgunov/nukeapp),
+[examples 페이지](https://feature-sliced.design/examples))는 컬렉션(`wishlist`)이
+자체 CRUD·API·모델을 가진 본격 엔티티일 때 토글 액션도 콘텐츠(`product`)가 아니라
+컬렉션(`wishlist`) 도메인 그룹에 두었다(`features/wishlist/addToWishlist/`, 의존
+방향은 컬렉션→콘텐츠). 반대로 컬렉션이 평면 즐겨찾기 목록에 불과한 더 단순한 예제
+([polka](https://github.com/lollipopfly/polka), realworld)는 토글을 콘텐츠 그룹에
+뒀다(`features/book/toggle-favorite`). link-sphere의 folder는 CRUD·재정렬·다중
+소속·"최근 저장한 폴더" split menu까지 갖춘 본격 엔티티라 nukeapp 쪽에 가깝다고
+판단해 승격을 택했다. 실제 영향 범위를 확인한 결과 외부 참조는 `PostCard.tsx`
+1곳뿐이라 비용도 작았다.
+
+`features/post/create/hooks/useBookmarkFolderField.ts`는 옮기지 않았다 — 등록 폼
+필드 제어 코드라 create 액션에 종속된 게 맞고, FolderPickerModal을 재사용할 뿐
+"북마크 액션"은 아니기 때문이다.
+
+**결정 3 — 테스트 정책을 있는 그대로 문서화한다**
+
+`docs/TESTING.md`·`.claude/CLAUDE.md`·`docs/FE-ARCHITECTURE.md` 어디에도 "무엇에
+테스트를 써야 하는가"가 없었다. 실측(features/widgets/entities 95개 파일 중 20개,
+21%)해보니 파일 크기·분기 수 등 코드 성질로는 경계선이 안 나오고, 실제 기준은
+"그 파일이 버그 수정 커밋의 대상이었는가"였다 — `.claude/CLAUDE.md`의 "버그 수정
+→ 재현 테스트" 규범과 정확히 일치한다. 결정적 증거: `b48799c`(2026-09-08, 폴더
+고르기 3형제 로직 분리)에서 테스트 있던 원본을 3개 훅으로 쪼갰는데 테스트는 껍데기
+UI 파일에만 남고 새 훅 3개엔 안 생겼다 — 로직 분리 시 테스트를 어디로 옮길지에
+대한 규칙 자체가 없었다는 뜻이다. coverage threshold도, 스캐폴딩 커맨드의 테스트
+생성 스텝도 없어 강제 장치가 전혀 없다. 새 정책을 만드는 대신, 이 실제 기준을
+`docs/TESTING.md`에 명시해 "왜 없지?"라는 질문이 문서만 보고 해소되게 했다.
+
+**상태**
+
+적용 완료(`.claude/CLAUDE.md`, `docs/TESTING.md`). bookmark 구조 이동은 후속 PR에서
+진행.
+
+---
+
 ## 2026-09-08 — `*Queries.test.tsx` 5개를 소스와 같은 dot-case `.ts`로 개명
 
 **배경**
