@@ -56,7 +56,7 @@ to do" — 품사 규칙이 없다. 공식 [Authentication 가이드](https://fe
 `features/post/create/hooks/useBookmarkFolderField.ts`(현재
 `usePostCreateBookmarkFolderField.ts`)는 옮기지 않았다 — 등록 폼
 필드 제어 코드라 create 액션에 종속된 게 맞고, FolderPickerModal(현재
-`FolderSelectModal`)을 재사용할 뿐 "북마크 액션"은 아니기 때문이다.
+`BookmarkFolderSelectModal`)을 재사용할 뿐 "북마크 액션"은 아니기 때문이다.
 
 **결정 3 — 테스트 정책을 있는 그대로 문서화한다**
 

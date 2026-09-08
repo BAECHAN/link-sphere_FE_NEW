@@ -1,4 +1,4 @@
-import { useFolderListQuery } from '@/entities/bookmark/folder/api/folder.queries';
+import { useBookmarkFolderListQuery } from '@/entities/bookmark/folder/api/folder.queries';
 import { useRecentFolders } from '@/entities/bookmark/folder/hooks/useRecentFolders';
 
 /**
@@ -6,7 +6,7 @@ import { useRecentFolders } from '@/entities/bookmark/folder/hooks/useRecentFold
  * FolderTree(데스크탑)·MobileFolderList(모바일)가 공유한다.
  */
 export const useFolderSections = () => {
-  const { data, isLoading, isFetching } = useFolderListQuery();
+  const { data, isLoading, isFetching } = useBookmarkFolderListQuery();
   const folderList = data?.folders;
   const uncategorizedCount = data ? (data.uncategorizedCount ?? 0) : undefined;
   // 상단 "최근 저장한 폴더" 구획 — 페이지 방문(마운트) 동안 1회 스냅샷, 그 뒤로는 고정

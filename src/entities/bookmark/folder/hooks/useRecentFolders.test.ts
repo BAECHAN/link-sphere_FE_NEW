@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useRecentFolders } from '@/entities/bookmark/folder/hooks/useRecentFolders';
-import { Folder } from '@/entities/bookmark/folder/model/folder.schema';
+import { BookmarkFolder } from '@/entities/bookmark/folder/model/folder.schema';
 
-function makeFolder(overrides: Partial<Folder> & Pick<Folder, 'id'>): Folder {
+function makeFolder(
+  overrides: Partial<BookmarkFolder> & Pick<BookmarkFolder, 'id'>
+): BookmarkFolder {
   return {
     name: overrides.id,
     sortOrder: 0,
@@ -16,7 +18,7 @@ function makeFolder(overrides: Partial<Folder> & Pick<Folder, 'id'>): Folder {
 }
 
 // 폴더 6개(임계값) — id 순으로 오래된 것부터 최근 것까지 lastUsedAt 부여
-function makeSixFoldersWithUsage(): Folder[] {
+function makeSixFoldersWithUsage(): BookmarkFolder[] {
   return [1, 2, 3, 4, 5, 6].map((n) =>
     makeFolder({ id: `f${n}`, lastUsedAt: new Date(`2025-01-0${n}`) })
   );
@@ -24,13 +26,13 @@ function makeSixFoldersWithUsage(): Folder[] {
 
 describe('useRecentFolders', () => {
   it('페칭 중에는 folders가 비어 있어도 완료 후 최근 폴더를 계산한다', () => {
-    // 세 화면 모두 useFolderListQuery가 로딩 중일 땐 folders=[] 로 렌더된다.
+    // 세 화면 모두 useBookmarkFolderListQuery가 로딩 중일 땐 folders=[] 로 렌더된다.
     // 마운트 시점에 그 값을 굳히면 데이터가 도착해도 영원히 빈 채로 고정되는 버그가 생긴다.
     const folders = makeSixFoldersWithUsage();
     const { result, rerender } = renderHook(
-      ({ folders, isFetching }: { folders: Folder[]; isFetching: boolean }) =>
+      ({ folders, isFetching }: { folders: BookmarkFolder[]; isFetching: boolean }) =>
         useRecentFolders(folders, isFetching),
-      { initialProps: { folders: [] as Folder[], isFetching: true } }
+      { initialProps: { folders: [] as BookmarkFolder[], isFetching: true } }
     );
 
     expect(result.current.recentFolders).toEqual([]);
@@ -69,7 +71,7 @@ describe('useRecentFolders', () => {
     // 값은 항상 최신 folders에서 다시 조회해야 한다.
     const initial = makeSixFoldersWithUsage();
     const { result, rerender } = renderHook(
-      ({ folders, isFetching }: { folders: Folder[]; isFetching: boolean }) =>
+      ({ folders, isFetching }: { folders: BookmarkFolder[]; isFetching: boolean }) =>
         useRecentFolders(folders, isFetching),
       { initialProps: { folders: initial, isFetching: false } }
     );
@@ -100,7 +102,7 @@ describe('useRecentFolders', () => {
     // 끝난 뒤에야 스냅샷을 찍으므로 최신 구성이 반영돼야 한다.
     const stale = makeSixFoldersWithUsage();
     const { result, rerender } = renderHook(
-      ({ folders, isFetching }: { folders: Folder[]; isFetching: boolean }) =>
+      ({ folders, isFetching }: { folders: BookmarkFolder[]; isFetching: boolean }) =>
         useRecentFolders(folders, isFetching),
       { initialProps: { folders: stale, isFetching: true } }
     );
@@ -123,7 +125,7 @@ describe('useRecentFolders', () => {
         isFetching,
         sessionKey,
       }: {
-        folders: Folder[];
+        folders: BookmarkFolder[];
         isFetching: boolean;
         sessionKey: boolean;
       }) => useRecentFolders(folders, isFetching, sessionKey),
@@ -144,7 +146,7 @@ describe('useRecentFolders', () => {
   it('스냅샷에 찍힌 폴더가 이후 삭제되면 결과에서 빠진다', () => {
     const initial = makeSixFoldersWithUsage();
     const { result, rerender } = renderHook(
-      ({ folders, isFetching }: { folders: Folder[]; isFetching: boolean }) =>
+      ({ folders, isFetching }: { folders: BookmarkFolder[]; isFetching: boolean }) =>
         useRecentFolders(folders, isFetching),
       { initialProps: { folders: initial, isFetching: false } }
     );

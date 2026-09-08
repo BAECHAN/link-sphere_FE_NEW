@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
-import { useCreateFolderMutation } from '@/entities/bookmark/folder/api/folder.queries';
+import { useCreateBookmarkFolderMutation } from '@/entities/bookmark/folder/api/folder.queries';
 
 interface UseCreateFolderFormParams {
   /** 생성 성공 직후 실행 — 데스크탑은 입력 닫기(onClose), 모바일은 입력 폼 접기(setCreating(false)) */
@@ -14,7 +14,7 @@ interface UseCreateFolderFormParams {
  */
 export const useCreateFolderForm = ({ onCreated }: UseCreateFolderFormParams) => {
   const [name, setName] = useState('');
-  const { mutateAsync: createFolder, isPending } = useCreateFolderMutation();
+  const { mutateAsync: createFolder, isPending } = useCreateBookmarkFolderMutation();
   const submittingRef = useRef(false);
 
   const submit = async () => {

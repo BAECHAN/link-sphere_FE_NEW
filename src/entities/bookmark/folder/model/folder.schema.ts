@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { TEXTS } from '@/shared/config/texts';
 
 // 폴더 항목 — BE FolderResponse 와 매핑
-export const folderSchema = z.object({
+export const bookmarkFolderSchema = z.object({
   id: z.string(),
   name: z.string(),
   sortOrder: z.number().int().nonnegative(),
@@ -17,23 +17,23 @@ export const folderSchema = z.object({
   lastUsedAt: z.union([z.null(), z.coerce.date()]).optional(),
 });
 
-export const folderListSchema = z.array(folderSchema);
+export const bookmarkFolderListSchema = z.array(bookmarkFolderSchema);
 
 // 폴더 목록 응답 — BE FolderListResponse 와 매핑 (folders + 미분류 개수)
-export const folderListResponseSchema = z.object({
-  folders: folderListSchema,
+export const bookmarkFolderListResponseSchema = z.object({
+  folders: bookmarkFolderListSchema,
   uncategorizedCount: z.number().int().nonnegative(),
 });
 
 // 생성 / 수정
-export const createFolderSchema = z.object({
+export const createBookmarkFolderSchema = z.object({
   name: z.string().min(1, TEXTS.validation.folderNameRequired),
 });
 
-export const updateFolderSchema = createFolderSchema;
+export const updateBookmarkFolderSchema = createBookmarkFolderSchema;
 
 // 순서 재정렬 — 본인 모든 폴더 ID 를 새 순서대로
-export const reorderFoldersSchema = z.object({
+export const reorderBookmarkFoldersSchema = z.object({
   folderIds: z.array(z.string()).min(1),
 });
 
@@ -45,15 +45,15 @@ export const bookmarkFoldersResponseSchema = z.object({
 });
 
 // 폴더 페이지 조회용 sort
-export const folderSortEnum = z.enum(['latest', 'oldest', 'title', 'views', 'viewed']);
+export const bookmarkFolderSortEnum = z.enum(['latest', 'oldest', 'title', 'views', 'viewed']);
 
 // folderKey: 'all' | 'uncategorized' | UUID
-export type FolderKey = 'all' | 'uncategorized' | (string & {});
+export type BookmarkFolderKey = 'all' | 'uncategorized' | (string & {});
 
-export type Folder = z.infer<typeof folderSchema>;
-export type FolderListResponse = z.infer<typeof folderListResponseSchema>;
-export type CreateFolderRequest = z.infer<typeof createFolderSchema>;
-export type UpdateFolderRequest = z.infer<typeof updateFolderSchema>;
-export type ReorderFoldersRequest = z.infer<typeof reorderFoldersSchema>;
+export type BookmarkFolder = z.infer<typeof bookmarkFolderSchema>;
+export type BookmarkFolderListResponse = z.infer<typeof bookmarkFolderListResponseSchema>;
+export type CreateBookmarkFolderRequest = z.infer<typeof createBookmarkFolderSchema>;
+export type UpdateBookmarkFolderRequest = z.infer<typeof updateBookmarkFolderSchema>;
+export type ReorderBookmarkFoldersRequest = z.infer<typeof reorderBookmarkFoldersSchema>;
 export type BookmarkFoldersResponse = z.infer<typeof bookmarkFoldersResponseSchema>;
-export type FolderSort = z.infer<typeof folderSortEnum>;
+export type BookmarkFolderSort = z.infer<typeof bookmarkFolderSortEnum>;

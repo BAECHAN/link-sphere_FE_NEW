@@ -1,23 +1,23 @@
 import { InfiniteData, useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
-import { folderApi } from '@/entities/bookmark/folder/api/folder.api';
+import { bookmarkFolderApi } from '@/entities/bookmark/folder/api/folder.api';
 import {
-  folderInvalidateQueries,
-  folderKeys,
-  folderMutationKeys,
+  bookmarkFolderInvalidateQueries,
+  bookmarkFolderKeys,
+  bookmarkFolderMutationKeys,
   handleBookmarkFolderChangeSuccess,
-  handleFolderCreateSuccess,
-  handleFolderDeleteSuccess,
-  handleFolderReorderSuccess,
-  handleFolderUpdateSuccess,
+  handleBookmarkFolderCreateSuccess,
+  handleBookmarkFolderDeleteSuccess,
+  handleBookmarkFolderReorderSuccess,
+  handleBookmarkFolderUpdateSuccess,
 } from '@/entities/bookmark/folder/api/folder.keys';
 import {
-  CreateFolderRequest,
-  FolderKey,
-  FolderListResponse,
-  FolderSort,
-  ReorderFoldersRequest,
-  UpdateFolderRequest,
+  BookmarkFolderKey,
+  BookmarkFolderListResponse,
+  BookmarkFolderSort,
+  CreateBookmarkFolderRequest,
+  ReorderBookmarkFoldersRequest,
+  UpdateBookmarkFolderRequest,
 } from '@/entities/bookmark/folder/model/folder.schema';
 import { POST_PAGE_SIZE } from '@/entities/post/config/post.const';
 import { postInvalidateQueries, postKeys } from '@/entities/post/api/post.keys';
@@ -26,23 +26,23 @@ import { PaginationRequest } from '@/shared/types/common.type';
 
 // ==================== Queries ====================
 
-export const useFolderListQuery = (options?: { enabled?: boolean }) => {
+export const useBookmarkFolderListQuery = (options?: { enabled?: boolean }) => {
   return useQuery({
-    queryKey: folderKeys.list,
-    queryFn: folderApi.fetchFolderList,
+    queryKey: bookmarkFolderKeys.list,
+    queryFn: bookmarkFolderApi.fetchBookmarkFolderList,
     enabled: options?.enabled ?? true,
   });
 };
 
-export const useFolderPostsInfiniteQuery = (
-  folderKey: FolderKey,
-  sort?: FolderSort,
+export const useBookmarkFolderPostsInfiniteQuery = (
+  folderKey: BookmarkFolderKey,
+  sort?: BookmarkFolderSort,
   search?: string
 ) => {
   return useInfiniteQuery({
-    queryKey: folderKeys.posts(folderKey, sort, search),
+    queryKey: bookmarkFolderKeys.posts(folderKey, sort, search),
     queryFn: ({ pageParam }: { pageParam: PaginationRequest['page'] }) =>
-      folderApi.fetchFolderPosts(folderKey, {
+      bookmarkFolderApi.fetchBookmarkFolderPosts(folderKey, {
         page: pageParam,
         size: POST_PAGE_SIZE,
         sort,
@@ -66,12 +66,16 @@ export const useFolderPostsInfiniteQuery = (
   });
 };
 
-/** hover 시 폴더 게시글 첫 페이지 미리 로드 — useFolderPostsInfiniteQuery 와 동일 키/queryFn */
-export const prefetchFolderPosts = (folderKey: FolderKey, sort?: FolderSort, search?: string) => {
+/** hover 시 폴더 게시글 첫 페이지 미리 로드 — useBookmarkFolderPostsInfiniteQuery 와 동일 키/queryFn */
+export const prefetchBookmarkFolderPosts = (
+  folderKey: BookmarkFolderKey,
+  sort?: BookmarkFolderSort,
+  search?: string
+) => {
   queryClient.prefetchInfiniteQuery({
-    queryKey: folderKeys.posts(folderKey, sort, search),
+    queryKey: bookmarkFolderKeys.posts(folderKey, sort, search),
     queryFn: ({ pageParam }: { pageParam: PaginationRequest['page'] }) =>
-      folderApi.fetchFolderPosts(folderKey, {
+      bookmarkFolderApi.fetchBookmarkFolderPosts(folderKey, {
         page: pageParam,
         size: POST_PAGE_SIZE,
         sort,
@@ -85,27 +89,31 @@ export const prefetchFolderPosts = (folderKey: FolderKey, sort?: FolderSort, sea
 
 // ==================== Mutations ====================
 
-export const useCreateFolderMutation = () => {
+export const useCreateBookmarkFolderMutation = () => {
   return useMutation({
-    mutationKey: folderMutationKeys.create,
-    mutationFn: (payload: CreateFolderRequest) => folderApi.createFolder(payload),
+    mutationKey: bookmarkFolderMutationKeys.create,
+    mutationFn: (payload: CreateBookmarkFolderRequest) =>
+      bookmarkFolderApi.createBookmarkFolder(payload),
     meta: { manualErrorHandling: true },
     onSuccess: () => {
-      handleFolderCreateSuccess();
+      handleBookmarkFolderCreateSuccess();
     },
   });
 };
 
-export const useUpdateFolderMutation = (folderId: string) => {
+export const useUpdateBookmarkFolderMutation = (folderId: string) => {
   return useMutation({
-    mutationKey: folderMutationKeys.update(folderId),
-    mutationFn: (payload: UpdateFolderRequest) => folderApi.updateFolder(folderId, payload),
+    mutationKey: bookmarkFolderMutationKeys.update(folderId),
+    mutationFn: (payload: UpdateBookmarkFolderRequest) =>
+      bookmarkFolderApi.updateBookmarkFolder(folderId, payload),
     meta: { manualErrorHandling: true },
     onMutate: async (payload) => {
-      await queryClient.cancelQueries({ queryKey: folderKeys.list });
-      const previous = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+      await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.list });
+      const previous = queryClient.getQueryData<BookmarkFolderListResponse>(
+        bookmarkFolderKeys.list
+      );
       if (previous) {
-        queryClient.setQueryData<FolderListResponse>(folderKeys.list, {
+        queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, {
           ...previous,
           folders: previous.folders.map((f) =>
             f.id === folderId ? { ...f, name: payload.name } : f
@@ -116,34 +124,37 @@ export const useUpdateFolderMutation = (folderId: string) => {
     },
     onError: (_err, _payload, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(folderKeys.list, context.previous);
+        queryClient.setQueryData(bookmarkFolderKeys.list, context.previous);
       }
     },
     onSuccess: () => {
-      handleFolderUpdateSuccess();
+      handleBookmarkFolderUpdateSuccess();
     },
   });
 };
 
-export const useDeleteFolderMutation = (folderId: string) => {
+export const useDeleteBookmarkFolderMutation = (folderId: string) => {
   return useMutation({
-    mutationKey: folderMutationKeys.delete(folderId),
-    mutationFn: () => folderApi.deleteFolder(folderId),
+    mutationKey: bookmarkFolderMutationKeys.delete(folderId),
+    mutationFn: () => bookmarkFolderApi.deleteBookmarkFolder(folderId),
     meta: { manualErrorHandling: true },
     onSuccess: () => {
-      handleFolderDeleteSuccess();
+      handleBookmarkFolderDeleteSuccess();
     },
   });
 };
 
-export const useReorderFoldersMutation = () => {
+export const useReorderBookmarkFoldersMutation = () => {
   return useMutation({
-    mutationKey: folderMutationKeys.reorder,
-    mutationFn: (payload: ReorderFoldersRequest) => folderApi.reorderFolders(payload),
+    mutationKey: bookmarkFolderMutationKeys.reorder,
+    mutationFn: (payload: ReorderBookmarkFoldersRequest) =>
+      bookmarkFolderApi.reorderBookmarkFolders(payload),
     meta: { manualErrorHandling: true },
     onMutate: async (payload) => {
-      await queryClient.cancelQueries({ queryKey: folderKeys.list });
-      const previous = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+      await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.list });
+      const previous = queryClient.getQueryData<BookmarkFolderListResponse>(
+        bookmarkFolderKeys.list
+      );
       if (previous) {
         const byId = new Map(previous.folders.map((f) => [f.id, f]));
         const next = payload.folderIds
@@ -152,7 +163,7 @@ export const useReorderFoldersMutation = () => {
             return f ? { ...f, sortOrder: idx } : null;
           })
           .filter((f): f is NonNullable<typeof f> => f !== null);
-        queryClient.setQueryData<FolderListResponse>(folderKeys.list, {
+        queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, {
           ...previous,
           folders: next,
         });
@@ -161,11 +172,11 @@ export const useReorderFoldersMutation = () => {
     },
     onError: (_err, _payload, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(folderKeys.list, context.previous);
+        queryClient.setQueryData(bookmarkFolderKeys.list, context.previous);
       }
     },
     onSuccess: () => {
-      handleFolderReorderSuccess();
+      handleBookmarkFolderReorderSuccess();
     },
   });
 };
@@ -188,7 +199,7 @@ function resolveCurrentBookmarkState(postId: string): {
     };
   }
   const cachedFolderPost = queryClient
-    .getQueriesData<InfiniteData<PostListResponse>>({ queryKey: folderKeys.postsRoot })
+    .getQueriesData<InfiniteData<PostListResponse>>({ queryKey: bookmarkFolderKeys.postsRoot })
     .flatMap(([, data]) => data?.pages.flatMap((page) => page.content) ?? [])
     .find((post) => post.id === postId);
   if (cachedFolderPost) {
@@ -249,9 +260,9 @@ function patchPostBookmarkCaches(postId: string, patch: PostBookmarkPatch): Post
 }
 
 /** 특정 folderKey 의 모든 정렬/검색 캐시에서 postId 카드를 즉시 제거한다 (삽입은 하지 않음 — 위치를 모르므로). */
-function removePostFromFolderPostsCache(folderKey: FolderKey, postId: string) {
+function removePostFromFolderPostsCache(folderKey: BookmarkFolderKey, postId: string) {
   queryClient.setQueriesData<InfiniteData<PostListResponse>>(
-    { queryKey: [...folderKeys.postsRoot, folderKey] },
+    { queryKey: [...bookmarkFolderKeys.postsRoot, folderKey] },
     (oldData) => {
       if (!oldData) {
         return oldData;
@@ -277,13 +288,13 @@ function removePostFromFolderPostsCache(folderKey: FolderKey, postId: string) {
 async function cancelBookmarkFolderQueries(postId: string) {
   await queryClient.cancelQueries({ queryKey: postKeys.detail(postId) });
   await queryClient.cancelQueries({ queryKey: postKeys.listRoot });
-  await queryClient.cancelQueries({ queryKey: folderKeys.list });
-  await queryClient.cancelQueries({ queryKey: folderKeys.postsRoot });
+  await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.list });
+  await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.postsRoot });
 }
 
 interface BookmarkFolderMutationContext {
   previousPost: Post | undefined;
-  previousFolderList: FolderListResponse | undefined;
+  previousFolderList: BookmarkFolderListResponse | undefined;
 }
 
 /** post.list 는 스냅샷을 보존하지 않고 무효화로 복구한다 (롤백 데이터 보존 비용 회피) — 기존 관례와 동일. */
@@ -295,9 +306,9 @@ function rollbackBookmarkFolderMutation(
     queryClient.setQueryData(postKeys.detail(postId), context.previousPost);
   }
   if (context?.previousFolderList) {
-    queryClient.setQueryData(folderKeys.list, context.previousFolderList);
+    queryClient.setQueryData(bookmarkFolderKeys.list, context.previousFolderList);
   }
-  folderInvalidateQueries.postsRoot();
+  bookmarkFolderInvalidateQueries.postsRoot();
   postInvalidateQueries.list();
 }
 
@@ -312,8 +323,8 @@ function rollbackBookmarkFolderMutation(
  */
 export const useAddBookmarkFolderMutation = (postId: string) => {
   return useMutation({
-    mutationKey: folderMutationKeys.addBookmarkFolder(postId),
-    mutationFn: (folderId: string) => folderApi.addBookmarkFolder(postId, folderId),
+    mutationKey: bookmarkFolderMutationKeys.addBookmarkFolder(postId),
+    mutationFn: (folderId: string) => bookmarkFolderApi.addBookmarkFolder(postId, folderId),
     meta: { manualErrorHandling: true },
 
     onMutate: async (folderId): Promise<BookmarkFolderMutationContext> => {
@@ -324,7 +335,9 @@ export const useAddBookmarkFolderMutation = (postId: string) => {
       const alreadyInFolder = prevIds.includes(folderId);
       const leavesUncategorized = wasBookmarked && prevIds.length === 0;
 
-      const previousFolderList = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+      const previousFolderList = queryClient.getQueryData<BookmarkFolderListResponse>(
+        bookmarkFolderKeys.list
+      );
 
       const previousPost = patchPostBookmarkCaches(postId, {
         isBookmarked: true,
@@ -333,7 +346,7 @@ export const useAddBookmarkFolderMutation = (postId: string) => {
       });
 
       if (previousFolderList) {
-        queryClient.setQueryData<FolderListResponse>(folderKeys.list, {
+        queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, {
           ...previousFolderList,
           uncategorizedCount: Math.max(
             0,
@@ -372,8 +385,8 @@ export const useAddBookmarkFolderMutation = (postId: string) => {
  */
 export const useRemoveBookmarkFolderMutation = (postId: string) => {
   return useMutation({
-    mutationKey: folderMutationKeys.removeBookmarkFolder(postId),
-    mutationFn: (folderId: string) => folderApi.removeBookmarkFolder(postId, folderId),
+    mutationKey: bookmarkFolderMutationKeys.removeBookmarkFolder(postId),
+    mutationFn: (folderId: string) => bookmarkFolderApi.removeBookmarkFolder(postId, folderId),
     meta: { manualErrorHandling: true },
 
     onMutate: async (folderId): Promise<BookmarkFolderMutationContext> => {
@@ -382,14 +395,16 @@ export const useRemoveBookmarkFolderMutation = (postId: string) => {
       const { folderIds: prevIds } = resolveCurrentBookmarkState(postId);
       const wasLastFolder = prevIds.length === 1 && prevIds[0] === folderId;
 
-      const previousFolderList = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+      const previousFolderList = queryClient.getQueryData<BookmarkFolderListResponse>(
+        bookmarkFolderKeys.list
+      );
 
       const previousPost = patchPostBookmarkCaches(postId, {
         folderIds: prevIds.filter((id) => id !== folderId),
       });
 
       if (previousFolderList) {
-        queryClient.setQueryData<FolderListResponse>(folderKeys.list, {
+        queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, {
           ...previousFolderList,
           uncategorizedCount: previousFolderList.uncategorizedCount + (wasLastFolder ? 1 : 0),
           folders: previousFolderList.folders.map((f) =>
@@ -423,8 +438,8 @@ export const useRemoveBookmarkFolderMutation = (postId: string) => {
  */
 export const useClearBookmarkFoldersMutation = (postId: string) => {
   return useMutation({
-    mutationKey: folderMutationKeys.clearBookmarkFolders(postId),
-    mutationFn: () => folderApi.clearBookmarkFolders(postId),
+    mutationKey: bookmarkFolderMutationKeys.clearBookmarkFolders(postId),
+    mutationFn: () => bookmarkFolderApi.clearBookmarkFolders(postId),
     meta: { manualErrorHandling: true },
 
     onMutate: async (): Promise<BookmarkFolderMutationContext> => {
@@ -432,13 +447,15 @@ export const useClearBookmarkFoldersMutation = (postId: string) => {
 
       const { folderIds: prevIds } = resolveCurrentBookmarkState(postId);
 
-      const previousFolderList = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+      const previousFolderList = queryClient.getQueryData<BookmarkFolderListResponse>(
+        bookmarkFolderKeys.list
+      );
 
       const previousPost = patchPostBookmarkCaches(postId, { folderIds: [] });
 
       if (previousFolderList && prevIds.length > 0) {
         const prevIdSet = new Set(prevIds);
-        queryClient.setQueryData<FolderListResponse>(folderKeys.list, {
+        queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, {
           ...previousFolderList,
           uncategorizedCount: previousFolderList.uncategorizedCount + 1,
           folders: previousFolderList.folders.map((f) =>

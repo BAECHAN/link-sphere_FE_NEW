@@ -172,8 +172,9 @@ src/
 │   └── bookmark/                 # 2026-09-08 post/bookmark에서 승격 — entities/widgets/pages와
 │       │                         # bookmark 도메인 그룹을 통일(FSD nukeapp 사례 참고)
 │       └── toggle/{hooks,ui}     # useBookmarkFolders, usePostCardBookmarkFolderModal, BookmarkPostButton,
-│                                 # PostCardBookmarkFolderModal(2026-09-08, entities의 FolderSelectModal과
-│                                 # 이름이 겹쳐 호출 맥락(PostCard) 접두사를 붙여 개명)
+│                                 # PostCardBookmarkFolderModal(2026-09-08, entities의
+│                                 # BookmarkFolderSelectModal과 이름이 겹쳐 호출 맥락(PostCard)
+│                                 # 접두사를 붙여 개명)
 │
 ├── entities/                     # 비즈니스 엔티티 — data layer + basic display
 │   ├── post/
@@ -193,10 +194,10 @@ src/
 │   │   └── folder/
 │   │       ├── api/              # folder.api.ts, folder.keys.ts, folder.queries.ts
 │   │       ├── model/            # folder.schema.ts
-│   │       ├── config/           # folder.const.ts (RECENT_FOLDER_COUNT 외)
+│   │       ├── config/           # folder.const.ts (RECENT_BOOKMARK_FOLDER_COUNT 외)
 │   │       ├── utils/            # folder.util.ts (pickRecentFolders)
-│   │       ├── hooks/            # useRecentFolders.ts, useFolderSelect.ts
-│   │       └── ui/               # FolderSelectModal(PostCardBookmarkFolderModal·PostCreateBookmarkFolderField가 공유)
+│   │       ├── hooks/            # useRecentFolders.ts, useBookmarkFolderSelect.ts
+│   │       └── ui/               # BookmarkFolderSelectModal(PostCardBookmarkFolderModal·PostCreateBookmarkFolderField가 공유)
 │   ├── category/
 │   │   ├── api/                  # category.api.ts, category.keys.ts, category.queries.ts
 │   │   └── model/                # category.schema.ts
@@ -641,29 +642,29 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ## 18. 네이밍 컨벤션
 
-| 항목                          | 규칙                                                                                                                                                                                                                   | 예시                               |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| Feature 디렉토리              | `<도메인>/<액션>` kebab-case                                                                                                                                                                                           | `post/create/`                     |
-| Widget 디렉토리               | `<도메인>/<슬라이스>` kebab-case                                                                                                                                                                                       | `post/post-card/`                  |
-| Shared 디렉토리               | camelCase                                                                                                                                                                                                              | `hooks/`, `utils/`                 |
-| 컴포넌트 파일                 | PascalCase.tsx                                                                                                                                                                                                         | `CreatePostForm.tsx`               |
-| Feature 훅                    | `use<FeatureName>.ts`                                                                                                                                                                                                  | `useCreatePost.ts`                 |
-| Mutation 훅                   | `use<Action><Entity>Mutation`                                                                                                                                                                                          | `useCreatePostMutation`            |
-| Query 훅                      | `useFetch<Entity>Query` (표준). 기존 코드엔 `use<Entity>s`(`useComments`), `use<Entity>ListQuery`(`useFolderListQuery`), `use<Entity>InfiniteQuery`(`useFolderPostsInfiniteQuery`)도 있다 — 새로 만들 땐 표준형을 쓴다 | `useFetchPostDetailQuery`          |
-| 쿼리 키 객체                  | `<entity>Keys`                                                                                                                                                                                                         | `postKeys`                         |
-| Invalidate 헬퍼               | `<entity>InvalidateQueries`                                                                                                                                                                                            | `postInvalidateQueries`            |
-| Success 핸들러                | `handle<Entity><Action>Success`                                                                                                                                                                                        | `handlePostCreateSuccess`          |
-| API 객체                      | `<entity>Api`                                                                                                                                                                                                          | `postApi`                          |
-| Zod 스키마                    | `<entity>Schema`, `create<Entity>Schema`                                                                                                                                                                               | `postSchema`, `createPostSchema`   |
-| TS 타입                       | 스키마와 동일 (PascalCase)                                                                                                                                                                                             | `Post`, `CreatePost`               |
-| `config/` 파일                | `<entity>.const.ts` — `api/`·`model/`·`utils/`와 같은 `<entity>.<역할>.ts` 규칙(`const.ts` 단독 금지, `shared/config/const.ts`처럼 도메인이 없는 전역 설정은 예외)                                                     | `folder.const.ts`, `post.const.ts` |
-| `<Entity>[]` 배열 변수/반환값 | `<entity>List` — 지역변수·훅 반환 필드·구조분해값이 실제로 배열일 때. 아래 각주의 예외 2가지는 대상 아님                                                                                                               | `folderList`                       |
+| 항목                          | 규칙                                                                                                                                                                                                                                   | 예시                               |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Feature 디렉토리              | `<도메인>/<액션>` kebab-case                                                                                                                                                                                                           | `post/create/`                     |
+| Widget 디렉토리               | `<도메인>/<슬라이스>` kebab-case                                                                                                                                                                                                       | `post/post-card/`                  |
+| Shared 디렉토리               | camelCase                                                                                                                                                                                                                              | `hooks/`, `utils/`                 |
+| 컴포넌트 파일                 | PascalCase.tsx                                                                                                                                                                                                                         | `CreatePostForm.tsx`               |
+| Feature 훅                    | `use<FeatureName>.ts`                                                                                                                                                                                                                  | `useCreatePost.ts`                 |
+| Mutation 훅                   | `use<Action><Entity>Mutation`                                                                                                                                                                                                          | `useCreatePostMutation`            |
+| Query 훅                      | `useFetch<Entity>Query` (표준). 기존 코드엔 `use<Entity>s`(`useComments`), `use<Entity>ListQuery`(`useBookmarkFolderListQuery`), `use<Entity>InfiniteQuery`(`useBookmarkFolderPostsInfiniteQuery`)도 있다 — 새로 만들 땐 표준형을 쓴다 | `useFetchPostDetailQuery`          |
+| 쿼리 키 객체                  | `<entity>Keys`                                                                                                                                                                                                                         | `postKeys`                         |
+| Invalidate 헬퍼               | `<entity>InvalidateQueries`                                                                                                                                                                                                            | `postInvalidateQueries`            |
+| Success 핸들러                | `handle<Entity><Action>Success`                                                                                                                                                                                                        | `handlePostCreateSuccess`          |
+| API 객체                      | `<entity>Api`                                                                                                                                                                                                                          | `postApi`                          |
+| Zod 스키마                    | `<entity>Schema`, `create<Entity>Schema`                                                                                                                                                                                               | `postSchema`, `createPostSchema`   |
+| TS 타입                       | 스키마와 동일 (PascalCase)                                                                                                                                                                                                             | `Post`, `CreatePost`               |
+| `config/` 파일                | `<entity>.const.ts` — `api/`·`model/`·`utils/`와 같은 `<entity>.<역할>.ts` 규칙(`const.ts` 단독 금지, `shared/config/const.ts`처럼 도메인이 없는 전역 설정은 예외)                                                                     | `folder.const.ts`, `post.const.ts` |
+| `<Entity>[]` 배열 변수/반환값 | `<entity>List` — 지역변수·훅 반환 필드·구조분해값이 실제로 배열일 때. 아래 각주의 예외 2가지는 대상 아님                                                                                                                               | `folderList`                       |
 
 **`<entity>List` 각주** (2026-09-08) — "단수/복수"가 아니라 "배열인가 아닌가"로
-가른다. BE 응답 계약과 매핑된 이름(`FolderListResponse`, `useFolderListQuery`,
-`fetchFolderList`, `<entity>Keys.list` 등 — `folder.schema.ts`의 "BE
+가른다. BE 응답 계약과 매핑된 이름(`BookmarkFolderListResponse`, `useBookmarkFolderListQuery`,
+`fetchBookmarkFolderList`, `<entity>Keys.list` 등 — `folder.schema.ts`의 "BE
 FolderListResponse 와 매핑" 주석 참고)과, 배열이 아니라 동작·응답 객체·불리언이라
-복수형이 그 자체로 맞는 이름(`BookmarkFoldersResponse`, `ReorderFoldersRequest`,
+복수형이 그 자체로 맞는 이름(`BookmarkFoldersResponse`, `ReorderBookmarkFoldersRequest`,
 `useBookmarkFolders`, `wasInFolders`, `clearBookmarkFolders`, `postFolders`
 엔드포인트 등)은 이 규칙 대상이 아니다 — 그대로 복수형을 쓴다.
 

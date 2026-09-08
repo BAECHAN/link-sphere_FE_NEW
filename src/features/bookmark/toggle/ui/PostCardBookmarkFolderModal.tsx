@@ -1,5 +1,5 @@
 import { TEXTS } from '@/shared/config/texts';
-import { FolderSelectModal } from '@/entities/bookmark/folder/ui/FolderSelectModal';
+import { BookmarkFolderSelectModal } from '@/entities/bookmark/folder/ui/BookmarkFolderSelectModal';
 import { usePostCardBookmarkFolderModal } from '@/features/bookmark/toggle/hooks/usePostCardBookmarkFolderModal';
 
 interface PostCardBookmarkFolderModalProps {
@@ -15,7 +15,7 @@ interface PostCardBookmarkFolderModalProps {
  * 버튼에서 열리는 즉시 저장(탭 = 바로 저장/제거 + 닫힘) 버전. 동작은
  * usePostCardBookmarkFolderModal이 소유하고, 실제 모달 마크업(행 구성·최근 구획·새 폴더
  * 만들기)은 등록 폼의 PostCreateBookmarkFolderField와 공유하는
- * entities/bookmark/folder/ui/FolderSelectModal 이 담당한다.
+ * entities/bookmark/folder/ui/BookmarkFolderSelectModal 이 담당한다.
  */
 export function PostCardBookmarkFolderModal({
   postId,
@@ -28,7 +28,7 @@ export function PostCardBookmarkFolderModal({
     usePostCardBookmarkFolderModal({ postId, isBookmarked, bookmarkFolderIds, open, onOpenChange });
 
   return (
-    <FolderSelectModal
+    <BookmarkFolderSelectModal
       open={open}
       onOpenChange={onOpenChange}
       description={TEXTS.bookmark.folder.selectorDescription}

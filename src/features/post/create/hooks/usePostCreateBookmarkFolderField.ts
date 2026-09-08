@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useController, useFormContext } from 'react-hook-form';
 import { TEXTS } from '@/shared/config/texts';
-import { useFolderListQuery } from '@/entities/bookmark/folder/api/folder.queries';
-import type { Folder } from '@/entities/bookmark/folder/model/folder.schema';
+import { useBookmarkFolderListQuery } from '@/entities/bookmark/folder/api/folder.queries';
+import type { BookmarkFolder } from '@/entities/bookmark/folder/model/folder.schema';
 import type { CreatePost } from '@/entities/post/model/post.schema';
 
 /**
@@ -26,8 +26,8 @@ export function usePostCreateBookmarkFolderField() {
 
   const [open, setOpen] = useState(false);
   // 모달이 닫혀 있을 때도 트리거에 폴더명을 보여줘야 해 여기서도 목록을 읽는다.
-  // FolderSelectModal 내부 호출과 같은 쿼리 키라 요청·캐시가 공유된다.
-  const { data } = useFolderListQuery({ enabled: open });
+  // BookmarkFolderSelectModal 내부 호출과 같은 쿼리 키라 요청·캐시가 공유된다.
+  const { data } = useBookmarkFolderListQuery({ enabled: open });
   const folderList = Array.isArray(data?.folders) ? data.folders : [];
 
   const applySelection = (nextBookmark: boolean, nextFolderIds: string[]) => {
@@ -39,7 +39,7 @@ export function usePostCreateBookmarkFolderField() {
     applySelection(true, []);
   };
 
-  const handleSelectFolder = (folder: Folder) => {
+  const handleSelectFolder = (folder: BookmarkFolder) => {
     if (folderIds.includes(folder.id)) {
       const next = folderIds.filter((id) => id !== folder.id);
       // 마지막 폴더에서 빠져도 미분류로 남는다(북마크 자체는 유지) — PostCardBookmarkFolderModal과 동일 규칙.

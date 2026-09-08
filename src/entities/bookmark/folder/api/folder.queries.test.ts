@@ -7,12 +7,12 @@ import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { postKeys } from '@/entities/post/api/post.keys';
-import { folderKeys } from '@/entities/bookmark/folder/api/folder.keys';
+import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/folder.keys';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import type { Post } from '@/entities/post/model/post.schema';
 import type {
   BookmarkFoldersResponse,
-  FolderListResponse,
+  BookmarkFolderListResponse,
 } from '@/entities/bookmark/folder/model/folder.schema';
 import {
   useAddBookmarkFolderMutation,
@@ -35,7 +35,7 @@ const FOLDER_A = 'folder-uuid-a';
 const FOLDER_B = 'folder-uuid-b';
 
 const now = new Date('2025-01-01');
-const seedFolderList: FolderListResponse = {
+const seedFolderList: BookmarkFolderListResponse = {
   folders: [
     { id: FOLDER_A, name: '개발', sortOrder: 0, bookmarkCount: 2, createdAt: now, updatedAt: now },
     {
@@ -65,7 +65,7 @@ describe('useAddBookmarkFolderMutation', () => {
       userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [] },
     };
     queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
-    queryClient.setQueryData(folderKeys.list, seedFolderList);
+    queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList);
 
     let receivedBody = 'not-called';
     server.use(
@@ -93,7 +93,7 @@ describe('useAddBookmarkFolderMutation', () => {
       userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [] },
     };
     queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
-    queryClient.setQueryData(folderKeys.list, seedFolderList);
+    queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList);
     server.use(
       http.post(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () =>
         okResponse({ postId: POST_ID, isBookmarked: true, folderIds: [FOLDER_A] })
@@ -112,7 +112,7 @@ describe('useAddBookmarkFolderMutation', () => {
       const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
       expect(post?.userInteractions.bookmarkFolderIds).toEqual([FOLDER_A]);
     });
-    const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+    const folders = queryClient.getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list);
     expect(folders?.folders.find((f) => f.id === FOLDER_A)?.bookmarkCount).toBe(3);
     expect(folders?.uncategorizedCount).toBe(0);
 
@@ -126,7 +126,7 @@ describe('useAddBookmarkFolderMutation', () => {
       stats: { ...mockPost.stats, bookmarkCount: 5 },
     };
     queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
-    queryClient.setQueryData(folderKeys.list, seedFolderList);
+    queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList);
     server.use(
       http.post(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () =>
         okResponse({ postId: POST_ID, isBookmarked: true, folderIds: [FOLDER_A] })
@@ -146,7 +146,7 @@ describe('useAddBookmarkFolderMutation', () => {
       expect(post?.userInteractions.isBookmarked).toBe(true);
       expect(post?.stats.bookmarkCount).toBe(6);
     });
-    const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+    const folders = queryClient.getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list);
     expect(folders?.uncategorizedCount).toBe(1); // 미분류였던 적이 없으므로 불변
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -158,7 +158,7 @@ describe('useAddBookmarkFolderMutation', () => {
       userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [FOLDER_A] },
     };
     queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
-    queryClient.setQueryData(folderKeys.list, seedFolderList);
+    queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList);
     server.use(
       http.post(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_B)), () =>
         okResponse({ postId: POST_ID, isBookmarked: true, folderIds: [FOLDER_A, FOLDER_B] })
@@ -177,7 +177,7 @@ describe('useAddBookmarkFolderMutation', () => {
       const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
       expect(post?.userInteractions.bookmarkFolderIds).toEqual([FOLDER_A, FOLDER_B]);
     });
-    const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+    const folders = queryClient.getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list);
     expect(folders?.folders.find((f) => f.id === FOLDER_A)?.bookmarkCount).toBe(2); // 불변
     expect(folders?.folders.find((f) => f.id === FOLDER_B)?.bookmarkCount).toBe(5); // +1
     expect(folders?.uncategorizedCount).toBe(1); // 이미 폴더에 있었으니 불변
@@ -197,7 +197,7 @@ describe('useRemoveBookmarkFolderMutation', () => {
       },
     };
     queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
-    queryClient.setQueryData(folderKeys.list, seedFolderList);
+    queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList);
     server.use(
       http.delete(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () =>
         okResponse({ postId: POST_ID, isBookmarked: true, folderIds: [FOLDER_B] })
@@ -217,7 +217,7 @@ describe('useRemoveBookmarkFolderMutation', () => {
       expect(post?.userInteractions.bookmarkFolderIds).toEqual([FOLDER_B]);
       expect(post?.userInteractions.isBookmarked).toBe(true);
     });
-    const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+    const folders = queryClient.getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list);
     expect(folders?.folders.find((f) => f.id === FOLDER_A)?.bookmarkCount).toBe(1);
     expect(folders?.uncategorizedCount).toBe(1);
 
@@ -230,7 +230,7 @@ describe('useRemoveBookmarkFolderMutation', () => {
       userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [FOLDER_A] },
     };
     queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
-    queryClient.setQueryData(folderKeys.list, seedFolderList);
+    queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList);
     server.use(
       http.delete(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () =>
         okResponse({ postId: POST_ID, isBookmarked: true, folderIds: [] })
@@ -250,7 +250,7 @@ describe('useRemoveBookmarkFolderMutation', () => {
       expect(post?.userInteractions.bookmarkFolderIds).toEqual([]);
       expect(post?.userInteractions.isBookmarked).toBe(true);
     });
-    const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+    const folders = queryClient.getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list);
     expect(folders?.folders.find((f) => f.id === FOLDER_A)?.bookmarkCount).toBe(1);
     expect(folders?.uncategorizedCount).toBe(2);
 
@@ -263,7 +263,7 @@ describe('useRemoveBookmarkFolderMutation', () => {
       userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [FOLDER_A] },
     };
     queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
-    queryClient.setQueryData(folderKeys.list, seedFolderList);
+    queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList);
     server.use(
       http.delete(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () =>
         HttpResponse.json(
@@ -285,7 +285,7 @@ describe('useRemoveBookmarkFolderMutation', () => {
 
     const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
     expect(post?.userInteractions.bookmarkFolderIds).toEqual([FOLDER_A]);
-    const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+    const folders = queryClient.getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list);
     expect(folders?.folders.find((f) => f.id === FOLDER_A)?.bookmarkCount).toBe(2);
     expect(folders?.uncategorizedCount).toBe(1);
   });
@@ -302,7 +302,7 @@ describe('useClearBookmarkFoldersMutation', () => {
       },
     };
     queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
-    queryClient.setQueryData(folderKeys.list, seedFolderList);
+    queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList);
     server.use(
       http.delete(url(API_ENDPOINTS.bookmark.postFolders(POST_ID)), () =>
         okResponse({ postId: POST_ID, isBookmarked: true, folderIds: [] })
@@ -322,7 +322,7 @@ describe('useClearBookmarkFoldersMutation', () => {
       expect(post?.userInteractions.bookmarkFolderIds).toEqual([]);
       expect(post?.userInteractions.isBookmarked).toBe(true);
     });
-    const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+    const folders = queryClient.getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list);
     expect(folders?.folders.find((f) => f.id === FOLDER_A)?.bookmarkCount).toBe(1);
     expect(folders?.folders.find((f) => f.id === FOLDER_B)?.bookmarkCount).toBe(3);
     expect(folders?.uncategorizedCount).toBe(2);

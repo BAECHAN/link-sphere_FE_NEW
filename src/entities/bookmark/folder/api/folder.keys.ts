@@ -1,10 +1,13 @@
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { postInvalidateQueries } from '@/entities/post/api/post.keys';
-import { FolderKey, FolderSort } from '@/entities/bookmark/folder/model/folder.schema';
+import {
+  BookmarkFolderKey,
+  BookmarkFolderSort,
+} from '@/entities/bookmark/folder/model/folder.schema';
 
 const rootKey = ['folder'] as const;
 
-export const folderMutationKeys = {
+export const bookmarkFolderMutationKeys = {
   create: [...rootKey, 'create'] as const,
   update: (folderId: string) => [...rootKey, 'update', folderId] as const,
   delete: (folderId: string) => [...rootKey, 'delete', folderId] as const,
@@ -14,59 +17,59 @@ export const folderMutationKeys = {
   clearBookmarkFolders: (postId: string) => [...rootKey, 'clearBookmarkFolders', postId] as const,
 };
 
-export const folderKeys = {
+export const bookmarkFolderKeys = {
   root: rootKey,
   list: [...rootKey, 'list'] as const,
   postsRoot: [...rootKey, 'posts'] as const,
-  posts: (folderKey: FolderKey, sort?: FolderSort, search?: string) =>
+  posts: (folderKey: BookmarkFolderKey, sort?: BookmarkFolderSort, search?: string) =>
     [...rootKey, 'posts', folderKey, sort ?? 'latest', search ?? ''] as const,
 };
 
-export const folderInvalidateQueries = {
+export const bookmarkFolderInvalidateQueries = {
   all: () => {
     queryClient.invalidateQueries({ queryKey: rootKey });
   },
   list: () => {
-    queryClient.invalidateQueries({ queryKey: folderKeys.list });
+    queryClient.invalidateQueries({ queryKey: bookmarkFolderKeys.list });
   },
   postsRoot: () => {
-    queryClient.invalidateQueries({ queryKey: folderKeys.postsRoot });
+    queryClient.invalidateQueries({ queryKey: bookmarkFolderKeys.postsRoot });
   },
-  posts: (folderKey: FolderKey) => {
-    queryClient.invalidateQueries({ queryKey: [...folderKeys.postsRoot, folderKey] });
+  posts: (folderKey: BookmarkFolderKey) => {
+    queryClient.invalidateQueries({ queryKey: [...bookmarkFolderKeys.postsRoot, folderKey] });
   },
 };
 
 /** 폴더 생성 후 — 목록만 갱신 (post 변화 없음) */
-export const handleFolderCreateSuccess = () => {
-  folderInvalidateQueries.list();
+export const handleBookmarkFolderCreateSuccess = () => {
+  bookmarkFolderInvalidateQueries.list();
 };
 
 /** 폴더 이름 수정 후 — 목록만 갱신 */
-export const handleFolderUpdateSuccess = () => {
-  folderInvalidateQueries.list();
+export const handleBookmarkFolderUpdateSuccess = () => {
+  bookmarkFolderInvalidateQueries.list();
 };
 
 /**
  * 폴더 삭제 후 — 폴더 목록 + 모든 폴더별 게시글 + post 목록(그 폴더가 소속에서 빠지므로) 갱신
  */
-export const handleFolderDeleteSuccess = () => {
-  folderInvalidateQueries.list();
-  folderInvalidateQueries.postsRoot();
+export const handleBookmarkFolderDeleteSuccess = () => {
+  bookmarkFolderInvalidateQueries.list();
+  bookmarkFolderInvalidateQueries.postsRoot();
   postInvalidateQueries.list();
 };
 
 /** 폴더 순서 변경 — 목록만 갱신 */
-export const handleFolderReorderSuccess = () => {
-  folderInvalidateQueries.list();
+export const handleBookmarkFolderReorderSuccess = () => {
+  bookmarkFolderInvalidateQueries.list();
 };
 
 /**
  * 북마크 토글(추가/제거) 후 — 폴더 목록(bookmarkCount) + 모든 폴더별 게시글(totalElements) 재검증
  */
 export const handleBookmarkToggleSuccess = () => {
-  folderInvalidateQueries.list();
-  folderInvalidateQueries.postsRoot();
+  bookmarkFolderInvalidateQueries.list();
+  bookmarkFolderInvalidateQueries.postsRoot();
 };
 
 /**
@@ -74,8 +77,8 @@ export const handleBookmarkToggleSuccess = () => {
  * (post 목록은 삭제 mutation의 optimistic update로 이미 반영됨)
  */
 export const handlePostDeleteSuccess = () => {
-  folderInvalidateQueries.list();
-  folderInvalidateQueries.postsRoot();
+  bookmarkFolderInvalidateQueries.list();
+  bookmarkFolderInvalidateQueries.postsRoot();
 };
 
 /**
@@ -83,7 +86,7 @@ export const handlePostDeleteSuccess = () => {
  * 북마크 개수는 변하지 않으므로 폴더 목록(list)은 건드리지 않는다.
  */
 export const handlePostContentUpdateSuccess = () => {
-  folderInvalidateQueries.postsRoot();
+  bookmarkFolderInvalidateQueries.postsRoot();
 };
 
 /**
@@ -91,8 +94,8 @@ export const handlePostContentUpdateSuccess = () => {
  * postsRoot 무효화가 새로 소속된 폴더 목록에 카드가 등장하는 걸 처리하므로, 낙관적 레이어는 삽입을 시도하지 않는다.
  */
 export const handleBookmarkFolderChangeSuccess = (postId: string) => {
-  folderInvalidateQueries.list();
-  folderInvalidateQueries.postsRoot();
+  bookmarkFolderInvalidateQueries.list();
+  bookmarkFolderInvalidateQueries.postsRoot();
   postInvalidateQueries.detail(postId);
   postInvalidateQueries.list();
 };

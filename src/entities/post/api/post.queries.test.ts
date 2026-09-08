@@ -7,10 +7,10 @@ import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { postKeys } from '@/entities/post/api/post.keys';
-import { folderKeys } from '@/entities/bookmark/folder/api/folder.keys';
+import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/folder.keys';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import type { Post, PostListResponse } from '@/entities/post/model/post.schema';
-import type { FolderListResponse } from '@/entities/bookmark/folder/model/folder.schema';
+import type { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/folder.schema';
 import {
   useCreatePostMutation,
   useDeletePostMutation,
@@ -25,7 +25,7 @@ function Wrapper({ children }: { children: ReactNode }) {
 }
 
 const POST_ID = mockPost.id;
-const FOLDER_POSTS_KEY = folderKeys.posts('folder-uuid-1');
+const FOLDER_POSTS_KEY = bookmarkFolderKeys.posts('folder-uuid-1');
 
 /** URL을 바꿔 저장했을 때 서버가 새 링크 기준으로 다시 만들어 돌려주는 응답 */
 const updatedPost: Post = {
@@ -177,7 +177,7 @@ describe('useDeletePostMutation', () => {
   const FOLDER_A = 'folder-uuid-a';
   const FOLDER_B = 'folder-uuid-b';
   const now = new Date('2025-01-01');
-  const seedFolderList: FolderListResponse = {
+  const seedFolderList: BookmarkFolderListResponse = {
     folders: [
       {
         id: FOLDER_A,
@@ -219,7 +219,7 @@ describe('useDeletePostMutation', () => {
       userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [FOLDER_A] },
     };
     queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
-    queryClient.setQueryData(folderKeys.list, seedFolderList);
+    queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList);
 
     const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
 
@@ -229,7 +229,7 @@ describe('useDeletePostMutation', () => {
 
     // invalidate로 서버 값이 오기 전, onMutate 낙관적 반영만으로 이미 감소해 있어야 한다
     await waitFor(() => {
-      const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+      const folders = queryClient.getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list);
       expect(folders?.folders.find((f) => f.id === FOLDER_A)?.bookmarkCount).toBe(1);
     });
 
@@ -242,7 +242,7 @@ describe('useDeletePostMutation', () => {
       userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [] },
     };
     queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
-    queryClient.setQueryData(folderKeys.list, seedFolderList);
+    queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList);
 
     const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
 
@@ -251,7 +251,7 @@ describe('useDeletePostMutation', () => {
     });
 
     await waitFor(() => {
-      const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+      const folders = queryClient.getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list);
       expect(folders?.uncategorizedCount).toBe(0);
     });
 
@@ -264,7 +264,7 @@ describe('useDeletePostMutation', () => {
       ...mockPost,
       userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [FOLDER_A] },
     };
-    const folderPostsKey = folderKeys.posts(FOLDER_A);
+    const folderPostsKey = bookmarkFolderKeys.posts(FOLDER_A);
     const folderPostsCache: { pages: PostListResponse[]; pageParams: number[] } = {
       pages: [
         {
@@ -279,7 +279,7 @@ describe('useDeletePostMutation', () => {
       pageParams: [0],
     };
     queryClient.setQueryData(folderPostsKey, folderPostsCache);
-    queryClient.setQueryData(folderKeys.list, seedFolderList);
+    queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList);
 
     const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
 
@@ -293,7 +293,7 @@ describe('useDeletePostMutation', () => {
       expect(cachedFolderPosts?.pages[0]?.totalElements).toBe(0);
     });
 
-    const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+    const folders = queryClient.getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list);
     expect(folders?.folders.find((f) => f.id === FOLDER_A)?.bookmarkCount).toBe(1);
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -314,7 +314,7 @@ describe('useDeletePostMutation', () => {
       userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [FOLDER_A] },
     };
     queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
-    queryClient.setQueryData(folderKeys.list, seedFolderList);
+    queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList);
 
     const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
 
@@ -324,7 +324,7 @@ describe('useDeletePostMutation', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 
-    const folders = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+    const folders = queryClient.getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list);
     expect(folders?.folders.find((f) => f.id === FOLDER_A)?.bookmarkCount).toBe(2);
   });
 });
