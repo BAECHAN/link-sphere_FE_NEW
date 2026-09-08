@@ -7,7 +7,7 @@ import {
   UpdateAccount,
 } from '@/shared/types/auth.type';
 import { API_ENDPOINTS } from '@/shared/config/api';
-import { uploadImageAndGetUrl } from '@/entities/upload/api/upload.api';
+import { uploadImageAndGetUrl } from '@/shared/lib/upload/uploadImageAndGetUrl';
 
 export const authApi = {
   /**
