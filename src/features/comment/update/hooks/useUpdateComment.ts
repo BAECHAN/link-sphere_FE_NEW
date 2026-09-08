@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useUpdateCommentMutation } from '@/entities/comment/api/comment.queries';
 import { Comment, commentContentFormSchema } from '@/entities/comment/model/comment.schema';
-import { estimateCommentPayloadBytes } from '@/entities/comment/model/estimateCommentPayloadBytes';
+import { estimateCommentPayloadBytes } from '@/entities/comment/utils/comment.util';
 import {
   MAX_COMMENT_IMAGES,
   MAX_COMMENT_CONTENT_BYTES,

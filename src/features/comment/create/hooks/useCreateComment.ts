@@ -6,7 +6,7 @@ import {
   useCreateReplyMutation,
 } from '@/entities/comment/api/comment.queries';
 import { commentContentFormSchema } from '@/entities/comment/model/comment.schema';
-import { estimateCommentPayloadBytes } from '@/entities/comment/model/estimateCommentPayloadBytes';
+import { estimateCommentPayloadBytes } from '@/entities/comment/utils/comment.util';
 import {
   MAX_COMMENT_IMAGES,
   MAX_COMMENT_CONTENT_BYTES,

@@ -178,7 +178,8 @@ src/
 │   │   └── config/                # const.ts (POST_PAGE_SIZE)
 │   ├── comment/
 │   │   ├── api/                  # comment.api.ts, comment.keys.ts, comment.queries.ts
-│   │   ├── model/                # comment.schema.ts, estimateCommentPayloadBytes.ts
+│   │   ├── model/                # comment.schema.ts
+│   │   ├── utils/                # comment.util.ts (estimateCommentPayloadBytes)
 │   │   └── config/                # const.ts (MAX_COMMENT_CONTENT_BYTES 외)
 │   ├── interaction/
 │   │   ├── api/                  # interaction.api.ts, interaction.queries.ts (keys.ts 없음 — post/comment/folder keys 직접 사용)
