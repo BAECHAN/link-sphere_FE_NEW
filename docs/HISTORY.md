@@ -1,4 +1,7 @@
 ### 2026-09-08 (FE)
+- 공통 스키마 및 타입 구조 최적화: `common.schema.ts`를 `entities/category`와 `shared/types`로 분리하여 모듈 의존성 개선 및 유지보수성 향상 (#38)
+
+### 2026-09-08 (FE)
 - 프로젝트 구조 개선 및 리팩토링 진행
   - `entities/upload` 모듈을 `shared` 계층으로 이동하여 아키텍처 의존성 재정립 (#37)
 
