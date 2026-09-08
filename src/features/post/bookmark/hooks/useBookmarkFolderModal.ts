@@ -3,11 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
-import { FolderPickerDialog } from '@/entities/bookmark/folder/ui/FolderPickerDialog';
 import type { Folder } from '@/entities/bookmark/folder/model/folder.schema';
 import { useBookmarkFolders } from '@/features/post/bookmark/hooks/useBookmarkFolders';
 
-interface FolderSelectorProps {
+interface UseBookmarkFolderModalParams {
   postId: string;
   isBookmarked: boolean;
   bookmarkFolderIds: string[];
@@ -16,17 +15,18 @@ interface FolderSelectorProps {
 }
 
 /**
- * 북마크 폴더 선택 UI — 즉시 저장(탭 = 바로 저장/제거 + 닫힘) 동작만 여기서 소유하고,
- * 실제 모달 마크업(행 구성·최근 구획·새 폴더 만들기)은 등록 폼의 BookmarkFolderPicker와
- * 공유하는 entities/folder/ui/FolderPickerDialog 가 담당한다.
+ * BookmarkFolderModal의 로직 전부 — 즉시 저장(탭 = 바로 저장/제거 + 닫힘) 동작, 토스트 문구
+ * 분기, '삭제하기' 버튼 깜빡임 방지 스냅샷을 소유한다. entities 뮤테이션을 감싸는
+ * useBookmarkFolders와는 층이 다르다 — 이 훅이 그걸 호출해 토스트·닫기 같은 모달 UI의
+ * 관심사를 덧붙인다.
  */
-export function FolderSelector({
+export function useBookmarkFolderModal({
   postId,
   isBookmarked,
   bookmarkFolderIds,
   open,
   onOpenChange,
-}: FolderSelectorProps) {
+}: UseBookmarkFolderModalParams) {
   const navigate = useNavigate();
   const { selectUncategorized, selectFolder, removeBookmark } = useBookmarkFolders(
     postId,
@@ -34,7 +34,7 @@ export function FolderSelector({
     bookmarkFolderIds
   );
 
-  // 셀렉터를 연 시점의 북마크 여부를 고정한다. 저장 중 낙관적 갱신으로 isBookmarked가
+  // 모달을 연 시점의 북마크 여부를 고정한다. 저장 중 낙관적 갱신으로 isBookmarked가
   // true로 바뀌어도, 닫힘 애니메이션 동안 '삭제하기' 버튼이 깜빡이지 않도록 방지한다.
   const [wasBookmarkedOnOpen, setWasBookmarkedOnOpen] = useState(isBookmarked);
   useEffect(
@@ -117,20 +117,10 @@ export function FolderSelector({
     }
   };
 
-  return (
-    <FolderPickerDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      description={TEXTS.bookmark.folder.selectorDescription}
-      isBookmarked={isBookmarked}
-      selectedFolderIds={bookmarkFolderIds}
-      onSelectUncategorized={handleSelectUncategorized}
-      onSelectFolder={handleSelectFolder}
-      dangerAction={
-        wasBookmarkedOnOpen
-          ? { label: TEXTS.bookmark.folder.removeBookmark, onClick: handleRemove }
-          : undefined
-      }
-    />
-  );
+  return {
+    wasBookmarkedOnOpen,
+    handleSelectUncategorized,
+    handleSelectFolder,
+    handleRemove,
+  };
 }
