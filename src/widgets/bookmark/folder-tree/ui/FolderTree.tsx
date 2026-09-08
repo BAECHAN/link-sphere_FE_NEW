@@ -14,7 +14,7 @@ import {
   BookmarkFolder,
   BookmarkFolderKey,
   BookmarkFolderSort,
-} from '@/entities/bookmark/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import {
   useCreateFolderInput,
   useFolderChips,
@@ -33,7 +33,7 @@ interface FolderTreeProps {
 
 /** 데스크탑 — 좌측 사이드바 트리 */
 export function FolderTree({ selectedKey, onSelect, sort, search, className }: FolderTreeProps) {
-  const { folderList, uncategorizedCount, recentFolders, isLoading, prefetchFolder } =
+  const { folderList, uncategorizedCount, recentFolderList, isLoading, prefetchFolder } =
     useFolderTree(sort, search);
 
   return (
@@ -57,12 +57,12 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
       <div className="my-1 border-t" />
 
       {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 */}
-      {recentFolders.length > 0 && (
+      {recentFolderList.length > 0 && (
         <>
           <div className="px-3 pt-1 pb-1 text-xs font-semibold text-muted-foreground">
             {TEXTS.bookmark.folder.recentSection}
           </div>
-          {recentFolders.map((folder) => (
+          {recentFolderList.map((folder) => (
             <FolderItem
               key={`recent-${folder.id}`}
               folder={folder}

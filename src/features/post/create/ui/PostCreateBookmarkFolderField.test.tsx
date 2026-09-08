@@ -9,7 +9,7 @@ import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { TEXTS } from '@/shared/config/texts';
 import { PostCreateBookmarkFolderField } from '@/features/post/create/ui/PostCreateBookmarkFolderField';
 import type { CreatePost } from '@/entities/post/model/post.schema';
-import type { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/folder.schema';
+import type { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
 // PostCreateBookmarkFolderField는 공통 프레젠테이션(entities/bookmark/folder/ui/BookmarkFolderSelectModal)에 얇게
 // 위임하므로, 아래 케이스들은 BookmarkFolderSelectModal의 행 렌더링·최근 구획도 함께 검증한다.

@@ -11,7 +11,7 @@ import {
   useBookmarkFolderSelect,
   UNCATEGORIZED_PENDING_KEY,
 } from '@/entities/bookmark/folder/hooks/useBookmarkFolderSelect';
-import type { BookmarkFolder } from '@/entities/bookmark/folder/model/folder.schema';
+import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
 interface BookmarkFolderSelectModalProps {
   open: boolean;
@@ -52,7 +52,7 @@ export function BookmarkFolderSelectModal({
     isLoading,
     folderList,
     uncategorizedCount,
-    recentFolders,
+    recentFolderList,
     isUncategorizedSelected,
     pendingKey,
     creatingMode,
@@ -110,12 +110,12 @@ export function BookmarkFolderSelectModal({
               />
 
               {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 */}
-              {recentFolders.length > 0 && (
+              {recentFolderList.length > 0 && (
                 <>
                   <li className="px-4 pt-3 pb-1 text-xs font-semibold text-muted-foreground border-t">
                     {TEXTS.bookmark.folder.recentSection}
                   </li>
-                  {recentFolders.map((folder) => (
+                  {recentFolderList.map((folder) => (
                     <FolderRow
                       key={`recent-${folder.id}`}
                       icon={<Bookmark className="h-4 w-4" />}

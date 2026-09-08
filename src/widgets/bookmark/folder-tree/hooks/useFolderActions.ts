@@ -5,8 +5,8 @@ import { TEXTS } from '@/shared/config/texts';
 import {
   useDeleteBookmarkFolderMutation,
   useUpdateBookmarkFolderMutation,
-} from '@/entities/bookmark/folder/api/folder.queries';
-import { BookmarkFolder } from '@/entities/bookmark/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/api/bookmark-folder.queries';
+import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
 interface UseFolderActionsParams {
   folder: BookmarkFolder;

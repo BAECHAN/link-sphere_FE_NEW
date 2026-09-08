@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useController, useFormContext } from 'react-hook-form';
 import { TEXTS } from '@/shared/config/texts';
-import { useBookmarkFolderListQuery } from '@/entities/bookmark/folder/api/folder.queries';
-import type { BookmarkFolder } from '@/entities/bookmark/folder/model/folder.schema';
+import { useBookmarkFolderListQuery } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
+import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import type { CreatePost } from '@/entities/post/model/post.schema';
 
 /**

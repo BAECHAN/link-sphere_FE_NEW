@@ -1,5 +1,5 @@
-import { useBookmarkFolderListQuery } from '@/entities/bookmark/folder/api/folder.queries';
-import { useRecentBookmarkFolders } from '@/entities/bookmark/folder/hooks/useRecentFolders';
+import { useBookmarkFolderListQuery } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
+import { useRecentBookmarkFolders } from '@/entities/bookmark/folder/hooks/useRecentBookmarkFolders';
 
 /**
  * 폴더 목록 조회 + "최근 저장한 폴더" 스냅샷을 함께 제공하는 훅.
@@ -10,12 +10,12 @@ export const useFolderSections = () => {
   const folderList = data?.folders;
   const uncategorizedCount = data ? (data.uncategorizedCount ?? 0) : undefined;
   // 상단 "최근 저장한 폴더" 구획 — 페이지 방문(마운트) 동안 1회 스냅샷, 그 뒤로는 고정
-  const { recentFolders } = useRecentBookmarkFolders(folderList ?? [], isFetching);
+  const { recentFolderList } = useRecentBookmarkFolders(folderList ?? [], isFetching);
 
   return {
     folderList,
     uncategorizedCount,
-    recentFolders,
+    recentFolderList,
     isLoading,
   };
 };

@@ -2,19 +2,19 @@ import { KeyboardEvent, useState } from 'react';
 import {
   prefetchBookmarkFolderPosts,
   useBookmarkFolderListQuery,
-} from '@/entities/bookmark/folder/api/folder.queries';
+} from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import {
   BookmarkFolder,
   BookmarkFolderKey,
   BookmarkFolderSort,
-} from '@/entities/bookmark/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { useFolderSections } from '@/widgets/bookmark/folder-tree/hooks/useFolderSections';
 import { useFolderActions } from '@/widgets/bookmark/folder-tree/hooks/useFolderActions';
 import { useCreateFolderForm } from '@/widgets/bookmark/folder-tree/hooks/useCreateFolderForm';
 
 /** FolderTree(데스크탑 사이드바) 루트 */
 export const useFolderTree = (sort?: BookmarkFolderSort, search?: string) => {
-  const { folderList, uncategorizedCount, recentFolders, isLoading } = useFolderSections();
+  const { folderList, uncategorizedCount, recentFolderList, isLoading } = useFolderSections();
 
   const prefetchFolder = (folderKey: BookmarkFolderKey) => {
     prefetchBookmarkFolderPosts(folderKey, sort, search);
@@ -23,7 +23,7 @@ export const useFolderTree = (sort?: BookmarkFolderSort, search?: string) => {
   return {
     folderList,
     uncategorizedCount,
-    recentFolders,
+    recentFolderList,
     isLoading,
     prefetchFolder,
   };

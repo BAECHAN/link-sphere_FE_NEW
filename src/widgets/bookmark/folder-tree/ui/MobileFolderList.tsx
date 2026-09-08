@@ -18,7 +18,10 @@ import {
 } from '@/shared/ui/atoms/dropdown-menu';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
-import { BookmarkFolder, BookmarkFolderKey } from '@/entities/bookmark/folder/model/folder.schema';
+import {
+  BookmarkFolder,
+  BookmarkFolderKey,
+} from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { useFolderActions } from '@/widgets/bookmark/folder-tree/hooks/useFolderActions';
 import {
   useCreateFolderCard,
@@ -32,7 +35,7 @@ interface MobileFolderListProps {
 
 /** 모바일 — 폴더 목록 페이지 (drill-down 패턴) */
 export function MobileFolderList({ onSelect, className }: MobileFolderListProps) {
-  const { folderList, uncategorizedCount, recentFolders, isLoading } = useMobileFolderList();
+  const { folderList, uncategorizedCount, recentFolderList, isLoading } = useMobileFolderList();
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -53,13 +56,13 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
       </section>
 
       {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 그리드에서 빼지 않고 그대로 중복 표시한다 */}
-      {recentFolders.length > 0 && (
+      {recentFolderList.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold text-muted-foreground px-1">
             {TEXTS.bookmark.folder.recentSection}
           </h2>
           <div className="grid grid-cols-2 gap-3">
-            {recentFolders.map((folder) => (
+            {recentFolderList.map((folder) => (
               <FolderCard key={`recent-${folder.id}`} folder={folder} onSelect={onSelect} />
             ))}
           </div>
