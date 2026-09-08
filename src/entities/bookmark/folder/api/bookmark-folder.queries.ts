@@ -1,5 +1,11 @@
-import { InfiniteData, useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
+import {
+  InfiniteData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
 import { bookmarkFolderApi } from '@/entities/bookmark/folder/api/bookmark-folder.api';
 import {
   bookmarkFolderInvalidateQueries,
@@ -68,6 +74,7 @@ export const useBookmarkFolderPostsInfiniteQuery = (
 
 /** hover 시 폴더 게시글 첫 페이지 미리 로드 — useBookmarkFolderPostsInfiniteQuery 와 동일 키/queryFn */
 export const prefetchBookmarkFolderPosts = (
+  queryClient: QueryClient,
   folderKey: BookmarkFolderKey,
   sort?: BookmarkFolderSort,
   search?: string
@@ -90,18 +97,22 @@ export const prefetchBookmarkFolderPosts = (
 // ==================== Mutations ====================
 
 export const useCreateBookmarkFolderMutation = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.create,
     mutationFn: (payload: CreateBookmarkFolderRequest) =>
       bookmarkFolderApi.createBookmarkFolder(payload),
     meta: { manualErrorHandling: true },
     onSuccess: () => {
-      handleBookmarkFolderCreateSuccess();
+      handleBookmarkFolderCreateSuccess(queryClient);
     },
   });
 };
 
 export const useUpdateBookmarkFolderMutation = (folderId: string) => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.update(folderId),
     mutationFn: (payload: UpdateBookmarkFolderRequest) =>
@@ -128,23 +139,27 @@ export const useUpdateBookmarkFolderMutation = (folderId: string) => {
       }
     },
     onSuccess: () => {
-      handleBookmarkFolderUpdateSuccess();
+      handleBookmarkFolderUpdateSuccess(queryClient);
     },
   });
 };
 
 export const useDeleteBookmarkFolderMutation = (folderId: string) => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.delete(folderId),
     mutationFn: () => bookmarkFolderApi.deleteBookmarkFolder(folderId),
     meta: { manualErrorHandling: true },
     onSuccess: () => {
-      handleBookmarkFolderDeleteSuccess();
+      handleBookmarkFolderDeleteSuccess(queryClient);
     },
   });
 };
 
 export const useReorderBookmarkFoldersMutation = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.reorder,
     mutationFn: (payload: ReorderBookmarkFoldersRequest) =>
@@ -176,7 +191,7 @@ export const useReorderBookmarkFoldersMutation = () => {
       }
     },
     onSuccess: () => {
-      handleBookmarkFolderReorderSuccess();
+      handleBookmarkFolderReorderSuccess(queryClient);
     },
   });
 };
@@ -187,7 +202,10 @@ export const useReorderBookmarkFoldersMutation = () => {
  * post.detail 캐시에 없으면(북마크 화면 등에서 상세를 연 적이 없는 경우) 현재 열려있는
  * 폴더별 게시글 캐시에서 이 글을 찾아 현재 북마크 상태를 읽는다. 둘 다 없으면 기본값.
  */
-function resolveCurrentBookmarkState(postId: string): {
+function resolveCurrentBookmarkState(
+  queryClient: QueryClient,
+  postId: string
+): {
   isBookmarked: boolean;
   folderIds: string[];
 } {
@@ -221,7 +239,11 @@ interface PostBookmarkPatch {
  * post.detail + 모든 post.list(infinite) 페이지에서 이 글의 userInteractions/stats 를 패치한다.
  * 반환값은 post.detail 의 이전 상태 — onError 롤백용.
  */
-function patchPostBookmarkCaches(postId: string, patch: PostBookmarkPatch): Post | undefined {
+function patchPostBookmarkCaches(
+  queryClient: QueryClient,
+  postId: string,
+  patch: PostBookmarkPatch
+): Post | undefined {
   const applyPatch = (post: Post): Post => ({
     ...post,
     userInteractions: {
@@ -260,7 +282,11 @@ function patchPostBookmarkCaches(postId: string, patch: PostBookmarkPatch): Post
 }
 
 /** 특정 folderKey 의 모든 정렬/검색 캐시에서 postId 카드를 즉시 제거한다 (삽입은 하지 않음 — 위치를 모르므로). */
-function removePostFromFolderPostsCache(folderKey: BookmarkFolderKey, postId: string) {
+function removePostFromFolderPostsCache(
+  queryClient: QueryClient,
+  folderKey: BookmarkFolderKey,
+  postId: string
+) {
   queryClient.setQueriesData<InfiniteData<PostListResponse>>(
     { queryKey: [...bookmarkFolderKeys.postsRoot, folderKey] },
     (oldData) => {
@@ -285,7 +311,7 @@ function removePostFromFolderPostsCache(folderKey: BookmarkFolderKey, postId: st
   );
 }
 
-async function cancelBookmarkFolderQueries(postId: string) {
+async function cancelBookmarkFolderQueries(queryClient: QueryClient, postId: string) {
   await queryClient.cancelQueries({ queryKey: postKeys.detail(postId) });
   await queryClient.cancelQueries({ queryKey: postKeys.listRoot });
   await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.list });
@@ -299,6 +325,7 @@ interface BookmarkFolderMutationContext {
 
 /** post.list 는 스냅샷을 보존하지 않고 무효화로 복구한다 (롤백 데이터 보존 비용 회피) — 기존 관례와 동일. */
 function rollbackBookmarkFolderMutation(
+  queryClient: QueryClient,
   postId: string,
   context: BookmarkFolderMutationContext | undefined
 ) {
@@ -308,8 +335,8 @@ function rollbackBookmarkFolderMutation(
   if (context?.previousFolderList) {
     queryClient.setQueryData(bookmarkFolderKeys.list, context.previousFolderList);
   }
-  bookmarkFolderInvalidateQueries.postsRoot();
-  postInvalidateQueries.list();
+  bookmarkFolderInvalidateQueries.postsRoot(queryClient);
+  postInvalidateQueries.list(queryClient);
 }
 
 /**
@@ -322,16 +349,20 @@ function rollbackBookmarkFolderMutation(
  *   않는다 — sort=title/views/관련도 정렬에서 위치를 알 수 없어서. 등장은 성공 후 postsRoot 무효화가 처리.
  */
 export const useAddBookmarkFolderMutation = (postId: string) => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.addBookmarkFolder(postId),
     mutationFn: (folderId: string) => bookmarkFolderApi.addBookmarkFolder(postId, folderId),
     meta: { manualErrorHandling: true },
 
     onMutate: async (folderId): Promise<BookmarkFolderMutationContext> => {
-      await cancelBookmarkFolderQueries(postId);
+      await cancelBookmarkFolderQueries(queryClient, postId);
 
-      const { isBookmarked: wasBookmarked, folderIds: prevIds } =
-        resolveCurrentBookmarkState(postId);
+      const { isBookmarked: wasBookmarked, folderIds: prevIds } = resolveCurrentBookmarkState(
+        queryClient,
+        postId
+      );
       const alreadyInFolder = prevIds.includes(folderId);
       const leavesUncategorized = wasBookmarked && prevIds.length === 0;
 
@@ -339,7 +370,7 @@ export const useAddBookmarkFolderMutation = (postId: string) => {
         bookmarkFolderKeys.list
       );
 
-      const previousPost = patchPostBookmarkCaches(postId, {
+      const previousPost = patchPostBookmarkCaches(queryClient, postId, {
         isBookmarked: true,
         folderIds: alreadyInFolder ? prevIds : [...prevIds, folderId],
         bookmarkCountDelta: wasBookmarked ? 0 : 1,
@@ -359,18 +390,18 @@ export const useAddBookmarkFolderMutation = (postId: string) => {
       }
 
       if (leavesUncategorized) {
-        removePostFromFolderPostsCache('uncategorized', postId);
+        removePostFromFolderPostsCache(queryClient, 'uncategorized', postId);
       }
 
       return { previousPost, previousFolderList };
     },
 
     onError: (_err, _folderId, context) => {
-      rollbackBookmarkFolderMutation(postId, context);
+      rollbackBookmarkFolderMutation(queryClient, postId, context);
     },
 
     onSuccess: () => {
-      handleBookmarkFolderChangeSuccess(postId);
+      handleBookmarkFolderChangeSuccess(queryClient, postId);
     },
   });
 };
@@ -384,22 +415,24 @@ export const useAddBookmarkFolderMutation = (postId: string) => {
  * - folder.posts: 그 폴더 캐시에서만 카드 제거 (전체 캐시는 그대로 — 여전히 북마크 상태이므로)
  */
 export const useRemoveBookmarkFolderMutation = (postId: string) => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.removeBookmarkFolder(postId),
     mutationFn: (folderId: string) => bookmarkFolderApi.removeBookmarkFolder(postId, folderId),
     meta: { manualErrorHandling: true },
 
     onMutate: async (folderId): Promise<BookmarkFolderMutationContext> => {
-      await cancelBookmarkFolderQueries(postId);
+      await cancelBookmarkFolderQueries(queryClient, postId);
 
-      const { folderIds: prevIds } = resolveCurrentBookmarkState(postId);
+      const { folderIds: prevIds } = resolveCurrentBookmarkState(queryClient, postId);
       const wasLastFolder = prevIds.length === 1 && prevIds[0] === folderId;
 
       const previousFolderList = queryClient.getQueryData<BookmarkFolderListResponse>(
         bookmarkFolderKeys.list
       );
 
-      const previousPost = patchPostBookmarkCaches(postId, {
+      const previousPost = patchPostBookmarkCaches(queryClient, postId, {
         folderIds: prevIds.filter((id) => id !== folderId),
       });
 
@@ -413,17 +446,17 @@ export const useRemoveBookmarkFolderMutation = (postId: string) => {
         });
       }
 
-      removePostFromFolderPostsCache(folderId, postId);
+      removePostFromFolderPostsCache(queryClient, folderId, postId);
 
       return { previousPost, previousFolderList };
     },
 
     onError: (_err, _folderId, context) => {
-      rollbackBookmarkFolderMutation(postId, context);
+      rollbackBookmarkFolderMutation(queryClient, postId, context);
     },
 
     onSuccess: () => {
-      handleBookmarkFolderChangeSuccess(postId);
+      handleBookmarkFolderChangeSuccess(queryClient, postId);
     },
   });
 };
@@ -437,21 +470,23 @@ export const useRemoveBookmarkFolderMutation = (postId: string) => {
  * - folder.posts: 이전에 속해있던 모든 폴더 캐시에서 카드 제거
  */
 export const useClearBookmarkFoldersMutation = (postId: string) => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.clearBookmarkFolders(postId),
     mutationFn: () => bookmarkFolderApi.clearBookmarkFolders(postId),
     meta: { manualErrorHandling: true },
 
     onMutate: async (): Promise<BookmarkFolderMutationContext> => {
-      await cancelBookmarkFolderQueries(postId);
+      await cancelBookmarkFolderQueries(queryClient, postId);
 
-      const { folderIds: prevIds } = resolveCurrentBookmarkState(postId);
+      const { folderIds: prevIds } = resolveCurrentBookmarkState(queryClient, postId);
 
       const previousFolderList = queryClient.getQueryData<BookmarkFolderListResponse>(
         bookmarkFolderKeys.list
       );
 
-      const previousPost = patchPostBookmarkCaches(postId, { folderIds: [] });
+      const previousPost = patchPostBookmarkCaches(queryClient, postId, { folderIds: [] });
 
       if (previousFolderList && prevIds.length > 0) {
         const prevIdSet = new Set(prevIds);
@@ -464,17 +499,17 @@ export const useClearBookmarkFoldersMutation = (postId: string) => {
         });
       }
 
-      prevIds.forEach((folderId) => removePostFromFolderPostsCache(folderId, postId));
+      prevIds.forEach((folderId) => removePostFromFolderPostsCache(queryClient, folderId, postId));
 
       return { previousPost, previousFolderList };
     },
 
     onError: (_err, _variables, context) => {
-      rollbackBookmarkFolderMutation(postId, context);
+      rollbackBookmarkFolderMutation(queryClient, postId, context);
     },
 
     onSuccess: () => {
-      handleBookmarkFolderChangeSuccess(postId);
+      handleBookmarkFolderChangeSuccess(queryClient, postId);
     },
   });
 };

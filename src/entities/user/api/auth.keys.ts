@@ -1,4 +1,4 @@
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
+import type { QueryClient } from '@tanstack/react-query';
 import { postInvalidateQueries } from '@/entities/post/api/post.keys';
 import { commentInvalidateQueries } from '@/entities/comment/api/comment.keys';
 import { bookmarkFolderInvalidateQueries } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
@@ -13,7 +13,7 @@ export const authMutationKeys = {
 };
 
 export const authInvalidateQueries = {
-  all: () => {
+  all: (queryClient: QueryClient) => {
     queryClient.invalidateQueries({ queryKey: authKeys.root() });
   },
 };
@@ -24,10 +24,10 @@ export const authInvalidateQueries = {
  * account는 mutation의 onMutate/onSuccess가 낙관적으로 캐시를 직접 쓰므로 여기서 invalidate하지
  * 않는다 (handleCommentCreateSuccess와 동일한 이유: 이미 쓴 값을 지우고 GET을 한 번 더 태우게 된다).
  */
-export const handleAccountUpdateSuccess = () => {
-  postInvalidateQueries.all(); // 목록 + 상세의 author
-  commentInvalidateQueries.all(); // 모든 게시글의 댓글 author
-  bookmarkFolderInvalidateQueries.postsRoot(); // 폴더별 게시글 카드의 author
+export const handleAccountUpdateSuccess = (queryClient: QueryClient) => {
+  postInvalidateQueries.all(queryClient); // 목록 + 상세의 author
+  commentInvalidateQueries.all(queryClient); // 모든 게시글의 댓글 author
+  bookmarkFolderInvalidateQueries.postsRoot(queryClient); // 폴더별 게시글 카드의 author
 };
 
 /**
@@ -35,6 +35,6 @@ export const handleAccountUpdateSuccess = () => {
  * 복원 전에 비로그인 상태로 이미 나간 공개 목록 요청이 있을 수 있으므로,
  * 복원된 인증 상태로 다시 가져오도록 무효화한다.
  */
-export const handleAuthRestoreSuccess = () => {
-  postInvalidateQueries.list();
+export const handleAuthRestoreSuccess = (queryClient: QueryClient) => {
+  postInvalidateQueries.list(queryClient);
 };

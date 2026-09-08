@@ -2,16 +2,16 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { createElement, type ReactNode } from 'react';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createTestQueryClient } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { useCreateFolderForm } from '@/widgets/bookmark/folder-tree/hooks/useCreateFolderForm';
 
-// useUpdateFolderMutation 등 형제 mutation이 싱글톤 queryClient를 직접 조작하므로
-// (folder.queries.test.ts 선례) 이 파일도 같은 인스턴스를 provider로 쓴다.
+let queryClient: QueryClient;
+
 function Wrapper({ children }: { children: ReactNode }) {
   return createElement(QueryClientProvider, { client: queryClient }, children);
 }
@@ -21,11 +21,10 @@ function Wrapper({ children }: { children: ReactNode }) {
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
 beforeEach(() => {
-  queryClient.clear();
+  queryClient = createTestQueryClient();
 });
 
 afterEach(() => {
-  queryClient.clear();
   vi.restoreAllMocks();
 });
 

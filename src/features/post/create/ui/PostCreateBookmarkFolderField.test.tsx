@@ -1,11 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { renderWithProviders, userEvent } from '@/test/utils';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { TEXTS } from '@/shared/config/texts';
 import { PostCreateBookmarkFolderField } from '@/features/post/create/ui/PostCreateBookmarkFolderField';
 import type { CreatePost } from '@/entities/post/model/post.schema';
@@ -64,7 +63,7 @@ function Harness() {
 }
 
 function renderField() {
-  return renderWithProviders(<Harness />, { wrapperOptions: { queryClient } });
+  return renderWithProviders(<Harness />);
 }
 
 // 트리거 버튼도 선택된 폴더/미분류와 같은 텍스트를 표시하므로, 다이얼로그 안의 행만 좁혀서 조회한다.
@@ -73,7 +72,6 @@ function dialog() {
 }
 
 beforeEach(() => {
-  queryClient.clear();
   vi.clearAllMocks();
   server.use(
     http.get(url(API_ENDPOINTS.bookmark.folders), () =>
@@ -83,10 +81,6 @@ beforeEach(() => {
       )
     )
   );
-});
-
-afterEach(() => {
-  queryClient.clear();
 });
 
 describe('PostCreateBookmarkFolderField', () => {

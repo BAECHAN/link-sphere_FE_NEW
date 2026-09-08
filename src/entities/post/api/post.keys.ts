@@ -1,4 +1,4 @@
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
+import type { QueryClient } from '@tanstack/react-query';
 import { Post } from '@/entities/post/model/post.schema';
 
 const rootKey = ['post'] as const;
@@ -19,22 +19,22 @@ export const postKeys = {
 };
 
 export const postInvalidateQueries = {
-  all: () => {
+  all: (queryClient: QueryClient) => {
     queryClient.invalidateQueries({ queryKey: rootKey });
   },
-  list: () => {
+  list: (queryClient: QueryClient) => {
     queryClient.invalidateQueries({ queryKey: postKeys.listRoot });
   },
-  detail: (postId: Post['id']) => {
+  detail: (queryClient: QueryClient, postId: Post['id']) => {
     queryClient.invalidateQueries({ queryKey: postKeys.detail(postId) });
   },
 };
 
-export const handlePostCreateSuccess = () => {
-  postInvalidateQueries.list();
+export const handlePostCreateSuccess = (queryClient: QueryClient) => {
+  postInvalidateQueries.list(queryClient);
 };
 
-export const handlePostUpdateSuccess = (postId: Post['id']) => {
-  postInvalidateQueries.detail(postId);
-  postInvalidateQueries.list();
+export const handlePostUpdateSuccess = (queryClient: QueryClient, postId: Post['id']) => {
+  postInvalidateQueries.detail(queryClient, postId);
+  postInvalidateQueries.list(queryClient);
 };

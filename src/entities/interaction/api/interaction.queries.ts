@@ -1,6 +1,5 @@
-import { useMutation, InfiniteData } from '@tanstack/react-query';
+import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { interactionApi } from '@/entities/interaction/api/interaction.api';
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { commentKeys } from '@/entities/comment/api/comment.keys';
 import {
@@ -12,6 +11,8 @@ import { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/boo
 import { Comment } from '@/entities/comment/model/comment.schema';
 
 export const useLikePostMutation = (postId: Post['id']) => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: () => interactionApi.toggleLikePost(postId),
     meta: { manualErrorHandling: true },
@@ -80,6 +81,8 @@ export const useLikePostMutation = (postId: Post['id']) => {
 };
 
 export const useBookmarkPostMutation = (postId: Post['id']) => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: () => interactionApi.toggleBookmarkPost(postId),
     meta: { manualErrorHandling: true },
@@ -219,7 +222,7 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
       return { previousPost, previousFolderPosts, previousFolderList };
     },
     onSuccess: () => {
-      handleBookmarkToggleSuccess();
+      handleBookmarkToggleSuccess(queryClient);
     },
     onError: (_err, _variables, context) => {
       if (context?.previousPost) {
@@ -236,6 +239,8 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
 };
 
 export const useLikeCommentMutation = (commentId: Comment['id'], postId: Post['id']) => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: () => interactionApi.toggleLikeComment(commentId),
     meta: { manualErrorHandling: true },

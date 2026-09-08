@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/entities/user/hooks/useAuth';
 import { useAuthStore, hasStoredSession } from '@/shared/store/auth.store';
 import { TEXTS } from '@/shared/config/texts';
@@ -30,6 +31,7 @@ export const useAppInitialization = () => {
   const { restoreAuth, accessToken } = useAuth();
   const setAuthResolved = useAuthStore((state) => state.setAuthResolved);
   const hasInitialized = useRef(false);
+  const queryClient = useQueryClient();
 
   useEffect(function restoreSessionOnMount() {
     // 중복 실행 방지
@@ -48,7 +50,7 @@ export const useAppInitialization = () => {
         if (!accessToken && hasStoredSession()) {
           const restored = await restoreAuth();
           if (restored) {
-            handleAuthRestoreSuccess();
+            handleAuthRestoreSuccess(queryClient);
           }
         }
       } catch (error) {

@@ -31,7 +31,7 @@ API)를 성능을 이유로 정반대로 채택**하고, 그 위에 도메인 �
 | 도메인 우선 슬라이스 그룹핑           | FSD의 "slice group"을 필수 규칙화 | `features/<도메인>/<액션>/`, `widgets/<도메인>/<슬라이스>/` 처럼 한 단계 더 묶음                | `features/post/create/`, `widgets/post/post-card/`            |
 | 3-Layer API 분리                      | 이 레포 자체 규약                 | `*.api.ts`(순수 fetch) → `*.keys.ts`(쿼리 키+무효화) → `*.queries.ts`(React Query 훅) 3단 분리  | `entities/post/api/{post.api,post.keys,post.queries}.ts`      |
 | Query Key Factory + 중앙 invalidation | TanStack Query 커뮤니티 패턴      | `<entity>Keys`·`<entity>InvalidateQueries`·`handle<Entity><Action>Success`로 캐시 무효화 캡슐화 | §5 참고                                                       |
-| Container/Presentational (headless)   | 고전 React 패턴                   | `hooks/`에 폼·mutation·상태 전부, `ui/`는 JSX만                                                 | §6·§7, ESLint `custom-ui-rules/no-direct-query-import`        |
+| Container/Presentational (headless)   | 고전 React 패턴                   | `hooks/`에 폼·mutation·상태 전부, `ui/`는 JSX만                                                 | §6·§7, ESLint `custom-query-rules/no-direct-query-import`     |
 | Schema-first (Zod as SSOT)            | schema-first 설계                 | `z.infer`로 타입을 스키마에서 파생 — 런타임 검증과 타입을 한 소스로 유지                        | `entities/*/model/*.schema.ts`                                |
 | Atomic Design 변형                    | atoms/molecules 개념              | `shared/ui/atoms`(shadcn 원자) / `elements`(조합) / `layouts` 3단 분류                          | `src/shared/ui/{atoms,elements,layouts}`                      |
 | 횡단 관심사 중앙화                    | React Query `meta` 옵션 활용      | 토스트·401 리다이렉트·403 처리를 `mutationCache`/`queryCache` 한 곳에서 처리                    | `src/shared/lib/react-query/config/queryClient.ts`            |
@@ -43,7 +43,7 @@ API)를 성능을 이유로 정반대로 채택**하고, 그 위에 도메인 �
 | ----------------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 레이어 6종 + 하향 의존만 허용                                     | ✅ 채택                                 | FSD 원칙 그대로                                                                                                                                                                                                                                                                                                                                   | ESLint `no-restricted-imports` 5블록 (`eslint.config.js`)                                                                                                                                                |
 | Public API — 슬라이스는 `index.ts` 배럴로만 외부에 노출           | ❌ **정반대로 채택** (배럴 자체를 금지) | dev 서버 부팅 15-70%·빌드 28%·콜드스타트 40% 지연이라는 성능 트레이드오프 때문에 의도적으로 뒤집음(수치 출처 미상 — 2026-09-08 확인, 이 레포에서 직접 측정하거나 외부 출처를 링크한 기록 없음. 재검증 전까지 참고용으로만 취급할 것)                                                                                                              | ESLint `custom-barrel-rules/no-barrel-import` (`eslint.config.js`) — import 문자열이 `/index`로 끝날 때 에러(디렉터리 암묵 해석은 예외 — `@/mocks/handlers`처럼 실제로 쓰인다)                           |
-| 동일 레이어 슬라이스 격리 (entities는 `@x` 표기로 교차 참조 허용) | ❌ 미채택, 미강제                       | 별도 표기 없이 상시 교차 참조 발생                                                                                                                                                                                                                                                                                                                | 없음 — `entities/post/model/post.schema.ts:105-106`이 comment·interaction 스키마를 `export *`로 재수출, `entities/interaction/api/interaction.queries.ts:4-6`이 post·comment·folder의 keys를 직접 import |
+| 동일 레이어 슬라이스 격리 (entities는 `@x` 표기로 교차 참조 허용) | ❌ 미채택, 미강제                       | 별도 표기 없이 상시 교차 참조 발생                                                                                                                                                                                                                                                                                                                | 없음 — `entities/post/model/post.schema.ts:105-106`이 comment·interaction 스키마를 `export *`로 재수출, `entities/interaction/api/interaction.queries.ts:3-8`이 post·comment·folder의 keys를 직접 import |
 | 세그먼트는 목적 기준 명명 (`ui`/`api`/`model`/`lib`/`config`)     | ⚠️ 부분 채택                            | `hooks/`·`utils/`를 세그먼트로도 쓴다(`features/*/hooks/`, `widgets/post/post-list/utils/`, 2026-09-08부터 `entities/*/hooks/`·`entities/*/utils/`도) — 정식 FSD 세그먼트명은 아니지만 레이어 전체에서 일관되게 쓰인다. `entities`의 `model/`은 스키마·타입 전용으로 좁혔다(2026-09-08, 근거는 `.claude/CLAUDE.md` "레이어별 허용 세그먼트" 참고) | `.claude/CLAUDE.md`의 "레이어별 허용 세그먼트" 표 (문서 규칙, ESLint 미강제)                                                                                                                             |
 | 슬라이스 그룹 폴더 허용 (그룹 폴더 자체엔 공유 코드 금지)         | ✅ 채택                                 | 그룹 폴더(`features/post/`, `widgets/layout/` 등)에는 파일이 없고 슬라이스만 있음                                                                                                                                                                                                                                                                 | —                                                                                                                                                                                                        |
 
@@ -92,17 +92,18 @@ flowchart TD
 줄 번호는 리팩터링 때마다 바뀌므로 규칙명으로만 가리킨다 — 정확한 위치는
 `grep -n "<규칙명>" eslint.config.js`로 직접 찾는다.
 
-| 규칙                                              | 무엇을 막나                                                                          |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `custom-barrel-rules/no-barrel-import`            | `/index`로 끝나는 import (배럴 금지)                                                 |
-| `custom-ui-rules/no-direct-query-import`          | `**/ui/**`에서 `@tanstack/react-query` 직접 import — Container/Presentational 강제   |
-| `custom-i18n/no-hardcoded-hangul`                 | 한글 UI 문자열 하드코딩 — `TEXTS`만 허용                                             |
-| `custom-import/no-sonner-toast-direct-import`     | `sonner` 직접 import — `@/shared/lib/toast/toast` 경유 강제                          |
-| `custom-import/no-relative-import-except-styles`  | 상대 경로 import(`../`) 금지, `.styles.ts` 파일만 예외                               |
-| `no-restricted-syntax` (Zustand)                  | 컴포넌트/훅 내부에서 스토어 `getState()` 직접 호출 금지 — 셀렉터 훅 사용 강제        |
-| 파일명 규칙                                       | `*.api.ts`·`*.queries.ts`·`*.schema.ts`·`config/`·`utils/` 등 세그먼트별 파일명 패턴 |
-| `custom-a11y/clickable-needs-interactive-element` | `div`/`span`에 `onClick`만 달기 — `role="button"` 없이는 금지                        |
-| `curly` (`['error', 'all']`)                      | 인라인 `if`문 (`if (x) return;`) — 항상 중괄호 블록 강제                             |
+| 규칙                                                  | 무엇을 막나                                                                                                   |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `custom-barrel-rules/no-barrel-import`                | `/index`로 끝나는 import (배럴 금지)                                                                          |
+| `custom-query-rules/no-direct-query-import`           | `@tanstack/react-query` 직접 import — 허용목록(`app/**`·`**/api/*.queries.ts`·`**/hooks/**` 등) 밖에서는 금지 |
+| `custom-query-rules/no-query-client-singleton-import` | `queryClient` 싱글턴 직접 import — `QueryProvider.tsx`·`auth.util.ts` 두 곳만 예외                            |
+| `custom-i18n/no-hardcoded-hangul`                     | 한글 UI 문자열 하드코딩 — `TEXTS`만 허용                                                                      |
+| `custom-import/no-sonner-toast-direct-import`         | `sonner` 직접 import — `@/shared/lib/toast/toast` 경유 강제                                                   |
+| `custom-import/no-relative-import-except-styles`      | 상대 경로 import(`../`) 금지, `.styles.ts` 파일만 예외                                                        |
+| `no-restricted-syntax` (Zustand)                      | 컴포넌트/훅 내부에서 스토어 `getState()` 직접 호출 금지 — 셀렉터 훅 사용 강제                                 |
+| 파일명 규칙                                           | `*.api.ts`·`*.queries.ts`·`*.schema.ts`·`config/`·`utils/` 등 세그먼트별 파일명 패턴                          |
+| `custom-a11y/clickable-needs-interactive-element`     | `div`/`span`에 `onClick`만 달기 — `role="button"` 없이는 금지                                                 |
+| `curly` (`['error', 'all']`)                          | 인라인 `if`문 (`if (x) return;`) — 항상 중괄호 블록 강제                                                      |
 
 ---
 
@@ -299,8 +300,14 @@ export const entityApi = {
 
 ### Layer 2 — `<entity>.keys.ts` (쿼리 키 + success handlers)
 
+`.keys.ts`는 React를 모르는 순수 모듈이다 — `QueryClient` 인스턴스를 자기가 들고 있지 않고
+**호출자(Layer 3의 훅)가 넘긴 것을 쓴다**. 그래야 provider가 주입한 클라이언트와 항상 같은
+인스턴스를 만지고(테스트가 격리된 `createTestQueryClient()`를 써도 캐시 갱신이 싱글턴으로
+새지 않는다), `.keys.ts`가 `@/shared/lib/react-query/config/queryClient` 싱글턴에 의존하지
+않는다.
+
 ```typescript
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
+import type { QueryClient } from '@tanstack/react-query';
 
 const rootKey = ['entity'] as const;
 
@@ -312,17 +319,19 @@ export const entityKeys = {
 };
 
 export const entityInvalidateQueries = {
-  all: () => queryClient.invalidateQueries({ queryKey: rootKey }),
-  list: () => queryClient.invalidateQueries({ queryKey: entityKeys.listRoot }),
-  detail: (id: Entity['id']) => queryClient.invalidateQueries({ queryKey: entityKeys.detail(id) }),
+  all: (queryClient: QueryClient) => queryClient.invalidateQueries({ queryKey: rootKey }),
+  list: (queryClient: QueryClient) =>
+    queryClient.invalidateQueries({ queryKey: entityKeys.listRoot }),
+  detail: (queryClient: QueryClient, id: Entity['id']) =>
+    queryClient.invalidateQueries({ queryKey: entityKeys.detail(id) }),
 };
 
-export const handleEntityCreateSuccess = () => {
-  entityInvalidateQueries.list();
+export const handleEntityCreateSuccess = (queryClient: QueryClient) => {
+  entityInvalidateQueries.list(queryClient);
 };
-export const handleEntityUpdateSuccess = (id: Entity['id']) => {
-  entityInvalidateQueries.detail(id);
-  entityInvalidateQueries.list();
+export const handleEntityUpdateSuccess = (queryClient: QueryClient, id: Entity['id']) => {
+  entityInvalidateQueries.detail(queryClient, id);
+  entityInvalidateQueries.list(queryClient);
 };
 ```
 
@@ -331,15 +340,17 @@ export const handleEntityUpdateSuccess = (id: Entity['id']) => {
 다른 엔티티의 캐시도 함께 갱신해야 하면, 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()`
 래퍼만 import해서 부른다. 그 엔티티의 raw 쿼리 키를 재구성해서 `queryClient.invalidateQueries`를
 직접 호출하지 않는다(캡슐화가 깨지고, 그 엔티티의 키 구조가 바뀌면 여기도 같이 고쳐야 한다).
+같은 `queryClient` 인스턴스를 그대로 다음 호출에 넘긴다.
 
 ```typescript
 // entities/comment/api/comment.keys.ts
+import type { QueryClient } from '@tanstack/react-query';
 import { postInvalidateQueries } from '@/entities/post/api/post.keys';
 
-export const handleCommentCreateSuccess = (postId: Post['id']) => {
-  commentInvalidateQueries.list(postId); // 1. 자기 엔티티
-  postInvalidateQueries.detail(postId); // 2. 댓글 수가 반영되는 포스트 상세
-  postInvalidateQueries.list(); // 3. 목록의 댓글 수 배지
+export const handleCommentCreateSuccess = (queryClient: QueryClient, postId: Post['id']) => {
+  commentInvalidateQueries.list(queryClient, postId); // 1. 자기 엔티티
+  postInvalidateQueries.detail(queryClient, postId); // 2. 댓글 수가 반영되는 포스트 상세
+  postInvalidateQueries.list(queryClient); // 3. 목록의 댓글 수 배지
 };
 ```
 
@@ -353,20 +364,23 @@ export const handleCommentCreateSuccess = (postId: Post['id']) => {
 ### Layer 3 — `<entity>.queries.ts` (얇은 React Query 래퍼)
 
 ```typescript
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { entityApi } from '@/entities/<entity>/api/entity.api';
 import { entityKeys, handleEntityCreateSuccess } from '@/entities/<entity>/api/entity.keys';
 import { TEXTS } from '@/shared/config/texts';
 
-export const useCreateEntityMutation = () =>
-  useMutation({
+export const useCreateEntityMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: (payload: CreateEntity) => entityApi.createEntity(payload),
     meta: {
       successMessage: TEXTS.messages.success.entityCreated,
       errorMessage: TEXTS.messages.error.entityCreateFailed,
     },
-    onSuccess: () => handleEntityCreateSuccess(),
+    onSuccess: () => handleEntityCreateSuccess(queryClient),
   });
+};
 
 export const useFetchEntityQuery = (id: string) =>
   useQuery({
@@ -378,7 +392,7 @@ export const useFetchEntityQuery = (id: string) =>
 
 > 예외: `entities/interaction/`은 `keys.ts`가 없다 — 자체 캐시 키를 갖지 않고
 > `entities/{post,comment,folder}/api/*.keys.ts`의 키·invalidation을 직접 가져다 쓴다
-> (`interaction.queries.ts:4-6`). §1 "정식 FSD와 다른 점"의 entities 교차 참조 사례이기도 하다.
+> (`interaction.queries.ts:3-8`). §1 "정식 FSD와 다른 점"의 entities 교차 참조 사례이기도 하다.
 
 ---
 
@@ -510,6 +524,9 @@ const onDelete = (id: string) => {
 참조: `src/entities/interaction/api/interaction.queries.ts` (`useLikePostMutation`)
 
 ```typescript
+const queryClient = useQueryClient(); // 훅 최상단 — mutation 콜백들이 이 클로저를 공유한다
+
+// ...
 onMutate: async () => {
   await queryClient.cancelQueries({ queryKey: entityKeys.detail(id) });
   const previous = queryClient.getQueryData<Entity>(entityKeys.detail(id));
@@ -556,6 +573,19 @@ queryClient.setQueriesData<InfiniteData<EntityListResponse>>(
 | GC Time    | 5분 (`5 * 60 * 1000`)      |
 | Retry      | 실패 시 1회 재시도         |
 | Refetch    | 윈도우 포커스 및 마운트 시 |
+
+싱글턴 `queryClient`는 `QueryProvider`가 마운트 시 한 번 `QueryClientProvider`에 주입하고,
+그 아래 앱 코드는 전부 `useQueryClient()`로 그 인스턴스를 Context에서 꺼내 쓴다(같은
+인스턴스이므로 프로덕션 동작은 동일 — 테스트에서 격리된 클라이언트를 주입할 수 있게 하려는
+목적이다). 싱글턴을 직접 import하는 예외는 두 곳뿐이다:
+
+| 파일                                  | 왜 예외인가                                                                                                                      |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/providers/QueryProvider.tsx` | 싱글턴을 provider에 주입하는 유일한 지점                                                                                         |
+| `src/shared/utils/auth.util.ts`       | `clearAll()`/`clearQueries()`가 fetch 인터셉터·전역 캐시 에러 핸들러(React 트리 밖)에서 호출되어 `useQueryClient()`를 쓸 수 없다 |
+
+`.keys.ts`처럼 React 훅을 쓸 수 없는 순수 모듈은 `useQueryClient()`로 얻은 인스턴스를 호출자가
+인자로 넘긴다(§5 Layer 2 참고).
 
 ---
 

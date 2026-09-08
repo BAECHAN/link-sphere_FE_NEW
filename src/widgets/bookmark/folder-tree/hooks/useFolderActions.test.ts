@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { createElement, type KeyboardEvent, type ReactNode } from 'react';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createTestQueryClient } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { toast } from '@/shared/lib/toast/toast';
@@ -12,8 +12,8 @@ import { useAlertStore } from '@/shared/ui/elements/modal/alert/alert.store';
 import { mockBookmarkFolder } from '@/mocks/fixtures/bookmark-folder.fixtures';
 import { useFolderActions } from '@/widgets/bookmark/folder-tree/hooks/useFolderActions';
 
-// useUpdateFolderMutation의 onMutate/onError가 싱글톤 queryClient를 직접 조작하므로
-// (folder.queries.test.ts 선례) 이 파일도 같은 인스턴스를 provider로 쓴다.
+let queryClient: QueryClient;
+
 function Wrapper({ children }: { children: ReactNode }) {
   return createElement(QueryClientProvider, { client: queryClient }, children);
 }
@@ -29,11 +29,10 @@ function keyEvent(key: string, isComposing = false): KeyboardEvent<HTMLInputElem
 }
 
 beforeEach(() => {
-  queryClient.clear();
+  queryClient = createTestQueryClient();
 });
 
 afterEach(() => {
-  queryClient.clear();
   useAlertStore.setState({ alerts: [] });
   vi.restoreAllMocks();
 });

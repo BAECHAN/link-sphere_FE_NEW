@@ -1,4 +1,8 @@
 import { useAuthStore } from '@/shared/store/auth.store';
+// 이 파일만 queryClient 싱글턴을 직접 import한다 — clearAll()/clearQueries()가 React 트리
+// 밖에서 호출되기 때문이다(useQueryClient()를 쓸 수 없다):
+//   - shared/api/client.ts:176,200 (fetch 인터셉터의 401/refresh 실패 경로)
+//   - shared/lib/react-query/config/queryClient.ts:59,126 (전역 QueryCache/MutationCache 에러 핸들러)
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';

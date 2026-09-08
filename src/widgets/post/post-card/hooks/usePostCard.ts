@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useIsMutating } from '@tanstack/react-query';
+import { useIsMutating, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/lib/toast/toast';
 import { Post } from '@/entities/post/model/post.schema';
 import { useFetchAccountQuery } from '@/entities/user/api/auth.queries';
-import { useUpdatePostVisibilityMutation } from '@/entities/post/api/post.queries';
+import {
+  prefetchPostDetail,
+  useUpdatePostVisibilityMutation,
+} from '@/entities/post/api/post.queries';
 import { postMutationKeys } from '@/entities/post/api/post.keys';
 import { usePostDelete } from '@/features/post/delete/hooks/usePostDelete';
 import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
@@ -20,6 +23,7 @@ import {
 export function usePostCard(post: Post, isDetail = false) {
   const { data: account } = useFetchAccountQuery();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const isOwner = account?.id === post.author?.id;
 
@@ -114,6 +118,10 @@ export function usePostCard(post: Post, isDetail = false) {
     navigate(ROUTES_PATHS.POST.EDIT.replace(':id', post.id));
   };
 
+  const handlePrefetchDetail = () => {
+    prefetchPostDetail(queryClient, post.id);
+  };
+
   return {
     isOwner,
     isUpdating,
@@ -127,5 +135,6 @@ export function usePostCard(post: Post, isDetail = false) {
     handleCopyLink,
     handleCopyOriginalUrl,
     handleNavigateToEdit,
+    handlePrefetchDetail,
   };
 }

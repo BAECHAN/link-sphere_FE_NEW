@@ -1,4 +1,4 @@
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
+import type { QueryClient } from '@tanstack/react-query';
 
 const rootKey = ['category'] as const;
 
@@ -8,10 +8,10 @@ export const categoryKeys = {
 };
 
 export const categoryInvalidateQueries = {
-  all: () => {
+  all: (queryClient: QueryClient) => {
     queryClient.invalidateQueries({ queryKey: rootKey });
   },
-  categoryOption: () => {
+  categoryOption: (queryClient: QueryClient) => {
     queryClient.invalidateQueries({ queryKey: categoryKeys.categoryOption });
   },
 };

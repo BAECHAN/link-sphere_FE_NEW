@@ -2,14 +2,16 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { createElement, type KeyboardEvent, type ReactNode } from 'react';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createTestQueryClient } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { useCreateFolderCard } from '@/widgets/bookmark/folder-tree/hooks/useMobileFolderList';
 
 // useMobileFolderList(루트)는 useFolderSections의 순수 별칭이라 여기서 다루지 않는다
 // (docs/plans/2026-09-08-selective-test-coverage.md 참고). useCreateFolderCard만 대상.
+
+let queryClient: QueryClient;
 
 function Wrapper({ children }: { children: ReactNode }) {
   return createElement(QueryClientProvider, { client: queryClient }, children);
@@ -25,11 +27,10 @@ function keyEvent(key: string, isComposing = false): KeyboardEvent<HTMLInputElem
 }
 
 beforeEach(() => {
-  queryClient.clear();
+  queryClient = createTestQueryClient();
 });
 
 afterEach(() => {
-  queryClient.clear();
   vi.restoreAllMocks();
 });
 

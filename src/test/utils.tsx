@@ -8,12 +8,16 @@ import userEvent from '@testing-library/user-event';
  * 테스트용 QueryClient 생성.
  * - retry: 0 → 에러 시 재시도 없음 (테스트 타임아웃 방지)
  * - staleTime: 0 → 항상 새로운 데이터 페치 (테스트 격리)
- * - gcTime: 0 → 캐시 즉시 삭제 (테스트 간 데이터 오염 방지)
+ * - gcTime: 0(기본) → 캐시 즉시 삭제 (테스트 간 데이터 오염 방지)
+ *
+ * @param overrides.gcTime setQueryData로 캐시를 직접 심고 나중에 getQueryData로 검증하는
+ *   테스트는 Infinity를 넘긴다 — 기본값 0이면 옵저버 없는 쿼리가 다음 틱에 즉시 수거된다
+ *   (query-core의 Removable.scheduleGc: isValidTimeout(0)이 true로 취급됨).
  */
-export function createTestQueryClient(): QueryClient {
+export function createTestQueryClient(overrides?: { gcTime?: number }): QueryClient {
   return new QueryClient({
     defaultOptions: {
-      queries: { retry: 0, staleTime: 0, gcTime: 0 },
+      queries: { retry: 0, staleTime: 0, gcTime: overrides?.gcTime ?? 0 },
       mutations: { retry: 0 },
     },
   });

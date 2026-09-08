@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { commentApi } from '@/entities/comment/api/comment.api';
 import {
@@ -7,7 +7,6 @@ import {
   handleCommentDeleteSuccess,
   handleCommentUpdateSuccess,
 } from '@/entities/comment/api/comment.keys';
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { Comment } from '@/entities/comment/model/comment.schema';
 
 // 서버 응답을 기다리는 동안 목록에 즉시 꽂아 넣는 임시 댓글을 만든다.
@@ -82,6 +81,8 @@ export const useSuspenseComments = (postId: string) => {
 };
 
 export const useCreateCommentMutation = (postId: string) => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (payload: { content?: string; images?: File[]; author: Comment['author'] }) =>
       commentApi.createComment(postId, { content: payload.content, images: payload.images }),
@@ -108,7 +109,7 @@ export const useCreateCommentMutation = (postId: string) => {
       queryClient.setQueryData<Comment[]>(commentKeys.list(postId), (old = []) =>
         old.map((comment) => (comment.id === context?.tempId ? data : comment))
       );
-      handleCommentCreateSuccess(postId);
+      handleCommentCreateSuccess(queryClient, postId);
     },
     onError: (_err, _variables, context) => {
       if (context?.previousComments) {
@@ -122,6 +123,8 @@ export const useCreateCommentMutation = (postId: string) => {
 };
 
 export const useCreateReplyMutation = (postId: string) => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({
       commentId,
@@ -171,7 +174,7 @@ export const useCreateReplyMutation = (postId: string) => {
             : comment
         )
       );
-      handleCommentCreateSuccess(postId);
+      handleCommentCreateSuccess(queryClient, postId);
     },
     onError: (_err, _variables, context) => {
       if (context?.previousComments) {
@@ -185,15 +188,19 @@ export const useCreateReplyMutation = (postId: string) => {
 };
 
 export const useDeleteCommentMutation = (postId: string) => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (commentId: string) => commentApi.deleteComment(commentId),
     onSuccess: () => {
-      handleCommentDeleteSuccess(postId);
+      handleCommentDeleteSuccess(queryClient, postId);
     },
   });
 };
 
 export const useUpdateCommentMutation = (postId: string) => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({
       commentId,
@@ -216,7 +223,7 @@ export const useUpdateCommentMutation = (postId: string) => {
           linkMetadata: data.linkMetadata,
         })
       );
-      handleCommentUpdateSuccess(postId);
+      handleCommentUpdateSuccess(queryClient, postId);
     },
   });
 };

@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { createElement, type ReactNode } from 'react';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
+import { createTestQueryClient } from '@/test/utils';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
@@ -25,8 +25,11 @@ const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 const okResponse = (data: BookmarkFoldersResponse) =>
   HttpResponse.json({ status: 200, message: 'ok', data, timestamp: '' }, { status: 200 });
 
+// setQueryData로 캐시를 심고 나중에 getQueryData로 검증하므로 gcTime: Infinity가 필요하다
+// (createTestQueryClient 참고).
+let queryClient: QueryClient;
+
 function Wrapper({ children }: { children: ReactNode }) {
-  // 옵티미스틱 업데이트가 싱글톤 queryClient를 직접 조작하므로 동일 인스턴스를 provider로 사용
   return createElement(QueryClientProvider, { client: queryClient }, children);
 }
 
@@ -51,11 +54,7 @@ const seedFolderList: BookmarkFolderListResponse = {
 };
 
 beforeEach(() => {
-  queryClient.clear();
-});
-
-afterEach(() => {
-  queryClient.clear();
+  queryClient = createTestQueryClient({ gcTime: Infinity });
 });
 
 describe('useAddBookmarkFolderMutation', () => {
