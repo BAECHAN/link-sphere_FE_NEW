@@ -60,12 +60,12 @@ flowchart TD
   App["app<br/>providers · routes · layouts"] --> Pages["pages<br/>post · auth · bookmark · 403 · 404 · 500"]
   Pages --> Widgets["widgets<br/>post · comment · bookmark · layout"]
   Widgets --> Features["features<br/>post · comment · auth"]
-  Features --> Entities["entities<br/>post · comment · interaction · user · folder · upload"]
+  Features --> Entities["entities<br/>post · comment · interaction · user · bookmark/folder · upload"]
   Entities --> Shared["shared<br/>api · config · hooks · lib · store · types · ui · utils"]
 
   EPost["entities/post"] -.export *.-> EComment["entities/comment"]
   EPost -.export *.-> EInteraction["entities/interaction"]
-  EFolder["entities/folder"] -.import.-> EPost
+  EFolder["entities/bookmark/folder"] -.import.-> EPost
   EComment -.import.-> EPost
   EInteraction -.import.-> EPost
   EInteraction -.import.-> EFolder
@@ -178,20 +178,26 @@ src/
 │   │   └── config/                # const.ts (POST_PAGE_SIZE)
 │   ├── comment/
 │   │   ├── api/                  # comment.api.ts, comment.keys.ts, comment.queries.ts
-│   │   ├── model/                # comment.schema.ts, estimateCommentPayloadBytes.ts
+│   │   ├── model/                # comment.schema.ts
+│   │   ├── utils/                # comment.util.ts (estimateCommentPayloadBytes)
 │   │   └── config/                # const.ts (MAX_COMMENT_CONTENT_BYTES 외)
 │   ├── interaction/
 │   │   ├── api/                  # interaction.api.ts, interaction.queries.ts (keys.ts 없음 — post/comment/folder keys 직접 사용)
 │   │   └── model/                # interaction.schema.ts
-│   ├── folder/
-│   │   ├── api/                  # folder.api.ts, folder.keys.ts, folder.queries.ts
-│   │   ├── model/                # folder.schema.ts, useRecentFolders.ts
-│   │   └── ui/                   # FolderPickerDialog
+│   ├── bookmark/                 # entities 최초의 그룹 폴더 — folder라는 이름만으로 북마크
+│   │   │                         # 폴더인지 불분명했던 문제를 features/widgets와 같은 방식으로 해소
+│   │   └── folder/
+│   │       ├── api/              # folder.api.ts, folder.keys.ts, folder.queries.ts
+│   │       ├── model/            # folder.schema.ts
+│   │       ├── config/           # const.ts (RECENT_FOLDER_COUNT 외)
+│   │       ├── utils/            # folder.util.ts (pickRecentFolders)
+│   │       ├── hooks/            # useRecentFolders.ts
+│   │       └── ui/               # FolderPickerDialog
 │   ├── upload/
 │   │   └── api/                  # upload.api.ts
 │   └── user/
 │       ├── api/                  # auth.api.ts, auth.keys.ts, auth.queries.ts
-│       ├── model/                # useAuth, useAccount, useAppInitialization, useAuthGuard, useProtectedNavigate
+│       ├── hooks/                 # useAuth, useAccount, useAppInitialization, useAuthGuard, useProtectedNavigate
 │       └── ui/                   # UserAvatar
 │
 └── shared/                       # 순수 유틸, UI 원자, API client, config
@@ -235,14 +241,14 @@ src/
 
 ## 4. 현재 Entities & Widgets
 
-| Entity        | 위치                    | 설명                            |
-| ------------- | ----------------------- | ------------------------------- |
-| `post`        | `entities/post/`        | 포스트 CRUD + 쿼리              |
-| `comment`     | `entities/comment/`     | 댓글 CRUD + 쿼리                |
-| `interaction` | `entities/interaction/` | like/bookmark optimistic update |
-| `folder`      | `entities/folder/`      | 북마크 폴더 CRUD + 쿼리         |
-| `upload`      | `entities/upload/`      | 이미지 업로드                   |
-| `user`        | `entities/user/`        | 인증 API + 훅 + UserAvatar      |
+| Entity        | 위치                        | 설명                            |
+| ------------- | --------------------------- | ------------------------------- |
+| `post`        | `entities/post/`            | 포스트 CRUD + 쿼리              |
+| `comment`     | `entities/comment/`         | 댓글 CRUD + 쿼리                |
+| `interaction` | `entities/interaction/`     | like/bookmark optimistic update |
+| `folder`      | `entities/bookmark/folder/` | 북마크 폴더 CRUD + 쿼리         |
+| `upload`      | `entities/upload/`          | 이미지 업로드                   |
+| `user`        | `entities/user/`            | 인증 API + 훅 + UserAvatar      |
 
 | Widget               | 위치                                   | 설명                                          |
 | -------------------- | -------------------------------------- | --------------------------------------------- |

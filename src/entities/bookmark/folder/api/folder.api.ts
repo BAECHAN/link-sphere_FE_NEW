@@ -10,7 +10,7 @@ import {
   FolderSort,
   ReorderFoldersRequest,
   UpdateFolderRequest,
-} from '@/entities/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/model/folder.schema';
 
 export const folderApi = {
   /** 내 폴더 목록 (bookmarkCount 포함, sortOrder ASC) + 미분류 개수 */

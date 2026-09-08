@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { mockFolderListResponse } from '@/mocks/fixtures/folder.fixtures';
 import { API_ENDPOINTS } from '@/shared/config/api';
-import type { BookmarkFoldersResponse } from '@/entities/folder/model/folder.schema';
+import type { BookmarkFoldersResponse } from '@/entities/bookmark/folder/model/folder.schema';
 
 export const folderHandlers = [
   // GET /bookmark/folders (폴더 목록)

@@ -5,8 +5,8 @@ import { TEXTS } from '@/shared/config/texts';
 import {
   useDeleteFolderMutation,
   useUpdateFolderMutation,
-} from '@/entities/folder/api/folder.queries';
-import { Folder } from '@/entities/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/api/folder.queries';
+import { Folder } from '@/entities/bookmark/folder/model/folder.schema';
 
 interface UseFolderActionsParams {
   folder: Folder;

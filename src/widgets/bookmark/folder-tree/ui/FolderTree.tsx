@@ -10,7 +10,7 @@ import {
 } from '@/shared/ui/atoms/dropdown-menu';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
-import { Folder, FolderKey, FolderSort } from '@/entities/folder/model/folder.schema';
+import { Folder, FolderKey, FolderSort } from '@/entities/bookmark/folder/model/folder.schema';
 import {
   useCreateFolderInput,
   useFolderChips,

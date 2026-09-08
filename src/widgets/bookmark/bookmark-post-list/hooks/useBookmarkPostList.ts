@@ -1,5 +1,5 @@
-import { useFolderPostsInfiniteQuery } from '@/entities/folder/api/folder.queries';
-import { FolderKey, FolderSort } from '@/entities/folder/model/folder.schema';
+import { useFolderPostsInfiniteQuery } from '@/entities/bookmark/folder/api/folder.queries';
+import { FolderKey, FolderSort } from '@/entities/bookmark/folder/model/folder.schema';
 import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
 
 /**

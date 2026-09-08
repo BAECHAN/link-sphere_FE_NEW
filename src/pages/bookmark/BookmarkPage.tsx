@@ -15,8 +15,8 @@ import { BookmarkPostList } from '@/widgets/bookmark/bookmark-post-list/ui/Bookm
 import { BookmarkSearch } from '@/widgets/bookmark/bookmark-search/ui/BookmarkSearch';
 import { FolderTree } from '@/widgets/bookmark/folder-tree/ui/FolderTree';
 import { MobileFolderList } from '@/widgets/bookmark/folder-tree/ui/MobileFolderList';
-import { FolderKey, FolderSort } from '@/entities/folder/model/folder.schema';
-import { useFolderListQuery } from '@/entities/folder/api/folder.queries';
+import { FolderKey, FolderSort } from '@/entities/bookmark/folder/model/folder.schema';
+import { useFolderListQuery } from '@/entities/bookmark/folder/api/folder.queries';
 
 const SORT_LABELS: Record<FolderSort, string> = {
   latest: TEXTS.bookmark.folder.sort.latest,

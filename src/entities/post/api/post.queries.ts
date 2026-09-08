@@ -28,8 +28,8 @@ import {
   handleBookmarkToggleSuccess,
   handlePostContentUpdateSuccess,
   handlePostDeleteSuccess,
-} from '@/entities/folder/api/folder.keys';
-import { FolderListResponse } from '@/entities/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/api/folder.keys';
+import { FolderListResponse } from '@/entities/bookmark/folder/model/folder.schema';
 import { PaginationRequest } from '@/shared/api/common.schema';
 
 export const useCreatePostMutation = () => {

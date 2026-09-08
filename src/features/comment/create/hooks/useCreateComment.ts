@@ -6,7 +6,7 @@ import {
   useCreateReplyMutation,
 } from '@/entities/comment/api/comment.queries';
 import { commentContentFormSchema } from '@/entities/comment/model/comment.schema';
-import { estimateCommentPayloadBytes } from '@/entities/comment/model/estimateCommentPayloadBytes';
+import { estimateCommentPayloadBytes } from '@/entities/comment/utils/comment.util';
 import {
   MAX_COMMENT_IMAGES,
   MAX_COMMENT_CONTENT_BYTES,
@@ -15,8 +15,8 @@ import {
 import { useImageAttachments } from '@/shared/hooks/useImageAttachments';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
-import { useAuthGuard } from '@/entities/user/model/useAuthGuard';
-import { useAccount } from '@/entities/user/model/useAccount';
+import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
+import { useAccount } from '@/entities/user/hooks/useAccount';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
 

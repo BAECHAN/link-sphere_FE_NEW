@@ -1,7 +1,7 @@
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { postInvalidateQueries } from '@/entities/post/api/post.keys';
 import { commentInvalidateQueries } from '@/entities/comment/api/comment.keys';
-import { folderInvalidateQueries } from '@/entities/folder/api/folder.keys';
+import { folderInvalidateQueries } from '@/entities/bookmark/folder/api/folder.keys';
 
 export const authKeys = {
   root: () => ['auth'] as const,

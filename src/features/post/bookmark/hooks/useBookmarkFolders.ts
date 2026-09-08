@@ -3,7 +3,7 @@ import {
   useAddBookmarkFolderMutation,
   useClearBookmarkFoldersMutation,
   useRemoveBookmarkFolderMutation,
-} from '@/entities/folder/api/folder.queries';
+} from '@/entities/bookmark/folder/api/folder.queries';
 
 /**
  * 북마크 폴더 선택 흐름을 한 hook으로 묶음 — FolderSelector 의 행별 동작(탭 = 즉시 저장)을 그대로 반영한다.

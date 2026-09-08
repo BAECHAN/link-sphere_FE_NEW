@@ -1,38 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import dayjs from 'dayjs';
-import { Folder } from '@/entities/folder/model/folder.schema';
-
-// 상단 "최근 저장한 폴더" 구획에 노출할 개수 — split menu 문헌 기준 고정 개수.
-// 흔들리면(2→3→2) 아래 본 목록의 시작 위치도 흔들려 공간기억이 깨진다.
-const RECENT_FOLDER_COUNT = 3;
-
-// 상단 구획 노출 최소 폴더 수 — 이보다 적으면 전체가 한 화면에 보여 상단 구획이
-// 이득 없이 중복만 늘린다 (split menu가 유효한 건 본 목록 스캔 비용이 실재할 때뿐).
-const MIN_FOLDER_COUNT_TO_SHOW_RECENT = 6;
-
-// folderApi.fetchFolderList는 apiClient.get<FolderListResponse>()로 캐싱만 할 뿐 folderSchema로
-// 파싱하지 않는다 — 그래서 lastUsedAt은 (Folder 타입상 Date로 보여도) 실제로는 BE가 보낸 원시
-// ISO 문자열 그대로 들어온다. dayjs(value)는 문자열·Date 어느 쪽이 와도 안전하게 파싱한다.
-function toTimestamp(lastUsedAt: Folder['lastUsedAt']): number {
-  return dayjs(lastUsedAt).valueOf();
-}
-
-function pickRecentFolders(folders: Folder[]): Folder[] {
-  const usedFolders = folders.filter(
-    (folder) => folder.lastUsedAt !== null && folder.lastUsedAt !== undefined
-  );
-
-  if (
-    folders.length < MIN_FOLDER_COUNT_TO_SHOW_RECENT ||
-    usedFolders.length < RECENT_FOLDER_COUNT
-  ) {
-    return [];
-  }
-
-  return [...usedFolders]
-    .sort((a, b) => toTimestamp(b.lastUsedAt) - toTimestamp(a.lastUsedAt))
-    .slice(0, RECENT_FOLDER_COUNT);
-}
+import { Folder } from '@/entities/bookmark/folder/model/folder.schema';
+import { pickRecentFolders } from '@/entities/bookmark/folder/utils/folder.util';
 
 /**
  * "최근 저장한 폴더" 상단 구획 — Sears & Shneiderman split menu 방식.

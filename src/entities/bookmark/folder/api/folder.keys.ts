@@ -1,6 +1,6 @@
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { postInvalidateQueries } from '@/entities/post/api/post.keys';
-import { FolderKey, FolderSort } from '@/entities/folder/model/folder.schema';
+import { FolderKey, FolderSort } from '@/entities/bookmark/folder/model/folder.schema';
 
 const rootKey = ['folder'] as const;
 

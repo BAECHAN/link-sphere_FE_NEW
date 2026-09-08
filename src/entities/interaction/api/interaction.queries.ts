@@ -3,9 +3,12 @@ import { interactionApi } from '@/entities/interaction/api/interaction.api';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { commentKeys } from '@/entities/comment/api/comment.keys';
-import { folderKeys, handleBookmarkToggleSuccess } from '@/entities/folder/api/folder.keys';
+import {
+  folderKeys,
+  handleBookmarkToggleSuccess,
+} from '@/entities/bookmark/folder/api/folder.keys';
 import { Post, PostListResponse } from '@/entities/post/model/post.schema';
-import { FolderListResponse } from '@/entities/folder/model/folder.schema';
+import { FolderListResponse } from '@/entities/bookmark/folder/model/folder.schema';
 import { Comment } from '@/entities/comment/model/comment.schema';
 
 export const useLikePostMutation = (postId: Post['id']) => {
