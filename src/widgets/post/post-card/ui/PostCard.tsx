@@ -25,7 +25,6 @@ import {
 } from '@/shared/ui/atoms/dropdown-menu';
 import { MoreVertical, Pencil, Trash } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { prefetchPostDetail } from '@/entities/post/api/post.queries';
 import { LikePostButton } from '@/features/post/like/ui/LikePostButton';
 import { BookmarkPostButton } from '@/features/bookmark/toggle/ui/BookmarkPostButton';
 import { TEXTS } from '@/shared/config/texts';
@@ -52,6 +51,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
     handleCopyLink,
     handleCopyOriginalUrl,
     handleNavigateToEdit,
+    handlePrefetchDetail,
   } = usePostCard(post, isDetail);
 
   // 수정 중에는 내용을 흐리게 하고 상호작용을 막아 같은 게시글에 대한 중복 요청을 차단한다
@@ -88,8 +88,8 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
           <Link
             to={`/post/${post.id}`}
             className="hover:underline block"
-            onMouseEnter={() => prefetchPostDetail(post.id)}
-            onFocus={() => prefetchPostDetail(post.id)}
+            onMouseEnter={handlePrefetchDetail}
+            onFocus={handlePrefetchDetail}
           >
             <h3
               className={`font-bold leading-tight mb-0.5 text-sm md:text-lg ${isDetail ? '' : 'line-clamp-3'}`}

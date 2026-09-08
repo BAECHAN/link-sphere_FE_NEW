@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { createElement, type ReactNode } from 'react';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
+import { createTestQueryClient } from '@/test/utils';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
@@ -19,8 +19,11 @@ import {
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
+// setQueryData로 캐시를 심고 나중에 getQueryData로 검증하므로 gcTime: Infinity가 필요하다
+// (createTestQueryClient 참고).
+let queryClient: QueryClient;
+
 function Wrapper({ children }: { children: ReactNode }) {
-  // 캐시 갱신이 싱글톤 queryClient를 직접 조작하므로 동일 인스턴스를 provider로 사용
   return createElement(QueryClientProvider, { client: queryClient }, children);
 }
 
@@ -37,7 +40,7 @@ const updatedPost: Post = {
 
 describe('useUpdatePostMutation', () => {
   beforeEach(() => {
-    queryClient.clear();
+    queryClient = createTestQueryClient({ gcTime: Infinity });
     queryClient.setQueryData(postKeys.detail(POST_ID), mockPost);
     queryClient.setQueryData(FOLDER_POSTS_KEY, {
       pages: [
@@ -45,10 +48,6 @@ describe('useUpdatePostMutation', () => {
       ],
       pageParams: [0],
     });
-  });
-
-  afterEach(() => {
-    queryClient.clear();
   });
 
   it('수정 성공 시 서버가 반환한 내용으로 post.detail 캐시를 교체한다', async () => {
@@ -113,16 +112,12 @@ describe('useCreatePostMutation', () => {
   };
 
   beforeEach(() => {
-    queryClient.clear();
+    queryClient = createTestQueryClient({ gcTime: Infinity });
     server.use(
       http.post(url(API_ENDPOINTS.post.base), () =>
         HttpResponse.json({ status: 201, message: 'ok', data: newPost, timestamp: '' })
       )
     );
-  });
-
-  afterEach(() => {
-    queryClient.clear();
   });
 
   // 등록 폼이 mutate 완료를 기다리지 않고 즉시 피드로 navigate하는 fire-and-forget 흐름이라
@@ -200,17 +195,13 @@ describe('useDeletePostMutation', () => {
   };
 
   beforeEach(() => {
-    queryClient.clear();
+    queryClient = createTestQueryClient({ gcTime: Infinity });
     server.use(
       http.delete(
         url(`${API_ENDPOINTS.post.base}/${POST_ID}`),
         () => new HttpResponse(null, { status: 204 })
       )
     );
-  });
-
-  afterEach(() => {
-    queryClient.clear();
   });
 
   it('북마크된 글 삭제 시 소속 폴더의 bookmarkCount가 즉시 -1 된다', async () => {

@@ -1,14 +1,14 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { server } from '@/mocks/server';
 import { http, HttpResponse, delay } from 'msw';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { createElement, type ReactNode } from 'react';
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
+import { createTestQueryClient } from '@/test/utils';
 import {
   useUpdateAccountMutation,
   useCreateAccountMutation,
@@ -44,7 +44,10 @@ vi.mock('@/entities/user/api/auth.keys', () => ({
   },
 }));
 
-// 옵티미스틱 업데이트가 싱글톤 queryClient를 직접 조작하므로 동일 인스턴스를 provider로 사용
+// setQueryData로 캐시를 심고 나중에 getQueryData로 검증하므로 gcTime: Infinity가 필요하다
+// (createTestQueryClient 참고).
+let queryClient: QueryClient;
+
 function Wrapper({ children }: { children: ReactNode }) {
   return createElement(
     QueryClientProvider,
@@ -53,16 +56,15 @@ function Wrapper({ children }: { children: ReactNode }) {
   );
 }
 
+beforeEach(() => {
+  queryClient = createTestQueryClient({ gcTime: Infinity });
+});
+
 describe('useUpdateAccountMutation', () => {
   beforeEach(() => {
-    queryClient.clear();
     mockHandleAccountUpdateSuccess.mockClear();
     mockToastError.mockClear();
     queryClient.setQueryData(authKeys.account(), mockAccount);
-  });
-
-  afterEach(() => {
-    queryClient.clear();
   });
 
   it('제출 즉시 캐시를 낙관적으로 반영한다 (서버 응답을 기다리지 않는다)', async () => {

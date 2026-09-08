@@ -6,7 +6,7 @@ import { RouterProvider } from '@/app/providers/RouterProvider';
 import { AuthProvider } from '@/app/providers/AuthProvider';
 import { Toaster } from '@/shared/ui/atoms/sonner';
 import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
-import { PostMutationLoadingToast } from '@/shared/ui/elements/PostMutationLoadingToast';
+import { PostMutationLoadingToast } from '@/app/ui/PostMutationLoadingToast';
 
 /**
  * Router 트리 바깥(Provider·RouterProvider 자체)에서 터진 에러의 최후 방어선.

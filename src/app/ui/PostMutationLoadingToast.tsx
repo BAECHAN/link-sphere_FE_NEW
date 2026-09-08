@@ -3,14 +3,15 @@ import { LOADING_INDICATOR_MIN_DURATION_MS } from '@/shared/config/const';
 import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
 import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
 import { toast } from '@/shared/lib/toast/toast';
+import { postKeys, postMutationKeys } from '@/entities/post/api/post.keys';
+import { authMutationKeys } from '@/entities/user/api/auth.keys';
 import { useIsMutating } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
-// shared 레이어라 entities의 postMutationKeys/authMutationKeys를 import할 수 없어 키 배열을 직접 사용한다.
-// ['post', 'update']는 prefix 매칭이라 ['post', 'update', postId] 전부를 잡는다.
-const CREATE_MUTATION_KEY = ['post', 'create'];
-const UPDATE_MUTATION_KEY = ['post', 'update'];
-const ACCOUNT_MUTATION_KEY = ['auth', 'updateAccount'];
+// update는 특정 postId에 걸린 뮤테이션 키만 반환하므로(postMutationKeys.update(postId)),
+// 진행 중인 모든 수정 요청을 관찰하려면 postId 없는 prefix가 필요하다 — postKeys.root로
+// 'post' 부분만 참조하고 'update' 세그먼트는 postMutationKeys.update의 키 구조를 그대로 따른다.
+const UPDATE_MUTATION_KEY_PREFIX = [...postKeys.root, 'update'];
 
 // 등록/수정 화면과 목록 화면은 라우터 레이아웃 그룹이 갈려 있다. 이 컴포넌트는 App.tsx
 // 최상단에 마운트되어 화면 전환에도 리마운트되지 않으므로, 아래 지연은 mutation 시작
@@ -28,9 +29,9 @@ const TOAST_ID = 'post-mutation-progress';
  * 같은 자리(하단)에서 진행→완료가 이어지도록 토스트로 발행한다.
  */
 export function PostMutationLoadingToast() {
-  const creatingCount = useIsMutating({ mutationKey: CREATE_MUTATION_KEY });
-  const updatingCount = useIsMutating({ mutationKey: UPDATE_MUTATION_KEY });
-  const accountUpdatingCount = useIsMutating({ mutationKey: ACCOUNT_MUTATION_KEY });
+  const creatingCount = useIsMutating({ mutationKey: postMutationKeys.create });
+  const updatingCount = useIsMutating({ mutationKey: UPDATE_MUTATION_KEY_PREFIX });
+  const accountUpdatingCount = useIsMutating({ mutationKey: authMutationKeys.updateAccount });
   const isMutatingNow = creatingCount + updatingCount + accountUpdatingCount > 0;
   // 빠른 요청은 완료 토스트가 확인해주므로 표시하지 않고(지연), 지연을 넘겨 한 번 뜨면
   // 최소 시간은 유지한다(깜빡임 방지) - 반짝 켜졌다 꺼지는 모양을 없앤다.

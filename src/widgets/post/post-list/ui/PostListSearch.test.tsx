@@ -1,11 +1,10 @@
-import { beforeEach, afterEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { renderWithProviders, userEvent } from '@/test/utils';
 import { useLocation } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
 import { TEXTS } from '@/shared/config/texts';
 import { PostListSearch } from '@/widgets/post/post-list/ui/PostListSearch';
@@ -29,13 +28,12 @@ function renderSearch(initialEntry: string) {
       <LocationSearchProbe />
     </>,
     {
-      wrapperOptions: { queryClient, initialEntries: [initialEntry] },
+      wrapperOptions: { initialEntries: [initialEntry] },
     }
   );
 }
 
 beforeEach(() => {
-  queryClient.clear();
   useHideBotsStore.setState({ hideBots: false });
   server.use(
     http.get(url(API_ENDPOINTS.common.categoryOption), () =>
@@ -50,10 +48,6 @@ beforeEach(() => {
       )
     )
   );
-});
-
-afterEach(() => {
-  queryClient.clear();
 });
 
 describe('PostListSearch — 조건 N개 적용 중 카운트', () => {

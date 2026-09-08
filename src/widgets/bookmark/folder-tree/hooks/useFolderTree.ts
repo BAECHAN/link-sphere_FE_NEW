@@ -1,4 +1,5 @@
 import { KeyboardEvent, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   prefetchBookmarkFolderPosts,
   useBookmarkFolderListQuery,
@@ -15,9 +16,10 @@ import { useCreateFolderForm } from '@/widgets/bookmark/folder-tree/hooks/useCre
 /** FolderTree(데스크탑 사이드바) 루트 */
 export const useFolderTree = (sort?: BookmarkFolderSort, search?: string) => {
   const { folderList, uncategorizedCount, recentFolderList, isLoading } = useFolderSections();
+  const queryClient = useQueryClient();
 
   const prefetchFolder = (folderKey: BookmarkFolderKey) => {
-    prefetchBookmarkFolderPosts(folderKey, sort, search);
+    prefetchBookmarkFolderPosts(queryClient, folderKey, sort, search);
   };
 
   return {

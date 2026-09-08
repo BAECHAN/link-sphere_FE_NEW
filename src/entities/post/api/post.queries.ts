@@ -4,7 +4,9 @@ import {
   useSuspenseInfiniteQuery,
   useSuspenseQuery,
   useQuery,
-  InfiniteData,
+  useQueryClient,
+  type InfiniteData,
+  type QueryClient,
 } from '@tanstack/react-query';
 import { postApi } from '@/entities/post/api/post.api';
 import {
@@ -14,7 +16,6 @@ import {
   PostListResponse,
   UpdatePost,
 } from '@/entities/post/model/post.schema';
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { TEXTS } from '@/shared/config/texts';
 import {
   handlePostCreateSuccess,
@@ -33,6 +34,8 @@ import { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/boo
 import { PaginationRequest } from '@/shared/types/common.type';
 
 export const useCreatePostMutation = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationKey: postMutationKeys.create,
     mutationFn: async (payload: CreatePost) => {
@@ -87,10 +90,10 @@ export const useCreatePostMutation = () => {
         }
       );
 
-      handlePostCreateSuccess();
+      handlePostCreateSuccess(queryClient);
       // 등록과 함께 북마크가 생겼으면 폴더 목록(bookmarkCount)·폴더별 게시글도 낡는다.
       if (variables.bookmark || variables.folderIds.length > 0) {
-        handleBookmarkToggleSuccess();
+        handleBookmarkToggleSuccess(queryClient);
       }
     },
   });
@@ -188,7 +191,7 @@ export const useSuspenseFetchPostDetailQuery = (postId: string) => {
 };
 
 /** hover 시 게시글 상세 미리 로드 — useSuspenseFetchPostDetailQuery 와 동일 키/queryFn */
-export const prefetchPostDetail = (postId: string) => {
+export const prefetchPostDetail = (queryClient: QueryClient, postId: string) => {
   queryClient.prefetchQuery({
     queryKey: postKeys.detail(postId),
     queryFn: () => postApi.fetchPostDetail(postId),
@@ -196,6 +199,8 @@ export const prefetchPostDetail = (postId: string) => {
 };
 
 export const useDeletePostMutation = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationKey: postMutationKeys.delete,
     mutationFn: async (postId: string) => {
@@ -306,12 +311,14 @@ export const useDeletePostMutation = () => {
     },
     onSuccess: () => {
       // 북마크 폴더 페이지의 목록(folder posts) + 폴더별 bookmarkCount 재검증
-      handlePostDeleteSuccess();
+      handlePostDeleteSuccess(queryClient);
     },
   });
 };
 
 export const useUpdatePostMutation = (postId: string) => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationKey: postMutationKeys.update(postId),
     mutationFn: async (payload: UpdatePost) => {
@@ -339,14 +346,16 @@ export const useUpdatePostMutation = (postId: string) => {
           };
         }
       );
-      handlePostUpdateSuccess(postId);
+      handlePostUpdateSuccess(queryClient, postId);
       // 북마크 폴더 페이지의 게시글 목록도 갱신 (post 키와 별도 캐시)
-      handlePostContentUpdateSuccess();
+      handlePostContentUpdateSuccess(queryClient);
     },
   });
 };
 
 export const useUpdatePostVisibilityMutation = (postId: string) => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationKey: postMutationKeys.updateVisibility(postId),
     mutationFn: async ({ postId, isPrivate }: { postId: string; isPrivate: boolean }) => {
@@ -356,8 +365,8 @@ export const useUpdatePostVisibilityMutation = (postId: string) => {
       errorMessage: TEXTS.messages.error.postVisibilityUpdateFailed,
     },
     onSuccess: () => {
-      handlePostUpdateSuccess(postId);
-      handlePostContentUpdateSuccess();
+      handlePostUpdateSuccess(queryClient, postId);
+      handlePostContentUpdateSuccess(queryClient);
     },
   });
 };

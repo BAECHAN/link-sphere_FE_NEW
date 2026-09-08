@@ -6,6 +6,80 @@
 
 ---
 
+## 2026-09-09 — queryClient 싱글턴 → useQueryClient() 마이그레이션 + react-query import 화이트리스트 전환
+
+**배경**
+
+"UI에서 react-query를 직접 호출하는 곳이 있는지, hooks에서만 호출 가능하도록 강제해야
+하지 않을까"라는 질문에서 시작한 조사. 결과: 이 레포는 이미 `custom-ui-rules/no-direct-query-import`
+(`src/**/ui/**`에서 `@tanstack/react-query` import 금지)로 막고 있었고 프로덕션 위반은
+사실상 0건이었다. 다만 두 가지가 드러났다:
+
+1. 룰이 `src/**/ui/**`만 검사해서 `pages/`·`*/hooks/**`는 대상 밖이었고, `@tanstack/react-query`
+   문자열만 봐서 싱글턴 `queryClient`(`@/shared/lib/react-query/config/queryClient`)를
+   직접 import하는 경로는 전혀 못 잡았다.
+2. `entities/*/api/*.keys.ts`(5개)·`*.queries.ts`(6개)가 `useQueryClient()` 대신 싱글턴을
+   직접 import해서, 테스트가 `createTestQueryClient()`로 격리된 클라이언트를 만들어도
+   캐시 무효화는 싱글턴으로 새어나가 검증이 안 됐다. 9개 테스트가 이 때문에 격리 클라이언트를
+   포기하고 싱글턴을 그대로 provider에 꽂고 있었다(`post.queries.test.ts`의 "캐시 갱신이
+   싱글톤 queryClient를 직접 조작하므로 동일 인스턴스를 provider로 사용" 주석).
+
+`PostMutationLoadingToast`(당시 위치 `src/shared/ui/elements/`)는 ESLint 예외(`ignores`)로
+룰을 피해가면서, `postMutationKeys`를 shared 레이어라 import 못 해 뮤테이션 키 문자열
+(`['post','create']` 등)을 하드코딩하고 있었다.
+
+**검증한 사실 (추측 아님)**
+
+- **싱글턴 자체는 이 레포에서 안티패턴이 아니다.** TanStack 공식 SSR 가이드가 모듈 스코프
+  싱글턴을 문제 삼는 이유는 "여러 사용자 요청이 같은 캐시를 공유해 데이터가 샌다"인데,
+  이 레포는 SSR 없는 Vite CSR SPA라 그 전제가 없다. tRPC 공식 문서도 "client-only SPA는
+  모듈 스코프 싱글턴으로 만들어도 된다"고 명시한다. `useQueryClient()`가 반환하는 것도
+  결국 `QueryProvider`가 주입한 그 싱글턴과 **동일 인스턴스**다 — 마이그레이션 후에도
+  프로덕션 런타임 동작은 0 변화다.
+- 마이그레이션의 유일한 실익은 **테스트 격리 회복**이다. `.keys.ts`가 싱글턴을 직접 잡는 한,
+  테스트가 격리 클라이언트를 써도 무효화 검증이 안 된다.
+- `AuthUtil.clearAll()`/`clearQueries()`는 React 트리 밖(axios 인터셉터 `shared/api/client.ts`,
+  전역 `MutationCache`/`QueryCache` 에러 핸들러 `queryClient.ts`)에서 호출되므로
+  `useQueryClient()`를 쓸 수 없다 — `auth.util.ts`는 싱글턴 예외로 남긴다.
+- FSD 공식 [Cross-import 가이드](https://feature-sliced.design/docs/guides/issues/cross-imports)는
+  여러 슬라이스 데이터를 다뤄야 하는 UI를 "compose them at a higher level (pages/app)"로
+  처방한다. `PostMutationLoadingToast`가 post·auth 두 엔티티의 뮤테이션 키를 알아야 하는
+  이유가 정확히 이 경우였다 — `shared`(entities보다 아래 레이어)에 있어서 import가 안 돼
+  하드코딩한 것이었다.
+
+**결정**
+
+1. `.keys.ts`의 invalidate/handler 함수들을 "`QueryClient`를 첫 인자로 받는" 시그니처로
+   변경. 대안이었던 (a) 훅 안으로 이동, (b) 팩토리로 감싸기는 각각 크로스 엔티티 무효화의
+   캡슐화(`.claude/CLAUDE.md` Critical Rules)를 깨뜨리거나 실익 없는 추상화 1겹을
+   추가하는 것이라 기각했다.
+2. `PostMutationLoadingToast`를 `src/shared/ui/elements/`에서 `src/app/ui/`로 이동.
+   `app`은 entities를 자유롭게 import할 수 있어 하드코딩된 키 배열이 `postMutationKeys`/
+   `authMutationKeys` 참조로 바뀌었다.
+3. ESLint 룰을 화이트리스트 방식(`src/**` 기본 금지 + 정당한 위치만 예외)으로 전환하고,
+   싱글턴 import를 막는 룰(`no-query-client-singleton-import`)을 별도로 추가했다. 두 룰을
+   같은 rule key로 겹치게 두면 flat config가 뒤 블록으로 앞 블록을 덮어쓰는 함정이 이미
+   이 레포에서 사고를 낸 적이 있어(§2 참고), 고유 rule key로 분리했다.
+
+**계획 대비 이탈 — PR을 2개로 나누려 했으나 실제로는 분리 불가능했다**
+
+당초 "PR A(마이그레이션) 후 PR B(ESLint 룰 화이트리스트 전환)"로 나눌 계획이었다.
+그런데 화이트리스트 룰만 먼저 켜보니(마이그레이션 전 상태) **21건이 즉시 lint 에러**로
+잡혔고, 그 21건 전부가 정확히 PR A의 대상 파일과 겹쳤다. 즉 "룰만 켜는 것"과
+"마이그레이션"은 같은 diff일 수밖에 없었다 — 계획 단계에서 예측하지 못한 지점이었다.
+최종적으로는 마이그레이션 코드·테스트·ESLint 룰을 한 커밋에 담았다.
+
+**상태**
+
+적용 완료. `.keys.ts` 5개, `.queries.ts` 6개, 비-훅 prefetch 함수 3개(`prefetchPostDetail`·
+`prefetchBookmarkFolderPosts`·`prefetchCategoryData`), 테스트 13개(엔티티 쿼리 테스트 5개 +
+`auth.keys.test.ts` + `renderWithProviders` 사용 3개 + `selective-test-coverage`가 추가한
+폴더 트리 훅 테스트 4개) 전환. `pnpm type-check`/`pnpm lint`/`pnpm test`(47 파일, 314건)
+전부 통과. ESLint 룰이 실제로 작동하는지는 임시 위반 코드를 넣어 `pnpm lint`가 잡는 것을
+확인한 뒤 되돌리는 방식으로 실증했다.
+
+---
+
 ## 2026-09-09 — 엔티티 파일명 접두사는 디렉터리 세그먼트명이 아니라 엔티티명을 따른다
 
 **배경**

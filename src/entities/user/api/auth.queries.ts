@@ -1,7 +1,6 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/entities/user/api/auth.api';
 import { authMutationKeys, handleAccountUpdateSuccess } from '@/entities/user/api/auth.keys';
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useMyPageModalStore } from '@/shared/store/mypage.store';
 import { ApiError, UserFacingError } from '@/shared/types/common.type';
@@ -32,6 +31,7 @@ export const authKeys = {
 
 export const useLoginMutation = () => {
   const setAuth = useAuthStore((state) => state.setAuth);
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (payload: Login) => authApi.login(payload),
@@ -133,6 +133,8 @@ export const useCreateAccountMutation = () => {
 };
 
 export const useUpdateAccountMutation = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationKey: authMutationKeys.updateAccount,
     mutationFn: (payload: UpdateAccountPayload) =>
@@ -158,7 +160,7 @@ export const useUpdateAccountMutation = () => {
     onSuccess: (data, variables) => {
       // 서버 응답(실제 업로드 URL 등)으로 캐시를 치환한다 - invalidate 재조회 없이 바로 반영
       queryClient.setQueryData<Account>(authKeys.account(), data);
-      handleAccountUpdateSuccess();
+      handleAccountUpdateSuccess(queryClient);
       if (variables.previewUrl) {
         URL.revokeObjectURL(variables.previewUrl);
       }

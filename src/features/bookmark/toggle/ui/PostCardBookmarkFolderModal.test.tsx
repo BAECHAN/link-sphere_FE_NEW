@@ -1,10 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { renderWithProviders, userEvent } from '@/test/utils';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { PostCardBookmarkFolderModal } from '@/features/bookmark/toggle/ui/PostCardBookmarkFolderModal';
 import type {
   BookmarkFoldersResponse,
@@ -51,14 +50,12 @@ function renderModal(
       open
       onOpenChange={onOpenChange}
       {...props}
-    />,
-    { wrapperOptions: { queryClient } }
+    />
   );
   return { ...result, onOpenChange };
 }
 
 beforeEach(() => {
-  queryClient.clear();
   vi.clearAllMocks();
   server.use(
     http.get(url(API_ENDPOINTS.bookmark.folders), () =>
@@ -68,10 +65,6 @@ beforeEach(() => {
       )
     )
   );
-});
-
-afterEach(() => {
-  queryClient.clear();
 });
 
 function bookmarkFoldersResponse(folderIds: string[]): BookmarkFoldersResponse {
