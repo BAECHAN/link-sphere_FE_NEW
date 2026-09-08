@@ -248,7 +248,7 @@ Plan mode로 계획을 세우고 구현한 작업은, PR을 열기 전에:
 - **Never** feature hook에서 직접 `queryClient.invalidateQueries` → 항상 `.keys.ts` success handlers 사용
 - **Never** 다른 엔티티의 raw 쿼리 키를 재구성해 `queryClient.invalidateQueries`를 직접 호출 → 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()` 래퍼만 사용. 크로스 엔티티 무효화가 필요하면 자기 엔티티의 `.keys.ts`에 `handle<Event>Success` 함수를 만들어 그 안에서 호출한다 (아래 "크로스 엔티티 무효화" 참고)
 - **Never** 하위 레이어에서 상위 레이어 import → ESLint 강제 (레이어 방향 위반)
-- **Never** 날짜 처리에 `new Date()` / `.getTime()` 직접 사용 → 항상 `dayjs` 사용 (`dayjs(value).valueOf()`, `dayjs().format()` 등)
+- **Never** 날짜 처리에 `new Date()` / `.getTime()` 직접 사용 → 항상 `dayjs` 사용 (`dayjs(value).valueOf()`, `dayjs().format()` 등). ESLint `no-restricted-syntax`로 강제된다(`eslint.config.js`) — 2026-03-15에 이 규칙이 추가된 뒤로도 문서 규칙에만 의존해 5개월간 위반이 안 잡혔던 사례(`entities/folder/model/useRecentFolders.ts`, 2026-08-12 작성 — 이후 `entities/bookmark/folder/hooks/`로 이동)가 있어 2026-09-08 ESLint로 승격
 - **Never** 대상 파일 양식 무시하고 코드 생성 → 항상 붙여넣을 파일(및 인접 코드)을 **먼저 읽고** 들여쓰기·네이밍·import 순서·따옴표·주석 밀도·정렬을 그대로 맞춘다. 본인 스타일을 강요하거나 기존 코드를 재포맷하지 않는다
 - **Never** raw HTML 요소로 UI를 일회성 구현 → 항상 공통 컴포넌트(`shared/ui/atoms`·`elements`·`widgets`) 우선. 반복되는 UI는 공통 컴포넌트를 만들거나 기존 것을 사용해 디자인을 단일 관리한다 (예: 버튼은 raw `<button>` 대신 `Button` 컴포넌트). 신규 코드 기준
 - **Never** `shared/ui/atoms`·`elements`에 컴포넌트를 추가하거나 시각적으로 변경하고 스토리 없이 커밋 → 항상 같은 커밋에 `<Component>.stories.tsx`를 함께 만들거나 갱신한다. `.storybook/main.ts`의 글롭이 `src/**/*.stories.tsx`를 자동 인식하므로 파일만 만들면 된다 (예시: `checkbox.tsx`+`checkbox.stories.tsx`, `switch.tsx`+`switch.stories.tsx`)
@@ -627,15 +627,29 @@ Tailwind v4 preflight엔 v3에 있던 `button, [role="button"] { cursor: pointer
 
 위 표가 이름 "형식"(소문자·단수 등) 규칙이라면, 아래는 레이어별로 어떤 세그먼트를
 쓸지에 대한 "허용 목록" 규칙이다. 새 슬라이스를 만들 때 이 표부터 확인한다 — 암묵적으로
-트리 예시만 보고 유추하면 레이어마다 다른 세그먼트가 섞이게 된다(2026-09-06,
-`entities/user/hooks/`·`widgets/bookmark/*`가 각각 이 표의 규칙을 어긴 채로 만들어졌다가
-뒤늦게 `model/`·`ui/`로 통일한 사례).
+트리 예시만 보고 유추하면 레이어마다 다른 세그먼트가 섞이게 된다.
 
-| 레이어                | 허용 세그먼트                        | 규칙                                                                                   |
-| --------------------- | ------------------------------------ | -------------------------------------------------------------------------------------- |
-| `entities`            | `api/`, `model/`, `ui/`, `config/`   | 훅을 포함한 모든 로직은 `model/`에 둔다. 별도 `hooks/` 세그먼트를 만들지 않는다        |
-| `widgets`, `features` | `hooks/`, `ui/`, `utils/`, `config/` | 컴포넌트가 하나라도 있으면 반드시 `ui/` 아래에 둔다 — 슬라이스 루트에 직접 두지 않는다 |
-| `pages`               | 세그먼트 없음                        | 페이지 컴포넌트를 슬라이스 폴더에 바로 둔다                                            |
+> **2026-09-06 `entities/user/hooks/` → `model/` 이동, 실은 근거가 틀렸었다.** 당시 커밋은
+> "entities 5개 슬라이스가 훅을 `model/`에 두는데 user만 `hooks/`를 썼다"고 주장했지만,
+> 그 시점 실제로 훅을 `model/`에 둔 슬라이스는 `folder`(파일 1개, 2026-08-12 작성) 하나뿐이었고
+> 나머지 3개(comment·interaction·post)는 애초에 훅이 없어 비교 대상조차 아니었다. 반대편
+> `user/hooks/`는 사람이 2026-01-27부터 유지해온 5개 파일이었다 — 즉 "다수 관례"는 날조였고,
+> 실제로는 `hooks/`가 5:1로 우세했다. 2026-09-08 재검토 후 아래처럼 되돌렸다:
+> **entities도 `hooks/`를 쓴다.** `model/`은 스키마·타입 전용으로 좁힌다.
+
+| 레이어                | 허용 세그먼트                                          | 규칙                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `entities`            | `api/`, `hooks/`, `model/`, `ui/`, `config/`, `utils/` | `model/`은 스키마·타입 정의 전용(`*.schema.ts`). 훅·비즈니스 로직은 `hooks/`, 상수는 `config/`, 순수 함수는 `<entity>.util.ts`로 `utils/`에(선례: `shared/utils/date.util.ts`·`common.util.ts` — 파일 접미사는 단수 `.util.ts`, 파일명은 함수명이 아니라 엔티티명). `ui/`에는 그 엔티티의 **시각적 표현**만 둔다 — 폼·버튼처럼 사용자가 무언가를 _하는_ 인터랙션 UI는 `features`에 둔다(출처: [FSD 공식 레이어 정의](https://feature-sliced.design/docs/reference/layers) — entities UI는 _"the visual representation... reused across several pages"_, features UI는 _"the UI to perform the interaction like a form"_) |
+| `widgets`, `features` | `hooks/`, `ui/`, `utils/`, `config/`                   | 컴포넌트가 하나라도 있으면 반드시 `ui/` 아래에 둔다 — 슬라이스 루트에 직접 두지 않는다                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `pages`               | 세그먼트 없음                                          | 페이지 컴포넌트를 슬라이스 폴더에 바로 둔다                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+
+### entities의 그룹 폴더
+
+도메인 이름 하나만으로 맥락이 안 드러날 때(예: `folder`가 북마크 폴더인지 다른 폴더인지
+불분명했던 사례), `features`·`widgets`가 이미 쓰는 그룹 폴더 패턴(`features/post/bookmark/`,
+`widgets/bookmark/folder-tree/`)을 entities에도 쓸 수 있다 — 예: `entities/bookmark/folder/`.
+그룹을 쓰더라도 그 아래 도메인명 자체는 위 "폴더 네이밍 원칙"의 "단수 소문자" 규칙을
+그대로 따른다 — `bookmark-folder/`처럼 도메인명 자체를 복합명으로 만들지 않는다.
 
 ### 실제 폴더 구조 예시
 

@@ -6,6 +6,34 @@
 
 ---
 
+## 2026-09-08 — entities 세그먼트 규칙: FSD 공식 세그먼트명 미채택, UI 배치만 공식 따름
+
+**배경**
+
+`entities/folder/ui/FolderPickerDialog.tsx`(324줄)가 같은 세그먼트의 `entities/user/ui/UserAvatar.tsx`(80줄, 쿼리·상태 없는 순수 표현)와 형태가 달라 보인다는 지적에서 출발해 조사한 결과, `.claude/CLAUDE.md`의 "레이어별 허용 세그먼트" 표 자체가 날조된 근거로 세워져 있었다는 게 드러났다.
+
+**드러난 문제 — 순환논증**
+
+커밋 `c35f2b6`(2026-09-06, AI 공동저자)은 "entities 5개 슬라이스(post·comment·interaction·folder·upload)가 훅을 `model/`에 두는데 user만 `hooks/`를 썼다"고 주장하며 `entities/user/hooks/`의 훅 5개를 `model/`로 옮기고 규칙을 못박았다. 그 시점 실제 파일을 확인하면 훅을 `model/`에 둔 슬라이스는 `folder` 하나(파일 1개, 2026-08-12 AI 작성)뿐이었고 나머지 3개(comment·interaction·post)는 애초에 훅이 없어 비교 대상이 아니었다 — "다수 관례"는 AI가 한 달 전 자신이 만든 단일 사례를 근거로 부풀린 것이었고, 실제로는 사람이 2026-01-27부터 유지해온 `user/hooks/` 5개가 우세했다.
+
+**결정**
+
+1. **entities 세그먼트 구조는 원래 방식(hooks/model 분리)으로 되돌린다.** `model/`은 스키마·타입 정의 전용(`*.schema.ts`)으로 좁히고, 훅·비즈니스 로직은 `hooks/`, 상수는 `config/`, 순수 함수는 `<entity>.util.ts`로 `utils/`에 둔다. FSD 공식 세그먼트명(`lib` 등)으로 전면 전환하는 대안도 검토했으나 채택하지 않았다 — 이미 `features`·`widgets`가 `hooks/`·`utils/`를 레이어 전체에서 일관되게 쓰고 있어(18개 디렉터리), 전면 전환은 그보다 훨씬 큰 변경이 되고 이번 문제의 원인(날조된 근거)과 무관하다.
+2. **UI 배치만 FSD 공식 정의를 따른다.** [FSD 공식 레이어 정의](https://feature-sliced.design/docs/reference/layers)는 `entities/ui`를 _"the visual representation of this entity in the interface... reused across several pages"_, `features/ui`를 *"the UI to perform the interaction like a form"*로 구분한다. 이 레포의 `features/*/ui` 15개는 전부 폼·버튼(인터랙션)이라 현재 자리가 맞고, "entities가 모든 UI를 담당한다"는 방향은 채택하지 않았다.
+3. **entities에도 그룹 폴더를 도입한다.** `entities/folder`라는 이름만으로 북마크 폴더인지 구분이 안 됐다. 복합명(`bookmark-folder/`)은 "도메인 폴더는 단수 소문자" 규칙과 충돌하므로, `features/post/bookmark/`·`widgets/bookmark/folder-tree/`가 이미 쓰는 그룹 폴더 패턴을 entities에도 적용해 `entities/bookmark/folder/`로 옮긴다.
+
+**부수 발견 — dayjs 규칙 위반이 5개월간 안 잡힌 경위**
+
+CLAUDE.md의 `new Date()`/`.getTime()` 금지 규칙은 2026-03-15 `83131b9`(사람 단독)에서 추가됐고, 같은 커밋이 `CommentList.tsx`에 `dayjs(b.createdAt).valueOf()` 정답 선례까지 만들었다. 그런데 5개월 뒤 2026-08-12 `85b7428`(AI)이 `useRecentFolders.ts`에 `new Date(lastUsedAt as string | Date).getTime()`을 작성하며, 문제를 정확히 진단한 커밋 메시지("BE가 원시 문자열을 보내 Date로 가정하면 크래시난다")로 스스로 정당화했다 — `dayjs(lastUsedAt).valueOf()`가 같은 문제를 규칙을 지키며 해결하는데도 선례를 찾지 않았다. 문서 규칙만으로는 강제가 안 됐던 것이 근본 원인이라, ESLint `no-restricted-syntax`로 승격했다(`eslint.config.js`). 기존 위반 5곳(`useRecentFolders.ts`, `shared/utils/common.util.ts`, `shared/api/client.ts` 2곳, `entities/comment/api/comment.queries.ts` 2곳)을 dayjs로 치환. `shared/utils/date.util.ts`(dayjs 구현 자체)·테스트 파일·`src/mocks/**`(MSW fixture·handler, 테스트가 직접 통제하는 리터럴 날짜)는 규칙에서 제외했다.
+
+규칙 추가 과정에서 레포에 이미 있던 별개의 잠재 버그도 발견해 함께 고쳤다 — `eslint.config.js`의 "Zustand Best Practice 규칙" 블록이 `no-restricted-syntax`를 같은 `files: ['src/**/*.{ts,tsx}']`로 다시 선언해, ESLint flat config의 "같은 rule key가 겹치는 files에 다시 나오면 배열을 병합하지 않고 통째로 덮어쓴다"는 동작 때문에 그 뒤에 오는 모든 `no-restricted-syntax` 규칙(클래스 컴포넌트 금지 포함)을 무력화하고 있었다. 중복 블록을 제거했다.
+
+**상태**
+
+적용 완료(`.claude/CLAUDE.md`, `docs/FE-ARCHITECTURE.md`, `eslint.config.js` 및 위반 5곳 수정). 세그먼트 이동(`entities/bookmark/folder/` 그룹화, 훅 6개 재배치)과 `FolderPickerDialog` 등 "폴더 고르기" 3형제 로직 분리·네이밍 정리는 후속 PR에서 진행.
+
+---
+
 ## 2026-09-08 — 제목 비움 재수집: URL 변경과 트리거는 합치되 덮어쓰기 범위는 다르게
 
 **배경**

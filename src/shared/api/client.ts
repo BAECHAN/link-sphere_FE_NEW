@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { TEXTS } from '@/shared/config/texts';
 import { ApiError, ApiResponse, ApiErrorResponse } from '@/shared/types/common.type';
@@ -136,7 +137,7 @@ class ApiClient {
                   : typeof parsed?.error === 'string'
                     ? parsed.error
                     : text,
-              timestamp: DateUtil.formatISO(new Date()),
+              timestamp: DateUtil.formatISO(undefined),
             };
           }
         } catch {
@@ -148,7 +149,7 @@ class ApiClient {
             code:
               response.status === 403 ? SERVER_ERROR_CODE.EDGE_BLOCKED : String(response.status),
             message: text || 'Unknown Error',
-            timestamp: new Date().toISOString(),
+            timestamp: dayjs().toISOString(),
           };
         }
 

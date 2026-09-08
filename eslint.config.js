@@ -10,6 +10,49 @@ import reactHooksPlugin from 'eslint-plugin-react-hooks';
 // PascalCase 규칙에서 예외로 처리할 약어들
 const ALLOWED_ACRONYMS = ['UI']; // UI: User Interface
 
+// date.util.ts(dayjs 구현 자체)와 테스트 파일에는 날짜 규칙을 적용하지 않는다 — ESLint
+// flat config는 같은 rule key가 겹치는 files에 다시 나오면 배열을 병합하지 않고 통째로
+// 덮어쓰므로, getState·클래스 컴포넌트 금지까지 같이 사라지지 않도록 공통 규칙을 상수로
+// 빼서 두 블록에서 재사용한다.
+const RESTRICTED_SYNTAX_COMMON = [
+  // [금지] Zustand getState() 직접 호출
+  // 이유: getState()는 상태 변경을 구독하지 않아 값이 바뀌어도 UI가 리렌더링되지 않음
+  {
+    selector:
+      ':matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression)[id.name=/^use|^[A-Z]/] CallExpression[callee.property.name="getState"]',
+    message:
+      'getState() 대신 useStore((state) => state.value) Selector 패턴을 사용하세요. getState()는 상태 변경을 구독하지 않아 리렌더링되지 않습니다.',
+  },
+  // [금지] 클래스 컴포넌트 (extends Component)
+  // 이유: Hooks 사용 불가, 로직 재사용 어려움(HOC/render props 필요), 번들 크기 증가, 테스트 복잡도 상승
+  {
+    selector: 'ClassDeclaration[superClass.name=/^(Pure)?Component$/]',
+    message:
+      '클래스 컴포넌트는 사용할 수 없습니다. 함수형 컴포넌트를 사용하세요. (Hooks 호환성, 코드 재사용성, 번들 크기 최적화)',
+  },
+  // [금지] 클래스 컴포넌트 (extends React.Component)
+  {
+    selector: 'ClassDeclaration[superClass.property.name=/^(Pure)?Component$/]',
+    message:
+      '클래스 컴포넌트는 사용할 수 없습니다. 함수형 컴포넌트를 사용하세요. (Hooks 호환성, 코드 재사용성, 번들 크기 최적화)',
+  },
+];
+
+// [금지] 날짜 처리에 new Date()/.getTime() 직접 사용
+// 이유: dayjs(value)는 문자열·Date 어느 쪽이 와도 안전한데, new Date(value)는 BE가 문자열을
+// 보내는 경우 타입상 Date로 보여도 실제로 안전하지 않다(.claude/CLAUDE.md 날짜 처리 규칙).
+// 문서 규칙만으로는 2026-03-15 도입 후 5개월간 위반이 안 잡혔던 사례가 있어 ESLint로 승격.
+const RESTRICTED_SYNTAX_NO_NATIVE_DATE = [
+  {
+    selector: 'NewExpression[callee.name="Date"]',
+    message: 'new Date() 대신 dayjs()를 사용하세요 (예: dayjs().toDate(), dayjs().toISOString()).',
+  },
+  {
+    selector: 'CallExpression[callee.property.name="getTime"]',
+    message: '.getTime() 대신 dayjs(value).valueOf()를 사용하세요.',
+  },
+];
+
 export default [
   ...tseslint.configs.recommended,
   prettierConfig,
@@ -668,52 +711,32 @@ export default [
   // ============================================================
   {
     files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/shared/utils/date.util.ts', '**/*.test.{ts,tsx}', 'src/mocks/**'],
     rules: {
       'no-restricted-syntax': [
         'error',
-        // [금지] Zustand getState() 직접 호출
-        // 이유: getState()는 상태 변경을 구독하지 않아 값이 바뀌어도 UI가 리렌더링되지 않음
-        {
-          selector:
-            ':matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression)[id.name=/^use|^[A-Z]/] CallExpression[callee.property.name="getState"]',
-          message:
-            'getState() 대신 useStore((state) => state.value) Selector 패턴을 사용하세요. getState()는 상태 변경을 구독하지 않아 리렌더링되지 않습니다.',
-        },
-        // [금지] 클래스 컴포넌트 (extends Component)
-        // 이유: Hooks 사용 불가, 로직 재사용 어려움(HOC/render props 필요), 번들 크기 증가, 테스트 복잡도 상승
-        {
-          selector: 'ClassDeclaration[superClass.name=/^(Pure)?Component$/]',
-          message:
-            '클래스 컴포넌트는 사용할 수 없습니다. 함수형 컴포넌트를 사용하세요. (Hooks 호환성, 코드 재사용성, 번들 크기 최적화)',
-        },
-        // [금지] 클래스 컴포넌트 (extends React.Component)
-        {
-          selector: 'ClassDeclaration[superClass.property.name=/^(Pure)?Component$/]',
-          message:
-            '클래스 컴포넌트는 사용할 수 없습니다. 함수형 컴포넌트를 사용하세요. (Hooks 호환성, 코드 재사용성, 번들 크기 최적화)',
-        },
+        ...RESTRICTED_SYNTAX_COMMON,
+        ...RESTRICTED_SYNTAX_NO_NATIVE_DATE,
       ],
+    },
+  },
+  // date.util.ts(dayjs 구현 자체)·테스트 파일·MSW mocks(fixture·handler — 실행 중 BE 응답이
+  // 아니라 테스트가 직접 통제하는 리터럴 날짜라 dayjs 안전성 문제가 없다)는 날짜 규칙만
+  // 제외 — getState·클래스 컴포넌트 금지는 그대로 적용한다(ESLint flat config는 같은 rule
+  // key가 겹치는 files에 다시 나오면 배열을 병합하지 않고 통째로 덮어쓰므로, 공통 규칙을
+  // 여기서도 명시해야 사라지지 않는다)
+  {
+    files: ['src/shared/utils/date.util.ts', '**/*.test.{ts,tsx}', 'src/mocks/**'],
+    rules: {
+      'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAX_COMMON],
     },
   },
 
-  // Zustand Best Practice 규칙
-  {
-    files: ['src/**/*.{ts,tsx}'],
-    rules: {
-      // 1. 컴포넌트/훅 내부에서 getState() 직접 사용 금지 (구독이 안됨)
-      // 대신 useStore((state) => state.value) Selector 패턴 사용
-      'no-restricted-syntax': [
-        'error',
-        {
-          // React 컴포넌트(PascalCase 함수)나 Hook(use* 함수) 내부에서 getState() 호출 감지
-          selector:
-            ':matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression)[id.name=/^use|^[A-Z]/] CallExpression[callee.property.name="getState"]',
-          message:
-            '컴포넌트나 Hook 내부에서는 getState() 대신 useStore((state) => state.value)와 같은 Selector 패턴을 사용하세요. getState()는 상태 변경을 구독하지 않아 리렌더링되지 않습니다.',
-        },
-      ],
-    },
-  },
+  // (Zustand getState() 금지는 위 RESTRICTED_SYNTAX_COMMON에 이미 포함돼 있다 — 여기 있던
+  // 중복 블록은 제거했다. ESLint flat config는 같은 rule key가 겹치는 files에 다시 나오면
+  // 배열을 병합하지 않고 통째로 덮어쓰므로, 이 중복이 위 블록의 no-restricted-syntax 전체
+  // (getState + 클래스 컴포넌트 금지 + 이번에 추가한 dayjs 규칙)를 무력화하고 있었다 —
+  // 2026-09-08 dayjs 규칙 추가 중 발견)
   // ============================================================
   // [금지] UI 컴포넌트에서 React Query 직접 import
   // 이유: UI(렌더링)와 데이터 fetching(비즈니스 로직)의 관심사 분리.
