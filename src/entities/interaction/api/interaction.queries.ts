@@ -6,9 +6,9 @@ import { commentKeys } from '@/entities/comment/api/comment.keys';
 import {
   bookmarkFolderKeys,
   handleBookmarkToggleSuccess,
-} from '@/entities/bookmark/folder/api/folder.keys';
+} from '@/entities/bookmark/folder/api/bookmark-folder.keys';
 import { Post, PostListResponse } from '@/entities/post/model/post.schema';
-import { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/folder.schema';
+import { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { Comment } from '@/entities/comment/model/comment.schema';
 
 export const useLikePostMutation = (postId: Post['id']) => {

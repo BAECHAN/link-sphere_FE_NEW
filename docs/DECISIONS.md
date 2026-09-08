@@ -6,6 +6,72 @@
 
 ---
 
+## 2026-09-09 — 엔티티 파일명 접두사는 디렉터리 세그먼트명이 아니라 엔티티명을 따른다
+
+**배경**
+
+직전 PR(entities/bookmark/folder export 전체를 `BookmarkFolder`로 개명)에서 파일명
+6개(`folder.api.ts` 등)는 그대로 두기로 하면서 "파일 접두사는 디렉터리 세그먼트명
+(`folder`)을 따르지 export명을 안 따른다"는 규칙을 근거로 들었다. 이 규칙은
+**문서 어디에도 존재하지 않았다** — 실제로 있는 규칙은
+[`docs/FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §18의 `<entity>.<역할>.ts`(`<entity>`는
+엔티티명)뿐이었다. 사용자가 "파일명도 `bookmark-folder.api.ts`처럼 바꿔야 하지 않냐 —
+`folder`라고만 하면 나중에 다른 의미의 folder가 생겨도 헷갈리지 않는다"고 재차 지적해
+근거를 다시 검증했다.
+
+**드러난 문제 — 없는 규칙을 근거로 든 것**
+
+2026-09-08 항목(바로 아래, "entities 세그먼트 규칙")의 결정 3번은 "복합명
+(`bookmark-folder/`)은 '도메인 폴더는 단수 소문자' 규칙과 충돌한다"고 적었는데, 이건
+**디렉터리 네이밍**에 대한 판단이었다(`.claude/CLAUDE.md`의 "폴더 네이밍 규칙" 섹션 —
+섹션 제목, 트레일링 슬래시가 붙은 예시, 인용 근거인 "도메인 폴더" 표 행 모두 디렉터리
+전용임을 가리킨다). 그런데 직전 PR에서 이 디렉터리 판단을 **파일명에도 확장 적용**하며
+"파일 접두사는 세그먼트명을 따른다"는 문장을 새로 지어냈다 — 실측 결과 이런 규칙은
+`docs/FE-ARCHITECTURE.md`·`.claude/CLAUDE.md` 어디에도 없었고, 오히려 §18 표는 API
+객체(`<entity>Api`)·쿼리 키(`<entity>Keys`)를 전부 엔티티명 기준으로 규정하고 있었다.
+
+**검증 결과 (fresh Explore subagent 3개, 실측)**
+
+- 레포의 "역할 접미사가 붙은" 파일 56개 중 52개가 1단어 접두사였지만, 이는 해당
+  엔티티명(`post`·`comment`·`category`·`auth`…)이 전부 1단어라서 그런 것이었다.
+  복합 접두사 선례는 이미 `.store.ts`에 4개(`hideBots`·`loginModal`·`unsavedChanges`·
+  `imageViewer`) 있었다.
+- ESLint `unicorn/filename-case`는 `*.api.ts`·`*.queries.ts`·`*.schema.ts`·`utils/**`에
+  `kebabCase`만 강제하고, 접두사 자체(1단어인지 복합어인지)는 강제하지 않는다.
+- 현재 `src/` 299개 파일 중 basename 중복은 2건(`utils.ts`, `index.tsx`)뿐이고 역할
+  파일 중복은 0건, 북마크가 아닌 다른 "folder" 도메인도 0건 — 즉 "지금 당장 헷갈린다"는
+  아니고 장래 대비 성격의 지적이었다.
+
+**결정**
+
+1. `entities/bookmark/folder/`의 역할 파일 6개(`folder.api.ts`→`bookmark-folder.api.ts`
+   등) + 짝 테스트 2개 + mocks 2개(`folder.fixtures.ts`→`bookmark-folder.fixtures.ts`,
+   `folder.handlers.ts`→`bookmark-folder.handlers.ts`, 안의 export 식별자도 mocks
+   레이어 관례(`mock<EntityType>`, `<entity>Handlers`)에 맞춰 함께 개명)를
+   `bookmark-folder.*`로 rename한다.
+2. PR #46(entities export 전체 개명) 당시 놓쳤던 `useRecentFolders.ts`→
+   `useRecentBookmarkFolders.ts` 파일명 rename도 함께 바로잡는다 — "파일명 = export명"
+   컨벤션 대상인데 export만 바뀌고 파일명이 안 따라가 있었다.
+3. `docs/FE-ARCHITECTURE.md` §18의 `config/` 파일 규칙 행에 "`<entity>`는 엔티티명이지
+   디렉터리 세그먼트명이 아니다"를 명시해, 이번에 실제로 잘못된 근거를 낳은 모호성을
+   재발 방지로 기록한다.
+4. **디렉터리명은 안 바꾼다** — `entities/bookmark/folder/`의 그룹 폴더 구조는
+   2026-09-08 결정(아래 항목)을 그대로 유지한다. 이번 결정은 파일명에만 적용되고,
+   그 결정을 뒤집지 않는다.
+5. 같은 조사에서 `<entity>List` 규칙(§18) 위반이 레포에 7종 더 있었다
+   (`recentFolders`·`folders`·`usedFolders`·`posts`·`comments`·`previousComments`·
+   `categories`). 이번 파일명 rename과 직접 얽힌 bookmark 도메인 3종(`recentFolders`→
+   `recentFolderList`, `folders`(파라미터)→`folderList`, `usedFolders`→`usedFolderList`)만
+   함께 처리하고, 나머지 4종(post·comment·category 도메인)은 이 PR과 무관해 후속 PR로
+   미룬다.
+
+**상태**
+
+적용 완료. 후속: `<entity>List` 규칙 위반 4종(`posts`·`comments`·`previousComments`·
+`categories`)은 별도 PR에서 처리 예정.
+
+---
+
 ## 2026-09-08 — features 네이밍 규칙 완화 + 테스트 정책 명문화 + bookmark 구조 재검토
 
 **배경**

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { FallbackProps } from 'react-error-boundary';
 import { toast } from '@/shared/lib/toast/toast';
 import { useSuspenseFetchPostDetailQuery } from '@/entities/post/api/post.queries';
-import { bookmarkFolderInvalidateQueries } from '@/entities/bookmark/folder/api/folder.keys';
+import { bookmarkFolderInvalidateQueries } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { CommentList } from '@/widgets/comment/comment-list/ui/CommentList';
 import { ArrowLeft } from 'lucide-react';

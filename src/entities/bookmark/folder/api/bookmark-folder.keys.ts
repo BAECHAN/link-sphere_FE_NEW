@@ -3,7 +3,7 @@ import { postInvalidateQueries } from '@/entities/post/api/post.keys';
 import {
   BookmarkFolderKey,
   BookmarkFolderSort,
-} from '@/entities/bookmark/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
 const rootKey = ['folder'] as const;
 

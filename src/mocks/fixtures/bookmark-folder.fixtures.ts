@@ -1,9 +1,9 @@
 import type {
   BookmarkFolder,
   BookmarkFolderListResponse,
-} from '@/entities/bookmark/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
-export const mockFolder: BookmarkFolder = {
+export const mockBookmarkFolder: BookmarkFolder = {
   id: 'folder-uuid-1',
   name: '개발',
   sortOrder: 0,
@@ -12,7 +12,7 @@ export const mockFolder: BookmarkFolder = {
   updatedAt: new Date('2025-01-01T00:00:00.000Z'),
 };
 
-export const mockFolderListResponse: BookmarkFolderListResponse = {
-  folders: [mockFolder],
+export const mockBookmarkFolderListResponse: BookmarkFolderListResponse = {
+  folders: [mockBookmarkFolder],
   uncategorizedCount: 0,
 };

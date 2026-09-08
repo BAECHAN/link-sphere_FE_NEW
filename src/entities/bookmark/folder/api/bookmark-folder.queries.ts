@@ -1,6 +1,6 @@
 import { InfiniteData, useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
-import { bookmarkFolderApi } from '@/entities/bookmark/folder/api/folder.api';
+import { bookmarkFolderApi } from '@/entities/bookmark/folder/api/bookmark-folder.api';
 import {
   bookmarkFolderInvalidateQueries,
   bookmarkFolderKeys,
@@ -10,7 +10,7 @@ import {
   handleBookmarkFolderDeleteSuccess,
   handleBookmarkFolderReorderSuccess,
   handleBookmarkFolderUpdateSuccess,
-} from '@/entities/bookmark/folder/api/folder.keys';
+} from '@/entities/bookmark/folder/api/bookmark-folder.keys';
 import {
   BookmarkFolderKey,
   BookmarkFolderListResponse,
@@ -18,7 +18,7 @@ import {
   CreateBookmarkFolderRequest,
   ReorderBookmarkFoldersRequest,
   UpdateBookmarkFolderRequest,
-} from '@/entities/bookmark/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { POST_PAGE_SIZE } from '@/entities/post/config/post.const';
 import { postInvalidateQueries, postKeys } from '@/entities/post/api/post.keys';
 import { Post, PostListResponse } from '@/entities/post/model/post.schema';

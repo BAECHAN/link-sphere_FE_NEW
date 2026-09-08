@@ -1,8 +1,8 @@
-import { useBookmarkFolderPostsInfiniteQuery } from '@/entities/bookmark/folder/api/folder.queries';
+import { useBookmarkFolderPostsInfiniteQuery } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import {
   BookmarkFolderKey,
   BookmarkFolderSort,
-} from '@/entities/bookmark/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
 
 /**

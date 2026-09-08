@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { useRecentBookmarkFolders } from '@/entities/bookmark/folder/hooks/useRecentFolders';
-import { BookmarkFolder } from '@/entities/bookmark/folder/model/folder.schema';
+import { useRecentBookmarkFolders } from '@/entities/bookmark/folder/hooks/useRecentBookmarkFolders';
+import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
 function makeFolder(
   overrides: Partial<BookmarkFolder> & Pick<BookmarkFolder, 'id'>
@@ -35,11 +35,11 @@ describe('useRecentBookmarkFolders', () => {
       { initialProps: { folders: [] as BookmarkFolder[], isFetching: true } }
     );
 
-    expect(result.current.recentFolders).toEqual([]);
+    expect(result.current.recentFolderList).toEqual([]);
 
     rerender({ folders, isFetching: false });
 
-    expect(result.current.recentFolders.map((f) => f.id)).toEqual(['f6', 'f5', 'f4']);
+    expect(result.current.recentFolderList.map((f) => f.id)).toEqual(['f6', 'f5', 'f4']);
   });
 
   it('폴더가 6개 미만이면 임계값 미달로 빈 배열을 반환한다', () => {
@@ -48,7 +48,7 @@ describe('useRecentBookmarkFolders', () => {
     );
     const { result } = renderHook(() => useRecentBookmarkFolders(folders, false));
 
-    expect(result.current.recentFolders).toEqual([]);
+    expect(result.current.recentFolderList).toEqual([]);
   });
 
   it('사용 이력이 있는 폴더가 3개 미만이면 폴더 총수가 많아도 빈 배열을 반환한다', () => {
@@ -62,7 +62,7 @@ describe('useRecentBookmarkFolders', () => {
     ];
     const { result } = renderHook(() => useRecentBookmarkFolders(folders, false));
 
-    expect(result.current.recentFolders).toEqual([]);
+    expect(result.current.recentFolderList).toEqual([]);
   });
 
   it('구성이 확정된 뒤 folders만 바뀌면(낙관적 업데이트 등) 순서는 고정하되 각 폴더의 최신 필드는 반영한다', () => {
@@ -76,7 +76,7 @@ describe('useRecentBookmarkFolders', () => {
       { initialProps: { folders: initial, isFetching: false } }
     );
 
-    expect(result.current.recentFolders.map((f) => f.id)).toEqual(['f6', 'f5', 'f4']);
+    expect(result.current.recentFolderList.map((f) => f.id)).toEqual(['f6', 'f5', 'f4']);
 
     // f1이 방금 저장돼 가장 최근이 됐고, f6은 게시글이 하나 삭제됐다고 가정.
     // isFetching은 그대로 false(예: 낙관적 setQueryData) — 순서는 안 바뀌어야 하지만
@@ -92,8 +92,8 @@ describe('useRecentBookmarkFolders', () => {
     });
     rerender({ folders: updated, isFetching: false });
 
-    expect(result.current.recentFolders.map((f) => f.id)).toEqual(['f6', 'f5', 'f4']);
-    expect(result.current.recentFolders.find((f) => f.id === 'f6')?.bookmarkCount).toBe(5);
+    expect(result.current.recentFolderList.map((f) => f.id)).toEqual(['f6', 'f5', 'f4']);
+    expect(result.current.recentFolderList.find((f) => f.id === 'f6')?.bookmarkCount).toBe(5);
   });
 
   it('재방문 시 stale 캐시로 시작해도, refetch(isFetching false 전환) 완료 후의 최신 데이터로 스냅샷을 찍는다', () => {
@@ -108,13 +108,13 @@ describe('useRecentBookmarkFolders', () => {
     );
 
     // refetch 진행 중 — 아직 아무것도 확정되지 않는다.
-    expect(result.current.recentFolders).toEqual([]);
+    expect(result.current.recentFolderList).toEqual([]);
 
     // 방금 새 폴더 f7에 저장해 f7이 최신이 된 응답이 도착.
     const fresh = [...stale, makeFolder({ id: 'f7', lastUsedAt: new Date('2099-01-01') })];
     rerender({ folders: fresh, isFetching: false });
 
-    expect(result.current.recentFolders.map((f) => f.id)).toEqual(['f7', 'f6', 'f5']);
+    expect(result.current.recentFolderList.map((f) => f.id)).toEqual(['f7', 'f6', 'f5']);
   });
 
   it('sessionKey가 바뀌면(예: 모달 재오픈) 새로 스냅샷을 찍는다', () => {
@@ -132,7 +132,7 @@ describe('useRecentBookmarkFolders', () => {
       { initialProps: { folders: initial, isFetching: false, sessionKey: true } }
     );
 
-    expect(result.current.recentFolders.map((f) => f.id)).toEqual(['f6', 'f5', 'f4']);
+    expect(result.current.recentFolderList.map((f) => f.id)).toEqual(['f6', 'f5', 'f4']);
 
     const updated = initial.map((f) =>
       f.id === 'f1' ? { ...f, lastUsedAt: new Date('2099-01-01') } : f
@@ -140,7 +140,7 @@ describe('useRecentBookmarkFolders', () => {
     // 세션이 바뀌면(모달 닫혔다 다시 열림) 새 데이터로 다시 스냅샷을 찍어야 한다.
     rerender({ folders: updated, isFetching: false, sessionKey: false });
 
-    expect(result.current.recentFolders.map((f) => f.id)).toEqual(['f1', 'f6', 'f5']);
+    expect(result.current.recentFolderList.map((f) => f.id)).toEqual(['f1', 'f6', 'f5']);
   });
 
   it('스냅샷에 찍힌 폴더가 이후 삭제되면 결과에서 빠진다', () => {
@@ -151,12 +151,12 @@ describe('useRecentBookmarkFolders', () => {
       { initialProps: { folders: initial, isFetching: false } }
     );
 
-    expect(result.current.recentFolders.map((f) => f.id)).toEqual(['f6', 'f5', 'f4']);
+    expect(result.current.recentFolderList.map((f) => f.id)).toEqual(['f6', 'f5', 'f4']);
 
     // f5 폴더가 삭제됨 — 목록에서 사라짐, isFetching은 계속 false(낙관적 반영 가정)
     const updated = initial.filter((f) => f.id !== 'f5');
     rerender({ folders: updated, isFetching: false });
 
-    expect(result.current.recentFolders.map((f) => f.id)).toEqual(['f6', 'f4']);
+    expect(result.current.recentFolderList.map((f) => f.id)).toEqual(['f6', 'f4']);
   });
 });

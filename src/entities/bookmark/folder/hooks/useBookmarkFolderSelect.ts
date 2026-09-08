@@ -4,9 +4,9 @@ import { TEXTS } from '@/shared/config/texts';
 import {
   useCreateBookmarkFolderMutation,
   useBookmarkFolderListQuery,
-} from '@/entities/bookmark/folder/api/folder.queries';
-import { useRecentBookmarkFolders } from '@/entities/bookmark/folder/hooks/useRecentFolders';
-import type { BookmarkFolder } from '@/entities/bookmark/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/api/bookmark-folder.queries';
+import { useRecentBookmarkFolders } from '@/entities/bookmark/folder/hooks/useRecentBookmarkFolders';
+import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
 // 미분류 행의 pending 식별자 — folderKey 관례('all' | 'uncategorized' | UUID)와 동일한 sentinel이라
 // 실제 폴더 UUID와 충돌하지 않는다.
@@ -37,7 +37,7 @@ export function useBookmarkFolderSelect({
   const folderList = Array.isArray(data?.folders) ? data.folders : [];
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
   // 상단 "최근 저장한 폴더" 구획 — 열 때마다(open) 새로 스냅샷, 열려있는 동안은 고정
-  const { recentFolders } = useRecentBookmarkFolders(folderList, isFetching, open);
+  const { recentFolderList } = useRecentBookmarkFolders(folderList, isFetching, open);
   const { mutateAsync: createFolder, isPending: isCreating } = useCreateBookmarkFolderMutation();
 
   const [creatingMode, setCreatingMode] = useState(false);
@@ -110,7 +110,7 @@ export function useBookmarkFolderSelect({
     isLoading,
     folderList,
     uncategorizedCount,
-    recentFolders,
+    recentFolderList,
     isUncategorizedSelected,
     pendingKey,
     creatingMode,

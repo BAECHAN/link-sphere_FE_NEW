@@ -3,7 +3,7 @@ import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import {
   BookmarkFolderKey,
   BookmarkFolderSort,
-} from '@/entities/bookmark/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { TEXTS } from '@/shared/config/texts';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { useBookmarkPostList } from '@/widgets/bookmark/bookmark-post-list/hooks/useBookmarkPostList';

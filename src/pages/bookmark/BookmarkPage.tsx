@@ -18,8 +18,8 @@ import { MobileFolderList } from '@/widgets/bookmark/folder-tree/ui/MobileFolder
 import {
   BookmarkFolderKey,
   BookmarkFolderSort,
-} from '@/entities/bookmark/folder/model/folder.schema';
-import { useBookmarkFolderListQuery } from '@/entities/bookmark/folder/api/folder.queries';
+} from '@/entities/bookmark/folder/model/bookmark-folder.schema';
+import { useBookmarkFolderListQuery } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 
 const SORT_LABELS: Record<BookmarkFolderSort, string> = {
   latest: TEXTS.bookmark.folder.sort.latest,

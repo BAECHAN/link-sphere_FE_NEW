@@ -1,16 +1,16 @@
 import { http, HttpResponse } from 'msw';
-import { mockFolderListResponse } from '@/mocks/fixtures/folder.fixtures';
+import { mockBookmarkFolderListResponse } from '@/mocks/fixtures/bookmark-folder.fixtures';
 import { API_ENDPOINTS } from '@/shared/config/api';
-import type { BookmarkFoldersResponse } from '@/entities/bookmark/folder/model/folder.schema';
+import type { BookmarkFoldersResponse } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
-export const folderHandlers = [
+export const bookmarkFolderHandlers = [
   // GET /bookmark/folders (폴더 목록)
   http.get(`${API_ENDPOINTS.bookmark.folders}`, () => {
     return HttpResponse.json(
       {
         status: 200,
         message: 'ok',
-        data: mockFolderListResponse,
+        data: mockBookmarkFolderListResponse,
         timestamp: new Date().toISOString(),
       },
       { status: 200 }

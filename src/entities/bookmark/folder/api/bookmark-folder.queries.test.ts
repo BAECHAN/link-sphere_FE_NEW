@@ -7,18 +7,18 @@ import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { postKeys } from '@/entities/post/api/post.keys';
-import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/folder.keys';
+import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import type { Post } from '@/entities/post/model/post.schema';
 import type {
   BookmarkFoldersResponse,
   BookmarkFolderListResponse,
-} from '@/entities/bookmark/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import {
   useAddBookmarkFolderMutation,
   useClearBookmarkFoldersMutation,
   useRemoveBookmarkFolderMutation,
-} from '@/entities/bookmark/folder/api/folder.queries';
+} from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 

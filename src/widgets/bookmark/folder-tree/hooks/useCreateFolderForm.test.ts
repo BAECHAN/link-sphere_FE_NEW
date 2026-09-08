@@ -16,7 +16,7 @@ function Wrapper({ children }: { children: ReactNode }) {
   return createElement(QueryClientProvider, { client: queryClient }, children);
 }
 
-// 기본 folderHandlers는 폴더 CRUD(POST)를 등록하지 않고, 등록된 나머지도 API_BASE_URL
+// 기본 bookmarkFolderHandlers는 폴더 CRUD(POST)를 등록하지 않고, 등록된 나머지도 API_BASE_URL
 // 접두사 없이 등록돼 있다 - url()로 명시 등록.
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
