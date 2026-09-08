@@ -13,7 +13,7 @@ import {
   useCreateFolderMutation,
   useFolderListQuery,
 } from '@/entities/bookmark/folder/api/folder.queries';
-import { useRecentFolders } from '@/entities/bookmark/folder/model/useRecentFolders';
+import { useRecentFolders } from '@/entities/bookmark/folder/hooks/useRecentFolders';
 import type { Folder } from '@/entities/bookmark/folder/model/folder.schema';
 
 // 미분류 행의 pending 식별자 — folderKey 관례('all' | 'uncategorized' | UUID)와 동일한 sentinel이라

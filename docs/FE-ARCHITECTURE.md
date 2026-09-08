@@ -187,13 +187,14 @@ src/
 │   │   │                         # 폴더인지 불분명했던 문제를 features/widgets와 같은 방식으로 해소
 │   │   └── folder/
 │   │       ├── api/              # folder.api.ts, folder.keys.ts, folder.queries.ts
-│   │       ├── model/            # folder.schema.ts, useRecentFolders.ts
+│   │       ├── model/            # folder.schema.ts
+│   │       ├── hooks/            # useRecentFolders.ts
 │   │       └── ui/               # FolderPickerDialog
 │   ├── upload/
 │   │   └── api/                  # upload.api.ts
 │   └── user/
 │       ├── api/                  # auth.api.ts, auth.keys.ts, auth.queries.ts
-│       ├── model/                # useAuth, useAccount, useAppInitialization, useAuthGuard, useProtectedNavigate
+│       ├── hooks/                 # useAuth, useAccount, useAppInitialization, useAuthGuard, useProtectedNavigate
 │       └── ui/                   # UserAvatar
 │
 └── shared/                       # 순수 유틸, UI 원자, API client, config

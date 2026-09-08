@@ -1,5 +1,5 @@
 import { useFolderListQuery } from '@/entities/bookmark/folder/api/folder.queries';
-import { useRecentFolders } from '@/entities/bookmark/folder/model/useRecentFolders';
+import { useRecentFolders } from '@/entities/bookmark/folder/hooks/useRecentFolders';
 
 /**
  * 폴더 목록 조회 + "최근 저장한 폴더" 스냅샷을 함께 제공하는 훅.

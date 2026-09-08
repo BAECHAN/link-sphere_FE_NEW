@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { useRecentFolders } from '@/entities/bookmark/folder/model/useRecentFolders';
+import { useRecentFolders } from '@/entities/bookmark/folder/hooks/useRecentFolders';
 import { Folder } from '@/entities/bookmark/folder/model/folder.schema';
 
 function makeFolder(overrides: Partial<Folder> & Pick<Folder, 'id'>): Folder {
