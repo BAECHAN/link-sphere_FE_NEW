@@ -60,7 +60,7 @@ flowchart TD
   App["app<br/>providers · routes · layouts"] --> Pages["pages<br/>post · auth · bookmark · 403 · 404 · 500"]
   Pages --> Widgets["widgets<br/>post · comment · bookmark · layout"]
   Widgets --> Features["features<br/>post · comment · auth"]
-  Features --> Entities["entities<br/>post · comment · interaction · user · bookmark/folder"]
+  Features --> Entities["entities<br/>post · comment · interaction · user · bookmark/folder · category"]
   Entities --> Shared["shared<br/>api · config · hooks · lib · store · types · ui · utils"]
 
   EPost["entities/post"] -.export *.-> EComment["entities/comment"]
@@ -193,6 +193,9 @@ src/
 │   │       ├── utils/            # folder.util.ts (pickRecentFolders)
 │   │       ├── hooks/            # useRecentFolders.ts, useFolderPicker.ts
 │   │       └── ui/               # FolderPickerModal
+│   ├── category/
+│   │   ├── api/                  # category.api.ts, category.keys.ts, category.queries.ts
+│   │   └── model/                # category.schema.ts
 │   └── user/
 │       ├── api/                  # auth.api.ts, auth.keys.ts, auth.queries.ts
 │       ├── hooks/                 # useAuth, useAccount, useAppInitialization, useAuthGuard, useProtectedNavigate
@@ -201,7 +204,7 @@ src/
 └── shared/                       # 순수 유틸, UI 원자, API client, config
     ├── api/
     │   ├── client.ts             # HTTP 클라이언트 (apiClient) — fetch 기반, axios 아님
-    │   └── common.{api,keys,queries,schema}.ts
+    │   └── upload.api.ts         # uploadApi — 서명 URL 발급 + PUT 요청 함수
     ├── config/
     │   ├── texts.ts               # 모든 UI 문자열 (TEXTS)
     │   ├── api.ts                 # 모든 API 엔드포인트 (API_ENDPOINTS)
@@ -216,6 +219,7 @@ src/
     │   │   ├── config/queryClient.ts   # 중앙 QueryClient 인스턴스
     │   │   └── utils/hooks.ts          # React Query 관련 재사용 훅
     │   ├── toast/toast.ts         # sonner 래퍼 (직접 import 금지, 이걸 통해서만 사용)
+    │   ├── upload/uploadImageAndGetUrl.ts  # 리사이즈 + uploadApi 조합 편의 함수
     │   ├── firebase/, image/, content/, react-table/, router/
     │   └── tailwind/utils.ts      # cn() helper
     ├── store/                     # auth, hideBots, loginModal, mypage, sidebar, unsavedChanges (.store.ts)
@@ -245,6 +249,7 @@ src/
 | `comment`     | `entities/comment/`         | 댓글 CRUD + 쿼리                |
 | `interaction` | `entities/interaction/`     | like/bookmark optimistic update |
 | `folder`      | `entities/bookmark/folder/` | 북마크 폴더 CRUD + 쿼리         |
+| `category`    | `entities/category/`        | 카테고리 옵션 조회              |
 | `user`        | `entities/user/`            | 인증 API + 훅 + UserAvatar      |
 
 | Widget               | 위치                                   | 설명                                          |

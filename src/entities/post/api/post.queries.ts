@@ -30,7 +30,7 @@ import {
   handlePostDeleteSuccess,
 } from '@/entities/bookmark/folder/api/folder.keys';
 import { FolderListResponse } from '@/entities/bookmark/folder/model/folder.schema';
-import { PaginationRequest } from '@/shared/api/common.schema';
+import { PaginationRequest } from '@/shared/types/common.type';
 
 export const useCreatePostMutation = () => {
   return useMutation({
