@@ -53,6 +53,91 @@ const RESTRICTED_SYNTAX_NO_NATIVE_DATE = [
   },
 ];
 
+// queryClient 싱글턴(config/queryClient.ts)을 상대 경로로 우회 import하는 것까지 잡기 위해
+// 절대 경로 문자열과 상대 경로 접미사(끝이 /react-query/config/queryClient) 둘 다 검사한다.
+const QUERY_CLIENT_SINGLETON_PATH = '@/shared/lib/react-query/config/queryClient';
+
+/** import 선언 전체가 타입 전용인지 (`import type {...}` / `import { type X }`) */
+function isTypeOnlyImport(node) {
+  if (node.importKind === 'type') {
+    return true;
+  }
+
+  return (
+    node.specifiers.length > 0 &&
+    node.specifiers.every((specifier) => specifier.importKind === 'type')
+  );
+}
+
+const customQueryRulesPlugin = {
+  rules: {
+    // [금지] queryClient 싱글턴 직접 import
+    // 이유: 싱글턴을 직접 잡으면 QueryClientProvider가 주입한 클라이언트와 다른 인스턴스를
+    //       만질 수 있다. 프로덕션에선 같은 인스턴스라 티가 안 나지만, 테스트가 격리
+    //       클라이언트를 써도 캐시 갱신은 싱글턴으로 새서 검증이 조용히 무의미해진다.
+    'no-query-client-singleton-import': {
+      meta: {
+        type: 'problem',
+        docs: { description: 'queryClient 싱글턴 직접 import 금지 (허용목록 방식)' },
+        messages: {
+          singletonImport:
+            'queryClient 싱글턴을 직접 import할 수 없습니다. 컴포넌트·훅에서는 useQueryClient()를, .keys.ts 같은 비-훅 모듈에서는 queryClient를 첫 인자로 받으세요.',
+        },
+      },
+      create(context) {
+        return {
+          ImportDeclaration(node) {
+            const source = node.source.value;
+
+            if (typeof source !== 'string') {
+              return;
+            }
+
+            if (
+              source === QUERY_CLIENT_SINGLETON_PATH ||
+              source.endsWith('/react-query/config/queryClient')
+            ) {
+              context.report({ node, messageId: 'singletonImport' });
+            }
+          },
+        };
+      },
+    },
+    // [금지] UI 컴포넌트에서 React Query 직접 import
+    // 이유: UI(렌더링)와 데이터 fetching(비즈니스 로직)의 관심사 분리.
+    //       쿼리·뮤테이션 정의는 *.queries.ts, 조합 로직은 hooks/의 커스텀 훅으로 분리한다.
+    'no-direct-query-import': {
+      meta: {
+        type: 'problem',
+        docs: { description: '@tanstack/react-query 직접 import 금지 (허용목록 방식)' },
+        messages: {
+          directQueryImport:
+            '이 위치에서는 @tanstack/react-query를 직접 import할 수 없습니다. 쿼리·뮤테이션 정의는 *.queries.ts, 조합 로직은 hooks/의 커스텀 훅으로 분리하세요.',
+        },
+      },
+      create(context) {
+        return {
+          ImportDeclaration(node) {
+            const source = node.source.value;
+
+            if (typeof source !== 'string' || !source.startsWith('@tanstack/react-query')) {
+              return;
+            }
+
+            // 타입 전용 import는 런타임 의존이 아니므로 허용한다
+            // (.keys.ts가 `import type { QueryClient }`로 파라미터 타입만 쓰는 경우)
+            if (isTypeOnlyImport(node)) {
+              return;
+            }
+
+            context.report({ node, messageId: 'directQueryImport' });
+          },
+        };
+      },
+    },
+  },
+};
+
 export default [
   ...tseslint.configs.recommended,
   prettierConfig,
@@ -738,44 +823,60 @@ export default [
   // (getState + 클래스 컴포넌트 금지 + 이번에 추가한 dayjs 규칙)를 무력화하고 있었다 —
   // 2026-09-08 dayjs 규칙 추가 중 발견)
   // ============================================================
-  // [금지] UI 컴포넌트에서 React Query 직접 import
-  // 이유: UI(렌더링)와 데이터 fetching(비즈니스 로직)의 관심사 분리.
-  //       UI는 props/hooks 반환값만 받아 렌더링하고, 데이터 로직은 hooks/로 분리해야
-  //       테스트 용이성, 재사용성, 유지보수성이 보장됨
+  // [금지] queryClient 싱글턴 직접 import — src/** 전체 금지 + 허용목록
+  // 이유: 싱글턴을 직접 잡으면 QueryClientProvider가 주입한 클라이언트와 다른 인스턴스를
+  //       만질 수 있다. 프로덕션에선 같은 인스턴스라 티가 안 나지만, 테스트가 격리
+  //       클라이언트를 써도 캐시 갱신은 싱글턴으로 새서 검증이 조용히 무의미해진다
+  //       (2026-09-09 이전 entities/*/api/*.queries.test.ts가 전부 이 이유로 싱글턴을
+  //       provider에 직접 꽂고 있었다).
+  // 주의: no-restricted-imports로 쓰면 아래 FSD 레이어 블록이 같은 rule key를 다시
+  //       선언해 통째로 덮어쓴다 — 그래서 고유 rule key의 커스텀 룰로 만들었다.
   // ============================================================
   {
-    files: ['src/**/ui/**/*.{ts,tsx}'],
-    ignores: ['src/shared/ui/elements/**/*.{ts,tsx}'],
-    plugins: {
-      'custom-ui-rules': {
-        rules: {
-          'no-direct-query-import': {
-            meta: {
-              type: 'problem',
-              docs: {
-                description: 'UI 컴포넌트에서 @tanstack/react-query 직접 import 금지',
-              },
-              messages: {
-                directQueryImport:
-                  'UI 컴포넌트에서 @tanstack/react-query를 직접 import할 수 없습니다. 데이터 fetching 로직은 hooks/ 디렉토리의 커스텀 훅으로 분리하세요. (관심사 분리: UI는 렌더링만 담당)',
-              },
-            },
-            create(context) {
-              return {
-                ImportDeclaration(node) {
-                  const source = node.source.value;
-                  if (typeof source === 'string' && source.startsWith('@tanstack/react-query')) {
-                    context.report({ node, messageId: 'directQueryImport' });
-                  }
-                },
-              };
-            },
-          },
-        },
-      },
-    },
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: [
+      // 싱글턴을 provider에 주입하는 유일한 지점
+      'src/app/providers/QueryProvider.tsx',
+      // clearAll()/clearQueries()가 React 트리 밖(fetch 인터셉터, 전역 캐시 에러 핸들러)
+      // 에서 호출되어 useQueryClient()를 쓸 수 없다
+      'src/shared/utils/auth.util.ts',
+    ],
+    plugins: { 'custom-query-rules': customQueryRulesPlugin },
     rules: {
-      'custom-ui-rules/no-direct-query-import': 'error',
+      'custom-query-rules/no-query-client-singleton-import': 'error',
+    },
+  },
+
+  // ============================================================
+  // [금지] @tanstack/react-query 직접 import — src/** 전체 금지 + 허용목록
+  // 이유: UI(렌더링)와 데이터 fetching(비즈니스 로직)의 관심사 분리. 이전엔 src/**/ui/**만
+  //       막았는데, 그러면 ui/ 밖이면 아무 데서나 훅을 쓸 수 있어 3-Layer 계약이 실질적으로
+  //       강제되지 않았다 → 허용목록 방식으로 전환(2026-09-09).
+  // 타입 전용 import(import type { QueryClient })는 룰 구현에서 통과시킨다.
+  // ============================================================
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: [
+      // 앱 부트스트랩 — QueryProvider, QueryErrorResetBoundary
+      'src/app/**/*.{ts,tsx}',
+      // React Query 인프라 자체 (queryClient.ts, utils/hooks.ts)
+      'src/shared/lib/react-query/**/*.{ts,tsx}',
+      // 전역 focusManager 제어
+      'src/shared/hooks/useWindowFocusManager.ts',
+      // 3-Layer API의 Layer 3 — 쿼리·뮤테이션 훅을 정의하는 자리
+      'src/**/api/*.queries.ts',
+      // hooks/ 세그먼트 — entity/feature/widget 커스텀 훅
+      'src/**/hooks/**/*.{ts,tsx}',
+      // pages엔 hooks/ 세그먼트가 없다. 한 줄짜리 invalidate만 있어 훅으로 뺄 정도가
+      // 아니므로 파일 단위 예외로 둔다
+      'src/pages/post/PostDetailPage.tsx',
+      // 테스트 인프라·콜로케이션 테스트
+      'src/test/**/*.{ts,tsx}',
+      '**/*.test.{ts,tsx}',
+    ],
+    plugins: { 'custom-query-rules': customQueryRulesPlugin },
+    rules: {
+      'custom-query-rules/no-direct-query-import': 'error',
     },
   },
 
