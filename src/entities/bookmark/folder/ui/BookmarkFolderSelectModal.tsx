@@ -8,12 +8,12 @@ import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import {
-  useFolderSelect,
+  useBookmarkFolderSelect,
   UNCATEGORIZED_PENDING_KEY,
-} from '@/entities/bookmark/folder/hooks/useFolderSelect';
-import type { Folder } from '@/entities/bookmark/folder/model/folder.schema';
+} from '@/entities/bookmark/folder/hooks/useBookmarkFolderSelect';
+import type { BookmarkFolder } from '@/entities/bookmark/folder/model/folder.schema';
 
-interface FolderSelectModalProps {
+interface BookmarkFolderSelectModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** 헤더 보조 문구 — 즉시 저장(PostCardBookmarkFolderModal)인지 지연 선택(PostCreateBookmarkFolderField)인지가 달라 호출부가 정한다 */
@@ -21,7 +21,7 @@ interface FolderSelectModalProps {
   isBookmarked: boolean;
   selectedFolderIds: string[];
   onSelectUncategorized: () => void | Promise<void>;
-  onSelectFolder: (folder: Folder) => void | Promise<void>;
+  onSelectFolder: (folder: BookmarkFolder) => void | Promise<void>;
   /** 목록 맨 아래 destructive 행. 넘기지 않으면 미노출 */
   dangerAction?: { label: string; onClick: () => void | Promise<void> };
   /** 탭해도 안 닫히는 지연 선택에서 하단 '확인' 버튼을 붙인다 */
@@ -31,12 +31,12 @@ interface FolderSelectModalProps {
 /**
  * 북마크 폴더 선택 UI — 보관함의 즉시 저장(PostCardBookmarkFolderModal)과 등록 폼의 지연 선택
  * (PostCreateBookmarkFolderField)이 공유하는 프레젠테이션 컴포넌트. 저장 동작은 콜백으로 주입받는다.
- * 로직 전부는 useFolderSelect가 소유하고, 여기는 JSX만 남긴다.
+ * 로직 전부는 useBookmarkFolderSelect가 소유하고, 여기는 JSX만 남긴다.
  * - 데스크탑: 중앙 모달 / 모바일: 하단 BottomSheet
  * - 미분류 행이 이미 체크된 상태에서 재탭하면 no-op(오탭으로 북마크가 조용히 사라지는 것 방지) —
  *   두 호출부 모두 이 규칙을 그대로 따른다.
  */
-export function FolderSelectModal({
+export function BookmarkFolderSelectModal({
   open,
   onOpenChange,
   description,
@@ -46,7 +46,7 @@ export function FolderSelectModal({
   onSelectFolder,
   dangerAction,
   showConfirmButton,
-}: FolderSelectModalProps) {
+}: BookmarkFolderSelectModalProps) {
   const isMobile = useIsMobile();
   const {
     isLoading,
@@ -63,7 +63,7 @@ export function FolderSelectModal({
     handleSelectUncategorized,
     handleSelectFolder,
     handleCreateAndSelect,
-  } = useFolderSelect({
+  } = useBookmarkFolderSelect({
     open,
     isBookmarked,
     selectedFolderIds,

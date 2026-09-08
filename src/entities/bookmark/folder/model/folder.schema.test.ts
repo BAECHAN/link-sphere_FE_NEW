@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   bookmarkFoldersResponseSchema,
-  createFolderSchema,
-  folderSchema,
-  folderSortEnum,
-  reorderFoldersSchema,
+  createBookmarkFolderSchema,
+  bookmarkFolderSchema,
+  bookmarkFolderSortEnum,
+  reorderBookmarkFoldersSchema,
 } from '@/entities/bookmark/folder/model/folder.schema';
 
-describe('folderSchema', () => {
+describe('bookmarkFolderSchema', () => {
   const validFolder = {
     id: 'folder-uuid-1',
     name: '읽을거리',
@@ -18,12 +18,12 @@ describe('folderSchema', () => {
   };
 
   it('유효한 폴더 데이터를 파싱한다', () => {
-    const result = folderSchema.safeParse(validFolder);
+    const result = bookmarkFolderSchema.safeParse(validFolder);
     expect(result.success).toBe(true);
   });
 
   it('createdAt/updatedAt 문자열을 Date 객체로 변환한다', () => {
-    const result = folderSchema.safeParse({
+    const result = bookmarkFolderSchema.safeParse({
       ...validFolder,
       createdAt: '2025-01-01T00:00:00.000Z',
       updatedAt: '2025-01-02T00:00:00.000Z',
@@ -36,22 +36,22 @@ describe('folderSchema', () => {
   });
 
   it('sortOrder가 음수면 파싱에 실패한다', () => {
-    const result = folderSchema.safeParse({ ...validFolder, sortOrder: -1 });
+    const result = bookmarkFolderSchema.safeParse({ ...validFolder, sortOrder: -1 });
     expect(result.success).toBe(false);
   });
 
   it('bookmarkCount가 음수면 파싱에 실패한다', () => {
-    const result = folderSchema.safeParse({ ...validFolder, bookmarkCount: -1 });
+    const result = bookmarkFolderSchema.safeParse({ ...validFolder, bookmarkCount: -1 });
     expect(result.success).toBe(false);
   });
 
   it('lastUsedAt이 없어도(구 BE 응답) 유효하다', () => {
-    const result = folderSchema.safeParse(validFolder);
+    const result = bookmarkFolderSchema.safeParse(validFolder);
     expect(result.success).toBe(true);
   });
 
   it('lastUsedAt이 null이면(미사용 폴더) 그대로 null로 유지되고 1970-01-01로 coerce되지 않는다', () => {
-    const result = folderSchema.safeParse({ ...validFolder, lastUsedAt: null });
+    const result = bookmarkFolderSchema.safeParse({ ...validFolder, lastUsedAt: null });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.lastUsedAt).toBeNull();
@@ -59,7 +59,7 @@ describe('folderSchema', () => {
   });
 
   it('lastUsedAt 문자열을 Date 객체로 변환한다', () => {
-    const result = folderSchema.safeParse({
+    const result = bookmarkFolderSchema.safeParse({
       ...validFolder,
       lastUsedAt: '2025-01-03T00:00:00.000Z',
     });
@@ -70,13 +70,13 @@ describe('folderSchema', () => {
   });
 });
 
-describe('createFolderSchema', () => {
+describe('createBookmarkFolderSchema', () => {
   it('name이 있으면 유효하다', () => {
-    expect(createFolderSchema.safeParse({ name: '새 폴더' }).success).toBe(true);
+    expect(createBookmarkFolderSchema.safeParse({ name: '새 폴더' }).success).toBe(true);
   });
 
   it('name이 빈 문자열이면 파싱에 실패한다', () => {
-    expect(createFolderSchema.safeParse({ name: '' }).success).toBe(false);
+    expect(createBookmarkFolderSchema.safeParse({ name: '' }).success).toBe(false);
   });
 });
 
@@ -97,24 +97,24 @@ describe('bookmarkFoldersResponseSchema', () => {
   });
 });
 
-describe('reorderFoldersSchema', () => {
+describe('reorderBookmarkFoldersSchema', () => {
   it('folderIds 배열이 1개 이상이면 유효하다', () => {
-    expect(reorderFoldersSchema.safeParse({ folderIds: ['a', 'b'] }).success).toBe(true);
+    expect(reorderBookmarkFoldersSchema.safeParse({ folderIds: ['a', 'b'] }).success).toBe(true);
   });
 
   it('folderIds가 빈 배열이면 파싱에 실패한다', () => {
-    expect(reorderFoldersSchema.safeParse({ folderIds: [] }).success).toBe(false);
+    expect(reorderBookmarkFoldersSchema.safeParse({ folderIds: [] }).success).toBe(false);
   });
 });
 
-describe('folderSortEnum', () => {
+describe('bookmarkFolderSortEnum', () => {
   it('latest/oldest/title/views/viewed를 허용한다', () => {
     for (const sort of ['latest', 'oldest', 'title', 'views', 'viewed']) {
-      expect(folderSortEnum.safeParse(sort).success).toBe(true);
+      expect(bookmarkFolderSortEnum.safeParse(sort).success).toBe(true);
     }
   });
 
   it('정의되지 않은 값은 거부한다', () => {
-    expect(folderSortEnum.safeParse('random').success).toBe(false);
+    expect(bookmarkFolderSortEnum.safeParse('random').success).toBe(false);
   });
 });

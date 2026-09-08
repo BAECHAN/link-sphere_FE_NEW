@@ -2,43 +2,43 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import {
-  useCreateFolderMutation,
-  useFolderListQuery,
+  useCreateBookmarkFolderMutation,
+  useBookmarkFolderListQuery,
 } from '@/entities/bookmark/folder/api/folder.queries';
-import { useRecentFolders } from '@/entities/bookmark/folder/hooks/useRecentFolders';
-import type { Folder } from '@/entities/bookmark/folder/model/folder.schema';
+import { useRecentBookmarkFolders } from '@/entities/bookmark/folder/hooks/useRecentFolders';
+import type { BookmarkFolder } from '@/entities/bookmark/folder/model/folder.schema';
 
 // 미분류 행의 pending 식별자 — folderKey 관례('all' | 'uncategorized' | UUID)와 동일한 sentinel이라
 // 실제 폴더 UUID와 충돌하지 않는다.
 export const UNCATEGORIZED_PENDING_KEY = 'uncategorized';
 
-interface UseFolderSelectParams {
+interface UseBookmarkFolderSelectParams {
   open: boolean;
   isBookmarked: boolean;
   selectedFolderIds: string[];
   onSelectUncategorized: () => void | Promise<void>;
-  onSelectFolder: (folder: Folder) => void | Promise<void>;
+  onSelectFolder: (folder: BookmarkFolder) => void | Promise<void>;
 }
 
 /**
- * 폴더 선택 모달(FolderSelectModal)의 로직 전부 — 폴더 목록 조회·생성·행별 pending 상태·
- * 미분류 재탭 no-op 규칙을 소유한다. 저장 동작 자체(성공 토스트·닫기·라우팅)는 호출부가
- * 콜백으로 넘긴다.
+ * 폴더 선택 모달(BookmarkFolderSelectModal)의 로직 전부 — 폴더 목록 조회·생성·행별 pending
+ * 상태·미분류 재탭 no-op 규칙을 소유한다. 저장 동작 자체(성공 토스트·닫기·라우팅)는
+ * 호출부가 콜백으로 넘긴다.
  */
-export function useFolderSelect({
+export function useBookmarkFolderSelect({
   open,
   isBookmarked,
   selectedFolderIds,
   onSelectUncategorized,
   onSelectFolder,
-}: UseFolderSelectParams) {
-  const { data, isLoading, isFetching } = useFolderListQuery({ enabled: open });
+}: UseBookmarkFolderSelectParams) {
+  const { data, isLoading, isFetching } = useBookmarkFolderListQuery({ enabled: open });
   // 잘못 라우팅된 응답(HTML 등) 방어 — 배열이 아니면 빈 목록으로 처리해 화면 전체 크래시 방지
   const folderList = Array.isArray(data?.folders) ? data.folders : [];
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
   // 상단 "최근 저장한 폴더" 구획 — 열 때마다(open) 새로 스냅샷, 열려있는 동안은 고정
-  const { recentFolders } = useRecentFolders(folderList, isFetching, open);
-  const { mutateAsync: createFolder, isPending: isCreating } = useCreateFolderMutation();
+  const { recentFolders } = useRecentBookmarkFolders(folderList, isFetching, open);
+  const { mutateAsync: createFolder, isPending: isCreating } = useCreateBookmarkFolderMutation();
 
   const [creatingMode, setCreatingMode] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -72,7 +72,7 @@ export function useFolderSelect({
     }
   };
 
-  const handleSelectFolder = async (folder: Folder) => {
+  const handleSelectFolder = async (folder: BookmarkFolder) => {
     setPendingKey(folder.id);
     try {
       await onSelectFolder(folder);

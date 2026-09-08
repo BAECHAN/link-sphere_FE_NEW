@@ -1,13 +1,16 @@
 import { Loader2 } from 'lucide-react';
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
-import { FolderKey, FolderSort } from '@/entities/bookmark/folder/model/folder.schema';
+import {
+  BookmarkFolderKey,
+  BookmarkFolderSort,
+} from '@/entities/bookmark/folder/model/folder.schema';
 import { TEXTS } from '@/shared/config/texts';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { useBookmarkPostList } from '@/widgets/bookmark/bookmark-post-list/hooks/useBookmarkPostList';
 
 interface BookmarkPostListProps {
-  folderKey: FolderKey;
-  sort: FolderSort;
+  folderKey: BookmarkFolderKey;
+  sort: BookmarkFolderSort;
   search?: string;
   className?: string;
 }

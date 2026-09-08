@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Folder } from '@/entities/bookmark/folder/model/folder.schema';
-import { FolderUtil } from '@/entities/bookmark/folder/utils/folder.util';
+import { BookmarkFolder } from '@/entities/bookmark/folder/model/folder.schema';
+import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/folder.util';
 
 /**
  * "최근 저장한 폴더" 상단 구획 — Sears & Shneiderman split menu 방식.
@@ -22,7 +22,11 @@ import { FolderUtil } from '@/entities/bookmark/folder/utils/folder.util';
  *   화면은 넘기지 않으면 마운트 수명 전체가 하나의 세션이 된다.
  * - 상단 구획에 뜬 폴더도 아래 본 목록에서 빼지 않는다(중복 표시) — 호출부에서 그대로 렌더한다.
  */
-export function useRecentFolders(folders: Folder[], isFetching: boolean, sessionKey?: unknown) {
+export function useRecentBookmarkFolders(
+  folders: BookmarkFolder[],
+  isFetching: boolean,
+  sessionKey?: unknown
+) {
   const [recentFolderIds, setRecentFolderIds] = useState<string[]>([]);
   const snapshottedForSessionRef = useRef<unknown>(Symbol('not-snapshotted'));
 
@@ -32,14 +36,14 @@ export function useRecentFolders(folders: Folder[], isFetching: boolean, session
         return;
       }
       snapshottedForSessionRef.current = sessionKey;
-      setRecentFolderIds(FolderUtil.pickRecentFolders(folders).map((folder) => folder.id));
+      setRecentFolderIds(BookmarkFolderUtil.pickRecentFolders(folders).map((folder) => folder.id));
     },
     [folders, isFetching, sessionKey]
   );
 
   const recentFolders = recentFolderIds
     .map((id) => folders.find((folder) => folder.id === id))
-    .filter((folder): folder is Folder => folder !== undefined);
+    .filter((folder): folder is BookmarkFolder => folder !== undefined);
 
   return { recentFolders };
 }

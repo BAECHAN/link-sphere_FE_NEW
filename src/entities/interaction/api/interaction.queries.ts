@@ -4,11 +4,11 @@ import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { commentKeys } from '@/entities/comment/api/comment.keys';
 import {
-  folderKeys,
+  bookmarkFolderKeys,
   handleBookmarkToggleSuccess,
 } from '@/entities/bookmark/folder/api/folder.keys';
 import { Post, PostListResponse } from '@/entities/post/model/post.schema';
-import { FolderListResponse } from '@/entities/bookmark/folder/model/folder.schema';
+import { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/folder.schema';
 import { Comment } from '@/entities/comment/model/comment.schema';
 
 export const useLikePostMutation = (postId: Post['id']) => {
@@ -86,14 +86,16 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: postKeys.detail(postId) });
       await queryClient.cancelQueries({ queryKey: postKeys.listRoot });
-      await queryClient.cancelQueries({ queryKey: folderKeys.list });
-      await queryClient.cancelQueries({ queryKey: folderKeys.postsRoot });
+      await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.list });
+      await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.postsRoot });
 
       const previousPost = queryClient.getQueryData<Post>(postKeys.detail(postId));
       const previousFolderPosts = queryClient.getQueriesData<InfiniteData<PostListResponse>>({
-        queryKey: folderKeys.postsRoot,
+        queryKey: bookmarkFolderKeys.postsRoot,
       });
-      const previousFolderList = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+      const previousFolderList = queryClient.getQueryData<BookmarkFolderListResponse>(
+        bookmarkFolderKeys.list
+      );
 
       // post.detail 이 없으면(북마크 화면 등) folder 게시글 캐시에서 이 글의 현재 상태를 찾는다.
       // 방향(ON/OFF)은 폴더 캐시에 있는지 여부가 아니라 이 isBookmarked 값 하나로만 결정한다.
@@ -168,7 +170,7 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
       if (!nextBookmarked) {
         // OFF — 소속돼있던 모든 폴더 캐시(+ 미분류)에서 카드 제거
         queryClient.setQueriesData<InfiniteData<PostListResponse>>(
-          { queryKey: folderKeys.postsRoot },
+          { queryKey: bookmarkFolderKeys.postsRoot },
           (oldData) => {
             if (!oldData) {
               return oldData;
@@ -193,7 +195,7 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
         // 폴더 건수 감소 — 소속돼있던 폴더 전부(여러 개일 수 있음), 소속 0개였다면 uncategorizedCount
         if (previousFolderList) {
           const prevIdSet = new Set(prevFolderIds);
-          queryClient.setQueryData<FolderListResponse>(folderKeys.list, {
+          queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, {
             ...previousFolderList,
             uncategorizedCount: Math.max(
               0,
@@ -208,7 +210,7 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
         }
       } else if (previousFolderList) {
         // ON — 미분류로 새로 생성됨
-        queryClient.setQueryData<FolderListResponse>(folderKeys.list, {
+        queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, {
           ...previousFolderList,
           uncategorizedCount: previousFolderList.uncategorizedCount + 1,
         });
@@ -224,7 +226,7 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
         queryClient.setQueryData(postKeys.detail(postId), context.previousPost);
       }
       if (context?.previousFolderList) {
-        queryClient.setQueryData(folderKeys.list, context.previousFolderList);
+        queryClient.setQueryData(bookmarkFolderKeys.list, context.previousFolderList);
       }
       context?.previousFolderPosts?.forEach(([key, data]) => {
         queryClient.setQueryData(key, data);

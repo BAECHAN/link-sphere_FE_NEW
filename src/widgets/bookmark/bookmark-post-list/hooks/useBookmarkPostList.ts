@@ -1,13 +1,20 @@
-import { useFolderPostsInfiniteQuery } from '@/entities/bookmark/folder/api/folder.queries';
-import { FolderKey, FolderSort } from '@/entities/bookmark/folder/model/folder.schema';
+import { useBookmarkFolderPostsInfiniteQuery } from '@/entities/bookmark/folder/api/folder.queries';
+import {
+  BookmarkFolderKey,
+  BookmarkFolderSort,
+} from '@/entities/bookmark/folder/model/folder.schema';
 import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
 
 /**
  * 폴더별 북마크 게시글 목록 데이터와 무한 스크롤 로직을 포함하는 훅
  */
-export const useBookmarkPostList = (folderKey: FolderKey, sort: FolderSort, search?: string) => {
+export const useBookmarkPostList = (
+  folderKey: BookmarkFolderKey,
+  sort: BookmarkFolderSort,
+  search?: string
+) => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useFolderPostsInfiniteQuery(folderKey, sort, search);
+    useBookmarkFolderPostsInfiniteQuery(folderKey, sort, search);
 
   const observerRef = useIntersectionObserver({
     onIntersect: () => {

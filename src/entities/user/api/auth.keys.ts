@@ -1,7 +1,7 @@
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { postInvalidateQueries } from '@/entities/post/api/post.keys';
 import { commentInvalidateQueries } from '@/entities/comment/api/comment.keys';
-import { folderInvalidateQueries } from '@/entities/bookmark/folder/api/folder.keys';
+import { bookmarkFolderInvalidateQueries } from '@/entities/bookmark/folder/api/folder.keys';
 
 export const authKeys = {
   root: () => ['auth'] as const,
@@ -27,7 +27,7 @@ export const authInvalidateQueries = {
 export const handleAccountUpdateSuccess = () => {
   postInvalidateQueries.all(); // 목록 + 상세의 author
   commentInvalidateQueries.all(); // 모든 게시글의 댓글 author
-  folderInvalidateQueries.postsRoot(); // 폴더별 게시글 카드의 author
+  bookmarkFolderInvalidateQueries.postsRoot(); // 폴더별 게시글 카드의 author
 };
 
 /**

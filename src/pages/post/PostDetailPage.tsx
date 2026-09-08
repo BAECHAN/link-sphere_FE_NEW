@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { FallbackProps } from 'react-error-boundary';
 import { toast } from '@/shared/lib/toast/toast';
 import { useSuspenseFetchPostDetailQuery } from '@/entities/post/api/post.queries';
-import { folderInvalidateQueries } from '@/entities/bookmark/folder/api/folder.keys';
+import { bookmarkFolderInvalidateQueries } from '@/entities/bookmark/folder/api/folder.keys';
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { CommentList } from '@/widgets/comment/comment-list/ui/CommentList';
 import { ArrowLeft } from 'lucide-react';
@@ -25,7 +25,7 @@ function PostDetailContent() {
   // 안에서는 방금 본 글이 목록에 반영 안 되고 새로고침해야만 보이던 문제라 여기서 무효화한다.
   useEffect(
     function invalidateViewedSortOnPostView() {
-      folderInvalidateQueries.postsRoot();
+      bookmarkFolderInvalidateQueries.postsRoot();
     },
     [post.id]
   );

@@ -24,12 +24,12 @@ import {
 } from '@/entities/post/api/post.keys';
 import { POST_PAGE_SIZE } from '@/entities/post/config/post.const';
 import {
-  folderKeys,
+  bookmarkFolderKeys,
   handleBookmarkToggleSuccess,
   handlePostContentUpdateSuccess,
   handlePostDeleteSuccess,
 } from '@/entities/bookmark/folder/api/folder.keys';
-import { FolderListResponse } from '@/entities/bookmark/folder/model/folder.schema';
+import { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/folder.schema';
 import { PaginationRequest } from '@/shared/types/common.type';
 
 export const useCreatePostMutation = () => {
@@ -206,15 +206,17 @@ export const useDeletePostMutation = () => {
     },
     onMutate: async (postId: string) => {
       await queryClient.cancelQueries({ queryKey: postKeys.listRoot });
-      await queryClient.cancelQueries({ queryKey: folderKeys.list });
-      await queryClient.cancelQueries({ queryKey: folderKeys.postsRoot });
+      await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.list });
+      await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.postsRoot });
 
       const previousData = queryClient.getQueriesData<InfiniteData<PostListResponse>>({
         queryKey: postKeys.listRoot,
       });
-      const previousFolderList = queryClient.getQueryData<FolderListResponse>(folderKeys.list);
+      const previousFolderList = queryClient.getQueryData<BookmarkFolderListResponse>(
+        bookmarkFolderKeys.list
+      );
       const previousFolderPosts = queryClient.getQueriesData<InfiniteData<PostListResponse>>({
-        queryKey: folderKeys.postsRoot,
+        queryKey: bookmarkFolderKeys.postsRoot,
       });
 
       // 삭제 대상의 북마크 상태 — detail 캐시에 없으면(북마크 페이지에서 삭제 등) post 목록 →
@@ -248,7 +250,7 @@ export const useDeletePostMutation = () => {
       // 북마크 화면(folder 캐시) 낙관적 반영 — 카드 제거는 항상, 폴더 카운트는 북마크된
       // 글일 때만(refetch 대기 중 옛 숫자·옛 카드가 그대로 보이는 걸 막는다)
       queryClient.setQueriesData<InfiniteData<PostListResponse>>(
-        { queryKey: folderKeys.postsRoot },
+        { queryKey: bookmarkFolderKeys.postsRoot },
         (old) => {
           if (!old) {
             return old;
@@ -273,7 +275,7 @@ export const useDeletePostMutation = () => {
       if (cachedPost?.userInteractions.isBookmarked && previousFolderList) {
         const folderIds = cachedPost.userInteractions.bookmarkFolderIds;
         const folderIdSet = new Set(folderIds);
-        queryClient.setQueryData<FolderListResponse>(folderKeys.list, {
+        queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, {
           ...previousFolderList,
           uncategorizedCount: Math.max(
             0,
@@ -296,7 +298,7 @@ export const useDeletePostMutation = () => {
         });
       }
       if (context?.previousFolderList) {
-        queryClient.setQueryData(folderKeys.list, context.previousFolderList);
+        queryClient.setQueryData(bookmarkFolderKeys.list, context.previousFolderList);
       }
       context?.previousFolderPosts?.forEach(([queryKey, data]) => {
         queryClient.setQueryData(queryKey, data);

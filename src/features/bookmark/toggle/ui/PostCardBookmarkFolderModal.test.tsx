@@ -8,11 +8,11 @@ import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { PostCardBookmarkFolderModal } from '@/features/bookmark/toggle/ui/PostCardBookmarkFolderModal';
 import type {
   BookmarkFoldersResponse,
-  FolderListResponse,
+  BookmarkFolderListResponse,
 } from '@/entities/bookmark/folder/model/folder.schema';
 
-// PostCardBookmarkFolderModal는 공통 프레젠테이션(entities/bookmark/folder/ui/FolderSelectModal)에
-// 얇게 위임하므로, 아래 케이스들은 FolderSelectModal의 행 렌더링·최근 구획도 함께 검증한다.
+// PostCardBookmarkFolderModal는 공통 프레젠테이션(entities/bookmark/folder/ui/BookmarkFolderSelectModal)에
+// 얇게 위임하므로, 아래 케이스들은 BookmarkFolderSelectModal의 행 렌더링·최근 구획도 함께 검증한다.
 
 // 데스크탑 모달 스타일로 고정 — matchMedia 스텁만으로는 useIsMobile 값이 effect 이후에나 정해져 불안정하다
 vi.mock('@/shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }));
@@ -24,7 +24,7 @@ const FOLDER_A = 'folder-uuid-a';
 const FOLDER_B = 'folder-uuid-b';
 const now = new Date('2025-01-01');
 
-const folderListResponse: FolderListResponse = {
+const folderListResponse: BookmarkFolderListResponse = {
   folders: [
     { id: FOLDER_A, name: '개발', sortOrder: 0, bookmarkCount: 2, createdAt: now, updatedAt: now },
     {
@@ -186,7 +186,7 @@ describe('PostCardBookmarkFolderModal', () => {
   describe('최근 저장한 폴더 (split menu 상단 구획)', () => {
     // 임계값: 폴더 6개 이상 + lastUsedAt 있는 폴더 3개 이상이어야 노출된다
     const RECENT_A = 'folder-uuid-recent-a';
-    const manyFoldersResponse: FolderListResponse = {
+    const manyFoldersResponse: BookmarkFolderListResponse = {
       folders: [
         {
           id: FOLDER_A,

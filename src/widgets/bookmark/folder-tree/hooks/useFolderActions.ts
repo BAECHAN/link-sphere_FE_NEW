@@ -3,13 +3,13 @@ import { toast } from '@/shared/lib/toast/toast';
 import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
 import { TEXTS } from '@/shared/config/texts';
 import {
-  useDeleteFolderMutation,
-  useUpdateFolderMutation,
+  useDeleteBookmarkFolderMutation,
+  useUpdateBookmarkFolderMutation,
 } from '@/entities/bookmark/folder/api/folder.queries';
-import { Folder } from '@/entities/bookmark/folder/model/folder.schema';
+import { BookmarkFolder } from '@/entities/bookmark/folder/model/folder.schema';
 
 interface UseFolderActionsParams {
-  folder: Folder;
+  folder: BookmarkFolder;
   /** 삭제 확정 직후 · DELETE 요청 전에 실행. 데스크탑에서 "현재 선택된 폴더면 먼저 전체로 이동" 용도. */
   onBeforeDelete?: () => void;
 }
@@ -20,8 +20,10 @@ interface UseFolderActionsParams {
 export const useFolderActions = ({ folder, onBeforeDelete }: UseFolderActionsParams) => {
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(folder.name);
-  const { mutateAsync: updateFolder, isPending: isUpdating } = useUpdateFolderMutation(folder.id);
-  const { mutateAsync: deleteFolder } = useDeleteFolderMutation(folder.id);
+  const { mutateAsync: updateFolder, isPending: isUpdating } = useUpdateBookmarkFolderMutation(
+    folder.id
+  );
+  const { mutateAsync: deleteFolder } = useDeleteBookmarkFolderMutation(folder.id);
   const { openConfirm } = useAlert();
   const submittingRef = useRef(false);
 

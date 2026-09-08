@@ -1,19 +1,23 @@
 import { KeyboardEvent, useState } from 'react';
 import {
-  prefetchFolderPosts,
-  useFolderListQuery,
+  prefetchBookmarkFolderPosts,
+  useBookmarkFolderListQuery,
 } from '@/entities/bookmark/folder/api/folder.queries';
-import { Folder, FolderKey, FolderSort } from '@/entities/bookmark/folder/model/folder.schema';
+import {
+  BookmarkFolder,
+  BookmarkFolderKey,
+  BookmarkFolderSort,
+} from '@/entities/bookmark/folder/model/folder.schema';
 import { useFolderSections } from '@/widgets/bookmark/folder-tree/hooks/useFolderSections';
 import { useFolderActions } from '@/widgets/bookmark/folder-tree/hooks/useFolderActions';
 import { useCreateFolderForm } from '@/widgets/bookmark/folder-tree/hooks/useCreateFolderForm';
 
 /** FolderTree(데스크탑 사이드바) 루트 */
-export const useFolderTree = (sort?: FolderSort, search?: string) => {
+export const useFolderTree = (sort?: BookmarkFolderSort, search?: string) => {
   const { folderList, uncategorizedCount, recentFolders, isLoading } = useFolderSections();
 
-  const prefetchFolder = (folderKey: FolderKey) => {
-    prefetchFolderPosts(folderKey, sort, search);
+  const prefetchFolder = (folderKey: BookmarkFolderKey) => {
+    prefetchBookmarkFolderPosts(folderKey, sort, search);
   };
 
   return {
@@ -26,7 +30,7 @@ export const useFolderTree = (sort?: FolderSort, search?: string) => {
 };
 
 /** FolderItem(폴더 행) — 선택된 폴더를 삭제하면 먼저 전체로 이동 */
-export const useFolderItem = (folder: Folder, selected: boolean, onDeleted: () => void) =>
+export const useFolderItem = (folder: BookmarkFolder, selected: boolean, onDeleted: () => void) =>
   useFolderActions({
     folder,
     onBeforeDelete: () => {
@@ -83,7 +87,7 @@ export const useInlineCreateFolderInput = (onClose: () => void) => {
 
 /** FolderChips(모바일 상단 가로 칩) */
 export const useFolderChips = () => {
-  const { data } = useFolderListQuery();
+  const { data } = useBookmarkFolderListQuery();
   const folderList = data?.folders;
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
   const [creating, setCreating] = useState(false);

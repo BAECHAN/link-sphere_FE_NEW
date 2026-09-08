@@ -15,10 +15,13 @@ import { BookmarkPostList } from '@/widgets/bookmark/bookmark-post-list/ui/Bookm
 import { BookmarkSearch } from '@/widgets/bookmark/bookmark-search/ui/BookmarkSearch';
 import { FolderTree } from '@/widgets/bookmark/folder-tree/ui/FolderTree';
 import { MobileFolderList } from '@/widgets/bookmark/folder-tree/ui/MobileFolderList';
-import { FolderKey, FolderSort } from '@/entities/bookmark/folder/model/folder.schema';
-import { useFolderListQuery } from '@/entities/bookmark/folder/api/folder.queries';
+import {
+  BookmarkFolderKey,
+  BookmarkFolderSort,
+} from '@/entities/bookmark/folder/model/folder.schema';
+import { useBookmarkFolderListQuery } from '@/entities/bookmark/folder/api/folder.queries';
 
-const SORT_LABELS: Record<FolderSort, string> = {
+const SORT_LABELS: Record<BookmarkFolderSort, string> = {
   latest: TEXTS.bookmark.folder.sort.latest,
   oldest: TEXTS.bookmark.folder.sort.oldest,
   title: TEXTS.bookmark.folder.sort.title,
@@ -26,9 +29,9 @@ const SORT_LABELS: Record<FolderSort, string> = {
   viewed: TEXTS.bookmark.folder.sort.viewed,
 };
 
-const VALID_SORTS: FolderSort[] = ['latest', 'oldest', 'title', 'views', 'viewed'];
+const VALID_SORTS: BookmarkFolderSort[] = ['latest', 'oldest', 'title', 'views', 'viewed'];
 
-function parseFolderKey(raw: string | null): FolderKey | null {
+function parseFolderKey(raw: string | null): BookmarkFolderKey | null {
   if (!raw) {
     return null;
   }
@@ -40,9 +43,9 @@ function parseFolderKey(raw: string | null): FolderKey | null {
   return raw; // UUID assumed
 }
 
-function parseSort(raw: string | null): FolderSort {
+function parseSort(raw: string | null): BookmarkFolderSort {
   if (raw && (VALID_SORTS as string[]).includes(raw)) {
-    return raw as FolderSort;
+    return raw as BookmarkFolderSort;
   }
 
   return 'latest';
@@ -57,12 +60,12 @@ export function BookmarkPage() {
   const sort = parseSort(searchParams.get('sort'));
   const search = searchParams.get('q') ?? '';
 
-  const { data: folderData } = useFolderListQuery();
+  const { data: folderData } = useBookmarkFolderListQuery();
   const folderList = folderData?.folders;
 
   // 모바일: folder 쿼리 없으면 폴더 목록 모드 / 데스크탑: 항상 'all' 디폴트
   const isMobileListMode = isMobile && !folderKey;
-  const activeFolderKey: FolderKey = folderKey ?? 'all';
+  const activeFolderKey: BookmarkFolderKey = folderKey ?? 'all';
 
   const currentFolderName =
     activeFolderKey === 'all'
@@ -72,7 +75,7 @@ export function BookmarkPage() {
         : (folderList?.find((f) => f.id === activeFolderKey)?.name ??
           TEXTS.bookmark.folder.fallbackName);
 
-  const setFolderKey = (key: FolderKey) => {
+  const setFolderKey = (key: BookmarkFolderKey) => {
     if (key === 'all' && !isMobile) {
       searchParams.delete('folder');
     } else {
@@ -82,7 +85,7 @@ export function BookmarkPage() {
     setSearchParams(searchParams, { replace: false });
   };
 
-  const setSort = (next: FolderSort) => {
+  const setSort = (next: BookmarkFolderSort) => {
     if (next === 'latest') {
       searchParams.delete('sort');
     } else {
@@ -143,7 +146,7 @@ export function BookmarkPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-base font-semibold flex-1 truncate">{currentFolderName}</h1>
-          <Select value={sort} onValueChange={(v) => setSort(v as FolderSort)}>
+          <Select value={sort} onValueChange={(v) => setSort(v as BookmarkFolderSort)}>
             <SelectTrigger className="w-32 h-8 text-xs">
               <SelectValue placeholder={TEXTS.bookmark.folder.sortPlaceholder} />
             </SelectTrigger>
@@ -175,7 +178,7 @@ export function BookmarkPage() {
       <main className="flex-1 min-w-0">
         <header className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-semibold truncate">{currentFolderName}</h1>
-          <Select value={sort} onValueChange={(v) => setSort(v as FolderSort)}>
+          <Select value={sort} onValueChange={(v) => setSort(v as BookmarkFolderSort)}>
             <SelectTrigger className="w-36">
               <SelectValue placeholder={TEXTS.bookmark.folder.sortPlaceholder} />
             </SelectTrigger>

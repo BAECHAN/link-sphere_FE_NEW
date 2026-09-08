@@ -10,7 +10,11 @@ import {
 } from '@/shared/ui/atoms/dropdown-menu';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
-import { Folder, FolderKey, FolderSort } from '@/entities/bookmark/folder/model/folder.schema';
+import {
+  BookmarkFolder,
+  BookmarkFolderKey,
+  BookmarkFolderSort,
+} from '@/entities/bookmark/folder/model/folder.schema';
 import {
   useCreateFolderInput,
   useFolderChips,
@@ -20,9 +24,9 @@ import {
 } from '@/widgets/bookmark/folder-tree/hooks/useFolderTree';
 
 interface FolderTreeProps {
-  selectedKey: FolderKey;
-  onSelect: (key: FolderKey) => void;
-  sort?: FolderSort;
+  selectedKey: BookmarkFolderKey;
+  onSelect: (key: BookmarkFolderKey) => void;
+  sort?: BookmarkFolderSort;
   search?: string;
   className?: string;
 }
@@ -176,7 +180,7 @@ function FixedItem({ icon, label, count, selected, onClick, onPrefetch }: FixedI
 }
 
 interface FolderItemProps {
-  folder: Folder;
+  folder: BookmarkFolder;
   selected: boolean;
   onClick: () => void;
   onDeleted: () => void;
