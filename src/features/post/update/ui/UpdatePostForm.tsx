@@ -24,6 +24,8 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
 
   const canSubmit = isDirty && isValid && !isUpdating;
   const isUrlChanged = Boolean(post) && form.watch('url') !== post?.url;
+  // URL이 바뀌면 urlChangedNotice가 이미 재수집을 예고하므로 중복 노출하지 않는다.
+  const isTitleCleared = !isUrlChanged && Boolean(post) && !form.watch('title')?.trim();
 
   if (isLoading) {
     return <SpinnerOverlay />;
@@ -50,6 +52,7 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
                 name="title"
                 label={TEXTS.post.form.update.titleLabel}
                 placeholder={TEXTS.post.form.update.titlePlaceholder}
+                description={isTitleCleared ? TEXTS.post.form.update.titleClearedNotice : undefined}
               />
               <FormCheckboxGroup
                 name="categoryIds"
