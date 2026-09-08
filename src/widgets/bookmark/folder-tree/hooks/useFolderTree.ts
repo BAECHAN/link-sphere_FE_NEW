@@ -10,14 +10,14 @@ import { useCreateFolderForm } from '@/widgets/bookmark/folder-tree/hooks/useCre
 
 /** FolderTree(데스크탑 사이드바) 루트 */
 export const useFolderTree = (sort?: FolderSort, search?: string) => {
-  const { folders, uncategorizedCount, recentFolders, isLoading } = useFolderSections();
+  const { folderList, uncategorizedCount, recentFolders, isLoading } = useFolderSections();
 
   const prefetchFolder = (folderKey: FolderKey) => {
     prefetchFolderPosts(folderKey, sort, search);
   };
 
   return {
-    folders,
+    folderList,
     uncategorizedCount,
     recentFolders,
     isLoading,
@@ -84,12 +84,12 @@ export const useInlineCreateFolderInput = (onClose: () => void) => {
 /** FolderChips(모바일 상단 가로 칩) */
 export const useFolderChips = () => {
   const { data } = useFolderListQuery();
-  const folders = data?.folders;
+  const folderList = data?.folders;
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
   const [creating, setCreating] = useState(false);
 
   return {
-    folders,
+    folderList,
     uncategorizedCount,
     creating,
     startCreating: () => setCreating(true),

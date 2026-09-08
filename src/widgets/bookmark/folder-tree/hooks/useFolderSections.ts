@@ -7,13 +7,13 @@ import { useRecentFolders } from '@/entities/bookmark/folder/hooks/useRecentFold
  */
 export const useFolderSections = () => {
   const { data, isLoading, isFetching } = useFolderListQuery();
-  const folders = data?.folders;
+  const folderList = data?.folders;
   const uncategorizedCount = data ? (data.uncategorizedCount ?? 0) : undefined;
   // 상단 "최근 저장한 폴더" 구획 — 페이지 방문(마운트) 동안 1회 스냅샷, 그 뒤로는 고정
-  const { recentFolders } = useRecentFolders(folders ?? [], isFetching);
+  const { recentFolders } = useRecentFolders(folderList ?? [], isFetching);
 
   return {
-    folders,
+    folderList,
     uncategorizedCount,
     recentFolders,
     isLoading,
