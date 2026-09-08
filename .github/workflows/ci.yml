@@ -21,6 +21,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: docs/plans 불변성 확인
+        # docs/plans/*.md는 plan mode 계획의 스냅샷이라 커밋된 뒤 수정하지 않는다
+        # (append-only, ADR·DB 마이그레이션 파일과 같은 컨벤션). 이탈은 새 파일이 아니라
+        # PR 본문의 "## 계획 대비 구현" 섹션에 적는다.
+        run: |
+          changed=$(git diff --name-status "origin/${{ github.base_ref }}...HEAD" -- docs/plans/ \
+            | awk '$1 == "M" { print $2 }')
+          if [ -n "$changed" ]; then
+            echo "docs/plans/ 파일은 커밋된 뒤 수정하지 않습니다(append-only, ADR과 같은 규칙)."
+            echo "이탈은 새 파일이 아니라 PR 본문의 '## 계획 대비 구현' 섹션에 적으세요."
+            echo "$changed"
+            exit 1
+          fi
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
