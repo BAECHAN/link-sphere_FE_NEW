@@ -3,9 +3,9 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import { commentApi } from '@/entities/comment/api/comment.api';
-import { uploadImageAndGetUrl } from '@/entities/upload/api/upload.api';
+import { uploadImageAndGetUrl } from '@/shared/lib/upload/uploadImageAndGetUrl';
 
-vi.mock('@/entities/upload/api/upload.api', () => ({
+vi.mock('@/shared/lib/upload/uploadImageAndGetUrl', () => ({
   uploadImageAndGetUrl: vi.fn(),
 }));
 

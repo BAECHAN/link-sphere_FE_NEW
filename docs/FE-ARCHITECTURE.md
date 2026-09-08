@@ -60,7 +60,7 @@ flowchart TD
   App["app<br/>providers · routes · layouts"] --> Pages["pages<br/>post · auth · bookmark · 403 · 404 · 500"]
   Pages --> Widgets["widgets<br/>post · comment · bookmark · layout"]
   Widgets --> Features["features<br/>post · comment · auth"]
-  Features --> Entities["entities<br/>post · comment · interaction · user · bookmark/folder · upload"]
+  Features --> Entities["entities<br/>post · comment · interaction · user · bookmark/folder"]
   Entities --> Shared["shared<br/>api · config · hooks · lib · store · types · ui · utils"]
 
   EPost["entities/post"] -.export *.-> EComment["entities/comment"]
@@ -193,8 +193,6 @@ src/
 │   │       ├── utils/            # folder.util.ts (pickRecentFolders)
 │   │       ├── hooks/            # useRecentFolders.ts, useFolderPicker.ts
 │   │       └── ui/               # FolderPickerModal
-│   ├── upload/
-│   │   └── api/                  # upload.api.ts
 │   └── user/
 │       ├── api/                  # auth.api.ts, auth.keys.ts, auth.queries.ts
 │       ├── hooks/                 # useAuth, useAccount, useAppInitialization, useAuthGuard, useProtectedNavigate
@@ -247,7 +245,6 @@ src/
 | `comment`     | `entities/comment/`         | 댓글 CRUD + 쿼리                |
 | `interaction` | `entities/interaction/`     | like/bookmark optimistic update |
 | `folder`      | `entities/bookmark/folder/` | 북마크 폴더 CRUD + 쿼리         |
-| `upload`      | `entities/upload/`          | 이미지 업로드                   |
 | `user`        | `entities/user/`            | 인증 API + 훅 + UserAvatar      |
 
 | Widget               | 위치                                   | 설명                                          |
@@ -618,16 +615,18 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ## 17. 핵심 설정 파일 위치
 
-| 목적               | 파일                                                | export          |
-| ------------------ | --------------------------------------------------- | --------------- |
-| 모든 UI 문자열     | `src/shared/config/texts.ts`                        | `TEXTS`         |
-| API 엔드포인트     | `src/shared/config/api.ts`                          | `API_ENDPOINTS` |
-| 라우트 경로        | `src/shared/config/route-paths.ts`                  | `ROUTES_PATHS`  |
-| HTTP 클라이언트    | `src/shared/api/client.ts`                          | `apiClient`     |
-| QueryClient        | `src/shared/lib/react-query/config/queryClient.ts`  | `queryClient`   |
-| Toast 래퍼         | `src/shared/lib/toast/toast.ts`                     | `toast`         |
-| Alert/Confirm 모달 | `src/shared/ui/elements/modal/alert/alert.store.ts` | `useAlert`      |
-| Auth 스토어        | `src/shared/store/auth.store.ts`                    | `useAuthStore`  |
+| 목적                 | 파일                                                | export                 |
+| -------------------- | --------------------------------------------------- | ---------------------- |
+| 모든 UI 문자열       | `src/shared/config/texts.ts`                        | `TEXTS`                |
+| API 엔드포인트       | `src/shared/config/api.ts`                          | `API_ENDPOINTS`        |
+| 라우트 경로          | `src/shared/config/route-paths.ts`                  | `ROUTES_PATHS`         |
+| HTTP 클라이언트      | `src/shared/api/client.ts`                          | `apiClient`            |
+| QueryClient          | `src/shared/lib/react-query/config/queryClient.ts`  | `queryClient`          |
+| Toast 래퍼           | `src/shared/lib/toast/toast.ts`                     | `toast`                |
+| Alert/Confirm 모달   | `src/shared/ui/elements/modal/alert/alert.store.ts` | `useAlert`             |
+| Auth 스토어          | `src/shared/store/auth.store.ts`                    | `useAuthStore`         |
+| 이미지 업로드 요청   | `src/shared/api/upload.api.ts`                      | `uploadApi`            |
+| 리사이즈+업로드 조합 | `src/shared/lib/upload/uploadImageAndGetUrl.ts`     | `uploadImageAndGetUrl` |
 
 ---
 
