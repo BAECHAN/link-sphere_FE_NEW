@@ -314,7 +314,7 @@ src/
 
 이 문서에서 파일명만으로 등장하는 식별자의 위치: `activeFolderKey`는
 `BookmarkPage.tsx:65`의 로컬 변수(`folderKey ?? 'all'`), `sessionKey`는
-`useRecentFolders`의 세 번째 매개변수(`entities/bookmark/folder/hooks/useRecentFolders.ts:25`)다.
+`useRecentBookmarkFolders`의 세 번째 매개변수(`entities/bookmark/folder/hooks/useRecentFolders.ts:25`)다.
 
 ### 자주 하는 수정
 
@@ -346,7 +346,7 @@ src/
 게시글을 삭제하고 북마크 페이지로 돌아오면, 새로고침 전까지 폴더의 게시글 개수와
 "최근 저장한 폴더" 구획이 삭제 전 값 그대로 보이는 문제가 있었다.
 
-원인은 BE·React Query 무효화가 아니라 `useRecentFolders`의 스냅샷 방식이었다 —
+원인은 BE·React Query 무효화가 아니라 `useRecentBookmarkFolders`의 스냅샷 방식이었다 —
 세션 중 순서를 고정하려던 의도(split menu 공간기억, §5)가 `BookmarkFolder` **객체 전체**
 (카운트 포함)를 얼렸고, 스냅샷 시점도 `isLoading`(캐시가 없을 때만 `true`) 기준이라
 재방문 시엔 stale 캐시로 곧장 확정돼버려 뒤이은 refetch 결과가 반영되지 않았다.
@@ -373,7 +373,7 @@ mutation과 동일한 패턴으로 추가해, invalidate 응답을 기다리는 
 
 - **`activeFolderKey`** — `BookmarkPage.tsx:65`의 로컬 변수. URL의 `folder` 파라미터를
   `BookmarkFolderKey`(`'all' | 'uncategorized' | UUID`)로 정규화한 값(`folderKey ?? 'all'`)
-- **`sessionKey`** — `useRecentFolders`의 세 번째 매개변수(`unknown` 타입). 값이
+- **`sessionKey`** — `useRecentBookmarkFolders`의 세 번째 매개변수(`unknown` 타입). 값이
   바뀔 때마다 "최근 저장한 폴더" 스냅샷을 새로 찍는다. 모달(`BookmarkFolderSelectModal`)은
   열림 상태를 넘겨 열 때마다 새 세션으로 취급하고, 상시 마운트 화면(`FolderTree`
   등)은 넘기지 않아 마운트 수명 전체가 한 세션이 된다

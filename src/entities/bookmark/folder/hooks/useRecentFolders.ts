@@ -22,7 +22,7 @@ import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/folder.util
  *   화면은 넘기지 않으면 마운트 수명 전체가 하나의 세션이 된다.
  * - 상단 구획에 뜬 폴더도 아래 본 목록에서 빼지 않는다(중복 표시) — 호출부에서 그대로 렌더한다.
  */
-export function useRecentFolders(
+export function useRecentBookmarkFolders(
   folders: BookmarkFolder[],
   isFetching: boolean,
   sessionKey?: unknown

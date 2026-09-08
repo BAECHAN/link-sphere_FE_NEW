@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { useRecentFolders } from '@/entities/bookmark/folder/hooks/useRecentFolders';
+import { useRecentBookmarkFolders } from '@/entities/bookmark/folder/hooks/useRecentFolders';
 import { BookmarkFolder } from '@/entities/bookmark/folder/model/folder.schema';
 
 function makeFolder(
@@ -24,14 +24,14 @@ function makeSixFoldersWithUsage(): BookmarkFolder[] {
   );
 }
 
-describe('useRecentFolders', () => {
+describe('useRecentBookmarkFolders', () => {
   it('페칭 중에는 folders가 비어 있어도 완료 후 최근 폴더를 계산한다', () => {
     // 세 화면 모두 useBookmarkFolderListQuery가 로딩 중일 땐 folders=[] 로 렌더된다.
     // 마운트 시점에 그 값을 굳히면 데이터가 도착해도 영원히 빈 채로 고정되는 버그가 생긴다.
     const folders = makeSixFoldersWithUsage();
     const { result, rerender } = renderHook(
       ({ folders, isFetching }: { folders: BookmarkFolder[]; isFetching: boolean }) =>
-        useRecentFolders(folders, isFetching),
+        useRecentBookmarkFolders(folders, isFetching),
       { initialProps: { folders: [] as BookmarkFolder[], isFetching: true } }
     );
 
@@ -46,7 +46,7 @@ describe('useRecentFolders', () => {
     const folders = [1, 2, 3, 4, 5].map((n) =>
       makeFolder({ id: `f${n}`, lastUsedAt: new Date(`2025-01-0${n}`) })
     );
-    const { result } = renderHook(() => useRecentFolders(folders, false));
+    const { result } = renderHook(() => useRecentBookmarkFolders(folders, false));
 
     expect(result.current.recentFolders).toEqual([]);
   });
@@ -60,7 +60,7 @@ describe('useRecentFolders', () => {
       makeFolder({ id: 'f5' }),
       makeFolder({ id: 'f6' }),
     ];
-    const { result } = renderHook(() => useRecentFolders(folders, false));
+    const { result } = renderHook(() => useRecentBookmarkFolders(folders, false));
 
     expect(result.current.recentFolders).toEqual([]);
   });
@@ -72,7 +72,7 @@ describe('useRecentFolders', () => {
     const initial = makeSixFoldersWithUsage();
     const { result, rerender } = renderHook(
       ({ folders, isFetching }: { folders: BookmarkFolder[]; isFetching: boolean }) =>
-        useRecentFolders(folders, isFetching),
+        useRecentBookmarkFolders(folders, isFetching),
       { initialProps: { folders: initial, isFetching: false } }
     );
 
@@ -103,7 +103,7 @@ describe('useRecentFolders', () => {
     const stale = makeSixFoldersWithUsage();
     const { result, rerender } = renderHook(
       ({ folders, isFetching }: { folders: BookmarkFolder[]; isFetching: boolean }) =>
-        useRecentFolders(folders, isFetching),
+        useRecentBookmarkFolders(folders, isFetching),
       { initialProps: { folders: stale, isFetching: true } }
     );
 
@@ -128,7 +128,7 @@ describe('useRecentFolders', () => {
         folders: BookmarkFolder[];
         isFetching: boolean;
         sessionKey: boolean;
-      }) => useRecentFolders(folders, isFetching, sessionKey),
+      }) => useRecentBookmarkFolders(folders, isFetching, sessionKey),
       { initialProps: { folders: initial, isFetching: false, sessionKey: true } }
     );
 
@@ -147,7 +147,7 @@ describe('useRecentFolders', () => {
     const initial = makeSixFoldersWithUsage();
     const { result, rerender } = renderHook(
       ({ folders, isFetching }: { folders: BookmarkFolder[]; isFetching: boolean }) =>
-        useRecentFolders(folders, isFetching),
+        useRecentBookmarkFolders(folders, isFetching),
       { initialProps: { folders: initial, isFetching: false } }
     );
 
