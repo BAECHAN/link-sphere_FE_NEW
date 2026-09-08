@@ -123,7 +123,7 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 
 ### `BookmarkFolderModal` 행 동작
 
-`BookmarkPostButton`을 누르면 열리는 모달(`features/post/bookmark/ui/BookmarkFolderModal.tsx`,
+`BookmarkPostButton`을 누르면 열리는 모달(`features/bookmark/toggle/ui/BookmarkFolderModal.tsx`,
 실제 마크업은 `entities/bookmark/folder/ui/FolderPickerModal`)의 전체 동작이다. 탭 = 즉시
 저장/제거 + 모달 닫힘(확인 단계 없음).
 
@@ -250,16 +250,18 @@ src/
 │                                          # 위 둘 + FolderPickerModal(아래) 모두 "최근 저장한
 │                                          # 폴더" + "내 폴더" 두 구획 포함(§5)
 ├── features/
+│   ├── bookmark/                     # 2026-09-08 post/bookmark에서 승격 — entities/widgets/
+│   │   │                             # pages와 bookmark 도메인 그룹을 통일
+│   │   └── toggle/
+│   │       ├── hooks/
+│   │       │   ├── useBookmarkFolders.ts      # add/remove/clear/toggle 라우팅
+│   │       │   └── useBookmarkFolderModal.ts  # 즉시 저장 동작 + 토스트 분기 + 닫힘 애니메이션
+│   │       │                                  # 중 버튼 깜빡임 방지 스냅샷 (BookmarkFolderModal 전용)
+│   │       └── ui/
+│   │           ├── BookmarkPostButton.tsx     # 카드의 북마크 버튼 — 클릭 시 BookmarkFolderModal 오픈
+│   │           └── BookmarkFolderModal.tsx    # JSX만 — 로직은 useBookmarkFolderModal,
+│   │                                          # 모달 마크업은 FolderPickerModal(아래)에 위임
 │   └── post/
-│       ├── bookmark/
-│       │   ├── hooks/
-│       │   │   ├── useBookmarkFolders.ts      # add/remove/clear/toggle 라우팅
-│       │   │   └── useBookmarkFolderModal.ts  # 즉시 저장 동작 + 토스트 분기 + 닫힘 애니메이션
-│       │   │                                  # 중 버튼 깜빡임 방지 스냅샷 (BookmarkFolderModal 전용)
-│       │   └── ui/
-│       │       ├── BookmarkPostButton.tsx     # 카드의 북마크 버튼 — 클릭 시 BookmarkFolderModal 오픈
-│       │       └── BookmarkFolderModal.tsx    # JSX만 — 로직은 useBookmarkFolderModal,
-│       │                                      # 모달 마크업은 FolderPickerModal(아래)에 위임
 │       └── create/
 │           ├── hooks/
 │           │   └── useBookmarkFolderField.ts  # 등록 폼 bookmark/folderIds 필드 제어 + 지연
@@ -306,13 +308,13 @@ src/
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                             | 방법                                                                                                                              |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| "최근 저장한 폴더" 노출 개수·임계값 조정 | `entities/bookmark/folder/config/const.ts`의 두 상수                                                                              |
-| 정렬 옵션 추가                           | `folder.schema.ts`의 `folderSortEnum`에 값 추가 + BE 대응 필요                                                                    |
-| 폴더 내 검색 빈 상태 문구 변경           | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                   |
-| 모바일 감지 기준 변경                    | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                   |
-| 테스트 실행                              | `npx vitest run src/entities/bookmark/folder src/features/post/bookmark src/features/post/create/ui/BookmarkFolderField.test.tsx` |
+| 하고 싶은 것                             | 방법                                                                                                                                |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| "최근 저장한 폴더" 노출 개수·임계값 조정 | `entities/bookmark/folder/config/const.ts`의 두 상수                                                                                |
+| 정렬 옵션 추가                           | `folder.schema.ts`의 `folderSortEnum`에 값 추가 + BE 대응 필요                                                                      |
+| 폴더 내 검색 빈 상태 문구 변경           | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                     |
+| 모바일 감지 기준 변경                    | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                     |
+| 테스트 실행                              | `npx vitest run src/entities/bookmark/folder src/features/bookmark/toggle src/features/post/create/ui/BookmarkFolderField.test.tsx` |
 
 ## 9. 검증 결과
 
@@ -345,7 +347,7 @@ mutation과 동일한 패턴으로 추가해, invalidate 응답을 기다리는 
 `widgets/bookmark/folder-tree/ui/FolderTree.tsx`,
 `widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`,
 `features/post/bookmark/ui/FolderSelector.tsx`(현재
-`features/post/bookmark/ui/BookmarkFolderModal.tsx`), `entities/post/api/post.queries.ts`.
+`features/bookmark/toggle/ui/BookmarkFolderModal.tsx`), `entities/post/api/post.queries.ts`.
 
 ## 11. 남은 것
 

@@ -4,7 +4,7 @@ import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import type { Folder } from '@/entities/bookmark/folder/model/folder.schema';
-import { useBookmarkFolders } from '@/features/post/bookmark/hooks/useBookmarkFolders';
+import { useBookmarkFolders } from '@/features/bookmark/toggle/hooks/useBookmarkFolders';
 
 interface UseBookmarkFolderModalParams {
   postId: string;

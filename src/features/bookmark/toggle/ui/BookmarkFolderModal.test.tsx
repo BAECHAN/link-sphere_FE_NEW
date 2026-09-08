@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
-import { BookmarkFolderModal } from '@/features/post/bookmark/ui/BookmarkFolderModal';
+import { BookmarkFolderModal } from '@/features/bookmark/toggle/ui/BookmarkFolderModal';
 import type {
   BookmarkFoldersResponse,
   FolderListResponse,

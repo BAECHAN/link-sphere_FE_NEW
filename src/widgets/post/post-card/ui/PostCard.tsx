@@ -27,7 +27,7 @@ import { MoreVertical, Pencil, Trash } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { prefetchPostDetail } from '@/entities/post/api/post.queries';
 import { LikePostButton } from '@/features/post/like/ui/LikePostButton';
-import { BookmarkPostButton } from '@/features/post/bookmark/ui/BookmarkPostButton';
+import { BookmarkPostButton } from '@/features/bookmark/toggle/ui/BookmarkPostButton';
 import { TEXTS } from '@/shared/config/texts';
 import { usePostCard } from '@/widgets/post/post-card/hooks/usePostCard';
 
