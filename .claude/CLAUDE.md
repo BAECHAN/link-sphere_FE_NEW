@@ -612,17 +612,29 @@ Tailwind v4 preflight엔 v3에 있던 `button, [role="button"] { cursor: pointer
 
 ### 폴더 네이밍 원칙
 
-| 위치                          | 규칙                                  | ✅                            | ❌                                |
-| ----------------------------- | ------------------------------------- | ----------------------------- | --------------------------------- |
-| `features/<domain>/` 슬라이스 | **동사(액션)만**                      | `create/`, `like/`, `delete/` | `create-post/`, `createPost/`     |
-| `widgets/<domain>/` 슬라이스  | **`<entity>-<role>`** kebab-case 명사 | `post-card/`, `post-list/`    | `postCard/`, `PostCard/`          |
-| `app/layouts/`                | **`<name>-layout`**                   | `app-layout/`, `auth-layout/` | `appLayout/`, `AppLayout/`        |
-| 슬라이스 내부                 | **역할명 단수 소문자**                | `hooks/`, `ui/`, `utils/`     | `hook/`, `UI/`, `utils-fn/`       |
-| 도메인 폴더                   | **단수 소문자**                       | `post/`, `comment/`, `user/`  | `posts/`, `Post/`, `user-domain/` |
-| 내부 전용 폴더                | **`_` 접두사**                        | `_base/`                      | `base/`, `__base__/`              |
-| `shared/lib/`                 | **라이브러리명 그대로**               | `react-query/`, `firebase/`   | `reactQuery/`, `query/`           |
-| 에러 페이지                   | **HTTP 상태코드**                     | `404/`, `500/`                | `not-found/`, `error/`            |
-| `pages/` 복합어               | **붙여쓰기**                          | `mypage/`                     | `my-page/`, `myPage/`             |
+| 위치                          | 규칙                                                                                                 | ✅                                                 | ❌                                |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------- | --------------------------------- |
+| `features/<domain>/` 슬라이스 | **원칙적으로 동사(액션)만.** 단, 슬라이스 자체가 완결된 사용자 액션/flow일 때는 명사 허용(아래 각주) | `create/`, `like/`, `delete/`, `login/`, `signup/` | `create-post/`, `createPost/`     |
+| `widgets/<domain>/` 슬라이스  | **`<entity>-<role>`** kebab-case 명사                                                                | `post-card/`, `post-list/`                         | `postCard/`, `PostCard/`          |
+| `app/layouts/`                | **`<name>-layout`**                                                                                  | `app-layout/`, `auth-layout/`                      | `appLayout/`, `AppLayout/`        |
+| 슬라이스 내부                 | **역할명 단수 소문자**                                                                               | `hooks/`, `ui/`, `utils/`                          | `hook/`, `UI/`, `utils-fn/`       |
+| 도메인 폴더                   | **단수 소문자**                                                                                      | `post/`, `comment/`, `user/`                       | `posts/`, `Post/`, `user-domain/` |
+| 내부 전용 폴더                | **`_` 접두사**                                                                                       | `_base/`                                           | `base/`, `__base__/`              |
+| `shared/lib/`                 | **라이브러리명 그대로**                                                                              | `react-query/`, `firebase/`                        | `reactQuery/`, `query/`           |
+| 에러 페이지                   | **HTTP 상태코드**                                                                                    | `404/`, `500/`                                     | `not-found/`, `error/`            |
+| `pages/` 복합어               | **붙여쓰기**                                                                                         | `mypage/`                                          | `my-page/`, `myPage/`             |
+
+**`features/<domain>/` 슬라이스의 명사 허용 각주** (2026-09-08 정정) — 이 규칙은
+FSD가 강제하는 게 아니다. FSD 공식 정의([FAQ](https://feature-sliced.design/docs/get-started/faq)):
+"An _entity_ is a real-life concept that your app is working with. A _feature_ is
+an interaction ... **the thing people want to do** with your entities" — 즉 feature
+슬라이스명은 "무엇을 하는가"를 담으면 되고, 그게 동사형이든 명사형(행위 자체를 가리키는
+명사, 예: `login`=로그인하다/로그인)이든 공식 스펙은 구분하지 않는다. 공식
+[Authentication 가이드](https://feature-sliced.design/docs/guides/examples/auth)도
+`features/login/`을 그대로 쓴다. 이 레포의 `auth/login/`·`auth/signup/`가 실제로
+그 형태다 — "완결된 사용자 액션/flow"(로그인, 회원가입처럼 그 자체로 하나의 흐름)일
+때만 명사를 허용하고, `post/{create,update,delete,like}`처럼 한 엔티티에 걸린 개별
+조작들은 계속 동사를 쓴다.
 
 ### 레이어별 허용 세그먼트
 
