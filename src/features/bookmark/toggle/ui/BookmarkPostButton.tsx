@@ -4,7 +4,7 @@ import { Post } from '@/entities/post/model/post.schema';
 import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
-import { BookmarkFolderModal } from '@/features/bookmark/toggle/ui/BookmarkFolderModal';
+import { PostCardBookmarkFolderModal } from '@/features/bookmark/toggle/ui/PostCardBookmarkFolderModal';
 import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
 
 interface BookmarkPostButtonProps {
@@ -15,8 +15,8 @@ interface BookmarkPostButtonProps {
 
 /**
  * 북마크 버튼.
- * - 클릭 → BookmarkFolderModal 오픈 (YouTube Music 보관함 스타일)
- * - 폴더 선택은 BookmarkFolderModal 안에서 처리
+ * - 클릭 → PostCardBookmarkFolderModal 오픈 (YouTube Music 보관함 스타일)
+ * - 폴더 선택은 PostCardBookmarkFolderModal 안에서 처리
  */
 export function BookmarkPostButton({
   postId,
@@ -48,7 +48,7 @@ export function BookmarkPostButton({
         <span className="sr-only">Bookmark</span>
       </Button>
 
-      <BookmarkFolderModal
+      <PostCardBookmarkFolderModal
         postId={postId}
         isBookmarked={isBookmarked}
         bookmarkFolderIds={bookmarkFolderIds}

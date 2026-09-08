@@ -156,7 +156,7 @@ src/
 │
 ├── features/                     # 사용자 상호작용 — 도메인 그룹 → 액션 슬라이스
 │   ├── post/
-│   │   ├── create/{hooks,ui}     # useCreatePost, useBookmarkFolderField, CreatePostForm, BookmarkFolderField
+│   │   ├── create/{hooks,ui}     # useCreatePost, usePostCreateBookmarkFolderField, CreatePostForm, PostCreateBookmarkFolderField
 │   │   ├── update/{hooks,ui}     # useUpdatePost, UpdatePostForm
 │   │   ├── delete/hooks          # usePostDelete
 │   │   └── like/{hooks,ui}       # useLikePost, LikePostButton
@@ -171,18 +171,20 @@ src/
 │   │   └── profile/{hooks,ui}    # useUpdateProfile, UpdateProfileForm
 │   └── bookmark/                 # 2026-09-08 post/bookmark에서 승격 — entities/widgets/pages와
 │       │                         # bookmark 도메인 그룹을 통일(FSD nukeapp 사례 참고)
-│       └── toggle/{hooks,ui}     # useBookmarkFolders, useBookmarkFolderModal, BookmarkPostButton, BookmarkFolderModal
+│       └── toggle/{hooks,ui}     # useBookmarkFolders, usePostCardBookmarkFolderModal, BookmarkPostButton,
+│                                 # PostCardBookmarkFolderModal(2026-09-08, entities의 FolderPickerModal과
+│                                 # 이름이 겹쳐 호출 맥락(PostCard) 접두사를 붙여 개명)
 │
 ├── entities/                     # 비즈니스 엔티티 — data layer + basic display
 │   ├── post/
 │   │   ├── api/                  # post.api.ts, post.keys.ts, post.queries.ts
 │   │   ├── model/                # post.schema.ts (comment·interaction 스키마 re-export 포함)
-│   │   └── config/                # const.ts (POST_PAGE_SIZE)
+│   │   └── config/                # post.const.ts (POST_PAGE_SIZE)
 │   ├── comment/
 │   │   ├── api/                  # comment.api.ts, comment.keys.ts, comment.queries.ts
 │   │   ├── model/                # comment.schema.ts
 │   │   ├── utils/                # comment.util.ts (estimateCommentPayloadBytes)
-│   │   └── config/                # const.ts (MAX_COMMENT_CONTENT_BYTES 외)
+│   │   └── config/                # comment.const.ts (MAX_COMMENT_CONTENT_BYTES 외)
 │   ├── interaction/
 │   │   ├── api/                  # interaction.api.ts, interaction.queries.ts (keys.ts 없음 — post/comment/folder keys 직접 사용)
 │   │   └── model/                # interaction.schema.ts
@@ -191,10 +193,10 @@ src/
 │   │   └── folder/
 │   │       ├── api/              # folder.api.ts, folder.keys.ts, folder.queries.ts
 │   │       ├── model/            # folder.schema.ts
-│   │       ├── config/           # const.ts (RECENT_FOLDER_COUNT 외)
+│   │       ├── config/           # folder.const.ts (RECENT_FOLDER_COUNT 외)
 │   │       ├── utils/            # folder.util.ts (pickRecentFolders)
 │   │       ├── hooks/            # useRecentFolders.ts, useFolderPicker.ts
-│   │       └── ui/               # FolderPickerModal
+│   │       └── ui/               # FolderPickerModal(PostCardBookmarkFolderModal·PostCreateBookmarkFolderField가 공유)
 │   ├── category/
 │   │   ├── api/                  # category.api.ts, category.keys.ts, category.queries.ts
 │   │   └── model/                # category.schema.ts
@@ -639,21 +641,22 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ## 18. 네이밍 컨벤션
 
-| 항목             | 규칙                                                                                                                                                                                                                   | 예시                             |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| Feature 디렉토리 | `<도메인>/<액션>` kebab-case                                                                                                                                                                                           | `post/create/`                   |
-| Widget 디렉토리  | `<도메인>/<슬라이스>` kebab-case                                                                                                                                                                                       | `post/post-card/`                |
-| Shared 디렉토리  | camelCase                                                                                                                                                                                                              | `hooks/`, `utils/`               |
-| 컴포넌트 파일    | PascalCase.tsx                                                                                                                                                                                                         | `CreatePostForm.tsx`             |
-| Feature 훅       | `use<FeatureName>.ts`                                                                                                                                                                                                  | `useCreatePost.ts`               |
-| Mutation 훅      | `use<Action><Entity>Mutation`                                                                                                                                                                                          | `useCreatePostMutation`          |
-| Query 훅         | `useFetch<Entity>Query` (표준). 기존 코드엔 `use<Entity>s`(`useComments`), `use<Entity>ListQuery`(`useFolderListQuery`), `use<Entity>InfiniteQuery`(`useFolderPostsInfiniteQuery`)도 있다 — 새로 만들 땐 표준형을 쓴다 | `useFetchPostDetailQuery`        |
-| 쿼리 키 객체     | `<entity>Keys`                                                                                                                                                                                                         | `postKeys`                       |
-| Invalidate 헬퍼  | `<entity>InvalidateQueries`                                                                                                                                                                                            | `postInvalidateQueries`          |
-| Success 핸들러   | `handle<Entity><Action>Success`                                                                                                                                                                                        | `handlePostCreateSuccess`        |
-| API 객체         | `<entity>Api`                                                                                                                                                                                                          | `postApi`                        |
-| Zod 스키마       | `<entity>Schema`, `create<Entity>Schema`                                                                                                                                                                               | `postSchema`, `createPostSchema` |
-| TS 타입          | 스키마와 동일 (PascalCase)                                                                                                                                                                                             | `Post`, `CreatePost`             |
+| 항목             | 규칙                                                                                                                                                                                                                   | 예시                               |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Feature 디렉토리 | `<도메인>/<액션>` kebab-case                                                                                                                                                                                           | `post/create/`                     |
+| Widget 디렉토리  | `<도메인>/<슬라이스>` kebab-case                                                                                                                                                                                       | `post/post-card/`                  |
+| Shared 디렉토리  | camelCase                                                                                                                                                                                                              | `hooks/`, `utils/`                 |
+| 컴포넌트 파일    | PascalCase.tsx                                                                                                                                                                                                         | `CreatePostForm.tsx`               |
+| Feature 훅       | `use<FeatureName>.ts`                                                                                                                                                                                                  | `useCreatePost.ts`                 |
+| Mutation 훅      | `use<Action><Entity>Mutation`                                                                                                                                                                                          | `useCreatePostMutation`            |
+| Query 훅         | `useFetch<Entity>Query` (표준). 기존 코드엔 `use<Entity>s`(`useComments`), `use<Entity>ListQuery`(`useFolderListQuery`), `use<Entity>InfiniteQuery`(`useFolderPostsInfiniteQuery`)도 있다 — 새로 만들 땐 표준형을 쓴다 | `useFetchPostDetailQuery`          |
+| 쿼리 키 객체     | `<entity>Keys`                                                                                                                                                                                                         | `postKeys`                         |
+| Invalidate 헬퍼  | `<entity>InvalidateQueries`                                                                                                                                                                                            | `postInvalidateQueries`            |
+| Success 핸들러   | `handle<Entity><Action>Success`                                                                                                                                                                                        | `handlePostCreateSuccess`          |
+| API 객체         | `<entity>Api`                                                                                                                                                                                                          | `postApi`                          |
+| Zod 스키마       | `<entity>Schema`, `create<Entity>Schema`                                                                                                                                                                               | `postSchema`, `createPostSchema`   |
+| TS 타입          | 스키마와 동일 (PascalCase)                                                                                                                                                                                             | `Post`, `CreatePost`               |
+| `config/` 파일   | `<entity>.const.ts` — `api/`·`model/`·`utils/`와 같은 `<entity>.<역할>.ts` 규칙(`const.ts` 단독 금지, `shared/config/const.ts`처럼 도메인이 없는 전역 설정은 예외)                                                     | `folder.const.ts`, `post.const.ts` |
 
 ---
 

@@ -3,7 +3,7 @@ import { Folder } from '@/entities/bookmark/folder/model/folder.schema';
 import {
   MIN_FOLDER_COUNT_TO_SHOW_RECENT,
   RECENT_FOLDER_COUNT,
-} from '@/entities/bookmark/folder/config/const';
+} from '@/entities/bookmark/folder/config/folder.const';
 
 export class FolderUtil {
   // folderApi.fetchFolderList는 apiClient.get<FolderListResponse>()로 캐싱만 할 뿐 folderSchema로

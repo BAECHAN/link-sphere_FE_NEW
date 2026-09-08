@@ -7,7 +7,7 @@ import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { ImageAttachmentField } from '@/shared/ui/elements/ImageAttachmentField';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { useCreateComment } from '@/features/comment/create/hooks/useCreateComment';
-import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/const';
+import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/comment.const';
 import { TEXTS } from '@/shared/config/texts';
 import { Kbd } from '@/shared/ui/atoms/kbd';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';

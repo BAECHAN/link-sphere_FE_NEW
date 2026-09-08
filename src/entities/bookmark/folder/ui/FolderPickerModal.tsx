@@ -16,7 +16,7 @@ import type { Folder } from '@/entities/bookmark/folder/model/folder.schema';
 interface FolderPickerModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** 헤더 보조 문구 — 즉시 저장(BookmarkFolderModal)인지 지연 선택(BookmarkFolderField)인지가 달라 호출부가 정한다 */
+  /** 헤더 보조 문구 — 즉시 저장(PostCardBookmarkFolderModal)인지 지연 선택(PostCreateBookmarkFolderField)인지가 달라 호출부가 정한다 */
   description: string;
   isBookmarked: boolean;
   selectedFolderIds: string[];
@@ -29,8 +29,8 @@ interface FolderPickerModalProps {
 }
 
 /**
- * 북마크 폴더 선택 UI — 보관함의 즉시 저장(BookmarkFolderModal)과 등록 폼의 지연 선택
- * (BookmarkFolderField)이 공유하는 프레젠테이션 컴포넌트. 저장 동작은 콜백으로 주입받는다.
+ * 북마크 폴더 선택 UI — 보관함의 즉시 저장(PostCardBookmarkFolderModal)과 등록 폼의 지연 선택
+ * (PostCreateBookmarkFolderField)이 공유하는 프레젠테이션 컴포넌트. 저장 동작은 콜백으로 주입받는다.
  * 로직 전부는 useFolderPicker가 소유하고, 여기는 JSX만 남긴다.
  * - 데스크탑: 중앙 모달 / 모바일: 하단 BottomSheet
  * - 미분류 행이 이미 체크된 상태에서 재탭하면 no-op(오탭으로 북마크가 조용히 사라지는 것 방지) —

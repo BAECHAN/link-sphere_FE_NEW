@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { TEXTS } from '@/shared/config/texts';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
-import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/const';
+import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/comment.const';
 
 const linkMetadataSchema = z.object({
   url: z.string(),

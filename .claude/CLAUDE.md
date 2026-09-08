@@ -659,7 +659,7 @@ an interaction ... **the thing people want to do** with your entities" — 즉 f
 ### entities의 그룹 폴더
 
 도메인 이름 하나만으로 맥락이 안 드러날 때(예: `folder`가 북마크 폴더인지 다른 폴더인지
-불분명했던 사례), `features`·`widgets`가 이미 쓰는 그룹 폴더 패턴(`features/post/bookmark/`,
+불분명했던 사례), `features`·`widgets`가 이미 쓰는 그룹 폴더 패턴(`features/bookmark/toggle/`,
 `widgets/bookmark/folder-tree/`)을 entities에도 쓸 수 있다 — 예: `entities/bookmark/folder/`.
 그룹을 쓰더라도 그 아래 도메인명 자체는 위 "폴더 네이밍 원칙"의 "단수 소문자" 규칙을
 그대로 따른다 — `bookmark-folder/`처럼 도메인명 자체를 복합명으로 만들지 않는다.
