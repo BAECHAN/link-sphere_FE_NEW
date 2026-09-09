@@ -27,6 +27,16 @@
 
   </details>
 
+### Fixed
+
+- `post` 링크 등록·수정 폼 URL 입력란의 브라우저 자동완성 제안 비활성화
+  <details><summary>배경·구현</summary>
+
+  URL 입력란에 포커스하면 브라우저가 폼 자동완성 기록(이전에 제출한 URL들)을 드롭다운으로 제안해 아래 필드를 가렸다. 링크 등록·수정은 매번 새 URL을 붙여넣는 흐름이라 제안이 도움이 되지 않아 `autoComplete="off"`로 끈다. 두 폼이 같은 `name="url"`을 써서 자동완성 기록을 공유하므로 양쪽 모두에 적용했다.
+  (`features/post/create/ui/CreatePostForm.tsx`, `features/post/update/ui/UpdatePostForm.tsx`)
+
+  </details>
+
 ## [0.13.0] - 2026-09-06
 
 ### Added
