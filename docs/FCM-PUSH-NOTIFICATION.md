@@ -7,7 +7,7 @@
 > **읽고 나면**: 토큰 등록/해제부터 알림 클릭 시 딥링크까지 전체 경로를 이해하고,
 > 새 알림 타입을 추가하거나 배포 관련 문제를 진단할 수 있다.
 >
-> **마지막 검토**: 2026-09-04
+> **마지막 검토**: 2026-09-09
 
 댓글·답글 작성 시 포스트 작성자 또는 원댓글 작성자에게 FCM(Firebase Cloud
 Messaging) 푸시 알림을 전송하는 기능의 전체 구현 내역과 운영 중 마주친 삽질
@@ -164,8 +164,11 @@ sequenceDiagram
 ```
 src/shared/lib/firebase/
 ├── firebase.ts                  # Firebase 앱 초기화 + messaging 인스턴스
-├── fcm.ts                       # 토큰 등록·해제 함수
+├── fcm.ts                       # 토큰 등록·해제 함수 (fcm.api.ts 호출)
 └── useFcmForegroundMessage.ts   # 포그라운드 메시지 수신 훅
+
+src/shared/api/
+└── fcm.api.ts                   # /fcm/token API 호출 (apiClient 경유)
 
 public/
 └── firebase-messaging-sw.js     # Service Worker (백그라운드 수신)
@@ -188,13 +191,16 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
 > Service Worker를 미지원하는 브라우저에서 호출하면 런타임 에러가 발생한다.
 > `messaging`이 `null`인 경우 이후 모든 FCM 함수가 early return하여 조용히 skip한다.
 
-**FCM 토큰 등록·해제**(`fcm.ts`)
+**FCM 토큰 등록·해제**(`fcm.ts` + `shared/api/fcm.api.ts`)
 
 로그인 성공 직후 `auth.queries.ts`의 `onSuccess`에서 `requestAndRegisterFcmToken`을
 호출한다. 서버 등록은 별도 함수(`registerTokenToServer`)로 분리돼 있고,
 `sessionStorage`(키는 `STORAGE_KEYS.FCM.TOKEN`, §12)에 토큰을 캐싱해 **동일
 세션에서 중복 서버 요청을 방지**한다. 등록에는 로그인 직후의 `accessToken`이
-필요한데 이 시점 타이밍 문제가 §10.6 시행착오의 원인이었다.
+필요한데 이 시점 타이밍 문제가 §10.6 시행착오의 원인이었다. 실제 `/fcm/token`
+호출은 `shared/api/fcm.api.ts`의 `fcmApi`(다른 엔티티와 같은 3-layer API 규약대로
+`apiClient` 경유)가 맡는다 — 인증 헤더·baseURL·401 갱신은 `apiClient`가 이미
+처리하므로 `fcm.ts`는 accessToken 존재 여부만 확인한다.
 
 ```typescript
 // src/shared/lib/firebase/fcm.ts (요지만 발췌 — 전체는 파일 직접 확인)
@@ -204,11 +210,7 @@ async function registerTokenToServer(token: string): Promise<void> {
   const accessToken = getAccessTokenFromStore(); // useAuthStore.getState().accessToken
   if (!accessToken) return; // 아직 로그인 상태가 스토어에 반영 안 됐으면 조용히 skip
 
-  await fetch(`${baseUrl}/fcm/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify({ token, platform: 'WEB' }),
-  });
+  await fcmApi.registerToken(token); // shared/api/fcm.api.ts → apiClient.post(API_ENDPOINTS.fcm.token)
   sessionStorage.setItem(STORAGE_KEYS.FCM.TOKEN, token);
 }
 ```

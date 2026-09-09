@@ -2,6 +2,7 @@ import { getToken } from 'firebase/messaging';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { messaging } from '@/shared/lib/firebase/firebase';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
+import { fcmApi } from '@/shared/api/fcm.api';
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY as string;
 
@@ -72,44 +73,23 @@ async function registerTokenToServer(token: string): Promise<void> {
     return;
   }
 
-  const baseUrl = import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL as string);
-
   const accessToken = getAccessTokenFromStore();
   if (!accessToken) {
     return;
   }
 
-  const res = await fetch(`${baseUrl}/fcm/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({ token, platform: 'WEB' }),
-  });
-
-  if (res.ok) {
-    sessionStorage.setItem(STORAGE_KEYS.FCM.TOKEN, token);
-    console.info('[FCM] Token registered to server');
-  }
+  await fcmApi.registerToken(token);
+  sessionStorage.setItem(STORAGE_KEYS.FCM.TOKEN, token);
+  console.info('[FCM] Token registered to server');
 }
 
 async function deleteTokenFromServer(token: string): Promise<void> {
-  const baseUrl = import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL as string);
-
   const accessToken = getAccessTokenFromStore();
   if (!accessToken) {
     return;
   }
 
-  await fetch(`${baseUrl}/fcm/token`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({ token }),
-  });
+  await fcmApi.unregisterToken(token);
 }
 
 /** Zustand auth store에서 accessToken을 꺼내옵니다. (React 컴포넌트 외부에서 getState() 사용) */

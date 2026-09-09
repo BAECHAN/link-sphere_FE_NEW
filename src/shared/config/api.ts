@@ -14,6 +14,7 @@ const API_BASES = {
   comment: '/comment',
   bookmark: '/bookmark',
   upload: '/upload',
+  fcm: '/fcm',
 } as const;
 
 const API_ENDPOINTS = {
@@ -30,6 +31,10 @@ const API_ENDPOINTS = {
 
   upload: {
     signedUrl: `${API_BASES.upload}/signed-url`,
+  },
+
+  fcm: {
+    token: `${API_BASES.fcm}/token`,
   },
 
   post: {

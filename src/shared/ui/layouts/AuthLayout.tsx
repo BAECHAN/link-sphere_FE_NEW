@@ -8,7 +8,7 @@ export interface AuthLayoutProps {
 export function AuthLayout({ children }: Readonly<AuthLayoutProps>) {
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-gray-50 p-4"
+      className="min-h-screen flex items-center justify-center bg-background p-4"
       aria-label={TEXTS.ariaLabels.authLayout}
     >
       <div className="w-full max-w-480" aria-label={TEXTS.ariaLabels.authContent}>
