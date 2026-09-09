@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-09-07
+> **마지막 검토**: 2026-09-09
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -100,18 +100,19 @@ flowchart TD
 줄 번호는 리팩터링 때마다 바뀌므로 규칙명으로만 가리킨다 — 정확한 위치는
 `grep -n "<규칙명>" eslint.config.js`로 직접 찾는다.
 
-| 규칙                                                  | 무엇을 막나                                                                                                   |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `custom-barrel-rules/no-barrel-import`                | `/index`로 끝나는 import (배럴 금지)                                                                          |
-| `custom-query-rules/no-direct-query-import`           | `@tanstack/react-query` 직접 import — 허용목록(`app/**`·`**/api/*.queries.ts`·`**/hooks/**` 등) 밖에서는 금지 |
-| `custom-query-rules/no-query-client-singleton-import` | `queryClient` 싱글턴 직접 import — `QueryProvider.tsx`·`auth.util.ts` 두 곳만 예외                            |
-| `custom-i18n/no-hardcoded-hangul`                     | 한글 UI 문자열 하드코딩 — `TEXTS`만 허용                                                                      |
-| `custom-import/no-sonner-toast-direct-import`         | `sonner` 직접 import — `@/shared/lib/toast/toast` 경유 강제                                                   |
-| `custom-import/no-relative-import-except-styles`      | 상대 경로 import(`../`) 금지, `.styles.ts` 파일만 예외                                                        |
-| `no-restricted-syntax` (Zustand)                      | 컴포넌트/훅 내부에서 스토어 `getState()` 직접 호출 금지 — 셀렉터 훅 사용 강제                                 |
-| 파일명 규칙                                           | `*.api.ts`·`*.queries.ts`·`*.schema.ts`·`config/`·`utils/` 등 세그먼트별 파일명 패턴                          |
-| `custom-a11y/clickable-needs-interactive-element`     | `div`/`span`에 `onClick`만 달기 — `role="button"` 없이는 금지                                                 |
-| `curly` (`['error', 'all']`)                          | 인라인 `if`문 (`if (x) return;`) — 항상 중괄호 블록 강제                                                      |
+| 규칙                                                      | 무엇을 막나                                                                                                                |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `custom-barrel-rules/no-barrel-import`                    | `/index`로 끝나는 import (배럴 금지)                                                                                       |
+| `custom-query-rules/no-direct-query-import`               | `@tanstack/react-query` 직접 import — 허용목록(`app/**`·`**/api/*.queries.ts`·`**/hooks/**` 등) 밖에서는 금지              |
+| `custom-query-rules/no-entity-query-import-outside-hooks` | `features/**`에서 entity 쿼리 훅(`*.queries`) import — `features/**/hooks/**` 밖에서는 금지 (widgets는 대상 아님, §8 참고) |
+| `custom-query-rules/no-query-client-singleton-import`     | `queryClient` 싱글턴 직접 import — `QueryProvider.tsx`·`auth.util.ts` 두 곳만 예외                                         |
+| `custom-i18n/no-hardcoded-hangul`                         | 한글 UI 문자열 하드코딩 — `TEXTS`만 허용                                                                                   |
+| `custom-import/no-sonner-toast-direct-import`             | `sonner` 직접 import — `@/shared/lib/toast/toast` 경유 강제                                                                |
+| `custom-import/no-relative-import-except-styles`          | 상대 경로 import(`../`) 금지, `.styles.ts` 파일만 예외                                                                     |
+| `no-restricted-syntax` (Zustand)                          | 컴포넌트/훅 내부에서 스토어 `getState()` 직접 호출 금지 — 셀렉터 훅 사용 강제                                              |
+| 파일명 규칙                                               | `*.api.ts`·`*.queries.ts`·`*.schema.ts`·`config/`·`utils/` 등 세그먼트별 파일명 패턴                                       |
+| `custom-a11y/clickable-needs-interactive-element`         | `div`/`span`에 `onClick`만 달기 — `role="button"` 없이는 금지                                                              |
+| `curly` (`['error', 'all']`)                              | 인라인 `if`문 (`if (x) return;`) — 항상 중괄호 블록 강제                                                                   |
 
 ---
 
@@ -216,7 +217,8 @@ src/
 │   │                             # entities에 남는다 — 인터랙션 UI는 features/bookmark/select/로 이동)
 │   ├── category/
 │   │   ├── api/                  # category.api.ts, category.keys.ts, category.queries.ts
-│   │   └── model/                # category.schema.ts
+│   │   ├── model/                # category.schema.ts
+│   │   └── hooks/                 # useCategoryOptions — 등록·수정 폼 + 목록 검색 카드가 공유
 │   ├── auth/                     # 인증(로그인·로그아웃·회원가입·세션) 전용
 │   │   ├── api/                  # auth.api.ts, auth.keys.ts, auth.queries.ts
 │   │   ├── model/                # auth.schema.ts (loginSchema, createAccountSchema 등)
@@ -463,9 +465,18 @@ export function useCreateEntity() {
 }
 ```
 
+조회가 필요하면 슬라이스 자신의 `hooks/` 커스텀 훅이나 `entities/<entity>/hooks/`의 공용 훅(여러
+슬라이스가 같은 조회를 공유할 때, 예: `useCategoryOptions`)에서 한다 — features에는 예외를 두지
+않는다(§8의 "query 1개 + trivial 파생" 예외는 widgets 한정). `custom-query-rules/no-entity-query-import-outside-hooks`가
+`features/**/hooks/**` 밖에서 entity `*.queries` 모듈 import를 막아 강제한다.
+
 ---
 
 ## 7. UI Component 패턴 (얇은 레이어)
+
+UI가 직접 호출해도 되는 훅은 세 종류다: 자기 feature의 `hooks/` 커스텀 훅, `entities/<entity>/hooks/`의
+공용 훅(예: `useCategoryOptions`, `useAccount`), `shared/hooks/`의 범용 훅. entity의 `*.queries.ts`가
+내보내는 React Query 훅을 UI가 직접 부르는 것은 §6의 규칙 위반이다(ESLint로 강제).
 
 ```typescript
 // features/<도메인>/<액션>/ui/<FeatureName>Form.tsx
@@ -508,6 +519,18 @@ export function useExampleWidget(filter: EntityFilter) {
 ```
 
 widget hook이 **불필요한 경우**: entity query 1개 + trivial 파생만이면 컴포넌트에서 직접 사용한다.
+**widgets 한정** — features는 §6에 예외가 없다. 이 판단은 "파생이 trivial한가"라는 사람 판단이라
+ESLint로 강제하지 않는다(파일 단위로 강제하면 그 파일에 앞으로 들어올 모든 쿼리가 영구 면제된다) —
+`/code-review`와 PR 리뷰로 지킨다.
+
+- 예외 해당 (그대로 둔 예): `widgets/comment/comment-list/ui/CommentItem.tsx`가
+  `useFetchAccountQuery()`를 직접 호출한다 — 이 쿼리에서 나오는 파생은 `isOwner` 불리언
+  하나뿐이고, 파일의 나머지 파생(`isPostAuthor`·`isDeleted` 등)은 props 파생이라 이 쿼리와
+  무관하다. 참고로 여기를 이미 entity 훅이 있는 `useAccount()`로 바꾸는 건 안 된다 —
+  `persistLastAvatar` localStorage 부수효과가 댓글 개수만큼 실행된다.
+- 예외 해당 안 됨: 같은 위젯의 `CommentList.tsx`는 정렬·재귀 집계(톰스톤 포함 댓글 수)·파생
+  2개가 있어 widget hook으로 빼야 한다(`usePostList`의 `flatMap` 파생이 같은 이유의 선례).
+  2026-09-09 기준 아직 안 뺀 상태로 남아 있다 — 별건 리팩터링으로 취급해 범위 밖에 뒀다.
 
 ---
 

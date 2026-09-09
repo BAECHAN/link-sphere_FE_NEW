@@ -66,6 +66,104 @@ import하는 features↔features cross-import가 새로 생겼다. FSD 공식·`
 "의도적으로 감수" 참고)/`pnpm test`(51 파일, 333건) 전부 통과. `docs/FE-ARCHITECTURE.md`의
 디렉터리 트리(§3)와 §1 "정식 FSD와 다른 점" 표를 함께 갱신했다.
 
+## 2026-09-09 — entity 쿼리 훅 UI 직접 호출 금지를 ESLint로 승격 (features 한정)
+
+**배경**
+
+`CreatePostForm.tsx`가 `useFetchCategoryOptionQuery()`를 UI 컴포넌트에서 직접 호출하고 있다는
+지적에서 시작한 조사. 같은 슬라이스(`features/post/create/`) 안에서 북마크 폴더 필드는 조회를
+훅(`usePostCreateBookmarkFolderField.ts`)이 소유하는데 카테고리만 UI가 소유하는 불일치가
+있었다. 전수 조사 결과 같은 형태(features/widgets의 `ui/`가 entity `*.queries` 훅을 직접
+호출)가 5건이었고, `custom-query-rules/no-direct-query-import`는 `@tanstack/react-query`
+직접 import만 막아서 entity가 감싼 `*.queries` 훅 호출까지는 못 잡았다 — `dayjs` 규칙이 같은
+이유(문서 규칙에만 의존, ESLint 부재)로 5개월간 위반이 안 잡혔던 것과 같은 패턴이다.
+
+**검토한 대안**
+
+1. **기존 feature 훅(`useCreatePost`/`useUpdatePost`)에 흡수** — 반환 객체에
+   `categoryOptionList` 키를 추가하는 방식. `.claude/CLAUDE.md` "변경 범위 원칙"의 "반환 타입
+   변경은 명시적 요청 없이 불가"에 걸리고, `useUpdatePost.test.tsx`는 MSW 핸들러 없이
+   `setQueryData`로만 post 상세를 심는데 카테고리 조회가 훅에 딸려 들어가면 미핸들 요청
+   경고가 매 테스트마다 붙는다. **탈락.**
+2. **`features/post/_shared/hooks/` 신설** — features 슬라이스 간 import가 이 레포에 현재
+   0건이라 선례 없는 패턴을 새로 여는 셈. **탈락.**
+3. **`entities/category/hooks/useCategoryOptions.ts` 신설** — `entities/account/hooks/useAccount.ts`
+   (쿼리를 감싼 entity 훅), `entities/bookmark/folder/hooks/useBookmarkFolderSelect.ts`(두
+   슬라이스가 공유하는 entity 훅) 선례와 같은 자리. **채택.**
+4. **ESLint 룰을 `no-restricted-imports`로 구현** — `eslint.config.js`가 이미 같은 rule key로
+   FSD 레이어 경계(`features`→`widgets` 등)를 강제하는데, flat config는 같은 key가 겹치면
+   배열 병합이 아니라 통째로 덮어써서 그 파일들의 레이어 규칙이 조용히 사라진다(이 레포가
+   이미 두 번 당한 함정, `eslint.config.js` 주석 참고). **탈락** — 고유 rule key의 커스텀
+   룰(`no-entity-query-import-outside-hooks`)로 구현.
+5. **widgets까지 룰 대상에 포함** — §8의 "query 1개 + trivial 파생" 예외는 "파생이
+   trivial한가"라는 사람 판단이라 ESLint가 평가할 수 없다. 파일 단위 ignore로 흉내 내면 그
+   파일에 앞으로 들어올 모든 쿼리까지 영구 면제된다. **탈락** — widgets는 문서(§8)와 PR
+   리뷰로 지킨다.
+
+**결정**
+
+1. `entities/category/hooks/useCategoryOptions.ts`를 신설해 `CreatePostForm.tsx`·
+   `UpdatePostForm.tsx`·`PostListSearch.tsx` 세 호출부가 공유한다. `?? []` fallback을 훅
+   하나로 모은다.
+2. `custom-query-rules/no-entity-query-import-outside-hooks`를 추가해 `src/features/**`(hooks/
+   제외)에서 entity `*.queries` 모듈 import를 금지한다. widgets는 대상 아님.
+3. 같은 조사에서 `.claude/commands/code-review.md`의 "React Query hooks only in
+   `<entity>.queries.ts` — not in feature hooks, not in UI"가 사실과 다르다는 것도 발견했다
+   (feature hook 13곳이 정상적으로 쿼리 훅을 호출하는 게 이 레포의 정상 패턴). 함께 정정했다.
+4. 범위 밖으로 남긴 것: `widgets/comment/comment-list/ui/CommentList.tsx`(정렬+재귀 집계라
+   §8 예외에 해당하지 않지만 별건 리팩터링), `pages/post/index.tsx`의 반환값 미사용
+   프리페치 호출, `entities/category/api/category.queries.ts`의 호출부 없는
+   `prefetchCategoryData` — 전부 CLAUDE.md §3("무관한 죽은 코드는 언급만 하고 지우지
+   않는다")에 따라 언급만 하고 손대지 않았다.
+
+**상태**: 적용됨.
+
+## 2026-09-09 — 질문 전에 판단 재료를 먼저 준다 (CLAUDE.md §13 신설)
+
+**배경**
+
+"질문하기 전에 그 질문이 도출된 과정과 조사한 내용을 공유해야 판단할 수 있다. 선택지만
+주면 답을 못한다"는 지적. `CLAUDE.md` §7("사용자가 체감하는 트레이드오프는 승인을 받는다")은
+*묻지 않고 혼자 결정하지 마라*까지만 다루고 있었고, *물을 때 무엇을 함께 줘야 하는가*는
+비어 있었다.
+
+**검증한 사실 (직접 측정)**
+
+측정 방법: `~/.claude/projects/-Users-baechan-project-link-sphere-link-sphere-FE-NEW/*.jsonl`
+중 최근 8개 세션을 파싱해 `AskUserQuestion` 도구 호출을 전수 조사했다(스크립트는 세션
+스크래치패드의 `scan.py`·`lens.py`, 재현 절차: 각 JSONL을 줄 단위 JSON으로 읽어
+`message.content[].type == "tool_use" && name == "AskUserQuestion"`를 찾고, 직전 같은
+턴의 assistant 텍스트 블록 길이와 `input.questions[].options[].description` 길이를 측정).
+
+- `AskUserQuestion` 호출 18건 중 **7건(39%)이 직전 본문 설명 300자 미만**, 그중 1건은
+  본문 설명이 0자였다(중앙값 459자).
+- 옵션 `description` 97개 중 **29개(30%)가 150자 초과**, 최대 283자. 옵션 `label`은
+  도구 스펙상 1~5단어 권장인데 최대 39자까지 나왔다.
+- 실제 사례(2026-09-09 05:04, `shared/` 152개 파일 재구조화 질문): 본문 설명은 123자였고
+  "config 133·ui 109·lib 79 파일이 참조" 같은 조사 결과는 전부 옵션 `description` 안에
+  압축돼 있었다. 즉 근거가 본문이 아니라 옵션 카드 안에 들어가 있었다.
+- 구조적 원인: `AskUserQuestion` 옵션 카드는 판단 재료를 담는 자리가 아니다(label
+  1~5단어, 옵션 최대 4개). 그리고 조사를 서브에이전트(Explore·Plan 등)에 위임하면 그
+  리포트는 사용자 화면에 표시되지 않고 호출자에게만 전달된다 — 옮겨적지 않으면 사용자가
+  보는 근거는 0이 된다. Plan 모드가 이 경로를 그대로 탄다.
+- 안전망 훅 가능성도 검토했다(§12의 `plan-diagram-reminder.sh` 선례를 참고). 그러나
+  `AskUserQuestion`이 `PreToolUse` 훅의 matcher로 걸리는지는 공식 문서
+  (code.claude.com/docs/en/hooks.md)의 내장 도구 목록에 없어 확인되지 않았고, §12 훅과
+  달리 "150줄 이상 계획 파일" 같은 객관적 판정 기준이 없어 글자수 휴리스틱은 "PR을
+  병합할까요?" 같은 정당한 짧은 질문을 오탐할 위험이 크다.
+
+**결정**
+
+`CLAUDE.md`에 §13("질문하기 전에 판단 재료를 먼저 준다")을 신설한다. 질문 전에 본문으로
+확인한 사실·왜 묻는가·각 선택지가 바꾸는 것·추천을 먼저 낸 뒤 `AskUserQuestion`을
+호출하고, 옵션 `description`은 본문 요약 라벨로만 쓴다. 같은 규칙을 BE 레포
+(`link-sphere_BE_NEW/.claude/CLAUDE.md` §9)에도 반영한다. 훅은 만들지 않는다(위 이유).
+
+**상태**
+
+적용 완료. `CLAUDE.md`는 세션 시작 시 스냅샷되므로(§12가 같은 성질을 기록해 둠) 이
+커밋 이후 시작된 세션부터 자동 적용된다.
+
 ---
 
 ## 2026-09-09 — entities/user를 auth/account/user 세 엔티티로 분리

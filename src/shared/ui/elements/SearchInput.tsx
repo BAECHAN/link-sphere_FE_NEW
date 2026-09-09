@@ -13,7 +13,7 @@ export interface SearchInputProps extends InputProps {
 const inputVariant = `
 pl-8 pr-10 bg-muted/50 border-none transition-all focus:bg-background focus:ring-1 focus:ring-primary/20`;
 
-const kbdVariant = `pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border px-1.5 font-mono font-bold opacity-100 flex bg-gray-400 text-white`;
+const kbdVariant = `pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border px-1.5 font-mono font-bold opacity-100 flex`;
 const kbdVariantSize = 'size-5';
 
 export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(

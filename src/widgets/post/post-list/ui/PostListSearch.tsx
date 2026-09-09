@@ -1,4 +1,4 @@
-import { useFetchCategoryOptionQuery } from '@/entities/category/api/category.queries';
+import { useCategoryOptions } from '@/entities/category/hooks/useCategoryOptions';
 import { Button } from '@/shared/ui/atoms/button';
 import { Switch } from '@/shared/ui/atoms/switch';
 import { FilterChip } from '@/shared/ui/elements/FilterChip';
@@ -13,7 +13,7 @@ import { TEXTS } from '@/shared/config/texts';
 const SCOPE_FILTERS = ['isBookmarked', 'isMyPosts', 'isPrivate'] as const;
 
 export function PostListSearch() {
-  const { data: categories } = useFetchCategoryOptionQuery();
+  const { categoryOptionList } = useCategoryOptions();
   const { searchQuery, currentFilter, setSearch, toggleFilter, clearSearch } = usePostListParams();
   const hideBots = useHideBotsStore((state) => state.hideBots);
   const setHideBots = useHideBotsStore((state) => state.setHideBots);
@@ -102,7 +102,7 @@ export function PostListSearch() {
         aria-label={TEXTS.ariaLabels.postCategoryFilters}
         className="flex flex-wrap gap-2"
       >
-        {categories?.map((category) => {
+        {categoryOptionList.map((category) => {
           const isSelected = selectedCategories.has(category.label);
           return (
             <FilterChip

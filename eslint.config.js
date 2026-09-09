@@ -139,6 +139,41 @@ const customQueryRulesPlugin = {
         };
       },
     },
+    // [금지] features 슬라이스의 hooks/ 밖에서 entity 쿼리 훅 모듈(*.queries) import
+    // 이유: FE-ARCHITECTURE §6 "feature hook = 모든 비즈니스 로직. UI 파일은 훅을 호출하고
+    //       JSX만 렌더링" — 조회 위치를 hooks/로 고정한다. no-direct-query-import는
+    //       @tanstack/react-query 직접 import만 막아, entity가 감싼 *.queries 훅 호출은
+    //       문서 규칙으로만 남아 있었다(2026-09-09 조사에서 features 2건 확인 —
+    //       CreatePostForm.tsx/UpdatePostForm.tsx가 useFetchCategoryOptionQuery를 UI에서
+    //       직접 호출 중이었다).
+    'no-entity-query-import-outside-hooks': {
+      meta: {
+        type: 'problem',
+        docs: { description: 'features의 hooks/ 밖에서 entity *.queries 모듈 import 금지' },
+        messages: {
+          entityQueryImport:
+            '이 위치에서는 entity 쿼리 훅(*.queries)을 직접 import할 수 없습니다. 조회는 같은 슬라이스의 hooks/ 커스텀 훅이나 entities/<entity>/hooks/의 공용 훅(예: useCategoryOptions)에서 하세요.',
+        },
+      },
+      create(context) {
+        return {
+          ImportDeclaration(node) {
+            const source = node.source.value;
+
+            if (typeof source !== 'string' || !source.endsWith('.queries')) {
+              return;
+            }
+
+            // 타입 전용 import는 런타임 의존이 아니므로 허용한다
+            if (isTypeOnlyImport(node)) {
+              return;
+            }
+
+            context.report({ node, messageId: 'entityQueryImport' });
+          },
+        };
+      },
+    },
   },
 };
 
@@ -149,6 +184,7 @@ export default [
     // '**/' 없이 'dist/**/*'로만 쓰면 중첩 경로(.claude/worktrees/*/dist/ 등)를 못 잡는다.
     ignores: [
       '**/dist/**',
+      '**/storybook-static/**',
       '**/node_modules/**',
       '.claude/worktrees/**',
       '**/*.md',
@@ -818,6 +854,24 @@ export default [
     plugins: { 'custom-query-rules': customQueryRulesPlugin },
     rules: {
       'custom-query-rules/no-direct-query-import': 'error',
+    },
+  },
+
+  // ============================================================
+  // [금지] features 레이어의 hooks/ 밖에서 entity 쿼리 훅(*.queries) import
+  // 이유: FE-ARCHITECTURE §6은 features에 예외를 두지 않는다(§8의 "query 1개 + trivial
+  //       파생" 예외는 widgets 한정). ui/만 막으면 utils/·config/로 새므로
+  //       no-direct-query-import와 같은 허용목록 방식(hooks/만 허용)을 쓴다.
+  // widgets는 이 블록의 대상이 아니다: §8 예외는 "파생이 trivial한가"라는 사람 판단이라
+  //       ESLint가 평가할 수 없다. 파일 단위 ignore로 흉내 내면 그 파일에 앞으로 들어올
+  //       모든 쿼리까지 영구 면제가 되므로, widgets는 문서(§8)와 /code-review로 지킨다.
+  // ============================================================
+  {
+    files: ['src/features/**/*.{ts,tsx}'],
+    ignores: ['src/features/**/hooks/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
+    plugins: { 'custom-query-rules': customQueryRulesPlugin },
+    rules: {
+      'custom-query-rules/no-entity-query-import-outside-hooks': 'error',
     },
   },
 

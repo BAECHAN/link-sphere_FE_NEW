@@ -2,7 +2,9 @@ import * as React from 'react';
 import { DialogContent } from '@/shared/ui/atoms/dialog';
 import { cn } from '@/shared/lib/tailwind/utils';
 
-interface SheetDialogContentProps extends React.ComponentPropsWithoutRef<typeof DialogContent> {
+export interface SheetDialogContentProps extends React.ComponentPropsWithoutRef<
+  typeof DialogContent
+> {
   /** 모바일: 하단 시트로 슬라이드업. 데스크탑: 중앙 모달(narrow). */
   isMobile: boolean;
 }

@@ -4,7 +4,7 @@ import { FormProvider } from 'react-hook-form';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { FormCheckboxGroup } from '@/shared/ui/elements/form/FormCheckboxGroup';
 import { FormCheckbox } from '@/shared/ui/elements/form/FormCheckbox';
-import { useFetchCategoryOptionQuery } from '@/entities/category/api/category.queries';
+import { useCategoryOptions } from '@/entities/category/hooks/useCategoryOptions';
 import { useUpdatePost } from '@/features/post/update/hooks/useUpdatePost';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
@@ -16,7 +16,7 @@ interface UpdatePostFormProps {
 
 export function UpdatePostForm({ postId }: UpdatePostFormProps) {
   const { form, post, isLoading, isUpdating, onSubmit } = useUpdatePost(postId);
-  const { data: categoryOptionList } = useFetchCategoryOptionQuery();
+  const { categoryOptionList } = useCategoryOptions();
 
   const {
     formState: { isDirty, isValid },
@@ -58,7 +58,7 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
               <FormCheckboxGroup
                 name="categoryIds"
                 label={TEXTS.post.form.update.categoryLabel}
-                options={categoryOptionList ?? []}
+                options={categoryOptionList}
               />
 
               <div className="pt-2">

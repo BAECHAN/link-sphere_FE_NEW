@@ -45,7 +45,7 @@ export const useUpdateAccountMutation = () => {
         image: payload.image,
         file: payload.file,
       }),
-    meta: { manualErrorHandling: true },
+    meta: { manualErrorHandling: true, successMessage: TEXTS.messages.success.accountUpdated },
     onMutate: async (payload) => {
       await queryClient.cancelQueries({ queryKey: accountKeys.root });
       const previous = queryClient.getQueryData<Account>(accountKeys.root);

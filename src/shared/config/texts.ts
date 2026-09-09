@@ -316,6 +316,7 @@ export const TEXTS = {
       accountCreated: '가입을 완료했어요.',
       postCreated: '포스트를 생성했어요.',
       postUpdated: '포스트를 수정했어요.',
+      accountUpdated: '프로필을 수정했어요.',
       linkCopied: '링크를 복사했어요.',
       originalLinkCopied: '원본 링크를 복사했어요.',
       bookmarkSavedTo: (folderName: string) => `${folderName}에 저장했어요.`,

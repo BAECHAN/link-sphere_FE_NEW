@@ -39,6 +39,20 @@
 
 ### Fixed
 
+- `shared` FCM 토큰 등록·해제가 다른 API 요청처럼 액세스 토큰 자동 갱신의 혜택을 받도록 수정
+  <details><summary>배경·구현</summary>
+
+  FCM 토큰 등록·해제가 공통 `apiClient`를 거치지 않고 raw `fetch()`로 `/fcm/token`을 직접 호출하고 있었다. 그 결과 로그인 직후처럼 액세스 토큰이 막 만료된 시점에 401이 나도 다른 API 요청과 달리 자동 재시도 없이 조용히 실패했다. `shared/api/fcm.api.ts`를 새로 만들어 다른 엔티티와 같은 3-layer API 규약대로 `apiClient`를 거치게 정리했다. (`shared/api/fcm.api.ts`(신규), `shared/lib/firebase/fcm.ts`, `shared/config/api.ts`)
+
+  </details>
+
+- `shared` 로그인·에러 페이지가 다크 모드에서도 항상 밝은 배경으로 보이던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  `AuthLayout`·`ErrorLayout`이 디자인 토큰이 아닌 고정 회색(`bg-gray-50` 등)을 써서 다크 모드에서도 배경이 항상 밝게 보였다. `bg-background`/`text-foreground`/`text-muted-foreground` 토큰으로 교체해 테마를 따라가게 했다. 검색창 단축키 배지(`SearchInput`, 헤더 검색창 `NavbarSearch`)의 하드코딩 회색도 `Kbd` 컴포넌트 기본 톤(`bg-muted`)을 그대로 쓰도록 정리했다. (`shared/ui/layouts/AuthLayout.tsx`, `shared/ui/layouts/ErrorLayout.tsx`, `shared/ui/elements/SearchInput.tsx`, `shared/ui/elements/ImageAttachmentField.tsx`, `widgets/layout/navbar/ui/NavbarSearch.tsx`)
+
+  </details>
+
 - `post` 링크 등록·수정 폼 URL 입력란의 브라우저 자동완성 제안 비활성화
   <details><summary>배경·구현</summary>
 
