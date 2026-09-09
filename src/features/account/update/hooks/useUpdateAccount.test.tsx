@@ -7,19 +7,18 @@ import { createTestQueryClient } from '@/test/utils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { type ReactNode } from 'react';
-import { useUpdateProfile } from '@/features/auth/profile/hooks/useUpdateProfile';
+import { useUpdateAccount } from '@/features/account/update/hooks/useUpdateAccount';
 import { useMyPageModalStore } from '@/shared/store/mypage.store';
-import { mockAccount } from '@/mocks/fixtures/auth.fixtures';
+import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 
 vi.mock('@/shared/lib/firebase/fcm', () => ({
   requestAndRegisterFcmToken: vi.fn(),
   unregisterFcmToken: vi.fn(),
 }));
 
-vi.mock('@/entities/user/api/auth.keys', () => ({
-  authInvalidateQueries: { all: vi.fn() },
-  authKeys: { root: () => ['auth'], account: () => ['auth', 'account'] },
-  authMutationKeys: { updateAccount: ['auth', 'updateAccount'] },
+vi.mock('@/entities/account/api/account.keys', () => ({
+  accountKeys: { root: ['account'] },
+  accountMutationKeys: { update: ['account', 'update'] },
   handleAccountUpdateSuccess: vi.fn(),
 }));
 
@@ -39,19 +38,19 @@ function createWrapper(queryClient: QueryClient) {
   };
 }
 
-describe('useUpdateProfile', () => {
+describe('useUpdateAccount', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
     queryClient = createTestQueryClient();
     // QueryClient 캐시에 account 데이터를 직접 주입 → GET 요청 없이 즉시 account 반환
-    queryClient.setQueryData(['auth', 'account'], mockAccount);
+    queryClient.setQueryData(['account'], mockAccount);
     // 모달 스토어는 싱글톤이라 이전 테스트의 재오픈 값이 새지 않도록 초기화
     useMyPageModalStore.setState({ restoreValues: null });
   });
 
   it('초기값이 account 데이터로 세팅된다', async () => {
-    const { result } = renderHook(() => useUpdateProfile(), {
+    const { result } = renderHook(() => useUpdateAccount(), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -61,7 +60,7 @@ describe('useUpdateProfile', () => {
   });
 
   it('이미지 파일 선택 시 avatarPreview가 blob URL로 업데이트된다', () => {
-    const { result } = renderHook(() => useUpdateProfile(), {
+    const { result } = renderHook(() => useUpdateAccount(), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -75,7 +74,7 @@ describe('useUpdateProfile', () => {
   });
 
   it('파일이 30MB를 넘으면 업로드 시도 없이 즉시 거부하고 미리보기를 바꾸지 않는다', () => {
-    const { result } = renderHook(() => useUpdateProfile(), {
+    const { result } = renderHook(() => useUpdateAccount(), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -100,7 +99,7 @@ describe('useUpdateProfile', () => {
     );
 
     const onSuccess = vi.fn();
-    const { result } = renderHook(() => useUpdateProfile(onSuccess), {
+    const { result } = renderHook(() => useUpdateAccount(onSuccess), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -137,7 +136,7 @@ describe('useUpdateProfile', () => {
     );
 
     const onSuccess = vi.fn();
-    const { result } = renderHook(() => useUpdateProfile(onSuccess), {
+    const { result } = renderHook(() => useUpdateAccount(onSuccess), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -192,7 +191,7 @@ describe('useUpdateProfile', () => {
     );
 
     const onSuccess = vi.fn();
-    const { result } = renderHook(() => useUpdateProfile(onSuccess), {
+    const { result } = renderHook(() => useUpdateAccount(onSuccess), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -221,7 +220,7 @@ describe('useUpdateProfile', () => {
   });
 
   it('타이핑을 멈추면 디바운스 후 가용성 검사가 실행되고, 사용 중인 닉네임이면 인라인 오류를 띄운다', async () => {
-    const { result } = renderHook(() => useUpdateProfile(), {
+    const { result } = renderHook(() => useUpdateAccount(), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -250,7 +249,7 @@ describe('useUpdateProfile', () => {
       })
     );
 
-    const { result } = renderHook(() => useUpdateProfile(), {
+    const { result } = renderHook(() => useUpdateAccount(), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -274,7 +273,7 @@ describe('useUpdateProfile', () => {
   });
 
   it('가용한 닉네임이면 디바운스 후 isNicknameAvailable이 true가 된다', async () => {
-    const { result } = renderHook(() => useUpdateProfile(), {
+    const { result } = renderHook(() => useUpdateAccount(), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -292,7 +291,7 @@ describe('useUpdateProfile', () => {
     // 오프라인 등으로 조회 API 자체가 실패하는 상황을 재현한다
     server.use(http.get(url(API_ENDPOINTS.auth.nicknameAvailability), () => HttpResponse.error()));
 
-    const { result } = renderHook(() => useUpdateProfile(), {
+    const { result } = renderHook(() => useUpdateAccount(), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -316,7 +315,7 @@ describe('useUpdateProfile', () => {
     // 저장 버튼 클릭이 blur를 먼저 유발해 검사가 끝나기 전에 제출되던 1차 버전의 레이스는, 렌더
     // 파생값인 hasDebounceSettled가 타이핑 직후 즉시 false가 되어 버튼이 이미 비활성 상태로
     // 그려지므로 애초에 클릭 자체가 통과하지 못한다 (Bluesky StepHandle과 동일한 방식).
-    const { result } = renderHook(() => useUpdateProfile(), {
+    const { result } = renderHook(() => useUpdateAccount(), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -346,7 +345,7 @@ describe('useUpdateProfile', () => {
       })
     );
 
-    const { result } = renderHook(() => useUpdateProfile(), {
+    const { result } = renderHook(() => useUpdateAccount(), {
       wrapper: createWrapper(queryClient),
     });
 

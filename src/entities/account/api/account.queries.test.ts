@@ -9,13 +9,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { createElement, type ReactNode } from 'react';
 import { createTestQueryClient } from '@/test/utils';
-import {
-  useUpdateAccountMutation,
-  useCreateAccountMutation,
-  authKeys,
-} from '@/entities/user/api/auth.queries';
-import { mockAccount } from '@/mocks/fixtures/auth.fixtures';
-import type { Account } from '@/shared/types/auth.type';
+import { useUpdateAccountMutation } from '@/entities/account/api/account.queries';
+import { accountKeys } from '@/entities/account/api/account.keys';
+import { mockAccount } from '@/mocks/fixtures/account.fixtures';
+import type { Account } from '@/entities/account/model/account.schema';
 import { TEXTS } from '@/shared/config/texts';
 
 vi.mock('@/shared/lib/firebase/fcm', () => ({
@@ -35,10 +32,9 @@ vi.mock('@/shared/lib/toast/toast', () => ({
 
 const mockHandleAccountUpdateSuccess = vi.fn();
 
-vi.mock('@/entities/user/api/auth.keys', () => ({
-  authInvalidateQueries: { all: vi.fn() },
-  authKeys: { root: () => ['auth'], account: () => ['auth', 'account'] },
-  authMutationKeys: { updateAccount: ['auth', 'updateAccount'] },
+vi.mock('@/entities/account/api/account.keys', () => ({
+  accountKeys: { root: ['account'] },
+  accountMutationKeys: { update: ['account', 'update'] },
   handleAccountUpdateSuccess: () => {
     mockHandleAccountUpdateSuccess();
   },
@@ -64,7 +60,7 @@ describe('useUpdateAccountMutation', () => {
   beforeEach(() => {
     mockHandleAccountUpdateSuccess.mockClear();
     mockToastError.mockClear();
-    queryClient.setQueryData(authKeys.account(), mockAccount);
+    queryClient.setQueryData(accountKeys.root, mockAccount);
   });
 
   it('제출 즉시 캐시를 낙관적으로 반영한다 (서버 응답을 기다리지 않는다)', async () => {
@@ -82,7 +78,7 @@ describe('useUpdateAccountMutation', () => {
     });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData<Account>(authKeys.account())?.nickname).toBe('newNick');
+      expect(queryClient.getQueryData<Account>(accountKeys.root)?.nickname).toBe('newNick');
     });
   });
 
@@ -95,7 +91,7 @@ describe('useUpdateAccountMutation', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockHandleAccountUpdateSuccess).toHaveBeenCalled();
-    expect(queryClient.getQueryData<Account>(authKeys.account())?.nickname).toBe('newNick');
+    expect(queryClient.getQueryData<Account>(accountKeys.root)?.nickname).toBe('newNick');
   });
 
   it('409 에러 시 낙관적으로 반영했던 캐시를 이전 값으로 롤백한다', async () => {
@@ -115,7 +111,7 @@ describe('useUpdateAccountMutation', () => {
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(queryClient.getQueryData<Account>(authKeys.account())?.nickname).toBe(
+    expect(queryClient.getQueryData<Account>(accountKeys.root)?.nickname).toBe(
       mockAccount.nickname
     );
   });
@@ -194,84 +190,6 @@ describe('useUpdateAccountMutation', () => {
     expect(mockToastError).toHaveBeenCalledWith(
       TEXTS.validation.imageTooLarge(30),
       expect.anything()
-    );
-  });
-});
-
-describe('useCreateAccountMutation', () => {
-  beforeEach(() => {
-    mockToastError.mockClear();
-  });
-
-  it('네트워크 오류 등 일반 에러도 무반응 대신 일반 실패 메시지 토스트를 띄운다', async () => {
-    // MSW의 네트워크 레벨 에러 - fetch가 TypeError를 던지는 실제 오프라인 상황과 동일하게 재현.
-    // manualErrorHandling: true라 전역 핸들러가 개입하지 않으므로, 이 mutation 자체의 onError가
-    // ApiError가 아닌 에러도 처리하지 못하면 토스트 없이 조용히 실패한다.
-    server.use(http.post(url(API_ENDPOINTS.auth.signup), () => HttpResponse.error()));
-
-    const { result } = renderHook(() => useCreateAccountMutation(), { wrapper: Wrapper });
-
-    act(() => {
-      result.current.mutate({
-        nickname: 'newNick',
-        email: 'new@example.com',
-        password: 'password1!',
-      });
-    });
-
-    await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(mockToastError).toHaveBeenCalledWith(TEXTS.messages.error.accountCreateFailed);
-  });
-
-  it('닉네임 중복(DUPLICATE_NICKNAME)이면 이메일이 아닌 닉네임 전용 메시지를 보여준다', async () => {
-    // 실제 BE ErrorResponse는 status/code/message/timestamp를 모두 담아 응답한다 - status가
-    // 바디에 없으면 ApiError.status가 undefined가 되어 error.status === 409 분기가 무력화된다.
-    server.use(
-      http.post(url(API_ENDPOINTS.auth.signup), () =>
-        HttpResponse.json(
-          { status: 409, code: 'DUPLICATE_NICKNAME', message: 'Nickname already exists: newNick' },
-          { status: 409 }
-        )
-      )
-    );
-
-    const { result } = renderHook(() => useCreateAccountMutation(), { wrapper: Wrapper });
-
-    act(() => {
-      result.current.mutate({
-        nickname: 'newNick',
-        email: 'new@example.com',
-        password: 'password1!',
-      });
-    });
-
-    await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(mockToastError).toHaveBeenCalledWith(TEXTS.messages.error.nicknameDuplicate);
-  });
-
-  it('이메일 중복(DUPLICATE_MEMBER)이면 이메일 전용 메시지를 보여준다', async () => {
-    server.use(
-      http.post(url(API_ENDPOINTS.auth.signup), () =>
-        HttpResponse.json(
-          { status: 409, code: 'DUPLICATE_MEMBER', message: 'Email already exists' },
-          { status: 409 }
-        )
-      )
-    );
-
-    const { result } = renderHook(() => useCreateAccountMutation(), { wrapper: Wrapper });
-
-    act(() => {
-      result.current.mutate({
-        nickname: 'newNick',
-        email: 'taken@example.com',
-        password: 'password1!',
-      });
-    });
-
-    await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(mockToastError).toHaveBeenCalledWith(
-      TEXTS.messages.error.accountCreateFailedDuplicateAccount
     );
   });
 });

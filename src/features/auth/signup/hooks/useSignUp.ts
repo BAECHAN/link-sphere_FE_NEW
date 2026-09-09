@@ -1,14 +1,14 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { createAccountSchema, CreateAccount } from '@/entities/auth/model/auth.schema';
 import {
-  createAccountSchema,
-  CreateAccount,
   emailValidationSchema,
   nicknameValidationSchema,
-} from '@/shared/types/auth.type';
-import { useCreateAccountMutation } from '@/entities/user/api/auth.queries';
-import { authApi } from '@/entities/user/api/auth.api';
+} from '@/entities/account/model/account.schema';
+import { useCreateAccountMutation } from '@/entities/auth/api/auth.queries';
+import { authApi } from '@/entities/auth/api/auth.api';
+import { accountApi } from '@/entities/account/api/account.api';
 import { useAvailabilityCheck } from '@/features/auth/signup/hooks/useAvailabilityCheck';
 import { TEXTS } from '@/shared/config/texts';
 
@@ -38,11 +38,11 @@ export function useSignUp() {
   const nicknameCheck = useAvailabilityCheck({
     value: watchedNickname,
     schema: nicknameValidationSchema,
-    checkFn: authApi.checkNicknameAvailability,
+    checkFn: accountApi.checkNicknameAvailability,
   });
 
   // 중복을 RHF의 실제 필드 에러로 반영한다 - FormField가 에러 유무로 destructive 색을 자동
-  // 적용해주므로(useUpdateProfile.ts와 동일한 방식), 별도로 색상 variant를 늘릴 필요가 없다
+  // 적용해주므로(useUpdateAccount.ts와 동일한 방식), 별도로 색상 variant를 늘릴 필요가 없다
   useEffect(() => {
     if (emailCheck.status === 'duplicate') {
       form.setError('email', { type: 'manual', message: TEXTS.auth.signup.emailDuplicate });

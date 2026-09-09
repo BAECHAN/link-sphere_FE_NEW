@@ -5,15 +5,15 @@ import { Button } from '@/shared/ui/atoms/button';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
-import { useUpdateProfile } from '@/features/auth/profile/hooks/useUpdateProfile';
+import { useUpdateAccount } from '@/features/account/update/hooks/useUpdateAccount';
 import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
 import { UserAvatar } from '@/entities/user/ui/UserAvatar';
 
-interface UpdateProfileFormProps {
+interface UpdateAccountFormProps {
   onSuccess?: () => void;
 }
 
-export function UpdateProfileForm({ onSuccess }: UpdateProfileFormProps) {
+export function UpdateAccountForm({ onSuccess }: UpdateAccountFormProps) {
   const {
     form,
     avatarPreview,
@@ -25,7 +25,7 @@ export function UpdateProfileForm({ onSuccess }: UpdateProfileFormProps) {
     hasDebounceSettled,
     isDirty,
     account,
-  } = useUpdateProfile(onSuccess);
+  } = useUpdateAccount(onSuccess);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 

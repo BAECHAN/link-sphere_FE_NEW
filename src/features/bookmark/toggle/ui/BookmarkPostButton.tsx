@@ -5,7 +5,7 @@ import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { PostCardBookmarkFolderModal } from '@/features/bookmark/toggle/ui/PostCardBookmarkFolderModal';
-import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
+import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
 
 interface BookmarkPostButtonProps {
   postId: Post['id'];

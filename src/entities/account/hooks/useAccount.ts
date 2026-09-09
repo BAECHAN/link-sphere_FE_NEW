@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useFetchAccountQuery } from '@/entities/user/api/auth.queries';
+import { useFetchAccountQuery } from '@/entities/account/api/account.queries';
 import { LocalStorageUtil } from '@/shared/utils/storage.util';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 

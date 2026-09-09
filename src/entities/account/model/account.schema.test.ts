@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nicknameValidationSchema } from '@/shared/types/auth.type';
+import { nicknameValidationSchema } from '@/entities/account/model/account.schema';
 import { TEXTS } from '@/shared/config/texts';
 
 describe('nicknameValidationSchema', () => {

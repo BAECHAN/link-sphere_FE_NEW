@@ -8,11 +8,16 @@ import { FormUtil } from '@/shared/utils/form.util';
 import { AuthUtil } from '@/shared/utils/auth.util';
 import { DateUtil } from '@/shared/utils/date.util';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
-import { LoginResponse } from '@/shared/types/auth.type';
 
 interface ApiRequestOptions extends RequestInit {
   searchParams?: Record<string, any>;
   responseType?: 'json' | 'blob' | 'text';
+}
+
+// entities/auth의 LoginResponse를 그대로 쓰지 않는다 - shared 레이어는 entities를 import할 수
+// 없다(레이어 하향 의존 규칙). /auth/refresh 응답 중 여기서 실제로 쓰는 필드만 로컬로 선언한다.
+interface RefreshTokenResponse {
+  accessToken: string;
 }
 
 /**
@@ -160,7 +165,9 @@ class ApiClient {
             if (!this.isRefreshing) {
               this.isRefreshing = true;
               try {
-                const authData = await apiClient.post<LoginResponse>(API_ENDPOINTS.auth.refresh);
+                const authData = await apiClient.post<RefreshTokenResponse>(
+                  API_ENDPOINTS.auth.refresh
+                );
                 if (!authData || !authData.accessToken) {
                   throw new Error(
                     `${TEXTS.messages.error.tokenRefreshFailed} ${TEXTS.messages.error.unauthorizedAccessToken}`

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useIsMutating, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/lib/toast/toast';
 import { Post } from '@/entities/post/model/post.schema';
-import { useFetchAccountQuery } from '@/entities/user/api/auth.queries';
+import { useFetchAccountQuery } from '@/entities/account/api/account.queries';
 import {
   prefetchPostDetail,
   useUpdatePostVisibilityMutation,

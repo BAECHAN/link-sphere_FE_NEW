@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { type ReactNode } from 'react';
 import { createTestQueryClient } from '@/test/utils';
-import { useAppInitialization } from '@/entities/user/hooks/useAppInitialization';
+import { useAppInitialization } from '@/entities/auth/hooks/useAppInitialization';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { LocalStorageUtil } from '@/shared/utils/storage.util';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';

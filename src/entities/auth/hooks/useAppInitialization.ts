@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/entities/user/hooks/useAuth';
+import { useAuth } from '@/entities/auth/hooks/useAuth';
 import { useAuthStore, hasStoredSession } from '@/shared/store/auth.store';
 import { TEXTS } from '@/shared/config/texts';
-import { handleAuthRestoreSuccess } from '@/entities/user/api/auth.keys';
+import { handleAuthRestoreSuccess } from '@/entities/auth/api/auth.keys';
 import { LocalStorageUtil } from '@/shared/utils/storage.util';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 import { getTransformedImageUrl } from '@/shared/lib/image/supabaseImage';

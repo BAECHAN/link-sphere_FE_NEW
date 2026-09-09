@@ -1,5 +1,5 @@
 import type { Comment } from '@/entities/comment/model/comment.schema';
-import { mockAccount } from '@/mocks/fixtures/auth.fixtures';
+import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 
 export const mockComment: Comment = {

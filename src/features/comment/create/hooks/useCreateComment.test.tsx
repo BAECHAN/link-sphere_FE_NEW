@@ -7,8 +7,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { type ReactNode } from 'react';
 import { useCreateComment } from '@/features/comment/create/hooks/useCreateComment';
 import { useAuthStore } from '@/shared/store/auth.store';
-import { authKeys } from '@/entities/user/api/auth.queries';
-import { mockAccount } from '@/mocks/fixtures/auth.fixtures';
+import { accountKeys } from '@/entities/account/api/account.keys';
+import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/comment.const';
@@ -38,7 +38,7 @@ async function renderLoggedIn(queryClient: QueryClient, options: { onSuccess?: (
   const { result } = renderHook(() => useCreateComment({ postId: POST_ID, ...options }), {
     wrapper: createWrapper(queryClient),
   });
-  await waitFor(() => expect(queryClient.getQueryData(authKeys.account())).toEqual(mockAccount));
+  await waitFor(() => expect(queryClient.getQueryData(accountKeys.root)).toEqual(mockAccount));
   return result;
 }
 

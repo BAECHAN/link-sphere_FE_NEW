@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { renderHook, screen, act } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { type ReactNode } from 'react';
-import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
+import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useLoginModalStore } from '@/shared/store/loginModal.store';
 

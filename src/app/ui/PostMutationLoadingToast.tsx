@@ -4,7 +4,7 @@ import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
 import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
 import { toast } from '@/shared/lib/toast/toast';
 import { postKeys, postMutationKeys } from '@/entities/post/api/post.keys';
-import { authMutationKeys } from '@/entities/user/api/auth.keys';
+import { accountMutationKeys } from '@/entities/account/api/account.keys';
 import { useIsMutating } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
@@ -31,7 +31,7 @@ const TOAST_ID = 'post-mutation-progress';
 export function PostMutationLoadingToast() {
   const creatingCount = useIsMutating({ mutationKey: postMutationKeys.create });
   const updatingCount = useIsMutating({ mutationKey: UPDATE_MUTATION_KEY_PREFIX });
-  const accountUpdatingCount = useIsMutating({ mutationKey: authMutationKeys.updateAccount });
+  const accountUpdatingCount = useIsMutating({ mutationKey: accountMutationKeys.update });
   const isMutatingNow = creatingCount + updatingCount + accountUpdatingCount > 0;
   // 빠른 요청은 완료 토스트가 확인해주므로 표시하지 않고(지연), 지연을 넘겨 한 번 뜨면
   // 최소 시간은 유지한다(깜빡임 방지) - 반짝 켜졌다 꺼지는 모양을 없앤다.

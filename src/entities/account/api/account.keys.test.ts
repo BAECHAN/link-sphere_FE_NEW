@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createTestQueryClient } from '@/test/utils';
-import { handleAccountUpdateSuccess } from '@/entities/user/api/auth.keys';
+import { handleAccountUpdateSuccess } from '@/entities/account/api/account.keys';
 
 describe('handleAccountUpdateSuccess', () => {
   it('작성자 정보가 비정규화된 모든 캐시(post·comments·folder posts)를 무효화한다', () => {
