@@ -2,6 +2,7 @@ node_modules
 dist
 build
 coverage
+storybook-static
 .husky
 .claude/worktrees
 docs/HISTORY.md
