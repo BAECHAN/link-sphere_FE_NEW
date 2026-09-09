@@ -101,6 +101,7 @@ export const useUpdateAccountMutation = () => {
         action: {
           label: TEXTS.mypage.reopen,
           onClick: () => {
+            // eslint-disable-next-line no-restricted-syntax -- 위 주석대로 React 트리 밖이라 Selector 패턴을 쓸 훅 컨텍스트 자체가 없다
             useMyPageModalStore.getState().setRestoreValues({
               nickname: variables.nickname,
               imagePreview: variables.previewUrl ?? variables.image ?? null,
