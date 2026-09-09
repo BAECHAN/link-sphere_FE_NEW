@@ -49,7 +49,7 @@
 - `shared` 로그인·에러 페이지가 다크 모드에서도 항상 밝은 배경으로 보이던 문제 수정
   <details><summary>배경·구현</summary>
 
-  `AuthLayout`·`ErrorLayout`이 디자인 토큰이 아닌 고정 회색(`bg-gray-50` 등)을 써서 다크 모드에서도 배경이 항상 밝게 보였다. `bg-background`/`text-foreground`/`text-muted-foreground` 토큰으로 교체해 테마를 따라가게 했다. 검색창 단축키 배지(`SearchInput`)의 하드코딩 회색도 `Kbd` 컴포넌트 기본 톤(`bg-muted`)을 그대로 쓰도록 정리했다. (`shared/ui/layouts/AuthLayout.tsx`, `shared/ui/layouts/ErrorLayout.tsx`, `shared/ui/elements/SearchInput.tsx`, `shared/ui/elements/ImageAttachmentField.tsx`)
+  `AuthLayout`·`ErrorLayout`이 디자인 토큰이 아닌 고정 회색(`bg-gray-50` 등)을 써서 다크 모드에서도 배경이 항상 밝게 보였다. `bg-background`/`text-foreground`/`text-muted-foreground` 토큰으로 교체해 테마를 따라가게 했다. 검색창 단축키 배지(`SearchInput`, 헤더 검색창 `NavbarSearch`)의 하드코딩 회색도 `Kbd` 컴포넌트 기본 톤(`bg-muted`)을 그대로 쓰도록 정리했다. (`shared/ui/layouts/AuthLayout.tsx`, `shared/ui/layouts/ErrorLayout.tsx`, `shared/ui/elements/SearchInput.tsx`, `shared/ui/elements/ImageAttachmentField.tsx`, `widgets/layout/navbar/ui/NavbarSearch.tsx`)
 
   </details>
 

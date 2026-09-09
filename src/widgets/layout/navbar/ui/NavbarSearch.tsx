@@ -47,7 +47,7 @@ export const NavbarSearch = () => {
           <XIcon className="size-4 text-muted-foreground" />
         </button>
       ) : (
-        <Kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border bg-white px-1.5 font-mono text-[10px] font-medium opacity-100 flex size-5">
+        <Kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100 flex size-5">
           <span className="text-xs">/</span>
         </Kbd>
       )}
