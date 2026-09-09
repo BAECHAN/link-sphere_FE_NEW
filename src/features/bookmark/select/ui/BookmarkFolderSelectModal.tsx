@@ -10,7 +10,7 @@ import { TEXTS } from '@/shared/config/texts';
 import {
   useBookmarkFolderSelect,
   UNCATEGORIZED_PENDING_KEY,
-} from '@/entities/bookmark/folder/hooks/useBookmarkFolderSelect';
+} from '@/features/bookmark/select/hooks/useBookmarkFolderSelect';
 import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
 interface BookmarkFolderSelectModalProps {
@@ -191,14 +191,15 @@ export function BookmarkFolderSelectModal({
                 </li>
               ) : (
                 <li>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => setCreatingMode(true)}
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-muted-foreground hover:bg-accent border-t"
+                    className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-muted-foreground border-t"
                   >
                     <Plus className="h-4 w-4" />
                     {TEXTS.bookmark.folder.create}
-                  </button>
+                  </Button>
                 </li>
               )}
 
@@ -206,14 +207,15 @@ export function BookmarkFolderSelectModal({
                   넘기지 않으면 렌더하지 않는다(보관함은 열 때 북마크가 아니었으면 미노출) */}
               {dangerAction && (
                 <li>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={dangerAction.onClick}
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 border-t"
+                    className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 border-t"
                   >
                     <BookmarkX className="h-4 w-4" />
                     {dangerAction.label}
-                  </button>
+                  </Button>
                 </li>
               )}
             </ul>
@@ -245,12 +247,13 @@ interface FolderRowProps {
 function FolderRow({ icon, name, count, isSelected, isPending, onClick }: FolderRowProps) {
   return (
     <li>
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={onClick}
         disabled={isPending}
         className={cn(
-          'flex w-full items-center gap-3 min-h-11 md:min-h-0 px-4 py-2.5 text-sm hover:bg-accent disabled:opacity-50',
+          'h-auto min-h-11 w-full justify-start gap-3 rounded-none px-4 py-2.5 text-sm md:min-h-0',
           isSelected && 'font-medium'
         )}
       >
@@ -264,7 +267,7 @@ function FolderRow({ icon, name, count, isSelected, isPending, onClick }: Folder
         ) : isSelected ? (
           <Check className="h-4 w-4 text-primary" />
         ) : null}
-      </button>
+      </Button>
     </li>
   );
 }

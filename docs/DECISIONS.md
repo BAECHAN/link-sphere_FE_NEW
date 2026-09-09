@@ -6,6 +6,68 @@
 
 ---
 
+## 2026-09-09 — BookmarkFolderSelectModal을 entities에서 features/bookmark/select로 이동
+
+**배경**
+
+`docs/FE-ARCHITECTURE.md`·`.claude/CLAUDE.md`·`eslint.config.js`가 실제 코드와 여전히
+일치하는지 전수 감사하던 중, `entities/bookmark/folder/ui/BookmarkFolderSelectModal.tsx`
+(270줄)가 폴더 생성·선택·삭제까지 담은 완전한 인터랙션 UI라는 게 드러났다. 이 레포의 규칙
+(`.claude/CLAUDE.md` "레이어별 허용 세그먼트" 표)은 FSD 공식 레이어 정의를 그대로 인용한다
+— entities/ui는 _"the visual representation... reused across several pages"_(시각적
+표현), features/ui는 _"the UI to perform the interaction like a form"_(인터랙션 수행). 이
+모달은 후자에 해당하는데 entities에 있었다.
+
+**검토 — 순서대로 검증한 대안들**
+
+- **useAlert(`shared`) 선례를 그대로 따르기** — 기각. `useAlert`는 제목·메시지·확인/취소
+  버튼뿐인 순수 UI 패턴으로 비즈니스 로직이 전혀 없다. 이 모달은 폴더 CRUD라는 명백한
+  비즈니스 로직(생성 뮤테이션, 쿼리)을 가진 훅(`useBookmarkFolderSelect`)과 강하게
+  결합돼 있어 같은 선례로 보기 어렵다.
+- **widgets로 이동** — 기각(실행 불가능한 오판이었음, 뒤늦게 발견). 이 모달을 참조하는
+  `PostCardBookmarkFolderModal`·`PostCreateBookmarkFolderField`는 둘 다 **features**
+  레이어에 있다. widgets는 features보다 상위 레이어라, 모달을 widgets로 옮기면
+  "features가 widgets를 import"하는 **레이어 역방향 import**가 되어 `eslint.config.js`의
+  `no-restricted-imports`(features 블록)가 즉시 막는다.
+- **`PostMutationLoadingToast`(`app/ui/`) 선례를 따라 app으로 이동** — 기각. 그 컴포넌트는
+  `App.tsx`에 한 번 마운트되는 헤드리스 옵저버(`return null`)로, `useIsMutating`을 통해
+  entities(post·account)의 뮤테이션 키를 **구독만** 할 뿐 어떤 feature도 이걸 import하지
+  않는다. 반면 이 모달은 두 feature가 **명시적으로 import해서 props(콜백)를 주입**하며
+  렌더링해야 동작한다 — 구조가 근본적으로 달라 선례로 쓸 수 없다. FSD 공식 문서가
+  제시하는 "상위 레벨(pages/app)이 슬라이스를 조합"(render props/slots/DI) 패턴을 적용하려면
+  이동이 아니라 전역 상태 스토어를 새로 설계해야 해서, 이번 범위에는 비용이 과했다.
+- **shared로 이동** — 기각. FSD 공식은 "같은 레이어의 feature끼리 공유가 안 되면 shared로
+  내리라"고도 처방하지만, `shared`는 "비즈니스 로직 없는 재사용 가능한 UI 킷"이 원칙이라
+  폴더 CRUD 훅을 그대로 옮기면 이 원칙과 충돌한다.
+
+**결정**
+
+`BookmarkFolderSelectModal.tsx`와 그 전용 훅 `useBookmarkFolderSelect.ts`(다른 소비처가
+없어 모달과 함께 이동, 원래 폴더 목록 조회·생성·행별 pending 상태를 전담)를
+`features/bookmark/select/`(`ui/`, `hooks/`)로 옮긴다. 슬라이스 이름 `select`는 features
+네이밍 규칙("원칙적으로 동사만", 선례 `features/bookmark/toggle/`)을 따르고, 코드에 이미
+쓰이던 어휘(`onSelectFolder`, `handleSelectFolder`)와 일치한다. `folder-select`는
+`bookmark/` 그룹 아래서 하위 엔티티명을 다시 반복하는 형태(`create-post`류 위반 패턴)라
+채택하지 않았다.
+
+entities/bookmark/folder/에는 다른 소비처가 있는 순수 데이터 훅(`useRecentBookmarkFolders`
+— `widgets/bookmark/folder-tree/`도 사용)과 3-Layer API(`bookmark-folder.api/keys/queries.ts`),
+스키마·유틸은 그대로 남긴다. `ui/` 디렉터리는 비어 삭제했다.
+
+**의도적으로 감수한 트레이드오프**: `features/post/create`가 `features/bookmark/select`를
+import하는 features↔features cross-import가 새로 생겼다. FSD 공식·`docs/DECISIONS.md`
+2026-09-09(entities/user 분리 항목)이 인용한 Cross-import 가이드는 이 패턴을 권장하지
+않지만("compose at a higher level"), 위에서 검토한 대로 다른 대안들이 이 케이스에는 더
+큰 비용이나 실행 불가능한 문제를 안고 있어 이 트레이드오프를 선택했다.
+
+**상태**
+
+적용 완료. `pnpm type-check`/`pnpm lint`(신규 cross-import는 ESLint가 감지 못함, 위
+"의도적으로 감수" 참고)/`pnpm test`(51 파일, 333건) 전부 통과. `docs/FE-ARCHITECTURE.md`의
+디렉터리 트리(§3)와 §1 "정식 FSD와 다른 점" 표를 함께 갱신했다.
+
+---
+
 ## 2026-09-09 — entities/user를 auth/account/user 세 엔티티로 분리
 
 **배경**
