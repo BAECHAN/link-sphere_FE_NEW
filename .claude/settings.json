@@ -6,5 +6,20 @@
     "skill-creator@claude-plugins-official": true,
     "aws-core@claude-plugins-official": true,
     "context7@claude-plugins-official": true
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/plan-diagram-reminder.sh\"",
+            "timeout": 10,
+            "statusMessage": "계획 파일 다이어그램 확인"
+          }
+        ]
+      }
+    ]
   }
 }
