@@ -283,18 +283,17 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
   경고만 띄우고 그대로 진행된다 — 실제로 설치 자체를 막으려면 `.npmrc`에 `engine-strict=true`를
   추가해야 한다(2026-09-09 감사에서 "install부터 막힌다"는 이전 서술이 과장임을 확인)
 - **Never** native `confirm()` → 항상 `useAlert` + `openConfirm` 사용
-- **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만. **예외**: FCM 토큰
-  등록/해제(`src/shared/lib/firebase/fcm.ts:82,105`)는 `.api.ts`를 거치지 않고 raw `fetch()`로
-  직접 호출한다 — `docs/FCM-PUSH-NOTIFICATION.md`에 이 구조 자체는 문서화돼 있어 우연한 실수는
-  아니지만, 왜 `.api.ts`를 건너뛰었는지 그 이유는 어디에도 적혀 있지 않다(2026-09-09 감사에서
-  발견 — 출처 미상, 재검증 필요). 새 API 호출은 이 파일을 선례로 삼지 않는다
+- **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만(2026-09-09 감사에서
+  `shared/lib/firebase/fcm.ts`가 raw `fetch()`로 이 규칙을 어기고 있는 걸 발견해 같은 날
+  `shared/api/fcm.api.ts`로 옮겨 고쳤다 — 지금은 예외 없이 지켜지고 있다)
 - **Never** 인라인 쿼리 키 → 항상 `<entity>Keys.*` 사용
 - **Never** 인라인 한글 UI 문자열 → 항상 `TEXTS.*` 사용 (ESLint `custom-i18n/no-hardcoded-hangul`가 빌드/pre-commit에서 자동 차단. 보간은 `texts.ts`의 함수형 키 사용 예: `messages.success.folderCreated(name)`. 예외: 테스트/스토리/`date.util.ts`·`common.util.ts` 로케일 포맷)
 - **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반
   Tailwind 클래스 사용 (`text-destructive`, `bg-success`, `text-warning` 등). ⚠️ 이 규칙은 다른
   "Never" 항목과 달리 ESLint로 강제되지 않는다 — grep으로만 확인 가능하다. 2026-09-09 감사에서
   `shared/ui/elements/ImageAttachmentField.tsx`·`SearchInput.tsx`, `shared/ui/layouts/AuthLayout.tsx`·
-  `ErrorLayout.tsx`에 raw gray/zinc 팔레트 잔존이 확인됐다 — 새 코드에서 이 파일들을 선례로 삼지 않는다
+  `ErrorLayout.tsx`에 raw gray/zinc 팔레트 잔존이 발견돼 같은 날 토큰 기반 클래스로 고쳤다 —
+  ESLint 미강제라 회귀해도 안 잡히니 새 코드에서 색상 클래스를 쓸 때 주의
 - **Never** 인라인 API 경로 → 항상 `API_ENDPOINTS.*` 사용
 - **Never** feature hook에서 직접 `queryClient.invalidateQueries` → 항상 `.keys.ts` success handlers 사용
 - **Never** 다른 엔티티의 raw 쿼리 키를 재구성해 `queryClient.invalidateQueries`를 직접 호출 → 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()` 래퍼만 사용. 크로스 엔티티 무효화가 필요하면 자기 엔티티의 `.keys.ts`에 `handle<Event>Success` 함수를 만들어 그 안에서 호출한다 (아래 "크로스 엔티티 무효화" 참고)
