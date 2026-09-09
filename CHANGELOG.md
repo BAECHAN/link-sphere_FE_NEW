@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- `shared` 배포 후 새 버전이 감지되면 다음 페이지 이동에 맞춰 자동으로 새로고침
+  <details><summary>배경·구현</summary>
+
+  배포 후에도 이미 열려 있던 탭은 계속 구 버전 JS 번들을 썼다. 기존엔 청크 로드가 실제로 실패해야만(`AppErrorFallback`) 사후 대응했는데, 그 앞 단계를 채우기 위해 탭 포커스가 돌아올 때마다(5분 스로틀) 서버의 최신 `index.html`을 다시 받아 entry script 해시가 바뀌었는지 확인하도록 했다. 바뀌었으면 화면엔 아무 표시도 하지 않고 플래그만 남겨두다가, 사용자가 실제로 다음 페이지로 이동하는 순간에 맞춰 그 이동을 전체 새로고침으로 바꿔치기한다 — 지금 보던 화면은 건드리지 않는다. `sessionStorage`에 마지막으로 감지한 값을 남겨 CloudFront 엣지가 잠시 옛 `index.html`을 돌려주는 전파 지연 구간에서 재감지·재로드가 반복되지 않게 막았다.
+  (`shared/hooks/useAppVersionCheck.ts`(신규), `shared/hooks/useNewVersionReload.ts`(신규), `shared/store/appVersion.store.ts`(신규), `shared/utils/version.util.ts`(신규), `app/routes/layouts/RootLayout.tsx`, `docs/NEW-VERSION-RELOAD.md`(신규))
+
+  </details>
+
 ### Changed
 
 - `post` 검색 실행 후에도 헤더 검색창에 검색어가 그대로 유지됨

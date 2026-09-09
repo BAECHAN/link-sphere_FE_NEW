@@ -24,6 +24,10 @@ const STORAGE_KEYS = {
   PREFERENCES: {
     HIDE_BOTS: `${STORAGE_PREFIX}:preferences:hide-bots`,
   },
+  VERSION: {
+    // 같은 값으로 두 번 리로드하지 않기 위한 루프 가드(예: CloudFront 엣지가 잠시 옛 index.html을 돌려줄 때)
+    LAST_DETECTED: `${STORAGE_PREFIX}:version:last-detected`,
+  },
   THEME: `${STORAGE_PREFIX}:theme`,
 } as const;
 
