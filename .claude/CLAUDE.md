@@ -311,10 +311,10 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
 ## Critical Rules
 
 - **Never** Node 20으로 작업 진행 → 이 레포는 Node 24(`.nvmrc`) 고정이다. 작업 전 `node -v`가
-  `v24`가 아니면 `nvm use`로 맞춘다. `package.json`의 `engines.node`(`>=24`)가 버전을 명시하지만,
-  `engine-strict`가 꺼져 있어(2026-09-09 기준 `.npmrc`에 미설정) 다른 버전이어도 `pnpm install`은
-  경고만 띄우고 그대로 진행된다 — 실제로 설치 자체를 막으려면 `.npmrc`에 `engine-strict=true`를
-  추가해야 한다(2026-09-09 감사에서 "install부터 막힌다"는 이전 서술이 과장임을 확인)
+  `v24`가 아니면 `nvm use`로 맞춘다. `package.json`의 `engines.node`(`>=24`)와 `.npmrc`의
+  `engine-strict=true`(2026-09-09 추가)가 함께 있어 다른 버전이면 `pnpm install` 자체가
+  에러로 막힌다 — 다만 이 세션은 워크트리 격리(`source` 명령 차단) 때문에 Node 20을 실제로
+  깔아 재현 검증은 못 했다(engine-strict의 표준 동작 자체는 npm/pnpm 공식 문서 근거)
 - **Never** native `confirm()` → 항상 `useAlert` + `openConfirm` 사용
 - **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만(2026-09-09 감사에서
   `shared/lib/firebase/fcm.ts`가 raw `fetch()`로 이 규칙을 어기고 있는 걸 발견해 같은 날
@@ -421,12 +421,17 @@ const handleCreateAndSelect = async () => {
   확인됨). 새 워크트리를 만들기 전 `git worktree list`로 오래된 워크트리가 남아있는지 먼저
   훑고, 디렉토리는 있는데 목록엔 없는 경우(비정상 종료로 등록이 깨진 경우) `git worktree prune`
   으로 정리한다
-- **Never** `eslint.config.js`·`.prettierignore`의 ignore 패턴을 루트 상대 경로로만 작성 →
+- **Never** `eslint.config.js`의 ignore 패턴을 루트 상대 경로로만 작성 →
   `.claude/worktrees/`처럼 중첩된 경로가 새서 워크트리 안 빌드 산출물(`dist/`)이 그대로
-  검사 대상에 걸린다. `.gitignore`에 있어도 ESLint/Prettier는 자동으로 읽지 않으므로
+  검사 대상에 걸린다. `.gitignore`에 있어도 ESLint는 자동으로 읽지 않으므로
   `dist/**/*`가 아니라 `**/dist/**`처럼 `**/` prefix를 붙여야 한다(2026-09-03, `pnpm check`
   2,370건 중 2,366건이 이 문제였다 — `pnpm check`가 CI에 걸려 있지 않아 몇 달째 발견도
-  못 됐다. 지금은 PR CI(`ci.yml`)와 `deploy.yml`에 게이트로 걸려 있다)
+  못 됐다. 지금은 PR CI(`ci.yml`)와 `deploy.yml`에 게이트로 걸려 있다). **`.prettierignore`는
+  이 문제가 없다** — gitignore 문법을 그대로 쓰므로 슬래시 없는 패턴(`dist`)이 이미 모든
+  깊이에서 매칭된다(ESLint의 glob 문법과 다름). 2026-09-09 감사에서 `.prettierignore`가
+  `**/` prefix 없이 `node_modules`/`dist`/`build`/`coverage`로만 돼 있어 위 사고와 같은
+  패턴인지 의심했으나, 중첩 `dist/` 디렉터리를 실제로 만들어 `prettier --check`가 걸러내는지
+  재현 검증한 결과 문제없음을 확인했다 — ESLint 규칙을 Prettier에도 그대로 적용하지 않는다
 
 **여러 워크트리의 변경사항이 합쳐진 상태를 미리 보고 싶을 때**: 워크트리는 격리가
 목적이라 기본적으로 서로의 변경을 볼 수 없다. 머지 전에 임시로 합쳐서 확인하고
