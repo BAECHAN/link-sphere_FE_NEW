@@ -102,16 +102,17 @@ interface FixedRowProps {
 
 function FixedRow({ icon, label, count, onClick }: FixedRowProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={onClick}
-      className="flex items-center gap-3 w-full px-4 py-3.5 active:bg-accent"
+      className="h-auto w-full justify-start gap-3 rounded-none px-4 py-3.5 active:bg-accent"
     >
       <span className="text-primary">{icon}</span>
       <span className="flex-1 text-left font-medium">{label}</span>
       {typeof count === 'number' && <span className="text-sm text-muted-foreground">{count}</span>}
       <ChevronRight className="h-4 w-4 text-muted-foreground" />
-    </button>
+    </Button>
   );
 }
 
@@ -151,15 +152,16 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
 
   return (
     <div className="relative rounded-lg border bg-card overflow-hidden">
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => onSelect(folder.id)}
-        className="flex flex-col gap-2 p-3 w-full text-left active:bg-accent"
+        className="h-auto w-full flex-col items-stretch justify-start gap-2 rounded-none p-3 text-left active:bg-accent"
       >
         <Bookmark className="h-5 w-5 text-muted-foreground" />
         <div className="font-medium truncate pr-6">{folder.name}</div>
         <div className="text-xs text-muted-foreground">{folder.bookmarkCount}</div>
-      </button>
+      </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -212,14 +214,15 @@ function CreateFolderCard() {
   }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={startCreating}
-      className="rounded-lg border border-dashed bg-card p-3 flex flex-col gap-2 active:bg-accent text-muted-foreground"
+      className="h-auto flex-col items-stretch justify-start gap-2 rounded-lg border border-dashed bg-card p-3 active:bg-accent text-muted-foreground"
     >
       <Plus className="h-5 w-5" />
       <div className="font-medium">{TEXTS.bookmark.folder.new}</div>
       <div className="text-xs">&nbsp;</div>
-    </button>
+    </Button>
   );
 }

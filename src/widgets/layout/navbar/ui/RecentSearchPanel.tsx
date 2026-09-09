@@ -42,21 +42,23 @@ export function RecentSearchPanel({
           <ul>
             {recentSearches.map((query) => (
               <li key={query} className="flex items-center gap-2 px-4 py-3 hover:bg-accent">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => onSelect(query)}
-                  className="flex-1 text-left text-sm truncate"
+                  className="h-auto flex-1 justify-start truncate p-0 text-left text-sm hover:bg-transparent"
                 >
                   {query}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => onRemove(query)}
-                  className="p-1 text-muted-foreground shrink-0"
+                  className="h-auto w-auto shrink-0 p-1 text-muted-foreground"
                 >
                   <XIcon className="size-4" />
                   <span className="sr-only">{TEXTS.recentSearch.removeItem}</span>
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

@@ -1,4 +1,5 @@
 import { Input } from '@/shared/ui/atoms/input';
+import { Button } from '@/shared/ui/atoms/button';
 import { SearchIcon } from 'lucide-react';
 import { Kbd } from '@/shared/ui/atoms/kbd';
 import { useRef } from 'react';
@@ -38,14 +39,15 @@ export const NavbarSearch = () => {
         className="pl-8 pr-10 bg-muted/50 border-none transition-all focus:bg-background focus:ring-1 focus:ring-primary/20"
       />
       {searchInput.length > 0 ? (
-        <button
+        <Button
           type="button"
+          variant="ghost"
           aria-label={TEXTS.ariaLabels.inputClear}
-          className="absolute right-2 top-2.5"
+          className="absolute right-2 top-2.5 h-auto w-auto p-0 hover:bg-transparent"
           onClick={() => setSearchInput('')}
         >
           <XIcon className="size-4 text-muted-foreground" />
-        </button>
+        </Button>
       ) : (
         <Kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border bg-white px-1.5 font-mono text-[10px] font-medium opacity-100 flex size-5">
           <span className="text-xs">/</span>
