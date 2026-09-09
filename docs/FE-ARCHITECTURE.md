@@ -501,12 +501,14 @@ widget hook이 **불필요한 경우**: entity query 1개 + trivial 파생만이
 ESLint로 강제하지 않는다(파일 단위로 강제하면 그 파일에 앞으로 들어올 모든 쿼리가 영구 면제된다) —
 `/code-review`와 PR 리뷰로 지킨다.
 
-- 예외 해당 (그대로 둔 예): `widgets/post/post-list/ui/PostListSearch.tsx`가
-  `useFetchCategoryOptionQuery()`를 직접 호출한다 — 이 쿼리에서 나오는 파생은 칩 렌더링을 위한
-  `.map()` 하나뿐이고, 파일의 나머지 복잡한 로직(낙관적 필터 미러링 등)은 URL·store 파생이라
-  이 쿼리와 무관하다.
-- 예외 해당 안 됨: 댓글 목록처럼 정렬·재귀 집계·파생이 여러 개면 widget hook으로 뺀다
-  (`usePostList`의 `flatMap` 파생이 같은 이유의 선례).
+- 예외 해당 (그대로 둔 예): `widgets/comment/comment-list/ui/CommentItem.tsx`가
+  `useFetchAccountQuery()`를 직접 호출한다 — 이 쿼리에서 나오는 파생은 `isOwner` 불리언
+  하나뿐이고, 파일의 나머지 파생(`isPostAuthor`·`isDeleted` 등)은 props 파생이라 이 쿼리와
+  무관하다. 참고로 여기를 이미 entity 훅이 있는 `useAccount()`로 바꾸는 건 안 된다 —
+  `persistLastAvatar` localStorage 부수효과가 댓글 개수만큼 실행된다.
+- 예외 해당 안 됨: 같은 위젯의 `CommentList.tsx`는 정렬·재귀 집계(톰스톤 포함 댓글 수)·파생
+  2개가 있어 widget hook으로 빼야 한다(`usePostList`의 `flatMap` 파생이 같은 이유의 선례).
+  2026-09-09 기준 아직 안 뺀 상태로 남아 있다 — 별건 리팩터링으로 취급해 범위 밖에 뒀다.
 
 ---
 
