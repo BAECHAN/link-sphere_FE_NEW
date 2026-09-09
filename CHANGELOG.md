@@ -11,6 +11,14 @@
 
 ### Added
 
+- `user` 프로필(닉네임·이미지) 수정 성공 시 토스트 알림 표시
+  <details><summary>배경·구현</summary>
+
+  문서-코드 정합성 감사 중, CLAUDE.md의 "성공 토스트 표시 기준" 표가 프로필 수정을 "화면에 결과가 바로 반영돼 불필요"로 분류하고 있었는데 실제로는 그런 토스트 자체가 없었다. 다시 검토해보니 "수정"(Update)은 본문처럼 스크롤 밖에 있거나 다른 화면으로 이동한 뒤에야 반영되는 필드가 있어, "생성"·"삭제"·"토글"류와 달리 결과가 바로 눈에 안 띌 수 있다는 게 드러나 판단 기준을 "필요"로 재분류하고 실제로 토스트를 추가했다.
+  (`shared/config/texts.ts`, `entities/account/api/account.queries.ts`, [PR #59](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/59))
+
+  </details>
+
 - `shared` 배포 후 새 버전이 감지되면 다음 페이지 이동에 맞춰 자동으로 새로고침
   <details><summary>배경·구현</summary>
 
