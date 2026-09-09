@@ -299,6 +299,16 @@ src/
 
 **절대로 레이어를 건너뛰거나 합치지 않는다.**
 
+**예외 — 실시간 중복확인(디바운스형 유효성 검사)**: `features/auth/signup/hooks/useAvailabilityCheck.ts`,
+`features/account/update/hooks/useUpdateAccount.ts`의 닉네임·이메일 중복확인은 Layer 1
+(`accountApi.checkNicknameAvailability`, `authApi.checkEmailAvailability`)을 Layer 3 없이
+직접 호출한다(2026-09-09 문서-코드 정합성 감사 중 확인). React Query의 `useQuery`가 캐싱을
+전제하는데, 이 검증은 매 입력마다 새로 확인해야 하고 결과를 캐시하면 안 되며 디바운스·
+요청 취소(`cancelled` flag)·자체 상태머신(`idle/checking/available/duplicate`)이 핵심이라
+캐싱 모델과 안 맞는다 — Layer 3로 억지로 감싸는 것보다 Layer 1 직접 호출이 더 단순하다.
+뮤테이션(계정 생성·수정)은 두 파일 모두 정상적으로 Layer 3(`useCreateAccountMutation`,
+`useUpdateAccountMutation`)를 거친다 — 이 예외는 "실시간 검증"에만 한정된다.
+
 ### Layer 1 — `<entity>.api.ts` (순수 async, React 없음)
 
 ```typescript
