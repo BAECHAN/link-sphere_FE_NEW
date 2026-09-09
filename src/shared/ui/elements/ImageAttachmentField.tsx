@@ -79,7 +79,7 @@ export function ImageAttachmentField({
                 className={cn(
                   'absolute -top-2 -right-2 h-5 w-5 rounded-full',
                   'bg-black border border-black shadow-sm',
-                  'text-white hover:bg-zinc-700 hover:scale-110',
+                  'text-white hover:bg-black/70 hover:scale-110',
                   'flex items-center justify-center transition-all duration-150'
                 )}
               >
