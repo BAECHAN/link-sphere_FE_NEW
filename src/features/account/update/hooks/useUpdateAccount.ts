@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { updateAccountSchema, UpdateAccount } from '@/shared/types/auth.type';
-import { useUpdateAccountMutation } from '@/entities/user/api/auth.queries';
-import { authApi } from '@/entities/user/api/auth.api';
-import { useAccount } from '@/entities/user/hooks/useAccount';
+import { updateAccountSchema, UpdateAccount } from '@/entities/account/model/account.schema';
+import { useUpdateAccountMutation } from '@/entities/account/api/account.queries';
+import { accountApi } from '@/entities/account/api/account.api';
+import { useAccount } from '@/entities/account/hooks/useAccount';
 import { useMyPageModalStore } from '@/shared/store/mypage.store';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { getImageFileSizeError } from '@/shared/lib/image/resizeImage';
@@ -13,7 +13,7 @@ import { TEXTS } from '@/shared/config/texts';
 
 type NicknameStatus = 'idle' | 'checking' | 'available' | 'duplicate';
 
-export function useUpdateProfile(onSuccess?: () => void) {
+export function useUpdateAccount(onSuccess?: () => void) {
   const { account } = useAccount();
   const { mutate: updateAccount, isPending } = useUpdateAccountMutation();
 
@@ -118,7 +118,7 @@ export function useUpdateProfile(onSuccess?: () => void) {
     void (async () => {
       let available: boolean;
       try {
-        available = await authApi.checkNicknameAvailability(nickname);
+        available = await accountApi.checkNicknameAvailability(nickname);
       } catch {
         // 조회 자체가 실패했다(네트워크 오류·구 BE 미지원 등) - 저장을 막지는 않지만("사용
         // 가능"인지 실제로 확인된 게 아니므로) 확인됐다고 속이지도 않는다. idle로 두면 버튼은

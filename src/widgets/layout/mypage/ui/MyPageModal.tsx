@@ -5,7 +5,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/shared/ui/atoms/dialog';
-import { UpdateProfileForm } from '@/features/auth/profile/ui/UpdateProfileForm';
+import { UpdateAccountForm } from '@/features/account/update/ui/UpdateAccountForm';
 import { TEXTS } from '@/shared/config/texts';
 
 interface MyPageModalProps {
@@ -21,7 +21,7 @@ export function MyPageModal({ open, onOpenChange }: MyPageModalProps) {
           <DialogTitle>{TEXTS.mypage.title}</DialogTitle>
           <DialogDescription>{TEXTS.mypage.description}</DialogDescription>
         </DialogHeader>
-        <UpdateProfileForm onSuccess={() => onOpenChange(false)} />
+        <UpdateAccountForm onSuccess={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   );

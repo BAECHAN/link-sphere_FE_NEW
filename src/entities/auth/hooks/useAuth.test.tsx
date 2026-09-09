@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { type ReactNode } from 'react';
 import { createTestQueryClient } from '@/test/utils';
-import { useAuth } from '@/entities/user/hooks/useAuth';
+import { useAuth } from '@/entities/auth/hooks/useAuth';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';

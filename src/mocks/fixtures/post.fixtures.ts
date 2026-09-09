@@ -1,5 +1,5 @@
 import type { Post, PostListResponse } from '@/entities/post/model/post.schema';
-import { mockAccount } from '@/mocks/fixtures/auth.fixtures';
+import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 
 export const mockPost: Post = {
   id: 'post-uuid-1',

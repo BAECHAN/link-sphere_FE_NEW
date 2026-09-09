@@ -7,7 +7,7 @@ import { LikeCommentButton } from '@/features/comment/like/ui/LikeCommentButton'
 import { CommentForm } from '@/features/comment/create/ui/CommentForm';
 import { CommentEditForm } from '@/features/comment/update/ui/CommentEditForm';
 import { MessageSquare, Trash2, Edit2 } from 'lucide-react';
-import { useFetchAccountQuery } from '@/entities/user/api/auth.queries';
+import { useFetchAccountQuery } from '@/entities/account/api/account.queries';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { ActionButton } from '@/shared/ui/elements/ActionButton';

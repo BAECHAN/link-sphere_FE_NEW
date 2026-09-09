@@ -5,11 +5,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { type ReactNode } from 'react';
 import { createTestQueryClient } from '@/test/utils';
-import { useAccount } from '@/entities/user/hooks/useAccount';
+import { useAccount } from '@/entities/account/hooks/useAccount';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { LocalStorageUtil } from '@/shared/utils/storage.util';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
-import { mockAccount } from '@/mocks/fixtures/auth.fixtures';
+import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 

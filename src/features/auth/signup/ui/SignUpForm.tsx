@@ -20,7 +20,7 @@ export const SignUpForm = () => {
   const { form, onSubmit, isPending, emailCheck, nicknameCheck, isSubmitDisabled } = useSignUp();
 
   // 체크가 빨리 끝나면(대부분의 경우) "확인 중이에요..."가 깜빡이지 않도록 300ms 지연 후에만
-  // 보여준다 (useUpdateProfile.ts와 동일한 패턴)
+  // 보여준다 (useUpdateAccount.ts와 동일한 패턴)
   const showEmailChecking = useDelayedLoading(emailCheck.isChecking, 300);
   const showNicknameChecking = useDelayedLoading(nicknameCheck.isChecking, 300);
 

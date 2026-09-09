@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { renderHook, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { type ReactNode } from 'react';
-import { useProtectedNavigate } from '@/entities/user/hooks/useProtectedNavigate';
+import { useProtectedNavigate } from '@/entities/auth/hooks/useProtectedNavigate';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useLoginModalStore } from '@/shared/store/loginModal.store';
 

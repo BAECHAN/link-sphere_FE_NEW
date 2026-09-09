@@ -15,8 +15,8 @@ import {
 import { useImageAttachments } from '@/shared/hooks/useImageAttachments';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
-import { useAuthGuard } from '@/entities/user/hooks/useAuthGuard';
-import { useAccount } from '@/entities/user/hooks/useAccount';
+import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
+import { useAccount } from '@/entities/account/hooks/useAccount';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
 

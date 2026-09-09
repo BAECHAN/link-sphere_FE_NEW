@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { categoryOptionSchema } from '@/entities/category/model/category.schema';
 import { paginationRequestSchema, paginationResponseSchema } from '@/shared/types/common.type';
 import { TEXTS } from '@/shared/config/texts';
-import { accountSchema } from '@/shared/types/auth.type';
+import { accountSchema } from '@/entities/account/model/account.schema';
 
 const aiStatusEnum = z.enum(['NONE', 'PENDING', 'COMPLETED', 'FAILED']);
 

@@ -13,7 +13,7 @@ interface UseAvailabilityCheckOptions {
 }
 
 /**
- * 가입 화면 이메일·닉네임 실시간 중복확인 - useUpdateProfile.ts의 닉네임 중복확인과 동일한
+ * 가입 화면 이메일·닉네임 실시간 중복확인 - useUpdateAccount.ts의 닉네임 중복확인과 동일한
  * 디바운스·취소·상태머신 형태를 이메일에도 함께 쓸 수 있도록 일반화했다. 마이페이지 쪽은
  * 계정별 예외(본인 현재 닉네임 제외)가 있어 건드리지 않고 그대로 둔다.
  */
