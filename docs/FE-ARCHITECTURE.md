@@ -69,6 +69,9 @@ flowchart TD
   EComment -.import.-> EPost
   EInteraction -.import.-> EPost
   EInteraction -.import.-> EFolder
+  EInteraction -.import.-> EComment
+  EPost -.import.-> EFolder
+  EPost -.import.-> ECategory["entities/category"]
   EAuth["entities/auth"] -.import.-> EPost
   EAuth -.import.-> EAccount["entities/account"]
   EAccount -.import.-> EPost
@@ -125,8 +128,10 @@ src/
 │   ├── providers/                # AuthProvider, QueryProvider, RouterProvider, ThemeProvider
 │   ├── routes/                   # 라우트 설정, ProtectedRoute, RouteErrorBoundary
 │   │   └── layouts/              # AppShellLayout, ProtectedLayout, PublicLayout, RootLayout
-│   └── layouts/
-│       └── app-layout/           # AppLayout — 현재 어디서도 import되지 않는 미사용 컴포넌트
+│   ├── layouts/
+│   │   └── app-layout/           # AppLayout — 현재 어디서도 import되지 않는 미사용 컴포넌트
+│   └── ui/                       # PostMutationLoadingToast — post/account 뮤테이션 진행 상태
+│                                 # 헤드리스 옵저버(여러 entities를 알아야 해서 app에 위치)
 │
 ├── pages/                        # 라우팅 진입점 — widgets/features 조합. 세그먼트 없음
 │   ├── post/                     # index(Post), PostDetailPage, PostEditPage, PostSubmitPage
@@ -154,7 +159,7 @@ src/
 │   │   └── folder-tree/{hooks,ui}         # useFolderTree 외 4개, FolderTree, MobileFolderList
 │   └── layout/
 │       ├── navbar/
-│       │   ├── hooks/            # useRecentSearches
+│       │   ├── hooks/            # useRecentSearches, useNavbarSearch
 │       │   └── ui/               # Navbar, NavbarSearch, MobileNavbarSearch, RecentSearchPanel
 │       ├── bottom-tab-bar/ui/
 │       ├── sidebar/ui/
@@ -244,7 +249,7 @@ src/
     │   ├── upload/uploadImageAndGetUrl.ts  # 리사이즈 + uploadApi 조합 편의 함수
     │   ├── firebase/, image/, content/, react-table/, router/
     │   └── tailwind/utils.ts      # cn() helper
-    ├── store/                     # auth, hideBots, loginModal, mypage, sidebar, unsavedChanges (.store.ts)
+    ├── store/                     # appVersion, auth, hideBots, loginModal, mypage, sidebar, unsavedChanges (.store.ts)
     ├── types/
     │   └── common.type.ts
     ├── ui/
@@ -254,7 +259,7 @@ src/
     │   │   ├── modal/{alert,image-viewer}/
     │   │   └── modal/SheetDialogContent.tsx
     │   └── layouts/                # AuthLayout, ErrorLayout
-    └── utils/                     # auth, date, file, form, storage, url, common, error (.util.ts)
+    └── utils/                     # auth, common, date, error, file, form, storage, url, version (.util.ts)
 ```
 
 레이어에 속하지 않는 최상위 디렉터리도 있다 — `src/mocks/`(MSW `handlers/`·`fixtures/`),
@@ -365,9 +370,11 @@ import type { QueryClient } from '@tanstack/react-query';
 import { postInvalidateQueries } from '@/entities/post/api/post.keys';
 
 export const handleCommentCreateSuccess = (queryClient: QueryClient, postId: Post['id']) => {
-  commentInvalidateQueries.list(queryClient, postId); // 1. 자기 엔티티
-  postInvalidateQueries.detail(queryClient, postId); // 2. 댓글 수가 반영되는 포스트 상세
-  postInvalidateQueries.list(queryClient); // 3. 목록의 댓글 수 배지
+  // 댓글 목록은 mutation의 onMutate/onSuccess가 낙관적으로 직접 갱신하므로 여기서 다시
+  // invalidate하지 않는다 - 그러면 방금 그려진 결과를 지우고 GET을 한 번 더 태우게 된다.
+  // commentCount가 걸린 게시글 상세/목록만 갱신한다.
+  postInvalidateQueries.detail(queryClient, postId); // 댓글 수가 반영되는 포스트 상세
+  postInvalidateQueries.list(queryClient); // 목록의 댓글 수 배지
 };
 ```
 
@@ -460,9 +467,9 @@ export function CreateEntityForm() {
   return (
     <FormProvider {...form}>
       <form onSubmit={onSubmit} noValidate>
-        <FormInput name="name" label="이름" required disabled={isCreating} />
+        <FormInput name="name" label={TEXTS.entity.form.create.nameLabel} required disabled={isCreating} />
         <Button type="submit" disabled={!canSubmit}>
-          {isCreating ? '처리 중...' : '제출'}
+          {isCreating ? TEXTS.common.submitting : TEXTS.entity.form.create.submit}
         </Button>
       </form>
     </FormProvider>
@@ -477,15 +484,16 @@ export function CreateEntityForm() {
 widget hook = 여러 entity query 조합 + UI 블록 특화 파생 상태. 뮤테이션 로직은 포함하지 않는다.
 
 ```typescript
-// widgets/<domain>/<widget>/hooks/use<Widget>.ts
-export function usePostList(filter: PostFilter) {
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
-    usePostListQuery(filter);
+// widgets/<domain>/<widget>/hooks/use<Widget>.ts — 패턴을 보여주는 간소화 예시(실제 이름
+// 아님). 실제 참조 구현은 src/widgets/post/post-list/hooks/usePostList.ts — URL 파라미터
+// 관리·로컬 필터 병합·IntersectionObserver까지 포함해 이 예시보다 훨씬 복잡하다.
+export function useExampleWidget(filter: EntityFilter) {
+  const { data, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useSuspenseFetchEntityListQuery(filter);
 
-  const posts = data?.pages.flatMap((page) => page.content) ?? [];
-  const isEmpty = !isLoading && posts.length === 0;
+  const items = data?.pages.flatMap((page) => page.content) ?? [];
 
-  return { posts, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, isEmpty };
+  return { items, isFetchingNextPage, hasNextPage, fetchNextPage };
 }
 ```
 
@@ -802,8 +810,8 @@ CLI로 이 컴포넌트를 다시 생성하면 `cursor-default`가 되돌아오�
 
 `*.util.ts`(디렉터리는 복수 `utils/`, 파일 접미사는 단수 `.util.ts`)는 바레 함수를
 export하지 않고 `export class <Name>Util { static ... }` 형태로 정적 메서드를 묶는다 —
-`shared/utils/`의 8개 파일 중 7개(`AuthUtil`·`CommonUtil`·`DateUtil`·`ErrorUtil`·
-`FormUtil`·`LocalStorageUtil`/`SessionStorageUtil`·`UrlUtil`)가 이 형태이고,
+`shared/utils/`의 9개 파일 중 8개(`AuthUtil`·`CommonUtil`·`DateUtil`·`ErrorUtil`·
+`FormUtil`·`LocalStorageUtil`/`SessionStorageUtil`·`UrlUtil`·`VersionUtil`)가 이 형태이고,
 `file.util.ts`(객체 리터럴)만 예외다. `entities/*/utils/`도 같은 형태를 따른다.
 
 참조: `src/shared/utils/common.util.ts`

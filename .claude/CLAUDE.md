@@ -283,7 +283,7 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
 - **Never** native `confirm()` → 항상 `useAlert` + `openConfirm` 사용
 - **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만
 - **Never** 인라인 쿼리 키 → 항상 `<entity>Keys.*` 사용
-- **Never** 인라인 한글 UI 문자열 → 항상 `TEXTS.*` 사용 (ESLint `custom-i18n/no-hardcoded-hangul`가 빌드/pre-commit에서 자동 차단. 보간은 `texts.ts`의 함수형 키 사용 예: `messages.success.folderCreated(name)`. 예외: 테스트/스토리/`date.util.ts`·`common.util.ts` 로케일 포맷)
+- **Never** 인라인 한글 UI 문자열 → 항상 `TEXTS.*` 사용 (ESLint `custom-i18n/no-hardcoded-hangul`가 빌드/pre-commit에서 자동 차단. 보간은 `texts.ts`의 함수형 키 사용 예: `messages.success.bookmarkSavedTo(folderName)`. 예외: 테스트/스토리/`date.util.ts`·`common.util.ts` 로케일 포맷)
 - **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반 Tailwind 클래스 사용 (`text-destructive`, `bg-success`, `text-warning` 등)
 - **Never** 인라인 API 경로 → 항상 `API_ENDPOINTS.*` 사용
 - **Never** feature hook에서 직접 `queryClient.invalidateQueries` → 항상 `.keys.ts` success handlers 사용
@@ -473,7 +473,7 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 | Zod Schema (`z.infer`로 타입 파생)                                                 | §9   | `nullable()`=null 허용, `optional()`=undefined 허용                                            |
 | Delete with Confirm                                                                | §10  | native `confirm()` 금지, 항상 `useAlert` + `openConfirm`                                       |
 | Optimistic Update (`onMutate` → `cancelQueries` → `setQueryData` → 롤백)           | §11  | 참조 구현: `entities/interaction/api/interaction.queries.ts`                                   |
-| Util Class (`*.util.ts`는 바레 함수 대신 `export class <Name>Util { static ... }`) | §23  | 함수 하나뿐이어도 클래스로 감싼다 — `shared/utils/`의 7/8 파일이 이 형태                       |
+| Util Class (`*.util.ts`는 바레 함수 대신 `export class <Name>Util { static ... }`) | §23  | 함수 하나뿐이어도 클래스로 감싼다 — `shared/utils/`의 8/9 파일이 이 형태                       |
 
 ---
 
@@ -484,7 +484,7 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 **에러 토스트의 유일한 기본 소유자는 React Query 전역 핸들러(`queryClient.ts`)다.**
 
 - transport 레이어(`shared/api/client.ts`)는 UI 토스트를 띄우지 않는다 — 인증 정리·throw만.
-- mutation 에러는 전부 `mutationErrorHandler`를 지나가며, `meta.manualErrorHandling`이 없으면 거기서 토스트 1개가 자동으로 뜬다 ([queryClient.ts](src/shared/lib/react-query/config/queryClient.ts) `if (meta?.manualErrorHandling) return;`).
+- mutation 에러는 전부 `mutationErrorHandler`를 지나가며, `meta.manualErrorHandling`이 없으면 거기서 토스트 1개가 자동으로 뜬다 ([queryClient.ts](../src/shared/lib/react-query/config/queryClient.ts) `if (meta?.manualErrorHandling) { return; }`).
 
 > ⚠️ **Never** mutation `onError`나 그 mutation을 쓰는 컴포넌트 `catch`에서 `toast.`를 직접 부르면서 `meta.manualErrorHandling`을 빼먹지 말 것 → 전역 토스트와 겹쳐 **두 번 뜬다**. 직접 토스트를 띄우면 반드시 `manualErrorHandling: true`.
 
@@ -515,24 +515,31 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 
 ```
 TEXTS
+├── common.* (submitting, updating, saving, confirm, cancel, ...)
 ├── pages.home / pages.post.ROOT / pages.post.SUBMIT
 ├── labels.nickname / email / password / message
 ├── placeholders.nickname / email / password / message / postSearch
 ├── buttons.retry / refresh / home / back / login / logout / delete / search / ...
 ├── auth.login.* / auth.signup.*
 ├── nav.brand / feed / submit / logIn / logOut / toggleSearch / toggleTheme / saving
+├── mypage.* (title, description, save, changeImage, checkingNickname, ...)
+├── recentSearch.* (title, clearAll, empty, removeItem)
 ├── post.form.create.* (title, description1/2, urlLabel, urlPlaceholder, titleLabel, ...)
 ├── post.form.update.* (title, description, titleLabel, titlePlaceholder, updating, update, ...)
 ├── post.card.* (anonymous, visitWebsite, aiSummary, edit, saving, ...)
-├── post.detail.* (notFound, back, heading, commentsHeading)
+├── post.detail.* (notFound, backToList)
 ├── comment.list.* (loadError, heading, empty)
-├── comment.form.* (replyPlaceholder, commentPlaceholder, preview, cancel, submitting, ...)
+├── comment.form.* (replyPlaceholder, commentPlaceholder, preview, cancel, save, ...)
+├── bookmark.* (folder.myFolders/create/all/uncategorized, empty.all/uncategorized/folder, ...)
+├── errors.* (notFound/forbidden/serverError/unexpected — title, description)
+├── notification.* (defaultTitle, viewAction)
 ├── descriptions.passwordGuide
 ├── validation.urlFormat / urlRequired / titleRequired / passwordRegex / emailRegex / ...
 ├── messages.info.noData / noPosts
 ├── messages.warning.postDeleteConfirm / commentDeleteConfirm / memberDeleteConfirm
-├── messages.success.postCreated / postUpdated / postDeleted / linkCopied / accountCreated
+├── messages.success.postCreated / postUpdated / linkCopied / accountCreated / bookmarkSavedTo
 ├── messages.error.defaultError / loginFailed / postCreateFailed / linkCopyFailed / ...
+├── unsavedChanges.* (title, message, confirm, cancel)
 ├── shortcuts.sidebarToggle / sidebarToggleMac
 └── ariaLabels.* (레이아웃, 헤더, 사이드바, 입력 필드 등)
 ```
@@ -871,7 +878,9 @@ pnpm test:coverage   # 커버리지 → coverage/index.html
 3. `chore(release): vX.Y.Z` 커밋 → `git push origin main`
 4. **태그·GitHub Release는 수동으로 만들지 않는다** — `.github/workflows/release.yml`이 `CHANGELOG.md` push를 감지해 최신 버전 섹션을 파싱, 동명 태그가 없으면 자동으로 태그 생성 + `gh release create`까지 수행한다(이미 있으면 스킵하는 멱등 동작). `git tag`/`gh release create`를 직접 실행할 필요 없음.
 
-- 현재 버전 기준점: `0.1.0` (정식 릴리즈 전 개발 단계 = `0.x`)
+- 버전 체계 기준점: `0.1.0`부터 시작(정식 릴리즈 전 개발 단계 = `0.x`). 현재 버전은
+  `CHANGELOG.md` 최상단(가장 최근 `## [X.Y.Z]` 섹션 또는 하단 compare 링크)에서 확인한다 —
+  이 값은 릴리즈마다 바뀌므로 여기 고정된 숫자로 적지 않는다
 
 ## 문서 파일 위치
 
