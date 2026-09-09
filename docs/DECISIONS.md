@@ -6,6 +6,60 @@
 
 ---
 
+## 2026-09-09 — entity 쿼리 훅 UI 직접 호출 금지를 ESLint로 승격 (features 한정)
+
+**배경**
+
+`CreatePostForm.tsx`가 `useFetchCategoryOptionQuery()`를 UI 컴포넌트에서 직접 호출하고 있다는
+지적에서 시작한 조사. 같은 슬라이스(`features/post/create/`) 안에서 북마크 폴더 필드는 조회를
+훅(`usePostCreateBookmarkFolderField.ts`)이 소유하는데 카테고리만 UI가 소유하는 불일치가
+있었다. 전수 조사 결과 같은 형태(features/widgets의 `ui/`가 entity `*.queries` 훅을 직접
+호출)가 5건이었고, `custom-query-rules/no-direct-query-import`는 `@tanstack/react-query`
+직접 import만 막아서 entity가 감싼 `*.queries` 훅 호출까지는 못 잡았다 — `dayjs` 규칙이 같은
+이유(문서 규칙에만 의존, ESLint 부재)로 5개월간 위반이 안 잡혔던 것과 같은 패턴이다.
+
+**검토한 대안**
+
+1. **기존 feature 훅(`useCreatePost`/`useUpdatePost`)에 흡수** — 반환 객체에
+   `categoryOptionList` 키를 추가하는 방식. `.claude/CLAUDE.md` "변경 범위 원칙"의 "반환 타입
+   변경은 명시적 요청 없이 불가"에 걸리고, `useUpdatePost.test.tsx`는 MSW 핸들러 없이
+   `setQueryData`로만 post 상세를 심는데 카테고리 조회가 훅에 딸려 들어가면 미핸들 요청
+   경고가 매 테스트마다 붙는다. **탈락.**
+2. **`features/post/_shared/hooks/` 신설** — features 슬라이스 간 import가 이 레포에 현재
+   0건이라 선례 없는 패턴을 새로 여는 셈. **탈락.**
+3. **`entities/category/hooks/useCategoryOptions.ts` 신설** — `entities/account/hooks/useAccount.ts`
+   (쿼리를 감싼 entity 훅), `entities/bookmark/folder/hooks/useBookmarkFolderSelect.ts`(두
+   슬라이스가 공유하는 entity 훅) 선례와 같은 자리. **채택.**
+4. **ESLint 룰을 `no-restricted-imports`로 구현** — `eslint.config.js`가 이미 같은 rule key로
+   FSD 레이어 경계(`features`→`widgets` 등)를 강제하는데, flat config는 같은 key가 겹치면
+   배열 병합이 아니라 통째로 덮어써서 그 파일들의 레이어 규칙이 조용히 사라진다(이 레포가
+   이미 두 번 당한 함정, `eslint.config.js` 주석 참고). **탈락** — 고유 rule key의 커스텀
+   룰(`no-entity-query-import-outside-hooks`)로 구현.
+5. **widgets까지 룰 대상에 포함** — §8의 "query 1개 + trivial 파생" 예외는 "파생이
+   trivial한가"라는 사람 판단이라 ESLint가 평가할 수 없다. 파일 단위 ignore로 흉내 내면 그
+   파일에 앞으로 들어올 모든 쿼리까지 영구 면제된다. **탈락** — widgets는 문서(§8)와 PR
+   리뷰로 지킨다.
+
+**결정**
+
+1. `entities/category/hooks/useCategoryOptions.ts`를 신설해 `CreatePostForm.tsx`·
+   `UpdatePostForm.tsx`·`PostListSearch.tsx` 세 호출부가 공유한다. `?? []` fallback을 훅
+   하나로 모은다.
+2. `custom-query-rules/no-entity-query-import-outside-hooks`를 추가해 `src/features/**`(hooks/
+   제외)에서 entity `*.queries` 모듈 import를 금지한다. widgets는 대상 아님.
+3. 같은 조사에서 `.claude/commands/code-review.md`의 "React Query hooks only in
+   `<entity>.queries.ts` — not in feature hooks, not in UI"가 사실과 다르다는 것도 발견했다
+   (feature hook 13곳이 정상적으로 쿼리 훅을 호출하는 게 이 레포의 정상 패턴). 함께 정정했다.
+4. 범위 밖으로 남긴 것: `widgets/comment/comment-list/ui/CommentList.tsx`(정렬+재귀 집계라
+   §8 예외에 해당하지 않지만 별건 리팩터링), `pages/post/index.tsx`의 반환값 미사용
+   프리페치 호출, `entities/category/api/category.queries.ts`의 호출부 없는
+   `prefetchCategoryData` — 전부 CLAUDE.md §3("무관한 죽은 코드는 언급만 하고 지우지
+   않는다")에 따라 언급만 하고 손대지 않았다.
+
+**상태**: 적용됨.
+
+---
+
 ## 2026-09-09 — entities/user를 auth/account/user 세 엔티티로 분리
 
 **배경**
