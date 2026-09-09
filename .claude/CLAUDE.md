@@ -311,13 +311,22 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
 ## Critical Rules
 
 - **Never** Node 20으로 작업 진행 → 이 레포는 Node 24(`.nvmrc`) 고정이다. 작업 전 `node -v`가
-  `v24`가 아니면 `nvm use`로 맞춘다. `package.json`의 `engines.node`가 강제하므로 다른 버전이면
-  `pnpm install`부터 막힌다
+  `v24`가 아니면 `nvm use`로 맞춘다. `package.json`의 `engines.node`(`>=24`)가 버전을 명시하지만,
+  `engine-strict`가 꺼져 있어(2026-09-09 기준 `.npmrc`에 미설정) 다른 버전이어도 `pnpm install`은
+  경고만 띄우고 그대로 진행된다 — 실제로 설치 자체를 막으려면 `.npmrc`에 `engine-strict=true`를
+  추가해야 한다(2026-09-09 감사에서 "install부터 막힌다"는 이전 서술이 과장임을 확인)
 - **Never** native `confirm()` → 항상 `useAlert` + `openConfirm` 사용
-- **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만
+- **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만(2026-09-09 감사에서
+  `shared/lib/firebase/fcm.ts`가 raw `fetch()`로 이 규칙을 어기고 있는 걸 발견해 같은 날
+  `shared/api/fcm.api.ts`로 옮겨 고쳤다 — 지금은 예외 없이 지켜지고 있다)
 - **Never** 인라인 쿼리 키 → 항상 `<entity>Keys.*` 사용
 - **Never** 인라인 한글 UI 문자열 → 항상 `TEXTS.*` 사용 (ESLint `custom-i18n/no-hardcoded-hangul`가 빌드/pre-commit에서 자동 차단. 보간은 `texts.ts`의 함수형 키 사용 예: `messages.success.folderCreated(name)`. 예외: 테스트/스토리/`date.util.ts`·`common.util.ts` 로케일 포맷)
-- **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반 Tailwind 클래스 사용 (`text-destructive`, `bg-success`, `text-warning` 등)
+- **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반
+  Tailwind 클래스 사용 (`text-destructive`, `bg-success`, `text-warning` 등). ⚠️ 이 규칙은 다른
+  "Never" 항목과 달리 ESLint로 강제되지 않는다 — grep으로만 확인 가능하다. 2026-09-09 감사에서
+  `shared/ui/elements/ImageAttachmentField.tsx`·`SearchInput.tsx`, `shared/ui/layouts/AuthLayout.tsx`·
+  `ErrorLayout.tsx`에 raw gray/zinc 팔레트 잔존이 발견돼 같은 날 토큰 기반 클래스로 고쳤다 —
+  ESLint 미강제라 회귀해도 안 잡히니 새 코드에서 색상 클래스를 쓸 때 주의
 - **Never** 인라인 API 경로 → 항상 `API_ENDPOINTS.*` 사용
 - **Never** feature hook에서 직접 `queryClient.invalidateQueries` → 항상 `.keys.ts` success handlers 사용
 - **Never** 다른 엔티티의 raw 쿼리 키를 재구성해 `queryClient.invalidateQueries`를 직접 호출 → 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()` 래퍼만 사용. 크로스 엔티티 무효화가 필요하면 자기 엔티티의 `.keys.ts`에 `handle<Event>Success` 함수를 만들어 그 안에서 호출한다 (아래 "크로스 엔티티 무효화" 참고)
@@ -545,141 +554,22 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 
 ## TEXTS 구조 (`src/shared/config/texts.ts`)
 
-모든 UI 문자열은 `TEXTS.*`로 참조. 새 문자열 추가 시 반드시 `texts.ts`에 먼저 키를 추가한 뒤 사용.
-
-```
-TEXTS
-├── pages.home / pages.post.ROOT / pages.post.SUBMIT
-├── labels.nickname / email / password / message
-├── placeholders.nickname / email / password / message / postSearch
-├── buttons.retry / refresh / home / back / login / logout / delete / search / ...
-├── auth.login.* / auth.signup.*
-├── nav.brand / feed / submit / logIn / logOut / toggleSearch / toggleTheme / saving
-├── post.form.create.* (title, description1/2, urlLabel, urlPlaceholder, titleLabel, ...)
-├── post.form.update.* (title, description, titleLabel, titlePlaceholder, updating, update, ...)
-├── post.card.* (anonymous, visitWebsite, aiSummary, edit, saving, ...)
-├── post.detail.* (notFound, back, heading, commentsHeading)
-├── comment.list.* (loadError, heading, empty)
-├── comment.form.* (replyPlaceholder, commentPlaceholder, preview, cancel, submitting, ...)
-├── descriptions.passwordGuide
-├── validation.urlFormat / urlRequired / titleRequired / passwordRegex / emailRegex / ...
-├── messages.info.noData / noPosts
-├── messages.warning.postDeleteConfirm / commentDeleteConfirm / memberDeleteConfirm
-├── messages.success.postCreated / postUpdated / postDeleted / linkCopied / accountCreated
-├── messages.error.defaultError / loginFailed / postCreateFailed / linkCopyFailed / ...
-├── shortcuts.sidebarToggle / sidebarToggleMac
-└── ariaLabels.* (레이아웃, 헤더, 사이드바, 입력 필드 등)
-```
-
-### 톤 규칙
-
-`TEXTS`의 사용자 노출 문구는 **해요체**로 통일한다 (2026-08-04, 기존 합쇼체 `-되었습니다.`
-방침에서 변경 — 토스 등 국내 서비스 UX 라이팅 사례 조사 후 확정). 합쇼체 `-습니다./-입니다.`,
-격식 청유형 `-시겠습니까?`, 사용자 노출 개조식 명사 종결(`"폴더 생성 실패"` 등)을 새로 섞지
-않는다. 콘솔 로그 전용 문구(`console.error`에만 쓰이는 키, 예: `apiRequestFailed`)는 예외 —
-톤 규칙 대상이 아니다.
-
-- 예: `messages.success.accountCreated` `'가입을 완료했어요.'`,
-  `messages.error.nicknameDuplicate` `'이미 사용 중인 닉네임이에요.'`,
-  `messages.warning.postDeleteConfirm` `'정말 이 포스트를 삭제할까요? …'`.
-- 완료를 나타내는 성공 메시지(`messages.success`)는 가능하면 **능동형**으로 쓴다
-  (`'프로필이 업데이트됐어요.'`보다 `'프로필을 업데이트했어요.'`). 다만 행위자가 불분명하거나
-  상태를 서술하는 문구(예: 삭제된 글 안내처럼 "누가" 지웠는지 알 수 없는 경우)까지 억지로
-  능동형으로 바꾸지 않는다 — 어색해지는 쪽이 우선순위에서 진다.
-- 제목·헤딩(`DialogTitle`, 페이지 `title` prop 등)은 마침표 없이, 본문·설명·토스트류
-  문장은 마침표를 붙인다.
-- 가드 테스트 `shared/config/texts.test.ts`가 `TEXTS` 전체를 순회하며 구 합쇼체·격식
-  청유형(`니다`로 끝나는 모든 형태 — `습니다`/`입니다`/`합니다`/`옵니다` 등, `니까?`) 잔존
-  여부를 자동 검사한다(콘솔 전용 키는 화이트리스트로 제외). 새 문구를 추가하면 이 테스트가
-  통과하는지로 톤을 확인할 수 있다.
-
-### 성공 토스트 표시 기준
-
-`messages.success`에 새 키를 추가하기 전에, 정말 토스트가 필요한지부터 판단한다. 낙관적
-업데이트로 화면이 이미 바뀌는 액션에 "성공했습니다" 토스트까지 띄우면 사용자가 이미 본 결과를
-텍스트로 한 번 더 말해주는 중복 신호가 된다.
-
-**판단 축**:
-
-1. **가시성** — 액션 직후 현재 화면에서 결과가 바로 보이는가? (목록에서 사라짐·이름
-   변경·아이콘 상태 전환 등) → 보이면 토스트 불필요.
-2. **정보량** — 토스트가 "성공했다" 이상의 구체적 정보(어디에 저장됐는지, 왜 이렇게
-   됐는지)를 전달하는가? → 전달한다면 가시성과 무관하게 필요.
-3. **실행취소** — 토스트에 "실행 취소" 액션이 붙어 있(을 예정이)는가? → 그렇다면 유지.
-
-| 필요 (예)                                                            | 불필요 (예)                                                                |
-| -------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `linkCopied` — 클립보드 복사는 화면 변화가 전혀 없음                 | `postDeleted`/`folderDeleted` — 목록에서 바로 사라짐                       |
-| `bookmarkSavedTo(folderName)` — 아이콘만 봐선 "어느 폴더"인지 모름   | `accountUpdated`/`postUpdated` — 수정 결과가 즉시 반영됨                   |
-| `bookmarkAutoUncategorizedDescription` — 왜 미분류로 이동했는지 설명 | `postVisibilityUpdated`/`bookmarkRemoved` — 아이콘 상태 전환으로 이미 보임 |
-
-- 유의: 시각적 상태 변화만으로 충분하다고 판단해 토스트를 없애도, 스크린리더 사용자에게는
-  그 변화가 그대로 전달되지 않을 수 있다(접근성). 별도 `aria-live` 공지가 필요한지는 케이스
-  발생 시 별도로 판단한다 — 이 기준만으로 미리 다 막지 않는다.
+모든 UI 문자열은 `TEXTS.*`로 참조하고, 새 문자열은 `texts.ts`에 먼저 키를 추가한 뒤 쓴다.
+전체 네임스페이스 트리, 톤 규칙(해요체 통일, 가드 테스트 `texts.test.ts`), 성공 토스트
+표시 여부 판단 기준은 `texts-conventions` skill(`.claude/skills/texts-conventions/SKILL.md`)에
+있다 — TEXTS 키를 추가하거나 토스트 필요 여부를 판단할 때 그 skill을 먼저 읽는다(2026-09-09,
+CLAUDE.md가 984줄까지 길어진 것을 계기로 이 절을 분리했다 — 매 세션 로드할 필요는 없는
+내용이다).
 
 ---
 
 ## 디자인 토큰 (`src/app/globals.css`)
 
-Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금지** — 아래 의미론적 클래스를 사용한다.
-
-### 주요 색상 토큰 → Tailwind 클래스
-
-| 의미        | CSS 변수        | Tailwind 클래스                             | 사용 예              |
-| ----------- | --------------- | ------------------------------------------- | -------------------- |
-| 기본 배경   | `--background`  | `bg-background`                             | 페이지 배경          |
-| 기본 텍스트 | `--foreground`  | `text-foreground`                           | 본문 텍스트          |
-| 카드        | `--card`        | `bg-card`, `text-card-foreground`           | Card 컴포넌트        |
-| 기본 강조   | `--primary`     | `bg-primary`, `text-primary-foreground`     | 주요 버튼, CTA       |
-| 보조        | `--secondary`   | `bg-secondary`, `text-secondary-foreground` | 보조 버튼            |
-| 음소거      | `--muted`       | `bg-muted`, `text-muted-foreground`         | 비활성 텍스트, 힌트  |
-| 강조        | `--accent`      | `bg-accent`, `text-accent-foreground`       | 호버, 선택 상태      |
-| 파괴적 액션 | `--destructive` | `text-destructive`, `bg-destructive`        | 삭제 버튼, 에러 상태 |
-| 성공        | `--success`     | `text-success`, `bg-success`                | 완료, 성공 상태      |
-| 경고        | `--warning`     | `text-warning`, `bg-warning`                | 주의 상태            |
-| 정보        | `--info`        | `text-info`, `bg-info`                      | 안내, 정보 배지      |
-| 카테고리    | `--category`    | `bg-category`, `text-category-foreground`   | 카테고리 배지        |
-| 테두리      | `--border`      | `border-border`                             | 구분선               |
-| 입력        | `--input`       | `border-input`                              | 입력 필드 테두리     |
-| 링          | `--ring`        | `ring-ring`                                 | 포커스 링            |
-
-### 반경 토큰
-
-| 토큰          | 클래스       | 값                          |
-| ------------- | ------------ | --------------------------- |
-| `--radius-sm` | `rounded-sm` | `calc(var(--radius) - 4px)` |
-| `--radius-md` | `rounded-md` | `calc(var(--radius) - 2px)` |
-| `--radius-lg` | `rounded-lg` | `var(--radius)`             |
-| `--radius-xl` | `rounded-xl` | `calc(var(--radius) + 4px)` |
-
-### 인터랙션 커서
-
-Tailwind v4 preflight엔 v3에 있던 `button, [role="button"] { cursor: pointer }`가 없다
-(`node_modules/tailwindcss/preflight.css`에 cursor 규칙 자체가 없음). 이걸 컴포넌트마다
-개별로 `cursor-pointer`를 붙여 메꾸지 않는다 — `globals.css`의 `@layer base`가 아래
-대상 전체에 전역으로 적용한다.
-
-| 분류       | 대상                                                                                                              |
-| ---------- | ----------------------------------------------------------------------------------------------------------------- |
-| 태그       | `button`, `summary`, `select`, `input[type=checkbox\|radio\|file]`                                                |
-| ARIA role  | `button`, `link`, `menuitem`, `menuitemcheckbox`, `menuitemradio`, `option`, `tab`, `switch`, `checkbox`, `radio` |
-| 형제 label | `[role=checkbox]`/`[role=radio]` 바로 뒤의 `label` (예: `FormCheckbox`)                                           |
-
-`:disabled`/`aria-disabled="true"`/`[data-disabled]`는 제외(비활성 요소는 `default` 유지).
-`Button asChild`로 `<button>`이 아닌 요소를 감쌀 땐 `role="button"`을 함께 지정해야
-이 규칙이 적용된다. 선택자 전체 목록·예외·shadcn 재생성 시 주의사항은
-`docs/FE-ARCHITECTURE.md` "클릭 가능한 요소와 커서 규칙" 섹션, 배경은
-`docs/DECISIONS.md`의 2026-09-03 항목 참고.
-
-### 다크 모드
-
-- 모든 토큰은 `.dark` 클래스에서 자동 override — 별도 `dark:` prefix 불필요
-- ThemeProvider가 `<html>`에 `.dark` 클래스를 토글
-
-### 폰트
-
-- 기본 폰트: `Pretendard` (가변 폰트, woff2-variations)
-- Tailwind: `font-sans` → Pretendard > Inter > sans-serif
+Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금지** — `globals.css` 색 토큰
+기반 Tailwind 클래스(`text-destructive`, `bg-success` 등)를 쓴다. 전체 색상/반경 토큰 표,
+클릭 가능 요소의 전역 커서 규칙, 다크모드·폰트는 `design-tokens` skill
+(`.claude/skills/design-tokens/SKILL.md`)에 있다 — 컴포넌트를 스타일링할 때 그 skill을
+먼저 읽는다(2026-09-09, CLAUDE.md 길이 감사 후 이 절을 분리했다).
 
 ---
 
@@ -856,56 +746,12 @@ pnpm test:coverage   # 커버리지 → coverage/index.html
 
 ## 릴리즈노트 (CHANGELOG) 관리
 
-레포 루트 `CHANGELOG.md`로 변경 이력을 관리한다. 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/) + [SemVer](https://semver.org/lang/ko/), **한글 작성**.
-
-**규칙**
-
-- `feat` / `fix` / `perf` / 동작이 바뀌는 `refactor` 커밋 시 → **`CHANGELOG.md`의 `[Unreleased]` 섹션에 항목 추가**를 같은 커밋에 포함한다.
-- 섹션: `Added` / `Changed` / `Fixed` / `Removed`. BE API 의존 사항은 `Notes`, 테스트 추가는 `Tests` 섹션 활용.
-- `docs` / `style` / `chore` 등 사용자 영향 없는 변경은 기록하지 않는다.
-
-**항목 포맷** — 한 줄 요약 + 접힌 상세로 훑어볼 수 있게 쓴다.
-
-```markdown
-- `post` 게시글 등록 시 북마크 폴더를 함께 지정 가능
-  <details><summary>배경·구현</summary>
-
-  지금까지는 등록 후 목록에서 북마크 버튼을 다시 눌러야 했다. 카테고리 선택 아래에
-  북마크 필드를 추가해, 등록 제출 한 번으로 함께 처리한다.
-  (`features/post/create/ui/BookmarkFolderPicker.tsx`(신규),
-  [PR #21](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/21))
-
-  </details>
-```
-
-- 요약 줄: `` `스코프` `` + 공백 + 한 줄(72자 이내, 줄바꿈·마침표 없음). 굵게(`**`) 쓰지 않는다.
-  스코프는 `post` `comment` `auth` `user` `bookmark` `shared` 중 하나.
-- 상세 블록: `<summary>`는 `배경·구현`으로 통일. `<summary>` 다음과 `</details>` 앞에 빈 줄을
-  반드시 넣는다(없으면 GitHub이 안의 마크다운을 파싱하지 않는다). 배경·트레이드오프·영향
-  파일 목록을 요약 없이 그대로 적는다 — 짧은 항목은 상세 블록을 생략해도 된다.
-- **PR이 만들어지면 그 항목의 파일 목록 끝에 PR 링크를 추가한다.** 처음 커밋 시점엔 PR 번호를 아직 모르므로 `[Unreleased]` 항목 추가 커밋에는 포함하지 못한다 — `gh pr create`로 PR을 만든 직후 그 URL을 `[PR #NN](URL)` 형식으로 파일 목록 괄호 끝에 덧붙이고, 이 한 줄만 고치는 작은 후속 커밋(`docs(changelog): PR 링크 추가` 등, amend 아님 — Git Safety Protocol)을 머지 전에 같은 브랜치에 push한다. 커밋 해시가 아니라 PR을 가리키는 이유: 이 레포는 항상 워크트리+PR을 거쳐 머지되어 PR이 늘 존재하고, PR 번호는 생성 시점에 고정돼 이후 같은 브랜치에 커밋이 늘거나 rebase가 일어나도 바뀌지 않는 반면 커밋 해시는 amend·force-push로 쉽게 깨진다. PR 없이 직접 머지하는 예외 상황이면 커밋 해시 링크로 대체한다. 이 규칙은 지금부터의 새 항목에만 적용하고 기존 항목은 소급 적용하지 않는다(전체 기록: `docs/DECISIONS.md` "CHANGELOG 항목에서 커밋/PR 상세로 연결되는 링크 추가" 참고).
-- `### Notes`는 접지 않는다 — BE 배포 순서 정보라 항상 보여야 한다.
-- **상세 블록 안 문단을 손으로 여러 줄로 줄바꿈하지 않는다.** 리스트 항목(`- `) 안의
-  `<details>` 블록은 이어지는 모든 줄이 그 리스트의 들여쓰기(2칸)를 따라야 하는데,
-  사람이 임의로 줄바꿈하면 그 규칙을 놓친 줄이 생기기 쉽다. 그러면 Prettier의 마크다운
-  포맷터가 **파일을 다시 포맷할 때마다 `</details>` 들여쓰기가 계속 늘어나는
-  non-idempotent 상태**가 된다 — `git commit`의 `lint-staged`(`prettier --write` 1회만
-  실행)는 이 상태를 못 잡고 그대로 커밋시키며, CI의 `pnpm check`(`format:check`)에서야
-  뒤늦게 걸린다(2026-09-06 하루에 서로 다른 두 세션에서 각각 재현 —
-  `docs/CI-CHECK-GATE.md` §9.3, `docs/DECISIONS.md`). **문단은 아무리 길어도 한 줄로
-  써서 Prettier(`proseWrap: preserve`이므로 줄바꿈 없이 그대로 유지됨)가 줄바꿈을
-  전담하게 한다.** 부득이 손으로 줄바꿈했다면 커밋 전 `pnpm lint`가 아니라
-  `pnpm format:check`(또는 `pnpm check` 전체)를 직접 실행해 확인한다 — lint 통과가
-  format:check 통과를 보장하지 않는다.
-
-**릴리즈 시점** (버전 확정)
-
-1. `[Unreleased]` 항목들을 새 버전 섹션 `## [X.Y.Z] - YYYY-MM-DD` 으로 승격 (빈 `[Unreleased]` 유지), 하단 compare 링크 갱신 (`https://github.com/BAECHAN/link-sphere_FE_NEW`)
-2. API 계약(BE 의존 사항)이 바뀌었다면 `docs/VERSION-COMPATIBILITY.md`에도 상대 레포 최소 버전 행 추가
-3. `chore(release): vX.Y.Z` 커밋 → `git push origin main`
-4. **태그·GitHub Release는 수동으로 만들지 않는다** — `.github/workflows/release.yml`이 `CHANGELOG.md` push를 감지해 최신 버전 섹션을 파싱, 동명 태그가 없으면 자동으로 태그 생성 + `gh release create`까지 수행한다(이미 있으면 스킵하는 멱등 동작). `git tag`/`gh release create`를 직접 실행할 필요 없음.
-
-- 현재 버전 기준점: `0.1.0` (정식 릴리즈 전 개발 단계 = `0.x`)
+레포 루트 `CHANGELOG.md`로 변경 이력을 관리한다(Keep a Changelog + SemVer, 한글 작성).
+`feat`/`fix`/`perf`/동작이 바뀌는 `refactor` 커밋 시 같은 커밋에 `[Unreleased]` 섹션 항목
+추가를 포함한다. 항목 포맷(요약 줄 72자·`<details>` 블록 규칙)과 릴리즈 시점 절차(버전
+승격, 태그 자동화)는 `changelog-release` skill(`.claude/skills/changelog-release/SKILL.md`)에
+있다 — CHANGELOG를 쓰거나 버전을 릴리즈할 때 그 skill을 먼저 읽는다(2026-09-09, CLAUDE.md
+길이 감사 후 이 절을 분리했다).
 
 ## 문서 파일 위치
 
