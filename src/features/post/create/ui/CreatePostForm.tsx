@@ -38,6 +38,7 @@ export function CreatePostForm() {
                 name="url"
                 label="URL"
                 placeholder={TEXTS.post.form.create.urlPlaceholder}
+                autoComplete="off"
                 required
               />
               <FormInput

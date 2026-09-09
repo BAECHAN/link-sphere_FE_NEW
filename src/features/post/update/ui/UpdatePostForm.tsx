@@ -46,6 +46,7 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
                 label={TEXTS.post.form.update.urlLabel}
                 placeholder={TEXTS.post.form.update.urlPlaceholder}
                 description={isUrlChanged ? TEXTS.post.form.update.urlChangedNotice : undefined}
+                autoComplete="off"
                 required
               />
               <FormInput
