@@ -7,7 +7,7 @@
 > **읽고 나면**: 저장 실패 시 재오픈 복원과 닉네임 중복확인이 어떻게 동작하는지
 > 이해하고, 이 모달에 필드를 추가하거나 캐시 무효화 범위를 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-09-04
+> **마지막 검토**: 2026-09-09
 
 네비게이션 바 아바타 드롭다운에서 **프로필 수정** 메뉴를 클릭하면 모달이 열립니다.
 닉네임 변경 및 프로필 이미지(아바타) 교체를 지원합니다.
@@ -41,7 +41,7 @@ React Hook Form·TanStack Query의 낙관적 업데이트(`onMutate`/`onError` �
 가정하지 않는 것:
 
 - 이 레포 전반의 인증 상태 관리(로그인/로그아웃, `ProtectedRoute`) →
-  `entities/user`, `shared/store/auth.store.ts`
+  `entities/auth`, `shared/store/auth.store.ts`
 - 처음 나오는 용어(`restoreValues`, `NicknameStatus` 등) → §11 용어 사전
 
 ## 3. 사용한 도구·기술
@@ -108,7 +108,7 @@ Vitest — §8 참고.
 2. **제출**(`onSubmit`) — 서버 응답을 기다리지 않고 `onSuccess?.()`로 모달을
    먼저 닫는다. `updateAccount({ nickname, image, file, previewUrl })`를
    호출한다.
-3. **낙관적 반영**(`useUpdateAccountMutation`의 `onMutate`) — `authKeys.account()`
+3. **낙관적 반영**(`useUpdateAccountMutation`의 `onMutate`) — `accountKeys.root`
    캐시를 새 닉네임 + (파일을 골랐다면) blob 미리보기 URL로 즉시 덮어쓴다.
 4. **성공**(`onSuccess`) — 서버가 돌려준 실제 값(실제 업로드 URL 포함)으로
    캐시를 교체하고, `handleAccountUpdateSuccess()`(§6)로 연관 캐시를 무효화한다.
@@ -151,7 +151,7 @@ Fallback이 DOM에 없어 브라우저 캐시에서 즉시 로드되며 깜빡�
 
 ### 로그아웃 처리
 
-이 모달과 직접 관련은 없지만 같은 `entities/user/api/auth.queries.ts`에
+이 모달과 직접 관련은 없지만 `entities/auth/api/auth.queries.ts`에
 있고 `AuthUtil`을 공유하므로 함께 적는다. `useLogoutMutation`은 서버 응답을
 기다리지 않고 즉시 인증 상태를 지운다 — 현재 화면이 **보호된 경로**면
 `AuthUtil.clearAll(ROUTES_PATHS.POST.ROOT)`(인증 초기화 + 캐시 리셋 + 공개
@@ -160,7 +160,7 @@ Fallback이 DOM에 없어 브라우저 캐시에서 즉시 로드되며 깜빡�
 백그라운드로 처리한다(`unregisterFcmToken().catch(...)`).
 
 ```typescript
-// entities/user/api/auth.queries.ts (요지만 발췌)
+// entities/auth/api/auth.queries.ts (요지만 발췌)
 const logout = () => {
   authApi.logout().catch((error) => console.error('[LOGOUT] Error logging out:', error));
 
@@ -198,11 +198,11 @@ fun uploadFile(file: MultipartFile, bucket: String): String { ... }        // �
 | `restoreValues`    | `{ nickname: string; imagePreview: string \| null; pendingFile: File \| null } \| null` | 저장 실패 후 "다시 열기"로 재오픈할 때 복원할 입력값. 정상 open에서는 `null` |
 | `setRestoreValues` | `(values) => void`                                                                      | §5 "저장 흐름"의 실패 콜백이 재오픈 직전에 호출                              |
 
-모달은 닫힐 때 언마운트되므로 재오픈은 항상 새 마운트다 — `useUpdateProfile`의
+모달은 닫힐 때 언마운트되므로 재오픈은 항상 새 마운트다 — `useUpdateAccount`의
 `useState` 초기값들(`avatarPreview`, `pendingFile` 등)은 모두 이 `restoreValues`를
 우선 참조하도록 돼 있다.
 
-### `useUpdateProfile` 반환 계약
+### `useUpdateAccount` 반환 계약
 
 | 필드                                                              | 타입                           | 비고                                                                 |
 | ----------------------------------------------------------------- | ------------------------------ | -------------------------------------------------------------------- |
@@ -217,9 +217,9 @@ fun uploadFile(file: MultipartFile, bucket: String): String { ... }        // �
 | `account`                                                         | `Account \| undefined`         | 현재 계정 정보                                                       |
 
 `NicknameStatus`는 `'idle' | 'checking' | 'available' | 'duplicate'`
-(`useUpdateProfile.ts` 로컬 타입).
+(`useUpdateAccount.ts` 로컬 타입).
 
-### 프로필 변경 후 캐시 무효화(`handleAccountUpdateSuccess`, `entities/user/api/auth.keys.ts`)
+### 프로필 변경 후 캐시 무효화(`handleAccountUpdateSuccess`, `entities/account/api/account.keys.ts`)
 
 ```typescript
 export const handleAccountUpdateSuccess = () => {
@@ -246,19 +246,25 @@ src/
 │           └── ui/
 │               └── MyPageModal.tsx          # Dialog 래퍼 (Radix UI)
 ├── features/
-│   └── auth/
-│       └── profile/
+│   └── account/
+│       └── update/
 │           ├── ui/
-│           │   └── UpdateProfileForm.tsx    # 닉네임 Input + 아바타 업로드 폼
+│           │   └── UpdateAccountForm.tsx    # 닉네임 Input + 아바타 업로드 폼
 │           └── hooks/
-│               ├── useUpdateProfile.ts      # §5·§6 — 폼 상태·제출·이미지 미리보기·닉네임 중복확인
-│               └── useUpdateProfile.test.tsx
+│               ├── useUpdateAccount.ts      # §5·§6 — 폼 상태·제출·이미지 미리보기·닉네임 중복확인
+│               └── useUpdateAccount.test.tsx
 ├── entities/
+│   ├── account/
+│   │   ├── api/
+│   │   │   ├── account.api.ts               # updateAccount, uploadAvatar API 메서드
+│   │   │   ├── account.queries.ts           # useUpdateAccountMutation (§5)
+│   │   │   └── account.keys.ts              # handleAccountUpdateSuccess (§6)
+│   │   └── model/
+│   │       └── account.schema.ts            # updateAccountSchema, Account
+│   ├── auth/
+│   │   └── api/
+│   │       └── auth.queries.ts              # useLogoutMutation (§5)
 │   └── user/
-│       ├── api/
-│       │   ├── auth.api.ts                  # updateAccount, uploadAvatar API 메서드
-│       │   ├── auth.queries.ts              # useUpdateAccountMutation(§5), useLogoutMutation(§5)
-│       │   └── auth.keys.ts                 # handleAccountUpdateSuccess (§6)
 │       └── ui/
 │           └── UserAvatar.tsx               # 공통 아바타 컴포넌트
 └── shared/
@@ -266,30 +272,28 @@ src/
     │   └── mypage.store.ts                  # useMyPageModalStore (§6)
     ├── lib/
     │   └── image/resizeImage.ts             # getImageFileSizeError — 아바타 업로드 전 용량 검증
-    ├── config/
-    │   ├── api.ts                           # updateAccount, uploadAvatar 엔드포인트
-    │   └── texts.ts                         # mypage, success/error 텍스트 상수
-    └── types/
-        └── auth.type.ts                     # updateAccountSchema, AvatarUploadResponse
+    └── config/
+        ├── api.ts                           # updateAccount, uploadAvatar 엔드포인트
+        └── texts.ts                         # mypage, success/error 텍스트 상수
 ```
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                       | 방법                                                                                                               |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| 새 프로필 필드 추가(예: 자기소개)  | `auth.type.ts`의 `updateAccountSchema` + `useUpdateProfile`의 `form`/`onSubmit` + BE `UpdateAccountRequest` 동기화 |
-| 닉네임 중복확인 디바운스 시간 조정 | `useUpdateProfile.ts`의 `useDebounce(watchedNickname, 500)`                                                        |
-| 저장 실패 시 재오픈 동작 변경      | `auth.queries.ts`의 `useUpdateAccountMutation` `onError`                                                           |
-| 캐시 무효화 범위 변경              | `auth.keys.ts`의 `handleAccountUpdateSuccess`                                                                      |
-| 테스트 실행                        | `npx vitest run src/features/auth/profile/hooks/useUpdateProfile.test.tsx`                                         |
+| 하고 싶은 것                       | 방법                                                                                                                    |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 새 프로필 필드 추가(예: 자기소개)  | `account.schema.ts`의 `updateAccountSchema` + `useUpdateAccount`의 `form`/`onSubmit` + BE `UpdateAccountRequest` 동기화 |
+| 닉네임 중복확인 디바운스 시간 조정 | `useUpdateAccount.ts`의 `useDebounce(watchedNickname, 500)`                                                             |
+| 저장 실패 시 재오픈 동작 변경      | `account.queries.ts`의 `useUpdateAccountMutation` `onError`                                                             |
+| 캐시 무효화 범위 변경              | `account.keys.ts`의 `handleAccountUpdateSuccess`                                                                        |
+| 테스트 실행                        | `npx vitest run src/features/account/update/hooks/useUpdateAccount.test.tsx`                                            |
 
-**MSW 목업(테스트 환경)**: `src/mocks/handlers/auth.handlers.ts`가
+**MSW 목업(테스트 환경)**: `src/mocks/handlers/account.handlers.ts`가
 `PATCH /auth/account`·`POST /auth/account/avatar`를 가로채 고정 응답을
 반환한다. 테스트 실행 시 실제 API를 호출하지 않는다.
 
 ## 8. 검증 결과
 
-`useUpdateProfile.test.tsx` 12개 테스트 모두 통과(2026-09-04 재확인) — 닉네임
+`useUpdateAccount.test.tsx` 12개 테스트 모두 통과(2026-09-04 재확인) — 닉네임
 디바운스 검사, 형식 오류 시 조회 생략, 가용한 닉네임 처리, 디바운스 미정착
 시 저장 버튼 비활성, 원래 값으로 되돌렸을 때 재조회 생략을 검증한다.
 

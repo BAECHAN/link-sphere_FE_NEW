@@ -84,7 +84,7 @@ flowchart TD
 
 |               | 게이트 A: `ProtectedRoute`                             | 게이트 B: `client.ts` 인터셉터                | 게이트 C: `useAuthGuard`/`useProtectedNavigate`                      |
 | ------------- | ------------------------------------------------------ | --------------------------------------------- | -------------------------------------------------------------------- |
-| 위치          | `src/app/routes/ProtectedRoute.tsx`                    | `src/shared/api/client.ts:156-204`            | `src/entities/user/hooks/useAuthGuard.ts`, `useProtectedNavigate.ts` |
+| 위치          | `src/app/routes/ProtectedRoute.tsx`                    | `src/shared/api/client.ts:162-211`            | `src/entities/auth/hooks/useAuthGuard.ts`, `useProtectedNavigate.ts` |
 | 판단 근거     | 클라이언트 로컬 상태(`useAuthStore.isAuthenticated`)만 | BE의 실제 401 응답 코드                       | 클라이언트 로컬 상태만                                               |
 | BE와 통신     | 안 함(§8-A가 실질적으로 no-op이므로)                   | 함(`POST /auth/refresh`, 원 요청 재시도)      | 안 함(애초에 요청을 안 보냄)                                         |
 | 발동 시점     | 보호 라우트가 **렌더**될 때                            | 실제 API 요청이 **401을 받은 뒤**             | 사용자가 **클릭**했을 때, 요청 전                                    |
@@ -121,7 +121,7 @@ RootLayout
 | localStorage                      | `linksphere:auth:last-avatar` | 아바타 URL(선반입용)        | 영구(로그아웃 시 제거)     | 가능     |
 | httpOnly 쿠키(BE 설정)            | refreshToken                  | 리프레시 토큰               | BE 정책                    | **불가** |
 
-**절대 저장하지 않는 것**: 액세스 토큰(어떤 스토리지에도 없음, 메모리 전용), 리프레시 토큰(JS가 못 만짐), 계정 정보(React Query 캐시에만, `authKeys.account()`).
+**절대 저장하지 않는 것**: 액세스 토큰(어떤 스토리지에도 없음, 메모리 전용), 리프레시 토큰(JS가 못 만짐), 계정 정보(React Query 캐시에만, `accountKeys.root`).
 
 `useAuthStore`(`src/shared/store/auth.store.ts:41-63`)는 `devtools` 미들웨어만 쓰고 **`persist`가 없습니다 — 의도적입니다.** `accessToken`은 항상 `isAuthenticated`와 함께 `setAuth`/`clearAuth` 한 곳에서만 갱신되므로(`auth.store.ts:47-50`, `:56-60`) 두 값은 절대 어긋나지 않습니다. **이 등가성이 §8-A의 동작을 결정짓는 핵심 사실입니다.**
 
@@ -134,12 +134,12 @@ RootLayout
 
 ## 7. 운영 파라미터
 
-| 파라미터                                    | 값                                                        | 위치                                       |
-| ------------------------------------------- | --------------------------------------------------------- | ------------------------------------------ |
-| 액세스 토큰 만료 판정 여유 마진             | 30초(BE가 아직 유효하다고 볼 시각이어도 FE는 만료로 간주) | `src/shared/utils/auth.util.ts:20`         |
-| 계정 정보(`authKeys.account()`) `staleTime` | 1일(`STALE_TIME_ONE_DAY`)                                 | `src/entities/user/api/auth.queries.ts:96` |
-| 동시 401 발생 시 실제 refresh 호출 횟수     | 항상 1회(리더-팔로워 큐잉, §9)                            | `src/shared/api/client.ts:160-188`         |
-| refresh 재시도 상한                         | **없음** — §11 참고                                       | `src/shared/api/client.ts:80`              |
+| 파라미터                                  | 값                                                        | 위치                                             |
+| ----------------------------------------- | --------------------------------------------------------- | ------------------------------------------------ |
+| 액세스 토큰 만료 판정 여유 마진           | 30초(BE가 아직 유효하다고 볼 시각이어도 FE는 만료로 간주) | `src/shared/utils/auth.util.ts:20`               |
+| 계정 정보(`accountKeys.root`) `staleTime` | 1일(`STALE_TIME_ONE_DAY`)                                 | `src/entities/account/api/account.queries.ts:30` |
+| 동시 401 발생 시 실제 refresh 호출 횟수   | 항상 1회(리더-팔로워 큐잉, §9)                            | `src/shared/api/client.ts:160-188`               |
+| refresh 재시도 상한                       | **없음** — §11 참고                                       | `src/shared/api/client.ts:85`                    |
 
 ---
 
@@ -159,10 +159,10 @@ useEffect(() => {
 }, [isVerifying, restoreAuth]);
 ```
 
-`isVerifying`은 `useState`의 **lazy initializer**라 이 컴포넌트가 마운트되는 순간 딱 한 번만 평가됩니다(§5의 "레이아웃 라우트라 재마운트 안 됨"과 연결). 그리고 여기서 부르는 `restoreAuth`(`src/entities/user/hooks/useAuth.ts:64-84`)의 첫 줄은:
+`isVerifying`은 `useState`의 **lazy initializer**라 이 컴포넌트가 마운트되는 순간 딱 한 번만 평가됩니다(§5의 "레이아웃 라우트라 재마운트 안 됨"과 연결). 그리고 여기서 부르는 `restoreAuth`(`src/entities/auth/hooks/useAuth.ts:64-84`)의 첫 줄은:
 
 ```ts
-// useAuth.ts:64-68
+// entities/auth/hooks/useAuth.ts:64-68
 const restoreAuth = useCallback(async (): Promise<boolean> => {
   try {
     if (accessToken && isAuthenticated) {
@@ -172,24 +172,24 @@ const restoreAuth = useCallback(async (): Promise<boolean> => {
     ...
 ```
 
-§6에서 확인했듯 `accessToken`이 있으면 `isAuthenticated`도 항상 `true`이므로, **게이트 A가 이 분기에 들어오는 조건(`!!accessToken`) 자체가 이미 이 early return을 100% 성립시킵니다.** 즉 `authApi.refresh()`는 절대 호출되지 않고, `isVerifying`은 스피너를 한 틱 켰다 끌 뿐입니다. `restoreAuth`의 유일한 정상 호출부인 `useAppInitialization.ts:48`은 애초에 `!accessToken` 가드를 두고 호출하므로(§8-C), 이 early return은 원래 그 호출부 기준으로는 도달 안 하는 방어 코드였습니다 — `ProtectedRoute`가 나중에 같은 함수를 다른 의도로 재사용하면서 이 가드에 걸린 것입니다.
+§6에서 확인했듯 `accessToken`이 있으면 `isAuthenticated`도 항상 `true`이므로, **게이트 A가 이 분기에 들어오는 조건(`!!accessToken`) 자체가 이미 이 early return을 100% 성립시킵니다.** 즉 `authApi.refresh()`는 절대 호출되지 않고, `isVerifying`은 스피너를 한 틱 켰다 끌 뿐입니다. `restoreAuth`의 유일한 정상 호출부인 `useAppInitialization.ts:50`은 애초에 `!accessToken` 가드를 두고 호출하므로(§8-C), 이 early return은 원래 그 호출부 기준으로는 도달 안 하는 방어 코드였습니다 — `ProtectedRoute`가 나중에 같은 함수를 다른 의도로 재사용하면서 이 가드에 걸린 것입니다.
 
 **결론**: 이 앱에는 "만료 토큰의 사전(proactive) 재검증"이 사실상 없습니다. 만료 토큰 처리는 전부 게이트 B가 담당합니다. 코드 상단 주석(`ProtectedRoute.tsx:24`)은 이 사실과 다르므로 읽을 때 주의하세요.
 
 ### 8-B. 게이트 B — 반응형 401 인터셉터
 
 ```
-client.ts:157   if (response.status === 401)
-client.ts:159     if (code === TOKEN_EXPIRED)
-client.ts:160       if (!this.isRefreshing)                    → 리더 경로
-client.ts:163          POST /auth/refresh
-client.ts:170          setAuth(accessToken)
-client.ts:172          return this.request(endpoint, options, retryCount + 1)   // 원 요청 재시도
-client.ts:173-177      catch → refreshSubscribers 비움, clearAll(), 영구 pending Promise 반환
-client.ts:181       else                                        → 팔로워 경로
-client.ts:183-187      new Promise(resolve => subscribeTokenRefresh(...))
-client.ts:189     else if (code === NOT_LOGGED_IN || INVALID_TOKEN)
-client.ts:198       if (!AuthUtil.isLoggingOut()) AuthUtil.clearAll()
+client.ts:162   if (response.status === 401)
+client.ts:164     if (code === TOKEN_EXPIRED)
+client.ts:165       if (!this.isRefreshing)                    → 리더 경로
+client.ts:168          POST /auth/refresh
+client.ts:177          setAuth(accessToken)
+client.ts:179          return this.request(endpoint, options, retryCount + 1)   // 원 요청 재시도
+client.ts:180-184      catch → refreshSubscribers 비움, clearAll(), 영구 pending Promise 반환
+client.ts:188       else                                        → 팔로워 경로
+client.ts:190-194      new Promise(resolve => subscribeTokenRefresh(...))
+client.ts:196     else if (code === NOT_LOGGED_IN || INVALID_TOKEN)
+client.ts:205       if (!AuthUtil.isLoggingOut()) AuthUtil.clearAll()
 ```
 
 `TOKEN_EXPIRED`는 "재시도하면 회복 가능"(리프레시), `NOT_LOGGED_IN`/`INVALID_TOKEN`은 "회복 불가능"(즉시 로그아웃)이라는 서로 다른 처방을 받습니다. 이 구분은 `error-code.ts:3-5`에서 코드 자체가 나뉘어 있는 것과 일치합니다.
@@ -199,16 +199,16 @@ client.ts:198       if (!AuthUtil.isLoggingOut()) AuthUtil.clearAll()
 ### 8-C. 부트스트랩 (새로고침·최초 로드)
 
 ```ts
-// useAppInitialization.ts:34-65 요지
-if (hasInitialized.current) return; // :36 1회만 실행
-prefetchLastAvatar(); // :42 아바타 선반입 (병렬)
+// useAppInitialization.ts:30-68 요지
+if (hasInitialized.current) return; // :38 1회만 실행
+prefetchLastAvatar(); // :44 아바타 선반입 (병렬)
 if (!accessToken && hasStoredSession()) {
-  // :48 플래그 있을 때만
-  const restored = await restoreAuth(); // :49
-  if (restored) handleAuthRestoreSuccess(); // :51
+  // :50 플래그 있을 때만
+  const restored = await restoreAuth(); // :51
+  if (restored) handleAuthRestoreSuccess(); // :53
 }
 // ... finally
-setAuthResolved(true); // :57 성공/실패/미시도 무관 항상
+setAuthResolved(true); // :59 성공/실패/미시도 무관 항상
 ```
 
 비로그인 방문자(플래그 없음)는 네트워크 요청 0회로 즉시 끝납니다. `setAuthResolved(true)`가 `finally`에 있는 게 핵심입니다 — 이게 없으면 게이트 A가 영원히 스피너에 머뭅니다.
@@ -295,8 +295,8 @@ openLoginModal();
 
 아래는 "버그"라고 단정하지 않고 조사 중 확인한 **사실**만 적습니다. 전부 지금 당장 문제를 일으키는 정황은 없고, 확인하려면 BE 코드가 필요한 항목도 있습니다.
 
-1. **`client.ts`의 `retryCount`가 선언·전달만 되고 상한 검사를 받지 않습니다** (`client.ts:80`, `:172`, `:185`). BE가 재시도 후에도 계속 `TOKEN_EXPIRED`를 준다면 이론상 반복 재시도가 가능합니다. 현재 이를 막는 건 "refresh가 언젠가 실패해서 catch로 빠진다"는 가정뿐입니다.
-2. **`/auth/refresh` 요청 자체가 만료된 `Authorization` 헤더를 달고 나갑니다.** `isAuthEndpoint`(`client.ts:50-55`)가 `login`·`signup`만 포함하고 `/auth/refresh`는 빠져 있습니다. 주석(`:52`, "혹은 리프레시는 쿠키 사용")과 실제 헤더 제거 로직이 어긋나 있습니다. BE가 이 엔드포인트를 permitAll로 두고 헤더를 무시한다는 전제에 기대어 현재는 무해합니다(BE 소스가 이 레포에 없어 미검증).
+1. **`client.ts`의 `retryCount`가 선언·전달만 되고 상한 검사를 받지 않습니다** (`client.ts:85`, `:179`, `:192`). BE가 재시도 후에도 계속 `TOKEN_EXPIRED`를 준다면 이론상 반복 재시도가 가능합니다. 현재 이를 막는 건 "refresh가 언젠가 실패해서 catch로 빠진다"는 가정뿐입니다.
+2. **`/auth/refresh` 요청 자체가 만료된 `Authorization` 헤더를 달고 나갑니다.** `isAuthEndpoint`(`client.ts:55-60`)가 `login`·`signup`만 포함하고 `/auth/refresh`는 빠져 있습니다. 주석(`:57`, "혹은 리프레시는 쿠키 사용")과 실제 헤더 제거 로직이 어긋나 있습니다. BE가 이 엔드포인트를 permitAll로 두고 헤더를 무시한다는 전제에 기대어 현재는 무해합니다(BE 소스가 이 레포에 없어 미검증).
 3. **refresh 실패 시 대기 중이던 팔로워 요청들이 영구 pending으로 남습니다.** `client.ts:175`가 `refreshSubscribers`를 콜백 호출 없이 비웁니다. 리더 자신의 영구 pending(`:177`)은 "에러 토스트를 띄우지 않으려는" 의도가 `client.test.ts:114` 주석으로 남아있지만, 팔로워 쪽은 같은 의도가 명시돼 있지 않습니다.
 4. **동시 401 큐잉(§9의 리더-팔로워 메커니즘)과 위 세 항목 모두 테스트 커버리지가 없습니다** — `client.test.ts`의 5개 Case는 전부 단일 요청 시나리오입니다.
 

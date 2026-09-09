@@ -6,6 +6,82 @@
 
 ---
 
+## 2026-09-09 — entities/user를 auth/account/user 세 엔티티로 분리
+
+**배경**
+
+"user라는 이름도 좀 애매한 것 같다"는 지적에서 출발한 조사. `entities/user/` 폴더 안 실제
+내용물은 폴더명과 달리 전부 `auth.*.ts` 파일이었다 — `auth.api.ts`에 `login`과
+`updateAccount`가 한 객체(`authApi`)에 같이 있었고, `authKeys`도 `auth.keys.ts`(함수형)와
+`auth.queries.ts`(배열형) 두 곳에 형태가 다르게 중복 정의돼 있었다. 반면 `UserAvatar.tsx`는
+"내 계정"이 아니라 게시글·댓글 작성자(남의 프로필) 표시에 주로 쓰이고 있어, account(비공개
+내 정보)와 user(공개 사용자 표현)를 가르는 축이 이미 코드 안에 잠재해 있었다.
+
+**검증한 사실 (추측 아님)**
+
+- FSD 공식 [Authentication 가이드](https://feature-sliced.design/docs/guides/examples/auth):
+  "The current user is also sometimes called 'viewer' or 'me'. This is to distinguish
+  the single authenticated user, with permissions and private information, from a list
+  of all users with publicly accessible information." — 즉 공식이 가르는 축은 "auth vs
+  account"가 아니라 "current user(비공개) vs user(공개)"다. `Account` 타입의 `email`·`role`은
+  비공개, `post.schema.ts`의 `author`(`accountSchema.pick({id,nickname,image})`)는 공개
+  정보만이라 이 축과 정확히 일치한다.
+- 공식 등재 예제 [nukeapp](https://github.com/noveogroup-amorgunov/nukeapp/tree/master/src/entities)의
+  실제 슬라이스 목록에 `session`과 `user`가 별도로 존재하고, 세션/아바타를 각각 다른
+  엔티티에서 가져온다 — 지금 결정과 같은 구도.
+- FSD 공식 [Public API — cross-imports](https://feature-sliced.design/docs/reference/public-api):
+  "only use this notation on the Entities layer, where eliminating cross-imports is
+  often unreasonable." 동일 레이어 슬라이스 간 참조는 entities에서 예외적으로 허용된다.
+  이 레포는 이미 `docs/FE-ARCHITECTURE.md` §1에서 이 규칙을 명시적으로 미채택(entities
+  cross-import 29건, post↔comment/interaction/bookmark-folder 순환 3개 실측)했다고
+  기록해뒀다 — auth→account 참조 1건은 새 위반이 아니라, 기존 `entities/user/api/auth.keys.ts`가
+  이미 post·comment·bookmark/folder 3개 슬라이스를 참조하던 결합을 줄이는 방향이다.
+
+**결정**
+
+1. `entities/user/api/`·`entities/user/hooks/`를 인증(로그인·로그아웃·회원가입·세션 복원)과
+   계정(내 프로필 조회·수정)으로 쪼개 `entities/auth/`·`entities/account/`로 옮긴다.
+   `entities/user/`는 `ui/UserAvatar.tsx` 하나만 남기고 "공개 사용자 표현" 전용으로 좁힌다.
+2. `shared/types/auth.type.ts`도 함께 쪼갠다 — `loginSchema`·`createAccountSchema`·
+   `passwordValidationSchema`는 `entities/auth/model/auth.schema.ts`로, `accountSchema`·
+   `updateAccountSchema`·`nicknameValidationSchema`·`emailValidationSchema`는
+   `entities/account/model/account.schema.ts`로 옮긴다. 두 파일 중 하나가 상대방의
+   validator를 cross-import하되(`auth.schema.ts` → `account.schema.ts`의 nickname/email
+   validator), 파일 단위 순환은 만들지 않도록 한 방향으로만 흐르게 설계했다 — email·nickname은
+   계정 데이터(Account의 실제 필드)이므로 소유권을 account 쪽에 두고, password만 auth
+   고유 자격증명이라 auth 쪽에 남겼다.
+3. `features/auth/profile/` → `features/account/update/`로 옮기고, 내부 파일도
+   `useUpdateProfile`→`useUpdateAccount`, `UpdateProfileForm`→`UpdateAccountForm`으로
+   개명해 폴더-파일명 일관성을 맞췄다(폴더만 옮기고 파일명을 안 맞추면 아래 "엔티티 파일명
+   접두사" 결정이 다룬 `useRecentFolders.ts` 사례처럼 반쪽 마이그레이션이 남는다).
+4. 쿼리 키 이중 정의(`auth.keys.ts`의 함수형 `authKeys` vs `auth.queries.ts`의 배열형
+   `authKeys`)를 `auth.keys.ts` 하나로 통합했다(3-Layer 규약대로 keys 파일이 소유). `account`
+   쪽은 `accountKeys.root = ['account']`로 새로 분리했다. BE 엔드포인트(`API_ENDPOINTS.auth.*`)는
+   그대로 둔다 — `/auth/account` 같은 실제 라우트는 FE 폴더 구조와 무관하다.
+5. **범위 밖으로 남긴 것**: `shared/store/auth.store.ts`·`shared/utils/auth.util.ts`·
+   `shared/config/storage-keys.ts`의 `AUTH.LAST_AVATAR`(프로필 데이터지만 AUTH 그룹에
+   있음)는 이미 세션/토큰 인프라로 올바르게 좁혀져 있어 건드리지 않았다. `signup`은
+   비로그인 상태에서 일어나는 인증 flow이자 BE 엔드포인트도 `/auth/signup`이라 그대로
+   `auth`에 남긴다.
+
+**발견했지만 이번 범위 밖으로 남긴 것**
+
+- `entities/user/api/auth.keys.ts`의 `authInvalidateQueries.all`은 이미 프로덕션에서
+  미사용이었다(테스트 mock에만 등장). 분리 후 `['auth']` 트리에는 login/logout만 남아
+  invalidate할 대상 자체가 사라지므로(계정 캐시는 `['account']`로 옮겨감) 그대로
+  옮기는 대신 이번에 제거했다.
+- `entities/user/api/auth.queries.ts`의 `useCreateAccountMutation` `onSuccess`가
+  `navigate(API_ENDPOINTS.auth.login)`으로 **API 엔드포인트 상수**를 라우팅에 쓰고 있다
+  (원래는 `ROUTES_PATHS.AUTH.LOGIN`이어야 한다). 우연히 같은 문자열이라 지금은 동작하지만
+  API 경로가 바뀌면 라우팅이 깨진다 — 이번 리네임과 무관한 기존 버그라 건드리지 않았다.
+
+**상태**
+
+적용 완료. `pnpm type-check`/`pnpm lint`/`pnpm test`(48 파일, 314건)/`pnpm check:docs`/
+`pnpm format:check` 전부 통과.
+
+---
+
 ## 2026-09-09 — queryClient 싱글턴 → useQueryClient() 마이그레이션 + react-query import 화이트리스트 전환
 
 **배경**

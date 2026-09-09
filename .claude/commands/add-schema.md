@@ -26,7 +26,7 @@ import { TEXTS } from '@/shared/config/texts';
 // Import shared schemas if the entity uses pagination:
 // import { paginationResponseSchema } from '@/shared/api/common.schema';
 // Import other entity schemas if composing:
-// import { accountSchema } from '@/entities/user/model/auth.schema';
+// import { accountSchema } from '@/entities/account/model/account.schema';
 
 // ==================== 1. Domain Model Schema ====================
 /**

@@ -60,7 +60,7 @@ flowchart TD
   App["app<br/>providers · routes · layouts"] --> Pages["pages<br/>post · auth · bookmark · 403 · 404 · 500"]
   Pages --> Widgets["widgets<br/>post · comment · bookmark · layout"]
   Widgets --> Features["features<br/>post · comment · auth · bookmark"]
-  Features --> Entities["entities<br/>post · comment · interaction · user · bookmark/folder · category"]
+  Features --> Entities["entities<br/>post · comment · interaction · auth · account · user · bookmark/folder · category"]
   Entities --> Shared["shared<br/>api · config · hooks · lib · store · types · ui · utils"]
 
   EPost["entities/post"] -.export *.-> EComment["entities/comment"]
@@ -69,7 +69,12 @@ flowchart TD
   EComment -.import.-> EPost
   EInteraction -.import.-> EPost
   EInteraction -.import.-> EFolder
-  EUser["entities/user"] -.import.-> EPost
+  EAuth["entities/auth"] -.import.-> EPost
+  EAuth -.import.-> EAccount["entities/account"]
+  EAccount -.import.-> EPost
+  EAccount -.import.-> EComment
+  EAccount -.import.-> EFolder
+  EPost -.import.-> EAccount
 ```
 
 ### 정식 FSD로 맞추려면
@@ -168,8 +173,9 @@ src/
 │   │   └── like/{hooks,ui}       # useLikeComment, LikeCommentButton
 │   ├── auth/
 │   │   ├── login/{hooks,ui}      # useLogin, LoginForm, LoginModal
-│   │   ├── signup/{hooks,ui}     # useSignUp, useAvailabilityCheck, SignUpForm
-│   │   └── profile/{hooks,ui}    # useUpdateProfile, UpdateProfileForm
+│   │   └── signup/{hooks,ui}     # useSignUp, useAvailabilityCheck, SignUpForm
+│   ├── account/
+│   │   └── update/{hooks,ui}     # useUpdateAccount, UpdateAccountForm
 │   └── bookmark/                 # 2026-09-08 post/bookmark에서 승격 — entities/widgets/pages와
 │       │                         # bookmark 도메인 그룹을 통일(FSD nukeapp 사례 참고)
 │       └── toggle/{hooks,ui}     # useBookmarkFolders, usePostCardBookmarkFolderModal, BookmarkPostButton,
@@ -202,9 +208,15 @@ src/
 │   ├── category/
 │   │   ├── api/                  # category.api.ts, category.keys.ts, category.queries.ts
 │   │   └── model/                # category.schema.ts
-│   └── user/
-│       ├── api/                  # auth.api.ts, auth.keys.ts, auth.queries.ts
-│       ├── hooks/                 # useAuth, useAccount, useAppInitialization, useAuthGuard, useProtectedNavigate
+│   ├── auth/                     # 인증(로그인·로그아웃·회원가입·세션) 전용
+│   │   ├── api/                  # auth.api.ts, auth.keys.ts, auth.queries.ts
+│   │   ├── model/                # auth.schema.ts (loginSchema, createAccountSchema 등)
+│   │   └── hooks/                 # useAuth, useAppInitialization, useAuthGuard, useProtectedNavigate
+│   ├── account/                  # 내 계정 프로필(닉네임·이미지·이메일) 조회·수정 전용
+│   │   ├── api/                  # account.api.ts, account.keys.ts, account.queries.ts
+│   │   ├── model/                # account.schema.ts (accountSchema, updateAccountSchema 등)
+│   │   └── hooks/                 # useAccount
+│   └── user/                     # 공개 사용자 표현 전용(게시글·댓글 작성자 등, 데이터 조회 없음)
 │       └── ui/                   # UserAvatar
 │
 └── shared/                       # 순수 유틸, UI 원자, API client, config
@@ -230,8 +242,7 @@ src/
     │   └── tailwind/utils.ts      # cn() helper
     ├── store/                     # auth, hideBots, loginModal, mypage, sidebar, unsavedChanges (.store.ts)
     ├── types/
-    │   ├── common.type.ts
-    │   └── auth.type.ts
+    │   └── common.type.ts
     ├── ui/
     │   ├── atoms/                 # CVA 기반 Shadcn 기본 컴포넌트
     │   ├── elements/              # 조합 컴포넌트 (MarkdownContent 포함)
@@ -249,14 +260,16 @@ src/
 
 ## 4. 현재 Entities & Widgets
 
-| Entity        | 위치                        | 설명                            |
-| ------------- | --------------------------- | ------------------------------- |
-| `post`        | `entities/post/`            | 포스트 CRUD + 쿼리              |
-| `comment`     | `entities/comment/`         | 댓글 CRUD + 쿼리                |
-| `interaction` | `entities/interaction/`     | like/bookmark optimistic update |
-| `folder`      | `entities/bookmark/folder/` | 북마크 폴더 CRUD + 쿼리         |
-| `category`    | `entities/category/`        | 카테고리 옵션 조회              |
-| `user`        | `entities/user/`            | 인증 API + 훅 + UserAvatar      |
+| Entity        | 위치                        | 설명                               |
+| ------------- | --------------------------- | ---------------------------------- |
+| `post`        | `entities/post/`            | 포스트 CRUD + 쿼리                 |
+| `comment`     | `entities/comment/`         | 댓글 CRUD + 쿼리                   |
+| `interaction` | `entities/interaction/`     | like/bookmark optimistic update    |
+| `folder`      | `entities/bookmark/folder/` | 북마크 폴더 CRUD + 쿼리            |
+| `category`    | `entities/category/`        | 카테고리 옵션 조회                 |
+| `auth`        | `entities/auth/`            | 로그인·로그아웃·회원가입·세션 복원 |
+| `account`     | `entities/account/`         | 내 계정 프로필 조회·수정           |
+| `user`        | `entities/user/`            | 공개 사용자 표현(UserAvatar)       |
 
 | Widget               | 위치                                   | 설명                                          |
 | -------------------- | -------------------------------------- | --------------------------------------------- |
@@ -358,8 +371,8 @@ export const handleCommentCreateSuccess = (queryClient: QueryClient, postId: Pos
 아니라 "어떤 캐시가 영향받는가"로 정한다 — 트리거가 다른 엔티티(post 삭제, 좋아요/북마크
 토글)여도 영향받는 캐시를 소유한 엔티티(folder)가 핸들러를 호스팅할 수 있다
 (`bookmark-folder.keys.ts`의 `handlePostDeleteSuccess`, `handleBookmarkToggleSuccess`). 참고
-파일: `comment.keys.ts`, `bookmark-folder.keys.ts`, `auth.keys.ts`(`handleAccountUpdateSuccess`,
-`handleAuthRestoreSuccess`).
+파일: `comment.keys.ts`, `bookmark-folder.keys.ts`, `account.keys.ts`(`handleAccountUpdateSuccess`),
+`auth.keys.ts`(`handleAuthRestoreSuccess`).
 
 ### Layer 3 — `<entity>.queries.ts` (얇은 React Query 래퍼)
 
