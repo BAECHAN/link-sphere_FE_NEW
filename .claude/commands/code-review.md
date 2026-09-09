@@ -20,7 +20,7 @@ Reference files for correct patterns:
 ### Architecture (Layer Separation)
 
 - [ ] API calls only in `<entity>.api.ts` — not in hooks, not in components
-- [ ] React Query hooks only in `<entity>.queries.ts` — not in feature hooks, not in UI
+- [ ] React Query hooks (`use*Query`/`use*Mutation`) are **defined** only in `<entity>.queries.ts`; feature/widget hooks **calling** them is the normal pattern — what's disallowed is a `features/**/ui/**` component calling them directly instead of going through its slice's `hooks/` or an `entities/<entity>/hooks/` shared hook (widgets get a documented exception for a single trivial-derivation query, see FE-ARCHITECTURE §8)
 - [ ] Business logic (form, navigation, confirm dialogs) only in feature hooks
 - [ ] UI components are thin — call one hook, render JSX, nothing else
 - [ ] Zod schemas and types only in `entities/<entity>/model/<entity>.schema.ts`

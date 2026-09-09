@@ -290,6 +290,7 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
 - **Never** 다른 엔티티의 raw 쿼리 키를 재구성해 `queryClient.invalidateQueries`를 직접 호출 → 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()` 래퍼만 사용. 크로스 엔티티 무효화가 필요하면 자기 엔티티의 `.keys.ts`에 `handle<Event>Success` 함수를 만들어 그 안에서 호출한다 (아래 "크로스 엔티티 무효화" 참고)
 - **Never** 하위 레이어에서 상위 레이어 import → ESLint 강제 (레이어 방향 위반)
 - **Never** 날짜 처리에 `new Date()` / `.getTime()` 직접 사용 → 항상 `dayjs` 사용 (`dayjs(value).valueOf()`, `dayjs().format()` 등). ESLint `no-restricted-syntax`로 강제된다(`eslint.config.js`) — 2026-03-15에 이 규칙이 추가된 뒤로도 문서 규칙에만 의존해 5개월간 위반이 안 잡혔던 사례(`entities/folder/model/useRecentFolders.ts`, 2026-08-12 작성 — 이후 `entities/bookmark/folder/hooks/`로 이동)가 있어 2026-09-08 ESLint로 승격
+- **Never** `features/**`의 `hooks/` 밖(주로 `ui/`)에서 entity 쿼리 훅(`*.queries`) 직접 import → 조회는 자기 슬라이스의 `hooks/` 커스텀 훅이나 `entities/<entity>/hooks/`의 공용 훅(예: `useCategoryOptions`)에서 한다. `custom-query-rules/no-direct-query-import`는 `@tanstack/react-query` 직접 import만 막아 entity가 감싼 `*.queries` 훅 호출까지는 못 잡았고, 그 사이 `CreatePostForm.tsx`·`UpdatePostForm.tsx`가 `useFetchCategoryOptionQuery()`를 UI에서 직접 호출하는 게 5개월 넘게(dayjs 규칙과 같은 패턴) 안 잡혔다 — 2026-09-09 `custom-query-rules/no-entity-query-import-outside-hooks`로 승격(features 한정, widgets는 §8 예외라 대상 아님)
 - **Never** 대상 파일 양식 무시하고 코드 생성 → 항상 붙여넣을 파일(및 인접 코드)을 **먼저 읽고** 들여쓰기·네이밍·import 순서·따옴표·주석 밀도·정렬을 그대로 맞춘다. 본인 스타일을 강요하거나 기존 코드를 재포맷하지 않는다
 - **Never** raw HTML 요소로 UI를 일회성 구현 → 항상 공통 컴포넌트(`shared/ui/atoms`·`elements`·`widgets`) 우선. 반복되는 UI는 공통 컴포넌트를 만들거나 기존 것을 사용해 디자인을 단일 관리한다 (예: 버튼은 raw `<button>` 대신 `Button` 컴포넌트). 신규 코드 기준
 - **Never** `shared/ui/atoms`·`elements`에 컴포넌트를 추가하거나 시각적으로 변경하고 스토리 없이 커밋 → 항상 같은 커밋에 `<Component>.stories.tsx`를 함께 만들거나 갱신한다. `.storybook/main.ts`의 글롭이 `src/**/*.stories.tsx`를 자동 인식하므로 파일만 만들면 된다 (예시: `checkbox.tsx`+`checkbox.stories.tsx`, `switch.tsx`+`switch.stories.tsx`)
@@ -469,7 +470,7 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 | ---------------------------------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------- |
 | 3-Layer API (`*.api.ts` → `*.keys.ts` → `*.queries.ts`) + 크로스 엔티티 무효화     | §5   | 레이어를 건너뛰거나 합치지 않는다. 다른 엔티티 캐시는 그 엔티티의 `InvalidateQueries` 래퍼로만 |
 | Feature Hook (`hooks/`에 로직 전부, `ui/`는 JSX만)                                 | §6   | UI 파일은 훅 호출 + 렌더링만                                                                   |
-| Widget Hook (entity query 조합 + 파생 상태, mutation 없음)                         | §8   | query 1개 + trivial 파생만이면 컴포넌트에서 직접 사용                                          |
+| Widget Hook (entity query 조합 + 파생 상태, mutation 없음)                         | §8   | query 1개 + trivial 파생만이면 컴포넌트에서 직접 사용 (widgets 한정, features는 §6 예외 없음)  |
 | Zod Schema (`z.infer`로 타입 파생)                                                 | §9   | `nullable()`=null 허용, `optional()`=undefined 허용                                            |
 | Delete with Confirm                                                                | §10  | native `confirm()` 금지, 항상 `useAlert` + `openConfirm`                                       |
 | Optimistic Update (`onMutate` → `cancelQueries` → `setQueryData` → 롤백)           | §11  | 참조 구현: `entities/interaction/api/interaction.queries.ts`                                   |

@@ -6,13 +6,13 @@ import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { FormCheckboxGroup } from '@/shared/ui/elements/form/FormCheckboxGroup';
 import { FormCheckbox } from '@/shared/ui/elements/form/FormCheckbox';
 import { PostCreateBookmarkFolderField } from '@/features/post/create/ui/PostCreateBookmarkFolderField';
-import { useFetchCategoryOptionQuery } from '@/entities/category/api/category.queries';
+import { useCategoryOptions } from '@/entities/category/hooks/useCategoryOptions';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
 
 export function CreatePostForm() {
   const { form, onSubmit, isCreating } = useCreatePost();
-  const { data: categoryOptionList } = useFetchCategoryOptionQuery();
+  const { categoryOptionList } = useCategoryOptions();
 
   const {
     formState: { isDirty, isValid },
@@ -49,7 +49,7 @@ export function CreatePostForm() {
               <FormCheckboxGroup
                 name="categoryIds"
                 label={TEXTS.post.form.create.categoryLabel}
-                options={categoryOptionList ?? []}
+                options={categoryOptionList}
               />
 
               <PostCreateBookmarkFolderField />
