@@ -116,7 +116,12 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
           {isOwner && (
             <DropdownMenu modal={false} open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7 md:h-8 md:w-8">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 md:h-8 md:w-8"
+                  aria-label={TEXTS.ariaLabels.postMenu}
+                >
                   <MoreVertical className="h-3 w-3 md:h-4 md:w-4" />
                 </Button>
               </DropdownMenuTrigger>
