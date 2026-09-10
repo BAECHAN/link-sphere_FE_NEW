@@ -63,6 +63,14 @@
 
 ### Fixed
 
+- `post` 북마크 요청이 실패했을 때 목록 화면의 북마크 상태가 원복되지 않던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  좋아요 mutation과 같은 종류의 구멍이었다(바로 아래 `postLikeRollback` 항목 참고) — `useBookmarkPostMutation`도 `onMutate`에서 메인 피드 목록 캐시(`postKeys.listRoot`)를 직접 패치하지만 `onError`는 그 스냅샷을 안 남겨 롤백하지 못했다. 이미 이 파일 안에 있던 폴더별 게시글 캐시(`bookmarkFolderKeys.postsRoot`) 롤백 패턴을 메인 피드 목록에도 똑같이 적용했다. 좋아요 mutation을 고치며 우연히 발견해, 같은 세션에서 이어서 수정했다.
+  (`entities/interaction/api/interaction.queries.ts`, `entities/interaction/api/interaction.queries.test.ts`)
+
+  </details>
+
 - `post` 좋아요 요청이 실패했을 때 목록 화면의 좋아요 상태가 원복되지 않던 문제 수정
   <details><summary>배경·구현</summary>
 
