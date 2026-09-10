@@ -1,4 +1,9 @@
 ### 2026-09-10 (FE)
+- 문서화 체계 정비 및 자동화 검사 범위 확대
+  - 레포지토리 전반의 주석 및 문서 오류 현행화
+  - check-docs.js 검사 로직 개선을 통한 문서 품질 관리 범위 확장 ([#70](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/70))
+
+### 2026-09-10 (FE)
 - 북마크 mutation 실패 시 목록 캐시 데이터 정합성 유지를 위한 롤백 로직 추가 ([#69](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/69))
 
 ### 2026-09-10 (FE)
