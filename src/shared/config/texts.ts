@@ -347,7 +347,6 @@ export const TEXTS = {
       accountCreateFailedDuplicateAccount: '해당 이메일로 가입된 계정이 존재해요.',
       accountUpdateFailed: '프로필 업데이트에 실패했어요.',
       nicknameDuplicate: '이미 사용 중인 닉네임이에요.',
-      avatarUploadFailed: '이미지 업로드에 실패했어요.',
 
       // 포스트 관련
       postCreateFailed: '포스트 생성에 실패했어요.',
@@ -377,6 +376,7 @@ export const TEXTS = {
 
       // 유틸
       linkCopyFailed: '링크 복사에 실패했어요.',
+      imageUploadFailed: '이미지 업로드에 실패했어요.',
     },
   },
   unsavedChanges: {
