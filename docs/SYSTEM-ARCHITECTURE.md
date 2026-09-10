@@ -142,7 +142,7 @@ flowchart TB
     FeatureHooks["features/*/hooks (use*.ts)"]
     FeatureUI --> FeatureHooks
   end
-  subgraph common [Domain _common]
+  subgraph common [Entities]
     Queries["*.queries.ts useQuery/useMutation"]
     Keys["*.keys.ts keys + invalidate + success handlers"]
     Api["*.api.ts async fetch"]
