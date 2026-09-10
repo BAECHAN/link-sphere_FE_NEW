@@ -34,6 +34,11 @@ coverage
 *storybook.log
 storybook-static
 
+# === Playwright e2e 산출물 ===
+test-results/
+playwright-report/
+blob-report/
+
 # === Claude Code worktrees (동시 세션 격리) ===
 .claude/worktrees/
 

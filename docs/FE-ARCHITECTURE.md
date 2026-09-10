@@ -838,6 +838,7 @@ pnpm check:fix      # lint:fix + format + type-check
 pnpm test           # Vitest 테스트 실행 (CI)
 pnpm test:watch     # Vitest 테스트 감시 모드
 pnpm test:coverage  # 커버리지 리포트
+pnpm test:e2e       # Playwright e2e (chromium, docs/TESTING.md §13)
 pnpm storybook      # Storybook (port 6006)
 ```
 
