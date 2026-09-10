@@ -674,6 +674,42 @@ _"they run in the order opposite to their registration"_). 캐치올을 가장 �
 업로드된다 — 다운로드해 `npx playwright show-report`로 그대로 열어보면 CI에서 무엇이
 실패했는지 로컬에서 재현 없이 확인할 수 있다.
 
+### 결과를 눈으로 확인하는 방법
+
+**HTML 리포트** (`npx playwright show-report`)는 `playwright-report/`를 서빙하는
+로컬 정적 서버를 띄운다(기본 `localhost:9323`). **재실행 후에도 서버를 새로 켤 필요는
+없다** — 같은 폴더를 계속 서빙 중이므로 `pnpm test:e2e`(또는 `pnpm exec playwright
+test`)를 다시 돌려 리포트 파일이 갱신되면, 브라우저 탭에서 새로고침만 해도 최신 결과가
+보인다(2026-09-10, 예전 실행 시점의 리포트를 보고 있어 스펙이 일부만 보인다고 헷갈렸던
+사례 — 서버를 새로 켜는 게 아니라 새로고침이 빠져 있었다).
+
+**브라우저 창으로 직접 보고 싶을 때**:
+
+```bash
+pnpm exec playwright test --headed   # 실제 Chromium 창이 뜨고 클릭하는 걸 그대로 본다
+pnpm exec playwright test --ui       # Playwright UI 모드 — 스텝별 타임라인을 되감아가며 확인, 가장 자세히 보고 싶을 때 추천
+```
+
+**느린 속도로 녹화해서 IDE 탭에서 재생하고 싶을 때** — 기본 설정(`use.video:
+'on-first-retry'`)은 통과하는 테스트엔 영상을 안 남긴다. 항상 녹화하고, 액션 사이
+간격을 눈으로 따라갈 수 있게 하려면 `playwright.config.ts`를 **일시적으로**(영구
+설정으로 두지 않는다 — 모든 실행이 느려진다) 아래처럼 바꿔 돌린 뒤 원복한다:
+
+```ts
+use: {
+  // ...
+  video: 'on',
+  launchOptions: { slowMo: 1000 }, // 액션 사이 1초 대기
+},
+```
+
+결과 영상은 `test-results/<테스트명>/video.webm`에 생긴다. `open -a "Cursor" <경로>`
+(또는 `cursor <경로>`)로 열면 별도 창이 아니라 **IDE 탭에서 재생**된다 —
+`browser-verification` skill이 세션 검증 영상에 쓰는 것과 같은 이유(창이 따로 뜨면
+정신없다는 피드백)다. 재생이 안 되면(빈 화면·재생 버튼 없음) 그 skill의 "알려진
+제약"과 같은 원인(Playwright는 VP8 코덱 webm 전용)이니 같은 방식(ffmpeg 변환 또는
+스크린샷 대체)으로 대응한다.
+
 ---
 
 ## 자주 발생하는 문제
