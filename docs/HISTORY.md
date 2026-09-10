@@ -1,4 +1,7 @@
 ### 2026-09-10 (FE)
+- E2E 테스트 커버리지 확대 및 폴더 삭제 시 발생하는 오탐지 확인창 버그 수정 ([#76](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/76))
+
+### 2026-09-10 (FE)
 - E2E 테스트 자동화 인프라 구축 및 핵심 비즈니스 로직(Tier 1) 시나리오 4종 도입 ([#75](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/75))
 
 ### 2026-09-10 (FE)
