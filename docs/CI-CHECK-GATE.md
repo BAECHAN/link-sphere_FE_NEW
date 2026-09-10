@@ -89,7 +89,8 @@ ESLint·Prettier·pre-commit 훅(`lint-staged`)의 기본 동작(무엇을 검�
 | PR                           | **워크플로우 없음**                              | ❌                                   |
 
 `.claude/worktrees/`는 `.gitignore`에 있지만, **ESLint/Prettier는 `.gitignore`를
-자동으로 읽지 않는다**(flat config 기준 — ESLint 공식 문서로 확인). 그 안의
+자동으로 읽지 않는다**(flat config 기준 — [ESLint Ignore Files 공식 문서](https://eslint.org/docs/latest/use/configure/ignore)로
+확인). 그 안의
 워크트리(`node-lts-update`, 8월 31일 마지막 커밋 이후 방치)에 남아있던
 `dist/assets/js/vendor-*.js`(react-vendor 등 minified 번들)가 `eslint.config.js`의
 ignore 패턴(`'dist/**/*'`, 루트 상대 경로)에 안 걸려서 그대로 린트 대상이
