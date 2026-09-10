@@ -4,6 +4,13 @@ import fs from 'fs';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// BE 레포(history-dispatch.yml)는 payload에 레포 slug를 보내지 않으므로 여기서 직접 안다.
+// 출처: 각 레포의 `git remote -v` (2026-09-10 확인)
+const REPO_SLUGS = {
+  FE: 'BAECHAN/link-sphere_FE_NEW',
+  BE: 'BAECHAN/link-sphere_BE_NEW',
+};
+
 async function main() {
   // 1. 커밋 로그 가져오기
   // BE 레포(history-dispatch.yml)가 repository_dispatch로 이미 계산해서 보낸 로그가 있으면
@@ -102,6 +109,14 @@ async function main() {
     aiResponse = aiResponse.slice(headerIndex);
   }
   aiResponse = aiResponse.trim();
+
+  // squash merge 커밋 제목의 "(#61)" 꼬리표가 Gemini 요약에 그대로 실려 온다.
+  // 평문이라 클릭이 안 되므로 PR 링크로 바꾼다. 출처 레포(FE/BE)에 따라 대상이 다르다.
+  const repoSlug = REPO_SLUGS[sourceLabel] ?? REPO_SLUGS.FE;
+  aiResponse = aiResponse.replace(
+    /\(#(\d+)\)/g,
+    (_, prNumber) => `([#${prNumber}](https://github.com/${repoSlug}/pull/${prNumber}))`
+  );
 
   // 3. docs/HISTORY.md 파일 상단에 추가
   const currentHistory = fs.readFileSync('docs/HISTORY.md', 'utf8');

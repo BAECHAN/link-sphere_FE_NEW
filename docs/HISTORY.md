@@ -1,11 +1,11 @@
 ### 2026-09-10 (FE)
-- 조회 로딩 인디케이터에 지연 게이트(delay gate)를 적용하여 일관된 사용자 경험 제공 (#61)
+- 조회 로딩 인디케이터에 지연 게이트(delay gate)를 적용하여 일관된 사용자 경험 제공 ([#61](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/61))
 
 ### 2026-09-09 (FE)
-- 카테고리 옵션 데이터 관리 로직을 UI 컴포넌트에서 공용 엔티티 훅으로 분리하여 코드 재사용성 및 유지보수성 개선 (#55)
+- 카테고리 옵션 데이터 관리 로직을 UI 컴포넌트에서 공용 엔티티 훅으로 분리하여 코드 재사용성 및 유지보수성 개선 ([#55](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/55))
 
 ### 2026-09-09 (FE)
-- 인증 시스템 구조 개선 및 엔티티 분리 (#52)
+- 인증 시스템 구조 개선 및 엔티티 분리 ([#52](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/52))
 
 ### 2026-09-09 (FE)
 - 배포 후 새 버전 감지 시 페이지 이동 시점에 자동 새로고침 로직 구현
@@ -17,10 +17,10 @@
 - CHANGELOG 폴백 순서 문서 오기 수정 및 장애 상황 문서화 완료
 
 ### 2026-09-09 (FE)
-- 링크 등록 및 수정 폼의 URL 입력란 내 브라우저 자동완성 기능을 비활성화하여 사용자 경험 개선 (#50)
+- 링크 등록 및 수정 폼의 URL 입력란 내 브라우저 자동완성 기능을 비활성화하여 사용자 경험 개선 ([#50](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/50))
 
 ### 2026-09-08 (FE)
-- QueryClient 의존성 관리 최적화 및 React Query import 구조 개선 (#48)
+- QueryClient 의존성 관리 최적화 및 React Query import 구조 개선 ([#48](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/48))
 
 ### 2026-09-08 (FE)
 - 북마크 도메인 코드 구조 개선 및 파일명 표준화 반영
@@ -28,54 +28,54 @@
 ### 2026-09-08 (FE)
 - 핵심 로직 및 인증 경로 안정성 강화를 위한 선별적 테스트 코드 도입
 로그:
-- test: 고위험 공백에 선별적 테스트 추가 (순수 함수·인증 경로·folder-tree 훅) (#45)
+- test: 고위험 공백에 선별적 테스트 추가 (순수 함수·인증 경로·folder-tree 훅) ([#45](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/45))
 
 ### 2026-09-08 (FE)
-- 북마크 엔티티 명칭 변경을 통한 코드 가독성 및 일관성 개선 (#46)
+- 북마크 엔티티 명칭 변경을 통한 코드 가독성 및 일관성 개선 ([#46](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/46))
 
 ### 2026-09-08 (FE)
-- 북마크 기능 내 폴더 배열 변수(folderList) 명명 통일 및 불필요한 코드 제거를 통한 코드베이스 최적화 (#44)
+- 북마크 기능 내 폴더 배열 변수(folderList) 명명 통일 및 불필요한 코드 제거를 통한 코드베이스 최적화 ([#44](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/44))
 
 ### 2026-09-08 (FE)
 - 북마크 엔티티 폴더 내 선택 엔진 컴포넌트 명칭 변경 (Picker → Select)
 
 ### 2026-09-08 (FE)
-- 북마크 폴더 선택 컴포넌트 리팩토링 및 설정 파일 명명 규칙 통일 (#42)
+- 북마크 폴더 선택 컴포넌트 리팩토링 및 설정 파일 명명 규칙 통일 ([#42](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/42))
 
 ### 2026-09-08 (FE)
 - bookmark 도메인 구조 최적화 및 코드베이스 리팩토링
-  - 기존 post/bookmark 액션 슬라이스를 bookmark 전용 도메인 그룹으로 승격하여 관리 효율성 및 모듈화 개선 (#41)
+  - 기존 post/bookmark 액션 슬라이스를 bookmark 전용 도메인 그룹으로 승격하여 관리 효율성 및 모듈화 개선 ([#41](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/41))
 
 ### 2026-09-08 (FE)
-- shared 패키지 내 유틸리티 함수들을 클래스 및 정적 메서드 패턴으로 리팩토링하여 코드 구조 및 유지보수성 개선 (#39)
+- shared 패키지 내 유틸리티 함수들을 클래스 및 정적 메서드 패턴으로 리팩토링하여 코드 구조 및 유지보수성 개선 ([#39](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/39))
 
 ### 2026-09-08 (FE)
-- 공통 스키마 및 타입 구조 최적화: `common.schema.ts`를 `entities/category`와 `shared/types`로 분리하여 모듈 의존성 개선 및 유지보수성 향상 (#38)
+- 공통 스키마 및 타입 구조 최적화: `common.schema.ts`를 `entities/category`와 `shared/types`로 분리하여 모듈 의존성 개선 및 유지보수성 향상 ([#38](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/38))
 
 ### 2026-09-08 (FE)
 - 프로젝트 구조 개선 및 리팩토링 진행
-  - `entities/upload` 모듈을 `shared` 계층으로 이동하여 아키텍처 의존성 재정립 (#37)
+  - `entities/upload` 모듈을 `shared` 계층으로 이동하여 아키텍처 의존성 재정립 ([#37](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/37))
 
 ### 2026-09-08 (FE)
-- 테스트 파일 명명 규칙 표준화: *Queries.test.tsx 파일을 소스 파일과 일치하는 dot-case .ts 형식으로 리팩터링 (#36)
+- 테스트 파일 명명 규칙 표준화: *Queries.test.tsx 파일을 소스 파일과 일치하는 dot-case .ts 형식으로 리팩터링 ([#36](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/36))
 
 ### 2026-09-08 (FE)
-- 북마크 폴더 선택 로직 모듈화 및 네이밍 리팩토링 (#35)
+- 북마크 폴더 선택 로직 모듈화 및 네이밍 리팩토링 ([#35](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/35))
 
 ### 2026-09-08 (FE)
-- 북마크 엔티티 폴더 구조 그룹화 및 훅 세그먼트 재배치를 통한 코드 리팩토링 (#34)
+- 북마크 엔티티 폴더 구조 그룹화 및 훅 세그먼트 재배치를 통한 코드 리팩토링 ([#34](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/34))
 
 ### 2026-09-08 (FE)
-- shared 아키텍처 내 entities 세그먼트 규칙 명문화 및 dayjs 사용 규격화를 위한 ESLint 규칙 강제 적용 (#33)
+- shared 아키텍처 내 entities 세그먼트 규칙 명문화 및 dayjs 사용 규격화를 위한 ESLint 규칙 강제 적용 ([#33](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/33))
 
 ### 2026-09-08 (FE)
-- 게시글 제목 수정 시 링크로부터 제목을 재추출한다는 안내 문구를 추가하여 사용자 경험 개선 (#31)
+- 게시글 제목 수정 시 링크로부터 제목을 재추출한다는 안내 문구를 추가하여 사용자 경험 개선 ([#31](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/31))
 
 ### 2026-09-08 (BE)
 - 게시글 수정 시 제목 필드가 비어있을 경우 YouTube 영상 제목으로 자동 저장되던 오류 수정
 
 ### 2026-09-07 (FE)
-- Storybook 설정 파일이 tsconfig 프로젝트에 포함되도록 빌드 설정 수정 (#29)
+- Storybook 설정 파일이 tsconfig 프로젝트에 포함되도록 빌드 설정 수정 ([#29](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/29))
 
 ### 2026-09-07 (FE)
 - 문서 정합성 강화 및 아키텍처 기술 부채 정리
@@ -91,7 +91,7 @@
 - 관련 기술 검토 결과 및 변경 사항 문서화 보완
 
 ### 2026-09-07 (FE)
-- 검색 기능 개선: 검색 실행 후 헤더 검색창 내 검색어 유지 상태를 유지하도록 수정 (#24)
+- 검색 기능 개선: 검색 실행 후 헤더 검색창 내 검색어 유지 상태를 유지하도록 수정 ([#24](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/24))
 
 ### 2026-09-06 (FE)
 - WAF 차단 시 발생하는 오류 응답을 명확히 식별할 수 있도록 에러 핸들링 로직 개선
@@ -170,7 +170,7 @@
 - 봇 글 숨기기 설정을 localStorage 기반의 사용자 개인 설정으로 전환하여 상태 유지 기능 구현
 
 ### 2026-09-03 (FE)
-- Node LTS 버전을 24로 업그레이드하여 빌드 및 런타임 환경 최적화 (#17)
+- Node LTS 버전을 24로 업그레이드하여 빌드 및 런타임 환경 최적화 ([#17](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/17))
 
 ### 2026-09-03 (FE)
 - pnpm check 빌드 검증 로직 최적화 및 CI 파이프라인 배포 게이트 도입
