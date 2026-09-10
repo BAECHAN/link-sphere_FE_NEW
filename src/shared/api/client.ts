@@ -54,7 +54,9 @@ class ApiClient {
 
   private isAuthEndpoint(endpoint: string): boolean {
     // 토큰이 만료되어도 401에러가 뜨지 않고 통과되어야 하는 API 목록
-    // 로그인, 회원가입, 리프레시 요청은 인증 헤더 없이 호출 가능해야 함 (혹은 리프레시는 쿠키 사용)
+    // 로그인·회원가입만 포함한다 — 리프레시(/auth/refresh)는 이 목록에 없어 만료된
+    // Authorization 헤더가 있으면 그대로 실려 나간다. BE가 이 엔드포인트를 permitAll로
+    // 두고 헤더를 무시한다는 전제로 현재는 무해하나 BE 소스 미검증. 상세: docs/AUTH.md §11
     const authEndpoints = [API_ENDPOINTS.auth.login, API_ENDPOINTS.auth.signup];
     return authEndpoints.some((path) => endpoint.includes(path));
   }
