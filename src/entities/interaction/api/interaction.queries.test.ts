@@ -2,14 +2,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { createElement, type ReactNode } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, type InfiniteData } from '@tanstack/react-query';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { createTestQueryClient } from '@/test/utils';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
-import type { Post } from '@/entities/post/model/post.schema';
+import type { Post, PostListResponse } from '@/entities/post/model/post.schema';
 import type { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { useBookmarkPostMutation } from '@/entities/interaction/api/interaction.queries';
 
@@ -143,7 +143,7 @@ describe('useBookmarkPostMutation', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
   });
 
-  it('서버 에러 시 post.detail과 folder.list를 롤백한다', async () => {
+  it('서버 에러 시 post.detail·post.list·folder.list를 롤백한다', async () => {
     server.use(
       http.post(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () =>
         HttpResponse.json(
@@ -164,6 +164,23 @@ describe('useBookmarkPostMutation', () => {
     };
     queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
     queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList());
+    // 메인 피드 목록에도 같은 글이 캐시돼 있는 상태를 재현한다 — onMutate가
+    // postKeys.listRoot를 직접 패치하는데, 이걸 스냅샷 없이 onError에서 안 돌려놓는
+    // 구멍이 있었다(useLikePostMutation과 같은 종류, 2026-09-10 발견·수정).
+    const seededList: InfiniteData<PostListResponse> = {
+      pages: [
+        {
+          page: 0,
+          size: 10,
+          content: [seededPost],
+          totalElements: 1,
+          totalPages: 1,
+          last: true,
+        },
+      ],
+      pageParams: [0],
+    };
+    queryClient.setQueryData(postKeys.list(), seededList);
 
     const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
 
@@ -177,6 +194,11 @@ describe('useBookmarkPostMutation', () => {
     expect(post?.userInteractions.isBookmarked).toBe(true);
     expect(post?.userInteractions.bookmarkFolderIds).toEqual([FOLDER_A, FOLDER_B]);
     expect(post?.stats.bookmarkCount).toBe(10);
+
+    const list = queryClient.getQueryData<InfiniteData<PostListResponse>>(postKeys.list());
+    const listedPost = list?.pages[0]?.content.find((p) => p.id === POST_ID);
+    expect(listedPost?.userInteractions.isBookmarked).toBe(true);
+    expect(listedPost?.stats.bookmarkCount).toBe(10);
 
     const folders = queryClient.getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list);
     expect(folders?.folders.find((f) => f.id === FOLDER_A)?.bookmarkCount).toBe(2);

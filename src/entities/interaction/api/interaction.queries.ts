@@ -101,6 +101,11 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
       await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.postsRoot });
 
       const previousPost = queryClient.getQueryData<Post>(postKeys.detail(postId));
+      // 메인 피드 목록 스냅샷 — onError 롤백용. useLikePostMutation과 같은 이유로 같은
+      // 종류의 구멍이 있었다(패치만 하고 onError 복원 목록엔 없었음, 2026-09-10 발견).
+      const previousLists = queryClient.getQueriesData<InfiniteData<PostListResponse>>({
+        queryKey: postKeys.listRoot,
+      });
       const previousFolderPosts = queryClient.getQueriesData<InfiniteData<PostListResponse>>({
         queryKey: bookmarkFolderKeys.postsRoot,
       });
@@ -227,7 +232,7 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
         });
       }
 
-      return { previousPost, previousFolderPosts, previousFolderList };
+      return { previousPost, previousLists, previousFolderPosts, previousFolderList };
     },
     onSuccess: () => {
       handleBookmarkToggleSuccess(queryClient);
@@ -239,6 +244,9 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
       if (context?.previousFolderList) {
         queryClient.setQueryData(bookmarkFolderKeys.list, context.previousFolderList);
       }
+      context?.previousLists?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
       context?.previousFolderPosts?.forEach(([key, data]) => {
         queryClient.setQueryData(key, data);
       });
