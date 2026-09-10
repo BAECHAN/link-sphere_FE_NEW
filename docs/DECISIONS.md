@@ -100,6 +100,7 @@
 신규 테스트: `useDelayedLoading.test.ts`, `useMinimumLoading.test.ts`, `DelayedFallback.test.tsx`.
 
 **후속**: 북마크 폴더/정렬 전환 `keepPreviousData` 검토, 스켈레톤 가이드라인 개별 출처 확정.
+
 ## 2026-09-10 — 외부 인용을 "우리가 직접 겪은 것"처럼 쓰지 않기 (CLAUDE.md §10 확장)
 
 **배경**
