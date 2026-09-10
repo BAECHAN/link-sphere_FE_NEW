@@ -40,7 +40,7 @@
 - `post` 검색 실행 후에도 헤더 검색창에 검색어가 그대로 유지됨
   <details><summary>배경·구현</summary>
 
-  지금까지는 헤더 검색창에서 검색을 실행하면 입력값이 즉시 비워졌는데, 이는 데스크톱 33%·모바일 42%만 검색어를 비우는 소수파 관행이었고([Baymard 가이드라인 #346](https://baymard.com/blog/persist-search-queries)) 같은 앱의 북마크 검색과도 동작이 달랐다. 헤더 검색창이 게시글 목록(`/post`) URL의 검색어(`q`)를 되비추도록 동기화 훅을 추가했다. 북마크 페이지도 같은 이름의 `q` 파라미터를 쓰기 때문에 `/post`에 있을 때만 미러하도록 경로를 가렸고, `@카테고리`·`#닉네임` 태그가 섞인 원본 검색어를 그대로 보여준다. 데스크톱 제출에는 trim을 추가했고, `/` 단축키로 포커스할 때 기존 검색어가 전체 선택되도록 해 새 검색을 바로 시작할 수 있게 했다. X 버튼은 Google·네이티브 `<input type="search">` 관행을 따라 입력값만 비우고 검색 결과는 그대로 둔다.
+  지금까지는 헤더 검색창에서 검색을 실행하면 입력값이 즉시 비워졌는데, 이는 데스크톱 33%·모바일 42%만 검색어를 비우는 소수파 관행이었고([Baymard 가이드라인 #346](https://baymard.com/blog/persist-search-queries)) 같은 앱의 북마크 검색과도 동작이 달랐다. 헤더 검색창이 게시글 목록(`/post`) URL의 검색어(`q`)를 되비추도록 동기화 훅을 추가했다. 북마크 페이지도 같은 이름의 `q` 파라미터를 쓰기 때문에 `/post`에 있을 때만 미러하도록 경로를 가렸고, `@카테고리`·`#닉네임` 태그가 섞인 원본 검색어를 그대로 보여준다. 데스크톱 제출에는 trim을 추가했고, `/` 단축키로 포커스할 때 기존 검색어가 전체 선택되도록 해 새 검색을 바로 시작할 수 있게 했다. X 버튼은 [Google](https://9to5google.com/2019/11/12/google-search-clear-text-desktop/)·네이티브 `<input type="search">` 관행을 따라 입력값만 비우고 검색 결과는 그대로 둔다.
   (`widgets/layout/navbar/hooks/useNavbarSearch.ts`(신규), `NavbarSearch.tsx`, `MobileNavbarSearch.tsx`, `docs/SEARCH.md`(신규), [PR #24](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/24))
 
   </details>
@@ -188,13 +188,14 @@
   카테고리 칩·범위 필터 칩 3개·봇 글 숨기기 스위치·초기화 버튼이 세로 구분선
   2개만 사이에 두고 한 줄 `flex-wrap`에 평평하게 나열돼 있어, 줄바꿈 위치에 따라
   구분선이 줄 끝/시작에 걸려 그룹 경계 역할을 잃고 초기화 버튼 위치도 매번
-  달라졌다. GitHub Issues·Linear의 그룹 구분선 패턴(Baymard 사용성 테스트: 적용
-  필터 개요를 상단에 명확히 두지 않는 사이트가 42%)을 참고해 검색바 → 카테고리 →
+  달라졌다. GitHub Issues·Linear의 그룹 구분선 패턴([Baymard — Applied Filters](https://baymard.com/blog/how-to-design-applied-filters):
+  적용 필터 개요를 상단에 명확히 두지 않는 사이트가 42%)을 참고해 검색바 → 카테고리 →
   범위 필터 → 봇 숨기기 → "조건 N개 적용 중"+초기화 순으로 행을 나누고, 경계는
   텍스트 라벨 없이 `border-t`만 사용했다. 가로 스크롤은 쓰지 않기로 하고
   (GitLab이 검색 토큰 가로 스크롤에 대해 반복적으로 wrap 요청을 받은 사례),
-  모바일에서만 카테고리를 앞 4개로 접고 `+N` 버튼으로 펼치되(Material 3 chip
-  overflow 가이드), 그 값은 `useState`가 아니라 `categories`·`searchInput`의
+  모바일에서만 카테고리를 앞 4개로 접고 `+N` 버튼으로 펼치되([Material Design 3
+  Chips](https://m3.material.io/components/chips/accessibility) 가이드), 그 값은
+  `useState`가 아니라 `categories`·`searchInput`의
   파생값으로 계산해 카테고리 쿼리가 늦게 도착해도 깜빡이지 않게 했다. 카테고리
   칩 라벨에 `@`를 노출해 검색어 토큰(필터가 아님)임을 드러내면서, 선택 판정을
   기존 부분문자열 매칭(`@AI개발` 입력 시 `@AI` 칩이 오탐으로 켜지던 문제)에서
@@ -230,8 +231,9 @@
   placeholder 잘림 문제도 이 카드에서는 아예 사라졌다(헤더 검색창은 폭이
   넉넉함). 또한 지난 세션에서 승인했던 모바일 칩 터치 타깃 확대(28px→44px)를
   사용자 확인 후 28px로 되돌렸다 — 데스크톱과 시각적으로 통일하기 위한
-  의도적 트레이드오프(WCAG 최소 기준인 24px는 여전히 만족, 44px 권장 기준은
-  포기).
+  의도적 트레이드오프([WCAG 2.2 SC 2.5.8 Target Size Minimum, AA](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum)의
+  24px는 여전히 만족, [SC 2.5.5 Target Size Enhanced, AAA](https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced)의
+  44px는 포기).
   (`PostListSearch.tsx`, `FilterChip.tsx`, `docs/DECISIONS.md`)
 
   **재보정**: 이 리팩터링에서 봇 스위치 행의 클래스를 건드리며 바로 위 "여백만"
@@ -596,10 +598,12 @@
 - `bookmark` 폴더 목록에 "최근 저장한 폴더" 상단 구획 추가 (split menu 방식)
   <details><summary>배경·구현</summary>
 
-  폴더 순서를 고정할지 최근 사용순으로 올릴지 반복되던 고민에 대한 결론. Sears &
-  Shneiderman의 split menu 연구를 따라, 최근에 저장한 폴더 최대 3개를 상단에 별도로
-  보여주되 아래 본 목록 순서는 절대 바꾸지 않는다(위치가 계속 바뀌는 전체 재정렬 방식은
-  MS Office 2000 "개인화 메뉴"가 예측 불가능성 때문에 폐기된 선례가 있어 기각). 상단
+  폴더 순서를 고정할지 최근 사용순으로 올릴지 반복되던 고민에 대한 결론. [Sears &
+  Shneiderman(1994)](https://dl.acm.org/doi/10.1145/174630.174632)의 split menu
+  연구를 따라, 최근에 저장한 폴더 최대 3개를 상단에 별도로 보여주되 아래 본 목록
+  순서는 절대 바꾸지 않는다(위치가 계속 바뀌는 전체 재정렬 방식은 [MS Office의
+  개인화 메뉴](https://learn.microsoft.com/en-us/archive/blogs/jensenh/the-end-of-personalized-menus)가
+  예측 불가능성 때문에 Office 12(2007)에서 기본값이 꺼진 선례가 있어 기각). 상단
   폴더도 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 — 빼면 본 목록의 나머지 위치가
   흔들려 공간기억이 깨지기 때문. 노출 조건은 폴더 6개 이상 + 저장 이력 있는 폴더 3개
   이상일 때만, 모달이 열려 있는 동안(또는 페이지 방문 동안)은 스냅샷을 고정해 재정렬
@@ -1153,8 +1157,9 @@
   `features/comment/create/hooks/useCreateComment.ts`, `MarkdownContent.tsx`)
 - **사용자 노출 문구의 종결어미를 해요체로 통일** — 토스트·확인 다이얼로그·에러 안내 등이
   합쇼체("-습니다.")·격식 청유형("-시겠습니까?")·개조식 명사 종결("폴더 생성 실패") 등으로
-  제각각이었다. 국내 서비스 UX 라이팅 사례(토스 공식 UX 라이팅 가이드 — 해요체 통일, 능동형
-  문장("되었어요"→"했어요"), 긍정 표현, "-시겠어요?" 같은 과도한 경어 지양)를 참고해 전면
+  제각각이었다. 국내 서비스 UX 라이팅 사례([토스 UX 라이팅](https://developers-apps-in-toss.toss.im/design/ux-writing.html) —
+  해요체 통일, 능동형 문장("되었어요"→"했어요"), 긍정 표현, "-시겠어요?" 같은 과도한 경어
+  지양)를 참고해 전면
   통일. 예: "회원이 생성되었습니다." → "가입을 완료했어요."(능동형), "정말 이
   포스트를 삭제하시겠습니까?" → "정말 이 포스트를 삭제할까요?", "폴더 생성 실패"(토스트
   노출) → "폴더 생성에 실패했어요." 완료를 나타내는 성공 메시지는 능동형으로, 원인이
@@ -1196,8 +1201,8 @@
 - 프로필 아바타 업로드 시 파일 크기 제한이 모호했던 문제 — 기존엔 애니메이션이 깨져
   리사이즈를 건너뛰는 GIF·SVG에만 버킷 용량 제한(10MB)을 적용하고, 그 외 포맷은 제출
   시점까지 아무 검증도 없었다(100MB짜리도 업로드를 끝까지 시도한 뒤에야 실패). GitHub·
-  Slack·X·Discord 등의 기준을 참고해 원본 30MB(리사이즈 가능한 일반 포맷)/15MB(리사이즈
-  불가한 SVG) 2단계로 재설계하고, 파일을 고르는 즉시(제출 전) 검증해 초과 시 바로 에러를
+  Slack·X·Discord 등의 기준을 참고해([출처 미상, 2026-09-10 확인 — 재검증 필요])
+  원본 30MB(리사이즈 가능한 일반 포맷)/15MB(리사이즈 불가한 SVG) 2단계로 재설계하고, 파일을 고르는 즉시(제출 전) 검증해 초과 시 바로 에러를
   보여준다. 아바타는 항상 48~160px 고정 크기로만 표시되므로 GIF는 애니메이션을 지키지
   않고 일반 리사이즈 파이프라인에 태워 30MB 기준 하나로 통합했다(댓글 첨부 이미지는
   기존처럼 GIF·SVG 모두 리사이즈를 건너뛴다). (`shared/lib/image/resizeImage.ts`,

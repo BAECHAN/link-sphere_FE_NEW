@@ -5,7 +5,8 @@ when_to_use: 컴포넌트에 색상/배경/테두리 클래스를 붙일 때, �
 paths: src/**/*.tsx
 ---
 
-2026-09-09, `.claude/CLAUDE.md`가 984줄로 길어져 공식 권장 상한(~200줄)을 크게 넘긴 것을
+2026-09-09, `.claude/CLAUDE.md`가 984줄로 길어져 [공식 권장 목표치(~200줄)](https://code.claude.com/docs/en/memory)를
+크게 넘긴 것을
 계기로 CLAUDE.md 본문에서 이 절을 옮겼다 — 매 세션 로드할 필요 없이 스타일링 작업을 할 때만
 불러오면 된다. **하드코딩 색상 클래스 사용 금지**라는 원칙 자체는 `.claude/CLAUDE.md`의
 "Never" 목록에 남아 있다 — 이 skill은 그 대체 클래스 표를 담고 있다.
