@@ -4,6 +4,7 @@ import { ThumbsUp } from 'lucide-react';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { useLikePost } from '@/features/post/like/hooks/useLikePost';
 import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
+import { TEXTS } from '@/shared/config/texts';
 
 interface LikePostButtonProps {
   postId: Post['id'];
@@ -30,6 +31,7 @@ export function LikePostButton({ postId, isLiked, likeCount }: LikePostButtonPro
       )}
       onClick={handleLike}
       disabled={isLiking}
+      aria-label={isLiked ? TEXTS.ariaLabels.postUnlike : TEXTS.ariaLabels.postLike}
     >
       <ThumbsUp
         className={cn(

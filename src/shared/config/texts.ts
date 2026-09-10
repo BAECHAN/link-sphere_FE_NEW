@@ -422,6 +422,7 @@ export const TEXTS = {
     // 기타
     menuToggle: '메뉴 토글',
     homeLink: '홈으로 이동',
+    accountMenu: '계정 메뉴',
     profileEdit: '프로필 수정',
     logout: '로그아웃',
     saveEmail: 'Save Email',
@@ -443,6 +444,10 @@ export const TEXTS = {
     backToFolderList: '폴더 목록으로',
     bookmarkChange: '북마크 폴더 변경',
     bookmarkSave: '북마크 저장',
+
+    // 게시글 상호작용
+    postLike: '좋아요',
+    postUnlike: '좋아요 취소',
 
     // 게시글 검색 필터
     postCategoryFilters: '카테고리 검색 태그',

@@ -63,6 +63,14 @@
 
 ### Fixed
 
+- `post` 좋아요 요청이 실패했을 때 목록 화면의 좋아요 상태가 원복되지 않던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  좋아요 mutation이 낙관적 갱신으로 상세·목록 캐시를 둘 다 즉시 패치하는데(`useLikePostMutation`), 실패 시 롤백(`onError`)은 상세 캐시만 되돌리고 목록 캐시는 되돌리지 않았다. 좋아요 API가 실패해도 목록 화면엔 낙관적으로 뒤집힌 좋아요 상태가 그대로 남아 있었다. 같은 파일의 `useBookmarkPostMutation`이 이미 쓰고 있던 패턴(패치 전 목록 스냅샷을 떠서 `onError`에서 복원)을 그대로 적용했다. e2e 흐름 추가 작업 중 발견했다.
+  (`entities/interaction/api/interaction.queries.ts`, `docs/FE-ARCHITECTURE.md`)
+
+  </details>
+
 - `shared` FCM 토큰 등록·해제가 다른 API 요청처럼 액세스 토큰 자동 갱신의 혜택을 받도록 수정
   <details><summary>배경·구현</summary>
 
