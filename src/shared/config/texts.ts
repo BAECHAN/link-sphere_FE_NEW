@@ -448,6 +448,7 @@ export const TEXTS = {
     // 게시글 상호작용
     postLike: '좋아요',
     postUnlike: '좋아요 취소',
+    postMenu: '게시글 메뉴',
 
     // 게시글 검색 필터
     postCategoryFilters: '카테고리 검색 태그',

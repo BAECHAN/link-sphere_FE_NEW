@@ -23,3 +23,17 @@ export async function mockPostDetail(page: Page): Promise<void> {
     (route) => route.fulfill({ json: wrapResponse(mockPost) })
   );
 }
+
+/**
+ * DELETE /post/:id — 204 no body(client.ts가 빈 객체로 처리).
+ * ⚠️ mockPostDetail과 pathname 정규식이 완전히 같다 — 반드시 mockPostDetail 다음에
+ * 등록하고(LIFO로 이게 먼저 실행됨), DELETE가 아니면 route.fallback()으로 넘겨야
+ * 상세 GET이 계속 살아있다. 반대로 두면 상세 GET이 204 빈 응답을 받아 흰 화면이 뜬다.
+ */
+export async function mockDeletePost(page: Page): Promise<void> {
+  await page.route(
+    (url) => /^\/api\/post\/[^/]+$/.test(url.pathname),
+    (route) =>
+      route.request().method() === 'DELETE' ? route.fulfill({ status: 204 }) : route.fallback()
+  );
+}
