@@ -57,7 +57,7 @@
   <details><summary>배경·구현</summary>
 
   `docs/HISTORY.md`의 항목 끝에 붙는 `(#61)` 같은 참조가 평문이라 클릭해도 아무 데도 가지 않았다. GitHub squash merge가 만드는 커밋 제목(`feat: ... (#61)`) 꼬리표가 `generate-history.js`의 Gemini 요약에 그대로 실려 오는데, 프롬프트에는 PR 참조를 링크로 만들라는 지시가 없었기 때문이다. 요약 생성 후처리 단계에 `(#NN)` → `([#NN](repo/pull/NN))` 정규식 치환을 추가했다(출처 레포가 FE/BE 중 어느 쪽인지에 따라 링크 대상 레포를 분기). 같은 치환을 일회성 스크립트로 돌려 기존 21건도 백필했다.
-  (`scripts/generate-history.js`, `docs/HISTORY.md`)
+  (`scripts/generate-history.js`, `docs/HISTORY.md`, [PR #65](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/65))
 
   </details>
 
