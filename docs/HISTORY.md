@@ -1,4 +1,7 @@
 ### 2026-09-10 (FE)
+- 북마크 mutation 실패 시 목록 캐시 데이터 정합성 유지를 위한 롤백 로직 추가 ([#69](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/69))
+
+### 2026-09-10 (FE)
 - 조회 로딩 인디케이터에 지연 게이트(delay gate)를 적용하여 일관된 사용자 경험 제공 ([#61](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/61))
 
 ### 2026-09-09 (FE)
