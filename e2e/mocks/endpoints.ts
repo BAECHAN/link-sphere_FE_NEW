@@ -8,6 +8,7 @@
  */
 export const ENDPOINTS = {
   auth: {
+    login: '/auth/login',
     refresh: '/auth/refresh',
     account: '/auth/account',
   },
