@@ -110,7 +110,7 @@ Vitest — §8 참고.
 3. **낙관적 반영**(`useUpdateAccountMutation`의 `onMutate`) — `accountKeys.root`
    캐시를 새 닉네임 + (파일을 골랐다면) blob 미리보기 URL로 즉시 덮어쓴다.
 4. **성공**(`onSuccess`) — 서버가 돌려준 실제 값(실제 업로드 URL 포함)으로
-   캐시를 교체하고, `handleAccountUpdateSuccess()`(§6)로 연관 캐시를 무효화한다.
+   캐시를 교체하고, `handleAccountUpdateSuccess(queryClient)`(§6)로 연관 캐시를 무효화한다.
 5. **실패**(`onError`) — 캐시를 낙관적 반영 이전 값으로 롤백하고, **자동으로
    사라지지 않는**(`duration: Infinity`) 에러 토스트에 "다시 열기" 액션을
    붙인다. 클릭하면 시도했던 값(파일 포함)을 `useMyPageModalStore`에 저장하고
