@@ -63,6 +63,14 @@
 
 ### Fixed
 
+- `shared` 지금 보고 있는 북마크 폴더를 삭제하면 엉뚱한 "작성 중인 내용이 있어요" 확인창이 한 번 더 뜨던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  북마크 폴더 삭제 e2e를 만들다 실측: 삭제 확인을 눌러도 폴더가 바로 사라지지 않고, 저장 안 한 변경사항 확인 모달이 튀어나와 사용자가 그걸 한 번 더 눌러야만 했다(이 페이지엔 저장할 폼 자체가 없다). 원인은 `Alert.tsx`의 `handleConfirm`이 `onConfirm()`을 먼저 실행하고 `close(id)`를 나중에 호출하던 순서였다 — 폴더 삭제 confirm의 `onConfirm`은 동기적으로 같은 경로(`/bookmark`, 쿼리 파라미터만 다름) 네비게이션을 트리거하는데, 그 순간 확인 모달이 아직 "열려있는" 상태라 `useUnsavedChangesGuard`가 "열린 대화상자가 있으니 막는다"고 판단해 이동을 막았다. 막힌 걸 정리하는 로직은 "열린 대화상자 때문이면 조용히 취소한다"는 분기를 갖고 있었지만, 그 로직이 실행되는 시점엔 이미 confirm이 스스로 닫힌 뒤라 그 분기를 타지 못하고 새 확인창을 띄워버렸다. `close(id)`를 `onConfirm()`보다 먼저 호출하도록 순서만 바꿔 해결했다 — confirm의 onConfirm이 같은 경로로 네비게이션하는 유일한 곳(폴더 삭제)이라 다른 흐름엔 영향이 없다.
+  (`shared/ui/elements/modal/alert/Alert.tsx`, [PR #76](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/76))
+
+  </details>
+
 - `auth` 로그인 실패 시 서버 원문 에러 메시지가 그대로 노출되던 문제 수정
   <details><summary>배경·구현</summary>
 
