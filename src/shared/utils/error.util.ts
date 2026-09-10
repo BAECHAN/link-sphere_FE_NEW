@@ -6,7 +6,7 @@ import { TEXTS } from '@/shared/config/texts';
  * 에러 판별·메시지 결정 로직.
  *
  * 날것의 error.message는 절대 사용자에게 노출하지 않는다 - 브라우저의 영어 기술 문구나
- * 서버 내부 메시지가 그대로 보이게 된다. auth.queries.ts / queryClient.ts와 동일한 규칙.
+ * 서버 내부 메시지가 그대로 보이게 된다. account.queries.ts / queryClient.ts와 동일한 규칙.
  */
 export class ErrorUtil {
   /** 5xx 서버 에러 또는 네트워크 단절 여부를 판단 */

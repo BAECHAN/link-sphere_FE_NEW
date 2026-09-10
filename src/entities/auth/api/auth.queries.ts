@@ -34,8 +34,9 @@ export const useLoginMutation = () => {
       console.log(error);
       if (error instanceof ApiError) {
         if (error.status === 401) {
-          const errorMessage = error.data.message;
-          toast.error(errorMessage);
+          // 서버 원문 메시지(error.data.message)는 노출하지 않는다 - error.util.ts의
+          // "날것의 error.message를 노출하지 않는다" 정책과 동일한 규칙(보안·UX).
+          toast.error(TEXTS.messages.error.loginFailedPasswordMismatch);
         }
       }
     },

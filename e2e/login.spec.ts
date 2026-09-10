@@ -5,6 +5,7 @@ import { mockAccountQuery } from './mocks/account.mock';
 import { mockCategoryOptions } from './mocks/common.mock';
 import { mockPostList } from './mocks/post.mock';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
+import { TEXTS } from '@/shared/config/texts';
 
 // zod passwordValidationSchema(auth.schema.ts:9-15) — 영문+숫자+특수문자 8자 이상,
 // 20자 이하. 이 정규식을 통과해야 클라이언트 검증을 넘어 실제로 요청이 나간다.
@@ -37,12 +38,15 @@ test.describe('로그인 폼 제출', () => {
     await expect(page.getByRole('link', { name: mockPost.title })).toBeVisible();
   });
 
-  test('비밀번호가 틀리면 서버 메시지가 토스트로 뜨고 화면은 그대로다', async ({ page }) => {
+  test('비밀번호가 틀리면 일반화된 에러 메시지가 토스트로 뜨고 화면은 그대로다', async ({
+    page,
+  }) => {
     // code가 TOKEN_EXPIRED/NOT_LOGGED_IN/INVALID_TOKEN이 아니면 client.ts가 refresh
-    // 시도나 강제 로그아웃 없이 그냥 throw한다 — useLoginMutation.onError(auth.queries.ts:
-    // 33-41)가 error.data.message를 그대로 toast.error로 띄운다.
-    const message = '이메일 또는 비밀번호가 올바르지 않습니다.';
-    await mockLoginFailure(page, message);
+    // 시도나 강제 로그아웃 없이 그냥 throw한다 — useLoginMutation.onError(auth.queries.ts)가
+    // 서버 원문 메시지는 노출하지 않고 loginFailedPasswordMismatch로 감싼다(error.util.ts의
+    // "날것의 error.message를 노출하지 않는다" 정책). 서버가 실제로 어떤 문구를 보내든
+    // 화면엔 항상 이 고정 메시지가 뜨는지 확인하려고, mock 메시지를 일부러 다른 문구로 둔다.
+    await mockLoginFailure(page, '이메일 또는 비밀번호가 올바르지 않습니다.');
 
     await page.goto('/auth/login');
     // getByLabel은 기본 부분 일치라 'Email'만 쓰면 'Save Email' 체크박스까지 걸린다
@@ -51,7 +55,7 @@ test.describe('로그인 폼 제출', () => {
     await page.getByLabel('Password', { exact: true }).fill(VALID_PASSWORD);
     await page.getByRole('button', { name: 'Sign In' }).click();
 
-    await expect(page.getByText(message)).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.error.loginFailedPasswordMismatch)).toBeVisible();
     await expect(page).toHaveURL(/\/auth\/login$/);
   });
 });

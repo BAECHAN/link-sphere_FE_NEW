@@ -63,6 +63,14 @@
 
 ### Fixed
 
+- `auth` 로그인 실패 시 서버 원문 에러 메시지가 그대로 노출되던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  레포 전체 문서-코드 정합성 감사 중, `error.util.ts`가 "날것의 error.message는 절대 사용자에게 노출하지 않는다"는 정책의 모범 사례로 인용한 `auth.queries.ts`를 실제로 확인해보니, `useLoginMutation`의 401 처리가 정확히 그 정책을 어기고 서버가 내려준 `error.data.message`를 그대로 토스트에 띄우고 있었다. `account.queries.ts`가 이미 올바르게 지키고 있던 패턴(서버 상세를 노출하지 않고 일반 메시지로 감싼다)을 따라, 미사용 상태로 남아있던 `TEXTS.messages.error.loginFailedPasswordMismatch`를 대신 쓰도록 고쳤다.
+  (`entities/auth/api/auth.queries.ts`, `shared/utils/error.util.ts`)
+
+  </details>
+
 - `post` 북마크 요청이 실패했을 때 목록 화면의 북마크 상태가 원복되지 않던 문제 수정
   <details><summary>배경·구현</summary>
 
