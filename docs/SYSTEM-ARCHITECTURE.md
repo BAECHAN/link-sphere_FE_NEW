@@ -87,7 +87,7 @@ CI/CD는 GitHub Actions로 FE·BE 각각 별도 워크플로우입니다.
 flowchart LR
   subgraph fe_deploy [FE Deploy]
     FE_Trigger["push main / paths"]
-    FE_Build["npm run build"]
+    FE_Build["pnpm build"]
     FE_S3["S3 sync"]
     FE_CF["CloudFront Invalidation"]
     FE_Trigger --> FE_Build --> FE_S3 --> FE_CF
@@ -105,13 +105,13 @@ flowchart LR
 
 ### FE 배포 (Frontend Deploy)
 
-| 항목        | 내용                                                                                                                                                                                               |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **파일**    | `.github/workflows/deploy.yml` (FE 저장소)                                                                                                                                                         |
-| **트리거**  | `push` to `main`, paths: `src/**`, `public/**`, `package.json`, `package-lock.json`, `pnpm-lock.yaml`, `vite.config.ts`, `tailwind.config.ts`, `postcss.config.js`, `index.html`, `tsconfig*.json` |
-| **단계**    | Checkout → Set up Node 24 → `npm install` → `pnpm check`(type-check·lint·format) → `npm run build` (env: `VITE_API_BASE_URL`) → Configure AWS → `aws s3 sync dist/` → CloudFront invalidation      |
-| **Secrets** | `VITE_API_BASE_URL`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, `CLOUDFRONT_DISTRIBUTION_ID`                                                                                  |
-| **리전**    | ap-northeast-1                                                                                                                                                                                     |
+| 항목        | 내용                                                                                                                                                                                                                                                                                            |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **파일**    | `.github/workflows/deploy.yml` (FE 저장소)                                                                                                                                                                                                                                                      |
+| **트리거**  | `push` to `main`, paths: `src/**`, `public/**`, `package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `tailwind.config.ts`, `postcss.config.js`, `index.html`, `tsconfig*.json`                                                                                                                   |
+| **단계**    | Checkout → Set up pnpm → Set up Node(`.nvmrc`) → `pnpm install --frozen-lockfile` → `pnpm check`(type-check·lint·format) → `pnpm test` → `pnpm build`(env: Firebase 6종) → Configure AWS → S3 업로드(index.html·SW는 무캐시, assets·fonts는 장기 캐시, 나머지는 sync) → CloudFront invalidation |
+| **Secrets** | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, `CLOUDFRONT_DISTRIBUTION_ID`, `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, `VITE_FIREBASE_VAPID_KEY`                          |
+| **리전**    | ap-northeast-1                                                                                                                                                                                                                                                                                  |
 
 ### BE 배포 (Deploy to AWS Lambda)
 

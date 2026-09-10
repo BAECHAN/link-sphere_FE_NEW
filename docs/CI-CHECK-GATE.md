@@ -122,26 +122,26 @@ ignore 패턴(`'dist/**/*'`, 루트 상대 경로)에 안 걸려서 그대로 �
 
 | 파라미터                  | 값                                                                                              | 실제 위치                                                                  |
 | ------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `--max-warnings` 임계값   | 0                                                                                               | `package.json:18-19`(`lint`/`lint:fix`), `package.json:122`(`lint-staged`) |
-| ESLint 글로벌 ignore      | `**/dist/**`, `**/node_modules/**`, `.claude/worktrees/**`, `**/*.md`, `**/*.svg`, `infra/**/*` | `eslint.config.js:19-24`                                                   |
-| Prettier ignore 추가분    | `.claude/worktrees`, `docs/HISTORY.md`(봇 생성 파일)                                            | `.prettierignore:6-7`                                                      |
-| PR CI 트리거              | `pull_request` → `main`                                                                         | `.github/workflows/ci.yml:7`                                               |
-| 동시 실행 제어            | 같은 브랜치 새 커밋 push 시 이전 실행 자동 취소                                                 | `.github/workflows/ci.yml:11` `concurrency` 블록                           |
-| Node 버전                 | 24(`.nvmrc` 기준, `node-version-file`로 참조)                                                   | `.nvmrc`, `ci.yml:28`·`deploy.yml` 공통                                    |
+| `--max-warnings` 임계값   | 0                                                                                               | `package.json:18-19`(`lint`/`lint:fix`), `package.json:120`(`lint-staged`) |
+| ESLint 글로벌 ignore      | `**/dist/**`, `**/node_modules/**`, `.claude/worktrees/**`, `**/*.md`, `**/*.svg`, `infra/**/*` | `eslint.config.js:185-193`                                                 |
+| Prettier ignore 추가분    | `.claude/worktrees`, `docs/HISTORY.md`(봇 생성 파일)                                            | `.prettierignore:7-8`                                                      |
+| PR CI 트리거              | `pull_request` → `main`                                                                         | `.github/workflows/ci.yml:10`                                              |
+| 동시 실행 제어            | 같은 브랜치 새 커밋 push 시 이전 실행 자동 취소                                                 | `.github/workflows/ci.yml:14` `concurrency` 블록                           |
+| Node 버전                 | 24(`.nvmrc` 기준, `node-version-file`로 참조)                                                   | `.nvmrc`, `ci.yml:47`·`deploy.yml` 공통                                    |
 | 배포 게이트 위치          | `pnpm install` 직후, `pnpm test` 이전                                                           | `deploy.yml` "Type check, lint & format check" 스텝                        |
 | 문서-코드 참조 게이트     | `pnpm test` 이후 (PR CI 전용, 배포는 막지 않음)                                                 | `scripts/check-docs.js`, `ci.yml` "Check docs" 스텝                        |
 | "마지막 검토" 신선도 기준 | 30일 초과 시 경고(exit 0, 게이트 통과에 영향 없음)                                              | `scripts/check-docs.js`의 `STALE_REVIEW_DAYS`                              |
 
 ## 7. 코드 지도와 자주 하는 수정
 
-| 무엇을 바꾸려면                    | 파일                                                                                                |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------- |
-| ignore 패턴 추가·수정              | `eslint.config.js:19-24`(ESLint), `.prettierignore`(Prettier — 별도 파일, ESLint와 문법 공유 안 함) |
-| PR 게이트에 검사 스텝 추가         | `.github/workflows/ci.yml`                                                                          |
-| 배포 게이트에 검사 스텝 추가       | `.github/workflows/deploy.yml`의 "Type check, lint & format check" 스텝                             |
-| Node 버전 변경                     | `.nvmrc` 한 곳만 — `ci.yml`·`deploy.yml` 둘 다 `node-version-file`로 그 값을 읽는다                 |
-| `--max-warnings` 임계값 변경       | `package.json:18-19,122`                                                                            |
-| 문서-코드 참조 검사 규칙 추가·수정 | `scripts/check-docs.js` — 경로 실존/줄 번호 범위/README↔docs 동기화/검토일 신선도 4종               |
+| 무엇을 바꾸려면                    | 파일                                                                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| ignore 패턴 추가·수정              | `eslint.config.js:185-193`(ESLint), `.prettierignore`(Prettier — 별도 파일, ESLint와 문법 공유 안 함) |
+| PR 게이트에 검사 스텝 추가         | `.github/workflows/ci.yml`                                                                            |
+| 배포 게이트에 검사 스텝 추가       | `.github/workflows/deploy.yml`의 "Type check, lint & format check" 스텝                               |
+| Node 버전 변경                     | `.nvmrc` 한 곳만 — `ci.yml`·`deploy.yml` 둘 다 `node-version-file`로 그 값을 읽는다                   |
+| `--max-warnings` 임계값 변경       | `package.json:18-19,120`                                                                              |
+| 문서-코드 참조 검사 규칙 추가·수정 | `scripts/check-docs.js` — 경로 실존/줄 번호 범위/README↔docs 동기화/검토일 신선도 4종                 |
 
 ### 자주 하는 수정
 
@@ -176,6 +176,8 @@ no-require-imports         1
 ```
 
 실제 소스 warning 4건(모두 수정 완료):
+
+<!-- check-docs-ignore: 당시(개명 전) 경로를 그대로 보여주는 실제 로그라 지금은 존재하지 않는 게 정상 -->
 
 ```
 src/shared/config/api.ts:4            no-unsafe-assignment

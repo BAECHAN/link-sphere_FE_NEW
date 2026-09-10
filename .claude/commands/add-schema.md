@@ -24,13 +24,13 @@ Check `src/entities/post/model/post.schema.ts` for style reference.
 import { z } from 'zod';
 import { TEXTS } from '@/shared/config/texts';
 // Import shared schemas if the entity uses pagination:
-// import { paginationResponseSchema } from '@/shared/api/common.schema';
+// import { paginationResponseSchema } from '@/shared/types/common.type';
 // Import other entity schemas if composing:
 // import { accountSchema } from '@/entities/account/model/account.schema';
 
 // ==================== 1. Domain Model Schema ====================
 /**
- * Backend <entity> entity — mirrors the server response shape
+ * 백엔드 <entity> 엔티티 — 서버 응답 형태를 그대로 반영한다
  */
 export const <entity>Schema = z.object({
   id: z.string(),

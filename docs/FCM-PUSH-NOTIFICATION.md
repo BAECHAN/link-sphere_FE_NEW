@@ -72,7 +72,7 @@ React 훅·Service Worker의 기본 개념(탭이 닫혀도 백그라운드에�
 가정하지 않는 것:
 
 - 처음 나오는 용어(`vapidKey`, compat 버전, `auth.store` 등) → §12 용어 사전
-- FE 인증 상태 관리 전반 → `entities/user`, `shared/store/auth.store.ts`
+- FE 인증 상태 관리 전반 → `entities/auth`, `shared/store/auth.store.ts`
 - 이 레포의 자동 배포 파이프라인 자체 → [`DEPLOY.md`](./DEPLOY.md)
 
 ## 3. 사용한 도구·기술
@@ -256,13 +256,21 @@ export function useFcmForegroundMessage() {
 
 이 훅은 `RootLayout`에서 최상단에 마운트하여 앱 전체에서 단 한 번만 구독한다.
 `RootLayout`은 이 훅 하나만 쓰는 게 아니라 여러 전역 관심사(저장하지 않은 입력
-가드, 로그인 모달, 이미지 뷰어, 알림창)를 함께 마운트하는 자리다.
+가드, 앱 버전 체크·새 버전 리로드, 로그인 모달, 이미지 뷰어, 알림창)를 함께
+마운트하는 자리다.
 
 ```typescript
 // src/app/routes/layouts/RootLayout.tsx
 export function RootLayout() {
   useFcmForegroundMessage();
   useUnsavedChangesGuard();
+  useAppVersionCheck();
+
+  const isReloadingForNewVersion = useNewVersionReload();
+
+  if (isReloadingForNewVersion) {
+    return <SpinnerOverlay className="h-screen" />;
+  }
 
   return (
     <>

@@ -22,7 +22,7 @@ const at = (
 
 /**
  * sonner `toast`와 동일한 시그니처의 래퍼 — 카테고리별 위치를 주입한다.
- * 호출부는 `sonner` 대신 이 모듈을 import한다 (ESLint no-restricted-imports로 강제).
+ * 호출부는 `sonner` 대신 이 모듈을 import한다 (ESLint custom-import/no-sonner-toast-direct-import로 강제).
  */
 export const toast = Object.assign(
   (message: ToastMessage, options?: ExternalToast) =>

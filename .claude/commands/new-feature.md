@@ -4,13 +4,13 @@ Add a new feature to an existing domain in the Link-Sphere FE project.
 
 "$ARGUMENTS" — format: `<domain-name> <feature-name>`
 
-Examples: `post create-post`, `auth sign-up`, `member update-profile`
+Examples: `post create`, `auth signup`, `member update`
 
 Parse:
 
 - Domain name (kebab-case): first word
-- Feature name (kebab-case): remaining words
-- Hook name (PascalCase): e.g. "create-post" → "CreatePost"
+- Feature name (kebab-case, 동사만 — "완결된 사용자 액션/flow"가 아니면 `<domain>-<action>` 형태로 합치지 않는다): remaining words
+- Hook name (PascalCase): e.g. "create" (in domain `post`) → "CreatePost"
 
 ## Before creating files
 
@@ -113,7 +113,11 @@ import { use<FeatureName> } from '../hooks/use<FeatureName>';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { Button } from '@/shared/ui/atoms/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/atoms/card';
+import { TEXTS } from '@/shared/config/texts';
 
+// 한글 UI 문자열 하드코딩 금지(custom-i18n/no-hardcoded-hangul) — TEXTS.<domain>.form.<slice>.*에
+// 먼저 키를 추가하고 참조한다. 로딩 중 라벨을 따로 바꾸지 않는다 — 기존 코드(CreatePostForm)도
+// disabled만으로 pending을 표시하고 텍스트는 고정이다.
 export function <FeatureName>Form() {
   const { form, onSubmit, is<Action>ing } = use<FeatureName>();
   const { isDirty, isValid } = form.formState;
@@ -122,14 +126,14 @@ export function <FeatureName>Form() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>제목</CardTitle>
+        <CardTitle>{TEXTS.<domain>.form.<slice>.title}</CardTitle>
       </CardHeader>
       <CardContent>
         <FormProvider {...form}>
           <form onSubmit={onSubmit} className="space-y-4" noValidate>
             {/* TODO: add FormInput, FormCheckbox, FormCheckboxGroup fields */}
             <Button type="submit" className="w-full" disabled={!canSubmit}>
-              {is<Action>ing ? '처리 중...' : '제출'}
+              {TEXTS.<domain>.form.<slice>.submit}
             </Button>
           </form>
         </FormProvider>

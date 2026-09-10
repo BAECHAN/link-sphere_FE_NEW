@@ -63,7 +63,7 @@ function renderInlineLinks(
             type="button"
             onClick={() => {
               // renderInlineLinks는 훅을 쓸 수 없는 일반 함수라 히스토리 오버레이를
-              // NavigationService로 직접 연다 (auth.queries.ts의 마이페이지 재오픈과 동일한 이유)
+              // NavigationService로 직접 연다 (account.queries.ts의 마이페이지 재오픈과 동일한 이유)
               const images = imageUrls.map((url) => ({ src: url, alt: 'attachment' }));
               const startIndex = Math.max(imageUrls.indexOf(part), 0);
               useImageViewerStore.getState().setImages(images, startIndex);

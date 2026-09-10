@@ -1,7 +1,11 @@
-// 문서(README.md, docs/*.md, .claude/CLAUDE.md)가 가리키는 파일 경로·줄 번호가
-// 실제 코드와 아직 맞는지 검사한다. 2026-09-07, 문서 구조 감사에서 TESTING.md가
-// 폐기된 src/domains/ 레이어를 한 달 넘게 정본처럼 서술하고 있던 걸 발견한 뒤
-// 만들었다 — 그 문제는 사람이 수시로 다시 읽지 않는 한 절대 스스로 안 잡힌다.
+// 문서(README.md, docs/*.md, .claude/CLAUDE.md, .claude/commands/**, .claude/skills/**)가
+// 가리키는 파일 경로·줄 번호가 실제 코드와 아직 맞는지 검사한다. 2026-09-07, 문서 구조
+// 감사에서 TESTING.md가 폐기된 src/domains/ 레이어를 한 달 넘게 정본처럼 서술하고 있던
+// 걸 발견한 뒤 만들었다 — 그 문제는 사람이 수시로 다시 읽지 않는 한 절대 스스로 안 잡힌다.
+// 2026-09-10, 레포 전체 재감사에서 `.claude/commands/`·`.claude/skills/`가 애초에 검사
+// 대상이 아니었던 것과(그 사이 슬래시 커맨드 템플릿이 지금 그대로 쓰면 lint를 못 통과하는
+// 코드를 생성하는 채로 방치돼 있었다), `src/` 접두사 없이 쓴 경로 서술(`entities/bookmark/
+// folder/ui/...` 같은 형태)을 놓치던 것 두 가지를 보강했다.
 //
 // 정직한 한계: 이 스크립트는 "그 경로가 존재하는가"·"그 줄 번호가 파일 범위
 // 안인가"만 본다. "그 줄에 실제로 그 내용이 있는가"는 검사하지 못한다 — 그래서
@@ -14,6 +18,20 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
+/** dirRelPath 아래 모든 .md 파일을 재귀 수집한다(중첩 디렉터리 포함). 디렉터리가 없으면 빈 배열. */
+function collectMarkdownFiles(dirRelPath) {
+  const dirAbs = path.join(ROOT, dirRelPath);
+
+  if (!fs.existsSync(dirAbs)) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(dirAbs, { recursive: true })
+    .filter((f) => f.endsWith('.md'))
+    .map((f) => `${dirRelPath}/${f}`);
+}
+
 const TARGET_FILES = [
   'README.md',
   '.claude/CLAUDE.md',
@@ -21,6 +39,8 @@ const TARGET_FILES = [
     .readdirSync(path.join(ROOT, 'docs'))
     .filter((f) => f.endsWith('.md'))
     .map((f) => `docs/${f}`),
+  ...collectMarkdownFiles('.claude/commands'),
+  ...collectMarkdownFiles('.claude/skills'),
 ];
 
 const STALE_REVIEW_DAYS = 30;
@@ -97,19 +117,39 @@ function readLinesWithIgnoreZones(absPath) {
 // grep 정확도가 떨어져 오탐이 크므로 제외한다.
 const PATH_TOKEN_RE = /\b(src|\.github|infra)\/[A-Za-z0-9/_.-]*\.[A-Za-z0-9]+\b/g;
 
+// FSD 레이어 이름으로 시작하지만 `src/` 접두사가 빠진 경로 서술(예: `entities/bookmark/
+// folder/ui/BookmarkFolderSelectModal.tsx`) — 산문·트리 그림에서 실제로 이렇게 쓰인다
+// (2026-09-10 레포 재감사에서 BOOKMARK.md·DEPLOY.md·FCM 문서 등이 이 형태라 기존
+// PATH_TOKEN_RE가 놓치고 있던 걸 발견). `src/`를 붙여 같은 방식으로 존재를 검사한다.
+// `(?<!@\/)`: `@/entities/post/api/post.keys`처럼 TS path alias(`@/`) import 스펙은
+// 확장자를 안 쓰는데, `.keys`·`.schema`·`.store`처럼 이 레포 파일명 자체에 점이 들어가는
+// 세그먼트가 있어 자칫 "확장자"로 오인되기 쉽다 — import 코드는 원래 이 검사 대상이
+// 아니었다(기존 PATH_TOKEN_RE도 `src/` 리터럴만 봐서 `@/` import는 애초에 안 걸렸다).
+const BARE_LAYER_PATH_RE =
+  /(?<!@\/)\b(app|pages|widgets|features|entities|shared)\/[A-Za-z0-9/_.-]*\.[A-Za-z0-9]+\b/g;
+
+// docs/DECISIONS.md는 append-only ADR 로그다(.claude/CLAUDE.md "docs/ 내부 분류" 참고) —
+// "배경" 서술이 결정 당시의(지금은 존재하지 않을 수 있는) 경로를 정확히 가리키는 게
+// 오히려 맞는 동작이라, bare 경로 검사 대상에서 제외한다. src/ 리터럴 접두사가 붙은
+// 경로(PATH_TOKEN_RE)는 이 파일에서도 그대로 검사한다.
+const HISTORICAL_LOG_FILES = new Set(['docs/DECISIONS.md']);
+
 function checkPathsExist(file, absPath, lines, ignored) {
   lines.forEach((line, idx) => {
     if (ignored[idx]) {
       return;
     }
 
-    const matches = line.match(PATH_TOKEN_RE);
+    const srcMatches = line.match(PATH_TOKEN_RE) || [];
+    // src/... 토큰의 부분 문자열(예: `src/entities/post/post.api.ts` 안의
+    // `entities/post/post.api.ts`)이 BARE_LAYER_PATH_RE에도 다시 걸려 중복 보고되지
+    // 않도록, 이미 매칭된 구간을 같은 길이의 공백으로 지운 라인에서만 bare 패턴을 찾는다.
+    const bareLine = line.replace(PATH_TOKEN_RE, (m) => ' '.repeat(m.length));
+    const bareMatches = HISTORICAL_LOG_FILES.has(file)
+      ? []
+      : (bareLine.match(BARE_LAYER_PATH_RE) || []).map((m) => `src/${m}`);
 
-    if (!matches) {
-      return;
-    }
-
-    for (const rawMatch of matches) {
+    for (const rawMatch of [...srcMatches, ...bareMatches]) {
       // 트리 그림의 마지막 문자(쉼표, 괄호 등)가 붙어 들어오는 경우를 정리
       const match = rawMatch.replace(/[),.]+$/, '');
 
