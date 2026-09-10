@@ -16,9 +16,10 @@
 10. [픽스처 추가](#픽스처-추가)
 11. [테스트 강제 실행 (pre-push / CI)](#테스트-강제-실행)
 12. [커버리지 리포트](#커버리지-리포트)
-13. [자주 발생하는 문제](#자주-발생하는-문제)
-14. [브라우저 수동 테스트 — DevTools 기기 에뮬레이션 주의사항](#브라우저-수동-테스트--devtools-기기-에뮬레이션-주의사항)
-15. [Playwright MCP로 로그인 필요 화면 시각 검증하기](#playwright-mcp로-로그인-필요-화면-시각-검증하기)
+13. [Playwright e2e 자동화 테스트](#playwright-e2e-자동화-테스트)
+14. [자주 발생하는 문제](#자주-발생하는-문제)
+15. [브라우저 수동 테스트 — DevTools 기기 에뮬레이션 주의사항](#브라우저-수동-테스트--devtools-기기-에뮬레이션-주의사항)
+16. [Playwright MCP로 로그인 필요 화면 시각 검증하기](#playwright-mcp로-로그인-필요-화면-시각-검증하기)
 
 ---
 
@@ -549,6 +550,125 @@ All files |   72.5  |   68.3   |   75.0  |   72.1  |
  form.util|   85.0  |   80.0   |  100.0  |   85.0  |
 ----------|---------|----------|---------|---------|
 ```
+
+---
+
+## Playwright e2e 자동화 테스트
+
+> 여기서부터는 jsdom이 아니라 **실제 Chromium**에서 여러 화면을 가로지르는 흐름(라우팅·
+> 인증 상태·모달)을 검증한다. [Playwright MCP로 로그인 필요 화면 시각 검증하기](#playwright-mcp로-로그인-필요-화면-시각-검증하기)와는
+> 다른 도구다 — MCP 절차는 세션이 방금 만든 변경을 **사람이 눈으로** 확인하는 수동
+> 검증이고, 여기는 `@playwright/test`로 **자동** 회귀 테스트를 짜는 것이다.
+
+### 스택 개요
+
+| 항목          | 내용                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 러너          | [@playwright/test](https://playwright.dev/) `1.57.0`(`playwright` 라이브러리와 버전 고정, 브라우저 바이너리 불일치 방지) |
+| 브라우저      | Chromium만(v1 범위 — Firefox/WebKit은 필요해지면 추가)                                                                   |
+| 네트워크 모킹 | Playwright 내장 `page.route()` 직접 사용(`@msw/playwright` 아님 — pre-1.0 정체로 배제)                                   |
+| dev server    | `vite --mode test`(`.env.test` 재사용 — mkcert HTTPS를 자연히 피해 HTTP로 뜬다)                                          |
+| 설정 파일     | `playwright.config.ts`, `tsconfig.e2e.json`                                                                              |
+
+```bash
+pnpm test:e2e   # chromium 헤드리스로 1회 실행
+npx playwright show-report   # 마지막 실행의 HTML 리포트 열기(스텝별 스크린샷·트레이스)
+```
+
+### 디렉터리 구조
+
+`src/mocks/handlers/`의 도메인별 분리 구조를 그대로 따른다.
+
+```
+e2e/
+  fixtures/
+    auth.fixture.ts        # has-session 플래그 시딩(page 픽스처 오버라이드)
+  mocks/
+    catch-all.ts           # /api/** 안전망 — beforeEach에서 가장 먼저 등록
+    route-match.ts          # pathname 정확 일치 헬퍼(isApiPath)
+    endpoints.ts             # API 엔드포인트 문자열 미러(아래 "주의점" 참고)
+    wrap-response.ts        # ApiResponse<T> 래핑 헬퍼
+    <domain>.mock.ts        # 도메인별 page.route 등록 함수
+  <flow>.spec.ts            # 테스트 파일
+playwright.config.ts
+tsconfig.e2e.json
+```
+
+`e2e/mocks/*.mock.ts`는 `src/mocks/fixtures/*.fixtures.ts`(순수 데이터, msw 미의존)를
+그대로 import해 재사용한다 — 유닛 테스트와 같은 고정값을 쓰므로 응답 데이터를 두 번
+정의하지 않는다.
+
+### 네트워크 모킹 — 캐치올 + pathname 정확 일치
+
+모든 스펙의 `beforeEach`는 항상 이 순서로 `page.route`를 등록한다:
+
+```ts
+test.beforeEach(async ({ page }) => {
+  await installCatchAll(page); // 1. 안전망 — 가장 먼저 등록
+  await mockAuthRefresh(page); // 2. 로그인 상태가 필요하면
+  await mockPostList(page); // 3. 이 스펙이 쓰는 구체적인 목들
+  // ...
+});
+```
+
+**등록 순서가 중요하다.** Playwright route는 **나중에 등록한 핸들러가 먼저 실행**된다
+(LIFO,
+[공식 문서](https://playwright.dev/docs/api/class-route#route-fallback):
+_"they run in the order opposite to their registration"_). 캐치올을 가장 먼저
+등록해야 이후 등록하는 구체적인 목들이 그걸 덮어쓴다 — 반대로 두면(예: 로그인 fixture가
+자기 route를 먼저 등록하고 스펙이 나중에 캐치올을 등록) 캐치올이 오히려 구체적인 목을
+덮어써 그 요청이 조용히 abort된다. 2026-09-10 구현 중 실제로 이 순서를 반대로 둬서
+`/auth/refresh`가 막혀 "로그인 상태를 시딩했는데 로그인 모달이 뜨는" 회귀를 겪었다 — 그래서
+`auth.fixture.ts`는 localStorage 시딩만 하고, `/auth/refresh` 모킹 자체는 각 스펙의
+`beforeEach`가 캐치올 다음에 직접 등록한다(등록 순서를 스펙이 명시적으로 통제).
+
+안 덮인 요청은 캐치올이 abort시켜 테스트가 그 자리에서 실패한다 — 모킹 누락을 조용히
+통과시키지 않기 위한 의도적 설계다(dev 프록시 target이 실제 BE Lambda URL이라, 안
+덮이면 실서버로 새는 것보다 훨씬 안전하다).
+
+**pathname 정확 일치를 쓰는 이유** — 처음엔 glob 문자열(`` `**/api${endpoint}` ``)을
+썼는데, Vite 자체 모듈 경로(예: `src/entities/post/api/post.keys.ts`)에도 `/api/`가
+부분 문자열로 들어있어 캐치올이 실제 API 요청이 아닌 모듈 로딩까지 막아버렸다(2026-09-10
+실측 — 페이지가 흰 화면으로 렌더 실패). `page.route`는 URL을 받는 predicate 함수도
+지원하므로, `route-match.ts`의 `isApiPath(url, endpoint)`가 `url.pathname === '/api' + endpoint`로
+정확히 비교한다 — `URL.pathname`은 쿼리스트링을 포함하지 않아 `*` 와일드카드 없이도
+`?q=...` 같은 검색어가 자연히 매칭된다.
+
+**`api.ts`를 직접 import할 수 없는 이유** — `src/shared/config/api.ts`는 모듈
+최상위에서 `import.meta.env.DEV`를 읽는다. Vite(dev server)·Vitest는 이 글로벌을
+채워주지만, Playwright test의 Node 기반 테스트 러너는 채워주지 않아 이 파일을 import하는
+순간 `Cannot read properties of undefined (reading 'DEV')`로 크래시한다(2026-09-10
+실측). 그래서 `e2e/mocks/endpoints.ts`가 이 e2e 목이 쓰는 엔드포인트 경로 문자열만
+별도로 옮겨 갖고 있다 — `api.ts`의 `API_ENDPOINTS`가 바뀌면 이 파일도 같이 갱신해야
+한다.
+
+### 대표 흐름
+
+| 스펙                    | 흐름                                                           |
+| ----------------------- | -------------------------------------------------------------- |
+| `e2e/post-list.spec.ts` | 비로그인 방문자 — 목록 조회 → 검색 → 상세 진입                 |
+| `e2e/bookmark.spec.ts`  | 로그인 상태(has-session 시딩) — 북마크 버튼 → 폴더 선택 → 저장 |
+
+### 무엇에 새 e2e 흐름을 추가하는가
+
+이 레포는 유닛 테스트에도 커버리지 목표를 두지 않는다([위 "무엇에 테스트를 쓰는가"](#무엇에-테스트를-쓰는가-테스트-범위-기준)
+참고) — e2e는 유닛보다 작성·유지 비용이 훨씬 크므로 같은 선별 원칙을 더 엄격하게
+적용한다:
+
+- **사후적** — 여러 화면/레이어를 가로지르는 흐름에서 실제 회귀가 발생했을 때, 그 흐름을
+  재현하는 e2e를 추가한다.
+- **사전적** — 유닛/컴포넌트 테스트로는 검증 불가능한 영역만: 라우팅 가드, 인증 상태에
+  따른 리다이렉트/모달 분기, 여러 페이지를 가로지르는 mutation→invalidate→refetch 체인.
+- 이미 유닛으로 잘 덮인 로직을 브라우저에서 한 번 더 확인하는 용도로는 추가하지
+  않는다 — 이중 비용만 늘어난다.
+
+### CI 연동
+
+`ci.yml`의 `e2e` job이 `check` job과 병렬로 PR마다 자동 실행된다(Chromium 설치 →
+`vite --mode test` 자동 기동(`playwright.config.ts`의 `webServer`) → `pnpm test:e2e`).
+실패하면 `playwright-report/`·`test-results/`(스크린샷·트레이스·영상)가 아티팩트로
+업로드된다 — 다운로드해 `npx playwright show-report`로 그대로 열어보면 CI에서 무엇이
+실패했는지 로컬에서 재현 없이 확인할 수 있다.
 
 ---
 

@@ -708,19 +708,21 @@ shared/
 
 ## 테스트 환경
 
-| 항목          | 내용                                                                      |
-| ------------- | ------------------------------------------------------------------------- |
-| 테스트 러너   | Vitest 4.x + jsdom                                                        |
-| 글로벌 셋업   | `src/test/setup.ts` (MSW, jsdom stubs, toast mock)                        |
-| 커스텀 render | `src/test/utils.tsx` → `renderWithProviders()`, `createTestQueryClient()` |
-| MSW           | `src/mocks/server.ts` + `handlers/` + `fixtures/`                         |
-| API URL 전략  | `.env.test`에 `VITE_API_BASE_URL=http://localhost` → MSW 인터셉트         |
-| 강제 실행     | `.husky/pre-push` + GitHub Actions `deploy.yml`                           |
+| 항목          | 내용                                                                       |
+| ------------- | -------------------------------------------------------------------------- |
+| 테스트 러너   | Vitest 4.x + jsdom                                                         |
+| 글로벌 셋업   | `src/test/setup.ts` (MSW, jsdom stubs, toast mock)                         |
+| 커스텀 render | `src/test/utils.tsx` → `renderWithProviders()`, `createTestQueryClient()`  |
+| MSW           | `src/mocks/server.ts` + `handlers/` + `fixtures/`                          |
+| API URL 전략  | `.env.test`에 `VITE_API_BASE_URL=http://localhost` → MSW 인터셉트          |
+| 강제 실행     | `.husky/pre-push` + GitHub Actions `deploy.yml`                            |
+| e2e           | Playwright(`e2e/`), `page.route()` 모킹, 상세는 `docs/TESTING.md` §13 참고 |
 
 ```bash
 pnpm test            # 1회 실행 (CI / pre-push)
 pnpm test:watch      # 감시 모드 (TDD)
 pnpm test:coverage   # 커버리지 → coverage/index.html
+pnpm test:e2e        # Playwright e2e (chromium)
 ```
 
 ---
