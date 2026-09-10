@@ -38,8 +38,14 @@ function Alert({ alert }: AlertProps) {
   } = alert;
 
   const handleConfirm = () => {
-    alert.onConfirm?.();
+    // close()를 onConfirm()보다 먼저 호출한다 - onConfirm이 동기적으로 같은 pathname
+    // 네비게이션을 트리거하는 경우(예: 폴더 삭제의 onBeforeDelete), 순서가 반대면 그
+    // 네비게이션이 "아직 안 닫힌 이 알럿" 때문에 useUnsavedChangesGuard에 막혔다가,
+    // 막힌 걸 정리하는 이펙트가 실행되는 시점엔 이미 알럿이 닫혀 있어 "열린 알럿 때문에
+    // 막혔다"는 분기를 못 타고 엉뚱한 "저장하지 않은 변경사항" 확인창을 새로 띄워버린다
+    // (실측: 폴더 삭제 시 확인 버튼을 눌러도 즉시 반영되지 않고 이 확인창이 한 번 더 떴다).
     close(id);
+    alert.onConfirm?.();
     setTimeout(() => remove(id), 300);
   };
 
