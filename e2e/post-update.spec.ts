@@ -97,4 +97,70 @@ test.describe('게시글 수정', () => {
     const listBody = await (await listRefetch).json();
     expect(listBody.data.content[0].title).toBe(NEW_TITLE);
   });
+
+  test('direct patch가 재조회 응답을 기다리지 않고 먼저 화면에 반영된다', async ({ page }) => {
+    // 위 테스트는 "PATCH 응답 이후 최종적으로 새 제목이 보인다"만 증명한다 — direct
+    // patch(onSuccess의 setQueriesData)와 그 직후 invalidate가 트리거하는 재조회가
+    // 거의 동시에 일어나서, 둘 중 무엇이 화면을 그렸는지 구분이 안 된다. 극단적으로는
+    // direct patch 코드가 통째로 없어져도 재조회가 알아서 새 제목을 채워주므로 그
+    // 테스트는 계속 통과한다 — direct patch 자체의 회귀를 못 잡는 구멍이다.
+    //
+    // 이 테스트는 재조회(2번째 GET /api/post) 응답만 인위적으로 지연시켜, 그 응답이
+    // 아직 안 왔는데도 카드 제목이 이미 새 제목인지 확인한다 — beforeEach가 등록한
+    // 무상태 목을 이 테스트 안에서 다시 등록해 덮어쓴다(LIFO — 나중 등록이 먼저 실행).
+    let updated = false;
+    let listRequestCount = 0;
+    const currentPost = () => (updated ? { ...mockPost, title: NEW_TITLE } : mockPost);
+
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.post.base),
+      async (route) => {
+        listRequestCount += 1;
+        if (listRequestCount === 2) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+        return route.fulfill({
+          json: wrapResponse({ ...mockPostListResponse, content: [currentPost()] }),
+        });
+      }
+    );
+
+    await page.route(
+      (url) => /^\/api\/post\/[^/]+$/.test(url.pathname),
+      (route) => {
+        if (route.request().method() === 'PATCH') {
+          updated = true;
+        }
+        return route.fulfill({ json: wrapResponse(currentPost()) });
+      }
+    );
+
+    await page.goto('/post');
+    await expect(page.getByRole('link', { name: mockPost.title })).toBeVisible();
+
+    await page.getByRole('button', { name: TEXTS.ariaLabels.postMenu }).click();
+    await page.getByRole('menuitem', { name: TEXTS.post.card.edit }).click();
+    await expect(page).toHaveURL(new RegExp(`/post/edit/${mockPost.id}$`));
+
+    const titleInput = page.getByLabel(TEXTS.post.form.update.titleLabel);
+    await expect(titleInput).toHaveValue(mockPost.title);
+    await titleInput.fill(NEW_TITLE);
+
+    // 첫 진입 요청(1번째)은 이미 소진됐으니, 다음으로 잡히는 GET /post가 곧
+    // invalidate가 트리거한 재조회(2번째, 2초 지연 중)다.
+    const secondListRequest = page.waitForRequest(
+      (req) => new URL(req.url()).pathname === '/api/post'
+    );
+    await page.getByRole('button', { name: TEXTS.post.form.update.update }).click();
+    await expect(page).toHaveURL(/\/post$/);
+    await secondListRequest;
+
+    // 재조회 요청은 이미 나갔지만(listRequestCount===2) 응답은 아직 2초 지연 중이다.
+    // 그런데도 카드 제목이 새 제목이라면, 재조회가 아니라 direct patch가 그렸다는 뜻이다.
+    // ⚠️ 기본 expect 타임아웃(5초)은 이 2초 지연보다 길어서, direct patch가 없어도
+    // toBeVisible이 응답을 기다렸다가 통과해버려 회귀를 못 잡는다 — 응답 지연보다
+    // 짧은 타임아웃을 명시해야 "응답 전에 이미 반영됐는가"를 실제로 검증한다.
+    expect(listRequestCount).toBe(2);
+    await expect(page.getByRole('link', { name: NEW_TITLE })).toBeVisible({ timeout: 500 });
+  });
 });
