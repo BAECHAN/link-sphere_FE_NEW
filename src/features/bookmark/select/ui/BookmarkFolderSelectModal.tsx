@@ -7,6 +7,7 @@ import { Spinner } from '@/shared/ui/atoms/spinner';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
+import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import {
   useBookmarkFolderSelect,
   UNCATEGORIZED_PENDING_KEY,
@@ -94,9 +95,9 @@ export function BookmarkFolderSelectModal({
         {/* 본문 */}
         <div className={cn('overflow-y-auto', isMobile ? 'max-h-[70vh]' : 'max-h-96')}>
           {isLoading ? (
-            <div className="flex items-center justify-center py-10">
+            <DelayedFallback className="flex items-center justify-center py-10">
               <Spinner />
-            </div>
+            </DelayedFallback>
           ) : (
             <ul className="py-1">
               {/* 미분류 */}

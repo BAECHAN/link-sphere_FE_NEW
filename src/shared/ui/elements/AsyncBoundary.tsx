@@ -9,7 +9,7 @@ export interface AsyncBoundaryProps {
   children: ReactNode;
   /**
    * 로딩 중 표시할 컴포넌트
-   * @default GlobalLoading
+   * @default SpinnerOverlay
    */
   loadingFallback?: ReactNode;
   /**

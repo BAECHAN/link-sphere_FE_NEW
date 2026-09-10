@@ -5,6 +5,14 @@ const meta = {
   title: 'Shared/UI/Elements/SpinnerOverlay',
   component: SpinnerOverlay,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          '지연 게이트가 지나면 fade-in(200ms)으로 나타난다. delay=0으로 두면 즉시 페이드인만 확인할 수 있다.',
+      },
+    },
+  },
   argTypes: {
     className: { control: 'text' },
     spinnerClassName: { control: 'text' },

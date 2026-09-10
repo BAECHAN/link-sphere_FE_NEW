@@ -674,14 +674,48 @@ vi.mock('react-router-dom', async () => {
 
 ---
 
-### 8. `SpinnerOverlay`가 렌더 직후엔 안 보인다
+### 8. 지연 게이트가 걸린 로딩 UI는 렌더 직후엔 안 보인다
+
+**대상**: `useDelayedLoading`을 내부에 쓰는 모든 로딩 표시 — `SpinnerOverlay`,
+`DelayedFallback`(및 그걸로 감싼 스켈레톤·스피너). 로딩 UX 규약은
+`docs/FE-ARCHITECTURE.md` §12-A 참고.
 
 **원인**: `useDelayedLoading(true, delay)`은 `delay=0`이어도 내부적으로
 `setTimeout(fn, 0)` 매크로태스크를 거쳐야 `true`가 된다. `render()` 직후
-동기 `getByRole('status')`는 아직 아무것도 못 찾는다.
+동기 `getByRole('status')`나 `getByTestId(...)`는 아직 아무것도 못 찾는다.
 
-**해결**: `await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())`로
-기다린다.
+**해결 — 실제 타이머로 충분할 때**:
+`await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())`로 기다린다.
+
+**해결 — 지연 값 자체(경계값, 취소 등)를 검증해야 할 때**: fake timers를 쓴다.
+`waitFor`와 fake timers를 같은 테스트에서 섞지 않는다 — 시간 진행은 반드시
+`act(() => vi.advanceTimersByTime(n))`으로 감싼다.
+
+```ts
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  vi.useRealTimers(); // 빼먹으면 뒤 테스트 스위트가 전부 멈춘다
+});
+
+it('delay가 지나면 true로 바뀐다', () => {
+  const { result } = renderHook(() => useDelayedLoading(true, 300));
+  act(() => {
+    vi.advanceTimersByTime(300);
+  });
+  expect(result.current).toBe(true);
+});
+```
+
+`useMinimumLoading`처럼 `Date.now()`로 경과 시간을 계산하는 훅은 `vi.useFakeTimers()`가
+`Date`도 함께 fake하는지 확인한다(`{ toFake: ['Date', ...] }`로 명시하면 안전). 안 그러면
+`elapsedTime` 계산이 실시간을 읽어 케이스가 조용히 무의미해진다. 참고:
+`useDelayedLoading.test.ts`, `useMinimumLoading.test.ts`, `DelayedFallback.test.tsx`.
+
+⚠️ MSW를 함께 쓰는 테스트(`ProtectedRoute.test.tsx` 등)에서는 네트워크가 관여하는
+케이스에 fake timers를 `beforeEach` 전역으로 켜지 않는다 — refresh 요청처럼 fetch가
+끼는 흐름에서 요청이 영원히 pending될 수 있다. 해당 `it` 안에서만 켠다.
 
 ---
 

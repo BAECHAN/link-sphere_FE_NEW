@@ -652,6 +652,66 @@ queryClient.setQueriesData<InfiniteData<EntityListResponse>>(
 
 ---
 
+## 12-A. 로딩 UX 규약 — 지연 게이트
+
+**원칙**: 빨리 끝나는 대기에는 인디케이터를 띄우지 않는다. [NN/g 응답시간
+3한계](https://www.nngroup.com/articles/response-times-3-important-limits/)의
+"0.1초 초과 1.0초 미만의 지연에는 보통 특별한 피드백이 필요 없다"는 구간 안쪽에서만
+로딩 표시가 나타나야 깜빡임이 안 생긴다.
+
+### 상수 (`src/shared/config/const.ts`)
+
+값을 통일하지 않고 성격별로 이름을 나눈다. 값이 같아도 서로 다른 정책이라 한쪽만
+조정할 수 있어야 한다.
+
+| 상수                                | 값    | 대상                                                     |
+| ----------------------------------- | ----- | -------------------------------------------------------- |
+| `LOADING_INDICATOR_DELAY_MS`        | 500ms | 조회 로딩 — `SpinnerOverlay`·`DelayedFallback` 기본값    |
+| `MUTATION_PROGRESS_DELAY_MS`        | 500ms | mutation 진행 표시 — 진행 토스트, 카드 오버레이 등       |
+| `LOADING_INDICATOR_MIN_DURATION_MS` | 400ms | mutation 진행 표시의 최소 노출 시간 (조회 로딩엔 미적용) |
+
+### 조회 로딩 vs mutation 진행 표시 — 비대칭 규약
+
+| 구분                                                               | 지연 게이트 | 최소 노출      | 하드 엣지 처리                                  |
+| ------------------------------------------------------------------ | ----------- | -------------- | ----------------------------------------------- |
+| **조회 로딩** (Suspense fallback, `isLoading` 분기)                | ✅          | ❌ 불가·불필요 | CSS 페이드인(`animate-in fade-in duration-200`) |
+| **mutation 진행 표시** (`usePostCard`, `PostMutationLoadingToast`) | ✅          | ✅             | — (표시 주체가 계속 마운트돼 있어 불필요)       |
+
+**"Suspense fallback은 자기 노출을 연장할 수 없다"는 기술적 사실**: fallback의 수명은
+Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback이 스스로 노출을
+연장할 방법이 없다. 경계 바깥에서도 suspend 여부를 관측할 수 없다. 그래서 "지연 500ms
+
+- 응답 501ms = 1ms만 노출"이라는 새 깜빡임이 원리적으로 남는데, 이건 최소 노출이 아니라
+  **CSS 페이드인**으로 무해화한다 — opacity가 거의 0인 채로 사라져 눈에 안 띄고, 최소
+  노출과 달리 총 대기 시간을 늘리지 않는다. 이 비대칭은 취향이 아니라 표시 주체의
+  소유권 차이에서 나온다(자세한 경위는 `docs/DECISIONS.md` 2026-09-10 항목 참고).
+
+### 적용 방법
+
+- **Suspense fallback**: `<AsyncBoundary loadingFallback={<DelayedFallback><PostListSkeleton /></DelayedFallback>}>`
+- **`isLoading` 분기**: `if (isLoading) { return <DelayedFallback className="…">…</DelayedFallback>; }`
+  — **조기 반환 가드를 그대로 유지한다.** 가드를 지연된 값으로 바꾸면 지연 구간(0~500ms)에
+  가드를 통과해 바로 다음 줄의 빈 상태 분기("저장한 게 없어요" 등)에 걸린다 — 스피너
+  깜빡임보다 나쁜 회귀다.
+- **스피너 하나만 필요하면**: `<SpinnerOverlay />`. `SpinnerOverlay`는 이미 자체 게이트를
+  갖고 있으므로 `DelayedFallback`으로 다시 감싸지 않는다(이중 게이트 금지).
+
+### 이 규약을 적용하지 않는 것 (논외)
+
+사용자가 방금 조작한 직후의 즉시 피드백은 지연을 넣지 않는다 — NN/g의 0.1초 직접
+조작 원칙과 반대 방향이다.
+
+- 버튼 내 mutation `isPending` 라벨/아이콘 스왑
+- 무한스크롤 다음 페이지 `isFetchingNextPage`
+- pull-to-refresh `isRefetching`
+
+### 후속 후보 (이번 범위 밖)
+
+- 북마크 폴더/정렬 전환 시 `placeholderData: keepPreviousData` — `isLoading`의 의미가
+  바뀌므로 별도 UX 설계가 필요하다.
+
+---
+
 ## 13. 에러 핸들링 전략
 
 ### 전역 에러 핸들링

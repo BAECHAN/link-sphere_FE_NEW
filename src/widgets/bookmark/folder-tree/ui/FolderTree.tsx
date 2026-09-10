@@ -10,6 +10,7 @@ import {
 } from '@/shared/ui/atoms/dropdown-menu';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
+import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import {
   BookmarkFolder,
   BookmarkFolderKey,
@@ -84,9 +85,9 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
       )}
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-4">
+        <DelayedFallback className="flex items-center justify-center py-4">
           <Spinner />
-        </div>
+        </DelayedFallback>
       ) : (
         folderList?.map((folder) => (
           <FolderItem

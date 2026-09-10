@@ -6,6 +6,7 @@ import {
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { TEXTS } from '@/shared/config/texts';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import { useBookmarkPostList } from '@/widgets/bookmark/bookmark-post-list/hooks/useBookmarkPostList';
 
 interface BookmarkPostListProps {
@@ -21,9 +22,9 @@ export function BookmarkPostList({ folderKey, sort, search, className }: Bookmar
 
   if (isLoading) {
     return (
-      <div className={cn('flex justify-center py-12', className)}>
+      <DelayedFallback className={cn('flex justify-center py-12', className)}>
         <Loader2 className="size-8 animate-spin text-primary" />
-      </div>
+      </DelayedFallback>
     );
   }
 

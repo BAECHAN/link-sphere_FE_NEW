@@ -18,6 +18,7 @@ import {
 } from '@/shared/ui/atoms/dropdown-menu';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
+import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import {
   BookmarkFolder,
   BookmarkFolderKey,
@@ -75,9 +76,9 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
           {TEXTS.bookmark.folder.myFolders}
         </h2>
         {isLoading ? (
-          <div className="flex items-center justify-center py-10">
+          <DelayedFallback className="flex items-center justify-center py-10">
             <Spinner />
-          </div>
+          </DelayedFallback>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {folderList?.map((folder) => (

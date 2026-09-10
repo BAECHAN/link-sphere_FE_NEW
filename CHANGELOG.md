@@ -29,6 +29,14 @@
 
 ### Changed
 
+- `shared` 빠르게 끝나는 조회에는 로딩 인디케이터를 아예 띄우지 않도록 지연 게이트 일관 적용
+  <details><summary>배경·구현</summary>
+
+  빠르게 응답이 오는 화면에서 로딩 인디케이터가 잠깐 보였다 사라지는 깜빡임 제보. 조사해보니 지연 게이트(`useDelayedLoading`)는 이미 있었고 조회 로딩의 절반(상세·댓글·lazy 청크·세션 복원)은 500ms 지연으로 보호되고 있었는데, 나머지 절반(피드 목록 스켈레톤, 북마크 목록·폴더 트리·폴더 선택 모달의 스피너, 로그인 필요 페이지 진입, 라우터 최상위 스피너)은 0ms로 즉시 떴다. 공통 래퍼 `DelayedFallback`을 새로 만들어 Suspense fallback과 `isLoading` 분기 양쪽에 동일하게 적용했다. Suspense fallback은 구조상 최소 노출 시간을 걸 수 없어(경계가 수명을 소유) 대신 CSS 페이드인으로 하드 엣지를 없앴다. `isLoading` 조기 반환 가드는 그대로 유지해 지연 구간에 빈 상태 문구가 잠깐 뜨는 회귀를 막았다. 상수도 이름과 값을 일치시켜 `LOADING_INDICATOR_DELAY_MS`(조회, 500ms)와 `MUTATION_PROGRESS_DELAY_MS`(mutation 진행 표시, 500ms)로 분리했다.
+  (`shared/config/const.ts`, `shared/ui/elements/DelayedFallback.tsx`(신규), `shared/ui/elements/SpinnerOverlay.tsx`, `app/ui/PostMutationLoadingToast.tsx`, `widgets/post/post-card/hooks/usePostCard.ts`, `widgets/post/post-list/ui/PostList.tsx`, `widgets/bookmark/bookmark-post-list/ui/BookmarkPostList.tsx`, `widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`, `features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `app/routes/ProtectedRoute.tsx`, `app/providers/RouterProvider.tsx`, `docs/FE-ARCHITECTURE.md`, `docs/DECISIONS.md`, [PR #61](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/61))
+
+  </details>
+
 - `post` 검색 실행 후에도 헤더 검색창에 검색어가 그대로 유지됨
   <details><summary>배경·구현</summary>
 

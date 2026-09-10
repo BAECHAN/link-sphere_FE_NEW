@@ -1,6 +1,7 @@
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
+import { LOADING_INDICATOR_DELAY_MS } from '@/shared/config/const';
 
 export interface SpinnerOverlayProps {
   className?: string;
@@ -11,8 +12,13 @@ export interface SpinnerOverlayProps {
 /**
  * 부모 요소를 기준으로 중앙에 스피너를 표시하는 오버레이 컴포넌트
  * useDelayedLoading을 적용하여 짧은 로딩 시 깜빡임을 방지합니다.
+ * 자체적으로 지연 게이트를 갖고 있으므로 DelayedFallback으로 다시 감싸지 않는다.
  */
-export function SpinnerOverlay({ className, spinnerClassName, delay = 500 }: SpinnerOverlayProps) {
+export function SpinnerOverlay({
+  className,
+  spinnerClassName,
+  delay = LOADING_INDICATOR_DELAY_MS,
+}: SpinnerOverlayProps) {
   const isDelayedLoading = useDelayedLoading(true, delay);
 
   if (!isDelayedLoading) {
@@ -20,7 +26,12 @@ export function SpinnerOverlay({ className, spinnerClassName, delay = 500 }: Spi
   }
 
   return (
-    <div className={cn('flex h-full w-full items-center justify-center p-10', className)}>
+    <div
+      className={cn(
+        'flex h-full w-full items-center justify-center p-10 animate-in fade-in duration-200',
+        className
+      )}
+    >
       <Spinner className={cn('size-10 animate-spin', spinnerClassName)} />
     </div>
   );

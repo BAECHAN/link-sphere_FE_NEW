@@ -40,7 +40,7 @@ const LoginPage = lazy(() =>
 /**
  * Lazy 컴포넌트를 Suspense로 감싸는 래퍼
  * 각 페이지별로 로딩 상태를 관리하여 깜빡임 방지
- * GlobalLoading을 delay=0으로 사용하여 즉시 표시
+ * SpinnerOverlay의 기본 지연 게이트(LOADING_INDICATOR_DELAY_MS)를 그대로 쓴다
  */
 const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType<any>>) => {
   return (
