@@ -17,9 +17,13 @@ const ALLOWED_ACRONYMS = ['UI']; // UI: User Interface
 const RESTRICTED_SYNTAX_COMMON = [
   // [금지] Zustand getState() 직접 호출
   // 이유: getState()는 상태 변경을 구독하지 않아 값이 바뀌어도 UI가 리렌더링되지 않음
+  // 화살표 함수 컴포넌트/훅(`const useFoo = () => {...}`)도 잡도록 두 갈래로 나눴다 —
+  // ArrowFunctionExpression은 ESTree상 `id`가 항상 null이라 원래 있던
+  // `[id.name=...]` 단일 조건으로는 절대 매칭되지 않았다(2026-09-09 문서-코드 정합성
+  // 감사 중 발견, 사각지대를 실제로 통과하는 위반은 없었음 — 예방 목적으로 승격).
   {
     selector:
-      ':matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression)[id.name=/^use|^[A-Z]/] CallExpression[callee.property.name="getState"]',
+      ':matches(:matches(FunctionDeclaration, FunctionExpression)[id.name=/^use|^[A-Z]/], VariableDeclarator[id.name=/^use|^[A-Z]/] > ArrowFunctionExpression) CallExpression[callee.property.name="getState"]',
     message:
       'getState() 대신 useStore((state) => state.value) Selector 패턴을 사용하세요. getState()는 상태 변경을 구독하지 않아 리렌더링되지 않습니다.',
   },
@@ -190,7 +194,11 @@ export default [
   },
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['src/main.tsx', '**/*.styles.ts', '**/*.styles.tsx', 'src/*.d.ts'],
+    // 'src/*.d.ts'였던 패턴이 중첩 경로(src/types/lucide-react.d.ts)를 못 잡아, 그 파일
+    // 하나만 수동 eslint-disable로 회피하고 있었다 — CLAUDE.md가 이미 별도로 경고하는
+    // "ignore 패턴에 **/ prefix 누락" 실수의 같은 종류 재발(2026-09-09 문서-코드 정합성
+    // 감사 중 발견). '**/*.d.ts'로 넓혀 src/ 안 모든 .d.ts를 동일하게 예외 처리한다.
+    ignores: ['src/main.tsx', '**/*.d.ts'],
     plugins: {
       import: importPlugin,
       prettier: prettierPlugin,
@@ -355,13 +363,6 @@ export default [
         console: true,
       },
     },
-    settings: {
-      'import/resolver': {
-        typescript: {
-          project: './tsconfig.app.json',
-        },
-      },
-    },
     rules: {
       ...js.configs.recommended.rules,
       // Prettier 규칙 통합
@@ -386,7 +387,12 @@ export default [
       'prefer-const': 'error',
       '@typescript-eslint/no-explicit-any': 'off',
       // TypeScript 타입 체크 강화
-      // 타입 정보가 필요한 규칙이지만, 타입 에러가 있어도 ESLint가 실패하지 않도록 warn으로 설정
+      // warn이지만 package.json의 lint 스크립트가 --max-warnings 0이라 실제로는 error와
+      // 동일하게 pnpm lint/pre-commit을 막는다(2026-09-09 문서-코드 정합성 감사 중, 이
+      // 줄의 예전 주석 "ESLint가 실패하지 않도록"이 실제와 반대라는 걸 발견해 정정).
+      // severity를 'warn'으로 유지한 이유는 tsc(type-check 스크립트)가 이미 이 타입
+      // 에러들을 별도로 잡아내므로, ESLint 쪽에서는 --fix 등 도구가 warn/error를
+      // 구분해 다르게 취급할 여지를 남겨두기 위함이다.
       '@typescript-eslint/no-unsafe-assignment': 'warn',
       '@typescript-eslint/no-unsafe-member-access': 'warn',
       '@typescript-eslint/no-unsafe-call': 'warn',
@@ -397,55 +403,26 @@ export default [
       'react-hooks/exhaustive-deps': 'warn',
     },
   },
-  // 스타일 파일에 대한 특별 규칙
-  {
-    files: ['**/*.styles.ts', '**/*.styles.tsx'],
-    languageOptions: {
-      parser: tseslint.parser,
-      parserOptions: {
-        ecmaVersion: 'latest',
-        sourceType: 'module',
-        ecmaFeatures: {
-          jsx: true,
-        },
-        // 타입 정보가 필요한 규칙을 사용하지 않으므로 project 옵션 제거
-        // 타입 체크는 TypeScript 컴파일러가 담당
-      },
-    },
-    rules: {
-      // 스타일 파일에서는 타입 정보가 필요한 규칙 비활성화
-      // 타입 에러는 TypeScript 컴파일러가 체크하므로 ESLint에서 중복 체크 불필요
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-return': 'off',
-    },
-  },
-  // Import 규칙: 일반 파일은 절대 경로(@/) 사용 강제, 스타일 파일은 같은 디렉토리에서만 상대 경로(./) 사용
+  // Import 규칙: 일반 파일은 절대 경로(@/) 사용 강제
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: [
-      '**/index.{ts,tsx}',
-      'src/main.tsx',
-      'src/app/App.tsx',
-      '**/*.styles.ts',
-      '**/*.styles.tsx',
-    ],
+    ignores: ['**/index.{ts,tsx}', 'src/main.tsx', 'src/app/App.tsx'],
     plugins: {
       'custom-import': {
         rules: {
+          // 룰 key 이름(no-relative-import-except-styles)은 이 레포에 실재했던 styled-
+          // components(.styles.ts) 컨벤션 시절 이름이 그대로 남은 것이다. 그 컨벤션은
+          // 폐기됐고(레포에 .styles.ts 파일 자체가 없음, 2026-09-09 문서-코드 정합성
+          // 감사 중 발견) 로직도 순수 "상대경로 금지"로 단순화했지만, 다른 곳에서
+          // 이 rule key(:501)를 참조하므로 이름 자체는 안 바꿨다.
           'no-relative-import-except-styles': {
             meta: {
               type: 'problem',
               docs: {
-                description:
-                  '일반 파일은 절대 경로 사용 강제, 스타일 파일은 같은 디렉토리에서만 상대 경로 허용',
+                description: '일반 파일은 절대 경로(@/) 사용 강제, 상대 경로(./, ../) 금지',
               },
               messages: {
-                relativeImport:
-                  './ 대신 @/를 사용한 절대 경로 import를 사용해주세요. (단, 스타일 파일은 같은 디렉토리에서 ./로 import 가능)',
-                absoluteStylesImport:
-                  '❌ 스타일 파일은 같은 디렉토리 내에서만 상대 경로(./)로 import해야 합니다 (예: "./ComponentName.styles"). 절대 경로(@/)나 다른 디렉토리(../)는 사용할 수 없습니다.',
+                relativeImport: './ 대신 @/를 사용한 절대 경로 import를 사용해주세요.',
               },
             },
             create(context) {
@@ -454,40 +431,8 @@ export default [
                   const importPath = node.source.value;
                   if (typeof importPath !== 'string') return;
 
-                  // 스타일 파일인지 확인 (.styles 포함 여부)
-                  const isStylesFile = importPath.includes('.styles');
-
-                  // 절대 경로로 스타일 파일 import하는 경우 에러
-                  if (importPath.startsWith('@/') && isStylesFile) {
-                    context.report({
-                      node,
-                      messageId: 'absoluteStylesImport',
-                    });
-                    return;
-                  }
-
-                  // 상위 디렉토리로 가는 스타일 파일 import 금지
-                  if (importPath.startsWith('../') && isStylesFile) {
-                    context.report({
-                      node,
-                      messageId: 'absoluteStylesImport',
-                    });
-                    return;
-                  }
-
-                  // 상대 경로인지 확인
                   if (importPath.startsWith('./') || importPath.startsWith('../')) {
-                    // 같은 디렉토리에서 ./로 시작하는 스타일 파일은 허용
-                    if (importPath.startsWith('./') && isStylesFile) {
-                      return;
-                    }
-                    // 스타일 파일이 아닌 경우 에러
-                    if (!isStylesFile) {
-                      context.report({
-                        node,
-                        messageId: 'relativeImport',
-                      });
-                    }
+                    context.report({ node, messageId: 'relativeImport' });
                   }
                 },
               };
@@ -729,28 +674,19 @@ export default [
       'unicorn/filename-case': ['error', { case: 'pascalCase' }],
     },
   },
-  // Custom Hook 파일: camelCase (use*.tsx)
+  // Custom Hook 파일: camelCase (use*.ts, use*.tsx)
+  // 원래 'use*.tsx'만 대상이었는데, 이 레포의 실제 훅 파일은 전부 .ts라 이 블록이
+  // use*.test.tsx 12개(JSX Wrapper가 필요해 .tsx인 테스트 파일)만 우연히 검증하고
+  // 정작 훅 본체 53개는 아무 파일명 규칙도 안 받고 있었다(2026-09-09 문서-코드
+  // 정합성 감사 중 발견, 이미 전부 camelCase로 지켜지고 있어 위반은 없었음 — 예방
+  // 목적으로 승격). .ts를 추가해 둘 다 검증한다.
   {
-    files: ['src/**/use*.tsx'],
+    files: ['src/**/use*.{ts,tsx}'],
     plugins: {
       unicorn: unicornPlugin,
     },
     rules: {
       'unicorn/filename-case': ['error', { case: 'camelCase' }],
-    },
-  },
-  // 스타일 파일: PascalCase.styles.ts
-  {
-    files: ['src/**/*.styles.ts'],
-    ignores: [
-      // 약어로 시작하는 스타일 파일명 허용 (UI, URL 등)
-      ...ALLOWED_ACRONYMS.map((acronym) => `**/${acronym}*.styles.ts`),
-    ],
-    plugins: {
-      unicorn: unicornPlugin,
-    },
-    rules: {
-      'unicorn/filename-case': ['error', { case: 'pascalCase' }],
     },
   },
   // 유틸리티 파일: kebab-case (common.util.ts, date.util.ts 등)
@@ -805,10 +741,15 @@ export default [
       'unicorn/filename-case': ['error', { case: 'kebabCase' }],
     },
   },
-  // 설정 파일: camelCase (config 폴더)
+  // 설정 파일: kebab-case (config 폴더)
+  // ignores가 원래 'src/**/config/*.ts'(config 폴더 직속 자식 전부)였는데, 이 레포의
+  // config 파일 12개가 전부 직속 자식이라 사실상 이 블록 전체가 무력화돼 있었다
+  // (2026-09-09 문서-코드 정합성 감사 중 발견). queryClient.ts(camelCase)만 리네임
+  // 범위가 커서 개별 예외로 남기고 나머지 11개는 검사 대상으로 되돌렸다 — 되돌린
+  // 상태로도 위반 0건임을 확인했다.
   {
     files: ['src/**/config/**/*.ts'],
-    ignores: ['**/index.ts', 'src/**/config/*.ts'],
+    ignores: ['**/index.ts', 'src/shared/lib/react-query/config/queryClient.ts'],
     plugins: {
       unicorn: unicornPlugin,
     },
@@ -1000,8 +941,6 @@ export default [
       '**/*.stories.{ts,tsx}', // Storybook
       'src/shared/utils/date.util.ts', // 날짜 로케일 포맷 (i18n 예외)
       'src/shared/utils/common.util.ts', // 숫자/통화 로케일 포맷 (i18n 예외)
-      '**/*.styles.ts',
-      '**/*.styles.tsx',
     ],
     plugins: {
       'custom-i18n': {

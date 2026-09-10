@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
+import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { getTransformedImageUrl } from '@/shared/lib/image/supabaseImage';
 import { useImageViewer } from '@/shared/ui/elements/modal/image-viewer/imageViewer.store';
@@ -68,13 +69,14 @@ export function UserAvatar({
   }
 
   return (
-    <button
+    <Button
       type="button"
-      className="inline-flex shrink-0 rounded-full"
+      variant="ghost"
+      className="h-auto w-auto shrink-0 rounded-full p-0 hover:bg-transparent"
       aria-label={TEXTS.ariaLabels.profileImageZoom}
       onClick={() => openImageViewer({ src: image, alt: nickname ?? '' })}
     >
       {avatar}
-    </button>
+    </Button>
   );
 }

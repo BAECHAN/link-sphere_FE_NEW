@@ -311,16 +311,16 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
 ## Critical Rules
 
 - **Never** Node 20으로 작업 진행 → 이 레포는 Node 24(`.nvmrc`) 고정이다. 작업 전 `node -v`가
-  `v24`가 아니면 `nvm use`로 맞춘다. `package.json`의 `engines.node`(`>=24`)가 버전을 명시하지만,
-  `engine-strict`가 꺼져 있어(2026-09-09 기준 `.npmrc`에 미설정) 다른 버전이어도 `pnpm install`은
-  경고만 띄우고 그대로 진행된다 — 실제로 설치 자체를 막으려면 `.npmrc`에 `engine-strict=true`를
-  추가해야 한다(2026-09-09 감사에서 "install부터 막힌다"는 이전 서술이 과장임을 확인)
+  `v24`가 아니면 `nvm use`로 맞춘다. `package.json`의 `engines.node`(`>=24`)와 `.npmrc`의
+  `engine-strict=true`(2026-09-09 추가)가 함께 있어 다른 버전이면 `pnpm install` 자체가
+  에러로 막힌다 — 다만 이 세션은 워크트리 격리(`source` 명령 차단) 때문에 Node 20을 실제로
+  깔아 재현 검증은 못 했다(engine-strict의 표준 동작 자체는 npm/pnpm 공식 문서 근거)
 - **Never** native `confirm()` → 항상 `useAlert` + `openConfirm` 사용
 - **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만(2026-09-09 감사에서
   `shared/lib/firebase/fcm.ts`가 raw `fetch()`로 이 규칙을 어기고 있는 걸 발견해 같은 날
   `shared/api/fcm.api.ts`로 옮겨 고쳤다 — 지금은 예외 없이 지켜지고 있다)
 - **Never** 인라인 쿼리 키 → 항상 `<entity>Keys.*` 사용
-- **Never** 인라인 한글 UI 문자열 → 항상 `TEXTS.*` 사용 (ESLint `custom-i18n/no-hardcoded-hangul`가 빌드/pre-commit에서 자동 차단. 보간은 `texts.ts`의 함수형 키 사용 예: `messages.success.folderCreated(name)`. 예외: 테스트/스토리/`date.util.ts`·`common.util.ts` 로케일 포맷)
+- **Never** 인라인 한글 UI 문자열 → 항상 `TEXTS.*` 사용 (ESLint `custom-i18n/no-hardcoded-hangul`가 빌드/pre-commit에서 자동 차단. 보간은 `texts.ts`의 함수형 키 사용 예: `messages.success.bookmarkSavedTo(folderName)`. 예외: 테스트/스토리/`date.util.ts`·`common.util.ts` 로케일 포맷)
 - **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반
   Tailwind 클래스 사용 (`text-destructive`, `bg-success`, `text-warning` 등). ⚠️ 이 규칙은 다른
   "Never" 항목과 달리 ESLint로 강제되지 않는다 — grep으로만 확인 가능하다. 2026-09-09 감사에서
@@ -421,12 +421,17 @@ const handleCreateAndSelect = async () => {
   확인됨). 새 워크트리를 만들기 전 `git worktree list`로 오래된 워크트리가 남아있는지 먼저
   훑고, 디렉토리는 있는데 목록엔 없는 경우(비정상 종료로 등록이 깨진 경우) `git worktree prune`
   으로 정리한다
-- **Never** `eslint.config.js`·`.prettierignore`의 ignore 패턴을 루트 상대 경로로만 작성 →
+- **Never** `eslint.config.js`의 ignore 패턴을 루트 상대 경로로만 작성 →
   `.claude/worktrees/`처럼 중첩된 경로가 새서 워크트리 안 빌드 산출물(`dist/`)이 그대로
-  검사 대상에 걸린다. `.gitignore`에 있어도 ESLint/Prettier는 자동으로 읽지 않으므로
+  검사 대상에 걸린다. `.gitignore`에 있어도 ESLint는 자동으로 읽지 않으므로
   `dist/**/*`가 아니라 `**/dist/**`처럼 `**/` prefix를 붙여야 한다(2026-09-03, `pnpm check`
   2,370건 중 2,366건이 이 문제였다 — `pnpm check`가 CI에 걸려 있지 않아 몇 달째 발견도
-  못 됐다. 지금은 PR CI(`ci.yml`)와 `deploy.yml`에 게이트로 걸려 있다)
+  못 됐다. 지금은 PR CI(`ci.yml`)와 `deploy.yml`에 게이트로 걸려 있다). **`.prettierignore`는
+  이 문제가 없다** — gitignore 문법을 그대로 쓰므로 슬래시 없는 패턴(`dist`)이 이미 모든
+  깊이에서 매칭된다(ESLint의 glob 문법과 다름). 2026-09-09 감사에서 `.prettierignore`가
+  `**/` prefix 없이 `node_modules`/`dist`/`build`/`coverage`로만 돼 있어 위 사고와 같은
+  패턴인지 의심했으나, 중첩 `dist/` 디렉터리를 실제로 만들어 `prettier --check`가 걸러내는지
+  재현 검증한 결과 문제없음을 확인했다 — ESLint 규칙을 Prettier에도 그대로 적용하지 않는다
 
 **여러 워크트리의 변경사항이 합쳐진 상태를 미리 보고 싶을 때**: 워크트리는 격리가
 목적이라 기본적으로 서로의 변경을 볼 수 없다. 머지 전에 임시로 합쳐서 확인하고
@@ -516,7 +521,7 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 | Zod Schema (`z.infer`로 타입 파생)                                                 | §9   | `nullable()`=null 허용, `optional()`=undefined 허용                                            |
 | Delete with Confirm                                                                | §10  | native `confirm()` 금지, 항상 `useAlert` + `openConfirm`                                       |
 | Optimistic Update (`onMutate` → `cancelQueries` → `setQueryData` → 롤백)           | §11  | 참조 구현: `entities/interaction/api/interaction.queries.ts`                                   |
-| Util Class (`*.util.ts`는 바레 함수 대신 `export class <Name>Util { static ... }`) | §23  | 함수 하나뿐이어도 클래스로 감싼다 — `shared/utils/`의 7/8 파일이 이 형태                       |
+| Util Class (`*.util.ts`는 바레 함수 대신 `export class <Name>Util { static ... }`) | §23  | 함수 하나뿐이어도 클래스로 감싼다 — `shared/utils/`의 8/9 파일이 이 형태                       |
 
 ---
 
@@ -527,7 +532,7 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 **에러 토스트의 유일한 기본 소유자는 React Query 전역 핸들러(`queryClient.ts`)다.**
 
 - transport 레이어(`shared/api/client.ts`)는 UI 토스트를 띄우지 않는다 — 인증 정리·throw만.
-- mutation 에러는 전부 `mutationErrorHandler`를 지나가며, `meta.manualErrorHandling`이 없으면 거기서 토스트 1개가 자동으로 뜬다 ([queryClient.ts](src/shared/lib/react-query/config/queryClient.ts) `if (meta?.manualErrorHandling) return;`).
+- mutation 에러는 전부 `mutationErrorHandler`를 지나가며, `meta.manualErrorHandling`이 없으면 거기서 토스트 1개가 자동으로 뜬다 ([queryClient.ts](../src/shared/lib/react-query/config/queryClient.ts) `if (meta?.manualErrorHandling) { return; }`).
 
 > ⚠️ **Never** mutation `onError`나 그 mutation을 쓰는 컴포넌트 `catch`에서 `toast.`를 직접 부르면서 `meta.manualErrorHandling`을 빼먹지 말 것 → 전역 토스트와 겹쳐 **두 번 뜬다**. 직접 토스트를 띄우면 반드시 `manualErrorHandling: true`.
 

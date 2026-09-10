@@ -43,7 +43,7 @@ API)를 성능을 이유로 정반대로 채택**하고, 그 위에 도메인 �
 | ----------------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 레이어 6종 + 하향 의존만 허용                                     | ✅ 채택                                 | FSD 원칙 그대로                                                                                                                                                                                                                                                                                                                                   | ESLint `no-restricted-imports` 5블록 (`eslint.config.js`)                                                                                                                                                |
 | Public API — 슬라이스는 `index.ts` 배럴로만 외부에 노출           | ❌ **정반대로 채택** (배럴 자체를 금지) | dev 서버 부팅 15-70%·빌드 28%·콜드스타트 40% 지연이라는 성능 트레이드오프 때문에 의도적으로 뒤집음(수치 출처 미상 — 2026-09-08 확인, 이 레포에서 직접 측정하거나 외부 출처를 링크한 기록 없음. 재검증 전까지 참고용으로만 취급할 것)                                                                                                              | ESLint `custom-barrel-rules/no-barrel-import` (`eslint.config.js`) — import 문자열이 `/index`로 끝날 때 에러(디렉터리 암묵 해석은 예외 — `@/mocks/handlers`처럼 실제로 쓰인다)                           |
-| 동일 레이어 슬라이스 격리 (entities는 `@x` 표기로 교차 참조 허용) | ❌ 미채택, 미강제                       | 별도 표기 없이 상시 교차 참조 발생                                                                                                                                                                                                                                                                                                                | 없음 — `entities/post/model/post.schema.ts:105-106`이 comment·interaction 스키마를 `export *`로 재수출, `entities/interaction/api/interaction.queries.ts:3-8`이 post·comment·folder의 keys를 직접 import |
+| 동일 레이어 슬라이스 격리 (entities는 `@x` 표기로 교차 참조 허용) | ❌ 미채택, 미강제                       | 별도 표기 없이 상시 교차 참조 발생. entities뿐 아니라 features에도 있다 — `features/post/create`가 `features/bookmark/select`를 참조한다(2026-09-09, `BookmarkFolderSelectModal`을 entities에서 이동하며 감수한 트레이드오프, `docs/DECISIONS.md` 참고)                                                                                           | 없음 — `entities/post/model/post.schema.ts:102-103`이 comment·interaction 스키마를 `export *`로 재수출, `entities/interaction/api/interaction.queries.ts:3-8`이 post·comment·folder의 keys를 직접 import |
 | 세그먼트는 목적 기준 명명 (`ui`/`api`/`model`/`lib`/`config`)     | ⚠️ 부분 채택                            | `hooks/`·`utils/`를 세그먼트로도 쓴다(`features/*/hooks/`, `widgets/post/post-list/utils/`, 2026-09-08부터 `entities/*/hooks/`·`entities/*/utils/`도) — 정식 FSD 세그먼트명은 아니지만 레이어 전체에서 일관되게 쓰인다. `entities`의 `model/`은 스키마·타입 전용으로 좁혔다(2026-09-08, 근거는 `.claude/CLAUDE.md` "레이어별 허용 세그먼트" 참고) | `.claude/CLAUDE.md`의 "레이어별 허용 세그먼트" 표 (문서 규칙, ESLint 미강제)                                                                                                                             |
 | 슬라이스 그룹 폴더 허용 (그룹 폴더 자체엔 공유 코드 금지)         | ✅ 채택                                 | 그룹 폴더(`features/post/`, `widgets/layout/` 등)에는 파일이 없고 슬라이스만 있음                                                                                                                                                                                                                                                                 | —                                                                                                                                                                                                        |
 
@@ -69,6 +69,9 @@ flowchart TD
   EComment -.import.-> EPost
   EInteraction -.import.-> EPost
   EInteraction -.import.-> EFolder
+  EInteraction -.import.-> EComment
+  EPost -.import.-> EFolder
+  EPost -.import.-> ECategory["entities/category"]
   EAuth["entities/auth"] -.import.-> EPost
   EAuth -.import.-> EAccount["entities/account"]
   EAccount -.import.-> EPost
@@ -126,8 +129,10 @@ src/
 │   ├── providers/                # AuthProvider, QueryProvider, RouterProvider, ThemeProvider
 │   ├── routes/                   # 라우트 설정, ProtectedRoute, RouteErrorBoundary
 │   │   └── layouts/              # AppShellLayout, ProtectedLayout, PublicLayout, RootLayout
-│   └── layouts/
-│       └── app-layout/           # AppLayout — 현재 어디서도 import되지 않는 미사용 컴포넌트
+│   ├── layouts/
+│   │   └── app-layout/           # AppLayout — 현재 어디서도 import되지 않는 미사용 컴포넌트
+│   └── ui/                       # PostMutationLoadingToast — post/account 뮤테이션 진행 상태
+│                                 # 헤드리스 옵저버(여러 entities를 알아야 해서 app에 위치)
 │
 ├── pages/                        # 라우팅 진입점 — widgets/features 조합. 세그먼트 없음
 │   ├── post/                     # index(Post), PostDetailPage, PostEditPage, PostSubmitPage
@@ -155,7 +160,7 @@ src/
 │   │   └── folder-tree/{hooks,ui}         # useFolderTree 외 4개, FolderTree, MobileFolderList
 │   └── layout/
 │       ├── navbar/
-│       │   ├── hooks/            # useRecentSearches
+│       │   ├── hooks/            # useRecentSearches, useNavbarSearch
 │       │   └── ui/               # Navbar, NavbarSearch, MobileNavbarSearch, RecentSearchPanel
 │       ├── bottom-tab-bar/ui/
 │       ├── sidebar/ui/
@@ -179,10 +184,14 @@ src/
 │   │   └── update/{hooks,ui}     # useUpdateAccount, UpdateAccountForm
 │   └── bookmark/                 # 2026-09-08 post/bookmark에서 승격 — entities/widgets/pages와
 │       │                         # bookmark 도메인 그룹을 통일(FSD nukeapp 사례 참고)
-│       └── toggle/{hooks,ui}     # useBookmarkFolders, usePostCardBookmarkFolderModal, BookmarkPostButton,
-│                                 # PostCardBookmarkFolderModal(2026-09-08, entities의
-│                                 # BookmarkFolderSelectModal과 이름이 겹쳐 호출 맥락(PostCard)
-│                                 # 접두사를 붙여 개명)
+│       ├── toggle/{hooks,ui}     # useBookmarkFolders, usePostCardBookmarkFolderModal, BookmarkPostButton,
+│       │                         # PostCardBookmarkFolderModal(2026-09-08, entities의
+│       │                         # BookmarkFolderSelectModal과 이름이 겹쳐 호출 맥락(PostCard)
+│       │                         # 접두사를 붙여 개명)
+│       └── select/{hooks,ui}     # useBookmarkFolderSelect, BookmarkFolderSelectModal — toggle·
+│                                 # post/create 두 feature가 공유하는 폴더 선택 UI. entities/ui는
+│                                 # 시각적 표현만 담아야 하는데 CRUD 인터랙션이라 여기로 이동
+│                                 # (features↔features cross-import는 감수, 상세 근거는 DECISIONS.md)
 │
 ├── entities/                     # 비즈니스 엔티티 — data layer + basic display
 │   ├── post/
@@ -204,8 +213,8 @@ src/
 │   │       ├── model/            # bookmark-folder.schema.ts
 │   │       ├── config/           # bookmark-folder.const.ts (RECENT_BOOKMARK_FOLDER_COUNT 외)
 │   │       ├── utils/            # bookmark-folder.util.ts (pickRecentFolders)
-│   │       ├── hooks/            # useRecentBookmarkFolders.ts, useBookmarkFolderSelect.ts
-│   │       └── ui/               # BookmarkFolderSelectModal(PostCardBookmarkFolderModal·PostCreateBookmarkFolderField가 공유)
+│   │       └── hooks/            # useRecentBookmarkFolders.ts (다른 소비처가 있는 순수 데이터 파생 훅만
+│   │                             # entities에 남는다 — 인터랙션 UI는 features/bookmark/select/로 이동)
 │   ├── category/
 │   │   ├── api/                  # category.api.ts, category.keys.ts, category.queries.ts
 │   │   ├── model/                # category.schema.ts
@@ -242,7 +251,7 @@ src/
     │   ├── upload/uploadImageAndGetUrl.ts  # 리사이즈 + uploadApi 조합 편의 함수
     │   ├── firebase/, image/, content/, react-table/, router/
     │   └── tailwind/utils.ts      # cn() helper
-    ├── store/                     # auth, hideBots, loginModal, mypage, sidebar, unsavedChanges (.store.ts)
+    ├── store/                     # appVersion, auth, hideBots, loginModal, mypage, sidebar, unsavedChanges (.store.ts)
     ├── types/
     │   └── common.type.ts
     ├── ui/
@@ -252,11 +261,16 @@ src/
     │   │   ├── modal/{alert,image-viewer}/
     │   │   └── modal/SheetDialogContent.tsx
     │   └── layouts/                # AuthLayout, ErrorLayout
-    └── utils/                     # auth, date, file, form, storage, url, common, error (.util.ts)
+    └── utils/                     # auth, common, date, error, file, form, storage, url, version (.util.ts)
 ```
 
 레이어에 속하지 않는 최상위 디렉터리도 있다 — `src/mocks/`(MSW `handlers/`·`fixtures/`),
-`src/test/`(Vitest `setup.ts`·`utils.tsx`), `src/types/`(전역 타입 선언).
+`src/test/`(Vitest `setup.ts`·`utils.tsx`), `src/types/`(전역 타입 선언), `src/main.tsx`(앱
+진입점). ESLint `no-restricted-imports` 5블록(`eslint.config.js:1000-1122`)은
+`shared`/`entities`/`features`/`widgets`/`pages` 5개 레이어 디렉터리만 `files`로 잡아 이
+넷은 대상 밖이다(2026-09-09 문서-코드 정합성 감사 중 재확인) — `mocks`·`types`는 실제로
+상위 레이어를 import하는 코드가 없고, `main.tsx`가 `@/app/*`를 import하는 건 진입점이
+최상위 레이어(app)를 부트스트랩하는 정상 패턴이라 애초에 레이어 규칙 대상이면 안 된다.
 
 ---
 
@@ -291,6 +305,16 @@ src/
 ## 5. 3-Layer API 패턴
 
 **절대로 레이어를 건너뛰거나 합치지 않는다.**
+
+**예외 — 실시간 중복확인(디바운스형 유효성 검사)**: `features/auth/signup/hooks/useAvailabilityCheck.ts`,
+`features/account/update/hooks/useUpdateAccount.ts`의 닉네임·이메일 중복확인은 Layer 1
+(`accountApi.checkNicknameAvailability`, `authApi.checkEmailAvailability`)을 Layer 3 없이
+직접 호출한다(2026-09-09 문서-코드 정합성 감사 중 확인). React Query의 `useQuery`가 캐싱을
+전제하는데, 이 검증은 매 입력마다 새로 확인해야 하고 결과를 캐시하면 안 되며 디바운스·
+요청 취소(`cancelled` flag)·자체 상태머신(`idle/checking/available/duplicate`)이 핵심이라
+캐싱 모델과 안 맞는다 — Layer 3로 억지로 감싸는 것보다 Layer 1 직접 호출이 더 단순하다.
+뮤테이션(계정 생성·수정)은 두 파일 모두 정상적으로 Layer 3(`useCreateAccountMutation`,
+`useUpdateAccountMutation`)를 거친다 — 이 예외는 "실시간 검증"에만 한정된다.
 
 ### Layer 1 — `<entity>.api.ts` (순수 async, React 없음)
 
@@ -363,9 +387,11 @@ import type { QueryClient } from '@tanstack/react-query';
 import { postInvalidateQueries } from '@/entities/post/api/post.keys';
 
 export const handleCommentCreateSuccess = (queryClient: QueryClient, postId: Post['id']) => {
-  commentInvalidateQueries.list(queryClient, postId); // 1. 자기 엔티티
-  postInvalidateQueries.detail(queryClient, postId); // 2. 댓글 수가 반영되는 포스트 상세
-  postInvalidateQueries.list(queryClient); // 3. 목록의 댓글 수 배지
+  // 댓글 목록은 mutation의 onMutate/onSuccess가 낙관적으로 직접 갱신하므로 여기서 다시
+  // invalidate하지 않는다 - 그러면 방금 그려진 결과를 지우고 GET을 한 번 더 태우게 된다.
+  // commentCount가 걸린 게시글 상세/목록만 갱신한다.
+  postInvalidateQueries.detail(queryClient, postId); // 댓글 수가 반영되는 포스트 상세
+  postInvalidateQueries.list(queryClient); // 목록의 댓글 수 배지
 };
 ```
 
@@ -467,9 +493,9 @@ export function CreateEntityForm() {
   return (
     <FormProvider {...form}>
       <form onSubmit={onSubmit} noValidate>
-        <FormInput name="name" label="이름" required disabled={isCreating} />
+        <FormInput name="name" label={TEXTS.entity.form.create.nameLabel} required disabled={isCreating} />
         <Button type="submit" disabled={!canSubmit}>
-          {isCreating ? '처리 중...' : '제출'}
+          {isCreating ? TEXTS.common.submitting : TEXTS.entity.form.create.submit}
         </Button>
       </form>
     </FormProvider>
@@ -484,15 +510,16 @@ export function CreateEntityForm() {
 widget hook = 여러 entity query 조합 + UI 블록 특화 파생 상태. 뮤테이션 로직은 포함하지 않는다.
 
 ```typescript
-// widgets/<domain>/<widget>/hooks/use<Widget>.ts
-export function usePostList(filter: PostFilter) {
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
-    usePostListQuery(filter);
+// widgets/<domain>/<widget>/hooks/use<Widget>.ts — 패턴을 보여주는 간소화 예시(실제 이름
+// 아님). 실제 참조 구현은 src/widgets/post/post-list/hooks/usePostList.ts — URL 파라미터
+// 관리·로컬 필터 병합·IntersectionObserver까지 포함해 이 예시보다 훨씬 복잡하다.
+export function useExampleWidget(filter: EntityFilter) {
+  const { data, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useSuspenseFetchEntityListQuery(filter);
 
-  const posts = data?.pages.flatMap((page) => page.content) ?? [];
-  const isEmpty = !isLoading && posts.length === 0;
+  const items = data?.pages.flatMap((page) => page.content) ?? [];
 
-  return { posts, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, isEmpty };
+  return { items, isFetchingNextPage, hasNextPage, fetchNextPage };
 }
 ```
 
@@ -821,8 +848,8 @@ CLI로 이 컴포넌트를 다시 생성하면 `cursor-default`가 되돌아오�
 
 `*.util.ts`(디렉터리는 복수 `utils/`, 파일 접미사는 단수 `.util.ts`)는 바레 함수를
 export하지 않고 `export class <Name>Util { static ... }` 형태로 정적 메서드를 묶는다 —
-`shared/utils/`의 8개 파일 중 7개(`AuthUtil`·`CommonUtil`·`DateUtil`·`ErrorUtil`·
-`FormUtil`·`LocalStorageUtil`/`SessionStorageUtil`·`UrlUtil`)가 이 형태이고,
+`shared/utils/`의 9개 파일 중 8개(`AuthUtil`·`CommonUtil`·`DateUtil`·`ErrorUtil`·
+`FormUtil`·`LocalStorageUtil`/`SessionStorageUtil`·`UrlUtil`·`VersionUtil`)가 이 형태이고,
 `file.util.ts`(객체 리터럴)만 예외다. `entities/*/utils/`도 같은 형태를 따른다.
 
 참조: `src/shared/utils/common.util.ts`

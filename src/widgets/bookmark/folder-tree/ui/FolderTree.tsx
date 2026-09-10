@@ -136,14 +136,15 @@ export function FolderChips({ selectedKey, onSelect, className }: FolderTreeProp
       {creating ? (
         <InlineCreateFolderInput onClose={stopCreating} />
       ) : (
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={startCreating}
-          className="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm border border-dashed text-muted-foreground hover:bg-accent shrink-0"
+          className="h-auto shrink-0 gap-1 rounded-full border border-dashed px-3 py-1.5 text-sm text-muted-foreground"
         >
           <Plus className="h-3.5 w-3.5" />
           {TEXTS.bookmark.folder.new}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -162,20 +163,21 @@ interface FixedItemProps {
 
 function FixedItem({ icon, label, count, selected, onClick, onPrefetch }: FixedItemProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={onClick}
       onMouseEnter={onPrefetch}
       onFocus={onPrefetch}
       className={cn(
-        'flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-accent',
+        'h-auto justify-start gap-3 px-3 py-2 text-sm',
         selected && 'bg-accent font-medium'
       )}
     >
       <span className={selected ? 'text-primary' : 'text-muted-foreground'}>{icon}</span>
       <span className="flex-1 text-left">{label}</span>
       {typeof count === 'number' && <span className="text-xs text-muted-foreground">{count}</span>}
-    </button>
+    </Button>
   );
 }
 
@@ -223,17 +225,18 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
         selected && 'bg-accent font-medium'
       )}
     >
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={onClick}
         onMouseEnter={onPrefetch}
         onFocus={onPrefetch}
-        className="flex items-center gap-3 flex-1 py-1"
+        className="h-auto flex-1 justify-start gap-3 py-1"
       >
         <Bookmark className={cn('h-4 w-4', selected ? 'text-primary' : 'text-muted-foreground')} />
         <span className="flex-1 text-left truncate">{folder.name}</span>
         <span className="text-xs text-muted-foreground">{folder.bookmarkCount}</span>
-      </button>
+      </Button>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -264,14 +267,15 @@ function CreateFolderInput() {
     return <InlineCreateFolderInput onClose={stopCreating} />;
   }
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={startCreating}
-      className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-accent"
+      className="h-auto justify-start gap-2 px-3 py-2 text-sm text-muted-foreground"
     >
       <Plus className="h-4 w-4" />
       {TEXTS.bookmark.folder.create}
-    </button>
+    </Button>
   );
 }
 
@@ -314,17 +318,18 @@ interface ChipProps {
 
 function Chip({ children, selected, onClick }: ChipProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={onClick}
       className={cn(
-        'rounded-full px-3 py-1.5 text-sm shrink-0 border',
+        'h-auto shrink-0 rounded-full border px-3 py-1.5 text-sm',
         selected
-          ? 'bg-primary text-primary-foreground border-primary'
-          : 'bg-background hover:bg-accent border-input'
+          ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90'
+          : 'bg-background border-input'
       )}
     >
       {children}
-    </button>
+    </Button>
   );
 }

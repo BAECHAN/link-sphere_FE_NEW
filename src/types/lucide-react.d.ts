@@ -6,6 +6,5 @@
 declare module 'lucide-react/dist/esm/icons/*' {
   import { LucideIcon } from 'lucide-react';
   const Icon: LucideIcon;
-  /* eslint-disable import/no-default-export */
   export default Icon;
 }

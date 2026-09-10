@@ -60,4 +60,6 @@ paths: CHANGELOG.md
 3. `chore(release): vX.Y.Z` 커밋 → `git push origin main`
 4. **태그·GitHub Release는 수동으로 만들지 않는다** — `.github/workflows/release.yml`이 `CHANGELOG.md` push를 감지해 최신 버전 섹션을 파싱, 동명 태그가 없으면 자동으로 태그 생성 + `gh release create`까지 수행한다(이미 있으면 스킵하는 멱등 동작). `git tag`/`gh release create`를 직접 실행할 필요 없음.
 
-- 현재 버전 기준점: `0.1.0` (정식 릴리즈 전 개발 단계 = `0.x`)
+- 버전 체계 기준점: `0.1.0`부터 시작(정식 릴리즈 전 개발 단계 = `0.x`). 현재 버전은
+  `CHANGELOG.md` 최상단(가장 최근 `## [X.Y.Z]` 섹션 또는 하단 compare 링크)에서 확인한다 —
+  이 값은 릴리즈마다 바뀌므로 여기 고정된 숫자로 적지 않는다

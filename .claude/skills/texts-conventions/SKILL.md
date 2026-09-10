@@ -15,24 +15,31 @@ paths: src/shared/config/texts.ts
 
 ```
 TEXTS
+├── common.* (submitting, updating, saving, confirm, cancel, ...)
 ├── pages.home / pages.post.ROOT / pages.post.SUBMIT
 ├── labels.nickname / email / password / message
 ├── placeholders.nickname / email / password / message / postSearch
 ├── buttons.retry / refresh / home / back / login / logout / delete / search / ...
 ├── auth.login.* / auth.signup.*
 ├── nav.brand / feed / submit / logIn / logOut / toggleSearch / toggleTheme / saving
+├── mypage.* (title, description, save, changeImage, checkingNickname, ...)
+├── recentSearch.* (title, clearAll, empty, removeItem)
 ├── post.form.create.* (title, description1/2, urlLabel, urlPlaceholder, titleLabel, ...)
 ├── post.form.update.* (title, description, titleLabel, titlePlaceholder, updating, update, ...)
 ├── post.card.* (anonymous, visitWebsite, aiSummary, edit, saving, ...)
-├── post.detail.* (notFound, back, heading, commentsHeading)
+├── post.detail.* (notFound, backToList)
 ├── comment.list.* (loadError, heading, empty)
-├── comment.form.* (replyPlaceholder, commentPlaceholder, preview, cancel, submitting, ...)
+├── comment.form.* (replyPlaceholder, commentPlaceholder, preview, cancel, save, ...)
+├── bookmark.* (folder.myFolders/create/all/uncategorized, empty.all/uncategorized/folder, ...)
+├── errors.* (notFound/forbidden/serverError/unexpected — title, description)
+├── notification.* (defaultTitle, viewAction)
 ├── descriptions.passwordGuide
 ├── validation.urlFormat / urlRequired / titleRequired / passwordRegex / emailRegex / ...
 ├── messages.info.noData / noPosts
 ├── messages.warning.postDeleteConfirm / commentDeleteConfirm / memberDeleteConfirm
-├── messages.success.postCreated / postUpdated / postDeleted / linkCopied / accountCreated
+├── messages.success.postCreated / postUpdated / accountUpdated / linkCopied / accountCreated / bookmarkSavedTo
 ├── messages.error.defaultError / loginFailed / postCreateFailed / linkCopyFailed / ...
+├── unsavedChanges.* (title, message, confirm, cancel)
 ├── shortcuts.sidebarToggle / sidebarToggleMac
 └── ariaLabels.* (레이아웃, 헤더, 사이드바, 입력 필드 등)
 ```
@@ -68,16 +75,20 @@ TEXTS
 **판단 축**:
 
 1. **가시성** — 액션 직후 현재 화면에서 결과가 바로 보이는가? (목록에서 사라짐·이름
-   변경·아이콘 상태 전환 등) → 보이면 토스트 불필요.
+   변경·아이콘 상태 전환 등) → 보이면 토스트 불필요. 단, "생성"(카드가 목록에 새로
+   나타남)·"삭제"(사라짐)·"토글"(아이콘 전환)처럼 위치·존재 자체가 바뀌는 액션은 확실히
+   눈에 띄지만, "수정"(Update)은 다르다 — 본문처럼 스크롤 밖에 있거나 다른 화면으로
+   이동한 뒤에야 반영되는 필드는 사용자가 바로 인지 못 할 수 있다(2026-09-09 확정:
+   `postUpdated`/`accountUpdated`를 이 이유로 "필요" 쪽으로 재분류).
 2. **정보량** — 토스트가 "성공했다" 이상의 구체적 정보(어디에 저장됐는지, 왜 이렇게
    됐는지)를 전달하는가? → 전달한다면 가시성과 무관하게 필요.
 3. **실행취소** — 토스트에 "실행 취소" 액션이 붙어 있(을 예정이)는가? → 그렇다면 유지.
 
-| 필요 (예)                                                            | 불필요 (예)                                                                |
-| -------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `linkCopied` — 클립보드 복사는 화면 변화가 전혀 없음                 | `postDeleted`/`folderDeleted` — 목록에서 바로 사라짐                       |
-| `bookmarkSavedTo(folderName)` — 아이콘만 봐선 "어느 폴더"인지 모름   | `accountUpdated`/`postUpdated` — 수정 결과가 즉시 반영됨                   |
-| `bookmarkAutoUncategorizedDescription` — 왜 미분류로 이동했는지 설명 | `postVisibilityUpdated`/`bookmarkRemoved` — 아이콘 상태 전환으로 이미 보임 |
+| 필요 (예)                                                                                               | 불필요 (예)                                                                |
+| ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `linkCopied` — 클립보드 복사는 화면 변화가 전혀 없음                                                    | `postDeleted`/`folderDeleted` — 목록에서 바로 사라짐(생성·삭제·토글류)     |
+| `bookmarkSavedTo(folderName)` — 아이콘만 봐선 "어느 폴더"인지 모름                                      | `postVisibilityUpdated`/`bookmarkRemoved` — 아이콘 상태 전환으로 이미 보임 |
+| `postUpdated`/`accountUpdated` — 본문 등 수정 내용이 스크롤 밖·다른 화면에 있어 바로 티가 안 날 수 있음 | —                                                                          |
 
 - 유의: 시각적 상태 변화만으로 충분하다고 판단해 토스트를 없애도, 스크린리더 사용자에게는
   그 변화가 그대로 전달되지 않을 수 있다(접근성). 별도 `aria-live` 공지가 필요한지는 케이스
