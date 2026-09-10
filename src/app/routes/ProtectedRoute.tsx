@@ -58,7 +58,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   );
 
   if (!isAuthResolved || isVerifying) {
-    return <SpinnerOverlay delay={0} className="h-screen" />;
+    return <SpinnerOverlay className="h-screen" />;
   }
 
   if (!isAuthenticated) {

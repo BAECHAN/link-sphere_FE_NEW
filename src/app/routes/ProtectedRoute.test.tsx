@@ -10,6 +10,7 @@ import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { createTestQueryClient } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { LOADING_INDICATOR_DELAY_MS } from '@/shared/config/const';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
@@ -67,13 +68,30 @@ describe('ProtectedRoute', () => {
     vi.restoreAllMocks();
   });
 
-  it('복원이 끝나기 전(isAuthResolved=false)엔 children 대신 스피너를 렌더하고 리다이렉트하지 않는다', async () => {
+  it('복원이 끝나기 전(isAuthResolved=false)엔 children도 리다이렉트도 렌더하지 않는다', () => {
     renderProtectedRoute();
 
-    // SpinnerOverlay는 delay=0이어도 useDelayedLoading이 setTimeout(0)을 거쳐 켜진다.
-    await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument());
+    // 이 계약은 지연 값과 무관하게 항상 참이어야 하므로 스피너 등장을 기다리지 않고 동기로 본다.
     expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
     expect(screen.queryByTestId('post-root')).not.toBeInTheDocument();
+  });
+
+  it('복원이 끝나기 전 상태가 길어지면 지연 후 전체화면 스피너를 띄운다', () => {
+    // SpinnerOverlay는 delay 기본값(LOADING_INDICATOR_DELAY_MS)만큼 기다렸다가 노출된다.
+    // 이 테스트는 네트워크를 타지 않으므로(더미 protected-content) fake timers를 켜도 안전하다.
+    vi.useFakeTimers();
+
+    renderProtectedRoute();
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(LOADING_INDICATOR_DELAY_MS);
+    });
+
+    expect(screen.getByRole('status')).toBeInTheDocument();
+
+    vi.useRealTimers();
   });
 
   it('복원이 끝나고 인증되어 있으면 children을 렌더한다', () => {

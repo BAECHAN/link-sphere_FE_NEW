@@ -6,6 +6,103 @@
 
 ---
 
+## 2026-09-10 — 로딩 인디케이터 지연 게이트를 조회 로딩 전체에 일관 적용
+
+**배경**
+
+빠르게 응답이 오는 화면에서 로딩 인디케이터가 잠깐 보였다 사라지는 깜빡임 제보. 전수
+조사 결과 이미 지연 게이트(`useDelayedLoading`)가 있고 조회 로딩의 절반(상세·댓글·lazy
+청크·세션 복원, `SpinnerOverlay` 경유)은 500ms 지연으로 보호되고 있었지만, 나머지
+7곳은 0ms로 즉시 떴다: 피드 목록 스켈레톤, 북마크 목록 스피너, 폴더 트리(데스크톱/모바일),
+폴더 선택 모달, `ProtectedRoute`의 전체화면 스피너(`delay={0}`), `RouterProvider`의
+좌상단 raw 스피너, 게시글 목록 API의 NProgress 상단바.
+
+부수적으로 `LOADING_INDICATOR_DELAY_MS = 300`(`shared/config/const.ts`)이라는 이름과
+달리 이 상수는 조회 로딩에 안 쓰이고 mutation(`usePostCard`, `PostMutationLoadingToast`)
+에만 쓰이고 있었고, 실제 조회 로딩 값 500은 `SpinnerOverlay.tsx`에 근거 주석 없는
+매직넘버로 박혀 있었다.
+
+**검토**
+
+- **각 fallback 컴포넌트가 스스로 `useDelayedLoading`을 갖는 안(`SpinnerOverlay` 패턴을
+  `PostListSkeleton`에 복제)** — 기각. 스켈레톤이 순수 프레젠테이션이 아니게 되어
+  Storybook 확인이 어려워지고, `isLoading &&` 분기(북마크 등)에는 애초에 적용할 수 없어
+  패턴이 둘로 갈린다. 대신 공통 래퍼 `shared/ui/elements/DelayedFallback.tsx`를 신설해
+  Suspense fallback과 `isLoading` 분기 양쪽에 동일하게 쓴다.
+- **지연 후 최소 노출까지 Suspense fallback에 걸기** — 기술적으로 불가능하다고 판단.
+  fallback의 수명은 Suspense 경계가 소유하고, React 18에는 exit lifecycle이 없어
+  fallback이 스스로 노출을 연장할 방법이 없다. 경계 바깥에서 suspend 여부를 관측할
+  수도 없다(`useTransition().isPending`은 최초 마운트 suspend를 커버하지 않는다). 대신
+  `animate-in fade-in duration-200`(이미 있는 `tw-animate-css`)로 하드 엣지를 없앤다 —
+  지연 만료 직후 콘텐츠가 도착해도 opacity가 거의 0인 채로 사라져 눈에 안 띄고, 최소
+  노출과 달리 총 대기 시간을 늘리지 않는다. 이 비대칭(조회=지연+페이드인,
+  mutation=지연+최소노출)은 취향이 아니라 표시 주체의 소유권 차이에서 나온다.
+- **NProgress 상단바 제거** — 처음엔 제거 쪽으로 검토했다(3-Layer API의 Layer 1에 UI
+  타이밍 로직이 박혀 있는 계약 위반이라는 점, `refetchOnWindowFocus: true` 때문에 탭
+  복귀할 때마다 이미 보이는 목록 위로 번쩍인다는 점 근거). 사용자 확인을 거쳐 한 차례
+  "제거"로 진행했으나, 이후 사용자가 그 확인 질문을 "회전하는 스피너 아이콘만 지운다"는
+  뜻으로 이해했던 것으로 뒤늦게 드러나 **최종적으로는 NProgress를 그대로 유지**하기로
+  정정했다. 코드는 `post.api.ts`(NProgress import·configure·start/done)와
+  `globals.css`(`@import 'nprogress/nprogress.css'`, `#nprogress` 규칙)를 원상태로
+  되돌렸고, `package.json`/lockfile은 애초에 건드리지 않아 변경이 없다.
+- **북마크 폴더/정렬 전환 시 `placeholderData: keepPreviousData` 적용** — 후속으로
+  분리. `isLoading`의 의미가 바뀌어 `BookmarkPostList.tsx`의 조기 반환 가드를 다시
+  설계해야 하고, "새 폴더 헤더 + 옛 폴더 글 목록"이라는 오해 유발 상태를 별도로
+  다뤄야 해서 이번 범위(사용자 요청 문면)를 넘는다. 다만 이번 지연 게이트와 기존
+  hover prefetch(`prefetchBookmarkFolderPosts`)가 맞물려 hover 후 클릭하는 흔한
+  경로에서는 스피너가 아예 안 뜨게 된다.
+- 피드의 필터·검색·봇숨기기 전환은 `RouterProvider.tsx`의 `v7_startTransition: true`
+  와 `PostListSearch.tsx`의 `flushSync`/`startTransition` 조합으로 이미 해결돼 있어
+  이번 변경 대상에서 제외했다(코드 변경 없음, 수동 QA로만 확인).
+
+**근거**
+
+- [NN/g 응답시간 3한계](https://www.nngroup.com/articles/response-times-3-important-limits/) —
+  0.1초=직접 조작감, 1.0초=사고 흐름이 끊기지 않는 한계. 원문: "0.1초 초과 1.0초 미만의
+  지연에는 보통 특별한 피드백이 필요 없다." 500ms는 이 구간 안쪽이다.
+- 스켈레톤 UX 가이드라인(업계 통용, 개별 벤더 링크 미확보 — 재검증 필요) — 실제 로드가
+  400ms~3초일 때만 체감 성능에 도움, 200ms 미만 로드에는 오히려 해로움(깜빡임).
+- 기존 결정과의 연속성: 2026-08-13 항목(§ 위)이 이미 mutation 진행 표시에 "500ms 지연
+  → 400ms 최소 노출" 타이밍을 확립해 뒀다 — 이번 상수 분리(`MUTATION_PROGRESS_DELAY_MS`)는
+  그 값을 승격한 것뿐, 동작 변화는 없다.
+
+**결정**
+
+1. `shared/config/const.ts` — `LOADING_INDICATOR_DELAY_MS`를 300→500으로 올려 이름과
+   실제 조회 로딩 값을 일치시키고, `MUTATION_PROGRESS_DELAY_MS`(500, 신규)를 분리해
+   mutation 진행 표시 전용으로 둔다. 값이 같지만 성격이 다른 별개 정책이라 상수를
+   나눴다 — 나중에 한쪽만 조정할 수 있어야 한다.
+2. `shared/ui/elements/DelayedFallback.tsx` 신설 — "마운트돼 있는 동안 = 로딩 중"
+   계약의 공통 래퍼. `SpinnerOverlay`는 자체 게이트를 이미 갖고 있으므로
+   `DelayedFallback`으로 다시 감싸지 않는다(이중 게이트 금지).
+3. 0ms였던 5곳(`PostList` Suspense fallback, `BookmarkPostList`·`FolderTree`·
+   `MobileFolderList`·`BookmarkFolderSelectModal`의 `isLoading` 분기)에
+   `DelayedFallback`을 적용. 훅 3개(`useBookmarkPostList`·`useFolderSections`·
+   `useBookmarkFolderSelect`)는 전부 무변경 — `if (isLoading)` 조기 반환 가드를 그대로
+   유지해, 지연 구간에 가드를 통과해 빈 상태 문구("저장한 북마크가 없어요")가 잠깐
+   뜨는 회귀를 원천 차단했다.
+4. `ProtectedRoute`의 `delay={0}`(근거 주석 없는 흔적, 같은 인증 복원 대기를
+   `AppShellLayout`은 이미 기본 게이트로 처리 중이라 정책이 갈려 있었다)을 제거하고
+   기본 지연을 쓰도록 통일. `RouterProvider`의 중앙정렬 없는 raw `Spinner`를
+   `SpinnerOverlay`로 교체.
+5. NProgress는 유지(위 검토 참고).
+
+**상태**
+
+적용 완료. 관련 파일: `shared/config/const.ts`, `shared/ui/elements/DelayedFallback.tsx`
+(+ `.stories.tsx`), `shared/ui/elements/SpinnerOverlay.tsx`(+ `.stories.tsx`, 페이드인
+추가), `shared/ui/elements/AsyncBoundary.tsx`(JSDoc 오기 `GlobalLoading`→`SpinnerOverlay`
+정정), `app/ui/PostMutationLoadingToast.tsx`, `widgets/post/post-card/hooks/usePostCard.ts`,
+`widgets/post/post-list/ui/PostList.tsx`, `widgets/bookmark/bookmark-post-list/ui/BookmarkPostList.tsx`,
+`widgets/bookmark/folder-tree/ui/{FolderTree,MobileFolderList}.tsx`,
+`features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `app/routes/ProtectedRoute.tsx`,
+`app/providers/RouterProvider.tsx`, `app/routes/ProtectedRoute.test.tsx`(계약 2개로 분리).
+신규 테스트: `useDelayedLoading.test.ts`, `useMinimumLoading.test.ts`, `DelayedFallback.test.tsx`.
+
+**후속**: 북마크 폴더/정렬 전환 `keepPreviousData` 검토, 스켈레톤 가이드라인 개별 출처 확정.
+
+---
+
 ## 2026-09-09 — BookmarkFolderSelectModal을 entities에서 features/bookmark/select로 이동
 
 **배경**

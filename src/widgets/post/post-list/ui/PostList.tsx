@@ -5,6 +5,7 @@ import { usePostList } from '@/widgets/post/post-list/hooks/usePostList';
 import { PostListSkeleton } from '@/widgets/post/post-list/ui/PostCardSkeleton';
 
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
+import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import { usePullToRefresh } from '@/shared/hooks/usePullToRefresh';
 import { TEXTS } from '@/shared/config/texts';
@@ -13,7 +14,11 @@ import { cn } from '@/shared/lib/tailwind/utils';
 export function PostList() {
   return (
     <AsyncBoundary
-      loadingFallback={<PostListSkeleton />}
+      loadingFallback={
+        <DelayedFallback>
+          <PostListSkeleton />
+        </DelayedFallback>
+      }
       errorFallback={() => (
         <div className="text-center py-12 text-destructive">{TEXTS.messages.error.fetchPosts}</div>
       )}

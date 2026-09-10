@@ -16,7 +16,7 @@ import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
 import { TEXTS } from '@/shared/config/texts';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import {
-  LOADING_INDICATOR_DELAY_MS,
+  MUTATION_PROGRESS_DELAY_MS,
   LOADING_INDICATOR_MIN_DURATION_MS,
 } from '@/shared/config/const';
 
@@ -38,7 +38,7 @@ export function usePostCard(post: Post, isDetail = false) {
   // 이 게시글의 수정 요청이 진행 중인지 (수정 폼에서 이탈한 뒤에도 mutation은 계속 돌아간다)
   const isUpdatingMutation = useIsMutating({ mutationKey: postMutationKeys.update(post.id) }) > 0;
   // 빠른 수정은 표시하지 않고(지연), 한 번 표시되면 최소 시간은 유지한다(깜빡임 방지)
-  const isUpdatingDelayed = useDelayedLoading(isUpdatingMutation, LOADING_INDICATOR_DELAY_MS);
+  const isUpdatingDelayed = useDelayedLoading(isUpdatingMutation, MUTATION_PROGRESS_DELAY_MS);
   const isUpdating = useMinimumLoading(isUpdatingDelayed, LOADING_INDICATOR_MIN_DURATION_MS);
 
   const handleDelete = (e: React.MouseEvent) => {
