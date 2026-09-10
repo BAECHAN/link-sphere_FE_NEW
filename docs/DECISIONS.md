@@ -6,6 +6,74 @@
 
 ---
 
+## 2026-09-10 — 외부 인용을 "우리가 직접 겪은 것"처럼 쓰지 않기 (CLAUDE.md §10 확장)
+
+**배경**
+
+"인용한 글이 있으면 우리가 한 것처럼 쓰지 말고 눈에 잘 보이게 표시해야 하지 않을까"라는
+지적에서 시작한 전수 조사. 레포 문서의 외부 인용은 총 약 90건이었고, 그중 링크가 붙은 건
+49건, 무링크는 약 40건이었다 — 큰따옴표로 감싼 직접 인용문인데 무링크가 8건, 구체 수치인데
+무링크가 9건. 외부 인용을 `>` blockquote로 시각 분리한 사례는 레포 전체에 `.claude/CLAUDE.md:7-8`
+단 1건뿐이었고, 각주(`[^1]`) 형식은 0건이었다.
+
+가장 뚜렷한 패턴은 **재인용 경로에서 링크가 탈락하는 것**이었다: `docs/DECISIONS.md`에
+링크와 함께 들어온 인용(Baymard #346, Material 3 Chips, WCAG 등)이 `CHANGELOG.md`·
+`docs/SEARCH.md`·`docs/BOOKMARK.md`로 재인용될 때 링크만 사라지고 문장은 그대로 남아,
+"우리가 조사해서 아는 사실"처럼 굳어졌다.
+
+**검토한 대안**
+
+`scripts/check-docs.js`를 확장해 이 규칙을 CI로 강제하는 설계를 먼저 검토했다. 실제로 짜본
+설계는 새 함수 8개·정규식 10여 개·이 레포에 선례 없는 "파일별 경고 상한 래칫" 개념까지
+필요했고, 그렇게 만들어도 오탐률이 11~33%였다(한글 문서의 큰따옴표는 강조·용어 소개·
+자문자답에도 널리 쓰여 "인용"과 구분이 어렵다). 이 복잡도를 사용자에게 보이자 "CI까지는
+필요 없다, 우리가 직접 겪은 것처럼 쓰는 것만 막으면 된다"는 정정을 받았다 — 기각.
+`.claude/CLAUDE.md` §2("과하게 복잡하면 단순화한다")에도 맞는 선택이라 채택하지 않았다.
+
+**검증한 사실 (추측 아님)**
+
+무링크 인용 8건의 원본을 실제로 찾아 대조한 결과, 결과는 네 갈래로 갈렸다:
+
+| 결과                         | 건수 | 예                                                                                                                                                                                                                                                                                                                   |
+| ---------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 내용 정확, 링크만 없음       | 6건  | TanStack Query SSR 가이드, NN/g Progress Indicators(11–15%), WCAG 2.5.8, Sears & Shneiderman(1994), 토스 UX 라이팅, Claude Code memory 문서(200줄)                                                                                                                                                                   |
+| 뉘앙스가 강화됨              | 1건  | `.claude/skills/*/SKILL.md`의 "공식 권장 **상한**(~200줄)" — 원문은 "target"(목표치)이고, 200줄/25KB hard cap은 `MEMORY.md`에만 적용되며 CLAUDE.md는 4 MiB까지 전부 로드된다                                                                                                                                         |
+| 서술이 부정확함              | 1건  | `CHANGELOG.md`의 "MS Office 2000 개인화 메뉴 폐기" — 실제로는 도입이 Office 2000, 기본값이 꺼진 건 Office 12(2007)                                                                                                                                                                                                   |
+| 외부에 없는 문구에 권위 부여 | 1건  | `.claude/CLAUDE.md`의 `업계 ADR 컨벤션 기준으로 "한 엔지니어가 짧은 기간 안에 발견·수정한 것"` — [Nygard(2011)](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)의 실제 ADR 기준은 "되돌리기 어렵다·트레이드오프가 크다·같은 질문이 두 번 이상 논쟁됐다"이고 이 문구 자체는 어디에도 없었다 |
+
+즉 문제는 날조가 아니라 **검증 불가능**이었다. 8건을 확인하는 데 웹 조회가 10여 회
+들었는데, 작성 시점에 링크 한 줄이 있었으면 0회였을 일이다.
+
+웹 선례: [Wikipedia:Plagiarism](https://en.wikipedia.org/wiki/Wikipedia:Plagiarism)은
+인라인 각주(어디서 확인하는가)와 문장 내 출처 표시(누구의 말인가)를 별개 요건으로
+요구한다 — _"Naming the author in the text allows the reader to see that it relies
+heavily on someone else's ideas, without having to search in the footnote."_
+[agent-style RULE-H](https://github.com/yzhao062/agent-style/blob/main/RULES.md)는
+"Uncited claims are a trust failure"라며 검증 실패 시 `[UNVERIFIED]` 마커를 쓴다 — 이
+레포의 `[출처 미상]` 표기와 같은 발상이다.
+
+**결정**
+
+1. `.claude/CLAUDE.md` §10에 표기 규칙을 추가했다: 한 문장 이하는 인라인(`_"원문"_` +
+   링크 + 누구의 말인지 문장 안에서 밝힘), 두 문장 이상은 blockquote + `— 출처명, URL`.
+   번역·생략·재인용은 그 사실을 표시하고, 외부에 없는 문구에 권위를 씌우지 않는다.
+2. `.claude/CLAUDE.md:7-8`의 낡은 인용 경계 표기("§8~10은 여기서 직접 추가했다")를
+   실제 §13까지로 고쳤다 — 규칙을 만드는 김에 자기 자신의 위반부터 고쳤다.
+3. 위 표의 8건과, 조사에서 함께 발견된 구체 수치 무링크 인용(Baymard 42%, Material 3
+   Chips, Sears & Shneiderman, WCAG 2.5.8/2.5.5 조항 구분, GitHub·Discord·Slack·X
+   업로드 제한 등) 약 10여 건을 각 파일에서 직접 링크를 달거나(내용 정확), 문장을
+   고치거나(부정확), 따옴표를 걷어내거나(권위 부여), `[출처 미상, 날짜 확인]`으로
+   표시했다(검증 불가).
+4. FE 레포에 한정한다. BE는 §10에 해당하는 규칙 자체가 없어 후속 과제로 남긴다.
+
+**상태**
+
+적용 완료. 수정 파일: `.claude/CLAUDE.md`, `docs/DECISIONS.md`(본 항목 포함), `CHANGELOG.md`,
+`docs/SEARCH.md`, `docs/BOOKMARK.md`, `docs/CI-CHECK-GATE.md`,
+`.claude/skills/{changelog-release,design-tokens,texts-conventions}/SKILL.md`.
+
+---
+
 ## 2026-09-09 — BookmarkFolderSelectModal을 entities에서 features/bookmark/select로 이동
 
 **배경**
@@ -266,10 +334,12 @@ import하는 features↔features cross-import가 새로 생겼다. FSD 공식·`
 
 **검증한 사실 (추측 아님)**
 
-- **싱글턴 자체는 이 레포에서 안티패턴이 아니다.** TanStack 공식 SSR 가이드가 모듈 스코프
-  싱글턴을 문제 삼는 이유는 "여러 사용자 요청이 같은 캐시를 공유해 데이터가 샌다"인데,
-  이 레포는 SSR 없는 Vite CSR SPA라 그 전제가 없다. tRPC 공식 문서도 "client-only SPA는
-  모듈 스코프 싱글턴으로 만들어도 된다"고 명시한다. `useQueryClient()`가 반환하는 것도
+- **싱글턴 자체는 이 레포에서 안티패턴이 아니다.** [TanStack Query SSR 가이드](https://tanstack.com/query/latest/docs/framework/react/guides/ssr)가
+  모듈 스코프 싱글턴을 문제 삼는 이유는 _"can share data between users"_(여러 사용자
+  요청이 같은 캐시를 공유해 데이터가 샌다 — 번역)인데, 이 레포는 SSR 없는 Vite CSR SPA라
+  그 전제가 없다. [tRPC Setup 문서](https://trpc.io/docs/client/tanstack-react-query/setup)도
+  client-only SPA는 모듈 스코프 싱글턴이 _"fine and acceptable"_ 하다고 명시한다.
+  `useQueryClient()`가 반환하는 것도
   결국 `QueryProvider`가 주입한 그 싱글턴과 **동일 인스턴스**다 — 마이그레이션 후에도
   프로덕션 런타임 동작은 0 변화다.
 - 마이그레이션의 유일한 실익은 **테스트 격리 회복**이다. `.keys.ts`가 싱글턴을 직접 잡는 한,
@@ -1068,9 +1138,11 @@ TouchEn PC보안 확장(전부 라온시큐어 제품, 한국 인터넷뱅킹·�
 지난 세션(같은 날짜, 위 항목)에서 모바일 터치 타깃을 28px→44px로 키운 걸
 사용자 확인 후 다시 되돌렸다. "웹(데스크톱)처럼 해달라"는 요청 — 데스크톱은
 원래 `md:min-h-0`(자동 높이, ~28px)였는데 모바일만 44px라 57% 더 커 보였다.
-이건 접근성 기준을 낮추는 트레이드오프이기도 해서(WCAG 2.5.8 AA의 24px
-최소 기준은 여전히 만족, 44px 권장 기준·이 레포 `responsive-ux` 스킬의 자체
-규약은 포기) 텍스트로 설득하지 않고 실제 두 높이를 Artifact로 나란히
+이건 접근성 기준을 낮추는 트레이드오프이기도 해서([WCAG 2.2 SC 2.5.8 Target
+Size Minimum, AA](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum)의
+24px 최소 기준은 여전히 만족, [SC 2.5.5 Target Size Enhanced, AAA](https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced)의
+44px·이 레포 `responsive-ux` 스킬의 자체 규약은 포기) 텍스트로 설득하지 않고
+실제 두 높이를 Artifact로 나란히
 비교시켜 확인받았다(바로 아래 "화면 먼저, 그다음 반영" 원칙 적용).
 
 **상태**
@@ -1338,7 +1410,9 @@ label의 자식이 아니라 형제라 `:has()`는 마크업과 맞지 않는다
    URL 크롤링(`UrlMetadataExtractor`)을 동기로 수행해 대기 시간이 수 초대라, 컨텍스트
    이탈이 설계상 기본값이다 — 라벨을 빼는 근거가 약하다.
 3. 모바일에서 배지 자체를 숨김 — 기각. [NN/g 시스템 상태 가시성](https://www.nngroup.com/articles/visibility-system-status/)
-   원칙 위반(피드백 있는 대기가 11~15% 더 빠르게 느껴진다는 연구 결과 존재).
+   원칙 위반. 별개로 [NN/g Progress Indicators](https://www.nngroup.com/articles/progress-indicators/)는
+   _"Waits with feedback feel 11–15% faster"_(피드백 있는 대기가 11~15% 더 빠르게
+   느껴진다 — 번역)고 밝힌다.
 4. 하단에 별도 fixed pill을 새로 만듦 — 기각. safe-area·z-index·
    `--toast-offset-bottom` 오프셋을 손으로 다시 계산해야 하는데, 이미 그 문제를 풀어둔
    토스트 시스템을 놔두고 중복 구현하는 셈이다.
@@ -1388,8 +1462,9 @@ label의 자식이 아니라 형제라 `:has()`는 마크업과 맞지 않는다
 
 **검토 2 — 최대 장수**
 
-GitHub은 개수 제한 없음(파일당 10MB), Discord 10장, Slack 20장, X 4장. X(4)와 Discord(10)
-사이에서 **5장**으로 정했다.
+GitHub은 개수 제한 없음(파일당 10MB), Discord 10장, Slack 20장, X 4장 [출처 미상,
+2026-09-10 확인 — 각 서비스 공식 문서 대조 없이 기억에 의존한 값, 재검증 필요].
+X(4)와 Discord(10) 사이에서 **5장**으로 정했다.
 
 **검토 3 — 크기 상한 통일**
 
@@ -1514,16 +1589,19 @@ BE 레포도 하루 전날 같은 장애로 커밋(`fbd32eb`)의 Lambda 배포�
 "모든 오버레이를 히스토리에 넣는다"와 "아무것도 안 넣는다" 둘 다 아니고, 업계 사례는
 3단으로 갈렸다.
 
-- NN/g 사용성 리서치는 화면을 덮는 오버레이에 대해 "브라우저·폰 뒤로가기로 닫을 수 있게
-  하라"고 명시하면서, 동시에 **오버레이 중첩**을 실패 패턴으로 지목했다(월마트·링크드인·
-  인스타그램에서 X 버튼 한 번에 스택 전체가 닫혀 사용자가 길을 잃는 사례).
-- "대화상자는 URL·히스토리에 넣지 말라"는 UX 컨벤션은 Alert/Confirm처럼 한 번의 결정만
-  받고 사라지는 것에 대한 이야기였다 — 화면을 덮는 오버레이와는 대상이 다르다.
-- Pairs(eureka) 엔지니어링의 `backdropLocation` 패턴(모달을 URL로 만드는 방식)은 저자
-  스스로 "단순 모달 하나만 지원, 웹 히스토리는 선형이라 분기 컨텍스트는 복잡해진다"고
-  한계를 밝혔다 — 공유가 필요 없는 우리 오버레이엔 과한 해법.
-- 토스페이먼츠 Flow 모듈(`pageCount`로 다단계 퍼널 관리)도 저자가 깨짐·가독성 저하를
-  인정한 무거운 해법이었다 — 우리 퍼널은 1스텝이라 `replace: true`로 충분.
+- [NN/g 사용성 리서치](https://www.nngroup.com/articles/accidental-overlay-dismissal/)는
+  화면을 덮는 오버레이를 브라우저·폰 뒤로가기로 닫을 수 있게 하라고 권고하면서, 동시에
+  **오버레이 중첩**을 실패 패턴으로 지목했다(월마트에서 X 버튼 한 번에 스택 전체가 닫혀
+  사용자가 처음부터 다시 찾아야 했던 사례).
+- "대화상자는 URL·히스토리에 넣지 말라"는 판단은 Alert/Confirm처럼 한 번의 결정만 받고
+  사라지는 것에 대한 것이었다 — 화면을 덮는 오버레이와는 대상이 다르다. [출처 미상,
+  2026-09-10 확인 — 특정 문헌을 찾지 못함, 재검증 필요]
+- [Pairs(eureka) 엔지니어링의 `backdropLocation` 패턴](https://medium.com/eureka-engineering/navigable-modals-with-the-history-api-adventures-in-web-modals-27d94ae2014)(모달을
+  URL로 만드는 방식)은 저자 스스로 단순 모달 하나만 지원하고 웹 히스토리는 선형이라
+  분기 컨텍스트는 복잡해진다는 한계를 밝혔다 — 공유가 필요 없는 우리 오버레이엔 과한 해법.
+- [토스페이먼츠 Flow 모듈](https://toss.tech/article/engineering-note-1)(다단계 퍼널
+  관리)도 저자가 깨짐·가독성 저하를 인정한 무거운 해법이었다 — 우리 퍼널은 1스텝이라
+  `replace: true`로 충분.
 
 **결정**
 

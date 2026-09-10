@@ -5,7 +5,8 @@ when_to_use: feat/fix/perf/동작이 바뀌는 refactor 커밋을 만들 때, CH
 paths: CHANGELOG.md
 ---
 
-2026-09-09, `.claude/CLAUDE.md`가 984줄로 길어져 공식 권장 상한(~200줄)을 크게 넘긴 것을
+2026-09-09, `.claude/CLAUDE.md`가 984줄로 길어져 [공식 권장 목표치(~200줄)](https://code.claude.com/docs/en/memory)를
+크게 넘긴 것을
 계기로 CLAUDE.md 본문에서 이 절을 옮겼다 — 매 세션 로드할 필요 없이 CHANGELOG 작성·릴리즈
 시점에만 불러오면 된다.
 
