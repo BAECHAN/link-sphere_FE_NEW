@@ -36,3 +36,6 @@ storybook-static
 
 # === Claude Code worktrees (동시 세션 격리) ===
 .claude/worktrees/
+
+# === Claude Code 브라우저 검증 녹화본 ===
+.claude/browser-artifacts/
