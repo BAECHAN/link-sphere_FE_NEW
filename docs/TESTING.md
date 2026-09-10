@@ -923,10 +923,10 @@ import해도 타입 에러 없이 통과하다가(둘 다 이름이 같은 expor
 
 ## Playwright MCP로 로그인 필요 화면 시각 검증하기
 
-이 레포에는 `@playwright/test` 기반 정식 E2E 스위트가 없다(위 스택 전부 Vitest+MSW
-유닛/컴포넌트 테스트다). Claude Code 세션이 UI 변경을 눈으로 확인할 때는 대화형
-MCP Playwright 도구(`mcp__plugin_playwright_playwright__*`)로 실제 브라우저를 띄워
-직접 조작한다. 북마크·마이페이지처럼 **로그인해야만 보이는 화면**은 매번 사용자에게
+이 절은 [Playwright e2e 자동화 테스트](#playwright-e2e-자동화-테스트)(`@playwright/test`
+기반 자동 회귀 테스트)와는 다른 도구를 다룬다 — Claude Code 세션이 UI 변경을 그
+자리에서 **눈으로** 확인할 때는 대화형 MCP Playwright 도구(`mcp__playwright__*`)로
+실제 브라우저를 띄워 직접 조작한다. 북마크·마이페이지처럼 **로그인해야만 보이는 화면**은 매번 사용자에게
 비밀번호를 물어보는 대신 아래 방식으로 세션을 재사용한다(2026-09-10 확정 — Playwright
 공식 [Authentication 가이드](https://playwright.dev/docs/auth)의 `storageState` 패턴을
 이 레포 사정에 맞게 적용했다).

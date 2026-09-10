@@ -28,14 +28,18 @@ paths: CHANGELOG.md
 
   지금까지는 등록 후 목록에서 북마크 버튼을 다시 눌러야 했다. 카테고리 선택 아래에
   북마크 필드를 추가해, 등록 제출 한 번으로 함께 처리한다.
-  (`features/post/create/ui/BookmarkFolderPicker.tsx`(신규),
+  (`features/post/create/ui/PostCreateBookmarkFolderField.tsx`(신규),
   [PR #21](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/21))
 
   </details>
 ```
 
 - 요약 줄: `` `스코프` `` + 공백 + 한 줄(72자 이내, 줄바꿈·마침표 없음). 굵게(`**`) 쓰지 않는다.
-  스코프는 `post` `comment` `auth` `user` `bookmark` `shared` 중 하나.
+  스코프는 `post` `comment` `auth` `user` `bookmark` `common` `shared` `infra` 중 하나
+  (2026-09-10 정정: FSD 레이어가 아니라 CHANGELOG 독자가 체감하는 변경 영역 기준이다 —
+  실측 결과 `post`~`common`은 단일 엔티티에 갇힌 변경, `shared`는 여러 도메인에 걸치거나
+  특정 엔티티 소유가 아닌 cross-cutting 변경, `infra`는 배포·CI·빌드처럼 FSD 레이어
+  밖의 관심사에 쓰이고 있었다).
 - 상세 블록: `<summary>`는 `배경·구현`으로 통일. `<summary>` 다음과 `</details>` 앞에 빈 줄을
   반드시 넣는다(없으면 GitHub이 안의 마크다운을 파싱하지 않는다). 배경·트레이드오프·영향
   파일 목록을 요약 없이 그대로 적는다 — 짧은 항목은 상세 블록을 생략해도 된다.

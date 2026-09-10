@@ -67,10 +67,10 @@ Vitest — §8 참고.
 
 ### API 엔드포인트
 
-| 메서드  | 경로                   | 설명                                           |
-| ------- | ---------------------- | ---------------------------------------------- |
-| `PATCH` | `/auth/account`        | 닉네임·이미지 URL 업데이트                     |
-| `POST`  | `/auth/account/avatar` | 이미지 파일 업로드 → Supabase Storage URL 반환 |
+| 메서드  | 경로                 | 설명                                                                                                                                                               |
+| ------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PATCH` | `/auth/account`      | 닉네임·이미지 URL 업데이트                                                                                                                                         |
+| `POST`  | `/upload/signed-url` | 파일 확장자로 서명된 업로드 URL(`uploadUrl`/`token`/`publicUrl`) 발급 — 아바타 전용이 아니라 이미지 업로드 전반이 쓰는 범용 엔드포인트(`shared/api/upload.api.ts`) |
 
 **PATCH /auth/account**
 
@@ -85,16 +85,15 @@ Vitest — §8 참고.
 }
 ```
 
-**POST /auth/account/avatar**(`multipart/form-data`)
+**아바타 저장은 두 단계** — BE에 파일을 직접 올리는 엔드포인트는 없다(`shared/lib/upload/uploadImageAndGetUrl.ts`):
 
 ```json
-// field: "file" (이미지 파일)
-
+// 1) POST /upload/signed-url { "fileExtension": "png" }
 // Response
-{
-  "status": 200,
-  "data": { "imageUrl": "https://supabase.co/storage/v1/object/public/..." }
-}
+{ "uploadUrl": "https://...", "token": "...", "publicUrl": "https://..." }
+
+// 2) uploadUrl로 파일을 스토리지에 직접 PUT(BE를 거치지 않음)
+// 3) 반환받은 publicUrl을 PATCH /auth/account의 image로 전송
 ```
 
 ### 저장 흐름 — 낙관적 업데이트 + 실패 시 복원
@@ -111,7 +110,7 @@ Vitest — §8 참고.
 3. **낙관적 반영**(`useUpdateAccountMutation`의 `onMutate`) — `accountKeys.root`
    캐시를 새 닉네임 + (파일을 골랐다면) blob 미리보기 URL로 즉시 덮어쓴다.
 4. **성공**(`onSuccess`) — 서버가 돌려준 실제 값(실제 업로드 URL 포함)으로
-   캐시를 교체하고, `handleAccountUpdateSuccess()`(§6)로 연관 캐시를 무효화한다.
+   캐시를 교체하고, `handleAccountUpdateSuccess(queryClient)`(§6)로 연관 캐시를 무효화한다.
 5. **실패**(`onError`) — 캐시를 낙관적 반영 이전 값으로 롤백하고, **자동으로
    사라지지 않는**(`duration: Infinity`) 에러 토스트에 "다시 열기" 액션을
    붙인다. 클릭하면 시도했던 값(파일 포함)을 `useMyPageModalStore`에 저장하고
@@ -222,10 +221,10 @@ fun uploadFile(file: MultipartFile, bucket: String): String { ... }        // �
 ### 프로필 변경 후 캐시 무효화(`handleAccountUpdateSuccess`, `entities/account/api/account.keys.ts`)
 
 ```typescript
-export const handleAccountUpdateSuccess = () => {
-  postInvalidateQueries.all(); // 목록 + 상세의 author
-  commentInvalidateQueries.all(); // 모든 게시글의 댓글 author
-  folderInvalidateQueries.postsRoot(); // 폴더별 게시글 카드의 author
+export const handleAccountUpdateSuccess = (queryClient: QueryClient) => {
+  postInvalidateQueries.all(queryClient); // 목록 + 상세의 author
+  commentInvalidateQueries.all(queryClient); // 모든 게시글의 댓글 author
+  bookmarkFolderInvalidateQueries.postsRoot(queryClient); // 폴더별 게시글 카드의 author
 };
 ```
 
@@ -256,7 +255,7 @@ src/
 ├── entities/
 │   ├── account/
 │   │   ├── api/
-│   │   │   ├── account.api.ts               # updateAccount, uploadAvatar API 메서드
+│   │   │   ├── account.api.ts               # updateAccount API 메서드(파일 업로드는 shared/lib/upload 경유)
 │   │   │   ├── account.queries.ts           # useUpdateAccountMutation (§5)
 │   │   │   └── account.keys.ts              # handleAccountUpdateSuccess (§6)
 │   │   └── model/
@@ -273,7 +272,7 @@ src/
     ├── lib/
     │   └── image/resizeImage.ts             # getImageFileSizeError — 아바타 업로드 전 용량 검증
     └── config/
-        ├── api.ts                           # updateAccount, uploadAvatar 엔드포인트
+        ├── api.ts                           # updateAccount 엔드포인트, upload.signedUrl(범용)
         └── texts.ts                         # mypage, success/error 텍스트 상수
 ```
 
@@ -288,8 +287,8 @@ src/
 | 테스트 실행                        | `npx vitest run src/features/account/update/hooks/useUpdateAccount.test.tsx`                                            |
 
 **MSW 목업(테스트 환경)**: `src/mocks/handlers/account.handlers.ts`가
-`PATCH /auth/account`·`POST /auth/account/avatar`를 가로채 고정 응답을
-반환한다. 테스트 실행 시 실제 API를 호출하지 않는다.
+`GET`/`PATCH /auth/account`·`GET /auth/nicknameAvailability`를 가로채 고정
+응답을 반환한다. 테스트 실행 시 실제 API를 호출하지 않는다.
 
 ## 8. 검증 결과
 
@@ -311,9 +310,9 @@ src/
 - **`restoreValues`** — `useMyPageModalStore`의 필드. 저장 실패 후 "다시
   열기"로 재오픈할 때 복원할 `{ nickname, imagePreview, pendingFile }`(§6)
 - **`NicknameStatus`** — 닉네임 중복확인 상태(`'idle' | 'checking' |
-'available' | 'duplicate'`, `useUpdateProfile.ts` 로컬 타입)
+'available' | 'duplicate'`, `useUpdateAccount.ts` 로컬 타입)
 - **`pendingFile`** — 아직 업로드하지 않고 미리보기만 만든 선택된 파일
-  (`useState<File | null>`, `useUpdateProfile.ts`)
+  (`useState<File | null>`, `useUpdateAccount.ts`)
 - **`isDirty`** — React Hook Form의 `formState.isDirty`와 `pendingFile`
   존재 여부를 OR로 합친, 저장 버튼 활성화 조건(§5·§6)
 

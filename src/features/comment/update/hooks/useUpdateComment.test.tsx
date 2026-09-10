@@ -15,7 +15,7 @@ import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
 import { TEXTS } from '@/shared/config/texts';
 
 // 기본 commentHandlers는 API_BASE_URL 접두사(/api) 없이 등록돼 있어 테스트 환경 요청 경로와
-// 매칭되지 않는다(CommentQueries.test.tsx와 동일한 이유) - url()로 명시 등록.
+// 매칭되지 않는다(comment.queries.test.ts와 동일한 이유) - url()로 명시 등록.
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
 function createWrapper(queryClient: QueryClient) {

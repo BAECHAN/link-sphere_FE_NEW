@@ -346,7 +346,7 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
 
 - **Never** Node 20으로 작업 진행 → 이 레포는 Node 24(`.nvmrc`) 고정이다. 작업 전 `node -v`가
   `v24`가 아니면 `nvm use`로 맞춘다. `package.json`의 `engines.node`(`>=24`)와 `.npmrc`의
-  `engine-strict=true`(2026-09-09 추가)가 함께 있어 다른 버전이면 `pnpm install` 자체가
+  `engine-strict=true`(2026-09-10 추가)가 함께 있어 다른 버전이면 `pnpm install` 자체가
   에러로 막힌다 — 다만 이 세션은 워크트리 격리(`source` 명령 차단) 때문에 Node 20을 실제로
   깔아 재현 검증은 못 했다(engine-strict의 표준 동작 자체는 npm/pnpm 공식 문서 근거)
 - **Never** native `confirm()` → 항상 `useAlert` + `openConfirm` 사용
@@ -365,7 +365,7 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
 - **Never** feature hook에서 직접 `queryClient.invalidateQueries` → 항상 `.keys.ts` success handlers 사용
 - **Never** 다른 엔티티의 raw 쿼리 키를 재구성해 `queryClient.invalidateQueries`를 직접 호출 → 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()` 래퍼만 사용. 크로스 엔티티 무효화가 필요하면 자기 엔티티의 `.keys.ts`에 `handle<Event>Success` 함수를 만들어 그 안에서 호출한다 (아래 "크로스 엔티티 무효화" 참고)
 - **Never** 하위 레이어에서 상위 레이어 import → ESLint 강제 (레이어 방향 위반)
-- **Never** 날짜 처리에 `new Date()` / `.getTime()` 직접 사용 → 항상 `dayjs` 사용 (`dayjs(value).valueOf()`, `dayjs().format()` 등). ESLint `no-restricted-syntax`로 강제된다(`eslint.config.js`) — 2026-03-15에 이 규칙이 추가된 뒤로도 문서 규칙에만 의존해 5개월간 위반이 안 잡혔던 사례(`entities/folder/model/useRecentFolders.ts`, 2026-08-12 작성 — 이후 `entities/bookmark/folder/hooks/`로 이동)가 있어 2026-09-08 ESLint로 승격
+- **Never** 날짜 처리에 `new Date()` / `.getTime()` 직접 사용 → 항상 `dayjs` 사용 (`dayjs(value).valueOf()`, `dayjs().format()` 등). ESLint `no-restricted-syntax`로 강제된다(`eslint.config.js`) — 2026-03-15에 이 규칙이 추가된 뒤로도 문서 규칙에만 의존해 5개월간 위반이 안 잡혔던 사례(당시 경로 `entities/folder/model/`의 `useRecentFolders.ts` 파일, 2026-08-12 작성 — 이후 `entities/bookmark/folder/hooks/`로 이동)가 있어 2026-09-08 ESLint로 승격
 - **Never** `features/**`의 `hooks/` 밖(주로 `ui/`)에서 entity 쿼리 훅(`*.queries`) 직접 import → 조회는 자기 슬라이스의 `hooks/` 커스텀 훅이나 `entities/<entity>/hooks/`의 공용 훅(예: `useCategoryOptions`)에서 한다. `custom-query-rules/no-direct-query-import`는 `@tanstack/react-query` 직접 import만 막아 entity가 감싼 `*.queries` 훅 호출까지는 못 잡았고, 그 사이 `CreatePostForm.tsx`·`UpdatePostForm.tsx`가 `useFetchCategoryOptionQuery()`를 UI에서 직접 호출하는 게 5개월 넘게(dayjs 규칙과 같은 패턴) 안 잡혔다 — 2026-09-09 `custom-query-rules/no-entity-query-import-outside-hooks`로 승격(features 한정, widgets는 §8 예외라 대상 아님)
 - **Never** 대상 파일 양식 무시하고 코드 생성 → 항상 붙여넣을 파일(및 인접 코드)을 **먼저 읽고** 들여쓰기·네이밍·import 순서·따옴표·주석 밀도·정렬을 그대로 맞춘다. 본인 스타일을 강요하거나 기존 코드를 재포맷하지 않는다
 - **Never** raw HTML 요소로 UI를 일회성 구현 → 항상 공통 컴포넌트(`shared/ui/atoms`·`elements`·`widgets`) 우선. 반복되는 UI는 공통 컴포넌트를 만들거나 기존 것을 사용해 디자인을 단일 관리한다 (예: 버튼은 raw `<button>` 대신 `Button` 컴포넌트). 신규 코드 기준
@@ -499,15 +499,15 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 
 모든 코드 수정 후 반드시 순서대로 실행:
 
-1. `npm run type-check` — TypeScript 컴파일 에러 확인 (필수)
-2. `npm run test` — 관련 테스트 실행 (테스트 파일이 존재하는 경우)
-3. `npm run lint` — ESLint 레이어 경계 위반 확인 (import 변경 시)
-4. `npm run check:docs` — README/docs/CLAUDE.md가 가리키는 경로·줄 번호가 실제와
+1. `pnpm type-check` — TypeScript 컴파일 에러 확인 (필수)
+2. `pnpm test` — 관련 테스트 실행 (테스트 파일이 존재하는 경우)
+3. `pnpm lint` — ESLint 레이어 경계 위반 확인 (import 변경 시)
+4. `pnpm check:docs` — README/docs/CLAUDE.md가 가리키는 경로·줄 번호가 실제와
    맞는지 확인 (`README.md`, `docs/*.md`, `.claude/CLAUDE.md`를 수정한 경우)
 
 에러가 있으면 진행 전 반드시 수정.
 
-> **⚠️ 타입체크는 반드시 `npm run type-check`(= `tsc -b --noEmit`)로.** 루트 `tsconfig.json`은
+> **⚠️ 타입체크는 반드시 `pnpm type-check`(= `tsc -b --noEmit`)로.** 루트 `tsconfig.json`은
 > `files: []` + `references`만 있는 솔루션 스타일이라 `tsc -p tsconfig.json`으로 돌리면 **0개 파일을
 > 검사**(무의미)한다. 실제 소스는 `tsconfig.app.json`(`strict` + `noUncheckedIndexedAccess: true`)에서
 > 검사되며, build 모드(`-b`)라야 references를 따라가 이 설정까지 검사한다.
@@ -609,6 +609,14 @@ Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금
 클릭 가능 요소의 전역 커서 규칙, 다크모드·폰트는 `design-tokens` skill
 (`.claude/skills/design-tokens/SKILL.md`)에 있다 — 컴포넌트를 스타일링할 때 그 skill을
 먼저 읽는다(2026-09-09, CLAUDE.md 길이 감사 후 이 절을 분리했다).
+
+---
+
+## 반응형 UX
+
+모바일+데스크톱 반응형 분기, 터치 UI, 하단 탭바·safe-area, 데스크톱 sticky·플로팅 버튼
+규약은 `responsive-ux` skill(`.claude/skills/responsive-ux/SKILL.md`)에 있다 — 반응형 UI를
+만들거나 고칠 때, 고정(fixed/sticky) 요소를 배치할 때 그 skill을 먼저 읽는다.
 
 ---
 
@@ -773,7 +781,7 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
 | 커맨드            | 사용법                            | 역할                        |
 | ----------------- | --------------------------------- | --------------------------- |
 | `/new-domain`     | `/new-domain notification`        | entity + features 전체 생성 |
-| `/new-feature`    | `/new-feature post pin-post`      | feature hook + UI 생성      |
+| `/new-feature`    | `/new-feature post pin`           | feature hook + UI 생성      |
 | `/add-entity-api` | `/add-entity-api post tag`        | 3-layer API 파일 생성       |
 | `/add-schema`     | `/add-schema member address`      | Zod 스키마 파일 생성        |
 | `/fix-bug`        | `/fix-bug 삭제 후 목록 갱신 안됨` | 버그 분석 + 수정            |

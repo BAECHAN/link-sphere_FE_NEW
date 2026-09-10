@@ -136,7 +136,7 @@ RootLayout
 
 | 파라미터                                  | 값                                                        | 위치                                             |
 | ----------------------------------------- | --------------------------------------------------------- | ------------------------------------------------ |
-| 액세스 토큰 만료 판정 여유 마진           | 30초(BE가 아직 유효하다고 볼 시각이어도 FE는 만료로 간주) | `src/shared/utils/auth.util.ts:20`               |
+| 액세스 토큰 만료 판정 여유 마진           | 30초(BE가 아직 유효하다고 볼 시각이어도 FE는 만료로 간주) | `src/shared/utils/auth.util.ts:24`               |
 | 계정 정보(`accountKeys.root`) `staleTime` | 1일(`STALE_TIME_ONE_DAY`)                                 | `src/entities/account/api/account.queries.ts:30` |
 | 동시 401 발생 시 실제 refresh 호출 횟수   | 항상 1회(리더-팔로워 큐잉, §9)                            | `src/shared/api/client.ts:160-188`               |
 | refresh 재시도 상한                       | **없음** — §11 참고                                       | `src/shared/api/client.ts:85`                    |
@@ -148,8 +148,10 @@ RootLayout
 ### 8-A. 게이트 A가 실제로 하는 일 (그리고 안 하는 일)
 
 ```ts
-// ProtectedRoute.tsx:24-34
-// 액세스 토큰이 있지만 만료됐으면 즉시 리프레시 시도 (콘텐츠 flash 방지)
+// ProtectedRoute.tsx:24-37
+// isAuthenticated는 항상 accessToken 존재 여부와 동치라(auth.store.ts) 아래 restoreAuth()는
+// accessToken이 있으면 실제로 refresh를 호출하지 않고 즉시 통과시킨다 — 만료된 토큰의 실제
+// 재검증은 여기가 아니라 shared/api/client.ts의 401 인터셉터가 실제 요청 시점에 담당한다.
 const [isVerifying, setIsVerifying] = useState(
   () => !!accessToken && AuthUtil.isTokenExpired(accessToken)
 );
@@ -174,7 +176,7 @@ const restoreAuth = useCallback(async (): Promise<boolean> => {
 
 §6에서 확인했듯 `accessToken`이 있으면 `isAuthenticated`도 항상 `true`이므로, **게이트 A가 이 분기에 들어오는 조건(`!!accessToken`) 자체가 이미 이 early return을 100% 성립시킵니다.** 즉 `authApi.refresh()`는 절대 호출되지 않고, `isVerifying`은 스피너를 한 틱 켰다 끌 뿐입니다. `restoreAuth`의 유일한 정상 호출부인 `useAppInitialization.ts:50`은 애초에 `!accessToken` 가드를 두고 호출하므로(§8-C), 이 early return은 원래 그 호출부 기준으로는 도달 안 하는 방어 코드였습니다 — `ProtectedRoute`가 나중에 같은 함수를 다른 의도로 재사용하면서 이 가드에 걸린 것입니다.
 
-**결론**: 이 앱에는 "만료 토큰의 사전(proactive) 재검증"이 사실상 없습니다. 만료 토큰 처리는 전부 게이트 B가 담당합니다. 코드 상단 주석(`ProtectedRoute.tsx:24`)은 이 사실과 다르므로 읽을 때 주의하세요.
+**결론**: 이 앱에는 "만료 토큰의 사전(proactive) 재검증"이 사실상 없습니다. 만료 토큰 처리는 전부 게이트 B가 담당합니다. 코드 상단 주석(`ProtectedRoute.tsx:24-27`)도 지금은 이 사실을 정확히 서술합니다.
 
 ### 8-B. 게이트 B — 반응형 401 인터셉터
 
@@ -244,13 +246,13 @@ openLoginModal();
 | 새 보호 페이지 추가              | `route-paths.ts`에 경로 추가 → `route-paths.ts:28-35` `isProtectedPath`에 prefix 추가 → `routes/index.tsx`의 Protected Content Group에 라우트 등록        |
 | 로그인 필요한 새 액션(버튼) 추가 | `useAuthGuard()`로 액션을 감싸기(§8-D 패턴)                                                                                                               |
 | 로그인 필요한 새 이동(링크) 추가 | `useProtectedNavigate()` 사용, 또는 `nav-items.ts`에 `requiresAuth: true` 항목 추가                                                                       |
-| 새 401 에러 코드 처리 추가       | `error-code.ts`에 상수 추가 → `client.ts:189` 분기 또는 `queryClient.ts`의 전역 핸들러에 분기 추가(그 코드가 재시도 가능한지/즉시 로그아웃인지 먼저 결정) |
+| 새 401 에러 코드 처리 추가       | `error-code.ts`에 상수 추가 → `client.ts:196` 분기 또는 `queryClient.ts`의 전역 핸들러에 분기 추가(그 코드가 재시도 가능한지/즉시 로그아웃인지 먼저 결정) |
 
 ---
 
 ## 9. 검증 결과
 
-`src/shared/api/client.test.ts`(226줄, `describe('ApiClient — 인증 오류 처리')` 하나)가 게이트 B를 케이스별로 검증합니다:
+`src/shared/api/client.test.ts`(225줄, `describe('ApiClient — 인증 오류 처리')` 하나)가 게이트 B를 케이스별로 검증합니다:
 
 | Case           | 시나리오                                     | 확인하는 것                                                     |
 | -------------- | -------------------------------------------- | --------------------------------------------------------------- |
@@ -297,7 +299,7 @@ openLoginModal();
 
 1. **`client.ts`의 `retryCount`가 선언·전달만 되고 상한 검사를 받지 않습니다** (`client.ts:85`, `:179`, `:192`). BE가 재시도 후에도 계속 `TOKEN_EXPIRED`를 준다면 이론상 반복 재시도가 가능합니다. 현재 이를 막는 건 "refresh가 언젠가 실패해서 catch로 빠진다"는 가정뿐입니다.
 2. **`/auth/refresh` 요청 자체가 만료된 `Authorization` 헤더를 달고 나갑니다.** `isAuthEndpoint`(`client.ts:55-60`)가 `login`·`signup`만 포함하고 `/auth/refresh`는 빠져 있습니다. 주석(`:57`, "혹은 리프레시는 쿠키 사용")과 실제 헤더 제거 로직이 어긋나 있습니다. BE가 이 엔드포인트를 permitAll로 두고 헤더를 무시한다는 전제에 기대어 현재는 무해합니다(BE 소스가 이 레포에 없어 미검증).
-3. **refresh 실패 시 대기 중이던 팔로워 요청들이 영구 pending으로 남습니다.** `client.ts:175`가 `refreshSubscribers`를 콜백 호출 없이 비웁니다. 리더 자신의 영구 pending(`:177`)은 "에러 토스트를 띄우지 않으려는" 의도가 `client.test.ts:114` 주석으로 남아있지만, 팔로워 쪽은 같은 의도가 명시돼 있지 않습니다.
+3. **refresh 실패 시 대기 중이던 팔로워 요청들이 영구 pending으로 남습니다.** `client.ts:182`가 `refreshSubscribers`를 콜백 호출 없이 비웁니다. 리더 자신의 영구 pending(`:184`)은 "에러 토스트를 띄우지 않으려는" 의도가 `client.test.ts:114` 주석으로 남아있지만, 팔로워 쪽은 같은 의도가 명시돼 있지 않습니다.
 4. **동시 401 큐잉(§9의 리더-팔로워 메커니즘)과 위 세 항목 모두 테스트 커버리지가 없습니다** — `client.test.ts`의 5개 Case는 전부 단일 요청 시나리오입니다.
 
 ---

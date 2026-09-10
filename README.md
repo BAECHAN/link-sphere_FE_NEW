@@ -68,35 +68,37 @@ pnpm storybook
 
 ## 개발 명령어
 
-| 명령어               | 설명                                         |
-| -------------------- | -------------------------------------------- |
-| `pnpm dev`           | 로컬 개발 서버 실행 (포트 31119)             |
-| `pnpm build`         | 프로덕션 빌드                                |
-| `pnpm preview`       | 빌드 결과물 미리보기                         |
-| `pnpm type-check`    | TypeScript 타입 검사                         |
-| `pnpm lint`          | ESLint 검사                                  |
-| `pnpm lint:fix`      | ESLint 자동 수정                             |
-| `pnpm format`        | Prettier 포맷팅                              |
-| `pnpm check`         | 타입 + 린트 + 포맷 일괄 검사                 |
-| `pnpm check:fix`     | 린트·포맷 자동 수정 후 타입 검사             |
-| `pnpm storybook`     | Storybook 컴포넌트 개발 서버 (6006)          |
-| `pnpm test`          | 테스트 1회 실행 (CI / pre-push 동일)         |
-| `pnpm test:watch`    | 테스트 감시 모드 (파일 변경 시 재실행)       |
-| `pnpm test:coverage` | 커버리지 리포트 생성 (`coverage/index.html`) |
+| 명령어               | 설명                                                   |
+| -------------------- | ------------------------------------------------------ |
+| `pnpm dev`           | 로컬 개발 서버 실행 (포트 31119)                       |
+| `pnpm build`         | 프로덕션 빌드                                          |
+| `pnpm preview`       | 빌드 결과물 미리보기                                   |
+| `pnpm type-check`    | TypeScript 타입 검사                                   |
+| `pnpm lint`          | ESLint 검사                                            |
+| `pnpm lint:fix`      | ESLint 자동 수정                                       |
+| `pnpm format`        | Prettier 포맷팅                                        |
+| `pnpm check`         | 타입 + 린트 + 포맷 일괄 검사                           |
+| `pnpm check:fix`     | 린트·포맷 자동 수정 후 타입 검사                       |
+| `pnpm check:docs`    | 문서가 가리키는 파일 경로·줄 번호가 실제와 맞는지 검사 |
+| `pnpm storybook`     | Storybook 컴포넌트 개발 서버 (6006)                    |
+| `pnpm test`          | 테스트 1회 실행 (CI / pre-push 동일)                   |
+| `pnpm test:watch`    | 테스트 감시 모드 (파일 변경 시 재실행)                 |
+| `pnpm test:coverage` | 커버리지 리포트 생성 (`coverage/index.html`)           |
+| `pnpm test:e2e`      | Playwright e2e 테스트 (Chromium 헤드리스)              |
 
 ## 기술 스택
 
-| 항목         | 기술                                                         |
-| ------------ | ------------------------------------------------------------ |
-| Framework    | React 18, TypeScript 5.7, Vite 6                             |
-| Routing      | React Router 6                                               |
-| Server State | TanStack Query 5                                             |
-| Client State | Zustand 5                                                    |
-| Form         | React Hook Form 7, Zod 3                                     |
-| UI           | Shadcn/ui (Radix UI), TailwindCSS 4, CVA                     |
-| 기타         | Sonner, Supabase JS, dayjs, framer-motion, Firebase(FCM)     |
-| 개발 도구    | ESLint 9, Prettier 3, Husky, Storybook 10                    |
-| 테스트       | Vitest 4, jsdom, Testing Library, MSW 2, @vitest/coverage-v8 |
+| 항목         | 기술                                                                          |
+| ------------ | ----------------------------------------------------------------------------- |
+| Framework    | React 18, TypeScript 5.7, Vite 6                                              |
+| Routing      | React Router 6                                                                |
+| Server State | TanStack Query 5                                                              |
+| Client State | Zustand 5                                                                     |
+| Form         | React Hook Form 7, Zod 3                                                      |
+| UI           | Shadcn/ui (Radix UI), TailwindCSS 4, CVA                                      |
+| 기타         | Sonner, Supabase JS, dayjs, framer-motion, Firebase(FCM)                      |
+| 개발 도구    | ESLint 9, Prettier 3, Husky, Storybook 10                                     |
+| 테스트       | Vitest 4, jsdom, Testing Library, MSW 2, @vitest/coverage-v8, Playwright(e2e) |
 
 ## 프로젝트 구조
 
@@ -126,8 +128,10 @@ entities/<entity>/api/
 └── *.queries.ts   # useQuery / useMutation 래퍼 훅
 ```
 
-일부 엔티티는 예외다 — `interaction`은 `keys.ts` 없이 다른 엔티티의 키를 직접 쓰고,
-`upload`는 `api.ts`만 있다. 상세는 FE-ARCHITECTURE.md §3·§4 참고.
+일부 엔티티는 예외다 — `interaction`은 `keys.ts` 없이 다른 엔티티의 키를 직접 쓴다.
+`upload`는 엔티티가 아니라 `shared/api/upload.api.ts`로 이동했다(용도별 정책 없이
+서명 URL 발급만 담당하는 범용 API라 entity가 아니었다). 상세는 FE-ARCHITECTURE.md
+§3·§4 참고.
 
 ### Feature 폴더 구조 (표준형)
 

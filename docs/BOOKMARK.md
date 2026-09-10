@@ -125,7 +125,7 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 ### `PostCardBookmarkFolderModal` 행 동작
 
 `BookmarkPostButton`을 누르면 열리는 모달(`features/bookmark/toggle/ui/PostCardBookmarkFolderModal.tsx`,
-실제 마크업은 `entities/bookmark/folder/ui/BookmarkFolderSelectModal`)의 전체 동작이다. 탭 = 즉시
+실제 마크업은 `features/bookmark/select/ui/BookmarkFolderSelectModal`)의 전체 동작이다. 탭 = 즉시
 저장/제거 + 모달 닫힘(확인 단계 없음).
 
 | 행          | 상태                      | 탭하면                           | 토스트                                                                                         |
@@ -161,7 +161,7 @@ Shneiderman(1994)](https://dl.acm.org/doi/10.1145/174630.174632)의 split menu
 
 `src/features/post/create/ui/PostCreateBookmarkFolderField.tsx`는 `/bookmark` 페이지가
 아니라 **링크 등록 폼**(`CreatePostForm`)에 있는 필드다. `PostCardBookmarkFolderModal`과
-같은 `entities/bookmark/folder/ui/BookmarkFolderSelectModal`을 쓰고 주입하는 콜백만 다르다 —
+같은 `features/bookmark/select/ui/BookmarkFolderSelectModal`을 쓰고 주입하는 콜백만 다르다 —
 저장 동작을 콜백으로 넘기는 쪽이 즉시 저장인지 지연 선택인지에 따라 핵심 동작이 갈린다.
 
 |                       | `PostCardBookmarkFolderModal`(북마크 페이지) | `PostCreateBookmarkFolderField`(등록 폼)                      |
@@ -196,7 +196,7 @@ bookmarkFolderKeys.posts(folderKey, sort, search);
 
 무효화는 `bookmarkFolderInvalidateQueries`(`all`/`list`/`postsRoot`/`posts`)를 통해서만
 하고, 실제로 "이런 변경 후엔 뭘 무효화하는지"는 같은 파일의 `handle*Success` 함수
-9개가 결정한다 — 예를 들어 `handleBookmarkFolderChangeSuccess`(폴더 소속 변경 후)는
+8개가 결정한다 — 예를 들어 `handleBookmarkFolderChangeSuccess`(폴더 소속 변경 후)는
 `bookmarkFolderKeys.list` + `bookmarkFolderKeys.postsRoot` + `post.detail`/`post.list`까지
 무효화한다. 원본은 옮겨적지 않는다 — 정확한 최신 목록은 `bookmark-folder.keys.ts`를 직접
 확인한다.
@@ -255,6 +255,15 @@ src/
 ├── features/
 │   ├── bookmark/                     # 2026-09-08 post/bookmark에서 승격 — entities/widgets/
 │   │   │                             # pages와 bookmark 도메인 그룹을 통일
+│   │   ├── select/
+│   │   │   ├── hooks/
+│   │   │   │   └── useBookmarkFolderSelect.ts # BookmarkFolderSelectModal의 로직 전부(조회·생성·
+│   │   │   │                                 # 행별 pending·미분류 재탭 no-op)
+│   │   │   └── ui/
+│   │   │       └── BookmarkFolderSelectModal.tsx # JSX만 — 폴더 선택 모달/바텀시트 공용
+│   │   │                                         # 프레젠테이션. PostCardBookmarkFolderModal·
+│   │   │                                         # PostCreateBookmarkFolderField가 공유하고 저장
+│   │   │                                         # 동작만 콜백으로 주입받는다
 │   │   └── toggle/
 │   │       ├── hooks/
 │   │       │   ├── useBookmarkFolders.ts             # add/remove/clear/toggle 라우팅
@@ -294,15 +303,8 @@ src/
 │           │                                 # MIN_BOOKMARK_FOLDER_COUNT_TO_SHOW_RECENT
 │           ├── utils/
 │           │   └── bookmark-folder.util.ts    # pickRecentFolders — "최근 저장한 폴더" 선정 로직(§7)
-│           ├── hooks/
-│           │   ├── useRecentBookmarkFolders.ts # 스냅샷 로직 (§5, §10)
-│           │   └── useBookmarkFolderSelect.ts # BookmarkFolderSelectModal의 로직 전부(조회·생성·
-│           │                                 # 행별 pending·미분류 재탭 no-op)
-│           └── ui/
-│               └── BookmarkFolderSelectModal.tsx # JSX만 — 폴더 선택 모달/바텀시트 공용
-│                                             # 프레젠테이션. PostCardBookmarkFolderModal·
-│                                             # PostCreateBookmarkFolderField가 공유하고 저장
-│                                             # 동작만 콜백으로 주입받는다
+│           └── hooks/
+│               └── useRecentBookmarkFolders.ts # 스냅샷 로직 (§5, §10)
 └── shared/
     ├── api/client.ts                     # apiClient — 공통 HTTP 클라이언트
     ├── ui/elements/
@@ -317,7 +319,7 @@ src/
 핸들러), §9의 5개 테스트 파일.
 
 이 문서에서 파일명만으로 등장하는 식별자의 위치: `activeFolderKey`는
-`BookmarkPage.tsx:65`의 로컬 변수(`folderKey ?? 'all'`), `sessionKey`는
+`BookmarkPage.tsx:68`의 로컬 변수(`folderKey ?? 'all'`), `sessionKey`는
 `useRecentBookmarkFolders`의 세 번째 매개변수
 (`entities/bookmark/folder/hooks/useRecentBookmarkFolders.ts:25`)다.
 
@@ -367,11 +369,11 @@ src/
 mutation과 동일한 패턴으로 추가해, invalidate 응답을 기다리는 동안의 순간적인 stale
 노출도 없앴다.
 
-영향 파일(당시 경로): `entities/folder/model/useRecentFolders.ts`(현재
+영향 파일(당시 경로): `entities/folder/model/`의 `useRecentFolders.ts`(현재
 `entities/bookmark/folder/hooks/useRecentBookmarkFolders.ts`),
 `widgets/bookmark/folder-tree/ui/FolderTree.tsx`,
 `widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`,
-`features/post/bookmark/ui/FolderSelector.tsx`(현재
+`features/post/bookmark/ui/`의 `FolderSelector.tsx`(현재
 `features/bookmark/toggle/ui/PostCardBookmarkFolderModal.tsx`), `entities/post/api/post.queries.ts`.
 
 ## 11. 남은 것
@@ -380,7 +382,7 @@ mutation과 동일한 패턴으로 추가해, invalidate 응답을 기다리는 
 
 ## 12. 용어 사전
 
-- **`activeFolderKey`** — `BookmarkPage.tsx:65`의 로컬 변수. URL의 `folder` 파라미터를
+- **`activeFolderKey`** — `BookmarkPage.tsx:68`의 로컬 변수. URL의 `folder` 파라미터를
   `BookmarkFolderKey`(`'all' | 'uncategorized' | UUID`)로 정규화한 값(`folderKey ?? 'all'`)
 - **`sessionKey`** — `useRecentBookmarkFolders`의 세 번째 매개변수(`unknown` 타입). 값이
   바뀔 때마다 "최근 저장한 폴더" 스냅샷을 새로 찍는다. 모달(`BookmarkFolderSelectModal`)은
@@ -388,7 +390,7 @@ mutation과 동일한 패턴으로 추가해, invalidate 응답을 기다리는 
   등)은 넘기지 않아 마운트 수명 전체가 한 세션이 된다
 - **`apiClient`** — `src/shared/api/client.ts`의 공통 HTTP 클라이언트
 - **`TEXTS`** — `src/shared/config/texts.ts`의 문구 상수 객체
-- **`BookmarkFolderSelectModal`** — entities 소유의 공용 폴더 선택 프레젠테이션(§8 코드 지도).
+- **`BookmarkFolderSelectModal`** — `features/bookmark/select/` 소유의 공용 폴더 선택 프레젠테이션(§8 코드 지도).
   2026-09-08 이전 이름은 `FolderPickerModal`("Picker") — Radix 드롭다운 원자
   (`shared/ui/atoms/select.tsx`)와 무관하게, 내부 props(`onSelectFolder` 등)가 이미
   "select" 어휘를 쓰고 있어 접미사를 "Select"로 통일해 `FolderSelectModal`이 됐다.

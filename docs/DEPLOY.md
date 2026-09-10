@@ -135,7 +135,7 @@ us-east-1)이 붙어 있다. 이름에서 보이듯 CloudFront 콘솔에서 보�
   Lambda Function URL 자체 페이로드 한도(6MB)까지 뭐든 통과하는 걸 실측(300KB 페이로드)으로
   확인했고, 이건 비용·보안(다른 WAF 룰의 검사 한도 16KB를 넘겨 시그니처를 우회할 수 있음)
   양쪽에 새 노출이라 되돌렸다. 대신 앱(BE `CommentService.MAX_COMMENT_CONTENT_BYTES`,
-  FE `entities/comment/config/const.ts`)이 이 8KB 벽 안쪽에서 여유 있게 동작하도록
+  FE `entities/comment/config/comment.const.ts`)이 이 8KB 벽 안쪽에서 여유 있게 동작하도록
   6,000바이트 상한을 뒀다 — 판단 근거는 `docs/DECISIONS.md` 참고.
 - **Pro 플랜으로 업그레이드할 계획이 생기면** `SizeRestrictions_BODY`를 Count로 오버라이드하고
   inspection limit(기본 16KB)과 같은 크기로 `SizeConstraintStatement` 커스텀 룰(바디
