@@ -26,5 +26,20 @@ export default defineConfig({
     command: 'pnpm exec vite --mode test',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
+    // firebase/messaging의 getMessaging()이 앱 부트스트랩 중 즉시 호출되는데, 프로젝트
+    // 설정값이 전혀 없으면 FirebaseError를 동기적으로 throw해 React가 마운트되기 전에
+    // 페이지가 죽는다(2026-09-10 CI 최초 실행에서 실측 — 로컬은 .env가 있어 안 드러났다).
+    // e2e는 실제 FCM을 쓰지 않으므로(로그인도 has-session 시딩이라 mutation 경로를 안 탄다)
+    // 구조적으로만 유효한 더미 값이면 충분하다. playwright.config.ts는 Node 프로세스라
+    // .env를 자동으로 읽지 않으므로(vite의 loadEnv만 .env를 읽는다) 로컬·CI 모두 이
+    // 값이 그대로 쓰인다.
+    env: {
+      VITE_FIREBASE_API_KEY: 'test-api-key',
+      VITE_FIREBASE_AUTH_DOMAIN: 'test.firebaseapp.com',
+      VITE_FIREBASE_PROJECT_ID: 'test-project',
+      VITE_FIREBASE_MESSAGING_SENDER_ID: '000000000000',
+      VITE_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000000000',
+      VITE_FIREBASE_VAPID_KEY: 'test-vapid-key',
+    },
   },
 });
