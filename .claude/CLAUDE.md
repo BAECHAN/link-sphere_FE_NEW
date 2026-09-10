@@ -691,6 +691,15 @@ pnpm test:coverage   # 커버리지 → coverage/index.html
 
 ---
 
+## 브라우저 검증 녹화
+
+UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브라우저 확인 화면을
+녹화해 사용자에게 보여주는 절차는 `browser-verification` skill
+(`.claude/skills/browser-verification/SKILL.md`)에 있다 — 커밋 전 검증이 필요할 때
+그 skill을 먼저 읽는다(2026-09-10 도입).
+
+---
+
 ## 개발 커맨드
 
 전체 목록은 [`docs/FE-ARCHITECTURE.md`](../docs/FE-ARCHITECTURE.md) §19를 먼저 읽는다. `/api` 프록시

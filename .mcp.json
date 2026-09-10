@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--caps=devtools",
+        "--headless",
+        "--ignore-https-errors",
+        "--viewport-size=1280x800",
+        "--output-dir=.claude/browser-artifacts"
+      ]
+    }
+  }
+}
