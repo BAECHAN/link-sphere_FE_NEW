@@ -179,7 +179,11 @@ export function Navbar() {
             ) : isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-2">
+                  <Button
+                    variant="ghost"
+                    className="relative h-8 w-8 rounded-full ml-2"
+                    aria-label={TEXTS.ariaLabels.accountMenu}
+                  >
                     <UserAvatar
                       image={account?.image}
                       nickname={account?.nickname}

@@ -422,6 +422,7 @@ export const TEXTS = {
     // 기타
     menuToggle: '메뉴 토글',
     homeLink: '홈으로 이동',
+    accountMenu: '계정 메뉴',
     profileEdit: '프로필 수정',
     logout: '로그아웃',
     saveEmail: 'Save Email',

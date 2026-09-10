@@ -20,6 +20,7 @@ export const ENDPOINTS = {
   },
   bookmark: {
     folders: '/bookmark/folders',
+    folderPosts: (folderKey: string) => `/bookmark/folders/${folderKey}/posts`,
     postFolder: (postId: string, folderId: string) => `/bookmark/${postId}/folders/${folderId}`,
   },
 } as const;
