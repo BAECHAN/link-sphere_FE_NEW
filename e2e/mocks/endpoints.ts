@@ -11,6 +11,7 @@ export const ENDPOINTS = {
     login: '/auth/login',
     refresh: '/auth/refresh',
     account: '/auth/account',
+    nicknameAvailability: '/auth/account/nickname-availability',
   },
   common: {
     categoryOption: '/common/category-option',
