@@ -9,6 +9,7 @@
 export const ENDPOINTS = {
   auth: {
     refresh: '/auth/refresh',
+    account: '/auth/account',
   },
   common: {
     categoryOption: '/common/category-option',
