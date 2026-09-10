@@ -26,8 +26,9 @@ export const accountApi = {
 
   /**
    * 닉네임 가용성 사전 조회. 조회 자체의 성공·실패만 판단하고 fail-open 여부는 호출부
-   * (useUpdateAccount.ts)에서 결정한다 - 여기서 실패를 삼켜 true로 흡수하면 "네트워크가 끊겨
-   * 확인을 못 한 것"과 "실제로 확인해서 사용 가능한 것"을 호출부가 구분할 수 없게 된다.
+   * (useUpdateAccount.ts, useSignUp.ts의 useAvailabilityCheck)에서 결정한다 - 여기서 실패를
+   * 삼켜 true로 흡수하면 "네트워크가 끊겨 확인을 못 한 것"과 "실제로 확인해서 사용 가능한
+   * 것"을 호출부가 구분할 수 없게 된다.
    */
   checkNicknameAvailability: async (nickname: string): Promise<boolean> => {
     const response = await apiClient.get<{ available: boolean }>(
