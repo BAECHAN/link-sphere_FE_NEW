@@ -15,6 +15,11 @@ import { STORAGE_KEYS } from '@/shared/config/storage-keys';
  * 요청까지 막아 로그인 상태가 안 만들어지고 로그인 모달이 뜨는 회귀가 있었다). 각 스펙의
  * beforeEach에서 installCatchAll 다음에 mockAuthRefresh를 명시적으로 호출해 등록
  * 순서를 스펙이 직접 통제한다.
+ *
+ * 이 fixture로 로그인 상태를 만드는 스펙은 mockAccountQuery(account.mock.ts)도 같이
+ * 등록해야 한다 — Navbar가 isAuthenticated가 되는 순간 GET /auth/account를 항상
+ * 자동 호출해서, 안 모킹해두면 화면에 "계정 정보 조회에 실패했어요." 토스트가 뜬다
+ * (2026-09-10, bookmark.spec.ts에서 실제로 발견됨).
  */
 export const test = base.extend<{ page: Page }>({
   page: async ({ page }, use) => {
