@@ -445,6 +445,10 @@ export const TEXTS = {
     bookmarkChange: '북마크 폴더 변경',
     bookmarkSave: '북마크 저장',
 
+    // 게시글 상호작용
+    postLike: '좋아요',
+    postUnlike: '좋아요 취소',
+
     // 게시글 검색 필터
     postCategoryFilters: '카테고리 검색 태그',
     postScopeFilters: '게시글 범위 필터',

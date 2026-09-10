@@ -21,6 +21,11 @@ export const useLikePostMutation = (postId: Post['id']) => {
       await queryClient.cancelQueries({ queryKey: postKeys.listRoot });
 
       const previousPost = queryClient.getQueryData<Post>(postKeys.detail(postId));
+      // 패치 전 목록 스냅샷 — onError 롤백용(useBookmarkPostMutation의
+      // previousFolderPosts와 같은 패턴, L96-98/L233-235 참고).
+      const previousLists = queryClient.getQueriesData<InfiniteData<PostListResponse>>({
+        queryKey: postKeys.listRoot,
+      });
 
       if (previousPost) {
         queryClient.setQueryData<Post>(postKeys.detail(postId), {
@@ -69,13 +74,16 @@ export const useLikePostMutation = (postId: Post['id']) => {
           };
         }
       );
-      return { previousPost };
+      return { previousPost, previousLists };
     },
     onSuccess: () => {},
     onError: (_err, _variables, context) => {
       if (context?.previousPost) {
         queryClient.setQueryData(postKeys.detail(postId), context.previousPost);
       }
+      context?.previousLists?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
     },
   });
 };

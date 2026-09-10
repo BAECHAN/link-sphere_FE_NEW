@@ -604,24 +604,42 @@ onError: (_err, _vars, context) => {
 },
 ```
 
-목록(InfiniteData)까지 함께 업데이트:
+목록(InfiniteData)까지 함께 업데이트할 땐 **패치 전 스냅샷도 같이 떠서 onError에서
+되돌려야 한다** — 패치만 하고 롤백을 안 남기면 detail은 원복되는데 목록은 낙관적으로
+뒤집힌 채 남는다(2026-09-10, `useLikePostMutation`이 실제로 이 상태였다가 e2e 도중
+발견돼 고쳐졌다 — 아래가 고친 뒤의 형태):
 
 ```typescript
-queryClient.setQueriesData<InfiniteData<EntityListResponse>>(
-  { queryKey: entityKeys.listRoot },
-  (oldData) => {
-    if (!oldData) return oldData;
-    return {
-      ...oldData,
-      pages: oldData.pages.map((page) => ({
-        ...page,
-        content: page.content.map((item) =>
-          item.id === id ? { ...item, isLiked: !item.isLiked } : item
-        ),
-      })),
-    };
-  }
-);
+onMutate: async () => {
+  // ...위 detail 스냅샷과 함께
+  const previousLists = queryClient.getQueriesData<InfiniteData<EntityListResponse>>({
+    queryKey: entityKeys.listRoot,
+  });
+
+  queryClient.setQueriesData<InfiniteData<EntityListResponse>>(
+    { queryKey: entityKeys.listRoot },
+    (oldData) => {
+      if (!oldData) return oldData;
+      return {
+        ...oldData,
+        pages: oldData.pages.map((page) => ({
+          ...page,
+          content: page.content.map((item) =>
+            item.id === id ? { ...item, isLiked: !item.isLiked } : item
+          ),
+        })),
+      };
+    }
+  );
+
+  return { previous, previousLists };
+},
+onError: (_err, _vars, context) => {
+  queryClient.setQueryData(entityKeys.detail(id), context?.previous);
+  context?.previousLists?.forEach(([key, data]) => {
+    queryClient.setQueryData(key, data);
+  });
+},
 ```
 
 ---
