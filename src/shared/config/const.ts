@@ -23,3 +23,12 @@ export const MUTATION_PROGRESS_DELAY_MS = 500;
 
 /** mutation 진행 표시가 한 번 보이면 최소한 유지하는 시간 — 깜빡임 방지 (mutation 전용) */
 export const LOADING_INDICATOR_MIN_DURATION_MS = 400;
+
+// 파괴적 조작(삭제 등)의 되돌리기 토스트 노출 시간. sonner 기본값(4초)은 무엇이
+// 지워졌는지 읽고 판단해 클릭하기엔 짧다. NN/g가 확인 대화상자보다 되돌리기 제공을
+// 우선하라고 권고한다(https://www.nngroup.com/articles/confirmation-dialog/,
+// Jakob Nielsen, 2018-02-18, 2026-08-07 재검토: "do go to great lengths to provide
+// undo, because some user errors will remain despite the even the best of
+// confirmation dialogs.").
+/** 파괴적 조작의 되돌리기 토스트 노출 시간 */
+export const UNDO_TOAST_DURATION_MS = 8000;

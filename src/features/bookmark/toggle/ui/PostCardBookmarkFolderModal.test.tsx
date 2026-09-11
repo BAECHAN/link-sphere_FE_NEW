@@ -4,6 +4,7 @@ import { renderWithProviders, userEvent } from '@/test/utils';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { toast } from '@/shared/lib/toast/toast';
 import { PostCardBookmarkFolderModal } from '@/features/bookmark/toggle/ui/PostCardBookmarkFolderModal';
 import type {
   BookmarkFoldersResponse,
@@ -15,6 +16,12 @@ import type {
 
 // 데스크탑 모달 스타일로 고정 — matchMedia 스텁만으로는 useIsMobile 값이 effect 이후에나 정해져 불안정하다
 vi.mock('@/shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }));
+
+// renderWithProviders에는 <Toaster />가 없어 되돌리기 버튼을 실제로 클릭할 수 없다 —
+// toast.success 호출 인자를 캡처해 action.onClick을 직접 호출하는 방식으로 검증한다.
+vi.mock('@/shared/lib/toast/toast', () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}));
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
@@ -109,24 +116,75 @@ describe('PostCardBookmarkFolderModal', () => {
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
   });
 
-  it('소속 폴더를 탭하면 제거 요청을 보낸다', async () => {
+  it('다른 폴더도 있는 소속 폴더를 탭하면 그 폴더에서만 제거 요청을 보낸다', async () => {
     const user = userEvent.setup();
     let called = false;
     server.use(
       http.delete(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () => {
         called = true;
         return HttpResponse.json(
-          { status: 200, message: 'ok', data: bookmarkFoldersResponse([]), timestamp: '' },
+          { status: 200, message: 'ok', data: bookmarkFoldersResponse([FOLDER_B]), timestamp: '' },
           { status: 200 }
         );
       })
     );
-    renderModal();
+    renderModal({ bookmarkFolderIds: [FOLDER_A, FOLDER_B] });
 
     await waitFor(() => expect(screen.getByText('개발')).toBeInTheDocument());
     await user.click(screen.getByText('개발'));
 
     await waitFor(() => expect(called).toBe(true));
+    // 다른 폴더가 남아있으므로 되돌리기 없이 일반 제거 토스트만 뜬다
+    expect(toast.success).toHaveBeenCalledWith('개발 폴더에서 제거했어요.');
+  });
+
+  it('마지막 폴더를 탭하면 폴더에서만 빼지 않고 북마크 자체를 완전 삭제하며 되돌리기를 제공한다', async () => {
+    const user = userEvent.setup();
+    let toggleCalled = false;
+    let removeFolderCalled = false;
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => {
+        toggleCalled = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+      http.delete(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () => {
+        removeFolderCalled = true;
+        return HttpResponse.json(
+          { status: 200, message: 'ok', data: bookmarkFoldersResponse([]), timestamp: '' },
+          { status: 200 }
+        );
+      })
+    );
+    // 기본값 bookmarkFolderIds=[FOLDER_A] — 유일한 소속(마지막 폴더)
+    renderModal();
+
+    await waitFor(() => expect(screen.getByText('개발')).toBeInTheDocument());
+    await user.click(screen.getByText('개발'));
+
+    // 폴더에서만 제거하는 DELETE가 아니라 북마크 자체를 지우는 토글이 나가야 한다
+    await waitFor(() => expect(toggleCalled).toBe(true));
+    expect(removeFolderCalled).toBe(false);
+
+    const [message, options] = vi.mocked(toast.success).mock.calls[0]!;
+    expect(message).toBe('개발 폴더에서 제거했어요.');
+    expect(options?.description).toBe('마지막 폴더라서 북마크도 함께 제거했어요.');
+    const action = options?.action as unknown as { label: string; onClick: () => void };
+    expect(action.label).toBe('되돌리기');
+
+    // 되돌리기를 누르면 같은 폴더로 다시 추가하는 요청이 나간다
+    let restoreCalled = false;
+    server.use(
+      http.post(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () => {
+        restoreCalled = true;
+        return HttpResponse.json(
+          { status: 200, message: 'ok', data: bookmarkFoldersResponse([FOLDER_A]), timestamp: '' },
+          { status: 200 }
+        );
+      })
+    );
+    action.onClick();
+
+    await waitFor(() => expect(restoreCalled).toBe(true));
   });
 
   it('체크된 미분류를 탭하면 아무 요청도 보내지 않는다 (no-op)', async () => {

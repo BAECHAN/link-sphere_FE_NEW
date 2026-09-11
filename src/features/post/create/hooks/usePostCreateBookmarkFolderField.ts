@@ -42,8 +42,11 @@ export function usePostCreateBookmarkFolderField() {
   const handleSelectFolder = (folder: BookmarkFolder) => {
     if (folderIds.includes(folder.id)) {
       const next = folderIds.filter((id) => id !== folder.id);
-      // 마지막 폴더에서 빠져도 미분류로 남는다(북마크 자체는 유지) — PostCardBookmarkFolderModal과 동일 규칙.
-      applySelection(true, next);
+      // 마지막 폴더에서 빠지면 미분류로 남기지 않고 북마크 안 함으로 되돌린다
+      // (2026-09-11 변경 — PostCardBookmarkFolderModal의 완전 삭제 규칙과 동일).
+      // 제출 전 폼 값만 바뀌는 지연 선택이라 API 호출이 없고, 미분류 행을 다시 탭하면
+      // 바로 되돌아가므로 되돌리기 토스트도 불필요하다.
+      applySelection(next.length > 0, next);
     } else {
       applySelection(true, [...folderIds, folder.id]);
     }

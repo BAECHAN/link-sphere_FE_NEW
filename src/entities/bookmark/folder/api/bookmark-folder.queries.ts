@@ -199,10 +199,17 @@ export const useReorderBookmarkFoldersMutation = () => {
 // ── 폴더 소속 변경 (추가/제거/전체해제) 공용 낙관적 갱신 헬퍼 ──────────
 
 /**
- * post.detail 캐시에 없으면(북마크 화면 등에서 상세를 연 적이 없는 경우) 현재 열려있는
- * 폴더별 게시글 캐시에서 이 글을 찾아 현재 북마크 상태를 읽는다. 둘 다 없으면 기본값.
+ * post.detail 캐시에 없으면(북마크 화면 등에서 상세를 연 적이 없는 경우) 메인 피드
+ * 목록 캐시를, 그것도 없으면 현재 열려있는 폴더별 게시글 캐시에서 이 글을 찾아 현재
+ * 북마크 상태를 읽는다. 전부 없으면 기본값.
+ *
+ * `useBookmarkPostMutation`(interaction.queries.ts)도 이 함수를 그대로 쓴다 —
+ * 과거엔 각자 postKeys.listRoot 조회 결과를 롤백 스냅샷에만 담고 방향 계산 후보에서
+ * 빠뜨려, 메인 피드에서만 조작하면 현재 상태를 항상 false로 오판하는 버그가 있었다
+ * (2026-09-11 발견 — "북마크 제거"를 미분류/폴더 소속 상태에서 눌러도 반응이 없거나
+ * 되레 미분류로 옮겨간 것처럼 보이던 원인).
  */
-function resolveCurrentBookmarkState(
+export function resolveCurrentBookmarkState(
   queryClient: QueryClient,
   postId: string
 ): {
@@ -214,6 +221,16 @@ function resolveCurrentBookmarkState(
     return {
       isBookmarked: cachedDetail.userInteractions.isBookmarked,
       folderIds: cachedDetail.userInteractions.bookmarkFolderIds,
+    };
+  }
+  const cachedListPost = queryClient
+    .getQueriesData<InfiniteData<PostListResponse>>({ queryKey: postKeys.listRoot })
+    .flatMap(([, data]) => data?.pages.flatMap((page) => page.content) ?? [])
+    .find((post) => post.id === postId);
+  if (cachedListPost) {
+    return {
+      isBookmarked: cachedListPost.userInteractions.isBookmarked,
+      folderIds: cachedListPost.userInteractions.bookmarkFolderIds,
     };
   }
   const cachedFolderPost = queryClient

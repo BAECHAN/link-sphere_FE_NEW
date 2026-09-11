@@ -237,6 +237,7 @@ export const TEXTS = {
       recentSection: '최근 저장한 폴더',
       removeBookmark: '북마크 제거',
       viewAction: '보기',
+      undoAction: '되돌리기',
       deleteConfirmTitle: (name: string) => `"${name}" 폴더 삭제`,
       deleteConfirmMessage:
         '이 폴더를 삭제할까요? 이 폴더에만 있던 북마크는 미분류로 이동해요. (다른 폴더에도 있으면 그대로 유지돼요)',
@@ -322,7 +323,8 @@ export const TEXTS = {
       bookmarkSavedTo: (folderName: string) => `${folderName}에 저장했어요.`,
       bookmarkRemovedFromFolder: (folderName: string) => `${folderName} 폴더에서 제거했어요.`,
       bookmarkClearedAllFolders: '모든 폴더에서 제거했어요.',
-      bookmarkAutoUncategorizedDescription: '마지막 폴더에서 제거되어 미분류로 이동했어요.',
+      bookmarkRemovedWithLastFolderDescription: '마지막 폴더라서 북마크도 함께 제거했어요.',
+      bookmarkRemoved: '북마크를 제거했어요.',
     },
     error: {
       // 공통
@@ -363,6 +365,7 @@ export const TEXTS = {
       bookmarkSaveFailed: '저장에 실패했어요.',
       bookmarkRemoveFailed: '북마크 제거에 실패했어요.',
       bookmarkRemoveFromFolderFailed: '폴더에서 제거하지 못했어요.',
+      bookmarkRestoreFailed: '되돌리지 못했어요.',
 
       // 권한 관련
       accessDenied: '접근 권한이 없어요.',
