@@ -961,6 +961,13 @@ import해도 타입 에러 없이 통과하다가(둘 다 이름이 같은 expor
 공식 [Authentication 가이드](https://playwright.dev/docs/auth)의 `storageState` 패턴을
 이 레포 사정에 맞게 적용했다).
 
+**계정 주의**: 아래 "테스트 계정으로 최초 로그인"은 README.md `## 테스트 계정` 섹션의
+계정을 가리키는 게 아니다 — 그 계정은 사람이 오래 써온 수동 QA용이라 운영 데이터처럼
+쌓인 폴더·북마크가 있다. 이 절차(에이전트 세션의 자동화된 시각 검증)에는 운영 데이터가
+없는 `tester_new_999@example.com`을 쓴다(2026-09-11, README 계정으로 검증하다 실제
+북마크가 삭제된 사고 이후 구분을 명시함 — 상세: `.claude/skills/browser-verification/SKILL.md`
+"로그인 계정" 절).
+
 **핵심 제약**: `shared/store/auth.store.ts`의 리프레시 토큰은 **httpOnly 쿠키**라
 JS(`document.cookie`, localStorage, IndexedDB 어느 것으로도)로 읽을 수 없다(XSS
 방어, 의도된 설계). 그래서 "로그인 후 토큰을 뽑아 파일에 저장" 같은 JS 레벨 접근은
