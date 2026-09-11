@@ -3,7 +3,7 @@
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
 > 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지 설명할 수 있게 됩니다.
-> **마지막 검토**: 2026-09-09
+> **마지막 검토**: 2026-09-11
 
 ---
 
@@ -217,14 +217,23 @@ setAuthResolved(true); // :59 성공/실패/미시도 무관 항상
 
 ### 8-D. 게이트 C — 로그인 유도
 
+`loginModal.store`는 로그인 성공 시 실행할 콜백을 **두 채널로 나눠 갖습니다.** 계약이
+서로 반대라 섞으면 안 됩니다.
+
+| 채널            | 계약                                                              | 생산자                                          | `LoginModal`의 처리                                                          |
+| --------------- | ----------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------- |
+| `onSuccess`     | 콜백이 **스스로 navigate**해 이 모달의 히스토리 엔트리를 벗어난다 | `ProtectedRoute.tsx`, `useProtectedNavigate.ts` | 실행 후 `close()`를 부르지 않는다 (navigate가 이미 엔트리를 벗어났다고 가정) |
+| `pendingAction` | navigate하지 **않는** 재개 액션                                   | `useAuthGuard` (opt-in일 때만)                  | 먼저 `close()`로 직접 닫고, 그 닫힘이 반영된 뒤에 실행                       |
+
 ```ts
-// useAuthGuard.ts:12-29 요지 (액션형: 좋아요·북마크·댓글)
+// useAuthGuard.ts:25-46 요지 (액션형: 좋아요·북마크·댓글)
 if (isAuthenticated) {
   action();
   return;
 }
-setLoginOnSuccess(undefined); // 이전 콜백 잔재 제거
-openLoginModal(); // 로그인만 유도, 액션은 로그인 후 자동 실행 안 함
+setLoginOnSuccess(undefined); // navigate형 채널은 쓰지 않는다
+setPendingAction(options?.resumeAfterLogin ? action : undefined); // opt-in한 액션만 재개
+openLoginModal();
 
 // useProtectedNavigate.ts:18-30 요지 (이동형: 링크 클릭)
 if (isAuthenticated) {
@@ -237,7 +246,15 @@ openLoginModal();
 
 `replace`를 쓰는 이유는 로그인 모달이 열려 있던 히스토리 엔트리 위에 새 엔트리를 push하면, 그 엔트리가 orphan으로 남아 뒤로가기 시 모달이 재등장하기 때문입니다([`docs/DECISIONS.md`](DECISIONS.md) 2026-08-07 항목).
 
-**사용처**: `useAuthGuard`는 `LikePostButton.tsx`(좋아요), `BookmarkPostButton.tsx`(북마크), `useCreateComment.ts`(댓글 제출)에서 씁니다. `useProtectedNavigate`는 사이드바·하단 탭바의 "등록"·"북마크" 항목(`nav-items.ts:34`, `:41`의 `requiresAuth: true`)에서 씁니다.
+`pendingAction`을 실행 "직후"가 아니라 "닫힌 뒤"로 미루는 이유는
+`LoginModal.tsx`(52행 이후)의 별도 effect가 담당합니다 — `close()`(`navigate(-1)`)가 반영되기
+전에 실행하면 로그인 모달이 아직 떠 있는 채로 다음 모달이 위에 겹칩니다. `resumeAfterLogin`은
+서버에 쓰는 액션에는 켜지 않습니다 — 좋아요처럼 **토글**인 액션은 재개 시 로그인 후
+갱신된 상태를 기준으로 다시 토글돼 의도와 반대로 취소될 수 있고, 댓글 작성은 클릭 시점
+클로저의 `account`가 재개 시점엔 비어 있어 조용히 무반응이 됩니다. 자세한 근거는
+[`docs/DECISIONS.md`](DECISIONS.md) 2026-09-11 항목 참고.
+
+**사용처**: `useAuthGuard`는 `LikePostButton.tsx`(좋아요, 재개 안 함), `BookmarkPostButton.tsx`(북마크, `resumeAfterLogin: true`), `LikeCommentButton.tsx`(댓글 좋아요, 재개 안 함), `useCreateComment.ts`(댓글 제출, 재개 안 함)에서 씁니다. `useProtectedNavigate`는 사이드바·하단 탭바의 "등록"·"북마크" 항목(`nav-items.ts:34`, `:41`의 `requiresAuth: true`)에서 씁니다.
 
 ### 자주 하는 수정
 
