@@ -112,10 +112,20 @@ test.describe('게시글 수정', () => {
     let listRequestCount = 0;
     const currentPost = () => (updated ? { ...mockPost, title: NEW_TITLE } : mockPost);
 
+    // listRequestCount는 route() 핸들러가 아니라 'request' 이벤트로 직접 센다 —
+    // waitForRequest()도 내부적으로 같은 'request' 이벤트를 구독하므로, route 핸들러
+    // 안에서 세면 핸들러 실행과 waitForRequest resolve 사이의 순서가 보장되지 않아
+    // 레이스가 생긴다(#80 — CI에서 재현: `expect(listRequestCount).toBe(2)`가
+    // 1로 실패). 같은 이벤트를 직접 구독하면 이 레이스가 없어진다.
+    page.on('request', (req) => {
+      if (new URL(req.url()).pathname === `/api${ENDPOINTS.post.base}`) {
+        listRequestCount += 1;
+      }
+    });
+
     await page.route(
       (url) => isApiPath(url, ENDPOINTS.post.base),
       async (route) => {
-        listRequestCount += 1;
         if (listRequestCount === 2) {
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
