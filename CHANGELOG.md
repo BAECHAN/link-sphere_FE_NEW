@@ -76,6 +76,9 @@
 
   공유 버튼의 `Share2` 아이콘 `fill-current` 조건이 `post.userInteractions.isBookmarked`에 묶여 있었다. 바로 옆 북마크 아이콘의 fill 로직을 복붙한 흔적으로 보이며, `userInteractions` 스키마엔 공유 관련 플래그 자체가 없어 애초에 채워질 이유가 없었다. 조건을 제거했다.
   (`widgets/post/post-card/ui/PostCard.tsx`)
+
+  </details>
+
 - `shared` 마우스를 가만히 둬도 게시글 카드·북마크 폴더에서 커서가 pointer/default로 반복 전환되던 문제 수정
   <details><summary>배경·구현</summary>
 
