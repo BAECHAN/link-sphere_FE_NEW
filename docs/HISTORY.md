@@ -1,4 +1,7 @@
 ### 2026-09-11 (FE)
+- 북마크 '미분류' 탭 제거 및 보관함 모달 레이아웃 최적화 ([#82](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/82))
+
+### 2026-09-11 (FE)
 - 북마크 관리 로직 최적화: 마지막 폴더 해제 시 '미분류'로 이동하지 않고 북마크가 즉시 삭제되도록 동작 개선 ([#79](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/79))
 
 ### 2026-09-11 (FE)
