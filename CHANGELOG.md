@@ -76,6 +76,11 @@
 
   공유 버튼의 `Share2` 아이콘 `fill-current` 조건이 `post.userInteractions.isBookmarked`에 묶여 있었다. 바로 옆 북마크 아이콘의 fill 로직을 복붙한 흔적으로 보이며, `userInteractions` 스키마엔 공유 관련 플래그 자체가 없어 애초에 채워질 이유가 없었다. 조건을 제거했다.
   (`widgets/post/post-card/ui/PostCard.tsx`)
+- `shared` 마우스를 가만히 둬도 게시글 카드·북마크 폴더에서 커서가 pointer/default로 반복 전환되던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  대용량 다운로드 등으로 네트워크가 느릴 때만 재현된다는 제보를 Playwright로 직접 실측해 원인을 두 개로 좁혔다. (1) 게시글 카드: `LinkThumbnail`이 og:image 로드 실패 시 `aspect-video` 영역을 통째로 제거해, 마우스가 고정된 채 아래 카드들이 위로 밀리면서 그 자리의 요소가 바뀌었다(고정 좌표 41곳 스윕 중 30곳에서 이미지 성공/실패 조건만 바꿨을 때 전환 확인 — 이미지 실패가 잦은 네트워크 저하 상황에서만 눈에 띄는 이유). 실패해도 자리를 유지하고 `ImageOff` 아이콘으로 대체하도록 고쳤다. (2) 북마크 폴더 사이드바: 폴더 행 래퍼 `<div>`의 여백(`pl-3`/`pr-1`/`py-1`/`gap-2`)에는 `hover:bg-accent`로 하이라이트는 되면서 실제 클릭 영역(`<button>`)이 아니라 커서가 `default`로 풀리는 구멍이 있었다(부하와 무관하게 상시 존재하지만 평소엔 프레임마다 매끄럽게 갱신돼 눈에 안 띄다가 부하 상황에서 두드러진 것으로 추정). 버튼들이 그 여백을 흡수해 행 전체를 채우도록 해 없앴다.
+  (`shared/ui/atoms/link-thumbnail.tsx`, `shared/ui/atoms/link-thumbnail.stories.tsx`, `shared/ui/atoms/link-thumbnail.test.tsx`, `widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `docs/plans/2026-09-11-cursor-flicker-fix.md`(신규))
 
   </details>
 
