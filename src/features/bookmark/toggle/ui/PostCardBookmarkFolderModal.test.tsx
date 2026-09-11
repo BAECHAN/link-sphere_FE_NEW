@@ -187,10 +187,15 @@ describe('PostCardBookmarkFolderModal', () => {
     await waitFor(() => expect(restoreCalled).toBe(true));
   });
 
-  it('체크된 미분류를 탭하면 아무 요청도 보내지 않는다 (no-op)', async () => {
+  it('체크된 미분류를 탭하면 북마크 자체를 완전 삭제하고 되돌리기를 제공한다', async () => {
     const user = userEvent.setup();
+    let toggleCallCount = 0;
     let clearCalled = false;
     server.use(
+      http.post(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => {
+        toggleCallCount += 1;
+        return new HttpResponse(null, { status: 204 });
+      }),
       http.delete(url(API_ENDPOINTS.bookmark.postFolders(POST_ID)), () => {
         clearCalled = true;
         return HttpResponse.json(
@@ -204,9 +209,83 @@ describe('PostCardBookmarkFolderModal', () => {
     await waitFor(() => expect(screen.getByText('미분류')).toBeInTheDocument());
     await user.click(screen.getByText('미분류'));
 
-    // no-op 이므로 잠깐 대기해도 요청이 발생하지 않아야 한다
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    // 전체 해제(DELETE)가 아니라 북마크 자체를 지우는 토글이 나가야 한다
+    await waitFor(() => expect(toggleCallCount).toBe(1));
     expect(clearCalled).toBe(false);
+
+    const [message, options] = vi.mocked(toast.success).mock.calls[0]!;
+    expect(message).toBe('북마크를 제거했어요.');
+    const action = options?.action as unknown as { label: string; onClick: () => void };
+    expect(action.label).toBe('되돌리기');
+
+    // 되돌리기를 누르면 같은 엔드포인트(토글)로 다시 요청이 나가 미분류로 복원된다
+    action.onClick();
+
+    await waitFor(() => expect(toggleCallCount).toBe(2));
+  });
+
+  it('미북마크 상태에서 미분류를 탭하면 여전히 미분류로 저장된다 (생성)', async () => {
+    const user = userEvent.setup();
+    let toggleCalled = false;
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => {
+        toggleCalled = true;
+        return new HttpResponse(null, { status: 204 });
+      })
+    );
+    renderModal({ isBookmarked: false, bookmarkFolderIds: [] });
+
+    await waitFor(() => expect(screen.getByText('미분류')).toBeInTheDocument());
+    await user.click(screen.getByText('미분류'));
+
+    await waitFor(() => expect(toggleCalled).toBe(true));
+
+    const [message, options] = vi.mocked(toast.success).mock.calls[0]!;
+    expect(message).toBe('미분류에 저장했어요.');
+    const action = options?.action as unknown as { label: string };
+    expect(action.label).toBe('보기');
+  });
+
+  it('소속 폴더가 있는 상태에서 미분류를 탭하면 여전히 전체 해제된다', async () => {
+    const user = userEvent.setup();
+    let clearCalled = false;
+    server.use(
+      http.delete(url(API_ENDPOINTS.bookmark.postFolders(POST_ID)), () => {
+        clearCalled = true;
+        return HttpResponse.json(
+          { status: 200, message: 'ok', data: bookmarkFoldersResponse([]), timestamp: '' },
+          { status: 200 }
+        );
+      })
+    );
+    renderModal({ bookmarkFolderIds: [FOLDER_A, FOLDER_B] });
+
+    await waitFor(() => expect(screen.getByText('개발')).toBeInTheDocument());
+    await user.click(screen.getByText('미분류'));
+
+    await waitFor(() => expect(clearCalled).toBe(true));
+
+    const [message] = vi.mocked(toast.success).mock.calls[0]!;
+    expect(message).toBe('모든 폴더에서 제거했어요.');
+  });
+
+  it('체크된 미분류 삭제가 실패하면 에러 토스트만 뜨고 모달이 닫히지 않는다', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () =>
+        HttpResponse.json(
+          { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'boom', timestamp: '' },
+          { status: 500 }
+        )
+      )
+    );
+    const { onOpenChange } = renderModal({ bookmarkFolderIds: [] });
+
+    await waitFor(() => expect(screen.getByText('미분류')).toBeInTheDocument());
+    await user.click(screen.getByText('미분류'));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('북마크 제거에 실패했어요.'));
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });
 
   it('폴더가 1개 이상이면 "내 폴더" 구획 헤더가 뜬다 (최근 구획 임계값 미달이어도)', async () => {

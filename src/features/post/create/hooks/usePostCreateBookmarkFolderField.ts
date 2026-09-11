@@ -36,6 +36,13 @@ export function usePostCreateBookmarkFolderField() {
   };
 
   const handleSelectUncategorized = () => {
+    // 이미 미분류(체크됨)면 handleSelectFolder의 마지막 폴더 규칙과 대칭으로 "북마크 안
+    // 함"으로 되돌린다(2026-09-11 변경). 제출 전 폼 값만 바뀌는 지연 선택이라 API 호출이
+    // 없고, 다시 탭하면 바로 되돌아가므로 되돌리기 토스트도 불필요하다.
+    if (bookmark && folderIds.length === 0) {
+      applySelection(false, []);
+      return;
+    }
     applySelection(true, []);
   };
 

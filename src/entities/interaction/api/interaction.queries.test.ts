@@ -116,6 +116,40 @@ describe('useBookmarkPostMutation', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
   });
 
+  it('미분류 글을 해제하면 /bookmark?folder=uncategorized 목록 캐시에서도 카드가 제거된다', async () => {
+    const seededPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [] },
+      stats: { ...mockPost.stats, bookmarkCount: 5 },
+    };
+    queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
+    queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList());
+
+    const seededFolderPosts: InfiniteData<PostListResponse> = {
+      pages: [
+        { page: 0, size: 10, content: [seededPost], totalElements: 1, totalPages: 1, last: true },
+      ],
+      pageParams: [0],
+    };
+    queryClient.setQueryData(bookmarkFolderKeys.posts('uncategorized'), seededFolderPosts);
+
+    const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate();
+    });
+
+    await waitFor(() => {
+      const folderPosts = queryClient.getQueryData<InfiniteData<PostListResponse>>(
+        bookmarkFolderKeys.posts('uncategorized')
+      );
+      expect(folderPosts?.pages[0]?.content).toHaveLength(0);
+      expect(folderPosts?.pages[0]?.totalElements).toBe(0);
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
   it('토글 ON(신규 북마크)이면 미분류로 생성되어 uncategorizedCount가 +1된다', async () => {
     const seededPost: Post = {
       ...mockPost,

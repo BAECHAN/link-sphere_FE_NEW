@@ -73,6 +73,16 @@ export function usePostCardBookmarkFolderModal({
   });
 
   const handleSelectUncategorized = async () => {
+    // 이미 미분류(✓)면 폴더 행의 "마지막 폴더 탭"과 같은 파괴적 조작이다 — 북마크 자체를
+    // 완전 삭제한다. handleRemove가 되돌리기 토스트·에러 처리·모달 닫기를 이미 갖고
+    // 있으므로 그대로 위임한다(2026-09-11 변경, docs/DECISIONS.md).
+    const isAlreadyUncategorized = isBookmarked && bookmarkFolderIds.length === 0;
+
+    if (isAlreadyUncategorized) {
+      await handleRemove();
+      return;
+    }
+
     // 이미 1개 이상의 폴더에 소속돼 있었다면 이번 탭은 "전체 해제" — 폴더 하나가 아니라
     // 여러 폴더에서 한꺼번에 빠졌다는 걸 알려야 하므로 일반 저장 문구와 구분한다.
     const wasInFolders = isBookmarked && bookmarkFolderIds.length > 0;

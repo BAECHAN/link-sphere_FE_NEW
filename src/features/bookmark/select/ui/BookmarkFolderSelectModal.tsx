@@ -34,8 +34,8 @@ interface BookmarkFolderSelectModalProps {
  * (PostCreateBookmarkFolderField)이 공유하는 프레젠테이션 컴포넌트. 저장 동작은 콜백으로 주입받는다.
  * 로직 전부는 useBookmarkFolderSelect가 소유하고, 여기는 JSX만 남긴다.
  * - 데스크탑: 중앙 모달 / 모바일: 하단 BottomSheet
- * - 미분류 행이 이미 체크된 상태에서 재탭하면 no-op(오탭으로 북마크가 조용히 사라지는 것 방지) —
- *   두 호출부 모두 이 규칙을 그대로 따른다.
+ * - 폴더 목록만 스크롤되고 새 폴더 만들기(헤더 아래)·하단 destructive 행은 항상 보인다
+ *   (2026-09-11 — 폴더가 많아지면 이 두 행이 스크롤에 묻혀 안 보이던 문제 수정)
  */
 export function BookmarkFolderSelectModal({
   open,
@@ -93,68 +93,19 @@ export function BookmarkFolderSelectModal({
           </Button>
         </div>
 
-        {/* 본문 */}
-        <div className={cn('overflow-y-auto', isMobile ? 'max-h-[70vh]' : 'max-h-96')}>
-          {isLoading ? (
+        {isLoading ? (
+          <div className={cn('overflow-y-auto', isMobile ? 'max-h-[70vh]' : 'max-h-96')}>
             <DelayedFallback className="flex items-center justify-center py-10">
               <Spinner />
             </DelayedFallback>
-          ) : (
-            <ul className="py-1">
-              {/* 미분류 */}
-              <FolderRow
-                icon={<Bookmark className="h-4 w-4" />}
-                name={TEXTS.bookmark.folder.uncategorized}
-                count={uncategorizedCount}
-                isSelected={isUncategorizedSelected}
-                isPending={pendingKey === UNCATEGORIZED_PENDING_KEY}
-                onClick={handleSelectUncategorized}
-              />
-
-              {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 */}
-              {recentFolderList.length > 0 && (
-                <>
-                  <li className="px-4 pt-3 pb-1 text-xs font-semibold text-muted-foreground border-t">
-                    {TEXTS.bookmark.folder.recentSection}
-                  </li>
-                  {recentFolderList.map((folder) => (
-                    <FolderRow
-                      key={`recent-${folder.id}`}
-                      icon={<Bookmark className="h-4 w-4" />}
-                      name={folder.name}
-                      count={folder.bookmarkCount}
-                      isSelected={selectedFolderIds.includes(folder.id)}
-                      isPending={pendingKey === folder.id}
-                      onClick={() => handleSelectFolder(folder)}
-                    />
-                  ))}
-                </>
-              )}
-
-              {/* 내 폴더 — 위 "최근 저장한 폴더"와 겹치더라도 그대로 중복 표시한다.
-                  헤더가 최근 구획과의 경계선 역할도 겸한다 */}
-              {folderList.length > 0 && (
-                <li className="px-4 pt-3 pb-1 text-xs font-semibold text-muted-foreground border-t">
-                  {TEXTS.bookmark.folder.myFolders}
-                </li>
-              )}
-
-              {/* 폴더 목록 — 소속된 모든 폴더에 ✓ 표시 (다중 폴더 소속 가능) */}
-              {folderList.map((folder) => (
-                <FolderRow
-                  key={folder.id}
-                  icon={<Bookmark className="h-4 w-4" />}
-                  name={folder.name}
-                  count={folder.bookmarkCount}
-                  isSelected={selectedFolderIds.includes(folder.id)}
-                  isPending={pendingKey === folder.id}
-                  onClick={() => handleSelectFolder(folder)}
-                />
-              ))}
-
-              {/* 새 폴더 만들기 */}
+          </div>
+        ) : (
+          <>
+            {/* 새 폴더 만들기 — 헤더 바로 아래 고정, 스크롤 밖(2026-09-11). 헤더의 border-b가
+                위쪽 경계를 이미 그리므로 이 블록은 아래쪽에만 border-b를 둔다 */}
+            <ul className="py-1 border-b">
               {creatingMode ? (
-                <li className="flex items-center gap-2 px-4 py-2.5 border-t">
+                <li className="flex items-center gap-2 px-4 py-2.5">
                   <FolderPlus className="h-4 w-4 text-muted-foreground" />
                   <Input
                     autoFocus
@@ -197,17 +148,76 @@ export function BookmarkFolderSelectModal({
                     type="button"
                     variant="ghost"
                     onClick={() => setCreatingMode(true)}
-                    className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-muted-foreground border-t"
+                    className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-muted-foreground"
                   >
                     <Plus className="h-4 w-4" />
                     {TEXTS.bookmark.folder.create}
                   </Button>
                 </li>
               )}
+            </ul>
 
-              {/* 하단 destructive 행 — 보관함은 '북마크 제거', 등록 폼은 '북마크 안 함'.
-                  넘기지 않으면 렌더하지 않는다(보관함은 열 때 북마크가 아니었으면 미노출) */}
-              {dangerAction && (
+            {/* 본문 — 폴더 목록만 스크롤 */}
+            <div className={cn('overflow-y-auto', isMobile ? 'max-h-[70vh]' : 'max-h-96')}>
+              <ul className="py-1">
+                {/* 미분류 */}
+                <FolderRow
+                  icon={<Bookmark className="h-4 w-4" />}
+                  name={TEXTS.bookmark.folder.uncategorized}
+                  count={uncategorizedCount}
+                  isSelected={isUncategorizedSelected}
+                  isPending={pendingKey === UNCATEGORIZED_PENDING_KEY}
+                  onClick={handleSelectUncategorized}
+                />
+
+                {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 */}
+                {recentFolderList.length > 0 && (
+                  <>
+                    <li className="px-4 pt-3 pb-1 text-xs font-semibold text-muted-foreground border-t">
+                      {TEXTS.bookmark.folder.recentSection}
+                    </li>
+                    {recentFolderList.map((folder) => (
+                      <FolderRow
+                        key={`recent-${folder.id}`}
+                        icon={<Bookmark className="h-4 w-4" />}
+                        name={folder.name}
+                        count={folder.bookmarkCount}
+                        isSelected={selectedFolderIds.includes(folder.id)}
+                        isPending={pendingKey === folder.id}
+                        onClick={() => handleSelectFolder(folder)}
+                      />
+                    ))}
+                  </>
+                )}
+
+                {/* 내 폴더 — 위 "최근 저장한 폴더"와 겹치더라도 그대로 중복 표시한다.
+                    헤더가 최근 구획과의 경계선 역할도 겸한다 */}
+                {folderList.length > 0 && (
+                  <li className="px-4 pt-3 pb-1 text-xs font-semibold text-muted-foreground border-t">
+                    {TEXTS.bookmark.folder.myFolders}
+                  </li>
+                )}
+
+                {/* 폴더 목록 — 소속된 모든 폴더에 ✓ 표시 (다중 폴더 소속 가능) */}
+                {folderList.map((folder) => (
+                  <FolderRow
+                    key={folder.id}
+                    icon={<Bookmark className="h-4 w-4" />}
+                    name={folder.name}
+                    count={folder.bookmarkCount}
+                    isSelected={selectedFolderIds.includes(folder.id)}
+                    isPending={pendingKey === folder.id}
+                    onClick={() => handleSelectFolder(folder)}
+                  />
+                ))}
+              </ul>
+            </div>
+
+            {/* 하단 destructive 행 — 스크롤 밖 고정. 보관함은 '북마크 제거', 등록 폼은
+                '북마크 안 함'. 넘기지 않으면 렌더하지 않는다(보관함은 열 때 북마크가
+                아니었으면 미노출) */}
+            {dangerAction && (
+              <ul className="py-1">
                 <li>
                   <Button
                     type="button"
@@ -220,10 +230,10 @@ export function BookmarkFolderSelectModal({
                     {dangerAction.label}
                   </Button>
                 </li>
-              )}
-            </ul>
-          )}
-        </div>
+              </ul>
+            )}
+          </>
+        )}
 
         {/* 확인 — 지연 선택(등록 폼)에서만. 탭해도 즉시 닫히지 않으므로 여기서 닫아야 선택이 확정된다 */}
         {showConfirmButton && (
