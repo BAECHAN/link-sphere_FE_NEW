@@ -69,6 +69,14 @@
 
   </details>
 
+- `bookmark` 이미 미분류인 상태에서 미분류 행을 다시 탭해도 no-op이 아니라 북마크 자체를 완전 삭제(되돌리기 제공), 새 폴더 만들기·북마크 제거 행을 스크롤 밖에 고정
+  <details><summary>배경·구현</summary>
+
+  바로 위 항목(#79)에서 "이미 미분류인 상태에서 미분류 행을 다시 탭하면 no-op"으로 남겨두고 근거를 "되돌릴 소속 row가 없어 Undo가 불가능하다"로 적었는데, 이 전제가 틀렸었다 — 하단 `북마크 제거` 행이 이미 같은 상태(소속 0개)에서 되돌리기를 제공하고 있었다(`restoreBookmark([])` → 토글로 재생성). 새 메커니즘을 만들지 않고 그 경로에 위임해, 폴더 행의 "마지막 폴더 탭"과 동일하게 완전 삭제 + 되돌리기(8초)로 바꿨다. 등록 폼도 대칭으로 "북마크 안 함"으로 되돌아가도록 맞췄다. 같은 작업에서 새 폴더 만들기·북마크 제거 행이 폴더 목록과 같은 스크롤 영역에 있어 폴더가 많으면(6개 이상) 화면 밖으로 밀리던 문제도 함께 고쳐, 새 폴더 만들기는 헤더 바로 아래에, 북마크 제거/북마크 안 함은 하단에 고정했다 — [Material Design 다이얼로그 가이드라인](https://m1.material.io/components/dialogs.html)의 _"Actions always remain in place when content scrolls."_ 을 따른 것이다.
+  (`features/bookmark/select/hooks/useBookmarkFolderSelect.ts`, `features/bookmark/toggle/hooks/useBookmarkFolders.ts`, `features/bookmark/toggle/hooks/usePostCardBookmarkFolderModal.ts`, `features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `features/post/create/hooks/usePostCreateBookmarkFolderField.ts`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`)
+
+  </details>
+
 ### Fixed
 
 - `auth` 비로그인 상태로 북마크를 시도하면 로그인해도 아무 반응이 없던 문제 수정

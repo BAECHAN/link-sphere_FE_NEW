@@ -22,8 +22,7 @@ interface UseBookmarkFolderSelectParams {
 
 /**
  * 폴더 선택 모달(BookmarkFolderSelectModal)의 로직 전부 — 폴더 목록 조회·생성·행별 pending
- * 상태·미분류 재탭 no-op 규칙을 소유한다. 저장 동작 자체(성공 토스트·닫기·라우팅)는
- * 호출부가 콜백으로 넘긴다.
+ * 상태를 소유한다. 저장 동작 자체(성공 토스트·닫기·라우팅)는 호출부가 콜백으로 넘긴다.
  */
 export function useBookmarkFolderSelect({
   open,
@@ -61,11 +60,10 @@ export function useBookmarkFolderSelect({
   const isAnyPending = pendingKey !== null;
 
   const handleSelectUncategorized = async () => {
-    // 이미 미분류(✓)면 아무 것도 하지 않는다 — 미분류는 소속 row가 0개인 파생 상태라
-    // 지울 대상 자체가 없다. 폴더 행은 삭제 후 같은 폴더로 다시 추가해 되돌릴 수 있지만,
-    // 미분류는 되돌릴 폴더가 없어 Undo가 불가능한 파괴적 조작이 된다 — 그래서 no-op으로
-    // 막는다(완전 삭제는 소속 스냅샷으로 되돌릴 수 있는 하단 destructive 행에서만).
-    if (isUncategorizedSelected || isAnyPending) {
+    // 이미 미분류(✓)면 파괴적 조작(북마크 완전 삭제)이 된다 — 폴더 행의 "마지막 폴더
+    // 탭" 규칙과 동일하다(2026-09-11 재결정, docs/DECISIONS.md). 호출부가 되돌리기
+    // 토스트를 붙인다.
+    if (isAnyPending) {
       return;
     }
 

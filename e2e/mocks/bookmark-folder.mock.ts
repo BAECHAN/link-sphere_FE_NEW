@@ -34,7 +34,7 @@ export async function mockBookmarkFolderPosts(page: Page): Promise<void> {
 
 /**
  * POST /bookmark/:postId/folders/:folderId — 폴더 행 탭(비소속 상태에서 추가,
- * useBookmarkFolders.ts:36-40). mockPost/mockBookmarkFolder의 고정 id로 정확히 매칭한다.
+ * useBookmarkFolders.ts:44-47). mockPost/mockBookmarkFolder의 고정 id로 정확히 매칭한다.
  */
 export async function mockAddBookmarkFolder(page: Page): Promise<void> {
   const data: BookmarkFoldersResponse = {

@@ -140,7 +140,7 @@ describe('PostCreateBookmarkFolderField', () => {
     expect(screen.getByTestId('folderIds-value')).toHaveTextContent('');
   });
 
-  it('체크된 미분류를 다시 탭해도 해제되지 않는다 (no-op)', async () => {
+  it('체크된 미분류를 다시 탭하면 북마크 안 함으로 돌아간다', async () => {
     const user = userEvent.setup();
     renderField();
 
@@ -151,7 +151,7 @@ describe('PostCreateBookmarkFolderField', () => {
 
     await user.click(dialog().getByText('미분류'));
 
-    expect(screen.getByTestId('bookmark-value')).toHaveTextContent('true');
+    expect(screen.getByTestId('bookmark-value')).toHaveTextContent('false');
     expect(screen.getByTestId('folderIds-value')).toHaveTextContent('');
   });
 
