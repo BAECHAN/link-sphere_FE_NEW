@@ -17,6 +17,7 @@ interface BookmarkPostButtonProps {
  * 북마크 버튼.
  * - 클릭 → PostCardBookmarkFolderModal 오픈 (YouTube Music 보관함 스타일)
  * - 폴더 선택은 PostCardBookmarkFolderModal 안에서 처리
+ * - 비로그인이면 로그인 모달을 띄우고, 로그인 성공 시 자동으로 이어서 열린다
  */
 export function BookmarkPostButton({
   postId,
@@ -29,7 +30,7 @@ export function BookmarkPostButton({
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    guard(() => setOpen(true));
+    guard(() => setOpen(true), { resumeAfterLogin: true });
   };
 
   return (

@@ -644,24 +644,24 @@ _"they run in the order opposite to their registration"_). 캐치올을 가장 �
 
 ### 대표 흐름
 
-| 스펙                                 | 흐름                                                                                                                                       |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `e2e/post-list.spec.ts`              | 비로그인 방문자 — 목록 조회 → 검색 → 상세 진입                                                                                             |
-| `e2e/bookmark.spec.ts`               | 로그인 상태(has-session 시딩) — 북마크 버튼 → 폴더 선택 → 저장                                                                             |
-| `e2e/login.spec.ts`                  | 실제 로그인 폼 제출 — 성공 시 `/post` 착지, 실패 시 서버 메시지 토스트                                                                     |
-| `e2e/logout.spec.ts`                 | 로그아웃 — 비보호 페이지(제자리)/보호 페이지(`/post`로 이동) 두 분기                                                                       |
-| `e2e/like.spec.ts`                   | 좋아요 — 상세↔목록 캐시 전파(재조회 불필요), 실패 시 양쪽 롤백                                                                             |
-| `e2e/comment.spec.ts`                | 댓글 작성 → 댓글 수 반영(invalidate로 재조회 필수 — 좋아요와 대조되는 지점)                                                                |
-| `e2e/guest-guard.spec.ts`            | 비로그인 인증 가드 — 좋아요/북마크/댓글 시도 시 요청 없이 로그인 모달만 뜸                                                                 |
-| `e2e/protected-nav.spec.ts`          | 보호 라우트 네비게이션 — 사이드바 클릭 시 이동 차단 + 로그인 모달 → 로그인 후 원래 목적지 착지, 뒤로가기 1회로 모달 재등장 없음            |
-| `e2e/account-update.spec.ts`         | 프로필 수정 실패 경로 — 모달이 응답 전에 닫히고 Navbar가 낙관적으로 반영된 뒤 409로 롤백, 토스트의 '다시 열기'로 모달 재오픈 + 입력값 복원 |
-| `e2e/post-delete.spec.ts`            | 게시글 삭제 — 상세 ⋮ → confirm → `/post` 리다이렉트, 재조회 없이(낙관적 patch만으로) 목록에서 카드 소멸                                    |
-| `e2e/unsaved-changes.spec.ts`        | 저장하지 않은 변경 가드 — PUSH 이동·브라우저 뒤로가기(POP) 양쪽에서 확인 모달, '계속 작성'/'나가기' 분기                                   |
-| `e2e/post-list-filters.spec.ts`      | 검색 필터 cross-layer — URL(칩)·localStorage(봇 글 숨기기)가 합성돼 실제 API `filter` 파라미터가 되는 것을 요청 쿼리스트링으로 직접 검증   |
-| `e2e/post-update.spec.ts`            | 게시글 수정 — 제출 즉시 목록(POP) 복귀 + "수정 중..." 오버레이(500ms 게이트) → direct patch 후에도 이어지는 재조회로 최종 반영             |
-| `e2e/post-visibility.spec.ts`        | 공개/비공개 전환 — confirm(방향별 문구) → invalidate만(direct patch 없음) → 재조회로만 반영, 목록에도 전파                                 |
-| `e2e/comment-delete.spec.ts`         | 댓글 삭제 — 답글 없으면 hard delete(3개 캐시 감소), 답글 있으면 BE가 soft delete(톰스톤, 카운트 유지 + 액션행 숨김)                        |
-| `e2e/bookmark-folder-delete.spec.ts` | 북마크 폴더 삭제 — 선택 중인 폴더 삭제 시 `onBeforeDelete`가 DELETE 요청 전에 URL을 `all`로 이동, 죽은 폴더 쿼리는 재조회 안 됨            |
+| 스펙                                 | 흐름                                                                                                                                                                                     |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `e2e/post-list.spec.ts`              | 비로그인 방문자 — 목록 조회 → 검색 → 상세 진입                                                                                                                                           |
+| `e2e/bookmark.spec.ts`               | 로그인 상태(has-session 시딩) — 북마크 버튼 → 폴더 선택 → 저장 후 모달이 닫히고 아이콘이 북마크 상태로 바뀜(무효화-재조회로 낙관적 업데이트가 되돌아가지 않는지 상태 유지 mock으로 확인) |
+| `e2e/login.spec.ts`                  | 실제 로그인 폼 제출 — 성공 시 `/post` 착지, 실패 시 서버 메시지 토스트                                                                                                                   |
+| `e2e/logout.spec.ts`                 | 로그아웃 — 비보호 페이지(제자리)/보호 페이지(`/post`로 이동) 두 분기                                                                                                                     |
+| `e2e/like.spec.ts`                   | 좋아요 — 상세↔목록 캐시 전파(재조회 불필요), 실패 시 양쪽 롤백                                                                                                                           |
+| `e2e/comment.spec.ts`                | 댓글 작성 → 댓글 수 반영(invalidate로 재조회 필수 — 좋아요와 대조되는 지점)                                                                                                              |
+| `e2e/guest-guard.spec.ts`            | 비로그인 인증 가드 — 좋아요/북마크/댓글 시도 시 요청 없이 로그인 모달만 뜸. 북마크만 로그인 성공 후 폴더 선택 모달이 겹치지 않고 자동으로 이어서 열림(`resumeAfterLogin`)                |
+| `e2e/protected-nav.spec.ts`          | 보호 라우트 네비게이션 — 사이드바 클릭 시 이동 차단 + 로그인 모달 → 로그인 후 원래 목적지 착지, 뒤로가기 1회로 모달 재등장 없음                                                          |
+| `e2e/account-update.spec.ts`         | 프로필 수정 실패 경로 — 모달이 응답 전에 닫히고 Navbar가 낙관적으로 반영된 뒤 409로 롤백, 토스트의 '다시 열기'로 모달 재오픈 + 입력값 복원                                               |
+| `e2e/post-delete.spec.ts`            | 게시글 삭제 — 상세 ⋮ → confirm → `/post` 리다이렉트, 재조회 없이(낙관적 patch만으로) 목록에서 카드 소멸                                                                                  |
+| `e2e/unsaved-changes.spec.ts`        | 저장하지 않은 변경 가드 — PUSH 이동·브라우저 뒤로가기(POP) 양쪽에서 확인 모달, '계속 작성'/'나가기' 분기                                                                                 |
+| `e2e/post-list-filters.spec.ts`      | 검색 필터 cross-layer — URL(칩)·localStorage(봇 글 숨기기)가 합성돼 실제 API `filter` 파라미터가 되는 것을 요청 쿼리스트링으로 직접 검증                                                 |
+| `e2e/post-update.spec.ts`            | 게시글 수정 — 제출 즉시 목록(POP) 복귀 + "수정 중..." 오버레이(500ms 게이트) → direct patch 후에도 이어지는 재조회로 최종 반영                                                           |
+| `e2e/post-visibility.spec.ts`        | 공개/비공개 전환 — confirm(방향별 문구) → invalidate만(direct patch 없음) → 재조회로만 반영, 목록에도 전파                                                                               |
+| `e2e/comment-delete.spec.ts`         | 댓글 삭제 — 답글 없으면 hard delete(3개 캐시 감소), 답글 있으면 BE가 soft delete(톰스톤, 카운트 유지 + 액션행 숨김)                                                                      |
+| `e2e/bookmark-folder-delete.spec.ts` | 북마크 폴더 삭제 — 선택 중인 폴더 삭제 시 `onBeforeDelete`가 DELETE 요청 전에 URL을 `all`로 이동, 죽은 폴더 쿼리는 재조회 안 됨                                                          |
 
 ### 아직 만들지 않은 흐름과 판정
 

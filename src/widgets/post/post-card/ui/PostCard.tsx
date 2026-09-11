@@ -283,9 +283,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
             className={`h-8 w-8 md:h-9 md:w-9 rounded-full text-muted-foreground`}
             onClick={handleCopyLink}
           >
-            <Share2
-              className={`h-3.5 w-3.5 md:h-4.5 md:w-4.5 ${post.userInteractions.isBookmarked ? 'fill-current' : ''}`}
-            />
+            <Share2 className="h-3.5 w-3.5 md:h-4.5 md:w-4.5" />
             <span className="sr-only">Share</span>
           </Button>
         </div>

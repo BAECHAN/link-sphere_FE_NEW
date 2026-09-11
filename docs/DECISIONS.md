@@ -6,6 +6,55 @@
 
 ---
 
+## 2026-09-11 — 비로그인 북마크 재개: 온보딩 대신 버그 수정, 전면 재개 대신 opt-in
+
+**배경**
+
+"첫 로그인 사용자를 위한 북마크 튜토리얼"을 검토하다가, 비로그인 상태로 북마크를 시도한
+사용자가 로그인해도 아무 일도 일어나지 않는 것(`useAuthGuard`가 콜백을 의도적으로 버리는
+설계, `docs/AUTH.md` §8-D)과 공유 아이콘이 북마크 상태로 채워지는 버그(`PostCard.tsx`의
+`Share2` `fill-current`가 `isBookmarked`에 잘못 묶여 있던 것)를 먼저 발견했다.
+
+**튜토리얼을 채택하지 않은 이유**
+
+NN/g가 모바일 튜토리얼을 실측한 연구에서 과제 성공률은 튜토리얼을 본 그룹 91% / 건너뛴
+그룹 94%로 차이가 없었고, 오히려 참가자들이 튜토리얼을 읽었을 때 과제를 더 어렵게
+느꼈다(_"participants who read tutorials perceived tasks as more difficult"_ —
+[Mobile Tutorials: Wasted Effort or Efficiency Boost?](https://www.nngroup.com/articles/mobile-tutorials/)).
+같은 곳의 [Designing Empty States in Complex Applications](https://www.nngroup.com/articles/empty-state-interface-design/)는
+_"In-context learning cues ... In most cases, this approach is generally more successful
+than forced tutorials shown to the user at initial use."_ 라고 권고한다. 온보딩 UI(빈
+상태 CTA·툴팁 등)는 §9(시각적 변경은 미리보기 먼저)에 따라 별도 작업으로 미뤘다.
+
+**왜 `onSuccess`에 재개 액션을 태우지 않았는가**
+
+`loginModal.store`의 기존 `onSuccess` 채널은 콜백이 스스로 navigate해 히스토리 엔트리를
+벗어난다는 것을 전제로 설계돼 있다 — `LoginModal`이 `onSuccess` 실행 후 `close()`를 부르지
+않는 이유가 그것이다(navigate가 이미 엔트리를 벗어났다고 가정). `setOpen(true)`처럼
+navigate하지 않는 콜백을 그 채널에 태우면 로그인 모달이 안 닫힌 채 다음 모달이 위에
+겹친다. 그래서 navigate하지 않는 재개 액션 전용의 `pendingAction` 채널을 새로 만들고,
+`LoginModal`이 먼저 `close()`로 직접 닫은 뒤(기존 else 분기, 무변경) 그 닫힘이 반영된
+뒤에만 실행하도록 했다.
+
+**왜 전면 재개가 아니라 opt-in인가**
+
+`useAuthGuard` 사용처 4곳(좋아요·북마크·댓글 좋아요·댓글 작성)을 모두 검토한 결과, 전면
+재개는 구체적 버그를 낳는다: 좋아요는 **토글**이라 로그인 후 갱신된 상태를 기준으로
+재개하면 오히려 좋아요가 취소되고, 댓글 작성은 가드 내부가 클릭 시점 클로저의 `account`를
+참조해 재개해도 조용히 무반응이 된다. 서버 쓰기가 없고 한 번 더 탭해야 저장되는
+북마크에만 `resumeAfterLogin` opt-in을 켰다.
+
+**상태**
+
+적용 완료. `src/shared/store/loginModal.store.ts`(pendingAction 채널),
+`src/entities/auth/hooks/useAuthGuard.ts`(opt-in 옵션),
+`src/features/auth/login/ui/LoginModal.tsx`(닫힘 이후 재개 effect),
+`src/features/bookmark/toggle/ui/BookmarkPostButton.tsx`(opt-in 적용),
+`src/widgets/post/post-card/ui/PostCard.tsx`(공유 아이콘 fill 버그 수정). 상세 설계는
+[`docs/plans/2026-09-11-bookmark-login-resume.md`](plans/2026-09-11-bookmark-login-resume.md) 참고.
+
+---
+
 ## 2026-09-10 — 로딩 인디케이터 지연 게이트를 조회 로딩 전체에 일관 적용
 
 **배경**

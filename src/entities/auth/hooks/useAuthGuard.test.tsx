@@ -28,6 +28,7 @@ describe('useAuthGuard', () => {
   afterEach(() => {
     useAuthStore.getState().clearAuth();
     useLoginModalStore.getState().setOnSuccess(undefined);
+    useLoginModalStore.getState().setPendingAction(undefined);
   });
 
   it('로그인 상태면 action을 그대로 실행한다', () => {
@@ -59,5 +60,24 @@ describe('useAuthGuard', () => {
     result.current(vi.fn());
 
     expect(useLoginModalStore.getState().onSuccess).toBeUndefined();
+  });
+
+  it('resumeAfterLogin이면 action을 pendingAction에 싣는다', () => {
+    const action = vi.fn();
+    const { result } = renderHook(() => useAuthGuard(), { wrapper: createWrapper() });
+
+    result.current(action, { resumeAfterLogin: true });
+
+    expect(useLoginModalStore.getState().pendingAction).toBe(action);
+  });
+
+  it('resumeAfterLogin이 아니면 pendingAction을 싣지 않고, 남아있던 것도 비운다', () => {
+    const staleAction = vi.fn();
+    useLoginModalStore.getState().setPendingAction(staleAction);
+    const { result } = renderHook(() => useAuthGuard(), { wrapper: createWrapper() });
+
+    result.current(vi.fn());
+
+    expect(useLoginModalStore.getState().pendingAction).toBeUndefined();
   });
 });

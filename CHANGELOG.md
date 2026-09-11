@@ -63,6 +63,22 @@
 
 ### Fixed
 
+- `auth` 비로그인 상태로 북마크를 시도하면 로그인해도 아무 반응이 없던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  `useAuthGuard`는 비로그인 시 액션을 실행하지 않고 버리는 게 원래 설계였다("로그인만 유도"). 하지만 첫 북마크를 시도한 사용자 입장에선 로그인 후에도 아무 일이 안 일어나는 것으로 보였다. 로그인 성공 콜백 채널(`onSuccess`)은 콜백이 스스로 navigate해 히스토리 엔트리를 벗어난다는 전제로 설계돼 있어(그래서 `LoginModal`이 `close()`를 안 부른다), `setOpen(true)`처럼 navigate하지 않는 콜백을 그대로 태우면 로그인 모달이 안 닫힌 채 폴더 모달이 위에 겹친다. navigate하지 않는 재개 액션 전용의 `pendingAction` 채널을 새로 만들어, 로그인 모달이 실제로 닫힌 뒤에만 실행하도록 했다. 좋아요·댓글은 재개 시 토글 반전·조용한 무반응 같은 부작용이 있어(자세한 근거는 `docs/DECISIONS.md` 참고) 재개하지 않고, 서버 쓰기가 없는 북마크에만 `resumeAfterLogin` opt-in을 켰다.
+  (`shared/store/loginModal.store.ts`, `entities/auth/hooks/useAuthGuard.ts`, `features/auth/login/ui/LoginModal.tsx`, `features/bookmark/toggle/ui/BookmarkPostButton.tsx`, `docs/AUTH.md`, `docs/DECISIONS.md`)
+
+  </details>
+
+- `post` 게시글을 북마크하면 옆에 있는 공유 아이콘이 채워지던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  공유 버튼의 `Share2` 아이콘 `fill-current` 조건이 `post.userInteractions.isBookmarked`에 묶여 있었다. 바로 옆 북마크 아이콘의 fill 로직을 복붙한 흔적으로 보이며, `userInteractions` 스키마엔 공유 관련 플래그 자체가 없어 애초에 채워질 이유가 없었다. 조건을 제거했다.
+  (`widgets/post/post-card/ui/PostCard.tsx`)
+
+  </details>
+
 - `shared` 지금 보고 있는 북마크 폴더를 삭제하면 엉뚱한 "작성 중인 내용이 있어요" 확인창이 한 번 더 뜨던 문제 수정
   <details><summary>배경·구현</summary>
 
