@@ -6,6 +6,7 @@ import {
   bookmarkFolderKeys,
   handleBookmarkToggleSuccess,
 } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
+import { resolveCurrentBookmarkState } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import { Post, PostListResponse } from '@/entities/post/model/post.schema';
 import { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { Comment } from '@/entities/comment/model/comment.schema';
@@ -113,21 +114,13 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
         bookmarkFolderKeys.list
       );
 
-      // post.detail 이 없으면(북마크 화면 등) folder 게시글 캐시에서 이 글의 현재 상태를 찾는다.
-      // 방향(ON/OFF)은 폴더 캐시에 있는지 여부가 아니라 이 isBookmarked 값 하나로만 결정한다.
-      const cachedFolderPost = previousPost
-        ? undefined
-        : previousFolderPosts
-            .flatMap(([, data]) => data?.pages.flatMap((page) => page.content) ?? [])
-            .find((post) => post.id === postId);
-      const wasBookmarked =
-        previousPost?.userInteractions.isBookmarked ??
-        cachedFolderPost?.userInteractions.isBookmarked ??
-        false;
-      const prevFolderIds =
-        previousPost?.userInteractions.bookmarkFolderIds ??
-        cachedFolderPost?.userInteractions.bookmarkFolderIds ??
-        [];
+      // 방향(ON/OFF)은 detail → 메인 피드 목록 → 폴더 게시글 캐시 순으로 찾은
+      // isBookmarked 값 하나로만 결정한다. bookmark-folder.queries.ts의 동일 로직과
+      // 공유 — 메인 피드에서만 조작하면 항상 false로 오판하던 버그 수정(§Phase 0).
+      const { isBookmarked: wasBookmarked, folderIds: prevFolderIds } = resolveCurrentBookmarkState(
+        queryClient,
+        postId
+      );
       const nextBookmarked = !wasBookmarked;
 
       if (previousPost) {

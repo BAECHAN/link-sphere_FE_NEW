@@ -56,6 +56,7 @@ export function BookmarkFolderSelectModal({
     recentFolderList,
     isUncategorizedSelected,
     pendingKey,
+    isAnyPending,
     creatingMode,
     setCreatingMode,
     newFolderName,
@@ -212,6 +213,7 @@ export function BookmarkFolderSelectModal({
                     type="button"
                     variant="ghost"
                     onClick={dangerAction.onClick}
+                    disabled={isAnyPending}
                     className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 border-t"
                   >
                     <BookmarkX className="h-4 w-4" />

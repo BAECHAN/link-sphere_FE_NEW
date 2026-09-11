@@ -204,4 +204,69 @@ describe('useBookmarkPostMutation', () => {
     expect(folders?.folders.find((f) => f.id === FOLDER_A)?.bookmarkCount).toBe(2);
     expect(folders?.uncategorizedCount).toBe(1);
   });
+
+  describe('post.detail 캐시 없이 메인 피드 목록에만 있는 경우 (2026-09-11 버그 수정)', () => {
+    // post.detail/폴더 게시글 캐시가 전혀 없고 postKeys.listRoot에만 이 글이 있는 상태 —
+    // 과거엔 wasBookmarked가 항상 false로 오판돼 "제거"가 "추가"로 잘못 처리됐다
+    // (resolveCurrentBookmarkState가 postKeys.listRoot를 후보에서 빠뜨렸던 버그).
+    function seedList(post: Post) {
+      const seededList: InfiniteData<PostListResponse> = {
+        pages: [
+          { page: 0, size: 10, content: [post], totalElements: 1, totalPages: 1, last: true },
+        ],
+        pageParams: [0],
+      };
+      queryClient.setQueryData(postKeys.list(), seededList);
+    }
+
+    it('미분류 글을 제거하면 isBookmarked가 false로 정확히 뒤집힌다', async () => {
+      const seededPost: Post = {
+        ...mockPost,
+        userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [] },
+        stats: { ...mockPost.stats, bookmarkCount: 5 },
+      };
+      seedList(seededPost);
+      queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList());
+
+      const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
+
+      act(() => {
+        result.current.mutate();
+      });
+
+      await waitFor(() => {
+        const list = queryClient.getQueryData<InfiniteData<PostListResponse>>(postKeys.list());
+        const listedPost = list?.pages[0]?.content.find((p) => p.id === POST_ID);
+        expect(listedPost?.userInteractions.isBookmarked).toBe(false);
+        expect(listedPost?.stats.bookmarkCount).toBe(4);
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    });
+
+    it('폴더 소속 글을 제거하면 폴더 소속만 비우지 않고 isBookmarked도 false로 뒤집힌다', async () => {
+      const seededPost: Post = {
+        ...mockPost,
+        userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [FOLDER_A] },
+        stats: { ...mockPost.stats, bookmarkCount: 5 },
+      };
+      seedList(seededPost);
+      queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList());
+
+      const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
+
+      act(() => {
+        result.current.mutate();
+      });
+
+      await waitFor(() => {
+        const list = queryClient.getQueryData<InfiniteData<PostListResponse>>(postKeys.list());
+        const listedPost = list?.pages[0]?.content.find((p) => p.id === POST_ID);
+        expect(listedPost?.userInteractions.isBookmarked).toBe(false);
+        expect(listedPost?.userInteractions.bookmarkFolderIds).toEqual([]);
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    });
+  });
 });

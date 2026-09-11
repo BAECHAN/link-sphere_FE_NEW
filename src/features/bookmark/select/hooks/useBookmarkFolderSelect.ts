@@ -56,11 +56,16 @@ export function useBookmarkFolderSelect({
   }, [open]);
 
   const isUncategorizedSelected = isBookmarked && selectedFolderIds.length === 0;
+  // 파괴적 조작(폴더 탭 한 번으로 북마크가 완전 삭제될 수 있음, 2026-09-11)이 생겨
+  // in-flight 중 다른 행을 탭하면 요청이 꼬일 수 있다 — 모달 전체를 잠근다.
+  const isAnyPending = pendingKey !== null;
 
   const handleSelectUncategorized = async () => {
-    // 이미 미분류(✓)면 아무 것도 하지 않는다 — "미분류에서 제거"는 곧 북마크 해제인데,
-    // 그건 하단 destructive 행과 중복이라 오탭으로 북마크가 사라지는 걸 막기 위함.
-    if (isUncategorizedSelected) {
+    // 이미 미분류(✓)면 아무 것도 하지 않는다 — 미분류는 소속 row가 0개인 파생 상태라
+    // 지울 대상 자체가 없다. 폴더 행은 삭제 후 같은 폴더로 다시 추가해 되돌릴 수 있지만,
+    // 미분류는 되돌릴 폴더가 없어 Undo가 불가능한 파괴적 조작이 된다 — 그래서 no-op으로
+    // 막는다(완전 삭제는 소속 스냅샷으로 되돌릴 수 있는 하단 destructive 행에서만).
+    if (isUncategorizedSelected || isAnyPending) {
       return;
     }
 
@@ -73,6 +78,10 @@ export function useBookmarkFolderSelect({
   };
 
   const handleSelectFolder = async (folder: BookmarkFolder) => {
+    if (isAnyPending) {
+      return;
+    }
+
     setPendingKey(folder.id);
     try {
       await onSelectFolder(folder);
@@ -113,6 +122,7 @@ export function useBookmarkFolderSelect({
     recentFolderList,
     isUncategorizedSelected,
     pendingKey,
+    isAnyPending,
     creatingMode,
     setCreatingMode,
     newFolderName,

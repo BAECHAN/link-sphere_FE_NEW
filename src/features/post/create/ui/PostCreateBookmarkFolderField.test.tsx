@@ -113,7 +113,7 @@ describe('PostCreateBookmarkFolderField', () => {
     expect(screen.getByTestId('folderIds-value')).toHaveTextContent(FOLDER_A);
   });
 
-  it('선택된 마지막 폴더를 다시 탭하면 미분류로 남는다 (북마크는 유지)', async () => {
+  it('선택된 마지막 폴더를 다시 탭하면 북마크 안 함으로 돌아간다', async () => {
     const user = userEvent.setup();
     renderField();
 
@@ -124,7 +124,7 @@ describe('PostCreateBookmarkFolderField', () => {
 
     await user.click(dialog().getByText('개발'));
 
-    expect(screen.getByTestId('bookmark-value')).toHaveTextContent('true');
+    expect(screen.getByTestId('bookmark-value')).toHaveTextContent('false');
     expect(screen.getByTestId('folderIds-value')).toHaveTextContent('');
   });
 

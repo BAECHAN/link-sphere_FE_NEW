@@ -61,6 +61,14 @@
 
   </details>
 
+- `bookmark` 북마크가 폴더 1곳에만 있을 때 그 폴더에서 빼면 미분류로 남기지 않고 북마크 자체를 완전 삭제(되돌리기 제공)
+  <details><summary>배경·구현</summary>
+
+  폴더 1곳에만 속한 북마크를 그 폴더에서 빼면 미분류로 남는 게 이상하다는 사용자 제보로 조사를 시작했다. 완전 삭제 수단(`북마크 제거` 행)은 이미 있었지만 낙관적 갱신 버그(바로 아래 Fixed 항목)로 반응이 없어 보였고, 이를 계기로 "마지막 폴더는 미분류로 남기지 말고 그 자리에서 완전 삭제하자"로 방향을 정했다. 폴더 탭이 파괴적 조작이 된 만큼 성공 토스트에 "되돌리기" 액션(8초)을 붙였다 — 같은 폴더로 다시 추가하는 것과 정확히 같아 BE 변경 없이 원복된다. 하단 `북마크 제거` 행도 소속이 0~1개였을 때는 동일하게 되돌리기를 제공한다(2개 이상은 일괄 복원 범위 밖). 등록 폼도 마지막 폴더 해제 시 "북마크 안 함"으로 대칭화했다. [NN/g(Jakob Nielsen, 2018)](https://www.nngroup.com/articles/confirmation-dialog/)가 파괴적 조작엔 확인창보다 되돌리기를 우선하라고 권고하는 것에 근거했다. 미분류 재탭 no-op 규칙은 유지하되 근거를 갱신했다 — 되돌릴 소속 row가 없는 파생 상태라 Undo가 불가능한 파괴적 조작이 되므로 막는다.
+  (`features/bookmark/toggle/hooks/useBookmarkFolders.ts`, `features/bookmark/toggle/hooks/usePostCardBookmarkFolderModal.ts`, `features/bookmark/select/hooks/useBookmarkFolderSelect.ts`, `features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `features/post/create/hooks/usePostCreateBookmarkFolderField.ts`, `shared/config/const.ts`, `shared/config/texts.ts`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`, [PR #79](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/79))
+
+  </details>
+
 ### Fixed
 
 - `auth` 비로그인 상태로 북마크를 시도하면 로그인해도 아무 반응이 없던 문제 수정
@@ -138,6 +146,14 @@
 
   URL 입력란에 포커스하면 브라우저가 폼 자동완성 기록(이전에 제출한 URL들)을 드롭다운으로 제안해 아래 필드를 가렸다. 링크 등록·수정은 매번 새 URL을 붙여넣는 흐름이라 제안이 도움이 되지 않아 `autoComplete="off"`로 끈다. 두 폼이 같은 `name="url"`을 써서 자동완성 기록을 공유하므로 양쪽 모두에 적용했다.
   (`features/post/create/ui/CreatePostForm.tsx`, `features/post/update/ui/UpdatePostForm.tsx`)
+
+  </details>
+
+- `bookmark` 메인 피드에서 북마크를 완전히 제거해도 반응이 없거나 되레 미분류로 옮겨간 것처럼 보이던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  사용자가 실제로 재현: 미분류 상태에서 `북마크 제거`를 눌러도 아무 반응이 없어 보였고, 폴더 소속 상태에서 눌러도 완전 삭제가 아니라 미분류로 옮겨간 것처럼 보였다. 원인은 `useBookmarkPostMutation`의 낙관적 갱신이 현재 북마크 상태를 계산할 때 메인 피드 목록 캐시(`postKeys.listRoot`)를 조회만 하고 방향 계산에는 쓰지 않아서였다 — 상세 페이지나 `/bookmark` 페이지를 거치지 않고 메인 피드에서만 조작하면 두 캐시(`postKeys.detail`, `bookmarkFolderKeys.postsRoot`) 모두 비어 있어 항상 "추가" 방향으로 잘못 계산됐다. 서버(토글 API)는 정상적으로 완전 삭제를 처리했지만 잘못된 낙관적 패치가 화면에 남았다. 같은 종류의 방향 계산 로직이 있던 `bookmark-folder.queries.ts`의 `resolveCurrentBookmarkState`에 `postKeys.listRoot` 폴백을 추가하고 export해, `interaction.queries.ts`가 자체 계산 대신 이 함수를 쓰도록 통합했다.
+  (`entities/interaction/api/interaction.queries.ts`, `entities/bookmark/folder/api/bookmark-folder.queries.ts`, `entities/interaction/api/interaction.queries.test.ts`, `docs/BOOKMARK.md`, [PR #79](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/79))
 
   </details>
 
