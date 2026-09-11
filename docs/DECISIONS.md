@@ -72,6 +72,7 @@
 54개 파일 349건, `pnpm type-check`·`pnpm lint` 모두 통과. 자세한 구현 지도는
 `docs/BOOKMARK.md` §5·§8·§10, 계획 대비 구현 대조는 `docs/plans/2026-09-11-bookmark-last-folder-remove.md`
 참고.
+
 ## 2026-09-11 — 비로그인 북마크 재개: 온보딩 대신 버그 수정, 전면 재개 대신 opt-in
 
 **배경**
