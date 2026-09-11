@@ -36,3 +36,12 @@ export const NoSource: Story = {
     alt: '이미지 없음',
   },
 };
+
+// 원본 사이트가 이미지를 내리거나 차단한 경우 - 자리는 유지하고 안내 아이콘으로 대체한다
+// (레이아웃 시프트를 막기 위해 영역 자체를 없애지 않는다, link-thumbnail.tsx 상단 주석 참고)
+export const LoadFailed: Story = {
+  args: {
+    src: 'https://invalid.example/thumb.png',
+    alt: '로드 실패한 이미지',
+  },
+};

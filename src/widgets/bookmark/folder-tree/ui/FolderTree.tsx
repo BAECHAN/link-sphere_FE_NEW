@@ -220,9 +220,15 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
   }
 
   return (
+    // 래퍼에 여백(pl-3/pr-1/py-1/gap-2)을 두지 않는다 — hover:bg-accent가 이 div 전체에
+    // 걸리는데, 안쪽 버튼들 사이 여백만큼은 실제 클릭 영역(button)이 아니라 커서가
+    // default로 풀리는 구멍이 생겨 마우스를 세로로 훑을 때 pointer가 깜빡였다(2026-09-11,
+    // 좌표 스윕으로 실측). 대신 버튼들이 그 여백을 흡수해 행 전체를 채운다. ⋮ 메뉴는
+    // 카운트와 자리를 공유하지 않고 자기 폭(size-9)만큼 별도로 차지한다 — 겹쳐서
+    // hover 시 카운트를 숨기는 방식도 검토했으나 겹침 처리보다 이 편이 단순하다.
     <div
       className={cn(
-        'group flex items-center gap-2 pl-3 pr-1 py-1 rounded-md text-sm hover:bg-accent',
+        'group flex items-center rounded-md text-sm hover:bg-accent',
         selected && 'bg-accent font-medium'
       )}
     >
@@ -232,7 +238,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
         onClick={onClick}
         onMouseEnter={onPrefetch}
         onFocus={onPrefetch}
-        className="h-auto flex-1 justify-start gap-3 py-1"
+        className="h-auto min-w-0 flex-1 justify-start gap-3 px-3 py-2"
       >
         <Bookmark className={cn('h-4 w-4', selected ? 'text-primary' : 'text-muted-foreground')} />
         <span className="flex-1 text-left truncate">{folder.name}</span>
@@ -244,7 +250,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
+            className="opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
             aria-label={TEXTS.ariaLabels.folderMenu}
           >
             <MoreVertical className="h-4 w-4" />
