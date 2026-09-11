@@ -71,6 +71,30 @@
 
 ### Fixed
 
+- `auth` 비로그인 상태로 북마크를 시도하면 로그인해도 아무 반응이 없던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  `useAuthGuard`는 비로그인 시 액션을 실행하지 않고 버리는 게 원래 설계였다("로그인만 유도"). 하지만 첫 북마크를 시도한 사용자 입장에선 로그인 후에도 아무 일이 안 일어나는 것으로 보였다. 로그인 성공 콜백 채널(`onSuccess`)은 콜백이 스스로 navigate해 히스토리 엔트리를 벗어난다는 전제로 설계돼 있어(그래서 `LoginModal`이 `close()`를 안 부른다), `setOpen(true)`처럼 navigate하지 않는 콜백을 그대로 태우면 로그인 모달이 안 닫힌 채 폴더 모달이 위에 겹친다. navigate하지 않는 재개 액션 전용의 `pendingAction` 채널을 새로 만들어, 로그인 모달이 실제로 닫힌 뒤에만 실행하도록 했다. 좋아요·댓글은 재개 시 토글 반전·조용한 무반응 같은 부작용이 있어(자세한 근거는 `docs/DECISIONS.md` 참고) 재개하지 않고, 서버 쓰기가 없는 북마크에만 `resumeAfterLogin` opt-in을 켰다.
+  (`shared/store/loginModal.store.ts`, `entities/auth/hooks/useAuthGuard.ts`, `features/auth/login/ui/LoginModal.tsx`, `features/bookmark/toggle/ui/BookmarkPostButton.tsx`, `docs/AUTH.md`, `docs/DECISIONS.md`)
+
+  </details>
+
+- `post` 게시글을 북마크하면 옆에 있는 공유 아이콘이 채워지던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  공유 버튼의 `Share2` 아이콘 `fill-current` 조건이 `post.userInteractions.isBookmarked`에 묶여 있었다. 바로 옆 북마크 아이콘의 fill 로직을 복붙한 흔적으로 보이며, `userInteractions` 스키마엔 공유 관련 플래그 자체가 없어 애초에 채워질 이유가 없었다. 조건을 제거했다.
+  (`widgets/post/post-card/ui/PostCard.tsx`)
+
+  </details>
+
+- `shared` 마우스를 가만히 둬도 게시글 카드·북마크 폴더에서 커서가 pointer/default로 반복 전환되던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  대용량 다운로드 등으로 네트워크가 느릴 때만 재현된다는 제보를 Playwright로 직접 실측해 원인을 두 개로 좁혔다. (1) 게시글 카드: `LinkThumbnail`이 og:image 로드 실패 시 `aspect-video` 영역을 통째로 제거해, 마우스가 고정된 채 아래 카드들이 위로 밀리면서 그 자리의 요소가 바뀌었다(고정 좌표 41곳 스윕 중 30곳에서 이미지 성공/실패 조건만 바꿨을 때 전환 확인 — 이미지 실패가 잦은 네트워크 저하 상황에서만 눈에 띄는 이유). 실패해도 자리를 유지하고 `ImageOff` 아이콘으로 대체하도록 고쳤다. (2) 북마크 폴더 사이드바: 폴더 행 래퍼 `<div>`의 여백(`pl-3`/`pr-1`/`py-1`/`gap-2`)에는 `hover:bg-accent`로 하이라이트는 되면서 실제 클릭 영역(`<button>`)이 아니라 커서가 `default`로 풀리는 구멍이 있었다(부하와 무관하게 상시 존재하지만 평소엔 프레임마다 매끄럽게 갱신돼 눈에 안 띄다가 부하 상황에서 두드러진 것으로 추정). 버튼들이 그 여백을 흡수해 행 전체를 채우도록 해 없앴다.
+  (`shared/ui/atoms/link-thumbnail.tsx`, `shared/ui/atoms/link-thumbnail.stories.tsx`, `shared/ui/atoms/link-thumbnail.test.tsx`, `widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `docs/plans/2026-09-11-cursor-flicker-fix.md`(신규))
+
+  </details>
+
 - `shared` 지금 보고 있는 북마크 폴더를 삭제하면 엉뚱한 "작성 중인 내용이 있어요" 확인창이 한 번 더 뜨던 문제 수정
   <details><summary>배경·구현</summary>
 

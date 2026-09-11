@@ -20,15 +20,19 @@ describe('LinkThumbnail', () => {
     expect(img).toHaveAttribute('referrerpolicy', 'no-referrer');
   });
 
-  it('이미지 로드에 실패하면 요소를 감춘다', () => {
-    // jsdom은 실제로 이미지를 로드하지 않아 onError가 자연 발화하지 않으므로 강제 트리거한다
+  it('이미지 로드에 실패해도 자리는 유지하고 안내 아이콘으로 대체한다', () => {
+    // jsdom은 실제로 이미지를 로드하지 않아 onError가 자연 발화하지 않으므로 강제 트리거한다.
+    // 자리를 통째로 없애면(과거 동작) 아래 콘텐츠가 밀려 올라와 레이아웃 시프트가
+    // 생긴다(link-thumbnail.tsx 상단 주석 참고) — 그래서 컨테이너는 남기고 img만 교체한다.
     const { getByRole, container } = renderWithProviders(
       <LinkThumbnail src="https://example.com/broken.png" alt="제목" />
     );
 
     fireEvent.error(getByRole('img', { name: '제목' }));
 
-    expect(container).toBeEmptyDOMElement();
+    expect(container).not.toBeEmptyDOMElement();
+    expect(container.querySelector('img')).not.toBeInTheDocument();
+    expect(container.querySelector('svg')).toBeInTheDocument();
   });
 
   it('로드 실패 후 src가 바뀌면 에러 상태를 리셋하고 다시 렌더한다', () => {

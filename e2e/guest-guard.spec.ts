@@ -3,7 +3,11 @@ import { installCatchAll } from './mocks/catch-all';
 import { mockCategoryOptions } from './mocks/common.mock';
 import { mockPostList, mockPostDetail } from './mocks/post.mock';
 import { mockComments } from './mocks/comment.mock';
+import { mockLoginSuccess } from './mocks/auth.mock';
+import { mockAccountQuery } from './mocks/account.mock';
+import { mockBookmarkFolderList } from './mocks/bookmark-folder.mock';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
+import { mockBookmarkFolder } from '@/mocks/fixtures/bookmark-folder.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 
 // useAuthGuard(entities/auth/hooks/useAuthGuard.ts:17-28) — isAuthenticated가 아니면
@@ -43,12 +47,38 @@ test.describe('비로그인 인증 가드 — 요청 없이 로그인 모달만 
     await page.goto('/post');
     await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).click();
 
-    // useAuthGuard가 setOpen(true) 자체를 실행 안 하므로 PostCardBookmarkFolderModal이
-    // 마운트되지 않는다 — 로그인 모달 하나만 떠야 한다.
+    // useAuthGuard는 클릭 시점엔 setOpen(true)를 실행하지 않고 pendingAction으로
+    // 보류한다(로그인 성공 후 자동 재개 흐름은 아래 테스트) — 로그인 모달 하나만 떠야 한다.
     const dialogs = page.getByRole('dialog');
     await expect(dialogs).toHaveCount(1);
     await expect(page.getByRole('dialog', { name: TEXTS.auth.guard.title })).toBeVisible();
     expect(folderListRequestCount).toBe(0);
+  });
+
+  test('북마크 버튼 클릭 → 로그인 성공 → 폴더 선택 모달이 자동으로 이어서 열린다', async ({
+    page,
+  }) => {
+    await mockLoginSuccess(page);
+    await mockAccountQuery(page);
+    await mockBookmarkFolderList(page);
+
+    await page.goto('/post');
+    await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).click();
+
+    const loginDialog = page.getByRole('dialog', { name: TEXTS.auth.guard.title });
+    await expect(loginDialog).toBeVisible();
+
+    await page.getByLabel('Email', { exact: true }).fill('test@example.com');
+    await page.getByLabel('Password', { exact: true }).fill('TestPass1!');
+    await page.getByRole('button', { name: 'Sign In' }).click();
+
+    // 겹침 회귀 확인: 폴더 모달을 보기 전에 로그인 모달이 실제로 사라졌는지 먼저 본다.
+    await expect(loginDialog).not.toBeVisible();
+
+    const folderDialog = page.getByRole('dialog');
+    await expect(folderDialog).toBeVisible();
+    await expect(folderDialog.getByRole('button', { name: mockBookmarkFolder.name })).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(1);
   });
 
   test('댓글 작성 시도 → 로그인 모달, POST /comment 요청 없음', async ({ page }) => {

@@ -20,7 +20,7 @@ import { TEXTS } from '@/shared/config/texts';
  * App 최상위에 한 번만 렌더하고, 콜백은 loginModal.store가, 열림 상태는 히스토리 엔트리가 관리한다.
  */
 export function LoginModal() {
-  const { onSuccess, setOnSuccess } = useLoginModalStore();
+  const { onSuccess, setOnSuccess, pendingAction, setPendingAction } = useLoginModalStore();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { pathname } = useLocation();
   const { isOpen, close } = useHistoryOverlay('loginModalOpen');
@@ -50,6 +50,32 @@ export function LoginModal() {
       }
     }
   }, [isOpen, isAuthenticated, onSuccess, setOnSuccess, close]);
+
+  // pendingAction(재개 액션)은 위 effect의 close()가 실제로 반영돼 로그인 모달이
+  // 사라진 뒤에만 실행한다. close()는 navigate(-1) → popstate라 비동기다 - 성공
+  // 즉시 실행하면 로그인 모달이 아직 떠 있는 채로 다음 모달이 위에 겹친다
+  // (useHistoryOverlay.ts - 오버레이를 겹쳐 쌓지 않는 것을 전제로 한다).
+  // openedRef: 이 effect는 "열려 있다가 닫힌" 전이에서만 동작해야 한다. useAuthGuard가
+  // setPendingAction 직후 openLoginModal()을 부르는 찰나(아직 isOpen=false)에 그냥
+  // 돌면 열어보기도 전에 액션을 버린다 - handledSuccessRef와 같은 이유의 래치다.
+  // 닫힘 경로 4가지(로그인 성공/X·ESC·backdrop 취소/하드웨어 뒤로가기/auth 페이지 이동)가
+  // 전부 "isOpen이 false가 된다"는 이 지점으로 수렴하므로, 성공이 아닌 닫힘에서는
+  // 액션을 실행하지 않고 버린다.
+  const openedRef = useRef(false);
+  useEffect(() => {
+    if (isOpen) {
+      openedRef.current = true;
+      return;
+    }
+    if (!openedRef.current || !pendingAction) {
+      return;
+    }
+    openedRef.current = false;
+    if (isAuthenticated) {
+      pendingAction();
+    }
+    setPendingAction(undefined);
+  }, [isOpen, isAuthenticated, pendingAction, setPendingAction]);
 
   // 회원가입 등 auth 페이지로 이동 시 모달 닫기 (onSuccess는 실행하지 않음)
   useEffect(() => {
