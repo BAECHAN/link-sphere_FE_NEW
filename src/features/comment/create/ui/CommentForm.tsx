@@ -100,7 +100,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
             // 점선 박스보다 상하 72px 넓게 실제 드랍 판정 영역을 확장한다(좌우는 페이지 패딩만큼만 —
             // 그 이상 넓히면 모바일에서 가로 스크롤이 생긴다). 드래그 중에만 마운트하므로 평소엔
             // 텍스트영역 클릭·포커스를 가리지 않는다.
-            className="absolute -inset-x-4 -inset-y-18 z-20"
+            className="absolute -inset-x-4 -inset-y-18 z-hitbox"
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragEnter={handleDragEnter}
@@ -108,7 +108,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
           />
         )}
         {isDraggingOver && (
-          <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-primary bg-primary/10">
+          <div className="pointer-events-none absolute inset-0 z-raised flex flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-primary bg-primary/10">
             <ImagePlus className="h-6 w-6 text-primary" />
             <span className="text-sm font-medium text-primary">{TEXTS.comment.form.dropHere}</span>
           </div>

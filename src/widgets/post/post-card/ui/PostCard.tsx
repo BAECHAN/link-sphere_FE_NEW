@@ -63,7 +63,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
       aria-busy={isUpdating}
     >
       {isUpdating && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-background/60">
+        <div className="absolute inset-0 z-raised flex items-center justify-center gap-2 bg-background/60">
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           <span className="text-sm font-medium text-muted-foreground">{TEXTS.common.updating}</span>
         </div>
