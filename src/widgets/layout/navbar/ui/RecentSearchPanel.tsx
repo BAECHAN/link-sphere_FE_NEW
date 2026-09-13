@@ -16,7 +16,7 @@ export function RecentSearchPanel({
   onClearAll,
 }: RecentSearchPanelProps) {
   return (
-    <div className="md:hidden fixed inset-x-0 top-16 bottom-0 z-40 bg-background overflow-y-auto">
+    <div className="md:hidden fixed inset-x-0 top-16 bottom-0 z-panel bg-background overflow-y-auto">
       <div className="flex flex-col pb-16">
         <div className="flex items-center justify-between px-4 py-3">
           <span className="text-sm font-semibold text-muted-foreground">

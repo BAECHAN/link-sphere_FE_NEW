@@ -1,11 +1,12 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { ImagePlus, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { Textarea } from '@/shared/ui/atoms/textarea';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { ImageAttachmentField } from '@/shared/ui/elements/ImageAttachmentField';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
+import { DropTargetOverlay } from '@/shared/ui/elements/DropTargetOverlay';
 import { useCreateComment } from '@/features/comment/create/hooks/useCreateComment';
 import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/comment.const';
 import { TEXTS } from '@/shared/config/texts';
@@ -87,7 +88,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
   const { ref: registerContentRef, ...contentRegister } = register('content');
 
   return (
-    <form onSubmit={onSubmit} className={`space-y-2 ${className}`}>
+    <form onSubmit={onSubmit} className={cn('space-y-2', className)}>
       <div
         ref={containerRef}
         className={cn(
@@ -96,22 +97,12 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
         )}
       >
         {isDraggingOver && (
-          <div
-            // 점선 박스보다 상하 72px 넓게 실제 드랍 판정 영역을 확장한다(좌우는 페이지 패딩만큼만 —
-            // 그 이상 넓히면 모바일에서 가로 스크롤이 생긴다). 드래그 중에만 마운트하므로 평소엔
-            // 텍스트영역 클릭·포커스를 가리지 않는다.
-            className="absolute -inset-x-4 -inset-y-18 z-20"
+          <DropTargetOverlay
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
           />
-        )}
-        {isDraggingOver && (
-          <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-primary bg-primary/10">
-            <ImagePlus className="h-6 w-6 text-primary" />
-            <span className="text-sm font-medium text-primary">{TEXTS.comment.form.dropHere}</span>
-          </div>
         )}
         <Textarea
           aria-invalid={showValidationHighlight || isOverLimit}

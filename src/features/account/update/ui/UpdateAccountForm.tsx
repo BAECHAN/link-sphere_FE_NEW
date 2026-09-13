@@ -63,8 +63,8 @@ export function UpdateAccountForm({ onSuccess }: UpdateAccountFormProps) {
               size="lg"
               className="text-xl"
             />
-            <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-              <Camera className="text-white h-5 w-5" />
+            <div className="absolute inset-0 rounded-full bg-scrim/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+              <Camera className="text-scrim-foreground h-5 w-5" />
             </div>
           </div>
           <input

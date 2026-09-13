@@ -13,7 +13,7 @@ interface ScrollToCommentFormButtonProps {
 /**
  * 데스크톱 전용 - 최상위 댓글 작성 폼이 스크롤로 화면 밖에 나가면 우측 하단에 떠서
  * 클릭 시 그 폼으로 스크롤해준다. ScrollToTop.tsx와 같은 자리(fixed bottom-6 right-6
- * z-50)를 쓰는데, 두 컴포넌트가 쓰이는 페이지가 겹치지 않아(ScrollToTop은 상세 페이지에서
+ * z-nav)를 쓰는데, 두 컴포넌트가 쓰이는 페이지가 겹치지 않아(ScrollToTop은 상세 페이지에서
  * 꺼짐) 충돌하지 않는다.
  */
 export function ScrollToCommentFormButton({
@@ -68,7 +68,7 @@ export function ScrollToCommentFormButton({
           initial={{ opacity: 0, scale: 0.8, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.8, y: 20 }}
-          className="fixed bottom-6 right-6 z-50"
+          className="fixed bottom-6 right-6 z-nav"
         >
           <Button
             size="icon"

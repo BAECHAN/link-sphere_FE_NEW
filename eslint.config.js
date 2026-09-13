@@ -177,6 +177,152 @@ const customQueryRulesPlugin = {
   },
 };
 
+// Tailwind className 일관성 규칙 모음. no-hardcoded-hangul과 같은 전략(className
+// prop인지 따지지 않고 Literal/TemplateLiteral 전체를 훑어 패턴을 검사) - className
+// 속성 파싱을 별도로 안 해도 오탐 없이 잡을 수 있어서 이 레포 관례에 더 가깝다.
+// 룰은 여기에 계속 추가된다(no-raw-color, no-classname-template-literal 등, 후속 커밋).
+const customTailwindRulesPlugin = {
+  rules: {
+    // [금지] 숫자 그대로 쓰는 raw z-index 유틸리티(예: z 뒤에 10을 붙인 클래스)
+    // 이유: 이런 숫자 조합(10, 20, 40, 50, 55, 60, 70, 80)이 8개 파일에 이름 없이
+    //       흩어져 있었고, Sidebar.tsx(드로어 백드롭)와 MobileCommentBar.tsx(확장
+    //       댓글 시트)가 같은 값(55)을 공유하는 잠재 충돌도 있었다(2026-09-13 조사,
+    //       docs/DECISIONS.md 참고). globals.css의 @theme static 블록에 8단계를
+    //       이름 붙여뒀으니 새 코드는 그 이름만 쓰게 한다.
+    // (주석에 실제 클래스명을 그대로 적지 않는다 - Tailwind 스캐너가 CSS/JS 주석도
+    //  텍스트로 훑어 후보로 오인식해 불필요한 유틸리티를 생성한다. globals.css의
+    //  같은 문제 참고.)
+    'no-raw-z-index': {
+      meta: {
+        type: 'problem',
+        docs: {
+          description: '숫자 그대로 쓰는 raw z-index 유틸리티 금지, globals.css 명명 토큰 사용',
+        },
+        messages: {
+          rawZIndex:
+            'z-{{value}} 대신 globals.css의 명명된 z-index 토큰(z-raised/z-hitbox/z-panel/z-nav/z-scrim/z-drawer/z-modal/z-popover) 중 하나를 사용하세요.',
+        },
+      },
+      create(context) {
+        const Z_INDEX_PATTERN = /\bz-(\d+)\b/;
+
+        function report(node, value) {
+          if (typeof value !== 'string') {
+            return;
+          }
+
+          const match = Z_INDEX_PATTERN.exec(value);
+
+          if (match) {
+            context.report({ node, messageId: 'rawZIndex', data: { value: match[1] } });
+          }
+        }
+
+        return {
+          Literal(node) {
+            report(node, node.value);
+          },
+          TemplateLiteral(node) {
+            for (const quasi of node.quasis) {
+              report(quasi, quasi.value.raw);
+            }
+          },
+        };
+      },
+    },
+    // [금지] 검정·흰색·명명 팔레트(gray-500 등) 리터럴 색상 클래스
+    // 이유: CLAUDE.md가 "ESLint 미강제라 회귀해도 안 잡힌다"고 명시해온 유일한 색상
+    //       규칙이었다(2026-09-09 감사에서 raw gray/zinc 잔존을 발견해 수동으로만 고침).
+    //       검정·흰색은 명명 팔레트가 아니라 grep 규칙에도 안 걸렸는데, 실제로
+    //       ImageViewer.tsx 등 12곳에 그런 리터럴이 남아 있었다(2026-09-13 조사).
+    //       globals.css에 --scrim/--scrim-foreground를 추가했으니 이제 코드로 강제한다.
+    // (주석에 실제 클래스명을 그대로 적지 않는다 - Tailwind 스캐너가 CSS/JS 주석도
+    //  텍스트로 훑어 후보로 오인식해 불필요한 유틸리티를 생성한다.)
+    'no-raw-color': {
+      meta: {
+        type: 'problem',
+        docs: {
+          description: 'black/white/명명 팔레트 리터럴 색상 클래스 금지, 디자인 토큰 사용',
+        },
+        messages: {
+          rawColor:
+            '"{{value}}" 대신 globals.css의 디자인 토큰 기반 클래스(bg-scrim, text-destructive-foreground 등)를 사용하세요.',
+        },
+      },
+      create(context) {
+        const RAW_COLOR_PATTERN =
+          /\b(?:bg|text|border|ring|from|to|via|fill|stroke|divide|outline|shadow|decoration|accent|caret|placeholder)-(?:black|white|slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(?:-(?:50|100|200|300|400|500|600|700|800|900|950))?\b/;
+
+        function report(node, value) {
+          if (typeof value !== 'string') {
+            return;
+          }
+
+          const match = RAW_COLOR_PATTERN.exec(value);
+
+          if (match) {
+            context.report({ node, messageId: 'rawColor', data: { value: match[0] } });
+          }
+        }
+
+        return {
+          Literal(node) {
+            report(node, node.value);
+          },
+          TemplateLiteral(node) {
+            for (const quasi of node.quasis) {
+              report(quasi, quasi.value.raw);
+            }
+          },
+        };
+      },
+    },
+    // [금지] className에 템플릿 리터럴(백틱) 사용 - cn() 대신
+    // 이유: 백틱 문자열 보간은 twMerge의 충돌 정리를 거치지 않는다. FormField.tsx가
+    //       이 방식으로 클래스를 조합하고 있었고(2026-09-13 발견, 유일하게 cn() 미사용
+    //       shared/ui 컴포넌트), PostCard.tsx도 보간 없는 백틱을 14곳에서 습관적으로
+    //       쓰고 있었다 - 전부 cn()/일반 문자열로 정리했다. className 속성에 직접
+    //       쓰는 경우와, *ClassName/*Variant로 끝나는 변수를 백틱으로 초기화하는
+    //       경우 둘 다 잡는다.
+    'no-classname-template-literal': {
+      meta: {
+        type: 'problem',
+        docs: {
+          description: 'className에 템플릿 리터럴 대신 cn() 사용',
+        },
+        messages: {
+          templateLiteral: 'className에는 템플릿 리터럴 대신 cn()을 사용하세요.',
+        },
+      },
+      create(context) {
+        const CLASSNAME_LIKE_PATTERN = /^(className|.*ClassName|.*Variant)$/;
+
+        return {
+          JSXAttribute(node) {
+            if (
+              node.name.type === 'JSXIdentifier' &&
+              node.name.name === 'className' &&
+              node.value?.type === 'JSXExpressionContainer' &&
+              node.value.expression.type === 'TemplateLiteral'
+            ) {
+              context.report({ node: node.value.expression, messageId: 'templateLiteral' });
+            }
+          },
+          VariableDeclarator(node) {
+            if (
+              node.id.type === 'Identifier' &&
+              CLASSNAME_LIKE_PATTERN.test(node.id.name) &&
+              node.init?.type === 'TemplateLiteral'
+            ) {
+              context.report({ node: node.init, messageId: 'templateLiteral' });
+            }
+          },
+        };
+      },
+    },
+  },
+};
+
 export default [
   ...tseslint.configs.recommended,
   prettierConfig,
@@ -1123,6 +1269,20 @@ export default [
           ],
         },
       ],
+    },
+  },
+
+  // ============================================================
+  // Tailwind className 일관성 규칙 (customTailwindRulesPlugin)
+  // ============================================================
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['**/*.stories.tsx', '**/*.test.{ts,tsx}'],
+    plugins: { 'custom-tailwind': customTailwindRulesPlugin },
+    rules: {
+      'custom-tailwind/no-raw-z-index': 'error',
+      'custom-tailwind/no-raw-color': 'error',
+      'custom-tailwind/no-classname-template-literal': 'error',
     },
   },
 ];

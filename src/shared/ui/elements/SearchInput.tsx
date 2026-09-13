@@ -10,14 +10,15 @@ export interface SearchInputProps extends InputProps {
   shortcut?: string;
 }
 
-const inputVariant = `
-pl-8 pr-10 bg-muted/50 border-none transition-all focus:bg-background focus:ring-1 focus:ring-primary/20`;
+const inputVariant =
+  'pl-8 pr-10 bg-muted/50 border-none transition-all focus:bg-background focus:ring-1 focus:ring-primary/20';
 
-const kbdVariant = `pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border px-1.5 font-mono font-bold opacity-100 flex`;
+const kbdVariant =
+  'pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border px-1.5 font-mono font-bold opacity-100 flex';
 const kbdVariantSize = 'size-5';
 
 export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
-  ({ shortcut, ...props }, ref) => {
+  ({ shortcut, className, ...props }, ref) => {
     const inputRef = useRef<HTMLInputElement>(null);
     const mergedRef = useMergedRef(ref, inputRef);
 
@@ -30,7 +31,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
     return (
       <div className="relative w-full">
         <SearchIcon className="absolute left-2 top-2.5 size-4 text-muted-foreground" />
-        <Input ref={mergedRef} className={inputVariant} {...props} />
+        <Input ref={mergedRef} className={cn(inputVariant, className)} {...props} />
         {shortcut && !props.value && (
           <Kbd className={cn(kbdVariant, kbdVariantSize)}>
             <span className="text-xs">{shortcut}</span>

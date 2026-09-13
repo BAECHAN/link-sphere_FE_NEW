@@ -6,6 +6,76 @@
 
 ---
 
+## 2026-09-13 — z-index 토큰화 중 발견한 z-scrim 공유 충돌: 값 보존, 분리는 후속 결정
+
+**배경**
+
+z-index 8단계를 이름 붙이며(`globals.css`의 `@theme static` 블록) 전수 감사한 결과,
+`Sidebar.tsx`의 모바일 드로어 백드롭과 `MobileCommentBar.tsx`의 확장된 댓글 작성
+시트가 원래부터 같은 값(55)을 쓰고 있었다. 둘 다 모바일 전용 `fixed` 요소라, 게시글
+상세에서 댓글 작성창을 펼친 채로 사이드바를 열면 어느 쪽이 위에 뜨는지가 DOM 순서로
+우연히 정해지는 잠재 충돌이다.
+
+**결정**
+
+이번 토큰화 작업에서는 두 사용처를 똑같이 `z-scrim` 토큰으로 옮겼다 — 즉 **값을
+그대로 두고 이름만 붙였다.** 층을 갈라 하나를 위/아래로 옮기는 건 그 자체로 겹침
+순서라는 화면 결과를 바꾸는 UX 결정이라, 이번 작업 범위("화면이 전혀 안 바뀌는
+것까지만")를 벗어난다.
+
+**상태**
+
+미해결. 두 화면이 실제로 동시에 뜨는 시나리오가 있는지, 있다면 어느 쪽이 우선해야
+하는지는 후속 결정 대상이다. `docs/DESIGN-SYSTEM.md` §11 "남은 것"에도 남겨둔다.
+
+---
+
+## 2026-09-13 — 죽은 `tailwind.config.ts` 삭제: Tailwind v4는 CSS-first가 기본값
+
+**배경**
+
+레포 최초 커밋(2026-01-18, `2aac989`)부터 `package.json`에 `"tailwindcss": "^4"`였다 —
+v3에서 마이그레이션한 적이 없다. 그런데 그 최초 커밋에 `tailwind.config.ts`도 같이
+들어왔고, 같은 날(`7f196b5`) `globals.css`에 `@theme` 블록도 함께 도입됐다. 즉 처음부터
+"진짜 설정"(CSS의 `@theme`)과 "아무도 안 읽는 설정"(`tailwind.config.ts`)이 공존했다.
+
+Tailwind v4는 `@config "..."` 지시자가 CSS에 명시돼야만 JS 설정 파일을 읽는다 — 파일
+이름만으로 자동 인식되던 v3와 다르다(_"to enable the legacy tailwind.config.js, you can
+modify your index.css with `@config \"path/to/tailwind.config.js\";`"_ —
+[oumuamua, Medium](https://medium.com/@oumuamuaa/transitioning-from-tailwind-config-js-to-css-first-in-tailwind-css-v4-4afb3bfca4ee)).
+이 레포의 `globals.css`에는 `@config`가 한 번도 없었다(grep 0건) — 따라서
+`tailwind.config.ts`는 **빌드에 한 번도 반영된 적이 없다.** 빌드 산출물(dist CSS)로
+교차검증: config의 `container.screens['2xl']: 1400px`, `tailwindcss-animate`의
+accordion keyframes가 dist에 전혀 없었다.
+
+2026-03-14(`c003555`)에 `globals.css`와 `tailwind.config.ts`를 같이 수정한 커밋이
+마지막으로 두 파일을 동기화하려던 시도였고, 이후 6개월간 `globals.css`만 계속
+진화했다(지금 색 토큰 39개). 그 결과 `tailwind.config.ts`가 참조하는
+`--destructive-foreground`가 `globals.css`엔 끝내 정의되지 않았고, 이 때문에
+`button.tsx`·`badge.tsx`가 흰색 글자 클래스를 하드코딩해 이 레포의 색상 토큰 규칙을
+우회하고 있었다(Tailwind가 기본 제공하는 그 팔레트 클래스 이름은 이 문서에 그대로 적지
+않는다 - CSS/JS 주석·문서에 실제 클래스명을 적으면 Tailwind 스캐너가 이를 후보로
+오인식해 미사용 유틸리티를 생성한다는 걸 이번에 실측했다, 아래 "상태" 참고).
+
+**결정**
+
+`tailwind.config.ts`를 삭제하고 참조 7곳을 정리했다: `tsconfig.node.json`의 `include`,
+`components.json`의 `tailwind.config`(shadcn v4 공식 안내대로 빈 문자열로),
+`.github/workflows/deploy.yml`·`history.yml`의 경로 트리거, `docs/DEPLOY.md`·
+`docs/SYSTEM-ARCHITECTURE.md`·`docs/CI-CHECK-GATE.md`의 트리거 서술. 색·반경 토큰
+정의는 이제 `globals.css`의 `@theme` 한 곳뿐이다.
+
+`tailwindcss-animate`(`package.json`)는 이 죽은 config가 유일한 참조처였지만
+(실제 애니메이션은 `tw-animate-css`가 담당), 원래 있던 죽은 의존성이라 이번엔
+제거하지 않았다 — 완전한 고아 상태임만 기록해둔다.
+
+**상태**
+
+적용 완료. 이후 디자인 토큰 작업(z-index, 색상 결손 보강 등)은 전부 `globals.css`
+기준으로 진행한다.
+
+---
+
 ## 2026-09-11 — 미분류 재탭 no-op 결정 번복: 마지막 폴더 규칙과 동일하게 완전 삭제
 
 **배경**

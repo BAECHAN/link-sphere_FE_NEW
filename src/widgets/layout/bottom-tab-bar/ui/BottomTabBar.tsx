@@ -8,7 +8,7 @@ export function BottomTabBar() {
   const protectedNavigate = useProtectedNavigate();
 
   return (
-    <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t bg-background pb-[env(safe-area-inset-bottom)]">
+    <nav className="md:hidden fixed bottom-0 inset-x-0 z-nav border-t bg-background pb-[env(safe-area-inset-bottom)]">
       <div className="flex h-16">
         {NAV_ITEMS.map(({ to, icon: Icon, label, isActive, requiresAuth }) => {
           const active = isActive(pathname);

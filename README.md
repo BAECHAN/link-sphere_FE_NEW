@@ -162,6 +162,7 @@ features/<도메인>/<액션>/
 - [`docs/AUTH.md`](docs/AUTH.md) — 인증·세션·토큰 갱신: 세 개의 독립된 인증 게이트, 상태 저장 위치, 401 자동 갱신
 - [`docs/BOOKMARK.md`](docs/BOOKMARK.md) — 북마크 페이지: 폴더 분류, 반응형 3분기, 폴더 내 검색
 - [`docs/CI-CHECK-GATE.md`](docs/CI-CHECK-GATE.md) — `pnpm check`가 실제로는 아무 데도 안 걸려 있던 문제와 PR·배포 게이트 정비
+- [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md) — 디자인 토큰(색상·반경·z-index)·컴포넌트·ESLint 강제 규칙·Storybook 카탈로그
 - [`docs/FCM-PUSH-NOTIFICATION.md`](docs/FCM-PUSH-NOTIFICATION.md) — 댓글·답글 FCM 웹 푸시: 토큰 수명주기, 서비스워커, 알림 클릭 딥링크
 - [`docs/MYPAGE.md`](docs/MYPAGE.md) — 프로필 수정 모달: 닉네임·아바타 변경, 재오픈 시 입력값 복원
 - [`docs/NEW-VERSION-RELOAD.md`](docs/NEW-VERSION-RELOAD.md) — 배포 후 새 버전 감지 시 다음 라우트 이동에 맞춰 자동 새로고침
