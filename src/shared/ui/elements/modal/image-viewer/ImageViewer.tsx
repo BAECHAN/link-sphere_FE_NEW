@@ -118,7 +118,7 @@ export function GlobalImageViewer() {
                 e.stopPropagation();
                 prev();
               }}
-              className="fixed left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/80 disabled:opacity-0"
+              className="fixed left-2 top-1/2 -translate-y-1/2 rounded-full bg-scrim/60 p-2 text-scrim-foreground transition-colors hover:bg-scrim/80 disabled:opacity-0"
             >
               <ChevronLeft className="size-5" />
               <span className="sr-only">{TEXTS.ariaLabels.imageViewerPrev}</span>
@@ -130,18 +130,18 @@ export function GlobalImageViewer() {
                 e.stopPropagation();
                 next();
               }}
-              className="fixed right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/80 disabled:opacity-0"
+              className="fixed right-2 top-1/2 -translate-y-1/2 rounded-full bg-scrim/60 p-2 text-scrim-foreground transition-colors hover:bg-scrim/80 disabled:opacity-0"
             >
               <ChevronRight className="size-5" />
               <span className="sr-only">{TEXTS.ariaLabels.imageViewerNext}</span>
             </button>
-            <span className="fixed bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs text-white">
+            <span className="fixed bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-scrim/60 px-3 py-1 text-xs text-scrim-foreground">
               {currentIndex + 1} / {images.length}
             </span>
           </>
         )}
         <DialogClose
-          className="fixed right-2 top-4 rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/80"
+          className="fixed right-2 top-4 rounded-full bg-scrim/60 p-2 text-scrim-foreground transition-colors hover:bg-scrim/80"
           onClick={(e) => e.stopPropagation()}
         >
           <X className="size-5" />

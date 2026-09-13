@@ -51,7 +51,7 @@ export function MobileCommentBar({ postId }: MobileCommentBarProps) {
     return (
       <div
         ref={containerRef}
-        className="md:hidden fixed inset-x-0 bottom-0 z-55 border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-lg"
+        className="md:hidden fixed inset-x-0 bottom-0 z-scrim border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-lg"
       >
         <CommentForm
           postId={postId}
@@ -66,7 +66,7 @@ export function MobileCommentBar({ postId }: MobileCommentBarProps) {
   return (
     <div
       ref={containerRef}
-      className="md:hidden fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 border-t bg-background px-4 py-2"
+      className="md:hidden fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-panel border-t bg-background px-4 py-2"
     >
       <Button
         type="button"

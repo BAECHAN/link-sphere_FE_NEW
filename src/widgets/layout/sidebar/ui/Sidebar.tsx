@@ -119,7 +119,7 @@ export function Sidebar() {
       {/* 모바일: 드로어 백드롭 */}
       {isMobileOpen && (
         <div
-          className="md:hidden fixed inset-0 z-55 bg-black/50"
+          className="md:hidden fixed inset-0 z-scrim bg-scrim/50"
           onClick={close}
           aria-hidden="true"
         />
@@ -128,7 +128,7 @@ export function Sidebar() {
       {/* 모바일: 드로어 패널 */}
       <aside
         className={cn(
-          'md:hidden fixed top-0 left-0 z-60 h-full w-64 bg-background border-r flex flex-col',
+          'md:hidden fixed top-0 left-0 z-drawer h-full w-64 bg-background border-r flex flex-col',
           'transition-transform duration-200',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}

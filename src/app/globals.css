@@ -25,6 +25,9 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-scrim: var(--scrim);
+  --color-scrim-foreground: var(--scrim-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
   --color-warning: var(--warning);
@@ -51,6 +54,29 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* 겹침 순서(z-index) 8단계. 값은 기존 리터럴 숫자 8종(10, 20, 40, 50, 55, 60, 70, 80)을
+   그대로 옮긴 것뿐이라 화면 변화는 없다 - 이름 없이 흩어져 있던 걸 한 곳에 모은 것이
+   전부다. 아래처럼 "z-" 접두사를 붙여 적지 않는다 - Tailwind 스캐너는 CSS 주석도
+   텍스트로 훑어 "z-10" 같은 문자열을 실제 클래스 후보로 오인식해 불필요한 유틸리티를
+   생성한다(2026-09-13 빌드 산출물에서 실측 확인).
+   `static`을 쓰는 이유: 기본(inline이 아닌) @theme는 미사용 시 출력에서 제거되는데,
+   Storybook 토큰 카탈로그(DesignTokens.stories.tsx)가 getComputedStyle로 항상 읽을 수
+   있어야 한다.
+   z-scrim: Sidebar.tsx(드로어 백드롭)와 MobileCommentBar.tsx(확장 댓글 시트)가 같은
+   값(55)을 공유한다 - 둘 다 모바일 전용 fixed 요소라 동시에 뜨면 DOM 순서로 우연히
+   승자가 정해지는 잠재 충돌이 있다(docs/DECISIONS.md 2026-09-13 참고). 값을 그대로
+   보존했으므로 이번 변경으로 새로 생기는 문제는 아니다. */
+@theme static {
+  --z-index-raised: 10; /* 카드 내부 오버레이 */
+  --z-index-hitbox: 20; /* 드롭 히트박스 */
+  --z-index-panel: 40; /* 패널·바 */
+  --z-index-nav: 50; /* Navbar/탭바/FAB */
+  --z-index-scrim: 55; /* 전면 딤 */
+  --z-index-drawer: 60; /* 사이드바 패널 */
+  --z-index-modal: 70; /* Dialog */
+  --z-index-popover: 80; /* Dropdown/Select/Tooltip */
+}
+
 :root {
   --radius: 0.625rem;
   --kbd-in-primary-bg: rgba(255, 255, 255, 0.15);
@@ -70,6 +96,14 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(1 0 0);
+  /* 딤(scrim) 오버레이 전용 - 테마 무관(라이트/다크 공통, .dark에서도 재정의하지 않음).
+     button.tsx/badge.tsx의 destructive-foreground와 값은 같은 흰색이지만, 역할이
+     다른(딤 위 텍스트 vs 버튼 위 텍스트) 별도 토큰이다. 각 사용처는 기존 투명도
+     수식자(/40, /50, /60, /80 등)를 그대로 유지한다 - 화면 변화 없음
+     (docs/DECISIONS.md 2026-09-13 참고). */
+  --scrim: oklch(0 0 0);
+  --scrim-foreground: oklch(1 0 0);
   --info: oklch(0.585 0.233 262);
   --info-foreground: oklch(1 0 0);
   --warning: oklch(0.769 0.188 85);

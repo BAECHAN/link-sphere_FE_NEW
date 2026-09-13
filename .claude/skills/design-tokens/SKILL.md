@@ -17,23 +17,25 @@ Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금
 
 ### 주요 색상 토큰 → Tailwind 클래스
 
-| 의미        | CSS 변수        | Tailwind 클래스                             | 사용 예              |
-| ----------- | --------------- | ------------------------------------------- | -------------------- |
-| 기본 배경   | `--background`  | `bg-background`                             | 페이지 배경          |
-| 기본 텍스트 | `--foreground`  | `text-foreground`                           | 본문 텍스트          |
-| 카드        | `--card`        | `bg-card`, `text-card-foreground`           | Card 컴포넌트        |
-| 기본 강조   | `--primary`     | `bg-primary`, `text-primary-foreground`     | 주요 버튼, CTA       |
-| 보조        | `--secondary`   | `bg-secondary`, `text-secondary-foreground` | 보조 버튼            |
-| 음소거      | `--muted`       | `bg-muted`, `text-muted-foreground`         | 비활성 텍스트, 힌트  |
-| 강조        | `--accent`      | `bg-accent`, `text-accent-foreground`       | 호버, 선택 상태      |
-| 파괴적 액션 | `--destructive` | `text-destructive`, `bg-destructive`        | 삭제 버튼, 에러 상태 |
-| 성공        | `--success`     | `text-success`, `bg-success`                | 완료, 성공 상태      |
-| 경고        | `--warning`     | `text-warning`, `bg-warning`                | 주의 상태            |
-| 정보        | `--info`        | `text-info`, `bg-info`                      | 안내, 정보 배지      |
-| 카테고리    | `--category`    | `bg-category`, `text-category-foreground`   | 카테고리 배지        |
-| 테두리      | `--border`      | `border-border`                             | 구분선               |
-| 입력        | `--input`       | `border-input`                              | 입력 필드 테두리     |
-| 링          | `--ring`        | `ring-ring`                                 | 포커스 링            |
+| 의미                  | CSS 변수                        | Tailwind 클래스                                           | 사용 예                                                                                       |
+| --------------------- | ------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| 기본 배경             | `--background`                  | `bg-background`                                           | 페이지 배경                                                                                   |
+| 기본 텍스트           | `--foreground`                  | `text-foreground`                                         | 본문 텍스트                                                                                   |
+| 카드                  | `--card`                        | `bg-card`, `text-card-foreground`                         | Card 컴포넌트                                                                                 |
+| 기본 강조             | `--primary`                     | `bg-primary`, `text-primary-foreground`                   | 주요 버튼, CTA                                                                                |
+| 보조                  | `--secondary`                   | `bg-secondary`, `text-secondary-foreground`               | 보조 버튼                                                                                     |
+| 음소거                | `--muted`                       | `bg-muted`, `text-muted-foreground`                       | 비활성 텍스트, 힌트                                                                           |
+| 강조                  | `--accent`                      | `bg-accent`, `text-accent-foreground`                     | 호버, 선택 상태                                                                               |
+| 파괴적 액션           | `--destructive`                 | `text-destructive`, `bg-destructive`                      | 삭제 버튼, 에러 상태                                                                          |
+| 파괴적 액션 위 텍스트 | `--destructive-foreground`      | `text-destructive-foreground`                             | destructive variant 버튼/배지 글자색                                                          |
+| 딤(오버레이)          | `--scrim`, `--scrim-foreground` | `bg-scrim`(테마 무관 검정), `text-scrim-foreground`(흰색) | Dialog·Sidebar 백드롭, ImageViewer 컨트롤 배경. 투명도는 호출부가 `/40`~`/80` 수식자로 정한다 |
+| 성공                  | `--success`                     | `text-success`, `bg-success`                              | 완료, 성공 상태                                                                               |
+| 경고                  | `--warning`                     | `text-warning`, `bg-warning`                              | 주의 상태                                                                                     |
+| 정보                  | `--info`                        | `text-info`, `bg-info`                                    | 안내, 정보 배지                                                                               |
+| 카테고리              | `--category`                    | `bg-category`, `text-category-foreground`                 | 카테고리 배지                                                                                 |
+| 테두리                | `--border`                      | `border-border`                                           | 구분선                                                                                        |
+| 입력                  | `--input`                       | `border-input`                                            | 입력 필드 테두리                                                                              |
+| 링                    | `--ring`                        | `ring-ring`                                               | 포커스 링                                                                                     |
 
 ### 반경 토큰
 
@@ -43,6 +45,27 @@ Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금
 | `--radius-md` | `rounded-md` | `calc(var(--radius) - 2px)` |
 | `--radius-lg` | `rounded-lg` | `var(--radius)`             |
 | `--radius-xl` | `rounded-xl` | `calc(var(--radius) + 4px)` |
+
+### z-index 토큰
+
+`z-\d+` 리터럴을 직접 쓰지 않는다 — 8단계가 이름 없이 흩어져 있다가 `Sidebar.tsx`
+드로어 백드롭과 `MobileCommentBar.tsx` 확장 댓글 시트가 값(55)이 겹치는 잠재 충돌이
+있었다(`docs/DECISIONS.md` 2026-09-13 참고). ESLint `custom-tailwind/no-raw-z-index`가
+새 리터럴 사용을 차단한다.
+
+| 토큰        | 값  | 용도                                    |
+| ----------- | --- | --------------------------------------- |
+| `z-raised`  | 10  | 카드/폼 내부 오버레이                   |
+| `z-hitbox`  | 20  | 드롭 히트박스                           |
+| `z-panel`   | 40  | 패널·바 기본                            |
+| `z-nav`     | 50  | Navbar / 하단탭바 / FAB                 |
+| `z-scrim`   | 55  | 전면 딤 (Sidebar·MobileCommentBar 공유) |
+| `z-drawer`  | 60  | 사이드바 패널                           |
+| `z-modal`   | 70  | Dialog                                  |
+| `z-popover` | 80  | Dropdown / Select / Tooltip             |
+
+Storybook `Shared/UI/Tokens/Design Tokens` 스토리의 `ZIndex`에서 8단계를 시각적으로
+확인할 수 있다.
 
 ### 인터랙션 커서
 

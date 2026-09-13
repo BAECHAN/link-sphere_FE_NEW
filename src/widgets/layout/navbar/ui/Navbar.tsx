@@ -116,7 +116,7 @@ export function Navbar() {
     <>
       <nav
         ref={navRef}
-        className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60"
+        className="sticky top-0 z-nav w-full bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60"
       >
         <div className="flex h-16 items-center justify-between px-4">
           {/* Mobile 검색 모드: 뒤로가기 + 입력창 + 지우기가 상단 바 전체를 대체 */}
