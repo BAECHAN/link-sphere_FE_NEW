@@ -18,7 +18,7 @@
 
 1.  **Trigger**: `main` 브랜치에 푸시되면 워크플로우가 시작됩니다 — 단, 경로 필터가
     걸려 있어 `src/**`·`public/**`·`package.json`·`pnpm-lock.yaml`·`vite.config.ts`·
-    `tailwind.config.ts`·`postcss.config.js`·`index.html`·`tsconfig*.json` 중 하나라도
+    `postcss.config.js`·`index.html`·`tsconfig*.json` 중 하나라도
     바뀐 push에만 실행됩니다(`.github/workflows/deploy.yml`의 `on.push.paths`).
     즉 `CHANGELOG.md`나 `docs/` 아래 파일만 바뀐 push는 이 워크플로우를 **트리거하지
     않습니다** — 직전 배포가 실패해 있던 상태를 문서 수정 커밋으로 고쳤다고 착각하기

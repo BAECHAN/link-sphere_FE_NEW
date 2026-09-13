@@ -249,7 +249,6 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'vite.config.ts'
-      - 'tailwind.config.ts'
       - 'postcss.config.js'
       - 'index.html'
       - 'tsconfig*.json'
