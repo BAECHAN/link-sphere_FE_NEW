@@ -1282,6 +1282,7 @@ export default [
     rules: {
       'custom-tailwind/no-raw-z-index': 'error',
       'custom-tailwind/no-raw-color': 'error',
+      'custom-tailwind/no-classname-template-literal': 'error',
     },
   },
 ];

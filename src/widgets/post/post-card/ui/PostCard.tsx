@@ -29,6 +29,7 @@ import { LikePostButton } from '@/features/post/like/ui/LikePostButton';
 import { BookmarkPostButton } from '@/features/bookmark/toggle/ui/BookmarkPostButton';
 import { TEXTS } from '@/shared/config/texts';
 import { usePostCard } from '@/widgets/post/post-card/hooks/usePostCard';
+import { cn } from '@/shared/lib/tailwind/utils';
 
 interface PostCardProps {
   post: Post;
@@ -70,7 +71,10 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
       )}
 
       <CardHeader
-        className={`p-3 pb-1 flex flex-row items-start justify-between space-y-0 ${dimmedClassName}`}
+        className={cn(
+          'p-3 pb-1 flex flex-row items-start justify-between space-y-0',
+          dimmedClassName
+        )}
       >
         <div className="space-y-1 flex-1 min-w-0">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
@@ -81,9 +85,9 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
               className="flex"
               zoomable
             />
-            <span className={`truncate`}>{author?.nickname || TEXTS.post.card.anonymous}</span>
-            <span className={`text-xs`}>•</span>
-            <span className={`text-xs`}>{DateUtil.formatRelativeShort(post.createdAt)}</span>
+            <span className="truncate">{author?.nickname || TEXTS.post.card.anonymous}</span>
+            <span className="text-xs">•</span>
+            <span className="text-xs">{DateUtil.formatRelativeShort(post.createdAt)}</span>
           </div>
           <Link
             to={`/post/${post.id}`}
@@ -92,14 +96,17 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
             onFocus={handlePrefetchDetail}
           >
             <h3
-              className={`font-bold leading-tight mb-0.5 text-sm md:text-lg ${isDetail ? '' : 'line-clamp-3'}`}
+              className={cn(
+                'font-bold leading-tight mb-0.5 text-sm md:text-lg',
+                !isDetail && 'line-clamp-3'
+              )}
             >
               {post.title}
             </h3>
           </Link>
         </div>
 
-        <div className={`flex items-center gap-0.5 md:gap-1 shrink-0`}>
+        <div className="flex items-center gap-0.5 md:gap-1 shrink-0">
           {isOwner && post.isPrivate && (
             <Button
               variant="ghost"
@@ -161,15 +168,15 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className={`p-3 pt-0 flex flex-col ${dimmedClassName}`}>
+      <CardContent className={cn('p-3 pt-0 flex flex-col', dimmedClassName)}>
         {post.description && (
-          <p className={`text-sm text-muted-foreground mb-2 ${isDetail ? '' : 'line-clamp-3'}`}>
+          <p className={cn('text-sm text-muted-foreground mb-2', !isDetail && 'line-clamp-3')}>
             {post.description}
           </p>
         )}
 
         {post.aiSummary && (
-          <div className={`mb-2 bg-info/10 border border-info/20 rounded-md overflow-hidden block`}>
+          <div className="mb-2 bg-info/10 border border-info/20 rounded-md overflow-hidden block">
             <Button
               type="button"
               variant="ghost"
@@ -200,7 +207,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
           href={post.url}
           target="_blank"
           rel="noopener noreferrer"
-          className={`block group border rounded-lg overflow-hidden hover:border-primary/50 transition-colors mt-1`}
+          className="block group border rounded-lg overflow-hidden hover:border-primary/50 transition-colors mt-1"
         >
           <LinkThumbnail
             src={post.ogImage}
@@ -227,7 +234,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
         </a>
 
         {post.categories && post.categories.length > 0 && (
-          <div className={`gap-2 flex-wrap mb-2 mt-3 flex`}>
+          <div className="gap-2 flex-wrap mb-2 mt-3 flex">
             {post.categories?.map((category) => (
               <Badge
                 key={category?.id}
@@ -241,7 +248,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
         )}
 
         {post.tags && post.tags.length > 0 && (
-          <div className={`gap-2 flex-wrap mt-2 flex`}>
+          <div className="gap-2 flex-wrap mt-2 flex">
             {post.tags.map((tag: string) => (
               <Badge key={tag} variant="secondary" className="text-xs">
                 {tag}
@@ -251,7 +258,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
         )}
       </CardContent>
 
-      <CardFooter className={`p-3 pt-0 flex gap-2 flex-wrap items-center ${dimmedClassName}`}>
+      <CardFooter className={cn('p-3 pt-0 flex gap-2 flex-wrap items-center', dimmedClassName)}>
         <div className="flex items-center bg-muted/50 rounded-full p-0.5 md:p-1">
           <LikePostButton
             postId={post.id}
@@ -263,7 +270,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
             <Button
               variant="ghost"
               size="sm"
-              className={`gap-1 md:gap-1.5 text-muted-foreground h-6 md:h-8 px-2 md:px-3 text-[10px] md:text-sm rounded-full hover:bg-background/80`}
+              className="gap-1 md:gap-1.5 text-muted-foreground h-6 md:h-8 px-2 md:px-3 text-[10px] md:text-sm rounded-full hover:bg-background/80"
             >
               <MessageSquare className={'h-3 w-3 md:h-4 md:w-4'} />
               <span className={'sm:inline'}>{post.stats.commentCount || 0}</span>
@@ -280,7 +287,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
           <Button
             variant="ghost"
             size="icon"
-            className={`h-8 w-8 md:h-9 md:w-9 rounded-full text-muted-foreground`}
+            className="h-8 w-8 md:h-9 md:w-9 rounded-full text-muted-foreground"
             onClick={handleCopyLink}
           >
             <Share2 className="h-3.5 w-3.5 md:h-4.5 md:w-4.5" />
@@ -288,7 +295,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
           </Button>
         </div>
 
-        <div className={`items-center gap-1 text-muted-foreground text-xs flex`}>
+        <div className="items-center gap-1 text-muted-foreground text-xs flex">
           <Eye className="h-3 w-3" />
           <span>{post.stats.viewCount || 0}</span>
         </div>

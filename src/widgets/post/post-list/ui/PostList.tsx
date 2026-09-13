@@ -6,6 +6,7 @@ import { PostListSkeleton } from '@/widgets/post/post-list/ui/PostCardSkeleton';
 
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
+import { ErrorState } from '@/shared/ui/elements/ErrorState';
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import { usePullToRefresh } from '@/shared/hooks/usePullToRefresh';
 import { TEXTS } from '@/shared/config/texts';
@@ -19,9 +20,7 @@ export function PostList() {
           <PostListSkeleton />
         </DelayedFallback>
       }
-      errorFallback={() => (
-        <div className="text-center py-12 text-destructive">{TEXTS.messages.error.fetchPosts}</div>
-      )}
+      errorFallback={() => <ErrorState>{TEXTS.messages.error.fetchPosts}</ErrorState>}
     >
       <PostListContent />
     </AsyncBoundary>

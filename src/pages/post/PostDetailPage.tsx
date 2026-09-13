@@ -10,6 +10,7 @@ import { CommentList } from '@/widgets/comment/comment-list/ui/CommentList';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
+import { ErrorState } from '@/shared/ui/elements/ErrorState';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { ApiError } from '@/shared/types/common.type';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
@@ -76,9 +77,7 @@ function PostDetailErrorFallback({ error }: FallbackProps) {
     return <SpinnerOverlay />;
   }
 
-  return (
-    <div className="text-center py-12 text-destructive">{TEXTS.messages.error.fetchPosts}</div>
-  );
+  return <ErrorState>{TEXTS.messages.error.fetchPosts}</ErrorState>;
 }
 
 export function PostDetailPage() {

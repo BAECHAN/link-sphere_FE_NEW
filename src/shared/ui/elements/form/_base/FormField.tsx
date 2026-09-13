@@ -1,8 +1,9 @@
 import { useController, useFormContext, type FieldValues } from 'react-hook-form';
 import { Label } from '@/shared/ui/atoms/label';
 import { PropsWithChildren } from 'react';
+import { cn } from '@/shared/lib/tailwind/utils';
 
-interface FormFieldProps extends PropsWithChildren {
+export interface FormFieldProps extends PropsWithChildren {
   name: string;
   label?: string;
   className?: string;
@@ -30,20 +31,21 @@ export const FormField = ({
   });
 
   const message = fieldState.error?.message ?? description;
-  const messageClassName = `text-sm font-medium ${
+  const messageClassName = cn(
+    'text-sm font-medium',
     fieldState.error
       ? 'text-destructive'
       : descriptionVariant === 'success'
         ? 'text-success'
         : 'text-muted-foreground'
-  }`;
+  );
 
   return (
-    <div className={`flex flex-col gap-2 ${className ?? ''}`}>
+    <div className={cn('flex flex-col gap-2', className)}>
       {label && <Label htmlFor={name}>{label}</Label>}
       {children}
       {(message || reserveDescriptionSpace) && (
-        <p className={`${messageClassName} min-h-5`}>{message}</p>
+        <p className={cn(messageClassName, 'min-h-5')}>{message}</p>
       )}
     </div>
   );
