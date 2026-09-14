@@ -45,7 +45,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
       className={cn(
         // scroll-mt: CommentList의 scrollToHashedComment가 block: 'start'로 스크롤할 때
         // sticky navbar 아래로 이 댓글의 상단이 가려지지 않도록 한다.
-        'group flex gap-3 text-sm animate-in fade-in scroll-mt-(--navbar-height)',
+        'group flex items-start gap-3 text-sm animate-in fade-in scroll-mt-(--navbar-height)',
         depth > 0 && 'mt-4 ml-4 border-l pl-3 md:ml-8 md:border-l-0 md:pl-0',
         isOptimistic && 'opacity-60'
       )}
