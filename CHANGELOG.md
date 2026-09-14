@@ -87,6 +87,22 @@
 
 ### Fixed
 
+- `comment` 댓글 해시 이동 시 스크롤 정렬을 중앙에서 상단으로 변경해 긴 댓글도 시작부터 읽히게 함
+  <details><summary>배경·구현</summary>
+
+  "내 댓글" 카드에서 원글로 이동하면 `block: 'center'`로 스크롤해 댓글을 화면 중앙에 뒀는데, 댓글이 길면 시작부가 뷰포트 위로 잘려 나가 중간부터 읽히는 문제가 있었다. `scrollIntoView()`의 `block` 기본값 자체가 `'start'`([MDN](https://developer.mozilla.org/en/docs/Web/API/Element/scrollIntoView))이고 네이티브 앵커 링크(`#id`) 이동도 같은 정렬을 쓴다는 점에 맞춰 `'start'`로 바꿨다. 다만 `block: 'start'`만 쓰면 이번엔 sticky navbar가 댓글 상단을 가리므로, 같은 파일의 댓글 작성 폼 컨테이너에 이미 쓰이던 `scroll-mt-(--navbar-height)`를 앵커 요소(`CommentItem` 루트)에도 동일하게 적용했다. 두 요소(스크롤 정렬 없음 vs `scroll-mt` 없는 `start`)를 각각 정적 재현 페이지로 스크린샷 비교해 시작부가 잘리는 것과 navbar에 가려지는 것 둘 다 실제로 재현·수정됨을 확인했다.
+  (`widgets/comment/comment-list/ui/CommentList.tsx`, `widgets/comment/comment-list/ui/CommentItem.tsx`)
+
+  </details>
+
+- `comment` 댓글 첨부 이미지가 로드되며 다른 댓글이 밀리던 레이아웃 시프트 수정
+  <details><summary>배경·구현</summary>
+
+  "내 댓글" 카드에서 특정 댓글로 스크롤·하이라이트해도, 위쪽 다른 댓글의 첨부 이미지가 뒤늦게 로드되면서 문서 높이가 늘어나 하이라이트 위치가 밀렸다. `MarkdownContent`의 댓글 이미지 `<img>`에 크기 예약이 없어 로드 전 높이 0에서 로드 후 240px로 순간 점프하는 게 원인이었다(`docs/DECISIONS.md` 2026-09-06 항목에서 다른 시프트 증상을 조사하다 발견했지만 그때 원인은 아니어서 유예해 둔 이슈). 이미지 요청 시 width와 height를 같은 값으로 넘기면(`resize=cover`) 원본이 그 값보다 작지만 않으면 응답이 항상 정확히 그 정사각으로 잘려 온다는 점(Supabase Storage 공식 문서의 cover 정의, 직접 측정으로 재확인)을 이용해, Supabase 변환을 타는 이미지는 로드 전부터 `LinkThumbnail`과 같은 방식(고정 비율 래퍼 + `bg-muted` 플레이스홀더)으로 정사각 자리를 미리 예약하도록 했다. `blob:`(작성 중 미리보기)·외부 이미지 링크는 비율을 알 수 없어 기존 렌더링을 그대로 유지한다.
+  (`shared/ui/elements/MarkdownContent.tsx`, `shared/lib/image/supabaseImage.ts`, `shared/ui/elements/MarkdownContent.stories.tsx`, `shared/ui/elements/MarkdownContent.test.tsx`(신규), `docs/plans/2026-09-14-comment-image-cls.md`(신규), [PR #93](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/93))
+
+  </details>
+
 - `comment` 프로필 이미지가 있는 댓글에서 아바타가 세로 가운데로 처지던 문제 수정
   <details><summary>배경·구현</summary>
 
