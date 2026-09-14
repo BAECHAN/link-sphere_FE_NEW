@@ -61,7 +61,7 @@
   <details><summary>배경·구현</summary>
 
   로그아웃하면 화면에 떠 있던 모든 쿼리를 토큰이 지워진 채로 배경 재요청했는데, 보호 경로 로그아웃이나 세션 만료처럼 어차피 다른 화면으로 바로 이동하는 경우엔 그 재요청이 401만 받고 버려지는 100% 낭비였다. 로그아웃을 "화면이 곧 이동하는가"로 나눠, `AuthUtil.clearAll()`(보호 경로·세션 만료)은 재요청 없이 캐시만 버리는 새 처리(`removeQueries()`)를 쓰고, 제자리 로그아웃(비보호 경로)은 기존 방식(`resetQueries()`, 화면에 남은 좋아요·북마크 표시를 비로그인 상태로 갱신)을 그대로 유지했다. `resetQueries()`에는 재요청을 끄는 옵션이 없어 `removeQueries()`로 갈아탔는데, 이게 클릭 전에 지워지지 않았던 이전 사용자 데이터 문제(clear()를 피했던 이유)와 같은 특성을 갖지만 뒤따르는 페이지 이동이 그 화면을 통째로 언마운트시켜서 무해하다. 로그아웃 직후 구간 판정(`isLoggingOut()`)도 기존 Promise 기반 플래그 대신 타임스탬프 유예 창으로 확장해 두 경로 모두에 적용했다.
-  (`shared/utils/auth.util.ts`, `shared/utils/auth.util.test.ts`, `shared/api/client.test.ts`, `e2e/logout.spec.ts`, `e2e/session-expired.spec.ts`, `docs/AUTH.md`, `docs/FE-ARCHITECTURE.md`, `docs/MYPAGE.md`, `docs/DECISIONS.md`)
+  (`shared/utils/auth.util.ts`, `shared/utils/auth.util.test.ts`, `shared/api/client.test.ts`, `e2e/logout.spec.ts`, `e2e/session-expired.spec.ts`, `docs/AUTH.md`, `docs/FE-ARCHITECTURE.md`, `docs/MYPAGE.md`, `docs/DECISIONS.md`, [PR #98](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/98))
 
   </details>
 
@@ -119,7 +119,7 @@
   <details><summary>배경·구현</summary>
 
   "내 댓글" 카드에서 원글로 이동하면 하이라이트된 댓글이 sticky navbar 바로 아래(여백 0px)에 붙어서 시작해, 가려지거나 잘리진 않지만 시각적으로 답답하다는 피드백을 받았다. 이 코드베이스에 "navbar 높이 + 여유분" 간격을 쓴 선례가 없어 임의로 정하는 대신, 실제 앱과 같은 색 토큰·컴포넌트 구조로 만든 목업으로 여백 0/12/16/24px 네 가지를 나란히 비교해 승인받은 뒤 24px로 정했다. `CommentItem` 루트의 `scroll-mt-(--navbar-height)`를 `scroll-mt-[calc(var(--navbar-height)_+_24px)]`로 바꿔, navbar 실제 높이(런타임 측정값)에 24px를 더한 만큼 스크롤 여백을 예약한다. 실제 사이트에서 `getBoundingClientRect().top`으로 재측정해 정확히 navbar 높이+24px(64+24=88px, 1px 미만 오차)에 도착함을 확인했다.
-  (`widgets/comment/comment-list/ui/CommentItem.tsx`)
+  (`widgets/comment/comment-list/ui/CommentItem.tsx`, [PR #95](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/95))
 
   </details>
 
@@ -127,7 +127,7 @@
   <details><summary>배경·구현</summary>
 
   "내 댓글" 화면을 열어둔 채 로그아웃하면 그 화면이 계속 에러로 남아, 다시 로그인하고 재진입해도 "내 댓글을 불러오는데 실패했어요"만 보였다. 로그아웃 처리(`AuthUtil.clearQueries()`)가 토큰을 지운 직후 `resetQueries()`로 화면에 남아있던 쿼리를 배경 재요청시키는데, 그 요청이 401을 받아 캐시가 error 상태로 굳는 것이 원인이었다. TanStack Query의 Suspense 훅은 캐시가 error면 재마운트해도 새 요청을 아예 내지 않고(`retryOnMount`를 false로 강제) 캐시된 옛 에러를 그대로 다시 throw한다. 기존 로그인 성공 처리의 `invalidateQueries()`는 활성 쿼리만 다시 부르므로 이미 언마운트된 이 쿼리에는 닿지 못했다. 로그인 성공 시 에러 상태이면서 보여줄 데이터도 없는 쿼리만 골라 `resetQueries()`로 초기 상태로 되돌리도록 했다 — 데이터를 들고 있는 쿼리(배경 재요청만 실패한 경우)는 화면이 멀쩡하고 재마운트 시 정상 재요청되므로 건드리지 않는다. 모달을 통한 제자리 로그인에서 이미 떠 있던 게시글 목록이 깜빡이지 않게 하려는 의도다. 이 리셋은 기존 `invalidateQueries()` 앞에 둔다 — `resetQueries()`의 내부 재조회는 리셋 뒤 predicate가 더 이상 매칭되지 않아 아무것도 다시 부르지 않으므로, 화면에 떠 있는 쿼리의 재요청은 뒤이은 `invalidateQueries()`가 맡는다. `useLoginMutation` 전용 테스트가 없던 것도 이번에 함께 채웠다.
-  (`entities/auth/api/auth.queries.ts`, `entities/auth/api/auth.queries.test.ts`, `docs/AUTH.md`)
+  (`entities/auth/api/auth.queries.ts`, `entities/auth/api/auth.queries.test.ts`, `docs/AUTH.md`, [PR #94](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/94))
 
 - `comment` 댓글 해시 이동 시 스크롤 정렬을 중앙에서 상단으로 변경해 긴 댓글도 시작부터 읽히게 함
   <details><summary>배경·구현</summary>
