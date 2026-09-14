@@ -87,6 +87,12 @@
 
 ### Fixed
 
+- `auth` 로그아웃 후 다시 로그인해도 이전 화면이 계속 에러로 보이던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  "내 댓글" 화면을 열어둔 채 로그아웃하면 그 화면이 계속 에러로 남아, 다시 로그인하고 재진입해도 "내 댓글을 불러오는데 실패했어요"만 보였다. 로그아웃 처리(`AuthUtil.clearQueries()`)가 토큰을 지운 직후 `resetQueries()`로 화면에 남아있던 쿼리를 배경 재요청시키는데, 그 요청이 401을 받아 캐시가 error 상태로 굳는 것이 원인이었다. TanStack Query의 Suspense 훅은 캐시가 error면 재마운트해도 새 요청을 아예 내지 않고(`retryOnMount`를 false로 강제) 캐시된 옛 에러를 그대로 다시 throw한다. 기존 로그인 성공 처리의 `invalidateQueries()`는 활성 쿼리만 다시 부르므로 이미 언마운트된 이 쿼리에는 닿지 못했다. 로그인 성공 시 에러 상태이면서 보여줄 데이터도 없는 쿼리만 골라 `resetQueries()`로 초기 상태로 되돌리도록 했다 — 데이터를 들고 있는 쿼리(배경 재요청만 실패한 경우)는 화면이 멀쩡하고 재마운트 시 정상 재요청되므로 건드리지 않는다. 모달을 통한 제자리 로그인에서 이미 떠 있던 게시글 목록이 깜빡이지 않게 하려는 의도다. 이 리셋은 기존 `invalidateQueries()` 앞에 둔다 — `resetQueries()`의 내부 재조회는 리셋 뒤 predicate가 더 이상 매칭되지 않아 아무것도 다시 부르지 않으므로, 화면에 떠 있는 쿼리의 재요청은 뒤이은 `invalidateQueries()`가 맡는다. `useLoginMutation` 전용 테스트가 없던 것도 이번에 함께 채웠다.
+  (`entities/auth/api/auth.queries.ts`, `entities/auth/api/auth.queries.test.ts`, `docs/AUTH.md`)
+
 - `comment` 댓글 해시 이동 시 스크롤 정렬을 중앙에서 상단으로 변경해 긴 댓글도 시작부터 읽히게 함
   <details><summary>배경·구현</summary>
 

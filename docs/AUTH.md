@@ -3,7 +3,7 @@
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
 > 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지 설명할 수 있게 됩니다.
-> **마지막 검토**: 2026-09-11
+> **마지막 검토**: 2026-09-14
 
 ---
 
@@ -256,6 +256,51 @@ openLoginModal();
 
 **사용처**: `useAuthGuard`는 `LikePostButton.tsx`(좋아요, 재개 안 함), `BookmarkPostButton.tsx`(북마크, `resumeAfterLogin: true`), `LikeCommentButton.tsx`(댓글 좋아요, 재개 안 함), `useCreateComment.ts`(댓글 제출, 재개 안 함)에서 씁니다. `useProtectedNavigate`는 사이드바·하단 탭바의 "등록"·"북마크" 항목(`nav-items.ts:34`, `:41`의 `requiresAuth: true`)에서 씁니다.
 
+### 8-E. 로그인·로그아웃 시 React Query 캐시 처리
+
+**로그아웃**(`auth.util.ts:56-62`의 `clearQueries()`)은 `queryClient.clear()`가 아니라
+`resetQueries()`를 씁니다 — `clear()`는 마운트된 옵저버에 아무것도 알리지 않아 이전
+사용자 데이터가 화면에 남기 때문입니다(`auth.util.ts:48-55` 주석). 그 대가로,
+`resetQueries()`는 화면에 아직 남아있는 활성 쿼리를 **토큰이 지워진 직후 배경에서
+재요청**합니다. 이 재요청은 당연히 401(`NOT_LOGGED_IN`)을 받고, 그 쿼리의 캐시는
+`status: 'error'`로 확정됩니다. `isLoggingOut()` 플래그(`auth.util.ts:44-46`)는 이
+401의 토스트·강제 리다이렉트만 막을 뿐(`client.ts:207-210`), **캐시가 error 상태로
+오염되는 것 자체는 막지 못합니다.**
+
+이게 왜 문제가 되는가는 조회 훅의 종류에 달려 있습니다. 일반 `useQuery`는
+`throwOnError: false`가 전역 기본값(`queryClient.ts`)이라 재마운트 시 캐시가
+error여도 정상적으로 재요청됩니다. 반면 **Suspense 훅**(`useSuspenseQuery`/
+`useSuspenseInfiniteQuery`)은 캐시가 이미 `error`면 TanStack Query 내부
+(`queryObserver`의 `shouldLoadOnMount`)가 `retryOnMount`를 강제로 `false`로
+만들어 **재마운트해도 네트워크 요청 자체를 내지 않고** 캐시된 옛 에러를 그대로
+다시 throw합니다. `gcTime`(기본 5분)이 지나 캐시가 수거될 때까지 이 상태가
+풀리지 않습니다.
+
+**로그인**(`auth.queries.ts:21-43`의 `useLoginMutation.onSuccess`)이 이걸 정리합니다:
+
+```ts
+setAuth(data.accessToken); // 1. 새 토큰 저장
+void queryClient.resetQueries({
+  // 2. 로그아웃이 남긴 에러 캐시만 초기화
+  predicate: (query) => query.state.status === 'error' && query.state.data === undefined,
+});
+void queryClient.invalidateQueries(); // 3. 전체 invalidate (활성 쿼리 재조회)
+```
+
+`data === undefined` 조건이 핵심입니다 — 데이터를 들고 있으면서 배경 재요청만
+실패한 쿼리(화면은 멀쩡하고 재마운트 시 정상적으로 재요청됨)까지 지우면, 모달을
+통한 제자리 로그인에서 이미 떠 있던 화면(예: 게시글 목록)이 로그인 순간
+스켈레톤으로 깜빡입니다. **순서도 중요합니다** — `resetQueries()`는 내부적으로
+리셋 후 같은 predicate로 재조회를 시도하는데, 리셋 직후엔 상태가 바뀌어 그
+predicate가 더 이상 매칭되지 않아 아무것도 다시 부르지 않습니다. 뒤따르는
+`invalidateQueries()`(필터 없음, 활성 쿼리 전체 재조회)가 화면에 떠 있던 쿼리의
+실제 재요청을 맡습니다.
+
+**새 Suspense 조회를 추가할 때** 이 함정을 기억해야 합니다 — 로그인 시점의 이
+리셋이 전제이므로, 새 Suspense 쿼리도 자동으로 이 보호를 받습니다. 별도 조치는
+필요 없지만, "왜 로그인 직후에만 이 리셋이 필요한가"를 알아야 향후 유사한
+캐시 오염 지점(예: 계정 전환)을 놓치지 않습니다.
+
 ### 자주 하는 수정
 
 | 하고 싶은 것                     | 건드릴 파일                                                                                                                                               |
@@ -264,6 +309,7 @@ openLoginModal();
 | 로그인 필요한 새 액션(버튼) 추가 | `useAuthGuard()`로 액션을 감싸기(§8-D 패턴)                                                                                                               |
 | 로그인 필요한 새 이동(링크) 추가 | `useProtectedNavigate()` 사용, 또는 `nav-items.ts`에 `requiresAuth: true` 항목 추가                                                                       |
 | 새 401 에러 코드 처리 추가       | `error-code.ts`에 상수 추가 → `client.ts:196` 분기 또는 `queryClient.ts`의 전역 핸들러에 분기 추가(그 코드가 재시도 가능한지/즉시 로그아웃인지 먼저 결정) |
+| 새 Suspense 조회 화면 추가       | `useSuspenseQuery`/`useSuspenseInfiniteQuery`는 캐시가 error면 재마운트해도 재요청하지 않는다 — §8-E의 로그인 리셋이 전제다                               |
 
 ---
 
