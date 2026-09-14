@@ -173,6 +173,14 @@
 
   </details>
 
+- `post` 카테고리 필터 칩을 활성화한 뒤 마우스를 올리면 색이 바뀌던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  범위 필터 칩(북마크한·내가 작성한·나만 볼 수 있는)은 이미 `hover:bg-*` 클래스로 활성 색을 고정해뒀는데, 카테고리 필터 칩(`@디자인` 등)의 `activeClassName`에는 그 클래스가 빠져 있어 활성 상태에서 호버하면 기본 호버 스타일로 되돌아갔다. 같은 파일의 다른 칩들과 동일하게 `hover:bg-primary hover:text-primary-foreground`를 추가했다.
+  (`widgets/post/post-list/ui/PostListSearch.tsx`)
+
+  </details>
+
 - `bookmark` 메인 피드에서 북마크를 완전히 제거해도 반응이 없거나 되레 미분류로 옮겨간 것처럼 보이던 문제 수정
   <details><summary>배경·구현</summary>
 

@@ -111,7 +111,7 @@ export function PostListSearch() {
               name={category.value}
               label={`@${category.label}`}
               isActive={isSelected}
-              activeClassName="bg-primary text-primary-foreground"
+              activeClassName="bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
               onClick={() => {
                 // 라벨 클릭 시 기존 자유 검색어는 초기화하고, 이미 선택된 @카테고리/#닉네임 태그만 유지한다.
                 const tag = `@${category.label}`;
