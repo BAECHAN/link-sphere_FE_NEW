@@ -15,7 +15,7 @@
   <details><summary>배경·구현</summary>
 
   `/post` 목록에서 필터 카드 아래에 pull-to-refresh 인디케이터(`motion.div`, 평소 height 0)가 만드는 화면에 안 보이는 24px 마진이 `space-y-6`와 겹쳐 항상 붙어 있었다(`docs/DECISIONS.md`의 "`space-y-*` 컨테이너 안 조건부 렌더 요소" 패턴과 같은 종류) — 이 마진을 형제 요소별 개별 마진으로 옮겨 제거했다. 또한 `/post`만 레포에서 유일하게 쓰던 `space-y-8` 페이지 리듬을 다른 페이지(`/post/:id`, `/mycomment`)가 쓰는 `space-y-6` 계열(`space-y-4 md:space-y-6`)로 맞추고, 필터 카드 바깥 패딩(`p-5 md:p-6`)도 `p-4`로 줄였다. Artifact로 현재/약/중/강 4안을 나란히 보여주고 사용자가 중(B)안을 선택했다.
-  (`pages/post/index.tsx`, `widgets/post/post-list/ui/PostList.tsx`, `widgets/post/post-list/ui/PostListSearch.tsx`)
+  (`pages/post/index.tsx`, `widgets/post/post-list/ui/PostList.tsx`, `widgets/post/post-list/ui/PostListSearch.tsx`, [PR #105](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/105))
 
   </details>
 
