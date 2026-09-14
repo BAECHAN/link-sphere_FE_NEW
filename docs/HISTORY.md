@@ -1,3 +1,6 @@
+### 2026-09-14 (FE)
+- 필터, 정렬, 검색 기능의 URL 파라미터가 로딩 중 중복 요청 시 유실되던 문제를 수정하여 데이터 일관성 확보 ([#88](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/88))
+
 ### 2026-09-14 (BE)
 - 게시글 관련 응답 데이터 최적화
   - post(category, comment, auth, bookmark) 응답 객체에서 프론트엔드 미사용 필드를 제거하여 API 페이로드 경량화 및 불필요한 데이터 노출 방지
