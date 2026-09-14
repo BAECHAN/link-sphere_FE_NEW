@@ -1,8 +1,21 @@
 import { http, HttpResponse } from 'msw';
-import { mockComment } from '@/mocks/fixtures/comment.fixtures';
+import { mockComment, mockMyCommentListResponse } from '@/mocks/fixtures/comment.fixtures';
 import { API_ENDPOINTS } from '@/shared/config/api';
 
 export const commentHandlers = [
+  // GET /comment/my (내 댓글 목록)
+  http.get(API_ENDPOINTS.post.myComments, () => {
+    return HttpResponse.json(
+      {
+        status: 200,
+        message: 'ok',
+        data: mockMyCommentListResponse,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 200 }
+    );
+  }),
+
   // GET /post/:id/comment (댓글 목록)
   http.get(`${API_ENDPOINTS.post.postComment(':id')}`, () => {
     return HttpResponse.json(

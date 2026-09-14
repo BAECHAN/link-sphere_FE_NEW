@@ -1,4 +1,10 @@
-import { useQuery, useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useSuspenseQuery,
+  useSuspenseInfiniteQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { commentApi } from '@/entities/comment/api/comment.api';
 import {
@@ -8,6 +14,8 @@ import {
   handleCommentUpdateSuccess,
 } from '@/entities/comment/api/comment.keys';
 import { Comment } from '@/entities/comment/model/comment.schema';
+import { COMMENT_PAGE_SIZE } from '@/entities/comment/config/comment.const';
+import { PaginationRequest } from '@/shared/types/common.type';
 
 // 서버 응답을 기다리는 동안 목록에 즉시 꽂아 넣는 임시 댓글을 만든다.
 // content 조립 규칙은 BE CommentService.buildFinalContent와 동일하게 맞춘다 - 텍스트 뒤에
@@ -72,6 +80,28 @@ export const useSuspenseComments = (postId: string) => {
   return useSuspenseQuery({
     queryKey: commentKeys.list(postId),
     queryFn: () => commentApi.getComments(postId),
+  });
+};
+
+export const useSuspenseMyCommentsInfiniteQuery = () => {
+  return useSuspenseInfiniteQuery({
+    queryKey: commentKeys.myRoot,
+    queryFn: ({ pageParam }: { pageParam: PaginationRequest['page'] }) =>
+      commentApi.getMyComments({ page: pageParam, size: COMMENT_PAGE_SIZE }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.page + 1),
+    select: (data) => {
+      const seen = new Set<string>();
+      const comments = data.pages
+        .flatMap((page) => page.content)
+        .filter((comment) => (seen.has(comment.id) ? false : seen.add(comment.id) && true));
+      return {
+        pages: data.pages,
+        pageParams: data.pageParams,
+        comments,
+        totalElements: data.pages[0]?.totalElements ?? 0,
+      };
+    },
   });
 };
 

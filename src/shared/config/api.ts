@@ -47,6 +47,7 @@ const API_ENDPOINTS = {
     postComment: (postId: string) => `${API_BASES.post}/${postId}/comment`,
     comment: (commentId: string) => `${API_BASES.comment}/${commentId}`,
     commentReply: (commentId: string) => `${API_BASES.comment}/${commentId}/reply`,
+    myComments: `${API_BASES.comment}/my`,
   },
 
   common: {

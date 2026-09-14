@@ -53,6 +53,7 @@ export const TEXTS = {
     back: '뒤로 가기',
     login: '로그인',
     profileEdit: '프로필 수정',
+    myComments: '내 댓글',
     logout: '로그아웃',
     excelDownload: '엑셀 다운로드',
     reset: '초기화',
@@ -211,6 +212,11 @@ export const TEXTS = {
       reply: '답글 달기',
       edit: '수정',
       like: '좋아요',
+    },
+    myList: {
+      pageTitle: '내 댓글',
+      empty: '아직 작성한 댓글이 없어요.',
+      loadError: '내 댓글을 불러오는데 실패했어요.',
     },
   },
   bookmark: {

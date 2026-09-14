@@ -41,6 +41,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
 
   return (
     <div
+      id={`comment-${comment.id}`}
       className={cn(
         'group flex gap-3 text-sm animate-in fade-in',
         depth > 0 && 'mt-4 ml-4 border-l pl-3 md:ml-8 md:border-l-0 md:pl-0',

@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { CommentForm, CommentFormHandle } from '@/features/comment/create/ui/CommentForm';
 import { MobileCommentBar } from '@/features/comment/create/ui/MobileCommentBar';
 import { ScrollToCommentFormButton } from '@/features/comment/create/ui/ScrollToCommentFormButton';
@@ -23,6 +24,7 @@ function countComments(comments: PostComment[]): number {
 function CommentListContent({ postId, postAuthorId }: CommentListProps) {
   const { data: comments } = useSuspenseComments(postId);
   const isMobile = useIsMobile();
+  const location = useLocation();
   const formContainerRef = useRef<HTMLDivElement>(null);
   const commentFormRef = useRef<CommentFormHandle>(null);
   const sorted = [...comments].sort(
@@ -30,6 +32,41 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
   );
   const isEmpty = sorted.length === 0;
   const totalCount = countComments(comments);
+
+  // "내 댓글" 목록 카드에서 원글로 넘어올 때(/post/:id#comment-:commentId) 그 댓글
+  // 위치로 스크롤하고 잠시 링으로 강조한다 - 댓글이 많으면 목록 맨 위로만 가서는
+  // "내가 어디 달았지"를 다시 찾아야 하는 문제를 해결한다. 답글(depth 1)도 같은
+  // 트리에 함께 렌더되므로 이 효과 하나로 처리된다.
+  useEffect(
+    function scrollToHashedComment() {
+      if (!location.hash) {
+        return;
+      }
+      const target = document.querySelector<HTMLElement>(location.hash);
+      if (!target) {
+        return;
+      }
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.classList.add(
+        'rounded-lg',
+        'ring-2',
+        'ring-primary',
+        'ring-offset-2',
+        'ring-offset-background'
+      );
+      const timer = setTimeout(() => {
+        target.classList.remove(
+          'rounded-lg',
+          'ring-2',
+          'ring-primary',
+          'ring-offset-2',
+          'ring-offset-background'
+        );
+      }, 1600);
+      return () => clearTimeout(timer);
+    },
+    [location.hash]
+  );
 
   return (
     <>

@@ -1,5 +1,8 @@
 export const MAX_COMMENT_IMAGES = 5;
 
+/** 내 댓글 목록(무한 스크롤) 페이지당 개수. POST_PAGE_SIZE와 동일한 값을 쓴다. */
+export const COMMENT_PAGE_SIZE = 10;
+
 /**
  * 댓글 본문 상한(UTF-8 바이트). 한글 1자 = 3바이트이므로 한글 기준 약 2,000자.
  * CloudFront WAF(AWSManagedRulesCommonRuleSet의 SizeRestrictions_BODY, 기본값 그대로 유지 -

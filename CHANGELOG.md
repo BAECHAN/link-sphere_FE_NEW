@@ -11,6 +11,14 @@
 
 ### Added
 
+- `comment` 내가 쓴 댓글을 모아보는 화면 추가
+  <details><summary>배경·구현</summary>
+
+  자기가 단 댓글을 다시 찾을 방법이 없어, 아바타 드롭다운의 "프로필 수정" 아래에 "내 댓글" 항목을 추가하고 새 페이지(`/my/comments`)에서 최신순 무한 스크롤로 보여준다. 카드는 원글 제목보다 내가 쓴 댓글 내용을 먼저 보여주는 쪽을 택했다(Artifact 목업으로 진입점 2안·카드 레이아웃 2안을 나란히 비교한 뒤 사용자가 선택 — 근거는 `docs/plans/2026-09-14-my-comments.md` 참고). 카드를 클릭하면 원글로 이동하면서 그 댓글 위치까지 스크롤하고 잠시 링으로 강조한다(`CommentList`가 URL 해시 `#comment-<id>`를 읽어 처리) — 댓글이 많은 글에서 "내가 어디에 달았는지"를 다시 찾지 않아도 된다. 삭제된(톰스톤) 댓글과, 댓글을 단 뒤 원글이 비공개로 전환된 경우는 BE 쪽 필터로 목록에서 제외된다.
+  (`entities/comment/api/comment.api.ts`, `entities/comment/api/comment.keys.ts`, `entities/comment/api/comment.queries.ts`, `entities/comment/model/comment.schema.ts`, `widgets/comment/my-comment-list/`(신규), `widgets/comment/comment-list/ui/CommentList.tsx`, `widgets/comment/comment-list/ui/CommentItem.tsx`, `pages/mycomment/MyCommentPage.tsx`(신규), `widgets/layout/navbar/ui/Navbar.tsx`, `shared/config/route-paths.ts`, `app/routes/index.tsx`)
+
+  </details>
+
 - `user` 프로필(닉네임·이미지) 수정 성공 시 토스트 알림 표시
   <details><summary>배경·구현</summary>
 
@@ -222,6 +230,10 @@
   (`e2e/post-create.spec.ts`(신규), `e2e/post-detail-not-found.spec.ts`(신규), `e2e/signup.spec.ts`(신규), `e2e/session-expired.spec.ts`(신규), `e2e/bookmark.mobile.spec.ts`(신규), `e2e/mocks/auth.mock.ts`, `e2e/mocks/endpoints.ts`, `playwright.config.ts`, `shared/api/client.test.ts`, `docs/TESTING.md`)
 
   </details>
+
+### Notes
+
+- BE API 의존: `GET /comment/my` 신규 엔드포인트 필요. **배포 순서: BE 먼저** — 구버전 BE에는 이 경로가 없어 먼저 FE만 배포하면 "내 댓글" 화면 진입 시 404가 뜬다.
 
 ## [0.13.0] - 2026-09-06
 
