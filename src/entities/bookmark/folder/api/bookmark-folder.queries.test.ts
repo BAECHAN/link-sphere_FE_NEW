@@ -37,17 +37,14 @@ const POST_ID = mockPost.id;
 const FOLDER_A = 'folder-uuid-a';
 const FOLDER_B = 'folder-uuid-b';
 
-const now = new Date('2025-01-01');
 const seedFolderList: BookmarkFolderListResponse = {
   folders: [
-    { id: FOLDER_A, name: '개발', sortOrder: 0, bookmarkCount: 2, createdAt: now, updatedAt: now },
+    { id: FOLDER_A, name: '개발', sortOrder: 0, bookmarkCount: 2 },
     {
       id: FOLDER_B,
       name: '나중에 읽기',
       sortOrder: 1,
       bookmarkCount: 4,
-      createdAt: now,
-      updatedAt: now,
     },
   ],
   uncategorizedCount: 1,

@@ -7,8 +7,6 @@ export const bookmarkFolderSchema = z.object({
   name: z.string(),
   sortOrder: z.number().int().nonnegative(),
   bookmarkCount: z.number().int().nonnegative(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
   // 이 폴더에 마지막으로 저장한 시각 — 한 번도 저장 안 됐으면 null.
   // z.null()이 먼저 와야 한다: z.union은 순서대로 시도해 먼저 성공하는 쪽을 쓰는데,
   // z.coerce.date()가 앞에 있으면 new Date(null)이 1970-01-01로 "성공"해버려서
@@ -29,8 +27,6 @@ export const bookmarkFolderListResponseSchema = z.object({
 export const createBookmarkFolderSchema = z.object({
   name: z.string().min(1, TEXTS.validation.folderNameRequired),
 });
-
-export const updateBookmarkFolderSchema = createBookmarkFolderSchema;
 
 // 순서 재정렬 — 본인 모든 폴더 ID 를 새 순서대로
 export const reorderBookmarkFoldersSchema = z.object({
@@ -53,7 +49,7 @@ export type BookmarkFolderKey = 'all' | 'uncategorized' | (string & {});
 export type BookmarkFolder = z.infer<typeof bookmarkFolderSchema>;
 export type BookmarkFolderListResponse = z.infer<typeof bookmarkFolderListResponseSchema>;
 export type CreateBookmarkFolderRequest = z.infer<typeof createBookmarkFolderSchema>;
-export type UpdateBookmarkFolderRequest = z.infer<typeof updateBookmarkFolderSchema>;
+export type UpdateBookmarkFolderRequest = z.infer<typeof createBookmarkFolderSchema>;
 export type ReorderBookmarkFoldersRequest = z.infer<typeof reorderBookmarkFoldersSchema>;
 export type BookmarkFoldersResponse = z.infer<typeof bookmarkFoldersResponseSchema>;
 export type BookmarkFolderSort = z.infer<typeof bookmarkFolderSortEnum>;

@@ -28,18 +28,15 @@ const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 const POST_ID = 'post-uuid-1';
 const FOLDER_A = 'folder-uuid-a';
 const FOLDER_B = 'folder-uuid-b';
-const now = new Date('2025-01-01');
 
 const folderListResponse: BookmarkFolderListResponse = {
   folders: [
-    { id: FOLDER_A, name: '개발', sortOrder: 0, bookmarkCount: 2, createdAt: now, updatedAt: now },
+    { id: FOLDER_A, name: '개발', sortOrder: 0, bookmarkCount: 2 },
     {
       id: FOLDER_B,
       name: '나중에 읽기',
       sortOrder: 1,
       bookmarkCount: 4,
-      createdAt: now,
-      updatedAt: now,
     },
   ],
   uncategorizedCount: 1,
@@ -323,24 +320,18 @@ describe('PostCardBookmarkFolderModal', () => {
           name: '개발',
           sortOrder: 0,
           bookmarkCount: 2,
-          createdAt: now,
-          updatedAt: now,
         },
         {
           id: FOLDER_B,
           name: '나중에 읽기',
           sortOrder: 1,
           bookmarkCount: 4,
-          createdAt: now,
-          updatedAt: now,
         },
         {
           id: RECENT_A,
           name: '최근폴더',
           sortOrder: 2,
           bookmarkCount: 1,
-          createdAt: now,
-          updatedAt: now,
           lastUsedAt: new Date('2025-01-05'),
         },
         {
@@ -348,8 +339,6 @@ describe('PostCardBookmarkFolderModal', () => {
           name: '디자인',
           sortOrder: 3,
           bookmarkCount: 0,
-          createdAt: now,
-          updatedAt: now,
           lastUsedAt: new Date('2025-01-04'),
         },
         {
@@ -357,8 +346,6 @@ describe('PostCardBookmarkFolderModal', () => {
           name: '읽을거리',
           sortOrder: 4,
           bookmarkCount: 0,
-          createdAt: now,
-          updatedAt: now,
           lastUsedAt: new Date('2025-01-03'),
         },
         {
@@ -366,8 +353,6 @@ describe('PostCardBookmarkFolderModal', () => {
           name: '기타',
           sortOrder: 5,
           bookmarkCount: 0,
-          createdAt: now,
-          updatedAt: now,
         },
       ],
       uncategorizedCount: 1,

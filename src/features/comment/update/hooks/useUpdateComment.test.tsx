@@ -8,6 +8,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { type ReactNode } from 'react';
 import { useUpdateComment } from '@/features/comment/update/hooks/useUpdateComment';
 import { mockComment } from '@/mocks/fixtures/comment.fixtures';
+import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/comment.const';
@@ -37,7 +38,7 @@ describe('useUpdateComment', () => {
 
   it('편집을 시작하면 원본 댓글 내용으로 초기화된다', () => {
     const { result } = renderHook(
-      () => useUpdateComment({ comment: mockComment, postId: mockComment.postId }),
+      () => useUpdateComment({ comment: mockComment, postId: mockPost.id }),
       {
         wrapper: createWrapper(queryClient),
       }
@@ -49,7 +50,7 @@ describe('useUpdateComment', () => {
 
   it('본문과 이미지가 모두 없으면 canSubmit이 false가 된다', () => {
     const { result } = renderHook(
-      () => useUpdateComment({ comment: mockComment, postId: mockComment.postId }),
+      () => useUpdateComment({ comment: mockComment, postId: mockPost.id }),
       {
         wrapper: createWrapper(queryClient),
       }
@@ -68,7 +69,7 @@ describe('useUpdateComment', () => {
     // 길이 초과는 isOverLimit(인라인 안내용)으로만 노출하고, 실제 제출 차단은
     // onSubmit 내부의 zod resolver가 담당한다.
     const { result } = renderHook(
-      () => useUpdateComment({ comment: mockComment, postId: mockComment.postId }),
+      () => useUpdateComment({ comment: mockComment, postId: mockPost.id }),
       {
         wrapper: createWrapper(queryClient),
       }
@@ -97,7 +98,7 @@ describe('useUpdateComment', () => {
     const errorSpy = vi.spyOn(toast, 'error');
 
     const { result } = renderHook(
-      () => useUpdateComment({ comment: mockComment, postId: mockComment.postId }),
+      () => useUpdateComment({ comment: mockComment, postId: mockPost.id }),
       { wrapper: createWrapper(queryClient) }
     );
 
@@ -134,7 +135,7 @@ describe('useUpdateComment', () => {
     const errorSpy = vi.spyOn(toast, 'error');
 
     const { result } = renderHook(
-      () => useUpdateComment({ comment: mockComment, postId: mockComment.postId }),
+      () => useUpdateComment({ comment: mockComment, postId: mockPost.id }),
       { wrapper: createWrapper(queryClient) }
     );
 
@@ -162,7 +163,7 @@ describe('useUpdateComment', () => {
 
     const onSuccess = vi.fn();
     const { result } = renderHook(
-      () => useUpdateComment({ comment: mockComment, postId: mockComment.postId, onSuccess }),
+      () => useUpdateComment({ comment: mockComment, postId: mockPost.id, onSuccess }),
       { wrapper: createWrapper(queryClient) }
     );
 

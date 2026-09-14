@@ -8,6 +8,7 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { createTestQueryClient } from '@/test/utils';
 import { commentKeys } from '@/entities/comment/api/comment.keys';
 import { mockComment } from '@/mocks/fixtures/comment.fixtures';
+import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { mockAccount, mockOtherAccount } from '@/mocks/fixtures/account.fixtures';
 import type { Comment } from '@/entities/comment/model/comment.schema';
 import {
@@ -26,7 +27,7 @@ function Wrapper({ children }: { children: ReactNode }) {
   return createElement(QueryClientProvider, { client: queryClient }, children);
 }
 
-const POST_ID = mockComment.postId;
+const POST_ID = mockPost.id;
 const AUTHOR = { id: mockAccount.id, nickname: mockAccount.nickname, image: null };
 
 beforeEach(() => {

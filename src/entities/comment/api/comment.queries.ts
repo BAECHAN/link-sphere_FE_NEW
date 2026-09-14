@@ -13,12 +13,10 @@ import { Comment } from '@/entities/comment/model/comment.schema';
 // content 조립 규칙은 BE CommentService.buildFinalContent와 동일하게 맞춘다 - 텍스트 뒤에
 // 이미지 URL(여기서는 아직 업로드 전이라 blob: URL)을 개행으로 이어붙인다.
 function buildOptimisticComment({
-  postId,
   content,
   imageUrls,
   author,
 }: {
-  postId: string;
   content?: string;
   imageUrls: string[];
   author: Comment['author'];
@@ -33,12 +31,9 @@ function buildOptimisticComment({
 
   return {
     id: `temp-${crypto.randomUUID()}`,
-    postId,
-    userId: author.id,
     content: finalContent,
     isDeleted: false,
     createdAt: dayjs().toDate(),
-    updatedAt: dayjs().toDate(),
     author,
     replies: [],
     likeCount: 0,
@@ -92,7 +87,6 @@ export const useCreateCommentMutation = (postId: string) => {
       const previousComments = queryClient.getQueryData<Comment[]>(commentKeys.list(postId));
       const blobUrls = (variables.images ?? []).map((file) => URL.createObjectURL(file));
       const tempComment = buildOptimisticComment({
-        postId,
         content: variables.content,
         imageUrls: blobUrls,
         author: variables.author,
@@ -142,7 +136,6 @@ export const useCreateReplyMutation = (postId: string) => {
       const previousComments = queryClient.getQueryData<Comment[]>(commentKeys.list(postId));
       const blobUrls = (variables.images ?? []).map((file) => URL.createObjectURL(file));
       const tempReply = buildOptimisticComment({
-        postId,
         content: variables.content,
         imageUrls: blobUrls,
         author: variables.author,
@@ -219,7 +212,6 @@ export const useUpdateCommentMutation = (postId: string) => {
       queryClient.setQueryData<Comment[]>(commentKeys.list(postId), (old = []) =>
         patchCommentRecursively(old, data.id, {
           content: data.content,
-          updatedAt: data.updatedAt,
           linkMetadata: data.linkMetadata,
         })
       );

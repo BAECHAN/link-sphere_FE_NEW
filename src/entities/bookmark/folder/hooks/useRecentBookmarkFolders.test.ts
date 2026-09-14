@@ -10,8 +10,6 @@ function makeFolder(
     name: overrides.id,
     sortOrder: 0,
     bookmarkCount: 0,
-    createdAt: new Date('2025-01-01'),
-    updatedAt: new Date('2025-01-01'),
     lastUsedAt: undefined,
     ...overrides,
   };

@@ -13,26 +13,11 @@ describe('bookmarkFolderSchema', () => {
     name: '읽을거리',
     sortOrder: 0,
     bookmarkCount: 3,
-    createdAt: new Date('2025-01-01'),
-    updatedAt: new Date('2025-01-02'),
   };
 
   it('유효한 폴더 데이터를 파싱한다', () => {
     const result = bookmarkFolderSchema.safeParse(validFolder);
     expect(result.success).toBe(true);
-  });
-
-  it('createdAt/updatedAt 문자열을 Date 객체로 변환한다', () => {
-    const result = bookmarkFolderSchema.safeParse({
-      ...validFolder,
-      createdAt: '2025-01-01T00:00:00.000Z',
-      updatedAt: '2025-01-02T00:00:00.000Z',
-    });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.createdAt).toBeInstanceOf(Date);
-      expect(result.data.updatedAt).toBeInstanceOf(Date);
-    }
   });
 
   it('sortOrder가 음수면 파싱에 실패한다', () => {

@@ -290,7 +290,6 @@ export const TEXTS = {
     nicknameCharset: '한글·영문·숫자·_ . -만 사용해주세요.',
     folderNameRequired: '폴더 이름을 입력해주세요.',
     categoryNameRequired: '카테고리 이름을 입력해주세요.',
-    categorySlugRequired: '카테고리 슬러그를 입력해주세요.',
     invalidIdFormat: '유효하지 않은 ID 형식이에요.',
     commentOrImageRequired: '내용 또는 이미지를 추가해주세요.',
     commentRequired: '댓글에 내용 또는 이미지를 추가해주세요.',

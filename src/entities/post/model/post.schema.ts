@@ -94,10 +94,9 @@ export const createPostResponseSchema = postSchema.pick({
   author: true,
 });
 
-// ==================== 3. Interaction & Comment Schemas ====================
-// Moved to interaction.schema.ts and comment.schema.ts
+// ==================== 3. Comment Schema ====================
+// Moved to comment.schema.ts
 
-export * from '@/entities/interaction/model/interaction.schema';
 export * from '@/entities/comment/model/comment.schema';
 
 export type Post = z.infer<typeof postSchema>;

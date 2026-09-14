@@ -18,11 +18,8 @@ export const emailValidationSchema = z.string().email(TEXTS.validation.emailRege
 export const accountSchema = z.object({
   id: z.string(),
   nickname: nicknameValidationSchema,
-  email: emailValidationSchema,
   image: z.string().optional(),
   role: roleEnum,
-  created_at: z.string(),
-  updated_at: z.string(),
 });
 
 // 수정 요청 — nickname 필수, image는 BE가 null로 반환할 수 있으므로 nullish

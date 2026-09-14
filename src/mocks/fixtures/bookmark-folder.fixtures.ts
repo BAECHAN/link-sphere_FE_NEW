@@ -8,8 +8,6 @@ export const mockBookmarkFolder: BookmarkFolder = {
   name: '개발',
   sortOrder: 0,
   bookmarkCount: 1,
-  createdAt: new Date('2025-01-01T00:00:00.000Z'),
-  updatedAt: new Date('2025-01-01T00:00:00.000Z'),
 };
 
 export const mockBookmarkFolderListResponse: BookmarkFolderListResponse = {

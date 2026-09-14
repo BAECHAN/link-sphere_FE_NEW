@@ -41,7 +41,7 @@ beforeEach(() => {
         {
           status: 200,
           message: 'ok',
-          data: [{ id: 1, name: '백엔드', slug: 'backend', sortOrder: 0, createdAt: '2025-01-01' }],
+          data: [{ id: 1, name: '백엔드' }],
           timestamp: '',
         },
         { status: 200 }

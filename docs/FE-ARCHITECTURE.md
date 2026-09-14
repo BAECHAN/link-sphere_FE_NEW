@@ -196,7 +196,7 @@ src/
 ├── entities/                     # 비즈니스 엔티티 — data layer + basic display
 │   ├── post/
 │   │   ├── api/                  # post.api.ts, post.keys.ts, post.queries.ts
-│   │   ├── model/                # post.schema.ts (comment·interaction 스키마 re-export 포함)
+│   │   ├── model/                # post.schema.ts (comment 스키마 re-export 포함)
 │   │   └── config/                # post.const.ts (POST_PAGE_SIZE)
 │   ├── comment/
 │   │   ├── api/                  # comment.api.ts, comment.keys.ts, comment.queries.ts
@@ -204,8 +204,7 @@ src/
 │   │   ├── utils/                # comment.util.ts (estimateCommentPayloadBytes)
 │   │   └── config/                # comment.const.ts (MAX_COMMENT_CONTENT_BYTES 외)
 │   ├── interaction/
-│   │   ├── api/                  # interaction.api.ts, interaction.queries.ts (keys.ts 없음 — post/comment/folder keys 직접 사용)
-│   │   └── model/                # interaction.schema.ts
+│   │   └── api/                  # interaction.api.ts, interaction.queries.ts (keys.ts 없음 — post/comment/folder keys 직접 사용)
 │   ├── bookmark/                 # entities 최초의 그룹 폴더 — folder라는 이름만으로 북마크
 │   │   │                         # 폴더인지 불분명했던 문제를 features/widgets와 같은 방식으로 해소
 │   │   └── folder/
