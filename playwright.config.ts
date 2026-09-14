@@ -20,6 +20,18 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      // 모바일 스펙은 데스크톱 뷰포트를 전제로 단언하는 기존 스펙(예: protected-nav.spec.ts의
+      // "사이드바만 보이고 BottomTabBar는 display:none" 가정)과 공존할 수 없다 — 반드시
+      // 배타적으로 나눠야 한다(2026-09-14 조사 실측).
+      testIgnore: '**/*.mobile.spec.ts',
+    },
+    {
+      name: 'mobile-chrome',
+      // devices['Pixel 5']는 viewport + hasTouch + 모바일 UA를 한 번에 준다.
+      // useIsMobile.ts는 UA 또는 max-width:768px 중 하나만 맞아도 true이므로 viewport만으로도
+      // 충분하지만, usePostCard.ts의 navigator.share 분기는 UA만 보므로 device 프리셋이 더 넓다.
+      use: { ...devices['Pixel 5'] },
+      testMatch: '**/*.mobile.spec.ts',
     },
   ],
   webServer: {

@@ -165,6 +165,24 @@
 
   </details>
 
+- `auth` 회원가입 완료 후 이동 경로가 API 엔드포인트 상수에 우연히 의존하고 있던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  e2e 시나리오 카탈로그를 조사하다 발견: `useCreateAccountMutation`의 `onSuccess`가 라우트 이동에 `ROUTES_PATHS.AUTH.LOGIN`이 아니라 `API_ENDPOINTS.auth.login`을 쓰고 있었다. 둘 다 `/auth/login`이라 지금까지는 우연히 동작했지만, 같은 네임스페이스의 회원가입 자체가 이미 API `/auth/signup`과 라우트 `/auth/sign-up`으로 갈라져 있어 `API_BASES.auth`가 바뀌면 이 코드만 조용히 깨질 수 있었다. `ROUTES_PATHS.AUTH.LOGIN`으로 교체하고, 착지 URL을 직접 단언하는 `signup.spec.ts`로 이 결합을 고정했다.
+  (`entities/auth/api/auth.queries.ts`, `e2e/signup.spec.ts`(신규))
+
+  </details>
+
+### Tests
+
+- `e2e` 게시글 등록, 상세 404, 회원가입, 세션 만료, 북마크 폴더 drill-down(모바일) 흐름 추가
+  <details><summary>배경·구현</summary>
+
+  `docs/TESTING.md` §13의 카탈로그를 다시 전수 조사해 14개 후보를 판정한 뒤(채택 4·보류 2·제외 8), 유닛/컴포넌트 테스트로 구조적으로 검증 불가능한 5개 흐름을 추가했다: (1) 게시글 등록 — 응답을 기다리지 않는 이동, 미저장 변경 가드 미발동, 요청 body 검증(원래 함께 만들려던 "in-flight 재조회 취소" 케이스는 `cancelQueries`의 `revert:true` 기본값과 `invalidateQueries`의 후속 활성 재조회가 얽히는 것으로 보이는 상호작용 때문에 e2e·유닛 양쪽에서 안정적으로 재현하지 못해 제외했다 — 별도 조사 필요), (2) 상세 404 — Suspense→ErrorBoundary→replace 체인, (3) 회원가입 — 착지 URL(위 Fixed 항목의 회귀 방지), (4) 세션 만료 — `AuthUtil.isLoggingOut()` 가드가 트리거 에러 자신에게도 적용돼 토스트 없이 조용히 이동하는 실측(계획 당시 예상과 다름), (5) 북마크 폴더 drill-down — 데스크톱에서 전혀 렌더되지 않는 모바일 전용 화면이라 `playwright.config.ts`에 `mobile-chrome`(Pixel 5) project를 신설해 `*.mobile.spec.ts`만 배타적으로 실행하게 했다(전 스펙을 모바일로 재실행하는 방식은 기존 3개 스펙이 데스크톱 뷰포트를 전제로 단언하고 있어 기각). 범위 밖에서 함께 드러난 유일한 완전 미커버 인증 경로(동시 401 → `refreshSubscribers` 큐)는 e2e보다 싼 유닛 1건으로 별도 커버했다.
+  (`e2e/post-create.spec.ts`(신규), `e2e/post-detail-not-found.spec.ts`(신규), `e2e/signup.spec.ts`(신규), `e2e/session-expired.spec.ts`(신규), `e2e/bookmark.mobile.spec.ts`(신규), `e2e/mocks/auth.mock.ts`, `e2e/mocks/endpoints.ts`, `playwright.config.ts`, `shared/api/client.test.ts`, `docs/TESTING.md`)
+
+  </details>
+
 ## [0.13.0] - 2026-09-06
 
 ### Added

@@ -100,6 +100,50 @@ describe('ApiClient — 인증 오류 처리', () => {
   });
 
   // ─────────────────────────────────────────────────────────────
+  // Case 1-1: 동시 다발 401 TOKEN_EXPIRED — refreshSubscribers 큐
+  // ─────────────────────────────────────────────────────────────
+  describe('Case 1-1: 동시에 두 요청이 401 TOKEN_EXPIRED', () => {
+    it('refresh는 한 번만 호출되고, 두 요청 모두 새 토큰으로 재시도돼 성공한다', async () => {
+      let refreshCallCount = 0;
+      let commentCallCount = 0;
+
+      server.use(
+        // 최초 시도(동시 요청 각각 1회씩, 총 2회)는 401, 그 이후 재시도는 성공
+        http.post(COMMENT_HANDLER_URL, () => {
+          commentCallCount++;
+          return commentCallCount <= 2 ? make401('TOKEN_EXPIRED') : makeCommentSuccess();
+        }),
+        http.post(REFRESH_HANDLER_URL, () => {
+          refreshCallCount++;
+          return HttpResponse.json(
+            {
+              status: 200,
+              message: 'ok',
+              data: { accessToken: 'new-access-token' },
+              timestamp: new Date().toISOString(),
+            },
+            { status: 200 }
+          );
+        })
+      );
+
+      useAuthStore.getState().setAuth('expired-access-token');
+
+      const [resultA, resultB] = await Promise.all([
+        apiClient.post(COMMENT_PATH, makeCommentFormData()),
+        apiClient.post(COMMENT_PATH, makeCommentFormData()),
+      ]);
+
+      // 큐(subscribeTokenRefresh)가 없으면 두 요청이 각자 refresh를 호출해 2가 된다.
+      expect(refreshCallCount).toBe(1);
+      expect(commentCallCount).toBe(4); // 최초 2회(둘 다 401) + 재시도 2회(둘 다 성공)
+      expect(resultA).toMatchObject({ id: 'comment-uuid-1' });
+      expect(resultB).toMatchObject({ id: 'comment-uuid-1' });
+      expect(useAuthStore.getState().accessToken).toBe('new-access-token');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
   // Case 2: Access Token 만료 + Refresh Token도 만료
   // ─────────────────────────────────────────────────────────────
   describe('Case 2: Access Token 만료 + Refresh Token도 만료', () => {
