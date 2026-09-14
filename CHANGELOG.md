@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `post` 상세 돌아가기 버튼: 모바일은 제거, 데스크톱은 sticky 해제
+  <details><summary>배경·구현</summary>
+
+  PR #100에서 돌아가기 버튼을 Navbar 아래 sticky로 고정했더니, 스크롤할 때마다 두 바가 함께 고정돼 모바일 390px 기준 124px를 항상 차지해 답답하다는 피드백을 받았다. dev 서버에서 모바일·데스크톱 실측(124px/112px)과 오버레이 버튼·스크롤 방향 자동 숨김 등 대안을 비교한 끝에, 모바일은 `BottomTabBar`가 라우트와 무관하게 항상 떠 있어 Feed 탭이 이미 대체 수단이고 일반 브라우저 탭에서는 OS·브라우저 뒤로가기가 `navigate(-1)`과 동등하게 동작한다는 점에 착안해 모바일에서는 버튼 자체를 없앴다(`hidden md:inline-flex`). 데스크톱은 Navbar와 나란히 쌓일 이유가 없어 sticky만 걷어내고 평범한 위치로 되돌렸다. `useGoBack`의 이동 로직과 유입 경로별 라벨(`resolveBackLabel`)은 그대로 유지된다 — 유일한 예외는 standalone PWA로 설치한 모바일 사용자로, 이 경우 정확한 위치 복귀 대신 Feed 탭(목록 최상단)으로 대체된다.
+  (`pages/post/PostDetailPage.tsx`, `docs/DECISIONS.md`, [PR #103](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/103))
+
+  </details>
+
 ## [0.14.0] - 2026-09-14
 
 ### Fixed

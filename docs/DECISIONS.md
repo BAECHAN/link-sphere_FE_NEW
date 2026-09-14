@@ -6,6 +6,67 @@
 
 ---
 
+## 2026-09-14 — 상세 돌아가기 버튼: 모바일 제거 + 데스크톱 sticky 해제 (PR #100 결정 재검토)
+
+**배경**
+
+이 문서 아래에 있는 "포스트 상세 돌아가기 버튼: sticky 고정 + 유입 경로별 라벨"(PR #100)에서
+버튼을 Navbar 바로 아래 sticky로 고정했는데, 배포 후 실제 사용자가 "스크롤하면 두 바가
+계속 붙어 있어서 답답하다"는 피드백을 줬다.
+
+**검토**
+
+dev 서버에서 직접 측정한 결과, 스크롤 시 Navbar(64px) + 돌아가기 바가 항상 함께
+고정돼 **모바일 390px 124px · 데스크톱 1440px 112px**가 스크롤 위치와 무관하게 상시
+소비됐다. Adobe XD의 UI 가이드는 _"Don't dedicate more than 100px vertical space to
+static elements on mobile"_ 라고 권고하는데
+([Best Practices For Designing Fixed Elements](https://xd.adobe.com/ideas/process/ui-design/best-practices-designing-fixed-elements)),
+124px는 이를 24px 초과했다.
+
+대안으로 (1) 스크롤 방향에 따라 자동 숨김/표시, (2) 원형 오버레이 버튼(줄 추가 없이
+Navbar 아래 여백에 겹침), (3) 헤더 자체를 상세용으로 교체를 Artifact 목업으로 비교했다.
+(3)은 velog·dev.to·네이버뉴스 3개 사이트 실측(위 원본 결정 항목 참고)으로 이미 배제된
+안을 다시 여는 비용이 커서 제외했고, (1)은 모바일에서는 합리적이나 데스크톱은 이미
+왼쪽 `Sidebar`에 "Feed" 링크가 상시 떠 있어 목록 복귀 수단 자체가 있는데도 스크롤
+방향에 따라 나타났다 사라지는 움직임을 추가하는 게 얻는 공간(900px 중 48px)에 비해
+과하다고 판단해 데스크톱엔 적용하지 않기로 했다.
+
+최종적으로는 더 단순한 셋째 길을 택했다 — 모바일은 버튼을 아예 없앤다. 근거:
+`BottomTabBar`가 `md:hidden fixed bottom-0`으로 라우트와 무관하게 항상 떠 있어
+([BottomTabBar.tsx](../src/widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx)) Feed
+탭이 이미 대체 수단이고, 일반 브라우저 탭에서는 OS·브라우저 뒤로가기(제스처·버튼)가
+`navigate(-1)`과 동일하게 동작해 지금과 체감 차이가 없다 — 오히려 velog·dev.to·
+네이버뉴스 벤치마크(모두 인앱 back 버튼 없이 브라우저 back에만 의존)와 더 정확히
+일치한다. 유일한 예외는 standalone PWA(홈 화면 추가)로 쓰는 모바일 사용자로, 브라우저
+체인이 없어 이 경우엔 정확한 위치 복귀 대신 `BottomTabBar`의 Feed 탭(목록 최상단)으로
+대체된다 — 이게 원래 PR #100을 만든 동기였다는 점은 감안했지만, 그 대응(sticky화)이
+오히려 이번 문제를 낳았으므로 "완벽한 위치 복귀"보다 "화면을 상시 어지럽히지 않는 것"을
+우선했다.
+
+**결정**
+
+1. 모바일(`< md`)에서는 버튼을 렌더링하지 않는다 — `hidden md:inline-flex`
+   ([PostDetailPage.tsx](../src/pages/post/PostDetailPage.tsx)).
+2. 데스크톱(`md:` 이상)은 버튼을 유지하되 sticky wrapper를 걷어내 PR #100 이전처럼
+   평범한 위치로 되돌린다.
+3. `useGoBack`의 이동 로직(`navigate(-1)`/`replace('/post')`)과 유입 경로별 라벨
+   (`resolveBackLabel`)은 변경하지 않는다 — 바뀌는 건 배치·노출 조건뿐이다.
+
+**이유 / 주의점**
+
+- e2e 5개 스펙(`comment.spec.ts` 등)이 `backToList` 버튼을 찾지만, `playwright.config.ts`가
+  이 스펙들을 데스크톱 전용 `chromium` 프로젝트에서만 돌리고(`testIgnore:
+'**/*.mobile.spec.ts'`) 모바일 버튼을 검증하는 `*.mobile.spec.ts`도 없어 수정 없이
+  통과했다(직접 실행 확인, 7개 전체 통과).
+- 이 결정은 위 원본 결정의 "배치는 velog·dev.to·네이버뉴스 실측 근거" 자체를 뒤집는 게
+  아니라, 그 실측이 애초에 가리키던 방향(인앱 back 버튼 없음)에 모바일을 마저 맞춘
+  것이다 — 데스크톱만 인앱 버튼을 유지하는 비대칭은 새로 생긴 트레이드오프다.
+
+**상태**: 적용 완료. 관련 파일: `src/pages/post/PostDetailPage.tsx`. 비교에 쓴 Artifact:
+"돌아가기 버튼 배치안" (세션 로컬, 링크는 대화 기록 참고).
+
+---
+
 ## 2026-09-14 — BE·FE 버전 호환 매트릭스 중복 제거: BE 사본을 FE 정본 링크로 전환
 
 **배경**

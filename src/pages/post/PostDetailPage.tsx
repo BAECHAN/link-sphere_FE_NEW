@@ -65,21 +65,21 @@ function PostDetailContent() {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
-      {/* sticky: 내 댓글 목록 등에서 진입하면 해당 댓글로 이미 스크롤된 상태로 화면이
-          시작해(CommentList의 scrollToHashedComment 참고), 버튼이 최상단에만 있으면
-          화면 밖에 있는 상태로 시작한다. Navbar(h-16, z-nav)와 같은 배경 처리로 그
-          바로 아래 이어 붙인다. */}
-      <div className="sticky top-16 z-panel py-2 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={goBack}
-          className="-ml-2 min-h-11 md:min-h-0 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-5 w-5" />
-          {backLabel}
-        </Button>
-      </div>
+      {/* 모바일에서는 아예 렌더링하지 않는다 - sticky로 상시 고정해봤으나(PR #100)
+          Navbar와 함께 124px를 영구 소비해 답답하다는 피드백을 받았다. 모바일은
+          BottomTabBar가 항상 떠 있어 Feed 탭으로 돌아갈 수단 자체는 있고, 일반
+          브라우저 탭이면 OS/브라우저 뒤로가기가 navigate(-1)과 동등하게 동작한다
+          (docs/DECISIONS.md 2026-09-14 "모바일 돌아가기 버튼 제거" 참고). 데스크톱은
+          Navbar가 sticky라 이 버튼까지 겹쳐 쌓을 이유가 없어 sticky를 걷어냈다. */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={goBack}
+        className="hidden md:inline-flex -ml-2 text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-5 w-5" />
+        {backLabel}
+      </Button>
 
       <PostCard post={post} isDetail />
 
