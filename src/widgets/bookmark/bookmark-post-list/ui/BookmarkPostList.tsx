@@ -57,7 +57,7 @@ export function BookmarkPostList({ folderKey, sort, search, className }: Bookmar
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
         {posts.map((post) => (
-          <PostCard key={post.id} post={post} />
+          <PostCard key={post.id} post={post} backSource="bookmark" />
         ))}
       </div>
 

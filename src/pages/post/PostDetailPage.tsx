@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { FallbackProps } from 'react-error-boundary';
 import { toast } from '@/shared/lib/toast/toast';
@@ -17,10 +17,40 @@ import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { useGoBack } from '@/shared/hooks/useGoBack';
 
+interface PostDetailLocationState {
+  backSource?: 'feed' | 'bookmark';
+}
+
+/**
+ * 돌아가기 버튼의 라벨을 유입 경로에 맞게 고른다 (동작인 useGoBack의 navigate(-1)/replace
+ * 분기와는 별개 - 어디로 가는지와 뭐라고 부를지를 분리했다).
+ * - key === 'default': 앱 내 이력 없이 들어옴(공유링크·FCM 알림·새로고침) → useGoBack이
+ *   실제로 /post로 replace하므로 "목록으로"가 그대로 참이다.
+ * - PostCard가 backSource: 'feed'를 state에 실어 보낸 경우(피드/검색에서 옴) → 동일하게
+ *   "목록으로"(실제로 이름 있는 화면이라 약속 가능).
+ * - 그 외(북마크 - 폴더마다 화면이 달라 하나로 이름 붙일 수 없음, 상세 자기 자신의
+ *   제목 링크처럼 출처를 모르는 앱 내 이동 등) → 목적지를 약속하지 않는 중립 표현.
+ */
+function resolveBackLabel(location: ReturnType<typeof useLocation>): string {
+  if (location.key === 'default') {
+    return TEXTS.post.detail.backToList;
+  }
+
+  const state = location.state as PostDetailLocationState | null;
+
+  if (state?.backSource === 'feed') {
+    return TEXTS.post.detail.backToList;
+  }
+
+  return TEXTS.post.detail.back;
+}
+
 function PostDetailContent() {
   const { id } = useParams<{ id: string }>();
   const { data: post } = useSuspenseFetchPostDetailQuery(id || '');
   const goBack = useGoBack(ROUTES_PATHS.POST.ROOT);
+  const location = useLocation();
+  const backLabel = resolveBackLabel(location);
   const queryClient = useQueryClient();
 
   // 상세 조회가 BE에서 post_views를 갱신한다(최근 열람순 정렬용) — 북마크 목록의
@@ -35,15 +65,21 @@ function PostDetailContent() {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={goBack}
-        className="-ml-2 min-h-11 md:min-h-0 text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-5 w-5" />
-        {TEXTS.post.detail.backToList}
-      </Button>
+      {/* sticky: 내 댓글 목록 등에서 진입하면 해당 댓글로 이미 스크롤된 상태로 화면이
+          시작해(CommentList의 scrollToHashedComment 참고), 버튼이 최상단에만 있으면
+          화면 밖에 있는 상태로 시작한다. Navbar(h-16, z-nav)와 같은 배경 처리로 그
+          바로 아래 이어 붙인다. */}
+      <div className="sticky top-16 z-panel py-2 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={goBack}
+          className="-ml-2 min-h-11 md:min-h-0 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-5 w-5" />
+          {backLabel}
+        </Button>
+      </div>
 
       <PostCard post={post} isDetail />
 

@@ -6,6 +6,103 @@
 
 ---
 
+## 2026-09-14 — 포스트 상세 돌아가기 버튼: sticky 고정 + 유입 경로별 라벨
+
+**배경**
+
+"내가 쓴 댓글" 목록에서 카드를 클릭하면 `/post/:id#comment-:id`로 진입해 해당 댓글로
+`scrollIntoView({ block: 'center' })`가 실행된다(`CommentList.tsx`의
+`scrollToHashedComment`). 화면이 이미 스크롤된 상태로 시작하는데, 돌아가기 버튼은
+페이지 최상단에만 있어 그 상태로는 화면 밖에 있었다. 여기에 `public/favicons/site.webmanifest`의
+`"display": "standalone"`이 겹친다 — 홈 화면에 추가해 실행하면 브라우저 자체의 back
+버튼도 없다.
+
+별개로 버튼 라벨("목록으로")도 유입 경로 중 일부에서만 참이었다. 버튼은 이미
+`useGoBack`으로 `navigate(-1)`(폴백 시 `/post`로 `replace`)인데, 라벨은 항상
+"목록으로"였다 — 북마크 폴더에서 들어온 경우 "북마크"가 아니라 특정 폴더로 돌아가고,
+FCM·공유링크·새로고침처럼 앱 내 이력이 없는 경우는 가본 적 없는 `/post`를 "목록"이라
+불렀다.
+
+**검토**
+
+- 동작(어디로 갈지)은 바꿀 이유가 없었다. Baymard 벤치마크는 목록 복원이
+  _"widespread support across our benchmark sites, making it a 'web convention'
+  users have come to expect"_ 라고 정리하고([Baymard: Return Users to the Same
+  Place](https://baymard.com/blog/return-same-place), 13%의 사이트만 이 관례를
+  어김), 같은 곳의 다른 글은 이를 어기는 사이트가 _"59% of e-commerce sites"_
+  라고 집계한다([Baymard: 4 Design Patterns That Violate Back Button
+  Expectations](https://baymard.com/blog/back-button-expectations)). NN/g는
+  Wayfair 사례에서 _"Both Back buttons (the site's and browser's) take users to
+  the initial product overview page, which is what users expect"_ 라고
+  짚는다([NN/g: User Control and
+  Freedom](https://www.nngroup.com/articles/user-control-and-freedom/)). 기존
+  `useGoBack`의 `navigate(-1)`은 이미 이 조건(사이트 back = 브라우저 back)을
+  만족하고 있었다.
+- 라벨은 [Android 내비게이션 원칙](https://developer.android.com/guide/navigation/principles)의
+  Back/Up 구분을 기준으로 잡았다: _"The Back button... is used to navigate in
+  reverse-chronological order"_ 인 반면 _"The Up button never exits your
+  app"_ 이고 딥링크 진입 시에도 _"a synthetic back stack that ... should match a
+  back stack that could have been achieved by organically navigating through
+  the app"_ 로 재구성된다(번역 생략, 위 링크). 이 구분을 "화면이 하나로 고정돼
+  이름을 약속할 수 있는가"로 옮겨 라벨을 골랐다.
+- 배치는 velog·dev.to·네이버뉴스 3개 서비스를 Playwright로 390px 뷰포트에서 직접
+  스크린샷 실측했다(직접 측정, 2026-09-14) — 셋 다 상세에서 헤더를 목록과 동일하게
+  유지하고 별도 인앱 back 버튼이 없었다(브라우저 back에만 의존). `responsive-ux`
+  skill은 이 레포가 상세 같은 단일 컬럼 레이아웃에서 지금까지 sticky 패널보다 플로팅
+  버튼을 택해왔다고 적는데, 상세의 플로팅 자리(`fixed bottom-6 right-6`)는 이미
+  `ScrollToCommentFormButton`이 쓰고 모바일 하단은 `BottomTabBar`+`MobileCommentBar`가
+  채워 자리가 없어 이번엔 그 관례에서 의도적으로 벗어나 버튼만 sticky로 고정했다.
+  standalone 웹앱의 인앱 back 필요성은 Smashing Magazine도 _"replace the menu
+  button in the top left with a back button once the user progresses past the
+  initial page"_ 로 권고한다([Designing For A Browserless
+  Web](https://www.smashingmagazine.com/2017/11/designing-for-a-browserless-web/)).
+
+**결정**
+
+1. 버튼을 감싸는 wrapper를 `sticky top-16 z-panel`로 고정한다(`PostDetailPage.tsx`).
+   `top-16`은 `Navbar`의 `h-16`과 맞춘 값, `z-panel`(40)은 `Navbar`의 `z-nav`(50)보다
+   한 단계 아래. 배경도 `Navbar`와 같은 `bg-background/95 backdrop-blur`로 맞췄다.
+2. 라벨은 유입 경로에 따라 두 가지로 나눈다 — `PostDetailPage.tsx`의
+   `resolveBackLabel(location)`:
+   - `location.key === 'default'`(외부 유입: 공유링크·FCM·새로고침) 또는
+     `location.state.backSource === 'feed'`(피드/검색에서 옴) → **"목록으로"**.
+     실제로 이름 있는 고정 화면(포스트 목록)으로 가므로 약속할 수 있다.
+   - 그 외(북마크, 내 댓글, 출처 불명 앱 내 이동) → **"뒤로가기"**. 목적지를
+     이름으로 약속하지 않는 중립 표현.
+   - `PostCard`(피드·북마크에서 재사용)에 `backSource?: 'feed' | 'bookmark'` prop을
+     추가해 `<Link state={{ backSource }}>`로 실어 보낸다.
+
+**결정하지 않은 것 (검토했으나 채택 안 함)**
+
+- **북마크 전용 라벨("북마크로")**: 처음엔 만들었으나, 북마크 화면은 폴더마다
+  다른데(`/bookmark?folder=...`) "북마크로"라는 한 단어로는 실제로 어느 폴더로
+  가는지 말할 수 없어 — 사용자 피드백으로 폐기하고 중립 "뒤로가기"로 합쳤다. 이건
+  "덜 구체적"이 아니라 "다른 화면을 가리키는 것처럼 거짓말"하는 문제였다.
+- **"내 댓글" 전용 라벨("내 댓글로")**: `/my/comments`는 북마크 폴더와 달리 매번
+  바뀌지 않는 고정된 화면이라 이름을 약속할 수 있다는 점에서 한 차례 추천했으나,
+  재검토 후 보류했다. 이유: "뒤로가기"가 이 경우 거짓이 아니라 그냥 덜 구체적일
+  뿐이라 고칠 필요가 없었고, 붙이려면 `backSource` 타입을 `shared` 레이어로 올려
+  `PostCard`(위젯)와 `MyCommentCard`(다른 위젯, 별도 세션이 만든 기능)가 공유해야
+  하는 리팩터 비용이 드는데 얻는 건 "조금 더 구체적인 단어" 하나뿐이었다.
+- **새 "목록으로" 버튼 추가**: 계층 이동(포스트 목록으로)은 이미 `BottomTabBar`·
+  `Sidebar`가 상시 제공하므로 상세 화면에 중복 버튼을 더 두지 않았다.
+
+**이유 / 주의점**
+
+- e2e 5개 스펙(`comment.spec.ts`, `post-visibility.spec.ts`, `like.spec.ts`×2, `comment-delete.spec.ts`)이 모두 `getByRole('button', { name: TEXTS.post.detail.backToList })`로 이 버튼을 찾는다 — 전부 피드 진입 또는 직접 URL 진입(둘 다 "목록으로" 분기)이라 `backToList` 값(`'목록으로'`)을 그대로 두는 한 수정 없이 통과한다. 라벨 키 이름 자체를 바꾸면 이 5개 파일도 함께 고쳐야 한다.
+- `PostCard.tsx:93,269`가 `isDetail`일 때도 자기 자신(`/post/{id}`)을 링크하는
+  기존 동작은 이번 변경과 무관하게 남아 있다(범위 밖) — 상세에서 제목을 눌러도
+  `backSource`가 없어 "뒤로가기"로 정확히 떨어지긴 하지만, 애초에 자기 자신으로
+  또 이동하는 것 자체는 별개 버그다.
+
+**상태**: 적용 완료. 관련 파일: `src/pages/post/PostDetailPage.tsx`,
+`src/shared/config/texts.ts`, `src/widgets/post/post-card/ui/PostCard.tsx`,
+`src/widgets/post/post-list/ui/PostList.tsx`,
+`src/widgets/bookmark/bookmark-post-list/ui/BookmarkPostList.tsx`. 계획 스냅샷:
+[`docs/plans/2026-09-14-post-detail-sticky-back.md`](./plans/2026-09-14-post-detail-sticky-back.md).
+
+---
+
 ## 2026-09-14 — URL 쿼리 파라미터 쓰기: mutation 제거, pending 의도는 모듈 스코프로 공유
 
 **배경**

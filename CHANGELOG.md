@@ -9,6 +9,25 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `post` 상세 페이지 돌아가기 버튼이 내 댓글 유입 시 화면 밖에 있고, 라벨이 유입
+  경로 일부에서 부정확하던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  내 댓글 목록에서 댓글 위치로 스크롤된 채 상세에 진입하면 돌아가기 버튼이 페이지
+  최상단에만 있어 화면 밖에 있었다. `Navbar` 바로 아래 `sticky`로 고정해 스크롤해도
+  항상 보이게 했다. 라벨도 항상 "목록으로"였는데 북마크·내 댓글·외부(FCM·공유링크)
+  유입에서는 부정확했다 — 피드/검색·외부 유입만 "목록으로", 그 외(북마크 등 화면이
+  매번 달라 이름을 약속할 수 없는 경우)는 중립적인 "뒤로가기"로 나눴다(동작인
+  `navigate(-1)`은 그대로, 라벨만 정직해졌다). 근거와 채택하지 않은 대안(북마크·내
+  댓글 전용 라벨)은 `docs/DECISIONS.md` 2026-09-14 항목 참고.
+  (`pages/post/PostDetailPage.tsx`, `shared/config/texts.ts`,
+  `widgets/post/post-card/ui/PostCard.tsx`, `widgets/post/post-list/ui/PostList.tsx`,
+  `widgets/bookmark/bookmark-post-list/ui/BookmarkPostList.tsx`)
+
+  </details>
+
 ### Added
 
 - `comment` 내가 쓴 댓글을 모아보는 화면 추가

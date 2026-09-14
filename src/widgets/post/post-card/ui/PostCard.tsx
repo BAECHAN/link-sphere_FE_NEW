@@ -34,9 +34,15 @@ import { cn } from '@/shared/lib/tailwind/utils';
 interface PostCardProps {
   post: Post;
   isDetail?: boolean;
+  /**
+   * 이 카드가 어느 목록에 있는지 - 상세로 넘어갈 때 history state에 실어 보내
+   * 상세의 돌아가기 버튼이 "목록으로"(feed)와 "뒤로가기"(그 외)를 정확히 고르게 한다
+   * (PostDetailPage의 resolveBackLabel 참고). 지정하지 않으면 "뒤로가기"로 떨어진다.
+   */
+  backSource?: 'feed' | 'bookmark';
 }
 
-export function PostCard({ post, isDetail = false }: PostCardProps) {
+export function PostCard({ post, isDetail = false, backSource }: PostCardProps) {
   const { author } = post;
 
   const {
@@ -91,6 +97,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
           </div>
           <Link
             to={`/post/${post.id}`}
+            state={backSource ? { backSource } : undefined}
             className="hover:underline block"
             onMouseEnter={handlePrefetchDetail}
             onFocus={handlePrefetchDetail}
@@ -266,7 +273,7 @@ export function PostCard({ post, isDetail = false }: PostCardProps) {
             likeCount={post.stats.likeCount}
           />
           <div className="w-px h-3 bg-muted-foreground/20 mx-0.5 md:mx-1" />
-          <Link to={`/post/${post.id}`}>
+          <Link to={`/post/${post.id}`} state={backSource ? { backSource } : undefined}>
             <Button
               variant="ghost"
               size="sm"
