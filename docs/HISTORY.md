@@ -1,3 +1,7 @@
+### 2026-09-14 (BE)
+- 게시글 관련 응답 데이터 최적화
+  - post(category, comment, auth, bookmark) 응답 객체에서 프론트엔드 미사용 필드를 제거하여 API 페이로드 경량화 및 불필요한 데이터 노출 방지
+
 ### 2026-09-14 (FE)
 - category, comment, account, bookmark-folder 엔티티 응답 데이터 최적화를 위해 UI에서 사용하지 않는 불필요한 필드 제거
 
