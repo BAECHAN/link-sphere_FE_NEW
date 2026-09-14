@@ -87,6 +87,14 @@
 
 ### Fixed
 
+- `comment` 댓글 해시 이동 시 스크롤 정렬을 중앙에서 상단으로 변경해 긴 댓글도 시작부터 읽히게 함
+  <details><summary>배경·구현</summary>
+
+  "내 댓글" 카드에서 원글로 이동하면 `block: 'center'`로 스크롤해 댓글을 화면 중앙에 뒀는데, 댓글이 길면 시작부가 뷰포트 위로 잘려 나가 중간부터 읽히는 문제가 있었다. `scrollIntoView()`의 `block` 기본값 자체가 `'start'`([MDN](https://developer.mozilla.org/en/docs/Web/API/Element/scrollIntoView))이고 네이티브 앵커 링크(`#id`) 이동도 같은 정렬을 쓴다는 점에 맞춰 `'start'`로 바꿨다. 다만 `block: 'start'`만 쓰면 이번엔 sticky navbar가 댓글 상단을 가리므로, 같은 파일의 댓글 작성 폼 컨테이너에 이미 쓰이던 `scroll-mt-(--navbar-height)`를 앵커 요소(`CommentItem` 루트)에도 동일하게 적용했다. 두 요소(스크롤 정렬 없음 vs `scroll-mt` 없는 `start`)를 각각 정적 재현 페이지로 스크린샷 비교해 시작부가 잘리는 것과 navbar에 가려지는 것 둘 다 실제로 재현·수정됨을 확인했다.
+  (`widgets/comment/comment-list/ui/CommentList.tsx`, `widgets/comment/comment-list/ui/CommentItem.tsx`)
+
+  </details>
+
 - `comment` 댓글 첨부 이미지가 로드되며 다른 댓글이 밀리던 레이아웃 시프트 수정
   <details><summary>배경·구현</summary>
 
