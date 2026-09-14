@@ -1,4 +1,7 @@
 ### 2026-09-14 (FE)
+- 댓글 내 이미지 로딩 시 레이아웃 시프트가 발생하던 문제를 수정하여 UI 안정성 개선 ([#93](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/93))
+
+### 2026-09-14 (FE)
 - 댓글 아바타 정렬 이슈 해결 및 레이아웃 최적화 ([#92](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/92))
 
 ### 2026-09-14 (FE)

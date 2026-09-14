@@ -36,7 +36,13 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
   // "내 댓글" 목록 카드에서 원글로 넘어올 때(/post/:id#comment-:commentId) 그 댓글
   // 위치로 스크롤하고 잠시 링으로 강조한다 - 댓글이 많으면 목록 맨 위로만 가서는
   // "내가 어디 달았지"를 다시 찾아야 하는 문제를 해결한다. 답글(depth 1)도 같은
-  // 트리에 함께 렌더되므로 이 효과 하나로 처리된다.
+  // 트리에 함께 렌더되므로 이 효과 하나로 처리된다. block은 'center'가 아니라
+  // 'start'를 쓴다 - 댓글이 길면 중앙 정렬 시 시작부가 뷰포트 위로 잘려 나가 이어서
+  // 읽을 수 없다. scrollIntoView의 기본 동작 자체가 'start'다(MDN,
+  // https://developer.mozilla.org/en/docs/Web/API/Element/scrollIntoView) - 네이티브
+  // 앵커 링크(#id) 이동과 같은 "시작부를 위로" 정렬로 맞춘다. sticky navbar에 가려지지
+  // 않도록 앵커 요소(CommentItem 루트)에 scroll-mt-(--navbar-height)를 함께 둔다(아래
+  // CommentForm 컨테이너의 scroll-mt-(--navbar-height)와 동일 패턴).
   useEffect(
     function scrollToHashedComment() {
       if (!location.hash) {
@@ -46,7 +52,7 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
       if (!target) {
         return;
       }
-      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       target.classList.add(
         'rounded-lg',
         'ring-2',
