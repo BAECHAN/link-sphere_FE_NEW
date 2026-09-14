@@ -3,7 +3,7 @@ import { cn } from '@/shared/lib/tailwind/utils';
 import { useImageViewerStore } from '@/shared/ui/elements/modal/image-viewer/imageViewer.store';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { TEXTS } from '@/shared/config/texts';
-import { getTransformedImageUrl } from '@/shared/lib/image/supabaseImage';
+import { getTransformedImageUrl, isTransformableImageUrl } from '@/shared/lib/image/supabaseImage';
 
 interface MarkdownContentProps {
   content: string;
@@ -57,6 +57,14 @@ function renderInlineLinks(
     }
     if (/^(blob:https?:\/\/[^\s]+|https?:\/\/[^\s]+)$/.test(part)) {
       if (isImageUrl(part)) {
+        const src = getTransformedImageUrl(part, { width: 800 });
+        // width만 넘겨 height=width(=800), resize=cover가 되므로 Supabase 변환을 타는
+        // 이미지는 응답이 항상 정사각으로 잘려 온다 - 로드 전에 그 자리를 미리 잡아두면
+        // 아래 댓글이 밀리지 않는다(2026-09-14 직접 측정 + Supabase 공식 문서의 cover 정의,
+        // docs/plans/2026-09-14-*.md 참고). blob:(작성 중 미리보기)과 외부 이미지는
+        // 원본을 그대로 쓰므로 비율을 알 수 없어 기존 렌더링을 유지한다.
+        const hasReservedSquare = isTransformableImageUrl(part);
+
         nodes.push(
           <button
             key={`${keyPrefix}-${i}`}
@@ -75,11 +83,17 @@ function renderInlineLinks(
             className="block"
             aria-label={TEXTS.ariaLabels.imageZoom}
           >
-            <img
-              src={getTransformedImageUrl(part, { width: 800 })}
-              alt="attachment"
-              className="max-w-full max-h-60 rounded-md my-2 object-contain"
-            />
+            {hasReservedSquare ? (
+              <span className="my-2 flex aspect-square w-60 max-w-full items-center justify-center overflow-hidden rounded-md bg-muted">
+                <img src={src} alt="attachment" className="max-h-full max-w-full object-contain" />
+              </span>
+            ) : (
+              <img
+                src={src}
+                alt="attachment"
+                className="max-w-full max-h-60 rounded-md my-2 object-contain"
+              />
+            )}
           </button>
         );
       } else {

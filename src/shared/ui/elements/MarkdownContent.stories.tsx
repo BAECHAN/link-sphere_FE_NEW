@@ -42,6 +42,17 @@ export const CodeBlock: Story = {
 
 export const Image: Story = {
   args: {
-    content: 'https://picsum.photos/seed/link-sphere/400/300',
+    content: 'https://picsum.photos/seed/link-sphere/400/300.jpg',
+  },
+};
+
+/**
+ * Supabase storage 공개 URL 형태의 첨부 이미지 - 로드 전에도 정사각 자리(bg-muted)가
+ * 미리 예약되는지 보여준다. Storybook은 이 호스트에 닿지 않으므로 화면에 보이는 게
+ * 곧 "로드 전/실패 상태" = 이번에 예약해두는 자리 그 자체다.
+ */
+export const StorageAttachment: Story = {
+  args: {
+    content: 'https://project.supabase.co/storage/v1/object/public/comments/sample.png',
   },
 };
