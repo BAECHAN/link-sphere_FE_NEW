@@ -136,7 +136,7 @@ export function BookmarkFolderSelectModal({
                     disabled={!newFolderName.trim() || isCreating}
                   >
                     {isCreating ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <Loader2 className="size-4 animate-spin" />
                     ) : (
                       TEXTS.bookmark.folder.createSubmit
                     )}

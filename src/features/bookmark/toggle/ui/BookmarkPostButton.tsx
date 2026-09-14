@@ -45,7 +45,7 @@ export function BookmarkPostButton({
         onClick={handleClick}
         aria-label={isBookmarked ? TEXTS.ariaLabels.bookmarkChange : TEXTS.ariaLabels.bookmarkSave}
       >
-        <Bookmark className={cn('h-3.5 w-3.5 md:h-4.5 md:w-4.5', isBookmarked && 'fill-current')} />
+        <Bookmark className={cn('size-4', isBookmarked && 'fill-current')} />
         <span className="sr-only">Bookmark</span>
       </Button>
 
