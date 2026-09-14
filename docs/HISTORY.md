@@ -1,4 +1,7 @@
 ### 2026-09-14 (FE)
+- Playwright E2E 테스트 리포트 확인을 위한 스크립트 명령어를 pnpm 스크립트로 등록하여 개발 생산성 향상 ([#89](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/89))
+
+### 2026-09-14 (FE)
 - 필터, 정렬, 검색 기능의 URL 파라미터가 로딩 중 중복 요청 시 유실되던 문제를 수정하여 데이터 일관성 확보 ([#88](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/88))
 
 ### 2026-09-14 (BE)
