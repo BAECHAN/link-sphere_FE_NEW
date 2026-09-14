@@ -87,6 +87,14 @@
 
 ### Fixed
 
+- `shared` dev 서버 포트가 `vite.config.ts`·`playwright.config.ts` 두 곳에 리터럴로 중복돼 있던 것을 하나로 통합
+  <details><summary>배경·구현</summary>
+
+  "내 댓글" 기능 브라우저 검증 중 `localhost:31119` 하드코딩 위치를 전수 조사하다가, `vite.config.ts`의 `server.port`와 `playwright.config.ts`의 `baseURL`이 서로 참조 없이 각자 `31119` 리터럴을 들고 있는 걸 발견했다. 지금 당장 문제는 없지만 포트를 바꾸면 한쪽만 고치고 다른 쪽을 놓쳐 e2e가 조용히 옛 포트로 접속을 시도하게 될 수 있다. 새 파일 `dev-server.config.ts`에 `DEV_SERVER_PORT` 상수 하나로 정의를 모으고 두 설정이 그 값을 import해서 쓰도록 바꿨다. 두 tsconfig 프로젝트(`tsconfig.app.json`이 `vite.config.ts`를, `tsconfig.e2e.json`이 `playwright.config.ts`를 각각 include)가 이 신규 파일도 함께 include하도록 갱신했다 — 안 그러면 project reference 경계를 벗어난 import라 TS6307로 타입체크가 깨진다.
+  (`dev-server.config.ts`(신규), `vite.config.ts`, `playwright.config.ts`, `tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.e2e.json`, [PR #91](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/91))
+
+  </details>
+
 - `shared` 필터·정렬·검색 URL을 로딩 중 연달아 바꾸면 서로 유실되거나 방금 지운 값이 되살아나던 문제 수정
   <details><summary>배경·구현</summary>
 

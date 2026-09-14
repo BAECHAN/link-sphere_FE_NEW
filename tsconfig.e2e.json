@@ -27,5 +27,5 @@
     },
     "types": ["node", "vite/client"]
   },
-  "include": ["e2e/**/*.ts", "playwright.config.ts"]
+  "include": ["e2e/**/*.ts", "playwright.config.ts", "dev-server.config.ts"]
 }
