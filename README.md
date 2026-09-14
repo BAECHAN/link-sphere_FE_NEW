@@ -166,6 +166,7 @@ features/<도메인>/<액션>/
 - [`docs/FCM-PUSH-NOTIFICATION.md`](docs/FCM-PUSH-NOTIFICATION.md) — 댓글·답글 FCM 웹 푸시: 토큰 수명주기, 서비스워커, 알림 클릭 딥링크
 - [`docs/MYPAGE.md`](docs/MYPAGE.md) — 프로필 수정 모달: 닉네임·아바타 변경, 재오픈 시 입력값 복원
 - [`docs/NEW-VERSION-RELOAD.md`](docs/NEW-VERSION-RELOAD.md) — 배포 후 새 버전 감지 시 다음 라우트 이동에 맞춰 자동 새로고침
+- [`docs/POST-DETAIL-BACK-NAVIGATION.md`](docs/POST-DETAIL-BACK-NAVIGATION.md) — 상세 페이지 돌아가기: 모바일 제거·데스크톱 비sticky, 유입 경로별 라벨
 - [`docs/SEARCH.md`](docs/SEARCH.md) — 게시글 검색: URL SSOT, 헤더 검색창 동기화, `@카테고리`·`#닉네임` 태그 분해
 - [`docs/UNSAVED-CHANGES-GUARD.md`](docs/UNSAVED-CHANGES-GUARD.md) — 저장하지 않은 입력이 있을 때 페이지 이탈을 막는 전역 가드
 
