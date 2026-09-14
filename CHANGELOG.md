@@ -157,6 +157,14 @@
 
   </details>
 
+- `bookmark` 북마크 페이지 제목 폰트 크기를 화면별로 통일(20px)
+  <details><summary>배경·구현</summary>
+
+  같은 페이지 안에서 제목 크기가 3가지(모바일 폴더 목록 18px, 모바일 게시글뷰 16px, 데스크톱 20px)로 흩어져 있었다. 실제 브라우저 검증(getComputedStyle)으로 3개 화면 전부 20px로 렌더링되는 것을 확인했다.
+  (`pages/bookmark/BookmarkPage.tsx`)
+
+  </details>
+
 - `bookmark` 메인 피드에서 북마크를 완전히 제거해도 반응이 없거나 되레 미분류로 옮겨간 것처럼 보이던 문제 수정
   <details><summary>배경·구현</summary>
 
