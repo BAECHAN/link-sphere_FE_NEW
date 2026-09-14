@@ -44,8 +44,10 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
       id={`comment-${comment.id}`}
       className={cn(
         // scroll-mt: CommentList의 scrollToHashedComment가 block: 'start'로 스크롤할 때
-        // sticky navbar 아래로 이 댓글의 상단이 가려지지 않도록 한다.
-        'group flex items-start gap-3 text-sm animate-in fade-in scroll-mt-(--navbar-height)',
+        // sticky navbar 아래로 이 댓글의 상단이 가려지지 않도록 한다. navbar 높이만 예약하면
+        // 댓글이 navbar에 딱 붙어 답답해 보여(2026-09-14 사용자 피드백, Artifact로 0/12/16/24px
+        // 후보를 나란히 비교해 24px로 결정) 24px 여유를 더한다.
+        'group flex items-start gap-3 text-sm animate-in fade-in scroll-mt-[calc(var(--navbar-height)_+_24px)]',
         depth > 0 && 'mt-4 ml-4 border-l pl-3 md:ml-8 md:border-l-0 md:pl-0',
         isOptimistic && 'opacity-60'
       )}
