@@ -57,6 +57,14 @@
 
 ### Changed
 
+- `auth` 로그아웃 시 화면이 곧 바뀔 때(보호 경로·세션 만료)는 그 화면의 쿼리를 재요청하지 않음
+  <details><summary>배경·구현</summary>
+
+  로그아웃하면 화면에 떠 있던 모든 쿼리를 토큰이 지워진 채로 배경 재요청했는데, 보호 경로 로그아웃이나 세션 만료처럼 어차피 다른 화면으로 바로 이동하는 경우엔 그 재요청이 401만 받고 버려지는 100% 낭비였다. 로그아웃을 "화면이 곧 이동하는가"로 나눠, `AuthUtil.clearAll()`(보호 경로·세션 만료)은 재요청 없이 캐시만 버리는 새 처리(`removeQueries()`)를 쓰고, 제자리 로그아웃(비보호 경로)은 기존 방식(`resetQueries()`, 화면에 남은 좋아요·북마크 표시를 비로그인 상태로 갱신)을 그대로 유지했다. `resetQueries()`에는 재요청을 끄는 옵션이 없어 `removeQueries()`로 갈아탔는데, 이게 클릭 전에 지워지지 않았던 이전 사용자 데이터 문제(clear()를 피했던 이유)와 같은 특성을 갖지만 뒤따르는 페이지 이동이 그 화면을 통째로 언마운트시켜서 무해하다. 로그아웃 직후 구간 판정(`isLoggingOut()`)도 기존 Promise 기반 플래그 대신 타임스탬프 유예 창으로 확장해 두 경로 모두에 적용했다.
+  (`shared/utils/auth.util.ts`, `shared/utils/auth.util.test.ts`, `shared/api/client.test.ts`, `e2e/logout.spec.ts`, `e2e/session-expired.spec.ts`, `docs/AUTH.md`, `docs/FE-ARCHITECTURE.md`, `docs/MYPAGE.md`, `docs/DECISIONS.md`)
+
+  </details>
+
 - `shared` 빠르게 끝나는 조회에는 로딩 인디케이터를 아예 띄우지 않도록 지연 게이트 일관 적용
   <details><summary>배경·구현</summary>
 

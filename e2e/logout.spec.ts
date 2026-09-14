@@ -34,17 +34,36 @@ test.describe('로그아웃', () => {
 
   test('보호 페이지(/bookmark)에서 로그아웃하면 /post로 이동한다', async ({ page }) => {
     // isProtectedPath(route-paths.ts:28-35)가 /bookmark 접두사를 보호 경로로 판별해
-    // AuthUtil.clearAll이 /post로 replace 이동시킨다(auth.util.ts:64-68).
+    // AuthUtil.clearAll이 /post로 replace 이동시킨다(auth.util.ts:99-103).
     await mockBookmarkFolderList(page);
     await mockBookmarkFolderPosts(page);
 
     await page.goto('/bookmark');
     await expect(page.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })).toBeVisible();
 
+    // 요청을 계속 기록해두되, AuthUtil.clearAll()이 실제로 실행되는 시점(=/auth/logout
+    // 요청 시점)을 기준으로 그 이후만 검사한다 - handleLogout이 "로그아웃 처리 중" 표시를
+    // 700ms 보여준 뒤에야 실제 로그아웃을 수행하므로(Navbar.tsx:50-57), 클릭 직후 요청은
+    // 아직 clearAll() 호출 전에 일어난 페이지의 정상 동작(폴더 프리페치 등)일 수 있다.
+    const requests: { atMs: number; url: string }[] = [];
+    const t0 = Date.now();
+    page.on('request', (r) => requests.push({ atMs: Date.now() - t0, url: r.url() }));
+    const logoutRequest = page.waitForRequest((r) => r.url().includes('/auth/logout'));
+
     await page.getByRole('button', { name: TEXTS.ariaLabels.accountMenu }).click();
     await page.getByRole('menuitem', { name: TEXTS.nav.logOut }).click();
+    await logoutRequest;
+    const clearAllAtMs = Date.now() - t0;
 
     await expect(page).toHaveURL(/\/post$/);
     await expect(page.getByRole('button', { name: TEXTS.nav.logIn })).toBeVisible();
+
+    // 이 변경의 핵심 가치: /bookmark는 화면이 곧 /post로 교체될 예정이므로, clearAll()
+    // 이후로는 그 화면의 쿼리를 배경 재요청하지 않아야 한다(clearQueriesWithoutRefetch,
+    // auth.util.ts:82-93).
+    const bookmarkRequestsAfterClearAll = requests.filter(
+      (r) => r.atMs >= clearAllAtMs && r.url.includes('/bookmark/folders')
+    );
+    expect(bookmarkRequestsAfterClearAll).toHaveLength(0);
   });
 });

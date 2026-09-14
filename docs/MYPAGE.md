@@ -153,10 +153,12 @@ Fallback이 DOM에 없어 브라우저 캐시에서 즉시 로드되며 깜빡�
 이 모달과 직접 관련은 없지만 `entities/auth/api/auth.queries.ts`에
 있고 `AuthUtil`을 공유하므로 함께 적는다. `useLogoutMutation`은 서버 응답을
 기다리지 않고 즉시 인증 상태를 지운다 — 현재 화면이 **보호된 경로**면
-`AuthUtil.clearAll(ROUTES_PATHS.POST.ROOT)`(인증 초기화 + 캐시 리셋 + 공개
-피드로 이동)를, **비로그인도 볼 수 있는 경로**면 `AuthUtil.clearAuth()` +
-`AuthUtil.clearQueries()`만 호출하고 이동은 하지 않는다. FCM 토큰 해제는
-백그라운드로 처리한다(`unregisterFcmToken().catch(...)`).
+`AuthUtil.clearAll(ROUTES_PATHS.POST.ROOT)`(인증 초기화 + 캐시 폐기(재요청
+없음) + 공개 피드로 이동)를, **비로그인도 볼 수 있는 경로**면
+`AuthUtil.clearAuth()` + `AuthUtil.clearQueries()`(캐시 리셋 + 배경 재요청)만
+호출하고 이동은 하지 않는다. 두 경로의 캐시 처리 방식이 다른 이유는
+`docs/AUTH.md` §8-E 참고. FCM 토큰 해제는 백그라운드로 처리한다
+(`unregisterFcmToken().catch(...)`).
 
 ```typescript
 // entities/auth/api/auth.queries.ts (요지만 발췌)

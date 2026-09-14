@@ -101,6 +101,67 @@ FCM·공유링크·새로고침처럼 앱 내 이력이 없는 경우는 가본 
 `src/widgets/bookmark/bookmark-post-list/ui/BookmarkPostList.tsx`. 계획 스냅샷:
 [`docs/plans/2026-09-14-post-detail-sticky-back.md`](./plans/2026-09-14-post-detail-sticky-back.md).
 
+## 2026-09-14 — 로그아웃 배경 재요청: 화면이 곧 바뀔 때는 resetQueries 대신 removeQueries
+
+**배경**
+
+"내 댓글" 재로그인 캐시 버그([PR #94](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/94))를
+설명하던 중, "로그아웃 시 `GET /comment/my` 같은 요청 자체를 왜 보내는가, 안 보내면
+안 되나"라는 질문을 받았다. `AuthUtil.clearQueries()`가 `queryClient.resetQueries()`로
+화면에 남은 모든 활성 쿼리를 토큰 없이 배경 재요청하는데, 보호 경로 로그아웃이나
+세션 만료처럼 어차피 다른 화면으로 이동하는 경우엔 그 쿼리 재요청이 100% 낭비였다.
+
+**결정**
+
+1. 로그아웃을 "화면이 곧 이동하는가"로 나눈다 — `clearAll()`(보호 경로·세션 만료)은
+   새 `clearQueriesWithoutRefetch()`(`queryClient.removeQueries()`)를 쓰고,
+   `clearQueries()` 단독 호출(제자리 로그아웃)은 `resetQueries()`를 그대로 유지한다.
+2. `isLoggingOut()`을 타임스탬프 기반 유예 창(`LOGOUT_GRACE_MS`, 2초)으로 확장해
+   `clearAll()` 경로에도 적용한다 — `resetQueries()` Promise에 묶인 기존 플래그는
+   `clearAll()`이 재요청을 아예 안 하므로 붙잡을 Promise가 없다.
+3. `clearAll()` 안의 호출 순서(`clearAuth → removeQueries → navigate`)는 실측 결과
+   상관없었다 — 순서를 바꾸거나 `removeQueries()`를 `setTimeout(0)`으로 지연시켜도
+   보호 경로 e2e의 재요청 여부는 달라지지 않았다(둘 다 시도해 확인, 아래 참고).
+
+**이유 / 주의점**
+
+- **`resetQueries()`에는 재요청을 끄는 옵션이 없다.** `invalidateQueries`의
+  `refetchType: 'none'`에 해당하는 게 TanStack Query(`@tanstack/query-core`)의
+  `queryClient.ts` 구현 자체에 없어, 검토한 대안은 4가지였다: (A) `getQueryCache().findAll({type:'active'}).forEach(q => q.reset())`로
+  전반부만 실행 — Suspense 쿼리는 리렌더가 끼면 여전히 재요청됨(아래 참고)이라 기각.
+  (B) `resetQueries({predicate})`로 리셋 후 스스로 매칭이 풀리게 하는 트릭 — 이미
+  `useLoginMutation.onSuccess`(PR #94)에 선례가 있지만 내부 동작 의존이라 fragile.
+  (C) `resetQueries({type:'inactive'})` — `refetchQueries`가 type과 무관하게 매칭된
+  쿼리를 `fetch()`해버려 역효과, 즉시 기각. (D) `removeQueries()` — 채택. 캐시 파괴
+  시 `destroy() → cancel({silent:true})`까지 하고 옵저버에 알리지 않아 재요청·리렌더
+  둘 다 유발하지 않는다.
+- **`removeQueries()`도 `clear()`와 같은 특성("옵저버에 알리지 않음")을 갖지만, `clearAll()`
+  경로에선 무해하다.** `auth.util.ts`가 애초에 `clear()`를 피한 이유(옵저버 안 알림 →
+  화면이 이전 데이터를 계속 그림)가 여기선 성립하지 않는다 — 뒤따르는 `navigate()`가
+  그 화면을 통째로 언마운트시키기 때문이다.
+- **Suspense 쿼리는 `reset()`만으로는(리렌더가 끼면) 안전하지 않다.** `Query.reset()`
+  자체는 재요청을 안 하지만(`query.ts`의 `reset()` → `setState(initialState)` →
+  옵저버 `onQueryUpdate()`뿐, `fetch()` 호출 없음), `useSuspenseQuery`/
+  `useSuspenseInfiniteQuery`는 캐시가 `status: 'pending'`이면 그 즉시 `fetchOptimistic()`으로
+  재요청을 낸다(`useBaseQuery.ts`의 `shouldSuspend`). `removeQueries()`도 같은
+  전제(리렌더가 끼기 전에 언마운트가 먼저 와야 함) 위에 있다.
+- **호출 순서·지연은 실측 결과 무관했다.** 보호 경로(`/bookmark`) 로그아웃 e2e에
+  "로그아웃 이후 북마크 API 요청 0건" 단언을 처음 추가했을 때 2건 실패가 재현됐는데,
+  원인은 `removeQueries()`의 타이밍이 아니라 **테스트 설계 자체**였다 —
+  `Navbar.tsx`의 `handleLogout`이 "로그아웃 처리 중" 표시를 700ms 보여준 뒤에야
+  실제로 `AuthUtil.clearAll()`을 호출하는데(로그아웃 처리감 연출), 요청 타임스탬프를
+  찍어보니 실패한 두 요청은 그 700ms보다 훨씬 전(약 130ms 시점, `/auth/logout` 요청은
+  1000ms 시점)에 이미 발생한 것이었다 — `clearAll()`과 전혀 무관한, 폴더 선택 UI의
+  정상적인 초기 로드 요청. 호출 순서를 `clearAuth → navigate → removeQueries`로
+  바꾸거나 `removeQueries()`를 `setTimeout(0)`으로 지연시켜도 이 2건은 그대로
+  나타났다(당연히 로그아웃 클릭 이전에 이미 끝난 요청이므로). 테스트를 "`/auth/logout`
+  요청 시점 이후"로 필터링하도록 고친 뒤에는 원래 순서(`clearAuth → removeQueries →
+navigate`)로도 통과했다 — 즉 이 구현에 타이밍 의존적인 요소는 없다.
+
+**상태**: 적용됨. 관련 코드: `src/shared/utils/auth.util.ts`, 테스트:
+`src/shared/utils/auth.util.test.ts`, `src/shared/api/client.test.ts`,
+`e2e/logout.spec.ts`. 상세 설명은 `docs/AUTH.md` §8-E.
+
 ---
 
 ## 2026-09-14 — URL 쿼리 파라미터 쓰기: mutation 제거, pending 의도는 모듈 스코프로 공유

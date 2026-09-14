@@ -258,14 +258,20 @@ openLoginModal();
 
 ### 8-E. 로그인·로그아웃 시 React Query 캐시 처리
 
-**로그아웃**(`auth.util.ts:56-62`의 `clearQueries()`)은 `queryClient.clear()`가 아니라
+**로그아웃은 화면이 곧 다른 곳으로 이동하는지에 따라 캐시 처리 방식이 갈립니다**
+(`useLogoutMutation`의 `isProtectedPath` 분기, `auth.queries.ts:57-82`):
+
+| 경로                                      | 호출                             | 캐시 처리                                         | 배경 재요청 | 왜                                                                     |
+| ----------------------------------------- | -------------------------------- | ------------------------------------------------- | ----------- | ---------------------------------------------------------------------- |
+| 제자리 로그아웃(비보호 경로)              | `clearAuth()` + `clearQueries()` | `resetQueries()`                                  | 있음        | 화면이 남으므로 `isLiked`/`isBookmarked`를 비로그인 상태로 갱신해야 함 |
+| 이동 수반(보호 경로 로그아웃 · 세션 만료) | `clearAll()`                     | `clearQueriesWithoutRefetch()`(`removeQueries()`) | 없음        | 화면이 곧 교체돼 재요청이 100% 낭비                                    |
+
+**제자리 로그아웃**(`auth.util.ts`의 `clearQueries()`)은 `queryClient.clear()`가 아니라
 `resetQueries()`를 씁니다 — `clear()`는 마운트된 옵저버에 아무것도 알리지 않아 이전
-사용자 데이터가 화면에 남기 때문입니다(`auth.util.ts:48-55` 주석). 그 대가로,
+사용자 데이터가 화면에 남기 때문입니다(`clearQueries()` 위 주석). 그 대가로,
 `resetQueries()`는 화면에 아직 남아있는 활성 쿼리를 **토큰이 지워진 직후 배경에서
 재요청**합니다. 이 재요청은 당연히 401(`NOT_LOGGED_IN`)을 받고, 그 쿼리의 캐시는
-`status: 'error'`로 확정됩니다. `isLoggingOut()` 플래그(`auth.util.ts:44-46`)는 이
-401의 토스트·강제 리다이렉트만 막을 뿐(`client.ts:207-210`), **캐시가 error 상태로
-오염되는 것 자체는 막지 못합니다.**
+`status: 'error'`로 확정됩니다.
 
 이게 왜 문제가 되는가는 조회 훅의 종류에 달려 있습니다. 일반 `useQuery`는
 `throwOnError: false`가 전역 기본값(`queryClient.ts`)이라 재마운트 시 캐시가
@@ -274,9 +280,31 @@ error여도 정상적으로 재요청됩니다. 반면 **Suspense 훅**(`useSusp
 (`queryObserver`의 `shouldLoadOnMount`)가 `retryOnMount`를 강제로 `false`로
 만들어 **재마운트해도 네트워크 요청 자체를 내지 않고** 캐시된 옛 에러를 그대로
 다시 throw합니다. `gcTime`(기본 5분)이 지나 캐시가 수거될 때까지 이 상태가
-풀리지 않습니다.
+풀리지 않습니다. (이 함정은 제자리 로그아웃 경로에서만 생깁니다 — 이동 수반
+로그아웃은 애초에 배경 재요청 자체가 없어 캐시가 error로 오염되지 않습니다.)
 
-**로그인**(`auth.queries.ts:21-43`의 `useLoginMutation.onSuccess`)이 이걸 정리합니다:
+**이동 수반 로그아웃**(`clearAll()`)은 `clearQueriesWithoutRefetch()`를 씁니다 —
+`resetQueries()`에는 `invalidateQueries`의 `refetchType: 'none'`에 해당하는
+"재요청은 하지 말고 리셋만" 옵션이 없어서, 대신 `queryClient.removeQueries()`로
+캐시를 통째로 파괴합니다. `removeQueries()`도 `clear()`와 마찬가지로 옵저버에
+아무것도 알리지 않지만, 이 경로는 뒤따르는 `navigate()`가 그 화면을 통째로
+언마운트시키므로 무해합니다.
+
+`isLoggingOut()`(`auth.util.ts`)은 두 경로 모두의 "로그아웃 직후 구간"을 하나로
+묶어 판단합니다 — 제자리 로그아웃은 `resetQueries()` Promise가 도는 동안,
+이동 수반 로그아웃은 `clearedAt` 이후 유예 시간(`LOGOUT_GRACE_MS`, 2초) 동안.
+이동 수반 로그아웃은 배경 재요청 자체가 없는데도 유예 창이 필요한 이유는,
+로그아웃 시점에 **이미 떠 있던 요청**(어떤 queryFn도 `AbortSignal`을 `apiClient`에
+넘기지 않아 `cancelQueries()`로도 실제로 끊기지 않습니다)의 401이 뒤늦게 돌아올
+수 있기 때문입니다 — 이 401을 `isLoggingOut()`이 놓치면 `client.ts:207` 가드가
+풀려 `clearAll()`이 기본값(`/auth/login`)으로 한 번 더 호출되고, 보호 경로
+로그아웃이 `/post`에 도착한 직후 로그인 페이지로 튕깁니다. 두 경로 모두
+`isLoggingOut()`이 true인 동안은 그 401의 토스트·강제 리다이렉트만 막을 뿐
+(`client.ts:207-210`), 제자리 로그아웃 경로의 **캐시가 error 상태로 오염되는
+것 자체는 막지 못합니다.**
+
+**로그인**(`auth.queries.ts:21-43`의 `useLoginMutation.onSuccess`)이 제자리
+로그아웃이 남긴 이 error 캐시를 정리합니다:
 
 ```ts
 setAuth(data.accessToken); // 1. 새 토큰 저장
