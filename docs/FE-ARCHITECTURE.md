@@ -736,8 +736,9 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
 전역 에러 핸들러는 `queryClient.ts` 내의 `mutationCache`와 `queryCache`에 정의:
 
 - **401 (`NOT_LOGGED_IN` / `INVALID_TOKEN`)**: `AuthUtil.clearAll()` 후 `/auth/login`으로
-  리다이렉트 + 로그인 필요 토스트. 단, 로그아웃 처리 중(`AuthUtil.isLoggingOut()`)의 401은
-  세션 만료가 아니라 `clearQueries`로 인한 배경 재요청 레이스이므로 무시한다
+  리다이렉트 + 로그인 필요 토스트. 단, 로그아웃 직후 구간(`AuthUtil.isLoggingOut()`)의 401은
+  세션 만료가 아니라 로그아웃 레이스(제자리 로그아웃의 배경 재요청, 또는 이동 수반
+  로그아웃 시점에 이미 떠 있던 요청)이므로 무시한다 — 상세: `docs/AUTH.md` §8-E
 - **403 (`ACCESS_DENIED`)**: 접근 거부 토스트만 표시
 - **그 외 `ApiError`**: 콘솔에 상세 로깅 + 사용자에게는 일반적인 "서버 에러" 토스트
 - **알 수 없는 에러**: 콘솔에 로깅 + 일반적인 에러 토스트
