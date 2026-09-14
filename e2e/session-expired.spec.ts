@@ -46,9 +46,12 @@ test.describe('세션 만료', () => {
     // 먼저 호출해 AuthUtil.isLoggingOut()을 true로 만들어버리므로, 같은 에러가 곧이어
     // QueryCache.onError(queryClient.ts)에도 전파되지만 그 가드에 걸려 'loginRequired'
     // 토스트조차 뜨지 않는다 — "로그인 필요 토스트 1개"가 아니라 "토스트가 전혀 없이
-    // 조용히 이동"이 실제 동작이다. resetQueries()가 트리거하는 배경 재요청들의 401도
-    // 같은 가드로 억제되어 서버 오류 토스트도 뜨지 않는다 — client.test.ts는 마운트된
-    // 쿼리 옵저버가 없어 이 가드를 구조적으로 검증할 수 없었던 지점이다.
+    // 조용히 이동"이 실제 동작이다. clearAll()은 이제 clearQueriesWithoutRefetch()를
+    // 써서 애초에 배경 재요청 자체를 내지 않으므로(auth.util.ts, docs/AUTH.md §8-E)
+    // 그로 인한 401도 안 생긴다 — 남은 방어선은 로그아웃 시점에 이미 떠 있던 요청의
+    // 뒤늦은 401뿐이고, 이것도 isLoggingOut()의 유예 창(LOGOUT_GRACE_MS)이 같은
+    // 가드로 억제한다. client.test.ts는 마운트된 쿼리 옵저버가 없어 이 가드를
+    // 구조적으로 검증할 수 없었던 지점이다.
     await expect(page.getByText(TEXTS.messages.error.loginRequired)).toHaveCount(0);
     await expect(page.getByText(TEXTS.messages.error.serverError)).toHaveCount(0);
   });

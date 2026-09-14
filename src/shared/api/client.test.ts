@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { apiClient } from '@/shared/api/client';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { NavigationService } from '@/shared/lib/router/navigation';
+import { AuthUtil } from '@/shared/utils/auth.util';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { ApiError } from '@/shared/types/common.type';
@@ -59,6 +60,12 @@ const makeCommentSuccess = () =>
 describe('ApiClient — 인증 오류 처리', () => {
   beforeEach(() => {
     vi.clearAllMocks(); // 각 테스트 전 mock 호출 기록 초기화
+  });
+
+  // Case 2~4가 각자 AuthUtil.clearAll()을 호출해 isLoggingOut() 유예 창을 연다 -
+  // 다음 케이스로 새지 않도록 매번 비운다(auth.util.ts의 resetLogoutGuard 주석 참고).
+  afterEach(() => {
+    AuthUtil.resetLogoutGuard();
   });
 
   // ─────────────────────────────────────────────────────────────
