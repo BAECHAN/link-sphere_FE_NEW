@@ -165,6 +165,14 @@
 
   </details>
 
+- `shared` 빈 상태·로딩 화면의 수직 패딩을 48px로 통일
+  <details><summary>배경·구현</summary>
+
+  북마크·댓글 빈 상태와 모바일 폴더 목록 로딩 화면의 수직 패딩이 4종(py-8/10/12/16)으로 흩어져 있었다. 가장 많이 쓰이던 py-12(48px)로 통일했다. 실제로 비어있는 폴더("미분류")에서 브라우저 검증(getComputedStyle)으로 48px 렌더링을 확인했다.
+  (`widgets/bookmark/bookmark-post-list/ui/BookmarkPostList.tsx`, `widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`, `widgets/comment/comment-list/ui/CommentList.tsx`)
+
+  </details>
+
 - `bookmark` 메인 피드에서 북마크를 완전히 제거해도 반응이 없거나 되레 미분류로 옮겨간 것처럼 보이던 문제 수정
   <details><summary>배경·구현</summary>
 

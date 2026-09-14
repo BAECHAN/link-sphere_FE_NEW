@@ -57,7 +57,7 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
               />
             ))
           ) : (
-            <div className="text-center py-8 text-muted-foreground text-sm">
+            <div className="text-center py-12 text-muted-foreground text-sm">
               {TEXTS.comment.list.empty}
             </div>
           )}

@@ -76,7 +76,7 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
           {TEXTS.bookmark.folder.myFolders}
         </h2>
         {isLoading ? (
-          <DelayedFallback className="flex items-center justify-center py-10">
+          <DelayedFallback className="flex items-center justify-center py-12">
             <Spinner />
           </DelayedFallback>
         ) : (
@@ -205,7 +205,7 @@ function CreateFolderCard() {
         />
         <Button size="sm" onClick={submit} disabled={!name.trim() || isPending} className="h-7">
           {isPending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <Loader2 className="size-4 animate-spin" />
           ) : (
             TEXTS.bookmark.folder.createSubmit
           )}

@@ -32,7 +32,7 @@ export function BookmarkPostList({ folderKey, sort, search, className }: Bookmar
     return (
       <div
         className={cn(
-          'text-center py-16 text-muted-foreground border rounded-lg bg-muted/10',
+          'text-center py-12 text-muted-foreground border rounded-lg bg-muted/10',
           className
         )}
       >
