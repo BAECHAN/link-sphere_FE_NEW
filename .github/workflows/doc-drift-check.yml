@@ -1,0 +1,30 @@
+name: Doc Drift Check
+
+# main에 병합 PR이 5개(scripts/check-doc-drift.js의 THRESHOLD) 쌓일 때마다 삭제된
+# export/파일 경로가 문서·코드에 그대로 남아있는지 grep으로 검사해 GitHub 이슈에
+# 보고한다. 상태는 레포에 커밋하지 않고 트래킹 이슈 본문에만 저장하므로 이 워크플로는
+# 레포에 쓰기 작업을 하지 않는다 — 자세한 배경은 scripts/check-doc-drift.js 상단 주석 참고.
+on:
+  push:
+    branches: ['main']
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: 문서-코드 정합성 경량 점검
+        run: node scripts/check-doc-drift.js
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
