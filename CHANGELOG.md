@@ -91,7 +91,7 @@
   <details><summary>배경·구현</summary>
 
   본문이 길거나 이미지를 첨부했거나 대댓글이 달려 오른쪽 컬럼이 높아질수록 왼쪽 프로필 이미지가 닉네임 줄에서 점점 더 아래로 내려갔다. `CommentItem`의 루트가 `items-start` 없이 `flex`만 걸려 있어 기본값인 `align-items: stretch`가 적용됐고, `UserAvatar`의 zoomable 래퍼(`Button`)가 `h-auto`라 이 stretch를 그대로 받아 늘어난 뒤 `Button`의 `items-center`가 안의 아바타를 세로 중앙으로 밀어냈다 — 프로필 이미지가 없어 이니셜 폴백만 뜨는 댓글은 이 래퍼 자체가 없어 원래도 상단에 붙어 있었다. `UserAvatar`의 `Button`에 `self-start`를 더해 zoomable 여부와 무관하게 항상 고정 크기 상자로 동작하게 했고, `CommentItem` 루트에도 `items-start`로 스레드형 2열 레이아웃의 상단 정렬 의도를 명시했다.
-  (`entities/user/ui/UserAvatar.tsx`, `widgets/comment/comment-list/ui/CommentItem.tsx`)
+  (`entities/user/ui/UserAvatar.tsx`, `widgets/comment/comment-list/ui/CommentItem.tsx`, [PR #92](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/92))
 
   </details>
 
