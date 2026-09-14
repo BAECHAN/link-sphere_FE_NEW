@@ -1,3 +1,11 @@
+### 2026-09-14 (BE)
+- Swagger API 문서화 도입 및 관리 체계 구축
+    - OpenAPI/Swagger 기반의 API 문서화 환경 구축 (developmentOnly 의존성 설정)
+    - 주요 컨트롤러(8개) 및 엔드포인트(39개)에 `@Tag`, `@Operation` 어노테이션 적용
+    - OpenAPI 설정에 공통 응답 규격 및 HTTP 상태 코드(200/201) 규칙 명시
+    - 엔드포인트 문서 누락 방지를 위한 가드 테스트(Guard Test) 도입
+    - 배포 효율화를 위해 shadowJar 패키징 기준을 productionRuntimeClasspath로 최적화
+
 ### 2026-09-14 (FE)
 - Playwright E2E 테스트 리포트 확인을 위한 스크립트 명령어를 pnpm 스크립트로 등록하여 개발 생산성 향상 ([#89](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/89))
 
