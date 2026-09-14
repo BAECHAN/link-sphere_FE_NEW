@@ -1,4 +1,7 @@
 ### 2026-09-14 (FE)
+- 공유 모듈 내 dev 서버 포트 하드코딩 제거 및 설정 최적화 ([#91](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/91))
+
+### 2026-09-14 (FE)
 - 내 댓글 모아보기 기능 구현 ([#90](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/90))
 
 ### 2026-09-14 (BE)
