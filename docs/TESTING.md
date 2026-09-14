@@ -571,8 +571,8 @@ All files |   72.5  |   68.3   |   75.0  |   72.1  |
 | 설정 파일     | `playwright.config.ts`, `tsconfig.e2e.json`                                                                                                        |
 
 ```bash
-pnpm test:e2e   # chromium 헤드리스로 1회 실행
-npx playwright show-report   # 마지막 실행의 HTML 리포트 열기(스텝별 스크린샷·트레이스)
+pnpm test:e2e          # chromium 헤드리스로 1회 실행
+pnpm test:e2e:report   # 마지막 실행의 HTML 리포트 열기(스텝별 스크린샷·트레이스)
 ```
 
 ### 디렉터리 구조
@@ -732,7 +732,7 @@ _"they run in the order opposite to their registration"_). 캐치올을 가장 �
 
 ### 결과를 눈으로 확인하는 방법
 
-**HTML 리포트** (`npx playwright show-report`)는 `playwright-report/`를 서빙하는
+**HTML 리포트** (`pnpm test:e2e:report`)는 `playwright-report/`를 서빙하는
 로컬 정적 서버를 띄운다. 서빙 포트는 `playwright.config.ts`의 `reporter` 설정에
 명시돼 있지 않아 Playwright 자체의 기본 동작을 그대로 따른다 — [Playwright 공식
 문서](https://playwright.dev/docs/test-reporters#html-reporter)의 `html` reporter
