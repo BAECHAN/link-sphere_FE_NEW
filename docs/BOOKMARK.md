@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-09-11
+> **마지막 검토**: 2026-09-14
 
 ## 1. 쉬운 설명
 
@@ -61,8 +61,11 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 
 **기능 자체를 이루는 것**
 
-- **React Router `useSearchParams`** — 검색어(`q`)·선택 폴더(`folder`)·정렬(`sort`)을
-  URL에 저장해 새로고침·뒤로가기에도 상태가 유지되게 한다
+- **React Router `useSearchParams`**(경유지: [`useSearchParamsDraft`](../src/shared/hooks/useSearchParamsDraft.ts)) —
+  검색어(`q`)·선택 폴더(`folder`)·정렬(`sort`)을 URL에 저장해 새로고침·뒤로가기에도 상태가
+  유지되게 한다. `BookmarkPage.tsx`(folder/sort)와 `useBookmarkSearch.ts`(q)는 서로 다른
+  컴포넌트라 각자 훅을 호출하지만, `useSearchParamsDraft`가 URL 쓰기 전 pending 의도를
+  모듈 스코프로 공유해 한쪽이 다른 쪽의 아직 반영 안 된 변경을 덮어쓰지 않는다(§10).
 - **TanStack Query** — 폴더 목록·폴더별 게시글 무한 스크롤·낙관적 업데이트
 - **Zod** — `bookmark-folder.schema.ts`의 폴더·요청/응답 스키마
 - **Radix Dialog 기반 `BookmarkFolderSelectModal`** — 데스크탑 중앙 모달 / 모바일 Bottom Sheet
@@ -476,6 +479,29 @@ Undo"였다. no-op 근거를 다시 쓰는 과정에서 몇 줄 위/아래에 �
 폴더 목록과 같은 스크롤 영역에 있어 폴더가 많으면 화면 밖으로 밀리는 문제도 함께
 발견해 고쳤다(§5) — 로직 변경이 아니라 레이아웃 변경이라 별도 시행착오로 두지
 않는다.
+
+### `setFolderKey`/`setSort`/`applySearch`의 mutation 제거
+
+`BookmarkPage.tsx`(`setFolderKey`/`setSort`/`goToFolderList`/`redirectWhenFolderMissing`)와
+`useBookmarkSearch.ts`(`applySearch`)는 원래 `useSearchParams()`가 돌려주는 공유
+URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 고쳐 썼다. 게시글 목록
+(`docs/SEARCH.md` §10)에서 같은 패턴이 필터 칩 URL을 간헐적으로 되돌리는 버그의 원인임을
+확인하면서, 북마크도 같은 구조적 결함을 안고 있는지 코드로 추적했다.
+
+북마크는 게시글 목록과 달리 `BookmarkPostList`가 `useInfiniteQuery`(suspense 아님)를 써서
+"필터 변경 → 커밋 지연" 구간 자체가 거의 없다 — 그래서 이 mutation이 실사용에서 URL을
+유실시키는 사례는 드물다. 그런데도 고친 이유는 `BookmarkPage`(folder/sort)와
+`useBookmarkSearch`(q)가 **서로 다른 `useSearchParams()` 인스턴스**를 각자 mutate하는
+구조 자체가 잘못됐기 때문이다 — 같은 URL이라는 공유 자원을 두 컴포넌트가 사본처럼
+다루면, 정지 구간이 조금이라도 겹치는 순간(느린 네트워크, React 18 concurrent 렌더의
+한 틱) 한쪽이 다른 쪽의 아직 반영 안 된 변경을 인지하지 못하고 덮어쓸 수 있다.
+
+`usePostList.ts`와 함께 [`useSearchParamsDraft`](../src/shared/hooks/useSearchParamsDraft.ts)로
+옮겨 mutation을 제거했다. pending 의도를 훅 인스턴스별 `useRef`가 아니라 모듈 스코프에 둔
+것도 이 이유 때문이다 — `useRef`로는 서로 다른 컴포넌트가 pending을 공유할 수 없다.
+`history` 정책(`setFolderKey`/`goToFolderList`는 push, `setSort`/`applySearch`/
+`redirectWhenFolderMissing`은 replace)은 그대로 유지했다. 대안 비교와 근거는
+`docs/DECISIONS.md`의 "2026-09-14" 항목 참고.
 
 ## 11. 남은 것
 

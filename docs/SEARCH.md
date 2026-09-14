@@ -8,7 +8,7 @@
 > 각각 어떻게 그 값과 동기화되는지, `@카테고리`·`#닉네임` 태그가 어떻게 분해되는지 이해하고,
 > 검색 관련 동작(유지·초기화·오타 보정)을 어느 파일에서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-09-07
+> **마지막 검토**: 2026-09-14
 
 ## 1. 쉬운 설명
 
@@ -108,19 +108,30 @@ flowchart LR
 가리지 않으면 `/bookmark?q=...`에서 헤더 검색창에 북마크 검색어가 잘못 표시된다. 근거:
 [`docs/DECISIONS.md`](./DECISIONS.md) "2026-09-07" 항목.
 
+**URL 쓰기는 `useSearchParamsDraft`를 거친다 — 직접 `.set()`/`.delete()`하지 않는다.**
+`setSearch`/`toggleFilter`(`usePostList.ts`)는 `useSearchParams()`가 돌려주는 공유
+URLSearchParams 인스턴스를 그 자리에서 고치지 않는다. 대신
+[`useSearchParamsDraft`](../src/shared/hooks/useSearchParamsDraft.ts)가 "커밋된 URL 또는
+아직 반영 안 된 pending 값" 위에 사본을 만들어 그 사본만 고친다. `RouterProvider.tsx`의
+`v7_startTransition: true` 때문에 필터 변경으로 목록 쿼리가 suspend하는 동안(정지 구간)
+React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는데, 그 구간 안에서 칩을
+연속으로 클릭해도 각 클릭의 의도가 pending 위에 이어붙어 유실되지 않는다. 자세한 경위는
+§10과 [`docs/DECISIONS.md`](./DECISIONS.md) "2026-09-14" 항목 참고.
+
 ## 6. 상태 모델
 
 이 기능은 새 zustand 스토어나 React Query 키 계층을 도입하지 않는다 — 검색어 자체는 URL이,
 데이터는 기존 `postKeys`(`post.keys.ts`)가 소유한다. 헤더 입력창의 로컬 state만 아래 훅이
 소유한다.
 
-| 상태                | 소유자                                                                                                 | 비고                                                              |
-| ------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| 검색어 원본(`q`)    | URL `searchParams` (React Router)                                                                      | `@카테고리 #닉네임 키워드` 형태로 토큰이 섞여 들어간다            |
-| 헤더 입력값         | [`useNavbarSearch.ts`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts)의 로컬 `useState`        | `pathname === '/post'`일 때만 `q`를 초기값·동기화 대상으로 삼는다 |
-| 필터 카드 낙관적 칩 | [`PostListSearch.tsx`](../src/widgets/post/post-list/ui/PostListSearch.tsx)의 `optimisticCategoryTags` | `flushSync`로 URL 반영 전에 즉시 활성화 표시                      |
-| 봇 글 숨기기        | [`useHideBotsStore`](../src/shared/store/hideBots.store.ts) (zustand + localStorage)                   | 기기별 개인 설정이라 URL 대상 아님, "조건 N개" 카운트에서도 제외  |
-| 최근 검색어(모바일) | [`useRecentSearches.ts`](../src/widgets/layout/navbar/hooks/useRecentSearches.ts) (localStorage)       | 데스크톱 제출은 이 훅을 호출하지 않음(§11 "남은 것")              |
+| 상태                           | 소유자                                                                                                 | 비고                                                                                                 |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| 검색어 원본(`q`)               | URL `searchParams` (React Router)                                                                      | `@카테고리 #닉네임 키워드` 형태로 토큰이 섞여 들어간다                                               |
+| 헤더 입력값                    | [`useNavbarSearch.ts`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts)의 로컬 `useState`        | `pathname === '/post'`일 때만 `q`를 초기값·동기화 대상으로 삼는다                                    |
+| 필터 카드 낙관적 칩            | [`PostListSearch.tsx`](../src/widgets/post/post-list/ui/PostListSearch.tsx)의 `optimisticCategoryTags` | `flushSync`로 URL 반영 전에 즉시 활성화 표시                                                         |
+| 커밋 전 URL 쓰기 의도(pending) | [`useSearchParamsDraft.ts`](../src/shared/hooks/useSearchParamsDraft.ts)의 모듈 스코프 `pendingIntent` | 정지 구간 동안 `location.key` 기준으로 연속 조작을 이어붙임. 커밋되면(`location.key` 변경) 자동 폐기 |
+| 봇 글 숨기기                   | [`useHideBotsStore`](../src/shared/store/hideBots.store.ts) (zustand + localStorage)                   | 기기별 개인 설정이라 URL 대상 아님, "조건 N개" 카운트에서도 제외                                     |
+| 최근 검색어(모바일)            | [`useRecentSearches.ts`](../src/widgets/layout/navbar/hooks/useRecentSearches.ts) (localStorage)       | 데스크톱 제출은 이 훅을 호출하지 않음(§11 "남은 것")                                                 |
 
 ## 7. 운영 파라미터
 
@@ -166,6 +177,21 @@ flowchart LR
 보였지만, 실제로는 [Google 결과 페이지의 Clear 버튼](https://9to5google.com/2019/11/12/google-search-clear-text-desktop/)과
 네이티브 `<input type="search">` 모두 입력만 비운다는 게 확인되어 현행(입력만 비움)을
 유지했다. 자세한 경위는 [`docs/DECISIONS.md`](./DECISIONS.md) "2026-09-07" 참고.
+
+**필터 칩 클릭이 간헐적으로 URL·UI에 반영되지 않거나 되돌아가는 버그 → mutation 제거.**
+`usePostList.ts`의 `toggleFilter`/`setSearch`가 `useSearchParams()`가 돌려주는 공유
+URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 수정(mutate)하고 있었다. 정지 구간
+(위 §5 참고) 안에서 칩을 연속으로 클릭하면 이 공유 인스턴스를 통해 우연히 값이 누적됐지만,
+같은 메커니즘 때문에 ① 초기화 직후 정지 구간에 다른 칩을 클릭하면 방금 지운 필터가
+되살아나고 ② `BookmarkPage`(folder/sort)와 `useBookmarkSearch`(q)처럼 서로 다른
+`useSearchParams()` 인스턴스가 각자 mutate하면 한쪽의 의도가 유실될 수 있었다. Playwright로
+`history.pushState` 호출 스택을 계측해 재현·확정한 뒤, mutation을 제거하고 "커밋된 URL +
+아직 반영 안 된 pending 의도"를 [`useSearchParamsDraft`](../src/shared/hooks/useSearchParamsDraft.ts)로
+명시적으로 추적하는 구조로 바꿨다. pending을 모듈 스코프(훅 인스턴스별 `useRef`가 아니라)에
+둔 이유는 URL이 라우터당 하나뿐인 공유 자원이라 pending 의도도 하나만 있으면 되고, 서로 다른
+훅 인스턴스(BookmarkPage·useBookmarkSearch)가 그걸 공유해야 하기 때문이다 — 근거는
+[`docs/DECISIONS.md`](./DECISIONS.md) "2026-09-14" 항목. 같은 필터를 정지 구간 안에서
+재클릭하면 취소되는 동작은 고치지 않았다 — 토글 버튼의 정상 동작으로 간주했다(같은 항목 참고).
 
 ## 11. 남은 것
 

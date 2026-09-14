@@ -1,4 +1,4 @@
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParamsDraft } from '@/shared/hooks/useSearchParamsDraft';
 import { useSuspenseFetchPostListQuery } from '@/entities/post/api/post.queries';
 import { parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
 import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
@@ -14,42 +14,44 @@ const HIDE_BOTS_FILTER = 'excludeBots';
  * 관리하므로, 여기서 다루는 filter는 나머지 칩(북마크한/내가 작성한/비공개)만 대상으로 한다.
  */
 export const usePostListParams = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { searchParams, updateSearchParams, clearSearchParams } = useSearchParamsDraft();
   const q = searchParams.get('q') || '';
   const filter = searchParams.get('filter') || undefined;
 
   const { category, nickname, search } = parseSearchQuery(q);
 
   const setSearch = (newSearch: string) => {
-    if (!newSearch) {
-      searchParams.delete('q');
-    } else {
-      searchParams.set('q', newSearch);
-    }
-    setSearchParams(searchParams);
+    updateSearchParams((draft) => {
+      if (!newSearch) {
+        draft.delete('q');
+      } else {
+        draft.set('q', newSearch);
+      }
+    });
   };
 
   const toggleFilter = (targetFilter: string) => {
-    const currentFilter = searchParams.get('filter') || '';
-    const filters = currentFilter ? currentFilter.split(',') : [];
+    updateSearchParams((draft) => {
+      const currentFilter = draft.get('filter') || '';
+      const filters = currentFilter ? currentFilter.split(',') : [];
 
-    let newFilters: string[];
-    if (filters.includes(targetFilter)) {
-      newFilters = filters.filter((f) => f !== targetFilter);
-    } else {
-      newFilters = [...filters, targetFilter];
-    }
+      let newFilters: string[];
+      if (filters.includes(targetFilter)) {
+        newFilters = filters.filter((f) => f !== targetFilter);
+      } else {
+        newFilters = [...filters, targetFilter];
+      }
 
-    if (newFilters.length === 0) {
-      searchParams.delete('filter');
-    } else {
-      searchParams.set('filter', newFilters.join(','));
-    }
-    setSearchParams(searchParams);
+      if (newFilters.length === 0) {
+        draft.delete('filter');
+      } else {
+        draft.set('filter', newFilters.join(','));
+      }
+    });
   };
 
   const clearSearch = () => {
-    setSearchParams({});
+    clearSearchParams();
   };
 
   return {

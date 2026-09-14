@@ -79,6 +79,14 @@
 
 ### Fixed
 
+- `shared` 필터·정렬·검색 URL을 로딩 중 연달아 바꾸면 서로 유실되거나 방금 지운 값이 되살아나던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  게시글 목록 필터 칩 클릭이 간헐적으로 URL·UI에 반영되지 않거나 되돌아간다는 제보를 Playwright로 재현해 원인을 추적했다. `usePostList.ts`의 `toggleFilter`/`setSearch`가 `useSearchParams()`가 돌려주는 공유 URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 수정하고 있었는데, 라우터의 `v7_startTransition`으로 필터 변경이 목록 응답이 올 때까지 커밋되지 않는 구간(정지 구간) 안에서 또 조작하면 아직 반영 안 된 mutation이 남은 같은 인스턴스를 또 읽고 고쳤다. 같은 패턴이 `BookmarkPage.tsx`(folder/sort)·`useBookmarkSearch.ts`(q)에도 있었는데, 이 둘은 서로 다른 `useSearchParams()` 인스턴스를 각자 mutate해 한쪽의 아직 반영 안 된 변경이 다른 쪽에 보이지 않을 수 있었다. mutation을 제거하고, 새 공용 훅으로 "커밋된 URL 또는 아직 반영 안 된 pending 의도" 위에 사본을 만들어 그 사본만 고치는 구조로 바꿨다. pending 의도는 URL이 라우터당 하나뿐인 공유 자원이라는 전제로 모듈 스코프에 두어, 서로 다른 컴포넌트의 훅 인스턴스도 같은 pending을 공유한다. 정지 구간 안에서 같은 필터를 재클릭하면 취소되는 동작(토글의 정상 동작)은 고치지 않았다.
+  (`shared/hooks/useSearchParamsDraft.ts`(신규), `widgets/post/post-list/hooks/usePostList.ts`, `pages/bookmark/BookmarkPage.tsx`, `widgets/bookmark/bookmark-search/hooks/useBookmarkSearch.ts`, `docs/SEARCH.md`, `docs/BOOKMARK.md`, `docs/TESTING.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-14-filter-chip-pending-url.md`(신규), [PR #88](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/88))
+
+  </details>
+
 - `auth` 비로그인 상태로 북마크를 시도하면 로그인해도 아무 반응이 없던 문제 수정
   <details><summary>배경·구현</summary>
 

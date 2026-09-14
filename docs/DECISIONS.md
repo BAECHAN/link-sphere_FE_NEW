@@ -6,6 +6,80 @@
 
 ---
 
+## 2026-09-14 — URL 쿼리 파라미터 쓰기: mutation 제거, pending 의도는 모듈 스코프로 공유
+
+**배경**
+
+게시글 목록 필터 칩 클릭이 간헐적으로 URL·UI에 반영되지 않거나 되돌아간다는 제보를
+Playwright로 재현했다(`history.pushState` 호출 스택 계측 + 네트워크 지연 주입). 원인은
+`usePostList.ts`의 `toggleFilter`/`setSearch`가 `useSearchParams()`가 돌려주는 **공유
+URLSearchParams 인스턴스**를 `.set()`/`.delete()`로 직접 수정(mutate)하고 있었다는 것 —
+`RouterProvider.tsx`의 `v7_startTransition: true` 때문에 필터 변경으로 목록 쿼리가
+suspend하는 동안(정지 구간) React가 보는 `location.search`는 API 응답이 올 때까지 안
+바뀌고, 그 구간 안에서 또 조작하면 아직 커밋 안 된 mutation이 남은 같은 인스턴스를 또
+읽고 고친다.
+
+실측으로 이 mutation이 양날의 검임을 확인했다: 정지 구간 안 **다른** 필터/파라미터
+연속 클릭이 누적되는 건 이 mutation 덕분(제거하면 회귀), 반면 초기화 직후 정지 구간에
+다른 칩을 클릭하면 방금 지운 필터가 되살아나는 건 같은 mutation이 낸 버그. 같은 패턴이
+`BookmarkPage.tsx`(folder/sort)·`useBookmarkSearch.ts`(q)에도 있었는데, 이 둘은 **서로
+다른 `useSearchParams()` 인스턴스**를 각자 mutate해 구조적으로 더 취약했다(한쪽의
+아직 반영 안 된 변경을 다른 쪽이 인지 못 함).
+
+**결정**
+
+1. mutation을 제거하고, 새 공용 훅 [`useSearchParamsDraft`](../src/shared/hooks/useSearchParamsDraft.ts)로
+   "커밋된 URL 또는 아직 반영 안 된 pending 의도" 위에 사본(draft)을 만들어 그 사본만
+   고치는 구조로 바꿨다(`usePostList.ts`, `BookmarkPage.tsx`, `useBookmarkSearch.ts`).
+2. pending 의도는 훅 인스턴스별 `useRef`가 아니라 **모듈 스코프 변수**에 둔다. 신선도
+   판정은 `location.key`(react-router가 push/replace/pop마다 새로 발급)로 한다.
+3. 정지 구간 안에서 같은 필터를 재클릭하면 취소되는 동작(토글의 정상 동작)은 고치지
+   않았다. 로딩 중임을 보여주는 UI(스피너 등) 추가도 하지 않았다.
+
+**이유 / 주의점**
+
+- **왜 모듈 스코프인가(훅별 `useRef`가 아니라)**: URL은 라우터당 하나뿐인 공유 자원이라
+  그에 대한 pending 의도도 하나만 있으면 된다. `BookmarkPage`와 `useBookmarkSearch`처럼
+  서로 다른 컴포넌트의 훅 인스턴스가 같은 URL에 대해 쓰기를 할 때, `useRef`는 인스턴스마다
+  따로라 이 공유 요구를 못 채운다. 선례: `shared/lib/router/navigation.ts`의
+  `NavigationService`(모듈 `let` + `setNavigate`로 1회 주입, 같은 "라우터는 앱당 하나"라는
+  전제). 대안(훅별 `useRef`, zustand 스토어, React Context)과 트레이드오프는 계획 설계
+  단계에서 비교했다 — Context는 이 레포에 선례가 0건(`grep -rln createContext src`)이라
+  배제, zustand는 구독 없이 `getState`/`setState`만 쓸 값이라 스토어 파일을 가변 박스로
+  쓰는 셈이라 배제.
+- **왜 `location.key`로 신선도를 판정하는가(문자열 비교나 `useSearchParams()` 인스턴스
+  identity가 아니라)**: `useSearchParams()` 인스턴스는 훅 호출부마다 별도 memo라 서로
+  다른 컴포넌트가 공유할 수 없다. URL 문자열 비교는 "A→B→A(뒤로가기)"에서 옛 pending이
+  되살아나는 구멍이 남는다. `location.key`는 컨텍스트 값이라 전 컴포넌트가 동일하고,
+  push/replace/pop 모두 새 키를 받는다.
+- **읽기(`searchParams`)에는 pending을 섞지 않는다.** `PostListSearch`의
+  `useEffect([currentFilter])` 낙관적 미러 3종, `usePostList`의 쿼리 키가 지금처럼
+  "커밋된 URL"만 기준으로 돌아야 이중 반영되지 않는다.
+- **"같은 필터 재클릭 시 취소"는 의도적으로 범위에서 뺐다.** 재설계로도 이 결과 자체는
+  안 바뀐다(칩은 토글이라 논리상 정상 동작). 사용자가 겪은 정확한 체감 증상(로딩 중
+  재클릭 → URL이 되돌아감)은 이 정상 토글 동작이 "느린 응답 + 반영 중이라는 피드백
+  부재" 때문에 유발된 것이다. 로딩 피드백 추가를 검토하며 NN/g의 Visibility of System
+  Status 원칙([nngroup.com](https://www.nngroup.com/articles/visibility-system-status/))을
+  근거로 들었으나, 실제로 이 앱은 `v7_startTransition`이 Suspense fallback을 억제해
+  필터 변경 시 로딩 스켈레톤조차 원래 안 뜨고("사용자 확인: 다른 사이트에서도 검색
+  파라미터 필터에 로딩 표시를 본 적이 없다"), 인용한 리서치도 일반 버튼/폼 제출 맥락이지
+  "검색 파라미터 필터 칩"이라는 구체적 사례에 대한 근거는 아니었다 — 근거 부족을 인정하고
+  범위에서 뺐다.
+- **북마크(`/bookmark`)는 정지 구간 자체가 거의 없다.** `BookmarkPostList`가
+  `useInfiniteQuery`(suspense 아님)를 쓰기 때문이다(`grep -rln "useSuspense" src`는
+  게시글/상세/댓글 3곳뿐). 그런데도 북마크를 범위에 넣은 이유는 "실사용 버그 재현
+  빈도"가 아니라 "URL이라는 공유 자원을 두 훅이 각자 사본으로 다루는 구조 자체를 맞게
+  고치는 것"이었다.
+
+**상태**
+
+적용 완료. `pnpm type-check`·`pnpm test`(신규 `useSearchParamsDraft.test.tsx`,
+`usePostList.test.tsx` 포함)·`pnpm lint`·`e2e/post-list-filters.spec.ts`·
+`e2e/bookmark.spec.ts`·`e2e/bookmark-folder-delete.spec.ts` 통과. 구현 계획은
+`docs/plans/2026-09-14-filter-chip-pending-url.md` 참고.
+
+---
+
 ## 2026-09-13 — z-index 토큰화 중 발견한 z-scrim 공유 충돌: 값 보존, 분리는 후속 결정
 
 **배경**
