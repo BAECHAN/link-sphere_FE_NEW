@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { server } from '@/mocks/server';
 import { useAuthStore } from '@/shared/store/auth.store';
+import { resetPendingSearchParams } from '@/shared/hooks/useSearchParamsDraft';
 
 // MSW 서버 라이프사이클
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
@@ -11,6 +12,7 @@ afterEach(() => {
   server.resetHandlers();
   cleanup();
   useAuthStore.getState().clearAuth();
+  resetPendingSearchParams();
 });
 
 afterAll(() => server.close());

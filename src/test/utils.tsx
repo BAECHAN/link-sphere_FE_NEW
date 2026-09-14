@@ -28,6 +28,12 @@ interface WrapperOptions {
   initialEntries?: MemoryRouterProps['initialEntries'];
   /** 외부에서 QueryClient 상태를 검사할 때 직접 주입 */
   queryClient?: QueryClient;
+  /**
+   * RouterProvider.tsx의 v7_startTransition 등 프로덕션 라우터 future 플래그를 재현해야
+   * 하는 테스트(정지 구간·suspense 타이밍 검증)에서만 지정한다. 생략하면 기존 테스트와
+   * 동일하게 미지정 상태로 렌더된다.
+   */
+  future?: MemoryRouterProps['future'];
 }
 
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
@@ -46,12 +52,14 @@ export function renderWithProviders(
   options: CustomRenderOptions = {}
 ): RenderResult & { queryClient: QueryClient } {
   const { wrapperOptions = {}, ...renderOptions } = options;
-  const { initialEntries = ['/'], queryClient = createTestQueryClient() } = wrapperOptions;
+  const { initialEntries = ['/'], queryClient = createTestQueryClient(), future } = wrapperOptions;
 
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+        <MemoryRouter initialEntries={initialEntries} future={future}>
+          {children}
+        </MemoryRouter>
       </QueryClientProvider>
     );
   }

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParamsDraft } from '@/shared/hooks/useSearchParamsDraft';
 import { Button } from '@/shared/ui/atoms/button';
 import {
   Select,
@@ -53,7 +53,7 @@ function parseSort(raw: string | null): BookmarkFolderSort {
 
 export function BookmarkPage() {
   const isMobile = useIsMobile();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { searchParams, updateSearchParams } = useSearchParamsDraft();
 
   const folderParam = searchParams.get('folder');
   const folderKey = parseFolderKey(folderParam);
@@ -76,28 +76,38 @@ export function BookmarkPage() {
           TEXTS.bookmark.folder.fallbackName);
 
   const setFolderKey = (key: BookmarkFolderKey) => {
-    if (key === 'all' && !isMobile) {
-      searchParams.delete('folder');
-    } else {
-      searchParams.set('folder', key);
-    }
-
-    setSearchParams(searchParams, { replace: false });
+    updateSearchParams(
+      (draft) => {
+        if (key === 'all' && !isMobile) {
+          draft.delete('folder');
+        } else {
+          draft.set('folder', key);
+        }
+      },
+      { replace: false }
+    );
   };
 
   const setSort = (next: BookmarkFolderSort) => {
-    if (next === 'latest') {
-      searchParams.delete('sort');
-    } else {
-      searchParams.set('sort', next);
-    }
-
-    setSearchParams(searchParams, { replace: true });
+    updateSearchParams(
+      (draft) => {
+        if (next === 'latest') {
+          draft.delete('sort');
+        } else {
+          draft.set('sort', next);
+        }
+      },
+      { replace: true }
+    );
   };
 
   const goToFolderList = () => {
-    searchParams.delete('folder');
-    setSearchParams(searchParams, { replace: false });
+    updateSearchParams(
+      (draft) => {
+        draft.delete('folder');
+      },
+      { replace: false }
+    );
   };
 
   // 삭제됐거나 존재하지 않는 폴더 UUID가 URL에 남으면 → 전체로 리다이렉트 (404 FOLDER_NOT_FOUND 방지)
@@ -115,10 +125,14 @@ export function BookmarkPage() {
         return;
       }
 
-      searchParams.delete('folder');
-      setSearchParams(searchParams, { replace: true });
+      updateSearchParams(
+        (draft) => {
+          draft.delete('folder');
+        },
+        { replace: true }
+      );
     },
-    [folderList, folderKey, searchParams, setSearchParams]
+    [folderList, folderKey, updateSearchParams]
   );
 
   // ============== 모바일 — 폴더 목록 모드 ==============

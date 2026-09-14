@@ -920,6 +920,58 @@ import해도 타입 에러 없이 통과하다가(둘 다 이름이 같은 expor
 
 ---
 
+### 10. `v7_startTransition` 정지 구간을 결정적으로 재현하려면 수동 게이트가 필요하다
+
+**대상**: `RouterProvider.tsx`처럼 `future={{ v7_startTransition: true }}`가 켜진 라우터
+아래에서, URL 변경이 Suspense 쿼리를 다시 fetch시켜 커밋이 API 응답까지 미뤄지는(=
+"정지 구간") 상황을 검증하는 테스트.
+
+**원인**: `renderWithProviders`의 기본 `MemoryRouter`에는 `future`가 없어 이 정지 구간
+자체가 안 생긴다 — `setSearchParams`가 즉시 커밋되므로, mutation 유무에 따른 차이가
+드러나지 않는다. `wrapperOptions.future`(또는 직접 `MemoryRouter future={{
+v7_startTransition: true }}`)를 켜야 재현되는데, 그러면 이번엔 `userEvent.click()`의
+`act()`가 클릭에 대한 동기 렌더까지만 보장하고 그 렌더가 시작한 fetch가 실제로 MSW
+핸들러에 도달하는 것까지는 보장하지 않는다 — `setTimeout`/`delay()` 같은 고정 지연으로
+게이트를 만들면 fetch가 언제 도달했는지 몰라 release 타이밍을 못 맞춘다.
+
+**해결**: MSW 핸들러를 수동 resolve 가능한 Promise(게이트)로 감싸고, `waitFor`로 게이트가
+실제로 생성될 때까지 기다린 뒤에만 resolve한다.
+
+```ts
+interface Gate {
+  promise: Promise<void>;
+  resolve: () => void;
+  resolved: boolean;
+}
+function createGate(): Gate {
+  let resolve!: () => void;
+  const promise = new Promise<void>((r) => (resolve = r));
+  const gate: Gate = {
+    promise,
+    resolved: false,
+    resolve: () => {
+      gate.resolved = true;
+      resolve();
+    },
+  };
+  return gate;
+}
+
+// 핸들러 안에서: await gate.promise; 로 응답을 미룬다.
+// 클릭 후: await waitFor(() => expect(gates.length).toBeGreaterThanOrEqual(n)) 로
+//          게이트가 등록될 때까지 기다린 뒤에만 release한다.
+```
+
+같은 쿼리 키로 재조회가 캐시 히트되면(예: 필터를 다시 꺼서 초기 로드와 같은 키로
+돌아가는 경우) 새 게이트 자체가 안 생길 수 있다 — 개수를 강제하지 말고 남은 미해결
+게이트만 열어 최종 상태로 `waitFor` 검증한다. 참고:
+[`useSearchParamsDraft.test.tsx`](../src/shared/hooks/useSearchParamsDraft.test.tsx)(메커니즘
+단위, Suspense throw 직접 제어),
+[`usePostList.test.tsx`](../src/widgets/post/post-list/hooks/usePostList.test.tsx)(MSW 게이트,
+실제 컴포넌트 통합).
+
+---
+
 ## 브라우저 수동 테스트 — DevTools 기기 에뮬레이션 주의사항
 
 여기까지는 전부 Vitest 자동화 테스트다. 이 섹션은 **실제 브라우저를 열어 눈으로
