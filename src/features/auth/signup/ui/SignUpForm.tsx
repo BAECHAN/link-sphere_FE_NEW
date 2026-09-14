@@ -38,7 +38,7 @@ export const SignUpForm = () => {
       : undefined;
 
   return (
-    <div className="flex h-[calc(100vh-10rem)] items-center justify-center px-4">
+    <div className="flex h-[calc(100vh-var(--navbar-height))] items-center justify-center px-4">
       <Card className="w-full max-w-md shadow-lg border-muted-foreground/10">
         <CardHeader className="text-center space-y-1">
           <Link

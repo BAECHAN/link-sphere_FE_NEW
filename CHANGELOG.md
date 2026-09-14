@@ -181,6 +181,14 @@
 
   </details>
 
+- `auth` 로그인·회원가입 화면 높이 계산에서 실제 내비게이션 바 높이 대신 고정값(10rem)을 쓰던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  `h-[calc(100vh-10rem)]`(160px)로 고정돼 있었는데 실제 내비게이션 바 높이는 `--navbar-height`(64px)라 96px 차이가 있었다. 다른 화면들처럼 `var(--navbar-height)`를 쓰도록 통일했다. 브라우저 검증으로 뷰포트 800px 기준 컨테이너 높이가 736px(800-64)로 정확히 일치하는 것을 확인했다.
+  (`pages/auth/LoginPage.tsx`, `features/auth/signup/ui/SignUpForm.tsx`)
+
+  </details>
+
 - `bookmark` 메인 피드에서 북마크를 완전히 제거해도 반응이 없거나 되레 미분류로 옮겨간 것처럼 보이던 문제 수정
   <details><summary>배경·구현</summary>
 
