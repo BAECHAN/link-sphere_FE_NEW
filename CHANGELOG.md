@@ -91,7 +91,7 @@
   <details><summary>배경·구현</summary>
 
   "내 댓글" 카드에서 특정 댓글로 스크롤·하이라이트해도, 위쪽 다른 댓글의 첨부 이미지가 뒤늦게 로드되면서 문서 높이가 늘어나 하이라이트 위치가 밀렸다. `MarkdownContent`의 댓글 이미지 `<img>`에 크기 예약이 없어 로드 전 높이 0에서 로드 후 240px로 순간 점프하는 게 원인이었다(`docs/DECISIONS.md` 2026-09-06 항목에서 다른 시프트 증상을 조사하다 발견했지만 그때 원인은 아니어서 유예해 둔 이슈). 이미지 요청 시 width와 height를 같은 값으로 넘기면(`resize=cover`) 원본이 그 값보다 작지만 않으면 응답이 항상 정확히 그 정사각으로 잘려 온다는 점(Supabase Storage 공식 문서의 cover 정의, 직접 측정으로 재확인)을 이용해, Supabase 변환을 타는 이미지는 로드 전부터 `LinkThumbnail`과 같은 방식(고정 비율 래퍼 + `bg-muted` 플레이스홀더)으로 정사각 자리를 미리 예약하도록 했다. `blob:`(작성 중 미리보기)·외부 이미지 링크는 비율을 알 수 없어 기존 렌더링을 그대로 유지한다.
-  (`shared/ui/elements/MarkdownContent.tsx`, `shared/lib/image/supabaseImage.ts`, `shared/ui/elements/MarkdownContent.stories.tsx`, `shared/ui/elements/MarkdownContent.test.tsx`(신규), `docs/plans/2026-09-14-comment-image-cls.md`(신규))
+  (`shared/ui/elements/MarkdownContent.tsx`, `shared/lib/image/supabaseImage.ts`, `shared/ui/elements/MarkdownContent.stories.tsx`, `shared/ui/elements/MarkdownContent.test.tsx`(신규), `docs/plans/2026-09-14-comment-image-cls.md`(신규), [PR #93](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/93))
 
   </details>
 
