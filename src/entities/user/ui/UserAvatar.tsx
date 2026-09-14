@@ -72,7 +72,7 @@ export function UserAvatar({
     <Button
       type="button"
       variant="ghost"
-      className="h-auto w-auto shrink-0 rounded-full p-0 hover:bg-transparent"
+      className="h-auto w-auto shrink-0 self-start rounded-full p-0 hover:bg-transparent"
       aria-label={TEXTS.ariaLabels.profileImageZoom}
       onClick={() => openImageViewer({ src: image, alt: nickname ?? '' })}
     >
