@@ -1,4 +1,7 @@
 ### 2026-09-14 (BE)
+- Spring Security 설정 최적화를 통해 permitAll 경로에서 정적 리소스 요청 시 발생하는 500 에러를 404 상태 코드로 정상 반환하도록 예외 처리 로직 개선
+
+### 2026-09-14 (BE)
 - Swagger API 문서화 도입 및 관리 체계 구축
     - OpenAPI/Swagger 기반의 API 문서화 환경 구축 (developmentOnly 의존성 설정)
     - 주요 컨트롤러(8개) 및 엔드포인트(39개)에 `@Tag`, `@Operation` 어노테이션 적용
