@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { mockLoginResponse } from '@/mocks/fixtures/auth.fixtures';
+import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 import { ENDPOINTS } from './endpoints';
 import { isApiPath } from './route-match';
 import { wrapResponse } from './wrap-response';
@@ -44,5 +45,21 @@ export async function mockLoginFailure(page: Page, message: string): Promise<voi
           timestamp: new Date().toISOString(),
         },
       })
+  );
+}
+
+/** POST /auth/signup (성공) — useCreateAccountMutation.onSuccess가 /auth/login으로 이동시킨다(auth.queries.ts:100). */
+export async function mockSignUpSuccess(page: Page): Promise<void> {
+  await page.route(
+    (url) => isApiPath(url, ENDPOINTS.auth.signup),
+    (route) => route.fulfill({ json: wrapResponse(mockAccount) })
+  );
+}
+
+/** GET /auth/email-availability — useAvailabilityCheck.ts의 500ms 디바운스가 끝난 뒤 나가는 이메일 중복 검사. */
+export async function mockEmailAvailability(page: Page, available = true): Promise<void> {
+  await page.route(
+    (url) => isApiPath(url, ENDPOINTS.auth.emailAvailability),
+    (route) => route.fulfill({ json: wrapResponse({ available }) })
   );
 }
