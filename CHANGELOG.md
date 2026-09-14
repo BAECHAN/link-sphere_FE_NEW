@@ -24,7 +24,8 @@
   댓글 전용 라벨)은 `docs/DECISIONS.md` 2026-09-14 항목 참고.
   (`pages/post/PostDetailPage.tsx`, `shared/config/texts.ts`,
   `widgets/post/post-card/ui/PostCard.tsx`, `widgets/post/post-list/ui/PostList.tsx`,
-  `widgets/bookmark/bookmark-post-list/ui/BookmarkPostList.tsx`)
+  `widgets/bookmark/bookmark-post-list/ui/BookmarkPostList.tsx`,
+  [PR #100](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/100))
 
   </details>
 
