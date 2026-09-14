@@ -92,6 +92,11 @@
 
   본문이 길거나 이미지를 첨부했거나 대댓글이 달려 오른쪽 컬럼이 높아질수록 왼쪽 프로필 이미지가 닉네임 줄에서 점점 더 아래로 내려갔다. `CommentItem`의 루트가 `items-start` 없이 `flex`만 걸려 있어 기본값인 `align-items: stretch`가 적용됐고, `UserAvatar`의 zoomable 래퍼(`Button`)가 `h-auto`라 이 stretch를 그대로 받아 늘어난 뒤 `Button`의 `items-center`가 안의 아바타를 세로 중앙으로 밀어냈다 — 프로필 이미지가 없어 이니셜 폴백만 뜨는 댓글은 이 래퍼 자체가 없어 원래도 상단에 붙어 있었다. `UserAvatar`의 `Button`에 `self-start`를 더해 zoomable 여부와 무관하게 항상 고정 크기 상자로 동작하게 했고, `CommentItem` 루트에도 `items-start`로 스레드형 2열 레이아웃의 상단 정렬 의도를 명시했다.
   (`entities/user/ui/UserAvatar.tsx`, `widgets/comment/comment-list/ui/CommentItem.tsx`, [PR #92](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/92))
+- `shared` dev 서버 포트가 `vite.config.ts`·`playwright.config.ts` 두 곳에 리터럴로 중복돼 있던 것을 하나로 통합
+  <details><summary>배경·구현</summary>
+
+  "내 댓글" 기능 브라우저 검증 중 `localhost:31119` 하드코딩 위치를 전수 조사하다가, `vite.config.ts`의 `server.port`와 `playwright.config.ts`의 `baseURL`이 서로 참조 없이 각자 `31119` 리터럴을 들고 있는 걸 발견했다. 지금 당장 문제는 없지만 포트를 바꾸면 한쪽만 고치고 다른 쪽을 놓쳐 e2e가 조용히 옛 포트로 접속을 시도하게 될 수 있다. 새 파일 `dev-server.config.ts`에 `DEV_SERVER_PORT` 상수 하나로 정의를 모으고 두 설정이 그 값을 import해서 쓰도록 바꿨다. 두 tsconfig 프로젝트(`tsconfig.app.json`이 `vite.config.ts`를, `tsconfig.e2e.json`이 `playwright.config.ts`를 각각 include)가 이 신규 파일도 함께 include하도록 갱신했다 — 안 그러면 project reference 경계를 벗어난 import라 TS6307로 타입체크가 깨진다.
+  (`dev-server.config.ts`(신규), `vite.config.ts`, `playwright.config.ts`, `tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.e2e.json`, [PR #91](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/91))
 
   </details>
 
