@@ -96,7 +96,7 @@ export function PostListSearch() {
   };
 
   return (
-    <div className="flex flex-col gap-2 md:gap-3 p-5 md:p-6 bg-card rounded-2xl border shadow-sm hover:shadow-md transition-shadow">
+    <div className="flex flex-col gap-2 md:gap-3 p-4 bg-card rounded-2xl border shadow-sm hover:shadow-md transition-shadow">
       <div
         role="group"
         aria-label={TEXTS.ariaLabels.postCategoryFilters}

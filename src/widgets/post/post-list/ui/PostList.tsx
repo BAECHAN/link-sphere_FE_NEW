@@ -52,9 +52,9 @@ function PostListContent() {
   const indicatorHeight = isRefetching ? PULL_INDICATOR_HEIGHT : pullDistance;
 
   return (
-    <div className="space-y-6">
+    <div>
       {correctedSearch && (
-        <div className="text-sm text-muted-foreground text-center">
+        <div className="text-sm text-muted-foreground text-center mb-6">
           {TEXTS.post.search.corrected(correctedSearch)}
         </div>
       )}
@@ -89,7 +89,7 @@ function PostListContent() {
       </div>
 
       {hasNextPage && (
-        <div ref={observerRef} className="flex justify-center p-4">
+        <div ref={observerRef} className="flex justify-center p-4 mt-6">
           {isFetchingNextPage && <Loader2 className="size-6 animate-spin text-muted-foreground" />}
         </div>
       )}
