@@ -4,6 +4,7 @@ import { defineConfig, loadEnv } from 'vite';
 import compression from 'vite-plugin-compression'; // 추가
 import mkcert from 'vite-plugin-mkcert';
 import { visualizer } from 'rollup-plugin-visualizer';
+import { DEV_SERVER_PORT } from './dev-server.config';
 
 export default defineConfig(({ mode }) => {
   // 현재 모드(mode)에 따라 .env 파일들을 로드
@@ -144,7 +145,7 @@ export default defineConfig(({ mode }) => {
       fs: {
         deny: ['..'],
       },
-      port: 31119,
+      port: DEV_SERVER_PORT,
       proxy: {
         '/api': {
           target: API_URL,
