@@ -143,7 +143,7 @@ export function FolderChips({ selectedKey, onSelect, className }: FolderTreeProp
           onClick={startCreating}
           className="h-auto shrink-0 gap-1 rounded-full border border-dashed px-3 py-1.5 text-sm text-muted-foreground"
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="size-4" />
           {TEXTS.bookmark.folder.new}
         </Button>
       )}
@@ -308,7 +308,7 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
       />
       <Button size="sm" onClick={submit} disabled={!name.trim() || isPending}>
         {isPending ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <Loader2 className="size-4 animate-spin" />
         ) : (
           TEXTS.bookmark.folder.createSubmit
         )}

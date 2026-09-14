@@ -125,7 +125,7 @@ export function BookmarkPage() {
   if (isMobileListMode) {
     return (
       <div className="px-4 py-4">
-        <h1 className="text-lg font-semibold mb-4">{TEXTS.bookmark.folder.pageTitle}</h1>
+        <h1 className="text-xl font-semibold mb-4">{TEXTS.bookmark.folder.pageTitle}</h1>
         <MobileFolderList onSelect={setFolderKey} />
       </div>
     );
@@ -145,7 +145,7 @@ export function BookmarkPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-base font-semibold flex-1 truncate">{currentFolderName}</h1>
+          <h1 className="text-xl font-semibold flex-1 truncate">{currentFolderName}</h1>
           <Select value={sort} onValueChange={(v) => setSort(v as BookmarkFolderSort)}>
             <SelectTrigger className="w-32 h-8 text-xs">
               <SelectValue placeholder={TEXTS.bookmark.folder.sortPlaceholder} />

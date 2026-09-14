@@ -34,7 +34,7 @@ export function LikeCommentButton({
         isLiked && 'text-destructive font-medium'
       )}
     >
-      <Heart className={cn('h-3.5 w-3.5', isLiked && 'fill-current')} />
+      <Heart className={cn('size-4', isLiked && 'fill-current')} />
       <span>{likeCount > 0 ? likeCount : TEXTS.comment.item.like}</span>
     </Button>
   );

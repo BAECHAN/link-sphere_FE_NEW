@@ -157,6 +157,38 @@
 
   </details>
 
+- `bookmark` 북마크 페이지 제목 폰트 크기를 화면별로 통일(20px)
+  <details><summary>배경·구현</summary>
+
+  같은 페이지 안에서 제목 크기가 3가지(모바일 폴더 목록 18px, 모바일 게시글뷰 16px, 데스크톱 20px)로 흩어져 있었다. 실제 브라우저 검증(getComputedStyle)으로 3개 화면 전부 20px로 렌더링되는 것을 확인했다.
+  (`pages/bookmark/BookmarkPage.tsx`)
+
+  </details>
+
+- `shared` 빈 상태·로딩 화면의 수직 패딩을 48px로 통일
+  <details><summary>배경·구현</summary>
+
+  북마크·댓글 빈 상태와 모바일 폴더 목록 로딩 화면의 수직 패딩이 4종(py-8/10/12/16)으로 흩어져 있었다. 가장 많이 쓰이던 py-12(48px)로 통일했다. 실제로 비어있는 폴더("미분류")에서 브라우저 검증(getComputedStyle)으로 48px 렌더링을 확인했다.
+  (`widgets/bookmark/bookmark-post-list/ui/BookmarkPostList.tsx`, `widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`, `widgets/comment/comment-list/ui/CommentList.tsx`)
+
+  </details>
+
+- `post` 카테고리 필터 칩을 활성화한 뒤 마우스를 올리면 색이 바뀌던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  범위 필터 칩(북마크한·내가 작성한·나만 볼 수 있는)은 이미 `hover:bg-*` 클래스로 활성 색을 고정해뒀는데, 카테고리 필터 칩(`@디자인` 등)의 `activeClassName`에는 그 클래스가 빠져 있어 활성 상태에서 호버하면 기본 호버 스타일로 되돌아갔다. 같은 파일의 다른 칩들과 동일하게 `hover:bg-primary hover:text-primary-foreground`를 추가했다.
+  (`widgets/post/post-list/ui/PostListSearch.tsx`)
+
+  </details>
+
+- `auth` 로그인·회원가입 화면 높이 계산에서 실제 내비게이션 바 높이 대신 고정값(10rem)을 쓰던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  `h-[calc(100vh-10rem)]`(160px)로 고정돼 있었는데 실제 내비게이션 바 높이는 `--navbar-height`(64px)라 96px 차이가 있었다. 다른 화면들처럼 `var(--navbar-height)`를 쓰도록 통일했다. 브라우저 검증으로 뷰포트 800px 기준 컨테이너 높이가 736px(800-64)로 정확히 일치하는 것을 확인했다.
+  (`pages/auth/LoginPage.tsx`, `features/auth/signup/ui/SignUpForm.tsx`)
+
+  </details>
+
 - `bookmark` 메인 피드에서 북마크를 완전히 제거해도 반응이 없거나 되레 미분류로 옮겨간 것처럼 보이던 문제 수정
   <details><summary>배경·구현</summary>
 

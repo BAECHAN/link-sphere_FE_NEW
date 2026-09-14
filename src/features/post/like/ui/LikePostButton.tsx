@@ -34,11 +34,7 @@ export function LikePostButton({ postId, isLiked, likeCount }: LikePostButtonPro
       aria-label={isLiked ? TEXTS.ariaLabels.postUnlike : TEXTS.ariaLabels.postLike}
     >
       <ThumbsUp
-        className={cn(
-          'h-3.5 w-3.5 md:h-4 md:w-4',
-          isLiked && 'fill-current',
-          isLiking && 'animate-pulse opacity-50'
-        )}
+        className={cn('size-4', isLiked && 'fill-current', isLiking && 'animate-pulse opacity-50')}
       />
       <span className="font-bold select-none">{likeCount}</span>
     </Button>

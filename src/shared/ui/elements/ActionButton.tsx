@@ -25,7 +25,7 @@ export function ActionButton({
       onClick={onClick}
       className={cn('flex items-center gap-1 transition-colors h-auto p-0', className)}
     >
-      {Icon && <Icon className={cn('h-3.5 w-3.5', iconClassName)} />}
+      {Icon && <Icon className={cn('size-4', iconClassName)} />}
       <span>{label}</span>
     </Button>
   );
