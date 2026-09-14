@@ -1,7 +1,8 @@
 import { apiClient } from '@/shared/api/client';
-import { Comment } from '@/entities/comment/model/comment.schema';
+import { Comment, MyCommentListResponse } from '@/entities/comment/model/comment.schema';
 import { API_ENDPOINTS } from '@/shared/config/api';
 import { uploadImageAndGetUrl } from '@/shared/lib/upload/uploadImageAndGetUrl';
+import { PaginationRequest } from '@/shared/types/common.type';
 
 // createImageBitmap은 파일 용량이 아니라 디코드된 픽셀 수만큼 메모리를 쓴다. 첨부 버튼으로
 // 고해상도 이미지 여러 장을 한 번에 고르기 쉬워진 만큼, 동시 처리 수를 2로 제한해 최대 동시
@@ -23,6 +24,13 @@ async function uploadCommentImages(images?: File[]): Promise<string[]> {
 export const commentApi = {
   getComments: async (postId: string) => {
     return await apiClient.get<Comment[]>(API_ENDPOINTS.post.postComment(postId));
+  },
+
+  getMyComments: async (payload: PaginationRequest): Promise<MyCommentListResponse> => {
+    const { page, size } = payload;
+    return await apiClient.get<MyCommentListResponse>(API_ENDPOINTS.post.myComments, {
+      searchParams: { page, size },
+    });
   },
 
   createComment: async (postId: string, payload: { content?: string; images?: File[] }) => {

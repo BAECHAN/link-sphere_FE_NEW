@@ -201,6 +201,9 @@ export function Navbar() {
                   >
                     {TEXTS.buttons.profileEdit}
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(ROUTES_PATHS.MY_COMMENTS)}>
+                    {TEXTS.buttons.myComments}
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>{TEXTS.nav.logOut}</DropdownMenuItem>
                 </DropdownMenuContent>

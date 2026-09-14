@@ -15,6 +15,7 @@ const ROUTES_PATHS = {
     SIGNUP: `${ROUTES_BASE.AUTH}/sign-up`,
   },
   BOOKMARK: '/bookmark',
+  MY_COMMENTS: '/my/comments',
   // Error
   FORBIDDEN: '/403',
   SERVER_ERROR: '/500',
@@ -30,7 +31,8 @@ const isProtectedPath = (pathname: string): boolean => {
   return (
     pathname.startsWith(ROUTES_PATHS.POST.SUBMIT) ||
     pathname.startsWith(editPrefix) ||
-    pathname.startsWith(ROUTES_PATHS.BOOKMARK)
+    pathname.startsWith(ROUTES_PATHS.BOOKMARK) ||
+    pathname.startsWith(ROUTES_PATHS.MY_COMMENTS)
   );
 };
 
