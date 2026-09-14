@@ -21,12 +21,24 @@ export const useLoginMutation = () => {
     onSuccess: (data) => {
       // 1. 새 토큰 저장 (인증 상태 전환)
       setAuth(data.accessToken);
-      // 2. 캐시를 clear()하지 않고 invalidate만 한다. 인라인 모달 로그인은 페이지 이동
+      // 2. 로그아웃이 남긴 에러 캐시만 초기화한다. clearQueries()의 resetQueries()가 토큰을
+      //    지운 직후 화면에 남아있던 쿼리를 배경 재요청시켜 401로 error 상태를 만드는데,
+      //    Suspense 쿼리는 캐시가 error면 재마운트해도 retryOnMount=false로 막혀 새 요청을
+      //    아예 내지 않고 옛 에러를 그대로 다시 throw한다(query-core queryObserver의
+      //    shouldLoadOnMount). 아래 3의 invalidate는 활성 쿼리만 다시 부르므로 이미 언마운트된
+      //    이런 쿼리에는 닿지 못한다. data를 들고 있는 쿼리(재요청만 실패한 경우)는 화면이
+      //    멀쩡하고 재마운트 시 정상 재요청되므로 건드리지 않는다 - 지우면 오히려 깜빡인다.
+      //    3보다 먼저 둔다: resetQueries의 내부 재조회는 리셋 뒤 predicate가 더 이상
+      //    매칭되지 않아 아무것도 다시 부르지 않으므로, 활성 쿼리의 재요청은 3이 맡는다.
+      void queryClient.resetQueries({
+        predicate: (query) => query.state.status === 'error' && query.state.data === undefined,
+      });
+      // 3. 캐시를 clear()하지 않고 invalidate만 한다. 인라인 모달 로그인은 페이지 이동
       //    없이 제자리에서 일어나므로, clear()로 캐시를 비우면 마운트된 화면(댓글 목록 등)의
       //    옵저버가 깨져 이후 갱신이 화면에 반영되지 않는다. invalidate는 옵저버를 유지한 채
       //    새 인증 상태로 다시 불러온다(내 좋아요/북마크/계정 등).
       void queryClient.invalidateQueries();
-      // 3. FCM 토큰 등록 (브라우저 알림 권한 요청 + 서버 등록)
+      // 4. FCM 토큰 등록 (브라우저 알림 권한 요청 + 서버 등록)
       void requestAndRegisterFcmToken();
     },
     onError: (error) => {
