@@ -87,6 +87,14 @@
 
 ### Fixed
 
+- `comment` 댓글 해시 이동 시 스크롤 도착 지점이 navbar에 딱 붙어 답답해 보이던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  "내 댓글" 카드에서 원글로 이동하면 하이라이트된 댓글이 sticky navbar 바로 아래(여백 0px)에 붙어서 시작해, 가려지거나 잘리진 않지만 시각적으로 답답하다는 피드백을 받았다. 이 코드베이스에 "navbar 높이 + 여유분" 간격을 쓴 선례가 없어 임의로 정하는 대신, 실제 앱과 같은 색 토큰·컴포넌트 구조로 만든 목업으로 여백 0/12/16/24px 네 가지를 나란히 비교해 승인받은 뒤 24px로 정했다. `CommentItem` 루트의 `scroll-mt-(--navbar-height)`를 `scroll-mt-[calc(var(--navbar-height)_+_24px)]`로 바꿔, navbar 실제 높이(런타임 측정값)에 24px를 더한 만큼 스크롤 여백을 예약한다. 실제 사이트에서 `getBoundingClientRect().top`으로 재측정해 정확히 navbar 높이+24px(64+24=88px, 1px 미만 오차)에 도착함을 확인했다.
+  (`widgets/comment/comment-list/ui/CommentItem.tsx`)
+
+  </details>
+
 - `auth` 로그아웃 후 다시 로그인해도 이전 화면이 계속 에러로 보이던 문제 수정
   <details><summary>배경·구현</summary>
 
