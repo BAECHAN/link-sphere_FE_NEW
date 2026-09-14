@@ -1,4 +1,7 @@
 ### 2026-09-14 (FE)
+- 댓글 아바타 정렬 이슈 해결 및 레이아웃 최적화 ([#92](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/92))
+
+### 2026-09-14 (FE)
 - 공유 모듈 내 dev 서버 포트 하드코딩 제거 및 설정 최적화 ([#91](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/91))
 
 ### 2026-09-14 (FE)
