@@ -13,7 +13,6 @@ const aiStatusEnum = z.enum(['NONE', 'PENDING', 'COMPLETED', 'FAILED']);
  */
 export const postSchema = z.object({
   id: z.string(),
-  userId: z.string(),
   url: z.string().url(TEXTS.validation.urlFormat),
   title: z.string().min(1, TEXTS.validation.titleRequired),
   description: z.string().nullable(),
@@ -79,7 +78,6 @@ export const updatePostSchema = z.object({
 
 export const createPostResponseSchema = postSchema.pick({
   id: true,
-  userId: true,
   url: true,
   title: true,
   description: true,

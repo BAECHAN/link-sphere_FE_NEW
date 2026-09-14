@@ -4,7 +4,6 @@ import { createPostSchema, postSchema, updatePostSchema } from '@/entities/post/
 describe('postSchema', () => {
   const validPost = {
     id: 'post-uuid-1',
-    userId: 'user-uuid-1',
     url: 'https://example.com',
     title: 'Valid Title',
     description: null,

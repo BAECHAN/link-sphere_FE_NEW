@@ -3,7 +3,6 @@ import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 
 export const mockPost: Post = {
   id: 'post-uuid-1',
-  userId: mockAccount.id,
   url: 'https://example.com/article',
   title: 'Test Article Title',
   description: 'A test article description',
