@@ -733,11 +733,17 @@ _"they run in the order opposite to their registration"_). 캐치올을 가장 �
 ### 결과를 눈으로 확인하는 방법
 
 **HTML 리포트** (`npx playwright show-report`)는 `playwright-report/`를 서빙하는
-로컬 정적 서버를 띄운다(기본 `localhost:9323`). **재실행 후에도 서버를 새로 켤 필요는
-없다** — 같은 폴더를 계속 서빙 중이므로 `pnpm test:e2e`(또는 `pnpm exec playwright
-test`)를 다시 돌려 리포트 파일이 갱신되면, 브라우저 탭에서 새로고침만 해도 최신 결과가
-보인다(2026-09-10, 예전 실행 시점의 리포트를 보고 있어 스펙이 일부만 보인다고 헷갈렸던
-사례 — 서버를 새로 켜는 게 아니라 새로고침이 빠져 있었다).
+로컬 정적 서버를 띄운다. 서빙 포트는 `playwright.config.ts`의 `reporter` 설정에
+명시돼 있지 않아 Playwright 자체의 기본 동작을 그대로 따른다 — [Playwright 공식
+문서](https://playwright.dev/docs/test-reporters#html-reporter)의 `html` reporter
+옵션 표는 `port` 기본값을 _"`9323` or any available port when `9323` is not
+available"_ 라고 명시한다(우리가 정한 값이 아니라 라이브러리 기본값이라 버전이
+바뀌면 달라질 수 있다 — 실제 포트는 명령 실행 시 터미널 출력으로 확인한다).
+**재실행 후에도 서버를 새로 켤 필요는 없다** — 같은 폴더를 계속 서빙 중이므로
+`pnpm test:e2e`(또는 `pnpm exec playwright test`)를 다시 돌려 리포트 파일이 갱신되면,
+브라우저 탭에서 새로고침만 해도 최신 결과가 보인다(2026-09-10, 예전 실행 시점의
+리포트를 보고 있어 스펙이 일부만 보인다고 헷갈렸던 사례 — 서버를 새로 켜는 게 아니라
+새로고침이 빠져 있었다).
 
 **브라우저 창으로 직접 보고 싶을 때**:
 
