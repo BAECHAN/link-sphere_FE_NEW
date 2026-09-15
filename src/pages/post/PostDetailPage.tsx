@@ -75,7 +75,7 @@ function PostDetailContent() {
         variant="ghost"
         size="sm"
         onClick={goBack}
-        className="hidden md:inline-flex -ml-2 text-muted-foreground hover:text-foreground"
+        className="hidden md:inline-flex -ml-2 md:-mb-3 text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-5 w-5" />
         {backLabel}

@@ -19,6 +19,14 @@
 
   </details>
 
+- `post` 상세 돌아가기 버튼과 카드 사이 간격 축소
+  <details><summary>배경·구현</summary>
+
+  데스크톱 전용 돌아가기 버튼과 그 아래 게시글 카드 사이 간격이 부모 컨테이너의 `space-y-6`(24px)에서 나와 너무 넓다는 피드백을 받았다. 카드→댓글 구간 간격은 그대로 유지해야 해서 컨테이너의 `space-y-6`은 건드리지 않고, `hidden md:inline-flex`로 데스크톱에서만 렌더되는 버튼에 `md:-mb-3`(-12px)를 추가해 이 구간만 24px→12px로 좁혔다. Artifact로 24/16/12/8px 네 안을 나란히 보여주고 사용자가 12px을 선택했다.
+  (`pages/post/PostDetailPage.tsx`)
+
+  </details>
+
 ### Fixed
 
 - `post` 상세 돌아가기 버튼: 모바일은 제거, 데스크톱은 sticky 해제
