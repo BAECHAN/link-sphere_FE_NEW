@@ -23,7 +23,7 @@
   <details><summary>배경·구현</summary>
 
   데스크톱 전용 돌아가기 버튼과 그 아래 게시글 카드 사이 간격이 부모 컨테이너의 `space-y-6`(24px)에서 나와 너무 넓다는 피드백을 받았다. [PR #106](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/106)에서 버튼에 `md:-mb-3`(-12px) 음수 마진을 더해 24px→12px로 줄였다고 기록했지만, 배포 후 "너무 딱 붙었다"는 재피드백을 받아 Playwright로 실측한 결과 그 서술 자체가 틀렸다는 걸 발견했다 — 실제로는 24px→**3px**이었다. 원인은 버튼(`shadcn Button`)의 실제 `display`가 `inline-flex`라 음수 `margin-bottom`이 선언한 값대로 반영되지 않고 상쇄되는 CSS 함정이었다(Tailwind 공식 업그레이드 가이드·W3C CSS Working Group Issue #8182가 명시적으로 경고하는 상황, `docs/DECISIONS.md` 2026-09-15 참고). margin 오버라이드를 완전히 버리고, 버튼과 카드를 감싸는 중첩 `flex flex-col gap-*` 컨테이너로 바꿔 24px→16px로 재조정했다 — `gap`은 flex 아이템 단위로 적용돼 이 문제 자체가 생기지 않고, 선언값이 실제값과 정확히 일치함을 실측으로 확인했다. 카드→댓글 구간(24px)과 모바일 레이아웃은 영향 없음.
-  (`pages/post/PostDetailPage.tsx`, `docs/DECISIONS.md`, [PR #106](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/106))
+  (`pages/post/PostDetailPage.tsx`, `docs/DECISIONS.md`, [PR #106](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/106), [PR #107](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/107))
 
   </details>
 
