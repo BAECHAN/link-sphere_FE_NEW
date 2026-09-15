@@ -6,6 +6,90 @@
 
 ---
 
+## 2026-09-15 — 상세 돌아가기 버튼 간격: margin 오버라이드 폐기, gap 중첩 컨테이너로 교체 (PR #106 수치 정정)
+
+**배경**
+
+PR #106에서 돌아가기 버튼과 카드 사이 간격을 24px→12px로 줄이려고 버튼에
+`md:-mb-3`(음수 마진)을 추가해 배포했다. 이후 "너무 딱 붙었다, 블록처럼 떨어져
+보여야 한다"는 피드백을 받아 원인을 다시 조사했다.
+
+**검토**
+
+Playwright로 실제 `/post/:id` 페이지(데스크톱 1280px)에서 `getBoundingClientRect()`/
+`getComputedStyle()`을 직접 측정한 결과, **PR #106의 "24px→12px" 서술 자체가
+틀렸다는 걸 발견했다** — 실제로는 24px→**3px**이었다(버튼의 `transition-all`
+때문에 클래스 변경 직후 바로 측정하면 트랜지션 중간값을 읽는 함정이 있어, 클래스
+교체 후 400ms 대기하고 재측정해 값을 안정화했다). 원인은 버튼(`shadcn Button`)의
+실제 `display`가 `inline-flex`라는 점이었다 — `inline-flex`(atomic inline-level
+박스)에 준 음수 `margin-bottom`이 선언한 값대로 반영되지 않고 상당 부분 상쇄됐다
+(같은 요소를 진단용으로 `display:block`으로 강제하면 선언값과 일치하는 결과가
+나와 확인함).
+
+이게 우연한 버그가 아니라는 근거를 세 갈래로 확인했다:
+
+1. **Tailwind CSS 공식 업그레이드 가이드**
+   (https://tailwindcss.com/docs/upgrade-guide, "space-between-selector" 절)가
+   정확히 이 두 상황(① `inline` 요소에 `space-y-*` 사용 ② `space-y-*`가 관리하는
+   자식에 개별 마진을 더해 미세조정)을 명시적으로 경고한다: _"You might see changes
+   in your project if you were ever using these utilities with inline elements, or
+   if you were adding other margins to child elements to tweak their spacing."_
+   (번역: "이 유틸리티를 inline 요소에 쓰고 있었거나, 자식 요소에 다른 마진을 더해
+   간격을 미세조정하고 있었다면 변화를 보게 될 수 있다.")
+2. **W3C CSS Working Group의 실제 스펙 논의**
+   (Issue #8182 "Negative margins on inline boxes",
+   https://lists.w3.org/Archives/Public/public-css-archive/2024Feb/0427.html)에서
+   스펙 에디터 fantasai가 설명한 문제: atomic inline-level 박스에 라인박스 높이를
+   줄이려는 의도로 음수 마진을 줘도, 대응하는 음수 마진이 없는 중첩 콘텐츠가 있으면
+   그 효과가 상쇄(cancel)된다 — 이 방향으로 스펙을 새로 쓰자고 결의(RESOLVED)될
+   만큼 알려진 CSS 함정이었다(번역·요약).
+3. **Tailwind 공식 `margin` 문서**(tailwindcss.com/docs/margin, "Adding space
+   between children" 절)도 같은 맥락에서 `space-y-*`를 _"a shortcut for adding
+   margin to all-but-the-last-item"_ 이라 정의하며 _"For those situations, it's
+   better to use the gap utilities when possible"_ 라고 명시한다.
+
+대안으로 (A) 버튼을 블록 레벨 `<div>`로 감싸 마진을 그 wrapper에 주는 방식과
+(B) `margin`을 아예 쓰지 않고 중첩 `flex` 컨테이너의 `gap`으로 간격을 관리하는
+방식을 비교했다. (A)도 기술적으로는 동작하지만(블록 요소는 margin이 예측 가능하게
+반영됨), 공식 문서가 명시적으로 `gap`을 권장하고, 실제 오픈소스 사례로
+[당근(Daangn) SEED 디자인 시스템](https://github.com/daangn/seed-design)의
+`Stack`/`VStack`/`HStack` 컴포넌트가 `gap` prop을 실제 CSS
+`gap: var(--seed-box-gap)`(`packages/css/base.css:335`)로 컴파일하고 `margin`은
+별도 prop으로 완전히 분리해두고 있어 — 요소 사이 간격은 `gap`, 개별 요소 바깥
+여백은 `margin`이라는 역할 분리가 실제 프로덕션 디자인 시스템에서도 일관되게
+쓰이고 있음을 확인해 (B)를 택했다.
+
+**결정**
+
+1. `PostDetailPage.tsx`의 루트 컨테이너를 `space-y-6` → `flex flex-col gap-6`로
+   바꾸고, 버튼과 카드를 감싸는 중첩 `flex flex-col md:gap-4` 컨테이너를 추가했다
+   (버튼↔카드 16px, 카드↔댓글 24px — 두 구간 간격이 달라 `gap`이 컨테이너당 균일한
+   값만 지원하는 특성상 중첩 구조가 필요했다).
+2. 버튼에서 `md:-mb-3`(음수 마진)을 완전히 제거했다 — 이제 간격은 전부 `gap`이
+   관리하고, 버튼 자체에는 어떤 마진 클래스도 없다.
+3. 간격 값은 24px(원래, 너무 넓었음) → 12px(PR #106, 실제로는 3px 밖에 안 나옴,
+   너무 좁았음) → **16px**(이번 결정, `gap`이라 선언값=실제값이 보장됨)로 재조정.
+
+**이유 / 주의점**
+
+- 실측 방법(재현 절차): `pnpm dev` 기동 → Playwright `browser_run_code_unsafe`로
+  `getBoundingClientRect()` 차이를 측정. **클래스를 바꾼 직후 바로 측정하지 않는다**
+  — `Button`의 기본 클래스에 `transition-all`이 있어 트랜지션 중간값을 읽는 함정이
+  있다. 클래스 변경 → `waitForTimeout(400)` → 재측정 순서를 지켜야 안정된 값이
+  나온다.
+- `gap` 기반 구조는 버튼이 `hidden`(모바일에서 `display:none`)이어도 `gap` 계산에서
+  자동으로 제외되므로, 모바일에서 카드가 그룹의 사실상 첫 아이템이 되어 별도 처리
+  없이 기존과 동일한 레이아웃이 유지된다(직접 측정으로 확인, 모바일 회귀 없음).
+- 결과적으로 이 변경은 `space-y-*`를 대체하는 첫 사례다 — 이후 비슷한 "구간별로
+  다른 간격이 필요한" 상황에서도 margin 오버라이드보다 중첩 `gap` 컨테이너를
+  먼저 고려한다.
+
+**상태**
+
+적용 완료. `src/pages/post/PostDetailPage.tsx` 참고.
+
+---
+
 ## 2026-09-14 — 상세 돌아가기 버튼: 모바일 제거 + 데스크톱 sticky 해제 (PR #100 결정 재검토)
 
 **배경**
