@@ -10,7 +10,7 @@ export function Post() {
   const protectedNavigate = useProtectedNavigate();
 
   return (
-    <div className="w-full space-y-6 md:space-y-8">
+    <div className="w-full space-y-4 md:space-y-6">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl md:text-2xl font-bold">Recent Links</h1>
         <Button
