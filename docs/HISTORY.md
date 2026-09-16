@@ -1,4 +1,7 @@
 ### 2026-09-16 (FE)
+- ErrorLayout 컴포넌트 내 하드코딩된 예외 주석을 역할 토큰으로 대체하여 코드 가독성 및 유지보수성 개선 ([#117](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/117))
+
+### 2026-09-16 (FE)
 - ESLint 커스텀 룰 도입 및 역할 토큰 추가를 통한 코드 품질 개선 및 타입 시스템 강화 ([#116](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/116))
 
 ### 2026-09-16 (FE)
