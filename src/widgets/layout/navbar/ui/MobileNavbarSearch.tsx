@@ -30,11 +30,11 @@ export const MobileNavbarSearch = ({ onClose, onSubmit }: MobileNavbarSearchProp
       <Button
         type="button"
         variant="ghost"
+        size="icon"
         aria-label={TEXTS.ariaLabels.close}
-        className="h-auto w-auto shrink-0 p-0 hover:bg-transparent"
         onClick={onClose}
       >
-        <ArrowLeftIcon className="size-5 text-muted-foreground" />
+        <ArrowLeftIcon className="size-6 text-muted-foreground" />
       </Button>
       <div className="relative flex-1">
         <SearchIcon className="absolute left-2 top-2.5 size-4 text-muted-foreground" />
@@ -49,8 +49,9 @@ export const MobileNavbarSearch = ({ onClose, onSubmit }: MobileNavbarSearchProp
         <Button
           type="button"
           variant="ghost"
+          size="icon-sm"
           aria-label={searchInput ? TEXTS.ariaLabels.inputClear : TEXTS.ariaLabels.close}
-          className="absolute right-2 top-2.5 h-auto w-auto p-0 hover:bg-transparent"
+          className="absolute right-1 top-1/2 -translate-y-1/2"
           onClick={handleTrailingIconClick}
         >
           <XIcon className="size-4 text-muted-foreground" />

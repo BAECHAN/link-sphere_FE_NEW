@@ -88,6 +88,14 @@
 
 ### Fixed
 
+- `shared` 모바일 검색 헤더 아이콘 버튼 3곳의 좌우 정렬 어긋남 수정
+  <details><summary>배경·구현</summary>
+
+  Button의 size `default`가 가진 `has-[>svg]:px-3`가 modifier 그룹이 달라 `p-0` 오버라이드로 tailwind-merge에서 지워지지 않고 CSS 명시도에서도 이겨, `MobileNavbarSearch.tsx`의 뒤로가기·트레일링 지우기 버튼과 `NavbarSearch.tsx`의 데스크톱 지우기 버튼 3곳 모두 의도한 여백 제거가 실제로 적용되지 않고 있었다(이 레포 tailwind-merge로 직접 실행해 확인) — 특히 뒤로가기 아이콘은 형제 햄버거 버튼(`size="icon"`)보다 6px 오른쪽에서 시작해 검색을 열고 닫을 때마다 위치가 튀었다. `p-0`으로 우회하는 대신 shadcn이 아이콘 전용으로 제공하는 `size="icon"`/`"icon-sm"` variant로 바꿔 padding 충돌 자체를 없앴다(레포 안에 이미 18곳의 선례가 있고, `input.tsx`·`PasswordInput.tsx`의 클리어 버튼이 정확히 같은 형태다). 뒤로가기는 아이콘도 `size-5`에서 `size-6`으로 키워 햄버거와 정확히 같은 위치(22px)에 오도록 맞췄다. hover 배경도 개별 `hover:bg-transparent` 오버라이드를 걷어내 ghost variant 기본값(다른 navbar 아이콘 버튼과 동일)을 쓰도록 통일했다. 탭 영역은 가로가 44px에서 36px로 줄지만 세로가 20px에서 36px로 늘어 두 축 모두 36px 이상이 된다(880px²에서 1,296px²). 아이콘 크기·hover 배경·X 버튼 가로 위치 3가지 결정은 [Artifact 미리보기](https://claude.ai/artifact/5phgRdqLb3djpD8KBYdGNB)로 사용자 승인을 받았다.
+  (`src/widgets/layout/navbar/ui/MobileNavbarSearch.tsx`, `src/widgets/layout/navbar/ui/NavbarSearch.tsx`, [PR #121](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/121))
+
+  </details>
+
 - `comment` 내 댓글 카드 패딩을 다른 카드와 동일하게 통일
   <details><summary>배경·구현</summary>
 
