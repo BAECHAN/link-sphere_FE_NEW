@@ -88,6 +88,14 @@
 
 ### Fixed
 
+- `shared` 모바일 헤더 왼쪽 아이콘(햄버거·뒤로가기) 2곳을 컨테이너 가장자리에 시각적으로 정렬
+  <details><summary>배경·구현</summary>
+
+  [PR #121](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/121)에서 뒤로가기를 햄버거와 같은 위치(22px)로 맞췄지만, 그 22px 자체가 `size="icon"`(36×36 박스)에 24×24 아이콘이 들어가며 생기는 6px 인셋이라 두 아이콘 모두 컨테이너 왼쪽 여백(16px)보다 안쪽에서 시작하고 있었다. [Flutter Material 공식 문서](https://api.flutter.dev/flutter/material/IconButton-class.html)가 명시하는 _"To keep a button's visual sizes small with larger touchable areas, set the hitAreaInsets to a negative value"_ 원칙과 이 레포에 이미 있던 선례([BookmarkPage.tsx](https://github.com/BAECHAN/link-sphere_FE_NEW/blob/main/src/pages/bookmark/BookmarkPage.tsx)의 `-ml-2`, [PostDetailPage.tsx](https://github.com/BAECHAN/link-sphere_FE_NEW/blob/main/src/pages/post/PostDetailPage.tsx)의 `-ml-2`)를 따라, 두 버튼에 `relative -left-1.5`(-6px)를 추가해 아이콘을 16px에 정확히 맞췄다. 기존 선례는 `margin`을 써서 형제 요소(제목 등)까지 같이 끌려오지만, 여기서는 `relative` 오프셋을 써서 탭 영역(36×36)과 옆 검색 입력창·"LinkSphere" 워드마크의 레이아웃에는 영향을 주지 않고 아이콘만 시각적으로 이동시켰다 — 실측으로 입력창 위치(60px)가 그대로 유지됨을 확인했다.
+  (`src/widgets/layout/navbar/ui/Navbar.tsx`, `src/widgets/layout/navbar/ui/MobileNavbarSearch.tsx`)
+
+  </details>
+
 - `post` 모바일 상세에서 검색 패널이 열려도 하단 댓글 작성바가 그대로 비치던 문제 수정
   <details><summary>배경·구현</summary>
 

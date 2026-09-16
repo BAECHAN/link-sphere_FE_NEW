@@ -31,6 +31,7 @@ export const MobileNavbarSearch = ({ onClose, onSubmit }: MobileNavbarSearchProp
         type="button"
         variant="ghost"
         size="icon"
+        className="relative -left-1.5"
         aria-label={TEXTS.ariaLabels.close}
         onClick={onClose}
       >
