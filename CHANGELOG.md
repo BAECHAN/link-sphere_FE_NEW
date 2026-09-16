@@ -38,6 +38,14 @@
 
 ### Changed
 
+- `shared` 색상 토큰 4종의 라이트 모드 대비를 WCAG AA로 개선
+  <details><summary>배경·구현</summary>
+
+  Storybook a11y 게이트(PR #112)가 라이트 모드에서 WCAG AA(4.5:1) 미달로 잡아낸 `--muted-foreground`(4.34:1)·`--info`(4.42:1)·`--category`(4.47:1)·`--success`(3.29:1, 가장 크게 미달)를 [Artifact 미리보기](https://claude.ai/artifact/UfsZXFcvR1CXPQY5o5sjiB)로 사용자에게 보여주고 승인받아 고쳤다. OKLCH→sRGB 변환 후 WCAG 상대 휘도 공식으로 직접 계산해, 색상(H)·채도(C)는 그대로 두고 명도(L)만 낮춰 4.60:1(반올림 오차 여유 포함)을 넘기는 최소값을 찾았다. `--muted-foreground`/`--info`/`--category` 3개는 명도를 1~2%p만 낮춰 육안으로 거의 구분 안 되고(`#737373`→`#6f6f6f`, `#226eff`→`#1e6aff`, `#8d4fff`→`#8a4cff`), `--success`만 원래 대비가 가장 낮았던 만큼 눈에 띄게 진해진다(`#2ba321`→`#008900`). 다크 모드 값은 전부 7:1~9.4:1로 이미 통과라 손대지 않았다(직접 계산 확인 — a11y 게이트 자체는 라이트 모드만 검사한다). 이 4개 토큰이 원인이던 `parameters.a11y.test: 'todo'` 7건(kbd·FilterChip·MarkdownContent·FormField·DesignTokens Colors 스토리)을 제거했다 — 남은 `'todo'` 2건(`AsyncBoundary`의 `/10` 틴트 조합, `select`의 Radix 접근성 이름 이슈)은 이 토큰들과 무관해 그대로 뒀다.
+  (`src/app/globals.css`, `src/shared/ui/tokens/DesignTokens.stories.tsx`, `src/shared/ui/atoms/kbd.stories.tsx`, `src/shared/ui/elements/FilterChip.stories.tsx`, `src/shared/ui/elements/ScrollToTop.stories.tsx`, `src/shared/ui/elements/MarkdownContent.stories.tsx`, `src/shared/ui/elements/form/_base/FormField.stories.tsx`)
+
+  </details>
+
 - `shared` 타이포그래피 역할 토큰 신설, 페이지 제목·섹션 제목·마이크로 라벨 12곳 치환
   <details><summary>배경·구현</summary>
 

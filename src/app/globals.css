@@ -162,7 +162,13 @@
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  /* 명도(L)만 0.556→0.542로 낮췄다(색상·채도는 그대로) - 원래 값은 --muted
+     배경(oklch(0.97 0 0), #f5f5f5) 위에서 4.34:1로 WCAG AA(4.5:1) 미달이었다
+     (2026-09-16 Storybook a11y 게이트가 kbd/FilterChip/ScrollToTop 등에서 실측
+     발견). OKLCH→sRGB 변환 후 WCAG 상대 휘도 공식으로 직접 계산해 4.60:1(여유
+     포함)이 되는 최소 조정값을 찾았다 - 화면상 #737373→#6f6f6f로 육안 구분이
+     거의 안 되는 수준이다. Artifact 미리보기로 사용자 승인(2026-09-16). */
+  --muted-foreground: oklch(0.542 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -174,13 +180,18 @@
      (docs/DECISIONS.md 2026-09-13 참고). */
   --scrim: oklch(0 0 0);
   --scrim-foreground: oklch(1 0 0);
-  --info: oklch(0.585 0.233 262);
+  /* info/category/success 3개 모두 같은 이유(2026-09-16 a11y 게이트 실측, 다크
+     모드는 전부 7:1 이상이라 문제 없음을 확인) - 명도(L)만 낮춰 WCAG AA(4.5:1)를
+     4.60:1 여유로 넘긴다. info·category는 1~2%p만 낮춰 육안 차이가 거의 없지만,
+     success는 원래 3.29:1로 가장 크게 미달이라 눈에 띄게 진해진다(#2ba321→
+     #008900). Artifact 미리보기로 사용자 승인(2026-09-16). */
+  --info: oklch(0.575 0.233 262);
   --info-foreground: oklch(1 0 0);
   --warning: oklch(0.769 0.188 85);
   --warning-foreground: oklch(0.145 0 0);
-  --success: oklch(0.627 0.194 142);
+  --success: oklch(0.543 0.194 142);
   --success-foreground: oklch(1 0 0);
-  --category: oklch(0.606 0.256 292);
+  --category: oklch(0.597 0.256 292);
   --category-foreground: oklch(1 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
