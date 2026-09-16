@@ -63,7 +63,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
         <div className="flex items-center gap-2 min-w-0">
           <span className="font-semibold truncate">{comment.author.nickname}</span>
           {isPostAuthor && (
-            <Badge variant="default" className="px-1.5 py-0 text-[10px] h-4 bg-category shrink-0">
+            <Badge variant="default" className="px-1.5 py-0 text-micro h-4 bg-category shrink-0">
               {TEXTS.comment.item.authorBadge}
             </Badge>
           )}

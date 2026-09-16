@@ -5,10 +5,9 @@
 > **대상 독자**: 이 레포 FE의 스타일링 작업을 하는 개발자, 새 컴포넌트를 스타일링할 때
 > 참고할 AI 세션.
 >
-> **읽고 나면**: 색상·반경·z-index·타이포그래피 스케일 토큰이 어디 정의돼 있고 어떻게
-> 확장하는지, ESLint가 어떤 Tailwind className 규칙을 강제하는지, Storybook 토큰
-> 카탈로그를 어떻게 보는지 안다. 타이포그래피는 스케일 층(`t1`~`t14`)만 있고 역할
-> 층·실제 화면 치환은 아직이라는 것, spacing 토큰은 왜 없는지도 안다.
+> **읽고 나면**: 색상·반경·z-index·타이포그래피(스케일+역할) 토큰이 어디 정의돼 있고
+> 어떻게 확장하는지, ESLint가 어떤 Tailwind className 규칙을 강제하는지, Storybook
+> 토큰 카탈로그를 어떻게 보는지 안다. spacing 토큰은 왜 없는지도 안다.
 >
 > **마지막 검토**: 2026-09-16
 
@@ -23,9 +22,10 @@
 
 이 문서가 다루는 것은 그 사전(토큰)을 만들고, 반복되는 UI를 컴포넌트로 묶고,
 ESLint로 "고를 수 없게" 강제하고, Storybook에 견본책을 두는 네 겹의 장치다. 색상은
-이미 첫 겹이 있었으니 이번엔 z-index와 색상 결손(딤 오버레이, destructive 글자색)을
-채우고, 나머지(spacing·타이포)는 Tailwind v4의 구조적 제약 때문에 이번 라운드에서
-빠졌다 — §4에서 이유를 설명한다.
+이미 첫 겹이 있었고(2026-09-13), z-index와 색상 결손(딤 오버레이, destructive
+글자색)을 채웠다(같은 날). 타이포그래피는 스케일 층(t1~t14)과 역할 층(페이지 제목
+등 12곳)을 화면 미리보기 승인을 거쳐 뒤이어 채웠다(2026-09-16, §4·§11 참고).
+spacing만 Tailwind v4의 구조적 제약 때문에 아직 비어 있다 — 이유는 §11 참고.
 
 ```mermaid
 flowchart TD
@@ -111,13 +111,14 @@ import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있
 ## 6. 상태 모델
 
 이 기능은 Zustand 스토어나 React Query 키를 도입하지 않는다 — 상태는 CSS 커스텀
-프로퍼티뿐이다. 새로 추가된 두 네임스페이스:
+프로퍼티뿐이다. 새로 추가된 네임스페이스:
 
-| 네임스페이스                                                | 정의 위치                                                          | 정본                                                                                  |
-| ----------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| `--z-index-*` (8개)                                         | `src/app/globals.css`의 `@theme static` 블록                       | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "z-index 토큰"      |
-| `--destructive-foreground`, `--scrim`, `--scrim-foreground` | `src/app/globals.css`의 `:root` (테마 무관, `.dark`에 재정의 없음) | 위와 동일 문서 "주요 색상 토큰" 표                                                    |
-| `--text-t1`~`--text-t14` (스케일 층, 2026-09-16 추가)       | `src/app/globals.css`의 두 번째 `@theme static` 블록               | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "타이포그래피 토큰" |
+| 네임스페이스                                                                                | 정의 위치                                                          | 정본                                                                                  |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `--z-index-*` (8개)                                                                         | `src/app/globals.css`의 `@theme static` 블록                       | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "z-index 토큰"      |
+| `--destructive-foreground`, `--scrim`, `--scrim-foreground`                                 | `src/app/globals.css`의 `:root` (테마 무관, `.dark`에 재정의 없음) | 위와 동일 문서 "주요 색상 토큰" 표                                                    |
+| `--text-t1`~`--text-t14` (스케일 층, 2026-09-16 추가)                                       | `src/app/globals.css`의 `@theme static` 블록                       | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "타이포그래피 토큰" |
+| `--text-screen-title`/`section-title`/`subsection-title`/`micro` (역할 층, 2026-09-16 추가) | `src/app/globals.css`의 (static 아닌) `@theme` 블록                | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
 
 전체 39개 색상 값 자체는 옮겨적지 않는다 — `globals.css`가 SSOT다.
 
@@ -127,13 +128,14 @@ import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있
 
 ## 8. 코드 지도와 자주 하는 수정
 
-| 하려는 것                         | 위치                                                                                                           | 방법                                                                                                                           |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| 새 z-index 층 추가                | `src/app/globals.css`의 `@theme static` 블록 (§ z-index 주석)                                                  | `--z-index-<name>: <값>` 추가 → `design-tokens` skill 표 갱신 → `DesignTokens.stories.tsx`의 `Z_INDEX_LAYERS` 배열에 항목 추가 |
-| 새 색 토큰 추가                   | `globals.css`의 `:root`/`.dark` + `@theme inline` 매핑                                                         | 값 정의 → `--color-<name>: var(--<name>)` 매핑 추가 → skill 문서 표 갱신                                                       |
-| 새 Tailwind 커스텀 ESLint 룰 추가 | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화) | 기존 3개 룰과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭) 따르기                                    |
-| 토큰 카탈로그에 새 섹션 추가      | `src/shared/ui/tokens/DesignTokens.stories.tsx`                                                                | 새 `export const <Name>: Story` 추가(기존 `Colors`/`Radius`/`ZIndex` 참고)                                                     |
-| Storybook에서 다크모드 확인       | `.storybook/preview.tsx`의 툴바 테마 토글                                                                      | 별도 설정 불필요 — 이미 `.dark` 클래스를 토글하도록 연결됨                                                                     |
+| 하려는 것                         | 위치                                                                                                           | 방법                                                                                                                                            |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 새 z-index 층 추가                | `src/app/globals.css`의 `@theme static` 블록 (§ z-index 주석)                                                  | `--z-index-<name>: <값>` 추가 → `design-tokens` skill 표 갱신 → `DesignTokens.stories.tsx`의 `Z_INDEX_LAYERS` 배열에 항목 추가                  |
+| 새 색 토큰 추가                   | `globals.css`의 `:root`/`.dark` + `@theme inline` 매핑                                                         | 값 정의 → `--color-<name>: var(--<name>)` 매핑 추가 → skill 문서 표 갱신                                                                        |
+| 새 Tailwind 커스텀 ESLint 룰 추가 | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화) | 기존 4개 룰과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭) 따르기                                                     |
+| 새 타이포 역할 토큰 추가          | `globals.css`의 (static 아닌) `@theme` 블록                                                                    | `--text-<role>`/`--text-<role>--line-height`(필요시 `--font-weight`) 추가 → 실제 사용처에 클래스 적용 → `design-tokens` skill 역할 토큰 표 갱신 |
+| 토큰 카탈로그에 새 섹션 추가      | `src/shared/ui/tokens/DesignTokens.stories.tsx`                                                                | 새 `export const <Name>: Story` 추가(기존 `Colors`/`Radius`/`ZIndex` 참고)                                                                      |
+| Storybook에서 다크모드 확인       | `.storybook/preview.tsx`의 툴바 테마 토글                                                                      | 별도 설정 불필요 — 이미 `.dark` 클래스를 토글하도록 연결됨                                                                                      |
 
 ## 9. 검증 결과
 
@@ -151,6 +153,22 @@ import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있
   - 기존 숫자 그대로의 raw z-index 리터럴 클래스는 0건(내가 새로 추가한 파일·주석
     기준 — §10 참고)
 
+2026-09-16 실측 (타이포그래피 역할 층 + 12곳 치환, 워크트리
+`typography-role-tokens`, PR-1(#108) 위에 스택):
+
+- `pnpm type-check` — 통과 (0 에러)
+- `pnpm lint` — 통과 (0 위반, 신설 `no-raw-text-size` 룰 포함). 룰이 실제로 위반을
+  잡는지 별도 확인: `text-[13px]`를 임시로 넣어 에러 발생을 확인한 뒤 되돌렸다.
+- `pnpm test` — 58개 파일 380개 테스트 전부 통과
+- `pnpm build` — 성공. `dist/assets/index-*.css` grep 확인:
+  - `--text-screen-title`/`section-title`/`subsection-title`/`micro` 4개 모두
+    size·line-height(·`micro` 제외 font-weight)까지 정의됨
+  - `.text-screen-title{...}`/`.text-section-title{...}`/`.text-subsection-title{...}`/
+    `.text-micro{...}` 유틸리티 4개 모두 정상 생성 — `text-micro`만 font-weight 선언이
+    없음(의도대로)
+  - 10px 임의값 유틸리티가 여전히 1건 생성됨 — 원인은 §10의 append-only 계획 파일,
+    실제 JSX 참조는 0건(화면 영향 없음)
+
 ## 10. 시행착오
 
 **Tailwind 스캐너가 CSS/JS 주석·마크다운 문서도 전부 텍스트로 훑는다.** `globals.css`에
@@ -165,14 +183,25 @@ CSS에 그 클래스가 다시 나타났다. Tailwind v4는 JIT 스캐너가 프
 이미 있던 과거 서술(옛 z-index 값을 그대로 적은 문장)은 같은 현상을 이미 일으키고
 있었지만, 이번 작업 범위 밖의 파일이라 손대지 않았다.
 
+**같은 문제가 이번엔 고칠 수 없는 자리에서 재발했다.** 타이포그래피 역할 토큰 작업
+(2026-09-16) 계획 초안에 10px 임의값 클래스를 대상 목록으로 설명하며 그 형태 그대로
+적었는데, 그 초안이 `docs/plans/2026-09-16-typography-tokens-a11y-gate.md`로 커밋된
+뒤에야 발견했다. 이 파일은 `.claude/CLAUDE.md` §11 규칙상 커밋 후 수정하지 않는
+append-only 파일이라(CI가 수정 자체를 막는다) 고칠 수 없다 — `pnpm build` 산출물에
+그 유령 유틸리티 클래스가 실제로 생성됨을 확인했다(어떤 컴포넌트도 참조하지 않아
+화면 영향은 없음). 같은 문서 초안에서 발견한 `docs/DESIGN-SYSTEM.md`(이 문서, 아직
+커밋 전)의 같은 서술은 이번에 고쳤다. 교훈: 계획 초안 단계에서부터 클래스 형태를
+풀어 쓰는 습관이 필요하다 — 커밋된 뒤엔 늦다.
+
 ## 11. 남은 것
 
-- **타이포그래피 역할 층 + 화면 치환 (진행 중)**: 2026-09-16
+- **타이포그래피 역할 층·화면 치환 완료 (PR-4 a11y CI 게이트만 남음)**: 2026-09-16
   `docs/plans/2026-09-16-typography-tokens-a11y-gate.md`에서 스케일 층(`--text-t1`~
-  `--text-t14`, SEED 값 그대로)을 화면 무변경으로 먼저 추가했다. 역할 토큰
-  (`--text-screen-title` 등)과 h1/h2/`text-[10px]` 12곳 치환은 Artifact 미리보기로
-  사용자 승인을 받은 뒤 별도 PR로 진행한다 — line-height가 Tailwind 기본값과 달라
-  일부 텍스트의 실제 렌더링이 바뀌기 때문이다.
+  `--text-t14`)을 화면 무변경으로 먼저 추가한 뒤, Artifact 미리보기로 사용자 승인을
+  받아 역할 토큰(`--text-screen-title`/`section-title`/`subsection-title`/`micro`)과
+  h1 5곳·h2 3곳·10px 임의값 4곳 = 12곳 치환을 마쳤다 — line-height가 Tailwind
+  기본값과 달랐던 만큼 일부 텍스트의 실제 렌더링이 바뀌었다(`--text-section-title`이
+  가장 큰 -4px, 페이지 제목 두께는 semibold로 통일).
 - **spacing 토큰 미도입**: Tailwind v4의 `--spacing`은 `gap-2`·`p-4`·`h-9`·
   `size-4`가 전부 파생되는 단일 배수 변수다. 이 축에 진짜 "허용값만 남기는" 잠금을
   걸려면 `--spacing: initial`이 필요한데, 그러면 591개 className 대부분이 무너진다.

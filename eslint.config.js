@@ -277,6 +277,51 @@ const customTailwindRulesPlugin = {
         };
       },
     },
+    // [금지] px 단위 임의값(bracket) 폰트 크기 유틸리티
+    // 이유: 12곳(h1 5·h2 3·마이크로 라벨 4)이 이런 임의값이거나 서로 다른 크기로
+    //       갈려 있었다(2026-09-16 조사). globals.css에 역할 토큰(screen-title 등)과
+    //       스케일 층(t1~t14)을 뒀으니 새 코드는 그중 하나를 쓰게 한다. 기존
+    //       text-xs~text-9xl 같은 Tailwind 기본 스케일은 아직 막지 않는다 - 잔여
+    //       사용처가 많아 전량 치환이 강제되기 때문(docs/plans/
+    //       2026-09-16-typography-tokens-a11y-gate.md 참고).
+    'no-raw-text-size': {
+      meta: {
+        type: 'problem',
+        docs: {
+          description: 'px 단위 임의값 폰트 크기 유틸리티 금지, 역할 토큰이나 스케일 토큰 사용',
+        },
+        messages: {
+          rawTextSize:
+            '"{{value}}" 대신 globals.css의 타이포그래피 역할 토큰(text-screen-title 등) 또는 스케일 토큰(text-t1~t14)을 사용하세요.',
+        },
+      },
+      create(context) {
+        const RAW_TEXT_SIZE_PATTERN = /\btext-\[\d+(?:\.\d+)?px\]/;
+
+        function report(node, value) {
+          if (typeof value !== 'string') {
+            return;
+          }
+
+          const match = RAW_TEXT_SIZE_PATTERN.exec(value);
+
+          if (match) {
+            context.report({ node, messageId: 'rawTextSize', data: { value: match[0] } });
+          }
+        }
+
+        return {
+          Literal(node) {
+            report(node, node.value);
+          },
+          TemplateLiteral(node) {
+            for (const quasi of node.quasis) {
+              report(quasi, quasi.value.raw);
+            }
+          },
+        };
+      },
+    },
     // [금지] className에 템플릿 리터럴(백틱) 사용 - cn() 대신
     // 이유: 백틱 문자열 보간은 twMerge의 충돌 정리를 거치지 않는다. FormField.tsx가
     //       이 방식으로 클래스를 조합하고 있었고(2026-09-13 발견, 유일하게 cn() 미사용
@@ -1282,6 +1327,7 @@ export default [
     rules: {
       'custom-tailwind/no-raw-z-index': 'error',
       'custom-tailwind/no-raw-color': 'error',
+      'custom-tailwind/no-raw-text-size': 'error',
       'custom-tailwind/no-classname-template-literal': 'error',
     },
   },

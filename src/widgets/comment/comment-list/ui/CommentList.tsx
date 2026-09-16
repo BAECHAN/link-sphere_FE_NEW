@@ -78,7 +78,7 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
     <>
       <div className="space-y-6">
         <div className="scroll-mt-(--navbar-height)" ref={formContainerRef}>
-          <h2 className="text-lg font-semibold">
+          <h2 className="text-section-title">
             {TEXTS.comment.list.heading}
             <span className="ml-1.5 text-muted-foreground">{totalCount}</span>
           </h2>
