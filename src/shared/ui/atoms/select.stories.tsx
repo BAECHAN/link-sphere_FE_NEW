@@ -17,12 +17,6 @@ const meta = {
   argTypes: {
     disabled: { control: 'boolean' },
   },
-  // SelectTrigger가 SelectValue의 placeholder 텍스트("Select a fruit" 등)를
-  // 화면에는 보여주지만, axe는 그 트리거 <button role="combobox">에 접근성
-  // 이름(button-name)이 없다고 판단한다 - Radix Select 내부 구조에서 왜
-  // "name from content"가 안 잡히는지 원인 조사가 더 필요해 이번엔 미룬다
-  // (2026-09-16 a11y 게이트 실측, docs/DESIGN-SYSTEM.md §11 잔여 목록 참고).
-  parameters: { a11y: { test: 'todo' } },
 } satisfies Meta<typeof Select>;
 
 /* eslint-disable import/no-default-export */
@@ -32,7 +26,11 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   render: () => (
     <Select>
-      <SelectTrigger className="w-[180px]">
+      {/* role="combobox"는 시각적으로 보이는 placeholder/값 텍스트를 접근성
+          이름으로 자동 인식하지 않는다(combobox는 name-from-content 미지원 역할) -
+          aria-label이 필수다(2026-09-16 a11y 게이트 실측으로 발견, 실제
+          BookmarkPage.tsx의 정렬 Select에도 같은 수정 적용). */}
+      <SelectTrigger className="w-[180px]" aria-label="과일 선택">
         <SelectValue placeholder="Select a fruit" />
       </SelectTrigger>
       <SelectContent>
@@ -52,7 +50,7 @@ export const Default: Story = {
 export const WithSeparator: Story = {
   render: () => (
     <Select>
-      <SelectTrigger className="w-[180px]">
+      <SelectTrigger className="w-[180px]" aria-label="시간대 선택">
         <SelectValue placeholder="Select a timezone" />
       </SelectTrigger>
       <SelectContent>
@@ -83,7 +81,7 @@ export const WithSeparator: Story = {
 export const Disabled: Story = {
   render: () => (
     <Select disabled>
-      <SelectTrigger className="w-[180px]">
+      <SelectTrigger className="w-[180px]" aria-label="과일 선택">
         <SelectValue placeholder="Select a fruit" />
       </SelectTrigger>
       <SelectContent>

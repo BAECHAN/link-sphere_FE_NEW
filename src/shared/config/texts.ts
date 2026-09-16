@@ -458,6 +458,7 @@ export const TEXTS = {
     backToFolderList: '폴더 목록으로',
     bookmarkChange: '북마크 폴더 변경',
     bookmarkSave: '북마크 저장',
+    bookmarkSortSelect: '북마크 정렬 기준 선택',
 
     // 게시글 상호작용
     postLike: '좋아요',
