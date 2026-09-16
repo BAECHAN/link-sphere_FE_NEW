@@ -100,7 +100,7 @@
   <details><summary>배경·구현</summary>
 
   검색 placeholder(`postSearch`·`bookmarkSearch`)에만 말줄임표(`...`)가 붙어 다른 placeholder(예: `message`)와 톤이 달랐다 — 제거해 통일했다. 같은 커밋에서 `MobileNavbarSearch.tsx`의 뒤로가기 버튼과 입력창 사이 `gap-2`(8px)도 걷어냈다 — 뒤로가기 버튼이 이미 `relative -left-1.5`로 시각적으로 왼쪽에 붙어 있는데(바로 아래 "모바일 헤더 왼쪽 아이콘" 항목) `gap-2`까지 남아있으면 입력창이 그만큼 오른쪽으로 밀려 아이콘-입력창 간격이 다른 헤더 요소보다 벌어져 있었다.
-  (`src/shared/config/texts.ts`, `src/widgets/layout/navbar/ui/MobileNavbarSearch.tsx`)
+  (`src/shared/config/texts.ts`, `src/widgets/layout/navbar/ui/MobileNavbarSearch.tsx`, [PR #126](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/126))
 
   </details>
 
