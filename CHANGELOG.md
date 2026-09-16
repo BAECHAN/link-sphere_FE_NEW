@@ -93,6 +93,11 @@
 
   모바일 포스트 상세에서 헤더 검색을 열면 `RecentSearchPanel`이 화면을 덮어야 하는데, `MobileCommentBar`(접힘 상태)가 같은 z층(`z-panel`=40)이라 DOM 순서만으로 패널 위에 그대로 남아 있었다. 탭바(`z-nav`=50)가 검색 중에도 보이는 건 `Navbar.tsx:228`이 명시한 의도된 설계라 그대로 두고, 댓글바만 `useHistoryOverlay('mobileSearchOpen')`로 같은 열림 상태를 구독해 `hidden`을 붙였다. 언마운트하지 않은 이유는 이탈 가드(`useUnsavedChangesGuard.ts`)가 `pathname`이 같은 이동은 통과시켜, 검색 열기가 그 가드를 우회하기 때문이다 — 언마운트하면 작성 중이던 본문·첨부 이미지가 경고 없이 사라진다. 같은 조사에서 `RecentSearchPanel`에 스크림·포커스 트랩이 없어 Tab 키로 배경 게시글·댓글에 포커스가 새는 것도 함께 발견해, `AppLayout`의 `main`에 `inert`를 걸어 막았다(React 18.2라 JSX `inert` prop 대신 ref로 DOM 프로퍼티를 직접 설정).
   (`src/features/comment/create/ui/MobileCommentBar.tsx`, `src/features/comment/create/ui/MobileCommentBar.test.tsx`(신규), `src/app/layouts/app-layout/AppLayout.tsx`, `e2e/post-detail-search-overlay.mobile.spec.ts`(신규), `docs/SEARCH.md`, `.claude/skills/responsive-ux/SKILL.md`)
+- `comment` 내 댓글 카드 패딩을 다른 카드와 동일하게 통일
+  <details><summary>배경·구현</summary>
+
+  `PostCard`·`MobileFolderList`의 폴더 카드는 `p-3`(12px)인데 `MyCommentCard`만 `p-4`(16px)였다. [Artifact 미리보기](https://claude.ai/artifact/B2V5ovgE93iggx8WqEYRoe)로 실제 콘텐츠(댓글 본문+원글 배지)가 `p-3`에서 어떻게 보이는지 사용자에게 먼저 보여주고 승인받은 뒤 반영했다. `MyCommentCardSkeleton.tsx`도 같은 값으로 맞췄다 — 그 파일 자체 주석이 "로딩→렌더 전환에서 레이아웃이 안 튀려면 MyCommentCard와 동일해야 한다"고 이미 명시하고 있었다.
+  (`src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx`, `src/widgets/comment/my-comment-list/ui/MyCommentCardSkeleton.tsx`)
 
   </details>
 

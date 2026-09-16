@@ -1,4 +1,7 @@
 ### 2026-09-16 (FE)
+- 내 댓글 카드 UI 스타일 통일 ([#122](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/122))
+
+### 2026-09-16 (FE)
 - 조회수 반응형 UI 일관성 확보 및 검색 필터 컴포넌트 추상화 ([#120](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/120))
 
 ### 2026-09-16 (FE)
