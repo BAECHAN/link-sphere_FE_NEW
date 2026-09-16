@@ -43,8 +43,8 @@ export const TEXTS = {
     email: 'example@email.com',
     password: '비밀번호 입력',
     message: '메시지를 입력하세요.',
-    postSearch: '키워드나 @카테고리, #닉네임으로 검색...',
-    bookmarkSearch: '북마크 내 검색...',
+    postSearch: '키워드나 @카테고리, #닉네임으로 검색',
+    bookmarkSearch: '북마크 내 검색',
   },
   buttons: {
     retry: '다시 시도',
