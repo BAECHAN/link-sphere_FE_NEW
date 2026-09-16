@@ -87,10 +87,11 @@ Storybook `Shared/UI/Tokens/Design Tokens` 스토리의 `ZIndex`에서 8단계�
 | `text-micro`            | t1 (11/15), 두께 미지정 | 배지·단축키·카운트 같은 최소 라벨             | `NavbarSearch.tsx`(Kbd), `CommentItem.tsx`(배지), `LikePostButton.tsx`/`PostCard.tsx`(카운트) |
 | `text-card-title`       | t4 (14/19) · bold       | 포스트 카드 제목(반응형, `md:text-t6`과 조합) | `PostCard.tsx`(`<h3>{post.title}</h3>`)                                                       |
 | `text-group-label`      | t2 (12/16) · semibold   | 목록 섹션 라벨                                | `FolderTree.tsx`, `BookmarkFolderSelectModal.tsx`, `RecentSearchPanel.tsx`                    |
+| `text-display-title`    | 60/60 · bold            | 대형 에러 페이지 타이틀                       | `ErrorLayout.tsx`(404/403/500)                                                                |
 
 `text-micro`만 두께를 토큰에 묶지 않는다 — 호출부 4곳의 기존 두께가 제각각(Kbd는
 `font-medium`, 나머지는 미지정 상속)이라 하나로 합치면 그중 승인받지 않은 화면 변화가
-생긴다. 나머지 다섯 토큰은 두께까지 포함하므로 별도로 `font-semibold`/`font-bold`를
+생긴다. 나머지 여섯 토큰은 두께까지 포함하므로 별도로 `font-semibold`/`font-bold`를
 같이 쓰지 않는다 — `custom-tailwind/no-raw-title` ESLint 룰이 텍스트 크기 유틸리티와
 `font-semibold`/`font-bold` 조합을 잡는다(제목이 아니라면 `eslint-disable-next-line`에
 이유를 남긴다).
@@ -106,7 +107,9 @@ semibold였고, `pages/post/index.tsx`만 유일하게 `font-bold` + 데스크�
 계산값과 완전히 같아 2곳(`FolderTree.tsx`, `BookmarkFolderSelectModal.tsx`)은
 이름만 붙인 순수 정리였고, `RecentSearchPanel.tsx`만 원래 14px라 12px로 줄어드는
 실제 화면 변화가 있었다(Artifact 미리보기로 사용자 승인, 2026-09-16,
-https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12).
+https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12). `text-display-title`(60px/60px)도
+`ErrorLayout.tsx`의 기존 `text-6xl font-bold` 계산값과 완전히 같다 — `no-raw-title`
+룰 도입 직후 걸렸던 예외 주석을 실제 토큰으로 교체한 순수 정리, 화면 변화 없음.
 
 #### 스케일 층 (t1~t14, 역할이 안 맞을 때만)
 
@@ -129,7 +132,7 @@ https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12).
 
 폰트 두께는 스케일 층 자체엔 별도 토큰 없음 — SEED medium(500)/bold(700)이 Tailwind
 기본 `font-medium`/`font-bold`와 값이 같다. Storybook `Shared/UI/Tokens/Design Tokens`
-스토리의 `Typography`에서 스케일 14단계를, `RoleTokens`에서 역할 토큰 6종을 각각
+스토리의 `Typography`에서 스케일 14단계를, `RoleTokens`에서 역할 토큰 7종을 각각
 시각적으로 확인할 수 있다.
 
 ### 인터랙션 커서

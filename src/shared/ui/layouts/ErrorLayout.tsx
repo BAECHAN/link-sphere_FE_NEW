@@ -17,8 +17,7 @@ export function ErrorLayout({ title, description, children, onHomeClick }: Error
       className="min-h-screen flex items-center justify-center bg-background p-4"
     >
       <div aria-label={TEXTS.ariaLabels.errorContent} className="w-full max-w-480 text-center">
-        {/* eslint-disable-next-line custom-tailwind/no-raw-title -- 대형 에러 페이지 타이틀(60px), 기존 역할 토큰 범위 밖 - 별도 라운드에서 검토 */}
-        <h1 className="text-6xl font-bold text-foreground mb-4">{title}</h1>
+        <h1 className="text-display-title text-foreground mb-4">{title}</h1>
         {description && <p className="text-xl text-muted-foreground mb-8">{description}</p>}
         {children && <div aria-label={TEXTS.ariaLabels.errorDetail}>{children}</div>}
         {onHomeClick ? <Button onClick={onHomeClick}>{TEXTS.buttons.home}</Button> : null}

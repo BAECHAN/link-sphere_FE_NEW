@@ -120,7 +120,7 @@
   --text-t14--line-height: 3.75rem; /* 60px */
 }
 
-/* 타이포그래피 역할 토큰 6종. 위 스케일 층(t1~t14)에서 실제 화면에 쓰이는 값만
+/* 타이포그래피 역할 토큰 7종. 위 스케일 층(t1~t14)에서 실제 화면에 쓰이는 값만
    골라 이름을 붙였다 - 나머지 스케일 조합은 아직 쓰는 곳이 없어 만들지 않는다
    (처음 4개는 docs/plans/2026-09-16-typography-tokens-a11y-gate.md PR-2 Artifact
    미리보기로 사용자 승인, 2026-09-16).
@@ -139,7 +139,10 @@
    group-label(12px/16px)은 Tailwind 기본 text-xs의 계산값과 완전히 같다 - 이름만
    붙이는 순수 정리라 화면 변화가 없다(단, RecentSearchPanel.tsx는 원래 14px라 이
    토큰으로 통일하면 12px로 줄어든다 - Artifact에서 그 변화를 명시하고 승인받았다).
-   `static`을 쓰지 않는다 - z-index/스케일 토큰과 달리 이 6개는 이 커밋에서 바로
+   display-title(60px/60px/bold)도 ErrorLayout.tsx의 기존 text-6xl font-bold
+   계산값과 완전히 같다 - 순수 정리, 화면 변화 없음(no-raw-title 룰 도입 직후
+   추가로 걸렸던 예외 주석을 실제 토큰으로 교체, 2026-09-16).
+   `static`을 쓰지 않는다 - z-index/스케일 토큰과 달리 이 7개는 이 커밋에서 바로
    className으로 쓰이므로 기본 @theme만으로도 변수·유틸리티 둘 다 생성된다. */
 @theme {
   --text-screen-title: 1.25rem; /* t7, 20px */
@@ -159,6 +162,9 @@
   --text-group-label: 0.75rem; /* t2, 12px */
   --text-group-label--line-height: 1rem; /* 16px */
   --text-group-label--font-weight: 600;
+  --text-display-title: 3.75rem; /* 60px */
+  --text-display-title--line-height: 3.75rem; /* 60px */
+  --text-display-title--font-weight: 700;
 }
 
 :root {
