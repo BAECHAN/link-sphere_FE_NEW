@@ -26,7 +26,7 @@ export const MobileNavbarSearch = ({ onClose, onSubmit }: MobileNavbarSearchProp
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-2 w-full">
+    <form onSubmit={handleSubmit} className="flex items-center w-full">
       <Button
         type="button"
         variant="ghost"
