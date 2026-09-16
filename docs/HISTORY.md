@@ -1,4 +1,7 @@
 ### 2026-09-16 (FE)
+- Select 콤보박스 트리거의 접근성 레이블(accessible name) 누락 문제 해결 ([#114](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/114))
+
+### 2026-09-16 (FE)
 - 공유 색상 토큰 4종의 라이트 모드 가독성 개선 (WCAG AA 기준 충족)
 
 ### 2026-09-16 (FE)
