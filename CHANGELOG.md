@@ -88,6 +88,14 @@
 
 ### Fixed
 
+- `comment` 내 댓글 카드 패딩을 다른 카드와 동일하게 통일
+  <details><summary>배경·구현</summary>
+
+  `PostCard`·`MobileFolderList`의 폴더 카드는 `p-3`(12px)인데 `MyCommentCard`만 `p-4`(16px)였다. [Artifact 미리보기](https://claude.ai/artifact/B2V5ovgE93iggx8WqEYRoe)로 실제 콘텐츠(댓글 본문+원글 배지)가 `p-3`에서 어떻게 보이는지 사용자에게 먼저 보여주고 승인받은 뒤 반영했다. `MyCommentCardSkeleton.tsx`도 같은 값으로 맞췄다 — 그 파일 자체 주석이 "로딩→렌더 전환에서 레이아웃이 안 튀려면 MyCommentCard와 동일해야 한다"고 이미 명시하고 있었다.
+  (`src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx`, `src/widgets/comment/my-comment-list/ui/MyCommentCardSkeleton.tsx`)
+
+  </details>
+
 - `post` 카드 조회수 gap 반응형 통일, 검색 필터 카드를 공용 `Card` 컴포넌트로 정리
   <details><summary>배경·구현</summary>
 

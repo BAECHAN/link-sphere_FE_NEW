@@ -319,6 +319,21 @@ PR #108·#110·#111·#112·#113·#114·#115·#116 머지 후 신선한 `main` �
 - `pnpm type-check`/`pnpm lint`/`pnpm test`(380개)/`pnpm format:check`/
   `pnpm check:docs`/`pnpm build` 전부 통과
 
+2026-09-17 실측 (`MyCommentCard.tsx` 패딩을 `p-3`으로 통일, 같은 워크트리 안
+브랜치 `worktree-mycommentcard-padding`, PR #108~#120 머지 후 신선한 `main`
+기준):
+
+- Artifact 미리보기(`p-4` vs `p-3` before/after)를 사용자에게 보여주고
+  승인받은 뒤 반영
+- `/my/comments`(실제 화면, 로그인 필요) 실측: `getComputedStyle`로 카드
+  padding이 12px(`p-3`)로 렌더됨을 확인, 스크린샷 기록
+  (`.claude/browser-artifacts/verify-2026-09-17-mycommentcard-padding.webm`)
+- `MyCommentCardSkeleton.tsx`도 같은 값으로 맞춤 — 그 파일 자체 주석이 이미
+  "MyCommentCard와 동일해야 레이아웃이 안 튄다"고 명시하고 있어, 실제 카드만
+  바꾸면 로딩→렌더 전환에서 시프트가 생기는 걸 미리 막았다
+- `pnpm type-check`/`pnpm lint`/`pnpm test`(380개)/`pnpm format:check`/
+  `pnpm check:docs`/`pnpm build` 전부 통과
+
 ## 10. 시행착오
 
 **Tailwind 스캐너가 CSS/JS 주석·마크다운 문서도 전부 텍스트로 훑는다.** `globals.css`에
@@ -459,9 +474,17 @@ Storybook a11y 게이트가 실측한 4개 토큰의 라이트 모드 대비 미
     본문 영역)이 실제로 달라 의도된 밀도 차이일 가능성이 높다** — 처음엔
     "2곳 불일치"라고 단정했다가 재조사 후 "버그로 확신할 수 없다"로 정정,
     손대지 않기로 했다.
-  - **카드 패딩(`p-2`/`p-3`/`p-4`)·리스트 행 패딩(4종)**: 서로 다른 카드·
-    리스트가 실제로 다른 밀도가 필요할 수 있어 스크린샷 비교 없이 하나로
-    합치지 않는다 — 아직 미착수.
+  - **카드 패딩 — `p-3`으로 통일(2026-09-17)**: `PostCard`·
+    `MobileFolderList` 폴더 카드는 이미 `p-3`였고, `MyCommentCard`만
+    `p-4`였다. [Artifact 미리보기](https://claude.ai/artifact/B2V5ovgE93iggx8WqEYRoe)로
+    실제 댓글 카드가 `p-3`에서 어떻게 보이는지 확인받은 뒤 반영했다 —
+    레이아웃 시프트 방지를 위해 `MyCommentCardSkeleton.tsx`의 패딩도
+    함께 맞췄다(그 파일 자체의 주석이 "MyCommentCard와 동일하게 맞춰야
+    한다"고 이미 명시하고 있었다).
+  - **리스트 행 패딩(4종)**: 사용자 요청으로 이번엔 그대로 둔다 — 모달
+    (`px-4 py-2.5`)·모바일 검색(`px-4 py-3`)·모바일 폴더 고정 행
+    (`px-4 py-3.5`)·데스크톱 사이드바(`px-3 py-2`) 4가지 맥락이 각자
+    다르다고 판단, 미착수 상태 유지.
 - **화면이 바뀌는 항목들 — 전부 해소됨(2026-09-14, PR #85)**: 아이콘 9곳의 14px
   의도 vs 16px 실제 렌더링 버그(`button.tsx`의 CSS 명시도 문제), 페이지 제목·빈
   상태 여백 통일, `FilterChip`의 호버 불일치 버그 — 이 절이 2026-09-13에 "발견만
