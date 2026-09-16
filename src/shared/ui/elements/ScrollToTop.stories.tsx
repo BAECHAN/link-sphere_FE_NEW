@@ -23,8 +23,4 @@ const meta: Meta<typeof ScrollToTop> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
-  // 데코레이터 안내 문구가 --muted-foreground(4.34:1)를 쓴다 - kbd.stories.tsx와
-  // 같은 이유로 미룬다(2026-09-16 a11y 게이트 실측, docs/DESIGN-SYSTEM.md §11 참고).
-  parameters: { a11y: { test: 'todo' } },
-};
+export const Default: Story = {};

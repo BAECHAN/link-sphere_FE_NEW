@@ -269,11 +269,6 @@ type Story = StoryObj<typeof meta>;
 
 export const Colors: Story = {
   render: () => <ColorsCatalog />,
-  // muted 스와치가 --muted-foreground(4.34:1)를 그대로 보여준다 - kbd.stories.tsx
-  // 등과 같은 이유로 미룬다(2026-09-16 a11y 게이트 실측, docs/DESIGN-SYSTEM.md
-  // §11 잔여 목록 참고). 이 카탈로그 자체는 토큰 값을 있는 그대로 보여주는
-  // 것이 목적이라 여기서 임의로 대비를 바꾸지 않는다.
-  parameters: { a11y: { test: 'todo' } },
 };
 
 export const ZIndex: Story = {

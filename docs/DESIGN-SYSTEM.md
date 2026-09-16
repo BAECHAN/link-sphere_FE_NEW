@@ -212,6 +212,17 @@ PR #108·#110·#111 머지 후 신선한 `main` 기준):
 - PR을 열어 `pull_request` 트리거(필터 제거 후)가 자동으로 도는지 실측 확인 —
   이전엔 `workflow_dispatch`로만 수동 확인해야 했던 것이 정상 경로로 동작
 
+2026-09-16 실측 (색상 토큰 대비 개선, 같은 워크트리 안 브랜치
+`worktree-color-contrast-fix`, PR #108·#110·#111·#112 머지 후 신선한 `main` 기준):
+
+- `pnpm type-check`/`pnpm lint`/`pnpm test`(unit, 380개) 전부 통과
+- `pnpm test:storybook` — 151개 전부 통과, `'todo'`였던 7건이 실제로 통과해서
+  통과한 것인지 확인하려고 각 파일에서 `parameters.a11y.test: 'todo'`를 지운 뒤
+  재실행 → 그대로 151/151 통과(기존엔 `'todo'`라 검사 자체가 스킵됐던 것과 달리
+  이번엔 실제 axe 검사를 통과)
+- `AsyncBoundary.stories.tsx`·`select.stories.tsx`의 `'todo'`는 이 4개 토큰과
+  무관해 그대로 유지, 실제로 손대지 않았음을 diff로 확인
+
 ## 10. 시행착오
 
 **Tailwind 스캐너가 CSS/JS 주석·마크다운 문서도 전부 텍스트로 훑는다.** `globals.css`에
@@ -284,23 +295,37 @@ a11y 게이트가 첫 실행에서 바로 잡아냈다. 고침: `--color-<name>`
 
 ### a11y 잔여 목록 (`parameters.a11y.test: 'todo'`)
 
+색상 토큰 4종(`--muted-foreground`/`--info`/`--category`/`--success`)이 원인이던
+7건은 2026-09-16 같은 날 후속 라운드에서 해소했다 — Artifact 미리보기로 사용자
+승인을 받아 `globals.css`의 라이트 모드 값(명도만 조정, 색상·채도 유지)을
+전부 4.60:1 이상으로 올리고 해당 스토리들의 `'todo'`를 제거했다(아래 §"색상
+토큰 대비 개선" 참고). 남은 2건은 이 토큰들과 무관하다:
+
 | 스토리                                              | 원인                                                    | 근본 원인                  |
 | --------------------------------------------------- | ------------------------------------------------------- | -------------------------- |
-| `DesignTokens.stories.tsx` › Colors                 | `--muted-foreground` 4.34:1                             | 토큰 대비 부족             |
-| `kbd.stories.tsx` › Command, Complex Combination    | 〃                                                      | 〃                         |
-| `FilterChip.stories.tsx` › Default, Interactive     | 〃                                                      | 〃                         |
-| `ScrollToTop.stories.tsx` › Default                 | 〃 (데코레이터 안내문)                                  | 〃                         |
-| `FilterChip.stories.tsx` › Active Variants          | `--info` 4.42:1, `--category` 4.47:1                    | 토큰 대비 부족             |
-| `MarkdownContent.stories.tsx` › Default             | `--info` 4.42:1 (링크)                                  | 토큰 대비 부족             |
-| `FormField.stories.tsx` › With Success Description  | `--success` 3.3:1 (가장 큼)                             | 토큰 대비 부족             |
 | `AsyncBoundary.stories.tsx` › Custom Error Fallback | `--destructive` on `/10` 틴트 4:1                       | 토큰 조합 대비 부족        |
 | `select.stories.tsx` (메타 전체)                    | `button-name` — combobox 트리거에 접근 가능한 이름 없음 | Radix 내부 구조, 원인 미상 |
 
-색상 토큰 4종(`--muted-foreground`/`--info`/`--category`/`--success`)의 대비를
-WCAG AA(4.5:1)까지 올리는 건 앱 전역 시각 변경이라 별도 라운드에서 Artifact
-미리보기로 승인받아야 한다(`.claude/CLAUDE.md` §9). Select 이슈는 Radix
-`SelectTrigger`가 `SelectValue`의 placeholder를 왜 접근성 트리에서 이름으로
-못 잡는지부터 조사해야 한다.
+Select 이슈는 Radix `SelectTrigger`가 `SelectValue`의 placeholder를 왜 접근성
+트리에서 이름으로 못 잡는지부터 조사해야 한다. `AsyncBoundary`는 `--destructive`
+자체가 아니라 `/10` 틴트 배경과의 조합이 원인이라 이번 라운드의 명도 조정
+대상에 없었다 — 배경·글자색 조합을 다시 골라야 한다.
+
+### 색상 토큰 대비 개선 (2026-09-16, 위 목록의 후속 라운드)
+
+Storybook a11y 게이트가 실측한 4개 토큰의 라이트 모드 대비 미달을
+[Artifact 미리보기](https://claude.ai/artifact/UfsZXFcvR1CXPQY5o5sjiB)로
+사용자에게 보여주고 승인받아 고쳤다. OKLCH→sRGB 변환 후 WCAG 상대 휘도 공식으로
+직접 계산해, 색상(H)·채도(C)는 그대로 두고 명도(L)만 낮춰 4.60:1(반올림 오차
+여유 포함)을 넘기는 최소값을 찾았다. 다크 모드 값은 전부 7:1~9.4:1로 이미
+통과라 손대지 않았다(직접 계산 확인).
+
+| 토큰                 | 라이트 L      | 비고                                                                                                        |
+| -------------------- | ------------- | ----------------------------------------------------------------------------------------------------------- |
+| `--muted-foreground` | 0.556 → 0.542 | `#737373`→`#6f6f6f`, 육안 구분 거의 안 됨                                                                   |
+| `--info`             | 0.585 → 0.575 | `#226eff`→`#1e6aff`, 육안 구분 거의 안 됨                                                                   |
+| `--category`         | 0.606 → 0.597 | `#8d4fff`→`#8a4cff`, 육안 구분 거의 안 됨                                                                   |
+| `--success`          | 0.627 → 0.543 | `#2ba321`→`#008900`, **유일하게 눈에 띄게 진해짐**(원래 3.29:1로 가장 크게 미달했던 만큼 조정 폭도 가장 큼) |
 
 - **spacing 토큰 미도입**: Tailwind v4의 `--spacing`은 `gap-2`·`p-4`·`h-9`·
   `size-4`가 전부 파생되는 단일 배수 변수다. 이 축에 진짜 "허용값만 남기는" 잠금을
