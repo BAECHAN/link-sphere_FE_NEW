@@ -16,7 +16,7 @@ interface MyCommentCardProps {
 export function MyCommentCard({ comment }: MyCommentCardProps) {
   return (
     <Link to={`/post/${comment.postId}#comment-${comment.id}`} className="block">
-      <Card className="p-4 gap-2 hover:shadow-md transition-shadow">
+      <Card className="p-3 gap-2 hover:shadow-md transition-shadow">
         <p className="text-sm text-foreground leading-relaxed line-clamp-3">{comment.content}</p>
         <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5 min-w-0 font-medium text-info">
