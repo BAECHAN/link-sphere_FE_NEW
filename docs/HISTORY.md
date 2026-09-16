@@ -1,4 +1,7 @@
 ### 2026-09-16 (FE)
+- 모바일 검색 헤더 내 아이콘 버튼 3곳의 좌우 정렬 레이아웃 수정 ([#121](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/121))
+
+### 2026-09-16 (FE)
 - 내 댓글 카드 UI 스타일 통일 ([#122](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/122))
 
 ### 2026-09-16 (FE)
