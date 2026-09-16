@@ -88,6 +88,14 @@
 
 ### Fixed
 
+- `post` 카드 조회수 gap 반응형 통일, 검색 필터 카드를 공용 `Card` 컴포넌트로 정리
+  <details><summary>배경·구현</summary>
+
+  `PostCard.tsx` 안에서 좋아요/댓글/북마크/공유 등 "아이콘+숫자" 액션은 전부 `gap-1 md:gap-1.5`를 쓰는데 조회수 줄만 반응형 변형 없이 `gap-1`로 남아있었다 — 같은 파일 안에서만도 하나가 어긋나 있었다. 같은 역할끼리 맞춰 `gap-1 md:gap-1.5`로 통일했다(데스크톱에서 4px→6px, 다른 액션과 동일). `PostListSearch.tsx`의 최상위 필터 카드는 `bg-card rounded-2xl border shadow-sm` 등 공용 `Card` 컴포넌트의 스타일을 raw `div`로 직접 재구현하고 있었다 — `Card`로 교체하고 원래 값(`p-4`/`rounded-2xl`/`gap-2 md:gap-3`/`hover:shadow-md`)은 `className`으로 그대로 얹어 계산값이 완전히 동일함을 확인했다(순수 컴포넌트 재사용 전환, 화면 영향 없음).
+  (`src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-list/ui/PostListSearch.tsx`)
+
+  </details>
+
 - `bookmark` 정렬 Select에 스크린리더용 접근성 이름 추가
   <details><summary>배경·구현</summary>
 
