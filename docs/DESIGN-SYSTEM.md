@@ -101,7 +101,7 @@ flowchart LR
         E4["no-raw-title (신규)<br/>텍스트 크기+font-semibold/bold 조합"]
     end
     subgraph catalog ["4. 카탈로그 (Storybook)"]
-        S1["DesignTokens.stories.tsx<br/>Colors·Radius·ZIndex·Typography·RoleTokens(6종)"]
+        S1["DesignTokens.stories.tsx<br/>Colors·Radius·ZIndex·Typography·RoleTokens(7종)"]
     end
     subgraph a11y ["5. 접근성 (Storybook + Vitest, 신규)"]
         AX1[".storybook/vitest.setup.ts<br/>+ addon-a11y annotations"]
@@ -268,6 +268,22 @@ PR #108·#110·#111 머지 후 신선한 `main` 기준):
     확인(원래 14px에서 실제로 줄어듦)
   - 녹화: `.claude/browser-artifacts/verify-2026-09-16-title-weight-tokens.webm`
 
+2026-09-16 실측 (`ErrorLayout.tsx`의 남은 예외 주석을 `text-display-title`
+역할 토큰으로 교체, 같은 워크트리 안 브랜치 `worktree-error-layout-title-token`,
+PR #108·#110·#111·#112·#113·#114·#115·#116 머지 후 신선한 `main` 기준):
+
+- `/this-route-does-not-exist`(404 페이지) 실측 — 교체 전 `getComputedStyle`로
+  `text-6xl font-bold`가 60px/60px(line-height 1)/700임을 먼저 확인한 뒤,
+  `text-display-title`도 동일하게 60px/60px/700로 렌더됨을 재확인 — 계산값
+  완전 동일
+- 실제 타이틀 콘텐츠도 함께 확인: `pages/404`·`pages/403`·`AppErrorFallback`·
+  `AsyncBoundary`의 `DefaultErrorFallback`은 전부 문장형 메시지("페이지를
+  찾을 수 없어요" 등)를 넘기고, `pages/500`만 리터럴 `"500"`을 쓴다 —
+  스토리 데모("404"/"403" 같은 짧은 코드)와는 다른데도 60px에서 줄바꿈 없이
+  깔끔하게 렌더됨을 화면으로 확인, 값을 바꿀 이유가 없다고 판단
+- `pnpm type-check`/`pnpm lint`/`pnpm test`(380개)/`pnpm test:storybook`
+  (151개)/`pnpm format:check`/`pnpm check:docs`/`pnpm build` 전부 통과
+
 ## 10. 시행착오
 
 **Tailwind 스캐너가 CSS/JS 주석·마크다운 문서도 전부 텍스트로 훑는다.** `globals.css`에
@@ -400,12 +416,18 @@ https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12). 나머지 15곳(브랜드
 워드마크·배지·마크다운 헤딩·외부 링크 메타데이터)은 제목이 아니라는 이유를
 남긴 `eslint-disable-next-line` 예외 주석으로 처리했다.
 
-- **`ErrorLayout.tsx:20`의 60px 에러 페이지 타이틀**: 룰 도입 직후 처음 걸린
-  곳인데, 계획했던 22곳 조사(당시 `text-4xl`까지만 스캔)에 없던 사각지대였다 —
-  기존 6개 역할 토큰 어디에도 안 맞고(가장 큰 screen-title도 20px), SEED
-  스케일의 t13/t14(40px/48px, "sm 이상 권장" 대형 제목용)와도 정확히 안
-  맞아 이번 Artifact 승인 범위 밖이다. 지금은 예외 주석만 달아뒀다 — 대형
-  디스플레이 타이틀 역할 토큰이 필요한지는 별도 라운드에서 판단한다.
+- **`ErrorLayout.tsx:20`의 60px 에러 페이지 타이틀 — 해소됨(2026-09-16 후속
+  라운드)**: 룰 도입 직후 처음 걸린 곳인데, 계획했던 22곳 조사(당시
+  `text-4xl`까지만 스캔)에 없던 사각지대였다 — 기존 6개 역할 토큰 어디에도
+  안 맞고(가장 큰 screen-title도 20px), SEED 스케일의 t13/t14(40px/48px,
+  "sm 이상 권장" 대형 제목용)와도 정확히 안 맞았다. 실제 렌더링(404 페이지,
+  브라우저 실측)을 확인한 결과 60px 자체는 시각적으로 문제없는 의도된
+  스타일이었다 — `pages/*`가 넘기는 실제 타이틀이 스토리 데모("404" 같은
+  짧은 코드)와 달리 전부 문장형 메시지("페이지를 찾을 수 없어요" 등)라는
+  점도 함께 확인했지만, 60px에서 줄바꿈 없이 깔끔하게 렌더됐다. 값을 바꿀
+  이유가 없어 새 역할 토큰 `text-display-title`(60px/60px/bold)을
+  `text-6xl font-bold`의 기존 계산값 그대로 신설했다 — group-label과 같은
+  "이름만 붙이는 순수 정리"라 별도 Artifact 승인 없이 반영했다.
 
 ## 12. 용어 사전
 

@@ -237,6 +237,7 @@ const ROLE_TOKENS: RoleToken[] = [
   { token: 'micro', usage: '배지·단축키·카운트 같은 최소 라벨 (두께는 토큰에 없음)' },
   { token: 'card-title', usage: '포스트 카드 제목 (md:text-t6과 조합해 반응형)' },
   { token: 'group-label', usage: '목록 섹션 라벨 (폴더 그룹, 최근 검색 등)' },
+  { token: 'display-title', usage: '대형 에러 페이지 타이틀 (404/403/500)' },
 ];
 
 function RoleTokensCatalog() {
