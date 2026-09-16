@@ -52,6 +52,10 @@ export const WithSuccessDescription: Story = {
     description: '사용 가능한 이름입니다.',
     descriptionVariant: 'success',
   },
+  // --success(3.3:1)가 흰 배경에서 WCAG AA(4.5:1) 기준에 가장 크게 못 미친다 -
+  // 앱 전역 유효성 검사 문구에 쓰이는 토큰이라 값 조정은 시각 변경 승인이
+  // 필요하다(2026-09-16 a11y 게이트 실측, docs/DESIGN-SYSTEM.md §11 참고).
+  parameters: { a11y: { test: 'todo' } },
 };
 
 function WithErrorStory() {

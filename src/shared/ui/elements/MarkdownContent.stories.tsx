@@ -26,6 +26,10 @@ export const Default: Story = {
   args: {
     content: '일반 텍스트와 https://example.com 링크가 함께 있는 댓글입니다.',
   },
+  // 링크가 쓰는 --info(4.42:1)가 흰 배경에서 WCAG AA(4.5:1) 기준에 살짝 못
+  // 미친다 - 앱 전역에서 쓰이는 토큰이라 값 조정은 시각 변경 승인이 필요하다
+  // (2026-09-16 a11y 게이트 실측, docs/DESIGN-SYSTEM.md §11 참고).
+  parameters: { a11y: { test: 'todo' } },
 };
 
 export const Headings: Story = {

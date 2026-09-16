@@ -7,7 +7,8 @@
 >
 > **읽고 나면**: 색상·반경·z-index·타이포그래피(스케일+역할) 토큰이 어디 정의돼 있고
 > 어떻게 확장하는지, ESLint가 어떤 Tailwind className 규칙을 강제하는지, Storybook
-> 토큰 카탈로그를 어떻게 보는지 안다. spacing 토큰은 왜 없는지도 안다.
+> 토큰 카탈로그를 어떻게 보는지, Storybook a11y 게이트가 CI에서 어떻게 도는지 안다.
+> spacing 토큰은 왜 없는지, 지금 아는 a11y 위반이 뭐고 왜 아직 안 고쳤는지도 안다.
 >
 > **마지막 검토**: 2026-09-16
 
@@ -21,22 +22,28 @@
 갈리고, 아이콘 크기 지정이 조용히 무시되는 일이 생겼다.
 
 이 문서가 다루는 것은 그 사전(토큰)을 만들고, 반복되는 UI를 컴포넌트로 묶고,
-ESLint로 "고를 수 없게" 강제하고, Storybook에 견본책을 두는 네 겹의 장치다. 색상은
-이미 첫 겹이 있었고(2026-09-13), z-index와 색상 결손(딤 오버레이, destructive
-글자색)을 채웠다(같은 날). 타이포그래피는 스케일 층(t1~t14)과 역할 층(페이지 제목
-등 12곳)을 화면 미리보기 승인을 거쳐 뒤이어 채웠다(2026-09-16, §4·§11 참고).
-spacing만 Tailwind v4의 구조적 제약 때문에 아직 비어 있다 — 이유는 §11 참고.
+ESLint로 "고를 수 없게" 강제하고, Storybook에 견본책을 두고, 접근성을 CI로
+지키는 다섯 겹의 장치다. 색상은 이미 첫 겹이 있었고(2026-09-13), z-index와 색상
+결손(딤 오버레이, destructive 글자색)을 채웠다(같은 날). 타이포그래피는 스케일 층
+(t1~t14)과 역할 층(페이지 제목 등 12곳)을 화면 미리보기 승인을 거쳐 뒤이어
+채웠다(2026-09-16, §4·§11 참고). 같은 날 Storybook의 a11y addon을 CI에 실제로
+배선해 axe-core 검사를 자동화했고, 그 과정에서 2026-09-13부터 있던 진짜 버그
+(색상 카탈로그의 잘못된 CSS 변수 참조, §10 참고)도 찾아냈다. spacing만 Tailwind
+v4의 구조적 제약 때문에 아직 비어 있다 — 이유는 §11 참고.
 
 ```mermaid
 flowchart TD
     A["개발자/AI가 새 UI 작성"] --> B{"className에<br/>토큰 없는 값을 쓰는가?"}
-    B -->|"예: 숫자 z-index, 리터럴 검정/흰색"| C["ESLint custom-tailwind/*<br/>커밋 시점에 차단"]
+    B -->|"예: 숫자 z-index, 리터럴 검정/흰색, px 임의값 폰트 크기"| C["ESLint custom-tailwind/*<br/>커밋 시점에 차단"]
     C --> D["에러 메시지가<br/>명명된 토큰 이름을 안내"]
     D --> A
-    B -->|"아니오: z-scrim, bg-scrim"| E["pnpm build"]
+    B -->|"아니오: z-scrim, bg-scrim, text-screen-title"| E["pnpm build"]
     E --> F["globals.css @theme가<br/>실제 CSS 변수로 출력"]
     F --> G["Storybook Design Tokens<br/>카탈로그에서 시각 확인"]
-    G --> H["커밋"]
+    G --> I{"컴포넌트에 스토리가 있고<br/>parameters.a11y.test=error인가?"}
+    I -->|"위반 있음"| J["CI의 pnpm test:storybook<br/>실패 - axe-core 위반 메시지"]
+    J --> A
+    I -->|"위반 없음 또는 'todo'로 낮춤"| H["커밋 → PR → CI green"]
 ```
 
 ## 2. 전제 지식
@@ -93,11 +100,17 @@ flowchart LR
         E3["no-classname-template-literal"]
     end
     subgraph catalog ["4. 카탈로그 (Storybook)"]
-        S1["DesignTokens.stories.tsx<br/>Colors·Radius·ZIndex"]
+        S1["DesignTokens.stories.tsx<br/>Colors·Radius·ZIndex·Typography·RoleTokens"]
+    end
+    subgraph a11y ["5. 접근성 (Storybook + Vitest, 신규)"]
+        AX1[".storybook/vitest.setup.ts<br/>+ addon-a11y annotations"]
+        AX2["vitest.config.ts<br/>unit / storybook 2개 프로젝트"]
+        AX3["ci.yml e2e job에<br/>pnpm test:storybook 스텝"]
     end
     tokens --> enforce
     components --> enforce
     tokens --> catalog
+    catalog --> a11y
 ```
 
 **재사용성(이식 친화적 구조)**: `shared/ui/`는 FSD 레이어 규칙(ESLint
@@ -136,6 +149,8 @@ import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있
 | 새 타이포 역할 토큰 추가          | `globals.css`의 (static 아닌) `@theme` 블록                                                                    | `--text-<role>`/`--text-<role>--line-height`(필요시 `--font-weight`) 추가 → 실제 사용처에 클래스 적용 → `design-tokens` skill 역할 토큰 표 갱신 |
 | 토큰 카탈로그에 새 섹션 추가      | `src/shared/ui/tokens/DesignTokens.stories.tsx`                                                                | 새 `export const <Name>: Story` 추가(기존 `Colors`/`Radius`/`ZIndex` 참고)                                                                      |
 | Storybook에서 다크모드 확인       | `.storybook/preview.tsx`의 툴바 테마 토글                                                                      | 별도 설정 불필요 — 이미 `.dark` 클래스를 토글하도록 연결됨                                                                                      |
+| a11y 위반을 로컬에서 확인         | `pnpm test:storybook` (전체) 또는 `pnpm exec vitest run --project=storybook <파일>` (단일 파일)                | 실패 메시지의 axe 규칙 링크(dequeuniversity.com)로 원인 확인 → 고치거나 `parameters.a11y.test: 'todo'` + 사유 주석으로 낮추고 §11 목록에 추가   |
+| 새 스토리를 a11y 예외로 낮추기    | 해당 `*.stories.tsx`의 story 객체(또는 파일 전체가 해당하면 `meta`)                                            | `parameters: { a11y: { test: 'todo' } }` 추가 + 이유 주석 + `docs/DESIGN-SYSTEM.md` §11 "a11y 잔여 목록" 표에 행 추가                           |
 
 ## 9. 검증 결과
 
@@ -178,6 +193,22 @@ import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있
 - `pnpm build` 로컬 실행 — `ci.yml`에 추가한 것과 동일 커맨드가 성공하는지 먼저
   확인
 - `pnpm build-storybook` — 신설 `RoleTokens` 스토리 포함 정상 컴파일 확인
+
+2026-09-16 실측 (a11y CI 게이트, 같은 워크트리 안 브랜치 `worktree-a11y-ci-gate`,
+PR #108·#110·#111 머지 후 신선한 `main` 기준):
+
+- `pnpm test` — 58개 파일 380개 테스트 전부 통과(unit 프로젝트, 기존과 동일 —
+  `vitest.config.ts`를 `projects`로 분리해도 회귀 없음을 확인)
+- `pnpm test:storybook` — 스토리 파일 43개, story export 151개(계획이 추정한
+  "42개"는 파일 수 기준 오집계, 실제 판정 단위는 export 개수) 전부 통과(exit 0).
+  `parameters.a11y.test: 'error'`를 켠 직후 1차 실행에서 14개 실패 확인 → 1건
+  수정(아이콘 버튼 `aria-label` 누락), 1건 원인 수정(`AsyncBoundary` 데모의
+  raw `red-*` 팔레트를 `--destructive` 토큰으로 교체, 여전히 대비 부족이라 결국
+  `'todo'`) → 나머지 12건 `'todo'`로 낮춤(§11 "a11y 잔여 목록" 참고)
+- 게이트 실효성 별도 확인: `Icon` 스토리의 `aria-label`을 임시로 제거해
+  `pnpm exec vitest run --project=storybook src/shared/ui/atoms/button.stories.tsx`
+  실행 → 실패 확인(`button-name` 위반) → 원복 후 재확인(통과) — "걸려 있기만 하고
+  안 잡는" 상태가 아님을 실증
 - PR을 열어 `pull_request` 트리거(필터 제거 후)가 자동으로 도는지 실측 확인 —
   이전엔 `workflow_dispatch`로만 수동 확인해야 했던 것이 정상 경로로 동작
 
@@ -205,9 +236,26 @@ append-only 파일이라(CI가 수정 자체를 막는다) 고칠 수 없다 —
 커밋 전)의 같은 서술은 이번에 고쳤다. 교훈: 계획 초안 단계에서부터 클래스 형태를
 풀어 쓰는 습관이 필요하다 — 커밋된 뒤엔 늦다.
 
+**a11y 게이트가 켜지자마자 2026-09-13부터 있던 진짜 버그를 잡았다.** `ColorsCatalog`
+(`ColorSwatch`)가 `var(--color-<name>)`(Tailwind가 `@theme inline`용으로 붙이는
+접두사 이름)를 인라인 style로 직접 읽었는데, 실측 결과 Tailwind v4의 `@theme inline`은
+유틸리티 클래스 생성 시 참조값을 직접 인라인하고, `--color-<name>` 간접 변수 자체는
+그 이름이 다른 곳에서 리터럴로 더 쓰이는 극소수(예: `destructive-foreground`/`scrim`/
+`scrim-foreground`)만 실제로 `:root`에 남긴다 — `primary-foreground`처럼 대부분의
+`-foreground` 변수는 `:root`에 존재하지 않는다. `color`는 상속 속성이라 `var()`가
+무효가 되면 조용히 `body`의 `text-foreground`로 폴백돼, 스와치마다 다른 배경 위에
+전부 같은 어두운 글자색이 깔리고 있었다(`getComputedStyle`로 실측: 모든 `-foreground`
+스팬의 실제 `color`가 하나같이 `--foreground`와 동일했다). 시각적으로는 우연히 크게
+어색하지 않아 아무도 눈치채지 못했지만, "primary" 스와치는 대비 1.1:1까지 떨어져
+a11y 게이트가 첫 실행에서 바로 잡아냈다. 고침: `--color-<name>` 대신 `:root`/`.dark`에
+항상 실존하는 원본 이름(`--<name>`)을 직접 읽도록 `ColorSwatch`를 수정했다(화면상
+"primary" 등 일부 스와치의 글자색만 올바르게 바뀌고, 이미 우연히 맞았던 나머지는
+그대로다 — 순수 버그 수정이라 별도 승인 없이 반영). `ZIndexCatalog`/`RadiusCatalog`는
+`@theme static`/`@theme inline`이라도 실제 사용처가 많아 이 문제가 없음을 확인했다.
+
 ## 11. 남은 것
 
-- **타이포그래피 역할 층·화면 치환 완료 (PR-4 a11y CI 게이트만 남음)**: 2026-09-16
+- **타이포그래피 역할 층·화면 치환·a11y CI 게이트 전부 완료**: 2026-09-16
   `docs/plans/2026-09-16-typography-tokens-a11y-gate.md`에서 스케일 층(`--text-t1`~
   `--text-t14`)을 화면 무변경으로 먼저 추가한 뒤, Artifact 미리보기로 사용자 승인을
   받아 역할 토큰(`--text-screen-title`/`section-title`/`subsection-title`/`micro`)과
@@ -219,7 +267,41 @@ append-only 파일이라(CI가 수정 자체를 막는다) 고칠 수 없다 —
   타이포그래피를 안 다루던 것, `ci.yml`의 `pull_request` 트리거가 base를 `main`으로
   제한해 스택 PR(다른 PR 브랜치를 base로 하는 PR)에서 CI가 자동으로 안 돌던 것
   (실제로 이 라운드의 PR #109가 그 사각지대에 걸려 자동 CI 0건이었다), `pnpm build`가
-  CI에 없어 토큰의 CSS 생성 실패를 머지 전에 못 잡던 것.
+  CI에 없어 토큰의 CSS 생성 실패를 머지 전에 못 잡던 것. 이어서 계획의 PR-4(a11y
+  CI 게이트)도 같은 날 완료했다 — `.storybook/vitest.setup.ts` 신설, `vitest.config.ts`를
+  `unit`/`storybook` 2개 프로젝트로 분리, `.storybook/preview.tsx`에
+  `parameters.a11y.test: 'error'` 전역 설정, `ci.yml`의 `e2e` job에
+  `pnpm test:storybook` 스텝 추가(기존 Playwright 브라우저 설치 재사용, 별도
+  job 안 만듦). 계획이 "42개 스토리"라고 추정했던 것은 실측 결과 파일 43개·
+  story export 151개였다 — 실제로 `test:'error'`를 켜자 14개 테스트가 실패했고
+  (예상보다 관리 가능한 규모), 그중 1건(아이콘 버튼 `aria-label` 누락)만 고치고
+  나머지 12건은 색상 토큰 대비 부족(`--muted-foreground`/`--info`/`--category`/
+  `--success` 등, 앱 전역에 쓰이는 토큰이라 값 조정은 시각 변경 승인 필요)과
+  Radix Select 트리거의 접근 가능한 이름 부재(원인 미상, 추가 조사 필요)로
+  `parameters.a11y.test: 'todo'` + 사유 주석으로 낮췄다 — 전체 목록은 아래
+  "a11y 잔여 목록" 참고. 이 과정에서 `DesignTokens.stories.tsx`의 `ColorSwatch`가
+  2026-09-13부터 갖고 있던 실제 버그(§10 참고)도 우연히 발견해 고쳤다.
+
+### a11y 잔여 목록 (`parameters.a11y.test: 'todo'`)
+
+| 스토리                                              | 원인                                                    | 근본 원인                  |
+| --------------------------------------------------- | ------------------------------------------------------- | -------------------------- |
+| `DesignTokens.stories.tsx` › Colors                 | `--muted-foreground` 4.34:1                             | 토큰 대비 부족             |
+| `kbd.stories.tsx` › Command, Complex Combination    | 〃                                                      | 〃                         |
+| `FilterChip.stories.tsx` › Default, Interactive     | 〃                                                      | 〃                         |
+| `ScrollToTop.stories.tsx` › Default                 | 〃 (데코레이터 안내문)                                  | 〃                         |
+| `FilterChip.stories.tsx` › Active Variants          | `--info` 4.42:1, `--category` 4.47:1                    | 토큰 대비 부족             |
+| `MarkdownContent.stories.tsx` › Default             | `--info` 4.42:1 (링크)                                  | 토큰 대비 부족             |
+| `FormField.stories.tsx` › With Success Description  | `--success` 3.3:1 (가장 큼)                             | 토큰 대비 부족             |
+| `AsyncBoundary.stories.tsx` › Custom Error Fallback | `--destructive` on `/10` 틴트 4:1                       | 토큰 조합 대비 부족        |
+| `select.stories.tsx` (메타 전체)                    | `button-name` — combobox 트리거에 접근 가능한 이름 없음 | Radix 내부 구조, 원인 미상 |
+
+색상 토큰 4종(`--muted-foreground`/`--info`/`--category`/`--success`)의 대비를
+WCAG AA(4.5:1)까지 올리는 건 앱 전역 시각 변경이라 별도 라운드에서 Artifact
+미리보기로 승인받아야 한다(`.claude/CLAUDE.md` §9). Select 이슈는 Radix
+`SelectTrigger`가 `SelectValue`의 placeholder를 왜 접근성 트리에서 이름으로
+못 잡는지부터 조사해야 한다.
+
 - **spacing 토큰 미도입**: Tailwind v4의 `--spacing`은 `gap-2`·`p-4`·`h-9`·
   `size-4`가 전부 파생되는 단일 배수 변수다. 이 축에 진짜 "허용값만 남기는" 잠금을
   걸려면 `--spacing: initial`이 필요한데, 그러면 591개 className 대부분이 무너진다.

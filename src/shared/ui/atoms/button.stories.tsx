@@ -81,6 +81,9 @@ export const Icon: Story = {
     size: 'icon',
     variant: 'outline',
     children: <Mail className="size-4" />,
+    // 아이콘만 있는 버튼은 스크린리더가 읽을 텍스트가 없다 - aria-label 필수
+    // (a11y 게이트가 실측으로 발견, 2026-09-16)
+    'aria-label': 'Email',
   },
 };
 

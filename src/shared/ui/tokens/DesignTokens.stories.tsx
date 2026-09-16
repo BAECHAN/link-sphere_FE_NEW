@@ -89,10 +89,19 @@ function ColorSwatch({ token, foreground }: ColorToken) {
     <div className="flex flex-col gap-1.5">
       <div
         className="flex h-16 w-full items-center justify-center rounded-md border"
-        style={{ backgroundColor: `var(--color-${token})` }}
+        // Tailwind v4의 @theme inline은 유틸리티 클래스 생성 시 참조 변수 값을 직접
+        // 인라인하고, `--color-<name>` 간접 변수 자체는 그 이름이 다른 곳에서
+        // 리터럴로 더 쓰이는 극소수(destructive-foreground/scrim/scrim-foreground
+        // 등, 2026-09-13 당시 신규 추가분)만 실제로 :root에 남긴다 - primary-
+        // foreground 등 나머지 대부분은 :root에 존재하지 않아 var()가 무효가
+        // 되고, color(상속 속성)라 body의 text-foreground로 조용히 폴백됐다
+        // (2026-09-16 a11y 게이트가 잘못된 대비로 처음 발견 - 실측: getComputedStyle
+        // 로 --color-primary-foreground는 빈 문자열, --primary-foreground는
+        // 정상값). :root/.dark에 항상 존재하는 원본 이름(--<name>)을 직접 읽는다.
+        style={{ backgroundColor: `var(--${token})` }}
       >
         {foreground && (
-          <span className="text-xs font-medium" style={{ color: `var(--color-${foreground})` }}>
+          <span className="text-xs font-medium" style={{ color: `var(--${foreground})` }}>
             Aa
           </span>
         )}
@@ -260,6 +269,11 @@ type Story = StoryObj<typeof meta>;
 
 export const Colors: Story = {
   render: () => <ColorsCatalog />,
+  // muted 스와치가 --muted-foreground(4.34:1)를 그대로 보여준다 - kbd.stories.tsx
+  // 등과 같은 이유로 미룬다(2026-09-16 a11y 게이트 실측, docs/DESIGN-SYSTEM.md
+  // §11 잔여 목록 참고). 이 카탈로그 자체는 토큰 값을 있는 그대로 보여주는
+  // 것이 목적이라 여기서 임의로 대비를 바꾸지 않는다.
+  parameters: { a11y: { test: 'todo' } },
 };
 
 export const ZIndex: Story = {

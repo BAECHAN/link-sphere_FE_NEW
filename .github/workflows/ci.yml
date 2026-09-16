@@ -96,6 +96,13 @@ jobs:
       - name: Run e2e tests
         run: pnpm test:e2e
 
+      - name: Run Storybook a11y tests
+        # addon-vitest가 storybookScript(vitest.config.ts)로 Storybook 서버를
+        # 직접 띄우므로 별도 기동 스텝이 필요 없다. 이 job이 이미 설치한
+        # Playwright 브라우저(위 스텝)를 그대로 재사용한다 - 새 job으로 분리하면
+        # 브라우저 설치가 중복된다.
+        run: pnpm test:storybook
+
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4

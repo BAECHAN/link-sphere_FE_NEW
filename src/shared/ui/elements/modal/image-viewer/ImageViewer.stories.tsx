@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { MemoryRouter } from 'react-router-dom';
 import { GlobalImageViewer } from '@/shared/ui/elements/modal/image-viewer/ImageViewer';
 import { useImageViewer } from '@/shared/ui/elements/modal/image-viewer/imageViewer.store';
 import { Button } from '@/shared/ui/atoms/button';
@@ -8,6 +9,18 @@ const meta = {
   title: 'Shared/UI/Elements/Modal/ImageViewer',
   component: GlobalImageViewer,
   tags: ['autodocs'],
+  // GlobalImageViewer가 마운트 즉시 useHistoryOverlay(useNavigate)를 호출한다 -
+  // <Router> 조상 없이는 렌더 자체가 크래시한다(addon-vitest가 스토리를 실제
+  // 컴포넌트 테스트로 실행하면서 2026-09-16 처음 발견). 실제 앱은 App.tsx의
+  // RouterProvider(createBrowserRouter)가 이 컨텍스트를 제공하므로, 스토리에서는
+  // 실제 브라우저 히스토리를 건드리지 않는 MemoryRouter로 동일한 컨텍스트만 준다.
+  decorators: [
+    (Story) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
 } satisfies Meta<typeof GlobalImageViewer>;
 
 /* eslint-disable import/no-default-export */
