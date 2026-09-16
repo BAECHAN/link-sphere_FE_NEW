@@ -92,7 +92,7 @@
   <details><summary>배경·구현</summary>
 
   `RecentSearchPanel`·`Sidebar` 모바일 드로어는 `fixed`로 배경을 덮지만 `overscroll-behavior` 방지 장치가 없어, 오버레이 안 목록을 끝까지 스크롤한 뒤 계속 스와이프하면 그 아래 가려진 배경(document)으로 스크롤이 체이닝됐다 — 닫으면 게시글 목록 위치가 조용히 튀는 시나리오가 가능했다. 같은 부류인 마이페이지·이미지뷰어·로그인모달은 전부 Radix `Dialog` 기반이라 내부적으로 `react-remove-scroll`이 걸려 이미 잠겨 있었다(`modal` 기본값 `true`) — 그 라이브러리를 두 컴포넌트에 직접 적용했다(`dialog.tsx`의 `DialogOverlayImpl`과 같은 `RemoveScroll as={Slot}` 패턴). 대안(커스텀 스크롤락 훅 직접 구현, `useHistoryOverlay`에 통합)을 검토하고 기각한 이유는 `docs/DECISIONS.md` 참고.
-  (`package.json`, `pnpm-lock.yaml`, `src/widgets/layout/navbar/ui/RecentSearchPanel.tsx`, `src/widgets/layout/navbar/ui/RecentSearchPanel.test.tsx`(신규), `src/widgets/layout/sidebar/ui/Sidebar.tsx`, `src/widgets/layout/sidebar/ui/Sidebar.test.tsx`(신규), `e2e/mobile-search-scroll-lock.mobile.spec.ts`(신규), `e2e/sidebar-drawer-scroll-lock.mobile.spec.ts`(신규), `docs/DECISIONS.md`, `.claude/skills/responsive-ux/SKILL.md`)
+  (`package.json`, `pnpm-lock.yaml`, `src/widgets/layout/navbar/ui/RecentSearchPanel.tsx`, `src/widgets/layout/navbar/ui/RecentSearchPanel.test.tsx`(신규), `src/widgets/layout/sidebar/ui/Sidebar.tsx`, `src/widgets/layout/sidebar/ui/Sidebar.test.tsx`(신규), `e2e/mobile-search-scroll-lock.mobile.spec.ts`(신규), `e2e/sidebar-drawer-scroll-lock.mobile.spec.ts`(신규), `docs/DECISIONS.md`, `.claude/skills/responsive-ux/SKILL.md`, [PR #125](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/125))
 
   </details>
 
