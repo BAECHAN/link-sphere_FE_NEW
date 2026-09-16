@@ -17,7 +17,10 @@ test.describe('모바일 — 사이드바 드로어가 열린 동안 배경 스�
   test('드로어를 열면 배경 스크롤이 잠기고, 배경을 탭해 닫으면 풀린다', async ({ page }) => {
     await page.goto('/post');
 
-    await page.getByRole('button', { name: TEXTS.nav.toggleMenu }).click();
+    // 드로어 aside는 translate-x만 토글할 뿐 항상 마운트돼 있어(Sidebar.tsx), 드로어 자체
+    // 헤더의 토글 버튼도 접근성 이름이 똑같이 "Toggle menu"다 — nav(헤더)로 좁혀 그 버튼만
+    // 가리킨다.
+    await page.locator('nav').getByRole('button', { name: TEXTS.nav.toggleMenu }).click();
 
     const backdrop = page.locator('div.fixed.inset-0.z-scrim');
     await expect(backdrop).toBeVisible();
