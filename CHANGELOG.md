@@ -72,6 +72,14 @@
 
 ### Fixed
 
+- `bookmark` 정렬 Select에 스크린리더용 접근성 이름 추가
+  <details><summary>배경·구현</summary>
+
+  Storybook a11y 게이트가 `select.stories.tsx`에서 `button-name` 위반으로 잡았던 것을 원인 조사한 결과, `role="combobox"`는 ARIA 스펙상 "name from content"를 지원하지 않는 역할이라(버튼과 달리) 화면에 보이는 placeholder/값 텍스트를 접근성 이름으로 자동 인식하지 않는다는 게 원인이었다. 스토리에만 있는 문제가 아니라 실제 앱의 유일한 사용처인 `BookmarkPage.tsx`의 정렬 Select(모바일·데스크톱 레이아웃 2곳)에도 같은 버그가 있었다 — `aria-label` 없이 screen reader 사용자에게 "combobox"라고만 안내되고 무엇을 정렬하는지 알 수 없었다. `TEXTS.ariaLabels.bookmarkSortSelect`("북마크 정렬 기준 선택")를 추가해 두 곳 모두에 적용했다. 같은 조사에서 `AsyncBoundary.stories.tsx`의 데모 전용 남은 `'todo'`(`/10` 틴트 배경 조합 대비 부족)도 틴트를 걷어내 해결했다 — 화면 영향 없음. 이로써 a11y 게이트가 실측한 위반 14건이 전부 해소됐다.
+  (`src/shared/config/texts.ts`, `src/pages/bookmark/BookmarkPage.tsx`, `src/shared/ui/atoms/select.stories.tsx`, `src/shared/ui/elements/AsyncBoundary.stories.tsx`)
+
+  </details>
+
 - `post` 상세 돌아가기 버튼: 모바일은 제거, 데스크톱은 sticky 해제
   <details><summary>배경·구현</summary>
 
