@@ -284,6 +284,23 @@ PR #108·#110·#111·#112·#113·#114·#115·#116 머지 후 신선한 `main` �
 - `pnpm type-check`/`pnpm lint`/`pnpm test`(380개)/`pnpm test:storybook`
   (151개)/`pnpm format:check`/`pnpm check:docs`/`pnpm build` 전부 통과
 
+2026-09-16 실측 (`EmptyState` 컴포넌트 신설, 같은 워크트리 안 브랜치
+`worktree-empty-state-spacing`, PR #108·#110·#111·#112·#113·#114·#115·#116·
+#117·#118 머지 후 신선한 `main` 기준):
+
+- 스크린샷 전/후 비교(`RecentSearchPanel.tsx`의 빈 검색 화면, py-8→py-12
+  1차 시도)를 사용자에게 보여준 결과 "이전(32px)이 더 낫다, 대신 통일은
+  하자"는 피드백을 받아 방향을 바꿨다 — 다수(4곳)가 쓰던 `py-12`가 아니라
+  소수(1곳)가 쓰던 `py-8`을 표준으로 채택
+- `EmptyState`를 `py-8`로 변경한 뒤 `/post?q=<존재하지 않는 검색어>`(빈 검색
+  결과, 실제 화면)를 스크린샷으로 재확인 — 테두리·배경 있는 변형도 32px에서
+  문제없이 렌더됨을 확인
+- `pnpm exec vitest run --project=storybook EmptyState.stories.tsx` 2/2 통과 →
+  `pnpm test:storybook` 전체 재실행 44개 파일·153개 테스트(신규 스토리 2개
+  포함) 전부 통과
+- `pnpm type-check`/`pnpm lint`/`pnpm test`(380개)/`pnpm format:check`/
+  `pnpm check:docs`/`pnpm build` 전부 통과
+
 ## 10. 시행착오
 
 **Tailwind 스캐너가 CSS/JS 주석·마크다운 문서도 전부 텍스트로 훑는다.** `globals.css`에
@@ -406,11 +423,17 @@ Storybook a11y 게이트가 실측한 4개 토큰의 라이트 모드 대비 미
 | `--category`         | 0.606 → 0.597 | `#8d4fff`→`#8a4cff`, 육안 구분 거의 안 됨                                                                   |
 | `--success`          | 0.627 → 0.543 | `#2ba321`→`#008900`, **유일하게 눈에 띄게 진해짐**(원래 3.29:1로 가장 크게 미달했던 만큼 조정 폭도 가장 큼) |
 
-- **spacing 토큰 미도입**: Tailwind v4의 `--spacing`은 `gap-2`·`p-4`·`h-9`·
-  `size-4`가 전부 파생되는 단일 배수 변수다. 이 축에 진짜 "허용값만 남기는" 잠금을
-  걸려면 `--spacing: initial`이 필요한데, 그러면 591개 className 대부분이 무너진다.
-  이번 라운드는 이 레버를 당기지 않았다 — spacing 일관성은 컴포넌트 소유권(예:
-  `EmptyState`)과 후속 ESLint 허용목록 룰로 풀 계획이다.
+- **spacing 토큰 — 축 자체는 여전히 미도입, 반복 패턴 1건은 컴포넌트로 해소
+  (2026-09-16)**: Tailwind v4의 `--spacing`은 `gap-2`·`p-4`·`h-9`·`size-4`가
+  전부 파생되는 단일 배수 변수라, 색상/z-index와 같은 "CSS 커스텀 프로퍼티 +
+  `no-raw-*` 룰" 해법이 안 맞는다 — `--spacing: initial`로 잠그면 591개
+  className이 무너진다. 게다가 raw 이스케이프(`p-[…]`류) 자체가 이미 0건이라
+  "하드코딩 색상"에 해당하는 문제도 없다. 실제 문제는 같은 의미의 UI를 여러
+  곳이 각자 구현하며 서로 다른 숫자를 고른 것 — `EmptyState`(신규,
+  `ErrorState`와 대칭 구조)로 빈 상태 문구 패턴 5곳을 통합해 하나만 고쳤다.
+  로딩 스피너 래퍼 패딩(2곳 불일치)·카드 패딩(4종)·리스트 행 패딩(4종)·
+  아이콘+라벨 gap(`PostCard.tsx` 안에서만 4종)은 이번에 손대지 않았다 — 각각
+  개별 판단이 더 필요하다.
 - **화면이 바뀌는 항목들 — 전부 해소됨(2026-09-14, PR #85)**: 아이콘 9곳의 14px
   의도 vs 16px 실제 렌더링 버그(`button.tsx`의 CSS 명시도 문제), 페이지 제목·빈
   상태 여백 통일, `FilterChip`의 호버 불일치 버그 — 이 절이 2026-09-13에 "발견만

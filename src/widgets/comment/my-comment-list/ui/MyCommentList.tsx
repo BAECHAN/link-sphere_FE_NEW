@@ -4,6 +4,7 @@ import { MyCommentCard } from '@/widgets/comment/my-comment-list/ui/MyCommentCar
 import { MyCommentListSkeleton } from '@/widgets/comment/my-comment-list/ui/MyCommentCardSkeleton';
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
+import { EmptyState } from '@/shared/ui/elements/EmptyState';
 import { ErrorState } from '@/shared/ui/elements/ErrorState';
 import { TEXTS } from '@/shared/config/texts';
 
@@ -27,9 +28,9 @@ function MyCommentListContent() {
 
   if (comments.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground border rounded-lg bg-muted/10">
+      <EmptyState className="border rounded-lg bg-muted/10">
         {TEXTS.comment.myList.empty}
-      </div>
+      </EmptyState>
     );
   }
 

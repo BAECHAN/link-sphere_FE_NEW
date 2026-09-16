@@ -6,6 +6,7 @@ import { PostListSkeleton } from '@/widgets/post/post-list/ui/PostCardSkeleton';
 
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
+import { EmptyState } from '@/shared/ui/elements/EmptyState';
 import { ErrorState } from '@/shared/ui/elements/ErrorState';
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import { usePullToRefresh } from '@/shared/hooks/usePullToRefresh';
@@ -43,9 +44,9 @@ function PostListContent() {
 
   if (posts.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground border rounded-lg bg-muted/10">
+      <EmptyState className="border rounded-lg bg-muted/10">
         {TEXTS.messages.info.noPosts}
-      </div>
+      </EmptyState>
     );
   }
 

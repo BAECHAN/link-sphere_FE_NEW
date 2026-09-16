@@ -7,6 +7,7 @@ import {
 import { TEXTS } from '@/shared/config/texts';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
+import { EmptyState } from '@/shared/ui/elements/EmptyState';
 import { useBookmarkPostList } from '@/widgets/bookmark/bookmark-post-list/hooks/useBookmarkPostList';
 
 interface BookmarkPostListProps {
@@ -30,12 +31,7 @@ export function BookmarkPostList({ folderKey, sort, search, className }: Bookmar
 
   if (posts.length === 0) {
     return (
-      <div
-        className={cn(
-          'text-center py-12 text-muted-foreground border rounded-lg bg-muted/10',
-          className
-        )}
-      >
+      <EmptyState className={cn('border rounded-lg bg-muted/10', className)}>
         {search
           ? TEXTS.bookmark.empty.searchNoResult
           : folderKey === 'all'
@@ -43,7 +39,7 @@ export function BookmarkPostList({ folderKey, sort, search, className }: Bookmar
             : folderKey === 'uncategorized'
               ? TEXTS.bookmark.empty.uncategorized
               : TEXTS.bookmark.empty.folder}
-      </div>
+      </EmptyState>
     );
   }
 

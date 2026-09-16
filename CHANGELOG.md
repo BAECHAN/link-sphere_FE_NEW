@@ -11,6 +11,14 @@
 
 ### Added
 
+- `shared` 빈 상태 문구를 위한 `EmptyState` 컴포넌트 신설
+  <details><summary>배경·구현</summary>
+
+  목록/검색 결과가 비어있을 때 보여주는 안내 문구(`text-center py-* text-muted-foreground`)를 5곳(`PostList.tsx`, `BookmarkPostList.tsx`, `MyCommentList.tsx`, `CommentList.tsx`, `RecentSearchPanel.tsx`)이 각자 중복 구현하면서 세로 여백이 `py-8`/`py-12`로 갈려 있었다. `ErrorState.tsx`(`AsyncBoundary`의 `errorFallback` 기본형)와 대칭 구조로 `EmptyState`를 신설해 5곳 전부를 이 컴포넌트로 옮겼다. Tailwind v4의 `--spacing`은 단일 배수 변수라 색상/z-index처럼 CSS 토큰 + `no-raw-*` 룰로 강제할 수 없다(`--spacing: initial`로 잠그면 591개 className이 무너진다) — 대신 반복되는 패턴을 컴포넌트 하나로 통합하는 쪽으로 풀었다. 스크린샷 전/후 비교를 사용자에게 보여준 뒤 "다수(4곳)의 `py-12`가 아니라 소수(1곳)의 `py-8`이 더 낫다"는 피드백을 받아 그 값으로 통일했다 — 4곳은 48px→32px로 줄어들고, `RecentSearchPanel.tsx`는 원래 값(32px) 그대로 유지된다.
+  (`src/shared/ui/elements/EmptyState.tsx`(신규), `src/shared/ui/elements/EmptyState.stories.tsx`(신규), `src/widgets/post/post-list/ui/PostList.tsx`, `src/widgets/bookmark/bookmark-post-list/ui/BookmarkPostList.tsx`, `src/widgets/comment/my-comment-list/ui/MyCommentList.tsx`, `src/widgets/comment/comment-list/ui/CommentList.tsx`, `src/widgets/layout/navbar/ui/RecentSearchPanel.tsx`)
+
+  </details>
+
 - `shared` 텍스트 크기+굵기 조합을 잡는 ESLint 룰 도입, 역할 토큰 2종 추가
   <details><summary>배경·구현</summary>
 
