@@ -22,7 +22,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+export const Default: Story = {
+  // 비활성 상태가 --muted-foreground(4.34:1)를 쓴다 - kbd.stories.tsx와 같은
+  // 이유로 미룬다(2026-09-16 a11y 게이트 실측, docs/DESIGN-SYSTEM.md §11 참고).
+  parameters: { a11y: { test: 'todo' } },
+};
 
 export const Active: Story = {
   args: {
@@ -59,6 +63,10 @@ export const ActiveVariants: Story = {
       />
     </div>
   ),
+  // --info(4.42:1)·--category(4.47:1)가 흰 글자 배경으로 WCAG AA(4.5:1) 기준에
+  // 살짝 못 미친다 - 앱 전역에서 쓰이는 토큰이라 값 조정은 시각 변경 승인이
+  // 필요하다(2026-09-16 a11y 게이트 실측, docs/DESIGN-SYSTEM.md §11 참고).
+  parameters: { a11y: { test: 'todo' } },
 };
 
 function ToggleableChip() {
@@ -75,4 +83,6 @@ function ToggleableChip() {
 
 export const Interactive: Story = {
   render: () => <ToggleableChip />,
+  // Default 스토리와 같은 이유(--muted-foreground 대비 미달, 초기 비활성 상태)
+  parameters: { a11y: { test: 'todo' } },
 };

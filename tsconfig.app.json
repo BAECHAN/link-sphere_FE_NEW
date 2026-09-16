@@ -32,6 +32,6 @@
     },
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["src", "vite.config.ts", "dev-server.config.ts", ".storybook/**/*.ts"],
+  "include": ["src", "vite.config.ts", "dev-server.config.ts", ".storybook/**/*.{ts,tsx}"],
   "exclude": ["node_modules", "dist"]
 }

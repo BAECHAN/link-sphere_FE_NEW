@@ -24,6 +24,13 @@ const preview: Preview = {
         date: /Date$/i,
       },
     },
+    // 'error'로 두면 addon-vitest가 스토리를 테스트로 실행할 때 axe-core 위반을
+    // 테스트 실패로 만든다(Storybook 공식 문서: parameters.a11y.test = 'error'로
+    // 설정된 스토리에 대해 Vitest 테스트 실행 시 자동으로 진행된다). 개별 스토리가
+    // 위반을 이유와 함께 'todo'로 낮추면 여기서 상속된 'error'를 덮어쓴다.
+    a11y: {
+      test: 'error',
+    },
   },
   globalTypes: {
     theme: {

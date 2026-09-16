@@ -75,14 +75,19 @@ export const ErrorState: Story = {
 };
 
 export const CustomErrorFallback: Story = {
+  // 원래 raw red-600/red-50 조합(무출처)을 --destructive 토큰으로 교체했지만,
+  // destructive/10 틴트 배경 위에서는 4:1로 여전히 WCAG AA(4.5:1)에 못 미친다 -
+  // 정확히 어떤 배경·텍스트 조합을 쓸지는 시각 변경 승인이 필요해 미룬다
+  // (2026-09-16 a11y 게이트 실측, docs/DESIGN-SYSTEM.md §11 참고).
+  parameters: { a11y: { test: 'todo' } },
   render: () => (
     <AsyncBoundary
       errorFallback={({ error, resetErrorBoundary }) => (
-        <div className="p-4 rounded-lg bg-red-50 border border-red-200">
-          <p className="text-red-700 font-medium">
+        <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+          <p className="text-destructive font-medium">
             Custom error: {error instanceof Error ? error.message : String(error)}
           </p>
-          <button onClick={resetErrorBoundary} className="mt-2 text-sm text-red-600 underline">
+          <button onClick={resetErrorBoundary} className="mt-2 text-sm text-destructive underline">
             Try again
           </button>
         </div>

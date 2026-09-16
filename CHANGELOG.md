@@ -11,6 +11,14 @@
 
 ### Added
 
+- `shared` Storybook a11y 검사를 CI 게이트로 배선
+  <details><summary>배경·구현</summary>
+
+  `@storybook/addon-a11y`·`@storybook/addon-vitest`가 설치·등록만 되고 CI에서 전혀 돌지 않고 있었다(`.storybook/vitest.setup.ts` 없음, `vitest.config.ts`가 스토리 파일을 아예 제외, CI 워크플로 0건). `.storybook/vitest.setup.ts`를 신설해 a11y addon annotations를 등록하고, `vitest.config.ts`를 `unit`/`storybook` 2개 프로젝트로 분리했다(`pnpm test`는 기존과 동일하게 unit만 빠르게 돌고, `pnpm test:storybook`이 새 storybook 프로젝트를 담당). `.storybook/preview.tsx`에 `parameters.a11y.test: 'error'`를 전역으로 켜자 스토리 파일 43개·151개 story export 중 14개가 실패했다(계획이 추정했던 "42개 스토리"는 실측 결과 파일 수 기준 오집계였다 — 실제 판정 단위인 export 개수는 그 3.5배). 1건(아이콘 버튼 `aria-label` 누락)을 고치고, 나머지 12건은 앱 전역에 쓰이는 색상 토큰(`--muted-foreground`/`--info`/`--category`/`--success`)의 대비 부족이거나 Radix Select 트리거의 접근 가능한 이름 부재(원인 미상)라 `parameters.a11y.test: 'todo'` + 사유 주석으로 낮추고 `docs/DESIGN-SYSTEM.md` §11에 잔여 목록을 남겼다. 색상 토큰 대비를 WCAG AA까지 올리는 건 앱 전역 시각 변경이라 별도 승인이 필요하다. 이 과정에서 `DesignTokens.stories.tsx`의 `ColorSwatch`가 2026-09-13부터 갖고 있던 실제 버그(`--color-<name>` 간접 변수가 대부분 존재하지 않아 모든 `-foreground` 스와치 글자색이 조용히 `--foreground`로 폴백되던 것)도 발견해 원본 변수명을 직접 읽도록 고쳤다. `GlobalImageViewer`가 마운트 즉시 `useNavigate`를 호출해 Router 컨텍스트 없이 크래시하는 것도 addon-vitest가 실제로 렌더링을 실행하면서 처음 드러나 `ImageViewer.stories.tsx`에 `MemoryRouter` 데코레이터를 추가했다. `composite` 모드인 `tsconfig.app.json`이 `.storybook/**/*.ts`만 포함해 신설 `vitest.setup.ts`가 import하는 `preview.tsx`(`.tsx`)가 프로젝트 파일 목록 밖이라는 타입체크 에러가 나서 패턴을 `.storybook/**/*.{ts,tsx}`로 넓혔다. `ci.yml`의 `e2e` job에는 `pnpm test:storybook` 스텝을 추가했다(기존 Playwright 브라우저 설치 재사용).
+  (`.storybook/vitest.setup.ts`, `.storybook/preview.tsx`, `vitest.config.ts`, `package.json`, `tsconfig.app.json`, `.github/workflows/ci.yml`, `src/shared/ui/tokens/DesignTokens.stories.tsx`, `src/shared/ui/atoms/button.stories.tsx`, `src/shared/ui/atoms/kbd.stories.tsx`, `src/shared/ui/atoms/select.stories.tsx`, `src/shared/ui/elements/AsyncBoundary.stories.tsx`, `src/shared/ui/elements/FilterChip.stories.tsx`, `src/shared/ui/elements/MarkdownContent.stories.tsx`, `src/shared/ui/elements/ScrollToTop.stories.tsx`, `src/shared/ui/elements/form/_base/FormField.stories.tsx`, `src/shared/ui/elements/modal/image-viewer/ImageViewer.stories.tsx`)
+
+  </details>
+
 - `shared` Storybook 디자인 토큰 카탈로그에 타이포그래피 역할 토큰 추가
   <details><summary>배경·구현</summary>
 
