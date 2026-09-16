@@ -6,6 +6,61 @@
 
 ---
 
+## 2026-09-17 — T1 오버레이 배경 스크롤 잠금: 커스텀 훅 대신 react-remove-scroll 재사용
+
+**배경**
+
+모바일 검색 오버레이(`RecentSearchPanel`) 작업 중 `inert`가 포커스·클릭만 막을 뿐 배경
+스크롤은 막지 못한다는 게 드러났다. 패널 자신은 `overflow-y-auto`인데
+`overscroll-behavior` 방지 장치가 없어, 목록 끝까지 스크롤한 뒤 계속 스와이프하면 그
+아래 가려진 배경(document)이 조용히 스크롤되고, 패널을 닫았을 때 게시글 목록 위치가
+튀는 시나리오가 가능했다. 같은 문제가 `Sidebar` 모바일 드로어에도 있었다. 반면
+`docs/DECISIONS.md`가 "T1 화면 덮는 상태"로 묶은 나머지 3개(마이페이지·이미지뷰어·
+로그인모달)는 전부 Radix `Dialog`(`shared/ui/atoms/dialog.tsx`) 기반이라 이미 배경
+스크롤이 잠겨 있었다 — Radix Dialog가 `modal`(기본 `true`)일 때 내부적으로
+`react-remove-scroll`을 걸기 때문이다
+(`node_modules/@radix-ui/react-dialog/dist/index.mjs:96-118`).
+
+**검토**
+
+- **`document.body.style.overflow = 'hidden'`을 손으로 구현** — 기각. `position:fixed`
+  트릭 없이 iOS의 touchmove/wheel 오버스크롤까지 처리하려면 사실상
+  `react-remove-scroll`을 다시 만드는 것과 같다. 이미 같은 라이브러리가 이 코드베이스
+  3곳(Dialog 기반 오버레이)에서 검증된 채로 쓰이고 있다.
+- **스크롤 잠금을 `useHistoryOverlay`에 통합** — 기각. 그 훅은 히스토리 기반 열림 상태
+  관리만 하는 단일 책임 훅이고 4곳(Sidebar·MyPage·Login·ImageViewer)이 쓴다. 여기 잠금을
+  얹으면 Dialog 기반 3곳은 Radix 자체 잠금과 중복 적용되고, 정작 `RecentSearchPanel`은
+  `useHistoryOverlay`를 안 쓰고 `Navbar.tsx`가 인라인으로 구현해(별도로 남겨둔 기존
+  사안) 혜택을 못 받는다.
+
+**결정**
+
+`react-remove-scroll`(Radix Dialog의 전이 의존성이라 이미 `pnpm-lock.yaml`에 있고
+`shamefully-hoist=true`라 바로 import 가능하던 것을 `package.json`에 직접 의존성으로
+승격)을 `RecentSearchPanel.tsx`·`Sidebar.tsx` 두 곳에 **컴포넌트 레벨로 직접** 적용한다.
+`dialog.tsx`의 `DialogOverlayImpl`이 쓰는 것과 정확히 같은 패턴 —
+`<RemoveScroll as={Slot} allowPinchZoom>`로 오버레이 DOM을 감싸고, 배경과 패널이
+DOM상 형제로 분리된 `Sidebar`는 `shards`로 드로어 패널을 Lock의 일부로 지정해 내부
+스크롤을 허용한다.
+
+**범위 밖 (보고만)**
+
+- `MobileCommentBar` 펼침 시트 — 배경이 실제로 보이고 탭·스크롤 가능하게 설계돼 있어
+  (스크림 없음, `inset-x-0 bottom-0`만) 배경을 열어두는 게 의도로 보여 제외했다(사용자
+  결정).
+- `usePullToRefresh`(`PostList.tsx`)가 검색 오버레이 열림 상태를 모르는 문제 — 기존부터
+  있던 별개 gap, 이번 변경으로 악화되지 않는다.
+
+**상태**
+
+적용 완료. 관련 파일: `package.json`, `pnpm-lock.yaml`, `RecentSearchPanel.tsx`,
+`Sidebar.tsx`, 신규 테스트(`RecentSearchPanel.test.tsx`, `Sidebar.test.tsx`,
+`e2e/mobile-search-scroll-lock.mobile.spec.ts`,
+`e2e/sidebar-drawer-scroll-lock.mobile.spec.ts`). 새 T1 오버레이를 추가할 때 이 규약은
+`.claude/skills/responsive-ux/SKILL.md`에 남겼다.
+
+---
+
 ## 2026-09-15 — 상세 돌아가기 버튼 간격: margin 오버라이드 폐기, gap 중첩 컨테이너로 교체 (PR #106 수치 정정)
 
 **배경**
