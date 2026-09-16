@@ -301,6 +301,39 @@ PR #108·#110·#111·#112·#113·#114·#115·#116 머지 후 신선한 `main` �
 - `pnpm type-check`/`pnpm lint`/`pnpm test`(380개)/`pnpm format:check`/
   `pnpm check:docs`/`pnpm build` 전부 통과
 
+2026-09-17 실측 (`PostCard.tsx` 조회수 gap·`PostListSearch.tsx` 필터 카드
+정리, 같은 워크트리 안 브랜치 `worktree-postcard-spacing-fixes`, PR #108~
+#119 머지 후 신선한 `main` 기준):
+
+- 처음 제시했던 "PostCard 안 gap 4종 불일치"는 재검토 결과 과장이었다 —
+  헤더 메타 텍스트 줄(86번째 줄)·헤더 아이콘 버튼 묶음(111번째 줄)은 조회수
+  행과 아예 다른 UI 영역이라 비교 대상이 아니었고, 실제로 같은 역할(아이콘+
+  숫자 액션)인데 다른 건 조회수 행(`gap-1`) 하나뿐이었다 — 범위를 4곳에서
+  1곳으로 좁혔다
+- 로딩 스피너 래퍼 패딩도 재검토 결과 제외 — 실측해보니 다른 값을 쓰는
+  2곳(모달·사이드바)이 좁은 임베드 공간이라 밀도 차이가 의도에 가까웠다
+- 브라우저 실측(`/post`, 데스크톱 1280px): 조회수 행 gap이 4px→6px로
+  커져 댓글 수 버튼과 동일해짐을 확인. 필터 카드는 `Card` 컴포넌트 전환 후
+  padding 16px·radius 16px·border 1px·box-shadow·배경색 전부 이전과 동일한
+  계산값으로 렌더됨을 확인(순수 컴포넌트 재사용 전환)
+- `pnpm type-check`/`pnpm lint`/`pnpm test`(380개)/`pnpm format:check`/
+  `pnpm check:docs`/`pnpm build` 전부 통과
+
+2026-09-17 실측 (`MyCommentCard.tsx` 패딩을 `p-3`으로 통일, 같은 워크트리 안
+브랜치 `worktree-mycommentcard-padding`, PR #108~#120 머지 후 신선한 `main`
+기준):
+
+- Artifact 미리보기(`p-4` vs `p-3` before/after)를 사용자에게 보여주고
+  승인받은 뒤 반영
+- `/my/comments`(실제 화면, 로그인 필요) 실측: `getComputedStyle`로 카드
+  padding이 12px(`p-3`)로 렌더됨을 확인, 스크린샷 기록
+  (`.claude/browser-artifacts/verify-2026-09-17-mycommentcard-padding.webm`)
+- `MyCommentCardSkeleton.tsx`도 같은 값으로 맞춤 — 그 파일 자체 주석이 이미
+  "MyCommentCard와 동일해야 레이아웃이 안 튄다"고 명시하고 있어, 실제 카드만
+  바꾸면 로딩→렌더 전환에서 시프트가 생기는 걸 미리 막았다
+- `pnpm type-check`/`pnpm lint`/`pnpm test`(380개)/`pnpm format:check`/
+  `pnpm check:docs`/`pnpm build` 전부 통과
+
 ## 10. 시행착오
 
 **Tailwind 스캐너가 CSS/JS 주석·마크다운 문서도 전부 텍스트로 훑는다.** `globals.css`에
@@ -423,17 +456,35 @@ Storybook a11y 게이트가 실측한 4개 토큰의 라이트 모드 대비 미
 | `--category`         | 0.606 → 0.597 | `#8d4fff`→`#8a4cff`, 육안 구분 거의 안 됨                                                                   |
 | `--success`          | 0.627 → 0.543 | `#2ba321`→`#008900`, **유일하게 눈에 띄게 진해짐**(원래 3.29:1로 가장 크게 미달했던 만큼 조정 폭도 가장 큼) |
 
-- **spacing 토큰 — 축 자체는 여전히 미도입, 반복 패턴 1건은 컴포넌트로 해소
-  (2026-09-16)**: Tailwind v4의 `--spacing`은 `gap-2`·`p-4`·`h-9`·`size-4`가
-  전부 파생되는 단일 배수 변수라, 색상/z-index와 같은 "CSS 커스텀 프로퍼티 +
-  `no-raw-*` 룰" 해법이 안 맞는다 — `--spacing: initial`로 잠그면 591개
-  className이 무너진다. 게다가 raw 이스케이프(`p-[…]`류) 자체가 이미 0건이라
-  "하드코딩 색상"에 해당하는 문제도 없다. 실제 문제는 같은 의미의 UI를 여러
-  곳이 각자 구현하며 서로 다른 숫자를 고른 것 — `EmptyState`(신규,
-  `ErrorState`와 대칭 구조)로 빈 상태 문구 패턴 5곳을 통합해 하나만 고쳤다.
-  로딩 스피너 래퍼 패딩(2곳 불일치)·카드 패딩(4종)·리스트 행 패딩(4종)·
-  아이콘+라벨 gap(`PostCard.tsx` 안에서만 4종)은 이번에 손대지 않았다 — 각각
-  개별 판단이 더 필요하다.
+- **spacing 토큰 — 축 자체는 여전히 미도입, 반복 패턴은 컴포넌트로 하나씩
+  해소 중(2026-09-16~17)**: Tailwind v4의 `--spacing`은 `gap-2`·`p-4`·`h-9`·
+  `size-4`가 전부 파생되는 단일 배수 변수라, 색상/z-index와 같은 "CSS 커스텀
+  프로퍼티 + `no-raw-*` 룰" 해법이 안 맞는다 — `--spacing: initial`로 잠그면
+  591개 className이 무너진다. 게다가 raw 이스케이프(`p-[…]`류) 자체가 이미
+  0건이라 "하드코딩 색상"에 해당하는 문제도 없다. 실제 문제는 같은 의미의
+  UI를 여러 곳이 각자 구현하며 서로 다른 숫자를 고른 것 — `EmptyState`(신규,
+  `ErrorState`와 대칭 구조)로 빈 상태 문구 패턴 5곳을, 이어서 `PostCard.tsx`
+  안 조회수 gap(`gap-1` → `gap-1 md:gap-1.5`, 같은 파일 안 다른 액션 버튼과
+  통일)과 `PostListSearch.tsx`의 필터 카드(공용 `Card` 재사용, raw div
+  재구현 정리)를 고쳤다.
+  - **로딩 스피너 래퍼 패딩(재검토 결과 버그 아님으로 판단)**: `py-10`
+    (`BookmarkFolderSelectModal.tsx`, 모달 내부)·`py-4`(`FolderTree.tsx`,
+    좁은 사이드바)는 `py-12`(`BookmarkPostList.tsx`/`MobileFolderList.tsx`,
+    전체 화면 본문 영역)와 다르지만, 다시 읽어보니 **맥락(좁은 임베드 공간 vs
+    본문 영역)이 실제로 달라 의도된 밀도 차이일 가능성이 높다** — 처음엔
+    "2곳 불일치"라고 단정했다가 재조사 후 "버그로 확신할 수 없다"로 정정,
+    손대지 않기로 했다.
+  - **카드 패딩 — `p-3`으로 통일(2026-09-17)**: `PostCard`·
+    `MobileFolderList` 폴더 카드는 이미 `p-3`였고, `MyCommentCard`만
+    `p-4`였다. [Artifact 미리보기](https://claude.ai/artifact/B2V5ovgE93iggx8WqEYRoe)로
+    실제 댓글 카드가 `p-3`에서 어떻게 보이는지 확인받은 뒤 반영했다 —
+    레이아웃 시프트 방지를 위해 `MyCommentCardSkeleton.tsx`의 패딩도
+    함께 맞췄다(그 파일 자체의 주석이 "MyCommentCard와 동일하게 맞춰야
+    한다"고 이미 명시하고 있었다).
+  - **리스트 행 패딩(4종)**: 사용자 요청으로 이번엔 그대로 둔다 — 모달
+    (`px-4 py-2.5`)·모바일 검색(`px-4 py-3`)·모바일 폴더 고정 행
+    (`px-4 py-3.5`)·데스크톱 사이드바(`px-3 py-2`) 4가지 맥락이 각자
+    다르다고 판단, 미착수 상태 유지.
 - **화면이 바뀌는 항목들 — 전부 해소됨(2026-09-14, PR #85)**: 아이콘 9곳의 14px
   의도 vs 16px 실제 렌더링 버그(`button.tsx`의 CSS 명시도 문제), 페이지 제목·빈
   상태 여백 통일, `FilterChip`의 호버 불일치 버그 — 이 절이 2026-09-13에 "발견만

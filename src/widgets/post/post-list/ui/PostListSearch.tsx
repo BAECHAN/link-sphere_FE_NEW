@@ -1,5 +1,6 @@
 import { useCategoryOptions } from '@/entities/category/hooks/useCategoryOptions';
 import { Button } from '@/shared/ui/atoms/button';
+import { Card } from '@/shared/ui/atoms/card';
 import { Switch } from '@/shared/ui/atoms/switch';
 import { FilterChip } from '@/shared/ui/elements/FilterChip';
 import { RotateCcw } from 'lucide-react';
@@ -96,7 +97,7 @@ export function PostListSearch() {
   };
 
   return (
-    <div className="flex flex-col gap-2 md:gap-3 p-4 bg-card rounded-2xl border shadow-sm hover:shadow-md transition-shadow">
+    <Card className="gap-2 md:gap-3 p-4 rounded-2xl hover:shadow-md transition-shadow">
       <div
         role="group"
         aria-label={TEXTS.ariaLabels.postCategoryFilters}
@@ -192,6 +193,6 @@ export function PostListSearch() {
           </Button>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

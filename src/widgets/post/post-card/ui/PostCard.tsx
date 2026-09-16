@@ -298,7 +298,7 @@ export function PostCard({ post, isDetail = false, backSource }: PostCardProps) 
           </Button>
         </div>
 
-        <div className="items-center gap-1 text-muted-foreground text-xs flex">
+        <div className="items-center gap-1 md:gap-1.5 text-muted-foreground text-xs flex">
           <Eye className="h-3 w-3" />
           <span>{post.stats.viewCount || 0}</span>
         </div>

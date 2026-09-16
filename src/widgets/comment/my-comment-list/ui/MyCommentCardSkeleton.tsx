@@ -7,7 +7,7 @@ import { Skeleton } from '@/shared/ui/atoms/skeleton';
  */
 export function MyCommentCardSkeleton() {
   return (
-    <Card className="p-4 gap-3">
+    <Card className="p-3 gap-3">
       <div className="space-y-1.5">
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-4/5" />

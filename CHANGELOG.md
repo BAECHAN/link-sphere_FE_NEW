@@ -93,6 +93,19 @@
 
   Button의 size `default`가 가진 `has-[>svg]:px-3`가 modifier 그룹이 달라 `p-0` 오버라이드로 tailwind-merge에서 지워지지 않고 CSS 명시도에서도 이겨, `MobileNavbarSearch.tsx`의 뒤로가기·트레일링 지우기 버튼과 `NavbarSearch.tsx`의 데스크톱 지우기 버튼 3곳 모두 의도한 여백 제거가 실제로 적용되지 않고 있었다(이 레포 tailwind-merge로 직접 실행해 확인) — 특히 뒤로가기 아이콘은 형제 햄버거 버튼(`size="icon"`)보다 6px 오른쪽에서 시작해 검색을 열고 닫을 때마다 위치가 튀었다. `p-0`으로 우회하는 대신 shadcn이 아이콘 전용으로 제공하는 `size="icon"`/`"icon-sm"` variant로 바꿔 padding 충돌 자체를 없앴다(레포 안에 이미 18곳의 선례가 있고, `input.tsx`·`PasswordInput.tsx`의 클리어 버튼이 정확히 같은 형태다). 뒤로가기는 아이콘도 `size-5`에서 `size-6`으로 키워 햄버거와 정확히 같은 위치(22px)에 오도록 맞췄다. hover 배경도 개별 `hover:bg-transparent` 오버라이드를 걷어내 ghost variant 기본값(다른 navbar 아이콘 버튼과 동일)을 쓰도록 통일했다. 탭 영역은 가로가 44px에서 36px로 줄지만 세로가 20px에서 36px로 늘어 두 축 모두 36px 이상이 된다(880px²에서 1,296px²). 아이콘 크기·hover 배경·X 버튼 가로 위치 3가지 결정은 [Artifact 미리보기](https://claude.ai/artifact/5phgRdqLb3djpD8KBYdGNB)로 사용자 승인을 받았다.
   (`src/widgets/layout/navbar/ui/MobileNavbarSearch.tsx`, `src/widgets/layout/navbar/ui/NavbarSearch.tsx`, [PR #121](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/121))
+- `comment` 내 댓글 카드 패딩을 다른 카드와 동일하게 통일
+  <details><summary>배경·구현</summary>
+
+  `PostCard`·`MobileFolderList`의 폴더 카드는 `p-3`(12px)인데 `MyCommentCard`만 `p-4`(16px)였다. [Artifact 미리보기](https://claude.ai/artifact/B2V5ovgE93iggx8WqEYRoe)로 실제 콘텐츠(댓글 본문+원글 배지)가 `p-3`에서 어떻게 보이는지 사용자에게 먼저 보여주고 승인받은 뒤 반영했다. `MyCommentCardSkeleton.tsx`도 같은 값으로 맞췄다 — 그 파일 자체 주석이 "로딩→렌더 전환에서 레이아웃이 안 튀려면 MyCommentCard와 동일해야 한다"고 이미 명시하고 있었다.
+  (`src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx`, `src/widgets/comment/my-comment-list/ui/MyCommentCardSkeleton.tsx`)
+
+  </details>
+
+- `post` 카드 조회수 gap 반응형 통일, 검색 필터 카드를 공용 `Card` 컴포넌트로 정리
+  <details><summary>배경·구현</summary>
+
+  `PostCard.tsx` 안에서 좋아요/댓글/북마크/공유 등 "아이콘+숫자" 액션은 전부 `gap-1 md:gap-1.5`를 쓰는데 조회수 줄만 반응형 변형 없이 `gap-1`로 남아있었다 — 같은 파일 안에서만도 하나가 어긋나 있었다. 같은 역할끼리 맞춰 `gap-1 md:gap-1.5`로 통일했다(데스크톱에서 4px→6px, 다른 액션과 동일). `PostListSearch.tsx`의 최상위 필터 카드는 `bg-card rounded-2xl border shadow-sm` 등 공용 `Card` 컴포넌트의 스타일을 raw `div`로 직접 재구현하고 있었다 — `Card`로 교체하고 원래 값(`p-4`/`rounded-2xl`/`gap-2 md:gap-3`/`hover:shadow-md`)은 `className`으로 그대로 얹어 계산값이 완전히 동일함을 확인했다(순수 컴포넌트 재사용 전환, 화면 영향 없음).
+  (`src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-list/ui/PostListSearch.tsx`)
 
   </details>
 
