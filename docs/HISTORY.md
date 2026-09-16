@@ -1,4 +1,7 @@
 ### 2026-09-16 (FE)
+- Storybook a11y 검사를 CI 파이프라인에 통합하여 접근성 게이트키핑 강화 (PR-4)
+
+### 2026-09-16 (FE)
 - CI 스택 내 PR 빌드 검증 프로세스 최적화 및 타이포 가시성 개선을 통한 개발 환경 안정성 강화 ([#111](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/111))
 
 ### 2026-09-16 (FE)
