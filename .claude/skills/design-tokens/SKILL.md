@@ -67,6 +67,36 @@ Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금
 Storybook `Shared/UI/Tokens/Design Tokens` 스토리의 `ZIndex`에서 8단계를 시각적으로
 확인할 수 있다.
 
+### 타이포그래피 토큰
+
+**스케일 층만 있다 (2026-09-16 추가) — 역할 층·화면 치환은 아직.** 값은 당근마켓
+[SEED Typography](https://seed-design.io/foundations/typography)의 `$font-size.t1`~`t14`
+/ `$line-height.t1`~`t14`를 그대로 옮겼다. 아직 어떤 컴포넌트도 `text-t*`를 쓰지 않는다 —
+역할 토큰(`--text-screen-title` 등)이 나오면 이 표에 이어서 추가된다. 진행 상황은
+[`docs/plans/2026-09-16-typography-tokens-a11y-gate.md`](../../../docs/plans/2026-09-16-typography-tokens-a11y-gate.md)
+참고.
+
+| 토큰       | 크기             | 줄 높이          | 비고         |
+| ---------- | ---------------- | ---------------- | ------------ |
+| `text-t1`  | 0.6875rem (11px) | 0.9375rem (15px) |              |
+| `text-t2`  | 0.75rem (12px)   | 1rem (16px)      |              |
+| `text-t3`  | 0.8125rem (13px) | 1.125rem (18px)  |              |
+| `text-t4`  | 0.875rem (14px)  | 1.1875rem (19px) |              |
+| `text-t5`  | 1rem (16px)      | 1.375rem (22px)  |              |
+| `text-t6`  | 1.125rem (18px)  | 1.5rem (24px)    |              |
+| `text-t7`  | 1.25rem (20px)   | 1.6875rem (27px) |              |
+| `text-t8`  | 1.375rem (22px)  | 1.875rem (30px)  |              |
+| `text-t9`  | 1.5rem (24px)    | 2rem (32px)      |              |
+| `text-t10` | 1.625rem (26px)  | 2.1875rem (35px) |              |
+| `text-t11` | 1.75rem (28px)   | 2.375rem (38px)  | sm 이상 권장 |
+| `text-t12` | 2rem (32px)      | 2.625rem (42px)  | sm 이상 권장 |
+| `text-t13` | 2.5rem (40px)    | 3.25rem (52px)   | sm 이상 권장 |
+| `text-t14` | 3rem (48px)      | 3.75rem (60px)   | sm 이상 권장 |
+
+폰트 두께는 별도 토큰 없음 — SEED medium(500)/bold(700)이 Tailwind 기본
+`font-medium`/`font-bold`와 값이 같다. Storybook `Shared/UI/Tokens/Design Tokens`
+스토리의 `Typography`에서 14단계를 시각적으로 확인할 수 있다.
+
 ### 인터랙션 커서
 
 Tailwind v4 preflight엔 v3에 있던 `button, [role="button"] { cursor: pointer }`가 없다

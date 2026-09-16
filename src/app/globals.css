@@ -77,6 +77,49 @@
   --z-index-popover: 80; /* Dropdown/Select/Tooltip */
 }
 
+/* 타이포그래피 스케일 14단계(t1~t14). 당근마켓 SEED 디자인 시스템의 폰트 크기·줄
+   높이 토큰 값을 그대로 가져왔다 - 출처: https://seed-design.io/foundations/typography
+   ($font-size.t1~t14, $line-height.t1~t14). 아직 어떤 컴포넌트도 이 스케일을 쓰지
+   않는다 - 기존 text-xs/sm/base 등 Tailwind 기본 유틸리티는 그대로 두고, 이 스케일은
+   역할 토큰(--text-screen-title 등, 후속 PR에서 추가 예정)의 재료로만 쓴다. 그래서
+   이번 추가는 화면 변화가 없다.
+   t11~t14는 SEED 문서가 "sm breakpoint 이상에서만 사용하는 것을 권장"하는 대형 제목용
+   크기다 - 실제로 쓰는 쪽에서 md: 접두사 등으로 그 권장을 지킨다.
+   폰트 두께는 별도 토큰을 만들지 않는다 - SEED의 medium(500)/bold(700)이 Tailwind
+   기본 font-medium/font-bold와 값이 같다.
+   `static`을 쓰는 이유는 z-index 토큰과 동일 - Storybook 토큰 카탈로그가
+   getComputedStyle로 항상 읽을 수 있어야 한다. */
+@theme static {
+  --text-t1: 0.6875rem; /* 11px */
+  --text-t1--line-height: 0.9375rem; /* 15px */
+  --text-t2: 0.75rem; /* 12px */
+  --text-t2--line-height: 1rem; /* 16px */
+  --text-t3: 0.8125rem; /* 13px */
+  --text-t3--line-height: 1.125rem; /* 18px */
+  --text-t4: 0.875rem; /* 14px */
+  --text-t4--line-height: 1.1875rem; /* 19px */
+  --text-t5: 1rem; /* 16px */
+  --text-t5--line-height: 1.375rem; /* 22px */
+  --text-t6: 1.125rem; /* 18px */
+  --text-t6--line-height: 1.5rem; /* 24px */
+  --text-t7: 1.25rem; /* 20px */
+  --text-t7--line-height: 1.6875rem; /* 27px */
+  --text-t8: 1.375rem; /* 22px */
+  --text-t8--line-height: 1.875rem; /* 30px */
+  --text-t9: 1.5rem; /* 24px */
+  --text-t9--line-height: 2rem; /* 32px */
+  --text-t10: 1.625rem; /* 26px */
+  --text-t10--line-height: 2.1875rem; /* 35px */
+  --text-t11: 1.75rem; /* 28px, sm 이상 권장 */
+  --text-t11--line-height: 2.375rem; /* 38px */
+  --text-t12: 2rem; /* 32px, sm 이상 권장 */
+  --text-t12--line-height: 2.625rem; /* 42px */
+  --text-t13: 2.5rem; /* 40px, sm 이상 권장 */
+  --text-t13--line-height: 3.25rem; /* 52px */
+  --text-t14: 3rem; /* 48px, sm 이상 권장 */
+  --text-t14--line-height: 3.75rem; /* 60px */
+}
+
 :root {
   --radius: 0.625rem;
   --kbd-in-primary-bg: rgba(255, 255, 255, 0.15);
