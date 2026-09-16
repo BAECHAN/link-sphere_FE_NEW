@@ -172,6 +172,47 @@ function ZIndexCatalog() {
   );
 }
 
+// globals.css @theme static 타이포 스케일 블록(t1~t14)과 1:1 대응. 값 출처는
+// https://seed-design.io/foundations/typography - t11~t14는 sm 이상 권장이라는
+// 표시를 함께 보여준다.
+const TYPOGRAPHY_SCALE = [
+  't1',
+  't2',
+  't3',
+  't4',
+  't5',
+  't6',
+  't7',
+  't8',
+  't9',
+  't10',
+  't11',
+  't12',
+  't13',
+  't14',
+] as const;
+const LARGE_TITLE_SCALE = new Set(['t11', 't12', 't13', 't14']);
+
+function TypographyCatalog() {
+  return (
+    <div className="flex flex-col gap-3 p-4">
+      {TYPOGRAPHY_SCALE.map((t) => (
+        <div key={t} className="flex items-baseline gap-4 border-b pb-3">
+          <code className="w-28 shrink-0 text-xs text-muted-foreground">
+            --text-{t}
+            {LARGE_TITLE_SCALE.has(t) && ' (sm~)'}
+          </code>
+          <span
+            style={{ fontSize: `var(--text-${t})`, lineHeight: `var(--text-${t}--line-height)` }}
+          >
+            텍스트 스케일 미리보기 Aa 12
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const meta = {
   title: 'Shared/UI/Tokens/Design Tokens',
   tags: ['autodocs'],
@@ -191,4 +232,8 @@ export const ZIndex: Story = {
 
 export const Radius: Story = {
   render: () => <RadiusCatalog />,
+};
+
+export const Typography: Story = {
+  render: () => <TypographyCatalog />,
 };
