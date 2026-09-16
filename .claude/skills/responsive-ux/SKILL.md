@@ -100,6 +100,32 @@ md:hidden fixed bottom-0 inset-x-0 z-50 h-16 pb-[env(safe-area-inset-bottom)]
 UI에 70 이상을 쓰지 말 것. 모달이 다른 고정 UI보다 항상 위에 뜨지 못하면(예: 이탈
 확인창이 열린 드로어 뒤에 가리는 것) 사용자가 모달을 조작할 수 없게 된다.
 
+## 화면 덮는 오버레이의 배경 스크롤 잠금
+
+배경(main/document)을 완전히 덮는 새 T1 오버레이(모바일 사이드바 드로어·모바일 검색처럼
+`docs/DECISIONS.md`가 분류한 것)를 만들 때는 배경 스크롤도 함께 잠가야 한다 — 그러지
+않으면 오버레이 자신의 스크롤 영역을 끝까지 스크롤한 뒤 계속 스와이프할 때 배경으로
+스크롤이 체이닝되고, 오버레이를 닫으면 배경이 조용히 다른 위치로 튀어 있는 버그가 난다.
+
+- **`shared/ui/atoms/dialog.tsx`(Radix `Dialog`) 기반이면 아무것도 안 해도 된다** —
+  `modal`(기본 `true`)일 때 내부적으로 `react-remove-scroll`을 걸어 자동으로 잠긴다.
+- **순수 `<div>`로 직접 짠다면 `RemoveScroll`(`react-remove-scroll`)로 직접 감싼다** —
+  `Dialog`가 내부에서 쓰는 것과 같은 라이브러리를 그대로 재사용한다(이미 전이
+  의존성으로 설치돼 있다).
+  ```tsx
+  <RemoveScroll as={Slot} allowPinchZoom>
+    <div className="...">...</div>
+  </RemoveScroll>
+  ```
+  `as={Slot}`(`@radix-ui/react-slot`)을 쓰면 별도 wrapper DOM이 안 생긴다. 오버레이의
+  스크롤 영역과 시각적 덮개가 같은 요소면 `shards`는 필요 없다. 배경(백드롭)과 실제
+  콘텐츠 패널이 DOM상 형제로 분리돼 있다면(예: `Sidebar` 모바일 드로어의 백드롭+`aside`)
+  `shards={[패널ref]}`로 패널을 Lock의 일부로 지정해 패널 안쪽 스크롤은 허용해야 한다 —
+  선례: `RecentSearchPanel.tsx`(shards 불필요, 자기 자신이 스크롤 영역), `Sidebar.tsx`
+  (백드롭에 `shards={[drawerRef]}`).
+- 근거·검토한 대안은 [`docs/DECISIONS.md`](../../../docs/DECISIONS.md) "2026-09-17 — T1
+  오버레이 배경 스크롤 잠금" 참고.
+
 ## 점검 항목
 
 - 375px 뷰포트에서 가로 스크롤 0

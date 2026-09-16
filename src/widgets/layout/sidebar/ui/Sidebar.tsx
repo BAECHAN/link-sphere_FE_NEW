@@ -1,5 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Menu, X } from 'lucide-react';
+import { RemoveScroll } from 'react-remove-scroll';
+import { Slot } from '@radix-ui/react-slot';
 import { Button } from '@/shared/ui/atoms/button';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/shared/lib/tailwind/utils';
@@ -88,6 +90,10 @@ export function Sidebar() {
   const { isOpen, toggle } = useSidebarStore(); // 데스크톱 접힘/펼침 상태
   // 모바일 드로어는 뒤로가기로 닫혀야 하므로 히스토리 엔트리로 관리한다 (데스크톱 접힘 상태와는 별개)
   const { isOpen: isMobileOpen, close } = useHistoryOverlay('sidebarOpen');
+  // 백드롭에 건 배경 스크롤 잠금(RemoveScroll)이 드로어 패널 안쪽 스크롤은 허용하도록
+  // shards로 지정한다 - dialog.tsx의 DialogOverlayImpl이 shards: [context.contentRef]를
+  // 쓰는 것과 같은 이유("Content가 Overlay 안에 안 살아도 스크롤 가능해야 한다").
+  const drawerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -117,17 +123,20 @@ export function Sidebar() {
         </nav>
       </aside>
 
-      {/* 모바일: 드로어 백드롭 */}
+      {/* 모바일: 드로어 백드롭 - 배경 스크롤 잠금 (RecentSearchPanel.tsx와 같은 이유) */}
       {isMobileOpen && (
-        <div
-          className="md:hidden fixed inset-0 z-scrim bg-scrim/50"
-          onClick={close}
-          aria-hidden="true"
-        />
+        <RemoveScroll as={Slot} allowPinchZoom shards={[drawerRef]}>
+          <div
+            className="md:hidden fixed inset-0 z-scrim bg-scrim/50"
+            onClick={close}
+            aria-hidden="true"
+          />
+        </RemoveScroll>
       )}
 
       {/* 모바일: 드로어 패널 */}
       <aside
+        ref={drawerRef}
         className={cn(
           'md:hidden fixed top-0 left-0 z-drawer h-full w-64 bg-background border-r flex flex-col',
           'transition-transform duration-200',
