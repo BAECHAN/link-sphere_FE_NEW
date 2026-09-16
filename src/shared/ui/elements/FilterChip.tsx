@@ -28,6 +28,7 @@ export function FilterChip({
       className={cn(
         // 2026-09-06, 사용자 확인 후 44px(모바일 터치 타깃) → 28px(데스크톱과 동일)로
         // 되돌림 — 시각적 일관성 우선 결정, docs/DECISIONS.md 참고
+        // eslint-disable-next-line custom-tailwind/no-raw-title -- 칩 라벨, 제목 아님
         'rounded-full px-3 py-1.5 h-auto text-xs font-bold transition-all transform active:scale-95',
         isActive
           ? cn(activeClassName, 'shadow-sm')

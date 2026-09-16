@@ -173,7 +173,7 @@ export function BookmarkFolderSelectModal({
                 {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 */}
                 {recentFolderList.length > 0 && (
                   <>
-                    <li className="px-4 pt-3 pb-1 text-xs font-semibold text-muted-foreground border-t">
+                    <li className="px-4 pt-3 pb-1 text-group-label text-muted-foreground border-t">
                       {TEXTS.bookmark.folder.recentSection}
                     </li>
                     {recentFolderList.map((folder) => (
@@ -193,7 +193,7 @@ export function BookmarkFolderSelectModal({
                 {/* 내 폴더 — 위 "최근 저장한 폴더"와 겹치더라도 그대로 중복 표시한다.
                     헤더가 최근 구획과의 경계선 역할도 겸한다 */}
                 {folderList.length > 0 && (
-                  <li className="px-4 pt-3 pb-1 text-xs font-semibold text-muted-foreground border-t">
+                  <li className="px-4 pt-3 pb-1 text-group-label text-muted-foreground border-t">
                     {TEXTS.bookmark.folder.myFolders}
                   </li>
                 )}

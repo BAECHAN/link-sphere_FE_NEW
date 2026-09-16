@@ -108,6 +108,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
             >
               <LinkThumbnail src={linkMetadata.ogImage} alt={linkMetadata.title} />
               <div className="p-2 bg-muted/30">
+                {/* eslint-disable-next-line custom-tailwind/no-raw-title -- 외부 링크 메타데이터 제목, UI 제목 아님 */}
                 <p className="text-xs font-semibold truncate">{linkMetadata.title}</p>
                 {linkMetadata.description && (
                   <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">

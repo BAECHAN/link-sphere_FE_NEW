@@ -99,6 +99,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
                   alt={comment.linkMetadata.title}
                 />
                 <div className="p-2 bg-muted/30">
+                  {/* eslint-disable-next-line custom-tailwind/no-raw-title -- 외부 링크 메타데이터 제목, UI 제목 아님 */}
                   <p className="text-xs font-semibold truncate">{comment.linkMetadata.title}</p>
                   {comment.linkMetadata.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">

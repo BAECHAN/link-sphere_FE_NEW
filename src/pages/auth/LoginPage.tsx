@@ -11,6 +11,7 @@ export const LoginPage = () => {
         <CardHeader className="text-center">
           <Link
             to={ROUTES_PATHS.POST.ROOT}
+            // eslint-disable-next-line custom-tailwind/no-raw-title -- 브랜드 워드마크, 제목 역할 토큰 대상 아님
             className="mb-1 font-bold text-3xl tracking-tight hover:opacity-80 transition-opacity"
           >
             {TEXTS.nav.brand}

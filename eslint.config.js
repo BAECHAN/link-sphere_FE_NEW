@@ -322,6 +322,61 @@ const customTailwindRulesPlugin = {
         };
       },
     },
+    // [금지] 텍스트 크기 + font-semibold/font-bold 조합 (제목처럼 보이는 raw 클래스)
+    // 이유: 이런 조합 22곳(2026-09-16 실측)이 lint를 통과한 채 남아있었다 - 그중 4곳
+    //       (Dialog 제목, 포스트 카드 제목, 폴더 그룹 라벨 4곳)은 실제 제목/라벨이라
+    //       역할 토큰(text-section-title 등)이나 새 토큰(text-card-title/
+    //       text-group-label)으로 옮겼다(Artifact 미리보기 승인,
+    //       https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12). 나머지는 브랜드
+    //       워드마크·배지·마크다운 렌더링 헤딩·외부 링크 메타데이터처럼 제목이 아닌
+    //       경우라 eslint-disable-next-line 주석으로 예외 처리했다 - 이 룰은 기계적으로
+    //       "제목인지"를 판단할 수 없으므로, 새로 이 조합을 쓰는 코드는 역할 토큰을
+    //       쓰거나 왜 예외인지 주석으로 남겨야 한다.
+    'no-raw-title': {
+      meta: {
+        type: 'problem',
+        docs: {
+          description:
+            '텍스트 크기+font-semibold/bold 조합 금지, 제목 역할 토큰이나 예외 주석 사용',
+        },
+        messages: {
+          rawTitle:
+            '"{{size}} {{weight}}" 조합은 제목처럼 보입니다. globals.css의 타이포그래피 역할 토큰(text-screen-title 등)을 쓰거나, 제목이 아니라면 이 줄 위에 이유를 적은 eslint-disable-next-line 주석을 다세요.',
+        },
+      },
+      create(context) {
+        const TEXT_SIZE_PATTERN = /\btext-(?:xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|8xl|9xl)\b/;
+        const FONT_WEIGHT_PATTERN = /\bfont-(?:semibold|bold)\b/;
+
+        function report(node, value) {
+          if (typeof value !== 'string') {
+            return;
+          }
+
+          const sizeMatch = TEXT_SIZE_PATTERN.exec(value);
+          const weightMatch = FONT_WEIGHT_PATTERN.exec(value);
+
+          if (sizeMatch && weightMatch) {
+            context.report({
+              node,
+              messageId: 'rawTitle',
+              data: { size: sizeMatch[0], weight: weightMatch[0] },
+            });
+          }
+        }
+
+        return {
+          Literal(node) {
+            report(node, node.value);
+          },
+          TemplateLiteral(node) {
+            for (const quasi of node.quasis) {
+              report(quasi, quasi.value.raw);
+            }
+          },
+        };
+      },
+    },
     // [금지] className에 템플릿 리터럴(백틱) 사용 - cn() 대신
     // 이유: 백틱 문자열 보간은 twMerge의 충돌 정리를 거치지 않는다. FormField.tsx가
     //       이 방식으로 클래스를 조합하고 있었고(2026-09-13 발견, 유일하게 cn() 미사용
@@ -1328,6 +1383,7 @@ export default [
       'custom-tailwind/no-raw-z-index': 'error',
       'custom-tailwind/no-raw-color': 'error',
       'custom-tailwind/no-raw-text-size': 'error',
+      'custom-tailwind/no-raw-title': 'error',
       'custom-tailwind/no-classname-template-literal': 'error',
     },
   },

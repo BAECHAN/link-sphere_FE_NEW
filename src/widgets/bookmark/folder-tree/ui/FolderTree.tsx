@@ -60,7 +60,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
       {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 */}
       {recentFolderList.length > 0 && (
         <>
-          <div className="px-3 pt-1 pb-1 text-xs font-semibold text-muted-foreground">
+          <div className="px-3 pt-1 pb-1 text-group-label text-muted-foreground">
             {TEXTS.bookmark.folder.recentSection}
           </div>
           {recentFolderList.map((folder) => (
@@ -79,7 +79,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
 
       {/* 내 폴더 — 위 "최근 저장한 폴더"와 겹치더라도 그대로 중복 표시한다 */}
       {(folderList?.length ?? 0) > 0 && (
-        <div className="px-3 pt-1 pb-1 text-xs font-semibold text-muted-foreground">
+        <div className="px-3 pt-1 pb-1 text-group-label text-muted-foreground">
           {TEXTS.bookmark.folder.myFolders}
         </div>
       )}

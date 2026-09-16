@@ -43,6 +43,7 @@ export const SignUpForm = () => {
         <CardHeader className="text-center space-y-1">
           <Link
             to={ROUTES_PATHS.POST.ROOT}
+            // eslint-disable-next-line custom-tailwind/no-raw-title -- 브랜드 워드마크, 제목 역할 토큰 대상 아님
             className="font-bold text-3xl tracking-tight hover:opacity-80 transition-opacity"
           >
             {TEXTS.nav.brand}

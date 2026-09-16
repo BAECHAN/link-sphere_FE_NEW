@@ -152,24 +152,28 @@ function parseMarkdown(text: string, isMobile: boolean, imageUrls: string[]): Re
 
       if (line.startsWith('#### ')) {
         elements.push(
+          // eslint-disable-next-line custom-tailwind/no-raw-title -- 마크다운 렌더링 헤딩, 의도적으로 압축된 크기(역할 토큰과 무관)
           <h4 key={key} className="text-sm font-bold mt-1">
             {renderInlineLinks(line.slice(5), key, isMobile, imageUrls)}
           </h4>
         );
       } else if (line.startsWith('### ')) {
         elements.push(
+          // eslint-disable-next-line custom-tailwind/no-raw-title -- 마크다운 렌더링 헤딩, 의도적으로 압축된 크기(역할 토큰과 무관)
           <h3 key={key} className="text-sm font-semibold mt-1">
             {renderInlineLinks(line.slice(4), key, isMobile, imageUrls)}
           </h3>
         );
       } else if (line.startsWith('## ')) {
         elements.push(
+          // eslint-disable-next-line custom-tailwind/no-raw-title -- 마크다운 렌더링 헤딩, 의도적으로 압축된 크기(역할 토큰과 무관)
           <h2 key={key} className="text-base font-bold mt-1">
             {renderInlineLinks(line.slice(3), key, isMobile, imageUrls)}
           </h2>
         );
       } else if (line.startsWith('# ')) {
         elements.push(
+          // eslint-disable-next-line custom-tailwind/no-raw-title -- 마크다운 렌더링 헤딩, 의도적으로 압축된 크기(역할 토큰과 무관)
           <h1 key={key} className="text-base font-bold mt-1">
             {renderInlineLinks(line.slice(2), key, isMobile, imageUrls)}
           </h1>

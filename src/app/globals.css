@@ -120,10 +120,10 @@
   --text-t14--line-height: 3.75rem; /* 60px */
 }
 
-/* 타이포그래피 역할 토큰 4종. 위 스케일 층(t1~t14)에서 실제 화면 12곳(h1 5·h2 3·
-   10px 임의값 4)에 쓰이는 값만 골라 이름을 붙였다 - 나머지 스케일 조합은 아직
-   쓰는 곳이 없어 만들지 않는다(docs/plans/2026-09-16-typography-tokens-a11y-gate.md
-   PR-2 Artifact 미리보기로 사용자 승인, 2026-09-16).
+/* 타이포그래피 역할 토큰 6종. 위 스케일 층(t1~t14)에서 실제 화면에 쓰이는 값만
+   골라 이름을 붙였다 - 나머지 스케일 조합은 아직 쓰는 곳이 없어 만들지 않는다
+   (처음 4개는 docs/plans/2026-09-16-typography-tokens-a11y-gate.md PR-2 Artifact
+   미리보기로 사용자 승인, 2026-09-16).
    페이지 제목(screen-title)은 두께까지 토큰에 묶어 semibold로 통일한다 - 기존 5곳 중
    4곳은 이미 font-semibold였고, pages/post/index.tsx만 유일하게 font-bold + md:24px였다
    (제안 A 채택: 그 한 곳만 semibold·20px 고정으로 맞춘다, 화면이 실제로 바뀜).
@@ -131,7 +131,15 @@
    중복으로 남기지 않는다. micro는 두께를 묶지 않는다 - 4개 호출부의 기존 두께가
    제각각(Kbd는 font-medium, 배지·좋아요 수는 미지정 상속)이라 하나로 합치면 그 중
    묻지 않은 화면 변화가 생긴다.
-   `static`을 쓰지 않는다 - z-index/스케일 토큰과 달리 이 4개는 이 커밋에서 바로
+   card-title/group-label은 no-raw-title ESLint 룰 도입(2026-09-16, "text-{크기}
+   font-{semibold|bold}" 조합 22곳 실측) 대상 중 시각 변경이 있는 4곳을 위해 추가했다 -
+   Artifact 미리보기로 사용자 승인(https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12).
+   card-title은 반응형이라 역할 토큰에 데스크톱 크기까지 묶지 않는다 - t11~t14와 같은
+   선례(위 스케일 토큰 주석 참고)를 따라 호출부에서 md:text-t6로 직접 올린다.
+   group-label(12px/16px)은 Tailwind 기본 text-xs의 계산값과 완전히 같다 - 이름만
+   붙이는 순수 정리라 화면 변화가 없다(단, RecentSearchPanel.tsx는 원래 14px라 이
+   토큰으로 통일하면 12px로 줄어든다 - Artifact에서 그 변화를 명시하고 승인받았다).
+   `static`을 쓰지 않는다 - z-index/스케일 토큰과 달리 이 6개는 이 커밋에서 바로
    className으로 쓰이므로 기본 @theme만으로도 변수·유틸리티 둘 다 생성된다. */
 @theme {
   --text-screen-title: 1.25rem; /* t7, 20px */
@@ -145,6 +153,12 @@
   --text-subsection-title--font-weight: 600;
   --text-micro: 0.6875rem; /* t1, 11px */
   --text-micro--line-height: 0.9375rem; /* 15px */
+  --text-card-title: 0.875rem; /* t4, 14px */
+  --text-card-title--line-height: 1.1875rem; /* 19px */
+  --text-card-title--font-weight: 700;
+  --text-group-label: 0.75rem; /* t2, 12px */
+  --text-group-label--line-height: 1rem; /* 16px */
+  --text-group-label--font-weight: 600;
 }
 
 :root {
