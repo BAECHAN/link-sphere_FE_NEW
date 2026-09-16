@@ -93,6 +93,7 @@
 
   모바일 포스트 상세에서 헤더 검색을 열면 `RecentSearchPanel`이 화면을 덮어야 하는데, `MobileCommentBar`(접힘 상태)가 같은 z층(`z-panel`=40)이라 DOM 순서만으로 패널 위에 그대로 남아 있었다. 탭바(`z-nav`=50)가 검색 중에도 보이는 건 `Navbar.tsx:228`이 명시한 의도된 설계라 그대로 두고, 댓글바만 `useHistoryOverlay('mobileSearchOpen')`로 같은 열림 상태를 구독해 `hidden`을 붙였다. 언마운트하지 않은 이유는 이탈 가드(`useUnsavedChangesGuard.ts`)가 `pathname`이 같은 이동은 통과시켜, 검색 열기가 그 가드를 우회하기 때문이다 — 언마운트하면 작성 중이던 본문·첨부 이미지가 경고 없이 사라진다. 같은 조사에서 `RecentSearchPanel`에 스크림·포커스 트랩이 없어 Tab 키로 배경 게시글·댓글에 포커스가 새는 것도 함께 발견해, `AppLayout`의 `main`에 `inert`를 걸어 막았다(React 18.2라 JSX `inert` prop 대신 ref로 DOM 프로퍼티를 직접 설정).
   (`src/features/comment/create/ui/MobileCommentBar.tsx`, `src/features/comment/create/ui/MobileCommentBar.test.tsx`(신규), `src/app/layouts/app-layout/AppLayout.tsx`, `e2e/post-detail-search-overlay.mobile.spec.ts`(신규), `docs/SEARCH.md`, `.claude/skills/responsive-ux/SKILL.md`, [PR #123](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/123))
+
 - `shared` 모바일 검색 헤더 아이콘 버튼 3곳의 좌우 정렬 어긋남 수정
   <details><summary>배경·구현</summary>
 
