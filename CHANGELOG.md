@@ -11,6 +11,14 @@
 
 ### Added
 
+- `shared` Storybook 디자인 토큰 카탈로그에 타이포그래피 역할 토큰 추가
+  <details><summary>배경·구현</summary>
+
+  타이포그래피 역할 토큰(`--text-screen-title` 등, PR #110)이 실제 화면 12곳에 적용됐지만 Storybook 카탈로그(`Colors`/`Radius`/`ZIndex`/`Typography`)엔 없어, 색상·radius·z-index·스케일은 한눈에 보이는데 정작 이번 작업의 핵심 결과물은 실제 앱 페이지를 열어야만 확인할 수 있었다(2026-09-16 감사). 기존 `TypographyCatalog`/`ZIndexCatalog`와 같은 패턴(CSS 변수를 `var()`로 인라인 style에서 직접 읽기)으로 `RoleTokens` 스토리를 추가했다. 같은 감사에서 `design-tokens` skill의 `description`/`when_to_use`가 색상·커서·다크모드만 언급하고 타이포그래피를 빠뜨린 것과, `ci.yml`의 `pull_request` 트리거가 base 브랜치를 `main`으로 제한해 스택 PR(다른 PR 브랜치를 base로 하는 PR)에서 CI가 자동으로 안 도는 것, `pnpm build`가 CI에 없어 디자인 토큰의 CSS 생성 실패를 머지 전에 못 잡는 것도 함께 발견해 고쳤다.
+  (`src/shared/ui/tokens/DesignTokens.stories.tsx`, `.claude/skills/design-tokens/SKILL.md`, `.github/workflows/ci.yml`)
+
+  </details>
+
 - `shared` 타이포그래피 스케일 토큰(`--text-t1`~`--text-t14`) 신설
   <details><summary>배경·구현</summary>
 

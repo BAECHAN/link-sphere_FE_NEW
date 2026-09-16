@@ -169,6 +169,18 @@ import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있
   - 10px 임의값 유틸리티가 여전히 1건 생성됨 — 원인은 §10의 append-only 계획 파일,
     실제 JSX 참조는 0건(화면 영향 없음)
 
+2026-09-16 실측 (CI/skill/Storybook 개선, 워크트리 `typography-scale-tokens`
+안 브랜치 `worktree-design-system-ci-fixes`, PR #108·#110 머지 후 신선한 `main`
+기준):
+
+- `pnpm type-check`/`pnpm lint`/`pnpm test`/`pnpm format:check`/`pnpm check:docs`
+  전부 통과
+- `pnpm build` 로컬 실행 — `ci.yml`에 추가한 것과 동일 커맨드가 성공하는지 먼저
+  확인
+- `pnpm build-storybook` — 신설 `RoleTokens` 스토리 포함 정상 컴파일 확인
+- PR을 열어 `pull_request` 트리거(필터 제거 후)가 자동으로 도는지 실측 확인 —
+  이전엔 `workflow_dispatch`로만 수동 확인해야 했던 것이 정상 경로로 동작
+
 ## 10. 시행착오
 
 **Tailwind 스캐너가 CSS/JS 주석·마크다운 문서도 전부 텍스트로 훑는다.** `globals.css`에
@@ -201,7 +213,13 @@ append-only 파일이라(CI가 수정 자체를 막는다) 고칠 수 없다 —
   받아 역할 토큰(`--text-screen-title`/`section-title`/`subsection-title`/`micro`)과
   h1 5곳·h2 3곳·10px 임의값 4곳 = 12곳 치환을 마쳤다 — line-height가 Tailwind
   기본값과 달랐던 만큼 일부 텍스트의 실제 렌더링이 바뀌었다(`--text-section-title`이
-  가장 큰 -4px, 페이지 제목 두께는 semibold로 통일).
+  가장 큰 -4px, 페이지 제목 두께는 semibold로 통일). 머지 직후 감사에서 인프라
+  갭 4가지를 추가로 발견해 같은 날 고쳤다 — 역할 토큰이 Storybook 카탈로그에 없던
+  것(`RoleTokens` 스토리 신설), `design-tokens` skill의 트리거 메타데이터가
+  타이포그래피를 안 다루던 것, `ci.yml`의 `pull_request` 트리거가 base를 `main`으로
+  제한해 스택 PR(다른 PR 브랜치를 base로 하는 PR)에서 CI가 자동으로 안 돌던 것
+  (실제로 이 라운드의 PR #109가 그 사각지대에 걸려 자동 CI 0건이었다), `pnpm build`가
+  CI에 없어 토큰의 CSS 생성 실패를 머지 전에 못 잡던 것.
 - **spacing 토큰 미도입**: Tailwind v4의 `--spacing`은 `gap-2`·`p-4`·`h-9`·
   `size-4`가 전부 파생되는 단일 배수 변수다. 이 축에 진짜 "허용값만 남기는" 잠금을
   걸려면 `--spacing: initial`이 필요한데, 그러면 591개 className 대부분이 무너진다.

@@ -213,6 +213,42 @@ function TypographyCatalog() {
   );
 }
 
+interface RoleToken {
+  token: string;
+  usage: string;
+}
+
+// globals.css의 (static 아닌) @theme 역할 토큰 블록과 1:1 대응. 스케일 층(t1~t14)에서
+// 실제 화면 12곳에 쓰이는 값만 골라 이름 붙인 것 - TYPOGRAPHY_SCALE과 달리 매 항목이
+// 곧 실제 컴포넌트가 쓰는 클래스다.
+const ROLE_TOKENS: RoleToken[] = [
+  { token: 'screen-title', usage: '페이지 최상위 제목 (h1)' },
+  { token: 'section-title', usage: '섹션 제목 (h2)' },
+  { token: 'subsection-title', usage: '소제목, 보통 text-muted-foreground와 함께' },
+  { token: 'micro', usage: '배지·단축키·카운트 같은 최소 라벨 (두께는 토큰에 없음)' },
+];
+
+function RoleTokensCatalog() {
+  return (
+    <div className="flex flex-col gap-4 p-4">
+      {ROLE_TOKENS.map(({ token, usage }) => (
+        <div key={token} className="flex items-baseline gap-4 border-b pb-4">
+          <code className="w-44 shrink-0 text-xs text-muted-foreground">--text-{token}</code>
+          <span
+            style={{
+              fontSize: `var(--text-${token})`,
+              lineHeight: `var(--text-${token}--line-height)`,
+              fontWeight: `var(--text-${token}--font-weight, 400)`,
+            }}
+          >
+            {usage}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const meta = {
   title: 'Shared/UI/Tokens/Design Tokens',
   tags: ['autodocs'],
@@ -236,4 +272,8 @@ export const Radius: Story = {
 
 export const Typography: Story = {
   render: () => <TypographyCatalog />,
+};
+
+export const RoleTokens: Story = {
+  render: () => <RoleTokensCatalog />,
 };
