@@ -1,4 +1,7 @@
 ### 2026-09-16 (FE)
+- CI 스택 내 PR 빌드 검증 프로세스 최적화 및 타이포 가시성 개선을 통한 개발 환경 안정성 강화 ([#111](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/111))
+
+### 2026-09-16 (FE)
 - 타이포그래피 역할 토큰 도입을 통한 디자인 시스템 기반 마련 및 12개 컴포넌트 스타일 리팩토링 ([#110](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/110))
 
 ### 2026-09-16 (FE)
