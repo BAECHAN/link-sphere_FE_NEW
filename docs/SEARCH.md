@@ -8,7 +8,7 @@
 > 각각 어떻게 그 값과 동기화되는지, `@카테고리`·`#닉네임` 태그가 어떻게 분해되는지 이해하고,
 > 검색 관련 동작(유지·초기화·오타 보정)을 어느 파일에서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-09-14
+> **마지막 검토**: 2026-09-17
 
 ## 1. 쉬운 설명
 
@@ -124,14 +124,15 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 데이터는 기존 `postKeys`(`post.keys.ts`)가 소유한다. 헤더 입력창의 로컬 state만 아래 훅이
 소유한다.
 
-| 상태                           | 소유자                                                                                                 | 비고                                                                                                 |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| 검색어 원본(`q`)               | URL `searchParams` (React Router)                                                                      | `@카테고리 #닉네임 키워드` 형태로 토큰이 섞여 들어간다                                               |
-| 헤더 입력값                    | [`useNavbarSearch.ts`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts)의 로컬 `useState`        | `pathname === '/post'`일 때만 `q`를 초기값·동기화 대상으로 삼는다                                    |
-| 필터 카드 낙관적 칩            | [`PostListSearch.tsx`](../src/widgets/post/post-list/ui/PostListSearch.tsx)의 `optimisticCategoryTags` | `flushSync`로 URL 반영 전에 즉시 활성화 표시                                                         |
-| 커밋 전 URL 쓰기 의도(pending) | [`useSearchParamsDraft.ts`](../src/shared/hooks/useSearchParamsDraft.ts)의 모듈 스코프 `pendingIntent` | 정지 구간 동안 `location.key` 기준으로 연속 조작을 이어붙임. 커밋되면(`location.key` 변경) 자동 폐기 |
-| 봇 글 숨기기                   | [`useHideBotsStore`](../src/shared/store/hideBots.store.ts) (zustand + localStorage)                   | 기기별 개인 설정이라 URL 대상 아님, "조건 N개" 카운트에서도 제외                                     |
-| 최근 검색어(모바일)            | [`useRecentSearches.ts`](../src/widgets/layout/navbar/hooks/useRecentSearches.ts) (localStorage)       | 데스크톱 제출은 이 훅을 호출하지 않음(§11 "남은 것")                                                 |
+| 상태                           | 소유자                                                                                                 | 비고                                                                                                                                                                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 검색어 원본(`q`)               | URL `searchParams` (React Router)                                                                      | `@카테고리 #닉네임 키워드` 형태로 토큰이 섞여 들어간다                                                                                                                                                                 |
+| 헤더 입력값                    | [`useNavbarSearch.ts`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts)의 로컬 `useState`        | `pathname === '/post'`일 때만 `q`를 초기값·동기화 대상으로 삼는다                                                                                                                                                      |
+| 필터 카드 낙관적 칩            | [`PostListSearch.tsx`](../src/widgets/post/post-list/ui/PostListSearch.tsx)의 `optimisticCategoryTags` | `flushSync`로 URL 반영 전에 즉시 활성화 표시                                                                                                                                                                           |
+| 커밋 전 URL 쓰기 의도(pending) | [`useSearchParamsDraft.ts`](../src/shared/hooks/useSearchParamsDraft.ts)의 모듈 스코프 `pendingIntent` | 정지 구간 동안 `location.key` 기준으로 연속 조작을 이어붙임. 커밋되면(`location.key` 변경) 자동 폐기                                                                                                                   |
+| 봇 글 숨기기                   | [`useHideBotsStore`](../src/shared/store/hideBots.store.ts) (zustand + localStorage)                   | 기기별 개인 설정이라 URL 대상 아님, "조건 N개" 카운트에서도 제외                                                                                                                                                       |
+| 최근 검색어(모바일)            | [`useRecentSearches.ts`](../src/widgets/layout/navbar/hooks/useRecentSearches.ts) (localStorage)       | 데스크톱 제출은 이 훅을 호출하지 않음(§11 "남은 것")                                                                                                                                                                   |
+| 모바일 검색 패널 열림          | `location.state.mobileSearchOpen`(React Router)                                                        | 구독자 3곳 — `Navbar`(패널 렌더), [`MobileCommentBar`](../src/features/comment/create/ui/MobileCommentBar.tsx)(같은 z층 겹침 숨김), [`AppLayout`](../src/app/layouts/app-layout/AppLayout.tsx)(배경 `main` inert 차단) |
 
 ## 7. 운영 파라미터
 
@@ -153,6 +154,8 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 | 초기화 버튼(필터+검색어 전체 리셋)            | [`PostListSearch.tsx:89-96`](../src/widgets/post/post-list/ui/PostListSearch.tsx#L89-L96) — `handleClearSearch`                                                                                        |
 | 오타 보정 문구                                | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx:52-56`](../src/widgets/post/post-list/ui/PostList.tsx#L52-L56)                                                                                    |
 | 모바일 검색 패널 열림 상태                    | [`Navbar.tsx:65-77`](../src/widgets/layout/navbar/ui/Navbar.tsx#L65-L77) — `location.state.mobileSearchOpen`                                                                                           |
+| 검색 중 하단 댓글바 숨김 동작 바꾸기          | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useHistoryOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                        |
+| 검색 중 배경 클릭·포커스 차단 범위 바꾸기     | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                      |
 
 ## 9. 검증 결과
 
@@ -193,6 +196,20 @@ URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 수정(mutate)하
 [`docs/DECISIONS.md`](./DECISIONS.md) "2026-09-14" 항목. 같은 필터를 정지 구간 안에서
 재클릭하면 취소되는 동작은 고치지 않았다 — 토글 버튼의 정상 동작으로 간주했다(같은 항목 참고).
 
+**포스트 상세 모바일에서 검색 패널 아래로 댓글 작성바가 그대로 비침 → z층 공유가 원인.**
+`RecentSearchPanel`(`fixed top-16 bottom-0`)과 `MobileCommentBar` 접힘 상태가 둘 다
+`z-panel`(40)이라, 검색을 열어도 댓글바가 DOM 순서(더 나중에 렌더)만으로 패널 위에 그대로
+남아 있었다. 탭바(`z-nav`=50)가 검색 중에도 보이는 건 `Navbar.tsx:228`이 명시한 의도된
+설계라 그대로 두고, 댓글바만 [`useHistoryOverlay('mobileSearchOpen')`](../src/shared/hooks/useHistoryOverlay.ts)로
+같은 열림 상태를 구독해 `hidden`(`display:none`)을 붙였다. 언마운트하지 않은 이유는
+이탈 가드([`useUnsavedChangesGuard.ts`](../src/shared/hooks/useUnsavedChangesGuard.ts))가
+`pathname`이 같은 이동은 통과시켜, 검색 열기가 그 가드를 우회하기 때문이다 — 언마운트하면
+작성 중이던 본문·첨부 이미지가 경고 없이 사라진다. 같은 김에 `RecentSearchPanel`에
+스크림·포커스 트랩이 없어 Tab 키로 배경 게시글·댓글에 포커스가 새는 문제도 함께 발견해,
+[`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx)의 `main`에 `inert`를 걸어
+막았다(React 18.2라 JSX `inert` prop 대신 ref로 DOM 프로퍼티를 직접 설정 —
+[facebook/react#24730](https://github.com/facebook/react/pull/24730)).
+
 ## 11. 남은 것
 
 - 데스크톱 헤더 검색 제출이 `addRecentSearch`를 호출하지 않아 최근 검색어를 기록하지
@@ -200,6 +217,17 @@ URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 수정(mutate)하
 - 데스크톱 제출(`navigate('/post?q=X')`)이 기존 `filter`(북마크/내글/비공개 칩) 파라미터를
   버린다.
 - 데스크톱 제출이 `replace` 없이 push해 history가 검색 횟수만큼 쌓인다.
+- `Navbar`가 `useHistoryOverlay`를 쓰지 않고 `location.state.mobileSearchOpen`을 인라인으로
+  직접 push/pop한다 — `MobileCommentBar`·`AppLayout`은 같은 키를 `useHistoryOverlay`로
+  구독하므로, 키 문자열이 두 코드 경로에 흩어진 상태다.
+- `Navbar.openMobileSearch`에 `preventScrollReset`이 없다 — `useHistoryOverlay`를 쓰는
+  다른 4개 오버레이(사이드바·로그인모달·마이페이지·이미지뷰어)와 달리 열 때 배경 스크롤이
+  최상단으로 튈 수 있다.
+- `/post` 목록에서 300px 이상 스크롤한 채 검색을 열면 `ScrollToTop` FAB(`z-nav`)이 같은
+  이유(z층 공유)로 패널 위에 그대로 뜬다. `main` 밖이라 이번 `inert` 차단으로도 안 가려진다.
+- `useIsMobile`의 판정 기준(`max-width:768px` + UA)이 Tailwind `md:`(`min-width:768px`)와
+  경계가 어긋나, iPad 등에서 `MobileCommentBar`가 마운트되지만 `md:hidden`으로 숨겨져
+  하단 댓글 입력 수단이 아예 사라진다.
 
 ## 12. 용어 사전
 
