@@ -102,12 +102,7 @@ export function PostCard({ post, isDetail = false, backSource }: PostCardProps) 
             onMouseEnter={handlePrefetchDetail}
             onFocus={handlePrefetchDetail}
           >
-            <h3
-              className={cn(
-                'font-bold leading-tight mb-0.5 text-sm md:text-lg',
-                !isDetail && 'line-clamp-3'
-              )}
-            >
+            <h3 className={cn('text-card-title md:text-t6 mb-0.5', !isDetail && 'line-clamp-3')}>
               {post.title}
             </h3>
           </Link>
@@ -192,6 +187,7 @@ export function PostCard({ post, isDetail = false, backSource }: PostCardProps) 
             >
               <div className="flex items-center gap-2">
                 <Lightbulb className="h-3 w-3 md:h-4 md:w-4 text-info" />
+                {/* eslint-disable-next-line custom-tailwind/no-raw-title -- 배지 라벨, 제목 아님 */}
                 <span className="text-xs font-semibold text-info">{TEXTS.post.card.aiSummary}</span>
               </div>
               {isAiSummaryExpanded ? (

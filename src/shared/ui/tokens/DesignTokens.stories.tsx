@@ -228,13 +228,15 @@ interface RoleToken {
 }
 
 // globals.css의 (static 아닌) @theme 역할 토큰 블록과 1:1 대응. 스케일 층(t1~t14)에서
-// 실제 화면 12곳에 쓰이는 값만 골라 이름 붙인 것 - TYPOGRAPHY_SCALE과 달리 매 항목이
+// 실제 화면에 쓰이는 값만 골라 이름 붙인 것 - TYPOGRAPHY_SCALE과 달리 매 항목이
 // 곧 실제 컴포넌트가 쓰는 클래스다.
 const ROLE_TOKENS: RoleToken[] = [
   { token: 'screen-title', usage: '페이지 최상위 제목 (h1)' },
-  { token: 'section-title', usage: '섹션 제목 (h2)' },
+  { token: 'section-title', usage: '섹션 제목 (h2), Dialog 제목' },
   { token: 'subsection-title', usage: '소제목, 보통 text-muted-foreground와 함께' },
   { token: 'micro', usage: '배지·단축키·카운트 같은 최소 라벨 (두께는 토큰에 없음)' },
+  { token: 'card-title', usage: '포스트 카드 제목 (md:text-t6과 조합해 반응형)' },
+  { token: 'group-label', usage: '목록 섹션 라벨 (폴더 그룹, 최근 검색 등)' },
 ];
 
 function RoleTokensCatalog() {

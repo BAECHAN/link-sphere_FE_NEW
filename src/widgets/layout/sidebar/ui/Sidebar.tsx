@@ -75,6 +75,7 @@ function SidebarHeader({ expanded, onToggle, showCloseIcon = false }: SidebarHea
         <span className="sr-only">{TEXTS.nav.toggleMenu}</span>
       </Button>
       {expanded && (
+        // eslint-disable-next-line custom-tailwind/no-raw-title -- 브랜드 워드마크, 제목 역할 토큰 대상 아님
         <Link to={ROUTES_PATHS.POST.ROOT} className="font-bold text-xl tracking-tight truncate">
           {TEXTS.nav.brand}
         </Link>

@@ -130,6 +130,7 @@ export function Navbar() {
                 <Menu className="size-6" />
                 <span className="sr-only">{TEXTS.nav.toggleMenu}</span>
               </Button>
+              {/* eslint-disable-next-line custom-tailwind/no-raw-title -- 브랜드 워드마크, 제목 역할 토큰 대상 아님 */}
               <Link to={ROUTES_PATHS.POST.ROOT} className="font-bold text-xl tracking-tight">
                 {TEXTS.nav.brand}
               </Link>

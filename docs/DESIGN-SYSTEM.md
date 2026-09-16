@@ -98,9 +98,10 @@ flowchart LR
         E1["no-raw-z-index"]
         E2["no-raw-color"]
         E3["no-classname-template-literal"]
+        E4["no-raw-title (신규)<br/>텍스트 크기+font-semibold/bold 조합"]
     end
     subgraph catalog ["4. 카탈로그 (Storybook)"]
-        S1["DesignTokens.stories.tsx<br/>Colors·Radius·ZIndex·Typography·RoleTokens"]
+        S1["DesignTokens.stories.tsx<br/>Colors·Radius·ZIndex·Typography·RoleTokens(6종)"]
     end
     subgraph a11y ["5. 접근성 (Storybook + Vitest, 신규)"]
         AX1[".storybook/vitest.setup.ts<br/>+ addon-a11y annotations"]
@@ -235,6 +236,38 @@ PR #108·#110·#111 머지 후 신선한 `main` 기준):
 - `pnpm type-check`/`pnpm lint`/`pnpm test`(unit, 380개, `texts.test.ts` 톤 검사
   포함) 전부 통과
 
+2026-09-16 실측 (제목+두께 조합 ESLint 룰 도입 + 역할 토큰 2종 추가, 같은
+워크트리 안 브랜치 `worktree-title-weight-tokens`, PR #108·#110·#111·#112·
+#113·#114·#115 머지 후 신선한 `main` 기준):
+
+- `git grep`으로 `origin/main` 기준 "text-{크기} font-{semibold|bold}" 조합
+  22곳 전수 조사(당초 계획의 "26곳"은 이미 정리된 12곳을 포함한 이전 실측치 —
+  재조사 결과 22곳으로 확인) — 브랜드 워드마크 4·공용 UI 프리미티브 1·포스트
+  제목 1·그룹 라벨 5·콘텐츠 메타데이터 2·배지 2·마크다운 헤딩 4·Storybook 3
+  로 분류
+- Artifact 미리보기(https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12)로 시각
+  변경이 있는 4개 그룹(Dialog 제목·포스트 카드 제목·폴더 그룹 라벨 4곳·최근
+  검색 라벨)을 사용자에게 보여주고 전체 반영 승인받음
+- `custom-tailwind/no-raw-title` 룰 추가 직후 `pnpm lint` 1차 실행에서 계획에
+  없던 `ErrorLayout.tsx:20`(에러 페이지 60px 타이틀)이 추가로 걸림 — 기존
+  역할 토큰 어느 것과도 안 맞고 Artifact 승인 범위 밖이라 이번엔 예외 주석만
+  달고 별도 라운드로 미룸(§11 참고)
+- `pnpm type-check`/`pnpm lint`(신설 `no-raw-title` 포함 0위반)/`pnpm test`
+  (380개)/`pnpm test:storybook`(151개)/`pnpm format:check`/`pnpm check:docs`/
+  `pnpm build` 전부 통과
+- 브라우저 검증(테스트 계정 `tester_new_999`, 실제 화면):
+  - Dialog: 폴더 삭제 확인창에서 `.text-section-title` 요소를 직접 조회해
+    18px/24px/600 확인(이전 leading-none 18px/18px에서 줄간격만 넓어짐)
+  - 포스트 카드 제목: `/post` 데스크톱(1280px)에서 18px/24px/700, 모바일(390px)
+    에서 14px/19px/700 확인 — `md:text-t6` 반응형 전환이 실제로 동작함
+  - 폴더 그룹 라벨: `/bookmark` 사이드바(FolderTree)의 "내 폴더" 라벨에서
+    12px/16px/600 확인. `BookmarkFolderSelectModal.tsx`는 같은
+    `text-group-label` 토큰을 쓰므로 별도 실측 없이 동일 계산값으로 간주 —
+    실제로 열어 확인하지는 않았다
+  - 최근 검색 라벨: `/post`에서 검색 토글 → "최근 검색" 라벨에서 12px/16px/600
+    확인(원래 14px에서 실제로 줄어듦)
+  - 녹화: `.claude/browser-artifacts/verify-2026-09-16-title-weight-tokens.webm`
+
 ## 10. 시행착오
 
 **Tailwind 스캐너가 CSS/JS 주석·마크다운 문서도 전부 텍스트로 훑는다.** `globals.css`에
@@ -356,6 +389,23 @@ Storybook a11y 게이트가 실측한 4개 토큰의 라이트 모드 대비 미
   호버 불일치 버그. 전부 발견됐지만 이번 배치(화면 무변경)에서 의도적으로 제외했다.
 - **shadcn 커스텀 레지스트리**: 다른 프로젝트로 토큰·컴포넌트를 이식하는 실제
   인프라는 이번에 만들지 않았다 — §5의 "재사용성" 구분만 남겨뒀다.
+
+### 제목+두께 조합 ESLint 룰 (2026-09-16)
+
+`text-{크기} font-{semibold|bold}` 조합을 잡는 `custom-tailwind/no-raw-title`
+룰을 도입하고, 실측된 22곳 중 시각 변경이 필요한 4개 그룹(Dialog 제목·포스트
+카드 제목·폴더 그룹 라벨 4곳·최근 검색 라벨)을 새 역할 토큰(`text-card-title`/
+`text-group-label`)으로 전환했다(Artifact 승인,
+https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12). 나머지 15곳(브랜드
+워드마크·배지·마크다운 헤딩·외부 링크 메타데이터)은 제목이 아니라는 이유를
+남긴 `eslint-disable-next-line` 예외 주석으로 처리했다.
+
+- **`ErrorLayout.tsx:20`의 60px 에러 페이지 타이틀**: 룰 도입 직후 처음 걸린
+  곳인데, 계획했던 22곳 조사(당시 `text-4xl`까지만 스캔)에 없던 사각지대였다 —
+  기존 6개 역할 토큰 어디에도 안 맞고(가장 큰 screen-title도 20px), SEED
+  스케일의 t13/t14(40px/48px, "sm 이상 권장" 대형 제목용)와도 정확히 안
+  맞아 이번 Artifact 승인 범위 밖이다. 지금은 예외 주석만 달아뒀다 — 대형
+  디스플레이 타이틀 역할 토큰이 필요한지는 별도 라운드에서 판단한다.
 
 ## 12. 용어 사전
 
