@@ -49,7 +49,7 @@ md:hidden fixed bottom-0 inset-x-0 z-50 h-16 pb-[env(safe-area-inset-bottom)]
 }
 ```
 
-하단에 탭바보다 높은 고정 UI(예: 확장형 입력바)를 추가하면, 그 UI가 떠 있는 동안만 이 변수를 늘리고 언마운트 시 되돌린다. 선례: `MobileCommentBar.tsx`(ResizeObserver로 실측 높이만큼 조정).
+하단에 탭바보다 높은 고정 UI(예: 확장형 입력바)를 추가하면, 그 UI가 떠 있는 동안만 이 변수를 늘리고 숨김/언마운트 시 되돌린다. 선례: `MobileCommentBar.tsx`(ResizeObserver로 실측 높이만큼 조정, CSS로 숨기는 동안엔 가드절로 기본값을 되돌림 — `offsetHeight`가 0이 되어 어긋나는 것을 막는다).
 
 ### 모바일 선례 파일
 
