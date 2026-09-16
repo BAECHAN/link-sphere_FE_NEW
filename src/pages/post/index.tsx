@@ -12,7 +12,7 @@ export function Post() {
   return (
     <div className="w-full space-y-4 md:space-y-6">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl md:text-2xl font-bold">Recent Links</h1>
+        <h1 className="text-screen-title">Recent Links</h1>
         <Button
           size="sm"
           className="md:h-10"

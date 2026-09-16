@@ -26,7 +26,7 @@ export function LikePostButton({ postId, isLiked, likeCount }: LikePostButtonPro
       variant="ghost"
       size="sm"
       className={cn(
-        'gap-1 md:gap-1.5 h-6 md:h-8 px-2 md:px-3 text-[10px] md:text-sm rounded-full hover:bg-background/80',
+        'gap-1 md:gap-1.5 h-6 md:h-8 px-2 md:px-3 text-micro md:text-sm rounded-full hover:bg-background/80',
         isLiked && 'text-destructive hover:text-destructive/80'
       )}
       onClick={handleLike}

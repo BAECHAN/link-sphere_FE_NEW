@@ -69,12 +69,35 @@ Storybook `Shared/UI/Tokens/Design Tokens` 스토리의 `ZIndex`에서 8단계�
 
 ### 타이포그래피 토큰
 
-**스케일 층만 있다 (2026-09-16 추가) — 역할 층·화면 치환은 아직.** 값은 당근마켓
+**스케일 층 + 역할 층 (2026-09-16 추가).** 스케일 값은 당근마켓
 [SEED Typography](https://seed-design.io/foundations/typography)의 `$font-size.t1`~`t14`
-/ `$line-height.t1`~`t14`를 그대로 옮겼다. 아직 어떤 컴포넌트도 `text-t*`를 쓰지 않는다 —
-역할 토큰(`--text-screen-title` 등)이 나오면 이 표에 이어서 추가된다. 진행 상황은
+/ `$line-height.t1`~`t14`를 그대로 옮겼다. 새 컴포넌트는 스케일(`text-t*`)을 직접 쓰지
+말고 아래 **역할 토큰**을 우선 고려한다 — 역할에 맞는 게 없을 때만 스케일을 직접 쓴다.
+전체 배경·결정 과정은
 [`docs/plans/2026-09-16-typography-tokens-a11y-gate.md`](../../../docs/plans/2026-09-16-typography-tokens-a11y-gate.md)
 참고.
+
+#### 역할 토큰 (우선 사용)
+
+| 토큰                    | 크기·줄높이·두께        | 용도                                        | 대상 예시                                                                                     |
+| ----------------------- | ----------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `text-screen-title`     | t7 (20/27) · semibold   | 페이지 최상위 제목 (h1)                     | `MyCommentPage.tsx`, `BookmarkPage.tsx`, `pages/post/index.tsx`                               |
+| `text-section-title`    | t6 (18/24) · semibold   | 섹션 제목 (h2)                              | `CommentList.tsx`                                                                             |
+| `text-subsection-title` | t4 (14/19) · semibold   | 소제목, 보통 `text-muted-foreground`와 함께 | `MobileFolderList.tsx`                                                                        |
+| `text-micro`            | t1 (11/15), 두께 미지정 | 배지·단축키·카운트 같은 최소 라벨           | `NavbarSearch.tsx`(Kbd), `CommentItem.tsx`(배지), `LikePostButton.tsx`/`PostCard.tsx`(카운트) |
+
+`text-micro`만 두께를 토큰에 묶지 않는다 — 호출부 4곳의 기존 두께가 제각각(Kbd는
+`font-medium`, 나머지는 미지정 상속)이라 하나로 합치면 그중 승인받지 않은 화면 변화가
+생긴다. 나머지 세 토큰은 두께까지 포함하므로 별도로 `font-semibold`/`font-bold`를
+같이 쓰지 않는다 — `no-raw-text-size` ESLint 룰이 이 4개 토큰이 있는 요소에 남은
+`text-[Npx]` 임의값만 잡고, 이미 뺀 `font-*` 중복까지 잡지는 않는다.
+
+`--text-screen-title`은 두께를 semibold로 통일했다 — 기존 5곳 중 4곳이 이미
+semibold였고, `pages/post/index.tsx`만 유일하게 `font-bold` + 데스크톱에서 더 커지는
+반응형(`md:text-2xl`)이었다. 이 한 곳만 다른 4곳과 같은 고정 크기·두께로 맞춰
+화면이 실제로 바뀌었다(Artifact 미리보기로 사용자 승인, 2026-09-16).
+
+#### 스케일 층 (t1~t14, 역할이 안 맞을 때만)
 
 | 토큰       | 크기             | 줄 높이          | 비고         |
 | ---------- | ---------------- | ---------------- | ------------ |
@@ -93,9 +116,10 @@ Storybook `Shared/UI/Tokens/Design Tokens` 스토리의 `ZIndex`에서 8단계�
 | `text-t13` | 2.5rem (40px)    | 3.25rem (52px)   | sm 이상 권장 |
 | `text-t14` | 3rem (48px)      | 3.75rem (60px)   | sm 이상 권장 |
 
-폰트 두께는 별도 토큰 없음 — SEED medium(500)/bold(700)이 Tailwind 기본
-`font-medium`/`font-bold`와 값이 같다. Storybook `Shared/UI/Tokens/Design Tokens`
-스토리의 `Typography`에서 14단계를 시각적으로 확인할 수 있다.
+폰트 두께는 스케일 층 자체엔 별도 토큰 없음 — SEED medium(500)/bold(700)이 Tailwind
+기본 `font-medium`/`font-bold`와 값이 같다. Storybook `Shared/UI/Tokens/Design Tokens`
+스토리의 `Typography`에서 스케일 14단계를 시각적으로 확인할 수 있다(역할 토큰은 아직
+별도 카탈로그 없음 — 실제 사용처 4파일에서 확인).
 
 ### 인터랙션 커서
 
