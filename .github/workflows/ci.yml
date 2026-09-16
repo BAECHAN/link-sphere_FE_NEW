@@ -7,8 +7,13 @@ name: CI
 # 폐기된 레이어를 한 달 넘게 정본처럼 서술하고 있던 걸 사람이 우연히 발견하기 전까진 아무도
 # 몰랐다(2026-09-07, docs/CI-CHECK-GATE.md 참고).
 on:
+  # base 브랜치 필터를 두지 않는다 - 예전엔 branches: ['main']이라 PR의 base가
+  # main이 아닌 스택 PR(다른 PR 브랜치를 base로 하는 PR)에서 이 워크플로 자체가
+  # 트리거되지 않았다. 실제로 PR #109(타이포그래피 역할 토큰)가 PR #108의 브랜치를
+  # base로 열려 있는 동안 자동 CI가 0건이었고 workflow_dispatch로 수동 확인해야
+  # 했다(2026-09-16 실측). "docs/plans 불변성 확인" 스텝은
+  # 이미 github.base_ref를 동적으로 참조하므로 이 필터 제거로 영향받지 않는다.
   pull_request:
-    branches: ['main']
   workflow_dispatch:
 
 concurrency:
@@ -60,6 +65,12 @@ jobs:
 
       - name: Check docs
         run: pnpm check:docs
+
+      - name: Build
+        # globals.css의 @theme 토큰이 실제 CSS로 정상 생성되는지 머지 전에 확인한다.
+        # 지금까지는 이 확인을 로컬에서 pnpm build 후 dist CSS를 수동 grep하는
+        # 방식으로만 해왔다(docs/DESIGN-SYSTEM.md §9 참고) - CI 게이트가 없었다.
+        run: pnpm build
 
   e2e:
     runs-on: ubuntu-latest
