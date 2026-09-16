@@ -42,8 +42,9 @@ export const NavbarSearch = () => {
         <Button
           type="button"
           variant="ghost"
+          size="icon-sm"
           aria-label={TEXTS.ariaLabels.inputClear}
-          className="absolute right-2 top-2.5 h-auto w-auto p-0 hover:bg-transparent"
+          className="absolute right-1 top-1/2 -translate-y-1/2"
           onClick={() => setSearchInput('')}
         >
           <XIcon className="size-4 text-muted-foreground" />
