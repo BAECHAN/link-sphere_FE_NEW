@@ -1,5 +1,6 @@
 import { XIcon } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
+import { EmptyState } from '@/shared/ui/elements/EmptyState';
 import { TEXTS } from '@/shared/config/texts';
 
 interface RecentSearchPanelProps {
@@ -33,9 +34,7 @@ export function RecentSearchPanel({
         </div>
 
         {recentSearches.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            {TEXTS.recentSearch.empty}
-          </p>
+          <EmptyState className="px-4 text-sm">{TEXTS.recentSearch.empty}</EmptyState>
         ) : (
           <ul>
             {recentSearches.map((query) => (

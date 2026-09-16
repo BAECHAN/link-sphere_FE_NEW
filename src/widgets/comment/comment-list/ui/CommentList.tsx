@@ -8,6 +8,7 @@ import { CommentItem } from '@/widgets/comment/comment-list/ui/CommentItem';
 import { Comment as PostComment } from '@/entities/comment/model/comment.schema';
 import { useSuspenseComments } from '@/entities/comment/api/comment.queries';
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
+import { EmptyState } from '@/shared/ui/elements/EmptyState';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { TEXTS } from '@/shared/config/texts';
 
@@ -100,9 +101,7 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
               />
             ))
           ) : (
-            <div className="text-center py-12 text-muted-foreground text-sm">
-              {TEXTS.comment.list.empty}
-            </div>
+            <EmptyState className="text-sm">{TEXTS.comment.list.empty}</EmptyState>
           )}
         </div>
 
