@@ -126,7 +126,12 @@ export function Navbar() {
             </div>
           ) : (
             <div className="flex md:hidden items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={openSidebar}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative -left-1.5"
+                onClick={openSidebar}
+              >
                 <Menu className="size-6" />
                 <span className="sr-only">{TEXTS.nav.toggleMenu}</span>
               </Button>
