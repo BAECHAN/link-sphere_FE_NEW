@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- `shared` 타이포그래피 스케일 토큰(`--text-t1`~`--text-t14`) 신설
+  <details><summary>배경·구현</summary>
+
+  당근마켓 SEED 디자인 시스템 기준으로 디자인 시스템 현황을 실측 비교한 결과, 색상·radius·z-index 토큰(`docs/DESIGN-SYSTEM.md`, 2026-09-13)은 이미 있지만 타이포그래피 축만 토큰이 0개였다. `text-sm`·`text-xs` 두 클래스가 전체 텍스트 크기 사용의 81%(134회 중 108회)를 차지하면서도 페이지 제목(h1)이 `text-xl font-semibold`/`text-xl md:text-2xl font-bold` 두 가지로 갈리는 등 불일치가 실측됐다. [SEED Typography](https://seed-design.io/foundations/typography)의 `$font-size.t1`~`t14`/`$line-height.t1`~`t14` 값을 [Tailwind v4 `--text-*--line-height` 문법](https://tailwindcss.com/docs/font-size)으로 그대로 옮겨 스케일 층만 추가했다 — 이번 PR은 화면에 아무 영향이 없다(어떤 컴포넌트도 아직 `t1`~`t14`를 참조하지 않음). 역할 토큰(`--text-screen-title` 등)과 실제 화면 치환은 미리보기 승인 후 별도 PR로 진행한다.
+  (`src/app/globals.css`, `src/shared/ui/tokens/DesignTokens.stories.tsx`, `docs/plans/2026-09-16-typography-tokens-a11y-gate.md`)
+
+  </details>
+
 ### Changed
 
 - `post` `/post` 목록 요소 간 세로 간격 축소

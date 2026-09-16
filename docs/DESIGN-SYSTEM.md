@@ -5,11 +5,12 @@
 > **대상 독자**: 이 레포 FE의 스타일링 작업을 하는 개발자, 새 컴포넌트를 스타일링할 때
 > 참고할 AI 세션.
 >
-> **읽고 나면**: 색상·반경·z-index 토큰이 어디 정의돼 있고 어떻게 확장하는지, ESLint가
-> 어떤 Tailwind className 규칙을 강제하는지, Storybook 토큰 카탈로그를 어떻게 보는지
-> 안다. spacing·타이포 토큰은 아직 없다는 것과 왜 없는지도 안다.
+> **읽고 나면**: 색상·반경·z-index·타이포그래피 스케일 토큰이 어디 정의돼 있고 어떻게
+> 확장하는지, ESLint가 어떤 Tailwind className 규칙을 강제하는지, Storybook 토큰
+> 카탈로그를 어떻게 보는지 안다. 타이포그래피는 스케일 층(`t1`~`t14`)만 있고 역할
+> 층·실제 화면 치환은 아직이라는 것, spacing 토큰은 왜 없는지도 안다.
 >
-> **마지막 검토**: 2026-09-13
+> **마지막 검토**: 2026-09-16
 
 ## 1. 쉬운 설명
 
@@ -112,10 +113,11 @@ import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있
 이 기능은 Zustand 스토어나 React Query 키를 도입하지 않는다 — 상태는 CSS 커스텀
 프로퍼티뿐이다. 새로 추가된 두 네임스페이스:
 
-| 네임스페이스                                                | 정의 위치                                                          | 정본                                                                             |
-| ----------------------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| `--z-index-*` (8개)                                         | `src/app/globals.css`의 `@theme static` 블록                       | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "z-index 토큰" |
-| `--destructive-foreground`, `--scrim`, `--scrim-foreground` | `src/app/globals.css`의 `:root` (테마 무관, `.dark`에 재정의 없음) | 위와 동일 문서 "주요 색상 토큰" 표                                               |
+| 네임스페이스                                                | 정의 위치                                                          | 정본                                                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `--z-index-*` (8개)                                         | `src/app/globals.css`의 `@theme static` 블록                       | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "z-index 토큰"      |
+| `--destructive-foreground`, `--scrim`, `--scrim-foreground` | `src/app/globals.css`의 `:root` (테마 무관, `.dark`에 재정의 없음) | 위와 동일 문서 "주요 색상 토큰" 표                                                    |
+| `--text-t1`~`--text-t14` (스케일 층, 2026-09-16 추가)       | `src/app/globals.css`의 두 번째 `@theme static` 블록               | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "타이포그래피 토큰" |
 
 전체 39개 색상 값 자체는 옮겨적지 않는다 — `globals.css`가 SSOT다.
 
@@ -165,7 +167,13 @@ CSS에 그 클래스가 다시 나타났다. Tailwind v4는 JIT 스캐너가 프
 
 ## 11. 남은 것
 
-- **spacing·타이포 토큰 미도입**: Tailwind v4의 `--spacing`은 `gap-2`·`p-4`·`h-9`·
+- **타이포그래피 역할 층 + 화면 치환 (진행 중)**: 2026-09-16
+  `docs/plans/2026-09-16-typography-tokens-a11y-gate.md`에서 스케일 층(`--text-t1`~
+  `--text-t14`, SEED 값 그대로)을 화면 무변경으로 먼저 추가했다. 역할 토큰
+  (`--text-screen-title` 등)과 h1/h2/`text-[10px]` 12곳 치환은 Artifact 미리보기로
+  사용자 승인을 받은 뒤 별도 PR로 진행한다 — line-height가 Tailwind 기본값과 달라
+  일부 텍스트의 실제 렌더링이 바뀌기 때문이다.
+- **spacing 토큰 미도입**: Tailwind v4의 `--spacing`은 `gap-2`·`p-4`·`h-9`·
   `size-4`가 전부 파생되는 단일 배수 변수다. 이 축에 진짜 "허용값만 남기는" 잠금을
   걸려면 `--spacing: initial`이 필요한데, 그러면 591개 className 대부분이 무너진다.
   이번 라운드는 이 레버를 당기지 않았다 — spacing 일관성은 컴포넌트 소유권(예:
@@ -190,7 +198,9 @@ CSS에 그 클래스가 다시 나타났다. Tailwind v4는 JIT 스캐너가 프
 ## 13. 관련 문서
 
 - [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) — 색상·반경·
-  z-index·커서·다크모드·폰트 토큰의 정본 표
+  z-index·타이포그래피·커서·다크모드·폰트 토큰의 정본 표
 - [`docs/DECISIONS.md`](DECISIONS.md) 2026-09-13 항목 — 죽은 `tailwind.config.ts`
   삭제 배경
+- [`docs/plans/2026-09-16-typography-tokens-a11y-gate.md`](plans/2026-09-16-typography-tokens-a11y-gate.md)
+  — 타이포그래피 역할 층·화면 치환·a11y CI 게이트 전체 계획
 - [`docs/FE-ARCHITECTURE.md`](FE-ARCHITECTURE.md) — FSD 레이어 규칙, `cn()`/cva 패턴
