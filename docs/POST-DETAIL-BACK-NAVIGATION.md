@@ -8,7 +8,7 @@
 > 라벨("목록으로"/"뒤로가기")이 유입 경로에 따라 어떻게 정해지는지 알고, 새 유입 경로를
 > 추가하거나 버튼의 노출·동작을 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-09-14
+> **마지막 검토**: 2026-09-19
 
 게시글 상세(`/post/:id`)에서 돌아가는 수단은 화면 크기에 따라 아예 다릅니다 — 데스크톱은
 버튼이 있고, 모바일은 버튼이 없는 대신 하단 탭바를 씁니다. 버튼이 있을 때도 라벨은
@@ -165,6 +165,14 @@ sticky를 걷어내는 과정 자체의 시행착오(0/12/16/24px 후보 비교,
   노트에서 이미 명시).
 - `backSource`가 없는 유입 경로(북마크·내 댓글 등)는 전부 중립 라벨 "뒤로가기"로
   뭉뚱그려져 있다 — 특정 경로에 전용 라벨을 붙이고 싶으면 §8 레시피를 따른다.
+- **2026-09-19 추가**: `PostList`·`BookmarkPostList`가 가상 스크롤로 바뀌면서, 여기 적힌
+  "`navigate(-1)` / `<ScrollRestoration/>`이 위치 복원" 흐름 자체는 그대로지만 그 밑에
+  보조 계층이 하나 생겼다 — 가상화된 목록은 문서 높이가 추정치라 `<ScrollRestoration/>`의
+  `window.scrollTo`가 실제 위치에 못 미칠 수 있어, `shared/lib/virtual/virtual-snapshot.ts`가
+  `location.key` 단위로 TanStack Virtual의 측정값 스냅샷을 sessionStorage에 저장·복원해
+  첫 렌더부터 정확한 문서 높이를 만든다. `useGoBack`·`<ScrollRestoration/>` 자체는
+  무변경. 근거는 [`docs/DECISIONS.md`](./DECISIONS.md)의 "2026-09-19" 항목,
+  [`docs/plans/2026-09-19-virtualize-post-list.md`](./plans/2026-09-19-virtualize-post-list.md) 참고.
 
 ## 12. 용어 사전
 

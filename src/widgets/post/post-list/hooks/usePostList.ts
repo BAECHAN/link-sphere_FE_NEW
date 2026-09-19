@@ -1,10 +1,26 @@
+import { useEffect, useLayoutEffect } from 'react';
 import { useSearchParamsDraft } from '@/shared/hooks/useSearchParamsDraft';
 import { useSuspenseFetchPostListQuery } from '@/entities/post/api/post.queries';
 import { parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
-import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
+import { useWindowGridVirtualizer } from '@/shared/hooks/useWindowGridVirtualizer';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
+import { Post } from '@/entities/post/model/post.schema';
+import {
+  POST_GRID_COLUMNS,
+  POST_GRID_ROW_GAP,
+  POST_GRID_ROW_HEIGHT_ESTIMATE,
+} from '@/widgets/post/post-list/config/post-grid.const';
 
 const HIDE_BOTS_FILTER = 'excludeBots';
+
+// 3열 기준 옛 IntersectionObserver rootMargin(3000px)과 체감이 비슷하도록 잡은 값
+// (3000px ÷ 행 높이+간격 약 670px ≈ 4.5행)
+const PREFETCH_ROW_LOOKAHEAD = 5;
+const DEFAULT_ROW_HEIGHT = 600;
+
+function getPostId(post: Post): string {
+  return post.id;
+}
 
 /**
  * URL의 검색 파라미터(q, filter)와 이를 제어하는 액션들을 관리하는 훅
@@ -92,28 +108,51 @@ export const usePostList = () => {
       filter: combinedFilter,
     });
 
-  const ref = useIntersectionObserver({
-    onIntersect: () => {
-      if (hasNextPage && !isFetchingNextPage) {
-        fetchNextPage();
-      }
-    },
-    enabled: hasNextPage && !isFetchingNextPage,
-    rootMargin: '0px 0px 3000px 0px',
-  });
+  const posts = data.posts;
+  const correctedSearch = data.pages[0]?.correctedSearch;
 
-  const posts = data?.pages.flatMap((page) => page.content) || [];
-  const correctedSearch = data?.pages[0]?.correctedSearch;
+  const { containerRef, virtualizer, rows, columnCount, remeasureScrollMargin } =
+    useWindowGridVirtualizer({
+      listId: 'post-feed',
+      items: posts,
+      getItemId: getPostId,
+      columnBreakpoints: POST_GRID_COLUMNS,
+      gapBreakpoints: POST_GRID_ROW_GAP,
+      estimateRowHeight: (count) => POST_GRID_ROW_HEIGHT_ESTIMATE[count] ?? DEFAULT_ROW_HEIGHT,
+    });
+
+  // correctedSearch 안내 문구가 나타나거나 사라지면 컨테이너의 문서 상단 기준 위치가
+  // 바뀌므로 scrollMargin을 다시 잰다 (pull-to-refresh 인디케이터처럼 매 프레임 바뀌는
+  // 값은 여기 deps에 넣지 않는다 - 훅 내부에서 마운트·리사이즈 시에만 자동 재측정한다)
+  useLayoutEffect(() => {
+    remeasureScrollMargin();
+  }, [correctedSearch, remeasureScrollMargin]);
+
+  const lastVirtualRowIndex = virtualizer.getVirtualItems().at(-1)?.index;
+
+  useEffect(() => {
+    if (lastVirtualRowIndex === undefined) {
+      return;
+    }
+    if (
+      lastVirtualRowIndex >= rows.length - PREFETCH_ROW_LOOKAHEAD &&
+      hasNextPage &&
+      !isFetchingNextPage
+    ) {
+      fetchNextPage();
+    }
+  }, [lastVirtualRowIndex, rows.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return {
     posts,
     correctedSearch,
-    fetchNextPage,
-    hasNextPage,
     isFetchingNextPage,
     refetch,
     isRefetching,
-    observerRef: ref,
+    containerRef,
+    virtualizer,
+    rows,
+    columnCount,
     currentFilter,
     ...params,
   };

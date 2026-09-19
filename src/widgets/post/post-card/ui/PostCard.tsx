@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Post } from '@/entities/post/model/post.schema';
 import { Card, CardContent, CardFooter, CardHeader } from '@/shared/ui/atoms/card';
 import { Badge } from '@/shared/ui/atoms/badge';
@@ -42,7 +43,11 @@ interface PostCardProps {
   backSource?: 'feed' | 'bookmark';
 }
 
-export function PostCard({ post, isDetail = false, backSource }: PostCardProps) {
+export const PostCard = memo(function PostCard({
+  post,
+  isDetail = false,
+  backSource,
+}: PostCardProps) {
   const { author } = post;
 
   const {
@@ -305,4 +310,4 @@ export function PostCard({ post, isDetail = false, backSource }: PostCardProps) 
       </CardFooter>
     </Card>
   );
-}
+});

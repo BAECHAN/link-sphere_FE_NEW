@@ -6,6 +6,69 @@
 
 ---
 
+## 2026-09-19 — 피드·북마크 목록 가상 스크롤: lanes 대신 행 청크, content-visibility 대신 라이브러리
+
+**배경**
+
+공유받은 Threads 글(@2weekhun)의 "무한스크롤은 네트워크 요청만 나눌 뿐 DOM 개수를 줄이는
+건 별개 문제"라는 주장을 실측으로 검증했다. 프로덕션(`dbw3brui6htwk.cloudfront.net`)에서
+Playwright로 직접 잰 값: 게시글 195개 전부 로드 시 DOM 14,330노드(Lighthouse "오류" 기준
+1,400개의 10배), 강제 레이아웃 재계산 30.2ms(60fps 예산 16.7ms의 1.8배), 모바일에서 실제
+화면에 보이는 카드는 195장 중 2장. 게시글이 하루 평균 3.7개씩 늘고 있어(최근 100건
+`createdAt` 집계) 약 7개월 뒤 1,000개(Threads 글이 인용한 개선 사례의 기준선)에
+도달한다. 스크롤 프레임 자체는 지금도 60fps를 유지해(p95 16.8ms) 당장 체감 지연은
+없지만, 미리 준비하기로 사용자가 결정했다.
+
+**검토**
+
+- **`content-visibility: auto`만 적용** — 기각. 같은 페이지에 런타임으로 주입해 A/B
+  측정한 결과 레이아웃 재계산 30.2ms→4.0ms로 개선됐지만, `contain-intrinsic-size`가
+  실제 카드 높이 대신 추정 높이를 부여해 문서 높이가 32,801px→41,142px로 25% 틀어지는
+  부작용을 실측했다. 195개 규모에서는 유효한 대안이지만 1,000개 규모에서는 가상화만큼
+  근본적이지 않고, 나중에 다시 가상화를 얹으면 `measureElement`의 ResizeObserver가 이
+  가짜 높이를 측정해 캐시가 오염된다 — 그래서 가상화와 병행하지 않는다.
+- **TanStack Virtual `lanes` 옵션으로 다열 그리드 구현** — 기각. API 문서 원문
+  ["Items are assigned to the lane with the shortest total size"](https://tanstack.com/virtual/latest/docs/api/virtualizer)
+  대로 메이슨리(들쭉날쭉) 배치가 되어, 지금의 "같은 행 카드는 항상 같은 높이"인 정렬
+  그리드와 시각적으로 달라진다. 대신 게시글을 열 수만큼 행으로 청크하고 행 단위로
+  가상화(`lanes: 1`)하되, 행 안쪽은 기존과 동일한 CSS Grid를 그대로 써서 화면을 픽셀
+  단위로 유지했다 — 라이브러리 소스 확인 결과 `lanes===1` 경로가 `lanes>1` 경로보다
+  내부 계산도 더 싸다.
+- **`react-window`/`react-virtuoso` 등 다른 가상화 라이브러리** — 검토했으나
+  `@tanstack/react-virtual`로 확정. 이미 `@tanstack/react-query`·`@tanstack/react-table`을
+  쓰고 있어 같은 생태계이고, 이 앱의 구조(별도 스크롤 컨테이너 없이 `window` 자체를
+  스크롤하는 구조)에 필요한 `useWindowVirtualizer`를 공식 지원한다.
+- **가상화 후 Ctrl+F(브라우저 페이지 내 검색)로 화면 밖 글을 못 찾게 되는 트레이드오프**
+  — 사용자가 명시적으로 수용("검색 기능을 쓰는 사람이 많고, 직접 찾는 사람은 적을 것").
+  가상화의 근본적인 대가라 우회할 방법이 없다.
+
+**결정**
+
+`@tanstack/react-virtual`의 `useWindowVirtualizer`를 채택하고, 공용 훅
+`shared/hooks/useWindowGridVirtualizer.ts`로 `PostList`·`BookmarkPostList` 둘 다에서
+재사용한다. 스크롤 위치 복원은 라이브러리가 공식 문서화한 패턴을 그대로 따른다 — 원문:
+["Useful for restoring scroll position after navigation: persist the result of
+`takeSnapshot()` (plus the current `scrollOffset`) in your route state, then pass them
+back as `initialMeasurementsCache` and `initialOffset`"](https://tanstack.com/virtual/latest/docs/api/virtualizer).
+`location.key`(React Router의 `<ScrollRestoration/>`이 스크롤 위치를 저장하는 것과 동일한
+단위) 기준으로 sessionStorage에 스냅샷을 저장·복원하며, `useGoBack`과
+`<ScrollRestoration/>` 자체는 손대지 않는다.
+
+**범위 밖 (보고만)**
+
+- `MyCommentList`는 가상화하지 않는다. `MyCommentCard`는 노드 수가 적고(~10개) 이미지가
+  없어 195개 전부 렌더해도 무해하고, "내가 쓴 글을 찾는" 화면 목적상 Ctrl+F를 유지하는
+  쪽이 낫다고 판단했다.
+
+**상태**
+
+코드 구현·정적 검증(`type-check`/`lint`/`format`/유닛테스트 403개/e2e 45개)까지 완료.
+로컬에 BE가 없어 실제 데이터로 스크롤 복원 등 브라우저 상호작용 검증은 하지 못했다 —
+배포 후 재확인이 필요하다. 상세 계획은
+[`docs/plans/2026-09-19-virtualize-post-list.md`](./plans/2026-09-19-virtualize-post-list.md) 참고.
+
+---
+
 ## 2026-09-17 — T1 오버레이 배경 스크롤 잠금: 커스텀 훅 대신 react-remove-scroll 재사용
 
 **배경**

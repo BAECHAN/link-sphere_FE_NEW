@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { usePostList } from '@/widgets/post/post-list/hooks/usePostList';
 import { PostListSkeleton } from '@/widgets/post/post-list/ui/PostCardSkeleton';
+import { POST_GRID_CLASS } from '@/widgets/post/post-list/config/post-grid.const';
 
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
@@ -34,11 +35,12 @@ function PostListContent() {
   const {
     posts,
     correctedSearch,
-    hasNextPage,
     isFetchingNextPage,
-    observerRef,
     refetch,
     isRefetching,
+    containerRef,
+    virtualizer,
+    rows,
   } = usePostList();
   const { pullDistance, isPulling, isReady } = usePullToRefresh({ onRefresh: refetch });
 
@@ -51,6 +53,7 @@ function PostListContent() {
   }
 
   const indicatorHeight = isRefetching ? PULL_INDICATOR_HEIGHT : pullDistance;
+  const scrollMargin = virtualizer.options.scrollMargin;
 
   return (
     <div>
@@ -83,15 +86,39 @@ function PostListContent() {
         )}
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-        {posts.map((post) => (
-          <PostCard key={post.id} post={post} backSource="feed" />
-        ))}
+      <div ref={containerRef} style={{ position: 'relative', height: virtualizer.getTotalSize() }}>
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const rowPosts = rows[virtualRow.index];
+          if (!rowPosts) {
+            return null;
+          }
+
+          return (
+            <div
+              key={virtualRow.key}
+              data-index={virtualRow.index}
+              ref={virtualizer.measureElement}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+              }}
+            >
+              <div className={POST_GRID_CLASS}>
+                {rowPosts.map((post) => (
+                  <PostCard key={post.id} post={post} backSource="feed" />
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {hasNextPage && (
-        <div ref={observerRef} className="flex justify-center p-4 mt-6">
-          {isFetchingNextPage && <Loader2 className="size-6 animate-spin text-muted-foreground" />}
+      {isFetchingNextPage && (
+        <div className="flex justify-center p-4 mt-6">
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
       )}
     </div>
