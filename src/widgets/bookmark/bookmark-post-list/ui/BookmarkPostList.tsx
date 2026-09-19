@@ -9,6 +9,7 @@ import { cn } from '@/shared/lib/tailwind/utils';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import { EmptyState } from '@/shared/ui/elements/EmptyState';
 import { useBookmarkPostList } from '@/widgets/bookmark/bookmark-post-list/hooks/useBookmarkPostList';
+import { BOOKMARK_GRID_CLASS } from '@/widgets/bookmark/bookmark-post-list/config/bookmark-grid.const';
 
 interface BookmarkPostListProps {
   folderKey: BookmarkFolderKey;
@@ -18,7 +19,7 @@ interface BookmarkPostListProps {
 }
 
 export function BookmarkPostList({ folderKey, sort, search, className }: BookmarkPostListProps) {
-  const { posts, correctedSearch, isLoading, hasNextPage, isFetchingNextPage, observerRef } =
+  const { posts, correctedSearch, isLoading, isFetchingNextPage, containerRef, virtualizer, rows } =
     useBookmarkPostList(folderKey, sort, search);
 
   if (isLoading) {
@@ -43,6 +44,8 @@ export function BookmarkPostList({ folderKey, sort, search, className }: Bookmar
     );
   }
 
+  const scrollMargin = virtualizer.options.scrollMargin;
+
   return (
     <div className={cn('space-y-6', className)}>
       {correctedSearch && (
@@ -51,15 +54,39 @@ export function BookmarkPostList({ folderKey, sort, search, className }: Bookmar
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
-        {posts.map((post) => (
-          <PostCard key={post.id} post={post} backSource="bookmark" />
-        ))}
+      <div ref={containerRef} style={{ position: 'relative', height: virtualizer.getTotalSize() }}>
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const rowPosts = rows[virtualRow.index];
+          if (!rowPosts) {
+            return null;
+          }
+
+          return (
+            <div
+              key={virtualRow.key}
+              data-index={virtualRow.index}
+              ref={virtualizer.measureElement}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+              }}
+            >
+              <div className={BOOKMARK_GRID_CLASS}>
+                {rowPosts.map((post) => (
+                  <PostCard key={post.id} post={post} backSource="bookmark" />
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {hasNextPage && (
-        <div ref={observerRef} className="flex justify-center p-4">
-          {isFetchingNextPage && <Loader2 className="size-6 animate-spin text-muted-foreground" />}
+      {isFetchingNextPage && (
+        <div className="flex justify-center p-4">
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
       )}
     </div>

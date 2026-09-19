@@ -34,4 +34,12 @@ const STORAGE_KEYS = {
 // 청크 리로드 재시도 플래그는 경로별로 1회만 허용하므로 pathname을 키에 포함
 const chunkReloadKey = (pathname: string) => `${STORAGE_PREFIX}:chunk-reload:${pathname}`;
 
-export { STORAGE_KEYS, chunkReloadKey };
+// 가상화 리스트의 스크롤 측정값 스냅샷은 리스트(listId)별·히스토리 엔트리(locationKey)별로
+// 따로 저장해야 서로 다른 화면·왕복이 섞이지 않는다
+const virtualListSnapshotKey = (listId: string, locationKey: string) =>
+  `${STORAGE_PREFIX}:vlist:${listId}:${locationKey}`;
+
+// 위 스냅샷들이 세션 내내 쌓이지 않도록 최근 N개만 남기기 위한 기록(삽입 순서) 키
+const VIRTUAL_SNAPSHOT_INDEX_KEY = `${STORAGE_PREFIX}:vlist:__index__`;
+
+export { STORAGE_KEYS, chunkReloadKey, virtualListSnapshotKey, VIRTUAL_SNAPSHOT_INDEX_KEY };

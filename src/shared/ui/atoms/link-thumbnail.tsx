@@ -48,6 +48,8 @@ export function LinkThumbnail({ src, alt, className }: LinkThumbnailProps) {
           src={httpsSrc}
           alt={alt}
           className={cn('object-cover w-full h-full', className)}
+          loading="lazy"
+          decoding="async"
           // 우리 도메인이 Referer로 노출되면 핫링크 차단으로 403을 주는 CDN이 있다(네이버
           // blogthumb 등). Referer를 아예 보내지 않으면 정상 응답한다.
           referrerPolicy="no-referrer"
