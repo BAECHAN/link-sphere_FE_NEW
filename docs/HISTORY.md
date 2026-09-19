@@ -1,3 +1,6 @@
+### 2026-09-19 (FE)
+- 피드 및 북마크 목록에 가상 스크롤(Virtual Scrolling)을 도입하여 대량의 데이터 렌더링 성능 최적화
+
 ### 2026-09-16 (FE)
 - 모바일 오버레이 활성화 시 배경 스크롤 방지 기능 구현 ([#125](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/125))
 
