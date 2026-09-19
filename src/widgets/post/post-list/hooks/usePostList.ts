@@ -146,7 +146,6 @@ export const usePostList = () => {
   return {
     posts,
     correctedSearch,
-    hasNextPage,
     isFetchingNextPage,
     refetch,
     isRefetching,
