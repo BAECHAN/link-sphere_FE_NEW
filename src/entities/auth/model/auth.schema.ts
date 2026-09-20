@@ -21,10 +21,6 @@ export const loginSchema = z.object({
   password: passwordValidationSchema,
 });
 
-export const loginResponseSchema = z.object({
-  accessToken: z.string(),
-});
-
 export const createAccountSchema = z.object({
   nickname: nicknameValidationSchema,
   email: emailValidationSchema,
@@ -34,5 +30,7 @@ export const createAccountSchema = z.object({
 // ==================== 2. DTO ====================
 
 export type Login = z.infer<typeof loginSchema>;
-export type LoginResponse = z.infer<typeof loginResponseSchema>;
 export type CreateAccount = z.infer<typeof createAccountSchema>;
+
+// 기존 import 경로 호환 — auth.api.ts 등이 이 경로에서 응답 타입을 가져간다.
+export type { LoginResponse } from '@/entities/auth/model/auth.dto';
