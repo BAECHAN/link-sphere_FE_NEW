@@ -1,0 +1,32 @@
+name: OpenAPI Drift Check
+
+# 커밋된 src/shared/api/generated/openapi.json 이 운영 BE 스펙과 여전히 같은지 매일
+# 확인해 GitHub 이슈에 보고한다. ci.yml의 드리프트 게이트는 네트워크 없이 "커밋된
+# json → ts 재생성이 일치하는가"만 보므로, "커밋된 json 자체가 아직 운영과 같은가"는
+# 이 cron이 담당한다. BE 배포 시점과 무관한 FE PR을 오탐으로 빨갛게 만들지 않으려고
+# PR 게이트가 아니라 별도 워크플로로 분리했다 — 자세한 배경은
+# scripts/check-openapi-drift.js 상단 주석 참고. doc-drift-check.yml과 동일하게 이
+# 워크플로는 레포에 쓰기 작업을 하지 않는다.
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: 운영 BE 스펙과 커밋된 스냅샷 대조
+        run: node scripts/check-openapi-drift.js
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -15,6 +15,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { normalizeOpenApiSpec } from './lib/openapi-spec.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -43,24 +44,6 @@ function resolveBaseUrl(source) {
   throw new Error(`알 수 없는 --from 값: ${source} (local|prod 만 지원)`);
 }
 
-/** 객체 키를 재귀적으로 정렬해 출처(local/prod)와 무관하게 동일 바이트가 나오게 한다. */
-function sortKeysDeep(value) {
-  if (Array.isArray(value)) {
-    return value.map(sortKeysDeep);
-  }
-
-  if (value && typeof value === 'object') {
-    return Object.keys(value)
-      .sort()
-      .reduce((sorted, key) => {
-        sorted[key] = sortKeysDeep(value[key]);
-        return sorted;
-      }, {});
-  }
-
-  return value;
-}
-
 async function main() {
   const baseUrl = resolveBaseUrl(from);
   const specUrl = `${baseUrl.replace(/\/$/, '')}/v3/api-docs`;
@@ -74,11 +57,7 @@ async function main() {
   }
 
   const spec = await response.json();
-
-  // servers 는 요청 오리진에 따라 매번 달라지는 환경 정보라 스냅샷에서 제외한다.
-  delete spec.servers;
-
-  const normalized = sortKeysDeep(spec);
+  const normalized = normalizeOpenApiSpec(spec);
 
   fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
   fs.writeFileSync(OUTPUT_PATH, `${JSON.stringify(normalized, null, 2)}\n`);
