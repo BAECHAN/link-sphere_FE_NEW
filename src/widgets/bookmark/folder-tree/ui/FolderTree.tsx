@@ -39,8 +39,15 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
 
   return (
     <aside className={cn('flex flex-col gap-1 overflow-hidden py-2', className)}>
-      {/* 전체·미분류·최근 저장한 폴더 — 목록이 아무리 길어져도 스크롤되지 않고 상단 고정 */}
-      <div className="flex shrink-0 flex-col gap-1">
+      {/* 전체·미분류·최근 저장한 폴더 — 목록이 아무리 길어져도 스크롤되지 않고 상단 고정.
+          아래 스크롤 영역과 짝으로 scrollbar-gutter:stable을 둔다(2026-09-21) — 이 블록엔
+          스크롤바가 안 붙지만, classic 스크롤바(마우스 연결 macOS·Windows) 환경에서 아래
+          블록에만 스크롤바가 붙으면 그쪽 콘텐츠 폭만 좁아져 개수 숫자가 어긋난다. MDN:
+          "When using classic scrollbars, the gutter will be present if overflow is auto,
+          scroll, or hidden" — overflow-hidden에도 거터가 생겨 양쪽 폭이 맞는다. 오버레이
+          스크롤바 환경(트랙패드 macOS)에선 거터가 안 생겨 원래도 문제없었다(docs/BOOKMARK.md
+          §10 참고). */}
+      <div className="flex shrink-0 flex-col gap-1 overflow-hidden [scrollbar-gutter:stable]">
         <FixedItem
           icon={<FolderIcon className="h-4 w-4" />}
           label={TEXTS.bookmark.folder.all}
@@ -99,8 +106,10 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
 
       {/* 내 폴더 — 위 "최근 저장한 폴더"와 겹치더라도 그대로 중복 표시한다. 폴더가 많아 패널
           높이를 넘으면 이 구획만 자체 스크롤한다(2026-09-21, docs/BOOKMARK.md §10 참고 —
-          전에는 페이지 전체를 끝까지 내려야 아랫부분이 보였다). */}
-      <div className="min-h-0 flex-1 overflow-y-auto">
+          전에는 페이지 전체를 끝까지 내려야 아랫부분이 보였다). scrollbar-gutter:stable은
+          위 고정 블록과 짝 — 둘 다 있어야 스크롤바 유무와 무관하게 콘텐츠 폭이 같아진다
+          (2026-09-21, docs/BOOKMARK.md §10). */}
+      <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
         <div className="flex flex-col gap-1">
           {isLoading ? (
             <DelayedFallback className="flex items-center justify-center py-4">
