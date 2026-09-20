@@ -42,6 +42,11 @@
   (`src/widgets/post/post-list/utils/search-parser.ts`, `src/widgets/post/post-list/utils/search-parser.test.ts`, `src/widgets/post/post-list/ui/PostListSearch.tsx`, `docs/SEARCH.md`, `docs/plans/2026-09-21-search-tag-boundary.md`(신규), [PR #159](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/159))
 
   </details>
+- `shared` 다크모드에서 필터 칩 등 ghost 버튼 9곳에 호버하면 의도한 색이 아니라 회색으로 덮이던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  2026-09-14(PR #85)에 "필터 칩은 호버해도 색이 안 변한다"로 확정된 디자인이 다크모드에서만 지켜지지 않고 있었다. 당시 방식은 호출부(`PostListSearch.tsx`)의 `activeClassName`에 `hover:bg-X hover:text-X-foreground`를 넣어 `Button`의 ghost variant가 주는 호버 클래스를 twMerge로 덮어쓰는 것이었는데, ghost의 `dark:hover:bg-accent/50`은 modifier 그룹이 달라(`dark:hover:` vs `hover:`) twMerge가 지우지 못하고 그대로 남는다(tailwind-merge로 직접 확인). CSS 특이성도 `@custom-variant dark (&:is(.dark *))`가 만드는 `:is(.dark *)` 때문에 다크 쪽이 이겨서, 다크모드 활성 칩이 호버 시 흰 배경(`--primary`)에서 회색(`accent/50`)으로 덮이고 글자(`--primary-foreground`, 검정)와 거의 구분이 안 됐다. 같은 구조의 버그를 가진 ghost 버튼 8곳(`FolderTree` 칩, `PostCard` AI 요약 토글·댓글 수 버튼, `BookmarkFolderSelectModal` 삭제 행, `LikePostButton`, `CommentForm` 프리뷰 토글, `RecentSearchPanel`, `UserAvatar`)도 함께 조사해 고쳤다. 덮어쓰기로 지우는 대신 호버 스타일이 애초에 없는 `none` variant를 `button.tsx`에 추가해 9곳 전부 해소했다 — 호출부의 중복 hover 클래스는 삭제하고, `FilterChip`·`FolderTree` 비선택 분기처럼 호버 배경의 출처가 ghost뿐이던 곳만 `hover:bg-accent`/`hover:text-foreground`를 명시로 보완했다. 라이트 모드 렌더링은 대부분 변하지 않으며, `BookmarkFolderSelectModal`·`FolderTree` 선택된 칩은 호버 시 의도한 색(빨강/흰 글자)을 되찾는 부수 개선이 있었다.
+  (`src/shared/ui/atoms/button.tsx`, `src/shared/ui/atoms/button.stories.tsx`, `src/shared/ui/elements/FilterChip.tsx`, `src/widgets/post/post-list/ui/PostListSearch.tsx`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/widgets/post/post-card/ui/PostCard.tsx`, `src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `src/features/post/like/ui/LikePostButton.tsx`, `src/features/comment/create/ui/CommentForm.tsx`, `src/widgets/layout/navbar/ui/RecentSearchPanel.tsx`, `src/entities/user/ui/UserAvatar.tsx`, `docs/DESIGN-SYSTEM.md`, [PR #157](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/157))
 
 - `bookmark` 데스크톱 사이드바에서 스크롤바 폭 때문에 "내 폴더" 개수 숫자가 밀려 보이던 문제 수정
   <details><summary>배경·구현</summary>

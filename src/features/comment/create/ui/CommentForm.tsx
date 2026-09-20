@@ -136,9 +136,9 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
         <div className="rounded-md border bg-muted/30 p-3 text-sm">
           <Button
             type="button"
-            variant="ghost"
+            variant="none"
             size="sm"
-            className="h-auto min-h-0 w-full justify-between gap-1 p-0 text-xs text-muted-foreground mb-1.5 hover:bg-transparent"
+            className="h-auto min-h-0 w-full justify-between gap-1 p-0 text-xs text-muted-foreground mb-1.5 hover:text-foreground"
             aria-label={
               showPreview ? TEXTS.comment.form.hidePreview : TEXTS.comment.form.showPreview
             }

@@ -23,7 +23,7 @@ export function LikePostButton({ postId, isLiked, likeCount }: LikePostButtonPro
 
   return (
     <Button
-      variant="ghost"
+      variant="none"
       size="sm"
       className={cn(
         'gap-1 md:gap-1.5 h-6 md:h-8 px-2 md:px-3 text-micro md:text-sm rounded-full hover:bg-background/80',

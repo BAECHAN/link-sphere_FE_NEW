@@ -241,7 +241,7 @@ export function BookmarkFolderSelectModal({
                 <li>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="none"
                     onClick={dangerAction.onClick}
                     disabled={isAnyPending}
                     className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 border-t"
