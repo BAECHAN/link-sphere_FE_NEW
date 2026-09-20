@@ -804,15 +804,21 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 - **에러**: 전역 에러 핸들러가 자동으로 트리거
 - **성공**: `meta.successMessage` 추가 시 자동 트리거
 
+`meta.successMessage`는 **정적 문자열만** 받는다(`mutationSuccessHandler`,
+`queryClient.ts`). `variables`에 따라 문구가 갈리는 경우(예:
+`useUpdatePostVisibilityMutation`의 공개/비공개 방향)는 그 mutation의
+`onSuccess(data, variables)`에서 `toast.success`를 직접 부르고 `successMessage`는
+비워 둔다 — 둘 다 넣으면 두 번 뜬다.
+
 ---
 
 ## 15. Mutation/Query Meta 옵션
 
-| 키                    | 타입      | 효과                                                    |
-| --------------------- | --------- | ------------------------------------------------------- |
-| `successMessage`      | `string`  | 자동으로 성공 토스트 표시                               |
-| `errorMessage`        | `string`  | 기본 대신 커스텀 에러 토스트 표시                       |
-| `manualErrorHandling` | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용) |
+| 키                    | 타입      | 효과                                                                 |
+| --------------------- | --------- | -------------------------------------------------------------------- |
+| `successMessage`      | `string`  | 자동으로 성공 토스트 표시 (정적 문자열만 — 분기 필요 시 위 §14 예외) |
+| `errorMessage`        | `string`  | 기본 대신 커스텀 에러 토스트 표시                                    |
+| `manualErrorHandling` | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용)              |
 
 ---
 

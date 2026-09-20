@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- `post` 게시물 공개/비공개 전환 시 방향별 성공 토스트 표시
+  <details><summary>배경·구현</summary>
+
+  나만 보기 토글은 성공해도 아무 피드백이 없었다 — 실패 시에만 에러 토스트가 떴다. 시각적 피드백은 카드 우상단 자물쇠 아이콘 하나뿐인데 렌더 조건이 `isOwner && post.isPrivate`라 공개로 전환하면 아이콘이 아예 사라지고, 낙관적 업데이트도 없어 재조회가 끝나야 반영되며 주 진입점인 드롭다운은 그 전에 닫힌다 — "토글은 아이콘 전환으로 즉시 보인다"는 기존 전제가 이 케이스엔 맞지 않았다. 방향별 문구(`postSetToPrivate`/`postSetToPublic`)를 추가하고, `meta.successMessage`가 정적 문자열만 지원해 분기가 불가능한 점과 목록이 가상 스크롤(`PostList`, `BookmarkPostList`)이라 위젯 훅의 `mutate(vars, { onSuccess })`는 카드가 화면 밖으로 스크롤되면 언마운트로 스킵될 수 있는 점을 근거로, entities mutation의 `onSuccess(data, variables)`에서 직접 `toast.success`를 호출했다.
+  (`src/entities/post/api/post.queries.ts`, `src/shared/config/texts.ts`, `src/entities/post/api/post.queries.test.ts`, `e2e/post-visibility.spec.ts`, `.claude/skills/texts-conventions/SKILL.md`, `docs/FE-ARCHITECTURE.md`, `docs/TESTING.md`, `docs/plans/2026-09-21-post-visibility-toast.md`(신규))
+
+  </details>
+
 ### Fixed
 
 - `bookmark` 사이드바·모바일 그리드의 최근 저장한 폴더가 저장 후 새로고침 전까지 갱신 안 되던 문제 수정
