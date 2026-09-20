@@ -1,4 +1,7 @@
 ### 2026-09-20 (FE)
+- 카드 UI 레이아웃 최적화: 제목과 액션 아이콘 간 간섭을 방지하여 텍스트 가독성 향상 ([#150](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/150))
+
+### 2026-09-20 (FE)
 - 공개범위 토글 기능에 따른 상태별 성공 토스트 메시지 알림 로직 구현 ([#149](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/149))
 
 ### 2026-09-20 (FE)
