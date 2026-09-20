@@ -18,6 +18,9 @@ const ForbiddenPage = lazy(() =>
 const ServerErrorPage = lazy(() =>
   import('@/pages/500/ServerErrorPage').then((module) => ({ default: module.ServerErrorPage }))
 );
+const VersionPage = lazy(() =>
+  import('@/pages/version/VersionPage').then((module) => ({ default: module.VersionPage }))
+);
 const Post = lazy(() => import('@/pages/post').then((module) => ({ default: module.Post })));
 const PostSubmitPage = lazy(() =>
   import('@/pages/post/PostSubmitPage').then((module) => ({ default: module.PostSubmitPage }))
@@ -150,6 +153,11 @@ export const appRoutes: RouteObject[] = [
             element: withSuspense(SignUpPage),
           },
         ],
+      },
+      // 배포 반영 확인 - AppShellLayout의 인증 복원 스피너에 발목 잡히지 않도록 직속에 둔다
+      {
+        path: ROUTES_PATHS.VERSION,
+        element: withSuspense(VersionPage),
       },
       // 403 Forbidden
       {

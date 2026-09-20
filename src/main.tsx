@@ -4,6 +4,7 @@ import '@/app/globals.css';
 import { ThemeProvider } from '@/app/providers/ThemeProvider';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BUILD_INFO } from '@/shared/config/build-info';
 import { STORAGE_KEYS, chunkReloadKey } from '@/shared/config/storage-keys';
 
 // Vite 동적 청크 로드 실패 처리 (새 배포 후 구 청크 hash 불일치)
@@ -15,6 +16,9 @@ window.addEventListener('vite:preload-error', () => {
     window.location.reload();
   }
 });
+
+// F12만 열어도 지금 실행 중인 빌드를 바로 알 수 있게 - 상세 비교는 /version 참고
+console.info(`[BUILD] ${BUILD_INFO.sha.slice(0, 7)} (${BUILD_INFO.ref}) — /version`);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
