@@ -37,6 +37,14 @@
 
   </details>
 
+- `bookmark` 사이드바 "내 폴더" 라벨을 상단 고정, "새 폴더 만들기"를 하단에서 상단으로 이동
+  <details><summary>배경·구현</summary>
+
+  "내 폴더" 라벨이 스크롤 영역 안에 있어 스크롤하면 폴더 행과 함께 밀려 올라갔고, "새 폴더 만들기"는 하단에 있어 폴더가 많으면 끝까지 스크롤해야 눌렀다. 폴더 선택 모달(`BookmarkFolderSelectModal.tsx`)이 2026-09-11에 이미 같은 고민을 하고 "새 폴더 만들기"를 헤더 바로 아래(상단)에 두기로 결정했는데("생성 발견성 최상" 근거, 하단 안은 모바일 파괴 액션 엄지 노출 때문에 기각), 사이드바 스크롤을 만들 때는 이 구조만 가져오고 정확한 위치는 따로 비교하지 않은 채 하단으로 뒀었다. Shopify Polaris 디자인 시스템도 스크롤되는 긴 목록에서는 add 액션을 헤더에 두라고 권고해([근거](https://github.com/Shopify/polaris-react/pull/11796/files)) 상단으로 재배치했다. "내 폴더" 라벨도 상단 고정 블록으로 옮기고 스크롤 영역엔 폴더 행만 남겼다.
+  (`src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`)
+
+  </details>
+
 - `infra` doc-drift 트래킹 이슈 하트비트 댓글 제거, 본문을 상태 대시보드로 재구성
   <details><summary>배경·구현</summary>
 
