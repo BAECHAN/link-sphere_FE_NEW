@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `shared` framer-motion을 CSS transition으로 교체해 번들 크기 감소
+  <details><summary>배경·구현</summary>
+
+  framer-motion 사용처가 `ScrollToTop`·`ScrollToCommentFormButton`·`PostList`(pull-to-refresh 인디케이터) 3곳뿐인데, 번들 실측 결과(`dist/stats.html`) 앱 코드 다음으로 큰 덩어리(gzip 122KB, motion-dom 포함)를 차지하고 있었다. 세 곳 모두 fade+scale+slide 또는 height 애니메이션으로 CSS만으로 표현 가능해 라이브러리 전체를 제거했다. `AnimatePresence`의 exit 애니메이션은 `isVisible`이 꺼진 뒤에도 전환(200ms)이 끝날 때까지 DOM에 남겨두는 `shouldRender` 상태로 대체했고, opacity/scale(0.8)/translate-y(20px) 값은 기존과 동일하게 맞췄다. Storybook으로 등장/퇴장/클릭 스크롤을 검증했다(`pnpm dev`의 실제 앱 페이지는 이 작업과 무관한 기존 Firebase 설정 오류로 렌더되지 않아 격리 검증으로 대체).
+  (`src/shared/ui/elements/ScrollToTop.tsx`, `src/features/comment/create/ui/ScrollToCommentFormButton.tsx`, `src/widgets/post/post-list/ui/PostList.tsx`, `package.json`, [PR #143](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/143))
+
+  </details>
+
 ### Fixed
 
 - `shared` 토큰 갱신 재시도에 상한을 두어 무한 루프 가능성 제거
