@@ -771,6 +771,65 @@ verification` skill)은 수행하지 못했다 — 대신 mock 네트워크 기�
 영향 파일: `shared/ui/atoms/dropdown-menu.tsx`, `shared/ui/atoms/dropdown-menu.stories.tsx`,
 `e2e/bookmark-folder-menu-press-drag.spec.ts`(신규).
 
+### 스크롤바가 먹은 폭 때문에 "내 폴더" 숫자가 한쪽만 밀리던 문제
+
+위 두 항목(2026-09-21, 2026-09-22)에서 사이드바를 상단 고정 블록 + "내 폴더" 자체
+스크롤 영역으로 나눈 뒤, classic 스크롤바(마우스를 연결한 macOS·Windows) 환경에서
+새 증상이 나왔다 — 스크롤바는 아래 목록 블록에만 붙는데, 그 컨테이너의 콘텐츠 폭만
+스크롤바 폭(≈15px)만큼 좁아져 폴더 개수 숫자의 오른쪽 끝이 위쪽 "최근 저장한 폴더"
+숫자보다 왼쪽으로 밀렸다. 트랙패드만 쓰는 macOS는 오버레이 스크롤바라 폭을 안 먹어
+증상이 없었다 — 실사용 스크린샷(마우스 연결 환경)으로 처음 발견됐다.
+
+세 가지 안을 실제 Tailwind 클래스·`globals.css` 토큰을 그대로 쓴 정적 목업으로 나란히
+비교했다(§9 원칙, https://claude.ai/artifact/WPhA6X2W2UbLQDC5MTtpzb):
+
+1. **단일 스크롤 컨테이너 + sticky 헤더** — `aside` 전체를 하나의 스크롤 컨테이너로
+   합치고 상단 블록을 `sticky top-0`으로 붙인다. 정렬이 구조적으로 보장되지만
+   2026-09-21/09-22에 확정한 "상단 고정 블록 + 별도 스크롤 영역" 구조 자체를 다시
+   바꾸는 안이라 기각했다.
+2. **양쪽에 `scrollbar-gutter: stable`** (채택) — 구조는 그대로 두고 두 블록 모두
+   스크롤바 자리를 미리 예약한다.
+3. **스크롤 영역의 스크롤바를 숨김** — 아래 숫자가 위 라인으로 올라가 요청받은 방향과
+   일치하지만, 폴더가 더 있다는 시각적 신호가 사라져 기각했다.
+
+채택한 2번의 근거는 MDN이다:
+
+> _"When using classic scrollbars, the gutter will be present if `overflow` is `auto`,
+> `scroll`, or `hidden` even if the box is not overflowing. When using overlay
+> scrollbars, the gutter will not be present."_
+>
+> — MDN, [scrollbar-gutter](https://developer.mozilla.org/en-US/docs/Web/CSS/scrollbar-gutter)
+
+즉 스크롤바가 없는 상단 블록도 `overflow-hidden` + `scrollbar-gutter: stable`만
+있으면 거터가 잡혀 아래 블록과 폭이 같아지고, 오버레이 스크롤바 환경에서는 애초에
+양쪽 다 거터가 안 생겨 지금처럼 문제가 없다. Baseline 2024(2024-12)라 Safari 18.1
+이하에서는 속성이 무시돼 지금과 동일한 상태로 남는다(새 퇴행이 아니다).
+
+이 안은 스크롤이 없을 때도 사이드바 오른쪽에 ~15px 여백이 상시 생기는 대가가
+있다 — 미리보기로 확인한 뒤 감수하기로 했다.
+
+수정: `FolderTree.tsx`의 상단 고정 블록과 "내 폴더" 스크롤 영역 두 곳에
+`[scrollbar-gutter:stable]`을 추가했다. 상단 블록에는 `overflow-hidden`도 함께
+추가했다 — 원래도 `aside` 자체가 `overflow-hidden`이라 시각적 변화는 없다.
+
+기존 보관함 e2e 5개(`e2e/bookmark-folder-delete.spec.ts`,
+`e2e/bookmark-folder-menu-press-drag.spec.ts`, `e2e/bookmark.spec.ts`,
+`e2e/bookmark.mobile.spec.ts`)로 무회귀를 확인했다. 이 정렬 자체를 재현하는 신규
+e2e는 추가하지 않았다 — 재현하려면 스크롤을 유발할 폴더 30개 이상의 새 픽스처·새
+mock 라우트에 더해, Playwright 기본 headless Chromium이 켜는 `--hide-scrollbars`
+(스크롤바 폭을 0으로 만들어 이 버그 자체가 안 나타난다)를 이 스펙 파일에서만 해제
+하는 비표준 launchOptions까지 새로 들여야 한다 — 크래시·데이터 손실이 아닌 순수
+CSS 정렬 버그 하나에 들이기엔 과한 인프라라고 판단했다.
+
+이 조사 중 스크롤바와는 무관한 별개 정렬 차이를 하나 더 발견했다 — `미분류`
+(`FixedItem`)의 카운트는 폴더 행(`FolderItem`)의 카운트보다 이미 36px 오른쪽에
+있다. `FolderItem`의 카운트 오른쪽에 ⋮ 메뉴 버튼(`size-9`=36px)이 항상 자리를
+차지하기 때문이다 — 2026-09-11에 "⋮ 메뉴는 카운트와 자리를 공유하지 않는다"고
+의도적으로 정한 것(위 "⋮ 메뉴를 누른 채…" 항목 이전, `FolderTree.tsx`의 `FolderItem`
+주석 참고)이라 이번 수정 범위에 넣지 않았다.
+
+영향 파일: `widgets/bookmark/folder-tree/ui/FolderTree.tsx`.
+
 ## 11. 남은 것
 
 - `북마크 제거` 행의 되돌리기는 삭제 전 소속이 0~1개일 때만 제공된다(§5). 소속이
