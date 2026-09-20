@@ -186,8 +186,17 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
 }
 
 function CreateFolderCard() {
-  const { creating, startCreating, name, setName, isPending, submit, handleKeyDown, handleBlur } =
-    useCreateFolderCard();
+  const {
+    creating,
+    startCreating,
+    name,
+    setName,
+    isPending,
+    submit,
+    handleCancel,
+    handleKeyDown,
+    handleBlur,
+  } = useCreateFolderCard();
 
   if (creating) {
     return (
@@ -203,13 +212,36 @@ function CreateFolderCard() {
           disabled={isPending}
           className="h-8"
         />
-        <Button size="sm" onClick={submit} disabled={!name.trim() || isPending} className="h-7">
-          {isPending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            TEXTS.bookmark.folder.createSubmit
-          )}
-        </Button>
+        {/* 버튼을 가로로 나열한다 — 세로 스택은 카드 높이가 늘어 grid row 전체가
+            커지고 옆 FolderCard까지 함께 늘어난다 */}
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 flex-1"
+            // 입력이 빈 상태로 취소를 누르면 mousedown이 blur를 먼저 발생시켜 폼이
+            // 언마운트되고 click이 유실된다(handleBlur가 !name && !isPending일 때
+            // setCreating(false)를 호출). 포커스 이동 자체를 막아 이 경합을 없앤다.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleCancel}
+            disabled={isPending}
+          >
+            {TEXTS.buttons.cancel}
+          </Button>
+          <Button
+            size="sm"
+            onClick={submit}
+            disabled={!name.trim() || isPending}
+            className="h-7 flex-1"
+          >
+            {isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              TEXTS.bookmark.folder.createSubmit
+            )}
+          </Button>
+        </div>
       </div>
     );
   }

@@ -110,6 +110,17 @@ describe('useCreateFolderCard', () => {
     expect(result.current.creating).toBe(false);
   });
 
+  it('취소하면 creating이 닫히고 입력이 비워진다', () => {
+    const { result } = renderHook(() => useCreateFolderCard(), { wrapper: Wrapper });
+
+    act(() => result.current.startCreating());
+    act(() => result.current.setName('쓰다 만 이름'));
+    act(() => result.current.handleCancel());
+
+    expect(result.current.creating).toBe(false);
+    expect(result.current.name).toBe('');
+  });
+
   it('생성에 성공하면 creating이 접힌다', async () => {
     server.use(
       http.post(url(API_ENDPOINTS.bookmark.folders), () =>
