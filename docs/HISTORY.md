@@ -1,3 +1,6 @@
+### 2026-09-20 (FE)
+- 유닛 테스트 내 nprogress 모킹 적용을 통해 배포 CI 환경의 간헐적 테스트 실패 이슈 해결 ([#138](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/138))
+
 ### 2026-09-20 (BE)
 - OpenAPI 스펙 생성 시 Kotlin의 nullable 타입이 정확히 반영되도록 컨버터 설정 추가 ([#19](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/19))
 
