@@ -1,4 +1,7 @@
 ### 2026-09-20 (FE)
+- 배포 버전 확인을 위한 `/version` 페이지 신설 및 CI 배포 자동 검증 파이프라인 구축 ([#134](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/134))
+
+### 2026-09-20 (FE)
 - 다크모드 상태 관리 최적화 및 `next-themes` 동기화 이슈 해결
 
 ### 2026-09-20 (FE)
