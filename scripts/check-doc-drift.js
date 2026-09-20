@@ -11,9 +11,12 @@
 //
 // 기준 미달(누적<5)일 때는 이슈 본문의 대시보드(진행도·마지막 확인 커밋·갱신 시각)만
 // 갱신하고 댓글은 달지 않는다 — 그 상태는 console.log로 Actions run 로그에도 남는다.
-// 실제 검사가 도는 경량 감사 때만 결과를 댓글로 남기고, 통과해도 항상 남긴다(2026-09-21
-// — push마다 달던 "확인함 — 누적 N/5" 하트비트 댓글이 트래킹 이슈 댓글의 84%를 차지해
-// 최신 상태를 보려면 매번 끝까지 스크롤해야 하던 문제를 고치며 이렇게 정리했다).
+// 실제 검사가 도는 경량 감사 때도 문제(check:docs 실패 또는 dangling 발견)가 있을 때만
+// 댓글을 남기고, 통과하면 댓글 없이 본문만 갱신한다(2026-09-14~21 — push마다 달던
+// "확인함 — 누적 N/5" 하트비트가 트래킹 이슈 댓글의 84%를 차지해 한 차례 "통과해도
+// 항상 댓글" 방식으로 정리했으나, 이 레포 평균 병합 속도(최근 17일 하루 ~6.3개)로는
+// 그 방식도 3년 뒤 약 1,380개 댓글로 같은 스크롤 문제를 재발시킨다는 걸 확인해
+// openapi-drift-check.yml과 같은 "문제 있을 때만" 패턴으로 다시 정리했다).
 //
 // 한계: 이 스크립트는 "삭제된 export/파일 경로가 여전히 참조되는가"만 기계적으로
 // 본다. 산문 서술·다이어그램이 의미적으로만 낡은 경우(예: 2026-09-14
@@ -358,16 +361,22 @@ function runLightweightAudit(issue, state, headSha, totalMerges, subjects) {
     hits.slice(0, 10).forEach((hit) => danglingLines.push(`  - ${hit}`));
   }
 
-  const reportBody = buildDrifReportBody(
-    state,
-    headSha,
-    totalMerges,
-    subjects,
-    checkDocsResult,
-    danglingLines
-  );
+  const hasIssue = !checkDocsResult.passed || danglingGroups > 0;
+  let commentUrl = '';
 
-  const commentUrl = commentOn(issue.number, reportBody);
+  if (hasIssue) {
+    const reportBody = buildDrifReportBody(
+      state,
+      headSha,
+      totalMerges,
+      subjects,
+      checkDocsResult,
+      danglingLines
+    );
+
+    commentUrl = commentOn(issue.number, reportBody);
+  }
+
   const auditSection = buildAuditSection({
     rangeFrom: state.lastCheckedSha.slice(0, 7),
     rangeTo: headSha.slice(0, 7),
@@ -378,7 +387,11 @@ function runLightweightAudit(issue, state, headSha, totalMerges, subjects) {
   });
 
   editBody(issue.number, buildBody(headSha, 0, auditSection));
-  console.log(`경량 감사 완료 — dangling ${danglingGroups}건.`);
+  console.log(
+    hasIssue
+      ? `경량 감사 완료 — dangling ${danglingGroups}건, 댓글 등록.`
+      : '경량 감사 완료 — 문제 없음, 댓글 생략.'
+  );
 }
 
 function main() {
