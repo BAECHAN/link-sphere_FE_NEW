@@ -43,6 +43,15 @@
 
   </details>
 
+- `shared` 다크모드 토글·검색 필터 칩이 마우스 채터링성 중복 클릭에 두 번 토글되던 문제 방지
+  <details><summary>배경·구현</summary>
+
+  다크모드 버튼·필터 칩을 눌렀는데 "안 반영된 것처럼" 보인다는 제보를 실제 화면 녹화 영상으로 받아 20fps로 프레임을 뜯어 배경색을 픽셀 단위로 직접 측정했다 — 2초 안에 7번 토글이 찍혔는데, 알고 보니 그 클릭들은 사용자가 문제 재현을 위해 의도적으로 빠르게 여러 번 누른 것이었다(짝수 번 누르면 원래 상태로 되돌아가는 토글의 정의 그 자체). 그럼에도 마우스 스위치 접점 불량(채터링)으로 사람이 낼 수 없는 속도의 중복 클릭이 실제로 들어올 가능성 자체는 방지할 가치가 있다고 보고, 게이밍 마우스 소프트웨어(Logitech G Hub 등)가 노출하는 채터링 방지 debounce 설정값(8ms, [Angry Miao](https://store.angrymiao.com/blogs/insider-stories/how-to-fix-mouse-double-clicking))을 그대로 가져와 `useClickGuard` 훅을 만들었다. "중복 제출 방지"에 흔히 쓰이는 300~1000ms대 디바운스([Medium](https://medium.com/@daveford/prevent-double-click-dups-in-react-83fcbc475704) 등)는 검토했으나 기각했다 — 이 앱이 이미 테스트로 보장하는 "즉시 재클릭하면 정확히 취소된다"는 토글 계약(`Navbar.test.tsx`, `usePostList.test.tsx` 시나리오 C)과 정면으로 충돌하기 때문이다. 8ms는 그보다 한 자릿수 낮아 이 계약을 건드리지 않으면서 채터링 속도만 걸러낸다 — 실제 브라우저에서 동기적으로 두 번 연속 `click()`을 호출하면 한 번만 반영되고, 100ms 간격의 재클릭은 매번 정상 토글됨을 Playwright로 실측 확인했다. 두 기존 테스트는 딜레이 없는 합성 클릭이라 실제로는 사람이 낼 수 없는 속도였던 것이므로, 클릭 사이에 20ms 지연을 추가해 현실적인 재클릭 속도를 반영했다.
+  (`src/shared/hooks/useClickGuard.ts`(신규), `src/shared/hooks/useClickGuard.test.ts`(신규), `src/shared/ui/elements/FilterChip.tsx`, `src/widgets/layout/navbar/ui/Navbar.tsx`, `src/widgets/layout/navbar/ui/Navbar.test.tsx`, `src/widgets/post/post-list/hooks/usePostList.test.tsx`, `docs/DECISIONS.md`)
+
+  </details>
+
+- `shared` Firebase 설정값이 비었거나 잘못됐을 때 앱 전체가 빈 화면으로 렌더되던 문제 수정
 - `shared` Firebase 초기화 실패 시 앱 전체 렌더가 죽지 않도록 방어 코드 추가
   <details><summary>배경·구현</summary>
 
