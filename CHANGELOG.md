@@ -110,6 +110,14 @@
 
 ### Fixed
 
+- `shared` MSW 기본 핸들러(post·comment·bookmark-folder)가 `/api` 접두사 누락으로 실제 요청과 매칭되지 않던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  `post.handlers.ts`·`comment.handlers.ts`·`bookmark-folder.handlers.ts`가 등록한 MSW 핸들러가 실제 요청과 한 번도 매칭되지 않고 있었다 — Vitest 하에서는 `import.meta.env.DEV`가 `true`로 평가돼 `API_BASE_URL`이 `/api`로 고정되는데(`.env.test`의 `VITE_API_BASE_URL`은 이 분기에 가려 읽히지 않는 죽은 설정이었다), 세 파일은 이 접두사 없이 경로를 등록해 정확히 `/api` 한 구간이 빠져 있었다. `auth`·`account`·`upload` 핸들러와 동일한 로컬 `url()` 헬퍼를 추가해 통일했다. 이 경로를 타는 테스트 대부분은 자체 `server.use()` 오버라이드로 우회하고 있어 영향이 없었지만, 유일하게 영향받은 `useUpdatePost.test.tsx`는 배경 재조회가 항상 실패해 시드 데이터가 그대로 유지되는 상태에 우연히 의존하고 있었다 — 핸들러를 고치자 재조회가 성공하면서 응답 객체 참조가 바뀌어 폼이 다시 초기화되는 문제가 새로 드러나, `createTestQueryClient`에 `staleTime` 오버라이드를 추가해 배경 재조회 자체를 끄는 방식으로 함께 막았다.
+  (`src/mocks/handlers/post.handlers.ts`, `src/mocks/handlers/comment.handlers.ts`, `src/mocks/handlers/bookmark-folder.handlers.ts`, `src/test/utils.tsx`, `src/features/post/update/hooks/useUpdatePost.test.tsx`, `docs/TESTING.md`, `docs/plans/2026-09-21-msw-handler-prefix-fix.md`(신규))
+
+  </details>
+
 - `shared` 다크모드 토글이 next-themes를 우회해 새로고침하면 풀리고 토스트 테마가 어긋나던 문제 수정
   <details><summary>배경·구현</summary>
 

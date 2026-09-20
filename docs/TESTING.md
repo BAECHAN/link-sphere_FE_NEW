@@ -50,14 +50,19 @@ Vitest (테스트 러너)
 
 **API URL 처리 방식**
 
-Vitest 실행 시 `import.meta.env.MODE === 'test'`이므로 `.env.test`가 로드됩니다.
+Vitest 실행 시 `NODE_ENV`가 기본값 `'test'`로 설정되어 `isProduction`이 `false`가
+되고, 그 결과 `import.meta.env.DEV`는 **`true`**로 평가됩니다(`.env.test`의
+`VITE_API_BASE_URL`은 이 분기에 가려 실제로는 읽히지 않는 죽은 설정입니다 —
+2026-09-21, MSW 핸들러 접두사 버그를 조사하며 확인했습니다).
 
 ```
-.env.test: VITE_API_BASE_URL=http://localhost
+shared/config/api.ts: import.meta.env.DEV === true → API_BASE_URL = "/api"
 ↓
-shared/config/api.ts: API_BASE_URL = "http://localhost"
+shared/api/client.ts: `${baseURL}${endpoint}` → "/api/post"
 ↓
-fetch("http://localhost/post") → MSW가 인터셉트 → 가짜 응답 반환
+jsdom 기본 origin(http://localhost:3000) + 상대경로 → fetch("http://localhost:3000/api/post")
+↓
+MSW가 인터셉트(핸들러 등록도 같은 origin 기준) → 가짜 응답 반환
 ```
 
 ---
@@ -384,22 +389,25 @@ screen.getByTestId('submit-button');
 ### 기본 핸들러 추가
 
 새로운 API 엔드포인트가 생기면 `src/mocks/handlers/`에 핸들러를 추가합니다. 아래는 아직
-없는 새 도메인(`notification`)을 추가하는 가정의 예시입니다 — 실존하는 핸들러 중
-경로를 올바르게 감싸는 예시는 [`src/mocks/handlers/`](../src/mocks/handlers/)의
-`auth`·`account`·`upload`를 참고하세요. `post`·`comment`·`bookmark-folder`는 아래 "4. MSW
-핸들러가 실행되지 않음"에 적힌 접두사 버그로 실제 요청과 매칭되지 않으니 새 핸들러의
-본으로 삼지 마세요(2026-09-20 확인, 미수정).
+없는 새 도메인(`notification`)을 추가하는 가정의 예시입니다 — 실존하는 핸들러는
+[`src/mocks/handlers/`](../src/mocks/handlers/)의 `auth`·`account`·`post`·`comment`·
+`bookmark-folder`·`upload` 6종을 참고하세요. 전부 로컬 `url()` 헬퍼로 `API_BASE_URL`을
+붙여 등록합니다(2026-09-21 기준 — 과거 `post`·`comment`·`bookmark-folder`가 이 헬퍼
+없이 등록해 실제 요청과 매칭되지 않던 버그가 있었다, 아래 "4. MSW 핸들러가 실행되지
+않음" 참고).
 
 <!-- check-docs-ignore: 새로 만들 파일의 예시 경로, 아직 존재하지 않음 -->
 
 ```typescript
 // src/mocks/handlers/notification.handlers.ts
 import { http, HttpResponse } from 'msw';
+import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 
-const BASE = 'http://localhost';
+/** 핸들러 URL에 API_BASE_URL prefix를 붙여 실제 요청 URL과 일치시킵니다. */
+const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
 export const notificationHandlers = [
-  http.get(`${BASE}/notification`, () => {
+  http.get(url(API_ENDPOINTS.notification.base), () => {
     return HttpResponse.json({
       status: 200,
       message: 'ok',
@@ -410,7 +418,7 @@ export const notificationHandlers = [
     });
   }),
 
-  http.patch(`${BASE}/notification/:id/read`, async ({ request }) => {
+  http.patch(url(`${API_ENDPOINTS.notification.base}/:id/read`), async ({ request }) => {
     const body = await request.json();
     return HttpResponse.json({
       status: 200,
@@ -429,9 +437,10 @@ import { notificationHandlers } from './notification.handlers'; // 추가
 
 export const handlers = [
   ...authHandlers,
+  ...accountHandlers,
   ...postHandlers,
   ...commentHandlers,
-  ...folderHandlers,
+  ...bookmarkFolderHandlers,
   ...uploadHandlers,
   ...notificationHandlers, // 추가
 ];
@@ -442,11 +451,14 @@ export const handlers = [
 ```typescript
 import { server } from '@/mocks/server';
 import { http, HttpResponse } from 'msw';
+import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+
+const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
 it('404 에러 시 에러 메시지를 보여준다', async () => {
   // server.use()로 이 테스트에서만 핸들러를 교체
   server.use(
-    http.get('http://localhost/post/999', () => {
+    http.get(url(`${API_ENDPOINTS.post.base}/999`), () => {
       return HttpResponse.json(
         { status: 404, code: 'POST_NOT_FOUND', message: '포스트를 찾을 수 없습니다.' },
         { status: 404 }
@@ -468,9 +480,12 @@ it('404 에러 시 에러 메시지를 보여준다', async () => {
 
 ```typescript
 import { http, HttpResponse } from 'msw';
+import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+
+const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
 server.use(
-  http.post('http://localhost/post', () => {
+  http.post(url(API_ENDPOINTS.post.base), () => {
     return HttpResponse.error(); // 네트워크 연결 실패
   })
 );
@@ -781,16 +796,19 @@ use: {
 
 ## 자주 발생하는 문제
 
-### 1. `import.meta.env.DEV`가 false라 API URL이 undefined
+### 1. Vitest 환경에서 API_BASE_URL이 항상 `/api`로 고정된다
 
-**원인**: Vitest 환경에서는 `MODE === 'test'`이므로 `DEV === false`
+**원인**: Vitest는 `NODE_ENV`를 기본값 `'test'`로 설정하고, 이는 `'production'`이
+아니므로 `import.meta.env.DEV`가 **`true`**로 평가된다([`api.ts:4-6`](../src/shared/config/api.ts)).
+`API_BASE_URL`은 `DEV`가 true면 무조건 `/api`이므로, `.env.test`의
+`VITE_API_BASE_URL`을 무엇으로 설정해도 읽히지 않는다(2026-09-21 정정 — 예전 버전
+문서는 이 값이 실제로 쓰인다고 잘못 서술하고 있었다).
 
-**해결**: `.env.test` 파일이 있는지 확인
-
-```
-# .env.test (FE 프로젝트 루트)
-VITE_API_BASE_URL=http://localhost
-```
+**해결**: `.env.test`를 만들 필요는 없다. MSW 핸들러를 새로 추가할 때는 실제 요청이
+`/api`로 시작한다는 것을 기준으로 경로를 등록한다 — 직접 `/api/...`를 하드코딩하지
+말고 `auth`/`account`/`upload` 핸들러처럼 `API_BASE_URL`을 붙이는 로컬 `url()` 헬퍼를
+쓴다("MSW 핸들러 추가 및 오버라이드" 절 참고). 그래야 나중에 `API_BASE_URL` 값이
+바뀌어도 핸들러가 따라간다.
 
 ---
 
@@ -853,17 +871,27 @@ server.use(
 );
 ```
 
-**실제 사례 (2026-09-20 확인, 미수정)**: `post.handlers.ts`·`comment.handlers.ts`·
-`bookmark-folder.handlers.ts`는 `API_ENDPOINTS.post.base`(`/post`) 등 상대 경로를 그대로
-`http.get(...)`에 넘긴다([`post.handlers.ts:20`](../src/mocks/handlers/post.handlers.ts)).
-반면 실제 요청은 `apiClient`가 `API_BASE_URL` 접두사를 붙인 절대 경로로 나간다
-([`client.ts:89`](../src/shared/api/client.ts), [`client.ts:318`](../src/shared/api/client.ts)).
-`auth`·`account`·`upload` 핸들러는 로컬 `url()` 헬퍼로 `API_BASE_URL`을 직접 붙여 이
-문제가 없다 — 새 핸들러를 만들 때는 그 셋을 본으로 삼는다("MSW 핸들러 추가 및
-오버라이드" 절 참고). 결과적으로 세 파일의 핸들러가 전부 매칭되지 않아, 그 경로를
-타는 테스트는 매번 `onUnhandledRequest: 'warn'` 경고 + 실제(미차단) `fetch`가 실행되고
-로컬/CI 네트워크가 막혀 있으면 `ECONNREFUSED`로 실패한다 — 다만 해당 테스트들은
-이 실패한 요청의 응답을 기다리지 않고 끝나므로 지금까지는 조용히 넘어갔다.
+**실제 사례 (2026-09-20 발견 → 2026-09-21 수정)**: `post.handlers.ts`·`comment.handlers.ts`·
+`bookmark-folder.handlers.ts`는 `API_ENDPOINTS.post.base`(`/post`) 등을 그대로 `http.get(...)`에
+넘겨 등록했다. 반면 실제 요청은 `API_BASE_URL`("API URL 처리 방식" 절 참고 — Vitest에서는
+`/api`) 접두사가 붙는다 — `client.ts:89`의 `${this.baseURL}${endpoint}` 계산 결과가
+`/api/post`가 되고, jsdom 기본 origin(`http://localhost:3000`)과 합쳐져 실제 요청 URL은
+`http://localhost:3000/api/post`다. 세 파일이 등록한 URL은 `http://localhost:3000/post` —
+정확히 `/api` 한 구간이 빠져 매칭되지 않았다. `auth`·`account`·`upload` 핸들러는 이미
+로컬 `url()` 헬퍼로 `API_BASE_URL`을 붙이고 있었고, 이번에 나머지 세 파일도 같은
+헬퍼를 추가해 통일했다 — 지금은 6개 핸들러 파일 전부 동일 패턴이다.
+
+이 버그가 오래 안 잡힌 이유: 그 경로를 타는 테스트 대부분이 자체 `server.use()`
+오버라이드로 기본 핸들러를 우회하고 있어 영향이 없었고, 유일하게 영향받은
+`useUpdatePost.test.tsx`는 실패한 요청(`onUnhandledRequest: 'warn'` 경고 +
+`ECONNREFUSED`)의 응답을 기다리지 않고 끝나 조용히 통과했다. 핸들러를 고치자 그
+요청이 실제로 응답하게 되면서 새로운 문제가 드러났다 — 아래 12번 항목 참고.
+
+**별개로 발견한 로직 버그 (범위 밖, 미수정)**: `bookmark-folder.handlers.ts`의 DELETE
+핸들러 2곳(`postFolder`, `postFolders`)이 삭제 동작인데도 응답의 `isBookmarked`를 항상
+`true`로 하드코딩한다. 이 기본 응답에 의존하는 테스트가 없어(전부 자체 `server.use()`
+보유) 지금 당장 위험은 없지만, 새로 이 핸들러의 기본 응답을 신뢰하는 테스트를 추가하면
+드러날 수 있다.
 
 ---
 
@@ -1062,6 +1090,56 @@ vi.mock('nprogress', () => ({
   default: { configure: vi.fn(), start: vi.fn(), done: vi.fn() },
 }));
 ```
+
+---
+
+### 12. 죽어있던 MSW 핸들러를 고치면 그동안 실패만 하던 요청이 실제로 응답하면서 새 문제가 드러난다
+
+**대상**: MSW 기본 핸들러의 URL 매칭 버그를 고치는 작업 전반. 2026-09-21 사례는 위
+"4. MSW 핸들러가 실행되지 않음"의 `post`/`comment`/`bookmark-folder` 접두사 버그였다.
+
+**증상**: 핸들러 URL을 고치자 `useUpdatePost.test.tsx`가 결정론적으로 실패하기
+시작했다. 이 테스트는 `queryClient.setQueryData(postKeys.detail(id), mockPost)`로
+캐시를 직접 심어두는데(`useUpdatePost.test.tsx:26`), `createTestQueryClient()`의
+`staleTime: 0` 기본값 때문에 마운트 시 항상 백그라운드 재조회가 걸린다
+(`useFetchPostDetailQuery` → `useUpdatePost.ts:14`). 지금까지는 그 요청이 매번 실패해
+시드값이 그대로 유지됐지만, 핸들러를 고치자 요청이 **성공**하면서 문제가 드러났다.
+
+**원인**: `apiClient`는 응답을 zod로 파싱하지 않는다(`client.ts:239-246`, `.data`만
+언랩). 시드한 `mockPost.createdAt`은 `Date` 객체([`post.fixtures.ts:30`](../src/mocks/fixtures/post.fixtures.ts))인데
+실제 HTTP 응답은 이를 ISO 문자열로 직렬화하므로, React Query의 structural sharing이
+타입이 달라진 필드 때문에 참조 동일성을 지키지 못하고 `post` 객체가 새 참조로
+바뀐다. `useUpdatePost.ts:26-40`의 `useEffect`(`deps [post, form]`)가 재실행되어
+`form.reset()`이 한 번 더 호출되면서, 사용자가 그 사이에 입력한 값을 되돌려버린다.
+MSW로 모킹된 응답은 실제 네트워크 지연이 없어 거의 즉시 resolve되므로, 이런
+재요청은 레이스가 아니라 사실상 결정론적으로 재현된다.
+
+**해결**: 이 테스트의 의도(폼 로컬 동작 검증, 네트워크 재조회 타이밍 검증이 아님)에
+맞게 배경 재조회 자체를 끈다. `createTestQueryClient`의 `overrides`에 `staleTime`을
+추가해(기존 `gcTime` 오버라이드와 같은 패턴) `Infinity`를 넘기면, 데이터가 절대
+stale해지지 않아 `refetchOnMount`(기본값 `true`, "stale일 때만 재조회"라는 뜻)가
+동작하지 않는다.
+
+```typescript
+// src/test/utils.tsx
+export function createTestQueryClient(overrides?: {
+  gcTime?: number;
+  staleTime?: number;
+}): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: 0, staleTime: overrides?.staleTime ?? 0, gcTime: overrides?.gcTime ?? 0 },
+      mutations: { retry: 0 },
+    },
+  });
+}
+
+// 영향받은 테스트에서
+queryClient = createTestQueryClient({ staleTime: Infinity });
+```
+
+`server.use()`로 같은 데이터를 반환하는 오버라이드를 추가하는 것으로는 해결되지
+않는다 — 응답이 성공하는 건 똑같아서 참조 동일성 문제가 그대로 남는다.
 
 ---
 
