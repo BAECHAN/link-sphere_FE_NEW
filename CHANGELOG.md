@@ -15,7 +15,7 @@
   <details><summary>배경·구현</summary>
 
   이름을 한 글자라도 입력하면 그만둘 방법이 없었다 — 세 곳이 공유하는 `handleBlur`가 입력이 있으면 no-op이라 blur로도 안 닫히고, 화면에는 취소 버튼이 없었다. [NN/g "Cancel vs Close"](https://www.nngroup.com/articles/cancel-vs-close/)의 취소 버튼 필요성 근거와 [NN/g "Reset and Cancel Buttons"](https://www.nngroup.com/articles/reset-and-cancel-buttons/)의 버튼 위계 경고를 함께 반영해, `variant="ghost"`로 생성 버튼 왼쪽에 두고 확인창 없이 즉시 입력을 버린다. 데스크톱 사이드바(`w-60`=240px)는 1줄로는 placeholder가 잘려 입력 위·버튼 행 아래의 2줄로 바꿨고, 모바일 카드는 버튼을 세로 대신 가로로 나열해 카드 높이가 늘어나지 않게 했다. 취소 버튼에는 `onMouseDown` preventDefault를 걸어, 빈 입력에서 취소를 누를 때 blur가 click보다 먼저 발생해 핸들러가 유실되는 경합을 막았다.
-  (`src/features/bookmark/select/hooks/useBookmarkFolderSelect.ts`, `src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `src/widgets/bookmark/folder-tree/hooks/useFolderTree.ts`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/widgets/bookmark/folder-tree/hooks/useMobileFolderList.ts`, `src/widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-21-bookmark-create-folder-cancel.md`(신규))
+  (`src/features/bookmark/select/hooks/useBookmarkFolderSelect.ts`, `src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `src/widgets/bookmark/folder-tree/hooks/useFolderTree.ts`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/widgets/bookmark/folder-tree/hooks/useMobileFolderList.ts`, `src/widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-21-bookmark-create-folder-cancel.md`(신규), [PR #151](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/151))
 
   </details>
 
@@ -25,7 +25,7 @@
   <details><summary>배경·구현</summary>
 
   Radix `Dialog`는 `document`에 capture 단계로 ESC 리스너를 걸어(`react-use-escape-keydown`), 생성 입력의 `onKeyDown`에서 `stopPropagation()`을 호출해도 이미 늦은 뒤라 모달이 먼저 닫혔다. `SheetDialogContent`가 그대로 통과시키는 `onEscapeKeyDown` 콜백에서 생성 폼이 열려 있을 때만 `preventDefault()`로 dismiss를 막고 폼을 접도록 옮겼다 — 폼이 닫혀 있을 때의 기존 "ESC로 모달 닫기"는 그대로 유지된다.
-  (`src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`)
+  (`src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`, [PR #151](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/151))
 
   </details>
 
