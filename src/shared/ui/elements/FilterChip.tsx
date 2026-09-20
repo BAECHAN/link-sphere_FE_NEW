@@ -24,7 +24,7 @@ export function FilterChip({
   return (
     <Button
       type="button"
-      variant="ghost"
+      variant="none"
       id={id}
       name={name}
       onClick={() => {
@@ -41,7 +41,7 @@ export function FilterChip({
         'rounded-full px-3 py-1.5 h-auto text-xs font-bold transition-all transform active:scale-95',
         isActive
           ? cn(activeClassName, 'shadow-sm')
-          : 'bg-muted text-muted-foreground border border-transparent hover:bg-muted hover:text-muted-foreground'
+          : 'bg-muted text-muted-foreground border border-transparent'
       )}
     >
       {label}
