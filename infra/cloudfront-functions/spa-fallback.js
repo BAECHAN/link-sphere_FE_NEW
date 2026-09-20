@@ -13,6 +13,18 @@
 function handler(event) {
   var request = event.request;
   var uri = request.uri;
+
+  // Storybook 정적 사이트(/storybook/**)는 SPA가 아니다. S3 REST 오리진은 인덱스
+  // 문서를 자동 해석하지 않으므로, 이 분기가 없으면 /storybook/ 는 403이 되고
+  // 아래 SPA 폴백에 걸리면 /storybook/** 요청이 전부 앱의 index.html로 리라이트된다.
+  if (uri === '/storybook' || uri === '/storybook/') {
+    request.uri = '/storybook/index.html';
+    return request;
+  }
+  if (uri.indexOf('/storybook/') === 0) {
+    return request;
+  }
+
   var lastSegment = uri.substring(uri.lastIndexOf('/') + 1);
   var hasExtension = lastSegment.indexOf('.') !== -1;
 
