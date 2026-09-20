@@ -1,4 +1,7 @@
 ### 2026-09-20 (FE)
+- 사이드바 폴더 라벨 고정 및 새 폴더 생성 위치 상단 배치로 UI/UX 개선 ([#147](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/147))
+
+### 2026-09-20 (FE)
 - 사이드바 최근 저장 폴더 데이터 갱신 로직 보완 및 스크롤 영역 레이아웃 최적화 ([#145](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/145))
 
 ### 2026-09-20 (FE)
