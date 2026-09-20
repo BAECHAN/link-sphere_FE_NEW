@@ -62,10 +62,30 @@ back as `initialMeasurementsCache` and `initialOffset`"](https://tanstack.com/vi
 
 **상태**
 
-코드 구현·정적 검증(`type-check`/`lint`/`format`/유닛테스트 403개/e2e 45개)까지 완료.
-로컬에 BE가 없어 실제 데이터로 스크롤 복원 등 브라우저 상호작용 검증은 하지 못했다 —
-배포 후 재확인이 필요하다. 상세 계획은
-[`docs/plans/2026-09-19-virtualize-post-list.md`](./plans/2026-09-19-virtualize-post-list.md) 참고.
+코드 구현·정적 검증(`type-check`/`lint`/`format`/유닛테스트 403개/e2e 45개)까지 완료 후
+[PR #127](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/127)로 배포했다(당시엔
+로컬에 BE가 없어 스크롤 복원 등 실제 데이터 기반 브라우저 상호작용 검증은 못 함).
+이후 [PR #128](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/128)로 "가상화가
+실제로 DOM을 줄이고 스크롤 위치를 정확히 복원하는지"를 결정적으로 증명하는 e2e 4개(목
+데이터 최대 200개 규모)를 추가했다 — `overscan`을 임시로 키우거나 스냅샷 복원을
+임시로 꺼서 4개 전부 정확히 실패하는 것까지 확인한 뒤 원복해, 통과가 느슨한 임계값의
+우연이 아님을 검증했다(3회 반복 실행, flaky 없음).
+
+배포 후 실제 프로덕션(게시글 195개)에서 Playwright로 직접 재확인했다(2026-09-20, 직접
+측정):
+
+- DOM 노드 수: 끝까지 스크롤해 195개를 전부 로드해도 827→960개로 유지된다(가상화 전
+  실측 14,330개 대비 약 93% 감소).
+- 렌더된 행 `data-index`가 `[0,1,2]`(최초 진입) → `[61,62,63,64]`(맨 아래)로 실제 이동한다
+  — DOM이 쌓이기만 하는 게 아니라 교체되고 있음을 확인.
+- 스크롤 위치 복원: 중간 지점의 실제 게시글로 스크롤한 뒤 상세 진입 → 브라우저
+  뒤로가기 시 화면 좌표(`getBoundingClientRect().y`)와 `window.scrollY` 둘 다 **오차
+  0px**로 정확히 복원됐다.
+
+상세 계획은
+[`docs/plans/2026-09-19-virtualize-post-list.md`](./plans/2026-09-19-virtualize-post-list.md),
+[`docs/plans/2026-09-19-virtualize-post-list-e2e-verification.md`](./plans/2026-09-19-virtualize-post-list-e2e-verification.md)
+참고.
 
 ---
 
