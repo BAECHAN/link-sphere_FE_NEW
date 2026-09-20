@@ -78,6 +78,7 @@ test.describe('공개/비공개 전환', () => {
     await confirmDialog.getByRole('button', { name: TEXTS.buttons.confirm }).click();
     await patched;
     expect(state.lastBody).toEqual({ isPrivate: true });
+    await expect(page.getByText(TEXTS.messages.success.postSetToPrivate)).toBeVisible();
 
     await expect(page.getByTitle(TEXTS.post.card.makePublic)).toBeVisible();
     await page.getByRole('button', { name: TEXTS.ariaLabels.postMenu }).click();
@@ -112,6 +113,7 @@ test.describe('공개/비공개 전환', () => {
     await confirmDialog.getByRole('button', { name: TEXTS.buttons.confirm }).click();
     await patched;
     expect(state.lastBody).toEqual({ isPrivate: false });
+    await expect(page.getByText(TEXTS.messages.success.postSetToPublic)).toBeVisible();
 
     await expect(page.getByTitle(TEXTS.post.card.makePublic)).toHaveCount(0);
     await page.getByRole('button', { name: TEXTS.ariaLabels.postMenu }).click();

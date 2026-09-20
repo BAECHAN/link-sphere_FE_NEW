@@ -1,11 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse, delay } from 'msw';
 import { createElement, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { createTestQueryClient } from '@/test/utils';
+import { toast } from '@/shared/lib/toast/toast';
+import { TEXTS } from '@/shared/config/texts';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
@@ -15,6 +17,7 @@ import {
   useCreatePostMutation,
   useDeletePostMutation,
   useUpdatePostMutation,
+  useUpdatePostVisibilityMutation,
 } from '@/entities/post/api/post.queries';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
@@ -90,6 +93,125 @@ describe('useUpdatePostMutation', () => {
     // 북마크 목록은 post 키와 별도 캐시라, 무효화되지 않으면 옛 내용이 그대로 보인다
     await waitFor(() =>
       expect(queryClient.getQueryState(FOLDER_POSTS_KEY)?.isInvalidated).toBe(true)
+    );
+  });
+});
+
+describe('useUpdatePostVisibilityMutation', () => {
+  beforeEach(() => {
+    queryClient = createTestQueryClient();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('비공개로 전환하면 postSetToPrivate 토스트가 정확히 1회 뜬다', async () => {
+    server.use(
+      http.patch(url(`${API_ENDPOINTS.post.base}/${POST_ID}/visibility`), () =>
+        HttpResponse.json({
+          status: 200,
+          message: 'ok',
+          data: { ...mockPost, isPrivate: true },
+          timestamp: '',
+        })
+      )
+    );
+    const successSpy = vi.spyOn(toast, 'success');
+
+    const { result } = renderHook(() => useUpdatePostVisibilityMutation(POST_ID), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.mutate({ postId: POST_ID, isPrivate: true });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(successSpy).toHaveBeenCalledTimes(1);
+    expect(successSpy).toHaveBeenCalledWith(TEXTS.messages.success.postSetToPrivate);
+  });
+
+  it('전체 공개로 전환하면 postSetToPublic 토스트가 정확히 1회 뜬다', async () => {
+    server.use(
+      http.patch(url(`${API_ENDPOINTS.post.base}/${POST_ID}/visibility`), () =>
+        HttpResponse.json({
+          status: 200,
+          message: 'ok',
+          data: { ...mockPost, isPrivate: false },
+          timestamp: '',
+        })
+      )
+    );
+    const successSpy = vi.spyOn(toast, 'success');
+
+    const { result } = renderHook(() => useUpdatePostVisibilityMutation(POST_ID), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.mutate({ postId: POST_ID, isPrivate: false });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(successSpy).toHaveBeenCalledTimes(1);
+    expect(successSpy).toHaveBeenCalledWith(TEXTS.messages.success.postSetToPublic);
+  });
+
+  it('실패하면 성공 토스트를 띄우지 않는다', async () => {
+    server.use(
+      http.patch(url(`${API_ENDPOINTS.post.base}/${POST_ID}/visibility`), () =>
+        HttpResponse.json(
+          { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'boom', timestamp: '' },
+          { status: 500 }
+        )
+      )
+    );
+    const successSpy = vi.spyOn(toast, 'success');
+
+    const { result } = renderHook(() => useUpdatePostVisibilityMutation(POST_ID), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.mutate({ postId: POST_ID, isPrivate: true });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(successSpy).not.toHaveBeenCalled();
+  });
+
+  // 가상 스크롤(PostList.tsx, BookmarkPostList.tsx)로 카드가 언마운트될 수 있어
+  // entities mutation 레벨에서 토스트를 처리하기로 한 근거를 못 박는 회귀 가드.
+  // widget hook의 mutate(vars, { onSuccess })였다면 언마운트 후 스킵됐을 것이다.
+  it('컴포넌트가 언마운트된 뒤에도 성공 토스트가 뜬다', async () => {
+    server.use(
+      http.patch(url(`${API_ENDPOINTS.post.base}/${POST_ID}/visibility`), async () => {
+        await delay(10);
+        return HttpResponse.json({
+          status: 200,
+          message: 'ok',
+          data: { ...mockPost, isPrivate: true },
+          timestamp: '',
+        });
+      })
+    );
+    const successSpy = vi.spyOn(toast, 'success');
+
+    const { result, unmount } = renderHook(() => useUpdatePostVisibilityMutation(POST_ID), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.mutate({ postId: POST_ID, isPrivate: true });
+    });
+    unmount();
+
+    await waitFor(() =>
+      expect(successSpy).toHaveBeenCalledWith(TEXTS.messages.success.postSetToPrivate)
     );
   });
 });
