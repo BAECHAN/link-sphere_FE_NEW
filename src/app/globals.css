@@ -401,6 +401,34 @@ Licensed under the SIL Open Font License, Version 1.1. http://scripts.sil.org/OF
   }
 }
 
+/* 클릭 가능한 요소는 드래그해도 텍스트가 선택되지 않게 한다.
+   위 커서 규칙과 같은 이유로 컴포넌트마다 `select-none`을 붙여 메꾸지 않고 여기 모은다.
+   커서 규칙과 셀렉터가 다르다 — `select`/`input[type=checkbox|radio|file]`는
+   user-select가 무의미해서 뺐고, `label`은 추가했다(FormCheckbox의 raw label에는
+   select-none이 없고 FormCheckboxGroup에는 있던 불일치 해소). :disabled 제외도 하지
+   않는다 — 비활성 버튼의 라벨도 선택 대상이 아니기 때문. 본문·제목·입력값
+   (MarkdownContent, PostCard 제목, input/textarea)은 복사 대상이므로 이 목록에
+   넣지 않는다. */
+@layer base {
+  button,
+  summary,
+  label,
+  :is(
+    [role='button'],
+    [role='link'],
+    [role='menuitem'],
+    [role='menuitemcheckbox'],
+    [role='menuitemradio'],
+    [role='option'],
+    [role='tab'],
+    [role='switch'],
+    [role='checkbox'],
+    [role='radio']
+  ) {
+    @apply select-none;
+  }
+}
+
 /* 하단 toast는 모바일 하단 탭바(h-16 + safe-area) 위로 띄운다.
    sonner의 모바일 CSS는 600px 기준이지만 탭바는 md(768px) 기준이라 변수로 직접 맞춘다. */
 :root {

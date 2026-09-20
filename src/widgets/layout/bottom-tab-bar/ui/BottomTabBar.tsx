@@ -25,7 +25,7 @@ export function BottomTabBar() {
                   : undefined
               }
               className={cn(
-                'flex flex-1 flex-col items-center justify-center gap-1',
+                'flex flex-1 flex-col items-center justify-center gap-1 select-none',
                 active && 'bg-accent'
               )}
             >

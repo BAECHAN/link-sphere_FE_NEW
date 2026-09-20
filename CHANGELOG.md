@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `shared` 버튼·메뉴·탭 등 클릭 가능한 요소를 드래그해도 라벨 텍스트가 선택되지 않게 변경
+  <details><summary>배경·구현</summary>
+
+  북마크 페이지 정렬 드롭다운("최신 북마크순")과 폴더 이름을 드래그하면 텍스트가 선택되는 게 어색하다는 지적에서 시작해 전수 조사한 결과, `select.tsx`의 옵션 목록(`SelectItem`)에는 이미 shadcn 기본값으로 `select-none`이 있었지만 정작 트리거는 빠져 있었고 레포 전체로도 사람이 직접 붙인 곳이 4곳뿐이었다. 컴포넌트마다 개별로 붙이면 새 컴포넌트를 추가할 때마다 빠뜨리는 회귀가 반복될 것으로 보여, 같은 문제를 이미 전역으로 푼 커서 규칙(`globals.css`의 `cursor: pointer` `@layer base` 블록) 선례를 그대로 따라 `button`/`summary`/`label`과 `role=button|link|menuitem|option|tab|switch|checkbox|radio`에 `select-none`을 전역 적용했다. `<a>`(`Link`) 네비게이션은 댓글 본문을 감싸는 구조와 충돌할 수 있어 전역 대상에서 빼고 `BottomTabBar`·`Sidebar` NavItem에만 개별로 붙였고, 같은 이유로 `badge.tsx`·`tooltip.tsx`·북마크 폴더 이름 `<h1>`도 개별 적용했다. 본문·제목·입력값은 대상에서 제외해 복사가 계속 가능하다.
+  (`src/app/globals.css`, `src/shared/ui/atoms/badge.tsx`, `src/shared/ui/atoms/tooltip.tsx`, `src/widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx`, `src/widgets/layout/sidebar/ui/Sidebar.tsx`, `src/pages/bookmark/BookmarkPage.tsx`, `docs/FE-ARCHITECTURE.md`, `.claude/skills/design-tokens/SKILL.md`, `docs/plans/2026-09-21-select-none-global.md`(신규))
+
+  </details>
+
 - `shared` framer-motion을 CSS transition으로 교체해 번들 크기 감소
   <details><summary>배경·구현</summary>
 

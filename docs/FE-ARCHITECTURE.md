@@ -905,11 +905,11 @@ pnpm storybook      # Storybook (port 6006)
 
 ---
 
-## 20. 클릭 가능한 요소와 커서 규칙
+## 20. 클릭 가능한 요소와 커서·텍스트 선택 규칙
 
 `src/app/globals.css`의 `@layer base`에서 전역으로 처리한다 — 개별 컴포넌트에
-`cursor-pointer`를 직접 붙이지 않는다. 배경은 `docs/DECISIONS.md`의 2026-09-03
-항목 참고.
+`cursor-pointer`나 `select-none`을 직접 붙이지 않는다. 커서 규칙의 배경은
+`docs/DECISIONS.md`의 2026-09-03 항목 참고.
 
 ### 자동으로 pointer가 붙는 대상
 
@@ -922,9 +922,34 @@ pnpm storybook      # Storybook (port 6006)
 `:disabled` / `aria-disabled="true"` / `[data-disabled]`는 제외된다 — 비활성 버튼·메뉴
 항목은 그대로 `default` 커서를 유지한다.
 
+### 자동으로 select-none이 붙는 대상
+
+같은 이유(드래그해도 라벨 텍스트가 선택되지 않아야 한다)로 커서 규칙 바로 아래에
+별도 `@layer base` 블록으로 모아둔다. 셀렉터는 커서 규칙과 다르다:
+
+| 분류      | 대상                                                                                                              |
+| --------- | ----------------------------------------------------------------------------------------------------------------- |
+| 태그      | `button`, `summary`, `label`                                                                                      |
+| ARIA role | `button`, `link`, `menuitem`, `menuitemcheckbox`, `menuitemradio`, `option`, `tab`, `switch`, `checkbox`, `radio` |
+
+- `select`(native)·`input[type=checkbox|radio|file]`는 뺐다 — `user-select`가 무의미한
+  요소라서.
+- `label`은 커서 규칙에는 없지만 여기엔 있다 — 체크박스/라디오 형제 label도 클릭
+  가능한 라벨 텍스트이기 때문(`FormCheckbox.tsx`의 raw `<label>`에는 없고
+  `FormCheckboxGroup.tsx`에는 있던 불일치를 이걸로 해소).
+- `:disabled`/`aria-disabled`를 제외하지 않는다 — 비활성 버튼의 라벨도 선택 대상이
+  아니긴 마찬가지라서.
+- `a[href]`는 **의도적으로 넣지 않는다** — `MyCommentCard.tsx`처럼 `<Link>`가 댓글
+  본문 전체를 감싸는 구조가 있어, 여기 넣으면 본문이 복사 불가가 된다. `<a>` 기반
+  네비게이션(`BottomTabBar`, `Sidebar` NavItem)은 전역 규칙 대상이 아니라서 각
+  컴포넌트에 `select-none`을 직접 붙였다.
+- 본문·제목·입력값(`MarkdownContent`, `PostCard` 제목, `input`/`textarea`)은 복사
+  대상이므로 이 규칙 밖에 있다.
+
 ### 새 컴포넌트를 만들 때
 
-1. `Button`(`shared/ui/atoms/button.tsx`) 또는 raw `<button>`을 쓴다 → 아무것도 안 해도 pointer가 붙는다.
+1. `Button`(`shared/ui/atoms/button.tsx`) 또는 raw `<button>`을 쓴다 → 커서·선택 방지
+   둘 다 아무것도 안 해도 붙는다.
 2. Radix 프리미티브를 새로 감쌀 때는 그 프리미티브가 `button`이나 위 role을 렌더링하는지
    확인한다(Radix 소스에서 확인 가능) → 대부분 자동으로 커버된다.
 3. 불가피하게 `div`/`span`에 `onClick`을 달아야 하면 `role="button"`을 반드시 함께
@@ -932,6 +957,9 @@ pnpm storybook      # Storybook (port 6006)
    이를 강제한다 — `role`도 `aria-hidden="true"`도 없이 `onClick`만 달면 린트가 막는다.
 4. 클릭이 아니라 포인터 오버로 발생하는 어포던스(예: `SelectScrollUpButton`/
    `SelectScrollDownButton`의 자동 스크롤)는 대상이 아니다 — `cursor-default`를 유지한다.
+5. `<a>`/`<Link>`로 렌더되는 네비게이션 항목은 두 규칙 다 자동으로 안 붙는다 —
+   커서는 preflight의 기본 `pointer`(브라우저 기본값)로 이미 되지만, 텍스트 선택
+   방지가 필요하면 `select-none`을 직접 붙인다.
 
 ### shadcn 컴포넌트 재생성 시 주의
 
