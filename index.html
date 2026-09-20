@@ -46,6 +46,24 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png" />
     <link rel="manifest" href="/favicons/site.webmanifest" />
+
+    <!-- 테마 FOUC 방지: next-themes의 ThemeScript는 React 렌더 중 삽입돼 SPA에선 첫 페인트
+         전에 못 돈다. 아래 키는 STORAGE_KEYS.THEME(src/shared/config/storage-keys.ts:31)과
+         같은 값을 유지해야 한다 - storage-keys.test.ts가 이 일치를 검사한다. -->
+    <script>
+      try {
+        var stored = localStorage.getItem('linksphere:theme') || 'system';
+        var isDark =
+          stored === 'dark' ||
+          (stored === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {
+        /* localStorage 차단 환경(사파리 프라이빗 등)에서는 기본 테마로 둔다 */
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

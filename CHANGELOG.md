@@ -96,6 +96,14 @@
 
 ### Fixed
 
+- `shared` 다크모드 토글이 next-themes를 우회해 새로고침하면 풀리고 토스트 테마가 어긋나던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  Navbar 테마 토글 버튼이 `next-themes`의 `setTheme()` 대신 `document.documentElement.classList.toggle('dark')`로 DOM을 직접 조작하고 있었다. `next-themes` 0.4.6 번들을 직접 디코드해 확인한 결과 이 우회로 세 가지 문제가 있었다: ① `localStorage['linksphere:theme']`에 저장되지 않아 새로고침하면 시스템 기본값으로 풀림, ② `sonner.tsx`가 `useTheme()`으로 읽는 내부 상태는 여전히 `'system'`이라 sonner가 OS를 따라가 토스트만 반대 테마로 렌더됨, ③ (조사 중 추가로 발견) 내부 상태가 `'system'`으로 남아 OS 테마가 바뀌면 수동으로 켠 다크가 아무 조작 없이 풀림. `setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')`로 교체했다 — `defaultTheme="system"`이라 `theme`은 신규 사용자에게 항상 `'system'`이라서, `theme` 기준으로 판정하면 OS가 다크인 사용자의 첫 클릭이 다크→다크로 무반응처럼 보인다(두 번 눌러야 라이트로 감). 이 레포는 Vite SPA(SSR 없음)이고 아이콘 전환이 Tailwind `dark:` variant(순수 CSS)라 next-themes 공식 문서가 권장하는 `mounted` hydration 가드는 근거([next-themes README](https://github.com/pacocoursey/next-themes) — _"we cannot know the `theme` on the server"_)가 SSR 한정이라 넣지 않았다. 이 수정으로 다크 선택이 새로고침 후에도 남게 되면서 새로 드러나는 흰 화면 번쩍임(FOUC)을 막기 위해 `index.html` head에 `localStorage`를 동기적으로 읽어 `<html>`에 `.dark`를 미리 붙이는 인라인 스크립트를 추가했다 — 그 안의 스토리지 키 문자열은 `STORAGE_KEYS.THEME`과 별도로 하드코딩되므로, `storage-keys.test.ts`가 두 값의 일치를 가드한다.
+  (`src/widgets/layout/navbar/ui/Navbar.tsx`, `src/widgets/layout/navbar/ui/Navbar.test.tsx`(신규), `src/shared/config/storage-keys.test.ts`(신규), `index.html`, `docs/plans/2026-09-20-navbar-theme-toggle-next-themes.md`(신규))
+
+  </details>
+
 - `shared` og:image 썸네일 로드 실패 시 재마운트마다 재요청돼 콘솔 에러 누적·외부 rate limit 소진하던 문제 수정
   <details><summary>배경·구현</summary>
 
