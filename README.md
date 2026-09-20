@@ -10,7 +10,7 @@ https://github.com/BAECHAN/link-sphere_BE_NEW
 
 https://dbw3brui6htwk.cloudfront.net/post
 
-## Storybook
+# Storybook
 
 [![Storybook Deploy](https://github.com/BAECHAN/link-sphere_FE_NEW/actions/workflows/deploy-storybook.yml/badge.svg)](https://github.com/BAECHAN/link-sphere_FE_NEW/actions/workflows/deploy-storybook.yml)
 
