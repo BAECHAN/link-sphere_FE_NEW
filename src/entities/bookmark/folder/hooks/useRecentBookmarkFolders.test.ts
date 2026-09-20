@@ -3,6 +3,9 @@ import { renderHook } from '@testing-library/react';
 import { useRecentBookmarkFolders } from '@/entities/bookmark/folder/hooks/useRecentBookmarkFolders';
 import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
+// lastUsedAt은 BE가 실제로 보내는 원시 ISO 문자열 그대로 다룬다 — apiClient는 이
+// 필드를 Date로 파싱하지 않는다(bookmark-folder.util.ts 참고). 정렬은 dayjs가 하므로
+// 문자열이면 충분하다.
 function makeFolder(
   overrides: Partial<BookmarkFolder> & Pick<BookmarkFolder, 'id'>
 ): BookmarkFolder {
@@ -17,9 +20,7 @@ function makeFolder(
 
 // 폴더 6개(임계값) — id 순으로 오래된 것부터 최근 것까지 lastUsedAt 부여
 function makeSixFoldersWithUsage(): BookmarkFolder[] {
-  return [1, 2, 3, 4, 5, 6].map((n) =>
-    makeFolder({ id: `f${n}`, lastUsedAt: new Date(`2025-01-0${n}`) })
-  );
+  return [1, 2, 3, 4, 5, 6].map((n) => makeFolder({ id: `f${n}`, lastUsedAt: `2025-01-0${n}` }));
 }
 
 describe('useRecentBookmarkFolders', () => {
@@ -42,7 +43,7 @@ describe('useRecentBookmarkFolders', () => {
 
   it('폴더가 6개 미만이면 임계값 미달로 빈 배열을 반환한다', () => {
     const folders = [1, 2, 3, 4, 5].map((n) =>
-      makeFolder({ id: `f${n}`, lastUsedAt: new Date(`2025-01-0${n}`) })
+      makeFolder({ id: `f${n}`, lastUsedAt: `2025-01-0${n}` })
     );
     const { result } = renderHook(() => useRecentBookmarkFolders(folders, false));
 
@@ -51,8 +52,8 @@ describe('useRecentBookmarkFolders', () => {
 
   it('사용 이력이 있는 폴더가 3개 미만이면 폴더 총수가 많아도 빈 배열을 반환한다', () => {
     const folders = [
-      makeFolder({ id: 'f1', lastUsedAt: new Date('2025-01-01') }),
-      makeFolder({ id: 'f2', lastUsedAt: new Date('2025-01-02') }),
+      makeFolder({ id: 'f1', lastUsedAt: '2025-01-01' }),
+      makeFolder({ id: 'f2', lastUsedAt: '2025-01-02' }),
       makeFolder({ id: 'f3' }),
       makeFolder({ id: 'f4' }),
       makeFolder({ id: 'f5' }),
@@ -81,7 +82,7 @@ describe('useRecentBookmarkFolders', () => {
     // f6의 개수는 즉시 반영돼야 한다.
     const updated = initial.map((f) => {
       if (f.id === 'f1') {
-        return { ...f, lastUsedAt: new Date('2099-01-01') };
+        return { ...f, lastUsedAt: '2099-01-01' };
       }
       if (f.id === 'f6') {
         return { ...f, bookmarkCount: 5 };
@@ -109,7 +110,7 @@ describe('useRecentBookmarkFolders', () => {
     expect(result.current.recentFolderList).toEqual([]);
 
     // 방금 새 폴더 f7에 저장해 f7이 최신이 된 응답이 도착.
-    const fresh = [...stale, makeFolder({ id: 'f7', lastUsedAt: new Date('2099-01-01') })];
+    const fresh = [...stale, makeFolder({ id: 'f7', lastUsedAt: '2099-01-01' })];
     rerender({ folders: fresh, isFetching: false });
 
     expect(result.current.recentFolderList.map((f) => f.id)).toEqual(['f7', 'f6', 'f5']);
@@ -132,9 +133,7 @@ describe('useRecentBookmarkFolders', () => {
 
     expect(result.current.recentFolderList.map((f) => f.id)).toEqual(['f6', 'f5', 'f4']);
 
-    const updated = initial.map((f) =>
-      f.id === 'f1' ? { ...f, lastUsedAt: new Date('2099-01-01') } : f
-    );
+    const updated = initial.map((f) => (f.id === 'f1' ? { ...f, lastUsedAt: '2099-01-01' } : f));
     // 세션이 바뀌면(모달 닫혔다 다시 열림) 새 데이터로 다시 스냅샷을 찍어야 한다.
     rerender({ folders: updated, isFetching: false, sessionKey: false });
 

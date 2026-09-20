@@ -1,59 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  bookmarkFoldersResponseSchema,
   createBookmarkFolderSchema,
-  bookmarkFolderSchema,
   bookmarkFolderSortEnum,
   reorderBookmarkFoldersSchema,
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
-
-describe('bookmarkFolderSchema', () => {
-  const validFolder = {
-    id: 'folder-uuid-1',
-    name: '읽을거리',
-    sortOrder: 0,
-    bookmarkCount: 3,
-  };
-
-  it('유효한 폴더 데이터를 파싱한다', () => {
-    const result = bookmarkFolderSchema.safeParse(validFolder);
-    expect(result.success).toBe(true);
-  });
-
-  it('sortOrder가 음수면 파싱에 실패한다', () => {
-    const result = bookmarkFolderSchema.safeParse({ ...validFolder, sortOrder: -1 });
-    expect(result.success).toBe(false);
-  });
-
-  it('bookmarkCount가 음수면 파싱에 실패한다', () => {
-    const result = bookmarkFolderSchema.safeParse({ ...validFolder, bookmarkCount: -1 });
-    expect(result.success).toBe(false);
-  });
-
-  it('lastUsedAt이 없어도(구 BE 응답) 유효하다', () => {
-    const result = bookmarkFolderSchema.safeParse(validFolder);
-    expect(result.success).toBe(true);
-  });
-
-  it('lastUsedAt이 null이면(미사용 폴더) 그대로 null로 유지되고 1970-01-01로 coerce되지 않는다', () => {
-    const result = bookmarkFolderSchema.safeParse({ ...validFolder, lastUsedAt: null });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.lastUsedAt).toBeNull();
-    }
-  });
-
-  it('lastUsedAt 문자열을 Date 객체로 변환한다', () => {
-    const result = bookmarkFolderSchema.safeParse({
-      ...validFolder,
-      lastUsedAt: '2025-01-03T00:00:00.000Z',
-    });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.lastUsedAt).toBeInstanceOf(Date);
-    }
-  });
-});
 
 describe('createBookmarkFolderSchema', () => {
   it('name이 있으면 유효하다', () => {
@@ -62,23 +12,6 @@ describe('createBookmarkFolderSchema', () => {
 
   it('name이 빈 문자열이면 파싱에 실패한다', () => {
     expect(createBookmarkFolderSchema.safeParse({ name: '' }).success).toBe(false);
-  });
-});
-
-describe('bookmarkFoldersResponseSchema', () => {
-  const valid = { postId: 'post-uuid-1', isBookmarked: true, folderIds: ['folder-uuid-1'] };
-
-  it('유효한 응답을 파싱한다', () => {
-    expect(bookmarkFoldersResponseSchema.safeParse(valid).success).toBe(true);
-  });
-
-  it('folderIds가 빈 배열이어도(미분류) 유효하다', () => {
-    expect(bookmarkFoldersResponseSchema.safeParse({ ...valid, folderIds: [] }).success).toBe(true);
-  });
-
-  it('folderIds 키가 없으면 파싱에 실패한다', () => {
-    const { folderIds: _folderIds, ...rest } = valid;
-    expect(bookmarkFoldersResponseSchema.safeParse(rest).success).toBe(false);
   });
 });
 
