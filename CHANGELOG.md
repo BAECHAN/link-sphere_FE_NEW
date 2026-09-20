@@ -35,6 +35,14 @@
 
 ### Fixed
 
+- `shared` ⋮ 메뉴를 누른 채 손이 밀리면 항목이 오발동해 메뉴가 그냥 사라지던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  Radix `DropdownMenuTrigger`가 `onPointerDown`(누르는 순간, 떼기 전)에서 즉시 메뉴를 열어, 트리거를 누른 채 손이 몇 px만 밀려도 이미 열린 메뉴의 첫 항목 위에서 `pointerup`이 발생해 `MenuItem`이 그 항목을 강제로 `click()`했다(`react-menu`의 `onPointerUp: if (!isPointerDownRef.current) event.currentTarget?.click()`) — 북마크 폴더 ⋮ 메뉴에서는 "이름 수정"이 오발동돼 행이 `Input`으로 바뀌었다가 이름이 그대로라 조용히 원복되며 "메뉴가 떴다 그냥 사라진" 것처럼 보였다. WCAG 2.2 SC 2.5.2(Pointer Cancellation)가 요구하는 "떼기 전에 포인터를 치워 취소할 기회"를 Radix가 down-event 실행으로 이미 무너뜨린 상태였다. `shared/ui/atoms/dropdown-menu.tsx`의 `DropdownMenu`/`DropdownMenuTrigger`를 감싸 open 상태를 직접 들고, 트리거의 `onPointerDown`은 항상 `preventDefault()`로 Radix의 내부 열기 핸들러를 막고 `onClick`(=pointerup 후)에서만 열도록 바꿨다 — 키보드(Enter/Space/ArrowDown)는 Radix가 그 자리에서 `preventDefault()`를 호출해 클릭 합성과 중복되지 않으므로 그대로 둔다. `asChild`와 제어형(`open`/`onOpenChange` + `modal={false}`, `PostCard.tsx`) 사용 모두 그대로 지원한다. 이 컴포넌트를 쓰는 폴더 메뉴(데스크톱·모바일)·게시글 카드 메뉴·계정 메뉴 4곳이 함께 낫는다. 수정 전 실패·수정 후 통과를 실제 Playwright로 확인한 뒤(마우스로 트리거를 누른 채 "이름 수정" 항목까지 이동했다 떼도 그 항목이 클릭되지 않는지, `document`의 `click` 이벤트를 직접 관찰) 회귀 테스트로 고정했다.
+  (`src/shared/ui/atoms/dropdown-menu.tsx`, `src/shared/ui/atoms/dropdown-menu.stories.tsx`, `e2e/bookmark-folder-menu-press-drag.spec.ts`(신규), `docs/BOOKMARK.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-21-dropdown-trigger-click.md`(신규))
+
+  </details>
+
 - `bookmark` 새 폴더 만들기 입력 중 ESC를 누르면 폼이 아니라 모달 전체가 닫히던 문제 수정
   <details><summary>배경·구현</summary>
 

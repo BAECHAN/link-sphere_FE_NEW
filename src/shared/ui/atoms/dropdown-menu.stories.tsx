@@ -194,3 +194,46 @@ const DropdownMenuRadioGroupComponent = () => {
 export const RadioGroup: Story = {
   render: () => <DropdownMenuRadioGroupComponent />,
 };
+
+/**
+ * 트리거가 click(=pointerup 후)에서 열리는지 확인하는 시나리오. 마우스 down 후 메뉴
+ * 영역까지 이동했다가 떼도(press-drag-release) 항목이 오발동하지 않아야 한다 —
+ * docs/DECISIONS.md 참고.
+ */
+export const ClickToOpen: Story = {
+  name: '비제어형 — click으로 열림',
+  render: () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline">Open Menu</Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56">
+        <DropdownMenuItem>Profile</DropdownMenuItem>
+        <DropdownMenuItem>Settings</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  ),
+};
+
+const ControlledComponent = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline">{open ? 'Menu is open' : 'Open Menu (controlled)'}</Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56">
+        <DropdownMenuItem onClick={() => setOpen(false)}>Close</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
+/**
+ * PostCard.tsx가 실제로 쓰는 형태(`open`/`onOpenChange` 제어형 + `modal={false}`)가
+ * click 기반 트리거로도 그대로 동작하는지 확인한다.
+ */
+export const Controlled: Story = {
+  render: () => <ControlledComponent />,
+};
