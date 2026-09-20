@@ -1,4 +1,7 @@
 ### 2026-09-20 (FE)
+- MSW 기본 핸들러 설정 최적화 및 API 요청 경로 오류 수정 ([#141](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/141))
+
+### 2026-09-20 (FE)
 - 포스트 응답 데이터 타입을 백엔드 API 스펙 정의 타입으로 표준화하여 타입 안정성 강화 ([#140](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/140))
 
 ### 2026-09-20 (FE)
