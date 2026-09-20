@@ -1,5 +1,4 @@
 import {
-  useQuery,
   useMutation,
   useSuspenseQuery,
   useSuspenseInfiniteQuery,
@@ -68,13 +67,6 @@ function patchCommentRecursively(
     return comment;
   });
 }
-
-export const useComments = (postId: string) => {
-  return useQuery({
-    queryKey: commentKeys.list(postId),
-    queryFn: () => commentApi.getComments(postId),
-  });
-};
 
 export const useSuspenseComments = (postId: string) => {
   return useSuspenseQuery({

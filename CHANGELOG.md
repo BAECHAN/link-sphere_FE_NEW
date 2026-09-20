@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `shared` framer-motion을 CSS transition으로 교체해 번들 크기 감소
+  <details><summary>배경·구현</summary>
+
+  framer-motion 사용처가 `ScrollToTop`·`ScrollToCommentFormButton`·`PostList`(pull-to-refresh 인디케이터) 3곳뿐인데, 번들 실측 결과(`dist/stats.html`) 앱 코드 다음으로 큰 덩어리(gzip 122KB, motion-dom 포함)를 차지하고 있었다. 세 곳 모두 fade+scale+slide 또는 height 애니메이션으로 CSS만으로 표현 가능해 라이브러리 전체를 제거했다. `AnimatePresence`의 exit 애니메이션은 `isVisible`이 꺼진 뒤에도 전환(200ms)이 끝날 때까지 DOM에 남겨두는 `shouldRender` 상태로 대체했고, opacity/scale(0.8)/translate-y(20px) 값은 기존과 동일하게 맞췄다. Storybook으로 등장/퇴장/클릭 스크롤을 검증했다(`pnpm dev`의 실제 앱 페이지는 이 작업과 무관한 기존 Firebase 설정 오류로 렌더되지 않아 격리 검증으로 대체).
+  (`src/shared/ui/elements/ScrollToTop.tsx`, `src/features/comment/create/ui/ScrollToCommentFormButton.tsx`, `src/widgets/post/post-list/ui/PostList.tsx`, `package.json`, [PR #143](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/143))
+
 ### Added
 
 - `post` 게시물 공개/비공개 전환 시 방향별 성공 토스트 표시
@@ -20,6 +28,12 @@
   </details>
 
 ### Fixed
+
+- `shared` 토큰 갱신 재시도에 상한을 두어 무한 루프 가능성 제거
+  <details><summary>배경·구현</summary>
+
+  `client.ts`의 401 TOKEN_EXPIRED 처리에서 `retryCount`가 선언·전달만 되고 실제 상한 검사를 받지 않고 있었다(`docs/AUTH.md` §11에 알려진 이슈로 기록돼 있었음). refresh가 성공한 뒤 재시도한 요청이 다시 TOKEN_EXPIRED를 받으면(서버 시계 오차 등 회복 불가능한 상황) 상한 없이 재귀 호출이 반복될 수 있었다. `retryCount > 0`이면(이미 한 번 재시도한 요청이 또 만료됐다면) refresh를 다시 호출하지 않고 기존 refresh-실패 경로와 동일하게 `clearAll()` + 영구 pending으로 합류하도록 가드를 추가했다. 같은 세션에서 BE 소스를 확인해 `docs/AUTH.md` §11의 다른 항목(만료된 Authorization 헤더로 `/auth/refresh`를 호출하는 것)도 무해함이 확정돼 함께 갱신했다.
+  (`src/shared/api/client.ts`, `src/shared/api/client.test.ts`, `docs/AUTH.md`, [PR #143](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/143))
 
 - `post` 카드 제목이 소유자 액션 아이콘에 가려 일찍 줄바꿈되던 문제 수정
   <details><summary>배경·구현</summary>
