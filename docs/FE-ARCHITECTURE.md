@@ -878,7 +878,7 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 가른다. BE 응답 계약과 매핑된 이름(`BookmarkFolderListResponse`, `useBookmarkFolderListQuery`,
 `fetchBookmarkFolderList`, `<entity>Keys.list` 등 — `bookmark-folder.schema.ts`의 "BE
 FolderListResponse 와 매핑" 주석 참고)과, 배열이 아니라 동작·응답 객체·불리언이라
-복수형이 그 자체로 맞는 이름(`BookmarkFoldersResponse`, `ReorderBookmarkFoldersRequest`,
+복수형이 그 자체로 맞는 이름(`BookmarkFoldersResponse`,
 `useBookmarkFolders`, `wasInFolders`, `clearBookmarkFolders`, `postFolders`
 엔드포인트 등)은 이 규칙 대상이 아니다 — 그대로 복수형을 쓴다.
 
