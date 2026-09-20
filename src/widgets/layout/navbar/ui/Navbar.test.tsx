@@ -67,6 +67,9 @@ describe('Navbar — 테마 토글', () => {
     const toggle = screen.getByRole('button', { name: TEXTS.nav.toggleTheme });
 
     await user.click(toggle);
+    // useClickGuard(8ms, useClickGuard.ts)가 사람이 낼 수 없는 속도의 채터링성
+    // 재클릭만 걸러낸다 - 사람의 실제 재클릭(수십ms 이상)은 이 정도만 지나도 통과한다.
+    await new Promise((resolve) => setTimeout(resolve, 20));
     await user.click(toggle);
 
     expect(window.localStorage.getItem(STORAGE_KEYS.THEME)).toBe('light');
