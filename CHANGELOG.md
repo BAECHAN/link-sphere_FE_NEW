@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `infra` doc-drift 트래킹 이슈 하트비트 댓글 제거, 본문을 상태 대시보드로 재구성
+  <details><summary>배경·구현</summary>
+
+  `doc-drift-check.yml` 트래킹 이슈([#99](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/99))에서 push마다 달리던 "확인함 — 누적 N/5" 하트비트 댓글이 댓글 44개 중 37개(84%)를 차지해 최신 감사 결과를 보려면 매번 끝까지 스크롤해야 했다. 임계값 미달 구간에서는 댓글을 달지 않고 이슈 본문만 갱신하도록 바꾸고, 매 실행 덮어쓰면서도 마커 2줄뿐이던 본문을 "현재 상태"(다음 감사까지 진행도·마지막 확인 커밋·갱신 시각)와 "마지막 경량 감사"(확인 범위·`pnpm check:docs` 결과·dangling 건수·리포트 댓글 링크) 두 표로 구성된 대시보드로 재구성했다. 경량 감사가 실제로 도는 임계값(5회) 도달 시점의 리포트 댓글은 통과해도 항상 남긴다. grep 기반 감사 로직·워크플로 트리거(`doc-drift-check.yml`)는 그대로 둔다.
+  (`scripts/check-doc-drift.js`)
+
+  </details>
+
 ## [0.15.0] - 2026-09-21
 
 ### Added
