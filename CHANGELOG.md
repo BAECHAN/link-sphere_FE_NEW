@@ -39,7 +39,7 @@
   <details><summary>배경·구현</summary>
 
   `@라이프스타일 @데이터`처럼 띄어 쓰면 정상 동작하는데 붙여 쓴 `@라이프스타일@데이터`는 결과가 0건이라는 사용자 제보로 발견했다. 원인은 `search-parser.ts`의 옛 정규식 `/@(\S+)/`·`/#(\S+)/`가 다음 `@`/`#`에서 멈추지 않고 `라이프스타일@데이터` 전체를 하나의 카테고리 값으로 읽었기 때문이다 — 그런 카테고리는 DB에 없어 BE가 `200 OK` + 0건을 돌려줬다(검증 애노테이션 없는 순수 FE 파싱 버그). "제출 시 자동으로 띄워주기"(사용자 입력을 정규화해 URL에 반영)도 검토했으나, 사용자가 친 검색어를 제품이 고쳐 쓰는 선례를 찾지 못해(GitHub·Twitter는 공백을 요구하고 어기면 평문 폴백/미추출) 입력은 그대로 두고 파서만 태그 경계("문자열 시작이나 공백 뒤에서 시작, 다음 공백 또는 다음 `@`/`#`에서 끝")를 명확히 해 고쳤다. 같은 규칙으로 `hong@example.com`이 `category: 'example.com'`으로, `a#b`가 `nickname: 'b'`로 잘못 잡히던 기존 오탐도 함께 해소됐다.
-  (`src/widgets/post/post-list/utils/search-parser.ts`, `src/widgets/post/post-list/utils/search-parser.test.ts`, `src/widgets/post/post-list/ui/PostListSearch.tsx`, `docs/SEARCH.md`, `docs/plans/2026-09-21-search-tag-boundary.md`(신규))
+  (`src/widgets/post/post-list/utils/search-parser.ts`, `src/widgets/post/post-list/utils/search-parser.test.ts`, `src/widgets/post/post-list/ui/PostListSearch.tsx`, `docs/SEARCH.md`, `docs/plans/2026-09-21-search-tag-boundary.md`(신규), [PR #159](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/159))
 
   </details>
 
