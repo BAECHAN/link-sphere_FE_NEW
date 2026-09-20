@@ -1,5 +1,6 @@
 import { ImageOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { hasImageFailed, recordImageFailure } from '@/shared/lib/image/failedImageCache';
 import { cn } from '@/shared/lib/tailwind/utils';
 
 interface LinkThumbnailProps {
@@ -37,9 +38,13 @@ export function LinkThumbnail({ src, alt, className }: LinkThumbnailProps) {
   // 치환해도 동작은 동일하고 경고만 없어진다.
   const httpsSrc = src.replace(/^http:\/\//, 'https://');
 
+  // 이번 세션에 이미 2회 실패한 URL은 <img>를 아예 만들지 않는다 - 만들면 실패 응답은
+  // 캐시되지 않아 재마운트마다 진짜 요청이 나간다(failedImageCache.ts 상단 주석 참고)
+  const showFallback = hasError || hasImageFailed(httpsSrc);
+
   return (
     <div className="relative aspect-video w-full overflow-hidden bg-muted">
-      {hasError ? (
+      {showFallback ? (
         <div className="flex h-full w-full items-center justify-center">
           <ImageOff className="h-7 w-7 text-muted-foreground" />
         </div>
@@ -53,7 +58,12 @@ export function LinkThumbnail({ src, alt, className }: LinkThumbnailProps) {
           // 우리 도메인이 Referer로 노출되면 핫링크 차단으로 403을 주는 CDN이 있다(네이버
           // blogthumb 등). Referer를 아예 보내지 않으면 정상 응답한다.
           referrerPolicy="no-referrer"
-          onError={() => setHasError(true)}
+          onError={() => {
+            recordImageFailure(httpsSrc);
+            // 캐시는 반응형이 아니다 - 지금 떠 있는 이 인스턴스를 폴백으로 바꾸려면
+            // state 갱신이 함께 필요하다(이 줄을 지우면 실패해도 화면이 안 바뀐다)
+            setHasError(true);
+          }}
         />
       )}
     </div>

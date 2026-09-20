@@ -39,6 +39,8 @@ export const NoSource: Story = {
 
 // 원본 사이트가 이미지를 내리거나 차단한 경우 - 자리는 유지하고 안내 아이콘으로 대체한다
 // (레이아웃 시프트를 막기 위해 영역 자체를 없애지 않는다, link-thumbnail.tsx 상단 주석 참고)
+// 이 스토리를 두 번 이상 다시 마운트하면 세션 캐시(failedImageCache)에 실패가 누적돼
+// 세 번째 마운트부터는 네트워크 시도 없이 바로 폴백이 뜬다 - 정상 동작이다.
 export const LoadFailed: Story = {
   args: {
     src: 'https://invalid.example/thumb.png',

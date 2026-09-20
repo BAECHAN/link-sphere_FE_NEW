@@ -96,6 +96,14 @@
 
 ### Fixed
 
+- `shared` og:image 썸네일 로드 실패 시 재마운트마다 재요청돼 콘솔 에러 누적·외부 rate limit 소진하던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  배포 사이트 콘솔에 `opengraph.githubassets.com` 429 에러가 찍혀 조사한 결과, 원인은 GitHub OG 서버의 IP당 100건 rate limit이었지만 이를 계속 소진시키는 증폭 루프가 FE에 있었다. `LinkThumbnail`의 `hasError`가 컴포넌트 로컬 `useState`라 가상 스크롤로 카드가 언마운트·재마운트될 때마다 사라졌는데, 성공 응답(`cache-control: immutable`)은 브라우저 캐시를 타 재요청이 없지만 실패 응답(429/415/404)은 캐시되지 않아 재마운트마다 실제 네트워크 요청이 나갔다 — 프로덕션에서 직접 측정한 결과 피드를 6회 왕복시키자 실패 URL 2개가 9번 재요청돼 콘솔 에러가 2→9건 누적됐다. 이번 세션에서 실패한 URL을 모듈 레벨 `Map<string, number>`(`failedImageCache.ts`)에 기록해, 2회 실패한 URL은 재마운트 시 `<img>`를 아예 만들지 않고 바로 폴백 아이콘을 보여주도록 했다 — `<img>`의 `onError`가 상태 코드를 주지 않아 일시적 실패(429)와 영구적 실패(415/404)를 구분할 수 없으므로, TTL 대신 세션 한정(새로고침 시 초기화)으로만 기억하고 회복 기회를 한 번(2회째부터 차단) 남겼다. Storybook에서 동일 스토리를 두 번 이상 재마운트해 세 번째부터 네트워크 요청 없이 폴백이 뜨는 것을 직접 확인했다.
+  (`src/shared/lib/image/failedImageCache.ts`(신규), `src/shared/lib/image/failedImageCache.test.ts`(신규), `src/shared/ui/atoms/link-thumbnail.tsx`, `src/shared/ui/atoms/link-thumbnail.test.tsx`, `src/shared/ui/atoms/link-thumbnail.stories.tsx`, `src/test/setup.ts`, `docs/plans/2026-09-20-thumbnail-failure-session-cache.md`(신규))
+
+  </details>
+
 - `shared` 화면을 덮는 모바일 오버레이(검색 패널·사이드바 드로어) 배경 스크롤 잠금 추가
   <details><summary>배경·구현</summary>
 
