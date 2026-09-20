@@ -76,3 +76,9 @@ vi.mock('sonner', () => ({
     dismiss: vi.fn(),
   }),
 }));
+
+// nprogress 모킹 — done()이 거는 setTimeout 체인(speed 200ms × 2)이 테스트 파일의
+// jsdom 환경 정리보다 오래 살아남아, remove()가 사라진 document를 참조하며 터진다
+vi.mock('nprogress', () => ({
+  default: { configure: vi.fn(), start: vi.fn(), done: vi.fn() },
+}));
