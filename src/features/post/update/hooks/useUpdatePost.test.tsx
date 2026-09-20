@@ -22,7 +22,7 @@ describe('useUpdatePost', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
-    queryClient = createTestQueryClient();
+    queryClient = createTestQueryClient({ staleTime: Infinity });
     queryClient.setQueryData(postKeys.detail(mockPost.id), mockPost);
   });
 

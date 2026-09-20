@@ -13,11 +13,17 @@ import userEvent from '@testing-library/user-event';
  * @param overrides.gcTime setQueryData로 캐시를 직접 심고 나중에 getQueryData로 검증하는
  *   테스트는 Infinity를 넘긴다 — 기본값 0이면 옵저버 없는 쿼리가 다음 틱에 즉시 수거된다
  *   (query-core의 Removable.scheduleGc: isValidTimeout(0)이 true로 취급됨).
+ * @param overrides.staleTime setQueryData로 심은 캐시를 그대로 쓰고 백그라운드 재조회를
+ *   일으키고 싶지 않은 테스트는 Infinity를 넘긴다 — 기본값 0이면 refetchOnMount(기본 true)가
+ *   마운트 직후 재조회를 띄워 응답 객체로 참조가 바뀌고, 그 값에 의존하는 effect가 재실행된다.
  */
-export function createTestQueryClient(overrides?: { gcTime?: number }): QueryClient {
+export function createTestQueryClient(overrides?: {
+  gcTime?: number;
+  staleTime?: number;
+}): QueryClient {
   return new QueryClient({
     defaultOptions: {
-      queries: { retry: 0, staleTime: 0, gcTime: overrides?.gcTime ?? 0 },
+      queries: { retry: 0, staleTime: overrides?.staleTime ?? 0, gcTime: overrides?.gcTime ?? 0 },
       mutations: { retry: 0 },
     },
   });
