@@ -72,6 +72,13 @@ jobs:
         # 방식으로만 해왔다(docs/DESIGN-SYSTEM.md §9 참고) - CI 게이트가 없었다.
         run: pnpm build
 
+      - name: Build Storybook
+        # e2e job의 pnpm test:storybook은 dev 서버를 띄워 스토리를 테스트하는
+        # 것이라, 프로덕션 정적 빌드에서만 드러나는 실패(예: 자산 경로 문제)를
+        # 잡지 못한다. 공개 배포(deploy-storybook.yml) 대상이 되는 산출물이므로
+        # PR 단계에서 빌드가 되는지 확인한다.
+        run: pnpm build-storybook
+
   e2e:
     runs-on: ubuntu-latest
     steps:

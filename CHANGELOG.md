@@ -11,6 +11,14 @@
 
 ### Added
 
+- `infra` Storybook을 기존 S3+CloudFront 배포로 공개 호스팅
+  <details><summary>배경·구현</summary>
+
+  `shared/ui` 43개 컴포넌트가 이미 Storybook 스토리 100%(153개 케이스)를 갖추고 CI에서 axe a11y 게이트까지 통과하고 있었지만, 이를 배포하는 워크플로가 없어 로컬 `pnpm storybook`으로만 볼 수 있었다. 기존 S3 버킷의 `storybook/` 접두사 + 같은 CloudFront 배포를 재사용해 `/storybook/` 경로에 공개했다. `deploy.yml`에 job을 얹지 않고 별도 워크플로(`deploy-storybook.yml`)로 분리했다 — `paths` 필터가 워크플로 단위라, 합치면 `.storybook/**` 변경만으로도 앱 프로덕션 배포와 전역(`/*`) 캐시 무효화가 함께 돌기 때문이다. 기존 `deploy.yml`의 `--delete` sync가 이 접두사를 지우지 않도록 `--exclude`를 추가했고(가드 없이 두면 다음 FE 배포 때 방금 올린 Storybook이 통째로 삭제된다), `infra/cloudfront-functions/spa-fallback.js`(SPA 라우팅 폴백)에 `/storybook` 분기를 추가했다 — 이 함수는 확장자 없는 모든 요청을 `/index.html`로 리라이트해서, 분기가 없으면 공개 URL 전체가 앱 화면으로 리다이렉트된다. 계획 단계에서는 `vite.config.ts`의 `base: '/'`가 Storybook 빌드에 상속돼 `/storybook/` 하위에서 자산 경로가 깨질 것으로 가정했으나, 실제로 `.storybook/main.ts`가 그 설정 파일을 import하지 않아 상속되지 않고 Storybook 10.1의 정적 빌드가 기본적으로 상대경로(`./assets/...`)를 생성한다는 걸 로컬 정적 서버로 `/storybook/` 서빙을 재현해 확인해, 계획에 있던 `base` 오버라이드 코드는 추가하지 않았다. Figma 토큰 이식은 이번 범위에서 제외했다 — 무료 Starter 플랜이 변수 모드(variable modes)를 지원하지 않아 이 레포의 라이트/다크 2모드 토큰을 무료로 이식할 수 없기 때문이다. Chromatic·GitHub Pages도 검토했으나 각각 "화면 먼저, 그다음 반영"(사후 시각 회귀 미채택) 결정과의 충돌, 배포 경로 이원화를 이유로 기각했다(`docs/DECISIONS.md` 2026-09-20 항목).
+  (`.github/workflows/deploy-storybook.yml`(신규), `.github/workflows/deploy.yml`, `.github/workflows/ci.yml`, `infra/cloudfront-functions/spa-fallback.js`, `package.json`, `docs/DEPLOY.md`, `docs/CI-CHECK-GATE.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-20-storybook-public-deploy.md`(신규), `README.md`, [PR #131](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/131))
+
+  </details>
+
 - `shared` 빈 상태 문구를 위한 `EmptyState` 컴포넌트 신설
   <details><summary>배경·구현</summary>
 

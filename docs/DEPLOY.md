@@ -38,6 +38,9 @@
 6.  **Deploy to S3**:
     - 빌드된 `dist/` 디렉토리의 내용을 S3 버킷과 동기화합니다.
     - `--delete` 옵션을 사용하여 로컬 빌드 결과물에 없는 파일은 S3에서도 삭제합니다.
+    - 이 `--delete`는 같은 버킷의 `storybook/` 접두사를 `--exclude`로 제외한다 —
+      아래 "Storybook 공개 배포"가 그 접두사에 별도로 올리는 파일이라, 제외하지
+      않으면 이 워크플로우가 돌 때마다 방금 배포한 Storybook이 통째로 삭제된다.
 7.  **CloudFront Invalidation**:
     - 배포 후 즉시 변경 사항이 반영되도록 CloudFront 캐시를 무효화합니다.
     - 대상 경로: `/*`
@@ -60,6 +63,42 @@ gh workflow run deploy.yml --repo BAECHAN/link-sphere_FE_NEW --ref main
 ```
 
 또는 GitHub 저장소 → Actions → "Frontend Deploy (S3 + CloudFront)" → Run workflow.
+
+## Storybook 공개 배포
+
+`shared/ui`의 컴포넌트 스토리(43개 파일, 153개 케이스)를 같은 S3 버킷·CloudFront
+배포를 재사용해 `/storybook/` 경로에 공개 호스팅한다. 워크플로:
+[`.github/workflows/deploy-storybook.yml`](../.github/workflows/deploy-storybook.yml).
+
+- **왜 별도 워크플로우인가**: `paths` 필터는 워크플로우 단위로만 걸 수 있다.
+  `deploy.yml`에 job으로 얹으면 `.storybook/**` 변경만으로도 앱 프로덕션 배포와
+  `/*` 전역 캐시 무효화가 함께 돌게 된다. 별도 파일로 분리해 두 배포가 서로 다른
+  경로 필터·무효화 범위를 갖게 했다.
+- **왜 별도 버킷·배포가 아닌가**: 이 프로젝트는 1인 개발이고 Storybook에 앱과 다른
+  접근 권한이 필요하지 않다. 전용 인프라를 만들면 시크릿 2세트·도메인 2개·배포
+  절차 이원화 비용만 생긴다. 격리가 필요해지면(예: 접근 제한) 그때 재검토한다.
+- **인증**: `deploy.yml`과 동일한 `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`를
+  재사용한다 — 새 Secret이나 IAM 권한 추가가 필요 없다(기존 `s3:PutObject`/
+  `DeleteObject`/`ListBucket`, `cloudfront:CreateInvalidation` 범위 안).
+- **캐시 정책**: 앱 배포와 같은 철학이다 — 해시 없는 `index.html`/`iframe.html`은
+  `no-cache`, 콘텐츠 해시가 붙은 `assets/`·`fonts/`는 1년 immutable, 그 외
+  (`sb-manager/`, `sb-addons/` 등 해시 없는 런타임 파일)는 `max-age=300`.
+- **무효화 범위**: `/storybook/*`로 한정한다. `/*`를 쓰면 앱의 엣지 캐시까지
+  비워 실사용자 지연과 오리진 요청 급증을 유발한다 — 스토리 수정 때문에 앱
+  성능을 깎을 이유가 없다.
+- **자산 경로**: `vite.config.ts`의 `base: '/'`는 `.storybook/main.ts`가 그
+  설정 파일을 import하지 않아 Storybook 빌드에 상속되지 않는다. Storybook
+  10.1의 정적 빌드는 기본적으로 상대경로(`./assets/...`)를 생성하므로,
+  `/storybook/` 서브패스에서 그대로 정상 동작한다(직접 로컬 정적 서버로
+  `/storybook/` 하위 서빙을 재현해 확인함) — 별도 `base` 설정이 필요 없다.
+- **롤백**: 워크플로우는 PR revert로 되돌리되, S3 객체는 자동으로 지워지지
+  않으므로 함께 실행한다:
+  ```bash
+  aws s3 rm s3://<BUCKET>/storybook --recursive
+  aws cloudfront create-invalidation --distribution-id <DIST_ID> --paths "/storybook/*"
+  ```
+  CloudFront Function의 `/storybook` 분기만 되돌릴 때는 아래 "CloudFront
+  Function" 절의 백업본을 재적용한다(앱 라우팅에는 영향 없음).
 
 ## 환경 변수 및 Secrets 설정
 
@@ -93,6 +132,22 @@ SPA 클라이언트 라우팅 폴백(`/post/abc123` 같은 경로를 `/index.htm
   문제(구 방식인 배포 레벨 `CustomErrorResponses`가 원인)를 발견하고 이 Function으로 교체했다.
   `infra/` 디렉토리 자체의 역할과 자세한 배경은
   [`docs/SYSTEM-ARCHITECTURE.md`](./SYSTEM-ARCHITECTURE.md)의 "infra/ — AWS 인프라 직접 배포 코드" 절 참고.
+- **`/storybook` 하위 요청은 SPA 폴백보다 먼저 분기해 그대로 통과시킨다.** 위 "Storybook
+  공개 배포"가 올리는 정적 사이트라 `/index.html`로 리라이트하면 안 된다. S3 REST 오리진은
+  인덱스 문서를 자동 해석하지 않으므로 `/storybook`·`/storybook/`만 `/storybook/index.html`로
+  명시적으로 리라이트하고, 그 외 `/storybook` 하위 경로는 손대지 않는다. 이 분기가 없으면
+  공개 URL 전체가 앱 화면으로 리다이렉트된다.
+- **이 함수를 바꿀 때는 아래 6케이스로 `test-function`을 검증한다** — 앞 3개는 기존 SPA
+  라우팅이 무회귀인지, 뒤 3개는 `/storybook` 분기가 의도대로 동작하는지 확인한다.
+
+  | 입력 URI                        | 기대 결과               |
+  | ------------------------------- | ----------------------- |
+  | `/post/abc123`                  | `/index.html`           |
+  | `/auth/login`                   | `/index.html`           |
+  | `/favicon.ico`                  | 그대로                  |
+  | `/storybook/`                   | `/storybook/index.html` |
+  | `/storybook`                    | `/storybook/index.html` |
+  | `/storybook/assets/iframe-*.js` | 그대로                  |
 
 ```bash
 # 1. 함수 코드 수정 후 업데이트 (기존 함수가 있으면 update-function, ETag 필요)
