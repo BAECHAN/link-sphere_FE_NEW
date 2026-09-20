@@ -1,4 +1,7 @@
 ### 2026-09-20 (FE)
+- auth 및 bookmark-folder 엔티티 응답 타입을 백엔드 명세 기반 타입으로 동기화하여 데이터 일관성 강화 (Phase 3-4)
+
+### 2026-09-20 (FE)
 - 배포 버전 확인을 위한 `/version` 페이지 신설 및 CI 배포 자동 검증 파이프라인 구축 ([#134](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/134))
 
 ### 2026-09-20 (FE)
