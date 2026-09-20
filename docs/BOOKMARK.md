@@ -810,9 +810,18 @@ verification` skill)은 수행하지 못했다 — 대신 mock 네트워크 기�
 
 수정: `FolderTree.tsx`의 상단 고정 블록과 "내 폴더" 스크롤 영역 두 곳에
 `[scrollbar-gutter:stable]`을 추가했다. 상단 블록에는 `overflow-hidden`도 함께
-추가했다 — 원래도 `aside` 자체가 `overflow-hidden`이라 시각적 변화는 없다.
+추가했다 — 원래도 `aside` 자체가 `overflow-hidden`이고 상단 블록은 좌우 패딩 없이
+그 안쪽을 그대로 채우므로(`px-3`는 행 안쪽에만 있음) 새 경계가 기존 aside 경계보다
+타이트해지지 않는다. ⋮ 드롭다운(`DropdownMenuContent`)은
+`shared/ui/atoms/dropdown-menu.tsx`에서 `DropdownMenuPrimitive.Portal`로 감싸져
+body에 렌더되므로 이 overflow에 영향받지 않는다(코드 확인, 소스:
+`shared/ui/atoms/dropdown-menu.tsx`). 이름 변경 `Input`의 focus ring이 실제로
+잘리지 않는지는 위 코드 근거로 판단했을 뿐, 이 세션 환경에는 BE가 없어(포트 8080
+미가용, 위 "⋮ 메뉴를 누른 채…" 항목과 같은 제약) `browser-verification` skill의
+로그인 기반 실측 녹화는 하지 못했다 — 다음에 이 화면을 만질 때 실제로 열어 확인할
+가치가 있다.
 
-기존 보관함 e2e 5개(`e2e/bookmark-folder-delete.spec.ts`,
+기존 보관함 e2e 4개(`e2e/bookmark-folder-delete.spec.ts`,
 `e2e/bookmark-folder-menu-press-drag.spec.ts`, `e2e/bookmark.spec.ts`,
 `e2e/bookmark.mobile.spec.ts`)로 무회귀를 확인했다. 이 정렬 자체를 재현하는 신규
 e2e는 추가하지 않았다 — 재현하려면 스크롤을 유발할 폴더 30개 이상의 새 픽스처·새
