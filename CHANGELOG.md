@@ -43,6 +43,15 @@
 
   </details>
 
+- `bookmark` 데스크톱 사이드바에서 스크롤바 폭 때문에 "내 폴더" 개수 숫자가 밀려 보이던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  사이드바는 상단 고정 블록(전체·미분류·최근 저장한 폴더 등)과 "내 폴더" 목록이 서로 다른 스크롤 컨테이너였다. classic 스크롤바(마우스를 연결한 macOS·Windows)에서는 아래 목록 블록에만 스크롤바가 붙어 그 컨테이너의 콘텐츠 폭만 스크롤바 폭(≈15px)만큼 좁아지고, 폴더 개수 숫자의 오른쪽 끝이 위쪽 "최근 저장한 폴더" 숫자보다 왼쪽으로 밀려 보였다. 실제 Tailwind 클래스·`globals.css` 토큰을 그대로 쓴 정적 목업으로 세 가지 안(단일 스크롤+sticky 헤더 / 양쪽에 `scrollbar-gutter: stable` / 스크롤바 숨김)을 나란히 비교한 뒤, 사이드바 스크롤 구조([`docs/DECISIONS.md`](https://github.com/BAECHAN/link-sphere_FE_NEW/blob/main/docs/DECISIONS.md) 2026-09-21/09-22 결정)를 그대로 두고 두 컨테이너 모두 스크롤바 자리를 예약하는 안을 택했다. [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/scrollbar-gutter)에 따르면 `overflow: hidden`에도 거터가 생기고 오버레이 스크롤바 환경(트랙패드만 쓰는 macOS)에서는 거터가 안 생겨 원래도 문제가 없었다 — 대가로 스크롤이 필요 없을 때도 사이드바 오른쪽에 ~15px 여백이 상시 생긴다.
+  (`src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `docs/BOOKMARK.md`, `docs/plans/2026-09-21-folder-sidebar-scrollbar-gutter.md`(신규))
+
+  </details>
+
+- `shared` Firebase 설정값이 비었거나 잘못됐을 때 앱 전체가 빈 화면으로 렌더되던 문제 수정
 - `shared` 다크모드 토글·검색 필터 칩이 마우스 채터링성 중복 클릭에 두 번 토글되던 문제 방지
   <details><summary>배경·구현</summary>
 
