@@ -41,7 +41,7 @@ function buildOptimisticComment({
     id: `temp-${crypto.randomUUID()}`,
     content: finalContent,
     isDeleted: false,
-    createdAt: dayjs().toDate(),
+    createdAt: dayjs().toISOString(),
     author,
     replies: [],
     likeCount: 0,
