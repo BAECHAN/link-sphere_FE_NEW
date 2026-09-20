@@ -1,3 +1,6 @@
+### 2026-09-20 (BE)
+- OpenAPI 스펙 생성 시 Kotlin의 nullable 타입이 정확히 반영되도록 컨버터 설정 추가 ([#19](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/19))
+
 ### 2026-09-20 (FE)
 - auth 및 bookmark-folder 엔티티 응답 타입을 백엔드 명세 기반 타입으로 동기화하여 데이터 일관성 강화 (Phase 3-4)
 
