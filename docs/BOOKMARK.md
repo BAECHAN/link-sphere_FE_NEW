@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-09-14
+> **마지막 검토**: 2026-09-21
 
 ## 1. 쉬운 설명
 
@@ -166,6 +166,33 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 모든 폴더에 **동일한 ✓ 아이콘**이 표시된다(다중 선택 UI가 아니라, 탭할 때마다 즉시
 반영되는 토글 방식).
 
+### 새 폴더 만들기 인라인 폼의 취소(2026-09-21)
+
+"새 폴더 만들기"를 탭한 뒤 이름을 입력하면 폼에서 빠져나갈 방법이 없었다(Escape로도
+`handleBlur`(입력이 있으면 no-op)로도 안 닫혔다). 세 곳(저장 모달·데스크톱 사이드바·
+모바일 카드) 모두에 취소 버튼을 추가했다 — `variant="ghost"`, 생성 버튼 왼쪽,
+확인창 없이 즉시 입력을 버리고 폼을 접는다. 근거는
+[NN/g "Cancel vs Close"](https://www.nngroup.com/articles/cancel-vs-close/)(취소
+버튼이 필요한 이유)와 [NN/g "Reset and Cancel Buttons"](https://www.nngroup.com/articles/reset-and-cancel-buttons/)
+(버튼을 늘릴 때의 위계 비용) — 상세 비교는 `docs/DECISIONS.md` 2026-09-21 항목 참고.
+
+- **데스크톱 사이드바(`FolderTree.tsx`)만 2줄로 바뀐다** — 사이드바 폭(`w-60`=240px)에서
+  `[입력][취소][생성]` 한 줄이면 입력 텍스트 영역이 66px만 남아 placeholder(`새 폴더
+이름`, ~77px)가 잘린다. 입력을 위, `[취소][생성]` 행을 아래로 나눴다.
+- **모바일 카드(`MobileFolderList.tsx`)의 버튼은 세로가 아니라 가로로 나열한다** —
+  세로로 쌓으면 카드 높이가 늘어 `grid` row 전체가 커지고 옆 카드까지 함께 늘어난다.
+- **취소 버튼에 `onMouseDown={(e) => e.preventDefault()}`가 있다** — 입력이 빈
+  상태로 취소를 누르면 `mousedown`이 blur를 먼저 발생시켜(`handleBlur`가
+  `!name`일 때 폼을 닫음) 뒤따르는 `click`이 유실된다. 결과는 같아 보이지만(둘 다
+  폼을 접음) 핸들러가 실제로 실행되지 않아 나중에 취소에 로직이 붙으면 조용히
+  안 돈다.
+- **저장 모달(`BookmarkFolderSelectModal.tsx`)의 Escape는 `SheetDialogContent`의
+  `onEscapeKeyDown`이 소유한다** — Radix `Dialog`는 document capture 단계에서
+  ESC를 가로채므로(`react-use-escape-keydown`), Input의 `onKeyDown`에서
+  `stopPropagation()`을 해도 이미 늦어 모달 전체가 닫혔다. 생성 폼이 열려 있을
+  때만 `preventDefault()`로 dismiss를 막고 폼을 접는다 — 폼이 닫혀 있을 때의
+  기존 "ESC로 모달 닫기"는 그대로 유지된다.
+
 ### "최근 저장한 폴더" 상단 구획(split menu)
 
 폴더 목록 순서를 고정할지 최근 사용순으로 올릴지에 대한 결론이다. [Sears &
@@ -308,8 +335,10 @@ src/
 │           │                             # 스냅샷 없이 매 렌더 최신으로 계산한다(2026-09-21)
 │           └── ui/
 │               ├── FolderTree.tsx            # 데스크탑 사이드바 (폴더 트리, 전체 행은 숫자 없음).
-│               │                             # "내 폴더" 목록만 자체 스크롤(§10)
-│               └── MobileFolderList.tsx      # 모바일 폴더 그리드 (drill-down)
+│               │                             # "내 폴더" 목록만 자체 스크롤(§10). 생성 폼은
+│               │                             # 2줄 + 취소 버튼(§5, 2026-09-21)
+│               └── MobileFolderList.tsx      # 모바일 폴더 그리드 (drill-down). 생성 카드는
+│                                              # 버튼 가로 행 + 취소(§5, 2026-09-21)
 │                                              # 위 둘 + BookmarkFolderSelectModal(아래) 모두 "최근 저장한
 │                                              # 폴더" + "내 폴더" 두 구획 포함(§5)
 ├── features/
@@ -318,12 +347,13 @@ src/
 │   │   ├── select/
 │   │   │   ├── hooks/
 │   │   │   │   └── useBookmarkFolderSelect.ts # BookmarkFolderSelectModal의 로직 전부(조회·생성·
-│   │   │   │                                 # 행별 pending 상태)
+│   │   │   │                                 # 행별 pending 상태 + handleCancelCreate로 취소, 2026-09-21)
 │   │   │   └── ui/
 │   │   │       └── BookmarkFolderSelectModal.tsx # JSX만 — 폴더 선택 모달/바텀시트 공용
 │   │   │                                         # 프레젠테이션. PostCardBookmarkFolderModal·
 │   │   │                                         # PostCreateBookmarkFolderField가 공유하고 저장
-│   │   │                                         # 동작만 콜백으로 주입받는다
+│   │   │                                         # 동작만 콜백으로 주입받는다. Escape 소유권은
+│   │   │                                         # SheetDialogContent의 onEscapeKeyDown(§5, 2026-09-21)
 │   │   └── toggle/
 │   │       ├── hooks/
 │   │       │   ├── useBookmarkFolders.ts             # add/remove/clear/toggle 라우팅
@@ -389,13 +419,14 @@ src/
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                      | 방법                                                                                                                                                                           |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| "최근 저장한 폴더" 노출 개수 조정 | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`(§7 완전 일치 배제 조건도 이 값을 그대로 참조하므로 함께 검토)                      |
-| 정렬 옵션 추가                    | `bookmark-folder.schema.ts`의 `bookmarkFolderSortEnum`에 값 추가 + BE 대응 필요                                                                                                |
-| 폴더 내 검색 빈 상태 문구 변경    | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                                                                |
-| 모바일 감지 기준 변경             | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                                                                |
-| 테스트 실행                       | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-tree src/features/bookmark/toggle src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx` |
+| 하고 싶은 것                      | 방법                                                                                                                                                                               |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "최근 저장한 폴더" 노출 개수 조정 | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`(§7 완전 일치 배제 조건도 이 값을 그대로 참조하므로 함께 검토)                          |
+| 정렬 옵션 추가                    | `bookmark-folder.schema.ts`의 `bookmarkFolderSortEnum`에 값 추가 + BE 대응 필요                                                                                                    |
+| 폴더 내 검색 빈 상태 문구 변경    | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                                                                    |
+| 모바일 감지 기준 변경             | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                                                                    |
+| 새 폴더 만들기 취소 동작 변경     | 세 곳 각각의 `handleCancel`/`handleCancelCreate` — `useBookmarkFolderSelect.ts`, `useFolderTree.ts`(`useInlineCreateFolderInput`), `useMobileFolderList.ts`(`useCreateFolderCard`) |
+| 테스트 실행                       | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-tree src/features/bookmark/toggle src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`     |
 
 ## 9. 검증 결과
 
@@ -446,6 +477,17 @@ no-op 테스트를 완전 삭제+되돌리기 검증으로 교체하고 미북�
 생성)로 새로고침 없는 즉시 갱신과 사이드바 자체 스크롤을 모두 실측 확인했다 —
 이 과정에서 Navbar와 사이드바가 44px 겹치던 기존 버그(이번 변경으로 만든 게 아님)도
 함께 발견해 `top` 오프셋을 조정해 고쳤다.
+
+**2026-09-21 갱신(2)** — 새 폴더 만들기 취소 버튼 추가 + Escape가 모달째 닫히던 버그
+수정(위 §5 신설 절) 이후 `useFolderTree.test.ts`(5→6, 취소 시 입력 버리고 `onClose`
+호출 검증 추가) · `useMobileFolderList.test.ts`(6→7, 취소 시 `creating`/`name` 리셋
+검증 추가) · `PostCreateBookmarkFolderField.test.tsx`(11→14, 취소 클릭 1건 + Escape
+회귀 2건 — 생성 폼이 열려 있을 때/닫혀 있을 때 각각) 통과. `PostCardBookmarkFolderModal.test.tsx`·
+`useCreateFolderForm.test.ts`는 무수정 통과. 전체 스위트 73개 파일 427개 테스트,
+`pnpm type-check`·`pnpm lint` 모두 통과. 실제 브라우저(Playwright, `tester_new_999`
+계정)로 세 곳(저장 모달·데스크톱 사이드바·모바일 375px 카드) 모두 실측 —
+데스크톱 사이드바는 **입력이 빈 상태**에서도 취소가 정상 동작함을 확인했다
+(blur가 click보다 먼저 발생해 유실될 수 있는 경합, 위 §5 참고).
 
 **2026-09-22 갱신** — "내 폴더" 라벨을 상단 고정 블록으로 이동, "새 폴더 만들기"를
 하단에서 상단으로 재배치(§10). 순수 JSX 재배치라 `FolderTree.tsx`엔 단위 테스트가

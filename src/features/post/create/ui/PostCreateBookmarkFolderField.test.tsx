@@ -224,6 +224,53 @@ describe('PostCreateBookmarkFolderField', () => {
     expect(screen.getByTestId('bookmark-value')).toHaveTextContent('true');
   });
 
+  it('새 폴더 입력 중 취소를 누르면 입력만 접히고 모달은 열려 있다', async () => {
+    const user = userEvent.setup();
+    renderField();
+
+    await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
+    await waitFor(() => expect(screen.getByText('새 폴더 만들기')).toBeInTheDocument());
+    await user.click(screen.getByText('새 폴더 만들기'));
+    await user.type(screen.getByPlaceholderText('새 폴더 이름'), '읽을거리');
+
+    await user.click(screen.getByRole('button', { name: TEXTS.buttons.cancel }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('새 폴더 이름')).not.toBeInTheDocument();
+    expect(screen.getByText('새 폴더 만들기')).toBeInTheDocument();
+  });
+
+  // Radix Dialog는 document capture 단계에서 ESC를 가로채 dismiss한다(react-use-escape-keydown).
+  // 생성 폼의 Input onKeyDown에서 stopPropagation 해도 이미 늦어 모달째 닫히던 버그를
+  // BookmarkFolderSelectModal의 onEscapeKeyDown 레벨 수정으로 고쳤다 — 이 테스트가 그 회귀를 잡는다.
+  it('새 폴더 입력 중 ESC는 입력만 취소하고 모달은 닫지 않는다', async () => {
+    const user = userEvent.setup();
+    renderField();
+
+    await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
+    await waitFor(() => expect(screen.getByText('새 폴더 만들기')).toBeInTheDocument());
+    await user.click(screen.getByText('새 폴더 만들기'));
+    await user.type(screen.getByPlaceholderText('새 폴더 이름'), '읽을거리');
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('새 폴더 이름')).not.toBeInTheDocument();
+    expect(screen.getByText('새 폴더 만들기')).toBeInTheDocument();
+  });
+
+  it('생성 폼이 닫혀 있을 때 ESC는 그대로 모달을 닫는다', async () => {
+    const user = userEvent.setup();
+    renderField();
+
+    await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
   it('임계값을 넘으면 등록 폼에서도 최근 저장한 폴더 구획이 뜬다', async () => {
     // 임계값: 폴더 6개 이상 + lastUsedAt 있는 폴더 3개 이상이어야 노출된다
     // (PostCardBookmarkFolderModal.test.tsx의 manyFoldersResponse와 동일한 픽스처)

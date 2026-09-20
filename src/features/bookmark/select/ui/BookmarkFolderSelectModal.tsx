@@ -65,6 +65,7 @@ export function BookmarkFolderSelectModal({
     handleSelectUncategorized,
     handleSelectFolder,
     handleCreateAndSelect,
+    handleCancelCreate,
   } = useBookmarkFolderSelect({
     open,
     isBookmarked,
@@ -75,7 +76,21 @@ export function BookmarkFolderSelectModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <SheetDialogContent isMobile={isMobile}>
+      <SheetDialogContent
+        isMobile={isMobile}
+        onEscapeKeyDown={(e) => {
+          // Radix는 document capture 단계에서 ESC를 먼저 가로채므로(react-use-escape-keydown),
+          // 아래 Input의 onKeyDown에서 stopPropagation 해도 모달이 먼저 닫힌다. 생성 폼이
+          // 열려 있을 때는 여기서 dismiss를 막고 폼만 접는다. dialog.tsx가 IME 조합 중
+          // ESC는 이 콜백 자체를 호출하지 않으므로 조합 방어와 충돌하지 않는다.
+          if (!creatingMode) {
+            return;
+          }
+
+          e.preventDefault();
+          handleCancelCreate();
+        }}
+      >
         {/* 헤더 */}
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div>
@@ -106,14 +121,15 @@ export function BookmarkFolderSelectModal({
             <ul className="py-1 border-b">
               {creatingMode ? (
                 <li className="flex items-center gap-2 px-4 py-2.5">
-                  <FolderPlus className="h-4 w-4 text-muted-foreground" />
+                  <FolderPlus className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <Input
                     autoFocus
                     placeholder={TEXTS.bookmark.folder.namePlaceholder}
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
                     onKeyDown={(e) => {
-                      // IME(한글 등) 조합 중 엔터는 무시
+                      // IME(한글 등) 조합 중 엔터는 무시. ESC는 Dialog의 onEscapeKeyDown이
+                      // 소유한다(위 참고) — 여기서 또 처리하면 같은 일을 두 번 하게 된다
                       if (e.nativeEvent.isComposing) {
                         return;
                       }
@@ -121,15 +137,19 @@ export function BookmarkFolderSelectModal({
                       if (e.key === 'Enter') {
                         handleCreateAndSelect();
                       }
-
-                      if (e.key === 'Escape') {
-                        setCreatingMode(false);
-                        setNewFolderName('');
-                      }
                     }}
                     className="h-8 flex-1"
                     disabled={isCreating}
                   />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelCreate}
+                    disabled={isCreating}
+                  >
+                    {TEXTS.buttons.cancel}
+                  </Button>
                   <Button
                     size="sm"
                     onClick={handleCreateAndSelect}

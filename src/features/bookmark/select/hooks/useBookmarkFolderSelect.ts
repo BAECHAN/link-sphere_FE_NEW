@@ -113,6 +113,11 @@ export function useBookmarkFolderSelect({
     }
   };
 
+  const handleCancelCreate = () => {
+    setCreatingMode(false);
+    setNewFolderName('');
+  };
+
   return {
     isLoading,
     folderList,
@@ -129,5 +134,6 @@ export function useBookmarkFolderSelect({
     handleSelectUncategorized,
     handleSelectFolder,
     handleCreateAndSelect,
+    handleCancelCreate,
   };
 }
