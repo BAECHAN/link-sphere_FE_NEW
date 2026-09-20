@@ -35,10 +35,10 @@
 
 ### Fixed
 
-- `shared` 다크모드 토글·검색 필터 칩이 마우스 채터링성 중복 클릭에 두 번 토글되던 문제 방지
+- `shared` 다크모드 토글·검색 필터 칩이 무의식적인 빠른 재클릭에 두 번 토글되던 문제 방지
   <details><summary>배경·구현</summary>
 
-  다크모드 버튼·필터 칩을 눌렀는데 "안 반영된 것처럼" 보인다는 제보를 실제 화면 녹화 영상으로 받아 20fps로 프레임을 뜯어 배경색을 픽셀 단위로 직접 측정했다 — 2초 안에 7번 토글이 찍혔는데, 알고 보니 그 클릭들은 사용자가 문제 재현을 위해 의도적으로 빠르게 여러 번 누른 것이었다(짝수 번 누르면 원래 상태로 되돌아가는 토글의 정의 그 자체). 그럼에도 마우스 스위치 접점 불량(채터링)으로 사람이 낼 수 없는 속도의 중복 클릭이 실제로 들어올 가능성 자체는 방지할 가치가 있다고 보고, 게이밍 마우스 소프트웨어(Logitech G Hub 등)가 노출하는 채터링 방지 debounce 설정값(8ms, [Angry Miao](https://store.angrymiao.com/blogs/insider-stories/how-to-fix-mouse-double-clicking))을 그대로 가져와 `useClickGuard` 훅을 만들었다. "중복 제출 방지"에 흔히 쓰이는 300~1000ms대 디바운스([Medium](https://medium.com/@daveford/prevent-double-click-dups-in-react-83fcbc475704) 등)는 검토했으나 기각했다 — 이 앱이 이미 테스트로 보장하는 "즉시 재클릭하면 정확히 취소된다"는 토글 계약(`Navbar.test.tsx`, `usePostList.test.tsx` 시나리오 C)과 정면으로 충돌하기 때문이다. 8ms는 그보다 한 자릿수 낮아 이 계약을 건드리지 않으면서 채터링 속도만 걸러낸다 — 실제 브라우저에서 동기적으로 두 번 연속 `click()`을 호출하면 한 번만 반영되고, 100ms 간격의 재클릭은 매번 정상 토글됨을 Playwright로 실측 확인했다. 두 기존 테스트는 딜레이 없는 합성 클릭이라 실제로는 사람이 낼 수 없는 속도였던 것이므로, 클릭 사이에 20ms 지연을 추가해 현실적인 재클릭 속도를 반영했다.
+  다크모드 버튼·필터 칩을 눌렀는데 "안 반영된 것처럼" 보인다는 제보를 실제 화면 녹화 영상으로 받아 20fps로 프레임을 뜯어 배경색을 픽셀 단위로 직접 측정했다 — 2초 안에 7번 토글이 찍혔는데, 알고 보니 그 클릭들은 사용자가 문제 재현을 위해 의도적으로 빠르게 여러 번 누른 것이었다(짝수 번 누르면 원래 상태로 되돌아가는 토글의 정의 그 자체). 처음엔 마우스 스위치 채터링(사람이 낼 수 없는 속도)만 걸러내는 8ms 가드로 좁혀 잡았으나, 사용자가 원한 건 "사람이 손으로 하는 무의식적인 빠른 재클릭"을 막는 것이었다 — 요구사항 자체가 하드웨어 결함 방지에서 "의식적으로 결과를 인지하고 다시 누른 것과 무의식적으로 두 번 눌린 것을 구분"하는 쪽으로 바뀌었다. 이 구분에 쓰이는 업계 표준값을 확인해 Windows의 더블클릭 속도 기본값(500ms, [Wikipedia](https://en.wikipedia.org/wiki/Double-click) 인용 Microsoft MSDN)으로 올렸다 — 사람의 단순 시각 반응시간(평균 200~273ms, [관련 리서치 종합](https://www.orangeneurosciences.ca/guide/reaction-time-average))보다 충분히 여유 있게 크면서, "즉시 재클릭 = 하나의 제스처로 볼지"를 가르는 OS 자체의 기준과 같다. 이 변경으로 "즉시 재클릭하면 정확히 취소된다"는 기존 테스트 2개(`Navbar.test.tsx`, `usePostList.test.tsx` 시나리오 C)의 기대값 자체가 "즉시 재클릭 = 무시, 500ms 이후 재클릭 = 취소"로 바뀌었다 — 사용자가 이 트레이드오프를 명시적으로 승인했다. 각 테스트에 "충분한 시간 뒤 재클릭하면 정상 취소된다"는 동반 테스트를 추가했고, 실제 브라우저로 200ms 재클릭(무시됨)·550ms 뒤 재클릭(정상 취소)을 실측 확인했다.
   (`src/shared/hooks/useClickGuard.ts`(신규), `src/shared/hooks/useClickGuard.test.ts`(신규), `src/shared/ui/elements/FilterChip.tsx`, `src/widgets/layout/navbar/ui/Navbar.tsx`, `src/widgets/layout/navbar/ui/Navbar.test.tsx`, `src/widgets/post/post-list/hooks/usePostList.test.tsx`, `docs/DECISIONS.md`)
 
   </details>
