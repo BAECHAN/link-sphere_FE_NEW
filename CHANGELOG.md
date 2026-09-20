@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `shared` 토큰 갱신 재시도에 상한을 두어 무한 루프 가능성 제거
+  <details><summary>배경·구현</summary>
+
+  `client.ts`의 401 TOKEN_EXPIRED 처리에서 `retryCount`가 선언·전달만 되고 실제 상한 검사를 받지 않고 있었다(`docs/AUTH.md` §11에 알려진 이슈로 기록돼 있었음). refresh가 성공한 뒤 재시도한 요청이 다시 TOKEN_EXPIRED를 받으면(서버 시계 오차 등 회복 불가능한 상황) 상한 없이 재귀 호출이 반복될 수 있었다. `retryCount > 0`이면(이미 한 번 재시도한 요청이 또 만료됐다면) refresh를 다시 호출하지 않고 기존 refresh-실패 경로와 동일하게 `clearAll()` + 영구 pending으로 합류하도록 가드를 추가했다. 같은 세션에서 BE 소스를 확인해 `docs/AUTH.md` §11의 다른 항목(만료된 Authorization 헤더로 `/auth/refresh`를 호출하는 것)도 무해함이 확정돼 함께 갱신했다.
+  (`src/shared/api/client.ts`, `src/shared/api/client.test.ts`, `docs/AUTH.md`, [PR #143](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/143))
+
+  </details>
+
 ## [0.15.0] - 2026-09-21
 
 ### Added
