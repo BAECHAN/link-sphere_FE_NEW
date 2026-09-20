@@ -16,6 +16,11 @@
 
   이름을 한 글자라도 입력하면 그만둘 방법이 없었다 — 세 곳이 공유하는 `handleBlur`가 입력이 있으면 no-op이라 blur로도 안 닫히고, 화면에는 취소 버튼이 없었다. [NN/g "Cancel vs Close"](https://www.nngroup.com/articles/cancel-vs-close/)의 취소 버튼 필요성 근거와 [NN/g "Reset and Cancel Buttons"](https://www.nngroup.com/articles/reset-and-cancel-buttons/)의 버튼 위계 경고를 함께 반영해, `variant="ghost"`로 생성 버튼 왼쪽에 두고 확인창 없이 즉시 입력을 버린다. 데스크톱 사이드바(`w-60`=240px)는 1줄로는 placeholder가 잘려 입력 위·버튼 행 아래의 2줄로 바꿨고, 모바일 카드는 버튼을 세로 대신 가로로 나열해 카드 높이가 늘어나지 않게 했다. 취소 버튼에는 `onMouseDown` preventDefault를 걸어, 빈 입력에서 취소를 누를 때 blur가 click보다 먼저 발생해 핸들러가 유실되는 경합을 막았다.
   (`src/features/bookmark/select/hooks/useBookmarkFolderSelect.ts`, `src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `src/widgets/bookmark/folder-tree/hooks/useFolderTree.ts`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/widgets/bookmark/folder-tree/hooks/useMobileFolderList.ts`, `src/widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-21-bookmark-create-folder-cancel.md`(신규), [PR #151](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/151))
+- `post` 게시물 공개/비공개 전환 시 방향별 성공 토스트 표시
+  <details><summary>배경·구현</summary>
+
+  나만 보기 토글은 성공해도 아무 피드백이 없었다 — 실패 시에만 에러 토스트가 떴다. 시각적 피드백은 카드 우상단 자물쇠 아이콘 하나뿐인데 렌더 조건이 `isOwner && post.isPrivate`라 공개로 전환하면 아이콘이 아예 사라지고, 낙관적 업데이트도 없어 재조회가 끝나야 반영되며 주 진입점인 드롭다운은 그 전에 닫힌다 — "토글은 아이콘 전환으로 즉시 보인다"는 기존 전제가 이 케이스엔 맞지 않았다. 방향별 문구(`postSetToPrivate`/`postSetToPublic`)를 추가하고, `meta.successMessage`가 정적 문자열만 지원해 분기가 불가능한 점과 목록이 가상 스크롤(`PostList`, `BookmarkPostList`)이라 위젯 훅의 `mutate(vars, { onSuccess })`는 카드가 화면 밖으로 스크롤되면 언마운트로 스킵될 수 있는 점을 근거로, entities mutation의 `onSuccess(data, variables)`에서 직접 `toast.success`를 호출했다.
+  (`src/entities/post/api/post.queries.ts`, `src/shared/config/texts.ts`, `src/entities/post/api/post.queries.test.ts`, `e2e/post-visibility.spec.ts`, `.claude/skills/texts-conventions/SKILL.md`, `docs/FE-ARCHITECTURE.md`, `docs/TESTING.md`, `docs/plans/2026-09-21-post-visibility-toast.md`(신규))
 
   </details>
 
@@ -26,6 +31,11 @@
 
   Radix `Dialog`는 `document`에 capture 단계로 ESC 리스너를 걸어(`react-use-escape-keydown`), 생성 입력의 `onKeyDown`에서 `stopPropagation()`을 호출해도 이미 늦은 뒤라 모달이 먼저 닫혔다. `SheetDialogContent`가 그대로 통과시키는 `onEscapeKeyDown` 콜백에서 생성 폼이 열려 있을 때만 `preventDefault()`로 dismiss를 막고 폼을 접도록 옮겼다 — 폼이 닫혀 있을 때의 기존 "ESC로 모달 닫기"는 그대로 유지된다.
   (`src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`, [PR #151](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/151))
+- `post` 카드 제목이 소유자 액션 아이콘에 가려 일찍 줄바꿈되던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  내 비공개 글 카드에서 제목이 오른쪽 자물쇠·케밥 아이콘 그룹과 별도 컬럼으로 상단 고정돼 있어, 아이콘 아래 66~76px가 빈 채로 남고 제목만 그만큼 좁아진 폭으로 일찍 줄바꿈됐다. 헤더를 2열 그리드(`grid-cols-[1fr_auto]`)로 바꿔 제목에 `col-span-2`를 줘 카드 가로폭을 온전히 쓰게 하고, 자물쇠·케밥은 작성자 메타 행과 같은 첫 행 우측 칸으로 옮겼다 — 아이콘은 음수 마진으로 헤더 높이 기여분을 상쇄해 카드 높이 증가를 막았다. 자물쇠를 아이콘 버튼 그대로 위치만 옮기는 안과 "나만 보기" 텍스트 배지로 바꾸는 안을 실제 Tailwind 클래스로 나란히 비교해 전자를 채택했다 — 원클릭 토글과 `title`/`aria-label`/`h3` 등 기존 e2e 계약을 하나도 건드리지 않기 때문이다. 소유자가 아닌 카드는 아이콘 컬럼 자체가 렌더되지 않아 기존에 낭비되던 8px 여백도 함께 없어졌다.
+  (`src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-list/ui/PostCardSkeleton.tsx`, `docs/plans/2026-09-21-postcard-header-title-width.md`(신규), [PR #150](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/150))
 
   </details>
 
@@ -42,6 +52,14 @@
 
   데스크톱 사이드바에서 폴더가 많으면 "내 폴더" 아랫부분을 보려면 페이지 전체 스크롤을 끝까지 내려야 했다 — `sticky` 포지셔닝만 있고 자체 스크롤이 없었기 때문이다. `BookmarkFolderSelectModal`이 2026-09-11에 같은 문제를 겪고 정한 선례(목록만 스크롤, 상시 노출돼야 할 행은 고정)를 그대로 재사용했다: 전체·미분류·최근 저장한 폴더는 상단 고정, "내 폴더" 목록만 자체 스크롤, "새 폴더 만들기"는 하단 고정. 실제 Tailwind 클래스를 그대로 쓴 정적 목업으로 "패널 전체 스크롤" 안과 나란히 비교한 뒤 이 구조로 확정했다. 구현 중 사이드바의 `sticky top-4`가 상단 내비게이션 바와 44px 겹치는 기존 버그(이번 변경으로 만든 게 아님)를 Playwright 실측으로 발견해 `top` 오프셋도 함께 조정했다.
   (`src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/pages/bookmark/BookmarkPage.tsx`, `.claude/skills/responsive-ux/SKILL.md`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-21-bookmark-folder-sidebar-fixes.md`(신규))
+
+  </details>
+
+- `bookmark` 폴더 선택 모달에서 선택된 행만 개수 숫자가 밀리던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  `FolderRow`가 체크 아이콘을 선택된 행에만 렌더해, `gap-3`(12px) + 아이콘(16px)만큼 그 행의 개수 숫자만 왼쪽으로 밀려 다른 행과 어긋나 보였다. 모든 행에 체크 자리(`h-4 w-4`)를 항상 렌더하고 내용만 조건부로 바꾸는 방식으로 고쳤다 — 이 레포의 기존 선례인 `shared/ui/atoms/select.tsx`의 `SelectItem`(`pr-8` + `absolute right-2`)과 같은 "자리 미리 확보" 접근이다.
+  (`src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, [PR #148](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/148))
 
   </details>
 

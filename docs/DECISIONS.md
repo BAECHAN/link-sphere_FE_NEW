@@ -681,7 +681,7 @@ FCM·공유링크·새로고침처럼 앱 내 이력이 없는 경우는 가본 
 **이유 / 주의점**
 
 - e2e 5개 스펙(`comment.spec.ts`, `post-visibility.spec.ts`, `like.spec.ts`×2, `comment-delete.spec.ts`)이 모두 `getByRole('button', { name: TEXTS.post.detail.backToList })`로 이 버튼을 찾는다 — 전부 피드 진입 또는 직접 URL 진입(둘 다 "목록으로" 분기)이라 `backToList` 값(`'목록으로'`)을 그대로 두는 한 수정 없이 통과한다. 라벨 키 이름 자체를 바꾸면 이 5개 파일도 함께 고쳐야 한다.
-- `PostCard.tsx:93,269`가 `isDetail`일 때도 자기 자신(`/post/{id}`)을 링크하는
+- `PostCard.tsx:171,282`가 `isDetail`일 때도 자기 자신(`/post/{id}`)을 링크하는
   기존 동작은 이번 변경과 무관하게 남아 있다(범위 밖) — 상세에서 제목을 눌러도
   `backSource`가 없어 "뒤로가기"로 정확히 떨어지긴 하지만, 애초에 자기 자신으로
   또 이동하는 것 자체는 별개 버그다.

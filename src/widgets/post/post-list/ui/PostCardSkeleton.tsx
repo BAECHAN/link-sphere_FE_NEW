@@ -8,15 +8,13 @@ import { Skeleton } from '@/shared/ui/atoms/skeleton';
 export function PostCardSkeleton() {
   return (
     <Card className="relative flex flex-col overflow-hidden">
-      <CardHeader className="p-3 pb-1 flex flex-row items-start justify-between space-y-0">
-        <div className="space-y-1 flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Skeleton className="size-6 rounded-full" />
-            <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-3 w-10" />
-          </div>
-          <Skeleton className="h-4 md:h-5 w-4/5" />
+      <CardHeader className="p-3 pb-1 grid grid-cols-[1fr_auto] items-start space-y-0">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Skeleton className="size-6 rounded-full" />
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-3 w-10" />
         </div>
+        <Skeleton className="col-span-2 h-4 md:h-5 w-4/5" />
       </CardHeader>
 
       <CardContent className="p-3 pt-0 flex flex-col">

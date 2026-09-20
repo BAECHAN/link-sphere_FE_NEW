@@ -295,11 +295,14 @@ function FolderRow({ icon, name, count, isSelected, isPending, onClick }: Folder
         {typeof count === 'number' && (
           <span className="text-xs text-muted-foreground">{count}</span>
         )}
-        {isPending ? (
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-        ) : isSelected ? (
-          <Check className="h-4 w-4 text-primary" />
-        ) : null}
+        {/* 미선택·비저장 상태에도 자리를 비워둔다 — 체크가 나타날 때 개수 숫자가 밀리지 않도록 */}
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+          {isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          ) : isSelected ? (
+            <Check className="h-4 w-4 text-primary" />
+          ) : null}
+        </span>
       </Button>
     </li>
   );
