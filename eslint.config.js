@@ -436,6 +436,9 @@ export default [
       '**/*.md',
       '**/*.svg',
       'infra/**/*',
+      // BE OpenAPI 스펙(openapi.json)에서 openapi-typescript 가 생성한 타입 선언 —
+      // 사람이 손대지 않고 pnpm codegen 으로만 갱신된다. lint 대상이 아니다.
+      '**/src/shared/api/generated/**',
     ],
   },
   {
