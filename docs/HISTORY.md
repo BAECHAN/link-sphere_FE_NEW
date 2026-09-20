@@ -1,4 +1,10 @@
 ### 2026-09-20 (FE)
+- 다크모드 상태 관리 최적화 및 `next-themes` 동기화 이슈 해결
+
+### 2026-09-20 (FE)
+- Storybook S3 및 CloudFront 배포를 통한 공개 호스팅 환경 구축
+
+### 2026-09-20 (FE)
 - og:image 썸네일 재요청 로직 개선을 통해 불필요한 네트워크 요청 및 콘솔 에러 누적 문제 해결 ([#130](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/130))
 
 ### 2026-09-19 (FE)

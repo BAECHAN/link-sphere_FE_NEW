@@ -120,17 +120,18 @@ ignore 패턴(`'dist/**/*'`, 루트 상대 경로)에 안 걸려서 그대로 �
 
 ## 6. 운영 파라미터
 
-| 파라미터                  | 값                                                                                              | 실제 위치                                                                  |
-| ------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `--max-warnings` 임계값   | 0                                                                                               | `package.json:18-19`(`lint`/`lint:fix`), `package.json:120`(`lint-staged`) |
-| ESLint 글로벌 ignore      | `**/dist/**`, `**/node_modules/**`, `.claude/worktrees/**`, `**/*.md`, `**/*.svg`, `infra/**/*` | `eslint.config.js:185-193`                                                 |
-| Prettier ignore 추가분    | `.claude/worktrees`, `docs/HISTORY.md`(봇 생성 파일)                                            | `.prettierignore:7-8`                                                      |
-| PR CI 트리거              | `pull_request` → `main`                                                                         | `.github/workflows/ci.yml:10`                                              |
-| 동시 실행 제어            | 같은 브랜치 새 커밋 push 시 이전 실행 자동 취소                                                 | `.github/workflows/ci.yml:14` `concurrency` 블록                           |
-| Node 버전                 | 24(`.nvmrc` 기준, `node-version-file`로 참조)                                                   | `.nvmrc`, `ci.yml:47`·`deploy.yml` 공통                                    |
-| 배포 게이트 위치          | `pnpm install` 직후, `pnpm test` 이전                                                           | `deploy.yml` "Type check, lint & format check" 스텝                        |
-| 문서-코드 참조 게이트     | `pnpm test` 이후 (PR CI 전용, 배포는 막지 않음)                                                 | `scripts/check-docs.js`, `ci.yml` "Check docs" 스텝                        |
-| "마지막 검토" 신선도 기준 | 30일 초과 시 경고(exit 0, 게이트 통과에 영향 없음)                                              | `scripts/check-docs.js`의 `STALE_REVIEW_DAYS`                              |
+| 파라미터                   | 값                                                                                                      | 실제 위치                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `--max-warnings` 임계값    | 0                                                                                                       | `package.json:18-19`(`lint`/`lint:fix`), `package.json:120`(`lint-staged`) |
+| ESLint 글로벌 ignore       | `**/dist/**`, `**/node_modules/**`, `.claude/worktrees/**`, `**/*.md`, `**/*.svg`, `infra/**/*`         | `eslint.config.js:185-193`                                                 |
+| Prettier ignore 추가분     | `.claude/worktrees`, `docs/HISTORY.md`(봇 생성 파일)                                                    | `.prettierignore:7-8`                                                      |
+| PR CI 트리거               | `pull_request` → `main`                                                                                 | `.github/workflows/ci.yml:10`                                              |
+| 동시 실행 제어             | 같은 브랜치 새 커밋 push 시 이전 실행 자동 취소                                                         | `.github/workflows/ci.yml:14` `concurrency` 블록                           |
+| Node 버전                  | 24(`.nvmrc` 기준, `node-version-file`로 참조)                                                           | `.nvmrc`, `ci.yml:47`·`deploy.yml` 공통                                    |
+| 배포 게이트 위치           | `pnpm install` 직후, `pnpm test` 이전                                                                   | `deploy.yml` "Type check, lint & format check" 스텝                        |
+| 문서-코드 참조 게이트      | `pnpm test` 이후 (PR CI 전용, 배포는 막지 않음)                                                         | `scripts/check-docs.js`, `ci.yml` "Check docs" 스텝                        |
+| "마지막 검토" 신선도 기준  | 30일 초과 시 경고(exit 0, 게이트 통과에 영향 없음)                                                      | `scripts/check-docs.js`의 `STALE_REVIEW_DAYS`                              |
+| Storybook 정적 빌드 게이트 | PR CI에서 `build-storybook` 실행(dev 서버 기반 `test:storybook`이 못 잡는 프로덕션 빌드 전용 실패 감지) | `ci.yml`의 "Build Storybook" 스텝                                          |
 
 ## 7. 코드 지도와 자주 하는 수정
 

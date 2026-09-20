@@ -6,6 +6,50 @@
 
 ---
 
+## 2026-09-20 — Storybook 공개 호스팅: 기존 S3+CloudFront 재사용 (Chromatic·GitHub Pages 기각)
+
+**배경**
+
+`shared/ui` 43개 컴포넌트가 이미 Storybook 스토리 100%(153개 케이스)를 갖추고 CI에서
+axe a11y 게이트까지 통과하고 있는데, 이를 볼 수 있는 공개 URL이 없었다. `build-storybook`
+스크립트와 `@chromatic-com/storybook` addon은 설치돼 있었지만 이를 실행하는 배포
+워크플로가 0건이라 로컬 `pnpm storybook`으로만 확인 가능한 상태였다. "FE가 코드-디자인
+파이프라인을 이해하고 있음"을 포트폴리오로 보여주는 목적에서, 이미 완성된 이 자산을
+공개하는 쪽이 Figma를 새로 구축하는 것보다 비용 대비 효과가 크다고 판단했다(Figma는
+무료 Starter 플랜이 변수 모드를 지원하지 않아 이 레포의 라이트/다크 2모드 토큰을 무료로
+이식할 수 없어 별도로 보류).
+
+**검토**
+
+- **Chromatic** — 기각. `@chromatic-com/storybook` addon이 이미 설치돼 있고 무료
+  플랜(월 5,000 스냅샷 + Storybook 호스팅)으로 비용은 들지 않지만, publish 시 스냅샷과
+  베이스라인이 생성되는 구조라 2026-09-06 "화면 먼저, 그다음 반영"(사전 목업 승인 방식)
+  및 `docs/plans/2026-09-10-e2e-playwright-foundation.md`의 "사후 시각 회귀 미채택"
+  결정과 취지가 어긋난다. "호스팅만 쓰고 시각 회귀는 끈다"는 기술적으로는 가능하나
+  결정을 재검토하지 않고 우회하는 것이라 채택하지 않았다.
+- **GitHub Pages** — 기각. 비용은 $0이지만 배포 경로가 S3와 GitHub Pages로 2원화되어
+  `docs/DEPLOY.md`가 정본으로 서술하는 "AWS 단일 배포" 서사가 깨진다.
+- **전용 S3 버킷 + 전용 CloudFront 배포 신설** — 기각. 격리는 최고지만 1인 개발
+  포트폴리오에 시크릿 2세트·도메인 2개·배포 절차 이원화는 과잉이다. 접근 제한 등
+  격리가 실제로 필요해지면 재검토한다.
+
+**결정**
+
+기존 S3 버킷의 `storybook/` 접두사 + 기존 CloudFront 배포를 재사용한다
+(`.github/workflows/deploy-storybook.yml`). 트리거 경로가 겹치는 `deploy.yml`과는
+별도 워크플로 파일로 분리해 `.storybook/**` 변경이 앱 프로덕션 배포·전역 캐시
+무효화를 유발하지 않게 했고, CloudFront 무효화도 `/storybook/*`로 한정했다. 기존
+`deploy.yml`의 `--delete` sync가 이 접두사를 지우지 않도록 `--exclude`를
+추가했고, `infra/cloudfront-functions/spa-fallback.js`(SPA 라우팅 폴백)에
+`/storybook` 분기를 추가해 공개 URL이 앱으로 리다이렉트되지 않게 했다.
+
+**상태**: 적용 완료. 관련 파일: `.github/workflows/deploy-storybook.yml`,
+`.github/workflows/deploy.yml`, `infra/cloudfront-functions/spa-fallback.js`,
+`docs/DEPLOY.md`("Storybook 공개 배포" 절). 계획 스냅샷:
+`docs/plans/2026-09-20-storybook-public-deploy.md`.
+
+---
+
 ## 2026-09-19 — 피드·북마크 목록 가상 스크롤: lanes 대신 행 청크, content-visibility 대신 라이브러리
 
 **배경**

@@ -17,6 +17,12 @@
   배포 워크플로우가 success로 끝난 것과 실제로 사용자 화면에 반영된 것은 다른 사건인데, 그 둘을 구분할 수단이 앱에도 CI에도 없었다. `vite.config.ts`의 `define`으로 커밋 sha를 번들 상수(`__BUILD_INFO__`)에 심고, 별도 플러그인으로 배포 시각·workflow run 번호까지 담은 `dist/version.json`을 함께 만든다 — 두 값을 분리한 이유는 번들 상수는 "지금 이 탭이 실행 중인 코드"를, `version.json`은 "지금 서버에 올라간 코드"를 답해야 서로 다른 두 원인("배포 자체가 안 됨" vs "탭이 캐시를 잡음")을 구분할 수 있기 때문이다. `builtAt`·`runNumber`처럼 빌드마다 달라지는 값은 번들 상수에 넣지 않았다 — 넣으면 무변경 재배포에도 entry 청크 해시가 바뀌어 기존 `useAppVersionCheck`가 열려 있는 모든 탭을 강제 리로드시킨다(두 번 연속 빌드해 entry 해시가 동일함을 직접 확인). `/version` 페이지는 이 둘을 대조해 배너로 보여준다 — 최초에는 Vercel 대시보드의 점+라벨 패턴(제목 옆 작은 배지)으로 만들었으나 "이 페이지의 주 컨텐츠가 동기화 확인 자체"라는 피드백을 받아 카드보다 먼저, 페이지 최상단의 큰 배너로 재구성했다(두 안 모두 Artifact로 나란히 미리보기해 비교). 일치(초록)·불일치(주황, compare 링크+새로고침 버튼)·서버 조회 실패(회색, 배포 실패와 구분)의 세 상태를 색으로 구분한다. `/version`은 403/404/500과 같은 성격의 공개+비연결 라우트다 — 이 레포가 이미 Public이라 노출 정보가 새로 늘지 않고, 로그인에 묶으면 정작 인증이 깨진 순간 진단이 안 되기 때문이다. 배포 파이프라인에는 invalidation 직후 실제 CloudFront를 curl로 때려 ①`version.json`의 sha 일치 ②`index.html`의 `no-store` 캐시 헤더 회귀 ③entry 청크 해시 일치를 확인하는 검증 스텝과, 실패 시 GitHub 이슈를 자동 생성하는 `notify-failure` job을 추가했다. 운영 CloudFront를 직접 curl로 실측한 결과 `x-cache: RefreshHit`(매 요청 오리진 재검증)로 동작 중임을 확인해, 평범한 새로고침이 강력 새로고침과 실질적으로 동일하게 동작함도 함께 검증했다.
   (`vite.config.ts`, `src/vite-env.d.ts`, `src/shared/config/build-info.ts`(신규), `src/shared/utils/build-info.util.ts`(신규), `src/shared/hooks/useDeployedBuildInfo.ts`(신규), `src/pages/version/VersionPage.tsx`(신규), `src/app/routes/index.tsx`, `src/shared/config/route-paths.ts`, `src/shared/config/texts.ts`, `src/main.tsx`, `.github/workflows/deploy.yml`, `docs/BUILD-VERSION.md`(신규), `docs/DEPLOY.md`, `docs/CI-CHECK-GATE.md`, `docs/SYSTEM-ARCHITECTURE.md`, `docs/NEW-VERSION-RELOAD.md`, `docs/plans/2026-09-20-build-version.md`(신규), [PR #134](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/134))
 
+- `infra` Storybook을 기존 S3+CloudFront 배포로 공개 호스팅
+  <details><summary>배경·구현</summary>
+
+  `shared/ui` 43개 컴포넌트가 이미 Storybook 스토리 100%(153개 케이스)를 갖추고 CI에서 axe a11y 게이트까지 통과하고 있었지만, 이를 배포하는 워크플로가 없어 로컬 `pnpm storybook`으로만 볼 수 있었다. 기존 S3 버킷의 `storybook/` 접두사 + 같은 CloudFront 배포를 재사용해 `/storybook/` 경로에 공개했다. `deploy.yml`에 job을 얹지 않고 별도 워크플로(`deploy-storybook.yml`)로 분리했다 — `paths` 필터가 워크플로 단위라, 합치면 `.storybook/**` 변경만으로도 앱 프로덕션 배포와 전역(`/*`) 캐시 무효화가 함께 돌기 때문이다. 기존 `deploy.yml`의 `--delete` sync가 이 접두사를 지우지 않도록 `--exclude`를 추가했고(가드 없이 두면 다음 FE 배포 때 방금 올린 Storybook이 통째로 삭제된다), `infra/cloudfront-functions/spa-fallback.js`(SPA 라우팅 폴백)에 `/storybook` 분기를 추가했다 — 이 함수는 확장자 없는 모든 요청을 `/index.html`로 리라이트해서, 분기가 없으면 공개 URL 전체가 앱 화면으로 리다이렉트된다. 계획 단계에서는 `vite.config.ts`의 `base: '/'`가 Storybook 빌드에 상속돼 `/storybook/` 하위에서 자산 경로가 깨질 것으로 가정했으나, 실제로 `.storybook/main.ts`가 그 설정 파일을 import하지 않아 상속되지 않고 Storybook 10.1의 정적 빌드가 기본적으로 상대경로(`./assets/...`)를 생성한다는 걸 로컬 정적 서버로 `/storybook/` 서빙을 재현해 확인해, 계획에 있던 `base` 오버라이드 코드는 추가하지 않았다. Figma 토큰 이식은 이번 범위에서 제외했다 — 무료 Starter 플랜이 변수 모드(variable modes)를 지원하지 않아 이 레포의 라이트/다크 2모드 토큰을 무료로 이식할 수 없기 때문이다. Chromatic·GitHub Pages도 검토했으나 각각 "화면 먼저, 그다음 반영"(사후 시각 회귀 미채택) 결정과의 충돌, 배포 경로 이원화를 이유로 기각했다(`docs/DECISIONS.md` 2026-09-20 항목).
+  (`.github/workflows/deploy-storybook.yml`(신규), `.github/workflows/deploy.yml`, `.github/workflows/ci.yml`, `infra/cloudfront-functions/spa-fallback.js`, `package.json`, `docs/DEPLOY.md`, `docs/CI-CHECK-GATE.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-20-storybook-public-deploy.md`(신규), `README.md`, [PR #131](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/131))
+
   </details>
 
 - `shared` 빈 상태 문구를 위한 `EmptyState` 컴포넌트 신설
@@ -103,6 +109,14 @@
   </details>
 
 ### Fixed
+
+- `shared` 다크모드 토글이 next-themes를 우회해 새로고침하면 풀리고 토스트 테마가 어긋나던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  Navbar 테마 토글 버튼이 `next-themes`의 `setTheme()` 대신 `document.documentElement.classList.toggle('dark')`로 DOM을 직접 조작하고 있었다. `next-themes` 0.4.6 번들을 직접 디코드해 확인한 결과 이 우회로 세 가지 문제가 있었다: ① `localStorage['linksphere:theme']`에 저장되지 않아 새로고침하면 시스템 기본값으로 풀림, ② `sonner.tsx`가 `useTheme()`으로 읽는 내부 상태는 여전히 `'system'`이라 sonner가 OS를 따라가 토스트만 반대 테마로 렌더됨, ③ (조사 중 추가로 발견) 내부 상태가 `'system'`으로 남아 OS 테마가 바뀌면 수동으로 켠 다크가 아무 조작 없이 풀림. `setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')`로 교체했다 — `defaultTheme="system"`이라 `theme`은 신규 사용자에게 항상 `'system'`이라서, `theme` 기준으로 판정하면 OS가 다크인 사용자의 첫 클릭이 다크→다크로 무반응처럼 보인다(두 번 눌러야 라이트로 감). 이 레포는 Vite SPA(SSR 없음)이고 아이콘 전환이 Tailwind `dark:` variant(순수 CSS)라 next-themes 공식 문서가 권장하는 `mounted` hydration 가드는 근거([next-themes README](https://github.com/pacocoursey/next-themes) — _"we cannot know the `theme` on the server"_)가 SSR 한정이라 넣지 않았다. 이 수정으로 다크 선택이 새로고침 후에도 남게 되면서 새로 드러나는 흰 화면 번쩍임(FOUC)을 막기 위해 `index.html` head에 `localStorage`를 동기적으로 읽어 `<html>`에 `.dark`를 미리 붙이는 인라인 스크립트를 추가했다 — 그 안의 스토리지 키 문자열은 `STORAGE_KEYS.THEME`과 별도로 하드코딩되므로, `storage-keys.test.ts`가 두 값의 일치를 가드한다.
+  (`src/widgets/layout/navbar/ui/Navbar.tsx`, `src/widgets/layout/navbar/ui/Navbar.test.tsx`(신규), `src/shared/config/storage-keys.test.ts`(신규), `index.html`, `docs/plans/2026-09-20-navbar-theme-toggle-next-themes.md`(신규), [PR #132](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/132))
+
+  </details>
 
 - `shared` og:image 썸네일 로드 실패 시 재마운트마다 재요청돼 콘솔 에러 누적·외부 rate limit 소진하던 문제 수정
   <details><summary>배경·구현</summary>
