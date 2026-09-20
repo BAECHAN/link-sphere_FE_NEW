@@ -31,7 +31,7 @@
   <details><summary>배경·구현</summary>
 
   `FolderRow`가 체크 아이콘을 선택된 행에만 렌더해, `gap-3`(12px) + 아이콘(16px)만큼 그 행의 개수 숫자만 왼쪽으로 밀려 다른 행과 어긋나 보였다. 모든 행에 체크 자리(`h-4 w-4`)를 항상 렌더하고 내용만 조건부로 바꾸는 방식으로 고쳤다 — 이 레포의 기존 선례인 `shared/ui/atoms/select.tsx`의 `SelectItem`(`pr-8` + `absolute right-2`)과 같은 "자리 미리 확보" 접근이다.
-  (`src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`)
+  (`src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, [PR #148](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/148))
 
   </details>
 
