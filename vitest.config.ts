@@ -61,6 +61,7 @@ export default defineConfig({
         'src/**/*.test.{ts,tsx}',
         'src/main.tsx',
         'src/vite-env.d.ts',
+        'src/shared/api/generated/**',
       ],
     },
   },

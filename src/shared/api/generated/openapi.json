@@ -1,0 +1,2406 @@
+{
+  "components": {
+    "schemas": {
+      "AccountResponse": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "role"],
+        "type": "object"
+      },
+      "ApiResponseAccountResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AccountResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponseBatchResultResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BatchResultResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponseBookmarkFoldersResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BookmarkFoldersResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponseCategoryResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CategoryResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponseCommentResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CommentResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponseEmailAvailabilityResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/EmailAvailabilityResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponseFolderListResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FolderListResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponseFolderResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FolderResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponseListCategoryResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryResponse"
+            },
+            "type": "array"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponseListCommentResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CommentResponse"
+            },
+            "type": "array"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponseMapStringBoolean": {
+        "properties": {
+          "data": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponseMyCommentPageResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/MyCommentPageResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponseNicknameAvailabilityResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/NicknameAvailabilityResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponsePostPageResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PostPageResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponsePostResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PostResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponseTokenResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TokenResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponseUnit": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Unit"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "ApiResponseUploadUrlResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UploadUrlResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
+      "BatchDeleteBookmarksRequest": {
+        "properties": {
+          "postIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["postIds"],
+        "type": "object"
+      },
+      "BatchFolderBookmarksRequest": {
+        "properties": {
+          "postIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["postIds"],
+        "type": "object"
+      },
+      "BatchResultResponse": {
+        "properties": {
+          "processedCount": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": ["processedCount"],
+        "type": "object"
+      },
+      "BookmarkFoldersResponse": {
+        "properties": {
+          "folderIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "isBookmarked": {
+            "type": "boolean"
+          },
+          "postId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": ["folderIds", "isBookmarked", "postId"],
+        "type": "object"
+      },
+      "CategoryResponse": {
+        "properties": {
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "name"],
+        "type": "object"
+      },
+      "CommentAuthor": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "nickname"],
+        "type": "object"
+      },
+      "CommentResponse": {
+        "properties": {
+          "author": {
+            "$ref": "#/components/schemas/CommentAuthor"
+          },
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "isDeleted": {
+            "type": "boolean"
+          },
+          "isLiked": {
+            "type": "boolean"
+          },
+          "likeCount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "linkMetadata": {
+            "$ref": "#/components/schemas/LinkMetadata"
+          },
+          "replies": {
+            "items": {
+              "$ref": "#/components/schemas/CommentResponse"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "author",
+          "content",
+          "createdAt",
+          "id",
+          "isDeleted",
+          "isLiked",
+          "likeCount",
+          "replies"
+        ],
+        "type": "object"
+      },
+      "CreateCommentRequest": {
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "images": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CreateFolderRequest": {
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": ["name"],
+        "type": "object"
+      },
+      "DeleteFcmTokenRequest": {
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": ["token"],
+        "type": "object"
+      },
+      "EmailAvailabilityResponse": {
+        "properties": {
+          "available": {
+            "type": "boolean"
+          }
+        },
+        "required": ["available"],
+        "type": "object"
+      },
+      "FolderListResponse": {
+        "properties": {
+          "folders": {
+            "items": {
+              "$ref": "#/components/schemas/FolderResponse"
+            },
+            "type": "array"
+          },
+          "uncategorizedCount": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": ["folders", "uncategorizedCount"],
+        "type": "object"
+      },
+      "FolderResponse": {
+        "properties": {
+          "bookmarkCount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": ["bookmarkCount", "id", "name", "sortOrder"],
+        "type": "object"
+      },
+      "LinkMetadata": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "ogImage": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": ["title", "url"],
+        "type": "object"
+      },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": ["email", "password"],
+        "type": "object"
+      },
+      "MyCommentPageResponse": {
+        "properties": {
+          "content": {
+            "items": {
+              "$ref": "#/components/schemas/MyCommentResponse"
+            },
+            "type": "array"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "page": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "size": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "totalElements": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "totalPages": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": ["content", "last", "page", "size", "totalElements", "totalPages"],
+        "type": "object"
+      },
+      "MyCommentResponse": {
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "postId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "postTitle": {
+            "type": "string"
+          }
+        },
+        "required": ["content", "createdAt", "id", "postId", "postTitle"],
+        "type": "object"
+      },
+      "NicknameAvailabilityResponse": {
+        "properties": {
+          "available": {
+            "type": "boolean"
+          }
+        },
+        "required": ["available"],
+        "type": "object"
+      },
+      "PostCreateRequest": {
+        "properties": {
+          "bookmark": {
+            "type": "boolean"
+          },
+          "categoryIds": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "folderIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "isPrivate": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": ["bookmark", "isPrivate", "url"],
+        "type": "object"
+      },
+      "PostPageResponse": {
+        "properties": {
+          "content": {
+            "items": {
+              "$ref": "#/components/schemas/PostResponse"
+            },
+            "type": "array"
+          },
+          "correctedSearch": {
+            "type": "string"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "page": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "size": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "totalElements": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "totalPages": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": ["content", "last", "page", "size", "totalElements", "totalPages"],
+        "type": "object"
+      },
+      "PostResponse": {
+        "properties": {
+          "aiStatus": {
+            "enum": ["NONE", "PENDING", "COMPLETED", "FAILED"],
+            "type": "string"
+          },
+          "aiSummary": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryResponse"
+            },
+            "type": "array"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "isPrivate": {
+            "type": "boolean"
+          },
+          "ogImage": {
+            "type": "string"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/PostStats"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "userInteractions": {
+            "$ref": "#/components/schemas/PostUserInteractions"
+          }
+        },
+        "required": [
+          "aiStatus",
+          "author",
+          "categories",
+          "id",
+          "isPrivate",
+          "stats",
+          "title",
+          "url",
+          "userInteractions"
+        ],
+        "type": "object"
+      },
+      "PostStats": {
+        "properties": {
+          "bookmarkCount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "commentCount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "likeCount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "viewCount": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": ["bookmarkCount", "commentCount", "likeCount", "viewCount"],
+        "type": "object"
+      },
+      "PostUpdateRequest": {
+        "properties": {
+          "categoryIds": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "isPrivate": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": ["isPrivate"],
+        "type": "object"
+      },
+      "PostUserInteractions": {
+        "properties": {
+          "bookmarkFolderIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "isBookmarked": {
+            "type": "boolean"
+          },
+          "isLiked": {
+            "type": "boolean"
+          }
+        },
+        "required": ["bookmarkFolderIds", "isBookmarked", "isLiked"],
+        "type": "object"
+      },
+      "PostVisibilityUpdateRequest": {
+        "properties": {
+          "isPrivate": {
+            "type": "boolean"
+          }
+        },
+        "required": ["isPrivate"],
+        "type": "object"
+      },
+      "RegisterFcmTokenRequest": {
+        "properties": {
+          "platform": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": ["platform", "token"],
+        "type": "object"
+      },
+      "ReorderFoldersRequest": {
+        "properties": {
+          "folderIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["folderIds"],
+        "type": "object"
+      },
+      "SignupRequest": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "nickname": {
+            "maxLength": 20,
+            "minLength": 2,
+            "pattern": "^[a-zA-Z0-9가-힣_.-]*$",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 20,
+            "minLength": 8,
+            "pattern": "^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).*$",
+            "type": "string"
+          }
+        },
+        "required": ["email", "nickname", "password"],
+        "type": "object"
+      },
+      "TokenResponse": {
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          }
+        },
+        "required": ["accessToken"],
+        "type": "object"
+      },
+      "Unit": {
+        "type": "object"
+      },
+      "UpdateAccountRequest": {
+        "properties": {
+          "image": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateFolderRequest": {
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": ["name"],
+        "type": "object"
+      },
+      "UploadUrlRequest": {
+        "properties": {
+          "fileExtension": {
+            "type": "string"
+          }
+        },
+        "required": ["fileExtension"],
+        "type": "object"
+      },
+      "UploadUrlResponse": {
+        "properties": {
+          "publicUrl": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "uploadUrl": {
+            "type": "string"
+          }
+        },
+        "required": ["publicUrl", "token", "uploadUrl"],
+        "type": "object"
+      },
+      "UserSummary": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          }
+        },
+        "required": ["id"],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "bearerFormat": "JWT",
+        "name": "bearerAuth",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "로컬 개발용 API 문서. 운영 Lambda 에는 Swagger UI 가 포함되지 않는다(스펙 JSON 만).\n\n- 성공 응답은 모두 `ApiResponse<T>`(status·message·data·timestamp)로 감싼다.\n- 실패 응답은 모두 `ErrorResponse`(status·code·message·timestamp)다. code 는 대문자 SNAKE_CASE(예: POST_NOT_FOUND).\n- 자물쇠가 붙은 API 는 Authorization: Bearer <accessToken> 이 필요하다. 누락·만료·위조 시 401(NOT_LOGGED_IN / TOKEN_EXPIRED / INVALID_TOKEN)이다.\n- 처리되지 않은 예외는 500 INTERNAL_SERVER_ERROR 로 통일된다.\n- 대부분의 API 는 ResponseEntity 를 쓰지 않아 **HTTP 상태가 항상 200** 이다. 본문 status 필드가 201 이어도 HTTP 는 200 이다(예외: POST /auth/signup 만 실제 201).",
+    "title": "Link Sphere API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.0.1",
+  "paths": {
+    "/auth/account": {
+      "get": {
+        "description": "JWT 의 subject(UUID)로 조회한다. 실패: 404 NOT_FOUND(탈퇴 등으로 회원이 없을 때)",
+        "operationId": "getAccount",
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "내 계정 조회",
+        "tags": ["인증"]
+      },
+      "patch": {
+        "description": "nickname·image 만 부분 수정한다(null 인 필드는 유지). 실패: 404 NOT_FOUND · 409 DUPLICATE_MEMBER(닉네임 중복 시에도 이 코드다)",
+        "operationId": "updateAccount",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "내 계정 수정",
+        "tags": ["인증"]
+      }
+    },
+    "/auth/account/nickname-availability": {
+      "get": {
+        "description": "비로그인도 호출할 수 있다. JWT 를 함께 보내면 본인 닉네임은 사용 가능으로 판정한다.",
+        "operationId": "checkNicknameAvailability",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "nickname",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseNicknameAvailabilityResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "닉네임 사용 가능 여부 확인",
+        "tags": ["인증"]
+      }
+    },
+    "/auth/email-availability": {
+      "get": {
+        "description": "가입 화면에서 쓰는 중복 검사. 대소문자를 구분하지 않는다.",
+        "operationId": "checkEmailAvailability",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseEmailAvailabilityResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "이메일 사용 가능 여부 확인",
+        "tags": ["인증"]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "description": "accessToken 은 본문으로, refreshToken 은 HttpOnly·Secure·SameSite=Lax 쿠키(7일)로 내려간다. 실패: 401 INVALID_CREDENTIALS",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTokenResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "로그인",
+        "tags": ["인증"]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "description": "refreshToken 쿠키를 maxAge=0 으로 덮어써 만료시킨다. 서버에 저장된 토큰을 지우지는 않는다.",
+        "operationId": "logout",
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUnit"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "로그아웃",
+        "tags": ["인증"]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "description": "요청 본문이 아니라 refreshToken 쿠키를 읽는다. 성공 시 쿠키도 새로 발급된다. 실패: 401 MISSING_REFRESH_TOKEN(쿠키 없음) · 401 INVALID_REFRESH_TOKEN(만료·위조)",
+        "operationId": "refresh",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "refreshToken",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTokenResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "액세스 토큰 갱신",
+        "tags": ["인증"]
+      }
+    },
+    "/auth/signup": {
+      "post": {
+        "description": "이 API 만 실제 HTTP 201 로 응답한다. 실패: 400 INVALID_INPUT · 409 DUPLICATE_MEMBER · 409 DUPLICATE_NICKNAME",
+        "operationId": "signup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "회원가입",
+        "tags": ["인증"]
+      }
+    },
+    "/bookmark/batch/delete": {
+      "post": {
+        "description": "폴더 구분 없이 북마크 자체를 지운다. 본인 소유가 아닌 postId 는 조용히 무시된다. data.processedCount 는 실제로 삭제된 개수(무시된 것 제외)다.",
+        "operationId": "batchDeleteBookmarks",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchDeleteBookmarksRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBatchResultResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "여러 북마크 일괄 삭제",
+        "tags": ["좋아요·북마크"]
+      }
+    },
+    "/bookmark/batch/folders/{folderId}/add": {
+      "post": {
+        "description": "data.processedCount 는 요청에 담긴 postId 개수 그대로다 — 이미 저장돼 있던 postId 도 포함해서 센다(중복 여부를 걸러내지 않는다).",
+        "operationId": "batchAddBookmarksToFolder",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folderId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchFolderBookmarksRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBatchResultResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "여러 게시글을 폴더에 일괄 추가",
+        "tags": ["좋아요·북마크"]
+      }
+    },
+    "/bookmark/batch/folders/{folderId}/remove": {
+      "post": {
+        "description": "data.processedCount 는 실제로 삭제된 행 수다.",
+        "operationId": "batchRemoveBookmarksFromFolder",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folderId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchFolderBookmarksRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBatchResultResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "여러 게시글을 폴더에서 일괄 제거",
+        "tags": ["좋아요·북마크"]
+      }
+    },
+    "/bookmark/folders": {
+      "get": {
+        "operationId": "getFolders",
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFolderListResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "내 폴더 목록 조회",
+        "tags": ["북마크 폴더"]
+      },
+      "post": {
+        "description": "HTTP 상태는 200 이고 본문 status 필드만 201 이다(ResponseEntity 를 쓰지 않는다). 실패: 400 INVALID_INPUT(이름 공백) · 409 DUPLICATE_FOLDER_NAME",
+        "operationId": "createFolder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFolderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFolderResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "북마크 폴더 생성",
+        "tags": ["북마크 폴더"]
+      }
+    },
+    "/bookmark/folders/reorder": {
+      "patch": {
+        "description": "folderIds 는 본인이 가진 폴더 id 전체를 중복 없이 새 순서로 담아야 한다. 실패: 400 INVALID_INPUT(id 중복·누락·본인 소유 아닌 id 포함)",
+        "operationId": "reorderFolders",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderFoldersRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUnit"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "북마크 폴더 순서 변경",
+        "tags": ["북마크 폴더"]
+      }
+    },
+    "/bookmark/folders/{folderId}": {
+      "delete": {
+        "description": "폴더 소속만 지워지고 북마크 자체(다른 폴더 소속분)는 유지된다. 실패: 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더)",
+        "operationId": "deleteFolder",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folderId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUnit"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "북마크 폴더 삭제",
+        "tags": ["북마크 폴더"]
+      },
+      "patch": {
+        "description": "실패: 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 400 INVALID_INPUT(이름 공백) · 409 DUPLICATE_FOLDER_NAME",
+        "operationId": "updateFolder",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folderId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFolderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFolderResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "북마크 폴더 이름 수정",
+        "tags": ["북마크 폴더"]
+      }
+    },
+    "/bookmark/folders/{folderKey}/posts": {
+      "get": {
+        "description": "folderKey 는 all(전체) · uncategorized(미분류) · 폴더 UUID 중 하나다. 실패: 400 INVALID_INPUT(잘못된 key) · 403 FORBIDDEN(남의 폴더) · 404 FOLDER_NOT_FOUND",
+        "operationId": "getBookmarkedPosts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folderKey",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePostPageResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "폴더별 북마크 게시글 조회",
+        "tags": ["북마크 폴더"]
+      }
+    },
+    "/bookmark/{postId}/folders": {
+      "delete": {
+        "description": "북마크 자체는 유지되고 모든 폴더 소속만 지워진다(미분류로 이동).",
+        "operationId": "clearBookmarkFolders",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "postId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBookmarkFoldersResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "북마크의 폴더 소속 전체 해제",
+        "tags": ["좋아요·북마크"]
+      }
+    },
+    "/bookmark/{postId}/folders/{folderId}": {
+      "delete": {
+        "description": "북마크 자체는 유지되고 그 폴더 소속만 지워진다.",
+        "operationId": "removeBookmarkFolder",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "postId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "folderId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBookmarkFoldersResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "북마크를 폴더에서 제거",
+        "tags": ["좋아요·북마크"]
+      },
+      "post": {
+        "description": "북마크가 안 돼 있었다면 함께 생성한다. 실패: 404 POST_NOT_FOUND · 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더)",
+        "operationId": "addBookmarkFolder",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "postId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "folderId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBookmarkFoldersResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "북마크를 폴더에 추가",
+        "tags": ["좋아요·북마크"]
+      }
+    },
+    "/comment/my": {
+      "get": {
+        "description": "로그인한 사용자가 작성한 댓글을 최신순으로 페이지네이션 조회한다. 삭제된(톰스톤) 댓글은 제외한다. 댓글을 단 뒤 원글이 비공개로 전환되면 본인 소유가 아닌 한 목록에서도 제외된다.",
+        "operationId": "getMyComments",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMyCommentPageResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "내 댓글 목록 조회",
+        "tags": ["댓글"]
+      }
+    },
+    "/comment/{commentId}": {
+      "delete": {
+        "description": "실패: 404 NOT_FOUND(댓글 없음). 작성자가 아니면 403 이 아니라 500 INTERNAL_SERVER_ERROR 로 응답한다(IllegalAccessException 전용 핸들러가 없음 — 알려진 결함, 이 문서화 작업 범위 밖).",
+        "operationId": "deleteComment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "commentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUnit"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "댓글 삭제",
+        "tags": ["댓글"]
+      },
+      "patch": {
+        "description": "실패: 404 NOT_FOUND(댓글 없음) · 400 INVALID_INPUT(이미지 개수·본문 길이 초과). 작성자가 아니거나 이미 삭제된 댓글이면 403/409 가 아니라 500 INTERNAL_SERVER_ERROR 로 응답한다(전용 핸들러 없음 — 알려진 결함, 이 문서화 작업 범위 밖).",
+        "operationId": "updateComment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "commentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCommentResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "댓글 수정",
+        "tags": ["댓글"]
+      }
+    },
+    "/comment/{commentId}/like": {
+      "post": {
+        "description": "이미 눌렀으면 취소된다. data 는 {\"isLiked\": true|false} 한 쌍이다. 실패: 404 POST_NOT_FOUND(글 없음·비공개) · 400 INVALID_INPUT(삭제된 댓글)",
+        "operationId": "likeComment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "commentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMapStringBoolean"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "댓글 좋아요 토글",
+        "tags": ["좋아요·북마크"]
+      }
+    },
+    "/comment/{commentId}/reply": {
+      "post": {
+        "description": "답글의 답글은 허용하지 않는다(최대 depth 1). HTTP 상태는 200 이고 본문 status 필드만 201 이다. 실패: 404 NOT_FOUND(부모 댓글 없음·depth 초과·다른 글의 댓글) · 400 INVALID_INPUT(이미지 개수·본문 길이 초과)",
+        "operationId": "createReply",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "commentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCommentResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "답글 작성",
+        "tags": ["댓글"]
+      }
+    },
+    "/common/category-option": {
+      "get": {
+        "operationId": "getAllCategories",
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListCategoryResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "카테고리 전체 목록 조회",
+        "tags": ["카테고리"]
+      }
+    },
+    "/common/category-option/{slug}": {
+      "get": {
+        "description": "실패: 404 NOT_FOUND",
+        "operationId": "getCategoryBySlug",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCategoryResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "slug 로 카테고리 단건 조회",
+        "tags": ["카테고리"]
+      }
+    },
+    "/fcm/token": {
+      "delete": {
+        "description": "본문 없는 200/401 을 그대로 준다. 실패: 401(JWT subject 를 UUID 로 파싱하지 못했을 때)",
+        "operationId": "deleteToken",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteFcmTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "summary": "FCM 토큰 해제",
+        "tags": ["FCM 토큰"]
+      },
+      "post": {
+        "description": "다른 컨트롤러와 달리 ApiResponse 로 감싸지 않고 본문 없는 200/401 을 그대로 준다. 실패: 401(JWT subject 를 UUID 로 파싱하지 못했을 때)",
+        "operationId": "registerToken",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterFcmTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "summary": "FCM 토큰 등록",
+        "tags": ["FCM 토큰"]
+      }
+    },
+    "/post": {
+      "get": {
+        "description": "category·search·filter·nickname 으로 필터링, page·size 로 페이지네이션한다. JWT 를 보내면 본인의 좋아요·북마크 여부가 응답에 반영된다.",
+        "operationId": "getAllPosts",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "filter",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "nickname",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePostPageResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "게시글 목록 조회",
+        "tags": ["게시글"]
+      },
+      "post": {
+        "description": "URL 을 크롤링해 메타데이터를 추출하고 AI 요약을 비동기로 채운다. HTTP 상태는 200 이고 본문 status 필드만 201 이다. 실패: 400 INVALID_INPUT(URL 형식 오류)",
+        "operationId": "createPost",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePostResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "게시글 등록",
+        "tags": ["게시글"]
+      }
+    },
+    "/post/{id}": {
+      "delete": {
+        "description": "첨부 이미지 정리 후 삭제한다(댓글은 FK cascade). 실패: 404 POST_NOT_FOUND · 403 FORBIDDEN(작성자 아님)",
+        "operationId": "deletePost",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUnit"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "게시글 삭제",
+        "tags": ["게시글"]
+      },
+      "get": {
+        "description": "비공개 글을 작성자 본인이 아닌 사용자가 조회하면(비로그인 포함) 존재 자체를 숨기기 위해 403 이 아니라 404 로 응답한다. 실패: 404 POST_NOT_FOUND",
+        "operationId": "getPostById",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePostResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "게시글 상세 조회",
+        "tags": ["게시글"]
+      },
+      "patch": {
+        "description": "HTTP 상태는 200 이고 본문 status 필드만 201 이 아니라 그대로 200 이다. 실패: 404 POST_NOT_FOUND · 403 FORBIDDEN(작성자 아님)",
+        "operationId": "updatePost",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePostResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "게시글 수정",
+        "tags": ["게시글"]
+      }
+    },
+    "/post/{id}/visibility": {
+      "patch": {
+        "description": "isPrivate 만 바꾼다. 실패: 404 POST_NOT_FOUND · 403 FORBIDDEN(작성자 아님)",
+        "operationId": "updateVisibility",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostVisibilityUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePostResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "게시글 공개 범위 변경",
+        "tags": ["게시글"]
+      }
+    },
+    "/post/{postId}/bookmark": {
+      "post": {
+        "description": "이미 저장했으면 취소되고(모든 폴더 소속도 함께 삭제) 폴더 소속은 초기화된다. data 는 {\"isBookmarked\": true|false} 한 쌍이다. 실패: 404 POST_NOT_FOUND",
+        "operationId": "bookmarkPost",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "postId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMapStringBoolean"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "게시글 북마크 토글",
+        "tags": ["좋아요·북마크"]
+      }
+    },
+    "/post/{postId}/comment": {
+      "get": {
+        "description": "JWT 없이도 호출 가능하다. 비공개 글의 댓글은 작성자만 볼 수 있고, 그 외에는 글이 없는 것처럼 404 로 응답한다. 실패: 404 POST_NOT_FOUND",
+        "operationId": "getComments",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "postId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListCommentResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "댓글 목록 조회",
+        "tags": ["댓글"]
+      },
+      "post": {
+        "description": "HTTP 상태는 200 이고 본문 status 필드만 201 이다. content·images 가 둘 다 비어 있으면 400 이 아니라 404 NOT_FOUND 로 응답한다(IllegalArgumentException 공통 매핑). 실패: 404 POST_NOT_FOUND · 404 NOT_FOUND(내용 없음) · 400 INVALID_INPUT(이미지 개수·본문 길이 초과)",
+        "operationId": "createComment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "postId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCommentResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "댓글 작성",
+        "tags": ["댓글"]
+      }
+    },
+    "/post/{postId}/like": {
+      "post": {
+        "description": "이미 눌렀으면 취소된다. data 는 {\"isLiked\": true|false} 한 쌍이다(스키마에는 additionalProperties 로만 나타난다). 실패: 404 POST_NOT_FOUND",
+        "operationId": "likePost",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "postId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMapStringBoolean"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "게시글 좋아요 토글",
+        "tags": ["좋아요·북마크"]
+      }
+    },
+    "/upload/signed-url": {
+      "post": {
+        "description": "Supabase Storage 서명 URL 을 발급한다(실제 업로드는 클라이언트가 이 URL로 직접 한다). 허용 확장자가 아니면 400 이 아니라 404 NOT_FOUND 로 응답한다(IllegalArgumentException 공통 매핑). 실패: 404 NOT_FOUND(허용되지 않은 확장자)",
+        "operationId": "createSignedUploadUrl",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadUrlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUploadUrlResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "이미지 업로드용 서명 URL 발급",
+        "tags": ["업로드"]
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "description": "북마크를 담는 폴더의 생성·조회·수정·삭제·정렬",
+      "name": "북마크 폴더"
+    },
+    {
+      "description": "기기 푸시 토큰 등록·해제",
+      "name": "FCM 토큰"
+    },
+    {
+      "description": "댓글·답글 작성·조회·수정·삭제",
+      "name": "댓글"
+    },
+    {
+      "description": "회원가입·로그인·토큰 갱신·계정 조회",
+      "name": "인증"
+    },
+    {
+      "description": "게시글 카테고리 옵션 조회",
+      "name": "카테고리"
+    },
+    {
+      "description": "이미지 업로드용 서명 URL 발급",
+      "name": "업로드"
+    },
+    {
+      "description": "게시글·댓글 좋아요, 북마크 토글, 북마크-폴더 소속 관리",
+      "name": "좋아요·북마크"
+    },
+    {
+      "description": "게시글 등록·조회·수정·삭제",
+      "name": "게시글"
+    }
+  ]
+}
