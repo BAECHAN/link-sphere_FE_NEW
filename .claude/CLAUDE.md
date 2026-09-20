@@ -356,11 +356,12 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
 - **Never** 인라인 쿼리 키 → 항상 `<entity>Keys.*` 사용
 - **Never** 인라인 한글 UI 문자열 → 항상 `TEXTS.*` 사용 (ESLint `custom-i18n/no-hardcoded-hangul`가 빌드/pre-commit에서 자동 차단. 보간은 `texts.ts`의 함수형 키 사용 예: `messages.success.bookmarkSavedTo(folderName)`. 예외: 테스트/스토리/`date.util.ts`·`common.util.ts` 로케일 포맷)
 - **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반
-  Tailwind 클래스 사용 (`text-destructive`, `bg-success`, `text-warning` 등). ⚠️ 이 규칙은 다른
-  "Never" 항목과 달리 ESLint로 강제되지 않는다 — grep으로만 확인 가능하다. 2026-09-09 감사에서
+  Tailwind 클래스 사용 (`text-destructive`, `bg-success`, `text-warning` 등). 2026-09-09 감사에서
   `shared/ui/elements/ImageAttachmentField.tsx`·`SearchInput.tsx`, `shared/ui/layouts/AuthLayout.tsx`·
-  `ErrorLayout.tsx`에 raw gray/zinc 팔레트 잔존이 발견돼 같은 날 토큰 기반 클래스로 고쳤다 —
-  ESLint 미강제라 회귀해도 안 잡히니 새 코드에서 색상 클래스를 쓸 때 주의
+  `ErrorLayout.tsx`에 raw gray/zinc 팔레트 잔존이 발견돼 같은 날 토큰 기반 클래스로 고쳤다.
+  2026-09-13부터는 ESLint `custom-tailwind/no-raw-color`(`eslint.config.js`)가 이 규칙을
+  강제한다 — black/white/gray/zinc 등 명명 팔레트 리터럴 클래스를 빌드/pre-commit에서
+  차단하므로, 위 감사에서 발견된 것과 같은 유형의 회귀는 이제 자동으로 잡힌다
 - **Never** 인라인 API 경로 → 항상 `API_ENDPOINTS.*` 사용
 - **Never** feature hook에서 직접 `queryClient.invalidateQueries` → 항상 `.keys.ts` success handlers 사용
 - **Never** 다른 엔티티의 raw 쿼리 키를 재구성해 `queryClient.invalidateQueries`를 직접 호출 → 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()` 래퍼만 사용. 크로스 엔티티 무효화가 필요하면 자기 엔티티의 `.keys.ts`에 `handle<Event>Success` 함수를 만들어 그 안에서 호출한다 (아래 "크로스 엔티티 무효화" 참고)

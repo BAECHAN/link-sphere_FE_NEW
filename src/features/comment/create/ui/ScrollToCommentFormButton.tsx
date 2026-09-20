@@ -1,8 +1,12 @@
-import { RefObject, useEffect, useState } from 'react';
+import { RefObject, useEffect, useRef, useState } from 'react';
 import { MessageSquarePlus } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/shared/ui/atoms/button';
 import { TEXTS } from '@/shared/config/texts';
+import { cn } from '@/shared/lib/tailwind/utils';
+
+// ScrollToTop.tsx와 같은 fade+scale+slide 지속시간(ms) - exit 애니메이션이 끝날
+// 때까지 마운트를 유지하려면 CSS transition 시간과 정확히 맞아야 한다.
+const TRANSITION_MS = 200;
 
 interface ScrollToCommentFormButtonProps {
   targetRef: RefObject<HTMLDivElement>;
@@ -21,6 +25,20 @@ export function ScrollToCommentFormButton({
   onAfterScroll,
 }: ScrollToCommentFormButtonProps) {
   const [isVisible, setIsVisible] = useState(false);
+  // isVisible이 false가 된 뒤에도 exit 애니메이션이 끝날 때까지 DOM에 남겨둔다.
+  const [shouldRender, setShouldRender] = useState(false);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (isVisible) {
+      clearTimeout(hideTimeoutRef.current);
+      setShouldRender(true);
+      return;
+    }
+
+    hideTimeoutRef.current = setTimeout(() => setShouldRender(false), TRANSITION_MS);
+    return () => clearTimeout(hideTimeoutRef.current);
+  }, [isVisible]);
 
   useEffect(
     function trackCommentFormVisibility() {
@@ -61,25 +79,25 @@ export function ScrollToCommentFormButton({
     onAfterScroll?.();
   }
 
+  if (!shouldRender) {
+    return null;
+  }
+
   return (
-    <AnimatePresence>
-      {isVisible && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8, y: 20 }}
-          className="fixed bottom-6 right-6 z-nav"
-        >
-          <Button
-            size="icon"
-            onClick={scrollToCommentForm}
-            className="rounded-full h-12 w-12 shadow-lg bg-primary hover:bg-primary/90 transition-all active:scale-95"
-            aria-label={TEXTS.ariaLabels.scrollToCommentForm}
-          >
-            <MessageSquarePlus className="h-6 w-6" />
-          </Button>
-        </motion.div>
+    <div
+      className={cn(
+        'fixed bottom-6 right-6 z-nav transition-all duration-200',
+        isVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-[0.8] translate-y-5'
       )}
-    </AnimatePresence>
+    >
+      <Button
+        size="icon"
+        onClick={scrollToCommentForm}
+        className="rounded-full h-12 w-12 shadow-lg bg-primary hover:bg-primary/90 transition-all active:scale-95"
+        aria-label={TEXTS.ariaLabels.scrollToCommentForm}
+      >
+        <MessageSquarePlus className="h-6 w-6" />
+      </Button>
+    </div>
   );
 }

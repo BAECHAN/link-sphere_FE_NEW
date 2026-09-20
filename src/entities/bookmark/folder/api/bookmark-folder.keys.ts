@@ -11,7 +11,6 @@ export const bookmarkFolderMutationKeys = {
   create: [...rootKey, 'create'] as const,
   update: (folderId: string) => [...rootKey, 'update', folderId] as const,
   delete: (folderId: string) => [...rootKey, 'delete', folderId] as const,
-  reorder: [...rootKey, 'reorder'] as const,
   addBookmarkFolder: (postId: string) => [...rootKey, 'addBookmarkFolder', postId] as const,
   removeBookmarkFolder: (postId: string) => [...rootKey, 'removeBookmarkFolder', postId] as const,
   clearBookmarkFolders: (postId: string) => [...rootKey, 'clearBookmarkFolders', postId] as const,
@@ -57,11 +56,6 @@ export const handleBookmarkFolderDeleteSuccess = (queryClient: QueryClient) => {
   bookmarkFolderInvalidateQueries.list(queryClient);
   bookmarkFolderInvalidateQueries.postsRoot(queryClient);
   postInvalidateQueries.list(queryClient);
-};
-
-/** 폴더 순서 변경 — 목록만 갱신 */
-export const handleBookmarkFolderReorderSuccess = (queryClient: QueryClient) => {
-  bookmarkFolderInvalidateQueries.list(queryClient);
 };
 
 /**
