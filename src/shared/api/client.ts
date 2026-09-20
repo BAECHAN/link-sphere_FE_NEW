@@ -164,6 +164,16 @@ class ApiClient {
         if (response.status === 401) {
           // 토큰 만료 처리
           if (errorResponse.code === SERVER_ERROR_CODE.TOKEN_EXPIRED) {
+            // refresh로 새로 받은 토큰으로 재시도한 요청이 다시 TOKEN_EXPIRED를 받으면
+            // (서버 시계 오차 등) 더 재시도해도 회복되지 않는다 - 상한 없이 재귀하면
+            // 무한 루프가 될 수 있으므로 1회 재시도 후에는 refresh 실패와 동일하게 처리한다.
+            if (retryCount > 0) {
+              console.error('Token refresh succeeded but retried request still expired');
+              this.refreshSubscribers = [];
+              AuthUtil.clearAll();
+              return new Promise(() => {});
+            }
+
             if (!this.isRefreshing) {
               this.isRefreshing = true;
               try {

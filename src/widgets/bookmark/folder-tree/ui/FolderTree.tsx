@@ -309,11 +309,13 @@ interface InlineCreateFolderInputProps {
 }
 
 function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
-  const { name, setName, isPending, submit, handleKeyDown, handleBlur } =
+  const { name, setName, isPending, submit, handleCancel, handleKeyDown, handleBlur } =
     useInlineCreateFolderInput(onClose);
 
   return (
-    <div className="flex items-center gap-1 px-2 py-1 shrink-0">
+    // 사이드바 폭(w-60 = 240px)에서 [입력][취소][생성] 한 줄은 입력 텍스트 영역이
+    // 66px밖에 안 남아 placeholder가 잘린다 — 입력 위 / 버튼 행 아래로 나눈다.
+    <div className="flex flex-col gap-1 px-2 py-1 shrink-0">
       <Input
         autoFocus
         value={name}
@@ -322,15 +324,31 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
         onKeyDown={handleKeyDown}
         placeholder={TEXTS.bookmark.folder.namePlaceholder}
         disabled={isPending}
-        className="h-7 flex-1"
+        className="h-7 w-full"
       />
-      <Button size="sm" onClick={submit} disabled={!name.trim() || isPending}>
-        {isPending ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          TEXTS.bookmark.folder.createSubmit
-        )}
-      </Button>
+      <div className="flex justify-end gap-1">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7"
+          // 입력이 빈 상태로 취소를 누르면 mousedown이 blur를 먼저 발생시켜 폼이
+          // 언마운트되고 click이 유실된다(handleBlur가 !name일 때 onClose를 호출).
+          // 포커스 이동 자체를 막아 이 경합을 없앤다.
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handleCancel}
+          disabled={isPending}
+        >
+          {TEXTS.buttons.cancel}
+        </Button>
+        <Button size="sm" className="h-7" onClick={submit} disabled={!name.trim() || isPending}>
+          {isPending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            TEXTS.bookmark.folder.createSubmit
+          )}
+        </Button>
+      </div>
     </div>
   );
 }

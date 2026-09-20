@@ -12,6 +12,11 @@ export const useCreateFolderCard = () => {
     onCreated: () => setCreating(false),
   });
 
+  const handleCancel = () => {
+    setCreating(false);
+    setName('');
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     // IME(한글 등) 조합 중 엔터는 무시 — 조합 완료 + Enter 가 동시 발생해 submit 중복 호출되는 것을 방지
     if (e.nativeEvent.isComposing) {
@@ -21,8 +26,7 @@ export const useCreateFolderCard = () => {
       submit();
     }
     if (e.key === 'Escape') {
-      setCreating(false);
-      setName('');
+      handleCancel();
     }
   };
 
@@ -39,6 +43,7 @@ export const useCreateFolderCard = () => {
     setName,
     isPending,
     submit,
+    handleCancel,
     handleKeyDown,
     handleBlur,
   };

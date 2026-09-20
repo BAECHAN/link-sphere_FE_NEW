@@ -1,4 +1,19 @@
 ### 2026-09-20 (FE)
+- 새 폴더 생성 기능 내 취소 버튼 추가 및 ESC 키 입력 시 모달이 즉시 닫히도록 동작 개선 ([#151](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/151))
+
+### 2026-09-20 (FE)
+- 성능 최적화 및 의존성 관리: framer-motion을 CSS transition으로 교체하여 번들 사이즈를 최적화하고, 불필요한 의존성(@tanstack/react-table) 및 미사용 훅·헬퍼를 정리하여 코드베이스를 경량화함.
+- 안정성 개선: 토큰 갱신 재시도 로직에 상한을 설정하여 무한 루프 가능성을 제거함.
+- 빌드 최적화: Vite 청크 분기 설정을 최적화하여 빌드 효율성 개선.
+
+### 2026-09-20 (BE)
+- 게시글 목록 조회 시 발생하던 categories N+1 쿼리 최적화
+- PostService의 타 도메인 의존성을 PostResponseAssembler로 분리하여 결합도 개선
+- 댓글 삭제 및 수정 권한 예외 시 403 Forbidden 응답으로 표준화
+- 미사용 스케줄링 설정 및 로거 제거를 통한 코드 베이스 정리
+- 인프라 배포 문서 및 워크플로 주석 최신화와 OpenAPI 결합 문서화 완료
+
+### 2026-09-20 (FE)
 - 카드 UI 레이아웃 최적화: 제목과 액션 아이콘 간 간섭을 방지하여 텍스트 가독성 향상 ([#150](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/150))
 
 ### 2026-09-20 (FE)

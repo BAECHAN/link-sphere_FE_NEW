@@ -151,6 +151,49 @@ describe('ApiClient — 인증 오류 처리', () => {
   });
 
   // ─────────────────────────────────────────────────────────────
+  // Case 1-2: refresh는 성공했지만 재시도한 요청도 다시 TOKEN_EXPIRED
+  // (서버 시계 오차 등 회복 불가능한 상황) — 상한 없이 재귀하면 무한 루프
+  // ─────────────────────────────────────────────────────────────
+  describe('Case 1-2: refresh 성공 후 재시도한 요청도 다시 TOKEN_EXPIRED', () => {
+    it('refresh를 다시 호출하지 않고 auth 초기화 + 로그인 페이지 이동으로 멈춘다', async () => {
+      let refreshCallCount = 0;
+
+      server.use(
+        // 최초 요청도, 재시도도 항상 401 TOKEN_EXPIRED
+        http.post(COMMENT_HANDLER_URL, () => make401('TOKEN_EXPIRED')),
+        http.post(REFRESH_HANDLER_URL, () => {
+          refreshCallCount++;
+          return HttpResponse.json(
+            {
+              status: 200,
+              message: 'ok',
+              data: { accessToken: 'new-access-token' },
+              timestamp: new Date().toISOString(),
+            },
+            { status: 200 }
+          );
+        })
+      );
+
+      useAuthStore.getState().setAuth('expired-access-token');
+
+      // 요청은 영원히 pending — await하지 않고 side-effect만 검증
+      apiClient.post(COMMENT_PATH, makeCommentFormData());
+
+      await vi.waitFor(() => {
+        expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.AUTH.LOGIN, {
+          replace: true,
+        });
+      });
+
+      // refresh는 1회만 — 재시도 후 다시 실패했다고 refresh를 또 호출하지 않는다
+      expect(refreshCallCount).toBe(1);
+      expect(useAuthStore.getState().accessToken).toBeNull();
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
   // Case 2: Access Token 만료 + Refresh Token도 만료
   // ─────────────────────────────────────────────────────────────
   describe('Case 2: Access Token 만료 + Refresh Token도 만료', () => {

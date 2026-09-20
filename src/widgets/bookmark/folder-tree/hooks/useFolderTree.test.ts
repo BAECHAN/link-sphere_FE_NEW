@@ -104,4 +104,15 @@ describe('useInlineCreateFolderInput', () => {
 
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it('취소하면 입력을 버리고 onClose를 호출한다', () => {
+    const onClose = vi.fn();
+    const { result } = renderHook(() => useInlineCreateFolderInput(onClose), { wrapper: Wrapper });
+
+    act(() => result.current.setName('쓰다 만 이름'));
+    act(() => result.current.handleCancel());
+
+    expect(result.current.name).toBe('');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });

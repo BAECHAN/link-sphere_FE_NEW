@@ -14,7 +14,6 @@ import {
   handleBookmarkFolderChangeSuccess,
   handleBookmarkFolderCreateSuccess,
   handleBookmarkFolderDeleteSuccess,
-  handleBookmarkFolderReorderSuccess,
   handleBookmarkFolderUpdateSuccess,
 } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
 import {
@@ -22,7 +21,6 @@ import {
   BookmarkFolderListResponse,
   BookmarkFolderSort,
   CreateBookmarkFolderRequest,
-  ReorderBookmarkFoldersRequest,
   UpdateBookmarkFolderRequest,
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { POST_PAGE_SIZE } from '@/entities/post/config/post.const';
@@ -153,45 +151,6 @@ export const useDeleteBookmarkFolderMutation = (folderId: string) => {
     meta: { manualErrorHandling: true },
     onSuccess: () => {
       handleBookmarkFolderDeleteSuccess(queryClient);
-    },
-  });
-};
-
-export const useReorderBookmarkFoldersMutation = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationKey: bookmarkFolderMutationKeys.reorder,
-    mutationFn: (payload: ReorderBookmarkFoldersRequest) =>
-      bookmarkFolderApi.reorderBookmarkFolders(payload),
-    meta: { manualErrorHandling: true },
-    onMutate: async (payload) => {
-      await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.list });
-      const previous = queryClient.getQueryData<BookmarkFolderListResponse>(
-        bookmarkFolderKeys.list
-      );
-      if (previous) {
-        const byId = new Map(previous.folders.map((f) => [f.id, f]));
-        const next = payload.folderIds
-          .map((id, idx) => {
-            const f = byId.get(id);
-            return f ? { ...f, sortOrder: idx } : null;
-          })
-          .filter((f): f is NonNullable<typeof f> => f !== null);
-        queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, {
-          ...previous,
-          folders: next,
-        });
-      }
-      return { previous };
-    },
-    onError: (_err, _payload, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(bookmarkFolderKeys.list, context.previous);
-      }
-    },
-    onSuccess: () => {
-      handleBookmarkFolderReorderSuccess(queryClient);
     },
   });
 };

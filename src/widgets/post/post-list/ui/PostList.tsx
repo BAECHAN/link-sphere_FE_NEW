@@ -1,6 +1,5 @@
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { usePostList } from '@/widgets/post/post-list/hooks/usePostList';
 import { PostListSkeleton } from '@/widgets/post/post-list/ui/PostCardSkeleton';
 import { POST_GRID_CLASS } from '@/widgets/post/post-list/config/post-grid.const';
@@ -63,11 +62,12 @@ function PostListContent() {
         </div>
       )}
 
-      <motion.div
+      <div
         className="flex items-end justify-center overflow-hidden"
-        initial={false}
-        animate={{ height: indicatorHeight }}
-        transition={{ duration: isPulling ? 0 : 0.2 }}
+        style={{
+          height: indicatorHeight,
+          transition: isPulling ? 'none' : 'height 200ms ease',
+        }}
         aria-hidden={indicatorHeight === 0}
       >
         {(pullDistance > 0 || isRefetching) && (
@@ -84,7 +84,7 @@ function PostListContent() {
             }
           />
         )}
-      </motion.div>
+      </div>
 
       <div ref={containerRef} style={{ position: 'relative', height: virtualizer.getTotalSize() }}>
         {virtualizer.getVirtualItems().map((virtualRow) => {
