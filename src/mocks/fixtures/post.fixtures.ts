@@ -27,7 +27,7 @@ export const mockPost: Post = {
     isBookmarked: false,
     bookmarkFolderIds: [],
   },
-  createdAt: new Date('2025-01-01T00:00:00.000Z'),
+  createdAt: '2025-01-01T00:00:00.000Z',
   isPrivate: false,
   author: {
     id: mockAccount.id,
