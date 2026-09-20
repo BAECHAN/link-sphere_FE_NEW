@@ -18,6 +18,14 @@ permissions:
   id-token: write # AWS OIDC 인증을 위해 필수입니다.
   contents: read
 
+# main에 연달아 push되면 아래 검증 스텝이 오래된 run의 sha와 방금 다른 run이 올린 라이브
+# 상태를 비교해 성공한 배포를 실패로 오판할 수 있다. cancel-in-progress는 false로 둔다 -
+# ci.yml과 달리 이 워크플로는 aws s3 sync --delete 도중이라 취소하면 버킷이 반쯤 지워진
+# 채로 남을 수 있다(취소가 아니라 대기열).
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -70,6 +78,10 @@ jobs:
           aws s3 cp dist/index.html s3://${{ secrets.S3_BUCKET_NAME }}/index.html \
             --cache-control "no-cache, no-store, must-revalidate" \
             --content-type "text/html"
+          # 배포 식별자 — index.html과 같은 이유로 캐시 비활성화(배포 반영 확인용)
+          aws s3 cp dist/version.json s3://${{ secrets.S3_BUCKET_NAME }}/version.json \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --content-type "application/json"
           # Service Worker — 캐시 없이 서빙 (브라우저가 항상 최신 버전 체크)
           aws s3 cp dist/firebase-messaging-sw.js s3://${{ secrets.S3_BUCKET_NAME }}/firebase-messaging-sw.js \
             --cache-control "no-cache, no-store, must-revalidate" \
@@ -84,6 +96,8 @@ jobs:
           aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete \
             --exclude "index.html" \
             --exclude "firebase-messaging-sw.js" \
+            --exclude "version.json" \
+            --exclude "version.json.gz" \
             --exclude "assets/*" \
             --exclude "fonts/*"
 
@@ -93,3 +107,65 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
             --paths "/*"
+
+      - name: 배포 반영 검증
+        # push 성공과 실제 배포 완료는 다른 사건이다(.claude/CLAUDE.md Critical Rule) -
+        # 실제 CloudFront를 때려서 이번 커밋이 반영됐는지 직접 확인한다.
+        env:
+          SITE_URL: ${{ vars.SITE_URL || 'https://dbw3brui6htwk.cloudfront.net' }}
+        run: |
+          set -euo pipefail
+
+          LOCAL_ENTRY=$(grep -o 'assets/js/index-[A-Za-z0-9_-]*\.js' dist/index.html | head -1)
+          echo "로컬 entry: $LOCAL_ENTRY / 기대 sha: $GITHUB_SHA"
+
+          # 1) /version.json 의 sha 가 이번 커밋인가 - 전파 지연을 감안해 최대 2분 재시도
+          LIVE_SHA=""
+          for i in $(seq 1 12); do
+            LIVE_SHA=$(curl -fsS "$SITE_URL/version.json" | jq -r '.sha' || echo "")
+            if [ "$LIVE_SHA" = "$GITHUB_SHA" ]; then
+              break
+            fi
+            echo "($i/12) 라이브 sha=$LIVE_SHA — 10초 후 재시도"
+            sleep 10
+          done
+          if [ "$LIVE_SHA" != "$GITHUB_SHA" ]; then
+            echo "::error::version.json sha 불일치: live=$LIVE_SHA expected=$GITHUB_SHA"
+            exit 1
+          fi
+
+          # 2) index.html 캐시 헤더 회귀 - no-store 가 깨지면 NEW-VERSION-RELOAD 전제가 무너진다
+          CC=$(curl -fsSI "$SITE_URL/index.html" | tr -d '\r' | grep -i '^cache-control:' || echo "")
+          case "$CC" in
+            *no-store*) echo "cache-control OK: $CC" ;;
+            *)
+              echo "::error::index.html cache-control 에 no-store 없음: '$CC'"
+              exit 1
+              ;;
+          esac
+
+          # 3) 라이브 index.html 의 entry 해시가 방금 빌드한 것과 같은가 (부분 배포 감지)
+          LIVE_ENTRY=$(curl -fsS "$SITE_URL/index.html" | grep -o 'assets/js/index-[A-Za-z0-9_-]*\.js' | head -1)
+          if [ "$LIVE_ENTRY" != "$LOCAL_ENTRY" ]; then
+            echo "::error::entry 청크 불일치: live=$LIVE_ENTRY local=$LOCAL_ENTRY"
+            exit 1
+          fi
+
+          echo "배포 반영 검증 통과: sha=$LIVE_SHA entry=$LIVE_ENTRY"
+
+  notify-failure:
+    needs: deploy
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: 배포 실패 이슈 생성
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --title "배포 실패: ${GITHUB_SHA:0:7} (run #${{ github.run_number }})" \
+            --body "$(printf '커밋: %s\n실행 로그: %s\n\n확인 순서는 docs/DEPLOY.md 의 "배포 반영 검증하는 법" 절 참고.' "$GITHUB_SHA" "$RUN_URL")"
