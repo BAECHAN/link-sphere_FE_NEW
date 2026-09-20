@@ -8,7 +8,7 @@
 > 각각 어떻게 그 값과 동기화되는지, `@카테고리`·`#닉네임` 태그가 어떻게 분해되는지 이해하고,
 > 검색 관련 동작(유지·초기화·오타 보정)을 어느 파일에서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-09-17
+> **마지막 검토**: 2026-09-21
 
 ## 1. 쉬운 설명
 
@@ -210,8 +210,49 @@ URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 수정(mutate)하
 막았다(React 18.2라 JSX `inert` prop 대신 ref로 DOM 프로퍼티를 직접 설정 —
 [facebook/react#24730](https://github.com/facebook/react/pull/24730)).
 
+**태그 붙여쓰기(`@a@b`)가 조용히 0건이 됨 → 태그 경계 규칙 도입.** 사용자가 `@라이프스타일`과
+`@데이터`를 띄어 쓰면 정상 동작하는데, 붙여 쓴 `@라이프스타일@데이터`는 결과가 0건이라고
+보고했다. 원인은 `search-parser.ts`의 옛 정규식 `/@(\S+)/`·`/#(\S+)/`가 `\S`(공백이 아닌 모든
+문자)를 태그 값으로 삼아, 다음 `@`/`#`에서 멈추지 않고 `라이프스타일@데이터` 전체를 하나의
+카테고리 값으로 읽었기 때문이다 — 그런 카테고리는 DB에 없으니 BE(`PostRepositoryImpl.kt:110-145`)가
+`200 OK` + 0건을 돌려줬다. BE는 에러를 내지 않으므로(검증 애노테이션 없음) 이건 순수 FE 파싱
+문제였다.
+
+고치기 전 "제출 시 자동으로 띄워주기"(사용자 입력을 정규화해 URL에 반영)를 검토했으나,
+조사 결과 사용자가 친 검색어를 제품이 고쳐 쓰는 선례를 찾지 못해 채택하지 않았다. 자리 잡은
+제품들은 공백을 **요구**하고 어기면 평문으로 폴백한다 — GitHub 코드 검색 문서:
+_"All parts of a search ... must be separated from one another with spaces"_,
+_"code search will try to guess what you mean. It often falls back on treating that
+component of your query as the exact text to search for."_
+([GitHub Docs](https://docs.github.com/en/search-github/github-code-search/understanding-github-code-search-syntax)).
+Twitter의 공식 파서(`twitter-text`)도 붙여 쓰면 아예 추출하지 않는다 — 적합성 테스트에
+`description: "DO NOT extract a hashtag without a preceding space"`, `expected: []`
+([conformance/extract.yml](https://github.com/twitter/twitter-text/blob/master/conformance/extract.yml)).
+문법을 가르치는 관례적 수단은 입력을 고쳐 쓰는 게 아니라 경고·자동완성이었다 — GitHub 이슈
+필터 문서: _"As you type your filter, GitHub will show available qualifiers, suggest values,
+and warn when there is a problem with your filter."_
+([GitHub Docs](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/filtering-and-searching-issues-and-pull-requests)).
+
+그래서 **입력은 그대로 두고 파서만 관대하게 고쳤다.** 태그를 "문자열 시작이나 공백 뒤에서만
+시작하고, 다음 공백 또는 다음 `@`/`#`에서 끝난다"로 재정의해(`TAG_RUN`/`TAG_TOKEN`,
+`search-parser.ts`) `@a@b`를 `['@a', '@b']`로 올바르게 분해했다. 같은 규칙으로 기존에
+"알려진 동작(버그)"으로 테스트에 박제돼 있던 오탐 2건도 함께 풀렸다 — `hong@example.com`이
+더 이상 `category: 'example.com'`으로 잘못 잡히지 않고, 단어 중간의 `a#b`도 더 이상 `nickname:
+'b'`로 잡히지 않는다. 카테고리 칩 클릭 시 재조립하던 `PostListSearch.tsx`의 같은 정규식
+사본도 새 유틸(`extractSearchTags`)로 교체해 규칙을 한 곳에서만 관리하게 했다.
+
+조사 과정에서 BE `nickname` 필터의 별도 버그도 발견했다 — 아래 "남은 것" 참고.
+
 ## 11. 남은 것
 
+- **닉네임을 2개 이상 지정하면 결과가 0건이 된다.** FE는 `#철수 #영희`를
+  `nickname=철수,영희`로 콤마 join해 보내는데(`search-parser.ts`), BE
+  `PostRepositoryImpl.kt:153-168`은 이 값을 `split(",")` 하지 않고 `LIKE '%철수,영희%'`
+  통째로 검색한다 — 닉네임에 콤마가 든 계정이 없으니 0건이 된다. 같은 파일의 `category`
+  필터(`:110-145`)는 `split(",").map{trim()}.filter{isNotEmpty()}` 후 `OR`로 묶어 정상
+  처리하므로, `nickname`도 그 형태를 따라가면 될 것으로 보인다. BE 레포에서 별도로 다룰 것
+  — 2026-09-21 조사 시점 `nickname`엔 `trim()`도 없고, `getAllPosts`/`buildPredicates` 경로
+  전체에 테스트가 없었다(`src/test`에서 참조 0건).
 - 데스크톱 헤더 검색 제출이 `addRecentSearch`를 호출하지 않아 최근 검색어를 기록하지
   않는다(모바일 전용 UI라 지금까지 안 보였다).
 - 데스크톱 제출(`navigate('/post?q=X')`)이 기존 `filter`(북마크/내글/비공개 칩) 파라미터를

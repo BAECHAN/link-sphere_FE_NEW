@@ -47,6 +47,13 @@
   <details><summary>배경·구현</summary>
 
   다크모드 버튼·필터 칩을 눌렀는데 "안 반영된 것처럼" 보인다는 제보를 실제 화면 녹화 영상으로 받아 20fps로 프레임을 뜯어 배경색을 픽셀 단위로 직접 측정했다 — 2초 안에 7번 토글이 찍혔는데, 알고 보니 그 클릭들은 사용자가 문제 재현을 위해 의도적으로 빠르게 여러 번 누른 것이었다(짝수 번 누르면 원래 상태로 되돌아가는 토글의 정의 그 자체). 처음엔 마우스 스위치 채터링(사람이 낼 수 없는 속도)만 걸러내는 8ms 가드로 좁혀 잡았으나, 사용자가 원한 건 "사람이 손으로 하는 무의식적인 빠른 재클릭"을 막는 것이었다 — 요구사항 자체가 하드웨어 결함 방지에서 "의식적으로 결과를 인지하고 다시 누른 것과 무의식적으로 두 번 눌린 것을 구분"하는 쪽으로 바뀌었다. 이 구분에 쓰이는 업계 표준값을 확인해 Windows의 더블클릭 속도 기본값(500ms, [Wikipedia](https://en.wikipedia.org/wiki/Double-click) 인용 Microsoft MSDN)으로 올렸다 — 사람의 단순 시각 반응시간(평균 200~273ms, [관련 리서치 종합](https://www.orangeneurosciences.ca/guide/reaction-time-average))보다 충분히 여유 있게 크면서, "즉시 재클릭 = 하나의 제스처로 볼지"를 가르는 OS 자체의 기준과 같다. 이 변경으로 "즉시 재클릭하면 정확히 취소된다"는 기존 테스트 2개(`Navbar.test.tsx`, `usePostList.test.tsx` 시나리오 C)의 기대값 자체가 "즉시 재클릭 = 무시, 500ms 이후 재클릭 = 취소"로 바뀌었다 — 사용자가 이 트레이드오프를 명시적으로 승인했다. 각 테스트에 "충분한 시간 뒤 재클릭하면 정상 취소된다"는 동반 테스트를 추가했고, 실제 브라우저로 200ms 재클릭(무시됨)·550ms 뒤 재클릭(정상 취소)을 실측 확인했다.
+- `post` 검색어에서 `@카테고리`·`#닉네임` 태그를 붙여 쓰면(`@a@b`) 결과가 0건이 되던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  `@라이프스타일 @데이터`처럼 띄어 쓰면 정상 동작하는데 붙여 쓴 `@라이프스타일@데이터`는 결과가 0건이라는 사용자 제보로 발견했다. 원인은 `search-parser.ts`의 옛 정규식 `/@(\S+)/`·`/#(\S+)/`가 다음 `@`/`#`에서 멈추지 않고 `라이프스타일@데이터` 전체를 하나의 카테고리 값으로 읽었기 때문이다 — 그런 카테고리는 DB에 없어 BE가 `200 OK` + 0건을 돌려줬다(검증 애노테이션 없는 순수 FE 파싱 버그). "제출 시 자동으로 띄워주기"(사용자 입력을 정규화해 URL에 반영)도 검토했으나, 사용자가 친 검색어를 제품이 고쳐 쓰는 선례를 찾지 못해(GitHub·Twitter는 공백을 요구하고 어기면 평문 폴백/미추출) 입력은 그대로 두고 파서만 태그 경계("문자열 시작이나 공백 뒤에서 시작, 다음 공백 또는 다음 `@`/`#`에서 끝")를 명확히 해 고쳤다. 같은 규칙으로 `hong@example.com`이 `category: 'example.com'`으로, `a#b`가 `nickname: 'b'`로 잘못 잡히던 기존 오탐도 함께 해소됐다.
+  (`src/widgets/post/post-list/utils/search-parser.ts`, `src/widgets/post/post-list/utils/search-parser.test.ts`, `src/widgets/post/post-list/ui/PostListSearch.tsx`, `docs/SEARCH.md`, `docs/plans/2026-09-21-search-tag-boundary.md`(신규), [PR #159](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/159))
+
+  </details>
 
 - `shared` 다크모드에서 필터 칩 등 ghost 버튼 9곳에 호버하면 의도한 색이 아니라 회색으로 덮이던 문제 수정
   <details><summary>배경·구현</summary>
