@@ -38,70 +38,88 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
     useFolderTree(sort, search);
 
   return (
-    <aside className={cn('flex flex-col gap-1 py-2', className)}>
-      <FixedItem
-        icon={<FolderIcon className="h-4 w-4" />}
-        label={TEXTS.bookmark.folder.all}
-        selected={selectedKey === 'all'}
-        onClick={() => onSelect('all')}
-        onPrefetch={() => prefetchFolder('all')}
-      />
-      <FixedItem
-        icon={<Inbox className="h-4 w-4" />}
-        label={TEXTS.bookmark.folder.uncategorized}
-        count={uncategorizedCount}
-        selected={selectedKey === 'uncategorized'}
-        onClick={() => onSelect('uncategorized')}
-        onPrefetch={() => prefetchFolder('uncategorized')}
-      />
+    <aside className={cn('flex flex-col gap-1 overflow-hidden py-2', className)}>
+      {/* 전체·미분류·최근 저장한 폴더 — 목록이 아무리 길어져도 스크롤되지 않고 상단 고정 */}
+      <div className="flex shrink-0 flex-col gap-1">
+        <FixedItem
+          icon={<FolderIcon className="h-4 w-4" />}
+          label={TEXTS.bookmark.folder.all}
+          selected={selectedKey === 'all'}
+          onClick={() => onSelect('all')}
+          onPrefetch={() => prefetchFolder('all')}
+        />
+        <FixedItem
+          icon={<Inbox className="h-4 w-4" />}
+          label={TEXTS.bookmark.folder.uncategorized}
+          count={uncategorizedCount}
+          selected={selectedKey === 'uncategorized'}
+          onClick={() => onSelect('uncategorized')}
+          onPrefetch={() => prefetchFolder('uncategorized')}
+        />
 
-      <div className="my-1 border-t" />
+        <div className="my-1 border-t" />
 
-      {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 */}
-      {recentFolderList.length > 0 && (
-        <>
+        {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 */}
+        {recentFolderList.length > 0 && (
+          <>
+            <div className="px-3 pt-1 pb-1 text-group-label text-muted-foreground">
+              {TEXTS.bookmark.folder.recentSection}
+            </div>
+            {recentFolderList.map((folder) => (
+              <FolderItem
+                key={`recent-${folder.id}`}
+                folder={folder}
+                selected={selectedKey === folder.id}
+                onClick={() => onSelect(folder.id)}
+                onDeleted={() => onSelect('all')}
+                onPrefetch={() => prefetchFolder(folder.id)}
+              />
+            ))}
+            <div className="my-1 border-t" />
+          </>
+        )}
+
+        {/* 새 폴더 만들기 — 상단 고정(2026-09-22). 폴더 선택 모달(BookmarkFolderSelectModal)이
+            2026-09-11에 같은 이유(생성 발견성)로 이미 헤더 바로 아래에 두고 있다. Polaris
+            디자인 시스템도 스크롤되는 긴 목록에서는 add 액션을 헤더에 두라고 권고한다
+            (https://github.com/Shopify/polaris-react/pull/11796/files). */}
+        <CreateFolderInput />
+
+        <div className="my-1 border-t" />
+
+        {/* "내 폴더" 라벨 — 섹션 헤더처럼 상단에 고정한다. 스크롤 영역엔 폴더 행만 남긴다
+            (2026-09-22) — 전에는 라벨이 스크롤 영역 안에 있어 스크롤하면 라벨도 같이
+            밀려 올라갔다. */}
+        {(folderList?.length ?? 0) > 0 && (
           <div className="px-3 pt-1 pb-1 text-group-label text-muted-foreground">
-            {TEXTS.bookmark.folder.recentSection}
+            {TEXTS.bookmark.folder.myFolders}
           </div>
-          {recentFolderList.map((folder) => (
-            <FolderItem
-              key={`recent-${folder.id}`}
-              folder={folder}
-              selected={selectedKey === folder.id}
-              onClick={() => onSelect(folder.id)}
-              onDeleted={() => onSelect('all')}
-              onPrefetch={() => prefetchFolder(folder.id)}
-            />
-          ))}
-          <div className="my-1 border-t" />
-        </>
-      )}
+        )}
+      </div>
 
-      {/* 내 폴더 — 위 "최근 저장한 폴더"와 겹치더라도 그대로 중복 표시한다 */}
-      {(folderList?.length ?? 0) > 0 && (
-        <div className="px-3 pt-1 pb-1 text-group-label text-muted-foreground">
-          {TEXTS.bookmark.folder.myFolders}
+      {/* 내 폴더 — 위 "최근 저장한 폴더"와 겹치더라도 그대로 중복 표시한다. 폴더가 많아 패널
+          높이를 넘으면 이 구획만 자체 스크롤한다(2026-09-21, docs/BOOKMARK.md §10 참고 —
+          전에는 페이지 전체를 끝까지 내려야 아랫부분이 보였다). */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="flex flex-col gap-1">
+          {isLoading ? (
+            <DelayedFallback className="flex items-center justify-center py-4">
+              <Spinner />
+            </DelayedFallback>
+          ) : (
+            folderList?.map((folder) => (
+              <FolderItem
+                key={folder.id}
+                folder={folder}
+                selected={selectedKey === folder.id}
+                onClick={() => onSelect(folder.id)}
+                onDeleted={() => onSelect('all')}
+                onPrefetch={() => prefetchFolder(folder.id)}
+              />
+            ))
+          )}
         </div>
-      )}
-
-      {isLoading ? (
-        <DelayedFallback className="flex items-center justify-center py-4">
-          <Spinner />
-        </DelayedFallback>
-      ) : (
-        folderList?.map((folder) => (
-          <FolderItem
-            key={folder.id}
-            folder={folder}
-            selected={selectedKey === folder.id}
-            onClick={() => onSelect(folder.id)}
-            onDeleted={() => onSelect('all')}
-            onPrefetch={() => prefetchFolder(folder.id)}
-          />
-        ))
-      )}
-
-      <CreateFolderInput />
+      </div>
     </aside>
   );
 }

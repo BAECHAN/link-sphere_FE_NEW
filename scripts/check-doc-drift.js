@@ -9,6 +9,15 @@
 // 커밋하지 않고 트래킹 이슈 본문의 마커 주석에만 저장한다 — 이 워크플로는 절대
 // 레포에 쓰기 작업을 하지 않는다.
 //
+// 기준 미달(누적<5)일 때는 이슈 본문의 대시보드(진행도·마지막 확인 커밋·갱신 시각)만
+// 갱신하고 댓글은 달지 않는다 — 그 상태는 console.log로 Actions run 로그에도 남는다.
+// 실제 검사가 도는 경량 감사 때도 문제(check:docs 실패 또는 dangling 발견)가 있을 때만
+// 댓글을 남기고, 통과하면 댓글 없이 본문만 갱신한다(2026-09-14~21 — push마다 달던
+// "확인함 — 누적 N/5" 하트비트가 트래킹 이슈 댓글의 84%를 차지해 한 차례 "통과해도
+// 항상 댓글" 방식으로 정리했으나, 이 레포 평균 병합 속도(최근 17일 하루 ~6.3개)로는
+// 그 방식도 3년 뒤 약 1,380개 댓글로 같은 스크롤 문제를 재발시킨다는 걸 확인해
+// openapi-drift-check.yml과 같은 "문제 있을 때만" 패턴으로 다시 정리했다).
+//
 // 한계: 이 스크립트는 "삭제된 export/파일 경로가 여전히 참조되는가"만 기계적으로
 // 본다. 산문 서술·다이어그램이 의미적으로만 낡은 경우(예: 2026-09-14
 // FE-ARCHITECTURE.md 사례 — 파일은 존재하고 줄 번호도 파일 범위 안인데 서술 내용이
@@ -25,6 +34,7 @@ const LABEL = 'doc-drift-check';
 const ISSUE_TITLE = '[자동] 문서-코드 정합성 경량 점검 트래커';
 const STATE_RE =
   /<!--\s*doc-drift-state:\s*last_checked_sha=([0-9a-f]+),\s*merges_since_audit=(\d+)\s*-->/;
+const LAST_AUDIT_MARKER = '<!-- last-audit -->';
 const MERGE_COMMIT_RE = /\(#\d+\)\s*$/;
 const WATCHED_PATHS = ['src/entities/', 'src/shared/config/texts.ts'];
 
@@ -49,12 +59,70 @@ function tempFile(content) {
   return file;
 }
 
-function buildStateBody(lastCheckedSha, mergesSinceAudit) {
-  return [
+function formatTimestamp() {
+  return new Date().toISOString().replace('T', ' ').slice(0, 16);
+}
+
+// 본문의 '<!-- last-audit -->' 이후를 그대로 잘라 다음 buildBody 호출에 넘긴다 — 감사가
+// 안 도는 기준 미달 구간에도 "마지막 감사가 언제 무엇을 봤는지" 표가 본문에 남는다.
+function extractAuditSection(body) {
+  const index = body.indexOf(LAST_AUDIT_MARKER);
+
+  if (index === -1) {
+    return '';
+  }
+
+  return body.slice(index).trim();
+}
+
+function buildAuditSection({
+  rangeFrom,
+  rangeTo,
+  totalMerges,
+  checkDocsPassed,
+  danglingGroups,
+  commentUrl,
+}) {
+  const lines = [
+    LAST_AUDIT_MARKER,
+    '',
+    '## 마지막 경량 감사',
+    '',
+    '| 항목 | 값 |',
+    '| --- | --- |',
+    `| 실행 시각 | ${formatTimestamp()} UTC |`,
+    `| 확인 범위 | \`${rangeFrom}..${rangeTo}\` (병합 PR ${totalMerges}개) |`,
+    `| \`pnpm check:docs\` | ${checkDocsPassed ? '통과' : '실패'} |`,
+    `| dangling | ${danglingGroups > 0 ? `${danglingGroups}건` : '없음'} |`,
+  ];
+
+  if (commentUrl) {
+    lines.push(`| 리포트 | [댓글 보기](${commentUrl}) |`);
+  }
+
+  return lines.join('\n');
+}
+
+function buildBody(lastCheckedSha, mergesSinceAudit, auditSection) {
+  const lines = [
     `<!-- doc-drift-state: last_checked_sha=${lastCheckedSha}, merges_since_audit=${mergesSinceAudit} -->`,
     '',
+    '## 현재 상태',
+    '',
+    '| 항목 | 값 |',
+    '| --- | --- |',
+    `| 다음 경량 감사까지 | ${mergesSinceAudit}/${THRESHOLD} 병합 |`,
+    `| 마지막 확인 커밋 | \`${lastCheckedSha.slice(0, 7)}\` |`,
+    `| 마지막 갱신 | ${formatTimestamp()} UTC |`,
+    '',
     '이 이슈는 자동화 워크플로(`doc-drift-check.yml`)가 상태를 기록하는 곳입니다. 마커 줄을 사람이 직접 편집하지 마세요.',
-  ].join('\n');
+  ];
+
+  if (auditSection) {
+    lines.push('', auditSection);
+  }
+
+  return lines.join('\n');
 }
 
 function ensureLabel() {
@@ -103,7 +171,7 @@ function findOrCreateIssue(headSha) {
 
   ensureLabel();
 
-  const body = buildStateBody(headSha, 0);
+  const body = buildBody(headSha, 0, '');
   const url = gh([
     'issue',
     'create',
@@ -129,16 +197,6 @@ function parseState(body) {
   }
 
   return { lastCheckedSha: match[1], mergesSinceAudit: Number(match[2]) };
-}
-
-function replaceState(body, lastCheckedSha, mergesSinceAudit) {
-  const marker = `<!-- doc-drift-state: last_checked_sha=${lastCheckedSha}, merges_since_audit=${mergesSinceAudit} -->`;
-
-  if (STATE_RE.test(body)) {
-    return body.replace(STATE_RE, marker);
-  }
-
-  return `${marker}\n\n${body}`;
 }
 
 function countMergedPRs(fromSha, toSha) {
@@ -220,7 +278,15 @@ function runCheckDocs() {
 }
 
 function commentOn(issueNumber, body) {
-  gh(['issue', 'comment', String(issueNumber), '--repo', REPO, '--body-file', tempFile(body)]);
+  return gh([
+    'issue',
+    'comment',
+    String(issueNumber),
+    '--repo',
+    REPO,
+    '--body-file',
+    tempFile(body),
+  ]);
 }
 
 function editBody(issueNumber, body) {
@@ -269,6 +335,7 @@ function runLightweightAudit(issue, state, headSha, totalMerges, subjects) {
   const deletedIdentifiers = findDeletedIdentifiers(state.lastCheckedSha, headSha);
   const deletedFiles = findDeletedFiles(state.lastCheckedSha, headSha);
   const danglingLines = [];
+  let danglingGroups = 0;
 
   for (const identifier of deletedIdentifiers) {
     const hits = grepRepoWide(identifier);
@@ -277,6 +344,7 @@ function runLightweightAudit(issue, state, headSha, totalMerges, subjects) {
       continue;
     }
 
+    danglingGroups += 1;
     danglingLines.push(`- \`${identifier}\`(삭제된 export) — ${hits.length}건 참조 남음:`);
     hits.slice(0, 10).forEach((hit) => danglingLines.push(`  - ${hit}`));
   }
@@ -288,22 +356,42 @@ function runLightweightAudit(issue, state, headSha, totalMerges, subjects) {
       continue;
     }
 
+    danglingGroups += 1;
     danglingLines.push(`- \`${file}\`(삭제된 파일 경로) — ${hits.length}건 참조 남음:`);
     hits.slice(0, 10).forEach((hit) => danglingLines.push(`  - ${hit}`));
   }
 
-  const reportBody = buildDrifReportBody(
-    state,
-    headSha,
-    totalMerges,
-    subjects,
-    checkDocsResult,
-    danglingLines
-  );
+  const hasIssue = !checkDocsResult.passed || danglingGroups > 0;
+  let commentUrl = '';
 
-  commentOn(issue.number, reportBody);
-  editBody(issue.number, replaceState(issue.body, headSha, 0));
-  console.log(`경량 감사 완료 — dangling ${danglingLines.length}건.`);
+  if (hasIssue) {
+    const reportBody = buildDrifReportBody(
+      state,
+      headSha,
+      totalMerges,
+      subjects,
+      checkDocsResult,
+      danglingLines
+    );
+
+    commentUrl = commentOn(issue.number, reportBody);
+  }
+
+  const auditSection = buildAuditSection({
+    rangeFrom: state.lastCheckedSha.slice(0, 7),
+    rangeTo: headSha.slice(0, 7),
+    totalMerges,
+    checkDocsPassed: checkDocsResult.passed,
+    danglingGroups,
+    commentUrl,
+  });
+
+  editBody(issue.number, buildBody(headSha, 0, auditSection));
+  console.log(
+    hasIssue
+      ? `경량 감사 완료 — dangling ${danglingGroups}건, 댓글 등록.`
+      : '경량 감사 완료 — 문제 없음, 댓글 생략.'
+  );
 }
 
 function main() {
@@ -327,7 +415,7 @@ function main() {
 
   if (!state) {
     console.log('이슈 본문에서 상태 마커를 못 찾음 — 지금 HEAD로 재초기화합니다.');
-    editBody(issue.number, buildStateBody(headSha, 0));
+    editBody(issue.number, buildBody(headSha, 0, extractAuditSection(issue.body)));
     return;
   }
 
@@ -340,11 +428,7 @@ function main() {
   const totalMerges = state.mergesSinceAudit + newMerges;
 
   if (totalMerges < THRESHOLD) {
-    commentOn(
-      issue.number,
-      `확인함 — 누적 ${totalMerges}/${THRESHOLD}. 아직 경량 감사 기준 미달, 이번엔 아무 검사도 안 함.`
-    );
-    editBody(issue.number, replaceState(issue.body, headSha, totalMerges));
+    editBody(issue.number, buildBody(headSha, totalMerges, extractAuditSection(issue.body)));
     console.log(`기준 미달(${totalMerges}/${THRESHOLD}) — 검사 없이 상태만 갱신.`);
     return;
   }

@@ -211,8 +211,12 @@ src/
 │   │       ├── model/            # bookmark-folder.dto.ts(응답 타입) + bookmark-folder.schema.ts(폼 검증)
 │   │       ├── config/           # bookmark-folder.const.ts (RECENT_BOOKMARK_FOLDER_COUNT 외)
 │   │       ├── utils/            # bookmark-folder.util.ts (pickRecentFolders)
-│   │       └── hooks/            # useRecentBookmarkFolders.ts (다른 소비처가 있는 순수 데이터 파생 훅만
-│   │                             # entities에 남는다 — 인터랙션 UI는 features/bookmark/select/로 이동)
+│   │       └── hooks/            # useRecentBookmarkFolders.ts (순수 데이터 파생 훅이라 entities에 남는다 —
+│   │                             # 인터랙션 UI는 features/bookmark/select/로 이동. 2026-09-21 기준
+│   │                             # 소비처는 모달(BookmarkFolderSelectModal) 1곳 — 상시 마운트 화면은
+│   │                             # 세션 경계가 없어 이 훅 대신
+│   │                             # widgets/bookmark/folder-tree/hooks/useFolderSections.ts가
+│   │                             # bookmark-folder.util.ts를 직접 호출)
 │   ├── category/
 │   │   ├── api/                  # category.api.ts, category.keys.ts, category.queries.ts
 │   │   ├── model/                # category.dto.ts(응답 타입). category.schema.ts는 기존 import 경로 호환용 re-export만
@@ -800,15 +804,21 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 - **에러**: 전역 에러 핸들러가 자동으로 트리거
 - **성공**: `meta.successMessage` 추가 시 자동 트리거
 
+`meta.successMessage`는 **정적 문자열만** 받는다(`mutationSuccessHandler`,
+`queryClient.ts`). `variables`에 따라 문구가 갈리는 경우(예:
+`useUpdatePostVisibilityMutation`의 공개/비공개 방향)는 그 mutation의
+`onSuccess(data, variables)`에서 `toast.success`를 직접 부르고 `successMessage`는
+비워 둔다 — 둘 다 넣으면 두 번 뜬다.
+
 ---
 
 ## 15. Mutation/Query Meta 옵션
 
-| 키                    | 타입      | 효과                                                    |
-| --------------------- | --------- | ------------------------------------------------------- |
-| `successMessage`      | `string`  | 자동으로 성공 토스트 표시                               |
-| `errorMessage`        | `string`  | 기본 대신 커스텀 에러 토스트 표시                       |
-| `manualErrorHandling` | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용) |
+| 키                    | 타입      | 효과                                                                 |
+| --------------------- | --------- | -------------------------------------------------------------------- |
+| `successMessage`      | `string`  | 자동으로 성공 토스트 표시 (정적 문자열만 — 분기 필요 시 위 §14 예외) |
+| `errorMessage`        | `string`  | 기본 대신 커스텀 에러 토스트 표시                                    |
+| `manualErrorHandling` | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용)              |
 
 ---
 

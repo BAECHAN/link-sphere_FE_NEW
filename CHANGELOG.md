@@ -17,6 +17,14 @@
   framer-motion 사용처가 `ScrollToTop`·`ScrollToCommentFormButton`·`PostList`(pull-to-refresh 인디케이터) 3곳뿐인데, 번들 실측 결과(`dist/stats.html`) 앱 코드 다음으로 큰 덩어리(gzip 122KB, motion-dom 포함)를 차지하고 있었다. 세 곳 모두 fade+scale+slide 또는 height 애니메이션으로 CSS만으로 표현 가능해 라이브러리 전체를 제거했다. `AnimatePresence`의 exit 애니메이션은 `isVisible`이 꺼진 뒤에도 전환(200ms)이 끝날 때까지 DOM에 남겨두는 `shouldRender` 상태로 대체했고, opacity/scale(0.8)/translate-y(20px) 값은 기존과 동일하게 맞췄다. Storybook으로 등장/퇴장/클릭 스크롤을 검증했다(`pnpm dev`의 실제 앱 페이지는 이 작업과 무관한 기존 Firebase 설정 오류로 렌더되지 않아 격리 검증으로 대체).
   (`src/shared/ui/elements/ScrollToTop.tsx`, `src/features/comment/create/ui/ScrollToCommentFormButton.tsx`, `src/widgets/post/post-list/ui/PostList.tsx`, `package.json`, [PR #143](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/143))
 
+### Added
+
+- `post` 게시물 공개/비공개 전환 시 방향별 성공 토스트 표시
+  <details><summary>배경·구현</summary>
+
+  나만 보기 토글은 성공해도 아무 피드백이 없었다 — 실패 시에만 에러 토스트가 떴다. 시각적 피드백은 카드 우상단 자물쇠 아이콘 하나뿐인데 렌더 조건이 `isOwner && post.isPrivate`라 공개로 전환하면 아이콘이 아예 사라지고, 낙관적 업데이트도 없어 재조회가 끝나야 반영되며 주 진입점인 드롭다운은 그 전에 닫힌다 — "토글은 아이콘 전환으로 즉시 보인다"는 기존 전제가 이 케이스엔 맞지 않았다. 방향별 문구(`postSetToPrivate`/`postSetToPublic`)를 추가하고, `meta.successMessage`가 정적 문자열만 지원해 분기가 불가능한 점과 목록이 가상 스크롤(`PostList`, `BookmarkPostList`)이라 위젯 훅의 `mutate(vars, { onSuccess })`는 카드가 화면 밖으로 스크롤되면 언마운트로 스킵될 수 있는 점을 근거로, entities mutation의 `onSuccess(data, variables)`에서 직접 `toast.success`를 호출했다.
+  (`src/entities/post/api/post.queries.ts`, `src/shared/config/texts.ts`, `src/entities/post/api/post.queries.test.ts`, `e2e/post-visibility.spec.ts`, `.claude/skills/texts-conventions/SKILL.md`, `docs/FE-ARCHITECTURE.md`, `docs/TESTING.md`, `docs/plans/2026-09-21-post-visibility-toast.md`(신규))
+
   </details>
 
 ### Fixed
@@ -26,6 +34,62 @@
 
   `client.ts`의 401 TOKEN_EXPIRED 처리에서 `retryCount`가 선언·전달만 되고 실제 상한 검사를 받지 않고 있었다(`docs/AUTH.md` §11에 알려진 이슈로 기록돼 있었음). refresh가 성공한 뒤 재시도한 요청이 다시 TOKEN_EXPIRED를 받으면(서버 시계 오차 등 회복 불가능한 상황) 상한 없이 재귀 호출이 반복될 수 있었다. `retryCount > 0`이면(이미 한 번 재시도한 요청이 또 만료됐다면) refresh를 다시 호출하지 않고 기존 refresh-실패 경로와 동일하게 `clearAll()` + 영구 pending으로 합류하도록 가드를 추가했다. 같은 세션에서 BE 소스를 확인해 `docs/AUTH.md` §11의 다른 항목(만료된 Authorization 헤더로 `/auth/refresh`를 호출하는 것)도 무해함이 확정돼 함께 갱신했다.
   (`src/shared/api/client.ts`, `src/shared/api/client.test.ts`, `docs/AUTH.md`, [PR #143](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/143))
+
+- `post` 카드 제목이 소유자 액션 아이콘에 가려 일찍 줄바꿈되던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  내 비공개 글 카드에서 제목이 오른쪽 자물쇠·케밥 아이콘 그룹과 별도 컬럼으로 상단 고정돼 있어, 아이콘 아래 66~76px가 빈 채로 남고 제목만 그만큼 좁아진 폭으로 일찍 줄바꿈됐다. 헤더를 2열 그리드(`grid-cols-[1fr_auto]`)로 바꿔 제목에 `col-span-2`를 줘 카드 가로폭을 온전히 쓰게 하고, 자물쇠·케밥은 작성자 메타 행과 같은 첫 행 우측 칸으로 옮겼다 — 아이콘은 음수 마진으로 헤더 높이 기여분을 상쇄해 카드 높이 증가를 막았다. 자물쇠를 아이콘 버튼 그대로 위치만 옮기는 안과 "나만 보기" 텍스트 배지로 바꾸는 안을 실제 Tailwind 클래스로 나란히 비교해 전자를 채택했다 — 원클릭 토글과 `title`/`aria-label`/`h3` 등 기존 e2e 계약을 하나도 건드리지 않기 때문이다. 소유자가 아닌 카드는 아이콘 컬럼 자체가 렌더되지 않아 기존에 낭비되던 8px 여백도 함께 없어졌다.
+  (`src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-list/ui/PostCardSkeleton.tsx`, `docs/plans/2026-09-21-postcard-header-title-width.md`(신규), [PR #150](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/150))
+
+  </details>
+
+- `bookmark` 사이드바·모바일 그리드의 최근 저장한 폴더가 저장 후 새로고침 전까지 갱신 안 되던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  폴더를 새로 만들고 미분류 글을 그 폴더로 옮겨도, 데스크톱 사이드바(`FolderTree`)와 모바일 폴더 그리드(`MobileFolderList`)의 "최근 저장한 폴더" 구획이 새로고침 전까지 옛 순서 그대로였다. React Query 무효화는 정상이었고, 원인은 `useRecentBookmarkFolders`의 세션 스냅샷 — 두 화면이 스냅샷을 다시 찍을 `sessionKey`를 넘기지 않아 세션 경계 자체가 생기지 않았던 것이었다. 모달(`BookmarkFolderSelectModal`)은 열림 상태를 `sessionKey`로 넘겨 원래부터 정상이었다. 두 화면만 스냅샷 없이 `pickRecentFolders`를 매 렌더 직접 호출하도록 바꿨다 — 모달은 순서 고정(split menu 공간기억)을 그대로 유지한다. 세 화면 전부 해제하거나 mutation cache 기반으로 "저장 직후에만" 재배열하는 대안도 검토했으나 각각 등록 폼 모달의 오탭 위험, mutation cache GC로 인한 재발 위험이 있어 채택하지 않았다.
+  (`src/widgets/bookmark/folder-tree/hooks/useFolderSections.ts`, `src/entities/bookmark/folder/hooks/useRecentBookmarkFolders.ts`, `src/widgets/bookmark/folder-tree/hooks/useFolderSections.test.ts`(신규), `docs/BOOKMARK.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-21-bookmark-folder-sidebar-fixes.md`(신규))
+
+  </details>
+
+- `bookmark` 사이드바에서 폴더가 많으면 아랫부분에 스크롤로 도달할 수 없던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  데스크톱 사이드바에서 폴더가 많으면 "내 폴더" 아랫부분을 보려면 페이지 전체 스크롤을 끝까지 내려야 했다 — `sticky` 포지셔닝만 있고 자체 스크롤이 없었기 때문이다. `BookmarkFolderSelectModal`이 2026-09-11에 같은 문제를 겪고 정한 선례(목록만 스크롤, 상시 노출돼야 할 행은 고정)를 그대로 재사용했다: 전체·미분류·최근 저장한 폴더는 상단 고정, "내 폴더" 목록만 자체 스크롤, "새 폴더 만들기"는 하단 고정. 실제 Tailwind 클래스를 그대로 쓴 정적 목업으로 "패널 전체 스크롤" 안과 나란히 비교한 뒤 이 구조로 확정했다. 구현 중 사이드바의 `sticky top-4`가 상단 내비게이션 바와 44px 겹치는 기존 버그(이번 변경으로 만든 게 아님)를 Playwright 실측으로 발견해 `top` 오프셋도 함께 조정했다.
+  (`src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/pages/bookmark/BookmarkPage.tsx`, `.claude/skills/responsive-ux/SKILL.md`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-21-bookmark-folder-sidebar-fixes.md`(신규))
+
+  </details>
+
+- `bookmark` 폴더 선택 모달에서 선택된 행만 개수 숫자가 밀리던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  `FolderRow`가 체크 아이콘을 선택된 행에만 렌더해, `gap-3`(12px) + 아이콘(16px)만큼 그 행의 개수 숫자만 왼쪽으로 밀려 다른 행과 어긋나 보였다. 모든 행에 체크 자리(`h-4 w-4`)를 항상 렌더하고 내용만 조건부로 바꾸는 방식으로 고쳤다 — 이 레포의 기존 선례인 `shared/ui/atoms/select.tsx`의 `SelectItem`(`pr-8` + `absolute right-2`)과 같은 "자리 미리 확보" 접근이다.
+  (`src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, [PR #148](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/148))
+
+  </details>
+
+### Changed
+
+- `bookmark` 최근 저장한 폴더 노출 조건을 "폴더 6개 이상"에서 "본 목록과 완전 일치하지 않을 때"로 변경
+  <details><summary>배경·구현</summary>
+
+  기존 노출 조건 중 하나였던 "전체 폴더 6개 이상"의 근거를 다시 확인한 결과, 코드 주석 한 줄이 유일한 설명이고 비교·확정한 문서가 없어 출처 미상이었다. 최근 구획은 최대 3개까지만 보여주므로 "최근 구획 = 본 목록"이 되는 지점은 전체 폴더가 정확히 3개일 때뿐이라는 점을 확인하고, 그 완전 일치 케이스만 예외로 숨기도록 바꿨다 — 같은 항목이 정렬 순서만 다르게 두 번 노출되면 사용자가 중복임을 알아차리지 못해 두 목록을 모두 훑게 된다는 NN/g 연구를 근거로 삼았다. 결과적으로 폴더 3개 이하는 안 뜨고 4개부터(그중 3개 이상 저장 이력이 있으면) 뜬다 — 이전(6개부터)보다 이른 시점부터 노출되는 부수 효과가 있다.
+  (`src/entities/bookmark/folder/config/bookmark-folder.const.ts`, `src/entities/bookmark/folder/utils/bookmark-folder.util.ts`, `src/entities/bookmark/folder/utils/bookmark-folder.util.test.ts`(신규), `src/entities/bookmark/folder/hooks/useRecentBookmarkFolders.test.ts`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`)
+
+  </details>
+
+- `bookmark` 사이드바 "내 폴더" 라벨을 상단 고정, "새 폴더 만들기"를 하단에서 상단으로 이동
+  <details><summary>배경·구현</summary>
+
+  "내 폴더" 라벨이 스크롤 영역 안에 있어 스크롤하면 폴더 행과 함께 밀려 올라갔고, "새 폴더 만들기"는 하단에 있어 폴더가 많으면 끝까지 스크롤해야 눌렀다. 폴더 선택 모달(`BookmarkFolderSelectModal.tsx`)이 2026-09-11에 이미 같은 고민을 하고 "새 폴더 만들기"를 헤더 바로 아래(상단)에 두기로 결정했는데("생성 발견성 최상" 근거, 하단 안은 모바일 파괴 액션 엄지 노출 때문에 기각), 사이드바 스크롤을 만들 때는 이 구조만 가져오고 정확한 위치는 따로 비교하지 않은 채 하단으로 뒀었다. Shopify Polaris 디자인 시스템도 스크롤되는 긴 목록에서는 add 액션을 헤더에 두라고 권고해([근거](https://github.com/Shopify/polaris-react/pull/11796/files)) 상단으로 재배치했다. "내 폴더" 라벨도 상단 고정 블록으로 옮기고 스크롤 영역엔 폴더 행만 남겼다.
+  (`src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`)
+
+  </details>
+
+- `infra` doc-drift 트래킹 이슈 하트비트 댓글 제거, 본문을 상태 대시보드로 재구성
+  <details><summary>배경·구현</summary>
+
+  `doc-drift-check.yml` 트래킹 이슈([#99](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/99))에서 push마다 달리던 "확인함 — 누적 N/5" 하트비트 댓글이 댓글 44개 중 37개(84%)를 차지해 최신 감사 결과를 보려면 매번 끝까지 스크롤해야 했다. 임계값 미달 구간에서는 댓글을 달지 않고 이슈 본문만 갱신하도록 바꾸고, 매 실행 덮어쓰면서도 마커 2줄뿐이던 본문을 "현재 상태"(다음 감사까지 진행도·마지막 확인 커밋·갱신 시각)와 "마지막 경량 감사"(확인 범위·`pnpm check:docs` 결과·dangling 건수·리포트 댓글 링크) 두 표로 구성된 대시보드로 재구성했다. 경량 감사가 실제로 도는 임계값(5회) 도달 시점의 리포트 댓글은 처음엔 통과해도 항상 남기도록 정리했으나, 이 레포 평균 병합 속도(최근 17일 하루 ~6.3개)로는 그 방식도 3년 뒤 약 1,380개 댓글로 같은 스크롤 문제를 재발시킨다는 걸 확인해, `openapi-drift-check.yml`과 같은 "check:docs 실패 또는 dangling 발견 시에만 댓글" 패턴으로 다시 정리했다(minimize한 댓글도 GitHub에서 줄 하나를 그대로 차지해 스크롤을 줄이지 못한다는 점도 이 과정에서 확인했다). grep 기반 감사 로직·워크플로 트리거(`doc-drift-check.yml`)는 그대로 둔다.
+  (`scripts/check-doc-drift.js`)
 
   </details>
 

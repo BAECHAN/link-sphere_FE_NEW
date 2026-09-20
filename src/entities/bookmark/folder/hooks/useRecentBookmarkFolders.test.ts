@@ -41,15 +41,6 @@ describe('useRecentBookmarkFolders', () => {
     expect(result.current.recentFolderList.map((f) => f.id)).toEqual(['f6', 'f5', 'f4']);
   });
 
-  it('폴더가 6개 미만이면 임계값 미달로 빈 배열을 반환한다', () => {
-    const folders = [1, 2, 3, 4, 5].map((n) =>
-      makeFolder({ id: `f${n}`, lastUsedAt: `2025-01-0${n}` })
-    );
-    const { result } = renderHook(() => useRecentBookmarkFolders(folders, false));
-
-    expect(result.current.recentFolderList).toEqual([]);
-  });
-
   it('사용 이력이 있는 폴더가 3개 미만이면 폴더 총수가 많아도 빈 배열을 반환한다', () => {
     const folders = [
       makeFolder({ id: 'f1', lastUsedAt: '2025-01-01' }),

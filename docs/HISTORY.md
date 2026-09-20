@@ -1,3 +1,25 @@
+### 2026-09-20 (BE)
+- 게시글 목록 조회 시 발생하던 categories N+1 쿼리 최적화
+- PostService의 타 도메인 의존성을 PostResponseAssembler로 분리하여 결합도 개선
+- 댓글 삭제 및 수정 권한 예외 시 403 Forbidden 응답으로 표준화
+- 미사용 스케줄링 설정 및 로거 제거를 통한 코드 베이스 정리
+- 인프라 배포 문서 및 워크플로 주석 최신화와 OpenAPI 결합 문서화 완료
+
+### 2026-09-20 (FE)
+- 카드 UI 레이아웃 최적화: 제목과 액션 아이콘 간 간섭을 방지하여 텍스트 가독성 향상 ([#150](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/150))
+
+### 2026-09-20 (FE)
+- 공개범위 토글 기능에 따른 상태별 성공 토스트 메시지 알림 로직 구현 ([#149](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/149))
+
+### 2026-09-20 (FE)
+- 폴더 선택 모달 내 행 선택 시 카운트 수치가 어긋나는 UI 동기화 문제 해결 ([#148](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/148))
+
+### 2026-09-20 (FE)
+- 사이드바 폴더 라벨 고정 및 새 폴더 생성 위치 상단 배치로 UI/UX 개선 ([#147](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/147))
+
+### 2026-09-20 (FE)
+- 사이드바 최근 저장 폴더 데이터 갱신 로직 보완 및 스크롤 영역 레이아웃 최적화 ([#145](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/145))
+
 ### 2026-09-20 (FE)
 - MSW 기본 핸들러 설정 최적화 및 API 요청 경로 오류 수정 ([#141](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/141))
 

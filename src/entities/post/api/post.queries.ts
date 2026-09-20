@@ -8,6 +8,7 @@ import {
   type QueryClient,
 } from '@tanstack/react-query';
 import { postApi } from '@/entities/post/api/post.api';
+import { toast } from '@/shared/lib/toast/toast';
 import {
   CreatePost,
   Post,
@@ -326,7 +327,17 @@ export const useUpdatePostVisibilityMutation = (postId: string) => {
     meta: {
       errorMessage: TEXTS.messages.error.postVisibilityUpdateFailed,
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      // 방향별 문구라 meta.successMessage(정적 문자열만 지원, queryClient.ts:86-97)로는
+      // 표현할 수 없어 여기서 직접 toast.success를 호출한다. 목록(PostList.tsx:89,
+      // BookmarkPostList.tsx:57)이 가상 스크롤이라 카드가 화면 밖으로 스크롤되면
+      // widget hook의 mutate(vars, { onSuccess })는 언마운트로 스킵될 수 있어
+      // entities mutation 레벨에서 처리한다.
+      toast.success(
+        variables.isPrivate
+          ? TEXTS.messages.success.postSetToPrivate
+          : TEXTS.messages.success.postSetToPublic
+      );
       handlePostUpdateSuccess(queryClient, postId);
       handlePostContentUpdateSuccess(queryClient);
     },
