@@ -46,7 +46,3 @@ export const handleCommentUpdateSuccess = (queryClient: QueryClient, postId: Pos
   commentInvalidateQueries.list(queryClient, postId);
   commentInvalidateQueries.my(queryClient);
 };
-
-export const handleCommentMutateSuccess = (queryClient: QueryClient, postId: Post['id']) => {
-  commentInvalidateQueries.list(queryClient, postId);
-};

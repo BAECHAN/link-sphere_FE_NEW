@@ -1,5 +1,4 @@
 import {
-  useInfiniteQuery,
   useMutation,
   useSuspenseInfiniteQuery,
   useSuspenseQuery,
@@ -95,43 +94,6 @@ export const useCreatePostMutation = () => {
       if (variables.bookmark || variables.folderIds.length > 0) {
         handleBookmarkToggleSuccess(queryClient);
       }
-    },
-  });
-};
-
-export const useFetchPostListQuery = (
-  payload?: Pick<PostListRequest, 'search' | 'category' | 'filter' | 'nickname'>
-) => {
-  return useInfiniteQuery({
-    queryKey: postKeys.list(payload),
-    queryFn: ({ pageParam }: { pageParam: PaginationRequest['page'] }) => {
-      return postApi.fetchPostList({
-        page: pageParam,
-        size: POST_PAGE_SIZE,
-        search: payload?.search,
-        category: payload?.category,
-        nickname: payload?.nickname,
-        filter: payload?.filter,
-      });
-    },
-    initialPageParam: 0,
-    getNextPageParam: (lastPage) => {
-      if (lastPage.last) {
-        return undefined;
-      }
-      return lastPage.page + 1;
-    },
-    select: (data) => {
-      const seen = new Set<string>();
-      const posts = data.pages
-        .flatMap((page) => page.content)
-        .filter((post) => (seen.has(post.id) ? false : seen.add(post.id) && true));
-      return {
-        pages: data.pages,
-        pageParams: data.pageParams,
-        posts,
-        totalElements: data.pages[0]?.totalElements ?? 0,
-      };
     },
   });
 };
