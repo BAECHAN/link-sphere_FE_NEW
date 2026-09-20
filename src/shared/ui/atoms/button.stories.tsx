@@ -9,7 +9,7 @@ const meta = {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['default', 'destructive', 'outline', 'secondary', 'ghost', 'link'],
+      options: ['default', 'destructive', 'outline', 'secondary', 'ghost', 'link', 'none'],
     },
     size: {
       control: 'select',
@@ -63,6 +63,15 @@ export const Link: Story = {
   args: {
     variant: 'link',
     children: 'Link',
+  },
+};
+
+// 호버해도 색이 변하지 않는 variant — 배경·글자색을 호출부가 정하는 FilterChip 같은
+// 컴포넌트용이라 여기선 배경 없이 렌더된다(base의 레이아웃·포커스 링은 그대로 적용).
+export const None: Story = {
+  args: {
+    variant: 'none',
+    children: 'None',
   },
 };
 

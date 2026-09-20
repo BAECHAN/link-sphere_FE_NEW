@@ -10,7 +10,7 @@
 > 토큰 카탈로그를 어떻게 보는지, Storybook a11y 게이트가 CI에서 어떻게 도는지 안다.
 > spacing 토큰은 왜 없는지, 지금 아는 a11y 위반이 뭐고 왜 아직 안 고쳤는지도 안다.
 >
-> **마지막 검토**: 2026-09-16
+> **마지막 검토**: 2026-09-21
 
 ## 1. 쉬운 설명
 
@@ -386,6 +386,23 @@ a11y 게이트가 첫 실행에서 바로 잡아냈다. 고침: `--color-<name>`
 PR을 닫을 때 그 PR이 해소한 문제를 언급하는 다른 문서(§11 같은)를 갱신하는 절차가
 없었던 게 근본 원인이다.
 
+**"전부 해소됨"이라고 적은 PR #85의 `FilterChip` 호버 수정이 실은 라이트 모드
+한정이었다.** 당시 방식은 `Button`의 ghost variant가 주는 호버 클래스를 호출부
+`activeClassName`의 `hover:bg-X hover:text-X-foreground`로 twMerge를 이용해
+덮어쓰는 것이었다. `hover:bg-*`는 같은 modifier 그룹이라 지워지지만, ghost가
+함께 주는 `dark:hover:bg-accent/50`은 modifier 그룹이 달라(`dark:hover:` vs
+`hover:`) twMerge가 못 지우고 그대로 남았다 — CSS 특이성도 `@custom-variant dark
+(&:is(.dark *))`가 얹는 `:is(.dark *)` 한 단계 때문에 다크 쪽이 이겨서, 다크모드
+활성 칩이 호버 시 흰 배경(`--primary`)에서 회색(`accent/50`)으로 덮이고 글자
+(`--primary-foreground`, 검정)와 거의 구분이 안 됐다. 같은 구조의 버그가
+`variant="ghost"` + `className`으로 `hover:bg-*`를 덮는 다른 8곳(`FolderTree`
+칩, `PostCard` AI 요약 토글·댓글 수 버튼, `BookmarkFolderSelectModal` 삭제 행,
+`LikePostButton`, `CommentForm` 프리뷰 토글, `RecentSearchPanel`, `UserAvatar`)
+에도 있었다. 2026-09-21, 덮어쓰기로 지우는 대신 호버 스타일이 애초에 없는
+`none` variant를 `button.tsx`에 추가해 9곳 전부 해소했다 — `FilterChip`과
+`FolderTree`의 비활성/비선택 분기처럼 호버 배경의 출처가 ghost뿐이던 곳은
+같은 커밋에 `hover:bg-accent`/`hover:text-foreground`를 명시로 보완했다.
+
 ## 11. 남은 것
 
 - **타이포그래피 역할 층·화면 치환·a11y CI 게이트 전부 완료**: 2026-09-16
@@ -489,7 +506,11 @@ Storybook a11y 게이트가 실측한 4개 토큰의 라이트 모드 대비 미
   의도 vs 16px 실제 렌더링 버그(`button.tsx`의 CSS 명시도 문제), 페이지 제목·빈
   상태 여백 통일, `FilterChip`의 호버 불일치 버그 — 이 절이 2026-09-13에 "발견만
   하고 제외"로 적어둔 뒤 갱신되지 않았는데, 실제로는 하루 뒤 PR #85에서 전부
-  고쳐졌다(브라우저 검증 포함, 변경 내용은 그 PR의 커밋 메시지 참고).
+  고쳐졌다(브라우저 검증 포함, 변경 내용은 그 PR의 커밋 메시지 참고). **단,
+  `FilterChip` 호버 수정은 라이트 모드 한정이었다** — 다크모드는 2026-09-21에
+  별도로 해소됐다(§10의 "전부 해소됨이라고 적은 PR #85의 `FilterChip` 호버 수정이
+  실은 라이트 모드 한정이었다" 문단 참고). 같은 구조의 버그를 가진 ghost 버튼
+  8곳도 이때 함께 고쳤다.
 - **shadcn 커스텀 레지스트리**: 다른 프로젝트로 토큰·컴포넌트를 이식하는 실제
   인프라는 이번에 만들지 않았다 — §5의 "재사용성" 구분만 남겨뒀다.
 

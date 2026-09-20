@@ -51,9 +51,9 @@ export function RecentSearchPanel({
                 <li key={query} className="flex items-center gap-2 px-4 py-3 hover:bg-accent">
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="none"
                     onClick={() => onSelect(query)}
-                    className="h-auto flex-1 justify-start truncate p-0 text-left text-sm hover:bg-transparent"
+                    className="h-auto flex-1 justify-start truncate p-0 text-left text-sm"
                   >
                     {query}
                   </Button>

@@ -363,13 +363,13 @@ function Chip({ children, selected, onClick }: ChipProps) {
   return (
     <Button
       type="button"
-      variant="ghost"
+      variant="none"
       onClick={onClick}
       className={cn(
         'h-auto shrink-0 rounded-full border px-3 py-1.5 text-sm',
         selected
           ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90'
-          : 'bg-background border-input'
+          : 'bg-background border-input hover:bg-accent'
       )}
     >
       {children}

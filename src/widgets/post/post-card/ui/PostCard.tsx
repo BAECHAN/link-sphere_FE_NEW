@@ -191,7 +191,7 @@ export const PostCard = memo(function PostCard({
           <div className="mb-2 bg-info/10 border border-info/20 rounded-md overflow-hidden block">
             <Button
               type="button"
-              variant="ghost"
+              variant="none"
               onClick={() => setIsAiSummaryExpanded(!isAiSummaryExpanded)}
               className="w-full flex items-center justify-between h-auto p-2 hover:bg-info/15 transition-colors rounded-none"
             >
@@ -281,9 +281,9 @@ export const PostCard = memo(function PostCard({
           <div className="w-px h-3 bg-muted-foreground/20 mx-0.5 md:mx-1" />
           <Link to={`/post/${post.id}`} state={backSource ? { backSource } : undefined}>
             <Button
-              variant="ghost"
+              variant="none"
               size="sm"
-              className="gap-1 md:gap-1.5 text-muted-foreground h-6 md:h-8 px-2 md:px-3 text-micro md:text-sm rounded-full hover:bg-background/80"
+              className="gap-1 md:gap-1.5 text-muted-foreground h-6 md:h-8 px-2 md:px-3 text-micro md:text-sm rounded-full hover:bg-background/80 hover:text-foreground"
             >
               <MessageSquare className={'h-3 w-3 md:h-4 md:w-4'} />
               <span className={'sm:inline'}>{post.stats.commentCount || 0}</span>
