@@ -83,51 +83,44 @@ export const PostCard = memo(function PostCard({
 
       <CardHeader
         className={cn(
-          'p-3 pb-1 flex flex-row items-start justify-between space-y-0',
+          // 제목이 카드 가로폭을 온전히 쓰도록 2열 그리드로 둔다. 소유자 액션(자물쇠·⋮)은
+          // 1행 우측 셀에만 들어간다 - CardAction 슬롯(shared/ui/atoms/card.tsx)은
+          // row-span-2라 두 행 모두에 우측 거터를 예약해버려 이 목적엔 쓸 수 없다.
+          'p-3 pb-1 grid grid-cols-[1fr_auto] items-start space-y-0',
           dimmedClassName
         )}
       >
-        <div className="space-y-1 flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-            <UserAvatar
-              image={author?.image}
-              nickname={author?.nickname}
-              size="sm"
-              className="flex"
-              zoomable
-            />
-            <span className="truncate">{author?.nickname || TEXTS.post.card.anonymous}</span>
-            <span className="text-xs">•</span>
-            <span className="text-xs">{DateUtil.formatRelativeShort(post.createdAt)}</span>
-          </div>
-          <Link
-            to={`/post/${post.id}`}
-            state={backSource ? { backSource } : undefined}
-            className="hover:underline block"
-            onMouseEnter={handlePrefetchDetail}
-            onFocus={handlePrefetchDetail}
-          >
-            <h3 className={cn('text-card-title md:text-t6 mb-0.5', !isDetail && 'line-clamp-3')}>
-              {post.title}
-            </h3>
-          </Link>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+          <UserAvatar
+            image={author?.image}
+            nickname={author?.nickname}
+            size="sm"
+            className="flex"
+            zoomable
+          />
+          <span className="truncate">{author?.nickname || TEXTS.post.card.anonymous}</span>
+          <span className="text-xs shrink-0">•</span>
+          <span className="text-xs shrink-0">{DateUtil.formatRelativeShort(post.createdAt)}</span>
         </div>
 
-        <div className="flex items-center gap-0.5 md:gap-1 shrink-0">
-          {isOwner && post.isPrivate && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 md:h-8 md:w-8"
-              onClick={handleToggleVisibility}
-              disabled={isUpdatingVisibility}
-              title={post.isPrivate ? TEXTS.post.card.makePublic : TEXTS.post.card.makePrivate}
-            >
-              <Lock className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
-            </Button>
-          )}
+        {isOwner && (
+          // 음수 마진으로 아이콘 버튼(28/32px)이 작성자 행(아바타 24px) 높이를 밀어올려
+          // 카드가 커지는 것을 막는다 - 히트 영역은 그대로고 레이아웃 기여분만 줄인다
+          <div className="flex items-center gap-0.5 md:gap-1 shrink-0 -my-0.5 md:-my-1">
+            {post.isPrivate && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 md:h-8 md:w-8"
+                onClick={handleToggleVisibility}
+                disabled={isUpdatingVisibility}
+                title={TEXTS.post.card.makePublic}
+                aria-label={TEXTS.post.card.makePublic}
+              >
+                <Lock className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+              </Button>
+            )}
 
-          {isOwner && (
             <DropdownMenu modal={false} open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -171,8 +164,20 @@ export const PostCard = memo(function PostCard({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
-        </div>
+          </div>
+        )}
+
+        <Link
+          to={`/post/${post.id}`}
+          state={backSource ? { backSource } : undefined}
+          className="col-span-2 hover:underline block"
+          onMouseEnter={handlePrefetchDetail}
+          onFocus={handlePrefetchDetail}
+        >
+          <h3 className={cn('text-card-title md:text-t6 mb-0.5', !isDetail && 'line-clamp-3')}>
+            {post.title}
+          </h3>
+        </Link>
       </CardHeader>
 
       <CardContent className={cn('p-3 pt-0 flex flex-col', dimmedClassName)}>

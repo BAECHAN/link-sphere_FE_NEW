@@ -11,6 +11,14 @@
 
 ### Fixed
 
+- `post` 카드 제목이 소유자 액션 아이콘에 가려 일찍 줄바꿈되던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  내 비공개 글 카드에서 제목이 오른쪽 자물쇠·케밥 아이콘 그룹과 별도 컬럼으로 상단 고정돼 있어, 아이콘 아래 66~76px가 빈 채로 남고 제목만 그만큼 좁아진 폭으로 일찍 줄바꿈됐다. 헤더를 2열 그리드(`grid-cols-[1fr_auto]`)로 바꿔 제목에 `col-span-2`를 줘 카드 가로폭을 온전히 쓰게 하고, 자물쇠·케밥은 작성자 메타 행과 같은 첫 행 우측 칸으로 옮겼다 — 아이콘은 음수 마진으로 헤더 높이 기여분을 상쇄해 카드 높이 증가를 막았다. 자물쇠를 아이콘 버튼 그대로 위치만 옮기는 안과 "나만 보기" 텍스트 배지로 바꾸는 안을 실제 Tailwind 클래스로 나란히 비교해 전자를 채택했다 — 원클릭 토글과 `title`/`aria-label`/`h3` 등 기존 e2e 계약을 하나도 건드리지 않기 때문이다. 소유자가 아닌 카드는 아이콘 컬럼 자체가 렌더되지 않아 기존에 낭비되던 8px 여백도 함께 없어졌다.
+  (`src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-list/ui/PostCardSkeleton.tsx`, `docs/plans/2026-09-21-postcard-header-title-width.md`(신규))
+
+  </details>
+
 - `bookmark` 사이드바·모바일 그리드의 최근 저장한 폴더가 저장 후 새로고침 전까지 갱신 안 되던 문제 수정
   <details><summary>배경·구현</summary>
 
