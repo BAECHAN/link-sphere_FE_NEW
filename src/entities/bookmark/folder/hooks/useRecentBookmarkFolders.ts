@@ -17,9 +17,11 @@ import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-fo
  *   뒤이은 refetch 결과가 영영 반영되지 않는다(방금 저장한 폴더가 상단에 안 뜨는 버그).
  *   컴포넌트 마운트 시점에 곧바로 계산해서도 안 된다: 로딩 중엔 `folderList`가 빈 배열이라, 그
  *   순간 값을 굳혀버리면 데이터가 도착해도 영원히 빈 채로 고정된다.
- * - `sessionKey`(선택): PostCardBookmarkFolderModal처럼 모달이 열고 닫힐 때마다 새 스냅샷을 찍고 싶으면
- *   그 open 상태를 넘긴다. FolderTree/MobileFolderList처럼 페이지 방문 동안 쭉 떠 있는
- *   화면은 넘기지 않으면 마운트 수명 전체가 하나의 세션이 된다.
+ * - `sessionKey`(선택): BookmarkFolderSelectModal처럼 열고 닫을 때마다 새 스냅샷을 찍고
+ *   싶은 호출부가 그 open 상태를 넘긴다. 지금은 모달(useBookmarkFolderSelect)이 유일한
+ *   호출부다 — 상시 마운트 화면(FolderTree/MobileFolderList)은 세션 경계가 없어 스냅샷이
+ *   영영 안 풀렸고(2026-09-21), 그래서 useFolderSections는 BookmarkFolderUtil.pickRecentFolders를
+ *   직접 쓴다.
  * - 상단 구획에 뜬 폴더도 아래 본 목록에서 빼지 않는다(중복 표시) — 호출부에서 그대로 렌더한다.
  */
 export function useRecentBookmarkFolders(

@@ -211,8 +211,12 @@ src/
 │   │       ├── model/            # bookmark-folder.dto.ts(응답 타입) + bookmark-folder.schema.ts(폼 검증)
 │   │       ├── config/           # bookmark-folder.const.ts (RECENT_BOOKMARK_FOLDER_COUNT 외)
 │   │       ├── utils/            # bookmark-folder.util.ts (pickRecentFolders)
-│   │       └── hooks/            # useRecentBookmarkFolders.ts (다른 소비처가 있는 순수 데이터 파생 훅만
-│   │                             # entities에 남는다 — 인터랙션 UI는 features/bookmark/select/로 이동)
+│   │       └── hooks/            # useRecentBookmarkFolders.ts (순수 데이터 파생 훅이라 entities에 남는다 —
+│   │                             # 인터랙션 UI는 features/bookmark/select/로 이동. 2026-09-21 기준
+│   │                             # 소비처는 모달(BookmarkFolderSelectModal) 1곳 — 상시 마운트 화면은
+│   │                             # 세션 경계가 없어 이 훅 대신
+│   │                             # widgets/bookmark/folder-tree/hooks/useFolderSections.ts가
+│   │                             # bookmark-folder.util.ts를 직접 호출)
 │   ├── category/
 │   │   ├── api/                  # category.api.ts, category.keys.ts, category.queries.ts
 │   │   ├── model/                # category.dto.ts(응답 타입). category.schema.ts는 기존 import 경로 호환용 re-export만
