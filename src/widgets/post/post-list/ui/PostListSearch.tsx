@@ -7,7 +7,7 @@ import { RotateCcw } from 'lucide-react';
 import { startTransition, useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { usePostListParams } from '@/widgets/post/post-list/hooks/usePostList';
-import { parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
+import { extractSearchTags, parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
 import { TEXTS } from '@/shared/config/texts';
 
@@ -116,7 +116,7 @@ export function PostListSearch() {
               onClick={() => {
                 // 라벨 클릭 시 기존 자유 검색어는 초기화하고, 이미 선택된 @카테고리/#닉네임 태그만 유지한다.
                 const tag = `@${category.label}`;
-                const existingTags = searchQuery.match(/[@#]\S+/g) ?? [];
+                const existingTags = extractSearchTags(searchQuery);
                 const tagsWithoutSelf = existingTags.filter((t) => t !== tag);
                 const newTags = isSelected ? tagsWithoutSelf : [...tagsWithoutSelf, tag];
                 const newSearch = newTags.join(' ');
