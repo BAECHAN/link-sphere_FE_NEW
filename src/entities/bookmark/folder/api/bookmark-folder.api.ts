@@ -8,7 +8,6 @@ import {
   BookmarkFolderSort,
   BookmarkFoldersResponse,
   CreateBookmarkFolderRequest,
-  ReorderBookmarkFoldersRequest,
   UpdateBookmarkFolderRequest,
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
@@ -34,11 +33,6 @@ export const bookmarkFolderApi = {
   /** 폴더 삭제 — 이 폴더에만 있던 북마크만 미분류로 이동 (다른 폴더에도 있으면 그대로 유지) */
   deleteBookmarkFolder: async (folderId: string): Promise<void> => {
     return await apiClient.delete<void>(API_ENDPOINTS.bookmark.folder(folderId));
-  },
-
-  /** 폴더 순서 재정렬 — folderIds 전체 (본인 모든 폴더 ID) */
-  reorderBookmarkFolders: async (payload: ReorderBookmarkFoldersRequest): Promise<void> => {
-    return await apiClient.patch<void>(API_ENDPOINTS.bookmark.reorder, payload);
   },
 
   /** 폴더별 게시글 조회 — folderKey: 'all' | 'uncategorized' | UUID */

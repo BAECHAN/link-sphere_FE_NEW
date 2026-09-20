@@ -44,9 +44,10 @@
   </details>
 
 - `shared` Firebase 설정값이 비었거나 잘못됐을 때 앱 전체가 빈 화면으로 렌더되던 문제 수정
+- `shared` Firebase 초기화 실패 시 앱 전체 렌더가 죽지 않도록 방어 코드 추가
   <details><summary>배경·구현</summary>
 
-  `firebase.ts`가 브라우저 환경에서 `getMessaging(app)`을 조건 없이 호출하고 있었는데, `VITE_FIREBASE_PROJECT_ID` 등 설정값이 비어 있으면 Firebase Installations API가 `"Missing App configuration value: projectId"`를 동기적으로 throw했다. `main.tsx`에 `<App/>`을 감싸는 ErrorBoundary가 없어 이 throw가 React 렌더 트리 전체를 무너뜨려 `#root`가 완전히 빈 채로 남았다(클린 HEAD에서도 재현되는 기존 버그, [PR #143](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/143) 본문에 재현 절차 기록). `getMessaging(app)` 호출을 try/catch로 감싸 실패 시 `messaging`을 `null`로 남기도록 고쳤다 — 호출부(`fcm.ts`, `useFcmForegroundMessage.ts`)는 이미 `messaging`이 `null`이면 그대로 return하는 기존 방어 로직을 갖고 있어 FCM 기능만 조용히 비활성화되고 앱은 정상 렌더된다. 배포용 값은 GitHub Secrets로 주입돼(`docs/SYSTEM-ARCHITECTURE.md` "Secrets") 프로덕션 재현 위험은 낮지만, 로컬 `.env` 설정 실수 한 번에 개발 환경 전체가 막히는 것을 막는 안전망이다.
+  PR #143 작업 중 `browser_evaluate`로 `main.tsx`를 강제로 재-import하는 비정상적인 방식으로 `"Missing App configuration value: projectId"` 에러를 관찰해 클린 HEAD에서도 재현되는 버그로 기록했으나, 이후 정상적인 `pnpm dev` 로드로는 재현되지 않았고 로컬 `.env` 값도 Firebase 콘솔 값과 일치함이 확인돼 그 진단은 오진이었을 가능성이 높다(정정: 기존 버그가 아니라 관찰 방식의 부작용이었을 수 있음). 다만 `firebase.ts`가 브라우저 환경에서 `getMessaging(app)`을 조건 없이 호출하고 있고, `main.tsx`에는 `<App/>`을 감싸는 ErrorBoundary가 없어 향후 Firebase 설정값이 실제로 비거나 잘못되면 이 호출이 동기적으로 throw해 React 렌더 트리 전체가 무너질 여지는 남아 있다. 근본 원인 확정 여부와 무관하게 `getMessaging(app)` 호출을 try/catch로 감싸 실패 시 `messaging`을 `null`로 남기도록 방어 코드를 추가했다 — 호출부(`fcm.ts`, `useFcmForegroundMessage.ts`)는 이미 `messaging`이 `null`이면 그대로 return하는 기존 방어 로직을 갖고 있어 FCM 기능만 조용히 비활성화되고 앱은 정상 렌더된다.
   (`src/shared/lib/firebase/firebase.ts`, [PR #153](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/153))
 
 - `shared` ⋮ 메뉴를 누른 채 손이 밀리면 항목이 오발동해 메뉴가 그냥 사라지던 문제 수정
@@ -124,6 +125,16 @@
 
   `doc-drift-check.yml` 트래킹 이슈([#99](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/99))에서 push마다 달리던 "확인함 — 누적 N/5" 하트비트 댓글이 댓글 44개 중 37개(84%)를 차지해 최신 감사 결과를 보려면 매번 끝까지 스크롤해야 했다. 임계값 미달 구간에서는 댓글을 달지 않고 이슈 본문만 갱신하도록 바꾸고, 매 실행 덮어쓰면서도 마커 2줄뿐이던 본문을 "현재 상태"(다음 감사까지 진행도·마지막 확인 커밋·갱신 시각)와 "마지막 경량 감사"(확인 범위·`pnpm check:docs` 결과·dangling 건수·리포트 댓글 링크) 두 표로 구성된 대시보드로 재구성했다. 경량 감사가 실제로 도는 임계값(5회) 도달 시점의 리포트 댓글은 처음엔 통과해도 항상 남기도록 정리했으나, 이 레포 평균 병합 속도(최근 17일 하루 ~6.3개)로는 그 방식도 3년 뒤 약 1,380개 댓글로 같은 스크롤 문제를 재발시킨다는 걸 확인해, `openapi-drift-check.yml`과 같은 "check:docs 실패 또는 dangling 발견 시에만 댓글" 패턴으로 다시 정리했다(minimize한 댓글도 GitHub에서 줄 하나를 그대로 차지해 스크롤을 줄이지 못한다는 점도 이 과정에서 확인했다). grep 기반 감사 로직·워크플로 트리거(`doc-drift-check.yml`)는 그대로 둔다.
   (`scripts/check-doc-drift.js`)
+
+  </details>
+
+### Removed
+
+- `bookmark` 사용되지 않는 폴더 순서 재정렬(reorder) API 제거
+  <details><summary>배경·구현</summary>
+
+  `bookmarkFolderApi.reorderBookmarkFolders`와 `ReorderBookmarkFoldersRequest` 타입이 `PATCH /bookmark/folders/reorder` BE 엔드포인트에 대응해 존재했지만, 이걸 호출하는 mutation 훅이나 드래그 정렬 같은 UI가 이 레포 어디에도 없었다(이전에 죽은 export였던 `useReorderBookmarkFoldersMutation`을 별도로 제거했을 때도 이 API 함수 자체는 실제 BE 엔드포인트와 대응돼 남겨뒀던 것). 앞으로도 이 기능을 쓸 계획이 없어 FE의 `api.ts`/`schema.ts`/`API_ENDPOINTS.bookmark.reorder`와 대응하는 BE 엔드포인트(`BookmarkFolderController.reorderFolders`, `BookmarkFolderService.reorderFolders`)까지 함께 제거했다.
+  (`src/entities/bookmark/folder/api/bookmark-folder.api.ts`, `src/entities/bookmark/folder/model/bookmark-folder.schema.ts`, `src/entities/bookmark/folder/model/bookmark-folder.schema.test.ts`, `src/shared/config/api.ts`, `docs/BOOKMARK.md`, `docs/FE-ARCHITECTURE.md`)
 
   </details>
 
