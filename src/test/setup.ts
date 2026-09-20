@@ -4,6 +4,7 @@ import { cleanup } from '@testing-library/react';
 import { server } from '@/mocks/server';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { resetPendingSearchParams } from '@/shared/hooks/useSearchParamsDraft';
+import { resetFailedImages } from '@/shared/lib/image/failedImageCache';
 
 // MSW 서버 라이프사이클
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
@@ -13,6 +14,7 @@ afterEach(() => {
   cleanup();
   useAuthStore.getState().clearAuth();
   resetPendingSearchParams();
+  resetFailedImages();
 });
 
 afterAll(() => server.close());

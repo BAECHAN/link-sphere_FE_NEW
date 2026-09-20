@@ -48,4 +48,82 @@ describe('LinkThumbnail', () => {
       'https://example.com/new.png'
     );
   });
+
+  it('같은 src가 두 번 실패하면 재마운트 시 img를 아예 만들지 않는다', () => {
+    // 가상 스크롤로 카드가 언마운트·재마운트되는 상황의 단위 테스트 대역 - 로컬 hasError는
+    // 언마운트되며 사라지지만, 실패 횟수는 세션 캐시(failedImageCache)에 남아있어야 한다.
+    const first = renderWithProviders(
+      <LinkThumbnail src="https://example.com/twice.png" alt="제목" />
+    );
+    fireEvent.error(first.getByRole('img', { name: '제목' }));
+    first.unmount();
+
+    const second = renderWithProviders(
+      <LinkThumbnail src="https://example.com/twice.png" alt="제목" />
+    );
+    fireEvent.error(second.getByRole('img', { name: '제목' }));
+    second.unmount();
+
+    const { container } = renderWithProviders(
+      <LinkThumbnail src="https://example.com/twice.png" alt="제목" />
+    );
+
+    expect(container.querySelector('img')).not.toBeInTheDocument();
+    expect(container.querySelector('svg')).toBeInTheDocument();
+  });
+
+  it('한 번만 실패한 src는 재마운트 시 다시 시도한다', () => {
+    const first = renderWithProviders(
+      <LinkThumbnail src="https://example.com/once.png" alt="제목" />
+    );
+    fireEvent.error(first.getByRole('img', { name: '제목' }));
+    first.unmount();
+
+    const { getByRole } = renderWithProviders(
+      <LinkThumbnail src="https://example.com/once.png" alt="제목" />
+    );
+
+    expect(getByRole('img', { name: '제목' })).toBeInTheDocument();
+  });
+
+  it('실패하지 않은 다른 src는 이전 실패의 영향 없이 img를 렌더한다', () => {
+    const first = renderWithProviders(
+      <LinkThumbnail src="https://example.com/twice.png" alt="제목" />
+    );
+    fireEvent.error(first.getByRole('img', { name: '제목' }));
+    first.unmount();
+
+    const second = renderWithProviders(
+      <LinkThumbnail src="https://example.com/twice.png" alt="제목" />
+    );
+    fireEvent.error(second.getByRole('img', { name: '제목' }));
+    second.unmount();
+
+    const { getByRole } = renderWithProviders(
+      <LinkThumbnail src="https://example.com/other.png" alt="제목" />
+    );
+
+    expect(getByRole('img', { name: '제목' })).toBeInTheDocument();
+  });
+
+  it('http src의 실패는 https로 치환된 키로 기록된다', () => {
+    const first = renderWithProviders(
+      <LinkThumbnail src="http://example.com/insecure.png" alt="제목" />
+    );
+    fireEvent.error(first.getByRole('img', { name: '제목' }));
+    first.unmount();
+
+    const second = renderWithProviders(
+      <LinkThumbnail src="http://example.com/insecure.png" alt="제목" />
+    );
+    fireEvent.error(second.getByRole('img', { name: '제목' }));
+    second.unmount();
+
+    const { container } = renderWithProviders(
+      <LinkThumbnail src="https://example.com/insecure.png" alt="제목" />
+    );
+
+    expect(container.querySelector('img')).not.toBeInTheDocument();
+    expect(container.querySelector('svg')).toBeInTheDocument();
+  });
 });
