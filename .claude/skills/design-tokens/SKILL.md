@@ -151,8 +151,13 @@ Tailwind v4 preflight엔 v3에 있던 `button, [role="button"] { cursor: pointer
 `:disabled`/`aria-disabled="true"`/`[data-disabled]`는 제외(비활성 요소는 `default` 유지).
 `Button asChild`로 `<button>`이 아닌 요소를 감쌀 땐 `role="button"`을 함께 지정해야
 이 규칙이 적용된다. 선택자 전체 목록·예외·shadcn 재생성 시 주의사항은
-`docs/FE-ARCHITECTURE.md` "클릭 가능한 요소와 커서 규칙" 섹션, 배경은
+`docs/FE-ARCHITECTURE.md` "클릭 가능한 요소와 커서·텍스트 선택 규칙" 섹션, 배경은
 `docs/DECISIONS.md`의 2026-09-03 항목 참고.
+
+같은 이유로 `select-none`(드래그 시 텍스트 선택 방지)도 바로 아래 별도 `@layer base`
+블록에 전역으로 모여 있다 — 컴포넌트마다 개별로 붙이지 않는다. 대상 목록·`a[href]`를
+일부러 뺀 이유(댓글 본문을 감싸는 `<Link>` 구조와 충돌)는 `docs/FE-ARCHITECTURE.md`
+같은 섹션의 "자동으로 select-none이 붙는 대상" 표 참고.
 
 ### 다크 모드
 

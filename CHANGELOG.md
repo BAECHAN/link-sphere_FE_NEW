@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `shared` 버튼·메뉴·탭 등 클릭 가능한 요소를 드래그해도 라벨 텍스트가 선택되지 않게 변경
+  <details><summary>배경·구현</summary>
+
+  북마크 페이지 정렬 드롭다운("최신 북마크순")과 폴더 이름을 드래그하면 텍스트가 선택되는 게 어색하다는 지적에서 시작해 전수 조사한 결과, `select.tsx`의 옵션 목록(`SelectItem`)에는 이미 shadcn 기본값으로 `select-none`이 있었지만 정작 트리거는 빠져 있었고 레포 전체로도 사람이 직접 붙인 곳이 4곳뿐이었다. 컴포넌트마다 개별로 붙이면 새 컴포넌트를 추가할 때마다 빠뜨리는 회귀가 반복될 것으로 보여, 같은 문제를 이미 전역으로 푼 커서 규칙(`globals.css`의 `cursor: pointer` `@layer base` 블록) 선례를 그대로 따라 `button`/`summary`/`label`과 `role=button|link|menuitem|option|tab|switch|checkbox|radio`에 `select-none`을 전역 적용했다. `<a>`(`Link`) 네비게이션은 댓글 본문을 감싸는 구조와 충돌할 수 있어 전역 대상에서 빼고 `BottomTabBar`·`Sidebar` NavItem에만 개별로 붙였고, 같은 이유로 `badge.tsx`·`tooltip.tsx`·북마크 폴더 이름 `<h1>`도 개별 적용했다. 본문·제목·입력값은 대상에서 제외해 복사가 계속 가능하다.
+  (`src/app/globals.css`, `src/shared/ui/atoms/badge.tsx`, `src/shared/ui/atoms/tooltip.tsx`, `src/widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx`, `src/widgets/layout/sidebar/ui/Sidebar.tsx`, `src/pages/bookmark/BookmarkPage.tsx`, `docs/FE-ARCHITECTURE.md`, `.claude/skills/design-tokens/SKILL.md`, `docs/plans/2026-09-21-select-none-global.md`(신규))
+
+  </details>
+
 - `shared` framer-motion을 CSS transition으로 교체해 번들 크기 감소
   <details><summary>배경·구현</summary>
 
@@ -39,6 +47,26 @@
   <details><summary>배경·구현</summary>
 
   다크모드 버튼·필터 칩을 눌렀는데 "안 반영된 것처럼" 보인다는 제보를 실제 화면 녹화 영상으로 받아 20fps로 프레임을 뜯어 배경색을 픽셀 단위로 직접 측정했다 — 2초 안에 7번 토글이 찍혔는데, 알고 보니 그 클릭들은 사용자가 문제 재현을 위해 의도적으로 빠르게 여러 번 누른 것이었다(짝수 번 누르면 원래 상태로 되돌아가는 토글의 정의 그 자체). 처음엔 마우스 스위치 채터링(사람이 낼 수 없는 속도)만 걸러내는 8ms 가드로 좁혀 잡았으나, 사용자가 원한 건 "사람이 손으로 하는 무의식적인 빠른 재클릭"을 막는 것이었다 — 요구사항 자체가 하드웨어 결함 방지에서 "의식적으로 결과를 인지하고 다시 누른 것과 무의식적으로 두 번 눌린 것을 구분"하는 쪽으로 바뀌었다. 이 구분에 쓰이는 업계 표준값을 확인해 Windows의 더블클릭 속도 기본값(500ms, [Wikipedia](https://en.wikipedia.org/wiki/Double-click) 인용 Microsoft MSDN)으로 올렸다 — 사람의 단순 시각 반응시간(평균 200~273ms, [관련 리서치 종합](https://www.orangeneurosciences.ca/guide/reaction-time-average))보다 충분히 여유 있게 크면서, "즉시 재클릭 = 하나의 제스처로 볼지"를 가르는 OS 자체의 기준과 같다. 이 변경으로 "즉시 재클릭하면 정확히 취소된다"는 기존 테스트 2개(`Navbar.test.tsx`, `usePostList.test.tsx` 시나리오 C)의 기대값 자체가 "즉시 재클릭 = 무시, 500ms 이후 재클릭 = 취소"로 바뀌었다 — 사용자가 이 트레이드오프를 명시적으로 승인했다. 각 테스트에 "충분한 시간 뒤 재클릭하면 정상 취소된다"는 동반 테스트를 추가했고, 실제 브라우저로 200ms 재클릭(무시됨)·550ms 뒤 재클릭(정상 취소)을 실측 확인했다.
+
+- `shared` 다크모드에서 필터 칩 등 ghost 버튼 9곳에 호버하면 의도한 색이 아니라 회색으로 덮이던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  2026-09-14(PR #85)에 "필터 칩은 호버해도 색이 안 변한다"로 확정된 디자인이 다크모드에서만 지켜지지 않고 있었다. 당시 방식은 호출부(`PostListSearch.tsx`)의 `activeClassName`에 `hover:bg-X hover:text-X-foreground`를 넣어 `Button`의 ghost variant가 주는 호버 클래스를 twMerge로 덮어쓰는 것이었는데, ghost의 `dark:hover:bg-accent/50`은 modifier 그룹이 달라(`dark:hover:` vs `hover:`) twMerge가 지우지 못하고 그대로 남는다(tailwind-merge로 직접 확인). CSS 특이성도 `@custom-variant dark (&:is(.dark *))`가 만드는 `:is(.dark *)` 때문에 다크 쪽이 이겨서, 다크모드 활성 칩이 호버 시 흰 배경(`--primary`)에서 회색(`accent/50`)으로 덮이고 글자(`--primary-foreground`, 검정)와 거의 구분이 안 됐다. 같은 구조의 버그를 가진 ghost 버튼 8곳(`FolderTree` 칩, `PostCard` AI 요약 토글·댓글 수 버튼, `BookmarkFolderSelectModal` 삭제 행, `LikePostButton`, `CommentForm` 프리뷰 토글, `RecentSearchPanel`, `UserAvatar`)도 함께 조사해 고쳤다. 덮어쓰기로 지우는 대신 호버 스타일이 애초에 없는 `none` variant를 `button.tsx`에 추가해 9곳 전부 해소했다 — 호출부의 중복 hover 클래스는 삭제하고, `FilterChip`·`FolderTree` 비선택 분기처럼 호버 배경의 출처가 ghost뿐이던 곳만 `hover:bg-accent`/`hover:text-foreground`를 명시로 보완했다. 라이트 모드 렌더링은 대부분 변하지 않으며, `BookmarkFolderSelectModal`·`FolderTree` 선택된 칩은 호버 시 의도한 색(빨강/흰 글자)을 되찾는 부수 개선이 있었다.
+  (`src/shared/ui/atoms/button.tsx`, `src/shared/ui/atoms/button.stories.tsx`, `src/shared/ui/elements/FilterChip.tsx`, `src/widgets/post/post-list/ui/PostListSearch.tsx`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/widgets/post/post-card/ui/PostCard.tsx`, `src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `src/features/post/like/ui/LikePostButton.tsx`, `src/features/comment/create/ui/CommentForm.tsx`, `src/widgets/layout/navbar/ui/RecentSearchPanel.tsx`, `src/entities/user/ui/UserAvatar.tsx`, `docs/DESIGN-SYSTEM.md`, [PR #157](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/157))
+
+- `bookmark` 데스크톱 사이드바에서 스크롤바 폭 때문에 "내 폴더" 개수 숫자가 밀려 보이던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  사이드바는 상단 고정 블록(전체·미분류·최근 저장한 폴더 등)과 "내 폴더" 목록이 서로 다른 스크롤 컨테이너였다. classic 스크롤바(마우스를 연결한 macOS·Windows)에서는 아래 목록 블록에만 스크롤바가 붙어 그 컨테이너의 콘텐츠 폭만 스크롤바 폭(≈15px)만큼 좁아지고, 폴더 개수 숫자의 오른쪽 끝이 위쪽 "최근 저장한 폴더" 숫자보다 왼쪽으로 밀려 보였다. 실제 Tailwind 클래스·`globals.css` 토큰을 그대로 쓴 정적 목업으로 세 가지 안(단일 스크롤+sticky 헤더 / 양쪽에 `scrollbar-gutter: stable` / 스크롤바 숨김)을 나란히 비교한 뒤, 사이드바 스크롤 구조([`docs/DECISIONS.md`](https://github.com/BAECHAN/link-sphere_FE_NEW/blob/main/docs/DECISIONS.md) 2026-09-21/09-22 결정)를 그대로 두고 두 컨테이너 모두 스크롤바 자리를 예약하는 안을 택했다. [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/scrollbar-gutter)에 따르면 `overflow: hidden`에도 거터가 생기고 오버레이 스크롤바 환경(트랙패드만 쓰는 macOS)에서는 거터가 안 생겨 원래도 문제가 없었다 — 대가로 스크롤이 필요 없을 때도 사이드바 오른쪽에 ~15px 여백이 상시 생긴다.
+  (`src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `docs/BOOKMARK.md`, `docs/plans/2026-09-21-folder-sidebar-scrollbar-gutter.md`(신규))
+
+  </details>
+
+- `shared` Firebase 설정값이 비었거나 잘못됐을 때 앱 전체가 빈 화면으로 렌더되던 문제 수정
+- `shared` 다크모드 토글·검색 필터 칩이 마우스 채터링성 중복 클릭에 두 번 토글되던 문제 방지
+  <details><summary>배경·구현</summary>
+
+  다크모드 버튼·필터 칩을 눌렀는데 "안 반영된 것처럼" 보인다는 제보를 실제 화면 녹화 영상으로 받아 20fps로 프레임을 뜯어 배경색을 픽셀 단위로 직접 측정했다 — 2초 안에 7번 토글이 찍혔는데, 알고 보니 그 클릭들은 사용자가 문제 재현을 위해 의도적으로 빠르게 여러 번 누른 것이었다(짝수 번 누르면 원래 상태로 되돌아가는 토글의 정의 그 자체). 그럼에도 마우스 스위치 접점 불량(채터링)으로 사람이 낼 수 없는 속도의 중복 클릭이 실제로 들어올 가능성 자체는 방지할 가치가 있다고 보고, 게이밍 마우스 소프트웨어(Logitech G Hub 등)가 노출하는 채터링 방지 debounce 설정값(8ms, [Angry Miao](https://store.angrymiao.com/blogs/insider-stories/how-to-fix-mouse-double-clicking))을 그대로 가져와 `useClickGuard` 훅을 만들었다. "중복 제출 방지"에 흔히 쓰이는 300~1000ms대 디바운스([Medium](https://medium.com/@daveford/prevent-double-click-dups-in-react-83fcbc475704) 등)는 검토했으나 기각했다 — 이 앱이 이미 테스트로 보장하는 "즉시 재클릭하면 정확히 취소된다"는 토글 계약(`Navbar.test.tsx`, `usePostList.test.tsx` 시나리오 C)과 정면으로 충돌하기 때문이다. 8ms는 그보다 한 자릿수 낮아 이 계약을 건드리지 않으면서 채터링 속도만 걸러낸다 — 실제 브라우저에서 동기적으로 두 번 연속 `click()`을 호출하면 한 번만 반영되고, 100ms 간격의 재클릭은 매번 정상 토글됨을 Playwright로 실측 확인했다. 두 기존 테스트는 딜레이 없는 합성 클릭이라 실제로는 사람이 낼 수 없는 속도였던 것이므로, 클릭 사이에 20ms 지연을 추가해 현실적인 재클릭 속도를 반영했다.
   (`src/shared/hooks/useClickGuard.ts`(신규), `src/shared/hooks/useClickGuard.test.ts`(신규), `src/shared/ui/elements/FilterChip.tsx`, `src/widgets/layout/navbar/ui/Navbar.tsx`, `src/widgets/layout/navbar/ui/Navbar.test.tsx`, `src/widgets/post/post-list/hooks/usePostList.test.tsx`, `docs/DECISIONS.md`)
 
   </details>

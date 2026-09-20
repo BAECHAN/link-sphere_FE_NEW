@@ -159,7 +159,7 @@ export function BookmarkPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-screen-title flex-1 truncate">{currentFolderName}</h1>
+          <h1 className="text-screen-title flex-1 truncate select-none">{currentFolderName}</h1>
           <Select value={sort} onValueChange={(v) => setSort(v as BookmarkFolderSort)}>
             <SelectTrigger
               className="w-32 h-8 text-xs"
@@ -194,7 +194,7 @@ export function BookmarkPage() {
       />
       <main className="flex-1 min-w-0">
         <header className="flex items-center justify-between mb-4">
-          <h1 className="text-screen-title truncate">{currentFolderName}</h1>
+          <h1 className="text-screen-title truncate select-none">{currentFolderName}</h1>
           <Select value={sort} onValueChange={(v) => setSort(v as BookmarkFolderSort)}>
             <SelectTrigger className="w-36" aria-label={TEXTS.ariaLabels.bookmarkSortSelect}>
               <SelectValue placeholder={TEXTS.bookmark.folder.sortPlaceholder} />
