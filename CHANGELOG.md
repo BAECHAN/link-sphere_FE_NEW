@@ -119,6 +119,16 @@
 
   </details>
 
+### Removed
+
+- `bookmark` 사용되지 않는 폴더 순서 재정렬(reorder) API 제거
+  <details><summary>배경·구현</summary>
+
+  `bookmarkFolderApi.reorderBookmarkFolders`와 `ReorderBookmarkFoldersRequest` 타입이 `PATCH /bookmark/folders/reorder` BE 엔드포인트에 대응해 존재했지만, 이걸 호출하는 mutation 훅이나 드래그 정렬 같은 UI가 이 레포 어디에도 없었다(이전에 죽은 export였던 `useReorderBookmarkFoldersMutation`을 별도로 제거했을 때도 이 API 함수 자체는 실제 BE 엔드포인트와 대응돼 남겨뒀던 것). 앞으로도 이 기능을 쓸 계획이 없어 FE의 `api.ts`/`schema.ts`/`API_ENDPOINTS.bookmark.reorder`와 대응하는 BE 엔드포인트(`BookmarkFolderController.reorderFolders`, `BookmarkFolderService.reorderFolders`)까지 함께 제거했다.
+  (`src/entities/bookmark/folder/api/bookmark-folder.api.ts`, `src/entities/bookmark/folder/model/bookmark-folder.schema.ts`, `src/entities/bookmark/folder/model/bookmark-folder.schema.test.ts`, `src/shared/config/api.ts`, `docs/BOOKMARK.md`, `docs/FE-ARCHITECTURE.md`)
+
+  </details>
+
 ## [0.15.0] - 2026-09-21
 
 ### Added

@@ -6,11 +6,6 @@ export const createBookmarkFolderSchema = z.object({
   name: z.string().min(1, TEXTS.validation.folderNameRequired),
 });
 
-// 순서 재정렬 — 본인 모든 폴더 ID 를 새 순서대로
-export const reorderBookmarkFoldersSchema = z.object({
-  folderIds: z.array(z.string()).min(1),
-});
-
 // 폴더 페이지 조회용 sort
 export const bookmarkFolderSortEnum = z.enum(['latest', 'oldest', 'title', 'views', 'viewed']);
 
@@ -19,7 +14,6 @@ export type BookmarkFolderKey = 'all' | 'uncategorized' | (string & {});
 
 export type CreateBookmarkFolderRequest = z.infer<typeof createBookmarkFolderSchema>;
 export type UpdateBookmarkFolderRequest = z.infer<typeof createBookmarkFolderSchema>;
-export type ReorderBookmarkFoldersRequest = z.infer<typeof reorderBookmarkFoldersSchema>;
 export type BookmarkFolderSort = z.infer<typeof bookmarkFolderSortEnum>;
 
 // 기존 import 경로 호환 — 응답 타입은 dto.ts(BE 스펙 생성)에서 가져간다.
