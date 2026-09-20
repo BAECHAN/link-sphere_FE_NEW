@@ -25,6 +25,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { useLoginModalStore } from '@/shared/store/loginModal.store';
 import { useMyPageModalStore } from '@/shared/store/mypage.store';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
+import { useClickGuard } from '@/shared/hooks/useClickGuard';
 import { cn } from '@/shared/lib/tailwind/utils';
 
 interface NavbarLocationState {
@@ -35,6 +36,7 @@ export function Navbar() {
   const { isAuthenticated } = useAuthStore();
   const { logout } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
+  const canToggleTheme = useClickGuard();
 
   const { account } = useAccount();
 
@@ -169,7 +171,13 @@ export function Navbar() {
               variant="ghost"
               size="icon"
               className="h-9 w-9"
-              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              onClick={() => {
+                if (!canToggleTheme()) {
+                  return;
+                }
+
+                setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+              }}
             >
               <Sun className="h-4 w-4 md:h-5 md:w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-4 w-4 md:h-5 md:w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />

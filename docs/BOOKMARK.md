@@ -99,7 +99,6 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 | `POST`   | `/bookmark/folders`                                   | 폴더 생성(`sort_order = max+1`)                                               |
 | `PATCH`  | `/bookmark/folders/{id}`                              | 폴더 이름 수정                                                                |
 | `DELETE` | `/bookmark/folders/{id}`                              | 폴더 삭제(**이 폴더에만 있던** 북마크만 미분류로 — 다른 폴더에도 있으면 유지) |
-| `PATCH`  | `/bookmark/folders/reorder`                           | 폴더 순서 재정렬(`folderIds` 전체)                                            |
 | `GET`    | `/bookmark/folders/{key}/posts?page&size&sort&search` | 폴더별 게시글 조회(검색 포함)                                                 |
 | `POST`   | `/bookmark/{postId}/folders/{folderId}`               | 폴더에 추가(북마크 없으면 자동 생성)                                          |
 | `DELETE` | `/bookmark/{postId}/folders/{folderId}`               | 그 폴더에서만 제거(북마크 자체는 유지)                                        |

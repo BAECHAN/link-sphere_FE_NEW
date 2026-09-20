@@ -59,7 +59,6 @@ const API_ENDPOINTS = {
     base: API_BASES.bookmark,
     folders: `${API_BASES.bookmark}/folders`,
     folder: (folderId: string) => `${API_BASES.bookmark}/folders/${folderId}`,
-    reorder: `${API_BASES.bookmark}/folders/reorder`,
     folderPosts: (folderKey: string) => `${API_BASES.bookmark}/folders/${folderKey}/posts`,
     postFolder: (postId: string, folderId: string) =>
       `${API_BASES.bookmark}/${postId}/folders/${folderId}`,
