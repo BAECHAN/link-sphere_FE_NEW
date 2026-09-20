@@ -1,4 +1,7 @@
 ### 2026-09-20 (FE)
+- 폴더 선택 모달 내 행 선택 시 카운트 수치가 어긋나는 UI 동기화 문제 해결 ([#148](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/148))
+
+### 2026-09-20 (FE)
 - 사이드바 폴더 라벨 고정 및 새 폴더 생성 위치 상단 배치로 UI/UX 개선 ([#147](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/147))
 
 ### 2026-09-20 (FE)
