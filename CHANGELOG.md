@@ -9,6 +9,34 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `bookmark` 사이드바·모바일 그리드의 최근 저장한 폴더가 저장 후 새로고침 전까지 갱신 안 되던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  폴더를 새로 만들고 미분류 글을 그 폴더로 옮겨도, 데스크톱 사이드바(`FolderTree`)와 모바일 폴더 그리드(`MobileFolderList`)의 "최근 저장한 폴더" 구획이 새로고침 전까지 옛 순서 그대로였다. React Query 무효화는 정상이었고, 원인은 `useRecentBookmarkFolders`의 세션 스냅샷 — 두 화면이 스냅샷을 다시 찍을 `sessionKey`를 넘기지 않아 세션 경계 자체가 생기지 않았던 것이었다. 모달(`BookmarkFolderSelectModal`)은 열림 상태를 `sessionKey`로 넘겨 원래부터 정상이었다. 두 화면만 스냅샷 없이 `pickRecentFolders`를 매 렌더 직접 호출하도록 바꿨다 — 모달은 순서 고정(split menu 공간기억)을 그대로 유지한다. 세 화면 전부 해제하거나 mutation cache 기반으로 "저장 직후에만" 재배열하는 대안도 검토했으나 각각 등록 폼 모달의 오탭 위험, mutation cache GC로 인한 재발 위험이 있어 채택하지 않았다.
+  (`src/widgets/bookmark/folder-tree/hooks/useFolderSections.ts`, `src/entities/bookmark/folder/hooks/useRecentBookmarkFolders.ts`, `src/widgets/bookmark/folder-tree/hooks/useFolderSections.test.ts`(신규), `docs/BOOKMARK.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-21-bookmark-folder-sidebar-fixes.md`(신규))
+
+  </details>
+
+- `bookmark` 사이드바에서 폴더가 많으면 아랫부분에 스크롤로 도달할 수 없던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  데스크톱 사이드바에서 폴더가 많으면 "내 폴더" 아랫부분을 보려면 페이지 전체 스크롤을 끝까지 내려야 했다 — `sticky` 포지셔닝만 있고 자체 스크롤이 없었기 때문이다. `BookmarkFolderSelectModal`이 2026-09-11에 같은 문제를 겪고 정한 선례(목록만 스크롤, 상시 노출돼야 할 행은 고정)를 그대로 재사용했다: 전체·미분류·최근 저장한 폴더는 상단 고정, "내 폴더" 목록만 자체 스크롤, "새 폴더 만들기"는 하단 고정. 실제 Tailwind 클래스를 그대로 쓴 정적 목업으로 "패널 전체 스크롤" 안과 나란히 비교한 뒤 이 구조로 확정했다. 구현 중 사이드바의 `sticky top-4`가 상단 내비게이션 바와 44px 겹치는 기존 버그(이번 변경으로 만든 게 아님)를 Playwright 실측으로 발견해 `top` 오프셋도 함께 조정했다.
+  (`src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/pages/bookmark/BookmarkPage.tsx`, `.claude/skills/responsive-ux/SKILL.md`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-21-bookmark-folder-sidebar-fixes.md`(신규))
+
+  </details>
+
+### Changed
+
+- `bookmark` 최근 저장한 폴더 노출 조건을 "폴더 6개 이상"에서 "본 목록과 완전 일치하지 않을 때"로 변경
+  <details><summary>배경·구현</summary>
+
+  기존 노출 조건 중 하나였던 "전체 폴더 6개 이상"의 근거를 다시 확인한 결과, 코드 주석 한 줄이 유일한 설명이고 비교·확정한 문서가 없어 출처 미상이었다. 최근 구획은 최대 3개까지만 보여주므로 "최근 구획 = 본 목록"이 되는 지점은 전체 폴더가 정확히 3개일 때뿐이라는 점을 확인하고, 그 완전 일치 케이스만 예외로 숨기도록 바꿨다 — 같은 항목이 정렬 순서만 다르게 두 번 노출되면 사용자가 중복임을 알아차리지 못해 두 목록을 모두 훑게 된다는 NN/g 연구를 근거로 삼았다. 결과적으로 폴더 3개 이하는 안 뜨고 4개부터(그중 3개 이상 저장 이력이 있으면) 뜬다 — 이전(6개부터)보다 이른 시점부터 노출되는 부수 효과가 있다.
+  (`src/entities/bookmark/folder/config/bookmark-folder.const.ts`, `src/entities/bookmark/folder/utils/bookmark-folder.util.ts`, `src/entities/bookmark/folder/utils/bookmark-folder.util.test.ts`(신규), `src/entities/bookmark/folder/hooks/useRecentBookmarkFolders.test.ts`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`)
+
+  </details>
+
 ## [0.15.0] - 2026-09-21
 
 ### Added
