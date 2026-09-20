@@ -1,4 +1,7 @@
 ### 2026-09-20 (FE)
+- comment 및 account 엔티티 응답 타입을 백엔드 API 명세와 일치하도록 최적화 (Phase 5)
+
+### 2026-09-20 (FE)
 - 유닛 테스트 내 nprogress 모킹 적용을 통해 배포 CI 환경의 간헐적 테스트 실패 이슈 해결 ([#138](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/138))
 
 ### 2026-09-20 (BE)
