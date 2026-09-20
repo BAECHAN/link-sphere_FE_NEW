@@ -119,10 +119,6 @@ export default defineConfig(({ mode }) => {
               if (/[\\/]node_modules[\\/](react-hook-form|@hookform|zod)[\\/]/.test(id)) {
                 return 'form-vendor';
               }
-              // UI 라이브러리 (Mantine, Styled Components)
-              if (/[\\/]node_modules[\\/](@mantine|styled-components|@emotion)[\\/]/.test(id)) {
-                return 'ui-vendor';
-              }
               // 유틸리티
               if (/[\\/]node_modules[\\/](dayjs|zustand)[\\/]/.test(id)) {
                 return 'util-vendor';
@@ -130,19 +126,6 @@ export default defineConfig(({ mode }) => {
               // 나머지 node_modules는 별도 청크로
               return 'vendor';
             }
-
-            // 큰 라이브러리들을 별도 청크로 분리
-            if (id.includes('recharts')) {
-              return 'chart-vendor';
-            }
-            if (id.includes('@mantine/charts')) {
-              return 'mantine-chart-vendor';
-            }
-            if (id.includes('@tanstack/react-table')) {
-              return 'table-vendor';
-            }
-            // 내부 모듈도 청크 분리 (선택적)
-            // 큰 페이지나 위젯은 별도 청크로 분리 가능
           },
           // 사용하지 않는 export 제거
           exports: 'named',
@@ -167,7 +150,6 @@ export default defineConfig(({ mode }) => {
         'react-dom',
         'react-router-dom',
         '@tanstack/react-query',
-        '@tanstack/react-table',
         'react-hook-form',
         '@hookform/resolvers',
         'zod',
