@@ -644,8 +644,8 @@ export interface components {
   schemas: {
     AccountResponse: {
       id: string;
-      image?: string;
-      nickname?: string;
+      image?: string | null;
+      nickname?: string | null;
       role: string;
     };
     ApiResponseAccountResponse: {
@@ -800,7 +800,7 @@ export interface components {
     CommentAuthor: {
       /** Format: uuid */
       id: string;
-      image?: string;
+      image?: string | null;
       nickname: string;
     };
     CommentResponse: {
@@ -818,8 +818,8 @@ export interface components {
       replies: components['schemas']['CommentResponse'][];
     };
     CreateCommentRequest: {
-      content?: string;
-      images?: string[];
+      content?: string | null;
+      images?: string[] | null;
     };
     CreateFolderRequest: {
       name: string;
@@ -841,14 +841,14 @@ export interface components {
       /** Format: uuid */
       id: string;
       /** Format: date-time */
-      lastUsedAt?: string;
+      lastUsedAt?: string | null;
       name: string;
       /** Format: int32 */
       sortOrder: number;
     };
     LinkMetadata: {
-      description?: string;
-      ogImage?: string;
+      description?: string | null;
+      ogImage?: string | null;
       title: string;
       url: string;
     };
@@ -883,15 +883,15 @@ export interface components {
     };
     PostCreateRequest: {
       bookmark: boolean;
-      categoryIds?: number[];
-      folderIds?: string[];
+      categoryIds?: number[] | null;
+      folderIds?: string[] | null;
       isPrivate: boolean;
-      title?: string;
+      title?: string | null;
       url: string;
     };
     PostPageResponse: {
       content: components['schemas']['PostResponse'][];
-      correctedSearch?: string;
+      correctedSearch?: string | null;
       last: boolean;
       /** Format: int32 */
       page: number;
@@ -905,18 +905,18 @@ export interface components {
     PostResponse: {
       /** @enum {string} */
       aiStatus: 'NONE' | 'PENDING' | 'COMPLETED' | 'FAILED';
-      aiSummary?: string;
+      aiSummary?: string | null;
       author: components['schemas']['UserSummary'];
       categories: components['schemas']['CategoryResponse'][];
       /** Format: date-time */
-      createdAt?: string;
-      description?: string;
+      createdAt?: string | null;
+      description?: string | null;
       /** Format: uuid */
       id: string;
       isPrivate: boolean;
-      ogImage?: string;
+      ogImage?: string | null;
       stats: components['schemas']['PostStats'];
-      tags?: string[];
+      tags?: string[] | null;
       title: string;
       url: string;
       userInteractions: components['schemas']['PostUserInteractions'];
@@ -932,10 +932,10 @@ export interface components {
       viewCount: number;
     };
     PostUpdateRequest: {
-      categoryIds?: number[];
+      categoryIds?: number[] | null;
       isPrivate: boolean;
-      title?: string;
-      url?: string;
+      title?: string | null;
+      url?: string | null;
     };
     PostUserInteractions: {
       bookmarkFolderIds: string[];
@@ -962,8 +962,8 @@ export interface components {
     };
     Unit: Record<string, never>;
     UpdateAccountRequest: {
-      image?: string;
-      nickname?: string;
+      image?: string | null;
+      nickname?: string | null;
     };
     UpdateFolderRequest: {
       name: string;
@@ -979,8 +979,8 @@ export interface components {
     UserSummary: {
       /** Format: uuid */
       id: string;
-      image?: string;
-      nickname?: string;
+      image?: string | null;
+      nickname?: string | null;
     };
   };
   responses: never;

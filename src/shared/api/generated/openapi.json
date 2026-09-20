@@ -7,9 +7,11 @@
             "type": "string"
           },
           "image": {
+            "nullable": true,
             "type": "string"
           },
           "nickname": {
+            "nullable": true,
             "type": "string"
           },
           "role": {
@@ -446,6 +448,7 @@
             "type": "string"
           },
           "image": {
+            "nullable": true,
             "type": "string"
           },
           "nickname": {
@@ -506,12 +509,14 @@
       "CreateCommentRequest": {
         "properties": {
           "content": {
+            "nullable": true,
             "type": "string"
           },
           "images": {
             "items": {
               "type": "string"
             },
+            "nullable": true,
             "type": "array"
           }
         },
@@ -572,6 +577,7 @@
           },
           "lastUsedAt": {
             "format": "date-time",
+            "nullable": true,
             "type": "string"
           },
           "name": {
@@ -588,9 +594,11 @@
       "LinkMetadata": {
         "properties": {
           "description": {
+            "nullable": true,
             "type": "string"
           },
           "ogImage": {
+            "nullable": true,
             "type": "string"
           },
           "title": {
@@ -689,6 +697,7 @@
               "format": "int64",
               "type": "integer"
             },
+            "nullable": true,
             "type": "array"
           },
           "folderIds": {
@@ -696,12 +705,14 @@
               "format": "uuid",
               "type": "string"
             },
+            "nullable": true,
             "type": "array"
           },
           "isPrivate": {
             "type": "boolean"
           },
           "title": {
+            "nullable": true,
             "type": "string"
           },
           "url": {
@@ -720,6 +731,7 @@
             "type": "array"
           },
           "correctedSearch": {
+            "nullable": true,
             "type": "string"
           },
           "last": {
@@ -752,6 +764,7 @@
             "type": "string"
           },
           "aiSummary": {
+            "nullable": true,
             "type": "string"
           },
           "author": {
@@ -765,9 +778,11 @@
           },
           "createdAt": {
             "format": "date-time",
+            "nullable": true,
             "type": "string"
           },
           "description": {
+            "nullable": true,
             "type": "string"
           },
           "id": {
@@ -778,6 +793,7 @@
             "type": "boolean"
           },
           "ogImage": {
+            "nullable": true,
             "type": "string"
           },
           "stats": {
@@ -787,6 +803,7 @@
             "items": {
               "type": "string"
             },
+            "nullable": true,
             "type": "array"
           },
           "title": {
@@ -841,15 +858,18 @@
               "format": "int64",
               "type": "integer"
             },
+            "nullable": true,
             "type": "array"
           },
           "isPrivate": {
             "type": "boolean"
           },
           "title": {
+            "nullable": true,
             "type": "string"
           },
           "url": {
+            "nullable": true,
             "type": "string"
           }
         },
@@ -945,9 +965,11 @@
       "UpdateAccountRequest": {
         "properties": {
           "image": {
+            "nullable": true,
             "type": "string"
           },
           "nickname": {
+            "nullable": true,
             "type": "string"
           }
         },
@@ -993,9 +1015,11 @@
             "type": "string"
           },
           "image": {
+            "nullable": true,
             "type": "string"
           },
           "nickname": {
+            "nullable": true,
             "type": "string"
           }
         },

@@ -9,7 +9,7 @@ export const mockComment: Comment = {
   id: 'comment-uuid-1',
   content: 'This is a test comment',
   isDeleted: false,
-  createdAt: new Date('2025-01-01T00:00:00.000Z'),
+  createdAt: '2025-01-01T00:00:00.000Z',
   author: {
     id: mockAccount.id,
     nickname: mockAccount.nickname,
@@ -23,7 +23,7 @@ export const mockComment: Comment = {
 export const mockMyComment: MyComment = {
   id: 'comment-uuid-1',
   content: 'This is a test comment',
-  createdAt: new Date('2025-01-01T00:00:00.000Z'),
+  createdAt: '2025-01-01T00:00:00.000Z',
   postId: 'post-uuid-1',
   postTitle: 'Test Post Title',
 };
