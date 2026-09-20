@@ -42,6 +42,7 @@
   (`src/shared/ui/atoms/dropdown-menu.tsx`, `src/shared/ui/atoms/dropdown-menu.stories.tsx`, `e2e/bookmark-folder-menu-press-drag.spec.ts`(신규), `docs/BOOKMARK.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-21-dropdown-trigger-click.md`(신규))
 
   </details>
+
 - `bookmark` 새 폴더 만들기 입력 중 ESC를 누르면 폼이 아니라 모달 전체가 닫히던 문제 수정
   <details><summary>배경·구현</summary>
 
