@@ -35,6 +35,12 @@
 
 ### Fixed
 
+- `shared` Firebase 설정값이 비었거나 잘못됐을 때 앱 전체가 빈 화면으로 렌더되던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  `firebase.ts`가 브라우저 환경에서 `getMessaging(app)`을 조건 없이 호출하고 있었는데, `VITE_FIREBASE_PROJECT_ID` 등 설정값이 비어 있으면 Firebase Installations API가 `"Missing App configuration value: projectId"`를 동기적으로 throw했다. `main.tsx`에 `<App/>`을 감싸는 ErrorBoundary가 없어 이 throw가 React 렌더 트리 전체를 무너뜨려 `#root`가 완전히 빈 채로 남았다(클린 HEAD에서도 재현되는 기존 버그, [PR #143](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/143) 본문에 재현 절차 기록). `getMessaging(app)` 호출을 try/catch로 감싸 실패 시 `messaging`을 `null`로 남기도록 고쳤다 — 호출부(`fcm.ts`, `useFcmForegroundMessage.ts`)는 이미 `messaging`이 `null`이면 그대로 return하는 기존 방어 로직을 갖고 있어 FCM 기능만 조용히 비활성화되고 앱은 정상 렌더된다. 배포용 값은 GitHub Secrets로 주입돼(`docs/SYSTEM-ARCHITECTURE.md` "Secrets") 프로덕션 재현 위험은 낮지만, 로컬 `.env` 설정 실수 한 번에 개발 환경 전체가 막히는 것을 막는 안전망이다.
+  (`src/shared/lib/firebase/firebase.ts`, [PR #153](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/153))
+
 - `shared` ⋮ 메뉴를 누른 채 손이 밀리면 항목이 오발동해 메뉴가 그냥 사라지던 문제 수정
   <details><summary>배경·구현</summary>
 
