@@ -213,6 +213,9 @@ describe('usePostList — 정지 구간(v7_startTransition) 중 필터 조작', 
 
     // 재클릭의 목적지(filter 없음)는 초기 로드와 같은 쿼리 키라 캐시 히트로 새 네트워크
     // 요청 자체가 안 생길 수 있다 - 게이트 개수를 강제하지 않고 남은 미해결 게이트만 연다.
+    // FilterChip의 useClickGuard(8ms, useClickGuard.ts)가 채터링성 재클릭만 걸러내므로
+    // 사람의 실제 재클릭 속도를 반영해 그보다 긴 지연을 둔다.
+    await new Promise((resolve) => setTimeout(resolve, 20));
     await user.click(screen.getByRole('button', { name: TEXTS.buttons.bookmarkOnly }));
     await releaseAllGates(inOrder);
 
