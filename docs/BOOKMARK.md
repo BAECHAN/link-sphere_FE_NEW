@@ -455,6 +455,14 @@ no-op 테스트를 완전 삭제+되돌리기 검증으로 교체하고 미북�
 "내 폴더" 라벨)이 완전히 고정된 상태를 유지하고 내부 스크롤이 페이지 스크롤로 새지
 않는 것을 확인했다.
 
+**2026-09-21 갱신(2)** — ⋮ 메뉴 트리거를 click 오픈으로 바꾼 뒤(§10) 전체 스위트
+73개 파일 426개 테스트 무수정 통과, `pnpm type-check`·`pnpm lint` 모두 통과. 새로
+추가한 `e2e/bookmark-folder-menu-press-drag.spec.ts`가 수정 전 코드에서는 실패하고
+수정 후에는 통과함을 실측 확인했고, 데스크톱 43개 + 모바일 7개(§10에서 밝힌 임시
+config 기준) e2e 전체가 무회귀로 통과했다 — `bookmark.mobile.spec.ts`(MobileFolderList
+포함)·`post-update.spec.ts`·`post-visibility.spec.ts`(PostCard 제어형 메뉴)·
+`account-update.spec.ts`(Navbar 계정 메뉴)까지 이 컴포넌트를 쓰는 4곳을 모두 덮는다.
+
 ## 10. 시행착오
 
 ### "최근 저장한 폴더"가 삭제 후 옛 값으로 굳어 있던 문제
@@ -681,6 +689,45 @@ Tailwind 클래스를 그대로 쓴 정적 목업을 만들어 "패널 전체 �
 줄었다 — 별도 하단 블록은 더 이상 없다.
 
 영향 파일: `widgets/bookmark/folder-tree/ui/FolderTree.tsx`.
+
+### ⋮ 메뉴를 누른 채 손이 밀리면 "이름 수정"이 오발동해 그냥 사라진 것처럼 보이던 문제
+
+폴더 ⋮ 메뉴를 누르면 메뉴가 떴다가 아무 일도 없이 즉시 사라진다는 제보를 받았다.
+드래그로 착각하기 쉬운 증상이었지만, 이 레포에는 드래그 앤 드롭 기능이 아예 없다 —
+`draggable` 속성·DnD 라이브러리 모두 0건. 실제로는 사람이 클릭할 때 손이 몇 px
+움직이는 것(불가피한 동작)이 방아쇠였다.
+
+Radix `DropdownMenu` 2.1.16 소스를 직접 읽어 원인을 추적했다:
+`DropdownMenuTrigger`가 `onPointerDown`(누르는 순간, 떼기 전)에서 즉시 메뉴를 열고
+(`@radix-ui/react-dropdown-menu/dist/index.mjs:74`), `MenuItem`은 `onPointerUp`에서
+`if (!isPointerDownRef.current) event.currentTarget?.click()` —
+그 항목에서 직접 누르지 않았어도 거기서 손을 떼면 클릭을 강제 발동한다
+(`@radix-ui/react-menu/dist/index.mjs:398`). 손이 몇 px만 밀려 "이름 수정" 항목
+위에서 손을 떼면 `startRename()`이 실행돼 행이 `<Input>`으로 바뀌지만, 이름이
+그대로라 `submitRename`이 API 호출 없이 조용히 원복한다(`useFolderActions.ts:39-43`)
+— 그래서 사용자에겐 "메뉴가 떴다 그냥 사라진" 것으로만 보였다.
+
+이 패턴은 WCAG 2.2 SC 2.5.2(Pointer Cancellation, Level A)가 명시적으로 막는
+동작이고, Radix 저장소에도 같은 지적([#3124](https://github.com/radix-ui/primitives/issues/3124)
+등)이 open 상태로 쌓여 있다. 대안 비교와 반대 근거(Radix·MUI가 pointerdown을 쓰는
+이유)는 `docs/DECISIONS.md` 2026-09-21 "⋮ 메뉴 트리거" 항목에 남겼다.
+
+수정: `shared/ui/atoms/dropdown-menu.tsx`의 `DropdownMenu`/`DropdownMenuTrigger`를
+감싸 open 상태를 직접 들고 Radix Root에 controlled로 넘겼다. 트리거는 `onPointerDown`
+에서 항상 `preventDefault()`로 Radix의 내부 열기 핸들러를 막고, `onClick`(=pointerup
+후)에서만 연다. 컴포넌트 하나를 고쳐 이걸 쓰는 4곳(폴더 메뉴 데스크톱·모바일, 게시글
+카드 메뉴, 계정 메뉴)이 함께 낫는다.
+
+이 원인 체인 중 "손이 밀렸을 때 실제로 항목이 강제 클릭되는지"는 실제 Playwright로
+먼저 재현해 확정했다(수정 전 실패, `e2e/bookmark-folder-menu-press-drag.spec.ts`) —
+트리거를 누른 채 실제 렌더된 "이름 수정" 항목 좌표까지 마우스를 이동시켰다 뗀 뒤
+`document`의 `click` 이벤트를 직접 관찰하는 방식이다. 이 세션 환경에는 실제 백엔드가
+없어(포트 8080 미가용) 로그인 계정으로 하는 수동 브라우저 녹화 검증(`browser-
+verification` skill)은 수행하지 못했다 — 대신 mock 네트워크 기반 e2e로 데스크톱·
+모바일 50개 스펙 전체가 무회귀로 통과함을 확인했다.
+
+영향 파일: `shared/ui/atoms/dropdown-menu.tsx`, `shared/ui/atoms/dropdown-menu.stories.tsx`,
+`e2e/bookmark-folder-menu-press-drag.spec.ts`(신규).
 
 ## 11. 남은 것
 

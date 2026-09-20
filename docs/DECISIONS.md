@@ -59,6 +59,68 @@ https://github.com/Shopify/polaris-react/pull/11796/files):
 
 ---
 
+## 2026-09-21 — ⋮ 메뉴 트리거: Radix 기본 동작(pointerdown 오픈)에서 click 오픈으로 이탈
+
+**배경**
+
+북마크 폴더 목록의 ⋮ 메뉴를 누르면 메뉴가 떴다가 아무 일도 없이 사라진다는 제보를
+Radix `DropdownMenu` 2.1.16 소스를 직접 읽어 추적했다. `DropdownMenuTrigger`가
+`onPointerDown`(누르는 순간, 떼기 전)에서 즉시 메뉴를 열고, `MenuItem`은
+`onPointerUp`에서 `if (!isPointerDownRef.current) event.currentTarget?.click()` —
+그 항목에서 직접 누르지 않았어도 거기서 손을 떼면 클릭을 강제 발동한다. 트리거를
+누른 채 손이 몇 px만 밀려도(사람이면 불가피) 이미 열린 메뉴의 첫 항목 위에서
+`pointerup`이 나 "이름 수정"이 오발동됐다 — 이름이 그대로라 API 호출 없이 조용히
+원복돼 사용자에겐 "메뉴가 떴다 그냥 사라진" 것으로 보였다.
+
+**검토**
+
+- **그대로 둔다** — Radix 기본값이라 관리 비용이 없다. 기각: 파괴적/상태변경 액션
+  (이름 변경·삭제)의 오발동을 그대로 방치하는 것이라 안전성 문제를 덮어두는 셈이다.
+- **sideOffset·padding만 키워 손 떨림 여유를 늘린다** — 코드 변경이 작다. 기각:
+  원인(down-event 실행) 자체는 그대로라 더 큰 손 떨림에는 여전히 재현된다 — 증상
+  완화일 뿐 근본 수정이 아니다.
+- **click(=pointerup 후) 오픈으로 바꾼다(채택)** — 아래 이유 참고.
+
+WCAG 2.2 성공 기준 **2.5.2 Pointer Cancellation(Level A)**의 첫 조건은 _"The
+down-event of the pointer is not used to execute any part of the function"_ 이고,
+Understanding 문서는 그 이유를 _"cancel the action by moving their pointer or
+finger away from the target before releasing"_ — 떼기 전에 포인터를 치워 취소할
+기회를 주기 위해서라고 설명한다
+([W3C, Understanding SC 2.5.2](https://www.w3.org/WAI/WCAG22/Understanding/pointer-cancellation.html)).
+Radix 저장소에도 같은 지적이 open 상태로 쌓여 있다 —
+[#3124](https://github.com/radix-ui/primitives/issues/3124)(WCAG 2.5.2 위반 직접
+지적), [#3012](https://github.com/radix-ui/primitives/issues/3012),
+[#2418](https://github.com/radix-ui/primitives/issues/2418)(터치 스크롤 충돌).
+메인테이너 답변은 없다.
+
+**Radix가 pointerdown을 택한 이유(반대 근거)도 기록한다** — macOS 네이티브 메뉴의
+"눌러서 끌어 한 번에 선택"을 재현해 클릭 두 번을 한 동작으로 줄이는 효율 논거다.
+Material UI의 `Select`도 같은 이유로 `mouseDown`을 쓴다. 이 레포에서 그 효율을
+포기하는 이유는 ⋮ 메뉴 항목이 이름 변경·삭제 같은 되돌리기 어려운/상태변경 액션이라
+오발동 비용이 "한 동작 절약"보다 크기 때문이다 — 단순 네비게이션 메뉴였다면 이 결정은
+달랐을 것이다.
+
+**결정**: `shared/ui/atoms/dropdown-menu.tsx`가 open 상태를 직접 들고 Radix Root에
+controlled로 넘긴다. 트리거의 `onPointerDown`은 항상 `preventDefault()`로 Radix
+내부 열기 핸들러를 막고, `onClick`에서만 연다. 키보드(Enter/Space/ArrowDown)는
+Radix가 그 자리에서 `preventDefault()`를 호출해 클릭 합성과 겹치지 않으므로 건드리지
+않는다.
+
+**이유**: 이 컴포넌트 하나를 고치면 이걸 쓰는 4곳(폴더 메뉴 데스크톱·모바일, 게시글
+카드 메뉴, 계정 메뉴)이 함께 낫는다. 수정 전 실패·수정 후 통과를 실제 Playwright로
+확인했다 — 마우스로 트리거를 누른 채 "이름 수정" 항목까지 이동했다 떼는 시퀀스를
+`document`의 `click` 이벤트 관찰로 직접 재현·고정했다(`e2e/bookmark-folder-menu-
+press-drag.spec.ts`).
+
+**되돌리기 비용**: Radix `@radix-ui/react-dropdown-menu` 메이저 업그레이드 시 내부
+구조(예: Trigger가 onPointerDown 대신 다른 이벤트로 열게 바뀌거나, Root의 controlled
+open 처리 방식이 바뀌는 경우)가 이 래퍼의 가정과 어긋날 수 있어 재검토가 필요하다.
+
+**상태**: 적용 완료. `docs/BOOKMARK.md` §10, 계획 스냅샷:
+`docs/plans/2026-09-21-dropdown-trigger-click.md`.
+
+---
+
 ## 2026-09-21 — 사이드바 스크롤 영역 경계: 목록만 스크롤 채택 (모달 선례 재사용)
 
 **배경**
