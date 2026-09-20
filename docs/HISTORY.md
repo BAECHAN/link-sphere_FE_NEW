@@ -1,3 +1,6 @@
+### 2026-09-20 (FE)
+- og:image 썸네일 재요청 로직 개선을 통해 불필요한 네트워크 요청 및 콘솔 에러 누적 문제 해결 ([#130](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/130))
+
 ### 2026-09-19 (FE)
 - 피드 및 북마크 목록에 가상 스크롤(Virtual Scrolling)을 도입하여 대량의 데이터 렌더링 성능 최적화
 
