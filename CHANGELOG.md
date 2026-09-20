@@ -40,6 +40,7 @@
 
   Radix `Dialog`는 `document`에 capture 단계로 ESC 리스너를 걸어(`react-use-escape-keydown`), 생성 입력의 `onKeyDown`에서 `stopPropagation()`을 호출해도 이미 늦은 뒤라 모달이 먼저 닫혔다. `SheetDialogContent`가 그대로 통과시키는 `onEscapeKeyDown` 콜백에서 생성 폼이 열려 있을 때만 `preventDefault()`로 dismiss를 막고 폼을 접도록 옮겼다 — 폼이 닫혀 있을 때의 기존 "ESC로 모달 닫기"는 그대로 유지된다.
   (`src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`, [PR #151](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/151))
+
 - `shared` 토큰 갱신 재시도에 상한을 두어 무한 루프 가능성 제거
   <details><summary>배경·구현</summary>
 
