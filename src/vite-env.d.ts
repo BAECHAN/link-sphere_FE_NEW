@@ -14,6 +14,9 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
+/** vite.config.ts의 define으로 번들에 박히는 빌드 식별자. 커밋마다 결정론적인 값만 담는다. */
+declare const __BUILD_INFO__: { sha: string; ref: string; mode: string };
+
 declare module '*.svg' {
   import type { FunctionComponent, SVGProps } from 'react';
   export const ReactComponent: FunctionComponent<SVGProps<SVGSVGElement>>;

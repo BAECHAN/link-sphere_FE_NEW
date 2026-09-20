@@ -16,6 +16,7 @@ const ROUTES_PATHS = {
   },
   BOOKMARK: '/bookmark',
   MY_COMMENTS: '/my/comments',
+  VERSION: '/version',
   // Error
   FORBIDDEN: '/403',
   SERVER_ERROR: '/500',

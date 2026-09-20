@@ -170,6 +170,7 @@ features/<도메인>/<액션>/
 
 - [`docs/AUTH.md`](docs/AUTH.md) — 인증·세션·토큰 갱신: 세 개의 독립된 인증 게이트, 상태 저장 위치, 401 자동 갱신
 - [`docs/BOOKMARK.md`](docs/BOOKMARK.md) — 북마크 페이지: 폴더 분류, 반응형 3분기, 폴더 내 검색
+- [`docs/BUILD-VERSION.md`](docs/BUILD-VERSION.md) — 배포 반영 확인: `/version` 화면과 CI 자동 검증으로 "지금 이 탭"과 "서버에 배포된 것"을 대조
 - [`docs/CI-CHECK-GATE.md`](docs/CI-CHECK-GATE.md) — `pnpm check`가 실제로는 아무 데도 안 걸려 있던 문제와 PR·배포 게이트 정비
 - [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md) — 디자인 토큰(색상·반경·z-index)·컴포넌트·ESLint 강제 규칙·Storybook 카탈로그
 - [`docs/FCM-PUSH-NOTIFICATION.md`](docs/FCM-PUSH-NOTIFICATION.md) — 댓글·답글 FCM 웹 푸시: 토큰 수명주기, 서비스워커, 알림 클릭 딥링크

@@ -1,10 +1,24 @@
+import { execSync } from 'child_process';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import dayjs from 'dayjs';
 import { defineConfig, loadEnv } from 'vite';
 import compression from 'vite-plugin-compression'; // 추가
 import mkcert from 'vite-plugin-mkcert';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { DEV_SERVER_PORT } from './dev-server.config';
+
+/** CI가 아니면 로컬 git에서 커밋 SHA를 읽는다. git이 없거나 실패하면 판단 보류값('unknown'). */
+function readLocalGitSha(): string {
+  try {
+    return execSync('git rev-parse HEAD', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return 'unknown';
+  }
+}
 
 export default defineConfig(({ mode }) => {
   // 현재 모드(mode)에 따라 .env 파일들을 로드
@@ -12,6 +26,23 @@ export default defineConfig(({ mode }) => {
 
   // 환경 변수의 기본값 설정
   const API_URL = env.VITE_API_BASE_URL;
+
+  // 번들에 박히는 값 - 같은 커밋이면 항상 같아야 한다. builtAt·runNumber처럼 빌드마다
+  // 달라지는 값을 여기 넣으면 무변경 재배포에도 entry 청크 해시가 바뀌어
+  // useAppVersionCheck가 이를 새 배포로 오판해 열려 있는 모든 탭을 리로드시킨다.
+  const bundledBuildInfo = {
+    sha: process.env.GITHUB_SHA ?? readLocalGitSha(),
+    ref: process.env.GITHUB_REF_NAME ?? 'local',
+    mode,
+  };
+
+  // 서버(dist/version.json)에만 실리는 값 - "이 파일이 언제 배포됐나"라는 배포 시점 정보.
+  const deployedBuildInfo = {
+    ...bundledBuildInfo,
+    runNumber: process.env.GITHUB_RUN_NUMBER ?? null,
+    runId: process.env.GITHUB_RUN_ID ?? null,
+    builtAt: dayjs().toISOString(),
+  };
 
   return {
     plugins: [
@@ -29,6 +60,17 @@ export default defineConfig(({ mode }) => {
         gzipSize: true,
         brotliSize: true,
       }),
+      {
+        name: 'emit-version-json',
+        apply: 'build',
+        generateBundle() {
+          this.emitFile({
+            type: 'asset',
+            fileName: 'version.json',
+            source: JSON.stringify(deployedBuildInfo, null, 2),
+          });
+        },
+      },
     ],
     base: '/',
     build: {
@@ -140,6 +182,7 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       __DEPLOY_ENV__: JSON.stringify(mode),
+      __BUILD_INFO__: JSON.stringify(bundledBuildInfo),
     },
     server: {
       fs: {

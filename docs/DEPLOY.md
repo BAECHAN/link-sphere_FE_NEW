@@ -38,12 +38,24 @@
 6.  **Deploy to S3**:
     - 빌드된 `dist/` 디렉토리의 내용을 S3 버킷과 동기화합니다.
     - `--delete` 옵션을 사용하여 로컬 빌드 결과물에 없는 파일은 S3에서도 삭제합니다.
+    - `index.html`과 함께 `dist/version.json`(커밋 sha·배포 시각 등 빌드 식별자,
+      [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고)도 같은 이유로 무캐시 업로드됩니다.
     - 이 `--delete`는 같은 버킷의 `storybook/` 접두사를 `--exclude`로 제외한다 —
       아래 "Storybook 공개 배포"가 그 접두사에 별도로 올리는 파일이라, 제외하지
       않으면 이 워크플로우가 돌 때마다 방금 배포한 Storybook이 통째로 삭제된다.
 7.  **CloudFront Invalidation**:
     - 배포 후 즉시 변경 사항이 반영되도록 CloudFront 캐시를 무효화합니다.
     - 대상 경로: `/*`
+8.  **배포 반영 검증**:
+    - invalidation 직후 실제 CloudFront URL(`vars.SITE_URL`, 미설정 시 하드코딩된
+      도메인)을 직접 호출해 ①`/version.json`의 sha가 이번 커밋과 같은지(최대 2분
+      재시도) ②`index.html`의 `cache-control`에 `no-store`가 여전히 있는지
+      ③라이브 entry 청크 해시가 방금 빌드한 것과 같은지 확인합니다. 자세한 근거는
+      [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고.
+9.  **실패 시 알림** (`notify-failure` job):
+    - 위 어느 스텝이든 실패하면 별도 job이 커밋 sha·run 링크를 담은 GitHub 이슈를
+      자동 생성합니다. `deploy` job과 권한을 분리해뒀습니다(AWS 자격증명을 다루는
+      job에 `issues: write`를 더하지 않기 위함).
 
 ### GitHub Actions 수동 재실행
 
@@ -111,6 +123,12 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
 | `S3_BUCKET_NAME`             | 배포할 S3 버킷 이름      | 예: `link-sphere-frontend` |
 | `CLOUDFRONT_DISTRIBUTION_ID` | CloudFront 배포 ID       | 예: `E1234567890ABC`       |
 | `VITE_API_BASE_URL`          | 백엔드 API 기본 URL      | 빌드 시점에 주입됨         |
+
+**Variables**(Secret이 아닌 레포 Variable — Settings > Secrets and variables > Actions > Variables 탭):
+
+| Variable 이름 | 설명                        | 비고                                                                                                                                                        |
+| :------------ | :-------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SITE_URL`    | 배포 반영 검증이 호출할 URL | 미설정 시 CloudFront 도메인으로 하드코딩된 폴백 사용. Secret으로 두면 로그가 `***`로 마스킹돼 디버깅이 어려워 Variable로 둔다(이미 `README.md`에 공개된 값) |
 
 ## AWS IAM 권한 요구사항
 
@@ -248,6 +266,27 @@ curl -sS -o /dev/null -w '%{http_code}\n' -X POST "$URL" -H 'Content-Type: appli
 **되돌리려면**(재발 시): `AWS-AWSManagedRulesCommonRuleSet`의
 `RuleActionOverrides`에서 `CrossSiteScripting_BODY` 항목을 제거하고
 `update-web-acl`로 재적용.
+
+## 배포 반영 검증하는 법
+
+`gh run list`가 success를 보여줘도 그건 워크플로우가 끝났다는 뜻이지 배포가 실제로
+반영됐다는 증거가 아니다(`.claude/CLAUDE.md` Critical Rule). 자동 검증(위 8번
+스텝)이 이미 매 배포마다 이걸 확인하지만, 수동으로 직접 확인하고 싶을 때는:
+
+```bash
+# 1. 지금 서버에 올라간 커밋 확인
+curl -s https://<cloudfront-domain>/version.json | jq
+
+# 2. index.html 캐시 헤더 확인 - no-store가 있어야 정상
+curl -sI https://<cloudfront-domain>/index.html | grep -i cache-control
+
+# 3. 브라우저로 직접 확인
+open https://<cloudfront-domain>/version
+```
+
+세 값이 서로 다른 걸 가리키는 흔한 원인과 대응은 [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md)
+§5·§9 참고 — 특히 `no-store` 헤더가 빠지면 [NEW-VERSION-RELOAD.md](./NEW-VERSION-RELOAD.md)의
+자동 리로드 기능 전체가 조용히 죽는다.
 
 ## 수동 배포 (참고)
 

@@ -90,7 +90,10 @@ flowchart LR
     FE_Build["pnpm build"]
     FE_S3["S3 sync"]
     FE_CF["CloudFront Invalidation"]
-    FE_Trigger --> FE_Build --> FE_S3 --> FE_CF
+    FE_Verify["배포 반영 검증<br/>(sha·캐시헤더·entry해시)"]
+    FE_Notify["notify-failure<br/>(검증 실패 시)"]
+    FE_Trigger --> FE_Build --> FE_S3 --> FE_CF --> FE_Verify
+    FE_Verify -.실패.-> FE_Notify
   end
   subgraph be_deploy [BE Deploy]
     BE_Trigger["push main / paths"]
@@ -105,13 +108,14 @@ flowchart LR
 
 ### FE 배포 (Frontend Deploy)
 
-| 항목        | 내용                                                                                                                                                                                                                                                                                            |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **파일**    | `.github/workflows/deploy.yml` (FE 저장소)                                                                                                                                                                                                                                                      |
-| **트리거**  | `push` to `main`, paths: `src/**`, `public/**`, `package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `postcss.config.js`, `index.html`, `tsconfig*.json`                                                                                                                                         |
-| **단계**    | Checkout → Set up pnpm → Set up Node(`.nvmrc`) → `pnpm install --frozen-lockfile` → `pnpm check`(type-check·lint·format) → `pnpm test` → `pnpm build`(env: Firebase 6종) → Configure AWS → S3 업로드(index.html·SW는 무캐시, assets·fonts는 장기 캐시, 나머지는 sync) → CloudFront invalidation |
-| **Secrets** | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, `CLOUDFRONT_DISTRIBUTION_ID`, `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, `VITE_FIREBASE_VAPID_KEY`                          |
-| **리전**    | ap-northeast-1                                                                                                                                                                                                                                                                                  |
+| 항목            | 내용                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **파일**        | `.github/workflows/deploy.yml` (FE 저장소)                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **트리거**      | `push` to `main`, paths: `src/**`, `public/**`, `package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `postcss.config.js`, `index.html`, `tsconfig*.json`                                                                                                                                                                                                                                                                                           |
+| **단계**        | Checkout → Set up pnpm → Set up Node(`.nvmrc`) → `pnpm install --frozen-lockfile` → `pnpm check`(type-check·lint·format) → `pnpm test` → `pnpm build`(env: Firebase 6종) → Configure AWS → S3 업로드(index.html·version.json·SW는 무캐시, assets·fonts는 장기 캐시, 나머지는 sync) → CloudFront invalidation → 배포 반영 검증(sha·캐시헤더·entry해시, [`BUILD-VERSION.md`](./BUILD-VERSION.md)) → 실패 시 `notify-failure`(GitHub 이슈 자동 생성) |
+| **concurrency** | `deploy-main` 그룹, `cancel-in-progress: false`(연속 push는 대기열 처리 — `aws s3 sync --delete` 도중 취소 시 버킷 파손 방지)                                                                                                                                                                                                                                                                                                                     |
+| **Secrets**     | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, `CLOUDFRONT_DISTRIBUTION_ID`, `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, `VITE_FIREBASE_VAPID_KEY`                                                                                                                                                                            |
+| **리전**        | ap-northeast-1                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 ### BE 배포 (Deploy to AWS Lambda)
 
