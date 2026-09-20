@@ -1,4 +1,5 @@
 import { Moon, Sun, Search, Menu } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/atoms/button';
 import {
@@ -33,6 +34,7 @@ interface NavbarLocationState {
 export function Navbar() {
   const { isAuthenticated } = useAuthStore();
   const { logout } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
 
   const { account } = useAccount();
 
@@ -167,10 +169,7 @@ export function Navbar() {
               variant="ghost"
               size="icon"
               className="h-9 w-9"
-              onClick={() => {
-                const html = document.documentElement;
-                html.classList.toggle('dark');
-              }}
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
             >
               <Sun className="h-4 w-4 md:h-5 md:w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-4 w-4 md:h-5 md:w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
