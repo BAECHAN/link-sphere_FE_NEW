@@ -1,3 +1,10 @@
+### 2026-09-20 (BE)
+- 게시글 목록 조회 시 발생하던 categories N+1 쿼리 최적화
+- PostService의 타 도메인 의존성을 PostResponseAssembler로 분리하여 결합도 개선
+- 댓글 삭제 및 수정 권한 예외 시 403 Forbidden 응답으로 표준화
+- 미사용 스케줄링 설정 및 로거 제거를 통한 코드 베이스 정리
+- 인프라 배포 문서 및 워크플로 주석 최신화와 OpenAPI 결합 문서화 완료
+
 ### 2026-09-20 (FE)
 - 카드 UI 레이아웃 최적화: 제목과 액션 아이콘 간 간섭을 방지하여 텍스트 가독성 향상 ([#150](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/150))
 
