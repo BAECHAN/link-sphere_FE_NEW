@@ -384,9 +384,11 @@ screen.getByTestId('submit-button');
 ### 기본 핸들러 추가
 
 새로운 API 엔드포인트가 생기면 `src/mocks/handlers/`에 핸들러를 추가합니다. 아래는 아직
-없는 새 도메인(`notification`)을 추가하는 가정의 예시입니다 — 실존하는 핸들러는
-[`src/mocks/handlers/`](../src/mocks/handlers/)의 `auth`·`post`·`comment`·`folder`·`upload`
-5종을 참고하세요.
+없는 새 도메인(`notification`)을 추가하는 가정의 예시입니다 — 실존하는 핸들러 중
+경로를 올바르게 감싸는 예시는 [`src/mocks/handlers/`](../src/mocks/handlers/)의
+`auth`·`account`·`upload`를 참고하세요. `post`·`comment`·`bookmark-folder`는 아래 "4. MSW
+핸들러가 실행되지 않음"에 적힌 접두사 버그로 실제 요청과 매칭되지 않으니 새 핸들러의
+본으로 삼지 마세요(2026-09-20 확인, 미수정).
 
 <!-- check-docs-ignore: 새로 만들 파일의 예시 경로, 아직 존재하지 않음 -->
 
@@ -851,6 +853,18 @@ server.use(
 );
 ```
 
+**실제 사례 (2026-09-20 확인, 미수정)**: `post.handlers.ts`·`comment.handlers.ts`·
+`bookmark-folder.handlers.ts`는 `API_ENDPOINTS.post.base`(`/post`) 등 상대 경로를 그대로
+`http.get(...)`에 넘긴다([`post.handlers.ts:20`](../src/mocks/handlers/post.handlers.ts)).
+반면 실제 요청은 `apiClient`가 `API_BASE_URL` 접두사를 붙인 절대 경로로 나간다
+([`client.ts:89`](../src/shared/api/client.ts), [`client.ts:318`](../src/shared/api/client.ts)).
+`auth`·`account`·`upload` 핸들러는 로컬 `url()` 헬퍼로 `API_BASE_URL`을 직접 붙여 이
+문제가 없다 — 새 핸들러를 만들 때는 그 셋을 본으로 삼는다("MSW 핸들러 추가 및
+오버라이드" 절 참고). 결과적으로 세 파일의 핸들러가 전부 매칭되지 않아, 그 경로를
+타는 테스트는 매번 `onUnhandledRequest: 'warn'` 경고 + 실제(미차단) `fetch`가 실행되고
+로컬/CI 네트워크가 막혀 있으면 `ECONNREFUSED`로 실패한다 — 다만 해당 테스트들은
+이 실패한 요청의 응답을 기다리지 않고 끝나므로 지금까지는 조용히 넘어갔다.
+
 ---
 
 ### 5. `postSchema.author.image: null` 오류
@@ -1004,6 +1018,50 @@ function createGate(): Gate {
 단위, Suspense throw 직접 제어),
 [`usePostList.test.tsx`](../src/widgets/post/post-list/hooks/usePostList.test.tsx)(MSW 게이트,
 실제 컴포넌트 통합).
+
+---
+
+### 11. 서드파티 모듈이 건 타이머가 테스트 파일 수명보다 오래 살아남아 다음 실행을 깨뜨린다
+
+**대상**: 서드파티 라이브러리가 내부적으로 `setTimeout`을 걸고 그 콜백이 `document` 같은
+jsdom 전역을 참조하는 경우. 2026-09-20 사례는 [`nprogress`](https://www.npmjs.com/package/nprogress)였다.
+
+**증상**: 배포 워크플로우에서 테스트 430개가 **전부 pass**했는데도 프로세스가 exit 1로
+실패했다(run `35515311104`, 커밋 `b467774f`). Vitest가 "Unhandled Errors" 1건을 잡았다:
+
+```
+ReferenceError: document is not defined
+ ❯ Object.NProgress.remove nprogress.js:256:17
+ ❯ Timeout._onTimeout nprogress.js:98:23
+```
+
+**원인**: [`post.api.ts`](../src/entities/post/api/post.api.ts)의 `fetchPostList`가
+`NProgress.start()`/`NProgress.done()`을 호출한다(`done()`은 `finally`라 성공·실패·취소
+전부에서 실행됨). nprogress는 `done()` 이후 `setTimeout(200ms)` → `setTimeout(200ms)` →
+`NProgress.remove()`를 체이닝하는데, `remove()`(nprogress 패키지 내부 `nprogress.js:255`)가
+`document.documentElement`를 가드 없이 참조한다. 이 ~400~600ms 타이머가 그 테스트 파일의
+jsdom 환경(Vitest가 파일마다 새로 만들고 정리한다)보다 오래 살아남으면, 이미 정리된
+`document`를 참조하다 터진다. `usePostList.test.tsx`가 `fetchPostList`(`page: 0`)를 타는
+유일한 테스트 파일이었다.
+
+**진단 시 유의점**: 이런 종류의 실패는 전체 스위트를 반복 실행해도 로컬에서 잘
+재현되지 않는다(수정 전 5회 재실행 모두 미재현) — Vitest가 어느 파일이 "실행 중"이었을
+때 잡았는지 보고하는 시점이 실제 타이머가 걸린 시점과 다를 수 있고, 워커 스케줄링에
+따라 확률이 갈린다. 이때는 전체 스위트에 기대지 말고, 문제되는 라이브러리를 실제로
+import해서 (1) 해당 API를 호출하고 (2) `document`/`window`를 즉시 지운 뒤 (3) 라이브러리의
+내부 타이머 지연만큼 기다려 예외가 뜨는지 보는 최소 재현 스크립트로 메커니즘 자체를
+증명하는 편이 훨씬 결정적이다.
+
+**해결**: 그 라이브러리를 `src/test/setup.ts`에서 전역으로 모킹한다 — `sonner` 모킹과
+같은 형태(파일 내 `vi.mock('sonner', ...)` 참고). 실제 로직이 아니라 모듈 자체가 테스트
+환경에서 부작용(타이머, DOM 접근)을 일으키는 것이므로, 그 모듈을 쓰는 개별 테스트가
+아니라 전역 setup에서 막는다.
+
+```typescript
+vi.mock('nprogress', () => ({
+  default: { configure: vi.fn(), start: vi.fn(), done: vi.fn() },
+}));
+```
 
 ---
 
