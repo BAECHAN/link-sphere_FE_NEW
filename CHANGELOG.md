@@ -42,6 +42,7 @@
   (`src/widgets/post/post-list/utils/search-parser.ts`, `src/widgets/post/post-list/utils/search-parser.test.ts`, `src/widgets/post/post-list/ui/PostListSearch.tsx`, `docs/SEARCH.md`, `docs/plans/2026-09-21-search-tag-boundary.md`(신규), [PR #159](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/159))
 
   </details>
+
 - `shared` 다크모드에서 필터 칩 등 ghost 버튼 9곳에 호버하면 의도한 색이 아니라 회색으로 덮이던 문제 수정
   <details><summary>배경·구현</summary>
 
