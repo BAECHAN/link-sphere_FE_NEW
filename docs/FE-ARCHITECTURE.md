@@ -195,11 +195,11 @@ src/
 ├── entities/                     # 비즈니스 엔티티 — data layer + basic display
 │   ├── post/
 │   │   ├── api/                  # post.api.ts, post.keys.ts, post.queries.ts
-│   │   ├── model/                # post.schema.ts (comment 스키마 re-export 포함)
+│   │   ├── model/                # post.dto.ts(응답 타입) + post.schema.ts(폼 검증, comment 스키마 re-export 포함)
 │   │   └── config/                # post.const.ts (POST_PAGE_SIZE)
 │   ├── comment/
 │   │   ├── api/                  # comment.api.ts, comment.keys.ts, comment.queries.ts
-│   │   ├── model/                # comment.schema.ts
+│   │   ├── model/                # comment.dto.ts(응답 타입) + comment.schema.ts(폼 검증)
 │   │   ├── utils/                # comment.util.ts (estimateCommentPayloadBytes)
 │   │   └── config/                # comment.const.ts (MAX_COMMENT_CONTENT_BYTES 외)
 │   ├── interaction/
@@ -208,22 +208,22 @@ src/
 │   │   │                         # 폴더인지 불분명했던 문제를 features/widgets와 같은 방식으로 해소
 │   │   └── folder/
 │   │       ├── api/              # bookmark-folder.api.ts, bookmark-folder.keys.ts, bookmark-folder.queries.ts
-│   │       ├── model/            # bookmark-folder.schema.ts
+│   │       ├── model/            # bookmark-folder.dto.ts(응답 타입) + bookmark-folder.schema.ts(폼 검증)
 │   │       ├── config/           # bookmark-folder.const.ts (RECENT_BOOKMARK_FOLDER_COUNT 외)
 │   │       ├── utils/            # bookmark-folder.util.ts (pickRecentFolders)
 │   │       └── hooks/            # useRecentBookmarkFolders.ts (다른 소비처가 있는 순수 데이터 파생 훅만
 │   │                             # entities에 남는다 — 인터랙션 UI는 features/bookmark/select/로 이동)
 │   ├── category/
 │   │   ├── api/                  # category.api.ts, category.keys.ts, category.queries.ts
-│   │   ├── model/                # category.schema.ts
+│   │   ├── model/                # category.dto.ts(응답 타입). category.schema.ts는 기존 import 경로 호환용 re-export만
 │   │   └── hooks/                 # useCategoryOptions — 등록·수정 폼 + 목록 검색 카드가 공유
 │   ├── auth/                     # 인증(로그인·로그아웃·회원가입·세션) 전용
 │   │   ├── api/                  # auth.api.ts, auth.keys.ts, auth.queries.ts
-│   │   ├── model/                # auth.schema.ts (loginSchema, createAccountSchema 등)
+│   │   ├── model/                # auth.dto.ts(응답 타입) + auth.schema.ts (loginSchema, createAccountSchema 등)
 │   │   └── hooks/                 # useAuth, useAppInitialization, useAuthGuard, useProtectedNavigate
 │   ├── account/                  # 내 계정 프로필(닉네임·이미지·이메일) 조회·수정 전용
 │   │   ├── api/                  # account.api.ts, account.keys.ts, account.queries.ts
-│   │   ├── model/                # account.schema.ts (accountSchema, updateAccountSchema 등)
+│   │   ├── model/                # account.dto.ts(응답 타입) + account.schema.ts (updateAccountSchema 등)
 │   │   └── hooks/                 # useAccount
 │   └── user/                     # 공개 사용자 표현 전용(게시글·댓글 작성자 등, 데이터 조회 없음)
 │       └── ui/                   # UserAvatar
@@ -231,7 +231,9 @@ src/
 └── shared/                       # 순수 유틸, UI 원자, API client, config
     ├── api/
     │   ├── client.ts             # HTTP 클라이언트 (apiClient) — fetch 기반, axios 아님
-    │   └── upload.api.ts         # uploadApi — 서명 URL 발급 + PUT 요청 함수
+    │   ├── upload.api.ts         # uploadApi — 서명 URL 발급 + PUT 요청 함수
+    │   ├── api.type.ts           # Unwrap 헬퍼 — ApiResponse<T> 래퍼가 익명 타입일 때만 사용
+    │   └── generated/            # openapi.json(스펙 스냅샷) + openapi.gen.ts(생성 타입) — 커밋됨, 직접 편집 금지
     ├── config/
     │   ├── texts.ts               # 모든 UI 문자열 (TEXTS)
     │   ├── api.ts                 # 모든 API 엔드포인트 (API_ENDPOINTS)
@@ -314,6 +316,25 @@ src/
 캐싱 모델과 안 맞는다 — Layer 3로 억지로 감싸는 것보다 Layer 1 직접 호출이 더 단순하다.
 뮤테이션(계정 생성·수정)은 두 파일 모두 정상적으로 Layer 3(`useCreateAccountMutation`,
 `useUpdateAccountMutation`)를 거친다 — 이 예외는 "실시간 검증"에만 한정된다.
+
+### Layer 0 — `<entity>.dto.ts` (BE 스펙 생성 타입 alias)
+
+응답 타입의 정본은 Zod가 아니라 BE OpenAPI 스펙에서 생성된 타입이다. 배경·마이그레이션
+과정은 `docs/OPENAPI-CODEGEN.md` 참고, 새 엔티티 만들 때 절차는 `/add-schema` 슬래시 커맨드
+참고.
+
+```typescript
+// entities/<entity>/model/<entity>.dto.ts
+import type { components } from '@/shared/api/generated/openapi.gen';
+
+export type Entity = components['schemas']['EntityResponse'];
+```
+
+BE의 nullable/enum이 스펙에 정확히 안 실리는 경우만 `Omit` + intersection으로 override하고,
+반드시 BE 소스 파일:줄을 근거 주석으로 남긴다(`src/entities/account/model/account.dto.ts`의
+`role`/`nickname` override 참고). Layer 1이 쓰는 `Entity`/`CreateEntity`/`UpdateEntity` 같은
+타입 이름은 이 파일(응답) 또는 아래 Zod 스키마(요청)에서 온다 — Layer 1~3 코드 자체는 바뀌지
+않는다.
 
 ### Layer 1 — `<entity>.api.ts` (순수 async, React 없음)
 
@@ -540,23 +561,34 @@ ESLint로 강제하지 않는다(파일 단위로 강제하면 그 파일에 앞
 
 ## 9. Zod Schema 패턴
 
-```typescript
-// entities/<entity>/model/<entity>.schema.ts
-export const entitySchema = z.object({
-  id: z.string(),
-  name: z.string().min(1, TEXTS.validation.nameRequired),
-  content: z.string().nullable(), // nullable: null 허용, undefined 불가
-  image: z.string().optional(), // optional: undefined 허용, null 불가
-  createdAt: z.coerce.date(), // 날짜 필드는 z.coerce.date() 사용
-});
+**Zod는 사용자 입력(생성/수정 폼, 검색 필터) 검증에만 쓴다 — 응답 타입은 Layer 0
+(`.dto.ts`)이 정본이다.** 과거엔 응답 형태도 Zod로 손으로 옮겨적었지만(`postSchema` 등),
+BE와 어긋나는 사고를 구조적으로 막기 위해 응답 쪽은 생성 타입으로 옮겼다(`docs/OPENAPI-CODEGEN.md`
+참고). `apiClient`가 응답에 `.parse()`/`safeParse()`를 걸지 않으므로 Zod는 응답 경로에서
+실질적인 런타임 검증을 한 적이 없었다.
 
-export const createEntitySchema = z.object({ name: z.string().min(1) });
+```typescript
+// entities/<entity>/model/<entity>.schema.ts — 요청/폼 검증만
+import { z } from 'zod';
+import { TEXTS } from '@/shared/config/texts';
+
+export const createEntitySchema = z.object({
+  name: z.string().min(1, TEXTS.validation.nameRequired),
+});
 export const updateEntitySchema = z.object({ name: z.string().min(1) });
 
-export type Entity = z.infer<typeof entitySchema>;
 export type CreateEntity = z.infer<typeof createEntitySchema>;
 export type UpdateEntity = z.infer<typeof updateEntitySchema>;
+
+// 기존 import 경로 호환 — 응답 타입은 dto.ts(BE 스펙 생성)에서 가져간다.
+export type { Entity } from '@/entities/<entity>/model/<entity>.dto';
 ```
+
+`.nullable()`은 폼 필드가 null을 명시적으로 보낼 수 있을 때(예: 이미지 제거), `.optional()`은
+필드 자체를 생략할 수 있을 때 쓴다 — 응답 필드의 null/undefined 여부에는 적용되지 않는다
+(그건 Layer 0의 생성 타입이 스펙대로 표현한다). 날짜를 다루는 폼 필드가 있다면(드묾)
+`z.coerce.date()`를 쓸 수 있지만, 응답의 날짜 필드(`createdAt` 등)는 항상 ISO 문자열이고
+`z.coerce.date()` 대상이 아니다 — 표시는 `dayjs`/`DateUtil`로 한다.
 
 ---
 
@@ -826,7 +858,8 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 | Invalidate 헬퍼               | `<entity>InvalidateQueries`                                                                                                                                                                                                                                                                                                           | `postInvalidateQueries`                     |
 | Success 핸들러                | `handle<Entity><Action>Success`                                                                                                                                                                                                                                                                                                       | `handlePostCreateSuccess`                   |
 | API 객체                      | `<entity>Api`                                                                                                                                                                                                                                                                                                                         | `postApi`                                   |
-| Zod 스키마                    | `<entity>Schema`, `create<Entity>Schema`                                                                                                                                                                                                                                                                                              | `postSchema`, `createPostSchema`            |
+| Zod 스키마 (요청/폼 검증만)   | `create<Entity>Schema`, `update<Entity>Schema`                                                                                                                                                                                                                                                                                        | `createPostSchema`, `updatePostSchema`      |
+| 응답 타입 파일 (Layer 0)      | `<entity>.dto.ts` — BE 생성 타입 alias                                                                                                                                                                                                                                                                                                | `post.dto.ts`                               |
 | TS 타입                       | 스키마와 동일 (PascalCase)                                                                                                                                                                                                                                                                                                            | `Post`, `CreatePost`                        |
 | `config/` 파일                | `<entity>.const.ts` — `api/`·`model/`·`utils/`와 같은 `<entity>.<역할>.ts` 규칙(`const.ts` 단독 금지, `shared/config/const.ts`처럼 도메인이 없는 전역 설정은 예외). `<entity>`는 **엔티티명**이지 디렉터리 세그먼트명이 아니다 — 그룹 폴더(`entities/bookmark/folder/`) 아래에서도 파일 접두사는 엔티티명(`bookmark-folder`)을 따른다 | `bookmark-folder.const.ts`, `post.const.ts` |
 | `<Entity>[]` 배열 변수/반환값 | `<entity>List` — 지역변수·훅 반환 필드·구조분해값이 실제로 배열일 때. 아래 각주의 예외 2가지는 대상 아님                                                                                                                                                                                                                              | `folderList`                                |
@@ -901,7 +934,8 @@ CLI로 이 컴포넌트를 다시 생성하면 `cursor-default`가 되돌아오�
 
 ## 21. 체크리스트: 기존 엔티티에 새 기능 추가
 
-- [ ] `entities/<entity>/model/<entity>.schema.ts` — Zod 스키마 + 타입 추가/확인
+- [ ] `entities/<entity>/model/<entity>.dto.ts` — 응답 타입이 바뀌었으면 확인/override 추가
+- [ ] `entities/<entity>/model/<entity>.schema.ts` — 요청/폼 검증 Zod 스키마 추가/확인
 - [ ] `entities/<entity>/api/<entity>.api.ts` — API 함수 추가
 - [ ] `entities/<entity>/api/<entity>.keys.ts` — 쿼리 키, invalidation, success handler 추가
 - [ ] `entities/<entity>/api/<entity>.queries.ts` — React Query 훅 추가

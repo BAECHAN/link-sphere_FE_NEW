@@ -13,7 +13,9 @@ Parse:
 
 ## Before creating files
 
-1. Check if `src/entities/<entity>/model/<entity>.schema.ts` already exists — if not, create the schema file first
+1. Check if `src/entities/<entity>/model/<entity>.dto.ts` already exists — if not, run
+   `/add-schema <domain> <entity>` first (creates the response DTO alias and, if needed,
+   a request/form Zod schema — see that command for the current convention)
 2. Read `src/shared/config/api.ts` to understand current API_ENDPOINTS structure
 3. Read `src/shared/config/texts.ts` to understand current TEXTS structure
 
@@ -188,6 +190,7 @@ warning: {
 
 ## Notes
 
-- If the schema file doesn't exist, create it first following the pattern in `src/entities/post/model/post.schema.ts`
+- If `<entity>.dto.ts` doesn't exist, run `/add-schema <domain> <entity>` first — see
+  `src/entities/post/model/post.dto.ts` for the current response-type pattern
 - If only some CRUD operations are needed, omit the unused functions from api.ts and their corresponding hooks from queries.ts
 - For cross-domain invalidation (e.g. creating a comment also invalidates the post), import and call the other domain's `InvalidateQueries` in the success handler in `<entity>.keys.ts`
