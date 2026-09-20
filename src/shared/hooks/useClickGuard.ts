@@ -6,19 +6,18 @@ import { useCallback, useRef } from 'react';
  * 그중 사용자가 결과를 인지하고 의도적으로 다시 누른 게 아니라 무의식적으로
  * 두 번 눌린 경우만 걸러낸다.
  *
- * 기본값 500ms는 Windows의 더블클릭 속도 기본값을 그대로 따른 것이다 — OS 자체가
- * "이 두 클릭을 하나의 제스처로 볼지, 별개의 의도적인 두 동작으로 볼지" 가르는 값이
- * 정확히 이 구분과 같다. _"the default timing in Windows is 500 ms (half a second)"_
- * ([Wikipedia, Double-click](https://en.wikipedia.org/wiki/Double-click), Microsoft
- * MSDN 인용). 사람의 단순 시각 반응시간은 평균 200~273ms
+ * Windows의 더블클릭 속도 기본값(500ms)이 정확히 이 구분("하나의 제스처로 볼지,
+ * 별개의 의도적인 두 동작으로 볼지")에 쓰이는 값이다 — _"the default timing in
+ * Windows is 500 ms (half a second)"_ ([Wikipedia, Double-click](https://en.wikipedia.org/wiki/Double-click),
+ * Microsoft MSDN 인용). 사람의 단순 시각 반응시간은 평균 200~273ms
  * ([관련 리서치 종합](https://www.orangeneurosciences.ca/guide/reaction-time-average))
- * 이라 500ms는 "결과를 보고 판단해서 다시 누르기로 결정"하는 데 걸리는 시간보다
- * 충분히 여유 있게 크다.
+ * 이라 400ms도 "결과를 보고 판단해서 다시 누르기로 결정"하는 데 걸리는 시간보다
+ * 충분히 크면서, 500ms보다는 응답성이 좋다(2026-09-21 재조정, docs/DECISIONS.md 참고).
  *
- * @param thresholdMs - 이 시간(ms) 이내의 재호출은 무시한다 (기본값 500ms)
+ * @param thresholdMs - 이 시간(ms) 이내의 재호출은 무시한다 (기본값 400ms)
  * @returns 호출 시점이 임계값을 넘었으면 true(진행), 아니면 false(무시)
  */
-export function useClickGuard(thresholdMs: number = 500) {
+export function useClickGuard(thresholdMs: number = 400) {
   const lastCallRef = useRef(0);
 
   return useCallback(() => {
