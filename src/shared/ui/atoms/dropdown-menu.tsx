@@ -4,11 +4,73 @@ import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { Check, ChevronRight, Circle } from 'lucide-react';
 
 import { cn } from '@/shared/lib/tailwind/utils';
-import { forwardRef } from 'react';
+import { createContext, forwardRef, useContext, useState } from 'react';
 
-const DropdownMenu = DropdownMenuPrimitive.Root;
+interface DropdownMenuOpenContextValue {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}
 
-const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
+/**
+ * Radix DropdownMenuTrigger는 onPointerDown에서 즉시 열린다(누르는 순간, 떼기 전) —
+ * WCAG 2.2 SC 2.5.2(Pointer Cancellation) 위반이자, 트리거를 누른 채 손이 몇 px만
+ * 움직여도 이미 열린 메뉴의 첫 항목 위에서 pointerup이 발생해 그 항목이 강제로
+ * 클릭되는 press-drag-release 오발동의 원인이다(docs/DECISIONS.md 참고). 이 open 상태를
+ * 우리가 직접 들고 Root에 controlled로 넘겨, Trigger가 click(=pointerup 후)에서만 열게
+ * 한다.
+ */
+const DropdownMenuOpenContext = createContext<DropdownMenuOpenContextValue | null>(null);
+
+const DropdownMenu = ({
+  open: openProp,
+  defaultOpen,
+  onOpenChange,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Root>) => {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen ?? false);
+  const open = openProp ?? uncontrolledOpen;
+
+  const setOpen = (next: boolean) => {
+    if (openProp === undefined) {
+      setUncontrolledOpen(next);
+    }
+
+    onOpenChange?.(next);
+  };
+
+  return (
+    <DropdownMenuOpenContext.Provider value={{ open, setOpen }}>
+      <DropdownMenuPrimitive.Root {...props} open={open} onOpenChange={setOpen} />
+    </DropdownMenuOpenContext.Provider>
+  );
+};
+
+const DropdownMenuTrigger = forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Trigger>
+>(({ onPointerDown, onClick, ...props }, ref) => {
+  const openContext = useContext(DropdownMenuOpenContext);
+
+  return (
+    <DropdownMenuPrimitive.Trigger
+      ref={ref}
+      {...props}
+      onPointerDown={(event) => {
+        onPointerDown?.(event);
+        // Radix 내부 onPointerDown 열기 핸들러를 항상 막는다 — click에서만 연다.
+        event.preventDefault();
+      }}
+      onClick={(event) => {
+        onClick?.(event);
+
+        if (!event.defaultPrevented) {
+          openContext?.setOpen(!openContext.open);
+        }
+      }}
+    />
+  );
+});
+DropdownMenuTrigger.displayName = DropdownMenuPrimitive.Trigger.displayName;
 
 const DropdownMenuGroup = DropdownMenuPrimitive.Group;
 
