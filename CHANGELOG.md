@@ -9,6 +9,8 @@
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-09-21
+
 ### Added
 
 - `infra` 배포 반영 확인 `/version` 화면과 배포 파이프라인 자동 검증 신설
@@ -2090,7 +2092,8 @@ BE API 의존: 댓글 생성/답글/수정 요청 바디가 `multipart/form-data
   `PostResponse.userInteractions.bookmarkFolderId` 필요
 - 드래그앤드랍 · 다중 선택 · 폴더 공유는 차후 별도 작업
 
-[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.11.0...v0.12.0
