@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `shared` 브랜드 컬러 도입을 철회하고 원래 무채색 `--primary`로 복원
+  <details><summary>배경·구현</summary>
+
+  색·타이포 토큰 개편(#166) 이후 브랜드 hue를 블루→틸로 두 번 조정했지만(#168, #169), 사용자가 재검토 끝에 브랜드 컬러 자체를 쓸 생각이 없었다고 확인해 도입을 철회한다. `--primary`/`--primary-foreground`를 원래 무채색 리터럴(라이트 `oklch(0.205 0 0)`/`oklch(0.985 0 0)`, 다크 `oklch(0.922 0 0)`/`oklch(0.205 0 0)`)로 복원하고, 더 이상 아무도 참조하지 않는 `--brand`/`--brand-2`/`--brand-foreground` 토큰 정의를 삭제했다. Submit Link 버튼의 그라데이션도 제거하고, 파비콘 6종도 재색칠 이전 검정 원본(커밋 `b252646`)으로 복원했다. 카테고리 8색 팔레트·상세 제목 확대·그림자 기반 입체감·좌측 정렬은 브랜드 색상과 무관한 별개 결정이었으므로 그대로 유지한다.
+  (`src/app/globals.css`, `src/pages/post/index.tsx`, `public/favicons/*`, `src/shared/ui/tokens/DesignTokens.stories.tsx`, `docs/DESIGN-SYSTEM.md`, `.claude/skills/design-tokens/SKILL.md`, `docs/plans/2026-09-21-brand-color-revert.md`(신규))
+
+  </details>
+
 - `shared` 브랜드 색상(hue)을 블루에서 틸로 교체
   <details><summary>배경·구현</summary>
 
