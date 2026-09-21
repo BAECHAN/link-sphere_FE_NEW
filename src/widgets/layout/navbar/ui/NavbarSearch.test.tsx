@@ -290,7 +290,7 @@ describe('NavbarSearch — 최근검색 드롭다운', () => {
     expect(screen.getByTestId('location-search')).toHaveTextContent(encodeURIComponent('리액트'));
   });
 
-  it('↓를 검색어 개수만큼 누르면 "모두 지우기" 행에 도달하고, Enter로 전체 삭제된다', async () => {
+  it('"모두 지우기"에서 ↑로 도달해 Enter를 누르면 전체 삭제된다', async () => {
     const user = userEvent.setup();
     const { onClearRecentSearches } = renderNavbarSearch('/post', {
       recentSearches: ['리액트', '타입스크립트'],
@@ -298,7 +298,7 @@ describe('NavbarSearch — 최근검색 드롭다운', () => {
 
     const input = screen.getByPlaceholderText(TEXTS.placeholders.postSearch);
     await user.click(input);
-    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}');
+    await user.keyboard('{ArrowUp}');
 
     expect(input).toHaveAttribute('aria-activedescendant', 'navbar-recent-search-cell-2-0');
 
@@ -316,6 +316,45 @@ describe('NavbarSearch — 최근검색 드롭다운', () => {
     await user.keyboard('{ArrowDown}{ArrowUp}');
 
     expect(input).toHaveAttribute('aria-activedescendant', 'navbar-recent-search-cell-2-0');
+  });
+
+  it('"모두 지우기"에서 ↑를 누르면 입력창으로 나간다(순환하지 않음)', async () => {
+    const user = userEvent.setup();
+    renderNavbarSearch('/post', { recentSearches: ['리액트', '타입스크립트'] });
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.postSearch);
+    await user.click(input);
+    await user.keyboard('{ArrowUp}{ArrowUp}');
+
+    expect(input).not.toHaveAttribute('aria-activedescendant');
+  });
+
+  it('마지막 검색어에서 ↓를 눌러도 더 내려가지 않는다(순환하지 않음)', async () => {
+    const user = userEvent.setup();
+    renderNavbarSearch('/post', { recentSearches: ['리액트', '타입스크립트'] });
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.postSearch);
+    await user.click(input);
+    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}');
+
+    expect(input).toHaveAttribute('aria-activedescendant', 'navbar-recent-search-cell-1-0');
+  });
+
+  it('화살표로 이동하면 활성 셀이 스크롤 컨테이너 안으로 스크롤된다', async () => {
+    const user = userEvent.setup();
+    renderNavbarSearch('/post', { recentSearches: ['리액트', '타입스크립트'] });
+
+    // setup.ts:66이 전역 스텁한 scrollIntoView는 테스트 사이에 초기화되지 않으므로,
+    // 이전 테스트의 호출 이력이 남아있지 않도록 직접 비운다.
+    vi.mocked(Element.prototype.scrollIntoView).mockClear();
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.postSearch);
+    await user.click(input);
+    await user.keyboard('{ArrowDown}');
+
+    // jsdom은 실제 레이아웃이 없어 스크롤 결과 자체는 검증할 수 없다 - 활성 셀 변경
+    // 시 scrollIntoView가 호출되는지만 확인한다.
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
   });
 
   it('IME 조합 중 Escape는 무시된다', async () => {

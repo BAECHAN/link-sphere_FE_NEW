@@ -159,35 +159,49 @@ export const NavbarSearch = ({
     }
 
     const clearRow = recentSearches.length;
-    const totalRows = recentSearches.length + 1;
+    const lastItemRow = recentSearches.length - 1;
 
+    // 순환(wrap-around) 없는 일직선 구조다: 입력창 ↔ 모두지우기 ↔ 검색어1 ↔ ... ↔
+    // 마지막 검색어. "모두 지우기"는 시각적으로도 입력창 바로 아래(헤더, 고정)라 논리
+    // 순서도 그 자리에 둔다 - 끝에서 반대쪽 끝으로 되돌아가던 이전 동작(모듈로 연산)이
+    // 실제로 써보니 방향감각과 어긋난다는 피드백을 받아 제거했다.
     if (e.key === 'ArrowDown') {
       e.preventDefault();
 
-      if (activeRow === null) {
+      if (activeRow === null || activeRow === clearRow) {
+        // 입력창에서 내려갈 때는 "모두 지우기"를 건너뛰고 바로 첫 검색어로 간다 -
+        // 검색어 재선택이 가장 흔한 동작이라 한 번에 닿아야 한다(의도적으로 유지).
         setActiveRow(0);
         setActiveCol(0);
         return;
       }
 
-      const nextRow = (activeRow + 1) % totalRows;
-      setActiveRow(nextRow);
-      setActiveCol(nextRow === clearRow ? 0 : activeCol);
+      if (activeRow === lastItemRow) {
+        // 마지막 검색어 - 더 내려갈 곳이 없다. 순환하지 않는다.
+        return;
+      }
+
+      setActiveRow(activeRow + 1);
       return;
     }
 
     if (e.key === 'ArrowUp') {
       e.preventDefault();
 
-      if (activeRow === null) {
+      if (activeRow === clearRow) {
+        // "모두 지우기"보다 위엔 입력창뿐이다 - 그리드를 나간다.
+        setActiveRow(null);
+        return;
+      }
+
+      if (activeRow === null || activeRow === 0) {
+        // 입력창 또는 첫 검색어 - 한 단계 위는 "모두 지우기"(항상 보이는 헤더)다.
         setActiveRow(clearRow);
         setActiveCol(0);
         return;
       }
 
-      const prevRow = (activeRow - 1 + totalRows) % totalRows;
-      setActiveRow(prevRow);
-      setActiveCol(prevRow === clearRow ? 0 : activeCol);
+      setActiveRow(activeRow - 1);
       return;
     }
 
@@ -195,27 +209,27 @@ export const NavbarSearch = ({
       return;
     }
 
-    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    if (e.key === 'ArrowRight') {
       e.preventDefault();
 
-      // 검색어 행은 2셀(검색어·삭제), "모두 지우기" 행은 1셀 - row-major 순서로 이어붙여
-      // 순환한다(APG "Editable Combobox with Grid Popup" 예제와 동일한 규칙).
-      const cells: Array<[number, number]> = [];
-      for (let row = 0; row < recentSearches.length; row += 1) {
-        cells.push([row, 0], [row, 1]);
-      }
-      cells.push([clearRow, 0]);
-
-      const currentIndex = cells.findIndex(([row, col]) => row === activeRow && col === activeCol);
-      const delta = e.key === 'ArrowRight' ? 1 : -1;
-      const next = cells[(currentIndex + delta + cells.length) % cells.length];
-
-      if (!next) {
+      // 같은 행 안에서만 이동한다(행 사이를 넘나들며 순환하지 않는다). "모두 지우기"
+      // 행은 셀이 1개라 좌우 이동 자체가 없다.
+      if (activeRow === clearRow || activeCol === 1) {
         return;
       }
 
-      setActiveRow(next[0]);
-      setActiveCol(next[1]);
+      setActiveCol(1);
+      return;
+    }
+
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+
+      if (activeRow === clearRow || activeCol === 0) {
+        return;
+      }
+
+      setActiveCol(0);
       return;
     }
 

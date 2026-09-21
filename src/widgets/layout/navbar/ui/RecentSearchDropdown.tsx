@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { XIcon } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { TEXTS } from '@/shared/config/texts';
@@ -34,6 +35,19 @@ export function RecentSearchDropdown({
   onRemove,
   onClearAll,
 }: RecentSearchDropdownProps) {
+  // 화살표 키로 활성 셀이 바뀌면 그 셀이 보이도록 스크롤을 따라간다. 'nearest'는 이미
+  // 보이는 조상에는 아무 영향을 주지 않고, 안 보이는 가장 가까운 스크롤 컨테이너(아래
+  // 행 목록 rowgroup)만 최소한으로 스크롤한다 - 드롭다운은 항상 뷰포트 상단 인근(sticky
+  // nav 안)에 있어 배경(메인) 페이지 스크롤은 건드리지 않는다.
+  useEffect(() => {
+    if (activeRow === null) {
+      return;
+    }
+
+    const id = getRecentSearchCellId(activeRow, activeCol);
+    document.getElementById(id)?.scrollIntoView({ block: 'nearest' });
+  }, [activeRow, activeCol]);
+
   // NavbarSearch의 useEffect가 0개가 되면 isOpen을 닫지만 그 사이 한 프레임 동안 이
   // 컴포넌트가 빈 배열로 렌더될 수 있다 - 그 프레임에 빈 그리드가 보이지 않게 가드한다.
   if (recentSearches.length === 0) {
