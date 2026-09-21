@@ -1,4 +1,7 @@
 ### 2026-09-21 (FE)
+- React Query 전역 에러 핸들러 중복 제거 및 리팩토링 ([#175](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/175))
+
+### 2026-09-21 (FE)
 - ESLint 규칙 도입 및 문서화를 통한 순환 의존성 관리 체계 강화 ([#174](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/174))
 
 ### 2026-09-21 (FE)
