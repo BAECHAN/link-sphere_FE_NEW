@@ -89,6 +89,14 @@
 
 ### Fixed
 
+- `shared` 세션 만료(401) 시 SPA 이동 직후 페이지가 한 번 더 강제 새로고침되던 중복 동작 제거
+  <details><summary>배경·구현</summary>
+
+  dependency-cruiser로 의존성 그래프를 확인하던 중 `queryClient.ts` ↔ `auth.util.ts` 순환 참조를 발견해 원인을 추적했다. `client.ts`의 401 인터셉터가 이미 `AuthUtil.clearAll()`(세션 정리 + SPA 이동)을 호출하는데도, `queryClient.ts`의 전역 에러 핸들러가 같은 걸 또 호출하고 `window.location.href` 하드 리로드까지 얹고 있었다 — "토스트는 queryClient가 단일 소유"라는 기존 주석의 의도와 실제 코드가 어긋나 있었다. bulletproof-react 등 실제 오픈소스 사례와 TanStack Query 공식 입장(구조를 강제하지 않음, [TanStack/query #3253](https://github.com/TanStack/query/discussions/3253))을 확인한 뒤, 세션 정리는 `client.ts` 하나가 전담하고 `queryClient.ts`는 토스트만 담당하도록 역할을 나눴다. 로그아웃 유예 창 상태(`isLoggingOut`)는 `queryClient`에 의존하지 않는 별도 파일로 분리해 순환 참조 자체를 없앴다. `NavigationService`가 SPA 라우팅 미준비 시 `window.location.href`로 대체하는 폴백을 이미 갖고 있어, 하드 리로드를 지워도 최종 안전망은 유지된다.
+  (`src/shared/lib/react-query/config/queryClient.ts`, `src/shared/utils/auth.util.ts`, `src/shared/utils/logout-grace.util.ts`(신규))
+
+  </details>
+
 - `shared` 다크모드 토글·검색 필터 칩이 무의식적인 빠른 재클릭에 두 번 토글되던 문제 방지
   <details><summary>배경·구현</summary>
 

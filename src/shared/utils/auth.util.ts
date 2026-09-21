@@ -1,34 +1,13 @@
 import { useAuthStore } from '@/shared/store/auth.store';
 // 이 파일만 queryClient 싱글턴을 직접 import한다 — clearAll()/clearQueries()가 React 트리
 // 밖에서 호출되기 때문이다(useQueryClient()를 쓸 수 없다):
-//   - shared/api/client.ts:183,207 (fetch 인터셉터의 401/refresh 실패 경로)
-//   - shared/lib/react-query/config/queryClient.ts:59,126 (전역 QueryCache/MutationCache 에러 핸들러)
+//   - shared/api/client.ts:173,195,219 (fetch 인터셉터의 401/refresh 실패 경로)
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
-
-/**
- * clearAll() 직후 "로그아웃 처리 중"으로 간주하는 유예 시간.
- *
- * clearQueries()는 resetQueries()가 돌려주는 Promise에 플래그를 묶을 수 있지만,
- * clearAll()은 재요청을 아예 하지 않으므로 붙잡을 Promise가 없다. 대신 로그아웃
- * 시점에 이미 떠 있던 요청 - 어떤 queryFn도 AbortSignal을 apiClient에 넘기지 않아
- * cancelQueries()로도 실제로 끊기지 않는다 - 의 401이 돌아오는 구간만 창으로 덮는다.
- * 이 401을 놓치면 client.ts:207 가드가 풀려 clearAll()이 기본값(/auth/login)으로
- * 한 번 더 호출되고, 보호 경로 로그아웃이 /post에 도착한 직후 로그인 페이지로 튕긴다.
- * 폭은 지금까지 resetQueries() Promise가 사실상 열어두던 창(재요청 1회 + 실패 시
- * 기본 재시도 1회 = RTT + 1000ms + RTT, query-core retryer.ts의 기본 재시도 지연
- * `1000 * 2**0`)에 맞췄다.
- */
-const LOGOUT_GRACE_MS = 2000;
+import { LogoutGraceUtil } from '@/shared/utils/logout-grace.util';
 
 export class AuthUtil {
-  /** clearQueries()의 resetQueries() 배경 재요청이 아직 진행 중인지 (isLoggingOut 참고) */
-  private static loggingOut = false;
-
-  /** 재요청 없이 캐시를 버린(clearAll) 시각. 유예 창 판정에만 쓴다 */
-  private static clearedAt = 0;
-
   static isTokenExpired(token: string): boolean {
     try {
       const parts = token.split('.');
@@ -60,7 +39,7 @@ export class AuthUtil {
    * 별도로 좁힌다.)
    */
   static isLoggingOut(): boolean {
-    return this.loggingOut || Date.now() - this.clearedAt < LOGOUT_GRACE_MS;
+    return LogoutGraceUtil.isLoggingOut();
   }
 
   /**
@@ -73,9 +52,9 @@ export class AuthUtil {
    */
   static clearQueries(): void {
     queryClient.cancelQueries();
-    this.loggingOut = true;
+    LogoutGraceUtil.markBackgroundRefetchStart();
     void queryClient.resetQueries().finally(() => {
-      this.loggingOut = false;
+      LogoutGraceUtil.markBackgroundRefetchEnd();
     });
   }
 
@@ -92,7 +71,7 @@ export class AuthUtil {
    * 무해하다 - 뒤따르는 navigate가 그 화면을 통째로 언마운트하기 때문이다.
    */
   private static clearQueriesWithoutRefetch(): void {
-    this.clearedAt = Date.now();
+    LogoutGraceUtil.markClearedAt();
     queryClient.removeQueries();
   }
 
@@ -114,7 +93,6 @@ export class AuthUtil {
    * auth.util.test.ts)이 각자 자기 파일의 afterEach에서 호출한다.
    */
   static resetLogoutGuard(): void {
-    this.loggingOut = false;
-    this.clearedAt = 0;
+    LogoutGraceUtil.reset();
   }
 }

@@ -2,7 +2,7 @@ import { MutationCache, QueryCache, QueryClient, type Mutation } from '@tanstack
 import { ApiError } from '@/shared/types/common.type';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
-import { AuthUtil } from '@/shared/utils/auth.util';
+import { LogoutGraceUtil } from '@/shared/utils/logout-grace.util';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 
 // 1. 커스텀 Meta 타입 정의 (모듈 확장 대신 로컬 인터페이스 활용 고려)
@@ -53,12 +53,12 @@ const mutationErrorHandler = (
     // 401 인증 에러 처리 (로그인 필요, 유효하지 않은 토큰)
     if (error.code === 'NOT_LOGGED_IN' || error.code === 'INVALID_TOKEN') {
       // 로그아웃 처리 중(clearQueries의 배경 재요청) 온 401은 세션 만료가 아니라 레이스이므로 무시
-      if (AuthUtil.isLoggingOut()) {
+      if (LogoutGraceUtil.isLoggingOut()) {
         return;
       }
-      AuthUtil.clearAll();
+      // 세션 정리(clearAll)는 client.ts의 401 인터셉터가 이미 수행했다 - 여기서는
+      // 토스트만 띄운다(토스트 단일 소유 원칙, client.ts:218 주석 참고).
       toast.error(TEXTS.messages.error.loginRequired);
-      window.location.href = '/auth/login';
       return;
     }
 
@@ -106,7 +106,7 @@ export const queryClient = new QueryClient({
       if (
         error instanceof ApiError &&
         (error.code === 'NOT_LOGGED_IN' || error.code === 'INVALID_TOKEN') &&
-        AuthUtil.isLoggingOut()
+        LogoutGraceUtil.isLoggingOut()
       ) {
         return;
       }
@@ -123,9 +123,9 @@ export const queryClient = new QueryClient({
       } else if (error instanceof ApiError) {
         // 401 인증 에러 처리 (로그인 필요, 유효하지 않은 토큰)
         if (error.code === 'NOT_LOGGED_IN' || error.code === 'INVALID_TOKEN') {
-          AuthUtil.clearAll();
+          // 세션 정리(clearAll)는 client.ts의 401 인터셉터가 이미 수행했다 - 여기서는
+          // 토스트만 띄운다(토스트 단일 소유 원칙, client.ts:218 주석 참고).
           toast.error(TEXTS.messages.error.loginRequired);
-          window.location.href = '/auth/login';
           return;
         }
 
