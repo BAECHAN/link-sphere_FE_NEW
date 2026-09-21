@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `shared` React Query 전역 에러 핸들러 중복 제거, 로그아웃 레이스 처리 통일
+  <details><summary>배경·구현</summary>
+
+  `queryClient.ts`의 mutation/query 전역 에러 핸들러 두 벌이 EDGE_BLOCKED·401·403·기타 ApiError 판정을 중복으로 갖고 있었고, 그 둘이 따로 진화하며 로그아웃 레이스 가드 위치와 `manualErrorHandling` 지원 여부가 서로 달라져 있었다. 판정 로직을 순수 함수 `resolveErrorToast()`(신규 `error-toast.ts`)로 추출하고 mutation/query는 `ErrorToastPolicy`(404 처리·비-ApiError 토스트 여부만 다름)만 다르게 넘기도록 통일했다. 동작이 실제로 바뀌는 지점 둘: (1) `meta.errorMessage`를 쓰는 mutation이 로그아웃 유예 구간(2초)에 401을 받으면 이제 조용히 종료한다(기존엔 "게시글 등록에 실패했어요" 같은 오탐 토스트가 떴다), (2) query도 `meta.manualErrorHandling`을 지원한다(현재 사용처는 0개). EDGE_BLOCKED가 errorMessage보다 우선하는 순서, query의 404·비-ApiError 무음 계약은 그대로 유지했고 단위 테스트 14건으로 고정했다. 참조 0곳이던 데드 코드 `react-query/utils/hooks.ts`(`useAppMutation`)도 함께 제거했다.
+  (`src/shared/lib/react-query/config/error-toast.ts`(신규), `src/shared/lib/react-query/config/error-toast.test.ts`(신규), `src/shared/lib/react-query/config/queryClient.ts`, `src/shared/lib/react-query/utils/hooks.ts`(삭제), `docs/plans/2026-09-22-queryclient-error-handler-dedupe.md`(신규))
+
+  </details>
+
 - `shared` 브랜드 컬러 도입을 철회하고 원래 무채색 `--primary`로 복원
   <details><summary>배경·구현</summary>
 

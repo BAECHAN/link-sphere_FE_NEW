@@ -567,7 +567,7 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 **에러 토스트의 유일한 기본 소유자는 React Query 전역 핸들러(`queryClient.ts`)다.**
 
 - transport 레이어(`shared/api/client.ts`)는 UI 토스트를 띄우지 않는다 — 인증 정리·throw만.
-- mutation 에러는 전부 `mutationErrorHandler`를 지나가며, `meta.manualErrorHandling`이 없으면 거기서 토스트 1개가 자동으로 뜬다 ([queryClient.ts](../src/shared/lib/react-query/config/queryClient.ts) `if (meta?.manualErrorHandling) { return; }`).
+- mutation 에러는 전부 `mutationErrorHandler`를 지나가며, `meta.manualErrorHandling`이 없으면 거기서 토스트 1개가 자동으로 뜬다 (mutation·query 공통 판정은 [error-toast.ts](../src/shared/lib/react-query/config/error-toast.ts)의 `resolveErrorToast()`, `if (meta?.manualErrorHandling) { return { silent: true }; }`).
 
 > ⚠️ **Never** mutation `onError`나 그 mutation을 쓰는 컴포넌트 `catch`에서 `toast.`를 직접 부르면서 `meta.manualErrorHandling`을 빼먹지 말 것 → 전역 토스트와 겹쳐 **두 번 뜬다**. 직접 토스트를 띄우면 반드시 `manualErrorHandling: true`.
 

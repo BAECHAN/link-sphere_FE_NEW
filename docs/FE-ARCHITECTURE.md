@@ -802,17 +802,37 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
 
 ### 전역 에러 핸들링
 
-전역 에러 핸들러는 `queryClient.ts` 내의 `mutationCache`와 `queryCache`에 정의:
+전역 에러 핸들러는 `queryClient.ts`의 `mutationCache.onError`와 `queryCache.onError`에
+정의하되, 판정 자체는 두 쪽이 공유하는 순수 함수 `resolveErrorToast()`
+(`shared/lib/react-query/config/error-toast.ts`)에 있다. mutation과 query는 각자
+`ErrorToastPolicy`(`MUTATION_ERROR_POLICY` / `QUERY_ERROR_POLICY`)를 넘겨 아래 두 지점만
+다르게 처리한다 — 나머지 판정은 완전히 동일하다:
 
+- **404**: `policy.skipNotFound`가 query만 `true`다. 404는 서버 장애가 아니라 화면이
+  처리할 도메인 상태(삭제·비공개 글 등)이므로 query는 조용히 넘기고 각 화면의
+  ErrorBoundary가 안내를 소유한다. mutation의 404는 진짜 실패이므로 토스트를 띄운다.
+- **`ApiError`가 아닌 에러**(네트워크 단절 등): `policy.toastOnNonApiError`가 mutation만
+  `true`다. query가 조용한 이유는 `refetchOnWindowFocus: true` + `retry: 1` 조합에서
+  화면에 떠 있는 쿼리 수만큼 토스트가 동시에 뜨는 것을 막기 위해서다.
+
+공통 판정(우선순위 순서대로):
+
+- **`meta.manualErrorHandling`**: 조용히 종료. mutation·query 둘 다 지원한다.
+- **로그아웃 레이스**(`LogoutGraceUtil.isLoggingOut()`): 401(`NOT_LOGGED_IN` /
+  `INVALID_TOKEN`)이 로그아웃 직후 구간에 온 경우 `meta.errorMessage`보다 먼저 걸러
+  조용히 종료한다 — 세션 만료가 아니라 로그아웃 레이스(제자리 로그아웃의 배경 재요청,
+  또는 이동 수반 로그아웃 시점에 이미 떠 있던 요청)이기 때문이다. 상세: `docs/AUTH.md` §8-E
+- **`EDGE_BLOCKED`**: `meta.errorMessage`보다 먼저 처리한다(순서 고정 — `docs/DECISIONS.md`
+  2026-09-06 참고). 그러지 않으면 게시글 등록처럼 `errorMessage`를 쓰는 mutation이 이
+  원인을 일반 메시지로 덮어써 사용자가 실제 원인을 알 수 없다.
+- **`meta.errorMessage`**: 있으면 그 메시지를 사용
 - **401 (`NOT_LOGGED_IN` / `INVALID_TOKEN`)**: 로그인 필요 토스트만 표시한다. 세션 정리
   (`AuthUtil.clearAll()` → `/auth/login` 리다이렉트)는 `client.ts`의 fetch 인터셉터가 이미
-  수행했으므로 여기서 다시 하지 않는다(토스트 단일 소유 원칙). 단, 로그아웃 직후 구간
-  (`LogoutGraceUtil.isLoggingOut()`)의 401은 세션 만료가 아니라 로그아웃 레이스(제자리
-  로그아웃의 배경 재요청, 또는 이동 수반 로그아웃 시점에 이미 떠 있던 요청)이므로 토스트도
-  띄우지 않는다 — 상세: `docs/AUTH.md` §8-E
+  수행했으므로 여기서 다시 하지 않는다(토스트 단일 소유 원칙)
 - **403 (`ACCESS_DENIED`)**: 접근 거부 토스트만 표시
 - **그 외 `ApiError`**: 콘솔에 상세 로깅 + 사용자에게는 일반적인 "서버 에러" 토스트
-- **알 수 없는 에러**: 콘솔에 로깅 + 일반적인 에러 토스트
+- **알 수 없는 에러**: mutation은 콘솔 로깅 + 일반적인 에러 토스트, query는 조용히 종료
+  (위 "`ApiError`가 아닌 에러" 참고)
 
 ### 수동 에러 핸들링 (`manualErrorHandling`)
 
@@ -849,11 +869,11 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ## 15. Mutation/Query Meta 옵션
 
-| 키                    | 타입      | 효과                                                                 |
-| --------------------- | --------- | -------------------------------------------------------------------- |
-| `successMessage`      | `string`  | 자동으로 성공 토스트 표시 (정적 문자열만 — 분기 필요 시 위 §14 예외) |
-| `errorMessage`        | `string`  | 기본 대신 커스텀 에러 토스트 표시                                    |
-| `manualErrorHandling` | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용)              |
+| 키                    | 타입      | 효과                                                                               |
+| --------------------- | --------- | ---------------------------------------------------------------------------------- |
+| `successMessage`      | `string`  | 자동으로 성공 토스트 표시 (정적 문자열만 — 분기 필요 시 위 §14 예외)               |
+| `errorMessage`        | `string`  | 기본 대신 커스텀 에러 토스트 표시                                                  |
+| `manualErrorHandling` | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용, mutation·query 둘 다 지원) |
 
 ---
 
