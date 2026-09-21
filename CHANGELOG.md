@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `shared` 브랜드 색상(hue)을 블루에서 틸로 교체
+  <details><summary>배경·구현</summary>
+
+  색·타이포 토큰 개편(#166) 당시 브랜드 hue를 사용자가 명시적으로 고르지 않아 블루를 기본값으로 가정하고 배포했다. 이후 파비콘을 먼저 틸로 재색칠(#168)했는데, 실제 배포 화면에서 Log in·Submit Link 버튼 등 `--primary` 사용처는 여전히 블루로 남아있다는 지적을 받았다 — 파비콘 작업에 집중하다 정작 `globals.css`의 `--brand` 원본 값을 안 바꿔서 생긴 누락이었다. `--brand`/`--brand-2`를 라이트 `oklch(0.48 0.09 200)`(`#006c72`)/`oklch(0.55 0.14 250)`, 다크 `oklch(0.72 0.11 200)`/`oklch(0.75 0.12 250)`로 교체했다 — `--primary: var(--brand)` 구조 덕분에 이 4줄만으로 22개 파일·38지점이 자동 반영된다. 빌드 CSS와 실제 브라우저(라이트/다크)로 재검증, Storybook a11y 게이트(157개) 재통과 확인.
+  (`src/app/globals.css`)
+
+  </details>
+
 - `shared` 파비콘 색상을 브랜드 틸로 교체
   <details><summary>배경·구현</summary>
 
