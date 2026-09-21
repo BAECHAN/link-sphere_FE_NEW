@@ -11,6 +11,17 @@
             "statusMessage": "계획 파일 다이어그램 확인"
           }
         ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/filename-case-check.sh\"",
+            "timeout": 25,
+            "statusMessage": "파일명 규칙(unicorn/filename-case) 확인"
+          }
+        ]
       }
     ]
   },
