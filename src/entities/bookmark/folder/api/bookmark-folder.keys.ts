@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { postInvalidateQueries } from '@/entities/post/api/post.keys';
+import { postInvalidateQueries } from '@/entities/post/@x/bookmark';
 import {
   BookmarkFolderKey,
   BookmarkFolderSort,

@@ -6,6 +6,68 @@
 
 ---
 
+## 2026-09-21 — 데스크톱 최근검색 드롭다운: APG Grid Popup 패턴 채택
+
+**배경**
+
+모바일 헤더 검색에는 최근검색 풀스크린 패널(`RecentSearchPanel`)이 있었지만 데스크톱에는
+없었다 — 데스크톱 제출이 `addRecentSearch`를 호출하지 않아 쌓이지도 않았고, 쌓였더라도
+보여줄 화면이 없었다(`docs/SEARCH.md` §11 "남은 것"). 사용자가 데스크톱에도 최근검색을
+보여주고, ESC로 초기화할 수 있게 해달라고 요청했다.
+
+**검토한 대안**
+
+1. **모바일 `RecentSearchPanel`을 그대로 재사용(`md:hidden` 해제)** — 기각. 전체화면
+   오버레이는 입력창 하나를 위해 과하고, `RemoveScroll` 배경 스크롤 잠금도 데스크톱
+   드롭다운엔 불필요하다.
+2. **`@radix-ui/react-popover` 신규 도입** — 기각. 의존성이 추가되고, Popover가 열릴 때
+   콘텐츠로 포커스를 옮기려는 기본 동작이 "실제 DOM 포커스는 항상 입력창에 머문다"는
+   요구와 정면으로 충돌한다.
+3. **ARIA 역할 없이 단순 `<button>` 목록 + Tab 이동** — 기각. 사용자가 "화살표 순환이
+   편할 것 같다"고 명시적으로 요청했다. ESC를 [WAI-ARIA APG Combobox](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/)
+   2단계(_"Escape: Dismisses the popup if it is visible. Optionally, if the popup is
+   hidden before Escape is pressed, clears the combobox."_)로 이미 구현하기로 한 이상
+   이 위젯을 combobox로 선언한 것이나 마찬가지라, `aria-expanded`만 켜두고 팝업에
+   키보드로 못 들어가면 ARIA를 안 붙인 것보다 나쁘다고 판단했다.
+4. **[APG "Editable Combobox with Grid Popup"](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/grid-combo/)
+   패턴 채택.** 검색어 셀과 삭제 셀을 한 행에 함께 둬야 하는 요구(listbox/option
+   패턴은 `option` 역할 안에 인터랙티브 자손을 둘 수 없다)에 grid/row/gridcell 구조가
+   정확히 맞는다. 실제 DOM 포커스가 입력창에 머무는 `aria-activedescendant` 모델이라,
+   "모두 지우기"를 시각적으로는 상단 고정(스크롤 영향 없음, 모바일과 동일 위치)에
+   두면서도 논리적 화살표 순환 순서는 자유롭게 정할 수 있었다 — DOM/CSS 배치와 키보드
+   순환 순서가 독립적이라는 점을 [W3C APG Grid 패턴](https://www.w3.org/WAI/ARIA/apg/patterns/grid/)에서
+   확인했다: _"Each row container has role row and is either a DOM descendant of or
+   owned by the grid element or an element with role rowgroup."_
+
+**결정**
+
+- `RecentSearchDropdown.tsx` 신규 — `role="grid"` 아래 `role="rowgroup"` 2개(헤더용
+  비스크롤 1개 + 행 목록용 스크롤 1개)로 구조화한다.
+- 열림 트리거는 Algolia autocomplete의 `openOnFocus` 관례를 따라 입력값 유무와 무관하게
+  포커스 시 연다. 타이핑을 시작하면 닫고, 입력을 다 지우면 다시 연다. **이 상태(`isOpen`)는
+  오직 이벤트 핸들러에서만 갱신하고 입력값에서 파생하지 않는다** — 파생시키면 ESC
+  2단계가 스스로를 무효화하는 함정이 생긴다(자세한 경위는 `docs/SEARCH.md` §10).
+- 화살표 키 순환 순서는 시각적 위치가 아니라 사용 빈도 기준으로 정했다 — Down 첫
+  클릭은 항상 첫 검색어로 가고(가장 흔한 동작), "모두 지우기"는 마지막 검색어 다음
+  (Down)과 첫 검색어 이전(Up) 양쪽에서 도달 가능한 순환의 마지막 자리에 둔다.
+- 셀 클릭이 blur로 유실되지 않도록 그리드 루트에서 `onMouseDown` 기본동작을 막고,
+  모든 셀의 `Button`에 `tabIndex={-1}`을 줘 Tab 순서에서 뺀다 — 화살표 키만이
+  가상 포커스(`aria-activedescendant`)를 옮긴다.
+- 같은 작업으로 데스크톱 제출이 기존 게시글 범위 필터(`filter`)를 지우던 문제도
+  함께 고쳤다 — `useSearchParamsDraft`를 거쳐 `q`만 갱신한다(버그 수정이라 이
+  부분은 별도 DECISIONS 항목을 두지 않는다, `docs/SEARCH.md` §10 시행착오 참고).
+
+**상태**
+
+적용 완료. `src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx`(신규),
+`src/widgets/layout/navbar/ui/NavbarSearch.tsx`, `src/widgets/layout/navbar/ui/Navbar.tsx`.
+관련 문서: `docs/SEARCH.md`, `docs/plans/2026-09-21-desktop-recent-search-dropdown.md`.
+Playwright로 최근검색 기록·포커스 시 노출·ESC 2단계·헤더 고정(스크롤 무관)·화살표
+순환(검색어↔삭제 셀, 모두 지우기 도달)·클릭 즉시 검색(유실 없음)·개별 삭제·filter
+파라미터 보존·모바일 무변화를 실측 확인(2026-09-21).
+
+---
+
 ## 2026-09-21 — 다크모드·필터칩 중복 클릭 방지: 500ms → 400ms로 미세 조정
 
 바로 아래("8ms → 500ms로 재조정") 항목에서 정한 판단 기준(무의식적 중복 클릭과

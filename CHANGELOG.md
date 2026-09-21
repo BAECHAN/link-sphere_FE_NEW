@@ -16,6 +16,11 @@
 
   `--primary`/`--secondary`/`--accent`가 전부 채도 0(무채색)이라 브랜드 컬러가 코드에 0개였고, 카테고리 8종이 전부 같은 보라색(`--category`)이라 구분 기능을 못 했으며, 상세 페이지 제목(18px/700)이 바로 아래 댓글 섹션 제목(18px/600)과 크기가 같아 위계가 안 서고, AI 요약·링크 프리뷰·URL 바가 전부 같은 1px 테두리로 3겹 중첩되는 문제를 Artifact 미리보기(https://claude.ai/artifact/1Gp7sG9rRhhACeicUwZQLi)로 여러 방향안을 나란히 비교한 뒤 반영했다. `--primary`를 브랜드 블루(`oklch(0.52 0.20 255)`)로 전면 교체해 22개 파일·38지점(버튼·툴팁·체크박스·필터칩·FAB 등)이 두 줄만으로 자동 반영되게 했고, 카테고리는 BE 응답에 color 필드가 없고 개수가 가변이라 `category.id % 8`로 8개 팔레트 중 하나를 배정(라이트는 색/12% 틴트+진한 글자, 다크는 솔리드 L 0.75+어두운 글자 — 비대칭 설계)했으며, 상세 페이지 제목은 `isDetail` 분기로 모바일 24px·데스크톱 28px까지 키우고, AI 요약·URL 바의 중첩 테두리는 제거하고 카드·링크 프리뷰는 `shadow-lg`/`shadow-sm` 기반 레이어로 대체했다. "Submit Link" 버튼에는 브랜드 2색 그라데이션을 얹었다.
   (`src/app/globals.css`, `src/entities/category/config/category.const.ts`(신규), `src/widgets/post/post-card/ui/PostCard.tsx`, `src/pages/post/index.tsx`, `src/shared/ui/tokens/DesignTokens.stories.tsx`, `docs/DESIGN-SYSTEM.md`, `.claude/skills/design-tokens/SKILL.md`, `docs/plans/2026-09-21-design-tokens-refresh.md`(신규), [PR #166](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/166))
+- `shared` entities 레이어의 교차 참조에 FSD `@x` 표기 도입
+  <details><summary>배경·구현</summary>
+
+  `auth`가 `account`를, `bookmark/folder`·`comment`·`interaction`이 `post`를 참조하는 등 entities 레이어 안에서 서로 다른 엔티티를 참조하는 곳이 이미 10곳 넘게 있었는데, 전부 대상 엔티티의 `api/`·`model/` 파일을 직접 깊게 import하고 있었다. [FSD 공식 문서](https://feature-sliced.design/docs/reference/public-api#the-x-notation)가 권장하는 대로 참조받는 엔티티마다 `@x/<참조하는-엔티티>.ts` 파일을 두고, 그 파일에 실제로 쓰는 것만 재export하도록 바꿨다 — `grep -r "@x" src/entities`만으로 엔티티 간 결합 지점 전체가 한눈에 보이게 하기 위함이다. ESLint로 강제하지는 않는다(기존 3-layer API 컨벤션이 이미 barrel 역할을 하고 있어 실제 사고가 없었음). 응답 조립 로직·쿼리 키·캐시 무효화 동작은 한 글자도 안 바꾸고 import 경로만 옮겼다.
+  (`src/entities/account/@x/auth.ts`(신규), `src/entities/post/@x/{account,auth,bookmark,comment,interaction}.ts`(신규), `src/entities/comment/@x/{account,interaction}.ts`(신규), `src/entities/bookmark/folder/@x/{account,interaction,post}.ts`(신규), `docs/FE-ARCHITECTURE.md`, `.claude/CLAUDE.md`)
 
   </details>
 
@@ -34,6 +39,14 @@
   (`src/shared/ui/elements/ScrollToTop.tsx`, `src/features/comment/create/ui/ScrollToCommentFormButton.tsx`, `src/widgets/post/post-list/ui/PostList.tsx`, `package.json`, [PR #143](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/143))
 
 ### Added
+
+- `shared` 데스크톱 헤더 검색에 최근 검색어 드롭다운 추가
+  <details><summary>배경·구현</summary>
+
+  최근 검색어는 모바일 전용 UI였다 — 데스크톱에서는 검색해도 기록되지 않고(`addRecentSearch` 미호출), 쌓였더라도 보여줄 화면이 없었다. 포커스 시(입력값 유무와 무관) 열리고, 입력을 시작하면 닫히고, 다 지우면 다시 열리는 드롭다운을 새로 만들었다. ESC는 [WAI-ARIA APG Combobox](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) 규격대로 2단계로 동작한다 — 열려 있으면 닫기만, 닫혀 있으면 입력만 비운다(URL은 그대로). 항목 삭제·모두 지우기는 [APG "Editable Combobox with Grid Popup"](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/grid-combo/) 패턴을 따라 `role="grid"`로 구현해 ↓/↑/←/→/Enter로 완전히 키보드만으로 조작할 수 있다 — 실제 DOM 포커스는 항상 입력창에 머물고 `aria-activedescendant`로만 가상 포커스를 표시하므로, 셀을 마우스로 클릭해도 blur로 클릭이 유실되지 않는다. "모두 지우기"는 모바일과 같은 자리(상단 고정)에 두되, 시각적 위치와 무관하게 화살표 순환의 논리적 마지막 자리에 있어 Down 첫 클릭은 여전히 첫 검색어로 간다. 같은 작업으로 데스크톱 제출이 기존 게시글 범위 필터(`filter`)를 지우던 문제도 함께 고쳤다 — `useSearchParamsDraft`를 거쳐 `q`만 갱신한다. `useRecentSearches()`는 `Navbar`에서 한 번만 구독해 모바일 패널과 데스크톱 드롭다운에 props로 내려준다(`useAppLocalStorage`의 탭 간 동기화가 다른 탭 전용이라 같은 탭에서 두 번 구독하면 서로 어긋나기 때문).
+  (`src/widgets/layout/navbar/ui/NavbarSearch.tsx`, `src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx`(신규), `src/widgets/layout/navbar/ui/Navbar.tsx`, `src/widgets/layout/navbar/ui/NavbarSearch.test.tsx`, `src/widgets/layout/navbar/ui/Navbar.test.tsx`, `docs/SEARCH.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-21-desktop-recent-search-dropdown.md`(신규), [PR #165](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/165))
+
+  </details>
 
 - `bookmark` 새 폴더 만들기 인라인 폼(저장 모달·데스크톱 사이드바·모바일 카드)에 취소 버튼 추가
   <details><summary>배경·구현</summary>

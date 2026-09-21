@@ -23,9 +23,13 @@ import {
   CreateBookmarkFolderRequest,
   UpdateBookmarkFolderRequest,
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
-import { POST_PAGE_SIZE } from '@/entities/post/config/post.const';
-import { postInvalidateQueries, postKeys } from '@/entities/post/api/post.keys';
-import { Post, PostListResponse } from '@/entities/post/model/post.schema';
+import {
+  POST_PAGE_SIZE,
+  postInvalidateQueries,
+  postKeys,
+  Post,
+  PostListResponse,
+} from '@/entities/post/@x/bookmark';
 import { PaginationRequest } from '@/shared/types/common.type';
 
 // ==================== Queries ====================
