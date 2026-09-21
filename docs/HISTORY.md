@@ -1,3 +1,6 @@
+### 2026-09-21 (FE)
+- FSD(Feature-Sliced Design) 아키텍처의 레이어 간 교차 참조 규칙을 준수하기 위해 @x 표기법 도입 및 리팩토링 진행
+
 ### 2026-09-21 (BE)
 - ArchUnit을 도입하여 계층 간 의존성 규칙(Controller-Repository, Service 순환 의존 방지)을 강제하고 코드 품질 관리 체계 강화
 
