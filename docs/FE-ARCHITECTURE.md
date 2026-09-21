@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-09-14
+> **마지막 검토**: 2026-09-22
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -25,17 +25,17 @@ API)를 성능을 이유로 정반대로 채택**하고, 그 위에 도메인 �
 
 ### 조합된 개념
 
-| 개념                                  | 출처                              | 이 레포에서 담당하는 것                                                                         | 대표 위치                                                     |
-| ------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| FSD (Feature-Sliced Design)           | feature-sliced.design             | 레이어 6종(`app→pages→widgets→features→entities→shared`) + 하향 의존만 허용                     | `eslint.config.js`의 `no-restricted-imports` 5블록(레이어별)  |
-| 도메인 우선 슬라이스 그룹핑           | FSD의 "slice group"을 필수 규칙화 | `features/<도메인>/<액션>/`, `widgets/<도메인>/<슬라이스>/` 처럼 한 단계 더 묶음                | `features/post/create/`, `widgets/post/post-card/`            |
-| 3-Layer API 분리                      | 이 레포 자체 규약                 | `*.api.ts`(순수 fetch) → `*.keys.ts`(쿼리 키+무효화) → `*.queries.ts`(React Query 훅) 3단 분리  | `entities/post/api/{post.api,post.keys,post.queries}.ts`      |
-| Query Key Factory + 중앙 invalidation | TanStack Query 커뮤니티 패턴      | `<entity>Keys`·`<entity>InvalidateQueries`·`handle<Entity><Action>Success`로 캐시 무효화 캡슐화 | §5 참고                                                       |
-| Container/Presentational (headless)   | 고전 React 패턴                   | `hooks/`에 폼·mutation·상태 전부, `ui/`는 JSX만                                                 | §6·§7, ESLint `custom-query-rules/no-direct-query-import`     |
-| Schema-first (Zod as SSOT)            | schema-first 설계                 | `z.infer`로 타입을 스키마에서 파생 — 런타임 검증과 타입을 한 소스로 유지                        | `entities/*/model/*.schema.ts`                                |
-| Atomic Design 변형                    | atoms/molecules 개념              | `shared/ui/atoms`(shadcn 원자) / `elements`(조합) / `layouts` 3단 분류                          | `src/shared/ui/{atoms,elements,layouts}`                      |
-| 횡단 관심사 중앙화                    | React Query `meta` 옵션 활용      | 토스트·401 리다이렉트·403 처리를 `mutationCache`/`queryCache` 한 곳에서 처리                    | `src/shared/lib/react-query/config/queryClient.ts`            |
-| 상수 단일화                           | —                                 | 문자열·엔드포인트·라우트·에러코드를 각각 하나의 상수 객체로 관리                                | `TEXTS`, `API_ENDPOINTS`, `ROUTES_PATHS`, `SERVER_ERROR_CODE` |
+| 개념                                  | 출처                              | 이 레포에서 담당하는 것                                                                                                              | 대표 위치                                                     |
+| ------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| FSD (Feature-Sliced Design)           | feature-sliced.design             | 레이어 6종(`app→pages→widgets→features→entities→shared`) + 하향 의존만 허용                                                          | `eslint.config.js`의 `no-restricted-imports` 5블록(레이어별)  |
+| 도메인 우선 슬라이스 그룹핑           | FSD의 "slice group"을 필수 규칙화 | `features/<도메인>/<액션>/`, `widgets/<도메인>/<슬라이스>/` 처럼 한 단계 더 묶음                                                     | `features/post/create/`, `widgets/post/post-card/`            |
+| 3-Layer API 분리                      | 이 레포 자체 규약                 | `*.api.ts`(순수 fetch) → `*.keys.ts`(쿼리 키+무효화) → `*.queries.ts`(React Query 훅) 3단 분리                                       | `entities/post/api/{post.api,post.keys,post.queries}.ts`      |
+| Query Key Factory + 중앙 invalidation | TanStack Query 커뮤니티 패턴      | `<entity>Keys`·`<entity>InvalidateQueries`·`handle<Entity><Action>Success`로 캐시 무효화 캡슐화                                      | §5 참고                                                       |
+| Container/Presentational (headless)   | 고전 React 패턴                   | `hooks/`에 폼·mutation·상태 전부, `ui/`는 JSX만                                                                                      | §6·§7, ESLint `custom-query-rules/no-direct-query-import`     |
+| Schema-first (Zod as SSOT)            | schema-first 설계                 | `z.infer`로 타입을 스키마에서 파생 — 런타임 검증과 타입을 한 소스로 유지                                                             | `entities/*/model/*.schema.ts`                                |
+| Atomic Design 변형                    | atoms/molecules 개념              | `shared/ui/atoms`(shadcn 원자) / `elements`(조합) / `layouts` 3단 분류                                                               | `src/shared/ui/{atoms,elements,layouts}`                      |
+| 횡단 관심사 중앙화                    | React Query `meta` 옵션 활용      | 토스트·401·403 처리를 `mutationCache`/`queryCache` 한 곳에서 처리(401 리다이렉트 자체는 `client.ts`의 fetch 인터셉터 담당, §13 참고) | `src/shared/lib/react-query/config/queryClient.ts`            |
+| 상수 단일화                           | —                                 | 문자열·엔드포인트·라우트·에러코드를 각각 하나의 상수 객체로 관리                                                                     | `TEXTS`, `API_ENDPOINTS`, `ROUTES_PATHS`, `SERVER_ERROR_CODE` |
 
 ### 정식 FSD와 다른 점
 
@@ -726,10 +726,10 @@ onError: (_err, _vars, context) => {
 인스턴스이므로 프로덕션 동작은 동일 — 테스트에서 격리된 클라이언트를 주입할 수 있게 하려는
 목적이다). 싱글턴을 직접 import하는 예외는 두 곳뿐이다:
 
-| 파일                                  | 왜 예외인가                                                                                                                      |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `src/app/providers/QueryProvider.tsx` | 싱글턴을 provider에 주입하는 유일한 지점                                                                                         |
-| `src/shared/utils/auth.util.ts`       | `clearAll()`/`clearQueries()`가 fetch 인터셉터·전역 캐시 에러 핸들러(React 트리 밖)에서 호출되어 `useQueryClient()`를 쓸 수 없다 |
+| 파일                                  | 왜 예외인가                                                                                                |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `src/app/providers/QueryProvider.tsx` | 싱글턴을 provider에 주입하는 유일한 지점                                                                   |
+| `src/shared/utils/auth.util.ts`       | `clearAll()`/`clearQueries()`가 fetch 인터셉터(React 트리 밖)에서 호출되어 `useQueryClient()`를 쓸 수 없다 |
 
 `.keys.ts`처럼 React 훅을 쓸 수 없는 순수 모듈은 `useQueryClient()`로 얻은 인스턴스를 호출자가
 인자로 넘긴다(§5 Layer 2 참고).
@@ -802,10 +802,12 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
 
 전역 에러 핸들러는 `queryClient.ts` 내의 `mutationCache`와 `queryCache`에 정의:
 
-- **401 (`NOT_LOGGED_IN` / `INVALID_TOKEN`)**: `AuthUtil.clearAll()` 후 `/auth/login`으로
-  리다이렉트 + 로그인 필요 토스트. 단, 로그아웃 직후 구간(`AuthUtil.isLoggingOut()`)의 401은
-  세션 만료가 아니라 로그아웃 레이스(제자리 로그아웃의 배경 재요청, 또는 이동 수반
-  로그아웃 시점에 이미 떠 있던 요청)이므로 무시한다 — 상세: `docs/AUTH.md` §8-E
+- **401 (`NOT_LOGGED_IN` / `INVALID_TOKEN`)**: 로그인 필요 토스트만 표시한다. 세션 정리
+  (`AuthUtil.clearAll()` → `/auth/login` 리다이렉트)는 `client.ts`의 fetch 인터셉터가 이미
+  수행했으므로 여기서 다시 하지 않는다(토스트 단일 소유 원칙). 단, 로그아웃 직후 구간
+  (`LogoutGraceUtil.isLoggingOut()`)의 401은 세션 만료가 아니라 로그아웃 레이스(제자리
+  로그아웃의 배경 재요청, 또는 이동 수반 로그아웃 시점에 이미 떠 있던 요청)이므로 토스트도
+  띄우지 않는다 — 상세: `docs/AUTH.md` §8-E
 - **403 (`ACCESS_DENIED`)**: 접근 거부 토스트만 표시
 - **그 외 `ApiError`**: 콘솔에 상세 로깅 + 사용자에게는 일반적인 "서버 에러" 토스트
 - **알 수 없는 에러**: 콘솔에 로깅 + 일반적인 에러 토스트
