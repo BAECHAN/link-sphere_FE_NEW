@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `shared` 파비콘 색상을 브랜드 틸로 교체
+  <details><summary>배경·구현</summary>
+
+  색·타이포 토큰 개편으로 `--primary`가 브랜드 틸(`oklch(0.48 0.09 200)` = `#006c72`)을 참조하게 됐지만, 파비콘 6종(ico 포함)은 여전히 기존 무채색(검정) 북마크 아이콘이었다. Pillow로 각 PNG의 불투명 픽셀 RGB만 `#006c72`로 치환하고 알파(형태·안티앨리어싱)는 그대로 유지했다 — 벡터 재작업 없이 순수 재색칠이라 형태 변화는 없다. `favicon.ico`는 재색칠한 512px 원본을 16/32/48px로 리샘플링해 재생성했다(기존과 동일한 3개 해상도 구성).
+  (`public/favicons/favicon-16x16.png`, `public/favicons/favicon-32x32.png`, `public/favicons/favicon.ico`, `public/favicons/android-chrome-192x192.png`, `public/favicons/android-chrome-512x512.png`, `public/favicons/apple-touch-icon.png`)
+
+  </details>
+
 - `shared` 색·타이포·입체감 디자인 토큰 개편 — 브랜드 컬러 도입, 카테고리 배지 색상 분리, 상세 제목 확대
   <details><summary>배경·구현</summary>
 
