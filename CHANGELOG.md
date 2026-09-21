@@ -11,6 +11,12 @@
 
 ### Changed
 
+- `shared` 색·타이포·입체감 디자인 토큰 개편 — 브랜드 컬러 도입, 카테고리 배지 색상 분리, 상세 제목 확대
+  <details><summary>배경·구현</summary>
+
+  `--primary`/`--secondary`/`--accent`가 전부 채도 0(무채색)이라 브랜드 컬러가 코드에 0개였고, 카테고리 8종이 전부 같은 보라색(`--category`)이라 구분 기능을 못 했으며, 상세 페이지 제목(18px/700)이 바로 아래 댓글 섹션 제목(18px/600)과 크기가 같아 위계가 안 서고, AI 요약·링크 프리뷰·URL 바가 전부 같은 1px 테두리로 3겹 중첩되는 문제를 Artifact 미리보기(https://claude.ai/artifact/1Gp7sG9rRhhACeicUwZQLi)로 여러 방향안을 나란히 비교한 뒤 반영했다. `--primary`를 브랜드 블루(`oklch(0.52 0.20 255)`)로 전면 교체해 22개 파일·38지점(버튼·툴팁·체크박스·필터칩·FAB 등)이 두 줄만으로 자동 반영되게 했고, 카테고리는 BE 응답에 color 필드가 없고 개수가 가변이라 `category.id % 8`로 8개 팔레트 중 하나를 배정(라이트는 색/12% 틴트+진한 글자, 다크는 솔리드 L 0.75+어두운 글자 — 비대칭 설계)했으며, 상세 페이지 제목은 `isDetail` 분기로 모바일 24px·데스크톱 28px까지 키우고, AI 요약·URL 바의 중첩 테두리는 제거하고 카드·링크 프리뷰는 `shadow-lg`/`shadow-sm` 기반 레이어로 대체했다. "Submit Link" 버튼에는 브랜드 2색 그라데이션을 얹었다.
+  (`src/app/globals.css`, `src/entities/category/config/category.const.ts`(신규), `src/widgets/post/post-card/ui/PostCard.tsx`, `src/pages/post/index.tsx`, `src/shared/ui/tokens/DesignTokens.stories.tsx`, `docs/DESIGN-SYSTEM.md`, `.claude/skills/design-tokens/SKILL.md`, `docs/plans/2026-09-21-design-tokens-refresh.md`(신규), [PR #166](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/166))
+
 - `shared` entities 레이어의 교차 참조에 FSD `@x` 표기 도입
   <details><summary>배경·구현</summary>
 

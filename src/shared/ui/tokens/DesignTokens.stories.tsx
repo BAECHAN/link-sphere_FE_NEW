@@ -46,6 +46,13 @@ const COLOR_GROUPS: ColorGroup[] = [
     ],
   },
   {
+    title: '브랜드 (2026-09-21 추가 — primary가 var(--brand)를 참조)',
+    tokens: [
+      { token: 'brand', foreground: 'brand-foreground' },
+      { token: 'brand-2', foreground: 'brand-foreground' },
+    ],
+  },
+  {
     title: '상태',
     tokens: [
       { token: 'destructive', foreground: 'destructive-foreground' },
@@ -56,7 +63,17 @@ const COLOR_GROUPS: ColorGroup[] = [
   },
   {
     title: '도메인 (link-sphere 고유 — 다른 프로젝트로 이식 시 재검토 대상)',
-    tokens: [{ token: 'category', foreground: 'category-foreground' }],
+    tokens: [
+      { token: 'category', foreground: 'category-foreground' },
+      { token: 'category-1', foreground: 'category-1-foreground' },
+      { token: 'category-2', foreground: 'category-2-foreground' },
+      { token: 'category-3', foreground: 'category-3-foreground' },
+      { token: 'category-4', foreground: 'category-4-foreground' },
+      { token: 'category-5', foreground: 'category-5-foreground' },
+      { token: 'category-6', foreground: 'category-6-foreground' },
+      { token: 'category-7', foreground: 'category-7-foreground' },
+      { token: 'category-8', foreground: 'category-8-foreground' },
+    ],
   },
   {
     title: '폼 / 포커스',
@@ -236,6 +253,7 @@ const ROLE_TOKENS: RoleToken[] = [
   { token: 'subsection-title', usage: '소제목, 보통 text-muted-foreground와 함께' },
   { token: 'micro', usage: '배지·단축키·카운트 같은 최소 라벨 (두께는 토큰에 없음)' },
   { token: 'card-title', usage: '포스트 카드 제목 (md:text-t6과 조합해 반응형)' },
+  { token: 'detail-title', usage: '상세 페이지 게시글 제목 (md:text-t11과 조합해 반응형)' },
   { token: 'group-label', usage: '목록 섹션 라벨 (폴더 그룹, 최근 검색 등)' },
   { token: 'display-title', usage: '대형 에러 페이지 타이틀 (404/403/500)' },
 ];

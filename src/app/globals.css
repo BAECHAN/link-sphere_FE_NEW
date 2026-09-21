@@ -48,6 +48,25 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-category-1: var(--category-1);
+  --color-category-1-foreground: var(--category-1-foreground);
+  --color-category-2: var(--category-2);
+  --color-category-2-foreground: var(--category-2-foreground);
+  --color-category-3: var(--category-3);
+  --color-category-3-foreground: var(--category-3-foreground);
+  --color-category-4: var(--category-4);
+  --color-category-4-foreground: var(--category-4-foreground);
+  --color-category-5: var(--category-5);
+  --color-category-5-foreground: var(--category-5-foreground);
+  --color-category-6: var(--category-6);
+  --color-category-6-foreground: var(--category-6-foreground);
+  --color-category-7: var(--category-7);
+  --color-category-7-foreground: var(--category-7-foreground);
+  --color-category-8: var(--category-8);
+  --color-category-8-foreground: var(--category-8-foreground);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -165,6 +184,14 @@
   --text-display-title: 3.75rem; /* 60px */
   --text-display-title--line-height: 3.75rem; /* 60px */
   --text-display-title--font-weight: 700;
+  /* 상세 페이지 게시글 제목 전용(t9, 24px). PostCard.tsx의 목록 제목(text-card-title,
+     14px)과 다른 역할 토큰이다 - 지금 상세 제목이 댓글 섹션 제목(text-section-title,
+     18px/600)과 크기가 같아 위계가 안 서는 문제가 있었다. card-title과 같은 선례를
+     따라 데스크톱 크기(t11, 28px)는 md:text-t11로 호출부에서 얹는다. Artifact
+     미리보기로 사용자 승인(https://claude.ai/artifact/1Gp7sG9rRhhACeicUwZQLi). */
+  --text-detail-title: 1.5rem; /* t9, 24px */
+  --text-detail-title--line-height: 2rem; /* 32px */
+  --text-detail-title--font-weight: 700;
 }
 
 :root {
@@ -177,8 +204,13 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  /* --primary는 이제 브랜드 컬러를 직접 참조한다(안 A - 전면 적용, 2026-09-21).
+     이전 값은 oklch(0.205 0 0)(무채색)이었다 - 버튼·툴팁·체크박스·필터칩·FAB 등
+     22개 파일·38지점이 이 두 줄만으로 자동 반영된다. 되돌리려면 이 두 줄만
+     원래 값으로 revert하면 된다. Artifact 승인:
+     https://claude.ai/artifact/1Gp7sG9rRhhACeicUwZQLi */
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -213,6 +245,35 @@
   --success-foreground: oklch(1 0 0);
   --category: oklch(0.597 0.256 292);
   --category-foreground: oklch(1 0 0);
+  /* 브랜드 컬러 - 직접 계산(OKLCH→sRGB→WCAG 상대휘도), 흰 글자 위 5.31:1 / 흰 배경
+     위 텍스트 5.55:1. hue=255(블루)는 사용자가 Artifact 시안(3개 hue 후보 중)에서
+     명시적으로 고르지 않아 기본값으로 가정했다 - 다른 hue를 원하면 이 값만 바꾸면
+     된다. --brand-2는 CTA 버튼 그라데이션의 두 번째 색(절제된 트렌드 안, hue+45
+     인접색). Artifact 승인: https://claude.ai/artifact/1Gp7sG9rRhhACeicUwZQLi */
+  --brand: oklch(0.52 0.2 255);
+  --brand-2: oklch(0.55 0.18 300);
+  --brand-foreground: oklch(1 0 0);
+  /* 카테고리별 색상 8종(틴트) - id % 8로 배정한다(entities/category/config/category.const.ts).
+     BE 응답(GET /common/category-option)에 color 필드가 없고 카테고리 개수가 가변이라
+     이름 하드코딩 대신 id 기반으로 정했다. 라이트: 배경 색/12% 틴트 + 진한 글자(L 0.42).
+     직접 계산 - 8개 hue 전부 흰 배경 기준 4.5:1 이상(초록·틸 계열은 채도를 낮춰 맞춤).
+     Artifact 승인: https://claude.ai/artifact/1Gp7sG9rRhhACeicUwZQLi */
+  --category-1: oklch(0.5 0.18 255 / 12%); /* 블루 */
+  --category-1-foreground: oklch(0.42 0.18 255);
+  --category-2: oklch(0.5 0.14 30 / 12%); /* 오렌지 */
+  --category-2-foreground: oklch(0.42 0.14 30);
+  --category-3: oklch(0.5 0.22 292 / 12%); /* 퍼플 */
+  --category-3-foreground: oklch(0.42 0.22 292);
+  --category-4: oklch(0.5 0.16 340 / 12%); /* 마젠타 */
+  --category-4-foreground: oklch(0.42 0.16 340);
+  --category-5: oklch(0.5 0.045 150 / 12%); /* 그린 */
+  --category-5-foreground: oklch(0.42 0.045 150);
+  --category-6: oklch(0.5 0.05 200 / 12%); /* 틸 */
+  --category-6-foreground: oklch(0.42 0.05 200);
+  --category-7: oklch(0.5 0.11 85 / 12%); /* 올리브 */
+  --category-7-foreground: oklch(0.42 0.11 85);
+  --category-8: oklch(0.5 0.15 15 / 12%); /* 레드 */
+  --category-8-foreground: oklch(0.42 0.15 15);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -240,8 +301,9 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  /* 라이트와 같은 이유(위 :root 주석 참고) - 안 A 전면 적용. */
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -257,6 +319,32 @@
   --success-foreground: oklch(1 0 0);
   --category: oklch(0.714 0.203 292);
   --category-foreground: oklch(1 0 0);
+  /* 다크 브랜드 - 직접 계산, 다크 카드(oklch(0.205 0 0)) 위 7.19:1. 글자색은 흰색이
+     아니라 라이트의 --primary-foreground와 같은 어두운 값을 쓴다 - 밝은 배경(L 0.72)
+     위에 흰 글자를 얹으면 2.49:1로 무너진다(2026-09-21 실측). */
+  --brand: oklch(0.72 0.15 255);
+  --brand-2: oklch(0.74 0.14 300);
+  --brand-foreground: oklch(0.205 0 0);
+  /* 다크 카테고리 - 라이트와 반대로 솔리드 배경(L 0.75) + 어두운 글자.
+     그림자가 어두운 배경에서 거의 안 보이는 것과 같은 이유로, 낮은 알파 틴트를
+     다크 배경에 얹으면 대비가 부족해진다 - 직접 계산 결과 L 0.75 + 어두운 글자
+     조합이 7.3~8.7:1로 라이트보다 오히려 여유 있게 통과한다. */
+  --category-1: oklch(0.75 0.18 255);
+  --category-1-foreground: oklch(0.205 0 0);
+  --category-2: oklch(0.75 0.14 30);
+  --category-2-foreground: oklch(0.205 0 0);
+  --category-3: oklch(0.75 0.22 292);
+  --category-3-foreground: oklch(0.205 0 0);
+  --category-4: oklch(0.75 0.16 340);
+  --category-4-foreground: oklch(0.205 0 0);
+  --category-5: oklch(0.75 0.045 150);
+  --category-5-foreground: oklch(0.205 0 0);
+  --category-6: oklch(0.75 0.05 200);
+  --category-6-foreground: oklch(0.205 0 0);
+  --category-7: oklch(0.75 0.11 85);
+  --category-7-foreground: oklch(0.205 0 0);
+  --category-8: oklch(0.75 0.15 15);
+  --category-8-foreground: oklch(0.205 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);

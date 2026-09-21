@@ -31,6 +31,10 @@ import { BookmarkPostButton } from '@/features/bookmark/toggle/ui/BookmarkPostBu
 import { TEXTS } from '@/shared/config/texts';
 import { usePostCard } from '@/widgets/post/post-card/hooks/usePostCard';
 import { cn } from '@/shared/lib/tailwind/utils';
+import {
+  CATEGORY_COLOR_CLASSNAME,
+  CATEGORY_COLOR_COUNT,
+} from '@/entities/category/config/category.const';
 
 interface PostCardProps {
   post: Post;
@@ -71,7 +75,7 @@ export const PostCard = memo(function PostCard({
 
   return (
     <Card
-      className="relative flex flex-col overflow-hidden hover:shadow-md transition-shadow"
+      className="relative flex flex-col overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-[transform,box-shadow]"
       aria-busy={isUpdating}
     >
       {isUpdating && (
@@ -174,7 +178,12 @@ export const PostCard = memo(function PostCard({
           onMouseEnter={handlePrefetchDetail}
           onFocus={handlePrefetchDetail}
         >
-          <h3 className={cn('text-card-title md:text-t6 mb-0.5', !isDetail && 'line-clamp-3')}>
+          <h3
+            className={cn(
+              'pl-0.5 mb-0.5',
+              isDetail ? 'text-detail-title md:text-t11' : 'text-card-title md:text-t6 line-clamp-3'
+            )}
+          >
             {post.title}
           </h3>
         </Link>
@@ -182,13 +191,15 @@ export const PostCard = memo(function PostCard({
 
       <CardContent className={cn('p-3 pt-0 flex flex-col', dimmedClassName)}>
         {post.description && (
-          <p className={cn('text-sm text-muted-foreground mb-2', !isDetail && 'line-clamp-3')}>
+          <p
+            className={cn('pl-0.5 text-sm text-muted-foreground mb-2', !isDetail && 'line-clamp-3')}
+          >
             {post.description}
           </p>
         )}
 
         {post.aiSummary && (
-          <div className="mb-2 bg-info/10 border border-info/20 rounded-md overflow-hidden block">
+          <div className="mb-2 bg-info/8 rounded-md overflow-hidden block">
             <Button
               type="button"
               variant="none"
@@ -220,14 +231,14 @@ export const PostCard = memo(function PostCard({
           href={post.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block group border rounded-lg overflow-hidden hover:border-primary/50 transition-colors mt-1"
+          className="block group rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow mt-1"
         >
           <LinkThumbnail
             src={post.ogImage}
             alt={post.title}
             className="group-hover:scale-105 transition-transform duration-300"
           />
-          <div className="p-2 md:p-3 bg-muted/30 flex items-center justify-between group-hover:bg-muted/50 transition-colors">
+          <div className="p-2 md:p-3 flex items-center justify-between">
             <span className="text-xs md:text-sm text-muted-foreground truncate flex-1 pr-2 md:pr-4">
               {post.url}
             </span>
@@ -252,7 +263,10 @@ export const PostCard = memo(function PostCard({
               <Badge
                 key={category?.id}
                 variant="default"
-                className="text-xs bg-category hover:bg-category/90"
+                className={cn(
+                  'text-xs',
+                  CATEGORY_COLOR_CLASSNAME[(category?.id ?? 0) % CATEGORY_COLOR_COUNT]
+                )}
               >
                 {category?.name}
               </Badge>
