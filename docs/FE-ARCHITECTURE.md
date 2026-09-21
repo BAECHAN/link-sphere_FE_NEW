@@ -112,6 +112,8 @@ flowchart TD
 | 파일명 규칙                                               | `*.api.ts`·`*.queries.ts`·`*.schema.ts`·`config/`·`utils/` 등 세그먼트별 파일명 패턴                                       |
 | `custom-a11y/clickable-needs-interactive-element`         | `div`/`span`에 `onClick`만 달기 — `role="button"` 없이는 금지                                                              |
 | `curly` (`['error', 'all']`)                              | 인라인 `if`문 (`if (x) return;`) — 항상 중괄호 블록 강제                                                                   |
+| `import/no-cycle`                                         | 순환 참조(A→B→A) 금지 — 동작하려면 `eslint.config.js`의 리졸버 설정 3개가 함께 필요, 그 주석 참고                          |
+| `custom-route/no-hardcoded-route-path`                    | `navigate()`·`window.location.href`·JSX `to=`에 경로 문자열 직접 쓰기 금지 — `ROUTES_PATHS.*`만 허용                       |
 
 ---
 
