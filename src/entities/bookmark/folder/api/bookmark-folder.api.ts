@@ -1,6 +1,6 @@
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/config/api';
-import { PostListRequest, PostListResponse } from '@/entities/post/model/post.schema';
+import { PostListRequest, PostListResponse } from '@/entities/post/@x/bookmark';
 import {
   BookmarkFolder,
   BookmarkFolderKey,

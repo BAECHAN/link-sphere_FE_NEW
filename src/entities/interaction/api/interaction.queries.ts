@@ -1,15 +1,13 @@
 import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { interactionApi } from '@/entities/interaction/api/interaction.api';
-import { postKeys } from '@/entities/post/api/post.keys';
-import { commentKeys } from '@/entities/comment/api/comment.keys';
+import { postKeys, Post, PostListResponse } from '@/entities/post/@x/interaction';
+import { commentKeys, Comment } from '@/entities/comment/@x/interaction';
 import {
   bookmarkFolderKeys,
   handleBookmarkToggleSuccess,
-} from '@/entities/bookmark/folder/api/bookmark-folder.keys';
-import { resolveCurrentBookmarkState } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
-import { Post, PostListResponse } from '@/entities/post/model/post.schema';
-import { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
-import { Comment } from '@/entities/comment/model/comment.schema';
+  resolveCurrentBookmarkState,
+  BookmarkFolderListResponse,
+} from '@/entities/bookmark/folder/@x/interaction';
 
 export const useLikePostMutation = (postId: Post['id']) => {
   const queryClient = useQueryClient();

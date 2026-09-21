@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { authApi } from '@/entities/auth/api/auth.api';
 import { useLoginMutation, useLogoutMutation } from '@/entities/auth/api/auth.queries';
 import { Login } from '@/entities/auth/model/auth.schema';
-import { Account } from '@/entities/account/model/account.schema';
+import { Account } from '@/entities/account/@x/auth';
 
 // ==================== Types ====================
 

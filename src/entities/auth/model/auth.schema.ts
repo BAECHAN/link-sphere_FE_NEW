@@ -1,9 +1,6 @@
 import { z } from 'zod';
 import { TEXTS } from '@/shared/config/texts';
-import {
-  nicknameValidationSchema,
-  emailValidationSchema,
-} from '@/entities/account/model/account.schema';
+import { nicknameValidationSchema, emailValidationSchema } from '@/entities/account/@x/auth';
 
 /** 재사용 가능한 비밀번호 검증 스키마 */
 export const passwordValidationSchema = z

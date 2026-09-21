@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `shared` entities 레이어의 교차 참조에 FSD `@x` 표기 도입
+  <details><summary>배경·구현</summary>
+
+  `auth`가 `account`를, `bookmark/folder`·`comment`·`interaction`이 `post`를 참조하는 등 entities 레이어 안에서 서로 다른 엔티티를 참조하는 곳이 이미 10곳 넘게 있었는데, 전부 대상 엔티티의 `api/`·`model/` 파일을 직접 깊게 import하고 있었다. [FSD 공식 문서](https://feature-sliced.design/docs/reference/public-api#the-x-notation)가 권장하는 대로 참조받는 엔티티마다 `@x/<참조하는-엔티티>.ts` 파일을 두고, 그 파일에 실제로 쓰는 것만 재export하도록 바꿨다 — `grep -r "@x" src/entities`만으로 엔티티 간 결합 지점 전체가 한눈에 보이게 하기 위함이다. ESLint로 강제하지는 않는다(기존 3-layer API 컨벤션이 이미 barrel 역할을 하고 있어 실제 사고가 없었음). 응답 조립 로직·쿼리 키·캐시 무효화 동작은 한 글자도 안 바꾸고 import 경로만 옮겼다.
+  (`src/entities/account/@x/auth.ts`(신규), `src/entities/post/@x/{account,auth,bookmark,comment,interaction}.ts`(신규), `src/entities/comment/@x/{account,interaction}.ts`(신규), `src/entities/bookmark/folder/@x/{account,interaction,post}.ts`(신규), `docs/FE-ARCHITECTURE.md`, `.claude/CLAUDE.md`)
+
+  </details>
+
 - `shared` 버튼·메뉴·탭 등 클릭 가능한 요소를 드래그해도 라벨 텍스트가 선택되지 않게 변경
   <details><summary>배경·구현</summary>
 
