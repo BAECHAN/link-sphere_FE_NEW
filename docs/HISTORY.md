@@ -1,4 +1,7 @@
 ### 2026-09-21 (BE)
+- ArchUnit을 도입하여 계층 간 의존성 규칙(Controller-Repository, Service 순환 의존 방지)을 강제하고 코드 품질 관리 체계 강화
+
+### 2026-09-21 (BE)
 - 인증 실패 시 발생하는 예외 타입을 `IllegalArgumentException`에서 `IllegalStateException`으로 변경하여 예외 처리 일관성 확보
 
 ### 2026-09-20 (FE)
