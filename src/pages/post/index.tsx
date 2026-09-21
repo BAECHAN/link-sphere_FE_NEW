@@ -15,10 +15,7 @@ export function Post() {
         <h1 className="text-screen-title">Recent Links</h1>
         <Button
           size="sm"
-          // 절제된 트렌드 - 2색 그라데이션 CTA. bg-primary/hover:bg-primary/90(기본
-          // variant)를 덮어써도 background-image가 background-color 위에 그려져
-          // 시각적으로는 문제없다. Artifact 승인: https://claude.ai/artifact/1Gp7sG9rRhhACeicUwZQLi
-          className="md:h-10 bg-linear-to-br from-brand to-brand-2 text-brand-foreground hover:brightness-110 transition-[filter]"
+          className="md:h-10"
           onClick={() => protectedNavigate(ROUTES_PATHS.POST.SUBMIT)}
         >
           Submit Link

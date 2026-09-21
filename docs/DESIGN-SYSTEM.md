@@ -122,23 +122,21 @@ import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있
 않고, 이 구분만 §4의 표로 남겨 다음 프로젝트를 시작할 때 그대로 추출할 수 있게 했다
 (2026-09-13 대화에서 확정, 레지스트리 자체 구축은 범위 밖으로 결정). `--category-1`~`8`
 (2026-09-21 추가)도 같은 분류 - 카테고리 개수·id 기반 배정이 link-sphere 고유
-비즈니스 규칙이다. `--brand`/`--brand-2`는 반대로 범용에 가깝다 - 다음 프로젝트가
-이식할 때는 hue 값만 바꾸면 된다.
+비즈니스 규칙이다.
 
 ## 6. 상태 모델
 
 이 기능은 Zustand 스토어나 React Query 키를 도입하지 않는다 — 상태는 CSS 커스텀
 프로퍼티뿐이다. 새로 추가된 네임스페이스:
 
-| 네임스페이스                                                                                | 정의 위치                                                                | 정본                                                                                  |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| `--z-index-*` (8개)                                                                         | `src/app/globals.css`의 `@theme static` 블록                             | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "z-index 토큰"      |
-| `--destructive-foreground`, `--scrim`, `--scrim-foreground`                                 | `src/app/globals.css`의 `:root` (테마 무관, `.dark`에 재정의 없음)       | 위와 동일 문서 "주요 색상 토큰" 표                                                    |
-| `--text-t1`~`--text-t14` (스케일 층, 2026-09-16 추가)                                       | `src/app/globals.css`의 `@theme static` 블록                             | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "타이포그래피 토큰" |
-| `--text-screen-title`/`section-title`/`subsection-title`/`micro` (역할 층, 2026-09-16 추가) | `src/app/globals.css`의 (static 아닌) `@theme` 블록                      | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
-| `--brand`, `--brand-2`, `--brand-foreground` (2026-09-21 추가)                              | `src/app/globals.css`의 `:root`/`.dark`. `--primary`가 이 값을 직접 참조 | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "주요 색상 토큰" 표 |
-| `--category-1`~`--category-8` (+`-foreground`, 2026-09-21 추가)                             | `src/app/globals.css`의 `:root`/`.dark`. `category.id % 8`로 배정        | 위와 동일 문서, `entities/category/config/category.const.ts`                          |
-| `--text-detail-title` (역할 층, 2026-09-21 추가)                                            | `src/app/globals.css`의 (static 아닌) `@theme` 블록                      | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
+| 네임스페이스                                                                                | 정의 위치                                                          | 정본                                                                                  |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `--z-index-*` (8개)                                                                         | `src/app/globals.css`의 `@theme static` 블록                       | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "z-index 토큰"      |
+| `--destructive-foreground`, `--scrim`, `--scrim-foreground`                                 | `src/app/globals.css`의 `:root` (테마 무관, `.dark`에 재정의 없음) | 위와 동일 문서 "주요 색상 토큰" 표                                                    |
+| `--text-t1`~`--text-t14` (스케일 층, 2026-09-16 추가)                                       | `src/app/globals.css`의 `@theme static` 블록                       | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "타이포그래피 토큰" |
+| `--text-screen-title`/`section-title`/`subsection-title`/`micro` (역할 층, 2026-09-16 추가) | `src/app/globals.css`의 (static 아닌) `@theme` 블록                | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
+| `--category-1`~`--category-8` (+`-foreground`, 2026-09-21 추가)                             | `src/app/globals.css`의 `:root`/`.dark`. `category.id % 8`로 배정  | 위와 동일 문서, `entities/category/config/category.const.ts`                          |
+| `--text-detail-title` (역할 층, 2026-09-21 추가)                                            | `src/app/globals.css`의 (static 아닌) `@theme` 블록                | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
 
 전체 39개 색상 값 자체는 옮겨적지 않는다 — `globals.css`가 SSOT다.
 

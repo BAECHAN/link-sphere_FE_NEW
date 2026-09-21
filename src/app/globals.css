@@ -48,9 +48,6 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --color-brand: var(--brand);
-  --color-brand-2: var(--brand-2);
-  --color-brand-foreground: var(--brand-foreground);
   --color-category-1: var(--category-1);
   --color-category-1-foreground: var(--category-1-foreground);
   --color-category-2: var(--category-2);
@@ -204,13 +201,8 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  /* --primary는 이제 브랜드 컬러를 직접 참조한다(안 A - 전면 적용, 2026-09-21).
-     이전 값은 oklch(0.205 0 0)(무채색)이었다 - 버튼·툴팁·체크박스·필터칩·FAB 등
-     22개 파일·38지점이 이 두 줄만으로 자동 반영된다. 되돌리려면 이 두 줄만
-     원래 값으로 revert하면 된다. Artifact 승인:
-     https://claude.ai/artifact/1Gp7sG9rRhhACeicUwZQLi */
-  --primary: var(--brand);
-  --primary-foreground: var(--brand-foreground);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -245,18 +237,6 @@
   --success-foreground: oklch(1 0 0);
   --category: oklch(0.597 0.256 292);
   --category-foreground: oklch(1 0 0);
-  /* 브랜드 컬러 - 틸(hue=200), 직접 계산(OKLCH→sRGB→WCAG 상대휘도), 흰 글자 위
-     5.92:1 / 흰 배경 위 텍스트 6.18:1. 최초 구현 시 hue를 명시적으로 고르지 않아
-     블루를 기본값으로 가정했었는데(PR #166), 실제 배포 화면을 확인해보니 안 A로
-     --primary를 바꿨는데도 피드에는 노출 지점이 적어 체감이 낮았다 - 파비콘을
-     먼저 틸로 재색칠(PR #168)했지만 이 토큰 자체는 그때 안 바꿔서 Log in 등
-     --primary 사용처가 계속 블루로 남아있었다(2026-09-21 사용자 지적으로 발견).
-     이제 --primary가 참조하는 원본을 틸로 맞춘다. --brand-2는 CTA 버튼 그라데이션의
-     두 번째 색(절제된 트렌드 안, hue+50 인접색). Artifact 승인:
-     https://claude.ai/artifact/1Gp7sG9rRhhACeicUwZQLi */
-  --brand: oklch(0.48 0.09 200);
-  --brand-2: oklch(0.55 0.14 250);
-  --brand-foreground: oklch(1 0 0);
   /* 카테고리별 색상 8종(틴트) - id % 8로 배정한다(entities/category/config/category.const.ts).
      BE 응답(GET /common/category-option)에 color 필드가 없고 카테고리 개수가 가변이라
      이름 하드코딩 대신 id 기반으로 정했다. 라이트: 배경 색/12% 틴트 + 진한 글자(L 0.42).
@@ -305,9 +285,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  /* 라이트와 같은 이유(위 :root 주석 참고) - 안 A 전면 적용. */
-  --primary: var(--brand);
-  --primary-foreground: var(--brand-foreground);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -323,13 +302,6 @@
   --success-foreground: oklch(1 0 0);
   --category: oklch(0.714 0.203 292);
   --category-foreground: oklch(1 0 0);
-  /* 다크 브랜드 - 틸(hue=200), 직접 계산, 다크 카드(oklch(0.205 0 0)) 위 대비 확보.
-     글자색은 흰색이 아니라 라이트의 --primary-foreground와 같은 어두운 값을 쓴다 -
-     밝은 배경(L 0.72) 위에 흰 글자를 얹으면 대비가 무너진다(2026-09-21 블루 기준
-     실측, 틸도 동일 원리 적용). */
-  --brand: oklch(0.72 0.11 200);
-  --brand-2: oklch(0.75 0.12 250);
-  --brand-foreground: oklch(0.205 0 0);
   /* 다크 카테고리 - 라이트와 반대로 솔리드 배경(L 0.75) + 어두운 글자.
      그림자가 어두운 배경에서 거의 안 보이는 것과 같은 이유로, 낮은 알파 틴트를
      다크 배경에 얹으면 대비가 부족해진다 - 직접 계산 결과 L 0.75 + 어두운 글자

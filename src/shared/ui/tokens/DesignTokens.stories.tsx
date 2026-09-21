@@ -46,13 +46,6 @@ const COLOR_GROUPS: ColorGroup[] = [
     ],
   },
   {
-    title: '브랜드 (2026-09-21 추가 — primary가 var(--brand)를 참조)',
-    tokens: [
-      { token: 'brand', foreground: 'brand-foreground' },
-      { token: 'brand-2', foreground: 'brand-foreground' },
-    ],
-  },
-  {
     title: '상태',
     tokens: [
       { token: 'destructive', foreground: 'destructive-foreground' },
