@@ -1240,6 +1240,101 @@ export default [
   },
 
   // ============================================================
+  // [금지] 라우트 경로 문자열 하드코딩
+  // 이유: 2026-09-22, queryClient.ts의 전역 401 핸들러에 window.location.href =
+  //       '/auth/login'이 AuthUtil.clearAll()의 기본값(ROUTES_PATHS.AUTH.LOGIN)과
+  //       별개로 하드코딩돼 있던 걸 발견해(#171) 재발 방지로 추가했다. '/'로 시작하는
+  //       문자열은 API_ENDPOINTS 등 무관한 곳에도 흔해 no-hardcoded-hangul처럼 값
+  //       패턴만으로 훑으면 오탐이 너무 크다 - 대신 실제로 문제가 됐던 호출 컨텍스트
+  //       (navigate 호출·window.location.href 대입·JSX to prop)만 좁혀서 검사한다.
+  // ============================================================
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: [
+      'src/shared/config/route-paths.ts', // ROUTES_PATHS 단일 소스
+      'src/test/**/*.{ts,tsx}', // 테스트 인프라
+      'src/mocks/**/*.{ts,tsx}', // MSW 목/픽스처
+      '**/*.test.{ts,tsx}', // 콜로케이션 테스트
+      '**/*.stories.{ts,tsx}', // Storybook
+    ],
+    plugins: {
+      'custom-route': {
+        rules: {
+          'no-hardcoded-route-path': {
+            meta: {
+              type: 'problem',
+              docs: {
+                description: '라우트 경로 문자열 하드코딩 금지 (ROUTES_PATHS로 중앙 관리)',
+              },
+              messages: {
+                hardcodedPath:
+                  '경로 문자열을 직접 쓰지 마세요. src/shared/config/route-paths.ts의 ROUTES_PATHS.*를 참조하세요.',
+              },
+            },
+            create(context) {
+              // '/'로 시작(프로토콜 상대 경로 '//...'는 외부 URL이라 제외)
+              const ROUTE_LIKE = /^\/(?!\/)/;
+
+              function isRoutePathLiteral(node) {
+                return (
+                  !!node &&
+                  node.type === 'Literal' &&
+                  typeof node.value === 'string' &&
+                  ROUTE_LIKE.test(node.value)
+                );
+              }
+
+              return {
+                // window.location.href = '/...'
+                'AssignmentExpression[left.type="MemberExpression"]'(node) {
+                  const { left, right } = node;
+
+                  if (
+                    left.property?.name === 'href' &&
+                    left.object?.type === 'MemberExpression' &&
+                    left.object.property?.name === 'location' &&
+                    isRoutePathLiteral(right)
+                  ) {
+                    context.report({ node: right, messageId: 'hardcodedPath' });
+                  }
+                },
+                // navigate('/...') 또는 xxx.navigate('/...') (NavigationService.navigate 포함)
+                CallExpression(node) {
+                  const callee = node.callee;
+                  const isNavigateCall =
+                    (callee.type === 'Identifier' && callee.name === 'navigate') ||
+                    (callee.type === 'MemberExpression' && callee.property?.name === 'navigate');
+
+                  if (isNavigateCall && isRoutePathLiteral(node.arguments[0])) {
+                    context.report({ node: node.arguments[0], messageId: 'hardcodedPath' });
+                  }
+                },
+                // <Link to="/..."> / <Navigate to="/...">
+                JSXAttribute(node) {
+                  if (node.name?.name !== 'to') {
+                    return;
+                  }
+
+                  const value = node.value;
+                  const literal =
+                    value?.type === 'JSXExpressionContainer' ? value.expression : value;
+
+                  if (isRoutePathLiteral(literal)) {
+                    context.report({ node: literal, messageId: 'hardcodedPath' });
+                  }
+                },
+              };
+            },
+          },
+        },
+      },
+    },
+    rules: {
+      'custom-route/no-hardcoded-route-path': 'error',
+    },
+  },
+
+  // ============================================================
   // FSD 레이어 경계 규칙: app → pages → widgets → features → entities → shared
   // 하위 레이어는 상위 레이어를 import할 수 없음
   // ============================================================
