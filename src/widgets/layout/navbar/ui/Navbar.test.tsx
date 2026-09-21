@@ -111,3 +111,17 @@ describe('Navbar — 테마 토글', () => {
     expect(window.localStorage.getItem(STORAGE_KEYS.THEME)).toBe('light');
   });
 });
+
+describe('Navbar — 데스크톱 최근검색 배선', () => {
+  it('데스크톱 헤더에서 제출하면 최근검색이 localStorage에 저장된다', async () => {
+    const user = userEvent.setup();
+    renderNavbar();
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.postSearch);
+    await user.type(input, '리액트');
+    await user.keyboard('{Enter}');
+
+    const stored = window.localStorage.getItem(STORAGE_KEYS.SEARCH.RECENT);
+    expect(stored && JSON.parse(stored)).toEqual(['리액트']);
+  });
+});

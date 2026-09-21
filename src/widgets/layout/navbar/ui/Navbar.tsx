@@ -148,7 +148,12 @@ export function Navbar() {
 
           {/* Desktop: search bar */}
           <div className="hidden md:flex flex-1 max-w-md mx-4">
-            <NavbarSearch />
+            <NavbarSearch
+              recentSearches={recentSearches}
+              onAddRecentSearch={addRecentSearch}
+              onRemoveRecentSearch={removeRecentSearch}
+              onClearRecentSearches={clearRecentSearches}
+            />
           </div>
 
           <div
