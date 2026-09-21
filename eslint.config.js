@@ -612,6 +612,26 @@ export default [
         console: true,
       },
     },
+    // import/no-cycle(아래 rules)이 실제로 그래프를 그리려면 이 3개 설정이 전부
+    // 필요하다 - 2026-09-22, 하나씩 빼고 켜본 결과 셋 중 하나만 빠져도 위반이 0건으로
+    // 조용히 나온다(잡을 게 없는 게 아니라 그래프 자체를 못 그리는 것):
+    //   - import/resolver(typescript): 이 레포 import가 전부 쓰는 `@/` 별칭을 읽는다.
+    //     없으면 `@/`로 시작하는 모든 import가 안 보인다.
+    //   - import/extensions: no-cycle의 그래프 순회 로직은 이 설정을 resolver와
+    //     별개로 본다. 기본값이 .js/.mjs/.cjs뿐이라 없으면 .ts/.tsx 파일이 그래프
+    //     대상에서 통째로 빠진다(resolver가 있어도 무관하게 빠짐).
+    //   - import/parsers: .ts/.tsx를 @typescript-eslint/parser로 파싱하라고 알려준다.
+    // 셋 중 하나라도 지우면 이 룰이 다시 "항상 통과"로 무력화되니, 고칠 땐 프로브
+    // 파일(예: 서로 import하는 파일 2개)로 실제로 잡히는지 재확인한다.
+    settings: {
+      'import/resolver': {
+        typescript: { project: './tsconfig.app.json' },
+      },
+      'import/extensions': ['.js', '.jsx', '.ts', '.tsx'],
+      'import/parsers': {
+        '@typescript-eslint/parser': ['.ts', '.tsx'],
+      },
+    },
     rules: {
       ...js.configs.recommended.rules,
       // Prettier 규칙 통합
@@ -623,6 +643,10 @@ export default [
       'no-empty-pattern': 'error',
       'no-undef': 'off',
       'import/no-default-export': 'error',
+      // dependency-cruiser로 queryClient.ts↔auth.util.ts 순환 참조를 발견해 고친 뒤(#171),
+      // 재발을 막을 상시 검사가 하나도 없다는 걸 알게 돼 추가했다. 이 설정이 실제로
+      // 동작하려면 위 settings 3개가 전부 필요하다 - 그 주석 참고.
+      'import/no-cycle': 'error',
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
