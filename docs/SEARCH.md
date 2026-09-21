@@ -169,7 +169,7 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 | 검색어 제출 바꾸기 — 모바일                               | [`Navbar.tsx:109-117`](../src/widgets/layout/navbar/ui/Navbar.tsx#L109-L117) — `handleSearchSubmit`(최근검색 기록 포함)                                                                                    |
 | X 버튼 동작 바꾸기                                        | 데스크톱 [`NavbarSearch.tsx:266-276`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L266-L276), 모바일 [`MobileNavbarSearch.tsx:19-25`](../src/widgets/layout/navbar/ui/MobileNavbarSearch.tsx#L19-L25) |
 | 데스크톱 드롭다운 열림/닫힘 규칙(포커스·입력·blur) 바꾸기 | [`NavbarSearch.tsx:87-113`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L87-L113) — `handleChange`/`handleFocus`/`handleBlur`                                                                         |
-| 데스크톱 드롭다운 키보드(ESC 2단계·화살표·Enter) 바꾸기   | [`NavbarSearch.tsx:134-242`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L134-L242) — `handleKeyDown`                                                                                                 |
+| 데스크톱 드롭다운 키보드(ESC 2단계·화살표·Enter) 바꾸기   | [`NavbarSearch.tsx:134-256`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L134-L256) — `handleKeyDown`                                                                                                 |
 | 드롭다운 목록 마크업(헤더 고정·행·삭제 버튼) 바꾸기       | [`RecentSearchDropdown.tsx`](../src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx)                                                                                                                     |
 | `@카테고리`/`#닉네임`/키워드 분해 규칙 바꾸기             | [`search-parser.ts`](../src/widgets/post/post-list/utils/search-parser.ts) — `parseSearchQuery`                                                                                                            |
 | "조건 N개 적용 중" 카운트 로직                            | [`PostListSearch.tsx:76-87`](../src/widgets/post/post-list/ui/PostListSearch.tsx#L76-L87)                                                                                                                  |
@@ -296,6 +296,29 @@ ESC 2단계가 `setSearchInput('')`으로 입력을 비우는 순간 "비었고 
 도달했다(`RecentSearchDropdown.tsx`). 이 방식은 모든 셀 버튼에 `tabIndex={-1}`을 준
 것과 짝을 이룬다 — 실제 DOM 포커스는 항상 입력창에 머물고, 화살표 키로만 가상 포커스
 (`aria-activedescendant`)가 옮겨간다는 설계와 일관된다.
+
+**화살표 키 순환(wrap-around)이 실사용 피드백으로 제거됨.** 처음 구현은 "모두
+지우기"를 논리적으로 검색어 목록의 *마지막*에 두고(시각적으로는 헤더로 고정,
+[`docs/DECISIONS.md`](./DECISIONS.md) "2026-09-21 — 데스크톱 최근검색 드롭다운:
+APG Grid Popup 패턴 채택" 항목 참고) ↓/↑를 모듈로 연산으로 순환시켰다 — 마지막
+검색어에서 ↓를 누르면 "모두 지우기"로, 첫 검색어에서 ↑를 누르면 "모두 지우기"로,
+"모두 지우기"에서 ↑를 누르면 다시 마지막 검색어로 돌아가는 식이었다. 실제로
+배포해 써보니 "모두 지우기에서 ↑를 누르면 입력창으로 나가야 하지 않냐"는 지적과
+"끝에서 반대쪽 끝으로 되돌아가는 순환 자체가 불편하다"는 지적을 받았다 — 시각적
+레이아웃(입력창 → 모두지우기 헤더 → 검색어 목록)과 논리적 순환 순서가 어긋나 있던
+게 근본 원인이었다. "모두 지우기"를 논리적으로도 _첫 자리_(시각적 위치와 일치)로
+재정의해 순환을 완전히 없애고 일직선 구조(`입력창 ↔ 모두지우기 ↔ 검색어1 ↔ ... ↔
+마지막 검색어`)로 바꿨다 — 경계(모두지우기의 ↑, 마지막 검색어의 ↓)에서는 더 나아가지
+않거나(마지막 검색어의 ↓) 입력창으로 나간다(모두지우기의 ↑). 입력창에서 ↓ 첫
+클릭만은 "모두 지우기"를 건너뛰고 바로 첫 검색어로 가는 지름길로 예외적으로
+남겼다 — 검색어 재선택이 가장 흔한 동작이라는 이유는 그대로 유효하고, 이건 순환이
+아니라 진입 시점의 지름길 하나뿐이라 위 지적과 무관하다. 좌/우(검색어 셀↔삭제
+셀)도 같은 이유로 행 사이를 넘나들며 순환하던 것을 같은 행 안 경계 정지로 단순화
+했다. 화살표로 이동한 활성 셀이 드롭다운 자체의 스크롤 영역(`max-h-[190px]`) 밖에
+있으면 `scrollIntoView({ block: 'nearest' })`로 그 영역만 따라가게 했다 — 배경
+(메인) 페이지 스크롤은 건드리지 않는다는 요구가 있었는데, 드롭다운이 항상 sticky
+nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 스크롤 가능 조상이
+행 목록 rowgroup 하나뿐이라 별도 잠금 없이도 배경은 움직이지 않는다.
 
 ## 11. 남은 것
 
