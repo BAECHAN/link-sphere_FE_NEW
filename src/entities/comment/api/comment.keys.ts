@@ -1,6 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { Post } from '@/entities/post/model/post.schema';
-import { postInvalidateQueries } from '@/entities/post/api/post.keys';
+import { Post, postInvalidateQueries } from '@/entities/post/@x/comment';
 
 const rootKey = ['comments'] as const;
 

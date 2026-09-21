@@ -29,8 +29,8 @@ import {
   handleBookmarkToggleSuccess,
   handlePostContentUpdateSuccess,
   handlePostDeleteSuccess,
-} from '@/entities/bookmark/folder/api/bookmark-folder.keys';
-import { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
+  BookmarkFolderListResponse,
+} from '@/entities/bookmark/folder/@x/post';
 import { PaginationRequest } from '@/shared/types/common.type';
 
 export const useCreatePostMutation = () => {

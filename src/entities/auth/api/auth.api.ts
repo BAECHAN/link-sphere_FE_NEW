@@ -1,6 +1,6 @@
 import { apiClient } from '@/shared/api/client';
 import { Login, LoginResponse, CreateAccount } from '@/entities/auth/model/auth.schema';
-import { Account } from '@/entities/account/model/account.schema';
+import { Account } from '@/entities/account/@x/auth';
 import { API_ENDPOINTS } from '@/shared/config/api';
 
 export const authApi = {

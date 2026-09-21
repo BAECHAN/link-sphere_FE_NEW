@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { postInvalidateQueries } from '@/entities/post/api/post.keys';
-import { commentInvalidateQueries } from '@/entities/comment/api/comment.keys';
-import { bookmarkFolderInvalidateQueries } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
+import { postInvalidateQueries } from '@/entities/post/@x/account';
+import { commentInvalidateQueries } from '@/entities/comment/@x/account';
+import { bookmarkFolderInvalidateQueries } from '@/entities/bookmark/folder/@x/account';
 
 const rootKey = ['account'] as const;
 

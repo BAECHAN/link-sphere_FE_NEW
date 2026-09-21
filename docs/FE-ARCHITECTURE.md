@@ -408,7 +408,7 @@ export const handleEntityUpdateSuccess = (queryClient: QueryClient, id: Entity['
 ```typescript
 // entities/comment/api/comment.keys.ts
 import type { QueryClient } from '@tanstack/react-query';
-import { postInvalidateQueries } from '@/entities/post/api/post.keys';
+import { postInvalidateQueries } from '@/entities/post/@x/comment';
 
 export const handleCommentCreateSuccess = (queryClient: QueryClient, postId: Post['id']) => {
   // 댓글 목록은 mutation의 onMutate/onSuccess가 낙관적으로 직접 갱신하므로 여기서 다시
@@ -425,6 +425,37 @@ export const handleCommentCreateSuccess = (queryClient: QueryClient, postId: Pos
 (`bookmark-folder.keys.ts`의 `handlePostDeleteSuccess`, `handleBookmarkToggleSuccess`). 참고
 파일: `comment.keys.ts`, `bookmark-folder.keys.ts`, `account.keys.ts`(`handleAccountUpdateSuccess`),
 `auth.keys.ts`(`handleAuthRestoreSuccess`).
+
+#### `@x` 표기 (엔티티 간 교차 참조, 2026-09-21 도입)
+
+위처럼 한 엔티티가 다른 엔티티의 값을 참조하는 건 이 레포에서 이미 흔한 패턴이다(`auth`가
+`account`를, `bookmark/folder`·`comment`·`interaction`이 `post`를 참조하는 식). [FSD 공식
+문서](https://feature-sliced.design/docs/reference/public-api#the-x-notation)는 같은 레이어
+안에서 이런 교차 참조가 생기면 `@x` 폴더로 명시하라고 권장한다 — 참조하는 대상 엔티티 아래
+`@x/<참조하는-엔티티>.ts` 파일을 두고, 그 엔티티가 남에게 공개할 것만 거기 모아 재export한다.
+
+```typescript
+// entities/post/@x/comment.ts — entities/comment 가 참조하는 post 의 공개 표면
+export { postInvalidateQueries } from '@/entities/post/api/post.keys';
+export type { Post } from '@/entities/post/model/post.schema';
+```
+
+```typescript
+// entities/comment/api/comment.keys.ts — @x 를 통해서만 참조한다
+import { postInvalidateQueries } from '@/entities/post/@x/comment';
+```
+
+**왜 `.api.ts`/`.keys.ts`를 직접 참조하지 않고 한 단계 더 두는가** — 직접 참조하면 그
+엔티티의 전체 공개 표면(`api/`·`keys/`·`queries/`의 모든 export)에 접근할 수 있어, 실제로
+쓰는 게 뭔지 파일을 열어보기 전엔 알 수 없다. `@x/<참조하는-엔티티>.ts` 하나에 실제로
+쓰는 것만 모아두면 `grep -r "@x" src/entities`만으로 엔티티 간 결합 지점 전체가 한눈에
+보이고, 그 파일 하나만 보고도 "이 엔티티가 어디에 얼마나 노출돼 있는지"를 알 수 있다.
+반대로 참조하는 쪽(`entities/comment`)이 아니라 참조받는 쪽(`entities/post`)에 `@x` 폴더가
+있다는 점에 주의 — "누가 나를 참조하는가"를 참조받는 엔티티가 직접 통제하는 구조다.
+
+이 표기는 강제되지 않는다(ESLint 규칙 없음) — 기존 3-layer API 컨벤션이 이미 barrel 역할을
+어느 정도 하고 있어서, 규칙으로 강제할 만큼 실제 사고가 있었던 적은 없다. 새로 엔티티 간
+참조가 생기면 이 컨벤션을 따라 `@x` 파일을 추가한다.
 
 ### Layer 3 — `<entity>.queries.ts` (얇은 React Query 래퍼)
 
