@@ -19,20 +19,24 @@ TEXTS
 ├── common.* (submitting, updating, saving, confirm, cancel, ...)
 ├── pages.home / pages.post.ROOT / pages.post.SUBMIT
 ├── labels.nickname / email / password / message
-├── placeholders.nickname / email / password / message / postSearch
+├── placeholders.nickname / email / password / message / postSearch / bookmarkSearch / ...
 ├── buttons.retry / refresh / home / back / login / logout / delete / search / ...
-├── auth.login.* / auth.signup.*
-├── nav.brand / feed / submit / logIn / logOut / toggleSearch / toggleTheme / saving
+├── auth.title / description / guard.title / login.* / signup.*
+├── nav.brand / feed / submit / logIn / logOut / toggleSearch / toggleTheme / saving / bookmark / loggingOut / toggleMenu / ...
 ├── mypage.* (title, description, save, changeImage, checkingNickname, ...)
+├── version.* (title, description, loadedBuild, deployedBuild, bannerMatch, bannerMismatch, ...)
 ├── recentSearch.* (title, clearAll, empty, removeItem)
 ├── post.form.create.* (title, description1/2, urlLabel, urlPlaceholder, titleLabel, ...)
 ├── post.form.update.* (title, description, titleLabel, titlePlaceholder, updating, update, ...)
 ├── post.card.* (anonymous, visitWebsite, aiSummary, edit, saving, ...)
-├── post.detail.* (notFound, backToList)
+├── post.detail.* (notFound, backToList, back, ...)
+├── post.search.corrected(query) / appliedCount(count)
 ├── comment.list.* (loadError, heading, empty)
 ├── comment.form.* (replyPlaceholder, commentPlaceholder, preview, cancel, save, ...)
+├── comment.item.* (authorBadge, reply, edit, like)
+├── comment.myList.* (pageTitle, empty, loadError)
 ├── bookmark.* (folder.myFolders/create/all/uncategorized, empty.all/uncategorized/folder, ...)
-├── errors.* (notFound/forbidden/serverError/unexpected — title, description)
+├── errors.* (notFound/forbidden/unexpected — title+description, serverError — description만)
 ├── notification.* (defaultTitle, viewAction)
 ├── descriptions.passwordGuide
 ├── validation.urlFormat / urlRequired / titleRequired / passwordRegex / emailRegex / ...
@@ -44,6 +48,19 @@ TEXTS
 ├── shortcuts.sidebarToggle / sidebarToggleMac
 └── ariaLabels.* (레이아웃, 헤더, 사이드바, 입력 필드 등)
 ```
+
+### ESLint 하드코딩 한글 차단 예외
+
+`custom-i18n/no-hardcoded-hangul`(`eslint.config.js`)이 한글 UI 문자열 하드코딩을
+빌드/pre-commit에서 차단한다. 예외 7개(`eslint.config.js` ignores와 1:1):
+
+- `src/shared/config/texts.ts` — TEXTS 단일 소스 자기 자신
+- `src/test/**/*.{ts,tsx}` — 테스트 인프라
+- `src/mocks/**/*.{ts,tsx}` — MSW 목/픽스처
+- `**/*.test.{ts,tsx}` — 콜로케이션 테스트
+- `**/*.stories.{ts,tsx}` — Storybook
+- `src/shared/utils/date.util.ts` — 날짜 로케일 포맷
+- `src/shared/utils/common.util.ts` — 숫자/통화 로케일 포맷
 
 ### 톤 규칙
 
@@ -92,7 +109,8 @@ TEXTS
 | 필요 (예)                                                                                                                                                                        | 불필요 (예)                                                            |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `linkCopied` — 클립보드 복사는 화면 변화가 전혀 없음                                                                                                                             | `postDeleted`/`folderDeleted` — 목록에서 바로 사라짐(생성·삭제·토글류) |
-| `bookmarkSavedTo(folderName)` — 아이콘만 봐선 "어느 폴더"인지 모름                                                                                                               | `bookmarkRemoved` — 아이콘 상태 전환으로 이미 보임                     |
+| `bookmarkSavedTo(folderName)` — 아이콘만 봐선 "어느 폴더"인지 모름                                                                                                               | —                                                                      |
+| `bookmarkRemoved` — 실행취소 동반(판단축 3). 소속 폴더 0~1개일 때 `undoOptions`로 되돌리기 제공(`usePostCardBookmarkFolderModal.ts`)                                             | —                                                                      |
 | `postUpdated`/`accountUpdated` — 본문 등 수정 내용이 스크롤 밖·다른 화면에 있어 바로 티가 안 날 수 있음                                                                          | —                                                                      |
 | `postSetToPrivate`/`postSetToPublic` — 토글이지만 낙관적 업데이트가 없어 아이콘 전환이 서버 왕복 뒤에야 오고, 프라이버시 액션이라 오반영 비용이 큼(2026-09-21 재분류, 아래 참고) | —                                                                      |
 

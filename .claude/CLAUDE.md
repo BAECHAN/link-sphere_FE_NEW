@@ -354,7 +354,7 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
   `shared/lib/firebase/fcm.ts`가 raw `fetch()`로 이 규칙을 어기고 있는 걸 발견해 같은 날
   `shared/api/fcm.api.ts`로 옮겨 고쳤다 — 지금은 예외 없이 지켜지고 있다)
 - **Never** 인라인 쿼리 키 → 항상 `<entity>Keys.*` 사용
-- **Never** 인라인 한글 UI 문자열 → 항상 `TEXTS.*` 사용 (ESLint `custom-i18n/no-hardcoded-hangul`가 빌드/pre-commit에서 자동 차단. 보간은 `texts.ts`의 함수형 키 사용 예: `messages.success.bookmarkSavedTo(folderName)`. 예외: 테스트/스토리/`date.util.ts`·`common.util.ts` 로케일 포맷)
+- **Never** 인라인 한글 UI 문자열 → 항상 `TEXTS.*` 사용 (ESLint `custom-i18n/no-hardcoded-hangul`가 빌드/pre-commit에서 자동 차단. 보간은 `texts.ts`의 함수형 키 사용 예: `messages.success.bookmarkSavedTo(folderName)`. 예외 전체 목록은 `texts-conventions` skill(`.claude/skills/texts-conventions/SKILL.md`) 참고)
 - **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반
   Tailwind 클래스 사용 (`text-destructive`, `bg-success`, `text-warning` 등). 2026-09-09 감사에서
   `shared/ui/elements/ImageAttachmentField.tsx`·`SearchInput.tsx`, `shared/ui/layouts/AuthLayout.tsx`·

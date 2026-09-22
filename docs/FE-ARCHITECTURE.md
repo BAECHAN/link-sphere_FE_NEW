@@ -968,14 +968,16 @@ pnpm storybook      # Storybook (port 6006)
 
 ### 자동으로 pointer가 붙는 대상
 
-| 분류       | 대상                                                                                                              |
-| ---------- | ----------------------------------------------------------------------------------------------------------------- |
-| 태그       | `button`, `summary`, `select`, `input[type=checkbox\|radio\|file]`                                                |
-| ARIA role  | `button`, `link`, `menuitem`, `menuitemcheckbox`, `menuitemradio`, `option`, `tab`, `switch`, `checkbox`, `radio` |
-| 형제 label | `[role=checkbox]`/`[role=radio]` 바로 뒤의 `label` (예: `FormCheckbox`, `FormCheckboxGroup`)                      |
+| 분류       | 대상                                                                                                                   |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 태그       | `button`, `summary`, `select`, `input[type=checkbox\|radio\|file]`                                                     |
+| ARIA role  | `button`, `link`, `menuitem`, `menuitemcheckbox`, `menuitemradio`, `option`, `tab`, `switch`, `checkbox`, `radio`      |
+| 형제 label | `[role=checkbox]`/`[role=radio]` 뒤따르는 형제 `label`(`~` 결합자, 인접 아님. 예: `FormCheckbox`, `FormCheckboxGroup`) |
 
-`:disabled` / `aria-disabled="true"` / `[data-disabled]`는 제외된다 — 비활성 버튼·메뉴
-항목은 그대로 `default` 커서를 유지한다.
+태그 셀렉터(`button`/`select`/`input`)는 `:disabled`를, ARIA role 셀렉터는
+`aria-disabled="true"`/`[data-disabled]`를 각각 제외한다(`summary`는 제외 조건 없음).
+따라서 native `disabled`가 아닌 `<button aria-disabled="true">`는 이 규칙에서 빠지지
+않는다.
 
 ### 자동으로 select-none이 붙는 대상
 
