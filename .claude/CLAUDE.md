@@ -621,6 +621,14 @@ Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금
 
 ---
 
+## 모션
+
+트랜지션·애니메이션 지속시간, easing, `prefers-reduced-motion`, exit 애니메이션
+동기화 규약은 `motion-ux` skill(`.claude/skills/motion-ux/SKILL.md`)에 있다 —
+애니메이션·트랜지션 클래스를 붙일 때 그 skill을 먼저 읽는다(2026-09-22 도입).
+
+---
+
 ## 폴더 네이밍 규칙
 
 ### 폴더 네이밍 원칙
@@ -787,6 +795,22 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
 | `/add-schema`     | `/add-schema member address`      | Zod 스키마 파일 생성        |
 | `/fix-bug`        | `/fix-bug 삭제 후 목록 갱신 안됨` | 버그 분석 + 수정            |
 | `/code-review`    | `/code-review`                    | 아키텍처 준수 리뷰          |
+
+---
+
+## 스킬 (`.claude/skills/`)
+
+각 절 본문에도 "그 skill을 먼저 읽는다"는 문장이 있다 — 이 표는 한눈에 보는
+인덱스일 뿐, 언제 읽는지의 정본은 각 skill 파일 자신이다.
+
+| 스킬                   | 언제 읽는가                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| `design-tokens`        | 색상/배경/테두리·텍스트 크기·커서·다크모드·반경 클래스를 정할 때                |
+| `responsive-ux`        | 모바일/데스크톱 UI를 만들거나 고칠 때, 고정(fixed/sticky) 요소를 배치할 때      |
+| `motion-ux`            | 애니메이션·트랜지션 클래스를 붙이거나 exit 애니메이션이 있는 컴포넌트를 만들 때 |
+| `texts-conventions`    | `TEXTS.*`에 새 키를 추가하거나 성공 토스트 필요 여부를 판단할 때                |
+| `changelog-release`    | feat/fix/perf 커밋 시, `CHANGELOG.md` 작성·릴리즈 시점                          |
+| `browser-verification` | 커밋 전 UI 동작을 브라우저로 직접 확인해야 할 때                                |
 
 ---
 
