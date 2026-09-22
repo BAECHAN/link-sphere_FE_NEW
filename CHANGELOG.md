@@ -49,6 +49,8 @@
   `--primary`/`--secondary`/`--accent`가 전부 채도 0(무채색)이라 브랜드 컬러가 코드에 0개였고, 카테고리 8종이 전부 같은 보라색(`--category`)이라 구분 기능을 못 했으며, 상세 페이지 제목(18px/700)이 바로 아래 댓글 섹션 제목(18px/600)과 크기가 같아 위계가 안 서고, AI 요약·링크 프리뷰·URL 바가 전부 같은 1px 테두리로 3겹 중첩되는 문제를 Artifact 미리보기(https://claude.ai/artifact/1Gp7sG9rRhhACeicUwZQLi)로 여러 방향안을 나란히 비교한 뒤 반영했다. `--primary`를 브랜드 블루(`oklch(0.52 0.20 255)`)로 전면 교체해 22개 파일·38지점(버튼·툴팁·체크박스·필터칩·FAB 등)이 두 줄만으로 자동 반영되게 했고, 카테고리는 BE 응답에 color 필드가 없고 개수가 가변이라 `category.id % 8`로 8개 팔레트 중 하나를 배정(라이트는 색/12% 틴트+진한 글자, 다크는 솔리드 L 0.75+어두운 글자 — 비대칭 설계)했으며, 상세 페이지 제목은 `isDetail` 분기로 모바일 24px·데스크톱 28px까지 키우고, AI 요약·URL 바의 중첩 테두리는 제거하고 카드·링크 프리뷰는 `shadow-lg`/`shadow-sm` 기반 레이어로 대체했다. "Submit Link" 버튼에는 브랜드 2색 그라데이션을 얹었다.
   (`src/app/globals.css`, `src/entities/category/config/category.const.ts`(신규), `src/widgets/post/post-card/ui/PostCard.tsx`, `src/pages/post/index.tsx`, `src/shared/ui/tokens/DesignTokens.stories.tsx`, `docs/DESIGN-SYSTEM.md`, `.claude/skills/design-tokens/SKILL.md`, `docs/plans/2026-09-21-design-tokens-refresh.md`(신규), [PR #166](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/166))
 
+  </details>
+
 - `shared` entities 레이어의 교차 참조에 FSD `@x` 표기 도입
   <details><summary>배경·구현</summary>
 
@@ -71,6 +73,8 @@
   framer-motion 사용처가 `ScrollToTop`·`ScrollToCommentFormButton`·`PostList`(pull-to-refresh 인디케이터) 3곳뿐인데, 번들 실측 결과(`dist/stats.html`) 앱 코드 다음으로 큰 덩어리(gzip 122KB, motion-dom 포함)를 차지하고 있었다. 세 곳 모두 fade+scale+slide 또는 height 애니메이션으로 CSS만으로 표현 가능해 라이브러리 전체를 제거했다. `AnimatePresence`의 exit 애니메이션은 `isVisible`이 꺼진 뒤에도 전환(200ms)이 끝날 때까지 DOM에 남겨두는 `shouldRender` 상태로 대체했고, opacity/scale(0.8)/translate-y(20px) 값은 기존과 동일하게 맞췄다. Storybook으로 등장/퇴장/클릭 스크롤을 검증했다(`pnpm dev`의 실제 앱 페이지는 이 작업과 무관한 기존 Firebase 설정 오류로 렌더되지 않아 격리 검증으로 대체).
   (`src/shared/ui/elements/ScrollToTop.tsx`, `src/features/comment/create/ui/ScrollToCommentFormButton.tsx`, `src/widgets/post/post-list/ui/PostList.tsx`, `package.json`, [PR #143](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/143))
 
+  </details>
+
 ### Added
 
 - `shared` 데스크톱 헤더 검색에 최근 검색어 드롭다운 추가
@@ -86,6 +90,8 @@
 
   이름을 한 글자라도 입력하면 그만둘 방법이 없었다 — 세 곳이 공유하는 `handleBlur`가 입력이 있으면 no-op이라 blur로도 안 닫히고, 화면에는 취소 버튼이 없었다. [NN/g "Cancel vs Close"](https://www.nngroup.com/articles/cancel-vs-close/)의 취소 버튼 필요성 근거와 [NN/g "Reset and Cancel Buttons"](https://www.nngroup.com/articles/reset-and-cancel-buttons/)의 버튼 위계 경고를 함께 반영해, `variant="ghost"`로 생성 버튼 왼쪽에 두고 확인창 없이 즉시 입력을 버린다. 데스크톱 사이드바(`w-60`=240px)는 1줄로는 placeholder가 잘려 입력 위·버튼 행 아래의 2줄로 바꿨고, 모바일 카드는 버튼을 세로 대신 가로로 나열해 카드 높이가 늘어나지 않게 했다. 취소 버튼에는 `onMouseDown` preventDefault를 걸어, 빈 입력에서 취소를 누를 때 blur가 click보다 먼저 발생해 핸들러가 유실되는 경합을 막았다.
   (`src/features/bookmark/select/hooks/useBookmarkFolderSelect.ts`, `src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `src/widgets/bookmark/folder-tree/hooks/useFolderTree.ts`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/widgets/bookmark/folder-tree/hooks/useMobileFolderList.ts`, `src/widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-21-bookmark-create-folder-cancel.md`(신규), [PR #151](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/151))
+
+  </details>
 
 - `post` 게시물 공개/비공개 전환 시 방향별 성공 토스트 표시
   <details><summary>배경·구현</summary>
@@ -109,7 +115,9 @@
   <details><summary>배경·구현</summary>
 
   다크모드 버튼·필터 칩을 눌렀는데 "안 반영된 것처럼" 보인다는 제보를 실제 화면 녹화 영상으로 받아 20fps로 프레임을 뜯어 배경색을 픽셀 단위로 직접 측정했다 — 2초 안에 7번 토글이 찍혔는데, 알고 보니 그 클릭들은 사용자가 문제 재현을 위해 의도적으로 빠르게 여러 번 누른 것이었다(짝수 번 누르면 원래 상태로 되돌아가는 토글의 정의 그 자체). 처음엔 마우스 스위치 채터링(사람이 낼 수 없는 속도)만 걸러내는 8ms 가드로 좁혀 잡았으나, 사용자가 원한 건 "사람이 손으로 하는 무의식적인 빠른 재클릭"을 막는 것이었다 — 요구사항 자체가 하드웨어 결함 방지에서 "의식적으로 결과를 인지하고 다시 누른 것과 무의식적으로 두 번 눌린 것을 구분"하는 쪽으로 바뀌었다. 이 구분에 쓰이는 업계 표준값을 확인해 Windows의 더블클릭 속도 기본값(500ms, [Wikipedia](https://en.wikipedia.org/wiki/Double-click) 인용 Microsoft MSDN)으로 올린 뒤, 응답성을 더 살려 400ms로 재조정했다 — 사람의 단순 시각 반응시간(평균 200~273ms, [관련 리서치 종합](https://www.orangeneurosciences.ca/guide/reaction-time-average))보다는 여전히 충분히 크다. 이 변경으로 "즉시 재클릭하면 정확히 취소된다"는 기존 테스트 2개(`Navbar.test.tsx`, `usePostList.test.tsx` 시나리오 C)의 기대값 자체가 "즉시 재클릭 = 무시, 400ms 이후 재클릭 = 취소"로 바뀌었다 — 사용자가 이 트레이드오프를 명시적으로 승인했다. 각 테스트에 "충분한 시간 뒤 재클릭하면 정상 취소된다"는 동반 테스트를 추가했고, 실제 브라우저로 200ms 재클릭(무시됨)·450ms 뒤 재클릭(정상 취소)을 실측 확인했다.
-  다크모드 버튼·필터 칩을 눌렀는데 "안 반영된 것처럼" 보인다는 제보를 실제 화면 녹화 영상으로 받아 20fps로 프레임을 뜯어 배경색을 픽셀 단위로 직접 측정했다 — 2초 안에 7번 토글이 찍혔는데, 알고 보니 그 클릭들은 사용자가 문제 재현을 위해 의도적으로 빠르게 여러 번 누른 것이었다(짝수 번 누르면 원래 상태로 되돌아가는 토글의 정의 그 자체). 처음엔 마우스 스위치 채터링(사람이 낼 수 없는 속도)만 걸러내는 8ms 가드로 좁혀 잡았으나, 사용자가 원한 건 "사람이 손으로 하는 무의식적인 빠른 재클릭"을 막는 것이었다 — 요구사항 자체가 하드웨어 결함 방지에서 "의식적으로 결과를 인지하고 다시 누른 것과 무의식적으로 두 번 눌린 것을 구분"하는 쪽으로 바뀌었다. 이 구분에 쓰이는 업계 표준값을 확인해 Windows의 더블클릭 속도 기본값(500ms, [Wikipedia](https://en.wikipedia.org/wiki/Double-click) 인용 Microsoft MSDN)으로 올렸다 — 사람의 단순 시각 반응시간(평균 200~273ms, [관련 리서치 종합](https://www.orangeneurosciences.ca/guide/reaction-time-average))보다 충분히 여유 있게 크면서, "즉시 재클릭 = 하나의 제스처로 볼지"를 가르는 OS 자체의 기준과 같다. 이 변경으로 "즉시 재클릭하면 정확히 취소된다"는 기존 테스트 2개(`Navbar.test.tsx`, `usePostList.test.tsx` 시나리오 C)의 기대값 자체가 "즉시 재클릭 = 무시, 500ms 이후 재클릭 = 취소"로 바뀌었다 — 사용자가 이 트레이드오프를 명시적으로 승인했다. 각 테스트에 "충분한 시간 뒤 재클릭하면 정상 취소된다"는 동반 테스트를 추가했고, 실제 브라우저로 200ms 재클릭(무시됨)·550ms 뒤 재클릭(정상 취소)을 실측 확인했다.
+  (`src/shared/hooks/useClickGuard.ts`(신규), `src/shared/hooks/useClickGuard.test.ts`(신규), `src/shared/ui/elements/FilterChip.tsx`, `src/widgets/layout/navbar/ui/Navbar.tsx`, `src/widgets/layout/navbar/ui/Navbar.test.tsx`, `src/widgets/post/post-list/hooks/usePostList.test.tsx`, `docs/DECISIONS.md`)
+
+  </details>
 
 - `post` 검색어에서 `@카테고리`·`#닉네임` 태그를 붙여 쓰면(`@a@b`) 결과가 0건이 되던 문제 수정
   <details><summary>배경·구현</summary>
@@ -125,6 +133,8 @@
   2026-09-14(PR #85)에 "필터 칩은 호버해도 색이 안 변한다"로 확정된 디자인이 다크모드에서만 지켜지지 않고 있었다. 당시 방식은 호출부(`PostListSearch.tsx`)의 `activeClassName`에 `hover:bg-X hover:text-X-foreground`를 넣어 `Button`의 ghost variant가 주는 호버 클래스를 twMerge로 덮어쓰는 것이었는데, ghost의 `dark:hover:bg-accent/50`은 modifier 그룹이 달라(`dark:hover:` vs `hover:`) twMerge가 지우지 못하고 그대로 남는다(tailwind-merge로 직접 확인). CSS 특이성도 `@custom-variant dark (&:is(.dark *))`가 만드는 `:is(.dark *)` 때문에 다크 쪽이 이겨서, 다크모드 활성 칩이 호버 시 흰 배경(`--primary`)에서 회색(`accent/50`)으로 덮이고 글자(`--primary-foreground`, 검정)와 거의 구분이 안 됐다. 같은 구조의 버그를 가진 ghost 버튼 8곳(`FolderTree` 칩, `PostCard` AI 요약 토글·댓글 수 버튼, `BookmarkFolderSelectModal` 삭제 행, `LikePostButton`, `CommentForm` 프리뷰 토글, `RecentSearchPanel`, `UserAvatar`)도 함께 조사해 고쳤다. 덮어쓰기로 지우는 대신 호버 스타일이 애초에 없는 `none` variant를 `button.tsx`에 추가해 9곳 전부 해소했다 — 호출부의 중복 hover 클래스는 삭제하고, `FilterChip`·`FolderTree` 비선택 분기처럼 호버 배경의 출처가 ghost뿐이던 곳만 `hover:bg-accent`/`hover:text-foreground`를 명시로 보완했다. 라이트 모드 렌더링은 대부분 변하지 않으며, `BookmarkFolderSelectModal`·`FolderTree` 선택된 칩은 호버 시 의도한 색(빨강/흰 글자)을 되찾는 부수 개선이 있었다.
   (`src/shared/ui/atoms/button.tsx`, `src/shared/ui/atoms/button.stories.tsx`, `src/shared/ui/elements/FilterChip.tsx`, `src/widgets/post/post-list/ui/PostListSearch.tsx`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/widgets/post/post-card/ui/PostCard.tsx`, `src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `src/features/post/like/ui/LikePostButton.tsx`, `src/features/comment/create/ui/CommentForm.tsx`, `src/widgets/layout/navbar/ui/RecentSearchPanel.tsx`, `src/entities/user/ui/UserAvatar.tsx`, `docs/DESIGN-SYSTEM.md`, [PR #157](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/157))
 
+  </details>
+
 - `bookmark` 데스크톱 사이드바에서 스크롤바 폭 때문에 "내 폴더" 개수 숫자가 밀려 보이던 문제 수정
   <details><summary>배경·구현</summary>
 
@@ -133,21 +143,13 @@
 
   </details>
 
-- `shared` Firebase 설정값이 비었거나 잘못됐을 때 앱 전체가 빈 화면으로 렌더되던 문제 수정
-- `shared` 다크모드 토글·검색 필터 칩이 마우스 채터링성 중복 클릭에 두 번 토글되던 문제 방지
-  <details><summary>배경·구현</summary>
-
-  다크모드 버튼·필터 칩을 눌렀는데 "안 반영된 것처럼" 보인다는 제보를 실제 화면 녹화 영상으로 받아 20fps로 프레임을 뜯어 배경색을 픽셀 단위로 직접 측정했다 — 2초 안에 7번 토글이 찍혔는데, 알고 보니 그 클릭들은 사용자가 문제 재현을 위해 의도적으로 빠르게 여러 번 누른 것이었다(짝수 번 누르면 원래 상태로 되돌아가는 토글의 정의 그 자체). 그럼에도 마우스 스위치 접점 불량(채터링)으로 사람이 낼 수 없는 속도의 중복 클릭이 실제로 들어올 가능성 자체는 방지할 가치가 있다고 보고, 게이밍 마우스 소프트웨어(Logitech G Hub 등)가 노출하는 채터링 방지 debounce 설정값(8ms, [Angry Miao](https://store.angrymiao.com/blogs/insider-stories/how-to-fix-mouse-double-clicking))을 그대로 가져와 `useClickGuard` 훅을 만들었다. "중복 제출 방지"에 흔히 쓰이는 300~1000ms대 디바운스([Medium](https://medium.com/@daveford/prevent-double-click-dups-in-react-83fcbc475704) 등)는 검토했으나 기각했다 — 이 앱이 이미 테스트로 보장하는 "즉시 재클릭하면 정확히 취소된다"는 토글 계약(`Navbar.test.tsx`, `usePostList.test.tsx` 시나리오 C)과 정면으로 충돌하기 때문이다. 8ms는 그보다 한 자릿수 낮아 이 계약을 건드리지 않으면서 채터링 속도만 걸러낸다 — 실제 브라우저에서 동기적으로 두 번 연속 `click()`을 호출하면 한 번만 반영되고, 100ms 간격의 재클릭은 매번 정상 토글됨을 Playwright로 실측 확인했다. 두 기존 테스트는 딜레이 없는 합성 클릭이라 실제로는 사람이 낼 수 없는 속도였던 것이므로, 클릭 사이에 20ms 지연을 추가해 현실적인 재클릭 속도를 반영했다.
-  (`src/shared/hooks/useClickGuard.ts`(신규), `src/shared/hooks/useClickGuard.test.ts`(신규), `src/shared/ui/elements/FilterChip.tsx`, `src/widgets/layout/navbar/ui/Navbar.tsx`, `src/widgets/layout/navbar/ui/Navbar.test.tsx`, `src/widgets/post/post-list/hooks/usePostList.test.tsx`, `docs/DECISIONS.md`)
-
-  </details>
-
-- `shared` Firebase 설정값이 비었거나 잘못됐을 때 앱 전체가 빈 화면으로 렌더되던 문제 수정
 - `shared` Firebase 초기화 실패 시 앱 전체 렌더가 죽지 않도록 방어 코드 추가
   <details><summary>배경·구현</summary>
 
   PR #143 작업 중 `browser_evaluate`로 `main.tsx`를 강제로 재-import하는 비정상적인 방식으로 `"Missing App configuration value: projectId"` 에러를 관찰해 클린 HEAD에서도 재현되는 버그로 기록했으나, 이후 정상적인 `pnpm dev` 로드로는 재현되지 않았고 로컬 `.env` 값도 Firebase 콘솔 값과 일치함이 확인돼 그 진단은 오진이었을 가능성이 높다(정정: 기존 버그가 아니라 관찰 방식의 부작용이었을 수 있음). 다만 `firebase.ts`가 브라우저 환경에서 `getMessaging(app)`을 조건 없이 호출하고 있고, `main.tsx`에는 `<App/>`을 감싸는 ErrorBoundary가 없어 향후 Firebase 설정값이 실제로 비거나 잘못되면 이 호출이 동기적으로 throw해 React 렌더 트리 전체가 무너질 여지는 남아 있다. 근본 원인 확정 여부와 무관하게 `getMessaging(app)` 호출을 try/catch로 감싸 실패 시 `messaging`을 `null`로 남기도록 방어 코드를 추가했다 — 호출부(`fcm.ts`, `useFcmForegroundMessage.ts`)는 이미 `messaging`이 `null`이면 그대로 return하는 기존 방어 로직을 갖고 있어 FCM 기능만 조용히 비활성화되고 앱은 정상 렌더된다.
   (`src/shared/lib/firebase/firebase.ts`, [PR #153](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/153))
+
+  </details>
 
 - `shared` ⋮ 메뉴를 누른 채 손이 밀리면 항목이 오발동해 메뉴가 그냥 사라지던 문제 수정
   <details><summary>배경·구현</summary>
@@ -163,11 +165,15 @@
   Radix `Dialog`는 `document`에 capture 단계로 ESC 리스너를 걸어(`react-use-escape-keydown`), 생성 입력의 `onKeyDown`에서 `stopPropagation()`을 호출해도 이미 늦은 뒤라 모달이 먼저 닫혔다. `SheetDialogContent`가 그대로 통과시키는 `onEscapeKeyDown` 콜백에서 생성 폼이 열려 있을 때만 `preventDefault()`로 dismiss를 막고 폼을 접도록 옮겼다 — 폼이 닫혀 있을 때의 기존 "ESC로 모달 닫기"는 그대로 유지된다.
   (`src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`, [PR #151](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/151))
 
+  </details>
+
 - `shared` 토큰 갱신 재시도에 상한을 두어 무한 루프 가능성 제거
   <details><summary>배경·구현</summary>
 
   `client.ts`의 401 TOKEN_EXPIRED 처리에서 `retryCount`가 선언·전달만 되고 실제 상한 검사를 받지 않고 있었다(`docs/AUTH.md` §11에 알려진 이슈로 기록돼 있었음). refresh가 성공한 뒤 재시도한 요청이 다시 TOKEN_EXPIRED를 받으면(서버 시계 오차 등 회복 불가능한 상황) 상한 없이 재귀 호출이 반복될 수 있었다. `retryCount > 0`이면(이미 한 번 재시도한 요청이 또 만료됐다면) refresh를 다시 호출하지 않고 기존 refresh-실패 경로와 동일하게 `clearAll()` + 영구 pending으로 합류하도록 가드를 추가했다. 같은 세션에서 BE 소스를 확인해 `docs/AUTH.md` §11의 다른 항목(만료된 Authorization 헤더로 `/auth/refresh`를 호출하는 것)도 무해함이 확정돼 함께 갱신했다.
   (`src/shared/api/client.ts`, `src/shared/api/client.test.ts`, `docs/AUTH.md`, [PR #143](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/143))
+
+  </details>
 
 - `post` 카드 제목이 소유자 액션 아이콘에 가려 일찍 줄바꿈되던 문제 수정
   <details><summary>배경·구현</summary>
@@ -246,6 +252,8 @@
 
   배포 워크플로우가 success로 끝난 것과 실제로 사용자 화면에 반영된 것은 다른 사건인데, 그 둘을 구분할 수단이 앱에도 CI에도 없었다. `vite.config.ts`의 `define`으로 커밋 sha를 번들 상수(`__BUILD_INFO__`)에 심고, 별도 플러그인으로 배포 시각·workflow run 번호까지 담은 `dist/version.json`을 함께 만든다 — 두 값을 분리한 이유는 번들 상수는 "지금 이 탭이 실행 중인 코드"를, `version.json`은 "지금 서버에 올라간 코드"를 답해야 서로 다른 두 원인("배포 자체가 안 됨" vs "탭이 캐시를 잡음")을 구분할 수 있기 때문이다. `builtAt`·`runNumber`처럼 빌드마다 달라지는 값은 번들 상수에 넣지 않았다 — 넣으면 무변경 재배포에도 entry 청크 해시가 바뀌어 기존 `useAppVersionCheck`가 열려 있는 모든 탭을 강제 리로드시킨다(두 번 연속 빌드해 entry 해시가 동일함을 직접 확인). `/version` 페이지는 이 둘을 대조해 배너로 보여준다 — 최초에는 Vercel 대시보드의 점+라벨 패턴(제목 옆 작은 배지)으로 만들었으나 "이 페이지의 주 컨텐츠가 동기화 확인 자체"라는 피드백을 받아 카드보다 먼저, 페이지 최상단의 큰 배너로 재구성했다(두 안 모두 Artifact로 나란히 미리보기해 비교). 일치(초록)·불일치(주황, compare 링크+새로고침 버튼)·서버 조회 실패(회색, 배포 실패와 구분)의 세 상태를 색으로 구분한다. `/version`은 403/404/500과 같은 성격의 공개+비연결 라우트다 — 이 레포가 이미 Public이라 노출 정보가 새로 늘지 않고, 로그인에 묶으면 정작 인증이 깨진 순간 진단이 안 되기 때문이다. 배포 파이프라인에는 invalidation 직후 실제 CloudFront를 curl로 때려 ①`version.json`의 sha 일치 ②`index.html`의 `no-store` 캐시 헤더 회귀 ③entry 청크 해시 일치를 확인하는 검증 스텝과, 실패 시 GitHub 이슈를 자동 생성하는 `notify-failure` job을 추가했다. 운영 CloudFront를 직접 curl로 실측한 결과 `x-cache: RefreshHit`(매 요청 오리진 재검증)로 동작 중임을 확인해, 평범한 새로고침이 강력 새로고침과 실질적으로 동일하게 동작함도 함께 검증했다.
   (`vite.config.ts`, `src/vite-env.d.ts`, `src/shared/config/build-info.ts`(신규), `src/shared/utils/build-info.util.ts`(신규), `src/shared/hooks/useDeployedBuildInfo.ts`(신규), `src/pages/version/VersionPage.tsx`(신규), `src/app/routes/index.tsx`, `src/shared/config/route-paths.ts`, `src/shared/config/texts.ts`, `src/main.tsx`, `.github/workflows/deploy.yml`, `docs/BUILD-VERSION.md`(신규), `docs/DEPLOY.md`, `docs/CI-CHECK-GATE.md`, `docs/SYSTEM-ARCHITECTURE.md`, `docs/NEW-VERSION-RELOAD.md`, `docs/plans/2026-09-20-build-version.md`(신규), [PR #134](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/134))
+
+  </details>
 
 - `infra` Storybook을 기존 S3+CloudFront 배포로 공개 호스팅
   <details><summary>배경·구현</summary>
@@ -393,6 +401,8 @@
 
   모바일 포스트 상세에서 헤더 검색을 열면 `RecentSearchPanel`이 화면을 덮어야 하는데, `MobileCommentBar`(접힘 상태)가 같은 z층(`z-panel`=40)이라 DOM 순서만으로 패널 위에 그대로 남아 있었다. 탭바(`z-nav`=50)가 검색 중에도 보이는 건 `Navbar.tsx:228`이 명시한 의도된 설계라 그대로 두고, 댓글바만 `useHistoryOverlay('mobileSearchOpen')`로 같은 열림 상태를 구독해 `hidden`을 붙였다. 언마운트하지 않은 이유는 이탈 가드(`useUnsavedChangesGuard.ts`)가 `pathname`이 같은 이동은 통과시켜, 검색 열기가 그 가드를 우회하기 때문이다 — 언마운트하면 작성 중이던 본문·첨부 이미지가 경고 없이 사라진다. 같은 조사에서 `RecentSearchPanel`에 스크림·포커스 트랩이 없어 Tab 키로 배경 게시글·댓글에 포커스가 새는 것도 함께 발견해, `AppLayout`의 `main`에 `inert`를 걸어 막았다(React 18.2라 JSX `inert` prop 대신 ref로 DOM 프로퍼티를 직접 설정).
   (`src/features/comment/create/ui/MobileCommentBar.tsx`, `src/features/comment/create/ui/MobileCommentBar.test.tsx`(신규), `src/app/layouts/app-layout/AppLayout.tsx`, `e2e/post-detail-search-overlay.mobile.spec.ts`(신규), `docs/SEARCH.md`, `.claude/skills/responsive-ux/SKILL.md`, [PR #123](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/123))
+
+  </details>
 
 - `shared` 모바일 검색 헤더 아이콘 버튼 3곳의 좌우 정렬 어긋남 수정
   <details><summary>배경·구현</summary>
@@ -555,6 +565,8 @@
 
   "내 댓글" 화면을 열어둔 채 로그아웃하면 그 화면이 계속 에러로 남아, 다시 로그인하고 재진입해도 "내 댓글을 불러오는데 실패했어요"만 보였다. 로그아웃 처리(`AuthUtil.clearQueries()`)가 토큰을 지운 직후 `resetQueries()`로 화면에 남아있던 쿼리를 배경 재요청시키는데, 그 요청이 401을 받아 캐시가 error 상태로 굳는 것이 원인이었다. TanStack Query의 Suspense 훅은 캐시가 error면 재마운트해도 새 요청을 아예 내지 않고(`retryOnMount`를 false로 강제) 캐시된 옛 에러를 그대로 다시 throw한다. 기존 로그인 성공 처리의 `invalidateQueries()`는 활성 쿼리만 다시 부르므로 이미 언마운트된 이 쿼리에는 닿지 못했다. 로그인 성공 시 에러 상태이면서 보여줄 데이터도 없는 쿼리만 골라 `resetQueries()`로 초기 상태로 되돌리도록 했다 — 데이터를 들고 있는 쿼리(배경 재요청만 실패한 경우)는 화면이 멀쩡하고 재마운트 시 정상 재요청되므로 건드리지 않는다. 모달을 통한 제자리 로그인에서 이미 떠 있던 게시글 목록이 깜빡이지 않게 하려는 의도다. 이 리셋은 기존 `invalidateQueries()` 앞에 둔다 — `resetQueries()`의 내부 재조회는 리셋 뒤 predicate가 더 이상 매칭되지 않아 아무것도 다시 부르지 않으므로, 화면에 떠 있는 쿼리의 재요청은 뒤이은 `invalidateQueries()`가 맡는다. `useLoginMutation` 전용 테스트가 없던 것도 이번에 함께 채웠다.
   (`entities/auth/api/auth.queries.ts`, `entities/auth/api/auth.queries.test.ts`, `docs/AUTH.md`, [PR #94](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/94))
+
+  </details>
 
 - `comment` 댓글 해시 이동 시 스크롤 정렬을 중앙에서 상단으로 변경해 긴 댓글도 시작부터 읽히게 함
   <details><summary>배경·구현</summary>
@@ -1156,6 +1168,8 @@
   `font-display: swap`으로 폴백 폰트가 잠깐 보이는 원인이 될 수 있었다. 위 댓글
   영역 레이아웃 시프트 조사 과정에서 발견한 별개의 이슈로, 다른 세 굵기와 같은
   preload `<link>`를 추가해 문서화된 의도와 실제 구현을 맞췄다. (`index.html`)
+
+  </details>
 
 - `comment` 댓글 수정 폼 미리보기에서 썸네일 로드 실패 시 깨진 이미지 아이콘 노출
   <details><summary>배경·구현</summary>

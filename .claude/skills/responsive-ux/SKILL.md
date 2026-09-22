@@ -27,15 +27,20 @@ paths: src/**/*.tsx
 `BottomTabBar`(`src/widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx`)는:
 
 ```
-md:hidden fixed bottom-0 inset-x-0 z-50 h-16 pb-[env(safe-area-inset-bottom)]
+// nav
+md:hidden fixed bottom-0 inset-x-0 z-nav border-t bg-background pb-[env(safe-area-inset-bottom)]
+// 내부 div — 실제 높이는 여기서 결정된다
+flex h-16
 ```
 
 그 위에 새 고정 UI를 띄울 때:
 
 - 탭바를 피해서 쌓으려면 `bottom-[calc(4rem+env(safe-area-inset-bottom))]`
-- 탭바를 덮어야 하면(예: 전체화면 모달·확장 입력바) `z-index`를 55 이상으로
+- 탭바를 덮어야 하면(예: 전체화면 모달·확장 입력바) `z-scrim`(55) 이상 토큰을 쓴다
 
-`AppLayout`(`src/app/layouts/app-layout/AppLayout.tsx`)의 `main`은 `pb-28 md:pb-16`으로 이미 탭바 높이를 확보해 놓았다 — 새로 스크롤 영역을 만들 때 이 값을 다시 계산하지 않아도 된다.
+`AppLayout`(`src/app/layouts/app-layout/AppLayout.tsx`)의 `main`은 하단 패딩이
+`pb-28`(모바일)·`md:pb-16`(데스크톱)으로 이미 탭바 높이를 확보해 놓았다 — 새로
+스크롤 영역을 만들 때 이 값을 다시 계산하지 않아도 된다.
 
 ### 토스트 오프셋
 
@@ -74,31 +79,44 @@ md:hidden fixed bottom-0 inset-x-0 z-50 h-16 pb-[env(safe-area-inset-bottom)]
 - **모바일**은 뷰포트에 완전히 고정하는 `fixed` + safe-area 위주(위 "하단 고정 요소" 참고).
 - 페이지 전체가 스크롤되는 단일 컬럼 레이아웃(게시글 상세 등)에서 데스크톱에 "상시 보이는 sticky 패널"을 새로 넣을지 고민될 때는, 화면 상단을 계속 차지하는 비용과 편의성을 저울질할 것 — 이 코드베이스는 지금까지 이런 경우 아래 "플로팅 버튼" 쪽을 택했다.
 
-### 데스크톱 플로팅 버튼
+### 플로팅 버튼
 
-우측 하단 플로팅 아이콘 버튼 자리(`fixed bottom-6 right-6 z-50`, `rounded-full h-12 w-12 shadow-lg`, framer-motion `AnimatePresence`+`motion.div` 페이드)를 페이지별로 상호 배타적으로 나눠 쓴다:
+우측 하단 플로팅 아이콘 버튼 자리(`fixed right-6 z-nav`, `rounded-full h-12 w-12
+shadow-lg`, CSS transition + `setTimeout`으로 exit 애니메이션 동안 마운트 유지 —
+framer-motion 아님, `package.json`에 없음)를 페이지별로 상호 배타적으로 나눠 쓴다.
+세로 위치와 노출 조건은 컴포넌트별로 다르다:
 
-| 컴포넌트                                                       | 트리거                                                            | 적용 페이지                                            |
-| -------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------ |
-| `src/shared/ui/elements/ScrollToTop.tsx`                       | `window.scrollY > 300`                                            | 상세 페이지(`/post/:id`) 제외 전역                     |
-| `src/features/comment/create/ui/ScrollToCommentFormButton.tsx` | `IntersectionObserver`로 상단 작성 폼이 화면 밖으로 나갔는지 감지 | 상세 페이지 전용(`CommentList`가 이 페이지에서만 쓰임) |
+| 컴포넌트                                                       | 세로 위치                                   | 노출/게이트                                                                                                                  | 적용 페이지                                            |
+| -------------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `src/shared/ui/elements/ScrollToTop.tsx`                       | `bottom-20 md:bottom-6`(모바일은 탭바 회피) | `window.scrollY > 300`. 모바일+데스크톱 공용, 뷰포트 게이트 없음                                                             | 상세 페이지(`/post/:id`) 제외 전역                     |
+| `src/features/comment/create/ui/ScrollToCommentFormButton.tsx` | `bottom-6`                                  | `IntersectionObserver`로 상단 작성 폼이 화면 밖으로 나갔는지 감지 + JS `!isMobile` 게이트(`CommentList.tsx`)로 데스크톱 전용 | 상세 페이지 전용(`CommentList`가 이 페이지에서만 쓰임) |
 
-새 데스크톱 플로팅 버튼이 필요하면 이 표에 어느 페이지에서 켜지는지부터 정하고, 기존 버튼과 같은 페이지에서 동시에 뜨지 않게 한다(z-50 하나뿐이라 자리가 겹치면 시각적으로 충돌한다).
+새 플로팅 버튼이 필요하면 이 표에 어느 페이지에서 켜지는지부터 정하고, 기존 버튼과
+같은 페이지에서 동시에 뜨지 않게 한다(`z-nav` 하나뿐이라 자리가 겹치면 시각적으로
+충돌한다).
 
 ## z-index 사다리 (실측, 모바일+데스크톱 공용)
 
-| 값  | 사용처                                                                                                        |
-| --- | ------------------------------------------------------------------------------------------------------------- |
-| 40  | `RecentSearchPanel`, `MobileCommentBar` 접힘 상태                                                             |
-| 50  | `Navbar`(sticky top), `BottomTabBar`, 데스크톱 플로팅 버튼(`ScrollToTop`/`ScrollToCommentFormButton`)         |
-| 55  | `Sidebar` 모바일 오버레이, `MobileCommentBar` 확장 상태                                                       |
-| 60  | `Sidebar` 모바일 드로어                                                                                       |
-| 70  | `Dialog` 오버레이·콘텐츠(`shared/ui/atoms/dialog.tsx`) — Alert/Confirm, 로그인 모달, 이미지 뷰어 등 모든 모달 |
-| 80  | 포털 팝오버 — `tooltip`/`dropdown-menu`/`select`(`shared/ui/atoms/`)                                          |
+`globals.css`가 8단계를 이름 있는 토큰으로 정의하고, `custom-tailwind/no-raw-z-index`
+ESLint 룰이 `z-50` 같은 raw 숫자 클래스를 pre-commit에서 차단한다 — 아래 값은 참고용,
+실제로는 토큰을 쓴다.
 
-모달(70)·팝오버(80) 층은 고정 UI 사다리(40~60)의 최상단 의도를 담고 있다 — 새 고정
-UI에 70 이상을 쓰지 말 것. 모달이 다른 고정 UI보다 항상 위에 뜨지 못하면(예: 이탈
-확인창이 열린 드로어 뒤에 가리는 것) 사용자가 모달을 조작할 수 없게 된다.
+| 토큰        | 값  | 사용처                                                                                                          |
+| ----------- | --- | --------------------------------------------------------------------------------------------------------------- |
+| `z-raised`  | 10  | 카드 내부 오버레이 (`DropTargetOverlay.tsx`, `PostCard.tsx`)                                                    |
+| `z-hitbox`  | 20  | 드롭 히트박스 (`DropTargetOverlay.tsx`)                                                                         |
+| `z-panel`   | 40  | `RecentSearchPanel`, `MobileCommentBar` 접힘 상태                                                               |
+| `z-nav`     | 50  | `Navbar`(sticky top), `BottomTabBar`, 플로팅 버튼(`ScrollToTop`/`ScrollToCommentFormButton`)                    |
+| `z-scrim`   | 55  | `Sidebar` 모바일 오버레이, `MobileCommentBar` 확장 상태                                                         |
+| `z-drawer`  | 60  | `Sidebar` 모바일 드로어                                                                                         |
+| `z-modal`   | 70  | `Dialog` 오버레이·콘텐츠(`shared/ui/atoms/dialog.tsx`) — Alert/Confirm, 로그인 모달, 이미지 뷰어 등 모든 모달   |
+| `z-popover` | 80  | 팝오버 — `tooltip`/`dropdown-menu`/`select`(`shared/ui/atoms/`), `RecentSearchDropdown.tsx`(widgets, 포털 아님) |
+
+`z-raised`/`z-hitbox`(10~20)는 카드 내부 지역 스택용이라 화면 고정 UI 사다리
+(`z-panel`~`z-drawer`, 40~60)와 층이 다르다. 모달(`z-modal`)·팝오버(`z-popover`) 층은
+고정 UI 사다리의 최상단 의도를 담고 있다 — 새 고정 UI에 `z-modal` 이상을 쓰지 말 것.
+모달이 다른 고정 UI보다 항상 위에 뜨지 못하면(예: 이탈 확인창이 열린 드로어 뒤에
+가리는 것) 사용자가 모달을 조작할 수 없게 된다.
 
 ## 화면 덮는 오버레이의 배경 스크롤 잠금
 
@@ -110,8 +128,8 @@ UI에 70 이상을 쓰지 말 것. 모달이 다른 고정 UI보다 항상 위�
 - **`shared/ui/atoms/dialog.tsx`(Radix `Dialog`) 기반이면 아무것도 안 해도 된다** —
   `modal`(기본 `true`)일 때 내부적으로 `react-remove-scroll`을 걸어 자동으로 잠긴다.
 - **순수 `<div>`로 직접 짠다면 `RemoveScroll`(`react-remove-scroll`)로 직접 감싼다** —
-  `Dialog`가 내부에서 쓰는 것과 같은 라이브러리를 그대로 재사용한다(이미 전이
-  의존성으로 설치돼 있다).
+  `Dialog`가 내부에서 쓰는 것과 같은 라이브러리를 그대로 재사용한다(#125에서
+  `package.json`에 직접 의존성 `2.7.2`로 핀해 뒀다 — Radix 전이 의존성에 기대지 않는다).
   ```tsx
   <RemoveScroll as={Slot} allowPinchZoom>
     <div className="...">...</div>
