@@ -229,26 +229,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/bookmark/folders/reorder': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /**
-     * 북마크 폴더 순서 변경
-     * @description folderIds 는 본인이 가진 폴더 id 전체를 중복 없이 새 순서로 담아야 한다. 실패: 400 INVALID_INPUT(id 중복·누락·본인 소유 아닌 id 포함)
-     */
-    patch: operations['reorderFolders'];
-    trace?: never;
-  };
   '/bookmark/folders/{folderId}': {
     parameters: {
       query?: never;
@@ -369,14 +349,14 @@ export interface paths {
     post?: never;
     /**
      * 댓글 삭제
-     * @description 실패: 404 NOT_FOUND(댓글 없음). 작성자가 아니면 403 이 아니라 500 INTERNAL_SERVER_ERROR 로 응답한다(IllegalAccessException 전용 핸들러가 없음 — 알려진 결함, 이 문서화 작업 범위 밖).
+     * @description 실패: 404 NOT_FOUND(댓글 없음) · 403 FORBIDDEN(작성자가 아님)
      */
     delete: operations['deleteComment'];
     options?: never;
     head?: never;
     /**
      * 댓글 수정
-     * @description 실패: 404 NOT_FOUND(댓글 없음) · 400 INVALID_INPUT(이미지 개수·본문 길이 초과). 작성자가 아니거나 이미 삭제된 댓글이면 403/409 가 아니라 500 INTERNAL_SERVER_ERROR 로 응답한다(전용 핸들러 없음 — 알려진 결함, 이 문서화 작업 범위 밖).
+     * @description 실패: 404 NOT_FOUND(댓글 없음) · 400 INVALID_INPUT(이미지 개수·본문 길이 초과) · 403 FORBIDDEN(작성자가 아님). 이미 삭제된 댓글이면 409가 아니라 500 INTERNAL_SERVER_ERROR 로 응답한다(IllegalStateException 전용 핸들러가 없음 — 알려진 결함, 이 수정 범위 밖).
      */
     patch: operations['updateComment'];
     trace?: never;
@@ -949,9 +929,6 @@ export interface components {
       platform: string;
       token: string;
     };
-    ReorderFoldersRequest: {
-      folderIds: string[];
-    };
     SignupRequest: {
       email: string;
       nickname: string;
@@ -1285,30 +1262,6 @@ export interface operations {
         };
         content: {
           '*/*': components['schemas']['ApiResponseFolderResponse'];
-        };
-      };
-    };
-  };
-  reorderFolders: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ReorderFoldersRequest'];
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          '*/*': components['schemas']['ApiResponseUnit'];
         };
       };
     };
