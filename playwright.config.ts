@@ -1,10 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
-import { DEV_SERVER_PORT } from './dev-server.config';
+import { E2E_SERVER_PORT } from './dev-server.config';
 
 // dev server가 mkcert HTTPS(--mode localhost, vite.config.ts:24)를 쓰면 CI에 로컬 CA를
 // 설치해야 하는 부담이 생긴다. --mode test는 이미 있는 .env.test(docs/TESTING.md)를
 // 그대로 재사용하면서 mkcert 조건(mode === 'localhost')을 자연스럽게 피해 HTTP로 뜬다.
-const baseURL = `http://localhost:${DEV_SERVER_PORT}`;
+// DEV_SERVER_PORT(pnpm dev)가 아닌 별도 포트를 쓴다 — 같은 포트를 쓰면 다른 워크트리의
+// pnpm dev(HTTPS)와 주소가 겹쳐 이 HTTP 헬스체크가 응답을 못 받고 타임아웃난다
+// (dev-server.config.ts의 E2E_SERVER_PORT 주석 참고).
+const baseURL = `http://localhost:${E2E_SERVER_PORT}`;
 
 export default defineConfig({
   testDir: './e2e',
@@ -36,7 +39,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm exec vite --mode test',
+    // --strictPort: 포트가 이미 점유돼 있으면(예: 동시에 실행된 다른 e2e) 조용히 다음
+    // 빈 포트로 넘어가는 대신 즉시 실패한다 — 그래야 baseURL과 실제 서버 주소가 어긋나
+    // 헬스체크가 원인 불명 타임아웃으로 조용히 실패하는 걸 방지한다.
+    command: `pnpm exec vite --mode test --port ${E2E_SERVER_PORT} --strictPort`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     // firebase/messaging의 getMessaging()이 앱 부트스트랩 중 즉시 호출되는데, 프로젝트
