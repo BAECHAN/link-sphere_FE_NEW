@@ -1,7 +1,7 @@
 ---
 name: responsive-ux
-description: Link-Sphere FE 반응형 UX 규약(모바일+데스크톱). 반응형 분기, 터치 UI, 하단 탭바·safe-area, 데스크톱 sticky·플로팅 버튼 관련 작업에 사용.
-when_to_use: 모바일/데스크톱 UI를 만들거나 고칠 때, 반응형 분기를 추가할 때, 고정(fixed/sticky) 요소를 배치할 때.
+description: Link-Sphere FE 반응형 UX 규약(모바일+데스크톱). 반응형 분기, 터치 UI, 하단 탭바·safe-area, 데스크톱 sticky·플로팅 버튼, hover 컨테이너 안에 드롭다운·팝오버를 둘 때 관련 작업에 사용.
+when_to_use: 모바일/데스크톱 UI를 만들거나 고칠 때, 반응형 분기를 추가할 때, 고정(fixed/sticky) 요소를 배치할 때, hover 스타일이 있는 컨테이너(카드·행) 안에 드롭다운·팝오버 트리거를 둘 때.
 paths: src/**/*.tsx
 ---
 
@@ -72,6 +72,15 @@ flex h-16
 
 - 데스크톱은 마우스 hover 상태를 쓸 수 있다(모바일엔 없음) — `hover:` 클래스는 데스크톱 상호작용의 기본.
 - 모바일에서 넓힌 터치 타깃(`min-h-11` 등)은 `md:min-h-0`처럼 되돌려 데스크톱 밀도를 원래대로 유지한다.
+- **hover 스타일이 있는 컨테이너 안에 드롭다운·셀렉트·팝오버 트리거를 두면 `hover:` 대신
+  `hover-or-open:`(`globals.css`)을 쓴다.** `DropdownMenuContent`(`shared/ui/atoms/dropdown-menu.tsx`)
+  등 팝업 콘텐츠는 Portal로 `<body>`에 렌더돼 커서가 메뉴로 들어가는 순간 컨테이너는 더 이상
+  `:hover` 상태가 아니게 된다 — 메뉴를 열고 항목 위로 커서를 옮기면 카드가 원래대로 풀리는
+  버그가 이 때문에 생긴다(2026-09-24, `PostCard.tsx`·`FolderTree.tsx`에서 실제로 발견). `hover-or-open`은
+  `:hover` 또는 `:has([aria-haspopup][aria-expanded="true"])`를 함께 보므로, 컨테이너 안의
+  트리거가 열려 있는 동안에도 스타일이 유지된다. `hover:`처럼 `@media (hover: hover)` 안에서만
+  적용되므로 모바일 동작은 바뀌지 않는다. 선례: `src/widgets/post/post-card/ui/PostCard.tsx`,
+  `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`.
 
 ### sticky vs fixed
 
@@ -151,3 +160,4 @@ ESLint 룰이 `z-50` 같은 raw 숫자 클래스를 pre-commit에서 차단한�
 - 고정 UI가 탭바·토스트·다른 플로팅 버튼과 겹치지 않음
 - 모바일 터치 타깃 44px, 입력 폰트 16px 이상
 - 데스크톱 hover 상태가 자연스럽게 동작
+- hover 컨테이너 안에 드롭다운·팝오버가 있다면 `hover:` 대신 `hover-or-open:`을 썼는가
