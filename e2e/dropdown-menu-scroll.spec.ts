@@ -42,6 +42,11 @@ test.describe('드롭다운 메뉴 — 스크롤 허용·스크롤 시 닫힘·�
 
     // 화면 가운데는 투명 오버레이 위다 — 오버레이 위 휠도 페이지로 전달돼야 한다.
     await page.mouse.move(viewport.width / 2, viewport.height / 2);
+    // 스크롤 닫기는 이동 거리 임계값(dropdown-menu.tsx의 SCROLL_CLOSE_THRESHOLD_PX)을 쓴다 —
+    // 첫 스크롤 이벤트는 기준선으로만 기록되고(우발적인 미세 스크롤·직전 관성 스크롤을
+    // 흡수하기 위해서다), 두 번째 이벤트부터 기준선과의 차이를 비교한다. 실제 휠 스크롤도
+    // 한 번에 끝나지 않고 여러 tick으로 이어지므로 wheel을 두 번 보낸다.
+    await page.mouse.wheel(0, 600);
     await page.mouse.wheel(0, 600);
 
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
@@ -83,5 +88,57 @@ test.describe('드롭다운 메뉴 — 스크롤 허용·스크롤 시 닫힘·�
     await page.keyboard.press('Escape');
     await expect(page.getByRole('menu')).toHaveCount(0);
     await expect(trigger).toBeFocused();
+  });
+
+  // 2026-09-24 회귀 4건 — 북마크 폴더 ⋮ 메뉴가 가끔 열렸다가 바로 닫힌다는 제보를 재현해
+  // 확정한 원인 2개(docs/DECISIONS.md 2026-09-24 "스크롤 닫기에 이동 거리 임계값 + 연속
+  // 클릭 무시" 참고).
+  test('1px 미만의 우발적인 스크롤로는 닫히지 않는다', async ({ page }) => {
+    const trigger = page.getByRole('button', { name: TEXTS.ariaLabels.accountMenu });
+
+    await trigger.click();
+    await expect(page.getByRole('menu')).toBeVisible();
+
+    await page.mouse.move(200, 200);
+    await page.mouse.wheel(0, 1);
+
+    await page.waitForTimeout(300);
+    await expect(page.getByRole('menu')).toBeVisible();
+  });
+
+  test('클릭 직전에 시작된 스크롤의 관성이 열고 난 뒤 도착해도 닫히지 않는다', async ({ page }) => {
+    const trigger = page.getByRole('button', { name: TEXTS.ariaLabels.accountMenu });
+
+    // 클릭 전에 미리 스크롤을 걸어 두고 곧바로 트리거를 클릭한다 — 그 스크롤의 이벤트가
+    // 메뉴가 열린 뒤에 도착하는 상황을 재현한다.
+    await page.mouse.move(200, 400);
+    await page.mouse.wheel(0, 300);
+    await trigger.click({ force: true });
+
+    await page.waitForTimeout(300);
+    await expect(page.getByRole('menu')).toBeVisible();
+  });
+
+  test('더블클릭(또는 마우스 채터링)의 두 번째 클릭으로는 닫히지 않지만, 그 뒤 별개의 단일 클릭으로는 닫힌다', async ({
+    page,
+  }) => {
+    const trigger = page.getByRole('button', { name: TEXTS.ariaLabels.accountMenu });
+    const box = await trigger.boundingBox();
+
+    if (!box) {
+      throw new Error('트리거의 bounding box를 가져오지 못했다');
+    }
+
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+
+    await page.mouse.dblclick(x, y);
+    await page.waitForTimeout(300);
+    await expect(page.getByRole('menu')).toBeVisible();
+
+    // OS 더블클릭 판정 창을 벗어난 뒤의 별개의 단일 클릭은 오버레이를 그대로 닫는다.
+    await page.waitForTimeout(600);
+    await page.mouse.click(x, y);
+    await expect(page.getByRole('menu')).toHaveCount(0);
   });
 });

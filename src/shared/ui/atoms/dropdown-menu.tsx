@@ -24,6 +24,33 @@ interface DropdownMenuOpenContextValue {
 const DropdownMenuOpenContext = createContext<DropdownMenuOpenContextValue | null>(null);
 
 /**
+ * 스크롤 닫기의 이동 거리 임계값(px). Windows의 드래그 시작 임계값(SM_CXDRAG/SM_CYDRAG)과
+ * 같은 값이다 — 둘 다 "우연한 포인터 이동은 무시하고, 의도적인 이동만 별개의 동작으로
+ * 인정한다"는 같은 목적의 임계값이라 그 선례를 그대로 가져왔다. 개념 정의는 공식 문서
+ * (_"The number of pixels on either side of a mouse-down point that the mouse pointer can
+ * move before a drag operation begins. This allows the user to click and release the mouse
+ * button easily without unintentionally starting a drag operation."_,
+ * https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmetrics)에서
+ * 확인했다. 기본값 4는 공식 문서에 수치로 나오지 않아, 이를 인용한 2차 자료
+ * (_"DEFAULT VALUES ARE 4 and 4"_, https://bobobobo.wordpress.com/2011/01/19/disable-drag-and-drop/)로
+ * 확인했다 — 1차 문서로 재검증하지는 못했다.
+ */
+const SCROLL_CLOSE_THRESHOLD_PX = 4;
+
+/** scroll 이벤트 대상의 현재 스크롤 위치(px). document는 scrollingElement 기준이다. */
+function getScrollPosition(target: EventTarget): number {
+  if (target === document) {
+    return document.scrollingElement?.scrollTop ?? window.scrollY;
+  }
+
+  if (target instanceof Element) {
+    return target.scrollTop;
+  }
+
+  return 0;
+}
+
+/**
  * modal 기본값을 Radix와 반대로 false로 둔다 — modal이면 react-remove-scroll이 걸려 메뉴가
  * 열린 동안 페이지 스크롤이 잠긴다. 대신 스크롤하면 메뉴를 닫고, 바깥 클릭은
  * DropdownMenuContent의 오버레이가 흡수한다(docs/DECISIONS.md 2026-09-24).
@@ -56,9 +83,37 @@ const DropdownMenu = ({
       return;
     }
 
+    // 열린 시점 이후 스크롤 대상별로 처음 본 위치를 기준선으로 기억해 두고, 거기서
+    // SCROLL_CLOSE_THRESHOLD_PX 이상 움직였을 때만 닫는다. 클릭과 함께 섞여 들어오는
+    // 1px 단위의 우발적 스크롤(휠에 손이 스친 경우 등)로 메뉴가 바로 닫히는 문제, 그리고
+    // 여는 클릭 직전 스크롤의 관성이 열고 난 뒤에야 도착해 곧바로 닫아버리는 문제를 함께
+    // 고친다 — 첫 스크롤 이벤트를 기준선으로 삼으면 그 관성의 "도착 위치"가 기준선이 돼
+    // 흡수된다(docs/DECISIONS.md 2026-09-24 "스크롤 닫기 임계값" 참고). 대신 실제로 여러
+    // 틱에 걸쳐 이어지는 스크롤 제스처는 두 번째 이벤트부터 기준선과의 차이가 쌓여
+    // 거기서 곧바로 닫힌다.
+    const scrollBaselines = new Map<EventTarget, number>();
+
     const handleScroll = (event: Event) => {
       // 메뉴 자신이 overflow-y-auto라 긴 메뉴의 내부 스크롤로는 닫지 않는다.
       if (event.target instanceof Node && contentRef.current?.contains(event.target)) {
+        return;
+      }
+
+      const target = event.target;
+
+      if (!target) {
+        return;
+      }
+
+      const position = getScrollPosition(target);
+      const baseline = scrollBaselines.get(target);
+
+      if (baseline === undefined) {
+        scrollBaselines.set(target, position);
+        return;
+      }
+
+      if (Math.abs(position - baseline) < SCROLL_CLOSE_THRESHOLD_PX) {
         return;
       }
 
@@ -173,7 +228,17 @@ const DropdownMenuContent = forwardRef<
             event.stopPropagation();
             event.preventDefault();
           }}
-          onClick={() => openContext?.setOpen(false)}
+          onClick={(event) => {
+            // 더블클릭(또는 마우스 스위치 채터링)의 두 번째 클릭이 이 오버레이에 떨어져
+            // 열자마자 닫히는 문제 수정. detail은 OS가 판정한 연속 클릭 횟수다(MDN
+            // UIEvent.detail) — 2 이상이면 방금 트리거를 연 클릭과 같은 제스처로 보고
+            // 닫지 않는다. 그 뒤에 오는 별개의 단일 클릭(detail=1)은 그대로 닫는다.
+            if (event.detail > 1) {
+              return;
+            }
+
+            openContext?.setOpen(false);
+          }}
         />
       </DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Portal>
