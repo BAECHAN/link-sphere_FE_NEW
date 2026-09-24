@@ -1,3 +1,6 @@
+### 2026-09-24 (FE)
+- 공유 컴포넌트 및 서비스 내 텍스트 상수 한국어 현지화 적용
+
 ### 2026-09-21 (FE)
 - React Query 전역 에러 핸들러 중복 제거 및 리팩토링 ([#175](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/175))
 
