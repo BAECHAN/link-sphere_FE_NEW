@@ -115,7 +115,7 @@
   <details><summary>배경·구현</summary>
 
   북마크 폴더 ⋮ 메뉴가 가끔 열렸다가 바로 닫힌다는 제보(휠 마우스, 재현 패턴 불명)를 Playwright로 재현해 원인 2개를 확정했다 — 같은 날 배포된 "비모달 전환 + 스크롤 시 닫힘"(위 Changed 항목)이 스크롤 이벤트 1px만으로도 닫히게 했고, 트리거를 덮는 투명 오버레이가 더블클릭·마우스 스위치 채터링의 두 번째 클릭까지 받아 닫아버렸다. 스크롤 닫기에 이동 거리 임계값(4px, Windows 드래그 시작 임계값과 같은 값)을 추가했고 — 스크롤 대상별로 처음 본 위치를 기준선으로 삼아 거기서 임계값 이상 움직였을 때만 닫는다 — 오버레이의 클릭은 `event.detail > 1`(더블클릭 이상)이면 무시하게 했다. 대안 비교와 임계값 출처는 `docs/DECISIONS.md` 2026-09-24 항목 참고.
-  (`src/shared/ui/atoms/dropdown-menu.tsx`, `e2e/dropdown-menu-scroll.spec.ts`, `docs/DECISIONS.md`, `docs/plans/2026-09-24-dropdown-open-close-flicker.md`(신규))
+  (`src/shared/ui/atoms/dropdown-menu.tsx`, `e2e/dropdown-menu-scroll.spec.ts`, `docs/DECISIONS.md`, `docs/plans/2026-09-24-dropdown-open-close-flicker.md`(신규), [PR #184](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/184))
 
   </details>
 
