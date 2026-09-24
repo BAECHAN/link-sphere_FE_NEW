@@ -2,6 +2,14 @@ import { useCallback, useRef } from 'react';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 /**
+ * 무의식적 중복과 의식적 재입력을 가르는 기준 시간(ms). 근거는 아래 useClickGuard 주석 참고.
+ * @deprecated `@/shared/config/const`의 `DOUBLE_CLICK_GUARD_MS`를 직접 쓴다 — 이 export는
+ * 그 값을 그대로 가리키기만 한다(select.tsx 등 기존 호출부 하위 호환용, 2026-09-24 병합 시
+ * 같은 상수가 두 곳에 따로 생긴 걸 발견해 SSOT로 정리).
+ */
+export const CLICK_GUARD_MS = DOUBLE_CLICK_GUARD_MS;
+
+/**
  * 짧은 시간 안의 재클릭을 "무의식적인 중복 클릭"으로 보고 무시하는 가드 훅. 토글
  * 버튼은 짝수 번 눌리면 원래 상태로 되돌아가 "눌렀는데 반영 안 됨"처럼 보이는데,
  * 그중 사용자가 결과를 인지하고 의도적으로 다시 누른 게 아니라 무의식적으로

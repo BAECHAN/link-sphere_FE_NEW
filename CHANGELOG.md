@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `shared` Select가 열리면 트리거의 화살표가 위로 뒤집히게 변경
+  <details><summary>배경·구현</summary>
+
+  지금까지는 Select가 열려 있어도 화살표가 계속 아래를 향해, 다시 누르면 어떻게 되는지 화면이 알려주지 않았다. 트리거를 다시 탭하면 닫히도록 고친 뒤(#183) 그 동작을 알리도록, 열리면 화살표가 180° 뒤집히게 했다. 근거는 NN/g [Accordion Icons](https://www.nngroup.com/articles/accordion-icons/)의 _"펼친 뒤에는 캐럿이 (짧고 보기 좋은 애니메이션으로) 뒤집히는 것이 일반적이다. (...) 방금 펼친 내용을 다시 접는 반대 동작을 알려주는 신호가 된다"_ (번역)다. 아코디언에 관한 글이라 Select에 대한 직접 연구는 아니다. 회전은 `motion-ux` 규약의 드롭다운·셀렉트 범위에 맞춰 `duration-200 ease-in-out`이고, 트리거의 `data-state`를 Tailwind v4 `in-data-[state=open]:` 변형으로 참조한다. 열린 상태를 스토리로 고정하면 Radix가 나머지 화면에 거는 `aria-hidden` 때문에 a11y 게이트(`aria-hidden-focus`)에 걸려, 게이트를 약하게 만들지 않으려고 스토리는 추가하지 않았다.
+  (`src/shared/ui/atoms/select.tsx`, [PR #185](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/185))
+
+  </details>
+
 - `shared` 드롭다운 메뉴가 열려 있어도 스크롤되고, 스크롤하면 닫히게 변경
   <details><summary>배경·구현</summary>
 
@@ -110,6 +118,22 @@
   </details>
 
 ### Fixed
+
+- `shared` 드롭다운 메뉴가 클릭 직후 우발적인 스크롤·연속 클릭으로 곧바로 닫히던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  북마크 폴더 ⋮ 메뉴가 가끔 열렸다가 바로 닫힌다는 제보(휠 마우스, 재현 패턴 불명)를 Playwright로 재현해 원인 2개를 확정했다 — 같은 날 배포된 "비모달 전환 + 스크롤 시 닫힘"(위 Changed 항목)이 스크롤 이벤트 1px만으로도 닫히게 했고, 트리거를 덮는 투명 오버레이가 더블클릭·마우스 스위치 채터링의 두 번째 클릭까지 받아 닫아버렸다. 스크롤 닫기에 이동 거리 임계값(4px, Windows 드래그 시작 임계값과 같은 값)을 추가했고 — 스크롤 대상별로 처음 본 위치를 기준선으로 삼아 거기서 임계값 이상 움직였을 때만 닫는다 — 오버레이의 클릭은 `event.detail > 1`(더블클릭 이상)이면 무시하게 했다. 대안 비교와 임계값 출처는 `docs/DECISIONS.md` 2026-09-24 항목 참고.
+  (`src/shared/ui/atoms/dropdown-menu.tsx`, `e2e/dropdown-menu-scroll.spec.ts`, `docs/DECISIONS.md`, `docs/plans/2026-09-24-dropdown-open-close-flicker.md`(신규), [PR #184](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/184))
+
+  </details>
+
+- `shared` 모바일에서 Select 트리거를 다시 탭하면 닫혔다가 다시 열리던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  모바일 실기기에서 북마크 정렬 `Select`를 닫으려고 트리거를 다시 탭하면, 닫혔다가 곧바로 다시 열린다는 제보가 있었다. 크롬 에뮬레이션에서는 재현되지 않았다(열려 있는 동안 body에 `pointer-events: none`이 걸려 두 번째 탭이 `HTML`에 떨어짐). 유력한 원인은 Radix Select가 한 번의 탭을 바깥 감지(닫기)와 트리거 click(열기)으로 따로 받는 것이다. `select.tsx`의 `Select`를 제어형 래퍼로 바꿔 닫힌 뒤 400ms 안의 열기 요청은 무시하게 했다(닫기는 항상 반영). 400ms는 `useClickGuard`와 같은 기준(무의식적 중복과 의식적 재입력의 구분)이라 상수 `CLICK_GUARD_MS`로 추출해 함께 쓴다. `DropdownMenu`와 합치거나 네이티브 `<select>`로 바꾸지 않은 이유는 `docs/DECISIONS.md` 2026-09-24 "드롭다운 컨트롤 구분" 항목 참고.
+  (`src/shared/ui/atoms/select.tsx`, `src/shared/ui/atoms/select.test.tsx`(신규), `src/shared/hooks/useClickGuard.ts`, `docs/plans/2026-09-24-select-reopen-guard.md`(신규), [PR #183](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/183))
+
+  </details>
 
 - `shared` 카드·폴더 행 드롭다운이 열려 있는 동안 hover 스타일이 풀리던 문제 수정
   <details><summary>배경·구현</summary>

@@ -579,13 +579,18 @@ All files |   72.5  |   68.3   |   75.0  |   72.1  |
 
 ### 스택 개요
 
-| 항목          | 내용                                                                                                                                               |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 러너          | [@playwright/test](https://playwright.dev/) `1.57.0`(`playwright` 라이브러리와 버전 고정, 브라우저 바이너리 불일치 방지)                           |
-| 브라우저      | `chromium`(Desktop Chrome) + `mobile-chrome`(Pixel 5, `*.mobile.spec.ts`만) 2개 project(`playwright.config.ts`) — Firefox/WebKit은 필요해지면 추가 |
-| 네트워크 모킹 | Playwright 내장 `page.route()` 직접 사용(`@msw/playwright` 아님 — pre-1.0 정체로 배제)                                                             |
-| dev server    | `vite --mode test`(`.env.test` 재사용 — mkcert HTTPS를 자연히 피해 HTTP로 뜬다)                                                                    |
-| 설정 파일     | `playwright.config.ts`, `tsconfig.e2e.json`                                                                                                        |
+| 항목          | 내용                                                                                                                                                        |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 러너          | [@playwright/test](https://playwright.dev/) `1.57.0`(`playwright` 라이브러리와 버전 고정, 브라우저 바이너리 불일치 방지)                                    |
+| 브라우저      | `chromium`(Desktop Chrome) + `mobile-chrome`(Pixel 5, `*.mobile.spec.ts`만) 2개 project(`playwright.config.ts`) — Firefox/WebKit은 필요해지면 추가          |
+| 네트워크 모킹 | Playwright 내장 `page.route()` 직접 사용(`@msw/playwright` 아님 — pre-1.0 정체로 배제)                                                                      |
+| dev server    | `vite --mode test`(`.env.test` 재사용 — mkcert HTTPS를 자연히 피해 HTTP로 뜬다)                                                                             |
+| 포트          | `E2E_SERVER_PORT_RANGE_START`~`END`(`dev-server.config.ts`, 31120~31139) 대역에서 실행마다 빈 포트를 골라 씀 — `pnpm dev`의 `DEV_SERVER_PORT`(31119)와 분리 |
+| 설정 파일     | `playwright.config.ts`, `tsconfig.e2e.json`                                                                                                                 |
+
+**e2e가 `pnpm dev`와 다른 포트를 쓰는 이유** — 다른 워크트리가 `pnpm dev`(`--mode localhost`, mkcert HTTPS)를 `DEV_SERVER_PORT`에 띄운 상태에서 e2e가 같은 포트에 HTTP로 접속을 시도하면 응답을 못 받고 60초 타임아웃난다(2026-09-24 실측). e2e는 MSW로 완전히 모킹돼 실제 BE·DB를 전혀 쓰지 않아 "워크트리 간 동시 `pnpm dev` 금지" 규칙(실제 BE/원격 DB 공유가 이유, `.claude/CLAUDE.md`)의 대상이 아닌데도 포트를 공유해 병목이 생긴 것이었다 — 전용 대역으로 분리해 이 충돌 자체를 없앴다.
+
+**고정 포트 하나가 아니라 대역인 이유** — 워크트리 두 곳이 동시에 e2e를 돌리면, Playwright의 `reuseExistingServer: true`(로컬 기본값)는 그 포트에 이미 떠 있는 서버가 "이게 이 실행이 기대한 서버인지" 검증 없이 그냥 재사용한다(_"it will re-use an existing server on the port or url when available"_, [Playwright 공식 문서](https://playwright.dev/docs/test-webserver)) — 즉 고정 포트 하나였다면 나중에 시작한 워크트리가 먼저 뜬 워크트리의 서버에 조용히 붙어 자기 코드를 전혀 테스트하지 못한 채 "통과"로 보고했을 것이다(타임아웃보다 나쁜, 눈에 안 띄는 실패). `playwright.config.ts`가 이 대역에서 매 실행마다 바인딩 가능한 포트를 직접 찾아 쓰고(`dev-server.config.ts`의 `E2E_SERVER_PORT_RANGE_*` 주석 참고), `--strictPort`로 그 사이 레이스가 나도 조용히 잘못된 서버에 붙는 대신 즉시 실패하게 한다.
 
 ```bash
 pnpm test:e2e          # chromium 헤드리스로 1회 실행
