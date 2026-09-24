@@ -1,4 +1,7 @@
 ### 2026-09-24 (FE)
+- 입력창 내 placeholder 텍스트의 드래그 선택 및 하이라이트 효과 방지 적용 ([#186](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/186))
+
+### 2026-09-24 (FE)
 - 북마크 폴더 모달 내 더블클릭 이벤트 처리 최적화 및 오탭 방지 로직 구현 ([#182](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/182))
 
 ### 2026-09-24 (FE)
