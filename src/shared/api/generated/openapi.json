@@ -916,19 +916,6 @@
         "required": ["platform", "token"],
         "type": "object"
       },
-      "ReorderFoldersRequest": {
-        "properties": {
-          "folderIds": {
-            "items": {
-              "format": "uuid",
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "required": ["folderIds"],
-        "type": "object"
-      },
       "SignupRequest": {
         "properties": {
           "email": {
@@ -1426,36 +1413,6 @@
         "tags": ["북마크 폴더"]
       }
     },
-    "/bookmark/folders/reorder": {
-      "patch": {
-        "description": "folderIds 는 본인이 가진 폴더 id 전체를 중복 없이 새 순서로 담아야 한다. 실패: 400 INVALID_INPUT(id 중복·누락·본인 소유 아닌 id 포함)",
-        "operationId": "reorderFolders",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReorderFoldersRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseUnit"
-                }
-              }
-            },
-            "description": "OK"
-          }
-        },
-        "summary": "북마크 폴더 순서 변경",
-        "tags": ["북마크 폴더"]
-      }
-    },
     "/bookmark/folders/{folderId}": {
       "delete": {
         "description": "폴더 소속만 지워지고 북마크 자체(다른 폴더 소속분)는 유지된다. 실패: 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더)",
@@ -1745,7 +1702,7 @@
     },
     "/comment/{commentId}": {
       "delete": {
-        "description": "실패: 404 NOT_FOUND(댓글 없음). 작성자가 아니면 403 이 아니라 500 INTERNAL_SERVER_ERROR 로 응답한다(IllegalAccessException 전용 핸들러가 없음 — 알려진 결함, 이 문서화 작업 범위 밖).",
+        "description": "실패: 404 NOT_FOUND(댓글 없음) · 403 FORBIDDEN(작성자가 아님)",
         "operationId": "deleteComment",
         "parameters": [
           {
@@ -1774,7 +1731,7 @@
         "tags": ["댓글"]
       },
       "patch": {
-        "description": "실패: 404 NOT_FOUND(댓글 없음) · 400 INVALID_INPUT(이미지 개수·본문 길이 초과). 작성자가 아니거나 이미 삭제된 댓글이면 403/409 가 아니라 500 INTERNAL_SERVER_ERROR 로 응답한다(전용 핸들러 없음 — 알려진 결함, 이 문서화 작업 범위 밖).",
+        "description": "실패: 404 NOT_FOUND(댓글 없음) · 400 INVALID_INPUT(이미지 개수·본문 길이 초과) · 403 FORBIDDEN(작성자가 아님). 이미 삭제된 댓글이면 409가 아니라 500 INTERNAL_SERVER_ERROR 로 응답한다(IllegalStateException 전용 핸들러가 없음 — 알려진 결함, 이 수정 범위 밖).",
         "operationId": "updateComment",
         "parameters": [
           {
@@ -2395,10 +2352,6 @@
   ],
   "tags": [
     {
-      "description": "북마크를 담는 폴더의 생성·조회·수정·삭제·정렬",
-      "name": "북마크 폴더"
-    },
-    {
       "description": "기기 푸시 토큰 등록·해제",
       "name": "FCM 토큰"
     },
@@ -2413,6 +2366,10 @@
     {
       "description": "게시글 카테고리 옵션 조회",
       "name": "카테고리"
+    },
+    {
+      "description": "북마크를 담는 폴더의 생성·조회·수정·삭제",
+      "name": "북마크 폴더"
     },
     {
       "description": "이미지 업로드용 서명 URL 발급",

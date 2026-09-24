@@ -8,7 +8,7 @@
 > 읽고 나면: 응답 타입이 어디서 오는지, 새 엔티티를 추가할 때 무엇을 만들어야 하는지,
 > BE 스펙이 바뀌면 무슨 일이 일어나는지, BE nullable 정보가 왜 가끔 유실되는지 알게 된다.
 >
-> 마지막 검토: 2026-09-21
+> 마지막 검토: 2026-09-24
 
 ## 1. 쉬운 설명
 
@@ -181,7 +181,7 @@ export type { CategoryOption } from '@/entities/category/model/category.dto';
 | ----------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `category`        | `CategoryOption`                                                        | 재수출만(2줄)                                                                              |
 | `auth`            | `LoginResponse`                                                         | `loginSchema`/`createAccountSchema`(폼)                                                    |
-| `bookmark-folder` | `BookmarkFolder`/`BookmarkFolderListResponse`/`BookmarkFoldersResponse` | `createBookmarkFolderSchema`/`reorderBookmarkFoldersSchema`/`bookmarkFolderSortEnum`(폼)   |
+| `bookmark-folder` | `BookmarkFolder`/`BookmarkFolderListResponse`/`BookmarkFoldersResponse` | `createBookmarkFolderSchema`/`bookmarkFolderSortEnum`(폼)                                  |
 | `comment`         | `Comment`/`MyComment`/`MyCommentListResponse`                           | `commentContentFormSchema`(폼)                                                             |
 | `account`         | `Account`                                                               | `updateAccountSchema`(폼), `nicknameValidationSchema`/`emailValidationSchema`(재사용 검증) |
 | `post`            | `Post`/`PostListResponse`/`PostListRequest`/`CreatePostResponse`        | `createPostSchema`/`updatePostSchema`(폼)                                                  |
@@ -197,7 +197,7 @@ override가 있는 타입(원본 대신 `Omit<...> & {...}`로 재정의한 것)
 | 스펙 fetch 대상(cron)      | `scripts/check-openapi-drift.js`의 `PROD_SPEC_URL` 상수                 | 운영 CloudFront 공개 도메인(`README.md`에 이미 공개) — 실제 사용자가 거치는 경로를 그대로 확인, 별도 시크릿 불필요 |
 | 드리프트 cron 주기         | `.github/workflows/openapi-drift-check.yml`의 `cron: '0 0 * * *'`       | 매일 1회(UTC 0시)                                                                                                  |
 | openapi-typescript 버전    | `package.json`의 devDependencies, `save-exact=true`(`.npmrc:23`)로 고정 | 7.13.0                                                                                                             |
-| 스펙 규모(2026-09-20 기준) | —                                                                       | `paths` 30개, `components.schemas` 54개, `nullable` 프로퍼티 24개                                                  |
+| 스펙 규모(2026-09-24 기준) | —                                                                       | `paths` 29개, `components.schemas` 53개, `nullable` 프로퍼티 24개                                                  |
 
 ## 8. 코드 지도와 자주 하는 수정
 
