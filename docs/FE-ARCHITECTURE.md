@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-09-14
+> **마지막 검토**: 2026-09-22
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -25,17 +25,17 @@ API)를 성능을 이유로 정반대로 채택**하고, 그 위에 도메인 �
 
 ### 조합된 개념
 
-| 개념                                  | 출처                              | 이 레포에서 담당하는 것                                                                         | 대표 위치                                                     |
-| ------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| FSD (Feature-Sliced Design)           | feature-sliced.design             | 레이어 6종(`app→pages→widgets→features→entities→shared`) + 하향 의존만 허용                     | `eslint.config.js`의 `no-restricted-imports` 5블록(레이어별)  |
-| 도메인 우선 슬라이스 그룹핑           | FSD의 "slice group"을 필수 규칙화 | `features/<도메인>/<액션>/`, `widgets/<도메인>/<슬라이스>/` 처럼 한 단계 더 묶음                | `features/post/create/`, `widgets/post/post-card/`            |
-| 3-Layer API 분리                      | 이 레포 자체 규약                 | `*.api.ts`(순수 fetch) → `*.keys.ts`(쿼리 키+무효화) → `*.queries.ts`(React Query 훅) 3단 분리  | `entities/post/api/{post.api,post.keys,post.queries}.ts`      |
-| Query Key Factory + 중앙 invalidation | TanStack Query 커뮤니티 패턴      | `<entity>Keys`·`<entity>InvalidateQueries`·`handle<Entity><Action>Success`로 캐시 무효화 캡슐화 | §5 참고                                                       |
-| Container/Presentational (headless)   | 고전 React 패턴                   | `hooks/`에 폼·mutation·상태 전부, `ui/`는 JSX만                                                 | §6·§7, ESLint `custom-query-rules/no-direct-query-import`     |
-| Schema-first (Zod as SSOT)            | schema-first 설계                 | `z.infer`로 타입을 스키마에서 파생 — 런타임 검증과 타입을 한 소스로 유지                        | `entities/*/model/*.schema.ts`                                |
-| Atomic Design 변형                    | atoms/molecules 개념              | `shared/ui/atoms`(shadcn 원자) / `elements`(조합) / `layouts` 3단 분류                          | `src/shared/ui/{atoms,elements,layouts}`                      |
-| 횡단 관심사 중앙화                    | React Query `meta` 옵션 활용      | 토스트·401 리다이렉트·403 처리를 `mutationCache`/`queryCache` 한 곳에서 처리                    | `src/shared/lib/react-query/config/queryClient.ts`            |
-| 상수 단일화                           | —                                 | 문자열·엔드포인트·라우트·에러코드를 각각 하나의 상수 객체로 관리                                | `TEXTS`, `API_ENDPOINTS`, `ROUTES_PATHS`, `SERVER_ERROR_CODE` |
+| 개념                                  | 출처                              | 이 레포에서 담당하는 것                                                                                                              | 대표 위치                                                     |
+| ------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| FSD (Feature-Sliced Design)           | feature-sliced.design             | 레이어 6종(`app→pages→widgets→features→entities→shared`) + 하향 의존만 허용                                                          | `eslint.config.js`의 `no-restricted-imports` 5블록(레이어별)  |
+| 도메인 우선 슬라이스 그룹핑           | FSD의 "slice group"을 필수 규칙화 | `features/<도메인>/<액션>/`, `widgets/<도메인>/<슬라이스>/` 처럼 한 단계 더 묶음                                                     | `features/post/create/`, `widgets/post/post-card/`            |
+| 3-Layer API 분리                      | 이 레포 자체 규약                 | `*.api.ts`(순수 fetch) → `*.keys.ts`(쿼리 키+무효화) → `*.queries.ts`(React Query 훅) 3단 분리                                       | `entities/post/api/{post.api,post.keys,post.queries}.ts`      |
+| Query Key Factory + 중앙 invalidation | TanStack Query 커뮤니티 패턴      | `<entity>Keys`·`<entity>InvalidateQueries`·`handle<Entity><Action>Success`로 캐시 무효화 캡슐화                                      | §5 참고                                                       |
+| Container/Presentational (headless)   | 고전 React 패턴                   | `hooks/`에 폼·mutation·상태 전부, `ui/`는 JSX만                                                                                      | §6·§7, ESLint `custom-query-rules/no-direct-query-import`     |
+| Schema-first (Zod as SSOT)            | schema-first 설계                 | `z.infer`로 타입을 스키마에서 파생 — 런타임 검증과 타입을 한 소스로 유지                                                             | `entities/*/model/*.schema.ts`                                |
+| Atomic Design 변형                    | atoms/molecules 개념              | `shared/ui/atoms`(shadcn 원자) / `elements`(조합) / `layouts` 3단 분류                                                               | `src/shared/ui/{atoms,elements,layouts}`                      |
+| 횡단 관심사 중앙화                    | React Query `meta` 옵션 활용      | 토스트·401·403 처리를 `mutationCache`/`queryCache` 한 곳에서 처리(401 리다이렉트 자체는 `client.ts`의 fetch 인터셉터 담당, §13 참고) | `src/shared/lib/react-query/config/queryClient.ts`            |
+| 상수 단일화                           | —                                 | 문자열·엔드포인트·라우트·에러코드를 각각 하나의 상수 객체로 관리                                                                     | `TEXTS`, `API_ENDPOINTS`, `ROUTES_PATHS`, `SERVER_ERROR_CODE` |
 
 ### 정식 FSD와 다른 점
 
@@ -112,6 +112,8 @@ flowchart TD
 | 파일명 규칙                                               | `*.api.ts`·`*.queries.ts`·`*.schema.ts`·`config/`·`utils/` 등 세그먼트별 파일명 패턴                                       |
 | `custom-a11y/clickable-needs-interactive-element`         | `div`/`span`에 `onClick`만 달기 — `role="button"` 없이는 금지                                                              |
 | `curly` (`['error', 'all']`)                              | 인라인 `if`문 (`if (x) return;`) — 항상 중괄호 블록 강제                                                                   |
+| `import/no-cycle`                                         | 순환 참조(A→B→A) 금지 — 동작하려면 `eslint.config.js`의 리졸버 설정 3개가 함께 필요, 그 주석 참고                          |
+| `custom-route/no-hardcoded-route-path`                    | `navigate()`·`window.location.href`·JSX `to=`에 경로 문자열 직접 쓰기 금지 — `ROUTES_PATHS.*`만 허용                       |
 
 ---
 
@@ -408,7 +410,7 @@ export const handleEntityUpdateSuccess = (queryClient: QueryClient, id: Entity['
 ```typescript
 // entities/comment/api/comment.keys.ts
 import type { QueryClient } from '@tanstack/react-query';
-import { postInvalidateQueries } from '@/entities/post/api/post.keys';
+import { postInvalidateQueries } from '@/entities/post/@x/comment';
 
 export const handleCommentCreateSuccess = (queryClient: QueryClient, postId: Post['id']) => {
   // 댓글 목록은 mutation의 onMutate/onSuccess가 낙관적으로 직접 갱신하므로 여기서 다시
@@ -425,6 +427,37 @@ export const handleCommentCreateSuccess = (queryClient: QueryClient, postId: Pos
 (`bookmark-folder.keys.ts`의 `handlePostDeleteSuccess`, `handleBookmarkToggleSuccess`). 참고
 파일: `comment.keys.ts`, `bookmark-folder.keys.ts`, `account.keys.ts`(`handleAccountUpdateSuccess`),
 `auth.keys.ts`(`handleAuthRestoreSuccess`).
+
+#### `@x` 표기 (엔티티 간 교차 참조, 2026-09-21 도입)
+
+위처럼 한 엔티티가 다른 엔티티의 값을 참조하는 건 이 레포에서 이미 흔한 패턴이다(`auth`가
+`account`를, `bookmark/folder`·`comment`·`interaction`이 `post`를 참조하는 식). [FSD 공식
+문서](https://feature-sliced.design/docs/reference/public-api#the-x-notation)는 같은 레이어
+안에서 이런 교차 참조가 생기면 `@x` 폴더로 명시하라고 권장한다 — 참조하는 대상 엔티티 아래
+`@x/<참조하는-엔티티>.ts` 파일을 두고, 그 엔티티가 남에게 공개할 것만 거기 모아 재export한다.
+
+```typescript
+// entities/post/@x/comment.ts — entities/comment 가 참조하는 post 의 공개 표면
+export { postInvalidateQueries } from '@/entities/post/api/post.keys';
+export type { Post } from '@/entities/post/model/post.schema';
+```
+
+```typescript
+// entities/comment/api/comment.keys.ts — @x 를 통해서만 참조한다
+import { postInvalidateQueries } from '@/entities/post/@x/comment';
+```
+
+**왜 `.api.ts`/`.keys.ts`를 직접 참조하지 않고 한 단계 더 두는가** — 직접 참조하면 그
+엔티티의 전체 공개 표면(`api/`·`keys/`·`queries/`의 모든 export)에 접근할 수 있어, 실제로
+쓰는 게 뭔지 파일을 열어보기 전엔 알 수 없다. `@x/<참조하는-엔티티>.ts` 하나에 실제로
+쓰는 것만 모아두면 `grep -r "@x" src/entities`만으로 엔티티 간 결합 지점 전체가 한눈에
+보이고, 그 파일 하나만 보고도 "이 엔티티가 어디에 얼마나 노출돼 있는지"를 알 수 있다.
+반대로 참조하는 쪽(`entities/comment`)이 아니라 참조받는 쪽(`entities/post`)에 `@x` 폴더가
+있다는 점에 주의 — "누가 나를 참조하는가"를 참조받는 엔티티가 직접 통제하는 구조다.
+
+이 표기는 강제되지 않는다(ESLint 규칙 없음) — 기존 3-layer API 컨벤션이 이미 barrel 역할을
+어느 정도 하고 있어서, 규칙으로 강제할 만큼 실제 사고가 있었던 적은 없다. 새로 엔티티 간
+참조가 생기면 이 컨벤션을 따라 `@x` 파일을 추가한다.
 
 ### Layer 3 — `<entity>.queries.ts` (얇은 React Query 래퍼)
 
@@ -695,10 +728,10 @@ onError: (_err, _vars, context) => {
 인스턴스이므로 프로덕션 동작은 동일 — 테스트에서 격리된 클라이언트를 주입할 수 있게 하려는
 목적이다). 싱글턴을 직접 import하는 예외는 두 곳뿐이다:
 
-| 파일                                  | 왜 예외인가                                                                                                                      |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `src/app/providers/QueryProvider.tsx` | 싱글턴을 provider에 주입하는 유일한 지점                                                                                         |
-| `src/shared/utils/auth.util.ts`       | `clearAll()`/`clearQueries()`가 fetch 인터셉터·전역 캐시 에러 핸들러(React 트리 밖)에서 호출되어 `useQueryClient()`를 쓸 수 없다 |
+| 파일                                  | 왜 예외인가                                                                                                |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `src/app/providers/QueryProvider.tsx` | 싱글턴을 provider에 주입하는 유일한 지점                                                                   |
+| `src/shared/utils/auth.util.ts`       | `clearAll()`/`clearQueries()`가 fetch 인터셉터(React 트리 밖)에서 호출되어 `useQueryClient()`를 쓸 수 없다 |
 
 `.keys.ts`처럼 React 훅을 쓸 수 없는 순수 모듈은 `useQueryClient()`로 얻은 인스턴스를 호출자가
 인자로 넘긴다(§5 Layer 2 참고).
@@ -769,15 +802,37 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
 
 ### 전역 에러 핸들링
 
-전역 에러 핸들러는 `queryClient.ts` 내의 `mutationCache`와 `queryCache`에 정의:
+전역 에러 핸들러는 `queryClient.ts`의 `mutationCache.onError`와 `queryCache.onError`에
+정의하되, 판정 자체는 두 쪽이 공유하는 순수 함수 `resolveErrorToast()`
+(`shared/lib/react-query/config/error-toast.ts`)에 있다. mutation과 query는 각자
+`ErrorToastPolicy`(`MUTATION_ERROR_POLICY` / `QUERY_ERROR_POLICY`)를 넘겨 아래 두 지점만
+다르게 처리한다 — 나머지 판정은 완전히 동일하다:
 
-- **401 (`NOT_LOGGED_IN` / `INVALID_TOKEN`)**: `AuthUtil.clearAll()` 후 `/auth/login`으로
-  리다이렉트 + 로그인 필요 토스트. 단, 로그아웃 직후 구간(`AuthUtil.isLoggingOut()`)의 401은
-  세션 만료가 아니라 로그아웃 레이스(제자리 로그아웃의 배경 재요청, 또는 이동 수반
-  로그아웃 시점에 이미 떠 있던 요청)이므로 무시한다 — 상세: `docs/AUTH.md` §8-E
+- **404**: `policy.skipNotFound`가 query만 `true`다. 404는 서버 장애가 아니라 화면이
+  처리할 도메인 상태(삭제·비공개 글 등)이므로 query는 조용히 넘기고 각 화면의
+  ErrorBoundary가 안내를 소유한다. mutation의 404는 진짜 실패이므로 토스트를 띄운다.
+- **`ApiError`가 아닌 에러**(네트워크 단절 등): `policy.toastOnNonApiError`가 mutation만
+  `true`다. query가 조용한 이유는 `refetchOnWindowFocus: true` + `retry: 1` 조합에서
+  화면에 떠 있는 쿼리 수만큼 토스트가 동시에 뜨는 것을 막기 위해서다.
+
+공통 판정(우선순위 순서대로):
+
+- **`meta.manualErrorHandling`**: 조용히 종료. mutation·query 둘 다 지원한다.
+- **로그아웃 레이스**(`LogoutGraceUtil.isLoggingOut()`): 401(`NOT_LOGGED_IN` /
+  `INVALID_TOKEN`)이 로그아웃 직후 구간에 온 경우 `meta.errorMessage`보다 먼저 걸러
+  조용히 종료한다 — 세션 만료가 아니라 로그아웃 레이스(제자리 로그아웃의 배경 재요청,
+  또는 이동 수반 로그아웃 시점에 이미 떠 있던 요청)이기 때문이다. 상세: `docs/AUTH.md` §8-E
+- **`EDGE_BLOCKED`**: `meta.errorMessage`보다 먼저 처리한다(순서 고정 — `docs/DECISIONS.md`
+  2026-09-06 참고). 그러지 않으면 게시글 등록처럼 `errorMessage`를 쓰는 mutation이 이
+  원인을 일반 메시지로 덮어써 사용자가 실제 원인을 알 수 없다.
+- **`meta.errorMessage`**: 있으면 그 메시지를 사용
+- **401 (`NOT_LOGGED_IN` / `INVALID_TOKEN`)**: 로그인 필요 토스트만 표시한다. 세션 정리
+  (`AuthUtil.clearAll()` → `/auth/login` 리다이렉트)는 `client.ts`의 fetch 인터셉터가 이미
+  수행했으므로 여기서 다시 하지 않는다(토스트 단일 소유 원칙)
 - **403 (`ACCESS_DENIED`)**: 접근 거부 토스트만 표시
 - **그 외 `ApiError`**: 콘솔에 상세 로깅 + 사용자에게는 일반적인 "서버 에러" 토스트
-- **알 수 없는 에러**: 콘솔에 로깅 + 일반적인 에러 토스트
+- **알 수 없는 에러**: mutation은 콘솔 로깅 + 일반적인 에러 토스트, query는 조용히 종료
+  (위 "`ApiError`가 아닌 에러" 참고)
 
 ### 수동 에러 핸들링 (`manualErrorHandling`)
 
@@ -814,11 +869,11 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ## 15. Mutation/Query Meta 옵션
 
-| 키                    | 타입      | 효과                                                                 |
-| --------------------- | --------- | -------------------------------------------------------------------- |
-| `successMessage`      | `string`  | 자동으로 성공 토스트 표시 (정적 문자열만 — 분기 필요 시 위 §14 예외) |
-| `errorMessage`        | `string`  | 기본 대신 커스텀 에러 토스트 표시                                    |
-| `manualErrorHandling` | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용)              |
+| 키                    | 타입      | 효과                                                                               |
+| --------------------- | --------- | ---------------------------------------------------------------------------------- |
+| `successMessage`      | `string`  | 자동으로 성공 토스트 표시 (정적 문자열만 — 분기 필요 시 위 §14 예외)               |
+| `errorMessage`        | `string`  | 기본 대신 커스텀 에러 토스트 표시                                                  |
+| `manualErrorHandling` | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용, mutation·query 둘 다 지원) |
 
 ---
 
@@ -905,26 +960,57 @@ pnpm storybook      # Storybook (port 6006)
 
 ---
 
-## 20. 클릭 가능한 요소와 커서 규칙
+## 20. 클릭 가능한 요소와 커서·텍스트 선택 규칙
 
 `src/app/globals.css`의 `@layer base`에서 전역으로 처리한다 — 개별 컴포넌트에
-`cursor-pointer`를 직접 붙이지 않는다. 배경은 `docs/DECISIONS.md`의 2026-09-03
-항목 참고.
+`cursor-pointer`나 `select-none`을 직접 붙이지 않는다. 커서 규칙의 배경은
+`docs/DECISIONS.md`의 2026-09-03 항목 참고.
 
 ### 자동으로 pointer가 붙는 대상
 
-| 분류       | 대상                                                                                                              |
-| ---------- | ----------------------------------------------------------------------------------------------------------------- |
-| 태그       | `button`, `summary`, `select`, `input[type=checkbox\|radio\|file]`                                                |
-| ARIA role  | `button`, `link`, `menuitem`, `menuitemcheckbox`, `menuitemradio`, `option`, `tab`, `switch`, `checkbox`, `radio` |
-| 형제 label | `[role=checkbox]`/`[role=radio]` 바로 뒤의 `label` (예: `FormCheckbox`, `FormCheckboxGroup`)                      |
+| 분류       | 대상                                                                                                                   |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 태그       | `button`, `summary`, `select`, `input[type=checkbox\|radio\|file]`                                                     |
+| ARIA role  | `button`, `link`, `menuitem`, `menuitemcheckbox`, `menuitemradio`, `option`, `tab`, `switch`, `checkbox`, `radio`      |
+| 형제 label | `[role=checkbox]`/`[role=radio]` 뒤따르는 형제 `label`(`~` 결합자, 인접 아님. 예: `FormCheckbox`, `FormCheckboxGroup`) |
 
-`:disabled` / `aria-disabled="true"` / `[data-disabled]`는 제외된다 — 비활성 버튼·메뉴
-항목은 그대로 `default` 커서를 유지한다.
+태그 셀렉터(`button`/`select`/`input`)는 `:disabled`를, ARIA role 셀렉터는
+`aria-disabled="true"`/`[data-disabled]`를 각각 제외한다(`summary`는 제외 조건 없음).
+따라서 native `disabled`가 아닌 `<button aria-disabled="true">`는 이 규칙에서 빠지지
+않는다.
+
+### 자동으로 select-none이 붙는 대상
+
+같은 이유(드래그해도 라벨 텍스트가 선택되지 않아야 한다)로 커서 규칙 바로 아래에
+별도 `@layer base` 블록으로 모아둔다. 셀렉터는 커서 규칙과 다르다:
+
+| 분류      | 대상                                                                                                              |
+| --------- | ----------------------------------------------------------------------------------------------------------------- |
+| 태그      | `button`, `summary`, `label`                                                                                      |
+| ARIA role | `button`, `link`, `menuitem`, `menuitemcheckbox`, `menuitemradio`, `option`, `tab`, `switch`, `checkbox`, `radio` |
+| 의사 요소 | `::placeholder`                                                                                                   |
+
+- `select`(native)·`input[type=checkbox|radio|file]`는 뺐다 — `user-select`가 무의미한
+  요소라서.
+- `label`은 커서 규칙에는 없지만 여기엔 있다 — 체크박스/라디오 형제 label도 클릭
+  가능한 라벨 텍스트이기 때문(`FormCheckbox.tsx`의 raw `<label>`에는 없고
+  `FormCheckboxGroup.tsx`에는 있던 불일치를 이걸로 해소).
+- `:disabled`/`aria-disabled`를 제외하지 않는다 — 비활성 버튼의 라벨도 선택 대상이
+  아니긴 마찬가지라서.
+- `a[href]`는 **의도적으로 넣지 않는다** — `MyCommentCard.tsx`처럼 `<Link>`가 댓글
+  본문 전체를 감싸는 구조가 있어, 여기 넣으면 본문이 복사 불가가 된다. `<a>` 기반
+  네비게이션(`BottomTabBar`, `Sidebar` NavItem)은 전역 규칙 대상이 아니라서 각
+  컴포넌트에 `select-none`을 직접 붙였다.
+- 본문·제목·입력값(`MarkdownContent`, `PostCard` 제목, `input`/`textarea`)은 복사
+  대상이므로 이 규칙 밖에 있다 — 단 **placeholder는 입력값이 아니라 안내 문구라
+  이 예외에서 빠진다.** `::placeholder`는 pseudo-element라 `:is()`로 `button`/`label`과
+  묶을 수 없어 별도 `@layer base` 블록(`globals.css`, 이 블록 바로 아래)으로 둔다 —
+  `input`/`textarea` 요소 자체엔 걸지 않으므로 입력값 선택·타이핑은 그대로 된다.
 
 ### 새 컴포넌트를 만들 때
 
-1. `Button`(`shared/ui/atoms/button.tsx`) 또는 raw `<button>`을 쓴다 → 아무것도 안 해도 pointer가 붙는다.
+1. `Button`(`shared/ui/atoms/button.tsx`) 또는 raw `<button>`을 쓴다 → 커서·선택 방지
+   둘 다 아무것도 안 해도 붙는다.
 2. Radix 프리미티브를 새로 감쌀 때는 그 프리미티브가 `button`이나 위 role을 렌더링하는지
    확인한다(Radix 소스에서 확인 가능) → 대부분 자동으로 커버된다.
 3. 불가피하게 `div`/`span`에 `onClick`을 달아야 하면 `role="button"`을 반드시 함께
@@ -932,6 +1018,9 @@ pnpm storybook      # Storybook (port 6006)
    이를 강제한다 — `role`도 `aria-hidden="true"`도 없이 `onClick`만 달면 린트가 막는다.
 4. 클릭이 아니라 포인터 오버로 발생하는 어포던스(예: `SelectScrollUpButton`/
    `SelectScrollDownButton`의 자동 스크롤)는 대상이 아니다 — `cursor-default`를 유지한다.
+5. `<a>`/`<Link>`로 렌더되는 네비게이션 항목은 두 규칙 다 자동으로 안 붙는다 —
+   커서는 preflight의 기본 `pointer`(브라우저 기본값)로 이미 되지만, 텍스트 선택
+   방지가 필요하면 `select-none`을 직접 붙인다.
 
 ### shadcn 컴포넌트 재생성 시 주의
 

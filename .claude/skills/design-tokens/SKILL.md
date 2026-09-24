@@ -17,25 +17,27 @@ Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금
 
 ### 주요 색상 토큰 → Tailwind 클래스
 
-| 의미                  | CSS 변수                        | Tailwind 클래스                                           | 사용 예                                                                                       |
-| --------------------- | ------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| 기본 배경             | `--background`                  | `bg-background`                                           | 페이지 배경                                                                                   |
-| 기본 텍스트           | `--foreground`                  | `text-foreground`                                         | 본문 텍스트                                                                                   |
-| 카드                  | `--card`                        | `bg-card`, `text-card-foreground`                         | Card 컴포넌트                                                                                 |
-| 기본 강조             | `--primary`                     | `bg-primary`, `text-primary-foreground`                   | 주요 버튼, CTA                                                                                |
-| 보조                  | `--secondary`                   | `bg-secondary`, `text-secondary-foreground`               | 보조 버튼                                                                                     |
-| 음소거                | `--muted`                       | `bg-muted`, `text-muted-foreground`                       | 비활성 텍스트, 힌트                                                                           |
-| 강조                  | `--accent`                      | `bg-accent`, `text-accent-foreground`                     | 호버, 선택 상태                                                                               |
-| 파괴적 액션           | `--destructive`                 | `text-destructive`, `bg-destructive`                      | 삭제 버튼, 에러 상태                                                                          |
-| 파괴적 액션 위 텍스트 | `--destructive-foreground`      | `text-destructive-foreground`                             | destructive variant 버튼/배지 글자색                                                          |
-| 딤(오버레이)          | `--scrim`, `--scrim-foreground` | `bg-scrim`(테마 무관 검정), `text-scrim-foreground`(흰색) | Dialog·Sidebar 백드롭, ImageViewer 컨트롤 배경. 투명도는 호출부가 `/40`~`/80` 수식자로 정한다 |
-| 성공                  | `--success`                     | `text-success`, `bg-success`                              | 완료, 성공 상태                                                                               |
-| 경고                  | `--warning`                     | `text-warning`, `bg-warning`                              | 주의 상태                                                                                     |
-| 정보                  | `--info`                        | `text-info`, `bg-info`                                    | 안내, 정보 배지                                                                               |
-| 카테고리              | `--category`                    | `bg-category`, `text-category-foreground`                 | 카테고리 배지                                                                                 |
-| 테두리                | `--border`                      | `border-border`                                           | 구분선                                                                                        |
-| 입력                  | `--input`                       | `border-input`                                            | 입력 필드 테두리                                                                              |
-| 링                    | `--ring`                        | `ring-ring`                                               | 포커스 링                                                                                     |
+| 의미                  | CSS 변수                            | Tailwind 클래스                                           | 사용 예                                                                                                                                                                                                                     |
+| --------------------- | ----------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 기본 배경             | `--background`                      | `bg-background`                                           | 페이지 배경                                                                                                                                                                                                                 |
+| 기본 텍스트           | `--foreground`                      | `text-foreground`                                         | 본문 텍스트                                                                                                                                                                                                                 |
+| 카드                  | `--card`                            | `bg-card`, `text-card-foreground`                         | Card 컴포넌트                                                                                                                                                                                                               |
+| 기본 강조             | `--primary`                         | `bg-primary`, `text-primary-foreground`                   | 주요 버튼, CTA                                                                                                                                                                                                              |
+| 보조                  | `--secondary`                       | `bg-secondary`, `text-secondary-foreground`               | 보조 버튼                                                                                                                                                                                                                   |
+| 음소거                | `--muted`                           | `bg-muted`, `text-muted-foreground`                       | 비활성 텍스트, 힌트                                                                                                                                                                                                         |
+| 강조                  | `--accent`                          | `bg-accent`, `text-accent-foreground`                     | 호버, 선택 상태                                                                                                                                                                                                             |
+| 파괴적 액션           | `--destructive`                     | `text-destructive`, `bg-destructive`                      | 삭제 버튼, 에러 상태                                                                                                                                                                                                        |
+| 파괴적 액션 위 텍스트 | `--destructive-foreground`          | `text-destructive-foreground`                             | destructive variant 버튼/배지 글자색                                                                                                                                                                                        |
+| 딤(오버레이)          | `--scrim`, `--scrim-foreground`     | `bg-scrim`(테마 무관 검정), `text-scrim-foreground`(흰색) | Dialog·Sidebar 백드롭, ImageViewer 컨트롤 배경. 투명도는 호출부가 `/40`~`/80` 수식자로 정하며, 수식자 없이 불투명하게 쓰는 곳도 있다(`ImageAttachmentField.tsx`)                                                            |
+| 팝오버                | `--popover`, `--popover-foreground` | `bg-popover`, `text-popover-foreground`                   | Popover/Dropdown 배경                                                                                                                                                                                                       |
+| 성공                  | `--success`, `--success-foreground` | `text-success`, `bg-success`, `text-success-foreground`   | 완료, 성공 상태                                                                                                                                                                                                             |
+| 경고                  | `--warning`, `--warning-foreground` | `text-warning`, `bg-warning`, `text-warning-foreground`   | 주의 상태                                                                                                                                                                                                                   |
+| 정보                  | `--info`, `--info-foreground`       | `text-info`, `bg-info`, `text-info-foreground`            | 안내, 정보 배지(`bg-info text-info-foreground` 조합 실사용: `PostListSearch.tsx`)                                                                                                                                           |
+| 카테고리(공용)        | `--category`                        | `bg-category`, `text-category-foreground`                 | 글쓴이 배지(`CommentItem.tsx`), "나만 볼 수 있는" 필터 칩 — 특정 카테고리를 가리키지 않는 곳                                                                                                                                |
+| 카테고리별(1~8)       | `--category-1`~`--category-8`       | `bg-category-1`~`bg-category-8` + `-foreground`           | `PostCard.tsx` 카테고리 배지 전용. `category.id % 8`로 배정(`entities/category/config/category.const.ts`). 라이트는 틴트(색/12%+진한 글자), 다크는 솔리드(L 0.75)+어두운 글자 — 비대칭 설계, 이유는 `globals.css` 주석 참고 |
+| 테두리                | `--border`                          | `border-border`                                           | 구분선                                                                                                                                                                                                                      |
+| 입력                  | `--input`                           | `border-input`                                            | 입력 필드 테두리                                                                                                                                                                                                            |
+| 링                    | `--ring`                            | `ring-ring`                                               | 포커스 링                                                                                                                                                                                                                   |
 
 ### 반경 토큰
 
@@ -79,22 +81,24 @@ Storybook `Shared/UI/Tokens/Design Tokens` 스토리의 `ZIndex`에서 8단계�
 
 #### 역할 토큰 (우선 사용)
 
-| 토큰                    | 크기·줄높이·두께        | 용도                                          | 대상 예시                                                                                     |
-| ----------------------- | ----------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `text-screen-title`     | t7 (20/27) · semibold   | 페이지 최상위 제목 (h1)                       | `MyCommentPage.tsx`, `BookmarkPage.tsx`, `pages/post/index.tsx`                               |
-| `text-section-title`    | t6 (18/24) · semibold   | 섹션 제목 (h2), Dialog 제목                   | `CommentList.tsx`, `dialog.tsx`(`DialogTitle`)                                                |
-| `text-subsection-title` | t4 (14/19) · semibold   | 소제목, 보통 `text-muted-foreground`와 함께   | `MobileFolderList.tsx`                                                                        |
-| `text-micro`            | t1 (11/15), 두께 미지정 | 배지·단축키·카운트 같은 최소 라벨             | `NavbarSearch.tsx`(Kbd), `CommentItem.tsx`(배지), `LikePostButton.tsx`/`PostCard.tsx`(카운트) |
-| `text-card-title`       | t4 (14/19) · bold       | 포스트 카드 제목(반응형, `md:text-t6`과 조합) | `PostCard.tsx`(`<h3>{post.title}</h3>`)                                                       |
-| `text-group-label`      | t2 (12/16) · semibold   | 목록 섹션 라벨                                | `FolderTree.tsx`, `BookmarkFolderSelectModal.tsx`, `RecentSearchPanel.tsx`                    |
-| `text-display-title`    | 60/60 · bold            | 대형 에러 페이지 타이틀                       | `ErrorLayout.tsx`(404/403/500)                                                                |
+| 토큰                    | 크기·줄높이·두께        | 용도                                                  | 대상 예시                                                                                                               |
+| ----------------------- | ----------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `text-screen-title`     | t7 (20/27) · semibold   | 페이지 최상위 제목 (h1)                               | `MyCommentPage.tsx`, `BookmarkPage.tsx`, `pages/post/index.tsx`, `VersionPage.tsx`(예시, 전수 아님)                     |
+| `text-section-title`    | t6 (18/24) · semibold   | 섹션 제목 (h2), Dialog 제목                           | `CommentList.tsx`, `dialog.tsx`(`DialogTitle`)                                                                          |
+| `text-subsection-title` | t4 (14/19) · semibold   | 소제목, 보통 `text-muted-foreground`와 함께           | `MobileFolderList.tsx`                                                                                                  |
+| `text-micro`            | t1 (11/15), 두께 미지정 | 배지·단축키·카운트 같은 최소 라벨                     | `NavbarSearch.tsx`(Kbd), `CommentItem.tsx`(배지), `LikePostButton.tsx`/`PostCard.tsx`(카운트)                           |
+| `text-card-title`       | t4 (14/19) · bold       | 포스트 카드 제목(반응형, `md:text-t6`과 조합)         | `PostCard.tsx`(`<h3>{post.title}</h3>`)                                                                                 |
+| `text-detail-title`     | t9 (24/32) · bold       | 상세 페이지 게시글 제목(반응형, `md:text-t11`과 조합) | `PostCard.tsx`(`isDetail`일 때)                                                                                         |
+| `text-group-label`      | t2 (12/16) · semibold   | 목록 섹션 라벨                                        | `FolderTree.tsx`, `BookmarkFolderSelectModal.tsx`, `RecentSearchPanel.tsx`, `RecentSearchDropdown.tsx`(예시, 전수 아님) |
+| `text-display-title`    | 60/60 · bold            | 대형 에러 페이지 타이틀                               | `ErrorLayout.tsx`(404/403/500)                                                                                          |
 
 `text-micro`만 두께를 토큰에 묶지 않는다 — 호출부 4곳의 기존 두께가 제각각(Kbd는
 `font-medium`, 나머지는 미지정 상속)이라 하나로 합치면 그중 승인받지 않은 화면 변화가
-생긴다. 나머지 여섯 토큰은 두께까지 포함하므로 별도로 `font-semibold`/`font-bold`를
-같이 쓰지 않는다 — `custom-tailwind/no-raw-title` ESLint 룰이 텍스트 크기 유틸리티와
-`font-semibold`/`font-bold` 조합을 잡는다(제목이 아니라면 `eslint-disable-next-line`에
-이유를 남긴다).
+생긴다. 나머지 일곱 토큰은 두께까지 포함하므로 별도로 `font-semibold`/`font-bold`를
+같이 쓰지 않는다 — `custom-tailwind/no-raw-title` ESLint 룰은 Tailwind 기본 크기
+유틸리티(`text-xs`~`text-9xl`)와의 조합만 잡는다(`eslint.config.js`의
+`TEXT_SIZE_PATTERN`). 역할 토큰·`t*` 스케일과 `font-bold`를 같이 쓰는 건 이 룰이
+못 잡으니 사람이 지킨다(제목이 아니라면 `eslint-disable-next-line`에 이유를 남긴다).
 
 `--text-screen-title`은 두께를 semibold로 통일했다 — 기존 5곳 중 4곳이 이미
 semibold였고, `pages/post/index.tsx`만 유일하게 `font-bold` + 데스크톱에서 더 커지는
@@ -132,7 +136,7 @@ https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12). `text-display-title`(60px/60
 
 폰트 두께는 스케일 층 자체엔 별도 토큰 없음 — SEED medium(500)/bold(700)이 Tailwind
 기본 `font-medium`/`font-bold`와 값이 같다. Storybook `Shared/UI/Tokens/Design Tokens`
-스토리의 `Typography`에서 스케일 14단계를, `RoleTokens`에서 역할 토큰 7종을 각각
+스토리의 `Typography`에서 스케일 14단계를, `RoleTokens`에서 역할 토큰 8종을 각각
 시각적으로 확인할 수 있다.
 
 ### 인터랙션 커서
@@ -146,20 +150,32 @@ Tailwind v4 preflight엔 v3에 있던 `button, [role="button"] { cursor: pointer
 | ---------- | ----------------------------------------------------------------------------------------------------------------- |
 | 태그       | `button`, `summary`, `select`, `input[type=checkbox\|radio\|file]`                                                |
 | ARIA role  | `button`, `link`, `menuitem`, `menuitemcheckbox`, `menuitemradio`, `option`, `tab`, `switch`, `checkbox`, `radio` |
-| 형제 label | `[role=checkbox]`/`[role=radio]` 바로 뒤의 `label` (예: `FormCheckbox`)                                           |
+| 형제 label | `[role=checkbox]`/`[role=radio]` 뒤따르는 형제 `label`(`~` 결합자, 인접 아님. 예: `FormCheckbox`)                 |
 
-`:disabled`/`aria-disabled="true"`/`[data-disabled]`는 제외(비활성 요소는 `default` 유지).
+태그 셀렉터(`button`/`select`/`input`)는 `:disabled`를, ARIA role 셀렉터는
+`aria-disabled="true"`/`[data-disabled]`를 각각 제외한다(`summary`는 제외 조건 없음).
+따라서 native `disabled`가 아닌 `<button aria-disabled="true">`는 이 규칙에서 빠지지
+않는다.
 `Button asChild`로 `<button>`이 아닌 요소를 감쌀 땐 `role="button"`을 함께 지정해야
 이 규칙이 적용된다. 선택자 전체 목록·예외·shadcn 재생성 시 주의사항은
-`docs/FE-ARCHITECTURE.md` "클릭 가능한 요소와 커서 규칙" 섹션, 배경은
+`docs/FE-ARCHITECTURE.md` "클릭 가능한 요소와 커서·텍스트 선택 규칙" 섹션, 배경은
 `docs/DECISIONS.md`의 2026-09-03 항목 참고.
+
+같은 이유로 `select-none`(드래그 시 텍스트 선택 방지)도 바로 아래 별도 `@layer base`
+블록에 전역으로 모여 있다 — 컴포넌트마다 개별로 붙이지 않는다. 대상 목록·`a[href]`를
+일부러 뺀 이유(댓글 본문을 감싸는 `<Link>` 구조와 충돌)는 `docs/FE-ARCHITECTURE.md`
+같은 섹션의 "자동으로 select-none이 붙는 대상" 표 참고.
 
 ### 다크 모드
 
-- 모든 토큰은 `.dark` 클래스에서 자동 override — 별도 `dark:` prefix 불필요
+- 색 토큰은 대부분 `.dark` 클래스에서 자동 override — 별도 `dark:` prefix 불필요.
+  예외: `--scrim`/`--scrim-foreground`(테마 무관 의도), `--destructive-foreground`
+  (라이트 흰색을 다크에서도 그대로 사용)
 - ThemeProvider가 `<html>`에 `.dark` 클래스를 토글
 
 ### 폰트
 
-- 기본 폰트: `Pretendard` (가변 폰트, woff2-variations)
+- 기본 폰트: `Pretendard` — 정적 subset woff2 9종(weight 100~900 개별 `@font-face`,
+  `/fonts/web/static/woff2-subset/`). 가변 폰트 파일이 `public/fonts/web/variable/`에
+  있지만 현재 어디서도 import하지 않는다
 - Tailwind: `font-sans` → Pretendard > Inter > sans-serif

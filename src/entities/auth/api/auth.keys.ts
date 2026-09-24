@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { postInvalidateQueries } from '@/entities/post/api/post.keys';
+import { postInvalidateQueries } from '@/entities/post/@x/auth';
 
 /**
  * 세션 복원(refresh) 성공 시 포스트 목록 재검증.

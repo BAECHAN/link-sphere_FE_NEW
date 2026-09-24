@@ -40,7 +40,7 @@ function NavItem({
       to={to}
       onClick={handleClick}
       className={cn(
-        'flex items-center rounded-xl w-full hover:bg-accent',
+        'flex items-center rounded-xl w-full select-none hover:bg-accent',
         expanded ? 'flex-row gap-3 px-4 py-3' : 'flex-col gap-1 justify-center py-3 px-2',
         active && 'bg-accent'
       )}

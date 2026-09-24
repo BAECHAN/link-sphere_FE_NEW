@@ -11,19 +11,111 @@
 
 ### Changed
 
+- `shared` 입력창 placeholder가 드래그 선택 하이라이트에 잡히지 않게 변경
+  <details><summary>배경·구현</summary>
+
+  북마크 검색창의 placeholder("북마크 내 검색")가 드래그하면 선택된 것처럼 보인다는 지적으로 조사한 결과, 네이티브 placeholder 텍스트는 실제 `getSelection()` 문자열에는 포함되지 않지만 Chromium·WebKit은 페이지를 가로질러 드래그하면 하이라이트를 칠해 선택된 것처럼 보인다는 걸 직접 측정으로 확인했다(Firefox는 원래 문제없음). `input` 요소 자체가 아니라 `::placeholder` 의사 요소에만 `user-select: none`을 걸어 입력값 드래그 선택·타이핑은 그대로 두면서 하이라이트만 없앴다. 같은 문제를 이미 전역으로 푼 select-none 블록(2026-09-21) 선례를 따라 컴포넌트별이 아니라 `globals.css`에 전역 규칙으로 추가해, 북마크 검색창뿐 아니라 네비바 검색창 등 레포 전체 placeholder에 함께 적용된다.
+  (`src/app/globals.css`, `docs/FE-ARCHITECTURE.md`, `docs/plans/2026-09-24-placeholder-select-none.md`(신규), [PR #186](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/186))
+
+  </details>
+
+- `shared` Select가 열리면 트리거의 화살표가 위로 뒤집히게 변경
+  <details><summary>배경·구현</summary>
+
+  지금까지는 Select가 열려 있어도 화살표가 계속 아래를 향해, 다시 누르면 어떻게 되는지 화면이 알려주지 않았다. 트리거를 다시 탭하면 닫히도록 고친 뒤(#183) 그 동작을 알리도록, 열리면 화살표가 180° 뒤집히게 했다. 근거는 NN/g [Accordion Icons](https://www.nngroup.com/articles/accordion-icons/)의 _"펼친 뒤에는 캐럿이 (짧고 보기 좋은 애니메이션으로) 뒤집히는 것이 일반적이다. (...) 방금 펼친 내용을 다시 접는 반대 동작을 알려주는 신호가 된다"_ (번역)다. 아코디언에 관한 글이라 Select에 대한 직접 연구는 아니다. 회전은 `motion-ux` 규약의 드롭다운·셀렉트 범위에 맞춰 `duration-200 ease-in-out`이고, 트리거의 `data-state`를 Tailwind v4 `in-data-[state=open]:` 변형으로 참조한다. 열린 상태를 스토리로 고정하면 Radix가 나머지 화면에 거는 `aria-hidden` 때문에 a11y 게이트(`aria-hidden-focus`)에 걸려, 게이트를 약하게 만들지 않으려고 스토리는 추가하지 않았다.
+  (`src/shared/ui/atoms/select.tsx`, [PR #185](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/185))
+
+  </details>
+
+- `shared` 드롭다운 메뉴가 열려 있어도 스크롤되고, 스크롤하면 닫히게 변경
+  <details><summary>배경·구현</summary>
+
+  계정 메뉴 등 드롭다운이 열려 있는 동안 페이지 스크롤이 막혔다 — Radix `DropdownMenu`의 기본값 `modal={true}`가 `react-remove-scroll`을 걸기 때문이다. 공용 래퍼의 `modal` 기본값을 `false`로 바꿔 스크롤을 허용하고, 스크롤하면 메뉴가 닫히게 했다(메뉴 내부 스크롤은 제외, 스크롤로 닫힐 때는 트리거로 포커스를 돌리지 않음). 바깥 첫 클릭·탭은 투명 오버레이가 받아 메뉴만 닫고 아래 게시글 카드 등으로 전달하지 않는다 — 게시글 ⋮ 메뉴도 이 동작으로 통일된다. A(첫 클릭은 닫기만)와 B(클릭 통과)의 근거 비교는 `docs/DECISIONS.md` 2026-09-24 항목 참고. 북마크 정렬 `Select`는 Radix가 스크롤 잠금을 조건 없이 걸어 이번 범위에서 제외했다.
+  (`src/shared/ui/atoms/dropdown-menu.tsx`, `e2e/dropdown-menu-scroll.spec.ts`(신규), `e2e/dropdown-menu-scroll.mobile.spec.ts`(신규), `e2e/bookmark-folder-menu-press-drag.spec.ts`, `docs/DECISIONS.md`, `docs/plans/2026-09-24-dropdown-scroll-dismiss.md`(신규), [PR #178](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/178))
+
+  </details>
+
+- `shared` React Query 전역 에러 핸들러 중복 제거, 로그아웃 레이스 처리 통일
+  <details><summary>배경·구현</summary>
+
+  `queryClient.ts`의 mutation/query 전역 에러 핸들러 두 벌이 EDGE_BLOCKED·401·403·기타 ApiError 판정을 중복으로 갖고 있었고, 그 둘이 따로 진화하며 로그아웃 레이스 가드 위치와 `manualErrorHandling` 지원 여부가 서로 달라져 있었다. 판정 로직을 순수 함수 `resolveErrorToast()`(신규 `error-toast.ts`)로 추출하고 mutation/query는 `ErrorToastPolicy`(404 처리·비-ApiError 토스트 여부만 다름)만 다르게 넘기도록 통일했다. 동작이 실제로 바뀌는 지점 둘: (1) `meta.errorMessage`를 쓰는 mutation이 로그아웃 유예 구간(2초)에 401을 받으면 이제 조용히 종료한다(기존엔 "게시글 등록에 실패했어요" 같은 오탐 토스트가 떴다), (2) query도 `meta.manualErrorHandling`을 지원한다(현재 사용처는 0개). EDGE_BLOCKED가 errorMessage보다 우선하는 순서, query의 404·비-ApiError 무음 계약은 그대로 유지했고 단위 테스트 14건으로 고정했다. 참조 0곳이던 데드 코드 `react-query/utils/hooks.ts`(`useAppMutation`)도 함께 제거했다.
+  (`src/shared/lib/react-query/config/error-toast.ts`(신규), `src/shared/lib/react-query/config/error-toast.test.ts`(신규), `src/shared/lib/react-query/config/queryClient.ts`, `src/shared/lib/react-query/utils/hooks.ts`(삭제), `docs/plans/2026-09-22-queryclient-error-handler-dedupe.md`(신규))
+
+  </details>
+
+- `shared` 브랜드 컬러 도입을 철회하고 원래 무채색 `--primary`로 복원
+  <details><summary>배경·구현</summary>
+
+  색·타이포 토큰 개편(#166) 이후 브랜드 hue를 블루→틸로 두 번 조정했지만(#168, #169), 사용자가 재검토 끝에 브랜드 컬러 자체를 쓸 생각이 없었다고 확인해 도입을 철회한다. `--primary`/`--primary-foreground`를 원래 무채색 리터럴(라이트 `oklch(0.205 0 0)`/`oklch(0.985 0 0)`, 다크 `oklch(0.922 0 0)`/`oklch(0.205 0 0)`)로 복원하고, 더 이상 아무도 참조하지 않는 `--brand`/`--brand-2`/`--brand-foreground` 토큰 정의를 삭제했다. Submit Link 버튼의 그라데이션도 제거하고, 파비콘 6종도 재색칠 이전 검정 원본(커밋 `b252646`)으로 복원했다. 카테고리 8색 팔레트·상세 제목 확대·그림자 기반 입체감·좌측 정렬은 브랜드 색상과 무관한 별개 결정이었으므로 그대로 유지한다.
+  (`src/app/globals.css`, `src/pages/post/index.tsx`, `public/favicons/*`, `src/shared/ui/tokens/DesignTokens.stories.tsx`, `docs/DESIGN-SYSTEM.md`, `.claude/skills/design-tokens/SKILL.md`, `docs/plans/2026-09-21-brand-color-revert.md`(신규))
+
+  </details>
+
+- `shared` 브랜드 색상(hue)을 블루에서 틸로 교체
+  <details><summary>배경·구현</summary>
+
+  색·타이포 토큰 개편(#166) 당시 브랜드 hue를 사용자가 명시적으로 고르지 않아 블루를 기본값으로 가정하고 배포했다. 이후 파비콘을 먼저 틸로 재색칠(#168)했는데, 실제 배포 화면에서 Log in·Submit Link 버튼 등 `--primary` 사용처는 여전히 블루로 남아있다는 지적을 받았다 — 파비콘 작업에 집중하다 정작 `globals.css`의 `--brand` 원본 값을 안 바꿔서 생긴 누락이었다. `--brand`/`--brand-2`를 라이트 `oklch(0.48 0.09 200)`(`#006c72`)/`oklch(0.55 0.14 250)`, 다크 `oklch(0.72 0.11 200)`/`oklch(0.75 0.12 250)`로 교체했다 — `--primary: var(--brand)` 구조 덕분에 이 4줄만으로 22개 파일·38지점이 자동 반영된다. 빌드 CSS와 실제 브라우저(라이트/다크)로 재검증, Storybook a11y 게이트(157개) 재통과 확인.
+  (`src/app/globals.css`)
+
+  </details>
+
+- `shared` 파비콘 색상을 브랜드 틸로 교체
+  <details><summary>배경·구현</summary>
+
+  색·타이포 토큰 개편으로 `--primary`가 브랜드 틸(`oklch(0.48 0.09 200)` = `#006c72`)을 참조하게 됐지만, 파비콘 6종(ico 포함)은 여전히 기존 무채색(검정) 북마크 아이콘이었다. Pillow로 각 PNG의 불투명 픽셀 RGB만 `#006c72`로 치환하고 알파(형태·안티앨리어싱)는 그대로 유지했다 — 벡터 재작업 없이 순수 재색칠이라 형태 변화는 없다. `favicon.ico`는 재색칠한 512px 원본을 16/32/48px로 리샘플링해 재생성했다(기존과 동일한 3개 해상도 구성).
+  (`public/favicons/favicon-16x16.png`, `public/favicons/favicon-32x32.png`, `public/favicons/favicon.ico`, `public/favicons/android-chrome-192x192.png`, `public/favicons/android-chrome-512x512.png`, `public/favicons/apple-touch-icon.png`)
+
+  </details>
+
+- `shared` 색·타이포·입체감 디자인 토큰 개편 — 브랜드 컬러 도입, 카테고리 배지 색상 분리, 상세 제목 확대
+  <details><summary>배경·구현</summary>
+
+  `--primary`/`--secondary`/`--accent`가 전부 채도 0(무채색)이라 브랜드 컬러가 코드에 0개였고, 카테고리 8종이 전부 같은 보라색(`--category`)이라 구분 기능을 못 했으며, 상세 페이지 제목(18px/700)이 바로 아래 댓글 섹션 제목(18px/600)과 크기가 같아 위계가 안 서고, AI 요약·링크 프리뷰·URL 바가 전부 같은 1px 테두리로 3겹 중첩되는 문제를 Artifact 미리보기(https://claude.ai/artifact/1Gp7sG9rRhhACeicUwZQLi)로 여러 방향안을 나란히 비교한 뒤 반영했다. `--primary`를 브랜드 블루(`oklch(0.52 0.20 255)`)로 전면 교체해 22개 파일·38지점(버튼·툴팁·체크박스·필터칩·FAB 등)이 두 줄만으로 자동 반영되게 했고, 카테고리는 BE 응답에 color 필드가 없고 개수가 가변이라 `category.id % 8`로 8개 팔레트 중 하나를 배정(라이트는 색/12% 틴트+진한 글자, 다크는 솔리드 L 0.75+어두운 글자 — 비대칭 설계)했으며, 상세 페이지 제목은 `isDetail` 분기로 모바일 24px·데스크톱 28px까지 키우고, AI 요약·URL 바의 중첩 테두리는 제거하고 카드·링크 프리뷰는 `shadow-lg`/`shadow-sm` 기반 레이어로 대체했다. "Submit Link" 버튼에는 브랜드 2색 그라데이션을 얹었다.
+  (`src/app/globals.css`, `src/entities/category/config/category.const.ts`(신규), `src/widgets/post/post-card/ui/PostCard.tsx`, `src/pages/post/index.tsx`, `src/shared/ui/tokens/DesignTokens.stories.tsx`, `docs/DESIGN-SYSTEM.md`, `.claude/skills/design-tokens/SKILL.md`, `docs/plans/2026-09-21-design-tokens-refresh.md`(신규), [PR #166](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/166))
+
+  </details>
+
+- `shared` entities 레이어의 교차 참조에 FSD `@x` 표기 도입
+  <details><summary>배경·구현</summary>
+
+  `auth`가 `account`를, `bookmark/folder`·`comment`·`interaction`이 `post`를 참조하는 등 entities 레이어 안에서 서로 다른 엔티티를 참조하는 곳이 이미 10곳 넘게 있었는데, 전부 대상 엔티티의 `api/`·`model/` 파일을 직접 깊게 import하고 있었다. [FSD 공식 문서](https://feature-sliced.design/docs/reference/public-api#the-x-notation)가 권장하는 대로 참조받는 엔티티마다 `@x/<참조하는-엔티티>.ts` 파일을 두고, 그 파일에 실제로 쓰는 것만 재export하도록 바꿨다 — `grep -r "@x" src/entities`만으로 엔티티 간 결합 지점 전체가 한눈에 보이게 하기 위함이다. ESLint로 강제하지는 않는다(기존 3-layer API 컨벤션이 이미 barrel 역할을 하고 있어 실제 사고가 없었음). 응답 조립 로직·쿼리 키·캐시 무효화 동작은 한 글자도 안 바꾸고 import 경로만 옮겼다.
+  (`src/entities/account/@x/auth.ts`(신규), `src/entities/post/@x/{account,auth,bookmark,comment,interaction}.ts`(신규), `src/entities/comment/@x/{account,interaction}.ts`(신규), `src/entities/bookmark/folder/@x/{account,interaction,post}.ts`(신규), `docs/FE-ARCHITECTURE.md`, `.claude/CLAUDE.md`)
+
+  </details>
+
+- `shared` 버튼·메뉴·탭 등 클릭 가능한 요소를 드래그해도 라벨 텍스트가 선택되지 않게 변경
+  <details><summary>배경·구현</summary>
+
+  북마크 페이지 정렬 드롭다운("최신 북마크순")과 폴더 이름을 드래그하면 텍스트가 선택되는 게 어색하다는 지적에서 시작해 전수 조사한 결과, `select.tsx`의 옵션 목록(`SelectItem`)에는 이미 shadcn 기본값으로 `select-none`이 있었지만 정작 트리거는 빠져 있었고 레포 전체로도 사람이 직접 붙인 곳이 4곳뿐이었다. 컴포넌트마다 개별로 붙이면 새 컴포넌트를 추가할 때마다 빠뜨리는 회귀가 반복될 것으로 보여, 같은 문제를 이미 전역으로 푼 커서 규칙(`globals.css`의 `cursor: pointer` `@layer base` 블록) 선례를 그대로 따라 `button`/`summary`/`label`과 `role=button|link|menuitem|option|tab|switch|checkbox|radio`에 `select-none`을 전역 적용했다. `<a>`(`Link`) 네비게이션은 댓글 본문을 감싸는 구조와 충돌할 수 있어 전역 대상에서 빼고 `BottomTabBar`·`Sidebar` NavItem에만 개별로 붙였고, 같은 이유로 `badge.tsx`·`tooltip.tsx`·북마크 폴더 이름 `<h1>`도 개별 적용했다. 본문·제목·입력값은 대상에서 제외해 복사가 계속 가능하다.
+  (`src/app/globals.css`, `src/shared/ui/atoms/badge.tsx`, `src/shared/ui/atoms/tooltip.tsx`, `src/widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx`, `src/widgets/layout/sidebar/ui/Sidebar.tsx`, `src/pages/bookmark/BookmarkPage.tsx`, `docs/FE-ARCHITECTURE.md`, `.claude/skills/design-tokens/SKILL.md`, `docs/plans/2026-09-21-select-none-global.md`(신규))
+
+  </details>
+
 - `shared` framer-motion을 CSS transition으로 교체해 번들 크기 감소
   <details><summary>배경·구현</summary>
 
   framer-motion 사용처가 `ScrollToTop`·`ScrollToCommentFormButton`·`PostList`(pull-to-refresh 인디케이터) 3곳뿐인데, 번들 실측 결과(`dist/stats.html`) 앱 코드 다음으로 큰 덩어리(gzip 122KB, motion-dom 포함)를 차지하고 있었다. 세 곳 모두 fade+scale+slide 또는 height 애니메이션으로 CSS만으로 표현 가능해 라이브러리 전체를 제거했다. `AnimatePresence`의 exit 애니메이션은 `isVisible`이 꺼진 뒤에도 전환(200ms)이 끝날 때까지 DOM에 남겨두는 `shouldRender` 상태로 대체했고, opacity/scale(0.8)/translate-y(20px) 값은 기존과 동일하게 맞췄다. Storybook으로 등장/퇴장/클릭 스크롤을 검증했다(`pnpm dev`의 실제 앱 페이지는 이 작업과 무관한 기존 Firebase 설정 오류로 렌더되지 않아 격리 검증으로 대체).
   (`src/shared/ui/elements/ScrollToTop.tsx`, `src/features/comment/create/ui/ScrollToCommentFormButton.tsx`, `src/widgets/post/post-list/ui/PostList.tsx`, `package.json`, [PR #143](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/143))
 
+  </details>
+
 ### Added
+
+- `shared` 데스크톱 헤더 검색에 최근 검색어 드롭다운 추가
+  <details><summary>배경·구현</summary>
+
+  최근 검색어는 모바일 전용 UI였다 — 데스크톱에서는 검색해도 기록되지 않고(`addRecentSearch` 미호출), 쌓였더라도 보여줄 화면이 없었다. 포커스 시(입력값 유무와 무관) 열리고, 입력을 시작하면 닫히고, 다 지우면 다시 열리는 드롭다운을 새로 만들었다. ESC는 [WAI-ARIA APG Combobox](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) 규격대로 2단계로 동작한다 — 열려 있으면 닫기만, 닫혀 있으면 입력만 비운다(URL은 그대로). 항목 삭제·모두 지우기는 [APG "Editable Combobox with Grid Popup"](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/grid-combo/) 패턴을 따라 `role="grid"`로 구현해 ↓/↑/←/→/Enter로 완전히 키보드만으로 조작할 수 있다 — 실제 DOM 포커스는 항상 입력창에 머물고 `aria-activedescendant`로만 가상 포커스를 표시하므로, 셀을 마우스로 클릭해도 blur로 클릭이 유실되지 않는다. "모두 지우기"는 모바일과 같은 자리(상단 고정)에 두되, 시각적 위치와 무관하게 화살표 순환의 논리적 마지막 자리에 있어 Down 첫 클릭은 여전히 첫 검색어로 간다. 같은 작업으로 데스크톱 제출이 기존 게시글 범위 필터(`filter`)를 지우던 문제도 함께 고쳤다 — `useSearchParamsDraft`를 거쳐 `q`만 갱신한다. `useRecentSearches()`는 `Navbar`에서 한 번만 구독해 모바일 패널과 데스크톱 드롭다운에 props로 내려준다(`useAppLocalStorage`의 탭 간 동기화가 다른 탭 전용이라 같은 탭에서 두 번 구독하면 서로 어긋나기 때문).
+  (`src/widgets/layout/navbar/ui/NavbarSearch.tsx`, `src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx`(신규), `src/widgets/layout/navbar/ui/Navbar.tsx`, `src/widgets/layout/navbar/ui/NavbarSearch.test.tsx`, `src/widgets/layout/navbar/ui/Navbar.test.tsx`, `docs/SEARCH.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-21-desktop-recent-search-dropdown.md`(신규), [PR #165](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/165))
+
+  </details>
 
 - `bookmark` 새 폴더 만들기 인라인 폼(저장 모달·데스크톱 사이드바·모바일 카드)에 취소 버튼 추가
   <details><summary>배경·구현</summary>
 
   이름을 한 글자라도 입력하면 그만둘 방법이 없었다 — 세 곳이 공유하는 `handleBlur`가 입력이 있으면 no-op이라 blur로도 안 닫히고, 화면에는 취소 버튼이 없었다. [NN/g "Cancel vs Close"](https://www.nngroup.com/articles/cancel-vs-close/)의 취소 버튼 필요성 근거와 [NN/g "Reset and Cancel Buttons"](https://www.nngroup.com/articles/reset-and-cancel-buttons/)의 버튼 위계 경고를 함께 반영해, `variant="ghost"`로 생성 버튼 왼쪽에 두고 확인창 없이 즉시 입력을 버린다. 데스크톱 사이드바(`w-60`=240px)는 1줄로는 placeholder가 잘려 입력 위·버튼 행 아래의 2줄로 바꿨고, 모바일 카드는 버튼을 세로 대신 가로로 나열해 카드 높이가 늘어나지 않게 했다. 취소 버튼에는 `onMouseDown` preventDefault를 걸어, 빈 입력에서 취소를 누를 때 blur가 click보다 먼저 발생해 핸들러가 유실되는 경합을 막았다.
   (`src/features/bookmark/select/hooks/useBookmarkFolderSelect.ts`, `src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `src/widgets/bookmark/folder-tree/hooks/useFolderTree.ts`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/widgets/bookmark/folder-tree/hooks/useMobileFolderList.ts`, `src/widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`, `docs/plans/2026-09-21-bookmark-create-folder-cancel.md`(신규), [PR #151](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/151))
+
+  </details>
 
 - `post` 게시물 공개/비공개 전환 시 방향별 성공 토스트 표시
   <details><summary>배경·구현</summary>
@@ -43,6 +135,62 @@
 
   </details>
 
+- `shared` 드롭다운 메뉴가 클릭 직후 우발적인 스크롤·연속 클릭으로 곧바로 닫히던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  북마크 폴더 ⋮ 메뉴가 가끔 열렸다가 바로 닫힌다는 제보(휠 마우스, 재현 패턴 불명)를 Playwright로 재현해 원인 2개를 확정했다 — 같은 날 배포된 "비모달 전환 + 스크롤 시 닫힘"(위 Changed 항목)이 스크롤 이벤트 1px만으로도 닫히게 했고, 트리거를 덮는 투명 오버레이가 더블클릭·마우스 스위치 채터링의 두 번째 클릭까지 받아 닫아버렸다. 스크롤 닫기에 이동 거리 임계값(4px, Windows 드래그 시작 임계값과 같은 값)을 추가했고 — 스크롤 대상별로 처음 본 위치를 기준선으로 삼아 거기서 임계값 이상 움직였을 때만 닫는다 — 오버레이의 클릭은 `event.detail > 1`(더블클릭 이상)이면 무시하게 했다. 대안 비교와 임계값 출처는 `docs/DECISIONS.md` 2026-09-24 항목 참고.
+  (`src/shared/ui/atoms/dropdown-menu.tsx`, `e2e/dropdown-menu-scroll.spec.ts`, `docs/DECISIONS.md`, `docs/plans/2026-09-24-dropdown-open-close-flicker.md`(신규), [PR #184](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/184))
+
+  </details>
+
+- `shared` 모바일에서 Select 트리거를 다시 탭하면 닫혔다가 다시 열리던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  모바일 실기기에서 북마크 정렬 `Select`를 닫으려고 트리거를 다시 탭하면, 닫혔다가 곧바로 다시 열린다는 제보가 있었다. 크롬 에뮬레이션에서는 재현되지 않았다(열려 있는 동안 body에 `pointer-events: none`이 걸려 두 번째 탭이 `HTML`에 떨어짐). 유력한 원인은 Radix Select가 한 번의 탭을 바깥 감지(닫기)와 트리거 click(열기)으로 따로 받는 것이다. `select.tsx`의 `Select`를 제어형 래퍼로 바꿔 닫힌 뒤 400ms 안의 열기 요청은 무시하게 했다(닫기는 항상 반영). 400ms는 `useClickGuard`와 같은 기준(무의식적 중복과 의식적 재입력의 구분)이라 상수 `CLICK_GUARD_MS`로 추출해 함께 쓴다. `DropdownMenu`와 합치거나 네이티브 `<select>`로 바꾸지 않은 이유는 `docs/DECISIONS.md` 2026-09-24 "드롭다운 컨트롤 구분" 항목 참고.
+  (`src/shared/ui/atoms/select.tsx`, `src/shared/ui/atoms/select.test.tsx`(신규), `src/shared/hooks/useClickGuard.ts`, `docs/plans/2026-09-24-select-reopen-guard.md`(신규), [PR #183](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/183))
+
+  </details>
+
+- `shared` 카드·폴더 행 드롭다운이 열려 있는 동안 hover 스타일이 풀리던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  PostCard에 마우스를 올리면 카드가 들리는데(`hover:shadow-lg hover:-translate-y-0.5`), ⋮ 드롭다운을 열고 커서를 메뉴 항목으로 옮기면 들림이 풀렸다 — `DropdownMenuContent`(`shared/ui/atoms/dropdown-menu.tsx`)가 Portal로 `<body>`에 렌더돼 커서가 메뉴로 들어가는 순간 카드는 더 이상 `:hover` 상태가 아니게 되기 때문이다. 북마크 폴더 행(`hover:bg-accent`)에도 같은 버그가 있었다. `globals.css`에 `hover-or-open` custom variant를 추가해 `:hover` 또는 `:has([aria-haspopup][aria-expanded="true"])`를 함께 보게 했다 — 컨테이너 안의 트리거가 열려 있으면 스타일이 유지되고, `@media (hover: hover)` 안에서만 적용돼 모바일 동작은 그대로다. e2e 회귀 테스트 2개를 추가했는데, FolderTree의 드롭다운은 기본값이 modal(PostCard는 `modal={false}`)이라 열려 있는 동안 Radix가 배경 콘텐츠에 `aria-hidden`을 걸어 `getByRole` 기반 locator가 행을 못 찾는 걸 실측해 CSS locator로 우회했다. 재발 방지를 위해 `responsive-ux`·`motion-ux` skill에 이 패턴을 문서화했다.
+  (`src/app/globals.css`, `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `e2e/post-card-hover-menu.spec.ts`(신규), `e2e/bookmark-folder-hover-menu.spec.ts`(신규), `.claude/skills/responsive-ux/SKILL.md`, `.claude/skills/motion-ux/SKILL.md`, `.claude/CLAUDE.md`, `docs/plans/2026-09-24-hover-or-open-variant.md`(신규), [PR #179](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/179))
+
+  </details>
+
+- `shared` 세션 만료(401) 시 SPA 이동 직후 페이지가 한 번 더 강제 새로고침되던 중복 동작 제거
+  <details><summary>배경·구현</summary>
+
+  dependency-cruiser로 의존성 그래프를 확인하던 중 `queryClient.ts` ↔ `auth.util.ts` 순환 참조를 발견해 원인을 추적했다. `client.ts`의 401 인터셉터가 이미 `AuthUtil.clearAll()`(세션 정리 + SPA 이동)을 호출하는데도, `queryClient.ts`의 전역 에러 핸들러가 같은 걸 또 호출하고 `window.location.href` 하드 리로드까지 얹고 있었다 — "토스트는 queryClient가 단일 소유"라는 기존 주석의 의도와 실제 코드가 어긋나 있었다. bulletproof-react 등 실제 오픈소스 사례와 TanStack Query 공식 입장(구조를 강제하지 않음, [TanStack/query #3253](https://github.com/TanStack/query/discussions/3253))을 확인한 뒤, 세션 정리는 `client.ts` 하나가 전담하고 `queryClient.ts`는 토스트만 담당하도록 역할을 나눴다. 로그아웃 유예 창 상태(`isLoggingOut`)는 `queryClient`에 의존하지 않는 별도 파일로 분리해 순환 참조 자체를 없앴다. `NavigationService`가 SPA 라우팅 미준비 시 `window.location.href`로 대체하는 폴백을 이미 갖고 있어, 하드 리로드를 지워도 최종 안전망은 유지된다.
+  (`src/shared/lib/react-query/config/queryClient.ts`, `src/shared/utils/auth.util.ts`, `src/shared/utils/logout-grace.util.ts`(신규))
+
+  </details>
+
+- `shared` 다크모드 토글·검색 필터 칩이 무의식적인 빠른 재클릭에 두 번 토글되던 문제 방지
+  <details><summary>배경·구현</summary>
+
+  다크모드 버튼·필터 칩을 눌렀는데 "안 반영된 것처럼" 보인다는 제보를 실제 화면 녹화 영상으로 받아 20fps로 프레임을 뜯어 배경색을 픽셀 단위로 직접 측정했다 — 2초 안에 7번 토글이 찍혔는데, 알고 보니 그 클릭들은 사용자가 문제 재현을 위해 의도적으로 빠르게 여러 번 누른 것이었다(짝수 번 누르면 원래 상태로 되돌아가는 토글의 정의 그 자체). 처음엔 마우스 스위치 채터링(사람이 낼 수 없는 속도)만 걸러내는 8ms 가드로 좁혀 잡았으나, 사용자가 원한 건 "사람이 손으로 하는 무의식적인 빠른 재클릭"을 막는 것이었다 — 요구사항 자체가 하드웨어 결함 방지에서 "의식적으로 결과를 인지하고 다시 누른 것과 무의식적으로 두 번 눌린 것을 구분"하는 쪽으로 바뀌었다. 이 구분에 쓰이는 업계 표준값을 확인해 Windows의 더블클릭 속도 기본값(500ms, [Wikipedia](https://en.wikipedia.org/wiki/Double-click) 인용 Microsoft MSDN)으로 올린 뒤, 응답성을 더 살려 400ms로 재조정했다 — 사람의 단순 시각 반응시간(평균 200~273ms, [관련 리서치 종합](https://www.orangeneurosciences.ca/guide/reaction-time-average))보다는 여전히 충분히 크다. 이 변경으로 "즉시 재클릭하면 정확히 취소된다"는 기존 테스트 2개(`Navbar.test.tsx`, `usePostList.test.tsx` 시나리오 C)의 기대값 자체가 "즉시 재클릭 = 무시, 400ms 이후 재클릭 = 취소"로 바뀌었다 — 사용자가 이 트레이드오프를 명시적으로 승인했다. 각 테스트에 "충분한 시간 뒤 재클릭하면 정상 취소된다"는 동반 테스트를 추가했고, 실제 브라우저로 200ms 재클릭(무시됨)·450ms 뒤 재클릭(정상 취소)을 실측 확인했다.
+  (`src/shared/hooks/useClickGuard.ts`(신규), `src/shared/hooks/useClickGuard.test.ts`(신규), `src/shared/ui/elements/FilterChip.tsx`, `src/widgets/layout/navbar/ui/Navbar.tsx`, `src/widgets/layout/navbar/ui/Navbar.test.tsx`, `src/widgets/post/post-list/hooks/usePostList.test.tsx`, `docs/DECISIONS.md`)
+
+  </details>
+
+- `post` 검색어에서 `@카테고리`·`#닉네임` 태그를 붙여 쓰면(`@a@b`) 결과가 0건이 되던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  `@라이프스타일 @데이터`처럼 띄어 쓰면 정상 동작하는데 붙여 쓴 `@라이프스타일@데이터`는 결과가 0건이라는 사용자 제보로 발견했다. 원인은 `search-parser.ts`의 옛 정규식 `/@(\S+)/`·`/#(\S+)/`가 다음 `@`/`#`에서 멈추지 않고 `라이프스타일@데이터` 전체를 하나의 카테고리 값으로 읽었기 때문이다 — 그런 카테고리는 DB에 없어 BE가 `200 OK` + 0건을 돌려줬다(검증 애노테이션 없는 순수 FE 파싱 버그). "제출 시 자동으로 띄워주기"(사용자 입력을 정규화해 URL에 반영)도 검토했으나, 사용자가 친 검색어를 제품이 고쳐 쓰는 선례를 찾지 못해(GitHub·Twitter는 공백을 요구하고 어기면 평문 폴백/미추출) 입력은 그대로 두고 파서만 태그 경계("문자열 시작이나 공백 뒤에서 시작, 다음 공백 또는 다음 `@`/`#`에서 끝")를 명확히 해 고쳤다. 같은 규칙으로 `hong@example.com`이 `category: 'example.com'`으로, `a#b`가 `nickname: 'b'`로 잘못 잡히던 기존 오탐도 함께 해소됐다.
+  (`src/widgets/post/post-list/utils/search-parser.ts`, `src/widgets/post/post-list/utils/search-parser.test.ts`, `src/widgets/post/post-list/ui/PostListSearch.tsx`, `docs/SEARCH.md`, `docs/plans/2026-09-21-search-tag-boundary.md`(신규), [PR #159](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/159))
+
+  </details>
+
+- `shared` 다크모드에서 필터 칩 등 ghost 버튼 9곳에 호버하면 의도한 색이 아니라 회색으로 덮이던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  2026-09-14(PR #85)에 "필터 칩은 호버해도 색이 안 변한다"로 확정된 디자인이 다크모드에서만 지켜지지 않고 있었다. 당시 방식은 호출부(`PostListSearch.tsx`)의 `activeClassName`에 `hover:bg-X hover:text-X-foreground`를 넣어 `Button`의 ghost variant가 주는 호버 클래스를 twMerge로 덮어쓰는 것이었는데, ghost의 `dark:hover:bg-accent/50`은 modifier 그룹이 달라(`dark:hover:` vs `hover:`) twMerge가 지우지 못하고 그대로 남는다(tailwind-merge로 직접 확인). CSS 특이성도 `@custom-variant dark (&:is(.dark *))`가 만드는 `:is(.dark *)` 때문에 다크 쪽이 이겨서, 다크모드 활성 칩이 호버 시 흰 배경(`--primary`)에서 회색(`accent/50`)으로 덮이고 글자(`--primary-foreground`, 검정)와 거의 구분이 안 됐다. 같은 구조의 버그를 가진 ghost 버튼 8곳(`FolderTree` 칩, `PostCard` AI 요약 토글·댓글 수 버튼, `BookmarkFolderSelectModal` 삭제 행, `LikePostButton`, `CommentForm` 프리뷰 토글, `RecentSearchPanel`, `UserAvatar`)도 함께 조사해 고쳤다. 덮어쓰기로 지우는 대신 호버 스타일이 애초에 없는 `none` variant를 `button.tsx`에 추가해 9곳 전부 해소했다 — 호출부의 중복 hover 클래스는 삭제하고, `FilterChip`·`FolderTree` 비선택 분기처럼 호버 배경의 출처가 ghost뿐이던 곳만 `hover:bg-accent`/`hover:text-foreground`를 명시로 보완했다. 라이트 모드 렌더링은 대부분 변하지 않으며, `BookmarkFolderSelectModal`·`FolderTree` 선택된 칩은 호버 시 의도한 색(빨강/흰 글자)을 되찾는 부수 개선이 있었다.
+  (`src/shared/ui/atoms/button.tsx`, `src/shared/ui/atoms/button.stories.tsx`, `src/shared/ui/elements/FilterChip.tsx`, `src/widgets/post/post-list/ui/PostListSearch.tsx`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/widgets/post/post-card/ui/PostCard.tsx`, `src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `src/features/post/like/ui/LikePostButton.tsx`, `src/features/comment/create/ui/CommentForm.tsx`, `src/widgets/layout/navbar/ui/RecentSearchPanel.tsx`, `src/entities/user/ui/UserAvatar.tsx`, `docs/DESIGN-SYSTEM.md`, [PR #157](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/157))
+
+  </details>
+
 - `bookmark` 데스크톱 사이드바에서 스크롤바 폭 때문에 "내 폴더" 개수 숫자가 밀려 보이던 문제 수정
   <details><summary>배경·구현</summary>
 
@@ -51,21 +199,13 @@
 
   </details>
 
-- `shared` Firebase 설정값이 비었거나 잘못됐을 때 앱 전체가 빈 화면으로 렌더되던 문제 수정
-- `shared` 다크모드 토글·검색 필터 칩이 마우스 채터링성 중복 클릭에 두 번 토글되던 문제 방지
-  <details><summary>배경·구현</summary>
-
-  다크모드 버튼·필터 칩을 눌렀는데 "안 반영된 것처럼" 보인다는 제보를 실제 화면 녹화 영상으로 받아 20fps로 프레임을 뜯어 배경색을 픽셀 단위로 직접 측정했다 — 2초 안에 7번 토글이 찍혔는데, 알고 보니 그 클릭들은 사용자가 문제 재현을 위해 의도적으로 빠르게 여러 번 누른 것이었다(짝수 번 누르면 원래 상태로 되돌아가는 토글의 정의 그 자체). 그럼에도 마우스 스위치 접점 불량(채터링)으로 사람이 낼 수 없는 속도의 중복 클릭이 실제로 들어올 가능성 자체는 방지할 가치가 있다고 보고, 게이밍 마우스 소프트웨어(Logitech G Hub 등)가 노출하는 채터링 방지 debounce 설정값(8ms, [Angry Miao](https://store.angrymiao.com/blogs/insider-stories/how-to-fix-mouse-double-clicking))을 그대로 가져와 `useClickGuard` 훅을 만들었다. "중복 제출 방지"에 흔히 쓰이는 300~1000ms대 디바운스([Medium](https://medium.com/@daveford/prevent-double-click-dups-in-react-83fcbc475704) 등)는 검토했으나 기각했다 — 이 앱이 이미 테스트로 보장하는 "즉시 재클릭하면 정확히 취소된다"는 토글 계약(`Navbar.test.tsx`, `usePostList.test.tsx` 시나리오 C)과 정면으로 충돌하기 때문이다. 8ms는 그보다 한 자릿수 낮아 이 계약을 건드리지 않으면서 채터링 속도만 걸러낸다 — 실제 브라우저에서 동기적으로 두 번 연속 `click()`을 호출하면 한 번만 반영되고, 100ms 간격의 재클릭은 매번 정상 토글됨을 Playwright로 실측 확인했다. 두 기존 테스트는 딜레이 없는 합성 클릭이라 실제로는 사람이 낼 수 없는 속도였던 것이므로, 클릭 사이에 20ms 지연을 추가해 현실적인 재클릭 속도를 반영했다.
-  (`src/shared/hooks/useClickGuard.ts`(신규), `src/shared/hooks/useClickGuard.test.ts`(신규), `src/shared/ui/elements/FilterChip.tsx`, `src/widgets/layout/navbar/ui/Navbar.tsx`, `src/widgets/layout/navbar/ui/Navbar.test.tsx`, `src/widgets/post/post-list/hooks/usePostList.test.tsx`, `docs/DECISIONS.md`)
-
-  </details>
-
-- `shared` Firebase 설정값이 비었거나 잘못됐을 때 앱 전체가 빈 화면으로 렌더되던 문제 수정
 - `shared` Firebase 초기화 실패 시 앱 전체 렌더가 죽지 않도록 방어 코드 추가
   <details><summary>배경·구현</summary>
 
   PR #143 작업 중 `browser_evaluate`로 `main.tsx`를 강제로 재-import하는 비정상적인 방식으로 `"Missing App configuration value: projectId"` 에러를 관찰해 클린 HEAD에서도 재현되는 버그로 기록했으나, 이후 정상적인 `pnpm dev` 로드로는 재현되지 않았고 로컬 `.env` 값도 Firebase 콘솔 값과 일치함이 확인돼 그 진단은 오진이었을 가능성이 높다(정정: 기존 버그가 아니라 관찰 방식의 부작용이었을 수 있음). 다만 `firebase.ts`가 브라우저 환경에서 `getMessaging(app)`을 조건 없이 호출하고 있고, `main.tsx`에는 `<App/>`을 감싸는 ErrorBoundary가 없어 향후 Firebase 설정값이 실제로 비거나 잘못되면 이 호출이 동기적으로 throw해 React 렌더 트리 전체가 무너질 여지는 남아 있다. 근본 원인 확정 여부와 무관하게 `getMessaging(app)` 호출을 try/catch로 감싸 실패 시 `messaging`을 `null`로 남기도록 방어 코드를 추가했다 — 호출부(`fcm.ts`, `useFcmForegroundMessage.ts`)는 이미 `messaging`이 `null`이면 그대로 return하는 기존 방어 로직을 갖고 있어 FCM 기능만 조용히 비활성화되고 앱은 정상 렌더된다.
   (`src/shared/lib/firebase/firebase.ts`, [PR #153](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/153))
+
+  </details>
 
 - `shared` ⋮ 메뉴를 누른 채 손이 밀리면 항목이 오발동해 메뉴가 그냥 사라지던 문제 수정
   <details><summary>배경·구현</summary>
@@ -81,11 +221,15 @@
   Radix `Dialog`는 `document`에 capture 단계로 ESC 리스너를 걸어(`react-use-escape-keydown`), 생성 입력의 `onKeyDown`에서 `stopPropagation()`을 호출해도 이미 늦은 뒤라 모달이 먼저 닫혔다. `SheetDialogContent`가 그대로 통과시키는 `onEscapeKeyDown` 콜백에서 생성 폼이 열려 있을 때만 `preventDefault()`로 dismiss를 막고 폼을 접도록 옮겼다 — 폼이 닫혀 있을 때의 기존 "ESC로 모달 닫기"는 그대로 유지된다.
   (`src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`, [PR #151](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/151))
 
+  </details>
+
 - `shared` 토큰 갱신 재시도에 상한을 두어 무한 루프 가능성 제거
   <details><summary>배경·구현</summary>
 
   `client.ts`의 401 TOKEN_EXPIRED 처리에서 `retryCount`가 선언·전달만 되고 실제 상한 검사를 받지 않고 있었다(`docs/AUTH.md` §11에 알려진 이슈로 기록돼 있었음). refresh가 성공한 뒤 재시도한 요청이 다시 TOKEN_EXPIRED를 받으면(서버 시계 오차 등 회복 불가능한 상황) 상한 없이 재귀 호출이 반복될 수 있었다. `retryCount > 0`이면(이미 한 번 재시도한 요청이 또 만료됐다면) refresh를 다시 호출하지 않고 기존 refresh-실패 경로와 동일하게 `clearAll()` + 영구 pending으로 합류하도록 가드를 추가했다. 같은 세션에서 BE 소스를 확인해 `docs/AUTH.md` §11의 다른 항목(만료된 Authorization 헤더로 `/auth/refresh`를 호출하는 것)도 무해함이 확정돼 함께 갱신했다.
   (`src/shared/api/client.ts`, `src/shared/api/client.test.ts`, `docs/AUTH.md`, [PR #143](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/143))
+
+  </details>
 
 - `post` 카드 제목이 소유자 액션 아이콘에 가려 일찍 줄바꿈되던 문제 수정
   <details><summary>배경·구현</summary>
@@ -155,6 +299,16 @@
 
   </details>
 
+### Fixed
+
+- `bookmark` 북마크 폴더 선택 모달을 더블클릭/더블탭하면 두 번째 클릭이 방금 뜬 행에 떨어지던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  등록 폼(`PostCreateBookmarkFolderField`)·게시글 카드(`BookmarkPostButton`)의 북마크 트리거를 더블클릭/더블탭하면 두 번째 클릭이 방금 뜬 `BookmarkFolderSelectModal`의 폴더 행 위에 떨어져 의도치 않게 저장/삭제되는 오탭이 있었다. 모바일 바텀시트는 화면 하단 70vh를 덮고, 데스크톱 중앙 모달도 폼 가운데의 트리거와 겹쳐서 생기는 문제다. `useOpenClickGuard`(신규) 훅이 모달이 열린 뒤 `DOUBLE_CLICK_GUARD_MS`(400ms, 기존 `useClickGuard`의 임계값과 같은 상수로 통합) 동안의 클릭을 무시한다 — `useClickGuard`(같은 핸들러의 재호출 기준)와 달리 `open` prop의 전이 시점을 기준으로 삼아, 행·새 폴더 만들기·확인·destructive 버튼처럼 서로 다른 여러 요소를 한 번에 가드한다. 모달 바깥(오버레이)에 두 번째 클릭이 떨어져 열리자마자 닫히는 변형 증상도 같은 가드로 함께 막는다.
+  (`src/shared/hooks/useOpenClickGuard.ts`(신규), `src/shared/hooks/useOpenClickGuard.test.ts`(신규), `src/shared/config/const.ts`, `src/shared/hooks/useClickGuard.ts`, `src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `e2e/bookmark.spec.ts`, `docs/BOOKMARK.md`, `docs/plans/2026-09-24-bookmark-modal-and-dropdown-trigger-click-fixes.md`(신규))
+
+  </details>
+
 ## [0.15.0] - 2026-09-21
 
 ### Added
@@ -164,6 +318,8 @@
 
   배포 워크플로우가 success로 끝난 것과 실제로 사용자 화면에 반영된 것은 다른 사건인데, 그 둘을 구분할 수단이 앱에도 CI에도 없었다. `vite.config.ts`의 `define`으로 커밋 sha를 번들 상수(`__BUILD_INFO__`)에 심고, 별도 플러그인으로 배포 시각·workflow run 번호까지 담은 `dist/version.json`을 함께 만든다 — 두 값을 분리한 이유는 번들 상수는 "지금 이 탭이 실행 중인 코드"를, `version.json`은 "지금 서버에 올라간 코드"를 답해야 서로 다른 두 원인("배포 자체가 안 됨" vs "탭이 캐시를 잡음")을 구분할 수 있기 때문이다. `builtAt`·`runNumber`처럼 빌드마다 달라지는 값은 번들 상수에 넣지 않았다 — 넣으면 무변경 재배포에도 entry 청크 해시가 바뀌어 기존 `useAppVersionCheck`가 열려 있는 모든 탭을 강제 리로드시킨다(두 번 연속 빌드해 entry 해시가 동일함을 직접 확인). `/version` 페이지는 이 둘을 대조해 배너로 보여준다 — 최초에는 Vercel 대시보드의 점+라벨 패턴(제목 옆 작은 배지)으로 만들었으나 "이 페이지의 주 컨텐츠가 동기화 확인 자체"라는 피드백을 받아 카드보다 먼저, 페이지 최상단의 큰 배너로 재구성했다(두 안 모두 Artifact로 나란히 미리보기해 비교). 일치(초록)·불일치(주황, compare 링크+새로고침 버튼)·서버 조회 실패(회색, 배포 실패와 구분)의 세 상태를 색으로 구분한다. `/version`은 403/404/500과 같은 성격의 공개+비연결 라우트다 — 이 레포가 이미 Public이라 노출 정보가 새로 늘지 않고, 로그인에 묶으면 정작 인증이 깨진 순간 진단이 안 되기 때문이다. 배포 파이프라인에는 invalidation 직후 실제 CloudFront를 curl로 때려 ①`version.json`의 sha 일치 ②`index.html`의 `no-store` 캐시 헤더 회귀 ③entry 청크 해시 일치를 확인하는 검증 스텝과, 실패 시 GitHub 이슈를 자동 생성하는 `notify-failure` job을 추가했다. 운영 CloudFront를 직접 curl로 실측한 결과 `x-cache: RefreshHit`(매 요청 오리진 재검증)로 동작 중임을 확인해, 평범한 새로고침이 강력 새로고침과 실질적으로 동일하게 동작함도 함께 검증했다.
   (`vite.config.ts`, `src/vite-env.d.ts`, `src/shared/config/build-info.ts`(신규), `src/shared/utils/build-info.util.ts`(신규), `src/shared/hooks/useDeployedBuildInfo.ts`(신규), `src/pages/version/VersionPage.tsx`(신규), `src/app/routes/index.tsx`, `src/shared/config/route-paths.ts`, `src/shared/config/texts.ts`, `src/main.tsx`, `.github/workflows/deploy.yml`, `docs/BUILD-VERSION.md`(신규), `docs/DEPLOY.md`, `docs/CI-CHECK-GATE.md`, `docs/SYSTEM-ARCHITECTURE.md`, `docs/NEW-VERSION-RELOAD.md`, `docs/plans/2026-09-20-build-version.md`(신규), [PR #134](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/134))
+
+  </details>
 
 - `infra` Storybook을 기존 S3+CloudFront 배포로 공개 호스팅
   <details><summary>배경·구현</summary>
@@ -311,6 +467,8 @@
 
   모바일 포스트 상세에서 헤더 검색을 열면 `RecentSearchPanel`이 화면을 덮어야 하는데, `MobileCommentBar`(접힘 상태)가 같은 z층(`z-panel`=40)이라 DOM 순서만으로 패널 위에 그대로 남아 있었다. 탭바(`z-nav`=50)가 검색 중에도 보이는 건 `Navbar.tsx:228`이 명시한 의도된 설계라 그대로 두고, 댓글바만 `useHistoryOverlay('mobileSearchOpen')`로 같은 열림 상태를 구독해 `hidden`을 붙였다. 언마운트하지 않은 이유는 이탈 가드(`useUnsavedChangesGuard.ts`)가 `pathname`이 같은 이동은 통과시켜, 검색 열기가 그 가드를 우회하기 때문이다 — 언마운트하면 작성 중이던 본문·첨부 이미지가 경고 없이 사라진다. 같은 조사에서 `RecentSearchPanel`에 스크림·포커스 트랩이 없어 Tab 키로 배경 게시글·댓글에 포커스가 새는 것도 함께 발견해, `AppLayout`의 `main`에 `inert`를 걸어 막았다(React 18.2라 JSX `inert` prop 대신 ref로 DOM 프로퍼티를 직접 설정).
   (`src/features/comment/create/ui/MobileCommentBar.tsx`, `src/features/comment/create/ui/MobileCommentBar.test.tsx`(신규), `src/app/layouts/app-layout/AppLayout.tsx`, `e2e/post-detail-search-overlay.mobile.spec.ts`(신규), `docs/SEARCH.md`, `.claude/skills/responsive-ux/SKILL.md`, [PR #123](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/123))
+
+  </details>
 
 - `shared` 모바일 검색 헤더 아이콘 버튼 3곳의 좌우 정렬 어긋남 수정
   <details><summary>배경·구현</summary>
@@ -473,6 +631,8 @@
 
   "내 댓글" 화면을 열어둔 채 로그아웃하면 그 화면이 계속 에러로 남아, 다시 로그인하고 재진입해도 "내 댓글을 불러오는데 실패했어요"만 보였다. 로그아웃 처리(`AuthUtil.clearQueries()`)가 토큰을 지운 직후 `resetQueries()`로 화면에 남아있던 쿼리를 배경 재요청시키는데, 그 요청이 401을 받아 캐시가 error 상태로 굳는 것이 원인이었다. TanStack Query의 Suspense 훅은 캐시가 error면 재마운트해도 새 요청을 아예 내지 않고(`retryOnMount`를 false로 강제) 캐시된 옛 에러를 그대로 다시 throw한다. 기존 로그인 성공 처리의 `invalidateQueries()`는 활성 쿼리만 다시 부르므로 이미 언마운트된 이 쿼리에는 닿지 못했다. 로그인 성공 시 에러 상태이면서 보여줄 데이터도 없는 쿼리만 골라 `resetQueries()`로 초기 상태로 되돌리도록 했다 — 데이터를 들고 있는 쿼리(배경 재요청만 실패한 경우)는 화면이 멀쩡하고 재마운트 시 정상 재요청되므로 건드리지 않는다. 모달을 통한 제자리 로그인에서 이미 떠 있던 게시글 목록이 깜빡이지 않게 하려는 의도다. 이 리셋은 기존 `invalidateQueries()` 앞에 둔다 — `resetQueries()`의 내부 재조회는 리셋 뒤 predicate가 더 이상 매칭되지 않아 아무것도 다시 부르지 않으므로, 화면에 떠 있는 쿼리의 재요청은 뒤이은 `invalidateQueries()`가 맡는다. `useLoginMutation` 전용 테스트가 없던 것도 이번에 함께 채웠다.
   (`entities/auth/api/auth.queries.ts`, `entities/auth/api/auth.queries.test.ts`, `docs/AUTH.md`, [PR #94](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/94))
+
+  </details>
 
 - `comment` 댓글 해시 이동 시 스크롤 정렬을 중앙에서 상단으로 변경해 긴 댓글도 시작부터 읽히게 함
   <details><summary>배경·구현</summary>
@@ -1074,6 +1234,8 @@
   `font-display: swap`으로 폴백 폰트가 잠깐 보이는 원인이 될 수 있었다. 위 댓글
   영역 레이아웃 시프트 조사 과정에서 발견한 별개의 이슈로, 다른 세 굵기와 같은
   preload `<link>`를 추가해 문서화된 의도와 실제 구현을 맞췄다. (`index.html`)
+
+  </details>
 
 - `comment` 댓글 수정 폼 미리보기에서 썸네일 로드 실패 시 깨진 이미지 아이콘 노출
   <details><summary>배경·구현</summary>

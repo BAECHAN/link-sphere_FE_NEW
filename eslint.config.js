@@ -439,6 +439,11 @@ export default [
       // BE OpenAPI 스펙(openapi.json)에서 openapi-typescript 가 생성한 타입 선언 —
       // 사람이 손대지 않고 pnpm codegen 으로만 갱신된다. lint 대상이 아니다.
       '**/src/shared/api/generated/**',
+      // Playwright e2e 실행 산출물(.gitignore에는 있지만 ESLint는 자동으로 읽지 않는다 —
+      // 위 dist/storybook-static과 같은 종류의 누락, 2026-09-24 실측: 실패한 e2e 실행이
+      // 남긴 test-results/의 트레이스 뷰어 번들이 코드처럼 검사돼 수천 건의 오탐이 났다).
+      '**/playwright-report/**',
+      '**/test-results/**',
     ],
   },
   {
@@ -452,145 +457,6 @@ export default [
       import: importPlugin,
       prettier: prettierPlugin,
       'react-hooks': reactHooksPlugin,
-      'custom-react-hooks': {
-        rules: {
-          'no-hooks-in-regular-functions': {
-            meta: {
-              type: 'problem',
-              docs: {
-                description: '일반 함수에서 React Hooks 호출 금지',
-              },
-              messages: {
-                hookInRegularFunction:
-                  'React Hooks는 React 함수 컴포넌트나 커스텀 훅(use로 시작하는 함수) 내부에서만 호출할 수 있습니다. 일반 함수에서는 호출할 수 없습니다. 필요한 값은 파라미터로 전달하거나, 해당 함수를 커스텀 훅으로 변경하세요.',
-              },
-            },
-            create(context) {
-              // 훅 이름 패턴 (use로 시작하는 함수)
-              const hookPattern = /^use[A-Z]/;
-
-              // 함수가 React 컴포넌트인지 확인 (PascalCase로 시작)
-              function isReactComponent(name) {
-                return name && /^[A-Z]/.test(name);
-              }
-
-              // 함수가 커스텀 훅인지 확인 (use로 시작)
-              function isCustomHook(name) {
-                return name && hookPattern.test(name);
-              }
-
-              // 함수가 React.memo/forwardRef 등에 전달된 컴포넌트인지 확인
-              function isWrappedByReactComponentWrapper(node) {
-                if (
-                  node.parent &&
-                  node.parent.type === 'CallExpression' &&
-                  node.parent.arguments &&
-                  node.parent.arguments[0] === node
-                ) {
-                  const callee = node.parent.callee;
-                  if (!callee) return false;
-                  // React.memo(...), memo(...), React.forwardRef(...), forwardRef(...)
-                  const name =
-                    callee.type === 'Identifier'
-                      ? callee.name
-                      : callee.type === 'MemberExpression' && callee.property
-                        ? callee.property.name
-                        : null;
-                  return name === 'memo' || name === 'forwardRef';
-                }
-                return false;
-              }
-
-              // 함수가 React 컴포넌트나 커스텀 훅인지 확인
-              function isReactComponentOrHook(node) {
-                // 함수 선언
-                if (node.type === 'FunctionDeclaration' && node.id) {
-                  return isReactComponent(node.id.name) || isCustomHook(node.id.name);
-                }
-
-                // 화살표 함수나 함수 표현식
-                if (
-                  (node.type === 'ArrowFunctionExpression' || node.type === 'FunctionExpression') &&
-                  node.parent
-                ) {
-                  // React.memo(() => {}) / forwardRef(() => {}) 내부는 컴포넌트로 간주
-                  if (isWrappedByReactComponentWrapper(node)) {
-                    return true;
-                  }
-
-                  // 변수 선언: const Component = () => {}
-                  if (node.parent.type === 'VariableDeclarator' && node.parent.id) {
-                    return (
-                      isReactComponent(node.parent.id.name) || isCustomHook(node.parent.id.name)
-                    );
-                  }
-
-                  // export default: export default () => {}
-                  if (node.parent.type === 'ExportDefaultDeclaration') {
-                    return true; // export default는 보통 컴포넌트
-                  }
-
-                  // 객체 메서드: { method() {} }
-                  if (node.parent.type === 'Property' && node.parent.method) {
-                    return false; // 일반 메서드는 허용하지 않음
-                  }
-                }
-
-                return false;
-              }
-
-              // 훅 호출인지 확인
-              function isHookCall(node) {
-                if (node.type !== 'CallExpression') return false;
-
-                const callee = node.callee;
-                if (!callee) return false;
-
-                // useXxx() 형태
-                if (callee.type === 'Identifier') {
-                  return hookPattern.test(callee.name);
-                }
-
-                // obj.useXxx() 형태 (예: store.useXxx())
-                if (callee.type === 'MemberExpression' && callee.property) {
-                  return hookPattern.test(callee.property.name);
-                }
-
-                return false;
-              }
-
-              return {
-                CallExpression(node) {
-                  if (!isHookCall(node)) return;
-
-                  // 현재 함수 스코프 찾기
-                  let current = node;
-                  while (current) {
-                    if (
-                      current.type === 'FunctionDeclaration' ||
-                      current.type === 'FunctionExpression' ||
-                      current.type === 'ArrowFunctionExpression'
-                    ) {
-                      // React 컴포넌트나 커스텀 훅 내부면 허용
-                      if (isReactComponentOrHook(current)) {
-                        return;
-                      }
-
-                      // 일반 함수 내부면 에러
-                      context.report({
-                        node,
-                        messageId: 'hookInRegularFunction',
-                      });
-                      return;
-                    }
-                    current = current.parent;
-                  }
-                },
-              };
-            },
-          },
-        },
-      },
     },
     languageOptions: {
       parser: tseslint.parser,
@@ -612,6 +478,26 @@ export default [
         console: true,
       },
     },
+    // import/no-cycle(아래 rules)이 실제로 그래프를 그리려면 이 3개 설정이 전부
+    // 필요하다 - 2026-09-22, 하나씩 빼고 켜본 결과 셋 중 하나만 빠져도 위반이 0건으로
+    // 조용히 나온다(잡을 게 없는 게 아니라 그래프 자체를 못 그리는 것):
+    //   - import/resolver(typescript): 이 레포 import가 전부 쓰는 `@/` 별칭을 읽는다.
+    //     없으면 `@/`로 시작하는 모든 import가 안 보인다.
+    //   - import/extensions: no-cycle의 그래프 순회 로직은 이 설정을 resolver와
+    //     별개로 본다. 기본값이 .js/.mjs/.cjs뿐이라 없으면 .ts/.tsx 파일이 그래프
+    //     대상에서 통째로 빠진다(resolver가 있어도 무관하게 빠짐).
+    //   - import/parsers: .ts/.tsx를 @typescript-eslint/parser로 파싱하라고 알려준다.
+    // 셋 중 하나라도 지우면 이 룰이 다시 "항상 통과"로 무력화되니, 고칠 땐 프로브
+    // 파일(예: 서로 import하는 파일 2개)로 실제로 잡히는지 재확인한다.
+    settings: {
+      'import/resolver': {
+        typescript: { project: './tsconfig.app.json' },
+      },
+      'import/extensions': ['.js', '.jsx', '.ts', '.tsx'],
+      'import/parsers': {
+        '@typescript-eslint/parser': ['.ts', '.tsx'],
+      },
+    },
     rules: {
       ...js.configs.recommended.rules,
       // Prettier 규칙 통합
@@ -623,6 +509,10 @@ export default [
       'no-empty-pattern': 'error',
       'no-undef': 'off',
       'import/no-default-export': 'error',
+      // dependency-cruiser로 queryClient.ts↔auth.util.ts 순환 참조를 발견해 고친 뒤(#171),
+      // 재발을 막을 상시 검사가 하나도 없다는 걸 알게 돼 추가했다. 이 설정이 실제로
+      // 동작하려면 위 settings 3개가 전부 필요하다 - 그 주석 참고.
+      'import/no-cycle': 'error',
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -1236,6 +1126,101 @@ export default [
     },
     rules: {
       'custom-i18n/no-hardcoded-hangul': 'error',
+    },
+  },
+
+  // ============================================================
+  // [금지] 라우트 경로 문자열 하드코딩
+  // 이유: 2026-09-22, queryClient.ts의 전역 401 핸들러에 window.location.href =
+  //       '/auth/login'이 AuthUtil.clearAll()의 기본값(ROUTES_PATHS.AUTH.LOGIN)과
+  //       별개로 하드코딩돼 있던 걸 발견해(#171) 재발 방지로 추가했다. '/'로 시작하는
+  //       문자열은 API_ENDPOINTS 등 무관한 곳에도 흔해 no-hardcoded-hangul처럼 값
+  //       패턴만으로 훑으면 오탐이 너무 크다 - 대신 실제로 문제가 됐던 호출 컨텍스트
+  //       (navigate 호출·window.location.href 대입·JSX to prop)만 좁혀서 검사한다.
+  // ============================================================
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: [
+      'src/shared/config/route-paths.ts', // ROUTES_PATHS 단일 소스
+      'src/test/**/*.{ts,tsx}', // 테스트 인프라
+      'src/mocks/**/*.{ts,tsx}', // MSW 목/픽스처
+      '**/*.test.{ts,tsx}', // 콜로케이션 테스트
+      '**/*.stories.{ts,tsx}', // Storybook
+    ],
+    plugins: {
+      'custom-route': {
+        rules: {
+          'no-hardcoded-route-path': {
+            meta: {
+              type: 'problem',
+              docs: {
+                description: '라우트 경로 문자열 하드코딩 금지 (ROUTES_PATHS로 중앙 관리)',
+              },
+              messages: {
+                hardcodedPath:
+                  '경로 문자열을 직접 쓰지 마세요. src/shared/config/route-paths.ts의 ROUTES_PATHS.*를 참조하세요.',
+              },
+            },
+            create(context) {
+              // '/'로 시작(프로토콜 상대 경로 '//...'는 외부 URL이라 제외)
+              const ROUTE_LIKE = /^\/(?!\/)/;
+
+              function isRoutePathLiteral(node) {
+                return (
+                  !!node &&
+                  node.type === 'Literal' &&
+                  typeof node.value === 'string' &&
+                  ROUTE_LIKE.test(node.value)
+                );
+              }
+
+              return {
+                // window.location.href = '/...'
+                'AssignmentExpression[left.type="MemberExpression"]'(node) {
+                  const { left, right } = node;
+
+                  if (
+                    left.property?.name === 'href' &&
+                    left.object?.type === 'MemberExpression' &&
+                    left.object.property?.name === 'location' &&
+                    isRoutePathLiteral(right)
+                  ) {
+                    context.report({ node: right, messageId: 'hardcodedPath' });
+                  }
+                },
+                // navigate('/...') 또는 xxx.navigate('/...') (NavigationService.navigate 포함)
+                CallExpression(node) {
+                  const callee = node.callee;
+                  const isNavigateCall =
+                    (callee.type === 'Identifier' && callee.name === 'navigate') ||
+                    (callee.type === 'MemberExpression' && callee.property?.name === 'navigate');
+
+                  if (isNavigateCall && isRoutePathLiteral(node.arguments[0])) {
+                    context.report({ node: node.arguments[0], messageId: 'hardcodedPath' });
+                  }
+                },
+                // <Link to="/..."> / <Navigate to="/...">
+                JSXAttribute(node) {
+                  if (node.name?.name !== 'to') {
+                    return;
+                  }
+
+                  const value = node.value;
+                  const literal =
+                    value?.type === 'JSXExpressionContainer' ? value.expression : value;
+
+                  if (isRoutePathLiteral(literal)) {
+                    context.report({ node: literal, messageId: 'hardcodedPath' });
+                  }
+                },
+              };
+            },
+          },
+        },
+      },
+    },
+    rules: {
+      'custom-route/no-hardcoded-route-path': 'error',
     },
   },
 

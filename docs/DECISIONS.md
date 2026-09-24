@@ -6,6 +6,247 @@
 
 ---
 
+## 2026-09-24 — 드롭다운 메뉴: 스크롤 닫기에 이동 거리 임계값 + 연속 클릭 무시
+
+**배경**
+
+같은 날 배포된 "비모달 전환 + 스크롤 시 닫힘"(바로 아래 항목)이 새 회귀를 만들었다 — 북마크 폴더 ⋮ 메뉴가 가끔 열렸다가 바로 닫힌다는 사용자 제보(휠 마우스, 재현 패턴 불명)를 Playwright로 재현해 코드 경로 2개를 확정했다:
+
+- **스크롤 1px만 나도 닫힘**: 클릭과 함께 섞여 들어오는 미세한 스크롤(휠에 손이 스친 경우, 클릭 직전 스크롤의 관성이 열고 난 뒤 도착하는 경우)에 임계값이 전혀 없었다.
+- **더블클릭/마우스 스위치 채터링의 두 번째 클릭이 오버레이에 떨어져 닫힘**: 첫 클릭으로 메뉴가 열리는 순간, 트리거를 덮는 투명 오버레이가 생겨 뒤이은 두 번째 클릭(`event.detail: 2`)은 오버레이의 `onClick`을 타 곧바로 닫는다.
+
+**검토한 대안 — 스크롤 임계값을 어떻게 잡을 것인가**
+
+| 안                                                          | 동작                                                                 | 문제                                                                                                                                                                                                                                                                                                                              |
+| ----------------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A. document 스크롤 위치를 열리는 시점에 미리 스냅샷         | 열린 직후 첫 스크롤 이벤트부터 곧바로 임계값과 비교 가능             | 클릭 직전에 시작된 스크롤의 관성이 열고 난 "뒤"에 도착하면, 그 관성의 도착 위치 자체가 이미 임계값을 넘어 곧바로 닫혀버린다(재현 e2e로 확인 — 관성 스크롤 시나리오가 다시 깨짐)                                                                                                                                                   |
+| B. 스크롤 대상별로 처음 본 이벤트를 기준선으로 삼는다(채택) | 첫 이벤트는 "관찰만", 두 번째 이벤트부터 기준선과의 누적 차이를 비교 | 프로그래밍으로 발생시킨 단 한 번의 큰 스크롤(예: 테스트의 `mouse.wheel(0, 600)` 1회 호출)은 첫 이벤트가 곧 기준선이 돼 닫히지 않는다. 다만 실제 휠 스크롤은 여러 tick에 걸쳐 이벤트가 이어지므로 두 번째 이벤트에서 곧바로 닫힌다 — 기존 e2e(`dropdown-menu-scroll.spec.ts`)도 `wheel` 호출을 1회에서 2회로 바꿔 이 전제에 맞췄다 |
+
+B를 선택했다. A는 "클릭 직전 스크롤의 관성이 열고 난 뒤 도착"이라는, 이번 버그 재현에서 실제로 확인된 시나리오를 다시 깨뜨린다 — 스크롤 이벤트의 payload만으로는 "관성이 언제 시작됐는지" 알 수 없어서, 이 관성을 구분하려면 결국 "첫 이벤트는 기준선으로만 쓴다"는 B와 같은 결론에 도달한다. B의 대가(프로그래밍 방식의 단발성 큰 점프는 첫 이벤트에서 못 닫음)는 이 레포의 실제 사용자 입력(물리 마우스 휠)에서는 거의 발생하지 않는 인위적인 시나리오다.
+
+**임계값 값**: `4px`. Windows의 드래그 시작 임계값(`SM_CXDRAG`/`SM_CYDRAG`)과 같은 값을 그대로 가져왔다 — 둘 다 "우연한 포인터 이동은 무시하고, 의도적인 이동만 별개의 동작으로 인정한다"는 같은 목적이다. 개념 정의는 공식 문서에서 확인했다: _"The number of pixels on either side of a mouse-down point that the mouse pointer can move before a drag operation begins. This allows the user to click and release the mouse button easily without unintentionally starting a drag operation."_([Microsoft Learn, GetSystemMetrics function](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmetrics)). 다만 이 페이지는 기본값을 수치로 적지 않는다 — 기본값 4는 이를 인용한 2차 자료로만 확인했다: _"DEFAULT VALUES ARE 4 and 4"_([bobobobo's Weblog, "Disable drag and drop"](https://bobobobo.wordpress.com/2011/01/19/disable-drag-and-drop/)). 1차 문서로 수치 자체를 재검증하지는 못했다.
+
+원래 계획은 사용자의 실제 휠 마우스에서 잰 `deltaY` 실측값을 임계값이 넘지 않아야 한다는 조건을 세웠으나, 사용자가 원인 확정 방법으로 "계획 1단계에서 재현"을 선택하면서 Playwright 재현만으로 원인 2개를 코드 레벨에서 확정했고 실제 기기 실측은 진행하지 않았다 — 이 값 자체는 실측이 아니라 위 Windows 선례에서 그대로 가져온 것이다. 다만 4px이 실제 휠 스크롤을 방해하지 않는다는 확신의 근거는 남긴다: _"Chrome sends about a hundred pixels per mouse notch in pixel mode"_([GitHub, beinsiculous/insiculous_2d#119](https://github.com/beinsiculous/insiculous_2d/issues/119) — 커뮤니티 실측 보고, 브라우저 공식 스펙 수치는 아니다)라는 보고가 있다. 이 수치가 맞다면 휠 한 칸(약 100px)은 4px 임계값을 훨씬 웃돌아 첫 이벤트가 기준선이 되더라도 같은 제스처의 다음 이벤트에서 곧바로 닫힌다. 이 값도 재검증하지 않았다 — 출처 미상에 준하는 커뮤니티 보고로 취급한다.
+
+**검토한 대안 — 이미 있는 선례(Floating UI)는 왜 임계값이 없는가**
+
+Radix가 내부적으로 쓰는 위치 계산 라이브러리와 같은 계열인 Floating UI의 `useDismiss`는 `ancestorScroll` 옵션으로 조상 스크롤 시 닫는 기능을 제공하는데, 이동 거리 임계값이 없다 — 스크롤 이벤트가 한 번이라도 발생하면 닫는다(공식 문서, [Floating UI, useDismiss](https://floating-ui.com/docs/usedismiss#ancestorscroll) — *"Whether to dismiss the floating element upon scrolling an overflow ancestor."*라고만 되어 있고 임계값 옵션은 없다). 이 선례를 따르지 않은 이유: Floating UI의 이 옵션은 "트리거를 감싼 스크롤 컨테이너가 스크롤돼 팝업의 위치 기준 자체가 어긋나는 것"을 막는 용도로, 페이지 전체 레이아웃이 바뀌는 상황을 전제한다. 이 레포의 버그는 반대로 "메뉴가 열린 그 자리에서 트리거와 콘텐츠 위치가 그대로인데도, 의도치 않은 미세한 스크롤 때문에 닫히는" 문제라 목적이 다르다 — 전자는 위치 무결성을 지키는 안전장치이고, 후자는 오탐(false positive)을 줄이는 문제다. 그래서 Floating UI 선례를 그대로 가져오지 않고 임계값을 새로 도입했다.
+
+**검토한 대안 — 더블클릭을 어떻게 무시할 것인가**
+
+오버레이의 `onClick`에서 `event.detail > 1`이면 닫지 않는다. `detail`은 OS가 판정한 연속 클릭 횟수([MDN, UIEvent.detail](https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail))라 별도의 시간 임계값을 새로 정할 필요가 없다 — 이 레포에 이미 있는 `useClickGuard.ts`(무의식적 중복 클릭 무시, 400ms 타이머 직접 관리)와 달리 브라우저의 더블클릭 판정을 그대로 재사용한다. 대가: 메뉴를 연 직후 OS 더블클릭 간격 안에 같은 자리를 다시 눌러도 닫히지 않는다 — 한 번 더 눌러야 닫힌다. 이 손실은 실사용에서 의미가 없다고 판단했다(열자마자 다시 눌러 곧바로 닫는 제스처는 실제 사용 동기가 없다).
+
+**결정**
+
+- `shared/ui/atoms/dropdown-menu.tsx`의 스크롤 닫기 로직에 이동 거리 임계값(4px)을 추가한다. 스크롤 대상(EventTarget)별로 처음 본 위치를 기준선으로 기억해 두고, 거기서 임계값 이상 움직였을 때만 닫는다.
+- 오버레이의 `onClick`이 `event.detail > 1`이면 무시한다.
+- 적용 대상: 래퍼를 쓰는 메뉴 4곳 전부(계정, 폴더 ⋮ 데스크톱·모바일, 게시글 ⋮) — 공용 래퍼 변경이라 자동으로 공유된다.
+
+**상태**
+
+적용 완료. `e2e/dropdown-menu-scroll.spec.ts`의 기존 스크롤 닫기 테스트를 `wheel` 2회 호출로 조정했고, 새 회귀 테스트(1px 스크롤은 유지, 이어지는 스크롤은 닫힘, 더블클릭은 유지, 더블클릭 뒤 별개의 단일 클릭은 닫힘, 관성 스크롤 직후 클릭은 유지)를 추가했다. 계획: `docs/plans/2026-09-24-dropdown-open-close-flicker.md`.
+
+---
+
+## 2026-09-24 — 드롭다운 컨트롤 구분: 명령·이동은 DropdownMenu, 값 선택은 Select
+
+**배경**
+
+같은 날 `DropdownMenu`를 비모달로 바꾼 뒤(아래 항목), 북마크 정렬 `Select`(`pages/bookmark/BookmarkPage.tsx`의 2곳, 옵션 5개)도 같은 동작으로 맞출지 검토했다. Radix `Select`는 스크롤 잠금(`RemoveScroll`)을 조건 없이 걸어서(`node_modules/@radix-ui/react-select/dist/index.mjs:438`) 끌 방법이 없다. 두 컨트롤을 하나로 통일해 관리할지, 나눠서 관리할지가 쟁점이었다.
+
+**근거 — NN/g는 두 컨트롤을 기능으로 구분한다**
+
+> 원래 'dropdown box'와 'dropdown menu'라는 용어는 섞여 쓰였지만, 시간이 지나며 둘 사이에 기능적 구분이 생겼다. 드롭다운 메뉴는 선택한 옵션에 따라 동작을 실행하는 명령 메뉴, 또는 사용자를 새 위치로 데려가는 내비게이션 메뉴다. 드롭다운 박스는 폼 필드에 넣을 옵션을 고르는 폼 입력, 또는 가능한 값 목록에서 값을 고르는 속성 선택에 쓴다. (번역, 원문의 목록을 문장으로 풀어 옮김)
+>
+> — NN/g, "Dropdowns: Design Guidelines", https://www.nngroup.com/articles/drop-down-menus/
+
+같은 글은 모양도 다르다고 설명한다 — 드롭다운 박스는 _"옆에 아래 화살표가 있고, 속성을 고르거나 폼 데이터를 입력하는 데 쓰인다"_ (번역). 정렬에 대해서는 NN/g의 다른 글이 직접 예를 든다 — [Listboxes vs. Dropdown Lists](https://www.nngroup.com/articles/listbox-dropdown/)는 Sephora의 정렬 컨트롤을 _"페이지를 특정 속성으로 정렬하도록, 서로 배타적인 값들 중 하나를 고르는 드롭다운 목록"_ (번역)으로 소개하고, _"드롭다운 목록에서는 선택된 옵션이나 기본값이 박스 안에 계속 보인다"_ (번역)고 쓴다.
+
+두 글의 문장은 WebFetch로 원문 페이지에서 발췌해 확인했다.
+
+**검토한 대안**
+
+| 안                                              | 내용                                                | 결과                                                                                    |
+| ----------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| A. Select를 DropdownMenu + 라디오 항목으로 교체 | 스크롤 동작이 메뉴 4곳과 같아진다                   | 기각 — 정렬은 NN/g 기준 "속성 선택"이라 메뉴(명령·이동)로 바꾸면 컨트롤의 의미가 섞인다 |
+| B. 네이티브 `<select>`로 교체                   | 모바일에서 OS 기본 선택기가 뜨고 스크롤 잠금이 없다 | 기각 — 모바일만 바꾸면 관리 방식이 기기별로 갈라진다(사용자 판단)                       |
+| C. Select를 그대로 두기(잠금 유지)              | 컨트롤 종류별로 따로 관리                           | **채택**                                                                                |
+
+C를 고른 이유: 계정 메뉴는 열어둔 채 목록을 계속 보는 상황이 생겼지만, 정렬은 열고 값 하나를 고르면 끝나는 짧은 동작이라 스크롤 잠금이 불편을 만들 일이 적다. 두 컨트롤은 종류가 다르니 스크롤 동작이 다른 것도 설명할 수 있는 차이다. W3C 접근성 가이드(APG)도 둘을 별개 패턴으로 정의한다 — [Menu Button](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/)은 _"메뉴를 여는 버튼"_, [Select-Only Combobox](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-select-only/)는 _"HTML `select` 요소와 기능적으로 비슷한 단일 선택 콤보박스"_ 다(번역). 합치면 두 컨트롤의 차이(키보드 동작, 스크린리더 역할, 현재 값 표시)를 예외 처리로 메우다 결국 다시 나누게 된다는 사용자 판단도 반영했다.
+
+**추가로 드러난 문제 — 모바일 재오픈**
+
+검토 중 사용자가 모바일 실기기에서 "Select를 닫으려고 트리거를 다시 탭하면 닫혔다가 곧바로 다시 열린다"고 제보했다. 크롬 에뮬레이션에서는 재현되지 않았다. 이 때문에 A(DropdownMenu 엔진으로 교체, 재탭 동작은 이미 검증됨)를 다시 검토했지만, 위 분리 원칙을 지키는 쪽을 택했다. 대신 `select.tsx` 래퍼 안에서 "닫힌 뒤 400ms 안의 열기 요청은 무시"하는 가드로 막는다. 400ms는 다크모드·필터칩의 `useClickGuard`와 같은 기준(무의식적 중복과 의식적 재입력의 구분)이다.
+
+**결정**
+
+- 명령 실행·페이지 이동(프로필 수정, 로그아웃, 이름 수정, 삭제 등)은 `shared/ui/atoms/dropdown-menu.tsx`를 쓴다.
+- 값 하나를 고르는 컨트롤(정렬 기준, 폼 입력 값 등)은 `shared/ui/atoms/select.tsx`를 쓴다 — 트리거에 현재 값과 아래 화살표가 보이는 모양을 유지한다.
+- 새 드롭다운을 만들 때 "누르면 무언가를 실행하거나 이동하는가, 아니면 값을 고르는가"로 둘 중 하나를 고른다.
+
+**상태**
+
+분리 원칙과 스크롤 잠금 유지는 코드 변경 없음. 재오픈 가드는 별도 PR(`fix(shared): 모바일에서 Select 트리거를 다시 탭하면 재오픈되던 문제 수정`, 계획 `docs/plans/2026-09-24-select-reopen-guard.md`)에서 적용한다. 실기기 확인은 배포 후 사용자가 한다.
+
+---
+
+## 2026-09-24 — 드롭다운 메뉴: 비모달 전환 + 스크롤 시 닫힘 + 바깥 첫 클릭 흡수
+
+**배경**
+
+우상단 계정 메뉴가 열려 있는 동안 페이지 스크롤이 막혔다(모바일·데스크톱 공통). 원인은 Radix `DropdownMenu`의 기본값 `modal={true}`다 — 이 모드에서 `MenuRootContentModal`이 `disableOutsideScroll: true`로 `react-remove-scroll`을 건다(`node_modules/@radix-ui/react-menu/dist/index.mjs:136-139`). 스크롤 잠금만 끄는 옵션은 없고 `modal={false}`로 바꿔야 풀린다. 게시글 목록에서는 바깥에 누를 곳이 전부 게시글 카드라, 메뉴를 닫으려고 바깥을 누르기도 부담스럽다는 사용자 관찰이 함께 나왔다 — 그래서 "스크롤하면 닫힌다"를 같이 도입한다.
+
+**검토한 대안 — 바깥 클릭을 아래 요소에 전달할 것인가**
+
+| 안                  | 동작                                              | 근거                                       | 결과     |
+| ------------------- | ------------------------------------------------- | ------------------------------------------ | -------- |
+| A. 첫 클릭은 닫기만 | 바깥 클릭은 메뉴만 닫고 아래 요소는 반응하지 않음 | NN/g 휴리스틱 #5 Error Prevention          | **채택** |
+| B. 클릭 통과        | 메뉴가 닫히면서 누른 곳도 실행                    | HTML Popover API의 light dismiss 기본 동작 | 기각     |
+
+- A의 근거: [NN/g 10 Usability Heuristics](https://www.nngroup.com/articles/ten-usability-heuristics/)의 #5는 _"the best designs carefully prevent problems from occurring in the first place. Either eliminate error-prone conditions..."_ 라고 쓴다. "닫으려고 눌렀는데 게시글로 이동돼버림"이 이 error-prone condition이다.
+- B의 근거: [Open UI Popover Explainer](https://open-ui.org/components/popover.research.explainer/)는 _"a popover is non-modal"_ 이고 바깥 클릭 시 _"Click outside the popover (focus the clicked thing)"_ 라고 쓴다 — 웹 표준 popover는 클릭을 소비하지 않는다.
+- NN/g의 드롭다운 글 두 편([Dropdowns: Design Guidelines](https://www.nngroup.com/articles/drop-down-menus/), [Menu-Design Checklist](https://www.nngroup.com/articles/menu-design/))은 "바깥을 누르면 닫힌다"까지만 다루고, 그 클릭의 전달 여부·열린 동안의 스크롤 허용 여부는 다루지 않는다 — 이 결정을 직접 뒷받침하는 NN/g 연구는 없다.
+- 사용자가 두 근거를 비교하고 A를 골랐다. A의 단점(바깥을 두 번 눌러야 함)은 "스크롤하면 닫힘"이 대부분 메운다 — 목록에서 메뉴를 닫는 가장 흔한 동작이 스크롤이 되기 때문이다. 게시글 ⋮ 메뉴(2026-02부터 `modal={false}`로 B 동작)도 A로 통일된다.
+
+**검토한 대안 — A를 어떻게 구현할 것인가**
+
+1. **투명 오버레이(`fixed inset-0`)가 바깥 클릭을 받는다** — 채택. 휠·터치 스크롤은 오버레이를 지나 document로 그대로 전달된다(document가 스크롤 주체라서, e2e로 실측).
+2. **document 캡처 리스너로 다음 click 1회를 삼킨다** — 기각. 터치가 드래그(스크롤)로 끝나 click이 오지 않으면 "무장된" 상태가 남아 다음 정상 클릭이 먹히는 버그 위험이 있다. 오버레이는 이런 상태를 만들지 않는다.
+
+구현 중 발견한 함정: 오버레이가 pointerdown을 Radix의 document 리스너까지 보내면 Radix가 그 자리에서 메뉴를 닫아 오버레이도 함께 사라지고, 뒤이은 click이 아래 요소로 떨어진다(B 동작으로 되돌아감). 그래서 오버레이가 pointerdown을 `stopPropagation`·`preventDefault`로 멈추고 자기 click에서 닫는다.
+
+**결정**
+
+- `shared/ui/atoms/dropdown-menu.tsx` 래퍼의 `modal` 기본값을 `false`로 바꾸고, 열린 동안 document 캡처 scroll 리스너로 닫는다(메뉴 내부 스크롤은 제외). 스크롤로 닫힐 때는 트리거로 포커스를 돌리지 않는다 — `focus()`가 트리거 위치로 스크롤을 되돌리기 때문이다.
+- 적용 대상: 래퍼를 쓰는 메뉴 4곳 전부(계정, 폴더 ⋮ 데스크톱·모바일, 게시글 ⋮).
+- 범위 제외: 북마크 정렬 `Select` — Radix Select는 `RemoveScroll`을 조건 없이 건다(`node_modules/@radix-ui/react-select/dist/index.mjs:438`). 고치려면 컴포넌트를 교체해야 해서 별도 과제로 남긴다. Dialog·Sidebar 드로어·검색 오버레이는 화면 전체를 덮는 오버레이라 계속 잠근다(2026-09-17 항목).
+
+**상태**
+
+적용 완료. e2e `e2e/dropdown-menu-scroll.spec.ts`·`e2e/dropdown-menu-scroll.mobile.spec.ts`로 고정(오버레이를 끄면 바깥 클릭 테스트가 실패하는 것까지 확인). 계획: `docs/plans/2026-09-24-dropdown-scroll-dismiss.md`.
+
+---
+
+## 2026-09-21 — 데스크톱 최근검색 드롭다운: APG Grid Popup 패턴 채택
+
+**배경**
+
+모바일 헤더 검색에는 최근검색 풀스크린 패널(`RecentSearchPanel`)이 있었지만 데스크톱에는
+없었다 — 데스크톱 제출이 `addRecentSearch`를 호출하지 않아 쌓이지도 않았고, 쌓였더라도
+보여줄 화면이 없었다(`docs/SEARCH.md` §11 "남은 것"). 사용자가 데스크톱에도 최근검색을
+보여주고, ESC로 초기화할 수 있게 해달라고 요청했다.
+
+**검토한 대안**
+
+1. **모바일 `RecentSearchPanel`을 그대로 재사용(`md:hidden` 해제)** — 기각. 전체화면
+   오버레이는 입력창 하나를 위해 과하고, `RemoveScroll` 배경 스크롤 잠금도 데스크톱
+   드롭다운엔 불필요하다.
+2. **`@radix-ui/react-popover` 신규 도입** — 기각. 의존성이 추가되고, Popover가 열릴 때
+   콘텐츠로 포커스를 옮기려는 기본 동작이 "실제 DOM 포커스는 항상 입력창에 머문다"는
+   요구와 정면으로 충돌한다.
+3. **ARIA 역할 없이 단순 `<button>` 목록 + Tab 이동** — 기각. 사용자가 "화살표 순환이
+   편할 것 같다"고 명시적으로 요청했다. ESC를 [WAI-ARIA APG Combobox](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/)
+   2단계(_"Escape: Dismisses the popup if it is visible. Optionally, if the popup is
+   hidden before Escape is pressed, clears the combobox."_)로 이미 구현하기로 한 이상
+   이 위젯을 combobox로 선언한 것이나 마찬가지라, `aria-expanded`만 켜두고 팝업에
+   키보드로 못 들어가면 ARIA를 안 붙인 것보다 나쁘다고 판단했다.
+4. **[APG "Editable Combobox with Grid Popup"](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/grid-combo/)
+   패턴 채택.** 검색어 셀과 삭제 셀을 한 행에 함께 둬야 하는 요구(listbox/option
+   패턴은 `option` 역할 안에 인터랙티브 자손을 둘 수 없다)에 grid/row/gridcell 구조가
+   정확히 맞는다. 실제 DOM 포커스가 입력창에 머무는 `aria-activedescendant` 모델이라,
+   "모두 지우기"를 시각적으로는 상단 고정(스크롤 영향 없음, 모바일과 동일 위치)에
+   두면서도 논리적 화살표 순환 순서는 자유롭게 정할 수 있었다 — DOM/CSS 배치와 키보드
+   순환 순서가 독립적이라는 점을 [W3C APG Grid 패턴](https://www.w3.org/WAI/ARIA/apg/patterns/grid/)에서
+   확인했다: _"Each row container has role row and is either a DOM descendant of or
+   owned by the grid element or an element with role rowgroup."_
+
+**결정**
+
+- `RecentSearchDropdown.tsx` 신규 — `role="grid"` 아래 `role="rowgroup"` 2개(헤더용
+  비스크롤 1개 + 행 목록용 스크롤 1개)로 구조화한다.
+- 열림 트리거는 Algolia autocomplete의 `openOnFocus` 관례를 따라 입력값 유무와 무관하게
+  포커스 시 연다. 타이핑을 시작하면 닫고, 입력을 다 지우면 다시 연다. **이 상태(`isOpen`)는
+  오직 이벤트 핸들러에서만 갱신하고 입력값에서 파생하지 않는다** — 파생시키면 ESC
+  2단계가 스스로를 무효화하는 함정이 생긴다(자세한 경위는 `docs/SEARCH.md` §10).
+- 화살표 키 순환 순서는 시각적 위치가 아니라 사용 빈도 기준으로 정했다 — Down 첫
+  클릭은 항상 첫 검색어로 가고(가장 흔한 동작), "모두 지우기"는 마지막 검색어 다음
+  (Down)과 첫 검색어 이전(Up) 양쪽에서 도달 가능한 순환의 마지막 자리에 둔다.
+- 셀 클릭이 blur로 유실되지 않도록 그리드 루트에서 `onMouseDown` 기본동작을 막고,
+  모든 셀의 `Button`에 `tabIndex={-1}`을 줘 Tab 순서에서 뺀다 — 화살표 키만이
+  가상 포커스(`aria-activedescendant`)를 옮긴다.
+- 같은 작업으로 데스크톱 제출이 기존 게시글 범위 필터(`filter`)를 지우던 문제도
+  함께 고쳤다 — `useSearchParamsDraft`를 거쳐 `q`만 갱신한다(버그 수정이라 이
+  부분은 별도 DECISIONS 항목을 두지 않는다, `docs/SEARCH.md` §10 시행착오 참고).
+
+**상태**
+
+적용 완료. `src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx`(신규),
+`src/widgets/layout/navbar/ui/NavbarSearch.tsx`, `src/widgets/layout/navbar/ui/Navbar.tsx`.
+관련 문서: `docs/SEARCH.md`, `docs/plans/2026-09-21-desktop-recent-search-dropdown.md`.
+Playwright로 최근검색 기록·포커스 시 노출·ESC 2단계·헤더 고정(스크롤 무관)·화살표
+순환(검색어↔삭제 셀, 모두 지우기 도달)·클릭 즉시 검색(유실 없음)·개별 삭제·filter
+파라미터 보존·모바일 무변화를 실측 확인(2026-09-21).
+
+---
+
+## 2026-09-21 — 다크모드·필터칩 중복 클릭 방지: 500ms → 400ms로 미세 조정
+
+바로 아래("8ms → 500ms로 재조정") 항목에서 정한 판단 기준(무의식적 중복 클릭과
+의식적 재클릭을 시간으로 구분)과 근거(Windows 더블클릭 기본값, 인간 반응시간)는
+그대로 유지한 채, 사용자가 응답성을 조금 더 살리고 싶다고 요청해 임계값만
+400ms로 낮췄다. 새로 비교한 대안은 없다 — 같은 판단 기준 안에서 숫자만 조정한
+것이라 아래 항목의 연장이다. `src/shared/hooks/useClickGuard.ts` 기본값 변경.
+
+---
+
+## 2026-09-21 — 다크모드·필터칩 중복 클릭 방지: 8ms → 500ms로 재조정 (요구사항 자체가 바뀜)
+
+**배경**
+
+바로 아래 항목("8ms 채터링 가드")을 적용한 뒤에도 사용자가 "안 막아진다"고 재확인했다.
+직접 손으로 클릭했다고 확인했고, 원하는 건 하드웨어 채터링(사람이 낼 수 없는 속도)이
+아니라 **사람이 손으로 하는 무의식적인 빠른 재클릭**을 막는 것이었다 — 8ms는 애초에
+이 범주를 막을 목적이 아니었으므로 "안 막힌다"는 게 그 설계상 정상이었다.
+
+즉 요구사항 자체가 바뀌었다: "하드웨어 결함 방지"가 아니라 "**의식적으로 결과를
+인지하고 다시 누른 것**과 **무의식적으로 두 번 눌린 것**을 구분해 후자만 막는다."
+사용자 본인이 이 구분 기준을 제시했다 — 인지+판단에 걸리는 시간과 반사적인 더블클릭
+사이에 시간 차가 있을 것이라는 관찰이다.
+
+**검토**
+
+사람이 결과를 보고 판단해서 "의식적으로" 다시 누르는 것과 "무의식적으로" 짧게
+두 번 누르는 것을 가르는 표준값을 웹 검색으로 확인했다:
+
+- **Windows 더블클릭 속도 기본값: 500ms** — 정확히 "이 두 클릭을 하나의 제스처로 볼지,
+  별개의 의도적인 두 동작으로 볼지" 가르는 값이다. _"the default timing in Windows is
+  500 ms (half a second)"_ ([Wikipedia, Double-click](https://en.wikipedia.org/wiki/Double-click),
+  Microsoft MSDN 인용, [NinjaOne](https://www.ninjaone.com/blog/how-to-change-the-mouse-double-click-speed/)도
+  동일 확인).
+- **사람의 단순 시각 반응시간: 평균 200~273ms** — _"The average human reaction time is
+  roughly 200–250 milliseconds for a visual signal"_
+  ([관련 리서치 종합](https://www.orangeneurosciences.ca/guide/reaction-time-average)).
+  이건 "보고 반사적으로 반응"하는 시간이라, "결과를 보고 판단해서 다시 누르기로 결정"하는
+  건 이보다 더 걸린다 — 500ms는 이 반응시간보다 충분히 여유 있게 크다.
+- 지난번 검토한 UI 중복 클릭 방지 디바운스(300~1000ms대)도 같은 대역이다.
+
+세 근거가 전부 300~500ms대를 가리켜, Windows 기본값과 같은 **500ms**를 채택했다.
+
+**결정**: `useClickGuard`의 기본 임계값을 8ms → 500ms로 올린다. 8ms 채터링 케이스는
+500ms 안에 완전히 포함되므로 별도 유지할 필요가 없다.
+
+**이유**: 이제 "즉시 재클릭 = 무시"가 새 계약이 되므로, `Navbar.test.tsx`·
+`usePostList.test.tsx`의 "즉시 재클릭하면 취소된다" 테스트 2개는 **타이밍만 늘리는 게
+아니라 기대값 자체를 바꿨다** — 바로 아래(2026-09-21, 이 항목 이전 결정)에서는 "이
+계약을 건드리면 안 된다"고 기각했던 전제 자체가, 사용자가 그 트레이드오프를 명시적으로
+받아들이면서 뒤집혔다. 각 테스트에 "충분한 시간(500ms) 뒤 재클릭하면 정상 취소된다"는
+동반 테스트를 추가해, 지연 후 재클릭 경로가 여전히 살아있음을 확인했다. 실제 브라우저로
+200ms 재클릭(무시됨)·550ms 뒤 재클릭(정상 취소)을 실측 확인했다.
+
+**상태**: 적용 완료. `src/shared/hooks/useClickGuard.ts`.
+
+---
+
 ## 2026-09-21 — 다크모드·필터칩 중복 클릭 방지: 8ms 채터링 가드 (300ms대 디바운스 기각)
 
 **배경**

@@ -61,15 +61,27 @@ describe('Navbar — 테마 토글', () => {
     expect(screen.getByTestId('theme-probe')).toHaveTextContent('dark/dark');
   });
 
-  it('다시 누르면 라이트로 돌아간다', async () => {
+  it('즉시 다시 누르면 무의식적 더블클릭으로 보고 무시한다', async () => {
     const user = userEvent.setup();
     renderNavbar();
     const toggle = screen.getByRole('button', { name: TEXTS.nav.toggleTheme });
 
     await user.click(toggle);
-    // useClickGuard(8ms, useClickGuard.ts)가 사람이 낼 수 없는 속도의 채터링성
-    // 재클릭만 걸러낸다 - 사람의 실제 재클릭(수십ms 이상)은 이 정도만 지나도 통과한다.
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    // useClickGuard(400ms, useClickGuard.ts) - 그보다 짧은 재클릭은 의식적으로
+    // 다시 누른 게 아니라 무의식적인 중복 클릭으로 보고 무시한다.
+    await user.click(toggle);
+
+    expect(window.localStorage.getItem(STORAGE_KEYS.THEME)).toBe('dark');
+    expect(document.documentElement).toHaveClass('dark');
+  });
+
+  it('충분한 시간(400ms) 뒤 다시 누르면 라이트로 돌아간다', async () => {
+    const user = userEvent.setup();
+    renderNavbar();
+    const toggle = screen.getByRole('button', { name: TEXTS.nav.toggleTheme });
+
+    await user.click(toggle);
+    await new Promise((resolve) => setTimeout(resolve, 450));
     await user.click(toggle);
 
     expect(window.localStorage.getItem(STORAGE_KEYS.THEME)).toBe('light');
@@ -97,5 +109,19 @@ describe('Navbar — 테마 토글', () => {
     await user.click(screen.getByRole('button', { name: TEXTS.nav.toggleTheme }));
 
     expect(window.localStorage.getItem(STORAGE_KEYS.THEME)).toBe('light');
+  });
+});
+
+describe('Navbar — 데스크톱 최근검색 배선', () => {
+  it('데스크톱 헤더에서 제출하면 최근검색이 localStorage에 저장된다', async () => {
+    const user = userEvent.setup();
+    renderNavbar();
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.postSearch);
+    await user.type(input, '리액트');
+    await user.keyboard('{Enter}');
+
+    const stored = window.localStorage.getItem(STORAGE_KEYS.SEARCH.RECENT);
+    expect(stored && JSON.parse(stored)).toEqual(['리액트']);
   });
 });

@@ -3,10 +3,43 @@
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 
+import { CLICK_GUARD_MS } from '@/shared/hooks/useClickGuard';
 import { cn } from '@/shared/lib/tailwind/utils';
-import { forwardRef } from 'react';
+import { forwardRef, useRef, useState } from 'react';
 
-const Select = SelectPrimitive.Root;
+/**
+ * 닫힌 직후(CLICK_GUARD_MS 이내)의 열기 요청은 무시한다. 모바일에서 닫으려고 트리거를 다시
+ * 탭하면, 한 번의 탭을 Radix의 바깥 감지(닫기)와 트리거 click(열기)이 따로 받아 닫혔다가
+ * 곧바로 다시 열리는 문제가 실기기에서 보고됐다. 닫기는 항상 반영한다.
+ */
+const Select = ({
+  open: openProp,
+  defaultOpen,
+  onOpenChange,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof SelectPrimitive.Root>) => {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen ?? false);
+  const open = openProp ?? uncontrolledOpen;
+  const closedAtRef = useRef(0);
+
+  const setOpen = (next: boolean) => {
+    if (next && Date.now() - closedAtRef.current < CLICK_GUARD_MS) {
+      return;
+    }
+
+    if (!next) {
+      closedAtRef.current = Date.now();
+    }
+
+    if (openProp === undefined) {
+      setUncontrolledOpen(next);
+    }
+
+    onOpenChange?.(next);
+  };
+
+  return <SelectPrimitive.Root {...props} open={open} onOpenChange={setOpen} />;
+};
 
 const SelectGroup = SelectPrimitive.Group;
 
@@ -30,7 +63,7 @@ const SelectTrigger = forwardRef<
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="size-4 opacity-50" />
+      <ChevronDown className="size-4 opacity-50 transition-transform duration-200 ease-in-out in-data-[state=open]:rotate-180" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));

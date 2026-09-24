@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/atoms/button';
 import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
+import { useOpenClickGuard } from '@/shared/hooks/useOpenClickGuard';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
@@ -49,6 +50,7 @@ export function BookmarkFolderSelectModal({
   showConfirmButton,
 }: BookmarkFolderSelectModalProps) {
   const isMobile = useIsMobile();
+  const isOpenClickGuarded = useOpenClickGuard(open);
   const {
     isLoading,
     folderList,
@@ -89,6 +91,22 @@ export function BookmarkFolderSelectModal({
 
           e.preventDefault();
           handleCancelCreate();
+        }}
+        onClickCapture={(e) => {
+          // 트리거를 더블클릭/더블탭하면 두 번째 클릭이 방금 뜬 모달의 행·버튼에 떨어져
+          // 의도치 않은 저장/삭제가 일어난다 — 열린 직후 짧은 시간은 캡처 단계에서 막아
+          // 행·새 폴더 만들기·확인·destructive 버튼 전부를 한 곳에서 커버한다
+          // (useOpenClickGuard, docs/BOOKMARK.md §5 참고).
+          if (isOpenClickGuarded()) {
+            e.stopPropagation();
+          }
+        }}
+        onPointerDownOutside={(e) => {
+          // 같은 더블클릭의 두 번째 클릭이 모달 바깥(오버레이)에 떨어지면 열리자마자
+          // 닫히는 변형 증상도 같은 원인이라 함께 막는다.
+          if (isOpenClickGuarded()) {
+            e.preventDefault();
+          }
         }}
       >
         {/* 헤더 */}
@@ -241,7 +259,7 @@ export function BookmarkFolderSelectModal({
                 <li>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="none"
                     onClick={dangerAction.onClick}
                     disabled={isAnyPending}
                     className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 border-t"

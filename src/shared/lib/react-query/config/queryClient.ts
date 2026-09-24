@@ -1,24 +1,24 @@
 import { MutationCache, QueryCache, QueryClient, type Mutation } from '@tanstack/react-query';
-import { ApiError } from '@/shared/types/common.type';
-import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
-import { AuthUtil } from '@/shared/utils/auth.util';
-import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import {
+  resolveErrorToast,
+  MUTATION_ERROR_POLICY,
+  QUERY_ERROR_POLICY,
+  type CustomMutationMeta,
+} from '@/shared/lib/react-query/config/error-toast';
 
-// 1. 커스텀 Meta 타입 정의 (모듈 확장 대신 로컬 인터페이스 활용 고려)
-interface CustomMutationMeta {
-  successMessage?: string;
-  errorMessage?: string;
-  manualErrorHandling?: boolean;
-}
-
-// 2. 모듈 확장을 통해 React Query 타입에 반영
-declare module '@tanstack/react-query' {
-  interface Register {
-    mutationMeta: CustomMutationMeta;
-    queryMeta: CustomMutationMeta; // Query에도 동일하게 적용하고 싶다면 추가
+/** 판정된 결과를 실제로 적용한다 — 토스트·콘솔 부수 효과는 이 한 곳에만 있다. */
+const applyErrorToast = (decision: ReturnType<typeof resolveErrorToast>) => {
+  if (decision.silent) {
+    return;
   }
-}
+
+  if (decision.log) {
+    console.error(...decision.log);
+  }
+
+  toast.error(decision.message);
+};
 
 /**
  * Mutation 에러 핸들러
@@ -29,55 +29,12 @@ const mutationErrorHandler = (
   _context: unknown,
   mutation: Mutation<unknown, unknown, unknown, unknown>
 ) => {
+  // interface는 Record<string, unknown>에 대한 암묵적 인덱스 시그니처가 없어
+  // Register['mutationMeta'] 조건부 타입이 CustomMutationMeta로 좁혀지지 않는다
+  // (캐스팅을 지우면 meta가 Record<string, unknown>으로 폴백됨 — 이 파일 3곳 공통).
   const meta = mutation.meta as CustomMutationMeta | undefined;
 
-  // 1. 에러 무시 설정이 있으면 종료
-  if (meta?.manualErrorHandling) {
-    return;
-  }
-
-  // 2. 보안 정책(CloudFront/WAF)에 앱 도달 전 차단된 경우 - meta의 커스텀 에러 메시지보다
-  // 먼저 처리한다. 그러지 않으면 게시글 등록처럼 errorMessage를 쓰는 mutation은 이 원인을
-  // "게시글 등록에 실패했어요" 같은 일반 메시지로 덮어써 사용자가 실제 원인을 알 수 없다.
-  if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.EDGE_BLOCKED) {
-    toast.error(TEXTS.messages.error.edgeBlocked);
-    return;
-  }
-
-  let message: string = TEXTS.messages.error.unknownError;
-
-  // 3. meta에 정의된 커스텀 에러 메시지가 있으면 우선 사용
-  if (meta?.errorMessage) {
-    message = meta.errorMessage;
-  } else if (error instanceof ApiError) {
-    // 401 인증 에러 처리 (로그인 필요, 유효하지 않은 토큰)
-    if (error.code === 'NOT_LOGGED_IN' || error.code === 'INVALID_TOKEN') {
-      // 로그아웃 처리 중(clearQueries의 배경 재요청) 온 401은 세션 만료가 아니라 레이스이므로 무시
-      if (AuthUtil.isLoggingOut()) {
-        return;
-      }
-      AuthUtil.clearAll();
-      toast.error(TEXTS.messages.error.loginRequired);
-      window.location.href = '/auth/login';
-      return;
-    }
-
-    // 403 권한 에러 처리
-    if (error.code === 'ACCESS_DENIED') {
-      toast.error(TEXTS.messages.error.accessDenied);
-      return;
-    }
-
-    // 보안 및 UX를 위해 서버 에러 메시지를 직접 노출하지 않음
-    // 상세 에러는 콘솔에 남기고 사용자에게는 일반적인 에러 메시지 표시
-    console.error(`[API Mutation Error] ${error.message}`, error.data);
-    message = TEXTS.messages.error.serverError;
-  } else if (error instanceof Error) {
-    console.error(`[Mutation Error] ${error.message}`);
-    message = TEXTS.messages.error.serverError;
-  }
-
-  toast.error(message);
+  applyErrorToast(resolveErrorToast(error, meta, MUTATION_ERROR_POLICY));
 };
 
 /**
@@ -101,50 +58,7 @@ export const queryClient = new QueryClient({
     onError: (error, query) => {
       const meta = query.meta as CustomMutationMeta | undefined;
 
-      // 로그아웃 처리 중(clearQueries의 배경 재요청) 온 401은 세션 만료가 아니라 레이스이므로
-      // meta의 커스텀 에러 메시지보다 먼저 걸러 어떤 토스트도 뜨지 않게 한다.
-      if (
-        error instanceof ApiError &&
-        (error.code === 'NOT_LOGGED_IN' || error.code === 'INVALID_TOKEN') &&
-        AuthUtil.isLoggingOut()
-      ) {
-        return;
-      }
-
-      // 보안 정책(CloudFront/WAF)에 앱 도달 전 차단된 경우 - meta의 커스텀 에러 메시지보다 먼저 처리한다.
-      if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.EDGE_BLOCKED) {
-        toast.error(TEXTS.messages.error.edgeBlocked);
-        return;
-      }
-
-      // Query 에러 처리
-      if (meta?.errorMessage) {
-        toast.error(meta.errorMessage);
-      } else if (error instanceof ApiError) {
-        // 401 인증 에러 처리 (로그인 필요, 유효하지 않은 토큰)
-        if (error.code === 'NOT_LOGGED_IN' || error.code === 'INVALID_TOKEN') {
-          AuthUtil.clearAll();
-          toast.error(TEXTS.messages.error.loginRequired);
-          window.location.href = '/auth/login';
-          return;
-        }
-
-        // 403 권한 에러 처리
-        if (error.code === 'ACCESS_DENIED') {
-          toast.error(TEXTS.messages.error.accessDenied);
-          return;
-        }
-
-        // 404는 서버 장애가 아니라 화면이 처리해야 할 도메인 상태다(삭제·비공개 글 등).
-        // 전역 토스트 대신 각 화면의 ErrorBoundary가 안내를 소유한다.
-        if (error.status === 404) {
-          return;
-        }
-
-        // 보안 및 UX를 위해 서버 에러 메시지를 직접 노출하지 않음
-        console.error(`[API Query Error] ${error.message}`, error.data);
-        toast.error(TEXTS.messages.error.serverError);
-      }
+      applyErrorToast(resolveErrorToast(error, meta, QUERY_ERROR_POLICY));
     },
   }),
   mutationCache: new MutationCache({

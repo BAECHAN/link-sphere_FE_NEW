@@ -203,6 +203,9 @@ API 형태)을 바꾼다면 배포 순서와 그 사이에 무엇이 깨지는�
   적는다.
 - 두 문장 이상은 blockquote로 떼어내고 바로 아래 `— 출처명, URL` 줄을 붙인다.
 - 번역했거나 생략했으면 그 사실을 적는다(`(번역)`, `(...)`, `(강조는 인용자)`).
+- 영어 등 외국어 원문은 **한국어로 번역해서 싣는다** — 대화 답변과 문서 모두 해당한다.
+  인용 표시(이탤릭·blockquote)와 `(번역)` 표기는 그대로 두고, 원문과의 대조는 링크로
+  한다. 원문을 그대로 붙이면 사용자가 인용마다 다시 해석해야 한다(2026-09-24 사용자 요청).
 - 원문을 직접 안 읽고 다른 문서의 인용을 옮겼으면 재인용임을 밝힌다 — "X(`docs/DECISIONS.md`
   2026-09-06 항목에서 재인용)". 원문을 확인한 척하지 않는다.
 - 외부에 없는 문구에 권위를 씌우지 않는다 — 우리가 만든 기준을 `"..."` + "업계 ~
@@ -354,7 +357,7 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
   `shared/lib/firebase/fcm.ts`가 raw `fetch()`로 이 규칙을 어기고 있는 걸 발견해 같은 날
   `shared/api/fcm.api.ts`로 옮겨 고쳤다 — 지금은 예외 없이 지켜지고 있다)
 - **Never** 인라인 쿼리 키 → 항상 `<entity>Keys.*` 사용
-- **Never** 인라인 한글 UI 문자열 → 항상 `TEXTS.*` 사용 (ESLint `custom-i18n/no-hardcoded-hangul`가 빌드/pre-commit에서 자동 차단. 보간은 `texts.ts`의 함수형 키 사용 예: `messages.success.bookmarkSavedTo(folderName)`. 예외: 테스트/스토리/`date.util.ts`·`common.util.ts` 로케일 포맷)
+- **Never** 인라인 한글 UI 문자열 → 항상 `TEXTS.*` 사용 (ESLint `custom-i18n/no-hardcoded-hangul`가 빌드/pre-commit에서 자동 차단. 보간은 `texts.ts`의 함수형 키 사용 예: `messages.success.bookmarkSavedTo(folderName)`. 예외 전체 목록은 `texts-conventions` skill(`.claude/skills/texts-conventions/SKILL.md`) 참고)
 - **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반
   Tailwind 클래스 사용 (`text-destructive`, `bg-success`, `text-warning` 등). 2026-09-09 감사에서
   `shared/ui/elements/ImageAttachmentField.tsx`·`SearchInput.tsx`, `shared/ui/layouts/AuthLayout.tsx`·
@@ -567,7 +570,7 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 **에러 토스트의 유일한 기본 소유자는 React Query 전역 핸들러(`queryClient.ts`)다.**
 
 - transport 레이어(`shared/api/client.ts`)는 UI 토스트를 띄우지 않는다 — 인증 정리·throw만.
-- mutation 에러는 전부 `mutationErrorHandler`를 지나가며, `meta.manualErrorHandling`이 없으면 거기서 토스트 1개가 자동으로 뜬다 ([queryClient.ts](../src/shared/lib/react-query/config/queryClient.ts) `if (meta?.manualErrorHandling) { return; }`).
+- mutation 에러는 전부 `mutationErrorHandler`를 지나가며, `meta.manualErrorHandling`이 없으면 거기서 토스트 1개가 자동으로 뜬다 (mutation·query 공통 판정은 [error-toast.ts](../src/shared/lib/react-query/config/error-toast.ts)의 `resolveErrorToast()`, `if (meta?.manualErrorHandling) { return { silent: true }; }`).
 
 > ⚠️ **Never** mutation `onError`나 그 mutation을 쓰는 컴포넌트 `catch`에서 `toast.`를 직접 부르면서 `meta.manualErrorHandling`을 빼먹지 말 것 → 전역 토스트와 겹쳐 **두 번 뜬다**. 직접 토스트를 띄우면 반드시 `manualErrorHandling: true`.
 
@@ -615,9 +618,19 @@ Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금
 
 ## 반응형 UX
 
-모바일+데스크톱 반응형 분기, 터치 UI, 하단 탭바·safe-area, 데스크톱 sticky·플로팅 버튼
-규약은 `responsive-ux` skill(`.claude/skills/responsive-ux/SKILL.md`)에 있다 — 반응형 UI를
-만들거나 고칠 때, 고정(fixed/sticky) 요소를 배치할 때 그 skill을 먼저 읽는다.
+모바일+데스크톱 반응형 분기, 터치 UI, 하단 탭바·safe-area, 데스크톱 sticky·플로팅 버튼,
+hover 컨테이너 안 드롭다운·팝오버 규약은 `responsive-ux` skill
+(`.claude/skills/responsive-ux/SKILL.md`)에 있다 — 반응형 UI를 만들거나 고칠 때,
+고정(fixed/sticky) 요소를 배치할 때, hover 스타일이 있는 컨테이너 안에 드롭다운·팝오버를
+둘 때 그 skill을 먼저 읽는다.
+
+---
+
+## 모션
+
+트랜지션·애니메이션 지속시간, easing, `prefers-reduced-motion`, exit 애니메이션
+동기화 규약은 `motion-ux` skill(`.claude/skills/motion-ux/SKILL.md`)에 있다 —
+애니메이션·트랜지션 클래스를 붙일 때 그 skill을 먼저 읽는다(2026-09-22 도입).
 
 ---
 
@@ -663,11 +676,11 @@ an interaction ... **the thing people want to do** with your entities" — 즉 f
 > 실제로는 `hooks/`가 5:1로 우세했다. 2026-09-08 재검토 후 아래처럼 되돌렸다:
 > **entities도 `hooks/`를 쓴다.** `model/`은 스키마·타입 전용으로 좁힌다.
 
-| 레이어                | 허용 세그먼트                                          | 규칙                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| --------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `entities`            | `api/`, `hooks/`, `model/`, `ui/`, `config/`, `utils/` | `model/`은 스키마·타입 정의 전용(`*.schema.ts`). 훅·비즈니스 로직은 `hooks/`, 상수는 `config/`, 순수 함수는 `<entity>.util.ts`로 `utils/`에(선례: `shared/utils/date.util.ts`·`common.util.ts` — 파일 접미사는 단수 `.util.ts`, 파일명은 함수명이 아니라 엔티티명). `ui/`에는 그 엔티티의 **시각적 표현**만 둔다 — 폼·버튼처럼 사용자가 무언가를 _하는_ 인터랙션 UI는 `features`에 둔다(출처: [FSD 공식 레이어 정의](https://feature-sliced.design/docs/reference/layers) — entities UI는 _"the visual representation... reused across several pages"_, features UI는 _"the UI to perform the interaction like a form"_) |
-| `widgets`, `features` | `hooks/`, `ui/`, `utils/`, `config/`                   | 컴포넌트가 하나라도 있으면 반드시 `ui/` 아래에 둔다 — 슬라이스 루트에 직접 두지 않는다                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `pages`               | 세그먼트 없음                                          | 페이지 컴포넌트를 슬라이스 폴더에 바로 둔다                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 레이어                | 허용 세그먼트                                                 | 규칙                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `entities`            | `api/`, `hooks/`, `model/`, `ui/`, `config/`, `utils/`, `@x/` | `model/`은 스키마·타입 정의 전용(`*.schema.ts`). 훅·비즈니스 로직은 `hooks/`, 상수는 `config/`, 순수 함수는 `<entity>.util.ts`로 `utils/`에(선례: `shared/utils/date.util.ts`·`common.util.ts` — 파일 접미사는 단수 `.util.ts`, 파일명은 함수명이 아니라 엔티티명). `ui/`에는 그 엔티티의 **시각적 표현**만 둔다 — 폼·버튼처럼 사용자가 무언가를 _하는_ 인터랙션 UI는 `features`에 둔다(출처: [FSD 공식 레이어 정의](https://feature-sliced.design/docs/reference/layers) — entities UI는 _"the visual representation... reused across several pages"_, features UI는 _"the UI to perform the interaction like a form"_). `@x/<참조하는-엔티티>.ts`는 다른 엔티티가 이 엔티티를 참조할 때 쓰는 교차 참조 표기(FSD 공식 관례, 2026-09-21 도입) — `docs/FE-ARCHITECTURE.md` §5 참고 |
+| `widgets`, `features` | `hooks/`, `ui/`, `utils/`, `config/`                          | 컴포넌트가 하나라도 있으면 반드시 `ui/` 아래에 둔다 — 슬라이스 루트에 직접 두지 않는다                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `pages`               | 세그먼트 없음                                                 | 페이지 컴포넌트를 슬라이스 폴더에 바로 둔다                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ### entities의 그룹 폴더
 
@@ -790,6 +803,22 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
 
 ---
 
+## 스킬 (`.claude/skills/`)
+
+각 절 본문에도 "그 skill을 먼저 읽는다"는 문장이 있다 — 이 표는 한눈에 보는
+인덱스일 뿐, 언제 읽는지의 정본은 각 skill 파일 자신이다.
+
+| 스킬                   | 언제 읽는가                                                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `design-tokens`        | 색상/배경/테두리·텍스트 크기·커서·다크모드·반경 클래스를 정할 때                                                        |
+| `responsive-ux`        | 모바일/데스크톱 UI를 만들거나 고칠 때, 고정(fixed/sticky) 요소를 배치할 때, hover 컨테이너 안에 드롭다운·팝오버를 둘 때 |
+| `motion-ux`            | 애니메이션·트랜지션 클래스를 붙이거나 exit 애니메이션이 있는 컴포넌트를 만들 때                                         |
+| `texts-conventions`    | `TEXTS.*`에 새 키를 추가하거나 성공 토스트 필요 여부를 판단할 때                                                        |
+| `changelog-release`    | feat/fix/perf 커밋 시, `CHANGELOG.md` 작성·릴리즈 시점                                                                  |
+| `browser-verification` | 커밋 전 UI 동작을 브라우저로 직접 확인해야 할 때                                                                        |
+
+---
+
 ## 프로젝트 공통 컨텍스트
 
 - **BE**: Spring Boot + Kotlin, port 8080, context-path `/api`
@@ -800,6 +829,13 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
 - **커밋 단위**: 대화 턴(요청)마다 나누지 않고, 논리적으로 완결된 기능·수정 단위로 나눈다.
   같은 기능을 다듬는 과정에서 나온 후속 수정(버그 픽스 포함)은 원래 커밋에 합치고,
   서로 무관한 변경끼리만 별도 커밋으로 분리한다.
+- **PR 머지는 항상 squash** — `gh pr merge <번호> --squash`. 저장소 설정(`allow_merge_commit`/
+  `allow_rebase_merge`)이 꺼져 있어 다른 방식은 API에서부터 막힌다(2026-09-22). 이유는
+  두 가지: (1) `main` 커밋 이력이 전부 `type(scope): 요약 (#PR번호)` 한 줄짜리라 CHANGELOG·
+  릴리즈 노트와 1:1로 대응한다. (2) `doc-drift-check.yml`(`scripts/check-doc-drift.js`)이
+  병합 PR 수를 셀 때 이 형식(정규식 `\(#\d+\)$`)으로 커밋 메시지를 매칭한다 — 병합
+  커밋("Merge pull request #N from ...")을 한 번 썼더니 이 카운터가 그 병합을 못 읽고
+  조용히 어긋난 사례가 있었다(#171-173, 트래킹 이슈 #99 상태 불일치로 발견).
 
 ---
 

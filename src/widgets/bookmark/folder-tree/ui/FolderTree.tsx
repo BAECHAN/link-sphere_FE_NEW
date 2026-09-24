@@ -255,7 +255,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
     // hover 시 카운트를 숨기는 방식도 검토했으나 겹침 처리보다 이 편이 단순하다.
     <div
       className={cn(
-        'group flex items-center rounded-md text-sm hover:bg-accent',
+        'group flex items-center rounded-md text-sm hover-or-open:bg-accent',
         selected && 'bg-accent font-medium'
       )}
     >
@@ -372,13 +372,13 @@ function Chip({ children, selected, onClick }: ChipProps) {
   return (
     <Button
       type="button"
-      variant="ghost"
+      variant="none"
       onClick={onClick}
       className={cn(
         'h-auto shrink-0 rounded-full border px-3 py-1.5 text-sm',
         selected
           ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90'
-          : 'bg-background border-input'
+          : 'bg-background border-input hover:bg-accent'
       )}
     >
       {children}

@@ -215,6 +215,38 @@ function checkLineRefsInBounds(file, lines, ignored) {
   });
 }
 
+// <details>/</details> 짝이 맞는지 검사한다. 안 맞으면 GitHub이 그 사이 마크다운을
+// 다음 항목까지 통째로 접어버린다. CHANGELOG.md에서 12건이 방치돼 있던 걸 계기로
+// 추가했다(2026-09-22).
+function checkDetailsBalance(file, lines) {
+  let depth = 0;
+  let openedAt = null;
+
+  lines.forEach((line, idx) => {
+    // 인라인 코드(예: 이 규칙 자체를 설명하며 `<details>`라고 백틱으로 감싸 언급하는
+    // 산문)는 실제 태그 사용이 아니므로 먼저 걷어내고 센다.
+    const stripped = line.replace(/`[^`]*`/g, '');
+
+    if (stripped.includes('<details>')) {
+      if (depth === 0) {
+        openedAt = idx + 1;
+      }
+
+      depth += 1;
+    }
+
+    if (stripped.includes('</details>')) {
+      depth -= 1;
+    }
+  });
+
+  if (depth > 0) {
+    reportError(file, openedAt, '<details>가 </details> 없이 닫히지 않음');
+  } else if (depth < 0) {
+    reportError(file, 1, '</details>가 <details>보다 많음 (짝이 안 맞음)');
+  }
+}
+
 function checkReadmeDocsSync() {
   const readmePath = path.join(ROOT, 'README.md');
   const readme = fs.readFileSync(readmePath, 'utf8');
@@ -272,6 +304,16 @@ function main() {
     checkPathsExist(relPath, absPath, lines, ignored);
     checkLineRefsInBounds(relPath, lines, ignored);
     checkLastReviewedFreshness(relPath, lines.join('\n'));
+    checkDetailsBalance(relPath, lines);
+  }
+
+  // CHANGELOG.md는 과거 리네임된 파일도 역사 기록으로 남기는 게 의도라 경로 존재 검사
+  // 대상(TARGET_FILES)에는 넣지 않지만, <details> 짝맞춤은 여기서도 그대로 유효하다.
+  {
+    const relPath = 'CHANGELOG.md';
+    const { lines } = readLinesWithIgnoreZones(path.join(ROOT, relPath));
+
+    checkDetailsBalance(relPath, lines);
   }
 
   checkReadmeDocsSync();

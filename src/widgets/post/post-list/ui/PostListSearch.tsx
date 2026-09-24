@@ -7,7 +7,7 @@ import { RotateCcw } from 'lucide-react';
 import { startTransition, useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { usePostListParams } from '@/widgets/post/post-list/hooks/usePostList';
-import { parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
+import { extractSearchTags, parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
 import { TEXTS } from '@/shared/config/texts';
 
@@ -112,11 +112,11 @@ export function PostListSearch() {
               name={category.value}
               label={`@${category.label}`}
               isActive={isSelected}
-              activeClassName="bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+              activeClassName="bg-primary text-primary-foreground"
               onClick={() => {
                 // 라벨 클릭 시 기존 자유 검색어는 초기화하고, 이미 선택된 @카테고리/#닉네임 태그만 유지한다.
                 const tag = `@${category.label}`;
-                const existingTags = searchQuery.match(/[@#]\S+/g) ?? [];
+                const existingTags = extractSearchTags(searchQuery);
                 const tagsWithoutSelf = existingTags.filter((t) => t !== tag);
                 const newTags = isSelected ? tagsWithoutSelf : [...tagsWithoutSelf, tag];
                 const newSearch = newTags.join(' ');
@@ -139,21 +139,21 @@ export function PostListSearch() {
         <FilterChip
           label={TEXTS.buttons.bookmarkOnly}
           isActive={isClickedBookmark}
-          activeClassName="bg-warning text-warning-foreground hover:bg-warning hover:text-warning-foreground"
+          activeClassName="bg-warning text-warning-foreground"
           onClick={() => handleToggleFilter('isBookmarked')}
         />
 
         <FilterChip
           label={TEXTS.buttons.myPosts}
           isActive={isClickedMyPosts}
-          activeClassName="bg-info text-info-foreground hover:bg-info hover:text-info-foreground"
+          activeClassName="bg-info text-info-foreground"
           onClick={() => handleToggleFilter('isMyPosts')}
         />
 
         <FilterChip
           label={TEXTS.buttons.privateOnly}
           isActive={isClickedPrivate}
-          activeClassName="bg-category text-category-foreground hover:bg-category hover:text-category-foreground"
+          activeClassName="bg-category text-category-foreground"
           onClick={() => handleToggleFilter('isPrivate')}
         />
       </div>

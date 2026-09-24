@@ -196,7 +196,11 @@ describe('usePostList — 정지 구간(v7_startTransition) 중 필터 조작', 
     });
   });
 
-  it('시나리오 C(고정): 로딩 중 같은 필터를 재클릭하면 정상적으로 취소된다', async () => {
+  it('시나리오 C: 로딩 중 같은 필터를 즉시 재클릭하면 무의식적 더블클릭으로 보고 무시한다', async () => {
+    // 과거(고정 이력)에는 이 시나리오가 "즉시 재클릭 = 취소"를 검증했으나, useClickGuard
+    // (useClickGuard.ts) 도입으로 그 계약이 바뀌었다 - 즉시 재클릭은 의식적으로 인지하고
+    // 다시 누른 게 아니라 무의식적 중복 클릭으로 보고 무시한다(docs/DECISIONS.md 참고).
+    // "충분한 시간 뒤 재클릭하면 취소된다"는 아래 시나리오 C-2가 검증한다.
     const { getGate, inOrder } = createGateRegistry();
     mockGatedPostList(getGate);
     const user = userEvent.setup();
@@ -211,11 +215,38 @@ describe('usePostList — 정지 구간(v7_startTransition) 중 필터 조작', 
     // 아직 커밋 전 — 정지 구간 안임을 확인
     expect(screen.getByTestId('location-search')).toHaveTextContent('');
 
+    // 가드가 이 두 번째 클릭 자체를 막으므로 새 게이트가 생기지 않는다.
+    await user.click(screen.getByRole('button', { name: TEXTS.buttons.bookmarkOnly }));
+    await releaseAllGates(inOrder);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location-search')).toHaveTextContent('filter=isBookmarked')
+    );
+  });
+
+  it('시나리오 C-2: 충분한 시간(400ms) 뒤 같은 필터를 재클릭하면 정상적으로 취소된다', async () => {
+    const { getGate, inOrder } = createGateRegistry();
+    mockGatedPostList(getGate);
+    const user = userEvent.setup();
+
+    renderPostList('/');
+    await waitForGateCount(inOrder, 1);
+    await releaseAllGates(inOrder);
+    await screen.findByTestId('post-count');
+
+    await user.click(screen.getByRole('button', { name: TEXTS.buttons.bookmarkOnly }));
+    await waitForGateCount(inOrder, 2);
+    await releaseAllGates(inOrder);
+    await waitFor(() =>
+      expect(screen.getByTestId('location-search')).toHaveTextContent('filter=isBookmarked')
+    );
+
+    // useClickGuard(400ms, useClickGuard.ts)가 그보다 짧은 재클릭을 무의식적 중복
+    // 클릭으로 보고 무시하므로, 그 임계값을 넘는 지연을 둔다.
+    await new Promise((resolve) => setTimeout(resolve, 450));
+
     // 재클릭의 목적지(filter 없음)는 초기 로드와 같은 쿼리 키라 캐시 히트로 새 네트워크
     // 요청 자체가 안 생길 수 있다 - 게이트 개수를 강제하지 않고 남은 미해결 게이트만 연다.
-    // FilterChip의 useClickGuard(8ms, useClickGuard.ts)가 채터링성 재클릭만 걸러내므로
-    // 사람의 실제 재클릭 속도를 반영해 그보다 긴 지연을 둔다.
-    await new Promise((resolve) => setTimeout(resolve, 20));
     await user.click(screen.getByRole('button', { name: TEXTS.buttons.bookmarkOnly }));
     await releaseAllGates(inOrder);
 

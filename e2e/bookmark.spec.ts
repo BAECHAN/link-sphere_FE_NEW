@@ -12,6 +12,7 @@ import { ENDPOINTS } from './mocks/endpoints';
 import { mockPost, mockPostListResponse } from '@/mocks/fixtures/post.fixtures';
 import { mockBookmarkFolder } from '@/mocks/fixtures/bookmark-folder.fixtures';
 import { TEXTS } from '@/shared/config/texts';
+import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 /**
  * useAddBookmarkFolderMutation은 onMutate에서 낙관적 패치를 하지만, 성공 후
@@ -105,6 +106,12 @@ test.describe('로그인 상태 — 게시글을 북마크 폴더에 저장', ()
     const listRefetch = page.waitForResponse(
       (res) => new URL(res.url()).pathname === '/api/post' && res.status() === 200
     );
+
+    // useOpenClickGuard(BookmarkFolderSelectModal.tsx)가 모달이 뜬 직후 DOUBLE_CLICK_GUARD_MS
+    // 동안의 클릭을 더블클릭 관통으로 보고 무시한다 — 이 가드는 클릭 자체를 삼키므로
+    // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(account-update.spec.ts:29의
+    // "waitForTimeout 대신 waitForResponse" 원칙에 대한 명시적 예외).
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 
     // 폴더 행 탭 = 즉시 저장(PostCardBookmarkFolderModal.tsx) — 저장 성공 후 모달이 닫힌다
     await folderModal.getByRole('button', { name: mockBookmarkFolder.name }).click();

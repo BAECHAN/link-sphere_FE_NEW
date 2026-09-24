@@ -3,7 +3,7 @@
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
 > 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지 설명할 수 있게 됩니다.
-> **마지막 검토**: 2026-09-21
+> **마지막 검토**: 2026-09-22
 
 ---
 
@@ -134,12 +134,13 @@ RootLayout
 
 ## 7. 운영 파라미터
 
-| 파라미터                                  | 값                                                        | 위치                                             |
-| ----------------------------------------- | --------------------------------------------------------- | ------------------------------------------------ |
-| 액세스 토큰 만료 판정 여유 마진           | 30초(BE가 아직 유효하다고 볼 시각이어도 FE는 만료로 간주) | `src/shared/utils/auth.util.ts:24`               |
-| 계정 정보(`accountKeys.root`) `staleTime` | 1일(`STALE_TIME_ONE_DAY`)                                 | `src/entities/account/api/account.queries.ts:30` |
-| 동시 401 발생 시 실제 refresh 호출 횟수   | 항상 1회(리더-팔로워 큐잉, §9)                            | `src/shared/api/client.ts:160-188`               |
-| refresh 재시도 상한                       | **없음** — §11 참고                                       | `src/shared/api/client.ts:85`                    |
+| 파라미터                                   | 값                                                        | 위치                                             |
+| ------------------------------------------ | --------------------------------------------------------- | ------------------------------------------------ |
+| 액세스 토큰 만료 판정 여유 마진            | 30초(BE가 아직 유효하다고 볼 시각이어도 FE는 만료로 간주) | `src/shared/utils/auth.util.ts:21`               |
+| 계정 정보(`accountKeys.root`) `staleTime`  | 1일(`STALE_TIME_ONE_DAY`)                                 | `src/entities/account/api/account.queries.ts:30` |
+| 동시 401 발생 시 실제 refresh 호출 횟수    | 항상 1회(리더-팔로워 큐잉, §9)                            | `src/shared/api/client.ts:160-188`               |
+| refresh 재시도 상한                        | **없음** — §11 참고                                       | `src/shared/api/client.ts:85`                    |
+| 로그아웃 직후 유예 시간(`LOGOUT_GRACE_MS`) | 2초 — §8-E 참고                                           | `src/shared/utils/logout-grace.util.ts:25`       |
 
 ---
 
@@ -196,7 +197,7 @@ client.ts:205       if (!AuthUtil.isLoggingOut()) AuthUtil.clearAll()
 
 `TOKEN_EXPIRED`는 "재시도하면 회복 가능"(리프레시), `NOT_LOGGED_IN`/`INVALID_TOKEN`은 "회복 불가능"(즉시 로그아웃)이라는 서로 다른 처방을 받습니다. 이 구분은 `error-code.ts:3-5`에서 코드 자체가 나뉘어 있는 것과 일치합니다.
 
-`src/shared/lib/react-query/config/queryClient.ts`의 전역 에러 핸들러는 `NOT_LOGGED_IN`(`:54`, `:125`)·`INVALID_TOKEN`(같은 줄)·`ACCESS_DENIED`(`:66`, `:133`)·`EDGE_BLOCKED`(`:42`, `:115`)·404(`:140`, query만)는 다루지만 **`TOKEN_EXPIRED`는 다루지 않습니다.** 실수가 아니라 설계입니다 — `client.ts`가 그 코드를 절대 밖으로 흘리지 않기(재시도하거나 영구 pending) 때문에 다룰 필요가 없습니다.
+`src/shared/lib/react-query/config/error-toast.ts`의 `resolveErrorToast()`(mutation·query 전역 에러 핸들러가 공유하는 판정 함수, `queryClient.ts`가 호출)는 `NOT_LOGGED_IN`·`INVALID_TOKEN`·`ACCESS_DENIED`·`EDGE_BLOCKED`·404(query 정책만 — `ErrorToastPolicy.skipNotFound`)는 다루지만 **`TOKEN_EXPIRED`는 다루지 않습니다.** 실수가 아니라 설계입니다 — `client.ts`가 그 코드를 절대 밖으로 흘리지 않기(재시도하거나 영구 pending) 때문에 다룰 필요가 없습니다.
 
 ### 8-C. 부트스트랩 (새로고침·최초 로드)
 
@@ -290,9 +291,14 @@ error여도 정상적으로 재요청됩니다. 반면 **Suspense 훅**(`useSusp
 아무것도 알리지 않지만, 이 경로는 뒤따르는 `navigate()`가 그 화면을 통째로
 언마운트시키므로 무해합니다.
 
-`isLoggingOut()`(`auth.util.ts`)은 두 경로 모두의 "로그아웃 직후 구간"을 하나로
+`isLoggingOut()`은 두 경로 모두의 "로그아웃 직후 구간"을 하나로
 묶어 판단합니다 — 제자리 로그아웃은 `resetQueries()` Promise가 도는 동안,
 이동 수반 로그아웃은 `clearedAt` 이후 유예 시간(`LOGOUT_GRACE_MS`, 2초) 동안.
+`AuthUtil.isLoggingOut()`(`auth.util.ts`)은 얇은 위임일 뿐, `loggingOut`/`clearedAt`
+상태 자체와 `LOGOUT_GRACE_MS`는 의존성이 없는 `logout-grace.util.ts`에 있습니다 —
+`error-toast.ts`의 `resolveErrorToast()`(§8-B, mutation·query 전역 에러 핸들러가 공유하는
+판정 함수)가 `AuthUtil`을 거치지 않고 이 파일을 직접 참조해, `queryClient.ts` ↔
+`auth.util.ts` 순환 참조를 만들지 않기 위해서입니다.
 이동 수반 로그아웃은 배경 재요청 자체가 없는데도 유예 창이 필요한 이유는,
 로그아웃 시점에 **이미 떠 있던 요청**(어떤 queryFn도 `AbortSignal`을 `apiClient`에
 넘기지 않아 `cancelQueries()`로도 실제로 끊기지 않습니다)의 401이 뒤늦게 돌아올
@@ -331,13 +337,13 @@ predicate가 더 이상 매칭되지 않아 아무것도 다시 부르지 않습
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                     | 건드릴 파일                                                                                                                                               |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 새 보호 페이지 추가              | `route-paths.ts`에 경로 추가 → `route-paths.ts:28-35` `isProtectedPath`에 prefix 추가 → `routes/index.tsx`의 Protected Content Group에 라우트 등록        |
-| 로그인 필요한 새 액션(버튼) 추가 | `useAuthGuard()`로 액션을 감싸기(§8-D 패턴)                                                                                                               |
-| 로그인 필요한 새 이동(링크) 추가 | `useProtectedNavigate()` 사용, 또는 `nav-items.ts`에 `requiresAuth: true` 항목 추가                                                                       |
-| 새 401 에러 코드 처리 추가       | `error-code.ts`에 상수 추가 → `client.ts:196` 분기 또는 `queryClient.ts`의 전역 핸들러에 분기 추가(그 코드가 재시도 가능한지/즉시 로그아웃인지 먼저 결정) |
-| 새 Suspense 조회 화면 추가       | `useSuspenseQuery`/`useSuspenseInfiniteQuery`는 캐시가 error면 재마운트해도 재요청하지 않는다 — §8-E의 로그인 리셋이 전제다                               |
+| 하고 싶은 것                     | 건드릴 파일                                                                                                                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 새 보호 페이지 추가              | `route-paths.ts`에 경로 추가 → `route-paths.ts:28-35` `isProtectedPath`에 prefix 추가 → `routes/index.tsx`의 Protected Content Group에 라우트 등록                  |
+| 로그인 필요한 새 액션(버튼) 추가 | `useAuthGuard()`로 액션을 감싸기(§8-D 패턴)                                                                                                                         |
+| 로그인 필요한 새 이동(링크) 추가 | `useProtectedNavigate()` 사용, 또는 `nav-items.ts`에 `requiresAuth: true` 항목 추가                                                                                 |
+| 새 401 에러 코드 처리 추가       | `error-code.ts`에 상수 추가 → `client.ts:196` 분기 또는 `error-toast.ts`의 `resolveErrorToast()`에 분기 추가(그 코드가 재시도 가능한지/즉시 로그아웃인지 먼저 결정) |
+| 새 Suspense 조회 화면 추가       | `useSuspenseQuery`/`useSuspenseInfiniteQuery`는 캐시가 error면 재마운트해도 재요청하지 않는다 — §8-E의 로그인 리셋이 전제다                                         |
 
 ---
 
