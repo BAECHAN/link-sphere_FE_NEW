@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `shared` 드롭다운 메뉴가 열려 있어도 스크롤되고, 스크롤하면 닫히게 변경
+  <details><summary>배경·구현</summary>
+
+  계정 메뉴 등 드롭다운이 열려 있는 동안 페이지 스크롤이 막혔다 — Radix `DropdownMenu`의 기본값 `modal={true}`가 `react-remove-scroll`을 걸기 때문이다. 공용 래퍼의 `modal` 기본값을 `false`로 바꿔 스크롤을 허용하고, 스크롤하면 메뉴가 닫히게 했다(메뉴 내부 스크롤은 제외, 스크롤로 닫힐 때는 트리거로 포커스를 돌리지 않음). 바깥 첫 클릭·탭은 투명 오버레이가 받아 메뉴만 닫고 아래 게시글 카드 등으로 전달하지 않는다 — 게시글 ⋮ 메뉴도 이 동작으로 통일된다. A(첫 클릭은 닫기만)와 B(클릭 통과)의 근거 비교는 `docs/DECISIONS.md` 2026-09-24 항목 참고. 북마크 정렬 `Select`는 Radix가 스크롤 잠금을 조건 없이 걸어 이번 범위에서 제외했다.
+  (`src/shared/ui/atoms/dropdown-menu.tsx`, `e2e/dropdown-menu-scroll.spec.ts`(신규), `e2e/dropdown-menu-scroll.mobile.spec.ts`(신규), `e2e/bookmark-folder-menu-press-drag.spec.ts`, `docs/DECISIONS.md`, `docs/plans/2026-09-24-dropdown-scroll-dismiss.md`(신규), [PR #178](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/178))
+
+  </details>
+
 - `shared` React Query 전역 에러 핸들러 중복 제거, 로그아웃 레이스 처리 통일
   <details><summary>배경·구현</summary>
 

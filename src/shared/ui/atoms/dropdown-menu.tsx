@@ -4,11 +4,13 @@ import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { Check, ChevronRight, Circle } from 'lucide-react';
 
 import { cn } from '@/shared/lib/tailwind/utils';
-import { createContext, forwardRef, useContext, useState } from 'react';
+import { createContext, forwardRef, useContext, useEffect, useRef, useState } from 'react';
 
 interface DropdownMenuOpenContextValue {
   open: boolean;
   setOpen: (open: boolean) => void;
+  contentRef: React.MutableRefObject<HTMLDivElement | null>;
+  closedByScrollRef: React.MutableRefObject<boolean>;
 }
 
 /**
@@ -21,14 +23,22 @@ interface DropdownMenuOpenContextValue {
  */
 const DropdownMenuOpenContext = createContext<DropdownMenuOpenContextValue | null>(null);
 
+/**
+ * modal 기본값을 Radix와 반대로 false로 둔다 — modal이면 react-remove-scroll이 걸려 메뉴가
+ * 열린 동안 페이지 스크롤이 잠긴다. 대신 스크롤하면 메뉴를 닫고, 바깥 클릭은
+ * DropdownMenuContent의 오버레이가 흡수한다(docs/DECISIONS.md 2026-09-24).
+ */
 const DropdownMenu = ({
   open: openProp,
   defaultOpen,
   onOpenChange,
+  modal = false,
   ...props
 }: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Root>) => {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen ?? false);
   const open = openProp ?? uncontrolledOpen;
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const closedByScrollRef = useRef(false);
 
   const setOpen = (next: boolean) => {
     if (openProp === undefined) {
@@ -38,9 +48,34 @@ const DropdownMenu = ({
     onOpenChange?.(next);
   };
 
+  const setOpenRef = useRef(setOpen);
+  setOpenRef.current = setOpen;
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleScroll = (event: Event) => {
+      // 메뉴 자신이 overflow-y-auto라 긴 메뉴의 내부 스크롤로는 닫지 않는다.
+      if (event.target instanceof Node && contentRef.current?.contains(event.target)) {
+        return;
+      }
+
+      closedByScrollRef.current = true;
+      setOpenRef.current(false);
+    };
+
+    document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+
+    return () => {
+      document.removeEventListener('scroll', handleScroll, { capture: true });
+    };
+  }, [open]);
+
   return (
-    <DropdownMenuOpenContext.Provider value={{ open, setOpen }}>
-      <DropdownMenuPrimitive.Root {...props} open={open} onOpenChange={setOpen} />
+    <DropdownMenuOpenContext.Provider value={{ open, setOpen, contentRef, closedByScrollRef }}>
+      <DropdownMenuPrimitive.Root {...props} modal={modal} open={open} onOpenChange={setOpen} />
     </DropdownMenuOpenContext.Provider>
   );
 };
@@ -121,20 +156,60 @@ DropdownMenuSubContent.displayName = DropdownMenuPrimitive.SubContent.displayNam
 const DropdownMenuContent = forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <DropdownMenuPrimitive.Portal>
-    <DropdownMenuPrimitive.Content
-      ref={ref}
-      data-slot="dropdown-menu-content"
-      sideOffset={sideOffset}
-      className={cn(
-        'bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-popover max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md',
-        className
-      )}
-      {...props}
-    />
-  </DropdownMenuPrimitive.Portal>
-));
+>(({ className, sideOffset = 4, onCloseAutoFocus, ...props }, ref) => {
+  const openContext = useContext(DropdownMenuOpenContext);
+
+  return (
+    <>
+      {/* 바깥 첫 클릭은 메뉴만 닫고 아래 요소(게시글 카드 등)로 전달하지 않는다. pointerdown을
+          Radix의 document 리스너까지 보내면 그 자리에서 메뉴·오버레이가 사라져 뒤이은 click이
+          아래 요소로 떨어지므로, 여기서 멈추고 오버레이 자신의 click에서 닫는다.
+          Portal은 asChild(Slot)라 자식을 하나만 받으므로 Content와 별도 Portal에 둔다. */}
+      <DropdownMenuPrimitive.Portal>
+        <div
+          aria-hidden="true"
+          className="fixed inset-0 z-popover"
+          onPointerDown={(event) => {
+            event.stopPropagation();
+            event.preventDefault();
+          }}
+          onClick={() => openContext?.setOpen(false)}
+        />
+      </DropdownMenuPrimitive.Portal>
+      <DropdownMenuPrimitive.Portal>
+        <DropdownMenuPrimitive.Content
+          ref={(node) => {
+            if (openContext) {
+              openContext.contentRef.current = node;
+            }
+
+            if (typeof ref === 'function') {
+              ref(node);
+            } else if (ref) {
+              (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+            }
+          }}
+          data-slot="dropdown-menu-content"
+          sideOffset={sideOffset}
+          className={cn(
+            'bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-popover max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md',
+            className
+          )}
+          onCloseAutoFocus={(event) => {
+            onCloseAutoFocus?.(event);
+
+            // 스크롤로 닫혔을 때 트리거로 포커스를 돌리면 focus()가 트리거 위치로 스크롤을 되돌린다.
+            if (openContext?.closedByScrollRef.current) {
+              openContext.closedByScrollRef.current = false;
+              event.preventDefault();
+            }
+          }}
+          {...props}
+        />
+      </DropdownMenuPrimitive.Portal>
+    </>
+  );
+});
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
 
 const DropdownMenuItem = forwardRef<

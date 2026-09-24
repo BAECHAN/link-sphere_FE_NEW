@@ -43,9 +43,8 @@ test.describe('북마크 폴더 ⋮ 메뉴 — press-drag-release', () => {
 
     const trigger = page.getByRole('button', { name: TEXTS.ariaLabels.folderMenu });
 
-    // 트리거 좌표는 메뉴를 열기 전에 먼저 구한다 — FolderTree의 DropdownMenu는 modal이라
-    // 열리면 MenuRootContentModal이 hideOthers()로 트리거를 포함한 나머지 트리 전체에
-    // aria-hidden을 걸어(react-menu/dist/index.mjs) getByRole로 더 이상 찾을 수 없다.
+    // 트리거 좌표는 메뉴를 열기 전에 먼저 구한다 — 메뉴가 열리면 바깥 클릭을 흡수하는
+    // 투명 오버레이(dropdown-menu.tsx)가 트리거를 덮어 locator 기반 조작이 막힌다.
     const triggerBox = await trigger.boundingBox();
 
     if (!triggerBox) {
