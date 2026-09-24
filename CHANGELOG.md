@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `bookmark` 폴더 트리의 "최근 저장한 폴더"·"내 폴더" 라벨이 드래그해도 선택되지 않게 변경
+  <details><summary>배경·구현</summary>
+
+  플레이스홀더 드래그 선택 하이라이트를 고친 직후, 같은 화면의 폴더 트리 섹션 라벨("최근 저장한 폴더", "내 폴더")도 드래그하면 선택된다는 지적을 받았다. 실제 폴더 항목 버튼은 전역 select-none 규칙(`button` 태그 대상)으로 이미 커버됐지만, 두 섹션 라벨은 `<div>`(데스크톱)·`<h2>`(모바일)라 그 규칙 밖에 있었다. 2026-09-21 폴더 이름 `<h1>`에 적용한 것과 같은 방식으로, 전역 규칙에 안 걸리는 개별 예외에 `select-none`을 직접 붙였다.
+  (`src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`)
+
+  </details>
+
 - `shared` 입력창 placeholder가 드래그 선택 하이라이트에 잡히지 않게 변경
   <details><summary>배경·구현</summary>
 

@@ -69,7 +69,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
         {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 */}
         {recentFolderList.length > 0 && (
           <>
-            <div className="px-3 pt-1 pb-1 text-group-label text-muted-foreground">
+            <div className="px-3 pt-1 pb-1 text-group-label text-muted-foreground select-none">
               {TEXTS.bookmark.folder.recentSection}
             </div>
             {recentFolderList.map((folder) => (
@@ -98,7 +98,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
             (2026-09-22) — 전에는 라벨이 스크롤 영역 안에 있어 스크롤하면 라벨도 같이
             밀려 올라갔다. */}
         {(folderList?.length ?? 0) > 0 && (
-          <div className="px-3 pt-1 pb-1 text-group-label text-muted-foreground">
+          <div className="px-3 pt-1 pb-1 text-group-label text-muted-foreground select-none">
             {TEXTS.bookmark.folder.myFolders}
           </div>
         )}
