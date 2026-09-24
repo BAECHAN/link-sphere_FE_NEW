@@ -111,6 +111,14 @@
 
 ### Fixed
 
+- `shared` 모바일에서 Select 트리거를 다시 탭하면 닫혔다가 다시 열리던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  모바일 실기기에서 북마크 정렬 `Select`를 닫으려고 트리거를 다시 탭하면, 닫혔다가 곧바로 다시 열린다는 제보가 있었다. 크롬 에뮬레이션에서는 재현되지 않았다(열려 있는 동안 body에 `pointer-events: none`이 걸려 두 번째 탭이 `HTML`에 떨어짐). 유력한 원인은 Radix Select가 한 번의 탭을 바깥 감지(닫기)와 트리거 click(열기)으로 따로 받는 것이다. `select.tsx`의 `Select`를 제어형 래퍼로 바꿔 닫힌 뒤 400ms 안의 열기 요청은 무시하게 했다(닫기는 항상 반영). 400ms는 `useClickGuard`와 같은 기준(무의식적 중복과 의식적 재입력의 구분)이라 상수 `CLICK_GUARD_MS`로 추출해 함께 쓴다. `DropdownMenu`와 합치거나 네이티브 `<select>`로 바꾸지 않은 이유는 `docs/DECISIONS.md` 2026-09-24 "드롭다운 컨트롤 구분" 항목 참고.
+  (`src/shared/ui/atoms/select.tsx`, `src/shared/ui/atoms/select.test.tsx`(신규), `src/shared/hooks/useClickGuard.ts`, `docs/plans/2026-09-24-select-reopen-guard.md`(신규), [PR #183](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/183))
+
+  </details>
+
 - `shared` 카드·폴더 행 드롭다운이 열려 있는 동안 hover 스타일이 풀리던 문제 수정
   <details><summary>배경·구현</summary>
 
