@@ -32,3 +32,11 @@ export const LOADING_INDICATOR_MIN_DURATION_MS = 400;
 // confirmation dialogs.").
 /** 파괴적 조작의 되돌리기 토스트 노출 시간 */
 export const UNDO_TOAST_DURATION_MS = 8000;
+
+// "무의식적인 중복 클릭/탭"과 "의식적으로 다시 누른 것"을 가르는 값. Windows 더블클릭 속도
+// 기본값(500ms)과 사람의 단순 시각 반응시간(평균 200~273ms) 사이에서 400ms로 재조정했다
+// (2026-09-21, docs/DECISIONS.md). useClickGuard(같은 핸들러의 재호출 가드)와
+// useOpenClickGuard(모달 등이 열린 직후 클릭 가드)가 함께 쓴다 — 두 가드가 서로 다른
+// 값으로 어긋나지 않도록 SSOT로 둔다.
+/** 무의식적 중복 클릭/탭으로 보고 무시하는 시간 */
+export const DOUBLE_CLICK_GUARD_MS = 400;

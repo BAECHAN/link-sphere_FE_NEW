@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 /**
  * 짧은 시간 안의 재클릭을 "무의식적인 중복 클릭"으로 보고 무시하는 가드 훅. 토글
@@ -14,10 +15,10 @@ import { useCallback, useRef } from 'react';
  * 이라 400ms도 "결과를 보고 판단해서 다시 누르기로 결정"하는 데 걸리는 시간보다
  * 충분히 크면서, 500ms보다는 응답성이 좋다(2026-09-21 재조정, docs/DECISIONS.md 참고).
  *
- * @param thresholdMs - 이 시간(ms) 이내의 재호출은 무시한다 (기본값 400ms)
+ * @param thresholdMs - 이 시간(ms) 이내의 재호출은 무시한다 (기본값 DOUBLE_CLICK_GUARD_MS)
  * @returns 호출 시점이 임계값을 넘었으면 true(진행), 아니면 false(무시)
  */
-export function useClickGuard(thresholdMs: number = 400) {
+export function useClickGuard(thresholdMs: number = DOUBLE_CLICK_GUARD_MS) {
   const lastCallRef = useRef(0);
 
   return useCallback(() => {

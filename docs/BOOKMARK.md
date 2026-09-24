@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-09-21
+> **마지막 검토**: 2026-09-24
 
 ## 1. 쉬운 설명
 
@@ -165,6 +165,26 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 모든 폴더에 **동일한 ✓ 아이콘**이 표시된다(다중 선택 UI가 아니라, 탭할 때마다 즉시
 반영되는 토글 방식).
 
+### 열린 직후 클릭 무시(더블클릭 관통 방지, 2026-09-24)
+
+`BookmarkFolderSelectModal`은 열린 뒤 `DOUBLE_CLICK_GUARD_MS`(400ms,
+`shared/config/const.ts`) 동안의 클릭을 무시한다. 트리거(`BookmarkPostButton`·
+`PostCreateBookmarkFolderField`의 버튼)를 더블클릭/더블탭하면 두 번째 클릭이 방금
+뜬 모달의 폴더 행 위에 떨어져 의도치 않게 저장/삭제되는 문제가 있었다 — 모바일
+바텀시트는 화면 하단 70vh를 덮고, 데스크톱 중앙 모달도 폼 가운데의 트리거와
+겹친다. 같은 원리로 두 번째 클릭이 모달 바깥(오버레이)에 떨어지면 열리자마자
+닫히는 변형 증상도 있었다.
+
+`useOpenClickGuard(open)`(`shared/hooks/useOpenClickGuard.ts`)가 `open`이 `true`가
+된 시점을 기준으로 가드 여부를 반환한다. `useClickGuard`(연타 방지, §5 위 문서
+아님 — `shared/hooks/useClickGuard.ts`)와 시계 기준이 다르다: `useClickGuard`는
+가드 함수 자신의 마지막 통과 시점을, `useOpenClickGuard`는 `open` prop의 전이
+시점을 기준으로 삼는다 — 이 모달은 행·새 폴더 만들기·확인·destructive 버튼처럼
+서로 다른 여러 요소가 위험군이라 "같은 핸들러의 재호출"이 아니라 "열린 직후"를
+가드해야 하기 때문이다. `BookmarkFolderSelectModal.tsx`의 `SheetDialogContent`에
+`onClickCapture`(모달 안 클릭 차단)와 `onPointerDownOutside`(오버레이 클릭 차단)로
+배선돼 있다.
+
 ### 새 폴더 만들기 인라인 폼의 취소(2026-09-21)
 
 "새 폴더 만들기"를 탭한 뒤 이름을 입력하면 폼에서 빠져나갈 방법이 없었다(Escape로도
@@ -291,11 +311,12 @@ CLAUDE.md의 `new Date()`/`.getTime()` 금지 규칙에 맞춰 `new Date(value)`
 
 "최근 저장한 폴더" 상단 구획 노출 기준.
 
-| 파라미터                                     | 값  | 실제 위치                                                                                   |
-| -------------------------------------------- | --- | ------------------------------------------------------------------------------------------- |
-| 상단 구획 노출 최소 "저장 이력 있는" 폴더 수 | 3   | `pickRecentFolders`(`entities/bookmark/folder/utils/bookmark-folder.util.ts`)               |
-| 상단 구획 노출 제외 조건(완전 일치)          | —   | 전체 폴더 수가 `RECENT_BOOKMARK_FOLDER_COUNT`(3)와 같을 때만 예외로 숨김(아래 설명)         |
-| 상단 구획 고정 노출 개수                     | 3   | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT` |
+| 파라미터                                     | 값    | 실제 위치                                                                                   |
+| -------------------------------------------- | ----- | ------------------------------------------------------------------------------------------- |
+| 상단 구획 노출 최소 "저장 이력 있는" 폴더 수 | 3     | `pickRecentFolders`(`entities/bookmark/folder/utils/bookmark-folder.util.ts`)               |
+| 상단 구획 노출 제외 조건(완전 일치)          | —     | 전체 폴더 수가 `RECENT_BOOKMARK_FOLDER_COUNT`(3)와 같을 때만 예외로 숨김(아래 설명)         |
+| 상단 구획 고정 노출 개수                     | 3     | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT` |
+| 열린 직후 클릭 무시 시간                     | 400ms | `shared/config/const.ts`의 `DOUBLE_CLICK_GUARD_MS`(위 "열린 직후 클릭 무시" 소절)           |
 
 둘 다 만족해야 상단 구획이 뜬다(0개 아니면 3개, 1~2개인 중간 상태는 없음) — 개수가
 흔들리면 아래 본 목록의 시작 위치도 흔들리기 때문이다.

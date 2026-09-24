@@ -243,6 +243,16 @@
 
   </details>
 
+### Fixed
+
+- `bookmark` 북마크 폴더 선택 모달을 더블클릭/더블탭하면 두 번째 클릭이 방금 뜬 행에 떨어지던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  등록 폼(`PostCreateBookmarkFolderField`)·게시글 카드(`BookmarkPostButton`)의 북마크 트리거를 더블클릭/더블탭하면 두 번째 클릭이 방금 뜬 `BookmarkFolderSelectModal`의 폴더 행 위에 떨어져 의도치 않게 저장/삭제되는 오탭이 있었다. 모바일 바텀시트는 화면 하단 70vh를 덮고, 데스크톱 중앙 모달도 폼 가운데의 트리거와 겹쳐서 생기는 문제다. `useOpenClickGuard`(신규) 훅이 모달이 열린 뒤 `DOUBLE_CLICK_GUARD_MS`(400ms, 기존 `useClickGuard`의 임계값과 같은 상수로 통합) 동안의 클릭을 무시한다 — `useClickGuard`(같은 핸들러의 재호출 기준)와 달리 `open` prop의 전이 시점을 기준으로 삼아, 행·새 폴더 만들기·확인·destructive 버튼처럼 서로 다른 여러 요소를 한 번에 가드한다. 모달 바깥(오버레이)에 두 번째 클릭이 떨어져 열리자마자 닫히는 변형 증상도 같은 가드로 함께 막는다.
+  (`src/shared/hooks/useOpenClickGuard.ts`(신규), `src/shared/hooks/useOpenClickGuard.test.ts`(신규), `src/shared/config/const.ts`, `src/shared/hooks/useClickGuard.ts`, `src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `e2e/bookmark.spec.ts`, `docs/BOOKMARK.md`, `docs/plans/2026-09-24-bookmark-modal-and-dropdown-trigger-click-fixes.md`(신규))
+
+  </details>
+
 ## [0.15.0] - 2026-09-21
 
 ### Added
