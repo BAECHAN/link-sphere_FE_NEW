@@ -509,6 +509,16 @@ Licensed under the SIL Open Font License, Version 1.1. http://scripts.sil.org/OF
   }
 }
 
+/* placeholder는 안내 문구라 복사 대상이 아니다. 네이티브 placeholder는 원래
+   선택 문자열에 포함되지 않지만, Chromium·WebKit은 페이지를 가로질러 드래그하면
+   하이라이트를 칠해 선택된 것처럼 보인다. input 자체가 아니라 의사 요소에만
+   걸어 입력값 선택·타이핑은 건드리지 않는다. */
+@layer base {
+  ::placeholder {
+    @apply select-none;
+  }
+}
+
 /* 하단 toast는 모바일 하단 탭바(h-16 + safe-area) 위로 띄운다.
    sonner의 모바일 CSS는 600px 기준이지만 탭바는 md(768px) 기준이라 변수로 직접 맞춘다. */
 :root {
