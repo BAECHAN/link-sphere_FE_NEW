@@ -30,7 +30,7 @@ test.describe('북마크 폴더 삭제', () => {
           ),
         })
     );
-    // reorder(PATCH /bookmark/folders/reorder)와 정규식이 겹치므로 method 가드를 둔다 —
+    // 폴더 이름변경(PATCH /bookmark/folders/{folderId})과 정규식이 겹치므로 method 가드를 둔다 —
     // 이 스펙에선 안 쓰지만 미래에 조용히 잘못 매칭되지 않게.
     await page.route(
       (url) => /^\/api\/bookmark\/folders\/[^/]+$/.test(url.pathname),
