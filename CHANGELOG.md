@@ -35,6 +35,14 @@
 
 ### Fixed
 
+- `shared` 검색창 X 버튼을 누르면 포커스가 사라지던 문제 수정, 헤더 검색 X도 북마크처럼 검색을 해제하도록 통일
+  <details><summary>배경·구현</summary>
+
+  X 버튼은 값이 있을 때만 렌더돼 클릭한 순간 자신이 사라지며 포커스가 `<body>`로 떨어졌다 — [GitLab Pajamas](https://design.gitlab.com/accessibility/focus-management/)가 정리하는 _"Focus is lost when the focused element is removed from the document object model (DOM)."_ 그대로다. 표준 해법은 입력창으로 포커스를 되돌리는 것으로, [Scott O'Hara의 Clear Text Field Button](https://scottaohara.github.io/clear-text-field-button/) 패턴 문서가 _"...focus being placed into the text field."_ 라고 규정하고, Shoelace 메인테이너도 같은 지적을 받고 이 문서를 선례로 인용해 고쳤다([discussion #1905](https://github.com/shoelace-style/shoelace/discussions/1905)). 공통 `Input` atom의 `onClear` 경로에 포커스 복원을 내장해 북마크 검색과 `FormInput.enableClear`를 함께 해결하고, 헤더(데스크톱·모바일)는 `Input`의 `onClear`를 쓰지 않는 구조라 각자 `inputRef.current?.focus()`를 추가했다. 조사 과정에서 헤더 X는 입력값만 비우고 URL의 `q`는 남겨 두는 반면 북마크 X는 `q`까지 지워 검색을 해제하는 차이도 드러나, 사용자 결정에 따라 헤더도 검색을 해제하도록 통일했다 — 단 헤더 검색창은 전역이라 북마크 등 다른 페이지에서도 보이므로, `useNavbarSearch`가 이미 계산하는 게시글 목록 페이지 여부로 가드해 다른 페이지의 `q`를 잘못 지우지 않게 막았다.
+  (`src/shared/ui/atoms/input.tsx`, `src/widgets/layout/navbar/hooks/useNavbarSearch.ts`, `src/widgets/layout/navbar/ui/NavbarSearch.tsx`, `src/widgets/layout/navbar/ui/MobileNavbarSearch.tsx`, `src/widgets/layout/navbar/ui/NavbarSearch.test.tsx`, `src/widgets/layout/navbar/ui/MobileNavbarSearch.test.tsx`, `src/widgets/bookmark/bookmark-search/ui/BookmarkSearch.test.tsx`(신규), `docs/plans/2026-09-21-search-clear-focus.md`(신규))
+
+  </details>
+
 - `bookmark` 데스크톱 사이드바에서 스크롤바 폭 때문에 "내 폴더" 개수 숫자가 밀려 보이던 문제 수정
   <details><summary>배경·구현</summary>
 

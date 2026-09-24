@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { useSearchParamsDraft } from '@/shared/hooks/useSearchParamsDraft';
 
 /**
  * 헤더 검색 입력창(데스크톱 NavbarSearch·모바일 MobileNavbarSearch)의 값을
@@ -13,6 +14,7 @@ import { ROUTES_PATHS } from '@/shared/config/route-paths';
 export function useNavbarSearch() {
   const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
+  const { updateSearchParams } = useSearchParamsDraft();
 
   const isPostListPage = pathname === ROUTES_PATHS.POST.ROOT;
   const appliedQuery = isPostListPage ? (searchParams.get('q') ?? '') : '';
@@ -24,5 +26,23 @@ export function useNavbarSearch() {
     setSearchInput(appliedQuery);
   }, [appliedQuery]);
 
-  return { searchInput, setSearchInput };
+  // X 버튼: 입력값을 비우고, 게시글 목록 페이지에 있을 때만 URL의 q도 지워 검색을 해제한다
+  // (useBookmarkSearch.handleClear와 동일한 선례). 다른 페이지(북마크 등)에서는 이름이 같은
+  // q를 잘못 건드리지 않도록 isPostListPage로 막는다 - 위 JSDoc이 경고하는 것과 같은 이유.
+  const handleClear = () => {
+    setSearchInput('');
+
+    if (!isPostListPage) {
+      return;
+    }
+
+    updateSearchParams(
+      (draft) => {
+        draft.delete('q');
+      },
+      { replace: true }
+    );
+  };
+
+  return { searchInput, setSearchInput, handleClear };
 }

@@ -12,7 +12,7 @@ import { useNavbarSearch } from '@/widgets/layout/navbar/hooks/useNavbarSearch';
 
 export const NavbarSearch = () => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { searchInput, setSearchInput } = useNavbarSearch();
+  const { searchInput, setSearchInput, handleClear } = useNavbarSearch();
   const navigate = useNavigate();
 
   useKeydown({ key: '/' }, () => {
@@ -25,6 +25,11 @@ export const NavbarSearch = () => {
     const trimmed = searchInput.trim();
     const params = trimmed ? `?q=${encodeURIComponent(trimmed)}` : '';
     navigate(`${ROUTES_PATHS.POST.ROOT}${params}`);
+  };
+
+  const handleClearClick = () => {
+    handleClear();
+    inputRef.current?.focus();
   };
 
   return (
@@ -45,7 +50,7 @@ export const NavbarSearch = () => {
           size="icon-sm"
           aria-label={TEXTS.ariaLabels.inputClear}
           className="absolute right-1 top-1/2 -translate-y-1/2"
-          onClick={() => setSearchInput('')}
+          onClick={handleClearClick}
         >
           <XIcon className="size-4 text-muted-foreground" />
         </Button>
