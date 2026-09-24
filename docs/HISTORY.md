@@ -1,4 +1,7 @@
 ### 2026-09-24 (FE)
+- 검색창 UI 및 인터랙션 개선: X 버튼 클릭 시 포커스 유실 문제 해결 및 헤더 검색 해제 로직 통합 ([#187](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/187))
+
+### 2026-09-24 (FE)
 - 입력창 내 placeholder 텍스트의 드래그 선택 및 하이라이트 효과 방지 적용 ([#186](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/186))
 
 ### 2026-09-24 (FE)
