@@ -9,6 +9,8 @@
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-09-24
+
 ### Changed
 
 - `bookmark` 폴더 트리의 "최근 저장한 폴더"·"내 폴더" 라벨이 드래그해도 선택되지 않게 변경
@@ -2408,7 +2410,8 @@ BE API 의존: 댓글 생성/답글/수정 요청 바디가 `multipart/form-data
   `PostResponse.userInteractions.bookmarkFolderId` 필요
 - 드래그앤드랍 · 다중 선택 · 폴더 공유는 차후 별도 작업
 
-[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.12.0...v0.13.0
