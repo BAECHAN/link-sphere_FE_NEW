@@ -17,7 +17,7 @@ BE·FE는 레포가 분리돼 있고 SemVer도 각자 독립적으로 올라가�
 | 레포 | 버전                                                                          |
 | ---- | ----------------------------------------------------------------------------- |
 | BE   | [v0.10.0](https://github.com/BAECHAN/link-sphere_BE_NEW/releases/tag/v0.10.0) |
-| FE   | [v0.14.0](https://github.com/BAECHAN/link-sphere_FE_NEW/releases/tag/v0.14.0) |
+| FE   | [v0.16.0](https://github.com/BAECHAN/link-sphere_FE_NEW/releases/tag/v0.16.0) |
 
 현재 두 버전 사이에 계약 변경 대기(gap)는 없음.
 
