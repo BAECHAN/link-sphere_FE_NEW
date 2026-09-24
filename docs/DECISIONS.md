@@ -26,6 +26,12 @@ B를 선택했다. A는 "클릭 직전 스크롤의 관성이 열고 난 뒤 도
 
 **임계값 값**: `4px`. Windows의 드래그 시작 임계값(`SM_CXDRAG`/`SM_CYDRAG`)과 같은 값을 그대로 가져왔다 — 둘 다 "우연한 포인터 이동은 무시하고, 의도적인 이동만 별개의 동작으로 인정한다"는 같은 목적이다. 개념 정의는 공식 문서에서 확인했다: _"The number of pixels on either side of a mouse-down point that the mouse pointer can move before a drag operation begins. This allows the user to click and release the mouse button easily without unintentionally starting a drag operation."_([Microsoft Learn, GetSystemMetrics function](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmetrics)). 다만 이 페이지는 기본값을 수치로 적지 않는다 — 기본값 4는 이를 인용한 2차 자료로만 확인했다: _"DEFAULT VALUES ARE 4 and 4"_([bobobobo's Weblog, "Disable drag and drop"](https://bobobobo.wordpress.com/2011/01/19/disable-drag-and-drop/)). 1차 문서로 수치 자체를 재검증하지는 못했다.
 
+원래 계획은 사용자의 실제 휠 마우스에서 잰 `deltaY` 실측값을 임계값이 넘지 않아야 한다는 조건을 세웠으나, 사용자가 원인 확정 방법으로 "계획 1단계에서 재현"을 선택하면서 Playwright 재현만으로 원인 2개를 코드 레벨에서 확정했고 실제 기기 실측은 진행하지 않았다 — 이 값 자체는 실측이 아니라 위 Windows 선례에서 그대로 가져온 것이다. 다만 4px이 실제 휠 스크롤을 방해하지 않는다는 확신의 근거는 남긴다: _"Chrome sends about a hundred pixels per mouse notch in pixel mode"_([GitHub, beinsiculous/insiculous_2d#119](https://github.com/beinsiculous/insiculous_2d/issues/119) — 커뮤니티 실측 보고, 브라우저 공식 스펙 수치는 아니다)라는 보고가 있다. 이 수치가 맞다면 휠 한 칸(약 100px)은 4px 임계값을 훨씬 웃돌아 첫 이벤트가 기준선이 되더라도 같은 제스처의 다음 이벤트에서 곧바로 닫힌다. 이 값도 재검증하지 않았다 — 출처 미상에 준하는 커뮤니티 보고로 취급한다.
+
+**검토한 대안 — 이미 있는 선례(Floating UI)는 왜 임계값이 없는가**
+
+Radix가 내부적으로 쓰는 위치 계산 라이브러리와 같은 계열인 Floating UI의 `useDismiss`는 `ancestorScroll` 옵션으로 조상 스크롤 시 닫는 기능을 제공하는데, 이동 거리 임계값이 없다 — 스크롤 이벤트가 한 번이라도 발생하면 닫는다(공식 문서, [Floating UI, useDismiss](https://floating-ui.com/docs/usedismiss#ancestorscroll) — *"Whether to dismiss the floating element upon scrolling an overflow ancestor."*라고만 되어 있고 임계값 옵션은 없다). 이 선례를 따르지 않은 이유: Floating UI의 이 옵션은 "트리거를 감싼 스크롤 컨테이너가 스크롤돼 팝업의 위치 기준 자체가 어긋나는 것"을 막는 용도로, 페이지 전체 레이아웃이 바뀌는 상황을 전제한다. 이 레포의 버그는 반대로 "메뉴가 열린 그 자리에서 트리거와 콘텐츠 위치가 그대로인데도, 의도치 않은 미세한 스크롤 때문에 닫히는" 문제라 목적이 다르다 — 전자는 위치 무결성을 지키는 안전장치이고, 후자는 오탐(false positive)을 줄이는 문제다. 그래서 Floating UI 선례를 그대로 가져오지 않고 임계값을 새로 도입했다.
+
 **검토한 대안 — 더블클릭을 어떻게 무시할 것인가**
 
 오버레이의 `onClick`에서 `event.detail > 1`이면 닫지 않는다. `detail`은 OS가 판정한 연속 클릭 횟수([MDN, UIEvent.detail](https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail))라 별도의 시간 임계값을 새로 정할 필요가 없다 — 이 레포에 이미 있는 `useClickGuard.ts`(무의식적 중복 클릭 무시, 400ms 타이머 직접 관리)와 달리 브라우저의 더블클릭 판정을 그대로 재사용한다. 대가: 메뉴를 연 직후 OS 더블클릭 간격 안에 같은 자리를 다시 눌러도 닫히지 않는다 — 한 번 더 눌러야 닫힌다. 이 손실은 실사용에서 의미가 없다고 판단했다(열자마자 다시 눌러 곧바로 닫는 제스처는 실제 사용 동기가 없다).
