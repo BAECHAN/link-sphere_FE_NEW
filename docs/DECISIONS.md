@@ -6,6 +6,43 @@
 
 ---
 
+## 2026-09-24 — 드롭다운 메뉴: 비모달 전환 + 스크롤 시 닫힘 + 바깥 첫 클릭 흡수
+
+**배경**
+
+우상단 계정 메뉴가 열려 있는 동안 페이지 스크롤이 막혔다(모바일·데스크톱 공통). 원인은 Radix `DropdownMenu`의 기본값 `modal={true}`다 — 이 모드에서 `MenuRootContentModal`이 `disableOutsideScroll: true`로 `react-remove-scroll`을 건다(`node_modules/@radix-ui/react-menu/dist/index.mjs:136-139`). 스크롤 잠금만 끄는 옵션은 없고 `modal={false}`로 바꿔야 풀린다. 게시글 목록에서는 바깥에 누를 곳이 전부 게시글 카드라, 메뉴를 닫으려고 바깥을 누르기도 부담스럽다는 사용자 관찰이 함께 나왔다 — 그래서 "스크롤하면 닫힌다"를 같이 도입한다.
+
+**검토한 대안 — 바깥 클릭을 아래 요소에 전달할 것인가**
+
+| 안                  | 동작                                              | 근거                                       | 결과     |
+| ------------------- | ------------------------------------------------- | ------------------------------------------ | -------- |
+| A. 첫 클릭은 닫기만 | 바깥 클릭은 메뉴만 닫고 아래 요소는 반응하지 않음 | NN/g 휴리스틱 #5 Error Prevention          | **채택** |
+| B. 클릭 통과        | 메뉴가 닫히면서 누른 곳도 실행                    | HTML Popover API의 light dismiss 기본 동작 | 기각     |
+
+- A의 근거: [NN/g 10 Usability Heuristics](https://www.nngroup.com/articles/ten-usability-heuristics/)의 #5는 _"the best designs carefully prevent problems from occurring in the first place. Either eliminate error-prone conditions..."_ 라고 쓴다. "닫으려고 눌렀는데 게시글로 이동돼버림"이 이 error-prone condition이다.
+- B의 근거: [Open UI Popover Explainer](https://open-ui.org/components/popover.research.explainer/)는 _"a popover is non-modal"_ 이고 바깥 클릭 시 _"Click outside the popover (focus the clicked thing)"_ 라고 쓴다 — 웹 표준 popover는 클릭을 소비하지 않는다.
+- NN/g의 드롭다운 글 두 편([Dropdowns: Design Guidelines](https://www.nngroup.com/articles/drop-down-menus/), [Menu-Design Checklist](https://www.nngroup.com/articles/menu-design/))은 "바깥을 누르면 닫힌다"까지만 다루고, 그 클릭의 전달 여부·열린 동안의 스크롤 허용 여부는 다루지 않는다 — 이 결정을 직접 뒷받침하는 NN/g 연구는 없다.
+- 사용자가 두 근거를 비교하고 A를 골랐다. A의 단점(바깥을 두 번 눌러야 함)은 "스크롤하면 닫힘"이 대부분 메운다 — 목록에서 메뉴를 닫는 가장 흔한 동작이 스크롤이 되기 때문이다. 게시글 ⋮ 메뉴(2026-02부터 `modal={false}`로 B 동작)도 A로 통일된다.
+
+**검토한 대안 — A를 어떻게 구현할 것인가**
+
+1. **투명 오버레이(`fixed inset-0`)가 바깥 클릭을 받는다** — 채택. 휠·터치 스크롤은 오버레이를 지나 document로 그대로 전달된다(document가 스크롤 주체라서, e2e로 실측).
+2. **document 캡처 리스너로 다음 click 1회를 삼킨다** — 기각. 터치가 드래그(스크롤)로 끝나 click이 오지 않으면 "무장된" 상태가 남아 다음 정상 클릭이 먹히는 버그 위험이 있다. 오버레이는 이런 상태를 만들지 않는다.
+
+구현 중 발견한 함정: 오버레이가 pointerdown을 Radix의 document 리스너까지 보내면 Radix가 그 자리에서 메뉴를 닫아 오버레이도 함께 사라지고, 뒤이은 click이 아래 요소로 떨어진다(B 동작으로 되돌아감). 그래서 오버레이가 pointerdown을 `stopPropagation`·`preventDefault`로 멈추고 자기 click에서 닫는다.
+
+**결정**
+
+- `shared/ui/atoms/dropdown-menu.tsx` 래퍼의 `modal` 기본값을 `false`로 바꾸고, 열린 동안 document 캡처 scroll 리스너로 닫는다(메뉴 내부 스크롤은 제외). 스크롤로 닫힐 때는 트리거로 포커스를 돌리지 않는다 — `focus()`가 트리거 위치로 스크롤을 되돌리기 때문이다.
+- 적용 대상: 래퍼를 쓰는 메뉴 4곳 전부(계정, 폴더 ⋮ 데스크톱·모바일, 게시글 ⋮).
+- 범위 제외: 북마크 정렬 `Select` — Radix Select는 `RemoveScroll`을 조건 없이 건다(`node_modules/@radix-ui/react-select/dist/index.mjs:438`). 고치려면 컴포넌트를 교체해야 해서 별도 과제로 남긴다. Dialog·Sidebar 드로어·검색 오버레이는 화면 전체를 덮는 오버레이라 계속 잠근다(2026-09-17 항목).
+
+**상태**
+
+적용 완료. e2e `e2e/dropdown-menu-scroll.spec.ts`·`e2e/dropdown-menu-scroll.mobile.spec.ts`로 고정(오버레이를 끄면 바깥 클릭 테스트가 실패하는 것까지 확인). 계획: `docs/plans/2026-09-24-dropdown-scroll-dismiss.md`.
+
+---
+
 ## 2026-09-21 — 데스크톱 최근검색 드롭다운: APG Grid Popup 패턴 채택
 
 **배경**

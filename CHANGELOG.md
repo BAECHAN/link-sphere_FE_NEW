@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `shared` 드롭다운 메뉴가 열려 있어도 스크롤되고, 스크롤하면 닫히게 변경
+  <details><summary>배경·구현</summary>
+
+  계정 메뉴 등 드롭다운이 열려 있는 동안 페이지 스크롤이 막혔다 — Radix `DropdownMenu`의 기본값 `modal={true}`가 `react-remove-scroll`을 걸기 때문이다. 공용 래퍼의 `modal` 기본값을 `false`로 바꿔 스크롤을 허용하고, 스크롤하면 메뉴가 닫히게 했다(메뉴 내부 스크롤은 제외, 스크롤로 닫힐 때는 트리거로 포커스를 돌리지 않음). 바깥 첫 클릭·탭은 투명 오버레이가 받아 메뉴만 닫고 아래 게시글 카드 등으로 전달하지 않는다 — 게시글 ⋮ 메뉴도 이 동작으로 통일된다. A(첫 클릭은 닫기만)와 B(클릭 통과)의 근거 비교는 `docs/DECISIONS.md` 2026-09-24 항목 참고. 북마크 정렬 `Select`는 Radix가 스크롤 잠금을 조건 없이 걸어 이번 범위에서 제외했다.
+  (`src/shared/ui/atoms/dropdown-menu.tsx`, `e2e/dropdown-menu-scroll.spec.ts`(신규), `e2e/dropdown-menu-scroll.mobile.spec.ts`(신규), `e2e/bookmark-folder-menu-press-drag.spec.ts`, `docs/DECISIONS.md`, `docs/plans/2026-09-24-dropdown-scroll-dismiss.md`(신규), [PR #178](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/178))
+
+  </details>
+
 - `shared` React Query 전역 에러 핸들러 중복 제거, 로그아웃 레이스 처리 통일
   <details><summary>배경·구현</summary>
 
@@ -102,6 +110,14 @@
   </details>
 
 ### Fixed
+
+- `shared` 카드·폴더 행 드롭다운이 열려 있는 동안 hover 스타일이 풀리던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  PostCard에 마우스를 올리면 카드가 들리는데(`hover:shadow-lg hover:-translate-y-0.5`), ⋮ 드롭다운을 열고 커서를 메뉴 항목으로 옮기면 들림이 풀렸다 — `DropdownMenuContent`(`shared/ui/atoms/dropdown-menu.tsx`)가 Portal로 `<body>`에 렌더돼 커서가 메뉴로 들어가는 순간 카드는 더 이상 `:hover` 상태가 아니게 되기 때문이다. 북마크 폴더 행(`hover:bg-accent`)에도 같은 버그가 있었다. `globals.css`에 `hover-or-open` custom variant를 추가해 `:hover` 또는 `:has([aria-haspopup][aria-expanded="true"])`를 함께 보게 했다 — 컨테이너 안의 트리거가 열려 있으면 스타일이 유지되고, `@media (hover: hover)` 안에서만 적용돼 모바일 동작은 그대로다. e2e 회귀 테스트 2개를 추가했는데, FolderTree의 드롭다운은 기본값이 modal(PostCard는 `modal={false}`)이라 열려 있는 동안 Radix가 배경 콘텐츠에 `aria-hidden`을 걸어 `getByRole` 기반 locator가 행을 못 찾는 걸 실측해 CSS locator로 우회했다. 재발 방지를 위해 `responsive-ux`·`motion-ux` skill에 이 패턴을 문서화했다.
+  (`src/app/globals.css`, `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `e2e/post-card-hover-menu.spec.ts`(신규), `e2e/bookmark-folder-hover-menu.spec.ts`(신규), `.claude/skills/responsive-ux/SKILL.md`, `.claude/skills/motion-ux/SKILL.md`, `.claude/CLAUDE.md`, `docs/plans/2026-09-24-hover-or-open-variant.md`(신규), [PR #179](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/179))
+
+  </details>
 
 - `shared` 세션 만료(401) 시 SPA 이동 직후 페이지가 한 번 더 강제 새로고침되던 중복 동작 제거
   <details><summary>배경·구현</summary>

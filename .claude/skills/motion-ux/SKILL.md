@@ -43,6 +43,13 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 - hover/색상 전환: `ease`(Tailwind 기본값)
 - `ease-in`은 쓰지 않는다
 
+## hover 트랜지션 컨테이너 안에 드롭다운·팝오버가 있을 때
+
+카드·행에 `hover:` 트랜지션을 붙였는데 그 안에 드롭다운·셀렉트 같은 포털 팝업
+트리거가 있다면, `responsive-ux` skill의 "hover와 밀도" 절(`hover-or-open` variant)을
+먼저 읽는다 — 팝업이 열려 있는 동안 트랜지션이 풀리는 문제이지 duration·easing
+문제가 아니라 이 문서 범위 밖이다.
+
 ## `transition-all` 지양
 
 `transition-all`이 12건 있다 — 레이아웃까지 포함한 모든 속성 변화를 감시해
