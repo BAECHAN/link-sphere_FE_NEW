@@ -1,4 +1,7 @@
 ### 2026-09-24 (FE)
+- 드롭다운 메뉴의 UX 개선: 클릭 직후 스크롤 및 연속 클릭 시 메뉴가 의도치 않게 닫히는 현상 수정 ([#184](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/184))
+
+### 2026-09-24 (FE)
 - Select 컴포넌트 활성화 시 트리거 아이콘(화살표) 회전 애니메이션 적용 ([#185](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/185))
 
 ### 2026-09-24 (FE)
