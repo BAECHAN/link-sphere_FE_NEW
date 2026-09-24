@@ -111,6 +111,14 @@
 
 ### Fixed
 
+- `shared` 카드·폴더 행 드롭다운이 열려 있는 동안 hover 스타일이 풀리던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  PostCard에 마우스를 올리면 카드가 들리는데(`hover:shadow-lg hover:-translate-y-0.5`), ⋮ 드롭다운을 열고 커서를 메뉴 항목으로 옮기면 들림이 풀렸다 — `DropdownMenuContent`(`shared/ui/atoms/dropdown-menu.tsx`)가 Portal로 `<body>`에 렌더돼 커서가 메뉴로 들어가는 순간 카드는 더 이상 `:hover` 상태가 아니게 되기 때문이다. 북마크 폴더 행(`hover:bg-accent`)에도 같은 버그가 있었다. `globals.css`에 `hover-or-open` custom variant를 추가해 `:hover` 또는 `:has([aria-haspopup][aria-expanded="true"])`를 함께 보게 했다 — 컨테이너 안의 트리거가 열려 있으면 스타일이 유지되고, `@media (hover: hover)` 안에서만 적용돼 모바일 동작은 그대로다. e2e 회귀 테스트 2개를 추가했는데, FolderTree의 드롭다운은 기본값이 modal(PostCard는 `modal={false}`)이라 열려 있는 동안 Radix가 배경 콘텐츠에 `aria-hidden`을 걸어 `getByRole` 기반 locator가 행을 못 찾는 걸 실측해 CSS locator로 우회했다. 재발 방지를 위해 `responsive-ux`·`motion-ux` skill에 이 패턴을 문서화했다.
+  (`src/app/globals.css`, `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `e2e/post-card-hover-menu.spec.ts`(신규), `e2e/bookmark-folder-hover-menu.spec.ts`(신규), `.claude/skills/responsive-ux/SKILL.md`, `.claude/skills/motion-ux/SKILL.md`, `.claude/CLAUDE.md`, `docs/plans/2026-09-24-hover-or-open-variant.md`(신규), [PR #179](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/179))
+
+  </details>
+
 - `shared` 세션 만료(401) 시 SPA 이동 직후 페이지가 한 번 더 강제 새로고침되던 중복 동작 제거
   <details><summary>배경·구현</summary>
 

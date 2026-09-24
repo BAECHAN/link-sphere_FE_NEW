@@ -4,6 +4,21 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * hover:와 같되, 이 요소 안의 팝업 트리거(드롭다운·셀렉트·팝오버)가 열려 있는 동안에도 유지된다.
+ * 팝업 콘텐츠는 Portal로 <body>에 렌더돼 커서가 메뉴로 들어가면 부모의 :hover가 풀리기 때문이다.
+ * hover:처럼 @media (hover: hover) 안에서만 적용돼 터치 기기 동작은 바뀌지 않는다.
+ * (선례: responsive-ux skill "hover와 밀도" 절, src/widgets/post/post-card/ui/PostCard.tsx,
+ * src/widgets/bookmark/folder-tree/ui/FolderTree.tsx)
+ */
+@custom-variant hover-or-open {
+  @media (hover: hover) {
+    &:is(:hover, :has([aria-haspopup][aria-expanded='true'])) {
+      @slot;
+    }
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

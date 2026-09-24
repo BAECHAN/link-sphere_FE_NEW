@@ -75,7 +75,7 @@ export const PostCard = memo(function PostCard({
 
   return (
     <Card
-      className="relative flex flex-col overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-[transform,box-shadow]"
+      className="relative flex flex-col overflow-hidden hover-or-open:shadow-lg hover-or-open:-translate-y-0.5 transition-[transform,box-shadow]"
       aria-busy={isUpdating}
     >
       {isUpdating && (
