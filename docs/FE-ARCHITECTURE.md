@@ -988,6 +988,7 @@ pnpm storybook      # Storybook (port 6006)
 | --------- | ----------------------------------------------------------------------------------------------------------------- |
 | 태그      | `button`, `summary`, `label`                                                                                      |
 | ARIA role | `button`, `link`, `menuitem`, `menuitemcheckbox`, `menuitemradio`, `option`, `tab`, `switch`, `checkbox`, `radio` |
+| 의사 요소 | `::placeholder`                                                                                                   |
 
 - `select`(native)·`input[type=checkbox|radio|file]`는 뺐다 — `user-select`가 무의미한
   요소라서.
@@ -1001,7 +1002,10 @@ pnpm storybook      # Storybook (port 6006)
   네비게이션(`BottomTabBar`, `Sidebar` NavItem)은 전역 규칙 대상이 아니라서 각
   컴포넌트에 `select-none`을 직접 붙였다.
 - 본문·제목·입력값(`MarkdownContent`, `PostCard` 제목, `input`/`textarea`)은 복사
-  대상이므로 이 규칙 밖에 있다.
+  대상이므로 이 규칙 밖에 있다 — 단 **placeholder는 입력값이 아니라 안내 문구라
+  이 예외에서 빠진다.** `::placeholder`는 pseudo-element라 `:is()`로 `button`/`label`과
+  묶을 수 없어 별도 `@layer base` 블록(`globals.css`, 이 블록 바로 아래)으로 둔다 —
+  `input`/`textarea` 요소 자체엔 걸지 않으므로 입력값 선택·타이핑은 그대로 된다.
 
 ### 새 컴포넌트를 만들 때
 
