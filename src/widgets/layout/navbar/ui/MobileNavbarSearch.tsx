@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Input } from '@/shared/ui/atoms/input';
 import { Button } from '@/shared/ui/atoms/button';
 import { ArrowLeftIcon, SearchIcon, XIcon } from 'lucide-react';
@@ -10,7 +11,8 @@ interface MobileNavbarSearchProps {
 }
 
 export const MobileNavbarSearch = ({ onClose, onSubmit }: MobileNavbarSearchProps) => {
-  const { searchInput, setSearchInput } = useNavbarSearch();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { searchInput, setSearchInput, handleClear } = useNavbarSearch();
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -19,7 +21,8 @@ export const MobileNavbarSearch = ({ onClose, onSubmit }: MobileNavbarSearchProp
 
   const handleTrailingIconClick = () => {
     if (searchInput) {
-      setSearchInput('');
+      handleClear();
+      inputRef.current?.focus();
     } else {
       onClose();
     }
@@ -40,6 +43,7 @@ export const MobileNavbarSearch = ({ onClose, onSubmit }: MobileNavbarSearchProp
       <div className="relative flex-1">
         <SearchIcon className="absolute left-2 top-2.5 size-4 text-muted-foreground" />
         <Input
+          ref={inputRef}
           id="mobile-search-input"
           autoFocus
           placeholder={TEXTS.placeholders.postSearch}

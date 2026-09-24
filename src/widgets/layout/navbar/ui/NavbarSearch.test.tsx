@@ -94,7 +94,7 @@ describe('NavbarSearch — 검색어 유지', () => {
     expect(screen.getByText('/')).toBeInTheDocument();
   });
 
-  it('X를 누르면 input만 비워지고 URL의 q는 그대로 남는다', async () => {
+  it('X를 누르면 input이 비워지고 URL의 q도 삭제되어 검색이 해제된다', async () => {
     const user = userEvent.setup();
     renderNavbarSearch('/post?q=리액트');
 
@@ -102,7 +102,27 @@ describe('NavbarSearch — 검색어 유지', () => {
     await user.click(screen.getByLabelText(TEXTS.ariaLabels.inputClear));
 
     expect(input).toHaveValue('');
-    expect(screen.getByTestId('location-search')).toHaveTextContent('q=');
+    expect(screen.getByTestId('location-search')).not.toHaveTextContent('q=');
+  });
+
+  it('X를 누르면 포커스가 input으로 돌아온다', async () => {
+    const user = userEvent.setup();
+    renderNavbarSearch('/post?q=리액트');
+
+    await user.click(screen.getByLabelText(TEXTS.ariaLabels.inputClear));
+
+    expect(screen.getByPlaceholderText(TEXTS.placeholders.postSearch)).toHaveFocus();
+  });
+
+  it('북마크 페이지에서는 헤더 X를 눌러도 그 페이지의 q가 유지된다', async () => {
+    const user = userEvent.setup();
+    renderNavbarSearch('/bookmark?q=폴더검색어');
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.postSearch);
+    await user.type(input, '다른검색어');
+    await user.click(screen.getByLabelText(TEXTS.ariaLabels.inputClear));
+
+    expect(screen.getByTestId('location-search')).toHaveTextContent('q=폴더검색어');
   });
 });
 

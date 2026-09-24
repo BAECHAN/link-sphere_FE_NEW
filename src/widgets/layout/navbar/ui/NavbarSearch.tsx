@@ -30,7 +30,7 @@ export const NavbarSearch = ({
   onClearRecentSearches,
 }: NavbarSearchProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { searchInput, setSearchInput } = useNavbarSearch();
+  const { searchInput, setSearchInput, handleClear } = useNavbarSearch();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { updateSearchParams } = useSearchParamsDraft();
@@ -77,6 +77,11 @@ export const NavbarSearch = ({
     // 다른 페이지(/bookmark 등)의 파라미터는 그 페이지 것이라 옮기지 않는다.
     const params = trimmed ? `?q=${encodeURIComponent(trimmed)}` : '';
     navigate(`${ROUTES_PATHS.POST.ROOT}${params}`);
+  };
+
+  const handleClearClick = () => {
+    handleClear();
+    inputRef.current?.focus();
   };
 
   const handleSubmit = (e?: React.FormEvent) => {
@@ -148,8 +153,11 @@ export const NavbarSearch = ({
         return;
       }
 
-      // 2단계: 이미 닫혀 있으면 입력만 비운다 - X 버튼과 동일(URL q는 유지, 재오픈 안 함.
-      // setSearchInput은 onChange를 거치지 않으므로 위 재오픈 규칙이 발동하지 않는다).
+      // 2단계: 이미 닫혀 있으면 입력만 비운다(URL q는 유지, 재오픈 안 함 - setSearchInput은
+      // onChange를 거치지 않으므로 위 재오픈 규칙이 발동하지 않는다). X 버튼(handleClearClick)은
+      // 검색 자체를 해제해 URL q까지 지우지만, ESC 2단계는 WAI-ARIA APG Combobox 패턴의
+      // "clears the combobox"(입력값만 비움)를 그대로 따른다 - 둘의 의도가 다르다
+      // (2026-09-24, 헤더 X를 북마크와 통일하며 갈라짐).
       setSearchInput('');
       return;
     }
@@ -284,7 +292,7 @@ export const NavbarSearch = ({
           size="icon-sm"
           aria-label={TEXTS.ariaLabels.inputClear}
           className="absolute right-1 top-1/2 -translate-y-1/2"
-          onClick={() => setSearchInput('')}
+          onClick={handleClearClick}
         >
           <XIcon className="size-4 text-muted-foreground" />
         </Button>
