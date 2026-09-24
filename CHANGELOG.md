@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `shared` Select가 열리면 트리거의 화살표가 위로 뒤집히게 변경
+  <details><summary>배경·구현</summary>
+
+  지금까지는 Select가 열려 있어도 화살표가 계속 아래를 향해, 다시 누르면 어떻게 되는지 화면이 알려주지 않았다. 트리거를 다시 탭하면 닫히도록 고친 뒤(#183) 그 동작을 알리도록, 열리면 화살표가 180° 뒤집히게 했다. 근거는 NN/g [Accordion Icons](https://www.nngroup.com/articles/accordion-icons/)의 _"펼친 뒤에는 캐럿이 (짧고 보기 좋은 애니메이션으로) 뒤집히는 것이 일반적이다. (...) 방금 펼친 내용을 다시 접는 반대 동작을 알려주는 신호가 된다"_ (번역)다. 아코디언에 관한 글이라 Select에 대한 직접 연구는 아니다. 회전은 `motion-ux` 규약의 드롭다운·셀렉트 범위에 맞춰 `duration-200 ease-in-out`이고, 트리거의 `data-state`를 Tailwind v4 `in-data-[state=open]:` 변형으로 참조한다. 열린 상태를 스토리로 고정하면 Radix가 나머지 화면에 거는 `aria-hidden` 때문에 a11y 게이트(`aria-hidden-focus`)에 걸려, 게이트를 약하게 만들지 않으려고 스토리는 추가하지 않았다.
+  (`src/shared/ui/atoms/select.tsx`, [PR #185](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/185))
+
+  </details>
+
 - `shared` 드롭다운 메뉴가 열려 있어도 스크롤되고, 스크롤하면 닫히게 변경
   <details><summary>배경·구현</summary>
 
