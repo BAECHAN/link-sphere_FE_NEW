@@ -17,6 +17,16 @@ import type {
 // 데스크탑 모달 스타일로 고정 — matchMedia 스텁만으로는 useIsMobile 값이 effect 이후에나 정해져 불안정하다
 vi.mock('@/shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }));
 
+// 열린 직후 400ms 클릭 가드(useOpenClickGuard) — 기본은 비활성(false)으로 목킹해 기존
+// 테스트들의 "열자마자 행 클릭" 시퀀스를 그대로 통과시킨다. 가드 자체의 동작은 아래
+// "열린 직후 400ms 안의 탭은 무시한다" 테스트에서만 true로 전환해 검증한다.
+const { mockIsOpenClickGuarded } = vi.hoisted(() => ({
+  mockIsOpenClickGuarded: vi.fn(() => false),
+}));
+vi.mock('@/shared/hooks/useOpenClickGuard', () => ({
+  useOpenClickGuard: () => mockIsOpenClickGuarded,
+}));
+
 // renderWithProviders에는 <Toaster />가 없어 되돌리기 버튼을 실제로 클릭할 수 없다 —
 // toast.success 호출 인자를 캡처해 action.onClick을 직접 호출하는 방식으로 검증한다.
 vi.mock('@/shared/lib/toast/toast', () => ({
@@ -61,6 +71,7 @@ function renderModal(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockIsOpenClickGuarded.mockReturnValue(false);
   server.use(
     http.get(url(API_ENDPOINTS.bookmark.folders), () =>
       HttpResponse.json(
@@ -85,6 +96,39 @@ describe('PostCardBookmarkFolderModal', () => {
     const laterRow = screen.getByText('나중에 읽기').closest('button');
     expect(devRow?.querySelector('svg.lucide-check')).toBeTruthy();
     expect(laterRow?.querySelector('svg.lucide-check')).toBeTruthy();
+  });
+
+  it('열린 직후 400ms 안의 탭은 요청 없이 무시된다(더블클릭 관통 방지)', async () => {
+    const user = userEvent.setup();
+    let called = false;
+    server.use(
+      http.post(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_B)), () => {
+        called = true;
+        return HttpResponse.json(
+          {
+            status: 200,
+            message: 'ok',
+            data: bookmarkFoldersResponse([FOLDER_A, FOLDER_B]),
+            timestamp: '',
+          },
+          { status: 200 }
+        );
+      })
+    );
+    renderModal();
+
+    await waitFor(() => expect(screen.getByText('나중에 읽기')).toBeInTheDocument());
+
+    mockIsOpenClickGuarded.mockReturnValue(true);
+    await user.click(screen.getByText('나중에 읽기'));
+
+    expect(called).toBe(false);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    mockIsOpenClickGuarded.mockReturnValue(false);
+    await user.click(screen.getByText('나중에 읽기'));
+
+    await waitFor(() => expect(called).toBe(true));
   });
 
   it('비소속 폴더를 탭하면 추가 요청을 보내고 모달을 닫는다', async () => {

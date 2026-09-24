@@ -1,7 +1,13 @@
 import { useCallback, useRef } from 'react';
+import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
-/** 무의식적 중복과 의식적 재입력을 가르는 기준 시간(ms). 근거는 아래 useClickGuard 주석 참고. */
-export const CLICK_GUARD_MS = 400;
+/**
+ * 무의식적 중복과 의식적 재입력을 가르는 기준 시간(ms). 근거는 아래 useClickGuard 주석 참고.
+ * @deprecated `@/shared/config/const`의 `DOUBLE_CLICK_GUARD_MS`를 직접 쓴다 — 이 export는
+ * 그 값을 그대로 가리키기만 한다(select.tsx 등 기존 호출부 하위 호환용, 2026-09-24 병합 시
+ * 같은 상수가 두 곳에 따로 생긴 걸 발견해 SSOT로 정리).
+ */
+export const CLICK_GUARD_MS = DOUBLE_CLICK_GUARD_MS;
 
 /**
  * 짧은 시간 안의 재클릭을 "무의식적인 중복 클릭"으로 보고 무시하는 가드 훅. 토글
@@ -17,10 +23,10 @@ export const CLICK_GUARD_MS = 400;
  * 이라 400ms도 "결과를 보고 판단해서 다시 누르기로 결정"하는 데 걸리는 시간보다
  * 충분히 크면서, 500ms보다는 응답성이 좋다(2026-09-21 재조정, docs/DECISIONS.md 참고).
  *
- * @param thresholdMs - 이 시간(ms) 이내의 재호출은 무시한다 (기본값 400ms)
+ * @param thresholdMs - 이 시간(ms) 이내의 재호출은 무시한다 (기본값 DOUBLE_CLICK_GUARD_MS)
  * @returns 호출 시점이 임계값을 넘었으면 true(진행), 아니면 false(무시)
  */
-export function useClickGuard(thresholdMs: number = CLICK_GUARD_MS) {
+export function useClickGuard(thresholdMs: number = DOUBLE_CLICK_GUARD_MS) {
   const lastCallRef = useRef(0);
 
   return useCallback(() => {

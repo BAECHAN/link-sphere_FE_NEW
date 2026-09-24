@@ -16,6 +16,16 @@ import type { BookmarkFolderListResponse } from '@/entities/bookmark/folder/mode
 // 데스크탑 모달 스타일로 고정 — matchMedia 스텁만으로는 useIsMobile 값이 effect 이후에나 정해져 불안정하다
 vi.mock('@/shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }));
 
+// 열린 직후 400ms 클릭 가드(useOpenClickGuard) — 기본은 비활성(false)으로 목킹해 기존
+// 테스트들의 "열자마자 행 클릭" 시퀀스를 그대로 통과시킨다. 가드 자체의 동작은 아래
+// "열린 직후 400ms 안의 탭은 무시한다" 테스트에서만 true로 전환해 검증한다.
+const { mockIsOpenClickGuarded } = vi.hoisted(() => ({
+  mockIsOpenClickGuarded: vi.fn(() => false),
+}));
+vi.mock('@/shared/hooks/useOpenClickGuard', () => ({
+  useOpenClickGuard: () => mockIsOpenClickGuarded,
+}));
+
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
 const FOLDER_A = 'folder-uuid-a';
@@ -70,6 +80,7 @@ function dialog() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockIsOpenClickGuarded.mockReturnValue(false);
   server.use(
     http.get(url(API_ENDPOINTS.bookmark.folders), () =>
       HttpResponse.json(
@@ -96,6 +107,27 @@ describe('PostCreateBookmarkFolderField', () => {
     await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
 
     await waitFor(() => expect(dialog().getByText('내 폴더')).toBeInTheDocument());
+  });
+
+  it('열린 직후 400ms 안의 탭은 무시된다(더블클릭 관통 방지)', async () => {
+    const user = userEvent.setup();
+    renderField();
+
+    await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
+    await waitFor(() => expect(dialog().getByText('개발')).toBeInTheDocument());
+
+    mockIsOpenClickGuarded.mockReturnValue(true);
+    await user.click(dialog().getByText('개발'));
+
+    expect(screen.getByTestId('bookmark-value')).toHaveTextContent('false');
+    expect(screen.getByTestId('folderIds-value')).toHaveTextContent('');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    mockIsOpenClickGuarded.mockReturnValue(false);
+    await user.click(dialog().getByText('개발'));
+
+    expect(screen.getByTestId('bookmark-value')).toHaveTextContent('true');
+    expect(screen.getByTestId('folderIds-value')).toHaveTextContent(FOLDER_A);
   });
 
   it('폴더를 탭하면 선택되고 폼 값이 즉시 반영된다 (제출 전 지연 선택)', async () => {
