@@ -93,21 +93,38 @@ function findOpenIssue() {
   return issues[0] ?? null;
 }
 
-/** 스펙 최상위 키(paths/components.schemas) 기준으로 사람이 읽을 diff 요약을 만든다. */
+/**
+ * paths/components.schemas의 추가·삭제된 키뿐 아니라, 양쪽에 공통으로 존재하는 키의
+ * 내용 차이(JSON.stringify 비교)와 paths/components를 제외한 나머지 최상위 필드
+ * (tags/info/security 등)의 차이까지 항상 함께 사람이 읽을 줄로 요약한다. 입력은 이미
+ * sortKeysDeep으로 정규화돼 있어 키 순서 차이로 인한 오탐은 없다.
+ */
 function summarizeDrift(committed, prod) {
-  const committedPaths = new Set(Object.keys(committed.paths ?? {}));
-  const prodPaths = new Set(Object.keys(prod.paths ?? {}));
-  const committedSchemas = new Set(Object.keys(committed.components?.schemas ?? {}));
-  const prodSchemas = new Set(Object.keys(prod.components?.schemas ?? {}));
+  const committedPaths = committed.paths ?? {};
+  const prodPaths = prod.paths ?? {};
+  const committedSchemas = committed.components?.schemas ?? {};
+  const prodSchemas = prod.components?.schemas ?? {};
+
+  const committedPathKeys = new Set(Object.keys(committedPaths));
+  const prodPathKeys = new Set(Object.keys(prodPaths));
+  const committedSchemaKeys = new Set(Object.keys(committedSchemas));
+  const prodSchemaKeys = new Set(Object.keys(prodSchemas));
 
   const added = (from, to) => [...to].filter((key) => !from.has(key));
   const removed = (from, to) => [...from].filter((key) => !to.has(key));
 
+  const changed = (from, to) =>
+    Object.keys(from).filter(
+      (key) => key in to && JSON.stringify(from[key]) !== JSON.stringify(to[key])
+    );
+
   const lines = [];
-  const addedPaths = added(committedPaths, prodPaths);
-  const removedPaths = removed(committedPaths, prodPaths);
-  const addedSchemas = added(committedSchemas, prodSchemas);
-  const removedSchemas = removed(committedSchemas, prodSchemas);
+  const addedPaths = added(committedPathKeys, prodPathKeys);
+  const removedPaths = removed(committedPathKeys, prodPathKeys);
+  const changedPaths = changed(committedPaths, prodPaths);
+  const addedSchemas = added(committedSchemaKeys, prodSchemaKeys);
+  const removedSchemas = removed(committedSchemaKeys, prodSchemaKeys);
+  const changedSchemas = changed(committedSchemas, prodSchemas);
 
   if (addedPaths.length > 0) {
     lines.push(`운영에 새로 생긴 paths: ${addedPaths.join(', ')}`);
@@ -115,6 +132,10 @@ function summarizeDrift(committed, prod) {
 
   if (removedPaths.length > 0) {
     lines.push(`운영에서 사라진 paths: ${removedPaths.join(', ')}`);
+  }
+
+  if (changedPaths.length > 0) {
+    lines.push(`내용이 달라진 paths: ${changedPaths.join(', ')}`);
   }
 
   if (addedSchemas.length > 0) {
@@ -125,8 +146,23 @@ function summarizeDrift(committed, prod) {
     lines.push(`운영에서 사라진 schemas: ${removedSchemas.join(', ')}`);
   }
 
+  if (changedSchemas.length > 0) {
+    lines.push(`내용이 달라진 schemas: ${changedSchemas.join(', ')}`);
+  }
+
+  const topLevelKeys = new Set([...Object.keys(committed), ...Object.keys(prod)]);
+  const changedTopLevelKeys = [...topLevelKeys]
+    .filter((key) => key !== 'paths' && key !== 'components')
+    .filter((key) => JSON.stringify(committed[key]) !== JSON.stringify(prod[key]));
+
+  if (changedTopLevelKeys.length > 0) {
+    lines.push(`그 외 최상위 필드도 다릅니다: ${changedTopLevelKeys.join(', ')}`);
+  }
+
   if (lines.length === 0) {
-    lines.push('paths/schemas 키 집합은 같지만 내부 필드가 다릅니다(properties/required 등).');
+    lines.push(
+      'paths/schemas와 최상위 필드는 같지만 전체 스펙은 다릅니다(components의 schemas 외 하위 필드 등).'
+    );
   }
 
   return lines;
