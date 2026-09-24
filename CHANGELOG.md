@@ -15,7 +15,7 @@
   <details><summary>배경·구현</summary>
 
   북마크 검색창의 placeholder("북마크 내 검색")가 드래그하면 선택된 것처럼 보인다는 지적으로 조사한 결과, 네이티브 placeholder 텍스트는 실제 `getSelection()` 문자열에는 포함되지 않지만 Chromium·WebKit은 페이지를 가로질러 드래그하면 하이라이트를 칠해 선택된 것처럼 보인다는 걸 직접 측정으로 확인했다(Firefox는 원래 문제없음). `input` 요소 자체가 아니라 `::placeholder` 의사 요소에만 `user-select: none`을 걸어 입력값 드래그 선택·타이핑은 그대로 두면서 하이라이트만 없앴다. 같은 문제를 이미 전역으로 푼 select-none 블록(2026-09-21) 선례를 따라 컴포넌트별이 아니라 `globals.css`에 전역 규칙으로 추가해, 북마크 검색창뿐 아니라 네비바 검색창 등 레포 전체 placeholder에 함께 적용된다.
-  (`src/app/globals.css`, `docs/FE-ARCHITECTURE.md`, `docs/plans/2026-09-24-placeholder-select-none.md`(신규))
+  (`src/app/globals.css`, `docs/FE-ARCHITECTURE.md`, `docs/plans/2026-09-24-placeholder-select-none.md`(신규), [PR #186](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/186))
 
   </details>
 
