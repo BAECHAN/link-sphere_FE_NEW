@@ -1,5 +1,8 @@
 import { useCallback, useRef } from 'react';
 
+/** 무의식적 중복과 의식적 재입력을 가르는 기준 시간(ms). 근거는 아래 useClickGuard 주석 참고. */
+export const CLICK_GUARD_MS = 400;
+
 /**
  * 짧은 시간 안의 재클릭을 "무의식적인 중복 클릭"으로 보고 무시하는 가드 훅. 토글
  * 버튼은 짝수 번 눌리면 원래 상태로 되돌아가 "눌렀는데 반영 안 됨"처럼 보이는데,
@@ -17,7 +20,7 @@ import { useCallback, useRef } from 'react';
  * @param thresholdMs - 이 시간(ms) 이내의 재호출은 무시한다 (기본값 400ms)
  * @returns 호출 시점이 임계값을 넘었으면 true(진행), 아니면 false(무시)
  */
-export function useClickGuard(thresholdMs: number = 400) {
+export function useClickGuard(thresholdMs: number = CLICK_GUARD_MS) {
   const lastCallRef = useRef(0);
 
   return useCallback(() => {
