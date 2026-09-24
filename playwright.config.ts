@@ -1,40 +1,20 @@
-import { createServer } from 'net';
 import { defineConfig, devices } from '@playwright/test';
-import { E2E_SERVER_PORT_RANGE_START, E2E_SERVER_PORT_RANGE_END } from './dev-server.config';
+import { E2E_SERVER_PORT_RANGE_START } from './dev-server.config';
 
 // dev server가 mkcert HTTPS(--mode localhost, vite.config.ts:24)를 쓰면 CI에 로컬 CA를
 // 설치해야 하는 부담이 생긴다. --mode test는 이미 있는 .env.test(docs/TESTING.md)를
 // 그대로 재사용하면서 mkcert 조건(mode === 'localhost')을 자연스럽게 피해 HTTP로 뜬다.
 // DEV_SERVER_PORT(pnpm dev)가 아닌 별도 대역을 쓴다 — 이유와 대역이 하나가 아니라 여러
 // 개인 이유는 dev-server.config.ts의 E2E_SERVER_PORT_RANGE_* 주석 참고.
-function isPortFree(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const server = createServer();
-
-    server.once('error', () => resolve(false));
-    server.once('listening', () => {
-      server.close(() => resolve(true));
-    });
-    server.listen(port);
-  });
-}
-
-async function pickFreePort(start: number, end: number): Promise<number> {
-  for (let port = start; port <= end; port += 1) {
-    // 병렬 스캔이 아니라 순서대로 하나씩 확인한다 — 동시에 여러 워크트리가 이 함수를
-    // 돌 때 같은 포트를 동시에 "비어있다"고 오판할 확률을 낮춘다(완전히 없애진 못하며,
-    // 그 나머지는 webServer의 --strictPort가 잡는다).
-    if (await isPortFree(port)) {
-      return port;
-    }
-  }
-
-  throw new Error(
-    `e2e 전용 포트 대역(${start}-${end})에 빈 포트가 없습니다 — 동시에 실행 중인 e2e가 너무 많습니다.`
-  );
-}
-
-const e2eServerPort = await pickFreePort(E2E_SERVER_PORT_RANGE_START, E2E_SERVER_PORT_RANGE_END);
+//
+// 포트는 이 파일 안에서 직접 고르지 않는다 — Playwright는 fullyParallel 워커마다 이
+// config 파일을 각자 다시 평가하므로, 여기서 매번 대역을 스캔하면 워커마다 다른 포트를
+// 골라 서로 다른(또는 아무도 안 띄운) 서버를 바라보게 된다(2026-09-24 CI 실측, 57건 전부
+// ERR_CONNECTION_REFUSED). 포트 선택은 scripts/pick-e2e-port.js가 playwright 프로세스
+// 시작 전에 딱 한 번만 하고(package.json의 test:e2e), 그 값을 E2E_SERVER_PORT 환경변수로
+// 넘기면 모든 워커가 OS 프로세스 상속으로 같은 값을 받는다. 그 스크립트를 거치지 않고
+// (예: `pnpm exec playwright test`) 직접 실행하는 경우에만 대역의 첫 포트로 폴백한다.
+const e2eServerPort = Number(process.env.E2E_SERVER_PORT ?? E2E_SERVER_PORT_RANGE_START);
 const baseURL = `http://localhost:${e2eServerPort}`;
 
 export default defineConfig({

@@ -30,7 +30,7 @@
     "test:watch": "vitest --project=unit",
     "test:coverage": "vitest run --project=unit --coverage",
     "test:storybook": "vitest run --project=storybook",
-    "test:e2e": "playwright test",
+    "test:e2e": "E2E_SERVER_PORT=$(node scripts/pick-e2e-port.js) playwright test",
     "test:e2e:report": "playwright show-report",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",

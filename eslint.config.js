@@ -439,6 +439,11 @@ export default [
       // BE OpenAPI 스펙(openapi.json)에서 openapi-typescript 가 생성한 타입 선언 —
       // 사람이 손대지 않고 pnpm codegen 으로만 갱신된다. lint 대상이 아니다.
       '**/src/shared/api/generated/**',
+      // Playwright e2e 실행 산출물(.gitignore에는 있지만 ESLint는 자동으로 읽지 않는다 —
+      // 위 dist/storybook-static과 같은 종류의 누락, 2026-09-24 실측: 실패한 e2e 실행이
+      // 남긴 test-results/의 트레이스 뷰어 번들이 코드처럼 검사돼 수천 건의 오탐이 났다).
+      '**/playwright-report/**',
+      '**/test-results/**',
     ],
   },
   {
