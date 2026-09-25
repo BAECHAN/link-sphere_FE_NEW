@@ -37,9 +37,12 @@ pnpm perf:lh            # 공개 페이지 4개 × 5회, 데스크톱 프리셋
 | 로그인 필요 | `/post/submit`, `/post/edit/:id`, `/bookmark`, `/my/comments` | `lighthouserc.auth.cjs` |
 
 `:id`는 측정 전용으로 tester_new_999 계정이 등록한 고정 게시글(공개,
-`https://www.inflearn.com/`, id `06ec0958-a33c-4c3f-81f6-0481badbbeb7`)이다 — 존재가
-보장된 ID가 없어 한 번 뺐던 것을 2026-09-26 이 게시글을 만들어 해소했다. 이 게시글은
-지우지 않는다(지우면 두 설정 파일이 다시 깨진다).
+`https://tech.kakao.com/`, id `06ec0958-a33c-4c3f-81f6-0481badbbeb7`)이다 — 존재가
+보장된 ID가 없어 한 번 뺐던 것을 2026-09-26 이 게시글을 만들어 해소했다. 처음엔
+`https://www.inflearn.com/`로 등록했으나 BE 스크래퍼가 이 URL을 일본어로 긁어오는
+문제가 반복돼(원인 미확정) 같은 게시글 ID를 유지한 채 URL만 안정적으로 한국어로
+스크랩되는 `tech.kakao.com`으로 바꿨다. 이 게시글은 지우지 않는다(지우면 두 설정
+파일이 다시 깨진다).
 
 ## 로그인 필요 페이지 측정
 
