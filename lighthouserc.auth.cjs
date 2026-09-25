@@ -5,9 +5,10 @@
  * 실행 전 셸에서 `export LH_TEST_PASSWORD=...`가 필요하다(scripts/lighthouse-login.js 참고).
  * `pnpm perf:lh:auth`로 실행한다.
  *
- * 계획에는 `/post/edit/:id`도 포함돼 있었지만, 테스트 계정이 소유한 고정 게시글 ID를 보장할
- * 시드 데이터가 없어 여기서는 뺐다(계획 대비 이탈 — PR 본문에 기록). `/post/:id`(비로그인
- * 공개 상세)는 lighthouserc.cjs 쪽에도 없다 — 같은 이유로, 존재가 보장된 고정 ID가 없다.
+ * `/post/edit/:id`는 애초 계획에 있었지만, 테스트 계정이 소유한 고정 게시글이 없어 한 번
+ * 뺐었다(PR #195 "계획 대비 구현" 참고) — 2026-09-26 tester_new_999 계정으로 게시글을
+ * 하나 등록해(https://www.inflearn.com/, id 06ec0958-a33c-4c3f-81f6-0481badbbeb7, 공개)
+ * 해소했다. 이 게시글은 측정용으로만 쓰고 삭제하지 않는다 — 지우면 이 설정이 다시 깨진다.
  */
 module.exports = {
   ci: {
@@ -16,6 +17,7 @@ module.exports = {
       startServerReadyPattern: 'Local:', // 이유: lighthouserc.cjs 참고
       url: [
         'http://localhost:4173/post/submit',
+        'http://localhost:4173/post/edit/06ec0958-a33c-4c3f-81f6-0481badbbeb7',
         'http://localhost:4173/bookmark',
         'http://localhost:4173/my/comments',
       ],

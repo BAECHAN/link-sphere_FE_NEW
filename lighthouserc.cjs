@@ -12,6 +12,10 @@
  *
  * 전부 warn인 이유(총점이 아니라 결정적 지표부터 승격하는 정책)는 Civitai 선례를 따른다:
  * https://github.com/civitai/civitai/blob/main/lighthouserc.json
+ *
+ * `/post/:id`(게시글 상세)는 애초 계획에 있었지만, 존재가 보장된 고정 게시글이 없어 한 번
+ * 뺐었다(PR #195 "계획 대비 구현" 참고) — 2026-09-26 tester_new_999 계정으로 공개 게시글을
+ * 하나 등록해(id 06ec0958-a33c-4c3f-81f6-0481badbbeb7) 해소했다. 지우지 않는다.
  */
 module.exports = {
   ci: {
@@ -23,6 +27,7 @@ module.exports = {
       startServerReadyPattern: 'Local:',
       url: [
         'http://localhost:4173/post',
+        'http://localhost:4173/post/06ec0958-a33c-4c3f-81f6-0481badbbeb7',
         'http://localhost:4173/auth/login',
         'http://localhost:4173/auth/sign-up',
       ],
