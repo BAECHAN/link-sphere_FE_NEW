@@ -22,7 +22,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Pretendard', 'Inter', sans-serif;
+  --font-sans: 'Pretendard', sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -359,87 +359,16 @@
 Pretendard, Copyright (c) 2021 Kil Hyung-jin, with Reserved Font Name Pretendard.
 https://github.com/orioncactus/pretendard
 Licensed under the SIL Open Font License, Version 1.1. http://scripts.sil.org/OFL
+
+폰트 로딩은 여기(정적 굵기별 @font-face)가 아니라 index.html의 <link rel="stylesheet">가
+가리키는 /fonts/web/variable/pretendard-dynamic-subset.css(Pretendard 공식 npm 패키지
+`pretendard`의 dist/web/variable/pretendardvariable-dynamic-subset.css를 그대로 복사해
+font-family만 'Pretendard'로 맞춘 것)에서 한다 — 당근마켓·마켓컬리 프로덕션 실측
+결과와 Pretendard README(dynamic subset)를 근거로 2026-09-26 교체했다. 화면에 쓰인
+글자만큼만 unicode-range 단위(92개)로 나눠 받으므로, 이전처럼 안 쓰는 굵기·문자
+범위까지 정적 파일 9종을 통째로 갖고 있을 필요가 없다(docs/plans/2026-09-25-lighthouse-perf.md
+참고).
 */
-@font-face {
-  font-family: 'Pretendard';
-  font-weight: 900;
-  font-display: swap;
-  src:
-    local('Pretendard Black'),
-    url('/fonts/web/static/woff2-subset/Pretendard-Black.subset.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Pretendard';
-  font-weight: 800;
-  font-display: swap;
-  src:
-    local('Pretendard ExtraBold'),
-    url('/fonts/web/static/woff2-subset/Pretendard-ExtraBold.subset.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Pretendard';
-  font-weight: 700;
-  font-display: swap;
-  src:
-    local('Pretendard Bold'),
-    url('/fonts/web/static/woff2-subset/Pretendard-Bold.subset.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Pretendard';
-  font-weight: 600;
-  font-display: swap;
-  src:
-    local('Pretendard SemiBold'),
-    url('/fonts/web/static/woff2-subset/Pretendard-SemiBold.subset.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Pretendard';
-  font-weight: 500;
-  font-display: swap;
-  src:
-    local('Pretendard Medium'),
-    url('/fonts/web/static/woff2-subset/Pretendard-Medium.subset.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Pretendard';
-  font-weight: 400;
-  font-display: swap;
-  src:
-    local('Pretendard Regular'),
-    url('/fonts/web/static/woff2-subset/Pretendard-Regular.subset.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Pretendard';
-  font-weight: 300;
-  font-display: swap;
-  src:
-    local('Pretendard Light'),
-    url('/fonts/web/static/woff2-subset/Pretendard-Light.subset.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Pretendard';
-  font-weight: 200;
-  font-display: swap;
-  src:
-    local('Pretendard ExtraLight'),
-    url('/fonts/web/static/woff2-subset/Pretendard-ExtraLight.subset.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Pretendard';
-  font-weight: 100;
-  font-display: swap;
-  src:
-    local('Pretendard Thin'),
-    url('/fonts/web/static/woff2-subset/Pretendard-Thin.subset.woff2') format('woff2');
-}
 
 @layer base {
   * {

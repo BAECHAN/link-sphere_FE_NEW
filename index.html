@@ -4,42 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Link Sphere</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
-      rel="stylesheet"
-    />
 
-    <!-- Font Preload -->
-    <link
-      rel="preload"
-      href="/fonts/web/static/woff2-subset/Pretendard-Regular.subset.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
-    <link
-      rel="preload"
-      href="/fonts/web/static/woff2-subset/Pretendard-Medium.subset.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
-    <link
-      rel="preload"
-      href="/fonts/web/static/woff2-subset/Pretendard-Bold.subset.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
-    <link
-      rel="preload"
-      href="/fonts/web/static/woff2-subset/Pretendard-SemiBold.subset.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
+    <!-- Pretendard 공식 dynamic subset(가변 폰트 + unicode-range 분할) — 화면에 쓰인 글자
+         만큼만 받아온다. preload 없이 이 링크 하나로 충분하다(당근마켓·마켓컬리 프로덕션
+         실측 결과, 2026-09-26 — 두 곳 모두 폰트 preload를 쓰지 않는다). 상세 근거는
+         docs/plans/2026-09-25-lighthouse-perf.md 참고. -->
+    <link rel="stylesheet" href="/fonts/web/variable/pretendard-dynamic-subset.css" />
 
     <link rel="icon" href="/favicons/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png" />
