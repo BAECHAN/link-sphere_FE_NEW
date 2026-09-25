@@ -6,9 +6,146 @@
     <title>Link Sphere</title>
 
     <!-- Pretendard 공식 dynamic subset(가변 폰트 + unicode-range 분할) — 화면에 쓰인 글자
-         만큼만 받아온다. preload 없이 이 링크 하나로 충분하다(당근마켓·마켓컬리 프로덕션
-         실측 결과, 2026-09-26 — 두 곳 모두 폰트 preload를 쓰지 않는다). 상세 근거는
-         docs/plans/2026-09-25-lighthouse-perf.md 참고. -->
+         만큼만 받아온다. 당근마켓·마켓컬리는 preload 없이 쓰지만(2026-09-26 확인), 그건
+         한 화면의 글자 종류가 적은 페이지 기준이다. /post 피드는 여러 게시글의 제목·설명이
+         섞여 있어 조각이 20개 가까이 필요한데, preload 없이는 브라우저가 CSS 파싱 후에야
+         뒤늦게 발견해 두 웨이브로 나눠 요청하는 바람에 모바일 LCP가 오히려 나빠졌다(실측
+         9.4s→11.0s). 아래 preload 목록은 scripts/compute-font-preload-chunks.js로 계산한
+         것이다 - 새로 고치려면 그 스크립트를 다시 돌려서 나온 목록으로 통째로 교체한다.
+         유지보수 방침은 docs/PERFORMANCE.md "폰트 preload 유지보수" 절 참고. -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.42.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.73.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.75.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.76.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.77.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.78.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.79.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.80.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.81.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.82.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.83.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.84.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.85.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.86.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.87.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.88.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.89.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.90.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.91.woff2"
+    />
     <link rel="stylesheet" href="/fonts/web/variable/pretendard-dynamic-subset.css" />
 
     <link rel="icon" href="/favicons/favicon.ico" sizes="any" />
