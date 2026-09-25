@@ -6,6 +6,58 @@
 
 ---
 
+## 2026-09-26 — RUM: Cloudflare Web Analytics 대신 AWS CloudWatch RUM 채택
+
+**배경**
+
+`docs/plans/2026-09-25-lighthouse-perf.md`의 Phase 2b는 원래 Cloudflare Web
+Analytics(무료, DNS 이전 불필요, JS 스니펫만으로 동작)를 RUM 후보로 제안했었다. 실제
+도입을 진행하려던 시점에 "이미 관리 포인트가 많아지는데 차선책은 없는지, 기존에 쓰고
+있는 서비스로 되는지"를 재검토해달라는 요청을 받았고, 이어서 "RUM 자체가 꼭 필요한지도
+비용을 고려해 다시 생각해보자"는 요청도 받았다 — 둘 다 이 세션 안에서 실제로 다시
+검토했다.
+
+**검토한 대안**
+
+| 후보                     | 이 레포 기준 관리 포인트                                 | 비고                                           |
+| ------------------------ | -------------------------------------------------------- | ---------------------------------------------- |
+| Cloudflare Web Analytics | 별도 벤더 계정·대시보드 신규 추가                        | 원래 계획(Phase 2b)이었으나 관리 표면이 늘어남 |
+| GA4 + `web-vitals`       | 별도 벤더 계정·동의 배너 등 추가 고려 필요               | 검토만 하고 기각 — 관리 표면이 느는 것은 동일  |
+| AWS CloudWatch RUM(채택) | BE 배포에 이미 쓰는 AWS 계정(`185353921021`) 안에서 관리 | 새 벤더 없이 기존 IAM 사용자로 CLI 설정 가능   |
+
+**결정**
+
+- AWS CloudWatch RUM 채택. App Monitor `link-sphere-post`
+  (`81cbaae5-b6f2-48d9-9c05-f6f6f5f648cc`, 리전 `ap-northeast-1`)를 `aws rum
+create-app-monitor` CLI로 생성.
+- Cognito identity pool을 두지 않고, **리소스 기반 정책**(`aws rum
+put-resource-policy`, `Principal: "*"`로 `rum:PutRumEvents` 허용)으로 비로그인
+  방문자의 이벤트도 익명 수집되게 했다 — Cognito를 추가하면 그 자체가 새로운 관리
+  포인트가 되어 이번 결정의 동기(관리 부담 축소)와 어긋난다.
+- `sessionSampleRate: 1`(전수 수집), `telemetries: ['errors', 'performance']`,
+  `signing: false`(리소스 정책과 짝을 이루는 설정 — `index.html`의 스니펫 주석에 근거
+  링크와 함께 남김).
+
+**이유 / 트레이드오프**
+
+- IAM 정책 부트스트랩 과정에서 인라인 정책 2048자 제한, `iam:CreateServiceLinkedRole`
+  누락 등 두 차례 권한 오류를 실제로 겪고 별도 관리형(managed) 정책으로 해결했다 — AWS
+  콘솔 클릭 대신 CLI로 진행했기 때문에 각 단계의 실패 원인을 정확히 특정할 수 있었다.
+- Cloudflare 대비 "새 벤더를 안 늘린다"는 이점은 명확하지만, 그 대신 AWS RUM 특유의
+  IAM 부트스트랩 절차(계정당 1회, 이번에 완료)를 감수했다 — 계정을 옮기지 않는 한
+  이후 신규 프로젝트에는 재발하지 않는다.
+- 비용은 별도로 정밀 비교하지 않았다(출처 미상, 재검증 필요) — 관리 표면 축소가
+  이번 결정의 실제 동기였고, 트래픽이 늘어 비용이 유의미해지면 그때 `sessionSampleRate`를
+  낮추는 방향으로 조정하면 된다.
+
+**상태**
+
+App Monitor·리소스 정책 생성 완료(AWS 측). FE `index.html`에 수집 스니펫 추가 완료.
+배포 후 CloudWatch RUM 콘솔에서 실제 이벤트 수신 여부 확인 필요(signing:false 관련
+문서 간 불일치는 `index.html`의 스니펫 주석 참고).
+
+---
+
 ## 2026-09-26 — 폰트: 정적 굵기별 subset → Pretendard 공식 dynamic subset
 
 **배경**
