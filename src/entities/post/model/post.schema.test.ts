@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createPostSchema, updatePostSchema } from '@/entities/post/model/post.schema';
+import { TEXTS } from '@/shared/config/texts';
 
 describe('createPostSchema', () => {
   it('url만 있어도 유효하다', () => {
@@ -18,7 +19,45 @@ describe('createPostSchema', () => {
       isPrivate: false,
     });
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(TEXTS.validation.urlFormat);
+    }
   });
+
+  it.each([
+    'file:///private/tmp/journey.html#view=create-path',
+    'blob:https://example.com/uuid',
+    'data:text/plain;base64,aGVsbG8=',
+    'javascript:alert(1)',
+    'ftp://example.com/file.txt',
+    'HTTPS://example.com',
+  ])('http/https가 아닌 스킴(%s)은 파싱에 실패하고 urlScheme 메시지를 반환한다', (url) => {
+    const result = createPostSchema.safeParse({
+      url,
+      isPrivate: false,
+      bookmark: false,
+      folderIds: [],
+    });
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(TEXTS.validation.urlScheme);
+    }
+  });
+
+  it.each(['http://example.com', '  https://example.com  '])(
+    'http/https 스킴(%s)은 앞뒤 공백이 있어도 유효하다',
+    (url) => {
+      const result = createPostSchema.safeParse({
+        url,
+        isPrivate: false,
+        bookmark: false,
+        folderIds: [],
+      });
+      expect(result.success).toBe(true);
+    }
+  );
 
   it('isPrivate가 없으면 파싱에 실패한다', () => {
     const result = createPostSchema.safeParse({ url: 'https://example.com' });
@@ -81,5 +120,18 @@ describe('updatePostSchema', () => {
       isPrivate: false,
     });
     expect(result.success).toBe(false);
+  });
+
+  it('http/https가 아닌 스킴(file://)은 파싱에 실패한다', () => {
+    const result = updatePostSchema.safeParse({
+      url: 'file:///private/tmp/journey.html#view=create-path',
+      title: 'Updated Title',
+      isPrivate: false,
+    });
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(TEXTS.validation.urlScheme);
+    }
   });
 });

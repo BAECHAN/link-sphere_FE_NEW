@@ -31,6 +31,14 @@
 
 ### Fixed
 
+- `post` file:// 등 크롤링 불가능한 URL을 등록하면 원인 없이 실패하던 문제
+  <details><summary>배경·구현</summary>
+
+  등록 폼의 URL 검증(`zod .url()`)은 파싱 가능한 형태인지만 보고 스킴을 제한하지 않아, `file://`처럼 서버가 크롤링할 수 없는 URL도 클라이언트 검증을 통과해 요청이 그대로 나갔다. BE `SafeUrlValidator`는 http/https 스킴만 허용해 `400 INVALID_INPUT`으로 거부하는데, 이 응답은 mutation의 정적 `errorMessage`("포스트 생성에 실패했어요.")로 덮여 사용자는 왜 실패했는지 알 수 없었다(서버 에러 메시지를 직접 노출하지 않는 전역 정책은 유지). BE와 동일하게 http/https 스킴만 허용하도록 클라이언트 검증에 `refine`을 추가해, 요청을 보내기 전 필드 아래에 구체적 안내가 뜨도록 했다 — 같은 부류(FE 통과 → BE 400) 문제를 고친 URL 공백 정규화 수정(`shared/utils/url.util.ts`)과 같은 접근이다.
+  (`src/entities/post/model/post.schema.ts`, `src/shared/config/texts.ts`, `docs/plans/2026-09-26-post-url-scheme-validation.md`(신규), [PR #202](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/202))
+
+  </details>
+
 - `infra` doc-drift 경량 감사가 5개 병합 누적 대신 마지막 push 1건만 검사하던 문제 수정
   <details><summary>배경·구현</summary>
 
