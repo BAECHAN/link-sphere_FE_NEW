@@ -303,8 +303,7 @@ export const TEXTS = {
     passwordGuide: '영문, 숫자, 특수문자 조합 8자 이상',
   },
   validation: {
-    urlFormat: '유효하지 않은 URL 형식이에요.',
-    urlScheme: 'http:// 또는 https://로 시작하는 웹 주소만 등록할 수 있어요.',
+    urlFormat: 'http:// 또는 https://로 시작하는 웹 주소만 등록할 수 있어요.',
     urlRequired: 'URL을 입력해주세요.',
     contentRequired: '내용을 입력해주세요.',
     titleRequired: '제목을 입력해주세요.',

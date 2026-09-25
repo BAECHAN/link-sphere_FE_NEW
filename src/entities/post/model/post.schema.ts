@@ -9,7 +9,7 @@ import { UrlUtil } from '@/shared/utils/url.util';
 const postUrlSchema = z
   .string()
   .url(TEXTS.validation.urlFormat)
-  .refine((value) => /^https?:\/\//.test(UrlUtil.normalizeUrl(value)), TEXTS.validation.urlScheme);
+  .refine((value) => /^https?:\/\//.test(UrlUtil.normalizeUrl(value)), TEXTS.validation.urlFormat);
 
 /**
  * 포스트 등록(생성)을 위한 스키마
