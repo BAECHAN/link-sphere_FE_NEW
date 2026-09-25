@@ -1,4 +1,7 @@
 ### 2026-09-25 (FE)
+- 크롤링 불가 URL(file:// 등) 입력 시 예외 처리 및 에러 피드백 로직 개선 ([#202](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/202))
+
+### 2026-09-25 (FE)
 - AWS CloudWatch RUM을 도입하여 실사용자 환경의 성능 지표 모니터링 및 에러 추적 체계 구축 ([#200](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/200))
 
 ### 2026-09-25 (FE)
