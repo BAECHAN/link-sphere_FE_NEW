@@ -31,14 +31,15 @@ pnpm perf:lh            # 공개 페이지 4개 × 5회, 데스크톱 프리셋
 
 ## 측정 URL
 
-| 분류        | URL                                         | 설정 파일               |
-| ----------- | ------------------------------------------- | ----------------------- |
-| 공개        | `/post`, `/auth/login`, `/auth/sign-up`     | `lighthouserc.cjs`      |
-| 로그인 필요 | `/post/submit`, `/bookmark`, `/my/comments` | `lighthouserc.auth.cjs` |
+| 분류        | URL                                                           | 설정 파일               |
+| ----------- | ------------------------------------------------------------- | ----------------------- |
+| 공개        | `/post`, `/post/:id`, `/auth/login`, `/auth/sign-up`          | `lighthouserc.cjs`      |
+| 로그인 필요 | `/post/submit`, `/post/edit/:id`, `/bookmark`, `/my/comments` | `lighthouserc.auth.cjs` |
 
-`/post/:id`, `/post/edit/:id`처럼 특정 게시글 ID가 필요한 페이지는 뺐다 — 테스트
-계정이 소유한, 항상 존재가 보장된 고정 ID를 만들어주는 시드 데이터가 없어서다
-(`lighthouserc.auth.cjs` 상단 주석 참고).
+`:id`는 측정 전용으로 tester_new_999 계정이 등록한 고정 게시글(공개,
+`https://www.inflearn.com/`, id `06ec0958-a33c-4c3f-81f6-0481badbbeb7`)이다 — 존재가
+보장된 ID가 없어 한 번 뺐던 것을 2026-09-26 이 게시글을 만들어 해소했다. 이 게시글은
+지우지 않는다(지우면 두 설정 파일이 다시 깨진다).
 
 ## 로그인 필요 페이지 측정
 
