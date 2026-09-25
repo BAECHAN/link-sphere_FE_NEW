@@ -5,6 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Link Sphere</title>
 
+    <!-- CloudWatch RUM: 실사용자 성능·에러 지표 수집. App Monitor는 Cognito identity pool
+         없이 리소스 기반 정책(Principal: "*", rum:PutRumEvents)으로 익명 수집을 허용한다 —
+         RUM 도입 검토 당시 "관리 부담을 늘리지 않는" 방향으로 Cognito 없는 구성을 택했다.
+         signing:false는 그 구성과 짝을 이룬다 - CloudWatch RUM 리소스 정책 문서는 퍼블릭
+         정책을 쓰면 권한 부여 설정을 건너뛸 수 있다고 안내하지만, aws-rum-web 일반 설정
+         가이드는 signing:false를 "인증되지 않은 프록시" 시나리오로 한정해 설명해 다소
+         엇갈린다 - 배포 후 CloudWatch RUM 콘솔에서 실제 이벤트 수신을 직접 확인해야 한다.
+         스크립트는 head 최상단 가까이 둬야 타이밍 측정이 정확하다(AWS 공식 설치 가이드). -->
+    <script>
+      (function (n, i, v, r, s, c, x, z) {
+        x = window.AwsRumClient = { q: [], n: n, i: i, v: v, r: r, c: c };
+        window[n] = function (c, p) {
+          x.q.push({ c: c, p: p });
+        };
+        z = document.createElement('script');
+        z.async = true;
+        z.src = s;
+        document.head.insertBefore(z, document.head.getElementsByTagName('script')[0]);
+      })(
+        'cwr',
+        '81cbaae5-b6f2-48d9-9c05-f6f6f5f648cc',
+        '1.0.0',
+        'ap-northeast-1',
+        'https://client.rum.us-east-1.amazonaws.com/3.x/cwr.js',
+        {
+          sessionSampleRate: 1,
+          endpoint: 'https://dataplane.rum.ap-northeast-1.amazonaws.com',
+          telemetries: ['errors', 'performance'],
+          allowCookies: true,
+          enableXRay: false,
+          signing: false,
+        }
+      );
+    </script>
+
     <!-- Pretendard 공식 dynamic subset(가변 폰트 + unicode-range 분할) — 화면에 쓰인 글자
          만큼만 받아온다. 당근마켓·마켓컬리는 preload 없이 쓰지만(2026-09-26 확인), 그건
          한 화면의 글자 종류가 적은 페이지 기준이다. /post 피드는 여러 게시글의 제목·설명이
