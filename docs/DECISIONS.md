@@ -6,6 +6,115 @@
 
 ---
 
+## 2026-09-26 — 폰트: 정적 굵기별 subset → Pretendard 공식 dynamic subset
+
+**배경**
+
+`/post` Lighthouse 측정(사용자 제공 리포트, 데스크톱 LCP 2.3s / PageSpeed Insights 모바일
+LCP 9.4s, 2026-09-25~26)을 계기로 초기 로딩을 점검하던 중, 폰트가 첫 화면 로딩과
+대역폭을 나눠 쓰고 있다는 걸 확인했다:
+
+- Pretendard 정적 subset 4종(Regular/Medium/Bold/SemiBold, 각 약 267KB)을 `index.html`이
+  전부 preload — 약 1.07MB.
+- 실제로는 거의 안 쓰이는 Inter(Google Fonts)를 렌더 차단 방식으로 함께 로드.
+
+**검토한 대안**
+
+당근마켓(`daangn.com`)과 마켓컬리(`kurly.com`) 프로덕션 사이트를 Playwright로 직접 열어
+네트워크 요청·CSS를 실측했다(2026-09-26):
+
+|             | 당근마켓                         | 마켓컬리                               | 이 레포(기존)   |
+| ----------- | -------------------------------- | -------------------------------------- | --------------- |
+| 방식        | 가변 폰트 + unicode-range 92분할 | 가변 폰트 + unicode-range 92분할(동일) | 정적 굵기별 9종 |
+| 파일당 크기 | 20~37KB                          | 동일                                   | 261~273KB       |
+| preload     | 없음                             | 없음                                   | 4종 preload     |
+| 호스팅      | 자체 도메인                      | 자체 도메인(공식 1.3.9 배포본)         | 자체 도메인     |
+
+두 회사 모두 **정확히 같은 92분할 구조**였다 — 각자 만든 게 아니라 Pretendard 공식
+GitHub README가 제공하는 "dynamic subset" 배포판(npm 패키지 `pretendard`의
+`dist/web/variable/pretendardvariable-dynamic-subset.css`, jsDelivr로도 제공)을 그대로
+썼기 때문이다. README 원문: _"페이지에 포함된 글자만 선택적으로 다운로드해 보다 빠르게
+Pretendard를 사용하려면"_ 쓰라고 명시하고, *"Google Fonts의 한글 글꼴 방식을 동일하게
+적용한 것"*이라고 설명한다.
+
+Google의 일반 원칙도 같은 방향이다: _"가능하면 중요한 리소스는 HTML 문서와 같은
+출처에 두는 게 좋다"_, _"자체 호스팅이 교차 출처보다 빠르다"_(번역,
+[web.dev "Optimize LCP"](https://web.dev/articles/optimize-lcp)) — 그래서 외부 CDN
+링크(컬리 방식)가 아니라 당근처럼 자체 도메인에 호스팅하는 쪽을 골랐다.
+
+기술 블로그 근거는 찾지 못했다(검색해도 두 회사의 웹폰트 관련 글이 나오지 않았다,
+없다고 단정하지는 않음) — 위 결정은 블로그 주장이 아니라 실측한 프로덕션 동작과
+Pretendard 공식 README에만 근거한다.
+
+**결정**
+
+- `pretendard` npm 패키지의 `dist/web/variable/pretendardvariable-dynamic-subset.css` +
+  `woff2-dynamic-subset/*.woff2`(92개)를 `public/fonts/web/variable/`로 복사하고,
+  `font-family`만 기존 관례(`'Pretendard'`, "Variable" 접미사 없음)에 맞춰 바꿨다.
+- `index.html`은 이 CSS를 가리키는 `<link rel="stylesheet">` 하나로 교체 — preload 없음
+  (당근·컬리 둘 다 안 씀), Inter Google Fonts 링크·preconnect 2개도 제거.
+- `globals.css`의 정적 굵기별 `@font-face` 9개를 지우고, `--font-sans`에서 `'Inter'`를
+  뺐다. `font-family` 앞 순서는 유지(`'Pretendard'`가 먼저) — README가 구분하는 두
+  방식 중 "어디서든 동일한 환경"(컬리 방식)에 해당하고, 이 레포가 이미 그 순서였다.
+- 더 이상 쓰이지 않게 된 정적 subset 파일 9개(`public/fonts/web/static/woff2-subset/`)는
+  이 변경으로 직접 고아가 됐으므로 함께 제거했다. 그 외 기존에 이미 안 쓰이던 폰트
+  자산(`public/fonts/web/static/woff2/`, `woff/`, `variable/PretendardVariable.woff2`
+  등, 총 11MB 중 일부)은 이번 변경이 만든 문제가 아니라 손대지 않았다.
+
+**상태**
+
+적용 완료. 화면에 보이는 폰트 렌더링(FOUT 방식)이 바뀔 수 있어 필름스트립 전후
+비교로 사용자 승인을 받은 뒤 반영했다. 실측 결과는
+`docs/plans/2026-09-25-lighthouse-perf.md`와 `docs/PERFORMANCE.md` "실측 결과" 참고.
+
+---
+
+## 2026-09-26 — Lighthouse CI: 전부 warn으로 시작, 총점이 아니라 개별 지표에 건다
+
+**배경**
+
+`/post` 성능 개선(위 폰트 결정과 같은 계기)을 하면서, 회귀를 앞으로도 계속 잡으려면
+PR마다 자동 측정이 필요하다고 판단했다. 다만 Lighthouse 점수는 원래 흔들린다 —
+Lighthouse 공식 variability 문서: _"당신의 사이트 성능을 단일 숫자가 아니라 점수의
+분포로 생각하는 게 더 유용할 수 있다"_(번역,
+[performance-scoring](https://developer.chrome.com/docs/lighthouse/performance/performance-scoring)),
+_"5회 실행의 중앙값 점수가 1회보다 2배 안정적이다"_(번역,
+[variability.md](https://github.com/GoogleChrome/lighthouse/blob/main/docs/variability.md)).
+
+**검토한 대안**
+
+실제 공개 저장소 [Civitai의 `lighthouserc.json`](https://github.com/civitai/civitai/blob/main/lighthouserc.json)을
+선례로 확인했다: 5회 실행 중앙값, 데스크톱 프리셋, **모든 assertion이 `warn`**이라
+점수 하락으로 빌드가 막히지 않는다. 그 파일의 코멘트가 향후 단계 승격 기준까지
+남겨뒀다: _"결정적이고 변동이 적은 지표(레이아웃 밀림 정도, 총 바이트/리소스 예산)를
+먼저 `error`로 승격하고, 변동이 큰 타이밍 지표(LCP, 응답 지연)는 5회 측정의 노이즈
+폭보다 확실히 여유 있는 임계값으로만, 가장 나중에 승격한다"_(번역, 원문 코멘트).
+
+Lighthouse CI 공식 troubleshooting 문서도 같은 방향을 명시적으로 권한다:
+_"결론보다 사실을 단언하라 — TTI 값 대신 JS 요청의 개수·크기에 단언부터 걸어라"_
+(번역, [troubleshooting.md](https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/troubleshooting.md)).
+
+반대로 "처음부터 실패로 막는다"는 선택지는 검토했으나 고르지 않았다 — 이 레포는
+CrUX 필드 데이터가 없는 저트래픽 사이트라(PSI에 "실제 사용자 데이터: 없음"으로 표시,
+2026-09-26 확인) 랩 측정(Lighthouse)에만 의존할 수밖에 없는데, 랩 측정 자체가
+노이즈를 안고 있는 상태에서 바로 `error`로 막으면 사소한 머신 변동에도 머지가
+막힐 위험이 크다.
+
+**결정**
+
+- `lighthouserc.cjs`(공개 페이지)·`lighthouserc.auth.cjs`(로그인 필요 페이지) 둘 다
+  전부 `warn`으로 시작한다. `error` 승격은 몇 주 실측해 노이즈 폭을 확인한 뒤 별도로
+  검토한다(이번 범위 밖).
+- PR CI(`ci.yml`)에는 공개 페이지만 넣는다. 로그인 필요 페이지는 테스트 계정
+  비밀번호를 GitHub Actions secret으로 등록하는 별도 절차가 필요해 로컬 수동 실행용
+  (`pnpm perf:lh:auth`)으로만 남겼다.
+
+**상태**
+
+적용 완료. 상세 절차는 `docs/PERFORMANCE.md` 참고.
+
+---
+
 ## 2026-09-24 — 드롭다운 메뉴: 스크롤 닫기에 이동 거리 임계값 + 연속 클릭 무시
 
 **배경**
