@@ -1,9 +1,15 @@
 import { z } from 'zod';
 import { TEXTS } from '@/shared/config/texts';
+import { UrlUtil } from '@/shared/utils/url.util';
 
 // 여기 있는 건 전부 "사용자 입력 검증"이다. 서버 응답 형태의 정본은 post.dto.ts(BE 스펙
 // 생성) 다.
-const postUrlSchema = z.string().url(TEXTS.validation.urlFormat);
+// BE SafeUrlValidator가 http/https 스킴만 크롤링 대상으로 허용해, file:// 등은 형식은
+// 유효해도 등록은 항상 실패한다 — 요청을 보내기 전에 클라이언트에서 먼저 걸러낸다.
+const postUrlSchema = z
+  .string()
+  .url(TEXTS.validation.urlFormat)
+  .refine((value) => /^https?:\/\//.test(UrlUtil.normalizeUrl(value)), TEXTS.validation.urlScheme);
 
 /**
  * 포스트 등록(생성)을 위한 스키마
