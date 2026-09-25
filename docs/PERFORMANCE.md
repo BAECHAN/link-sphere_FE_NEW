@@ -1,8 +1,10 @@
 # 성능 측정 가이드
 
-이 문서는 Lighthouse 측정을 재현하는 절차 문서(how-to)다. "왜 이 방식을 골랐는가"는
-`docs/DECISIONS.md`(LHCI assertion 단계, og 이미지 파이프라인 검토), "무엇을 언제
-바꿨는가"는 `docs/plans/2026-09-25-lighthouse-perf.md`(계획)와 `CHANGELOG.md`를 본다.
+이 문서는 Lighthouse(랩 데이터)와 CloudWatch RUM(필드 데이터) 측정을 재현·활용하는
+절차 문서(how-to)다. "왜 이 방식을 골랐는가"는 `docs/DECISIONS.md`(LHCI assertion
+단계, og 이미지 파이프라인 검토, Cloudflare 대신 CloudWatch RUM을 택한 이유), "무엇을
+언제 바꿨는가"는 `docs/plans/2026-09-25-lighthouse-perf.md`(계획)와 `CHANGELOG.md`를
+본다.
 
 ## 개요
 
@@ -73,6 +75,42 @@ npx lhci collect --url=https://dbw3brui6htwk.cloudfront.net/post \
 모바일(느린 4G) 프리셋으로 재려면 [PageSpeed Insights](https://pagespeed.web.dev/)를
 직접 쓰는 편이 더 간단하다 — Lighthouse 코어와 같은 엔진이고 모바일 스로틀링·CrUX
 필드 데이터 유무까지 한 화면에서 보여준다.
+
+## RUM 데이터 활용 (실사용자 데이터 → 실제 개선)
+
+Lighthouse·PSI는 한 번 실행한 시점의 랩(실험실) 데이터라, 실제 방문자가 어떤 기기·
+브라우저·네트워크로 접속하는지는 못 보여준다. AWS CloudWatch RUM(App Monitor
+`link-sphere-post`, 리전 `ap-northeast-1`, 도입 배경은 `docs/DECISIONS.md` 2026-09-26
+"RUM" 항목)을 붙인 이유가 이 필드 데이터를 얻기 위해서다 — 그리고 **RUM 도입 자체가
+목적이 아니라, 그 데이터로 실제 개선을 하는 것이 목적이다.** 아래는 "수집 → 확인 →
+개선"이 끊기지 않도록 남기는 활용 루프다.
+
+```mermaid
+flowchart TD
+  A["실사용자 방문<br/>(index.html의 RUM 스니펫이 자동 수집)"] --> B["CloudWatch RUM 콘솔에서 확인<br/>(세션·페이지뷰·에러·WebVitals)"]
+  B --> C["콘솔 내용을 캡처해 Claude에게 전달"]
+  C --> D["Lighthouse 랩 데이터와 대조해<br/>실제 병목 우선순위 판단"]
+  D --> E["원인을 코드 레벨로 좁혀<br/>수정 계획 수립·구현"]
+  E --> F["배포"]
+  F --> B
+```
+
+- **콘솔 확인**: https://ap-northeast-1.console.aws.amazon.com/cloudwatch/home?region=ap-northeast-1#rum:application/link-sphere-post
+  — 이 IAM 사용자(`link-sphere-user`)는 CLI로 원본 이벤트를 볼 권한(`rum:GetAppMonitorData`)이
+  없어(2026-09-26 확인, AWS 콘솔 로그인 계정과는 별개) 개별 이벤트 상세는 콘솔에서 본다.
+  집계 수치(세션 수·페이지뷰·WebVitals 평균 등)는 `aws cloudwatch get-metric-statistics
+--namespace AWS/RUM`으로도 조회 가능하다(2026-09-26 직접 검증).
+- **전달 방법**: 콘솔 화면을 스크린샷하거나 표로 옮겨 전달하면 된다 — 어느 페이지·
+  기간·지표를 봤는지만 같이 알려주면 분석에 충분하다.
+- **판단 기준**: Lighthouse 랩 데이터로는 안 보이던 것(특정 브라우저·기기에서만 튀는
+  LCP, 특정 페이지의 JS 에러율 등)이 우선순위가 높다 — 랩에서도 이미 나쁜 값은
+  Lighthouse CI가 이미 `warn`으로 잡고 있으므로 RUM은 그 사각지대를 메우는 역할이다.
+- **재검증**: 수정을 배포한 뒤에는 "고쳤다고 믿는 것"에서 멈추지 않고, RUM 데이터로
+  실제 개선됐는지 다시 확인한다 — 이번 폰트 preload 회귀(위 "Lighthouse 지표" 표,
+  9.4s→11.0s→5.7s)가 랩 측정만으로는 놓쳤던 사례다.
+- **현재 데이터의 한계(2026-09-26 기준)**: 배포 직후라 지금 쌓인 세션은 검증차 접속한
+  테스트 트래픽뿐이다 — 실제 방문자 패턴을 판단하려면 유의미한 기간 동안 실사용자
+  트래픽이 쌓인 뒤에 봐야 한다.
 
 ## CI 게이트
 
