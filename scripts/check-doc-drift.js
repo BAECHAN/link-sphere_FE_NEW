@@ -5,9 +5,9 @@
 // 원래는 claude.ai 루틴(클라우드 LLM 에이전트, 6시간 폴링)으로 만들었으나, 이 검사
 // 자체가 git log 파싱 + grep + check-docs.js 실행뿐인 결정론적 작업이라 LLM이 필요
 // 없었고, 폴링이라 병합 시점보다 최대 6시간 늦게 잡히는 문제도 있어 GitHub Actions
-// 기반으로 다시 만들었다(2026-09-14). 상태(마지막 확인 커밋·누적 병합 수)는 레포에
-// 커밋하지 않고 트래킹 이슈 본문의 마커 주석에만 저장한다 — 이 워크플로는 절대
-// 레포에 쓰기 작업을 하지 않는다.
+// 기반으로 다시 만들었다(2026-09-14). 상태(마지막 확인 커밋·마지막 감사 커밋)는
+// 레포에 커밋하지 않고 트래킹 이슈 본문의 마커 주석에만 저장한다 — 이 워크플로는
+// 절대 레포에 쓰기 작업을 하지 않는다.
 //
 // 기준 미달(누적<5)일 때는 이슈 본문의 대시보드(진행도·마지막 확인 커밋·갱신 시각)만
 // 갱신하고 댓글은 달지 않는다 — 그 상태는 console.log로 Actions run 로그에도 남는다.
@@ -17,6 +17,18 @@
 // 항상 댓글" 방식으로 정리했으나, 이 레포 평균 병합 속도(최근 17일 하루 ~6.3개)로는
 // 그 방식도 3년 뒤 약 1,380개 댓글로 같은 스크롤 문제를 재발시킨다는 걸 확인해
 // openapi-drift-check.yml과 같은 "문제 있을 때만" 패턴으로 다시 정리했다).
+//
+// 2026-09-25, "마지막으로 이 스크립트가 실행된 시점"(last_checked_sha)과 "마지막으로
+// 경량 감사(grep)가 실제로 돈 시점"을 하나의 필드로 겸용하던 게 버그였다 — 기준 미달
+// push마다 last_checked_sha를 그 시점 HEAD로 덮어써서, 5번째 push에서 감사가 실제로
+// 보는 git diff 범위가 "5개 병합 누적분"이 아니라 "가장 최근 push 1건"으로 좁아졌다
+// (이슈 본문은 "병합 PR 5개"라고 표시하지만 실제로는 1개만 봤고, 리포트의 PR 목록도
+// 항상 1줄이었다). FE #155가 지운 reorderBookmarkFoldersSchema export가 이 경량
+// 감사에 한 번도 안 걸린 사례로 발견했다. 두 시점을 last_checked_sha/last_audit_sha로
+// 분리하고, 병합 수·리포트 대상 커밋 목록·git diff 범위를 모두 last_audit_sha 기준으로
+// 매 실행 다시 계산하도록 고쳤다(더 이상 누적하지 않는다 — 세 값이 항상 같은 범위를
+// 보게 만드는 게 핵심이다). MERGE_COMMIT_RE도 "Merge pull request #N from ..."
+// 형태(과거 병합 커밋 병합 방식, #171-173 등)를 못 세던 것을 함께 고쳤다.
 //
 // 한계: 이 스크립트는 "삭제된 export/파일 경로가 여전히 참조되는가"만 기계적으로
 // 본다. 산문 서술·다이어그램이 의미적으로만 낡은 경우(예: 2026-09-14
@@ -33,9 +45,12 @@ const REPO = process.env.GITHUB_REPOSITORY;
 const LABEL = 'doc-drift-check';
 const ISSUE_TITLE = '[자동] 문서-코드 정합성 경량 점검 트래커';
 const STATE_RE =
+  /<!--\s*doc-drift-state:\s*last_checked_sha=([0-9a-f]+),\s*last_audit_sha=([0-9a-f]+)\s*-->/;
+// 2026-09-25 이전 형식(merges_since_audit 누적 카운터) — parseState의 레거시 폴백에서만 쓴다.
+const LEGACY_STATE_RE =
   /<!--\s*doc-drift-state:\s*last_checked_sha=([0-9a-f]+),\s*merges_since_audit=(\d+)\s*-->/;
 const LAST_AUDIT_MARKER = '<!-- last-audit -->';
-const MERGE_COMMIT_RE = /\(#\d+\)\s*$/;
+const MERGE_COMMIT_RE = /\(#\d+\)\s*$|^Merge pull request #\d+ /;
 const WATCHED_PATHS = ['src/entities/', 'src/shared/config/texts.ts'];
 
 function run(cmd, args) {
@@ -103,15 +118,16 @@ function buildAuditSection({
   return lines.join('\n');
 }
 
-function buildBody(lastCheckedSha, mergesSinceAudit, auditSection) {
+function buildBody(lastCheckedSha, lastAuditSha, mergesSinceAudit, auditSection) {
   const lines = [
-    `<!-- doc-drift-state: last_checked_sha=${lastCheckedSha}, merges_since_audit=${mergesSinceAudit} -->`,
+    `<!-- doc-drift-state: last_checked_sha=${lastCheckedSha}, last_audit_sha=${lastAuditSha} -->`,
     '',
     '## 현재 상태',
     '',
     '| 항목 | 값 |',
     '| --- | --- |',
     `| 다음 경량 감사까지 | ${mergesSinceAudit}/${THRESHOLD} 병합 |`,
+    `| 다음 감사 시작점 | \`${lastAuditSha.slice(0, 7)}\` |`,
     `| 마지막 확인 커밋 | \`${lastCheckedSha.slice(0, 7)}\` |`,
     `| 마지막 갱신 | ${formatTimestamp()} UTC |`,
     '',
@@ -171,7 +187,7 @@ function findOrCreateIssue(headSha) {
 
   ensureLabel();
 
-  const body = buildBody(headSha, 0, '');
+  const body = buildBody(headSha, headSha, 0, '');
   const url = gh([
     'issue',
     'create',
@@ -192,11 +208,20 @@ function findOrCreateIssue(headSha) {
 function parseState(body) {
   const match = body.match(STATE_RE);
 
-  if (!match) {
-    return null;
+  if (match) {
+    return { lastCheckedSha: match[1], lastAuditSha: match[2] };
   }
 
-  return { lastCheckedSha: match[1], mergesSinceAudit: Number(match[2]) };
+  const legacyMatch = body.match(LEGACY_STATE_RE);
+
+  if (legacyMatch) {
+    // 구 마커(merges_since_audit 누적 카운터)를 만나면 그 시점의 last_checked_sha를
+    // 감사 기준점으로 그대로 승계한다 — 누적값은 버린다. 이후로는 last_audit_sha부터
+    // 매번 다시 세므로 손실 없이 새 필드 체계로 넘어간다.
+    return { lastCheckedSha: legacyMatch[1], lastAuditSha: legacyMatch[1] };
+  }
+
+  return null;
 }
 
 function countMergedPRs(fromSha, toSha) {
@@ -306,7 +331,7 @@ function buildDrifReportBody(
       '(줄 번호는 파일 범위 안인데 내용이 낡은 경우 등)는 이 검사로 못 잡습니다. 그런 종류가' +
       ' 의심되면 사람이 전체 subagent 감사를 요청해야 합니다.',
     '',
-    `확인 범위: \`${state.lastCheckedSha.slice(0, 7)}..${headSha.slice(0, 7)}\` (병합 PR ${totalMerges}개)`,
+    `확인 범위: \`${state.lastAuditSha.slice(0, 7)}..${headSha.slice(0, 7)}\` (병합 PR ${totalMerges}개)`,
   ];
 
   if (subjects.length > 0) {
@@ -332,8 +357,8 @@ function buildDrifReportBody(
 
 function runLightweightAudit(issue, state, headSha, totalMerges, subjects) {
   const checkDocsResult = runCheckDocs();
-  const deletedIdentifiers = findDeletedIdentifiers(state.lastCheckedSha, headSha);
-  const deletedFiles = findDeletedFiles(state.lastCheckedSha, headSha);
+  const deletedIdentifiers = findDeletedIdentifiers(state.lastAuditSha, headSha);
+  const deletedFiles = findDeletedFiles(state.lastAuditSha, headSha);
   const danglingLines = [];
   let danglingGroups = 0;
 
@@ -378,7 +403,7 @@ function runLightweightAudit(issue, state, headSha, totalMerges, subjects) {
   }
 
   const auditSection = buildAuditSection({
-    rangeFrom: state.lastCheckedSha.slice(0, 7),
+    rangeFrom: state.lastAuditSha.slice(0, 7),
     rangeTo: headSha.slice(0, 7),
     totalMerges,
     checkDocsPassed: checkDocsResult.passed,
@@ -386,7 +411,7 @@ function runLightweightAudit(issue, state, headSha, totalMerges, subjects) {
     commentUrl,
   });
 
-  editBody(issue.number, buildBody(headSha, 0, auditSection));
+  editBody(issue.number, buildBody(headSha, headSha, 0, auditSection));
   console.log(
     hasIssue
       ? `경량 감사 완료 — dangling ${danglingGroups}건, 댓글 등록.`
@@ -415,7 +440,7 @@ function main() {
 
   if (!state) {
     console.log('이슈 본문에서 상태 마커를 못 찾음 — 지금 HEAD로 재초기화합니다.');
-    editBody(issue.number, buildBody(headSha, 0, extractAuditSection(issue.body)));
+    editBody(issue.number, buildBody(headSha, headSha, 0, extractAuditSection(issue.body)));
     return;
   }
 
@@ -424,11 +449,13 @@ function main() {
     return;
   }
 
-  const { count: newMerges, subjects } = countMergedPRs(state.lastCheckedSha, headSha);
-  const totalMerges = state.mergesSinceAudit + newMerges;
+  const { count: totalMerges, subjects } = countMergedPRs(state.lastAuditSha, headSha);
 
   if (totalMerges < THRESHOLD) {
-    editBody(issue.number, buildBody(headSha, totalMerges, extractAuditSection(issue.body)));
+    editBody(
+      issue.number,
+      buildBody(headSha, state.lastAuditSha, totalMerges, extractAuditSection(issue.body))
+    );
     console.log(`기준 미달(${totalMerges}/${THRESHOLD}) — 검사 없이 상태만 갱신.`);
     return;
   }

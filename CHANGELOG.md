@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `infra` doc-drift 경량 감사가 5개 병합 누적 대신 마지막 push 1건만 검사하던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  `doc-drift-check.yml` 트래킹 이슈([#99](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/99))의 상태 마커 `last_checked_sha` 하나가 "마지막 실행 시점"과 "마지막 감사 시점"을 겸하고 있어서, 기준 미달 push마다 그 값이 HEAD로 덮어써졌다. 그래서 5번째 push에서 감사가 실제로 diff하는 범위는 "5개 병합 누적분"이 아니라 "가장 최근 push 1건"뿐이었다 — 이슈 본문은 "병합 PR 5개"라고 표시했지만 실제로는 1개만 봤고, 리포트 댓글의 PR 목록도 항상 1줄이었다. FE #155가 지운 `reorderBookmarkFoldersSchema` export가 이 경량 감사에 한 번도 안 걸린 사례로 발견했다. 두 시점을 `last_checked_sha`/`last_audit_sha`로 분리하고, 병합 수·리포트 대상 커밋 목록·git diff 범위를 모두 `last_audit_sha` 기준으로 매 실행 다시 계산하도록 고쳤다(더 이상 누적하지 않음). 구 형식 마커를 만나면 `last_audit_sha`를 그 시점 `last_checked_sha`로 승계해 손실 없이 새 필드 체계로 넘어간다. `MERGE_COMMIT_RE`도 "Merge pull request #N from ..." 형태(과거 병합 커밋 병합 방식, #171-173 등)를 못 세던 것을 함께 고쳤다. 감사 범위가 정확해진 만큼 리포트 댓글도 더 자주 달리게 되는데, 오탐(이미 재정의됐거나 append-only 문서에만 남은 참조) 필터링은 이번 범위 밖으로 남겨뒀다.
+  (`scripts/check-doc-drift.js`, `.claude/CLAUDE.md`, `docs/plans/2026-09-25-doc-drift-audit-range.md`(신규))
+
+  </details>
+
 ## [0.16.0] - 2026-09-24
 
 ### Changed
