@@ -108,7 +108,14 @@ function PostListContent() {
             >
               <div className={POST_GRID_CLASS}>
                 {rowPosts.map((post) => (
-                  <PostCard key={post.id} post={post} backSource="feed" />
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    backSource="feed"
+                    // 첫 행(최대 3장)만 LCP 후보로 우선 로딩한다 - 실측: 이 썸네일이 프로덕션
+                    // LCP 요소였다(docs/plans/2026-09-25-lighthouse-perf.md 참고).
+                    priorityThumbnail={virtualRow.index === 0}
+                  />
                 ))}
               </div>
             </div>

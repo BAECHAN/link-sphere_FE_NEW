@@ -45,12 +45,18 @@ interface PostCardProps {
    * (PostDetailPage의 resolveBackLabel 참고). 지정하지 않으면 "뒤로가기"로 떨어진다.
    */
   backSource?: 'feed' | 'bookmark';
+  /**
+   * 썸네일이 LCP 후보인 카드(목록 첫 행)면 true로 넘긴다 - LinkThumbnail의 우선 로딩으로
+   * 그대로 전달한다. 기본값 false(lazy)는 스크롤해야 보이는 나머지 카드용이다.
+   */
+  priorityThumbnail?: boolean;
 }
 
 export const PostCard = memo(function PostCard({
   post,
   isDetail = false,
   backSource,
+  priorityThumbnail = false,
 }: PostCardProps) {
   const { author } = post;
 
@@ -237,6 +243,7 @@ export const PostCard = memo(function PostCard({
             src={post.ogImage}
             alt={post.title}
             className="group-hover:scale-105 transition-transform duration-300"
+            priority={priorityThumbnail}
           />
           <div className="p-2 md:p-3 flex items-center justify-between">
             <span className="text-xs md:text-sm text-muted-foreground truncate flex-1 pr-2 md:pr-4">
