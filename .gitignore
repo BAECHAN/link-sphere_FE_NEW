@@ -13,6 +13,9 @@ dist-ssr
 coverage
 *.local
 
+# Lighthouse CI 로컬 실행 결과물 (pnpm perf:lh / perf:lh:auth)
+.lighthouseci
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
