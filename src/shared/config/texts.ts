@@ -20,7 +20,7 @@ const POST_FORM_COMMON = {
   titleLabel: '제목',
   categoryLabel: '관심 분야 (선택사항)',
   privateLabel: '나만 보기 (비공개)',
-  privateDescription: '체크하면 팀원들에게 공유되지 않고 나만 볼 수 있는 게시물로 저장돼요.',
+  privateDescription: '체크하면 다른 사람에게 공개되지 않고 나만 볼 수 있는 게시물로 저장돼요.',
 } as const;
 
 export const TEXTS = {
@@ -143,7 +143,7 @@ export const TEXTS = {
     form: {
       create: {
         title: '링크 공유하기',
-        description1: '팀원들과 공유하고 싶은 유용한 아티클이나 리소스의 URL을 입력하세요.',
+        description1: '공유하고 싶은 유용한 아티클이나 리소스의 URL을 입력하세요.',
         description2: '자동으로 제목과 이미지를 가져오고 태그를 생성해요.',
         urlLabel: 'URL',
         urlPlaceholder: 'https://example.com/amazing-article',

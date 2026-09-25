@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `post` 링크 등록 화면 안내 문구가 이 서비스를 팀 전용 도구처럼 표현하던 문제
+  <details><summary>배경·구현</summary>
+
+  `/post/submit` 첫 설명("팀원들과 공유하고 싶은…")과 "나만 보기" 체크박스 설명("팀원들에게 공유되지 않고…")이 실제로는 비로그인 사용자도 열람 가능한 공개 서비스(`src/app/routes/index.tsx`의 Public Content Group)를 팀 전용 도구처럼 표현하고 있었다. 등록 화면 설명에서는 공유 대상 언급을 아예 빼고("공유하고 싶은 유용한 아티클이나…"), 체크박스 설명은 "팀원들"을 "다른 사람"으로 바꿨다.
+  (`src/shared/config/texts.ts`)
+
+  </details>
+
 ## [0.16.0] - 2026-09-24
 
 ### Changed
