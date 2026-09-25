@@ -32,7 +32,7 @@ describe('createPostSchema', () => {
     'javascript:alert(1)',
     'ftp://example.com/file.txt',
     'HTTPS://example.com',
-  ])('http/https가 아닌 스킴(%s)은 파싱에 실패하고 urlScheme 메시지를 반환한다', (url) => {
+  ])('http/https가 아닌 스킴(%s)은 파싱에 실패하고 urlFormat 메시지를 반환한다', (url) => {
     const result = createPostSchema.safeParse({
       url,
       isPrivate: false,
@@ -42,7 +42,7 @@ describe('createPostSchema', () => {
     expect(result.success).toBe(false);
 
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe(TEXTS.validation.urlScheme);
+      expect(result.error.issues[0]?.message).toBe(TEXTS.validation.urlFormat);
     }
   });
 
@@ -131,7 +131,7 @@ describe('updatePostSchema', () => {
     expect(result.success).toBe(false);
 
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe(TEXTS.validation.urlScheme);
+      expect(result.error.issues[0]?.message).toBe(TEXTS.validation.urlFormat);
     }
   });
 });
