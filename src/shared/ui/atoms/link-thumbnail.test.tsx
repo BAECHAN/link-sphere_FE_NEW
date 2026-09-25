@@ -20,6 +20,24 @@ describe('LinkThumbnail', () => {
     expect(img).toHaveAttribute('referrerpolicy', 'no-referrer');
   });
 
+  it('기본값은 lazy 로딩이다', () => {
+    const { getByRole } = renderWithProviders(
+      <LinkThumbnail src="https://example.com/thumb.png" alt="제목" />
+    );
+
+    expect(getByRole('img', { name: '제목' })).toHaveAttribute('loading', 'lazy');
+  });
+
+  it('priority가 true면 eager 로딩과 높은 fetchPriority를 쓴다', () => {
+    const { getByRole } = renderWithProviders(
+      <LinkThumbnail src="https://example.com/thumb.png" alt="제목" priority />
+    );
+
+    const img = getByRole('img', { name: '제목' });
+    expect(img).toHaveAttribute('loading', 'eager');
+    expect(img).toHaveAttribute('fetchpriority', 'high');
+  });
+
   it('이미지 로드에 실패해도 자리는 유지하고 안내 아이콘으로 대체한다', () => {
     // jsdom은 실제로 이미지를 로드하지 않아 onError가 자연 발화하지 않으므로 강제 트리거한다.
     // 자리를 통째로 없애면(과거 동작) 아래 콘텐츠가 밀려 올라와 레이아웃 시프트가

@@ -8,6 +8,12 @@ interface LinkThumbnailProps {
   alt: string;
   /** 이미지 요소에 추가할 클래스 (호버 확대 등 호출부별 연출) */
   className?: string;
+  /**
+   * LCP 후보로 화면에 바로 보이는 썸네일(예: 목록 첫 행)이면 true로 넘긴다.
+   * `loading="eager"` + `fetchPriority="high"`로 바뀌어 브라우저가 이 이미지를 먼저 받는다.
+   * 기본값 false(lazy)는 스크롤해야 보이는 나머지 썸네일용이다.
+   */
+  priority?: boolean;
 }
 
 /**
@@ -18,7 +24,7 @@ interface LinkThumbnailProps {
  * 요소가 바뀌어 pointer/default가 반복 전환되는 문제가 있었다(2026-09-11, Playwright로
  * 마우스 고정 좌표를 이미지 성공/실패 조건만 바꿔 재현 — 41개 지점 중 30개에서 전환 확인).
  */
-export function LinkThumbnail({ src, alt, className }: LinkThumbnailProps) {
+export function LinkThumbnail({ src, alt, className, priority = false }: LinkThumbnailProps) {
   const [hasError, setHasError] = useState(false);
 
   // src가 바뀌면(게시글 URL 수정 등) 이전 URL의 에러 상태를 들고 있지 않는다
@@ -53,7 +59,8 @@ export function LinkThumbnail({ src, alt, className }: LinkThumbnailProps) {
           src={httpsSrc}
           alt={alt}
           className={cn('object-cover w-full h-full', className)}
-          loading="lazy"
+          loading={priority ? 'eager' : 'lazy'}
+          fetchPriority={priority ? 'high' : 'auto'}
           decoding="async"
           // 우리 도메인이 Referer로 노출되면 핫링크 차단으로 403을 주는 CDN이 있다(네이버
           // blogthumb 등). Referer를 아예 보내지 않으면 정상 응답한다.

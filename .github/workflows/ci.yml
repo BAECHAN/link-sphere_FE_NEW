@@ -128,3 +128,44 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  lighthouse:
+    # 공개 페이지만 잰다 - 로그인 필요 페이지(pnpm perf:lh:auth)는 테스트 계정 비밀번호를
+    # secret으로 등록하는 별도 절차가 필요해 로컬 수동 실행용으로만 남겨뒀다
+    # (docs/PERFORMANCE.md 참고). assertion은 전부 warn이라 이 job이 실패해도 PR은
+    # 막히지 않는다 - 근거는 docs/DECISIONS.md 2026-09-26 "Lighthouse CI" 항목.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+        env:
+          # 로컬 .env와 같은 프로덕션 API를 가리킨다(비밀값 아님 - 배포된 번들 네트워크
+          # 탭에서 누구나 볼 수 있는 URL이다). 이 BE는 요청 Origin을 그대로 반사하는
+          # CORS 설정이라(2026-09-26 curl로 확인) localhost 프리뷰에서도 정상 동작한다.
+          VITE_API_BASE_URL: https://452wlgf5pesg75zbpiaotptq7i0ckrsb.lambda-url.ap-northeast-1.on.aws
+
+      - name: Run Lighthouse CI
+        run: pnpm perf:lh
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: .lighthouseci/
+          retention-days: 30

@@ -184,6 +184,7 @@ features/<도메인>/<액션>/
 **절차** — "이럴 땐 이렇게 한다"
 
 - [`docs/DEPLOY.md`](docs/DEPLOY.md) — S3+CloudFront 배포 아키텍처, GitHub Actions 파이프라인, Secrets 설정
+- [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) — Lighthouse 측정 재현 절차: 로컬/CI 측정, 로그인 필요 페이지, 프로덕션 재측정
 - [`docs/TESTING.md`](docs/TESTING.md) — Vitest·Testing Library·MSW로 테스트 작성/실행하는 법, Playwright e2e 자동화 테스트
 
 **레퍼런스** — "지금 값이 뭔가"

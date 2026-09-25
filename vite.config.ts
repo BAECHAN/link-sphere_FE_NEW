@@ -115,13 +115,29 @@ export default defineConfig(({ mode }) => {
               if (/[\\/]node_modules[\\/]@tanstack[\\/]react-query/.test(id)) {
                 return 'query-vendor';
               }
+              // zod는 폼 검증뿐 아니라 entities의 응답 스키마 검증에도 쓰여 폼이 없는
+              // 페이지(/post 피드 등)도 필요로 한다 - react-hook-form과 한 청크로 묶으면
+              // 폼이 아예 없는 페이지도 폼 라이브러리까지 통째로 받게 된다(실측: 2026-09-26
+              // 빌드에서 zod 하나 때문에 이 청크가 비로그인 /post 방문자에게도 modulepreload
+              // 됐다, docs/plans/2026-09-25-lighthouse-perf.md 참고).
+              if (/[\\/]node_modules[\\/]zod[\\/]/.test(id)) {
+                return 'zod-vendor';
+              }
               // Form 관련 라이브러리
-              if (/[\\/]node_modules[\\/](react-hook-form|@hookform|zod)[\\/]/.test(id)) {
+              if (/[\\/]node_modules[\\/](react-hook-form|@hookform)[\\/]/.test(id)) {
                 return 'form-vendor';
               }
               // 유틸리티
               if (/[\\/]node_modules[\\/](dayjs|zustand)[\\/]/.test(id)) {
                 return 'util-vendor';
+              }
+              // Firebase(FCM) - 로그인 상태에서만 동적 import되므로(fcm.ts,
+              // useFcmForegroundMessage.ts) 항상 정적으로 쓰이는 나머지 vendor와
+              // 같은 청크에 묶이면 비로그인 방문자도 통째로 받게 된다. 별도 청크로
+              // 분리해야 실제로 지연 로딩된다(실측: 분리 전에는 vendor 413KB에 그대로
+              // 포함, docs/plans/2026-09-25-lighthouse-perf.md 참고).
+              if (/[\\/]node_modules[\\/]@?firebase/.test(id)) {
+                return 'firebase-vendor';
               }
               // 나머지 node_modules는 별도 청크로
               return 'vendor';

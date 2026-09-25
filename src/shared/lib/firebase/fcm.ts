@@ -1,6 +1,4 @@
-import { getToken } from 'firebase/messaging';
 import { useAuthStore } from '@/shared/store/auth.store';
-import { messaging } from '@/shared/lib/firebase/firebase';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 import { fcmApi } from '@/shared/api/fcm.api';
 
@@ -9,13 +7,24 @@ const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY as string;
 /**
  * 브라우저 알림 권한을 요청하고 FCM 토큰을 서버에 등록합니다.
  * 로그인 성공 직후 호출하세요.
+ *
+ * Firebase SDK를 여기서 동적 import하는 이유: 이 함수는 로그인에 성공했을 때만
+ * 호출된다 - 정적으로 import하면 비로그인 방문자도 초기 번들에서 Firebase 전체를
+ * 받게 된다(실측: 2026-09-26 빌드에서 vendor 청크에 포함돼 있었다,
+ * docs/plans/2026-09-25-lighthouse-perf.md 참고).
  */
 export async function requestAndRegisterFcmToken(): Promise<void> {
-  if (!messaging) {
-    return;
-  }
   if (!VAPID_KEY) {
     console.warn('[FCM] VITE_FIREBASE_VAPID_KEY is not set');
+    return;
+  }
+
+  const [{ getToken }, { messaging }] = await Promise.all([
+    import('firebase/messaging'),
+    import('@/shared/lib/firebase/firebase'),
+  ]);
+
+  if (!messaging) {
     return;
   }
 
@@ -48,12 +57,16 @@ export async function requestAndRegisterFcmToken(): Promise<void> {
  * 로그아웃 시 서버에서 FCM 토큰을 삭제합니다.
  */
 export async function unregisterFcmToken(): Promise<void> {
+  const [{ deleteToken }, { messaging }] = await Promise.all([
+    import('firebase/messaging'),
+    import('@/shared/lib/firebase/firebase'),
+  ]);
+
   if (!messaging) {
     return;
   }
 
   try {
-    const { deleteToken } = await import('firebase/messaging');
     const deleted = await deleteToken(messaging);
     if (deleted) {
       const storedToken = sessionStorage.getItem(STORAGE_KEYS.FCM.TOKEN);

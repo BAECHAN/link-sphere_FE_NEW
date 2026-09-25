@@ -8,6 +8,7 @@ const meta = {
   argTypes: {
     src: { control: 'text' },
     alt: { control: 'text' },
+    priority: { control: 'boolean' },
   },
   decorators: [
     (Story) => (
@@ -45,5 +46,14 @@ export const LoadFailed: Story = {
   args: {
     src: 'https://invalid.example/thumb.png',
     alt: '로드 실패한 이미지',
+  },
+};
+
+// LCP 후보(목록 첫 행 등)에 쓰는 우선순위 로딩 — loading="eager" + fetchPriority="high"
+export const Priority: Story = {
+  args: {
+    src: 'https://picsum.photos/seed/link-sphere-priority/800/450',
+    alt: '우선순위 로딩 이미지',
+    priority: true,
   },
 };
