@@ -15,7 +15,7 @@
   <details><summary>배경·구현</summary>
 
   Lighthouse는 랩(실험실) 데이터라 실제 방문자 환경의 지표(필드 데이터)가 없었다. 원래 계획(`docs/plans/2026-09-25-lighthouse-perf.md` Phase 2b)은 Cloudflare Web Analytics였지만, "관리 포인트를 늘리지 않는" 방향으로 재검토해 BE 배포에 이미 쓰는 AWS 계정 안에서 관리되는 CloudWatch RUM으로 바꿨다. Cognito identity pool 없이 리소스 기반 정책(`Principal: "*"`로 `rum:PutRumEvents` 허용)만으로 비로그인 방문자 이벤트까지 익명 수집한다. `signing: false` 설정이 이 구성과 맞는지는 로컬에서 직접 검증했다 — 요청이 인증 단계가 아니라 도메인 검증 단계에서만 막히는 것을 확인해(로컬 도메인이 App Monitor 등록 도메인과 달라 `400 domain localhost does not match`), 서명 없이도 리소스 정책이 실제로 동작함을 확인했다. 대안 비교와 IAM 부트스트랩 과정은 `docs/DECISIONS.md` 2026-09-26 "RUM" 항목 참고.
-  (`index.html`, `docs/DECISIONS.md`)
+  (`index.html`, `docs/DECISIONS.md`, [PR #200](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/200))
 
   </details>
 
