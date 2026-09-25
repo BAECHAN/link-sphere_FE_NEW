@@ -1,4 +1,7 @@
 ### 2026-09-25 (FE)
+- AWS CloudWatch RUM을 도입하여 실사용자 환경의 성능 지표 모니터링 및 에러 추적 체계 구축 ([#200](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/200))
+
+### 2026-09-25 (FE)
 - 모바일 LCP 성능 최적화: 핵심 폰트 서브세트 사전 로드(preload) 적용을 통한 렌더링 속도 개선
 
 ### 2026-09-25 (FE)
