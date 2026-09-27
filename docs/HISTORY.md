@@ -1,3 +1,6 @@
+### 2026-09-27 (BE)
+- 게시글 임베딩 요청 규격 정정 및 백필(backfill) 작업 시 Gemini API가 불필요하게 호출되던 결함 수정 ([#35](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/35))
+
 ### 2026-09-27 (FE)
 - 글 수정 요청 시에도 글 등록과 동일한 keepalive 설정을 적용하여 네트워크 안정성 확보 ([#215](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/215))
 
