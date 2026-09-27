@@ -1,4 +1,7 @@
 ### 2026-09-27 (FE)
+- 게시물 데이터 로딩 실패 안내 UI의 텍스트 스타일 수정 ([#219](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/219))
+
+### 2026-09-27 (FE)
 - 의미 검색 결과 UI에 매칭 이유 배지 컴포넌트 추가 및 관련 로직 구현 ([#217](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/217))
 
 ### 2026-09-27 (FE)
