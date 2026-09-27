@@ -1,3 +1,6 @@
+### 2026-09-27 (BE)
+- 게시물 링크 수집 시 서버 리전(도쿄)에 따른 언어 설정 문제를 해결하여 제목 및 설명을 올바르게 수집하도록 수정 ([#26](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/26))
+
 ### 2026-09-27 (FE)
 - 폼 UI 개선: 필수 입력 항목에 * 표시 추가 및 선택 항목 라벨 명칭 통일 ([#212](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/212))
 
