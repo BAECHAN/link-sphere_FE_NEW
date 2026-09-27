@@ -1,4 +1,7 @@
 ### 2026-09-27 (BE)
+- 게시글 검색 품질 향상을 위한 의미 기반 임베딩 시스템 도입 (등록, 재수집 및 백필 프로세스 최적화) ([#32](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/32))
+
+### 2026-09-27 (BE)
 - 클라우드 IP 차단으로 인한 링크 메타데이터 수집 실패 문제를 해결하기 위해 무료 공개 프록시를 활용한 재시도 로직 구현 ([#30](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/30))
 
 ### 2026-09-27 (BE)
