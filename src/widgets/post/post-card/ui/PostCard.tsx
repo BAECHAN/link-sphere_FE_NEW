@@ -204,6 +204,16 @@ export const PostCard = memo(function PostCard({
           </p>
         )}
 
+        {/* aiStatus=NONE은 1차 크롤링이 본문을 전혀 못 얻었다는 뜻이다(UrlMetadataExtractor.
+            pageContent가 null) - description이 그냥 없는 것과는 다르다. 설명이 없는 정상
+            페이지까지 이 문구를 보여주면 안 되므로 description 유무가 아니라 이 상태
+            자체로 판단한다. */}
+        {!post.description && post.aiStatus === 'NONE' && (
+          <p className="pl-0.5 text-sm text-muted-foreground italic mb-2">
+            {TEXTS.post.card.metadataUnavailable}
+          </p>
+        )}
+
         {post.aiSummary && (
           <div className="mb-2 bg-info/8 rounded-md overflow-hidden block">
             <Button
