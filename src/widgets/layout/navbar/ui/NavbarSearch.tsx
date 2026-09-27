@@ -277,6 +277,7 @@ export const NavbarSearch = ({
         }
         aria-autocomplete="none"
         autoComplete="off"
+        enterKeyHint="search"
         placeholder={TEXTS.placeholders.postSearch}
         value={searchInput}
         onChange={handleChange}

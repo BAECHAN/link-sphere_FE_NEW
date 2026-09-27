@@ -79,4 +79,13 @@ describe('MobileNavbarSearch — 검색어 유지', () => {
 
     expect(onSubmit).toHaveBeenCalledWith('리액트');
   });
+
+  it('enterKeyHint가 search로 설정된다', () => {
+    renderMobileSearch('/post');
+
+    expect(screen.getByPlaceholderText(TEXTS.placeholders.postSearch)).toHaveAttribute(
+      'enterkeyhint',
+      'search'
+    );
+  });
 });

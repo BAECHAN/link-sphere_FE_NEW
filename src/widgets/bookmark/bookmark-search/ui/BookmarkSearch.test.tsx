@@ -32,3 +32,14 @@ describe('BookmarkSearch — X 버튼', () => {
     expect(input).toHaveValue('');
   });
 });
+
+describe('BookmarkSearch — 모바일 키보드 힌트', () => {
+  it('enterKeyHint가 search로 설정된다', () => {
+    renderBookmarkSearch('/bookmark');
+
+    expect(screen.getByPlaceholderText(TEXTS.placeholders.bookmarkSearch)).toHaveAttribute(
+      'enterkeyhint',
+      'search'
+    );
+  });
+});

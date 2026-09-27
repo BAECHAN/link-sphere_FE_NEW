@@ -11,6 +11,14 @@
 
 ### Added
 
+- `shared` 단일 입력 필드에 모바일 키보드 힌트(`enterKeyHint`·`inputMode`) 추가
+  <details><summary>배경·구현</summary>
+
+  검색·폴더 이름·마이페이지 닉네임처럼 입력칸이 하나뿐이고 Enter가 곧 제출·확정인 필드에 `enterKeyHint`(search/done)를, 글 등록·수정 URL 필드에 `inputMode="url"`을 추가해 모바일 가상 키보드 라벨·자판을 정확하게 맞췄다. 로그인·회원가입·글 제목처럼 뒤에 다른 필드가 있는 다중 필드 폼은 제외했다 — Android에서 `enterKeyHint`가 있으면 기본으로 다음 필드로 넘기던 Enter 키 이벤트를 그대로 페이지에 전달해 폼이 조용히 제출돼 버릴 수 있다는 Chromium 팀 공지(2020) 때문이다. 세부 판단 근거와 대상 필드 전체 목록은 `docs/plans/2026-09-27-enterkeyhint-inputmode.md` 참고.
+  (`src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/update/ui/UpdatePostForm.tsx`, `src/widgets/layout/navbar/ui/NavbarSearch.tsx`, `src/widgets/layout/navbar/ui/MobileNavbarSearch.tsx`, `src/widgets/bookmark/bookmark-search/ui/BookmarkSearch.tsx`, `src/features/account/update/ui/UpdateAccountForm.tsx`, `src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`, `docs/plans/2026-09-27-enterkeyhint-inputmode.md`(신규))
+
+  </details>
+
 - `post` 모바일에서 URL 입력 후 스크롤 없이 등록 가능(하단 고정 바 + Enter 제출)
   <details><summary>배경·구현</summary>
 

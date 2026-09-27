@@ -142,6 +142,7 @@ export function BookmarkFolderSelectModal({
                   <FolderPlus className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <Input
                     autoFocus
+                    enterKeyHint="done"
                     placeholder={TEXTS.bookmark.folder.namePlaceholder}
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
