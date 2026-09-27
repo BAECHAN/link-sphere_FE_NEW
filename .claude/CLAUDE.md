@@ -463,6 +463,24 @@ const handleCreateAndSelect = async () => {
   확인됨). 새 워크트리를 만들기 전 `git worktree list`로 오래된 워크트리가 남아있는지 먼저
   훑고, 디렉토리는 있는데 목록엔 없는 경우(비정상 종료로 등록이 깨진 경우) `git worktree prune`
   으로 정리한다
+- **Never** 같은 워크트리에서 여러 서브에이전트를 병렬로 돌릴 때 stash 경고 없이 프롬프트만
+  보낸다 → "공유 stash 스택" 경고(워크트리 진입 시 harness가 주는 환경 안내)는 대화형 세션에만
+  자동으로 뜨고, `Agent` 도구로 스폰한 서브에이전트에게는 전달되지 않는다. 프롬프트에 "git
+  stash 금지"라고만 적어도 무시될 수 있다(2026-09-27 실제 사례: 46건 지역 함수 추출 작업에서
+  4개 구현 에이전트를 같은 워크트리에 병렬로 띄웠는데, 그중 하나가 "타입 확인"을 이유로 `git
+stash`/`git stash pop`을 실행했다 — 다른 3개 에이전트가 동시에 같은 워크트리에서 파일을
+  편집 중이었고, 타이밍상 이번엔 데이터 유실 없이 넘어갔지만(`git status`로 직접 확인) 위험은
+  실재했다). 여러 에이전트를 한 워크트리에 병렬로 띄울 때는 각 프롬프트에 "이 워크트리는 다른
+  에이전트와 동시에 공유 중이니 `git stash`/`git reset --hard`/`git checkout -- .`처럼 워킹트리
+  전체에 영향을 주는 명령은 절대 쓰지 마라"를 명시적으로 포함한다
+- **Never** `EnterWorktree({ path })`로 재진입한 워크트리를 `ExitWorktree(remove)`가 지워줄
+  거라 가정한다 → 한 세션 안에서 `EnterWorktree({ name })`으로 만든 뒤 `action: "keep"`으로
+  나왔다가, 나중에 같은 세션에서 `EnterWorktree({ path })`로 그 워크트리에 다시 들어가면
+  harness가 더 이상 이 세션을 owner로 인식하지 않아 `ExitWorktree(remove)`가 거부한다
+  (2026-09-27 실제 발견, 에러 메시지: "This session is not the owner of the worktree..."). 이
+  경우 `ExitWorktree(action: "keep")`으로 원래 디렉토리로 돌아온 뒤, 루트에서 `git worktree
+remove --force <경로>`로 수동 정리한다(사전에 `git diff origin/main -- <경로>`가 비어있는지
+  확인해 병합 완료를 검증한 뒤 지운다)
 - **Never** `eslint.config.js`의 ignore 패턴을 루트 상대 경로로만 작성 →
   `.claude/worktrees/`처럼 중첩된 경로가 새서 워크트리 안 빌드 산출물(`dist/`)이 그대로
   검사 대상에 걸린다. `.gitignore`에 있어도 ESLint는 자동으로 읽지 않으므로
