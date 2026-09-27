@@ -52,3 +52,10 @@ export const ConfirmPassword: Story = {
     placeholder: '비밀번호를 다시 입력하세요',
   },
 };
+
+export const Required: Story = {
+  args: {
+    label: '비밀번호',
+    required: true,
+  },
+};

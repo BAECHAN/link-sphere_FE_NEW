@@ -29,9 +29,10 @@ test.describe('로그인 폼 제출', () => {
 
     await page.goto('/auth/login');
     // getByLabel은 기본 부분 일치라 'Email'만 쓰면 'Save Email' 체크박스까지 걸린다
-    // (strict mode violation, 실측 확인) — exact: true로 고정한다.
-    await page.getByLabel('Email', { exact: true }).fill('test@example.com');
-    await page.getByLabel('Password', { exact: true }).fill(VALID_PASSWORD);
+    // (strict mode violation, 실측 확인). 필수 표시(*)가 붙어 접근 가능한 이름이
+    // "Email*"/"Password*"가 되므로, 앞부분만 고정하는 정규식으로 두 문제를 함께 해결한다.
+    await page.getByLabel(/^Email/).fill('test@example.com');
+    await page.getByLabel(/^Password/).fill(VALID_PASSWORD);
     await page.getByRole('button', { name: 'Sign In' }).click();
 
     await expect(page).toHaveURL(/\/post$/);
@@ -50,9 +51,10 @@ test.describe('로그인 폼 제출', () => {
 
     await page.goto('/auth/login');
     // getByLabel은 기본 부분 일치라 'Email'만 쓰면 'Save Email' 체크박스까지 걸린다
-    // (strict mode violation, 실측 확인) — exact: true로 고정한다.
-    await page.getByLabel('Email', { exact: true }).fill('test@example.com');
-    await page.getByLabel('Password', { exact: true }).fill(VALID_PASSWORD);
+    // (strict mode violation, 실측 확인). 필수 표시(*)가 붙어 접근 가능한 이름이
+    // "Email*"/"Password*"가 되므로, 앞부분만 고정하는 정규식으로 두 문제를 함께 해결한다.
+    await page.getByLabel(/^Email/).fill('test@example.com');
+    await page.getByLabel(/^Password/).fill(VALID_PASSWORD);
     await page.getByRole('button', { name: 'Sign In' }).click();
 
     await expect(page.getByText(TEXTS.messages.error.loginFailedPasswordMismatch)).toBeVisible();

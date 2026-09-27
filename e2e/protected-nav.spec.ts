@@ -55,9 +55,10 @@ test.describe('보호 라우트 네비게이션 가드', () => {
 
     const dialog = page.getByRole('dialog', { name: TEXTS.auth.guard.title });
     // getByLabel은 기본 부분 일치라 'Email'만 쓰면 'Save Email' 체크박스까지 걸린다
-    // (login.spec.ts의 실측 확인과 동일 — exact: true로 고정한다).
-    await dialog.getByLabel('Email', { exact: true }).fill('test@example.com');
-    await dialog.getByLabel('Password', { exact: true }).fill('TestPass1!');
+    // (login.spec.ts의 실측 확인과 동일). 필수 표시(*)가 붙어 접근 가능한 이름이
+    // "Email*"/"Password*"가 되므로, 앞부분만 고정하는 정규식으로 두 문제를 함께 해결한다.
+    await dialog.getByLabel(/^Email/).fill('test@example.com');
+    await dialog.getByLabel(/^Password/).fill('TestPass1!');
 
     const folderPosts = page.waitForResponse(
       (res) =>

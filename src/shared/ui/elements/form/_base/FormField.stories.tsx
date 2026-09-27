@@ -54,6 +54,13 @@ export const WithSuccessDescription: Story = {
   },
 };
 
+export const Required: Story = {
+  args: {
+    label: '사용자 이름',
+    required: true,
+  },
+};
+
 function WithErrorStory() {
   const methods = useForm({
     defaultValues: { username: '' },

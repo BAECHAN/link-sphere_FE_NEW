@@ -55,6 +55,13 @@ export const WithClear: Story = {
   },
 };
 
+export const Required: Story = {
+  args: {
+    label: 'URL',
+    required: true,
+  },
+};
+
 function WithErrorStory() {
   const methods = useForm({
     defaultValues: { fieldWithError: '' },

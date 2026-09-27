@@ -1,11 +1,14 @@
 import { useController, useFormContext, type FieldValues } from 'react-hook-form';
 import { Label } from '@/shared/ui/atoms/label';
+import { RequiredMark } from '@/shared/ui/atoms/required-mark';
 import { PropsWithChildren } from 'react';
 import { cn } from '@/shared/lib/tailwind/utils';
 
 export interface FormFieldProps extends PropsWithChildren {
   name: string;
   label?: string;
+  /** true면 라벨 옆에 필수 표시(*)를 붙인다 - 실제 "필수" 안내는 input의 required 속성이 담당 */
+  required?: boolean;
   className?: string;
   description?: string;
   /** description을 성공(초록) 톤으로 강조한다 - 기본은 muted */
@@ -18,6 +21,7 @@ export interface FormFieldProps extends PropsWithChildren {
 export const FormField = ({
   name,
   label,
+  required,
   children,
   className,
   description,
@@ -42,7 +46,14 @@ export const FormField = ({
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
-      {label && <Label htmlFor={name}>{label}</Label>}
+      {label && (
+        <Label htmlFor={name}>
+          <span>
+            {label}
+            {required && <RequiredMark />}
+          </span>
+        </Label>
+      )}
       {children}
       {(message || reserveDescriptionSpace) && (
         <p className={cn(messageClassName, 'min-h-5')}>{message}</p>

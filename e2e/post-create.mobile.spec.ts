@@ -24,7 +24,8 @@ test.describe('게시글 등록 — 모바일 등록 바', () => {
 
   test('URL만 입력해도 스크롤 없이 등록 버튼이 보인다', async ({ page }) => {
     await page.goto('/post/submit');
-    await page.getByLabel('URL', { exact: true }).fill(NEW_URL);
+    // URL 필드는 필수 표시(*)가 붙어 접근 가능한 이름이 "URL*"가 된다 - 앞부분만 고정해서 매칭한다.
+    await page.getByLabel(/^URL/).fill(NEW_URL);
 
     const submitButton = page.getByRole('button', { name: TEXTS.post.form.create.submit });
 
@@ -44,7 +45,8 @@ test.describe('게시글 등록 — 모바일 등록 바', () => {
     );
 
     await page.goto('/post/submit');
-    const urlInput = page.getByLabel('URL', { exact: true });
+    // URL 필드는 필수 표시(*)가 붙어 접근 가능한 이름이 "URL*"가 된다 - 앞부분만 고정해서 매칭한다.
+    const urlInput = page.getByLabel(/^URL/);
     await urlInput.fill(NEW_URL);
 
     const created = page.waitForResponse(
