@@ -53,6 +53,41 @@ function canvasToWebpBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', WEBP_QUALITY));
 }
 
+/**
+ * bitmap을 maxDimension 이하로 축소해 webp로 재인코딩한 File을 만든다. 이미 충분히 작거나
+ * 캔버스 처리 중 어떤 단계든 실패하면 null을 반환한다(호출부가 원본 File을 대신 쓴다는 신호).
+ */
+async function createResizedWebpFile(
+  bitmap: ImageBitmap,
+  maxDimension: number,
+  fileName: string
+): Promise<File | null> {
+  if (Math.max(bitmap.width, bitmap.height) <= maxDimension) {
+    return null;
+  }
+
+  const scale = maxDimension / Math.max(bitmap.width, bitmap.height);
+  const targetWidth = Math.round(bitmap.width * scale);
+  const targetHeight = Math.round(bitmap.height * scale);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    return null;
+  }
+  ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+
+  const blob = await canvasToWebpBlob(canvas);
+  if (!blob) {
+    return null;
+  }
+
+  const baseName = fileName.replace(/\.[^.]+$/, '') || 'image';
+  return new File([blob], `${baseName}.webp`, { type: 'image/webp' });
+}
+
 function isUnparsableSvgDocument(doc: Document, svgEl: Element): boolean {
   return svgEl.nodeName !== 'svg' || !!doc.querySelector('parsererror');
 }
@@ -110,30 +145,8 @@ export async function resizeImageFile(
     const bitmap = await createImageBitmap(file);
 
     try {
-      if (Math.max(bitmap.width, bitmap.height) <= maxDimension) {
-        return file;
-      }
-
-      const scale = maxDimension / Math.max(bitmap.width, bitmap.height);
-      const targetWidth = Math.round(bitmap.width * scale);
-      const targetHeight = Math.round(bitmap.height * scale);
-
-      const canvas = document.createElement('canvas');
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        return file;
-      }
-      ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
-
-      const blob = await canvasToWebpBlob(canvas);
-      if (!blob) {
-        return file;
-      }
-
-      const baseName = file.name.replace(/\.[^.]+$/, '') || 'image';
-      return new File([blob], `${baseName}.webp`, { type: 'image/webp' });
+      const resized = await createResizedWebpFile(bitmap, maxDimension, file.name);
+      return resized ?? file;
     } finally {
       bitmap.close();
     }
