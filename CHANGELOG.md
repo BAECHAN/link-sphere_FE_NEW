@@ -55,7 +55,7 @@
   <details><summary>배경·구현</summary>
 
   BE가 게시글마다 임베딩(의미를 숫자로 표현한 벡터)을 만들어 저장해두고, 검색 시 코사인 거리가 가까운 글도 결과에 포함하도록 바뀌었다(BE `docs/plans/2026-09-27-search-quality.md`). 키워드로는 안 걸렸지만 의미로 걸린 결과는 `post.isSemanticMatch`가 true로 오는데, 아무 표시 없이 섞어 보여주면 "검색어 글자가 하나도 없는데 왜 나왔지"라는 혼란이 생긴다. 배지 스타일 3안(태그 줄에 배지/제목 아래 옅은 문구/카드 상단 띠)을 실제 `PostCard.tsx` 레이아웃과 디자인 토큰으로 만들어 Artifact로 비교했고, 구글 포토의 "텍스트 일치" 라벨과 같은 톤(제목 바로 아래, 옅은 색)인 "제목 아래 옅은 문구" 안을 골랐다 — 목록에 여러 건이 나와도 카드 상단 띠보다 화면이 조용하고, 태그 줄에 섞는 안보다 눈에 잘 띈다.
-  (`src/widgets/post/post-card/ui/PostCard.tsx`, `src/shared/config/texts.ts`, `src/shared/api/generated/openapi.json`, `src/shared/api/generated/openapi.gen.ts`, `src/mocks/fixtures/post.fixtures.ts`, `docs/SEARCH.md`)
+  (`src/widgets/post/post-card/ui/PostCard.tsx`, `src/shared/config/texts.ts`, `src/shared/api/generated/openapi.json`, `src/shared/api/generated/openapi.gen.ts`, `src/mocks/fixtures/post.fixtures.ts`, `docs/SEARCH.md`, [PR #217](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/217))
 
   </details>
 
