@@ -184,6 +184,7 @@ export const TEXTS = {
       publicLabel: '전체 공개',
       privateLabel: '나만 보기',
       saving: COMMON_TEXT.saving,
+      metadataUnavailable: '이 링크의 정보를 가져오지 못했어요.',
       copyOriginalLink: '원본 링크 복사',
       visibilityConfirmTitle: '공개 설정 변경',
       visibilityToPublic: '전체 공개로',
