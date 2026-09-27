@@ -1,3 +1,6 @@
+### 2026-09-27 (FE)
+- TooltipWrapper: 하이브리드 입력 환경에서 툴팁과 토스트 메시지가 동시에 노출되는 현상 수정 ([#204](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/204))
+
 ### 2026-09-25 (FE)
 - 게시글 작성 시 disabled 버튼의 예외 규칙을 명시하고, URL 검증 메시지를 통합하여 사용자 피드백 일관성 개선
 
