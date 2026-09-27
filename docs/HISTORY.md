@@ -1,4 +1,7 @@
 ### 2026-09-27 (FE)
+- 복잡한 조건식 및 다단계 로직 블록을 지역 함수로 분리하여 코드 가독성 및 유지보수성 향상 ([#209](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/209))
+
+### 2026-09-27 (FE)
 - 단일 입력 필드에 모바일 키보드 최적화를 위한 inputMode 및 enterKeyHint 속성 적용 ([#208](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/208))
 
 ### 2026-09-27 (FE)
