@@ -1,4 +1,7 @@
 ### 2026-09-27 (FE)
+- RUM(Real User Monitoring) 관련 문서를 독립적인 가이드(docs/RUM.md)로 구조화 및 분리하여 문서 관리 효율성 개선 ([#205](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/205))
+
+### 2026-09-27 (FE)
 - TooltipWrapper: 하이브리드 입력 환경에서 툴팁과 토스트 메시지가 동시에 노출되는 현상 수정 ([#204](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/204))
 
 ### 2026-09-25 (FE)
