@@ -1087,3 +1087,103 @@ CommentUtil.estimateCommentPayloadBytes(content, existingImageUrls, pendingImage
 파일에 함수가 하나뿐이어도 클래스로 감싼다 — 나중에 관련 함수가 늘어날 때 같은
 `<Name>Util` 네임스페이스에 자연스럽게 모이고, 다른 `*.util.ts`와 import 시
 구조분해 없이 `<Name>Util.method()` 형태로 일관되게 호출할 수 있다.
+
+---
+
+## 24. 모바일 키보드 힌트(`enterKeyHint`·`inputMode`) 패턴
+
+두 속성 모두 **가상 키보드에만 영향을 주고 폼 값·제출·검증에는 관여하지 않는다** —
+`enterKeyHint`는 Enter 키 라벨(아이콘)만, `inputMode`는 표시되는 자판 종류만 바꾼다
+([MDN — enterkeyhint](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/enterkeyhint),
+[MDN — inputmode](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/inputmode)).
+다만 **Android 특정 조건에서는 `enterKeyHint`가 실제 동작도 바꾼다** — 아래 "Android
+주의" 참고.
+
+### 언제 `enterKeyHint`를 쓰는가
+
+Enter가 제출·확정으로 이어지는 필드 중 **뒤에 다른 입력칸이 없는 경우(단일 입력
+지점)** 에만 단다:
+
+| 상황                                  | 값         | 예시                                                                                               |
+| ------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------- |
+| 검색                                  | `"search"` | `NavbarSearch.tsx`, `MobileNavbarSearch.tsx`, `BookmarkSearch.tsx`                                 |
+| 이름 확정(폴더 생성·이름변경, 닉네임) | `"done"`   | `FolderTree.tsx`, `MobileFolderList.tsx`, `BookmarkFolderSelectModal.tsx`, `UpdateAccountForm.tsx` |
+
+로그인·회원가입·글 등록/수정 제목처럼 **뒤에 다른 필드가 있는 다중 필드 폼에는 달지
+않는다** — 아래 Android 주의 참고. 댓글 textarea처럼 Enter가 실제로 줄바꿈인 곳도
+달지 않는다(기본 힌트가 이미 맞다).
+
+### Android 주의 — 단일 입력 지점으로 범위를 좁힌 이유
+
+> Android는 원래 Enter 키를 Blink(페이지)에 보내기 전에 가로채서 다음 필드로
+> 포커스를 옮긴다. `enterkeyhint`가 있으면 이제 keydown·keypress·keyup 이벤트를
+> 그대로 페이지에 보내게 된다. (번역, 일부 생략)
+>
+> — Chromium blink-dev, Dave Tapuska, "Intent to Implement and Ship: Enter Key Hint",
+> https://groups.google.com/a/chromium.org/g/blink-dev/c/Hfe5xktjSV8/m/Re-SMF3wAwAJ
+
+즉 **뒤에 다른 필드가 있는 폼**에 `enterKeyHint`를 달면 Android에서만 "다음 칸
+이동"이 "즉시 제출"로 바뀌는 회귀가 생길 수 있다(iOS는 이 가로채기가 없어 영향
+없음). 실제로 `CreatePostForm.tsx`의 URL 필드에 `enterKeyHint="send"`를 달았다가
+([PR #206](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/206)) 이 부작용 +
+"이미 항상 보이는 고정 등록 바가 있어 중복" + "URL은 타이핑보다 붙여넣기가 많아
+흐름과 안 맞음"이라는 이유로 다시 뺐다
+([PR #210](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/210)).
+
+### 언제 `inputMode`를 쓰는가
+
+값의 형태가 특정 자판에 맞지만(URL·숫자 등) **네이티브 `type="url"`/`type="number"`을
+쓰기엔 이미 자체 검증(zod 등)이 있거나 네이티브 UI(스피너 등)를 원치 않는 경우**
+`type="text"` 위에 `inputMode`만 얹는다:
+
+| 상황                                       | 값      | 예시                                       |
+| ------------------------------------------ | ------- | ------------------------------------------ |
+| URL(자체 zod 검증 사용, 폼에 `noValidate`) | `"url"` | `CreatePostForm.tsx`, `UpdatePostForm.tsx` |
+
+[MDN — inputmode](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/inputmode):
+_"inputmode 속성은 입력값에 유효성 검증 요건을 부과하지 않는다"_(번역) — 네이티브
+검증이 필요하면 `type`을 쓰라고 권장하지만, 이미 zod로 검증하는 필드는 `inputMode`만
+으로 키보드만 최적화하는 쪽이 더 단순하다.
+
+### `type="search"`는 왜 안 쓰는가
+
+검색 인풋(`NavbarSearch` 등)은 자체 아이콘·지우기 버튼(`Input`의 `onClear`)·
+(`NavbarSearch`는 `role="combobox"`까지) 이미 갖추고 있어 `type="search"`가 주는
+네이티브 UI(브라우저별 스타일링, WebKit 전용 비표준 지우기 버튼)를 다시 가져올
+이유가 없다:
+
+> Chrome은 검색 필드 좌우에 1px 패딩을 추가하고 macOS에서는 모서리를 둥글게
+> 만든다. macOS의 Safari도 모서리를 둥글게 하고 너비를 30px 가까이 늘린다. (…)
+> 라벨이나 제출 버튼에 이미 "검색"이라는 단어가 있다면 `<input type="search">`를
+> 쓰지 않는 게 낫다. 검색 폼 전체가 `role="search"` 랜드마크 안에 있다면 거의
+> 확실히 쓰지 않는 게 낫다. (번역, 일부 생략)
+>
+> — Adrian Roselli, "Maybe Ignore type=search"(2019),
+> http://adrianroselli.com/2019/07/ignore-typesearch.html
+
+그래서 검색 인풋은 `type` 없이(기본값 `text`) `enterKeyHint="search"`만 단다 —
+`inputMode="search"`는 MDN 설명(_"검색에 최적화된 가상 키보드. 예를 들어
+return/submit 키가 'Search'로 라벨링될 수 있고, 그 외 다른 최적화가 있을 수도
+있다"_, 번역)이 `enterKeyHint`와 거의 겹쳐 추가 이득이 불확실해 넣지 않았다.
+
+### 결정 흐름
+
+```mermaid
+flowchart TD
+  A["새 입력 필드"] --> B{"Enter가 줄바꿈인가?"}
+  B -->|"예(textarea)"| C["아무 것도 안 함"]
+  B -->|"아니오(제출·확정)"| D{"뒤에 다른 입력칸이 있는가?"}
+  D -->|"있음"| C
+  D -->|"없음(단일 입력 지점)"| E["enterKeyHint (search/done 등)"]
+  A --> F{"값의 형태가 특정 자판에 맞는가?(URL 등)"}
+  F -->|"예 + 자체 검증(zod) 사용"| G["type=text + inputMode"]
+  F -->|"예 + 네이티브 검증 원함"| H["네이티브 type (url/email/tel)"]
+  F -->|"검색인데 커스텀 스타일 컴포넌트"| I["type=text + enterKeyHint=search<br/>(type=search 지양)"]
+```
+
+### 참고
+
+- 도입 배경·전체 대상 필드 목록: `docs/plans/2026-09-27-enterkeyhint-inputmode.md`
+- 브라우저 지원: 두 속성 모두 Baseline "Widely available"(2021년 하반기부터) —
+  [caniuse: enterkeyhint](https://caniuse.com/mdn-html_global_attributes_enterkeyhint),
+  [caniuse: inputmode](https://caniuse.com/input-inputmode)
