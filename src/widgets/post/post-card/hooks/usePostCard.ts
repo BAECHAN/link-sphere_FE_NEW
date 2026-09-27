@@ -20,6 +20,10 @@ import {
   LOADING_INDICATOR_MIN_DURATION_MS,
 } from '@/shared/config/const';
 
+function isShareCancelledByUser(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
 export function usePostCard(post: Post, isDetail = false) {
   const { data: account } = useFetchAccountQuery();
   const navigate = useNavigate();
@@ -94,7 +98,7 @@ export function usePostCard(post: Post, isDetail = false) {
         }
       }
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (isShareCancelledByUser(error)) {
         return;
       }
       console.error('Copy failed', error);

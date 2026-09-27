@@ -136,6 +136,22 @@ export const NavbarSearch = ({
     setActiveCol(0);
   };
 
+  const handleEscapeKey = () => {
+    // 1단계: 드롭다운이 열려 있으면 닫기만 한다(입력값 보존).
+    if (isOpen) {
+      setIsOpen(false);
+      setActiveRow(null);
+      return;
+    }
+
+    // 2단계: 이미 닫혀 있으면 입력만 비운다(URL q는 유지, 재오픈 안 함 - setSearchInput은
+    // onChange를 거치지 않으므로 위 재오픈 규칙이 발동하지 않는다). X 버튼(handleClearClick)은
+    // 검색 자체를 해제해 URL q까지 지우지만, ESC 2단계는 WAI-ARIA APG Combobox 패턴의
+    // "clears the combobox"(입력값만 비움)를 그대로 따른다 - 둘의 의도가 다르다
+    // (2026-09-24, 헤더 X를 북마크와 통일하며 갈라짐).
+    setSearchInput('');
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // 한글 등 IME 조합 중 키 이벤트는 무시한다 - 조합 완료 이벤트와 겹쳐 중복 처리되는
     // 것을 막는다(useFolderActions.ts 등 이 레포의 기존 관용구).
@@ -145,20 +161,7 @@ export const NavbarSearch = ({
 
     if (e.key === 'Escape') {
       e.preventDefault();
-
-      // 1단계: 드롭다운이 열려 있으면 닫기만 한다(입력값 보존).
-      if (isOpen) {
-        setIsOpen(false);
-        setActiveRow(null);
-        return;
-      }
-
-      // 2단계: 이미 닫혀 있으면 입력만 비운다(URL q는 유지, 재오픈 안 함 - setSearchInput은
-      // onChange를 거치지 않으므로 위 재오픈 규칙이 발동하지 않는다). X 버튼(handleClearClick)은
-      // 검색 자체를 해제해 URL q까지 지우지만, ESC 2단계는 WAI-ARIA APG Combobox 패턴의
-      // "clears the combobox"(입력값만 비움)를 그대로 따른다 - 둘의 의도가 다르다
-      // (2026-09-24, 헤더 X를 북마크와 통일하며 갈라짐).
-      setSearchInput('');
+      handleEscapeKey();
       return;
     }
 
@@ -168,6 +171,10 @@ export const NavbarSearch = ({
 
     const clearRow = recentSearches.length;
     const lastItemRow = recentSearches.length - 1;
+    const isAboveFirstItem = () => activeRow === null || activeRow === clearRow;
+    const isInputOrFirstRow = () => activeRow === null || activeRow === 0;
+    const isAtRowRightEdge = () => activeRow === clearRow || activeCol === 1;
+    const isAtRowLeftEdge = () => activeRow === clearRow || activeCol === 0;
 
     // 순환(wrap-around) 없는 일직선 구조다: 입력창 ↔ 모두지우기 ↔ 검색어1 ↔ ... ↔
     // 마지막 검색어. "모두 지우기"는 시각적으로도 입력창 바로 아래(헤더, 고정)라 논리
@@ -176,7 +183,7 @@ export const NavbarSearch = ({
     if (e.key === 'ArrowDown') {
       e.preventDefault();
 
-      if (activeRow === null || activeRow === clearRow) {
+      if (isAboveFirstItem()) {
         // 입력창에서 내려갈 때는 "모두 지우기"를 건너뛰고 바로 첫 검색어로 간다 -
         // 검색어 재선택이 가장 흔한 동작이라 한 번에 닿아야 한다(의도적으로 유지).
         setActiveRow(0);
@@ -189,7 +196,9 @@ export const NavbarSearch = ({
         return;
       }
 
-      setActiveRow(activeRow + 1);
+      // isAboveFirstItem()이 false이므로 activeRow는 null이 아니다 - 함수 호출을 거치면서
+      // TS의 제어 흐름 분석이 이를 못 따라가 non-null assertion으로 보강한다.
+      setActiveRow(activeRow! + 1);
       return;
     }
 
@@ -202,14 +211,16 @@ export const NavbarSearch = ({
         return;
       }
 
-      if (activeRow === null || activeRow === 0) {
+      if (isInputOrFirstRow()) {
         // 입력창 또는 첫 검색어 - 한 단계 위는 "모두 지우기"(항상 보이는 헤더)다.
         setActiveRow(clearRow);
         setActiveCol(0);
         return;
       }
 
-      setActiveRow(activeRow - 1);
+      // isInputOrFirstRow()이 false이므로 activeRow는 null이 아니다 - 함수 호출을 거치면서
+      // TS의 제어 흐름 분석이 이를 못 따라가 non-null assertion으로 보강한다.
+      setActiveRow(activeRow! - 1);
       return;
     }
 
@@ -222,7 +233,7 @@ export const NavbarSearch = ({
 
       // 같은 행 안에서만 이동한다(행 사이를 넘나들며 순환하지 않는다). "모두 지우기"
       // 행은 셀이 1개라 좌우 이동 자체가 없다.
-      if (activeRow === clearRow || activeCol === 1) {
+      if (isAtRowRightEdge()) {
         return;
       }
 
@@ -233,7 +244,7 @@ export const NavbarSearch = ({
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
 
-      if (activeRow === clearRow || activeCol === 0) {
+      if (isAtRowLeftEdge()) {
         return;
       }
 

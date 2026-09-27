@@ -9,6 +9,22 @@ import {
   BookmarkFolderListResponse,
 } from '@/entities/bookmark/folder/@x/interaction';
 
+function toggleLikeOnPost(post: Post): Post {
+  return {
+    ...post,
+    userInteractions: {
+      ...post.userInteractions,
+      isLiked: !post.userInteractions.isLiked,
+    },
+    stats: {
+      ...post.stats,
+      likeCount: post.userInteractions.isLiked
+        ? post.stats.likeCount - 1
+        : post.stats.likeCount + 1,
+    },
+  };
+}
+
 export const useLikePostMutation = (postId: Post['id']) => {
   const queryClient = useQueryClient();
 
@@ -27,19 +43,7 @@ export const useLikePostMutation = (postId: Post['id']) => {
       });
 
       if (previousPost) {
-        queryClient.setQueryData<Post>(postKeys.detail(postId), {
-          ...previousPost,
-          userInteractions: {
-            ...previousPost.userInteractions,
-            isLiked: !previousPost.userInteractions.isLiked,
-          },
-          stats: {
-            ...previousPost.stats,
-            likeCount: previousPost.userInteractions.isLiked
-              ? previousPost.stats.likeCount - 1
-              : previousPost.stats.likeCount + 1,
-          },
-        });
+        queryClient.setQueryData<Post>(postKeys.detail(postId), toggleLikeOnPost(previousPost));
       }
 
       queryClient.setQueriesData<InfiniteData<PostListResponse>>(
@@ -53,21 +57,7 @@ export const useLikePostMutation = (postId: Post['id']) => {
             pages: oldData.pages.map((page) => ({
               ...page,
               content: page.content.map((post) =>
-                post.id === postId
-                  ? {
-                      ...post,
-                      userInteractions: {
-                        ...post.userInteractions,
-                        isLiked: !post.userInteractions.isLiked,
-                      },
-                      stats: {
-                        ...post.stats,
-                        likeCount: post.userInteractions.isLiked
-                          ? post.stats.likeCount - 1
-                          : post.stats.likeCount + 1,
-                      },
-                    }
-                  : post
+                post.id === postId ? toggleLikeOnPost(post) : post
               ),
             })),
           };
@@ -86,6 +76,21 @@ export const useLikePostMutation = (postId: Post['id']) => {
     },
   });
 };
+
+function applyBookmarkToggleToPost(post: Post, nextBookmarked: boolean): Post {
+  return {
+    ...post,
+    userInteractions: {
+      ...post.userInteractions,
+      isBookmarked: nextBookmarked,
+      bookmarkFolderIds: [],
+    },
+    stats: {
+      ...post.stats,
+      bookmarkCount: Math.max(0, post.stats.bookmarkCount + (nextBookmarked ? 1 : -1)),
+    },
+  };
+}
 
 export const useBookmarkPostMutation = (postId: Post['id']) => {
   const queryClient = useQueryClient();
@@ -122,21 +127,10 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
       const nextBookmarked = !wasBookmarked;
 
       if (previousPost) {
-        queryClient.setQueryData<Post>(postKeys.detail(postId), {
-          ...previousPost,
-          userInteractions: {
-            ...previousPost.userInteractions,
-            isBookmarked: nextBookmarked,
-            bookmarkFolderIds: [],
-          },
-          stats: {
-            ...previousPost.stats,
-            bookmarkCount: Math.max(
-              0,
-              previousPost.stats.bookmarkCount + (nextBookmarked ? 1 : -1)
-            ),
-          },
-        });
+        queryClient.setQueryData<Post>(
+          postKeys.detail(postId),
+          applyBookmarkToggleToPost(previousPost, nextBookmarked)
+        );
       }
 
       queryClient.setQueriesData<InfiniteData<PostListResponse>>(
@@ -150,23 +144,7 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
             pages: oldData.pages.map((page) => ({
               ...page,
               content: page.content.map((post) =>
-                post.id === postId
-                  ? {
-                      ...post,
-                      userInteractions: {
-                        ...post.userInteractions,
-                        isBookmarked: nextBookmarked,
-                        bookmarkFolderIds: [],
-                      },
-                      stats: {
-                        ...post.stats,
-                        bookmarkCount: Math.max(
-                          0,
-                          post.stats.bookmarkCount + (nextBookmarked ? 1 : -1)
-                        ),
-                      },
-                    }
-                  : post
+                post.id === postId ? applyBookmarkToggleToPost(post, nextBookmarked) : post
               ),
             })),
           };

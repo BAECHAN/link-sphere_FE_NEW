@@ -24,6 +24,28 @@ interface UseUpdateCommentOptions {
   onSuccess?: () => void;
 }
 
+function getCommentUpdateSubmitError(
+  content: string,
+  editImages: File[],
+  existingImageUrls: string[]
+): string | null {
+  if (!content.trim() && editImages.length === 0 && existingImageUrls.length === 0) {
+    return TEXTS.validation.commentRequired;
+  }
+
+  // content 원본 바이트만 보는 zod 체크로는 못 잡는 경우의 안전망 - 줄바꿈이 많으면
+  // JSON 이스케이프로, 이미지가 많으면 URL 길이로 실제 전송량이 늘어나 WAF의 8,192바이트
+  // 벽을 넘을 수 있다. 그러면 앱 에러 처리를 못 타는 403 HTML을 그대로 받는다.
+  if (
+    CommentUtil.estimateCommentPayloadBytes(content, existingImageUrls, editImages.length) >
+    MAX_COMMENT_PAYLOAD_BYTES
+  ) {
+    return TEXTS.validation.commentPayloadTooLarge;
+  }
+
+  return null;
+}
+
 export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommentOptions) {
   const { mutate: updateComment, isPending: isUpdating } = useUpdateCommentMutation(postId);
 
@@ -76,19 +98,10 @@ export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommen
     (data: FormValues) => {
       const content = (data.content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-      if (!content.trim() && editImages.length === 0 && existingImageUrls.length === 0) {
-        toast.error(TEXTS.validation.commentRequired);
-        return;
-      }
+      const submitError = getCommentUpdateSubmitError(content, editImages, existingImageUrls);
 
-      // content 원본 바이트만 보는 zod 체크로는 못 잡는 경우의 안전망 - 줄바꿈이 많으면
-      // JSON 이스케이프로, 이미지가 많으면 URL 길이로 실제 전송량이 늘어나 WAF의 8,192바이트
-      // 벽을 넘을 수 있다. 그러면 앱 에러 처리를 못 타는 403 HTML을 그대로 받는다.
-      if (
-        CommentUtil.estimateCommentPayloadBytes(content, existingImageUrls, editImages.length) >
-        MAX_COMMENT_PAYLOAD_BYTES
-      ) {
-        toast.error(TEXTS.validation.commentPayloadTooLarge);
+      if (submitError) {
+        toast.error(submitError);
         return;
       }
 

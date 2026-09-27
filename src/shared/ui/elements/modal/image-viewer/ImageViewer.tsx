@@ -15,6 +15,10 @@ import { TEXTS } from '@/shared/config/texts';
 const MIN_ASPECT_RATIO = 4 / 5; // 세로로 긴 한계
 const MAX_ASPECT_RATIO = 1.91; // 가로로 긴 한계
 
+function isJustClosedTransition(wasOpen: boolean, isOpen: boolean): boolean {
+  return wasOpen && !isOpen;
+}
+
 /**
  * 전역 이미지 라이트박스(확대 뷰어)
  * RootLayout에 배치하여 사용합니다 (히스토리 훅이 라우터 컨텍스트를 필요로 함).
@@ -67,7 +71,7 @@ export function GlobalImageViewer() {
     function fixStaleCursorAfterClose() {
       const wasOpen = wasOpenRef.current;
       wasOpenRef.current = isOpen;
-      if (!wasOpen || isOpen) {
+      if (!isJustClosedTransition(wasOpen, isOpen)) {
         return;
       }
       // Chromium 한정 버그: ESC처럼 마우스가 실제로 움직이지 않고 닫히면,

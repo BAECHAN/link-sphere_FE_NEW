@@ -12,6 +12,10 @@ const DialogPortal = DialogPrimitive.Portal;
 
 const DialogClose = DialogPrimitive.Close;
 
+function isBackForwardMouseButton(button: number): boolean {
+  return button === 3 || button === 4;
+}
+
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
@@ -51,7 +55,7 @@ const DialogContent = React.forwardRef<
           // 그 좌표가 다이얼로그 바깥이면 "바깥 클릭으로 닫기"로 오인되어, 브라우저의
           // 실제 back navigation과 별개로 다이얼로그가 먼저 닫히며(오버레이에 따라
           // navigate(-1)까지 실행) 클릭 한 번이 히스토리를 두 단계 소모하게 된다.
-          if (e.detail.originalEvent.button === 3 || e.detail.originalEvent.button === 4) {
+          if (isBackForwardMouseButton(e.detail.originalEvent.button)) {
             e.preventDefault();
             return;
           }

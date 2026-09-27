@@ -20,6 +20,25 @@ interface UpdateAccountPayload extends UpdateAccount {
   previewUrl?: string;
 }
 
+// 닉네임 중복(409)은 전용 메시지. 그 외 서버발 ApiError는 상세를 노출하지 않고 일반
+// 메시지로 감춘다(보안·UX 정책, queryClient.ts의 전역 핸들러와 동일). 이 mutation 안에서
+// 우리가 직접 던진 UserFacingError(이미지 용량 초과·스토리지 업로드 실패 등)는 이미
+// TEXTS.*로 작성한 사용자용 메시지이므로 뭉개지 않고 그대로 보여준다 - 안 그러면 원인이
+// 뭐든 "프로필 업데이트에 실패했습니다"로만 보여 사용자가 무엇이 문제인지 알 수 없다.
+// 네트워크 실패 등 그 외 일반 Error는 UserFacingError가 아니므로 여전히 일반 메시지로
+// 감싼다 - 브라우저의 날것 기술 에러 문구(예: "Failed to fetch")를 그대로 노출하지 않는다.
+function resolveAccountUpdateErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return error.status === 409
+      ? TEXTS.messages.error.nicknameDuplicate
+      : TEXTS.messages.error.accountUpdateFailed;
+  }
+  if (error instanceof UserFacingError) {
+    return error.message;
+  }
+  return TEXTS.messages.error.accountUpdateFailed;
+}
+
 export const useFetchAccountQuery = (options?: { enabled?: boolean }) => {
   // 비로그인 상태에선 계정 조회를 하지 않는다 (401 → 전역 로그인 리다이렉트 방지)
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -71,24 +90,7 @@ export const useUpdateAccountMutation = () => {
       if (context?.previous) {
         queryClient.setQueryData(accountKeys.root, context.previous);
       }
-      // 닉네임 중복(409)은 전용 메시지. 그 외 서버발 ApiError는 상세를 노출하지 않고 일반
-      // 메시지로 감춘다(보안·UX 정책, queryClient.ts의 전역 핸들러와 동일). 이 mutation 안에서
-      // 우리가 직접 던진 UserFacingError(이미지 용량 초과·스토리지 업로드 실패 등)는 이미
-      // TEXTS.*로 작성한 사용자용 메시지이므로 뭉개지 않고 그대로 보여준다 - 안 그러면 원인이
-      // 뭐든 "프로필 업데이트에 실패했습니다"로만 보여 사용자가 무엇이 문제인지 알 수 없다.
-      // 네트워크 실패 등 그 외 일반 Error는 UserFacingError가 아니므로 여전히 일반 메시지로
-      // 감싼다 - 브라우저의 날것 기술 에러 문구(예: "Failed to fetch")를 그대로 노출하지 않는다.
-      let message: string;
-      if (error instanceof ApiError) {
-        message =
-          error.status === 409
-            ? TEXTS.messages.error.nicknameDuplicate
-            : TEXTS.messages.error.accountUpdateFailed;
-      } else if (error instanceof UserFacingError) {
-        message = error.message;
-      } else {
-        message = TEXTS.messages.error.accountUpdateFailed;
-      }
+      const message = resolveAccountUpdateErrorMessage(error);
 
       // 모달은 이미 닫힌 뒤라 실패를 놓치기 쉽다 - 자동으로 사라지지 않게 하고, "다시 열기"로
       // 시도했던 값(파일 포함) 그대로 모달을 복원한다. previewUrl은 여기서 해제하지 않는다 -

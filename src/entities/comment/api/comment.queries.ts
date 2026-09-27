@@ -68,6 +68,10 @@ function patchCommentRecursively(
   });
 }
 
+function isFirstOccurrence(id: string, seen: Set<string>): boolean {
+  return seen.has(id) ? false : seen.add(id) && true;
+}
+
 export const useSuspenseComments = (postId: string) => {
   return useSuspenseQuery({
     queryKey: commentKeys.list(postId),
@@ -86,7 +90,7 @@ export const useSuspenseMyCommentsInfiniteQuery = () => {
       const seen = new Set<string>();
       const comments = data.pages
         .flatMap((page) => page.content)
-        .filter((comment) => (seen.has(comment.id) ? false : seen.add(comment.id) && true));
+        .filter((comment) => isFirstOccurrence(comment.id, seen));
       return {
         pages: data.pages,
         pageParams: data.pageParams,

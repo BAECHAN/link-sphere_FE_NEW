@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type Query } from '@tanstack/react-query';
 import { authApi } from '@/entities/auth/api/auth.api';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { ApiError } from '@/shared/types/common.type';
@@ -10,6 +10,10 @@ import { toast } from '@/shared/lib/toast/toast';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { useNavigate } from 'react-router-dom';
 import { requestAndRegisterFcmToken, unregisterFcmToken } from '@/shared/lib/firebase/fcm';
+
+function isErroredCacheWithoutData(query: Query): boolean {
+  return query.state.status === 'error' && query.state.data === undefined;
+}
 
 export const useLoginMutation = () => {
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -31,7 +35,7 @@ export const useLoginMutation = () => {
       //    3보다 먼저 둔다: resetQueries의 내부 재조회는 리셋 뒤 predicate가 더 이상
       //    매칭되지 않아 아무것도 다시 부르지 않으므로, 활성 쿼리의 재요청은 3이 맡는다.
       void queryClient.resetQueries({
-        predicate: (query) => query.state.status === 'error' && query.state.data === undefined,
+        predicate: isErroredCacheWithoutData,
       });
       // 3. 캐시를 clear()하지 않고 invalidate만 한다. 인라인 모달 로그인은 페이지 이동
       //    없이 제자리에서 일어나므로, clear()로 캐시를 비우면 마운트된 화면(댓글 목록 등)의

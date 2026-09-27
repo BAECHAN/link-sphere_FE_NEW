@@ -22,6 +22,21 @@ function getPostId(post: Post): string {
   return post.id;
 }
 
+// URL filter(칩 3개)에 옛 북마크·공유 링크가 남긴 excludeBots가 섞여 있어도 무시하고,
+// 봇 숨기기 여부는 오직 localStorage 설정(useHideBotsStore)만 따른다
+function buildCombinedFilter(
+  currentFilter: string | undefined,
+  hideBots: boolean
+): string | undefined {
+  const filters = (currentFilter ? currentFilter.split(',') : []).filter(
+    (f) => f !== HIDE_BOTS_FILTER
+  );
+  if (hideBots) {
+    filters.push(HIDE_BOTS_FILTER);
+  }
+  return filters.length > 0 ? filters.join(',') : undefined;
+}
+
 /**
  * URL의 검색 파라미터(q, filter)와 이를 제어하는 액션들을 관리하는 훅
  * 데이터 페칭을 포함하지 않으므로 Suspense를 유발하지 않습니다.
@@ -90,15 +105,7 @@ export const usePostList = () => {
   const { category, nickname, search, currentFilter, ...params } = usePostListParams();
   const hideBots = useHideBotsStore((state) => state.hideBots);
 
-  // URL filter(칩 3개)에 옛 북마크·공유 링크가 남긴 excludeBots가 섞여 있어도 무시하고,
-  // 봇 숨기기 여부는 오직 localStorage 설정(useHideBotsStore)만 따른다
-  const filters = (currentFilter ? currentFilter.split(',') : []).filter(
-    (f) => f !== HIDE_BOTS_FILTER
-  );
-  if (hideBots) {
-    filters.push(HIDE_BOTS_FILTER);
-  }
-  const combinedFilter = filters.length > 0 ? filters.join(',') : undefined;
+  const combinedFilter = buildCombinedFilter(currentFilter, hideBots);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
     useSuspenseFetchPostListQuery({

@@ -475,8 +475,7 @@ export class CommonUtil {
       const unit = koreanUnits[position] || '';
 
       if (digit > 0) {
-        if (digit === 1 && position > 0 && position < 4) {
-          // 십, 백, 천 단위에서 1은 생략
+        if (this.isOmittableLeadingOne(digit, position)) {
           result += unit;
         } else {
           result += koreanDigits[digit] + unit;
@@ -485,6 +484,10 @@ export class CommonUtil {
     }
 
     return result;
+  }
+
+  private static isOmittableLeadingOne(digit: number, position: number): boolean {
+    return digit === 1 && position > 0 && position < 4;
   }
 
   /**

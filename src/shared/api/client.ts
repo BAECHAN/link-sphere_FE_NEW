@@ -20,6 +20,32 @@ interface RefreshTokenResponse {
   accessToken: string;
 }
 
+function appendSearchParams(url: string, searchParams?: Record<string, any>): string {
+  if (!searchParams) {
+    return url;
+  }
+
+  const params = new URLSearchParams();
+  Object.entries(searchParams).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      // 쿼리 파라미터도 한글이 들어갈 수 있으니 안전하게 NFC 처리
+      const stringValue = String(value).normalize('NFC');
+      params.append(key, stringValue);
+    }
+  });
+
+  const queryString = params.toString();
+  return queryString ? `${url}?${queryString}` : url;
+}
+
+function isSessionInvalidCode(code: string): boolean {
+  return code === SERVER_ERROR_CODE.NOT_LOGGED_IN || code === SERVER_ERROR_CODE.INVALID_TOKEN;
+}
+
+function isApiResponseShape(json: unknown): boolean {
+  return !!json && typeof json === 'object' && 'data' in json && 'status' in json;
+}
+
 /**
  * API 클라이언트 - fetch 기반
  */
@@ -89,21 +115,7 @@ class ApiClient {
     let url = endpoint.startsWith('http') ? endpoint : `${this.baseURL}${endpoint}`;
     const isAuth = this.isAuthEndpoint(endpoint);
 
-    // 쿼리 파라미터 처리
-    if (options?.searchParams) {
-      const searchParams = new URLSearchParams();
-      Object.entries(options.searchParams).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          // 쿼리 파라미터도 한글이 들어갈 수 있으니 안전하게 NFC 처리
-          const stringValue = String(value).normalize('NFC');
-          searchParams.append(key, stringValue);
-        }
-      });
-      const queryString = searchParams.toString();
-      if (queryString) {
-        url += `?${queryString}`;
-      }
-    }
+    url = appendSearchParams(url, options?.searchParams);
 
     const isFormData = options?.body instanceof FormData;
     const headers: Record<string, string> = {
@@ -205,10 +217,7 @@ class ApiClient {
                 });
               });
             }
-          } else if (
-            errorResponse.code === SERVER_ERROR_CODE.NOT_LOGGED_IN ||
-            errorResponse.code === SERVER_ERROR_CODE.INVALID_TOKEN
-          ) {
+          } else if (isSessionInvalidCode(errorResponse.code)) {
             if (endpoint.includes(API_ENDPOINTS.auth.refresh)) {
               // 앱 초기화 시 자동 호출되는 refresh는 조용히 실패 (toast/navigate 불필요)
               throw new ApiError(errorResponse);
@@ -248,9 +257,8 @@ class ApiClient {
       try {
         const json = JSON.parse(text) as ApiResponse<T>;
 
-        // ApiResponse 구조인지 확인 (status, data, message 필드가 있는지)
         // 백엔드 응답이 항상 ApiResponse로 래핑된다고 가정
-        if (json && typeof json === 'object' && 'data' in json && 'status' in json) {
+        if (isApiResponseShape(json)) {
           return (json as ApiResponse<T>).data;
         }
 

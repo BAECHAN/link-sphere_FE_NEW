@@ -34,22 +34,25 @@ export function LoginModal() {
   // 재실행 시점엔 onSuccess가 이미 비워진 뒤라 else 분기(close)로 잘못 빠지므로, 이 열림 주기당
   // 딱 한 번만 분기를 태우도록 막는다.
   const handledSuccessRef = useRef(false);
-  useEffect(() => {
-    if (!isOpen) {
-      handledSuccessRef.current = false;
-      return;
-    }
-    if (isAuthenticated && !handledSuccessRef.current) {
-      handledSuccessRef.current = true;
-      if (onSuccess) {
-        onSuccess();
-        setOnSuccess(undefined);
-      } else {
-        setOnSuccess(undefined);
-        close();
+  useEffect(
+    function closeModalOnLoginSuccess() {
+      if (!isOpen) {
+        handledSuccessRef.current = false;
+        return;
       }
-    }
-  }, [isOpen, isAuthenticated, onSuccess, setOnSuccess, close]);
+      if (isAuthenticated && !handledSuccessRef.current) {
+        handledSuccessRef.current = true;
+        if (onSuccess) {
+          onSuccess();
+          setOnSuccess(undefined);
+        } else {
+          setOnSuccess(undefined);
+          close();
+        }
+      }
+    },
+    [isOpen, isAuthenticated, onSuccess, setOnSuccess, close]
+  );
 
   // pendingAction(재개 액션)은 위 effect의 close()가 실제로 반영돼 로그인 모달이
   // 사라진 뒤에만 실행한다. close()는 navigate(-1) → popstate라 비동기다 - 성공
@@ -62,20 +65,23 @@ export function LoginModal() {
   // 전부 "isOpen이 false가 된다"는 이 지점으로 수렴하므로, 성공이 아닌 닫힘에서는
   // 액션을 실행하지 않고 버린다.
   const openedRef = useRef(false);
-  useEffect(() => {
-    if (isOpen) {
-      openedRef.current = true;
-      return;
-    }
-    if (!openedRef.current || !pendingAction) {
-      return;
-    }
-    openedRef.current = false;
-    if (isAuthenticated) {
-      pendingAction();
-    }
-    setPendingAction(undefined);
-  }, [isOpen, isAuthenticated, pendingAction, setPendingAction]);
+  useEffect(
+    function runPendingActionAfterModalCloses() {
+      if (isOpen) {
+        openedRef.current = true;
+        return;
+      }
+      if (!openedRef.current || !pendingAction) {
+        return;
+      }
+      openedRef.current = false;
+      if (isAuthenticated) {
+        pendingAction();
+      }
+      setPendingAction(undefined);
+    },
+    [isOpen, isAuthenticated, pendingAction, setPendingAction]
+  );
 
   // 회원가입 등 auth 페이지로 이동 시 모달 닫기 (onSuccess는 실행하지 않음)
   useEffect(() => {

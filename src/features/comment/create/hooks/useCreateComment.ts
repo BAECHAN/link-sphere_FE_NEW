@@ -29,6 +29,27 @@ interface UseCreateCommentOptions {
   autoFocus?: boolean;
 }
 
+function getCommentSubmitError(
+  content: string,
+  imagesCount: number,
+  isReply: boolean
+): string | null {
+  if (!content.trim() && imagesCount === 0) {
+    return isReply ? TEXTS.validation.replyRequired : TEXTS.validation.commentRequired;
+  }
+
+  // content 원본 바이트만 보는 zod 체크로는 못 잡는 경우의 안전망 - 줄바꿈이 많으면
+  // JSON 이스케이프로, 이미지가 많으면 URL 길이로 실제 전송량이 늘어나 WAF의 8,192바이트
+  // 벽을 넘을 수 있다. 그러면 앱 에러 처리를 못 타는 403 HTML을 그대로 받는다.
+  if (
+    CommentUtil.estimateCommentPayloadBytes(content, [], imagesCount) > MAX_COMMENT_PAYLOAD_BYTES
+  ) {
+    return TEXTS.validation.commentPayloadTooLarge;
+  }
+
+  return null;
+}
+
 export function useCreateComment({
   postId,
   parentId,
@@ -89,19 +110,10 @@ export function useCreateComment({
 
         const content = (data.content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-        if (!content.trim() && images.length === 0) {
-          toast.error(isReply ? TEXTS.validation.replyRequired : TEXTS.validation.commentRequired);
-          return;
-        }
+        const submitError = getCommentSubmitError(content, images.length, isReply);
 
-        // content 원본 바이트만 보는 zod 체크로는 못 잡는 경우의 안전망 - 줄바꿈이 많으면
-        // JSON 이스케이프로, 이미지가 많으면 URL 길이로 실제 전송량이 늘어나 WAF의 8,192바이트
-        // 벽을 넘을 수 있다. 그러면 앱 에러 처리를 못 타는 403 HTML을 그대로 받는다.
-        if (
-          CommentUtil.estimateCommentPayloadBytes(content, [], images.length) >
-          MAX_COMMENT_PAYLOAD_BYTES
-        ) {
-          toast.error(TEXTS.validation.commentPayloadTooLarge);
+        if (submitError) {
+          toast.error(submitError);
           return;
         }
 
@@ -116,16 +128,18 @@ export function useCreateComment({
         reset();
         clearAllImages();
 
+        const handleCreateCommentError = () => {
+          // 요청이 도는 사이 사용자가 새 댓글을 쓰기 시작했다면 덮어쓰지 않는다.
+          if (!getValues('content').trim()) {
+            reset({ content });
+          }
+          setImages((prev) => (prev.length > 0 ? prev : submittedImages));
+          // 토스트는 띄우지 않는다 - MutationCache.onError(queryClient.ts)가 이미 소유한다.
+        };
+
         const callbacks = {
           onSuccess: () => onSuccess?.(),
-          onError: () => {
-            // 요청이 도는 사이 사용자가 새 댓글을 쓰기 시작했다면 덮어쓰지 않는다.
-            if (!getValues('content').trim()) {
-              reset({ content });
-            }
-            setImages((prev) => (prev.length > 0 ? prev : submittedImages));
-            // 토스트는 띄우지 않는다 - MutationCache.onError(queryClient.ts)가 이미 소유한다.
-          },
+          onError: handleCreateCommentError,
         };
 
         if (isReply && parentId) {

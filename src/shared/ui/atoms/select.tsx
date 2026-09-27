@@ -22,8 +22,10 @@ const Select = ({
   const open = openProp ?? uncontrolledOpen;
   const closedAtRef = useRef(0);
 
+  const isReopenSuppressed = () => Date.now() - closedAtRef.current < CLICK_GUARD_MS;
+
   const setOpen = (next: boolean) => {
-    if (next && Date.now() - closedAtRef.current < CLICK_GUARD_MS) {
+    if (next && isReopenSuppressed()) {
       return;
     }
 

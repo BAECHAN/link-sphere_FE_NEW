@@ -34,6 +34,10 @@ import { PaginationRequest } from '@/shared/types/common.type';
 
 // ==================== Queries ====================
 
+function isFirstOccurrence(id: string, seen: Set<string>): boolean {
+  return seen.has(id) ? false : seen.add(id) && true;
+}
+
 export const useBookmarkFolderListQuery = (options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: bookmarkFolderKeys.list,
@@ -62,7 +66,7 @@ export const useBookmarkFolderPostsInfiniteQuery = (
       const seen = new Set<string>();
       const posts = data.pages
         .flatMap((page) => page.content)
-        .filter((post) => (seen.has(post.id) ? false : seen.add(post.id) && true));
+        .filter((post) => isFirstOccurrence(post.id, seen));
       return {
         pages: data.pages,
         pageParams: data.pageParams,
