@@ -50,6 +50,25 @@ describe('TooltipWrapper', () => {
     expect(infoSpy).not.toHaveBeenCalled();
   });
 
+  it('터치 직후 짧은 시간 안에 마우스 hover로 열리려는 요청은 무시한다 (터치스크린 노트북 등 하이브리드 입력 대비)', async () => {
+    // delayDuration={0}이 실제 앱 설정(App.tsx)과 같다 - 지연 없이 즉시 열리는 조건이라야
+    // 터치 직후 hover가 실제로 열리려고 시도하는 레이스가 재현된다.
+    const { getByRole, queryAllByText } = renderWithProviders(
+      <TooltipProvider delayDuration={0}>
+        <TooltipWrapper content="변경한 내용이 없어요." disabled>
+          <Button disabled>버튼</Button>
+        </TooltipWrapper>
+      </TooltipProvider>
+    );
+    const trigger = getByRole('button').parentElement as HTMLElement;
+
+    fireEvent.pointerDown(getByRole('button'), { pointerType: 'touch' });
+    fireEvent.pointerMove(trigger, { pointerType: 'mouse' });
+
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+    expect(queryAllByText('변경한 내용이 없어요.')).toHaveLength(0);
+  });
+
   function renderInFormWithSiblingInput() {
     return renderWithProviders(
       <TooltipProvider delayDuration={0}>
