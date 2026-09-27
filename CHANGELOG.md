@@ -15,7 +15,7 @@
   <details><summary>배경·구현</summary>
 
   일부 도메인은 BE 크롤링이 non-2xx로 막혀 제목이 URL 그대로, 설명이 없는 채로 저장된다(`aiStatus=NONE`). 지금까지는 카드에 아무 안내 없이 그냥 설명 영역이 비어 보여, 사용자가 "왜 설명이 없지"를 알 방법이 없었다. `post.description`이 없고 `post.aiStatus === 'NONE'`일 때만(설명이 그냥 없는 정상 글은 제외) 같은 자리에 무채색 안내 문구를 보여준다 — `LinkThumbnail`이 이미지 로드 실패 시 조용한 무채색 아이콘만 쓰는 것과 같은 톤이다. 배경·근거는 [link-sphere_BE_NEW#30](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/30) 논의 참고.
-  (`src/widgets/post/post-card/ui/PostCard.tsx`, `src/shared/config/texts.ts`)
+  (`src/widgets/post/post-card/ui/PostCard.tsx`, `src/shared/config/texts.ts`, [PR #216](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/216))
 
   </details>
 
