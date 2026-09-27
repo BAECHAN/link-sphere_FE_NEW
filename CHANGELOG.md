@@ -47,6 +47,14 @@
 
 ### Fixed
 
+- `post` 글 등록 화면 URL 입력창의 `enterKeyHint="send"` 힌트 제거
+  <details><summary>배경·구현</summary>
+
+  항상 보이는 고정 등록 바([PR #206](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/206))가 이미 제출 수단을 제공하는데 키보드에도 "보내기" 힌트까지 있는 게 중복으로 느껴졌고, URL은 직접 타이핑보다 클립보드에서 붙여넣는 경우가 많아 붙여넣은 뒤 Enter를 누르는 흐름 자체가 어색하다는 지적에 따라 제거했다. 부수적으로, Android는 `enterKeyHint`가 있으면 원래 다음 필드로 넘기던 Enter 키 이벤트를 페이지에 그대로 전달해 즉시 제출로 바뀌는 부작용(Chromium 팀 공지, 2020, `docs/plans/2026-09-27-enterkeyhint-inputmode.md` 참고)도 있었는데 함께 없어진다. 키보드 자판 최적화용 `inputMode="url"`은 이 문제와 무관해 그대로 둔다.
+  (`src/features/post/create/ui/CreatePostForm.tsx`)
+
+  </details>
+
 - `post` file:// 등 크롤링 불가능한 URL을 등록하면 원인 없이 실패하던 문제
   <details><summary>배경·구현</summary>
 
