@@ -1,4 +1,7 @@
 ### 2026-09-27 (FE)
+- 인증 토큰 갱신 및 이미지 리사이즈 로직의 모듈화 및 지역 함수 추출을 통한 코드 구조 개선 ([#211](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/211))
+
+### 2026-09-27 (FE)
 - 복잡한 조건식 및 다단계 로직 블록을 지역 함수로 분리하여 코드 가독성 및 유지보수성 향상 ([#209](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/209))
 
 ### 2026-09-27 (FE)
