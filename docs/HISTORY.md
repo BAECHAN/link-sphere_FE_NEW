@@ -1,4 +1,7 @@
 ### 2026-09-27 (FE)
+- 글 등록 화면 내 URL 입력 시 불필요한 키보드 '전송' 힌트 제거 ([#210](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/210))
+
+### 2026-09-27 (FE)
 - 인증 토큰 갱신 및 이미지 리사이즈 로직의 모듈화 및 지역 함수 추출을 통한 코드 구조 개선 ([#211](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/211))
 
 ### 2026-09-27 (FE)
