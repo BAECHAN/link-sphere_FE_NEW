@@ -1,4 +1,7 @@
 ### 2026-09-27 (FE)
+- 의미 검색 결과 UI에 매칭 이유 배지 컴포넌트 추가 및 관련 로직 구현 ([#217](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/217))
+
+### 2026-09-27 (FE)
 - 크롤링 실패 게시물에 대한 예외 처리 UI 및 안내 문구 추가 ([#216](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/216))
 
 ### 2026-09-27 (BE)
