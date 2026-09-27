@@ -235,6 +235,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
         <Bookmark className="h-4 w-4 text-muted-foreground shrink-0" />
         <Input
           autoFocus
+          enterKeyHint="done"
           value={name}
           onChange={(e) => setName(e.target.value)}
           onBlur={submitRename}
@@ -327,6 +328,7 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
     <div className="flex flex-col gap-1 px-2 py-1 shrink-0">
       <Input
         autoFocus
+        enterKeyHint="done"
         value={name}
         onChange={(e) => setName(e.target.value)}
         onBlur={handleBlur}

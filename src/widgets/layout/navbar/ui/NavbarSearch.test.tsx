@@ -390,3 +390,14 @@ describe('NavbarSearch — 최근검색 드롭다운', () => {
     expect(input).toHaveValue('리액트');
   });
 });
+
+describe('NavbarSearch — 모바일 키보드 힌트', () => {
+  it('enterKeyHint가 search로 설정된다', () => {
+    renderNavbarSearch('/post');
+
+    expect(screen.getByPlaceholderText(TEXTS.placeholders.postSearch)).toHaveAttribute(
+      'enterkeyhint',
+      'search'
+    );
+  });
+});

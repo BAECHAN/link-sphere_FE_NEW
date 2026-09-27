@@ -96,6 +96,7 @@ export function CreatePostForm() {
                 placeholder={TEXTS.post.form.create.urlPlaceholder}
                 autoComplete="off"
                 enterKeyHint="send"
+                inputMode="url"
                 required
               />
               <FormInput

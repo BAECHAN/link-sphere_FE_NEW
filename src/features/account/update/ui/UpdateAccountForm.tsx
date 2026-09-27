@@ -88,6 +88,7 @@ export function UpdateAccountForm({ onSuccess }: UpdateAccountFormProps) {
           placeholder={TEXTS.placeholders.nickname}
           description={nicknameStatusText}
           descriptionVariant={isNicknameAvailable ? 'success' : 'default'}
+          enterKeyHint="done"
         />
 
         <TooltipWrapper

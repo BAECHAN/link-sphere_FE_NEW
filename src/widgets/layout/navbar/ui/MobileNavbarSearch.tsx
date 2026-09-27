@@ -46,6 +46,7 @@ export const MobileNavbarSearch = ({ onClose, onSubmit }: MobileNavbarSearchProp
           ref={inputRef}
           id="mobile-search-input"
           autoFocus
+          enterKeyHint="search"
           placeholder={TEXTS.placeholders.postSearch}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}

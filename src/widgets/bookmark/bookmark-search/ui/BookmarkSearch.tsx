@@ -17,6 +17,7 @@ export function BookmarkSearch({ className }: BookmarkSearchProps) {
         name="bookmark-search-input"
         id="bookmark-search-input"
         placeholder={TEXTS.placeholders.bookmarkSearch}
+        enterKeyHint="search"
         value={searchInput}
         onChange={(e) => setSearchInput(e.target.value)}
         onClear={handleClear}
