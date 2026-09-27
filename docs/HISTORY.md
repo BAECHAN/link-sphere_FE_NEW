@@ -1,4 +1,7 @@
 ### 2026-09-27 (BE)
+- 일본어 오염 게시글 전수조사를 위한 읽기 전용 스캐너 모듈 구현 ([#28](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/28))
+
+### 2026-09-27 (BE)
 - 일본어 오염 게시글 대응을 위한 강제 재수집 도구 구현 ([#27](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/27))
 
 ### 2026-09-27 (BE)
