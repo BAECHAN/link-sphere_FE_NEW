@@ -6,13 +6,14 @@
     <title>Link Sphere</title>
 
     <!-- CloudWatch RUM: 실사용자 성능·에러 지표 수집. App Monitor는 Cognito identity pool
-         없이 리소스 기반 정책(Principal: "*", rum:PutRumEvents)으로 익명 수집을 허용한다 —
-         RUM 도입 검토 당시 "관리 부담을 늘리지 않는" 방향으로 Cognito 없는 구성을 택했다.
+         없이 리소스 기반 정책(Principal: "*", rum:PutRumEvents)으로 익명 수집을 허용한다.
          signing:false는 그 구성과 짝을 이룬다 - CloudWatch RUM 리소스 정책 문서는 퍼블릭
          정책을 쓰면 권한 부여 설정을 건너뛸 수 있다고 안내하지만, aws-rum-web 일반 설정
          가이드는 signing:false를 "인증되지 않은 프록시" 시나리오로 한정해 설명해 다소
-         엇갈린다 - 배포 후 CloudWatch RUM 콘솔에서 실제 이벤트 수신을 직접 확인해야 한다.
-         스크립트는 head 최상단 가까이 둬야 타이밍 측정이 정확하다(AWS 공식 설치 가이드). -->
+         엇갈렸다 - 로컬(도메인 불일치 400)과 프로덕션(200 OK + CloudWatch 메트릭 실측)
+         양쪽으로 검증해 해소했다(2026-09-26). 전체 구조·운영 파라미터·시행착오는
+         docs/RUM.md 참고. 스크립트는 head 최상단 가까이 둬야 타이밍 측정이 정확하다
+         (AWS 공식 설치 가이드). -->
     <script>
       (function (n, i, v, r, s, c, x, z) {
         x = window.AwsRumClient = { q: [], n: n, i: i, v: v, r: r, c: c };
