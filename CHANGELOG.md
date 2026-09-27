@@ -11,6 +11,14 @@
 
 ### Added
 
+- `post` 모바일에서 URL 입력 후 스크롤 없이 등록 가능(하단 고정 바 + Enter 제출)
+  <details><summary>배경·구현</summary>
+
+  기존엔 URL만 입력하고 바로 등록하려 해도 제목·관심 분야·북마크·비공개 필드를 지나 스크롤해야 등록 버튼이 나왔다(375×667 실측 기준 버튼이 처음부터 뷰포트 밖). 모바일(`md:` 미만)에서만 등록 버튼을 `BottomTabBar` 바로 위에 고정하고(선례: `MobileCommentBar.tsx`), URL 입력창에 `enterKeyHint="send"`를 추가했다 — 폼 안 submit 버튼이 하나뿐이라 원래도 Enter로 제출됐지만 키보드 라벨이 그 사실을 드러내지 않았다. 모바일 검색이 열리면 `RecentSearchPanel`과 같은 `z-panel` 층이라 겹치므로 같은 방식으로 숨기고, 탭바보다 높은 고정 바라 떠 있는 동안 `--toast-offset-bottom`을 실측 높이만큼 올린다(데스크톱은 영향받지 않도록 `matchMedia` 가드). 대안 비교(하단 고정 바 vs Enter 라벨 vs 선택 항목 접기)와 인용 근거는 Artifact 시안(대화 기록)과 `docs/plans/2026-09-27-submit-mobile-sticky-bar.md`에 있다.
+  (`src/features/post/create/ui/CreatePostForm.tsx`, `e2e/post-create.mobile.spec.ts`(신규), `docs/plans/2026-09-27-submit-mobile-sticky-bar.md`(신규))
+
+  </details>
+
 - `infra` AWS CloudWatch RUM으로 실사용자 성능·에러 지표 수집 시작
   <details><summary>배경·구현</summary>
 
