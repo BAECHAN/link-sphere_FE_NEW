@@ -1,3 +1,6 @@
+### 2026-09-27 (FE)
+- 글 수정 요청 시에도 글 등록과 동일한 keepalive 설정을 적용하여 네트워크 안정성 확보 ([#215](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/215))
+
 ### 2026-09-27 (BE)
 - 게시글 검색 품질 향상을 위한 의미 기반 임베딩 시스템 도입 (등록, 재수집 및 백필 프로세스 최적화) ([#32](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/32))
 
