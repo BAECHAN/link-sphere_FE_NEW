@@ -19,6 +19,7 @@ export const FormInput = ({
   descriptionVariant,
   reserveDescriptionSpace,
   enableClear,
+  required,
   ...props
 }: FormInputProps) => {
   const { control } = useFormContext<FieldValues>();
@@ -31,6 +32,7 @@ export const FormInput = ({
     <FormField
       name={name}
       label={label}
+      required={required}
       className={className}
       description={description}
       descriptionVariant={descriptionVariant}
@@ -44,6 +46,7 @@ export const FormInput = ({
         onBlur={field.onBlur}
         onClear={enableClear && field.value ? () => field.onChange('') : undefined}
         ref={field.ref}
+        required={required}
         className={fieldState.error ? 'border-destructive focus-visible:ring-destructive' : ''}
         {...props}
       />

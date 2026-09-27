@@ -15,6 +15,7 @@ export const FormInputPassword = ({
   className,
   description,
   reserveDescriptionSpace,
+  required,
   ...props
 }: FormInputPasswordProps) => {
   const { control } = useFormContext<FieldValues>();
@@ -27,6 +28,7 @@ export const FormInputPassword = ({
     <FormField
       name={name}
       label={label}
+      required={required}
       className={className}
       description={description}
       reserveDescriptionSpace={reserveDescriptionSpace}
@@ -38,6 +40,7 @@ export const FormInputPassword = ({
         onChange={field.onChange}
         onBlur={field.onBlur}
         ref={field.ref}
+        required={required}
         className={fieldState.error ? 'border-destructive focus-visible:ring-destructive' : ''}
         {...props}
       />

@@ -17,7 +17,7 @@ const COMMON_TEXT = {
 
 // post 폼 create/update 공통 필드
 const POST_FORM_COMMON = {
-  titleLabel: '제목',
+  titleLabel: '제목 (선택사항)',
   categoryLabel: '관심 분야 (선택사항)',
   privateLabel: '나만 보기 (비공개)',
   privateDescription: '체크하면 다른 사람에게 공개되지 않고 나만 볼 수 있는 게시물로 저장돼요.',

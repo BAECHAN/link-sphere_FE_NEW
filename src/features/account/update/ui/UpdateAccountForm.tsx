@@ -89,6 +89,7 @@ export function UpdateAccountForm({ onSuccess }: UpdateAccountFormProps) {
           description={nicknameStatusText}
           descriptionVariant={isNicknameAvailable ? 'success' : 'default'}
           enterKeyHint="done"
+          required
         />
 
         <TooltipWrapper

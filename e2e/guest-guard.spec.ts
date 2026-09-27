@@ -68,8 +68,11 @@ test.describe('비로그인 인증 가드 — 요청 없이 로그인 모달만 
     const loginDialog = page.getByRole('dialog', { name: TEXTS.auth.guard.title });
     await expect(loginDialog).toBeVisible();
 
-    await page.getByLabel('Email', { exact: true }).fill('test@example.com');
-    await page.getByLabel('Password', { exact: true }).fill('TestPass1!');
+    // getByLabel은 기본 부분 일치라 'Email'만 쓰면 'Save Email' 체크박스까지 걸린다
+    // (login.spec.ts의 실측 확인과 동일). 필수 표시(*)가 붙어 접근 가능한 이름이
+    // "Email*"/"Password*"가 되므로, 앞부분만 고정하는 정규식으로 두 문제를 함께 해결한다.
+    await page.getByLabel(/^Email/).fill('test@example.com');
+    await page.getByLabel(/^Password/).fill('TestPass1!');
     await page.getByRole('button', { name: 'Sign In' }).click();
 
     // 겹침 회귀 확인: 폴더 모달을 보기 전에 로그인 모달이 실제로 사라졌는지 먼저 본다.

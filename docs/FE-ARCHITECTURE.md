@@ -889,6 +889,33 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 | `FormCheckbox`         | 단일 체크박스                                              |
 | `FormCheckboxGroup`    | 체크박스 그룹                                              |
 
+### 필수/선택 표시 규칙
+
+- **필수**: `FormInput`/`FormInputPassword`에 `required`를 넘기면 `FormField`가 라벨 옆에
+  `RequiredMark`(`src/shared/ui/atoms/required-mark.tsx`)를 그린다. `required`는 동시에
+  input의 native `required` 속성으로도 그대로 전달된다 — 실제 "필수" 안내(스크린리더
+  announcement)는 이 속성이 담당하고, `RequiredMark`는 `aria-hidden="true"`라 "별표"로
+  읽히지 않는다([W3C WAI](https://www.w3.org/WAI/tutorials/forms/validation/): `required`
+  속성이 필수임을 프로그래밍적으로 알린다).
+- **선택**: 별도 컴포넌트 없이 라벨 텍스트 자체에 "(선택사항)"을 붙인다(예: `texts.ts`의
+  `POST_FORM_COMMON.titleLabel`, `categoryLabel`).
+- **근거**: 필수·선택 모두 명시하는 이유는
+  [NN/g](https://www.nngroup.com/articles/required-fields/)(_"필수 항목은 전부 표시하라"_,
+  번역)와 [Baymard](https://baymard.com/blog/required-optional-form-fields)(_"필수와 선택
+  둘 다 명시적으로 표시해야 한다"_, 번역) — 채택하지 않은 대안(별표 없이 선택만 표시)은
+  [GOV.UK](https://design-system.service.gov.uk/patterns/question-pages/) 참고.
+- **마커 간격(4px)**: `RequiredMark`는 `ml-1`(Tailwind spacing 토큰 1 = 4px)을 직접 준다 —
+  `Label`(`shared/ui/atoms/label.tsx`)의 기본 `gap-2`(8px)에는 기대지 않는다. 이 `gap-2`는
+  이 프로젝트가 의도적으로 정한 값이 아니라 shadcn/ui 공식 `label.tsx` 템플릿을 그대로
+  가져온 것이다(2026-01-18 `7ce4c30` 커밋에서 구버전 템플릿을 현재 shadcn 레지스트리
+  문자열로 통째 교체 — 대조 결과 한 글자까지 동일함을 확인). `Label`이 실제로 자식 2개
+  이상(아이콘+텍스트 등)을 감싸는 용도로 쓰이게 되면 그 8px과 이 4px 요구사항이 섞이므로,
+  `FormField`는 라벨 텍스트와 마커를 하나의 `<span>`으로 묶어 `Label`에는 항상 단일
+  자식만 전달한다. 4px 자체는 [Ant Design 테마 토큰](https://ant.design/docs/react/customize-theme)
+  `marginXXS`의 기본값을 참고했다(Ant Design 소스의 `&::before` 필수 마커 규칙이 정확히
+  이 토큰을 쓴다 — 다만 Ant Design은 마커를 라벨 **앞**에 붙이고 이 프로젝트는 뒤에
+  붙이므로 배치가 아니라 간격 크기만 참고한 것이다).
+
 ---
 
 ## 17. 핵심 설정 파일 위치

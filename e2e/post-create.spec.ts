@@ -46,9 +46,10 @@ test.describe('게시글 등록', () => {
     );
 
     await page.goto('/post/submit');
-    await expect(page.getByLabel('URL', { exact: true })).toBeVisible();
+    // URL 필드는 필수 표시(*)가 붙어 접근 가능한 이름이 "URL*"가 된다 - 앞부분만 고정해서 매칭한다.
+    await expect(page.getByLabel(/^URL/)).toBeVisible();
 
-    await page.getByLabel('URL', { exact: true }).fill(NEW_URL);
+    await page.getByLabel(/^URL/).fill(NEW_URL);
     const submitButton = page.getByRole('button', { name: TEXTS.post.form.create.submit });
     await expect(submitButton).toBeEnabled();
 

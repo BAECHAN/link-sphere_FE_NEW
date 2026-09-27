@@ -27,6 +27,14 @@
 
   </details>
 
+- `shared` 폼 필드에 필수 표시(\*)를 추가하고 선택 항목은 "(선택사항)"으로 통일
+  <details><summary>배경·구현</summary>
+
+  URL(필수)과 제목(선택, `post.schema.ts` `.optional()`)이 화면상 아무 표시 없이 똑같이 보여 제목까지 필수로 읽히는 문제가 있었다. `FormInput`/`FormInputPassword`에 이미 넘기던 `required`가 지금까지는 `noValidate` 폼에서 `<input>` 속성으로만 존재했을 뿐 화면엔 반영되지 않았는데, 이제 `FormField`가 이를 받아 라벨 옆에 `RequiredMark`(신규 atom, `aria-hidden`이라 스크린리더는 별표를 읽지 않고 input의 `required` 속성으로만 "필수" 안내를 받는다)를 그린다. 색은 `text-destructive`, 간격은 Ant Design 테마 토큰 `marginXXS`(4px) 실측값을 참고했다 — `Label`의 기본 `gap-2`(8px, shadcn/ui 템플릿을 그대로 가져온 값이라 이 프로젝트가 의도한 간격이 아니다)에는 기대지 않고 `RequiredMark` 자체가 `ml-1`로 독립적인 간격을 준다. 적용 범위는 로그인·회원가입·링크 등록/수정 URL·닉네임 변경 전체이고, 선택 항목(제목·관심 분야)은 라벨 텍스트에 "(선택사항)"을 붙이는 기존 관례로 통일했다. 근거는 [NN/g](https://www.nngroup.com/articles/required-fields/)·[Baymard](https://baymard.com/blog/required-optional-form-fields) 등 `docs/FE-ARCHITECTURE.md` §16 참고.
+  (`src/shared/ui/atoms/required-mark.tsx`(신규), `src/shared/ui/elements/form/_base/FormField.tsx`, `src/shared/ui/elements/form/FormInput.tsx`, `src/shared/ui/elements/form/FormInputPassword.tsx`, `src/shared/config/texts.ts`, `src/features/account/update/ui/UpdateAccountForm.tsx`, `docs/FE-ARCHITECTURE.md`, `docs/plans/2026-09-27-form-required-marker.md`(신규))
+
+  </details>
+
 - `infra` AWS CloudWatch RUM으로 실사용자 성능·에러 지표 수집 시작
   <details><summary>배경·구현</summary>
 
