@@ -55,6 +55,14 @@
 
 ### Fixed
 
+- `post` 글 수정 요청이 등록과 달리 탭을 바로 닫으면 유실될 수 있던 문제
+  <details><summary>배경·구현</summary>
+
+  등록(`postApi.createPost`)은 `keepalive: true`가 있어 제출 직후 폼을 리셋하고 페이지를 이동해도 탭을 닫으면 브라우저가 이미 시작된 요청을 끝까지 전송한다. 그런데 수정(`postApi.updatePost`)도 `useUpdatePost.ts`에서 똑같이 fire-and-forget으로 제출하고 바로 뒤로가기(`goBack()`)하면서 `keepalive`만 빠져 있었다 — SPA 내 라우팅만 하면 문제없지만, 저장 직후 탭을 통째로 닫거나 새로고침하면 그 PATCH 요청이 끊길 수 있었다. BE 크롤링 프록시 폴백 작업([link-sphere_BE_NEW#30](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/30)) 중 재크롤링 응답 시간이 늘어난 것을 계기로 발견해 `createPost`와 동일하게 맞췄다.
+  (`src/entities/post/api/post.api.ts`)
+
+  </details>
+
 - `post` 글 등록 화면 URL 입력창의 `enterKeyHint="send"` 힌트 제거
   <details><summary>배경·구현</summary>
 
