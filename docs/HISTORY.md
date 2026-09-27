@@ -1,4 +1,7 @@
 ### 2026-09-27 (BE)
+- 일본어 오염 게시글 대응을 위한 강제 재수집 도구 구현 ([#27](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/27))
+
+### 2026-09-27 (BE)
 - 게시물 링크 수집 시 서버 리전(도쿄)에 따른 언어 설정 문제를 해결하여 제목 및 설명을 올바르게 수집하도록 수정 ([#26](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/26))
 
 ### 2026-09-27 (FE)
