@@ -1,4 +1,7 @@
 ### 2026-09-27 (FE)
+- 단일 입력 필드에 모바일 키보드 최적화를 위한 inputMode 및 enterKeyHint 속성 적용 ([#208](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/208))
+
+### 2026-09-27 (FE)
 - RUM(Real User Monitoring) 관련 문서를 독립적인 가이드(docs/RUM.md)로 구조화 및 분리하여 문서 관리 효율성 개선 ([#205](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/205))
 
 ### 2026-09-27 (FE)
