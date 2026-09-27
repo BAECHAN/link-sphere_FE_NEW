@@ -82,8 +82,10 @@ export const TooltipWrapper = ({
     toast.info(content, { id: REASON_TOAST_ID });
   };
 
+  const isHoverSuppressed = () => Date.now() < suppressHoverUntilRef.current;
+
   const handleOpenChange = (open: boolean) => {
-    if (open && Date.now() < suppressHoverUntilRef.current) {
+    if (open && isHoverSuppressed()) {
       return;
     }
     setVisible(open);
