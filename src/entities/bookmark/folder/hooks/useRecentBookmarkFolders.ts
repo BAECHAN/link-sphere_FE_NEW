@@ -2,6 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-folder.util';
 
+function shouldSkipSnapshot(
+  isFetching: boolean,
+  snapshottedSessionKey: unknown,
+  sessionKey: unknown
+): boolean {
+  return isFetching || snapshottedSessionKey === sessionKey;
+}
+
 /**
  * "최근 저장한 폴더" 상단 구획 — Sears & Shneiderman split menu 방식.
  * 자주 쓰는 소수를 상단 별도 구획에 두고, 아래 본 목록 순서는 절대 안 바꾼다.
@@ -34,7 +42,7 @@ export function useRecentBookmarkFolders(
 
   useEffect(
     function snapshotRecentFolderIdsOnceSettled() {
-      if (isFetching || snapshottedForSessionRef.current === sessionKey) {
+      if (shouldSkipSnapshot(isFetching, snapshottedForSessionRef.current, sessionKey)) {
         return;
       }
       snapshottedForSessionRef.current = sessionKey;

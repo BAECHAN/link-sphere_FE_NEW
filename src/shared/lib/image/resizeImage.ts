@@ -53,6 +53,14 @@ function canvasToWebpBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', WEBP_QUALITY));
 }
 
+function isUnparsableSvgDocument(doc: Document, svgEl: Element): boolean {
+  return svgEl.nodeName !== 'svg' || !!doc.querySelector('parsererror');
+}
+
+function isInvalidViewBoxParts(parts: number[]): boolean {
+  return parts.length !== 4 || parts.some((n) => !Number.isFinite(n));
+}
+
 /**
  * resizeImageFile이 이 파일을 거부할지(그리고 어떤 메시지로 거부할지) 실제 리사이즈를 실행하지
  * 않고 동기적으로 미리 판정한다. 파일 선택 즉시(업로드를 시도하기 전에) 크기를 검증할 때 쓴다 -
@@ -149,7 +157,7 @@ export async function normalizeSvgDimensions(file: File): Promise<File> {
     const text = await file.text();
     const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
     const svgEl = doc.documentElement;
-    if (svgEl.nodeName !== 'svg' || doc.querySelector('parsererror')) {
+    if (isUnparsableSvgDocument(doc, svgEl)) {
       return file;
     }
 
@@ -169,7 +177,7 @@ export async function normalizeSvgDimensions(file: File): Promise<File> {
       .trim()
       .split(/[\s,]+/)
       .map(Number);
-    if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) {
+    if (isInvalidViewBoxParts(parts)) {
       return file;
     }
     // parts.length === 4를 위에서 이미 확인했으므로 non-null 단언이 안전하다.

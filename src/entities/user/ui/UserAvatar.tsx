@@ -28,6 +28,16 @@ const transformSizes = {
   lg: 160,
 };
 
+// image가 null | undefined인 경우로 narrowing되는 타입 가드로 선언해, 이 조건을 통과한
+// 뒤(zoom 가능 분기)에는 image가 string으로 좁혀진 채로 쓰일 수 있게 한다.
+function isZoomUnavailable(
+  zoomable: boolean,
+  image: string | null | undefined,
+  hasError: boolean
+): image is null | undefined {
+  return !zoomable || !image || hasError;
+}
+
 export function UserAvatar({
   image,
   nickname,
@@ -64,7 +74,7 @@ export function UserAvatar({
   );
 
   // 확대할 원본이 없으면(이미지 없음/로드 실패) 버튼으로 감싸지 않는다
-  if (!zoomable || !image || hasError) {
+  if (isZoomUnavailable(zoomable, image, hasError)) {
     return avatar;
   }
 

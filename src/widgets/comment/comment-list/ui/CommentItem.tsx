@@ -38,6 +38,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
   // 좋아요/수정/삭제/답글 같은 서버 액션을 걸면 404가 난다.
   const isOptimistic = comment.id.startsWith('temp-');
   const canReply = depth < 1 && !isDeleted && !isOptimistic;
+  const canShowActionBar = !isDeleted && !isOptimistic && !isEditing;
 
   return (
     <div
@@ -115,7 +116,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
           </>
         )}
 
-        {!isDeleted && !isOptimistic && !isEditing && (
+        {canShowActionBar && (
           <div className="flex items-center gap-1 text-xs text-muted-foreground md:gap-4">
             <LikeCommentButton
               commentId={comment.id}

@@ -98,6 +98,37 @@ export function useImageAttachments({
     [images]
   );
 
+  const acceptValidFiles = useCallback(
+    async (fileArray: File[], remainingSlots: number): Promise<void> => {
+      const accepted: File[] = [];
+      const errors = new Set<string>();
+      for (const file of fileArray) {
+        if (!file.type.startsWith('image/')) {
+          errors.add(TEXTS.validation.imageFileOnly);
+          continue;
+        }
+        const sizeError = getImageFileSizeError(file);
+        if (sizeError) {
+          errors.add(sizeError);
+          continue;
+        }
+        accepted.push(await normalizeSvgDimensions(file));
+      }
+      errors.forEach((message) => toast.error(message));
+
+      const toAdd = accepted.slice(0, remainingSlots);
+      if (accepted.length > remainingSlots) {
+        toast.error(TEXTS.validation.imageCountExceeded(maxCount));
+      }
+      if (toAdd.length === 0) {
+        return;
+      }
+
+      setImages((prev) => [...prev, ...toAdd]);
+    },
+    [maxCount]
+  );
+
   const addFiles = useCallback(
     (files: File[] | FileList) => {
       const fileArray = Array.from(files);
@@ -114,35 +145,9 @@ export function useImageAttachments({
         return;
       }
 
-      void (async () => {
-        const accepted: File[] = [];
-        const errors = new Set<string>();
-        for (const file of fileArray) {
-          if (!file.type.startsWith('image/')) {
-            errors.add(TEXTS.validation.imageFileOnly);
-            continue;
-          }
-          const sizeError = getImageFileSizeError(file);
-          if (sizeError) {
-            errors.add(sizeError);
-            continue;
-          }
-          accepted.push(await normalizeSvgDimensions(file));
-        }
-        errors.forEach((message) => toast.error(message));
-
-        const toAdd = accepted.slice(0, remainingSlots);
-        if (accepted.length > remainingSlots) {
-          toast.error(TEXTS.validation.imageCountExceeded(maxCount));
-        }
-        if (toAdd.length === 0) {
-          return;
-        }
-
-        setImages((prev) => [...prev, ...toAdd]);
-      })();
+      void acceptValidFiles(fileArray, remainingSlots);
     },
-    [maxCount, reservedCount, images.length]
+    [maxCount, reservedCount, images.length, acceptValidFiles]
   );
 
   const handlePaste = useCallback(

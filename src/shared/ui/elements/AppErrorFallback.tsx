@@ -23,19 +23,22 @@ export function AppErrorFallback({ error }: AppErrorFallbackProps) {
   const isChunkLoadError = ErrorUtil.isChunkLoadError(error);
   const isServerError = ErrorUtil.isServerError(error);
 
-  useEffect(() => {
-    if (isChunkLoadError) {
-      const reloadKey = chunkReloadKey(window.location.pathname);
-      if (!sessionStorage.getItem(reloadKey)) {
-        sessionStorage.setItem(reloadKey, '1');
-        window.location.reload();
+  useEffect(
+    function handleCrashRecovery() {
+      if (isChunkLoadError) {
+        const reloadKey = chunkReloadKey(window.location.pathname);
+        if (!sessionStorage.getItem(reloadKey)) {
+          sessionStorage.setItem(reloadKey, '1');
+          window.location.reload();
+        }
+        return;
       }
-      return;
-    }
-    if (isServerError) {
-      window.location.replace(ROUTES_PATHS.SERVER_ERROR);
-    }
-  }, [isChunkLoadError, isServerError]);
+      if (isServerError) {
+        window.location.replace(ROUTES_PATHS.SERVER_ERROR);
+      }
+    },
+    [isChunkLoadError, isServerError]
+  );
 
   if (isChunkLoadError || isServerError) {
     return <SpinnerOverlay />;

@@ -13,6 +13,26 @@ import { TEXTS } from '@/shared/config/texts';
 
 const SCOPE_FILTERS = ['isBookmarked', 'isMyPosts', 'isPrivate'] as const;
 
+// "조건 N개 적용 중" 카운트 — 봇 글 숨기기(localStorage 개인 설정, 초기화 대상 아님)는 제외.
+function computeAppliedFilterCount(
+  searchQuery: string,
+  optimisticCategoryTags: string,
+  optimisticFilters: string[]
+): number {
+  const selectedCategoryCount = new Set(
+    optimisticCategoryTags ? optimisticCategoryTags.split(',') : []
+  ).size;
+  const { nickname: appliedNicknameTags, search: appliedKeyword } = parseSearchQuery(searchQuery);
+  const appliedNicknameCount = appliedNicknameTags ? appliedNicknameTags.split(',').length : 0;
+  const appliedScopeCount = SCOPE_FILTERS.filter((filter) =>
+    optimisticFilters.includes(filter)
+  ).length;
+
+  return (
+    selectedCategoryCount + appliedNicknameCount + appliedScopeCount + (appliedKeyword ? 1 : 0)
+  );
+}
+
 export function PostListSearch() {
   const { categoryOptionList } = useCategoryOptions();
   const { searchQuery, currentFilter, setSearch, toggleFilter, clearSearch } = usePostListParams();
@@ -74,18 +94,30 @@ export function PostListSearch() {
   const isClickedMyPosts = optimisticFilters.includes('isMyPosts');
   const isClickedPrivate = optimisticFilters.includes('isPrivate');
 
-  // "조건 N개 적용 중" 카운트 — 봇 글 숨기기(localStorage 개인 설정, 초기화 대상 아님)는 제외.
   const selectedCategories = new Set(
     optimisticCategoryTags ? optimisticCategoryTags.split(',') : []
   );
 
-  const { nickname: appliedNicknameTags, search: appliedKeyword } = parseSearchQuery(searchQuery);
-  const appliedNicknameCount = appliedNicknameTags ? appliedNicknameTags.split(',').length : 0;
-  const appliedScopeCount = SCOPE_FILTERS.filter((filter) =>
-    optimisticFilters.includes(filter)
-  ).length;
-  const appliedCount =
-    selectedCategories.size + appliedNicknameCount + appliedScopeCount + (appliedKeyword ? 1 : 0);
+  const appliedCount = computeAppliedFilterCount(
+    searchQuery,
+    optimisticCategoryTags,
+    optimisticFilters
+  );
+
+  const toggleCategoryTagInSearch = (category: (typeof categoryOptionList)[number]) => {
+    // 라벨 클릭 시 기존 자유 검색어는 초기화하고, 이미 선택된 @카테고리/#닉네임 태그만 유지한다.
+    const tag = `@${category.label}`;
+    const isSelected = selectedCategories.has(category.label);
+    const existingTags = extractSearchTags(searchQuery);
+    const tagsWithoutSelf = existingTags.filter((t) => t !== tag);
+    const newTags = isSelected ? tagsWithoutSelf : [...tagsWithoutSelf, tag];
+    const newSearch = newTags.join(' ');
+
+    flushSync(() => {
+      setOptimisticCategoryTags(parseSearchQuery(newSearch).category ?? '');
+    });
+    setSearch(newSearch);
+  };
 
   const handleClearSearch = () => {
     // 적용된 조건이 없으면 아무것도 하지 않는다 — clearSearch는 replace 없이
@@ -113,19 +145,7 @@ export function PostListSearch() {
               label={`@${category.label}`}
               isActive={isSelected}
               activeClassName="bg-primary text-primary-foreground"
-              onClick={() => {
-                // 라벨 클릭 시 기존 자유 검색어는 초기화하고, 이미 선택된 @카테고리/#닉네임 태그만 유지한다.
-                const tag = `@${category.label}`;
-                const existingTags = extractSearchTags(searchQuery);
-                const tagsWithoutSelf = existingTags.filter((t) => t !== tag);
-                const newTags = isSelected ? tagsWithoutSelf : [...tagsWithoutSelf, tag];
-                const newSearch = newTags.join(' ');
-
-                flushSync(() => {
-                  setOptimisticCategoryTags(parseSearchQuery(newSearch).category ?? '');
-                });
-                setSearch(newSearch);
-              }}
+              onClick={() => toggleCategoryTagInSearch(category)}
             />
           );
         })}

@@ -6,6 +6,7 @@ import {
   useQueryClient,
   type InfiniteData,
   type QueryClient,
+  type QueryKey,
 } from '@tanstack/react-query';
 import { postApi } from '@/entities/post/api/post.api';
 import { toast } from '@/shared/lib/toast/toast';
@@ -32,6 +33,36 @@ import {
   BookmarkFolderListResponse,
 } from '@/entities/bookmark/folder/@x/post';
 import { PaginationRequest } from '@/shared/types/common.type';
+
+/**
+ * 새 글 1개만큼 뒤 페이지들이 실제로는 한 칸씩 밀렸는데 여기서 그 재계산은 할 수
+ * 없다. page 0만 남기고 이후 캐시된 페이지는 버려 — 서버 오프셋과 어긋난 옛
+ * page 1+이 page 0과 겹쳐 카드가 중복 렌더링되는 걸 막는다. 스크롤해서 다음
+ * 페이지가 필요해지면 그때 서버에서 올바른 오프셋으로 다시 받아온다.
+ */
+function prependCreatedPostToFirstPage(
+  old: InfiniteData<PostListResponse> | undefined,
+  created: Post
+): InfiniteData<PostListResponse> | undefined {
+  if (!old || old.pages.length === 0) {
+    return old;
+  }
+  const firstPage = old.pages[0];
+  if (!firstPage || firstPage.content.some((post) => post.id === created.id)) {
+    return old;
+  }
+  return {
+    ...old,
+    pages: [
+      {
+        ...firstPage,
+        content: [created, ...firstPage.content],
+        totalElements: firstPage.totalElements + 1,
+      },
+    ],
+    pageParams: old.pageParams.slice(0, 1),
+  };
+}
 
 export const useCreatePostMutation = () => {
   const queryClient = useQueryClient();
@@ -64,30 +95,7 @@ export const useCreatePostMutation = () => {
       // 않고 invalidate로만 갱신한다.
       queryClient.setQueriesData<InfiniteData<PostListResponse>>(
         { queryKey: postKeys.listRoot, predicate: unfilteredListPredicate },
-        (old) => {
-          if (!old || old.pages.length === 0) {
-            return old;
-          }
-          const firstPage = old.pages[0];
-          if (!firstPage || firstPage.content.some((post) => post.id === created.id)) {
-            return old;
-          }
-          // 새 글 1개만큼 뒤 페이지들이 실제로는 한 칸씩 밀렸는데 여기서 그 재계산은 할 수
-          // 없다. page 0만 남기고 이후 캐시된 페이지는 버려 — 서버 오프셋과 어긋난 옛
-          // page 1+이 page 0과 겹쳐 카드가 중복 렌더링되는 걸 막는다. 스크롤해서 다음
-          // 페이지가 필요해지면 그때 서버에서 올바른 오프셋으로 다시 받아온다.
-          return {
-            ...old,
-            pages: [
-              {
-                ...firstPage,
-                content: [created, ...firstPage.content],
-                totalElements: firstPage.totalElements + 1,
-              },
-            ],
-            pageParams: old.pageParams.slice(0, 1),
-          };
-        }
+        (old) => prependCreatedPostToFirstPage(old, created)
       );
 
       handlePostCreateSuccess(queryClient);
@@ -98,6 +106,10 @@ export const useCreatePostMutation = () => {
     },
   });
 };
+
+function isFirstOccurrence(id: string, seen: Set<string>): boolean {
+  return seen.has(id) ? false : seen.add(id) && true;
+}
 
 export const useSuspenseFetchPostListQuery = (
   payload?: Pick<PostListRequest, 'search' | 'category' | 'filter' | 'nickname'>
@@ -125,7 +137,7 @@ export const useSuspenseFetchPostListQuery = (
       const seen = new Set<string>();
       const posts = data.pages
         .flatMap((page) => page.content)
-        .filter((post) => (seen.has(post.id) ? false : seen.add(post.id) && true));
+        .filter((post) => isFirstOccurrence(post.id, seen));
       return {
         pages: data.pages,
         pageParams: data.pageParams,
@@ -161,6 +173,76 @@ export const prefetchPostDetail = (queryClient: QueryClient, postId: string) => 
   });
 };
 
+/**
+ * 삭제 대상의 북마크 상태 — detail 캐시에 없으면(북마크 페이지에서 삭제 등) post 목록 →
+ * 폴더별 게시글 캐시 순으로 조회 (선례: interaction.queries.ts previousPost/cachedFolderPost)
+ */
+function findCachedPost(
+  queryClient: QueryClient,
+  postId: string,
+  previousData: Array<[QueryKey, InfiniteData<PostListResponse> | undefined]>,
+  previousFolderPosts: Array<[QueryKey, InfiniteData<PostListResponse> | undefined]>
+): Post | undefined {
+  return (
+    queryClient.getQueryData<Post>(postKeys.detail(postId)) ??
+    previousData
+      .flatMap(([, data]) => data?.pages.flatMap((page) => page.content) ?? [])
+      .find((post) => post.id === postId) ??
+    previousFolderPosts
+      .flatMap(([, data]) => data?.pages.flatMap((page) => page.content) ?? [])
+      .find((post) => post.id === postId)
+  );
+}
+
+/**
+ * 북마크 화면(folder 캐시) 낙관적 반영 — 카드 제거는 항상, 폴더 카운트는 북마크된
+ * 글일 때만(refetch 대기 중 옛 숫자·옛 카드가 그대로 보이는 걸 막는다)
+ */
+function removeDeletedPostFromBookmarkFolderCaches(
+  queryClient: QueryClient,
+  postId: string,
+  cachedPost: Post | undefined,
+  previousFolderList: BookmarkFolderListResponse | undefined
+): void {
+  queryClient.setQueriesData<InfiniteData<PostListResponse>>(
+    { queryKey: bookmarkFolderKeys.postsRoot },
+    (old) => {
+      if (!old) {
+        return old;
+      }
+      const contains = old.pages.some((page) => page.content.some((post) => post.id === postId));
+      if (!contains) {
+        return old;
+      }
+      return {
+        ...old,
+        pages: old.pages.map((page) => ({
+          ...page,
+          content: page.content.filter((post) => post.id !== postId),
+          totalElements: Math.max(0, page.totalElements - 1),
+        })),
+      };
+    }
+  );
+
+  if (cachedPost?.userInteractions.isBookmarked && previousFolderList) {
+    const folderIds = cachedPost.userInteractions.bookmarkFolderIds;
+    const folderIdSet = new Set(folderIds);
+    queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, {
+      ...previousFolderList,
+      uncategorizedCount: Math.max(
+        0,
+        previousFolderList.uncategorizedCount - (folderIds.length === 0 ? 1 : 0)
+      ),
+      folders: previousFolderList.folders.map((folder) =>
+        folderIdSet.has(folder.id)
+          ? { ...folder, bookmarkCount: Math.max(0, folder.bookmarkCount - 1) }
+          : folder
+      ),
+    });
+  }
+}
+
 export const useDeletePostMutation = () => {
   const queryClient = useQueryClient();
 
@@ -187,16 +269,7 @@ export const useDeletePostMutation = () => {
         queryKey: bookmarkFolderKeys.postsRoot,
       });
 
-      // 삭제 대상의 북마크 상태 — detail 캐시에 없으면(북마크 페이지에서 삭제 등) post 목록 →
-      // 폴더별 게시글 캐시 순으로 조회 (선례: interaction.queries.ts previousPost/cachedFolderPost)
-      const cachedPost =
-        queryClient.getQueryData<Post>(postKeys.detail(postId)) ??
-        previousData
-          .flatMap(([, data]) => data?.pages.flatMap((page) => page.content) ?? [])
-          .find((post) => post.id === postId) ??
-        previousFolderPosts
-          .flatMap(([, data]) => data?.pages.flatMap((page) => page.content) ?? [])
-          .find((post) => post.id === postId);
+      const cachedPost = findCachedPost(queryClient, postId, previousData, previousFolderPosts);
 
       queryClient.setQueriesData<InfiniteData<PostListResponse>>(
         { queryKey: postKeys.listRoot },
@@ -215,47 +288,12 @@ export const useDeletePostMutation = () => {
         }
       );
 
-      // 북마크 화면(folder 캐시) 낙관적 반영 — 카드 제거는 항상, 폴더 카운트는 북마크된
-      // 글일 때만(refetch 대기 중 옛 숫자·옛 카드가 그대로 보이는 걸 막는다)
-      queryClient.setQueriesData<InfiniteData<PostListResponse>>(
-        { queryKey: bookmarkFolderKeys.postsRoot },
-        (old) => {
-          if (!old) {
-            return old;
-          }
-          const contains = old.pages.some((page) =>
-            page.content.some((post) => post.id === postId)
-          );
-          if (!contains) {
-            return old;
-          }
-          return {
-            ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              content: page.content.filter((post) => post.id !== postId),
-              totalElements: Math.max(0, page.totalElements - 1),
-            })),
-          };
-        }
+      removeDeletedPostFromBookmarkFolderCaches(
+        queryClient,
+        postId,
+        cachedPost,
+        previousFolderList
       );
-
-      if (cachedPost?.userInteractions.isBookmarked && previousFolderList) {
-        const folderIds = cachedPost.userInteractions.bookmarkFolderIds;
-        const folderIdSet = new Set(folderIds);
-        queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, {
-          ...previousFolderList,
-          uncategorizedCount: Math.max(
-            0,
-            previousFolderList.uncategorizedCount - (folderIds.length === 0 ? 1 : 0)
-          ),
-          folders: previousFolderList.folders.map((folder) =>
-            folderIdSet.has(folder.id)
-              ? { ...folder, bookmarkCount: Math.max(0, folder.bookmarkCount - 1) }
-              : folder
-          ),
-        });
-      }
 
       return { previousData, previousFolderList, previousFolderPosts };
     },

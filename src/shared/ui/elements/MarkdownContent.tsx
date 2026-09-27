@@ -30,6 +30,10 @@ function extractImageUrls(content: string): string[] {
   return matches.filter(isImageUrl);
 }
 
+function isClosedCodeBlock(segment: string): boolean {
+  return segment.startsWith('```') && segment.endsWith('```') && segment.length > 6;
+}
+
 export function MarkdownContent({ content, isMobile = false, className }: MarkdownContentProps) {
   if (!content) {
     return null;
@@ -51,6 +55,18 @@ function renderInlineLinks(
   const parts = text.split(URL_PATTERN);
   const nodes: React.ReactNode[] = [];
 
+  // renderInlineLinks는 훅을 쓸 수 없는 일반 함수라 히스토리 오버레이를
+  // NavigationService로 직접 연다 (account.queries.ts의 마이페이지 재오픈과 동일한 이유)
+  function openImageViewerFor(part: string) {
+    const images = imageUrls.map((url) => ({ src: url, alt: 'attachment' }));
+    const startIndex = Math.max(imageUrls.indexOf(part), 0);
+    useImageViewerStore.getState().setImages(images, startIndex);
+    NavigationService.navigate(`${window.location.pathname}${window.location.search}`, {
+      state: { imageViewerOpen: true },
+      preventScrollReset: true,
+    });
+  }
+
   parts.forEach((part, i) => {
     if (!part) {
       return;
@@ -69,17 +85,7 @@ function renderInlineLinks(
           <button
             key={`${keyPrefix}-${i}`}
             type="button"
-            onClick={() => {
-              // renderInlineLinks는 훅을 쓸 수 없는 일반 함수라 히스토리 오버레이를
-              // NavigationService로 직접 연다 (account.queries.ts의 마이페이지 재오픈과 동일한 이유)
-              const images = imageUrls.map((url) => ({ src: url, alt: 'attachment' }));
-              const startIndex = Math.max(imageUrls.indexOf(part), 0);
-              useImageViewerStore.getState().setImages(images, startIndex);
-              NavigationService.navigate(`${window.location.pathname}${window.location.search}`, {
-                state: { imageViewerOpen: true },
-                preventScrollReset: true,
-              });
-            }}
+            onClick={() => openImageViewerFor(part)}
             className="block"
             aria-label={TEXTS.ariaLabels.imageZoom}
           >
@@ -128,8 +134,7 @@ function parseMarkdown(text: string, isMobile: boolean, imageUrls: string[]): Re
   const segments = text.split(/(```[\s\S]*?```)/g);
 
   segments.forEach((segment, segIndex) => {
-    // 닫힌 코드 블럭
-    if (segment.startsWith('```') && segment.endsWith('```') && segment.length > 6) {
+    if (isClosedCodeBlock(segment)) {
       const inner = segment.slice(3, -3);
       const newlineIdx = inner.indexOf('\n');
       // 첫 줄이 언어 힌트(```js 등)이면 제거

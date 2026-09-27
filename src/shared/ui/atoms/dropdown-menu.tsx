@@ -67,6 +67,10 @@ const DropdownMenu = ({
   const contentRef = useRef<HTMLDivElement | null>(null);
   const closedByScrollRef = useRef(false);
 
+  function isScrollInsideMenuContent(target: EventTarget | null): boolean {
+    return target instanceof Node && !!contentRef.current?.contains(target);
+  }
+
   const setOpen = (next: boolean) => {
     if (openProp === undefined) {
       setUncontrolledOpen(next);
@@ -95,7 +99,7 @@ const DropdownMenu = ({
 
     const handleScroll = (event: Event) => {
       // 메뉴 자신이 overflow-y-auto라 긴 메뉴의 내부 스크롤로는 닫지 않는다.
-      if (event.target instanceof Node && contentRef.current?.contains(event.target)) {
+      if (isScrollInsideMenuContent(event.target)) {
         return;
       }
 
@@ -214,6 +218,18 @@ const DropdownMenuContent = forwardRef<
 >(({ className, sideOffset = 4, onCloseAutoFocus, ...props }, ref) => {
   const openContext = useContext(DropdownMenuOpenContext);
 
+  function mergeContentRef(node: HTMLDivElement | null) {
+    if (openContext) {
+      openContext.contentRef.current = node;
+    }
+
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    }
+  }
+
   return (
     <>
       {/* 바깥 첫 클릭은 메뉴만 닫고 아래 요소(게시글 카드 등)로 전달하지 않는다. pointerdown을
@@ -243,17 +259,7 @@ const DropdownMenuContent = forwardRef<
       </DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Portal>
         <DropdownMenuPrimitive.Content
-          ref={(node) => {
-            if (openContext) {
-              openContext.contentRef.current = node;
-            }
-
-            if (typeof ref === 'function') {
-              ref(node);
-            } else if (ref) {
-              (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
-            }
-          }}
+          ref={mergeContentRef}
           data-slot="dropdown-menu-content"
           sideOffset={sideOffset}
           className={cn(

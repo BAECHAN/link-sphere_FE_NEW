@@ -92,65 +92,68 @@ export function useUpdateAccount(onSuccess?: () => void) {
   const debouncedNickname = useDebounce(watchedNickname, 500);
   const hasDebounceSettled = watchedNickname === debouncedNickname;
 
-  useEffect(() => {
-    const nickname = debouncedNickname.trim();
+  useEffect(
+    function checkNicknameAvailability() {
+      const nickname = debouncedNickname.trim();
 
-    // 원래 자기 닉네임으로 되돌아온 경우 - 실제로 바뀐 게 없으니 검사도, 상태 메시지도 필요 없다.
-    // (예: A로 바꿔 확인까지 마친 뒤 다시 원래 값으로 되돌리면, checkedNicknameRef는 이미 A라서
-    // 이 분기 없이는 원래 값을 "새로 확인할 값"으로 오인해 불필요하게 재조회하고 "사용 가능한
-    // 닉네임입니다"라는 오해의 소지가 있는 메시지를 보여주게 된다)
-    if (!nickname || nickname === account?.nickname) {
-      setNicknameStatus('idle');
-      form.clearErrors('nickname');
-      checkedNicknameRef.current = account?.nickname ?? null;
-      return;
-    }
-    if (nickname === checkedNicknameRef.current) {
-      return;
-    }
-    if (form.getFieldState('nickname').invalid) {
-      // 형식 오류(zod 정규식)가 이미 떠 있으면 서버까지 갈 필요 없음
-      return;
-    }
-
-    let cancelled = false;
-    setNicknameStatus('checking');
-    void (async () => {
-      let available: boolean;
-      try {
-        available = await accountApi.checkNicknameAvailability(nickname);
-      } catch {
-        // 조회 자체가 실패했다(네트워크 오류·구 BE 미지원 등) - 저장을 막지는 않지만("사용
-        // 가능"인지 실제로 확인된 게 아니므로) 확인됐다고 속이지도 않는다. idle로 두면 버튼은
-        // 비활성화되지 않으면서(hasNicknameError=false) 초록 확인 메시지도 안 뜬다 - 실제
-        // 중복이면 저장 시점에 BE가 409로 다시 막아준다.
-        if (!cancelled) {
-          setNicknameStatus('idle');
-        }
-        return;
-      }
-      if (cancelled) {
-        // 검사 도중 값이 또 바뀌어 새 effect가 떴다 - 낡은 응답이므로 버린다
-        return;
-      }
-
-      checkedNicknameRef.current = nickname;
-      if (available) {
-        setNicknameStatus('available');
+      // 원래 자기 닉네임으로 되돌아온 경우 - 실제로 바뀐 게 없으니 검사도, 상태 메시지도 필요 없다.
+      // (예: A로 바꿔 확인까지 마친 뒤 다시 원래 값으로 되돌리면, checkedNicknameRef는 이미 A라서
+      // 이 분기 없이는 원래 값을 "새로 확인할 값"으로 오인해 불필요하게 재조회하고 "사용 가능한
+      // 닉네임입니다"라는 오해의 소지가 있는 메시지를 보여주게 된다)
+      if (!nickname || nickname === account?.nickname) {
+        setNicknameStatus('idle');
         form.clearErrors('nickname');
-      } else {
-        setNicknameStatus('duplicate');
-        form.setError('nickname', {
-          type: 'manual',
-          message: TEXTS.messages.error.nicknameDuplicate,
-        });
+        checkedNicknameRef.current = account?.nickname ?? null;
+        return;
       }
-    })();
+      if (nickname === checkedNicknameRef.current) {
+        return;
+      }
+      if (form.getFieldState('nickname').invalid) {
+        // 형식 오류(zod 정규식)가 이미 떠 있으면 서버까지 갈 필요 없음
+        return;
+      }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [debouncedNickname, account?.nickname, form]);
+      let cancelled = false;
+      setNicknameStatus('checking');
+      void (async () => {
+        let available: boolean;
+        try {
+          available = await accountApi.checkNicknameAvailability(nickname);
+        } catch {
+          // 조회 자체가 실패했다(네트워크 오류·구 BE 미지원 등) - 저장을 막지는 않지만("사용
+          // 가능"인지 실제로 확인된 게 아니므로) 확인됐다고 속이지도 않는다. idle로 두면 버튼은
+          // 비활성화되지 않으면서(hasNicknameError=false) 초록 확인 메시지도 안 뜬다 - 실제
+          // 중복이면 저장 시점에 BE가 409로 다시 막아준다.
+          if (!cancelled) {
+            setNicknameStatus('idle');
+          }
+          return;
+        }
+        if (cancelled) {
+          // 검사 도중 값이 또 바뀌어 새 effect가 떴다 - 낡은 응답이므로 버린다
+          return;
+        }
+
+        checkedNicknameRef.current = nickname;
+        if (available) {
+          setNicknameStatus('available');
+          form.clearErrors('nickname');
+        } else {
+          setNicknameStatus('duplicate');
+          form.setError('nickname', {
+            type: 'manual',
+            message: TEXTS.messages.error.nicknameDuplicate,
+          });
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
+    },
+    [debouncedNickname, account?.nickname, form]
+  );
 
   const onSubmit = form.handleSubmit((formData) => {
     const previewUrl = pendingFile ? (objectUrlRef.current ?? undefined) : undefined;
