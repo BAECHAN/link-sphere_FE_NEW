@@ -1,4 +1,7 @@
 ### 2026-09-27 (BE)
+- 게시글 크롤링 안정성 최적화: 무료 공개 프록시를 통한 재시도 로직 제거 및 크롤링 프로세스 구조 개선 ([#36](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/36))
+
+### 2026-09-27 (BE)
 - 게시글 임베딩 요청 규격 정정 및 백필(backfill) 작업 시 Gemini API가 불필요하게 호출되던 결함 수정 ([#35](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/35))
 
 ### 2026-09-27 (FE)
