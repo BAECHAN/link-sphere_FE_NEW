@@ -1,4 +1,7 @@
 ### 2026-09-27 (BE)
+- 클라우드 IP 차단으로 인한 링크 메타데이터 수집 실패 문제를 해결하기 위해 무료 공개 프록시를 활용한 재시도 로직 구현 ([#30](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/30))
+
+### 2026-09-27 (BE)
 - 검색 엔진 고도화: 기호 정규화 및 AI 요약본 검색 지원, 검색 로깅 시스템 도입을 통한 정확도 향상 ([#29](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/29))
 
 ### 2026-09-27 (BE)
