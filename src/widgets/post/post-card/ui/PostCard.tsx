@@ -219,7 +219,11 @@ export const PostCard = memo(function PostCard({
             페이지까지 이 문구를 보여주면 안 되므로 description 유무가 아니라 이 상태
             자체로 판단한다. */}
         {!post.description && post.aiStatus === 'NONE' && (
-          <p className="pl-0.5 text-sm text-muted-foreground italic mb-2">
+          // 이탤릭 없이 - 바로 위 isSemanticMatch 안내와 같은 무채색 한 줄 계열로 톤을
+          // 맞추되, 크기는 그대로 둔다(설명 자리를 대체하는 역할이라 description과 같은
+          // text-sm이 맞다 - Artifact 3안 비교로 확정,
+          // https://claude.ai/artifact/65Pveiiyocavrzu2QFRUAE).
+          <p className="pl-0.5 text-sm text-muted-foreground mb-2">
             {TEXTS.post.card.metadataUnavailable}
           </p>
         )}
