@@ -792,6 +792,9 @@
           "isPrivate": {
             "type": "boolean"
           },
+          "isSemanticMatch": {
+            "type": "boolean"
+          },
           "ogImage": {
             "nullable": true,
             "type": "string"
@@ -822,6 +825,7 @@
           "categories",
           "id",
           "isPrivate",
+          "isSemanticMatch",
           "stats",
           "title",
           "url",

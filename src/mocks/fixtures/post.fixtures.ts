@@ -29,6 +29,7 @@ export const mockPost: Post = {
   },
   createdAt: '2025-01-01T00:00:00.000Z',
   isPrivate: false,
+  isSemanticMatch: false,
   author: {
     id: mockAccount.id,
     nickname: mockAccount.nickname,

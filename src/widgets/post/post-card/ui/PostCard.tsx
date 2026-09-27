@@ -196,6 +196,16 @@ export const PostCard = memo(function PostCard({
       </CardHeader>
 
       <CardContent className={cn('p-3 pt-0 flex flex-col', dimmedClassName)}>
+        {post.isSemanticMatch && (
+          // 검색어와 글자가 안 겹쳐도 의미로 찾은 결과라는 걸 알려주는 옅은 한 줄 - 구글
+          // 포토의 "텍스트 일치" 라벨과 같은 톤으로, 배지(안 A)나 상단 띠(안 C)보다 조용하다.
+          // 안 B로 확정: https://claude.ai/artifact/Jb3DS6YWM5ZsFbtg9kN37j
+          <p className="pl-0.5 mb-2 flex items-center gap-1 text-micro text-muted-foreground">
+            <Lightbulb className="h-3 w-3 text-info shrink-0" />
+            {TEXTS.post.card.semanticMatch}
+          </p>
+        )}
+
         {post.description && (
           <p
             className={cn('pl-0.5 text-sm text-muted-foreground mb-2', !isDetail && 'line-clamp-3')}
