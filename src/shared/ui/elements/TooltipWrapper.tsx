@@ -66,15 +66,31 @@ export const TooltipWrapper = ({
   // Radix 툴팁은 pointerType === 'touch'를 무시하도록 설계돼 있어(react-tooltip 내부 가드)
   // 터치에서는 hover/focus 어느 경로로도 열리지 않는다. 그래서 탭은 토스트로 대신 알린다.
   // 탭은 순간 이벤트라 호버 중 갈아치움 문제가 없으므로 항상 최신 content를 쓴다.
+  const suppressHoverUntilRef = useRef(0);
+
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.pointerType !== 'touch' || !content) {
       return;
     }
+
+    // 터치스크린 노트북·Chrome DevTools 기기 툴바 같은 하이브리드 입력은 터치와 함께 마우스
+    // hover 이벤트도 동반 발생시켜 Radix 툴팁이 뒤늦게 열릴 수 있다(TooltipProvider가
+    // delayDuration={0}이라 hover는 즉시 열림, App.tsx). 터치 시점 기준 짧은 시간 동안 hover로
+    // 인한 open 요청을 무시해 토스트와 중복 노출되지 않게 한다.
+    suppressHoverUntilRef.current = Date.now() + 500;
+    setVisible(false);
     toast.info(content, { id: REASON_TOAST_ID });
   };
 
+  const handleOpenChange = (open: boolean) => {
+    if (open && Date.now() < suppressHoverUntilRef.current) {
+      return;
+    }
+    setVisible(open);
+  };
+
   return (
-    <Tooltip open={visible} onOpenChange={setVisible}>
+    <Tooltip open={visible} onOpenChange={handleOpenChange}>
       <TooltipTrigger asChild>
         <span
           ref={triggerRef}
