@@ -894,6 +894,7 @@ export interface components {
       /** Format: uuid */
       id: string;
       isPrivate: boolean;
+      isSemanticMatch: boolean;
       ogImage?: string | null;
       stats: components['schemas']['PostStats'];
       tags?: string[] | null;

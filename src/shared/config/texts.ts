@@ -178,6 +178,7 @@ export const TEXTS = {
       anonymous: 'Anonymous',
       visitWebsite: 'Visit Website',
       aiSummary: 'AI 요약',
+      semanticMatch: '검색어와 의미가 비슷한 글이에요',
       makePublic: '전체 공개로 전환',
       makePrivate: '비공개로 전환',
       edit: '수정',

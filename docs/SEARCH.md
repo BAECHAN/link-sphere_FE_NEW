@@ -9,7 +9,7 @@
 > `#닉네임` 태그가 어떻게 분해되는지 이해하고, 검색 관련 동작(유지·초기화·오타 보정)을
 > 어느 파일에서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-09-21
+> **마지막 검토**: 2026-09-28
 
 ## 1. 쉬운 설명
 
@@ -178,6 +178,7 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 | 모바일 검색 패널 열림 상태                                | [`Navbar.tsx:69-71`](../src/widgets/layout/navbar/ui/Navbar.tsx#L69-L71) — `location.state.mobileSearchOpen`                                                                                               |
 | 검색 중 하단 댓글바 숨김 동작 바꾸기                      | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useHistoryOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                            |
 | 검색 중 배경 클릭·포커스 차단 범위 바꾸기                 | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                          |
+| "의미로 찾았어요" 배지 문구·표시 조건 바꾸기              | [`PostCard.tsx:207-215`](../src/widgets/post/post-card/ui/PostCard.tsx#L207-L215) — `post.isSemanticMatch`, 문구는 `TEXTS.post.card.semanticMatch`                                                         |
 
 ## 9. 검증 결과
 
@@ -322,6 +323,11 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
 
 ## 11. 남은 것
 
+- **이 문서는 "검색어가 어떻게 URL·입력창을 오가는지"만 다룬다.** 2026-09-28부터 BE가
+  키워드뿐 아니라 의미(임베딩 코사인 거리) 기반으로도 결과를 찾고, 키워드로는 안 걸렸지만
+  의미로 걸린 결과에는 `PostCard.tsx`에 "검색어와 의미가 비슷한 글이에요" 배지가 붙는다
+  (`post.isSemanticMatch`). 매칭 알고리즘·임계값·BE 쪽 설계는 이 문서의 범위가 아니다 —
+  BE 레포 `docs/plans/2026-09-27-search-quality.md`가 그 정본이다.
 - **닉네임을 2개 이상 지정하면 결과가 0건이 된다.** FE는 `#철수 #영희`를
   `nickname=철수,영희`로 콤마 join해 보내는데(`search-parser.ts`), BE
   `PostRepositoryImpl.kt:153-168`은 이 값을 `split(",")` 하지 않고 `LIKE '%철수,영희%'`
