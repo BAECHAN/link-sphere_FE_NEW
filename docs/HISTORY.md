@@ -1,4 +1,7 @@
 ### 2026-09-27 (BE)
+- 검색 엔진 고도화: 기호 정규화 및 AI 요약본 검색 지원, 검색 로깅 시스템 도입을 통한 정확도 향상 ([#29](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/29))
+
+### 2026-09-27 (BE)
 - 일본어 오염 게시글 전수조사를 위한 읽기 전용 스캐너 모듈 구현 ([#28](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/28))
 
 ### 2026-09-27 (BE)
