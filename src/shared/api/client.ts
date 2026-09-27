@@ -46,6 +46,38 @@ function isApiResponseShape(json: unknown): boolean {
   return !!json && typeof json === 'object' && 'data' in json && 'status' in json;
 }
 
+function parseErrorResponseBody(status: number, text: string): ApiErrorResponse {
+  try {
+    const parsed = JSON.parse(text) as Record<string, unknown> | null;
+    // ApiErrorResponse 구조(code 있음)인지 확인
+    if (parsed && typeof parsed.code === 'string') {
+      return parsed as unknown as ApiErrorResponse;
+    }
+    // 표준 포맷이 아닌 경우 (Spring Security 기본 에러 등)
+    return {
+      status,
+      code: String(status),
+      message:
+        typeof parsed?.message === 'string'
+          ? parsed.message
+          : typeof parsed?.error === 'string'
+            ? parsed.error
+            : text,
+      timestamp: DateUtil.formatISO(undefined),
+    };
+  } catch {
+    // JSON이 아닌 응답 - 우리 앱의 403(GlobalExceptionHandler)은 항상 JSON이라
+    // 여기 걸릴 수 없다. 즉 403 + 파싱 실패는 CloudFront/WAF가 앱 앞에서
+    // 막았다는 신호로 안전하게 쓸 수 있다.
+    return {
+      status,
+      code: status === 403 ? SERVER_ERROR_CODE.EDGE_BLOCKED : String(status),
+      message: text || 'Unknown Error',
+      timestamp: dayjs().toISOString(),
+    };
+  }
+}
+
 /**
  * API 클라이언트 - fetch 기반
  */
@@ -107,6 +139,55 @@ class ApiClient {
     return normalizedData;
   }
 
+  /**
+   * TOKEN_EXPIRED 401 처리 - 재시도 상한, refresh 실행, refresh 대기 3갈래를 모두 담당한다.
+   */
+  private async handleTokenExpired<T>(
+    endpoint: string,
+    options: ApiRequestOptions | undefined,
+    retryCount: number
+  ): Promise<T> {
+    // refresh로 새로 받은 토큰으로 재시도한 요청이 다시 TOKEN_EXPIRED를 받으면
+    // (서버 시계 오차 등) 더 재시도해도 회복되지 않는다 - 상한 없이 재귀하면
+    // 무한 루프가 될 수 있으므로 1회 재시도 후에는 refresh 실패와 동일하게 처리한다.
+    if (retryCount > 0) {
+      console.error('Token refresh succeeded but retried request still expired');
+      this.refreshSubscribers = [];
+      AuthUtil.clearAll();
+      return new Promise(() => {});
+    }
+
+    if (!this.isRefreshing) {
+      this.isRefreshing = true;
+      try {
+        const authData = await apiClient.post<RefreshTokenResponse>(API_ENDPOINTS.auth.refresh);
+        if (!authData || !authData.accessToken) {
+          throw new Error(
+            `${TEXTS.messages.error.tokenRefreshFailed} ${TEXTS.messages.error.unauthorizedAccessToken}`
+          );
+        }
+        const { accessToken } = authData;
+        useAuthStore.getState().setAuth(accessToken);
+        this.notifySubscribers(accessToken);
+        return this.request<T>(endpoint, options, retryCount + 1);
+      } catch (error) {
+        console.error(error);
+        this.refreshSubscribers = [];
+        AuthUtil.clearAll();
+        return new Promise(() => {});
+      } finally {
+        this.isRefreshing = false;
+      }
+    } else {
+      // 이미 갱신 중이라면 새 토큰 발급 완료까지 대기 후 재시도
+      return new Promise<T>((resolve) => {
+        this.subscribeTokenRefresh(() => {
+          resolve(this.request<T>(endpoint, options, retryCount + 1));
+        });
+      });
+    }
+  }
+
   private async request<T>(
     endpoint: string,
     options?: ApiRequestOptions,
@@ -138,85 +219,13 @@ class ApiClient {
 
       if (!response.ok) {
         const text = await response.text();
-        let errorResponse: ApiErrorResponse;
-
-        try {
-          const parsed = JSON.parse(text) as Record<string, unknown> | null;
-          // ApiErrorResponse 구조(code 있음)인지 확인
-          if (parsed && typeof parsed.code === 'string') {
-            errorResponse = parsed as unknown as ApiErrorResponse;
-          } else {
-            // 표준 포맷이 아닌 경우 (Spring Security 기본 에러 등)
-            errorResponse = {
-              status: response.status,
-              code: String(response.status),
-              message:
-                typeof parsed?.message === 'string'
-                  ? parsed.message
-                  : typeof parsed?.error === 'string'
-                    ? parsed.error
-                    : text,
-              timestamp: DateUtil.formatISO(undefined),
-            };
-          }
-        } catch {
-          // JSON이 아닌 응답 - 우리 앱의 403(GlobalExceptionHandler)은 항상 JSON이라
-          // 여기 걸릴 수 없다. 즉 403 + 파싱 실패는 CloudFront/WAF가 앱 앞에서
-          // 막았다는 신호로 안전하게 쓸 수 있다.
-          errorResponse = {
-            status: response.status,
-            code:
-              response.status === 403 ? SERVER_ERROR_CODE.EDGE_BLOCKED : String(response.status),
-            message: text || 'Unknown Error',
-            timestamp: dayjs().toISOString(),
-          };
-        }
+        const errorResponse = parseErrorResponseBody(response.status, text);
 
         // 1. 401 Unauthorized
         if (response.status === 401) {
           // 토큰 만료 처리
           if (errorResponse.code === SERVER_ERROR_CODE.TOKEN_EXPIRED) {
-            // refresh로 새로 받은 토큰으로 재시도한 요청이 다시 TOKEN_EXPIRED를 받으면
-            // (서버 시계 오차 등) 더 재시도해도 회복되지 않는다 - 상한 없이 재귀하면
-            // 무한 루프가 될 수 있으므로 1회 재시도 후에는 refresh 실패와 동일하게 처리한다.
-            if (retryCount > 0) {
-              console.error('Token refresh succeeded but retried request still expired');
-              this.refreshSubscribers = [];
-              AuthUtil.clearAll();
-              return new Promise(() => {});
-            }
-
-            if (!this.isRefreshing) {
-              this.isRefreshing = true;
-              try {
-                const authData = await apiClient.post<RefreshTokenResponse>(
-                  API_ENDPOINTS.auth.refresh
-                );
-                if (!authData || !authData.accessToken) {
-                  throw new Error(
-                    `${TEXTS.messages.error.tokenRefreshFailed} ${TEXTS.messages.error.unauthorizedAccessToken}`
-                  );
-                }
-                const { accessToken } = authData;
-                useAuthStore.getState().setAuth(accessToken);
-                this.notifySubscribers(accessToken);
-                return this.request<T>(endpoint, options, retryCount + 1);
-              } catch (error) {
-                console.error(error);
-                this.refreshSubscribers = [];
-                AuthUtil.clearAll();
-                return new Promise(() => {});
-              } finally {
-                this.isRefreshing = false;
-              }
-            } else {
-              // 이미 갱신 중이라면 새 토큰 발급 완료까지 대기 후 재시도
-              return new Promise<T>((resolve) => {
-                this.subscribeTokenRefresh(() => {
-                  resolve(this.request<T>(endpoint, options, retryCount + 1));
-                });
-              });
-            }
+            return this.handleTokenExpired<T>(endpoint, options, retryCount);
           } else if (isSessionInvalidCode(errorResponse.code)) {
             if (endpoint.includes(API_ENDPOINTS.auth.refresh)) {
               // 앱 초기화 시 자동 호출되는 refresh는 조용히 실패 (toast/navigate 불필요)
