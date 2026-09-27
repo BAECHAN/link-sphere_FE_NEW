@@ -1,4 +1,7 @@
 ### 2026-09-27 (FE)
+- 폼 UI 개선: 필수 입력 항목에 * 표시 추가 및 선택 항목 라벨 명칭 통일 ([#212](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/212))
+
+### 2026-09-27 (FE)
 - 글 등록 화면 내 URL 입력 시 불필요한 키보드 '전송' 힌트 제거 ([#210](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/210))
 
 ### 2026-09-27 (FE)
