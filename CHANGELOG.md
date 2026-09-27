@@ -71,6 +71,14 @@
 
 ### Fixed
 
+- `post` 정보 못 가져옴 안내 문구에서 이탤릭체 제거
+  <details><summary>배경·구현</summary>
+
+  `#216`에서 추가한 "이 링크의 정보를 가져오지 못했어요." 문구가 이탤릭체였는데, `#217`에서 바로 위에 추가된 검색 매칭 배지(`isSemanticMatch`, 이탤릭 아님)와 나란히 놓고 보니 톤이 안 맞았다. 크기(`text-sm`)는 description 자리를 대체하는 역할이라 그대로 두고 이탤릭만 뺐다 - 완전히 같은 스타일(배지와 동일한 `text-micro` + 아이콘)로 통일하는 것도 검토했으나, 두 안내가 동시에 뜨는 글(실제로 있음)에서 서로 다른 이유의 안내를 같은 배지처럼 보이게 하는 게 오히려 혼란을 줄 수 있어 채택하지 않았다. Artifact 3안 비교로 확정(https://claude.ai/artifact/65Pveiiyocavrzu2QFRUAE).
+  (`src/widgets/post/post-card/ui/PostCard.tsx`)
+
+  </details>
+
 - `post` 글 수정 요청이 등록과 달리 탭을 바로 닫으면 유실될 수 있던 문제
   <details><summary>배경·구현</summary>
 
