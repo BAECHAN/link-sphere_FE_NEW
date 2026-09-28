@@ -1642,7 +1642,8 @@ navigate하지 않는 콜백을 그 채널에 태우면 로그인 모달이 안 
 
 적용 완료. `src/shared/store/loginModal.store.ts`(pendingAction 채널),
 `src/entities/auth/hooks/useAuthGuard.ts`(opt-in 옵션),
-`src/features/auth/login/ui/LoginModal.tsx`(닫힘 이후 재개 effect),
+`src/widgets/layout/login-modal/ui/LoginModal.tsx`(닫힘 이후 재개 effect, 2026-09-29
+features/auth/login에서 이동),
 `src/features/bookmark/toggle/ui/BookmarkPostButton.tsx`(opt-in 적용),
 `src/widgets/post/post-card/ui/PostCard.tsx`(공유 아이콘 fill 버그 수정). 상세 설계는
 [`docs/plans/2026-09-11-bookmark-login-resume.md`](plans/2026-09-11-bookmark-login-resume.md) 참고.

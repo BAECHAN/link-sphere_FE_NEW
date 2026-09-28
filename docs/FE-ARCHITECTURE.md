@@ -167,7 +167,10 @@ src/
 │       │   └── ui/               # Navbar, NavbarSearch, MobileNavbarSearch, RecentSearchPanel
 │       ├── bottom-tab-bar/ui/
 │       ├── sidebar/ui/
-│       └── mypage/ui/            # MyPageModal
+│       ├── mypage/ui/            # MyPageModal
+│       └── login-modal/ui/       # LoginModal(2026-09-29 features/auth/login에서 이동 —
+│                                 # RootLayout이 마운트하는 전역 모달, Navbar·Sidebar·
+│                                 # BottomTabBar·MyPageModal과 같은 자리)
 │
 ├── features/                     # 사용자 상호작용 — 도메인 그룹 → 액션 슬라이스
 │   ├── post/
@@ -181,7 +184,7 @@ src/
 │   │   ├── delete/hooks          # useDeleteComment
 │   │   └── like/{hooks,ui}       # useLikeComment, LikeCommentButton
 │   ├── auth/
-│   │   ├── login/{hooks,ui}      # useLogin, LoginForm, LoginModal
+│   │   ├── login/{hooks,ui}      # useLogin, LoginForm
 │   │   └── signup/{hooks,ui}     # useSignUp, useAvailabilityCheck, SignUpForm
 │   ├── account/
 │   │   └── update/{hooks,ui}     # useUpdateAccount, UpdateAccountForm
