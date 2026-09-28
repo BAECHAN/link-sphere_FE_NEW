@@ -7,7 +7,8 @@ import {
 import { useWindowGridVirtualizer } from '@/shared/hooks/useWindowGridVirtualizer';
 import { Post } from '@/entities/post/model/post.schema';
 import {
-  BOOKMARK_GRID_COLUMNS,
+  BOOKMARK_GRID_MAX_COLUMNS,
+  BOOKMARK_GRID_MIN_COLUMN_WIDTH,
   BOOKMARK_GRID_ROW_GAP,
   BOOKMARK_GRID_ROW_HEIGHT_ESTIMATE,
 } from '@/widgets/bookmark/bookmark-post-list/config/bookmark-grid.const';
@@ -39,7 +40,8 @@ export const useBookmarkPostList = (
       listId: `bookmark-${folderKey}`,
       items: posts,
       getItemId: getPostId,
-      columnBreakpoints: BOOKMARK_GRID_COLUMNS,
+      minColumnWidth: BOOKMARK_GRID_MIN_COLUMN_WIDTH,
+      maxColumns: BOOKMARK_GRID_MAX_COLUMNS,
       gapBreakpoints: BOOKMARK_GRID_ROW_GAP,
       estimateRowHeight: (count) => BOOKMARK_GRID_ROW_HEIGHT_ESTIMATE[count] ?? DEFAULT_ROW_HEIGHT,
     });

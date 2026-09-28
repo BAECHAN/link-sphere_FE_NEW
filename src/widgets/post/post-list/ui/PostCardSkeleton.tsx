@@ -1,5 +1,9 @@
 import { Card, CardContent, CardFooter, CardHeader } from '@/shared/ui/atoms/card';
 import { Skeleton } from '@/shared/ui/atoms/skeleton';
+import {
+  POST_GRID_CLASS,
+  POST_GRID_MIN_COLUMN_WIDTH,
+} from '@/widgets/post/post-list/config/post-grid.const';
 
 /**
  * PostCard의 실제 레이아웃(작성자 줄 → 제목 → 설명 → 링크 프리뷰 → 액션 바)에 맞춘 골격.
@@ -52,10 +56,21 @@ interface PostListSkeletonProps {
   count?: number;
 }
 
-/** PostList의 그리드 클래스와 동일하게 맞춰야 로딩 → 렌더 전환에서 시프트가 없다 */
+/**
+ * PostList의 그리드 클래스와 동일하게 맞춰야 로딩 → 렌더 전환에서 시프트가 없다. 다만
+ * PostList는 가상 스크롤이 JS에서 열 수를 계산해 인라인 style로 넣지만, 이 스켈레톤은
+ * 가상화가 없어 같은 최소 폭 상수를 CSS auto-fill로 그대로 계산시킨다 - JS 폭 측정 훅
+ * 없이도 같은 공식(floor((폭+gap)/(최소폭+gap)))이 나온다. 3열 상한은 AppLayout의
+ * max-w-6xl이 이미 보장해 auto-fill에 별도 cap을 두지 않는다.
+ */
 export function PostListSkeleton({ count = 6 }: PostListSkeletonProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+    <div
+      className={POST_GRID_CLASS}
+      style={{
+        gridTemplateColumns: `repeat(auto-fill, minmax(min(${POST_GRID_MIN_COLUMN_WIDTH}px, 100%), 1fr))`,
+      }}
+    >
       {Array.from({ length: count }, (_, index) => (
         <PostCardSkeleton key={index} />
       ))}

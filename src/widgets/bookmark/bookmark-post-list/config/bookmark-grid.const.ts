@@ -1,18 +1,22 @@
-import type { ColumnBreakpoint, GapBreakpoint } from '@/shared/hooks/useWindowGridVirtualizer';
+import type { GapBreakpoint } from '@/shared/hooks/useWindowGridVirtualizer';
+import {
+  POST_GRID_MAX_COLUMNS,
+  POST_GRID_MIN_COLUMN_WIDTH,
+} from '@/widgets/post/post-list/config/post-grid.const';
 
 /**
- * BookmarkPostList 카드 그리드의 클래스 문자열. 이 문자열이 단일 출처이고, 아래 열 수·
- * 행 간격 상수는 여기 맞춰 손으로 유지한다 - 어긋나면 bookmark-grid.const.test.ts가 잡는다.
- * PostList와 달리 3열 전환이 lg(1024)가 아니라 xl(1280)이다(사이드바가 있는 화면이라).
+ * BookmarkPostList 카드 그리드의 클래스 문자열 - 간격만 담당한다. PostList와 같은
+ * PostCard를 쓰므로 최소 카드 폭도 POST_GRID_MIN_COLUMN_WIDTH를 그대로 재사용한다
+ * (post-grid.const.ts 주석 참고). 열 수는 useWindowGridVirtualizer가 목록 컨테이너의
+ * 실측 폭으로 정한다 - 이 페이지는 폴더트리(w-60 + gap-6)까지 폭을 가져가므로 이전에는
+ * 3열 전환 브레이크포인트를 xl(1280px)로 따로 늦췄었지만, 실측 폭 기준으로 바뀌며 그
+ * 조정이 더 이상 필요 없다.
  */
-export const BOOKMARK_GRID_CLASS = 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4';
+export const BOOKMARK_GRID_CLASS = 'grid gap-3 md:gap-4';
 
-/** 위 클래스의 grid-cols-*와 정확히 일치해야 한다 (Tailwind 기본 브레이크포인트: md=768, xl=1280) */
-export const BOOKMARK_GRID_COLUMNS: readonly ColumnBreakpoint[] = [
-  { minWidth: 1280, count: 3 },
-  { minWidth: 768, count: 2 },
-  { minWidth: 0, count: 1 },
-];
+export const BOOKMARK_GRID_MIN_COLUMN_WIDTH = POST_GRID_MIN_COLUMN_WIDTH;
+
+export const BOOKMARK_GRID_MAX_COLUMNS = POST_GRID_MAX_COLUMNS;
 
 /** 위 클래스의 gap-*와 정확히 일치해야 한다 (Tailwind v4 기본 --spacing: 0.25rem = 4px) */
 export const BOOKMARK_GRID_ROW_GAP: readonly GapBreakpoint[] = [

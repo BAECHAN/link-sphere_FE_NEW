@@ -40,6 +40,7 @@ function PostListContent() {
     containerRef,
     virtualizer,
     rows,
+    columnCount,
   } = usePostList();
   const { pullDistance, isPulling, isReady } = usePullToRefresh({ onRefresh: refetch });
 
@@ -106,7 +107,10 @@ function PostListContent() {
                 transform: `translateY(${virtualRow.start - scrollMargin}px)`,
               }}
             >
-              <div className={POST_GRID_CLASS}>
+              <div
+                className={POST_GRID_CLASS}
+                style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
+              >
                 {rowPosts.map((post) => (
                   <PostCard
                     key={post.id}

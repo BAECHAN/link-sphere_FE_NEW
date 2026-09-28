@@ -6,7 +6,8 @@ import { useWindowGridVirtualizer } from '@/shared/hooks/useWindowGridVirtualize
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
 import { Post } from '@/entities/post/model/post.schema';
 import {
-  POST_GRID_COLUMNS,
+  POST_GRID_MAX_COLUMNS,
+  POST_GRID_MIN_COLUMN_WIDTH,
   POST_GRID_ROW_GAP,
   POST_GRID_ROW_HEIGHT_ESTIMATE,
 } from '@/widgets/post/post-list/config/post-grid.const';
@@ -123,7 +124,8 @@ export const usePostList = () => {
       listId: 'post-feed',
       items: posts,
       getItemId: getPostId,
-      columnBreakpoints: POST_GRID_COLUMNS,
+      minColumnWidth: POST_GRID_MIN_COLUMN_WIDTH,
+      maxColumns: POST_GRID_MAX_COLUMNS,
       gapBreakpoints: POST_GRID_ROW_GAP,
       estimateRowHeight: (count) => POST_GRID_ROW_HEIGHT_ESTIMATE[count] ?? DEFAULT_ROW_HEIGHT,
     });

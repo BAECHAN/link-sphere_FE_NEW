@@ -19,8 +19,16 @@ interface BookmarkPostListProps {
 }
 
 export function BookmarkPostList({ folderKey, sort, search, className }: BookmarkPostListProps) {
-  const { posts, correctedSearch, isLoading, isFetchingNextPage, containerRef, virtualizer, rows } =
-    useBookmarkPostList(folderKey, sort, search);
+  const {
+    posts,
+    correctedSearch,
+    isLoading,
+    isFetchingNextPage,
+    containerRef,
+    virtualizer,
+    rows,
+    columnCount,
+  } = useBookmarkPostList(folderKey, sort, search);
 
   if (isLoading) {
     return (
@@ -74,7 +82,10 @@ export function BookmarkPostList({ folderKey, sort, search, className }: Bookmar
                 transform: `translateY(${virtualRow.start - scrollMargin}px)`,
               }}
             >
-              <div className={BOOKMARK_GRID_CLASS}>
+              <div
+                className={BOOKMARK_GRID_CLASS}
+                style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
+              >
                 {rowPosts.map((post) => (
                   <PostCard key={post.id} post={post} backSource="bookmark" />
                 ))}
