@@ -93,4 +93,20 @@ export const authHandlers = [
       { status: 200 }
     );
   }),
+
+  // POST /auth/email-verification/request - 계정 존재·인증 여부와 무관하게 항상 200
+  http.post(url(API_ENDPOINTS.auth.emailVerificationRequest), () => {
+    return HttpResponse.json(
+      { status: 200, message: 'ok', data: null, timestamp: new Date().toISOString() },
+      { status: 200 }
+    );
+  }),
+
+  // POST /auth/email-verification/confirm
+  http.post(url(API_ENDPOINTS.auth.emailVerificationConfirm), () => {
+    return HttpResponse.json(
+      { status: 200, message: 'ok', data: null, timestamp: new Date().toISOString() },
+      { status: 200 }
+    );
+  }),
 ];

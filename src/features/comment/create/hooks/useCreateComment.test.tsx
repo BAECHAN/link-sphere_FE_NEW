@@ -178,4 +178,50 @@ describe('useCreateComment', () => {
     // 불안정하다.
     expect(errorSpy).toHaveBeenCalledWith(TEXTS.validation.commentPayloadTooLarge);
   });
+
+  it('이메일 미인증 계정이면 요청을 보내지 않고 인증 필요 안내 토스트를 띄운다', async () => {
+    server.use(
+      http.get(url(API_ENDPOINTS.auth.account), () =>
+        HttpResponse.json(
+          {
+            status: 200,
+            message: 'ok',
+            data: { ...mockAccount, emailVerified: false },
+            timestamp: new Date().toISOString(),
+          },
+          { status: 200 }
+        )
+      )
+    );
+    let requested = false;
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), () => {
+        requested = true;
+        return HttpResponse.json({}, { status: 201 });
+      })
+    );
+    const errorSpy = vi.spyOn(toast, 'error');
+
+    useAuthStore.getState().setAuth('test-access-token');
+    const { result } = renderHook(() => useCreateComment({ postId: POST_ID }), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() =>
+      expect(queryClient.getQueryData(accountKeys.root)).toEqual({
+        ...mockAccount,
+        emailVerified: false,
+      })
+    );
+
+    act(() => {
+      result.current.form.setValue('content', '인증 안 된 계정의 댓글', { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(requested).toBe(false);
+    expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.emailVerificationRequired);
+  });
 });

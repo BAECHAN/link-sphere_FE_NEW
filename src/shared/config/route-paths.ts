@@ -15,6 +15,7 @@ const ROUTES_PATHS = {
     SIGNUP: `${ROUTES_BASE.AUTH}/sign-up`,
     FORGOT_PASSWORD: `${ROUTES_BASE.AUTH}/forgot-password`,
     RESET_PASSWORD: `${ROUTES_BASE.AUTH}/reset-password`,
+    VERIFY_EMAIL: `${ROUTES_BASE.AUTH}/verify-email`,
   },
   BOOKMARK: '/bookmark',
   MY_COMMENTS: '/my/comments',

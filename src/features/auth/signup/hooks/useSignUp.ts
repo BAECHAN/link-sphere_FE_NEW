@@ -1,4 +1,4 @@
-import { useEffect, type MouseEvent } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createAccountSchema, CreateAccount } from '@/entities/auth/model/auth.schema';
@@ -21,6 +21,10 @@ const DEFAULT_VALUES = {
 };
 
 export function useSignUp() {
+  // 가입 성공 후 "메일함을 확인해주세요" 화면으로 전환한다(navigate 아님 -
+  // useRequestPasswordReset.ts의 isSubmitted와 같은 패턴).
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
   const form = useForm<CreateAccount>({
     resolver: zodResolver(createAccountSchema),
     defaultValues: DEFAULT_VALUES,
@@ -30,9 +34,15 @@ export function useSignUp() {
   const { mutateAsync: createMember, isPending } = useCreateAccountMutation();
 
   // 제출 요청 중(isPending)엔 dirty로 안 잡는다 - 실패하면 isPending이 false로 돌아오면서
-  // 이 조건이 다시 true가 돼 자동으로 재등록된다(성공하면 onSubmit이 요청 직전에 이미
-  // clearNow로 지워둔 상태라 재등록 시점 전에 페이지를 벗어난다).
-  const { clearNow } = useUnsavedChanges('auth-signup', form.formState.isDirty && !isPending);
+  // 이 조건이 다시 true가 돼 자동으로 재등록된다. isSubmitted도 함께 봐야 한다 - 이 훅은
+  // 렌더마다 반응형으로 다시 평가되므로, isSubmitted 없이 isDirty만 보면 제출 성공 뒤
+  // onSubmit의 clearNow()가 지운 걸 바로 다음 렌더의 이 effect가 form.formState.isDirty가
+  // 여전히 true라는 이유로 재등록해버린다(브라우저 beforeunload 경고가 살아있는 채로
+  // "메일함을 확인해주세요" 화면에 남는 버그로 실제 재현됨).
+  const { clearNow } = useUnsavedChanges(
+    'auth-signup',
+    form.formState.isDirty && !isPending && !isSubmitted
+  );
 
   const watchedEmail = form.watch('email');
   const watchedNickname = form.watch('nickname');
@@ -70,19 +80,25 @@ export function useSignUp() {
   }, [nicknameCheck.status, form]);
 
   const onSubmit = async (data: CreateAccount) => {
-    // 성공 시 useCreateAccountMutation의 onSuccess가 곧장 로그인 페이지로 이동시킨다 -
-    // 요청 직전에 동기로 지워둬야 그 이동이 가드에 막히지 않는다(useCreatePost.ts와 동일 패턴).
-    clearNow();
     await createMember(data);
+    // 폼이 여전히 dirty해도("로그인하러 가기" 클릭 시) 이탈 가드가 뜨지 않도록 성공한
+    // 뒤에만 지운다 - 실패하면 이 줄에 도달하지 않아 폼에 그대로 남는다.
+    clearNow();
+    setIsSubmitted(true);
   };
 
   const onFormReset = () => {
     form.reset(DEFAULT_VALUES);
   };
 
-  // 로그인 링크로 바로 이동 - 로그인하려는 의도가 명확해 확인창을 띄우지 않는다. 단
-  // 새 탭/창으로 여는 수정키 클릭은 이 페이지에 그대로 남으므로 지우지 않는다.
+  // 이메일이 이미 가입된 것으로 확인됐을 때만 로그인 링크가 확인창 없이 바로 이동한다 -
+  // 그 외(단순히 입력 중인 상태)엔 일반 네비게이션으로 흘려보내 전역 가드가 그대로
+  // 처리하게 둔다(뒤로가기와 동일하게 "회원가입을 그만둘까요?" 확인창). 새 탭/창으로
+  // 여는 수정키 클릭은 이 페이지에 그대로 남으므로 지우지 않는다.
   const onLoginLinkClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!emailCheck.isDuplicate) {
+      return;
+    }
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
       return;
     }
@@ -102,6 +118,7 @@ export function useSignUp() {
     form,
     onSubmit,
     isPending,
+    isSubmitted,
     onFormReset,
     emailCheck,
     nicknameCheck,

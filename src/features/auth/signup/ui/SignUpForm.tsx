@@ -7,6 +7,8 @@ import {
   CardTitle,
 } from '@/shared/ui/atoms/card';
 import { Button } from '@/shared/ui/atoms/button';
+import { IconBadge } from '@/shared/ui/atoms/icon-badge';
+import { CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { FormProvider } from 'react-hook-form';
@@ -21,6 +23,7 @@ export const SignUpForm = () => {
     form,
     onSubmit,
     isPending,
+    isSubmitted,
     emailCheck,
     nicknameCheck,
     isSubmitDisabled,
@@ -47,73 +50,91 @@ export const SignUpForm = () => {
 
   return (
     <div className="flex h-[calc(100vh-var(--navbar-height))] items-center justify-center px-4">
-      <Card className="w-full max-w-md shadow-lg border-muted-foreground/10">
-        <CardHeader className="text-center space-y-1">
-          <Link
-            to={ROUTES_PATHS.POST.ROOT}
-            // eslint-disable-next-line custom-tailwind/no-raw-title -- 브랜드 워드마크, 제목 역할 토큰 대상 아님
-            className="font-bold text-3xl tracking-tight hover:opacity-80 transition-opacity"
-          >
-            {TEXTS.nav.brand}
-          </Link>
-          <CardTitle>{TEXTS.auth.signup.title}</CardTitle>
-          <CardDescription>{TEXTS.auth.signup.subtitle}</CardDescription>
+      <Card className="w-full max-w-md shadow-lg border-muted-foreground/10 gap-4">
+        <CardHeader className="text-center space-y-3">
+          {isSubmitted ? (
+            <>
+              <IconBadge icon={CheckCircle2} tone="success" className="mx-auto mb-1" />
+              <CardTitle>{TEXTS.auth.signup.checkEmailTitle}</CardTitle>
+              <CardDescription>{TEXTS.auth.signup.checkEmailDescription}</CardDescription>
+            </>
+          ) : (
+            <>
+              <Link
+                to={ROUTES_PATHS.POST.ROOT}
+                // eslint-disable-next-line custom-tailwind/no-raw-title -- 브랜드 워드마크, 제목 역할 토큰 대상 아님
+                className="font-bold text-3xl tracking-tight hover:opacity-80 transition-opacity"
+              >
+                {TEXTS.nav.brand}
+              </Link>
+              <CardTitle>{TEXTS.auth.signup.title}</CardTitle>
+              <CardDescription>{TEXTS.auth.signup.subtitle}</CardDescription>
+            </>
+          )}
         </CardHeader>
-        <CardContent>
-          <FormProvider {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
-              <FormInput
-                name="nickname"
-                label={TEXTS.labels.nickname}
-                type="text"
-                placeholder={TEXTS.placeholders.nickname}
-                required
-                disabled={isPending}
-                description={nicknameDescription}
-                descriptionVariant={nicknameCheck.isAvailable ? 'success' : 'default'}
-              />
-              <FormInput
-                name="email"
-                label={TEXTS.labels.email}
-                type="email"
-                placeholder={TEXTS.placeholders.email}
-                required
-                disabled={isPending}
-                description={emailDescription}
-                descriptionVariant={emailCheck.isAvailable ? 'success' : 'default'}
-              />
-              <FormInputPassword
-                name="password"
-                label={TEXTS.labels.password}
-                required
-                disabled={isPending}
-                placeholder={TEXTS.placeholders.password}
-                description={TEXTS.descriptions.passwordGuide}
-              />
-              <FormInputPassword
-                name="confirmPassword"
-                label={TEXTS.labels.confirmPassword}
-                required
-                disabled={isPending}
-                placeholder={TEXTS.placeholders.confirmPassword}
-              />
-              <Button className="w-full h-11" disabled={isSubmitDisabled}>
-                {isPending ? TEXTS.auth.signup.signingUp : TEXTS.auth.signup.signUp}
-              </Button>
-            </form>
-          </FormProvider>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          <div className="text-sm text-center text-muted-foreground">
-            {TEXTS.auth.signup.alreadyAccount}{' '}
-            <Link
-              to={ROUTES_PATHS.AUTH.LOGIN}
-              onClick={onLoginLinkClick}
-              className="text-primary hover:underline font-medium"
-            >
-              {TEXTS.auth.signup.signIn}
-            </Link>
-          </div>
+        {!isSubmitted && (
+          <CardContent>
+            <FormProvider {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+                <FormInput
+                  name="nickname"
+                  label={TEXTS.labels.nickname}
+                  type="text"
+                  placeholder={TEXTS.placeholders.nickname}
+                  required
+                  disabled={isPending}
+                  description={nicknameDescription}
+                  descriptionVariant={nicknameCheck.isAvailable ? 'success' : 'default'}
+                />
+                <FormInput
+                  name="email"
+                  label={TEXTS.labels.email}
+                  type="email"
+                  placeholder={TEXTS.placeholders.email}
+                  required
+                  disabled={isPending}
+                  description={emailDescription}
+                  descriptionVariant={emailCheck.isAvailable ? 'success' : 'default'}
+                />
+                <FormInputPassword
+                  name="password"
+                  label={TEXTS.labels.password}
+                  required
+                  disabled={isPending}
+                  placeholder={TEXTS.placeholders.password}
+                  description={TEXTS.descriptions.passwordGuide}
+                />
+                <FormInputPassword
+                  name="confirmPassword"
+                  label={TEXTS.labels.confirmPassword}
+                  required
+                  disabled={isPending}
+                  placeholder={TEXTS.placeholders.confirmPassword}
+                />
+                <Button className="w-full h-11" disabled={isSubmitDisabled}>
+                  {isPending ? TEXTS.auth.signup.signingUp : TEXTS.auth.signup.signUp}
+                </Button>
+              </form>
+            </FormProvider>
+          </CardContent>
+        )}
+        <CardFooter className="flex flex-col items-stretch space-y-4">
+          {isSubmitted ? (
+            <Button asChild className="w-full h-11">
+              <Link to={ROUTES_PATHS.AUTH.LOGIN}>{TEXTS.auth.signup.goToLogin}</Link>
+            </Button>
+          ) : (
+            <div className="text-sm text-center text-muted-foreground">
+              {TEXTS.auth.signup.alreadyAccount}{' '}
+              <Link
+                to={ROUTES_PATHS.AUTH.LOGIN}
+                onClick={onLoginLinkClick}
+                className="text-primary hover:underline font-medium"
+              >
+                {TEXTS.auth.signup.signIn}
+              </Link>
+            </div>
+          )}
         </CardFooter>
       </Card>
     </div>

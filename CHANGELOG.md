@@ -11,6 +11,17 @@
 
 ### Added
 
+- `auth` 이메일 인증 전에는 글쓰기·댓글쓰기를 막고, 인증 상태를 화면 곳곳에서 안내
+  <details><summary>배경·구현</summary>
+
+  이미 배포된 백엔드 Phase 6(이메일 인증 API)에 맞춰 프런트를 연결했다 — 로그인·읽기·좋아요·북마크는 막지 않고 글쓰기·댓글쓰기만 막는다([GitHub 조사 사례](https://github.com/kamp-us/phoenix/issues/7485) 기반으로 이미 확정된 방향, `docs/plans/2026-09-28-auth-hardening.md` "확정된 결정들" 참고). 가입 성공 시 기존처럼 로그인 화면으로 바로 이동하지 않고 "가입을 완료했어요" 안내 화면으로 먼저 전환한다(BE가 가입 시 인증메일을 자동 발송). 이메일의 인증 링크를 누르면 `/auth/verify-email`(신규)이 토큰을 확인해 성공·실패·확인 중 상태를 보여준다 — 로그인 상태면 인증 완료만 안내하고, 비로그인이면 로그인 유도 버튼을 보여준다. 미인증 계정은 Navbar 아바타에 빨간 점 배지가 붙고(스크린리더에는 aria-label로 "이메일 인증 필요"를 전달, 점 자체는 장식용), `/my/account`에 재발송 버튼이 있는 안내 배너가 뜬다. 글쓰기·댓글쓰기 폼은 제출 시 서버로 보내기 전에 먼저 막고 안내 토스트를 띄운다(disabled 버튼이 아니라 클릭 가능 + 안내 문구 — 이 레포의 기존 "disabled만으로 이유를 안 알려주지 않는다" 규칙과 동일 패턴). 서버도 같은 경우를 403 `EMAIL_NOT_VERIFIED`로 거절한다(방어 계층 중복).
+
+  구현 중 발견한 BE 계약 공백도 같이 메웠다 — 재발송 API가 로그인 여부와 무관하게 이메일을 직접 받는데, `GET /auth/account`가 이메일을 내려주지 않아 로그인된 사용자의 재발송 버튼을 만들 방법이 없었다. `AccountResponse.email` 필드를 추가하는 작은 BE PR([link-sphere_BE_NEW#46](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/46))을 먼저 배포한 뒤 이 기능을 마저 구현했다.
+
+  (`src/entities/auth/api/auth.api.ts`·`auth.queries.ts`·`auth.keys.ts`·`src/entities/auth/model/auth.schema.ts`, `src/entities/account/api/account.keys.ts`·`src/entities/account/@x/auth.ts`, `src/features/auth/email-verification/`(신규), `src/features/auth/signup/`, `src/features/post/create/hooks/useCreatePost.ts`, `src/features/comment/create/hooks/useCreateComment.ts`, `src/pages/auth/VerifyEmailPage.tsx`(신규), `src/pages/myaccount/MyAccountPage.tsx`, `src/widgets/layout/navbar/ui/Navbar.tsx`, `src/app/routes/index.tsx`, [계획](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/plans/2026-09-28-auth-hardening.md) §2-2 Phase 5, [PR #237](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/237))
+
+  </details>
+
 - `auth` 계정 설정 화면에서 비밀번호 변경과 회원 탈퇴 가능
   <details><summary>배경·구현</summary>
 
@@ -73,6 +84,14 @@
 
   이메일 중복 안내 옆에만 이탈 확인창을 생략하는 전용 링크를 두고, 하단 "이미 계정이 있으신가요? Sign In" 링크는 계속 확인창이 뜨도록 남겨뒀었다. 두 링크 모두 "Sign In"이라는 같은 글자라 사용자가 어느 쪽을 눌렀는지 구분하지 못했고, 실사용 확인 결과 하단 링크를 누르고 확인창을 보고서야 "이메일 중복이면 확인창 안 뜨기로 하지 않았냐"고 되묻는 혼란이 있었다 — 실제로는 설계대로였지만, 똑같이 생긴 두 링크의 동작이 다른 것 자체가 문제였다. 이메일 중복 전용 링크를 없애고 하단 링크 하나만 남긴 뒤, 그 하나가 항상 확인창을 생략하도록 통합했다.
   (`src/features/auth/signup/hooks/useSignUp.ts`, `src/features/auth/signup/ui/SignUpForm.tsx`, `e2e/signup-unsaved-changes.spec.ts`, `docs/UNSAVED-CHANGES-GUARD.md`, [PR #230](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/230))
+
+  </details>
+
+- `auth` 회원가입 "Sign In" 링크의 확인창 생략 조건을 이메일 중복 시로 좁힘
+  <details><summary>배경·구현</summary>
+
+  바로 위 항목에서 "Sign In" 링크가 항상 확인창을 생략하도록 바꿨는데, 실사용 확인 결과 이메일 중복이 아닌 일반적인 입력 중 상태에서도 조용히 입력이 사라지는 게 오히려 문제였다 — 로그인하려는 의도가 명확한 건 이메일이 이미 가입돼 있다고 확인된 경우뿐이다. 링크는 하나로 유지하되, `emailCheck.isDuplicate`일 때만 확인창을 생략하고 그 외엔 뒤로가기와 동일하게 확인창이 뜨도록 되돌렸다.
+  (`src/features/auth/signup/hooks/useSignUp.ts`, `e2e/signup-unsaved-changes.spec.ts`, `docs/UNSAVED-CHANGES-GUARD.md`, [PR #238](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/238))
 
   </details>
 
