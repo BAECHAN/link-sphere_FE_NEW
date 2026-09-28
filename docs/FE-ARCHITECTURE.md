@@ -651,9 +651,26 @@ const onDelete = (id: string) => {
 };
 ```
 
-**버튼 강조는 호출부가 정하지 않는다.** `Alert.tsx`가 모든 confirm에 취소=채움(primary)·
-확인=outline을 일괄 적용한다 — 되돌리기 쉬운 선택지를 반사적으로도 누르기 쉽게 두기 위해서다.
-근거는 `docs/DECISIONS.md` 2026-09-29 항목 참고.
+**버튼 강조는 기본적으로 호출부가 정하지 않는다.** `Alert.tsx`가 모든 confirm에 취소=채움
+(primary)·오른쪽·초기 포커스, 확인=outline·왼쪽을 기본으로 적용한다 — 되돌리기 어려운
+선택지(삭제·이탈 등)에서 안전한 쪽을 반사적으로도 누르기 쉽게 두기 위해서다. 삭제 같은
+호출부는 이 기본값을 그대로 두면 된다.
+
+양쪽 다 위험하지 않고 언제든 되돌릴 수 있는 토글(공개 설정 등)처럼 "안전한 쪽 강조"가
+안 맞는 경우만 `emphasis: 'confirm'`으로 반대로 켠다 — 확인이 채움·오른쪽·초기 포커스로
+옮겨간다:
+
+```typescript
+openConfirm({
+  title: TEXTS.post.card.visibilityConfirmTitle,
+  confirmText: TEXTS.buttons.confirm,
+  cancelText: TEXTS.buttons.cancel,
+  emphasis: 'confirm', // 어느 방향으로 토글해도 위험하지 않다 — "원하는 쪽" 강조
+  onConfirm: () => updateVisibility(...),
+});
+```
+
+근거는 `docs/DECISIONS.md` 2026-09-29 항목(팔로업 포함) 참고.
 
 ---
 

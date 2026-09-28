@@ -77,6 +77,14 @@
 
   </details>
 
+- `post` 공개 설정("나만 보기") 확인창의 강조를 확인 쪽으로 뒤집음
+  <details><summary>배경·구현</summary>
+
+  바로 위 항목("취소=채움·오른쪽" 규칙)이 이 확인창에도 코드 변경 없이 자동 적용됐는데, 이 토글은 삭제·이탈과 달리 어느 방향으로 진행해도 데이터가 사라지지 않고 같은 확인창으로 언제든 되돌릴 수 있다 — "안전한 쪽 강조"의 전제가 성립하지 않는다. 앞으로도 이런 사례가 더 생길 걸 대비해 하드코딩 예외 대신 `Alert.tsx`에 `emphasis?: 'cancel' | 'confirm'`(기본값 `'cancel'`) 옵션을 추가했다 — 지정하면 그쪽이 채움·오른쪽·초기 포커스를 받는다. 공개 설정 확인창에만 `emphasis: 'confirm'`을 넘겼고, 다른 5개 호출부는 옵션을 안 넘겨 기존 동작 그대로다.
+  (`src/shared/ui/elements/modal/alert/alert.store.ts`, `src/shared/ui/elements/modal/alert/Alert.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`, `e2e/post-visibility.spec.ts`, `docs/DECISIONS.md`, `docs/FE-ARCHITECTURE.md`)
+
+  </details>
+
 ### Fixed
 
 - `auth` 회원가입 "Sign In" 링크 두 개가 서로 다르게 동작하던 걸 하나로 통합

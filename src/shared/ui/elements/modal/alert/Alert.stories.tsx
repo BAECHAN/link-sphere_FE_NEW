@@ -83,6 +83,35 @@ export const Confirm: Story = {
   render: () => <ConfirmDemo />,
 };
 
+// emphasis: 'confirm' 데모 — 어느 방향도 위험하지 않은 토글(공개 설정 등)에서만 쓴다.
+// 기본값('cancel')과 반대로 확인이 채움·오른쪽·초기 포커스를 받는다(usePostCard.ts 실사용례).
+function ConfirmEmphasizeConfirmDemo() {
+  const { openConfirm } = useAlert();
+  return (
+    <div className="flex flex-col gap-3">
+      <GlobalAlerts />
+      <Button
+        variant="outline"
+        onClick={() =>
+          openConfirm({
+            title: '공개 설정 변경',
+            message: '이 게시물을 나만 보기(비공개)로 전환할까요?',
+            confirmText: '확인',
+            cancelText: '취소',
+            emphasis: 'confirm',
+          })
+        }
+      >
+        Confirm(emphasis: confirm) 열기
+      </Button>
+    </div>
+  );
+}
+
+export const ConfirmEmphasizeConfirm: Story = {
+  render: () => <ConfirmEmphasizeConfirmDemo />,
+};
+
 function MultipleAlertsDemo() {
   const { openAlert, openConfirm } = useAlert();
   return (

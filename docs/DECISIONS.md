@@ -6,6 +6,53 @@
 
 ---
 
+## 2026-09-29 — (팔로업 2) Confirm 다이얼로그 강조를 호출부가 뒤집을 수 있는 `emphasis` 옵션 도입
+
+**배경**
+
+바로 아래 두 항목("Confirm 다이얼로그 버튼 강조", "(팔로업) 버튼 위치 교체")에서 확정한
+"취소=채움·오른쪽·초기 포커스, 확인=outline·왼쪽" 규칙은 게시글 공개 설정("나만 보기")
+토글 확인창(`usePostCard.ts`의 `handleToggleVisibility`)에도 코드 변경 없이 자동 적용됐다.
+그런데 이 토글은 삭제·이탈과 성격이 다르다 — **어느 방향(전체공개→비공개, 비공개→전체공개)
+으로 진행해도 데이터가 사라지지 않고, 같은 확인창으로 언제든 되돌릴 수 있다**(`updateVisibility`는
+`isPrivate` 불리언 하나를 토글하는 PATCH 하나뿐, e2e `post-visibility.spec.ts`가 양방향 모두
+검증). "안전한 쪽을 강조해 실수를 막는다"는 원래 규칙의 전제(되돌리기 어려운 위험한 선택지가
+있다)가 이 경우엔 성립하지 않는다.
+
+사용자가 이런 사례가 앞으로도 더 생길 것 같다며, 매번 예외를 하드코딩하지 않고 **호출부가
+선택할 수 있는 옵션**으로 만들어달라고 요청했다(2026-09-29 대화).
+
+**결정**
+
+`AlertData`/`OpenConfirmOptions`에 `emphasis?: 'cancel' | 'confirm'`(기본값 `'cancel'`)을
+추가했다. `Alert.tsx`는 `emphasis`가 가리키는 쪽에 채움·오른쪽·초기 포커스를 주고 반대쪽은
+outline·왼쪽으로 둔다 — 기본값 `'cancel'`이면 지금까지의 동작(삭제·이탈 등)과 완전히
+동일하고, 다른 5개 호출부는 필드를 넘기지 않으므로 아무 변경이 없다. `usePostCard.ts`의
+공개 설정 확인창에만 `emphasis: 'confirm'`을 넘겨 확인이 채움·오른쪽으로 강조되게 했다.
+
+**이유 / 주의점**
+
+- 위치도 강조를 따라간다 — `emphasis: 'confirm'`이면 확인이 왼쪽이 아니라 오른쪽으로
+  옮겨간다. Apple HIG의 "가장 많이 고를 버튼을 trailing에 둔다"는 원칙(위 팔로업 항목
+  참고)을 그대로 유지하기 위해서다. variant만 바꾸고 위치는 고정하는 방식은 채택하지
+  않았다 — 그러면 "채움인데 왼쪽"이라는 이번 두 항목의 결정과 모순되는 배치가 생긴다.
+- 기본값이 `'cancel'`이라 호출부 대부분(삭제·탈퇴·가드 등)은 이 옵션의 존재조차 몰라도
+  된다 — `docs/FE-ARCHITECTURE.md` §10 "버튼 강조는 기본적으로 호출부가 정하지 않는다"가
+  이 원칙을 그대로 유지한다.
+- e2e 포커스 단언을 `post-visibility.spec.ts`에도 추가해 "확인이 초기 포커스를 받는다"를
+  실측 고정했다(기존 가드 모달 e2e와 동일 패턴).
+
+**상태**
+
+적용 완료. 관련 파일: `src/shared/ui/elements/modal/alert/alert.store.ts`,
+`src/shared/ui/elements/modal/alert/Alert.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`,
+`e2e/post-visibility.spec.ts`, `docs/FE-ARCHITECTURE.md` §10. 같은 대화에서 폴더 생성
+인라인 폼(취소=ghost/왼쪽, 생성=채움/오른쪽)도 검토했지만 — 폴더 생성은 애초에 `Alert.tsx`를
+쓰지 않는 별개의 인라인 폼이고, "위험한 선택지가 없다"는 점에서 "원하는 쪽 강조"라는 같은
+원칙을 이미 따르고 있어 변경하지 않기로 했다.
+
+---
+
 ## 2026-09-29 — (팔로업) Confirm 다이얼로그 버튼 위치를 오른쪽=취소로 교체
 
 **배경**

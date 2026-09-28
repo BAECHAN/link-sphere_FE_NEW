@@ -12,12 +12,19 @@ export interface AlertData {
   onCancel?: () => void;
   type: 'alert' | 'confirm';
   isOpen: boolean;
+  /**
+   * 채움(primary)·오른쪽·초기 포커스를 어느 버튼에 줄지. 기본값 'cancel' — 되돌리기 어려운
+   * 동작(삭제·이탈 등)은 안전한 취소 쪽을 강조한다(docs/DECISIONS.md 2026-09-29 항목).
+   * 양쪽 다 위험하지 않고 언제든 되돌릴 수 있는 선택(예: 공개 설정 토글)이면 'confirm'으로
+   * 넘겨 반대로 한다 — Alert.tsx 자체의 기본 방침을 흔들지 않고 호출부에서 예외만 켠다.
+   */
+  emphasis?: 'cancel' | 'confirm';
 }
 
 type OpenAlertOptions = Pick<AlertData, 'title' | 'message' | 'confirmText' | 'onConfirm'>;
 type OpenConfirmOptions = Pick<
   AlertData,
-  'title' | 'message' | 'confirmText' | 'cancelText' | 'onConfirm' | 'onCancel'
+  'title' | 'message' | 'confirmText' | 'cancelText' | 'onConfirm' | 'onCancel' | 'emphasis'
 >;
 
 interface AlertStore {

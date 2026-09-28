@@ -71,6 +71,10 @@ test.describe('공개/비공개 전환', () => {
       name: TEXTS.post.card.visibilityConfirmTitle,
     });
     await expect(confirmDialog).toBeVisible();
+    // 공개 설정 토글은 삭제·이탈과 달리 어느 쪽도 위험하지 않아 emphasis: 'confirm'으로
+    // 켜져 있다 - "확인"이 채움+오른쪽이고 열리자마자 포커스도 거기로 가야 한다
+    // (usePostCard.ts, § 2026-09-29).
+    await expect(confirmDialog.getByRole('button', { name: TEXTS.buttons.confirm })).toBeFocused();
 
     const patched = page.waitForResponse((res) =>
       /^\/api\/post\/[^/]+\/visibility$/.test(new URL(res.url()).pathname)
