@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen, act } from '@testing-library/react';
 import { useLocation } from 'react-router-dom';
 import { renderWithProviders, userEvent } from '@/test/utils';
-import { LoginModal } from '@/features/auth/login/ui/LoginModal';
+import { LoginModal } from '@/widgets/layout/login-modal/ui/LoginModal';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useLoginModalStore } from '@/shared/store/loginModal.store';
 
