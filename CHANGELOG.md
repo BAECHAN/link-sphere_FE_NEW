@@ -131,7 +131,7 @@
   <details><summary>배경·구현</summary>
 
   FCM 토큰이 로그인 세션과 완전히 분리된 수명주기를 가지고 있어, 세션이 자연 만료돼도 로그아웃 전까지 그 기기로 계속 푸시가 갔다 - 오래전 로그인한 계정에서 이 문제를 직접 겪었다. BE가 `fcm_tokens`를 세션 회전 계열(`family_id`)에 묶어 세션이 죽으면 그 기기의 등록을 자동으로 정리하도록 바꿨는데([link-sphere_BE_NEW#50](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/50)), 그러려면 세션이 바뀔 때마다(비밀번호 변경은 다른 기기 세션을 폐기하고 이 기기엔 새 세션을 발급, 앱 부팅 시 세션 복원도 마찬가지) FE가 FCM 토큰을 새 세션으로 재등록해줘야 한다 - 안 하면 방금 비밀번호를 바꾼 정상 사용자의 알림이 다음 발송부터 조용히 끊겨버린다. 로그인 성공 시에만 호출하던 `requestAndRegisterFcmToken()`을 `useChangePasswordMutation.onSuccess`와 `useAuth.restoreAuth()` 성공 분기에도 추가했다. 같은 토큰 문자열이면 서버 재등록을 건너뛰던 `sessionStorage` 캐시도 제거했다 - 세션이 바뀌어도 토큰 문자열 자체는 그대로인 경우가 많아, 이 캐시가 있으면 재등록이 필요한 순간에도 조용히 스킵됐다(사용자가 겪은 문제의 재현 경로 그 자체).
-  (`src/shared/lib/firebase/fcm.ts`, `src/entities/auth/api/auth.queries.ts`, `src/entities/auth/hooks/useAuth.ts`, `docs/FCM-PUSH-NOTIFICATION.md`, [계획](docs/plans/2026-09-29-fcm-session-binding.md))
+  (`src/shared/lib/firebase/fcm.ts`, `src/entities/auth/api/auth.queries.ts`, `src/entities/auth/hooks/useAuth.ts`, `docs/FCM-PUSH-NOTIFICATION.md`, [계획](docs/plans/2026-09-29-fcm-session-binding.md), [PR #246](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/246))
 
   </details>
 
