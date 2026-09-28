@@ -12,7 +12,7 @@ test.describe('회원가입', () => {
     await installCatchAll(page);
   });
 
-  test('중복확인을 통과하고 가입하면 /auth/login으로 이동하고, 비로그인 상태라 로그인 폼이 그대로 뜬다', async ({
+  test('중복확인을 통과하고 가입하면 메일함 확인 화면으로 전환되고, "로그인하러 가기"로 /auth/login에 갈 수 있다', async ({
     page,
   }) => {
     await mockEmailAvailability(page, true);
@@ -38,11 +38,16 @@ test.describe('회원가입', () => {
     await page.getByLabel(TEXTS.labels.confirmPassword).fill(VALID_PASSWORD);
     await page.getByRole('button', { name: TEXTS.auth.signup.signUp }).click();
 
-    // auth.queries.ts의 onSuccess가 라우트 이동에 API 상수가 아니라 ROUTES_PATHS를 쓰는지
-    // 고정하는 회귀 방지 지점 — 이 둘이 우연히 같은 문자열이라 지금은 어느 쪽을 써도
-    // 통과하지만, API_BASES.auth가 바뀌면 API 상수 쪽만 깨진다.
+    // 가입 성공 시 navigate가 아니라 "메일함을 확인해주세요" 상태로 전환된다(BE가 인증메일을
+    // 자동 발송하므로, 이 화면 자체가 성공을 보여준다 - useSignUp.ts 참고). URL은 그대로 유지.
+    await expect(page).toHaveURL(/\/auth\/sign-up$/);
+    await expect(page.getByText(TEXTS.auth.signup.checkEmailTitle)).toBeVisible();
+    await expect(page.getByLabel(`${TEXTS.labels.email}*`, { exact: true })).toHaveCount(0);
+
+    // "로그인하러 가기" 버튼으로 로그인 페이지에 갈 수 있다 - 가입이 로그인 상태를 만들지는
+    // 않으므로 GuestGuard가 튕겨내지 않고 로그인 폼이 그대로 뜬다.
+    await page.getByRole('link', { name: TEXTS.auth.signup.goToLogin }).click();
     await expect(page).toHaveURL(/\/auth\/login$/);
-    // 가입이 로그인 상태를 만들지 않는다 — GuestGuard가 튕겨내지 않고 로그인 폼이 그대로 뜬다.
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.getByLabel(`${TEXTS.labels.email}*`, { exact: true })).toBeVisible();
   });
@@ -64,7 +69,7 @@ test.describe('회원가입', () => {
     await page.getByRole('button', { name: TEXTS.auth.signup.signUp }).click();
 
     await expect(page.getByText(TEXTS.validation.passwordMismatch)).toBeVisible();
-    // 가입 페이지에 그대로 남아있어야 한다(제출 성공 시에만 /auth/login으로 이동한다).
+    // 가입 페이지에 그대로 남아있어야 한다(제출 성공 시에만 메일함 확인 화면으로 전환된다).
     await expect(page).toHaveURL(/\/auth\/sign-up$/);
   });
 
