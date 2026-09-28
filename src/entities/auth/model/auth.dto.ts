@@ -6,11 +6,4 @@ import type { components } from '@/shared/api/generated/openapi.gen';
 //
 // POST /auth/login, POST /auth/refresh 둘 다 이 스키마를 그대로 반환한다
 // (openapi.json paths."/auth/login"."post", paths."/auth/refresh"."post" 확인).
-//
-// deletionCancelled를 override한다 — BE PR #48(link-sphere_BE_NEW, 회원탈퇴 14일 유예기간)이
-// 로그인 응답 TokenResponse에 이 필드를 추가했지만, 운영 배포 전이라 생성 스펙(pnpm codegen이
-// 읽는 운영 /api/v3/api-docs)에는 아직 반영되지 않았다. 배포 후 codegen을 다시 돌리면 원본
-// 스펙에 실제로 생기므로 이 override는 자연히 no-op이 된다 - 그때 지워도 되고 안 지워도 된다.
-export type LoginResponse = components['schemas']['TokenResponse'] & {
-  deletionCancelled?: boolean;
-};
+export type LoginResponse = components['schemas']['TokenResponse'];
