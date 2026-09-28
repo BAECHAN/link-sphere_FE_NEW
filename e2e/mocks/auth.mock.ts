@@ -56,6 +56,26 @@ export async function mockSignUpSuccess(page: Page): Promise<void> {
   );
 }
 
+/**
+ * POST /auth/signup (실패, 500) — DUPLICATE_NICKNAME도 409도 아닌 일반 실패 경로를 태워
+ * useCreateAccountMutation.onError의 else 분기(accountCreateFailed 토스트)를 탄다.
+ */
+export async function mockSignUpFailure(page: Page): Promise<void> {
+  await page.route(
+    (url) => isApiPath(url, ENDPOINTS.auth.signup),
+    (route) =>
+      route.fulfill({
+        status: 500,
+        json: {
+          status: 500,
+          code: 'INTERNAL_ERROR',
+          message: '서버 오류가 발생했어요.',
+          timestamp: new Date().toISOString(),
+        },
+      })
+  );
+}
+
 /** GET /auth/email-availability — useAvailabilityCheck.ts의 500ms 디바운스가 끝난 뒤 나가는 이메일 중복 검사. */
 export async function mockEmailAvailability(page: Page, available = true): Promise<void> {
   await page.route(

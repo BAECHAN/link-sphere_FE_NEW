@@ -16,8 +16,9 @@ test.describe('저장하지 않은 변경 가드', () => {
   test.beforeEach(async ({ page }) => {
     await installCatchAll(page);
     await mockAuthRefresh(page);
-    // useUnsavedChangesGuard.ts:10-12 — 비인증이면 블로커가 무조건 통과시킨다. 로그인
-    // 상태가 필수다.
+    // useUnsavedChangesGuard.ts:8-12 — 로그인·회원가입 페이지가 아닌 한 비인증이면
+    // 블로커가 무조건 통과시킨다(로그인·회원가입 페이지 자체의 이탈 확인은
+    // signup-unsaved-changes.spec.ts). 여기(댓글 폼)는 로그인 상태가 필수다.
     await mockAccountQuery(page);
     await mockCategoryOptions(page);
     // '나가기' 후 목록 착지 확인 + 최초 진입 양쪽에 쓰인다.

@@ -44,7 +44,7 @@ TEXTS
 ├── messages.warning.postDeleteConfirm / commentDeleteConfirm / memberDeleteConfirm
 ├── messages.success.postCreated / postUpdated / accountUpdated / linkCopied / accountCreated / bookmarkSavedTo / ...
 ├── messages.error.defaultError / loginFailed / postCreateFailed / linkCopyFailed / ...
-├── unsavedChanges.* (title, message, confirm, cancel)
+├── unsavedChanges.* (title, message, confirm, cancel, signup.*)
 ├── shortcuts.sidebarToggle / sidebarToggleMac
 └── ariaLabels.* (레이아웃, 헤더, 사이드바, 입력 필드 등)
 ```
