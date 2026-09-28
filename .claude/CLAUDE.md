@@ -839,6 +839,7 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
 | `texts-conventions`    | `TEXTS.*`에 새 키를 추가하거나 성공 토스트 필요 여부를 판단할 때                                                        |
 | `changelog-release`    | feat/fix/perf 커밋 시, `CHANGELOG.md` 작성·릴리즈 시점                                                                  |
 | `browser-verification` | 커밋 전 UI 동작을 브라우저로 직접 확인해야 할 때                                                                        |
+| `plan-doc-structure`   | plan mode Final Plan 작성 시 섹션 구조를 정할 때                                                                        |
 
 ---
 
@@ -912,7 +913,8 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
   스냅샷. 구현 코드와 같은 PR에서 커밋하고, 커밋된 뒤에는 고치지 않는다(append-only,
   `DECISIONS.md`와 같은 성격 — "무엇을 의도했는지"의 기록. CI가 기존 파일 수정을
   막는다). "무엇이 실제로 됐는지"는 이 파일이 아니라 PR 본문의 `## 계획 대비 구현`
-  섹션이 이 파일을 링크해서 대조한다.
+  섹션이 이 파일을 링크해서 대조한다. 섹션 구조 표준은 `plan-doc-structure`
+  skill(`.claude/skills/plan-doc-structure/SKILL.md`) 참고.
 
 아래에는 "아키텍처 패턴"이 별도 항목으로 있었으나, 이건 **문서 종류가 아니라
 `FE-ARCHITECTURE.md` 안의 섹션 단위**라 위 분류에서 제외했다 — 여러 기능이 재사용하는
