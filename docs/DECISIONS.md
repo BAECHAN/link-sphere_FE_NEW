@@ -6,6 +6,67 @@
 
 ---
 
+## 2026-09-29 — Confirm 다이얼로그 버튼 강조: 취소=채움, 확인=outline (전체 공통)
+
+**배경**
+
+`useUnsavedChangesGuard`가 여는 이탈 확인창은 "나가기"가 채움(primary), "계속 작성"이
+outline이었다. 이 가드가 주로 막는 상황(모바일 엣지 스와이프·마우스 뒤로가기 버튼 같은
+실수)에서, 반사적으로 눌리기 쉬운 채움 버튼이 데이터가 사라지는 쪽에 있었다.
+
+이 배치는 `Alert.tsx`를 처음 만든 커밋(`0109dc8`, 2026-02-18)부터 있던 것이었고,
+`git log`·이 문서 전체를 확인한 결과 **의도적으로 비교해서 고른 기록이 없었다** —
+shadcn/ui `DialogFooter`의 기본값(`justify-end`, 마지막에 렌더한 버튼이 오른쪽)을 그대로
+따른 것뿐이었다. 삭제·탈퇴·공개설정 확인창 등 이 앱의 모든 `openConfirm` 호출이 같은
+컴포넌트(`Alert.tsx`)를 공유하므로, 같은 배치를 그대로 물려받고 있었다.
+
+**검토한 근거**
+
+- [Nielsen 2008](https://www.nngroup.com/articles/ok-cancel-or-cancel-ok/): _"가장 자주
+  선택되는 버튼을 기본값으로 두고 강조하라 — 단, 그 동작이 특히 위험하면 예외다. 그런
+  경우엔 Enter로 실수로 누르지 않고 명시적으로 고르게 해야 한다"_ (번역)
+- [NN/g 확인창 가이드](https://www.nngroup.com/articles/confirmation-dialog/): _"확인창에
+  기본 '예' 답을 주지 말라"_ (번역) — 확인창의 목적 자체가 한 번 더 확인하게 하는 것이라는
+  이유
+- [Apple HIG](https://developer.apple.com/design/human-interface-guidelines/alerts):
+  사용자가 스스로 고른 위험한 동작(예: 휴지통 비우기)에는 destructive 스타일을 주지 않고,
+  오히려 **사용자가 의도하지 않은** 위험한 동작에 시각적 강조를 준다고 명시한다
+- 기각한 대안 1 — **나가기를 빨강(destructive)으로**: Apple HIG·Atlassian이 쓰는 방식이지만,
+  빨강 채움이 여전히 가장 눈에 띄어 위 원칙과 어긋난다. 사용자도 빨강을 원하지 않았다
+  (2026-09-29 대화)
+- 기각한 대안 2 — **가드 모달만 예외 처리(opt-in emphasis 필드 추가)**: 처음엔 이 방식으로
+  계획(`docs/plans/2026-09-29-guard-dialog-stay-emphasis.md`)했지만, 다른 5개 confirm
+  호출부(삭제·탈퇴·공개설정)도 조사해보니 "확인"이 채움인 배치에 별도 근거가 없었고, 모달마다
+  좌우 강조 규칙이 다르면 오히려 혼란을 준다는 지적(2026-09-29 대화)에 따라 전체 공통
+  규칙으로 넓혔다
+
+**결정**
+
+`Alert.tsx`의 confirm 타입 렌더링에서 **취소 버튼은 채움(default variant), 확인 버튼은
+outline**으로 고정한다(alert 타입의 단일 버튼은 그대로 채움 유지 — 선택지가 하나뿐이라
+위험 비교 대상이 아니다). DOM 순서(취소가 항상 먼저/왼쪽)는 그대로라 Radix Dialog의
+초기 포커스도 자동으로 취소 버튼에 간다 — 별도 포커스 로직 추가가 필요 없었다.
+
+**이유 / 주의점**
+
+- 이 규칙은 호출부가 아니라 `Alert.tsx` 한 곳에서만 정한다 — 호출부(`usePostDelete`,
+  `useDeleteAccount` 등)는 여전히 `confirmText`/`cancelText`만 넘기고 스타일을 모른다.
+- 색은 기존 `--primary`(검정/밝은 회색) 토큰 그대로다 — `--destructive`(빨강)는 이번에도
+  쓰지 않는다. 삭제 확인창도 여전히 빨강이 아니다.
+- e2e 테스트는 버튼을 이름(`getByRole('button', { name })`)으로 찾아 위치·variant 변경의
+  영향을 받지 않는다. 이탈 확인창 e2e 2개(`unsaved-changes.spec.ts`,
+  `signup-unsaved-changes.spec.ts`)에는 "열리자마자 안전한 버튼에 포커스가 가 있다"는
+  단언을 추가했다.
+
+**상태**
+
+적용 완료. 관련 파일: `src/shared/ui/elements/modal/alert/Alert.tsx`,
+`docs/FE-ARCHITECTURE.md` §10, `docs/UNSAVED-CHANGES-GUARD.md`. 비교에 쓴 Artifact:
+"이탈 확인창 강조 시안"(세션 로컬, 링크는 대화 기록 참고) — 레이아웃 후보 A1(위치 유지)을
+채택했다.
+
+---
+
 ## 2026-09-27 — 단일 사용 코드도 가독성 목적이면 지역 함수로 추출, 재사용 시점에만 공통화
 
 **배경**

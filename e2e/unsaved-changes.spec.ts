@@ -53,6 +53,11 @@ test.describe('저장하지 않은 변경 가드', () => {
     await feedLink.click();
 
     await expect(guardDialog(page)).toBeVisible();
+    // 실수로 한 뒤로가기에도 안전한 선택지(계속 작성)가 눌리도록, 열리자마자 그 버튼에
+    // 포커스가 가 있어야 한다 — Alert.tsx의 강조 색 변경과 짝을 이루는 단언(§ 2026-09-29).
+    await expect(
+      guardDialog(page).getByRole('button', { name: TEXTS.unsavedChanges.cancel })
+    ).toBeFocused();
     await guardDialog(page).getByRole('button', { name: TEXTS.unsavedChanges.cancel }).click();
 
     await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));

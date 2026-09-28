@@ -80,6 +80,11 @@ test.describe('회원가입 폼 이탈 확인', () => {
     // 틱에 뜨므로 URL보다 먼저 단언해도 안전하다(unsaved-changes.spec.ts와 동일 패턴).
     await expect(guardDialog(page)).toBeVisible();
     await expect(page).toHaveURL(/\/auth\/sign-up$/);
+    // 실수로 한 이탈 시도(뒤로가기)에도 안전한 선택지(계속 가입하기)가 눌리도록, 열리자마자
+    // 그 버튼에 포커스가 가 있어야 한다(unsaved-changes.spec.ts와 동일 취지, § 2026-09-29).
+    await expect(
+      guardDialog(page).getByRole('button', { name: TEXTS.unsavedChanges.signup.cancel })
+    ).toBeFocused();
 
     await guardDialog(page)
       .getByRole('button', { name: TEXTS.unsavedChanges.signup.cancel })
