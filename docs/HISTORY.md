@@ -1,4 +1,7 @@
 ### 2026-09-28 (FE)
+- Navbar의 로그아웃 및 모바일 검색 로직을 각각의 커스텀 훅으로 분리하여 코드 재사용성 및 유지보수성 향상 ([#235](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/235))
+
+### 2026-09-28 (FE)
 - 회원가입 프로세스 이탈 방지 확인 알림 구현 ([#225](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/225))
 
 ### 2026-09-28 (FE)
