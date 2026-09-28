@@ -18,7 +18,7 @@
 
   구현 중 발견한 BE 계약 공백도 같이 메웠다 — 재발송 API가 로그인 여부와 무관하게 이메일을 직접 받는데, `GET /auth/account`가 이메일을 내려주지 않아 로그인된 사용자의 재발송 버튼을 만들 방법이 없었다. `AccountResponse.email` 필드를 추가하는 작은 BE PR([link-sphere_BE_NEW#46](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/46))을 먼저 배포한 뒤 이 기능을 마저 구현했다.
 
-  (`src/entities/auth/api/auth.api.ts`·`auth.queries.ts`·`auth.keys.ts`·`src/entities/auth/model/auth.schema.ts`, `src/entities/account/api/account.keys.ts`·`src/entities/account/@x/auth.ts`, `src/features/auth/email-verification/`(신규), `src/features/auth/signup/`, `src/features/post/create/hooks/useCreatePost.ts`, `src/features/comment/create/hooks/useCreateComment.ts`, `src/pages/auth/VerifyEmailPage.tsx`(신규), `src/pages/myaccount/MyAccountPage.tsx`, `src/widgets/layout/navbar/ui/Navbar.tsx`, `src/app/routes/index.tsx`, [계획](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/plans/2026-09-28-auth-hardening.md) §2-2 Phase 5)
+  (`src/entities/auth/api/auth.api.ts`·`auth.queries.ts`·`auth.keys.ts`·`src/entities/auth/model/auth.schema.ts`, `src/entities/account/api/account.keys.ts`·`src/entities/account/@x/auth.ts`, `src/features/auth/email-verification/`(신규), `src/features/auth/signup/`, `src/features/post/create/hooks/useCreatePost.ts`, `src/features/comment/create/hooks/useCreateComment.ts`, `src/pages/auth/VerifyEmailPage.tsx`(신규), `src/pages/myaccount/MyAccountPage.tsx`, `src/widgets/layout/navbar/ui/Navbar.tsx`, `src/app/routes/index.tsx`, [계획](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/plans/2026-09-28-auth-hardening.md) §2-2 Phase 5, [PR #237](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/237))
 
   </details>
 
