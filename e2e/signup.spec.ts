@@ -20,13 +20,13 @@ test.describe('회원가입', () => {
     await mockSignUpSuccess(page);
 
     await page.goto('/auth/sign-up');
-    await page.getByLabel(/^Nickname/).fill('newuser');
+    await page.getByLabel(`${TEXTS.labels.nickname}*`, { exact: true }).fill('newuser');
 
     const emailAvailabilityRequest = page.waitForRequest(
       (req) =>
         new URL(req.url()).pathname === '/api/auth/email-availability' && req.method() === 'GET'
     );
-    await page.getByLabel(/^Email/).fill('new@example.com');
+    await page.getByLabel(`${TEXTS.labels.email}*`, { exact: true }).fill('new@example.com');
     const emailReq = await emailAvailabilityRequest;
     expect(new URL(emailReq.url()).searchParams.get('email')).toBe('new@example.com');
 
@@ -34,7 +34,7 @@ test.describe('회원가입', () => {
     // 중이에요..." 상태는 타이밍 의존적이라 단언하지 않는다).
     await expect(page.getByText(TEXTS.auth.signup.emailAvailable)).toBeVisible();
 
-    await page.getByLabel(/^Password/).fill(VALID_PASSWORD);
+    await page.getByLabel(`${TEXTS.labels.password}*`, { exact: true }).fill(VALID_PASSWORD);
     await page.getByLabel(TEXTS.labels.confirmPassword).fill(VALID_PASSWORD);
     await page.getByRole('button', { name: TEXTS.auth.signup.signUp }).click();
 
@@ -44,7 +44,7 @@ test.describe('회원가입', () => {
     await expect(page).toHaveURL(/\/auth\/login$/);
     // 가입이 로그인 상태를 만들지 않는다 — GuestGuard가 튕겨내지 않고 로그인 폼이 그대로 뜬다.
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expect(page.getByLabel(/^Email/)).toBeVisible();
+    await expect(page.getByLabel(`${TEXTS.labels.email}*`, { exact: true })).toBeVisible();
   });
 
   test('비밀번호 확인이 다르면 제출이 되지 않고 인라인 오류가 뜬다', async ({ page }) => {
@@ -55,11 +55,11 @@ test.describe('회원가입', () => {
     // 확인하는 인라인 불일치 메시지("비밀번호가 일치하지 않아요")는 뜨지 않으므로 구분된다.
 
     await page.goto('/auth/sign-up');
-    await page.getByLabel(/^Nickname/).fill('newuser');
-    await page.getByLabel(/^Email/).fill('new@example.com');
+    await page.getByLabel(`${TEXTS.labels.nickname}*`, { exact: true }).fill('newuser');
+    await page.getByLabel(`${TEXTS.labels.email}*`, { exact: true }).fill('new@example.com');
     await expect(page.getByText(TEXTS.auth.signup.emailAvailable)).toBeVisible();
 
-    await page.getByLabel(/^Password/).fill(VALID_PASSWORD);
+    await page.getByLabel(`${TEXTS.labels.password}*`, { exact: true }).fill(VALID_PASSWORD);
     await page.getByLabel(TEXTS.labels.confirmPassword).fill(`${VALID_PASSWORD}x`);
     await page.getByRole('button', { name: TEXTS.auth.signup.signUp }).click();
 
@@ -75,11 +75,11 @@ test.describe('회원가입', () => {
     await mockNicknameAvailability(page, true);
 
     await page.goto('/auth/sign-up');
-    await page.getByLabel(/^Nickname/).fill('newuser');
-    await page.getByLabel(/^Email/).fill('taken@example.com');
+    await page.getByLabel(`${TEXTS.labels.nickname}*`, { exact: true }).fill('newuser');
+    await page.getByLabel(`${TEXTS.labels.email}*`, { exact: true }).fill('taken@example.com');
 
     await expect(page.getByText(TEXTS.auth.signup.emailDuplicate)).toBeVisible();
-    await page.getByLabel(/^Password/).fill(VALID_PASSWORD);
+    await page.getByLabel(`${TEXTS.labels.password}*`, { exact: true }).fill(VALID_PASSWORD);
     await expect(page.getByRole('button', { name: TEXTS.auth.signup.signUp })).toBeDisabled();
   });
 });

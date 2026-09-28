@@ -28,12 +28,14 @@ test.describe('로그인 폼 제출', () => {
     await mockPostList(page);
 
     await page.goto('/auth/login');
-    // getByLabel은 기본 부분 일치라 'Email'만 쓰면 'Save Email' 체크박스까지 걸린다
-    // (strict mode violation, 실측 확인). 필수 표시(*)가 붙어 접근 가능한 이름이
-    // "Email*"/"Password*"가 되므로, 앞부분만 고정하는 정규식으로 두 문제를 함께 해결한다.
-    await page.getByLabel(/^Email/).fill('test@example.com');
-    await page.getByLabel(/^Password/).fill(VALID_PASSWORD);
-    await page.getByRole('button', { name: 'Sign In' }).click();
+    // getByLabel은 label 엘리먼트의 실제 텍스트로 매칭한다 - RequiredMark(*)가 aria-hidden이라
+    // 접근성 트리 이름 계산에서는 빠지지만, label의 raw textContent에는 그대로 남아 getByLabel엔
+    // 잡힌다(실측 확인, count()로 직접 검증). 그래서 '이메일'/'비밀번호' exact match는 0건이 되고,
+    // '이메일*'/'비밀번호*'처럼 별표까지 포함해야 매칭된다 - 부분 일치로 두면 '이메일 저장'
+    // 체크박스까지 같이 걸린다.
+    await page.getByLabel(`${TEXTS.labels.email}*`, { exact: true }).fill('test@example.com');
+    await page.getByLabel(`${TEXTS.labels.password}*`, { exact: true }).fill(VALID_PASSWORD);
+    await page.getByRole('button', { name: TEXTS.auth.login.signIn }).click();
 
     await expect(page).toHaveURL(/\/post$/);
     await expect(page.getByRole('link', { name: mockPost.title })).toBeVisible();
@@ -50,12 +52,14 @@ test.describe('로그인 폼 제출', () => {
     await mockLoginFailure(page, '이메일 또는 비밀번호가 올바르지 않습니다.');
 
     await page.goto('/auth/login');
-    // getByLabel은 기본 부분 일치라 'Email'만 쓰면 'Save Email' 체크박스까지 걸린다
-    // (strict mode violation, 실측 확인). 필수 표시(*)가 붙어 접근 가능한 이름이
-    // "Email*"/"Password*"가 되므로, 앞부분만 고정하는 정규식으로 두 문제를 함께 해결한다.
-    await page.getByLabel(/^Email/).fill('test@example.com');
-    await page.getByLabel(/^Password/).fill(VALID_PASSWORD);
-    await page.getByRole('button', { name: 'Sign In' }).click();
+    // getByLabel은 label 엘리먼트의 실제 텍스트로 매칭한다 - RequiredMark(*)가 aria-hidden이라
+    // 접근성 트리 이름 계산에서는 빠지지만, label의 raw textContent에는 그대로 남아 getByLabel엔
+    // 잡힌다(실측 확인, count()로 직접 검증). 그래서 '이메일'/'비밀번호' exact match는 0건이 되고,
+    // '이메일*'/'비밀번호*'처럼 별표까지 포함해야 매칭된다 - 부분 일치로 두면 '이메일 저장'
+    // 체크박스까지 같이 걸린다.
+    await page.getByLabel(`${TEXTS.labels.email}*`, { exact: true }).fill('test@example.com');
+    await page.getByLabel(`${TEXTS.labels.password}*`, { exact: true }).fill(VALID_PASSWORD);
+    await page.getByRole('button', { name: TEXTS.auth.login.signIn }).click();
 
     await expect(page.getByText(TEXTS.messages.error.loginFailedPasswordMismatch)).toBeVisible();
     await expect(page).toHaveURL(/\/auth\/login$/);
