@@ -9,6 +9,7 @@ import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { CommentList } from '@/widgets/comment/comment-list/ui/CommentList';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
+import { Divider } from '@/shared/ui/atoms/divider';
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { ErrorState } from '@/shared/ui/elements/ErrorState';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
@@ -90,9 +91,8 @@ function PostDetailContent() {
         <PostCard post={post} isDetail />
       </div>
 
-      <div className="pt-6 border-t">
-        <CommentList postId={post.id} postAuthorId={post.author.id} />
-      </div>
+      <Divider />
+      <CommentList postId={post.id} postAuthorId={post.author.id} />
     </div>
   );
 }

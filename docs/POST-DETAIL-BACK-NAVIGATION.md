@@ -114,15 +114,15 @@ Navbar와 버튼 바 두 줄이 스크롤 내내 함께 고정돼 모바일 화�
 
 하드코딩된 운영 파라미터는 없다. 유일한 분기점은 Tailwind의 기본 `md` 브레이크포인트
 (768px)이며, 별도로 재정의하지 않고 그대로 쓴다
-([`PostDetailPage.tsx:78`](../src/pages/post/PostDetailPage.tsx) `hidden md:inline-flex`).
+([`PostDetailPage.tsx:79`](../src/pages/post/PostDetailPage.tsx) `hidden md:inline-flex`).
 
 ## 8. 코드 지도와 자주 하는 수정
 
 | 하고 싶은 것                         | 위치                                                                                                                                               | 방법                                                                                                                                            |
 | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 새 유입 경로에 전용 라벨 추가        | [`PostCard.tsx:42`](../src/widgets/post/post-card/ui/PostCard.tsx#L42), [`PostDetailPage.tsx:20-46`](../src/pages/post/PostDetailPage.tsx#L20-L46) | `backSource` 유니온에 새 값 추가 → 해당 위젯에서 `<PostCard backSource="새값" />` 지정 → `resolveBackLabel`에 분기·`texts.ts`에 라벨 키 추가    |
+| 새 유입 경로에 전용 라벨 추가        | [`PostCard.tsx:42`](../src/widgets/post/post-card/ui/PostCard.tsx#L42), [`PostDetailPage.tsx:21-47`](../src/pages/post/PostDetailPage.tsx#L21-L47) | `backSource` 유니온에 새 값 추가 → 해당 위젯에서 `<PostCard backSource="새값" />` 지정 → `resolveBackLabel`에 분기·`texts.ts`에 라벨 키 추가    |
 | 돌아가기 동작(목적지) 자체를 바꾸기  | [`useGoBack.ts`](../src/shared/hooks/useGoBack.ts)                                                                                                 | 라벨 로직과 무관 — 이 훅만 수정하면 된다                                                                                                        |
-| 모바일에서도 버튼을 다시 보이게 하기 | [`PostDetailPage.tsx:74-82`](../src/pages/post/PostDetailPage.tsx#L74-L82)                                                                         | `hidden md:inline-flex`를 제거하기 전에 §4의 트레이드오프(124px 상시 고정 vs standalone PWA 위치 복원)를 먼저 재검토 — `docs/DECISIONS.md` 참고 |
+| 모바일에서도 버튼을 다시 보이게 하기 | [`PostDetailPage.tsx:75-83`](../src/pages/post/PostDetailPage.tsx#L75-L83)                                                                         | `hidden md:inline-flex`를 제거하기 전에 §4의 트레이드오프(124px 상시 고정 vs standalone PWA 위치 복원)를 먼저 재검토 — `docs/DECISIONS.md` 참고 |
 | e2e에서 이 버튼/Feed 탭을 다시 찾기  | [`e2e/post-detail-back.spec.ts`](../e2e/post-detail-back.spec.ts), [`e2e/post-detail-back.mobile.spec.ts`](../e2e/post-detail-back.mobile.spec.ts) | §10 "시행착오" 참고 — `role`만으로 찾으면 Sidebar의 숨은 사본과 strict mode 위반이 난다                                                         |
 
 ## 9. 검증 결과

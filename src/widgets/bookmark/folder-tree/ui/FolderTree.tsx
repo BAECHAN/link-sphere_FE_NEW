@@ -1,5 +1,6 @@
 import { Bookmark, Folder as FolderIcon, Inbox, Loader2, MoreVertical, Plus } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
+import { Divider } from '@/shared/ui/atoms/divider';
 import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import {
@@ -64,7 +65,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
           onPrefetch={() => prefetchFolder('uncategorized')}
         />
 
-        <div className="my-1 border-t" />
+        <Divider className="my-1" />
 
         {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 */}
         {recentFolderList.length > 0 && (
@@ -82,7 +83,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
                 onPrefetch={() => prefetchFolder(folder.id)}
               />
             ))}
-            <div className="my-1 border-t" />
+            <Divider className="my-1" />
           </>
         )}
 
@@ -92,7 +93,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
             (https://github.com/Shopify/polaris-react/pull/11796/files). */}
         <CreateFolderInput />
 
-        <div className="my-1 border-t" />
+        <Divider className="my-1" />
 
         {/* "내 폴더" 라벨 — 섹션 헤더처럼 상단에 고정한다. 스크롤 영역엔 폴더 행만 남긴다
             (2026-09-22) — 전에는 라벨이 스크롤 영역 안에 있어 스크롤하면 라벨도 같이
