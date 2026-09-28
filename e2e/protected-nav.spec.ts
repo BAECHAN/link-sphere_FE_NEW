@@ -7,6 +7,7 @@ import { mockPostList } from './mocks/post.mock';
 import { mockBookmarkFolderList, mockBookmarkFolderPosts } from './mocks/bookmark-folder.mock';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
+import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 // useProtectedNavigate(entities/auth/hooks/useProtectedNavigate.ts:18-30) — 좋아요·북마크·
 // 댓글을 막는 useAuthGuard(guest-guard.spec.ts)와는 다른 메커니즘이다. 저건 "액션 자체를
@@ -61,6 +62,11 @@ test.describe('보호 라우트 네비게이션 가드', () => {
     // 체크박스까지 같이 걸린다.
     await dialog.getByLabel(`${TEXTS.labels.email}*`, { exact: true }).fill('test@example.com');
     await dialog.getByLabel(`${TEXTS.labels.password}*`, { exact: true }).fill('TestPass1!');
+
+    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 위 fill 두 번이 항상
+    // 400ms를 채운다는 보장이 없다. 클릭 자체를 삼키므로 waitForResponse 같은 관측
+    // 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 
     const folderPosts = page.waitForResponse(
       (res) =>

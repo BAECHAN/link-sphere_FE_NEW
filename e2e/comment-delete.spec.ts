@@ -12,6 +12,7 @@ import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import { mockOtherAccount } from '@/mocks/fixtures/account.fixtures';
 import type { Comment } from '@/entities/comment/model/comment.schema';
 import { TEXTS } from '@/shared/config/texts';
+import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 // handleCommentDeleteSuccess(comment.keys.ts)는 댓글목록·게시글상세·게시글목록 3개
 // 캐시를 invalidate한다. 낙관적 레이어가 없어(comment.queries.ts) 화면 반영은 전부
@@ -77,6 +78,10 @@ test.describe('댓글 삭제', () => {
     // 삭제 버튼에 포커스가 가 있어야 한다(useDeleteComment.ts, § 2026-09-29).
     await expect(confirmDialog.getByRole('button', { name: TEXTS.buttons.delete })).toBeFocused();
 
+    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+
     const detailRefetch = page.waitForResponse(
       (res) => /^\/api\/post\/[^/]+$/.test(new URL(res.url()).pathname) && res.status() === 200
     );
@@ -123,6 +128,12 @@ test.describe('댓글 삭제', () => {
     await deleteButton.click();
 
     const confirmDialog = page.getByRole('dialog');
+    await expect(confirmDialog).toBeVisible();
+
+    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+
     const commentRefetch = page.waitForResponse(
       (res) =>
         /^\/api\/post\/[^/]+\/comment$/.test(new URL(res.url()).pathname) && res.status() === 200

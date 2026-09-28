@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-09-24
+> **마지막 검토**: 2026-09-29
 
 ## 1. 쉬운 설명
 
@@ -165,25 +165,27 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 모든 폴더에 **동일한 ✓ 아이콘**이 표시된다(다중 선택 UI가 아니라, 탭할 때마다 즉시
 반영되는 토글 방식).
 
-### 열린 직후 클릭 무시(더블클릭 관통 방지, 2026-09-24)
+### 열린 직후 클릭 무시(더블클릭 관통 방지, 2026-09-24 도입 → 2026-09-29 공용화)
 
-`BookmarkFolderSelectModal`은 열린 뒤 `DOUBLE_CLICK_GUARD_MS`(400ms,
-`shared/config/const.ts`) 동안의 클릭을 무시한다. 트리거(`BookmarkPostButton`·
-`PostCreateBookmarkFolderField`의 버튼)를 더블클릭/더블탭하면 두 번째 클릭이 방금
-뜬 모달의 폴더 행 위에 떨어져 의도치 않게 저장/삭제되는 문제가 있었다 — 모바일
-바텀시트는 화면 하단 70vh를 덮고, 데스크톱 중앙 모달도 폼 가운데의 트리거와
-겹친다. 같은 원리로 두 번째 클릭이 모달 바깥(오버레이)에 떨어지면 열리자마자
-닫히는 변형 증상도 있었다.
+트리거(`BookmarkPostButton`·`PostCreateBookmarkFolderField`의 버튼)를 더블클릭/더블탭하면
+두 번째 클릭이 방금 뜬 모달의 폴더 행 위에 떨어져 의도치 않게 저장/삭제되는 문제가
+있었다 — 모바일 바텀시트는 화면 하단 70vh를 덮고, 데스크톱 중앙 모달도 폼 가운데의
+트리거와 겹친다. 같은 원리로 두 번째 클릭이 모달 바깥(오버레이)에 떨어지면 열리자마자
+닫히는 변형 증상도 있었다. 같은 증상이 확인창(⋮ 메뉴 → "삭제")에서도 제보돼
+(무의식적인 두 번째 탭이 확인창의 취소/삭제 버튼이나 오버레이에 떨어짐), 2026-09-29부터
+`useOpenClickGuard(open)`(`shared/hooks/useOpenClickGuard.ts`)를 이 모달 한 곳이 아니라
+공용 `shared/ui/atoms/dialog.tsx`의 `DialogContent`로 올렸다 — Alert/Confirm을 포함한
+모든 Dialog 기반 모달(이미지 뷰어, 로그인 모달, 마이페이지 모달 등)에 공통 적용된다.
 
-`useOpenClickGuard(open)`(`shared/hooks/useOpenClickGuard.ts`)가 `open`이 `true`가
-된 시점을 기준으로 가드 여부를 반환한다. `useClickGuard`(연타 방지, §5 위 문서
-아님 — `shared/hooks/useClickGuard.ts`)와 시계 기준이 다르다: `useClickGuard`는
-가드 함수 자신의 마지막 통과 시점을, `useOpenClickGuard`는 `open` prop의 전이
-시점을 기준으로 삼는다 — 이 모달은 행·새 폴더 만들기·확인·destructive 버튼처럼
-서로 다른 여러 요소가 위험군이라 "같은 핸들러의 재호출"이 아니라 "열린 직후"를
-가드해야 하기 때문이다. `BookmarkFolderSelectModal.tsx`의 `SheetDialogContent`에
-`onClickCapture`(모달 안 클릭 차단)와 `onPointerDownOutside`(오버레이 클릭 차단)로
-배선돼 있다.
+`useOpenClickGuard`는 `open`이 `true`가 된 시점(`DialogContent`는 마운트 시점)을
+기준으로 가드 여부를 반환한다. `useClickGuard`(연타 방지, `shared/hooks/useClickGuard.ts`)와
+시계 기준이 다르다: `useClickGuard`는 가드 함수 자신의 마지막 통과 시점을,
+`useOpenClickGuard`는 열린 시점을 기준으로 삼는다 — 모달 안의 행·버튼처럼 서로 다른
+여러 요소가 위험군이라 "같은 핸들러의 재호출"이 아니라 "열린 직후"를 가드해야 하기
+때문이다. `DialogContent`의 `onClickCapture`(모달 안 클릭 차단, `preventDefault`+
+`stopPropagation`)와 `onPointerDownOutside`(오버레이 클릭 차단)로 배선돼 있다.
+`preventDefault`를 함께 거는 이유는 로그인 모달의 폼·링크처럼 React 이벤트 차단만으로는
+막히지 않는 네이티브 동작(submit, `<a>` 네비게이션)까지 이 atom을 거치기 때문이다.
 
 ### 새 폴더 만들기 인라인 폼의 취소(2026-09-21)
 

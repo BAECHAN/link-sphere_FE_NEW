@@ -11,6 +11,7 @@ import {
   mockBookmarkFolderListResponse,
 } from '@/mocks/fixtures/bookmark-folder.fixtures';
 import { TEXTS } from '@/shared/config/texts';
+import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 test.describe('북마크 폴더 삭제', () => {
   test.beforeEach(async ({ page }) => {
@@ -83,6 +84,10 @@ test.describe('북마크 폴더 삭제', () => {
     // 메뉴에서 "삭제"를 직접 눌러야만 뜨는 다이얼로그라 이미 삭제를 결심한 상태다 -
     // 열리자마자 삭제 버튼에 포커스가 가 있어야 한다(useFolderActions.ts, § 2026-09-29).
     await expect(confirmDialog.getByRole('button', { name: TEXTS.buttons.delete })).toBeFocused();
+
+    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 
     const deleteReq = page.waitForRequest(
       (req) =>

@@ -65,6 +65,14 @@
 
 ### Fixed
 
+- `shared` 모달이 열린 직후 두 번째 탭에 닫히거나 확정되던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  북마크 폴더 삭제 확인창을 누른 직후 무의식적인 두 번째 탭이 확인창의 취소/삭제 버튼이나 오버레이에 떨어져 열리자마자 닫히거나 의도치 않게 삭제되는 사례가 제보됐다. 같은 증상은 2026-09-24에 `BookmarkFolderSelectModal` 한 곳에서 `useOpenClickGuard`(열린 뒤 `DOUBLE_CLICK_GUARD_MS`=400ms 동안의 클릭을 무시)로 이미 고쳤던 것과 원인이 같았지만, 그 가드는 그 모달에만 배선돼 있어 Alert/Confirm·이미지 뷰어·로그인 모달 등 나머지 Dialog 기반 모달에는 같은 구멍이 남아 있었다. 가드를 공용 `shared/ui/atoms/dialog.tsx`의 `DialogContent`로 올려 모든 Dialog 기반 모달에 공통 적용했다 — `BookmarkFolderSelectModal`의 개별 배선은 제거했다(atom 레벨 가드와 중복). 모달 안 클릭은 `onClickCapture`에서 `preventDefault`+`stopPropagation`으로, 바깥 클릭은 `onPointerDownOutside`에서 `preventDefault`로 막는다 — `preventDefault`를 추가로 건 이유는 이 atom을 통과하는 로그인 모달의 폼 제출·링크 이동처럼 React 합성 이벤트 차단만으로는 막히지 않는 네이티브 동작까지 함께 무시해야 하기 때문이다. Escape 키는 가드하지 않는다(실수로 누를 일이 적고, 즉시 닫기를 원하는 키보드 사용자의 동작을 유지).
+  (`src/shared/ui/atoms/dialog.tsx`, `src/shared/ui/atoms/dialog.test.tsx`(신규), `src/features/bookmark/select/ui/BookmarkFolderSelectModal.tsx`, `src/shared/hooks/useOpenClickGuard.ts`, `e2e/bookmark-folder-delete.spec.ts`·`comment-delete.spec.ts`·`post-delete.spec.ts`·`post-visibility.spec.ts`·`protected-nav.spec.ts`·`signup-unsaved-changes.spec.ts`·`unsaved-changes.spec.ts`·`bookmark.spec.ts`, `docs/BOOKMARK.md`, [계획](docs/plans/2026-09-29-dialog-open-click-guard.md))
+
+  </details>
+
 - `shared` 카드 그리드 열 수를 뷰포트가 아닌 컨테이너 실측 폭으로 계산해 푸터 아이콘 줄바꿈 방지
   <details><summary>배경·구현</summary>
 
