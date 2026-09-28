@@ -1,3 +1,7 @@
+### 2026-09-28 (FE)
+- 인증 시스템 강화 및 로그인 프로세스 안정화
+- 비밀번호 확인 입력 필드 구현 및 로그인 에러 처리 로직 개선 ([#220](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/220))
+
 ### 2026-09-27 (FE)
 - 게시물 데이터 로딩 실패 안내 UI의 텍스트 스타일 수정 ([#219](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/219))
 
