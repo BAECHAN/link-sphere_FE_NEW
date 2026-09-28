@@ -1,3 +1,6 @@
+### 2026-09-28 (FE)
+- 회원탈퇴 14일 유예 정책 적용 및 복구 안내 토스트 UI 구현 ([#244](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/244))
+
 ### 2026-09-28 (BE)
 - 회원 탈퇴 시 14일 유예 기간 및 로그인 시 계정 복구 기능 구현 ([#48](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/48))
 
