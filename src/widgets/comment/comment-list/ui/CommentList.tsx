@@ -8,6 +8,7 @@ import { CommentItem } from '@/widgets/comment/comment-list/ui/CommentItem';
 import { Comment as PostComment } from '@/entities/comment/model/comment.schema';
 import { useSuspenseComments } from '@/entities/comment/api/comment.queries';
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
+import { Divider } from '@/shared/ui/atoms/divider';
 import { EmptyState } from '@/shared/ui/elements/EmptyState';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { TEXTS } from '@/shared/config/texts';
@@ -84,9 +85,12 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
             <span className="ml-1.5 text-muted-foreground">{totalCount}</span>
           </h2>
           {!isMobile && (
-            <div className="mt-4 border-b pb-6">
-              <CommentForm ref={commentFormRef} postId={postId} />
-            </div>
+            <>
+              <div className="mt-4">
+                <CommentForm ref={commentFormRef} postId={postId} />
+              </div>
+              <Divider className="mt-6" />
+            </>
           )}
         </div>
 

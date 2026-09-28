@@ -8,6 +8,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
+import { Divider } from '@/shared/ui/atoms/divider';
 import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import {
@@ -47,7 +48,7 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
           label={TEXTS.bookmark.folder.all}
           onClick={() => onSelect('all')}
         />
-        <div className="border-t" />
+        <Divider />
         <FixedRow
           icon={<Inbox className="h-5 w-5" />}
           label={TEXTS.bookmark.folder.uncategorized}
