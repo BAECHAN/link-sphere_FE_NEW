@@ -20,14 +20,27 @@ export const LoginForm = () => {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <FormInput
           name="email"
-          label="Email"
+          label={TEXTS.labels.email}
           type="email"
-          placeholder="test@example.com"
+          placeholder={TEXTS.placeholders.email}
           required
           disabled={isPending}
         />
-        <FormInputPassword name="password" label="Password" required disabled={isPending} />
-        <FormCheckbox name="saveEmail" label={TEXTS.ariaLabels.saveEmail} disabled={isPending} />
+        <FormInputPassword
+          name="password"
+          label={TEXTS.labels.password}
+          required
+          disabled={isPending}
+        />
+        <div className="flex items-center justify-between">
+          <FormCheckbox name="saveEmail" label={TEXTS.ariaLabels.saveEmail} disabled={isPending} />
+          <Link
+            to={ROUTES_PATHS.AUTH.FORGOT_PASSWORD}
+            className="text-sm text-primary hover:underline"
+          >
+            {TEXTS.auth.login.forgotPassword}
+          </Link>
+        </div>
         <Button type="submit" className="w-full h-11" disabled={isPending}>
           {isPending ? TEXTS.auth.login.signingIn : TEXTS.auth.login.signIn}
         </Button>

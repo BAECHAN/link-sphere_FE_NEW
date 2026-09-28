@@ -64,4 +64,20 @@ export const authHandlers = [
       { status: 200 }
     );
   }),
+
+  // POST /auth/password-reset/request - 계정 존재 여부와 무관하게 항상 200
+  http.post(url(API_ENDPOINTS.auth.passwordResetRequest), () => {
+    return HttpResponse.json(
+      { status: 200, message: 'ok', data: null, timestamp: new Date().toISOString() },
+      { status: 200 }
+    );
+  }),
+
+  // POST /auth/password-reset/confirm
+  http.post(url(API_ENDPOINTS.auth.passwordResetConfirm), () => {
+    return HttpResponse.json(
+      { status: 200, message: 'ok', data: null, timestamp: new Date().toISOString() },
+      { status: 200 }
+    );
+  }),
 ];

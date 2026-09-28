@@ -9,6 +9,25 @@
 
 ## [Unreleased]
 
+### Added
+
+- `auth` 비밀번호를 잊었을 때 이메일로 재설정 링크를 받아 새 비밀번호로 바꿀 수 있음
+  <details><summary>배경·구현</summary>
+
+  이미 배포된 백엔드 Phase 6(비밀번호 찾기 API)에 맞춰 프런트 화면 3개를 새로 만들었다
+  — 이메일 입력(`ForgotPasswordPage`), 메일함 확인 안내, 재설정 폼(`ResetPasswordPage`,
+  유효/만료 토큰 분기). 로그인 화면에 "비밀번호를 잊으셨나요?" 링크를 추가했다. 화면
+  구성은 Artifact로 5곳을 3~4안씩 비교받아 결정했고, 그 과정에서 반복적으로 쓰인
+  아이콘 배지·구분선을 공용 atom(`IconBadge`, `LabeledDivider`)으로 뽑았다. 한글
+  문장이 단어 중간에서 개행되는 문제를 막기 위해 전역 `word-break: keep-all`도
+  이번에 추가했다(MDN 권고 — CJK 텍스트엔 word-break를 쓰지 말 것).
+  (`src/features/auth/password-reset/`(신규), `src/pages/auth/ForgotPasswordPage.tsx`·`ResetPasswordPage.tsx`(신규),
+  `src/features/auth/login/ui/LoginForm.tsx`, `src/shared/ui/atoms/icon-badge.tsx`·`labeled-divider.tsx`(신규),
+  `src/app/globals.css`, `src/shared/ui/elements/form/_base/FormField.tsx`,
+  [계획](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/plans/2026-09-28-auth-hardening.md) §2-2 Phase 3)
+
+  </details>
+
 ## [0.17.0] - 2026-09-28
 
 ### Added

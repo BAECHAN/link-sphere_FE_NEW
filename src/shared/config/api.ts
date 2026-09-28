@@ -27,6 +27,8 @@ const API_ENDPOINTS = {
     nicknameAvailability: `${API_BASES.auth}/account/nickname-availability`,
     emailAvailability: `${API_BASES.auth}/email-availability`,
     signup: `${API_BASES.auth}/signup`,
+    passwordResetRequest: `${API_BASES.auth}/password-reset/request`,
+    passwordResetConfirm: `${API_BASES.auth}/password-reset/confirm`,
   },
 
   upload: {

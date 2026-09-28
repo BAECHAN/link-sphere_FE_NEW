@@ -68,12 +68,14 @@ test.describe('비로그인 인증 가드 — 요청 없이 로그인 모달만 
     const loginDialog = page.getByRole('dialog', { name: TEXTS.auth.guard.title });
     await expect(loginDialog).toBeVisible();
 
-    // getByLabel은 기본 부분 일치라 'Email'만 쓰면 'Save Email' 체크박스까지 걸린다
-    // (login.spec.ts의 실측 확인과 동일). 필수 표시(*)가 붙어 접근 가능한 이름이
-    // "Email*"/"Password*"가 되므로, 앞부분만 고정하는 정규식으로 두 문제를 함께 해결한다.
-    await page.getByLabel(/^Email/).fill('test@example.com');
-    await page.getByLabel(/^Password/).fill('TestPass1!');
-    await page.getByRole('button', { name: 'Sign In' }).click();
+    // getByLabel은 label 엘리먼트의 실제 텍스트로 매칭한다 - RequiredMark(*)가 aria-hidden이라
+    // 접근성 트리 이름 계산에서는 빠지지만, label의 raw textContent에는 그대로 남아 getByLabel엔
+    // 잡힌다(실측 확인, count()로 직접 검증). 그래서 '이메일'/'비밀번호' exact match는 0건이 되고,
+    // '이메일*'/'비밀번호*'처럼 별표까지 포함해야 매칭된다 - 부분 일치로 두면 '이메일 저장'
+    // 체크박스까지 같이 걸린다.
+    await page.getByLabel(`${TEXTS.labels.email}*`, { exact: true }).fill('test@example.com');
+    await page.getByLabel(`${TEXTS.labels.password}*`, { exact: true }).fill('TestPass1!');
+    await page.getByRole('button', { name: TEXTS.auth.login.signIn }).click();
 
     // 겹침 회귀 확인: 폴더 모달을 보기 전에 로그인 모달이 실제로 사라졌는지 먼저 본다.
     await expect(loginDialog).not.toBeVisible();

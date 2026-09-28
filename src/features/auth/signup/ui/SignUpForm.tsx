@@ -56,7 +56,7 @@ export const SignUpForm = () => {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
               <FormInput
                 name="nickname"
-                label="Nickname"
+                label={TEXTS.labels.nickname}
                 type="text"
                 placeholder={TEXTS.placeholders.nickname}
                 required
@@ -67,7 +67,7 @@ export const SignUpForm = () => {
               <div className="space-y-1">
                 <FormInput
                   name="email"
-                  label="Email"
+                  label={TEXTS.labels.email}
                   type="email"
                   placeholder={TEXTS.placeholders.email}
                   required
@@ -88,7 +88,7 @@ export const SignUpForm = () => {
               </div>
               <FormInputPassword
                 name="password"
-                label="Password"
+                label={TEXTS.labels.password}
                 required
                 disabled={isPending}
                 placeholder={TEXTS.placeholders.password}

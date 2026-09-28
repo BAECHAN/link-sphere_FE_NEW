@@ -54,11 +54,13 @@ test.describe('보호 라우트 네비게이션 가드', () => {
     await page.getByRole('link', { name: TEXTS.nav.bookmark }).click();
 
     const dialog = page.getByRole('dialog', { name: TEXTS.auth.guard.title });
-    // getByLabel은 기본 부분 일치라 'Email'만 쓰면 'Save Email' 체크박스까지 걸린다
-    // (login.spec.ts의 실측 확인과 동일). 필수 표시(*)가 붙어 접근 가능한 이름이
-    // "Email*"/"Password*"가 되므로, 앞부분만 고정하는 정규식으로 두 문제를 함께 해결한다.
-    await dialog.getByLabel(/^Email/).fill('test@example.com');
-    await dialog.getByLabel(/^Password/).fill('TestPass1!');
+    // getByLabel은 label 엘리먼트의 실제 텍스트로 매칭한다 - RequiredMark(*)가 aria-hidden이라
+    // 접근성 트리 이름 계산에서는 빠지지만, label의 raw textContent에는 그대로 남아 getByLabel엔
+    // 잡힌다(실측 확인, count()로 직접 검증). 그래서 '이메일'/'비밀번호' exact match는 0건이 되고,
+    // '이메일*'/'비밀번호*'처럼 별표까지 포함해야 매칭된다 - 부분 일치로 두면 '이메일 저장'
+    // 체크박스까지 같이 걸린다.
+    await dialog.getByLabel(`${TEXTS.labels.email}*`, { exact: true }).fill('test@example.com');
+    await dialog.getByLabel(`${TEXTS.labels.password}*`, { exact: true }).fill('TestPass1!');
 
     const folderPosts = page.waitForResponse(
       (res) =>

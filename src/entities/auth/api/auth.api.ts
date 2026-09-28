@@ -1,5 +1,11 @@
 import { apiClient } from '@/shared/api/client';
-import { Login, LoginResponse, CreateAccount } from '@/entities/auth/model/auth.schema';
+import {
+  Login,
+  LoginResponse,
+  CreateAccount,
+  PasswordResetRequest,
+  PasswordResetConfirm,
+} from '@/entities/auth/model/auth.schema';
 import { Account } from '@/entities/account/@x/auth';
 import { API_ENDPOINTS } from '@/shared/config/api';
 
@@ -51,5 +57,20 @@ export const authApi = {
       { searchParams: { email } }
     );
     return response.available;
+  },
+
+  /** 계정 존재 여부와 무관하게 항상 같은 방식으로 끝난다(서버가 200을 고정 반환). */
+  requestPasswordReset: async (payload: PasswordResetRequest): Promise<void> => {
+    await apiClient.post(API_ENDPOINTS.auth.passwordResetRequest, {
+      email: payload.email,
+    });
+  },
+
+  confirmPasswordReset: async (payload: PasswordResetConfirm): Promise<void> => {
+    // confirmPassword는 클라이언트 전용 확인 필드라 서버로 보내지 않는다.
+    await apiClient.post(API_ENDPOINTS.auth.passwordResetConfirm, {
+      token: payload.token,
+      newPassword: payload.newPassword,
+    });
   },
 };
