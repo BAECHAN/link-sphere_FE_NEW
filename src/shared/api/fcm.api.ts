@@ -9,8 +9,6 @@ export const fcmApi = {
 
   /** FCM 토큰을 서버에서 삭제 */
   unregisterToken: async (token: string): Promise<void> => {
-    return await apiClient.delete<void>(API_ENDPOINTS.fcm.token, {
-      body: JSON.stringify({ token }),
-    });
+    return await apiClient.delete<void>(API_ENDPOINTS.fcm.token, { token });
   },
 };

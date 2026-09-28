@@ -94,6 +94,13 @@ export const SignUpForm = () => {
                 placeholder={TEXTS.placeholders.password}
                 description={TEXTS.descriptions.passwordGuide}
               />
+              <FormInputPassword
+                name="confirmPassword"
+                label={TEXTS.labels.confirmPassword}
+                required
+                disabled={isPending}
+                placeholder={TEXTS.placeholders.confirmPassword}
+              />
               <Button className="w-full h-11" disabled={isSubmitDisabled}>
                 {isPending ? TEXTS.auth.signup.signingUp : TEXTS.auth.signup.signUp}
               </Button>

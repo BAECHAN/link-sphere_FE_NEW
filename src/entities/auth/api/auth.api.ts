@@ -35,7 +35,12 @@ export const authApi = {
   },
 
   createAccount: async (payload: CreateAccount): Promise<Account> => {
-    const response = await apiClient.post<Account>(API_ENDPOINTS.auth.signup, payload);
+    // confirmPassword는 클라이언트에서 일치 여부만 확인하는 필드라 서버로 보내지 않는다.
+    const response = await apiClient.post<Account>(API_ENDPOINTS.auth.signup, {
+      nickname: payload.nickname,
+      email: payload.email,
+      password: payload.password,
+    });
     return response;
   },
 

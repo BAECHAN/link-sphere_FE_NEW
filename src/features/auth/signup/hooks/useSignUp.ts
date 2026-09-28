@@ -16,6 +16,7 @@ const DEFAULT_VALUES = {
   nickname: '',
   email: '',
   password: '',
+  confirmPassword: '',
 };
 
 export function useSignUp() {

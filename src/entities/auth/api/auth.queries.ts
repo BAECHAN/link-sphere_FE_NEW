@@ -52,7 +52,14 @@ export const useLoginMutation = () => {
           // 서버 원문 메시지(error.data.message)는 노출하지 않는다 - error.util.ts의
           // "날것의 error.message를 노출하지 않는다" 정책과 동일한 규칙(보안·UX).
           toast.error(TEXTS.messages.error.loginFailedPasswordMismatch);
+        } else {
+          toast.error(TEXTS.messages.error.loginFailed);
         }
+      } else {
+        // ApiError가 아닌 경우(오프라인·CORS·DNS 실패 등 네트워크 자체 실패)도 반드시 토스트를
+        // 띄운다 - useCreateAccountMutation과 동일한 이유(이 분기가 없으면 버튼만 다시
+        // 활성화되고 아무 안내 없이 조용히 실패한다).
+        toast.error(TEXTS.messages.error.loginFailed);
       }
     },
   });
