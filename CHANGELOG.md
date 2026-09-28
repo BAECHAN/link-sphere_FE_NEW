@@ -55,6 +55,14 @@
 
   </details>
 
+- `auth` 회원가입에서 넘어온 이메일을 로그인 폼에 자동으로 채움
+  <details><summary>배경·구현</summary>
+
+  회원가입 중 이메일이 이미 가입된 것으로 확인되거나(중복) 가입에 성공했을 때, 로그인 페이지로 이동해도 방금 직접 입력하고 서버가 확인해준 그 이메일을 로그인 폼에서 다시 쳐야 했다. Erik D. Kennedy의 [15 Tips for Better Signup / Login UX](https://www.learnui.design/blog/tips-signup-login-ux.html)는 로그인→비밀번호 재설정 전환을 예로 들어 _"이미 아는 정보로 사용자를 귀찮게 하지 마라"_(번역)고 말한다 — 이 사례와 정확히 같지는 않지만 같은 원리를 적용했다. "Sign In"/"로그인하러 가기" 링크가 이메일을 `location.state`로 실어 보내고(기존 `PostCard.tsx`의 `backSource` 패턴과 동일), 로그인 폼은 이 값을 저장된(localStorage) 이메일보다 우선 적용한다. "이메일 저장" 체크박스의 초기 상태는 영향받지 않는다.
+  (`src/features/auth/signup/hooks/useSignUp.ts`, `src/features/auth/signup/ui/SignUpForm.tsx`, `src/features/auth/login/hooks/useLogin.ts`, `e2e/signup.spec.ts`, `docs/AUTH.md`, `docs/TESTING.md`, `docs/plans/2026-09-29-login-email-prefill.md`(신규), [PR #243](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/243))
+
+  </details>
+
 ### Fixed
 
 - `shared` 카드 그리드 열 수를 뷰포트가 아닌 컨테이너 실측 폭으로 계산해 푸터 아이콘 줄바꿈 방지

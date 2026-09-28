@@ -28,6 +28,8 @@ export const SignUpForm = () => {
     nicknameCheck,
     isSubmitDisabled,
     onLoginLinkClick,
+    loginLinkState,
+    postSignupLoginState,
   } = useSignUp();
 
   // 체크가 빨리 끝나면(대부분의 경우) "확인 중이에요..."가 깜빡이지 않도록 300ms 지연 후에만
@@ -121,13 +123,16 @@ export const SignUpForm = () => {
         <CardFooter className="flex flex-col items-stretch space-y-4">
           {isSubmitted ? (
             <Button asChild className="w-full h-11">
-              <Link to={ROUTES_PATHS.AUTH.LOGIN}>{TEXTS.auth.signup.goToLogin}</Link>
+              <Link to={ROUTES_PATHS.AUTH.LOGIN} state={postSignupLoginState}>
+                {TEXTS.auth.signup.goToLogin}
+              </Link>
             </Button>
           ) : (
             <div className="text-sm text-center text-muted-foreground">
               {TEXTS.auth.signup.alreadyAccount}{' '}
               <Link
                 to={ROUTES_PATHS.AUTH.LOGIN}
+                state={loginLinkState}
                 onClick={onLoginLinkClick}
                 className="text-primary hover:underline font-medium"
               >
