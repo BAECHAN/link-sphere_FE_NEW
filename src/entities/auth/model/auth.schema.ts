@@ -34,10 +34,27 @@ export const createAccountSchema = z
     path: ['confirmPassword'],
   });
 
+export const passwordResetRequestSchema = z.object({
+  email: emailValidationSchema,
+});
+
+export const passwordResetConfirmSchema = z
+  .object({
+    token: z.string().min(1, TEXTS.validation.tokenRequired),
+    newPassword: passwordValidationSchema,
+    confirmPassword: z.string().min(1, TEXTS.validation.passwordRequired),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: TEXTS.validation.passwordMismatch,
+    path: ['confirmPassword'],
+  });
+
 // ==================== 2. DTO ====================
 
 export type Login = z.infer<typeof loginSchema>;
 export type CreateAccount = z.infer<typeof createAccountSchema>;
+export type PasswordResetRequest = z.infer<typeof passwordResetRequestSchema>;
+export type PasswordResetConfirm = z.infer<typeof passwordResetConfirmSchema>;
 
 // 기존 import 경로 호환 — auth.api.ts 등이 이 경로에서 응답 타입을 가져간다.
 export type { LoginResponse } from '@/entities/auth/model/auth.dto';

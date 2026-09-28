@@ -56,7 +56,7 @@ export const FormField = ({
       )}
       {children}
       {(message || reserveDescriptionSpace) && (
-        <p className={cn(messageClassName, 'min-h-5')}>{message}</p>
+        <p className={cn(messageClassName, 'min-h-5 pl-0.5')}>{message}</p>
       )}
     </div>
   );

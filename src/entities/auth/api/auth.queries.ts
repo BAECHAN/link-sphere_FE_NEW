@@ -2,7 +2,12 @@ import { useMutation, useQueryClient, type Query } from '@tanstack/react-query';
 import { authApi } from '@/entities/auth/api/auth.api';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { ApiError } from '@/shared/types/common.type';
-import { Login, CreateAccount } from '@/entities/auth/model/auth.schema';
+import {
+  Login,
+  CreateAccount,
+  PasswordResetRequest,
+  PasswordResetConfirm,
+} from '@/entities/auth/model/auth.schema';
 import { AuthUtil } from '@/shared/utils/auth.util';
 import { ROUTES_PATHS, isProtectedPath } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
@@ -116,6 +121,55 @@ export const useCreateAccountMutation = () => {
         }
       } else {
         toast.error(TEXTS.messages.error.accountCreateFailed);
+      }
+    },
+    onSuccess: () => {
+      navigate(ROUTES_PATHS.AUTH.LOGIN);
+    },
+  });
+};
+
+// 계정 존재 여부와 무관하게 서버가 항상 200을 반환한다(이메일 열람 여부 노출 방지) - 성공
+// 여부는 폼이 "메일함을 확인해주세요" 상태로 전환하는 것으로 보여준다(가시성 원칙, 토스트
+// 불필요). 여기서 잡는 에러는 네트워크·429·500 등 그 자체가 실패한 경우뿐이다.
+export const useRequestPasswordResetMutation = () => {
+  return useMutation({
+    mutationFn: async (payload: PasswordResetRequest) => {
+      return await authApi.requestPasswordReset(payload);
+    },
+    meta: { manualErrorHandling: true },
+    onError: (error) => {
+      // ApiError가 아닌 경우(네트워크 자체 실패)도 반드시 토스트를 띄운다 - 이 분기가
+      // 없으면 버튼만 다시 활성화되고 아무 안내 없이 조용히 실패한다.
+      if (error instanceof ApiError) {
+        toast.error(TEXTS.messages.error.passwordResetRequestFailed);
+      } else {
+        toast.error(TEXTS.messages.error.passwordResetRequestFailed);
+      }
+    },
+  });
+};
+
+export const useConfirmPasswordResetMutation = () => {
+  const navigate = useNavigate();
+
+  return useMutation({
+    mutationFn: async (payload: PasswordResetConfirm) => {
+      return await authApi.confirmPasswordReset(payload);
+    },
+    meta: {
+      successMessage: TEXTS.messages.success.passwordResetConfirmed,
+      manualErrorHandling: true,
+    },
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        if (error.code === SERVER_ERROR_CODE.INVALID_ACTION_TOKEN) {
+          toast.error(TEXTS.messages.error.passwordResetTokenInvalid);
+        } else {
+          toast.error(TEXTS.messages.error.passwordResetConfirmFailed);
+        }
+      } else {
+        toast.error(TEXTS.messages.error.passwordResetConfirmFailed);
       }
     },
     onSuccess: () => {

@@ -376,6 +376,17 @@ font-family만 'Pretendard'로 맞춘 것)에서 한다 — 당근마켓·마켓
   }
   body {
     @apply bg-background text-foreground;
+    /* 한글은 어절(공백 단위) 안 아무 글자 사이에서나 개행될 수 있어 "보내드렸어요"가
+       "보내드렸"/"어요"로 쪼개지는 식으로 문장이 부자연스럽게 끊긴다. keep-all은 공백에서만
+       개행하고 어절 내부는 끊지 않는다 - MDN: CJK 텍스트엔 word break를 쓰면 안 된다
+       ("Word breaks should not be used for Chinese/Japanese/Korean (CJK) text.",
+       https://developer.mozilla.org/en-US/docs/Web/CSS/word-break). URL처럼 공백 없이 긴
+       토큰이 넘칠 때만 overflow-wrap: break-word가 예외적으로 끊어 넘침을 막는다(word-break:
+       break-word는 지금은 비권장이라 MDN이 overflow-wrap: break-word 사용을 권한다, 같은
+       문서). MarkdownContent.tsx의 break-all처럼 더 구체적인 선택자는 그대로 이 규칙을
+       덮어쓴다. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
 }
 

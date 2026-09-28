@@ -36,6 +36,7 @@ export const TEXTS = {
     nickname: '닉네임',
     email: '이메일',
     password: '비밀번호',
+    newPassword: '새 비밀번호',
     confirmPassword: '비밀번호 확인',
     message: '메시지',
   },
@@ -75,26 +76,57 @@ export const TEXTS = {
       title: '로그인이 필요한 서비스예요',
     },
     login: {
-      title: 'Welcome to LinkSphere',
-      subtitle: 'Sign in to share and discover links',
-      signingIn: 'Signing In...',
-      signIn: 'Sign In',
-      noAccount: "Don't have an account?",
-      signUp: 'Sign Up',
+      title: 'LinkSphere에 오신 걸 환영해요',
+      subtitle: '링크를 공유하고 발견해보세요.',
+      signingIn: '로그인 중...',
+      signIn: '로그인',
+      noAccount: '계정이 없으신가요?',
+      signUp: '회원가입',
+      forgotPassword: '비밀번호를 잊으셨나요?',
     },
     signup: {
-      title: 'Create an Account',
-      subtitle: 'Join LinkSphere to start sharing links',
-      signingUp: 'Signing Up...',
-      signUp: 'Sign Up',
-      alreadyAccount: 'Already have an account?',
-      signIn: 'Sign In',
+      title: '계정 만들기',
+      subtitle: 'LinkSphere에 가입하고 링크 공유를 시작해보세요.',
+      signingUp: '가입 중...',
+      signUp: '회원가입',
+      alreadyAccount: '이미 계정이 있으신가요?',
+      signIn: '로그인',
       // 이메일·닉네임 실시간 중복확인 문구 - 마이페이지(TEXTS.mypage.*)와 별개 화면이라 키를
       // 공유하지 않는다
       checking: '확인 중이에요...',
       emailAvailable: '사용 가능한 이메일이에요.',
       emailDuplicate: '이미 가입된 이메일이에요.',
       nicknameAvailable: '사용 가능한 닉네임이에요.',
+    },
+    forgotPassword: {
+      title: '비밀번호를 잊으셨나요?',
+      subtitle: '이메일을 입력하면 재설정 링크를 보내드려요.',
+      submitting: '전송 중...',
+      submit: '재설정 링크 보내기',
+      backToLogin: '로그인으로 돌아가기',
+      checkEmailTitle: '메일함을 확인해주세요',
+      // "비밀번호 재설정"을 한 덩어리로 읽히게 하려고 여기서 줄을 바꾼다(CardDescription에서
+      // <br/>로 연결 - CreatePostForm.tsx의 description1/2와 같은 패턴)
+      checkEmailDescription1: '해당 이메일로 가입된 계정이 있다면 비밀번호 재설정',
+      checkEmailDescription2: '링크를 보내드렸어요.',
+      checkSpamHint: '스팸함이나 프로모션함도 확인해보세요.',
+      resendPrompt: '메일이 안 왔나요',
+      resend: '다시 보내기',
+    },
+    resetPassword: {
+      title: '비밀번호 재설정',
+      subtitle: '새 비밀번호를 입력해주세요.',
+      submitting: '재설정 중...',
+      submit: '비밀번호 재설정',
+      backToLogin: '로그인으로 돌아가기',
+      invalidTokenTitle: '유효하지 않은 링크예요',
+      invalidTokenDescription: '이 재설정 링크는 유효하지 않거나 만료됐어요.',
+      // "다시 요청해주세요"가 문장 끝에서 잘려 다음 줄로 넘어가면 뜻이 끊겨 보여 별도
+      // 키로 분리했다 - 컴포넌트에서 whitespace-nowrap으로 묶어 렌더링한다
+      // (docs/DECISIONS.md 2026-08-13, "등록 중..." 배지가 "등록"/"중..."으로 쪼개졌던
+      // 사고와 같은 이유 - 짧은 행동 유도 문구는 중간에 끊기면 안 된다).
+      invalidTokenRetryPrompt: '다시 요청해주세요.',
+      requestNewLink: '새 링크 요청하기',
     },
   },
   nav: {
@@ -317,6 +349,7 @@ export const TEXTS = {
     passwordMaxLength: '비밀번호는 64자 이하로 입력해주세요.',
     passwordAsciiOnly: '비밀번호에는 한글이나 이모지를 사용할 수 없어요.',
     passwordMismatch: '비밀번호가 일치하지 않아요.',
+    tokenRequired: '유효하지 않은 링크예요. 다시 요청해주세요.',
     emailRegex: '올바른 이메일 형식(예: user@mail.com)인지 확인해주세요.',
     // "닉네임" 레이블 바로 옆(같은 줄, 오른쪽 정렬)에 뜨는 메시지라 "닉네임은" 주어를 반복하지
     // 않고 짧게 쓴다 - 길면 라벨과 한 줄에 안 들어가 줄바꿈되면서 레이아웃이 밀린다.
@@ -360,6 +393,7 @@ export const TEXTS = {
       bookmarkClearedAllFolders: '모든 폴더에서 제거했어요.',
       bookmarkRemovedWithLastFolderDescription: '마지막 폴더라서 북마크도 함께 제거했어요.',
       bookmarkRemoved: '북마크를 제거했어요.',
+      passwordResetConfirmed: '비밀번호를 재설정했어요.',
     },
     error: {
       // 공통
@@ -384,6 +418,9 @@ export const TEXTS = {
       accountCreateFailedDuplicateAccount: '해당 이메일로 가입된 계정이 존재해요.',
       accountUpdateFailed: '프로필 업데이트에 실패했어요.',
       nicknameDuplicate: '이미 사용 중인 닉네임이에요.',
+      passwordResetRequestFailed: '요청 처리에 실패했어요. 잠시 후 다시 시도해주세요.',
+      passwordResetConfirmFailed: '비밀번호 재설정에 실패했어요.',
+      passwordResetTokenInvalid: '유효하지 않거나 만료된 링크예요. 다시 요청해주세요.',
 
       // 포스트 관련
       postCreateFailed: '포스트 생성에 실패했어요.',
@@ -463,7 +500,7 @@ export const TEXTS = {
     accountMenu: '계정 메뉴',
     profileEdit: '프로필 수정',
     logout: '로그아웃',
-    saveEmail: 'Save Email',
+    saveEmail: '이메일 저장',
     imageZoom: '이미지 확대',
     imageViewer: '확대된 이미지',
     imageViewerDescription: '바깥 영역이나 닫기 버튼을 클릭하면 닫혀요.',

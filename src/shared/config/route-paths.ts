@@ -13,6 +13,8 @@ const ROUTES_PATHS = {
   AUTH: {
     LOGIN: `${ROUTES_BASE.AUTH}/login`,
     SIGNUP: `${ROUTES_BASE.AUTH}/sign-up`,
+    FORGOT_PASSWORD: `${ROUTES_BASE.AUTH}/forgot-password`,
+    RESET_PASSWORD: `${ROUTES_BASE.AUTH}/reset-password`,
   },
   BOOKMARK: '/bookmark',
   MY_COMMENTS: '/my/comments',
@@ -24,7 +26,12 @@ const ROUTES_PATHS = {
 } as const;
 
 // 인증이 필요없는 공개 경로들
-const PUBLIC_PATHS = [ROUTES_PATHS.AUTH.LOGIN, ROUTES_PATHS.AUTH.SIGNUP] as const;
+const PUBLIC_PATHS = [
+  ROUTES_PATHS.AUTH.LOGIN,
+  ROUTES_PATHS.AUTH.SIGNUP,
+  ROUTES_PATHS.AUTH.FORGOT_PASSWORD,
+  ROUTES_PATHS.AUTH.RESET_PASSWORD,
+] as const;
 
 // 로그인이 필요한(ProtectedRoute로 감싸진) 경로인지 판별
 const isProtectedPath = (pathname: string): boolean => {

@@ -43,6 +43,16 @@ const SignUpPage = lazy(() =>
 const LoginPage = lazy(() =>
   import('@/pages/auth/LoginPage').then((module) => ({ default: module.LoginPage }))
 );
+const ForgotPasswordPage = lazy(() =>
+  import('@/pages/auth/ForgotPasswordPage').then((module) => ({
+    default: module.ForgotPasswordPage,
+  }))
+);
+const ResetPasswordPage = lazy(() =>
+  import('@/pages/auth/ResetPasswordPage').then((module) => ({
+    default: module.ResetPasswordPage,
+  }))
+);
 /**
  * Lazy 컴포넌트를 Suspense로 감싸는 래퍼
  * 각 페이지별로 로딩 상태를 관리하여 깜빡임 방지
@@ -151,6 +161,14 @@ export const appRoutes: RouteObject[] = [
           {
             path: ROUTES_PATHS.AUTH.SIGNUP,
             element: withSuspense(SignUpPage),
+          },
+          {
+            path: ROUTES_PATHS.AUTH.FORGOT_PASSWORD,
+            element: withSuspense(ForgotPasswordPage),
+          },
+          {
+            path: ROUTES_PATHS.AUTH.RESET_PASSWORD,
+            element: withSuspense(ResetPasswordPage),
           },
         ],
       },
