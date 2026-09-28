@@ -317,3 +317,77 @@ describe('ApiClient — 인증 오류 처리', () => {
     });
   });
 });
+
+// ─────────────────────────────────────────────────────────────
+// CloudFront OAC 대응 (docs/plans/2026-09-29-oac-lockdown.md FE Phase 6) -
+// 인증 헤더가 Authorization 대신 X-Access-Token인지, 문자열 바디에
+// x-amz-content-sha256이 실리는지를 검증한다. 401 처리와는 무관한 관심사라
+// 위 describe와 별개 최상위 블록으로 둔다.
+// ─────────────────────────────────────────────────────────────
+describe('ApiClient — 요청 헤더 (CloudFront OAC 대응)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    useAuthStore.getState().clearAuth();
+  });
+
+  it('토큰이 있으면 Authorization 대신 X-Access-Token 헤더로 보낸다', async () => {
+    useAuthStore.getState().setAuth('valid-access-token');
+
+    let capturedHeaders: Headers | undefined;
+    server.use(
+      http.post(COMMENT_HANDLER_URL, ({ request }) => {
+        capturedHeaders = request.headers;
+        return makeCommentSuccess();
+      })
+    );
+
+    await apiClient.post(COMMENT_PATH, { content: '헤더 테스트' });
+
+    expect(capturedHeaders?.get('x-access-token')).toBe('valid-access-token');
+    expect(capturedHeaders?.has('authorization')).toBe(false);
+  });
+
+  it('JSON 바디가 있으면 x-amz-content-sha256 헤더에 바디의 SHA256 해시를 싣는다', async () => {
+    useAuthStore.getState().setAuth('valid-access-token');
+
+    let capturedHeaders: Headers | undefined;
+    let capturedBody = '';
+    server.use(
+      http.post(COMMENT_HANDLER_URL, async ({ request }) => {
+        capturedHeaders = request.headers;
+        capturedBody = await request.text();
+        return makeCommentSuccess();
+      })
+    );
+
+    await apiClient.post(COMMENT_PATH, { content: '해시 테스트' });
+
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(capturedBody));
+    const expectedHash = Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
+
+    expect(capturedHeaders?.get('x-amz-content-sha256')).toBe(expectedHash);
+  });
+
+  it('FormData 바디에는 x-amz-content-sha256 헤더를 붙이지 않는다', async () => {
+    // 브라우저가 전송 시점에 실제 멀티파트 바이트를 만들어 미리 해시할 방법이 없다
+    // (client.ts의 hashRequestBody 주석 참고) - 헤더 자체를 생략하는지만 확인한다.
+    useAuthStore.getState().setAuth('valid-access-token');
+
+    let capturedHeaders: Headers | undefined;
+    server.use(
+      http.post(COMMENT_HANDLER_URL, ({ request }) => {
+        capturedHeaders = request.headers;
+        return makeCommentSuccess();
+      })
+    );
+
+    await apiClient.post(COMMENT_PATH, makeCommentFormData());
+
+    expect(capturedHeaders?.has('x-amz-content-sha256')).toBe(false);
+  });
+});

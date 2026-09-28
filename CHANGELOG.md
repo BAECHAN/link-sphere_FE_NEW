@@ -93,6 +93,20 @@
 
   </details>
 
+### Security
+
+- `shared` CloudFront Origin Access Control(OAC) 전환에 대응해 인증 헤더를 `X-Access-Token`으로, CSP를 빌드 시 주입하도록 추가
+  <details><summary>배경·구현</summary>
+
+  Lambda Function URL을 CloudFront OAC + `AWS_IAM`으로 잠그는 작업(BE Phase 7과 짝, `docs/plans/2026-09-29-oac-lockdown.md`)의 FE 대응. 실측 결과 프로덕션 Function URL이 지금 `AuthType: NONE`으로 완전히 공개돼 있어 이론적 하드닝이 아니라 실제로 열려 있는 구멍을 막는 작업이다. OAC의 `SigningBehavior: Always`가 오리진 요청의 `Authorization` 헤더를 CloudFront 자신의 SigV4 서명으로 덮어쓰므로, 실제 토큰은 `X-Access-Token`이라는 별도 커스텀 헤더로 보낸다(`getAuthHeaders`). PUT/POST 등 문자열 바디가 있는 요청에는 `x-amz-content-sha256` 헤더도 함께 실었다 — CloudFront가 바디를 오리진으로 스트리밍만 하고 해시는 대신 계산해주지 않아, Lambda가 unsigned payload를 거절하기 때문이다([AWS 공식 문서](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-lambda.html)). `apiClient`로 `FormData`(멀티파트)를 보내는 프로덕션 경로는 지금 없어(이미지 업로드는 Supabase 서명 URL로 직접 감) 이 헤더를 생략했다 — 앞으로 그런 경로가 생기면 별도 해결이 필요하다.
+
+  CSP는 새 빌드 스크립트(`scripts/inject-csp.js`, `vite build` 직후 실행)가 `index.html`의 인라인 `<script>` 2개(RUM 로더, 테마 FOUC 방지 스크립트)를 SHA256으로 해시해 `<meta http-equiv="Content-Security-Policy">` 태그로 주입한다. 이 meta 태그는 즉시 검증 가능한 1차 방어이고, HSTS·`X-Content-Type-Options`·`frame-ancestors`처럼 meta로 못 넣는 지시어는 CloudFront 응답 헤더 정책으로 별도 문서화했다(`docs/DEPLOY.md`, 이번 라운드에서는 콘솔 적용은 하지 않음).
+
+  **AWS 인프라 전환(OAC 생성·연결, Function URL `AuthType` 변경) 자체는 이 변경의 범위가 아니다** — BE PR([link-sphere_BE_NEW#47](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/47))과 이 FE 변경이 각각 배포·검증된 뒤 별도 AWS CLI 작업으로 진행한다. 그 전까지는 하위 호환 — BE가 `X-Access-Token`과 기존 `Authorization: Bearer` 둘 다 읽는다.
+  (`src/shared/api/client.ts`, `src/shared/api/client.test.ts`, `src/entities/auth/api/auth.queries.ts`, `scripts/inject-csp.js`(신규), `package.json`, `.github/workflows/deploy.yml`, `docs/AUTH.md`, `docs/DEPLOY.md`, [계획](docs/plans/2026-09-29-oac-lockdown.md))
+
+  </details>
+
 ## [0.17.0] - 2026-09-28
 
 ### Added

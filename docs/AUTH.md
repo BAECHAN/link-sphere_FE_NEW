@@ -3,7 +3,7 @@
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
 > 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지 설명할 수 있게 됩니다.
-> **마지막 검토**: 2026-09-22
+> **마지막 검토**: 2026-09-29
 
 ---
 
@@ -23,7 +23,7 @@ flowchart TD
     Store --> Flag["localStorage에 has-session 플래그 true"]
 
     Flag --> Nav["SPA 내 페이지 이동"]
-    Nav --> API1["실제 API 요청 발생<br/>(Authorization 헤더 자동 첨부)"]
+    Nav --> API1["실제 API 요청 발생<br/>(X-Access-Token 헤더 자동 첨부)"]
 
     Flag --> Reload["새로고침"]
     Reload --> MemGone["메모리 소실<br/>accessToken = null"]
@@ -410,6 +410,17 @@ predicate가 더 이상 매칭되지 않아 아무것도 다시 부르지 않습
    항목이 원래 갖고 있던 "BE 소스가 이 레포에 없어 미검증"이라는 전제가
    해소됐다 — `isAuthEndpoint`(`client.ts:55-62`)에 `/auth/refresh`를 추가할
    필요는 없다.
+
+   **2026-09-29 갱신**: FE Phase 6(CloudFront OAC 대응)에서 FE가 보내는 헤더가
+   `Authorization` 대신 `X-Access-Token`으로 바뀌었다 - 위 문단의 "만료된
+   Authorization 헤더" 서술은 "만료된 X-Access-Token 헤더"로 읽으면 된다. BE
+   필터도 `SessionAuthenticationFilter.kt`로 교체됐음을 이번에 직접 읽어
+   확인했다(구 `JwtAuthenticationFilter.kt`는 더 이상 없음) - `request.setAttribute("exception",
+...)`로 예외를 삼키고 체인을 그대로 통과시키는 동작은 동일하게 유지되고
+   있어 위 결론은 그대로 성립한다. `AuthController.kt`의 `refresh` 핸들러
+   부분은 이번에 다시 확인하지 않았다 - 2026-09-21 시점 확인 내용을 그대로
+   신뢰한다.
+
 3. **refresh 실패 시 대기 중이던 팔로워 요청들이 영구 pending으로 남습니다.** `client.ts:194`가 `refreshSubscribers`를 콜백 호출 없이 비웁니다. 리더 자신의 영구 pending(`:196`)은 "에러 토스트를 띄우지 않으려는" 의도가 `client.test.ts:114` 주석으로 남아있지만, 팔로워 쪽은 같은 의도가 명시돼 있지 않습니다.
 4. **동시 401 큐잉(§9의 리더-팔로워 메커니즘)과 위 항목 모두 테스트 커버리지가 없습니다** — `client.test.ts`는 이제 7개 Case이지만 여전히 전부 단일 요청 시나리오입니다(Case 1-1만 예외).
 

@@ -76,7 +76,7 @@ export const useLoginMutation = () => {
 
 export const useLogoutMutation = () => {
   const logout = () => {
-    // 1. API 요청 먼저 시작 (토큰이 아직 스토어에 있으므로 Authorization 헤더 포함됨)
+    // 1. API 요청 먼저 시작 (토큰이 아직 스토어에 있으므로 X-Access-Token 헤더 포함됨)
     authApi.logout().catch((error) => {
       console.error('[LOGOUT] Error logging out:', error);
     });

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite --mode localhost",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/inject-csp.js",
     "build:dev": "pnpm build --mode development",
     "build:prod": "pnpm build --mode production",
     "preview": "vite preview",
