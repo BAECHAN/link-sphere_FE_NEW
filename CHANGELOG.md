@@ -69,10 +69,10 @@
 
 ### Changed
 
-- `shared` confirm 다이얼로그 취소가 채움, 확인이 outline으로 강조가 바뀜
+- `shared` confirm 다이얼로그 취소가 채움·오른쪽, 확인이 outline·왼쪽으로 바뀜
   <details><summary>배경·구현</summary>
 
-  이탈 확인창("계속 작성"/"나가기")이 반사적으로 눌리기 쉬운 채움 버튼을 데이터가 사라지는 "나가기"에 주고 있었다. `Alert.tsx`를 만든 첫 커밋(`0109dc8`)부터 있던 배치였고 확인해보니 의도적으로 비교해서 고른 기록이 없었다(shadcn `DialogFooter` 기본값을 그대로 따른 것). 삭제·탈퇴·공개설정 등 이 앱의 모든 `openConfirm`이 같은 컴포넌트를 공유하므로, 한 곳(`Alert.tsx`)에서 취소=채움·확인=outline으로 일괄 반전했다 — 근거는 Nielsen(2008) "가장 자주 선택되는 버튼을 기본값으로 두고 강조하라(단, 위험한 동작은 예외)"(번역). DOM 순서(취소가 항상 먼저)는 그대로라 포커스 로직 추가는 필요 없었다.
+  이탈 확인창("계속 작성"/"나가기")이 반사적으로 눌리기 쉬운 채움 버튼을 데이터가 사라지는 "나가기"에 주고 있었다. `Alert.tsx`를 만든 첫 커밋(`0109dc8`)부터 있던 배치였고 확인해보니 의도적으로 비교해서 고른 기록이 없었다(shadcn `DialogFooter` 기본값을 그대로 따른 것). 삭제·탈퇴·공개설정 등 이 앱의 모든 `openConfirm`이 같은 컴포넌트를 공유하므로, 한 곳(`Alert.tsx`)에서 취소=채움·확인=outline으로 일괄 반전했다 — 근거는 Nielsen(2008) "가장 자주 선택되는 버튼을 기본값으로 두고 강조하라(단, 위험한 동작은 예외)"(번역). 처음엔 DOM 순서를 유지해 취소가 왼쪽에 남았는데, 배포 후 "채움 버튼은 오른쪽에"라는 요청에 따라 위치도 교체했다 — Apple HIG "기본 버튼은 항상 trailing(오른쪽) 쪽에 둔다"(번역)와도 맞는다. 위치가 바뀌면서 Radix Dialog의 기본 오토포커스가 확인(왼쪽, 위험한 동작)으로 가버려, `onOpenAutoFocus`로 취소 버튼에 명시적으로 포커스를 고정했다.
   (`src/shared/ui/elements/modal/alert/Alert.tsx`, `e2e/unsaved-changes.spec.ts`, `e2e/signup-unsaved-changes.spec.ts`, `docs/DECISIONS.md`, `docs/FE-ARCHITECTURE.md`, `docs/UNSAVED-CHANGES-GUARD.md`, `docs/plans/2026-09-29-confirm-dialog-emphasis.md`(신규))
 
   </details>
