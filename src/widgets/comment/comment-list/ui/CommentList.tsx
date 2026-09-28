@@ -1,4 +1,3 @@
-import dayjs from 'dayjs';
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CommentForm, CommentFormHandle } from '@/features/comment/create/ui/CommentForm';
@@ -6,7 +5,7 @@ import { MobileCommentBar } from '@/features/comment/create/ui/MobileCommentBar'
 import { ScrollToCommentFormButton } from '@/features/comment/create/ui/ScrollToCommentFormButton';
 import { CommentItem } from '@/widgets/comment/comment-list/ui/CommentItem';
 import { Comment as PostComment } from '@/entities/comment/model/comment.schema';
-import { useSuspenseComments } from '@/entities/comment/api/comment.queries';
+import { useCommentList } from '@/widgets/comment/comment-list/hooks/useCommentList';
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { Divider } from '@/shared/ui/atoms/divider';
 import { EmptyState } from '@/shared/ui/elements/EmptyState';
@@ -18,22 +17,12 @@ interface CommentListProps {
   postAuthorId: string;
 }
 
-/** 답글까지 포함한 전체 댓글 수 — 삭제된 톰스톤도 세어야 PostCard의 commentCount와 일치한다. */
-function countComments(comments: PostComment[]): number {
-  return comments.reduce((total, comment) => total + 1 + countComments(comment.replies), 0);
-}
-
 function CommentListContent({ postId, postAuthorId }: CommentListProps) {
-  const { data: comments } = useSuspenseComments(postId);
+  const { comments: sorted, isEmpty, totalCount } = useCommentList(postId);
   const isMobile = useIsMobile();
   const location = useLocation();
   const formContainerRef = useRef<HTMLDivElement>(null);
   const commentFormRef = useRef<CommentFormHandle>(null);
-  const sorted = [...comments].sort(
-    (a, b) => dayjs(b.createdAt).valueOf() - dayjs(a.createdAt).valueOf()
-  );
-  const isEmpty = sorted.length === 0;
-  const totalCount = countComments(comments);
 
   // "내 댓글" 목록 카드에서 원글로 넘어올 때(/post/:id#comment-:commentId) 그 댓글
   // 위치로 스크롤하고 잠시 링으로 강조한다 - 댓글이 많으면 목록 맨 위로만 가서는

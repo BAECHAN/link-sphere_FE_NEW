@@ -135,10 +135,12 @@ src/
 │   └── ui/                       # PostMutationLoadingToast — post/account 뮤테이션 진행 상태
 │                                 # 헤드리스 옵저버(여러 entities를 알아야 해서 app에 위치)
 │
-├── pages/                        # 라우팅 진입점 — widgets/features 조합. 세그먼트 없음
+├── pages/                        # 라우팅 진입점 — widgets/features 조합. hooks/ 세그먼트만 허용
 │   ├── post/                     # index(Post), PostDetailPage, PostEditPage, PostSubmitPage
+│   │   └── hooks/                # usePostDetail, usePostNotFoundRedirect
 │   ├── auth/                     # LoginPage, SignUpPage
 │   ├── bookmark/                 # BookmarkPage
+│   │   └── hooks/                # useBookmarkPage
 │   ├── 403/                      # ForbiddenPage
 │   ├── 404/                      # NotFoundPage
 │   └── 500/                      # ServerErrorPage
@@ -154,6 +156,7 @@ src/
 │   │       └── ui/               # PostCard
 │   ├── comment/
 │   │   └── comment-list/
+│   │       ├── hooks/            # useCommentList
 │   │       └── ui/               # CommentList, CommentItem
 │   ├── bookmark/
 │   │   ├── bookmark-post-list/{hooks,ui}  # useBookmarkPostList, BookmarkPostList
@@ -165,7 +168,10 @@ src/
 │       │   └── ui/               # Navbar, NavbarSearch, MobileNavbarSearch, RecentSearchPanel
 │       ├── bottom-tab-bar/ui/
 │       ├── sidebar/ui/
-│       └── mypage/ui/            # MyPageModal
+│       ├── mypage/ui/            # MyPageModal
+│       └── login-modal/ui/       # LoginModal(2026-09-29 features/auth/login에서 이동 —
+│                                 # RootLayout이 마운트하는 전역 모달, Navbar·Sidebar·
+│                                 # BottomTabBar·MyPageModal과 같은 자리)
 │
 ├── features/                     # 사용자 상호작용 — 도메인 그룹 → 액션 슬라이스
 │   ├── post/
@@ -179,7 +185,7 @@ src/
 │   │   ├── delete/hooks          # useDeleteComment
 │   │   └── like/{hooks,ui}       # useLikeComment, LikeCommentButton
 │   ├── auth/
-│   │   ├── login/{hooks,ui}      # useLogin, LoginForm, LoginModal
+│   │   ├── login/{hooks,ui}      # useLogin, LoginForm
 │   │   └── signup/{hooks,ui}     # useSignUp, useAvailabilityCheck, SignUpForm
 │   ├── account/
 │   │   └── update/{hooks,ui}     # useUpdateAccount, UpdateAccountForm
@@ -590,9 +596,6 @@ ESLint로 강제하지 않는다(파일 단위로 강제하면 그 파일에 앞
   하나뿐이고, 파일의 나머지 파생(`isPostAuthor`·`isDeleted` 등)은 props 파생이라 이 쿼리와
   무관하다. 참고로 여기를 이미 entity 훅이 있는 `useAccount()`로 바꾸는 건 안 된다 —
   `persistLastAvatar` localStorage 부수효과가 댓글 개수만큼 실행된다.
-- 예외 해당 안 됨: 같은 위젯의 `CommentList.tsx`는 정렬·재귀 집계(톰스톤 포함 댓글 수)·파생
-  2개가 있어 widget hook으로 빼야 한다(`usePostList`의 `flatMap` 파생이 같은 이유의 선례).
-  2026-09-09 기준 아직 안 뺀 상태로 남아 있다 — 별건 리팩터링으로 취급해 범위 밖에 뒀다.
 
 ---
 

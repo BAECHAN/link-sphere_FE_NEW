@@ -1,22 +1,10 @@
-import {
-  Bookmark,
-  ChevronRight,
-  Folder as FolderIcon,
-  Inbox,
-  Loader2,
-  MoreVertical,
-  Plus,
-} from 'lucide-react';
+import { Bookmark, ChevronRight, Folder as FolderIcon, Inbox, Loader2, Plus } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { Divider } from '@/shared/ui/atoms/divider';
 import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/shared/ui/atoms/dropdown-menu';
+import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';
+import { HoverKebabMenu } from '@/shared/ui/elements/HoverKebabMenu';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
@@ -165,24 +153,15 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
         <div className="font-medium truncate pr-6">{folder.name}</div>
         <div className="text-xs text-muted-foreground">{folder.bookmarkCount}</div>
       </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-1 right-1 h-7 w-7"
-            aria-label={TEXTS.ariaLabels.folderMenu}
-          >
-            <MoreVertical className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={startRename}>{TEXTS.bookmark.folder.rename}</DropdownMenuItem>
-          <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-            {TEXTS.buttons.delete}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <HoverKebabMenu
+        aria-label={TEXTS.ariaLabels.folderMenu}
+        triggerClassName="absolute top-1 right-1 h-7 w-7"
+      >
+        <DropdownMenuItem onClick={startRename}>{TEXTS.bookmark.folder.rename}</DropdownMenuItem>
+        <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+          {TEXTS.buttons.delete}
+        </DropdownMenuItem>
+      </HoverKebabMenu>
     </div>
   );
 }

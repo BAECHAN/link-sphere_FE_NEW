@@ -14,7 +14,7 @@ import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 // 감싸 Outlet과 같은 경계를 타지 않게 한다 - 같은 경계였다면 이 청크가 늦게 도착할 때
 // 페이지 본문까지 함께 멈춘다.
 const LoginModal = lazy(() =>
-  import('@/features/auth/login/ui/LoginModal').then((module) => ({
+  import('@/widgets/layout/login-modal/ui/LoginModal').then((module) => ({
     default: module.LoginModal,
   }))
 );
