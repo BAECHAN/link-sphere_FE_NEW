@@ -99,6 +99,10 @@ export const TEXTS = {
       emailAvailable: '사용 가능한 이메일이에요.',
       emailDuplicate: '이미 가입된 이메일이에요.',
       nicknameAvailable: '사용 가능한 닉네임이에요.',
+      checkEmailTitle: '가입을 완료했어요',
+      checkEmailDescription:
+        '입력하신 이메일로 인증 메일을 보냈어요. 메일함에서 링크를 확인해주세요.',
+      goToLogin: '로그인하러 가기',
     },
     forgotPassword: {
       title: '비밀번호를 잊으셨나요?',
@@ -130,6 +134,16 @@ export const TEXTS = {
       invalidTokenRetryPrompt: '다시 요청해주세요.',
       requestNewLink: '새 링크 요청하기',
     },
+    verifyEmail: {
+      pendingTitle: '이메일을 확인하고 있어요',
+      successTitle: '이메일 인증이 완료됐어요',
+      successDescription: '이제 글쓰기와 댓글 작성을 자유롭게 이용할 수 있어요.',
+      errorTitle: '인증에 실패했어요',
+      errorDescription: '링크가 유효하지 않거나 이미 사용됐어요.',
+      goToFeed: '피드로 이동',
+      goToLogin: '로그인하러 가기',
+      goToAccountSettings: '계정 설정으로 이동',
+    },
   },
   nav: {
     brand: 'LinkSphere',
@@ -155,6 +169,10 @@ export const TEXTS = {
   },
   accountSettings: {
     title: '계정 설정',
+    emailVerificationNeeded:
+      '이메일 인증이 필요해요. 글쓰기·댓글쓰기를 하려면 인증을 완료해주세요.',
+    emailVerificationResend: '인증 메일 다시 보내기',
+    emailVerificationResending: '보내는 중...',
     passwordSectionTitle: '비밀번호 변경',
     changePasswordSubmit: '비밀번호 변경',
     changePasswordSubmitting: '변경 중...',
@@ -394,7 +412,6 @@ export const TEXTS = {
       commentDeleteConfirm: '정말 이 댓글을 삭제할까요? 삭제된 데이터는 복구할 수 없어요.',
     },
     success: {
-      accountCreated: '가입을 완료했어요.',
       postCreated: '포스트를 생성했어요.',
       postUpdated: '포스트를 수정했어요.',
       postSetToPrivate: '이 게시물을 나만 보기로 전환했어요.',
@@ -410,6 +427,7 @@ export const TEXTS = {
       passwordResetConfirmed: '비밀번호를 재설정했어요.',
       passwordChanged: '비밀번호를 변경했어요.',
       accountDeleted: '계정을 삭제했어요.',
+      emailVerificationResent: '인증 메일을 다시 보냈어요.',
     },
     error: {
       // 공통
@@ -440,6 +458,9 @@ export const TEXTS = {
       passwordChangeFailed: '비밀번호 변경에 실패했어요.',
       currentPasswordMismatch: '현재 비밀번호가 일치하지 않아요.',
       accountDeleteFailed: '계정 삭제에 실패했어요.',
+      emailVerificationRequestFailed: '요청 처리에 실패했어요. 잠시 후 다시 시도해주세요.',
+      emailVerificationRequired:
+        '이메일 인증이 필요해요. 계정 설정에서 인증 메일을 다시 보낼 수 있어요.',
 
       // 포스트 관련
       postCreateFailed: '포스트 생성에 실패했어요.',
@@ -523,6 +544,7 @@ export const TEXTS = {
     menuToggle: '메뉴 토글',
     homeLink: '홈으로 이동',
     accountMenu: '계정 메뉴',
+    accountMenuUnverified: '계정 메뉴 (이메일 인증 필요)',
     profileEdit: '프로필 수정',
     logout: '로그아웃',
     saveEmail: '이메일 저장',

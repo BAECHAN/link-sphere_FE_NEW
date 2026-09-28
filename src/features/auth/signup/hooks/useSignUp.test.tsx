@@ -127,4 +127,23 @@ describe('useSignUp', () => {
     expect(result.current.form.formState.errors.email).toBeFalsy();
     expect(result.current.isSubmitDisabled).toBe(false);
   });
+
+  it('가입에 성공하면 navigate 없이 isSubmitted가 true로 바뀐다(메일함 확인 화면)', async () => {
+    const { result } = renderHook(() => useSignUp(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.form.setValue('nickname', 'newNick', { shouldDirty: true });
+      result.current.form.setValue('email', 'new@example.com', { shouldDirty: true });
+      result.current.form.setValue('password', 'Passw0rd!', { shouldDirty: true });
+      result.current.form.setValue('confirmPassword', 'Passw0rd!', { shouldDirty: true });
+    });
+
+    expect(result.current.isSubmitted).toBe(false);
+
+    await act(async () => {
+      await result.current.onSubmit(result.current.form.getValues());
+    });
+
+    expect(result.current.isSubmitted).toBe(true);
+  });
 });

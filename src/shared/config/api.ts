@@ -31,6 +31,8 @@ const API_ENDPOINTS = {
     signup: `${API_BASES.auth}/signup`,
     passwordResetRequest: `${API_BASES.auth}/password-reset/request`,
     passwordResetConfirm: `${API_BASES.auth}/password-reset/confirm`,
+    emailVerificationRequest: `${API_BASES.auth}/email-verification/request`,
+    emailVerificationConfirm: `${API_BASES.auth}/email-verification/confirm`,
   },
 
   upload: {

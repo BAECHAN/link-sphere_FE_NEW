@@ -200,7 +200,11 @@ export function Navbar() {
                   <Button
                     variant="ghost"
                     className="relative h-8 w-8 rounded-full ml-2"
-                    aria-label={TEXTS.ariaLabels.accountMenu}
+                    aria-label={
+                      account?.emailVerified === false
+                        ? TEXTS.ariaLabels.accountMenuUnverified
+                        : TEXTS.ariaLabels.accountMenu
+                    }
                   >
                     <UserAvatar
                       image={account?.image}
@@ -208,6 +212,12 @@ export function Navbar() {
                       size="md"
                       className="border"
                     />
+                    {account?.emailVerified === false && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-destructive ring-2 ring-background"
+                      />
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">

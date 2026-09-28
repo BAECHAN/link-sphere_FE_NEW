@@ -12,6 +12,10 @@ export const SERVER_ERROR_CODE = {
   // InvalidActionTokenException 참고)
   INVALID_ACTION_TOKEN: 'INVALID_ACTION_TOKEN',
   DUPLICATE_NICKNAME: 'DUPLICATE_NICKNAME',
+  // 이메일 미인증 상태에서 글쓰기·댓글쓰기 시도(BE EmailNotVerifiedException) - FE도
+  // 제출 전에 emailVerified를 먼저 확인해 막지만, 그 사이 인증 상태가 바뀌는 등의
+  // 경우를 대비한 서버 쪽 방어 계층 중복
+  EMAIL_NOT_VERIFIED: 'EMAIL_NOT_VERIFIED',
 
   // Common
   INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',

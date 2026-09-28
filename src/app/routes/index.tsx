@@ -8,6 +8,7 @@ import { RootLayout } from '@/app/routes/layouts/RootLayout';
 import { RouteErrorBoundary } from '@/app/routes/RouteErrorBoundary';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
+import { AuthLayout } from '@/shared/ui/layouts/AuthLayout';
 
 const NotFoundPage = lazy(() =>
   import('@/pages/404/NotFoundPage').then((module) => ({ default: module.NotFoundPage }))
@@ -54,6 +55,11 @@ const ForgotPasswordPage = lazy(() =>
 const ResetPasswordPage = lazy(() =>
   import('@/pages/auth/ResetPasswordPage').then((module) => ({
     default: module.ResetPasswordPage,
+  }))
+);
+const VerifyEmailPage = lazy(() =>
+  import('@/pages/auth/VerifyEmailPage').then((module) => ({
+    default: module.VerifyEmailPage,
   }))
 );
 /**
@@ -178,6 +184,13 @@ export const appRoutes: RouteObject[] = [
             element: withSuspense(ResetPasswordPage),
           },
         ],
+      },
+      // 이메일 인증 확인 링크 - 로그인·비로그인 둘 다 접근 가능해야 하므로(로그인 상태면
+      // 인증 완료만 안내, 비로그인이면 로그인 유도) GuestGuard로 감싸지 않는다. 다른 인증
+      // 화면과 같은 시각 스타일(AuthLayout)만 직접 씌운다.
+      {
+        path: ROUTES_PATHS.AUTH.VERIFY_EMAIL,
+        element: <AuthLayout>{withSuspense(VerifyEmailPage)}</AuthLayout>,
       },
       // 배포 반영 확인 - AppShellLayout의 인증 복원 스피너에 발목 잡히지 않도록 직속에 둔다
       {
