@@ -49,12 +49,26 @@ export const passwordResetConfirmSchema = z
     path: ['confirmPassword'],
   });
 
+// 현재 비밀번호는 로그인과 같은 이유로 강도 재검증하지 않는다(loginPasswordSchema 참고) -
+// 맞는지는 서버가 판단한다. 새 비밀번호만 가입 시 규칙을 그대로 적용한다.
+export const changePasswordSchema = z
+  .object({
+    currentPassword: loginPasswordSchema,
+    newPassword: passwordValidationSchema,
+    confirmPassword: z.string().min(1, TEXTS.validation.passwordRequired),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: TEXTS.validation.passwordMismatch,
+    path: ['confirmPassword'],
+  });
+
 // ==================== 2. DTO ====================
 
 export type Login = z.infer<typeof loginSchema>;
 export type CreateAccount = z.infer<typeof createAccountSchema>;
 export type PasswordResetRequest = z.infer<typeof passwordResetRequestSchema>;
 export type PasswordResetConfirm = z.infer<typeof passwordResetConfirmSchema>;
+export type ChangePassword = z.infer<typeof changePasswordSchema>;
 
 // 기존 import 경로 호환 — auth.api.ts 등이 이 경로에서 응답 타입을 가져간다.
 export type { LoginResponse } from '@/entities/auth/model/auth.dto';

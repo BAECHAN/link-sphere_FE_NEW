@@ -80,4 +80,17 @@ export const authHandlers = [
       { status: 200 }
     );
   }),
+
+  // PATCH /auth/account/password - 성공 시 실제 BE처럼 새 accessToken을 돌려준다
+  http.patch(url(API_ENDPOINTS.auth.changePassword), () => {
+    return HttpResponse.json(
+      {
+        status: 200,
+        message: 'ok',
+        data: { accessToken: mockLoginResponse.accessToken },
+        timestamp: new Date().toISOString(),
+      },
+      { status: 200 }
+    );
+  }),
 ];

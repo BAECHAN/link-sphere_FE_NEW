@@ -11,6 +11,14 @@
 
 ### Added
 
+- `auth` 계정 설정 화면에서 비밀번호 변경과 회원 탈퇴 가능
+  <details><summary>배경·구현</summary>
+
+  이미 배포된 백엔드 Phase 4(비밀번호 변경·회원 탈퇴 API)에 맞춰 `/my/account` 화면을 새로 만들었다 — 현재 비밀번호·새 비밀번호·확인을 받는 `ChangePasswordForm`과, 재인증(비밀번호 재입력) 뒤 `useAlert`/`openConfirm`으로 한 번 더 확인받는 danger-zone 스타일 `DeleteAccountSection`. BE 계약을 직접 읽어 확인한 세션 처리 차이를 그대로 반영했다 — 비밀번호 변경은 다른 기기 세션만 무효화하고 현재 기기에는 새 accessToken을 돌려주므로 성공 시 `setAuth(newAccessToken)`으로 즉시 갱신하고, 회원 탈퇴는 현재 기기를 포함한 모든 세션을 지우므로 강제 로그아웃과 동일하게 처리했다. Navbar 계정 메뉴에 "계정 설정" 진입점을 추가했다.
+  (`src/features/auth/password-change/`(신규), `src/features/account/delete/`(신규), `src/pages/myaccount/MyAccountPage.tsx`(신규), `src/entities/auth/api/auth.api.ts`·`auth.queries.ts`·`src/entities/auth/model/auth.schema.ts`, `src/entities/account/api/account.api.ts`·`account.queries.ts`·`src/entities/account/model/account.schema.ts`, `src/widgets/layout/navbar/ui/Navbar.tsx`, [계획](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/plans/2026-09-28-auth-hardening.md) §2-2 Phase 4)
+
+  </details>
+
 - `auth` 비밀번호를 잊었을 때 이메일로 재설정 링크를 받아 새 비밀번호로 바꿀 수 있음
   <details><summary>배경·구현</summary>
 

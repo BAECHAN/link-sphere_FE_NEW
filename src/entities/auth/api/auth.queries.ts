@@ -7,6 +7,7 @@ import {
   CreateAccount,
   PasswordResetRequest,
   PasswordResetConfirm,
+  ChangePassword,
 } from '@/entities/auth/model/auth.schema';
 import { AuthUtil } from '@/shared/utils/auth.util';
 import { ROUTES_PATHS, isProtectedPath } from '@/shared/config/route-paths';
@@ -170,6 +171,28 @@ export const useConfirmPasswordResetMutation = () => {
     },
     onSuccess: () => {
       navigate(ROUTES_PATHS.AUTH.LOGIN);
+    },
+  });
+};
+
+// 성공하면 다른 기기는 전부 로그아웃되고 이 기기만 새 세션을 받는다(auth.api.ts의
+// changePassword 참고) - onSuccess에서 그 새 토큰으로 즉시 갱신해야 다음 요청이 401나지 않는다.
+export const useChangePasswordMutation = () => {
+  const setAuth = useAuthStore((state) => state.setAuth);
+
+  return useMutation({
+    mutationFn: (payload: ChangePassword) => authApi.changePassword(payload),
+    meta: { manualErrorHandling: true, successMessage: TEXTS.messages.success.passwordChanged },
+    onSuccess: (data) => {
+      setAuth(data.accessToken);
+    },
+    onError: (error) => {
+      if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.INVALID_CREDENTIALS) {
+        // useLoginMutation의 401 처리와 같은 이유로 서버 원문 메시지는 노출하지 않는다.
+        toast.error(TEXTS.messages.error.currentPasswordMismatch);
+      } else {
+        toast.error(TEXTS.messages.error.passwordChangeFailed);
+      }
     },
   });
 };
