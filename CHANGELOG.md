@@ -36,6 +36,16 @@
 
   </details>
 
+### Fixed
+
+- `shared` 카드 그리드 열 수를 뷰포트가 아닌 컨테이너 실측 폭으로 계산해 푸터 아이콘 줄바꿈 방지
+  <details><summary>배경·구현</summary>
+
+  피드·북마크 카드 그리드(`grid-cols-1 md:grid-cols-2 lg:grid-cols-3`)는 열 수를 뷰포트 폭으로 정했는데, 실제로 그리드가 받는 폭은 좌측 사이드바(w-60/w-20)·북마크 폴더트리(w-60)가 먼저 가져간 나머지였다 — 그 차이를 반영하지 못해 1024px·800px 같은 흔한 구간에서 카드가 ~229px까지 좁아졌고 PostCard 푸터(좋아요·댓글 pill + 북마크·공유 + 조회수, `flex flex-wrap`)가 두 줄로 줄바꿈됐다. 열 수를 `useWindowGridVirtualizer`가 목록 컨테이너를 `ResizeObserver`로 직접 측정해 `floor((폭+gap)/(최소카드폭+gap))` 공식(web.dev의 "RAM" 그리드 패턴과 동일)으로 계산하도록 바꿨다 — 사이드바 접기/펴기·폴더트리 유무가 자동으로 반영된다. 최소 카드 폭(330px)은 Playwright로 인기글 수준 통계(좋아요·댓글 세 자리, 조회 다섯 자리)의 푸터 자연폭을 직접 측정해 정했다. 사이드바를 접거나 펴서 열 수가 실제로 바뀔 때는 보던 위치를 잃지 않도록 화면 맨 위 행을 앵커로 잡아 재청크 후 그 위치로 다시 스크롤한다. 뒤로가기 스크롤 복원 스냅샷은 더 이상 열 수가 일치해야 유효한 것으로 보지 않는다(폭 실측이 매번 다시 정하므로) — count(게시글 수)만 비교한다.
+  (`src/shared/hooks/useWindowGridVirtualizer.ts`, `src/shared/lib/virtual/virtual-snapshot.ts`, `src/widgets/post/post-list/config/post-grid.const.ts`, `src/widgets/bookmark/bookmark-post-list/config/bookmark-grid.const.ts`, [계획](docs/plans/2026-09-29-container-width-grid.md))
+
+  </details>
+
 ## [0.17.0] - 2026-09-28
 
 ### Added

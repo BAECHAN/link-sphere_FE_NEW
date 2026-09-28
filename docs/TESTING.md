@@ -692,6 +692,8 @@ _"they run in the order opposite to their registration"_). 캐치올을 가장 �
 | `e2e/post-list-virtualization.spec.ts`        | 피드 가상 스크롤 — 200개 목킹 후 반복 스크롤, 렌더된 카드·DOM 노드 수가 상한 이내로 유지되고 위/아래 행이 서로 교체되는 것을 직접 확인(`data-index` 범위 비교). `overscan`을 임시로 키워 강제로 실패시켜 봄으로써 이 단언들이 실제로 가상화 여부를 가른다는 것까지 검증했다                                                                      |
 | `e2e/post-list-scroll-restore.spec.ts`        | 피드 가상 스크롤 — 60개 목킹 후 화면 밖 카드로 스크롤 → 상세 진입 → "목록으로" 버튼/`page.goBack()` 두 경로로 복귀 → 같은 카드가 같은 화면 좌표(±50px)에 있는지 확인. 스냅샷 복원을 임시로 꺼서 강제로 실패시켜 봄으로써 검증력을 확인했다                                                                                                       |
 | `e2e/post-list-scroll-restore.mobile.spec.ts` | 위와 동일한 시나리오의 모바일(1열) 버전 — `columnCount=1` 경로는 데스크톱 스펙이 검증하지 못하는 유일한 경로                                                                                                                                                                                                                                     |
+| `e2e/post-card-footer-layout.spec.ts`         | 카드 그리드 열 수 = 컨테이너 실측 폭 — 인기글 수준 통계(좋아요·댓글 세 자리, 조회 다섯 자리)로 1024px·800px에서 PostCard 푸터가 줄바꿈되지 않는지, 1200px에서 ⌘B로 사이드바를 접어 열 수가 2→3으로 바뀌어도 보던 카드가 화면에 남는지 확인                                                                                                       |
+| `e2e/bookmark-card-footer-layout.spec.ts`     | 위와 같은 시나리오의 북마크(폴더트리까지 폭을 가져가는 레이아웃) 버전 — 1280px·1100px에서 푸터 줄바꿈 없음만 확인(앵커 이동은 피드 스펙이 이미 검증)                                                                                                                                                                                             |
 
 ### 아직 만들지 않은 흐름과 판정
 
