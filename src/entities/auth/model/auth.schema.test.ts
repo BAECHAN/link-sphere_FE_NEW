@@ -1,6 +1,44 @@
 import { describe, expect, it } from 'vitest';
-import { loginSchema, createAccountSchema } from '@/entities/auth/model/auth.schema';
+import {
+  loginSchema,
+  createAccountSchema,
+  passwordValidationSchema,
+} from '@/entities/auth/model/auth.schema';
 import { TEXTS } from '@/shared/config/texts';
+
+describe('passwordValidationSchema', () => {
+  it('64자를 넘으면 실패한다(서버 정책과 동일)', () => {
+    const result = passwordValidationSchema.safeParse(`${'a1!'.repeat(21)}a`); // 64자
+    expect(result.success).toBe(true);
+
+    const tooLong = passwordValidationSchema.safeParse(`${'a1!'.repeat(21)}ab`); // 65자
+    expect(tooLong.success).toBe(false);
+    if (!tooLong.success) {
+      expect(tooLong.error.issues[0]?.message).toBe(TEXTS.validation.passwordMaxLength);
+    }
+  });
+
+  it('한글이 섞이면 실패한다', () => {
+    const result = passwordValidationSchema.safeParse('password1!한글');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(TEXTS.validation.passwordAsciiOnly);
+    }
+  });
+
+  it('이모지가 섞이면 실패한다', () => {
+    const result = passwordValidationSchema.safeParse('password1!😀');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(TEXTS.validation.passwordAsciiOnly);
+    }
+  });
+
+  it('기존 화이트리스트에 없던 특수문자(백틱)도 이제 통과한다(서버가 특정 문자를 더 이상 가리지 않음)', () => {
+    const result = passwordValidationSchema.safeParse('password1`');
+    expect(result.success).toBe(true);
+  });
+});
 
 describe('loginSchema', () => {
   it('비밀번호가 회원가입 강도 규칙(영문+숫자+특수문자)을 만족하지 않아도 통과한다', () => {

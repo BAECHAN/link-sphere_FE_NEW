@@ -2,14 +2,14 @@ import { z } from 'zod';
 import { TEXTS } from '@/shared/config/texts';
 import { nicknameValidationSchema, emailValidationSchema } from '@/entities/account/@x/auth';
 
-/** 재사용 가능한 비밀번호 검증 스키마 */
+// 서버(SignupRequest.password, docs/plans/2026-09-28-auth-hardening.md Phase 5)와 동일한
+// 규칙 - 조합 규칙은 유지하되 특수문자 화이트리스트를 없애고(영문·숫자가 아니면 전부 인정)
+// 길이 상한을 64자로, 출력 가능 ASCII만 허용하도록 맞췄다.
 export const passwordValidationSchema = z
   .string()
-  .regex(
-    /^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\-=[\]{};':",./< >?]).{8,}$/,
-    TEXTS.validation.passwordRegex
-  )
-  .max(20, TEXTS.validation.passwordMaxLength);
+  .regex(/^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{8,}$/, TEXTS.validation.passwordRegex)
+  .max(64, TEXTS.validation.passwordMaxLength)
+  .regex(/^[\x20-\x7E]*$/, TEXTS.validation.passwordAsciiOnly);
 
 // 로그인 비밀번호는 회원가입 강도 규칙을 재검증하지 않는다 - 이미 가입된 계정의 비밀번호가
 // 그 사이 규칙이 바뀌어 더 이상 매칭 안 될 수 있고, 어차피 맞는지 틀린지는 서버가 판단한다.

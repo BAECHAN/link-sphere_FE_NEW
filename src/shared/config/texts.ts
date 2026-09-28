@@ -304,7 +304,7 @@ export const TEXTS = {
     viewAction: '보러가기',
   },
   descriptions: {
-    passwordGuide: '영문, 숫자, 특수문자 조합 8자 이상',
+    passwordGuide: '영문, 숫자, 특수문자 조합 8~64자',
   },
   validation: {
     urlFormat: 'http:// 또는 https://로 시작하는 웹 주소만 등록할 수 있어요.',
@@ -314,7 +314,8 @@ export const TEXTS = {
     idRequired: '아이디를 입력해주세요.',
     passwordRequired: '비밀번호를 입력해주세요.',
     passwordRegex: '비밀번호는 8자 이상, 영문, 숫자, 특수문자 조합으로 입력해주세요.',
-    passwordMaxLength: '비밀번호는 20자 이하로 입력해주세요.',
+    passwordMaxLength: '비밀번호는 64자 이하로 입력해주세요.',
+    passwordAsciiOnly: '비밀번호에는 한글이나 이모지를 사용할 수 없어요.',
     passwordMismatch: '비밀번호가 일치하지 않아요.',
     emailRegex: '올바른 이메일 형식(예: user@mail.com)인지 확인해주세요.',
     // "닉네임" 레이블 바로 옆(같은 줄, 오른쪽 정렬)에 뜨는 메시지라 "닉네임은" 주어를 반복하지
