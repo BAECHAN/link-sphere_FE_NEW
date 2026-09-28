@@ -44,6 +44,16 @@
 
   </details>
 
+### Fixed
+
+- `auth` 회원가입 "Sign In" 링크 두 개가 서로 다르게 동작하던 걸 하나로 통합
+  <details><summary>배경·구현</summary>
+
+  이메일 중복 안내 옆에만 이탈 확인창을 생략하는 전용 링크를 두고, 하단 "이미 계정이 있으신가요? Sign In" 링크는 계속 확인창이 뜨도록 남겨뒀었다. 두 링크 모두 "Sign In"이라는 같은 글자라 사용자가 어느 쪽을 눌렀는지 구분하지 못했고, 실사용 확인 결과 하단 링크를 누르고 확인창을 보고서야 "이메일 중복이면 확인창 안 뜨기로 하지 않았냐"고 되묻는 혼란이 있었다 — 실제로는 설계대로였지만, 똑같이 생긴 두 링크의 동작이 다른 것 자체가 문제였다. 이메일 중복 전용 링크를 없애고 하단 링크 하나만 남긴 뒤, 그 하나가 항상 확인창을 생략하도록 통합했다.
+  (`src/features/auth/signup/hooks/useSignUp.ts`, `src/features/auth/signup/ui/SignUpForm.tsx`, `e2e/signup-unsaved-changes.spec.ts`, `docs/UNSAVED-CHANGES-GUARD.md`)
+
+  </details>
+
 ## [0.17.0] - 2026-09-28
 
 ### Added
