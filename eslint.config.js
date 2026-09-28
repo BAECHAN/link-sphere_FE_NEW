@@ -149,7 +149,7 @@ const customQueryRulesPlugin = {
     'no-entity-query-import-outside-hooks': {
       meta: {
         type: 'problem',
-        docs: { description: 'features의 hooks/ 밖에서 entity *.queries 모듈 import 금지' },
+        docs: { description: 'features·pages의 hooks/ 밖에서 entity *.queries 모듈 import 금지' },
         messages: {
           entityQueryImport:
             '이 위치에서는 entity 쿼리 훅(*.queries)을 직접 import할 수 없습니다. 조회는 같은 슬라이스의 hooks/ 커스텀 훅이나 entities/<entity>/hooks/의 공용 훅(예: useCategoryOptions)에서 하세요.',
@@ -981,11 +981,8 @@ export default [
       'src/shared/hooks/useWindowFocusManager.ts',
       // 3-Layer API의 Layer 3 — 쿼리·뮤테이션 훅을 정의하는 자리
       'src/**/api/*.queries.ts',
-      // hooks/ 세그먼트 — entity/feature/widget 커스텀 훅
+      // hooks/ 세그먼트 — entity/feature/widget/page 커스텀 훅
       'src/**/hooks/**/*.{ts,tsx}',
-      // pages엔 hooks/ 세그먼트가 없다. 한 줄짜리 invalidate만 있어 훅으로 뺄 정도가
-      // 아니므로 파일 단위 예외로 둔다
-      'src/pages/post/PostDetailPage.tsx',
       // 테스트 인프라·콜로케이션 테스트
       'src/test/**/*.{ts,tsx}',
       '**/*.test.{ts,tsx}',
@@ -997,17 +994,23 @@ export default [
   },
 
   // ============================================================
-  // [금지] features 레이어의 hooks/ 밖에서 entity 쿼리 훅(*.queries) import
+  // [금지] features·pages 레이어의 hooks/ 밖에서 entity 쿼리 훅(*.queries) import
   // 이유: FE-ARCHITECTURE §6은 features에 예외를 두지 않는다(§8의 "query 1개 + trivial
   //       파생" 예외는 widgets 한정). ui/만 막으면 utils/·config/로 새므로
-  //       no-direct-query-import와 같은 허용목록 방식(hooks/만 허용)을 쓴다.
+  //       no-direct-query-import와 같은 허용목록 방식(hooks/만 허용)을 쓴다. pages도
+  //       features와 동일하게 예외 없이 적용한다(2026-09-29, `.claude/CLAUDE.md`
+  //       "레이어별 허용 세그먼트" 표에 pages hooks/ 도입과 함께).
   // widgets는 이 블록의 대상이 아니다: §8 예외는 "파생이 trivial한가"라는 사람 판단이라
   //       ESLint가 평가할 수 없다. 파일 단위 ignore로 흉내 내면 그 파일에 앞으로 들어올
   //       모든 쿼리까지 영구 면제가 되므로, widgets는 문서(§8)와 /code-review로 지킨다.
   // ============================================================
   {
-    files: ['src/features/**/*.{ts,tsx}'],
-    ignores: ['src/features/**/hooks/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
+    files: ['src/features/**/*.{ts,tsx}', 'src/pages/**/*.{ts,tsx}'],
+    ignores: [
+      'src/features/**/hooks/**/*.{ts,tsx}',
+      'src/pages/**/hooks/**/*.{ts,tsx}',
+      '**/*.test.{ts,tsx}',
+    ],
     plugins: { 'custom-query-rules': customQueryRulesPlugin },
     rules: {
       'custom-query-rules/no-entity-query-import-outside-hooks': 'error',

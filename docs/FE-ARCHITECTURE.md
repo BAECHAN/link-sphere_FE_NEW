@@ -135,10 +135,12 @@ src/
 │   └── ui/                       # PostMutationLoadingToast — post/account 뮤테이션 진행 상태
 │                                 # 헤드리스 옵저버(여러 entities를 알아야 해서 app에 위치)
 │
-├── pages/                        # 라우팅 진입점 — widgets/features 조합. 세그먼트 없음
+├── pages/                        # 라우팅 진입점 — widgets/features 조합. hooks/ 세그먼트만 허용
 │   ├── post/                     # index(Post), PostDetailPage, PostEditPage, PostSubmitPage
+│   │   └── hooks/                # usePostDetail, usePostNotFoundRedirect
 │   ├── auth/                     # LoginPage, SignUpPage
 │   ├── bookmark/                 # BookmarkPage
+│   │   └── hooks/                # useBookmarkPage
 │   ├── 403/                      # ForbiddenPage
 │   ├── 404/                      # NotFoundPage
 │   └── 500/                      # ServerErrorPage
