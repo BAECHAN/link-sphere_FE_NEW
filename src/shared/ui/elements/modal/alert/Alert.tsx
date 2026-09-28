@@ -27,6 +27,11 @@ function Alert({ alert }: AlertProps) {
     }))
   );
 
+  // 취소 버튼을 오른쪽(DOM상 두 번째)에 두면서도 Radix가 기본으로 주는 "첫 번째 포커스
+  // 가능 요소" 오토포커스가 확인 버튼으로 가버리는 걸 막는다 - 안전한 선택지가 여전히
+  // 처음 포커스를 받아야 한다(§ docs/DECISIONS.md 2026-09-29 팔로업 항목).
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+
   const {
     id,
     title,
@@ -75,7 +80,15 @@ function Alert({ alert }: AlertProps) {
         }
       }}
     >
-      <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-[400px]">
+      <DialogContent
+        className="max-w-[calc(100%-2rem)] sm:max-w-[400px]"
+        onOpenAutoFocus={(e) => {
+          if (type === 'confirm') {
+            e.preventDefault();
+            cancelButtonRef.current?.focus();
+          }
+        }}
+      >
         <DialogHeader className="items-center text-center">
           {title ? (
             <DialogTitle>{title}</DialogTitle>
@@ -93,15 +106,13 @@ function Alert({ alert }: AlertProps) {
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex-row justify-center gap-2 sm:justify-center mt-2">
-          {/* 취소(안전한 선택지)가 채움, 확인(진행/이탈 등 되돌리기 어려운 선택지)이 outline이다 —
-              Nielsen(2008) "가장 자주 선택되는 버튼을 기본값으로 두고 강조하라(단, 그 동작이
-              위험하면 예외)"(번역, https://www.nngroup.com/articles/ok-cancel-or-cancel-ok/)를
-              모든 confirm에 일괄 적용한 것이다. 근거: docs/DECISIONS.md 2026-09-29 항목 */}
-          {type === 'confirm' && (
-            <Button onClick={handleCancel} className="flex-1 sm:flex-none sm:min-w-[80px]">
-              {cancelText}
-            </Button>
-          )}
+          {/* 취소(안전한 선택지)가 채움 + 오른쪽, 확인(진행/이탈 등 되돌리기 어려운 선택지)이
+              outline + 왼쪽이다. 안전한 쪽을 채움으로 강조하는 원칙은 Nielsen(2008) "가장 자주
+              선택되는 버튼을 기본값으로 두고 강조하라(단, 위험하면 예외)"(번역,
+              https://www.nngroup.com/articles/ok-cancel-or-cancel-ok/)를 따르고, 오른쪽(trailing)에
+              두는 배치는 Apple HIG "사람들이 가장 많이 고를 버튼을 trailing 쪽에 둔다"(번역,
+              https://developer.apple.com/design/human-interface-guidelines/alerts)를 따른다.
+              근거: docs/DECISIONS.md 2026-09-29 항목(팔로업 포함) */}
           <Button
             variant={type === 'confirm' ? 'outline' : 'default'}
             onClick={handleConfirm}
@@ -109,6 +120,15 @@ function Alert({ alert }: AlertProps) {
           >
             {confirmText}
           </Button>
+          {type === 'confirm' && (
+            <Button
+              ref={cancelButtonRef}
+              onClick={handleCancel}
+              className="flex-1 sm:flex-none sm:min-w-[80px]"
+            >
+              {cancelText}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
