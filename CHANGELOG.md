@@ -25,11 +25,14 @@
   `src/features/auth/login/ui/LoginForm.tsx`, `src/shared/ui/atoms/icon-badge.tsx`·`labeled-divider.tsx`(신규),
   `src/app/globals.css`, `src/shared/ui/elements/form/_base/FormField.tsx`,
   [계획](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/plans/2026-09-28-auth-hardening.md) §2-2 Phase 3)
+
+  </details>
+
 - `auth` 회원가입 입력 중 이탈하려 하면 한 번 확인
   <details><summary>배경·구현</summary>
 
   회원가입 중 하단 "Sign In" 링크나 뒤로가기로 나가면 확인 없이 그대로 입력이 사라졌다. 게시글·댓글 폼에 이미 있던 이탈 확인 가드(`useUnsavedChangesGuard`)를 재사용했는데, 이 가드는 로그아웃·세션 만료 시 강제 리다이렉트를 막지 않으려고 비로그인이면 무조건 통과시키는 규칙이 있어(`docs/DECISIONS.md` 2026-08-06) 회원가입(비로그인 전용 페이지)에서는 그대로 붙여도 동작하지 않았다. 로그인·회원가입 페이지만 그 비로그인 예외에서 빼고, 회원가입 전용 확인창 문구를 추가했다. 이메일 중복 안내의 "Sign In" 링크는 로그인하려는 의도가 명확해 확인창 없이 바로 이동하도록 뺐다. 가입 성공 시 로그인 페이지로의 자동 이동은 요청 직전에 동기로 해제해 막히지 않는다.
-  (`src/shared/hooks/useUnsavedChangesGuard.ts`, `src/shared/config/texts.ts`, `src/features/auth/signup/hooks/useSignUp.ts`, `src/features/auth/signup/ui/SignUpForm.tsx`, `e2e/signup-unsaved-changes.spec.ts`(신규), `docs/plans/2026-09-29-signup-unsaved-guard.md`(신규))
+  (`src/shared/hooks/useUnsavedChangesGuard.ts`, `src/shared/config/texts.ts`, `src/features/auth/signup/hooks/useSignUp.ts`, `src/features/auth/signup/ui/SignUpForm.tsx`, `e2e/signup-unsaved-changes.spec.ts`(신규), `docs/plans/2026-09-29-signup-unsaved-guard.md`(신규), [PR #225](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/225))
 
   </details>
 
