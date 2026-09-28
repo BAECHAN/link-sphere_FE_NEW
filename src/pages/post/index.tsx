@@ -1,12 +1,10 @@
 import { Button } from '@/shared/ui/atoms/button';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
-import { useFetchCategoryOptionQuery } from '@/entities/category/api/category.queries';
 import { useProtectedNavigate } from '@/entities/auth/hooks/useProtectedNavigate';
 import { PostList } from '@/widgets/post/post-list/ui/PostList';
 import { PostListSearch } from '@/widgets/post/post-list/ui/PostListSearch';
 
 export function Post() {
-  useFetchCategoryOptionQuery();
   const protectedNavigate = useProtectedNavigate();
 
   return (
