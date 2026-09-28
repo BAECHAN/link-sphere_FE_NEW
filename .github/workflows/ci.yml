@@ -158,6 +158,10 @@ jobs:
           # 탭에서 누구나 볼 수 있는 URL이다). 이 BE는 요청 Origin을 그대로 반사하는
           # CORS 설정이라(2026-09-26 curl로 확인) localhost 프리뷰에서도 정상 동작한다.
           VITE_API_BASE_URL: https://452wlgf5pesg75zbpiaotptq7i0ckrsb.lambda-url.ap-northeast-1.on.aws
+          # 위 API가 FE와 교차 출처라 connect-src 'self'인 CSP를 주입하면 모든 API
+          # 호출이 막혀 빈 화면을 측정하게 된다(scripts/inject-csp.js 주석 참고) -
+          # 실제 배포는 같은 출처(/api)만 쓰므로 이 문제가 없다.
+          SKIP_CSP_INJECTION: '1'
 
       - name: Run Lighthouse CI
         run: pnpm perf:lh

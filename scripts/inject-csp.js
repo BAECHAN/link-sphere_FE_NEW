@@ -41,7 +41,14 @@ function buildCsp(scriptHashes) {
   return [
     `default-src 'self'`,
     `script-src 'self' ${scriptHashes.join(' ')} https://client.rum.us-east-1.amazonaws.com`,
-    `connect-src 'self' https://dataplane.rum.ap-northeast-1.amazonaws.com https://*.supabase.co`,
+    // dataplane.rum·supabase는 RUM 전송·업로드 서명 URL. firebaseinstallations·
+    // fcmregistrations는 로그인 직후 호출되는 firebase/messaging의 getToken()이
+    // SDK 내부에서 직접 부르는 Firebase Installations/FCM 등록 API 도메인이다
+    // (Firebase Web SDK 공식 동작 - https://firebase.google.com/docs/cloud-messaging/js/client
+    // 는 이 도메인을 명시하진 않지만, SDK 소스에서 고정된 엔드포인트다). 빠지면
+    // 로그인마다 FCM 토큰 등록이 CSP로 조용히 막힌다(fcm.ts의 catch가 콘솔 로그만
+    // 남겨 겉으로 드러나지 않는다) - pr-review-toolkit 리뷰에서 발견.
+    `connect-src 'self' https://dataplane.rum.ap-northeast-1.amazonaws.com https://*.supabase.co https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com`,
     `img-src 'self' data: https:`,
     `style-src 'self' 'unsafe-inline'`,
     `font-src 'self'`,
@@ -51,6 +58,16 @@ function buildCsp(scriptHashes) {
 }
 
 function main() {
+  // Lighthouse CI(.github/workflows/ci.yml)는 VITE_API_BASE_URL을 Lambda Function
+  // URL(교차 출처)로 직접 가리켜 데이터가 채워진 화면을 측정한다 - connect-src 'self'인
+  // CSP를 주입하면 그 호출이 전부 막혀 빈 화면을 측정하게 된다(pr-review-toolkit
+  // 리뷰에서 발견). 실제 배포(deploy.yml)는 VITE_API_BASE_URL을 안 정해 같은 출처
+  // (/api)로만 호출하므로 이 문제가 없다 - Lighthouse job에서만 건너뛴다.
+  if (process.env.SKIP_CSP_INJECTION === '1') {
+    console.log('[inject-csp] SKIP_CSP_INJECTION=1 - CSP 주입을 건너뜁니다');
+    return;
+  }
+
   const html = fs.readFileSync(INDEX_PATH, 'utf8');
   const scriptContents = extractInlineScriptContents(html);
 
@@ -61,16 +78,25 @@ function main() {
   }
 
   const csp = buildCsp(scriptContents.map(hashScript));
-  const metaTag = `<meta http-equiv="Content-Security-Policy" content="${csp}" />\n  </head>`;
-  const updatedHtml = html.replace('</head>', metaTag);
+  // <meta charset> 바로 뒤에 넣는다 - meta CSP는 파서가 그 태그를 만난 "이후"
+  // 콘텐츠에만 적용되므로, </head> 앞(RUM 로더·테마 스크립트보다 뒤)에 넣으면 두
+  // 인라인 스크립트가 정책 적용 전에 이미 실행돼 해시 허용 목록이 사실상 아무것도
+  // 검증하지 못한다(pr-review-toolkit 리뷰에서 발견). charset은 문서 첫 1024바이트
+  // 안에 있어야 하므로 CSP를 그보다 앞에 두면 안 된다 - 바로 뒤가 가장 이른 위치다.
+  const CHARSET_TAG = '<meta charset="UTF-8" />';
+  const metaTag = `${CHARSET_TAG}\n    <meta http-equiv="Content-Security-Policy" content="${csp}" />`;
+  const updatedHtml = html.replace(CHARSET_TAG, metaTag);
 
   if (updatedHtml === html) {
-    throw new Error('index.html에서 </head>를 찾지 못해 CSP meta 태그를 주입하지 못했다.');
+    throw new Error(
+      'index.html에서 <meta charset="UTF-8" />를 찾지 못해 CSP meta 태그를 주입하지 못했다.'
+    );
   }
 
   fs.writeFileSync(INDEX_PATH, updatedHtml, 'utf8');
 
   const staleGzipPath = `${INDEX_PATH}.gz`;
+
   if (fs.existsSync(staleGzipPath)) {
     fs.unlinkSync(staleGzipPath);
   }

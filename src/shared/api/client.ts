@@ -227,14 +227,18 @@ class ApiClient {
       delete headers['X-Access-Token'];
     }
 
-    // 문자열 바디(JSON)가 있으면 x-amz-content-sha256을 계산해 실어 보낸다 - OAC
-    // 전환 후 이 헤더가 없으면 Lambda가 요청을 거절한다(hashRequestBody 주석 참고).
+    // GET이 아닌 모든 요청에 x-amz-content-sha256을 계산해 실어 보낸다 - OAC 전환
+    // 후 이 헤더가 없으면 Lambda가 요청을 거절한다(hashRequestBody 주석 참고).
+    // 바디가 없는 POST(예: /auth/refresh)도 대상이다 - AWS 문서가 "PUT/POST면"이라고만
+    // 하지 바디 유무를 구분하지 않아, 없으면 빈 문자열의 해시를 그대로 쓴다(pr-review-toolkit
+    // 리뷰에서 지적 - 빠뜨리면 새로고침마다 호출되는 refresh가 전환 즉시 깨질 수 있었다).
     // FormData는 브라우저가 전송 시점에 실제 바이트(멀티파트 boundary 포함)를
     // 만들어 미리 해시할 방법이 없다 - 지금은 apiClient로 FormData를 보내는
     // 프로덕션 경로가 없어(이미지 업로드는 Supabase에 직접 감, upload.api.ts 참고)
     // 생략한다. 앞으로 FormData 경로가 생기면 별도 해결이 필요하다.
-    if (typeof options?.body === 'string') {
-      headers['x-amz-content-sha256'] = await hashRequestBody(options.body);
+    if (!isFormData && options?.method && options.method !== 'GET') {
+      const body = typeof options.body === 'string' ? options.body : '';
+      headers['x-amz-content-sha256'] = await hashRequestBody(body);
     }
 
     try {

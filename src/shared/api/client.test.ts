@@ -390,4 +390,57 @@ describe('ApiClient — 요청 헤더 (CloudFront OAC 대응)', () => {
 
     expect(capturedHeaders?.has('x-amz-content-sha256')).toBe(false);
   });
+
+  it('바디 없는 POST(예: refresh)에도 빈 문자열의 해시를 싣는다', async () => {
+    // AWS 문서는 "PUT/POST면"이라고만 하지 바디 유무를 구분하지 않는다 - 헤더 자체가
+    // 없으면 CloudFront가 OAC 서명에 쓸 해시를 몰라 요청이 거절될 수 있다. 빈 문자열의
+    // SHA256은 고정값(e3b0c442...)이라 그대로 기대값으로 쓴다.
+    let capturedHeaders: Headers | undefined;
+    server.use(
+      http.post(REFRESH_HANDLER_URL, ({ request }) => {
+        capturedHeaders = request.headers;
+        return HttpResponse.json(
+          {
+            status: 200,
+            message: 'ok',
+            data: { accessToken: 'new-token' },
+            timestamp: new Date().toISOString(),
+          },
+          { status: 200 }
+        );
+      })
+    );
+
+    await apiClient.post(API_ENDPOINTS.auth.refresh);
+
+    expect(capturedHeaders?.get('x-amz-content-sha256')).toBe(
+      'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+    );
+  });
+
+  it('로그인 엔드포인트는 X-Access-Token 헤더를 붙이지 않는다', async () => {
+    // isAuthEndpoint 목록(로그인·회원가입)은 토큰이 있어도 제거한다 - 헤더 이름이
+    // Authorization에서 바뀌었으니 회귀 방지로 고정해둔다.
+    useAuthStore.getState().setAuth('valid-access-token');
+
+    let capturedHeaders: Headers | undefined;
+    server.use(
+      http.post(mswUrl(API_ENDPOINTS.auth.login), ({ request }) => {
+        capturedHeaders = request.headers;
+        return HttpResponse.json(
+          {
+            status: 200,
+            message: 'ok',
+            data: { accessToken: 'token' },
+            timestamp: new Date().toISOString(),
+          },
+          { status: 200 }
+        );
+      })
+    );
+
+    await apiClient.post(API_ENDPOINTS.auth.login, { email: 'a@b.com', password: 'pw' });
+
+    expect(capturedHeaders?.has('x-access-token')).toBe(false);
+  });
 });
