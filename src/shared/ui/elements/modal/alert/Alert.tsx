@@ -93,16 +93,20 @@ function Alert({ alert }: AlertProps) {
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex-row justify-center gap-2 sm:justify-center mt-2">
+          {/* 취소(안전한 선택지)가 채움, 확인(진행/이탈 등 되돌리기 어려운 선택지)이 outline이다 —
+              Nielsen(2008) "가장 자주 선택되는 버튼을 기본값으로 두고 강조하라(단, 그 동작이
+              위험하면 예외)"(번역, https://www.nngroup.com/articles/ok-cancel-or-cancel-ok/)를
+              모든 confirm에 일괄 적용한 것이다. 근거: docs/DECISIONS.md 2026-09-29 항목 */}
           {type === 'confirm' && (
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-              className="flex-1 sm:flex-none sm:min-w-[80px]"
-            >
+            <Button onClick={handleCancel} className="flex-1 sm:flex-none sm:min-w-[80px]">
               {cancelText}
             </Button>
           )}
-          <Button onClick={handleConfirm} className="flex-1 sm:flex-none sm:min-w-[80px]">
+          <Button
+            variant={type === 'confirm' ? 'outline' : 'default'}
+            onClick={handleConfirm}
+            className="flex-1 sm:flex-none sm:min-w-[80px]"
+          >
             {confirmText}
           </Button>
         </DialogFooter>

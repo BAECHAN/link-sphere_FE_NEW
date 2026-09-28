@@ -653,6 +653,10 @@ const onDelete = (id: string) => {
 };
 ```
 
+**버튼 강조는 호출부가 정하지 않는다.** `Alert.tsx`가 모든 confirm에 취소=채움(primary)·
+확인=outline을 일괄 적용한다 — 되돌리기 쉬운 선택지를 반사적으로도 누르기 쉽게 두기 위해서다.
+근거는 `docs/DECISIONS.md` 2026-09-29 항목 참고.
+
 ---
 
 ## 11. Optimistic Update 패턴

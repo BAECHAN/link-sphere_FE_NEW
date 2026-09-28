@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { MemoryRouter } from 'react-router-dom';
 import { GlobalAlerts } from '@/shared/ui/elements/modal/alert/Alert';
 import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
 import { Button } from '@/shared/ui/atoms/button';
@@ -7,6 +8,15 @@ const meta = {
   title: 'Shared/UI/Elements/Modal/Alert',
   component: GlobalAlerts,
   tags: ['autodocs'],
+  // Alert가 마운트 즉시 useLocation()을 호출한다 - <Router> 조상 없이는 렌더 자체가
+  // 크래시한다(ImageViewer.stories.tsx와 동일한 문제, 같은 해법).
+  decorators: [
+    (Story) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
 } satisfies Meta<typeof GlobalAlerts>;
 
 /* eslint-disable import/no-default-export */
