@@ -1,4 +1,7 @@
 ### 2026-09-28 (BE)
+- 인증 시스템 고도화: 이메일 발송 및 인증 기능 구현 및 비밀번호 찾기 기능 추가, 글쓰기 권한 제어를 위한 이메일 인증 게이트 도입 (Phase 6) ([#45](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/45))
+
+### 2026-09-28 (BE)
 - 로그인 실패 및 가입 시도에 대한 레이트 리밋(Rate Limit) 정책을 적용하여 보안성 강화 ([#43](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/43))
 
 ### 2026-09-28 (BE)
