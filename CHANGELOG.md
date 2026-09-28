@@ -80,7 +80,7 @@
   <details><summary>배경·구현</summary>
 
   바로 위 항목에서 "Sign In" 링크가 항상 확인창을 생략하도록 바꿨는데, 실사용 확인 결과 이메일 중복이 아닌 일반적인 입력 중 상태에서도 조용히 입력이 사라지는 게 오히려 문제였다 — 로그인하려는 의도가 명확한 건 이메일이 이미 가입돼 있다고 확인된 경우뿐이다. 링크는 하나로 유지하되, `emailCheck.isDuplicate`일 때만 확인창을 생략하고 그 외엔 뒤로가기와 동일하게 확인창이 뜨도록 되돌렸다.
-  (`src/features/auth/signup/hooks/useSignUp.ts`, `e2e/signup-unsaved-changes.spec.ts`, `docs/UNSAVED-CHANGES-GUARD.md`)
+  (`src/features/auth/signup/hooks/useSignUp.ts`, `e2e/signup-unsaved-changes.spec.ts`, `docs/UNSAVED-CHANGES-GUARD.md`, [PR #238](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/238))
 
   </details>
 
