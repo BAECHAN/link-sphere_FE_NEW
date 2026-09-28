@@ -166,7 +166,7 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 헤더 입력값이 URL과 동기화되는 조건 바꾸기                | [`useNavbarSearch.ts:14`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts#L14) — `isPostListPage` 판정                                                                                               |
 | 검색어 제출(경로·trim·filter 보존) 바꾸기 — 데스크톱      | [`NavbarSearch.tsx:53-80`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L53-L80) — `submitQuery`                                                                                                       |
-| 검색어 제출 바꾸기 — 모바일                               | [`Navbar.tsx:109-117`](../src/widgets/layout/navbar/ui/Navbar.tsx#L109-L117) — `handleSearchSubmit`(최근검색 기록 포함)                                                                                    |
+| 검색어 제출 바꾸기 — 모바일                               | [`useMobileSearchPanel.ts:34-42`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L34-L42) — `handleSearchSubmit`(최근검색 기록 포함)                                                           |
 | X 버튼 동작 바꾸기                                        | 데스크톱 [`NavbarSearch.tsx:266-276`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L266-L276), 모바일 [`MobileNavbarSearch.tsx:19-25`](../src/widgets/layout/navbar/ui/MobileNavbarSearch.tsx#L19-L25) |
 | 데스크톱 드롭다운 열림/닫힘 규칙(포커스·입력·blur) 바꾸기 | [`NavbarSearch.tsx:87-113`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L87-L113) — `handleChange`/`handleFocus`/`handleBlur`                                                                         |
 | 데스크톱 드롭다운 키보드(ESC 2단계·화살표·Enter) 바꾸기   | [`NavbarSearch.tsx:134-256`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L134-L256) — `handleKeyDown`                                                                                                 |
@@ -175,7 +175,7 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 | "조건 N개 적용 중" 카운트 로직                            | [`PostListSearch.tsx:76-87`](../src/widgets/post/post-list/ui/PostListSearch.tsx#L76-L87)                                                                                                                  |
 | 초기화 버튼(필터+검색어 전체 리셋)                        | [`PostListSearch.tsx:89-96`](../src/widgets/post/post-list/ui/PostListSearch.tsx#L89-L96) — `handleClearSearch`                                                                                            |
 | 오타 보정 문구                                            | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx:52-56`](../src/widgets/post/post-list/ui/PostList.tsx#L52-L56)                                                                                        |
-| 모바일 검색 패널 열림 상태                                | [`Navbar.tsx:69-71`](../src/widgets/layout/navbar/ui/Navbar.tsx#L69-L71) — `location.state.mobileSearchOpen`                                                                                               |
+| 모바일 검색 패널 열림 상태                                | [`useMobileSearchPanel.ts:17-22`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L17-L22) — `location.state.mobileSearchOpen`                                                                  |
 | 검색 중 하단 댓글바 숨김 동작 바꾸기                      | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useHistoryOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                            |
 | 검색 중 배경 클릭·포커스 차단 범위 바꾸기                 | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                          |
 | "의미로 찾았어요" 배지 문구·표시 조건 바꾸기              | [`PostCard.tsx:207-215`](../src/widgets/post/post-card/ui/PostCard.tsx#L207-L215) — `post.isSemanticMatch`, 문구는 `TEXTS.post.card.semanticMatch`                                                         |
@@ -230,7 +230,7 @@ URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 수정(mutate)하
 **포스트 상세 모바일에서 검색 패널 아래로 댓글 작성바가 그대로 비침 → z층 공유가 원인.**
 `RecentSearchPanel`(`fixed top-16 bottom-0`)과 `MobileCommentBar` 접힘 상태가 둘 다
 `z-panel`(40)이라, 검색을 열어도 댓글바가 DOM 순서(더 나중에 렌더)만으로 패널 위에 그대로
-남아 있었다. 탭바(`z-nav`=50)가 검색 중에도 보이는 건 `Navbar.tsx:228`이 명시한 의도된
+남아 있었다. 탭바(`z-nav`=50)가 검색 중에도 보이는 건 `Navbar.tsx:124`이 명시한 의도된
 설계라 그대로 두고, 댓글바만 [`useHistoryOverlay('mobileSearchOpen')`](../src/shared/hooks/useHistoryOverlay.ts)로
 같은 열림 상태를 구독해 `hidden`(`display:none`)을 붙였다. 언마운트하지 않은 이유는
 이탈 가드([`useUnsavedChangesGuard.ts`](../src/shared/hooks/useUnsavedChangesGuard.ts))가
