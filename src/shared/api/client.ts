@@ -46,6 +46,19 @@ function isApiResponseShape(json: unknown): boolean {
   return !!json && typeof json === 'object' && 'data' in json && 'status' in json;
 }
 
+/**
+ * CloudFront OAC가 오리진(Lambda Function URL)으로 바디를 스트리밍만 하고 해시를
+ * 대신 계산해주지 않으므로, 문자열 바디가 있는 요청은 클라이언트가 SHA256을 직접
+ * 계산해 x-amz-content-sha256 헤더로 실어 보내야 한다(Lambda는 unsigned payload를
+ * 지원하지 않음 - AWS 공식 문서, docs/plans/2026-09-29-oac-lockdown.md 참고).
+ */
+async function hashRequestBody(body: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body));
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 function parseErrorResponseBody(status: number, text: string): ApiErrorResponse {
   try {
     const parsed = JSON.parse(text) as Record<string, unknown> | null;
@@ -104,7 +117,11 @@ class ApiClient {
     const accessToken = useAuthStore.getState().accessToken;
 
     if (accessToken) {
-      headers.Authorization = `Bearer ${accessToken}`;
+      // CloudFront OAC(SigningBehavior: Always)가 오리진 요청의 Authorization
+      // 헤더를 자신의 SigV4 서명으로 덮어쓰므로, 실제 토큰은 별도 헤더로 보낸다
+      // (docs/plans/2026-09-29-oac-lockdown.md 참고). Bearer 접두어는 붙이지 않는다 -
+      // 커스텀 헤더라 HTTP Authorization 스킴을 흉내 낼 이유가 없다.
+      headers['X-Access-Token'] = accessToken;
     }
 
     return headers;
@@ -113,7 +130,7 @@ class ApiClient {
   private isAuthEndpoint(endpoint: string): boolean {
     // 토큰이 만료되어도 401에러가 뜨지 않고 통과되어야 하는 API 목록
     // 로그인·회원가입만 포함한다 — 리프레시(/auth/refresh)는 이 목록에 없어 만료된
-    // Authorization 헤더가 있으면 그대로 실려 나간다. BE가 이 엔드포인트를 permitAll로
+    // X-Access-Token 헤더가 있으면 그대로 실려 나간다. BE가 이 엔드포인트를 permitAll로
     // 두고 헤더를 무시한다는 전제로 현재는 무해하나 BE 소스 미검증. 상세: docs/AUTH.md §11
     const authEndpoints = [API_ENDPOINTS.auth.login, API_ENDPOINTS.auth.signup];
     return authEndpoints.some((path) => endpoint.includes(path));
@@ -205,9 +222,23 @@ class ApiClient {
       ...((options?.headers as Record<string, string>) || {}),
     };
 
-    // 인증이 필요없는 엔드포인트에서는 Authorization 헤더 제거
-    if (isAuth && headers.Authorization) {
-      delete headers.Authorization;
+    // 인증이 필요없는 엔드포인트에서는 X-Access-Token 헤더 제거
+    if (isAuth && headers['X-Access-Token']) {
+      delete headers['X-Access-Token'];
+    }
+
+    // GET이 아닌 모든 요청에 x-amz-content-sha256을 계산해 실어 보낸다 - OAC 전환
+    // 후 이 헤더가 없으면 Lambda가 요청을 거절한다(hashRequestBody 주석 참고).
+    // 바디가 없는 POST(예: /auth/refresh)도 대상이다 - AWS 문서가 "PUT/POST면"이라고만
+    // 하지 바디 유무를 구분하지 않아, 없으면 빈 문자열의 해시를 그대로 쓴다(pr-review-toolkit
+    // 리뷰에서 지적 - 빠뜨리면 새로고침마다 호출되는 refresh가 전환 즉시 깨질 수 있었다).
+    // FormData는 브라우저가 전송 시점에 실제 바이트(멀티파트 boundary 포함)를
+    // 만들어 미리 해시할 방법이 없다 - 지금은 apiClient로 FormData를 보내는
+    // 프로덕션 경로가 없어(이미지 업로드는 Supabase에 직접 감, upload.api.ts 참고)
+    // 생략한다. 앞으로 FormData 경로가 생기면 별도 해결이 필요하다.
+    if (!isFormData && options?.method && options.method !== 'GET') {
+      const body = typeof options.body === 'string' ? options.body : '';
+      headers['x-amz-content-sha256'] = await hashRequestBody(body);
     }
 
     try {

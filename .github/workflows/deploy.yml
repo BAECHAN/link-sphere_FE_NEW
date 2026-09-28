@@ -12,6 +12,7 @@ on:
       - 'postcss.config.js'
       - 'index.html'
       - 'tsconfig*.json'
+      - 'scripts/inject-csp.js'
   workflow_dispatch:
 
 permissions:

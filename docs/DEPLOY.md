@@ -267,6 +267,65 @@ curl -sS -o /dev/null -w '%{http_code}\n' -X POST "$URL" -H 'Content-Type: appli
 `RuleActionOverrides`에서 `CrossSiteScripting_BODY` 항목을 제거하고
 `update-web-acl`로 재적용.
 
+## CloudFront 응답 헤더 정책 (수동 관리, 미적용)
+
+인증 시스템 전면 강화 계획(`docs/plans/2026-09-29-oac-lockdown.md` FE Phase 6)에서
+`index.html`에 CSP를 `<meta http-equiv="Content-Security-Policy">` 태그로
+주입하는 빌드 스크립트(`scripts/inject-csp.js`)를 추가했다. 이 meta 태그는 즉시
+검증 가능한 1차 방어이지만 한계가 있다 — HTML 문서에만 적용되고(JS/CSS/이미지
+등 다른 리소스 요청에는 안 붙는다), HSTS·`X-Content-Type-Options` 같은 진짜
+HTTP 응답 헤더는 애초에 meta 태그로 낼 수 없으며, `frame-ancestors` 지시어는
+[CSP 스펙이 meta 태그에서 명시적으로 금지](https://www.w3.org/TR/CSP3/#meta-element)한다.
+이런 한계를 넘어서려면 CloudFront **Response Headers Policy**를 만들어 배포의
+기본(S3) 비헤이비어에 연결해야 한다 — 이번 라운드에서는 **문서화만 하고 아직
+CLI/콘솔로 실행하지 않았다**(위 "CloudFront Function"·"CloudFront WAF" 절처럼
+이 레포 어디에도 코드로 존재하지 않는, 콘솔에서만 바꿀 수 있는 설정이 된다).
+
+- **이 정책도 어떤 파이프라인도 배포하지 않는다** — 위 WAF Web ACL과 같은 성격.
+  콘솔 또는 AWS CLI로만 바꿀 수 있고, git 이력에 남지 않는다. 바뀌면 이 절을 갱신한다.
+- **meta 태그의 CSP와 중복·충돌 주의**: 브라우저는 meta 태그 CSP와 HTTP 헤더 CSP가
+  둘 다 있으면 **더 엄격한 쪽으로 합집합이 아니라 각각 독립적으로 적용**한다(정책이
+  여러 개면 전부 통과해야 함) — 그래서 응답 헤더 정책에 CSP를 추가로 넣는다면
+  `scripts/inject-csp.js`가 만드는 값과 최소한 `script-src`의 해시 목록은 반드시
+  일치시켜야 한다. 처음 적용할 때는 CSP는 헤더 정책에 넣지 않고 `frame-ancestors`만
+  넣거나, 아니면 meta 태그 쪽 CSP를 제거하고 헤더 정책 쪽으로 완전히 옮기는 것도
+  고려한다 — 어느 쪽으로 할지는 실제 적용 시점에 다시 판단한다.
+
+### 적용 절차 (실행 전 검토용, 미실행)
+
+```bash
+# 1. Response Headers Policy 생성 — HSTS·X-Content-Type-Options 등은 CloudFront가
+#    이름 있는 프리셋 필드로 지원하지만, frame-ancestors는 커스텀 헤더로 넣어야 한다
+#    (CloudFront에 CSP 전용 필드가 없다 - Content-Security-Policy도 커스텀 헤더 취급).
+aws cloudfront create-response-headers-policy --response-headers-policy-config '{
+  "Name": "link-sphere-fe-security-headers",
+  "SecurityHeadersConfig": {
+    "StrictTransportSecurity": {
+      "Override": true, "IncludeSubdomains": true, "Preload": false,
+      "AccessControlMaxAgeSec": 63072000
+    },
+    "ContentTypeOptions": { "Override": true },
+    "ReferrerPolicy": { "Override": true, "ReferrerPolicy": "strict-origin-when-cross-origin" }
+  },
+  "CustomHeadersConfig": {
+    "Items": [
+      { "Header": "Content-Security-Policy", "Value": "frame-ancestors '\''none'\''", "Override": true }
+    ]
+  }
+}'
+
+# 2. 배포 설정에서 기본(S3) 비헤이비어의 ResponseHeadersPolicyId를 위 결과의 Id로 채운 뒤
+#    update-distribution (ETag → IfMatch로 옮기는 절차는 위 CloudFront Function 절과 동일한
+#    get-distribution-config → 수정 → update-distribution 패턴을 따른다).
+```
+
+**주의**: `/api/*` 비헤이비어에는 연결하지 않는다 — BE 응답에 보안 헤더를 씌우고
+싶다면 이건 별도 판단(BE `SecurityConfig.kt` 쪽에서 헤더를 직접 내리는 게 더
+일반적)이고, 이 정책은 FE 정적 파일(S3 오리진) 응답 전용으로 범위를 좁힌다.
+
+**되돌리려면**: 기본 비헤이비어의 `ResponseHeadersPolicyId`를 빈 문자열로 되돌리고
+`update-distribution`.
+
 ## 배포 반영 검증하는 법
 
 `gh run list`가 success를 보여줘도 그건 워크플로우가 끝났다는 뜻이지 배포가 실제로
