@@ -1,3 +1,8 @@
+### 2026-09-28 (FE)
+- 인증 시스템 강화: 비밀번호 찾기 및 재설정 기능 구현
+로그:
+- feat(auth): 비밀번호 찾기/재설정 화면 추가 (Phase 3) ([#223](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/223))
+
 ### 2026-09-28 (BE)
 - 인증 시스템 고도화: 이메일 발송 및 인증 기능 구현 및 비밀번호 찾기 기능 추가, 글쓰기 권한 제어를 위한 이메일 인증 게이트 도입 (Phase 6) ([#45](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/45))
 
