@@ -56,6 +56,8 @@ export const FormField = ({
       )}
       {children}
       {(message || reserveDescriptionSpace) && (
+        // pl-0.5(2px) - 입력칸 테두리 바로 아래 텍스트가 딱 붙어 시작하면 살짝
+        // 답답해 보인다는 지적으로 추가(비밀번호 재설정 화면 검토 중 발견)
         <p className={cn(messageClassName, 'min-h-5 pl-0.5')}>{message}</p>
       )}
     </div>

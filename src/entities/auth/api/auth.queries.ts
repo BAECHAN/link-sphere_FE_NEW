@@ -138,14 +138,10 @@ export const useRequestPasswordResetMutation = () => {
       return await authApi.requestPasswordReset(payload);
     },
     meta: { manualErrorHandling: true },
-    onError: (error) => {
-      // ApiError가 아닌 경우(네트워크 자체 실패)도 반드시 토스트를 띄운다 - 이 분기가
-      // 없으면 버튼만 다시 활성화되고 아무 안내 없이 조용히 실패한다.
-      if (error instanceof ApiError) {
-        toast.error(TEXTS.messages.error.passwordResetRequestFailed);
-      } else {
-        toast.error(TEXTS.messages.error.passwordResetRequestFailed);
-      }
+    onError: () => {
+      // ApiError든 네트워크 자체 실패든 항상 같은 메시지 - 이 콜백이 없으면 버튼만
+      // 다시 활성화되고 아무 안내 없이 조용히 실패한다.
+      toast.error(TEXTS.messages.error.passwordResetRequestFailed);
     },
   });
 };
