@@ -3,11 +3,6 @@ import { useLocation } from 'react-router-dom';
 import { useWindowVirtualizer, type Virtualizer } from '@tanstack/react-virtual';
 import { loadVirtualSnapshot, saveVirtualSnapshot } from '@/shared/lib/virtual/virtual-snapshot';
 
-export interface ColumnBreakpoint {
-  minWidth: number;
-  count: number;
-}
-
 export interface GapBreakpoint {
   minWidth: number;
   gap: number;
@@ -18,7 +13,9 @@ interface UseWindowGridVirtualizerOptions<T> {
   listId: string;
   items: readonly T[];
   getItemId: (item: T) => string;
-  columnBreakpoints: readonly ColumnBreakpoint[];
+  /** 이 폭보다 좁아지면 열 하나를 줄인다 - resolveColumnCount 참고 */
+  minColumnWidth: number;
+  maxColumns: number;
   gapBreakpoints: readonly GapBreakpoint[];
   /** 열 수별 행 높이 추정치(px) - 실측 전 초기값일 뿐, measureElement가 곧 실제 높이로 대체한다 */
   estimateRowHeight: (columnCount: number) => number;
@@ -49,6 +46,22 @@ export function chunkIntoRows<T>(items: readonly T[], columnCount: number): T[][
   return rows;
 }
 
+/**
+ * 컨테이너 실측 폭에서 열 수를 계산한다 - web.dev가 "RAM(Repeat, Auto, MinMax)"이라
+ * 부르는 `repeat(auto-fit, minmax(<min>, 1fr))` 그리드 패턴(직접 측정 대신 CSS가 계산하는
+ * 방식)과 같은 공식이다(https://web.dev/articles/one-line-layouts). 여기서는 가상 스크롤이
+ * JS에서 행을 미리 묶어야 해서(chunkIntoRows) 같은 공식을 JS로 계산한다.
+ */
+export function resolveColumnCount(
+  containerWidth: number,
+  minColumnWidth: number,
+  gap: number,
+  maxColumns: number
+): number {
+  const count = Math.floor((containerWidth + gap) / (minColumnWidth + gap));
+  return Math.min(Math.max(count, 1), maxColumns);
+}
+
 function resolveByWidth<T extends { minWidth: number }>(
   breakpoints: readonly T[],
   width: number
@@ -60,7 +73,8 @@ function resolveByWidth<T extends { minWidth: number }>(
 }
 
 /** Tailwind 반응형 클래스(md:, lg: 등)와 같은 방식으로 뷰포트 너비별 값을 추적한다.
- * matchMedia 기반 감지는 useIsMobile.ts의 선례를 따른다. */
+ * matchMedia 기반 감지는 useIsMobile.ts의 선례를 따른다. gap은 간격일 뿐 열 수에 영향을
+ * 주지 않아 뷰포트 기준으로 남겨둔다 - 열 수만 컨테이너 실측 폭 기준(아래 참고). */
 function useResponsiveValue<T extends { minWidth: number }>(breakpoints: readonly T[]): T {
   const resolve = useCallback(() => resolveByWidth(breakpoints, window.innerWidth), [breakpoints]);
   const [value, setValue] = useState(resolve);
@@ -128,17 +142,33 @@ export function useWindowGridVirtualizer<T>({
   listId,
   items,
   getItemId,
-  columnBreakpoints,
+  minColumnWidth,
+  maxColumns,
   gapBreakpoints,
   estimateRowHeight,
   overscan = 2,
 }: UseWindowGridVirtualizerOptions<T>): UseWindowGridVirtualizerResult<T> {
   const location = useLocation();
-  const columnCount = useResponsiveValue(columnBreakpoints).count;
   const gap = useResponsiveValue(gapBreakpoints).gap;
 
+  // 뒤로가기로 돌아왔을 때 스냅샷의 columnCount로 첫 렌더부터 맞춰야 스냅샷의
+  // 측정값·오프셋이 낭비되지 않는다(virtual-core가 첫 getVirtualItems() 호출에서
+  // initialOffset·initialMeasurementsCache를 소비한다). 스냅샷이 없으면 1로 시작하고
+  // 실제 폭은 아래 레이아웃 이펙트가 paint 전에 동기로 보정한다.
+  const [snapshot] = useState(() => loadVirtualSnapshot(listId, location.key, items.length));
+  const [columnCount, setColumnCount] = useState(() => snapshot?.columnCount ?? 1);
+  const [containerNode, setContainerNode] = useState<HTMLDivElement | null>(null);
+
   const rows = useMemo(() => chunkIntoRows(items, columnCount), [items, columnCount]);
-  const { containerRef, scrollMargin, remeasureScrollMargin } = useScrollMargin();
+  const { containerRef: scrollMarginRef, scrollMargin, remeasureScrollMargin } = useScrollMargin();
+
+  const containerRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      scrollMarginRef(node);
+      setContainerNode(node);
+    },
+    [scrollMarginRef]
+  );
 
   // 아래 콜백들은 매 렌더 새로 만들어지는 rows/columnCount/items.length를 참조해야 하지만,
   // 참조 자체는 안정적으로 유지해야 virtual-core 내부 캐시가 매 렌더 무효화되지 않는다.
@@ -151,14 +181,12 @@ export function useWindowGridVirtualizer<T>({
   const itemCountRef = useRef(items.length);
   itemCountRef.current = items.length;
 
+  // 열 수가 바뀌면 행이 재청크돼 같은 카드가 다른 행으로 옮겨간다 - 키에 열 수를 접두어로
+  // 붙여, 이전 열 수에서 측정한 행 높이를 새 열 수의 행이 잘못 재사용하지 않게 한다.
   const getItemKey = useCallback((index: number): string | number => {
     const firstItem = rowsRef.current[index]?.[0];
-    return firstItem ? getItemIdRef.current(firstItem) : index;
+    return firstItem ? `${columnCountRef.current}:${getItemIdRef.current(firstItem)}` : index;
   }, []);
-
-  const [snapshot] = useState(() =>
-    loadVirtualSnapshot(listId, location.key, columnCount, items.length)
-  );
 
   const virtualizer = useWindowVirtualizer<HTMLDivElement>({
     count: rows.length,
@@ -175,6 +203,60 @@ export function useWindowGridVirtualizer<T>({
 
   const virtualizerRef = useRef(virtualizer);
   virtualizerRef.current = virtualizer;
+
+  // 컨테이너 실측 폭으로 열 수를 정한다(뷰포트가 아니라) - 사이드바 접기/펴기, 북마크
+  // 폴더트리처럼 목록이 실제로 받는 폭이 뷰포트보다 좁아지는 레이아웃을 반영하기 위함.
+  // 열 수가 바뀔 때는(사이드바 토글 등) 화면 맨 위 행의 첫 카드 index를 저장해뒀다가,
+  // 아래 두 번째 이펙트에서 재청크된 새 행으로 스크롤을 다시 맞춘다.
+  const hasMeasuredRef = useRef(false);
+  const anchorItemIndexRef = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (!containerNode) {
+      return;
+    }
+
+    function update() {
+      const width = containerNode!.getBoundingClientRect().width;
+      // Suspense로 목록이 display:none 등으로 숨겨진 순간에는 0이 잡힌다 - 그 값으로
+      // 1열로 재청크되는 걸 막는다.
+      if (width <= 0) {
+        return;
+      }
+
+      const nextColumnCount = resolveColumnCount(width, minColumnWidth, gap, maxColumns);
+
+      if (hasMeasuredRef.current && nextColumnCount !== columnCountRef.current) {
+        const topRow = virtualizerRef.current.getVirtualItemForOffset(
+          virtualizerRef.current.scrollOffset ?? 0
+        );
+        if (topRow) {
+          anchorItemIndexRef.current = topRow.index * columnCountRef.current;
+        }
+      }
+
+      hasMeasuredRef.current = true;
+      setColumnCount(nextColumnCount);
+      remeasureScrollMargin();
+    }
+
+    update();
+
+    const observer = new ResizeObserver(update);
+    observer.observe(containerNode);
+
+    return () => observer.disconnect();
+  }, [containerNode, minColumnWidth, maxColumns, gap, remeasureScrollMargin]);
+
+  useLayoutEffect(() => {
+    if (anchorItemIndexRef.current === null) {
+      return;
+    }
+
+    const targetRowIndex = Math.floor(anchorItemIndexRef.current / columnCount);
+    anchorItemIndexRef.current = null;
+    virtualizerRef.current.scrollToIndex(targetRowIndex, { align: 'start' });
+  }, [columnCount]);
 
   useEffect(() => {
     const save = () => {

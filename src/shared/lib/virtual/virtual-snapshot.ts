@@ -35,13 +35,14 @@ export function saveVirtualSnapshot(
 }
 
 /**
- * 저장된 스냅샷을 읽는다. columnCount·count가 저장 시점과 다르면(브레이크포인트가
- * 바뀌었거나 목록 데이터가 리셋됨) 지금 레이아웃에서는 틀린 값이므로 버린다.
+ * 저장된 스냅샷을 읽는다. count가 저장 시점과 다르면(글 등록·삭제로 목록이 리셋됨)
+ * 지금 데이터와 맞지 않으므로 버린다. columnCount는 컨테이너 실측 폭으로 다시 정해지는
+ * 값이라 여기서 비교하지 않는다 - 호출부가 저장된 columnCount를 그대로 첫 렌더 열
+ * 수로 쓰고, 실측 결과가 다르면 레이아웃 이펙트가 다시 보정한다.
  */
 export function loadVirtualSnapshot(
   listId: string,
   locationKey: string,
-  columnCount: number,
   count: number
 ): VirtualSnapshot | null {
   try {
@@ -51,7 +52,7 @@ export function loadVirtualSnapshot(
     }
 
     const parsed = JSON.parse(raw) as VirtualSnapshot;
-    if (parsed.columnCount !== columnCount || parsed.count !== count) {
+    if (parsed.count !== count) {
       return null;
     }
 

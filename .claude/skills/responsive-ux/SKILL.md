@@ -13,6 +13,13 @@ paths: src/**/*.tsx
 
 - `md` = 768px. Tailwind `md:` 분기를 기본으로 쓴다.
 - JS 분기가 꼭 필요할 때만 `useIsMobile()`(`src/shared/hooks/useIsMobile.ts`, UA + `matchMedia('(max-width: 768px)')`).
+- **예외 — 카드 그리드 열 수는 뷰포트 브레이크포인트로 정하지 않는다.** 사이드바·폴더트리처럼
+  목록 옆에서 폭을 가져가는 레이아웃이 있으면 뷰포트 기준 `md:grid-cols-2 lg:grid-cols-3`는
+  실제로 그리드가 받는 폭을 반영하지 못해 카드가 찌그러진다(2026-09-29, PostCard 푸터
+  줄바꿈으로 실측). `PostList`·`BookmarkPostList`는 `useWindowGridVirtualizer`
+  (`src/shared/hooks/useWindowGridVirtualizer.ts`)가 목록 컨테이너를 `ResizeObserver`로
+  직접 측정해 `minColumnWidth` 기준으로 열 수를 계산한다 — 새 카드 그리드를 추가할 때도
+  이 훅을 재사용한다.
 
 ## 모바일 규약
 

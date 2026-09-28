@@ -80,9 +80,9 @@ export function useSignUp() {
     form.reset(DEFAULT_VALUES);
   };
 
-  // 이메일 중복 안내에서 로그인으로 바로 이동하는 링크 - 로그인하려는 의도가 명확해 확인창을
-  // 띄우지 않는다. 단 새 탭/창으로 여는 수정키 클릭은 이 페이지에 그대로 남으므로 지우지 않는다.
-  const onDuplicateLoginClick = (event: MouseEvent<HTMLAnchorElement>) => {
+  // 로그인 링크로 바로 이동 - 로그인하려는 의도가 명확해 확인창을 띄우지 않는다. 단
+  // 새 탭/창으로 여는 수정키 클릭은 이 페이지에 그대로 남으므로 지우지 않는다.
+  const onLoginLinkClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
       return;
     }
@@ -106,6 +106,6 @@ export function useSignUp() {
     emailCheck,
     nicknameCheck,
     isSubmitDisabled,
-    onDuplicateLoginClick,
+    onLoginLinkClick,
   };
 }
