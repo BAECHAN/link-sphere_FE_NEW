@@ -1,3 +1,6 @@
+### 2026-09-28 (BE)
+- 회원 탈퇴 시 14일 유예 기간 및 로그인 시 계정 복구 기능 구현 ([#48](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/48))
+
 ### 2026-09-28 (FE)
 - 회원가입 프로세스 개선 및 로그인 폼 자동 완성 기능 구현 ([#243](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/243))
 
