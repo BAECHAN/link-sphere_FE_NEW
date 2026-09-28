@@ -133,6 +133,21 @@ describe('useLoginMutation', () => {
     // predicate가 data === undefined도 요구하므로, 데이터를 들고 있는 이 쿼리는 리셋되지 않는다.
     expect(queryClient.getQueryData(postKeys.list())).toEqual(seeded);
   });
+
+  it('401이 아닌 에러(네트워크 오류 등)도 무반응 대신 일반 실패 메시지 토스트를 띄운다', async () => {
+    // MSW의 네트워크 레벨 에러 - ApiError가 아닌 에러 경로를 재현한다.
+    mockToastError.mockClear();
+    server.use(http.post(url(API_ENDPOINTS.auth.login), () => HttpResponse.error()));
+
+    const { result } = renderHook(() => useLoginMutation(), { wrapper: LoginWrapper });
+
+    act(() => {
+      result.current.mutate({ email: 'user@example.com', password: 'password1!' });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(mockToastError).toHaveBeenCalledWith(TEXTS.messages.error.loginFailed);
+  });
 });
 
 describe('useCreateAccountMutation', () => {
@@ -153,6 +168,7 @@ describe('useCreateAccountMutation', () => {
         nickname: 'newNick',
         email: 'new@example.com',
         password: 'password1!',
+        confirmPassword: 'password1!',
       });
     });
 
@@ -179,6 +195,7 @@ describe('useCreateAccountMutation', () => {
         nickname: 'newNick',
         email: 'new@example.com',
         password: 'password1!',
+        confirmPassword: 'password1!',
       });
     });
 
@@ -203,6 +220,7 @@ describe('useCreateAccountMutation', () => {
         nickname: 'newNick',
         email: 'taken@example.com',
         password: 'password1!',
+        confirmPassword: 'password1!',
       });
     });
 

@@ -326,8 +326,17 @@ class ApiClient {
     });
   }
 
-  async delete<T>(endpoint: string, options?: ApiRequestOptions): Promise<T> {
-    return this.request<T>(endpoint, { ...options, method: 'DELETE' });
+  async delete<T>(endpoint: string, data?: unknown, options?: ApiRequestOptions): Promise<T> {
+    const isFormData = data instanceof FormData;
+    const bodyData = isFormData ? data : this.processRequestData(data);
+
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'DELETE',
+      ...(data === undefined
+        ? {}
+        : { body: isFormData ? (bodyData as FormData) : JSON.stringify(bodyData) }),
+    });
   }
 
   /**

@@ -36,12 +36,14 @@ export const TEXTS = {
     nickname: '닉네임',
     email: '이메일',
     password: '비밀번호',
+    confirmPassword: '비밀번호 확인',
     message: '메시지',
   },
   placeholders: {
     nickname: '한글/영문 2~20자 이내',
     email: 'example@email.com',
     password: '비밀번호 입력',
+    confirmPassword: '비밀번호를 다시 입력하세요',
     message: '메시지를 입력하세요.',
     postSearch: '키워드나 @카테고리, #닉네임으로 검색',
     bookmarkSearch: '북마크 내 검색',
@@ -313,6 +315,7 @@ export const TEXTS = {
     passwordRequired: '비밀번호를 입력해주세요.',
     passwordRegex: '비밀번호는 8자 이상, 영문, 숫자, 특수문자 조합으로 입력해주세요.',
     passwordMaxLength: '비밀번호는 20자 이하로 입력해주세요.',
+    passwordMismatch: '비밀번호가 일치하지 않아요.',
     emailRegex: '올바른 이메일 형식(예: user@mail.com)인지 확인해주세요.',
     // "닉네임" 레이블 바로 옆(같은 줄, 오른쪽 정렬)에 뜨는 메시지라 "닉네임은" 주어를 반복하지
     // 않고 짧게 쓴다 - 길면 라벨과 한 줄에 안 들어가 줄바꿈되면서 레이아웃이 밀린다.

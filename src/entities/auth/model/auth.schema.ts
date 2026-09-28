@@ -11,18 +11,28 @@ export const passwordValidationSchema = z
   )
   .max(20, TEXTS.validation.passwordMaxLength);
 
+// 로그인 비밀번호는 회원가입 강도 규칙을 재검증하지 않는다 - 이미 가입된 계정의 비밀번호가
+// 그 사이 규칙이 바뀌어 더 이상 매칭 안 될 수 있고, 어차피 맞는지 틀린지는 서버가 판단한다.
+const loginPasswordSchema = z.string().min(1, TEXTS.validation.passwordRequired);
+
 // ==================== 1. Domain Model Schema ====================
 
 export const loginSchema = z.object({
   email: emailValidationSchema,
-  password: passwordValidationSchema,
+  password: loginPasswordSchema,
 });
 
-export const createAccountSchema = z.object({
-  nickname: nicknameValidationSchema,
-  email: emailValidationSchema,
-  password: passwordValidationSchema,
-});
+export const createAccountSchema = z
+  .object({
+    nickname: nicknameValidationSchema,
+    email: emailValidationSchema,
+    password: passwordValidationSchema,
+    confirmPassword: z.string().min(1, TEXTS.validation.passwordRequired),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: TEXTS.validation.passwordMismatch,
+    path: ['confirmPassword'],
+  });
 
 // ==================== 2. DTO ====================
 
