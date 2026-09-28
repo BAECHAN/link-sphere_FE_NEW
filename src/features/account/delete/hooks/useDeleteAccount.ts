@@ -24,6 +24,10 @@ export function useDeleteAccount() {
     openConfirm({
       message: TEXTS.accountSettings.deleteConfirmMessage,
       confirmText: TEXTS.accountSettings.deleteSubmit,
+      // 비밀번호 재입력까지 거쳐 이미 탈퇴를 결심하고 도달한 다이얼로그다 -
+      // usePostDelete.ts와 동일 이유로 확인을 채움+오른쪽으로 켠다
+      // (docs/DECISIONS.md 2026-09-29 항목).
+      emphasis: 'confirm',
       onConfirm: () => {
         deleteAccount(data);
       },

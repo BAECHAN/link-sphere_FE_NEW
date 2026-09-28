@@ -6,6 +6,57 @@
 
 ---
 
+## 2026-09-29 — (팔로업 3) 삭제류 확인창 4곳도 확인(삭제)에 강조를 켬
+
+**배경**
+
+바로 아래 항목에서 `emphasis` 옵션을 도입하며 공개 설정 토글 확인창에만 `emphasis: 'confirm'`을
+적용했다. 사용자가 이어서, 게시글·댓글·계정·폴더 삭제 확인창도 확인(삭제) 쪽에 포커스가
+가야 한다고 지적했다 — 이 확인창들은 사용자가 메뉴에서 "삭제"를 **직접 눌러야만** 뜬다.
+이탈 가드처럼 사용자가 의도하지 않은 동작(뒤로가기·다른 메뉴 클릭 등)에 끼어드는 게 아니라,
+이미 삭제를 결심하고 여러 단계를 거쳐 도달한 지점이다.
+
+**검토한 근거**
+
+바로 아래 항목의 "검토한 근거" 3번째 불릿([Apple HIG](https://developer.apple.com/design/human-interface-guidelines/alerts))을
+그대로 다시 적용한다 — 그 인용은 원래 색(destructive 빨강 미사용) 근거로만 썼지만, 원문은
+강조/포커스에도 그대로 적용된다:
+
+> 사용자가 스스로 고른 위험한 동작(예: 휴지통 비우기)에는 destructive 스타일을 주지 않는다
+> — 그 버튼이 사용자의 원래 의도를 수행하기 때문이다. 이 경우 Return 키로 그 의도적으로
+> 선택한 동작을 확정하는 편의가, 버튼이 파괴적이라는 걸 다시 한번 알려주는 이점보다 크다.
+> (번역, 원문은 위 항목 참고)
+
+가드 모달(이탈 확인)과의 차이가 핵심이다 — 가드 모달은 사용자가 다른 목적(피드 이동 등)으로
+누른 동작에 끼어드는 **의도치 않은** 인터럽트라 안전한 쪽(머무르기)을 강조해야 하지만, 삭제
+확인창은 사용자가 **오직 삭제하려고** 연 메뉴에서 "삭제"를 눌러야만 나타난다.
+
+**결정**
+
+`usePostDelete.ts`, `useDeleteComment.ts`, `useDeleteAccount.ts`, `useFolderActions.ts`
+4곳 모두 `emphasis: 'confirm'`을 추가했다 — 확인(삭제/탈퇴)이 채움·오른쪽·초기 포커스를
+받는다. 이탈 가드(`useUnsavedChangesGuard.ts`)는 그대로 기본값(`'cancel'`)을 쓴다 — 그
+차이가 바로 위 문단의 기준이다.
+
+**이유 / 주의점**
+
+- `useDeleteAccount`는 e2e 스펙이 없다(unit 테스트가 `openConfirm`을 mock한다) — 포커스
+  단언은 e2e가 있는 나머지 3곳(`post-delete.spec.ts`, `comment-delete.spec.ts`,
+  `bookmark-folder-delete.spec.ts`)에만 추가했다.
+- 색(빨강 destructive)은 이번에도 바꾸지 않았다 — 강조 위치·포커스만 바뀐다.
+- 앞으로 새 삭제류 확인창을 추가할 때 이 기준(메뉴에서 직접 선택해야만 뜨는가)으로
+  `emphasis: 'confirm'` 적용 여부를 판단한다.
+
+**상태**
+
+적용 완료. 관련 파일: `src/features/post/delete/hooks/usePostDelete.ts`,
+`src/features/comment/delete/hooks/useDeleteComment.ts`,
+`src/features/account/delete/hooks/useDeleteAccount.ts`,
+`src/widgets/bookmark/folder-tree/hooks/useFolderActions.ts`,
+`e2e/post-delete.spec.ts`, `e2e/comment-delete.spec.ts`, `e2e/bookmark-folder-delete.spec.ts`.
+
+---
+
 ## 2026-09-29 — (팔로업 2) Confirm 다이얼로그 강조를 호출부가 뒤집을 수 있는 `emphasis` 옵션 도입
 
 **배경**
