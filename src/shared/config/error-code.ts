@@ -6,6 +6,8 @@ export const SERVER_ERROR_CODE = {
   ACCESS_DENIED: 'ACCESS_DENIED',
   MISSING_REFRESH_TOKEN: 'MISSING_REFRESH_TOKEN',
   INVALID_REFRESH_TOKEN: 'INVALID_REFRESH_TOKEN',
+  // 비밀번호 변경·회원 탈퇴 시 현재 비밀번호 재확인 실패(BE InvalidCredentialsException)
+  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
   // 비밀번호재설정·이메일인증 토큰 전용(위 INVALID_REFRESH_TOKEN과 별개 - BE
   // InvalidActionTokenException 참고)
   INVALID_ACTION_TOKEN: 'INVALID_ACTION_TOKEN',

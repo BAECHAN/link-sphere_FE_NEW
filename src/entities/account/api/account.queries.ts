@@ -8,11 +8,13 @@ import {
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useMyPageModalStore } from '@/shared/store/mypage.store';
 import { ApiError, UserFacingError } from '@/shared/types/common.type';
-import { Account, UpdateAccount } from '@/entities/account/model/account.schema';
+import { Account, UpdateAccount, DeleteAccount } from '@/entities/account/model/account.schema';
 import { STALE_TIME_ONE_DAY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
 import { NavigationService } from '@/shared/lib/router/navigation';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { AuthUtil } from '@/shared/utils/auth.util';
 
 interface UpdateAccountPayload extends UpdateAccount {
   file?: File;
@@ -116,6 +118,28 @@ export const useUpdateAccountMutation = () => {
           },
         },
       });
+    },
+  });
+};
+
+// 성공하면 BE가 이 기기의 세션·쿠키를 이미 폐기했으므로, useLogoutMutation과 달리 API
+// 응답을 기다린 뒤 clearAll을 호출한다(로그아웃은 클라이언트가 먼저 지우고 API는
+// best-effort지만, 탈퇴는 서버 처리 성공을 확인한 뒤에만 "탈퇴됨"으로 취급해야 한다 -
+// 비밀번호가 틀려 실패했는데 클라이언트만 먼저 로그아웃 상태로 만들면 안 된다).
+export const useDeleteAccountMutation = () => {
+  return useMutation({
+    mutationFn: (payload: DeleteAccount) => accountApi.deleteAccount(payload),
+    meta: { manualErrorHandling: true },
+    onSuccess: () => {
+      toast.success(TEXTS.messages.success.accountDeleted);
+      AuthUtil.clearAll();
+    },
+    onError: (error) => {
+      if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.INVALID_CREDENTIALS) {
+        toast.error(TEXTS.messages.error.currentPasswordMismatch);
+      } else {
+        toast.error(TEXTS.messages.error.accountDeleteFailed);
+      }
     },
   });
 };

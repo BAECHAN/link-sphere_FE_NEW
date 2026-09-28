@@ -46,4 +46,12 @@ export const accountHandlers = [
       { status: 200 }
     );
   }),
+
+  // DELETE /auth/account
+  http.delete(url(API_ENDPOINTS.auth.deleteAccount), () => {
+    return HttpResponse.json(
+      { status: 200, message: 'ok', data: null, timestamp: new Date().toISOString() },
+      { status: 200 }
+    );
+  }),
 ];

@@ -36,6 +36,7 @@ export const TEXTS = {
     nickname: '닉네임',
     email: '이메일',
     password: '비밀번호',
+    currentPassword: '현재 비밀번호',
     newPassword: '새 비밀번호',
     confirmPassword: '비밀번호 확인',
     message: '메시지',
@@ -57,6 +58,7 @@ export const TEXTS = {
     login: '로그인',
     profileEdit: '프로필 수정',
     myComments: '내 댓글',
+    accountSettings: '계정 설정',
     logout: '로그아웃',
     excelDownload: '엑셀 다운로드',
     reset: '초기화',
@@ -150,6 +152,18 @@ export const TEXTS = {
     reopen: '다시 열기',
     checkingNickname: '확인 중...',
     nicknameAvailable: '사용 가능한 닉네임이에요.',
+  },
+  accountSettings: {
+    title: '계정 설정',
+    passwordSectionTitle: '비밀번호 변경',
+    changePasswordSubmit: '비밀번호 변경',
+    changePasswordSubmitting: '변경 중...',
+    deleteSectionTitle: '회원 탈퇴',
+    deleteSectionDescription:
+      '탈퇴하면 북마크·좋아요·조회 기록이 삭제되고, 작성한 글과 댓글은 "탈퇴한 사용자"로 표시된 채 남아요. 이 작업은 되돌릴 수 없어요.',
+    deleteSubmit: '계정 탈퇴',
+    deleteSubmitting: '탈퇴 중...',
+    deleteConfirmMessage: '정말 탈퇴하시겠어요? 이 작업은 되돌릴 수 없어요.',
   },
   version: {
     title: '배포 확인',
@@ -394,6 +408,8 @@ export const TEXTS = {
       bookmarkRemovedWithLastFolderDescription: '마지막 폴더라서 북마크도 함께 제거했어요.',
       bookmarkRemoved: '북마크를 제거했어요.',
       passwordResetConfirmed: '비밀번호를 재설정했어요.',
+      passwordChanged: '비밀번호를 변경했어요.',
+      accountDeleted: '계정을 삭제했어요.',
     },
     error: {
       // 공통
@@ -421,6 +437,9 @@ export const TEXTS = {
       passwordResetRequestFailed: '요청 처리에 실패했어요. 잠시 후 다시 시도해주세요.',
       passwordResetConfirmFailed: '비밀번호 재설정에 실패했어요.',
       passwordResetTokenInvalid: '유효하지 않거나 만료된 링크예요. 다시 요청해주세요.',
+      passwordChangeFailed: '비밀번호 변경에 실패했어요.',
+      currentPasswordMismatch: '현재 비밀번호가 일치하지 않아요.',
+      accountDeleteFailed: '계정 삭제에 실패했어요.',
 
       // 포스트 관련
       postCreateFailed: '포스트 생성에 실패했어요.',

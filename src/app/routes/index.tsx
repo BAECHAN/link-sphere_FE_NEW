@@ -37,6 +37,9 @@ const BookmarkPage = lazy(() =>
 const MyCommentPage = lazy(() =>
   import('@/pages/mycomment/MyCommentPage').then((module) => ({ default: module.MyCommentPage }))
 );
+const MyAccountPage = lazy(() =>
+  import('@/pages/myaccount/MyAccountPage').then((module) => ({ default: module.MyAccountPage }))
+);
 const SignUpPage = lazy(() =>
   import('@/pages/auth/SignUpPage').then((module) => ({ default: module.SignUpPage }))
 );
@@ -143,6 +146,10 @@ export const appRoutes: RouteObject[] = [
           {
             path: ROUTES_PATHS.MY_COMMENTS,
             element: withSuspense(MyCommentPage),
+          },
+          {
+            path: ROUTES_PATHS.MY_ACCOUNT,
+            element: withSuspense(MyAccountPage),
           },
         ],
       },

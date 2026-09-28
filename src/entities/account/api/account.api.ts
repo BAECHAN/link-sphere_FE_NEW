@@ -1,5 +1,5 @@
 import { apiClient } from '@/shared/api/client';
-import { Account, UpdateAccount } from '@/entities/account/model/account.schema';
+import { Account, UpdateAccount, DeleteAccount } from '@/entities/account/model/account.schema';
 import { API_ENDPOINTS } from '@/shared/config/api';
 import { uploadImageAndGetUrl } from '@/shared/lib/upload/uploadImageAndGetUrl';
 
@@ -36,5 +36,13 @@ export const accountApi = {
       { searchParams: { nickname } }
     );
     return response.available;
+  },
+
+  /**
+   * 탈퇴 성공 시 BE가 계정을 익명화하고 이 기기의 세션·쿠키를 폐기한다 - 응답에는
+   * 새 토큰이 없다(로그인 상태를 유지할 계정 자체가 없어졌으므로).
+   */
+  deleteAccount: async (payload: DeleteAccount): Promise<void> => {
+    await apiClient.delete(API_ENDPOINTS.auth.deleteAccount, { password: payload.password });
   },
 };

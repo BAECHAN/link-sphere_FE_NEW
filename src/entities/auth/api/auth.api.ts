@@ -5,6 +5,7 @@ import {
   CreateAccount,
   PasswordResetRequest,
   PasswordResetConfirm,
+  ChangePassword,
 } from '@/entities/auth/model/auth.schema';
 import { Account } from '@/entities/account/@x/auth';
 import { API_ENDPOINTS } from '@/shared/config/api';
@@ -72,5 +73,19 @@ export const authApi = {
       token: payload.token,
       newPassword: payload.newPassword,
     });
+  },
+
+  /**
+   * 비밀번호 변경 성공 시 BE가 이 기기를 제외한 모든 세션을 폐기하고 새 세션을 발급한다
+   * (docs/plans/2026-09-28-auth-hardening.md Phase 5) - 응답의 accessToken으로 즉시
+   * 갱신하지 않으면 이전 토큰이 무효화돼 바로 다음 요청부터 401이 난다.
+   */
+  changePassword: async (payload: ChangePassword): Promise<LoginResponse> => {
+    // confirmPassword는 클라이언트 전용 확인 필드라 서버로 보내지 않는다.
+    const response = await apiClient.patch<LoginResponse>(API_ENDPOINTS.auth.changePassword, {
+      currentPassword: payload.currentPassword,
+      newPassword: payload.newPassword,
+    });
+    return response;
   },
 };

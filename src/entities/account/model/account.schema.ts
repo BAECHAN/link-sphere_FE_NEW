@@ -19,9 +19,15 @@ export const updateAccountSchema = z.object({
   image: z.string().nullish(),
 });
 
+// 탈퇴 확인 — 비밀번호 재입력만 요구한다(강도 재검증 없음, 로그인과 같은 이유로 서버가 판단).
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1, TEXTS.validation.passwordRequired),
+});
+
 // ==================== 2. DTO ====================
 
 export type UpdateAccount = z.infer<typeof updateAccountSchema>;
+export type DeleteAccount = z.infer<typeof deleteAccountSchema>;
 
 // 기존 import 경로 호환 — 응답 타입은 dto.ts(BE 스펙 생성)에서 가져간다.
 export type { Account } from '@/entities/account/model/account.dto';

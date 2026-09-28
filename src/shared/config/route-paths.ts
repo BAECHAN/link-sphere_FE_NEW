@@ -18,6 +18,7 @@ const ROUTES_PATHS = {
   },
   BOOKMARK: '/bookmark',
   MY_COMMENTS: '/my/comments',
+  MY_ACCOUNT: '/my/account',
   VERSION: '/version',
   // Error
   FORBIDDEN: '/403',
@@ -40,7 +41,8 @@ const isProtectedPath = (pathname: string): boolean => {
     pathname.startsWith(ROUTES_PATHS.POST.SUBMIT) ||
     pathname.startsWith(editPrefix) ||
     pathname.startsWith(ROUTES_PATHS.BOOKMARK) ||
-    pathname.startsWith(ROUTES_PATHS.MY_COMMENTS)
+    pathname.startsWith(ROUTES_PATHS.MY_COMMENTS) ||
+    pathname.startsWith(ROUTES_PATHS.MY_ACCOUNT)
   );
 };
 
