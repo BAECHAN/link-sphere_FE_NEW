@@ -105,6 +105,12 @@ export function useSignUp() {
     clearNow();
   };
 
+  // 로그인 페이지로 넘어갈 때 이미 확인된 이메일을 다시 치지 않도록 location.state로
+  // 함께 전달한다(useLogin.ts에서 저장된 이메일보다 우선 적용). 중복 확인 전(단순 입력
+  // 중)엔 아직 그 이메일로 로그인할지 알 수 없으므로 넘기지 않는다.
+  const loginLinkState = emailCheck.isDuplicate ? { email: watchedEmail } : undefined;
+  const postSignupLoginState = { email: watchedEmail };
+
   // 확인 중이거나 이미 중복으로 확인된 값으로는 제출을 막는다 - 검사가 끝나기 전에 제출되면
   // 어차피 서버가 409로 막아주지만, 여기서 미리 막아 불필요한 왕복을 줄인다.
   const isSubmitDisabled =
@@ -124,5 +130,7 @@ export function useSignUp() {
     nicknameCheck,
     isSubmitDisabled,
     onLoginLinkClick,
+    loginLinkState,
+    postSignupLoginState,
   };
 }

@@ -121,6 +121,13 @@ RootLayout
 | localStorage                      | `linksphere:auth:last-avatar` | 아바타 URL(선반입용)        | 영구(로그아웃 시 제거)     | 가능     |
 | httpOnly 쿠키(BE 설정)            | refreshToken                  | 리프레시 토큰               | BE 정책                    | **불가** |
 
+로그인 폼 이메일 입력의 초기값은 위 `saved-email`뿐 아니라 `location.state.email`의 영향도
+받습니다 — 회원가입 화면에서 이메일이 이미 가입된 것으로 확인됐을 때(또는 가입 성공 직후)
+"Sign In"/"로그인하러 가기" 링크가 그 이메일을 함께 실어 보내고, `useLogin.ts:38`이 이 값을
+`saved-email`보다 우선 적용합니다(방금 직접 입력하고 서버가 확인해준 값이 지난 방문의 저장값보다
+명확한 의도이기 때문). `saveEmail` 체크박스의 초기 체크 여부는 이 값과 무관하게 `saved-email`
+존재 여부만 그대로 반영합니다.
+
 **절대 저장하지 않는 것**: 액세스 토큰(어떤 스토리지에도 없음, 메모리 전용), 리프레시 토큰(JS가 못 만짐), 계정 정보(React Query 캐시에만, `accountKeys.root`).
 
 `useAuthStore`(`src/shared/store/auth.store.ts:41-63`)는 `devtools` 미들웨어만 쓰고 **`persist`가 없습니다 — 의도적입니다.** `accessToken`은 항상 `isAuthenticated`와 함께 `setAuth`/`clearAuth` 한 곳에서만 갱신되므로(`auth.store.ts:47-50`, `:56-60`) 두 값은 절대 어긋나지 않습니다. **이 등가성이 §8-A의 동작을 결정짓는 핵심 사실입니다.**

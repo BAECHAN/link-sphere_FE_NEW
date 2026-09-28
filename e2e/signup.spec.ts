@@ -3,6 +3,7 @@ import { installCatchAll } from './mocks/catch-all';
 import { mockEmailAvailability, mockSignUpSuccess } from './mocks/auth.mock';
 import { mockNicknameAvailability } from './mocks/account.mock';
 import { TEXTS } from '@/shared/config/texts';
+import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 
 // zod passwordValidationSchema(auth.schema.ts) — 영문+숫자+특수문자 8자 이상, 20자 이하.
 const VALID_PASSWORD = 'TestPass1!';
@@ -49,7 +50,11 @@ test.describe('회원가입', () => {
     await page.getByRole('link', { name: TEXTS.auth.signup.goToLogin }).click();
     await expect(page).toHaveURL(/\/auth\/login$/);
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expect(page.getByLabel(`${TEXTS.labels.email}*`, { exact: true })).toBeVisible();
+    // 방금 가입한 이메일이 로그인 폼에 미리 채워져 있어야 한다(location.state 전달,
+    // useSignUp.ts의 postSignupLoginState → useLogin.ts).
+    await expect(page.getByLabel(`${TEXTS.labels.email}*`, { exact: true })).toHaveValue(
+      'new@example.com'
+    );
   });
 
   test('비밀번호 확인이 다르면 제출이 되지 않고 인라인 오류가 뜬다', async ({ page }) => {
@@ -86,5 +91,37 @@ test.describe('회원가입', () => {
     await expect(page.getByText(TEXTS.auth.signup.emailDuplicate)).toBeVisible();
     await page.getByLabel(`${TEXTS.labels.password}*`, { exact: true }).fill(VALID_PASSWORD);
     await expect(page.getByRole('button', { name: TEXTS.auth.signup.signUp })).toBeDisabled();
+
+    // 중복 확인된 이메일로 "Sign In" 링크를 누르면 확인창 없이 바로 이동하고(가드 예외,
+    // signup-unsaved-changes.spec.ts에서 이미 검증), 로그인 폼에 그 이메일이 미리 채워진다.
+    await page.getByRole('link', { name: TEXTS.auth.signup.signIn }).click();
+    await expect(page).toHaveURL(/\/auth\/login$/);
+    await expect(page.getByLabel(`${TEXTS.labels.email}*`, { exact: true })).toHaveValue(
+      'taken@example.com'
+    );
+  });
+
+  test('저장된 이메일이 있어도 회원가입에서 방금 확인된 이메일이 우선한다', async ({ page }) => {
+    // useLogin.ts는 location.state의 이메일을 저장된(localStorage) 이메일보다 우선한다 -
+    // 방금 직접 입력하고 서버가 중복이라 확인해준 값이 지난 방문의 저장값보다 더 명확한
+    // 의도이기 때문이다(auth.fixture.ts의 addInitScript 패턴 - LocalStorageUtil은 항상
+    // JSON.stringify로 저장하므로 시딩도 JSON 문자열로 넣어야 한다).
+    await page.addInitScript((key) => {
+      window.localStorage.setItem(key, JSON.stringify('old@example.com'));
+    }, STORAGE_KEYS.AUTH.SAVED_EMAIL);
+
+    await mockEmailAvailability(page, false);
+    await mockNicknameAvailability(page, true);
+
+    await page.goto('/auth/sign-up');
+    await page.getByLabel(`${TEXTS.labels.nickname}*`, { exact: true }).fill('newuser');
+    await page.getByLabel(`${TEXTS.labels.email}*`, { exact: true }).fill('taken@example.com');
+    await expect(page.getByText(TEXTS.auth.signup.emailDuplicate)).toBeVisible();
+
+    await page.getByRole('link', { name: TEXTS.auth.signup.signIn }).click();
+    await expect(page).toHaveURL(/\/auth\/login$/);
+    await expect(page.getByLabel(`${TEXTS.labels.email}*`, { exact: true })).toHaveValue(
+      'taken@example.com'
+    );
   });
 });
