@@ -1,3 +1,6 @@
+### 2026-09-28 (BE)
+- 인증 시스템 구축을 위한 세션, 회원 탈퇴, 이메일 인증 관련 데이터베이스 스키마 및 마이그레이션 SQL 추가 ([#41](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/41))
+
 ### 2026-09-28 (FE)
 - 인증 시스템 강화 및 로그인 프로세스 안정화
 - 비밀번호 확인 입력 필드 구현 및 로그인 에러 처리 로직 개선 ([#220](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/220))
