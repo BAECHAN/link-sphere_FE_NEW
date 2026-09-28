@@ -1,4 +1,7 @@
 ### 2026-09-28 (BE)
+- 로그인 실패 및 가입 시도에 대한 레이트 리밋(Rate Limit) 정책을 적용하여 보안성 강화 ([#43](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/43))
+
+### 2026-09-28 (BE)
 - 인증 시스템 구축을 위한 세션, 회원 탈퇴, 이메일 인증 관련 데이터베이스 스키마 및 마이그레이션 SQL 추가 ([#41](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/41))
 
 ### 2026-09-28 (FE)
