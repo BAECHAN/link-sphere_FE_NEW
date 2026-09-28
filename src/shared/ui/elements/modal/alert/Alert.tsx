@@ -27,10 +27,10 @@ function Alert({ alert }: AlertProps) {
     }))
   );
 
-  // 취소 버튼을 오른쪽(DOM상 두 번째)에 두면서도 Radix가 기본으로 주는 "첫 번째 포커스
-  // 가능 요소" 오토포커스가 확인 버튼으로 가버리는 걸 막는다 - 안전한 선택지가 여전히
-  // 처음 포커스를 받아야 한다(§ docs/DECISIONS.md 2026-09-29 팔로업 항목).
-  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  // 강조되는 버튼을 오른쪽(DOM상 두 번째)에 두면서도 Radix가 기본으로 주는 "첫 번째 포커스
+  // 가능 요소" 오토포커스가 반대쪽으로 가버리는 걸 막는다 - 강조된 쪽이 여전히 처음
+  // 포커스를 받아야 한다(§ docs/DECISIONS.md 2026-09-29 팔로업 항목).
+  const emphasizedButtonRef = useRef<HTMLButtonElement>(null);
 
   const {
     id,
@@ -40,6 +40,7 @@ function Alert({ alert }: AlertProps) {
     cancelText = TEXTS.buttons.cancel,
     type,
     isOpen,
+    emphasis = 'cancel',
   } = alert;
 
   const handleConfirm = () => {
@@ -57,6 +58,31 @@ function Alert({ alert }: AlertProps) {
   // 취소 버튼 클릭과 오버레이 바깥에서의 취소(뒤로가기 등)가 같은 동작이라 스토어 액션 하나로 합친다.
   const handleCancel = () => cancelAlert(id);
   const handleClose = () => cancelAlert(id);
+
+  // 강조되는 쪽(emphasis)이 채움 + emphasizedButtonRef(초기 포커스)를 갖고, 렌더 순서에서도
+  // 항상 오른쪽(뒤)에 온다. 두 버튼을 미리 만들어두고 emphasis에 따라 순서만 바꿔 끼운다.
+  const cancelButton = type === 'confirm' && (
+    <Button
+      key="cancel"
+      variant={emphasis === 'confirm' ? 'outline' : 'default'}
+      onClick={handleCancel}
+      ref={emphasis === 'cancel' ? emphasizedButtonRef : undefined}
+      className="flex-1 sm:flex-none sm:min-w-[80px]"
+    >
+      {cancelText}
+    </Button>
+  );
+  const confirmButton = (
+    <Button
+      key="confirm"
+      variant={type === 'confirm' && emphasis === 'cancel' ? 'outline' : 'default'}
+      onClick={handleConfirm}
+      ref={emphasis === 'confirm' ? emphasizedButtonRef : undefined}
+      className="flex-1 sm:flex-none sm:min-w-[80px]"
+    >
+      {confirmText}
+    </Button>
+  );
 
   // 히스토리에 묶이지 않은 대화상자라 뒤로가기가 라우트만 바꿔도 알아채지 못하고 배경만
   // 바뀐 채로 계속 떠 있는다 - 열려있던 위치를 벗어나면 취소로 간주해 닫는다.
@@ -85,7 +111,7 @@ function Alert({ alert }: AlertProps) {
         onOpenAutoFocus={(e) => {
           if (type === 'confirm') {
             e.preventDefault();
-            cancelButtonRef.current?.focus();
+            emphasizedButtonRef.current?.focus();
           }
         }}
       >
@@ -106,28 +132,25 @@ function Alert({ alert }: AlertProps) {
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex-row justify-center gap-2 sm:justify-center mt-2">
-          {/* 취소(안전한 선택지)가 채움 + 오른쪽, 확인(진행/이탈 등 되돌리기 어려운 선택지)이
-              outline + 왼쪽이다. 안전한 쪽을 채움으로 강조하는 원칙은 Nielsen(2008) "가장 자주
-              선택되는 버튼을 기본값으로 두고 강조하라(단, 위험하면 예외)"(번역,
-              https://www.nngroup.com/articles/ok-cancel-or-cancel-ok/)를 따르고, 오른쪽(trailing)에
-              두는 배치는 Apple HIG "사람들이 가장 많이 고를 버튼을 trailing 쪽에 둔다"(번역,
-              https://developer.apple.com/design/human-interface-guidelines/alerts)를 따른다.
-              근거: docs/DECISIONS.md 2026-09-29 항목(팔로업 포함) */}
-          <Button
-            variant={type === 'confirm' ? 'outline' : 'default'}
-            onClick={handleConfirm}
-            className="flex-1 sm:flex-none sm:min-w-[80px]"
-          >
-            {confirmText}
-          </Button>
-          {type === 'confirm' && (
-            <Button
-              ref={cancelButtonRef}
-              onClick={handleCancel}
-              className="flex-1 sm:flex-none sm:min-w-[80px]"
-            >
-              {cancelText}
-            </Button>
+          {/* 강조되는 쪽(기본은 취소)이 채움 + 오른쪽 + 초기 포커스, 반대쪽이 outline + 왼쪽이다.
+              채움으로 강조하는 원칙은 Nielsen(2008) "가장 자주 선택되는 버튼을 기본값으로 두고
+              강조하라(단, 위험하면 예외)"(번역, https://www.nngroup.com/articles/ok-cancel-or-cancel-ok/)를
+              따르고, 오른쪽(trailing)에 두는 배치는 Apple HIG "사람들이 가장 많이 고를 버튼을
+              trailing 쪽에 둔다"(번역, https://developer.apple.com/design/human-interface-guidelines/alerts)를
+              따른다. 되돌리기 어려운 동작(삭제·이탈 등)은 취소가 안전한 쪽이라 기본값으로
+              강조하지만, 언제든 되돌릴 수 있는 토글(공개 설정 등)처럼 어느 쪽도 위험하지 않으면
+              호출부가 emphasis: 'confirm'으로 반대로 켤 수 있다 — 이때는 확인이 채움+오른쪽으로
+              옮겨간다. 근거: docs/DECISIONS.md 2026-09-29 항목(팔로업 포함) */}
+          {emphasis === 'confirm' ? (
+            <>
+              {cancelButton}
+              {confirmButton}
+            </>
+          ) : (
+            <>
+              {confirmButton}
+              {cancelButton}
+            </>
           )}
         </DialogFooter>
       </DialogContent>

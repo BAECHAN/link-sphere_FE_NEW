@@ -6,6 +6,104 @@
 
 ---
 
+## 2026-09-29 — (팔로업 3) 삭제류 확인창 4곳도 확인(삭제)에 강조를 켬
+
+**배경**
+
+바로 아래 항목에서 `emphasis` 옵션을 도입하며 공개 설정 토글 확인창에만 `emphasis: 'confirm'`을
+적용했다. 사용자가 이어서, 게시글·댓글·계정·폴더 삭제 확인창도 확인(삭제) 쪽에 포커스가
+가야 한다고 지적했다 — 이 확인창들은 사용자가 메뉴에서 "삭제"를 **직접 눌러야만** 뜬다.
+이탈 가드처럼 사용자가 의도하지 않은 동작(뒤로가기·다른 메뉴 클릭 등)에 끼어드는 게 아니라,
+이미 삭제를 결심하고 여러 단계를 거쳐 도달한 지점이다.
+
+**검토한 근거**
+
+바로 아래 항목의 "검토한 근거" 3번째 불릿([Apple HIG](https://developer.apple.com/design/human-interface-guidelines/alerts))을
+그대로 다시 적용한다 — 그 인용은 원래 색(destructive 빨강 미사용) 근거로만 썼지만, 원문은
+강조/포커스에도 그대로 적용된다:
+
+> 사용자가 스스로 고른 위험한 동작(예: 휴지통 비우기)에는 destructive 스타일을 주지 않는다
+> — 그 버튼이 사용자의 원래 의도를 수행하기 때문이다. 이 경우 Return 키로 그 의도적으로
+> 선택한 동작을 확정하는 편의가, 버튼이 파괴적이라는 걸 다시 한번 알려주는 이점보다 크다.
+> (번역, 원문은 위 항목 참고)
+
+가드 모달(이탈 확인)과의 차이가 핵심이다 — 가드 모달은 사용자가 다른 목적(피드 이동 등)으로
+누른 동작에 끼어드는 **의도치 않은** 인터럽트라 안전한 쪽(머무르기)을 강조해야 하지만, 삭제
+확인창은 사용자가 **오직 삭제하려고** 연 메뉴에서 "삭제"를 눌러야만 나타난다.
+
+**결정**
+
+`usePostDelete.ts`, `useDeleteComment.ts`, `useDeleteAccount.ts`, `useFolderActions.ts`
+4곳 모두 `emphasis: 'confirm'`을 추가했다 — 확인(삭제/탈퇴)이 채움·오른쪽·초기 포커스를
+받는다. 이탈 가드(`useUnsavedChangesGuard.ts`)는 그대로 기본값(`'cancel'`)을 쓴다 — 그
+차이가 바로 위 문단의 기준이다.
+
+**이유 / 주의점**
+
+- `useDeleteAccount`는 e2e 스펙이 없다(unit 테스트가 `openConfirm`을 mock한다) — 포커스
+  단언은 e2e가 있는 나머지 3곳(`post-delete.spec.ts`, `comment-delete.spec.ts`,
+  `bookmark-folder-delete.spec.ts`)에만 추가했다.
+- 색(빨강 destructive)은 이번에도 바꾸지 않았다 — 강조 위치·포커스만 바뀐다.
+- 앞으로 새 삭제류 확인창을 추가할 때 이 기준(메뉴에서 직접 선택해야만 뜨는가)으로
+  `emphasis: 'confirm'` 적용 여부를 판단한다.
+
+**상태**
+
+적용 완료. 관련 파일: `src/features/post/delete/hooks/usePostDelete.ts`,
+`src/features/comment/delete/hooks/useDeleteComment.ts`,
+`src/features/account/delete/hooks/useDeleteAccount.ts`,
+`src/widgets/bookmark/folder-tree/hooks/useFolderActions.ts`,
+`e2e/post-delete.spec.ts`, `e2e/comment-delete.spec.ts`, `e2e/bookmark-folder-delete.spec.ts`.
+
+---
+
+## 2026-09-29 — (팔로업 2) Confirm 다이얼로그 강조를 호출부가 뒤집을 수 있는 `emphasis` 옵션 도입
+
+**배경**
+
+바로 아래 두 항목("Confirm 다이얼로그 버튼 강조", "(팔로업) 버튼 위치 교체")에서 확정한
+"취소=채움·오른쪽·초기 포커스, 확인=outline·왼쪽" 규칙은 게시글 공개 설정("나만 보기")
+토글 확인창(`usePostCard.ts`의 `handleToggleVisibility`)에도 코드 변경 없이 자동 적용됐다.
+그런데 이 토글은 삭제·이탈과 성격이 다르다 — **어느 방향(전체공개→비공개, 비공개→전체공개)
+으로 진행해도 데이터가 사라지지 않고, 같은 확인창으로 언제든 되돌릴 수 있다**(`updateVisibility`는
+`isPrivate` 불리언 하나를 토글하는 PATCH 하나뿐, e2e `post-visibility.spec.ts`가 양방향 모두
+검증). "안전한 쪽을 강조해 실수를 막는다"는 원래 규칙의 전제(되돌리기 어려운 위험한 선택지가
+있다)가 이 경우엔 성립하지 않는다.
+
+사용자가 이런 사례가 앞으로도 더 생길 것 같다며, 매번 예외를 하드코딩하지 않고 **호출부가
+선택할 수 있는 옵션**으로 만들어달라고 요청했다(2026-09-29 대화).
+
+**결정**
+
+`AlertData`/`OpenConfirmOptions`에 `emphasis?: 'cancel' | 'confirm'`(기본값 `'cancel'`)을
+추가했다. `Alert.tsx`는 `emphasis`가 가리키는 쪽에 채움·오른쪽·초기 포커스를 주고 반대쪽은
+outline·왼쪽으로 둔다 — 기본값 `'cancel'`이면 지금까지의 동작(삭제·이탈 등)과 완전히
+동일하고, 다른 5개 호출부는 필드를 넘기지 않으므로 아무 변경이 없다. `usePostCard.ts`의
+공개 설정 확인창에만 `emphasis: 'confirm'`을 넘겨 확인이 채움·오른쪽으로 강조되게 했다.
+
+**이유 / 주의점**
+
+- 위치도 강조를 따라간다 — `emphasis: 'confirm'`이면 확인이 왼쪽이 아니라 오른쪽으로
+  옮겨간다. Apple HIG의 "가장 많이 고를 버튼을 trailing에 둔다"는 원칙(위 팔로업 항목
+  참고)을 그대로 유지하기 위해서다. variant만 바꾸고 위치는 고정하는 방식은 채택하지
+  않았다 — 그러면 "채움인데 왼쪽"이라는 이번 두 항목의 결정과 모순되는 배치가 생긴다.
+- 기본값이 `'cancel'`이라 호출부 대부분(삭제·탈퇴·가드 등)은 이 옵션의 존재조차 몰라도
+  된다 — `docs/FE-ARCHITECTURE.md` §10 "버튼 강조는 기본적으로 호출부가 정하지 않는다"가
+  이 원칙을 그대로 유지한다.
+- e2e 포커스 단언을 `post-visibility.spec.ts`에도 추가해 "확인이 초기 포커스를 받는다"를
+  실측 고정했다(기존 가드 모달 e2e와 동일 패턴).
+
+**상태**
+
+적용 완료. 관련 파일: `src/shared/ui/elements/modal/alert/alert.store.ts`,
+`src/shared/ui/elements/modal/alert/Alert.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`,
+`e2e/post-visibility.spec.ts`, `docs/FE-ARCHITECTURE.md` §10. 같은 대화에서 폴더 생성
+인라인 폼(취소=ghost/왼쪽, 생성=채움/오른쪽)도 검토했지만 — 폴더 생성은 애초에 `Alert.tsx`를
+쓰지 않는 별개의 인라인 폼이고, "위험한 선택지가 없다"는 점에서 "원하는 쪽 강조"라는 같은
+원칙을 이미 따르고 있어 변경하지 않기로 했다.
+
+---
+
 ## 2026-09-29 — (팔로업) Confirm 다이얼로그 버튼 위치를 오른쪽=취소로 교체
 
 **배경**

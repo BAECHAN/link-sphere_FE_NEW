@@ -644,6 +644,9 @@ const onDelete = (id: string) => {
   openConfirm({
     message: TEXTS.messages.warning.entityDeleteConfirm,
     confirmText: TEXTS.buttons.delete,
+    // 메뉴에서 "삭제"를 직접 눌러야만 뜨는 다이얼로그라 이미 삭제를 결심한 상태다 —
+    // 확인이 채움·오른쪽·초기 포커스를 받는다(§ 아래 emphasis 설명)
+    emphasis: 'confirm',
     onConfirm: async () => {
       await deleteEntity(id);
     },
@@ -651,9 +654,29 @@ const onDelete = (id: string) => {
 };
 ```
 
-**버튼 강조는 호출부가 정하지 않는다.** `Alert.tsx`가 모든 confirm에 취소=채움(primary)·
-확인=outline을 일괄 적용한다 — 되돌리기 쉬운 선택지를 반사적으로도 누르기 쉽게 두기 위해서다.
-근거는 `docs/DECISIONS.md` 2026-09-29 항목 참고.
+**버튼 강조는 `Alert.tsx`의 `emphasis` 옵션(기본값 `'cancel'`)으로 정한다.** 채움(primary)·
+오른쪽·초기 포커스를 어느 쪽에 줄지 고르는 기준은 "이 확인창에 도달한 것 자체가 이미
+그 행동을 결심했다는 뜻인가"다:
+
+| 상황                                                                         | `emphasis`               | 이유                                                                                                                                                                                                                      |
+| ---------------------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 삭제·탈퇴 등, 메뉴에서 그 동작을 **직접 선택해야만** 뜨는 확인창             | `'confirm'`              | 이미 결심하고 여러 단계를 거쳐 도달했다 — [Apple HIG](https://developer.apple.com/design/human-interface-guidelines/alerts)의 "스스로 고른 위험한 동작에는 destructive 스타일을 주지 않는다"는 원칙을 포커스에도 적용한다 |
+| 언제든 되돌릴 수 있는 토글(공개 설정 등)                                     | `'confirm'`              | 어느 방향도 위험하지 않다 — "원하는 쪽" 강조                                                                                                                                                                              |
+| 뒤로가기·다른 메뉴 클릭 등 **의도치 않은** 동작에 끼어드는 확인창(이탈 가드) | 기본값(`'cancel'`, 생략) | 사용자가 원래 하려던 건 이 확인창을 띄우는 게 아니었다 — 안전한 쪽(머무르기)을 반사적으로도 누르기 쉽게 둔다                                                                                                              |
+
+토글 예시(공개 설정):
+
+```typescript
+openConfirm({
+  title: TEXTS.post.card.visibilityConfirmTitle,
+  confirmText: TEXTS.buttons.confirm,
+  cancelText: TEXTS.buttons.cancel,
+  emphasis: 'confirm', // 어느 방향으로 토글해도 위험하지 않다 — "원하는 쪽" 강조
+  onConfirm: () => updateVisibility(...),
+});
+```
+
+근거는 `docs/DECISIONS.md` 2026-09-29 항목(팔로업 포함) 참고.
 
 ---
 

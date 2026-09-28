@@ -72,6 +72,9 @@ export const useFolderActions = ({ folder, onBeforeDelete }: UseFolderActionsPar
       message: TEXTS.bookmark.folder.deleteConfirmMessage,
       confirmText: TEXTS.buttons.delete,
       cancelText: TEXTS.buttons.cancel,
+      // 이미 삭제를 결심하고 도달한 다이얼로그다 - usePostDelete.ts와 동일 이유로
+      // 확인을 채움+오른쪽으로 켠다(docs/DECISIONS.md 2026-09-29 항목).
+      emphasis: 'confirm',
       onConfirm: async () => {
         onBeforeDelete?.();
         try {
