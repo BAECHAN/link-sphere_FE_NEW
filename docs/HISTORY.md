@@ -1,4 +1,7 @@
 ### 2026-09-28 (FE)
+- 회원가입 프로세스 최적화: 이메일 중복 시에만 Sign In 링크 확인창이 노출되도록 로직 개선 ([#238](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/238))
+
+### 2026-09-28 (FE)
 - confirm 다이얼로그 버튼 스타일 최적화 (취소: 채움, 확인: Outline 강조 적용)
 
 ### 2026-09-28 (FE)
