@@ -91,9 +91,14 @@ export function useSignUp() {
     form.reset(DEFAULT_VALUES);
   };
 
-  // 로그인 링크로 바로 이동 - 로그인하려는 의도가 명확해 확인창을 띄우지 않는다. 단
-  // 새 탭/창으로 여는 수정키 클릭은 이 페이지에 그대로 남으므로 지우지 않는다.
+  // 이메일이 이미 가입된 것으로 확인됐을 때만 로그인 링크가 확인창 없이 바로 이동한다 -
+  // 그 외(단순히 입력 중인 상태)엔 일반 네비게이션으로 흘려보내 전역 가드가 그대로
+  // 처리하게 둔다(뒤로가기와 동일하게 "회원가입을 그만둘까요?" 확인창). 새 탭/창으로
+  // 여는 수정키 클릭은 이 페이지에 그대로 남으므로 지우지 않는다.
   const onLoginLinkClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!emailCheck.isDuplicate) {
+      return;
+    }
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
       return;
     }
