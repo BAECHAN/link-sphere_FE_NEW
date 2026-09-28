@@ -17,7 +17,15 @@ import { TEXTS } from '@/shared/config/texts';
 import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
 
 export const SignUpForm = () => {
-  const { form, onSubmit, isPending, emailCheck, nicknameCheck, isSubmitDisabled } = useSignUp();
+  const {
+    form,
+    onSubmit,
+    isPending,
+    emailCheck,
+    nicknameCheck,
+    isSubmitDisabled,
+    onLoginLinkClick,
+  } = useSignUp();
 
   // 체크가 빨리 끝나면(대부분의 경우) "확인 중이에요..."가 깜빡이지 않도록 300ms 지연 후에만
   // 보여준다 (useUpdateAccount.ts와 동일한 패턴)
@@ -64,28 +72,16 @@ export const SignUpForm = () => {
                 description={nicknameDescription}
                 descriptionVariant={nicknameCheck.isAvailable ? 'success' : 'default'}
               />
-              <div className="space-y-1">
-                <FormInput
-                  name="email"
-                  label={TEXTS.labels.email}
-                  type="email"
-                  placeholder={TEXTS.placeholders.email}
-                  required
-                  disabled={isPending}
-                  description={emailDescription}
-                  descriptionVariant={emailCheck.isAvailable ? 'success' : 'default'}
-                />
-                {emailCheck.isDuplicate && (
-                  <div className="text-right">
-                    <Link
-                      to={ROUTES_PATHS.AUTH.LOGIN}
-                      className="text-sm text-primary hover:underline"
-                    >
-                      {TEXTS.auth.signup.signIn}
-                    </Link>
-                  </div>
-                )}
-              </div>
+              <FormInput
+                name="email"
+                label={TEXTS.labels.email}
+                type="email"
+                placeholder={TEXTS.placeholders.email}
+                required
+                disabled={isPending}
+                description={emailDescription}
+                descriptionVariant={emailCheck.isAvailable ? 'success' : 'default'}
+              />
               <FormInputPassword
                 name="password"
                 label={TEXTS.labels.password}
@@ -110,7 +106,11 @@ export const SignUpForm = () => {
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-sm text-center text-muted-foreground">
             {TEXTS.auth.signup.alreadyAccount}{' '}
-            <Link to={ROUTES_PATHS.AUTH.LOGIN} className="text-primary hover:underline font-medium">
+            <Link
+              to={ROUTES_PATHS.AUTH.LOGIN}
+              onClick={onLoginLinkClick}
+              className="text-primary hover:underline font-medium"
+            >
               {TEXTS.auth.signup.signIn}
             </Link>
           </div>

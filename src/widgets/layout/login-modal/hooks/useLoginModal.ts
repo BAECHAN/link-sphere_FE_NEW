@@ -1,25 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/shared/ui/atoms/dialog';
-import { LoginForm } from '@/features/auth/login/ui/LoginForm';
 import { useLoginModalStore } from '@/shared/store/loginModal.store';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
-import { TEXTS } from '@/shared/config/texts';
 
 /**
- * 전역 로그인 유도 모달.
- * 비로그인 사용자가 인증이 필요한 액션/페이지에 접근할 때 뜬다.
- * App 최상위에 한 번만 렌더하고, 콜백은 loginModal.store가, 열림 상태는 히스토리 엔트리가 관리한다.
+ * 전역 로그인 유도 모달의 열림/닫힘 전이·재개 로직.
+ * 콜백은 loginModal.store가, 열림 상태는 히스토리 엔트리가 관리한다.
  */
-export function LoginModal() {
+export function useLoginModal() {
   const { onSuccess, setOnSuccess, pendingAction, setPendingAction } = useLoginModalStore();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { pathname } = useLocation();
@@ -91,23 +81,12 @@ export function LoginModal() {
     }
   }, [isOpen, pathname, setOnSuccess, close]);
 
-  return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) {
-          setOnSuccess(undefined);
-          close();
-        }
-      }}
-    >
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{TEXTS.auth.guard.title}</DialogTitle>
-          <DialogDescription>{TEXTS.auth.description}</DialogDescription>
-        </DialogHeader>
-        <LoginForm />
-      </DialogContent>
-    </Dialog>
-  );
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setOnSuccess(undefined);
+      close();
+    }
+  };
+
+  return { isOpen, handleOpenChange };
 }

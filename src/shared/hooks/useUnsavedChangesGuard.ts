@@ -1,13 +1,20 @@
 import { useEffect, useRef } from 'react';
-import { useBlocker, type BlockerFunction } from 'react-router-dom';
+import { useBlocker, useLocation, type BlockerFunction } from 'react-router-dom';
 import { hasUnsavedChanges } from '@/shared/store/unsavedChanges.store';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { getOpenAlertId, useAlertStore } from '@/shared/ui/elements/modal/alert/alert.store';
+import { PUBLIC_PATHS, ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
+
+// 로그인·회원가입 페이지(GuestGuard 전용)는 원래도 비로그인만 볼 수 있어 ProtectedRoute
+// 강제 리다이렉트에 갇힐 위험이 없다 - 비로그인 예외에서 뺀다.
+function isGuestOnlyPage(pathname: string): boolean {
+  return PUBLIC_PATHS.some((path) => path === pathname);
+}
 
 const shouldBlockNavigation: BlockerFunction = ({ currentLocation, nextLocation }) => {
   // 로그아웃·세션만료 시 ProtectedRoute의 강제 리다이렉트까지 막으면 폼에(또는 열린 대화상자에) 갇힌다.
-  if (!useAuthStore.getState().isAuthenticated) {
+  if (!useAuthStore.getState().isAuthenticated && !isGuestOnlyPage(currentLocation.pathname)) {
     return false;
   }
   // Alert/Confirm은 히스토리에 묶여있지 않아(T0) 뒤로가기가 그대로 페이지를 이동시켜버린다 -
@@ -42,6 +49,7 @@ export function useUnsavedChangesGuard() {
   const openConfirm = useAlertStore((state) => state.openConfirm);
   const cancelAlert = useAlertStore((state) => state.cancelAlert);
   const blocker = useBlocker(shouldBlockNavigation);
+  const { pathname } = useLocation();
 
   const blockerRef = useRef(blocker);
   blockerRef.current = blocker;
@@ -61,16 +69,20 @@ export function useUnsavedChangesGuard() {
         return;
       }
 
+      // 회원가입 페이지는 폼이 하나뿐이라 pathname만으로 전용 문구를 고를 수 있다.
+      const texts =
+        pathname === ROUTES_PATHS.AUTH.SIGNUP ? TEXTS.unsavedChanges.signup : TEXTS.unsavedChanges;
+
       openConfirm({
-        title: TEXTS.unsavedChanges.title,
-        message: TEXTS.unsavedChanges.message,
-        confirmText: TEXTS.unsavedChanges.confirm,
-        cancelText: TEXTS.unsavedChanges.cancel,
+        title: texts.title,
+        message: texts.message,
+        confirmText: texts.confirm,
+        cancelText: texts.cancel,
         onConfirm: () => blockerRef.current.proceed?.(),
         onCancel: () => blockerRef.current.reset?.(),
       });
     },
-    [blocker.state, openConfirm, cancelAlert]
+    [blocker.state, openConfirm, cancelAlert, pathname]
   );
 
   useEffect(function warnBeforeUnload() {

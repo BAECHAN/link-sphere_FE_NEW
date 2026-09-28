@@ -7,10 +7,10 @@
 > **읽고 나면**: "dirty"·"전역 레지스트리"가 정확히 무엇을 가리키는지 알고, 새 폼에
 > 이 가드를 붙이거나 이탈 판정 조건을 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-09-04
+> **마지막 검토**: 2026-09-29
 
-게시글 등록/수정, 댓글·답글 작성, 댓글 수정 폼에서 저장하지 않은 입력이 있는 상태로
-페이지를 벗어나려 하면 한 번 막습니다. 앱 내 이동은 확인 모달, 새로고침·탭 닫기는
+게시글 등록/수정, 댓글·답글 작성, 댓글 수정, 회원가입 폼에서 저장하지 않은 입력이 있는
+상태로 페이지를 벗어나려 하면 한 번 막습니다. 앱 내 이동은 확인 모달, 새로고침·탭 닫기는
 브라우저 기본 경고로 처리됩니다.
 
 설계 배경(react-router 단일 blocker 제약, 전역 레지스트리를 택한 이유)은
@@ -30,14 +30,16 @@
 ```mermaid
 flowchart TD
   Nav["페이지 이탈 시도"] --> Auth{"로그인 상태?"}
-  Auth -->|아니오| Allow1["통과<br/>(로그아웃 리다이렉트를 막으면 안 됨)"]
-  Auth -->|예| AlertOpen{"열려 있는<br/>Alert/Confirm 있음?"}
+  Auth -->|"아니오 + 로그인·회원가입<br/>페이지도 아님"| Allow1["통과<br/>(로그아웃 리다이렉트를 막으면 안 됨)"]
+  Auth -->|"예<br/>또는 로그인·회원가입 페이지"| AlertOpen{"열려 있는<br/>Alert/Confirm 있음?"}
   AlertOpen -->|있음| BlockAlert["차단하고 그 대화상자만 취소<br/>이탈 확인 모달은 안 띄움"]
   AlertOpen -->|없음| SamePath{"같은 pathname으로<br/>이동?"}
   SamePath -->|예| Allow2["통과<br/>(쿼리 파라미터만 바뀌는 이동)"]
   SamePath -->|아니오| Dirty{"칠판(전역 레지스트리)에<br/>이름표가 하나라도 있나?"}
   Dirty -->|없음| Allow3["통과"]
-  Dirty -->|있음| BlockConfirm["차단 → '작성 중인 내용이 있어요' 확인 모달"]
+  Dirty -->|있음| Page{"현재 페이지가<br/>회원가입?"}
+  Page -->|예| BlockSignup["차단 → '회원가입을 그만둘까요?' 확인 모달"]
+  Page -->|아니오| BlockConfirm["차단 → '작성 중인 내용이 있어요' 확인 모달"]
 ```
 
 ## 2. 전제 지식
@@ -74,8 +76,12 @@ Zustand 기본 개념은 안다고 가정한다.
 §1 순서도가 실제로 `useUnsavedChangesGuard.ts`의 `shouldBlockNavigation`
 함수 하나에 그대로 대응한다. 순서가 중요하다:
 
-1. **로그인 상태가 아니면 통과.** 로그아웃·세션 만료 시 `ProtectedRoute`의
-   강제 리다이렉트까지 막으면 폼에(또는 열린 대화상자에) 갇힌다.
+1. **로그인 상태가 아니면 통과 — 단 현재 페이지가 로그인·회원가입 페이지(`PUBLIC_PATHS`,
+   `route-paths.ts`)면 예외.** 로그아웃·세션 만료 시 `ProtectedRoute`의 강제
+   리다이렉트까지 막으면 폼에(또는 열린 대화상자에) 갇힌다 — 이 위험은 로그인이 필요한
+   페이지에서만 있고, 로그인·회원가입 페이지는 원래도 `GuestGuard`라 비로그인 전용이라
+   갇힐 인증 자체가 없다(2026-09-29, `isGuestOnlyPage` 추가 — 회원가입 폼 이탈 확인을
+   붙이려면 이 예외가 먼저 필요했다).
 2. **열려 있는 Alert/Confirm이 있으면 차단하되, 이탈 확인 모달은 띄우지
    않고 그 대화상자만 취소 처리한다.** Alert/Confirm은 브라우저 히스토리에
    묶여 있지 않아 뒤로가기가 그대로 페이지를 이동시켜버린다 — 북마크
@@ -84,12 +90,23 @@ Zustand 기본 개념은 안다고 가정한다.
 3. **같은 pathname으로의 이동이면 통과.** 쿼리 파라미터만 바뀌는 이동(예:
    북마크 페이지의 폴더 전환)까지 막으면 과도하다.
 4. **여기까지 왔으면 dirty 키 존재 여부로 최종 판단.** 하나라도 있으면
-   차단하고 "작성 중인 내용이 있어요" 확인 모달을 띄운다.
+   차단하고 현재 페이지가 회원가입이면 전용 문구("회원가입을 그만둘까요?"), 아니면
+   "작성 중인 내용이 있어요" 확인 모달을 띄운다.
 
 차단됐을 때의 두 갈래(대화상자 취소 vs. 이탈 확인 모달)는 `useEffect`
 안에서 분기한다 — Alert/Confirm 때문에 막힌 경우엔 그 대화상자를
 `cancelAlert`로 취소 처리하고 이동 자체는 없었던 일로 되돌리며(`blocker.reset()`),
 아니면 이탈 확인 모달을 새로 연다.
+
+**왜 회원가입 전용 문구를 따로 뒀나.** [NN/g(Jakob Nielsen)](https://www.nngroup.com/articles/confirmation-dialog/)는
+_"너무 자주 외치면 사람들은 질문에 주의를 기울이지 않게 되고, 확인창은 오류를 막는 힘을
+잃는다"_ (번역)고 경고한다 — 그래서 회원가입은 폼이 하나뿐이라 "회원가입을 그만둘까요?"처럼
+그 페이지 맥락에 맞는 구체적인 문구를 쓴다(pathname이 `/auth/sign-up`인지로 판정).
+회원가입 페이지의 "Sign In" 링크(`SignUpForm.tsx` 하단, 페이지에 하나뿐)는 확인창을 아예
+안 띄운다 — [Cloudscape — Communicating unsaved changes](https://cloudscape.design/patterns/general/unsaved-changes/)는
+_"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 때 페이지 내 모달을 띄운다"_ (번역)고
+하지만, 이 링크는 로그인하러 가려는 의도가 이미 명확해 물을 이유가 없다는 판단이다(2026-09-29
+실사용 피드백으로 확정 — §10 참고).
 
 ### 폼별 dirty 판정 기준
 
@@ -99,6 +116,7 @@ Zustand 기본 개념은 안다고 가정한다.
 | 게시글 수정    | 위와 동일(원래 게시글 값 대비)                                                                  | `useUpdatePost.ts`    |
 | 댓글/답글 작성 | 텍스트를 한 글자라도 쓰거나, 텍스트 없이 스크린샷만 붙여넣어도 잡힘                             | `useCreateComment.ts` |
 | 댓글 수정      | 수정 시작 시점 원본과 비교해 텍스트가 다르거나, 새 이미지를 붙였거나, 기존 이미지 개수가 바뀌면 | `useUpdateComment.ts` |
+| 회원가입       | 닉네임·이메일·비밀번호 중 하나라도 입력되면(제출 요청 중엔 잠깐 dirty로 안 잡는다 — §6)         | `useSignUp.ts`        |
 
 ### 이탈 방법별 동작
 
@@ -120,6 +138,7 @@ Zustand 기본 개념은 안다고 가정한다.
 | 답글 폼 "취소", 댓글 수정 "취소" 같은 폼 내부 버튼 | 페이지 이동이 아니라 가드 대상이 아님 → 즉시 닫힘                                   |
 | 아무것도 입력 안 한 상태                           | 애초에 dirty가 아니므로 모달 안 뜸                                                  |
 | 같은 pathname 안에서의 이동                        | §5의 3번 — 북마크 페이지의 폴더 전환 등                                             |
+| 회원가입 - "Sign In" 링크                          | 로그인하려는 의도가 이미 명확해 확인창 없이 바로 이동(§5 참고) - 클릭 시 dirty 해제 |
 
 ### 동시에 여러 폼이 열려 있을 때
 
@@ -151,7 +170,7 @@ Zustand 기본 개념은 안다고 가정한다.
 ### `useUnsavedChanges(key, isDirty)`(`src/shared/hooks/useUnsavedChanges.ts`)
 
 폼이 자기 dirty 상태를 레지스트리에 등록하는 훅. **"dirty 키"**란 이 훅의
-첫 번째 인자로, 폼 인스턴스를 구분하는 문자열이다 — 실제 호출부 4곳의 값:
+첫 번째 인자로, 폼 인스턴스를 구분하는 문자열이다 — 실제 호출부 5곳의 값:
 
 | 폼             | 키                                                     |
 | -------------- | ------------------------------------------------------ |
@@ -159,6 +178,13 @@ Zustand 기본 개념은 안다고 가정한다.
 | 게시글 수정    | `` `post-update:${postId}` ``                          |
 | 댓글/답글 작성 | `` `comment-create:${postId}:${parentId ?? 'root'}` `` |
 | 댓글 수정      | `` `comment-update:${comment.id}` ``                   |
+| 회원가입       | `'auth-signup'`                                        |
+
+**회원가입만 갖는 예외** — 두 번째 인자를 `isDirty && !isPending`으로 준다. 제출 요청
+직전에 `clearNow()`로 동기 해제해두고(가입 성공 시 곧장 로그인 페이지로 이동하는 걸
+막지 않기 위해), 요청이 실패하면 `isPending`이 다시 `false`로 돌아오면서 이 조건이
+다시 `true`가 돼 effect가 자동으로 재등록한다 — 그냥 `isDirty`만 쓰면 실패 후에도
+계속 clearNow 상태로 남아 사용자가 다시 이탈하려 해도 확인창이 안 뜬다.
 
 ```typescript
 export function useUnsavedChanges(key: string, isDirty: boolean) {
@@ -189,11 +215,13 @@ src/
 ├── app/routes/layouts/RootLayout.tsx     # 가드 마운트 지점(앱 전체 1곳)
 ├── shared/ui/elements/modal/alert/alert.store.ts  # §5의 Alert/Confirm 우선 차단 분기가
 │                                                    # 참조하는 getOpenAlertId 출처
-├── shared/config/texts.ts                # TEXTS.unsavedChanges.* — 확인 모달 문구
+├── shared/config/texts.ts                # TEXTS.unsavedChanges.* — 확인 모달 문구(.signup은 회원가입 전용)
+├── shared/config/route-paths.ts          # PUBLIC_PATHS — §5의 "로그인·회원가입 페이지" 판정 출처
 ├── features/post/create/hooks/useCreatePost.ts
 ├── features/post/update/hooks/useUpdatePost.ts
 ├── features/comment/create/hooks/useCreateComment.ts
-└── features/comment/update/hooks/useUpdateComment.ts
+├── features/comment/update/hooks/useUpdateComment.ts
+└── features/auth/signup/hooks/useSignUp.ts
 ```
 
 ### 자주 하는 수정
@@ -206,19 +234,31 @@ src/
 
 ## 9. 검증 결과
 
-이 문서에 자체 검증 수치는 없다. 관련 동작은 각 폼 훅(`useCreatePost` 등)의
-테스트와 `useUnsavedChangesGuard.ts` 자체 로직으로 커버된다 — 별도 통합
-테스트 파일이 있는지는 확인하지 않았다.
+댓글/게시글 폼은 `e2e/unsaved-changes.spec.ts`(PUSH·POP 이동, "계속 작성"/"나가기" 분기)가,
+회원가입 폼은 `e2e/signup-unsaved-changes.spec.ts`(전용 문구, "Sign In" 링크 예외, 뒤로가기
+차단, 제출 실패 후 재등록)가 각각 통합 테스트로 커버한다(2026-09-29). 그 외 자체 검증
+수치는 없다 — `useUnsavedChangesGuard.ts` 자체에 대한 유닛 테스트 파일은 여전히 없다.
 
 ## 10. 시행착오
 
-이 문서에 별도로 기록된 삽질 사례는 없다. 여러 blocker를 동시에 못 쓰는
-react-router 제약과 그로 인한 설계 트레이드오프는 시행착오가 아니라 처음부터
-알려진 제약이었다 — [DECISIONS.md](./DECISIONS.md) 참고.
+**2026-09-29, 회원가입 페이지 "Sign In" 링크 두 개 → 하나로.** 처음 배포했을 때는
+이메일 중복 안내 바로 아래에 확인창을 생략하는 전용 링크를 하나 더 두고, 하단
+"이미 계정이 있으신가요? Sign In" 푸터 링크는 그대로 가드 대상으로 남겨뒀다(§5의
+Cloudscape 인용도 그 전용 링크만 겨냥한 것이었다). 실사용 중 사용자가 두 링크가
+똑같이 "Sign In"이라 어느 쪽을 눌렀는지 구분하지 못했고, 하단 링크를 누르고 나서야
+확인창이 뜨는 걸 보고 "이메일 중복이면 가드 안 하기로 하지 않았냐"고 되물었다 —
+실제로는 의도대로 동작했지만(하단 링크는 원래도 가드 대상), 화면에 똑같이 생긴
+두 링크를 두고 하나만 다르게 동작시킨 것 자체가 혼란의 원인이었다. 전용 링크를
+없애고 하단 링크 하나만 남긴 뒤, 그 하나가 항상 확인창을 생략하도록 바꿨다 —
+페이지에 "Sign In" 링크가 하나뿐이면 링크마다 다른 규칙을 만들 필요가 없다.
 
 ## 11. 남은 것
 
-현재 알려진 미해결 이슈 없음.
+- **인증 강화 계획 FE Phase 5**(가입 후 "메일 확인" 안내 화면 도입 예정)가 배포되면
+  `useCreateAccountMutation.onSuccess`의 `navigate('/auth/login')`이 없어질 가능성이 있다.
+  그러면 `useSignUp.ts`의 `isDirty && !isPending` 재등록 규칙(§6)이 그 안내 화면에서도
+  똑같이 동작해, 화면의 "로그인하러 가기" 버튼이 이 가드에 막힐 수 있다 — 그 Phase에서
+  성공 시 `form.reset()`을 호출하거나 등록 조건에 `isSubmitSuccessful`을 추가해야 한다.
 
 ## 12. 용어 사전
 

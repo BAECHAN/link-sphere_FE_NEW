@@ -18,13 +18,9 @@ import {
 } from 'lucide-react';
 import { UserAvatar } from '@/entities/user/ui/UserAvatar';
 import { DateUtil } from '@/shared/utils/date.util';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/shared/ui/atoms/dropdown-menu';
-import { MoreVertical, Pencil, Trash } from 'lucide-react';
+import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';
+import { HoverKebabMenu } from '@/shared/ui/elements/HoverKebabMenu';
+import { Pencil, Trash } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LikePostButton } from '@/features/post/like/ui/LikePostButton';
 import { BookmarkPostButton } from '@/features/bookmark/toggle/ui/BookmarkPostButton';
@@ -131,49 +127,42 @@ export const PostCard = memo(function PostCard({
               </Button>
             )}
 
-            <DropdownMenu modal={false} open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 md:h-8 md:w-8"
-                  aria-label={TEXTS.ariaLabels.postMenu}
-                >
-                  <MoreVertical className="h-3 w-3 md:h-4 md:w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleNavigateToEdit();
-                  }}
-                >
-                  <Pencil className="mr-2 h-4 w-4" />
-                  {TEXTS.post.card.edit}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleToggleVisibility} disabled={isUpdatingVisibility}>
-                  {post.isPrivate ? (
-                    <>
-                      <Unlock className="mr-2 h-4 w-4" />
-                      {TEXTS.post.card.publicLabel}
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="mr-2 h-4 w-4" />
-                      {TEXTS.post.card.privateLabel}
-                    </>
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleDelete}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash className="mr-2 h-4 w-4" />
-                  {TEXTS.buttons.delete}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <HoverKebabMenu
+              aria-label={TEXTS.ariaLabels.postMenu}
+              triggerClassName="h-7 w-7 md:h-8 md:w-8"
+              open={isMenuOpen}
+              onOpenChange={setIsMenuOpen}
+            >
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleNavigateToEdit();
+                }}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                {TEXTS.post.card.edit}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleToggleVisibility} disabled={isUpdatingVisibility}>
+                {post.isPrivate ? (
+                  <>
+                    <Unlock className="mr-2 h-4 w-4" />
+                    {TEXTS.post.card.publicLabel}
+                  </>
+                ) : (
+                  <>
+                    <Lock className="mr-2 h-4 w-4" />
+                    {TEXTS.post.card.privateLabel}
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleDelete}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash className="mr-2 h-4 w-4" />
+                {TEXTS.buttons.delete}
+              </DropdownMenuItem>
+            </HoverKebabMenu>
           </div>
         )}
 

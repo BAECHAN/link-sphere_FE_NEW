@@ -1,6 +1,6 @@
 import { Moon, Sun, Search, Menu } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/atoms/button';
 import {
   DropdownMenu,
@@ -10,16 +10,17 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/atoms/dropdown-menu';
 import { Spinner } from '@/shared/ui/atoms/spinner';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useAuthStore } from '@/shared/store/auth.store';
-import { useAuth } from '@/entities/auth/hooks/useAuth';
 import { useAccount } from '@/entities/account/hooks/useAccount';
 import { UserAvatar } from '@/entities/user/ui/UserAvatar';
 import { NavbarSearch } from '@/widgets/layout/navbar/ui/NavbarSearch';
 import { MobileNavbarSearch } from '@/widgets/layout/navbar/ui/MobileNavbarSearch';
 import { RecentSearchPanel } from '@/widgets/layout/navbar/ui/RecentSearchPanel';
 import { useRecentSearches } from '@/widgets/layout/navbar/hooks/useRecentSearches';
+import { useDelayedLogout } from '@/widgets/layout/navbar/hooks/useDelayedLogout';
+import { useMobileSearchPanel } from '@/widgets/layout/navbar/hooks/useMobileSearchPanel';
 import { MyPageModal } from '@/widgets/layout/mypage/ui/MyPageModal';
 import { TEXTS } from '@/shared/config/texts';
 import { useLoginModalStore } from '@/shared/store/loginModal.store';
@@ -28,13 +29,8 @@ import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { useClickGuard } from '@/shared/hooks/useClickGuard';
 import { cn } from '@/shared/lib/tailwind/utils';
 
-interface NavbarLocationState {
-  mobileSearchOpen?: boolean;
-}
-
 export function Navbar() {
   const { isAuthenticated } = useAuthStore();
-  const { logout } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const canToggleTheme = useClickGuard();
 
@@ -46,42 +42,18 @@ export function Navbar() {
     open: openMyPage,
     close: closeMyPage,
   } = useHistoryOverlay('myPageOpen');
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { isLoggingOut, handleLogout } = useDelayedLogout();
   const { open: openSidebar } = useHistoryOverlay('sidebarOpen');
   const setLoginOnSuccess = useLoginModalStore((state) => state.setOnSuccess);
   const { open: openLoginModal } = useHistoryOverlay('loginModalOpen');
 
-  // 로그아웃이 처리되고 있음을 잠깐 보여준 뒤 실제 로그아웃 (즉시 로그인 버튼으로 바뀌어
-  // 정말 로그아웃됐는지 사용자가 의심하는 것을 방지)
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    logout();
-    setIsLoggingOut(false);
-  };
-
-  const location = useLocation();
   const navigate = useNavigate();
-
-  // 모바일 검색 패널 상태를 히스토리 엔트리에 실어 보낸다.
-  // 열 때 새 엔트리를 push하므로 뒤로가기(하드웨어 버튼·엣지 스와이프)를 누르면
-  // 페이지 이동이 아니라 이 엔트리가 pop되며 패널만 자연스럽게 닫힌다.
-  const isMobileSearchOpen = Boolean(
-    (location.state as NavbarLocationState | null)?.mobileSearchOpen
-  );
-
-  const openMobileSearch = () => {
-    navigate(`${location.pathname}${location.search}`, { state: { mobileSearchOpen: true } });
-  };
-
-  const closeMobileSearch = () => {
-    if (isMobileSearchOpen) {
-      navigate(-1);
-    }
-  };
 
   const { recentSearches, addRecentSearch, removeRecentSearch, clearRecentSearches } =
     useRecentSearches();
+
+  const { isMobileSearchOpen, openMobileSearch, closeMobileSearch, handleSearchSubmit } =
+    useMobileSearchPanel(addRecentSearch);
 
   const navRef = useRef<HTMLElement>(null);
 
@@ -105,16 +77,6 @@ export function Navbar() {
 
     return () => observer.disconnect();
   }, []);
-
-  const handleSearchSubmit = (query: string) => {
-    const trimmed = query.trim();
-    if (trimmed) {
-      addRecentSearch(trimmed);
-    }
-    const params = trimmed ? `?q=${encodeURIComponent(trimmed)}` : '';
-    // replace: 검색열림 엔트리를 결과 화면으로 대체 → 결과에서 뒤로가기 시 검색 패널이 다시 열리지 않음
-    navigate(`${ROUTES_PATHS.POST.ROOT}${params}`, { replace: true });
-  };
 
   return (
     <>
