@@ -1,4 +1,7 @@
 ### 2026-09-28 (FE)
+- 회원가입 프로세스 개선 및 로그인 폼 자동 완성 기능 구현 ([#243](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/243))
+
+### 2026-09-28 (FE)
 - confirm 다이얼로그의 버튼 강조 방향을 호출부에서 제어할 수 있도록 `emphasis` 옵션 추가
 
 ### 2026-09-28 (BE)
