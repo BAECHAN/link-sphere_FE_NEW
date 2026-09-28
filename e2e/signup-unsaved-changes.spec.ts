@@ -14,8 +14,9 @@ const VALID_PASSWORD = 'TestPass1!';
 // 예외 처리를 검증한다. e2e/unsaved-changes.spec.ts(로그인 상태의 댓글/게시글 폼)와 별개로,
 // e2e/signup.spec.ts(회원가입 성공/실패 흐름 자체)와도 겹치지 않게 분리했다.
 //
-// "Sign In" 링크(useSignUp.ts의 onLoginLinkClick)는 로그인하려는 의도가 이미 명확해 항상
-// 확인창을 생략한다 - 브라우저 뒤로가기·새로고침처럼 의도치 않은 이탈만 이 가드가 막는다.
+// "Sign In" 링크(useSignUp.ts의 onLoginLinkClick)는 이메일이 이미 가입된 것으로 확인됐을
+// 때만 확인창을 생략한다 - 로그인하려는 의도가 그 경우에만 명확하기 때문이다. 그 외(단순
+// 입력 중)엔 일반 네비게이션으로 흘러가 전역 가드가 뒤로가기와 동일하게 처리한다.
 test.describe('회원가입 폼 이탈 확인', () => {
   test.beforeEach(async ({ page }) => {
     await installCatchAll(page);
@@ -36,17 +37,44 @@ test.describe('회원가입 폼 이탈 확인', () => {
     return page.getByRole('link', { name: TEXTS.auth.signup.signIn });
   }
 
-  test('Sign In 링크는 입력 중이어도 확인창 없이 바로 이동한다', async ({ page }) => {
+  test('이메일 중복이 아니면 입력 중 Sign In 링크를 눌러도 확인창이 뜨고, "계속 가입하기"를 누르면 입력값이 유지된다', async ({
+    page,
+  }) => {
     await page.goto('/auth/sign-up');
     await fillSignupForm(page);
 
     await loginLink(page).click();
 
-    await expect(page).toHaveURL(/\/auth\/login$/);
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(guardDialog(page)).toBeVisible();
+    await expect(page).toHaveURL(/\/auth\/sign-up$/);
+    // 실수로 한 이탈 시도에도 안전한 선택지(계속 가입하기)가 눌리도록, 열리자마자 그
+    // 버튼에 포커스가 가 있어야 한다(unsaved-changes.spec.ts와 동일 취지, § 2026-09-29).
+    await expect(
+      guardDialog(page).getByRole('button', { name: TEXTS.unsavedChanges.signup.cancel })
+    ).toBeFocused();
+
+    await guardDialog(page)
+      .getByRole('button', { name: TEXTS.unsavedChanges.signup.cancel })
+      .click();
+    await expect(page.getByPlaceholder(TEXTS.placeholders.email)).toHaveValue('new@example.com');
   });
 
-  test('이메일이 중복이어도 Sign In 링크는 하나만 있고 확인창 없이 이동한다', async ({ page }) => {
+  test('확인창에서 "나가기"를 누르면 실제로 로그인 페이지로 이동한다', async ({ page }) => {
+    await page.goto('/auth/sign-up');
+    await fillSignupForm(page);
+
+    await loginLink(page).click();
+    await expect(guardDialog(page)).toBeVisible();
+    await guardDialog(page)
+      .getByRole('button', { name: TEXTS.unsavedChanges.signup.confirm })
+      .click();
+
+    await expect(page).toHaveURL(/\/auth\/login$/);
+  });
+
+  test('이메일이 중복이면 Sign In 링크는 하나만 있고 확인창 없이 바로 이동한다', async ({
+    page,
+  }) => {
     await mockEmailAvailability(page, false);
     await mockNicknameAvailability(page, true);
 
@@ -57,6 +85,15 @@ test.describe('회원가입 폼 이탈 확인', () => {
 
     // 예전엔 중복 안내 옆에 별도 "Sign In" 링크가 하나 더 떴다 - 지금은 없어야 한다.
     await expect(loginLink(page)).toHaveCount(1);
+    await loginLink(page).click();
+
+    await expect(page).toHaveURL(/\/auth\/login$/);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+
+  test('아무것도 입력하지 않았으면 Sign In 링크는 확인창 없이 이동한다', async ({ page }) => {
+    await page.goto('/auth/sign-up');
+
     await loginLink(page).click();
 
     await expect(page).toHaveURL(/\/auth\/login$/);
@@ -80,8 +117,6 @@ test.describe('회원가입 폼 이탈 확인', () => {
     // 틱에 뜨므로 URL보다 먼저 단언해도 안전하다(unsaved-changes.spec.ts와 동일 패턴).
     await expect(guardDialog(page)).toBeVisible();
     await expect(page).toHaveURL(/\/auth\/sign-up$/);
-    // 실수로 한 이탈 시도(뒤로가기)에도 안전한 선택지(계속 가입하기)가 눌리도록, 열리자마자
-    // 그 버튼에 포커스가 가 있어야 한다(unsaved-changes.spec.ts와 동일 취지, § 2026-09-29).
     await expect(
       guardDialog(page).getByRole('button', { name: TEXTS.unsavedChanges.signup.cancel })
     ).toBeFocused();
