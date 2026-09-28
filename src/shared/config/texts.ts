@@ -459,6 +459,12 @@ export const TEXTS = {
     message: '이 페이지를 벗어나면 입력한 내용이 사라져요. 그래도 나갈까요?',
     confirm: '나가기',
     cancel: '계속 작성',
+    signup: {
+      title: '회원가입을 그만둘까요?',
+      message: '지금 나가면 입력한 가입 정보가 사라져요.',
+      confirm: '나가기',
+      cancel: '계속 가입하기',
+    },
   },
   shortcuts: {
     sidebarToggle: 'Ctrl + B',
