@@ -19,8 +19,8 @@ export interface paths {
     put?: never;
     post?: never;
     /**
-     * 회원 탈퇴
-     * @description 비밀번호 재확인 후 계정을 익명화한다(하드 삭제 아님) - 작성한 글·댓글은 '탈퇴한 사용자'로 표시된 채 그대로 남는다. 북마크·좋아요·조회기록·FCM 토큰은 실제로 삭제된다. 모든 세션이 즉시 폐기되고 이 기기의 쿠키도 만료된다. 실패: 401 INVALID_CREDENTIALS(비밀번호 불일치)
+     * 회원 탈퇴 신청
+     * @description 비밀번호 재확인 후 탈퇴를 신청한다(즉시 삭제 아님) - 14일 유예기간에 들어간다. 모든 세션이 즉시 폐기되고 이 기기의 쿠키도 만료되며, FCM 토큰도 바로 삭제된다(유예 중 푸시 중단). 작성한 글·댓글은 이 시점부터 '탈퇴한 사용자'로 표시된다. 14일 안에 다시 로그인하면 신청이 자동 취소되고 닉네임 등이 그대로 복구된다(POST /auth/login 참고). 14일이 지나면 예약 작업이 계정을 익명화하고, 그때 북마크·좋아요·조회기록도 실제로 삭제된다. 실패: 401 INVALID_CREDENTIALS(비밀번호 불일치)
      */
     delete: operations['deleteAccount'];
     options?: never;
@@ -143,7 +143,7 @@ export interface paths {
     put?: never;
     /**
      * 로그인
-     * @description accessToken 은 본문으로, refreshToken 은 HttpOnly·Secure·SameSite=Lax 쿠키(최대 7일)로 내려간다. 둘 다 서버가 발급한 불투명 토큰이다(JWT 아님) - member_sessions 테이블로 매 요청마다 진위를 판정한다. 실패: 401 INVALID_CREDENTIALS · 429 RATE_LIMIT_EXCEEDED
+     * @description accessToken 은 본문으로, refreshToken 은 HttpOnly·Secure·SameSite=Lax 쿠키(최대 7일)로 내려간다. 둘 다 서버가 발급한 불투명 토큰이다(JWT 아님) - member_sessions 테이블로 매 요청마다 진위를 판정한다. 탈퇴 유예(14일) 중인 계정이면 이 로그인으로 탈퇴 신청이 자동 취소되고 deletionCancelled=true가 내려간다. 실패: 401 INVALID_CREDENTIALS · 429 RATE_LIMIT_EXCEEDED
      */
     post: operations['login'];
     delete?: never;
@@ -1083,6 +1083,7 @@ export interface components {
     };
     TokenResponse: {
       accessToken: string;
+      deletionCancelled: boolean;
     };
     Unit: Record<string, never>;
     UpdateAccountRequest: {

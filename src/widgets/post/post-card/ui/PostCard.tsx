@@ -104,7 +104,7 @@ export const PostCard = memo(function PostCard({
             className="flex"
             zoomable
           />
-          <span className="truncate">{author?.nickname || TEXTS.post.card.anonymous}</span>
+          <span className="truncate">{author?.nickname || TEXTS.post.card.withdrawnAuthor}</span>
           <span className="text-xs shrink-0">•</span>
           <span className="text-xs shrink-0">{DateUtil.formatRelativeShort(post.createdAt)}</span>
         </div>

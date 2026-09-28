@@ -342,6 +342,13 @@ predicate가 더 이상 매칭되지 않아 아무것도 다시 부르지 않습
 필요 없지만, "왜 로그인 직후에만 이 리셋이 필요한가"를 알아야 향후 유사한
 캐시 오염 지점(예: 계정 전환)을 놓치지 않습니다.
 
+**탈퇴 유예 중 복구 안내**(2026-09-29 추가): 회원탈퇴는 즉시 처리되지 않고 14일
+유예를 거친다(link-sphere_BE_NEW `AccountDeletionService`). 유예 중인 계정이
+로그인에 성공하면 BE가 탈퇴 신청을 자동 취소하고 응답에 `deletionCancelled: true`를
+실어 보낸다 - `useLoginMutation.onSuccess`가 위 캐시 처리 뒤 이 값을 보고 복구
+안내 토스트(`TEXTS.messages.success.accountDeletionCancelled`)를 띄운다. 캐시
+리셋·invalidate와는 무관한 별개 동작이라 위 순서에 영향을 주지 않는다.
+
 ### 자주 하는 수정
 
 | 하고 싶은 것                     | 건드릴 파일                                                                                                                                                         |

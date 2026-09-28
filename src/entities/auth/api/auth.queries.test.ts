@@ -16,12 +16,15 @@ import { postKeys } from '@/entities/post/api/post.keys';
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
 const mockToastError = vi.fn();
+const mockToastSuccess = vi.fn();
 vi.mock('@/shared/lib/toast/toast', () => ({
   toast: {
     error: (...args: unknown[]) => {
       mockToastError(...args);
     },
-    success: vi.fn(),
+    success: (...args: unknown[]) => {
+      mockToastSuccess(...args);
+    },
   },
 }));
 
@@ -147,6 +150,42 @@ describe('useLoginMutation', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(mockToastError).toHaveBeenCalledWith(TEXTS.messages.error.loginFailed);
+  });
+
+  it('로그인 응답의 deletionCancelled가 true면 탈퇴 신청 취소 토스트를 띄운다', async () => {
+    mockToastSuccess.mockClear();
+    server.use(
+      http.post(url(API_ENDPOINTS.auth.login), () =>
+        HttpResponse.json({
+          status: 200,
+          message: 'Login successful',
+          data: { accessToken: 'mock-access-token', deletionCancelled: true },
+          timestamp: new Date().toISOString(),
+        })
+      )
+    );
+
+    const { result } = renderHook(() => useLoginMutation(), { wrapper: LoginWrapper });
+
+    act(() => {
+      result.current.mutate({ email: 'user@example.com', password: 'password1!' });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockToastSuccess).toHaveBeenCalledWith(TEXTS.messages.success.accountDeletionCancelled);
+  });
+
+  it('일반 로그인(deletionCancelled 없음)은 복구 토스트를 띄우지 않는다', async () => {
+    mockToastSuccess.mockClear();
+
+    const { result } = renderHook(() => useLoginMutation(), { wrapper: LoginWrapper });
+
+    act(() => {
+      result.current.mutate({ email: 'user@example.com', password: 'password1!' });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockToastSuccess).not.toHaveBeenCalled();
   });
 });
 
