@@ -9,6 +9,22 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `auth` 회원탈퇴에 14일 유예기간 도입 - 로그인하면 자동 복구
+  <details><summary>배경·구현</summary>
+
+  지금까지는 탈퇴를 신청하면 즉시 계정이 익명화되고 되돌릴 방법이 전혀 없었다 - "탈퇴를 번복할 수 있는가" 질문에서 시작해 Discord(14일)·Instagram·X(30일) 등 업계 선례를 조사한 결과 대부분 유예기간을 두고 재로그인으로 복구하는 구조였다(BE 계획 문서 참고). BE(`link-sphere_BE_NEW`)가 탈퇴 신청을 1단계(즉시 세션 폐기)로, 실제 익명화는 2단계(14일 뒤 예약 작업)로 분리했다. FE는 문구를 이 구조에 맞게 고쳤고("이 작업은 되돌릴 수 없어요" → "14일 안에 다시 로그인하면 취소돼요"), 로그인 응답의 `deletionCancelled`가 true면 "탈퇴 신청이 취소됐어요" 토스트를 띄운다(`useLoginMutation.onSuccess`, 로그인 페이지·인라인 모달 양쪽이 이 훅 하나를 공유해 한 곳만 고치면 됐다). 유예 중에도 다른 사용자에게는 BE가 이미 "탈퇴한 사용자"로 보여주므로 FE 쪽 추가 분기는 필요 없었다.
+
+  같은 김에 게시글 카드의 탈퇴 작성자 표시가 "Anonymous"(영어)로, 댓글은 "탈퇴한 사용자"(한글)로 서로 다르게 나가던 기존 불일치도 "탈퇴한 사용자"로 통일했다. `Post.author.nickname`을 실제로는 null일 수 없다고 잘못 좁혀뒀던 타입도 걷어냈다 - 탈퇴 계정의 글은 이미 null로 내려오고 있었는데 타입만 거짓말을 하고 있었다.
+  (`src/shared/config/texts.ts`, `src/entities/auth/api/auth.queries.ts`, `src/entities/auth/model/auth.dto.ts`, `src/entities/post/model/post.dto.ts`, `src/widgets/post/post-card/ui/PostCard.tsx`, `src/entities/account/api/account.api.ts`·`account.queries.ts`, `docs/AUTH.md`, [계획](docs/plans/2026-09-29-account-deletion-grace-period.md))
+
+  </details>
+
+### Notes
+
+- BE API 의존: `link-sphere_BE_NEW` [PR #48](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/48) 필요(로그인 응답에 `deletionCancelled` 필드 추가, `DELETE /auth/account`의 실제 동작이 즉시 익명화에서 14일 유예 신청으로 변경). **배포 순서: BE 먼저** - 구버전 BE로 이 FE를 배포하면 `deletionCancelled`가 항상 없어(옵셔널 처리돼 있어 에러는 안 남) 복구 토스트만 영영 안 뜬다. 반대로 신버전 BE에 구버전 FE를 붙여도 필드를 무시할 뿐 깨지지 않는다.
+
 ### Added
 
 - `auth` 이메일 인증 전에는 글쓰기·댓글쓰기를 막고, 인증 상태를 화면 곳곳에서 안내

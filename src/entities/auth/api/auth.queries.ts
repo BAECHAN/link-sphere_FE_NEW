@@ -53,6 +53,11 @@ export const useLoginMutation = () => {
       void queryClient.invalidateQueries();
       // 4. FCM 토큰 등록 (브라우저 알림 권한 요청 + 서버 등록)
       void requestAndRegisterFcmToken();
+      // 5. 탈퇴 유예(14일) 중이던 계정이 이번 로그인으로 복구됐으면 안내한다 - 정보량이
+      //    있는 토스트라(단순 "로그인 성공" 이상) texts-conventions 판단축 2에 해당한다.
+      if (data.deletionCancelled) {
+        toast.success(TEXTS.messages.success.accountDeletionCancelled);
+      }
     },
     onError: (error) => {
       console.log(error);

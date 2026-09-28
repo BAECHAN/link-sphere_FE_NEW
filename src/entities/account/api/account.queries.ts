@@ -124,7 +124,7 @@ export const useUpdateAccountMutation = () => {
 
 // 성공하면 BE가 이 기기의 세션·쿠키를 이미 폐기했으므로, useLogoutMutation과 달리 API
 // 응답을 기다린 뒤 clearAll을 호출한다(로그아웃은 클라이언트가 먼저 지우고 API는
-// best-effort지만, 탈퇴는 서버 처리 성공을 확인한 뒤에만 "탈퇴됨"으로 취급해야 한다 -
+// best-effort지만, 탈퇴는 서버 처리 성공을 확인한 뒤에만 "탈퇴 신청됨"으로 취급해야 한다 -
 // 비밀번호가 틀려 실패했는데 클라이언트만 먼저 로그아웃 상태로 만들면 안 된다).
 export const useDeleteAccountMutation = () => {
   return useMutation({

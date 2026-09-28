@@ -39,8 +39,10 @@ export const accountApi = {
   },
 
   /**
-   * 탈퇴 성공 시 BE가 계정을 익명화하고 이 기기의 세션·쿠키를 폐기한다 - 응답에는
-   * 새 토큰이 없다(로그인 상태를 유지할 계정 자체가 없어졌으므로).
+   * 탈퇴 신청 성공 시 BE는 즉시 익명화하지 않고 14일 유예에 들어간다 - 이 기기의 세션·
+   * 쿠키만 바로 폐기한다(응답에 새 토큰이 없는 이유). 유예 중 로그인하면 신청이
+   * 자동 취소된다(auth.queries.ts의 useLoginMutation, deletionCancelled 참고).
+   * 실제 익명화는 14일 뒤 BE 예약 작업(AccountPurgeService)이 처리한다.
    */
   deleteAccount: async (payload: DeleteAccount): Promise<void> => {
     await apiClient.delete(API_ENDPOINTS.auth.deleteAccount, { password: payload.password });

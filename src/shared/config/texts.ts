@@ -177,11 +177,13 @@ export const TEXTS = {
     changePasswordSubmit: '비밀번호 변경',
     changePasswordSubmitting: '변경 중...',
     deleteSectionTitle: '회원 탈퇴',
+    // 14는 BE AccountDeletionService.GRACE_PERIOD(link-sphere_BE_NEW)와 반드시 같은 값이어야
+    // 한다 - 자동 동기화 장치는 없으므로 그쪽을 바꾸면 이 문구도 같이 바꾼다.
     deleteSectionDescription:
-      '탈퇴하면 북마크·좋아요·조회 기록이 삭제되고, 작성한 글과 댓글은 "탈퇴한 사용자"로 표시된 채 남아요. 이 작업은 되돌릴 수 없어요.',
+      '탈퇴를 신청하면 바로 로그아웃되고, 작성한 글과 댓글은 "탈퇴한 사용자"로 표시돼요. 14일 안에 다시 로그인하면 탈퇴가 취소돼요. 14일이 지나면 북마크·좋아요·조회 기록이 삭제되고 되돌릴 수 없어요.',
     deleteSubmit: '계정 탈퇴',
     deleteSubmitting: '탈퇴 중...',
-    deleteConfirmMessage: '정말 탈퇴하시겠어요? 이 작업은 되돌릴 수 없어요.',
+    deleteConfirmMessage: '정말 탈퇴하시겠어요? 14일 안에 다시 로그인하면 취소할 수 있어요.',
   },
   version: {
     title: '배포 확인',
@@ -241,7 +243,9 @@ export const TEXTS = {
       },
     },
     card: {
-      anonymous: 'Anonymous',
+      // 댓글(CommentAuthor, BE가 채워주는 "탈퇴한 사용자")과 표시를 통일한다 - 예전엔
+      // 게시글만 "Anonymous"로 따로 표시됐다(2026-09-29 발견한 불일치).
+      withdrawnAuthor: '탈퇴한 사용자',
       visitWebsite: 'Visit Website',
       aiSummary: 'AI 요약',
       semanticMatch: '검색어와 의미가 비슷한 글이에요',
@@ -426,7 +430,10 @@ export const TEXTS = {
       bookmarkRemoved: '북마크를 제거했어요.',
       passwordResetConfirmed: '비밀번호를 재설정했어요.',
       passwordChanged: '비밀번호를 변경했어요.',
-      accountDeleted: '계정을 삭제했어요.',
+      accountDeleted: '탈퇴를 신청했어요. 14일 안에 다시 로그인하면 취소돼요.',
+      // 유예 중(탈퇴 신청 후 14일 이내) 로그인 성공 시 표시 - useLoginMutation의
+      // onSuccess에서 로그인 응답의 deletionCancelled로 판단한다.
+      accountDeletionCancelled: '탈퇴 신청이 취소됐어요. 다시 오신 걸 환영해요.',
       emailVerificationResent: '인증 메일을 다시 보냈어요.',
     },
     error: {
