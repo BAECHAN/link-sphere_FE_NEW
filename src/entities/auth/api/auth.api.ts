@@ -6,6 +6,8 @@ import {
   PasswordResetRequest,
   PasswordResetConfirm,
   ChangePassword,
+  EmailVerificationRequest,
+  EmailVerificationConfirm,
 } from '@/entities/auth/model/auth.schema';
 import { Account } from '@/entities/account/@x/auth';
 import { API_ENDPOINTS } from '@/shared/config/api';
@@ -87,5 +89,18 @@ export const authApi = {
       newPassword: payload.newPassword,
     });
     return response;
+  },
+
+  /** 계정 존재·인증 여부와 무관하게 항상 같은 방식으로 끝난다(서버가 200을 고정 반환). */
+  requestEmailVerification: async (payload: EmailVerificationRequest): Promise<void> => {
+    await apiClient.post(API_ENDPOINTS.auth.emailVerificationRequest, {
+      email: payload.email,
+    });
+  },
+
+  confirmEmailVerification: async (payload: EmailVerificationConfirm): Promise<void> => {
+    await apiClient.post(API_ENDPOINTS.auth.emailVerificationConfirm, {
+      token: payload.token,
+    });
   },
 };

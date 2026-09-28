@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { postInvalidateQueries } from '@/entities/post/@x/auth';
+import { accountInvalidateQueries } from '@/entities/account/@x/auth';
 
 /**
  * 세션 복원(refresh) 성공 시 포스트 목록 재검증.
@@ -8,4 +9,12 @@ import { postInvalidateQueries } from '@/entities/post/@x/auth';
  */
 export const handleAuthRestoreSuccess = (queryClient: QueryClient) => {
   postInvalidateQueries.list(queryClient);
+};
+
+/**
+ * 이메일 인증 확인 성공 시 계정 캐시를 재검증한다 - emailVerified가 true로 바뀌어야
+ * Navbar 배지·MyAccountPage 안내가 실시간으로 사라진다.
+ */
+export const handleEmailVerificationConfirmSuccess = (queryClient: QueryClient) => {
+  accountInvalidateQueries.root(queryClient);
 };

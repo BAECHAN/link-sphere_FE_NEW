@@ -108,6 +108,14 @@ export function useCreateComment({
           return;
         }
 
+        // BE도 같은 검사를 403 EMAIL_NOT_VERIFIED로 거절하지만(방어 계층 중복), 클릭
+        // 가능한 채로 두고 안내만 보여준다(disabled 대신 - 아래 getCommentSubmitError와
+        // 같은 방식).
+        if (account.emailVerified === false) {
+          toast.error(TEXTS.messages.error.emailVerificationRequired);
+          return;
+        }
+
         const content = (data.content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
         const submitError = getCommentSubmitError(content, images.length, isReply);

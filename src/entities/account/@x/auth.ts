@@ -3,4 +3,5 @@ export {
   nicknameValidationSchema,
   emailValidationSchema,
 } from '@/entities/account/model/account.schema';
+export { accountInvalidateQueries } from '@/entities/account/api/account.keys';
 export type { Account } from '@/entities/account/model/account.schema';

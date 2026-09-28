@@ -62,6 +62,16 @@ export const changePasswordSchema = z
     path: ['confirmPassword'],
   });
 
+// 재발송(MyAccountPage)·확인(VerifyEmailPage) 양쪽에서 쓴다 - 재발송은 로그인 여부와
+// 무관하게 이메일만으로 호출한다(세션에서 유추하지 않음, BE AuthController 참고).
+export const emailVerificationRequestSchema = z.object({
+  email: emailValidationSchema,
+});
+
+export const emailVerificationConfirmSchema = z.object({
+  token: z.string().min(1, TEXTS.validation.tokenRequired),
+});
+
 // ==================== 2. DTO ====================
 
 export type Login = z.infer<typeof loginSchema>;
@@ -69,6 +79,8 @@ export type CreateAccount = z.infer<typeof createAccountSchema>;
 export type PasswordResetRequest = z.infer<typeof passwordResetRequestSchema>;
 export type PasswordResetConfirm = z.infer<typeof passwordResetConfirmSchema>;
 export type ChangePassword = z.infer<typeof changePasswordSchema>;
+export type EmailVerificationRequest = z.infer<typeof emailVerificationRequestSchema>;
+export type EmailVerificationConfirm = z.infer<typeof emailVerificationConfirmSchema>;
 
 // 기존 import 경로 호환 — auth.api.ts 등이 이 경로에서 응답 타입을 가져간다.
 export type { LoginResponse } from '@/entities/auth/model/auth.dto';

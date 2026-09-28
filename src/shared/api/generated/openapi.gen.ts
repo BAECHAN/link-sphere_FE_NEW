@@ -13,12 +13,16 @@ export interface paths {
     };
     /**
      * 내 계정 조회
-     * @description JWT 의 subject(UUID)로 조회한다. 실패: 404 NOT_FOUND(탈퇴 등으로 회원이 없을 때)
+     * @description 인증된 세션이 가리키는 회원 ID로 조회한다. 실패: 404 NOT_FOUND(탈퇴 등으로 회원이 없을 때)
      */
     get: operations['getAccount'];
     put?: never;
     post?: never;
-    delete?: never;
+    /**
+     * 회원 탈퇴
+     * @description 비밀번호 재확인 후 계정을 익명화한다(하드 삭제 아님) - 작성한 글·댓글은 '탈퇴한 사용자'로 표시된 채 그대로 남는다. 북마크·좋아요·조회기록·FCM 토큰은 실제로 삭제된다. 모든 세션이 즉시 폐기되고 이 기기의 쿠키도 만료된다. 실패: 401 INVALID_CREDENTIALS(비밀번호 불일치)
+     */
+    delete: operations['deleteAccount'];
     options?: never;
     head?: never;
     /**
@@ -37,7 +41,7 @@ export interface paths {
     };
     /**
      * 닉네임 사용 가능 여부 확인
-     * @description 비로그인도 호출할 수 있다. JWT 를 함께 보내면 본인 닉네임은 사용 가능으로 판정한다.
+     * @description 비로그인도 호출할 수 있다. 로그인 상태로 보내면 본인 닉네임은 사용 가능으로 판정한다.
      */
     get: operations['checkNicknameAvailability'];
     put?: never;
@@ -46,6 +50,26 @@ export interface paths {
     options?: never;
     head?: never;
     patch?: never;
+    trace?: never;
+  };
+  '/auth/account/password': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * 비밀번호 변경
+     * @description 현재 비밀번호 확인 후 변경한다. 성공하면 이 기기를 포함한 모든 세션이 폐기되고 이 기기에는 새 세션이 발급된다(쿠키도 새로 세팅됨) - 다른 기기는 재로그인이 필요하다. 실패: 400 INVALID_INPUT · 401 INVALID_CREDENTIALS(현재 비밀번호 불일치)
+     */
+    patch: operations['changePassword'];
     trace?: never;
   };
   '/auth/email-availability': {
@@ -68,6 +92,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/auth/email-verification/confirm': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * 이메일 인증 확인
+     * @description 메일로 받은 토큰으로 이메일 인증을 완료한다(로그인은 이미 가능한 상태였고, 이 API는 글쓰기·댓글쓰기 제한만 풀어준다). 실패: 401 INVALID_ACTION_TOKEN(토큰 없음·만료·이미 사용됨)
+     */
+    post: operations['confirmEmailVerification'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/auth/email-verification/request': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * 이메일 인증 메일 발송/재발송
+     * @description 로그인 여부와 무관하게 이메일만으로 호출 가능하다. 존재하지 않는 계정·이미 인증된 계정이어도 항상 200을 반환한다(계정 상태 노출 방지). 실패: 429 RATE_LIMIT_EXCEEDED
+     */
+    post: operations['requestEmailVerification'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/auth/login': {
     parameters: {
       query?: never;
@@ -79,7 +143,7 @@ export interface paths {
     put?: never;
     /**
      * 로그인
-     * @description accessToken 은 본문으로, refreshToken 은 HttpOnly·Secure·SameSite=Lax 쿠키(7일)로 내려간다. 실패: 401 INVALID_CREDENTIALS
+     * @description accessToken 은 본문으로, refreshToken 은 HttpOnly·Secure·SameSite=Lax 쿠키(최대 7일)로 내려간다. 둘 다 서버가 발급한 불투명 토큰이다(JWT 아님) - member_sessions 테이블로 매 요청마다 진위를 판정한다. 실패: 401 INVALID_CREDENTIALS · 429 RATE_LIMIT_EXCEEDED
      */
     post: operations['login'];
     delete?: never;
@@ -98,10 +162,70 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * 로그아웃
-     * @description refreshToken 쿠키를 maxAge=0 으로 덮어써 만료시킨다. 서버에 저장된 토큰을 지우지는 않는다.
+     * 로그아웃 (이 기기만)
+     * @description refreshToken 쿠키를 maxAge=0 으로 덮어써 만료시키고, 그 쿠키가 가리키던 세션도 서버에서 즉시 폐기한다(다른 기기의 세션은 그대로 유지). 쿠키가 없거나 이미 무효해도 200을 반환한다.
      */
     post: operations['logout'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/auth/logout-all': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * 로그아웃 (전체 기기)
+     * @description 이 계정의 모든 세션을 서버에서 즉시 폐기한다(다른 브라우저·기기에 남아있던 로그인 포함). 이 요청을 보낸 기기의 쿠키도 함께 만료시킨다.
+     */
+    post: operations['logoutAll'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/auth/password-reset/confirm': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * 비밀번호 재설정
+     * @description 메일로 받은 토큰과 새 비밀번호로 재설정한다. 성공하면 그 계정의 모든 세션이 폐기된다 (재로그인 필요). 실패: 400 INVALID_INPUT · 401 INVALID_ACTION_TOKEN(토큰 없음·만료·이미 사용됨)
+     */
+    post: operations['confirmPasswordReset'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/auth/password-reset/request': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * 비밀번호 찾기 요청
+     * @description 이메일이 존재하지 않아도 항상 200을 반환한다(계정 존재 여부 노출 방지). 실제 회원이면 1시간짜리 재설정 링크를 메일로 보낸다. 실패: 429 RATE_LIMIT_EXCEEDED
+     */
+    post: operations['requestPasswordReset'];
     delete?: never;
     options?: never;
     head?: never;
@@ -119,7 +243,7 @@ export interface paths {
     put?: never;
     /**
      * 액세스 토큰 갱신
-     * @description 요청 본문이 아니라 refreshToken 쿠키를 읽는다. 성공 시 쿠키도 새로 발급된다. 실패: 401 MISSING_REFRESH_TOKEN(쿠키 없음) · 401 INVALID_REFRESH_TOKEN(만료·위조)
+     * @description 요청 본문이 아니라 refreshToken 쿠키를 읽는다. 성공 시 쿠키도 새로 발급된다(회전 - 이전 refresh는 그 순간 폐기되고 재사용하면 같은 로그인에서 나온 세션 전체가 폐기된다). 실패: 401 MISSING_REFRESH_TOKEN(쿠키 없음) · 401 INVALID_REFRESH_TOKEN(만료·위조·이미 소비됨)
      */
     post: operations['refresh'];
     delete?: never;
@@ -139,7 +263,7 @@ export interface paths {
     put?: never;
     /**
      * 회원가입
-     * @description 이 API 만 실제 HTTP 201 로 응답한다. 실패: 400 INVALID_INPUT · 409 DUPLICATE_MEMBER · 409 DUPLICATE_NICKNAME
+     * @description 이 API 만 실제 HTTP 201 로 응답한다. 실패: 400 INVALID_INPUT · 409 DUPLICATE_MEMBER · 409 DUPLICATE_NICKNAME · 429 RATE_LIMIT_EXCEEDED
      */
     post: operations['signup'];
     delete?: never;
@@ -623,6 +747,8 @@ export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
     AccountResponse: {
+      email: string;
+      emailVerified: boolean;
       id: string;
       image?: string | null;
       nickname?: string | null;
@@ -777,6 +903,10 @@ export interface components {
       id: number;
       name: string;
     };
+    ChangePasswordRequest: {
+      currentPassword: string;
+      newPassword: string;
+    };
     CommentAuthor: {
       /** Format: uuid */
       id: string;
@@ -804,11 +934,20 @@ export interface components {
     CreateFolderRequest: {
       name: string;
     };
+    DeleteAccountRequest: {
+      password: string;
+    };
     DeleteFcmTokenRequest: {
       token: string;
     };
     EmailAvailabilityResponse: {
       available: boolean;
+    };
+    EmailVerificationConfirmRequest: {
+      token: string;
+    };
+    EmailVerificationRequest: {
+      email: string;
     };
     FolderListResponse: {
       folders: components['schemas']['FolderResponse'][];
@@ -860,6 +999,13 @@ export interface components {
     };
     NicknameAvailabilityResponse: {
       available: boolean;
+    };
+    PasswordResetConfirmRequest: {
+      newPassword: string;
+      token: string;
+    };
+    PasswordResetRequest: {
+      email: string;
     };
     PostCreateRequest: {
       bookmark: boolean;
@@ -989,6 +1135,30 @@ export interface operations {
       };
     };
   };
+  deleteAccount: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DeleteAccountRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponseUnit'];
+        };
+      };
+    };
+  };
   updateAccount: {
     parameters: {
       query?: never;
@@ -1035,6 +1205,30 @@ export interface operations {
       };
     };
   };
+  changePassword: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChangePasswordRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponseTokenResponse'];
+        };
+      };
+    };
+  };
   checkEmailAvailability: {
     parameters: {
       query: {
@@ -1053,6 +1247,54 @@ export interface operations {
         };
         content: {
           '*/*': components['schemas']['ApiResponseEmailAvailabilityResponse'];
+        };
+      };
+    };
+  };
+  confirmEmailVerification: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EmailVerificationConfirmRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponseUnit'];
+        };
+      };
+    };
+  };
+  requestEmailVerification: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EmailVerificationRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponseUnit'];
         };
       };
     };
@@ -1086,9 +1328,79 @@ export interface operations {
       query?: never;
       header?: never;
       path?: never;
+      cookie?: {
+        '__Host-refreshToken'?: string;
+      };
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponseUnit'];
+        };
+      };
+    };
+  };
+  logoutAll: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
       cookie?: never;
     };
     requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponseUnit'];
+        };
+      };
+    };
+  };
+  confirmPasswordReset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PasswordResetConfirmRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponseUnit'];
+        };
+      };
+    };
+  };
+  requestPasswordReset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PasswordResetRequest'];
+      };
+    };
     responses: {
       /** @description OK */
       200: {
@@ -1107,7 +1419,7 @@ export interface operations {
       header?: never;
       path?: never;
       cookie: {
-        refreshToken: string;
+        '__Host-refreshToken': string;
       };
     };
     requestBody?: never;

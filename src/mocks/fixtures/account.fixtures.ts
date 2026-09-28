@@ -5,6 +5,8 @@ export const mockAccount: Account = {
   nickname: 'testuser',
   image: undefined,
   role: 'USER',
+  emailVerified: true,
+  email: 'testuser@example.com',
 };
 
 export const mockOtherAccount: Account = {
@@ -12,4 +14,6 @@ export const mockOtherAccount: Account = {
   nickname: 'otheruser',
   image: undefined,
   role: 'USER',
+  emailVerified: true,
+  email: 'otheruser@example.com',
 };

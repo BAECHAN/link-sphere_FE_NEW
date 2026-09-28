@@ -13,6 +13,12 @@ export const accountKeys = {
   root: rootKey,
 };
 
+export const accountInvalidateQueries = {
+  root: (queryClient: QueryClient) => {
+    queryClient.invalidateQueries({ queryKey: accountKeys.root });
+  },
+};
+
 /**
  * 프로필(닉네임·이미지) 변경 후 - 작성자 정보가 비정규화되어 실려오는 캐시를 전부 재검증한다.
  * BE는 댓글·게시글의 author를 members에서 매 요청 조인해 내려주므로 재조회만 하면 새 값이 온다.

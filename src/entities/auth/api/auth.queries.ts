@@ -8,6 +8,8 @@ import {
   PasswordResetRequest,
   PasswordResetConfirm,
   ChangePassword,
+  EmailVerificationRequest,
+  EmailVerificationConfirm,
 } from '@/entities/auth/model/auth.schema';
 import { AuthUtil } from '@/shared/utils/auth.util';
 import { ROUTES_PATHS, isProtectedPath } from '@/shared/config/route-paths';
@@ -16,6 +18,7 @@ import { toast } from '@/shared/lib/toast/toast';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { useNavigate } from 'react-router-dom';
 import { requestAndRegisterFcmToken, unregisterFcmToken } from '@/shared/lib/firebase/fcm';
+import { handleEmailVerificationConfirmSuccess } from '@/entities/auth/api/auth.keys';
 
 function isErroredCacheWithoutData(query: Query): boolean {
   return query.state.status === 'error' && query.state.data === undefined;
@@ -98,15 +101,15 @@ export const useLogoutMutation = () => {
   };
 };
 
+// 가입 성공 후 화면 전환("메일함을 확인해주세요" 상태)은 useSignUp.ts가 로컬 상태로
+// 처리한다 - BE가 가입 시 인증메일을 자동 발송하므로(AuthService.signup) 여기서
+// navigate도, 성공 토스트도 필요 없다(화면 자체가 성공을 보여준다, 가시성 원칙).
 export const useCreateAccountMutation = () => {
-  const navigate = useNavigate();
-
   return useMutation({
     mutationFn: async (payload: CreateAccount) => {
       return await authApi.createAccount(payload);
     },
     meta: {
-      successMessage: TEXTS.messages.success.accountCreated,
       manualErrorHandling: true,
     },
     onError: (error) => {
@@ -123,9 +126,6 @@ export const useCreateAccountMutation = () => {
       } else {
         toast.error(TEXTS.messages.error.accountCreateFailed);
       }
-    },
-    onSuccess: () => {
-      navigate(ROUTES_PATHS.AUTH.LOGIN);
     },
   });
 };
@@ -193,6 +193,41 @@ export const useChangePasswordMutation = () => {
       } else {
         toast.error(TEXTS.messages.error.passwordChangeFailed);
       }
+    },
+  });
+};
+
+// 계정 존재·인증 여부와 무관하게 서버가 항상 200을 반환한다(useRequestPasswordResetMutation과
+// 같은 이유) - MyAccountPage의 "재발송" 버튼 전용이라, 클릭에 대한 눈에 보이는 화면 변화가
+// 없으므로(가시성 원칙) 토스트로 결과를 알린다.
+export const useRequestEmailVerificationMutation = () => {
+  return useMutation({
+    mutationFn: async (payload: EmailVerificationRequest) => {
+      return await authApi.requestEmailVerification(payload);
+    },
+    meta: {
+      successMessage: TEXTS.messages.success.emailVerificationResent,
+      manualErrorHandling: true,
+    },
+    onError: () => {
+      toast.error(TEXTS.messages.error.emailVerificationRequestFailed);
+    },
+  });
+};
+
+// VerifyEmailPage가 mount 시 token으로 호출한다 - 성공 여부를 페이지 자체가 상태로
+// 보여주므로(가시성 원칙) 토스트는 없다. 계정 캐시 무효화만 훅 레벨에서 소유한다
+// (React Query 라이프사이클 표 - useMutation({onSuccess})는 언마운트 후에도 실행).
+export const useConfirmEmailVerificationMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: EmailVerificationConfirm) => {
+      return await authApi.confirmEmailVerification(payload);
+    },
+    meta: { manualErrorHandling: true },
+    onSuccess: () => {
+      handleEmailVerificationConfirmSuccess(queryClient);
     },
   });
 };
