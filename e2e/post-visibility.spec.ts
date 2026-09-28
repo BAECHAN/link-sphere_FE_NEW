@@ -10,6 +10,7 @@ import { wrapResponse } from './mocks/wrap-response';
 import { ENDPOINTS } from './mocks/endpoints';
 import { mockPost, mockPostListResponse } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
+import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 // useUpdatePostVisibilityMutation(post.queries.ts)은 direct patch 없이 invalidate만 한다
 // (mutationKey도 update와 달라 '수정 중...' 오버레이/토스트에 안 걸림 — post-update.spec.ts와
@@ -76,6 +77,10 @@ test.describe('공개/비공개 전환', () => {
     // (usePostCard.ts, § 2026-09-29).
     await expect(confirmDialog.getByRole('button', { name: TEXTS.buttons.confirm })).toBeFocused();
 
+    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+
     const patched = page.waitForResponse((res) =>
       /^\/api\/post\/[^/]+\/visibility$/.test(new URL(res.url()).pathname)
     );
@@ -111,6 +116,12 @@ test.describe('공개/비공개 전환', () => {
     const confirmDialog = page.getByRole('dialog', {
       name: TEXTS.post.card.visibilityConfirmTitle,
     });
+    await expect(confirmDialog).toBeVisible();
+
+    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+
     const patched = page.waitForResponse((res) =>
       /^\/api\/post\/[^/]+\/visibility$/.test(new URL(res.url()).pathname)
     );

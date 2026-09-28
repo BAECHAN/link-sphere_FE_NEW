@@ -8,6 +8,7 @@ import { mockPostList, mockPostDetail } from './mocks/post.mock';
 import { mockComments } from './mocks/comment.mock';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
+import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 // useUnsavedChangesGuard(shared/hooks/useUnsavedChangesGuard.ts) — React Router blocker
 // 기반이라 실제 라우터 없이는 재현 불가능한 영역. 유닛 테스트 파일 자체가 없다
@@ -72,6 +73,11 @@ test.describe('저장하지 않은 변경 가드', () => {
 
     await page.getByRole('link', { name: TEXTS.nav.feed }).click();
     await expect(guardDialog(page)).toBeVisible();
+
+    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+
     await guardDialog(page).getByRole('button', { name: TEXTS.unsavedChanges.confirm }).click();
 
     await expect(page).toHaveURL(/\/post$/);
@@ -86,6 +92,10 @@ test.describe('저장하지 않은 변경 가드', () => {
     // 진짜 레이스다. 모달은 block 판정과 같은 틱에 뜨므로 이 순서가 안전하다.
     await expect(guardDialog(page)).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
+
+    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 
     await guardDialog(page).getByRole('button', { name: TEXTS.unsavedChanges.confirm }).click();
     await expect(page).toHaveURL(/\/post$/);

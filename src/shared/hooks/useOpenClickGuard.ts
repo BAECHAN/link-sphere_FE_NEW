@@ -7,6 +7,8 @@ import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
  * 가드 함수 자신의 마지막 통과 시점이 아니라 `open`이 true가 된 시점에서 시작한다 —
  * 트리거를 더블클릭/더블탭하면 두 번째 클릭이 방금 뜬 모달 위(행·버튼 등 서로 다른
  * 여러 요소)에 떨어지는 문제를 막기 위함이다(폴더 선택 모달 오탭 방지, 2026-09-24).
+ * 2026-09-29부터 `shared/ui/atoms/dialog.tsx`의 `DialogContent`에 배선돼, Alert/Confirm을
+ * 포함한 모든 Dialog 기반 모달에 공통으로 적용된다(docs/BOOKMARK.md §5 참고).
  *
  * @param open - 가드 대상 UI의 열림 상태
  * @param thresholdMs - open이 true가 된 뒤 이 시간(ms) 이내의 클릭은 무시한다

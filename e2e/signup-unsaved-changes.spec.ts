@@ -4,6 +4,7 @@ import { installCatchAll } from './mocks/catch-all';
 import { mockEmailAvailability, mockSignUpFailure } from './mocks/auth.mock';
 import { mockNicknameAvailability } from './mocks/account.mock';
 import { TEXTS } from '@/shared/config/texts';
+import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 // zod passwordValidationSchema(auth.schema.ts) — 영문+숫자+특수문자 8자 이상, 20자 이하.
 const VALID_PASSWORD = 'TestPass1!';
@@ -65,6 +66,11 @@ test.describe('회원가입 폼 이탈 확인', () => {
 
     await loginLink(page).click();
     await expect(guardDialog(page)).toBeVisible();
+
+    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+
     await guardDialog(page)
       .getByRole('button', { name: TEXTS.unsavedChanges.signup.confirm })
       .click();
@@ -138,6 +144,11 @@ test.describe('회원가입 폼 이탈 확인', () => {
     await page.goBack();
 
     await expect(guardDialog(page)).toBeVisible();
+
+    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+
     await guardDialog(page)
       .getByRole('button', { name: TEXTS.unsavedChanges.signup.confirm })
       .click();
