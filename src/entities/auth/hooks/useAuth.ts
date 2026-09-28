@@ -5,6 +5,7 @@ import { authApi } from '@/entities/auth/api/auth.api';
 import { useLoginMutation, useLogoutMutation } from '@/entities/auth/api/auth.queries';
 import { Login } from '@/entities/auth/model/auth.schema';
 import { Account } from '@/entities/account/@x/auth';
+import { requestAndRegisterFcmToken } from '@/shared/lib/firebase/fcm';
 
 // ==================== Types ====================
 
@@ -75,6 +76,10 @@ export const useAuth = (): UseAuthReturn => {
       }
 
       setAuth(authData.accessToken);
+      // 앱 부팅 시 세션이 복원되면 이 기기의 FCM 토큰도 새 세션의 회전 계열(familyId)로
+      // 재등록한다 - 안 하면 예전에 등록된 적 없는(또는 레거시) 토큰이 다음 발송 때
+      // 비활성으로 간주돼 지워진다(fcm.ts 참고).
+      void requestAndRegisterFcmToken();
       return true;
     } catch (error) {
       console.error('Auth restore failed', error);

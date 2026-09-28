@@ -185,6 +185,9 @@ export const useChangePasswordMutation = () => {
     meta: { manualErrorHandling: true, successMessage: TEXTS.messages.success.passwordChanged },
     onSuccess: (data) => {
       setAuth(data.accessToken);
+      // BE가 비밀번호 변경 시 이 기기의 세션 회전 계열(familyId)을 새로 발급하므로,
+      // FCM 토큰도 새 계열로 재등록해야 다음 알림부터 끊기지 않는다(fcm.ts 참고).
+      void requestAndRegisterFcmToken();
     },
     onError: (error) => {
       if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.INVALID_CREDENTIALS) {
