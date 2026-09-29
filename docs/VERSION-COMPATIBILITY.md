@@ -19,7 +19,19 @@ BE·FE는 레포가 분리돼 있고 SemVer도 각자 독립적으로 올라가�
 | BE   | [v0.10.0](https://github.com/BAECHAN/link-sphere_BE_NEW/releases/tag/v0.10.0) |
 | FE   | [v0.17.0](https://github.com/BAECHAN/link-sphere_FE_NEW/releases/tag/v0.17.0) |
 
-현재 두 버전 사이에 계약 변경 대기(gap)는 없음.
+현재 `[Unreleased]`(`CHANGELOG.md`)에 BE PR에 의존하는 FE 기능이 있어 **gap
+있음**:
+
+- 회원탈퇴 14일 유예기간 — BE `link-sphere_BE_NEW`
+  [PR #48](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/48) 필요(로그인
+  응답에 `deletionCancelled` 필드 추가, `DELETE /auth/account`가 즉시 익명화에서
+  14일 유예 신청으로 변경). **배포 순서: BE 먼저** — 구버전 BE에 신버전 FE를
+  배포하면 에러 없이 복구 토스트만 영영 안 뜬다.
+- CloudFront OAC 전환 대응(`X-Access-Token` 헤더·CSP 빌드 시 주입) — BE
+  [PR #47](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/47)(Lambda Function
+  URL `AuthType` 전환)과 짝. 전환 전까지는 하위 호환 — BE가 `X-Access-Token`과
+  기존 `Authorization: Bearer` 둘 다 읽는다. 상세는
+  [`docs/DEPLOY.md`](./DEPLOY.md)의 "CloudFront Origin Access Control(OAC)" 절 참고.
 
 ## 알려진 상호 의존 지점
 

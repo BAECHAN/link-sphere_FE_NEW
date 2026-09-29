@@ -7,7 +7,7 @@
 > **읽고 나면**: 저장 실패 시 재오픈 복원과 닉네임 중복확인이 어떻게 동작하는지
 > 이해하고, 이 모달에 필드를 추가하거나 캐시 무효화 범위를 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-09-09
+> **마지막 검토**: 2026-09-29
 
 네비게이션 바 아바타 드롭다운에서 **프로필 수정** 메뉴를 클릭하면 모달이 열립니다.
 닉네임 변경 및 프로필 이미지(아바타) 교체를 지원합니다.
@@ -54,7 +54,7 @@ React Hook Form·TanStack Query의 낙관적 업데이트(`onMutate`/`onError` �
 - **`useDebounce`** — 닉네임 중복확인 디바운스
 - **Radix UI Avatar** — 아바타 이미지/이니셜 폴백
 
-**구현·검증 과정에서 쓴 도구**: MSW(`src/mocks/handlers/auth.handlers.ts`),
+**구현·검증 과정에서 쓴 도구**: MSW(`src/mocks/handlers/account.handlers.ts`),
 Vitest — §8 참고.
 
 ## 4. 왜 만들었나
@@ -142,11 +142,15 @@ JSON `null`로 직렬화된다. `z.string().optional()`은 `null`을 거부하�
 `pendingFile !== null` 조건을 OR로 결합한다
 (`isDirty: form.formState.isDirty || pendingFile !== null`).
 
-**아바타 깜빡임 방지**: Radix UI `Avatar`는 이미지 로드 실패 시에만
-`AvatarFallback`을 표시한다. 이미지가 있을 때도 `AvatarFallback`을 렌더링하면
-로딩 중 → Fallback → 이미지 순으로 깜빡인다. 이미지가 없을 때만
-`AvatarFallback`을 조건부 렌더링하면(`{!image && <AvatarFallback>...}`)
-Fallback이 DOM에 없어 브라우저 캐시에서 즉시 로드되며 깜빡임이 없다.
+**아바타 깜빡임 방지(정정, 2026-09-29)**: 이 모달의 아바타는 자체 마크업이 아니라
+공통 `UserAvatar`(`entities/user/ui/UserAvatar.tsx`)를 그대로 쓴다
+(`UpdateAccountForm.tsx`). 그 컴포넌트의 실제 fallback 조건은 `!image`뿐이 아니라
+`(!image || hasError) && nicknameInitial`이다 — `hasError`는 `AvatarImage`의
+`onLoadingStatusChange`가 `'error'`를 보고할 때만 켜지는 로컬 상태이고, `image`
+prop이 바뀔 때마다(`useEffect`) 초기화된다. `image && !hasError`일 때만
+`AvatarImage`를 렌더링하고, `showFallback`(`(!image || hasError) &&
+nicknameInitial`)일 때만 `AvatarFallback`을 렌더링해 두 요소가 동시에 DOM에
+있는 경우를 없애므로, 로딩 중 → Fallback → 이미지 순의 깜빡임이 생기지 않는다.
 
 ### 로그아웃 처리
 
@@ -178,17 +182,19 @@ const logout = () => {
 };
 ```
 
-### Supabase Storage 버킷 구조
+### `/my/account` 페이지(계정 설정) — 이 모달과는 별개 화면
 
-아바타 이미지는 `SupabaseStorageService.uploadFile(file)`(기본 버킷)을
-사용한다. 댓글 이미지는 `uploadFile(file, "comments")` 형태로 버킷을
-명시한다. (BE 코드 — `link-sphere_BE_NEW` 레포, 작성 당시 기준 기록)
-
-```kotlin
-// SupabaseStorageService.kt
-fun uploadFile(file: MultipartFile): String = uploadFile(file, bucketName) // 기본 버킷 사용
-fun uploadFile(file: MultipartFile, bucket: String): String { ... }        // 버킷 명시
-```
+`src/pages/myaccount/MyAccountPage.tsx`(`ROUTES_PATHS.MY_ACCOUNT = '/my/account'`)는
+이 문서가 다루는 프로필 수정 모달(닉네임·아바타)과는 별도 페이지다. 세 구획을
+세로로 쌓는다: `EmailVerificationBanner`(이메일 미인증 시 안내 + 재발송 버튼),
+`ChangePasswordForm`(`features/auth/password-change`), `DeleteAccountSection`
+(`features/account/delete`) — 비밀번호 입력 후 탈퇴를 신청하는 폼이다. 탈퇴는
+즉시 삭제가 아니라 **14일 유예**다: 신청 즉시 로그아웃되고 작성한 글·댓글은
+"탈퇴한 사용자"로 표시되지만, 14일 안에 다시 로그인하면 탈퇴가 취소된다. 14일이
+지나면 북마크·좋아요·조회 기록이 삭제되고 되돌릴 수 없다(문구는
+`TEXTS.accountSettings.deleteSectionDescription`, `shared/config/texts.ts` — 이
+유예 기간 값은 BE `AccountDeletionService.GRACE_PERIOD`와 반드시 같아야 하고
+자동 동기화 장치가 없다고 그 파일 주석이 명시한다).
 
 ## 6. 상태 모델
 
@@ -289,7 +295,7 @@ src/
 | 테스트 실행                        | `npx vitest run src/features/account/update/hooks/useUpdateAccount.test.tsx`                                            |
 
 **MSW 목업(테스트 환경)**: `src/mocks/handlers/account.handlers.ts`가
-`GET`/`PATCH /auth/account`·`GET /auth/nicknameAvailability`를 가로채 고정
+`GET`/`PATCH /auth/account`·`GET /auth/account/nickname-availability`를 가로채 고정
 응답을 반환한다. 테스트 실행 시 실제 API를 호출하지 않는다.
 
 ## 8. 검증 결과

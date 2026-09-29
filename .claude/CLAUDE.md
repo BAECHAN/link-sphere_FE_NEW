@@ -223,11 +223,13 @@ Baymard 사용성 테스트에 따르면 적용 필터 개요를 상단에 두�
 [Baymard #346](https://baymard.com/blog/persist-search-queries)의 사용성 테스트는
 적용 필터 개요를 상단에 명확히 두지 않는 사이트를 _"42%"_ 로 집계했다.
 
-✅ GOOD — 두 문장 이상, blockquote
+✅ GOOD — 두 문장 이상, blockquote (아래는 인용 "형식"만 보여주는 예시용 가상 인용이다 —
+실제 NN/g 원문을 확인하고 옮긴 것이 아니다. 실제로 인용할 때는 원문을 직접 확인한 뒤
+그 글의 실제 URL을 단다)
 > 화면을 덮는 오버레이는 브라우저·폰 뒤로가기로 닫을 수 있어야 한다. 다만 오버레이가
-> 중첩되면 X 버튼 한 번에 스택 전체가 닫혀 사용자가 길을 잃는다. (번역)
+> 중첩되면 X 버튼 한 번에 스택 전체가 닫혀 사용자가 길을 잃는다. (번역, 예시용 가상 인용)
 >
-> — NN/g 사용성 리서치, https://www.nngroup.com/articles/progress-indicators/
+> — NN/g 사용성 리서치(예시), https://www.nngroup.com
 ```
 
 기준: 이 수치는 어디서 왔냐고 나중에 물었을 때, 클릭 가능한 링크나 "내가 이렇게
@@ -374,7 +376,7 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
 - **Never** 다른 엔티티의 raw 쿼리 키를 재구성해 `queryClient.invalidateQueries`를 직접 호출 → 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()` 래퍼만 사용. 크로스 엔티티 무효화가 필요하면 자기 엔티티의 `.keys.ts`에 `handle<Event>Success` 함수를 만들어 그 안에서 호출한다 (아래 "크로스 엔티티 무효화" 참고)
 - **Never** 하위 레이어에서 상위 레이어 import → ESLint 강제 (레이어 방향 위반)
 - **Never** 날짜 처리에 `new Date()` / `.getTime()` 직접 사용 → 항상 `dayjs` 사용 (`dayjs(value).valueOf()`, `dayjs().format()` 등). ESLint `no-restricted-syntax`로 강제된다(`eslint.config.js`) — 2026-03-15에 이 규칙이 추가된 뒤로도 문서 규칙에만 의존해 5개월간 위반이 안 잡혔던 사례(당시 경로 `entities/folder/model/`의 `useRecentFolders.ts` 파일, 2026-08-12 작성 — 이후 `entities/bookmark/folder/hooks/`로 이동)가 있어 2026-09-08 ESLint로 승격
-- **Never** `features/**`의 `hooks/` 밖(주로 `ui/`)에서 entity 쿼리 훅(`*.queries`) 직접 import → 조회는 자기 슬라이스의 `hooks/` 커스텀 훅이나 `entities/<entity>/hooks/`의 공용 훅(예: `useCategoryOptions`)에서 한다. `custom-query-rules/no-direct-query-import`는 `@tanstack/react-query` 직접 import만 막아 entity가 감싼 `*.queries` 훅 호출까지는 못 잡았고, 그 사이 `CreatePostForm.tsx`·`UpdatePostForm.tsx`가 `useFetchCategoryOptionQuery()`를 UI에서 직접 호출하는 게 5개월 넘게(dayjs 규칙과 같은 패턴) 안 잡혔다 — 2026-09-09 `custom-query-rules/no-entity-query-import-outside-hooks`로 승격(features 한정, widgets는 §8 예외라 대상 아님)
+- **Never** `features/**`·`pages/**`의 `hooks/` 밖(주로 `ui/`)에서 entity 쿼리 훅(`*.queries`) 직접 import → 조회는 자기 슬라이스의 `hooks/` 커스텀 훅이나 `entities/<entity>/hooks/`의 공용 훅(예: `useCategoryOptions`)에서 한다. `custom-query-rules/no-direct-query-import`는 `@tanstack/react-query` 직접 import만 막아 entity가 감싼 `*.queries` 훅 호출까지는 못 잡았고, 그 사이 `CreatePostForm.tsx`·`UpdatePostForm.tsx`가 `useFetchCategoryOptionQuery()`를 UI에서 직접 호출하는 게 5개월 넘게(dayjs 규칙과 같은 패턴) 안 잡혔다 — 2026-09-09 `custom-query-rules/no-entity-query-import-outside-hooks`로 승격(2026-09-29부터 pages도 대상에 추가, widgets는 §8 예외라 대상 아님)
 - **Never** 대상 파일 양식 무시하고 코드 생성 → 항상 붙여넣을 파일(및 인접 코드)을 **먼저 읽고** 들여쓰기·네이밍·import 순서·따옴표·주석 밀도·정렬을 그대로 맞춘다. 본인 스타일을 강요하거나 기존 코드를 재포맷하지 않는다
 - **Never** raw HTML 요소로 UI를 일회성 구현 → 항상 공통 컴포넌트(`shared/ui/atoms`·`elements`·`widgets`) 우선. 반복되는 UI는 공통 컴포넌트를 만들거나 기존 것을 사용해 디자인을 단일 관리한다 (예: 버튼은 raw `<button>` 대신 `Button` 컴포넌트). 신규 코드 기준
 - **Never** `shared/ui/atoms`·`elements`에 컴포넌트를 추가하거나 시각적으로 변경하고 스토리 없이 커밋 → 항상 같은 커밋에 `<Component>.stories.tsx`를 함께 만들거나 갱신한다. `.storybook/main.ts`의 글롭이 `src/**/*.stories.tsx`를 자동 인식하므로 파일만 만들면 된다 (예시: `checkbox.tsx`+`checkbox.stories.tsx`, `switch.tsx`+`switch.stories.tsx`)
@@ -398,7 +400,7 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
 - **Never** 코드/설정을 바꾼 뒤 그 동작을 서술하는 문서 갱신 누락 → 인프라·배포·아키텍처뿐 아니라 **기능 동작(상태 저장 방식, API 계약 등)을 바꿀 때도** 반대편 BE 레포의 문서(특히 `docs/*-BOT.md` 같은 서사형 문서)가 그 동작을 서술하고 있는지 확인한다(2026-09-06, FE 봇 글 숨기기 토글의 저장 방식을 URL→localStorage로 바꿨을 때 BE `docs/RSS-FEED-BOT.md`가 옛 URL 기반 서술로 남아있던 사례 — BE `.claude/CLAUDE.md`의 같은 규칙 참고). 고쳤으면 **최종 보고에 "문서 X를 Y로 갱신함"을 별도 항목으로 명시**한다
 - **Never** CloudFront WAF의 바디 크기 제한 룰(`SizeRestrictions_BODY` 등)을 "왜 있는지" 확인 없이 완화·비활성화하지 않는다 → 이런 룰은 WAF가 바디를 검사할 수 있는 한도(CloudFront 기본 16KB) 너머는 애초에 못 본다는 전제에서 온다 — 한도를 넘은 요청을 그냥 통과시키면 그 너머에 숨은 XSS·LFI·RFI·Log4j 페이로드가 무검사로 뚫린다("검사 못 할 바엔 막는다"는 논리). 2026-09-06 댓글 등록 403 조사 중 `SizeRestrictions_BODY`(8,192바이트 초과 차단)를 완화하려다가, 대체 크기 제한 룰(`SizeConstraintStatement`)이 **CloudFront Pro 플랜(월 $15 정액제) 전용**이라 이 계정(Free 플랜)에서는 만들 수 없다는 걸 확인했다. Count로만 오버라이드하면 WAF의 바디 크기 방어가 완전히 사라져(Lambda 자체 한도 6MB까지 통과, 300KB 페이로드로 실측) 비용·우회 위험이 새로 생기므로 **원복했다** — 이 룰은 지금도 8,192바이트 초과를 그대로 차단 중이다. 그 벽 안에서 동작하도록 앱이 자체 상한(`CommentService.MAX_COMMENT_CONTENT_BYTES`)을 두는 쪽으로 대신 풀었다. Pro 업그레이드 없이는 이 8KB 벽을 건드리지 말 것(`docs/DEPLOY.md`의 "CloudFront WAF (수동 관리)" 절, `docs/DECISIONS.md` 2026-09-06 항목 참고)
 - **Never** 폼 검증 실패를 버튼 `disabled`만으로 처리하지 않는다(사용자에게 이유를 알려야 하는 경우) → `disabled` 버튼은 클릭 이벤트 자체가 발생하지 않아 `handleSubmit`의 검증 실패 콜백(에러 토스트 등)이 실행될 기회조차 없어진다. 2026-09-06 댓글 길이 제한 UI에서 이 문제로 "왜 제출이 안 되는지" 사용자가 전혀 알 수 없었다(대체용 호버 툴팁도 데스크톱 한정이라 발견성이 낮았다). 진짜 "할 게 없음"(빈 입력) 상태만 `disabled`로 막고, 그 외 검증 실패(길이 초과 등)는 버튼을 눌러지게 둔 채 zod resolver + `onInvalid` 콜백으로 차단하면서 상시 보이는 인라인 안내 문구를 함께 둔다(`useCreateComment.ts`, `CommentForm.tsx` 참고). 이 규칙의 핵심 조건은 "사용자가 이유를 알 방법이 아예 없는가"다 — 이미 다른 경로로 이유가 상시(호버 없이) 노출되고 있다면(예: `mode: 'onChange'` 필드 검증이 타이핑 즉시 인풋 아래에 이유를 띄우는 경우) `disabled` + `TooltipWrapper`만으로도 이 조건을 충족한다. `CreatePostForm.tsx`의 URL 필드가 이 경우다 — `post.schema.ts`의 검증 실패 메시지가 `FormField`를 통해 인풋 아래 항상 노출되므로 버튼을 누르기 전에 이미 이유가 보인다. 이 조건이 성립하지 않는 경우(제출을 시도해야만 실패가 드러나는 경우, 위 댓글 사례)엔 여전히 클릭 가능 + `onInvalid` 콜백이 필요하다.
-- **Never** 멱등한 버튼(초기화·지우기·해제 등 "특정 상태로 만든다"는 뜻의 버튼)을 "할 게 없음"이라는 이유만으로 `disabled` 처리하지 않는다 → `disabled`는 탭 순서에서도 빠져 키보드만 쓰는 사용자는 버튼도 이유도 볼 수 없다(`TooltipWrapper`가 `tabIndex={-1}`로 호버·터치 전용인 것과 맞물린 구멍, 2026-09-06 필터 초기화 버튼에서 발견). 항상 활성 상태로 두고 클릭 핸들러에서 조용히 early return한다(`PostListSearch.tsx`의 `handleClearSearch` 참고). 단, **저장·등록처럼 "눌렀으면 반영됐다"는 피드백을 기대하는 버튼에는 이 패턴을 확장하지 않는다** — 무음 return이 고장으로 읽힌다. 기존 `disabled`와 이유 안내(`UpdatePostForm.tsx` 등) 방식을 그대로 유지한다(`docs/DECISIONS.md` 2026-09-06 항목 참고)
+- **Never** 멱등한 버튼(초기화·지우기·해제 등 "특정 상태로 만든다"는 뜻의 버튼)을 "할 게 없음"이라는 이유만으로 `disabled` 처리하지 않는다 → `disabled`는 탭 순서에서도 빠져 키보드만 쓰는 사용자는 버튼도 이유도 볼 수 없다(`TooltipWrapper`가 `tabIndex={-1}`로 호버·터치 전용인 것과 맞물린 구멍, 2026-09-06 필터 초기화 버튼에서 발견). 항상 활성 상태로 두고 클릭 핸들러에서 조용히 early return한다(`usePostListSearch.ts`의 `handleClearSearch` 참고, #233에서 `PostListSearch.tsx`에서 이 훅으로 이동). 단, **저장·등록처럼 "눌렀으면 반영됐다"는 피드백을 기대하는 버튼에는 이 패턴을 확장하지 않는다** — 무음 return이 고장으로 읽힌다. 기존 `disabled`와 이유 안내(`UpdatePostForm.tsx` 등) 방식을 그대로 유지한다(`docs/DECISIONS.md` 2026-09-06 항목 참고)
 
 ```typescript
 // ✅ 블록화 + 논리 그룹마다 빈 줄 (가드절 뒤, try 블록 앞)
@@ -573,16 +575,16 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 정본으로 있다 — 여기 복사해두지 않는다(두 곳에 같은 코드를 유지하면 한쪽만 갱신되고 다른
 쪽이 낡는 문제가 실제로 있었다, 2026-09-07). 패턴을 쓸 때는 해당 절을 **먼저 읽는다**.
 
-| 패턴                                                                               | 정본 | 한 줄 요약                                                                                                                                      |
-| ---------------------------------------------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 3-Layer API (`*.api.ts` → `*.keys.ts` → `*.queries.ts`) + 크로스 엔티티 무효화     | §5   | 레이어를 건너뛰거나 합치지 않는다. 다른 엔티티 캐시는 그 엔티티의 `InvalidateQueries` 래퍼로만                                                  |
-| Feature Hook (`hooks/`에 로직 전부, `ui/`는 JSX만)                                 | §6   | UI 파일은 훅 호출 + 렌더링만                                                                                                                    |
-| Widget Hook (entity query 조합 + 파생 상태, mutation 없음)                         | §8   | query 1개 + trivial 파생만이면 컴포넌트에서 직접 사용 (widgets 한정, features는 §6 예외 없음)                                                   |
-| Zod Schema (`z.infer`로 타입 파생)                                                 | §9   | `nullable()`=null 허용, `optional()`=undefined 허용                                                                                             |
-| Delete with Confirm                                                                | §10  | native `confirm()` 금지, 항상 `useAlert` + `openConfirm`                                                                                        |
-| Optimistic Update (`onMutate` → `cancelQueries` → `setQueryData` → 롤백)           | §11  | 참조 구현: `entities/interaction/api/interaction.queries.ts`                                                                                    |
-| Util Class (`*.util.ts`는 바레 함수 대신 `export class <Name>Util { static ... }`) | §23  | 함수 하나뿐이어도 클래스로 감싼다 — `shared/utils/`의 8/9 파일이 이 형태                                                                        |
-| 모바일 키보드 힌트 (`enterKeyHint`·`inputMode`)                                    | §24  | 뒤에 다른 필드 없는 단일 입력 지점에만 `enterKeyHint`(Android 회귀 위험), 자체 검증 있는 필드는 `type` 대신 `inputMode`, `type="search"`는 지양 |
+| 패턴                                                                               | 정본 | 한 줄 요약                                                                                                                                                                                                                           |
+| ---------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 3-Layer API (`*.api.ts` → `*.keys.ts` → `*.queries.ts`) + 크로스 엔티티 무효화     | §5   | 레이어를 건너뛰거나 합치지 않는다. 다른 엔티티 캐시는 그 엔티티의 `InvalidateQueries` 래퍼로만                                                                                                                                       |
+| Feature Hook (`hooks/`에 로직 전부, `ui/`는 JSX만)                                 | §6   | UI 파일은 훅 호출 + 렌더링만                                                                                                                                                                                                         |
+| Widget Hook (entity query 조합 + 파생 상태, 원칙적으로 mutation 없음)              | §8   | query 1개 + trivial 파생만이면 컴포넌트에서 직접 사용 (widgets 한정, features는 §6 예외 없음). 단, 그 widget 전용이라 재사용되지 않는 CRUD는 widget hook에서 직접 mutation을 써도 된다 — `usePostCard.ts`(아래 레퍼런스)가 실제 예시 |
+| Zod Schema (`z.infer`로 타입 파생)                                                 | §9   | `nullable()`=null 허용, `optional()`=undefined 허용                                                                                                                                                                                  |
+| Delete with Confirm                                                                | §10  | native `confirm()` 금지, 항상 `useAlert` + `openConfirm`                                                                                                                                                                             |
+| Optimistic Update (`onMutate` → `cancelQueries` → `setQueryData` → 롤백)           | §11  | 참조 구현: `entities/interaction/api/interaction.queries.ts`                                                                                                                                                                         |
+| Util Class (`*.util.ts`는 바레 함수 대신 `export class <Name>Util { static ... }`) | §23  | 함수 하나뿐이어도 클래스로 감싼다 — `shared/utils/`의 10/11 파일이 이 형태                                                                                                                                                           |
+| 모바일 키보드 힌트 (`enterKeyHint`·`inputMode`)                                    | §24  | 뒤에 다른 필드 없는 단일 입력 지점에만 `enterKeyHint`(Android 회귀 위험), 자체 검증 있는 필드는 `type` 대신 `inputMode`, `type="search"`는 지양                                                                                      |
 
 ---
 
@@ -665,13 +667,13 @@ hover 컨테이너 안 드롭다운·팝오버 규약은 `responsive-ux` skill
 | ----------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------- | --------------------------------- |
 | `features/<domain>/` 슬라이스 | **원칙적으로 동사(액션)만.** 단, 슬라이스 자체가 완결된 사용자 액션/flow일 때는 명사 허용(아래 각주) | `create/`, `like/`, `delete/`, `login/`, `signup/` | `create-post/`, `createPost/`     |
 | `widgets/<domain>/` 슬라이스  | **`<entity>-<role>`** kebab-case 명사                                                                | `post-card/`, `post-list/`                         | `postCard/`, `PostCard/`          |
-| `app/layouts/`                | **`<name>-layout`**                                                                                  | `app-layout/`, `auth-layout/`                      | `appLayout/`, `AppLayout/`        |
+| `app/layouts/`                | **`<name>-layout`**                                                                                  | `app-layout/`                                      | `appLayout/`, `AppLayout/`        |
 | 슬라이스 내부                 | **역할명 단수 소문자**                                                                               | `hooks/`, `ui/`, `utils/`                          | `hook/`, `UI/`, `utils-fn/`       |
 | 도메인 폴더                   | **단수 소문자**                                                                                      | `post/`, `comment/`, `user/`                       | `posts/`, `Post/`, `user-domain/` |
 | 내부 전용 폴더                | **`_` 접두사**                                                                                       | `_base/`                                           | `base/`, `__base__/`              |
 | `shared/lib/`                 | **라이브러리명 그대로**                                                                              | `react-query/`, `firebase/`                        | `reactQuery/`, `query/`           |
 | 에러 페이지                   | **HTTP 상태코드**                                                                                    | `404/`, `500/`                                     | `not-found/`, `error/`            |
-| `pages/` 복합어               | **붙여쓰기**                                                                                         | `mypage/`                                          | `my-page/`, `myPage/`             |
+| `pages/` 복합어               | **붙여쓰기**                                                                                         | `myaccount/`, `mycomment/`                         | `my-page/`, `myPage/`             |
 
 **`features/<domain>/` 슬라이스의 명사 허용 각주** (2026-09-08 정정) — 이 규칙은
 FSD가 강제하는 게 아니다. FSD 공식 정의([FAQ](https://feature-sliced.design/docs/get-started/faq)):
@@ -767,7 +769,7 @@ shared/
 pnpm test            # 1회 실행 (CI / pre-push)
 pnpm test:watch      # 감시 모드 (TDD)
 pnpm test:coverage   # 커버리지 → coverage/index.html
-pnpm test:e2e        # Playwright e2e (chromium)
+pnpm test:e2e        # Playwright e2e (chromium + mobile-chrome)
 ```
 
 ---
@@ -792,16 +794,16 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
 
 새 기능 구현 전 아래 파일들을 읽어 스타일을 학습한다. 위 섹션의 패턴 예시가 추상적으로 느껴질 때 이 파일들을 직접 읽으면 된다.
 
-| 역할              | 레퍼런스 파일                                         | 핵심 패턴                                                                                |
-| ----------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Feature Hook      | `src/features/post/create/hooks/useCreatePost.ts`     | `DEFAULT_VALUES` + `useForm/zodResolver` + `onSubmit` 핸들러 분리, 반환값 객체           |
-| Widget Hook       | `src/widgets/post/post-card/hooks/usePostCard.ts`     | Props(엔티티+옵션) + 권한 체크 + `toast` + `openConfirm` + try-catch                     |
-| API 함수          | `src/entities/post/api/post.api.ts`                   | `postApi` 객체 export, JSDoc 한글, 조건부 스프레드, `NProgress`                          |
-| Query Keys        | `src/entities/post/api/post.keys.ts`                  | `rootKey` + `mutationKeys` + `queryKeys` + `invalidateQueries` 헬퍼 + `handleXxxSuccess` |
-| Query Hooks       | `src/entities/post/api/post.queries.ts`               | `useMutation(meta 메시지)` + `useInfiniteQuery(select 변환)` + 낙관적 업데이트           |
-| Optimistic Update | `src/entities/interaction/api/interaction.queries.ts` | `onMutate → cancelQueries → setQueryData → return previous`                              |
-| 텍스트 상수       | `src/shared/config/texts.ts`                          | 계층적 namespace(`TEXTS.xxx.yyy`), `as const`, 한국어                                    |
-| API 설정          | `src/shared/config/api.ts`                            | `API_BASES` + `API_ENDPOINTS`(함수형/상수형 혼합), DEV 분기                              |
+| 역할              | 레퍼런스 파일                                         | 핵심 패턴                                                                              |
+| ----------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Feature Hook      | `src/features/post/create/hooks/useCreatePost.ts`     | `DEFAULT_VALUES` + `useForm/zodResolver` + `onSubmit` 핸들러 분리, 반환값 객체         |
+| Widget Hook       | `src/widgets/post/post-card/hooks/usePostCard.ts`     | Props(엔티티+옵션) + 권한 체크 + `toast` + `openConfirm` + try-catch                   |
+| API 함수          | `src/entities/post/api/post.api.ts`                   | `postApi` 객체 export, JSDoc 한글, 조건부 스프레드, `NProgress`                        |
+| Query Keys        | `src/entities/post/api/post.keys.ts`                  | `postMutationKeys` + `postKeys` + `postInvalidateQueries` 헬퍼 + `handleXxxSuccess`    |
+| Query Hooks       | `src/entities/post/api/post.queries.ts`               | `useMutation(meta 메시지)` + `useSuspenseInfiniteQuery(select 변환)` + 낙관적 업데이트 |
+| Optimistic Update | `src/entities/interaction/api/interaction.queries.ts` | `onMutate → cancelQueries → setQueryData → return previous`                            |
+| 텍스트 상수       | `src/shared/config/texts.ts`                          | 계층적 namespace(`TEXTS.xxx.yyy`), `as const`, 한국어                                  |
+| API 설정          | `src/shared/config/api.ts`                            | `API_BASES` + `API_ENDPOINTS`(함수형/상수형 혼합), DEV 분기                            |
 
 ---
 
@@ -848,7 +850,7 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
 - **BE**: Spring Boot + Kotlin, port 8080, context-path `/api`
 - **FE**: React + TypeScript + Vite, FSD 아키텍처, port 31119
 - **배포**: CloudFront → `/api/*` Lambda(BE), `/*` S3(FE)
-- **개발 프록시**: `vite.config.ts` — `/api/*` → `localhost:8080` (rewrite 없음)
+- **개발 프록시**: `vite.config.ts` — `/api/*` → `VITE_API_BASE_URL` 환경변수(`.env`) 값으로 프록시(하드코딩된 포트 아님, rewrite 없음)
 - **커밋**: 작업 전 `.gitmessage` 파일 먼저 읽고 형식 준수
 - **커밋 단위**: 대화 턴(요청)마다 나누지 않고, 논리적으로 완결된 기능·수정 단위로 나눈다.
   같은 기능을 다듬는 과정에서 나온 후속 수정(버그 픽스 포함)은 원래 커밋에 합치고,

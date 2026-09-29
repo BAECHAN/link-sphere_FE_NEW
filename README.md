@@ -8,15 +8,15 @@ https://github.com/BAECHAN/link-sphere_BE_NEW
 
 # 배포 URL
 
-https://dbw3brui6htwk.cloudfront.net/post
+https://linksphere.click/post (구 도메인 https://dbw3brui6htwk.cloudfront.net/post 도 계속 동작)
 
 # Storybook
 
 [![Storybook Deploy](https://github.com/BAECHAN/link-sphere_FE_NEW/actions/workflows/deploy-storybook.yml/badge.svg)](https://github.com/BAECHAN/link-sphere_FE_NEW/actions/workflows/deploy-storybook.yml)
 
-https://dbw3brui6htwk.cloudfront.net/storybook/
+https://linksphere.click/storybook/ (구 도메인 https://dbw3brui6htwk.cloudfront.net/storybook/ 도 계속 동작)
 
-`shared/ui` 43개 컴포넌트의 스토리 153개를 공개 배포한 것입니다. 로컬에서 보려면
+`shared/ui` 50개 컴포넌트의 스토리 172개를 공개 배포한 것입니다. 로컬에서 보려면
 아래 "스토리북" 섹션을 참고하세요.
 
 ## 테스트 계정
@@ -105,7 +105,7 @@ pnpm storybook
 | Client State | Zustand 5                                                                     |
 | Form         | React Hook Form 7, Zod 3                                                      |
 | UI           | Shadcn/ui (Radix UI), TailwindCSS 4, CVA                                      |
-| 기타         | Sonner, Supabase JS, dayjs, framer-motion, Firebase(FCM)                      |
+| 기타         | Sonner, Supabase JS, dayjs, Firebase(FCM)                                     |
 | 개발 도구    | ESLint 9, Prettier 3, Husky, Storybook 10                                     |
 | 테스트       | Vitest 4, jsdom, Testing Library, MSW 2, @vitest/coverage-v8, Playwright(e2e) |
 

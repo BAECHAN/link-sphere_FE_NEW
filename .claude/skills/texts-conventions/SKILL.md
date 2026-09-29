@@ -21,14 +21,15 @@ TEXTS
 ├── labels.nickname / email / password / message
 ├── placeholders.nickname / email / password / message / postSearch / bookmarkSearch / ...
 ├── buttons.retry / refresh / home / back / login / logout / delete / search / ...
-├── auth.title / description / guard.title / login.* / signup.*
+├── auth.title / description / guard.title / login.* / signup.* / forgotPassword.* / resetPassword.* / verifyEmail.*
 ├── nav.brand / feed / submit / logIn / logOut / toggleSearch / toggleTheme / saving / bookmark / loggingOut / toggleMenu / ...
 ├── mypage.* (title, description, save, changeImage, checkingNickname, ...)
+├── accountSettings.* (title, emailVerificationNeeded, passwordSectionTitle, deleteSectionTitle, deleteConfirmMessage, ...)
 ├── version.* (title, description, loadedBuild, deployedBuild, bannerMatch, bannerMismatch, ...)
 ├── recentSearch.* (title, clearAll, empty, removeItem)
 ├── post.form.create.* (title, description1/2, urlLabel, urlPlaceholder, titleLabel, ...)
 ├── post.form.update.* (title, description, titleLabel, titlePlaceholder, updating, update, ...)
-├── post.card.* (anonymous, visitWebsite, aiSummary, edit, saving, ...)
+├── post.card.* (withdrawnAuthor, visitWebsite, aiSummary, edit, saving, ...)
 ├── post.detail.* (notFound, backToList, back, ...)
 ├── post.search.corrected(query) / appliedCount(count)
 ├── comment.list.* (loadError, heading, empty)
@@ -42,7 +43,7 @@ TEXTS
 ├── validation.urlFormat / urlRequired / titleRequired / passwordRegex / emailRegex / ...
 ├── messages.info.noData / noPosts
 ├── messages.warning.postDeleteConfirm / commentDeleteConfirm / memberDeleteConfirm
-├── messages.success.postCreated / postUpdated / accountUpdated / linkCopied / accountCreated / bookmarkSavedTo / ...
+├── messages.success.postCreated / postUpdated / accountUpdated / linkCopied / accountDeleted / bookmarkSavedTo / ...
 ├── messages.error.defaultError / loginFailed / postCreateFailed / linkCopyFailed / ...
 ├── unsavedChanges.* (title, message, confirm, cancel, signup.*)
 ├── shortcuts.sidebarToggle / sidebarToggleMac
@@ -70,7 +71,7 @@ TEXTS
 않는다. 콘솔 로그 전용 문구(`console.error`에만 쓰이는 키, 예: `apiRequestFailed`)는 예외 —
 톤 규칙 대상이 아니다.
 
-- 예: `messages.success.accountCreated` `'가입을 완료했어요.'`,
+- 예: `messages.success.postCreated` `'포스트를 생성했어요.'`,
   `messages.error.nicknameDuplicate` `'이미 사용 중인 닉네임이에요.'`,
   `messages.warning.postDeleteConfirm` `'정말 이 포스트를 삭제할까요? …'`.
 - 완료를 나타내는 성공 메시지(`messages.success`)는 가능하면 **능동형**으로 쓴다

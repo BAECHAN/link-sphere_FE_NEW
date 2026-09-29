@@ -76,12 +76,12 @@ Zustand 기본 개념은 안다고 가정한다.
 §1 순서도가 실제로 `useUnsavedChangesGuard.ts`의 `shouldBlockNavigation`
 함수 하나에 그대로 대응한다. 순서가 중요하다:
 
-1. **로그인 상태가 아니면 통과 — 단 현재 페이지가 로그인·회원가입 페이지(`PUBLIC_PATHS`,
-   `route-paths.ts`)면 예외.** 로그아웃·세션 만료 시 `ProtectedRoute`의 강제
-   리다이렉트까지 막으면 폼에(또는 열린 대화상자에) 갇힌다 — 이 위험은 로그인이 필요한
-   페이지에서만 있고, 로그인·회원가입 페이지는 원래도 `GuestGuard`라 비로그인 전용이라
-   갇힐 인증 자체가 없다(2026-09-29, `isGuestOnlyPage` 추가 — 회원가입 폼 이탈 확인을
-   붙이려면 이 예외가 먼저 필요했다).
+1. **로그인 상태가 아니면 통과 — 단 현재 페이지가 게스트 전용 페이지(`PUBLIC_PATHS`,
+   `route-paths.ts`: 로그인·회원가입·비밀번호 찾기·비밀번호 재설정 4개 경로)면 예외.**
+   로그아웃·세션 만료 시 `ProtectedRoute`의 강제 리다이렉트까지 막으면 폼에(또는 열린
+   대화상자에) 갇힌다 — 이 위험은 로그인이 필요한 페이지에서만 있고, `PUBLIC_PATHS`
+   4곳은 원래도 `GuestGuard`라 비로그인 전용이라 갇힐 인증 자체가 없다(2026-09-29,
+   `isGuestOnlyPage` 추가 — 회원가입 폼 이탈 확인을 붙이려면 이 예외가 먼저 필요했다).
 2. **열려 있는 Alert/Confirm이 있으면 차단하되, 이탈 확인 모달은 띄우지
    않고 그 대화상자만 취소 처리한다.** Alert/Confirm은 브라우저 히스토리에
    묶여 있지 않아 뒤로가기가 그대로 페이지를 이동시켜버린다 — 북마크
@@ -110,6 +110,14 @@ _"너무 자주 외치면 사람들은 질문에 주의를 기울이지 않게 �
 _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 때 페이지 내 모달을 띄운다"_ (번역)고
 하는데, 이메일 중복이 아니면 이 원칙을 그대로 따르고, 중복으로 확인된 경우에만 로그인하려는
 의도가 이미 명확하다고 보고 예외를 둔다(2026-09-29 실사용 피드백으로 두 차례 조정 — §10 참고).
+
+**로그인 페이지 이메일 자동 채움(prefill)**: 회원가입 폼에서 로그인 페이지로 건너가는 두
+경로(위 "Sign In" 링크, 그리고 §5의 "회원가입만 갖는 예외"에서 다루는 가입 성공 후
+"메일함을 확인해주세요" 화면의 "로그인하러 가기" 버튼) 모두 `location.state`로 이메일을
+함께 넘긴다 — `useLogin.ts`가 `location.state.email`(있으면 저장된 이메일보다 우선)을
+폼 기본값으로 쓴다. "Sign In" 링크는 이메일 중복이 확인됐을 때만 넘기고(`loginLinkState`,
+아직 입력 중이면 어떤 이메일로 로그인할지 알 수 없으므로), "로그인하러 가기" 버튼은
+가입에 실제로 쓴 이메일을 항상 넘긴다(`postSignupLoginState`).
 
 ### 폼별 dirty 판정 기준
 
@@ -193,11 +201,23 @@ _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 
 | 댓글 수정      | `` `comment-update:${comment.id}` ``                   |
 | 회원가입       | `'auth-signup'`                                        |
 
-**회원가입만 갖는 예외** — 두 번째 인자를 `isDirty && !isPending`으로 준다. 제출 요청
-직전에 `clearNow()`로 동기 해제해두고(가입 성공 시 곧장 로그인 페이지로 이동하는 걸
-막지 않기 위해), 요청이 실패하면 `isPending`이 다시 `false`로 돌아오면서 이 조건이
-다시 `true`가 돼 effect가 자동으로 재등록한다 — 그냥 `isDirty`만 쓰면 실패 후에도
-계속 clearNow 상태로 남아 사용자가 다시 이탈하려 해도 확인창이 안 뜬다.
+**회원가입만 갖는 예외** — 두 번째 인자를 `isDirty && !isPending && !isSubmitted`
+3개 조건의 AND로 준다(`useSignUp.ts`). **정정(2026-09-29)**: 가입 성공 시 로그인
+페이지로 곧장 `navigate`하지 않는다 — `onSubmit`이 `createMember` 성공 직후
+`clearNow()`로 dirty를 동기 해제하고 `setIsSubmitted(true)`만 호출해, 같은 페이지
+안에서 폼 대신 "메일함을 확인해주세요" 화면(`SignUpForm.tsx`의 `isSubmitted` 분기,
+`TEXTS.auth.signup.checkEmailTitle`/`checkEmailDescription`)으로 전환한다. 이 화면의
+"로그인하러 가기" 버튼을 눌러야 비로소 `/auth/login`으로 이동한다.
+
+- `!isPending`이 없으면 제출 요청 중에도 폼이 여전히 dirty라 판정돼 그 사이의
+  이탈 시도(거의 없지만)가 막힌다 — 요청이 실패하면 `isPending`이 다시 `false`로
+  돌아오면서 조건이 다시 `true`가 돼 effect가 자동으로 재등록한다.
+- `!isSubmitted`가 없으면 다른 문제가 생긴다 — 이 훅은 렌더마다 반응형으로 다시
+  평가되므로, `onSubmit`의 `clearNow()`가 지운 직후에도 `form.formState.isDirty`
+  자체는 여전히 `true`라(폼 값은 안 지웠으므로) 바로 다음 렌더의 effect가 그걸 보고
+  다시 등록해버린다. 그 결과 브라우저 `beforeunload` 경고가 살아있는 채로 "메일함을
+  확인해주세요" 화면에 남는 버그로 실제 재현됐다 — `isSubmitted`를 조건에 넣어 화면이
+  전환된 뒤에는 폼이 dirty여도 재등록하지 않도록 막는다.
 
 ```typescript
 export function useUnsavedChanges(key: string, isDirty: boolean) {
@@ -229,7 +249,7 @@ src/
 ├── shared/ui/elements/modal/alert/alert.store.ts  # §5의 Alert/Confirm 우선 차단 분기가
 │                                                    # 참조하는 getOpenAlertId 출처
 ├── shared/config/texts.ts                # TEXTS.unsavedChanges.* — 확인 모달 문구(.signup은 회원가입 전용)
-├── shared/config/route-paths.ts          # PUBLIC_PATHS — §5의 "로그인·회원가입 페이지" 판정 출처
+├── shared/config/route-paths.ts          # PUBLIC_PATHS — §5의 "게스트 전용 페이지" 판정 출처
 ├── features/post/create/hooks/useCreatePost.ts
 ├── features/post/update/hooks/useUpdatePost.ts
 ├── features/comment/create/hooks/useCreateComment.ts
@@ -277,11 +297,11 @@ Cloudscape 인용도 그 전용 링크만 겨냥한 것이었다). 실사용 중
 
 ## 11. 남은 것
 
-- **인증 강화 계획 FE Phase 5**(가입 후 "메일 확인" 안내 화면 도입 예정)가 배포되면
-  `useCreateAccountMutation.onSuccess`의 `navigate('/auth/login')`이 없어질 가능성이 있다.
-  그러면 `useSignUp.ts`의 `isDirty && !isPending` 재등록 규칙(§6)이 그 안내 화면에서도
-  똑같이 동작해, 화면의 "로그인하러 가기" 버튼이 이 가드에 막힐 수 있다 — 그 Phase에서
-  성공 시 `form.reset()`을 호출하거나 등록 조건에 `isSubmitSuccessful`을 추가해야 한다.
+현재 알려진 미해결 이슈 없음(**정정, 2026-09-29**: 이전 버전은 이 절에 "인증 강화
+계획 FE Phase 5가 배포되면 `navigate('/auth/login')`이 없어질 가능성이 있다"는 미래형
+항목을 적어뒀으나, 그 Phase 5는 이미 배포돼 있었다 — `useSignUp.ts`는 이미 `navigate`
+없이 `isSubmitted` 상태로 전환하고, 우려했던 재등록 문제도 이미 `!isSubmitted` 조건으로
+막혀 있다(§6 참고). 미래 리스크가 아니라 이미 해소된 과거 항목이라 이 절에서 제거했다).
 
 ## 12. 용어 사전
 

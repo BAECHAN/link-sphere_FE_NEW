@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/entities/auth/hooks/useAuth';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
-import { AuthUtil } from '@/shared/utils/auth.util';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { useLoginModalStore } from '@/shared/store/loginModal.store';
 
@@ -12,7 +11,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, accessToken, restoreAuth } = useAuth();
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const setLoginOnSuccess = useLoginModalStore((state) => state.setOnSuccess);
@@ -20,21 +19,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // isAuthenticated가 아직 false다. 이 값을 기다리지 않으면 로그인 사용자가
   // 보호 페이지를 새로고침할 때 피드로 튕기고 로그인 모달까지 뜬다.
   const isAuthResolved = useAuthStore((state) => state.isAuthResolved);
-
-  // isAuthenticated는 항상 accessToken 존재 여부와 동치라(auth.store.ts) 아래 restoreAuth()는
-  // accessToken이 있으면 실제로 refresh를 호출하지 않고 즉시 통과시킨다 — 만료된 토큰의 실제
-  // 재검증은 여기가 아니라 shared/api/client.ts의 401 인터셉터가 실제 요청 시점에 담당한다.
-  // 상세: docs/AUTH.md
-  const [isVerifying, setIsVerifying] = useState(
-    () => !!accessToken && AuthUtil.isTokenExpired(accessToken)
-  );
-
-  useEffect(() => {
-    if (!isVerifying) {
-      return;
-    }
-    restoreAuth().finally(() => setIsVerifying(false));
-  }, [isVerifying, restoreAuth]);
 
   // 이 마운트에서 한 번이라도 로그인 상태였는지 추적.
   // - 처음부터 비로그인 = 보호 페이지 "접근 시도" → 로그인 모달을 띄운다.
@@ -49,15 +33,15 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const intendedPath = location.pathname + location.search;
   useEffect(
     function setLoginCallbackWhenUnauthenticated() {
-      if (!isAuthResolved || isVerifying || isAuthenticated || hasBeenAuthenticated.current) {
+      if (!isAuthResolved || isAuthenticated || hasBeenAuthenticated.current) {
         return;
       }
       setLoginOnSuccess(() => navigate(intendedPath, { replace: true }));
     },
-    [isAuthResolved, isVerifying, isAuthenticated, setLoginOnSuccess, navigate, intendedPath]
+    [isAuthResolved, isAuthenticated, setLoginOnSuccess, navigate, intendedPath]
   );
 
-  if (!isAuthResolved || isVerifying) {
+  if (!isAuthResolved) {
     return <SpinnerOverlay className="h-screen" />;
   }
 

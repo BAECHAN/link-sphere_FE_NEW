@@ -10,7 +10,7 @@
 > 토큰 카탈로그를 어떻게 보는지, Storybook a11y 게이트가 CI에서 어떻게 도는지 안다.
 > spacing 토큰은 왜 없는지, 지금 아는 a11y 위반이 뭐고 왜 아직 안 고쳤는지도 안다.
 >
-> **마지막 검토**: 2026-09-21
+> **마지막 검토**: 2026-09-29
 
 ## 1. 쉬운 설명
 
@@ -86,7 +86,7 @@ flowchart TD
 ```mermaid
 flowchart LR
     subgraph tokens ["1. 토큰 (globals.css)"]
-        T1["@theme inline<br/>색상 39 + font + radius"]
+        T1["@theme inline<br/>색상 58 + font + radius"]
         T2["@theme static<br/>z-index 8단계 (신규)"]
         T3[":root/.dark<br/>scrim·destructive-foreground (신규)"]
     end
@@ -101,7 +101,7 @@ flowchart LR
         E4["no-raw-title (신규)<br/>텍스트 크기+font-semibold/bold 조합"]
     end
     subgraph catalog ["4. 카탈로그 (Storybook)"]
-        S1["DesignTokens.stories.tsx<br/>Colors·Radius·ZIndex·Typography·RoleTokens(7종)"]
+        S1["DesignTokens.stories.tsx<br/>Colors·Radius·ZIndex·Typography·RoleTokens(8종)"]
     end
     subgraph a11y ["5. 접근성 (Storybook + Vitest, 신규)"]
         AX1[".storybook/vitest.setup.ts<br/>+ addon-a11y annotations"]
@@ -124,6 +124,20 @@ import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있
 (2026-09-21 추가)도 같은 분류 - 카테고리 개수·id 기반 배정이 link-sphere 고유
 비즈니스 규칙이다.
 
+**신규 shared/ui/atoms(2026-09-29 확인)**: 위 재사용성 절 이후 `Divider`
+(`divider.tsx`), `IconBadge`(`icon-badge.tsx`), `LabeledDivider`(`labeled-divider.tsx`)가
+`src/shared/ui/atoms/`에 추가됐다 — 셋 다 CLAUDE.md의 "스토리 없이 커밋 금지" 규칙에
+맞춰 같은 이름의 `.stories.tsx`를 함께 갖고 있다.
+
+**타이포그래피 전역 규칙 — `word-break: keep-all`**: `src/app/globals.css`의 `body`
+셀렉터가 `word-break: keep-all` + `overflow-wrap: break-word`를 전역으로 건다. 한글은
+어절(공백) 안 아무 글자 사이에서나 개행될 수 있어 문장이 부자연스럽게 끊기는 문제를
+막기 위해서다 — MDN도 _"CJK(중국어/일본어/한국어) 텍스트에는 word-break를 쓰면 안
+된다"_(번역)고 명시한다([MDN, word-break](https://developer.mozilla.org/en-US/docs/Web/CSS/word-break)).
+URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`가 예외적으로 끊어
+넘침을 막는다. `MarkdownContent.tsx`의 `break-all`처럼 더 구체적인 선택자는 이 전역
+규칙을 그대로 덮어쓴다(`globals.css` 파일 내 주석 참고).
+
 ## 6. 상태 모델
 
 이 기능은 Zustand 스토어나 React Query 키를 도입하지 않는다 — 상태는 CSS 커스텀
@@ -136,9 +150,11 @@ import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있
 | `--text-t1`~`--text-t14` (스케일 층, 2026-09-16 추가)                                       | `src/app/globals.css`의 `@theme static` 블록                       | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "타이포그래피 토큰" |
 | `--text-screen-title`/`section-title`/`subsection-title`/`micro` (역할 층, 2026-09-16 추가) | `src/app/globals.css`의 (static 아닌) `@theme` 블록                | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
 | `--category-1`~`--category-8` (+`-foreground`, 2026-09-21 추가)                             | `src/app/globals.css`의 `:root`/`.dark`. `category.id % 8`로 배정  | 위와 동일 문서, `entities/category/config/category.const.ts`                          |
+| `--text-card-title`/`group-label`/`display-title` (역할 층, 2026-09-16 추가)                | `src/app/globals.css`의 (static 아닌) `@theme` 블록                | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
 | `--text-detail-title` (역할 층, 2026-09-21 추가)                                            | `src/app/globals.css`의 (static 아닌) `@theme` 블록                | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
 
-전체 39개 색상 값 자체는 옮겨적지 않는다 — `globals.css`가 SSOT다.
+전체 58개 색상 값 자체는 옮겨적지 않는다 — `globals.css`가 SSOT다(`@theme inline`
+블록의 `--color-*` 개수, 2026-09-29 `grep -c` 재확인).
 
 ## 7. 운영 파라미터
 
@@ -146,16 +162,16 @@ import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있
 
 ## 8. 코드 지도와 자주 하는 수정
 
-| 하려는 것                         | 위치                                                                                                           | 방법                                                                                                                                            |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 새 z-index 층 추가                | `src/app/globals.css`의 `@theme static` 블록 (§ z-index 주석)                                                  | `--z-index-<name>: <값>` 추가 → `design-tokens` skill 표 갱신 → `DesignTokens.stories.tsx`의 `Z_INDEX_LAYERS` 배열에 항목 추가                  |
-| 새 색 토큰 추가                   | `globals.css`의 `:root`/`.dark` + `@theme inline` 매핑                                                         | 값 정의 → `--color-<name>: var(--<name>)` 매핑 추가 → skill 문서 표 갱신                                                                        |
-| 새 Tailwind 커스텀 ESLint 룰 추가 | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화) | 기존 4개 룰과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭) 따르기                                                     |
-| 새 타이포 역할 토큰 추가          | `globals.css`의 (static 아닌) `@theme` 블록                                                                    | `--text-<role>`/`--text-<role>--line-height`(필요시 `--font-weight`) 추가 → 실제 사용처에 클래스 적용 → `design-tokens` skill 역할 토큰 표 갱신 |
-| 토큰 카탈로그에 새 섹션 추가      | `src/shared/ui/tokens/DesignTokens.stories.tsx`                                                                | 새 `export const <Name>: Story` 추가(기존 `Colors`/`Radius`/`ZIndex` 참고)                                                                      |
-| Storybook에서 다크모드 확인       | `.storybook/preview.tsx`의 툴바 테마 토글                                                                      | 별도 설정 불필요 — 이미 `.dark` 클래스를 토글하도록 연결됨                                                                                      |
-| a11y 위반을 로컬에서 확인         | `pnpm test:storybook` (전체) 또는 `pnpm exec vitest run --project=storybook <파일>` (단일 파일)                | 실패 메시지의 axe 규칙 링크(dequeuniversity.com)로 원인 확인 → 고치거나 `parameters.a11y.test: 'todo'` + 사유 주석으로 낮추고 §11 목록에 추가   |
-| 새 스토리를 a11y 예외로 낮추기    | 해당 `*.stories.tsx`의 story 객체(또는 파일 전체가 해당하면 `meta`)                                            | `parameters: { a11y: { test: 'todo' } }` 추가 + 이유 주석 + `docs/DESIGN-SYSTEM.md` §11 "a11y 잔여 목록" 표에 행 추가                           |
+| 하려는 것                         | 위치                                                                                                           | 방법                                                                                                                                                                                                              |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 새 z-index 층 추가                | `src/app/globals.css`의 `@theme static` 블록 (§ z-index 주석)                                                  | `--z-index-<name>: <값>` 추가 → `design-tokens` skill 표 갱신 → `DesignTokens.stories.tsx`의 `Z_INDEX_LAYERS` 배열에 항목 추가                                                                                    |
+| 새 색 토큰 추가                   | `globals.css`의 `:root`/`.dark` + `@theme inline` 매핑                                                         | 값 정의 → `--color-<name>: var(--<name>)` 매핑 추가 → skill 문서 표 갱신                                                                                                                                          |
+| 새 Tailwind 커스텀 ESLint 룰 추가 | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화) | 기존 5개 룰(`no-raw-z-index`/`no-raw-color`/`no-raw-text-size`/`no-raw-title`/`no-classname-template-literal`, 2026-09-29 재확인)과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭) 따르기 |
+| 새 타이포 역할 토큰 추가          | `globals.css`의 (static 아닌) `@theme` 블록                                                                    | `--text-<role>`/`--text-<role>--line-height`(필요시 `--font-weight`) 추가 → 실제 사용처에 클래스 적용 → `design-tokens` skill 역할 토큰 표 갱신                                                                   |
+| 토큰 카탈로그에 새 섹션 추가      | `src/shared/ui/tokens/DesignTokens.stories.tsx`                                                                | 새 `export const <Name>: Story` 추가(기존 `Colors`/`Radius`/`ZIndex` 참고)                                                                                                                                        |
+| Storybook에서 다크모드 확인       | `.storybook/preview.tsx`의 툴바 테마 토글                                                                      | 별도 설정 불필요 — 이미 `.dark` 클래스를 토글하도록 연결됨                                                                                                                                                        |
+| a11y 위반을 로컬에서 확인         | `pnpm test:storybook` (전체) 또는 `pnpm exec vitest run --project=storybook <파일>` (단일 파일)                | 실패 메시지의 axe 규칙 링크(dequeuniversity.com)로 원인 확인 → 고치거나 `parameters.a11y.test: 'todo'` + 사유 주석으로 낮추고 §11 목록에 추가                                                                     |
+| 새 스토리를 a11y 예외로 낮추기    | 해당 `*.stories.tsx`의 story 객체(또는 파일 전체가 해당하면 `meta`)                                            | `parameters: { a11y: { test: 'todo' } }` 추가 + 이유 주석 + `docs/DESIGN-SYSTEM.md` §11 "a11y 잔여 목록" 표에 행 추가                                                                                             |
 
 ## 9. 검증 결과
 

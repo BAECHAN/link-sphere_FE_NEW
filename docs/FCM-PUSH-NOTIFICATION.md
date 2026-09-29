@@ -48,7 +48,7 @@ flowchart TD
   end
 
   subgraph BE["백엔드 (Spring Boot)"]
-    CommentAPI["POST /comments"]
+    CommentAPI["POST /post/{postId}/comment<br/>또는 POST /comment/{commentId}/reply"]
     CommentSvc["CommentService"]
     Job["CommentPostProcessService<br/>(AFTER_COMMIT, 별도 Lambda job)"]
     FcmNotiSvc["FcmNotificationService<br/>(일반 문구만 조립)"]
@@ -170,7 +170,7 @@ sequenceDiagram
   participant FCM as Firebase FCM
   participant PostOwner as 포스트 작성자 브라우저
 
-  Commenter->>BE: POST /comments { postId, content }
+  Commenter->>BE: POST /post/{postId}/comment { content }<br/>또는 POST /comment/{commentId}/reply { content }
   BE->>BE: CommentService.createComment()
   BE->>BE: commentRepository.save() (트랜잭션 커밋)
   BE-->>Commenter: 응답 반환 (알림 발송을 기다리지 않음)
@@ -281,42 +281,83 @@ async function registerTokenToServer(token: string): Promise<void> {
 `@/shared/lib/toast/toast`를 쓴다(§12), 문구는 `TEXTS.notification.*`(하드코딩
 아님)이다.
 
+**정정(2026-09-29)**: 이전 버전은 이 훅이 "앱 전체에서 단 한 번만 구독"하고 "항상
+구독 상태를 유지한다"고 서술했으나, 실제로는 **로그인 상태(`isAuthenticated`)일
+때만** 구독한다 — 비로그인 방문자는 FCM 토큰을 등록할 일이 없어 foreground
+리스너 자체가 필요 없는데, 예전에는 방문자 전원이 초기 번들에서 Firebase 전체를
+받고 있었다(실측: 2026-09-26 빌드에서 `vendor` 청크에 포함,
+`docs/plans/2026-09-25-lighthouse-perf.md` 참고). 그래서 `firebase/messaging`과
+`@/shared/lib/firebase/firebase`를 정적 import하지 않고, `isAuthenticated`가
+`true`가 되는 시점에만 동적 import한다 — `isAuthenticated`가 바뀔 때마다(로그인·
+로그아웃) effect가 재실행돼 구독/해제를 반복한다.
+
 ```typescript
 export function useFcmForegroundMessage() {
   const navigate = useNavigate();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   useEffect(() => {
-    if (!messaging) return;
+    if (!isAuthenticated) return;
 
-    const unsubscribe = onMessage(messaging, (payload) => {
-      const title = payload.notification?.title ?? TEXTS.notification.defaultTitle;
-      const body = payload.notification?.body ?? '';
-      const postId = payload.data?.postId;
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
 
-      toast(title, {
-        description: body,
-        ...(postId && {
-          action: {
-            label: TEXTS.notification.viewAction,
-            onClick: () => navigate(`/post/${postId}`),
-          },
-          closeButton: false,
-        }),
+    async function subscribe() {
+      const [{ onMessage }, { messaging }] = await Promise.all([
+        import('firebase/messaging'),
+        import('@/shared/lib/firebase/firebase'),
+      ]);
+
+      if (!messaging || cancelled) return;
+
+      unsubscribe = onMessage(messaging, (payload) => {
+        const title = payload.notification?.title ?? TEXTS.notification.defaultTitle;
+        const body = payload.notification?.body ?? '';
+        const postId = payload.data?.postId;
+
+        toast(title, {
+          description: body,
+          ...(postId && {
+            action: {
+              label: TEXTS.notification.viewAction,
+              onClick: () => navigate(`/post/${postId}`),
+            },
+            closeButton: false,
+          }),
+        });
       });
-    });
+    }
 
-    return unsubscribe; // cleanup
-  }, [navigate]);
+    subscribe();
+
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [navigate, isAuthenticated]);
 }
 ```
 
-이 훅은 `RootLayout`에서 최상단에 마운트하여 앱 전체에서 단 한 번만 구독한다.
-`RootLayout`은 이 훅 하나만 쓰는 게 아니라 여러 전역 관심사(저장하지 않은 입력
-가드, 앱 버전 체크·새 버전 리로드, 로그인 모달, 이미지 뷰어, 알림창)를 함께
-마운트하는 자리다.
+이 훅은 `RootLayout`에서 최상단에 마운트한다 — 호출은 앱 전체에서 한 번뿐이지만,
+실제 FCM 구독은 위 설명대로 로그인 상태에서만 활성화된다. `RootLayout`은 이 훅
+하나만 쓰는 게 아니라 여러 전역 관심사(저장하지 않은 입력 가드, 앱 버전 체크·새
+버전 리로드, 로그인 모달, 이미지 뷰어, 알림창)를 함께 마운트하는 자리다.
+
+**정정(2026-09-29)**: `LoginModal`은 직접 렌더링되지 않는다 — 비로그인 방문자
+대다수는 한 번도 열지 않는 모달이라 `lazy()` + 자체 `<Suspense fallback={null}>`로
+감싸 초기 번들에서 뺐다(실측: 2026-09-26 빌드에서 진입 청크에 정적으로 포함돼
+있었음, `docs/plans/2026-09-25-lighthouse-perf.md` 참고). `Outlet`과 같은 Suspense
+경계를 타지 않도록 별도 경계를 둔 이유는, 같은 경계였다면 이 청크가 늦게 도착할 때
+페이지 본문까지 함께 멈추기 때문이다.
 
 ```typescript
 // src/app/routes/layouts/RootLayout.tsx
+const LoginModal = lazy(() =>
+  import('@/widgets/layout/login-modal/ui/LoginModal').then((module) => ({
+    default: module.LoginModal,
+  }))
+);
+
 export function RootLayout() {
   useFcmForegroundMessage();
   useUnsavedChangesGuard();
@@ -332,7 +373,9 @@ export function RootLayout() {
     <>
       <ScrollRestoration />
       <Outlet />
-      <LoginModal />
+      <Suspense fallback={null}>
+        <LoginModal />
+      </Suspense>
       <GlobalImageViewer />
       <GlobalAlerts />
     </>
@@ -438,6 +481,10 @@ DO UPDATE`로 upsert한다 - 같은 토큰이 이미 있으면(기기 재사용�
 - 답글(대댓글)에 달리는 대대댓글 → 최대 depth 1 제한으로 원천 차단
 - 그 기기의 로그인 세션이 죽어있음(로그아웃·비밀번호변경·자연만료·재사용탐지) →
   `deleteStaleTokensForUser`가 발송 직전에 걸러냄(§5 "왜 이렇게 바뀌었나")
+- 회원탈퇴를 신청함(14일 유예 진입) → 신청 즉시(퍼지 대기까지 기다리지 않고)
+  `AccountDeletionService.requestDeletion`이 그 회원의 모든 세션을 폐기하면서
+  FCM 토큰도 전부 삭제한다(BE `AccountDeletionService.kt:71-72`,
+  `fcmTokenRepository.deleteByUserId(id)`)
 
 ### 배포 설정
 
@@ -610,8 +657,8 @@ mode === 'localhost' && mkcert(),
 전달된다. 핸들러를 등록하지 않으면 메시지가 그냥 소실된다.
 
 **해결**: `useFcmForegroundMessage` 훅에서 `onMessage()`로 구독하고 토스트로
-직접 표시한다. `RootLayout`에서 최상단에 마운트하여 앱 전체에서 항상 구독
-상태를 유지한다.
+직접 표시한다. `RootLayout`에서 최상단에 마운트하지만, 실제 구독은 로그인
+상태일 때만 활성화된다(§5 "포그라운드 메시지 수신" 참고, 2026-09-29 정정).
 
 ### 10.6. 로그인 직후 토큰 등록 시 `accessToken`이 없는 경우
 

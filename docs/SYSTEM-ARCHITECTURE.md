@@ -14,7 +14,12 @@ flowchart LR
   subgraph user [User]
     Browser[Browser]
   end
+  subgraph dns [Route53 + ACM]
+    R53["Route 53<br/>linksphere.click"]
+    ACMCert["ACM 인증서<br/>(us-east-1)"]
+  end
   subgraph edge [CloudFront]
+    WAF["WAF<br/>(Web ACL)"]
     CF[CloudFront]
   end
   subgraph fe [Frontend]
@@ -26,16 +31,38 @@ flowchart LR
   subgraph external [External]
     Supabase[(Supabase DB + Storage)]
     Gemini[Gemini API]
+    SES[AWS SES]
+    FCM[Firebase Cloud Messaging]
+    YouTube[YouTube Data API]
   end
-  Browser -->|HTTPS| CF
+  R53 -->|ALIAS| CF
+  ACMCert -.인증서.-> CF
+  Browser -->|HTTPS| WAF
+  WAF --> CF
   CF -->|"/*"| S3
-  CF -->|"/api/*"| Lambda
+  CF -->|"/api/* (OAC 서명)"| Lambda
   Lambda --> Supabase
   Lambda --> Gemini
+  Lambda --> SES
+  Lambda --> FCM
+  Lambda --> YouTube
 ```
 
 FE·BE가 **같은 오리진(CloudFront)** 을 쓴다. 브라우저는 BE를 직접 호출하지 않고
-CloudFront가 경로로 분기한다(`/api/*` → Lambda, 그 외 → S3). 그래서 운영에서 CORS 문제가 없다.
+CloudFront가 경로로 분기한다(`/api/*` → Lambda, 그 외 → S3). **다만 같은 오리진이어도
+CORS 문제가 완전히 없는 건 아니다** — BE가 `Origin` 헤더를 직접 검사해 허용 목록에
+없는 도메인의 요청은 막는다(`app.cors.allowed-origins`). 커스텀 도메인(`linksphere.click`)
+연결 직후 이 허용 목록에 새 도메인을 추가하는 걸 빠뜨려 로그인 자체가 막힌 실제 장애가
+있었다 — 새 프론트엔드 도메인을 추가할 때마다 BE의 CORS 허용 목록도 함께 갱신해야
+한다(`docs/DEPLOY.md`의 "커스텀 도메인" 절, BE `docs/DEPLOY.md`의 `APP_CORS_ALLOWED_ORIGINS`
+절 참고).
+
+CloudFront는 오리진 요청에 OAC(Origin Access Control)로 SigV4 서명을 더해(`SigningBehavior:
+Always`) Lambda Function URL이 CloudFront를 거치지 않은 직접 요청을 거부하게 한다 — 이
+서명이 오리진 요청의 `Authorization` 헤더를 덮어쓰므로, FE는 실제 인증 토큰을
+`Authorization` 대신 `X-Access-Token` 커스텀 헤더로 보낸다(`docs/AUTH.md` 참고). WAF(Web
+ACL)는 CloudFront 배포 전체(양쪽 비헤이비어 공통)에 붙어 요청을 필터링한다(수동 관리,
+`docs/DEPLOY.md`의 "CloudFront WAF" 절 참고).
 
 ### `infra/` — AWS 인프라 직접 배포 코드
 
@@ -115,7 +142,7 @@ flowchart LR
 | **단계**        | Checkout → Set up pnpm → Set up Node(`.nvmrc`) → `pnpm install --frozen-lockfile` → `pnpm check`(type-check·lint·format) → `pnpm test` → `pnpm build`(env: Firebase 6종) → Configure AWS → S3 업로드(index.html·version.json·SW는 무캐시, assets·fonts는 장기 캐시, 나머지는 sync) → CloudFront invalidation → 배포 반영 검증(sha·캐시헤더·entry해시, [`BUILD-VERSION.md`](./BUILD-VERSION.md)) → 실패 시 `notify-failure`(GitHub 이슈 자동 생성) |
 | **concurrency** | `deploy-main` 그룹, `cancel-in-progress: false`(연속 push는 대기열 처리 — `aws s3 sync --delete` 도중 취소 시 버킷 파손 방지)                                                                                                                                                                                                                                                                                                                     |
 | **Secrets**     | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, `CLOUDFRONT_DISTRIBUTION_ID`, `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, `VITE_FIREBASE_VAPID_KEY`                                                                                                                                                                            |
-| **리전**        | ap-northeast-1                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **리전**        | CLI/배포 워크플로우 리전은 ap-northeast-1. **S3 버킷 자체의 리전은 ap-northeast-2**다(`docs/DEPLOY.md` "커스텀 도메인" 절 — ACM 인증서만 CloudFront 요구사항으로 us-east-1 고정)                                                                                                                                                                                                                                                                  |
 
 ### BE 배포 (Deploy to AWS Lambda)
 
@@ -183,14 +210,14 @@ Feature 훅은 `*.queries.ts`의 훅을 사용하고, UI는 Feature 훅만 호�
 
 ### FE 스택 요약
 
-| 항목         | 기술                                          |
-| ------------ | --------------------------------------------- |
-| Framework    | React 18, TypeScript, Vite 6                  |
-| Server State | TanStack Query 5                              |
-| Client State | Zustand 5                                     |
-| Form         | React Hook Form 7, Zod 3                      |
-| UI           | Shadcn/ui (Radix), TailwindCSS 4, CVA         |
-| 기타         | Sonner, Supabase client, dayjs, framer-motion |
+| 항목         | 기술                                                                                |
+| ------------ | ----------------------------------------------------------------------------------- |
+| Framework    | React 18, TypeScript, Vite 6                                                        |
+| Server State | TanStack Query 5                                                                    |
+| Client State | Zustand 5                                                                           |
+| Form         | React Hook Form 7, Zod 3                                                            |
+| UI           | Shadcn/ui (Radix), TailwindCSS 4, CVA                                               |
+| 기타         | Sonner, Supabase client, dayjs, firebase(FCM), next-themes, @tanstack/react-virtual |
 
 ---
 
@@ -201,22 +228,25 @@ Feature 훅은 `*.queries.ts`의 훅을 사용하고, UI는 Feature 훅만 호�
 ```mermaid
 flowchart TB
   subgraph layer1 [API Layer]
-    CTRL["Controllers(Auth, Post, Comment, Interaction, Category)"]
+    CTRL["Controllers(Auth, Post, Comment, Interaction, BookmarkFolder, Category, Upload, FcmToken)"]
   end
   subgraph layer2 [Business Layer]
-    SVC["Services(Auth, Post, Comment, Interaction, Category, Member, PostAI)"]
+    SVC["Services(Auth, Post, Comment, Interaction, BookmarkFolder, Category, Member, PostAI, Upload)"]
   end
   subgraph layer3 [Data Layer]
-    REPO["Repositories(Post, Comment, Reaction, Bookmark, Member, Category)"]
+    REPO["Repositories(Post, Comment, Reaction, Bookmark, BookmarkFolder, Member, Category)"]
   end
   subgraph infra [Global / Infra]
-    SEC["Security, JWT, Exception"]
-    EXT["SupabaseStorage, Gemini"]
+    SEC["Security(세션 인증), Exception"]
+    EXT["SupabaseStorage, Gemini, SES, FCM, YouTube"]
   end
   subgraph external [External]
     DB[(PostgreSQL)]
     STORAGE[Supabase Storage]
     GEMINI[Gemini API]
+    SES_EXT[AWS SES]
+    FCM_EXT[Firebase Cloud Messaging]
+    YOUTUBE_EXT[YouTube Data API]
   end
   CTRL --> SVC
   SVC --> REPO
@@ -225,19 +255,26 @@ flowchart TB
   REPO --> DB
   EXT --> STORAGE
   EXT --> GEMINI
+  EXT --> SES_EXT
+  EXT --> FCM_EXT
+  EXT --> YOUTUBE_EXT
 ```
 
 ### BE 도메인·패키지
 
-| 도메인      | Controller            | Service                    | 비고                                                                                                                                |
-| ----------- | --------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| auth        | AuthController        | AuthService                | JWT, 로그인/회원가입                                                                                                                |
-| post        | PostController        | PostService, PostAIService | UrlMetadataExtractor, Jsoup                                                                                                         |
-| comment     | CommentController     | CommentService             |                                                                                                                                     |
-| interaction | InteractionController | InteractionService         | 좋아요, 북마크                                                                                                                      |
-| category    | CategoryController    | CategoryService            |                                                                                                                                     |
-| member      | —                     | MemberService              | Repository만 사용                                                                                                                   |
-| feed        | —                     | FeedCrawlService           | 컨트롤러 없음 — EventBridge cron(4일 1회)가 직접 호출. RSS 피드를 봇 계정 명의로 게시글 등록, 상세는 BE 저장소 `docs/DEPLOY.md` 8장 |
+| 도메인      | Controller               | Service                                 | 비고                                                                                                                                |
+| ----------- | ------------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| auth        | AuthController           | AuthService                             | 서버 관리 세션(access/refresh), 로그인/회원가입 — JWT는 PR #42로 폐지                                                               |
+| post        | PostController           | PostService, PostAiService              | UrlMetadataExtractor, Jsoup, YouTube Data API                                                                                       |
+| comment     | CommentController        | CommentService                          |                                                                                                                                     |
+| interaction | InteractionController    | InteractionService                      | 좋아요, 북마크                                                                                                                      |
+| interaction | BookmarkFolderController | BookmarkFolderService                   | 북마크 폴더                                                                                                                         |
+| category    | CategoryController       | CategoryService                         |                                                                                                                                     |
+| member      | —                        | MemberService                           | Repository만 사용                                                                                                                   |
+| upload      | UploadController         | UploadService                           | 이미지 업로드(Supabase Storage)                                                                                                     |
+| infra/fcm   | FcmTokenController       | FcmTokenService, FcmNotificationService | FCM 토큰 등록/해제, 댓글·답글 알림 발송. `domain/`이 아니라 `infra/`에 위치                                                         |
+| infra/mail  | —                        | MailService                             | AWS SES로 비밀번호 재설정·이메일 인증 메일 발송(BE `docs/DEPLOY.md` §9). 컨트롤러 없음, AuthController에서 호출                     |
+| feed        | —                        | FeedCrawlService                        | 컨트롤러 없음 — EventBridge cron(4일 1회)가 직접 호출. RSS 피드를 봇 계정 명의로 게시글 등록, 상세는 BE 저장소 `docs/DEPLOY.md` 8장 |
 
 ### BE 스택·설정 요약
 
@@ -247,16 +284,16 @@ flowchart TB
 | 실행 형태 | AWS Lambda (Shadow JAR, SnapStart + CRaC). `LambdaHandler`가 MockMvc로 `DispatcherServlet` 직접 호출 — Tomcat 소켓 미사용 |
 | Web       | spring-boot-starter-web (서블릿 스택)                                                                                     |
 | Data      | JPA, Hibernate, PostgreSQL (Supabase pooler)                                                                              |
-| Security  | Spring Security, OAuth2 Client, JWT (jjwt)                                                                                |
+| Security  | Spring Security, OAuth2 Client, 서버 관리 세션(access/refresh), X-Access-Token 헤더 우선 — JWT(jjwt)는 PR #42로 폐지      |
 | API 문서  | SpringDoc OpenAPI 2.7.0                                                                                                   |
 | 기타      | Jsoup, Actuator (health), SSE                                                                                             |
 
-| 설정         | 값                                 |
-| ------------ | ---------------------------------- |
-| 서버 포트    | 8080 (`application.yml`)           |
-| context-path | `/api` (`application.yml`)         |
-| DDL          | none (마이그레이션 별도)           |
-| CORS         | localhost:31119, CloudFront 도메인 |
+| 설정         | 값                                                                                                                                                                                                                                                                                            |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 서버 포트    | 8080 (`application.yml`)                                                                                                                                                                                                                                                                      |
+| context-path | `/api` (`application.yml`)                                                                                                                                                                                                                                                                    |
+| DDL          | none (마이그레이션 별도)                                                                                                                                                                                                                                                                      |
+| CORS         | `app.cors.allowed-origins`(`application.yml`)로 관리. localhost:31119, CloudFront 기본 도메인, 커스텀 도메인(`linksphere.click`, `www.linksphere.click`) — 새 프론트엔드 도메인을 추가할 때 이 목록 갱신을 빠뜨리면 로그인이 막힌다(BE `docs/DEPLOY.md`의 `APP_CORS_ALLOWED_ORIGINS` 절 참고) |
 
 ---
 

@@ -55,7 +55,9 @@ pnpm perf:lh:auth
 
 - 테스트 계정은 `tester_new_999@example.com`을 쓴다. README `## 테스트 계정`의
   계정(수동 QA용, 실사용자 데이터 있음)이 아니다 — 이유는
-  `docs/TESTING.md`의 "로그인 계정" 절과 같다.
+  `.claude/skills/browser-verification/SKILL.md`의 "로그인 계정" 절과 같다(정정,
+  2026-09-29: `docs/TESTING.md`에는 자체 "로그인 계정" 절이 없고, 그 문서도 같은
+  skill 파일의 절을 가리킨다).
 - 로그인은 `scripts/lighthouse-login.js`(LHCI의 `puppeteerScript`)가 자동으로 한다.
   이미 로그인 상태(`has-session` 쿠키가 살아있는 상태로 재실행)면 조용히 건너뛴다.
 - `disableStorageReset: true`로 5회 실행 내내 세션 쿠키를 유지한다 — 꺼두면 매

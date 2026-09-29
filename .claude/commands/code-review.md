@@ -20,10 +20,10 @@ Reference files for correct patterns:
 ### Architecture (Layer Separation)
 
 - [ ] API calls only in `<entity>.api.ts` — not in hooks, not in components
-- [ ] React Query hooks (`use*Query`/`use*Mutation`) are **defined** only in `<entity>.queries.ts`; feature/widget hooks **calling** them is the normal pattern — what's disallowed is a `features/**/ui/**` component calling them directly instead of going through its slice's `hooks/` or an `entities/<entity>/hooks/` shared hook (widgets get a documented exception for a single trivial-derivation query, see FE-ARCHITECTURE §8)
+- [ ] React Query hooks (`use*Query`/`use*Mutation`) are **defined** only in `<entity>.queries.ts`; feature/page/widget hooks **calling** them is the normal pattern — what's disallowed is anything in `features/**` or `pages/**` _outside that slice's `hooks/`_ (not just `ui/` — `utils/`/`config/` too) calling them directly; go through the slice's `hooks/` or an `entities/<entity>/hooks/` shared hook instead (widgets get a documented exception for a single trivial-derivation query, see FE-ARCHITECTURE §8; ESLint `custom-query-rules/no-entity-query-import-outside-hooks` enforces this for features/pages)
 - [ ] Business logic (form, navigation, confirm dialogs) only in feature hooks
 - [ ] UI components are thin — call one hook, render JSX, nothing else
-- [ ] Zod schemas and types only in `entities/<entity>/model/<entity>.schema.ts`
+- [ ] Input-validation Zod schemas only in `entities/<entity>/model/<entity>.schema.ts` — response types come from `entities/<entity>/model/<entity>.dto.ts` (BE-generated type alias), never hand-rolled Zod
 - [ ] Query key constants come from `<entity>.keys.ts` — no inline `['entity', 'list']` strings
 
 ### Naming Conventions
@@ -47,9 +47,11 @@ Reference files for correct patterns:
 ### TypeScript Quality
 
 - [ ] No `any` types
-- [ ] No manual TypeScript interfaces when `z.infer<typeof schema>` exists
-- [ ] Nullable API fields use `.nullable()` in Zod — not `T | undefined`
-- [ ] Date fields use `z.coerce.date()` — not `z.string()`
+- [ ] No manual TypeScript interfaces when `z.infer<typeof schema>` exists (for request/form
+      types) or a generated type from `<entity>.dto.ts` already exists (for response types)
+- [ ] Response fields are never hand-rolled in Zod (no `z.coerce.date()`, `.nullable()`, etc.
+      applied to a response shape) — the source of truth is `<entity>.dto.ts`; `.nullable()`/
+      `.optional()`/`z.coerce.date()` in Zod are only for form/request fields
 
 ### Hardcoded Values (should all use constants)
 
@@ -60,7 +62,9 @@ Reference files for correct patterns:
 
 ### Common Mistakes
 
-- [ ] No business logic in page components (`src/pages/`)
+- [ ] Page components (`src/pages/`) are thin — orchestration logic (URL parsing, redirect
+      effects, entity query calls) lives in that page's `hooks/`, not inlined in the page
+      component itself (2026-09-29 "pages first" rule — see CLAUDE.md "레이어별 허용 세그먼트")
 - [ ] No direct `queryClient.invalidateQueries` calls in feature hooks — use success handlers from `.keys.ts`
 - [ ] No empty `onSuccess` in mutations without a comment explaining why
 
