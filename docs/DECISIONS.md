@@ -6,6 +6,47 @@
 
 ---
 
+## 2026-09-29 — "프로필 수정" 모달을 "계정 설정" 페이지 섹션으로 통합
+
+**배경**
+
+프로필 수정(닉네임·아바타 변경)이 Navbar 드롭다운의 "프로필 수정" 메뉴로 여는 모달과
+`/my/account`(계정 설정, 비밀번호 변경·회원 탈퇴) 페이지로 진입점이 둘로 나뉘어 있었다.
+모달은 `useHistoryOverlay`로 히스토리 엔트리를 비동기 push해서 열리는데, 열리자마자
+연타하면 열림 가드(`useOpenClickGuard`)의 400ms 창이 모달이 실제로 클릭 가능해지는
+시점과 거의 동시에 소진돼 사실상 무력화된다는 걸 실측으로 확인했다(별도 파괴적 동작은
+없어 긴급하지 않았음). 사용자가 "계정 설정 페이지에서 다 관리하는 게 어떨까"를 제안했고,
+검토 결과 진입점을 하나로 합치는 쪽이 근본적으로 낫다고 판단했다.
+
+모달 전제 위에 지어진 "즉시 닫힘(낙관적) + 실패 시 재오픈" 장치
+(`useMyPageModalStore.restoreValues`, 무기한 토스트의 "다시 열기" 액션)도 같이
+없앨 수 있었다 — 그 장치는 오직 "모달이 응답 전에 이미 닫혀버린다"는 문제 때문에
+존재했는데, 페이지 섹션이 되면 화면을 안 떠나므로 "재오픈"이라는 개념 자체가
+없어진다.
+
+**결정**
+
+1. Navbar 드롭다운에서 "프로필 수정" 메뉴 항목·모달 마운트를 제거하고, `/my/account`
+   페이지에 프로필 섹션(닉네임·아바타)을 배너-비밀번호 사이에 추가한다. 진입점은
+   "계정 설정" 하나로 합친다.
+2. 저장은 **응답을 기다렸다가 반영**하는 방식으로 바꾼다(사용자 확인 완료) — 실패해도
+   입력했던 닉네임·고른 이미지가 화면에 그대로 남아 바로 재시도할 수 있다. 아바타 옆에
+   현재 닉네임을 표시하는 줄도 유지한다(사용자 확인 완료).
+3. `useMyPageModalStore`·"다시 열기" 토스트 액션·`useHistoryOverlay('myPageOpen')`를
+   전부 제거한다. `account.queries.ts`의 `onError`는 캐시 롤백 + 일반 에러 토스트로
+   단순화된다.
+4. 아바타 이미지 피커가 `role="button"`인데 `tabIndex`가 없어 키보드로 접근할 수
+   없던 기존 문제(모달일 때부터 있었음)를, 페이지로 옮기며 더 눈에 띄게 되므로 같은
+   김에 실제 `<button type="button">`으로 고친다.
+
+**상태**: 적용. 관련 파일: `src/pages/myaccount/MyAccountPage.tsx`,
+`src/features/account/update/{ui/UpdateAccountForm.tsx,hooks/useUpdateAccount.ts}`,
+`src/entities/account/api/account.queries.ts`, `src/widgets/layout/navbar/ui/Navbar.tsx`.
+계획과 세부 흐름도는 `docs/plans/2026-09-29-button-system-and-mypage-merge.md` §3
+Phase 2 참고.
+
+---
+
 ## 2026-09-29 — (정정) 버튼 2개 인라인 폼 정렬 근거를 1차 출처로 재검증함
 
 **배경**

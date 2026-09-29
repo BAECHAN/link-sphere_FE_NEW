@@ -9,11 +9,7 @@ import { useUpdateAccount } from '@/features/account/update/hooks/useUpdateAccou
 import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
 import { UserAvatar } from '@/entities/user/ui/UserAvatar';
 
-interface UpdateAccountFormProps {
-  onSuccess?: () => void;
-}
-
-export function UpdateAccountForm({ onSuccess }: UpdateAccountFormProps) {
+export function UpdateAccountForm() {
   const {
     form,
     avatarPreview,
@@ -25,7 +21,7 @@ export function UpdateAccountForm({ onSuccess }: UpdateAccountFormProps) {
     hasDebounceSettled,
     isDirty,
     account,
-  } = useUpdateAccount(onSuccess);
+  } = useUpdateAccount();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,10 +47,11 @@ export function UpdateAccountForm({ onSuccess }: UpdateAccountFormProps) {
     <FormProvider {...form}>
       <form onSubmit={onSubmit} className="space-y-6" noValidate>
         <div className="flex flex-col items-center gap-3">
-          <div
-            className="relative"
+          <button
+            type="button"
+            className="relative rounded-full"
             onClick={() => fileInputRef.current?.click()}
-            role="button"
+            disabled={isPending}
             aria-label={TEXTS.mypage.changeImage}
           >
             <UserAvatar
@@ -66,12 +63,14 @@ export function UpdateAccountForm({ onSuccess }: UpdateAccountFormProps) {
             <div className="absolute inset-0 rounded-full bg-scrim/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
               <Camera className="text-scrim-foreground h-5 w-5" />
             </div>
-          </div>
+          </button>
+          <span className="text-sm font-medium">{account?.nickname}</span>
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
             className="hidden"
+            disabled={isPending}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
@@ -89,6 +88,7 @@ export function UpdateAccountForm({ onSuccess }: UpdateAccountFormProps) {
           description={nicknameStatusText}
           descriptionVariant={isNicknameAvailable ? 'success' : 'default'}
           enterKeyHint="done"
+          disabled={isPending}
           required
         />
 
@@ -97,8 +97,8 @@ export function UpdateAccountForm({ onSuccess }: UpdateAccountFormProps) {
           disabled={isSaveDisabled}
           className="w-full"
         >
-          <Button type="submit" className="w-full" disabled={isSaveDisabled}>
-            {TEXTS.mypage.save}
+          <Button type="submit" className="w-full h-11" disabled={isSaveDisabled}>
+            {isPending ? TEXTS.common.saving : TEXTS.mypage.save}
           </Button>
         </TooltipWrapper>
       </form>

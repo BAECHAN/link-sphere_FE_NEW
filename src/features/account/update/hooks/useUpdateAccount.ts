@@ -5,7 +5,6 @@ import { updateAccountSchema, UpdateAccount } from '@/entities/account/model/acc
 import { useUpdateAccountMutation } from '@/entities/account/api/account.queries';
 import { accountApi } from '@/entities/account/api/account.api';
 import { useAccount } from '@/entities/account/hooks/useAccount';
-import { useMyPageModalStore } from '@/shared/store/mypage.store';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { getImageFileSizeError } from '@/shared/lib/image/resizeImage';
 import { toast } from '@/shared/lib/toast/toast';
@@ -13,37 +12,37 @@ import { TEXTS } from '@/shared/config/texts';
 
 type NicknameStatus = 'idle' | 'checking' | 'available' | 'duplicate';
 
-export function useUpdateAccount(onSuccess?: () => void) {
+export function useUpdateAccount() {
   const { account } = useAccount();
   const { mutate: updateAccount, isPending } = useUpdateAccountMutation();
-
-  // 저장 실패 후 "다시 열기"로 재오픈된 경우 시도했던 값을 복원한다. 모달은 닫힐 때 언마운트되므로
-  // 재오픈은 항상 새 마운트다 - 아래 useState/useRef 초기값들은 최초 렌더 시점 값만 읽으므로
-  // 이후 restoreValues가 바뀌어도(정상 흐름에선 일어나지 않는다) 영향받지 않는다.
-  const restoreValues = useMyPageModalStore((state) => state.restoreValues);
 
   const form = useForm<UpdateAccount>({
     resolver: zodResolver(updateAccountSchema),
     defaultValues: {
-      nickname: restoreValues?.nickname ?? account?.nickname ?? '',
-      image: restoreValues?.imagePreview ?? account?.image,
+      nickname: account?.nickname ?? '',
+      image: account?.image,
     },
     mode: 'onChange',
   });
 
   const { reset } = form;
-  useEffect(() => {
-    // 재오픈으로 복원된 값이 있으면 account 동기화가 그 값을 덮어쓰지 않게 한다
-    if (account && !restoreValues) {
-      reset({ nickname: account.nickname ?? '', image: account.image });
-    }
-  }, [account, reset, restoreValues]);
-
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(
-    restoreValues?.imagePreview ?? account?.image ?? null
+  // 페이지 진입 시 account가 아직 없다가 뒤늦게 도착하는 경우(새로고침 등)에만 1회
+  // 하이드레이션한다 - 매 account 변경마다 reset하면 다른 탭에서 프로필을 바꾼 뒤 돌아왔을
+  // 때 사용자가 지금 입력 중인 값(아직 저장 안 한 닉네임 등)을 조용히 덮어쓰게 된다.
+  const hydratedRef = useRef(account !== undefined);
+  useEffect(
+    function hydrateFormOnce() {
+      if (account && !hydratedRef.current) {
+        hydratedRef.current = true;
+        reset({ nickname: account.nickname ?? '', image: account.image });
+      }
+    },
+    [account, reset]
   );
-  const [pendingFile, setPendingFile] = useState<File | null>(restoreValues?.pendingFile ?? null);
-  const objectUrlRef = useRef<string | null>(restoreValues?.imagePreview ?? null);
+
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(account?.image ?? null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
   // 제출과 함께 mutation에 넘긴 blob URL - 성공 시 mutation의 onSuccess가 해제하므로
   // 언마운트 정리에서는 건너뛴다 (제출되지 않고 남은 blob만 여기서 정리)
   const submittedObjectUrlRef = useRef<string | null>(null);
@@ -157,19 +156,25 @@ export function useUpdateAccount(onSuccess?: () => void) {
 
   const onSubmit = form.handleSubmit((formData) => {
     const previewUrl = pendingFile ? (objectUrlRef.current ?? undefined) : undefined;
-    submittedObjectUrlRef.current = previewUrl ?? null;
-    setPendingFile(null);
 
-    // 서버 응답을 기다리지 않고 즉시 모달을 닫는다 - 낙관적 업데이트가 캐시를 바로 반영하므로
-    // 여기서 기다릴 이유가 없다 (실패 시 캐시 쪽에서 롤백 + 재오픈 토스트로 처리한다).
-    onSuccess?.();
-
-    updateAccount({
-      nickname: formData.nickname,
-      image: formData.image ?? undefined,
-      file: pendingFile ?? undefined,
-      previewUrl,
-    });
+    updateAccount(
+      {
+        nickname: formData.nickname,
+        image: formData.image ?? undefined,
+        file: pendingFile ?? undefined,
+        previewUrl,
+      },
+      {
+        onSuccess: (data) => {
+          submittedObjectUrlRef.current = previewUrl ?? null; // mutation onSuccess가 revoke
+          setPendingFile(null);
+          reset({ nickname: data.nickname ?? '', image: data.image });
+        },
+        onError: () => {
+          // 아무것도 안 건드린다 - 닉네임·pendingFile·avatarPreview 그대로 유지돼 바로 재시도 가능
+        },
+      }
+    );
   });
 
   return {

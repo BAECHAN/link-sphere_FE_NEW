@@ -15,7 +15,7 @@ import { TEXTS } from '@/shared/config/texts';
 
 const NEW_NICKNAME = '새로운닉';
 
-test.describe('프로필 수정 실패 경로', () => {
+test.describe('프로필 수정(계정 설정 화면 섹션) 실패 경로', () => {
   test.beforeEach(async ({ page }) => {
     await installCatchAll(page);
     await mockAuthRefresh(page);
@@ -28,33 +28,33 @@ test.describe('프로필 수정 실패 경로', () => {
   // 닉네임 변경 → 저장까지의 공통 준비 단계. 500ms 디바운스가 끝나고 중복 검사 응답이
   // 온 것 자체가 hasDebounceSettled === true의 증거다(waitForTimeout 대신 waitForResponse를
   // 쓰는 이유) — 캐치올이 이 요청을 막으면 fail-open으로 저장 버튼이 그대로 활성화돼버려
-  // 모킹 누락이 조용히 통과하는 함정이 있다(useUpdateAccount.ts:122-131).
-  async function openMyPageAndFillNickname(page: Page) {
+  // 모킹 누락이 조용히 통과하는 함정이 있다(useUpdateAccount.ts 참고).
+  async function openAccountSettingsAndFillNickname(page: Page) {
     await page.goto('/post');
     await page.getByRole('button', { name: TEXTS.ariaLabels.accountMenu }).click();
-    await page.getByRole('menuitem', { name: TEXTS.buttons.profileEdit }).click();
+    await page.getByRole('menuitem', { name: TEXTS.buttons.accountSettings }).click();
 
-    const modal = page.getByRole('dialog', { name: TEXTS.mypage.title });
+    const nickname = page.getByLabel(TEXTS.labels.nickname);
     const availability = page.waitForResponse(
       (res) =>
         new URL(res.url()).pathname === '/api/auth/account/nickname-availability' &&
         res.status() === 200
     );
-    await modal.getByLabel(TEXTS.labels.nickname).fill(NEW_NICKNAME);
+    await nickname.fill(NEW_NICKNAME);
     await availability;
 
-    const save = modal.getByRole('button', { name: TEXTS.mypage.save });
+    const save = page.getByRole('button', { name: TEXTS.mypage.save });
     await expect(save).toBeEnabled();
-    return { modal, save };
+    return { nickname, save };
   }
 
-  test('저장을 누르면 응답 전에 모달이 닫히고 Navbar가 낙관적으로 먼저 바뀐 뒤, 409면 롤백된다', async ({
+  test('저장을 누르면 응답을 기다리는 동안 입력칸·버튼이 비활성화되고, 409면 롤백 후에도 입력값이 남는다', async ({
     page,
   }) => {
-    // 스펙 로컬 게이트 — 테스트가 명시적으로 풀 때까지 PATCH 응답을 보류해, "모달이 응답
-    // 전에 닫힌다"는 순서를 결정론적으로 관찰한다. beforeEach가 아니라 여기서 등록하는
-    // 이유는 mockAccountQuery(GET) 다음에 와야 route.fallback()으로 GET을 건드리지
-    // 않기 때문이다(LIFO — 나중 등록이 먼저 실행).
+    // 스펙 로컬 게이트 — 테스트가 명시적으로 풀 때까지 PATCH 응답을 보류해, "응답을
+    // 기다리는 동안 pending 상태가 유지된다"는 순서를 결정론적으로 관찰한다. beforeEach가
+    // 아니라 여기서 등록하는 이유는 mockAccountQuery(GET) 다음에 와야 route.fallback()으로
+    // GET을 건드리지 않기 때문이다(LIFO — 나중 등록이 먼저 실행).
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {
       release = resolve;
@@ -78,35 +78,65 @@ test.describe('프로필 수정 실패 경로', () => {
       }
     );
 
-    const { modal, save } = await openMyPageAndFillNickname(page);
+    const { nickname, save } = await openAccountSettingsAndFillNickname(page);
     await save.click();
 
-    // useUpdateAccount.ts:162 — updateAccount() 호출 전에 onSuccess?.()를 먼저 부른다.
-    // 즉 응답이 오기 전에 모달이 닫힌다.
-    await expect(modal).toBeHidden();
-
-    const accountMenuButton = page.getByRole('button', { name: TEXTS.ariaLabels.accountMenu });
-    // UserAvatar 폴백은 닉네임 첫 글자다(mockAccount.image가 undefined라 항상 폴백 렌더).
-    await expect(accountMenuButton).toContainText(NEW_NICKNAME[0]);
+    // useUpdateAccount.ts의 onSubmit은 이제 응답을 기다린다 - 그동안 입력칸·버튼이
+    // 비활성화되고 라벨이 "저장 중..."으로 바뀌어 사용자가 접수됐다는 걸 알 수 있다.
+    // 라벨이 바뀌면 접근성 이름도 바뀌므로 pending 버튼은 새 이름으로 다시 찾는다.
+    await expect(nickname).toBeDisabled();
+    const savingButton = page.getByRole('button', { name: TEXTS.common.saving });
+    await expect(savingButton).toBeVisible();
+    await expect(savingButton).toBeDisabled();
 
     release();
 
-    await expect(accountMenuButton).toContainText('T'); // mockAccount.nickname === 'testuser'
+    // 롤백 후에도 방금 입력했던 닉네임은 화면에 그대로 남아 바로 재시도할 수 있다
+    // (예전 "다시 열기" 토스트 액션이 하던 값 복원을, 화면을 안 떠나므로 이제 그냥
+    // 지우지 않는 방식으로 대체한다).
     await expect(page.getByText(TEXTS.messages.error.nicknameDuplicate)).toBeVisible();
+    await expect(nickname).toBeEnabled();
+    await expect(nickname).toHaveValue(NEW_NICKNAME);
   });
 
-  test('실패 토스트의 "다시 열기"가 모달을 재오픈하고 입력값을 복원한다', async ({ page }) => {
+  test('409 롤백 후 같은 화면에서 값을 고쳐 재시도하면 성공한다', async ({ page }) => {
     await mockAccountUpdateConflict(page);
 
-    const { save } = await openMyPageAndFillNickname(page);
+    const { nickname, save } = await openAccountSettingsAndFillNickname(page);
     await save.click();
 
-    const reopen = page.getByRole('button', { name: TEXTS.mypage.reopen });
-    await expect(reopen).toBeVisible();
-    await reopen.click();
+    await expect(page.getByText(TEXTS.messages.error.nicknameDuplicate)).toBeVisible();
+    await expect(nickname).toHaveValue(NEW_NICKNAME);
 
-    const modal = page.getByRole('dialog', { name: TEXTS.mypage.title });
-    await expect(modal).toBeVisible();
-    await expect(modal.getByLabel(TEXTS.labels.nickname)).toHaveValue(NEW_NICKNAME);
+    // 페이지를 안 떠났으므로 값을 고쳐 바로 재시도할 수 있다 - 이번엔 성공 응답으로 교체
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.auth.account),
+      async (route) => {
+        if (route.request().method() !== 'PATCH') {
+          return route.fallback();
+        }
+        const body = (await route.request().postDataJSON()) as { nickname: string };
+        return route.fulfill({
+          json: {
+            status: 200,
+            message: 'ok',
+            data: { id: 'user-uuid-1', nickname: body.nickname, role: 'USER', email: 't@t.com' },
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+    );
+
+    const retryNickname = `${NEW_NICKNAME}2`;
+    const availability = page.waitForResponse(
+      (res) =>
+        new URL(res.url()).pathname === '/api/auth/account/nickname-availability' &&
+        res.status() === 200
+    );
+    await nickname.fill(retryNickname);
+    await availability;
+    await save.click();
+
+    await expect(page.getByText(TEXTS.messages.success.accountUpdated)).toBeVisible();
   });
 });
