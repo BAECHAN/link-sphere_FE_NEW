@@ -31,6 +31,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { <FormType>, <formSchema> } from '@/entities/<entity>/model/<entity>.schema';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 
 const DEFAULT_VALUES: <FormType> = {
   // fill with actual default values
@@ -38,7 +39,7 @@ const DEFAULT_VALUES: <FormType> = {
 
 export function use<FeatureName>() {
   const navigate = useNavigate();
-  const { mutateAsync: <action><Entity>, isPending: is<Action>ing } = use<Action><Entity>Mutation();
+  const { mutate: <action><Entity>, isPending: is<Action>ing } = use<Action><Entity>Mutation();
 
   const form = useForm<<FormType>>({
     resolver: zodResolver(<formSchema>),
@@ -46,17 +47,19 @@ export function use<FeatureName>() {
     mode: 'onChange',
   });
 
-  const onSubmit = form.handleSubmit(async (data: <FormType>) => {
-    try {
-      await <action><Entity>(data, {
-        onSuccess: () => {
-          form.reset(DEFAULT_VALUES);
-          navigate(ROUTES_PATHS.<DOMAIN>.ROOT);
-        },
-      });
-    } catch (error) {
-      console.error(error);
-    }
+  // 폼에 값을 입력하고 제출 없이 떠나면(뒤로가기 등) 이탈 확인창을 띄운다 — 선례:
+  // useCreatePost.ts. 첫 인자는 페이지별 고유 키(라우트/슬라이스 이름과 맞춘다).
+  const { clearNow } = useUnsavedChanges('<domain>-<slice>', form.formState.isDirty);
+
+  const onSubmit = form.handleSubmit((formData: <FormType>) => {
+    <action><Entity>(formData, {
+      onSuccess: () => {
+        form.reset(DEFAULT_VALUES);
+      },
+    });
+    clearNow();
+    // replace: 제출이 끝난 폼 엔트리를 결과 화면으로 대체 → 뒤로가기 시 빈 폼으로 돌아가지 않음
+    navigate(ROUTES_PATHS.<DOMAIN>.ROOT, { replace: true });
   });
 
   return { form, onSubmit, is<Action>ing };
@@ -78,6 +81,10 @@ export function use<FeatureName>() {
     openConfirm({
       message: TEXTS.messages.warning.<entity>DeleteConfirm,
       confirmText: TEXTS.buttons.delete,
+      // 메뉴에서 "삭제"를 직접 눌러야만 뜨는 다이얼로그라 이미 삭제를 결심한 상태다 —
+      // 확인이 채움+오른쪽을 받는다(usePostDelete.ts와 동일, docs/DECISIONS.md
+      // 2026-09-29 항목 참고).
+      emphasis: 'confirm',
       onConfirm: async () => {
         await delete<Entity>(id);
         options?.onSuccess?.();
@@ -109,7 +116,7 @@ export function use<FeatureName>(<entity>Id: string) {
 
 ```typescript
 import { FormProvider } from 'react-hook-form';
-import { use<FeatureName> } from '../hooks/use<FeatureName>';
+import { use<FeatureName> } from '@/features/<domain>/<slice>/hooks/use<FeatureName>';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { Button } from '@/shared/ui/atoms/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/atoms/card';
@@ -148,7 +155,8 @@ export function <FeatureName>Form() {
 ```typescript
 import { cn } from '@/shared/lib/tailwind/utils';
 import { Button } from '@/shared/ui/atoms/button';
-import { use<FeatureName> } from '../hooks/use<FeatureName>';
+import { use<FeatureName> } from '@/features/<domain>/<slice>/hooks/use<FeatureName>';
+import { TEXTS } from '@/shared/config/texts';
 
 interface <FeatureName>ButtonProps {
   <entity>Id: string;
@@ -166,6 +174,9 @@ export function <FeatureName>Button({ <entity>Id, is<State>, count }: <FeatureNa
       className={cn('gap-1 rounded-full', is<State> && 'text-primary')}
       onClick={(e) => { e.preventDefault(); handle<Action>(); }}
       disabled={is<Action>ing}
+      // 아이콘만 있고 텍스트 라벨이 없는 버튼이라 스크린리더용 라벨이 꼭 필요하다
+      // (선례: LikePostButton.tsx). 상태별로 다른 문구를 TEXTS.ariaLabels.*에 추가한다.
+      aria-label={is<State> ? TEXTS.ariaLabels.<domain><FeatureName>Off : TEXTS.ariaLabels.<domain><FeatureName>On}
     >
       {/* icon + count */}
     </Button>
@@ -177,6 +188,10 @@ export function <FeatureName>Button({ <entity>Id, is<State>, count }: <FeatureNa
 
 Tell the user:
 
-- Wire the new UI component into the appropriate page under `src/pages/`
+- Wire the new UI component into the appropriate page under `src/pages/`. If wiring it in
+  needs any orchestration logic of its own (URL parsing, an entity query call, a redirect
+  effect), that logic goes in that page's `hooks/` — entity queries can only be called from
+  `hooks/` there too (`custom-query-rules/no-entity-query-import-outside-hooks` covers
+  `pages/**` the same as `features/**`), not inlined in the page component itself
 - If mutation/query hooks were missing from `<entity>.queries.ts`, confirm they were added
 - If new TEXTS keys were referenced, confirm they were added to `src/shared/config/texts.ts`
