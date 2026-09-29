@@ -137,6 +137,69 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
 - **S3**: `s3:PutObject`, `s3:ListBucket`, `s3:DeleteObject` (버킷 동기화용)
 - **CloudFront**: `cloudfront:CreateInvalidation` (캐시 무효화용)
 
+## 커스텀 도메인 (수동 관리) — 적용 완료 (2026-09-29)
+
+`linksphere.click`(등록기관: AWS Route 53, 연 $3)을 프로덕션 도메인으로 연결했다.
+아래 리소스 전부 콘솔 또는 CLI로만 관리되고 이 레포 코드로는 존재하지 않는다 —
+위 "CloudFront Function"·"CloudFront WAF" 절과 같은 성격.
+
+값: 도메인 `linksphere.click`(+ `www.linksphere.click`) · Route 53 호스팅 존
+`Z07390133JHYYE0U2LMYS` · ACM 인증서(us-east-1) `arn:aws:acm:us-east-1:185353921021:certificate/4004174d-e6b9-48c9-bb4b-36def4c80269` ·
+CloudFront distribution `E1ZZPXFS3GSVZ6`.
+
+- **ACM 인증서는 반드시 `us-east-1`에서 발급한다** — CloudFront에 붙이는 인증서는
+  리전이 이거 하나로 고정돼 있다(배포 자체는 `ap-northeast-2`의 S3를 오리진으로
+  쓰지만 무관). DNS 검증 방식으로 발급하고, 검증용 CNAME 2개(도메인 본체 +
+  `www`)를 호스팅 존에 추가한 뒤 발급 완료까지 기다린다(보통 1분 내).
+- **CloudFront 배포 설정의 `Aliases`에 두 도메인을 추가하고 `ViewerCertificate`를
+  이 ACM 인증서로 교체한다**(`CertificateSource: acm`, `SSLSupportMethod:
+sni-only`, `MinimumProtocolVersion: TLSv1.2_2021`) — `update-distribution`은
+  기존 CloudFront 기본 인증서(`*.cloudfront.net`)를 대체하는 것이라 원래
+  CloudFront 도메인(`dbw3brui6htwk.cloudfront.net`)도 계속 살아있다(둘 다 같은
+  배포를 가리키므로 갑자기 끊기지 않는다).
+- **Route 53 호스팅 존에 A(ALIAS) 레코드를 추가해 실제로 도메인이 CloudFront를
+  가리키게 한다.** ALIAS 타겟의 `HostedZoneId`는 CloudFront 전용 고정값
+  `Z2FDTNDATAQYW2`(계정과 무관하게 항상 이 값)를 쓴다.
+- **CloudWatch RUM(App Monitor `link-sphere-post`)의 허용 도메인 목록도 같이
+  갱신해야 한다** — 등록 안 된 도메인에서는 RUM이 조용히 데이터를 안 보낸다
+  (도메인 불일치, `docs/RUM.md` 참고). `Domain`(단일) 대신 `DomainList`(복수)로
+  바꿔서 옛 CloudFront 도메인과 새 커스텀 도메인을 모두 등록해뒀다 — 둘 다 계속
+  쓰일 수 있어서다.
+- **새 도메인을 CORS 허용 목록에 추가하는 걸 빠뜨리면 로그인이 막힌다.** 실제로
+  이 도메인 연결 직후 겪은 장애다 - BE `docs/DEPLOY.md`의 `APP_CORS_ALLOWED_ORIGINS`
+  절 참고. 앞으로 도메인을 또 추가할 때 반드시 같이 갱신한다.
+
+```bash
+# 1. ACM 인증서 발급 (us-east-1 고정)
+aws acm request-certificate --domain-name linksphere.click \
+  --subject-alternative-names www.linksphere.click \
+  --validation-method DNS --region us-east-1
+
+# 2. 검증용 CNAME을 describe-certificate 결과에서 뽑아 호스팅 존에 추가
+#    (change-resource-record-sets, Action: UPSERT) → 발급 완료까지 대기
+#    (describe-certificate --query 'Certificate.Status' 가 ISSUED 될 때까지)
+
+# 3. 배포 설정에 Aliases + ViewerCertificate(ACM) 반영
+#    (get-distribution-config → Aliases·ViewerCertificate 수정 → update-distribution,
+#    ETag → IfMatch로 옮기는 절차는 위 "CloudFront Function" 절과 동일한 패턴)
+
+# 4. Route 53에 도메인 → CloudFront ALIAS 레코드 추가
+aws route53 change-resource-record-sets --hosted-zone-id Z07390133JHYYE0U2LMYS \
+  --change-batch '{"Changes":[{"Action":"UPSERT","ResourceRecordSet":{
+    "Name":"linksphere.click","Type":"A",
+    "AliasTarget":{"HostedZoneId":"Z2FDTNDATAQYW2","DNSName":"dbw3brui6htwk.cloudfront.net","EvaluateTargetHealth":false}
+  }}]}'
+# www.linksphere.click도 동일하게 추가
+
+# 5. RUM 도메인 목록 갱신
+aws rum update-app-monitor --name link-sphere-post \
+  --domain-list dbw3brui6htwk.cloudfront.net linksphere.click www.linksphere.click
+```
+
+**되돌리려면**: 배포 설정의 `Aliases`를 빈 배열로, `ViewerCertificate`를
+`{"CloudFrontDefaultCertificate": true}`로 되돌리고 `update-distribution` —
+Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 쓰일 뿐).
+
 ## CloudFront Function (수동 관리)
 
 SPA 클라이언트 라우팅 폴백(`/post/abc123` 같은 경로를 `/index.html`로 리라이트)은
