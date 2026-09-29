@@ -30,8 +30,8 @@ Zod는 **응답 파싱에 쓰지 않는다** — `apiClient`가 이미 제네릭
    최신인지 확인한다(BE에 새 엔드포인트/DTO가 이미 배포돼 있어야 한다)
 2. `src/shared/api/generated/openapi.json`에서 이 엔티티의 BE 스키마 이름을 확인한다:
    `jq '.components.schemas | keys[]' src/shared/api/generated/openapi.json | grep -i <entity>`
-3. 참고 파일: `src/entities/post/model/post.dto.ts`(override 2건 포함 — 가장 완전한 예시),
-   `src/entities/category/model/category.dto.ts`(override 없는 가장 단순한 예시)
+3. 참고 파일: `src/entities/account/model/account.dto.ts`(override 2건 포함 — 가장 완전한
+   예시), `src/entities/category/model/category.dto.ts`(override 없는 가장 단순한 예시)
 
 ## File 1 — `src/entities/<entity>/model/<entity>.dto.ts` (응답 타입, 항상 만든다)
 
@@ -61,19 +61,27 @@ export type Account = Omit<components['schemas']['AccountResponse'], 'role'> & {
 재귀 타입(댓글 답글 등)이나 목록 응답의 `content`/`items` 필드에 override가 필요하면,
 `Omit`은 최상위 키만 제외할 뿐 중첩 타입까지 다시 쓰지 않는다는 걸 기억한다 — 그 필드도
 같이 override해야 한다(`src/entities/comment/model/comment.dto.ts`의 `replies`,
-`src/entities/post/model/post.dto.ts`의 `content` 참고).
+`src/entities/bookmark/folder/model/bookmark-folder.dto.ts`의 `folders` 참고).
 
 ## File 2 — `src/entities/<entity>/model/<entity>.schema.ts` (요청·폼 검증, 필요할 때만)
 
 생성/수정 폼이나 검색 필터처럼 **사용자 입력을 검증**해야 할 때만 만든다. 순수 조회
 전용 엔티티(예: category)라면 이 파일은 필요 없다 — `.dto.ts`의 타입을 그대로 쓴다.
 
+먼저 `src/shared/config/texts.ts`의 `validation`에 `<entity>NameRequired` 키를 추가한다 —
+공용 `nameRequired` 키는 없고 필드마다 별도 키를 쓴다(선례: `folderNameRequired`,
+`categoryNameRequired`):
+
+```typescript
+<entity>NameRequired: '<Entity> 이름을 입력해주세요.',
+```
+
 ```typescript
 import { z } from 'zod';
 import { TEXTS } from '@/shared/config/texts';
 
 export const create<Entity>Schema = z.object({
-  name: z.string().min(1, TEXTS.validation.nameRequired),
+  name: z.string().min(1, TEXTS.validation.<entity>NameRequired),
 });
 
 export type Create<Entity> = z.infer<typeof create<Entity>Schema>;
@@ -89,9 +97,9 @@ export type Create<Entity> = z.infer<typeof create<Entity>Schema>;
   null/undefined 여부는 생성 타입이 이미 스펙대로 표현한다
 - override는 반드시 근거 주석(BE 파일:줄, 실측 결과)을 남긴다 — 이유 없이 좁히지 않는다
 - 기존 엔티티에 필드를 추가하는 경우, `.schema.ts`가 이미
-  `export type { <Entity> } from './<entity>.dto'`로 재수출하고 있다면 소비 파일의
-  import 경로는 그대로 둔다(엔티티를 새로 만드는 경우는 소비 파일이 아직 없으므로
-  `.dto.ts`를 직접 import해도 된다)
+  `export type { <Entity> } from '@/entities/<entity>/model/<entity>.dto'`로 재수출하고
+  있다면 소비 파일의 import 경로는 그대로 둔다(엔티티를 새로 만드는 경우는 소비 파일이
+  아직 없으므로 `.dto.ts`를 직접 import해도 된다)
 
 ## Next steps
 

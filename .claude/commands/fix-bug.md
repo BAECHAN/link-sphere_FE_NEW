@@ -21,29 +21,40 @@ Architecture: FSD (Feature-Sliced Design) with strict layer separation:
 Search for relevant code in this order:
 
 1. Feature hook: `features/<domain>/<slice>/hooks/`
-2. Query/mutation hooks: `entities/<entity>/api/<entity>.queries.ts`
-3. Keys + invalidation: `entities/<entity>/api/<entity>.keys.ts`
-4. API layer: `entities/<entity>/api/<entity>.api.ts`
-5. Schema: `entities/<entity>/model/<entity>.schema.ts`
-6. UI component: `features/<domain>/<slice>/ui/`
-7. Shared config: `src/shared/config/`
-8. Shared utilities: `src/shared/`
+2. Widget hook (if the bug shows up on a widget-rendered screen): `widgets/<domain>/<slice>/hooks/`
+3. Page hook (if the bug is page-level orchestration — URL parsing, redirects, an entity
+   query called from the page): `pages/<page>/hooks/`
+4. Query/mutation hooks: `entities/<entity>/api/<entity>.queries.ts`
+5. Keys + invalidation: `entities/<entity>/api/<entity>.keys.ts`
+6. API layer: `entities/<entity>/api/<entity>.api.ts`
+7. Response DTO: `entities/<entity>/model/<entity>.dto.ts`
+8. Request/form schema: `entities/<entity>/model/<entity>.schema.ts`
+9. UI component: `features/<domain>/<slice>/ui/`
+10. Shared config: `src/shared/config/`
+11. Shared utilities: `src/shared/`
 
 ## Step 2: Diagnose by layer
 
 Identify which layer the bug is in:
 
-| Layer            | Common issues                                                                    |
-| ---------------- | -------------------------------------------------------------------------------- |
-| **Schema**       | Zod type mismatch, wrong field name, missing `.nullable()`, wrong `z.coerce`     |
-| **API**          | Wrong endpoint, wrong HTTP method, missing URL param, missing request body field |
-| **Keys**         | Wrong query key causes stale data, missing invalidation after mutation           |
-| **Queries**      | Wrong `onSuccess` handler, missing `enabled` condition, wrong select transform   |
-| **Feature hook** | Wrong form default values, incorrect submit flow, missing error handling         |
-| **UI**           | Wrong prop passed to component, missing `FormProvider`, wrong form field name    |
-| **Config**       | Missing TEXTS key, wrong API_ENDPOINTS path                                      |
+| Layer                  | Common issues                                                                                                     |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **DTO**                | 생성 타입이 낡음(`pnpm codegen:fetch && pnpm codegen` 필요), override 근거 누락 또는 스펙과 이미 안 맞는 override |
+| **Schema (요청 검증)** | Zod 필드명 오타, 폼 검증 실패 메시지 누락, `.nullable()`/`.optional()` 혼동(폼 필드에만 적용 — 응답 타입엔 안 씀) |
+| **API**                | Wrong endpoint, wrong HTTP method, missing URL param, missing request body field                                  |
+| **Keys**               | Wrong query key causes stale data, missing invalidation after mutation                                            |
+| **Queries**            | Wrong `onSuccess` handler, missing `enabled` condition, wrong select transform                                    |
+| **Feature hook**       | Wrong form default values, incorrect submit flow, missing error handling                                          |
+| **UI**                 | Wrong prop passed to component, missing `FormProvider`, wrong form field name                                     |
+| **Config**             | Missing TEXTS key, wrong API_ENDPOINTS path                                                                       |
 
-## Step 3: Apply the fix
+## Step 3: Write a failing test that reproduces the bug
+
+`.claude/CLAUDE.md` §4 규칙: "버그 수정 → 버그를 재현하는 테스트를 작성하고, 통과시킨다."
+수정하기 전에 먼저 이 버그를 재현하는 테스트를 쓰고 실패하는 걸 확인한다 — Step 5에서
+수정한 뒤 같은 테스트가 통과하는지로 고쳤는지 검증한다.
+
+## Step 4: Apply the fix
 
 Rules for applying fixes:
 
@@ -54,10 +65,11 @@ Rules for applying fixes:
 - **Never**: add inline query keys — always use `<entity>Keys.*`
 - **Never**: add `any` types to satisfy TypeScript
 
-## Step 4: Verify the fix
+## Step 5: Verify the fix
 
 Check:
 
+- [ ] The Step 3 reproduction test now passes
 - [ ] TypeScript types are still consistent (no `any` introduced)
 - [ ] Invalidated queries use key constants from `<entity>.keys.ts`
 - [ ] UI strings come from `TEXTS.*`

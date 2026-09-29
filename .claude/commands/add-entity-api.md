@@ -26,7 +26,7 @@ Parse:
 ```typescript
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/config/api';
-import { Create<Entity>, Update<Entity>, <Entity> } from '../model/<entity>.schema';
+import { Create<Entity>, Update<Entity>, <Entity> } from '@/entities/<entity>/model/<entity>.schema';
 
 export const <entity>Api = {
   create<Entity>: async (payload: Create<Entity>): Promise<<Entity>> =>
@@ -50,9 +50,15 @@ export const <entity>Api = {
 
 ```typescript
 import type { QueryClient } from '@tanstack/react-query';
-import { <Entity> } from '../model/<entity>.schema';
+import { <Entity> } from '@/entities/<entity>/model/<entity>.schema';
 
 const rootKey = ['<entity>'] as const;
+
+export const <entity>MutationKeys = {
+  create: [...rootKey, 'create'] as const,
+  update: (id: <Entity>['id']) => [...rootKey, 'update', id] as const,
+  delete: [...rootKey, 'delete'] as const,
+};
 
 export const <entity>Keys = {
   root: rootKey,
@@ -91,20 +97,22 @@ export const handle<Entity>DeleteSuccess = (queryClient: QueryClient) => {
 
 ```typescript
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { <entity>Api } from './<entity>.api';
+import { <entity>Api } from '@/entities/<entity>/api/<entity>.api';
 import {
   <entity>Keys,
+  <entity>MutationKeys,
   handle<Entity>CreateSuccess,
   handle<Entity>UpdateSuccess,
   handle<Entity>DeleteSuccess,
-} from './<entity>.keys';
+} from '@/entities/<entity>/api/<entity>.keys';
 import { TEXTS } from '@/shared/config/texts';
-import { Create<Entity>, Update<Entity> } from '../model/<entity>.schema';
+import { Create<Entity>, Update<Entity> } from '@/entities/<entity>/model/<entity>.schema';
 
 export const useCreate<Entity>Mutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: <entity>MutationKeys.create,
     mutationFn: (payload: Create<Entity>) => <entity>Api.create<Entity>(payload),
     meta: {
       successMessage: TEXTS.messages.success.<entity>Created,
@@ -131,6 +139,7 @@ export const useUpdate<Entity>Mutation = (id: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: <entity>MutationKeys.update(id),
     mutationFn: (payload: Update<Entity>) => <entity>Api.update<Entity>(id, payload),
     meta: {
       successMessage: TEXTS.messages.success.<entity>Updated,
@@ -144,9 +153,12 @@ export const useDelete<Entity>Mutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: <entity>MutationKeys.delete,
     mutationFn: (id: string) => <entity>Api.delete<Entity>(id),
     meta: {
-      successMessage: TEXTS.messages.success.<entity>Deleted,
+      // 삭제는 목록에서 바로 사라져 결과가 눈에 보이므로 성공 토스트를 따로 띄우지
+      // 않는다(texts-conventions skill "성공 토스트 표시 기준" — postDeleted도 같은
+      // 이유로 없음). 화면 밖에서 바뀌어 눈에 안 띄는 경우에만 successMessage를 추가한다.
       errorMessage: TEXTS.messages.error.<entity>DeleteFailed,
     },
     onSuccess: () => handle<Entity>DeleteSuccess(queryClient),
@@ -176,7 +188,6 @@ Add under `messages`:
 success: {
   <entity>Created: '<Entity>를 생성했어요.',
   <entity>Updated: '<Entity>를 수정했어요.',
-  <entity>Deleted: '<Entity>를 삭제했어요.',
 },
 error: {
   <entity>CreateFailed: '<Entity> 생성에 실패했어요.',
@@ -188,9 +199,20 @@ warning: {
 },
 ```
 
+삭제 성공 토스트(`<entity>Deleted`)는 넣지 않는다 — 삭제는 목록에서 바로 사라져 결과가
+눈에 보인다(`texts-conventions` skill "성공 토스트 표시 기준" 참고, 실제로 `postDeleted`
+키도 없다). 수정처럼 화면 밖에서 바뀌어 눈에 안 띄는 필드가 있을 때만 성공 토스트를 쓴다.
+
 ## Notes
 
 - If `<entity>.dto.ts` doesn't exist, run `/add-schema <domain> <entity>` first — see
   `src/entities/post/model/post.dto.ts` for the current response-type pattern
 - If only some CRUD operations are needed, omit the unused functions from api.ts and their corresponding hooks from queries.ts
-- For cross-domain invalidation (e.g. creating a comment also invalidates the post), import and call the other domain's `InvalidateQueries` in the success handler in `<entity>.keys.ts`
+- For cross-domain invalidation (e.g. creating a comment also invalidates the post), don't
+  import the other entity's `.keys.ts`/`.api.ts` directly — that exposes its entire public
+  surface. Instead go through its `@x/<this-entity>.ts` cross-reference file (FSD `@x`
+  notation, `docs/FE-ARCHITECTURE.md` §5) and call its `<entity>InvalidateQueries.xxx()`
+  wrapper from the success handler in `<entity>.keys.ts`. If that `@x` file doesn't exist yet,
+  create it in the other entity's folder, re-exporting only what this entity actually needs
+  (reference: `src/entities/bookmark/folder/@x/post.ts`, consumed by
+  `src/entities/post/api/post.queries.ts`)
