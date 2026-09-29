@@ -1,3 +1,6 @@
+### 2026-09-29 (FE)
+- 인증 토큰 유효성 검증 로직 최적화: Opaque 토큰 검증 시 항상 true를 반환하던 `isTokenExpired` 로직 제거 및 토큰 상태 관리 개선 ([#252](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/252))
+
 ### 2026-09-29 (BE)
 - Swagger 설정 최적화 및 레거시 JWT 관련 주석 현행화 ([#56](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/56))
 
