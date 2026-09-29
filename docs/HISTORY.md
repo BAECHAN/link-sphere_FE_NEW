@@ -1,4 +1,7 @@
 ### 2026-09-29 (FE)
+- 계정 관리 효율성 개선을 위해 프로필 수정 모달을 계정 설정 페이지 내 섹션으로 통합 리팩토링 ([#253](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/253))
+
+### 2026-09-29 (FE)
 - 사이트 전반의 버튼 배치 및 문구 가이드라인 표준화 적용 ([#249](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/249))
 
 ### 2026-09-29 (FE)
