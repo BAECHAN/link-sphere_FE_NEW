@@ -1,4 +1,7 @@
 ### 2026-09-29 (FE)
+- 사이트 전반의 버튼 배치 및 문구 가이드라인 표준화 적용 ([#249](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/249))
+
+### 2026-09-29 (FE)
 - 인증 토큰 유효성 검증 로직 최적화: Opaque 토큰 검증 시 항상 true를 반환하던 `isTokenExpired` 로직 제거 및 토큰 상태 관리 개선 ([#252](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/252))
 
 ### 2026-09-29 (BE)
