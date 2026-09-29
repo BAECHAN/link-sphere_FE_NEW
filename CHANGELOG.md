@@ -33,6 +33,16 @@
 
   </details>
 
+- `account` "프로필 수정" 모달을 "계정 설정" 페이지 섹션으로 통합
+  <details><summary>배경·구현</summary>
+
+  프로필 수정 진입점이 Navbar 드롭다운의 모달과 `/my/account`(계정 설정) 페이지로 둘로 나뉘어 있었다. 모달은 히스토리 엔트리를 비동기 push해서 열려, 열리자마자 연타하면 열림 가드(400ms)가 거의 소진된 채로 클릭 가능해지는 문제가 있었다. 진입점을 "계정 설정" 페이지 하나로 합치고, 그 위에 지어져 있던 "즉시 닫힘(낙관적) + 실패 시 토스트로 재오픈" 장치(`useMyPageModalStore`)를 전부 제거했다 — 페이지 섹션은 화면을 안 떠나므로 "재오픈" 개념 자체가 없어진다.
+
+  저장은 응답을 기다렸다가 반영하는 방식으로 바뀌었다: 응답을 기다리는 동안 입력칸·버튼이 비활성화되고 라벨이 "저장 중..."으로 바뀌며(Phase 1 버튼 컨벤션 재사용), 실패하면 캐시만 롤백하고 입력했던 닉네임·고른 이미지는 화면에 그대로 남아 바로 재시도할 수 있다. 같은 김에 아바타 이미지 피커가 `role="button"`인데 `tabIndex`가 없어 키보드로 접근할 수 없던 기존 문제를 실제 `<button type="button">`으로 고쳤다.
+  (`src/pages/myaccount/MyAccountPage.tsx`, `src/features/account/update/ui/UpdateAccountForm.tsx`, `src/features/account/update/hooks/useUpdateAccount.ts`, `src/entities/account/api/account.queries.ts`, `src/widgets/layout/navbar/ui/Navbar.tsx`, `src/shared/config/texts.ts`, `e2e/account-update.spec.ts`, `docs/MYPAGE.md`, `docs/DECISIONS.md`, [계획](docs/plans/2026-09-29-button-system-and-mypage-merge.md))
+
+  </details>
+
 ### Notes
 
 - BE API 의존: `link-sphere_BE_NEW` [PR #48](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/48) 필요(로그인 응답에 `deletionCancelled` 필드 추가, `DELETE /auth/account`의 실제 동작이 즉시 익명화에서 14일 유예 신청으로 변경). **배포 순서: BE 먼저** - 구버전 BE로 이 FE를 배포하면 `deletionCancelled`가 항상 없어(옵셔널 처리돼 있어 에러는 안 남) 복구 토스트만 영영 안 뜬다. 반대로 신버전 BE에 구버전 FE를 붙여도 필드를 무시할 뿐 깨지지 않는다.

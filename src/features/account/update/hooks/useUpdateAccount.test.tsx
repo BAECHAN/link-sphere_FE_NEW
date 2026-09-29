@@ -8,7 +8,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { type ReactNode } from 'react';
 import { useUpdateAccount } from '@/features/account/update/hooks/useUpdateAccount';
-import { useMyPageModalStore } from '@/shared/store/mypage.store';
 import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 
 vi.mock('@/shared/lib/firebase/fcm', () => ({
@@ -45,8 +44,6 @@ describe('useUpdateAccount', () => {
     queryClient = createTestQueryClient();
     // QueryClient 캐시에 account 데이터를 직접 주입 → GET 요청 없이 즉시 account 반환
     queryClient.setQueryData(['account'], mockAccount);
-    // 모달 스토어는 싱글톤이라 이전 테스트의 재오픈 값이 새지 않도록 초기화
-    useMyPageModalStore.setState({ restoreValues: null });
   });
 
   it('초기값이 account 데이터로 세팅된다', async () => {
@@ -90,31 +87,70 @@ describe('useUpdateAccount', () => {
     expect(result.current.avatarPreview).toBe(previousPreview);
   });
 
-  it('제출 시 서버 응답을 기다리지 않고 즉시 onSuccess가 호출된다 (모달 즉시 닫힘)', async () => {
-    // PATCH 응답을 영원히 지연시켜, onSuccess가 응답과 무관하게 먼저 불리는지 확인한다
+  it('제출 후 응답을 기다리는 동안(pending)에도 입력값이 그대로 유지된다', async () => {
+    // PATCH 응답을 영원히 지연시켜, pending 중 폼 값이 건드려지지 않는지 확인한다
     server.use(
       http.patch(url(API_ENDPOINTS.auth.updateAccount), async () => {
         await delay('infinite');
       })
     );
 
-    const onSuccess = vi.fn();
-    const { result } = renderHook(() => useUpdateAccount(onSuccess), {
+    const { result } = renderHook(() => useUpdateAccount(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.account?.nickname).toBe('testuser'));
+
+    const file = new File(['img'], 'avatar.png', { type: 'image/png' });
+    act(() => {
+      result.current.handleAvatarChange(file);
+      result.current.form.setValue('nickname', 'newNick');
+    });
+
+    act(() => {
+      void result.current.onSubmit({ preventDefault: vi.fn() } as never);
+    });
+
+    await waitFor(() => expect(result.current.isPending).toBe(true));
+
+    // 응답이 오지 않는 동안에도 방금 입력한 값이 전부 그대로 남아있어야 한다
+    expect(result.current.form.getValues('nickname')).toBe('newNick');
+    expect(result.current.avatarPreview).toBe('blob:mock-url');
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it('제출이 성공하면 서버 응답으로 폼이 reset되어 dirty가 해제된다', async () => {
+    server.use(
+      http.patch(url(API_ENDPOINTS.auth.updateAccount), async () => {
+        return HttpResponse.json(
+          {
+            status: 200,
+            message: 'ok',
+            data: { ...mockAccount, nickname: 'newNick' },
+            timestamp: '',
+          },
+          { status: 200 }
+        );
+      })
+    );
+
+    const { result } = renderHook(() => useUpdateAccount(), {
       wrapper: createWrapper(queryClient),
     });
 
     await waitFor(() => expect(result.current.account?.nickname).toBe('testuser'));
 
     act(() => {
-      result.current.form.setValue('nickname', 'newNick');
+      result.current.form.setValue('nickname', 'newNick', { shouldDirty: true });
     });
+    expect(result.current.isDirty).toBe(true);
 
     await act(async () => {
       await result.current.onSubmit({ preventDefault: vi.fn() } as never);
     });
 
-    // 응답이 절대 오지 않는 상황에서도 onSuccess는 이미 호출되어 있어야 한다
-    expect(onSuccess).toHaveBeenCalled();
+    await waitFor(() => expect(result.current.form.formState.isDirty).toBe(false));
+    expect(result.current.form.getValues('nickname')).toBe('newNick');
   });
 
   it('이미지 없이 닉네임만 변경하면 PATCH /auth/account만 호출된다', async () => {
@@ -135,8 +171,7 @@ describe('useUpdateAccount', () => {
       })
     );
 
-    const onSuccess = vi.fn();
-    const { result } = renderHook(() => useUpdateAccount(onSuccess), {
+    const { result } = renderHook(() => useUpdateAccount(), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -190,8 +225,7 @@ describe('useUpdateAccount', () => {
       })
     );
 
-    const onSuccess = vi.fn();
-    const { result } = renderHook(() => useUpdateAccount(onSuccess), {
+    const { result } = renderHook(() => useUpdateAccount(), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -207,9 +241,6 @@ describe('useUpdateAccount', () => {
       await result.current.onSubmit({ preventDefault: vi.fn() } as never);
     });
 
-    // onSuccess는 제출 즉시 호출되므로 응답을 기다리지 않고 먼저 확인할 수 있다
-    expect(onSuccess).toHaveBeenCalled();
-
     await waitFor(() => {
       expect(signUrlCalled).toHaveBeenCalled();
       expect(uploadCalled).toHaveBeenCalled();
@@ -217,6 +248,45 @@ describe('useUpdateAccount', () => {
         expect.objectContaining({ image: 'https://example.com/new-avatar.png' })
       );
     });
+  });
+
+  it('409(닉네임 중복)로 실패하면 롤백 후에도 닉네임·이미지 미리보기가 그대로 남아 바로 재시도할 수 있다', async () => {
+    server.use(
+      http.patch(url(API_ENDPOINTS.auth.updateAccount), () =>
+        HttpResponse.json(
+          {
+            status: 409,
+            code: 'DUPLICATE_NICKNAME',
+            message: '이미 사용 중인 닉네임입니다.',
+            timestamp: '',
+          },
+          { status: 409 }
+        )
+      )
+    );
+
+    const { result } = renderHook(() => useUpdateAccount(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.account?.nickname).toBe('testuser'));
+
+    const file = new File(['img'], 'avatar.png', { type: 'image/png' });
+    act(() => {
+      result.current.handleAvatarChange(file);
+      result.current.form.setValue('nickname', 'taken', { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await result.current.onSubmit({ preventDefault: vi.fn() } as never);
+    });
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    // 캐시는 롤백됐지만(전역 account.nickname은 다시 testuser), 폼에 입력했던 값과
+    // 골랐던 이미지 미리보기는 사라지지 않는다 — 재시도하려고 처음부터 다시 입력할 필요가 없다.
+    expect(result.current.form.getValues('nickname')).toBe('taken');
+    expect(result.current.avatarPreview).toBe('blob:mock-url');
   });
 
   it('타이핑을 멈추면 디바운스 후 가용성 검사가 실행되고, 사용 중인 닉네임이면 인라인 오류를 띄운다', async () => {
@@ -370,5 +440,38 @@ describe('useUpdateAccount', () => {
     expect(result.current.form.formState.errors.nickname).toBeFalsy();
     // 원래 값은 자기 자신의 닉네임이므로 서버에 다시 물어보지 않는다
     expect(checkCalled).not.toHaveBeenCalled();
+  });
+
+  it('account가 뒤늦게 도착해도(새로고침 등) 하이드레이션은 1회만 일어난다', async () => {
+    // beforeEach가 미리 넣어둔 캐시를 지워 "account가 아직 없는" 상태로 마운트한다.
+    // setQueryData(key, undefined)는 React Query가 "변경 없음"으로 처리해 캐시가 안
+    // 지워지므로 removeQueries를 써야 한다.
+    queryClient.removeQueries({ queryKey: ['account'] });
+
+    const { result } = renderHook(() => useUpdateAccount(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    expect(result.current.form.getValues('nickname')).toBe('');
+
+    // account가 뒤늦게 도착 - 1회차 하이드레이션
+    act(() => {
+      queryClient.setQueryData(['account'], mockAccount);
+    });
+    await waitFor(() => expect(result.current.form.getValues('nickname')).toBe('testuser'));
+
+    // 사용자가 아직 저장하지 않은 값을 입력 중인데
+    act(() => {
+      result.current.form.setValue('nickname', 'inProgress', { shouldDirty: true });
+    });
+
+    // 다른 곳(다른 탭 등)에서 계정 정보가 다시 갱신되어도 - 이미 하이드레이션했으므로
+    // 사용자가 입력 중인 값을 조용히 덮어쓰지 않는다
+    act(() => {
+      queryClient.setQueryData(['account'], { ...mockAccount, nickname: 'changedElsewhere' });
+    });
+
+    await waitFor(() => expect(result.current.account?.nickname).toBe('changedElsewhere'));
+    expect(result.current.form.getValues('nickname')).toBe('inProgress');
   });
 });

@@ -177,7 +177,7 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 (무의식적인 두 번째 탭이 확인창의 취소/삭제 버튼이나 오버레이에 떨어짐), 2026-09-29부터
 `useOpenClickGuard(open)`(`shared/hooks/useOpenClickGuard.ts`)를 이 모달 한 곳이 아니라
 공용 `shared/ui/atoms/dialog.tsx`의 `DialogContent`로 올렸다 — Alert/Confirm을 포함한
-모든 Dialog 기반 모달(이미지 뷰어, 로그인 모달, 마이페이지 모달 등)에 공통 적용된다.
+모든 Dialog 기반 모달(이미지 뷰어, 로그인 모달 등)에 공통 적용된다.
 
 `useOpenClickGuard`는 `open`이 `true`가 된 시점(`DialogContent`는 마운트 시점)을
 기준으로 가드 여부를 반환한다. `useClickGuard`(연타 방지, `shared/hooks/useClickGuard.ts`)와

@@ -6,13 +6,11 @@ import {
   handleAccountUpdateSuccess,
 } from '@/entities/account/api/account.keys';
 import { useAuthStore } from '@/shared/store/auth.store';
-import { useMyPageModalStore } from '@/shared/store/mypage.store';
 import { ApiError, UserFacingError } from '@/shared/types/common.type';
 import { Account, UpdateAccount, DeleteAccount } from '@/entities/account/model/account.schema';
 import { STALE_TIME_ONE_DAY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
-import { NavigationService } from '@/shared/lib/router/navigation';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { AuthUtil } from '@/shared/utils/auth.util';
 
@@ -88,36 +86,15 @@ export const useUpdateAccountMutation = () => {
         URL.revokeObjectURL(variables.previewUrl);
       }
     },
-    onError: (error, variables, context) => {
+    onError: (error, _variables, context) => {
       if (context?.previous) {
         queryClient.setQueryData(accountKeys.root, context.previous);
       }
       const message = resolveAccountUpdateErrorMessage(error);
 
-      // 모달은 이미 닫힌 뒤라 실패를 놓치기 쉽다 - 자동으로 사라지지 않게 하고, "다시 열기"로
-      // 시도했던 값(파일 포함) 그대로 모달을 복원한다. previewUrl은 여기서 해제하지 않는다 -
-      // 재오픈 시 미리보기로 다시 쓰이므로, 성공 시에만 정리한다.
-      // 이 콜백은 React 트리 밖(토스트 라이브러리의 DOM 클릭 핸들러)에서 실행되어 훅을 쓸 수
-      // 없으므로, 모달 열림은 NavigationService로 현재 위치에 히스토리 엔트리를 직접 push한다.
-      toast.error(message, {
-        id: 'profile-update-error',
-        duration: Infinity,
-        action: {
-          label: TEXTS.mypage.reopen,
-          onClick: () => {
-            // eslint-disable-next-line no-restricted-syntax -- 위 주석대로 React 트리 밖이라 Selector 패턴을 쓸 훅 컨텍스트 자체가 없다
-            useMyPageModalStore.getState().setRestoreValues({
-              nickname: variables.nickname,
-              imagePreview: variables.previewUrl ?? variables.image ?? null,
-              pendingFile: variables.file ?? null,
-            });
-            NavigationService.navigate(`${window.location.pathname}${window.location.search}`, {
-              state: { myPageOpen: true },
-              preventScrollReset: true,
-            });
-          },
-        },
-      });
+      // previewUrl은 여기서 해제하지 않는다 - useUpdateAccount.ts의 onSubmit이 실패 시
+      // 아무것도 건드리지 않아 화면에 미리보기로 계속 쓰이므로, 성공 시에만 정리한다.
+      toast.error(message, { id: 'profile-update-error' });
     },
   });
 };

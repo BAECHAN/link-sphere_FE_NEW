@@ -350,8 +350,8 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
   직접 push/pop한다 — `MobileCommentBar`·`AppLayout`은 같은 키를 `useHistoryOverlay`로
   구독하므로, 키 문자열이 두 코드 경로에 흩어진 상태다.
 - `Navbar.openMobileSearch`에 `preventScrollReset`이 없다 — `useHistoryOverlay`를 쓰는
-  다른 4개 오버레이(사이드바·로그인모달·마이페이지·이미지뷰어)와 달리 열 때 배경 스크롤이
-  최상단으로 튈 수 있다.
+  다른 3개 오버레이(사이드바·로그인모달·이미지뷰어)와 달리 열 때 배경 스크롤이 최상단으로
+  튈 수 있다.
 - `/post` 목록에서 300px 이상 스크롤한 채 검색을 열면 `ScrollToTop` FAB(`z-nav`)이 같은
   이유(z층 공유)로 패널 위에 그대로 뜬다. `main` 밖이라 이번 `inert` 차단으로도 안 가려진다.
 - `useIsMobile`의 판정 기준(`max-width:768px` + UA)이 Tailwind `md:`(`min-width:768px`)와

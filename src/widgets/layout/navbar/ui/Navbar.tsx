@@ -21,10 +21,8 @@ import { RecentSearchPanel } from '@/widgets/layout/navbar/ui/RecentSearchPanel'
 import { useRecentSearches } from '@/widgets/layout/navbar/hooks/useRecentSearches';
 import { useDelayedLogout } from '@/widgets/layout/navbar/hooks/useDelayedLogout';
 import { useMobileSearchPanel } from '@/widgets/layout/navbar/hooks/useMobileSearchPanel';
-import { MyPageModal } from '@/widgets/layout/mypage/ui/MyPageModal';
 import { TEXTS } from '@/shared/config/texts';
 import { useLoginModalStore } from '@/shared/store/loginModal.store';
-import { useMyPageModalStore } from '@/shared/store/mypage.store';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { useClickGuard } from '@/shared/hooks/useClickGuard';
 import { cn } from '@/shared/lib/tailwind/utils';
@@ -36,12 +34,6 @@ export function Navbar() {
 
   const { account } = useAccount();
 
-  const setMyPageRestoreValues = useMyPageModalStore((state) => state.setRestoreValues);
-  const {
-    isOpen: isMyPageOpen,
-    open: openMyPage,
-    close: closeMyPage,
-  } = useHistoryOverlay('myPageOpen');
   const { isLoggingOut, handleLogout } = useDelayedLogout();
   const { open: openSidebar } = useHistoryOverlay('sidebarOpen');
   const setLoginOnSuccess = useLoginModalStore((state) => state.setOnSuccess);
@@ -183,14 +175,6 @@ export function Navbar() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setMyPageRestoreValues(null);
-                      openMyPage();
-                    }}
-                  >
-                    {TEXTS.buttons.profileEdit}
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate(ROUTES_PATHS.MY_COMMENTS)}>
                     {TEXTS.buttons.myComments}
                   </DropdownMenuItem>
@@ -226,11 +210,6 @@ export function Navbar() {
           onClearAll={clearRecentSearches}
         />
       )}
-
-      <MyPageModal
-        open={isMyPageOpen}
-        onOpenChange={(open) => (open ? openMyPage() : closeMyPage())}
-      />
     </>
   );
 }

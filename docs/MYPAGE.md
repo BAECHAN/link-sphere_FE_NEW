@@ -1,36 +1,36 @@
-# 마이페이지 (프로필 수정) 기능
+# 프로필 수정(계정 설정 화면 섹션) 기능
 
 > **문서 성격**: 독립 기능 문서(서사형)
 >
 > **대상 독자**: 이 레포 FE를 처음 보거나 오랜만에 돌아온 개발자.
 >
-> **읽고 나면**: 저장 실패 시 재오픈 복원과 닉네임 중복확인이 어떻게 동작하는지
-> 이해하고, 이 모달에 필드를 추가하거나 캐시 무효화 범위를 바꿀 수 있다.
+> **읽고 나면**: 저장 실패 시 입력값이 유지되는 방식과 닉네임 중복확인이 어떻게
+> 동작하는지 이해하고, 이 폼에 필드를 추가하거나 캐시 무효화 범위를 바꿀 수 있다.
 >
 > **마지막 검토**: 2026-09-29
 
-네비게이션 바 아바타 드롭다운에서 **프로필 수정** 메뉴를 클릭하면 모달이 열립니다.
-닉네임 변경 및 프로필 이미지(아바타) 교체를 지원합니다.
+"계정 설정"(`/my/account`) 페이지 맨 위, 비밀번호 변경 섹션 바로 위에 있는
+프로필 섹션입니다. 닉네임 변경 및 프로필 이미지(아바타) 교체를 지원합니다.
+2026-09-29 전에는 Navbar 드롭다운의 "프로필 수정" 메뉴로 여는 별도 모달이었으나,
+같은 페이지 섹션으로 통합됐다(배경은 `docs/DECISIONS.md` 2026-09-29 항목 참고).
 
 ## 1. 쉬운 설명
 
-일반적인 "저장" 버튼과 달리, 이 모달은 **저장 버튼을 누르는 순간 화면부터
-먼저 바뀐다.** 서버 응답을 기다리지 않고 모달이 즉시 닫히고 새 닉네임·아바타가
-바로 보인다(낙관적 업데이트). 만약 나중에 저장이 실패하면, 몇 초 뒤 화면
-아래에 "실패했습니다 · 다시 열기" 토스트가 뜨고, 그걸 누르면 **방금 입력했던
-값(이미지 포함) 그대로** 모달이 다시 열린다 — 사용자가 입력을 처음부터
-다시 할 필요가 없다.
+저장 버튼을 누르면 **서버 응답이 올 때까지 입력칸과 버튼이 비활성화되고
+버튼 라벨이 "저장 중..."으로 바뀐다.** 화면을 떠나지 않으므로(모달이 아니라
+페이지 섹션) 사용자가 결과를 놓칠 일이 없다. 성공하면 서버가 돌려준 값으로
+폼이 정리되고 성공 토스트가 뜬다. 실패하면 캐시만 롤백되고, **방금 입력했던
+닉네임과 골랐던 이미지는 화면에 그대로 남는다** — 처음부터 다시 입력할 필요
+없이 바로 고쳐서 재시도할 수 있다.
 
 ```mermaid
 flowchart TD
-  Open["모달 열기"] --> Pick["아바타 파일 선택<br/>(선택 시 즉시 미리보기, 아직 업로드 안 함)"]
-  Pick --> Submit["저장 버튼"]
-  Submit --> Optimistic["캐시를 새 값으로 즉시 반영<br/>+ 모달 닫힘"]
-  Optimistic --> Upload["실제 업로드 + PATCH /auth/account"]
-  Upload -->|성공| Replace["서버 응답으로 캐시 교체<br/>+ 연관 캐시 무효화(§6)"]
-  Upload -->|실패| Rollback["캐시 롤백 + 지속 토스트<br/>'다시 열기' 액션"]
-  Rollback -->|다시 열기 클릭| Restore["입력값 복원 후 모달 재오픈<br/>(useMyPageModalStore, §6)"]
-  Restore --> Submit
+  Enter["계정 설정 페이지 진입"] --> Pick["아바타 파일 선택<br/>(선택 시 즉시 미리보기, 아직 업로드 안 함)"]
+  Pick --> Submit["저장 버튼 클릭<br/>입력칸·버튼 비활성화 + '저장 중...'"]
+  Submit --> Upload["실제 업로드 + PATCH /auth/account"]
+  Upload -->|성공| Replace["서버 응답으로 폼 reset<br/>+ 연관 캐시 무효화(§6) + 성공 토스트"]
+  Upload -->|실패| Rollback["캐시만 롤백 + 에러 토스트<br/>입력값·이미지 미리보기는 그대로"]
+  Rollback --> Submit
 ```
 
 ## 2. 전제 지식
@@ -42,7 +42,7 @@ React Hook Form·TanStack Query의 낙관적 업데이트(`onMutate`/`onError` �
 
 - 이 레포 전반의 인증 상태 관리(로그인/로그아웃, `ProtectedRoute`) →
   `entities/auth`, `shared/store/auth.store.ts`
-- 처음 나오는 용어(`restoreValues`, `NicknameStatus` 등) → §11 용어 사전
+- 처음 나오는 용어(`NicknameStatus`, `hydratedRef` 등) → §11 용어 사전
 
 ## 3. 사용한 도구·기술
 
@@ -50,7 +50,6 @@ React Hook Form·TanStack Query의 낙관적 업데이트(`onMutate`/`onError` �
 
 - **React Hook Form + Zod** — 닉네임 필드 검증(`updateAccountSchema`)
 - **TanStack Query** — 낙관적 업데이트 + 실패 롤백(`useUpdateAccountMutation`)
-- **Zustand**(`useMyPageModalStore`) — 저장 실패 후 재오픈 시 입력값 복원
 - **`useDebounce`** — 닉네임 중복확인 디바운스
 - **Radix UI Avatar** — 아바타 이미지/이니셜 폴백
 
@@ -59,9 +58,13 @@ Vitest — §8 참고.
 
 ## 4. 왜 만들었나
 
-사용자가 닉네임·프로필 이미지를 바꿀 수 있는 진입점이 필요했다. 저장이 느리게
-느껴지지 않도록 낙관적 업데이트를 택했고, 그 대가로 실패했을 때 입력을 잃지
-않게 하는 복원 장치(§5·§6)가 함께 필요해졌다.
+사용자가 닉네임·프로필 이미지를 바꿀 수 있는 진입점이 필요했다. 처음에는
+Navbar 드롭다운에서 여는 모달이었는데, 계정 설정(`/my/account`) 페이지와
+진입점이 둘로 나뉘어 있었고 모달의 비동기 열림이 클릭 가드를 사실상
+무력화하는 문제도 있었다. 2026-09-29에 계정 설정 페이지의 한 섹션으로
+합치면서, 모달 전제 위에 지어져 있던 "즉시 닫힘 + 실패 시 재오픈" 장치도
+"응답을 기다리고, 실패해도 입력값을 그대로 유지"하는 더 단순한 방식으로
+바꿨다(배경은 `docs/DECISIONS.md` 2026-09-29 항목 참고).
 
 ## 5. 구조
 
@@ -96,7 +99,7 @@ Vitest — §8 참고.
 // 3) 반환받은 publicUrl을 PATCH /auth/account의 image로 전송
 ```
 
-### 저장 흐름 — 낙관적 업데이트 + 실패 시 복원
+### 저장 흐름 — 응답 대기 + 실패 시 입력값 유지
 
 §1 순서도의 각 단계가 실제로 어떻게 구현됐는지:
 
@@ -104,19 +107,24 @@ Vitest — §8 참고.
    않고 고르는 즉시 `getImageFileSizeError`로 용량을 검사한다. 통과하면
    `objectURL`로 미리보기만 만들고(`pendingFile` 상태), 실제 업로드는 아직
    하지 않는다.
-2. **제출**(`onSubmit`) — 서버 응답을 기다리지 않고 `onSuccess?.()`로 모달을
-   먼저 닫는다. `updateAccount({ nickname, image, file, previewUrl })`를
-   호출한다.
+2. **제출**(`onSubmit`) — `updateAccount({ nickname, image, file, previewUrl },
+{ onSuccess, onError })`를 호출한다. 페이지를 떠나지 않으므로 콜백을
+   `mutate()` 호출부에 직접 넘겨도 안전하다(컴포넌트가 언마운트되지 않는 한
+   `mutate(vars, { onSuccess })`는 정상 실행된다).
 3. **낙관적 반영**(`useUpdateAccountMutation`의 `onMutate`) — `accountKeys.root`
    캐시를 새 닉네임 + (파일을 골랐다면) blob 미리보기 URL로 즉시 덮어쓴다.
-4. **성공**(`onSuccess`) — 서버가 돌려준 실제 값(실제 업로드 URL 포함)으로
-   캐시를 교체하고, `handleAccountUpdateSuccess(queryClient)`(§6)로 연관 캐시를 무효화한다.
-5. **실패**(`onError`) — 캐시를 낙관적 반영 이전 값으로 롤백하고, **자동으로
-   사라지지 않는**(`duration: Infinity`) 에러 토스트에 "다시 열기" 액션을
-   붙인다. 클릭하면 시도했던 값(파일 포함)을 `useMyPageModalStore`에 저장하고
-   히스토리 엔트리를 새로 push해 모달을 다시 연다 — 이 콜백은 토스트 라이브러리의
-   DOM 클릭 핸들러 안에서 실행돼 React 훅을 쓸 수 없으므로, 모달을 열 때
-   `NavigationService.navigate(...)`로 직접 라우팅한다.
+   이 동안 `isPending`이 `true`라 입력칸·저장 버튼이 비활성화되고 버튼 라벨이
+   "저장 중..."으로 바뀐다(Phase 1 버튼 컨벤션, `docs/FE-ARCHITECTURE.md` §10-A).
+4. **성공**(`useUpdateAccount`의 `onSubmit`에 넘긴 `onSuccess`) — 서버가 돌려준
+   실제 값(실제 업로드 URL 포함)으로 폼을 `reset`해 dirty를 해제하고
+   `pendingFile`을 비운다. `useUpdateAccountMutation`의 `onSuccess`가 캐시를
+   같은 값으로 교체하고 `handleAccountUpdateSuccess(queryClient)`(§6)로 연관
+   캐시를 무효화하며, `meta.successMessage`로 전역 성공 토스트가 뜬다.
+5. **실패**(`onSubmit`에 넘긴 `onError`) — 아무것도 하지 않는다. 캐시는
+   `useUpdateAccountMutation`의 `onError`가 낙관적 반영 이전 값으로 롤백하고
+   에러 토스트를 띄우지만, 폼의 닉네임 입력값·`pendingFile`·`avatarPreview`는
+   전부 그대로 남는다 — 페이지를 벗어나지 않았으므로 값을 고쳐 바로 다시
+   저장 버튼을 누르면 된다.
 
 ### 닉네임 중복확인 — 디바운스 선제 검사
 
@@ -142,7 +150,7 @@ JSON `null`로 직렬화된다. `z.string().optional()`은 `null`을 거부하�
 `pendingFile !== null` 조건을 OR로 결합한다
 (`isDirty: form.formState.isDirty || pendingFile !== null`).
 
-**아바타 깜빡임 방지(정정, 2026-09-29)**: 이 모달의 아바타는 자체 마크업이 아니라
+**아바타 깜빡임 방지(정정, 2026-09-29)**: 이 섹션의 아바타는 자체 마크업이 아니라
 공통 `UserAvatar`(`entities/user/ui/UserAvatar.tsx`)를 그대로 쓴다
 (`UpdateAccountForm.tsx`). 그 컴포넌트의 실제 fallback 조건은 `!image`뿐이 아니라
 `(!image || hasError) && nicknameInitial`이다 — `hasError`는 `AvatarImage`의
@@ -154,7 +162,7 @@ nicknameInitial`)일 때만 `AvatarFallback`을 렌더링해 두 요소가 동�
 
 ### 로그아웃 처리
 
-이 모달과 직접 관련은 없지만 `entities/auth/api/auth.queries.ts`에
+이 기능과 직접 관련은 없지만 `entities/auth/api/auth.queries.ts`에
 있고 `AuthUtil`을 공유하므로 함께 적는다. `useLogoutMutation`은 서버 응답을
 기다리지 않고 즉시 인증 상태를 지운다 — 현재 화면이 **보호된 경로**면
 `AuthUtil.clearAll(ROUTES_PATHS.POST.ROOT)`(인증 초기화 + 캐시 폐기(재요청
@@ -182,32 +190,33 @@ const logout = () => {
 };
 ```
 
-### `/my/account` 페이지(계정 설정) — 이 모달과는 별개 화면
+### 같은 페이지의 다른 섹션들
 
-`src/pages/myaccount/MyAccountPage.tsx`(`ROUTES_PATHS.MY_ACCOUNT = '/my/account'`)는
-이 문서가 다루는 프로필 수정 모달(닉네임·아바타)과는 별도 페이지다. 세 구획을
-세로로 쌓는다: `EmailVerificationBanner`(이메일 미인증 시 안내 + 재발송 버튼),
-`ChangePasswordForm`(`features/auth/password-change`), `DeleteAccountSection`
+`src/pages/myaccount/MyAccountPage.tsx`(`ROUTES_PATHS.MY_ACCOUNT = '/my/account'`,
+"계정 설정")는 이 문서가 다루는 프로필 섹션을 포함해 네 구획을 세로로 쌓는다:
+`EmailVerificationBanner`(이메일 미인증 시 안내 + 재발송 버튼), **프로필 섹션**(이
+문서), `ChangePasswordForm`(`features/auth/password-change`), `DeleteAccountSection`
 (`features/account/delete`) — 비밀번호 입력 후 탈퇴를 신청하는 폼이다. 탈퇴는
 즉시 삭제가 아니라 **14일 유예**다: 신청 즉시 로그아웃되고 작성한 글·댓글은
 "탈퇴한 사용자"로 표시되지만, 14일 안에 다시 로그인하면 탈퇴가 취소된다. 14일이
 지나면 북마크·좋아요·조회 기록이 삭제되고 되돌릴 수 없다(문구는
 `TEXTS.accountSettings.deleteSectionDescription`, `shared/config/texts.ts` — 이
 유예 기간 값은 BE `AccountDeletionService.GRACE_PERIOD`와 반드시 같아야 하고
-자동 동기화 장치가 없다고 그 파일 주석이 명시한다).
+자동 동기화 장치가 없다고 그 파일 주석이 명시한다). 네 섹션은 각자 독립된 폼
+(별도 `FormProvider`)이라 한 섹션에 입력 중이어도 다른 섹션 제출에 영향을 주지
+않는다.
 
 ## 6. 상태 모델
 
-### `useMyPageModalStore`(`src/shared/store/mypage.store.ts`)
+### 폼 하이드레이션(`hydratedRef`)
 
-| 필드               | 타입                                                                                    | 역할                                                                         |
-| ------------------ | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `restoreValues`    | `{ nickname: string; imagePreview: string \| null; pendingFile: File \| null } \| null` | 저장 실패 후 "다시 열기"로 재오픈할 때 복원할 입력값. 정상 open에서는 `null` |
-| `setRestoreValues` | `(values) => void`                                                                      | §5 "저장 흐름"의 실패 콜백이 재오픈 직전에 호출                              |
-
-모달은 닫힐 때 언마운트되므로 재오픈은 항상 새 마운트다 — `useUpdateAccount`의
-`useState` 초기값들(`avatarPreview`, `pendingFile` 등)은 모두 이 `restoreValues`를
-우선 참조하도록 돼 있다.
+페이지 섹션은 모달과 달리 언마운트되지 않으므로, `account` 데이터가 늦게
+도착하거나(새로고침 직후) 다른 곳에서 다시 갱신되더라도 폼을 몇 번이고 덮어쓰면
+안 된다. `useUpdateAccount.ts`의 `hydratedRef`(`useRef<boolean>`)가 "이미
+한 번 하이드레이션했는지"를 기억한다 — 최초로 `account`가 도착했을 때만
+`reset({ nickname, image })`을 호출하고, 그 뒤로는 사용자가 입력 중인 값을
+그대로 둔다(`useUpdateAccount.test.tsx`의 "account가 뒤늦게 도착해도 하이드레이션은
+1회만 일어난다" 케이스가 이 계약을 검증한다).
 
 ### `useUpdateAccount` 반환 계약
 
@@ -247,11 +256,9 @@ invalidate하지 않는다 — 이미 쓴 값을 지우고 GET을 한 번 더 �
 
 ```
 src/
-├── widgets/
-│   └── layout/
-│       └── mypage/
-│           └── ui/
-│               └── MyPageModal.tsx          # Dialog 래퍼 (Radix UI)
+├── pages/
+│   └── myaccount/
+│       └── MyAccountPage.tsx                # "계정 설정" 페이지 — 이 섹션을 포함한 네 구획을 배치
 ├── features/
 │   └── account/
 │       └── update/
@@ -275,8 +282,6 @@ src/
 │       └── ui/
 │           └── UserAvatar.tsx               # 공통 아바타 컴포넌트
 └── shared/
-    ├── store/
-    │   └── mypage.store.ts                  # useMyPageModalStore (§6)
     ├── lib/
     │   └── image/resizeImage.ts             # getImageFileSizeError — 아바타 업로드 전 용량 검증
     └── config/
@@ -286,13 +291,13 @@ src/
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                       | 방법                                                                                                                    |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| 새 프로필 필드 추가(예: 자기소개)  | `account.schema.ts`의 `updateAccountSchema` + `useUpdateAccount`의 `form`/`onSubmit` + BE `UpdateAccountRequest` 동기화 |
-| 닉네임 중복확인 디바운스 시간 조정 | `useUpdateAccount.ts`의 `useDebounce(watchedNickname, 500)`                                                             |
-| 저장 실패 시 재오픈 동작 변경      | `account.queries.ts`의 `useUpdateAccountMutation` `onError`                                                             |
-| 캐시 무효화 범위 변경              | `account.keys.ts`의 `handleAccountUpdateSuccess`                                                                        |
-| 테스트 실행                        | `npx vitest run src/features/account/update/hooks/useUpdateAccount.test.tsx`                                            |
+| 하고 싶은 것                       | 방법                                                                                                                                            |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 새 프로필 필드 추가(예: 자기소개)  | `account.schema.ts`의 `updateAccountSchema` + `useUpdateAccount`의 `form`/`onSubmit` + BE `UpdateAccountRequest` 동기화                         |
+| 닉네임 중복확인 디바운스 시간 조정 | `useUpdateAccount.ts`의 `useDebounce(watchedNickname, 500)`                                                                                     |
+| 저장 실패 시 동작 변경             | `useUpdateAccount.ts`의 `onSubmit`에 넘기는 `onError`(폼 쪽) / `account.queries.ts`의 `useUpdateAccountMutation` `onError`(캐시 롤백·토스트 쪽) |
+| 캐시 무효화 범위 변경              | `account.keys.ts`의 `handleAccountUpdateSuccess`                                                                                                |
+| 테스트 실행                        | `npx vitest run src/features/account/update/hooks/useUpdateAccount.test.tsx`                                                                    |
 
 **MSW 목업(테스트 환경)**: `src/mocks/handlers/account.handlers.ts`가
 `GET`/`PATCH /auth/account`·`GET /auth/account/nickname-availability`를 가로채 고정
@@ -300,23 +305,38 @@ src/
 
 ## 8. 검증 결과
 
-`useUpdateAccount.test.tsx` 12개 테스트 모두 통과(2026-09-04 재확인) — 닉네임
-디바운스 검사, 형식 오류 시 조회 생략, 가용한 닉네임 처리, 디바운스 미정착
-시 저장 버튼 비활성, 원래 값으로 되돌렸을 때 재조회 생략을 검증한다.
+`useUpdateAccount.test.tsx` 15개 테스트 모두 통과(2026-09-29 재확인) — 위
+12개(초기값 세팅, 이미지 선택/용량 검증, 닉네임 API 호출, 디바운스 검사, 형식
+오류 시 조회 생략, 가용한 닉네임 처리, 디바운스 미정착 시 저장 버튼 비활성,
+원래 값으로 되돌렸을 때 재조회 생략)에 더해 pending 중 입력값 유지, 성공 시
+폼 reset, 409 롤백 후에도 닉네임·이미지 미리보기 유지, account 뒤늦은 도착
+시 하이드레이션 1회 검증 4개가 새로 추가됐다. `e2e/account-update.spec.ts`
+2개 테스트(저장 중 비활성화 + 409 롤백 후 값 유지, 롤백 후 재시도 성공)도 통과.
 
 ## 9. 시행착오
 
-이 문서에 별도로 기록된 삽질 사례는 없다. 낙관적 업데이트 실패 시 복원
-장치(§5·§6)는 시행착오라기보다 처음부터 설계에 포함된 요구사항이었다.
+**e2e `getByLabel(..., { exact: true })`가 계속 실패했던 원인(2026-09-29)**:
+닉네임 입력칸을 `page.getByLabel(TEXTS.labels.nickname, { exact: true })`로
+찾으려 하면 매번 타임아웃이 났다. 라벨 텍스트 자체는 `TEXTS.labels.nickname`
+("닉네임")과 정확히 같았지만, 라벨 옆의 필수 표시(`RequiredMark`, `aria-hidden`)가
+접근성 트리 계산에 끼어들어 실제 계산된 접근성 이름이 정확히 "닉네임"과
+일치하지 않았다 — `exact: true` 없이(부분 일치)는 바로 찾아졌다. 이 레포의
+다른 폼 필드 e2e 셀렉터들도 전부 `exact` 없이 쓰고 있다는 걸 뒤늦게
+확인했다 — 새 e2e 스펙에서 라벨 필드를 찾을 때는 `exact: true`를 기본으로
+넣지 않는다.
 
 ## 10. 남은 것
 
-현재 알려진 미해결 이슈 없음.
+- 다른 탭에서 프로필을 바꾼 뒤 이 탭으로 돌아왔을 때, 이미 하이드레이션된
+  폼은 백그라운드 재조회로 `account`가 갱신돼도 자동으로 따라가지 않는다
+  (§6 `hydratedRef`가 의도적으로 막는 동작 — 사용자가 입력 중인 값을 지우지
+  않기 위한 트레이드오프). 편집 중이 아닐 때만 최신값을 반영하는 개선은
+  아직 하지 않았다.
 
 ## 11. 용어 사전
 
-- **`restoreValues`** — `useMyPageModalStore`의 필드. 저장 실패 후 "다시
-  열기"로 재오픈할 때 복원할 `{ nickname, imagePreview, pendingFile }`(§6)
+- **`hydratedRef`** — 폼을 `account` 데이터로 최초 1회만 채웠는지 기억하는
+  `useRef<boolean>`(§6, `useUpdateAccount.ts`)
 - **`NicknameStatus`** — 닉네임 중복확인 상태(`'idle' | 'checking' |
 'available' | 'duplicate'`, `useUpdateAccount.ts` 로컬 타입)
 - **`pendingFile`** — 아직 업로드하지 않고 미리보기만 만든 선택된 파일
@@ -326,6 +346,9 @@ src/
 
 ## 12. 관련 문서
 
-- [`UNSAVED-CHANGES-GUARD.md`](./UNSAVED-CHANGES-GUARD.md) — 이 모달의 폼
-  자체는 전역 저장 가드 대상이 아니다(모달 닫힘 = 낙관적 제출이라 "저장 안
-  한 채 이탈"이 발생하지 않는다)
+- [`UNSAVED-CHANGES-GUARD.md`](./UNSAVED-CHANGES-GUARD.md) — 이 프로필 폼은
+  그 문서가 정의하는 가드 대상 목록(게시글 등록/수정, 댓글·답글 작성/수정,
+  회원가입)에 처음부터 포함돼 있지 않다. 페이지 섹션이 된 지금도 그 정책은
+  그대로다(정정, 2026-09-29 — 예전에는 "모달 닫힘 = 즉시 제출이라 이탈이
+  발생하지 않는다"고 적혀 있었는데, 지금은 모달이 아니라 더 이상 성립하지
+  않는 이유였다)

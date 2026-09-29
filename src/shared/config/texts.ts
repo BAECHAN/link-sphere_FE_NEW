@@ -56,7 +56,6 @@ export const TEXTS = {
     home: '홈으로 이동',
     back: '뒤로 가기',
     login: '로그인',
-    profileEdit: '프로필 수정',
     myComments: '내 댓글',
     accountSettings: '계정 설정',
     logout: '로그아웃',
@@ -93,8 +92,8 @@ export const TEXTS = {
       signUp: '회원가입',
       alreadyAccount: '이미 계정이 있으신가요?',
       signIn: '로그인',
-      // 이메일·닉네임 실시간 중복확인 문구 - 마이페이지(TEXTS.mypage.*)와 별개 화면이라 키를
-      // 공유하지 않는다
+      // 이메일·닉네임 실시간 중복확인 문구 - 프로필 수정 섹션(TEXTS.mypage.*)과 별개
+      // 화면이라 키를 공유하지 않는다
       checking: '확인 중이에요...',
       emailAvailable: '사용 가능한 이메일이에요.',
       emailDuplicate: '이미 가입된 이메일이에요.',
@@ -163,7 +162,6 @@ export const TEXTS = {
     description: '닉네임과 프로필 이미지를 변경할 수 있어요.',
     save: '저장하기',
     changeImage: '이미지 변경',
-    reopen: '다시 열기',
     checkingNickname: '확인 중...',
     nicknameAvailable: '사용 가능한 닉네임이에요.',
   },
@@ -557,7 +555,6 @@ export const TEXTS = {
     homeLink: '홈으로 이동',
     accountMenu: '계정 메뉴',
     accountMenuUnverified: '계정 메뉴 (이메일 인증 필요)',
-    profileEdit: '프로필 수정',
     logout: '로그아웃',
     saveEmail: '이메일 저장',
     imageZoom: '이미지 확대',

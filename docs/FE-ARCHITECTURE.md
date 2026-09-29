@@ -179,10 +179,9 @@ src/
 │       │   └── ui/               # Navbar, NavbarSearch, MobileNavbarSearch, RecentSearchPanel, RecentSearchDropdown
 │       ├── bottom-tab-bar/ui/
 │       ├── sidebar/ui/
-│       ├── mypage/ui/            # MyPageModal
 │       └── login-modal/          # LoginModal(2026-09-29 features/auth/login에서 이동 —
 │           │                     # RootLayout이 마운트하는 전역 모달, Navbar·Sidebar·
-│           │                     # BottomTabBar·MyPageModal과 같은 자리)
+│           │                     # BottomTabBar와 같은 자리)
 │           ├── hooks/            # useLoginModal
 │           └── ui/               # LoginModal
 │
@@ -284,7 +283,7 @@ src/
     │   ├── upload/uploadImageAndGetUrl.ts  # 리사이즈 + uploadApi 조합 편의 함수
     │   ├── firebase/, image/, content/, virtual/, router/
     │   └── tailwind/utils.ts      # cn() helper
-    ├── store/                     # appVersion, auth, hideBots, loginModal, mypage, sidebar, unsavedChanges (.store.ts)
+    ├── store/                     # appVersion, auth, hideBots, loginModal, sidebar, unsavedChanges (.store.ts)
     ├── types/
     │   └── common.type.ts
     ├── ui/
@@ -330,7 +329,6 @@ src/
 | `navbar`             | `widgets/layout/navbar/`               | 네비게이션 바                                   |
 | `bottom-tab-bar`     | `widgets/layout/bottom-tab-bar/`       | 모바일 하단 탭바                                |
 | `sidebar`            | `widgets/layout/sidebar/`              | 사이드바                                        |
-| `mypage`             | `widgets/layout/mypage/`               | 마이페이지 모달                                 |
 | `login-modal`        | `widgets/layout/login-modal/`          | 로그인 모달 (RootLayout이 마운트하는 전역 모달) |
 | `bookmark-post-list` | `widgets/bookmark/bookmark-post-list/` | 북마크 포스트 목록                              |
 | `bookmark-search`    | `widgets/bookmark/bookmark-search/`    | 북마크 내 검색                                  |
