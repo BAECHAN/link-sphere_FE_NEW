@@ -1,3 +1,8 @@
+### 2026-09-29 (BE)
+- FCM 알림 최적화 및 세션 바인딩 처리
+로그:
+- feat(fcm): 댓글 푸시를 세션 생명주기에 바인딩, 알림 문구 최소화 ([#50](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/50))
+
 ### 2026-09-28 (FE)
 - 회원탈퇴 14일 유예 정책 적용 및 복구 안내 토스트 UI 구현 ([#244](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/244))
 
