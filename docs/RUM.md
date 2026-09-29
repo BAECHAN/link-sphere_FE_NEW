@@ -7,7 +7,7 @@
 > **읽고 나면**: RUM이 어떻게 수집·전송되는지, 그 데이터를 실제 개선에 어떻게
 > 쓰는지 알고, App Monitor 설정을 바꾸거나 재부트스트랩할 수 있다.
 >
-> **마지막 검토**: 2026-09-27
+> **마지막 검토**: 2026-09-29
 
 AWS CloudWatch RUM으로 실사용자(방문자)의 페이지 로딩 성능·에러를 자동 수집합니다.
 Cognito 없이 리소스 기반 정책으로 익명 수집하며, FE 코드에는 `index.html`의
@@ -94,25 +94,28 @@ Cognito identity pool 없이 **리소스 기반 정책**(`aws rum put-resource-p
 | 파라미터             | 값                                                                                                    | 위치            |
 | -------------------- | ----------------------------------------------------------------------------------------------------- | --------------- |
 | App Monitor 이름     | `link-sphere-post`(AWS CLI `--name` 인자 — `index.html`에는 이름이 아니라 ID만 있다)                  | AWS 측 설정     |
-| App Monitor ID       | `81cbaae5-b6f2-48d9-9c05-f6f6f5f648cc`                                                                | `index.html:28` |
-| 리전                 | `ap-northeast-1`                                                                                      | `index.html:30` |
-| 로더 URL             | `https://client.rum.us-east-1.amazonaws.com/3.x/cwr.js`(항상 us-east-1 고정, App Monitor 리전과 무관) | `index.html:31` |
-| dataplane 엔드포인트 | `https://dataplane.rum.ap-northeast-1.amazonaws.com`                                                  | `index.html:34` |
-| `sessionSampleRate`  | `1`(전수 수집)                                                                                        | `index.html:33` |
-| `telemetries`        | `['errors', 'performance']`                                                                           | `index.html:35` |
-| `allowCookies`       | `true`                                                                                                | `index.html:36` |
-| `signing`            | `false`(리소스 기반 정책과 짝)                                                                        | `index.html:38` |
+| App Monitor ID       | `81cbaae5-b6f2-48d9-9c05-f6f6f5f648cc`                                                                | `index.html:29` |
+| 리전                 | `ap-northeast-1`                                                                                      | `index.html:31` |
+| 로더 URL             | `https://client.rum.us-east-1.amazonaws.com/3.x/cwr.js`(항상 us-east-1 고정, App Monitor 리전과 무관) | `index.html:32` |
+| dataplane 엔드포인트 | `https://dataplane.rum.ap-northeast-1.amazonaws.com`                                                  | `index.html:35` |
+| `sessionSampleRate`  | `1`(전수 수집)                                                                                        | `index.html:34` |
+| `telemetries`        | `['errors', 'performance']`                                                                           | `index.html:36` |
+| `allowCookies`       | `true`                                                                                                | `index.html:37` |
+| `signing`            | `false`(리소스 기반 정책과 짝)                                                                        | `index.html:39` |
 
 ## 8. 코드 지도와 자주 하는 수정
 
 | 하고 싶은 일                 | 파일:줄         | 방법                                                                             |
 | ---------------------------- | --------------- | -------------------------------------------------------------------------------- |
-| 표본 비율 조정(비용 절감 등) | `index.html:33` | `sessionSampleRate` 값을 0~1 사이로 조정                                         |
-| 새 이벤트 종류 추가          | `index.html:35` | `telemetries` 배열에 추가(`aws-rum-web` 지원 목록 확인 필요)                     |
+| 표본 비율 조정(비용 절감 등) | `index.html:34` | `sessionSampleRate` 값을 0~1 사이로 조정                                         |
+| 새 이벤트 종류 추가          | `index.html:36` | `telemetries` 배열에 추가(`aws-rum-web` 지원 목록 확인 필요)                     |
 | App Monitor 설정 변경        | AWS CLI         | `aws rum update-app-monitor --name link-sphere-post --region ap-northeast-1 ...` |
 | 익명 수집 정책 변경          | AWS CLI         | `aws rum put-resource-policy` — 정책 JSON은 "5. 구조" 참고                       |
 
-이 스니펫 외에는 RUM 전용 FE 코드가 없다 — `scripts/`에도 관련 스크립트가 없다.
+이 스니펫 외에 RUM을 직접 다루는 FE 코드는 없지만, `scripts/inject-csp.js`가 빌드
+시 CSP `script-src`에 로더 도메인(`https://client.rum.us-east-1.amazonaws.com`)을,
+`connect-src`에 dataplane 도메인(`https://dataplane.rum.ap-northeast-1.amazonaws.com`)을
+허용 목록으로 넣는다 — 이 CSP가 없으면 RUM 스니펫 자체가 막혀 조용히 데이터가 끊긴다.
 
 ## 9. 검증 결과
 
@@ -121,7 +124,10 @@ Cognito identity pool 없이 **리소스 기반 정책**(`aws rum put-resource-p
   도메인이라 예상된 결과다. **인증 실패가 아니라 도메인 검증 단계까지 도달했다는
   것 자체가 `signing: false`가 유효하다는 증거다**(서명 검증에서 막혔다면 인증
   단계에서 걸렸을 것이다).
-- **프로덕션**(`dbw3brui6htwk.cloudfront.net`): `dataplane` 전송 `200 OK`.
+- **프로덕션**(`dbw3brui6htwk.cloudfront.net`, `linksphere.click`): `dataplane` 전송
+  `200 OK`. 커스텀 도메인 연결(2026-09-29) 시 App Monitor의 허용 도메인 목록을
+  `DomainList`(복수)로 바꿔 옛 CloudFront 도메인과 새 커스텀 도메인을 모두
+  등록했다(`docs/DEPLOY.md`의 "커스텀 도메인" 절 참고).
 - **CloudWatch 메트릭**(`aws cloudwatch get-metric-statistics --namespace AWS/RUM`,
   2026-09-26 직접 측정, 30분 구간): `SessionCount` 합계 3, `PageViewCount` 합계 15,
   `WebVitalsLargestContentfulPaint` 평균 1504ms/1812ms — 전부 검증 접속으로 발생한

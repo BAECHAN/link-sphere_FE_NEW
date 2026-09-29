@@ -18,8 +18,8 @@
 
 1.  **Trigger**: `main` 브랜치에 푸시되면 워크플로우가 시작됩니다 — 단, 경로 필터가
     걸려 있어 `src/**`·`public/**`·`package.json`·`pnpm-lock.yaml`·`vite.config.ts`·
-    `postcss.config.js`·`index.html`·`tsconfig*.json` 중 하나라도
-    바뀐 push에만 실행됩니다(`.github/workflows/deploy.yml`의 `on.push.paths`).
+    `postcss.config.js`·`index.html`·`tsconfig*.json`·`scripts/inject-csp.js` 중
+    하나라도 바뀐 push에만 실행됩니다(`.github/workflows/deploy.yml`의 `on.push.paths`).
     즉 `CHANGELOG.md`나 `docs/` 아래 파일만 바뀐 push는 이 워크플로우를 **트리거하지
     않습니다** — 직전 배포가 실패해 있던 상태를 문서 수정 커밋으로 고쳤다고 착각하기
     쉬운 지점(사고 사례: [CI-CHECK-GATE.md §9.3](./CI-CHECK-GATE.md)). 이럴 때는 아래
@@ -28,10 +28,16 @@
     - Ubuntu Latest 환경에서 실행됩니다.
     - Node.js 24 버전을 사용합니다 (`.nvmrc` 기준).
 3.  **Install Dependencies**:
-    - `npm install`을 통해 의존성을 설치합니다.
+    - `pnpm install --frozen-lockfile`로 의존성을 설치합니다.
 4.  **Build**:
-    - `npm run build` 명령어로 프로젝트를 빌드합니다.
-    - 빌드 시 `VITE_API_BASE_URL` 환경 변수가 주입됩니다.
+    - `pnpm build`(`package.json`: `tsc -b && vite build && node scripts/inject-csp.js`)로
+      프로젝트를 빌드합니다 — 타입 체크 → Vite 빌드 → 마지막으로 `dist/index.html`에
+      CSP를 `<meta>` 태그로 주입하는 스크립트(`scripts/inject-csp.js`)가 이어서 실행됩니다
+      (아래 "CloudFront 응답 헤더 정책" 절 참고).
+    - 빌드 시 Firebase(FCM 푸시 알림) 관련 Secrets 6종(`VITE_FIREBASE_*`)이 주입됩니다.
+      `VITE_API_BASE_URL`은 주입하지 않습니다 — 값이 없으면 `src/shared/config/api.ts`가
+      `/api` 상대 경로로 폴백하고, 운영에서는 FE·BE가 같은 CloudFront 오리진을 쓰므로
+      이걸로 충분합니다.
 5.  **AWS Authentication**:
     - AWS Access Key와 Secret Key를 사용하여 인증합니다.
     - 리전: `ap-northeast-1` (Tokyo)
@@ -78,7 +84,7 @@ gh workflow run deploy.yml --repo BAECHAN/link-sphere_FE_NEW --ref main
 
 ## Storybook 공개 배포
 
-`shared/ui`의 컴포넌트 스토리(43개 파일, 153개 케이스)를 같은 S3 버킷·CloudFront
+`shared/ui`의 컴포넌트 스토리(50개 파일, 172개 케이스)를 같은 S3 버킷·CloudFront
 배포를 재사용해 `/storybook/` 경로에 공개 호스팅한다. 워크플로:
 [`.github/workflows/deploy-storybook.yml`](../.github/workflows/deploy-storybook.yml).
 
@@ -116,13 +122,18 @@ gh workflow run deploy.yml --repo BAECHAN/link-sphere_FE_NEW --ref main
 
 GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서 다음 Secrets를 설정해야 합니다.
 
-| Secret 이름                  | 설명                     | 비고                       |
-| :--------------------------- | :----------------------- | :------------------------- |
-| `AWS_ACCESS_KEY_ID`          | AWS IAM 사용자 액세스 키 | S3 및 CloudFront 권한 필요 |
-| `AWS_SECRET_ACCESS_KEY`      | AWS IAM 사용자 시크릿 키 |                            |
-| `S3_BUCKET_NAME`             | 배포할 S3 버킷 이름      | 예: `link-sphere-frontend` |
-| `CLOUDFRONT_DISTRIBUTION_ID` | CloudFront 배포 ID       | 예: `E1234567890ABC`       |
-| `VITE_API_BASE_URL`          | 백엔드 API 기본 URL      | 빌드 시점에 주입됨         |
+| Secret 이름                         | 설명                     | 비고                       |
+| :---------------------------------- | :----------------------- | :------------------------- |
+| `AWS_ACCESS_KEY_ID`                 | AWS IAM 사용자 액세스 키 | S3 및 CloudFront 권한 필요 |
+| `AWS_SECRET_ACCESS_KEY`             | AWS IAM 사용자 시크릿 키 |                            |
+| `S3_BUCKET_NAME`                    | 배포할 S3 버킷 이름      | 예: `link-sphere-frontend` |
+| `CLOUDFRONT_DISTRIBUTION_ID`        | CloudFront 배포 ID       | 예: `E1234567890ABC`       |
+| `VITE_FIREBASE_API_KEY`             | Firebase(FCM) 설정값     | 빌드 시점에 주입됨         |
+| `VITE_FIREBASE_AUTH_DOMAIN`         | Firebase(FCM) 설정값     | 빌드 시점에 주입됨         |
+| `VITE_FIREBASE_PROJECT_ID`          | Firebase(FCM) 설정값     | 빌드 시점에 주입됨         |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase(FCM) 설정값     | 빌드 시점에 주입됨         |
+| `VITE_FIREBASE_APP_ID`              | Firebase(FCM) 설정값     | 빌드 시점에 주입됨         |
+| `VITE_FIREBASE_VAPID_KEY`           | Firebase(FCM) 설정값     | 빌드 시점에 주입됨         |
 
 **Variables**(Secret이 아닌 레포 Variable — Settings > Secrets and variables > Actions > Variables 탭):
 
@@ -137,11 +148,44 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
 - **S3**: `s3:PutObject`, `s3:ListBucket`, `s3:DeleteObject` (버킷 동기화용)
 - **CloudFront**: `cloudfront:CreateInvalidation` (캐시 무효화용)
 
+## CloudFront Origin Access Control (OAC)
+
+S3 오리진과 `/api/*` Lambda 오리진 둘 다 CloudFront Origin Access Control(OAC,
+`SigningBehavior: Always`)이 연결돼 있다 — 오리진에 CloudFront를 거치지 않고 직접
+요청해도 거부된다. Lambda Function URL(alias `prod`)의 `AuthType`도 `AWS_IAM`이다.
+전환 배경·절차는 [`docs/plans/2026-09-29-oac-lockdown.md`](./plans/2026-09-29-oac-lockdown.md)
+참고. 이 인프라 전환(OAC 생성·연결, Function URL `AuthType` 변경) 자체는 이 레포
+코드로 존재하지 않는다 — 아래 "커스텀 도메인"·"CloudFront Function"·"CloudFront WAF"
+절과 같은 성격.
+
+OAC가 오리진 요청의 `Authorization` 헤더를 CloudFront 자신의 SigV4 서명으로 덮어쓰므로,
+FE는 실제 로그인 토큰을 `Authorization` 대신 `X-Access-Token`이라는 커스텀 헤더로
+따로 보낸다(`src/shared/api/client.ts`의 `getAuthHeaders()` 주석 인용):
+
+> "CloudFront OAC(SigningBehavior: Always)가 오리진 요청의 Authorization 헤더를
+> 자신의 SigV4 서명으로 덮어쓰므로, 실제 토큰은 별도 헤더로 보낸다... Bearer 접두어는
+> 붙이지 않는다 - 커스텀 헤더라 HTTP Authorization 스킴을 흉내 낼 이유가 없다."
+
+GET이 아닌 문자열 바디가 있는 요청에는 `x-amz-content-sha256` 헤더도 함께 실어
+보낸다 — CloudFront가 바디를 오리진으로 스트리밍만 하고 해시는 대신 계산해주지
+않아, Lambda가 unsigned payload를 거절하기 때문이다(`hashRequestBody()` 주석 인용):
+
+> "CloudFront OAC가 오리진(Lambda Function URL)으로 바디를 스트리밍만 하고 해시를
+> 대신 계산해주지 않으므로, 문자열 바디가 있는 요청은 클라이언트가 SHA256을 직접
+> 계산해 x-amz-content-sha256 헤더로 실어 보내야 한다(Lambda는 unsigned payload를
+> 지원하지 않음 - AWS 공식 문서)."
+
+`FormData`(멀티파트) 요청은 이 해시 계산에서 제외된다 — 지금은 `apiClient`로
+FormData를 보내는 프로덕션 경로가 없다(이미지 업로드는 Supabase 서명 URL로 직접
+감, `upload.api.ts` 참고). 전환 직후 한동안은 하위 호환이었다 — BE가
+`X-Access-Token`과 기존 `Authorization: Bearer` 둘 다 읽는다(`CHANGELOG.md`
+`[Unreleased]` "CloudFront Origin Access Control(OAC) 전환" 항목 참고).
+
 ## 커스텀 도메인 (수동 관리) — 적용 완료 (2026-09-29)
 
 `linksphere.click`(등록기관: AWS Route 53, 연 $3)을 프로덕션 도메인으로 연결했다.
 아래 리소스 전부 콘솔 또는 CLI로만 관리되고 이 레포 코드로는 존재하지 않는다 —
-위 "CloudFront Function"·"CloudFront WAF" 절과 같은 성격.
+아래 "CloudFront Function"·"CloudFront WAF" 절과 같은 성격.
 
 값: 도메인 `linksphere.click`(+ `www.linksphere.click`) · Route 53 호스팅 존
 `Z07390133JHYYE0U2LMYS` · ACM 인증서(us-east-1) `arn:aws:acm:us-east-1:185353921021:certificate/4004174d-e6b9-48c9-bb4b-36def4c80269` ·
@@ -181,7 +225,7 @@ aws acm request-certificate --domain-name linksphere.click \
 
 # 3. 배포 설정에 Aliases + ViewerCertificate(ACM) 반영
 #    (get-distribution-config → Aliases·ViewerCertificate 수정 → update-distribution,
-#    ETag → IfMatch로 옮기는 절차는 위 "CloudFront Function" 절과 동일한 패턴)
+#    ETag → IfMatch로 옮기는 절차는 아래 "CloudFront Function" 절과 동일한 패턴)
 
 # 4. Route 53에 도메인 → CloudFront ALIAS 레코드 추가
 aws route53 change-resource-record-sets --hosted-zone-id Z07390133JHYYE0U2LMYS \
@@ -315,7 +359,7 @@ aws wafv2 get-web-acl --scope CLOUDFRONT --region us-east-1 \
   --name CreatedByCloudFront-bcd729fb --id 16fc99ed-1f67-4dec-9951-04806ce95699
 
 # 검증 1: 8KB 이내는 통과(401 = 인증만 실패, Lambda 도달), 초과는 403(WAF 차단)
-URL="https://<cloudfront-domain>/api/post/00000000-0000-0000-0000-000000000000/comment"
+URL="https://linksphere.click/api/post/00000000-0000-0000-0000-000000000000/comment"
 BODY=$(python3 -c "import json;print(json.dumps({'content':'가'*2000,'images':[]},ensure_ascii=False))")
 curl -sS -o /dev/null -w '%{http_code}\n' -X POST "$URL" -H 'Content-Type: application/json' --data-binary "$BODY"
 # 기대: 401
@@ -410,13 +454,13 @@ aws cloudfront create-response-headers-policy --response-headers-policy-config '
 
 ```bash
 # 1. 지금 서버에 올라간 커밋 확인
-curl -s https://<cloudfront-domain>/version.json | jq
+curl -s https://linksphere.click/version.json | jq
 
 # 2. index.html 캐시 헤더 확인 - no-store가 있어야 정상
-curl -sI https://<cloudfront-domain>/index.html | grep -i cache-control
+curl -sI https://linksphere.click/index.html | grep -i cache-control
 
 # 3. 브라우저로 직접 확인
-open https://<cloudfront-domain>/version
+open https://linksphere.click/version
 ```
 
 세 값이 서로 다른 걸 가리키는 흔한 원인과 대응은 [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md)
@@ -428,12 +472,20 @@ open https://<cloudfront-domain>/version
 로컬 환경에서 수동으로 배포해야 할 경우 다음 명령어를 사용할 수 있습니다 (AWS CLI 설정 필요).
 CI 파이프라인 자체를 재실행하려면(AWS 자격증명 불필요) 위 "GitHub Actions 수동 재실행"을 대신 쓴다.
 
+**주의**: `aws s3 sync dist/ ... --delete`를 `--exclude` 없이 그대로 쓰면 같은
+버킷의 `storybook/` 접두사(별도 워크플로 `deploy-storybook.yml`이 올리는 공개
+Storybook — 위 "Storybook 공개 배포" 절 참고)를 통째로 지운다. 이 sync는 또한
+`index.html`·`version.json`·`assets/`·`fonts/`가 각각 받는 무캐시/장기 캐시 구분
+없이 전부 기본 헤더로 올려 캐시 정책도 깨진다. 가능하면 로컬 수동 배포 대신 위
+"GitHub Actions 수동 재실행"으로 정식 파이프라인(`deploy.yml`)을 재실행하는 쪽을
+권장한다. 그래도 로컬에서 직접 해야 한다면:
+
 ```bash
 # 1. 빌드
-npm run build
+pnpm build
 
-# 2. S3 업로드 (버킷명 변경 필요)
-aws s3 sync dist/ s3://<YOUR_BUCKET_NAME> --delete
+# 2. S3 업로드 (버킷명 변경 필요, storybook/ 접두사는 보존)
+aws s3 sync dist/ s3://<YOUR_BUCKET_NAME> --delete --exclude "storybook/*"
 
 # 3. CloudFront 무효화 (Distribution ID 변경 필요)
 aws cloudfront create-invalidation --distribution-id <YOUR_DISTRIBUTION_ID> --paths "/*"

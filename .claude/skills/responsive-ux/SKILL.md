@@ -87,11 +87,13 @@ flex h-16
   `:hover` 또는 `:has([aria-haspopup][aria-expanded="true"])`를 함께 보므로, 컨테이너 안의
   트리거가 열려 있는 동안에도 스타일이 유지된다. `hover:`처럼 `@media (hover: hover)` 안에서만
   적용되므로 모바일 동작은 바뀌지 않는다. 선례: `src/widgets/post/post-card/ui/PostCard.tsx`,
-  `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`.
+  `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx` — 둘 다 ⋮ 트리거 + `DropdownMenu` 셸을
+  `src/shared/ui/elements/HoverKebabMenu.tsx`(compound 컴포넌트, `hoverReveal` prop으로 부모
+  `group` hover/열림 시에만 노출)로 통합해 쓴다.
 
 ### sticky vs fixed
 
-- **데스크톱**은 문서 흐름을 유지하는 `sticky` 위주 — `Navbar`(`sticky top-0 z-50`), `Sidebar`(`sticky top-0 h-screen`), `BookmarkPage`의 폴더 패널(`sticky top-[calc(var(--navbar-height)+1rem)] h-[calc(100vh-var(--navbar-height)-2rem)] self-start` — 2026-09-21, 원래 `top-4`만 쓰다 Navbar와 44px 겹치던 버그를 고치며 `top`을 조정하고, 폴더가 많을 때 자체 스크롤하도록 `h-[...]`도 추가했다. `docs/BOOKMARK.md` §10 참고).
+- **데스크톱**은 문서 흐름을 유지하는 `sticky` 위주 — `Navbar`(`sticky top-0 z-nav`), `Sidebar`(`sticky top-0 h-screen`), `BookmarkPage`의 폴더 패널(`sticky top-[calc(var(--navbar-height)+1rem)] h-[calc(100vh-var(--navbar-height)-2rem)] self-start` — 2026-09-21, 원래 `top-4`만 쓰다 Navbar와 44px 겹치던 버그를 고치며 `top`을 조정하고, 폴더가 많을 때 자체 스크롤하도록 `h-[...]`도 추가했다. `docs/BOOKMARK.md` §10 참고).
 - **모바일**은 뷰포트에 완전히 고정하는 `fixed` + safe-area 위주(위 "하단 고정 요소" 참고).
 - 페이지 전체가 스크롤되는 단일 컬럼 레이아웃(게시글 상세 등)에서 데스크톱에 "상시 보이는 sticky 패널"을 새로 넣을지 고민될 때는, 화면 상단을 계속 차지하는 비용과 편의성을 저울질할 것 — 이 코드베이스는 지금까지 이런 경우 아래 "플로팅 버튼" 쪽을 택했다.
 

@@ -63,9 +63,11 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 
 - **React Router `useSearchParams`**(경유지: [`useSearchParamsDraft`](../src/shared/hooks/useSearchParamsDraft.ts)) —
   검색어(`q`)·선택 폴더(`folder`)·정렬(`sort`)을 URL에 저장해 새로고침·뒤로가기에도 상태가
-  유지되게 한다. `BookmarkPage.tsx`(folder/sort)와 `useBookmarkSearch.ts`(q)는 서로 다른
-  컴포넌트라 각자 훅을 호출하지만, `useSearchParamsDraft`가 URL 쓰기 전 pending 의도를
-  모듈 스코프로 공유해 한쪽이 다른 쪽의 아직 반영 안 된 변경을 덮어쓰지 않는다(§10).
+  유지되게 한다. `useBookmarkPage.ts`(folder/sort, `pages/bookmark/hooks/`)와
+  `useBookmarkSearch.ts`(q)는 서로 다른 훅이라 각자 `useSearchParamsDraft`를 호출하지만,
+  이 훅이 URL 쓰기 전 pending 의도를 모듈 스코프로 공유해 한쪽이 다른 쪽의 아직 반영 안
+  된 변경을 덮어쓰지 않는다(§10). `BookmarkPage.tsx`는 이 훅의 반환값을 받아 렌더링만
+  한다(#227, URL 파라미터 처리 로직을 `pages/*/hooks/`로 옮긴 pages-first 원칙).
 - **TanStack Query** — 폴더 목록·폴더별 게시글 무한 스크롤·낙관적 업데이트
 - **Zod** — `bookmark-folder.schema.ts`의 폴더·요청/응답 스키마
 - **Radix Dialog 기반 `BookmarkFolderSelectModal`** — 데스크탑 중앙 모달 / 모바일 Bottom Sheet
@@ -284,30 +286,38 @@ bookmarkFolderKeys.posts(folderKey, sort, search);
 
 무효화는 `bookmarkFolderInvalidateQueries`(`all`/`list`/`postsRoot`/`posts`)를 통해서만
 하고, 실제로 "이런 변경 후엔 뭘 무효화하는지"는 같은 파일의 `handle*Success` 함수
-8개가 결정한다 — 예를 들어 `handleBookmarkFolderChangeSuccess`(폴더 소속 변경 후)는
+7개가 결정한다 — 예를 들어 `handleBookmarkFolderChangeSuccess`(폴더 소속 변경 후)는
 `bookmarkFolderKeys.list` + `bookmarkFolderKeys.postsRoot` + `post.detail`/`post.list`까지
 무효화한다. 원본은 옮겨적지 않는다 — 정확한 최신 목록은 `bookmark-folder.keys.ts`를 직접
 확인한다.
 
-### `BookmarkFolder` 스키마 (`entities/bookmark/folder/model/bookmark-folder.schema.ts`)
+### `BookmarkFolder` 타입 (`entities/bookmark/folder/model/bookmark-folder.dto.ts`)
 
-| 필드                      | 타입                        | 비고                                                            |
-| ------------------------- | --------------------------- | --------------------------------------------------------------- |
-| `id`                      | `string`                    |                                                                 |
-| `name`                    | `string`                    |                                                                 |
-| `sortOrder`               | `number`                    |                                                                 |
-| `bookmarkCount`           | `number`                    |                                                                 |
-| `createdAt` / `updatedAt` | `Date`(`z.coerce.date()`)   |                                                                 |
-| `lastUsedAt`              | `Date \| null \| undefined` | 이 폴더에 마지막으로 저장한 시각. 한 번도 저장 안 됐으면 `null` |
+**정정(2026-09-29)**: 이전 버전은 이 절을 "`BookmarkFolder` 스키마
+(`bookmark-folder.schema.ts`)"로 서술하며 `createdAt`/`updatedAt`을 Zod 필드로
+나열했으나 둘 다 틀렸다 — `bookmark-folder.schema.ts`에는 `BookmarkFolder`용 Zod
+스키마가 없고(생성/수정 요청 스키마 `createBookmarkFolderSchema`만 있다), 응답
+타입 `BookmarkFolder`는 `bookmark-folder.dto.ts`에서 BE OpenAPI 스펙 생성 타입
+(`components['schemas']['FolderResponse']`, `shared/api/generated/openapi.gen.ts`)에
+얇은 alias를 씌운 타입이다. `schema.ts`는 이 타입을 재수출(`export type { BookmarkFolder, ... }`)만
+한다. 런타임 파싱(`.parse()`)도 하지 않으므로 애초에 Zod 스키마가 아니다.
 
-**주의**: `bookmarkFolderApi.fetchBookmarkFolderList`는 `apiClient.get<BookmarkFolderListResponse>()`로
-제네릭 캐스팅만 할 뿐 이 스키마로 실제 파싱(`.parse()`)하지 않는다. 그래서
-`lastUsedAt`은 타입상 `Date`지만 **런타임엔 BE가 보낸 원시 ISO 문자열 그대로**
-들어온다(`createdAt`/`updatedAt`도 동일). `Date` 메서드를 직접 호출하지 말고
-`dayjs(value)`로 감싸야 문자열·`Date` 어느 쪽이 와도 안전하다(2026-09-08:
-CLAUDE.md의 `new Date()`/`.getTime()` 금지 규칙에 맞춰 `new Date(value)` 방어
-코드를 `dayjs(value)`로 치환 — `entities/bookmark/folder/utils/bookmark-folder.util.ts`의
-`pickRecentFolders` 참고).
+| 필드            | 타입                       | 비고                                                                        |
+| --------------- | -------------------------- | --------------------------------------------------------------------------- |
+| `id`            | `string`(uuid)             |                                                                             |
+| `name`          | `string`                   |                                                                             |
+| `sortOrder`     | `number`                   |                                                                             |
+| `bookmarkCount` | `number`                   |                                                                             |
+| `lastUsedAt`    | `string \| null`(optional) | 이 폴더에 마지막으로 저장한 시각(ISO 문자열). 한 번도 저장 안 됐으면 `null` |
+
+`createdAt`/`updatedAt` 필드 자체가 없다 — BE `FolderResponse`에 그 필드가 없다.
+타입이 이미 `string`으로 선언돼 있어 "타입은 Date인데 런타임은 문자열"이라는 괴리는
+지금은 없다 — 다만 여전히 `Date` 메서드를 직접 호출하지 말고 `dayjs(value)`로
+감싸야 한다(CLAUDE.md의 `new Date()`/`.getTime()` 금지 규칙,
+`entities/bookmark/folder/utils/bookmark-folder.util.ts`의 `pickRecentFolders` 참고).
+BE 스펙 자체는 `lastUsedAt`을 optional로만 표기하지만(nullable 미표기, springdoc이
+Kotlin nullable을 required 여부로만 반영), 런타임은 Jackson `JsonInclude.ALWAYS`라
+키가 항상 있고 값이 `null`로 온다 — `bookmark-folder.dto.ts` 파일 상단 주석 참고.
 
 ## 7. 운영 파라미터
 
@@ -343,24 +353,41 @@ _"사용자는 두 항목이 중복이라는 걸 모르기 때문에 결국 둘 
 src/
 ├── pages/
 │   └── bookmark/
-│       └── BookmarkPage.tsx              # 3분기 렌더링 + folder/sort/q URL 파라미터 wiring
+│       ├── BookmarkPage.tsx              # 3분기 렌더링만(JSX) — 로직은 아래 useBookmarkPage(#227)
+│       └── hooks/
+│           └── useBookmarkPage.ts        # folder/sort/q URL 파라미터 wiring + activeFolderKey
 ├── widgets/
 │   └── bookmark/
 │       ├── bookmark-search/ui/
 │       │   └── BookmarkSearch.tsx        # 검색 위젯 (q URL 파라미터 자체 관리)
-│       ├── bookmark-post-list/ui/
-│       │   └── BookmarkPostList.tsx      # search prop 소비 + 무한스크롤 + 빈 상태 분기
+│       ├── bookmark-post-list/
+│       │   ├── hooks/
+│       │   │   └── useBookmarkPostList.ts  # 무한스크롤 쿼리 + 그리드 가상화(useWindowGridVirtualizer)
+│       │   ├── config/
+│       │   │   └── bookmark-grid.const.ts  # 그리드 gap·최소 열 폭·행 높이 추정치(PostList와 폭 공유)
+│       │   └── ui/
+│       │       └── BookmarkPostList.tsx    # search prop 소비 + 빈 상태 분기
 │       └── folder-tree/
 │           ├── hooks/
-│           │   └── useFolderSections.ts  # 폴더 목록 조회 + "최근 저장한 폴더" 계산(§5) —
-│           │                             # useFolderTree(데스크탑)·useMobileFolderList가 위임.
-│           │                             # 스냅샷 없이 매 렌더 최신으로 계산한다(2026-09-21)
+│           │   ├── useFolderSections.ts  # 폴더 목록 조회 + "최근 저장한 폴더" 계산(§5) —
+│           │   │                         # useFolderTree(데스크탑)·useMobileFolderList가 위임.
+│           │   │                         # 스냅샷 없이 매 렌더 최신으로 계산한다(2026-09-21)
+│           │   ├── useFolderTree.ts      # FolderTree(데스크탑 사이드바) 루트 — useFolderSections
+│           │   │                         # 위임 + prefetchFolder
+│           │   ├── useMobileFolderList.ts # MobileFolderList 루트(useFolderSections 그대로) +
+│           │   │                          # CreateFolderCard(생성 토글) 훅
+│           │   ├── useFolderActions.ts   # 폴더 이름변경(rename)·삭제(delete) — FolderItem·
+│           │   │                         # FolderCard 공유. 삭제 확인창은 emphasis: 'confirm'
+│           │   │                         # (docs/DECISIONS.md 2026-09-29 항목)
+│           │   └── useCreateFolderForm.ts # 폴더 생성 폼 코어 로직 — 사이드바·모바일 카드 공유
 │           └── ui/
 │               ├── FolderTree.tsx            # 데스크탑 사이드바 (폴더 트리, 전체 행은 숫자 없음).
 │               │                             # "내 폴더" 목록만 자체 스크롤(§10). 생성 폼은
-│               │                             # 2줄 + 취소 버튼(§5, 2026-09-21)
+│               │                             # 2줄 + 취소 버튼(§5, 2026-09-21). ⋮ 메뉴는 공용
+│               │                             # HoverKebabMenu(shared/ui/elements) 사용
 │               └── MobileFolderList.tsx      # 모바일 폴더 그리드 (drill-down). 생성 카드는
-│                                              # 버튼 가로 행 + 취소(§5, 2026-09-21)
+│                                              # 버튼 가로 행 + 취소(§5, 2026-09-21). ⋮ 메뉴도
+│                                              # 같은 HoverKebabMenu 사용
 │                                              # 위 둘 + BookmarkFolderSelectModal(아래) 모두 "최근 저장한
 │                                              # 폴더" + "내 폴더" 두 구획 포함(§5)
 ├── features/
@@ -411,7 +438,10 @@ src/
 │           │   │                             # 갱신 공용 헬퍼 포함)
 │           │   └── bookmark-folder.keys.ts    # §6 쿼리 키 + cross-invalidation
 │           ├── model/
-│           │   └── bookmark-folder.schema.ts  # §6 BookmarkFolder 스키마
+│           │   ├── bookmark-folder.schema.ts  # 생성/수정 요청 Zod 스키마 + BookmarkFolder 등
+│           │   │                              # 응답 타입 재수출(원본은 dto.ts)
+│           │   └── bookmark-folder.dto.ts     # §6 BookmarkFolder 등 응답 타입 원본(BE OpenAPI
+│           │                                  # 생성 타입에 얇은 alias)
 │           ├── config/
 │           │   └── bookmark-folder.const.ts   # RECENT_BOOKMARK_FOLDER_COUNT
 │           ├── utils/
@@ -432,12 +462,13 @@ src/
 
 테스트: `src/mocks/fixtures/bookmark-folder.fixtures.ts`,
 `src/mocks/handlers/bookmark-folder.handlers.ts`(폴더 목록 + 소속 3개 엔드포인트 기본
-핸들러), §9의 5개 테스트 파일.
+핸들러), §9의 8개 테스트 파일(`find src/widgets/bookmark src/features/bookmark -name
+"*.test.*" | wc -l`로 재확인, 2026-09-29).
 
 이 문서에서 파일명만으로 등장하는 식별자의 위치: `activeFolderKey`는
-`BookmarkPage.tsx:68`의 로컬 변수(`folderKey ?? 'all'`), `sessionKey`는
-`useRecentBookmarkFolders`의 세 번째 매개변수
-(`entities/bookmark/folder/hooks/useRecentBookmarkFolders.ts:30`)다.
+`useBookmarkPage.ts:47`(`pages/bookmark/hooks/`)의 로컬 변수(`folderKey ?? 'all'`,
+#227로 `BookmarkPage.tsx`에서 이동), `sessionKey`는 `useRecentBookmarkFolders`의
+세 번째 매개변수(`entities/bookmark/folder/hooks/useRecentBookmarkFolders.ts:38`)다.
 
 ### 자주 하는 수정
 
@@ -869,7 +900,8 @@ CSS 정렬 버그 하나에 들이기엔 과한 인프라라고 판단했다.
 
 ## 12. 용어 사전
 
-- **`activeFolderKey`** — `BookmarkPage.tsx:68`의 로컬 변수. URL의 `folder` 파라미터를
+- **`activeFolderKey`** — `useBookmarkPage.ts:47`(`pages/bookmark/hooks/`)의 로컬 변수
+  (#227로 `BookmarkPage.tsx`에서 이동). URL의 `folder` 파라미터를
   `BookmarkFolderKey`(`'all' | 'uncategorized' | UUID`)로 정규화한 값(`folderKey ?? 'all'`)
 - **`sessionKey`** — `useRecentBookmarkFolders`의 세 번째 매개변수(`unknown` 타입). 값이
   바뀔 때마다 "최근 저장한 폴더" 스냅샷을 새로 찍는다. 지금은 모달

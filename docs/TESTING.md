@@ -35,6 +35,11 @@
 | DOM 매처      | [@testing-library/jest-dom](https://github.com/testing-library/jest-dom)                |
 | 커버리지      | @vitest/coverage-v8                                                                     |
 
+`vitest.config.ts`는 프로젝트를 2개로 나눈다 — `pnpm test`가 도는 `unit`(jsdom, 이
+문서가 다루는 대상)과, Storybook 스토리를 실제 컴포넌트 테스트로 실행해 a11y 검사를
+도는 `storybook`(브라우저 provider, `pnpm test:storybook`으로만 명시 실행). 두 프로젝트는
+`extends: true`로 공통 설정을 공유하되 `environment`·`setupFiles`가 서로 다르다.
+
 ```
 테스트 요청
     │
@@ -71,13 +76,13 @@ MSW가 인터셉트(핸들러 등록도 같은 origin 기준) → 가짜 응답 
 
 ```bash
 # 개발 중 — 파일 변경 시 자동 재실행 (TDD 루프)
-npm run test:watch
+pnpm test:watch
 
 # 전체 1회 실행 (CI/pre-push와 동일)
-npm run test
+pnpm test
 
 # 커버리지 리포트 생성
-npm run test:coverage
+pnpm test:coverage
 # → coverage/index.html 에서 시각적 확인 가능
 ```
 
@@ -173,7 +178,7 @@ UI 껍데기에서 로직을 얼마나 실질적으로 커버하는지 스스로
 ```typescript
 // src/shared/utils/my-util.test.ts
 import { describe, expect, it } from 'vitest';
-import { MyUtil } from './my-util';
+import { MyUtil } from '@/shared/utils/my-util';
 
 describe('MyUtil.someMethod', () => {
   it('기대하는 결과를 반환한다', () => {
@@ -218,7 +223,7 @@ describe('시간 의존 테스트', () => {
 ```typescript
 // src/entities/post/model/post.schema.test.ts
 import { describe, expect, it } from 'vitest';
-import { createPostSchema } from './post.schema';
+import { createPostSchema } from '@/entities/post/model/post.schema';
 
 describe('createPostSchema', () => {
   it('유효한 데이터를 파싱한다', () => {
@@ -250,7 +255,11 @@ describe('createPostSchema', () => {
 > `bookmark`·`folderIds`는 옵셔널이 아니라 필수 필드다 — 빠뜨리면 유효한 입력도 파싱에
 > 실패한다. 실제 케이스는 [`post.schema.test.ts`](../src/entities/post/model/post.schema.test.ts) 참고.
 
-> **주의**: `postSchema.author.image`는 `z.string().optional()` — `null`을 허용하지 않고 `undefined`만 허용합니다.
+> **주의**: 응답 타입은 더 이상 Zod 스키마가 아니라 BE 스펙에서 생성된 dto 타입이다 —
+> `Post['author']`는 `UserSummary`([`post.dto.ts`](../src/entities/post/model/post.dto.ts) →
+> [`openapi.gen.ts`](../src/shared/api/generated/openapi.gen.ts))이고, 그 `image` 필드는
+> `image?: string | null`이다. 즉 `null`과 `undefined` 둘 다 허용한다 — 어느 한쪽만
+> 허용하는 것이 아니다.
 
 ---
 
@@ -268,7 +277,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { createTestQueryClient } from '@/test/utils';
-import { useCreatePost } from './useCreatePost';
+import { useCreatePost } from '@/features/post/create/hooks/useCreatePost';
 
 // ── Wrapper 팩토리 ──────────────────────────────────────
 function createWrapper() {
@@ -338,7 +347,7 @@ describe('useCreatePost', () => {
 import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithProviders } from '@/test/utils';
-import { PostCard } from './PostCard';
+import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 
 describe('PostCard', () => {
@@ -356,12 +365,14 @@ describe('PostCard', () => {
 });
 ```
 
-> **좋아요·북마크처럼 아이콘형 액션 버튼은 `getByRole('button', { name: /.../i })`로 특정하기
-> 어렵다** — `LikePostButton`(`features/post/like/ui/LikePostButton.tsx`)은 아이콘 옆에
-> 카운트 숫자만 있고 별도 텍스트·`aria-label`이 없다. 이런 버튼의 클릭 인터랙션은
-> `PostCard` 전체가 아니라 **그 버튼 컴포넌트를 단위로 분리해서** 테스트한다(props로 상태를
-> 직접 주입할 수 있어 쿼리가 훨씬 단순해진다). 폼 제출·검색 입력처럼 접근 가능한 이름이
-> 있는 인터랙션의 실전 예시는
+> **좋아요·북마크처럼 아이콘형 액션 버튼은 `getByRole('button', { name: /.../i })`로 특정할 때
+> 상태별 라벨을 알아야 한다** — `LikePostButton`(`features/post/like/ui/LikePostButton.tsx`)은
+> `aria-label={isLiked ? TEXTS.ariaLabels.postUnlike : TEXTS.ariaLabels.postLike}`로
+> `aria-label`을 갖고 있지만, 그 값이 `isLiked` 상태에 따라 바뀐다 — 고정 텍스트가 아니라서
+> 쿼리를 짤 때 지금 상태가 좋아요/좋아요 취소 중 어느 쪽인지 먼저 알아야 한다. 이런 버튼의
+> 클릭 인터랙션은 `PostCard` 전체가 아니라 **그 버튼 컴포넌트를 단위로 분리해서** 테스트하면
+> props로 상태를 직접 주입할 수 있어 쿼리가 훨씬 단순해진다. 폼 제출·검색 입력처럼 상태와
+> 무관하게 고정된 접근 가능한 이름이 있는 인터랙션의 실전 예시는
 > [`NavbarSearch.test.tsx`](../src/widgets/layout/navbar/ui/NavbarSearch.test.tsx),
 > [`useCreateComment.test.tsx`](../src/features/comment/create/hooks/useCreateComment.test.tsx) 참고.
 
@@ -449,13 +460,22 @@ export const handlers = [
 ### 특정 테스트에서만 핸들러 오버라이드
 
 ```typescript
+import { toast } from 'sonner';
 import { server } from '@/mocks/server';
 import { http, HttpResponse } from 'msw';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { TEXTS } from '@/shared/config/texts';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
-it('404 에러 시 에러 메시지를 보여준다', async () => {
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
+it('404 에러 시 안내 토스트 후 목록으로 이동한다', async () => {
   // server.use()로 이 테스트에서만 핸들러를 교체
   server.use(
     http.get(url(`${API_ENDPOINTS.post.base}/999`), () => {
@@ -466,10 +486,18 @@ it('404 에러 시 에러 메시지를 보여준다', async () => {
     })
   );
 
-  renderWithProviders(<PostDetailPage />);
+  renderWithProviders(<PostDetailPage />, {
+    wrapperOptions: { initialEntries: ['/post/999'] },
+  });
 
+  // usePostNotFoundRedirect.ts가 실제로 하는 일은 화면에 안내 텍스트를 렌더하는 게
+  // 아니라 toast.error() 후 /post로 replace navigate하는 것이다 — screen.getByText로
+  // 찾을 수 있는 문구가 화면에 남지 않는다.
   await waitFor(() => {
-    expect(screen.getByText(/찾을 수 없습니다/i)).toBeInTheDocument();
+    expect(toast.error).toHaveBeenCalledWith(TEXTS.post.detail.notFound, {
+      id: 'post-detail-not-found',
+    });
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES_PATHS.POST.ROOT, { replace: true });
   });
 
   // afterEach에서 server.resetHandlers()가 자동으로 원래 핸들러로 복원
@@ -502,21 +530,29 @@ server.use(
 
 ```typescript
 // src/mocks/fixtures/notification.fixtures.ts
-import type { Notification } from '@/entities/notification/model/notification.schema';
+// 응답 타입은 post.dto.ts·account.dto.ts와 같은 패턴으로 BE 스펙(openapi.gen.ts)에서
+// 생성된 dto 타입을 쓴다 — 로컬 Zod 스키마가 아니다.
+import type { Notification } from '@/entities/notification/model/notification.dto';
 
 export const mockNotification: Notification = {
   id: 'notification-uuid-1',
   message: '댓글이 달렸어요.',
   isRead: false,
-  createdAt: new Date('2025-01-01T00:00:00.000Z'),
+  // 날짜 필드는 Date 객체가 아니라 실제 HTTP 응답과 같은 ISO 문자열로 시딩한다
+  // (post.fixtures.ts의 createdAt 참고) — Date 객체로 시딩하면 실제 응답과 타입이
+  // 달라져 React Query structural sharing이 깨질 수 있다("자주 발생하는 문제" 12번 참고).
+  createdAt: '2025-01-01T00:00:00.000Z',
 };
 ```
 
 **규칙:**
 
-- 픽스처는 **Zod 타입**으로 명시적으로 타입 지정 (`const mockX: MyType = { ... }`)
-- `auth.fixtures.ts`의 `mockAccount`와 일관된 ID 사용 (`user-uuid-1`)
-- `postSchema.author.image`처럼 `null`/`undefined` 구분에 주의
+- 픽스처는 BE 스펙에서 생성된 **dto 타입**으로 명시적으로 타입 지정 (`const mockX: MyType = { ... }`,
+  `post.dto.ts`·`account.dto.ts` 참고)
+- [`account.fixtures.ts`](../src/mocks/fixtures/account.fixtures.ts)의 `mockAccount`와 일관된 ID 사용 (`user-uuid-1`)
+- 날짜 필드는 `Date` 객체가 아니라 실제 HTTP 응답과 같은 ISO 문자열로 시딩한다
+  ([`post.fixtures.ts`](../src/mocks/fixtures/post.fixtures.ts)의 `createdAt` 참고, "자주
+  발생하는 문제" 12번)
 
 ---
 
@@ -525,7 +561,7 @@ export const mockNotification: Notification = {
 ### git push 시 자동 실행
 
 ```bash
-git push  # → pre-push 훅이 npm run test 실행
+git push  # → pre-push 훅이 pnpm test 실행
           # → 실패 시 push 차단
 ```
 
@@ -553,7 +589,7 @@ git push --no-verify  # pre-push 훅 건너뜀 (비추천)
 ## 커버리지 리포트
 
 ```bash
-npm run test:coverage
+pnpm test:coverage
 ```
 
 결과는 터미널과 `coverage/index.html` 두 곳에서 확인할 수 있습니다.
@@ -579,18 +615,32 @@ All files |   72.5  |   68.3   |   75.0  |   72.1  |
 
 ### 스택 개요
 
-| 항목          | 내용                                                                                                                                                        |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 러너          | [@playwright/test](https://playwright.dev/) `1.57.0`(`playwright` 라이브러리와 버전 고정, 브라우저 바이너리 불일치 방지)                                    |
-| 브라우저      | `chromium`(Desktop Chrome) + `mobile-chrome`(Pixel 5, `*.mobile.spec.ts`만) 2개 project(`playwright.config.ts`) — Firefox/WebKit은 필요해지면 추가          |
-| 네트워크 모킹 | Playwright 내장 `page.route()` 직접 사용(`@msw/playwright` 아님 — pre-1.0 정체로 배제)                                                                      |
-| dev server    | `vite --mode test`(`.env.test` 재사용 — mkcert HTTPS를 자연히 피해 HTTP로 뜬다)                                                                             |
-| 포트          | `E2E_SERVER_PORT_RANGE_START`~`END`(`dev-server.config.ts`, 31120~31139) 대역에서 실행마다 빈 포트를 골라 씀 — `pnpm dev`의 `DEV_SERVER_PORT`(31119)와 분리 |
-| 설정 파일     | `playwright.config.ts`, `tsconfig.e2e.json`                                                                                                                 |
+| 항목          | 내용                                                                                                                                                                                                                                                        |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 러너          | [@playwright/test](https://playwright.dev/) `1.57.0`(`playwright` 라이브러리와 버전 고정, 브라우저 바이너리 불일치 방지)                                                                                                                                    |
+| 브라우저      | `chromium`(Desktop Chrome) + `mobile-chrome`(Pixel 5, `*.mobile.spec.ts`만) 2개 project(`playwright.config.ts`) — Firefox/WebKit은 필요해지면 추가                                                                                                          |
+| 네트워크 모킹 | Playwright 내장 `page.route()` 직접 사용(`@msw/playwright` 아님 — pre-1.0 정체로 배제)                                                                                                                                                                      |
+| dev server    | `vite --mode test`(`.env.test` 재사용 — mkcert HTTPS를 자연히 피해 HTTP로 뜬다)                                                                                                                                                                             |
+| 포트          | `E2E_SERVER_PORT_RANGE_START`~`END`(`dev-server.config.ts`, 31120~31139) 대역에서 `scripts/pick-e2e-port.js`가 실행 전 한 번만 빈 포트를 골라 `E2E_SERVER_PORT` 환경변수로 넘김(`package.json`의 `test:e2e`) — `pnpm dev`의 `DEV_SERVER_PORT`(31119)와 분리 |
+| 설정 파일     | `playwright.config.ts`, `tsconfig.e2e.json`                                                                                                                                                                                                                 |
 
 **e2e가 `pnpm dev`와 다른 포트를 쓰는 이유** — 다른 워크트리가 `pnpm dev`(`--mode localhost`, mkcert HTTPS)를 `DEV_SERVER_PORT`에 띄운 상태에서 e2e가 같은 포트에 HTTP로 접속을 시도하면 응답을 못 받고 60초 타임아웃난다(2026-09-24 실측). e2e는 MSW로 완전히 모킹돼 실제 BE·DB를 전혀 쓰지 않아 "워크트리 간 동시 `pnpm dev` 금지" 규칙(실제 BE/원격 DB 공유가 이유, `.claude/CLAUDE.md`)의 대상이 아닌데도 포트를 공유해 병목이 생긴 것이었다 — 전용 대역으로 분리해 이 충돌 자체를 없앴다.
 
-**고정 포트 하나가 아니라 대역인 이유** — 워크트리 두 곳이 동시에 e2e를 돌리면, Playwright의 `reuseExistingServer: true`(로컬 기본값)는 그 포트에 이미 떠 있는 서버가 "이게 이 실행이 기대한 서버인지" 검증 없이 그냥 재사용한다(_"it will re-use an existing server on the port or url when available"_, [Playwright 공식 문서](https://playwright.dev/docs/test-webserver)) — 즉 고정 포트 하나였다면 나중에 시작한 워크트리가 먼저 뜬 워크트리의 서버에 조용히 붙어 자기 코드를 전혀 테스트하지 못한 채 "통과"로 보고했을 것이다(타임아웃보다 나쁜, 눈에 안 띄는 실패). `playwright.config.ts`가 이 대역에서 매 실행마다 바인딩 가능한 포트를 직접 찾아 쓰고(`dev-server.config.ts`의 `E2E_SERVER_PORT_RANGE_*` 주석 참고), `--strictPort`로 그 사이 레이스가 나도 조용히 잘못된 서버에 붙는 대신 즉시 실패하게 한다.
+**고정 포트 하나가 아니라 대역인 이유** — 워크트리 두 곳이 동시에 e2e를 돌리면, Playwright의 `reuseExistingServer: true`(로컬 기본값)는 그 포트에 이미 떠 있는 서버가 "이게 이 실행이 기대한 서버인지" 검증 없이 그냥 재사용한다(_"it will re-use an existing server on the port or url when available"_, [Playwright 공식 문서](https://playwright.dev/docs/test-webserver)) — 즉 고정 포트 하나였다면 나중에 시작한 워크트리가 먼저 뜬 워크트리의 서버에 조용히 붙어 자기 코드를 전혀 테스트하지 못한 채 "통과"로 보고했을 것이다(타임아웃보다 나쁜, 눈에 안 띄는 실패).
+
+**포트를 고르는 주체가 `playwright.config.ts` 자신이 아니라 별도 스크립트인 이유** —
+Playwright는 `fullyParallel` 워커마다 config 파일을 각자 다시 평가한다. `playwright.config.ts`
+안에서 직접 이 대역을 스캔했다면, 워커 A가 "31120이 비어있다"고 확인해 실제 서버를 그
+포트로 띄우는 사이 뒤이어 자기 config를 평가하는 워커 B가 그새 채워진 31120을 보고
+31121로 건너뛰어버려, 그 워커의 테스트만 아무도 안 띄운 포트로 요청을 보내 전부
+실패한다(2026-09-24 CI 실측 — 57건 전부 `net::ERR_CONNECTION_REFUSED`). 그래서 포트
+선택은 `scripts/pick-e2e-port.js`가 playwright 프로세스 시작 **전에 딱 한 번만** 하고
+(`package.json`의 `test:e2e`: `E2E_SERVER_PORT=$(node scripts/pick-e2e-port.js) playwright test`),
+그 값을 `E2E_SERVER_PORT` 환경변수로 넘기면 모든 워커가 OS 프로세스 상속으로 같은 값을
+받는다. `playwright.config.ts`는 이 환경변수를 읽기만 하고(`scripts/pick-e2e-port.js`를
+거치지 않고 `pnpm exec playwright test`를 직접 실행하는 경우에만 대역의 첫 포트로
+폴백), `--strictPort`로 그 사이 레이스가 나도 조용히 잘못된 서버에 붙는 대신 즉시
+실패하게 한다.
 
 ```bash
 pnpm test:e2e          # chromium 헤드리스로 1회 실행
@@ -666,35 +716,46 @@ _"they run in the order opposite to their registration"_). 캐치올을 가장 �
 
 ### 대표 흐름
 
-| 스펙                                          | 흐름                                                                                                                                                                                                                                                                                                                                                                                    |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `e2e/post-list.spec.ts`                       | 비로그인 방문자 — 목록 조회 → 검색 → 상세 진입                                                                                                                                                                                                                                                                                                                                          |
-| `e2e/bookmark.spec.ts`                        | 로그인 상태(has-session 시딩) — 북마크 버튼 → 폴더 선택 → 저장 후 모달이 닫히고 아이콘이 북마크 상태로 바뀜(무효화-재조회로 낙관적 업데이트가 되돌아가지 않는지 상태 유지 mock으로 확인)                                                                                                                                                                                                |
-| `e2e/login.spec.ts`                           | 실제 로그인 폼 제출 — 성공 시 `/post` 착지, 실패 시 서버 메시지 토스트                                                                                                                                                                                                                                                                                                                  |
-| `e2e/logout.spec.ts`                          | 로그아웃 — 비보호 페이지(제자리)/보호 페이지(`/post`로 이동) 두 분기                                                                                                                                                                                                                                                                                                                    |
-| `e2e/like.spec.ts`                            | 좋아요 — 상세↔목록 캐시 전파(재조회 불필요), 실패 시 양쪽 롤백                                                                                                                                                                                                                                                                                                                          |
-| `e2e/comment.spec.ts`                         | 댓글 작성 → 댓글 수 반영(invalidate로 재조회 필수 — 좋아요와 대조되는 지점)                                                                                                                                                                                                                                                                                                             |
-| `e2e/guest-guard.spec.ts`                     | 비로그인 인증 가드 — 좋아요/북마크/댓글 시도 시 요청 없이 로그인 모달만 뜸. 북마크만 로그인 성공 후 폴더 선택 모달이 겹치지 않고 자동으로 이어서 열림(`resumeAfterLogin`)                                                                                                                                                                                                               |
-| `e2e/protected-nav.spec.ts`                   | 보호 라우트 네비게이션 — 사이드바 클릭 시 이동 차단 + 로그인 모달 → 로그인 후 원래 목적지 착지, 뒤로가기 1회로 모달 재등장 없음                                                                                                                                                                                                                                                         |
-| `e2e/account-update.spec.ts`                  | 프로필 수정 실패 경로 — 모달이 응답 전에 닫히고 Navbar가 낙관적으로 반영된 뒤 409로 롤백, 토스트의 '다시 열기'로 모달 재오픈 + 입력값 복원                                                                                                                                                                                                                                              |
-| `e2e/post-delete.spec.ts`                     | 게시글 삭제 — 상세 ⋮ → confirm → `/post` 리다이렉트, 재조회 없이(낙관적 patch만으로) 목록에서 카드 소멸                                                                                                                                                                                                                                                                                 |
-| `e2e/unsaved-changes.spec.ts`                 | 저장하지 않은 변경 가드 — PUSH 이동·브라우저 뒤로가기(POP) 양쪽에서 확인 모달, '계속 작성'/'나가기' 분기                                                                                                                                                                                                                                                                                |
-| `e2e/post-list-filters.spec.ts`               | 검색 필터 cross-layer — URL(칩)·localStorage(봇 글 숨기기)가 합성돼 실제 API `filter` 파라미터가 되는 것을 요청 쿼리스트링으로 직접 검증                                                                                                                                                                                                                                                |
-| `e2e/post-update.spec.ts`                     | 게시글 수정 — 제출 즉시 목록(POP) 복귀 + "수정 중..." 오버레이(500ms 게이트) → direct patch 후에도 이어지는 재조회로 최종 반영                                                                                                                                                                                                                                                          |
-| `e2e/post-visibility.spec.ts`                 | 공개/비공개 전환 — confirm(방향별 문구) → invalidate만(direct patch 없음) → 재조회로만 반영, 목록에도 전파, 방향별 성공 토스트                                                                                                                                                                                                                                                          |
-| `e2e/comment-delete.spec.ts`                  | 댓글 삭제 — 답글 없으면 hard delete(3개 캐시 감소), 답글 있으면 BE가 soft delete(톰스톤, 카운트 유지 + 액션행 숨김)                                                                                                                                                                                                                                                                     |
-| `e2e/bookmark-folder-delete.spec.ts`          | 북마크 폴더 삭제 — 선택 중인 폴더 삭제 시 `onBeforeDelete`가 DELETE 요청 전에 URL을 `all`로 이동, 죽은 폴더 쿼리는 재조회 안 됨                                                                                                                                                                                                                                                         |
-| `e2e/post-create.spec.ts`                     | 게시글 등록 — 응답을 기다리지 않고 `/post`로 이동(미저장 변경 가드 미발동), 요청 body 검증. 원래 함께 만들려던 "in-flight 재조회 취소" 케이스는 `cancelQueries`(revert:true)와 `invalidateQueries`의 후속 활성 재조회가 얽히는 상호작용으로 보이는 원인 때문에 e2e·유닛 양쪽에서 안정적으로 재현하지 못해 제외했다(별도 조사 필요, 후보 표 참고)                                        |
-| `e2e/post-detail-not-found.spec.ts`           | 게시글 상세 404 — 직접 진입/카드 클릭 진입 둘 다 안내 토스트 후 `/post`로 replace, 전역 서버 오류 토스트는 추가로 안 뜸(화면 소유 에러라는 계약), 뒤로가기로 그 상세에 재진입 불가                                                                                                                                                                                                      |
-| `e2e/signup.spec.ts`                          | 회원가입 — 이메일·닉네임 실시간 중복확인(500ms 디바운스) 통과 후 메일함 확인 화면으로 전환, "로그인하러 가기"로 `/auth/login` 착지(GuestGuard가 안 튕김 = 가입이 로그인 상태를 안 만듦) 시 방금 가입한 이메일이 로그인 폼에 미리 채워짐. 중복 이메일이면 인라인 오류 + 제출 버튼 잠금 + "Sign In" 클릭 시에도 그 이메일이 채워지고, 저장된(localStorage) 이메일이 있어도 이 값이 우선함 |
-| `e2e/signup-unsaved-changes.spec.ts`          | 회원가입 폼 이탈 확인 — 비로그인 페이지(`GuestGuard`)에서도 가드가 동작하는지, "Sign In" 링크는 이메일 중복 확인 시에만 확인창 생략(그 외엔 뒤로가기와 동일하게 회원가입 전용 확인창), 제출 실패 후 재등록                                                                                                                                                                              |
-| `e2e/session-expired.spec.ts`                 | 세션 만료 — 로그인 상태에서 `GET /auth/account`가 401을 받으면 `/auth/login`으로 이동. 실측(계획 당시 예상과 다름): `AuthUtil.isLoggingOut()` 가드가 트리거 에러 자신에도 적용돼 토스트가 전혀 안 뜨고 조용히 이동함                                                                                                                                                                    |
-| `e2e/bookmark.mobile.spec.ts`                 | 모바일 전용(`mobile-chrome` project) — `/bookmark` 진입 시 `MobileFolderList`(폴더 목록)가 먼저 뜨고 폴더 선택 시 게시글 모드로 전환, 뒤로가기는 폴더 선택만 취소하고 페이지를 안 벗어남                                                                                                                                                                                                |
-| `e2e/post-list-virtualization.spec.ts`        | 피드 가상 스크롤 — 200개 목킹 후 반복 스크롤, 렌더된 카드·DOM 노드 수가 상한 이내로 유지되고 위/아래 행이 서로 교체되는 것을 직접 확인(`data-index` 범위 비교). `overscan`을 임시로 키워 강제로 실패시켜 봄으로써 이 단언들이 실제로 가상화 여부를 가른다는 것까지 검증했다                                                                                                             |
-| `e2e/post-list-scroll-restore.spec.ts`        | 피드 가상 스크롤 — 60개 목킹 후 화면 밖 카드로 스크롤 → 상세 진입 → "목록으로" 버튼/`page.goBack()` 두 경로로 복귀 → 같은 카드가 같은 화면 좌표(±50px)에 있는지 확인. 스냅샷 복원을 임시로 꺼서 강제로 실패시켜 봄으로써 검증력을 확인했다                                                                                                                                              |
-| `e2e/post-list-scroll-restore.mobile.spec.ts` | 위와 동일한 시나리오의 모바일(1열) 버전 — `columnCount=1` 경로는 데스크톱 스펙이 검증하지 못하는 유일한 경로                                                                                                                                                                                                                                                                            |
-| `e2e/post-card-footer-layout.spec.ts`         | 카드 그리드 열 수 = 컨테이너 실측 폭 — 인기글 수준 통계(좋아요·댓글 세 자리, 조회 다섯 자리)로 1024px·800px에서 PostCard 푸터가 줄바꿈되지 않는지, 1200px에서 ⌘B로 사이드바를 접어 열 수가 2→3으로 바뀌어도 보던 카드가 화면에 남는지 확인                                                                                                                                              |
-| `e2e/bookmark-card-footer-layout.spec.ts`     | 위와 같은 시나리오의 북마크(폴더트리까지 폭을 가져가는 레이아웃) 버전 — 1280px·1100px에서 푸터 줄바꿈 없음만 확인(앵커 이동은 피드 스펙이 이미 검증)                                                                                                                                                                                                                                    |
+| 스펙                                            | 흐름                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `e2e/post-list.spec.ts`                         | 비로그인 방문자 — 목록 조회 → 검색 → 상세 진입                                                                                                                                                                                                                                                                                                                                          |
+| `e2e/bookmark.spec.ts`                          | 로그인 상태(has-session 시딩) — 북마크 버튼 → 폴더 선택 → 저장 후 모달이 닫히고 아이콘이 북마크 상태로 바뀜(무효화-재조회로 낙관적 업데이트가 되돌아가지 않는지 상태 유지 mock으로 확인)                                                                                                                                                                                                |
+| `e2e/login.spec.ts`                             | 실제 로그인 폼 제출 — 성공 시 `/post` 착지, 실패 시 서버 메시지 토스트                                                                                                                                                                                                                                                                                                                  |
+| `e2e/logout.spec.ts`                            | 로그아웃 — 비보호 페이지(제자리)/보호 페이지(`/post`로 이동) 두 분기                                                                                                                                                                                                                                                                                                                    |
+| `e2e/like.spec.ts`                              | 좋아요 — 상세↔목록 캐시 전파(재조회 불필요), 실패 시 양쪽 롤백                                                                                                                                                                                                                                                                                                                          |
+| `e2e/comment.spec.ts`                           | 댓글 작성 → 댓글 수 반영(invalidate로 재조회 필수 — 좋아요와 대조되는 지점)                                                                                                                                                                                                                                                                                                             |
+| `e2e/guest-guard.spec.ts`                       | 비로그인 인증 가드 — 좋아요/북마크/댓글 시도 시 요청 없이 로그인 모달만 뜸. 북마크만 로그인 성공 후 폴더 선택 모달이 겹치지 않고 자동으로 이어서 열림(`resumeAfterLogin`)                                                                                                                                                                                                               |
+| `e2e/protected-nav.spec.ts`                     | 보호 라우트 네비게이션 — 사이드바 클릭 시 이동 차단 + 로그인 모달 → 로그인 후 원래 목적지 착지, 뒤로가기 1회로 모달 재등장 없음                                                                                                                                                                                                                                                         |
+| `e2e/account-update.spec.ts`                    | 프로필 수정 실패 경로 — 모달이 응답 전에 닫히고 Navbar가 낙관적으로 반영된 뒤 409로 롤백, 토스트의 '다시 열기'로 모달 재오픈 + 입력값 복원                                                                                                                                                                                                                                              |
+| `e2e/post-delete.spec.ts`                       | 게시글 삭제 — 상세 ⋮ → confirm → `/post` 리다이렉트, 재조회 없이(낙관적 patch만으로) 목록에서 카드 소멸                                                                                                                                                                                                                                                                                 |
+| `e2e/unsaved-changes.spec.ts`                   | 저장하지 않은 변경 가드 — PUSH 이동·브라우저 뒤로가기(POP) 양쪽에서 확인 모달, '계속 작성'/'나가기' 분기                                                                                                                                                                                                                                                                                |
+| `e2e/post-list-filters.spec.ts`                 | 검색 필터 cross-layer — URL(칩)·localStorage(봇 글 숨기기)가 합성돼 실제 API `filter` 파라미터가 되는 것을 요청 쿼리스트링으로 직접 검증                                                                                                                                                                                                                                                |
+| `e2e/post-update.spec.ts`                       | 게시글 수정 — 제출 즉시 목록(POP) 복귀 + "수정 중..." 오버레이(500ms 게이트) → direct patch 후에도 이어지는 재조회로 최종 반영                                                                                                                                                                                                                                                          |
+| `e2e/post-visibility.spec.ts`                   | 공개/비공개 전환 — confirm(방향별 문구) → invalidate만(direct patch 없음) → 재조회로만 반영, 목록에도 전파, 방향별 성공 토스트                                                                                                                                                                                                                                                          |
+| `e2e/comment-delete.spec.ts`                    | 댓글 삭제 — 답글 없으면 hard delete(3개 캐시 감소), 답글 있으면 BE가 soft delete(톰스톤, 카운트 유지 + 액션행 숨김)                                                                                                                                                                                                                                                                     |
+| `e2e/bookmark-folder-delete.spec.ts`            | 북마크 폴더 삭제 — 선택 중인 폴더 삭제 시 `onBeforeDelete`가 DELETE 요청 전에 URL을 `all`로 이동, 죽은 폴더 쿼리는 재조회 안 됨                                                                                                                                                                                                                                                         |
+| `e2e/post-create.spec.ts`                       | 게시글 등록 — 응답을 기다리지 않고 `/post`로 이동(미저장 변경 가드 미발동), 요청 body 검증. 원래 함께 만들려던 "in-flight 재조회 취소" 케이스는 `cancelQueries`(revert:true)와 `invalidateQueries`의 후속 활성 재조회가 얽히는 상호작용으로 보이는 원인 때문에 e2e·유닛 양쪽에서 안정적으로 재현하지 못해 제외했다(별도 조사 필요, 후보 표 참고)                                        |
+| `e2e/post-detail-not-found.spec.ts`             | 게시글 상세 404 — 직접 진입/카드 클릭 진입 둘 다 안내 토스트 후 `/post`로 replace, 전역 서버 오류 토스트는 추가로 안 뜸(화면 소유 에러라는 계약), 뒤로가기로 그 상세에 재진입 불가                                                                                                                                                                                                      |
+| `e2e/signup.spec.ts`                            | 회원가입 — 이메일·닉네임 실시간 중복확인(500ms 디바운스) 통과 후 메일함 확인 화면으로 전환, "로그인하러 가기"로 `/auth/login` 착지(GuestGuard가 안 튕김 = 가입이 로그인 상태를 안 만듦) 시 방금 가입한 이메일이 로그인 폼에 미리 채워짐. 중복 이메일이면 인라인 오류 + 제출 버튼 잠금 + "Sign In" 클릭 시에도 그 이메일이 채워지고, 저장된(localStorage) 이메일이 있어도 이 값이 우선함 |
+| `e2e/signup-unsaved-changes.spec.ts`            | 회원가입 폼 이탈 확인 — 비로그인 페이지(`GuestGuard`)에서도 가드가 동작하는지, "Sign In" 링크는 이메일 중복 확인 시에만 확인창 생략(그 외엔 뒤로가기와 동일하게 회원가입 전용 확인창), 제출 실패 후 재등록                                                                                                                                                                              |
+| `e2e/session-expired.spec.ts`                   | 세션 만료 — 로그인 상태에서 `GET /auth/account`가 401을 받으면 `/auth/login`으로 이동. 실측(계획 당시 예상과 다름): `AuthUtil.isLoggingOut()` 가드가 트리거 에러 자신에도 적용돼 토스트가 전혀 안 뜨고 조용히 이동함                                                                                                                                                                    |
+| `e2e/bookmark.mobile.spec.ts`                   | 모바일 전용(`mobile-chrome` project) — `/bookmark` 진입 시 `MobileFolderList`(폴더 목록)가 먼저 뜨고 폴더 선택 시 게시글 모드로 전환, 뒤로가기는 폴더 선택만 취소하고 페이지를 안 벗어남                                                                                                                                                                                                |
+| `e2e/post-list-virtualization.spec.ts`          | 피드 가상 스크롤 — 200개 목킹 후 반복 스크롤, 렌더된 카드·DOM 노드 수가 상한 이내로 유지되고 위/아래 행이 서로 교체되는 것을 직접 확인(`data-index` 범위 비교). `overscan`을 임시로 키워 강제로 실패시켜 봄으로써 이 단언들이 실제로 가상화 여부를 가른다는 것까지 검증했다                                                                                                             |
+| `e2e/post-list-scroll-restore.spec.ts`          | 피드 가상 스크롤 — 60개 목킹 후 화면 밖 카드로 스크롤 → 상세 진입 → "목록으로" 버튼/`page.goBack()` 두 경로로 복귀 → 같은 카드가 같은 화면 좌표(±50px)에 있는지 확인. 스냅샷 복원을 임시로 꺼서 강제로 실패시켜 봄으로써 검증력을 확인했다                                                                                                                                              |
+| `e2e/post-list-scroll-restore.mobile.spec.ts`   | 위와 동일한 시나리오의 모바일(1열) 버전 — `columnCount=1` 경로는 데스크톱 스펙이 검증하지 못하는 유일한 경로                                                                                                                                                                                                                                                                            |
+| `e2e/post-card-footer-layout.spec.ts`           | 카드 그리드 열 수 = 컨테이너 실측 폭 — 인기글 수준 통계(좋아요·댓글 세 자리, 조회 다섯 자리)로 1024px·800px에서 PostCard 푸터가 줄바꿈되지 않는지, 1200px에서 ⌘B로 사이드바를 접어 열 수가 2→3으로 바뀌어도 보던 카드가 화면에 남는지 확인                                                                                                                                              |
+| `e2e/bookmark-card-footer-layout.spec.ts`       | 위와 같은 시나리오의 북마크(폴더트리까지 폭을 가져가는 레이아웃) 버전 — 1280px·1100px에서 푸터 줄바꿈 없음만 확인(앵커 이동은 피드 스펙이 이미 검증)                                                                                                                                                                                                                                    |
+| `e2e/post-card-hover-menu.spec.ts`              | PostCard hover 유지 — ⋮ 드롭다운(Portal로 `<body>`에 렌더)이 열린 동안 커서를 메뉴 항목으로 옮겨도 Card 자신은 더 이상 `:hover`가 아닌데도 `hover-or-open`(globals.css) 덕에 들림 효과가 풀리지 않는지 확인                                                                                                                                                                             |
+| `e2e/bookmark-folder-hover-menu.spec.ts`        | 위와 같은 hover 유지 메커니즘의 북마크 폴더(FolderTree) 행 버전                                                                                                                                                                                                                                                                                                                         |
+| `e2e/bookmark-folder-menu-press-drag.spec.ts`   | 북마크 폴더 ⋮ 메뉴의 press-drag-release 회귀 방지 — 트리거를 누른 채 커서가 몇 px 밀렸다 떼도 그 지점에 있던 메뉴 항목("이름 수정")이 실수로 클릭되지 않는지, document 레벨 클릭 리스너로 클릭 자체가 발생했는지 직접 관찰(다운스트림 부수효과가 아니라 원인 메커니즘을 검증) — 경위는 `docs/plans/2026-09-21-dropdown-trigger-click.md` 참고                                           |
+| `e2e/dropdown-menu-scroll.spec.ts`              | 공용 드롭다운 메뉴(비모달)의 스크롤·바깥 클릭 동작 — 계정 메뉴로 대표 검증(래퍼 공통 동작이라 4개 메뉴 모두 같은 경로). 열려 있어도 휠로 스크롤되고 스크롤하면 닫힘, 바깥 첫 클릭은 메뉴만 닫고 다음 클릭부터 통과, Esc로 닫으면 트리거로 포커스 복귀, 1px 미만의 우발적 스크롤이나 더블클릭(마우스 채터링)의 두 번째 클릭으로는 안 닫힘                                                |
+| `e2e/dropdown-menu-scroll.mobile.spec.ts`       | 위 흐름의 모바일(터치 드래그로 스크롤, 바깥 첫 탭) 버전                                                                                                                                                                                                                                                                                                                                 |
+| `e2e/post-detail-back.spec.ts`                  | 데스크톱 상세 페이지의 "돌아가기" 버튼 — 렌더되고, Navbar와 달리 sticky가 아니라 스크롤하면 화면 밖으로 사라짐(PR #100의 sticky를 걷어낸 뒤 상태, `docs/DECISIONS.md` 참고)                                                                                                                                                                                                             |
+| `e2e/post-detail-back.mobile.spec.ts`           | 모바일에서는 돌아가기 버튼이 `hidden md:inline-flex`로 아예 렌더되지 않고, 하단 탭바의 Feed로만 목록으로 돌아갈 수 있음을 확인                                                                                                                                                                                                                                                          |
+| `e2e/post-detail-search-overlay.mobile.spec.ts` | 모바일 상세에서 헤더 검색(RecentSearchPanel, `z-panel`)을 열면 같은 z층인 MobileCommentBar가 DOM 순서 때문에 패널 위에 남는 겹침 회귀를 방지 — 검색을 열면 댓글바가 사라지고 탭바는 유지, 닫으면 작성 중이던 댓글 내용이 복원되는지 확인(jsdom은 실제 display/inert 반영을 증명 못 해 브라우저 전용)                                                                                    |
+| `e2e/mobile-search-scroll-lock.mobile.spec.ts`  | 모바일 검색 오버레이(RecentSearchPanel, fixed + overflow-y-auto)가 열린 동안 `RemoveScroll`(react-remove-scroll)로 배경(main) 스크롤 체이닝을 막은 것이 실제 브라우저에서 동작하는지 확인 — 열면 잠기고 닫으면 풀림                                                                                                                                                                     |
+| `e2e/sidebar-drawer-scroll-lock.mobile.spec.ts` | 모바일 사이드바 드로어 백드롭(`fixed inset-0`)의 배경 스크롤 잠금 — 위와 같은 `RemoveScroll` 메커니즘, 드로어를 열면 잠기고 배경을 탭해 닫으면 풀림까지 확인                                                                                                                                                                                                                            |
+| `e2e/post-create.mobile.spec.ts`                | 게시글 등록 모바일 등록 바 — CreatePostForm의 등록 버튼이 `BottomTabBar` 위에 고정돼 URL만 입력해도 스크롤 없이 보이는지, URL 입력창에서 Enter를 누르면 제출되는지 확인(데스크톱은 폼 마지막에 그대로 있어 chromium 프로젝트에서는 재현 대상이 아님)                                                                                                                                    |
 
 ### 아직 만들지 않은 흐름과 판정
 
@@ -882,7 +943,7 @@ server.use(
 **실제 사례 (2026-09-20 발견 → 2026-09-21 수정)**: `post.handlers.ts`·`comment.handlers.ts`·
 `bookmark-folder.handlers.ts`는 `API_ENDPOINTS.post.base`(`/post`) 등을 그대로 `http.get(...)`에
 넘겨 등록했다. 반면 실제 요청은 `API_BASE_URL`("API URL 처리 방식" 절 참고 — Vitest에서는
-`/api`) 접두사가 붙는다 — `client.ts:89`의 `${this.baseURL}${endpoint}` 계산 결과가
+`/api`) 접두사가 붙는다 — `client.ts:213`의 `${this.baseURL}${endpoint}` 계산 결과가
 `/api/post`가 되고, jsdom 기본 origin(`http://localhost:3000`)과 합쳐져 실제 요청 URL은
 `http://localhost:3000/api/post`다. 세 파일이 등록한 URL은 `http://localhost:3000/post` —
 정확히 `/api` 한 구간이 빠져 매칭되지 않았다. `auth`·`account`·`upload` 핸들러는 이미
@@ -903,18 +964,28 @@ server.use(
 
 ---
 
-### 5. `postSchema.author.image: null` 오류
+### 5. 픽스처의 `author.image` 등에서 `null`/`undefined` 어느 쪽을 써야 할지 헷갈림
 
-**원인**: `accountSchema.image = z.string().optional()` → `string | undefined` (null 불가)
+**배경**: `Post`·`Account` 등 응답 타입은 더 이상 이 레포의 Zod 스키마가 아니라 BE
+스펙에서 생성된 dto 타입이다([`post.dto.ts`](../src/entities/post/model/post.dto.ts)·
+[`account.dto.ts`](../src/entities/account/model/account.dto.ts)). `Post['author']`의
+타입인 `UserSummary.image`는 `image?: string | null`로 `null`과 `undefined`를 **둘 다**
+허용한다 — 예전에 이 필드가 Zod `z.string().optional()`(undefined만 허용)이던 시절엔
+픽스처에 `image: null`을 넣으면 타입 에러가 났지만, dto 타입으로 바뀐 지금은 타입
+에러가 나지 않는다.
 
-**해결**: 픽스처에서 `null` 대신 `undefined` 사용
+**현재 컨벤션**: 타입상으로는 둘 다 유효하지만, 이 레포의 기존 픽스처
+([`account.fixtures.ts`](../src/mocks/fixtures/account.fixtures.ts),
+[`post.fixtures.ts`](../src/mocks/fixtures/post.fixtures.ts))는 전부 `image: undefined`를
+쓴다 — 새 픽스처를 추가할 때도 타입 에러를 피하기 위해서가 아니라 기존 픽스처와의
+일관성을 위해 이 관례를 따른다.
 
 ```typescript
-// ❌
-author: { id: '...', nickname: '...', image: null }
-
-// ✅
+// ✅ 이 레포 픽스처 관례
 author: { id: '...', nickname: '...', image: undefined }
+
+// 타입상으로는 유효하지만 기존 픽스처와 일관되지 않음
+author: { id: '...', nickname: '...', image: null }
 ```
 
 ---
@@ -1113,14 +1184,16 @@ vi.mock('nprogress', () => ({
 (`useFetchPostDetailQuery` → `useUpdatePost.ts:14`). 지금까지는 그 요청이 매번 실패해
 시드값이 그대로 유지됐지만, 핸들러를 고치자 요청이 **성공**하면서 문제가 드러났다.
 
-**원인**: `apiClient`는 응답을 zod로 파싱하지 않는다(`client.ts:239-246`, `.data`만
-언랩). 시드한 `mockPost.createdAt`은 `Date` 객체([`post.fixtures.ts:30`](../src/mocks/fixtures/post.fixtures.ts))인데
-실제 HTTP 응답은 이를 ISO 문자열로 직렬화하므로, React Query의 structural sharing이
-타입이 달라진 필드 때문에 참조 동일성을 지키지 못하고 `post` 객체가 새 참조로
-바뀐다. `useUpdatePost.ts:26-40`의 `useEffect`(`deps [post, form]`)가 재실행되어
-`form.reset()`이 한 번 더 호출되면서, 사용자가 그 사이에 입력한 값을 되돌려버린다.
-MSW로 모킹된 응답은 실제 네트워크 지연이 없어 거의 즉시 resolve되므로, 이런
-재요청은 레이스가 아니라 사실상 결정론적으로 재현된다.
+**원인**: `apiClient`는 응답을 zod로 파싱하지 않는다(`client.ts:297-302`, `.data`만
+언랩). 발견 당시(2026-09-21) 시드한 `mockPost.createdAt`은 `Date` 객체였는데 실제 HTTP
+응답은 이를 ISO 문자열로 직렬화하므로, React Query의 structural sharing이 타입이
+달라진 필드 때문에 참조 동일성을 지키지 못하고 `post` 객체가 새 참조로 바뀐다.
+`useUpdatePost.ts:26-40`의 `useEffect`(`deps [post, form]`)가 재실행되어 `form.reset()`이
+한 번 더 호출되면서, 사용자가 그 사이에 입력한 값을 되돌려버린다. MSW로 모킹된 응답은
+실제 네트워크 지연이 없어 거의 즉시 resolve되므로, 이런 재요청은 레이스가 아니라
+사실상 결정론적으로 재현된다. (`post.fixtures.ts`의 `createdAt`은 이후 ISO 문자열로
+정규화됐다 — 지금 이 구체적인 필드로는 더 이상 재현되지 않지만, 시드 데이터의 타입이
+실제 응답과 달라지면 같은 구조의 문제가 다른 필드에서 재발할 수 있다는 점은 유효하다.)
 
 **해결**: 이 테스트의 의도(폼 로컬 동작 검증, 네트워크 재조회 타이밍 검증이 아님)에
 맞게 배경 재조회 자체를 끈다. `createTestQueryClient`의 `overrides`에 `staleTime`을

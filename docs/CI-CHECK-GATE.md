@@ -7,7 +7,7 @@
 > **읽고 나면**: `pnpm check`가 실제로 어느 시점에 도는지, ignore 패턴을 추가하거나
 > PR 게이트에 스텝을 더할 때 어디를 고치면 되는지 안다.
 >
-> **마지막 검토**: 2026-09-20
+> **마지막 검토**: 2026-09-29
 
 ## 1. 쉬운 설명
 
@@ -120,28 +120,33 @@ ignore 패턴(`'dist/**/*'`, 루트 상대 경로)에 안 걸려서 그대로 �
 
 ## 6. 운영 파라미터
 
-| 파라미터                   | 값                                                                                                      | 실제 위치                                                                  |
-| -------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `--max-warnings` 임계값    | 0                                                                                                       | `package.json:18-19`(`lint`/`lint:fix`), `package.json:120`(`lint-staged`) |
-| ESLint 글로벌 ignore       | `**/dist/**`, `**/node_modules/**`, `.claude/worktrees/**`, `**/*.md`, `**/*.svg`, `infra/**/*`         | `eslint.config.js:185-193`                                                 |
-| Prettier ignore 추가분     | `.claude/worktrees`, `docs/HISTORY.md`(봇 생성 파일)                                                    | `.prettierignore:7-8`                                                      |
-| PR CI 트리거               | `pull_request` → `main`                                                                                 | `.github/workflows/ci.yml:10`                                              |
-| 동시 실행 제어             | 같은 브랜치 새 커밋 push 시 이전 실행 자동 취소                                                         | `.github/workflows/ci.yml:14` `concurrency` 블록                           |
-| Node 버전                  | 24(`.nvmrc` 기준, `node-version-file`로 참조)                                                           | `.nvmrc`, `ci.yml:47`·`deploy.yml` 공통                                    |
-| 배포 게이트 위치           | `pnpm install` 직후, `pnpm test` 이전                                                                   | `deploy.yml` "Type check, lint & format check" 스텝                        |
-| 문서-코드 참조 게이트      | `pnpm test` 이후 (PR CI 전용, 배포는 막지 않음)                                                         | `scripts/check-docs.js`, `ci.yml` "Check docs" 스텝                        |
-| "마지막 검토" 신선도 기준  | 30일 초과 시 경고(exit 0, 게이트 통과에 영향 없음)                                                      | `scripts/check-docs.js`의 `STALE_REVIEW_DAYS`                              |
-| Storybook 정적 빌드 게이트 | PR CI에서 `build-storybook` 실행(dev 서버 기반 `test:storybook`이 못 잡는 프로덕션 빌드 전용 실패 감지) | `ci.yml`의 "Build Storybook" 스텝                                          |
+| 파라미터                       | 값                                                                                                                                                                          | 실제 위치                                                                  |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `--max-warnings` 임계값        | 0                                                                                                                                                                           | `package.json:18-19`(`lint`/`lint:fix`), `package.json:130`(`lint-staged`) |
+| ESLint 글로벌 ignore           | `**/dist/**`, `**/node_modules/**`, `.claude/worktrees/**`, `**/*.md`, `**/*.svg`, `infra/**/*` 등                                                                          | `eslint.config.js:431-446`                                                 |
+| Prettier ignore 추가분         | `.claude/worktrees`, `docs/HISTORY.md`(봇 생성 파일)                                                                                                                        | `.prettierignore:7-8`                                                      |
+| PR CI 트리거                   | `pull_request`(base 브랜치 필터 없음 — 스택 PR도 트리거됨, 2026-09-16 정정) + `workflow_dispatch`                                                                           | `.github/workflows/ci.yml:16-17`                                           |
+| 동시 실행 제어                 | 같은 브랜치 새 커밋 push 시 이전 실행 자동 취소                                                                                                                             | `.github/workflows/ci.yml:19-21` `concurrency` 블록                        |
+| Node 버전                      | 24(`.nvmrc` 기준, `node-version-file`로 참조)                                                                                                                               | `.nvmrc`, `ci.yml:52`·`deploy.yml` 공통                                    |
+| docs/plans 불변성 검사         | PR base 브랜치 대비 `docs/plans/` 기존 파일이 수정(`M`)됐으면 실패 — append-only 강제                                                                                       | `ci.yml`의 "docs/plans 불변성 확인" 스텝(`ci.yml:32-44`)                   |
+| 생성 타입(OpenAPI) 최신성 검사 | 커밋된 `openapi.json`으로 `pnpm codegen` 재실행 후 `openapi.gen.ts` diff 없어야 통과. 네트워크 미사용 — 운영 BE와의 실제 대조는 별도 cron(`openapi-drift-check.yml`)이 담당 | `ci.yml`의 "생성 타입 최신성 확인" 스텝(`ci.yml:58-65`)                    |
+| 배포 게이트 위치               | `pnpm install` 직후, `pnpm test` 이전                                                                                                                                       | `deploy.yml` "Type check, lint & format check" 스텝                        |
+| 문서-코드 참조 게이트          | `pnpm test` 이후 (PR CI 전용, 배포는 막지 않음)                                                                                                                             | `scripts/check-docs.js`, `ci.yml` "Check docs" 스텝                        |
+| "마지막 검토" 신선도 기준      | 30일 초과 시 경고(exit 0, 게이트 통과에 영향 없음)                                                                                                                          | `scripts/check-docs.js`의 `STALE_REVIEW_DAYS`                              |
+| Build 게이트                   | `pnpm build` — `globals.css`의 `@theme` 토큰이 실제 CSS로 정상 생성되는지 등을 머지 전에 확인                                                                               | `ci.yml`의 "Build" 스텝(`ci.yml:78-82`)                                    |
+| Storybook 정적 빌드 게이트     | PR CI에서 `build-storybook` 실행(dev 서버 기반 `test:storybook`이 못 잡는 프로덕션 빌드 전용 실패 감지)                                                                     | `ci.yml`의 "Build Storybook" 스텝                                          |
+| e2e job                        | 별도 job — Playwright Chromium 설치 후 `pnpm test:e2e` + Storybook a11y 테스트(`pnpm test:storybook`), 실패 시 리포트 업로드                                                | `ci.yml`의 `e2e` job                                                       |
+| Lighthouse job                 | 별도 job — 공개 페이지만 측정(`pnpm perf:lh`), assertion이 전부 `warn`이라 실패해도 PR을 막지 않음(`docs/DECISIONS.md` 2026-09-26 "Lighthouse CI" 항목)                     | `ci.yml`의 `lighthouse` job                                                |
 
 ## 7. 코드 지도와 자주 하는 수정
 
 | 무엇을 바꾸려면                    | 파일                                                                                                  |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| ignore 패턴 추가·수정              | `eslint.config.js:185-193`(ESLint), `.prettierignore`(Prettier — 별도 파일, ESLint와 문법 공유 안 함) |
+| ignore 패턴 추가·수정              | `eslint.config.js:431-446`(ESLint), `.prettierignore`(Prettier — 별도 파일, ESLint와 문법 공유 안 함) |
 | PR 게이트에 검사 스텝 추가         | `.github/workflows/ci.yml`                                                                            |
 | 배포 게이트에 검사 스텝 추가       | `.github/workflows/deploy.yml`의 "Type check, lint & format check" 스텝                               |
 | Node 버전 변경                     | `.nvmrc` 한 곳만 — `ci.yml`·`deploy.yml` 둘 다 `node-version-file`로 그 값을 읽는다                   |
-| `--max-warnings` 임계값 변경       | `package.json:18-19,120`                                                                              |
+| `--max-warnings` 임계값 변경       | `package.json:18-19,130`                                                                              |
 | 문서-코드 참조 검사 규칙 추가·수정 | `scripts/check-docs.js` — 경로 실존/줄 번호 범위/README↔docs 동기화/검토일 신선도 4종                 |
 
 ### 자주 하는 수정
@@ -307,15 +312,17 @@ Rules에 규칙으로 명문화).
   **PR 이벤트**로 트리거되는 것은 다음 PR에서 처음 확인하게 된다
 - `docs/SYSTEM-ARCHITECTURE.md`의 FE 배포 단계 표에 있던 기존 오기(`npm
 install`/`npm run build`로 표기돼 있지만 실제는 pnpm, `package-lock.json`
-  언급, Firebase 관련 시크릿 누락)는 이번 변경과 무관한 기존 문제라 손대지
-  않았다 — 별도로 정리 필요
+  언급, Firebase 관련 시크릿 누락)는 이번 변경과 무관한 기존 문제라 당시엔 손대지
+  않았다 — 이후 `SYSTEM-ARCHITECTURE.md`는 pnpm·Firebase Secrets 6종 표기로
+  정리됐고, 같은 문제가 남아 있던 `docs/DEPLOY.md`도 2026-09-29 정리됐다(둘 다 해소)
 - `deploy.yml`의 경로 필터(§9.3)는 의도된 최적화(문서만 바뀐 push에 매번
   빌드·배포하지 않기 위함)라 없애는 게 답은 아니다. 다만 "직전 배포가 실패한
   채 방치된 상태에서 후속 커밋이 그 경로 필터에 안 걸리는" 조합은 여전히
   재발 가능
 - ~~근본 해법(예: 배포 실패를 Slack/이슈로 알림)은 아직 없음~~ → 2026-09-20
-  `notify-failure` job으로 해결. 배포 반영 검증 스텝이 실패하면(sha 불일치·캐시
-  헤더 회귀·부분 배포) GitHub 이슈를 자동 생성한다. 자세한 배경은
+  `notify-failure` job으로 해결. `if: failure()`라서 배포 반영 검증 스텝뿐 아니라
+  `deploy` job의 어느 스텝이든(type-check·lint·test·build·S3 업로드 등) 실패하면
+  GitHub 이슈를 자동 생성한다. 자세한 배경은
   [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고
 
 ## 11. 용어 사전
