@@ -181,7 +181,7 @@ export const TEXTS = {
     // 한다 - 자동 동기화 장치는 없으므로 그쪽을 바꾸면 이 문구도 같이 바꾼다.
     deleteSectionDescription:
       '탈퇴를 신청하면 바로 로그아웃되고, 작성한 글과 댓글은 "탈퇴한 사용자"로 표시돼요. 14일 안에 다시 로그인하면 탈퇴가 취소돼요. 14일이 지나면 북마크·좋아요·조회 기록이 삭제되고 되돌릴 수 없어요.',
-    deleteSubmit: '계정 탈퇴',
+    deleteSubmit: '회원 탈퇴',
     deleteSubmitting: '탈퇴 중...',
     deleteConfirmMessage: '정말 탈퇴하시겠어요? 14일 안에 다시 로그인하면 취소할 수 있어요.',
   },
@@ -261,6 +261,11 @@ export const TEXTS = {
       visibilityToPublic: '전체 공개로',
       visibilityToPrivate: '나만 보기(비공개)로',
       visibilityConfirmMessage: (action: string) => `이 게시물을 ${action} 전환할까요?`,
+      // 확인창 버튼 전용 짧은 문구 - 메시지의 action(괄호 설명 포함)과 달리 버튼은 좁아서
+      // 괄호 없이 결과만 말한다. "확인"만으로는 버튼을 안 보고 메시지를 읽어야만 무엇을
+      // 확정하는지 알 수 있었다(2026-09-29, 버튼 문구 규칙 정립).
+      visibilityConfirmButtonToPublic: '전체 공개로 전환',
+      visibilityConfirmButtonToPrivate: '나만 보기로 전환',
     },
     detail: {
       notFound: '포스트를 찾을 수 없어요.',

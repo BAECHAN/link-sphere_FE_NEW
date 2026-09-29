@@ -75,7 +75,9 @@ test.describe('공개/비공개 전환', () => {
     // 공개 설정 토글은 삭제·이탈과 달리 어느 쪽도 위험하지 않아 emphasis: 'confirm'으로
     // 켜져 있다 - "확인"이 채움+오른쪽이고 열리자마자 포커스도 거기로 가야 한다
     // (usePostCard.ts, § 2026-09-29).
-    await expect(confirmDialog.getByRole('button', { name: TEXTS.buttons.confirm })).toBeFocused();
+    await expect(
+      confirmDialog.getByRole('button', { name: TEXTS.post.card.visibilityConfirmButtonToPrivate })
+    ).toBeFocused();
 
     // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
     // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
@@ -84,7 +86,9 @@ test.describe('공개/비공개 전환', () => {
     const patched = page.waitForResponse((res) =>
       /^\/api\/post\/[^/]+\/visibility$/.test(new URL(res.url()).pathname)
     );
-    await confirmDialog.getByRole('button', { name: TEXTS.buttons.confirm }).click();
+    await confirmDialog
+      .getByRole('button', { name: TEXTS.post.card.visibilityConfirmButtonToPrivate })
+      .click();
     await patched;
     expect(state.lastBody).toEqual({ isPrivate: true });
     await expect(page.getByText(TEXTS.messages.success.postSetToPrivate)).toBeVisible();
@@ -125,7 +129,9 @@ test.describe('공개/비공개 전환', () => {
     const patched = page.waitForResponse((res) =>
       /^\/api\/post\/[^/]+\/visibility$/.test(new URL(res.url()).pathname)
     );
-    await confirmDialog.getByRole('button', { name: TEXTS.buttons.confirm }).click();
+    await confirmDialog
+      .getByRole('button', { name: TEXTS.post.card.visibilityConfirmButtonToPublic })
+      .click();
     await patched;
     expect(state.lastBody).toEqual({ isPrivate: false });
     await expect(page.getByText(TEXTS.messages.success.postSetToPublic)).toBeVisible();
