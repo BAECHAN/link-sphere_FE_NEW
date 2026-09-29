@@ -35,5 +35,6 @@
   },
   "permissions": {
     "allow": ["Bash(grep -rn *)"]
-  }
+  },
+  "claudeMdExcludes": ["/Users/baechan/project/CLAUDE.md"]
 }
