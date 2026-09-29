@@ -7,7 +7,7 @@
 > **읽고 나면**: 토큰 등록/해제부터 알림 클릭 시 딥링크까지 전체 경로를 이해하고,
 > 새 알림 타입을 추가하거나 배포 관련 문제를 진단할 수 있다.
 >
-> **마지막 검토**: 2026-09-09
+> **마지막 검토**: 2026-09-29
 
 댓글·답글 작성 시 포스트 작성자 또는 원댓글 작성자에게 FCM(Firebase Cloud
 Messaging) 푸시 알림을 전송하는 기능의 전체 구현 내역과 운영 중 마주친 삽질
@@ -27,6 +27,11 @@ Messaging) 푸시 알림을 전송하는 기능의 전체 구현 내역과 운�
 실행되는 스크립트)가 맡고, **앱을 보고 있을 때는**(포그라운드) 앱이 직접 토스트로
 보여준다. 어느 쪽이든 클릭하면 해당 게시글로 이동한다.
 
+2026-09-29부터는 여기에 "이 기기의 로그인 세션이 살아있는 동안에만 온다"는 조건이
+하나 더 붙었다 — 세션이 죽으면(로그아웃·비밀번호변경·자연만료 등) 그 기기의 등록은
+다음 발송 시도 때 자동으로 정리되고, 알림 자체도 닉네임·댓글 내용 없이 "새 댓글이
+달렸어요" 같은 일반 문구만 담는다(§5 "왜 이렇게 바뀌었나" 참고).
+
 전체 그림:
 
 ```mermaid
@@ -45,15 +50,19 @@ flowchart TD
   subgraph BE["백엔드 (Spring Boot)"]
     CommentAPI["POST /comments"]
     CommentSvc["CommentService"]
-    FcmNotiSvc["FcmNotificationService"]
+    Job["CommentPostProcessService<br/>(AFTER_COMMIT, 별도 Lambda job)"]
+    FcmNotiSvc["FcmNotificationService<br/>(일반 문구만 조립)"]
     FcmSvc["FcmService(sendToUser)"]
-    FcmTokenDB[("fcm_tokens 테이블")]
+    FcmTokenDB[("fcm_tokens 테이블<br/>(session_family_id 포함)")]
+    SessionDB[("member_sessions 테이블")]
     AdminSDK["Firebase Admin SDK"]
     CommentAPI --> CommentSvc
-    CommentSvc -- "저장 완료 후 조건 체크" --> FcmNotiSvc
+    CommentSvc -- "저장 완료(커밋) 후" --> Job
+    Job -- "조건 체크" --> FcmNotiSvc
     FcmNotiSvc --> FcmSvc
-    FcmSvc -- "토큰 조회" --> FcmTokenDB
-    FcmSvc -- "MulticastMessage" --> AdminSDK
+    FcmSvc -- "죽은 세션에 묶인 토큰 삭제" --> FcmTokenDB
+    FcmTokenDB -- "회전 계열 생사 확인" --> SessionDB
+    FcmSvc -- "남은 토큰만 MulticastMessage" --> AdminSDK
   end
 
   AdminSDK --> FCMServer
@@ -96,6 +105,25 @@ React 훅·Service Worker의 기본 개념(탭이 닫혀도 백그라운드에�
 
 ## 5. 구조
 
+### 왜 이렇게 바뀌었나 — 세션 바인딩·알림 내용 최소화 (2026-09-29)
+
+FCM 토큰은 원래 로그인 세션과 완전히 분리된 수명주기를 가졌다 - 로그아웃해야만
+서버에서 지워지고, 세션이 자연 만료돼도 그대로 남아 계속 푸시를 받았다. 실제로
+오래전 로그인한 계정에서 "알림 클릭 → 이미 로그아웃 상태"를 겪은 사례가 있었다.
+별개로 알림 본문(`"{닉네임}: {댓글 내용}"`)은 세션이 **살아있는** 동안에도 잠금화면
+등에 댓글 내용을 그대로 노출했다.
+
+- **세션 바인딩**: `fcm_tokens.session_family_id`에 그 토큰을 등록한 세션의 회전
+  계열(`member_sessions.family_id`)을 기록해두고, 댓글 발송 시점마다 그 계열이
+  아직 살아있는지 확인해 죽은 계열에 묶인 토큰은 지우고 발송 대상에서 제외한다.
+  다만 이건 업계 표준(로그아웃/전송실패를 트리거로 삼는 것)을 넘어서는 이 레포
+  맞춤 보강이다.
+- **알림 내용 최소화**: 알림 본문에서 닉네임·댓글 내용을 완전히 제거하고 일반
+  문구로 바꿨다 - OWASP MASTG·[EFF](https://www.eff.org/deeplinks/2026/04/how-push-notifications-can-betray-your-privacy-and-what-do-about-it)가
+  공통으로 권고하는 "세부 내용은 앱을 열어야만" 패턴.
+
+근거·대안 비교의 전체 기록은 [`docs/plans/2026-09-29-fcm-session-binding.md`](./plans/2026-09-29-fcm-session-binding.md)에 있다.
+
 ### 토큰 라이프사이클
 
 ```mermaid
@@ -103,16 +131,18 @@ sequenceDiagram
   participant User as 사용자 브라우저
   participant FE as React App
   participant BE as Spring Boot BE
+  participant SessDB as member_sessions DB
   participant DB as fcm_tokens DB
 
-  Note over User,DB: 로그인 시 토큰 등록
-  User->>FE: 로그인 성공 (onSuccess)
+  Note over User,DB: 등록(로그인 성공 / 비밀번호 변경 성공 / 앱 부팅 세션복원 성공)
+  User->>FE: 위 세 이벤트 중 하나
   FE->>User: Notification.requestPermission()
   User-->>FE: "granted"
   FE->>FE: navigator.serviceWorker.register('/firebase-messaging-sw.js')
   FE->>FE: getToken(messaging, { vapidKey, serviceWorkerRegistration })
-  FE->>BE: POST /fcm/token { token, platform: "WEB" }
-  BE->>DB: INSERT (중복 토큰이면 skip)
+  FE->>BE: POST /fcm/token { token, platform: "WEB" } (X-Access-Token 헤더 포함)
+  BE->>BE: SessionAuthenticationFilter가 access 토큰 → familyId 판정
+  BE->>DB: INSERT ... ON CONFLICT(token) DO UPDATE user_id, session_family_id
   BE-->>FE: 200 OK
   FE->>FE: sessionStorage.setItem(STORAGE_KEYS.FCM.TOKEN, token)
 
@@ -120,8 +150,12 @@ sequenceDiagram
   User->>FE: 로그아웃
   FE->>FE: deleteToken(messaging)
   FE->>BE: DELETE /fcm/token { token }
-  BE->>DB: DELETE WHERE token = ?
+  BE->>DB: DELETE WHERE user_id = ? AND token = ?
   FE->>FE: sessionStorage.removeItem(STORAGE_KEYS.FCM.TOKEN)
+
+  Note over User,DB: 세션이 자연 만료·비밀번호변경 등으로 죽는 경우(로그아웃 아님)
+  BE->>SessDB: revoked_at 채워짐 또는 refresh_expires_at 지남
+  Note right of DB: 이 시점엔 아무 일도 안 일어난다 - fcm_tokens 행은<br/>그대로 남아있고, 다음 "발송 흐름"(아래)에서<br/>비로소 정리된다
 ```
 
 ### 알림 발송 흐름(댓글 → 수신)
@@ -130,20 +164,30 @@ sequenceDiagram
 sequenceDiagram
   participant Commenter as 댓글 작성자
   participant BE as Spring Boot BE
+  participant Job as CommentPostProcessService<br/>(AFTER_COMMIT, 별도 Lambda job)
+  participant SessDB as member_sessions DB
+  participant TokenDB as fcm_tokens DB
   participant FCM as Firebase FCM
   participant PostOwner as 포스트 작성자 브라우저
 
   Commenter->>BE: POST /comments { postId, content }
   BE->>BE: CommentService.createComment()
-  BE->>BE: commentRepository.save()
+  BE->>BE: commentRepository.save() (트랜잭션 커밋)
+  BE-->>Commenter: 응답 반환 (알림 발송을 기다리지 않음)
+  BE->>Job: 커밋 후 이벤트 → 별도 Lambda 호출로 위임
 
   alt 루트 댓글 AND 작성자 ≠ 포스트 작성자
-    BE->>FCM: sendCommentNotification(postAuthorId, ...)
-    Note right of BE: title: "새로운 댓글"<br/>body: "{닉네임}: {내용 50자}"<br/>data: { type, postId, commentId }
+    Job->>Job: sendCommentNotification(postAuthorId, postId, commentId)
+    Note right of Job: title: "새로운 댓글"<br/>body: "회원님의 게시글에 새 댓글이 달렸어요."<br/>data: { type, postId, commentId }
   else 답글 AND 작성자 ≠ 원댓글 작성자
-    BE->>FCM: sendReplyNotification(parentCommentAuthorId, ...)
-    Note right of BE: title: "새로운 답글"<br/>body: "{닉네임}: {내용 50자}"<br/>data: { type, postId, commentId }
+    Job->>Job: sendReplyNotification(parentCommentAuthorId, postId, commentId)
+    Note right of Job: title: "새로운 답글"<br/>body: "회원님의 댓글에 새 답글이 달렸어요."<br/>data: { type, postId, commentId }
   end
+
+  Job->>TokenDB: deleteStaleTokensForUser(userId)
+  TokenDB->>SessDB: session_family_id가 살아있는 세션에<br/>묶여있는지 확인(EXISTS 서브쿼리)
+  Note right of TokenDB: 안 묶여있으면(레거시 NULL 포함) 삭제 -<br/>이 기기로는 더 이상 발송 안 됨
+  Job->>FCM: 남은 토큰만 MulticastMessage 발송
 
   FCM-->>PostOwner: Push Message
 
@@ -193,20 +237,32 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
 
 **FCM 토큰 등록·해제**(`fcm.ts` + `shared/api/fcm.api.ts`)
 
-로그인 성공 직후 `auth.queries.ts`의 `onSuccess`에서 `requestAndRegisterFcmToken`을
-호출한다. 서버 등록은 별도 함수(`registerTokenToServer`)로 분리돼 있고,
-`sessionStorage`(키는 `STORAGE_KEYS.FCM.TOKEN`, §12)에 토큰을 캐싱해 **동일
-세션에서 중복 서버 요청을 방지**한다. 등록에는 로그인 직후의 `accessToken`이
-필요한데 이 시점 타이밍 문제가 §10.6 시행착오의 원인이었다. 실제 `/fcm/token`
-호출은 `shared/api/fcm.api.ts`의 `fcmApi`(다른 엔티티와 같은 3-layer API 규약대로
+`requestAndRegisterFcmToken`은 세 곳에서 호출된다 — ① 로그인 성공
+(`auth.queries.ts`의 `useLoginMutation.onSuccess`), ② 비밀번호 변경 성공
+(`useChangePasswordMutation.onSuccess`), ③ 앱 부팅 시 세션 복원 성공
+(`useAuth.ts`의 `restoreAuth`). ②·③은 2026-09-29에 추가됐다 - BE가 그 시점마다
+이 기기의 세션 회전 계열(familyId)을 새로 발급하는데, FCM 토큰을 재등록하지
+않으면 옛 계열에 묶인 채로 다음 알림부터 끊겨버리기 때문이다(계정 정보가
+확실히 없는 ①만 있던 예전에는 이 문제가 없었다).
+
+서버 등록은 별도 함수(`registerTokenToServer`)로 분리돼 있다. 예전에는
+`sessionStorage`(키는 `STORAGE_KEYS.FCM.TOKEN`, §12)에 같은 토큰 문자열이 있으면
+서버 재등록 자체를 건너뛰었지만, 이 캐시는 제거했다 - 세션이 바뀌어도(비밀번호
+변경 등) 토큰 문자열 자체는 그대로인 경우가 많아, 캐시가 있으면 새 familyId로
+재등록해야 할 때 조용히 스킵돼버린다(정확히 사용자가 "세션 만료 후 같은 탭에서
+재로그인해도 알림이 안 온다"로 겪었던 재현 경로다). `sessionStorage`에 토큰을
+써두는 것 자체는 유지한다 - `unregisterFcmToken`이 로그아웃 시 어떤 토큰을
+지울지 알아야 하기 때문이다. 등록에는 그 시점의 `accessToken`이 필요한데 로그인
+직후 타이밍 문제가 §10.6 시행착오의 원인이었다. 실제 `/fcm/token` 호출은
+`shared/api/fcm.api.ts`의 `fcmApi`(다른 엔티티와 같은 3-layer API 규약대로
 `apiClient` 경유)가 맡는다 — 인증 헤더·baseURL·401 갱신은 `apiClient`가 이미
-처리하므로 `fcm.ts`는 accessToken 존재 여부만 확인한다.
+처리하므로 `fcm.ts`는 accessToken 존재 여부만 확인한다. familyId는 FE가 보내는
+게 아니라 BE가 그 요청의 access 토큰에서 직접 판정한다(§5 참고) - 요청 바디는
+전과 동일하다.
 
 ```typescript
 // src/shared/lib/firebase/fcm.ts (요지만 발췌 — 전체는 파일 직접 확인)
 async function registerTokenToServer(token: string): Promise<void> {
-  if (sessionStorage.getItem(STORAGE_KEYS.FCM.TOKEN) === token) return; // 중복 방지
-
   const accessToken = getAccessTokenFromStore(); // useAuthStore.getState().accessToken
   if (!accessToken) return; // 아직 로그인 상태가 스토어에 반영 안 됐으면 조용히 skip
 
@@ -345,31 +401,43 @@ BE는 별도 git 저장소(`link-sphere_BE_NEW`)라 아래 스니펫은 **작성
 src/main/kotlin/com/example/linksphere/
 ├── infra/fcm/
 │   ├── FcmConfig.kt              # Firebase Admin SDK 초기화
-│   ├── FcmService.kt             # sendToUser() - 실제 FCM 발송
-│   ├── FcmNotificationService.kt # 알림 타입별 메시지 조립
+│   ├── FcmService.kt             # sendToUser() - stale 토큰 정리 + 실제 FCM 발송
+│   ├── FcmNotificationService.kt # 알림 타입별 메시지 조립(닉네임·본문 없는 일반 문구)
 │   ├── FcmTokenController.kt     # POST/DELETE /fcm/token
 │   ├── FcmTokenService.kt        # 토큰 CRUD 비즈니스 로직
-│   ├── FcmTokenRepository.kt     # JPA Repository
+│   ├── FcmTokenRepository.kt     # upsertToken·deleteStaleTokensForUser 등
 │   ├── FcmTokenDTO.kt            # Request DTO
-│   └── TableFcmToken.kt          # fcm_tokens 엔티티
+│   └── TableFcmToken.kt          # fcm_tokens 엔티티(session_family_id 포함)
 └── domain/comment/
-    └── CommentService.kt         # 댓글/답글 저장 후 알림 트리거
+    └── CommentPostProcessService.kt  # 댓글/답글 저장 후(AFTER_COMMIT) 알림 트리거
 ```
+
+> 이 문서의 §5 "왜 이렇게 바뀌었나"에서 언급한 세션 바인딩은
+> `domain/auth/MemberSessionService.kt`·`SessionAuthenticationFilter.kt`·
+> `global/common/SecurityUtils.kt`(BE 인증 개편의 일부)와도 맞물려 있다 - FCM
+> 전용 코드는 아니지만 `getSessionFamilyId()`를 통해 이 기능이 의존한다.
 
 Firebase Admin SDK 초기화(`FcmConfig.kt`)는 서비스 계정 키 파일이 없으면(로컬
 개발 등) 경고만 남기고 조용히 skip한다. `fcm_tokens` 테이블은 `token`에 `UNIQUE`
 제약을 걸어 중복 저장을 DB 레벨에서 막고, `platform`(`WEB`/`ANDROID`/`IOS`
-고려 설계, 현재는 `WEB`만 사용)을 갖는다(§6 상태 모델).
+고려 설계, 현재는 `WEB`만 사용)과 `session_family_id`(nullable, §6 상태 모델)를
+갖는다.
 
-발송(`FcmService.sendToUser`)은 `MulticastMessage`로 한 유저의 모든 토큰(최대
-500개, 멀티 디바이스)에 동시 발송하고, 응답 중 `UNREGISTERED`/`INVALID_ARGUMENT`
-에러(만료된 토큰)는 자동으로 DB에서 삭제한다.
+등록(`FcmTokenService.registerToken`)은 네이티브 `INSERT ... ON CONFLICT(token)
+DO UPDATE`로 upsert한다 - 같은 토큰이 이미 있으면(기기 재사용·계정 전환 포함)
+소유자·`session_family_id`를 덮어쓴다. 발송(`FcmService.sendToUser`)은 먼저
+`deleteStaleTokensForUser`로 그 유저의 죽은 회전 계열에 묶인 토큰(레거시 NULL
+포함)을 지우고, 남은 토큰만 `MulticastMessage`로 동시 발송한다(최대 500개,
+멀티 디바이스). 응답 중 `UNREGISTERED`/`INVALID_ARGUMENT` 에러(만료된 토큰)는
+그 후에도 자동으로 DB에서 삭제한다.
 
 알림을 보내지 않는 경우:
 
 - 자기 포스트에 자기가 댓글 → 자기 자신에게 알림 없음(`post.userId != userId`)
 - 자기 댓글에 자기가 답글 → 자기 자신에게 알림 없음(`parent.userId != userId`)
 - 답글(대댓글)에 달리는 대대댓글 → 최대 depth 1 제한으로 원천 차단
+- 그 기기의 로그인 세션이 죽어있음(로그아웃·비밀번호변경·자연만료·재사용탐지) →
+  `deleteStaleTokensForUser`가 발송 직전에 걸러냄(§5 "왜 이렇게 바뀌었나")
 
 ### 배포 설정
 
@@ -425,16 +493,20 @@ FE 쪽에서 토큰 등록에 필요한 상태는 `useAuthStore`(Zustand)의 `ac
 무관하게 `useAuthStore.getState()`로 직접 읽는다(§10.6).
 
 `fcm_tokens` 테이블(BE, `TableFcmToken.kt`)은 `id`/`userId`/`token`(UNIQUE)/
-`platform`(`WEB` 고정 사용 중)/`createdAt`/`updatedAt`.
+`platform`(`WEB` 고정 사용 중)/`sessionFamilyId`(nullable — 이 컬럼 도입 이전
+레거시 행이거나 세션 정보를 못 읽은 경우 `null`, 즉시 비활성 취급됨)/
+`createdAt`/`updatedAt`. `sessionFamilyId`는 BE `member_sessions.family_id`를
+가리키지만 JPA 연관관계로 묶여있지 않다(리포지토리 레벨 서브쿼리로만 참조 -
+`fcm_tokens.user_id`도 원래 FK가 아닌 이 레포의 기존 관례를 따른 것).
 
 ## 7. 운영 파라미터
 
-| 파라미터                  | 값                                               | 실제 위치                                           |
-| ------------------------- | ------------------------------------------------ | --------------------------------------------------- |
-| 알림 본문 길이 제한       | 50자(초과 시 `...` 없이 자름 — §11 개선 대상)    | BE `CommentService.kt`의 `finalContent.take(50)`    |
-| 한 유저 동시 발송 토큰 수 | 최대 500(멀티 디바이스)                          | BE `FcmService.sendToUser`의 `sendEachForMulticast` |
-| 자동 삭제 대상 에러       | `UNREGISTERED`, `INVALID_ARGUMENT`               | BE `FcmService.sendToUser`의 실패 응답 필터         |
-| 토큰 세션 캐시 키         | `STORAGE_KEYS.FCM.TOKEN`(`linksphere:fcm:token`) | `src/shared/config/storage-keys.ts:21-23`           |
+| 파라미터                                    | 값                                               | 실제 위치                                           |
+| ------------------------------------------- | ------------------------------------------------ | --------------------------------------------------- |
+| 한 유저 동시 발송 토큰 수                   | 최대 500(멀티 디바이스)                          | BE `FcmService.sendToUser`의 `sendEachForMulticast` |
+| 자동 삭제 대상 에러                         | `UNREGISTERED`, `INVALID_ARGUMENT`               | BE `FcmService.sendToUser`의 실패 응답 필터         |
+| 토큰 세션 캐시 키                           | `STORAGE_KEYS.FCM.TOKEN`(`linksphere:fcm:token`) | `src/shared/config/storage-keys.ts:21-23`           |
+| 세션 절대 수명(=알림 수신 가능 기간의 상한) | 7일(재로그인 없이는 이 기간 지나면 알림도 끊김)  | BE `MemberSessionService.REFRESH_TOKEN_VALIDITY`    |
 
 ## 8. 코드 지도와 자주 하는 수정
 
@@ -442,20 +514,23 @@ FE 쪽에서 토큰 등록에 필요한 상태는 `useAuthStore`(Zustand)의 `ac
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                       | 방법                                                                                                                                                                                        |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 새 알림 타입 추가(예: 좋아요 알림) | BE `FcmNotificationService`에 `send*Notification` 함수 추가 + `data.type` 값 추가, FE는 `type`을 안 쓰므로 기본적으로 손댈 곳 없음(딥링크만 되면 됨)                                        |
-| 50자 절단 기준 변경                | BE `CommentService.kt`의 `.take(50)` 두 곳(§7)                                                                                                                                              |
-| 알림 클릭 시 이동 경로 변경        | FE `useFcmForegroundMessage.ts`(포그라운드)와 `public/firebase-messaging-sw.js`의 `notificationclick`(백그라운드) **둘 다** 고쳐야 한다 — 한쪽만 고치면 포그라운드/백그라운드 동작이 갈린다 |
-| 알림 문구 변경                     | `TEXTS.notification.*`(`shared/config/texts.ts`), BE의 `title`/`body` 리터럴(`FcmNotificationService.kt`)                                                                                   |
-| VAPID 키 로테이션                  | Firebase Console에서 재발급 후 `VITE_FIREBASE_VAPID_KEY` GitHub Secret 갱신                                                                                                                 |
+| 하고 싶은 것                         | 방법                                                                                                                                                                                                                        |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 새 알림 타입 추가(예: 좋아요 알림)   | BE `FcmNotificationService`에 `send*Notification` 함수 추가 + `data.type` 값 추가, FE는 `type`을 안 쓰므로 기본적으로 손댈 곳 없음(딥링크만 되면 됨). 새 본문에도 닉네임·컨텐츠 내용을 넣지 않는다(§5 "왜 이렇게 바뀌었나") |
+| 알림 클릭 시 이동 경로 변경          | FE `useFcmForegroundMessage.ts`(포그라운드)와 `public/firebase-messaging-sw.js`의 `notificationclick`(백그라운드) **둘 다** 고쳐야 한다 — 한쪽만 고치면 포그라운드/백그라운드 동작이 갈린다                                 |
+| 알림 문구 변경                       | `TEXTS.notification.*`(`shared/config/texts.ts`), BE의 `title`/`body` 리터럴(`FcmNotificationService.kt`)                                                                                                                   |
+| 세션 바인딩 기준(family_id) 조정     | BE `FcmTokenRepository.deleteStaleTokensForUser`의 EXISTS 서브쿼리 조건                                                                                                                                                     |
+| 새 로그인 이벤트에도 FCM 재등록 추가 | FE에서 `void requestAndRegisterFcmToken()`을 그 이벤트의 성공 콜백에 추가(로그인·비밀번호변경·세션복원이 기존 선례)                                                                                                         |
+| VAPID 키 로테이션                    | Firebase Console에서 재발급 후 `VITE_FIREBASE_VAPID_KEY` GitHub Secret 갱신                                                                                                                                                 |
 
 ## 9. 검증 결과
 
-이 기능은 자동화 테스트가 없다 — 브라우저 `Notification` 권한, 실제 Service
-Worker 등록, 실제 FCM 인프라가 필요해 단위 테스트로 재현하기 어렵다. 대신 배포
-환경에서 수동으로 검증하며 실제로 발견한 문제 6건이 §10 시행착오에 원인·해결과
-함께 기록돼 있다 — 이 기능의 실질적인 검증 기록은 그 절이다.
+브라우저 `Notification` 권한, 실제 Service Worker 등록, 실제 FCM 인프라가
+필요한 발송 경로 자체는 자동화 테스트가 없다 — 배포 환경에서 수동으로 검증하며
+실제로 발견한 문제 6건이 §10 시행착오에 원인·해결과 함께 기록돼 있다. 2026-09-29
+세션 바인딩 도입으로 BE `FcmTokenServiceTest`(신규)가 토큰 등록(upsert)·
+`FcmTokenService`의 유닛 테스트를 커버하기 시작했지만, `sendToUser`의 stale
+토큰 삭제·실제 발송 자체는 여전히 수동 검증 대상이다.
 
 ## 10. 시행착오
 
@@ -560,50 +635,28 @@ onSuccess: (data) => {
 
 ## 11. 남은 것
 
-### 11.1. FCM 발송이 댓글 저장 트랜잭션 내에서 동기 실행
+> 2026-09-29 기준 이미 해결된 과거 항목(FCM 발송 동기 실행·`DELETE /fcm/token`
+> 인증 미적용·알림 본문 50자 truncation)은 이 절에서 제거했다 — 발송은 이제
+> `CommentPostProcessService`의 AFTER_COMMIT 이벤트로 요청 경로 밖에서
+> 비동기 처리되고(§5), `DELETE /fcm/token`도 다른 엔드포인트와 동일하게
+> `Authentication`을 요구하며, 알림 본문 자체가 닉네임·댓글 내용을 안 실어
+> truncation 문제가 성립하지 않는다.
 
-현재 `CommentService.createComment()`의 `@Transactional` 범위 안에서 FCM 발송이
-동기적으로 실행된다.
+### 11.1. `TableFcmToken.updatedAt` 자동 갱신 없음
 
-```
-[트랜잭션 시작]
-  → DB 저장
-  → FCM 네트워크 요청 (동기 블로킹)
-[트랜잭션 종료]
-→ HTTP 응답 반환
-```
+`updatedAt`은 엔티티 생성 시점에만 설정되고 `@PreUpdate`가 없다. 다만
+2026-09-29 도입한 `upsertToken`(네이티브 `INSERT ... ON CONFLICT DO UPDATE`)이
+매 등록 시도마다 `updated_at = now()`를 명시적으로 SET하므로, 실질적으로는
+이 문제가 등록 경로에서는 해소됐다 - 다른 경로(예: 발송 성공만으로 갱신)가
+추가되면 그때 다시 확인이 필요하다.
 
-Firebase 서버가 느리거나 일시 장애가 발생하면 댓글 저장 응답 자체가 지연된다.
+### 11.2. 세션 만료로 알림이 끊겨도 사용자에게 안내하지 않음
 
-**개선안**: Spring `@Async` 또는 `ApplicationEventPublisher`를 사용해 알림
-발송을 비동기로 분리한다.
-
-```kotlin
-// 개선 예시
-@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-fun onCommentCreated(event: CommentCreatedEvent) {
-    fcmNotificationService.sendCommentNotification(...)
-}
-```
-
-### 11.2. `DELETE /fcm/token` 인증 미적용
-
-현재 토큰 삭제 엔드포인트는 인증 없이 토큰 값만 알면 누구든 삭제할 수 있다.
-FCM 토큰은 추측하기 어려운 긴 문자열이므로 실질적인 위험은 낮지만, 원칙적으로는
-`Authentication` 파라미터를 추가해 본인 토큰만 삭제 가능하도록 보완하는 것이
-바람직하다.
-
-### 11.3. 알림 본문 50자 truncation에 `...` 없음
-
-내용이 정확히 50자에서 잘리면 문장이 어색하게 끊긴다.
-
-**개선안**: `finalContent.take(50).let { if (it.length == 50) "$it…" else it }`
-
-### 11.4. `TableFcmToken.updatedAt` 자동 갱신 없음
-
-현재 `updatedAt`은 엔티티 생성 시점에만 설정되고 `@PreUpdate`가 없어 갱신되지
-않는다. 현재 구현은 토큰 만료 시 삭제 후 재등록하는 방식이라 큰 문제는 아니지만,
-이후 토큰 갱신 로직 추가 시 주의가 필요하다.
+세션이 자연 만료되면 그 기기로의 알림도 조용히 끊긴다(§5). 재로그인하면
+정상 복구되지만, 그 사이 "왜 알림이 안 오지?"를 알 방법은 없다 - 세션이
+죽으면 로그인 화면으로 수렴하므로 별도 안내 없이도 재로그인 시 자연스럽게
+복구된다는 판단으로 범위 밖에 뒀다(`docs/plans/2026-09-29-fcm-session-binding.md`
+"판단이 필요했던 항목" 참고). 필요해지면 배너 등으로 안내를 추가할 수 있다.
 
 ## 12. 용어 사전
 
@@ -618,9 +671,18 @@ FCM 토큰은 추측하기 어려운 긴 문자열이므로 실질적인 위험�
 - **토스트 래퍼** — 이 문서의 다이어그램·코드에서 "toast"라고만 쓴 것은 sonner
   라이브러리를 직접 부르는 게 아니라 이 레포 공통 래퍼
   `@/shared/lib/toast/toast`를 가리킨다
+- **`family_id`/`session_family_id`** — BE `member_sessions.family_id`는 한
+  로그인의 refresh 회전 계열을 식별하는 UUID(로그인=새 계열, `/auth/refresh`
+  회전=계열 유지, 로그아웃·재사용탐지=계열 전체 폐기). `fcm_tokens.session_family_id`는
+  그 값을 그대로 복사해 저장해, 세션이 죽었는지를 FCM 토큰 쪽에서도 판정할 수
+  있게 한다(§5 "왜 이렇게 바뀌었나")
 
 ## 13. 관련 문서
 
 - [`DEPLOY.md`](./DEPLOY.md) — S3/CloudFront 배포 파이프라인 전반
 - [`UNSAVED-CHANGES-GUARD.md`](./UNSAVED-CHANGES-GUARD.md) — `RootLayout`에
   함께 마운트되는 다른 전역 훅
+- [`plans/2026-09-29-fcm-session-binding.md`](./plans/2026-09-29-fcm-session-binding.md) —
+  세션 바인딩·알림 내용 최소화 도입 계획(업계 관례 조사, 판단 근거 전체 기록)
+- [`plans/2026-09-28-auth-hardening.md`](./plans/2026-09-28-auth-hardening.md) —
+  이 기능이 의존하는 `member_sessions`·`family_id` 세션 관리 체계 자체의 설계

@@ -81,11 +81,12 @@ export async function unregisterFcmToken(): Promise<void> {
 }
 
 async function registerTokenToServer(token: string): Promise<void> {
-  // 동일 토큰을 중복 등록하지 않도록 세션에 캐싱
-  if (sessionStorage.getItem(STORAGE_KEYS.FCM.TOKEN) === token) {
-    return;
-  }
-
+  // 로그인 성공·비밀번호 변경 성공·세션 복원 성공마다 항상 서버에 재등록한다 - BE가 이
+  // 요청의 access 토큰에서 세션 회전 계열(familyId)을 읽어 fcm_tokens에 함께 저장하고,
+  // 그 계열이 나중에 죽으면(로그아웃 등) 이 토큰도 자동으로 발송 대상에서 빠진다
+  // (docs/FCM-PUSH-NOTIFICATION.md 참고). 이전에는 같은 토큰 문자열이면 재등록을
+  // 건너뛰었지만, 그러면 세션이 바뀌어도(비밀번호 변경 등) familyId가 갱신되지 않아
+  // 옛 계열에 묶인 채로 다음 발송 때 끊겨버린다.
   const accessToken = getAccessTokenFromStore();
   if (!accessToken) {
     return;
