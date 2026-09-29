@@ -1,29 +1,13 @@
 import { useAuthStore } from '@/shared/store/auth.store';
 // 이 파일만 queryClient 싱글턴을 직접 import한다 — clearAll()/clearQueries()가 React 트리
 // 밖에서 호출되기 때문이다(useQueryClient()를 쓸 수 없다):
-//   - shared/api/client.ts:173,195,219 (fetch 인터셉터의 401/refresh 실패 경로)
+//   - shared/api/client.ts:173,193,266,268 (fetch 인터셉터의 401/refresh 실패 경로)
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { LogoutGraceUtil } from '@/shared/utils/logout-grace.util';
 
 export class AuthUtil {
-  static isTokenExpired(token: string): boolean {
-    try {
-      const parts = token.split('.');
-      if (parts.length < 2) {
-        return true;
-      }
-      const payload = JSON.parse(atob(parts[1]!)) as { exp?: number };
-      if (typeof payload.exp !== 'number') {
-        return true;
-      }
-      return Date.now() / 1000 > payload.exp - 30;
-    } catch {
-      return true;
-    }
-  }
-
   static clearAuth(): void {
     useAuthStore.getState().clearAuth();
   }

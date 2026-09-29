@@ -86,7 +86,7 @@ flowchart TD
 | ------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | 위치          | `src/app/routes/ProtectedRoute.tsx`                    | `src/shared/api/client.ts`의 `handleTokenExpired` 메서드(`:162-206`) + `request()`의 401 분기(`:256-271`) | `src/entities/auth/hooks/useAuthGuard.ts`, `useProtectedNavigate.ts` |
 | 판단 근거     | 클라이언트 로컬 상태(`useAuthStore.isAuthenticated`)만 | BE의 실제 401 응답 코드                                                                                   | 클라이언트 로컬 상태만                                               |
-| BE와 통신     | 안 함(§8-A가 실질적으로 no-op이므로)                   | 함(`POST /auth/refresh`, 원 요청 재시도)                                                                  | 안 함(애초에 요청을 안 보냄)                                         |
+| BE와 통신     | 안 함(사전 검증 로직 자체가 없음, §8-A)                | 함(`POST /auth/refresh`, 원 요청 재시도)                                                                  | 안 함(애초에 요청을 안 보냄)                                         |
 | 발동 시점     | 보호 라우트가 **렌더**될 때                            | 실제 API 요청이 **401을 받은 뒤**                                                                         | 사용자가 **클릭**했을 때, 요청 전                                    |
 | 책임          | 화면을 보여줄지 말지 분기, 스피너, 로그인 모달 유도    | 요청을 인증시켜 성공시키거나 세션을 끊음                                                                  | 실패할 게 뻔한 요청을 사전에 막고 로그인 유도                        |
 | 실패 시 결과  | `/post`로 replace 이동(+ 조건부 모달)                  | `AuthUtil.clearAll()` → `/auth/login` replace                                                             | 로그인 모달(제자리 유지, 페이지 이동 없음)                           |
@@ -104,7 +104,7 @@ RootLayout
 └─ AuthLayout(가드 없음, 로그인·비로그인 공용)   — /auth/verify-email
 ```
 
-`ProtectedLayout.tsx:4-9`가 `ProtectedRoute`로 `AppShellLayout`을 감쌉니다. **이건 React Router의 레이아웃 라우트라, 보호 그룹 안에서 페이지를 오갈 때(`/post/submit` ↔ `/bookmark`)는 언마운트되지 않습니다.** 게이트 A가 실제로 재평가되는 유일한 순간은 공개/게스트 그룹에서 보호 그룹으로 **처음 진입**할 때뿐입니다 — 이 사실이 §8-A의 발동 범위를 이해하는 데 중요합니다.
+`ProtectedLayout.tsx:4-9`가 `ProtectedRoute`로 `AppShellLayout`을 감쌉니다. **이건 React Router의 레이아웃 라우트라, 보호 그룹 안에서 페이지를 오갈 때(`/post/submit` ↔ `/bookmark`)는 언마운트되지 않습니다.** 게이트 A가 실제로 재평가되는 유일한 순간은 공개/게스트 그룹에서 보호 그룹으로 **처음 진입**할 때뿐입니다.
 
 `GuestGuard`(`routes/index.tsx`의 `GuestGuard` 함수, `:86-99`)는 반대 방향 가드입니다 — 로그인 상태로 `/auth/login`에 오면 이전 경로(`location.state.from.pathname`) 또는 `HOME`으로 돌려보냅니다.
 
@@ -146,20 +146,13 @@ RootLayout
 
 | 파라미터                                   | 값                                                                                                                             | 위치                                                                             |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| 액세스 토큰 만료 판정 여유 마진            | 30초(BE가 아직 유효하다고 볼 시각이어도 FE는 만료로 간주) — **단, 아래 주의 참고: 실제 토큰에는 이 분기까지 도달하지 않는다**  | `src/shared/utils/auth.util.ts`의 `isTokenExpired`(`:11-25`)                     |
 | 계정 정보(`accountKeys.root`) `staleTime`  | 1일(`STALE_TIME_ONE_DAY`)                                                                                                      | `src/entities/account/api/account.queries.ts:51`                                 |
 | 동시 401 발생 시 실제 refresh 호출 횟수    | 항상 1회(리더-팔로워 큐잉, §9)                                                                                                 | `src/shared/api/client.ts`의 `handleTokenExpired` 메서드(`:162-206`)             |
 | refresh 재시도 상한                        | **1회**(재시도한 요청이 다시 `TOKEN_EXPIRED`를 받으면 refresh를 또 호출하지 않고 실패 처리 — 2026-09-21 추가, §11 항목 1 참고) | `src/shared/api/client.ts`의 `handleTokenExpired`, `retryCount > 0` 가드(`:170`) |
 | 로그아웃 직후 유예 시간(`LOGOUT_GRACE_MS`) | 2초 — §8-E 참고                                                                                                                | `src/shared/utils/logout-grace.util.ts:25`                                       |
 
-> **주의**: `isTokenExpired`(`auth.util.ts:11-25`)는 여전히 JWT 형식(`token.split('.')`으로 점 구분,
-> 두 번째 파트를 base64 JSON으로 파싱해 `exp` 필드를 읽음)을 가정합니다. 하지만 BE는 PR #42로
-> JWT를 폐지했고 현재 accessToken은 `SecureToken.generate()`(BE `global/common/SecureToken.kt`)가
-> 만드는 32바이트 base64url 문자열(43자, 점 없음)입니다 — `parts.length < 2` 조건에 걸려
-> `isTokenExpired`는 실제 토큰에 대해 **항상 `true`를 반환**하고, 위 30초 마진을 계산하는 코드에는
-> 도달하지 않습니다. §8-A에서 이 함수를 호출하는 지점의 영향은 그 절에서 설명합니다. 이 사실은
-> 문서 작업(2026-09-29) 중 코드 대조로 처음 확인됐고, 이번 작업은 문서만 갱신하며 코드는 고치지
-> 않습니다.
+> 이 표에는 더 이상 "액세스 토큰 만료 판정 여유 마진" 항목이 없습니다 — 그 값을 쓰던
+> `isTokenExpired`가 2026-09-29에 삭제됐습니다. 경위는 §10 "후속 — 근본 원인 제거" 참고.
 
 ---
 
@@ -167,41 +160,29 @@ RootLayout
 
 ### 8-A. 게이트 A가 실제로 하는 일 (그리고 안 하는 일)
 
-```ts
-// ProtectedRoute.tsx — isVerifying 상태 선언과 effect (:24-37)
-// isAuthenticated는 항상 accessToken 존재 여부와 동치라(auth.store.ts) 아래 restoreAuth()는
-// accessToken이 있으면 실제로 refresh를 호출하지 않고 즉시 통과시킨다 — 만료된 토큰의 실제
-// 재검증은 여기가 아니라 shared/api/client.ts의 401 인터셉터가 실제 요청 시점에 담당한다.
-const [isVerifying, setIsVerifying] = useState(
-  () => !!accessToken && AuthUtil.isTokenExpired(accessToken)
-);
-
-useEffect(() => {
-  if (!isVerifying) {
-    return;
-  }
-  restoreAuth().finally(() => setIsVerifying(false));
-}, [isVerifying, restoreAuth]);
-```
-
-`isVerifying`은 `useState`의 **lazy initializer**라 이 컴포넌트가 마운트되는 순간 딱 한 번만 평가됩니다(§5의 "레이아웃 라우트라 재마운트 안 됨"과 연결). 그리고 여기서 부르는 `restoreAuth`(`src/entities/auth/hooks/useAuth.ts`의 `restoreAuth`, `:65-89`)의 첫 줄은:
+게이트 A는 `isAuthResolved`(§6, 앱 부팅 시 1회 복원)를 기다리는 것 말고는 아무 사전
+검증도 하지 않습니다:
 
 ```ts
-// entities/auth/hooks/useAuth.ts의 restoreAuth 앞부분 (:65-69)
-const restoreAuth = useCallback(async (): Promise<boolean> => {
-  try {
-    if (accessToken && isAuthenticated) {
-      return true;
-    }
-    const authData = await authApi.refresh();
-    ...
+// ProtectedRoute.tsx의 렌더 가드 전체
+if (!isAuthResolved) {
+  return <SpinnerOverlay className="h-screen" />;
+}
+
+if (!isAuthenticated) {
+  return <Navigate to={ROUTES_PATHS.POST.ROOT} replace ... />;
+}
+
+return <>{children}</>;
 ```
 
-§6에서 확인했듯 `accessToken`이 있으면 `isAuthenticated`도 항상 `true`이므로, **게이트 A가 이 분기에 들어오는 조건(`!!accessToken`) 자체가 이미 이 early return을 100% 성립시킵니다.** 즉 `authApi.refresh()`는 절대 호출되지 않고, `isVerifying`은 스피너를 한 틱 켰다 끌 뿐입니다. `restoreAuth`의 유일한 정상 호출부인 `useAppInitialization.ts:50`은 애초에 `!accessToken` 가드를 두고 호출하므로(§8-C), 이 early return은 원래 그 호출부 기준으로는 도달 안 하는 방어 코드였습니다 — `ProtectedRoute`가 나중에 같은 함수를 다른 의도로 재사용하면서 이 가드에 걸린 것입니다.
-
-**결론**: 이 앱에는 "만료 토큰의 사전(proactive) 재검증"이 사실상 없습니다. 만료 토큰 처리는 전부 게이트 B가 담당합니다. 코드 상단 주석(`ProtectedRoute.tsx:24-27`)도 지금은 이 사실을 정확히 서술합니다.
-
-**§7의 주의와 연결되는 추가 사실**: `isVerifying`의 lazy initializer(`!!accessToken && AuthUtil.isTokenExpired(accessToken)`)가 평가되는 유일한 실질 시점은 §5에서 설명한 "이미 로그인한 상태로 공개/게스트 그룹에서 보호 그룹으로 처음 진입"할 때입니다 — 그 순간엔 `accessToken`이 이미 존재(`isAuthenticated === true`)합니다. §7에서 확인했듯 `isTokenExpired`는 지금 accessToken 형식(불투명, 점 없음)에 대해 **항상 `true`를 반환**하므로, `isVerifying`은 실제 토큰의 신선도와 무관하게 이 진입 시점마다 **항상** `true`로 초기화됩니다. 결과는 위에서 설명한 대로 무해합니다(`restoreAuth`가 early return하므로 네트워크 요청 없이 스피너만 한 틱 깜빡임) — 다만 "가끔 만료에 가까울 때만" 일어나는 일이 아니라 "이 진입 경로를 탈 때마다" 일어나는 일이라는 뜻입니다.
+**결론**: 이 앱에는 "만료 토큰의 사전(proactive) 재검증"이 없습니다. 만료 토큰 처리는
+전부 게이트 B가 담당합니다. 2026-09-29 이전에는 accessToken이 존재할 때마다
+`AuthUtil.isTokenExpired(accessToken)` + `restoreAuth()`를 추가로 거치는 `isVerifying`
+게이트가 있었지만, 이 게이트는 `restoreAuth()`가 accessToken 존재만으로 즉시
+early-return하는 구조상 애초에 아무 일도 하지 않았고(§10, 2026-09-09 사건에서 이미
+확인됨), opaque 토큰으로 전환된 뒤로는 매번 스피너만 한 틱 깜빡이는 부작용까지
+생겨 완전히 제거했습니다. 자세한 경위는 §10 "후속 — 근본 원인 제거" 참고.
 
 ### 8-B. 게이트 B — 반응형 401 인터셉터
 
@@ -453,6 +434,37 @@ predicate가 더 이상 매칭되지 않아 아무것도 다시 부르지 않습
 > 한 레이어에서 "방어가 없어 보인다"를 발견하면, **그 방어가 다른 레이어에 있는지부터 확인한다.** 특히 (i) 클라이언트 로컬 상태만 읽는 게이트는 원래 보안 장치가 아닐 수 있고, (ii) 실제 인증은 보통 요청 경로(transport 레이어)에 있으며, (iii) 그 경로에 이미 테스트가 있다면 그것이 의도의 1차 증거다. 설계 결정 기록([`docs/DECISIONS.md`](DECISIONS.md))에 그 코드가 왜 그 모양인지 이미 적혀 있는 경우가 많다 — 코드를 더 파기 전에 문서를 먼저 확인하면 오진 한 라운드를 통째로 아낄 수 있다.
 
 이 레포에는 같은 유형의 선례가 이미 두 건 있습니다 — [`docs/DECISIONS.md`](DECISIONS.md)의 "DevTools 에뮬레이션 아티팩트였다"(2026-08-07) 항목과 "근거 있는 결정인 것처럼 설명했다 — 잘못이었다" 항목. 오진 → 재검증 → 정정은 이 레포에서 반복돼 온 정상적인 워크플로우입니다.
+
+### 후속 — 근본 원인 제거 (2026-09-29)
+
+2026-09-09의 결론("게이트 A의 사전 검증은 아무 일도 하지 않는다, Gate B가 실질적
+방어선이다")은 맞았지만, 그 "아무 일도 안 하는" 코드(`isVerifying` 상태 +
+`AuthUtil.isTokenExpired` + `restoreAuth()`-on-mount)를 실제로 지우지는 않았습니다.
+문서-코드 동기화 감사 중 이 지점을 다시 짚어보니, 이후 BE #42(JWT 폐지 → 불투명
+세션 토큰)로 상황이 더 나빠져 있었습니다:
+
+- `isTokenExpired`는 `token.split('.')`로 점 구분자를 세는 JWT 파싱 로직이었는데,
+  불투명 토큰(`SecureToken.generate()`, 43자, 점 없음)에 대해 `parts.length < 2`에
+  걸려 **항상 `true`를 반환**했습니다.
+- 그 결과 `isVerifying`의 lazy initializer(`!!accessToken && isTokenExpired(accessToken)`)는
+  §5에서 설명한 "이미 로그인한 상태로 보호 그룹에 처음 진입"할 때마다 **항상**
+  `true`로 초기화됐습니다 — 2026-09-09 조사 당시 가정했던 "가끔 만료에 가까울
+  때만" 발동하는 게 아니라, 진입할 때마다 매번이었습니다.
+- `restoreAuth()`의 early return(`accessToken && isAuthenticated`) 덕분에 실제
+  네트워크 요청은 여전히 0회였지만, `isVerifying → setIsVerifying(false)` 한 사이클이
+  React 렌더를 최소 한 틱 지연시켜 `SpinnerOverlay`가 매번 짧게 깜빡였습니다 — 순수
+  UX 리그레션이고 보안·기능 영향은 없었습니다.
+
+2026-09-09의 결론을 뒤집는 게 아니라 그대로 밀어붙인 조치입니다: "이 게이트가
+아무 일도 하지 않는다"가 사실이라면, 아무 일도 하지 않는 코드를 유지할 이유가
+없습니다. `ProtectedRoute.tsx`에서 `isVerifying` 상태·effect를 통째로 제거해
+`isAuthResolved` 대기만 남겼고, 그 결과 프로덕션 코드에서 유일한 호출부를 잃은
+`AuthUtil.isTokenExpired`와 그 전용 테스트(`auth.util.test.ts`의
+`describe('AuthUtil.isTokenExpired', ...)`)도 함께 삭제했습니다. §5·§7·§8-A를
+이 상태에 맞춰 갱신했습니다. `ProtectedRoute.test.tsx`의 "[설계]" 테스트는
+남겨뒀습니다 — 이제는 "early return이 있어서 refresh를 안 부른다"가 아니라
+"애초에 그런 시도 자체를 안 한다"는, 더 강한 형태로 같은 결론을 지키는
+회귀 가드입니다.
 
 ---
 

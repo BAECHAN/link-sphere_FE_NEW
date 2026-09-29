@@ -14,7 +14,11 @@ import { LOADING_INDICATOR_DELAY_MS } from '@/shared/config/const';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
-/** exp(초 단위)를 가진 가짜 JWT를 만든다. auth.util.test.ts의 헬퍼와 동일. */
+/**
+ * exp(초 단위)를 가진 가짜 JWT 모양 문자열을 만든다. 이 컴포넌트는 더 이상 토큰
+ * 내용을 파싱하지 않으므로(실제 토큰은 불투명 문자열) 임의의 문자열이어도 되지만,
+ * 기존 테스트와의 diff를 최소화하기 위해 형태만 유지한다.
+ */
 function makeToken(expSecondsFromNow: number): string {
   const exp = Math.floor(Date.now() / 1000) + expSecondsFromNow;
   const header = btoa(JSON.stringify({ alg: 'none' }));
@@ -152,12 +156,16 @@ describe('ProtectedRoute', () => {
     expect(useLoginModalStore.getState().onSuccess).toBeUndefined();
   });
 
-  it('[설계] 만료된 accessToken이 있어도 이 컴포넌트는 사전에 refresh를 호출하지 않고 통과시킨다', async () => {
+  it('[설계] 만료된 것처럼 보이는 accessToken이 있어도 이 컴포넌트는 사전에 refresh를 호출하지 않는다', async () => {
     // 버그가 아니다 — 만료 토큰의 실제 재검증은 이 컴포넌트가 아니라 client.ts의 401
     // 인터셉터가 실제 API 요청 시점에 담당한다(client.test.ts Case 1이 그 경로를 검증한다).
-    // 여기서 restoreAuth()가 accessToken 존재만으로 조기 반환하는 건 그 책임 분리를
-    // 반영한 것뿐이다. 자세한 경위와 두 레이어의 책임 분리는 docs/AUTH.md 참고
-    // (2026-09-09, 이 동작을 "버그"로 오진했다가 재검증 끝에 정정한 사건이 §10에 있다).
+    // 2026-09-09에 이 동작을 "버그"로 오진했다가 재검증 끝에 정정한 사건이 docs/AUTH.md
+    // §10에 있다 — 그 결론(이 컴포넌트는 애초에 사전 검증을 할 필요가 없다)을 그대로
+    // 밀어붙여, 2026-09-29에는 "accessToken이 있으면 조기 반환하는 restoreAuth()를
+    // 굳이 호출"하던 isVerifying 게이트 자체를 제거했다(BE #42로 토큰이 불투명해지면서
+    // 그 게이트가 opaque 토큰마다 무조건 true로 평가돼 진입마다 스피너가 잠깐 깜빡이는
+    // 부작용까지 생겼던 것도 계기). 이 테스트는 그 제거 이후에도 이 결론이 유지되는지
+    // 지키는 회귀 가드다.
     let requested = 0;
     server.use(
       http.post(url(API_ENDPOINTS.auth.refresh), () => {
