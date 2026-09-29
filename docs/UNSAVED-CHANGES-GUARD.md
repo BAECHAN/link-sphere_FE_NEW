@@ -134,8 +134,11 @@ _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 
 
 **버튼 강조**: "계속 작성"이 채움(primary)이고 오른쪽에 있으며, "나가기"가 outline이고
 왼쪽에 있다(연 순간 포커스도 "계속 작성"에 간다) — 반사적으로 눌러도 안전한 쪽이 눌리게
-하기 위해서다. 이 모달만의 규칙이 아니라 [Alert.tsx](../src/shared/ui/elements/modal/alert/Alert.tsx)의
-모든 confirm 공통 규칙(취소=채움·오른쪽, 확인=outline·왼쪽)이다. 근거와 검토한 대안
+하기 위해서다. 이건 [Alert.tsx](../src/shared/ui/elements/modal/alert/Alert.tsx)의 `emphasis`
+옵션 기본값(`'cancel'`, 생략 시 적용)을 이 가드가 그대로 쓰고 있는 것이다 — **모든 confirm
+공통 규칙이 아니다.** 삭제·탈퇴처럼 메뉴에서 직접 선택해야만 뜨는 확인창이나, 공개 설정
+토글처럼 어느 방향도 위험하지 않은 확인창은 `emphasis: 'confirm'`으로 반대(확인=채움·오른쪽)로
+켠다 — 전체 규칙표는 [FE-ARCHITECTURE.md](./FE-ARCHITECTURE.md) §10 참고. 근거와 검토한 대안
 (Apple HIG의 destructive 빨강, 현행 유지 등)은 [DECISIONS.md](./DECISIONS.md) 2026-09-29
 항목(팔로업 포함) 참고.
 
