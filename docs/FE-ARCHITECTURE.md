@@ -703,7 +703,11 @@ const onDelete = (id: string) => {
 ```typescript
 openConfirm({
   title: TEXTS.post.card.visibilityConfirmTitle,
-  confirmText: TEXTS.buttons.confirm,
+  // 버튼 문구는 방향에 따라 결과를 그대로 말한다("확인"은 버튼만 보고는 무슨 일이
+  // 일어나는지 알 수 없다 — §10-A 참고)
+  confirmText: post.isPrivate
+    ? TEXTS.post.card.visibilityConfirmButtonToPublic
+    : TEXTS.post.card.visibilityConfirmButtonToPrivate,
   cancelText: TEXTS.buttons.cancel,
   emphasis: 'confirm', // 어느 방향으로 토글해도 위험하지 않다 — "원하는 쪽" 강조
   onConfirm: () => updateVisibility(...),
@@ -711,6 +715,69 @@ openConfirm({
 ```
 
 근거는 `docs/DECISIONS.md` 2026-09-29 항목(팔로업 포함) 참고.
+
+---
+
+## 10-A. 버튼 배치·정렬 컨벤션
+
+§10이 확인창(Alert/Confirm) **내부** 버튼의 강조(색·위치·포커스) 규칙이라면, 이 절은 **일반
+폼·페이지**의 제출 버튼 배치·크기·문구 규칙이다 — 다루는 범위가 다르다. 2026-09-29 사이트
+전체 버튼 사용 현황을 전수조사(로그인·회원가입·비밀번호 찾기/재설정·게시글 작성/수정·계정
+설정 3폼·댓글 작성/수정·새 폴더 만들기)한 뒤 확정했다.
+
+**단일 제출 버튼(취소가 없는 폼)** — 전체폭 채움, `h-11`:
+
+```typescript
+<Button type="submit" className="w-full h-11" disabled={isPending}>
+  {isPending ? TEXTS.common.submitting : TEXTS.someForm.submit}
+</Button>
+```
+
+실측 당시 로그인·회원가입·비밀번호 찾기/재설정·게시글 작성/수정 6곳이 이미 이 형태였다.
+`ChangePasswordForm`·`DeleteAccountSection`이 왼쪽 정렬·기본 높이(`h-9`)였던 건 감싸는
+`<div>`가 없어서 생긴 사고였지 선례가 아니었다 — 2026-09-29에 이 형태로 맞췄다
+(`docs/DECISIONS.md` 참고).
+
+**버튼 2개(취소+확정)짜리 인라인 폼** — ghost 취소를 왼쪽에, 채움 확정을 오른쪽에,
+`justify-end`로 정렬:
+
+```typescript
+<div className="flex justify-end gap-2">
+  <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+    {TEXTS.common.cancel}
+  </Button>
+  <Button type="submit" size="sm" disabled={isPending}>
+    {TEXTS.someForm.confirmLabel}
+  </Button>
+</div>
+```
+
+댓글 작성/수정 폼, 새 폴더 만들기(데스크톱·모바일) 4곳이 이미 이 형태를 예외 없이 쓴다.
+
+**데스크톱·모바일을 다르게 두지 않는 이유**: 확인/생성처럼 사람들이 가장 많이 고를
+버튼을 오른쪽에 두는 건 macOS·iOS([Apple HIG](https://developer.apple.com/design/human-interface-guidelines/alerts) —
+_"사람들이 가장 많이 누를 버튼은 오른쪽에, 취소 버튼은 항상 왼쪽에 둔다"_(번역))와
+Android([Material Design 3](https://m3.material.io/components/dialogs/guidelines) —
+가로 배치에서 confirming 액션이 trailing/오른쪽) 양쪽 모두의 공식 가이드다. 이
+프로젝트가 쓰는 [shadcn/ui `AlertDialog`](https://ui.shadcn.com/docs/components/base/alert-dialog)
+기본값도 `AlertDialogCancel`(왼쪽) 다음에 `AlertDialogAction`(오른쪽)이다. 유일하게
+반대인 건 Windows 네이티브 대화상자(확인이 왼쪽) — 웹앱은 특정 OS 크롬을 흉내 내지
+않으므로 이 예외를 따를 이유가 약하다고 판단했다. (2026-09-29, 사용자가 "폴더 만들기는
+왼쪽이어야 한다"고 제기해 검증한 결과. 이전에 Adam Silver 블로그를 "전체 페이지 폼은
+왼쪽" 근거로 인용했었는데, 검색 스니펫만 보고 원문을 직접 확인하지 않은 오독이었다 —
+정정: 그 글은 왼쪽/오른쪽이 아니라 "취소 버튼을 확인 버튼 **아래**에 둔다"는 세로 배치
+얘기였다. 이 정정과 재검증 경위는 `docs/DECISIONS.md` 참고.)
+
+**저장 중 라벨**: 응답을 기다렸다가 반영하는 폼은 비활성화만 하지 않고 라벨도 "OO 중..."으로
+바꾼다(`TEXTS.common.saving`/`submitting`/`updating` 재사용, 없으면 해당 도메인에 새로
+추가). 사용자가 클릭이 실제로 접수됐는지 알 수 있어야 한다.
+
+**예외**: 게시글 작성/수정(`CreatePostForm`·`UpdatePostForm`)은 이 규칙 대상이 **아니다** —
+`onSubmit`이 `mutate()` 호출 직후 바로 `navigate()`로 목록으로 이동해 응답을 기다리지
+않는다(URL 재크롤링·AI 재분석이 느려서 폼에서 기다리지 않기로 한 설계, `useCreatePost.ts`/
+`useUpdatePost.ts` 참고). 컴포넌트가 pending 상태가 되는 시점엔 이미 언마운트돼 있어
+라벨을 바꿔도 사용자 눈에 보일 일이 없다 — 2026-09-29에 이 두 폼에도 라벨 스왑을 넣었다가
+죽은 코드라는 걸 뒤늦게 발견해 되돌렸다(`docs/DECISIONS.md` 참고).
 
 ---
 

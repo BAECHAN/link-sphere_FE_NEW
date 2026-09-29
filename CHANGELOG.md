@@ -11,6 +11,18 @@
 
 ### Changed
 
+- `shared` 사이트 전체 버튼 정렬·폭·문구 규칙 재정립
+  <details><summary>배경·구현</summary>
+
+  계정 설정 페이지 레이아웃을 검토하던 중 "왜 버튼이 왼쪽 정렬이냐"는 질문을 받고 확인해보니, `ChangePasswordForm`·`DeleteAccountSection`의 왼쪽 정렬은 감싸는 컨테이너가 없어 생긴 사고였지 선례가 아니었다. 이를 계기로 사이트 전체 버튼 사용 현황을 전수조사했다 — 단일 제출 버튼 9곳 중 7곳(로그인·회원가입·비밀번호 찾기/재설정·게시글 작성/수정·프로필 수정)이 이미 전체폭 채움(`w-full h-11`)이었고, 버튼 2개(취소+확정)짜리 인라인 폼 4곳(댓글 작성/수정, 새 폴더 만들기)은 예외 없이 "ghost 취소 왼쪽·채움 확정 오른쪽" 패턴이었다. 두 폼을 다수 패턴에 맞췄다.
+
+  "나만 보기" 확인창 버튼 문구를 "확인"에서 "나만 보기로 전환"/"전체 공개로 전환"으로 바꿔 버튼만 보고도 결과를 알 수 있게 했다. 탈퇴 관련 문구가 "회원 탈퇴"(섹션 제목 등 15곳 이상)와 "계정 탈퇴"(버튼 1곳)로 갈려 있던 걸 "회원 탈퇴"로 통일했다 — 네이버는 "회원탈퇴", 카카오는 "계정 탈퇴"를 써서 외부 표준은 없었고([카카오 고객센터](https://cs.kakao.com/helps_html/1073185457?locale=ko)), 내부 일관성으로 판단했다. 게시글 작성/수정 버튼에도 저장 중 라벨을 넣어봤으나, 두 폼 다 응답을 안 기다리고 제출 직후 바로 목록으로 이동해 그 라벨이 사용자 눈에 보일 일이 없다는 걸 뒤늦게 확인하고 되돌렸다(`docs/DECISIONS.md` 참고).
+
+  확인창(Alert/Confirm) 내부의 `emphasis` 강조 규칙은 이미 확정돼 있어 건드리지 않았다 — 이번 변경은 그 규칙 밖의 빈틈(일반 폼 제출 버튼의 정렬·폭·문구)만 채운다.
+  (`src/features/auth/password-change/ui/ChangePasswordForm.tsx`, `src/features/account/delete/ui/DeleteAccountSection.tsx`, `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/update/ui/UpdatePostForm.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`, `src/shared/config/texts.ts`, `e2e/post-visibility.spec.ts`, `docs/FE-ARCHITECTURE.md`, `docs/UNSAVED-CHANGES-GUARD.md`, `docs/DECISIONS.md`, [계획](docs/plans/2026-09-29-button-system-and-mypage-merge.md))
+
+  </details>
+
 - `auth` 회원탈퇴에 14일 유예기간 도입 - 로그인하면 자동 복구
   <details><summary>배경·구현</summary>
 

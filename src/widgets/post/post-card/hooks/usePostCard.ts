@@ -66,11 +66,16 @@ export function usePostCard(post: Post, isDetail = false) {
     const actionText = post.isPrivate
       ? TEXTS.post.card.visibilityToPublic
       : TEXTS.post.card.visibilityToPrivate;
+    // 버튼 문구는 메시지와 별개로 짧게 — "확인"만으론 버튼만 보고 무슨 일이 일어나는지
+    // 알 수 없다(2026-09-29, 버튼 문구 규칙).
+    const confirmButtonText = post.isPrivate
+      ? TEXTS.post.card.visibilityConfirmButtonToPublic
+      : TEXTS.post.card.visibilityConfirmButtonToPrivate;
 
     openConfirm({
       title: TEXTS.post.card.visibilityConfirmTitle,
       message: TEXTS.post.card.visibilityConfirmMessage(actionText),
-      confirmText: TEXTS.buttons.confirm,
+      confirmText: confirmButtonText,
       cancelText: TEXTS.buttons.cancel,
       // 공개 설정 토글은 삭제·이탈과 달리 어느 방향으로도 데이터가 사라지지 않고 같은
       // 확인창으로 언제든 되돌릴 수 있다 - "안전한 쪽 강조"가 아니라 "원하는 쪽 강조"가

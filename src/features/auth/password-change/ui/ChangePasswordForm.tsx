@@ -32,7 +32,7 @@ export function ChangePasswordForm() {
           disabled={isPending}
           placeholder={TEXTS.placeholders.confirmPassword}
         />
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" className="w-full h-11" disabled={isPending}>
           {isPending
             ? TEXTS.accountSettings.changePasswordSubmitting
             : TEXTS.accountSettings.changePasswordSubmit}

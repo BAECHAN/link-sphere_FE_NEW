@@ -26,7 +26,7 @@ export function DeleteAccountSection() {
             disabled={isPending}
             placeholder={TEXTS.placeholders.password}
           />
-          <Button type="submit" variant="destructive" disabled={isPending}>
+          <Button type="submit" variant="destructive" className="w-full h-11" disabled={isPending}>
             {isPending
               ? TEXTS.accountSettings.deleteSubmitting
               : TEXTS.accountSettings.deleteSubmit}
