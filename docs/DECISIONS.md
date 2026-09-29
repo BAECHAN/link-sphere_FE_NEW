@@ -6,6 +6,51 @@
 
 ---
 
+## 2026-09-29 — (정정) 버튼 2개 인라인 폼 정렬 근거를 1차 출처로 재검증함
+
+**배경**
+
+바로 아래 "사이트 전체 버튼 배치·문구 규칙 재정립" 항목의 결정 2번(버튼 2개짜리 인라인
+폼은 기존 패턴 "ghost 취소 왼쪽·채움 확정 오른쪽"을 유지)을 사용자에게 설명하며 Adam
+Silver의 글을 "전체 페이지 폼은 저장이 왼쪽" 근거로 인용했다. 사용자가 "폴더 만들기
+버튼은 왼쪽이 생성/등록이어야 한다"고 문제를 제기해 그 인용을 다시 확인했는데, **검색
+엔진이 요약해준 스니펫만 보고 원문을 직접 열어보지 않은 채 인용한 것**이었다 — 실제
+원문(Adam Silver, "Where to put buttons on forms")은 왼쪽/오른쪽 얘기가 아니라
+"제출 버튼은 입력 필드 왼쪽 끝에 정렬하고, 취소 버튼은 제출 버튼 **아래**에 둔다"는
+세로 배치를 말하고 있었다. CLAUDE.md §10("링크만으로는 부족하다 — 표시까지 한다")과
+어긋난 인용이었다.
+
+**재검증**
+
+인용을 정정한 뒤, 사용자가 "데스크톱·모바일을 구분해야 하는지 업계 관례를 찾아달라"고
+요청해 1차 출처로 다시 조사했다:
+
+- [Apple HIG, Alerts](https://developer.apple.com/design/human-interface-guidelines/alerts):
+  _"사람들이 가장 많이 누를 버튼은 오른쪽에, 취소 버튼은 항상 왼쪽에 둔다"_(번역) — macOS·iOS 공통.
+- [Material Design 3, Dialogs](https://m3.material.io/components/dialogs/guidelines):
+  가로 배치에서 confirming 액션이 trailing(오른쪽), dismissive가 왼쪽.
+- [shadcn/ui, Alert Dialog](https://ui.shadcn.com/docs/components/base/alert-dialog):
+  `AlertDialogCancel`(왼쪽) 다음에 `AlertDialogAction`(오른쪽)이 기본 마크업 순서 — 이
+  프로젝트가 직접 쓰는 라이브러리의 기본값이다.
+- [Bootstrap, Modal](https://getbootstrap.com/docs/5.0/components/modal/): Cancel/Close
+  왼쪽, Save 오른쪽.
+- 유일한 예외는 Windows 네이티브 대화상자(확인이 왼쪽) — [NN/g, "OK-Cancel or Cancel-OK?"](https://www.nngroup.com/articles/ok-cancel-or-cancel-ok/)가
+  이 글에서 "웹앱은 다수 사용자의 플랫폼(2008년 당시 Windows)을 따르라"고 권했지만,
+  이 글은 Office 2007 스크린샷을 인용할 만큼 오래됐다 — 그 이후 이 프로젝트가 쓰는
+  shadcn/ui를 포함해 웹 업계 관례 자체가 확인=오른쪽 쪽으로 굳어진 것으로 보인다.
+
+**결정**
+
+"데스크톱=왼쪽, 모바일=오른쪽"처럼 플랫폼별로 나누지 않는다. 실제로 갈리는 축은
+"Windows 네이티브 vs 나머지(macOS·iOS·Android·shadcn·Bootstrap)"였고, 웹앱은 특정 OS
+크롬을 흉내 내지 않으므로 후자를 따른다 — 즉 **기존 패턴(취소 왼쪽·확인 오른쪽) 유지**가
+맞다. 바로 아래 항목의 결정 2번은 그대로 두되(코드 변경 없었음), 근거만 이 항목으로
+보강한다. `docs/FE-ARCHITECTURE.md` §10-A에 위 출처를 추가했다.
+
+**상태**: 적용.
+
+---
+
 ## 2026-09-29 — (정정) 게시글 작성/수정 저장 중 라벨은 대상이 아니었음
 
 **배경**

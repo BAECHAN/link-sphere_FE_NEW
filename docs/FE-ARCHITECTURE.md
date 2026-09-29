@@ -720,6 +720,20 @@ openConfirm({
 
 댓글 작성/수정 폼, 새 폴더 만들기(데스크톱·모바일) 4곳이 이미 이 형태를 예외 없이 쓴다.
 
+**데스크톱·모바일을 다르게 두지 않는 이유**: 확인/생성처럼 사람들이 가장 많이 고를
+버튼을 오른쪽에 두는 건 macOS·iOS([Apple HIG](https://developer.apple.com/design/human-interface-guidelines/alerts) —
+_"사람들이 가장 많이 누를 버튼은 오른쪽에, 취소 버튼은 항상 왼쪽에 둔다"_(번역))와
+Android([Material Design 3](https://m3.material.io/components/dialogs/guidelines) —
+가로 배치에서 confirming 액션이 trailing/오른쪽) 양쪽 모두의 공식 가이드다. 이
+프로젝트가 쓰는 [shadcn/ui `AlertDialog`](https://ui.shadcn.com/docs/components/base/alert-dialog)
+기본값도 `AlertDialogCancel`(왼쪽) 다음에 `AlertDialogAction`(오른쪽)이다. 유일하게
+반대인 건 Windows 네이티브 대화상자(확인이 왼쪽) — 웹앱은 특정 OS 크롬을 흉내 내지
+않으므로 이 예외를 따를 이유가 약하다고 판단했다. (2026-09-29, 사용자가 "폴더 만들기는
+왼쪽이어야 한다"고 제기해 검증한 결과. 이전에 Adam Silver 블로그를 "전체 페이지 폼은
+왼쪽" 근거로 인용했었는데, 검색 스니펫만 보고 원문을 직접 확인하지 않은 오독이었다 —
+정정: 그 글은 왼쪽/오른쪽이 아니라 "취소 버튼을 확인 버튼 **아래**에 둔다"는 세로 배치
+얘기였다. 이 정정과 재검증 경위는 `docs/DECISIONS.md` 참고.)
+
 **저장 중 라벨**: 응답을 기다렸다가 반영하는 폼은 비활성화만 하지 않고 라벨도 "OO 중..."으로
 바꾼다(`TEXTS.common.saving`/`submitting`/`updating` 재사용, 없으면 해당 도메인에 새로
 추가). 사용자가 클릭이 실제로 접수됐는지 알 수 있어야 한다.
