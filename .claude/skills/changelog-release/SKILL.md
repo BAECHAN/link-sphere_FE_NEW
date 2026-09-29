@@ -17,7 +17,7 @@ paths: CHANGELOG.md
 **규칙**
 
 - `feat` / `fix` / `perf` / 동작이 바뀌는 `refactor` 커밋 시 → **`CHANGELOG.md`의 `[Unreleased]` 섹션에 항목 추가**를 같은 커밋에 포함한다.
-- 섹션: `Added` / `Changed` / `Fixed` / `Removed`. BE API 의존 사항은 `Notes`, 테스트 추가는 `Tests` 섹션 활용.
+- 섹션: `Added` / `Changed` / `Fixed` / `Removed`. BE API 의존 사항은 `Notes`, 테스트 추가는 `Tests` 섹션 활용. 인증·인가·토큰 등 보안에 직접 관련된 변경은 `Security` 섹션(Keep a Changelog 표준 섹션, 실사용 선례: `CHANGELOG.md`의 FCM 토큰 재등록 항목 — [PR #246](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/246)).
 - `docs` / `style` / `chore` 등 사용자 영향 없는 변경은 기록하지 않는다.
 
 **항목 포맷** — 한 줄 요약 + 접힌 상세로 훑어볼 수 있게 쓴다.

@@ -8,7 +8,7 @@
 > 읽고 나면: 응답 타입이 어디서 오는지, 새 엔티티를 추가할 때 무엇을 만들어야 하는지,
 > BE 스펙이 바뀌면 무슨 일이 일어나는지, BE nullable 정보가 왜 가끔 유실되는지 알게 된다.
 >
-> 마지막 검토: 2026-09-24
+> 마지막 검토: 2026-09-29
 
 ## 1. 쉬운 설명
 
@@ -130,7 +130,7 @@ pnpm codegen         # 네트워크 X — openapi.json → openapi.gen.ts, CI가
 `openapi-typescript`(타입만, 런타임 0)를 골랐다. 대안이었던 `orval`(훅까지 생성)은 이
 레포와 직접 충돌한다 — ESLint `custom-query-rules/no-direct-query-import`가
 `@tanstack/react-query` import를 `*.queries.ts`/`hooks/`로 제한해 orval 생성 훅이 생성
-즉시 lint 위반이 되고, `apiClient`가 담당하는 401 자동 refresh(`client.ts:164-197`)·NFC
+즉시 lint 위반이 되고, `apiClient`가 담당하는 401 자동 refresh(`client.ts:162-206`)·NFC
 정규화·WAF 403 판별 같은 로직을 custom mutator로 다시 감싸야 해서 이점이 사라진다.
 `openapi-zod-client`도 검토했으나, 이 레포는 응답에 `.parse()`를 쓴 적이 없어(§9) 쓰지
 않는 런타임 코드가 번들에 들어가고, 기존 Zod에 섞인 FE 전용 검증(댓글 바이트 상한 등)은
@@ -233,24 +233,35 @@ override가 있는 타입(원본 대신 `Omit<...> & {...}`로 재정의한 것)
 **`$ref`로 참조되는 중첩 객체 프로퍼티**(다른 스키마를 가리키는 필드)는 이 컨버터가
 적용되지 않는다(§10). `.dto.ts`에서 직접 override한다 — 실제 사례 4건:
 
-| 엔티티.필드                                | 방향                                 | 파일:줄                                                                               | 근거                                                                                                                                                                |
-| ------------------------------------------ | ------------------------------------ | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bookmark-folder.lastUsedAt`               | 넓힘(`string?` → `string \| null?`)  | `entities/bookmark/folder/model/bookmark-folder.dto.ts:13-15`                         | `$ref` 아님(원시 타입)이지만 Phase 4 시점엔 BE 컨버터가 아직 없어서 override. 지금은 BE가 이미 처리하므로 이 override는 안전한 중복(제거해도 무방하지만 유지 — §11) |
-| `comment.linkMetadata`                     | 넓힘(`X?` → `X \| null?`)            | `entities/comment/model/comment.dto.ts:18-21`                                         | `$ref` 프로퍼티라 BE 컨버터가 적용 안 됨. `CommentDTO.kt`의 실제 타입은 `LinkMetadata? = null`                                                                      |
-| `account.role`                             | 좁힘(`string` → `'USER' \| 'ADMIN'`) | `entities/account/model/account.dto.ts:18-21`                                         | BE가 enum class가 아니라 String으로 선언해(`AuthDTO.kt:37`) 스펙에 enum이 안 실림                                                                                   |
-| `account.nickname`, `post.author.nickname` | 좁힘(`string \| null?` → `string`)   | `entities/account/model/account.dto.ts:18-21`, `entities/post/model/post.dto.ts:9-13` | 스펙은 nullable이지만 계정 생성 경로(`SignupRequest.nickname`)가 필수라 실제로는 항상 존재. 실측(§9)으로 확인                                                       |
+| 엔티티.필드                  | 방향                                 | 파일:줄                                                       | 근거                                                                                                                                                                |
+| ---------------------------- | ------------------------------------ | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bookmark-folder.lastUsedAt` | 넓힘(`string?` → `string \| null?`)  | `entities/bookmark/folder/model/bookmark-folder.dto.ts:13-15` | `$ref` 아님(원시 타입)이지만 Phase 4 시점엔 BE 컨버터가 아직 없어서 override. 지금은 BE가 이미 처리하므로 이 override는 안전한 중복(제거해도 무방하지만 유지 — §11) |
+| `comment.linkMetadata`       | 넓힘(`X?` → `X \| null?`)            | `entities/comment/model/comment.dto.ts:18-21`                 | `$ref` 프로퍼티라 BE 컨버터가 적용 안 됨. `CommentDTO.kt`의 실제 타입은 `LinkMetadata? = null`                                                                      |
+| `account.role`               | 좁힘(`string` → `'USER' \| 'ADMIN'`) | `entities/account/model/account.dto.ts:18-21`                 | BE가 enum class가 아니라 String으로 선언해(`AuthDTO.kt:37`) 스펙에 enum이 안 실림                                                                                   |
+| `account.nickname`           | 좁힘(`string \| null?` → `string`)   | `entities/account/model/account.dto.ts:18-21`                 | 스펙은 nullable이지만 계정 생성 경로(`SignupRequest.nickname`)가 필수라 실제로는 항상 존재. 실측(§9)으로 확인                                                       |
 
 override 방향을 정하는 기준: **실제 런타임 데이터가 더 넓으면(값이 있을 수도, null일
 수도 있으면) 넓히고, 실제로 존재할 수 없는 상태면 좁힌다.** 좁히기 전에는 항상 실제
 소비처를 확인한다 — `account.nickname`을 좁힌 이유는 넓혔을 때 type-check가 10곳 넘는
 에러를 실제로 냈기 때문이다(무의미한 `?? ''` 폴백이 번지는 걸 막기 위함).
 
+**정정(2026-09-29)**: 이 표는 한때 `post.author.nickname`도 같은 이유로 좁혀서
+`entities/post/model/post.dto.ts`에 override를 뒀지만, 이후 회원탈퇴 14일 유예기간
+기능(`CHANGELOG.md` `[Unreleased]`)에서 걷어냈다 — 탈퇴 유예 중이거나 이미 익명화된
+계정의 글은 실제로 `author.nickname`이 `null`로 내려온다는 게 확인돼, "좁히기" 전제
+자체가 틀렸었다. 지금 `post.dto.ts`는 `Post`·`PostListResponse` 모두 생성 타입을
+override 없이 그대로 alias한다(스펙의 nullable이 곧 실제 런타임과 일치).
+
 ### 재귀 타입/목록 응답의 `content`·`items`에 override가 안 먹는다면
 
 `Omit`은 최상위 키만 제외할 뿐 중첩 타입까지 다시 쓰지 않는다. `Comment.replies`나
-`PostListResponse.content`처럼 배열 필드가 override 없는 원본 타입을 그대로 참조하고
-있다면, 그 필드도 함께 override해야 한다 — `entities/comment/model/comment.dto.ts`,
-`entities/post/model/post.dto.ts`의 `content` override가 실제 사례다.
+`BookmarkFolderListResponse.folders`처럼 배열 필드가 override 없는 원본 타입을 그대로
+참조하고 있다면, 그 필드도 함께 override해야 한다 — `entities/comment/model/comment.dto.ts`의
+`replies`, `entities/bookmark/folder/model/bookmark-folder.dto.ts`의 `folders` override가
+실제 사례다. (`post.dto.ts`의 `PostListResponse.content` override는 한때 같은 이유로
+있었지만, `Post.author.nickname` override 자체가 §8 표의 "정정(2026-09-29)"에서
+설명한 이유로 제거되며 함께 없어졌다 — override가 남아있지 않으면 이 문제도 생기지
+않는다.)
 
 ## 9. 검증 결과
 
@@ -320,7 +331,8 @@ BE `PostDTO.kt`를 확인하니 `val categories: List<CategoryResponse>`(non-nul
 제외한다는 것 — `CommentResponse.replies: CommentResponse[]`는 override 안 된 원본을
 그대로 참조하고 있어서, 재귀 지점마다 `linkMetadata` override가 끊겼다. `replies`도
 함께 override해서 해결했다(`Comment[]`로). `post.dto.ts`의 `PostListResponse.content`도
-같은 이유로 함께 override했다.
+같은 이유로 함께 override했다(이 `post.dto.ts` override는 이후 §8 "정정(2026-09-29)"에서
+설명한 이유로 제거됐다 — 지금 파일에는 남아있지 않다).
 
 ## 11. 남은 것
 

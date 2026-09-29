@@ -83,5 +83,5 @@ Alternatives/Drawbacks 대 Detailed design 구분과 같은 것이다. 근거가
 
 ## 적용 범위
 
-이 구조는 지금부터 쓰는 새 계획에만 적용한다. 기존 `docs/plans/*.md` 82개는
+이 구조는 지금부터 쓰는 새 계획에만 적용한다. 기존 `docs/plans/*.md` 여러 개는
 append-only 규칙(CLAUDE.md §11)에 따라 고치지 않는다.

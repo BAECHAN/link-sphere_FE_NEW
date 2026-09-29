@@ -8,7 +8,7 @@
 > 코드"와 "서버에 실제로 올라간 코드"를 어떻게 비교하는지, 배지 색이 왜 그 색인지,
 > 검증이 실패하면 어떻게 알림이 오는지 알고 판정 조건을 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-09-20
+> **마지막 검토**: 2026-09-29
 
 배포 워크플로우가 success로 끝났다는 것과, 실제로 그 코드가 사용자 화면에 반영된
 것은 다른 사건이다. 이 기능은 그 둘 사이를 사람이 눈으로(`/version` 화면), 그리고
@@ -215,9 +215,9 @@ Public 레포라(`gh repo view` 확인, 2026-09-20) `/version`이 링크하는 �
 
 | 값                                        | 위치                                                            | 의미                                                      |
 | ----------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------- |
-| 검증 재시도 횟수·간격(12회·10초=최대 2분) | [deploy.yml:124-131](../.github/workflows/deploy.yml#L124-L131) | `version.json` 전파 지연을 감안한 재시도 한도             |
-| `SITE_URL` 폴백                           | [deploy.yml:115](../.github/workflows/deploy.yml#L115)          | 레포 Variable 미설정 시 하드코딩된 CloudFront 도메인 사용 |
-| `concurrency.group`(`deploy-main`)        | [deploy.yml:25-27](../.github/workflows/deploy.yml#L25-L27)     | 연속 push 시 배포가 대기열로 처리(취소 아님)              |
+| 검증 재시도 횟수·간격(12회·10초=최대 2분) | [deploy.yml:131-138](../.github/workflows/deploy.yml#L131-L138) | `version.json` 전파 지연을 감안한 재시도 한도             |
+| `SITE_URL` 폴백                           | [deploy.yml:122](../.github/workflows/deploy.yml#L122)          | 레포 Variable 미설정 시 하드코딩된 CloudFront 도메인 사용 |
+| `concurrency.group`(`deploy-main`)        | [deploy.yml:26-28](../.github/workflows/deploy.yml#L26-L28)     | 연속 push 시 배포가 대기열로 처리(취소 아님)              |
 
 ## 8. 코드 지도와 자주 하는 수정
 
@@ -304,9 +304,13 @@ x-cache: RefreshHit from cloudfront   # 3회 연속 요청 모두 동일
   동작하는지는 머지 후 확인이 필요하다. 특히 알림 경로는 한 번쯤 의도적으로
   실패시켜(잘못된 기대값으로 `workflow_dispatch`) 이슈가 실제로 생성되는지
   실측해야 한다 — 안 하면 "알림이 있다고 믿는데 실은 안 온다" 상태가 될 수 있다.
+  참고로 `notify-failure`는 배포 반영 검증 스텝뿐 아니라 `deploy` job의 어느
+  스텝이든(`pnpm check`·`pnpm test`·`pnpm build`·S3 업로드 등) 실패하면 발동한다
+  (`if: failure()`, `deploy.yml`) — 실패 재현 시 어느 스텝을 의도적으로 깨뜨려도 된다.
 - `docs/DEPLOY.md`·`docs/CI-CHECK-GATE.md`·`docs/SYSTEM-ARCHITECTURE.md`의 배포
   파이프라인 서술을 이번 변경(version.json 업로드, 검증 스텝, notify-failure)에
-  맞춰 갱신하는 작업이 이 문서와 별도 커밋으로 남아 있다.
+  맞춰 갱신하는 작업은 이후 완료됐다 — 세 문서 모두 배포 반영 검증·notify-failure
+  단계를 반영하고 있다(2026-09-29 확인).
 - 마이페이지 모달에 발견성을 높이는 링크를 추가할지는 보류됐다 — 사용자가
   `/version` + 콘솔 배너만으로 충분하다고 판단(2026-09-20).
 

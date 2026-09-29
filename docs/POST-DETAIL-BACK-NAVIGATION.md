@@ -82,13 +82,14 @@ Navbar와 버튼 바 두 줄이 스크롤 내내 함께 고정돼 모바일 화�
 
 관여하는 파일과 책임:
 
-| 파일                                                                                                            | 책임                                                                   |
-| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| [`pages/post/PostDetailPage.tsx`](../src/pages/post/PostDetailPage.tsx)                                         | 버튼 노출 조건(`hidden md:inline-flex`), 라벨 계산(`resolveBackLabel`) |
-| [`shared/hooks/useGoBack.ts`](../src/shared/hooks/useGoBack.ts)                                                 | 실제 이동 동작(`navigate(-1)` vs `replace`) — 라벨과 완전히 분리       |
-| [`shared/config/texts.ts`](../src/shared/config/texts.ts)                                                       | 라벨 문자열 두 개(`post.detail.backToList`/`back`)                     |
-| [`widgets/post/post-card/ui/PostCard.tsx`](../src/widgets/post/post-card/ui/PostCard.tsx)                       | `backSource` prop을 `<Link state>`로 실어 보내는 발신지                |
-| [`widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx`](../src/widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx) | 모바일에서 버튼을 대신하는 상시 노출 수단(Feed 탭)                     |
+| 파일                                                                                                            | 책임                                                                |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [`pages/post/PostDetailPage.tsx`](../src/pages/post/PostDetailPage.tsx)                                         | 버튼 노출 조건(`hidden md:inline-flex`) — JSX만                     |
+| [`pages/post/hooks/usePostDetail.ts`](../src/pages/post/hooks/usePostDetail.ts)                                 | 라벨 계산(`resolveBackLabel`, #227로 `PostDetailPage.tsx`에서 이동) |
+| [`shared/hooks/useGoBack.ts`](../src/shared/hooks/useGoBack.ts)                                                 | 실제 이동 동작(`navigate(-1)` vs `replace`) — 라벨과 완전히 분리    |
+| [`shared/config/texts.ts`](../src/shared/config/texts.ts)                                                       | 라벨 문자열 두 개(`post.detail.backToList`/`back`)                  |
+| [`widgets/post/post-card/ui/PostCard.tsx`](../src/widgets/post/post-card/ui/PostCard.tsx)                       | `backSource` prop을 `<Link state>`로 실어 보내는 발신지             |
+| [`widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx`](../src/widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx) | 모바일에서 버튼을 대신하는 상시 노출 수단(Feed 탭)                  |
 
 라벨(무엇이라 부를지)과 동작(어디로 갈지)은 의도적으로 분리돼 있다 —
 `resolveBackLabel`은 `location`만 읽고, `useGoBack`은 같은 `location.key` 조건을
@@ -114,16 +115,16 @@ Navbar와 버튼 바 두 줄이 스크롤 내내 함께 고정돼 모바일 화�
 
 하드코딩된 운영 파라미터는 없다. 유일한 분기점은 Tailwind의 기본 `md` 브레이크포인트
 (768px)이며, 별도로 재정의하지 않고 그대로 쓴다
-([`PostDetailPage.tsx:79`](../src/pages/post/PostDetailPage.tsx) `hidden md:inline-flex`).
+([`PostDetailPage.tsx:36`](../src/pages/post/PostDetailPage.tsx#L36) `hidden md:inline-flex`).
 
 ## 8. 코드 지도와 자주 하는 수정
 
-| 하고 싶은 것                         | 위치                                                                                                                                               | 방법                                                                                                                                            |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 새 유입 경로에 전용 라벨 추가        | [`PostCard.tsx:42`](../src/widgets/post/post-card/ui/PostCard.tsx#L42), [`PostDetailPage.tsx:21-47`](../src/pages/post/PostDetailPage.tsx#L21-L47) | `backSource` 유니온에 새 값 추가 → 해당 위젯에서 `<PostCard backSource="새값" />` 지정 → `resolveBackLabel`에 분기·`texts.ts`에 라벨 키 추가    |
-| 돌아가기 동작(목적지) 자체를 바꾸기  | [`useGoBack.ts`](../src/shared/hooks/useGoBack.ts)                                                                                                 | 라벨 로직과 무관 — 이 훅만 수정하면 된다                                                                                                        |
-| 모바일에서도 버튼을 다시 보이게 하기 | [`PostDetailPage.tsx:75-83`](../src/pages/post/PostDetailPage.tsx#L75-L83)                                                                         | `hidden md:inline-flex`를 제거하기 전에 §4의 트레이드오프(124px 상시 고정 vs standalone PWA 위치 복원)를 먼저 재검토 — `docs/DECISIONS.md` 참고 |
-| e2e에서 이 버튼/Feed 탭을 다시 찾기  | [`e2e/post-detail-back.spec.ts`](../e2e/post-detail-back.spec.ts), [`e2e/post-detail-back.mobile.spec.ts`](../e2e/post-detail-back.mobile.spec.ts) | §10 "시행착오" 참고 — `role`만으로 찾으면 Sidebar의 숨은 사본과 strict mode 위반이 난다                                                         |
+| 하고 싶은 것                         | 위치                                                                                                                                                 | 방법                                                                                                                                            |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 새 유입 경로에 전용 라벨 추가        | [`PostCard.tsx:43`](../src/widgets/post/post-card/ui/PostCard.tsx#L43), [`usePostDetail.ts:10-36`](../src/pages/post/hooks/usePostDetail.ts#L10-L36) | `backSource` 유니온에 새 값 추가 → 해당 위젯에서 `<PostCard backSource="새값" />` 지정 → `resolveBackLabel`에 분기·`texts.ts`에 라벨 키 추가    |
+| 돌아가기 동작(목적지) 자체를 바꾸기  | [`useGoBack.ts`](../src/shared/hooks/useGoBack.ts)                                                                                                   | 라벨 로직과 무관 — 이 훅만 수정하면 된다                                                                                                        |
+| 모바일에서도 버튼을 다시 보이게 하기 | [`PostDetailPage.tsx:26-40`](../src/pages/post/PostDetailPage.tsx#L26-L40)                                                                           | `hidden md:inline-flex`를 제거하기 전에 §4의 트레이드오프(124px 상시 고정 vs standalone PWA 위치 복원)를 먼저 재검토 — `docs/DECISIONS.md` 참고 |
+| e2e에서 이 버튼/Feed 탭을 다시 찾기  | [`e2e/post-detail-back.spec.ts`](../e2e/post-detail-back.spec.ts), [`e2e/post-detail-back.mobile.spec.ts`](../e2e/post-detail-back.mobile.spec.ts)   | §10 "시행착오" 참고 — `role`만으로 찾으면 Sidebar의 숨은 사본과 strict mode 위반이 난다                                                         |
 
 ## 9. 검증 결과
 
@@ -160,9 +161,9 @@ sticky를 걷어내는 과정 자체의 시행착오(0/12/16/24px 후보 비교,
 - **standalone PWA(홈 화면 추가) 모바일 사용자**는 정확한 위치 복귀 대신 `BottomTabBar`의
   Feed 탭(목록 최상단)으로만 돌아간다 — 의도적으로 받아들인 트레이드오프지만, 이
   사용자층 비중이 커지면 재검토 대상이다.
-- `PostCard.tsx:93,269`가 `isDetail`일 때도 자기 자신(`/post/{id}`)을 링크해 상세에서
-  제목을 눌러도 히스토리가 쌓이는 기존 버그는 이번 범위 밖으로 그대로 남아 있다(PR #100
-  노트에서 이미 명시).
+- `PostCard.tsx:169,316`(제목 링크·댓글 수 버튼)이 `isDetail`일 때도 자기 자신
+  (`/post/{id}`)을 링크해 상세에서 제목을 눌러도 히스토리가 쌓이는 기존 버그는 이번
+  범위 밖으로 그대로 남아 있다(PR #100 노트에서 이미 명시, 2026-09-29 줄번호 재확인).
 - `backSource`가 없는 유입 경로(북마크·내 댓글 등)는 전부 중립 라벨 "뒤로가기"로
   뭉뚱그려져 있다 — 특정 경로에 전용 라벨을 붙이고 싶으면 §8 레시피를 따른다.
 - **2026-09-19 추가**: `PostList`·`BookmarkPostList`가 가상 스크롤로 바뀌면서, 여기 적힌

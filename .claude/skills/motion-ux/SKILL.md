@@ -75,7 +75,7 @@ CSS만으로 exit(사라짐) 애니메이션을 만들 때 "화면에서 사라�
 | 값                     | 위치                                                                                                                                                             |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `TRANSITION_MS = 200`  | `src/shared/ui/elements/ScrollToTop.tsx:10`, `src/features/comment/create/ui/ScrollToCommentFormButton.tsx:9` — 각자 독립 선언, CSS `duration-200`과 수동 동기화 |
-| `setTimeout(..., 300)` | `src/shared/ui/elements/modal/alert/alert.store.ts:67`, `src/shared/ui/elements/modal/alert/Alert.tsx:49`                                                        |
+| `setTimeout(..., 300)` | `src/shared/ui/elements/modal/alert/alert.store.ts:74`, `src/shared/ui/elements/modal/alert/Alert.tsx:55`                                                        |
 
 같은 패턴(exit 애니메이션 + `shouldRender` 상태 + `setTimeout`)을 새로 만들
 때는 이 값이 실제 CSS `duration-*` 클래스와 정확히 일치해야 한다는 걸 놓치지

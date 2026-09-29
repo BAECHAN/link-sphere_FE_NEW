@@ -139,6 +139,18 @@ https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12). `text-display-title`(60px/60
 스토리의 `Typography`에서 스케일 14단계를, `RoleTokens`에서 역할 토큰 8종을 각각
 시각적으로 확인할 수 있다.
 
+#### 전역 줄바꿈 규칙
+
+`globals.css`의 `@layer base`가 `body`에 `word-break: keep-all` + `overflow-wrap:
+break-word`를 전역으로 건다 — 컴포넌트마다 개별로 붙이지 않는다. 한글은 어절(공백)
+안 아무 글자 사이에서나 개행될 수 있어 `keep-all` 없이는 "보내드렸어요"가
+"보내드렸"/"어요"로 쪼개지는 식으로 부자연스럽게 끊긴다(MDN: CJK 텍스트엔 word
+break를 쓰면 안 된다 — _"Word breaks should not be used for Chinese/Japanese/Korean
+(CJK) text."_, [MDN `word-break`](https://developer.mozilla.org/en-US/docs/Web/CSS/word-break)).
+URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`가 예외적으로 끊어
+넘침을 막는다. `MarkdownContent.tsx`의 `break-all`처럼 더 구체적인 선택자는 그대로
+이 전역 규칙을 덮어쓴다.
+
 ### 인터랙션 커서
 
 Tailwind v4 preflight엔 v3에 있던 `button, [role="button"] { cursor: pointer }`가 없다
