@@ -76,7 +76,7 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
                 className="w-full"
               >
                 <Button className="w-full h-11 text-base" disabled={!canSubmit}>
-                  {isUpdating ? TEXTS.common.updating : TEXTS.post.form.update.update}
+                  {TEXTS.post.form.update.update}
                 </Button>
               </TooltipWrapper>
             </form>

@@ -139,7 +139,7 @@ export function CreatePostForm() {
                   className="w-full"
                 >
                   <Button className="w-full h-11 text-base" disabled={!canSubmit}>
-                    {isCreating ? TEXTS.common.submitting : TEXTS.post.form.create.submit}
+                    {TEXTS.post.form.create.submit}
                   </Button>
                 </TooltipWrapper>
               </div>
