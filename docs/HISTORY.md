@@ -1,4 +1,7 @@
 ### 2026-09-29 (BE)
+- Swagger 설정 최적화 및 레거시 JWT 관련 주석 현행화 ([#56](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/56))
+
+### 2026-09-29 (BE)
 - 커스텀 도메인 CORS 설정 오류 수정 및 인증 환경 개선
 로그:
 - fix(auth): 커스텀 도메인 CORS 허용 목록 누락으로 로그인 막히는 문제 수정 ([#52](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/52))
