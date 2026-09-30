@@ -87,7 +87,7 @@ Navbar와 버튼 바 두 줄이 스크롤 내내 함께 고정돼 모바일 화�
 | [`pages/post/PostDetailPage.tsx`](../src/pages/post/PostDetailPage.tsx)                                         | 버튼 노출 조건(`hidden md:inline-flex`) — JSX만                                                                                |
 | [`pages/post/hooks/usePostDetail.ts`](../src/pages/post/hooks/usePostDetail.ts)                                 | 라벨 계산(`resolveBackLabel`, #227로 `PostDetailPage.tsx`에서 이동)과 오버레이 PUSH 동안 라벨 유지(`useBackLabel`, 2026-09-30) |
 | [`shared/hooks/useGoBack.ts`](../src/shared/hooks/useGoBack.ts)                                                 | 실제 이동 동작(`navigate(-1)` vs `replace`) — 라벨과 완전히 분리                                                               |
-| [`shared/config/texts.ts`](../src/shared/config/texts.ts)                                                       | 라벨 문자열 두 개(`post.detail.backToList`/`back`)                                                                             |
+| [`shared/config/texts.ts`](../src/shared/config/texts.ts)                                                       | 라벨 문자열 두 개(`post.detail.backToList`, 공용 `buttons.back`)                                                               |
 | [`widgets/post/post-card/ui/PostCard.tsx`](../src/widgets/post/post-card/ui/PostCard.tsx)                       | `backSource` prop을 `<Link state>`로 실어 보내는 발신지                                                                        |
 | [`widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx`](../src/widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx) | 모바일에서 버튼을 대신하는 상시 노출 수단(Feed 탭)                                                                             |
 

@@ -32,7 +32,7 @@ function resolveBackLabel(location: ReturnType<typeof useLocation>): string {
     return TEXTS.post.detail.backToList;
   }
 
-  return TEXTS.post.detail.back;
+  return TEXTS.buttons.back;
 }
 
 interface BackLabelSnapshot {

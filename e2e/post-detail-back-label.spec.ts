@@ -28,7 +28,7 @@ test.describe('상세 돌아가기 버튼 문구 — 오버레이를 열어도 �
   const backToListButton = (page: import('@playwright/test').Page) =>
     page.locator('button', { hasText: TEXTS.post.detail.backToList });
   const neutralBackButton = (page: import('@playwright/test').Page) =>
-    page.locator('button', { hasText: TEXTS.post.detail.back });
+    page.locator('button', { hasText: TEXTS.buttons.back });
 
   test('피드에서 들어와 북마크 창을 열어도 "목록으로"가 그대로다', async ({ page }) => {
     await page.goto('/post');
