@@ -123,7 +123,7 @@
   <details><summary>배경·구현</summary>
 
   URL이 바뀌면 맨 위로 가는 건 `<ScrollRestoration/>`의 전역 규칙인데, 피드·북마크처럼 가상 스크롤을 쓰는 목록에서는 같은 커밋에서 가상 스크롤이 옛 스크롤 위치 기준으로 "위쪽 행 보정"을 걸어 그 리셋을 되돌렸다(직접 계측: `scrollTo(0,0)` 3ms 뒤 `scrollTo({top:1121})`). 그래서 목록 중간에서 헤더 검색을 제출하면 결과의 끝부분부터 보였다. 기능마다 `window.scrollTo`를 넣는 대신 `useWindowGridVirtualizer.ts`에 "캐시된 스크롤 위치가 실제와 한 화면 이상 다르면 보정하지 않는다"는 가드를 넣어 원인을 고쳤고, #258에서 카드 카테고리 배지에 넣었던 `scrollTo` 우회는 지웠다. 함께, 모바일 검색 패널을 열 때 배경 피드가 맨 위로 튀던 문제도 `preventScrollReset`으로 고쳤다 — 스크롤을 유지해야 하는 이동 중 유일하게 빠져 있던 곳이다. 규칙은 `docs/FE-ARCHITECTURE.md` §25에 정리했다.
-  (`src/shared/hooks/useWindowGridVirtualizer.ts`, `src/widgets/post/post-card/hooks/usePostCard.ts`, `src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts`, `e2e/scroll-reset-on-navigation.spec.ts`(신규), `e2e/scroll-reset-on-navigation.mobile.spec.ts`(신규), `docs/FE-ARCHITECTURE.md`, `docs/SEARCH.md`, `docs/DECISIONS.md`, [계획](docs/plans/2026-09-30-scroll-reset-virtualizer-guard.md))
+  (`src/shared/hooks/useWindowGridVirtualizer.ts`, `src/widgets/post/post-card/hooks/usePostCard.ts`, `src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts`, `e2e/scroll-reset-on-navigation.spec.ts`(신규), `e2e/scroll-reset-on-navigation.mobile.spec.ts`(신규), `docs/FE-ARCHITECTURE.md`, `docs/SEARCH.md`, `docs/DECISIONS.md`, [계획](docs/plans/2026-09-30-scroll-reset-virtualizer-guard.md), [PR #261](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/261))
 
   </details>
 
