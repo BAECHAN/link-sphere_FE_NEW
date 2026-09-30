@@ -11,6 +11,22 @@
 
 ### Changed
 
+- `bookmark` 북마크 모달을 뒤로가기로 닫기, 제목을 "북마크에 저장"으로 변경
+  <details><summary>배경·구현</summary>
+
+  북마크 폴더 모달의 열림 상태가 컴포넌트 `useState`라 히스토리에 없어서, 모달을 연 채 뒤로가기를 누르면 모달이 아니라 페이지가 이전으로 넘어갔다. 로그인 모달·이미지 뷰어와 같은 `useHistoryOverlay`로 열림 상태를 히스토리 엔트리에 실어, 뒤로가기는 모달만 닫고 한 번 더 누르면 그때 이전 페이지로 간다(`docs/DECISIONS.md` 2026-08-07 뒤로가기 정책 T1). 피드에 카드가 여러 장이라 state 키는 게시글마다 따로 둔다. 제목 "보관함"은 북마크와 연결되지 않는다는 피드백으로 "북마크에 저장"으로 바꿨다 — 등록 폼의 폴더 선택 모달도 같은 제목을 쓴다. 열림 상태·인증 가드 로직은 새 훅 `useBookmarkPostButton`으로 옮기고 버튼은 JSX만 남겼다.
+  (`src/features/bookmark/toggle/hooks/useBookmarkPostButton.ts`(신규), `src/features/bookmark/toggle/ui/BookmarkPostButton.tsx`, `src/shared/config/texts.ts`, `e2e/bookmark-folder-modal.spec.ts`(신규), `docs/BOOKMARK.md`, [계획](docs/plans/2026-09-30-bookmark-modal-ux-fixes.md))
+
+  </details>
+
+- `bookmark` 북마크 아이콘에 마우스를 올리면 폴더 목록을 미리 불러와 모달이 바로 뜸
+  <details><summary>배경·구현</summary>
+
+  폴더 목록 조회가 모달이 열린 뒤에야 시작돼, 작게 뜬 모달이 목록이 들어오면서 늘어났다. 아이콘의 `onMouseEnter`·`onFocus`에서 `prefetchBookmarkFolderList`(모달 쿼리와 같은 키·queryFn)를 불러, 클릭 시 추가 요청 없이 목록이 바로 보인다. 비로그인이면 401과 전역 에러 토스트로 이어져 로그인 상태에서만 부른다. 모바일은 hover가 없어 첫 탭에는 여전히 로딩이 보인다(이후 staleTime 3분 동안은 캐시로 즉시 뜬다).
+  (`src/entities/bookmark/folder/api/bookmark-folder.queries.ts`, `src/features/bookmark/toggle/hooks/useBookmarkPostButton.ts`(신규), `e2e/bookmark-folder-modal.spec.ts`(신규), [계획](docs/plans/2026-09-30-bookmark-modal-ux-fixes.md))
+
+  </details>
+
 - `post` 게시글 카드 어디를 눌러도 상세로 이동, 카드 안 버튼은 그대로 동작
   <details><summary>배경·구현</summary>
 
@@ -124,6 +140,11 @@
 
   URL이 바뀌면 맨 위로 가는 건 `<ScrollRestoration/>`의 전역 규칙인데, 피드·북마크처럼 가상 스크롤을 쓰는 목록에서는 같은 커밋에서 가상 스크롤이 옛 스크롤 위치 기준으로 "위쪽 행 보정"을 걸어 그 리셋을 되돌렸다(직접 계측: `scrollTo(0,0)` 3ms 뒤 `scrollTo({top:1121})`). 그래서 목록 중간에서 헤더 검색을 제출하면 결과의 끝부분부터 보였다. 기능마다 `window.scrollTo`를 넣는 대신 `useWindowGridVirtualizer.ts`에 "캐시된 스크롤 위치가 실제와 한 화면 이상 다르면 보정하지 않는다"는 가드를 넣어 원인을 고쳤고, #258에서 카드 카테고리 배지에 넣었던 `scrollTo` 우회는 지웠다. 함께, 모바일 검색 패널을 열 때 배경 피드가 맨 위로 튀던 문제도 `preventScrollReset`으로 고쳤다 — 스크롤을 유지해야 하는 이동 중 유일하게 빠져 있던 곳이다. 규칙은 `docs/FE-ARCHITECTURE.md` §25에 정리했다.
   (`src/shared/hooks/useWindowGridVirtualizer.ts`, `src/widgets/post/post-card/hooks/usePostCard.ts`, `src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts`, `e2e/scroll-reset-on-navigation.spec.ts`(신규), `e2e/scroll-reset-on-navigation.mobile.spec.ts`(신규), `docs/FE-ARCHITECTURE.md`, `docs/SEARCH.md`, `docs/DECISIONS.md`, [계획](docs/plans/2026-09-30-scroll-reset-virtualizer-guard.md), [PR #261](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/261))
+- `shared` 미리 렌더된 모달에서 열린 직후 클릭 가드가 꺼져 있던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  바로 아래 항목(2026-09-29)에서 `useOpenClickGuard`를 공용 `DialogContent`로 올릴 때 `DialogContent` 함수 본문에서 `useOpenClickGuard(true)`를 불렀다. "마운트 시점 = 열린 시점"을 전제한 호출인데, `<Dialog open={false}>`로 미리 렌더해 두는 모달(북마크 폴더 모달, 로그인 모달, 이미지 뷰어)에서는 이 함수가 닫혀 있을 때도 실행돼 시계가 페이지 첫 렌더 시점에 찍혔다 — 그래서 열 때는 이미 400ms가 지나 있어 열린 직후 바깥 클릭에 모달이 그대로 닫혔다(열 때 처음 마운트되는 Alert/Confirm만 정상). Playwright로 열린 지 50~350ms 뒤 오버레이 클릭이 모두 닫히는 것을 재현해 확정했다. 가드와 이벤트 처리 코드를 Radix `DialogPortal` 안쪽(열릴 때만 마운트되는 자리)의 `DialogContentPanel`로 옮겨 해결했다(로직 변경 없음). 가드가 실제로 켜지면서 로그인 모달이 뜬 뒤 400ms 안에 "로그인"을 누르던 e2e 1건에 대기를 넣었다.
+  (`src/shared/ui/atoms/dialog.tsx`, `src/shared/ui/atoms/dialog.test.tsx`, `e2e/guest-guard.spec.ts`, `e2e/bookmark-folder-modal.spec.ts`(신규), `docs/BOOKMARK.md`, [계획](docs/plans/2026-09-30-bookmark-modal-ux-fixes.md))
 
   </details>
 

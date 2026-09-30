@@ -46,6 +46,14 @@ export const useBookmarkFolderListQuery = (options?: { enabled?: boolean }) => {
   });
 };
 
+/** hover 시 폴더 목록 미리 로드 — useBookmarkFolderListQuery 와 동일 키/queryFn */
+export const prefetchBookmarkFolderList = (queryClient: QueryClient) => {
+  queryClient.prefetchQuery({
+    queryKey: bookmarkFolderKeys.list,
+    queryFn: bookmarkFolderApi.fetchBookmarkFolderList,
+  });
+};
+
 export const useBookmarkFolderPostsInfiniteQuery = (
   folderKey: BookmarkFolderKey,
   sort?: BookmarkFolderSort,

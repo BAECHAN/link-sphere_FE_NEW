@@ -115,4 +115,34 @@ describe('DialogContent — 열린 직후 클릭 가드', () => {
     fireEvent.click(screen.getByRole('dialog'));
     expect(onContentClick).toHaveBeenCalledTimes(1);
   });
+
+  // 실제 사용처(BookmarkFolderSelectModal 등)는 <Dialog open={false}>로 먼저 마운트해 두고
+  // 나중에 open을 true로 바꾼다 — 이때 가드 시계가 "마운트"가 아니라 "열린 시점"에서
+  // 시작해야 한다(2026-09-30, 페이지 로드 시점에 시계가 찍혀 가드가 한 번도 안 걸리던 회귀)
+  it('닫힌 채 마운트됐다가 나중에 열려도 열린 직후 바깥 pointerdown으로는 닫히지 않는다', async () => {
+    const onOpenChange = vi.fn();
+    const { rerender } = renderWithProviders(
+      <Dialog open={false} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogTitle>확인</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    );
+
+    vi.advanceTimersByTime(DOUBLE_CLICK_GUARD_MS * 10);
+
+    rerender(
+      <Dialog open onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogTitle>확인</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    );
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    fireEvent.pointerDown(document.body);
+
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+  });
 });

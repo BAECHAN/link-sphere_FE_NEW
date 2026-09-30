@@ -30,7 +30,7 @@ interface BookmarkFolderSelectModalProps {
 }
 
 /**
- * 북마크 폴더 선택 UI — 보관함의 즉시 저장(PostCardBookmarkFolderModal)과 등록 폼의 지연 선택
+ * 북마크 폴더 선택 UI — 카드 북마크 버튼의 즉시 저장(PostCardBookmarkFolderModal)과 등록 폼의 지연 선택
  * (PostCreateBookmarkFolderField)이 공유하는 프레젠테이션 컴포넌트. 저장 동작은 콜백으로 주입받는다.
  * 로직 전부는 useBookmarkFolderSelect가 소유하고, 여기는 JSX만 남긴다.
  * - 데스크탑: 중앙 모달 / 모바일: 하단 BottomSheet
@@ -234,8 +234,8 @@ export function BookmarkFolderSelectModal({
               </ul>
             </div>
 
-            {/* 하단 destructive 행 — 스크롤 밖 고정. 보관함은 '북마크 제거', 등록 폼은
-                '북마크 안 함'. 넘기지 않으면 렌더하지 않는다(보관함은 열 때 북마크가
+            {/* 하단 destructive 행 — 스크롤 밖 고정. 카드 북마크 모달은 '북마크 제거', 등록 폼은
+                '북마크 안 함'. 넘기지 않으면 렌더하지 않는다(카드 북마크 모달은 열 때 북마크가
                 아니었으면 미노출) */}
             {dangerAction && (
               <ul className="py-1">

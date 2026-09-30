@@ -335,7 +335,7 @@ export const TEXTS = {
       rename: '이름 수정',
       namePlaceholder: '새 폴더 이름',
       sortPlaceholder: '정렬',
-      selectorTitle: '보관함',
+      selectorTitle: '북마크에 저장',
       selectorDescription: '폴더를 탭하면 바로 저장돼요.',
       recentSection: '최근 저장한 폴더',
       removeBookmark: '북마크 제거',

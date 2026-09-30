@@ -9,6 +9,7 @@ import { mockBookmarkFolderList } from './mocks/bookmark-folder.mock';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { mockBookmarkFolder } from '@/mocks/fixtures/bookmark-folder.fixtures';
 import { TEXTS } from '@/shared/config/texts';
+import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 // useAuthGuard(entities/auth/hooks/useAuthGuard.ts:17-28) — isAuthenticated가 아니면
 // action을 아예 실행하지 않고 로그인 모달만 연다. 지금까지 만든 다른 스펙은 전부 이미
@@ -67,6 +68,12 @@ test.describe('비로그인 인증 가드 — 요청 없이 로그인 모달만 
 
     const loginDialog = page.getByRole('dialog', { name: TEXTS.auth.guard.title });
     await expect(loginDialog).toBeVisible();
+
+    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 아래 "로그인" 클릭이 가드
+    // 시간 안에 떨어지면 삼켜진다. 클릭 자체를 삼키므로 관측 가능한 이벤트로 대체할 수 없다
+    // (bookmark.spec.ts 선례). 2026-09-30 이전엔 미리 마운트된 모달에서 가드가 꺼져 있어
+    // 이 대기 없이도 통과했다.
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 
     // getByLabel은 label 엘리먼트의 실제 텍스트로 매칭한다 - RequiredMark(*)가 aria-hidden이라
     // 접근성 트리 이름 계산에서는 빠지지만, label의 raw textContent에는 그대로 남아 getByLabel엔

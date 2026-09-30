@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-09-29
+> **마지막 검토**: 2026-09-30
 
 ## 1. 쉬운 설명
 
@@ -140,7 +140,8 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 ### `PostCardBookmarkFolderModal` 행 동작
 
 `BookmarkPostButton`을 누르면 열리는 모달(`features/bookmark/toggle/ui/PostCardBookmarkFolderModal.tsx`,
-실제 마크업은 `features/bookmark/select/ui/BookmarkFolderSelectModal`)의 전체 동작이다. 탭 = 즉시
+실제 마크업은 `features/bookmark/select/ui/BookmarkFolderSelectModal`, 제목 "북마크에 저장" —
+2026-09-30 이전엔 "보관함"이었으나 북마크와 연결되지 않는다는 피드백으로 바꿨다)의 전체 동작이다. 탭 = 즉시
 저장/제거 + 모달 닫힘(확인 단계 없음). 폴더 목록만 스크롤되고, 새 폴더 만들기(헤더
 바로 아래)·북마크 제거(하단)는 폴더가 몇 개든 항상 화면에 보인다(2026-09-11 —
 전에는 셋 다 같은 스크롤 영역에 있어 폴더가 많으면 두 행이 스크롤 밖으로
@@ -167,6 +168,27 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 모든 폴더에 **동일한 ✓ 아이콘**이 표시된다(다중 선택 UI가 아니라, 탭할 때마다 즉시
 반영되는 토글 방식).
 
+### 열림 상태는 히스토리로, 폴더 목록은 hover 때 미리(2026-09-30)
+
+`BookmarkPostButton`의 열림 상태와 목록 프리페치는 `features/bookmark/toggle/hooks/useBookmarkPostButton.ts`가
+소유한다(버튼 컴포넌트는 JSX만).
+
+- **뒤로가기 = 모달만 닫기**: 전에는 열림 상태가 컴포넌트 `useState`라 히스토리에 없어서,
+  모달을 연 채 뒤로가기를 누르면 모달이 아니라 페이지가 이전으로 넘어갔다. 지금은
+  `useHistoryOverlay`(`shared/hooks/useHistoryOverlay.ts`)로 열 때 같은 경로에 state 엔트리를
+  push하고, 닫을 때(폴더 탭·X·ESC·바깥 클릭) `navigate(-1)`로 되돌린다 — `docs/DECISIONS.md`
+  2026-08-07 "뒤로가기 정책"의 T1(화면을 덮는 오버레이)에 이 모달을 넣은 것이다. 피드에는
+  카드가 여러 장이라 state 키를 `bookmarkFolderModalOpen:${postId}`로 **게시글마다 따로** 둔다
+  — 공용 키면 한 카드에서 열 때 모든 카드의 모달이 같이 열린다.
+- **로그인 후 재개**: 비로그인으로 누르면 `useAuthGuard`가 로그인 모달을 띄우고 `open`을
+  재개 액션으로 맡긴다. `useLoginModal`이 로그인 모달의 `navigate(-1)`이 반영된 **뒤에** 재개
+  액션을 실행하므로 두 모달이 겹치지 않는다.
+- **hover 프리페치**: 전에는 모달이 열려야(`enabled: open`) `GET /bookmark/folders`를 시작해,
+  작게 뜬 모달이 목록이 들어오며 늘어났다. 지금은 아이콘의 `onMouseEnter`·`onFocus`에서
+  `prefetchBookmarkFolderList`(`bookmark-folder.queries.ts`, `useBookmarkFolderListQuery`와 같은
+  키·queryFn)를 부른다. 비로그인이면 401 → 전역 에러 토스트(`queryClient.ts`의 QueryCache
+  `onError`)로 이어지므로 로그인 상태에서만 부른다. staleTime(3분) 안에서는 재요청하지 않는다.
+
 ### 열린 직후 클릭 무시(더블클릭 관통 방지, 2026-09-24 도입 → 2026-09-29 공용화)
 
 트리거(`BookmarkPostButton`·`PostCreateBookmarkFolderField`의 버튼)를 더블클릭/더블탭하면
@@ -179,8 +201,12 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 공용 `shared/ui/atoms/dialog.tsx`의 `DialogContent`로 올렸다 — Alert/Confirm을 포함한
 모든 Dialog 기반 모달(이미지 뷰어, 로그인 모달 등)에 공통 적용된다.
 
-`useOpenClickGuard`는 `open`이 `true`가 된 시점(`DialogContent`는 마운트 시점)을
-기준으로 가드 여부를 반환한다. `useClickGuard`(연타 방지, `shared/hooks/useClickGuard.ts`)와
+`useOpenClickGuard`는 `open`이 `true`가 된 시점을 기준으로 가드 여부를 반환한다.
+`dialog.tsx`는 이 훅을 `DialogPortal` **안쪽**의 `DialogContentPanel`에서 `useOpenClickGuard(true)`로
+부른다 — Radix `DialogPortal`은 자식을 열릴 때만 마운트하므로 "마운트 시점 = 열린 시점"이
+성립한다. `DialogContent` 함수 본문에서 부르면 닫혀 있어도 실행되기 때문에 시계가 페이지
+첫 렌더 시점에 찍혀 가드가 꺼진다(2026-09-29 공용화 때 실제로 이렇게 들어가 하루 동안
+꺼져 있었다 — §10 "공용화한 열림 가드가 미리 렌더된 모달에서 꺼져 있던 문제"). `useClickGuard`(연타 방지, `shared/hooks/useClickGuard.ts`)와
 시계 기준이 다르다: `useClickGuard`는 가드 함수 자신의 마지막 통과 시점을,
 `useOpenClickGuard`는 열린 시점을 기준으로 삼는다 — 모달 안의 행·버튼처럼 서로 다른
 여러 요소가 위험군이라 "같은 핸들러의 재호출"이 아니라 "열린 직후"를 가드해야 하기
@@ -408,11 +434,13 @@ src/
 │   │       │   ├── useBookmarkFolders.ts             # add/remove/clear/toggle 라우팅
 │   │       │   │                                     # (마지막 폴더 제거·미분류 재탭 모두
 │   │       │   │                                     # toggle로 완전 삭제, §5)
+│   │       │   ├── useBookmarkPostButton.ts          # 열림 상태(useHistoryOverlay, postId별 키)
+│   │       │   │                                     # + 인증 가드 + hover 프리페치(§5, 2026-09-30)
 │   │       │   └── usePostCardBookmarkFolderModal.ts # 즉시 저장 동작 + 토스트 분기 + 닫힘
 │   │       │                                         # 애니메이션 중 버튼 깜빡임 방지 스냅샷
 │   │       │                                         # (PostCardBookmarkFolderModal 전용)
 │   │       └── ui/
-│   │           ├── BookmarkPostButton.tsx            # 카드의 북마크 버튼 — 클릭 시
+│   │           ├── BookmarkPostButton.tsx            # 카드의 북마크 버튼(JSX만) — 클릭 시
 │   │           │                                     # PostCardBookmarkFolderModal 오픈
 │   │           └── PostCardBookmarkFolderModal.tsx   # JSX만(2026-09-08, BookmarkFolderModal에서
 │   │                                                 # 개명 — 아래 BookmarkFolderSelectModal과
@@ -892,11 +920,52 @@ CSS 정렬 버그 하나에 들이기엔 과한 인프라라고 판단했다.
 
 영향 파일: `widgets/bookmark/folder-tree/ui/FolderTree.tsx`.
 
+### 공용화한 열림 가드가 미리 렌더된 모달에서 꺼져 있던 문제
+
+2026-09-30, "400ms 안에 바깥을 눌렀는데도 북마크 모달이 닫힌다"는 제보를 받았다.
+2026-09-29에 `useOpenClickGuard`를 `DialogContent`로 공용화한 뒤였다.
+
+코드만 읽어서는 원인이 안 보여 Playwright로 먼저 재현했다. 모달을 연 뒤 50·150·250·350ms에
+오버레이를 클릭하는 4개 시나리오가 데스크톱에서 전부 실패했다(모달이 닫힘). document 캡처
+리스너로 이벤트를 찍어 보니 열린 지 약 190ms 뒤의 `pointerdown` 한 번에 모달이 사라졌다 —
+가드가 아예 동작하지 않은 것이다. 같은 스펙에서 트리거 더블클릭만은 통과했는데, 이건 가드
+덕이 아니라 Radix `DismissableLayer`가 바깥 `pointerdown` 리스너를 `setTimeout(0)` 뒤에
+붙여서 그보다 빨리 온 두 번째 클릭을 못 본 것이었다.
+
+원인: 공용화 때 `useOpenClickGuard(true)`를 `DialogContent` 함수 본문에서 불렀다. "마운트
+시점 = 열린 시점"을 전제한 호출인데, 이 모달처럼 `<Dialog open={false}>`로 **미리 렌더돼
+있는** 모달에서는 `DialogContent` 함수가 닫혀 있을 때도 실행된다(Radix가 열릴 때만
+마운트하는 건 `DialogPortal`의 자식 쪽이다 — `@radix-ui/react-dialog/dist/index.mjs:87`의
+`<Presence present={forceMount || context.open}>`). 그래서 시계가 페이지 첫 렌더 시점에 한 번
+찍히고 끝나, 열 때는 이미 400ms가 한참 지나 있었다. 같은 구조인 로그인 모달(`RootLayout`에
+상시 렌더)·이미지 뷰어도 같이 꺼져 있었고, 열 때 처음 마운트되는 Alert/Confirm만 정상이었다.
+기존 `dialog.test.tsx`는 모든 케이스를 처음부터 `open`으로 렌더해 이 차이를 못 잡았다.
+
+수정: 가드와 이벤트 처리 코드를 `DialogPortal` 안쪽의 `DialogContentPanel`로 옮기고,
+`DialogContent`는 Portal·Overlay·Panel을 조립만 하게 했다(로직 변경 없음). "닫힌 채 마운트 →
+시간 경과 → 열기 → 즉시 바깥 pointerdown" 단위 테스트를 추가해 수정 전 실패·수정 후 통과를
+확인했고, 재현 스펙 12개(데스크톱·모바일 뷰포트)도 전부 통과했다. 가드가 실제로 켜지면서
+로그인 모달이 뜬 뒤 400ms 안에 "로그인"을 누르던 e2e(`guest-guard.spec.ts`) 1건이
+깨져 다른 스펙과 같은 `waitForTimeout(DOUBLE_CLICK_GUARD_MS)` 대기를 넣었다.
+
+영향 파일: `shared/ui/atoms/dialog.tsx`, `shared/ui/atoms/dialog.test.tsx`,
+`e2e/guest-guard.spec.ts`, `e2e/bookmark-folder-modal.spec.ts`(신규).
+
 ## 11. 남은 것
 
 - `북마크 제거` 행의 되돌리기는 삭제 전 소속이 0~1개일 때만 제공된다(§5). 소속이
   2개 이상이었으면 되돌리기 없이 완전 삭제만 된다 — 일괄 복원은 순서·부분 실패 처리가
   필요해 범위 밖으로 미뤘다.
+- 모바일은 hover가 없어 첫 탭에서는 폴더 목록 로딩이 여전히 보인다(이후 staleTime 3분
+  동안은 캐시로 즉시 뜬다).
+- 상세 페이지에서 이 모달을 연 동안 뒤쪽 "목록으로" 버튼 문구가 "뒤로가기"로 바뀐다 —
+  `useHistoryOverlay.open()`이 `location.state`를 `{[key]: true}`로 통째로 교체해
+  `backSource`가 가려지기 때문이다(`pages/post/hooks/usePostDetail.ts`의 `resolveBackLabel`).
+  닫으면 원래 엔트리로 돌아가 복구되고, 로그인 모달도 같은 현상이 있다. 고치려면 오버레이
+  5종이 함께 쓰는 공용 훅을 바꿔야 해 미뤘다.
+- 등록 폼의 폴더 선택(`PostCreateBookmarkFolderField`)은 아직 히스토리에 묶여 있지 않다.
+- 바깥 클릭으로 모달을 닫을지의 정책은 alert·dialog 전체를 한 번에 정하기로 하고
+  미뤘다(2026-09-30 사용자 결정).
 
 ## 12. 용어 사전
 
