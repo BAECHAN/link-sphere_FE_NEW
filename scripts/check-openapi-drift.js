@@ -7,10 +7,10 @@
 // (doc-drift-check.yml과 같은 이유로 "레포에 쓰지 않고 트래킹 이슈로만 보고" 패턴을
 // 그대로 따른다).
 //
-// 운영 스펙은 CloudFront 공개 도메인(README.md에 이미 공개된 https://dbw3brui6htwk.
-// cloudfront.net)의 /api/v3/api-docs 에서 가져온다 — 로컬 dev용 .env의 Lambda Function
-// URL 직결 경로 대신 실제 사용자가 거치는 CloudFront+WAF 경로를 그대로 확인한다. 별도
-// 시크릿이 필요 없다(이미 공개된 값).
+// 운영 스펙은 커스텀 도메인(README.md에 이미 공개된 https://linksphere.click)의
+// /api/v3/api-docs 에서 가져온다 — 로컬 dev용 .env의 Lambda Function URL 직결 경로 대신
+// 실제 사용자가 거치는 CloudFront+WAF 경로를 그대로 확인한다. 별도 시크릿이 필요 없다
+// (이미 공개된 값).
 import { execFileSync } from 'child_process';
 import { mkdtempSync, writeFileSync, readFileSync } from 'fs';
 import { tmpdir } from 'os';
@@ -20,7 +20,7 @@ import { normalizeOpenApiSpec } from './lib/openapi-spec.js';
 const REPO = process.env.GITHUB_REPOSITORY;
 const LABEL = 'openapi-drift-check';
 const ISSUE_TITLE = '[자동] BE OpenAPI 스펙 드리프트 감지';
-const PROD_SPEC_URL = 'https://dbw3brui6htwk.cloudfront.net/api/v3/api-docs';
+const PROD_SPEC_URL = 'https://linksphere.click/api/v3/api-docs';
 const COMMITTED_SPEC_PATH = 'src/shared/api/generated/openapi.json';
 
 function gh(args) {
