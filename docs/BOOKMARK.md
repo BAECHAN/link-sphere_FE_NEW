@@ -188,6 +188,9 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
   `prefetchBookmarkFolderList`(`bookmark-folder.queries.ts`, `useBookmarkFolderListQuery`와 같은
   키·queryFn)를 부른다. 비로그인이면 401 → 전역 에러 토스트(`queryClient.ts`의 QueryCache
   `onError`)로 이어지므로 로그인 상태에서만 부른다. staleTime(3분) 안에서는 재요청하지 않는다.
+- **바깥 클릭은 닫힘 유지**: 폴더 탭은 즉시 저장이라 닫혀도 잃는 것이 없고, 새 폴더 이름
+  입력은 잃어도 된다고 판단했다(`dismissOnOutsideClick` 기본값 그대로). 확인창·로그인 모달과의
+  비교는 `docs/DECISIONS.md` 2026-09-30 "바깥 클릭 닫기 정책" 참고.
 
 ### 열린 직후 클릭 무시(더블클릭 관통 방지, 2026-09-24 도입 → 2026-09-29 공용화)
 
@@ -964,8 +967,6 @@ CSS 정렬 버그 하나에 들이기엔 과한 인프라라고 판단했다.
   닫으면 원래 엔트리로 돌아가 복구되고, 로그인 모달도 같은 현상이 있다. 고치려면 오버레이
   5종이 함께 쓰는 공용 훅을 바꿔야 해 미뤘다.
 - 등록 폼의 폴더 선택(`PostCreateBookmarkFolderField`)은 아직 히스토리에 묶여 있지 않다.
-- 바깥 클릭으로 모달을 닫을지의 정책은 alert·dialog 전체를 한 번에 정하기로 하고
-  미뤘다(2026-09-30 사용자 결정).
 
 ## 12. 용어 사전
 

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { useLocation } from 'react-router-dom';
@@ -15,6 +16,15 @@ const loginFormSchema = loginSchema.extend({
 
 type LoginFormInput = z.infer<typeof loginFormSchema>;
 
+interface UseLoginOptions {
+  /**
+   * 사용자가 이메일·비밀번호를 기본값에서 바꿨는지(입력이 생겼는지) 알린다. 저장된 이메일로
+   * 미리 채워진 값은 입력으로 보지 않는다. 로그인 모달이 입력이 있을 때 바깥 클릭으로 닫히지
+   * 않게 하는 데 쓴다(docs/DECISIONS.md 2026-09-30 "바깥 클릭 닫기 정책").
+   */
+  onInputDirtyChange?: (dirty: boolean) => void;
+}
+
 interface UseLoginReturn {
   form: UseFormReturn<LoginFormInput>;
   onSubmit: (data: LoginFormInput) => Promise<void>;
@@ -27,7 +37,7 @@ interface LoginLocationState {
   email?: string;
 }
 
-export function useLogin(): UseLoginReturn {
+export function useLogin({ onInputDirtyChange }: UseLoginOptions = {}): UseLoginReturn {
   const location = useLocation();
   const savedEmail = LocalStorageUtil.getItem<string>(SAVED_ID_KEY) || '';
   const emailFromState = (location.state as LoginLocationState | null)?.email;
@@ -42,6 +52,18 @@ export function useLogin(): UseLoginReturn {
   });
 
   const { mutateAsync: login, isPending } = useLoginMutation();
+
+  // formState는 프록시라 렌더 중에 읽어야 변경을 구독한다. "이메일 저장" 체크박스는
+  // 닫혀도 잃는 입력이 아니라 제외한다.
+  const { dirtyFields } = form.formState;
+  const hasUserInput = Boolean(dirtyFields.email || dirtyFields.password);
+
+  useEffect(
+    function reportInputDirty() {
+      onInputDirtyChange?.(hasUserInput);
+    },
+    [hasUserInput, onInputDirtyChange]
+  );
 
   const onSubmit = async (data: LoginFormInput) => {
     await login({ email: data.email, password: data.password });

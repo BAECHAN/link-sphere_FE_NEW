@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useLoginModalStore } from '@/shared/store/loginModal.store';
 import { useAuthStore } from '@/shared/store/auth.store';
@@ -88,5 +88,10 @@ export function useLoginModal() {
     }
   };
 
-  return { isOpen, handleOpenChange };
+  // 이메일·비밀번호를 입력했으면 바깥 클릭으로 닫지 않는다 — 닫히면 입력이 사라진다
+  // (docs/DECISIONS.md 2026-09-30 "바깥 클릭 닫기 정책"). ESC·X·뒤로가기는 그대로 닫는다.
+  // 모달이 닫히면 LoginForm이 언마운트되고, 다시 열 때 새 폼이 마운트되며 false를 알린다.
+  const [hasUserInput, setHasUserInput] = useState(false);
+
+  return { isOpen, handleOpenChange, hasUserInput, handleInputDirtyChange: setHasUserInput };
 }

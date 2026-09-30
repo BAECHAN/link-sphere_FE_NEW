@@ -108,6 +108,9 @@ function Alert({ alert }: AlertProps) {
     >
       <DialogContent
         className="max-w-[calc(100%-2rem)] sm:max-w-[400px]"
+        // 확인창은 명시적인 응답을 받는 창이라 바깥 클릭으로 닫지 않는다(Radix AlertDialog와
+        // 같은 기본값). 취소 버튼·ESC·뒤로가기로는 닫힌다(docs/DECISIONS.md 2026-09-30).
+        dismissOnOutsideClick={false}
         onOpenAutoFocus={(e) => {
           if (type === 'confirm') {
             e.preventDefault();

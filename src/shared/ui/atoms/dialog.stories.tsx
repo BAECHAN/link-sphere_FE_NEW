@@ -56,3 +56,23 @@ export const Default: Story = {
     </Dialog>
   ),
 };
+
+/**
+ * dismissOnOutsideClick={false} — 바깥(오버레이) 클릭으로 닫히지 않는다. ESC·닫기 버튼으로만
+ * 닫힌다. 확인창(Alert/Confirm)과 입력이 생긴 로그인 모달이 쓴다(docs/DECISIONS.md 2026-09-30).
+ */
+export const NoOutsideDismiss: Story = {
+  render: () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">Open</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]" dismissOnOutsideClick={false}>
+        <DialogHeader>
+          <DialogTitle>Outside click is ignored</DialogTitle>
+          <DialogDescription>Close with Escape or the close button.</DialogDescription>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>
+  ),
+};

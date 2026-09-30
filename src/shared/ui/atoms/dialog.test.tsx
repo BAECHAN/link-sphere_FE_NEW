@@ -146,3 +146,63 @@ describe('DialogContent — 열린 직후 클릭 가드', () => {
     expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });
 });
+
+// 바깥 클릭 닫기 정책(2026-09-30, docs/DECISIONS.md) — 확인창처럼 명시적인 응답이 필요한
+// 모달은 dismissOnOutsideClick={false}로 바깥 클릭을 무시한다. ESC는 그대로 닫는다.
+describe('DialogContent — dismissOnOutsideClick', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function renderDialog(dismissOnOutsideClick?: boolean) {
+    const onOpenChange = vi.fn();
+    renderWithProviders(
+      <Dialog open onOpenChange={onOpenChange}>
+        <DialogContent dismissOnOutsideClick={dismissOnOutsideClick}>
+          <DialogTitle>확인</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    );
+
+    return onOpenChange;
+  }
+
+  async function waitForOutsideListener() {
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+    // Radix DismissableLayer는 바깥 pointerdown 리스너를 setTimeout(0) 뒤에 붙인다
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  it('false면 가드 시간이 지난 뒤의 바깥 pointerdown에도 닫히지 않는다', async () => {
+    const onOpenChange = renderDialog(false);
+    await waitForOutsideListener();
+
+    vi.advanceTimersByTime(DOUBLE_CLICK_GUARD_MS);
+    fireEvent.pointerDown(document.body);
+
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+  });
+
+  it('false여도 ESC로는 닫힌다', async () => {
+    const onOpenChange = renderDialog(false);
+    await waitForOutsideListener();
+
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('기본값(true)은 가드 시간이 지난 뒤의 바깥 pointerdown으로 닫힌다', async () => {
+    const onOpenChange = renderDialog();
+    await waitForOutsideListener();
+
+    vi.advanceTimersByTime(DOUBLE_CLICK_GUARD_MS);
+    fireEvent.pointerDown(document.body);
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+});

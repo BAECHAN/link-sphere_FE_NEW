@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `shared` 확인창은 바깥 클릭으로 닫히지 않고, 로그인 모달은 입력 중일 때만 유지
+  <details><summary>배경·구현</summary>
+
+  바깥(오버레이) 클릭으로 모달을 닫을지를 모달마다 정하지 않고 한 번에 정했다. 기본은 지금처럼 닫되, 닫히면 사용자가 만든 것이 사라지거나 명시적인 응답이 필요한 곳만 막는다(Apple HIG·NN/g의 "작업이 사라질 때" 원칙, Radix AlertDialog의 기본값). 삭제·이탈 확인 등 Alert/Confirm은 바깥 클릭을 무시하고 취소 버튼·ESC·뒤로가기로만 닫힌다. 로그인 모달은 이메일·비밀번호를 직접 입력했을 때만 바깥 클릭을 무시한다 — 저장된 이메일로 미리 채워진 값은 입력으로 보지 않는다. 북마크 폴더 모달·이미지 뷰어·사이드바 드로어는 잃는 것이 없어 그대로 닫힌다. 공용 `DialogContent`에 `dismissOnOutsideClick` prop(기본값 `true`)을 추가했다. 대안 비교와 근거는 `docs/DECISIONS.md` 2026-09-30 항목에 있다.
+  (`src/shared/ui/atoms/dialog.tsx`, `src/shared/ui/atoms/dialog.test.tsx`, `src/shared/ui/atoms/dialog.stories.tsx`, `src/shared/ui/elements/modal/alert/Alert.tsx`, `src/features/auth/login/hooks/useLogin.ts`, `src/features/auth/login/ui/LoginForm.tsx`, `src/widgets/layout/login-modal/hooks/useLoginModal.ts`, `src/widgets/layout/login-modal/ui/LoginModal.tsx`, `e2e/dialog-outside-click.spec.ts`(신규), `docs/DECISIONS.md`, `docs/AUTH.md`, `docs/BOOKMARK.md`, [PR #267](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/267))
+
+  </details>
+
 - `bookmark` 북마크 모달을 뒤로가기로 닫기, 제목을 "북마크에 저장"으로 변경
   <details><summary>배경·구현</summary>
 

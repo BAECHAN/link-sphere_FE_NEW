@@ -34,6 +34,12 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 type DialogContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
+  /**
+   * false면 바깥(오버레이) 클릭으로 닫지 않는다. ESC·닫기 버튼·뒤로가기는 그대로 닫힌다.
+   * 확인창(Alert/Confirm)처럼 명시적인 응답이 필요하거나, 닫히면 사용자가 입력한 내용이
+   * 사라지는 모달에 쓴다(docs/DECISIONS.md 2026-09-30 "바깥 클릭 닫기 정책").
+   */
+  dismissOnOutsideClick?: boolean;
 };
 
 // DialogPortal의 자식은 Radix Presence로 감싸져 열릴 때만 마운트된다. 가드 훅을 이 컴포넌트
@@ -50,6 +56,7 @@ const DialogContentPanel = React.forwardRef<
       className,
       children,
       showCloseButton = true,
+      dismissOnOutsideClick = true,
       onPointerDownOutside,
       onEscapeKeyDown,
       onClickCapture,
@@ -78,6 +85,11 @@ const DialogContentPanel = React.forwardRef<
           }
 
           if (isOpenClickGuarded()) {
+            e.preventDefault();
+            return;
+          }
+
+          if (!dismissOnOutsideClick) {
             e.preventDefault();
             return;
           }
