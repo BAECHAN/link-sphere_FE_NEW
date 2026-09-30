@@ -1,4 +1,7 @@
 ### 2026-09-30 (FE)
+- URL 변경 시 가상 스크롤 위치를 최상단으로 초기화하도록 개선 ([#261](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/261))
+
+### 2026-09-30 (FE)
 - 게시글 카드 내 카테고리 배지를 활용한 피드 카테고리 필터링 기능 구현 ([#258](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/258))
 
 ### 2026-09-30 (FE)
