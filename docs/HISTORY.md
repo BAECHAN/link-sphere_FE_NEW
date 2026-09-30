@@ -1,4 +1,7 @@
 ### 2026-09-30 (FE)
+- 게시글 카드 내 카테고리 배지를 활용한 피드 카테고리 필터링 기능 구현 ([#258](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/258))
+
+### 2026-09-30 (FE)
 - 게시글 카드 UI의 클릭 가능 영역을 전체로 확장하여 사용자 경험(UX) 개선 ([#256](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/256))
 
 ### 2026-09-29 (FE)
