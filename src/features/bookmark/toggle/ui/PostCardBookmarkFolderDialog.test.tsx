@@ -87,6 +87,36 @@ function bookmarkFoldersResponse(folderIds: string[]): BookmarkFoldersResponse {
 }
 
 describe('PostCardBookmarkFolderDialog', () => {
+  it('목록을 기다리는 동안 고정 행을 비활성으로 먼저 그리고, 도착하면 실제 행으로 바뀐다', async () => {
+    let resolveList: () => void = () => {};
+    const listArrived = new Promise<void>((resolve) => {
+      resolveList = resolve;
+    });
+    server.use(
+      http.get(url(API_ENDPOINTS.bookmark.folders), async () => {
+        await listArrived;
+        return HttpResponse.json(
+          { status: 200, message: 'ok', data: folderListResponse, timestamp: '' },
+          { status: 200 }
+        );
+      })
+    );
+    renderDialog();
+
+    // 목록 없이 그릴 수 있는 행은 바로 보이되, 저장할 수 없으니 비활성이다(FolderListLoading)
+    expect(screen.getByRole('button', { name: '새 폴더 만들기' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^미분류/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '북마크 제거' })).toBeDisabled();
+    expect(screen.queryByText('개발')).not.toBeInTheDocument();
+
+    resolveList();
+
+    await waitFor(() => expect(screen.getByText('개발')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: '새 폴더 만들기' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^미분류/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '북마크 제거' })).toBeEnabled();
+  });
+
   it('소속된 모든 폴더 행에 체크 표시가 뜬다', async () => {
     renderDialog({ bookmarkFolderIds: [FOLDER_A, FOLDER_B] });
 
@@ -247,7 +277,8 @@ describe('PostCardBookmarkFolderDialog', () => {
     );
     renderDialog({ bookmarkFolderIds: [] });
 
-    await waitFor(() => expect(screen.getByText('미분류')).toBeInTheDocument());
+    // 로딩 중에도 미분류 행이 비활성으로 먼저 보이므로(FolderListLoading) 활성화될 때까지 기다린다
+    await waitFor(() => expect(screen.getByRole('button', { name: /^미분류/ })).toBeEnabled());
     await user.click(screen.getByText('미분류'));
 
     // 전체 해제(DELETE)가 아니라 북마크 자체를 지우는 토글이 나가야 한다
@@ -276,7 +307,8 @@ describe('PostCardBookmarkFolderDialog', () => {
     );
     renderDialog({ isBookmarked: false, bookmarkFolderIds: [] });
 
-    await waitFor(() => expect(screen.getByText('미분류')).toBeInTheDocument());
+    // 로딩 중에도 미분류 행이 비활성으로 먼저 보이므로(FolderListLoading) 활성화될 때까지 기다린다
+    await waitFor(() => expect(screen.getByRole('button', { name: /^미분류/ })).toBeEnabled());
     await user.click(screen.getByText('미분류'));
 
     await waitFor(() => expect(toggleCalled).toBe(true));
@@ -322,7 +354,8 @@ describe('PostCardBookmarkFolderDialog', () => {
     );
     const { onOpenChange } = renderDialog({ bookmarkFolderIds: [] });
 
-    await waitFor(() => expect(screen.getByText('미분류')).toBeInTheDocument());
+    // 로딩 중에도 미분류 행이 비활성으로 먼저 보이므로(FolderListLoading) 활성화될 때까지 기다린다
+    await waitFor(() => expect(screen.getByRole('button', { name: /^미분류/ })).toBeEnabled());
     await user.click(screen.getByText('미분류'));
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('북마크 제거에 실패했어요.'));
@@ -348,7 +381,7 @@ describe('PostCardBookmarkFolderDialog', () => {
     );
     renderDialog();
 
-    await waitFor(() => expect(screen.getByText('북마크 제거')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: '북마크 제거' })).toBeEnabled());
     await user.click(screen.getByText('북마크 제거'));
 
     await waitFor(() => expect(toggleCalled).toBe(true));
