@@ -974,11 +974,6 @@ CSS 정렬 버그 하나에 들이기엔 과한 인프라라고 판단했다.
   필요해 범위 밖으로 미뤘다.
 - 모바일은 hover가 없어 첫 탭에서는 폴더 목록 로딩이 여전히 보인다(이후 staleTime 3분
   동안은 캐시로 즉시 뜬다).
-- 상세 페이지에서 이 모달을 연 동안 뒤쪽 "목록으로" 버튼 문구가 "뒤로가기"로 바뀐다 —
-  `useHistoryOverlay.open()`이 `location.state`를 `{[key]: true}`로 통째로 교체해
-  `backSource`가 가려지기 때문이다(`pages/post/hooks/usePostDetail.ts`의 `resolveBackLabel`).
-  닫으면 원래 엔트리로 돌아가 복구되고, 로그인 모달도 같은 현상이 있다. 고치려면 여러
-  오버레이가 함께 쓰는 공용 훅을 바꿔야 해 미뤘다.
 
 ## 12. 용어 사전
 

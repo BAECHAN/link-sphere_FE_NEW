@@ -8,7 +8,7 @@
 > 라벨("목록으로"/"뒤로가기")이 유입 경로에 따라 어떻게 정해지는지 알고, 새 유입 경로를
 > 추가하거나 버튼의 노출·동작을 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-09-29
+> **마지막 검토**: 2026-09-30
 
 게시글 상세(`/post/:id`)에서 돌아가는 수단은 화면 크기에 따라 아예 다릅니다 — 데스크톱은
 버튼이 있고, 모바일은 버튼이 없는 대신 하단 탭바를 씁니다. 버튼이 있을 때도 라벨은
@@ -82,20 +82,38 @@ Navbar와 버튼 바 두 줄이 스크롤 내내 함께 고정돼 모바일 화�
 
 관여하는 파일과 책임:
 
-| 파일                                                                                                            | 책임                                                                |
-| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| [`pages/post/PostDetailPage.tsx`](../src/pages/post/PostDetailPage.tsx)                                         | 버튼 노출 조건(`hidden md:inline-flex`) — JSX만                     |
-| [`pages/post/hooks/usePostDetail.ts`](../src/pages/post/hooks/usePostDetail.ts)                                 | 라벨 계산(`resolveBackLabel`, #227로 `PostDetailPage.tsx`에서 이동) |
-| [`shared/hooks/useGoBack.ts`](../src/shared/hooks/useGoBack.ts)                                                 | 실제 이동 동작(`navigate(-1)` vs `replace`) — 라벨과 완전히 분리    |
-| [`shared/config/texts.ts`](../src/shared/config/texts.ts)                                                       | 라벨 문자열 두 개(`post.detail.backToList`/`back`)                  |
-| [`widgets/post/post-card/ui/PostCard.tsx`](../src/widgets/post/post-card/ui/PostCard.tsx)                       | `backSource` prop을 `<Link state>`로 실어 보내는 발신지             |
-| [`widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx`](../src/widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx) | 모바일에서 버튼을 대신하는 상시 노출 수단(Feed 탭)                  |
+| 파일                                                                                                            | 책임                                                                                                                           |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| [`pages/post/PostDetailPage.tsx`](../src/pages/post/PostDetailPage.tsx)                                         | 버튼 노출 조건(`hidden md:inline-flex`) — JSX만                                                                                |
+| [`pages/post/hooks/usePostDetail.ts`](../src/pages/post/hooks/usePostDetail.ts)                                 | 라벨 계산(`resolveBackLabel`, #227로 `PostDetailPage.tsx`에서 이동)과 오버레이 PUSH 동안 라벨 유지(`useBackLabel`, 2026-09-30) |
+| [`shared/hooks/useGoBack.ts`](../src/shared/hooks/useGoBack.ts)                                                 | 실제 이동 동작(`navigate(-1)` vs `replace`) — 라벨과 완전히 분리                                                               |
+| [`shared/config/texts.ts`](../src/shared/config/texts.ts)                                                       | 라벨 문자열 두 개(`post.detail.backToList`/`back`)                                                                             |
+| [`widgets/post/post-card/ui/PostCard.tsx`](../src/widgets/post/post-card/ui/PostCard.tsx)                       | `backSource` prop을 `<Link state>`로 실어 보내는 발신지                                                                        |
+| [`widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx`](../src/widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx) | 모바일에서 버튼을 대신하는 상시 노출 수단(Feed 탭)                                                                             |
 
 라벨(무엇이라 부를지)과 동작(어디로 갈지)은 의도적으로 분리돼 있다 —
 `resolveBackLabel`은 `location`만 읽고, `useGoBack`은 같은 `location.key` 조건을
 독립적으로 다시 검사해 실제 이동을 결정한다. 둘을 하나로 합치지 않은 이유는 "이름을
 약속할 수 있는가"(라벨)와 "실제로 이력이 있는가"(동작)가 우연히 같은 조건
 (`location.key === 'default'`)을 공유할 뿐 별개의 질문이기 때문이다.
+
+**오버레이가 열린 동안에는 라벨을 유지한다(2026-09-30).** 상세 페이지 위에 북마크 폴더 창·
+로그인 창·이미지 뷰어를 열면 `useHistoryOverlay`가 같은 경로에 새 엔트리를 PUSH하면서
+`location.state`를 오버레이 표시(`{ [key]: true }`)로 통째로 바꾼다. 그러면 `backSource`가
+가려지고 `location.key`도 `'default'`가 아니게 돼, `resolveBackLabel`을 그대로 부르면 모달
+뒤쪽 버튼이 "목록으로"에서 "뒤로가기"로 바뀌었다. 유입 경로는 그대로이므로 `useBackLabel`이
+**같은 경로 + PUSH**일 때만 직전 라벨을 유지하고, 나머지는 지금처럼 다시 계산한다.
+
+| 위치 변화                 | navigationType                                                                | 라벨                                                                   |
+| ------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 오버레이 열기             | 같은 경로 + `PUSH`                                                            | 직전 라벨 유지                                                         |
+| 오버레이 닫기             | `POP`(원래 엔트리 복원)                                                       | 다시 계산 → 원래 라벨                                                  |
+| 상세 제목 링크(같은 주소) | `REPLACE` — react-router `useLinkClickHandler`가 같은 주소면 replace로 바꾼다 | 다시 계산(공유 링크 진입이었다면 `'default'` 표시가 사라져 "뒤로가기") |
+| 다른 글로 이동            | 경로 변경                                                                     | 다시 계산                                                              |
+
+같은 경로 안의 PUSH는 오버레이뿐이라(같은 주소 링크는 REPLACE) 오버레이 키를 따로 알 필요가
+없다. 한계: 오버레이를 닫은 뒤 브라우저 **앞으로가기**로 오버레이 엔트리에 다시 들어오면 POP이라
+다시 계산돼 그동안 "뒤로가기"로 보인다.
 
 ## 6. 상태 모델
 
@@ -164,6 +182,11 @@ sticky를 걷어내는 과정 자체의 시행착오(0/12/16/24px 후보 비교,
 - `PostCard.tsx:182,346`(제목 링크·댓글 수 버튼)이 `isDetail`일 때도 자기 자신
   (`/post/{id}`)을 링크해 상세에서 제목을 눌러도 히스토리가 쌓이는 기존 버그는 이번
   범위 밖으로 그대로 남아 있다(PR #100 노트에서 이미 명시, 2026-09-29 줄번호 재확인).
+  정정(2026-09-30): 같은 주소로 가는 링크는 react-router `useLinkClickHandler`가 push가
+  아니라 replace로 바꾸므로 히스토리가 쌓이지는 않는다. 대신 현재 엔트리가 교체돼 state
+  (`backSource`)와 `'default'` key가 사라진다 — 공유 링크로 들어와 제목을 누르면 라벨이
+  "뒤로가기"가 되고 `useGoBack`도 `navigate(-1)`로 바뀐다(`e2e/post-detail-back-label.spec.ts`의
+  두 번째 케이스가 이 동작을 고정한다).
 - `backSource`가 없는 유입 경로(북마크·내 댓글 등)는 전부 중립 라벨 "뒤로가기"로
   뭉뚱그려져 있다 — 특정 경로에 전용 라벨을 붙이고 싶으면 §8 레시피를 따른다.
 - **2026-09-19 추가**: `PostList`·`BookmarkPostList`가 가상 스크롤로 바뀌면서, 여기 적힌
