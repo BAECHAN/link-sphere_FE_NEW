@@ -59,10 +59,10 @@ test.describe('공개/비공개 전환', () => {
     await page.goto('/post');
     await page.getByRole('link', { name: mockPost.title }).click();
     await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
-    // 목록 카드 title Link의 onFocus가 handlePrefetchDetail을 또 쏴 상세 진입 직후
-    // GET /post/:id가 한 번 더 나가고, 그 응답이 Suspense와 겹치면 방금 연 드롭다운이
-    // 즉시 닫힌다(post-delete.spec.ts에서 실측). 잔여 네트워크가 가라앉을 때까지 기다린다.
-    await page.waitForLoadState('networkidle');
+    // URL은 화면 전환보다 먼저 바뀐다 — lazy 상세 청크가 올 때까지 목록이 그대로 남아 있어 바로
+    // ⋮를 누르면 목록 카드의 메뉴가 열렸다가 사라진다(post-delete.spec.ts에서 실측). 상세에만 있는
+    // 버튼으로 전환 커밋을 기다린다(docs/TESTING.md "자주 발생하는 문제" 13).
+    await expect(page.getByRole('button', { name: TEXTS.post.detail.backToList })).toBeVisible();
 
     await page.getByRole('button', { name: TEXTS.ariaLabels.postMenu }).click();
     // mockPost.isPrivate === false라 첫 라벨은 '나만 보기'.

@@ -4,6 +4,7 @@ import { mockCategoryOptions } from './mocks/common.mock';
 import { mockPostList, mockPostDetail } from './mocks/post.mock';
 import { mockComments } from './mocks/comment.mock';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
+import { TEXTS } from '@/shared/config/texts';
 
 test.describe('비로그인 방문자 — 게시글 목록 조회 → 검색 → 상세 진입', () => {
   test.beforeEach(async ({ page }) => {
@@ -35,6 +36,10 @@ test.describe('비로그인 방문자 — 게시글 목록 조회 → 검색 →
     // 상세 진입
     await page.getByRole('link', { name: mockPost.title }).click();
     await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
+    // URL과 제목(h3)만으로는 상세 진입을 증명하지 못한다 — URL은 전환 커밋보다 먼저 바뀌고,
+    // 목록 카드 제목도 같은 h3라 lazy 상세 청크가 오기 전의 목록 화면에서도 통과한다
+    // (docs/TESTING.md "자주 발생하는 문제" 13). 상세에만 있는 버튼으로 확인한다.
+    await expect(page.getByRole('button', { name: TEXTS.post.detail.backToList })).toBeVisible();
     await expect(page.getByRole('heading', { level: 3, name: mockPost.title })).toBeVisible();
   });
 });
