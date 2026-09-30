@@ -449,7 +449,9 @@ const handleCreateAndSelect = async () => {
 - **Never** 워크트리 없이 코드 수정 → 이 레포는 여러 Claude 세션이 동시에 돈다. 코드를 **수정하는**
   작업(읽기 전용 조사·질문 답변은 예외)을 시작할 때는 항상 `EnterWorktree`로 워크트리를 만들고
   그 안에서 작업한다. 워킹트리 파일과 `.git/index`(스테이징 영역)를 세션끼리 공유하면 서로
-  덮어쓰거나 무관한 커밋에 남의 변경이 딸려 들어간다 (`docs/DECISIONS.md` 참고)
+  덮어쓰거나 무관한 커밋에 남의 변경이 딸려 들어간다 (`docs/DECISIONS.md` 참고). 메인 체크아웃
+  파일 편집은 `.claude/hooks/edit-guard.mjs`(사용자 설정에 등록하는 PreToolUse 훅, 등록 블록은
+  `.claude/hooks/run-node.sh` 머리말)가 막는다 — gitignore된 로컬 파일만 예외
 - **Never** 메인 체크아웃에서 `git add`/`git rm`으로 스테이징 → 메인 체크아웃의 `.git/index`는
   세션끼리 공유돼 위와 같은 인덱스 오염이 재발한다. 커밋은 `git commit -m "<메시지>" -- <경로...>`로
   대상 파일을 직접 지정하고, 옵션은 반드시 `--` **앞**에 둔다(`git commit -- a.ts -m x`는 `-m`을
@@ -460,7 +462,9 @@ const handleCreateAndSelect = async () => {
   대상으로 한다 ② rebase·merge 충돌 해결 중 해당 파일 add ③ 추적 파일 삭제는 처음부터
   `git rm <경로>`(`rm`이 전역 차단이라 합법 경로는 이것뿐 — `rm`이 거부된 미추적 파일을 지우려는
   우회로는 쓰지 않는다. 그때는 절대경로 `rm` 명령을 사용자에게 제시한다). `git add -A`·`git add .`·`-u`·`--all`·`git commit -a`는 어디서나
-  금지(2026-09-29 사용자 결정, 근거와 수치는 `docs/plans/2026-09-29-rule-enforcement-hardening.md`)
+  금지(2026-09-29 사용자 결정, 근거와 수치는 `docs/plans/2026-09-29-rule-enforcement-hardening.md`).
+  이 규칙과 stash·`reset --hard`·`rm` 처리는 `.claude/hooks/bash-guard.mjs`가 실행 직전에 강제한다 —
+  막히면 메시지가 안내하는 명령으로 바꾸고, 우회하지 않는다
 - **Never** 워크트리 진입 후 부트스트랩 생략 → `EnterWorktree`로 만든 워크트리는 gitignore된
   `.env`가 없다. 진입 직후 반드시 실행:
   ```bash

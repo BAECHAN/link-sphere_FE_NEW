@@ -19,10 +19,18 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
+import {
+  broadAddArg,
+  destructiveKind,
+  hasOptionAfterDoubleDash,
+  isWorktreePath,
+  REPO_PATTERN,
+  repoOf,
+  resolveSegments,
+} from '../lib/shell-parse.mjs';
+
 const PROJECTS_ROOT = path.join(os.homedir(), '.claude', 'projects');
 const PROJECT_DIR_PREFIX = '-Users-baechan-project-link-sphere-link-sphere-';
-const WORKTREE_MARKER = '/.claude/worktrees/';
-const REPO_PATTERN = /\/link-sphere_(FE|BE)_NEW(\/|$)/;
 
 // 규칙·메모리가 생긴 날짜. 이 날짜 전후로 나눠 보고한다.
 const RULE_DATES = {
@@ -37,8 +45,8 @@ const RULE_DATES = {
 const HOOK_SCRIPTS = [
   'plan-diagram-reminder.sh',
   'filename-case-check.sh',
-  'bash-guard.sh',
-  'edit-guard.sh',
+  'bash-guard.mjs',
+  'edit-guard.mjs',
 ];
 const PRE_TOOL_HOOK_ERROR = /^PreToolUse:\w+ hook error: \[/;
 
@@ -49,25 +57,6 @@ const PATHSPEC_FOLLOWUP_WINDOW = 4;
 const CONFLICT_WINDOW = 10;
 const CONFLICT_SIGNAL = /CONFLICT \(|Merge conflict|could not apply|fix conflicts/i;
 const DENIAL_PATTERN = /^Permission to use Bash with command [\s\S]* has been denied/;
-const COMMIT_OPTIONS_WITH_VALUE = new Set([
-  '-m',
-  '-F',
-  '--message',
-  '--file',
-  '--amend',
-  '-C',
-  '-c',
-]);
-const BROAD_ADD_ARGS = new Set([
-  '-A',
-  '--all',
-  '.',
-  '-u',
-  '--update',
-  ':/',
-  '*',
-  '--no-ignore-removal',
-]);
 
 function parseArgs(argv) {
   const options = { since: null, until: null, json: false };
@@ -115,203 +104,6 @@ function collectTranscripts() {
   }
 
   return result;
-}
-
-/**
- * 셸 명령을 따옴표·heredoc을 고려해 하위 명령(단어 배열) 목록으로 쪼갠다.
- * 커밋 메시지 본문이나 heredoc 안의 "git add" 같은 문자열을 명령으로 오인하지 않기 위함이다.
- */
-export function splitShellCommand(command) {
-  const segments = [];
-  let words = [];
-  let word = '';
-  let hasWord = false;
-  let quote = null;
-
-  const endWord = () => {
-    if (hasWord) {
-      words.push(word);
-    }
-
-    word = '';
-    hasWord = false;
-  };
-  const endSegment = () => {
-    endWord();
-
-    if (words.length > 0) {
-      segments.push(words);
-    }
-
-    words = [];
-  };
-
-  for (let i = 0; i < command.length; i += 1) {
-    const ch = command[i];
-
-    if (quote) {
-      if (ch === quote) {
-        quote = null;
-      } else if (ch === '\\' && quote === '"' && i + 1 < command.length) {
-        word += command[++i];
-      } else {
-        word += ch;
-      }
-
-      continue;
-    }
-
-    if (ch === "'" || ch === '"') {
-      quote = ch;
-      hasWord = true;
-      continue;
-    }
-
-    if (ch === '\\' && i + 1 < command.length) {
-      word += command[++i];
-      hasWord = true;
-      continue;
-    }
-
-    if (ch === '<' && command[i + 1] === '<' && command[i + 2] !== '<') {
-      const rest = command.slice(i + 2);
-      const match = rest.match(/^-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1/);
-
-      if (match) {
-        const delimiter = match[2];
-        const lineEnd = command.indexOf('\n', i);
-
-        if (lineEnd === -1) {
-          i = command.length;
-          continue;
-        }
-
-        const bodyEnd = command
-          .slice(lineEnd + 1)
-          .search(new RegExp(`^\\s*${delimiter}\\s*$`, 'm'));
-        const tail = command.slice(i + 2 + match[0].length, lineEnd);
-        command =
-          command.slice(0, i) +
-          tail +
-          (bodyEnd === -1
-            ? ''
-            : command.slice(lineEnd + 1 + bodyEnd).replace(new RegExp(`^\\s*${delimiter}`), ''));
-        i -= 1;
-        continue;
-      }
-    }
-
-    if (ch === '\n' || ch === ';') {
-      endSegment();
-      continue;
-    }
-
-    if (ch === '&' || ch === '|') {
-      endSegment();
-
-      if (command[i + 1] === ch) {
-        i += 1;
-      }
-
-      continue;
-    }
-
-    if (ch === ' ' || ch === '\t') {
-      endWord();
-      continue;
-    }
-
-    word += ch;
-    hasWord = true;
-  }
-
-  endSegment();
-
-  return segments;
-}
-
-/** 하위 명령의 앞쪽 환경변수 대입·래퍼(`env`, `command`, `timeout N`)를 벗긴다. */
-function stripPrefix(words) {
-  let index = 0;
-
-  while (index < words.length) {
-    const current = words[index];
-
-    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(current) || current === 'env' || current === 'command') {
-      index += 1;
-    } else if (current === 'timeout' && index + 1 < words.length) {
-      index += 2;
-    } else {
-      break;
-    }
-  }
-
-  return words.slice(index);
-}
-
-/** `git [-C dir] [-c k=v] <sub> args...`를 풀어 { dir, sub, args }로 돌려준다. git이 아니면 null. */
-function parseGit(words) {
-  if (words[0] !== 'git') {
-    return null;
-  }
-
-  let dir = null;
-  let index = 1;
-
-  while (index < words.length && words[index].startsWith('-')) {
-    if (words[index] === '-C') {
-      dir = words[index + 1];
-      index += 2;
-    } else if (words[index] === '-c') {
-      index += 2;
-    } else {
-      index += 1;
-    }
-  }
-
-  return { dir, sub: words[index] ?? null, args: words.slice(index + 1) };
-}
-
-/** `git commit`에서 값을 받는 옵션(-m 등)이 `--` 뒤에 왔는지 — pathspec 오류의 인자 순서 원인. */
-function hasOptionAfterDoubleDash(args) {
-  const dashIndex = args.indexOf('--');
-
-  if (dashIndex === -1) {
-    return false;
-  }
-
-  return args
-    .slice(dashIndex + 1)
-    .some((arg) => COMMIT_OPTIONS_WITH_VALUE.has(arg) || /^--(message|file)=/.test(arg));
-}
-
-/** 명령 한 줄에서 (하위 명령, 그 명령이 실행될 디렉터리) 쌍을 만든다. `cd`와 `git -C`를 따라간다. */
-function resolveSegments(command, cwd) {
-  let current = cwd ?? '';
-  const resolved = [];
-
-  for (const raw of splitShellCommand(command)) {
-    const words = stripPrefix(raw);
-
-    if (words.length === 0) {
-      continue;
-    }
-
-    if (words[0] === 'cd' && words[1]) {
-      current = path.resolve(current || '/', words[1].replace(/^~/, os.homedir()));
-      continue;
-    }
-
-    const git = parseGit(words);
-    const dir = git?.dir ? path.resolve(current || '/', git.dir) : current;
-    resolved.push({ words, git, dir });
-  }
-
-  return resolved;
-}
-
-function isWorktreePath(p) {
-  return p.includes(WORKTREE_MARKER);
 }
 
 function toolResultText(block) {
@@ -377,12 +169,8 @@ function createMetrics() {
     seen: new Set(),
     m1: { total: 0, main: 0, worktree: 0, otherRepo: 0, broad: 0, explicit: 0, conflict: 0 },
     m2: { total: 0, argOrder: 0, untrackedNewFile: 0, other: 0 },
-    m3: {
-      stash: { main: 0, sub: 0 },
-      resetHard: { main: 0, sub: 0 },
-      checkoutAll: { main: 0, sub: 0 },
-      afterRule: 0,
-    },
+    m3: { byKind: {}, stashAfterRule: 0 },
+    guard: { executed: {}, blocked: {} },
     m4: { denials: { main: 0, sub: 0 }, turns: new Map(), bypass: 0 },
     m5: {
       byModel: new Map(),
@@ -443,51 +231,15 @@ function inRange(timestamp, options) {
   return (!options.since || day >= options.since) && (!options.until || day <= options.until);
 }
 
+/**
+ * M1·M3·우회형을 센다. git 규칙은 가드(bash-guard.mjs)와 같은 범위(link-sphere 레포)·같은 판정
+ * 함수로 센다. 반환한 가드 대상 범주는 도구 결과를 볼 때 "실행됨/막힘"으로 나눠 센다.
+ */
 function recordGitAndRm(metrics, command, cwd, isSub, day, inConflict) {
+  const categories = [];
+  const bucket = isSub ? 'sub' : 'main';
+
   for (const { words, git, dir } of resolveSegments(command, cwd)) {
-    if (git?.sub === 'add') {
-      metrics.m1.total += 1;
-
-      if (inConflict) {
-        metrics.m1.conflict += 1;
-      }
-
-      if (isWorktreePath(dir)) {
-        metrics.m1.worktree += 1;
-      } else if (REPO_PATTERN.test(dir)) {
-        metrics.m1.main += 1;
-      } else {
-        metrics.m1.otherRepo += 1;
-      }
-
-      if (git.args.some((arg) => BROAD_ADD_ARGS.has(arg))) {
-        metrics.m1.broad += 1;
-      } else {
-        metrics.m1.explicit += 1;
-      }
-    }
-
-    const bucket = isSub ? 'sub' : 'main';
-
-    if (git?.sub === 'stash' && !['list', 'show'].includes(git.args[0])) {
-      metrics.m3.stash[bucket] += 1;
-
-      if (day >= RULE_DATES.sharedWorktreeStash) {
-        metrics.m3.afterRule += 1;
-      }
-    }
-
-    if (git?.sub === 'reset' && git.args.includes('--hard')) {
-      metrics.m3.resetHard[bucket] += 1;
-    }
-
-    if (
-      (git?.sub === 'checkout' && git.args[0] === '--' && git.args[1] === '.') ||
-      (git?.sub === 'restore' && git.args.includes('.'))
-    ) {
-      metrics.m3.checkoutAll[bucket] += 1;
-    }
-
     if (
       words[0] === 'unlink' ||
       words[0] === '/bin/rm' ||
@@ -495,7 +247,57 @@ function recordGitAndRm(metrics, command, cwd, isSub, day, inConflict) {
     ) {
       metrics.m4.bypass += 1;
     }
+
+    if (!git?.sub) {
+      continue;
+    }
+
+    const linkSphere = Boolean(repoOf(dir));
+
+    if (git.sub === 'add') {
+      metrics.m1.total += 1;
+
+      if (inConflict) {
+        metrics.m1.conflict += 1;
+      }
+
+      if (!linkSphere) {
+        metrics.m1.otherRepo += 1;
+        continue;
+      }
+
+      if (isWorktreePath(dir)) {
+        metrics.m1.worktree += 1;
+      } else {
+        metrics.m1.main += 1;
+        categories.push('add:main');
+      }
+
+      if (broadAddArg(git.args)) {
+        metrics.m1.broad += 1;
+        categories.push('add:broad');
+      } else {
+        metrics.m1.explicit += 1;
+      }
+
+      continue;
+    }
+
+    const kind = linkSphere ? destructiveKind(git) : null;
+
+    if (kind) {
+      metrics.m3.byKind[kind] = metrics.m3.byKind[kind] ?? { main: 0, sub: 0 };
+      metrics.m3.byKind[kind][bucket] += 1;
+
+      if (kind === 'stash' && day >= RULE_DATES.sharedWorktreeStash) {
+        metrics.m3.stashAfterRule += 1;
+      }
+
+      categories.push(kind === 'stash' ? `stash:${bucket}` : 'destructive');
+    }
   }
+
+  return categories;
 }
 
 function hasRmSegment(command, cwd) {
@@ -601,7 +403,14 @@ function processFile(metrics, { file, isSub, sessionRepo }, options) {
 
         if (block.name === 'Bash' && typeof block.input?.command === 'string') {
           const inConflict = bashResults - lastConflictAt <= CONFLICT_WINDOW;
-          recordGitAndRm(metrics, block.input.command, event.cwd, isSub, day, inConflict);
+          toolUses.get(block.id).categories = recordGitAndRm(
+            metrics,
+            block.input.command,
+            event.cwd,
+            isSub,
+            day,
+            inConflict
+          );
         }
 
         const filePath = block.input?.file_path ?? block.input?.notebook_path;
@@ -648,6 +457,16 @@ function processFile(metrics, { file, isSub, sessionRepo }, options) {
 
         bashResults += 1;
 
+        // 가드 대상 범주를 "실행됨/막힘"으로 나눈다 — 막힘은 가드 차단, 권한 거부, ask에서 사용자가 거절한 경우.
+        const blockedBeforeRun =
+          DENIAL_PATTERN.test(text) ||
+          (PRE_TOOL_HOOK_ERROR.test(text) && text.includes('bash-guard.mjs'));
+
+        for (const category of use.categories ?? []) {
+          const target = blockedBeforeRun ? metrics.guard.blocked : metrics.guard.executed;
+          target[category] = (target[category] ?? 0) + 1;
+        }
+
         if (CONFLICT_SIGNAL.test(text)) {
           lastConflictAt = bashResults;
         }
@@ -676,7 +495,7 @@ function processFile(metrics, { file, isSub, sessionRepo }, options) {
 
         const blocked =
           DENIAL_PATTERN.test(text) ||
-          (PRE_TOOL_HOOK_ERROR.test(text) && text.includes('bash-guard.sh'));
+          (PRE_TOOL_HOOK_ERROR.test(text) && text.includes('bash-guard.mjs'));
 
         if (blocked && hasRmSegment(use.input.command, use.cwd)) {
           metrics.m4.denials[isSub ? 'sub' : 'main'] += 1;
@@ -717,6 +536,7 @@ function summarize(metrics) {
     m1_gitAdd: metrics.m1,
     m2_pathspec: metrics.m2,
     m3_destructive: metrics.m3,
+    guard_categories: metrics.guard,
     m4_rm: {
       denials: metrics.m4.denials,
       beforeMemory: splitRm((t) => t.day < RULE_DATES.rmMemory),
@@ -755,13 +575,22 @@ function printMarkdown(summary, options) {
   console.log('| 지표 | 값 |');
   console.log('| --- | --- |');
   console.log(
-    `| M1 git add | ${s.m1_gitAdd.total} (link-sphere 메인 체크아웃 ${s.m1_gitAdd.main} / 워크트리 ${s.m1_gitAdd.worktree} / 그 밖의 레포 ${s.m1_gitAdd.otherRepo}, 광범위 ${s.m1_gitAdd.broad}, 충돌 해결 중 ${s.m1_gitAdd.conflict}) |`
+    `| M1 git add | ${s.m1_gitAdd.total} (link-sphere 메인 체크아웃 ${s.m1_gitAdd.main} / 워크트리 ${s.m1_gitAdd.worktree} / 그 밖의 레포 ${s.m1_gitAdd.otherRepo}, link-sphere 광범위 ${s.m1_gitAdd.broad}, 충돌 해결 중 ${s.m1_gitAdd.conflict}) |`
+  );
+  const categoryRow = (name) =>
+    `${name} 실행 ${s.guard_categories.executed[name] ?? 0}·막힘 ${s.guard_categories.blocked[name] ?? 0}`;
+  console.log(
+    `| 가드 대상(실행/막힘) | ${['add:main', 'add:broad', 'stash:main', 'stash:sub', 'destructive'].map(categoryRow).join(', ')} |`
   );
   console.log(
     `| M2 pathspec 오류 | ${s.m2_pathspec.total} (인자 순서 ${s.m2_pathspec.argOrder} / 새 파일 ${s.m2_pathspec.untrackedNewFile} / 그 외 ${s.m2_pathspec.other}) |`
   );
   console.log(
-    `| M3 stash / reset --hard / checkout -- . | 메인 ${s.m3_destructive.stash.main}·${s.m3_destructive.resetHard.main}·${s.m3_destructive.checkoutAll.main} / 서브 ${s.m3_destructive.stash.sub}·${s.m3_destructive.resetHard.sub}·${s.m3_destructive.checkoutAll.sub} (stash 중 ${RULE_DATES.sharedWorktreeStash} 이후 ${s.m3_destructive.afterRule}) |`
+    `| M3 되돌리기 어려운 git 명령(link-sphere) | ${
+      Object.entries(s.m3_destructive.byKind)
+        .map(([kind, n]) => `${kind} 메인 ${n.main}·서브 ${n.sub}`)
+        .join(', ') || '없음'
+    } (stash 중 ${RULE_DATES.sharedWorktreeStash} 이후 ${s.m3_destructive.stashAfterRule}) |`
   );
   console.log(
     `| M4 rm 거부 | 메인 ${s.m4_rm.denials.main} / 서브 ${s.m4_rm.denials.sub}, 우회형 시도 ${s.m4_rm.bypassAttempts} |`
