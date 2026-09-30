@@ -235,9 +235,23 @@ function recordReply(metrics, reply, kind) {
 
   if (kind === 'intermediate') {
     const key = `${reply.model}\u0000${reply.sessionId}`;
-    const session = metrics.m5.sessions.get(key) ?? { model: reply.model, total: 0, english: 0 };
+    const session = metrics.m5.sessions.get(key) ?? {
+      model: reply.model,
+      total: 0,
+      english: 0,
+      before: { total: 0, english: 0 },
+      after: { total: 0, english: 0 },
+    };
+    const english = lang === 'english' ? 1 : 0;
     session.total += 1;
-    session.english += lang === 'english' ? 1 : 0;
+    session.english += english;
+
+    // 압축을 겪은 세션은 압축 전후를 따로 센다 — 언어 실험 2단계(압축 후 주입) 판정용.
+    if (reply.phase) {
+      session[reply.phase].total += 1;
+      session[reply.phase].english += english;
+    }
+
     metrics.m5.sessions.set(key, session);
 
     return;
@@ -422,6 +436,7 @@ function processFile(metrics, { file, isSub, sessionRepo }, options) {
     }
   };
   const trackReply = (event) => {
+    // isMeta user 이벤트(skill 본문·명령 안내처럼 하네스가 턴 중간에 끼워 넣는 것)는 새 턴이 아니라 경계에서 뺀다.
     if (event.type === 'user') {
       const content = event.message?.content;
       const toolResult = Array.isArray(content) && content.some((c) => c.type === 'tool_result');
@@ -669,32 +684,43 @@ function summarize(metrics) {
 
     return { turns: turns.length, retried, presented };
   };
-  // 언어 실험 판정 지표: 모델별로, 중간 서술이 SESSION_MIN_BLOCKS 이상인 세션의 영어 비율 중앙값.
-  const sessionRates = new Map();
+  // 언어 실험 판정 지표(2026-09-30 사용자 결정): 모델별로, 중간 서술이 SESSION_MIN_BLOCKS 이상인 세션 중
+  // "영어로 흐른 세션"(중간 서술의 DRIFT_RATE 이상이 영어)의 비율. 분포가 양봉(대부분 거의 0%, 일부가
+  // 30~70%)이라 중앙값·블록 합계보다 이 비율이 효과를 가른다(docs/plans/2026-09-30-rule-enforcement-phase3.md).
+  const DRIFT_RATE = 0.1;
+  const rateOf = (s) => (s.total ? s.english / s.total : 0);
+  const sessionsByModel = new Map();
 
   for (const session of metrics.m5.sessions.values()) {
     if (session.total >= SESSION_MIN_BLOCKS) {
-      const rates = sessionRates.get(session.model) ?? [];
-      rates.push(session.english / session.total);
-      sessionRates.set(session.model, rates);
+      const list = sessionsByModel.get(session.model) ?? [];
+      list.push(session);
+      sessionsByModel.set(session.model, list);
     }
   }
 
   const models = [...metrics.m5.byModel.entries()]
     .map(([model, s]) => {
-      const rates = sessionRates.get(model) ?? [];
+      const sessions = sessionsByModel.get(model) ?? [];
+      const rates = sessions.map(rateOf);
+      const drifted = sessions.filter((session) => rateOf(session) >= DRIFT_RATE);
+      const driftedCompacted = drifted.filter((session) => session.after.total > 0);
 
       return {
         model,
         ...s,
         englishRate: s.total ? s.english / s.total : 0,
-        sessions: rates.length,
+        sessions: sessions.length,
         sessionIntermediate: {
           p50: quantile(rates, 0.5),
           p75: quantile(rates, 0.75),
           p90: quantile(rates, 0.9),
-          // 영어로 흐른 세션: 중간 서술의 10% 이상이 영어인 세션 수
-          drifted: rates.filter((r) => r >= 0.1).length,
+          drifted: drifted.length,
+          driftedCompacted: driftedCompacted.length,
+          // 압축 전에는 한국어였다가 압축 뒤에 흐른 세션 — 2단계(압축 후 주입) 판정용
+          driftedAfterCompactionOnly: driftedCompacted.filter(
+            (session) => rateOf(session.before) < DRIFT_RATE && rateOf(session.after) >= DRIFT_RATE
+          ).length,
         },
       };
     })
@@ -799,16 +825,16 @@ function printMarkdown(summary, options) {
 
   console.log('\n### M5 모델별 영어 블록\n');
   console.log(
-    `| 모델 | 블록 | 영어 | 일본어 | 최종 답변 영어 | 중간 서술 영어 | 세션 수(중간 ${SESSION_MIN_BLOCKS}블록+) | 세션별 중간 서술 영어 p50/p75/p90 | 영어로 흐른 세션(10%+) |`
+    `| 모델 | 블록 | 영어 | 일본어 | 최종 답변 영어 | 중간 서술 영어 | 세션 수(중간 ${SESSION_MIN_BLOCKS}블록+) | 세션별 중간 서술 영어 p50/p75/p90 | 영어로 흐른 세션(10%+) | 그중 압축 세션 / 압축 뒤에만 흐름 |`
   );
-  console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- |');
+  console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
 
   for (const m of s.m5_language.byModel) {
     const q = m.sessionIntermediate;
     const quantiles =
       q.p50 === null ? '-' : [q.p50, q.p75, q.p90].map((v) => percent(v, 1)).join(' / ');
     console.log(
-      `| ${m.model} | ${m.total} | ${percent(m.english, m.total)} | ${m.japanese} | ${m.final.english}/${m.final.total} (${percent(m.final.english, m.final.total)}) | ${percent(m.intermediate.english, m.intermediate.total)} | ${m.sessions} | ${quantiles} | ${q.drifted} (${percent(q.drifted, m.sessions)}) |`
+      `| ${m.model} | ${m.total} | ${percent(m.english, m.total)} | ${m.japanese} | ${m.final.english}/${m.final.total} (${percent(m.final.english, m.final.total)}) | ${percent(m.intermediate.english, m.intermediate.total)} | ${m.sessions} | ${quantiles} | ${q.drifted} (${percent(q.drifted, m.sessions)}) | ${q.driftedCompacted} / ${q.driftedAfterCompactionOnly} |`
     );
   }
 
