@@ -1,21 +1,22 @@
-# 인증·세션·토큰 갱신
+# 인증·인가·세션·토큰 갱신
 
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
-> 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지 설명할 수 있게 됩니다.
-> **마지막 검토**: 2026-09-29
+> 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지, 그리고 로그인한 사람도 글을 못 쓸 때가 있는 이유를 설명할 수 있게 됩니다.
+> **마지막 검토**: 2026-09-30
 
 ---
 
 ## 1. 쉬운 설명
 
-이 앱의 인증에는 성격이 다른 **세 개의 독립된 문지기**가 있습니다.
+이 앱의 인증·인가에는 성격이 다른 **네 개의 독립된 문지기**가 있습니다.
 
 - **문지기 A (`ProtectedRoute`)**: 건물 로비에서 "출입증 있어요?"만 확인하는 안내데스크입니다. 진짜 보안은 안 하고, 있으면 통과시키고 없으면 "1층 로비(공개 피드)로 가서 출입증부터 받으세요"라고 안내만 합니다. 안내데스크를 그냥 지나쳐도 각 사무실 문(BE API)은 따로 잠겨 있습니다.
 - **문지기 B (`client.ts`의 401 인터셉터)**: 각 사무실 문에 달린 진짜 자물쇠입니다. 출입증(액세스 토큰)이 만료됐으면 그 자리에서 조용히 새 출입증을 재발급받아(refresh) 문을 열어줍니다. 사용자는 문이 잠깐 안 열렸다는 것조차 눈치채지 못합니다. 재발급도 실패하면 그제서야 "퇴실 처리"(로그아웃)를 합니다.
 - **문지기 C (`useAuthGuard`/`useProtectedNavigate`)**: 출입증이 아예 없는 방문객이 사무실 문을 두드리기 **전에** "먼저 출입증부터 받고 오세요"라며 접수처(로그인 모달)로 안내하는 안내원입니다. 문을 두드려서 거절당하는 민망함(에러 토스트, 페이지 이탈) 자체를 막아줍니다.
+- **문지기 D (이메일 인증 게이트, `useCreatePost`/`useCreateComment`)**: 출입증은 있지만(로그인은 했지만) 특정 서류 접수창구(글쓰기·댓글쓰기)에는 신원이 한 번 더 확인된 사람만 받아주는 창구 직원입니다. 로비 출입(로그인)과 구경(읽기)은 막지 않고, 제출(쓰기)만 막습니다.
 
-세 문지기는 서로의 존재를 모릅니다. A가 통과시켰다고 B가 안 잠그는 게 아니고, B가 열어준다고 A가 필요 없어지는 것도 아닙니다. **문지기 A는 로비 안내판일 뿐 보안 장치가 아니고, 실제 보안은 전부 문지기 B가 각 문 앞에서 합니다.** 이 구분을 놓치면 "A가 만료된 출입증을 그냥 통과시킨다"를 보안 구멍으로 오진하게 됩니다 — §10에서 실제로 그런 일이 있었습니다.
+네 문지기는 서로의 존재를 모릅니다. A가 통과시켰다고 B가 안 잠그는 게 아니고, B가 열어준다고 A가 필요 없어지는 것도 아닙니다. **문지기 A는 로비 안내판일 뿐 보안 장치가 아니고, 실제 보안은 전부 문지기 B가 각 문 앞에서 합니다.** 이 구분을 놓치면 "A가 만료된 출입증을 그냥 통과시킨다"를 보안 구멍으로 오진하게 됩니다 — §10에서 실제로 그런 일이 있었습니다. 문지기 D는 A/B/C와 아예 다른 신분증(`useAuthStore`의 로그인 여부가 아니라 계정 캐시의 `emailVerified`)을 봅니다 — 로그인 여부와 이메일 인증 여부는 서로 독립된 두 개의 참/거짓 값입니다.
 
 ```mermaid
 flowchart TD
@@ -49,6 +50,11 @@ flowchart TD
 
     Anon["비로그인 사용자가<br/>좋아요·북마크·댓글 클릭"] --> GuardC["useAuthGuard<br/>(문지기 C, 사전 유도)"]
     GuardC -->|"요청 자체를 안 보냄"| Modal["로그인 모달 오픈<br/>(제자리 유지)"]
+
+    Children --> WriteClick{"글쓰기·댓글쓰기<br/>버튼 클릭"}
+    WriteClick -->|"emailVerified: true"| API1
+    WriteClick -->|"emailVerified: false"| GateD["문지기 D<br/>(이메일 인증, 쓰기 인가)"]
+    GateD --> BlockWrite["제출 차단 + 안내 문구<br/>(토스트/배너, disabled 아님)"]
 ```
 
 ---
@@ -80,19 +86,19 @@ flowchart TD
 
 ---
 
-## 5. 구조 — 세 개의 게이트
+## 5. 구조 — 네 개의 게이트
 
-|               | 게이트 A: `ProtectedRoute`                             | 게이트 B: `client.ts` 인터셉터                                                                            | 게이트 C: `useAuthGuard`/`useProtectedNavigate`                      |
-| ------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| 위치          | `src/app/routes/ProtectedRoute.tsx`                    | `src/shared/api/client.ts`의 `handleTokenExpired` 메서드(`:162-206`) + `request()`의 401 분기(`:256-271`) | `src/entities/auth/hooks/useAuthGuard.ts`, `useProtectedNavigate.ts` |
-| 판단 근거     | 클라이언트 로컬 상태(`useAuthStore.isAuthenticated`)만 | BE의 실제 401 응답 코드                                                                                   | 클라이언트 로컬 상태만                                               |
-| BE와 통신     | 안 함(사전 검증 로직 자체가 없음, §8-A)                | 함(`POST /auth/refresh`, 원 요청 재시도)                                                                  | 안 함(애초에 요청을 안 보냄)                                         |
-| 발동 시점     | 보호 라우트가 **렌더**될 때                            | 실제 API 요청이 **401을 받은 뒤**                                                                         | 사용자가 **클릭**했을 때, 요청 전                                    |
-| 책임          | 화면을 보여줄지 말지 분기, 스피너, 로그인 모달 유도    | 요청을 인증시켜 성공시키거나 세션을 끊음                                                                  | 실패할 게 뻔한 요청을 사전에 막고 로그인 유도                        |
-| 실패 시 결과  | `/post`로 replace 이동(+ 조건부 모달)                  | `AuthUtil.clearAll()` → `/auth/login` replace                                                             | 로그인 모달(제자리 유지, 페이지 이동 없음)                           |
-| **보안 효과** | **없음.** 우회해도 API가 401을 낸다                    | **실질적 보안 경계**                                                                                      | 없음(UX 편의)                                                        |
+|               | 게이트 A: `ProtectedRoute`                             | 게이트 B: `client.ts` 인터셉터                                                                            | 게이트 C: `useAuthGuard`/`useProtectedNavigate`                      | 게이트 D: 이메일 인증(쓰기 인가)                                                            |
+| ------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| 위치          | `src/app/routes/ProtectedRoute.tsx`                    | `src/shared/api/client.ts`의 `handleTokenExpired` 메서드(`:162-206`) + `request()`의 401 분기(`:256-271`) | `src/entities/auth/hooks/useAuthGuard.ts`, `useProtectedNavigate.ts` | `useCreatePost.ts:36-49`, `useCreateComment.ts:111-114` + BE `PostService`/`CommentService` |
+| 판단 근거     | 클라이언트 로컬 상태(`useAuthStore.isAuthenticated`)만 | BE의 실제 401 응답 코드                                                                                   | 클라이언트 로컬 상태만                                               | `account.emailVerified`(React Query 계정 캐시, `useAuthStore`와 별개)                       |
+| BE와 통신     | 안 함(사전 검증 로직 자체가 없음, §8-A)                | 함(`POST /auth/refresh`, 원 요청 재시도)                                                                  | 안 함(애초에 요청을 안 보냄)                                         | 제출 시 함(BE가 403 `EMAIL_NOT_VERIFIED`로 최종 판정, 방어 계층 중복)                       |
+| 발동 시점     | 보호 라우트가 **렌더**될 때                            | 실제 API 요청이 **401을 받은 뒤**                                                                         | 사용자가 **클릭**했을 때, 요청 전                                    | 글쓰기·댓글쓰기 **제출** 시도 시                                                            |
+| 책임          | 화면을 보여줄지 말지 분기, 스피너, 로그인 모달 유도    | 요청을 인증시켜 성공시키거나 세션을 끊음                                                                  | 실패할 게 뻔한 요청을 사전에 막고 로그인 유도                        | 미인증 사용자의 쓰기 제출을 막고 안내                                                       |
+| 실패 시 결과  | `/post`로 replace 이동(+ 조건부 모달)                  | `AuthUtil.clearAll()` → `/auth/login` replace                                                             | 로그인 모달(제자리 유지, 페이지 이동 없음)                           | 토스트/배너 안내, 제출 차단(버튼은 `disabled` 아님 — 아래 참고)                             |
+| **보안 효과** | **없음.** 우회해도 API가 401을 낸다                    | **실질적 보안 경계**                                                                                      | 없음(UX 편의)                                                        | **부분적.** FE 체크는 UX용이고, 실제 방어는 BE의 403 판정                                   |
 
-**왜 나뉘어 있나**: 게이트 A는 성능 결정([`docs/DECISIONS.md`](DECISIONS.md) 2026-07-25 항목)의 짝입니다 — `AuthProvider`가 라우터 렌더를 막지 않도록 바꾼 대가로, 복원이 끝나기 전 첫 페인트에서 로그인 사용자가 보호 페이지 새로고침 시 피드로 튕기는 걸 막는 화면 분기 장치로 도입됐습니다. 게이트 B는 "리프레시 토큰은 httpOnly라 JS가 존재·유효성을 전혀 모른다"는 사실에서 나옵니다 — 실제로 요청을 보내 401을 받아봐야 압니다. 게이트 C는 A·B 둘 다 못 막는 상황(비로그인 사용자가 공개 피드에 머문 채 좋아요를 누르는 것)을 막습니다: A는 페이지 단위라 이 상황에 개입 못 하고, B는 요청을 실제로 보내야 발동하는데 그러면 401 → `clearAll()` → 페이지 이탈로 사용자 문맥이 깨집니다.
+**왜 나뉘어 있나**: 게이트 A는 성능 결정([`docs/DECISIONS.md`](DECISIONS.md) 2026-07-25 항목)의 짝입니다 — `AuthProvider`가 라우터 렌더를 막지 않도록 바꾼 대가로, 복원이 끝나기 전 첫 페인트에서 로그인 사용자가 보호 페이지 새로고침 시 피드로 튕기는 걸 막는 화면 분기 장치로 도입됐습니다. 게이트 B는 "리프레시 토큰은 httpOnly라 JS가 존재·유효성을 전혀 모른다"는 사실에서 나옵니다 — 실제로 요청을 보내 401을 받아봐야 압니다. 게이트 C는 A·B 둘 다 못 막는 상황(비로그인 사용자가 공개 피드에 머문 채 좋아요를 누르는 것)을 막습니다: A는 페이지 단위라 이 상황에 개입 못 하고, B는 요청을 실제로 보내야 발동하는데 그러면 401 → `clearAll()` → 페이지 이탈로 사용자 문맥이 깨집니다. 게이트 D의 1차안은 "이메일 미인증이면 로그인 자체를 막는다"였지만, [GitHub 사례 조사](https://github.com/kamp-us/phoenix/issues/7485)에서 _"쓰기 권한(게시글·댓글)은 인증된 이메일에 게이팅되고, 마찰은 도착이 아니라 첫 '쓰기' 시점에 발생한다"_(번역)는 걸 확인하고 뒤집혔습니다 — 로그인·읽기까지 막으면 가입 직후 이탈이 너무 커진다는 판단입니다. 확정 경위는 `docs/plans/2026-09-28-auth-hardening.md`의 "확정된 결정들" 표를 참고하세요.
 
 ### 라우트 그룹 구성 (`src/app/routes/index.tsx`의 `appRoutes`, `:113-217`)
 
@@ -131,7 +137,9 @@ RootLayout
 명확한 의도이기 때문). `saveEmail` 체크박스의 초기 체크 여부는 이 값과 무관하게 `saved-email`
 존재 여부만 그대로 반영합니다.
 
-**절대 저장하지 않는 것**: 액세스 토큰(어떤 스토리지에도 없음, 메모리 전용), 리프레시 토큰(JS가 못 만짐), 계정 정보(React Query 캐시에만, `accountKeys.root`).
+**절대 저장하지 않는 것**: 액세스 토큰(어떤 스토리지에도 없음, 메모리 전용), 리프레시 토큰(JS가 못 만짐), 계정 정보(React Query 캐시에만, `accountKeys.root`) — 게이트 D가 보는 `account.emailVerified`도 이 캐시 안에 있고 `useAuthStore`에는 없습니다.
+
+**비밀번호 변경 시 세션 회전**: `useChangePasswordMutation`(`auth.queries.ts:185-197`)의 `onSuccess`가 BE가 새로 발급한 세션으로 `setAuth(data.accessToken)`을 호출합니다 — BE가 비밀번호 변경 시 이 기기를 포함한 세션 회전 계열(familyId)을 새로 만들고 다른 기기의 세션은 전부 폐기하기 때문입니다. 로그인·refresh와 마찬가지로 `useAuthStore`의 `accessToken`을 갱신하는 세 번째 트리거입니다.
 
 `useAuthStore`(`src/shared/store/auth.store.ts:41-63`)는 `devtools` 미들웨어만 쓰고 **`persist`가 없습니다 — 의도적입니다.** `accessToken`은 항상 `isAuthenticated`와 함께 `setAuth`/`clearAuth` 한 곳에서만 갱신되므로(`auth.store.ts:47-50`, `:56-60`) 두 값은 절대 어긋나지 않습니다. **이 등가성이 §8-A의 동작을 결정짓는 핵심 사실입니다.**
 
@@ -146,7 +154,7 @@ RootLayout
 
 | 파라미터                                   | 값                                                                                                                             | 위치                                                                             |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| 계정 정보(`accountKeys.root`) `staleTime`  | 1일(`STALE_TIME_ONE_DAY`)                                                                                                      | `src/entities/account/api/account.queries.ts:51`                                 |
+| 계정 정보(`accountKeys.root`) `staleTime`  | 1일(`STALE_TIME_ONE_DAY`)                                                                                                      | `src/entities/account/api/account.queries.ts:49`                                 |
 | 동시 401 발생 시 실제 refresh 호출 횟수    | 항상 1회(리더-팔로워 큐잉, §9)                                                                                                 | `src/shared/api/client.ts`의 `handleTokenExpired` 메서드(`:162-206`)             |
 | refresh 재시도 상한                        | **1회**(재시도한 요청이 다시 `TOKEN_EXPIRED`를 받으면 refresh를 또 호출하지 않고 실패 처리 — 2026-09-21 추가, §11 항목 1 참고) | `src/shared/api/client.ts`의 `handleTokenExpired`, `retryCount > 0` 가드(`:170`) |
 | 로그아웃 직후 유예 시간(`LOGOUT_GRACE_MS`) | 2초 — §8-E 참고                                                                                                                | `src/shared/utils/logout-grace.util.ts:25`                                       |
@@ -362,6 +370,38 @@ predicate가 더 이상 매칭되지 않아 아무것도 다시 부르지 않습
 안내 토스트(`TEXTS.messages.success.accountDeletionCancelled`)를 띄운다. 캐시
 리셋·invalidate와는 무관한 별개 동작이라 위 순서에 영향을 주지 않는다.
 
+### 8-F. 게이트 D — 쓰기 인가(이메일 인증)
+
+```ts
+// useCreatePost.ts:36-49 요지
+const onSubmit = form.handleSubmit((formData: CreatePost) => {
+  // BE도 같은 검사를 403 EMAIL_NOT_VERIFIED로 거절하지만(방어 계층 중복), 클릭 가능한
+  // 채로 두고 안내만 보여준다(disabled 대신).
+  if (account?.emailVerified === false) {
+    toast.error(TEXTS.messages.error.emailVerificationRequired);
+    return;
+  }
+
+  createPost({ ...formData, url: UrlUtil.normalizeUrl(formData.url) });
+  ...
+});
+```
+
+`useCreateComment.ts:111-114`도 같은 패턴이지만, 이 체크가 `useAuthGuard`의 `guard(() =>
+{...})` 콜백 **안쪽**에 있습니다 — 즉 댓글 작성은 게이트 C(비로그인이면 로그인 모달)를
+먼저 통과해야 게이트 D(로그인은 했지만 미인증이면 안내)에 도달합니다. 게시글 작성은
+`/post/submit` 자체가 게이트 A로 보호되는 라우트라 게이트 C 래핑이 따로 없습니다.
+
+두 훅 모두 버튼을 `disabled`로 막지 않고 **클릭 가능한 채로 두고 안내 토스트만 띄웁니다**
+— 이 레포의 "폼 검증 실패를 `disabled`만으로 처리하지 않는다" 규칙(`.claude/CLAUDE.md`)과
+같은 이유입니다. BE도 동일 판정을 `PostService`/`CommentService`에서 403
+`EMAIL_NOT_VERIFIED`(`error-code.ts:16-18`)로 다시 하므로, FE 체크를 우회해도(예: 계정
+페이지를 열어둔 채 다른 탭에서 이메일 인증 전 상태로 남은 경우) BE가 최종적으로 막습니다.
+
+미인증 사용자에게는 배너(`EmailVerificationBanner.tsx`, 계정 페이지)와 네비바 배지
+(`Navbar.tsx:158`, `:169`)로 상시 안내가 뜹니다. 재발송은
+`useResendEmailVerification.ts`(`useRequestEmailVerificationMutation` 호출)가 처리합니다.
+
 ### 자주 하는 수정
 
 | 하고 싶은 것                     | 건드릴 파일                                                                                                                                                                                   |
@@ -409,6 +449,11 @@ predicate가 더 이상 매칭되지 않아 아무것도 다시 부르지 않습
 연결됩니다.
 
 게이트 A(`ProtectedRoute`)는 `src/app/routes/ProtectedRoute.test.tsx`가 화면 분기 자체(스피너/리다이렉트/모달 조건)를 검증합니다. §8-A의 사실("`restoreAuth`가 실제로 refresh를 호출하지 않는다")도 여기 고정돼 있습니다.
+
+게이트 D는 두 호출부의 테스트 커버리지가 다릅니다. `useCreateComment.test.tsx:189,212`가
+`emailVerified: false` 케이스(안내 토스트, `createComment` 미호출)를 검증하지만,
+`useCreatePost.test.tsx` 자체가 존재하지 않아 같은 게이팅 로직(`useCreatePost.ts:36-49`)은
+테스트되지 않습니다 — §11 항목 5 참고.
 
 ---
 
@@ -511,14 +556,20 @@ predicate가 더 이상 매칭되지 않아 아무것도 다시 부르지 않습
    pending으로 남는 경로)입니다 — `client.test.ts`의 `describe('ApiClient — 인증 오류 처리')`
    7개 Case 중 동시 요청 시나리오는 Case 1-1 하나뿐이고, 그마저 refresh가 **성공**하는
    경로만 다룹니다.
+5. **게이트 D(§8-F)의 클라이언트 사전 체크는 `useCreateComment`에만 테스트가 있고
+   `useCreatePost`엔 없습니다.** `useCreateComment.test.tsx:182-226`이 `emailVerified:
+false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCreatePost.test.tsx` 파일
+   자체가 존재하지 않아(`find src/features/post/create` 확인) 동일한 게이팅 로직
+   (`useCreatePost.ts:36-49`)은 어느 쪽으로도 고정돼 있지 않습니다.
 
 ---
 
 ## 12. 용어 사전
 
-- **게이트 A/B/C**: 이 문서(§5)에서 붙인 이름. 코드베이스에 이 명칭 자체는 없습니다.
+- **게이트 A/B/C/D**: 이 문서(§5)에서 붙인 이름. 코드베이스에 이 명칭 자체는 없습니다.
 - **`TOKEN_EXPIRED`**: BE가 액세스 토큰의 유효기간이 지났을 때 주는 코드. "재시도하면 회복 가능"으로 취급됩니다.
 - **`INVALID_TOKEN`/`NOT_LOGGED_IN`**: 토큰이 없거나 형식이 잘못됐을 때. "회복 불가능"으로 취급되어 즉시 로그아웃됩니다.
+- **`EMAIL_NOT_VERIFIED`**: 이메일 미인증 계정이 글쓰기·댓글쓰기를 시도했을 때 BE가 주는 403 코드(게이트 D, §8-F). `TOKEN_EXPIRED`/`INVALID_TOKEN`/`NOT_LOGGED_IN`과 달리 401이 아니라 403입니다 — 인증 자체는 됐고 권한(인가)만 없는 상태이기 때문입니다.
 - **`isRefreshing`/`refreshSubscribers`**: `client.ts`의 동시 401 처리 상태. 첫 401(리더)만 실제로 refresh를 트리거하고, 그 사이 도착한 나머지(팔로워)는 큐에 쌓였다가 리더의 refresh 완료 후 함께 재시도됩니다.
 - **`hasBeenAuthenticated`**: `ProtectedRoute`가 "이 마운트에서 한 번이라도 로그인 상태였는가"를 추적하는 ref. 로그아웃/세션만료(true였다가 false)와 애초에 비로그인(처음부터 false)을 구분해, 후자만 로그인 모달을 띄웁니다.
 - **`has-session` 플래그**: 리프레시 토큰이 httpOnly라 존재 여부를 JS가 알 수 없으므로 대신 두는 "세션이 있을 가능성" 힌트. 진짜 인증 상태가 아닙니다.
@@ -535,4 +586,5 @@ predicate가 더 이상 매칭되지 않아 아무것도 다시 부르지 않습
 - [`docs/DECISIONS.md`](DECISIONS.md) 2026-07-25 "첫 로딩: 인증 게이팅 제거, 셸 우선 렌더" — 게이트 A가 지금 형태가 된 배경, `isAuthResolved`·`has-session` 플래그의 설계 근거
 - [`docs/DECISIONS.md`](DECISIONS.md) 2026-08-07 "뒤로가기 정책: 오버레이는 히스토리로, 대화상자는 아니다" — 로그인 모달이 히스토리 엔트리로 관리되는 이유, `<Navigate state>` 원자화, `useProtectedNavigate`의 `replace` 이유
 - [`docs/DECISIONS.md`](DECISIONS.md) 2026-08-06 "폼 이탈 시 저장하지 않은 내용 보호" — 인증 리다이렉트가 unsaved-changes guard보다 먼저 처리돼야 하는 이유
+- [`docs/plans/2026-09-28-auth-hardening.md`](plans/2026-09-28-auth-hardening.md) — JWT 폐지·이메일 인증 게이팅 범위(로그인/읽기 제외, 쓰기만) 등 "확정된 결정들"의 조사 근거 전문
 - [`docs/TESTING.md`](TESTING.md) — `client.test.ts`가 왜 존재하고 어떤 스타일로 401 시나리오를 검증하는지
