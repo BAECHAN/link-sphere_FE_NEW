@@ -1,4 +1,7 @@
 ### 2026-09-30 (FE)
+- 포스트 상세 페이지 뒤로가기 버튼 문구 관리 최적화 및 공용 상수 통합 ([#277](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/277))
+
+### 2026-09-30 (FE)
 - Radix AlertDialog 도입을 통한 UI 접근성 및 일관성 개선 ([#274](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/274))
 
 ### 2026-09-30 (FE)
