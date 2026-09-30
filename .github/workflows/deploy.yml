@@ -119,7 +119,7 @@ jobs:
         # push 성공과 실제 배포 완료는 다른 사건이다(.claude/CLAUDE.md Critical Rule) -
         # 실제 CloudFront를 때려서 이번 커밋이 반영됐는지 직접 확인한다.
         env:
-          SITE_URL: ${{ vars.SITE_URL || 'https://dbw3brui6htwk.cloudfront.net' }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://linksphere.click' }}
         run: |
           set -euo pipefail
 

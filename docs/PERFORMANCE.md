@@ -69,7 +69,7 @@ pnpm perf:lh:auth
 쓰지 않는다 — `startServerCommand`가 로컬 빌드를 서빙하는 용도라 프로덕션에는 안 맞는다):
 
 ```bash
-npx lhci collect --url=https://dbw3brui6htwk.cloudfront.net/post \
+npx lhci collect --url=https://linksphere.click/post \
   --numberOfRuns=5 --preset=desktop
 ```
 
