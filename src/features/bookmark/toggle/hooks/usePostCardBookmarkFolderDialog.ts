@@ -7,7 +7,7 @@ import { UNDO_TOAST_DURATION_MS } from '@/shared/config/const';
 import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { useBookmarkFolders } from '@/features/bookmark/toggle/hooks/useBookmarkFolders';
 
-interface UsePostCardBookmarkFolderModalParams {
+interface UsePostCardBookmarkFolderDialogParams {
   postId: string;
   isBookmarked: boolean;
   bookmarkFolderIds: string[];
@@ -16,18 +16,18 @@ interface UsePostCardBookmarkFolderModalParams {
 }
 
 /**
- * PostCardBookmarkFolderModal의 로직 전부 — 즉시 저장(탭 = 바로 저장/제거 + 닫힘) 동작,
+ * PostCardBookmarkFolderDialog의 로직 전부 — 즉시 저장(탭 = 바로 저장/제거 + 닫힘) 동작,
  * 토스트 문구 분기, '삭제하기' 버튼 깜빡임 방지 스냅샷을 소유한다. entities 뮤테이션을
  * 감싸는 useBookmarkFolders와는 층이 다르다 — 이 훅이 그걸 호출해 토스트·닫기 같은
  * 모달 UI의 관심사를 덧붙인다.
  */
-export function usePostCardBookmarkFolderModal({
+export function usePostCardBookmarkFolderDialog({
   postId,
   isBookmarked,
   bookmarkFolderIds,
   open,
   onOpenChange,
-}: UsePostCardBookmarkFolderModalParams) {
+}: UsePostCardBookmarkFolderDialogParams) {
   const navigate = useNavigate();
   const { selectUncategorized, selectFolder, restoreFolder, removeBookmark, restoreBookmark } =
     useBookmarkFolders(postId, isBookmarked, bookmarkFolderIds);

@@ -10,7 +10,7 @@ export interface SheetDialogContentProps extends React.ComponentPropsWithoutRef<
 }
 
 /**
- * PostCardBookmarkFolderModal 에서 처음 쓰인 모바일 바텀시트 ↔ 데스크탑 모달 전환 패턴의 공통 컴포넌트.
+ * PostCardBookmarkFolderDialog 에서 처음 쓰인 모바일 바텀시트 ↔ 데스크탑 모달 전환 패턴의 공통 컴포넌트.
  * 폴더 선택 계열 UI(북마크 폴더 선택기, 등록 폼 폴더 픽커 등)에서 재사용한다.
  */
 export const SheetDialogContent = React.forwardRef<

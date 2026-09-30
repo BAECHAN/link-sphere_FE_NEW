@@ -65,7 +65,7 @@ baseTest.describe('로그인 모달 — 입력이 있을 때만 바깥 클릭으
     await mockPostList(page);
   });
 
-  async function openLoginModal(page: import('@playwright/test').Page) {
+  async function openLoginDialog(page: import('@playwright/test').Page) {
     await page.goto('/post');
     await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).click();
 
@@ -77,14 +77,14 @@ baseTest.describe('로그인 모달 — 입력이 있을 때만 바깥 클릭으
   }
 
   baseTest('아무것도 입력하지 않았으면 바깥 클릭으로 닫힌다', async ({ page }) => {
-    const loginDialog = await openLoginModal(page);
+    const loginDialog = await openLoginDialog(page);
 
     await page.mouse.click(OUTSIDE_POINT.x, OUTSIDE_POINT.y);
     await expect(loginDialog).not.toBeVisible();
   });
 
   baseTest('비밀번호를 입력했으면 바깥을 눌러도 그대로 있고, ESC로는 닫힌다', async ({ page }) => {
-    const loginDialog = await openLoginModal(page);
+    const loginDialog = await openLoginDialog(page);
 
     // getByLabel은 label의 raw textContent로 매칭해 RequiredMark(*)까지 포함해야 한다
     // (guest-guard.spec.ts 주석 참고)

@@ -5,14 +5,14 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { toast } from '@/shared/lib/toast/toast';
-import { PostCardBookmarkFolderModal } from '@/features/bookmark/toggle/ui/PostCardBookmarkFolderModal';
+import { PostCardBookmarkFolderDialog } from '@/features/bookmark/toggle/ui/PostCardBookmarkFolderDialog';
 import type {
   BookmarkFoldersResponse,
   BookmarkFolderListResponse,
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
-// PostCardBookmarkFolderModal는 공통 프레젠테이션(features/bookmark/select/ui/BookmarkFolderSelectModal)에
-// 얇게 위임하므로, 아래 케이스들은 BookmarkFolderSelectModal의 행 렌더링·최근 구획도 함께 검증한다.
+// PostCardBookmarkFolderDialog는 공통 프레젠테이션(features/bookmark/select/ui/BookmarkFolderSelectDialog)에
+// 얇게 위임하므로, 아래 케이스들은 BookmarkFolderSelectDialog의 행 렌더링·최근 구획도 함께 검증한다.
 
 // 데스크탑 모달 스타일로 고정 — matchMedia 스텁만으로는 useIsMobile 값이 effect 이후에나 정해져 불안정하다
 vi.mock('@/shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }));
@@ -52,12 +52,12 @@ const folderListResponse: BookmarkFolderListResponse = {
   uncategorizedCount: 1,
 };
 
-function renderModal(
-  props: Partial<React.ComponentProps<typeof PostCardBookmarkFolderModal>> = {}
+function renderDialog(
+  props: Partial<React.ComponentProps<typeof PostCardBookmarkFolderDialog>> = {}
 ) {
   const onOpenChange = vi.fn();
   const result = renderWithProviders(
-    <PostCardBookmarkFolderModal
+    <PostCardBookmarkFolderDialog
       postId={POST_ID}
       isBookmarked
       bookmarkFolderIds={[FOLDER_A]}
@@ -86,9 +86,9 @@ function bookmarkFoldersResponse(folderIds: string[]): BookmarkFoldersResponse {
   return { postId: POST_ID, isBookmarked: true, folderIds };
 }
 
-describe('PostCardBookmarkFolderModal', () => {
+describe('PostCardBookmarkFolderDialog', () => {
   it('소속된 모든 폴더 행에 체크 표시가 뜬다', async () => {
-    renderModal({ bookmarkFolderIds: [FOLDER_A, FOLDER_B] });
+    renderDialog({ bookmarkFolderIds: [FOLDER_A, FOLDER_B] });
 
     await waitFor(() => expect(screen.getByText('개발')).toBeInTheDocument());
 
@@ -115,7 +115,7 @@ describe('PostCardBookmarkFolderModal', () => {
         );
       })
     );
-    renderModal();
+    renderDialog();
 
     await waitFor(() => expect(screen.getByText('나중에 읽기')).toBeInTheDocument());
 
@@ -148,7 +148,7 @@ describe('PostCardBookmarkFolderModal', () => {
         );
       })
     );
-    const { onOpenChange } = renderModal();
+    const { onOpenChange } = renderDialog();
 
     await waitFor(() => expect(screen.getByText('나중에 읽기')).toBeInTheDocument());
     await user.click(screen.getByText('나중에 읽기'));
@@ -169,7 +169,7 @@ describe('PostCardBookmarkFolderModal', () => {
         );
       })
     );
-    renderModal({ bookmarkFolderIds: [FOLDER_A, FOLDER_B] });
+    renderDialog({ bookmarkFolderIds: [FOLDER_A, FOLDER_B] });
 
     await waitFor(() => expect(screen.getByText('개발')).toBeInTheDocument());
     await user.click(screen.getByText('개발'));
@@ -197,7 +197,7 @@ describe('PostCardBookmarkFolderModal', () => {
       })
     );
     // 기본값 bookmarkFolderIds=[FOLDER_A] — 유일한 소속(마지막 폴더)
-    renderModal();
+    renderDialog();
 
     await waitFor(() => expect(screen.getByText('개발')).toBeInTheDocument());
     await user.click(screen.getByText('개발'));
@@ -245,7 +245,7 @@ describe('PostCardBookmarkFolderModal', () => {
         );
       })
     );
-    renderModal({ bookmarkFolderIds: [] });
+    renderDialog({ bookmarkFolderIds: [] });
 
     await waitFor(() => expect(screen.getByText('미분류')).toBeInTheDocument());
     await user.click(screen.getByText('미분류'));
@@ -274,7 +274,7 @@ describe('PostCardBookmarkFolderModal', () => {
         return new HttpResponse(null, { status: 204 });
       })
     );
-    renderModal({ isBookmarked: false, bookmarkFolderIds: [] });
+    renderDialog({ isBookmarked: false, bookmarkFolderIds: [] });
 
     await waitFor(() => expect(screen.getByText('미분류')).toBeInTheDocument());
     await user.click(screen.getByText('미분류'));
@@ -299,7 +299,7 @@ describe('PostCardBookmarkFolderModal', () => {
         );
       })
     );
-    renderModal({ bookmarkFolderIds: [FOLDER_A, FOLDER_B] });
+    renderDialog({ bookmarkFolderIds: [FOLDER_A, FOLDER_B] });
 
     await waitFor(() => expect(screen.getByText('개발')).toBeInTheDocument());
     await user.click(screen.getByText('미분류'));
@@ -320,7 +320,7 @@ describe('PostCardBookmarkFolderModal', () => {
         )
       )
     );
-    const { onOpenChange } = renderModal({ bookmarkFolderIds: [] });
+    const { onOpenChange } = renderDialog({ bookmarkFolderIds: [] });
 
     await waitFor(() => expect(screen.getByText('미분류')).toBeInTheDocument());
     await user.click(screen.getByText('미분류'));
@@ -330,7 +330,7 @@ describe('PostCardBookmarkFolderModal', () => {
   });
 
   it('폴더가 1개 이상이면 "내 폴더" 구획 헤더가 뜬다 (최근 구획 임계값 미달이어도)', async () => {
-    renderModal();
+    renderDialog();
 
     // folderListResponse는 폴더 2개뿐이라 최근 구획(6개 임계값)은 안 뜨지만, 내 폴더 헤더는 뜬다
     await waitFor(() => expect(screen.getByText('내 폴더')).toBeInTheDocument());
@@ -346,7 +346,7 @@ describe('PostCardBookmarkFolderModal', () => {
         return new HttpResponse(null, { status: 204 });
       })
     );
-    renderModal();
+    renderDialog();
 
     await waitFor(() => expect(screen.getByText('북마크 제거')).toBeInTheDocument());
     await user.click(screen.getByText('북마크 제거'));
@@ -414,7 +414,7 @@ describe('PostCardBookmarkFolderModal', () => {
     });
 
     it('임계값을 넘으면 상단에 최근 저장한 폴더 구획이 뜨고, 아래 본 목록에서도 그대로 중복 표시된다', async () => {
-      renderModal();
+      renderDialog();
 
       await waitFor(() => expect(screen.getByText('최근 저장한 폴더')).toBeInTheDocument());
 
@@ -441,7 +441,7 @@ describe('PostCardBookmarkFolderModal', () => {
           );
         })
       );
-      renderModal();
+      renderDialog();
 
       await waitFor(() => expect(screen.getAllByText('최근폴더')).toHaveLength(2));
       // 상단 구획 쪽(첫 번째 매치)을 클릭

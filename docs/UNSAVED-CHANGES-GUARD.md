@@ -61,7 +61,7 @@ Zustand 기본 개념은 안다고 가정한다.
 - **Zustand** — dirty 키를 전역으로 들고 있는 스토어(§6)
 - **React Router `useBlocker`** — 앱 내 네비게이션을 가로채는 유일한 지점
 - **`beforeunload` 이벤트** — 새로고침·탭 닫기용 브라우저 기본 경고
-- **`shared/ui/elements/modal/alert`** — 확인 모달(Alert/Confirm) 공용 컴포넌트
+- **`shared/ui/elements/dialog/alert`** — 확인 모달(Alert/Confirm) 공용 컴포넌트
 
 ## 4. 왜 만들었나
 
@@ -142,7 +142,7 @@ _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 
 
 **버튼 강조**: "계속 작성"이 채움(primary)이고 오른쪽에 있으며, "나가기"가 outline이고
 왼쪽에 있다(연 순간 포커스도 "계속 작성"에 간다) — 반사적으로 눌러도 안전한 쪽이 눌리게
-하기 위해서다. 이건 [Alert.tsx](../src/shared/ui/elements/modal/alert/Alert.tsx)의 `emphasis`
+하기 위해서다. 이건 [Alert.tsx](../src/shared/ui/elements/dialog/alert/Alert.tsx)의 `emphasis`
 옵션 기본값(`'cancel'`, 생략 시 적용)을 이 가드가 그대로 쓰고 있는 것이다 — **모든 confirm
 공통 규칙이 아니다.** 삭제·탈퇴처럼 메뉴에서 직접 선택해야만 뜨는 확인창이나, 공개 설정
 토글처럼 어느 방향도 위험하지 않은 확인창은 `emphasis: 'confirm'`으로 반대(확인=채움·오른쪽)로
@@ -246,7 +246,7 @@ src/
 │       ├── useUnsavedChanges.ts          # §6 — 폼이 자기 dirty 상태를 등록하는 훅
 │       └── useUnsavedChangesGuard.ts     # §5 — RootLayout에서 1회만 도는 전역 가드
 ├── app/routes/layouts/RootLayout.tsx     # 가드 마운트 지점(앱 전체 1곳)
-├── shared/ui/elements/modal/alert/alert.store.ts  # §5의 Alert/Confirm 우선 차단 분기가
+├── shared/ui/elements/dialog/alert/alert.store.ts # §5의 Alert/Confirm 우선 차단 분기가
 │                                                    # 참조하는 getOpenAlertId 출처
 ├── shared/config/texts.ts                # TEXTS.unsavedChanges.* — 확인 모달 문구(.signup은 회원가입 전용)
 ├── shared/config/route-paths.ts          # PUBLIC_PATHS — §5의 "게스트 전용 페이지" 판정 출처

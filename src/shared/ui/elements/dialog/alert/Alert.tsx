@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { AlertData, useAlertStore } from '@/shared/ui/elements/modal/alert/alert.store';
+import { AlertData, useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
 import { useShallow } from 'zustand/react/shallow';
 import {
   Dialog,

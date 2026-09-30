@@ -70,7 +70,7 @@ export function use<FeatureName>() {
 
 ```typescript
 import { useDelete<Entity>Mutation } from '@/entities/<entity>/api/<entity>.queries';
-import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
+import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
 import { TEXTS } from '@/shared/config/texts';
 
 export function use<FeatureName>() {

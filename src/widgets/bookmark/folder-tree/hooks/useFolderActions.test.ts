@@ -8,7 +8,7 @@ import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
-import { useAlertStore } from '@/shared/ui/elements/modal/alert/alert.store';
+import { useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
 import { mockBookmarkFolder } from '@/mocks/fixtures/bookmark-folder.fixtures';
 import { useFolderActions } from '@/widgets/bookmark/folder-tree/hooks/useFolderActions';
 

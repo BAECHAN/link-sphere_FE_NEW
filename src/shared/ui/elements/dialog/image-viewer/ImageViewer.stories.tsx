@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { MemoryRouter } from 'react-router-dom';
-import { GlobalImageViewer } from '@/shared/ui/elements/modal/image-viewer/ImageViewer';
-import { useImageViewer } from '@/shared/ui/elements/modal/image-viewer/imageViewer.store';
+import { GlobalImageViewer } from '@/shared/ui/elements/dialog/image-viewer/ImageViewer';
+import { useImageViewer } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
 import { Button } from '@/shared/ui/atoms/button';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 
 const meta = {
-  title: 'Shared/UI/Elements/Modal/ImageViewer',
+  title: 'Shared/UI/Elements/Dialog/ImageViewer',
   component: GlobalImageViewer,
   tags: ['autodocs'],
   // GlobalImageViewer가 마운트 즉시 useHistoryOverlay(useNavigate)를 호출한다 -

@@ -1,6 +1,6 @@
 import { Bookmark, BookmarkX, Check, FolderPlus, Loader2, Plus, X } from 'lucide-react';
 import { Dialog, DialogTitle, DialogDescription } from '@/shared/ui/atoms/dialog';
-import { SheetDialogContent } from '@/shared/ui/elements/modal/SheetDialogContent';
+import { SheetDialogContent } from '@/shared/ui/elements/dialog/SheetDialogContent';
 import { Button } from '@/shared/ui/atoms/button';
 import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';
@@ -14,10 +14,10 @@ import {
 } from '@/features/bookmark/select/hooks/useBookmarkFolderSelect';
 import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
-interface BookmarkFolderSelectModalProps {
+interface BookmarkFolderSelectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** 헤더 보조 문구 — 즉시 저장(PostCardBookmarkFolderModal)인지 지연 선택(PostCreateBookmarkFolderField)인지가 달라 호출부가 정한다 */
+  /** 헤더 보조 문구 — 즉시 저장(PostCardBookmarkFolderDialog)인지 지연 선택(PostCreateBookmarkFolderField)인지가 달라 호출부가 정한다 */
   description: string;
   isBookmarked: boolean;
   selectedFolderIds: string[];
@@ -30,14 +30,14 @@ interface BookmarkFolderSelectModalProps {
 }
 
 /**
- * 북마크 폴더 선택 UI — 카드 북마크 버튼의 즉시 저장(PostCardBookmarkFolderModal)과 등록 폼의 지연 선택
+ * 북마크 폴더 선택 UI — 카드 북마크 버튼의 즉시 저장(PostCardBookmarkFolderDialog)과 등록 폼의 지연 선택
  * (PostCreateBookmarkFolderField)이 공유하는 프레젠테이션 컴포넌트. 저장 동작은 콜백으로 주입받는다.
  * 로직 전부는 useBookmarkFolderSelect가 소유하고, 여기는 JSX만 남긴다.
  * - 데스크탑: 중앙 모달 / 모바일: 하단 BottomSheet
  * - 폴더 목록만 스크롤되고 새 폴더 만들기(헤더 아래)·하단 destructive 행은 항상 보인다
  *   (2026-09-11 — 폴더가 많아지면 이 두 행이 스크롤에 묻혀 안 보이던 문제 수정)
  */
-export function BookmarkFolderSelectModal({
+export function BookmarkFolderSelectDialog({
   open,
   onOpenChange,
   description,
@@ -47,7 +47,7 @@ export function BookmarkFolderSelectModal({
   onSelectFolder,
   dangerAction,
   showConfirmButton,
-}: BookmarkFolderSelectModalProps) {
+}: BookmarkFolderSelectDialogProps) {
   const isMobile = useIsMobile();
   const {
     isLoading,

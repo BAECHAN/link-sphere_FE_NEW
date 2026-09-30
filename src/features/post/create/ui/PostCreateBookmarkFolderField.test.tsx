@@ -10,8 +10,8 @@ import { PostCreateBookmarkFolderField } from '@/features/post/create/ui/PostCre
 import type { CreatePost } from '@/entities/post/model/post.schema';
 import type { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
-// PostCreateBookmarkFolderField는 공통 프레젠테이션(features/bookmark/select/ui/BookmarkFolderSelectModal)에 얇게
-// 위임하므로, 아래 케이스들은 BookmarkFolderSelectModal의 행 렌더링·최근 구획도 함께 검증한다.
+// PostCreateBookmarkFolderField는 공통 프레젠테이션(features/bookmark/select/ui/BookmarkFolderSelectDialog)에 얇게
+// 위임하므로, 아래 케이스들은 BookmarkFolderSelectDialog의 행 렌더링·최근 구획도 함께 검증한다.
 
 // 데스크탑 모달 스타일로 고정 — matchMedia 스텁만으로는 useIsMobile 값이 effect 이후에나 정해져 불안정하다
 vi.mock('@/shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }));
@@ -274,7 +274,7 @@ describe('PostCreateBookmarkFolderField', () => {
 
   // Radix Dialog는 document capture 단계에서 ESC를 가로채 dismiss한다(react-use-escape-keydown).
   // 생성 폼의 Input onKeyDown에서 stopPropagation 해도 이미 늦어 모달째 닫히던 버그를
-  // BookmarkFolderSelectModal의 onEscapeKeyDown 레벨 수정으로 고쳤다 — 이 테스트가 그 회귀를 잡는다.
+  // BookmarkFolderSelectDialog의 onEscapeKeyDown 레벨 수정으로 고쳤다 — 이 테스트가 그 회귀를 잡는다.
   it('새 폴더 입력 중 ESC는 입력만 취소하고 모달은 닫지 않는다', async () => {
     const user = userEvent.setup();
     renderField();
@@ -305,7 +305,7 @@ describe('PostCreateBookmarkFolderField', () => {
 
   it('임계값을 넘으면 등록 폼에서도 최근 저장한 폴더 구획이 뜬다', async () => {
     // 임계값: 폴더 6개 이상 + lastUsedAt 있는 폴더 3개 이상이어야 노출된다
-    // (PostCardBookmarkFolderModal.test.tsx의 manyFoldersResponse와 동일한 픽스처)
+    // (PostCardBookmarkFolderDialog.test.tsx의 manyFoldersResponse와 동일한 픽스처)
     const RECENT_A = 'folder-uuid-recent-a';
     const manyFoldersResponse: BookmarkFolderListResponse = {
       folders: [

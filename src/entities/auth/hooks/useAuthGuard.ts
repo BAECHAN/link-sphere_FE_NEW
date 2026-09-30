@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useAuthStore } from '@/shared/store/auth.store';
-import { useLoginModalStore } from '@/shared/store/loginModal.store';
+import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 
 interface AuthGuardOptions {
@@ -24,9 +24,9 @@ interface AuthGuardOptions {
  */
 export function useAuthGuard() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const setLoginOnSuccess = useLoginModalStore((state) => state.setOnSuccess);
-  const setPendingAction = useLoginModalStore((state) => state.setPendingAction);
-  const { open: openLoginModal } = useHistoryOverlay('loginModalOpen');
+  const setLoginOnSuccess = useLoginDialogStore((state) => state.setOnSuccess);
+  const setPendingAction = useLoginDialogStore((state) => state.setPendingAction);
+  const { open: openLoginDialog } = useHistoryOverlay('loginDialogOpen');
 
   return useCallback(
     (action: () => void, options?: AuthGuardOptions) => {
@@ -40,8 +40,8 @@ export function useAuthGuard() {
       // resumeAfterLogin이 아니면 undefined로 비운다 - 직전에 취소된 재개 액션의
       // 잔재가 다음(재개를 켜지 않은) 액션 클릭으로 되살아나는 걸 막는다
       setPendingAction(options?.resumeAfterLogin ? action : undefined);
-      openLoginModal();
+      openLoginDialog();
     },
-    [isAuthenticated, setLoginOnSuccess, setPendingAction, openLoginModal]
+    [isAuthenticated, setLoginOnSuccess, setPendingAction, openLoginDialog]
   );
 }

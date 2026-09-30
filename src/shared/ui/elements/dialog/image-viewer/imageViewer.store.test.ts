@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useImageViewerStore } from '@/shared/ui/elements/modal/image-viewer/imageViewer.store';
+import { useImageViewerStore } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
 
 describe('useImageViewerStore', () => {
   beforeEach(() => {

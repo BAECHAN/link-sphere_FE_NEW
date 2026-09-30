@@ -281,7 +281,7 @@ PR #108·#110·#111 머지 후 신선한 `main` 기준):
   - 포스트 카드 제목: `/post` 데스크톱(1280px)에서 18px/24px/700, 모바일(390px)
     에서 14px/19px/700 확인 — `md:text-t6` 반응형 전환이 실제로 동작함
   - 폴더 그룹 라벨: `/bookmark` 사이드바(FolderTree)의 "내 폴더" 라벨에서
-    12px/16px/600 확인. `BookmarkFolderSelectModal.tsx`는 같은
+    12px/16px/600 확인. `BookmarkFolderSelectDialog.tsx`는 같은
     `text-group-label` 토큰을 쓰므로 별도 실측 없이 동일 계산값으로 간주 —
     실제로 열어 확인하지는 않았다
   - 최근 검색 라벨: `/post`에서 검색 토글 → "최근 검색" 라벨에서 12px/16px/600
@@ -416,7 +416,7 @@ PR을 닫을 때 그 PR이 해소한 문제를 언급하는 다른 문서(§11 �
 활성 칩이 호버 시 흰 배경(`--primary`)에서 회색(`accent/50`)으로 덮이고 글자
 (`--primary-foreground`, 검정)와 거의 구분이 안 됐다. 같은 구조의 버그가
 `variant="ghost"` + `className`으로 `hover:bg-*`를 덮는 다른 8곳(`FolderTree`
-칩, `PostCard` AI 요약 토글·댓글 수 버튼, `BookmarkFolderSelectModal` 삭제 행,
+칩, `PostCard` AI 요약 토글·댓글 수 버튼, `BookmarkFolderSelectDialog` 삭제 행,
 `LikePostButton`, `CommentForm` 프리뷰 토글, `RecentSearchPanel`, `UserAvatar`)
 에도 있었다. 2026-09-21, 덮어쓰기로 지우는 대신 호버 스타일이 애초에 없는
 `none` variant를 `button.tsx`에 추가해 9곳 전부 해소했다 — `FilterChip`과
@@ -505,7 +505,7 @@ Storybook a11y 게이트가 실측한 4개 토큰의 라이트 모드 대비 미
   통일)과 `PostListSearch.tsx`의 필터 카드(공용 `Card` 재사용, raw div
   재구현 정리)를 고쳤다.
   - **로딩 스피너 래퍼 패딩(재검토 결과 버그 아님으로 판단)**: `py-10`
-    (`BookmarkFolderSelectModal.tsx`, 모달 내부)·`py-4`(`FolderTree.tsx`,
+    (`BookmarkFolderSelectDialog.tsx`, 모달 내부)·`py-4`(`FolderTree.tsx`,
     좁은 사이드바)는 `py-12`(`BookmarkPostList.tsx`/`MobileFolderList.tsx`,
     전체 화면 본문 영역)와 다르지만, 다시 읽어보니 **맥락(좁은 임베드 공간 vs
     본문 영역)이 실제로 달라 의도된 밀도 차이일 가능성이 높다** — 처음엔

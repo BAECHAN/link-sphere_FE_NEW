@@ -83,7 +83,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
           </>
         )}
 
-        {/* 새 폴더 만들기 — 상단 고정(2026-09-22). 폴더 선택 모달(BookmarkFolderSelectModal)이
+        {/* 새 폴더 만들기 — 상단 고정(2026-09-22). 폴더 선택 모달(BookmarkFolderSelectDialog)이
             2026-09-11에 같은 이유(생성 발견성)로 이미 헤더 바로 아래에 두고 있다. Polaris
             디자인 시스템도 스크롤되는 긴 목록에서는 add 액션을 헤더에 두라고 권고한다
             (https://github.com/Shopify/polaris-react/pull/11796/files). */}

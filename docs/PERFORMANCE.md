@@ -102,7 +102,7 @@ npx lhci collect --url=https://linksphere.click/post \
 | `firebase-vendor`(신규)        | 없음(vendor에 포함)      | 77.66 KB, `index.html` modulepreload 목록에 없음 | 로그인 상태에서만 동적 import되므로 비로그인 방문자는 아예 안 받는다                            |
 | `form-vendor`(react-hook-form) | 86.77 KB(zod 포함)       | 30.40 KB                                         | zod를 별도 청크로 뺐다                                                                          |
 | `zod-vendor`(신규)             | 없음(form-vendor에 포함) | 56.12 KB, 여전히 modulepreload 목록에 있음       | entities 스키마가 zod를 필요로 해 폼이 없는 페이지도 여전히 받는다(form-vendor와는 분리됐을 뿐) |
-| 진입 청크(`index-*.js`)        | 105.52 KB                | 101.45 KB                                        | `LoginModal`을 정적 렌더에서 뺐다                                                               |
+| 진입 청크(`index-*.js`)        | 105.52 KB                | 101.45 KB                                        | `LoginDialog`를 정적 렌더에서 뺐다                                                              |
 
 **폰트 로딩**
 

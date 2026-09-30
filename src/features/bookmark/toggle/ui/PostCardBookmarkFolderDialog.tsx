@@ -1,8 +1,8 @@
 import { TEXTS } from '@/shared/config/texts';
-import { BookmarkFolderSelectModal } from '@/features/bookmark/select/ui/BookmarkFolderSelectModal';
-import { usePostCardBookmarkFolderModal } from '@/features/bookmark/toggle/hooks/usePostCardBookmarkFolderModal';
+import { BookmarkFolderSelectDialog } from '@/features/bookmark/select/ui/BookmarkFolderSelectDialog';
+import { usePostCardBookmarkFolderDialog } from '@/features/bookmark/toggle/hooks/usePostCardBookmarkFolderDialog';
 
-interface PostCardBookmarkFolderModalProps {
+interface PostCardBookmarkFolderDialogProps {
   postId: string;
   isBookmarked: boolean;
   bookmarkFolderIds: string[];
@@ -13,22 +13,28 @@ interface PostCardBookmarkFolderModalProps {
 /**
  * 북마크 폴더 선택 UI — PostCard(피드·상세·북마크 페이지가 공유하는 위젯)의 북마크
  * 버튼에서 열리는 즉시 저장(탭 = 바로 저장/제거 + 닫힘) 버전. 동작은
- * usePostCardBookmarkFolderModal이 소유하고, 실제 모달 마크업(행 구성·최근 구획·새 폴더
+ * usePostCardBookmarkFolderDialog가 소유하고, 실제 모달 마크업(행 구성·최근 구획·새 폴더
  * 만들기)은 등록 폼의 PostCreateBookmarkFolderField와 공유하는
- * features/bookmark/select/ui/BookmarkFolderSelectModal 이 담당한다.
+ * features/bookmark/select/ui/BookmarkFolderSelectDialog 이 담당한다.
  */
-export function PostCardBookmarkFolderModal({
+export function PostCardBookmarkFolderDialog({
   postId,
   isBookmarked,
   bookmarkFolderIds,
   open,
   onOpenChange,
-}: PostCardBookmarkFolderModalProps) {
+}: PostCardBookmarkFolderDialogProps) {
   const { wasBookmarkedOnOpen, handleSelectUncategorized, handleSelectFolder, handleRemove } =
-    usePostCardBookmarkFolderModal({ postId, isBookmarked, bookmarkFolderIds, open, onOpenChange });
+    usePostCardBookmarkFolderDialog({
+      postId,
+      isBookmarked,
+      bookmarkFolderIds,
+      open,
+      onOpenChange,
+    });
 
   return (
-    <BookmarkFolderSelectModal
+    <BookmarkFolderSelectDialog
       open={open}
       onOpenChange={onOpenChange}
       description={TEXTS.bookmark.folder.selectorDescription}

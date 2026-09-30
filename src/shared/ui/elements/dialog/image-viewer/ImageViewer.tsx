@@ -7,7 +7,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/shared/ui/atoms/dialog';
-import { useImageViewerStore } from '@/shared/ui/elements/modal/image-viewer/imageViewer.store';
+import { useImageViewerStore } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { TEXTS } from '@/shared/config/texts';
 

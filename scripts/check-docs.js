@@ -118,7 +118,7 @@ function readLinesWithIgnoreZones(absPath) {
 const PATH_TOKEN_RE = /\b(src|\.github|infra)\/[A-Za-z0-9/_.-]*\.[A-Za-z0-9]+\b/g;
 
 // FSD 레이어 이름으로 시작하지만 `src/` 접두사가 빠진 경로 서술(예: `entities/bookmark/
-// folder/ui/BookmarkFolderSelectModal.tsx`) — 산문·트리 그림에서 실제로 이렇게 쓰인다
+// folder/ui/BookmarkFolderSelectDialog.tsx`) — 산문·트리 그림에서 실제로 이렇게 쓰인다
 // (2026-09-10 레포 재감사에서 BOOKMARK.md·DEPLOY.md·FCM 문서 등이 이 형태라 기존
 // PATH_TOKEN_RE가 놓치고 있던 걸 발견). `src/`를 붙여 같은 방식으로 존재를 검사한다.
 // `(?<!@\/)`: `@/entities/post/api/post.keys`처럼 TS path alias(`@/`) import 스펙은

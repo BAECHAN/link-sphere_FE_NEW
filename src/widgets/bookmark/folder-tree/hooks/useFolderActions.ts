@@ -1,6 +1,6 @@
 import { KeyboardEvent, useRef, useState } from 'react';
 import { toast } from '@/shared/lib/toast/toast';
-import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
+import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
 import { TEXTS } from '@/shared/config/texts';
 import {
   useDeleteBookmarkFolderMutation,

@@ -81,16 +81,16 @@ Storybook `Shared/UI/Tokens/Design Tokens` 스토리의 `ZIndex`에서 8단계�
 
 #### 역할 토큰 (우선 사용)
 
-| 토큰                    | 크기·줄높이·두께        | 용도                                                  | 대상 예시                                                                                                               |
-| ----------------------- | ----------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `text-screen-title`     | t7 (20/27) · semibold   | 페이지 최상위 제목 (h1)                               | `MyCommentPage.tsx`, `BookmarkPage.tsx`, `pages/post/index.tsx`, `VersionPage.tsx`(예시, 전수 아님)                     |
-| `text-section-title`    | t6 (18/24) · semibold   | 섹션 제목 (h2), Dialog 제목                           | `CommentList.tsx`, `dialog.tsx`(`DialogTitle`)                                                                          |
-| `text-subsection-title` | t4 (14/19) · semibold   | 소제목, 보통 `text-muted-foreground`와 함께           | `MobileFolderList.tsx`                                                                                                  |
-| `text-micro`            | t1 (11/15), 두께 미지정 | 배지·단축키·카운트 같은 최소 라벨                     | `NavbarSearch.tsx`(Kbd), `CommentItem.tsx`(배지), `LikePostButton.tsx`/`PostCard.tsx`(카운트)                           |
-| `text-card-title`       | t4 (14/19) · bold       | 포스트 카드 제목(반응형, `md:text-t6`과 조합)         | `PostCard.tsx`(`<h3>{post.title}</h3>`)                                                                                 |
-| `text-detail-title`     | t9 (24/32) · bold       | 상세 페이지 게시글 제목(반응형, `md:text-t11`과 조합) | `PostCard.tsx`(`isDetail`일 때)                                                                                         |
-| `text-group-label`      | t2 (12/16) · semibold   | 목록 섹션 라벨                                        | `FolderTree.tsx`, `BookmarkFolderSelectModal.tsx`, `RecentSearchPanel.tsx`, `RecentSearchDropdown.tsx`(예시, 전수 아님) |
-| `text-display-title`    | 60/60 · bold            | 대형 에러 페이지 타이틀                               | `ErrorLayout.tsx`(404/403/500)                                                                                          |
+| 토큰                    | 크기·줄높이·두께        | 용도                                                  | 대상 예시                                                                                                                |
+| ----------------------- | ----------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `text-screen-title`     | t7 (20/27) · semibold   | 페이지 최상위 제목 (h1)                               | `MyCommentPage.tsx`, `BookmarkPage.tsx`, `pages/post/index.tsx`, `VersionPage.tsx`(예시, 전수 아님)                      |
+| `text-section-title`    | t6 (18/24) · semibold   | 섹션 제목 (h2), Dialog 제목                           | `CommentList.tsx`, `dialog.tsx`(`DialogTitle`)                                                                           |
+| `text-subsection-title` | t4 (14/19) · semibold   | 소제목, 보통 `text-muted-foreground`와 함께           | `MobileFolderList.tsx`                                                                                                   |
+| `text-micro`            | t1 (11/15), 두께 미지정 | 배지·단축키·카운트 같은 최소 라벨                     | `NavbarSearch.tsx`(Kbd), `CommentItem.tsx`(배지), `LikePostButton.tsx`/`PostCard.tsx`(카운트)                            |
+| `text-card-title`       | t4 (14/19) · bold       | 포스트 카드 제목(반응형, `md:text-t6`과 조합)         | `PostCard.tsx`(`<h3>{post.title}</h3>`)                                                                                  |
+| `text-detail-title`     | t9 (24/32) · bold       | 상세 페이지 게시글 제목(반응형, `md:text-t11`과 조합) | `PostCard.tsx`(`isDetail`일 때)                                                                                          |
+| `text-group-label`      | t2 (12/16) · semibold   | 목록 섹션 라벨                                        | `FolderTree.tsx`, `BookmarkFolderSelectDialog.tsx`, `RecentSearchPanel.tsx`, `RecentSearchDropdown.tsx`(예시, 전수 아님) |
+| `text-display-title`    | 60/60 · bold            | 대형 에러 페이지 타이틀                               | `ErrorLayout.tsx`(404/403/500)                                                                                           |
 
 `text-micro`만 두께를 토큰에 묶지 않는다 — 호출부 4곳의 기존 두께가 제각각(Kbd는
 `font-medium`, 나머지는 미지정 상속)이라 하나로 합치면 그중 승인받지 않은 화면 변화가
@@ -108,7 +108,7 @@ semibold였고, `pages/post/index.tsx`만 유일하게 `font-bold` + 데스크�
 `text-card-title`은 반응형 제목이라 데스크톱 크기까지 역할 토큰에 묶지 않는다 —
 아래 "스케일 층" 절의 t11~t14와 같은 선례를 따라 호출부에서 `md:text-t6`처럼 스케일
 토큰을 직접 얹는다. `text-group-label`(12px/16px)은 Tailwind 기본 `text-xs`의
-계산값과 완전히 같아 2곳(`FolderTree.tsx`, `BookmarkFolderSelectModal.tsx`)은
+계산값과 완전히 같아 2곳(`FolderTree.tsx`, `BookmarkFolderSelectDialog.tsx`)은
 이름만 붙인 순수 정리였고, `RecentSearchPanel.tsx`만 원래 14px라 12px로 줄어드는
 실제 화면 변화가 있었다(Artifact 미리보기로 사용자 승인, 2026-09-16,
 https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12). `text-display-title`(60px/60px)도

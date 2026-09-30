@@ -343,7 +343,7 @@ export function useFcmForegroundMessage() {
 하나만 쓰는 게 아니라 여러 전역 관심사(저장하지 않은 입력 가드, 앱 버전 체크·새
 버전 리로드, 로그인 모달, 이미지 뷰어, 알림창)를 함께 마운트하는 자리다.
 
-**정정(2026-09-29)**: `LoginModal`은 직접 렌더링되지 않는다 — 비로그인 방문자
+**정정(2026-09-29)**: `LoginDialog`는 직접 렌더링되지 않는다 — 비로그인 방문자
 대다수는 한 번도 열지 않는 모달이라 `lazy()` + 자체 `<Suspense fallback={null}>`로
 감싸 초기 번들에서 뺐다(실측: 2026-09-26 빌드에서 진입 청크에 정적으로 포함돼
 있었음, `docs/plans/2026-09-25-lighthouse-perf.md` 참고). `Outlet`과 같은 Suspense
@@ -352,9 +352,9 @@ export function useFcmForegroundMessage() {
 
 ```typescript
 // src/app/routes/layouts/RootLayout.tsx
-const LoginModal = lazy(() =>
-  import('@/widgets/layout/login-modal/ui/LoginModal').then((module) => ({
-    default: module.LoginModal,
+const LoginDialog = lazy(() =>
+  import('@/widgets/layout/login-dialog/ui/LoginDialog').then((module) => ({
+    default: module.LoginDialog,
   }))
 );
 
@@ -374,7 +374,7 @@ export function RootLayout() {
       <ScrollRestoration />
       <Outlet />
       <Suspense fallback={null}>
-        <LoginModal />
+        <LoginDialog />
       </Suspense>
       <GlobalImageViewer />
       <GlobalAlerts />

@@ -39,13 +39,13 @@ API)를 성능을 이유로 정반대로 채택**하고, 그 위에 도메인 �
 
 ### 정식 FSD와 다른 점
 
-| FSD 규칙                                                          | 채택 여부                               | 이유 / 실태                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | 강제 수단                                                                                                                                                                      |
-| ----------------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 레이어 6종 + 하향 의존만 허용                                     | ✅ 채택                                 | FSD 원칙 그대로                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | ESLint `no-restricted-imports` 5블록 (`eslint.config.js`)                                                                                                                      |
-| Public API — 슬라이스는 `index.ts` 배럴로만 외부에 노출           | ❌ **정반대로 채택** (배럴 자체를 금지) | dev 서버 부팅 15-70%·빌드 28%·콜드스타트 40% 지연이라는 성능 트레이드오프 때문에 의도적으로 뒤집음(수치 출처 미상 — 2026-09-08 확인, 이 레포에서 직접 측정하거나 외부 출처를 링크한 기록 없음. 재검증 전까지 참고용으로만 취급할 것)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | ESLint `custom-barrel-rules/no-barrel-import` (`eslint.config.js`) — import 문자열이 `/index`로 끝날 때 에러(디렉터리 암묵 해석은 예외 — `@/mocks/handlers`처럼 실제로 쓰인다) |
-| 동일 레이어 슬라이스 격리 (entities는 `@x` 표기로 교차 참조 허용) | ⚠️ 부분 채택                            | 2026-09-21부터 `@x` 폴더 표기가 관례다(§5 참고) — `entities/{post,comment,account,bookmark/folder}/@x/`에 11개 파일이 있고, production 코드의 엔티티 간 참조는 사실상 전부 이 표기를 거친다(`entities/interaction/api/interaction.queries.ts`도 post·comment·folder의 keys를 전부 `@x`를 통해 가져온다). 남은 예외 1건: `entities/post/model/post.schema.ts:40`이 `@x` 없이 `export * from '@/entities/comment/model/comment.schema'`로 직접 재수출한다(테스트 파일이 다른 엔티티의 raw `.keys.ts`를 직접 import하는 건 별도 — 이 열은 production 코드 기준). features에도 같은 성격의 교차 참조가 있다 — `features/post/create`가 `features/bookmark/select`를 참조한다(2026-09-09, `BookmarkFolderSelectModal`을 entities에서 이동하며 감수한 트레이드오프, `docs/DECISIONS.md` 참고) | ESLint 강제 없음 — 컨벤션으로만 유지(§5 "이 표기는 강제되지 않는다" 참고)                                                                                                      |
-| 세그먼트는 목적 기준 명명 (`ui`/`api`/`model`/`lib`/`config`)     | ⚠️ 부분 채택                            | `hooks/`·`utils/`를 세그먼트로도 쓴다(`features/*/hooks/`, `widgets/post/post-list/utils/`, 2026-09-08부터 `entities/*/hooks/`·`entities/*/utils/`도) — 정식 FSD 세그먼트명은 아니지만 레이어 전체에서 일관되게 쓰인다. `entities`의 `model/`은 스키마·타입 전용으로 좁혔다(2026-09-08, 근거는 `.claude/CLAUDE.md` "레이어별 허용 세그먼트" 참고)                                                                                                                                                                                                                                                                                                                                                                                                                                       | `.claude/CLAUDE.md`의 "레이어별 허용 세그먼트" 표 (문서 규칙, ESLint 미강제)                                                                                                   |
-| 슬라이스 그룹 폴더 허용 (그룹 폴더 자체엔 공유 코드 금지)         | ✅ 채택                                 | 그룹 폴더(`features/post/`, `widgets/layout/` 등)에는 파일이 없고 슬라이스만 있음                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | —                                                                                                                                                                              |
+| FSD 규칙                                                          | 채택 여부                               | 이유 / 실태                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | 강제 수단                                                                                                                                                                      |
+| ----------------------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 레이어 6종 + 하향 의존만 허용                                     | ✅ 채택                                 | FSD 원칙 그대로                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | ESLint `no-restricted-imports` 5블록 (`eslint.config.js`)                                                                                                                      |
+| Public API — 슬라이스는 `index.ts` 배럴로만 외부에 노출           | ❌ **정반대로 채택** (배럴 자체를 금지) | dev 서버 부팅 15-70%·빌드 28%·콜드스타트 40% 지연이라는 성능 트레이드오프 때문에 의도적으로 뒤집음(수치 출처 미상 — 2026-09-08 확인, 이 레포에서 직접 측정하거나 외부 출처를 링크한 기록 없음. 재검증 전까지 참고용으로만 취급할 것)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | ESLint `custom-barrel-rules/no-barrel-import` (`eslint.config.js`) — import 문자열이 `/index`로 끝날 때 에러(디렉터리 암묵 해석은 예외 — `@/mocks/handlers`처럼 실제로 쓰인다) |
+| 동일 레이어 슬라이스 격리 (entities는 `@x` 표기로 교차 참조 허용) | ⚠️ 부분 채택                            | 2026-09-21부터 `@x` 폴더 표기가 관례다(§5 참고) — `entities/{post,comment,account,bookmark/folder}/@x/`에 11개 파일이 있고, production 코드의 엔티티 간 참조는 사실상 전부 이 표기를 거친다(`entities/interaction/api/interaction.queries.ts`도 post·comment·folder의 keys를 전부 `@x`를 통해 가져온다). 남은 예외 1건: `entities/post/model/post.schema.ts:40`이 `@x` 없이 `export * from '@/entities/comment/model/comment.schema'`로 직접 재수출한다(테스트 파일이 다른 엔티티의 raw `.keys.ts`를 직접 import하는 건 별도 — 이 열은 production 코드 기준). features에도 같은 성격의 교차 참조가 있다 — `features/post/create`가 `features/bookmark/select`를 참조한다(2026-09-09, `BookmarkFolderSelectDialog`를 entities에서 이동하며 감수한 트레이드오프, `docs/DECISIONS.md` 참고) | ESLint 강제 없음 — 컨벤션으로만 유지(§5 "이 표기는 강제되지 않는다" 참고)                                                                                                      |
+| 세그먼트는 목적 기준 명명 (`ui`/`api`/`model`/`lib`/`config`)     | ⚠️ 부분 채택                            | `hooks/`·`utils/`를 세그먼트로도 쓴다(`features/*/hooks/`, `widgets/post/post-list/utils/`, 2026-09-08부터 `entities/*/hooks/`·`entities/*/utils/`도) — 정식 FSD 세그먼트명은 아니지만 레이어 전체에서 일관되게 쓰인다. `entities`의 `model/`은 스키마·타입 전용으로 좁혔다(2026-09-08, 근거는 `.claude/CLAUDE.md` "레이어별 허용 세그먼트" 참고)                                                                                                                                                                                                                                                                                                                                                                                                                                        | `.claude/CLAUDE.md`의 "레이어별 허용 세그먼트" 표 (문서 규칙, ESLint 미강제)                                                                                                   |
+| 슬라이스 그룹 폴더 허용 (그룹 폴더 자체엔 공유 코드 금지)         | ✅ 채택                                 | 그룹 폴더(`features/post/`, `widgets/layout/` 등)에는 파일이 없고 슬라이스만 있음                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | —                                                                                                                                                                              |
 
 **즉 이 레포에서 실질적으로 강제되는 FSD 규칙은 "레이어 하향 의존" 하나뿐이다.** 나머지는
 미채택이거나 성능상의 이유로 정반대로 뒤집혀 있다. 아래 §2가 그 강제 규칙 전체 목록이다.
@@ -179,11 +179,11 @@ src/
 │       │   └── ui/               # Navbar, NavbarSearch, MobileNavbarSearch, RecentSearchPanel, RecentSearchDropdown
 │       ├── bottom-tab-bar/ui/
 │       ├── sidebar/ui/
-│       └── login-modal/          # LoginModal(2026-09-29 features/auth/login에서 이동 —
+│       └── login-dialog/         # LoginDialog(2026-09-29 features/auth/login에서 이동 —
 │           │                     # RootLayout이 마운트하는 전역 모달, Navbar·Sidebar·
-│           │                     # BottomTabBar와 같은 자리)
-│           ├── hooks/            # useLoginModal
-│           └── ui/               # LoginModal
+│           │                     # BottomTabBar와 같은 자리. 2026-09-30 LoginModal에서 개명)
+│           ├── hooks/            # useLoginDialog
+│           └── ui/               # LoginDialog
 │
 ├── features/                     # 사용자 상호작용 — 도메인 그룹 → 액션 슬라이스
 │   ├── post/
@@ -207,11 +207,11 @@ src/
 │   │   └── delete/{hooks,ui}     # 계정 삭제
 │   └── bookmark/                 # 2026-09-08 post/bookmark에서 승격 — entities/widgets/pages와
 │       │                         # bookmark 도메인 그룹을 통일(FSD nukeapp 사례 참고)
-│       ├── toggle/{hooks,ui}     # useBookmarkFolders, useBookmarkPostButton, usePostCardBookmarkFolderModal, BookmarkPostButton,
-│       │                         # PostCardBookmarkFolderModal(2026-09-08, entities의
-│       │                         # BookmarkFolderSelectModal과 이름이 겹쳐 호출 맥락(PostCard)
-│       │                         # 접두사를 붙여 개명)
-│       └── select/{hooks,ui}     # useBookmarkFolderSelect, BookmarkFolderSelectModal — toggle·
+│       ├── toggle/{hooks,ui}     # useBookmarkFolders, useBookmarkPostButton, usePostCardBookmarkFolderDialog, BookmarkPostButton,
+│       │                         # PostCardBookmarkFolderDialog(2026-09-08, entities의
+│       │                         # BookmarkFolderSelectDialog와 이름이 겹쳐 호출 맥락(PostCard)
+│       │                         # 접두사를 붙여 개명. 2026-09-30 …Modal→…Dialog 재개명)
+│       └── select/{hooks,ui}     # useBookmarkFolderSelect, BookmarkFolderSelectDialog — toggle·
 │                                 # post/create 두 feature가 공유하는 폴더 선택 UI. entities/ui는
 │                                 # 시각적 표현만 담아야 하는데 CRUD 인터랙션이라 여기로 이동
 │                                 # (features↔features cross-import는 감수, 상세 근거는 DECISIONS.md)
@@ -240,7 +240,7 @@ src/
 │   │       ├── utils/            # bookmark-folder.util.ts (pickRecentFolders)
 │   │       └── hooks/            # useRecentBookmarkFolders.ts (순수 데이터 파생 훅이라 entities에 남는다 —
 │   │                             # 인터랙션 UI는 features/bookmark/select/로 이동. 2026-09-21 기준
-│   │                             # 소비처는 모달(BookmarkFolderSelectModal) 1곳 — 상시 마운트 화면은
+│   │                             # 소비처는 모달(BookmarkFolderSelectDialog) 1곳 — 상시 마운트 화면은
 │   │                             # 세션 경계가 없어 이 훅 대신
 │   │                             # widgets/bookmark/folder-tree/hooks/useFolderSections.ts가
 │   │                             # bookmark-folder.util.ts를 직접 호출)
@@ -283,7 +283,7 @@ src/
     │   ├── upload/uploadImageAndGetUrl.ts  # 리사이즈 + uploadApi 조합 편의 함수
     │   ├── firebase/, image/, content/, virtual/, router/
     │   └── tailwind/utils.ts      # cn() helper
-    ├── store/                     # appVersion, auth, hideBots, loginModal, sidebar, unsavedChanges (.store.ts)
+    ├── store/                     # appVersion, auth, hideBots, loginDialog, sidebar, unsavedChanges (.store.ts)
     ├── types/
     │   └── common.type.ts
     ├── ui/
@@ -329,7 +329,7 @@ src/
 | `navbar`             | `widgets/layout/navbar/`               | 네비게이션 바                                   |
 | `bottom-tab-bar`     | `widgets/layout/bottom-tab-bar/`       | 모바일 하단 탭바                                |
 | `sidebar`            | `widgets/layout/sidebar/`              | 사이드바                                        |
-| `login-modal`        | `widgets/layout/login-modal/`          | 로그인 모달 (RootLayout이 마운트하는 전역 모달) |
+| `login-dialog`       | `widgets/layout/login-dialog/`         | 로그인 모달 (RootLayout이 마운트하는 전역 모달) |
 | `bookmark-post-list` | `widgets/bookmark/bookmark-post-list/` | 북마크 포스트 목록                              |
 | `bookmark-search`    | `widgets/bookmark/bookmark-search/`    | 북마크 내 검색                                  |
 | `folder-tree`        | `widgets/bookmark/folder-tree/`        | 폴더 트리 / 모바일 폴더 목록                    |
@@ -669,7 +669,7 @@ export type { Entity } from '@/entities/<entity>/model/<entity>.dto';
 **절대로** native `confirm()` 사용 금지. 항상 `useAlert` + `openConfirm` 사용.
 
 ```typescript
-import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
+import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
 
 const { openConfirm } = useAlert();
 const onDelete = (id: string) => {
@@ -1049,18 +1049,18 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ## 17. 핵심 설정 파일 위치
 
-| 목적                 | 파일                                                | export                 |
-| -------------------- | --------------------------------------------------- | ---------------------- |
-| 모든 UI 문자열       | `src/shared/config/texts.ts`                        | `TEXTS`                |
-| API 엔드포인트       | `src/shared/config/api.ts`                          | `API_ENDPOINTS`        |
-| 라우트 경로          | `src/shared/config/route-paths.ts`                  | `ROUTES_PATHS`         |
-| HTTP 클라이언트      | `src/shared/api/client.ts`                          | `apiClient`            |
-| QueryClient          | `src/shared/lib/react-query/config/queryClient.ts`  | `queryClient`          |
-| Toast 래퍼           | `src/shared/lib/toast/toast.ts`                     | `toast`                |
-| Alert/Confirm 모달   | `src/shared/ui/elements/modal/alert/alert.store.ts` | `useAlert`             |
-| Auth 스토어          | `src/shared/store/auth.store.ts`                    | `useAuthStore`         |
-| 이미지 업로드 요청   | `src/shared/api/upload.api.ts`                      | `uploadApi`            |
-| 리사이즈+업로드 조합 | `src/shared/lib/upload/uploadImageAndGetUrl.ts`     | `uploadImageAndGetUrl` |
+| 목적                 | 파일                                                 | export                 |
+| -------------------- | ---------------------------------------------------- | ---------------------- |
+| 모든 UI 문자열       | `src/shared/config/texts.ts`                         | `TEXTS`                |
+| API 엔드포인트       | `src/shared/config/api.ts`                           | `API_ENDPOINTS`        |
+| 라우트 경로          | `src/shared/config/route-paths.ts`                   | `ROUTES_PATHS`         |
+| HTTP 클라이언트      | `src/shared/api/client.ts`                           | `apiClient`            |
+| QueryClient          | `src/shared/lib/react-query/config/queryClient.ts`   | `queryClient`          |
+| Toast 래퍼           | `src/shared/lib/toast/toast.ts`                      | `toast`                |
+| Alert/Confirm 모달   | `src/shared/ui/elements/dialog/alert/alert.store.ts` | `useAlert`             |
+| Auth 스토어          | `src/shared/store/auth.store.ts`                     | `useAuthStore`         |
+| 이미지 업로드 요청   | `src/shared/api/upload.api.ts`                       | `uploadApi`            |
+| 리사이즈+업로드 조합 | `src/shared/lib/upload/uploadImageAndGetUrl.ts`      | `uploadImageAndGetUrl` |
 
 ---
 
@@ -1084,6 +1084,7 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 | TS 타입                       | 스키마와 동일 (PascalCase)                                                                                                                                                                                                                                                                                                            | `Post`, `CreatePost`                        |
 | `config/` 파일                | `<entity>.const.ts` — `api/`·`model/`·`utils/`와 같은 `<entity>.<역할>.ts` 규칙(`const.ts` 단독 금지, `shared/config/const.ts`처럼 도메인이 없는 전역 설정은 예외). `<entity>`는 **엔티티명**이지 디렉터리 세그먼트명이 아니다 — 그룹 폴더(`entities/bookmark/folder/`) 아래에서도 파일 접두사는 엔티티명(`bookmark-folder`)을 따른다 | `bookmark-folder.const.ts`, `post.const.ts` |
 | `<Entity>[]` 배열 변수/반환값 | `<entity>List` — 지역변수·훅 반환 필드·구조분해값이 실제로 배열일 때. 아래 각주의 예외 2가지는 대상 아님                                                                                                                                                                                                                              | `folderList`                                |
+| 창·오버레이 식별자            | 창 자체(컴포넌트·훅·스토어·타입·경로·히스토리 키)는 `Dialog`, 뒤를 조작 불가로 만드는 성질은 `modal`, alert/confirm 전용은 `Alert`. 식별자에만 적용하고 한국어 산문의 "모달"은 허용 — 아래 각주                                                                                                                                       | `LoginDialog`, `modal={false}`, `useAlert`  |
 
 **`<entity>List` 각주** (2026-09-08) — "단수/복수"가 아니라 "배열인가 아닌가"로
 가른다. BE 응답 계약과 매핑된 이름(`BookmarkFolderListResponse`, `useBookmarkFolderListQuery`,
@@ -1092,6 +1093,34 @@ FolderListResponse 와 매핑" 주석 참고)과, 배열이 아니라 동작·�
 복수형이 그 자체로 맞는 이름(`BookmarkFoldersResponse`,
 `useBookmarkFolders`, `wasInFolders`, `clearBookmarkFolders`, `postFolders`
 엔드포인트 등)은 이 규칙 대상이 아니다 — 그대로 복수형을 쓴다.
+
+**`Dialog`·`modal`·`Alert` 각주** (2026-09-30) — 세 단어는 동의어가 아니라 층위가 다르다.
+Radix `Dialog` 기반 창을 코드에서 `*Modal`·`*Dialog`로 섞어 부르던 것을 이 기준으로
+통일했다(`LoginModal`→`LoginDialog`, `shared/ui/elements/modal/`→`dialog/` 등).
+
+- **창 자체 = Dialog** — [W3C APG Dialog (Modal) 패턴](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)의
+  정의는 _"다이얼로그는 기본 창이나 다른 다이얼로그 창 위에 겹쳐진 창이다"_ (번역)이다.
+- **modal = 다이얼로그의 성질** — 같은 APG 문서는 _"모달 다이얼로그 아래의 창은 비활성(inert)이다"_
+  (번역)라고 쓰고, [NN/g](https://www.nngroup.com/articles/modal-nonmodal-dialog/)는 모달
+  다이얼로그를 _"사용자가 명시적으로 상호작용하기 전까지 주 콘텐츠를 비활성화하는"_ (번역)
+  다이얼로그로 정의해 비모달 다이얼로그와 구분한다. 이 레포에서는 Radix `Dialog.Root`의
+  `modal` prop(기본값 `true`), `DropdownMenu`의 `modal={false}`, z-index 토큰 `z-modal`이
+  이 자리다.
+- **Alert = 특수한 다이얼로그** — [W3C APG Alert Dialog 패턴](https://www.w3.org/WAI/ARIA/apg/patterns/alertdialog/)은
+  _"중요한 메시지를 알리고 응답을 받기 위해 사용자의 작업 흐름을 끊는 모달 다이얼로그"_ (번역)로
+  정의한다. 이 레포의 `Alert`·`GlobalAlerts`·`useAlert`·`openConfirm`이 이 자리다 — 단 2026-09-30
+  기준 `Alert.tsx`는 일반 Radix `Dialog`라 `role="alertdialog"`가 아니다(별도 작업으로 남김).
+- **라이브러리도 같은 층위를 쓴다** — Radix는 컴포넌트 이름이 `Dialog`이고 모달 여부는 `modal`
+  prop으로 받으며, alert dialog는 별도 패키지(`@radix-ui/react-alert-dialog`)다.
+  [MUI Modal 문서](https://mui.com/material-ui/react-modal/)는 _"모달 다이얼로그를 만든다면
+  Modal을 직접 쓰기보다 Dialog 컴포넌트를 쓰는 편이 대개 맞다"_ (번역)고 안내하고,
+  [React Aria](https://react-aria.adobe.com/Modal)는 `<ModalOverlay><Modal><Dialog>` 순으로
+  감싸는 구조를 쓴다.
+
+적용 범위는 코드 식별자(컴포넌트·훅·스토어·타입·파일/디렉터리 경로·`useHistoryOverlay` 키·
+테스트 ID·스토리 제목)다. 주석·문서·테스트 제목의 한국어 "모달"은 그대로 쓴다 — 위 출처는
+영어 용어의 정의이지 한국어 표기를 정하지 않고, 사용자에게 보이는 문구(`texts.ts`)에는 애초에
+"모달"이 없다.
 
 ---
 
@@ -1265,10 +1294,10 @@ CommentUtil.estimateCommentPayloadBytes(content, existingImageUrls, pendingImage
 Enter가 제출·확정으로 이어지는 필드 중 **뒤에 다른 입력칸이 없는 경우(단일 입력
 지점)** 에만 단다:
 
-| 상황                                  | 값         | 예시                                                                                               |
-| ------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------- |
-| 검색                                  | `"search"` | `NavbarSearch.tsx`, `MobileNavbarSearch.tsx`, `BookmarkSearch.tsx`                                 |
-| 이름 확정(폴더 생성·이름변경, 닉네임) | `"done"`   | `FolderTree.tsx`, `MobileFolderList.tsx`, `BookmarkFolderSelectModal.tsx`, `UpdateAccountForm.tsx` |
+| 상황                                  | 값         | 예시                                                                                                |
+| ------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------- |
+| 검색                                  | `"search"` | `NavbarSearch.tsx`, `MobileNavbarSearch.tsx`, `BookmarkSearch.tsx`                                  |
+| 이름 확정(폴더 생성·이름변경, 닉네임) | `"done"`   | `FolderTree.tsx`, `MobileFolderList.tsx`, `BookmarkFolderSelectDialog.tsx`, `UpdateAccountForm.tsx` |
 
 로그인·회원가입·글 등록/수정 제목처럼 **뒤에 다른 필드가 있는 다중 필드 폼에는 달지
 않는다** — 아래 Android 주의 참고. 댓글 textarea처럼 Enter가 실제로 줄바꿈인 곳도

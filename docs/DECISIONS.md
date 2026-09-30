@@ -403,8 +403,8 @@ outline·왼쪽으로 둔다 — 기본값 `'cancel'`이면 지금까지의 동�
 
 **상태**
 
-적용 완료. 관련 파일: `src/shared/ui/elements/modal/alert/alert.store.ts`,
-`src/shared/ui/elements/modal/alert/Alert.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`,
+적용 완료. 관련 파일: `src/shared/ui/elements/dialog/alert/alert.store.ts`,
+`src/shared/ui/elements/dialog/alert/Alert.tsx`(2026-09-30 `elements/modal/`에서 개명), `src/widgets/post/post-card/hooks/usePostCard.ts`,
 `e2e/post-visibility.spec.ts`, `docs/FE-ARCHITECTURE.md` §10. 같은 대화에서 폴더 생성
 인라인 폼(취소=ghost/왼쪽, 생성=채움/오른쪽)도 검토했지만 — 폴더 생성은 애초에 `Alert.tsx`를
 쓰지 않는 별개의 인라인 폼이고, "위험한 선택지가 없다"는 점에서 "원하는 쪽 강조"라는 같은
@@ -452,7 +452,7 @@ DOM 순서가 바뀌면서 Radix Dialog의 기본 오토포커스(첫 포커스 
 
 **상태**
 
-적용 완료. 관련 파일: `src/shared/ui/elements/modal/alert/Alert.tsx`. 비교에 쓴 Artifact:
+적용 완료. 관련 파일: `src/shared/ui/elements/dialog/alert/Alert.tsx`(2026-09-30 `elements/modal/`에서 개명). 비교에 쓴 Artifact:
 "삭제 확인창 재배치 시안"(세션 로컬, 링크는 대화 기록 참고) — 후보 C를 채택했다.
 
 ---
@@ -511,7 +511,7 @@ outline**으로 고정한다(alert 타입의 단일 버튼은 그대로 채움 �
 
 **상태**
 
-적용 완료. 관련 파일: `src/shared/ui/elements/modal/alert/Alert.tsx`,
+적용 완료. 관련 파일: `src/shared/ui/elements/dialog/alert/Alert.tsx`(2026-09-30 `elements/modal/`에서 개명),
 `docs/FE-ARCHITECTURE.md` §10, `docs/UNSAVED-CHANGES-GUARD.md`. 비교에 쓴 Artifact:
 "이탈 확인창 강조 시안"(세션 로컬, 링크는 대화 기록 참고) — 레이아웃 후보 A1(위치 유지)을
 채택했다.
@@ -2152,10 +2152,11 @@ navigate하지 않는 콜백을 그 채널에 태우면 로그인 모달이 안 
 
 **상태**
 
-적용 완료. `src/shared/store/loginModal.store.ts`(pendingAction 채널),
+적용 완료. `src/shared/store/loginDialog.store.ts`(pendingAction 채널, 2026-09-30
+`loginModal.store.ts`에서 개명),
 `src/entities/auth/hooks/useAuthGuard.ts`(opt-in 옵션),
-`src/widgets/layout/login-modal/ui/LoginModal.tsx`(닫힘 이후 재개 effect, 2026-09-29
-features/auth/login에서 이동),
+`src/widgets/layout/login-dialog/ui/LoginDialog.tsx`(닫힘 이후 재개 effect, 2026-09-29
+features/auth/login에서 이동, 2026-09-30 `LoginModal`에서 개명),
 `src/features/bookmark/toggle/ui/BookmarkPostButton.tsx`(opt-in 적용),
 `src/widgets/post/post-card/ui/PostCard.tsx`(공유 아이콘 fill 버그 수정). 상세 설계는
 [`docs/plans/2026-09-11-bookmark-login-resume.md`](plans/2026-09-11-bookmark-login-resume.md) 참고.

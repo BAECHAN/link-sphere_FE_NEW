@@ -44,7 +44,7 @@ export function usePostCreateBookmarkFolderField() {
   };
 
   // 모달이 닫혀 있을 때도 트리거에 폴더명을 보여줘야 해 여기서도 목록을 읽는다.
-  // BookmarkFolderSelectModal 내부 호출과 같은 쿼리 키라 요청·캐시가 공유된다.
+  // BookmarkFolderSelectDialog 내부 호출과 같은 쿼리 키라 요청·캐시가 공유된다.
   const { data } = useBookmarkFolderListQuery({ enabled: open });
   const folderList = Array.isArray(data?.folders) ? data.folders : [];
 
@@ -70,7 +70,7 @@ export function usePostCreateBookmarkFolderField() {
     if (folderIds.includes(folder.id)) {
       const next = folderIds.filter((id) => id !== folder.id);
       // 마지막 폴더에서 빠지면 미분류로 남기지 않고 북마크 안 함으로 되돌린다
-      // (2026-09-11 변경 — PostCardBookmarkFolderModal의 완전 삭제 규칙과 동일).
+      // (2026-09-11 변경 — PostCardBookmarkFolderDialog의 완전 삭제 규칙과 동일).
       // 제출 전 폼 값만 바뀌는 지연 선택이라 API 호출이 없고, 미분류 행을 다시 탭하면
       // 바로 되돌아가므로 되돌리기 토스트도 불필요하다.
       applySelection(next.length > 0, next);

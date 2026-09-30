@@ -10,7 +10,7 @@ import {
 } from '@/entities/post/api/post.queries';
 import { postMutationKeys } from '@/entities/post/api/post.keys';
 import { usePostDelete } from '@/features/post/delete/hooks/usePostDelete';
-import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
+import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
 import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
 import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
 import { useSearchParamsDraft } from '@/shared/hooks/useSearchParamsDraft';

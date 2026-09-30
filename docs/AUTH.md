@@ -243,10 +243,10 @@ setAuthResolved(true); // :59 성공/실패/미시도 무관 항상
 
 ### 8-D. 게이트 C — 로그인 유도
 
-`loginModal.store`는 로그인 성공 시 실행할 콜백을 **두 채널로 나눠 갖습니다.** 계약이
+`loginDialog.store`는 로그인 성공 시 실행할 콜백을 **두 채널로 나눠 갖습니다.** 계약이
 서로 반대라 섞으면 안 됩니다.
 
-| 채널            | 계약                                                              | 생산자                                          | `LoginModal`의 처리                                                          |
+| 채널            | 계약                                                              | 생산자                                          | `LoginDialog`의 처리                                                         |
 | --------------- | ----------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------- |
 | `onSuccess`     | 콜백이 **스스로 navigate**해 이 모달의 히스토리 엔트리를 벗어난다 | `ProtectedRoute.tsx`, `useProtectedNavigate.ts` | 실행 후 `close()`를 부르지 않는다 (navigate가 이미 엔트리를 벗어났다고 가정) |
 | `pendingAction` | navigate하지 **않는** 재개 액션                                   | `useAuthGuard` (opt-in일 때만)                  | 먼저 `close()`로 직접 닫고, 그 닫힘이 반영된 뒤에 실행                       |
@@ -259,7 +259,7 @@ if (isAuthenticated) {
 }
 setLoginOnSuccess(undefined); // navigate형 채널은 쓰지 않는다
 setPendingAction(options?.resumeAfterLogin ? action : undefined); // opt-in한 액션만 재개
-openLoginModal();
+openLoginDialog();
 
 // useProtectedNavigate.ts:18-30 요지 (이동형: 링크 클릭)
 if (isAuthenticated) {
@@ -267,13 +267,13 @@ if (isAuthenticated) {
   return;
 }
 setLoginOnSuccess(() => navigate(to, { replace: true })); // replace — push하면 orphan 히스토리
-openLoginModal();
+openLoginDialog();
 ```
 
 `replace`를 쓰는 이유는 로그인 모달이 열려 있던 히스토리 엔트리 위에 새 엔트리를 push하면, 그 엔트리가 orphan으로 남아 뒤로가기 시 모달이 재등장하기 때문입니다([`docs/DECISIONS.md`](DECISIONS.md) 2026-08-07 항목).
 
 `pendingAction`을 실행 "직후"가 아니라 "닫힌 뒤"로 미루는 이유는
-`src/widgets/layout/login-modal/hooks/useLoginModal.ts`의 `runPendingActionAfterModalCloses`
+`src/widgets/layout/login-dialog/hooks/useLoginDialog.ts`의 `runPendingActionAfterDialogCloses`
 effect(`:58-74`, #228로 `features/auth/login`에서 이 경로로 이동)가 담당합니다 —
 `close()`(`navigate(-1)`)가 반영되기
 전에 실행하면 로그인 모달이 아직 떠 있는 채로 다음 모달이 위에 겹칩니다. `resumeAfterLogin`은
@@ -284,7 +284,7 @@ effect(`:58-74`, #228로 `features/auth/login`에서 이 경로로 이동)가 �
 
 **사용처**: `useAuthGuard`는 `LikePostButton.tsx`(좋아요, 재개 안 함), `BookmarkPostButton.tsx`(북마크, `resumeAfterLogin: true`), `LikeCommentButton.tsx`(댓글 좋아요, 재개 안 함), `useCreateComment.ts`(댓글 제출, 재개 안 함)에서 씁니다. `useProtectedNavigate`는 사이드바·하단 탭바의 "등록"·"북마크" 항목(`nav-items.ts:34`, `:41`의 `requiresAuth: true`)에서 씁니다.
 
-**바깥 클릭 닫기**: 로그인 모달은 이메일·비밀번호를 **직접 입력했을 때만** 바깥(오버레이) 클릭으로 닫히지 않습니다 — 닫히면 입력이 사라지기 때문입니다. 저장된 이메일로 미리 채워진 값은 입력으로 보지 않습니다(react-hook-form `dirtyFields` 기준). `useLogin`의 `onInputDirtyChange` 옵션 → `LoginForm` → `useLoginModal`의 `hasUserInput` → `DialogContent`의 `dismissOnOutsideClick` 순으로 전달됩니다. ESC·X·뒤로가기는 입력이 있어도 그대로 닫힙니다. 정책 전체와 근거는 [`docs/DECISIONS.md`](DECISIONS.md) 2026-09-30 "바깥 클릭 닫기 정책" 항목 참고.
+**바깥 클릭 닫기**: 로그인 모달은 이메일·비밀번호를 **직접 입력했을 때만** 바깥(오버레이) 클릭으로 닫히지 않습니다 — 닫히면 입력이 사라지기 때문입니다. 저장된 이메일로 미리 채워진 값은 입력으로 보지 않습니다(react-hook-form `dirtyFields` 기준). `useLogin`의 `onInputDirtyChange` 옵션 → `LoginForm` → `useLoginDialog`의 `hasUserInput` → `DialogContent`의 `dismissOnOutsideClick` 순으로 전달됩니다. ESC·X·뒤로가기는 입력이 있어도 그대로 닫힙니다. 정책 전체와 근거는 [`docs/DECISIONS.md`](DECISIONS.md) 2026-09-30 "바깥 클릭 닫기 정책" 항목 참고.
 
 ### 8-E. 로그인·로그아웃 시 React Query 캐시 처리
 

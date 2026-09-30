@@ -6,7 +6,7 @@ import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 import { Dialog, DialogContent, DialogTitle } from '@/shared/ui/atoms/dialog';
 
 // DialogContent가 열린 직후(더블클릭/더블탭 관통 방지) 클릭을 무시하는지 검증한다.
-// 2026-09-29부터 useOpenClickGuard(원래 BookmarkFolderSelectModal 한 곳에만 배선돼 있던 것)가
+// 2026-09-29부터 useOpenClickGuard(원래 BookmarkFolderSelectDialog 한 곳에만 배선돼 있던 것)가
 // 이 atom으로 올라와 Alert/Confirm을 포함한 모든 Dialog 기반 모달에 공통 적용된다
 // (docs/BOOKMARK.md §5, docs/plans/2026-09-29-dialog-open-click-guard.md 참고).
 
@@ -116,7 +116,7 @@ describe('DialogContent — 열린 직후 클릭 가드', () => {
     expect(onContentClick).toHaveBeenCalledTimes(1);
   });
 
-  // 실제 사용처(BookmarkFolderSelectModal 등)는 <Dialog open={false}>로 먼저 마운트해 두고
+  // 실제 사용처(BookmarkFolderSelectDialog 등)는 <Dialog open={false}>로 먼저 마운트해 두고
   // 나중에 open을 true로 바꾼다 — 이때 가드 시계가 "마운트"가 아니라 "열린 시점"에서
   // 시작해야 한다(2026-09-30, 페이지 로드 시점에 시계가 찍혀 가드가 한 번도 안 걸리던 회귀)
   it('닫힌 채 마운트됐다가 나중에 열려도 열린 직후 바깥 pointerdown으로는 닫히지 않는다', async () => {
