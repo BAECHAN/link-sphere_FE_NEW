@@ -122,7 +122,22 @@ jobs:
         # 직접 띄우므로 별도 기동 스텝이 필요 없다. 이 job이 이미 설치한
         # Playwright 브라우저(위 스텝)를 그대로 재사용한다 - 새 job으로 분리하면
         # 브라우저 설치가 중복된다.
-        run: pnpm test:storybook
+        # 테스트 도중 Vite가 의존성을 뒤늦게 다시 최적화하면("optimized dependencies changed")
+        # 페이지가 리로드돼 실행 중인 스토리가 타이밍에 따라 실패한다. 이번 run이 통과했더라도
+        # 이 로그가 찍히면 실패시켜, 원인을 들여온 PR에서 바로 잡는다(docs/DESIGN-SYSTEM.md §10).
+        run: |
+          set +e
+          pnpm test:storybook 2>&1 | tee storybook-test.log
+          status=${PIPESTATUS[0]}
+          set -e
+
+          if grep -q 'optimized dependencies changed' storybook-test.log; then
+            echo "::error title=Storybook 테스트 중 의존성 재최적화::테스트 도중 Vite가 의존성을 다시 최적화해 페이지가 리로드됐다. 없는 경로 요청이 SPA 폴백으로 index.html을 받아 앱 진입점까지 변환하지 않았는지 먼저 확인하고, 스토리가 실제로 쓰는 의존성이면 vitest.config.ts storybook 프로젝트의 optimizeDeps.include에 추가한다(docs/DESIGN-SYSTEM.md §10)."
+            sed -E 's/\x1b\[[0-9;]*m//g' storybook-test.log | grep -E 'new dependenc(y|ies) optimized' || true
+            exit 1
+          fi
+
+          exit "$status"
 
       - name: Upload Playwright report
         if: failure()
