@@ -22,7 +22,12 @@ export function useMobileSearchPanel(addRecentSearch: (query: string) => void) {
   );
 
   const openMobileSearch = () => {
-    navigate(`${location.pathname}${location.search}`, { state: { mobileSearchOpen: true } });
+    // preventScrollReset 없으면 <ScrollRestoration/>이 이 PUSH를 새 페이지로 보고
+    // window.scrollTo(0, 0)을 실행해 배경 스크롤이 최상단으로 튄다(useHistoryOverlay와 같은 이유).
+    navigate(`${location.pathname}${location.search}`, {
+      state: { mobileSearchOpen: true },
+      preventScrollReset: true,
+    });
   };
 
   const closeMobileSearch = () => {

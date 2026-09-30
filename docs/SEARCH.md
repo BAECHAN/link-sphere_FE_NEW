@@ -138,14 +138,15 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 똑같이 깨지지만, 2026-09-30 운영 API(`GET /api/common/category-option`)로 확인한 8개(백엔드·
 프론트엔드·AI·디자인·DevOps·모바일·데이터·라이프스타일)에는 공백이 없다.
 
-`/post` 분기에서는 `window.scrollTo({ top: 0 })`도 함께 부른다. 같은 경로에서 검색 파라미터만
-바뀌면 스크롤이 리셋되지 않기 때문이다 — 직접 측정(Playwright, mock 목록 9개 → 필터 후 3개):
-1400px에서 누르면 스크롤이 그대로 있다가 짧아진 목록의 끝(최대 스크롤 310px)에 걸려, 걸러진
-목록의 **끝부분**부터 보였다. 목록 내용이 그대로인 mock에서는 `scrollTo` 없이도 약 1초 뒤 0이
-돼서, 결과가 목록·타이밍에 따라 달랐다(0으로 보내는 주체는 끝까지 특정하지 못했다). 명시적
-`scrollTo`로 항상 맨 위부터 보이게 고정했고, 뒤로가기하면 원래 목록과 위치(1400px)로 돌아오는
-것도 확인했다. 헤더 검색 제출·칩도 같은 경로에서 `q`만 바꾸지만, 누르는 위치가 이미 화면
-위쪽이라 이 문제가 드러나지 않는다(이번 범위 밖).
+누른 뒤 걸러진 목록은 맨 위부터 보인다 — 이 동작은 카드 쪽 코드가 아니라 전역 규칙이 맡는다
+([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §25). 처음(#258)에는 `/post` 분기에서
+`window.scrollTo({ top: 0 })`를 직접 불렀다. 직접 측정해 보니 1400px에서 누르면 스크롤이 그대로
+있다가 짧아진 목록 끝(310px)에 걸렸기 때문이다. 2026-09-30 원인을 계측으로 확인했다(헤더 검색으로
+재현, `window.scrollTo` 호출 스택 기록): `<ScrollRestoration/>`은 제대로 `scrollTo(0,0)`을 했고,
+3ms 뒤 가상 스크롤(TanStack Virtual)이 옛 스크롤 위치 캐시 기준으로 "위쪽 행 보정"을 걸어
+`scrollTo({top:1121})`로 되돌렸다. 즉 헤더 검색 제출·칩도 같은 문제를 겪고 있었다.
+`useWindowGridVirtualizer.ts`에 가드를 넣어 원인을 고치고 카드의 `scrollTo`는 지웠다
+([`DECISIONS.md`](./DECISIONS.md) 2026-09-30 "URL이 바뀌면 맨 위로" 항목).
 
 카드의 배지는 칩처럼 **토글하지 않고 교체**한다(2026-09-30 사용자 결정):
 
@@ -206,12 +207,12 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 헤더 입력값이 URL과 동기화되는 조건 바꾸기                   | [`useNavbarSearch.ts:19`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts#L19) — `isPostListPage` 판정                                                                                                                                              |
 | 검색어 제출(경로·trim·filter 보존) 바꾸기 — 데스크톱         | [`NavbarSearch.tsx:53-80`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L53-L80) — `submitQuery`                                                                                                                                                      |
-| 검색어 제출 바꾸기 — 모바일                                  | [`useMobileSearchPanel.ts:34-42`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L34-L42) — `handleSearchSubmit`(최근검색 기록 포함)                                                                                                          |
+| 검색어 제출 바꾸기 — 모바일                                  | [`useMobileSearchPanel.ts:39-47`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L39-L47) — `handleSearchSubmit`(최근검색 기록 포함)                                                                                                          |
 | X 버튼 동작 바꾸기                                           | 데스크톱 [`NavbarSearch.tsx:300-310`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L300-L310)(`handleClearClick`), 모바일 [`MobileNavbarSearch.tsx:22-29`](../src/widgets/layout/navbar/ui/MobileNavbarSearch.tsx#L22-L29)(`handleTrailingIconClick`) |
 | 데스크톱 드롭다운 열림/닫힘 규칙(포커스·입력·blur) 바꾸기    | [`NavbarSearch.tsx:92-118`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L92-L118) — `handleChange`/`handleFocus`/`handleBlur`                                                                                                                        |
 | 데스크톱 드롭다운 키보드(ESC 2단계·화살표·Enter) 바꾸기      | [`NavbarSearch.tsx:155-275`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L155-L275) — `handleKeyDown`                                                                                                                                                |
 | 드롭다운 목록 마크업(헤더 고정·행·삭제 버튼) 바꾸기          | [`RecentSearchDropdown.tsx`](../src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx)                                                                                                                                                                    |
-| 카드의 카테고리 배지를 눌렀을 때 동작 바꾸기                 | [`usePostCard.ts:146-161`](../src/widgets/post/post-card/hooks/usePostCard.ts#L146-L161) — `handleCategoryClick`, 배지 마크업은 [`PostCard.tsx:296`](../src/widgets/post/post-card/ui/PostCard.tsx#L296) 이하                                             |
+| 카드의 카테고리 배지를 눌렀을 때 동작 바꾸기                 | [`usePostCard.ts:146-158`](../src/widgets/post/post-card/hooks/usePostCard.ts#L146-L158) — `handleCategoryClick`, 배지 마크업은 [`PostCard.tsx:296`](../src/widgets/post/post-card/ui/PostCard.tsx#L296) 이하                                             |
 | `@카테고리`/`#닉네임`/키워드 분해 규칙 바꾸기                | [`search-parser.ts`](../src/widgets/post/post-list/utils/search-parser.ts) — `parseSearchQuery`                                                                                                                                                           |
 | "조건 N개 적용 중" 카운트 로직                               | [`usePostListSearch.ts:11-28`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L11-L28) — `computeAppliedFilterCount`                                                                                                                            |
 | 초기화 버튼(필터+검색어 전체 리셋)                           | [`usePostListSearch.ts:121-128`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L121-L128) — `handleClearSearch`                                                                                                                                |
@@ -390,9 +391,6 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
 - `Navbar`가 `useHistoryOverlay`를 쓰지 않고 `location.state.mobileSearchOpen`을 인라인으로
   직접 push/pop한다 — `MobileCommentBar`·`AppLayout`은 같은 키를 `useHistoryOverlay`로
   구독하므로, 키 문자열이 두 코드 경로에 흩어진 상태다.
-- `Navbar.openMobileSearch`에 `preventScrollReset`이 없다 — `useHistoryOverlay`를 쓰는
-  다른 3개 오버레이(사이드바·로그인모달·이미지뷰어)와 달리 열 때 배경 스크롤이 최상단으로
-  튈 수 있다.
 - `/post` 목록에서 300px 이상 스크롤한 채 검색을 열면 `ScrollToTop` FAB(`z-nav`)이 같은
   이유(z층 공유)로 패널 위에 그대로 뜬다. `main` 밖이라 이번 `inert` 차단으로도 안 가려진다.
 - `useIsMobile`의 판정 기준(`max-width:768px` + UA)이 Tailwind `md:`(`min-width:768px`)와

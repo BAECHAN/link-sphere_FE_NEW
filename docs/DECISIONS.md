@@ -6,6 +6,57 @@
 
 ---
 
+## 2026-09-30 — URL이 바뀌면 맨 위로: 기능별 scrollTo 대신 가상 스크롤 보정의 원인을 고침
+
+**배경**
+
+카드 카테고리 배지(#258)를 목록 중간에서 누르면 걸러진 목록의 끝부분부터 보여, 그 기능에만
+`window.scrollTo({ top: 0 })`를 넣었다. 사용자는 "기능을 추가할 때마다 스크롤 상단 이동을 넣어야
+하는 구조는 안 된다, URL이 바뀌면 근본적으로 상단으로 가야 한다"고 했다.
+
+**조사해서 알게 된 것**
+
+- 전역 규칙은 이미 있었다. `RootLayout.tsx`의 `<ScrollRestoration />`(react-router-dom 6.30.3)은
+  검색 파라미터만 바뀐 PUSH/REPLACE에도 `window.scrollTo(0, 0)`을 실행한다(`node_modules/react-router-dom/dist/index.js:1311-1335`,
+  키 기본값 `location.key`). 뒤로가기(POP)는 저장 위치로 복원, `preventScrollReset`이면 무동작.
+- 그런데 가상 스크롤 목록이 같은 커밋에서 그 리셋을 되돌렸다 — 직접 계측(헤더 검색을 1400px에서
+  제출하며 `window.scrollTo`를 감싸 호출 스택 기록): `ScrollRestoration`이 `scrollTo(0,0)`, 3ms 뒤
+  TanStack Virtual `measureElement` → `resizeItem` → `applyScrollAdjustment`가 `scrollTo({top:1121})`.
+  새 행의 첫 측정 때 "위쪽 행이 추정보다 커졌으면 보정"하는데, 기준인 스크롤 위치 캐시가 scroll
+  이벤트로만 갱신돼 옛 값(1400)이었다(`@tanstack/virtual-core` 3.17.11 `resizeItem`). 헤더 검색도
+  같은 문제를 겪고 있었다.
+
+**검토한 대안**
+
+| 안                                    | 내용                                                      | 채택 여부와 이유                                                                             |
+| ------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 기능별 `scrollTo`(#258)               | 목록 조건을 바꾸는 곳마다 직접 호출                       | 기각. 기능을 추가할 때마다 넣어야 하고, 헤더 검색처럼 이미 빠진 곳이 생긴다                  |
+| URL 변경 감지 전역 훅 추가            | location 변화 시 `scrollTo(0)` 하는 이펙트                | 기각. `ScrollRestoration`이 이미 같은 일을 하고, 같은 커밋의 가상화 보정에 똑같이 되돌려진다 |
+| 검색어가 바뀌면 목록을 key로 리마운트 | 가상화 인스턴스를 새로 만듦                               | 기각. Suspense 스켈레톤 깜빡임, `location.key` 단위 스냅샷 복원 경로와 충돌                  |
+| **가상화 보정에 "외부 스크롤" 가드**  | 캐시된 스크롤 위치가 실제와 한 화면 이상 다르면 보정 생략 | **채택.** 원인 한 곳을 고쳐 전역 규칙이 모든 가상 스크롤 목록에서 동작                       |
+
+**결정**
+
+- `useWindowGridVirtualizer.ts`의 `shouldAdjustScrollOnItemResize`를 `shouldAdjustScrollPositionOnItemSizeChange`
+  (virtual-core 공개 훅)로 지정한다. 가드를 통과하면 라이브러리 기본 판정을 그대로 재현한다(지정하면
+  기본 판정을 통째로 대체하므로) — 라이브러리를 올릴 때 원본과 같은지 다시 확인해야 하는 지점이다.
+  임계값이 "한 화면"인 이유: 사용자 스크롤은 프레임 사이에 한 화면씩 튀지 않으므로 평소 보정은 그대로 둔다.
+- 스크롤을 **유지**해야 하는 이동(같은 URL에 state만 싣는 오버레이·모달·패널 push)만
+  `preventScrollReset: true`로 명시적으로 빠진다. 전수 조사에서 모바일 검색 패널
+  (`useMobileSearchPanel.ts`)만 빠져 있어 함께 고쳤다(사용자 결정).
+- 규칙은 `docs/FE-ARCHITECTURE.md` §25.
+
+**상태**
+
+적용 완료. 회귀 방지: `e2e/scroll-reset-on-navigation.spec.ts`(헤더 검색 — 가드를 빼면
+0 → 1261 → 1022로 되돌아가 실패하는 것을 직접 확인), `e2e/post-card-click-area.spec.ts`(카드 배지 —
+가드를 빼면 942px에 남아 실패), `e2e/scroll-reset-on-navigation.mobile.spec.ts`(모바일 검색 패널 —
+`preventScrollReset`을 빼면 배경이 0으로 튀어 실패). 북마크 폴더 전환은 커밋 전에 목록이 먼저
+짧아져 원래 이 문제를 겪지 않았다(측정 48px) — 동작 확인 테스트만 둔다. 계획:
+`docs/plans/2026-09-30-scroll-reset-virtualizer-guard.md`.
+
+---
+
 ## 2026-09-30 — 게시글 카드: 제목 확대 대신 카드 전체를 상세 진입 영역으로
 
 **배경**

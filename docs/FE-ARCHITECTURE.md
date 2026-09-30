@@ -1348,3 +1348,28 @@ flowchart TD
 - 브라우저 지원: 두 속성 모두 Baseline "Widely available"(2021년 하반기부터) —
   [caniuse: enterkeyhint](https://caniuse.com/mdn-html_global_attributes_enterkeyhint),
   [caniuse: inputmode](https://caniuse.com/input-inputmode)
+
+---
+
+## 25. 스크롤 규칙 — URL이 바뀌면 맨 위로
+
+**URL이 바뀌면(PUSH·REPLACE) 맨 위로 가는 것은 전역 규칙이다 — 기능마다 `window.scrollTo`를 넣지 않는다.**
+[`RootLayout.tsx`](../src/app/routes/layouts/RootLayout.tsx)의 `<ScrollRestoration />`(react-router-dom)이
+담당한다. 키가 `location.key`라 검색 파라미터만 바뀌어도 새 위치로 보고 맨 위로 보내며,
+뒤로가기(POP)는 저장된 위치로 복원한다.
+
+| 이동 종류                                          | 동작                   | 해야 할 일                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 경로·검색 파라미터 변경(필터·검색·폴더 전환 등)    | 맨 위로                | 없음 — 전역 규칙이 처리                                                                                                                                                                                                                                                                                            |
+| 뒤로가기(POP)                                      | 저장된 위치로 복원     | 없음                                                                                                                                                                                                                                                                                                               |
+| 같은 URL에 `state`만 싣는 push(오버레이·모달·패널) | **스크롤 유지해야 함** | `preventScrollReset: true`를 명시한다 — 선례: [`useHistoryOverlay.ts`](../src/shared/hooks/useHistoryOverlay.ts)(사이드바·로그인 모달·이미지뷰어), [`useMobileSearchPanel.ts`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts), [`MarkdownContent.tsx`](../src/shared/ui/elements/MarkdownContent.tsx) |
+
+**가상 스크롤 목록의 함정(2026-09-30에 고침).** 피드·북마크 목록은 TanStack Virtual로 그리는데,
+새 행을 처음 측정할 때 "현재 스크롤 위쪽 행이 추정보다 커졌으면 그만큼 스크롤을 보정"한다. 이
+판단에 쓰는 스크롤 위치 캐시는 scroll 이벤트로만 갱신되므로, `ScrollRestoration`이 방금 맨 위로
+보낸 같은 커밋에서 옛 위치 기준으로 보정해 리셋을 되돌렸다(직접 계측: `scrollTo(0,0)` 3ms 뒤
+`scrollTo({top:1121})`). [`useWindowGridVirtualizer.ts`](../src/shared/hooks/useWindowGridVirtualizer.ts)의
+`shouldAdjustScrollOnItemResize`가 "캐시와 실제 스크롤이 한 화면 이상 벌어졌으면 보정하지 않는다"는
+가드로 막는다. 새 가상 스크롤 목록도 이 훅을 쓰면 자동으로 적용된다. 경위와 대안 비교는
+[`DECISIONS.md`](./DECISIONS.md) 2026-09-30 "URL이 바뀌면 맨 위로" 항목, 회귀 테스트는
+`e2e/scroll-reset-on-navigation.spec.ts`.
