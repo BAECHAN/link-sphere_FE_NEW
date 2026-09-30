@@ -207,7 +207,7 @@ src/
 │   │   └── delete/{hooks,ui}     # 계정 삭제
 │   └── bookmark/                 # 2026-09-08 post/bookmark에서 승격 — entities/widgets/pages와
 │       │                         # bookmark 도메인 그룹을 통일(FSD nukeapp 사례 참고)
-│       ├── toggle/{hooks,ui}     # useBookmarkFolders, usePostCardBookmarkFolderModal, BookmarkPostButton,
+│       ├── toggle/{hooks,ui}     # useBookmarkFolders, useBookmarkPostButton, usePostCardBookmarkFolderModal, BookmarkPostButton,
 │       │                         # PostCardBookmarkFolderModal(2026-09-08, entities의
 │       │                         # BookmarkFolderSelectModal과 이름이 겹쳐 호출 맥락(PostCard)
 │       │                         # 접두사를 붙여 개명)

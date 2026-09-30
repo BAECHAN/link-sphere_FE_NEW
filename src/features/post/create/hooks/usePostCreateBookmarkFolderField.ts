@@ -63,7 +63,7 @@ export function usePostCreateBookmarkFolderField() {
 
   // 목록 맨 아래 '북마크 안 함' 행 — 항상 노출한다. 조건부로 감추면 탭할 때마다 행이
   // 나타났다 사라지며 위의 '확인' 버튼 위치가 흔들린다. 다른 행과 달리 더 고를 게 없는
-  // 종결 동작이라(보관함 모달의 '북마크 제거' 행과 동일) 누르면 바로 닫는다.
+  // 종결 동작이라(카드 북마크 모달의 '북마크 제거' 행과 동일) 누르면 바로 닫는다.
   const handleClearBookmark = () => {
     if (bookmark || folderIds.length > 0) {
       applySelection(false, []);
