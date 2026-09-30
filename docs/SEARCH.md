@@ -178,7 +178,7 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 | 모바일 검색 패널 열림 상태                                   | [`useMobileSearchPanel.ts:17-22`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L17-L22) — `location.state.mobileSearchOpen`                                                                                                                 |
 | 검색 중 하단 댓글바 숨김 동작 바꾸기                         | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useHistoryOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                                                                           |
 | 검색 중 배경 클릭·포커스 차단 범위 바꾸기                    | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                                                                         |
-| "검색어와 의미가 비슷한 글이에요" 배지 문구·표시 조건 바꾸기 | [`PostCard.tsx:188-196`](../src/widgets/post/post-card/ui/PostCard.tsx#L188-L196) — `post.isSemanticMatch`, 문구는 `TEXTS.post.card.semanticMatch`                                                                                                        |
+| "검색어와 의미가 비슷한 글이에요" 배지 문구·표시 조건 바꾸기 | [`PostCard.tsx:200-208`](../src/widgets/post/post-card/ui/PostCard.tsx#L200-L208) — `post.isSemanticMatch`, 문구는 `TEXTS.post.card.semanticMatch`                                                                                                        |
 
 ## 9. 검증 결과
 

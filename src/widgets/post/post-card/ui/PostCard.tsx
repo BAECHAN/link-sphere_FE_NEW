@@ -75,6 +75,13 @@ export const PostCard = memo(function PostCard({
   // 수정 중에는 내용을 흐리게 하고 상호작용을 막아 같은 게시글에 대한 중복 요청을 차단한다
   const dimmedClassName = isUpdating ? 'opacity-40 pointer-events-none' : '';
 
+  // 목록 카드에서는 제목 링크의 ::after를 카드 전체로 늘려 여백·설명을 눌러도 상세로 가게 하고,
+  // 카드 안의 다른 버튼·링크는 그 위로 올려 각자의 동작을 그대로 유지한다(stretched link,
+  // https://inclusive-components.design/cards/ - 근거는 docs/DECISIONS.md 2026-09-30 항목).
+  // 수정 중에는 dimmedClassName의 opacity가 각 영역을 별도 쌓임 맥락으로 묶어 오버레이 아래로 내린다.
+  const stretchedLinkClassName = isDetail ? '' : 'after:absolute after:inset-0';
+  const raisedClassName = isDetail ? '' : 'relative z-raised';
+
   return (
     <Card
       className="relative flex flex-col overflow-hidden hover-or-open:shadow-lg hover-or-open:-translate-y-0.5 transition-[transform,box-shadow]"
@@ -101,7 +108,7 @@ export const PostCard = memo(function PostCard({
             image={author?.image}
             nickname={author?.nickname}
             size="sm"
-            className="flex"
+            className={cn('flex', raisedClassName)}
             zoomable
           />
           <span className="truncate">{author?.nickname || TEXTS.post.card.withdrawnAuthor}</span>
@@ -112,7 +119,12 @@ export const PostCard = memo(function PostCard({
         {isOwner && (
           // 음수 마진으로 아이콘 버튼(28/32px)이 작성자 행(아바타 24px) 높이를 밀어올려
           // 카드가 커지는 것을 막는다 - 히트 영역은 그대로고 레이아웃 기여분만 줄인다
-          <div className="flex items-center gap-0.5 md:gap-1 shrink-0 -my-0.5 md:-my-1">
+          <div
+            className={cn(
+              'flex items-center gap-0.5 md:gap-1 shrink-0 -my-0.5 md:-my-1',
+              raisedClassName
+            )}
+          >
             {post.isPrivate && (
               <Button
                 variant="ghost"
@@ -169,7 +181,7 @@ export const PostCard = memo(function PostCard({
         <Link
           to={`/post/${post.id}`}
           state={backSource ? { backSource } : undefined}
-          className="col-span-2 hover:underline block"
+          className={cn('col-span-2 hover:underline block', stretchedLinkClassName)}
           onMouseEnter={handlePrefetchDetail}
           onFocus={handlePrefetchDetail}
         >
@@ -218,7 +230,7 @@ export const PostCard = memo(function PostCard({
         )}
 
         {post.aiSummary && (
-          <div className="mb-2 bg-info/8 rounded-md overflow-hidden block">
+          <div className={cn('mb-2 bg-info/8 rounded-md overflow-hidden block', raisedClassName)}>
             <Button
               type="button"
               variant="none"
@@ -250,7 +262,10 @@ export const PostCard = memo(function PostCard({
           href={post.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block group rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow mt-1"
+          className={cn(
+            'block group rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow mt-1',
+            raisedClassName
+          )}
         >
           <LinkThumbnail
             src={post.ogImage}
@@ -306,7 +321,9 @@ export const PostCard = memo(function PostCard({
       </CardContent>
 
       <CardFooter className={cn('p-3 pt-0 flex gap-2 flex-wrap items-center', dimmedClassName)}>
-        <div className="flex items-center bg-muted/50 rounded-full p-0.5 md:p-1">
+        <div
+          className={cn('flex items-center bg-muted/50 rounded-full p-0.5 md:p-1', raisedClassName)}
+        >
           <LikePostButton
             postId={post.id}
             isLiked={post.userInteractions.isLiked}
@@ -325,7 +342,7 @@ export const PostCard = memo(function PostCard({
           </Link>
         </div>
 
-        <div className="flex items-center gap-1 md:gap-1.5 ml-auto">
+        <div className={cn('flex items-center gap-1 md:gap-1.5 ml-auto', raisedClassName)}>
           <BookmarkPostButton
             postId={post.id}
             isBookmarked={post.userInteractions.isBookmarked}
