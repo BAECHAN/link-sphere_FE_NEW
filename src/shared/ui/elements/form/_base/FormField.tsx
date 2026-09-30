@@ -16,6 +16,10 @@ export interface FormFieldProps extends PropsWithChildren {
   /** description/에러가 없을 때도 줄 높이를 미리 확보해, 메시지가 나타나고 사라질 때
    * 아래 요소(제출 버튼 등)가 밀리지 않게 한다 */
   reserveDescriptionSpace?: boolean;
+  /** true면 RHF 필드 에러 문구를 그리지 않는다 - 호출자가 children으로 자체 안내(예: 비밀번호
+   * 조건 체크리스트)를 그려 같은 에러를 두 번 보여주지 않게 할 때 쓴다. 에러 자체(제출 차단,
+   * 첫 에러 포커스)는 그대로 동작한다 */
+  hideErrorMessage?: boolean;
 }
 
 export const FormField = ({
@@ -27,6 +31,7 @@ export const FormField = ({
   description,
   descriptionVariant = 'default',
   reserveDescriptionSpace,
+  hideErrorMessage,
 }: FormFieldProps) => {
   const { control } = useFormContext<FieldValues>();
   const { fieldState } = useController<FieldValues>({
@@ -34,10 +39,11 @@ export const FormField = ({
     control,
   });
 
-  const message = fieldState.error?.message ?? description;
+  const visibleError = hideErrorMessage ? undefined : fieldState.error;
+  const message = visibleError?.message ?? description;
   const messageClassName = cn(
     'text-sm font-medium',
-    fieldState.error
+    visibleError
       ? 'text-destructive'
       : descriptionVariant === 'success'
         ? 'text-success'

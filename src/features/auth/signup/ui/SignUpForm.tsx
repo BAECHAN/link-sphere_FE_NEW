@@ -15,6 +15,8 @@ import { FormProvider } from 'react-hook-form';
 import { useSignUp } from '@/features/auth/signup/hooks/useSignUp';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { FormInputPassword } from '@/shared/ui/elements/form/FormInputPassword';
+import { PasswordRequirementList } from '@/entities/auth/ui/PasswordRequirementList';
+import { PasswordConfirmMessage } from '@/entities/auth/ui/PasswordConfirmMessage';
 import { TEXTS } from '@/shared/config/texts';
 import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
 
@@ -26,6 +28,7 @@ export const SignUpForm = () => {
     isSubmitted,
     emailCheck,
     nicknameCheck,
+    passwordFeedback,
     isSubmitDisabled,
     onLoginLinkClick,
     loginLinkState,
@@ -104,7 +107,10 @@ export const SignUpForm = () => {
                   required
                   disabled={isPending}
                   placeholder={TEXTS.placeholders.password}
-                  description={TEXTS.descriptions.passwordGuide}
+                  {...passwordFeedback.passwordInputProps}
+                  belowInput={
+                    <PasswordRequirementList {...passwordFeedback.requirementListProps} />
+                  }
                 />
                 <FormInputPassword
                   name="confirmPassword"
@@ -112,6 +118,8 @@ export const SignUpForm = () => {
                   required
                   disabled={isPending}
                   placeholder={TEXTS.placeholders.confirmPassword}
+                  {...passwordFeedback.confirmInputProps}
+                  belowInput={<PasswordConfirmMessage {...passwordFeedback.confirmMessageProps} />}
                 />
                 <Button className="w-full h-11" disabled={isSubmitDisabled}>
                   {isPending ? TEXTS.auth.signup.signingUp : TEXTS.auth.signup.signUp}

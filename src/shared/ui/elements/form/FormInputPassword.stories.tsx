@@ -59,3 +59,11 @@ export const Required: Story = {
     required: true,
   },
 };
+
+export const WithBelowInput: Story = {
+  args: {
+    label: '비밀번호',
+    required: true,
+    belowInput: <p className="text-sm text-muted-foreground pl-0.5">입력칸 아래 자체 안내</p>,
+  },
+};

@@ -1,11 +1,13 @@
 import { FormProvider } from 'react-hook-form';
 import { Button } from '@/shared/ui/atoms/button';
 import { FormInputPassword } from '@/shared/ui/elements/form/FormInputPassword';
+import { PasswordRequirementList } from '@/entities/auth/ui/PasswordRequirementList';
+import { PasswordConfirmMessage } from '@/entities/auth/ui/PasswordConfirmMessage';
 import { TEXTS } from '@/shared/config/texts';
 import { useChangePassword } from '@/features/auth/password-change/hooks/useChangePassword';
 
 export function ChangePasswordForm() {
-  const { form, onSubmit, isPending } = useChangePassword();
+  const { form, onSubmit, isPending, passwordFeedback } = useChangePassword();
 
   return (
     <FormProvider {...form}>
@@ -23,7 +25,8 @@ export function ChangePasswordForm() {
           required
           disabled={isPending}
           placeholder={TEXTS.placeholders.password}
-          description={TEXTS.descriptions.passwordGuide}
+          {...passwordFeedback.passwordInputProps}
+          belowInput={<PasswordRequirementList {...passwordFeedback.requirementListProps} />}
         />
         <FormInputPassword
           name="confirmPassword"
@@ -31,6 +34,8 @@ export function ChangePasswordForm() {
           required
           disabled={isPending}
           placeholder={TEXTS.placeholders.confirmPassword}
+          {...passwordFeedback.confirmInputProps}
+          belowInput={<PasswordConfirmMessage {...passwordFeedback.confirmMessageProps} />}
         />
         <Button type="submit" className="w-full h-11" disabled={isPending}>
           {isPending

@@ -14,10 +14,12 @@ import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { FormProvider } from 'react-hook-form';
 import { useConfirmPasswordReset } from '@/features/auth/password-reset/hooks/useConfirmPasswordReset';
 import { FormInputPassword } from '@/shared/ui/elements/form/FormInputPassword';
+import { PasswordRequirementList } from '@/entities/auth/ui/PasswordRequirementList';
+import { PasswordConfirmMessage } from '@/entities/auth/ui/PasswordConfirmMessage';
 import { TEXTS } from '@/shared/config/texts';
 
 export const ConfirmPasswordResetForm = () => {
-  const { form, onSubmit, isPending, hasToken } = useConfirmPasswordReset();
+  const { form, onSubmit, isPending, hasToken, passwordFeedback } = useConfirmPasswordReset();
 
   return (
     <div className="flex h-[calc(100vh-var(--navbar-height))] items-center justify-center px-4">
@@ -54,7 +56,10 @@ export const ConfirmPasswordResetForm = () => {
                   required
                   disabled={isPending}
                   placeholder={TEXTS.placeholders.password}
-                  description={TEXTS.descriptions.passwordGuide}
+                  {...passwordFeedback.passwordInputProps}
+                  belowInput={
+                    <PasswordRequirementList {...passwordFeedback.requirementListProps} />
+                  }
                 />
                 <FormInputPassword
                   name="confirmPassword"
@@ -62,6 +67,8 @@ export const ConfirmPasswordResetForm = () => {
                   required
                   disabled={isPending}
                   placeholder={TEXTS.placeholders.confirmPassword}
+                  {...passwordFeedback.confirmInputProps}
+                  belowInput={<PasswordConfirmMessage {...passwordFeedback.confirmMessageProps} />}
                 />
                 <Button type="submit" className="w-full h-11" disabled={isPending}>
                   {isPending

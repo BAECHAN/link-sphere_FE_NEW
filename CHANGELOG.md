@@ -97,6 +97,14 @@
 
 ### Added
 
+- `auth` 비밀번호 입력 중 조건 충족과 확인 칸 일치 여부를 바로 표시
+  <details><summary>배경·구현</summary>
+
+  닉네임·이메일은 입력하면 바로 사용 가능 여부가 떴지만 비밀번호는 제출 전까지 아무 반응이 없었다. 비밀번호를 새로 만드는 세 폼(회원가입·비밀번호 재설정·비밀번호 변경)의 비밀번호 칸 아래에 조건 체크리스트(8자 이상·영문·숫자·특수문자)를 항상 보이게 두고, 입력하는 대로 충족된 항목을 초록 ✓로 바꾼다. 못 채운 항목은 칸을 한 번 벗어났거나 제출한 뒤에만 빨강이 되고(입력 중엔 지적하지 않음), 한글·65자 초과처럼 규칙 위반은 바로 알린다. 확인 칸은 일치하면 즉시 초록 "비밀번호가 일치해요."를, 불일치는 글자 수가 비밀번호만큼 되거나 칸을 벗어난 뒤에 보여준다. 제출 후 비밀번호 칸만 고쳐 두 값이 같아져도 확인 칸의 불일치 에러가 남던 문제도 함께 고쳤다(RHF `deps`). 비밀번호 정책 자체는 그대로다. 체크리스트 판정과 zod 스키마의 전체 통과 여부가 같은지는 441개 입력 차등 테스트로 고정했다. 배치는 Artifact 미리보기로 세 안을 나란히 보고 골랐다. 근거(Wroblewski·NN/g·Baymard)와 채택하지 않은 대안은 `docs/AUTH.md` §8-G에 있다.
+  (`src/entities/auth/utils/auth.util.ts`(신규), `src/entities/auth/config/auth.const.ts`(신규), `src/entities/auth/hooks/usePasswordFieldsFeedback.ts`(신규), `src/entities/auth/ui/PasswordRequirementList.tsx`(신규), `src/entities/auth/ui/PasswordConfirmMessage.tsx`(신규), `src/shared/ui/elements/form/FormInputPassword.tsx`, `src/shared/ui/elements/form/_base/FormField.tsx`, `src/features/auth/signup/ui/SignUpForm.tsx`, `src/features/auth/password-reset/ui/ConfirmPasswordResetForm.tsx`, `src/features/auth/password-change/ui/ChangePasswordForm.tsx`, `src/shared/config/texts.ts`, `e2e/signup.spec.ts`, `docs/AUTH.md`, [계획](docs/plans/2026-09-30-password-live-feedback.md), [PR #278](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/278))
+
+  </details>
+
 - `post` 게시글 카드의 카테고리 배지를 누르면 그 카테고리 글만 모아보기
   <details><summary>배경·구현</summary>
 
