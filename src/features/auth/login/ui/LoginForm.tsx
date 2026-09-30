@@ -8,12 +8,17 @@ import { FormCheckbox } from '@/shared/ui/elements/form/FormCheckbox';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 
+interface LoginFormProps {
+  /** 이메일·비밀번호 입력 여부 변화 알림 — LoginModal이 바깥 클릭 닫기를 막는 데 쓴다 */
+  onInputDirtyChange?: (dirty: boolean) => void;
+}
+
 /**
  * 로그인 폼 본문 (페이지·모달 공용).
  * 페이지 chrome(Card/센터링)은 LoginPage가, 모달 chrome은 LoginModal이 담당한다.
  */
-export const LoginForm = () => {
-  const { form, onSubmit, isPending } = useLogin();
+export const LoginForm = ({ onInputDirtyChange }: LoginFormProps = {}) => {
+  const { form, onSubmit, isPending } = useLogin({ onInputDirtyChange });
 
   return (
     <FormProvider {...form}>

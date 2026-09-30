@@ -6,6 +6,68 @@
 
 ---
 
+## 2026-09-30 — 바깥 클릭 닫기 정책: 기본은 닫되, 확인창과 입력 중인 로그인 모달만 막음
+
+**배경**
+
+북마크 폴더 모달이 열린 직후 바깥 클릭에 닫힌다는 제보를 계기로(원인은 가드 회귀였고 PR #262에서
+따로 고침), "바깥 클릭으로 모달을 닫게 둘 것인가"를 모달마다 따로 정하지 말고 alert·dialog 전체를
+한 번에 정하기로 했다(사용자 결정).
+
+**조사해서 알게 된 것**
+
+- **바깥 클릭 닫기는 흔한 기본값이다.**
+  - Material Components Android [BottomSheet.md](https://raw.githubusercontent.com/material-components/material-components-android/master/docs/components/BottomSheet.md): _"다이얼로그 바깥 콘텐츠를 탭하면 바텀시트가 닫힌다"_ (번역)
+  - Flutter [`showModalBottomSheet`](https://api.flutter.dev/flutter/material/showModalBottomSheet.html)의 `isDismissible` 기본값은 `true`다.
+  - [Material 1 Dialogs](https://m1.material.io/components/dialogs.html)는 탭 즉시 반영되는 단순 다이얼로그에 대해 _"바깥을 누르거나 뒤로를 누르면 동작이 취소되고 다이얼로그가 닫힌다"_ (번역)고 쓴다.
+- **막으라는 근거는 "사용자가 만든 것이 사라질 때"로 한정된다.**
+  - Apple HIG [Modality](https://developer.apple.com/design/human-interface-guidelines/modality): _"닫기 제스처든 버튼이든, 닫으면 사용자가 만든 콘텐츠가 사라질 수 있다면 상황을 설명하고 해결할 방법을 줘라"_ (번역)
+  - NN/g [Accidental Dismissal of Overlays](https://www.nngroup.com/articles/accidental-overlay-dismissal/)가 드는 문제도 _"사용자의 작업이 사라진다"_ (번역)는 것이다. "바깥 탭으로 닫지 말라"고 직접 권고하지는 않는다.
+- **확인형 다이얼로그는 라이브러리가 아예 막아 둔다.**
+  - 설치된 Radix AlertDialog 소스(`@radix-ui/react-alert-dialog/dist/index.mjs:75-76`)가 `onPointerDownOutside`·`onInteractOutside`를 무조건 `preventDefault`한다.
+  - 우리 Alert/Confirm은 AlertDialog가 아니라 일반 `Dialog`로 만들어져 바깥 클릭에 닫히고 있었다.
+- **반대쪽 근거**: HTML `<dialog>`는 `showModal()`로 열면 기본값이 `closedby="closerequest"`라 바깥 클릭으로 닫히지 않는다([WHATWG](https://html.spec.whatwg.org/multipage/interactive-elements.html#attr-dialog-closedby)).
+- 위 출처 수집은 서브에이전트 조사 결과를 옮긴 것이다. Material 3 Bottom sheets 가이드라인은 페이지가 JS로 렌더링돼 직접 확인하지 못했다.
+
+**전수 조사 — 각 오버레이가 바깥 클릭으로 닫힐 때 잃는 것**
+
+| 오버레이               | 잃는 것                                            | 결정                                                 |
+| ---------------------- | -------------------------------------------------- | ---------------------------------------------------- |
+| Alert / Confirm        | 없음(다시 누르면 됨). 다만 명시적인 응답을 받는 창 | **바깥 클릭 무시** (Radix AlertDialog와 같은 기본값) |
+| 로그인 모달            | 직접 입력한 이메일·비밀번호                        | **입력이 있을 때만 무시**                            |
+| 북마크 폴더 모달(카드) | 새 폴더 이름 입력만 (폴더 탭은 즉시 저장)          | 유지(닫힘). 입력은 잃어도 된다고 사용자가 판단       |
+| 등록 폼 폴더 선택      | 없음(선택하는 즉시 폼 값에 반영)                   | 유지(닫힘)                                           |
+| 이미지 뷰어            | 없음                                               | 유지(닫힘). 라이트박스 관례                          |
+| 모바일 사이드바 드로어 | 없음                                               | 유지(닫힘)                                           |
+
+**검토한 대안**
+
+| 대상          | 대안                                     | 결과                                                                            |
+| ------------- | ---------------------------------------- | ------------------------------------------------------------------------------- |
+| Alert/Confirm | 바깥 클릭 무시                           | **채택**. 라이브러리 표준과 같고, 확인창이 실수로 사라지는 일이 없다            |
+| Alert/Confirm | confirm만 무시하고 단순 알림은 닫힘 유지 | 기각. 한 컴포넌트 안에서 동작이 갈려 예측하기 어렵다                            |
+| Alert/Confirm | 현재 유지(바깥 클릭 = 취소)              | 기각. 잃는 게 없어 원칙상 막을 이유는 약하지만, 라이브러리 관례를 따르기로 했다 |
+| 로그인 모달   | 입력이 있을 때만 무시                    | **채택**. "사용자가 만든 것이 사라질 때만 막는다"는 원칙에 정확히 맞는다        |
+| 로그인 모달   | 항상 무시                                | 기각. 로그인할 생각이 없을 때 X·ESC를 찾아야 한다                               |
+| 로그인 모달   | 현재 유지                                | 기각. 입력한 비밀번호가 실수로 사라진다                                         |
+
+채택안은 사용자가 대안을 비교해 골랐고(두 항목 모두 추천안), 기각 이유는 추천할 때 제시한 근거다.
+"confirm만 무시"의 기각 이유는 추천 근거에 없던 것을 여기서 덧붙인 추론이다.
+
+**결정**
+
+- `DialogContent`에 `dismissOnOutsideClick`(기본값 `true`)을 두고, `false`면 바깥 클릭을 무시한다. ESC·닫기 버튼·뒤로가기는 그대로 닫힌다.
+- Alert/Confirm(`Alert.tsx`)은 항상 `false`다. 로그인 모달은 이메일·비밀번호가 기본값에서 바뀌었을 때(react-hook-form `dirtyFields`) `false`다.
+- 판정을 "글자가 있는가"가 아니라 "사용자가 바꿨는가"로 한 이유는 이렇다. "이메일 저장"을 켠 사용자는 모달을 열 때마다 이메일이 미리 채워져 있어서, 글자 기준이면 늘 닫을 수 없게 된다. 미리 채워진 값은 닫혀도 잃지 않는다.
+- ESC와 뒤로가기는 막지 않는다. 뒤로가기를 막으려면 `popstate` 안에서 히스토리를 되돌려야 하는데, 2026-08-07 "뒤로가기 정책"이 이 방식을 금지한다. ESC는 키보드 사용자가 의도적으로 누르는 닫기 수단이다.
+- 막을 때 따로 알리지 않는다(바깥 클릭이 조용히 무시된다). 확인창은 버튼 두 개가 바로 보이고, 로그인 모달은 커서가 입력칸에 그대로 있어 "고장"으로 읽힐 위험이 낮다고 봤다(추론, 실사용 확인 필요).
+
+**상태**
+
+적용됨(`shared/ui/atoms/dialog.tsx`, `shared/ui/elements/modal/alert/Alert.tsx`, `features/auth/login/hooks/useLogin.ts`, `widgets/layout/login-modal/`). 새 오버레이를 만들 때는 위 표의 "잃는 것" 기준으로 `dismissOnOutsideClick`을 정한다.
+
+---
+
 ## 2026-09-30 — URL이 바뀌면 맨 위로: 기능별 scrollTo 대신 가상 스크롤 보정의 원인을 고침
 
 **배경**

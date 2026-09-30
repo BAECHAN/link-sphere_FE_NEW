@@ -15,16 +15,16 @@ import { TEXTS } from '@/shared/config/texts';
  * App 최상위에 한 번만 렌더하고, 콜백은 loginModal.store가, 열림 상태는 히스토리 엔트리가 관리한다.
  */
 export function LoginModal() {
-  const { isOpen, handleOpenChange } = useLoginModal();
+  const { isOpen, handleOpenChange, hasUserInput, handleInputDirtyChange } = useLoginModal();
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" dismissOnOutsideClick={!hasUserInput}>
         <DialogHeader>
           <DialogTitle>{TEXTS.auth.guard.title}</DialogTitle>
           <DialogDescription>{TEXTS.auth.description}</DialogDescription>
         </DialogHeader>
-        <LoginForm />
+        <LoginForm onInputDirtyChange={handleInputDirtyChange} />
       </DialogContent>
     </Dialog>
   );
