@@ -15,7 +15,7 @@
   <details><summary>배경·구현</summary>
 
   목록 카드에서 상세로 들어가는 곳이 제목과 댓글 버튼뿐이라, hover 시 카드 전체가 떠올라 눌릴 것처럼 보이는데도 설명·여백·태그를 누르면 아무 일이 없었다. 제목을 키우는 안도 검토했지만 늘어나는 면적이 한두 줄뿐이라, 제목 링크의 `::after`를 카드 전체로 늘리는 stretched link 방식을 택했다. 아바타 확대·자물쇠·⋮ 메뉴·AI 요약·썸네일(원문 새 탭)·좋아요·댓글·북마크·공유는 그 위로 올려 각자의 동작을 그대로 유지한다. 상세 페이지의 카드에는 적용하지 않는다. 대가로 설명·태그 텍스트를 드래그로 선택하기 어려워졌다. 대안 비교와 근거는 `docs/DECISIONS.md` 2026-09-30 항목에 있다.
-  (`src/widgets/post/post-card/ui/PostCard.tsx`, `e2e/post-card-click-area.spec.ts`(신규), `docs/DECISIONS.md`, [계획](docs/plans/2026-09-30-post-card-stretched-link.md))
+  (`src/widgets/post/post-card/ui/PostCard.tsx`, `e2e/post-card-click-area.spec.ts`(신규), `docs/DECISIONS.md`, [계획](docs/plans/2026-09-30-post-card-stretched-link.md), [PR #256](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/256))
 
   </details>
 
