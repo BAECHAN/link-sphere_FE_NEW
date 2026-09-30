@@ -151,6 +151,14 @@
 
 ### Fixed
 
+- `post` 상세에서 모달이 열린 동안 "목록으로" 문구가 "뒤로가기"로 바뀌던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  상세 페이지 위에 북마크 폴더 창·로그인 창·이미지 뷰어를 열면 `useHistoryOverlay`가 같은 경로에 새 엔트리를 PUSH하며 `location.state`를 오버레이 표시로 바꿔, 유입 경로(`backSource`)가 가려진 돌아가기 버튼 문구가 모달 뒤에서 "뒤로가기"로 바뀌었다. 공용 훅을 고치는 대신 상세 페이지의 문구 계산만 바꿨다 — 같은 경로 + PUSH(오버레이를 여는 경우뿐)일 때만 직전 문구를 유지하고, 오버레이 닫기(POP)·같은 주소 링크(react-router가 REPLACE로 처리)·다른 글 이동은 지금처럼 다시 계산한다. 공유 링크로 들어와 제목 링크를 누르면 "뒤로가기"가 되는 기존 동작은 그대로다.
+  (`src/pages/post/hooks/usePostDetail.ts`, `e2e/post-detail-back-label.spec.ts`(신규), `docs/POST-DETAIL-BACK-NAVIGATION.md`, `docs/BOOKMARK.md`, [PR #273](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/273))
+
+  </details>
+
 - `shared` 목록 중간에서 검색·필터를 바꿔도 결과를 맨 위부터 보여주기
   <details><summary>배경·구현</summary>
 
