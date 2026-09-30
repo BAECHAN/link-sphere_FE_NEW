@@ -1,4 +1,7 @@
 ### 2026-09-30 (FE)
+- Radix AlertDialog 도입을 통한 UI 접근성 및 일관성 개선 ([#274](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/274))
+
+### 2026-09-30 (FE)
 - 게시글 상세 페이지 모달 활성화 시 '목록으로' 버튼 텍스트가 비정상적으로 변경되던 UI 버그 수정 ([#273](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/273))
 
 ### 2026-09-30 (FE)
