@@ -1,4 +1,7 @@
 ### 2026-09-30 (FE)
+- 등록 폼 내 북마크 폴더 선택 모달에 브라우저 뒤로가기 이벤트를 통한 닫기 기능 구현 ([#272](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/272))
+
+### 2026-09-30 (FE)
 - virtual-core 복제본의 보정 판정 로직을 원본과 동기화하고, 정합성 검증을 위한 테스트 케이스 추가 ([#270](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/270))
 
 ### 2026-09-30 (FE)
