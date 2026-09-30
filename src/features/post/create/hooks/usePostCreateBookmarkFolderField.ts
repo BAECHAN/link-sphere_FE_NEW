@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { useController, useFormContext } from 'react-hook-form';
+import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { TEXTS } from '@/shared/config/texts';
 import { useBookmarkFolderListQuery } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
@@ -24,7 +24,25 @@ export function usePostCreateBookmarkFolderField() {
   const bookmark = bookmarkField.value;
   const folderIds = folderIdsField.value;
 
-  const [open, setOpen] = useState(false);
+  // 열림 상태는 같은 경로의 히스토리 엔트리로 둔다 — 모달을 연 채 뒤로가기를 누르면 페이지가
+  // 아니라 모달만 닫힌다(docs/DECISIONS.md 2026-08-07 뒤로가기 정책 T1, 카드 북마크 버튼의
+  // useBookmarkPostButton과 같은 방식). 같은 경로 안의 이동이라 이탈 확인
+  // (useUnsavedChangesGuard)은 뜨지 않는다.
+  const {
+    isOpen: open,
+    open: openOverlay,
+    close,
+  } = useHistoryOverlay('postCreateBookmarkFolderOpen');
+
+  const setOpen = (next: boolean) => {
+    if (next) {
+      openOverlay();
+      return;
+    }
+
+    close();
+  };
+
   // 모달이 닫혀 있을 때도 트리거에 폴더명을 보여줘야 해 여기서도 목록을 읽는다.
   // BookmarkFolderSelectModal 내부 호출과 같은 쿼리 키라 요청·캐시가 공유된다.
   const { data } = useBookmarkFolderListQuery({ enabled: open });

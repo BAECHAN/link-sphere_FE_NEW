@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `post` 등록 폼의 북마크 폴더 선택 모달도 뒤로가기로 닫기
+  <details><summary>배경·구현</summary>
+
+  카드의 북마크 모달(#262)과 달리 등록 폼의 폴더 선택 모달은 열림 상태가 `useState`라, 모달을 연 채 뒤로가기를 누르면 등록 페이지를 떠났다. 같은 `useHistoryOverlay`로 열림 상태를 같은 경로의 히스토리 엔트리에 실었다. 경로가 바뀌지 않는 이동이라 작성 중 이탈 확인이 뜨지 않고, 입력과 폴더 선택은 그대로 남는다(선택은 탭하는 즉시 폼 값에 반영된다). 모달을 닫은 뒤 다시 뒤로가기를 누르면 이탈 확인은 평소대로 동작한다.
+  (`src/features/post/create/hooks/usePostCreateBookmarkFolderField.ts`, `e2e/post-create-folder-picker.spec.ts`(신규), `docs/BOOKMARK.md`, [PR #272](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/272))
+
+  </details>
+
 - `shared` 확인창은 바깥 클릭으로 닫히지 않고, 로그인 모달은 입력 중일 때만 유지
   <details><summary>배경·구현</summary>
 
