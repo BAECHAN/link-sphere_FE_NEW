@@ -6,6 +6,7 @@ import {
   PasswordResetConfirm,
 } from '@/entities/auth/model/auth.schema';
 import { useConfirmPasswordResetMutation } from '@/entities/auth/api/auth.queries';
+import { usePasswordFieldsFeedback } from '@/entities/auth/hooks/usePasswordFieldsFeedback';
 
 export function useConfirmPasswordReset() {
   const [searchParams] = useSearchParams();
@@ -20,10 +21,14 @@ export function useConfirmPasswordReset() {
   });
 
   const { mutateAsync: confirmReset, isPending } = useConfirmPasswordResetMutation();
+  const passwordFeedback = usePasswordFieldsFeedback(form, {
+    password: 'newPassword',
+    confirm: 'confirmPassword',
+  });
 
   const onSubmit = async (data: PasswordResetConfirm) => {
     await confirmReset(data);
   };
 
-  return { form, onSubmit, isPending, hasToken: token.length > 0 };
+  return { form, onSubmit, isPending, hasToken: token.length > 0, passwordFeedback };
 }

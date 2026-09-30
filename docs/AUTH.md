@@ -2,7 +2,7 @@
 
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
-> 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지, 그리고 로그인한 사람도 글을 못 쓸 때가 있는 이유를 설명할 수 있게 됩니다.
+> 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지, 그리고 로그인한 사람도 글을 못 쓸 때가 있는 이유를 설명할 수 있게 됩니다. 비밀번호를 새로 만드는 폼이 입력 중에 언제 무엇을 보여주는지(§8-G)도 여기서 다룹니다.
 > **마지막 검토**: 2026-09-30
 
 ---
@@ -404,15 +404,127 @@ const onSubmit = form.handleSubmit((formData: CreatePost) => {
 (`Navbar.tsx:158`, `:169`)로 상시 안내가 뜹니다. 재발송은
 `useResendEmailVerification.ts`(`useRequestEmailVerificationMutation` 호출)가 처리합니다.
 
+### 8-G. 비밀번호 입력 피드백 (가입·재설정·변경)
+
+게이트와는 별개로, 비밀번호를 **새로 만드는** 세 폼 — 회원가입(`SignUpForm.tsx`), 비밀번호
+재설정(`ConfirmPasswordResetForm.tsx`), 비밀번호 변경(`ChangePasswordForm.tsx`) — 은 입력하는
+동안 두 가지를 보여줍니다(2026-09-30 도입, 계획
+[`docs/plans/2026-09-30-password-live-feedback.md`](plans/2026-09-30-password-live-feedback.md)).
+
+- 비밀번호 칸 아래 **조건 체크리스트** 4항목(8자 이상·영문·숫자·특수문자). 입력 중엔 충족된
+  항목만 회색 ○ → 초록 ✓로 바뀌고, 칸을 한 번 벗어났거나 제출한 뒤에야 못 채운 항목이
+  빨강 ✗가 됩니다. 한글·이모지(비ASCII)와 65자 이상은 "미완성"이 아니라 "위반"이라 입력
+  즉시 문구로 알립니다.
+- 확인 칸 아래 **한 줄**. 일치하면 즉시 초록 "비밀번호가 일치해요."(닉네임·이메일 "사용
+  가능"과 같은 톤), 불일치는 늦게 — 확인 칸 글자 수가 비밀번호만큼 되거나 칸을 벗어나야
+  빨강이 됩니다.
+
+비밀번호 정책 자체(조합 규칙·8~64자·출력 가능 ASCII만)는 바뀌지 않았습니다 —
+`auth.schema.ts:8-12`와 BE `AuthDTO.kt` 그대로입니다.
+
+**구조**: 폼은 그대로 `mode: 'onSubmit'` + zodResolver입니다. RHF 에러는 제출 차단·첫 에러
+포커스·빨간 테두리만 맡고, 화면 문구는 `usePasswordFieldsFeedback`이 입력값에서 직접 계산해
+그립니다. 같은 에러가 두 번 뜨지 않도록 `FormInputPassword`의 `hideErrorMessage`로 FormField의
+에러 문구는 숨깁니다.
+
+| 역할            | 위치                                                                                                                                                                           |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 판정(순수 함수) | `src/entities/auth/utils/auth.util.ts`의 `PasswordUtil` — `checkRequirements`(`:29`), `findViolation`(`:39`), `resolveRequirementStates`(`:64`), `resolveConfirmStatus`(`:91`) |
+| 상태·연결(훅)   | `src/entities/auth/hooks/usePasswordFieldsFeedback.ts` — 확인 칸 포커스·latch(`:62`), 비밀번호 칸의 `deps`(`:81`)                                                              |
+| 표시            | `src/entities/auth/ui/PasswordRequirementList.tsx`, `src/entities/auth/ui/PasswordConfirmMessage.tsx`                                                                          |
+| shared 확장     | `src/shared/ui/elements/form/FormInputPassword.tsx:36`(`rules.deps`), `src/shared/ui/elements/form/_base/FormField.tsx:42`(`hideErrorMessage`)                                 |
+| 길이 상수       | `src/entities/auth/config/auth.const.ts`                                                                                                                                       |
+
+**확인 칸 판정**(`PasswordUtil.resolveConfirmStatus`, `auth.util.test.ts`의 표와 1:1):
+
+```mermaid
+flowchart TD
+  S["확인 칸 값 · 포커스 변경<br/>또는 비밀번호 칸 변경"] --> E{"확인 칸이 비었나"}
+  E -->|예| R{"제출했나"}
+  R -->|예| REQ["빨강: 비밀번호를 입력해주세요."]
+  R -->|아니오| N1["표시 없음 · latch 해제"]
+  E -->|아니오| P{"제출 전인데<br/>비밀번호 칸이 비었나"}
+  P -->|예| N0["표시 없음"]
+  P -->|아니오| J{"판정 가능?<br/>제출함 · latch · 포커스 없음<br/>· 길이 ≥ 비밀번호 길이"}
+  J -->|아니오| N2["표시 없음"]
+  J -->|예| M{"일치?"}
+  M -->|예| OK["초록: 비밀번호가 일치해요."]
+  M -->|아니오| NG["빨강: 비밀번호가 일치하지 않아요.<br/>latch 설정"]
+```
+
+판정을 RHF `touched`가 아니라 **지금 포커스가 있는가**로 하는 이유: touched는 한 번 켜지면
+계속 켜져 있어, 빈 확인 칸을 Tab으로 지나간 뒤 첫 글자를 치자마자 불일치가 떠 버립니다.
+
+**제출 후 위 칸만 고쳤을 때**: RHF는 제출 후 재검증 결과를 **바뀐 필드 이름에만** 반영합니다
+(react-hook-form 7.71 `dist/index.esm.mjs`의 onChange → `_runSchema([name])` 경로, 소스 확인).
+그래서 도입 전엔 비밀번호만 고쳐 두 값이 같아져도 확인 칸의 "일치하지 않아요"가 그 칸을 다시
+건드릴 때까지 남았습니다 — Baymard가 L.L. Bean 실패 사례로 든 모양과 같습니다(아래 근거).
+비밀번호 칸에 `deps: [확인 칸]`을 걸어 확인 칸도 함께 재검증합니다. 도입 전 동작 재현과 수정
+확인은 `FormInputPassword.test.tsx`의 deps 유무 두 케이스입니다.
+
+**규칙 단일 출처**: 체크리스트 판정(`PasswordUtil`)과 zod 스키마는 따로 쓰였습니다. 스키마는
+확정된 정책 코드라 그대로 두고, `auth.util.test.ts`가 `PasswordUtil.isValid(v)`와
+`passwordValidationSchema.safeParse(v).success`를 441개 입력(길이 9종 × 문자 조합 7종 × 끼워 넣는
+문자 7종)으로 전수 비교합니다. 체크리스트의 "특수문자"는 스키마의 `[^a-zA-Z0-9]`와 달리 한글·
+이모지를 치지 않습니다 — 치면 한글을 칠 때 ✓와 ASCII 위반 문구가 동시에 뜹니다. ASCII만
+허용하는 조건 아래서는 두 판정이 같은 집합이라 전체 통과 여부는 같습니다. 변이 확인(직접 측정,
+2026-09-30 — 판정 코드를 한 군데씩 바꿔 `auth.util.test.ts`를 실행): 특수문자에서 공백 제외 →
+5건 실패, 최대 길이를 63으로 → 6건 실패, 한글을 특수문자로 인정 → 2건 실패(전체 통과 여부가 같아
+차등 비교는 통과하고 조건별 표가 잡음).
+
+**왜 이렇게 보여주나(UX 근거)**: 일반 입력칸은 "칸을 벗어난 뒤 검증"이 정석이지만, 새 비밀번호는
+예외로 보는 쪽이 다수입니다. 아래 인용은 2026-09-30 조사 때 원문을 열어 확인한 것입니다
+(Konjević 글만 Wayback 사본).
+
+- Luke Wroblewski의 회원가입 폼 실험([A List Apart, 2009](https://alistapart.com/article/inline-validation-in-web-forms/))은
+  비밀번호에 입력 중 검증(짧은 지연)을 썼고, 이 방식이 _"안전한 비밀번호의 형식처럼 경계가
+  엄격한 질문에 가장 잘 맞았다"_ (번역, 생략)고 적습니다.
+- NN/g의 Rachel Krause는 [폼 에러 가이드라인](https://www.nngroup.com/articles/errors-forms-design-guidelines/)에서
+  _"새 비밀번호처럼 복잡한 입력에서는 입력하는 동안 나타나는 즉시 인라인 검증이 사용자가
+  추측하거나 여러 번 확인하는 일을 막아준다"_ (번역, 생략)고 씁니다.
+- 다만 틀리기 전에 빨강을 띄우지 않습니다. NN/g의 Kate Kaplan은
+  _"입력 중에 에러 메시지를 보여주면 부당한 꾸지람처럼 느껴진다"_ (번역)고 씁니다
+  ([Hostile Patterns in Error Messages](https://www.nngroup.com/articles/hostile-error-messages/)).
+  그래서 Mihael Konjević의 "reward early, punish late"
+  ([Medium, 2016](https://medium.com/wdstack/inline-validation-in-forms-designing-the-experience-123fb34088ce))를
+  따릅니다 — 맞는 쪽으로 가는 건 즉시 칭찬하고, 틀린 건 입력이 끝난 뒤 알리고, 이미 틀린 상태를
+  고치는 중이면 입력하는 대로 해제합니다.
+- 체크리스트: NN/g의 Katie Sherwin은 [비밀번호 생성 가이드](https://www.nngroup.com/articles/password-creation/)에서
+  요구사항을 _"필드가 선택된 동안 내내 볼 수 있게"_ (번역) 하라고 하고, 통과 개수를 보여주는
+  방식은 _"강도 미터와 같은 게 아니다"_ (번역)라고 구분합니다.
+- 확인 칸: Baymard의 [인라인 검증 사용성 테스트](https://baymard.com/blog/inline-form-validation)(2024)는
+  첫 칸을 고쳐도 불일치 에러가 남은 L.L. Bean을 실패 사례로, 두 번째 칸을 떠나기 전에 일치
+  여부를 알려준 Best Buy를 긍정 사례로 듭니다.
+- 유보 의견: GOV.UK [Passwords 패턴](https://design-system.service.gov.uk/patterns/passwords/)은
+  _"인라인 검증이 안전한 비밀번호 만들기에 좋은 방법인지는 더 연구가 필요하다"_ (번역)며 판단을
+  미룹니다.
+
+실서비스 관찰(2026-09-30, 가입 페이지에 입력만 하고 제출하지 않음): Apple(체크리스트, 빨강은
+칸을 벗어날 때), Dropbox(체크리스트, 첫 글자부터 빨강), Stripe(강도 라벨), Google(제출 시 한 줄).
+확인 칸 일치 **성공 문구를 띄우는 곳은 관찰한 6곳 중 0곳**이었습니다 — 초록 "일치해요"는 업계
+선례가 아니라 이 앱의 닉네임·이메일 톤과 맞춘 선택입니다(사용자 결정).
+
+| 항목           | 채택                               | 채택하지 않은 대안과 이유                                                                                                                                                   |
+| -------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 요구사항 표시  | 항상 보이는 체크리스트, 가로 한 줄 | 포커스 시 펼침(Apple·Dropbox): 아래 칸이 밀리고 blur 순간 클릭 대상이 움직임. 한 줄 안내+에러: 어떤 조건이 빠졌는지 안 보임. 2열·세로: 폼이 1~3줄 길어짐(기존 안내도 한 줄) |
+| 확인 칸        | 일치는 즉시 초록, 불일치는 늦게    | 불일치만(Apple·Google): 닉네임·이메일과 톤이 다름. 매 키 즉시: 첫 글자부터 빨강                                                                                             |
+| 표시 상태 출처 | 입력값에서 계산                    | `useSignUp.ts`의 setError 선례: 비동기 서버 결과용 — 동기 판정에 쓰면 effect와 `isSubmitted` 가드가 늘어남                                                                  |
+| 규칙 동기화    | 스키마 유지 + 차등 테스트          | 스키마를 규칙 목록에서 조립: 에러 문구 순서와 기존 스키마 테스트가 바뀜                                                                                                     |
+
+배치 시안(A 2열 · B 세로 · C 가로 한 줄)은 Artifact 미리보기
+(https://claude.ai/artifact/7msbwHbj9WtYc5ni5jycLq)로 나란히 보고 C를 골랐습니다.
+
 ### 자주 하는 수정
 
-| 하고 싶은 것                     | 건드릴 파일                                                                                                                                                                                   |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 새 보호 페이지 추가              | `route-paths.ts`에 경로 추가 → `route-paths.ts:39-48` `isProtectedPath`에 prefix 추가 → `routes/index.tsx`의 Protected Content Group에 라우트 등록                                            |
-| 로그인 필요한 새 액션(버튼) 추가 | `useAuthGuard()`로 액션을 감싸기(§8-D 패턴)                                                                                                                                                   |
-| 로그인 필요한 새 이동(링크) 추가 | `useProtectedNavigate()` 사용, 또는 `nav-items.ts`에 `requiresAuth: true` 항목 추가                                                                                                           |
-| 새 401 에러 코드 처리 추가       | `error-code.ts`에 상수 추가 → `client.ts`의 `request()` 401 분기(`:256-271`) 또는 `error-toast.ts`의 `resolveErrorToast()`에 분기 추가(그 코드가 재시도 가능한지/즉시 로그아웃인지 먼저 결정) |
-| 새 Suspense 조회 화면 추가       | `useSuspenseQuery`/`useSuspenseInfiniteQuery`는 캐시가 error면 재마운트해도 재요청하지 않는다 — §8-E의 로그인 리셋이 전제다                                                                   |
+| 하고 싶은 것                     | 건드릴 파일                                                                                                                                                                                                                                       |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 새 보호 페이지 추가              | `route-paths.ts`에 경로 추가 → `route-paths.ts:39-48` `isProtectedPath`에 prefix 추가 → `routes/index.tsx`의 Protected Content Group에 라우트 등록                                                                                                |
+| 로그인 필요한 새 액션(버튼) 추가 | `useAuthGuard()`로 액션을 감싸기(§8-D 패턴)                                                                                                                                                                                                       |
+| 로그인 필요한 새 이동(링크) 추가 | `useProtectedNavigate()` 사용, 또는 `nav-items.ts`에 `requiresAuth: true` 항목 추가                                                                                                                                                               |
+| 새 401 에러 코드 처리 추가       | `error-code.ts`에 상수 추가 → `client.ts`의 `request()` 401 분기(`:256-271`) 또는 `error-toast.ts`의 `resolveErrorToast()`에 분기 추가(그 코드가 재시도 가능한지/즉시 로그아웃인지 먼저 결정)                                                     |
+| 새 Suspense 조회 화면 추가       | `useSuspenseQuery`/`useSuspenseInfiniteQuery`는 캐시가 error면 재마운트해도 재요청하지 않는다 — §8-E의 로그인 리셋이 전제다                                                                                                                       |
+| 비밀번호 조건 추가·변경          | 정책(`auth.schema.ts`, BE `AuthDTO.kt`)과 체크리스트(`auth.util.ts`의 `REQUIREMENT_TESTS`, `auth.const.ts`의 `PASSWORD_REQUIREMENTS`, `TEXTS.auth.password.requirements`)를 함께 — 한쪽만 바꾸면 `auth.util.test.ts`의 차등 비교가 실패한다(§8-G) |
+| 비밀번호를 새로 만드는 폼 추가   | `usePasswordFieldsFeedback(form, { password, confirm })`의 반환값을 `FormInputPassword` 두 개와 `PasswordRequirementList`·`PasswordConfirmMessage`에 펼친다(`SignUpForm.tsx:110` 참고, §8-G)                                                      |
 
 ---
 
@@ -563,6 +675,15 @@ const onSubmit = form.handleSubmit((formData: CreatePost) => {
 false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCreatePost.test.tsx` 파일
    자체가 존재하지 않아(`find src/features/post/create` 확인) 동일한 게이팅 로직
    (`useCreatePost.ts:36-49`)은 어느 쪽으로도 고정돼 있지 않습니다.
+6. **비밀번호 입력 피드백(§8-G)의 스크린리더 낭독은 실제 스크린리더로 확인하지 않았습니다.**
+   jsdom 테스트는 `aria-describedby`·`aria-live`·항목별 "충족/미충족" 문구가 붙는지까지만 봅니다.
+   체크리스트 상태가 바뀔 때 낭독이 과한지(Chromium은 `aria-describedby` 대상을 live
+   region처럼 읽는다는 보고가 있음 — 2026-09-30 조사의 Adrian Roselli 글, 재인용), 비어 있을 때
+   `sr-only`인 live 문구 줄이 제대로 읽히는지는 VoiceOver 등으로 실측이 필요합니다. 과하면 항목
+   문구를 입력이 멈춘 뒤에만 바꾸는 디바운스를 검토합니다.
+7. **비밀번호 정책은 NIST SP 800-63B-4와 다릅니다.** 최신판([링크](https://pages.nist.gov/800-63-4/sp800-63b.html), 2025)은 조합 규칙을 금지하고 비밀번호 단일 인증 시 최소 15자를 요구하지만, 이 앱은
+   2026-09-28에 조합 규칙 유지·8~64자로 확정했습니다([계획](plans/2026-09-28-auth-hardening.md)).
+   §8-G는 표시 방식만 바꿨고 정책은 건드리지 않았습니다 — 재검토는 별도 결정입니다.
 
 ---
 
@@ -575,6 +696,8 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
 - **`isRefreshing`/`refreshSubscribers`**: `client.ts`의 동시 401 처리 상태. 첫 401(리더)만 실제로 refresh를 트리거하고, 그 사이 도착한 나머지(팔로워)는 큐에 쌓였다가 리더의 refresh 완료 후 함께 재시도됩니다.
 - **`hasBeenAuthenticated`**: `ProtectedRoute`가 "이 마운트에서 한 번이라도 로그인 상태였는가"를 추적하는 ref. 로그아웃/세션만료(true였다가 false)와 애초에 비로그인(처음부터 false)을 구분해, 후자만 로그인 모달을 띄웁니다.
 - **`has-session` 플래그**: 리프레시 토큰이 httpOnly라 존재 여부를 JS가 알 수 없으므로 대신 두는 "세션이 있을 가능성" 힌트. 진짜 인증 상태가 아닙니다.
+- **reward early, punish late**: 입력 검증 시점 원칙(§8-G). 맞는 쪽으로 가는 변화는 즉시 알리고, 틀린 것은 입력이 끝난 뒤(칸을 벗어나거나 제출한 뒤) 알린다. 이미 틀렸다고 알린 상태를 고치는 중이면 입력하는 대로 다시 판정한다.
+- **latch(확인 칸)**: `usePasswordFieldsFeedback`의 `isConfirmLatched`. 확인 칸에 불일치를 한 번 보여줬다는 표시로, 켜져 있으면 글자 수가 모자라도 매 글자 판정을 이어간다. 일치하거나 확인 칸을 비우면 꺼진다.
 - **불투명(opaque) 세션 토큰**: payload에 아무 정보도 담지 않는 무작위 문자열 토큰. BE가
   `SecureToken.generate()`(32바이트 base64url, 43자)로 발급하고 자신의 DB(`member_sessions`
   테이블)로 매 요청마다 진위를 판정합니다. BE PR #42로 JWT(자체 서명 토큰, payload에 `exp`
@@ -590,3 +713,4 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
 - [`docs/DECISIONS.md`](DECISIONS.md) 2026-08-06 "폼 이탈 시 저장하지 않은 내용 보호" — 인증 리다이렉트가 unsaved-changes guard보다 먼저 처리돼야 하는 이유
 - [`docs/plans/2026-09-28-auth-hardening.md`](plans/2026-09-28-auth-hardening.md) — JWT 폐지·이메일 인증 게이팅 범위(로그인/읽기 제외, 쓰기만) 등 "확정된 결정들"의 조사 근거 전문
 - [`docs/TESTING.md`](TESTING.md) — `client.test.ts`가 왜 존재하고 어떤 스타일로 401 시나리오를 검증하는지
+- [`docs/plans/2026-09-30-password-live-feedback.md`](plans/2026-09-30-password-live-feedback.md) — 비밀번호 입력 피드백(§8-G)의 계획 스냅샷: 판단 표, 확인 칸 판정 흐름, 영향 범위

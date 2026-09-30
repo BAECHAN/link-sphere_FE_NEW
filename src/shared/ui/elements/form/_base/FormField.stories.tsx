@@ -80,3 +80,25 @@ function WithErrorStory() {
 export const WithError: Story = {
   render: () => <WithErrorStory />,
 };
+
+function WithHiddenErrorMessageStory() {
+  const methods = useForm({
+    defaultValues: { username: '' },
+  });
+  methods.setError('username', { type: 'required', message: '필수 입력 항목입니다.' });
+  return (
+    <FormProvider {...methods}>
+      <form className="w-80">
+        <FormField name="username" label="사용자 이름" hideErrorMessage>
+          <Input name="username" placeholder="Enter value..." />
+          <p className="text-sm text-destructive pl-0.5">호출자가 직접 그리는 안내</p>
+        </FormField>
+      </form>
+    </FormProvider>
+  );
+}
+
+// 에러가 있어도 FormField 자신의 에러 문구는 그리지 않는다 - 호출자가 children으로 대신 안내한다
+export const WithHiddenErrorMessage: Story = {
+  render: () => <WithHiddenErrorMessageStory />,
+};

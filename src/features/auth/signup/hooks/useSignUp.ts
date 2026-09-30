@@ -7,6 +7,7 @@ import {
   nicknameValidationSchema,
 } from '@/entities/account/model/account.schema';
 import { useCreateAccountMutation } from '@/entities/auth/api/auth.queries';
+import { usePasswordFieldsFeedback } from '@/entities/auth/hooks/usePasswordFieldsFeedback';
 import { authApi } from '@/entities/auth/api/auth.api';
 import { accountApi } from '@/entities/account/api/account.api';
 import { useAvailabilityCheck } from '@/features/auth/signup/hooks/useAvailabilityCheck';
@@ -32,6 +33,10 @@ export function useSignUp() {
   });
 
   const { mutateAsync: createMember, isPending } = useCreateAccountMutation();
+  const passwordFeedback = usePasswordFieldsFeedback(form, {
+    password: 'password',
+    confirm: 'confirmPassword',
+  });
 
   // 제출 요청 중(isPending)엔 dirty로 안 잡는다 - 실패하면 isPending이 false로 돌아오면서
   // 이 조건이 다시 true가 돼 자동으로 재등록된다. isSubmitted도 함께 봐야 한다 - 이 훅은
@@ -128,6 +133,7 @@ export function useSignUp() {
     onFormReset,
     emailCheck,
     nicknameCheck,
+    passwordFeedback,
     isSubmitDisabled,
     onLoginLinkClick,
     loginLinkState,

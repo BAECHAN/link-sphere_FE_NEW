@@ -143,6 +143,17 @@ export const TEXTS = {
       goToLogin: '로그인하러 가기',
       goToAccountSettings: '계정 설정으로 이동',
     },
+    // 비밀번호를 새로 만드는 폼(가입·재설정·변경) 공통 - 입력칸 아래 조건 체크리스트와
+    // 확인 칸 일치 문구(entities/auth/ui/PasswordRequirementList·PasswordConfirmMessage)
+    password: {
+      requirements: {
+        minLength: '8자 이상',
+        letter: '영문',
+        digit: '숫자',
+        special: '특수문자',
+      },
+      confirmMatch: '비밀번호가 일치해요.',
+    },
   },
   nav: {
     brand: 'LinkSphere',
@@ -373,9 +384,6 @@ export const TEXTS = {
     defaultTitle: '새로운 알림',
     viewAction: '보러가기',
   },
-  descriptions: {
-    passwordGuide: '영문, 숫자, 특수문자 조합 8~64자',
-  },
   validation: {
     urlFormat: 'http:// 또는 https://로 시작하는 웹 주소만 등록할 수 있어요.',
     urlRequired: 'URL을 입력해주세요.',
@@ -567,6 +575,9 @@ export const TEXTS = {
 
     // 입력 필드
     inputClear: '입력값 지우기',
+    // 비밀번호 조건 체크리스트 항목 뒤에 붙는 스크린리더 전용 상태("8자 이상 충족")
+    passwordRequirementMet: '충족',
+    passwordRequirementUnmet: '미충족',
 
     // 북마크 폴더
     folderMenu: '폴더 메뉴',

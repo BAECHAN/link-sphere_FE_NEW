@@ -78,6 +78,63 @@ test.describe('회원가입', () => {
     await expect(page).toHaveURL(/\/auth\/sign-up$/);
   });
 
+  test('비밀번호 조건 체크리스트가 처음부터 보이고, 입력하는 대로 충족으로 바뀌며 한글은 바로 안내한다', async ({
+    page,
+  }) => {
+    await page.goto('/auth/sign-up');
+
+    const item = (label: string) => page.getByRole('listitem').filter({ hasText: label });
+    const { requirements } = TEXTS.auth.password;
+
+    for (const label of Object.values(requirements)) {
+      await expect(item(label)).toHaveAttribute('data-state', 'pending');
+    }
+
+    const passwordInput = page.getByLabel(`${TEXTS.labels.password}*`, { exact: true });
+    await passwordInput.fill('abc1');
+    await expect(item(requirements.letter)).toHaveAttribute('data-state', 'met');
+    await expect(item(requirements.digit)).toHaveAttribute('data-state', 'met');
+    // 입력 중엔 못 채운 조건도 빨강이 아니라 회색으로 둔다
+    await expect(item(requirements.minLength)).toHaveAttribute('data-state', 'pending');
+
+    await passwordInput.fill('abc1한');
+    await expect(page.getByText(TEXTS.validation.passwordAsciiOnly)).toBeVisible();
+  });
+
+  test('확인 칸에 불일치가 뜬 뒤 위 비밀번호를 고쳐 같아지면 바로 일치로 바뀐다(제출 전·후 모두)', async ({
+    page,
+  }) => {
+    await mockEmailAvailability(page, true);
+    await mockNicknameAvailability(page, true);
+
+    await page.goto('/auth/sign-up');
+    await page.getByLabel(`${TEXTS.labels.nickname}*`, { exact: true }).fill('newuser');
+    await page.getByLabel(`${TEXTS.labels.email}*`, { exact: true }).fill('new@example.com');
+    await expect(page.getByText(TEXTS.auth.signup.emailAvailable)).toBeVisible();
+
+    const passwordInput = page.getByLabel(`${TEXTS.labels.password}*`, { exact: true });
+    const confirmInput = page.getByLabel(TEXTS.labels.confirmPassword);
+
+    // 제출 전 - 글자 수가 같아지는 순간 불일치를 판정한다
+    await passwordInput.fill(VALID_PASSWORD);
+    await confirmInput.fill('TestPass1?');
+    await expect(page.getByText(TEXTS.validation.passwordMismatch)).toBeVisible();
+
+    await passwordInput.fill('TestPass1?');
+    await expect(page.getByText(TEXTS.auth.password.confirmMatch)).toBeVisible();
+    await expect(page.getByText(TEXTS.validation.passwordMismatch)).toHaveCount(0);
+
+    // 제출 후 - RHF 에러가 생긴 뒤에도 확인 칸을 건드리지 않고 위 칸만 고쳐서 풀려야 한다
+    await passwordInput.fill(VALID_PASSWORD);
+    await expect(page.getByText(TEXTS.validation.passwordMismatch)).toBeVisible();
+    await page.getByRole('button', { name: TEXTS.auth.signup.signUp }).click();
+    await expect(page.getByText(TEXTS.validation.passwordMismatch)).toBeVisible();
+
+    await passwordInput.fill('TestPass1?');
+    await expect(page.getByText(TEXTS.auth.password.confirmMatch)).toBeVisible();
+    await expect(page.getByText(TEXTS.validation.passwordMismatch)).toHaveCount(0);
+  });
+
   test('이미 가입된 이메일이면 디바운스 후 인라인 오류가 뜨고 가입 버튼이 잠긴다', async ({
     page,
   }) => {

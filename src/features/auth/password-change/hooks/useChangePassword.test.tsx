@@ -55,5 +55,14 @@ describe('useChangePassword', () => {
       })
     );
     await waitFor(() => expect(result.current.form.getValues('currentPassword')).toBe(''));
+
+    // 리셋은 isSubmitted·touched까지 되돌리므로 체크리스트·확인 칸 문구도 처음 상태로 돌아간다
+    expect(Object.values(result.current.passwordFeedback.requirementListProps.states)).toEqual([
+      'pending',
+      'pending',
+      'pending',
+      'pending',
+    ]);
+    expect(result.current.passwordFeedback.confirmMessageProps.status).toBe('none');
   });
 });

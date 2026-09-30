@@ -21,7 +21,7 @@ TEXTS
 ├── labels.nickname / email / password / message
 ├── placeholders.nickname / email / password / message / postSearch / bookmarkSearch / ...
 ├── buttons.retry / refresh / home / back / login / logout / delete / search / ...
-├── auth.title / description / guard.title / login.* / signup.* / forgotPassword.* / resetPassword.* / verifyEmail.*
+├── auth.title / description / guard.title / login.* / signup.* / forgotPassword.* / resetPassword.* / verifyEmail.* / password.* (requirements.*, confirmMatch)
 ├── nav.brand / feed / submit / logIn / logOut / toggleSearch / toggleTheme / saving / bookmark / loggingOut / toggleMenu / ...
 ├── mypage.* (title, description, save, changeImage, checkingNickname, ...)
 ├── accountSettings.* (title, emailVerificationNeeded, passwordSectionTitle, deleteSectionTitle, deleteConfirmMessage, ...)
@@ -39,7 +39,6 @@ TEXTS
 ├── bookmark.* (folder.myFolders/create/all/uncategorized, empty.all/uncategorized/folder, ...)
 ├── errors.* (notFound/forbidden/unexpected — title+description, serverError — description만)
 ├── notification.* (defaultTitle, viewAction)
-├── descriptions.passwordGuide
 ├── validation.urlFormat / urlRequired / titleRequired / passwordRegex / emailRegex / ...
 ├── messages.info.noData / noPosts
 ├── messages.warning.postDeleteConfirm / commentDeleteConfirm / memberDeleteConfirm
