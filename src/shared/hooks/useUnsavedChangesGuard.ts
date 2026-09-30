@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useBlocker, useLocation, type BlockerFunction } from 'react-router-dom';
 import { hasUnsavedChanges } from '@/shared/store/unsavedChanges.store';
 import { useAuthStore } from '@/shared/store/auth.store';
-import { getOpenAlertId, useAlertStore } from '@/shared/ui/elements/modal/alert/alert.store';
+import { getOpenAlertId, useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
 import { PUBLIC_PATHS, ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 

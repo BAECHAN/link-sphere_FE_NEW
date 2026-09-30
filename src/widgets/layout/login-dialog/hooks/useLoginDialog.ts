@@ -1,22 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useLoginModalStore } from '@/shared/store/loginModal.store';
+import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 
 /**
  * 전역 로그인 유도 모달의 열림/닫힘 전이·재개 로직.
- * 콜백은 loginModal.store가, 열림 상태는 히스토리 엔트리가 관리한다.
+ * 콜백은 loginDialog.store가, 열림 상태는 히스토리 엔트리가 관리한다.
  */
-export function useLoginModal() {
-  const { onSuccess, setOnSuccess, pendingAction, setPendingAction } = useLoginModalStore();
+export function useLoginDialog() {
+  const { onSuccess, setOnSuccess, pendingAction, setPendingAction } = useLoginDialogStore();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { pathname } = useLocation();
-  const { isOpen, close } = useHistoryOverlay('loginModalOpen');
+  const { isOpen, close } = useHistoryOverlay('loginDialogOpen');
 
   // 로그인 성공 → onSuccess(원래 가려던 페이지 이동 등) 실행 후 닫기.
-  // onSuccess가 있으면 그 navigate가 이미 이 위치(loginModalOpen인 엔트리)를 벗어나므로
+  // onSuccess가 있으면 그 navigate가 이미 이 위치(loginDialogOpen인 엔트리)를 벗어나므로
   // 모달은 자연히 닫힌다 - 여기서 close()(navigate(-1))까지 같이 부르면 onSuccess가 남긴
   // 새 엔트리 바로 뒤인 이 모달 엔트리 자신으로 되돌아가버려 모달이 안 닫히고 X·ESC·backdrop도
   // 무반응이 된다(Sidebar.tsx의 드로어 close() 제거와 동일한 이유의 레이스).
@@ -25,7 +25,7 @@ export function useLoginModal() {
   // 딱 한 번만 분기를 태우도록 막는다.
   const handledSuccessRef = useRef(false);
   useEffect(
-    function closeModalOnLoginSuccess() {
+    function closeDialogOnLoginSuccess() {
       if (!isOpen) {
         handledSuccessRef.current = false;
         return;
@@ -49,14 +49,14 @@ export function useLoginModal() {
   // 즉시 실행하면 로그인 모달이 아직 떠 있는 채로 다음 모달이 위에 겹친다
   // (useHistoryOverlay.ts - 오버레이를 겹쳐 쌓지 않는 것을 전제로 한다).
   // openedRef: 이 effect는 "열려 있다가 닫힌" 전이에서만 동작해야 한다. useAuthGuard가
-  // setPendingAction 직후 openLoginModal()을 부르는 찰나(아직 isOpen=false)에 그냥
+  // setPendingAction 직후 openLoginDialog()을 부르는 찰나(아직 isOpen=false)에 그냥
   // 돌면 열어보기도 전에 액션을 버린다 - handledSuccessRef와 같은 이유의 래치다.
   // 닫힘 경로 4가지(로그인 성공/X·ESC·backdrop 취소/하드웨어 뒤로가기/auth 페이지 이동)가
   // 전부 "isOpen이 false가 된다"는 이 지점으로 수렴하므로, 성공이 아닌 닫힘에서는
   // 액션을 실행하지 않고 버린다.
   const openedRef = useRef(false);
   useEffect(
-    function runPendingActionAfterModalCloses() {
+    function runPendingActionAfterDialogCloses() {
       if (isOpen) {
         openedRef.current = true;
         return;

@@ -1,7 +1,7 @@
 import { useDeletePostMutation } from '@/entities/post/api/post.queries';
 
 import { TEXTS } from '@/shared/config/texts';
-import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
+import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
 
 export function usePostDelete() {
   const { mutateAsync: deletePost, isPending: isDeleting } = useDeletePostMutation();

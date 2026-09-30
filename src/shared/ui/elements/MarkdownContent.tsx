@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/shared/lib/tailwind/utils';
-import { useImageViewerStore } from '@/shared/ui/elements/modal/image-viewer/imageViewer.store';
+import { useImageViewerStore } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { TEXTS } from '@/shared/config/texts';
 import { getTransformedImageUrl, isTransformableImageUrl } from '@/shared/lib/image/supabaseImage';

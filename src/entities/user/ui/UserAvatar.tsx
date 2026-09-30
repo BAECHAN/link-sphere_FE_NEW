@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
 import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { getTransformedImageUrl } from '@/shared/lib/image/supabaseImage';
-import { useImageViewer } from '@/shared/ui/elements/modal/image-viewer/imageViewer.store';
+import { useImageViewer } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
 import { TEXTS } from '@/shared/config/texts';
 
 interface UserAvatarProps {

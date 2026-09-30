@@ -31,15 +31,15 @@ test.describe('등록 폼 — 북마크 폴더 선택 모달 뒤로가기', () =
     await page.getByLabel(/^URL/).fill(TYPED_URL);
 
     await page.getByRole('button', { name: TEXTS.post.form.create.bookmarkNone }).click();
-    const folderModal = page.getByRole('dialog');
-    await expect(folderModal).toBeVisible();
+    const folderDialog = page.getByRole('dialog');
+    await expect(folderDialog).toBeVisible();
 
     // 가드(DOUBLE_CLICK_GUARD_MS)는 클릭 자체를 삼키므로 관측 가능한 이벤트로 대체할 수 없다
     await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
-    await folderModal.getByRole('button', { name: mockBookmarkFolder.name }).click();
+    await folderDialog.getByRole('button', { name: mockBookmarkFolder.name }).click();
 
     await page.goBack();
-    await expect(folderModal).not.toBeVisible();
+    await expect(folderDialog).not.toBeVisible();
     await expect(page).toHaveURL(/\/post\/submit$/);
     await expect(page.getByLabel(/^URL/)).toHaveValue(TYPED_URL);
     // 선택한 폴더가 트리거 문구로 남아 있다

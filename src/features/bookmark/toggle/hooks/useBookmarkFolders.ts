@@ -6,7 +6,7 @@ import {
 } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 
 /**
- * 북마크 폴더 선택 흐름을 한 hook으로 묶음 — PostCardBookmarkFolderModal 의 행별 동작(탭 = 즉시 저장)을 그대로 반영한다.
+ * 북마크 폴더 선택 흐름을 한 hook으로 묶음 — PostCardBookmarkFolderDialog 의 행별 동작(탭 = 즉시 저장)을 그대로 반영한다.
  *
  * - selectUncategorized: 미분류 탭 — 미북마크면 toggle(생성), 소속 있으면 전부 해제,
  *   이미 미분류(소속 0개)면 toggle(완전 삭제, 2026-09-11 변경). 되돌리기는 restoreBookmark로.

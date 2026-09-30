@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { deleteAccountSchema, DeleteAccount } from '@/entities/account/model/account.schema';
 import { useDeleteAccountMutation } from '@/entities/account/api/account.queries';
-import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
+import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
 import { TEXTS } from '@/shared/config/texts';
 
 const DEFAULT_VALUES: DeleteAccount = { password: '' };

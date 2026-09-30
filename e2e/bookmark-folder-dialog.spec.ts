@@ -13,7 +13,7 @@ import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 const FOLDERS_PATH = '/api/bookmark/folders';
 
-// 북마크 폴더 선택 모달(BookmarkPostButton → PostCardBookmarkFolderModal)의 열림·닫힘 동작.
+// 북마크 폴더 선택 모달(BookmarkPostButton → PostCardBookmarkFolderDialog)의 열림·닫힘 동작.
 // 저장 흐름 자체는 bookmark.spec.ts가 다룬다.
 test.describe('로그인 상태 — 북마크 폴더 모달 열림·닫힘', () => {
   test.beforeEach(async ({ page }) => {
@@ -34,18 +34,18 @@ test.describe('로그인 상태 — 북마크 폴더 모달 열림·닫힘', () 
     await expect(page.getByRole('link', { name: mockPost.title })).toBeVisible();
 
     await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).click();
-    const folderModal = page.getByRole('dialog');
-    await expect(folderModal).toBeVisible();
+    const folderDialog = page.getByRole('dialog');
+    await expect(folderDialog).toBeVisible();
 
     // 오버레이(화면 좌상단) 클릭 — 가드 시간 안이라 무시돼야 한다. 가드는 클릭을 삼킬
     // 뿐이라 관측 가능한 이벤트가 없어 시간 대기로 확인한다(bookmark.spec.ts와 같은 예외).
     await page.mouse.click(5, 5);
     await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
-    await expect(folderModal).toBeVisible();
+    await expect(folderDialog).toBeVisible();
 
     // 가드 시간이 지난 뒤의 바깥 클릭은 평소처럼 닫는다
     await page.mouse.click(5, 5);
-    await expect(folderModal).not.toBeVisible();
+    await expect(folderDialog).not.toBeVisible();
   });
 
   test('모달이 열린 채 뒤로가기를 누르면 페이지는 그대로 두고 모달만 닫힌다', async ({ page }) => {
@@ -58,14 +58,14 @@ test.describe('로그인 상태 — 북마크 폴더 모달 열림·닫힘', () 
     await expect(page.getByRole('button', { name: TEXTS.post.detail.backToList })).toBeVisible();
 
     await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).click();
-    const folderModal = page.getByRole('dialog');
-    await expect(folderModal).toBeVisible();
+    const folderDialog = page.getByRole('dialog');
+    await expect(folderDialog).toBeVisible();
     await expect(
-      folderModal.getByRole('heading', { name: TEXTS.bookmark.folder.selectorTitle })
+      folderDialog.getByRole('heading', { name: TEXTS.bookmark.folder.selectorTitle })
     ).toBeVisible();
 
     await page.goBack();
-    await expect(folderModal).not.toBeVisible();
+    await expect(folderDialog).not.toBeVisible();
     await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
 
     // 한 번 더 누르면 그때 이전 페이지(목록)로 간다
@@ -83,12 +83,12 @@ test.describe('로그인 상태 — 북마크 폴더 모달 열림·닫힘', () 
     await expect(page.getByRole('button', { name: TEXTS.post.detail.backToList })).toBeVisible();
 
     await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).click();
-    const folderModal = page.getByRole('dialog');
-    await expect(folderModal).toBeVisible();
+    const folderDialog = page.getByRole('dialog');
+    await expect(folderDialog).toBeVisible();
     await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 
-    await folderModal.getByRole('button', { name: TEXTS.ariaLabels.close }).click();
-    await expect(folderModal).not.toBeVisible();
+    await folderDialog.getByRole('button', { name: TEXTS.ariaLabels.close }).click();
+    await expect(folderDialog).not.toBeVisible();
     await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
 
     await page.goBack();

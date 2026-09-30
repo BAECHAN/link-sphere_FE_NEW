@@ -4,8 +4,8 @@ import { useFcmForegroundMessage } from '@/shared/lib/firebase/useFcmForegroundM
 import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard';
 import { useAppVersionCheck } from '@/shared/hooks/useAppVersionCheck';
 import { useNewVersionReload } from '@/shared/hooks/useNewVersionReload';
-import { GlobalImageViewer } from '@/shared/ui/elements/modal/image-viewer/ImageViewer';
-import { GlobalAlerts } from '@/shared/ui/elements/modal/alert/Alert';
+import { GlobalImageViewer } from '@/shared/ui/elements/dialog/image-viewer/ImageViewer';
+import { GlobalAlerts } from '@/shared/ui/elements/dialog/alert/Alert';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 
 // 비로그인 방문자 대다수는 한 번도 열지 않는 모달이라 초기 번들에서 뺀다(form-vendor
@@ -13,9 +13,9 @@ import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 // (docs/plans/2026-09-25-lighthouse-perf.md 참고). fallback={null}인 자체 Suspense로
 // 감싸 Outlet과 같은 경계를 타지 않게 한다 - 같은 경계였다면 이 청크가 늦게 도착할 때
 // 페이지 본문까지 함께 멈춘다.
-const LoginModal = lazy(() =>
-  import('@/widgets/layout/login-modal/ui/LoginModal').then((module) => ({
-    default: module.LoginModal,
+const LoginDialog = lazy(() =>
+  import('@/widgets/layout/login-dialog/ui/LoginDialog').then((module) => ({
+    default: module.LoginDialog,
   }))
 );
 
@@ -42,7 +42,7 @@ export function RootLayout() {
       <ScrollRestoration />
       <Outlet />
       <Suspense fallback={null}>
-        <LoginModal />
+        <LoginDialog />
       </Suspense>
       <GlobalImageViewer />
       <GlobalAlerts />

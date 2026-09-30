@@ -97,8 +97,8 @@ test.describe('로그인 상태 — 게시글을 북마크 폴더에 저장', ()
     // 북마크 버튼(아직 미북마크 상태라 name은 '북마크 저장', BookmarkPostButton.tsx:45)
     await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).click();
 
-    const folderModal = page.getByRole('dialog');
-    await expect(folderModal).toBeVisible();
+    const folderDialog = page.getByRole('dialog');
+    await expect(folderDialog).toBeVisible();
 
     // handleBookmarkFolderChangeSuccess가 postInvalidateQueries.list()도 호출해 목록을
     // 재조회한다 — 낙관적 업데이트가 그 재조회로 되돌아가지 않고 그대로 유지되는지
@@ -114,9 +114,9 @@ test.describe('로그인 상태 — 게시글을 북마크 폴더에 저장', ()
     // 명시적 예외).
     await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 
-    // 폴더 행 탭 = 즉시 저장(PostCardBookmarkFolderModal.tsx) — 저장 성공 후 모달이 닫힌다
-    await folderModal.getByRole('button', { name: mockBookmarkFolder.name }).click();
-    await expect(folderModal).not.toBeVisible();
+    // 폴더 행 탭 = 즉시 저장(PostCardBookmarkFolderDialog.tsx) — 저장 성공 후 모달이 닫힌다
+    await folderDialog.getByRole('button', { name: mockBookmarkFolder.name }).click();
+    await expect(folderDialog).not.toBeVisible();
 
     await listRefetch;
     await expect(page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkChange })).toBeVisible();

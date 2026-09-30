@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/shared/store/auth.store';
-import { useLoginModalStore } from '@/shared/store/loginModal.store';
+import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 
 /**
@@ -11,8 +11,8 @@ import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
  */
 export function useProtectedNavigate() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const setLoginOnSuccess = useLoginModalStore((state) => state.setOnSuccess);
-  const { open: openLoginModal } = useHistoryOverlay('loginModalOpen');
+  const setLoginOnSuccess = useLoginDialogStore((state) => state.setOnSuccess);
+  const { open: openLoginDialog } = useHistoryOverlay('loginDialogOpen');
   const navigate = useNavigate();
 
   return useCallback(
@@ -24,8 +24,8 @@ export function useProtectedNavigate() {
       // ProtectedRoute.tsx의 리다이렉트와 동일하게 replace를 쓴다 - push하면 로그인모달이 열려있던
       // 엔트리 위에 쌓여, 그 엔트리가 히스토리에 orphan으로 남는다(뒤로가기 시 모달 재등장)
       setLoginOnSuccess(() => navigate(to, { replace: true }));
-      openLoginModal();
+      openLoginDialog();
     },
-    [isAuthenticated, setLoginOnSuccess, openLoginModal, navigate]
+    [isAuthenticated, setLoginOnSuccess, openLoginDialog, navigate]
   );
 }

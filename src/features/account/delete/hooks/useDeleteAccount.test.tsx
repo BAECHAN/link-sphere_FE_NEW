@@ -23,7 +23,7 @@ vi.mock('@/shared/lib/router/navigation', () => ({
 
 // openConfirm이 실제 다이얼로그를 띄우는 대신 onConfirm을 즉시 실행하게 한다 - 이 훅의
 // 관심사는 "확인 다이얼로그를 연다"가 아니라 "확인 후 올바른 요청을 보낸다"이다.
-vi.mock('@/shared/ui/elements/modal/alert/alert.store', () => ({
+vi.mock('@/shared/ui/elements/dialog/alert/alert.store', () => ({
   useAlert: () => ({
     openConfirm: (options: { onConfirm?: () => void }) => options.onConfirm?.(),
   }),

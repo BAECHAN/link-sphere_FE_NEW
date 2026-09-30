@@ -5,7 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { ProtectedRoute } from '@/app/routes/ProtectedRoute';
 import { useAuthStore } from '@/shared/store/auth.store';
-import { useLoginModalStore } from '@/shared/store/loginModal.store';
+import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { createTestQueryClient } from '@/test/utils';
 import { server } from '@/mocks/server';
@@ -26,14 +26,14 @@ function makeToken(expSecondsFromNow: number): string {
   return `${header}.${body}.sig`;
 }
 
-/** /post로 리다이렉트된 뒤 pathname·loginModalOpen state를 확인하기 위한 프로브. */
+/** /post로 리다이렉트된 뒤 pathname·loginDialogOpen state를 확인하기 위한 프로브. */
 function PostRootProbe() {
   const location = useLocation();
-  const state = location.state as { loginModalOpen?: boolean } | null;
+  const state = location.state as { loginDialogOpen?: boolean } | null;
   return (
     <div>
       <div data-testid="post-root">post-root</div>
-      <div data-testid="login-modal-open">{String(Boolean(state?.loginModalOpen))}</div>
+      <div data-testid="login-dialog-open">{String(Boolean(state?.loginDialogOpen))}</div>
     </div>
   );
 }
@@ -68,7 +68,7 @@ describe('ProtectedRoute', () => {
   afterEach(() => {
     useAuthStore.getState().clearAuth();
     useAuthStore.getState().setAuthResolved(false);
-    useLoginModalStore.getState().setOnSuccess(undefined);
+    useLoginDialogStore.getState().setOnSuccess(undefined);
     vi.restoreAllMocks();
   });
 
@@ -107,16 +107,16 @@ describe('ProtectedRoute', () => {
     expect(screen.getByTestId('protected-content')).toBeInTheDocument();
   });
 
-  it('복원이 끝났고 비로그인이면 /post로 리다이렉트하며 loginModalOpen을 싣는다', async () => {
+  it('복원이 끝났고 비로그인이면 /post로 리다이렉트하며 loginDialogOpen을 싣는다', async () => {
     useAuthStore.getState().setAuthResolved(true);
 
     renderProtectedRoute();
 
     await waitFor(() => expect(screen.getByTestId('post-root')).toBeInTheDocument());
-    expect(screen.getByTestId('login-modal-open')).toHaveTextContent('true');
+    expect(screen.getByTestId('login-dialog-open')).toHaveTextContent('true');
   });
 
-  it('로그인 상태였다가 로그아웃되면 같은 /post로 보내되 loginModalOpen 없이 조용히 이동한다', async () => {
+  it('로그인 상태였다가 로그아웃되면 같은 /post로 보내되 loginDialogOpen 없이 조용히 이동한다', async () => {
     useAuthStore.getState().setAuth(makeToken(3600));
     useAuthStore.getState().setAuthResolved(true);
 
@@ -128,7 +128,7 @@ describe('ProtectedRoute', () => {
     });
 
     await waitFor(() => expect(screen.getByTestId('post-root')).toBeInTheDocument());
-    expect(screen.getByTestId('login-modal-open')).toHaveTextContent('false');
+    expect(screen.getByTestId('login-dialog-open')).toHaveTextContent('false');
   });
 
   it('비로그인 진입 시 로그인 성공 콜백이 설정되고, 실행하면 원래 경로(쿼리스트링 포함)로 복귀한다', async () => {
@@ -136,11 +136,11 @@ describe('ProtectedRoute', () => {
 
     renderProtectedRoute(['/bookmark?folder=work']);
 
-    await waitFor(() => expect(useLoginModalStore.getState().onSuccess).toBeTypeOf('function'));
+    await waitFor(() => expect(useLoginDialogStore.getState().onSuccess).toBeTypeOf('function'));
 
     act(() => {
       useAuthStore.getState().setAuth(makeToken(3600));
-      useLoginModalStore.getState().onSuccess?.();
+      useLoginDialogStore.getState().onSuccess?.();
     });
 
     await waitFor(() => expect(screen.getByTestId('protected-content')).toBeInTheDocument());
@@ -153,7 +153,7 @@ describe('ProtectedRoute', () => {
     renderProtectedRoute();
 
     expect(screen.getByTestId('protected-content')).toBeInTheDocument();
-    expect(useLoginModalStore.getState().onSuccess).toBeUndefined();
+    expect(useLoginDialogStore.getState().onSuccess).toBeUndefined();
   });
 
   it('[설계] 만료된 것처럼 보이는 accessToken이 있어도 이 컴포넌트는 사전에 refresh를 호출하지 않는다', async () => {

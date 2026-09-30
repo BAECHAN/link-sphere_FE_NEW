@@ -21,7 +21,7 @@ interface UseBookmarkFolderSelectParams {
 }
 
 /**
- * 폴더 선택 모달(BookmarkFolderSelectModal)의 로직 전부 — 폴더 목록 조회·생성·행별 pending
+ * 폴더 선택 모달(BookmarkFolderSelectDialog)의 로직 전부 — 폴더 목록 조회·생성·행별 pending
  * 상태를 소유한다. 저장 동작 자체(성공 토스트·닫기·라우팅)는 호출부가 콜백으로 넘긴다.
  */
 export function useBookmarkFolderSelect({
@@ -45,7 +45,7 @@ export function useBookmarkFolderSelect({
   const submittingRef = useRef(false);
 
   // 다이얼로그가 닫히면 생성 입력 상태를 리셋한다 — 열려 있는 동안만 스스로 닫히는 즉시 저장
-  // 경로(PostCardBookmarkFolderModal)와 달리, 지연 선택(PostCreateBookmarkFolderField)은 확인 버튼으로 닫히므로
+  // 경로(PostCardBookmarkFolderDialog)와 달리, 지연 선택(PostCreateBookmarkFolderField)은 확인 버튼으로 닫히므로
   // 여기서 공통으로 처리해야 다음에 열 때 입력창이 남아있지 않는다.
   useEffect(() => {
     if (!open) {

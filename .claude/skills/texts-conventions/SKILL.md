@@ -111,7 +111,7 @@ TEXTS
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `linkCopied` — 클립보드 복사는 화면 변화가 전혀 없음                                                                                                                             | `postDeleted`/`folderDeleted` — 목록에서 바로 사라짐(생성·삭제·토글류) |
 | `bookmarkSavedTo(folderName)` — 아이콘만 봐선 "어느 폴더"인지 모름                                                                                                               | —                                                                      |
-| `bookmarkRemoved` — 실행취소 동반(판단축 3). 소속 폴더 0~1개일 때 `undoOptions`로 되돌리기 제공(`usePostCardBookmarkFolderModal.ts`)                                             | —                                                                      |
+| `bookmarkRemoved` — 실행취소 동반(판단축 3). 소속 폴더 0~1개일 때 `undoOptions`로 되돌리기 제공(`usePostCardBookmarkFolderDialog.ts`)                                            | —                                                                      |
 | `postUpdated`/`accountUpdated` — 본문 등 수정 내용이 스크롤 밖·다른 화면에 있어 바로 티가 안 날 수 있음                                                                          | —                                                                      |
 | `postSetToPrivate`/`postSetToPublic` — 토글이지만 낙관적 업데이트가 없어 아이콘 전환이 서버 왕복 뒤에야 오고, 프라이버시 액션이라 오반영 비용이 큼(2026-09-21 재분류, 아래 참고) | —                                                                      |
 

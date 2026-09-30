@@ -70,7 +70,7 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
   한다(#227, URL 파라미터 처리 로직을 `pages/*/hooks/`로 옮긴 pages-first 원칙).
 - **TanStack Query** — 폴더 목록·폴더별 게시글 무한 스크롤·낙관적 업데이트
 - **Zod** — `bookmark-folder.schema.ts`의 폴더·요청/응답 스키마
-- **Radix Dialog 기반 `BookmarkFolderSelectModal`** — 데스크탑 중앙 모달 / 모바일 Bottom Sheet
+- **Radix Dialog 기반 `BookmarkFolderSelectDialog`** — 데스크탑 중앙 모달 / 모바일 Bottom Sheet
   (`SheetDialogContent`) 공용 프레젠테이션. (2026-09-08 정정: 이전엔 "Popover 기반"으로
   적혀 있었으나 실제 코드는 Popover를 쓴 적이 없다 — `Dialog` + `SheetDialogContent`뿐)
 
@@ -137,10 +137,10 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
   동일하게 완전 삭제로 처리한다(2026-09-11 재결정, §10) — "전체 해제로 방금 도착한
   상태"와 "그 상태를 다시 탭한 것"은 다른 사용자 의도로 본다.
 
-### `PostCardBookmarkFolderModal` 행 동작
+### `PostCardBookmarkFolderDialog` 행 동작
 
-`BookmarkPostButton`을 누르면 열리는 모달(`features/bookmark/toggle/ui/PostCardBookmarkFolderModal.tsx`,
-실제 마크업은 `features/bookmark/select/ui/BookmarkFolderSelectModal`, 제목 "북마크에 저장" —
+`BookmarkPostButton`을 누르면 열리는 모달(`features/bookmark/toggle/ui/PostCardBookmarkFolderDialog.tsx`,
+실제 마크업은 `features/bookmark/select/ui/BookmarkFolderSelectDialog`, 제목 "북마크에 저장" —
 2026-09-30 이전엔 "보관함"이었으나 북마크와 연결되지 않는다는 피드백으로 바꿨다)의 전체 동작이다. 탭 = 즉시
 저장/제거 + 모달 닫힘(확인 단계 없음). 폴더 목록만 스크롤되고, 새 폴더 만들기(헤더
 바로 아래)·북마크 제거(하단)는 폴더가 몇 개든 항상 화면에 보인다(2026-09-11 —
@@ -178,10 +178,10 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
   `useHistoryOverlay`(`shared/hooks/useHistoryOverlay.ts`)로 열 때 같은 경로에 state 엔트리를
   push하고, 닫을 때(폴더 탭·X·ESC·바깥 클릭) `navigate(-1)`로 되돌린다 — `docs/DECISIONS.md`
   2026-08-07 "뒤로가기 정책"의 T1(화면을 덮는 오버레이)에 이 모달을 넣은 것이다. 피드에는
-  카드가 여러 장이라 state 키를 `bookmarkFolderModalOpen:${postId}`로 **게시글마다 따로** 둔다
+  카드가 여러 장이라 state 키를 `bookmarkFolderDialogOpen:${postId}`로 **게시글마다 따로** 둔다
   — 공용 키면 한 카드에서 열 때 모든 카드의 모달이 같이 열린다.
 - **로그인 후 재개**: 비로그인으로 누르면 `useAuthGuard`가 로그인 모달을 띄우고 `open`을
-  재개 액션으로 맡긴다. `useLoginModal`이 로그인 모달의 `navigate(-1)`이 반영된 **뒤에** 재개
+  재개 액션으로 맡긴다. `useLoginDialog`가 로그인 모달의 `navigate(-1)`이 반영된 **뒤에** 재개
   액션을 실행하므로 두 모달이 겹치지 않는다.
 - **hover 프리페치**: 전에는 모달이 열려야(`enabled: open`) `GET /bookmark/folders`를 시작해,
   작게 뜬 모달이 목록이 들어오며 늘어났다. 지금은 아이콘의 `onMouseEnter`·`onFocus`에서
@@ -238,7 +238,7 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
   `!name`일 때 폼을 닫음) 뒤따르는 `click`이 유실된다. 결과는 같아 보이지만(둘 다
   폼을 접음) 핸들러가 실제로 실행되지 않아 나중에 취소에 로직이 붙으면 조용히
   안 돈다.
-- **저장 모달(`BookmarkFolderSelectModal.tsx`)의 Escape는 `SheetDialogContent`의
+- **저장 모달(`BookmarkFolderSelectDialog.tsx`)의 Escape는 `SheetDialogContent`의
   `onEscapeKeyDown`이 소유한다** — Radix `Dialog`는 document capture 단계에서
   ESC를 가로채므로(`react-use-escape-keydown`), Input의 `onKeyDown`에서
   `stopPropagation()`을 해도 이미 늦어 모달 전체가 닫혔다. 생성 폼이 열려 있을
@@ -254,7 +254,7 @@ Shneiderman(1994)](https://dl.acm.org/doi/10.1145/174630.174632)의 split menu
 본 목록에서 빼지 않고 그대로 중복 표시한다 — 빼면 본 목록의 나머지 위치가 흔들려
 공간기억이 깨지기 때문이다.
 
-**순서 고정은 모달에만 적용한다.** `BookmarkFolderSelectModal`(열고 닫을 때마다 새
+**순서 고정은 모달에만 적용한다.** `BookmarkFolderSelectDialog`(열고 닫을 때마다 새
 세션)은 열려 있는 동안 순서를 고정해 공간기억을 지키지만, 상시 마운트 화면
 (`FolderTree`·`MobileFolderList`)은 페이지 방문 내내 떠 있어 "다시 열기" 같은 세션
 경계가 아예 없다 — 그 화면에서까지 순서를 얼리면 폴더에 저장해도 새로고침 전까지
@@ -271,7 +271,7 @@ Shneiderman(1994)](https://dl.acm.org/doi/10.1145/174630.174632)의 split menu
 `FolderTree`(데스크톱 사이드바)에서 "새 폴더 만들기"는 상단 고정 블록의 마지막
 줄(전체·미분류·[최근 저장한 폴더]·**새 폴더 만들기**·"내 폴더" 라벨 순)에 있다 —
 폴더 개수와 무관하게 항상 한 번에 보이고, 스크롤해도 움직이지 않는다. 폴더 선택
-모달(`BookmarkFolderSelectModal`)도 같은 이유로 헤더 바로 아래(상단)에 둔다 —
+모달(`BookmarkFolderSelectDialog`)도 같은 이유로 헤더 바로 아래(상단)에 둔다 —
 2026-09-11에 먼저 정한 위치를 2026-09-22에 사이드바에도 뒤늦게 맞췄다(경위는 §10
 "'내 폴더' 라벨이 스크롤에 같이 밀리고..." 참고). "내 폴더" 라벨도 같은 상단
 블록에 고정돼 있어 스크롤은 그 아래 폴더 행에만 적용된다.
@@ -279,21 +279,21 @@ Shneiderman(1994)](https://dl.acm.org/doi/10.1145/174630.174632)의 split menu
 ### 링크 등록 폼의 폴더 선택(`PostCreateBookmarkFolderField`) — 이 페이지가 아닌 다른 화면
 
 `src/features/post/create/ui/PostCreateBookmarkFolderField.tsx`는 `/bookmark` 페이지가
-아니라 **링크 등록 폼**(`CreatePostForm`)에 있는 필드다. `PostCardBookmarkFolderModal`과
-같은 `features/bookmark/select/ui/BookmarkFolderSelectModal`을 쓰고 주입하는 콜백만 다르다 —
+아니라 **링크 등록 폼**(`CreatePostForm`)에 있는 필드다. `PostCardBookmarkFolderDialog`와
+같은 `features/bookmark/select/ui/BookmarkFolderSelectDialog`를 쓰고 주입하는 콜백만 다르다 —
 저장 동작을 콜백으로 넘기는 쪽이 즉시 저장인지 지연 선택인지에 따라 핵심 동작이 갈린다.
 
-|                       | `PostCardBookmarkFolderModal`(북마크 페이지)                                 | `PostCreateBookmarkFolderField`(등록 폼)                                            |
-| --------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| 대상                  | 이미 존재하는 북마크                                                         | 아직 만들어지지 않은 게시글                                                         |
-| 행 탭                 | 즉시 API 호출로 저장/제거 + 모달 닫힘                                        | 폼의 `bookmark`/`folderIds` 값만 변경, 모달 안 닫힘                                 |
-| 확정 시점             | 탭하는 순간                                                                  | 등록 제출(`POST /post`) 시 BE가 한 번에 처리                                        |
-| 확인 버튼             | 없음                                                                         | 있음(하단 고정, 지연 선택을 닫아 확정)                                              |
-| 하단 destructive 행   | `북마크 제거`(열 때 북마크였을 때만)                                         | `북마크 안 함`(항상 노출) — 탭하면 확인 없이 바로 모달을 닫음                       |
-| 미분류 재탭           | 북마크 완전 삭제 + 되돌리기(2026-09-11)                                      | "북마크 안 함"으로 되돌림 — API 호출이 없어 되돌리기 불필요                         |
-| 최근 저장한 폴더 구획 | 있음                                                                         | 있음                                                                                |
-| 행별 pending 스피너   | 있음                                                                         | 없음(핸들러가 동기라 표시될 틈이 없음)                                              |
-| 열림 상태·뒤로가기    | `bookmarkFolderModalOpen:${postId}` 히스토리 엔트리 — 뒤로가기는 모달만 닫음 | `postCreateBookmarkFolderOpen` 히스토리 엔트리 — 뒤로가기는 모달만 닫음(2026-09-30) |
+|                       | `PostCardBookmarkFolderDialog`(북마크 페이지)                                 | `PostCreateBookmarkFolderField`(등록 폼)                                            |
+| --------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 대상                  | 이미 존재하는 북마크                                                          | 아직 만들어지지 않은 게시글                                                         |
+| 행 탭                 | 즉시 API 호출로 저장/제거 + 모달 닫힘                                         | 폼의 `bookmark`/`folderIds` 값만 변경, 모달 안 닫힘                                 |
+| 확정 시점             | 탭하는 순간                                                                   | 등록 제출(`POST /post`) 시 BE가 한 번에 처리                                        |
+| 확인 버튼             | 없음                                                                          | 있음(하단 고정, 지연 선택을 닫아 확정)                                              |
+| 하단 destructive 행   | `북마크 제거`(열 때 북마크였을 때만)                                          | `북마크 안 함`(항상 노출) — 탭하면 확인 없이 바로 모달을 닫음                       |
+| 미분류 재탭           | 북마크 완전 삭제 + 되돌리기(2026-09-11)                                       | "북마크 안 함"으로 되돌림 — API 호출이 없어 되돌리기 불필요                         |
+| 최근 저장한 폴더 구획 | 있음                                                                          | 있음                                                                                |
+| 행별 pending 스피너   | 있음                                                                          | 없음(핸들러가 동기라 표시될 틈이 없음)                                              |
+| 열림 상태·뒤로가기    | `bookmarkFolderDialogOpen:${postId}` 히스토리 엔트리 — 뒤로가기는 모달만 닫음 | `postCreateBookmarkFolderOpen` 히스토리 엔트리 — 뒤로가기는 모달만 닫음(2026-09-30) |
 
 폼 스키마(`entities/post/model/post.schema.ts`의 `createPostSchema`)에
 `bookmark: boolean`, `folderIds: string[]` 두 필드가 있고, 등록 성공 시
@@ -425,18 +425,18 @@ src/
 │               └── MobileFolderList.tsx      # 모바일 폴더 그리드 (drill-down). 생성 카드는
 │                                              # 버튼 가로 행 + 취소(§5, 2026-09-21). ⋮ 메뉴도
 │                                              # 같은 HoverKebabMenu 사용
-│                                              # 위 둘 + BookmarkFolderSelectModal(아래) 모두 "최근 저장한
+│                                              # 위 둘 + BookmarkFolderSelectDialog(아래) 모두 "최근 저장한
 │                                              # 폴더" + "내 폴더" 두 구획 포함(§5)
 ├── features/
 │   ├── bookmark/                     # 2026-09-08 post/bookmark에서 승격 — entities/widgets/
 │   │   │                             # pages와 bookmark 도메인 그룹을 통일
 │   │   ├── select/
 │   │   │   ├── hooks/
-│   │   │   │   └── useBookmarkFolderSelect.ts # BookmarkFolderSelectModal의 로직 전부(조회·생성·
+│   │   │   │   └── useBookmarkFolderSelect.ts # BookmarkFolderSelectDialog의 로직 전부(조회·생성·
 │   │   │   │                                 # 행별 pending 상태 + handleCancelCreate로 취소, 2026-09-21)
 │   │   │   └── ui/
-│   │   │       └── BookmarkFolderSelectModal.tsx # JSX만 — 폴더 선택 모달/바텀시트 공용
-│   │   │                                         # 프레젠테이션. PostCardBookmarkFolderModal·
+│   │   │       └── BookmarkFolderSelectDialog.tsx # JSX만 — 폴더 선택 모달/바텀시트 공용
+│   │   │                                         # 프레젠테이션. PostCardBookmarkFolderDialog·
 │   │   │                                         # PostCreateBookmarkFolderField가 공유하고 저장
 │   │   │                                         # 동작만 콜백으로 주입받는다. Escape 소유권은
 │   │   │                                         # SheetDialogContent의 onEscapeKeyDown(§5, 2026-09-21)
@@ -447,17 +447,18 @@ src/
 │   │       │   │                                     # toggle로 완전 삭제, §5)
 │   │       │   ├── useBookmarkPostButton.ts          # 열림 상태(useHistoryOverlay, postId별 키)
 │   │       │   │                                     # + 인증 가드 + hover 프리페치(§5, 2026-09-30)
-│   │       │   └── usePostCardBookmarkFolderModal.ts # 즉시 저장 동작 + 토스트 분기 + 닫힘
+│   │       │   └── usePostCardBookmarkFolderDialog.ts # 즉시 저장 동작 + 토스트 분기 + 닫힘
 │   │       │                                         # 애니메이션 중 버튼 깜빡임 방지 스냅샷
-│   │       │                                         # (PostCardBookmarkFolderModal 전용)
+│   │       │                                         # (PostCardBookmarkFolderDialog 전용)
 │   │       └── ui/
 │   │           ├── BookmarkPostButton.tsx            # 카드의 북마크 버튼(JSX만) — 클릭 시
-│   │           │                                     # PostCardBookmarkFolderModal 오픈
-│   │           └── PostCardBookmarkFolderModal.tsx   # JSX만(2026-09-08, BookmarkFolderModal에서
-│   │                                                 # 개명 — 아래 BookmarkFolderSelectModal과
+│   │           │                                     # PostCardBookmarkFolderDialog 오픈
+│   │           └── PostCardBookmarkFolderDialog.tsx  # JSX만(2026-09-08, BookmarkFolderModal에서
+│   │                                                 # 개명 — 아래 BookmarkFolderSelectDialog와
 │   │                                                 # 이름이 겹쳐 호출 맥락(PostCard) 접두사를
-│   │                                                 # 붙임) — 로직은 usePostCardBookmarkFolderModal,
-│   │                                                 # 모달 마크업은 BookmarkFolderSelectModal(아래)에 위임
+│   │                                                 # 붙임. 2026-09-30 …Modal→…Dialog 재개명)
+│   │                                                 # — 로직은 usePostCardBookmarkFolderDialog,
+│   │                                                 # 모달 마크업은 BookmarkFolderSelectDialog(아래)에 위임
 │   └── post/
 │       └── create/
 │           ├── hooks/
@@ -487,7 +488,7 @@ src/
 │           │   ├── bookmark-folder.util.ts      # pickRecentFolders — "최근 저장한 폴더" 선정 로직(§7)
 │           │   └── bookmark-folder.util.test.ts # 임계값·완전 일치 배제·정렬 순수 로직 테스트
 │           └── hooks/
-│               └── useRecentBookmarkFolders.ts # 모달(BookmarkFolderSelectModal) 전용 스냅샷 로직
+│               └── useRecentBookmarkFolders.ts # 모달(BookmarkFolderSelectDialog) 전용 스냅샷 로직
 │                                               # (§5, §10) — 상시 화면은 위 folder-tree/hooks/
 │                                               # useFolderSections.ts가 대신 pickRecentFolders를 직접 호출
 └── shared/
@@ -529,7 +530,7 @@ src/
 개명(`FolderSelector`→`BookmarkFolderModal`, `BookmarkFolderPicker`→`BookmarkFolderField`)했지만
 각 테스트의 단언은 한 줄도 바뀌지 않았다. 같은 날 두 번째 개명(`BookmarkFolderModal`→
 `PostCardBookmarkFolderModal`, `BookmarkFolderField`→`PostCreateBookmarkFolderField` —
-`entities/bookmark/folder/ui/FolderPickerModal`(현재 `BookmarkFolderSelectModal`)과
+`entities/bookmark/folder/ui/FolderPickerModal`(현재 `BookmarkFolderSelectDialog`)과
 이름·JSDoc이 겹쳐 구분이 안 된다는 지적에 따라 호출 맥락 접두사를 붙임)에서도, 세 번째
 개명(2026-09-09, entities/bookmark/folder/ 전체 export에 BookmarkFolder 접두사를
 통일하면서 `FolderSelectModal`→`BookmarkFolderSelectModal`, `useFolderSelect`→
@@ -538,6 +539,10 @@ src/
 `useRecentBookmarkFolders.ts`로 통일 — export명은 이미 세 번째 개명에서 BookmarkFolder로
 바뀌었는데 파일명만 뒤처져 있던 것을 바로잡음)에서도 동일하게 5개 파일·50개 테스트
 그대로 재확인됐다.
+
+이 절의 기록은 당시 이름 그대로 둔다 — 2026-09-30 Dialog 명칭 통일
+(`docs/FE-ARCHITECTURE.md` §18)로 `PostCardBookmarkFolderModal`·`BookmarkFolderSelectModal`은
+각각 `PostCardBookmarkFolderDialog`·`BookmarkFolderSelectDialog`로 다시 개명됐다.
 
 **2026-09-11 갱신** — 마지막 폴더 완전 삭제 변경(§5, §10) 이후 관련 테스트 7개 파일,
 58개 테스트 통과: 위 5개 파일 중 `PostCardBookmarkFolderModal.test.tsx`(8→9, 마지막
@@ -621,7 +626,7 @@ mutation과 동일한 패턴으로 추가해, invalidate 응답을 기다리는 
 `widgets/bookmark/folder-tree/ui/FolderTree.tsx`,
 `widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`,
 `features/post/bookmark/ui/`의 `FolderSelector.tsx`(현재
-`features/bookmark/toggle/ui/PostCardBookmarkFolderModal.tsx`), `entities/post/api/post.queries.ts`.
+`features/bookmark/toggle/ui/PostCardBookmarkFolderDialog.tsx`), `entities/post/api/post.queries.ts`.
 
 ### 마지막 폴더에서 뺐는데 "북마크 제거"를 눌러도 반응이 없어 보이던 문제
 
@@ -651,7 +656,7 @@ mutation과 동일한 패턴으로 추가해, invalidate 응답을 기다리는 
 영향 파일: `entities/interaction/api/interaction.queries.ts`,
 `entities/bookmark/folder/api/bookmark-folder.queries.ts`,
 `features/bookmark/toggle/hooks/useBookmarkFolders.ts`,
-`features/bookmark/toggle/hooks/usePostCardBookmarkFolderModal.ts`,
+`features/bookmark/toggle/hooks/usePostCardBookmarkFolderDialog.ts`,
 `features/bookmark/select/hooks/useBookmarkFolderSelect.ts`,
 `features/post/create/hooks/usePostCreateBookmarkFolderField.ts`.
 
@@ -673,10 +678,10 @@ Undo"였다. no-op 근거를 다시 쓰는 과정에서 몇 줄 위/아래에 �
 
 영향 파일: `features/bookmark/select/hooks/useBookmarkFolderSelect.ts`,
 `features/bookmark/toggle/hooks/useBookmarkFolders.ts`,
-`features/bookmark/toggle/hooks/usePostCardBookmarkFolderModal.ts`,
+`features/bookmark/toggle/hooks/usePostCardBookmarkFolderDialog.ts`,
 `features/post/create/hooks/usePostCreateBookmarkFolderField.ts`.
 
-같은 작업에서 `BookmarkFolderSelectModal.tsx`의 새 폴더 만들기·북마크 제거 행이
+같은 작업에서 `BookmarkFolderSelectDialog.tsx`의 새 폴더 만들기·북마크 제거 행이
 폴더 목록과 같은 스크롤 영역에 있어 폴더가 많으면 화면 밖으로 밀리는 문제도 함께
 발견해 고쳤다(§5) — 로직 변경이 아니라 레이아웃 변경이라 별도 시행착오로 두지
 않는다.
@@ -768,7 +773,7 @@ URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 고쳐 썼다. �
 `sticky`는 위치를 고정할 뿐 내부 스크롤을 만들지 않으므로, 폴더 목록이 뷰포트보다
 길면 아랫부분이 화면 밖에 남고 페이지 전체를 스크롤해야만 닿을 수 있었다.
 
-`BookmarkFolderSelectModal`이 같은 문제를 이미 겪고 해결한 선례가 있었다
+`BookmarkFolderSelectDialog`가 같은 문제를 이미 겪고 해결한 선례가 있었다
 (2026-09-11, 위 "같은 작업에서 새 폴더 만들기·북마크 제거 행이..." 문단, `docs/DECISIONS.md`
 "2026-09-11" 항목) — 목록만 스크롤시키고 상시 노출돼야 할 행은 스크롤 밖에 고정하는
 방식이다. 사이드바에도 같은 판단을 적용했다: 전체·미분류·최근 저장한 폴더는 상단
@@ -798,7 +803,7 @@ Tailwind 클래스를 그대로 쓴 정적 목업을 만들어 "패널 전체 �
 만들기"를 누르려면 폴더가 많을 때 끝까지 스크롤해야 했다.
 
 ②를 조사하며 이미 이 레포 안에 반대 사례가 있다는 걸 발견했다 — 폴더 선택 모달
-(`BookmarkFolderSelectModal.tsx`)은 2026-09-11에 정확히 같은 고민(스크롤 중 상시
+(`BookmarkFolderSelectDialog.tsx`)은 2026-09-11에 정확히 같은 고민(스크롤 중 상시
 노출 행을 어디 둘지)을 하고 "새 폴더 만들기"를 **헤더 바로 아래(상단)**에 두기로
 했다(`docs/DECISIONS.md` 2026-09-11 항목, "생성 발견성 최상" 근거로 채택 — 하단
 안은 "모바일에서 파괴 액션(북마크 제거)이 엄지 위치에 노출됨" 때문에 기각). 그런데
@@ -960,7 +965,7 @@ CSS 정렬 버그 하나에 들이기엔 과한 인프라라고 판단했다.
 깨져 다른 스펙과 같은 `waitForTimeout(DOUBLE_CLICK_GUARD_MS)` 대기를 넣었다.
 
 영향 파일: `shared/ui/atoms/dialog.tsx`, `shared/ui/atoms/dialog.test.tsx`,
-`e2e/guest-guard.spec.ts`, `e2e/bookmark-folder-modal.spec.ts`(신규).
+`e2e/guest-guard.spec.ts`, `e2e/bookmark-folder-dialog.spec.ts`(신규).
 
 ## 11. 남은 것
 
@@ -982,24 +987,25 @@ CSS 정렬 버그 하나에 들이기엔 과한 인프라라고 판단했다.
   `BookmarkFolderKey`(`'all' | 'uncategorized' | UUID`)로 정규화한 값(`folderKey ?? 'all'`)
 - **`sessionKey`** — `useRecentBookmarkFolders`의 세 번째 매개변수(`unknown` 타입). 값이
   바뀔 때마다 "최근 저장한 폴더" 스냅샷을 새로 찍는다. 지금은 모달
-  (`BookmarkFolderSelectModal`)이 유일한 호출부고 열림 상태를 넘겨 열 때마다 새
+  (`BookmarkFolderSelectDialog`)이 유일한 호출부고 열림 상태를 넘겨 열 때마다 새
   세션으로 취급한다. 상시 마운트 화면(`FolderTree`·`MobileFolderList`)은 애초에 세션
   경계가 없어 이 훅을 쓰지 않고, `useFolderSections`가 `BookmarkFolderUtil.pickRecentFolders`를
   직접 호출해 매 렌더 최신으로 계산한다(2026-09-21, §10)
 - **`apiClient`** — `src/shared/api/client.ts`의 공통 HTTP 클라이언트
 - **`TEXTS`** — `src/shared/config/texts.ts`의 문구 상수 객체
-- **`BookmarkFolderSelectModal`** — `features/bookmark/select/` 소유의 공용 폴더 선택 프레젠테이션(§8 코드 지도).
+- **`BookmarkFolderSelectDialog`** — `features/bookmark/select/` 소유의 공용 폴더 선택 프레젠테이션(§8 코드 지도).
   2026-09-08 이전 이름은 `FolderPickerModal`("Picker") — Radix 드롭다운 원자
   (`shared/ui/atoms/select.tsx`)와 무관하게, 내부 props(`onSelectFolder` 등)가 이미
   "select" 어휘를 쓰고 있어 접미사를 "Select"로 통일해 `FolderSelectModal`이 됐다.
   2026-09-09에 entities/bookmark/folder/ 전체 export를 `BookmarkFolder` 접두사로
   통일하면서 다시 `BookmarkFolderSelectModal`로 개명했다(features 레이어가 이미
-  전부 이 접두사를 쓰는데 entities만 안 쓰던 불일치를 해소).
+  전부 이 접두사를 쓰는데 entities만 안 쓰던 불일치를 해소). 2026-09-30 Dialog 명칭
+  통일(`docs/FE-ARCHITECTURE.md` §18)로 지금 이름이 됐다.
 - **`PostCreateBookmarkFolderField`** — §5 "링크 등록 폼의 폴더 선택" 참고. 등록 폼
-  전용이고, 북마크 페이지의 `PostCardBookmarkFolderModal`과는 별개 컴포넌트다
+  전용이고, 북마크 페이지의 `PostCardBookmarkFolderDialog`와는 별개 컴포넌트다
   (2026-09-08 이전에는 각각 `BookmarkFolderPicker`·`FolderSelector`로, 그 뒤
   `BookmarkFolderField`·`BookmarkFolderModal`로 불렸으나 `entities/bookmark/folder/ui/FolderPickerModal`
-  (현재 `BookmarkFolderSelectModal`)과 이름·설명이 겹쳐 구분이 안 돼 호출 맥락 접두사
+  (현재 `BookmarkFolderSelectDialog`)과 이름·설명이 겹쳐 구분이 안 돼 호출 맥락 접두사
   `PostCreate`·`PostCard`를 붙여 다시 개명했다)
 
 ## 13. 관련 문서

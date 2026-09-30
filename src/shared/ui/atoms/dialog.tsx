@@ -46,7 +46,7 @@ type DialogContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.
 // 안에 두는 이유가 그것이다 — DialogContent 함수 본문은 닫혀 있어도 항상 실행되므로, 거기서
 // useOpenClickGuard(true)를 부르면 시계가 "열린 시점"이 아니라 페이지에 처음 렌더된 시점에
 // 한 번 찍히고 끝나 가드가 사실상 꺼진다(2026-09-30 발견, <Dialog open={false}>로 미리
-// 마운트해 두는 BookmarkFolderSelectModal 등에서 열린 직후 바깥 클릭이 그대로 닫았다).
+// 마운트해 두는 BookmarkFolderSelectDialog 등에서 열린 직후 바깥 클릭이 그대로 닫았다).
 const DialogContentPanel = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
@@ -67,7 +67,7 @@ const DialogContentPanel = React.forwardRef<
     // 모달이 뜬 직후(더블클릭/더블탭 등으로) 들어오는 클릭을 무의식적인 중복 입력으로
     // 보고 무시한다 — 안 그러면 방금 뜬 확인창의 취소/삭제 버튼이나 바깥 오버레이에
     // 두 번째 클릭이 떨어져 "열리자마자 닫히거나 의도치 않게 확정"된다. 원래
-    // BookmarkFolderSelectModal 한 곳에만 배선돼 있던 가드를 모든 Dialog 기반 모달에
+    // BookmarkFolderSelectDialog 한 곳에만 배선돼 있던 가드를 모든 Dialog 기반 모달에
     // 적용하기 위해 여기로 올렸다(docs/BOOKMARK.md §5, docs/plans/2026-09-29-dialog-open-click-guard.md 참고).
     const isOpenClickGuarded = useOpenClickGuard(true);
 

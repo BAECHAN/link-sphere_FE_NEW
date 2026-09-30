@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { MemoryRouter } from 'react-router-dom';
-import { GlobalAlerts } from '@/shared/ui/elements/modal/alert/Alert';
-import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
+import { GlobalAlerts } from '@/shared/ui/elements/dialog/alert/Alert';
+import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
 import { Button } from '@/shared/ui/atoms/button';
 
 const meta = {
-  title: 'Shared/UI/Elements/Modal/Alert',
+  title: 'Shared/UI/Elements/Dialog/Alert',
   component: GlobalAlerts,
   tags: ['autodocs'],
   // Alert가 마운트 즉시 useLocation()을 호출한다 - <Router> 조상 없이는 렌더 자체가

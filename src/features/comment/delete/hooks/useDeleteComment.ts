@@ -1,5 +1,5 @@
 import { useDeleteCommentMutation } from '@/entities/comment/api/comment.queries';
-import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
+import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
 import { TEXTS } from '@/shared/config/texts';
 
 interface UseDeleteCommentOptions {

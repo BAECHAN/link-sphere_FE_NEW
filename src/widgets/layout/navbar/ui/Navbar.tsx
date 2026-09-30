@@ -22,7 +22,7 @@ import { useRecentSearches } from '@/widgets/layout/navbar/hooks/useRecentSearch
 import { useDelayedLogout } from '@/widgets/layout/navbar/hooks/useDelayedLogout';
 import { useMobileSearchPanel } from '@/widgets/layout/navbar/hooks/useMobileSearchPanel';
 import { TEXTS } from '@/shared/config/texts';
-import { useLoginModalStore } from '@/shared/store/loginModal.store';
+import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { useClickGuard } from '@/shared/hooks/useClickGuard';
 import { cn } from '@/shared/lib/tailwind/utils';
@@ -36,8 +36,8 @@ export function Navbar() {
 
   const { isLoggingOut, handleLogout } = useDelayedLogout();
   const { open: openSidebar } = useHistoryOverlay('sidebarOpen');
-  const setLoginOnSuccess = useLoginModalStore((state) => state.setOnSuccess);
-  const { open: openLoginModal } = useHistoryOverlay('loginModalOpen');
+  const setLoginOnSuccess = useLoginDialogStore((state) => state.setOnSuccess);
+  const { open: openLoginDialog } = useHistoryOverlay('loginDialogOpen');
 
   const navigate = useNavigate();
 
@@ -189,7 +189,7 @@ export function Navbar() {
               <Button
                 onClick={() => {
                   setLoginOnSuccess(undefined);
-                  openLoginModal();
+                  openLoginDialog();
                 }}
                 size="sm"
                 className="ml-2"

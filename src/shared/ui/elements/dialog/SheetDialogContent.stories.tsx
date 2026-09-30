@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Dialog, DialogTrigger, DialogHeader, DialogTitle } from '@/shared/ui/atoms/dialog';
-import { SheetDialogContent } from '@/shared/ui/elements/modal/SheetDialogContent';
+import { SheetDialogContent } from '@/shared/ui/elements/dialog/SheetDialogContent';
 import { Button } from '@/shared/ui/atoms/button';
 
 const meta = {
-  title: 'Shared/UI/Elements/Modal/SheetDialogContent',
+  title: 'Shared/UI/Elements/Dialog/SheetDialogContent',
   component: SheetDialogContent,
   tags: ['autodocs'],
   args: {

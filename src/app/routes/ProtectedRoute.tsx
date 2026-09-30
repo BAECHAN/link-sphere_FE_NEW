@@ -4,7 +4,7 @@ import { useAuth } from '@/entities/auth/hooks/useAuth';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
-import { useLoginModalStore } from '@/shared/store/loginModal.store';
+import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,7 +14,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const setLoginOnSuccess = useLoginModalStore((state) => state.setOnSuccess);
+  const setLoginOnSuccess = useLoginDialogStore((state) => state.setOnSuccess);
   // AuthProvider가 더 이상 렌더를 막지 않으므로, 첫 페인트 시점엔 복원이 끝나기 전이라
   // isAuthenticated가 아직 false다. 이 값을 기다리지 않으면 로그인 사용자가
   // 보호 페이지를 새로고침할 때 피드로 튕기고 로그인 모달까지 뜬다.
@@ -53,7 +53,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       <Navigate
         to={ROUTES_PATHS.POST.ROOT}
         replace
-        state={hasBeenAuthenticated.current ? undefined : { loginModalOpen: true }}
+        state={hasBeenAuthenticated.current ? undefined : { loginDialogOpen: true }}
       />
     );
   }

@@ -17,7 +17,7 @@ export function useBookmarkPostButton(postId: Post['id']) {
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const guard = useAuthGuard();
-  const { isOpen, open, close } = useHistoryOverlay(`bookmarkFolderModalOpen:${postId}`);
+  const { isOpen, open, close } = useHistoryOverlay(`bookmarkFolderDialogOpen:${postId}`);
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
