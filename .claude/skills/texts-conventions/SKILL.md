@@ -30,7 +30,7 @@ TEXTS
 ├── post.form.create.* (title, description1/2, urlLabel, urlPlaceholder, titleLabel, ...)
 ├── post.form.update.* (title, description, titleLabel, titlePlaceholder, updating, update, ...)
 ├── post.card.* (withdrawnAuthor, visitWebsite, aiSummary, edit, saving, ...)
-├── post.detail.* (notFound, backToList, back, ...)
+├── post.detail.* (notFound, backToList, ...) — 중립 "뒤로가기"는 공용 buttons.back
 ├── post.search.corrected(query) / appliedCount(count)
 ├── comment.list.* (loadError, heading, empty)
 ├── comment.form.* (replyPlaceholder, commentPlaceholder, preview, cancel, save, ...)

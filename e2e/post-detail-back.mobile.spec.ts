@@ -24,7 +24,7 @@ test.describe('모바일 — 상세 돌아가기 버튼 없음', () => {
     await expect(page.getByRole('heading', { name: mockPost.title })).toBeVisible();
 
     await expect(page.getByRole('button', { name: TEXTS.post.detail.backToList })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: TEXTS.post.detail.back })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: TEXTS.buttons.back })).toHaveCount(0);
 
     // BottomTabBar는 라우트와 무관하게 항상 떠 있다(md:hidden fixed bottom-0) — 버튼이
     // 없어도 갈 곳이 없는 게 아니라는 걸 증명한다. Sidebar가 데스크톱용(aside, hidden

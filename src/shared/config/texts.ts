@@ -54,7 +54,7 @@ export const TEXTS = {
     retry: '다시 시도',
     refresh: '새로고침',
     home: '홈으로 이동',
-    back: '뒤로 가기',
+    back: '뒤로가기',
     login: '로그인',
     myComments: '내 댓글',
     accountSettings: '계정 설정',
@@ -270,10 +270,9 @@ export const TEXTS = {
       // 유입 경로별로 실제 목적지가 달라 라벨을 그때그때 고른다 (PostDetailPage 참고).
       // backToList: 피드·검색 유입, 외부(공유링크·FCM·새로고침) 유입 — 실제로 /post로 감,
       //   이름 있는 화면(포스트 목록)이라 약속할 수 있다.
-      // back: 그 외(북마크 - 폴더마다 화면이 달라 하나로 이름 붙일 수 없음, 상세 자기
-      //   링크 등 출처 불명) — 목적지를 약속하지 않는 중립 표현.
+      // 그 외(북마크 - 폴더마다 화면이 달라 하나로 이름 붙일 수 없음, 상세 자기 링크 등
+      //   출처 불명)는 목적지를 약속하지 않는 공용 문구 buttons.back을 쓴다.
       backToList: '목록으로',
-      back: '뒤로가기',
     },
     search: {
       corrected: (query: string) => `'${query}'(으)로 검색한 결과예요.`,
