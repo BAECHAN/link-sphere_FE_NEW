@@ -70,15 +70,15 @@ test.describe('댓글 삭제', () => {
     await expect(deleteButton).toHaveCount(1);
     await deleteButton.click();
 
-    // 트리거 버튼과 confirm 확인 버튼이 둘 다 role=button + 텍스트 '삭제'라 dialog로
+    // 트리거 버튼과 confirm 확인 버튼이 둘 다 role=button + 텍스트 '삭제'라 alertdialog로
     // 스코프해야 한다. confirm에 title이 없어 접근명은 sr-only 'Alert'다(Alert.tsx).
-    const confirmDialog = page.getByRole('dialog');
+    const confirmDialog = page.getByRole('alertdialog');
     await expect(confirmDialog).toBeVisible();
     // 삭제 버튼을 직접 눌러야만 뜨는 다이얼로그라 이미 삭제를 결심한 상태다 - 열리자마자
     // 삭제 버튼에 포커스가 가 있어야 한다(useDeleteComment.ts, § 2026-09-29).
     await expect(confirmDialog.getByRole('button', { name: TEXTS.buttons.delete })).toBeFocused();
 
-    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // alert-dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
     // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
     await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 
@@ -127,10 +127,10 @@ test.describe('댓글 삭제', () => {
     await expect(deleteButton).toHaveCount(1);
     await deleteButton.click();
 
-    const confirmDialog = page.getByRole('dialog');
+    const confirmDialog = page.getByRole('alertdialog');
     await expect(confirmDialog).toBeVisible();
 
-    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // alert-dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
     // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
     await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 

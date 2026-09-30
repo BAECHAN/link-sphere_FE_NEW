@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogTitle } from '@/shared/ui/atoms/dialog';
 
 // DialogContent가 열린 직후(더블클릭/더블탭 관통 방지) 클릭을 무시하는지 검증한다.
 // 2026-09-29부터 useOpenClickGuard(원래 BookmarkFolderSelectDialog 한 곳에만 배선돼 있던 것)가
-// 이 atom으로 올라와 Alert/Confirm을 포함한 모든 Dialog 기반 모달에 공통 적용된다
+// 이 atom으로 올라와 모든 Dialog 기반 모달에 공통 적용된다(확인창(Alert/Confirm)은 2026-09-30부터
+// alert-dialog.tsx가 같은 가드를 갖는다 — alert-dialog.test.tsx 참고)
 // (docs/BOOKMARK.md §5, docs/plans/2026-09-29-dialog-open-click-guard.md 참고).
 
 function ControlledDialog({
@@ -147,8 +148,9 @@ describe('DialogContent — 열린 직후 클릭 가드', () => {
   });
 });
 
-// 바깥 클릭 닫기 정책(2026-09-30, docs/DECISIONS.md) — 확인창처럼 명시적인 응답이 필요한
-// 모달은 dismissOnOutsideClick={false}로 바깥 클릭을 무시한다. ESC는 그대로 닫는다.
+// 바깥 클릭 닫기 정책(2026-09-30, docs/DECISIONS.md) — 닫히면 입력이 사라지는 모달(입력이 생긴
+// 로그인 모달)은 dismissOnOutsideClick={false}로 바깥 클릭을 무시한다. ESC는 그대로 닫는다.
+// 확인창(Alert/Confirm)은 alert-dialog.tsx가 항상 막는다(alert-dialog.test.tsx 참고).
 describe('DialogContent — dismissOnOutsideClick', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });

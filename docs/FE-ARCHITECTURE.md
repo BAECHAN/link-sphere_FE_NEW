@@ -1108,8 +1108,9 @@ Radix `Dialog` 기반 창을 코드에서 `*Modal`·`*Dialog`로 섞어 부르�
   이 자리다.
 - **Alert = 특수한 다이얼로그** — [W3C APG Alert Dialog 패턴](https://www.w3.org/WAI/ARIA/apg/patterns/alertdialog/)은
   _"중요한 메시지를 알리고 응답을 받기 위해 사용자의 작업 흐름을 끊는 모달 다이얼로그"_ (번역)로
-  정의한다. 이 레포의 `Alert`·`GlobalAlerts`·`useAlert`·`openConfirm`이 이 자리다 — 단 2026-09-30
-  기준 `Alert.tsx`는 일반 Radix `Dialog`라 `role="alertdialog"`가 아니다(별도 작업으로 남김).
+  정의한다. 이 레포의 `Alert`·`GlobalAlerts`·`useAlert`·`openConfirm`이 이 자리다 — `Alert.tsx`는
+  2026-09-30부터 `shared/ui/atoms/alert-dialog.tsx`(Radix `AlertDialog`)를 써서 `role="alertdialog"`로
+  렌더된다(`docs/DECISIONS.md` 2026-09-30 "확인창을 Radix AlertDialog로 교체").
 - **라이브러리도 같은 층위를 쓴다** — Radix는 컴포넌트 이름이 `Dialog`이고 모달 여부는 `modal`
   prop으로 받으며, alert dialog는 별도 패키지(`@radix-ui/react-alert-dialog`)다.
   [MUI Modal 문서](https://mui.com/material-ui/react-modal/)는 _"모달 다이얼로그를 만든다면

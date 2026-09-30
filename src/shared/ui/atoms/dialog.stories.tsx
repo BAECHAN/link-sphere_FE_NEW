@@ -59,7 +59,8 @@ export const Default: Story = {
 
 /**
  * dismissOnOutsideClick={false} — 바깥(오버레이) 클릭으로 닫히지 않는다. ESC·닫기 버튼으로만
- * 닫힌다. 확인창(Alert/Confirm)과 입력이 생긴 로그인 모달이 쓴다(docs/DECISIONS.md 2026-09-30).
+ * 닫힌다. 입력이 생긴 로그인 모달이 쓴다(docs/DECISIONS.md 2026-09-30). 확인창(Alert/Confirm)은
+ * 이 prop 대신 AlertDialog(alert-dialog.stories.tsx)가 같은 동작을 한다.
  */
 export const NoOutsideDismiss: Story = {
   render: () => (

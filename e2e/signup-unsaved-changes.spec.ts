@@ -24,7 +24,7 @@ test.describe('회원가입 폼 이탈 확인', () => {
   });
 
   function guardDialog(page: Page) {
-    return page.getByRole('dialog', { name: TEXTS.unsavedChanges.signup.title });
+    return page.getByRole('alertdialog', { name: TEXTS.unsavedChanges.signup.title });
   }
 
   async function fillSignupForm(page: Page) {
@@ -67,7 +67,7 @@ test.describe('회원가입 폼 이탈 확인', () => {
     await loginLink(page).click();
     await expect(guardDialog(page)).toBeVisible();
 
-    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // alert-dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
     // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
     await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 
@@ -94,7 +94,7 @@ test.describe('회원가입 폼 이탈 확인', () => {
     await loginLink(page).click();
 
     await expect(page).toHaveURL(/\/auth\/login$/);
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByRole('dialog').or(page.getByRole('alertdialog'))).toHaveCount(0);
   });
 
   test('아무것도 입력하지 않았으면 Sign In 링크는 확인창 없이 이동한다', async ({ page }) => {
@@ -103,7 +103,7 @@ test.describe('회원가입 폼 이탈 확인', () => {
     await loginLink(page).click();
 
     await expect(page).toHaveURL(/\/auth\/login$/);
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByRole('dialog').or(page.getByRole('alertdialog'))).toHaveCount(0);
   });
 
   test('로그인 페이지에서 "Sign Up"으로 들어가 입력 후 뒤로가기하면 확인창이 뜨고, "계속 가입하기"를 누르면 입력값이 유지된다', async ({
@@ -145,7 +145,7 @@ test.describe('회원가입 폼 이탈 확인', () => {
 
     await expect(guardDialog(page)).toBeVisible();
 
-    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // alert-dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
     // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
     await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 

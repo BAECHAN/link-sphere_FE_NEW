@@ -61,7 +61,9 @@ test.describe('게시글 등록', () => {
     // POST 응답(300ms 지연 중)을 기다리지 않고 즉시 /post로 이동한다(useCreatePost.ts).
     await expect(page).toHaveURL(/\/post$/);
     // clearNow()가 blocker를 실제로 풀어, 미저장 변경 확인 모달이 뜨지 않는다.
-    await expect(page.getByRole('dialog', { name: TEXTS.unsavedChanges.title })).toHaveCount(0);
+    await expect(page.getByRole('alertdialog', { name: TEXTS.unsavedChanges.title })).toHaveCount(
+      0
+    );
 
     const createdRequestBody = (await created).request().postDataJSON();
     expect(createdRequestBody.url).toBe(NEW_URL);

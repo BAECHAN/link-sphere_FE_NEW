@@ -159,6 +159,13 @@
 
   </details>
 
+- `shared` 확인창을 스크린리더가 "경고 대화상자"로 안내하도록 AlertDialog로 교체
+  <details><summary>배경·구현</summary>
+
+  삭제·이탈·공개 설정 확인창(`useAlert().openConfirm()`)은 일반 Radix `Dialog`라 `role="dialog"`로만 렌더돼, 응답이 필요한 경고라는 걸 스크린리더가 알려주지 못했다. 확인창을 Radix `AlertDialog` 기반 새 atom으로 바꿔 `role="alertdialog"`로 렌더한다. 눈으로 보는 모양·버튼 배치·초기 포커스·X 버튼은 그대로고, 바깥 클릭으로 안 닫히는 동작(#267)도 같다. 공용 `Dialog`의 가드 중 열린 직후 안쪽 클릭 무시와 한글 조합 중 ESC 무시를 새 atom에 옮겼다. e2e는 확인창 셀렉터를 `alertdialog`로 바꾸고, "창이 안 떴다" 단언은 `dialog`·`alertdialog`를 둘 다 보도록 고쳐 검사가 약해지지 않게 했다. (`src/shared/ui/atoms/alert-dialog.tsx`(신규), `src/shared/ui/atoms/alert-dialog.stories.tsx`(신규), `src/shared/ui/atoms/alert-dialog.test.tsx`(신규), `src/shared/ui/elements/dialog/alert/Alert.tsx`, e2e 11개 스펙, `docs/DECISIONS.md`, `docs/FE-ARCHITECTURE.md`, [PR #274](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/274))
+
+  </details>
+
 - `shared` 목록 중간에서 검색·필터를 바꿔도 결과를 맨 위부터 보여주기
   <details><summary>배경·구현</summary>
 

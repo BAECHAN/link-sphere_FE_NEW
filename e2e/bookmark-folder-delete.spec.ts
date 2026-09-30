@@ -77,7 +77,7 @@ test.describe('북마크 폴더 삭제', () => {
     // 달리, confirm dialog를 만지기 전에 드롭다운이 완전히 닫힌 걸 먼저 확인한다.
     await expect(page.getByRole('menu')).toHaveCount(0);
 
-    const confirmDialog = page.getByRole('dialog', {
+    const confirmDialog = page.getByRole('alertdialog', {
       name: TEXTS.bookmark.folder.deleteConfirmTitle(mockBookmarkFolder.name),
     });
     await expect(confirmDialog).toBeVisible();
@@ -85,7 +85,7 @@ test.describe('북마크 폴더 삭제', () => {
     // 열리자마자 삭제 버튼에 포커스가 가 있어야 한다(useFolderActions.ts, § 2026-09-29).
     await expect(confirmDialog.getByRole('button', { name: TEXTS.buttons.delete })).toBeFocused();
 
-    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // alert-dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
     // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
     await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 
@@ -115,6 +115,6 @@ test.describe('북마크 폴더 삭제', () => {
     // 언마운트된(죽은) 폴더의 게시글 쿼리는 stale 마킹만 되고 재조회되지 않는다.
     expect(folderPostsCount).toBe(beforeDeleteCount);
     // Alert가 location.key 변경으로 자동 취소됐는지도 확인한다.
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByRole('dialog').or(page.getByRole('alertdialog'))).toHaveCount(0);
   });
 });

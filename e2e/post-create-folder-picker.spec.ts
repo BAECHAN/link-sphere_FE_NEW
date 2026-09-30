@@ -45,6 +45,6 @@ test.describe('등록 폼 — 북마크 폴더 선택 모달 뒤로가기', () =
     // 선택한 폴더가 트리거 문구로 남아 있다
     await expect(page.getByRole('button', { name: mockBookmarkFolder.name })).toBeVisible();
     // 같은 경로 안의 이동이라 이탈 확인창이 뜨지 않는다
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByRole('dialog').or(page.getByRole('alertdialog'))).toHaveCount(0);
   });
 });

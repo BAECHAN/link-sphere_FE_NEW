@@ -41,7 +41,7 @@ test.describe('저장하지 않은 변경 가드', () => {
   }
 
   function guardDialog(page: Page) {
-    return page.getByRole('dialog', { name: TEXTS.unsavedChanges.title });
+    return page.getByRole('alertdialog', { name: TEXTS.unsavedChanges.title });
   }
 
   test('PUSH 이동(사이드바 Feed) 시 모달이 뜨고 "계속 작성"이면 머문다', async ({ page }) => {
@@ -74,7 +74,7 @@ test.describe('저장하지 않은 변경 가드', () => {
     await page.getByRole('link', { name: TEXTS.nav.feed }).click();
     await expect(guardDialog(page)).toBeVisible();
 
-    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // alert-dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
     // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
     await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 
@@ -93,7 +93,7 @@ test.describe('저장하지 않은 변경 가드', () => {
     await expect(guardDialog(page)).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
 
-    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // alert-dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
     // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
     await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 

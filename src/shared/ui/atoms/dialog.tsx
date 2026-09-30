@@ -36,8 +36,9 @@ type DialogContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.
   showCloseButton?: boolean;
   /**
    * false면 바깥(오버레이) 클릭으로 닫지 않는다. ESC·닫기 버튼·뒤로가기는 그대로 닫힌다.
-   * 확인창(Alert/Confirm)처럼 명시적인 응답이 필요하거나, 닫히면 사용자가 입력한 내용이
-   * 사라지는 모달에 쓴다(docs/DECISIONS.md 2026-09-30 "바깥 클릭 닫기 정책").
+   * 닫히면 사용자가 입력한 내용이 사라지는 모달(입력이 생긴 로그인 모달 등)에 쓴다
+   * (docs/DECISIONS.md 2026-09-30 "바깥 클릭 닫기 정책"). 확인창(Alert/Confirm)은 이 prop
+   * 대신 alert-dialog.tsx(Radix AlertDialog)가 바깥 클릭을 항상 막는다.
    */
   dismissOnOutsideClick?: boolean;
 };
