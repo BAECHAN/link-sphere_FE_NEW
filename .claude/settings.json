@@ -34,7 +34,13 @@
     "context7@claude-plugins-official": true
   },
   "permissions": {
-    "allow": ["Bash(grep -rn *)"]
+    "allow": ["Bash(grep -rn *)"],
+    "deny": [
+      "Bash(git reset --hard)",
+      "Bash(git reset --hard *)",
+      "Bash(git checkout -- .)",
+      "Bash(git restore .)"
+    ]
   },
   "claudeMdExcludes": ["/Users/baechan/project/CLAUDE.md"]
 }
