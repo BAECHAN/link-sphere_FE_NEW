@@ -1,4 +1,7 @@
 ### 2026-09-30 (FE)
+- Modal 컴포넌트 및 관련 경로 명칭을 Dialog로 리팩토링 ([#269](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/269))
+
+### 2026-09-30 (FE)
 - 등록 폼 내 북마크 폴더 선택 모달에 브라우저 뒤로가기 이벤트를 통한 닫기 기능 구현 ([#272](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/272))
 
 ### 2026-09-30 (FE)
