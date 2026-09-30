@@ -1,4 +1,7 @@
 ### 2026-09-30 (FE)
+- 게시글 상세 페이지 모달 활성화 시 '목록으로' 버튼 텍스트가 비정상적으로 변경되던 UI 버그 수정 ([#273](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/273))
+
+### 2026-09-30 (FE)
 - Modal 컴포넌트 및 관련 경로 명칭을 Dialog로 리팩토링 ([#269](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/269))
 
 ### 2026-09-30 (FE)
