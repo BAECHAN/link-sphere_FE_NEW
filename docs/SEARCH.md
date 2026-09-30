@@ -9,7 +9,7 @@
 > `#닉네임` 태그가 어떻게 분해되는지 이해하고, 검색 관련 동작(유지·초기화·오타 보정)을
 > 어느 파일에서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-09-28
+> **마지막 검토**: 2026-09-30
 
 ## 1. 쉬운 설명
 
@@ -102,6 +102,7 @@ flowchart LR
   Q -->|"useEffect 동기화"| MobileNavbarSearch
   PostListSearch["PostListSearch<br/>(usePostListSearch)"] -->|"setSearch"| Q
   Q -->|"useEffect 동기화"| PostListSearch
+  PostCard["PostCard 카테고리 배지<br/>(usePostCard.handleCategoryClick)"] -->|"q = @이름 (쓰기 전용)"| Q
 ```
 
 **왜 헤더 입력창을 `PostListSearch`의 `flushSync` 낙관적 미러 경로에 끼워 넣지 않았나**:
@@ -126,6 +127,43 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 §10과 [`docs/DECISIONS.md`](./DECISIONS.md) "2026-09-14" 항목 참고. 데스크톱 헤더의
 `submitQuery`(`NavbarSearch.tsx`)도 `/post`에 있을 때는 이 훅을 거친다 — 그래야 검색
 제출이 게시글 범위 필터(`filter`) 등 기존 파라미터를 지우지 않는다.
+
+**게시글 카드의 카테고리 배지도 `q`에 쓰는 진입점이다(쓰기 전용).** 카드의 카테고리 배지를
+누르면 [`usePostCard.ts`](../src/widgets/post/post-card/hooks/usePostCard.ts)의
+`handleCategoryClick`이 검색어를 `@이름` 하나로 바꾼다. 경로 분기는 헤더의 `submitQuery`와
+같다 — `/post`에서는 `useSearchParamsDraft`로 `q`만 바꿔 범위 칩(`filter`)을 유지하고,
+북마크·상세 등 다른 페이지에서는 그 페이지의 파라미터를 옮기지 않고 `/post?q=@이름`으로
+이동한다. 배지는 URL을 읽지 않는다(선택 상태 표시 없음) — 적용 결과는 목록 필터 카드의
+칩이 URL에서 파생해 보여준다.
+
+`/post` 분기에서는 `window.scrollTo({ top: 0 })`도 함께 부른다. 같은 경로에서 검색 파라미터만
+바뀌면 스크롤이 리셋되지 않기 때문이다 — 직접 측정(Playwright, mock 목록 9개 → 필터 후 3개):
+1400px에서 누르면 스크롤이 그대로 있다가 짧아진 목록의 끝(최대 스크롤 310px)에 걸려, 걸러진
+목록의 **끝부분**부터 보였다. 목록 내용이 그대로인 mock에서는 `scrollTo` 없이도 약 1초 뒤 0이
+돼서, 결과가 목록·타이밍에 따라 달랐다(0으로 보내는 주체는 끝까지 특정하지 못했다). 명시적
+`scrollTo`로 항상 맨 위부터 보이게 고정했고, 뒤로가기하면 원래 목록과 위치(1400px)로 돌아오는
+것도 확인했다. 헤더 검색 제출·칩도 같은 경로에서 `q`만 바꾸지만, 누르는 위치가 이미 화면
+위쪽이라 이 문제가 드러나지 않는다(이번 범위 밖).
+
+카드의 배지는 칩처럼 **토글하지 않고 교체**한다(2026-09-30 사용자 결정):
+
+| 안              | 피드에서 누르면                                                 | 채택 여부와 이유                                                                                                            |
+| --------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 교체            | `q`를 `@이름` 하나로 바꿈(키워드·다른 태그 제거, `filter` 유지) | **채택.** 피드·북마크·상세 어디서 눌러도 "이 카테고리 글 보기" 한 가지 뜻이다                                               |
+| 칩과 동일(토글) | 기존 태그에 추가, 이미 있으면 해제                              | 기각. 이미 그 카테고리로 필터 중일 때 카드에서 누르면 필터가 **풀려**, 카드를 누르는 의도("이거 더 보기")와 반대로 동작한다 |
+
+태그 배지는 이 동작이 없다 — 누르면 카드 전체 클릭(stretched link)의 일부로 상세로 간다.
+자유 검색어는 BE에서 제목·설명·태그를 한꺼번에 부분 일치로 찾고 의미 검색까지 섞어서,
+태그를 검색으로 연결하면 "이 태그가 붙은 글"이 아닌 결과가 나오기 때문이다
+([`docs/DECISIONS.md`](./DECISIONS.md) 2026-09-30 항목의 "후속으로 남긴 것").
+
+배지 모양(20px 높이)은 그대로 두고 버튼에 `py-0.5 -my-0.5`를 줘서 누르는 영역만 24px로
+넓혔다. [WCAG 2.2의 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)은
+대상 크기를 _"최소 24×24 CSS 픽셀"_ (번역)로 요구하고, 겹치는 대상은 _"같은 동작을 하지 않으면
+겹친 영역을 측정에서 제외"_ (번역)한다 — 카드 전체가 상세 링크라서 배지는 간격 예외를 받을 수
+없다. 음수 마진으로 레이아웃 기여분을 없애는 기법은 같은 파일의 소유자 액션 버튼에서 가져왔다.
+hover 표현은 제목과 같은 밑줄이다(3안 비교 후 사용자 선택:
+https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 
 **최근검색어 저장소는 `Navbar`에서 한 번만 구독한다.** [`useRecentSearches.ts`](../src/widgets/layout/navbar/hooks/useRecentSearches.ts)는
 [`useAppLocalStorage.ts`](../src/shared/hooks/useAppLocalStorage.ts)를 쓰는데, 그 훅의
@@ -171,6 +209,7 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 | 데스크톱 드롭다운 열림/닫힘 규칙(포커스·입력·blur) 바꾸기    | [`NavbarSearch.tsx:92-118`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L92-L118) — `handleChange`/`handleFocus`/`handleBlur`                                                                                                                        |
 | 데스크톱 드롭다운 키보드(ESC 2단계·화살표·Enter) 바꾸기      | [`NavbarSearch.tsx:155-275`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L155-L275) — `handleKeyDown`                                                                                                                                                |
 | 드롭다운 목록 마크업(헤더 고정·행·삭제 버튼) 바꾸기          | [`RecentSearchDropdown.tsx`](../src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx)                                                                                                                                                                    |
+| 카드의 카테고리 배지를 눌렀을 때 동작 바꾸기                 | [`usePostCard.ts:146-161`](../src/widgets/post/post-card/hooks/usePostCard.ts#L146-L161) — `handleCategoryClick`, 배지 마크업은 [`PostCard.tsx:296`](../src/widgets/post/post-card/ui/PostCard.tsx#L296) 이하                                             |
 | `@카테고리`/`#닉네임`/키워드 분해 규칙 바꾸기                | [`search-parser.ts`](../src/widgets/post/post-list/utils/search-parser.ts) — `parseSearchQuery`                                                                                                                                                           |
 | "조건 N개 적용 중" 카운트 로직                               | [`usePostListSearch.ts:11-28`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L11-L28) — `computeAppliedFilterCount`                                                                                                                            |
 | 초기화 버튼(필터+검색어 전체 리셋)                           | [`usePostListSearch.ts:121-128`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L121-L128) — `handleClearSearch`                                                                                                                                |
@@ -178,7 +217,7 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 | 모바일 검색 패널 열림 상태                                   | [`useMobileSearchPanel.ts:17-22`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L17-L22) — `location.state.mobileSearchOpen`                                                                                                                 |
 | 검색 중 하단 댓글바 숨김 동작 바꾸기                         | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useHistoryOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                                                                           |
 | 검색 중 배경 클릭·포커스 차단 범위 바꾸기                    | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                                                                         |
-| "검색어와 의미가 비슷한 글이에요" 배지 문구·표시 조건 바꾸기 | [`PostCard.tsx:200-208`](../src/widgets/post/post-card/ui/PostCard.tsx#L200-L208) — `post.isSemanticMatch`, 문구는 `TEXTS.post.card.semanticMatch`                                                                                                        |
+| "검색어와 의미가 비슷한 글이에요" 배지 문구·표시 조건 바꾸기 | [`PostCard.tsx:201-209`](../src/widgets/post/post-card/ui/PostCard.tsx#L201-L209) — `post.isSemanticMatch`, 문구는 `TEXTS.post.card.semanticMatch`                                                                                                        |
 
 ## 9. 검증 결과
 
