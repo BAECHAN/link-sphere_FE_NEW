@@ -150,9 +150,6 @@ export function usePostCard(post: Post, isDetail = false) {
       updateSearchParams((draft) => {
         draft.set('q', categoryQuery);
       });
-      // 같은 경로에서 검색 파라미터만 바뀌면 스크롤이 리셋되지 않아(직접 측정: 1400px에서 누르면
-      // 그대로 있다가 짧아진 목록 끝에 걸림), 목록 중간 카드에서 눌렀을 때 걸러진 목록의 끝부터 보인다.
-      window.scrollTo({ top: 0 });
 
       return;
     }

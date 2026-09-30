@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useWindowVirtualizer, type Virtualizer } from '@tanstack/react-virtual';
+import { useWindowVirtualizer, type VirtualItem, type Virtualizer } from '@tanstack/react-virtual';
 import { loadVirtualSnapshot, saveVirtualSnapshot } from '@/shared/lib/virtual/virtual-snapshot';
 
 export interface GapBreakpoint {
@@ -107,6 +107,44 @@ function useResponsiveValue<T extends { minWidth: number }>(breakpoints: readonl
   return value;
 }
 
+/**
+ * 행 높이가 추정치와 달라졌을 때 스크롤을 보정할지 정한다 - virtual-core의 기본 판정에
+ * "외부 스크롤 가드" 하나를 더한 것이다.
+ *
+ * 가드: 라우트 이동으로 <ScrollRestoration/>이 window를 맨 위로 보낸 커밋에서, 새 행의 첫
+ * 측정(measureElement ref)이 곧바로 일어난다. virtual-core의 scrollOffset 캐시는 비동기
+ * scroll 이벤트로만 갱신돼 아직 옛 위치(예: 1400)를 들고 있고, 그 기준으로 "위쪽 행이
+ * 커졌다"고 판단해 window를 1400+Δ로 되돌려 버린다(직접 계측: scrollTo(0,0) 3ms 뒤
+ * scrollTo({top:1121}), docs/DECISIONS.md 2026-09-30 "URL이 바뀌면 맨 위로" 항목). 캐시와
+ * 실제 스크롤이 한 화면 이상 벌어졌다면 방금 라이브러리가 모르는 외부 스크롤이 있었다는
+ * 뜻이라 보정하지 않는다. 사용자 스크롤은 프레임 사이에 한 화면씩 튀지 않으므로 평소 보정은
+ * 그대로 동작한다.
+ *
+ * 기본 판정: 이 콜백을 지정하면 기본 판정을 통째로 대체하므로 그대로 옮겨 적는다 -
+ * @tanstack/virtual-core 3.17.11 dist/esm/index.js resizeItem(918-933). 라이브러리를
+ * 올릴 때 이 부분이 원본과 같은지 다시 확인한다.
+ */
+function shouldAdjustScrollOnItemResize(
+  item: VirtualItem,
+  _delta: number,
+  instance: Virtualizer<Window, HTMLDivElement>
+): boolean {
+  const cachedOffset = instance.scrollOffset ?? 0;
+
+  if (Math.abs(window.scrollY - cachedOffset) > window.innerHeight) {
+    return false;
+  }
+
+  const offset = cachedOffset + instance.scrollAdjustments;
+  const isFirstMeasure = !instance.itemSizeCache.has(item.key);
+
+  if (isFirstMeasure) {
+    return item.start < offset;
+  }
+
+  return item.end <= offset && instance.scrollDirection !== 'backward';
+}
+
 /** 목록 컨테이너의 문서 최상단으로부터의 거리(scrollMargin)를 추적한다. 검색 안내
  * 문구·pull-to-refresh 인디케이터처럼 컨테이너 위 콘텐츠 높이가 바뀔 수 있어, 마운트·
  * 리사이즈 시 자동으로 재측정하고 그 외 시점은 remeasureScrollMargin을 노출해 호출부가
@@ -200,6 +238,8 @@ export function useWindowGridVirtualizer<T>({
       ? { initialMeasurementsCache: snapshot.items, initialOffset: snapshot.offset }
       : {}),
   });
+
+  virtualizer.shouldAdjustScrollPositionOnItemSizeChange = shouldAdjustScrollOnItemResize;
 
   const virtualizerRef = useRef(virtualizer);
   virtualizerRef.current = virtualizer;

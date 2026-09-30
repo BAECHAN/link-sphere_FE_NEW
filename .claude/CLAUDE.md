@@ -602,6 +602,7 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 | Optimistic Update (`onMutate` → `cancelQueries` → `setQueryData` → 롤백)           | §11  | 참조 구현: `entities/interaction/api/interaction.queries.ts`                                                                                                                                                                         |
 | Util Class (`*.util.ts`는 바레 함수 대신 `export class <Name>Util { static ... }`) | §23  | 함수 하나뿐이어도 클래스로 감싼다 — `shared/utils/`의 10/11 파일이 이 형태                                                                                                                                                           |
 | 모바일 키보드 힌트 (`enterKeyHint`·`inputMode`)                                    | §24  | 뒤에 다른 필드 없는 단일 입력 지점에만 `enterKeyHint`(Android 회귀 위험), 자체 검증 있는 필드는 `type` 대신 `inputMode`, `type="search"`는 지양                                                                                      |
+| 스크롤 규칙 (URL이 바뀌면 맨 위로)                                                 | §25  | 전역 `<ScrollRestoration />`이 처리하므로 기능마다 `window.scrollTo`를 넣지 않는다. 스크롤을 유지해야 하는 state-only push(오버레이·모달·패널)만 `preventScrollReset: true`로 빠진다                                                 |
 
 ---
 
