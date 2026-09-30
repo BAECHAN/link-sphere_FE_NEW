@@ -23,10 +23,14 @@ export const Default: Story = {
   ),
 };
 
+// 깨진 이미지는 없는 경로("/broken-image.jpg" 등) 대신 비어 있는 data URI로 만든다. 없는 경로는
+// 개발 서버가 SPA 폴백으로 index.html을 돌려주고, 그 과정에서 앱 진입점(src/main.tsx)까지 변환되며
+// 스토리와 무관한 의존성이 뒤늦게 최적화돼 Storybook 테스트가 리로드로 간헐 실패했다
+// (docs/DESIGN-SYSTEM.md §10 "Storybook a11y CI 간헐 실패").
 export const Fallback: Story = {
   render: (args) => (
     <Avatar {...args}>
-      <AvatarImage src="/broken-image.jpg" alt="@shadcn" />
+      <AvatarImage src="data:image/png;base64," alt="@shadcn" />
       <AvatarFallback>CN</AvatarFallback>
     </Avatar>
   ),

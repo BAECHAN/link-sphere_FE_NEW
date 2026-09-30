@@ -10,7 +10,7 @@
 > 토큰 카탈로그를 어떻게 보는지, Storybook a11y 게이트가 CI에서 어떻게 도는지 안다.
 > spacing 토큰은 왜 없는지, 지금 아는 a11y 위반이 뭐고 왜 아직 안 고쳤는지도 안다.
 >
-> **마지막 검토**: 2026-09-29
+> **마지막 검토**: 2026-09-30
 
 ## 1. 쉬운 설명
 
@@ -162,16 +162,17 @@ URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`�
 
 ## 8. 코드 지도와 자주 하는 수정
 
-| 하려는 것                         | 위치                                                                                                           | 방법                                                                                                                                                                                                              |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 새 z-index 층 추가                | `src/app/globals.css`의 `@theme static` 블록 (§ z-index 주석)                                                  | `--z-index-<name>: <값>` 추가 → `design-tokens` skill 표 갱신 → `DesignTokens.stories.tsx`의 `Z_INDEX_LAYERS` 배열에 항목 추가                                                                                    |
-| 새 색 토큰 추가                   | `globals.css`의 `:root`/`.dark` + `@theme inline` 매핑                                                         | 값 정의 → `--color-<name>: var(--<name>)` 매핑 추가 → skill 문서 표 갱신                                                                                                                                          |
-| 새 Tailwind 커스텀 ESLint 룰 추가 | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화) | 기존 5개 룰(`no-raw-z-index`/`no-raw-color`/`no-raw-text-size`/`no-raw-title`/`no-classname-template-literal`, 2026-09-29 재확인)과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭) 따르기 |
-| 새 타이포 역할 토큰 추가          | `globals.css`의 (static 아닌) `@theme` 블록                                                                    | `--text-<role>`/`--text-<role>--line-height`(필요시 `--font-weight`) 추가 → 실제 사용처에 클래스 적용 → `design-tokens` skill 역할 토큰 표 갱신                                                                   |
-| 토큰 카탈로그에 새 섹션 추가      | `src/shared/ui/tokens/DesignTokens.stories.tsx`                                                                | 새 `export const <Name>: Story` 추가(기존 `Colors`/`Radius`/`ZIndex` 참고)                                                                                                                                        |
-| Storybook에서 다크모드 확인       | `.storybook/preview.tsx`의 툴바 테마 토글                                                                      | 별도 설정 불필요 — 이미 `.dark` 클래스를 토글하도록 연결됨                                                                                                                                                        |
-| a11y 위반을 로컬에서 확인         | `pnpm test:storybook` (전체) 또는 `pnpm exec vitest run --project=storybook <파일>` (단일 파일)                | 실패 메시지의 axe 규칙 링크(dequeuniversity.com)로 원인 확인 → 고치거나 `parameters.a11y.test: 'todo'` + 사유 주석으로 낮추고 §11 목록에 추가                                                                     |
-| 새 스토리를 a11y 예외로 낮추기    | 해당 `*.stories.tsx`의 story 객체(또는 파일 전체가 해당하면 `meta`)                                            | `parameters: { a11y: { test: 'todo' } }` 추가 + 이유 주석 + `docs/DESIGN-SYSTEM.md` §11 "a11y 잔여 목록" 표에 행 추가                                                                                             |
+| 하려는 것                                         | 위치                                                                                                           | 방법                                                                                                                                                                                                                                                                                                      |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 새 z-index 층 추가                                | `src/app/globals.css`의 `@theme static` 블록 (§ z-index 주석)                                                  | `--z-index-<name>: <값>` 추가 → `design-tokens` skill 표 갱신 → `DesignTokens.stories.tsx`의 `Z_INDEX_LAYERS` 배열에 항목 추가                                                                                                                                                                            |
+| 새 색 토큰 추가                                   | `globals.css`의 `:root`/`.dark` + `@theme inline` 매핑                                                         | 값 정의 → `--color-<name>: var(--<name>)` 매핑 추가 → skill 문서 표 갱신                                                                                                                                                                                                                                  |
+| 새 Tailwind 커스텀 ESLint 룰 추가                 | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화) | 기존 5개 룰(`no-raw-z-index`/`no-raw-color`/`no-raw-text-size`/`no-raw-title`/`no-classname-template-literal`, 2026-09-29 재확인)과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭) 따르기                                                                                         |
+| 새 타이포 역할 토큰 추가                          | `globals.css`의 (static 아닌) `@theme` 블록                                                                    | `--text-<role>`/`--text-<role>--line-height`(필요시 `--font-weight`) 추가 → 실제 사용처에 클래스 적용 → `design-tokens` skill 역할 토큰 표 갱신                                                                                                                                                           |
+| 토큰 카탈로그에 새 섹션 추가                      | `src/shared/ui/tokens/DesignTokens.stories.tsx`                                                                | 새 `export const <Name>: Story` 추가(기존 `Colors`/`Radius`/`ZIndex` 참고)                                                                                                                                                                                                                                |
+| Storybook에서 다크모드 확인                       | `.storybook/preview.tsx`의 툴바 테마 토글                                                                      | 별도 설정 불필요 — 이미 `.dark` 클래스를 토글하도록 연결됨                                                                                                                                                                                                                                                |
+| a11y 위반을 로컬에서 확인                         | `pnpm test:storybook` (전체) 또는 `pnpm exec vitest run --project=storybook <파일>` (단일 파일)                | 실패 메시지의 axe 규칙 링크(dequeuniversity.com)로 원인 확인 → 고치거나 `parameters.a11y.test: 'todo'` + 사유 주석으로 낮추고 §11 목록에 추가                                                                                                                                                             |
+| 새 스토리를 a11y 예외로 낮추기                    | 해당 `*.stories.tsx`의 story 객체(또는 파일 전체가 해당하면 `meta`)                                            | `parameters: { a11y: { test: 'todo' } }` 추가 + 이유 주석 + `docs/DESIGN-SYSTEM.md` §11 "a11y 잔여 목록" 표에 행 추가                                                                                                                                                                                     |
+| CI가 "Storybook 테스트 중 의존성 재최적화"로 실패 | `.github/workflows/ci.yml`의 "Run Storybook a11y tests" 단계 로그                                              | 출력된 `new dependencies optimized:` 목록 확인 → 스토리가 없는 경로(이미지 `src` 등)를 요청해 `index.html` 폴백이 나지 않았는지 `DEBUG=vite:html-fallback pnpm test:storybook`으로 먼저 확인(§10) → 스토리가 실제로 쓰는 의존성이면 `vitest.config.ts` storybook 프로젝트에 `optimizeDeps.include`로 추가 |
 
 ## 9. 검증 결과
 
@@ -422,6 +423,42 @@ PR을 닫을 때 그 PR이 해소한 문제를 언급하는 다른 문서(§11 �
 `none` variant를 `button.tsx`에 추가해 9곳 전부 해소했다 — `FilterChip`과
 `FolderTree`의 비활성/비선택 분기처럼 호버 배경의 출처가 ghost뿐이던 곳은
 같은 커밋에 `hover:bg-accent`/`hover:text-foreground`를 명시로 보완했다.
+
+**Storybook a11y CI 간헐 실패 — 원인은 아바타 스토리의 깨진 이미지 경로였다(2026-09-30).**
+PR CI `e2e` job의 "Run Storybook a11y tests" 단계가 변경과 무관한 스토리(`divider`·`required-mark`·
+`AppErrorFallback` 등)에서 `Failed to fetch dynamically imported module …/sb-vitest/deps/*.js`로
+간헐 실패했다. 최근 CI 60회 중 12건이었고, 재실행하면 통과해 "기존 간헐 실패"로 넘겨 왔다
+(2026-09-30 직접 측정: `gh run list --workflow CI --limit 60`에서 재시도한 run 12개를 골라,
+`gh api repos/…/actions/runs/<id>/attempts/<n>/jobs`로 앞선 시도의 실패 단계를 셌다 — Storybook
+a11y 12건, e2e 3건).
+
+- **로그의 공통점**: 로그를 본 실패 5건 모두 직전에 `new dependencies optimized:`로 같은 11개
+  (`react-dom/client`, `@tanstack/react-query`, `@tanstack/react-query-devtools`, `firebase/messaging`,
+  `react-remove-scroll`, `dayjs`와 로케일·플러그인 5개)가 찍히고 `optimized dependencies changed. reloading`이
+  이어졌다. 통과한 run 중에도 같은 리로드를 겪고 운 좋게 넘어간 경우가 있었다.
+- **추적**: 11개는 스토리가 쓰는 것이 아니라 앱 진입점(`src/main.tsx` → `App`·`QueryProvider`·라우터·
+  FCM·`date.util.ts`)의 의존성이었다. `DEBUG=vite:html-fallback pnpm test:storybook`으로 돌리자
+  `Rewriting GET /broken-image.jpg to /index.html`이 찍혔다.
+- **원인 연결**:
+  - `avatar.stories.tsx`의 `Fallback` 스토리가 이미지 실패 화면을 보여 주려고 없는 경로를 썼다.
+  - 개발 서버는 없는 경로의 GET 요청 중 Accept 헤더가 `text/html`이나 `*/*`를 포함하면 SPA 폴백으로
+    `index.html`을 돌려준다(설치된 Vite 6.4.1 `htmlFallbackMiddleware` 조건, 소스 직접 확인).
+  - 그 HTML을 변환하며 `<script src="/src/main.tsx">`를 미리 변환했고, 거기서 앱 셸 의존성을 새로
+    발견해 재최적화·리로드했다.
+  - 로컬은 테스트가 약 5초 만에 끝나 리로드 전에 종료돼 재현되지 않았다(직접 측정: 캐시 없는 새
+    워크트리에서 `DEBUG=vite:deps pnpm test:storybook`의 Vitest `Duration` 5.15초, `new dependencies found`
+    로그는 테스트 종료 직후 찍힘). 느린 CI에서는 발견이 테스트 도중에 겹쳐 실행 중이던 스토리가 옛 청크를
+    못 불러왔다.
+- **고침**: 깨진 이미지를 네트워크 요청이 없는 `data:image/png;base64,`로 바꿨다. 같은 콜드 조건
+  (캐시 없는 새 워크트리)에서 HTML 폴백 0회, `main.tsx` 변환 0회, 뒤늦은 의존성 발견 0회를
+  확인했고, 대체 표시("CN")도 그대로 나온다.
+- **기각한 대안**: 경고를 띄우는 Vitest 소스(`browserLoader.ts`([vitest-dev/vitest의 node/plugins 디렉터리](https://github.com/vitest-dev/vitest/tree/main/packages/vitest/src/node/plugins)))는
+  _"안정적으로 쓰려면 새로 최적화된 의존성을 설정의 `optimizeDeps.include`에 직접 추가하라"_ (번역)고
+  안내한다. 하지만 그렇게 하면 원인은 둔 채 스토리가 쓰지 않는 앱 셸 의존성을 매번 미리 번들하게 된다.
+  CI 캐시(캐시 없는 첫 run은 그대로 실패)와 테스트 자동 재시도(진짜 실패까지 가림)도 기각했다.
+- **재발 감시**: `ci.yml`의 해당 단계는 로그에 `optimized dependencies changed`가 찍히면 테스트 통과
+  여부와 상관없이 실패하고, 발견된 의존성 목록을 출력한다. 이 문구는 Vite optimizer 로그 원문이라
+  Vite를 올려 문구가 바뀌면 감시가 조용히 꺼질 수 있다 — Vite 업그레이드 때 확인한다.
 
 ## 11. 남은 것
 
