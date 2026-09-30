@@ -1,4 +1,7 @@
 ### 2026-09-30 (FE)
+- Storybook a11y 테스트의 간헐적 실패 원인을 해결하고 안정적인 재발 감시 체계 구축 ([#276](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/276))
+
+### 2026-09-30 (FE)
 - 포스트 상세 페이지 뒤로가기 버튼 문구 관리 최적화 및 공용 상수 통합 ([#277](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/277))
 
 ### 2026-09-30 (FE)
