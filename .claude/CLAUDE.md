@@ -379,16 +379,16 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
   차단하므로, 위 감사에서 발견된 것과 같은 유형의 회귀는 이제 자동으로 잡힌다
 - **Never** 인라인 API 경로 → 항상 `API_ENDPOINTS.*` 사용
 - **Never** feature hook에서 직접 `queryClient.invalidateQueries` → 항상 `.keys.ts` success handlers 사용
-- **Never** 다른 엔티티의 raw 쿼리 키를 재구성해 `queryClient.invalidateQueries`를 직접 호출 → 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()` 래퍼만 사용. 크로스 엔티티 무효화가 필요하면 자기 엔티티의 `.keys.ts`에 `handle<Event>Success` 함수를 만들어 그 안에서 호출한다 (아래 "크로스 엔티티 무효화" 참고)
+- **Never** 다른 엔티티의 raw 쿼리 키를 재구성해 `queryClient.invalidateQueries`를 직접 호출 → 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()` 래퍼만 사용. 크로스 엔티티 무효화가 필요하면 자기 엔티티의 `.keys.ts`에 `handle<Event>Success` 함수를 만들어 그 안에서 호출한다 (`docs/FE-ARCHITECTURE.md` §5의 "크로스 엔티티 무효화" 참고)
 - **Never** 하위 레이어에서 상위 레이어 import → ESLint 강제 (레이어 방향 위반)
-- **Never** 날짜 처리에 `new Date()` / `.getTime()` 직접 사용 → 항상 `dayjs` 사용 (`dayjs(value).valueOf()`, `dayjs().format()` 등). ESLint `no-restricted-syntax`로 강제된다(`eslint.config.js`) — 2026-03-15에 이 규칙이 추가된 뒤로도 문서 규칙에만 의존해 5개월간 위반이 안 잡혔던 사례(당시 경로 `entities/folder/model/`의 `useRecentFolders.ts` 파일, 2026-08-12 작성 — 이후 `entities/bookmark/folder/hooks/`로 이동)가 있어 2026-09-08 ESLint로 승격
+- **Never** 날짜 처리에 `new Date()` / `.getTime()` 직접 사용 → 항상 `dayjs` 사용 (`dayjs(value).valueOf()`, `dayjs().format()` 등). ESLint `no-restricted-syntax`로 강제된다(`eslint.config.js`) — 2026-03-15에 이 규칙이 추가된 뒤로도 문서 규칙에만 의존해 5개월간 위반이 안 잡혔던 사례(당시 경로 `entities/folder/model/`의 `useRecentFolders.ts` 파일, 2026-08-12 작성 — 이후 `entities/bookmark/folder/hooks/useRecentBookmarkFolders.ts`로 이동·개명)가 있어 2026-09-08 ESLint로 승격
 - **Never** `features/**`·`pages/**`의 `hooks/` 밖(주로 `ui/`)에서 entity 쿼리 훅(`*.queries`) 직접 import → 조회는 자기 슬라이스의 `hooks/` 커스텀 훅이나 `entities/<entity>/hooks/`의 공용 훅(예: `useCategoryOptions`)에서 한다. `custom-query-rules/no-direct-query-import`는 `@tanstack/react-query` 직접 import만 막아 entity가 감싼 `*.queries` 훅 호출까지는 못 잡았고, 그 사이 `CreatePostForm.tsx`·`UpdatePostForm.tsx`가 `useFetchCategoryOptionQuery()`를 UI에서 직접 호출하는 게 5개월 넘게(dayjs 규칙과 같은 패턴) 안 잡혔다 — 2026-09-09 `custom-query-rules/no-entity-query-import-outside-hooks`로 승격(2026-09-29부터 pages도 대상에 추가, widgets는 §8 예외라 대상 아님)
 - **Never** 대상 파일 양식 무시하고 코드 생성 → 항상 붙여넣을 파일(및 인접 코드)을 **먼저 읽고** 들여쓰기·네이밍·import 순서·따옴표·주석 밀도·정렬을 그대로 맞춘다. 본인 스타일을 강요하거나 기존 코드를 재포맷하지 않는다
 - **Never** raw HTML 요소로 UI를 일회성 구현 → 항상 공통 컴포넌트(`shared/ui/atoms`·`elements`·`widgets`) 우선. 반복되는 UI는 공통 컴포넌트를 만들거나 기존 것을 사용해 디자인을 단일 관리한다 (예: 버튼은 raw `<button>` 대신 `Button` 컴포넌트). 신규 코드 기준
 - **Never** `shared/ui/atoms`·`elements`에 컴포넌트를 추가하거나 시각적으로 변경하고 스토리 없이 커밋 → 항상 같은 커밋에 `<Component>.stories.tsx`를 함께 만들거나 갱신한다. `.storybook/main.ts`의 글롭이 `src/**/*.stories.tsx`를 자동 인식하므로 파일만 만들면 된다 (예시: `checkbox.tsx`+`checkbox.stories.tsx`, `switch.tsx`+`switch.stories.tsx`)
 - **Never** `if`문을 인라인으로 작성 (`if (x) return;`) → 항상 중괄호 블록으로 감싼다 (`if (x) {\n  return;\n}`). 한 줄짜리 본문도 예외 없음 (ESLint `curly: ['error', 'all']` 규칙으로 강제 중)
 - **Never** 문장을 다닥다닥 붙여 논리 그룹을 뭉개지 않는다 → 가드절(`if (...) { return; }`) 뒤, 그리고 `if`/`try` 같은 제어 블록 **앞뒤**에 **빈 줄 1줄**을 넣어 논리 단위를 분리한다 (Prettier가 아닌 컨벤션 — 아래 예시 참고)
-- **Never** 클릭 가능한 요소에 `cursor-pointer`를 개별로 붙인다 → `globals.css`의 `@layer base` 규칙이 `button`/ARIA role 전체를 전역으로 처리한다(디자인 토큰 섹션의 "인터랙션 커서" 참고). `div`/`span`에 `onClick`만 다는 것도 금지 — `Button`/`<button>`을 쓰거나, 불가피하면 `role="button"`을 함께 지정한다 (ESLint `custom-a11y/clickable-needs-interactive-element`가 차단)
+- **Never** 클릭 가능한 요소에 `cursor-pointer`를 개별로 붙인다 → `globals.css`의 `@layer base` 규칙이 `button`/ARIA role 전체를 전역으로 처리한다(`design-tokens` skill의 "인터랙션 커서" 참고). `div`/`span`에 `onClick`만 다는 것도 금지 — `Button`/`<button>`을 쓰거나, 불가피하면 `role="button"`을 함께 지정한다 (ESLint `custom-a11y/clickable-needs-interactive-element`가 차단)
 - **Never** `main`에 push한 뒤 워크플로우 결과를 확인하지 않고 "배포됨"이라 보고 →
   push 명령이 성공한 것과 배포가 실제로 완료된 것은 다른 사건이다. 항상
   `gh run list --branch main --workflow "Frontend Deploy (S3 + CloudFront)"`
