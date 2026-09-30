@@ -1,4 +1,7 @@
 ### 2026-09-30 (FE)
+- 북마크 모달 내 스켈레톤 UI 적용을 통한 로딩 경험 개선 ([#275](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/275))
+
+### 2026-09-30 (FE)
 - Storybook a11y 테스트의 간헐적 실패 원인을 해결하고 안정적인 재발 감시 체계 구축 ([#276](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/276))
 
 ### 2026-09-30 (FE)
