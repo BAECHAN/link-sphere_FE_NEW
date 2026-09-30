@@ -1084,6 +1084,7 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 | TS 타입                       | 스키마와 동일 (PascalCase)                                                                                                                                                                                                                                                                                                            | `Post`, `CreatePost`                        |
 | `config/` 파일                | `<entity>.const.ts` — `api/`·`model/`·`utils/`와 같은 `<entity>.<역할>.ts` 규칙(`const.ts` 단독 금지, `shared/config/const.ts`처럼 도메인이 없는 전역 설정은 예외). `<entity>`는 **엔티티명**이지 디렉터리 세그먼트명이 아니다 — 그룹 폴더(`entities/bookmark/folder/`) 아래에서도 파일 접두사는 엔티티명(`bookmark-folder`)을 따른다 | `bookmark-folder.const.ts`, `post.const.ts` |
 | `<Entity>[]` 배열 변수/반환값 | `<entity>List` — 지역변수·훅 반환 필드·구조분해값이 실제로 배열일 때. 아래 각주의 예외 2가지는 대상 아님                                                                                                                                                                                                                              | `folderList`                                |
+| 창·오버레이 식별자            | 창 자체(컴포넌트·훅·스토어·타입·경로·히스토리 키)는 `Dialog`, 뒤를 조작 불가로 만드는 성질은 `modal`, alert/confirm 전용은 `Alert`. 식별자에만 적용하고 한국어 산문의 "모달"은 허용 — 아래 각주                                                                                                                                       | `LoginDialog`, `modal={false}`, `useAlert`  |
 
 **`<entity>List` 각주** (2026-09-08) — "단수/복수"가 아니라 "배열인가 아닌가"로
 가른다. BE 응답 계약과 매핑된 이름(`BookmarkFolderListResponse`, `useBookmarkFolderListQuery`,
@@ -1092,6 +1093,34 @@ FolderListResponse 와 매핑" 주석 참고)과, 배열이 아니라 동작·�
 복수형이 그 자체로 맞는 이름(`BookmarkFoldersResponse`,
 `useBookmarkFolders`, `wasInFolders`, `clearBookmarkFolders`, `postFolders`
 엔드포인트 등)은 이 규칙 대상이 아니다 — 그대로 복수형을 쓴다.
+
+**`Dialog`·`modal`·`Alert` 각주** (2026-09-30) — 세 단어는 동의어가 아니라 층위가 다르다.
+Radix `Dialog` 기반 창을 코드에서 `*Modal`·`*Dialog`로 섞어 부르던 것을 이 기준으로
+통일했다(`LoginModal`→`LoginDialog`, `shared/ui/elements/modal/`→`dialog/` 등).
+
+- **창 자체 = Dialog** — [W3C APG Dialog (Modal) 패턴](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)의
+  정의는 _"다이얼로그는 기본 창이나 다른 다이얼로그 창 위에 겹쳐진 창이다"_ (번역)이다.
+- **modal = 다이얼로그의 성질** — 같은 APG 문서는 _"모달 다이얼로그 아래의 창은 비활성(inert)이다"_
+  (번역)라고 쓰고, [NN/g](https://www.nngroup.com/articles/modal-nonmodal-dialog/)는 모달
+  다이얼로그를 _"사용자가 명시적으로 상호작용하기 전까지 주 콘텐츠를 비활성화하는"_ (번역)
+  다이얼로그로 정의해 비모달 다이얼로그와 구분한다. 이 레포에서는 Radix `Dialog.Root`의
+  `modal` prop(기본값 `true`), `DropdownMenu`의 `modal={false}`, z-index 토큰 `z-modal`이
+  이 자리다.
+- **Alert = 특수한 다이얼로그** — [W3C APG Alert Dialog 패턴](https://www.w3.org/WAI/ARIA/apg/patterns/alertdialog/)은
+  _"중요한 메시지를 알리고 응답을 받기 위해 사용자의 작업 흐름을 끊는 모달 다이얼로그"_ (번역)로
+  정의한다. 이 레포의 `Alert`·`GlobalAlerts`·`useAlert`·`openConfirm`이 이 자리다 — 단 2026-09-30
+  기준 `Alert.tsx`는 일반 Radix `Dialog`라 `role="alertdialog"`가 아니다(별도 작업으로 남김).
+- **라이브러리도 같은 층위를 쓴다** — Radix는 컴포넌트 이름이 `Dialog`이고 모달 여부는 `modal`
+  prop으로 받으며, alert dialog는 별도 패키지(`@radix-ui/react-alert-dialog`)다.
+  [MUI Modal 문서](https://mui.com/material-ui/react-modal/)는 _"모달 다이얼로그를 만든다면
+  Modal을 직접 쓰기보다 Dialog 컴포넌트를 쓰는 편이 대개 맞다"_ (번역)고 안내하고,
+  [React Aria](https://react-aria.adobe.com/Modal)는 `<ModalOverlay><Modal><Dialog>` 순으로
+  감싸는 구조를 쓴다.
+
+적용 범위는 코드 식별자(컴포넌트·훅·스토어·타입·파일/디렉터리 경로·`useHistoryOverlay` 키·
+테스트 ID·스토리 제목)다. 주석·문서·테스트 제목의 한국어 "모달"은 그대로 쓴다 — 위 출처는
+영어 용어의 정의이지 한국어 표기를 정하지 않고, 사용자에게 보이는 문구(`texts.ts`)에는 애초에
+"모달"이 없다.
 
 ---
 
