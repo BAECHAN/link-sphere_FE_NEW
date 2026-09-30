@@ -584,6 +584,7 @@ export const TEXTS = {
 
     // 게시글 검색 필터
     postCategoryFilters: '카테고리 검색 태그',
+    postCategoryFilterBy: (name: string) => `${name} 카테고리 글 보기`,
     postScopeFilters: '게시글 범위 필터',
   },
 } as const;

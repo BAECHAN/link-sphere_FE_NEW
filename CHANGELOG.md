@@ -57,6 +57,14 @@
 
 ### Added
 
+- `post` 게시글 카드의 카테고리 배지를 누르면 그 카테고리 글만 모아보기
+  <details><summary>배경·구현</summary>
+
+  카드 전체를 상세 진입 영역으로 넓힌 뒤(PR #256) 이어서, 카드의 카테고리 배지를 누르면 피드가 그 카테고리로 필터되게 했다. 검색 패널의 칩처럼 토글하지 않고 검색어를 `@카테고리` 하나로 교체한다 — 토글이면 이미 그 카테고리로 필터 중일 때 카드에서 눌렀을 때 필터가 풀려버린다. 피드에서는 범위 칩(북마크한/내 글/비공개)을 유지하고, 북마크·상세에서 누르면 필터된 피드로 이동한다(헤더 검색 제출과 같은 경로 분기). 배지 모양은 그대로 두고 누르는 영역만 24px로 넓혔고(WCAG 2.2 2.5.8), hover 시 제목처럼 밑줄이 생긴다. 태그는 지금처럼 누르면 상세로 간다 — 자유 검색어가 제목·설명까지 부분 일치로 찾아서 태그 검색으로 쓰기엔 결과가 부정확하다. 근거와 대안 비교는 `docs/SEARCH.md` §5에 있다.
+  (`src/widgets/post/post-card/hooks/usePostCard.ts`, `src/widgets/post/post-card/ui/PostCard.tsx`, `src/shared/config/texts.ts`, `e2e/post-card-click-area.spec.ts`, `docs/SEARCH.md`, [계획](docs/plans/2026-09-30-post-card-category-filter.md), [PR #258](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/258))
+
+  </details>
+
 - `auth` 이메일 인증 전에는 글쓰기·댓글쓰기를 막고, 인증 상태를 화면 곳곳에서 안내
   <details><summary>배경·구현</summary>
 

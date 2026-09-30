@@ -4,6 +4,7 @@ import { mockAuthRefresh } from './mocks/auth.mock';
 import { mockAccountQuery } from './mocks/account.mock';
 import { mockCategoryOptions } from './mocks/common.mock';
 import { mockPostList, mockPostDetail } from './mocks/post.mock';
+import { wrapResponse } from './mocks/wrap-response';
 import { mockComments } from './mocks/comment.mock';
 import { mockLikePost } from './mocks/interaction.mock';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
@@ -121,5 +122,118 @@ test.describe('PostCard 클릭 영역 — 카드 전체가 상세 진입, 내부
     });
 
     expect(hitsTitleLink).toBe(false);
+  });
+});
+
+// 카드의 카테고리 배지는 stretched link 위에 올라간 버튼이다 — 누르면 상세가 아니라 피드를 그
+// 카테고리로 필터한다(usePostCard.handleCategoryClick). 칩과 달리 토글이 아니라 "교체"라서,
+// 이미 다른 검색어가 있어도 q가 @카테고리 하나로 바뀐다(docs/SEARCH.md).
+test.describe('PostCard 카테고리 배지 — 피드 카테고리 필터(교체)', () => {
+  const category = mockPost.categories![0]!;
+  const categoryButtonName = TEXTS.ariaLabels.postCategoryFilterBy(category.name);
+
+  test.beforeEach(async ({ page }) => {
+    await installCatchAll(page);
+    await mockAuthRefresh(page);
+    await mockAccountQuery(page);
+    await mockCategoryOptions(page);
+    await mockPostList(page);
+    await mockPostDetail(page);
+    await mockComments(page, []);
+  });
+
+  test('피드에서 누르면 q가 @카테고리가 되고 목록을 그 카테고리로 다시 조회한다', async ({
+    page,
+  }) => {
+    await page.goto('/post');
+    await expect(page.getByRole('link', { name: mockPost.title })).toBeVisible();
+
+    const filteredListRequest = page.waitForRequest(
+      (req) =>
+        new URL(req.url()).pathname === '/api/post' &&
+        new URL(req.url()).searchParams.get('category') === category.name
+    );
+    await page.getByRole('button', { name: categoryButtonName }).click();
+
+    await filteredListRequest;
+    await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe(`@${category.name}`);
+  });
+
+  test('목록 중간에서 눌러도 걸러진 목록을 맨 위부터 보여준다', async ({ page }) => {
+    // 같은 경로에서 검색 파라미터만 바뀌고 목록 내용이 달라지면 스크롤이 리셋되지 않는다(직접
+    // 측정) — handleCategoryClick의 window.scrollTo가 빠지면 이 테스트가 실패한다. 카테고리를
+    // 무시하고 같은 목록을 돌려주는 목에서는 scrollTo 없이도 스크롤이 0이 돼 회귀를 못 잡으므로
+    // (역시 직접 확인), 카테고리가 붙으면 더 짧지만 여전히 긴 다른 목록을 돌려준다(LIFO로 덮어씀).
+    await page.route(
+      (url) => url.pathname === '/api/post',
+      (route) => {
+        const isFiltered = new URL(route.request().url()).searchParams.has('category');
+        const count = isFiltered ? 18 : 30;
+        const content = Array.from({ length: count }, (_, index) => ({
+          ...mockPost,
+          id: `${isFiltered ? 'filtered' : 'all'}-${index}`,
+          title: `${isFiltered ? 'Filtered' : 'All'} ${index}`,
+        }));
+
+        return route.fulfill({
+          json: wrapResponse({
+            page: 0,
+            size: count,
+            content,
+            totalElements: count,
+            totalPages: 1,
+            last: true,
+          }),
+        });
+      }
+    );
+    await page.goto('/post');
+    await expect(page.getByRole('link', { name: 'All 0' })).toBeVisible();
+    await page.mouse.wheel(0, 1500);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
+
+    // 화면 안에 보이는 카테고리 버튼 하나를 실제 좌표로 누른다(locator.click은 필요하면 스스로
+    // 스크롤해버려 "목록 중간에서 누른다"는 전제가 흐려진다).
+    const buttons = page.getByRole('button', { name: categoryButtonName });
+    const viewportHeight = page.viewportSize()!.height;
+    let clicked = false;
+
+    for (const button of await buttons.all()) {
+      const box = await button.boundingBox();
+
+      if (box && box.y > 80 && box.y + box.height < viewportHeight) {
+        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+        clicked = true;
+        break;
+      }
+    }
+
+    expect(clicked).toBe(true);
+
+    await expect(page.getByRole('link', { name: 'Filtered 0' })).toBeAttached();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  });
+
+  test('범위 칩(filter)은 그대로 두고 q만 바꾼다', async ({ page }) => {
+    await page.goto('/post?filter=isMyPosts');
+    await page.getByRole('button', { name: categoryButtonName }).click();
+
+    await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe(`@${category.name}`);
+    expect(new URL(page.url()).searchParams.get('filter')).toBe('isMyPosts');
+  });
+
+  test('이미 다른 검색어가 있어도 @카테고리 하나로 교체한다', async ({ page }) => {
+    await page.goto(`/post?q=${encodeURIComponent('리액트 #otheruser')}`);
+    await page.getByRole('button', { name: categoryButtonName }).click();
+
+    await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe(`@${category.name}`);
+  });
+
+  test('상세 페이지에서 누르면 그 카테고리로 필터된 피드로 이동한다', async ({ page }) => {
+    await page.goto(`/post/${mockPost.id}`);
+    await page.getByRole('button', { name: categoryButtonName }).click();
+
+    await expect(page).toHaveURL(/\/post\?q=/);
+    expect(new URL(page.url()).searchParams.get('q')).toBe(`@${category.name}`);
   });
 });

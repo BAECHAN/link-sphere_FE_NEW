@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useIsMutating, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/lib/toast/toast';
 import { Post } from '@/entities/post/model/post.schema';
@@ -13,6 +13,7 @@ import { usePostDelete } from '@/features/post/delete/hooks/usePostDelete';
 import { useAlert } from '@/shared/ui/elements/modal/alert/alert.store';
 import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
 import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
+import { useSearchParamsDraft } from '@/shared/hooks/useSearchParamsDraft';
 import { TEXTS } from '@/shared/config/texts';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import {
@@ -27,6 +28,8 @@ function isShareCancelledByUser(error: unknown): boolean {
 export function usePostCard(post: Post, isDetail = false) {
   const { data: account } = useFetchAccountQuery();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { updateSearchParams } = useSearchParamsDraft();
   const queryClient = useQueryClient();
 
   const isOwner = account?.id === post.author?.id;
@@ -136,6 +139,27 @@ export function usePostCard(post: Post, isDetail = false) {
     prefetchPostDetail(queryClient, post.id);
   };
 
+  // 카드에서 카테고리를 누르면 검색어를 그 카테고리(@이름) 하나로 바꾼다 - 칩처럼 토글하면 이미
+  // 그 카테고리로 필터 중일 때 필터가 풀려 "이거 더 보기"라는 의도와 반대가 된다(docs/SEARCH.md).
+  // 경로 분기는 NavbarSearch.submitQuery와 같다: 피드에서는 범위 칩(filter)을 유지한 채 q만 바꾸고,
+  // 다른 페이지(북마크·상세)에서는 그 페이지의 파라미터를 옮기지 않고 피드로 이동한다.
+  const handleCategoryClick = (categoryName: string) => {
+    const categoryQuery = `@${categoryName}`;
+
+    if (pathname === ROUTES_PATHS.POST.ROOT) {
+      updateSearchParams((draft) => {
+        draft.set('q', categoryQuery);
+      });
+      // 같은 경로에서 검색 파라미터만 바뀌면 스크롤이 리셋되지 않아(직접 측정: 1400px에서 누르면
+      // 그대로 있다가 짧아진 목록 끝에 걸림), 목록 중간 카드에서 눌렀을 때 걸러진 목록의 끝부터 보인다.
+      window.scrollTo({ top: 0 });
+
+      return;
+    }
+
+    navigate(`${ROUTES_PATHS.POST.ROOT}?q=${encodeURIComponent(categoryQuery)}`);
+  };
+
   return {
     isOwner,
     isUpdating,
@@ -150,5 +174,6 @@ export function usePostCard(post: Post, isDetail = false) {
     handleCopyOriginalUrl,
     handleNavigateToEdit,
     handlePrefetchDetail,
+    handleCategoryClick,
   };
 }
