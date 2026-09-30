@@ -1,3 +1,6 @@
+### 2026-09-30 (FE)
+- 게시글 카드 UI의 클릭 가능 영역을 전체로 확장하여 사용자 경험(UX) 개선 ([#256](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/256))
+
 ### 2026-09-29 (FE)
 - 계정 관리 효율성 개선을 위해 프로필 수정 모달을 계정 설정 페이지 내 섹션으로 통합 리팩토링 ([#253](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/253))
 
