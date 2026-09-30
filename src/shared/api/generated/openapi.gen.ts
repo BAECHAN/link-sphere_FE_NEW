@@ -573,12 +573,12 @@ export interface paths {
     put?: never;
     /**
      * FCM 토큰 등록
-     * @description 다른 컨트롤러와 달리 ApiResponse 로 감싸지 않고 본문 없는 200/401 을 그대로 준다. 실패: 401(JWT subject 를 UUID 로 파싱하지 못했을 때)
+     * @description 다른 컨트롤러와 달리 ApiResponse 로 감싸지 않고 본문 없는 200/401 을 그대로 준다. 실패: 401(인증 principal을 UUID로 파싱하지 못했을 때)
      */
     post: operations['registerToken'];
     /**
      * FCM 토큰 해제
-     * @description 본문 없는 200/401 을 그대로 준다. 실패: 401(JWT subject 를 UUID 로 파싱하지 못했을 때)
+     * @description 본문 없는 200/401 을 그대로 준다. 실패: 401(인증 principal을 UUID로 파싱하지 못했을 때)
      */
     delete: operations['deleteToken'];
     options?: never;
@@ -595,7 +595,7 @@ export interface paths {
     };
     /**
      * 게시글 목록 조회
-     * @description category·search·filter·nickname 으로 필터링, page·size 로 페이지네이션한다. JWT 를 보내면 본인의 좋아요·북마크 여부가 응답에 반영된다.
+     * @description category·search·filter·nickname 으로 필터링, page·size 로 페이지네이션한다. 인증 토큰을 보내면 본인의 좋아요·북마크 여부가 응답에 반영된다.
      */
     get: operations['getAllPosts'];
     put?: never;
@@ -687,7 +687,7 @@ export interface paths {
     };
     /**
      * 댓글 목록 조회
-     * @description JWT 없이도 호출 가능하다. 비공개 글의 댓글은 작성자만 볼 수 있고, 그 외에는 글이 없는 것처럼 404 로 응답한다. 실패: 404 POST_NOT_FOUND
+     * @description 인증 토큰 없이도 호출 가능하다. 비공개 글의 댓글은 작성자만 볼 수 있고, 그 외에는 글이 없는 것처럼 404 로 응답한다. 실패: 404 POST_NOT_FOUND
      */
     get: operations['getComments'];
     put?: never;
