@@ -1228,6 +1228,57 @@ queryClient = createTestQueryClient({ staleTime: Infinity });
 
 ---
 
+### 13. e2e에서 `toHaveURL` 통과는 화면 전환이 끝났다는 뜻이 아니다
+
+**대상**: 목록에서 카드를 눌러 상세로 들어간 뒤 곧바로 상세 화면을 조작하는 e2e — 위 "10."과
+같은 `v7_startTransition` 정지 구간의 브라우저판이다.
+
+**증상**: `post-delete.spec.ts`가 CI에서 가끔 ⋮ 메뉴의 "삭제" 항목에서 `element is not
+stable` → `element was detached from the DOM`으로 실패했다(재시도로 통과). `post-visibility.spec.ts`도
+같은 계열이었고, 둘 다 `waitForLoadState('networkidle')`로 가려 두고 있었다.
+
+**원인**: 라우터는 `history.push`로 URL을 먼저 바꾸고(여기서 `toHaveURL`이 통과한다) 새 화면
+렌더는 `startTransition` 안에서 한다([`RouterProvider.tsx`](../src/app/providers/RouterProvider.tsx)의
+`v7_startTransition: true`). 상세 페이지는 `lazy()`라 청크가 올 때까지 렌더가 멈추는데, transition
+중에는 React가 fallback 대신 옛 화면(목록)을 그대로 보여준다. 목록 카드와 상세 카드는 같은
+`PostCard`라 ⋮·좋아요가 둘 다 있어서, 그 사이 테스트가 **목록 카드**의 메뉴를 열고 → 청크 도착 →
+목록 언마운트 → 메뉴 항목 detached.
+
+- 직접 확인(2026-09-30, `page.addInitScript`로 `pointerdown` 대상과 목록 언마운트 시각을 기록):
+  `networkidle` 없이 20회 중 17회 실패(다른 20회 묶음은 15회 실패), 실패는 전부 목록 카드
+  (`[data-index]` 행 안)의 ⋮, 통과는 전부 상세 카드의 ⋮였다. 실패한 쪽은 ⋮를 커밋보다
+  28~129ms(중앙값 34ms) 먼저 눌렀고, 카드 클릭부터 커밋까지 중앙값 143ms가 걸렸다(통과 쪽 78ms) —
+  전환이 늦을수록 실패한다.
+- 상세 `GET /post/:id`는 매번 1회였다 — 예전 스펙 주석의 "onFocus prefetch가 쏜 두 번째 GET이
+  Suspense를 재발동해 PostCard가 리마운트된다"는 설명은 틀렸다. prefetch와 상세 조회는 같은 키라
+  요청을 공유한다(`post.queries.ts`의 `prefetchPostDetail`).
+- 가상 스크롤 보정 가드(#261)와도 무관하다 — 가드 켬/끔 각 50회(`networkidle` 포함 원래 스펙)에서
+  실패 1/50 대 0/50, 가드 판정 101회 중 발동 0회.
+
+**진단 시 유의점**: 앞선 조사(2026-09-30, 사용자)에서 경쟁 구간 도중에 `page.evaluate`로 계측하자
+재현이 안 됐다 — 타이밍이 바뀌기 때문으로 본다. 그래서 위 계측은 `page.addInitScript`로 기록기를
+심고 테스트가 끝난 뒤에만 읽었다.
+
+**해결**: URL 단언 뒤에 상세에만 있는 요소가 보일 때까지 기다린다. 데스크톱은 "목록으로" 버튼이
+`PostDetailPage.tsx`에서 `PostCard`와 같은 Suspense 경계 안에 있어 이 버튼이 보이면 상세 카드도
+마운트된 상태다(모바일은 이 버튼이 `hidden md:inline-flex`라 다른 상세 전용 표지를 쓴다).
+`networkidle`은 청크 요청이 끝나기를 우회적으로 기다릴 뿐 커밋을 보장하지 않는다 — Playwright
+문서도 `networkidle`을 _"권장하지 않음 ... 테스트에 쓰지 말고, 준비 여부는 웹 단언으로 판단하라"_
+(번역, 생략은 인용자)고 적는다([`page.waitForLoadState`](https://playwright.dev/docs/api/class-page#page-wait-for-load-state)).
+
+```ts
+await page.getByRole('link', { name: mockPost.title }).click();
+await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
+await expect(page.getByRole('button', { name: TEXTS.post.detail.backToList })).toBeVisible();
+```
+
+결정적 재현: `page.route('**/src/pages/post/PostDetailPage.tsx*', ...)`로 상세 청크를 300ms 늦추면
+위 대기를 뺐을 때 20/20 실패한다 — `post-delete.spec.ts`가 이 지연을 상시로 둬 대기가 빠지는
+회귀를 잡는다. 같은 흐름을 쓰는 `post-visibility`·`like`·`post-list`·`bookmark-folder-modal`
+스펙도 같은 대기를 쓴다.
+
+---
+
 ## 브라우저 수동 테스트 — DevTools 기기 에뮬레이션 주의사항
 
 여기까지는 전부 Vitest 자동화 테스트다. 이 섹션은 **실제 브라우저를 열어 눈으로

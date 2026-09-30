@@ -9,6 +9,8 @@ import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
+const DETAIL_CHUNK_DELAY_MS = 300;
+
 test.describe('게시글 삭제', () => {
   test.beforeEach(async ({ page }) => {
     await installCatchAll(page);
@@ -34,17 +36,24 @@ test.describe('게시글 삭제', () => {
       }
     });
 
+    // 상세 페이지 청크(lazy)를 일부러 늦춰, 상세가 뜨기 전에 조작하는 회귀가 매번 드러나게 한다
+    // (아래 대기를 빼고 직접 확인: 20/20 실패 — 목록 카드에서 연 삭제 확인창의 버튼이 전환 커밋
+    // 뒤 끝내 눌리지 않는다). vite dev 서버의 모듈 경로라 파일을 옮기면 이 경로도 바꾼다.
+    await page.route('**/src/pages/post/PostDetailPage.tsx*', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, DETAIL_CHUNK_DELAY_MS));
+      await route.continue();
+    });
+
     await page.goto('/post');
     await page.getByRole('link', { name: mockPost.title }).click();
     await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
-    // 실측 발견: 목록 카드의 title Link가 onFocus로도 handlePrefetchDetail을 쏘는데
-    // (usePostCard.ts), 클릭 자체가 그 Link를 focus시켜 이동 직후에도 같은 GET /post/:id를
-    // 한 번 더 트리거한다. 이 응답이 상세 페이지 자신의 useSuspenseFetchPostDetailQuery와
-    // 늦게 겹치면 Suspense가 재발동해 PostCard(⋮ 메뉴 포함)가 통째로 리마운트되며 방금 연
-    // 드롭다운이 즉시 닫힌다(실측: data-state가 open→closed로 즉시 전환, PostCard
-    // UNMOUNT/MOUNT 로그로 확인). 목록→상세 클릭 흐름 자체는 재조회 카운트 단언에 필요해
-    // 유지하고, 이 잔여 네트워크가 가라앉을 때까지만 기다린다.
-    await page.waitForLoadState('networkidle');
+    // URL은 화면 전환보다 먼저 바뀐다 — RouterProvider의 v7_startTransition 아래에서 React가
+    // lazy 상세 청크가 올 때까지 목록 화면을 그대로 두므로, 여기서 바로 ⋮를 누르면 목록 카드의
+    // 메뉴가 열렸다가 목록째 사라진다("detached from DOM"). 직접 확인: 이 대기 없이 20회 중
+    // 17회 실패했고 실패는 전부 목록 카드의 ⋮, 통과는 전부 상세 카드의 ⋮였다. 상세 GET은 매번
+    // 1회였다(prefetch와 요청 공유 — 예전 주석의 "두 번째 GET이 Suspense를 재발동" 설명은 틀렸다).
+    // 상세에만 있는 버튼으로 전환 커밋을 기다린다(docs/TESTING.md "자주 발생하는 문제" 13).
+    await expect(page.getByRole('button', { name: TEXTS.post.detail.backToList })).toBeVisible();
 
     await page.getByRole('button', { name: TEXTS.ariaLabels.postMenu }).click();
     await page.getByRole('menuitem', { name: TEXTS.buttons.delete }).click();

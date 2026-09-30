@@ -52,6 +52,10 @@ test.describe('로그인 상태 — 북마크 폴더 모달 열림·닫힘', () 
     await page.goto('/post');
     await page.getByRole('link', { name: mockPost.title }).click();
     await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
+    // URL은 화면 전환보다 먼저 바뀐다 — lazy 상세 청크가 올 때까지 목록이 남아 있어, 바로 누르면
+    // 목록 카드의 북마크 버튼을 누른다(docs/TESTING.md "자주 발생하는 문제" 13). 상세에만 있는
+    // 버튼으로 전환 커밋을 기다린다.
+    await expect(page.getByRole('button', { name: TEXTS.post.detail.backToList })).toBeVisible();
 
     await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).click();
     const folderModal = page.getByRole('dialog');
@@ -75,6 +79,8 @@ test.describe('로그인 상태 — 북마크 폴더 모달 열림·닫힘', () 
     await page.goto('/post');
     await page.getByRole('link', { name: mockPost.title }).click();
     await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
+    // 위 테스트와 같은 이유로 상세 전환 커밋을 기다린다
+    await expect(page.getByRole('button', { name: TEXTS.post.detail.backToList })).toBeVisible();
 
     await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).click();
     const folderModal = page.getByRole('dialog');

@@ -37,6 +37,10 @@ test.describe('좋아요 — 상세↔목록 캐시 전파', () => {
     await page.goto('/post');
     await page.getByRole('link', { name: mockPost.title }).click();
     await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
+    // URL은 화면 전환보다 먼저 바뀐다 — lazy 상세 청크가 올 때까지 목록이 남아 있어, 바로 누르면
+    // 목록 카드의 좋아요를 눌러 "상세에서 누른다"는 이 테스트의 전제가 깨진다
+    // (docs/TESTING.md "자주 발생하는 문제" 13). 상세에만 있는 버튼으로 전환 커밋을 기다린다.
+    await expect(page.getByRole('button', { name: TEXTS.post.detail.backToList })).toBeVisible();
 
     const likeButton = page.getByRole('button', { name: TEXTS.ariaLabels.postLike });
     await likeButton.click();
@@ -64,6 +68,8 @@ test.describe('좋아요 — 상세↔목록 캐시 전파', () => {
     await page.goto('/post');
     await page.getByRole('link', { name: mockPost.title }).click();
     await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
+    // 위 테스트와 같은 이유로 상세 전환 커밋을 기다린다
+    await expect(page.getByRole('button', { name: TEXTS.post.detail.backToList })).toBeVisible();
 
     await page.getByRole('button', { name: TEXTS.ariaLabels.postLike }).click();
 
