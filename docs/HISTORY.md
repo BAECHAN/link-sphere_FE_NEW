@@ -1,4 +1,7 @@
 ### 2026-09-30 (FE)
+- 비밀번호 실시간 유효성 검사 및 일치 여부 표시 기능 구현 ([#278](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/278))
+
+### 2026-09-30 (FE)
 - 북마크 모달 내 스켈레톤 UI 적용을 통한 로딩 경험 개선 ([#275](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/275))
 
 ### 2026-09-30 (FE)
