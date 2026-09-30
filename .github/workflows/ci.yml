@@ -72,6 +72,11 @@ jobs:
         env:
           VITE_API_BASE_URL: http://localhost
 
+      - name: Claude 훅 회귀 테스트
+        # .claude/hooks/의 가드·감시 훅(bash-guard·edit-guard·deploy-verify·filename-case-check)은
+        # 사용자 설정에 등록돼 모든 세션에서 돈다. vitest(src/) 밖이라 따로 node --test로 돌린다.
+        run: node --test .claude/hooks/*.test.mjs
+
       - name: Check docs
         run: pnpm check:docs
 

@@ -42,13 +42,24 @@ const RULE_DATES = {
 // 형태로 남으므로(PostToolUse는 attachment `hook_blocking_error`, PreToolUse는 tool_result의
 // `PreToolUse:<도구> hook error:`) 명령 안의 스크립트 파일명으로 구분한다. 문구로 세면 훅
 // 스크립트나 문서를 Read한 기록까지 잡힌다.
+// filename-case-check.sh는 2026-09-30 .mjs로 옮겼다 — 과거 기록을 세려고 옛 이름도 둔다.
 const HOOK_SCRIPTS = [
   'plan-diagram-reminder.sh',
   'filename-case-check.sh',
+  'filename-case-check.mjs',
   'bash-guard.mjs',
   'edit-guard.mjs',
+  'deploy-verify.mjs',
 ];
 const PRE_TOOL_HOOK_ERROR = /^PreToolUse:\w+ hook error: \[/;
+// asyncRewake 훅(deploy-verify.mjs)이 세션을 깨운 기록은 실행 명령 없이 이벤트 이름만 남는다(2026-09-30
+// 스파이크): user 메시지 `… Stop hook blocking error from command "PostToolUse:Bash": <stderr>`. 그래서
+// stderr 첫머리 표식으로 스크립트를 가린다.
+const REWAKE_ERROR =
+  /Stop hook blocking error from command "PostToolUse(?:Failure)?:\w+": \[deploy-verify\]/;
+
+// M5 세션 단위 비율은 중간 서술이 이만큼 이상인 세션만 쓴다(블록이 몇 세션에 몰려 있어서다).
+const SESSION_MIN_BLOCKS = 20;
 
 const PATHSPEC_ERROR = 'did not match any file(s) known to git';
 // pathspec 오류 뒤 이만큼의 Bash 결과 안에 `create mode`(새 파일 커밋)가 나오면 새 파일이 원인이었다고 본다.
@@ -145,6 +156,28 @@ export function classifyLanguage(text) {
   return 'other';
 }
 
+function stripCode(text) {
+  return text
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/~~~[\s\S]*?~~~/g, ' ')
+    .replace(/`[^`\n]*`/g, ' ');
+}
+
+/** 코드 밖의 `~~취소선~~`이 있는지(M13). */
+export function hasStrikethrough(text) {
+  return /~~[^~\s][^~\n]*~~/.test(stripCode(text));
+}
+
+/** 원문 인용을 번역과 나란히 실었는지(M13): `(번역: …)` 또는 따옴표 안 영어 문장 바로 뒤의 한국어 괄호. */
+export function hasTranslationPair(text) {
+  const cleaned = stripCode(text);
+
+  return (
+    /\(번역:/.test(cleaned) ||
+    /["“][A-Za-z][^"”\n]{15,}["”]_?\s*\([^)\n]*[가-힣][^)\n]*\)/.test(cleaned)
+  );
+}
+
 function isHumanPrompt(event) {
   if (event.type !== 'user' || event.isMeta || event.isCompactSummary) {
     return false;
@@ -163,6 +196,72 @@ function isHumanPrompt(event) {
   );
 }
 
+function newLanguageStats() {
+  return {
+    total: 0,
+    english: 0,
+    japanese: 0,
+    final: { total: 0, english: 0 },
+    intermediate: { total: 0, english: 0 },
+  };
+}
+
+function addLanguage(stats, kind, lang) {
+  const english = lang === 'english' ? 1 : 0;
+  stats.total += 1;
+  stats.english += english;
+  stats.japanese += lang === 'japanese' ? 1 : 0;
+  stats[kind].total += 1;
+  stats[kind].english += english;
+}
+
+/**
+ * 확정된 메인 스레드 text 블록 하나를 M5·M13에 넣는다. kind는 'final'(턴을 닫는 답변) 또는
+ * 'intermediate'(뒤에 도구 호출·다른 text가 이어진 서술).
+ */
+function recordReply(metrics, reply, kind) {
+  if (!reply.countable) {
+    return;
+  }
+
+  const lang = classifyLanguage(reply.text);
+  const byModel = metrics.m5.byModel.get(reply.model) ?? newLanguageStats();
+  addLanguage(byModel, kind, lang);
+  metrics.m5.byModel.set(reply.model, byModel);
+
+  if (reply.phase) {
+    addLanguage(metrics.m5.compacted[reply.phase], kind, lang);
+  }
+
+  if (kind === 'intermediate') {
+    const key = `${reply.model}\u0000${reply.sessionId}`;
+    const session = metrics.m5.sessions.get(key) ?? {
+      model: reply.model,
+      total: 0,
+      english: 0,
+      before: { total: 0, english: 0 },
+      after: { total: 0, english: 0 },
+    };
+    const english = lang === 'english' ? 1 : 0;
+    session.total += 1;
+    session.english += english;
+
+    // 압축을 겪은 세션은 압축 전후를 따로 센다 — 언어 실험 2단계(압축 후 주입) 판정용.
+    if (reply.phase) {
+      session[reply.phase].total += 1;
+      session[reply.phase].english += english;
+    }
+
+    metrics.m5.sessions.set(key, session);
+
+    return;
+  }
+
+  metrics.m13.finalBlocks += 1;
+  metrics.m13.strikethrough += hasStrikethrough(reply.text) ? 1 : 0;
+  metrics.m13.translationPair += hasTranslationPair(reply.text) ? 1 : 0;
+}
+
 function createMetrics() {
   return {
     files: { main: 0, sub: 0 },
@@ -174,8 +273,10 @@ function createMetrics() {
     m4: { denials: { main: 0, sub: 0 }, turns: new Map(), bypass: 0 },
     m5: {
       byModel: new Map(),
-      compacted: { before: { total: 0, english: 0 }, after: { total: 0, english: 0 } },
+      compacted: { before: newLanguageStats(), after: newLanguageStats() },
+      sessions: new Map(),
     },
+    m13: { finalBlocks: 0, strikethrough: 0, translationPair: 0 },
     m10: { attempts: 0, succeeded: 0, ignoredLocal: 0, byDirection: {}, sessions: new Set() },
     m12: Object.fromEntries(HOOK_SCRIPTS.map((name) => [name, 0])),
   };
@@ -324,6 +425,52 @@ function processFile(metrics, { file, isSub, sessionRepo }, options) {
   let pendingPathspec = [];
   const hasCompaction = lines.some((line) => line.includes('"subtype":"compact_boundary"'));
   const sessionId = path.basename(file, '.jsonl');
+  // M5·M13: 메인 스레드 text 블록을 보류해 두었다가 뒤에 text·tool_use가 오면 중간 서술, 턴 경계(tool_result·
+  // meta가 아닌 user 이벤트 — 사람 프롬프트·작업 알림·훅 깨움 — 압축 경계, 파일 끝)를 만나면 최종 답변으로
+  // 확정한다. 경계 판정은 기간 밖·중복 이벤트로도 하고, 집계만 뺀다(countable).
+  let pendingReply = null;
+  const settleReply = (kind) => {
+    if (pendingReply) {
+      recordReply(metrics, pendingReply, kind);
+      pendingReply = null;
+    }
+  };
+  const trackReply = (event) => {
+    // isMeta user 이벤트(skill 본문·명령 안내처럼 하네스가 턴 중간에 끼워 넣는 것)는 새 턴이 아니라 경계에서 뺀다.
+    if (event.type === 'user') {
+      const content = event.message?.content;
+      const toolResult = Array.isArray(content) && content.some((c) => c.type === 'tool_result');
+
+      if (!toolResult && !event.isMeta) {
+        settleReply('final');
+      }
+
+      return;
+    }
+
+    if (event.type !== 'assistant' || !Array.isArray(event.message?.content)) {
+      return;
+    }
+
+    const model = event.message.model ?? 'unknown';
+    const countable =
+      inRange(event.timestamp, options) && !(event.uuid && metrics.seen.has(event.uuid));
+
+    for (const block of event.message.content) {
+      if (block.type === 'tool_use') {
+        settleReply('intermediate');
+      } else if (block.type === 'text' && model !== '<synthetic>' && block.text.trim()) {
+        settleReply('intermediate');
+        pendingReply = {
+          model,
+          text: block.text,
+          countable,
+          sessionId,
+          phase: hasCompaction ? (compacted ? 'after' : 'before') : null,
+        };
+      }
+    }
+  };
 
   metrics.files[isSub ? 'sub' : 'main'] += 1;
 
@@ -341,8 +488,13 @@ function processFile(metrics, { file, isSub, sessionRepo }, options) {
     }
 
     if (event.type === 'system' && event.subtype === 'compact_boundary') {
+      settleReply('final');
       compacted = true;
       continue;
+    }
+
+    if (!isSub) {
+      trackReply(event);
     }
 
     if (isHumanPrompt(event)) {
@@ -365,24 +517,19 @@ function processFile(metrics, { file, isSub, sessionRepo }, options) {
       continue;
     }
 
+    if (
+      event.type === 'user' &&
+      typeof event.message?.content === 'string' &&
+      REWAKE_ERROR.test(event.message.content)
+    ) {
+      metrics.m12['deploy-verify.mjs'] += 1;
+    }
+
     if (event.type === 'assistant' && Array.isArray(event.message?.content)) {
       const model = event.message.model ?? 'unknown';
 
       for (const block of event.message.content) {
         if (block.type === 'text' && !isSub && model !== '<synthetic>' && block.text.trim()) {
-          const lang = classifyLanguage(block.text);
-          const stats = metrics.m5.byModel.get(model) ?? { total: 0, english: 0, japanese: 0 };
-          stats.total += 1;
-          stats.english += lang === 'english' ? 1 : 0;
-          stats.japanese += lang === 'japanese' ? 1 : 0;
-          metrics.m5.byModel.set(model, stats);
-
-          if (hasCompaction) {
-            const phase = compacted ? 'after' : 'before';
-            metrics.m5.compacted[phase].total += 1;
-            metrics.m5.compacted[phase].english += lang === 'english' ? 1 : 0;
-          }
-
           const key = `${sessionId}#${turn}`;
           const turnState = metrics.m4.turns.get(key);
 
@@ -514,6 +661,18 @@ function processFile(metrics, { file, isSub, sessionRepo }, options) {
   }
 
   metrics.m2.other += pendingPathspec.length;
+  settleReply('final');
+}
+
+/** 정렬 뒤 가장 가까운 순위의 값(p는 0~1). 값이 없으면 null. */
+function quantile(values, p) {
+  if (values.length === 0) {
+    return null;
+  }
+
+  const sorted = [...values].sort((a, b) => a - b);
+
+  return sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
 }
 
 function summarize(metrics) {
@@ -525,8 +684,46 @@ function summarize(metrics) {
 
     return { turns: turns.length, retried, presented };
   };
+  // 언어 실험 판정 지표(2026-09-30 사용자 결정): 모델별로, 중간 서술이 SESSION_MIN_BLOCKS 이상인 세션 중
+  // "영어로 흐른 세션"(중간 서술의 DRIFT_RATE 이상이 영어)의 비율. 분포가 양봉(대부분 거의 0%, 일부가
+  // 30~70%)이라 중앙값·블록 합계보다 이 비율이 효과를 가른다(docs/plans/2026-09-30-rule-enforcement-phase3.md).
+  const DRIFT_RATE = 0.1;
+  const rateOf = (s) => (s.total ? s.english / s.total : 0);
+  const sessionsByModel = new Map();
+
+  for (const session of metrics.m5.sessions.values()) {
+    if (session.total >= SESSION_MIN_BLOCKS) {
+      const list = sessionsByModel.get(session.model) ?? [];
+      list.push(session);
+      sessionsByModel.set(session.model, list);
+    }
+  }
+
   const models = [...metrics.m5.byModel.entries()]
-    .map(([model, s]) => ({ model, ...s, englishRate: s.total ? s.english / s.total : 0 }))
+    .map(([model, s]) => {
+      const sessions = sessionsByModel.get(model) ?? [];
+      const rates = sessions.map(rateOf);
+      const drifted = sessions.filter((session) => rateOf(session) >= DRIFT_RATE);
+      const driftedCompacted = drifted.filter((session) => session.after.total > 0);
+
+      return {
+        model,
+        ...s,
+        englishRate: s.total ? s.english / s.total : 0,
+        sessions: sessions.length,
+        sessionIntermediate: {
+          p50: quantile(rates, 0.5),
+          p75: quantile(rates, 0.75),
+          p90: quantile(rates, 0.9),
+          drifted: drifted.length,
+          driftedCompacted: driftedCompacted.length,
+          // 압축 전에는 한국어였다가 압축 뒤에 흐른 세션 — 2단계(압축 후 주입) 판정용
+          driftedAfterCompactionOnly: driftedCompacted.filter(
+            (session) => rateOf(session.before) < DRIFT_RATE && rateOf(session.after) >= DRIFT_RATE
+          ).length,
+        },
+      };
+    })
     .sort((a, b) => b.total - a.total);
   const mainTotal = models.reduce((sum, m) => sum + m.total, 0);
   const mainEnglish = models.reduce((sum, m) => sum + m.english, 0);
@@ -557,6 +754,7 @@ function summarize(metrics) {
       sessions: [...metrics.m10.sessions],
     },
     m12_hookFires: metrics.m12,
+    m13_finalReplyFormat: metrics.m13,
   };
 }
 
@@ -598,8 +796,9 @@ function printMarkdown(summary, options) {
   console.log(
     `| M5 메인 스레드 영어 블록 | ${percent(s.m5_language.englishRate * s.m5_language.mainBlocks, s.m5_language.mainBlocks)} (${s.m5_language.mainBlocks}블록) |`
   );
+  const { before, after } = s.m5_language.compactedSessions;
   console.log(
-    `| M5 압축 세션 영어 | 압축 전 ${percent(s.m5_language.compactedSessions.before.english, s.m5_language.compactedSessions.before.total)} → 압축 후 ${percent(s.m5_language.compactedSessions.after.english, s.m5_language.compactedSessions.after.total)} |`
+    `| M5 압축 세션 영어 | 압축 전 ${percent(before.english, before.total)} → 압축 후 ${percent(after.english, after.total)} (중간 서술 ${percent(before.intermediate.english, before.intermediate.total)} → ${percent(after.intermediate.english, after.intermediate.total)}, 최종 답변 ${percent(before.final.english, before.final.total)} → ${percent(after.final.english, after.final.total)}) |`
   );
   console.log(
     `| M10 메인 체크아웃 Edit/Write(gitignore 파일 ${s.m10_mainCheckoutEdits.ignoredLocalExcluded}건 제외) | 시도 ${s.m10_mainCheckoutEdits.attempts} / 성공 ${s.m10_mainCheckoutEdits.succeeded} (${Object.entries(
@@ -613,6 +812,10 @@ function printMarkdown(summary, options) {
       .map(([k, v]) => `${k} ${v}`)
       .join(', ')} |`
   );
+  const m13 = s.m13_finalReplyFormat;
+  console.log(
+    `| M13 최종 답변 형식(메인 스레드) | ${m13.finalBlocks}블록 중 취소선 ${m13.strikethrough}, 원문+번역 병기 ${m13.translationPair} |`
+  );
 
   console.log('\n### M4 rm 거부가 있었던 턴(메인 스레드)\n');
   console.log('| 구간 | 턴 | 같은 턴 재시도 | rm 코드블록 제시 |');
@@ -621,11 +824,18 @@ function printMarkdown(summary, options) {
   console.log(rmRow(`${RULE_DATES.rmMemory} 이후`, s.m4_rm.afterMemory));
 
   console.log('\n### M5 모델별 영어 블록\n');
-  console.log('| 모델 | 블록 | 영어 | 일본어 |');
-  console.log('| --- | --- | --- | --- |');
+  console.log(
+    `| 모델 | 블록 | 영어 | 일본어 | 최종 답변 영어 | 중간 서술 영어 | 세션 수(중간 ${SESSION_MIN_BLOCKS}블록+) | 세션별 중간 서술 영어 p50/p75/p90 | 영어로 흐른 세션(10%+) | 그중 압축 세션 / 압축 뒤에만 흐름 |`
+  );
+  console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
 
   for (const m of s.m5_language.byModel) {
-    console.log(`| ${m.model} | ${m.total} | ${percent(m.english, m.total)} | ${m.japanese} |`);
+    const q = m.sessionIntermediate;
+    const quantiles =
+      q.p50 === null ? '-' : [q.p50, q.p75, q.p90].map((v) => percent(v, 1)).join(' / ');
+    console.log(
+      `| ${m.model} | ${m.total} | ${percent(m.english, m.total)} | ${m.japanese} | ${m.final.english}/${m.final.total} (${percent(m.final.english, m.final.total)}) | ${percent(m.intermediate.english, m.intermediate.total)} | ${m.sessions} | ${quantiles} | ${q.drifted} (${percent(q.drifted, m.sessions)}) | ${q.driftedCompacted} / ${q.driftedAfterCompactionOnly} |`
+    );
   }
 
   if (s.m10_mainCheckoutEdits.sessions.length > 0) {
