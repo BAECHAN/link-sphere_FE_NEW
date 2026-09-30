@@ -60,14 +60,14 @@ test.describe('게시글 삭제', () => {
 
     // usePostCard.ts의 e.preventDefault() 때문에 드롭다운이 자동으로 닫히지 않아, confirm이
     // 뜬 시점에 menuitem '삭제'가 아직 DOM에 남아있다(radix composeEventHandlers). role이
-    // 달라(menuitem vs button) 충돌하지 않지만, 추론에 기대지 않고 dialog로 스코프한다.
-    const confirmDialog = page.getByRole('dialog');
+    // 달라(menuitem vs button) 충돌하지 않지만, 추론에 기대지 않고 alertdialog로 스코프한다.
+    const confirmDialog = page.getByRole('alertdialog');
     await expect(confirmDialog).toBeVisible();
     // 메뉴에서 "삭제"를 직접 눌러야만 뜨는 다이얼로그라 이미 삭제를 결심한 상태다 -
     // 열리자마자 삭제 버튼에 포커스가 가 있어야 한다(usePostDelete.ts, § 2026-09-29).
     await expect(confirmDialog.getByRole('button', { name: TEXTS.buttons.delete })).toBeFocused();
 
-    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // alert-dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
     // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
     await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 

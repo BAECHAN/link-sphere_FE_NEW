@@ -201,8 +201,9 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 닫히는 변형 증상도 있었다. 같은 증상이 확인창(⋮ 메뉴 → "삭제")에서도 제보돼
 (무의식적인 두 번째 탭이 확인창의 취소/삭제 버튼이나 오버레이에 떨어짐), 2026-09-29부터
 `useOpenClickGuard(open)`(`shared/hooks/useOpenClickGuard.ts`)를 이 모달 한 곳이 아니라
-공용 `shared/ui/atoms/dialog.tsx`의 `DialogContent`로 올렸다 — Alert/Confirm을 포함한
-모든 Dialog 기반 모달(이미지 뷰어, 로그인 모달 등)에 공통 적용된다.
+공용 `shared/ui/atoms/dialog.tsx`의 `DialogContent`로 올렸다 — 모든 Dialog 기반
+모달(이미지 뷰어, 로그인 모달 등)에 공통 적용된다. 확인창(Alert/Confirm)은 2026-09-30부터
+`shared/ui/atoms/alert-dialog.tsx`(Radix AlertDialog)를 쓰며, 같은 가드를 그 안에 따로 갖는다.
 
 `useOpenClickGuard`는 `open`이 `true`가 된 시점을 기준으로 가드 여부를 반환한다.
 `dialog.tsx`는 이 훅을 `DialogPortal` **안쪽**의 `DialogContentPanel`에서 `useOpenClickGuard(true)`로

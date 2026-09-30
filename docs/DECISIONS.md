@@ -6,6 +6,40 @@
 
 ---
 
+## 2026-09-30 — 확인창을 Radix AlertDialog로 교체
+
+**배경**
+
+삭제·이탈·공개 설정 확인창 6종은 모두 `Alert.tsx` 한 컴포넌트가 띄운다. 이 컴포넌트는 일반
+Radix `Dialog`라 스크린리더가 "대화상자"로만 안내했다.
+[W3C APG Alert Dialog](https://www.w3.org/WAI/ARIA/apg/patterns/alertdialog/)는 alertdialog를
+_"중요한 메시지를 알리고 응답을 받기 위해 사용자의 작업 흐름을 끊는 모달 다이얼로그"_ (번역)로
+정의한다. 확인창은 이 정의에 해당한다. Dialog 명칭 통일(#269) 중에 발견해 별도 작업으로 뺐다.
+
+**검토한 대안**
+
+| 대안                                                      | 결과                                                                                                                                                                                                                                                |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A. 기존 `DialogContent`에 `role="alertdialog"`만 덮어쓰기 | 기각. 1줄로 끝나고, 바로 위 항목의 `dismissOnOutsideClick={false}`와 합치면 사용자 체감 결과는 B와 같다(추천안이었다)                                                                                                                               |
+| B. Radix `AlertDialog` 기반 새 atom으로 교체              | **채택**(사용자 결정). 비용: 새 atom(`shared/ui/atoms/alert-dialog.tsx`)을 두고, `dialog.tsx`의 가드 중 안쪽 클릭 가드와 IME 조합 중 ESC 가드를 복제한다. 바깥 클릭 정책이 공용 prop(`dismissOnOutsideClick`)과 AlertDialog 고정값 두 곳으로 갈린다 |
+
+B는 트레이드오프를 설명한 뒤 사용자가 골랐다. 사용자가 밝힌 선택 이유는 따로 없다.
+
+**결정**
+
+- `Alert.tsx`는 `shared/ui/atoms/alert-dialog.tsx`를 쓴다. 모양·클래스·X 버튼·버튼 배치는 그대로다.
+- 설치된 `@radix-ui/react-alert-dialog@1.1.15` 소스(`dist/index.mjs`)에서 확인한 동작에 맞춰 옮길 가드만 옮겼다.
+  - Content가 `onPointerDownOutside`·`onInteractOutside`를 항상 막는다(75–76행). 그래서 `dialog.tsx`의 바깥 클릭용 가드 2개(열린 직후 바깥 pointerdown, 마우스 뒤로가기 버튼)와 `dismissOnOutsideClick`은 두지 않았다.
+  - 안쪽 클릭 가드(`useOpenClickGuard`)와 IME 조합 중 ESC 무시는 그대로 전달돼 옮겨 심었다.
+- 열릴 때 포커스는 지금처럼 강조 버튼에 준다. AlertDialog 기본값은 Cancel 부품에 포커스를 주는데(71–73행), `Alert.tsx`의 버튼은 이 부품이 아니다. 그래서 `onOpenAutoFocus`에서 항상 직접 준다. 단일 버튼 알림(`openAlert`)도 확인 버튼에 준다.
+- 공용 헬퍼로 뽑지 않고 복제한 이유: shadcn/ui도 dialog와 alert-dialog 템플릿이 클래스를 각자 가진다. 그리고 잘 동작하는 `dialog.tsx`를 함께 고치지 않기 위해서다.
+
+**상태**
+
+적용됨(`shared/ui/atoms/alert-dialog.tsx`, `shared/ui/elements/dialog/alert/Alert.tsx`). e2e에서 확인창을 찾는 셀렉터는 `alertdialog`로 바꿨다. "창이 안 떴다"는 무이름 단언은 `getByRole('dialog').or(getByRole('alertdialog'))`로 바꿔, role 변경 뒤에도 확인창을 놓치지 않게 했다.
+
+---
+
 ## 2026-09-30 — 바깥 클릭 닫기 정책: 기본은 닫되, 확인창과 입력 중인 로그인 모달만 막음
 
 **배경**

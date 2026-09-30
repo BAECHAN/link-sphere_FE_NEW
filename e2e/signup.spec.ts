@@ -49,7 +49,7 @@ test.describe('회원가입', () => {
     // 않으므로 GuestGuard가 튕겨내지 않고 로그인 폼이 그대로 뜬다.
     await page.getByRole('link', { name: TEXTS.auth.signup.goToLogin }).click();
     await expect(page).toHaveURL(/\/auth\/login$/);
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByRole('dialog').or(page.getByRole('alertdialog'))).toHaveCount(0);
     // 방금 가입한 이메일이 로그인 폼에 미리 채워져 있어야 한다(location.state 전달,
     // useSignUp.ts의 postSignupLoginState → useLogin.ts).
     await expect(page.getByLabel(`${TEXTS.labels.email}*`, { exact: true })).toHaveValue(

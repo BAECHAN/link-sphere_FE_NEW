@@ -85,6 +85,6 @@ test.describe('보호 라우트 네비게이션 가드', () => {
     // radix Dialog는 열려 있는 동안 나머지 트리에 aria-hidden을 건다 — 게시글 링크가 role
     // 쿼리로 잡힌다는 것 자체가 "모달이 안 떠 있다"의 양성 증거다.
     await expect(page.getByRole('link', { name: mockPost.title })).toBeVisible();
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByRole('dialog').or(page.getByRole('alertdialog'))).toHaveCount(0);
   });
 });

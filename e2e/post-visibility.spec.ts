@@ -68,7 +68,7 @@ test.describe('공개/비공개 전환', () => {
     // mockPost.isPrivate === false라 첫 라벨은 '나만 보기'.
     await page.getByRole('menuitem', { name: TEXTS.post.card.privateLabel }).click();
 
-    const confirmDialog = page.getByRole('dialog', {
+    const confirmDialog = page.getByRole('alertdialog', {
       name: TEXTS.post.card.visibilityConfirmTitle,
     });
     await expect(confirmDialog).toBeVisible();
@@ -79,7 +79,7 @@ test.describe('공개/비공개 전환', () => {
       confirmDialog.getByRole('button', { name: TEXTS.post.card.visibilityConfirmButtonToPrivate })
     ).toBeFocused();
 
-    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // alert-dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
     // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
     await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 
@@ -117,12 +117,12 @@ test.describe('공개/비공개 전환', () => {
     await expect(lockButton).toBeVisible();
     await lockButton.click();
 
-    const confirmDialog = page.getByRole('dialog', {
+    const confirmDialog = page.getByRole('alertdialog', {
       name: TEXTS.post.card.visibilityConfirmTitle,
     });
     await expect(confirmDialog).toBeVisible();
 
-    // dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
+    // alert-dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
     // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).
     await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 

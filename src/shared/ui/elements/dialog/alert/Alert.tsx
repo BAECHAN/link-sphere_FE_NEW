@@ -3,13 +3,13 @@ import { useLocation } from 'react-router-dom';
 import { AlertData, useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
 import { useShallow } from 'zustand/react/shallow';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/shared/ui/atoms/dialog';
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/shared/ui/atoms/alert-dialog';
 import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
@@ -27,9 +27,10 @@ function Alert({ alert }: AlertProps) {
     }))
   );
 
-  // 강조되는 버튼을 오른쪽(DOM상 두 번째)에 두면서도 Radix가 기본으로 주는 "첫 번째 포커스
-  // 가능 요소" 오토포커스가 반대쪽으로 가버리는 걸 막는다 - 강조된 쪽이 여전히 처음
-  // 포커스를 받아야 한다(§ docs/DECISIONS.md 2026-09-29 팔로업 항목).
+  // 강조되는 버튼을 오른쪽(DOM상 두 번째)에 두면서도 처음 포커스는 강조된 쪽이 받아야 한다
+  // (§ docs/DECISIONS.md 2026-09-29 팔로업 항목). Radix AlertDialog의 기본 오토포커스는
+  // 취소(Cancel) 부품이라 이 컴포넌트의 버튼에는 가지 않는다 — 단일 버튼(alert)도 여기서
+  // 확인 버튼에 직접 포커스를 준다.
   const emphasizedButtonRef = useRef<HTMLButtonElement>(null);
 
   const {
@@ -77,7 +78,7 @@ function Alert({ alert }: AlertProps) {
       key="confirm"
       variant={type === 'confirm' && emphasis === 'cancel' ? 'outline' : 'default'}
       onClick={handleConfirm}
-      ref={emphasis === 'confirm' ? emphasizedButtonRef : undefined}
+      ref={type === 'alert' || emphasis === 'confirm' ? emphasizedButtonRef : undefined}
       className="flex-1 sm:flex-none sm:min-w-[80px]"
     >
       {confirmText}
@@ -98,7 +99,7 @@ function Alert({ alert }: AlertProps) {
   }, [location.key]);
 
   return (
-    <Dialog
+    <AlertDialog
       open={isOpen}
       onOpenChange={(open) => {
         if (!open) {
@@ -106,25 +107,22 @@ function Alert({ alert }: AlertProps) {
         }
       }}
     >
-      <DialogContent
+      {/* 확인창은 명시적인 응답을 받는 창이라 바깥 클릭으로 닫지 않는다 — Radix AlertDialog가
+          항상 막는다. 취소 버튼·X·ESC·뒤로가기로는 닫힌다(docs/DECISIONS.md 2026-09-30). */}
+      <AlertDialogContent
         className="max-w-[calc(100%-2rem)] sm:max-w-[400px]"
-        // 확인창은 명시적인 응답을 받는 창이라 바깥 클릭으로 닫지 않는다(Radix AlertDialog와
-        // 같은 기본값). 취소 버튼·ESC·뒤로가기로는 닫힌다(docs/DECISIONS.md 2026-09-30).
-        dismissOnOutsideClick={false}
         onOpenAutoFocus={(e) => {
-          if (type === 'confirm') {
-            e.preventDefault();
-            emphasizedButtonRef.current?.focus();
-          }
+          e.preventDefault();
+          emphasizedButtonRef.current?.focus();
         }}
       >
-        <DialogHeader className="items-center text-center">
+        <AlertDialogHeader className="items-center text-center">
           {title ? (
-            <DialogTitle>{title}</DialogTitle>
+            <AlertDialogTitle>{title}</AlertDialogTitle>
           ) : (
-            <DialogTitle className="sr-only">Alert</DialogTitle>
+            <AlertDialogTitle className="sr-only">Alert</AlertDialogTitle>
           )}
-          <DialogDescription
+          <AlertDialogDescription
             className={cn('text-center text-foreground font-medium', !title && 'pt-4')}
           >
             {typeof message === 'string' ? (
@@ -132,9 +130,9 @@ function Alert({ alert }: AlertProps) {
             ) : (
               message
             )}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="flex-row justify-center gap-2 sm:justify-center mt-2">
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="flex-row justify-center gap-2 sm:justify-center mt-2">
           {/* 강조되는 쪽(기본은 취소)이 채움 + 오른쪽 + 초기 포커스, 반대쪽이 outline + 왼쪽이다.
               채움으로 강조하는 원칙은 Nielsen(2008) "가장 자주 선택되는 버튼을 기본값으로 두고
               강조하라(단, 위험하면 예외)"(번역, https://www.nngroup.com/articles/ok-cancel-or-cancel-ok/)를
@@ -155,9 +153,9 @@ function Alert({ alert }: AlertProps) {
               {cancelButton}
             </>
           )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

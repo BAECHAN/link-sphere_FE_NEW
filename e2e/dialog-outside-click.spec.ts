@@ -43,7 +43,7 @@ authTest.describe('확인창(Confirm) — 바깥 클릭으로 닫히지 않는�
     await page.getByRole('button', { name: TEXTS.ariaLabels.postMenu }).click();
     await page.getByRole('menuitem', { name: TEXTS.buttons.delete }).click();
 
-    const confirmDialog = page.getByRole('dialog');
+    const confirmDialog = page.getByRole('alertdialog');
     await expect(confirmDialog).toBeVisible();
     await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
 
