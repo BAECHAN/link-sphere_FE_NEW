@@ -26,7 +26,8 @@ Parse:
 ```typescript
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/config/api';
-import { Create<Entity>, Update<Entity>, <Entity> } from '@/entities/<entity>/model/<entity>.schema';
+import type { <Entity> } from '@/entities/<entity>/model/<entity>.dto';
+import { Create<Entity>, Update<Entity> } from '@/entities/<entity>/model/<entity>.schema';
 
 export const <entity>Api = {
   create<Entity>: async (payload: Create<Entity>): Promise<<Entity>> =>
@@ -50,7 +51,7 @@ export const <entity>Api = {
 
 ```typescript
 import type { QueryClient } from '@tanstack/react-query';
-import { <Entity> } from '@/entities/<entity>/model/<entity>.schema';
+import type { <Entity> } from '@/entities/<entity>/model/<entity>.dto';
 
 const rootKey = ['<entity>'] as const;
 

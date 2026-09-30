@@ -66,7 +66,8 @@ export type Account = Omit<components['schemas']['AccountResponse'], 'role'> & {
 ## File 2 — `src/entities/<entity>/model/<entity>.schema.ts` (요청·폼 검증, 필요할 때만)
 
 생성/수정 폼이나 검색 필터처럼 **사용자 입력을 검증**해야 할 때만 만든다. 순수 조회
-전용 엔티티(예: category)라면 이 파일은 필요 없다 — `.dto.ts`의 타입을 그대로 쓴다.
+전용 엔티티라면 이 파일은 필요 없다 — `.dto.ts`의 타입을 그대로 쓴다(`category.schema.ts`는
+예외로, 기존 import 경로 호환용 재수출만 남은 경우다).
 
 먼저 `src/shared/config/texts.ts`의 `validation`에 `<entity>NameRequired` 키를 추가한다 —
 공용 `nameRequired` 키는 없고 필드마다 별도 키를 쓴다(선례: `folderNameRequired`,
