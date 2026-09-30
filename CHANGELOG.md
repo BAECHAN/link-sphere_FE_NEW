@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `bookmark` 북마크 모달이 목록을 기다리는 동안에도 목록 자리를 먼저 보여줌
+  <details><summary>배경·구현</summary>
+
+  hover가 없는 모바일은 북마크 아이콘을 처음 탭할 때 폴더 목록을 기다려야 하는데, 그동안 모달이 헤더만 있는 작은 시트로 떴다가 목록이 오면 늘어났다. 목록 없이 그릴 수 있는 "새 폴더 만들기"·"미분류"·하단 destructive 행은 비활성으로 바로 보여주고, "내 폴더" 제목과 폴더 3줄 자리에 골격을 둬서 도착할 때 높이 변화를 줄였다. 행 높이는 실제 행과 같게 고정하고 골격만 500ms 뒤 나타난다. 화면 진입 시 미리 불러오는 안은 북마크를 안 쓰는 사용자에게도 매번 요청이 나가 기각했고, 빈 자리 + 스피너 안과 실제 스크린샷으로 비교해 골격 안을 골랐다. 폴더 수가 3개와 다르면 도착할 때 그만큼 조금 늘거나 준다.
+  (`src/features/bookmark/select/ui/BookmarkFolderSelectDialog.tsx`, `src/features/bookmark/toggle/ui/PostCardBookmarkFolderDialog.test.tsx`, `docs/BOOKMARK.md`, [PR #275](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/275))
+
+  </details>
+
 - `post` 등록 폼의 북마크 폴더 선택 모달도 뒤로가기로 닫기
   <details><summary>배경·구현</summary>
 

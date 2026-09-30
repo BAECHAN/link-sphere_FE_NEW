@@ -4,6 +4,7 @@ import { SheetDialogContent } from '@/shared/ui/elements/dialog/SheetDialogConte
 import { Button } from '@/shared/ui/atoms/button';
 import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';
+import { Skeleton } from '@/shared/ui/atoms/skeleton';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
@@ -109,11 +110,7 @@ export function BookmarkFolderSelectDialog({
         </div>
 
         {isLoading ? (
-          <div className={cn('overflow-y-auto', isMobile ? 'max-h-[70vh]' : 'max-h-96')}>
-            <DelayedFallback className="flex items-center justify-center py-10">
-              <Spinner />
-            </DelayedFallback>
-          </div>
+          <FolderListLoading isMobile={isMobile} dangerActionLabel={dangerAction?.label} />
         ) : (
           <>
             {/* 새 폴더 만들기 — 헤더 바로 아래 고정, 스크롤 밖(2026-09-11). 헤더의 border-b가
@@ -266,6 +263,107 @@ export function BookmarkFolderSelectDialog({
         )}
       </SheetDialogContent>
     </Dialog>
+  );
+}
+
+/** 골격 행 텍스트 폭 — 같은 폭이 반복되면 가짜 화면처럼 보여 길이를 섞는다 */
+const SKELETON_ROW_WIDTHS = ['w-3/5', 'w-2/5', 'w-2/3'];
+
+interface FolderListLoadingProps {
+  isMobile: boolean;
+  dangerActionLabel?: string;
+}
+
+/**
+ * 폴더 목록을 기다리는 동안의 화면 — 목록이 도착하면 모달이 작게 떴다가 늘어나던 문제로
+ * (2026-09-30) 실제 목록과 같은 자리를 먼저 잡는다. 데이터 없이 그릴 수 있는 "새 폴더
+ * 만들기"·"미분류"·하단 destructive 행은 그대로 보여주고, 폴더 자리에만 골격을 둔다
+ * (선례: widgets/post/post-list/ui/PostCardSkeleton.tsx). 각 행의 높이는 FolderRow와 같게
+ * 고정해 두고 골격만 DelayedFallback으로 500ms 뒤 보여준다 — 응답이 빠를 때 골격이
+ * 번쩍였다 사라지지 않게 하면서도 자리는 처음부터 잡혀 있다.
+ */
+function FolderListLoading({ isMobile, dangerActionLabel }: FolderListLoadingProps) {
+  return (
+    <>
+      <ul className="py-1 border-b">
+        <li>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled
+            className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-muted-foreground"
+          >
+            <Plus className="h-4 w-4" />
+            {TEXTS.bookmark.folder.create}
+          </Button>
+        </li>
+      </ul>
+
+      <div className={cn('overflow-y-auto', isMobile ? 'max-h-[70vh]' : 'max-h-96')}>
+        <ul className="py-1" aria-busy="true">
+          {/* 목록이 오기 전엔 눌러도 저장할 수 없으므로 "새 폴더 만들기"처럼 비활성으로 보인다 —
+              평소 행과 똑같이 그리면 느린 네트워크에서 눌렀을 때 아무 반응이 없어 고장처럼 읽힌다 */}
+          <li>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled
+              className="h-11 w-full justify-start gap-3 rounded-none px-4 text-sm md:h-10"
+            >
+              {/* FolderRow와 같이 아이콘을 span으로 감싼다 — Button은 svg가 직접 자식이면 좌우
+                  여백을 줄여(has-[>svg]:px-3) 도착 후 행과 아이콘 위치가 어긋난다 */}
+              <span className="text-muted-foreground">
+                <Bookmark className="h-4 w-4" />
+              </span>
+              <span className="flex-1 text-left">{TEXTS.bookmark.folder.uncategorized}</span>
+              <DelayedFallback>
+                <Skeleton className="h-3 w-4" />
+              </DelayedFallback>
+              <span className="h-4 w-4 shrink-0" />
+            </Button>
+          </li>
+
+          {/* "내 폴더" 그룹 제목 자리 — 실제 제목과 같은 여백·줄 높이(16px) */}
+          <li className="px-4 pt-3 pb-1 border-t">
+            <div className="h-4">
+              <DelayedFallback>
+                <Skeleton className="h-3 w-12" />
+              </DelayedFallback>
+            </div>
+          </li>
+
+          {SKELETON_ROW_WIDTHS.map((widthClassName) => (
+            <li key={widthClassName} className="flex h-11 items-center px-4 md:h-10">
+              <DelayedFallback className="flex w-full items-center gap-3">
+                <Skeleton className="h-4 w-4 shrink-0" />
+                <Skeleton className={cn('h-3.5', widthClassName)} />
+                <span className="flex-1" />
+                <Skeleton className="h-3 w-4" />
+                <span className="h-4 w-4 shrink-0" />
+              </DelayedFallback>
+            </li>
+          ))}
+        </ul>
+        {/* 스크린리더용 로딩 알림 — 이전 스피너(role="status")와 같은 안내를 유지한다 */}
+        <Spinner className="sr-only" />
+      </div>
+
+      {dangerActionLabel && (
+        <ul className="py-1">
+          <li>
+            <Button
+              type="button"
+              variant="none"
+              disabled
+              className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-destructive border-t"
+            >
+              <BookmarkX className="h-4 w-4" />
+              {dangerActionLabel}
+            </Button>
+          </li>
+        </ul>
+      )}
+    </>
   );
 }
 
