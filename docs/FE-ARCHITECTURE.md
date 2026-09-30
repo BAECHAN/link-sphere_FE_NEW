@@ -1370,7 +1370,11 @@ flowchart TD
 보낸 같은 커밋에서 옛 위치 기준으로 보정해 리셋을 되돌렸다(직접 계측: `scrollTo(0,0)` 3ms 뒤
 `scrollTo({top:1121})`). [`useWindowGridVirtualizer.ts`](../src/shared/hooks/useWindowGridVirtualizer.ts)의
 `shouldAdjustScrollOnItemResize`가 "캐시와 실제 스크롤이 한 화면 이상 벌어졌으면 보정하지 않는다"는
-가드로 막는다. 새 가상 스크롤 목록도 이 훅을 쓰면 자동으로 적용된다. 경위와 대안 비교는
+가드로 막는다. 새 가상 스크롤 목록도 이 훅을 쓰면 자동으로 적용된다. 이 콜백은 라이브러리 기본
+판정을 통째로 대체해서 기본 판정을 옮겨 적어 두었다 — `@tanstack/virtual-core`를 올려 원본 판정이
+바뀌면 `useWindowGridVirtualizer.test.ts`의 차등 테스트(같은 상황에서 라이브러리 기본과 복제본의
+보정을 비교)가 실패하니, 그때 원본을 다시 옮겨 적는다. 같은 증상이 업스트림에
+[TanStack/virtual#997](https://github.com/TanStack/virtual/issues/997)로 열려 있다. 경위와 대안 비교는
 [`DECISIONS.md`](./DECISIONS.md) 2026-09-30 "URL이 바뀌면 맨 위로" 항목, 회귀 테스트는
 `e2e/scroll-reset-on-navigation.spec.ts`.
 

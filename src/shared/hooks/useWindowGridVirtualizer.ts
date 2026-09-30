@@ -122,9 +122,11 @@ function useResponsiveValue<T extends { minWidth: number }>(breakpoints: readonl
  *
  * 기본 판정: 이 콜백을 지정하면 기본 판정을 통째로 대체하므로 그대로 옮겨 적는다 -
  * @tanstack/virtual-core 3.17.11 dist/esm/index.js resizeItem(918-933). 라이브러리를
- * 올릴 때 이 부분이 원본과 같은지 다시 확인한다.
+ * 올려 원본 판정이 바뀌면 useWindowGridVirtualizer.test.ts의 차등 테스트(콜백 미지정 =
+ * 라이브러리 기본과 이 함수의 스크롤 보정을 같은 상황에서 비교)가 실패한다 - 그때 원본을
+ * 다시 옮겨 적는다.
  */
-function shouldAdjustScrollOnItemResize(
+export function shouldAdjustScrollOnItemResize(
   item: VirtualItem,
   _delta: number,
   instance: Virtualizer<Window, HTMLDivElement>
@@ -142,7 +144,11 @@ function shouldAdjustScrollOnItemResize(
     return item.start < offset;
   }
 
-  return item.end <= offset && instance.scrollDirection !== 'backward';
+  // 원본은 행 끝을 item.end(마지막 측정 재계산 때의 값)가 아니라 최신 크기 캐시로 잡는다 — 같은
+  // 행이 다시 그려지기 전에 크기가 두 번 바뀌면 둘이 달라진다
+  const itemSize = instance.itemSizeCache.get(item.key) ?? item.size;
+
+  return item.start + itemSize <= offset && instance.scrollDirection !== 'backward';
 }
 
 /** 목록 컨테이너의 문서 최상단으로부터의 거리(scrollMargin)를 추적한다. 검색 안내

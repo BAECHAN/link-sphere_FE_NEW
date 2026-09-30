@@ -151,6 +151,14 @@
 
   </details>
 
+- `shared` 가상 스크롤 보정 판정을 라이브러리 원본과 맞추고, 어긋나면 테스트가 실패하게 함
+  <details><summary>배경·구현</summary>
+
+  위 가드는 `@tanstack/virtual-core`의 보정 판정 훅에 지정되는데, 지정하면 라이브러리 기본 판정을 통째로 대체해서 기본 판정을 옮겨 적어 두었다. 라이브러리를 올려 원본이 바뀌면 옛 로직을 계속 쓰게 되는데 이를 막는 장치가 주석뿐이었다. jsdom에서 실제 `Virtualizer`를 띄워 30가지 상황(스크롤 위치 × 행 위치 × 첫 측정/재측정 × 스크롤 방향)마다 라이브러리 기본과 복제본의 스크롤 보정을 비교하는 차등 테스트를 넣었다(복제본을 일부러 바꾸면 실패하는 것을 직접 확인). 이 비교를 넓히다가 복제본이 지금도 한 곳에서 원본과 다른 것을 찾아 고쳤다 — 재측정 때 원본은 행 끝을 최신 크기 캐시로 계산하는데 복제본은 마지막 측정 재계산 때의 값(`item.end`)을 써서, 같은 행이 다시 그려지기 전에 크기가 두 번 바뀌면 원본은 보정하고 복제본은 건너뛰었다. 버전은 이미 정확 고정이고 자동 업데이트 봇이 없어, 위험 시점은 수동 업그레이드 PR이다 — 그 PR의 `pnpm test`에서 이 테스트가 실패한다. 같은 증상이 업스트림 [TanStack/virtual#997](https://github.com/TanStack/virtual/issues/997)로 열려 있다.
+  (`src/shared/hooks/useWindowGridVirtualizer.ts`, `src/shared/hooks/useWindowGridVirtualizer.test.ts`, `docs/FE-ARCHITECTURE.md`, [계획](docs/plans/2026-09-30-virtualizer-guard-followups.md), [PR #270](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/270))
+
+  </details>
+
 - `shared` 미리 렌더된 모달에서 열린 직후 클릭 가드가 꺼져 있던 문제 수정
   <details><summary>배경·구현</summary>
 
