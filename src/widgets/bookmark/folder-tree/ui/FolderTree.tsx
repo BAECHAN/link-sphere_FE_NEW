@@ -15,7 +15,6 @@ import {
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import {
   useCreateFolderInput,
-  useFolderChips,
   useFolderItem,
   useFolderTree,
   useInlineCreateFolderInput,
@@ -127,51 +126,6 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
         </div>
       </div>
     </aside>
-  );
-}
-
-/** 모바일 — 상단 가로 칩 (선택 + 새 폴더만, ⋮ rename/delete 는 데스크탑 전용) */
-export function FolderChips({ selectedKey, onSelect, className }: FolderTreeProps) {
-  const { folderList, uncategorizedCount, creating, startCreating, stopCreating } =
-    useFolderChips();
-
-  return (
-    <div className={cn('flex items-center gap-2 overflow-x-auto py-2 px-1', className)}>
-      <Chip selected={selectedKey === 'all'} onClick={() => onSelect('all')}>
-        {TEXTS.bookmark.folder.all}
-      </Chip>
-      <Chip selected={selectedKey === 'uncategorized'} onClick={() => onSelect('uncategorized')}>
-        {TEXTS.bookmark.folder.uncategorized}
-        {uncategorizedCount > 0 && (
-          <span className="ml-1.5 text-xs opacity-70">{uncategorizedCount}</span>
-        )}
-      </Chip>
-      {folderList?.map((folder) => (
-        <Chip
-          key={folder.id}
-          selected={selectedKey === folder.id}
-          onClick={() => onSelect(folder.id)}
-        >
-          {folder.name}
-          {folder.bookmarkCount > 0 && (
-            <span className="ml-1.5 text-xs opacity-70">{folder.bookmarkCount}</span>
-          )}
-        </Chip>
-      ))}
-      {creating ? (
-        <InlineCreateFolderInput onClose={stopCreating} />
-      ) : (
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={startCreating}
-          className="h-auto shrink-0 gap-1 rounded-full border border-dashed px-3 py-1.5 text-sm text-muted-foreground"
-        >
-          <Plus className="size-4" />
-          {TEXTS.bookmark.folder.new}
-        </Button>
-      )}
-    </div>
   );
 }
 
@@ -346,29 +300,5 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
         </Button>
       </div>
     </div>
-  );
-}
-
-interface ChipProps {
-  children: React.ReactNode;
-  selected: boolean;
-  onClick: () => void;
-}
-
-function Chip({ children, selected, onClick }: ChipProps) {
-  return (
-    <Button
-      type="button"
-      variant="none"
-      onClick={onClick}
-      className={cn(
-        'h-auto shrink-0 rounded-full border px-3 py-1.5 text-sm',
-        selected
-          ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90'
-          : 'bg-background border-input hover:bg-accent'
-      )}
-    >
-      {children}
-    </Button>
   );
 }

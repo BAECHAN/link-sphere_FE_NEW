@@ -9,7 +9,7 @@ import {
  * PostCard의 실제 레이아웃(작성자 줄 → 제목 → 설명 → 링크 프리뷰 → 액션 바)에 맞춘 골격.
  * 로딩이 끝났을 때 레이아웃이 튀지 않도록 여백·크기를 PostCard와 동일하게 맞춘다.
  */
-export function PostCardSkeleton() {
+function PostCardSkeleton() {
   return (
     <Card className="relative flex flex-col overflow-hidden">
       <CardHeader className="p-3 pb-1 grid grid-cols-[1fr_auto] items-start space-y-0">

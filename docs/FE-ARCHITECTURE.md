@@ -279,7 +279,7 @@ src/
     │   ├── storage-keys.ts
     │   ├── const.ts
     │   └── error-code.ts          # SERVER_ERROR_CODE
-    ├── hooks/                     # 재사용 훅 (useToggle, useDebounce, useIntersectionObserver, usePullToRefresh 등)
+    ├── hooks/                     # 재사용 훅 (useDebounce, useIntersectionObserver, usePullToRefresh 등)
     ├── lib/
     │   ├── react-query/
     │   │   └── config/                 # queryClient.ts(중앙 QueryClient 인스턴스), error-toast.ts(resolveErrorToast)
@@ -1276,10 +1276,10 @@ CLI로 이 컴포넌트를 다시 생성하면 `cursor-default`가 되돌아오�
 
 `*.util.ts`(디렉터리는 복수 `utils/`, 파일 접미사는 단수 `.util.ts`)는 바레 함수를
 export하지 않고 `export class <Name>Util { static ... }` 형태로 정적 메서드를 묶는다 —
-`shared/utils/`의 11개 파일 중 10개(`AuthUtil`·`BuildInfoUtil`·`CommonUtil`·`DateUtil`·
+`shared/utils/`의 10개 파일(`AuthUtil`·`BuildInfoUtil`·`CommonUtil`·`DateUtil`·
 `ErrorUtil`·`FormUtil`·`LogoutGraceUtil`·`LocalStorageUtil`/`SessionStorageUtil`·`UrlUtil`·
-`VersionUtil`)가 이 형태이고, `file.util.ts`(객체 리터럴)만 예외다. `entities/*/utils/`도
-같은 형태를 따른다.
+`VersionUtil`)이 모두 이 형태다(유일한 예외였던 객체 리터럴 `file.util.ts`는 쓰는 곳이 없어
+2026-10-01에 지웠다). `entities/*/utils/`도 같은 형태를 따른다.
 
 참조: `src/shared/utils/common.util.ts`
 

@@ -14,8 +14,6 @@ export const commentContentFormSchema = z.object({
     ),
 });
 
-export type CommentContentFormValues = z.infer<typeof commentContentFormSchema>;
-
 // 기존 import 경로 호환 — 응답 타입은 dto.ts(BE 스펙 생성)에서 가져간다.
 export type {
   Comment,

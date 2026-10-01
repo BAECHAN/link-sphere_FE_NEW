@@ -2,10 +2,6 @@
  * 전역 상수
  */
 
-// OS 감지 (SSR 환경 고려)
-export const IS_MAC =
-  typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/i.test(navigator.userAgent);
-
 export const STALE_TIME_ONE_DAY = 1000 * 60 * 60 * 24; // 24시간
 
 // 조회 로딩(스피너·스켈레톤)을 띄우기 전 기다리는 시간 — 이보다 빨리 끝나면 표시하지 않는다.

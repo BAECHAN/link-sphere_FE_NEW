@@ -9,7 +9,7 @@ interface UseCreateFolderFormParams {
 }
 
 /**
- * 폴더 생성 폼 코어 로직 — FolderTree(InlineCreateFolderInput·FolderChips)·
+ * 폴더 생성 폼 코어 로직 — FolderTree(InlineCreateFolderInput)·
  * MobileFolderList(CreateFolderCard)가 공유한다.
  */
 export const useCreateFolderForm = ({ onCreated }: UseCreateFolderFormParams) => {

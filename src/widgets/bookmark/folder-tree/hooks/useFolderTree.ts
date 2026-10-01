@@ -1,9 +1,6 @@
 import { KeyboardEvent, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  prefetchBookmarkFolderPosts,
-  useBookmarkFolderListQuery,
-} from '@/entities/bookmark/folder/api/bookmark-folder.queries';
+import { prefetchBookmarkFolderPosts } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import {
   BookmarkFolder,
   BookmarkFolderKey,
@@ -90,21 +87,5 @@ export const useInlineCreateFolderInput = (onClose: () => void) => {
     handleCancel,
     handleKeyDown,
     handleBlur,
-  };
-};
-
-/** FolderChips(모바일 상단 가로 칩) */
-export const useFolderChips = () => {
-  const { data } = useBookmarkFolderListQuery();
-  const folderList = data?.folders;
-  const uncategorizedCount = data?.uncategorizedCount ?? 0;
-  const [creating, setCreating] = useState(false);
-
-  return {
-    folderList,
-    uncategorizedCount,
-    creating,
-    startCreating: () => setCreating(true),
-    stopCreating: () => setCreating(false),
   };
 };
