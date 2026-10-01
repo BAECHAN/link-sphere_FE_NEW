@@ -23,6 +23,12 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    # pull-requests: write는 "PR 영향 그래프" 스텝이 PR 댓글을 달고 갱신하는 데 필요하다
+    # (https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens).
+    # 잡에 permissions를 적으면 나머지 권한은 none이 되므로 checkout용 contents: read도 함께 적는다.
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -82,11 +88,34 @@ jobs:
 
       - name: PR 영향 그래프 (정보용 — 실패해도 잡은 통과)
         # 이 PR이 바꾼 src 파일과, import를 따라 거기에 닿는 파일을 Mermaid 그림으로 실행 결과
-        # 요약(Step Summary)에 붙인다. 리뷰 보조용이라 그림을 못 그려도 잡을 실패시키지 않는다
-        # (docs/plans/2026-10-01-dependency-cruiser.md).
+        # 요약(Step Summary)과 PR 댓글에 붙인다. 리뷰 보조용이라 그림을 못 그려도 잡을 실패시키지
+        # 않는다(docs/plans/2026-10-01-dependency-cruiser.md).
+        # 댓글은 PR마다 하나다 — 맨 앞 표식 주석으로 이전 댓글을 찾아 갱신하고, 없을 때만 새로
+        # 단다. 그림 대상 src 변경이 없는 PR(문서만 바꾼 PR 등)에는 새 댓글을 달지 않는다.
         if: github.event_name == 'pull_request'
         continue-on-error: true
-        run: node scripts/dep-graph.js --affected "${{ github.event.pull_request.base.sha }}" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          graph="$RUNNER_TEMP/dep-graph.md"
+          comment="$RUNNER_TEMP/dep-graph-comment.md"
+          marker='<!-- dep-graph-affected -->'
+
+          node scripts/dep-graph.js --affected "$BASE_SHA" > "$graph"
+          cat "$graph" >> "$GITHUB_STEP_SUMMARY"
+          { echo "$marker"; cat "$graph"; } > "$comment"
+
+          comment_id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" \
+            | head -n 1)
+
+          if [ -n "$comment_id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment_id" -F body=@"$comment" > /dev/null
+          elif grep -q '```mermaid\|^| 슬라이스 |' "$graph"; then
+            gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$comment"
+          fi
 
       - name: Build
         # globals.css의 @theme 토큰이 실제 CSS로 정상 생성되는지 머지 전에 확인한다.
