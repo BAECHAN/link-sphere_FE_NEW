@@ -1,4 +1,7 @@
 ### 2026-10-01 (FE)
+- 사용하지 않는 export 제거 및 불필요한 파일 정리로 코드베이스 최적화 ([#288](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/288))
+
+### 2026-10-01 (FE)
 - 존재하지 않는 테마 참조를 제거하여 styled-components 타입 안정성 개선 ([#284](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/284))
 
 ### 2026-10-01 (FE)
