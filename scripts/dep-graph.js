@@ -258,7 +258,24 @@ function writeHtmlAndOpen(name, html, countsLine) {
   }
 }
 
-function runReaches(pattern) {
+/**
+ * `--text`용 — 브라우저 없이 목록만 터미널에 찍는다. Claude 세션이 수정 전 영향 범위를 확인할 때
+ * 쓴다(.claude/CLAUDE.md §5). 레이어 순서(pages → shared), 그 안에서는 경로순.
+ */
+function printModuleList(title, modules) {
+  const layerOrder = Object.keys(LAYER_STYLES);
+  const sorted = [...modules].sort(
+    (a, b) => layerOrder.indexOf(layerOf(a)) - layerOrder.indexOf(layerOf(b)) || a.localeCompare(b)
+  );
+
+  console.log(`${title} (${sorted.length})`);
+
+  for (const source of sorted) {
+    console.log(`  ${source}`);
+  }
+}
+
+function runReaches(pattern, { asText }) {
   const graph = buildGraph(runDepcruise().modules);
   const targets = matchTargets(graph, pattern);
 
@@ -267,6 +284,16 @@ function runReaches(pattern) {
   }
 
   const reached = collectReachingModules(graph, targets);
+
+  if (asText) {
+    printModuleList('대상', targets);
+    printModuleList(
+      '대상에 import로 닿는 파일',
+      [...reached].filter((source) => !targets.includes(source))
+    );
+    return;
+  }
+
   const edges = edgesWithin(graph, reached);
   const html = toHtml({
     title: `${pattern} 에 닿는 파일`,
@@ -286,7 +313,7 @@ function runReaches(pattern) {
  * 대상과 바로 이웃만 — 대상을 import하는 파일(그림 위쪽)과 대상이 import하는 파일(아래쪽),
  * 한 단계씩. dependency-cruiser의 `--focus`와 같은 범위를 runReaches와 같은 이유로 직접 계산한다.
  */
-function runFocus(pattern) {
+function runFocus(pattern, { asText }) {
   const graph = buildGraph(runDepcruise().modules);
   const targets = matchTargets(graph, pattern);
 
@@ -297,6 +324,14 @@ function runFocus(pattern) {
   const importersOf = buildImportersOf(graph);
   const importers = new Set(targets.flatMap((target) => importersOf.get(target) ?? []));
   const imported = new Set(targets.flatMap((target) => [...graph.get(target)]));
+
+  if (asText) {
+    printModuleList('대상', targets);
+    printModuleList('대상을 import하는 파일', importers);
+    printModuleList('대상이 import하는 파일', imported);
+    return;
+  }
+
   const nodes = new Set([...targets, ...importers, ...imported]);
   const edges = edgesWithin(graph, nodes);
   const html = toHtml({
@@ -448,15 +483,16 @@ function runAffected(baseRevision) {
 }
 
 function main() {
-  const [mode, value] = process.argv.slice(2);
+  const [mode, value, ...flags] = process.argv.slice(2);
+  const asText = flags.includes('--text');
 
   if (mode === '--reaches' && value) {
-    runReaches(value);
+    runReaches(value, { asText });
     return;
   }
 
   if (mode === '--focus' && value) {
-    runFocus(value);
+    runFocus(value, { asText });
     return;
   }
 
@@ -482,6 +518,7 @@ function main() {
   console.error(
     '        node scripts/dep-graph.js --affected <기준 커밋>                (CI의 PR 영향 그래프)'
   );
+  console.error('        graph·graph:focus 뒤에 --text를 붙이면 브라우저 없이 목록만 출력');
   process.exitCode = 1;
 }
 
