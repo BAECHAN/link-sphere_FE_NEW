@@ -1164,8 +1164,9 @@ pnpm check:docs     # README/docs/CLAUDE.md가 가리키는 경로·줄 번호 �
 pnpm check:deps     # 의존성 규칙 검사 — entities @x·미선언 패키지 등 (.dependency-cruiser.cjs, scripts/check-deps.js)
 pnpm graph <정규식>  # 그 모듈에 import로 닿는 파일을 레이어별 색 그림으로 (scripts/dep-graph.js, 예: "useClickGuard[.]ts$")
 pnpm graph:focus <정규식>  # 그 모듈의 바로 이웃만 — 그 모듈을 import하는 파일(위)과 그 모듈이 import하는 파일(아래)
+                    # graph·graph:focus 뒤에 --text를 붙이면 브라우저 없이 목록만 출력(.claude/CLAUDE.md §5)
 pnpm graph:archi    # 슬라이스 단위 전체 구조(pages → entities, shared 제외)
-node scripts/dep-graph.js --affected <기준 커밋>  # 바뀐 src 파일과 거기 닿는 파일 그림(마크다운) — CI가 PR마다 Step Summary에 붙인다
+node scripts/dep-graph.js --affected <기준 커밋>  # 바뀐 src 파일과 거기 닿는 파일 그림(마크다운) — CI가 PR마다 Step Summary와 PR 댓글(하나를 계속 갱신)에 붙인다
 pnpm codegen        # openapi.json → openapi.gen.ts 타입 생성
 pnpm codegen:fetch  # BE에서 openapi.json 새로 받아오기
 pnpm test           # Vitest 테스트 실행 (CI)
