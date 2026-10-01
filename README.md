@@ -77,25 +77,27 @@ pnpm storybook
 
 ## 개발 명령어
 
-| 명령어                | 설명                                                                   |
-| --------------------- | ---------------------------------------------------------------------- |
-| `pnpm dev`            | 로컬 개발 서버 실행 (포트 31119)                                       |
-| `pnpm build`          | 프로덕션 빌드                                                          |
-| `pnpm preview`        | 빌드 결과물 미리보기                                                   |
-| `pnpm type-check`     | TypeScript 타입 검사                                                   |
-| `pnpm lint`           | ESLint 검사                                                            |
-| `pnpm lint:fix`       | ESLint 자동 수정                                                       |
-| `pnpm format`         | Prettier 포맷팅                                                        |
-| `pnpm check`          | 타입 + 린트 + 포맷 + 의존성 규칙 일괄 검사                             |
-| `pnpm check:fix`      | 린트·포맷 자동 수정 후 타입 검사                                       |
-| `pnpm check:docs`     | 문서가 가리키는 파일 경로·줄 번호가 실제와 맞는지 검사                 |
-| `pnpm check:deps`     | 의존성 규칙 검사 (entities `@x` 경유, `package.json`에 없는 패키지 등) |
-| `pnpm graph <정규식>` | 그 모듈에 import로 닿는 모든 파일을 레이어별 색 그림(HTML)으로 열기    |
-| `pnpm storybook`      | Storybook 컴포넌트 개발 서버 (6006, 공개 배포는 위 "Storybook" 참고)   |
-| `pnpm test`           | 테스트 1회 실행 (CI / pre-push 동일)                                   |
-| `pnpm test:watch`     | 테스트 감시 모드 (파일 변경 시 재실행)                                 |
-| `pnpm test:coverage`  | 커버리지 리포트 생성 (`coverage/index.html`)                           |
-| `pnpm test:e2e`       | Playwright e2e 테스트 (Chromium 헤드리스)                              |
+| 명령어                      | 설명                                                                         |
+| --------------------------- | ---------------------------------------------------------------------------- |
+| `pnpm dev`                  | 로컬 개발 서버 실행 (포트 31119)                                             |
+| `pnpm build`                | 프로덕션 빌드                                                                |
+| `pnpm preview`              | 빌드 결과물 미리보기                                                         |
+| `pnpm type-check`           | TypeScript 타입 검사                                                         |
+| `pnpm lint`                 | ESLint 검사                                                                  |
+| `pnpm lint:fix`             | ESLint 자동 수정                                                             |
+| `pnpm format`               | Prettier 포맷팅                                                              |
+| `pnpm check`                | 타입 + 린트 + 포맷 + 의존성 규칙 일괄 검사                                   |
+| `pnpm check:fix`            | 린트·포맷 자동 수정 후 타입 검사                                             |
+| `pnpm check:docs`           | 문서가 가리키는 파일 경로·줄 번호가 실제와 맞는지 검사                       |
+| `pnpm check:deps`           | 의존성 규칙 검사 (entities `@x` 경유, `package.json`에 없는 패키지 등)       |
+| `pnpm graph <정규식>`       | 그 모듈에 import로 닿는 모든 파일을 레이어별 색 그림(HTML)으로 열기          |
+| `pnpm graph:focus <정규식>` | 그 모듈의 바로 이웃(그 모듈을 쓰는 파일·그 모듈이 쓰는 파일)만 그림으로 열기 |
+| `pnpm graph:archi`          | 슬라이스 단위 전체 구조 그림 열기 (shared 제외)                              |
+| `pnpm storybook`            | Storybook 컴포넌트 개발 서버 (6006, 공개 배포는 위 "Storybook" 참고)         |
+| `pnpm test`                 | 테스트 1회 실행 (CI / pre-push 동일)                                         |
+| `pnpm test:watch`           | 테스트 감시 모드 (파일 변경 시 재실행)                                       |
+| `pnpm test:coverage`        | 커버리지 리포트 생성 (`coverage/index.html`)                                 |
+| `pnpm test:e2e`             | Playwright e2e 테스트 (Chromium 헤드리스)                                    |
 
 ## 기술 스택
 

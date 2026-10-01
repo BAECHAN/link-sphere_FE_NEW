@@ -1,6 +1,8 @@
 // `pnpm graph <정규식>` — 정규식에 맞는 모듈(훅·컴포넌트 등)과, import를 따라 그 모듈에 닿는 모든
 // 파일을 레이어별 색으로 칠한 그림(HTML)으로 보여준다. 2026-10-01 "어떤 훅이 어떤 컴포넌트에
 // 쓰이는지 한눈에 보고 싶다"는 요청에서 시작했다(docs/plans/2026-10-01-dependency-cruiser.md).
+// `pnpm graph:focus <정규식>`은 대상과 바로 이웃(대상이 import하는 파일·대상을 import하는 파일)만,
+// `pnpm graph:archi`는 파일을 슬라이스 단위로 묶은 전체 구조를 그린다.
 // `--affected <기준 커밋>`은 CI(ci.yml)가 PR마다 쓰는 모드로, 바뀐 파일과 거기에 닿는 파일을
 // GitHub Actions Step Summary용 마크다운(Mermaid)으로 출력한다.
 //
@@ -39,6 +41,13 @@ const LAYER_STYLES = {
 const MAX_MERMAID_CHARS = 45000;
 const MAX_MERMAID_EDGES = 450;
 
+/**
+ * 아키텍처 그림(--archi)에 넣는 레이어. shared는 뺀다 — 거의 모든 슬라이스가 shared를 써서
+ * 슬라이스 사이 import의 68%가 shared로 향하고(2026-10-01 직접 측정: 306개 중 209개), 넣으면 그
+ * 선들에 레이어 사이 흐름이 묻힌다. 빼면 97개만 남는다.
+ */
+const ARCHI_LAYERS = ['pages', 'widgets', 'features', 'entities'];
+
 function isGraphModule(source) {
   return source.startsWith('src/') && !EXCLUDED_PATTERN.test(source);
 }
@@ -61,12 +70,8 @@ function buildGraph(modules) {
   return graph;
 }
 
-/**
- * targets와, import를 거꾸로 따라 올라가 targets에 닿는 모든 모듈. dependency-cruiser의
- * `--reaches`와 같은 결과지만, CLI 필터를 쓰면 0건 안전장치가 오작동해 직접 계산한다
- * (scripts/lib/depcruise.js 주석 참고).
- */
-function collectReachingModules(graph, targets) {
+/** 모듈마다 그 모듈을 import하는 모듈 목록(to → from[]) — graph의 화살표를 뒤집은 것 */
+function buildImportersOf(graph) {
   const importersOf = new Map();
 
   for (const [from, imported] of graph) {
@@ -79,6 +84,16 @@ function collectReachingModules(graph, targets) {
     }
   }
 
+  return importersOf;
+}
+
+/**
+ * targets와, import를 거꾸로 따라 올라가 targets에 닿는 모든 모듈. dependency-cruiser의
+ * `--reaches`와 같은 결과지만, CLI 필터를 쓰면 0건 안전장치가 오작동해 직접 계산한다
+ * (scripts/lib/depcruise.js 주석 참고).
+ */
+function collectReachingModules(graph, targets) {
+  const importersOf = buildImportersOf(graph);
   const reached = new Set(targets);
   const queue = [...targets];
 
@@ -120,16 +135,22 @@ function sliceOf(source) {
   return parts.slice(0, Math.min(depth, parts.length - 1)).join('/');
 }
 
+/** 노드(모듈 경로 또는 슬라이스 키)의 레이어 — 두 번째 경로 조각이다 */
+function layerOf(node) {
+  return node.split('/')[1];
+}
+
 /**
  * 노드 라벨은 labelOf(node), 색은 레이어별, highlighted 노드는 굵은 테두리. 노드는 모듈 경로
- * (`src/<레이어>/...`)거나 sliceOf()의 슬라이스 키다 — 두 번째 경로 조각이 레이어다.
+ * (`src/<레이어>/...`)거나 sliceOf()의 슬라이스 키다. direction은 Mermaid 흐름 방향
+ * (TB 위→아래, LR 왼→오른).
  */
-function toMermaid({ nodes, edges, highlighted, labelOf }) {
+function toMermaid({ nodes, edges, highlighted, labelOf, direction = 'TB' }) {
   const ids = new Map([...nodes].map((node, index) => [node, `n${index}`]));
-  const lines = ['flowchart TB'];
+  const lines = [`flowchart ${direction}`];
 
   for (const [node, id] of ids) {
-    lines.push(`  ${id}["${labelOf(node)}"]:::${node.split('/')[1]}`);
+    lines.push(`  ${id}["${labelOf(node)}"]:::${layerOf(node)}`);
   }
 
   for (const [from, to] of edges) {
@@ -163,7 +184,11 @@ function escapeHtml(text) {
   return text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
-function toHtml({ title, summary, mermaidText }) {
+/**
+ * fitWidth면 그림을 화면 폭에 맞춰 축소하고(Mermaid 기본), 아니면 원래 크기로 그려 스크롤한다 —
+ * 노드가 많은 그림은 폭에 맞추면 글자를 읽을 수 없을 만큼 작아진다.
+ */
+function toHtml({ title, summary, mermaidText, fitWidth = true }) {
   const legend = Object.entries(LAYER_STYLES)
     .map(([layer, style]) => {
       const [fill, stroke] = style.split(',').map((declaration) => declaration.split(':')[1]);
@@ -191,33 +216,61 @@ p { color: #555; font-size: 13px; }
 <div class="graph"><pre class="mermaid">${escapeHtml(mermaidText)}</pre></div>
 <script type="module">
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-mermaid.initialize({ startOnLoad: true, securityLevel: 'loose', maxTextSize: 1000000, maxEdges: 10000 });
+mermaid.initialize({ startOnLoad: true, securityLevel: 'loose', maxTextSize: 1000000, maxEdges: 10000, flowchart: { useMaxWidth: ${fitWidth} } });
 </script>
 </body>
 </html>
 `;
 }
 
-function runReaches(pattern) {
-  const graph = buildGraph(runDepcruise().modules);
+function currentCommit() {
+  return execFileSync('git', ['rev-parse', '--short', 'HEAD'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  }).trim();
+}
+
+/** graph에서 정규식에 맞는 모듈. 없으면 안내를 찍고 null */
+function matchTargets(graph, pattern) {
   const matcher = new RegExp(pattern);
   const targets = [...graph.keys()].filter((source) => matcher.test(source));
 
   if (targets.length === 0) {
     console.error(`'${pattern}'에 맞는 모듈이 없다 (${EXCLUDED_DESCRIPTION}는 제외)`);
     process.exitCode = 1;
+    return null;
+  }
+
+  return targets;
+}
+
+/** node_modules/.cache/dep-graph/<name>.html로 저장하고 경로를 찍는다. macOS면 바로 연다 */
+function writeHtmlAndOpen(name, html, countsLine) {
+  const slug = name.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'graph';
+  const file = path.join(OUTPUT_DIR, `${slug}.html`);
+
+  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  fs.writeFileSync(file, html);
+  console.log(`${countsLine} → ${file}`);
+
+  if (process.platform === 'darwin') {
+    execFileSync('open', [file]);
+  }
+}
+
+function runReaches(pattern) {
+  const graph = buildGraph(runDepcruise().modules);
+  const targets = matchTargets(graph, pattern);
+
+  if (!targets) {
     return;
   }
 
   const reached = collectReachingModules(graph, targets);
   const edges = edgesWithin(graph, reached);
-  const commit = execFileSync('git', ['rev-parse', '--short', 'HEAD'], {
-    cwd: ROOT,
-    encoding: 'utf8',
-  }).trim();
   const html = toHtml({
     title: `${pattern} 에 닿는 파일`,
-    summary: `대상 ${targets.length}개 · 파일 ${reached.size}개 · import ${edges.length}개 — 화살표는 import 방향, 굵은 테두리는 대상, ${EXCLUDED_DESCRIPTION} 제외 (기준 커밋 ${commit})`,
+    summary: `대상 ${targets.length}개 · 파일 ${reached.size}개 · import ${edges.length}개 — 화살표는 import 방향, 굵은 테두리는 대상, ${EXCLUDED_DESCRIPTION} 제외 (기준 커밋 ${currentCommit()})`,
     mermaidText: toMermaid({
       nodes: reached,
       edges,
@@ -225,16 +278,93 @@ function runReaches(pattern) {
       labelOf: (source) => moduleLabel(source, { small: true }),
     }),
   });
-  const slug = pattern.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'graph';
-  const file = path.join(OUTPUT_DIR, `${slug}.html`);
 
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-  fs.writeFileSync(file, html);
-  console.log(`파일 ${reached.size}개 · import ${edges.length}개 → ${file}`);
+  writeHtmlAndOpen(pattern, html, `파일 ${reached.size}개 · import ${edges.length}개`);
+}
 
-  if (process.platform === 'darwin') {
-    execFileSync('open', [file]);
+/**
+ * 대상과 바로 이웃만 — 대상을 import하는 파일(그림 위쪽)과 대상이 import하는 파일(아래쪽),
+ * 한 단계씩. dependency-cruiser의 `--focus`와 같은 범위를 runReaches와 같은 이유로 직접 계산한다.
+ */
+function runFocus(pattern) {
+  const graph = buildGraph(runDepcruise().modules);
+  const targets = matchTargets(graph, pattern);
+
+  if (!targets) {
+    return;
   }
+
+  const importersOf = buildImportersOf(graph);
+  const importers = new Set(targets.flatMap((target) => importersOf.get(target) ?? []));
+  const imported = new Set(targets.flatMap((target) => [...graph.get(target)]));
+  const nodes = new Set([...targets, ...importers, ...imported]);
+  const edges = edgesWithin(graph, nodes);
+  const html = toHtml({
+    title: `${pattern} 의 바로 이웃`,
+    summary: `대상 ${targets.length}개 · 대상을 import하는 파일 ${importers.size}개(위) · 대상이 import하는 파일 ${imported.size}개(아래) — 화살표는 import 방향, 굵은 테두리는 대상, ${EXCLUDED_DESCRIPTION} 제외 (기준 커밋 ${currentCommit()})`,
+    mermaidText: toMermaid({
+      nodes,
+      edges,
+      highlighted: targets,
+      labelOf: (source) => moduleLabel(source, { small: true }),
+    }),
+  });
+
+  writeHtmlAndOpen(
+    `focus-${pattern}`,
+    html,
+    `위 ${importers.size}개 · 아래 ${imported.size}개 · import ${edges.length}개`
+  );
+}
+
+/**
+ * 전체 구조를 슬라이스 단위로 — 파일을 sliceOf()로 묶고 슬라이스 사이 import만 남긴다.
+ * 왼쪽 → 오른쪽(pages → entities)으로 흐르고, 레이어는 색으로만 구분한다 — 레이어별 상자
+ * (subgraph)로 묶어 봤더니 Mermaid가 큰 그림에서 상자를 서로 겹쳐 그렸다(2026-10-01 렌더 비교).
+ * dependency-cruiser 내장 `archi` 리포터는 Graphviz가 있어야 그려져 Mermaid로 직접 그린다.
+ * shared(ARCHI_LAYERS 주석 참고)와 src/types(전역 타입) 등 FSD 레이어 밖은 뺀다.
+ */
+function runArchi() {
+  const graph = buildGraph(runDepcruise().modules);
+  const isArchiModule = (source) => ARCHI_LAYERS.includes(layerOf(source));
+  const filesPerSlice = new Map();
+
+  for (const source of graph.keys()) {
+    if (isArchiModule(source)) {
+      filesPerSlice.set(sliceOf(source), (filesPerSlice.get(sliceOf(source)) ?? 0) + 1);
+    }
+  }
+
+  const sliceEdges = [
+    ...new Set(
+      [...graph]
+        .filter(([from]) => isArchiModule(from))
+        .flatMap(([from, imported]) =>
+          [...imported].filter(isArchiModule).map((to) => [sliceOf(from), sliceOf(to)])
+        )
+        .filter(([from, to]) => from !== to)
+        .map((edge) => edge.join(' '))
+    ),
+  ].map((edge) => edge.split(' '));
+  const html = toHtml({
+    title: '아키텍처 — 슬라이스 단위',
+    summary: `슬라이스 ${filesPerSlice.size}개 · 슬라이스 사이 import ${sliceEdges.length}개 — 화살표는 import 방향, 상자 안 숫자는 그 슬라이스의 파일 수, shared·${EXCLUDED_DESCRIPTION}·src/types 제외 (기준 커밋 ${currentCommit()})`,
+    mermaidText: toMermaid({
+      nodes: new Set(filesPerSlice.keys()),
+      edges: sliceEdges,
+      highlighted: [],
+      labelOf: (slice) =>
+        `${slice.split('/').slice(2).join('/') || layerOf(slice)}<br/><small>파일 ${filesPerSlice.get(slice)}개</small>`,
+      direction: 'LR',
+    }),
+    fitWidth: false,
+  });
+
+  writeHtmlAndOpen(
+    'architecture',
+    html,
+    `슬라이스 ${filesPerSlice.size}개 · import ${sliceEdges.length}개`
+  );
 }
 
 function fitsMermaid(mermaidText, edgeCount) {
@@ -325,13 +455,33 @@ function main() {
     return;
   }
 
+  if (mode === '--focus' && value) {
+    runFocus(value);
+    return;
+  }
+
+  if (mode === '--archi') {
+    runArchi();
+    return;
+  }
+
   if (mode === '--affected' && value) {
     runAffected(value);
     return;
   }
 
-  console.error('사용법: pnpm graph <정규식>   예) pnpm graph "useClickGuard[.]ts$"');
-  console.error('        node scripts/dep-graph.js --affected <기준 커밋>   (CI의 PR 영향 그래프)');
+  console.error(
+    '사용법: pnpm graph <정규식>         예) pnpm graph "useClickGuard[.]ts$"  (거슬러 올라가 닿는 파일 전부)'
+  );
+  console.error(
+    '        pnpm graph:focus <정규식>   예) pnpm graph:focus "ToggleButton"   (바로 이웃만)'
+  );
+  console.error(
+    '        pnpm graph:archi                                               (슬라이스 단위 전체 구조)'
+  );
+  console.error(
+    '        node scripts/dep-graph.js --affected <기준 커밋>                (CI의 PR 영향 그래프)'
+  );
   process.exitCode = 1;
 }
 
