@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import { Skeleton } from '@/shared/ui/atoms/skeleton';
 

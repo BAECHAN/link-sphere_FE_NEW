@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { LabeledDivider } from '@/shared/ui/atoms/labeled-divider';
 
 const meta = {

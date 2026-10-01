@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MemoryRouter } from 'react-router-dom';
 import { GlobalImageViewer } from '@/shared/ui/elements/dialog/image-viewer/ImageViewer';
 import { useImageViewer } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';

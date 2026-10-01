@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useForm, FormProvider } from 'react-hook-form';
 import { FormField } from '@/shared/ui/elements/form/_base/FormField';
 import { Input } from '@/shared/ui/atoms/input';

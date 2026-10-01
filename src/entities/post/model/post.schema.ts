@@ -34,11 +34,6 @@ export const updatePostSchema = z.object({
   isPrivate: z.boolean(),
 });
 
-// ==================== 2. Comment Schema ====================
-// Moved to comment.schema.ts
-
-export * from '@/entities/comment/model/comment.schema';
-
 export type CreatePost = z.infer<typeof createPostSchema>;
 export type UpdatePost = z.infer<typeof updatePostSchema>;
 

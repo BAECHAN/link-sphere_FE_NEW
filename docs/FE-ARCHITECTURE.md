@@ -39,21 +39,22 @@ API)를 성능을 이유로 정반대로 채택**하고, 그 위에 도메인 �
 
 ### 정식 FSD와 다른 점
 
-| FSD 규칙                                                          | 채택 여부                               | 이유 / 실태                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | 강제 수단                                                                                                                                                                      |
-| ----------------------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 레이어 6종 + 하향 의존만 허용                                     | ✅ 채택                                 | FSD 원칙 그대로                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | ESLint `no-restricted-imports` 5블록 (`eslint.config.js`)                                                                                                                      |
-| Public API — 슬라이스는 `index.ts` 배럴로만 외부에 노출           | ❌ **정반대로 채택** (배럴 자체를 금지) | dev 서버 부팅 15-70%·빌드 28%·콜드스타트 40% 지연이라는 성능 트레이드오프 때문에 의도적으로 뒤집음(수치 출처 미상 — 2026-09-08 확인, 이 레포에서 직접 측정하거나 외부 출처를 링크한 기록 없음. 재검증 전까지 참고용으로만 취급할 것)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | ESLint `custom-barrel-rules/no-barrel-import` (`eslint.config.js`) — import 문자열이 `/index`로 끝날 때 에러(디렉터리 암묵 해석은 예외 — `@/mocks/handlers`처럼 실제로 쓰인다) |
-| 동일 레이어 슬라이스 격리 (entities는 `@x` 표기로 교차 참조 허용) | ⚠️ 부분 채택                            | 2026-09-21부터 `@x` 폴더 표기가 관례다(§5 참고) — `entities/{post,comment,account,bookmark/folder}/@x/`에 11개 파일이 있고, production 코드의 엔티티 간 참조는 사실상 전부 이 표기를 거친다(`entities/interaction/api/interaction.queries.ts`도 post·comment·folder의 keys를 전부 `@x`를 통해 가져온다). 남은 예외 1건: `entities/post/model/post.schema.ts:40`이 `@x` 없이 `export * from '@/entities/comment/model/comment.schema'`로 직접 재수출한다(테스트 파일이 다른 엔티티의 raw `.keys.ts`를 직접 import하는 건 별도 — 이 열은 production 코드 기준). features에도 같은 성격의 교차 참조가 있다 — `features/post/create`가 `features/bookmark/select`를 참조한다(2026-09-09, `BookmarkFolderSelectDialog`를 entities에서 이동하며 감수한 트레이드오프, `docs/DECISIONS.md` 참고) | ESLint 강제 없음 — 컨벤션으로만 유지(§5 "이 표기는 강제되지 않는다" 참고)                                                                                                      |
-| 세그먼트는 목적 기준 명명 (`ui`/`api`/`model`/`lib`/`config`)     | ⚠️ 부분 채택                            | `hooks/`·`utils/`를 세그먼트로도 쓴다(`features/*/hooks/`, `widgets/post/post-list/utils/`, 2026-09-08부터 `entities/*/hooks/`·`entities/*/utils/`도) — 정식 FSD 세그먼트명은 아니지만 레이어 전체에서 일관되게 쓰인다. `entities`의 `model/`은 스키마·타입 전용으로 좁혔다(2026-09-08, 근거는 `.claude/CLAUDE.md` "레이어별 허용 세그먼트" 참고)                                                                                                                                                                                                                                                                                                                                                                                                                                        | `.claude/CLAUDE.md`의 "레이어별 허용 세그먼트" 표 (문서 규칙, ESLint 미강제)                                                                                                   |
-| 슬라이스 그룹 폴더 허용 (그룹 폴더 자체엔 공유 코드 금지)         | ✅ 채택                                 | 그룹 폴더(`features/post/`, `widgets/layout/` 등)에는 파일이 없고 슬라이스만 있음                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | —                                                                                                                                                                              |
+| FSD 규칙                                                          | 채택 여부                               | 이유 / 실태                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | 강제 수단                                                                                                                                                                      |
+| ----------------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 레이어 6종 + 하향 의존만 허용                                     | ✅ 채택                                 | FSD 원칙 그대로                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | ESLint `no-restricted-imports` 5블록 (`eslint.config.js`)                                                                                                                      |
+| Public API — 슬라이스는 `index.ts` 배럴로만 외부에 노출           | ❌ **정반대로 채택** (배럴 자체를 금지) | dev 서버 부팅 15-70%·빌드 28%·콜드스타트 40% 지연이라는 성능 트레이드오프 때문에 의도적으로 뒤집음(수치 출처 미상 — 2026-09-08 확인, 이 레포에서 직접 측정하거나 외부 출처를 링크한 기록 없음. 재검증 전까지 참고용으로만 취급할 것)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | ESLint `custom-barrel-rules/no-barrel-import` (`eslint.config.js`) — import 문자열이 `/index`로 끝날 때 에러(디렉터리 암묵 해석은 예외 — `@/mocks/handlers`처럼 실제로 쓰인다) |
+| 동일 레이어 슬라이스 격리 (entities는 `@x` 표기로 교차 참조 허용) | ⚠️ 부분 채택                            | 2026-09-21부터 `@x` 폴더 표기가 관례다(§5 참고) — `entities/{post,comment,account,bookmark/folder}/@x/`에 11개 파일이 있고, production 코드의 엔티티 간 참조는 전부 이 표기를 거친다(`entities/interaction/api/interaction.queries.ts`도 post·comment·folder의 keys를 전부 `@x`를 통해 가져온다. 테스트 파일이 다른 엔티티의 raw `.keys.ts`를 직접 import하는 건 허용). 마지막 예외였던 `entities/post/model/post.schema.ts`의 comment 스키마 재수출(`export *`)은 쓰는 곳이 없어 2026-10-01에 지웠다. features·widgets에는 같은 레이어 교차 참조가 남아 있다 — `features/post/create`·`features/bookmark/toggle`이 `features/bookmark/select`를 참조하고(2026-09-09, `BookmarkFolderSelectDialog`를 entities에서 이동하며 감수한 트레이드오프, `docs/DECISIONS.md` 참고), widgets는 목록 위젯 두 개가 `widgets/post/post-card`를, 북마크 그리드 상수가 `widgets/post/post-list`의 상수를 참조한다(정리 방안은 `docs/plans/2026-10-01-dependency-cruiser.md`의 "남은 것") | entities: dependency-cruiser `entities-cross-import-only-via-x`(`pnpm check:deps`, §2). features·widgets: 강제 없음 — 컨벤션                                                   |
+| 세그먼트는 목적 기준 명명 (`ui`/`api`/`model`/`lib`/`config`)     | ⚠️ 부분 채택                            | `hooks/`·`utils/`를 세그먼트로도 쓴다(`features/*/hooks/`, `widgets/post/post-list/utils/`, 2026-09-08부터 `entities/*/hooks/`·`entities/*/utils/`도) — 정식 FSD 세그먼트명은 아니지만 레이어 전체에서 일관되게 쓰인다. `entities`의 `model/`은 스키마·타입 전용으로 좁혔다(2026-09-08, 근거는 `.claude/CLAUDE.md` "레이어별 허용 세그먼트" 참고)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | `.claude/CLAUDE.md`의 "레이어별 허용 세그먼트" 표 (문서 규칙, ESLint 미강제)                                                                                                   |
+| 슬라이스 그룹 폴더 허용 (그룹 폴더 자체엔 공유 코드 금지)         | ✅ 채택                                 | 그룹 폴더(`features/post/`, `widgets/layout/` 등)에는 파일이 없고 슬라이스만 있음                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | —                                                                                                                                                                              |
 
-**즉 이 레포에서 실질적으로 강제되는 FSD 규칙은 "레이어 하향 의존" 하나뿐이다.** 나머지는
-미채택이거나 성능상의 이유로 정반대로 뒤집혀 있다. 아래 §2가 그 강제 규칙 전체 목록이다.
+**즉 이 레포에서 실질적으로 강제되는 FSD 규칙은 "레이어 하향 의존"과 "entities는 `@x`로만
+교차 참조" 두 가지다.** 나머지는 부분 채택·미채택이거나 성능상의 이유로 정반대로 뒤집혀 있다.
+아래 §2가 그 강제 규칙 전체 목록이다.
 
 ### 레이어 구조
 
-레이어 간 화살표(실선)는 ESLint로 강제된다. `entities` 슬라이스 간 화살표(점선)는 정식 FSD라면
-`@x` 표기 없이는 금지되지만, 이 레포에는 격리 규칙 자체가 없어 실제로 발생한다.
+레이어 간 화살표(실선)는 ESLint로 강제된다. `entities` 슬라이스 간 화살표(점선)는 전부 참조받는
+쪽의 `@x` 파일을 거치는 교차 참조다 — `@x`를 거치지 않는 참조는 dependency-cruiser가 막는다(§2).
 
 ```mermaid
 flowchart TD
@@ -63,9 +64,8 @@ flowchart TD
   Features --> Entities["entities<br/>post · comment · interaction · auth · account · user · bookmark/folder · category"]
   Entities --> Shared["shared<br/>api · config · hooks · lib · store · types · ui · utils"]
 
-  EPost["entities/post"] -.export *.-> EComment["entities/comment"]
-  EFolder["entities/bookmark/folder"] -.import.-> EPost
-  EComment -.import.-> EPost
+  EFolder["entities/bookmark/folder"] -.import.-> EPost["entities/post"]
+  EComment["entities/comment"] -.import.-> EPost
   EInteraction["entities/interaction"] -.import.-> EPost
   EInteraction -.import.-> EFolder
   EInteraction -.import.-> EComment
@@ -81,20 +81,20 @@ flowchart TD
 
 - **Public API 도입**: 각 슬라이스에 `index.ts`를 두고 외부에는 그것만 노출 — 단, 지금
   배럴을 금지한 성능 근거(dev 부팅 지연 등)가 먼저 해소돼야 한다. 지금은 **미채택 상태**다.
-- **`@x` 표기의 마지막 예외 정리**: entities 교차 참조는 2026-09-21부터 대부분 `@x`로
-  통일됐다(위 표 참고) — 유일하게 남은 예외인 `entities/post/model/post.schema.ts:40`의
-  `export * from '@/entities/comment/model/comment.schema'`도 `@x` 파일을 거치도록 옮기면
-  이 규칙까지 완전히 채택된다.
+- **features·widgets 슬라이스 격리**: entities는 2026-10-01부터 `@x` 경유가 강제된다. 같은
+  규칙을 features·widgets에도 들이려면 위 표의 기존 교차 참조부터 정리해야 한다.
 
 ---
 
-## 2. ESLint가 강제하는 아키텍처 규칙
+## 2. ESLint·dependency-cruiser가 강제하는 아키텍처 규칙
 
 레이어 하향 의존 외에, 문서 어디에도 안 적혀 있지만 실제로 커밋을 막는 규칙들이다. 아래를
 모르고 코드를 쓰면 린트에서 막힌다.
 
 줄 번호는 리팩터링 때마다 바뀌므로 규칙명으로만 가리킨다 — 정확한 위치는
-`grep -n "<규칙명>" eslint.config.js`로 직접 찾는다.
+`grep -n "<규칙명>" eslint.config.js`로 직접 찾는다. 표 끝의 dependency-cruiser 규칙 4개는
+`.dependency-cruiser.cjs`에 있고, `pnpm check:deps`(`pnpm check`에 포함 — 로컬·`ci.yml`·
+`deploy.yml` 공통)가 검사한다.
 
 | 규칙                                                      | 무엇을 막나                                                                                                                                                           |
 | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -118,6 +118,10 @@ flowchart TD
 | `curly` (`['error', 'all']`)                              | 인라인 `if`문 (`if (x) return;`) — 항상 중괄호 블록 강제                                                                                                              |
 | `import/no-cycle`                                         | 순환 참조(A→B→A) 금지 — 동작하려면 `eslint.config.js`의 리졸버 설정 3개가 함께 필요, 그 주석 참고                                                                     |
 | `custom-route/no-hardcoded-route-path`                    | `navigate()`·`window.location.href`·JSX `to=`에 경로 문자열 직접 쓰기 금지 — `ROUTES_PATHS.*`만 허용                                                                  |
+| `entities-cross-import-only-via-x` (dependency-cruiser)   | entity가 다른 entity를 `@x/` 공개 표면 없이 직접 import — 테스트 파일은 예외(§5의 `@x` 표기 참고)                                                                     |
+| `no-non-package-json` (dependency-cruiser)                | `package.json`에 없는 패키지 import — `.npmrc`가 `shamefully-hoist=true`라 pnpm이 못 막는다                                                                           |
+| `not-to-dev-dep` (dependency-cruiser)                     | production 코드에서 devDependency import — 테스트·스토리·`src/test`·`src/mocks`·`.d.ts`와 `QueryProvider.tsx`(devtools)는 예외                                        |
+| `not-to-unresolvable` (dependency-cruiser)                | 디스크에서 찾을 수 없는 모듈 import — 해석에 실패한 import는 `no-non-package-json` 판정을 조용히 건너뛰기 때문에 함께 막는다                                          |
 
 ---
 
@@ -482,9 +486,11 @@ import { postInvalidateQueries } from '@/entities/post/@x/comment';
 반대로 참조하는 쪽(`entities/comment`)이 아니라 참조받는 쪽(`entities/post`)에 `@x` 폴더가
 있다는 점에 주의 — "누가 나를 참조하는가"를 참조받는 엔티티가 직접 통제하는 구조다.
 
-이 표기는 강제되지 않는다(ESLint 규칙 없음) — 기존 3-layer API 컨벤션이 이미 barrel 역할을
-어느 정도 하고 있어서, 규칙으로 강제할 만큼 실제 사고가 있었던 적은 없다. 새로 엔티티 간
-참조가 생기면 이 컨벤션을 따라 `@x` 파일을 추가한다.
+2026-10-01부터 dependency-cruiser가 이 표기를 강제한다(`entities-cross-import-only-via-x`, §2) —
+다른 엔티티를 `@x` 없이 직접 import하면 `pnpm check`가 실패한다(테스트 파일은 예외). 새로 엔티티
+간 참조가 생기면 참조받는 엔티티에 `@x/<참조하는-엔티티>.ts`를 추가하고 그 파일을 거쳐
+import한다. 규칙은 `@x` 경유 여부만 보고, `@x` 파일 이름이 참조하는 엔티티와 맞는지는 보지
+않는다(이름은 컨벤션으로 맞춘다).
 
 ### Layer 3 — `<entity>.queries.ts` (얇은 React Query 래퍼)
 
@@ -1152,9 +1158,10 @@ pnpm lint           # ESLint 검사 (--max-warnings 0)
 pnpm lint:fix       # ESLint 자동 수정
 pnpm format         # Prettier 포맷
 pnpm format:check   # Prettier 검사만
-pnpm check          # type-check + lint + format:check 일괄
+pnpm check          # type-check + lint + format:check + check:deps 일괄
 pnpm check:fix      # lint:fix + format + type-check
 pnpm check:docs     # README/docs/CLAUDE.md가 가리키는 경로·줄 번호 검증 (scripts/check-docs.js)
+pnpm check:deps     # 의존성 규칙 검사 — entities @x·미선언 패키지 등 (.dependency-cruiser.cjs, scripts/check-deps.js)
 pnpm graph <정규식>  # 그 모듈에 import로 닿는 파일을 레이어별 색 그림으로 (scripts/dep-graph.js, 예: "useClickGuard[.]ts$")
 pnpm codegen        # openapi.json → openapi.gen.ts 타입 생성
 pnpm codegen:fetch  # BE에서 openapi.json 새로 받아오기

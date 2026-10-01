@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 
 const meta = {

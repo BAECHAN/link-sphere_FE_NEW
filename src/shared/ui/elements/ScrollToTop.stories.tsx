@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ScrollToTop } from '@/shared/ui/elements/ScrollToTop';
 
 const meta: Meta<typeof ScrollToTop> = {

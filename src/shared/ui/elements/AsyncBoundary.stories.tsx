@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 
 // A component that suspends forever (simulates loading state)
