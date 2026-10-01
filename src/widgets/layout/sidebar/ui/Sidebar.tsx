@@ -10,6 +10,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { NAV_ITEMS, type NavItemConfig } from '@/shared/config/nav-items';
 import { useSidebarStore } from '@/shared/store/sidebar.store';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
+import { useClickGuard } from '@/shared/hooks/useClickGuard';
 import { useProtectedNavigate } from '@/entities/auth/hooks/useProtectedNavigate';
 
 function NavItem({
@@ -88,6 +89,9 @@ function SidebarHeader({ expanded, onToggle, showCloseIcon = false }: SidebarHea
 
 export function Sidebar() {
   const { isOpen, toggle } = useSidebarStore(); // 데스크톱 접힘/펼침 상태
+  // 햄버거를 더블클릭하면 펼쳤다가 바로 접히므로, 짧은 재클릭은 무의식적 중복으로 보고
+  // 무시한다(Navbar 테마 토글과 같은 이유). 단축키(Ctrl/⌘+B)는 대상이 아니다.
+  const canToggle = useClickGuard();
   // 모바일 드로어는 뒤로가기로 닫혀야 하므로 히스토리 엔트리로 관리한다 (데스크톱 접힘 상태와는 별개)
   const { isOpen: isMobileOpen, close } = useHistoryOverlay('sidebarOpen');
   // 백드롭에 건 배경 스크롤 잠금(RemoveScroll)이 드로어 패널 안쪽 스크롤은 허용하도록
@@ -106,6 +110,14 @@ export function Sidebar() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toggle]);
 
+  const handleToggle = () => {
+    if (!canToggle()) {
+      return;
+    }
+
+    toggle();
+  };
+
   return (
     <>
       {/* 데스크탑: 좌측 사이드바 */}
@@ -115,7 +127,7 @@ export function Sidebar() {
           isOpen ? 'w-60' : 'w-20'
         )}
       >
-        <SidebarHeader expanded={isOpen} onToggle={toggle} />
+        <SidebarHeader expanded={isOpen} onToggle={handleToggle} />
         <nav className="flex flex-col items-stretch gap-1 py-4 px-1">
           {NAV_ITEMS.map((item) => (
             <NavItem key={item.to} {...item} expanded={isOpen} />
