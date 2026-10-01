@@ -777,6 +777,23 @@ Android([Material Design 3](https://m3.material.io/components/dialogs/guidelines
 라벨을 바꿔도 사용자 눈에 보일 일이 없다 — 2026-09-29에 이 두 폼에도 라벨 스왑을 넣었다가
 죽은 코드라는 걸 뒤늦게 발견해 되돌렸다(`docs/DECISIONS.md` 참고).
 
+**토글 버튼** — 누를 때마다 상태를 뒤집는 버튼(펼침/접힘, 표시/숨김, 테마 전환, 필터 켜기/끄기)은
+`Button` 대신 `ToggleButton`(`src/shared/ui/elements/ToggleButton.tsx`)을 쓴다. 더블클릭하면
+원래 상태로 돌아가 "눌렀는데 반영 안 됨"처럼 보이는 문제를 막으려고 `useClickGuard`
+(`DOUBLE_CLICK_GUARD_MS`=400ms 이내 재클릭 무시)를 내장했다. props·스타일은 `Button`과 같다.
+
+```typescript
+<ToggleButton variant="ghost" size="icon" onClick={() => setOpen((prev) => !prev)}>
+  ...
+</ToggleButton>
+```
+
+호출부마다 가드를 직접 넣던 것을 2026-10-01에 이 컴포넌트로 모았다. 지금 쓰는 곳은 사이드바
+햄버거(데스크톱), Navbar 테마 토글, `FilterChip`, `PasswordInput` 눈 버튼, 댓글 미리보기
+펼침이다. "닫기"·"지우기"처럼 항상 같은 상태로 만드는 버튼은 토글이 아니므로 대상이 아니다
+(예: 모바일 드로어의 X는 일반 `Button`). 열린 직후 다른 요소에 떨어지는 두 번째 클릭은
+버튼 하나의 가드로 못 막는다 — 그건 `useOpenClickGuard`(Dialog·AlertDialog에 내장)의 몫이다.
+
 ---
 
 ## 11. Optimistic Update 패턴

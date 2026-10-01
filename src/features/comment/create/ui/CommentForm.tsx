@@ -7,6 +7,7 @@ import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { ImageAttachmentField } from '@/shared/ui/elements/ImageAttachmentField';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { DropTargetOverlay } from '@/shared/ui/elements/DropTargetOverlay';
+import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 import { useCreateComment } from '@/features/comment/create/hooks/useCreateComment';
 import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/comment.const';
 import { TEXTS } from '@/shared/config/texts';
@@ -134,7 +135,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
 
       {contentValue && (
         <div className="rounded-md border bg-muted/30 p-3 text-sm">
-          <Button
+          <ToggleButton
             type="button"
             variant="none"
             size="sm"
@@ -146,7 +147,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
           >
             {TEXTS.comment.form.preview}
             {showPreview ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-          </Button>
+          </ToggleButton>
           {showPreview && <MarkdownContent content={contentValue} />}
         </div>
       )}

@@ -175,6 +175,14 @@
 
 ### Fixed
 
+- `shared` 비밀번호 표시 버튼·댓글 미리보기도 더블클릭하면 원래대로 돌아가던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  누를 때마다 상태를 뒤집는 버튼은 더블클릭하면 두 번 뒤집혀 "눌렀는데 반영 안 됨"처럼 보인다. 지금까지는 사이드바 햄버거·테마 토글·필터 칩마다 `useClickGuard`(400ms)를 직접 넣어 왔는데, 버튼이 늘 때마다 빠뜨리기 쉬워 가드를 내장한 공용 `ToggleButton`을 만들었다. 비밀번호 입력의 눈 버튼과 댓글 미리보기 펼침에 새로 적용했고, 기존 세 곳도 이 컴포넌트로 옮겼다(동작은 같다). 닫기·지우기처럼 항상 같은 상태로 만드는 버튼은 대상이 아니다.
+  (`src/shared/ui/elements/ToggleButton.tsx`(신규), `src/shared/ui/elements/PasswordInput.tsx`, `src/features/comment/create/ui/CommentForm.tsx`, `src/shared/ui/elements/FilterChip.tsx`, `src/widgets/layout/navbar/ui/Navbar.tsx`, `src/widgets/layout/sidebar/ui/Sidebar.tsx`, `docs/FE-ARCHITECTURE.md`)
+
+  </details>
+
 - `layout` 사이드바 햄버거를 더블클릭하면 펼쳤다가 바로 접히던 문제 수정
   <details><summary>배경·구현</summary>
 
