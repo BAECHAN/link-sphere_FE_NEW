@@ -1,4 +1,7 @@
 ### 2026-10-01 (FE)
+- 토글 버튼의 더블클릭 방지 로직을 `ToggleButton` 컴포넌트로 통합 및 비밀번호·미리보기 기능에 일괄 적용하여 중복 코드 제거 및 안정성 강화 ([#281](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/281))
+
+### 2026-10-01 (FE)
 - 사이드바 햄버거 메뉴 더블클릭 시 발생하는 토글 이벤트 중첩 오류 수정 ([#279](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/279))
 
 ### 2026-09-30 (FE)
