@@ -1163,6 +1163,7 @@ pnpm check:fix      # lint:fix + format + type-check
 pnpm check:docs     # README/docs/CLAUDE.md가 가리키는 경로·줄 번호 검증 (scripts/check-docs.js)
 pnpm check:deps     # 의존성 규칙 검사 — entities @x·미선언 패키지 등 (.dependency-cruiser.cjs, scripts/check-deps.js)
 pnpm graph <정규식>  # 그 모듈에 import로 닿는 파일을 레이어별 색 그림으로 (scripts/dep-graph.js, 예: "useClickGuard[.]ts$")
+node scripts/dep-graph.js --affected <기준 커밋>  # 바뀐 src 파일과 거기 닿는 파일 그림(마크다운) — CI가 PR마다 Step Summary에 붙인다
 pnpm codegen        # openapi.json → openapi.gen.ts 타입 생성
 pnpm codegen:fetch  # BE에서 openapi.json 새로 받아오기
 pnpm test           # Vitest 테스트 실행 (CI)
