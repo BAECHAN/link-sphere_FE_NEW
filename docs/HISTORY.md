@@ -1,4 +1,7 @@
 ### 2026-10-01 (FE)
+- 의존성 시각화 도구 기능 강화: 그래프 내 특정 노드 집중 보기(graph:focus) 및 전체 구조 조망(graph:archi) 기능 추가 ([#289](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/289))
+
+### 2026-10-01 (FE)
 - 사용하지 않는 export 제거 및 불필요한 파일 정리로 코드베이스 최적화 ([#288](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/288))
 
 ### 2026-10-01 (FE)
