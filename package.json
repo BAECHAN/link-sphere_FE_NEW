@@ -24,6 +24,8 @@
     "check:deps": "node scripts/check-deps.js",
     "check:fix": "pnpm lint:fix && pnpm format && pnpm type-check",
     "graph": "node scripts/dep-graph.js --reaches",
+    "graph:focus": "node scripts/dep-graph.js --focus",
+    "graph:archi": "node scripts/dep-graph.js --archi",
     "codegen:fetch": "node scripts/fetch-openapi.js && prettier --write src/shared/api/generated/openapi.json",
     "codegen": "openapi-typescript src/shared/api/generated/openapi.json -o src/shared/api/generated/openapi.gen.ts && prettier --write src/shared/api/generated/openapi.gen.ts",
     "validate": "pnpm check:env && pnpm check",
