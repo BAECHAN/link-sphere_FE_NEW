@@ -1,3 +1,6 @@
+### 2026-10-01 (FE)
+- 사이드바 햄버거 메뉴 더블클릭 시 발생하는 토글 이벤트 중첩 오류 수정 ([#279](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/279))
+
 ### 2026-09-30 (FE)
 - 비밀번호 실시간 유효성 검사 및 일치 여부 표시 기능 구현 ([#278](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/278))
 
