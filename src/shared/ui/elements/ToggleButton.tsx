@@ -1,3 +1,4 @@
+// 검증용 변경 — PR 댓글 영향 그래프 확인(병합하지 않는다)
 import { forwardRef } from 'react';
 import { Button, type ButtonProps } from '@/shared/ui/atoms/button';
 import { useClickGuard } from '@/shared/hooks/useClickGuard';
