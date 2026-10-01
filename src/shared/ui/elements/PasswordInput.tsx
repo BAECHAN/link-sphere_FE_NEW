@@ -1,5 +1,5 @@
 import { Input, InputProps } from '@/shared/ui/atoms/input';
-import { Button } from '@/shared/ui/atoms/button';
+import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 import { forwardRef, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -10,7 +10,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="relative">
         <Input ref={ref} disabled={disabled} {...props} type={showPassword ? 'text' : 'password'} />
-        <Button
+        <ToggleButton
           type="button"
           variant="ghost"
           size="icon-sm"
@@ -20,7 +20,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, InputProps>(
         >
           {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           <span className="sr-only">{showPassword ? 'Hide password' : 'Show password'}</span>
-        </Button>
+        </ToggleButton>
       </div>
     );
   }

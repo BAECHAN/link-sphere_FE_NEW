@@ -24,13 +24,12 @@ import { useMobileSearchPanel } from '@/widgets/layout/navbar/hooks/useMobileSea
 import { TEXTS } from '@/shared/config/texts';
 import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
-import { useClickGuard } from '@/shared/hooks/useClickGuard';
+import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 import { cn } from '@/shared/lib/tailwind/utils';
 
 export function Navbar() {
   const { isAuthenticated } = useAuthStore();
   const { resolvedTheme, setTheme } = useTheme();
-  const canToggleTheme = useClickGuard();
 
   const { account } = useAccount();
 
@@ -126,22 +125,16 @@ export function Navbar() {
               <span className="sr-only">{TEXTS.nav.toggleSearch}</span>
             </Button>
 
-            <Button
+            <ToggleButton
               variant="ghost"
               size="icon"
               className="h-9 w-9"
-              onClick={() => {
-                if (!canToggleTheme()) {
-                  return;
-                }
-
-                setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
-              }}
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
             >
               <Sun className="h-4 w-4 md:h-5 md:w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-4 w-4 md:h-5 md:w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">{TEXTS.nav.toggleTheme}</span>
-            </Button>
+            </ToggleButton>
 
             {isLoggingOut ? (
               <Button variant="ghost" size="sm" disabled className="ml-2 gap-2">
