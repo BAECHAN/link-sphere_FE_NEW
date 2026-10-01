@@ -1,3 +1,4 @@
+// 검증용 변경 2 — PR 댓글 갱신 확인(병합하지 않는다)
 import { cn } from '@/shared/lib/tailwind/utils';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 
