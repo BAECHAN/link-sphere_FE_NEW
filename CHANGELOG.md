@@ -175,6 +175,14 @@
 
 ### Fixed
 
+- `layout` 사이드바 햄버거를 더블클릭하면 펼쳤다가 바로 접히던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  데스크톱 사이드바의 햄버거 버튼은 누를 때마다 펼침/접힘을 바로 뒤집어서, 더블클릭하면 원래 상태로 돌아가 "눌렀는데 안 열림"처럼 보였다. Navbar 테마 토글과 같은 `useClickGuard`(400ms)를 걸어, 그보다 짧은 재클릭은 무의식적 중복으로 보고 무시한다. 키보드 단축키(Ctrl/⌘+B)와 모바일 드로어는 바꾸지 않았다.
+  (`src/widgets/layout/sidebar/ui/Sidebar.tsx`, `src/widgets/layout/sidebar/ui/Sidebar.test.tsx`)
+
+  </details>
+
 - `post` 상세에서 모달이 열린 동안 "목록으로" 문구가 "뒤로가기"로 바뀌던 문제 수정
   <details><summary>배경·구현</summary>
 
