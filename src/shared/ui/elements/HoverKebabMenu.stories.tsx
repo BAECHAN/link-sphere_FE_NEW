@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Pencil, Trash } from 'lucide-react';
 import { HoverKebabMenu } from '@/shared/ui/elements/HoverKebabMenu';
 import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';

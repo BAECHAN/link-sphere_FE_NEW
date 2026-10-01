@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 // 이 파일은 단일 컴포넌트가 아니라 src/app/globals.css의 디자인 토큰을 한눈에 보여주는
 // 카탈로그다. 값을 복제하지 않고 CSS 커스텀 프로퍼티(var(--color-primary) 등)를 인라인

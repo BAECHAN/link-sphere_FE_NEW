@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
 import { Button } from '@/shared/ui/atoms/button';

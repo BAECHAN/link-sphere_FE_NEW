@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { DropTargetOverlay } from '@/shared/ui/elements/DropTargetOverlay';
 
 const noop = () => {};

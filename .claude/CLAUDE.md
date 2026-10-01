@@ -549,7 +549,8 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 
 1. `pnpm type-check` — TypeScript 컴파일 에러 확인 (필수)
 2. `pnpm test` — 관련 테스트 실행 (테스트 파일이 존재하는 경우)
-3. `pnpm lint` — ESLint 레이어 경계 위반 확인 (import 변경 시)
+3. `pnpm lint`·`pnpm check:deps` — ESLint 레이어 경계, entities `@x` 경유·미선언 패키지 위반 확인
+   (import 변경 시)
 4. `pnpm check:docs` — README/docs/CLAUDE.md가 가리키는 경로·줄 번호가 실제와
    맞는지 확인 (`README.md`, `docs/*.md`, `.claude/CLAUDE.md`를 수정한 경우)
 

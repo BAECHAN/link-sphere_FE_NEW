@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';

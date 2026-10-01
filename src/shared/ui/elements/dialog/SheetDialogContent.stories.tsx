@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Dialog, DialogTrigger, DialogHeader, DialogTitle } from '@/shared/ui/atoms/dialog';
 import { SheetDialogContent } from '@/shared/ui/elements/dialog/SheetDialogContent';
 import { Button } from '@/shared/ui/atoms/button';

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Mail } from 'lucide-react';
 import { IconBadge } from '@/shared/ui/atoms/icon-badge';
 

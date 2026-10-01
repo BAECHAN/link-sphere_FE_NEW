@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MemoryRouter } from 'react-router-dom';
 import { GlobalAlerts } from '@/shared/ui/elements/dialog/alert/Alert';
 import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { RequiredMark } from '@/shared/ui/atoms/required-mark';
 import { Label } from '@/shared/ui/atoms/label';
 
