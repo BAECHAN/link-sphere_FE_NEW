@@ -1,4 +1,7 @@
 ### 2026-10-01 (FE)
+- 존재하지 않는 테마 참조를 제거하여 styled-components 타입 안정성 개선 ([#284](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/284))
+
+### 2026-10-01 (FE)
 - 의존성 관리 도구인 dependency-cruiser를 도입하여 모듈 간 의존성 시각화 및 분석 환경을 구축하고, pnpm graph 명령어를 통해 의존 그래프를 생성할 수 있도록 개선 ([#283](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/283))
 
 ### 2026-10-01 (FE)
