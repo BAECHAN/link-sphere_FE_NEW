@@ -126,7 +126,7 @@ flowchart TD
 ```
 src/
 ├── main.tsx                     # 앱 진입점
-├── styled.d.ts, vite-env.d.ts   # 전역 타입 선언
+├── vite-env.d.ts                # 전역 타입 선언
 │
 ├── app/                          # 앱 초기화, providers, routing
 │   ├── App.tsx                   # 최상위 App 컴포넌트
