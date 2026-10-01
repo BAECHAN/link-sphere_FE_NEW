@@ -11,6 +11,14 @@
 
 ### Changed
 
+- `post` 등록 폼 북마크 필드에 마우스를 올리면 폴더 목록을 미리 불러옴
+  <details><summary>배경·구현</summary>
+
+  카드의 북마크 버튼(#262)과 달리 등록 폼(`/post/submit`)의 북마크 필드는 모달이 열린 뒤에야 폴더 목록을 요청해, 데스크톱에서도 처음 열 때 로딩 골격을 거쳤다. 카드와 같이 필드에 hover하거나 focus가 가면 `prefetchBookmarkFolderList`로 목록을 미리 받아 둔다. 화면에 들어올 때 불러오는 안은 북마크를 안 쓰고 등록만 해도 매번 요청이 나가 기각한 상태 그대로다(e2e로 진입 시 요청 0건을 고정). 필드가 등록 버튼 위에 전체 너비로 있어 마우스가 지나치기만 해도 요청이 1번 나갈 수 있다(이후 3분은 재요청 없음). 모바일은 hover가 없어 첫 탭에 골격 화면이 보이는 것은 그대로다. `/post/submit`은 보호 라우트라 카드와 달리 로그인 여부를 따로 확인하지 않는다.
+  (`src/features/post/create/hooks/usePostCreateBookmarkFolderField.ts`, `src/features/post/create/ui/PostCreateBookmarkFolderField.tsx`, `e2e/post-create-folder-picker.spec.ts`, `docs/BOOKMARK.md`, [PR #280](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/280))
+
+  </details>
+
 - `bookmark` 북마크 모달이 목록을 기다리는 동안에도 목록 자리를 먼저 보여줌
   <details><summary>배경·구현</summary>
 

@@ -10,6 +10,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 const TYPED_URL = 'https://example.com/typed';
+const FOLDERS_PATH = '/api/bookmark/folders';
 
 // 등록 폼의 북마크 폴더 선택 모달(PostCreateBookmarkFolderField)은 열림 상태를 같은 경로의
 // 히스토리 엔트리로 둔다(useHistoryOverlay). 뒤로가기는 모달만 닫고, 같은 경로 안의 이동이라
@@ -46,5 +47,33 @@ test.describe('등록 폼 — 북마크 폴더 선택 모달 뒤로가기', () =
     await expect(page.getByRole('button', { name: mockBookmarkFolder.name })).toBeVisible();
     // 같은 경로 안의 이동이라 이탈 확인창이 뜨지 않는다
     await expect(page.getByRole('dialog').or(page.getByRole('alertdialog'))).toHaveCount(0);
+  });
+
+  test('화면에 들어올 때는 폴더 목록을 부르지 않고, 필드에 마우스를 올리면 미리 불러와 열 때 바로 보인다', async ({
+    page,
+  }) => {
+    const folderRequests: string[] = [];
+    page.on('request', (req) => {
+      if (new URL(req.url()).pathname === FOLDERS_PATH) {
+        folderRequests.push(req.url());
+      }
+    });
+
+    await page.goto('/post/submit');
+    const trigger = page.getByRole('button', { name: TEXTS.post.form.create.bookmarkNone });
+    await expect(trigger).toBeVisible();
+    // 진입 시 미리 불러오기는 기각된 안이다(북마크를 안 쓰고 등록만 해도 매번 요청이 나간다)
+    expect(folderRequests).toHaveLength(0);
+
+    const prefetch = page.waitForResponse((res) => new URL(res.url()).pathname === FOLDERS_PATH);
+    await trigger.hover();
+    await prefetch;
+
+    await trigger.click();
+    await expect(
+      page.getByRole('dialog').getByRole('button', { name: mockBookmarkFolder.name })
+    ).toBeVisible();
+
+    expect(folderRequests).toHaveLength(1);
   });
 });

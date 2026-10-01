@@ -1,7 +1,11 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useController, useFormContext } from 'react-hook-form';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { TEXTS } from '@/shared/config/texts';
-import { useBookmarkFolderListQuery } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
+import {
+  prefetchBookmarkFolderList,
+  useBookmarkFolderListQuery,
+} from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import type { CreatePost } from '@/entities/post/model/post.schema';
 
@@ -11,6 +15,7 @@ import type { CreatePost } from '@/entities/post/model/post.schema';
  * 소유한다.
  */
 export function usePostCreateBookmarkFolderField() {
+  const queryClient = useQueryClient();
   const { control } = useFormContext<CreatePost>();
   const { field: bookmarkField } = useController<CreatePost, 'bookmark'>({
     name: 'bookmark',
@@ -47,6 +52,14 @@ export function usePostCreateBookmarkFolderField() {
   // BookmarkFolderSelectDialog 내부 호출과 같은 쿼리 키라 요청·캐시가 공유된다.
   const { data } = useBookmarkFolderListQuery({ enabled: open });
   const folderList = Array.isArray(data?.folders) ? data.folders : [];
+
+  // 트리거 hover/focus 때 목록을 미리 받아, 열 때 로딩 골격 없이 바로 보이게 한다(카드
+  // 북마크 버튼의 useBookmarkPostButton과 같은 방식). 화면 진입 시점에 받지 않는 건 북마크를
+  // 안 쓰고 등록만 하는 경우에도 매번 요청이 나가서다(docs/BOOKMARK.md §5). /post/submit은
+  // ProtectedRoute 아래라 카드 버튼과 달리 로그인 여부를 따로 확인하지 않는다.
+  const handlePrefetch = () => {
+    prefetchBookmarkFolderList(queryClient);
+  };
 
   const applySelection = (nextBookmark: boolean, nextFolderIds: string[]) => {
     bookmarkField.onChange(nextBookmark);
@@ -106,6 +119,7 @@ export function usePostCreateBookmarkFolderField() {
     open,
     setOpen,
     triggerText,
+    handlePrefetch,
     handleSelectUncategorized,
     handleSelectFolder,
     handleClearBookmark,

@@ -21,6 +21,7 @@ export function PostCreateBookmarkFolderField() {
     open,
     setOpen,
     triggerText,
+    handlePrefetch,
     handleSelectUncategorized,
     handleSelectFolder,
     handleClearBookmark,
@@ -32,6 +33,8 @@ export function PostCreateBookmarkFolderField() {
         type="button"
         variant="outline"
         onClick={() => setOpen(true)}
+        onMouseEnter={handlePrefetch}
+        onFocus={handlePrefetch}
         className="w-full min-h-11 md:min-h-0 justify-between font-normal"
       >
         <span
