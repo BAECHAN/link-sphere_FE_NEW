@@ -175,6 +175,14 @@
 
 ### Fixed
 
+- `auth` 가입·프로필 수정의 중복확인 문구가 들락날락하며 아래 칸이 밀리던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  회원가입(닉네임·이메일)과 마이페이지 프로필 수정(닉네임)에서 값을 고쳐 칠 때마다 "사용 가능한 닉네임이에요." 줄이 사라졌다 다시 생겨 아래 칸과 가입·저장 버튼이 위아래로 밀렸다. 문구가 없으면 줄 자체를 그리지 않았고, 재확인 시작 후 "확인 중이에요..."가 뜨기 전까지 문구가 비었기 때문이다. 2026-08-11에 빈 줄을 늘 확보하는 방식은 평소 간격이 넓어 보여 되돌렸으므로, 이번에는 [Material Design 텍스트 필드 가이드](https://m1.material.io/components/text-fields.html)의 _"오류가 고쳐질 때까지 오류 문구가 helper text를 대신한다"_ (번역) 방식대로 평소에 규칙 안내 문구(`2~20자, 한글·영문·숫자·_ . - 가능해요.`, `가입 인증 메일을 받을 주소예요.`)로 그 줄을 채우고 확인 중·사용 가능·중복·형식 오류가 같은 줄을 갈아 끼우게 했다. 재확인 직후 "확인 중"이 뜨기 전 구간엔 직전 문구를 유지해 글자가 깜빡이지 않게 했고, 그 지연은 하드코딩 300ms 대신 레포 기준 `LOADING_INDICATOR_DELAY_MS`(500ms)를 쓴다. 닉네임 안내 문구는 한국 모바일 3위 해상도인 360px 폭([StatCounter](https://gs.statcounter.com/screen-resolution-stats/mobile/south-korea) 2026년 9월 기준 _"10.45%"_)에서도 한 줄에 들어가도록 줄였다(실측: 문구 217px / 칸 246px). 320px 폭에서는 두 줄이 될 수 있다. 마이페이지 칸은 더 넓어 360px에서 여유가 있다(칸 328px). 두 화면이 같은 규칙을 쓰게 되어 문구 결정 훅을 `shared/hooks`에 두고, "확인 중" 문구는 화면별 기존 문구를 인자로 받는다.
+  (`src/features/auth/signup/ui/SignUpForm.tsx`, `src/features/account/update/ui/UpdateAccountForm.tsx`, `src/shared/hooks/useAvailabilityMessage.ts`(신규), `src/shared/hooks/useAvailabilityMessage.test.ts`(신규), `src/shared/config/texts.ts`, [PR #282](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/282))
+
+  </details>
+
 - `shared` 비밀번호 표시 버튼·댓글 미리보기도 더블클릭하면 원래대로 돌아가던 문제 수정
   <details><summary>배경·구현</summary>
 
