@@ -80,6 +80,14 @@ jobs:
       - name: Check docs
         run: pnpm check:docs
 
+      - name: PR 영향 그래프 (정보용 — 실패해도 잡은 통과)
+        # 이 PR이 바꾼 src 파일과, import를 따라 거기에 닿는 파일을 Mermaid 그림으로 실행 결과
+        # 요약(Step Summary)에 붙인다. 리뷰 보조용이라 그림을 못 그려도 잡을 실패시키지 않는다
+        # (docs/plans/2026-10-01-dependency-cruiser.md).
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: node scripts/dep-graph.js --affected "${{ github.event.pull_request.base.sha }}" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Build
         # globals.css의 @theme 토큰이 실제 CSS로 정상 생성되는지 머지 전에 확인한다.
         # 지금까지는 이 확인을 로컬에서 pnpm build 후 dist CSS를 수동 grep하는
