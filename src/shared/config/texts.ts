@@ -98,6 +98,10 @@ export const TEXTS = {
       emailAvailable: '사용 가능한 이메일이에요.',
       emailDuplicate: '이미 가입된 이메일이에요.',
       nicknameAvailable: '사용 가능한 닉네임이에요.',
+      // 확인 문구가 없을 때 그 줄을 채우는 평소 안내 - 닉네임은 account.schema.ts의
+      // nicknameValidationSchema 규칙과 맞춘다
+      emailHint: '가입 인증 메일을 받을 주소예요.',
+      nicknameHint: '2~20자, 한글·영문·숫자·_ . - 가능해요.',
       checkEmailTitle: '가입을 완료했어요',
       checkEmailDescription:
         '입력하신 이메일로 인증 메일을 보냈어요. 메일함에서 링크를 확인해주세요.',
@@ -175,6 +179,8 @@ export const TEXTS = {
     changeImage: '이미지 변경',
     checkingNickname: '확인 중...',
     nicknameAvailable: '사용 가능한 닉네임이에요.',
+    // 확인 문구가 없을 때 그 줄을 채우는 평소 안내 - auth.signup.nicknameHint와 같은 규칙
+    nicknameHint: '2~20자, 한글·영문·숫자·_ . - 가능해요.',
   },
   accountSettings: {
     title: '계정 설정',

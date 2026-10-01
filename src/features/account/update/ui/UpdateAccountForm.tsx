@@ -6,7 +6,7 @@ import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
 import { useUpdateAccount } from '@/features/account/update/hooks/useUpdateAccount';
-import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
+import { useAvailabilityMessage } from '@/shared/hooks/useAvailabilityMessage';
 import { UserAvatar } from '@/entities/user/ui/UserAvatar';
 
 export function UpdateAccountForm() {
@@ -25,13 +25,13 @@ export function UpdateAccountForm() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 체크가 빨리 끝나면(대부분의 경우) "확인 중..."이 깜빡이지 않도록 300ms 지연 후에만 보여준다
-  const showChecking = useDelayedLoading(isCheckingNickname, 300);
-  const nicknameStatusText = showChecking
-    ? TEXTS.mypage.checkingNickname
-    : isNicknameAvailable
-      ? TEXTS.mypage.nicknameAvailable
-      : undefined;
+  const nicknameMessage = useAvailabilityMessage({
+    isChecking: isCheckingNickname,
+    isAvailable: isNicknameAvailable,
+    checkingText: TEXTS.mypage.checkingNickname,
+    availableText: TEXTS.mypage.nicknameAvailable,
+    hintText: TEXTS.mypage.nicknameHint,
+  });
 
   const isSaveDisabled =
     isPending ||
@@ -85,8 +85,8 @@ export function UpdateAccountForm() {
           name="nickname"
           label={TEXTS.labels.nickname}
           placeholder={TEXTS.placeholders.nickname}
-          description={nicknameStatusText}
-          descriptionVariant={isNicknameAvailable ? 'success' : 'default'}
+          description={nicknameMessage.description}
+          descriptionVariant={nicknameMessage.descriptionVariant}
           enterKeyHint="done"
           disabled={isPending}
           required
