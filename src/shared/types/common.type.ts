@@ -1,58 +1,8 @@
-import {
-  FieldErrors,
-  FieldValues,
-  SubmitHandler,
-  UseFormHandleSubmit,
-  UseFormRegister,
-  UseFormReset,
-  UseFormReturn,
-  UseFormSetValue,
-  UseFormWatch,
-} from 'react-hook-form';
 import { z } from 'zod';
 
-export type ResultType<T> = { ok: true; value: T } | { ok: false; error: Error };
-
-export type PageType = {
-  page: number;
-  size: number;
-  totalPages: number;
-  totalCount: number;
-};
-
-export type ResponseType<T> = {
-  data: T | null;
-  page?: PageType;
-};
-
 /**
- * 페이지네이션 공통 스키마
- * URL 쿼리 스트링 처리를 위해 z.coerce 사용
- */
-export const paginationSchema = z.object({
-  page: z.coerce.number().min(1).default(1),
-  size: z.coerce.number().min(1).default(10),
-  sort: z.string().optional(),
-});
-
-/**
- * 날짜 범위 검색 공통 스키마
- */
-export const dateRangeSchema = z.object({
-  fromDate: z.string().optional(), // 필요시 .regex()로 날짜 형식 검증 추가
-  toDate: z.string().optional(),
-});
-
-export const commonSearchRequestSchema = paginationSchema.merge(dateRangeSchema).extend({
-  keyword: z.string().optional(),
-});
-
-export type CommonSearchRequest = z.infer<typeof commonSearchRequestSchema>;
-
-/**
- * BE 페이지네이션 요청/응답 스키마 — 위 paginationSchema(URL 쿼리 문자열용, page 1부터
- * 시작하는 UI 관례)와는 다르다. 이건 BE API 요청 바디/파라미터용으로 page가 0부터
- * 시작하는 API 관례를 따른다. 혼동하지 않도록 별도 이름을 유지한다.
+ * BE 페이지네이션 요청 스키마 — BE API 요청 바디/파라미터용으로 page가 0부터 시작하는
+ * API 관례를 따른다.
  */
 export const paginationRequestSchema = z.object({
   page: z.number().int().nonnegative().default(0),
@@ -60,16 +10,6 @@ export const paginationRequestSchema = z.object({
 });
 
 export type PaginationRequest = z.infer<typeof paginationRequestSchema>;
-
-export const paginationResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
-  z.object({
-    page: z.number().int().nonnegative().default(0),
-    size: z.number().int().positive().default(10),
-    content: z.array(itemSchema),
-    totalElements: z.number().int().nonnegative(),
-    totalPages: z.number().int().nonnegative(),
-    last: z.boolean(),
-  });
 
 /**
  * Standard API Response Structure
@@ -125,25 +65,3 @@ export type SelectOptionType<T = unknown> = {
   label: string;
   value: string;
 } & T;
-
-export type CodeType<T extends string | number> = {
-  code: T;
-  codeName: string;
-};
-
-export type FormType = {
-  register: UseFormRegister<any>;
-  errors: FieldErrors<any>;
-  handleSubmit: UseFormHandleSubmit<any>;
-  onSubmit: SubmitHandler<any>;
-  reset: UseFormReset<any>;
-  setValue: UseFormSetValue<any>;
-  watch: UseFormWatch<any>;
-};
-
-export type SearchPropsType<T extends FieldValues> = {
-  form: UseFormReturn<T>;
-  onSearch: (e: React.FormEvent<HTMLFormElement>) => void;
-  onReset: () => void;
-  isFetching?: boolean;
-};

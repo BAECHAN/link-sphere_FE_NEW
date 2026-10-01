@@ -20,7 +20,7 @@ export const mockComment: Comment = {
   replies: [],
 };
 
-export const mockMyComment: MyComment = {
+const mockMyComment: MyComment = {
   id: 'comment-uuid-1',
   content: 'This is a test comment',
   createdAt: '2025-01-01T00:00:00.000Z',

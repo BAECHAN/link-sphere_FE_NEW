@@ -24,7 +24,7 @@ export function pagedPostTitle(index: number): string {
 }
 
 /** n번째 목 게시글의 id. 상세 진입 후 URL 단언에 쓴다. */
-export function pagedPostId(index: number): string {
+function pagedPostId(index: number): string {
   return `e2e-post-${String(index).padStart(3, '0')}`;
 }
 
