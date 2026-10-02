@@ -2,15 +2,12 @@ import { useEffect, useLayoutEffect } from 'react';
 import { useSearchParamsDraft } from '@/shared/hooks/useSearchParamsDraft';
 import { useSuspenseFetchPostListQuery } from '@/entities/post/api/post.queries';
 import { parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
-import { useWindowGridVirtualizer } from '@/shared/hooks/useWindowGridVirtualizer';
+import {
+  useWindowGridVirtualizer,
+  type CardGridSpec,
+} from '@/shared/hooks/useWindowGridVirtualizer';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
 import { Post } from '@/entities/post/model/post.schema';
-import {
-  POST_GRID_MAX_COLUMNS,
-  POST_GRID_MIN_COLUMN_WIDTH,
-  POST_GRID_ROW_GAP,
-  POST_GRID_ROW_HEIGHT_ESTIMATE,
-} from '@/widgets/post/post-list/config/post-grid.const';
 
 const HIDE_BOTS_FILTER = 'excludeBots';
 
@@ -101,8 +98,9 @@ export const usePostListParams = () => {
 /**
  * 게시글 목록 데이터와 무한 스크롤 로직을 포함하는 훅
  * useSuspenseFetchPostListQuery를 호출하므로 사용하는 컴포넌트가 Suspense에 의해 정지될 수 있습니다.
+ * grid는 그리는 카드의 치수 - 카드를 넘기는 페이지가 함께 정한다(docs/FE-ARCHITECTURE.md §26).
  */
-export const usePostList = () => {
+export const usePostList = (grid: CardGridSpec) => {
   const { category, nickname, search, currentFilter, ...params } = usePostListParams();
   const hideBots = useHideBotsStore((state) => state.hideBots);
 
@@ -124,10 +122,10 @@ export const usePostList = () => {
       listId: 'post-feed',
       items: posts,
       getItemId: getPostId,
-      minColumnWidth: POST_GRID_MIN_COLUMN_WIDTH,
-      maxColumns: POST_GRID_MAX_COLUMNS,
-      gapBreakpoints: POST_GRID_ROW_GAP,
-      estimateRowHeight: (count) => POST_GRID_ROW_HEIGHT_ESTIMATE[count] ?? DEFAULT_ROW_HEIGHT,
+      minColumnWidth: grid.minColumnWidth,
+      maxColumns: grid.maxColumns,
+      gapBreakpoints: grid.rowGap,
+      estimateRowHeight: (count) => grid.rowHeightEstimate[count] ?? DEFAULT_ROW_HEIGHT,
     });
 
   // correctedSearch 안내 문구가 나타나거나 사라지면 컨테이너의 문서 상단 기준 위치가

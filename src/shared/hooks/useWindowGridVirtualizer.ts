@@ -8,6 +8,20 @@ export interface GapBreakpoint {
   gap: number;
 }
 
+/**
+ * 카드 그리드 한 종류의 치수 묶음. 목록 위젯은 어떤 카드를 그리는지 모르므로, 카드를
+ * 넘기는 쪽(페이지)이 그 카드의 치수도 함께 넘긴다 (docs/FE-ARCHITECTURE.md §26).
+ */
+export interface CardGridSpec {
+  /** 간격만 담당하는 그리드 클래스(gap-*) - rowGap과 정확히 일치해야 한다 */
+  className: string;
+  minColumnWidth: number;
+  maxColumns: number;
+  rowGap: readonly GapBreakpoint[];
+  /** 열 수별 행 높이 추정치(px) - 실측 전 초기값 */
+  rowHeightEstimate: Readonly<Record<number, number>>;
+}
+
 interface UseWindowGridVirtualizerOptions<T> {
   /** 스냅샷 저장 키에 쓰이는 이 리스트의 식별자 - 리스트마다 고유해야 한다 */
   listId: string;
@@ -67,7 +81,7 @@ function resolveByWidth<T extends { minWidth: number }>(
   width: number
 ): T {
   const sorted = [...breakpoints].sort((a, b) => b.minWidth - a.minWidth);
-  // 항상 minWidth: 0인 항목이 하나 포함돼 있어(post-grid.const.ts 등 호출부 계약) 마지막
+  // 항상 minWidth: 0인 항목이 하나 포함돼 있어(post-card-grid.const.ts 등 호출부 계약) 마지막
   // 원소가 비어있을 일은 없다
   return sorted.find((bp) => width >= bp.minWidth) ?? sorted[sorted.length - 1]!;
 }

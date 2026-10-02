@@ -12,7 +12,10 @@ import { BookmarkPostList } from '@/widgets/bookmark/bookmark-post-list/ui/Bookm
 import { BookmarkSearch } from '@/widgets/bookmark/bookmark-search/ui/BookmarkSearch';
 import { FolderTree } from '@/widgets/bookmark/folder-tree/ui/FolderTree';
 import { MobileFolderList } from '@/widgets/bookmark/folder-tree/ui/MobileFolderList';
+import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
+import { POST_CARD_GRID } from '@/widgets/post/post-card/config/post-card-grid.const';
 import { BookmarkFolderSort } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
+import type { Post } from '@/entities/post/model/post.schema';
 import { useBookmarkPage, VALID_SORTS } from '@/pages/bookmark/hooks/useBookmarkPage';
 
 const SORT_LABELS: Record<BookmarkFolderSort, string> = {
@@ -22,6 +25,11 @@ const SORT_LABELS: Record<BookmarkFolderSort, string> = {
   views: TEXTS.bookmark.folder.sort.views,
   viewed: TEXTS.bookmark.folder.sort.viewed,
 };
+
+// 모듈 최상단에 둬 렌더마다 같은 함수가 넘어가게 한다 (docs/FE-ARCHITECTURE.md §26)
+function renderBookmarkPost(post: Post) {
+  return <PostCard post={post} backSource="bookmark" />;
+}
 
 export function BookmarkPage() {
   const {
@@ -78,7 +86,13 @@ export function BookmarkPage() {
           </Select>
         </header>
         <BookmarkSearch className="mb-4" />
-        <BookmarkPostList folderKey={activeFolderKey} sort={sort} search={search} />
+        <BookmarkPostList
+          renderPost={renderBookmarkPost}
+          grid={POST_CARD_GRID}
+          folderKey={activeFolderKey}
+          sort={sort}
+          search={search}
+        />
       </div>
     );
   }
@@ -110,7 +124,13 @@ export function BookmarkPage() {
           </Select>
         </header>
         <BookmarkSearch className="mb-4" />
-        <BookmarkPostList folderKey={activeFolderKey} sort={sort} search={search} />
+        <BookmarkPostList
+          renderPost={renderBookmarkPost}
+          grid={POST_CARD_GRID}
+          folderKey={activeFolderKey}
+          sort={sort}
+          search={search}
+        />
       </main>
     </div>
   );

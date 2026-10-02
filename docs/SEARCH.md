@@ -9,7 +9,7 @@
 > `#닉네임` 태그가 어떻게 분해되는지 이해하고, 검색 관련 동작(유지·초기화·오타 보정)을
 > 어느 파일에서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-09-30
+> **마지막 검토**: 2026-10-03
 
 ## 1. 쉬운 설명
 
@@ -216,7 +216,7 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | `@카테고리`/`#닉네임`/키워드 분해 규칙 바꾸기                | [`search-parser.ts`](../src/widgets/post/post-list/utils/search-parser.ts) — `parseSearchQuery`                                                                                                                                                           |
 | "조건 N개 적용 중" 카운트 로직                               | [`usePostListSearch.ts:11-28`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L11-L28) — `computeAppliedFilterCount`                                                                                                                            |
 | 초기화 버튼(필터+검색어 전체 리셋)                           | [`usePostListSearch.ts:121-128`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L121-L128) — `handleClearSearch`                                                                                                                                |
-| 오타 보정 문구                                               | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx:60-64`](../src/widgets/post/post-list/ui/PostList.tsx#L60-L64)                                                                                                                                       |
+| 오타 보정 문구                                               | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx:71-75`](../src/widgets/post/post-list/ui/PostList.tsx#L71-L75)                                                                                                                                       |
 | 모바일 검색 패널 열림 상태                                   | [`useMobileSearchPanel.ts:17-22`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L17-L22) — `location.state.mobileSearchOpen`                                                                                                                 |
 | 검색 중 하단 댓글바 숨김 동작 바꾸기                         | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useHistoryOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                                                                           |
 | 검색 중 배경 클릭·포커스 차단 범위 바꾸기                    | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                                                                         |

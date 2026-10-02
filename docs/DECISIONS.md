@@ -6,6 +6,69 @@
 
 ---
 
+## 2026-10-03 — 같은 레이어 교차 import를 위층 조립으로 제거
+
+**배경**
+
+FSD 레이어 하향 의존(ESLint)과 entities `@x`(dependency-cruiser)는 강제되지만, features·widgets의
+같은 레이어 슬라이스 격리는 강제 수단이 없어 5건이 남아 있었다(2026-10-01 dependency-cruiser 도입 때
+발견해 보류).
+
+- W1·W2: 목록 위젯 두 개(`PostList`, `BookmarkPostList`)가 `widgets/post/post-card`의 `PostCard`를 import
+- W3: `bookmark-grid.const.ts`가 `widgets/post/post-list`의 카드 치수 상수를 import
+- F1·F2: `features/bookmark/toggle`·`features/post/create`가 `features/bookmark/select`의
+  `BookmarkFolderSelectDialog`를 import(2026-09-09 이 문서의 이동 항목에서 "감수한 트레이드오프"로 기록)
+
+FSD [Cross-imports 가이드](https://feature-sliced.design/docs/guides/issues/cross-imports)(원본 소스를
+GitHub에서 직접 확인)는 features·widgets에 네 가지 전략을 든다.
+
+> 두 슬라이스가 진짜로 독립적이지 않고 늘 함께 바뀐다면 하나의 큰 슬라이스로 합쳐라. (…) 여러 feature가
+> 도메인 수준 흐름을 공유한다면 그 흐름을 entities로 옮겨라 — entities에는 도메인 타입과 도메인 로직만 두고,
+> UI는 features/widgets에 남는다. (…) 같은 레이어 슬라이스를 교차 import로 잇지 말고 더 높은 레벨(pages/app)에서
+> 조립하라. (번역, 생략)
+>
+> — Feature-Sliced Design, Cross-imports, https://feature-sliced.design/docs/guides/issues/cross-imports
+
+**검토한 대안**
+
+| 대안                                  | 결과                                                                                                                                                                                                     |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A. 합치기                             | W 묶음 기각. 조건 "늘 함께 바뀐다"를 커밋 이력으로 재 보니(origin/main, 슬라이스 경로별) post-card 변경 46건 중 post-list와 동시 변경 15건(33%)뿐이었다. F 묶음은 도메인이 달라(bookmark·post) 해당 없음 |
+| B. entities로 내리기                  | 기각. `useBookmarkFolderSelect`에는 생성 모드·행별 로딩·에러 토스트 같은 화면 상태가 섞여 있어 "도메인 로직만" 조건에 맞지 않는다. `PostCard`는 features(좋아요·북마크)를 포함해 entities로 내릴 수 없다 |
+| B'. 창은 shared, 훅은 entities로 분리 | 기각. 가이드의 네 전략 어디에도 없는, Layers 문서의 "shared는 비즈니스 테마는 괜찮다"는 문구로 조합한 안이었다                                                                                           |
+| C. 위층 조립(render prop)             | **채택**(사용자 결정). 가이드 예제(`CommentList`가 `renderUserAvatar`를 받고 페이지가 넘김)와 형태가 같다                                                                                                |
+| D. 공개 API로만 허용하고 문서화       | 기각. 이 레포는 `index.ts` 배럴을 금지해 문자 그대로 적용할 수 없고, FSD FAQ(_"한 feature가 다른 feature를 직접 import해서는 안 된다"_ (번역))·공식 린터 steiger 기본 규칙과도 어긋난다                  |
+
+**render prop이 지저분하지 않은가(사용자 우려)**
+
+- React 공식 문서의 비판("wrapper hell")은 render prop을 **로직 공유**에 쓰던 것에 대한 것이다 —
+  _"Hooks가 render props와 고차 컴포넌트를 대체해, 컴포넌트 계층을 바꾸지 않고 상태 로직을 재사용하게 했다"_
+  (번역, [React Labs 2025-04](https://react.dev/blog/2025/04/23/react-labs-view-transitions-activity-and-more)).
+- **렌더링 위임**에는 지금도 권한다 — React Hooks FAQ는 render prop이 남을 자리로 _"가상 스크롤 컴포넌트의
+  `renderItem` prop"_ (번역, [Hooks FAQ](https://legacy.reactjs.org/docs/hooks-faq.html))을 직접 든다.
+  `PostList`가 가상 스크롤 목록이다. 가상 스크롤 라이브러리(TanStack Virtual, react-window, react-virtuoso,
+  React Native FlatList)도 모두 아이템 렌더링을 호출하는 쪽에 맡긴다.
+- 성능: 렌더 안에서 함수를 새로 만들면 받는 쪽 `memo`가 깨진다 — 넘기는 함수를 모듈 최상단에 둬 막는다.
+  `PostCard`(`memo`)가 받는 props는 이전과 같다.
+- prop을 몇 단계 내려 보내는 것(F 묶음)은 React 공식 문서가 우선 권하는 방식이다 — _"그냥 props로 넘기는 것부터
+  시작하라 … 어떤 컴포넌트가 어떤 데이터를 쓰는지 아주 명확해진다"_ (번역,
+  [Before you use context](https://react.dev/learn/passing-data-deeply-with-context#before-you-use-context)).
+
+**결정**
+
+- 받는 쪽이 `render<대상>` 함수 prop을 받고 위층이 넘긴다. 사용 규칙은 [`FE-ARCHITECTURE.md`](FE-ARCHITECTURE.md) §26.
+- 카드 치수는 카드 슬라이스가 소유한다(`POST_CARD_GRID`). 페이지가 카드와 함께 넘긴다.
+- F1 조립은 PostCard(위젯)가 맡는다. 가이드 문장은 "pages/app"이지만 바로 위 레이어(widgets)에서 조립해도
+  같은 원리라고 판단했다(추론).
+- 5건을 정리한 뒤 dependency-cruiser 규칙으로 features·widgets 슬라이스 격리를 강제한다.
+- 2026-09-09 항목의 "의도적으로 감수한 트레이드오프"(features 교차 import)는 이 결정이 대체한다.
+
+**상태**
+
+W1·W2·W3 적용(2026-10-03). F1·F2와 강제 규칙은 후속 PR.
+
+---
+
 ## 2026-10-02 — Storybook 제목 규칙과 허용 범위
 
 **배경**
