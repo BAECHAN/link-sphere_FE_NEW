@@ -1,4 +1,7 @@
 ### 2026-10-02 (FE)
+- Storybook 스토리 제목 컨벤션 표준화 및 ESLint를 통한 규칙 강제 적용 ([#293](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/293))
+
+### 2026-10-02 (FE)
 - 댓글 및 답글 알림 클릭 시 해당 위치로 자동 스크롤 이동 기능 구현 ([#297](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/297))
 
 ### 2026-10-02 (FE)
