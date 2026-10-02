@@ -183,11 +183,13 @@ features/<도메인>/<액션>/
 - [`docs/BOOKMARK.md`](docs/BOOKMARK.md) — 북마크 페이지: 폴더 분류, 반응형 3분기, 폴더 내 검색
 - [`docs/BUILD-VERSION.md`](docs/BUILD-VERSION.md) — 배포 반영 확인: `/version` 화면과 CI 자동 검증으로 "지금 이 탭"과 "서버에 배포된 것"을 대조
 - [`docs/CI-CHECK-GATE.md`](docs/CI-CHECK-GATE.md) — `pnpm check`가 실제로는 아무 데도 안 걸려 있던 문제와 PR·배포 게이트 정비
+- [`docs/COMMENT.md`](docs/COMMENT.md) — 댓글·답글: 낙관적 작성, 이미지 첨부, 바이트 상한(WAF 8KB), 댓글 좋아요, 내 댓글 해시 이동
 - [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md) — 디자인 토큰(색상·반경·z-index)·컴포넌트·ESLint 강제 규칙·Storybook 카탈로그
 - [`docs/FCM-PUSH-NOTIFICATION.md`](docs/FCM-PUSH-NOTIFICATION.md) — 댓글·답글 FCM 웹 푸시: 토큰 수명주기, 서비스워커, 알림 클릭 딥링크
 - [`docs/MYPAGE.md`](docs/MYPAGE.md) — 프로필 수정(계정 설정 화면 섹션): 닉네임·아바타 변경, 실패 시 입력값 유지
 - [`docs/NEW-VERSION-RELOAD.md`](docs/NEW-VERSION-RELOAD.md) — 배포 후 새 버전 감지 시 다음 라우트 이동에 맞춰 자동 새로고침
 - [`docs/OPENAPI-CODEGEN.md`](docs/OPENAPI-CODEGEN.md) — BE OpenAPI 스펙에서 FE 응답 타입을 생성: 파이프라인, 드리프트 감지, override 패턴
+- [`docs/POST.md`](docs/POST.md) — 게시글: 피드·상세·작성·수정·삭제·공개 토글·좋아요와 mutation별 캐시 전략
 - [`docs/POST-DETAIL-BACK-NAVIGATION.md`](docs/POST-DETAIL-BACK-NAVIGATION.md) — 상세 페이지 돌아가기: 모바일 제거·데스크톱 비sticky, 유입 경로별 라벨
 - [`docs/RUM.md`](docs/RUM.md) — 실사용자 모니터링(AWS CloudWatch RUM): 수집 구조, 운영 파라미터, 데이터 활용 루프
 - [`docs/SEARCH.md`](docs/SEARCH.md) — 게시글 검색: URL SSOT, 헤더 검색창 동기화, `@카테고리`·`#닉네임` 태그 분해
