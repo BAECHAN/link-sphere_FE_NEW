@@ -49,7 +49,11 @@ function buildCsp(scriptHashes) {
     // 로그인마다 FCM 토큰 등록이 CSP로 조용히 막힌다(fcm.ts의 catch가 콘솔 로그만
     // 남겨 겉으로 드러나지 않는다) - pr-review-toolkit 리뷰에서 발견.
     `connect-src 'self' https://dataplane.rum.ap-northeast-1.amazonaws.com https://*.supabase.co https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com`,
-    `img-src 'self' data: https:`,
+    // blob:은 업로드 전 미리보기 - 댓글 첨부 썸네일(useImageAttachments)·낙관적 댓글
+    // 이미지(comment.queries)·프로필 사진 미리보기(useUpdateAccount)가 모두
+    // URL.createObjectURL로 만든 blob: URL을 <img>에 넣는다. 처음 주입할 때(#242) 빠져
+    // 운영에서만 이 썸네일들이 깨졌다 - dev·e2e는 CSP를 주입하지 않아 안 드러났다(2026-10-02).
+    `img-src 'self' data: blob: https:`,
     `style-src 'self' 'unsafe-inline'`,
     `font-src 'self'`,
     `object-src 'none'`,
