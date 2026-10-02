@@ -9,6 +9,24 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `post` 상세에서 지운 글이 뒤로가기로 돌아오면 그대로 다시 보이던 문제
+  <details><summary>배경·구현</summary>
+
+  상세에서 글을 삭제하면 피드로 push 이동해 히스토리에 지운 글의 상세가 남는다. 삭제가 성공해도 그 글의 상세 캐시를 지우지 않아, 3분(staleTime) 안에 뒤로가기하면 재조회 없이 삭제된 글이 화면에 다시 그려졌고 좋아요·댓글을 누르고서야 404가 났다. 삭제 성공 시 상세 캐시를 지워(`postRemoveQueries.detail`) 뒤로가기 때 다시 받아오게 했고, 404 안내 후 피드로 돌아간다. 상세가 떠 있는 동안 캐시를 지워도 재조회·404 토스트가 깜빡이지 않는 것을 e2e로 확인했다. 함께 피드 목록 낙관적 삭제의 `totalElements`가 0 아래로 내려가지 않게 막았다(현재 화면에 표시하지 않아 체감 영향은 없음). 문서화(#294) 중에 발견했다.
+  (`src/entities/post/api/post.keys.ts`, `src/entities/post/api/post.queries.ts`, `src/entities/post/api/post.queries.test.ts`, `e2e/post-delete.spec.ts`, `docs/POST.md`, [PR #295](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/295))
+
+  </details>
+
+- `shared` 좋아요 연타를 막고 요청 중 버튼이 흐려지던 깜빡임 제거
+  <details><summary>배경·구현</summary>
+
+  게시글·댓글 좋아요 버튼이 일반 `Button`이라 빠르게 두 번 누르면 토글 요청이 두 번 나갔다. 다른 토글 버튼처럼 `ToggleButton`(400ms 안의 재클릭 무시)으로 바꿨다. 게시글 좋아요는 요청 중 `disabled`와 아이콘 펄스가 있었는데, 낙관적 업데이트로 아이콘은 이미 바뀌어 있어 요청 동안 버튼만 반투명해졌다 돌아오는 깜빡임이었다 — 둘 다 제거하고 댓글 좋아요에도 넣지 않았다.
+  (`src/features/post/like/ui/LikePostButton.tsx`, `src/features/comment/like/ui/LikeCommentButton.tsx`, `docs/FE-ARCHITECTURE.md`, `docs/POST.md`, `docs/COMMENT.md`, [PR #295](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/295))
+
+  </details>
+
 ## [0.18.0] - 2026-10-02
 
 ### Changed

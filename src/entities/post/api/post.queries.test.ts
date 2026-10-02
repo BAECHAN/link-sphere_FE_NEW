@@ -435,4 +435,66 @@ describe('useDeletePostMutation', () => {
     const folders = queryClient.getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list);
     expect(folders?.folders.find((f) => f.id === FOLDER_A)?.bookmarkCount).toBe(2);
   });
+
+  // 상세에서 삭제 후 뒤로가기로 돌아왔을 때 staleTime 안이면 남은 캐시가 삭제된 글을 그대로 그렸다
+  it('삭제 성공 시 그 글의 post.detail 캐시를 지운다', async () => {
+    queryClient.setQueryData(postKeys.detail(POST_ID), mockPost);
+
+    const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate(POST_ID);
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(queryClient.getQueryData(postKeys.detail(POST_ID))).toBeUndefined();
+  });
+
+  it('삭제 실패 시 post.detail 캐시는 그대로 둔다', async () => {
+    server.use(
+      http.delete(url(`${API_ENDPOINTS.post.base}/${POST_ID}`), () =>
+        HttpResponse.json(
+          { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'boom', timestamp: '' },
+          { status: 500 }
+        )
+      )
+    );
+    queryClient.setQueryData(postKeys.detail(POST_ID), mockPost);
+
+    const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate(POST_ID);
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(queryClient.getQueryData(postKeys.detail(POST_ID))).toEqual(mockPost);
+  });
+
+  it('목록의 totalElements는 0 아래로 내려가지 않는다', async () => {
+    queryClient.setQueryData(postKeys.list(), {
+      pages: [
+        { page: 0, size: 10, content: [mockPost], totalElements: 0, totalPages: 1, last: true },
+      ],
+      pageParams: [0],
+    });
+
+    const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate(POST_ID);
+    });
+
+    await waitFor(() => {
+      const cached = queryClient.getQueryData<{
+        pages: { content: Post[]; totalElements: number }[];
+      }>(postKeys.list());
+      expect(cached?.pages[0]?.content).toEqual([]);
+      expect(cached?.pages[0]?.totalElements).toBe(0);
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
 });

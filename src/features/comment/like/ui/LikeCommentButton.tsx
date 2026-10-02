@@ -5,7 +5,7 @@ import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { useLikeComment } from '@/features/comment/like/hooks/useLikeComment';
 import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
-import { Button } from '@/shared/ui/atoms/button';
+import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 
 interface LikeCommentButtonProps {
   commentId: Comment['id'];
@@ -24,7 +24,7 @@ export function LikeCommentButton({
   const guard = useAuthGuard();
 
   return (
-    <Button
+    <ToggleButton
       type="button"
       variant="ghost"
       size="sm"
@@ -36,6 +36,6 @@ export function LikeCommentButton({
     >
       <Heart className={cn('size-4', isLiked && 'fill-current')} />
       <span>{likeCount > 0 ? likeCount : TEXTS.comment.item.like}</span>
-    </Button>
+    </ToggleButton>
   );
 }
