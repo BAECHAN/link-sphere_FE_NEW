@@ -81,6 +81,13 @@ export function resolveErrorToast(
     return { silent: false, message: TEXTS.messages.error.edgeBlocked };
   }
 
+  // 요청 한도 초과 - EDGE_BLOCKED와 같은 이유로 meta.errorMessage보다 먼저 처리한다. 코드가
+  // 아니라 상태로 판별한다: BE 레이트리밋(RATE_LIMIT_EXCEEDED)뿐 아니라 Lambda 동시 실행
+  // 포화 시 Function URL이 주는 429(앱 에러 코드 없음)도 같은 안내가 맞다.
+  if (error instanceof ApiError && error.status === 429) {
+    return { silent: false, message: TEXTS.messages.error.rateLimited };
+  }
+
   if (meta?.errorMessage) {
     return { silent: false, message: meta.errorMessage };
   }

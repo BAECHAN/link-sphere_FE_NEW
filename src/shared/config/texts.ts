@@ -511,6 +511,9 @@ export const TEXTS = {
       edgeBlocked:
         '요청이 보안 정책에 막혔어요. 내용이 너무 길거나 허용되지 않는 문자가 포함됐을 수 있어요.',
 
+      // 요청 한도 초과(429) - 앱 레이트리밋(RATE_LIMIT_EXCEEDED)과 Lambda 동시 실행 포화 공통
+      rateLimited: '요청이 많아요. 잠시 후 다시 시도해주세요.',
+
       // 앱 초기화
       appInitFailed: '앱 초기화 실패:', // 콘솔 로그 전용 - 톤 규칙 대상 아님
 

@@ -11,6 +11,20 @@
 
 ### Fixed
 
+- `api` 요청 한도 초과(429)에 "요청이 많아요" 안내를 띄우고, 429·WAF 차단은 재시도하지 않음
+  <details><summary>배경·구현</summary>
+
+  BE가 글 등록·업로드 URL 발급에 회원별 한도를 걸면서(BE `docs/TRAFFIC-MANAGEMENT.md`)
+  429 `RATE_LIMIT_EXCEEDED`가 생겼다. 지금까지 FE는 429를 일반 서버 오류로 보고 "서버
+  오류가 발생했어요" 토스트를 띄웠고, 쿼리는 `retry: 1`로 한 번 더 보내 한도를 더
+  소모했다. 전역 판정(`resolveErrorToast`)이 상태 429를 `meta.errorMessage`보다 먼저
+  잡아 `TEXTS.messages.error.rateLimited`를 띄운다 - 코드가 아니라 상태로 판별해 Lambda
+  동시 실행 포화 때 Function URL이 주는 429도 같이 잡는다. 쿼리 재시도는
+  `shouldRetryQuery`가 429와 `EDGE_BLOCKED`를 빼고 기존처럼 1회만 한다.
+  (`error-toast.ts`, `retry-policy.ts`(신규), `queryClient.ts`, `texts.ts`)
+
+  </details>
+
 - `comment` 내 댓글 카드에 첨부 이미지 주소가 글자로 보이던 문제
   <details><summary>배경·구현</summary>
 
