@@ -1,4 +1,7 @@
 ### 2026-10-02 (FE)
+- API 통신 경로를 CloudFront를 경유하도록 변경하여 엔드포인트 일관성 확보 및 로컬 개발 환경 로그인 기능 복구
+
+### 2026-10-02 (FE)
 - Storybook 스토리 제목 컨벤션 표준화 및 ESLint를 통한 규칙 강제 적용 ([#293](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/293))
 
 ### 2026-10-02 (FE)
