@@ -1,3 +1,6 @@
+### 2026-10-02 (FE)
+- 게시글 삭제 후 뒤로가기 시 데이터 노출 문제 해결 및 좋아요 기능의 동기화 최적화를 통한 깜빡임 현상 개선 ([#295](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/295))
+
 ### 2026-10-01 (FE)
 - 의존성 시각화 도구 기능 강화: 그래프 내 특정 노드 집중 보기(graph:focus) 및 전체 구조 조망(graph:archi) 기능 추가 ([#289](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/289))
 
