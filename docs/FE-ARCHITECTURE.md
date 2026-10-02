@@ -169,7 +169,7 @@ src/
 │   ├── comment/
 │   │   ├── comment-list/
 │   │   │   ├── hooks/            # useCommentList
-│   │   │   └── ui/               # CommentList, CommentItem
+│   │   │   └── ui/               # CommentList, CommentItem, ScrollToCommentFormButton
 │   │   └── my-comment-list/
 │   │       ├── hooks/            # useMyCommentList
 │   │       └── ui/               # MyCommentList, MyCommentCard, MyCommentCardSkeleton
@@ -196,7 +196,7 @@ src/
 │   │   ├── delete/hooks          # usePostDelete
 │   │   └── like/{hooks,ui}       # useLikePost, LikePostButton
 │   ├── comment/
-│   │   ├── create/{hooks,ui}     # useCreateComment, CommentForm, MobileCommentBar, ScrollToCommentFormButton
+│   │   ├── create/{hooks,ui}     # useCreateComment, CommentForm, MobileCommentBar
 │   │   ├── update/{hooks,ui}     # useUpdateComment, CommentEditForm
 │   │   ├── delete/hooks          # useDeleteComment
 │   │   └── like/{hooks,ui}       # useLikeComment, LikeCommentButton
@@ -1147,6 +1147,39 @@ Radix `Dialog` 기반 창을 코드에서 `*Modal`·`*Dialog`로 섞어 부르�
 테스트 ID·스토리 제목)다. 주석·문서·테스트 제목의 한국어 "모달"은 그대로 쓴다 — 위 출처는
 영어 용어의 정의이지 한국어 표기를 정하지 않고, 사용자에게 보이는 문구(`texts.ts`)에는 애초에
 "모달"이 없다.
+
+### Storybook 스토리 — 위치·제목·허용 범위 (2026-10-02)
+
+**위치**: 스토리 파일은 컴포넌트 옆에 `<Component>.stories.tsx`로 둔다. 별도 `stories/`
+폴더나 세그먼트를 만들지 않는다.
+
+**제목**: `title`은 항상 직접 적고(auto-title 미사용), 아래 형식을 따른다. 사이드바 루트
+순서는 `.storybook/preview.tsx`의 `storySort`가 레이어 순서로 고정한다.
+
+| 레이어            | 형식                                               | 예                                                      |
+| ----------------- | -------------------------------------------------- | ------------------------------------------------------- |
+| shared            | `Shared/UI/<세그먼트>/<컴포넌트>`                  | `Shared/UI/Atoms/Button`                                |
+| entities          | `Entities/<슬라이스>[/<하위 슬라이스>]/<컴포넌트>` | `Entities/Auth/PasswordConfirmMessage`                  |
+| features, widgets | `<레이어>/<도메인>/<슬라이스>/<컴포넌트>`          | `Widgets/Comment/CommentList/ScrollToCommentFormButton` |
+| pages             | `Pages/<슬라이스>/<컴포넌트>`                      | `Pages/Version/VersionPage`                             |
+
+- 모든 단계는 PascalCase로 쓰고(`comment-list` → `CommentList`, `alert-dialog.stories.tsx` →
+  `AlertDialog`), 슬라이스 안의 `ui` 세그먼트는 생략한다. shared만 슬라이스가 없어
+  `UI/<세그먼트>`를 남긴다.
+- `_` 접두사 내부 폴더는 생략하고(`form/_base/FormField` → `Form/FormField`), 마지막 폴더명이
+  컴포넌트명과 같으면 한 번만 쓴다(`dialog/alert/Alert` → `Dialog/Alert`).
+- `Temp`·`WIP`처럼 상태를 뜻하는 임시 루트 그룹을 만들지 않는다. 공개 Storybook에 그대로
+  배포된다(2026-09-21 검증용 `Temp/` 스토리가 이렇게 남았던 것이 이 규칙의 계기).
+- **ESLint `custom-storybook/title-matches-path`(`eslint.config.js`)가 강제한다** — 파일 경로에서
+  위 규칙으로 계산한 값과 `title`이 다르거나 `title`이 없으면 에러를 내고 기대값을 메시지로
+  보여준다. 자동 수정은 하지 않는다(스토리 URL이 `title`에서 나오므로 pre-commit의 `--fix`가
+  URL을 조용히 바꾸지 않게 하려는 것). 파일을 옮기면 `title`도 함께 고쳐야 한다.
+
+**허용 범위**: 레이어가 아니라 "Provider 없이 렌더되는가"로 가른다. props만으로 그려지는
+컴포넌트(React Query·라우터·auth 컨텍스트가 필요 없는 것 — 전역 Zustand 스토어는 Provider가
+필요 없어 해당)는 어느 레이어든 스토리를 둘 수 있다. Provider가 필요한 컴포넌트는 지금
+Storybook에 그 환경(QueryClient·라우터·MSW decorator)이 없어 대상이 아니다 — 근거와 기각한
+대안은 `docs/DECISIONS.md` 2026-10-02 "Storybook 제목 규칙과 허용 범위" 참고.
 
 ---
 

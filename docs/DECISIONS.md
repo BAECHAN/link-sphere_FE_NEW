@@ -6,6 +6,59 @@
 
 ---
 
+## 2026-10-02 — Storybook 제목 규칙과 허용 범위
+
+**배경**
+
+사이드바에 `ENTITIES`·`SHARED`·`TEMP` 세 루트 그룹이 섞여 있었다. 54개 스토리가 모두 `title`을
+직접 적는데 그 형식이 문서화된 적이 없었다. `Temp/ScrollToCommentFormButton`은 2026-09-21
+framer-motion 교체 때 격리 검증용으로 만든 스토리가 그대로 공개 배포된 것이었다. 스토리를 둘
+수 있는 레이어에 대한 규칙도 없었다(유일한 규칙은 shared atoms·elements는 스토리 필수).
+
+조사한 외부 근거:
+
+- FSD 현행 공식 문서와 린터 steiger는 Storybook을 다루지 않는다. 폐기된 v1 스펙에만
+  _"`stories.tsx` — storybook을 쓴다면"_ (번역, [featureslices v1](https://github.com/feature-sliced/featureslices.dev/blob/master/v1.0.md))
+  한 줄이 있다. "FSD 표준" Storybook 규칙은 없다.
+- Storybook 공식 문서는 스토리 파일을 _"컴포넌트 파일 옆에"_ (번역, [Writing stories](https://storybook.js.org/docs/writing-stories))
+  두고, 제목은 _"컴포넌트의 파일 시스템 경로를 그대로 따르는 중첩 구조를 권장한다"_ (번역,
+  [Sidebar & URLs](https://storybook.js.org/docs/configure/user-interface/sidebar-and-urls))고 쓴다.
+- Storybook 테스트 가이드는 _"대부분의 팀은 노력과 가치의 균형을 맞추는 혼합 방식을 쓴다"_ (번역,
+  [UI Testing Handbook](https://storybook.js.org/tutorials/ui-testing-handbook/react/en/user-flow-testing/))고
+  쓰고, 데이터를 가져오는 컴포넌트는 MSW 같은 도구로 요청을 목업하라고 안내한다
+  ([Mocking network requests](https://storybook.js.org/docs/writing-stories/mocking-data-and-modules/mocking-network-requests)).
+- 이 레포 실측(import 기준 분류): entities·features·widgets·pages UI 61개 중 props만으로 렌더되는
+  것 9개, 라우터만 필요한 것 4개, React Query·auth 등 Provider가 필요한 것 48개. pages 대부분은
+  Playwright e2e가 이미 다룬다.
+
+**검토한 대안**
+
+| 대안                                                       | 결과                                                                                                                                            |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 제목 A. auto-title로 전환(`title` 삭제)                    | 기각. 54개 스토리 ID가 바뀌어 공개 Storybook 링크가 깨지고, 소문자 파일명·`_base/` 같은 폴더가 사이드바에 드러날 수 있다(문서 기준 추론)        |
+| 제목 B. 명시 `title` 유지 + 형식 문서화 + `storySort`      | **채택**(사용자 결정). 기존 53개 URL 불변                                                                                                       |
+| 범위 A. 전 레이어 스토리(QueryClient·라우터·MSW decorator) | 기각. Provider 필요 48개를 위해 `msw-storybook-addon`·worker 파일·CI 부담이 늘고, pages는 e2e와 대부분 겹친다. 전 레이어를 권하는 출처도 없었다 |
+| 범위 B. shared만                                           | 기각. entities 2개는 props만으로 렌더되는 정당한 스토리다                                                                                       |
+| 범위 C. Provider 없이 렌더되면 레이어 무관 허용            | **채택**(사용자 결정). 인프라는 e2e로 못 덮는 상태가 필요해질 때 따로 도입한다                                                                  |
+
+**결정**
+
+- 제목 형식과 허용 기준은 [`FE-ARCHITECTURE.md`](FE-ARCHITECTURE.md) §18 "Storybook 스토리"가 정본이다.
+- `.storybook/preview.tsx`의 `storySort`로 루트 순서를 Shared → Entities → Features → Widgets → Pages로 고정했다.
+- `ScrollToCommentFormButton`은 `features/comment/create/ui`에서 유일한 사용처인
+  `widgets/comment/comment-list/ui`로 옮겼다. API·엔티티 없이 스크롤만 하고 재사용도 없어서다 —
+  FSD는 _"모든 것이 feature일 필요는 없다"_, _"feature가 필요하다는 좋은 신호는 여러 페이지에서
+  재사용된다는 것"_ (번역, [Layers](https://feature-sliced.design/docs/reference/layers))이라고 쓴다.
+
+**상태**
+
+적용됨. 제목 규칙은 문서만으로는 다시 어긋날 거라는 사용자 판단에 따라 같은 PR에서 ESLint
+`custom-storybook/title-matches-path`로 강제했다. 도입 전 54개에 시뮬레이션하니 어긋난 것은
+`Shared/UI/Tokens/Design Tokens`(띄어쓰기) 1개뿐이었다. 예외를 두지 않고 `DesignTokens`로
+바꿨다(그 스토리 URL 1개 변경, 사용자 결정).
+
+---
+
 ## 2026-09-30 — 확인창을 Radix AlertDialog로 교체
 
 **배경**

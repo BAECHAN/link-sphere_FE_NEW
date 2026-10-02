@@ -16,7 +16,7 @@ https://linksphere.click/post (구 도메인 https://dbw3brui6htwk.cloudfront.ne
 
 https://linksphere.click/storybook/ (구 도메인 https://dbw3brui6htwk.cloudfront.net/storybook/ 도 계속 동작)
 
-`shared/ui` 50개 컴포넌트의 스토리 172개를 공개 배포한 것입니다. 로컬에서 보려면
+`shared/ui` 중심의 컴포넌트 스토리(54개 파일, 188개 케이스)를 공개 배포한 것입니다. 로컬에서 보려면
 아래 "스토리북" 섹션을 참고하세요.
 
 ## 테스트 계정

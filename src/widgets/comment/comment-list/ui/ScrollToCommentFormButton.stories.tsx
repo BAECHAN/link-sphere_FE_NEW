@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useRef } from 'react';
-import { ScrollToCommentFormButton } from '@/features/comment/create/ui/ScrollToCommentFormButton';
+import { ScrollToCommentFormButton } from '@/widgets/comment/comment-list/ui/ScrollToCommentFormButton';
 
 function Demo() {
   const targetRef = useRef<HTMLDivElement>(null);
@@ -21,7 +21,7 @@ function Demo() {
 }
 
 const meta: Meta<typeof Demo> = {
-  title: 'Temp/ScrollToCommentFormButton',
+  title: 'Widgets/Comment/CommentList/ScrollToCommentFormButton',
   component: Demo,
 } satisfies Meta<typeof Demo>;
 

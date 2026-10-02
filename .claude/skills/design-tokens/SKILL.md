@@ -66,7 +66,7 @@ Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금
 | `z-modal`   | 70  | Dialog                                  |
 | `z-popover` | 80  | Dropdown / Select / Tooltip             |
 
-Storybook `Shared/UI/Tokens/Design Tokens` 스토리의 `ZIndex`에서 8단계를 시각적으로
+Storybook `Shared/UI/Tokens/DesignTokens` 스토리의 `ZIndex`에서 8단계를 시각적으로
 확인할 수 있다.
 
 ### 타이포그래피 토큰
@@ -135,7 +135,7 @@ https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12). `text-display-title`(60px/60
 | `text-t14` | 3rem (48px)      | 3.75rem (60px)   | sm 이상 권장 |
 
 폰트 두께는 스케일 층 자체엔 별도 토큰 없음 — SEED medium(500)/bold(700)이 Tailwind
-기본 `font-medium`/`font-bold`와 값이 같다. Storybook `Shared/UI/Tokens/Design Tokens`
+기본 `font-medium`/`font-bold`와 값이 같다. Storybook `Shared/UI/Tokens/DesignTokens`
 스토리의 `Typography`에서 스케일 14단계를, `RoleTokens`에서 역할 토큰 8종을 각각
 시각적으로 확인할 수 있다.
 

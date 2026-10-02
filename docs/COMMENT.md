@@ -353,7 +353,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 빈 제출 강조 시간            | 1300ms                  | `src/features/comment/create/ui/CommentForm.tsx:79`, `src/features/comment/update/ui/CommentEditForm.tsx:56` |
 | 내 댓글 선반입 거리          | 아래 1200px             | `src/widgets/comment/my-comment-list/hooks/useMyCommentList.ts:19`                                           |
 | 해시 도착 여백               | navbar + 24px           | `src/widgets/comment/comment-list/ui/CommentItem.tsx:51`                                                     |
-| 플로팅 버튼 전환 시간        | 200ms                   | `src/features/comment/create/ui/ScrollToCommentFormButton.tsx:9`                                             |
+| 플로팅 버튼 전환 시간        | 200ms                   | `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.tsx:9`                                        |
 | 모바일 바 ↔ 토스트 간격      | 8px                     | `src/features/comment/create/ui/MobileCommentBar.tsx:14`                                                     |
 
 **함께 바꿔야 하는 값**:
@@ -377,7 +377,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 작성 검증·제출·복원             | `src/features/comment/create/hooks/useCreateComment.ts:32-164`                                                                     |
 | 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx:30-198`                                                                            |
 | 모바일 바                       | `src/features/comment/create/ui/MobileCommentBar.tsx:16-104`                                                                       |
-| 데스크톱 플로팅 버튼            | `src/features/comment/create/ui/ScrollToCommentFormButton.tsx:23-103`                                                              |
+| 데스크톱 플로팅 버튼            | `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.tsx:23-103`                                                         |
 | 수정 검증·제출                  | `src/features/comment/update/hooks/useUpdateComment.ts:27-143`                                                                     |
 | 삭제 확인                       | `src/features/comment/delete/hooks/useDeleteComment.ts:9-31`                                                                       |
 | 좋아요 버튼·feature 훅          | `src/features/comment/like/ui/LikeCommentButton.tsx:17-41`, `src/features/comment/like/hooks/useLikeComment.ts:5-7`                |
@@ -415,14 +415,14 @@ npx vitest run src/entities/comment src/features/comment \
 
 댓글 전용분은 다음과 같다.
 
-| 파일                                                                   | 개수 | 확인하는 것                                                                |
-| ---------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------- |
-| `src/entities/comment/api/comment.queries.test.ts`                     | 8    | 낙관적 삽입·치환·롤백(루트·답글), 수정 시 좋아요·답글 보존, 수정 후 무효화 |
-| `src/entities/comment/api/comment.api.test.ts`                         | 2    | 5장 업로드 시 동시 2개 제한, 순서 유지                                     |
-| `src/features/comment/create/hooks/useCreateComment.test.tsx`          | 6    | 즉시 비움, 실패 복원, 새 입력 보호, 6,000B·7,500B 차단, 이메일 미인증 차단 |
-| `src/features/comment/update/hooks/useUpdateComment.test.tsx`          | 6    | 원본 초기화, `canSubmit`, 초과 시 버튼 미차단·제출 차단, 전송량 차단, 성공 |
-| `src/features/comment/create/ui/MobileCommentBar.test.tsx`             | 4    | 검색 오버레이 중 숨김·상태 보존, 토스트 오프셋                             |
-| `src/features/comment/create/ui/ScrollToCommentFormButton.stories.tsx` | 1    | Storybook 인터랙션                                                         |
+| 파일                                                                        | 개수 | 확인하는 것                                                                |
+| --------------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------- |
+| `src/entities/comment/api/comment.queries.test.ts`                          | 8    | 낙관적 삽입·치환·롤백(루트·답글), 수정 시 좋아요·답글 보존, 수정 후 무효화 |
+| `src/entities/comment/api/comment.api.test.ts`                              | 2    | 5장 업로드 시 동시 2개 제한, 순서 유지                                     |
+| `src/features/comment/create/hooks/useCreateComment.test.tsx`               | 6    | 즉시 비움, 실패 복원, 새 입력 보호, 6,000B·7,500B 차단, 이메일 미인증 차단 |
+| `src/features/comment/update/hooks/useUpdateComment.test.tsx`               | 6    | 원본 초기화, `canSubmit`, 초과 시 버튼 미차단·제출 차단, 전송량 차단, 성공 |
+| `src/features/comment/create/ui/MobileCommentBar.test.tsx`                  | 4    | 검색 오버레이 중 숨김·상태 보존, 토스트 오프셋                             |
+| `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.stories.tsx` | 1    | Storybook 인터랙션                                                         |
 
 `EDGE_BLOCKED` 분류는 `src/shared/api/client.test.ts`와
 `src/shared/lib/react-query/config/error-toast.test.ts`가 다룬다.
