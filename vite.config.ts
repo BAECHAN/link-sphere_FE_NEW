@@ -188,13 +188,19 @@ export default defineConfig(({ mode }) => {
       },
       port: DEV_SERVER_PORT,
       proxy: {
+        // VITE_API_BASE_URL은 context-path /api까지 포함한 기준 주소다(예: https://linksphere.click/api,
+        // 로컬 BE면 http://localhost:8080/api) - 운영 빌드 클라이언트·codegen:fetch와 같은 형식.
+        // 그래서 요청 경로의 /api를 떼고 넘겨야 /api/api/...로 두 번 붙지 않는다.
         '/api': {
           target: API_URL,
+          rewrite: (path) => path.replace(/^\/api/, ''),
           changeOrigin: true,
           credentials: true,
           secure: false,
           cookieDomainRewrite: { '*': '' },
-          cookiePathRewrite: { '*': '' },
+          // 리프레시 쿠키가 __Host- 접두사라 브라우저는 Path=/일 때만 받는다 - Path를 지우면('')
+          // 요청 경로 기준 /api/auth로 잡혀 쿠키 자체가 버려지고 새로고침마다 로그인이 풀린다.
+          cookiePathRewrite: { '*': '/' },
         },
       },
     },

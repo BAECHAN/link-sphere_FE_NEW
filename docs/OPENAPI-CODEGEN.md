@@ -193,7 +193,7 @@ override가 있는 타입(원본 대신 `Omit<...> & {...}`로 재정의한 것)
 
 | 값                         | 위치                                                                    | 비고                                                                                                                         |
 | -------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| 스펙 fetch 대상(로컬)      | `.env`의 `VITE_API_BASE_URL`                                            | 개발자 로컬 전용 Lambda Function URL                                                                                         |
+| 스펙 fetch 대상(로컬)      | `.env`의 `VITE_API_BASE_URL`                                            | 운영 API 기준 주소 `https://linksphere.click/api`(Lambda Function URL은 OAC 잠금 이후 403, 2026-10-02 교체)                  |
 | 스펙 fetch 대상(cron)      | `scripts/check-openapi-drift.js`의 `PROD_SPEC_URL` 상수                 | 운영 커스텀 도메인 `linksphere.click`(`README.md`에 이미 공개) — 실제 사용자가 거치는 경로를 그대로 확인, 별도 시크릿 불필요 |
 | 드리프트 cron 주기         | `.github/workflows/openapi-drift-check.yml`의 `cron: '0 0 * * *'`       | 매일 1회(UTC 0시)                                                                                                            |
 | openapi-typescript 버전    | `package.json`의 devDependencies, `save-exact=true`(`.npmrc:23`)로 고정 | 7.13.0                                                                                                                       |
