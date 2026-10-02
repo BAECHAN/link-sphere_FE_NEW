@@ -24,7 +24,7 @@ function adjustPostTitle(index: number): string {
 
 /**
  * 6개씩 묶어 썸네일 있는 블록과 없는 블록을 번갈아 둔다 — 2열이든 3열이든 행 높이가
- * 추정치(post-grid.const.ts의 654/635)와 다르고 행끼리도 달라야 가상화 보정이 실제로 일어난다.
+ * 추정치(post-card-grid.const.ts의 654/635)와 다르고 행끼리도 달라야 가상화 보정이 실제로 일어난다.
  * 썸네일 박스는 aspect-video로 로드 전부터 자리를 잡으므로(link-thumbnail.tsx) 이미지를 막아
  * 대체 박스가 떠도 높이는 같다.
  */

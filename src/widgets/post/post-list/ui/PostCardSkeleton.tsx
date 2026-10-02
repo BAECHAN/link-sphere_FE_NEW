@@ -1,9 +1,6 @@
 import { Card, CardContent, CardFooter, CardHeader } from '@/shared/ui/atoms/card';
 import { Skeleton } from '@/shared/ui/atoms/skeleton';
-import {
-  POST_GRID_CLASS,
-  POST_GRID_MIN_COLUMN_WIDTH,
-} from '@/widgets/post/post-list/config/post-grid.const';
+import type { CardGridSpec } from '@/shared/hooks/useWindowGridVirtualizer';
 
 /**
  * PostCard의 실제 레이아웃(작성자 줄 → 제목 → 설명 → 링크 프리뷰 → 액션 바)에 맞춘 골격.
@@ -53,6 +50,7 @@ function PostCardSkeleton() {
 }
 
 interface PostListSkeletonProps {
+  grid: CardGridSpec;
   count?: number;
 }
 
@@ -63,12 +61,12 @@ interface PostListSkeletonProps {
  * 없이도 같은 공식(floor((폭+gap)/(최소폭+gap)))이 나온다. 3열 상한은 AppLayout의
  * max-w-6xl이 이미 보장해 auto-fill에 별도 cap을 두지 않는다.
  */
-export function PostListSkeleton({ count = 6 }: PostListSkeletonProps) {
+export function PostListSkeleton({ grid, count = 6 }: PostListSkeletonProps) {
   return (
     <div
-      className={POST_GRID_CLASS}
+      className={grid.className}
       style={{
-        gridTemplateColumns: `repeat(auto-fill, minmax(min(${POST_GRID_MIN_COLUMN_WIDTH}px, 100%), 1fr))`,
+        gridTemplateColumns: `repeat(auto-fill, minmax(min(${grid.minColumnWidth}px, 100%), 1fr))`,
       }}
     >
       {Array.from({ length: count }, (_, index) => (

@@ -11,6 +11,7 @@ import { mockPostListResponse } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 import { PostListSearch } from '@/widgets/post/post-list/ui/PostListSearch';
 import { usePostList } from '@/widgets/post/post-list/hooks/usePostList';
+import type { CardGridSpec } from '@/shared/hooks/useWindowGridVirtualizer';
 
 // PostListSearch.test.tsx는 usePostList()를 호출하지 않아(=목록 쿼리가 suspend하지 않아)
 // 이 파일이 다루는 버그 클래스(RouterProvider.tsx의 v7_startTransition 때문에 필터 변경이
@@ -104,8 +105,17 @@ function LocationSearchProbe() {
   return <div data-testid="location-search">{location.search}</div>;
 }
 
+// 이 테스트는 그리드 치수와 무관하다 - 훅이 요구하는 값만 채운다
+const TEST_GRID: CardGridSpec = {
+  className: 'grid',
+  minColumnWidth: 330,
+  maxColumns: 3,
+  rowGap: [{ minWidth: 0, gap: 12 }],
+  rowHeightEstimate: {},
+};
+
 function PostListProbe() {
-  const { posts } = usePostList();
+  const { posts } = usePostList(TEST_GRID);
   return <div data-testid="post-count">{posts.length}</div>;
 }
 

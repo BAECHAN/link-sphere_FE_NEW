@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-01
+> **마지막 검토**: 2026-10-03
 
 ## 1. 쉬운 설명
 
@@ -430,10 +430,9 @@ src/
 │       ├── bookmark-post-list/
 │       │   ├── hooks/
 │       │   │   └── useBookmarkPostList.ts  # 무한스크롤 쿼리 + 그리드 가상화(useWindowGridVirtualizer)
-│       │   ├── config/
-│       │   │   └── bookmark-grid.const.ts  # 그리드 gap·최소 열 폭·행 높이 추정치(PostList와 폭 공유)
 │       │   └── ui/
-│       │       └── BookmarkPostList.tsx    # search prop 소비 + 빈 상태 분기
+│       │       └── BookmarkPostList.tsx    # search prop 소비 + 빈 상태 분기. 카드(renderPost)와 그
+│       │                                   # 치수(grid = POST_CARD_GRID)는 BookmarkPage가 넘긴다
 │       └── folder-tree/
 │           ├── hooks/
 │           │   ├── useFolderSections.ts  # 폴더 목록 조회 + "최근 저장한 폴더" 계산(§5) —

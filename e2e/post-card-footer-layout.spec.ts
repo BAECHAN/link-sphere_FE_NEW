@@ -7,7 +7,7 @@ import { ENDPOINTS } from './mocks/endpoints';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import type { Post, PostListResponse } from '@/entities/post/model/post.schema';
 
-// 열 수를 뷰포트가 아니라 컨테이너 실측 폭으로 정하도록 바꾼 변경(post-grid.const.ts)의
+// 열 수를 뷰포트가 아니라 컨테이너 실측 폭으로 정하도록 바꾼 변경(지금은 post-card-grid.const.ts)의
 // 회귀 테스트 - PostCard 푸터(좋아요/댓글 pill + 북마크·공유 + 조회수)가 인기글 수준의
 // 자릿수에서도 한 줄을 유지하는지, 사이드바 토글로 열 수가 바뀌어도 보던 카드가 화면에
 // 남는지 확인한다. minColumnWidth 실측 근거는 docs/plans/2026-09-29-container-width-grid.md.
@@ -18,7 +18,7 @@ function footerPostTitle(index: number): string {
 }
 
 /**
- * GET /post - PostCard 푸터가 절대 안 줄바꿈되도록 보장하는 최소 폭(POST_GRID_MIN_COLUMN_WIDTH)의
+ * GET /post - PostCard 푸터가 절대 안 줄바꿈되도록 보장하는 최소 폭(POST_CARD_GRID.minColumnWidth)의
  * 근거였던 "인기글" 시나리오(좋아요·댓글 세 자리, 조회 다섯 자리)로 고정된 통계를 돌려준다.
  */
 async function mockWorstCasePosts(page: Page, total: number): Promise<void> {
