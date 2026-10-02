@@ -5,6 +5,24 @@ import { fcmApi } from '@/shared/api/fcm.api';
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY as string;
 
 /**
+ * 서비스 워커(public/firebase-messaging-sw.js)는 import.meta.env를 읽지 못해, 예전엔 Firebase
+ * 설정을 그 파일에 평문으로 적어 공개 레포에 커밋했다. 빌드 때 주입된 값을 등록 URL의
+ * 쿼리로 넘기고 서비스 워커가 self.location에서 읽게 해, 설정값이 레포에 남지 않게 한다
+ * (2026-10-03, #301 노출 수습).
+ */
+function buildServiceWorkerUrl(): string {
+  const params = new URLSearchParams({
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID as string,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID as string,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID as string,
+  });
+
+  return `/firebase-messaging-sw.js?${params.toString()}`;
+}
+
+/**
  * 브라우저 알림 권한을 요청하고 FCM 토큰을 서버에 등록합니다.
  * 로그인 성공 직후 호출하세요.
  *
@@ -35,11 +53,14 @@ export async function requestAndRegisterFcmToken(): Promise<void> {
       return;
     }
 
+    // 서비스 워커를 처음 설치(또는 등록 URL이 바뀌어 새로 설치)하는 순간엔 아직 활성 워커가
+    // 없어 구독이 "no active Service Worker"로 실패한다 - 활성화될 때까지 기다린 등록을 쓴다.
+    await navigator.serviceWorker.register(buildServiceWorkerUrl());
+    const serviceWorkerRegistration = await navigator.serviceWorker.ready;
+
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
-      serviceWorkerRegistration: await navigator.serviceWorker.register(
-        '/firebase-messaging-sw.js'
-      ),
+      serviceWorkerRegistration,
     });
 
     if (!token) {

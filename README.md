@@ -40,7 +40,7 @@ Gk8#pW2!vN9x
 - Node 24 이상(`.nvmrc` 고정) — `nvm use`로 맞춘다. `package.json`의 `engines.node`가
   강제하므로 다른 버전이면 `pnpm install`부터 막힌다
 - pnpm (버전은 `package.json`의 `packageManager` 참고)
-- 루트에 `.env` 파일 필요 — `cp .env.example .env`로 만든다(값이 모두 공개 값이라 그대로 쓰면 된다).
+- 루트에 `.env` 파일 필요 — `cp .env.example .env`로 만든 뒤, 비어 있는 Firebase 값은 프로젝트 관리자에게 받는다.
   없으면 `pnpm validate`/`pnpm check:env`가 실패한다
 
 ### 설치

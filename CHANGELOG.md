@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Security
+
+- `shared` 알림 서비스 워커의 Firebase 설정을 레포에서 빼고 빌드 값으로 주입
+  <details><summary>배경·구현</summary>
+
+  서비스 워커(`public/firebase-messaging-sw.js`)는 `import.meta.env`를 못 읽어 Firebase 설정을 평문으로 적어 공개 레포에 커밋해 왔고(2026-03-02부터), 2026-10-02 #301에서는 `.env.example`에 실제 값까지 넣었다. 앱이 빌드 때 주입된 `VITE_FIREBASE_*` 값을 서비스 워커 등록 URL의 쿼리로 넘기고 서비스 워커가 `self.location`에서 읽도록 바꿨고, `.env.example`은 빈 값으로 되돌렸다. 교체 가능한 값은 새로 발급한다(VAPID 키 교체 완료, apiKey·appId 이어서). 등록 URL이 바뀌면 브라우저가 서비스 워커를 새로 설치하는데, 설치 직후엔 활성 워커가 없어 첫 알림 등록이 "no active Service Worker"로 실패하던 문제도 `navigator.serviceWorker.ready`를 기다리도록 함께 고쳤다.
+  (`public/firebase-messaging-sw.js`, `src/shared/lib/firebase/fcm.ts`, `.env.example`, `docs/FCM-PUSH-NOTIFICATION.md`, `README.md`, `docs/ONBOARDING.md`)
+
+  </details>
+
 ### Fixed
 
 - `comment` 내 댓글 카드에 첨부 이미지 주소가 글자로 보이던 문제

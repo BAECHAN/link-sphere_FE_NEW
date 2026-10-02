@@ -138,7 +138,8 @@ sequenceDiagram
   User->>FE: 위 세 이벤트 중 하나
   FE->>User: Notification.requestPermission()
   User-->>FE: "granted"
-  FE->>FE: navigator.serviceWorker.register('/firebase-messaging-sw.js')
+  FE->>FE: navigator.serviceWorker.register('/firebase-messaging-sw.js?apiKey=…&appId=…')
+  FE->>FE: await navigator.serviceWorker.ready (활성 워커 대기)
   FE->>FE: getToken(messaging, { vapidKey, serviceWorkerRegistration })
   FE->>BE: POST /fcm/token { token, platform: "WEB" } (X-Access-Token 헤더 포함)
   BE->>BE: SessionAuthenticationFilter가 access 토큰 → familyId 판정
@@ -385,24 +386,25 @@ export function RootLayout() {
 
 **백그라운드 메시지 수신**(`public/firebase-messaging-sw.js`)
 
-Service Worker는 Vite의 빌드 파이프라인 바깥에 있는 `public/` 폴더에 위치한다.
-`import.meta.env`를 사용할 수 없으므로(§10.4) Firebase config 값을 직접
-하드코딩한다.
+Service Worker는 Vite의 빌드 파이프라인 바깥에 있는 `public/` 폴더에 위치해
+`import.meta.env`를 사용할 수 없다(§10.4). 그래서 앱이 빌드 때 주입된 값(`VITE_FIREBASE_*`)을
+**등록 URL의 쿼리로 넘기고**(`src/shared/lib/firebase/fcm.ts`의 `buildServiceWorkerUrl`),
+Service Worker가 `self.location`에서 읽어 초기화한다. 값이 하나라도 없으면 초기화하지 않는다.
 
-> **Firebase 프론트엔드 Config는 공개해도 안전하다.** `apiKey`, `projectId` 등
-> 프론트엔드용 Firebase 설정값은 클라이언트가 Firebase 서비스에 접근할 수 있도록
-> Firebase가 공개적으로 발급하는 식별자다. 실제 보안은 Firebase Security Rules와
-> 서버의 Admin SDK 서비스 계정 키로 관리한다.
+2026-10-03 전까지는 config를 이 파일에 평문으로 하드코딩해 공개 레포에 커밋했다
+(2026-03-02부터). 브라우저에 내려가는 값이라도 레포에 대놓고 올리는 것과는 다르다는 판단으로
+쿼리 주입으로 바꾸고, 교체 가능한 값은 새로 발급한다 — VAPID 키는 2026-10-02에 교체했고, apiKey·appId도 이어서 교체한다(#301 노출 수습).
+등록 URL이 바뀌면 브라우저가 Service Worker를 새로 설치하는데, 설치 직후엔 활성 워커가 없어
+구독이 실패하므로 `navigator.serviceWorker.ready`를 기다린 등록으로 `getToken`을 부른다.
 
 ```javascript
 // compat 버전을 importScripts로 로드(ES Module 불가 — §12 용어 사전)
 importScripts('https://www.gstatic.com/firebasejs/11.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.0.0/firebase-messaging-compat.js');
 
-firebase.initializeApp({
-  /* config 하드코딩 */
-});
-const messaging = firebase.messaging();
+const params = new URL(self.location.href).searchParams;
+// apiKey·authDomain·projectId·messagingSenderId·appId를 쿼리에서 읽어 initializeApp
+const messaging = hasConfig ? firebase.messaging() : null;
 
 messaging.onBackgroundMessage((payload) => {
   const { title, body } = payload.notification ?? {};

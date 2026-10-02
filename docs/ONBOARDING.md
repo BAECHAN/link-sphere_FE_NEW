@@ -64,7 +64,7 @@ flowchart LR
    (Node 24, `.env`의 `VITE_API_BASE_URL`이 `/api` 요청을 프록시할 BE를 가리킨다. 값은 `/api`까지
    포함한 기준 주소다 — 로컬 BE면 `http://localhost:8080/api`, 운영 BE면 `https://linksphere.click/api`.
    Lambda Function URL을 직접 쓰면 403이다. 형식 근거는 `vite.config.ts`의 `server.proxy` 주석)
-3. FE `.env`는 `cp .env.example .env`로 만든다(공개 값만 있다). BE 비밀값(Supabase·Gemini 등
+3. FE `.env`는 `cp .env.example .env`로 만들고, 비어 있는 Firebase 값은 관리자에게 받는다. BE 비밀값(Supabase·Gemini 등
    `application-secret.yml`)은 레포에 없다 — 프로젝트 관리자에게 받는다.
 4. 브라우저에서 테스트 계정으로 로그인해 아래 기능 지도의 화면을 한 번씩 눌러 본다.
 
