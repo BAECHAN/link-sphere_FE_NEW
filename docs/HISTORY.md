@@ -1,4 +1,7 @@
 ### 2026-10-02 (FE)
+- 폴더 선택 컴포넌트의 계층 구조를 상위로 이전하고, 동일 계층 간 import를 제한하여 모듈 의존성 규칙을 강화함 ([#304](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/304))
+
+### 2026-10-02 (FE)
 - 위젯 의존성 분리 및 컴포넌트 구조 개선
   - 목록 위젯과 PostCard 간의 직접적인 의존성을 제거하여 결합도를 낮추고 페이지 단위의 제어 구조로 리팩토링 ([#303](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/303))
 
