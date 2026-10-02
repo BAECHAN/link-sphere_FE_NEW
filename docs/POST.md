@@ -144,10 +144,10 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 ### 피드 — 무한 스크롤 + 가상 그리드
 
-- **조회**: `useSuspenseFetchPostListQuery`(`src/entities/post/api/post.queries.ts:114-149`)가
+- **조회**: `useSuspenseFetchPostListQuery`(`src/entities/post/api/post.queries.ts:115-150`)가
   `page` 0부터 `POST_PAGE_SIZE`(10)개씩 가져온다. 다음 페이지 번호는 응답의 `last`가 거짓이면
   `page + 1`.
-- **중복 제거**: `select`(`:136-147`)가 모든 페이지를 평탄화하면서 이미 본 `id`를 걸러
+- **중복 제거**: `select`(`:137-148`)가 모든 페이지를 평탄화하면서 이미 본 `id`를 걸러
   `posts`를 만든다. 오프셋 페이지네이션 중 새 글이 끼어들면 다음 페이지에 같은 글이 또 오기
   때문이다.
 - **가상화**: `usePostList`(`src/widgets/post/post-list/hooks/usePostList.ts:122-131`)가
@@ -189,7 +189,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 ### 상세
 
 - `usePostDetail`(`src/pages/post/hooks/usePostDetail.ts:76-94`)이
-  `useSuspenseFetchPostDetailQuery`로 조회한다. 이 쿼리는 `retry: false`다(`post.queries.ts:159-166`)
+  `useSuspenseFetchPostDetailQuery`로 조회한다. 이 쿼리는 `retry: false`다(`post.queries.ts:160-167`)
   — 404는 재시도해도 같고 리다이렉트만 늦어진다.
 - **404 처리**: `PostDetailPage.tsx:55-64`의 에러 폴백이 `ApiError.status === 404`면
   `usePostNotFoundRedirect`(`src/pages/post/hooks/usePostNotFoundRedirect.ts:11-24`)로
@@ -214,14 +214,14 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
    - `createPost(...)`를 **기다리지 않고** 호출(`mutate`) → `clearNow()`로 이탈 가드 해제 →
      폼 리셋 → `/post`로 **replace** 이동. 응답이 늦어도(BE가 크롤링을 동기로 수행) 사용자는
      바로 피드로 돌아간다. 탭을 닫아도 요청이 끝까지 가도록 `keepalive`(`post.api.ts:21-27`).
-4. 성공 시(`post.queries.ts:79-106`, entity 레벨이라 폼이 언마운트돼도 실행된다):
+4. 성공 시(`post.queries.ts:80-107`, entity 레벨이라 폼이 언마운트돼도 실행된다):
    - 필터 없는 목록 쿼리를 `cancelQueries` — 피드로 이동하자마자 시작된 목록 fetch가 등록
      완료 전 상태로 뒤늦게 응답해 끼워 넣은 값을 덮어쓰는 것을 막는다.
-   - `prependCreatedPostToFirstPage`(`:43-65`)로 page 0 맨 앞에 새 글을 넣고 **page 1 이후는
+   - `prependCreatedPostToFirstPage`(`:44-66`)로 page 0 맨 앞에 새 글을 넣고 **page 1 이후는
      버린다** — 서버 오프셋이 한 칸씩 밀려 옛 page 1과 겹치기 때문이다. 다음 페이지는 스크롤 시
      다시 받는다.
    - 필터가 걸린 목록에는 끼워 넣지 않는다(새 글이 그 조건에 맞는지 모른다).
-   - 그다음 `handlePostCreateSuccess`(`post.keys.ts:33-35`)가 필터와 무관하게 **모든 목록**
+   - 그다음 `handlePostCreateSuccess`(`post.keys.ts:43-45`)가 필터와 무관하게 **모든 목록**
      (`listRoot`)을 무효화한다 — 필터 없는 목록은 끼워 넣은 덕에 재조회 전에도 이미 새 글을
      보여주고, 필터 목록은 이 재조회로 갱신된다. 북마크를 같이 골랐으면 `handleBookmarkToggleSuccess`로 폴더
      카운트·폴더 게시글도 무효화.
@@ -246,7 +246,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   재수집" 항목.
 - 제출(`:68-73`)은 작성과 같이 **기다리지 않고** `updatePost` → `clearNow()` → `goBack()`(들어온
   화면으로, 목록 스크롤 유지). `keepalive`도 같다(`post.api.ts:69-75`).
-- 성공 시(`post.queries.ts:332-353`): 서버가 돌려준 수정본으로 detail을 `setQueryData`, 모든
+- 성공 시(`post.queries.ts:335-356`): 서버가 돌려준 수정본으로 detail을 `setQueryData`, 모든
   목록 캐시에서 그 글을 `setQueriesData`로 **직접 교체**한 뒤, `handlePostUpdateSuccess`(detail +
   list 무효화)와 `handlePostContentUpdateSuccess`(북마크 폴더별 게시글 무효화)를 부른다. 직접
   교체가 먼저라 재조회 응답을 기다리지 않고 바로 새 제목이 보인다.
@@ -255,14 +255,18 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 - 진입: 카드 ⋮ → "삭제" → `usePostDelete`(`src/features/post/delete/hooks/usePostDelete.ts:10-24`)가
   `openConfirm`(삭제 버튼 쪽 강조, `emphasis: 'confirm'`)을 띄우고 확인 시 `mutateAsync`를 기다린다.
-- 낙관적 반영(`post.queries.ts:257-299`): 피드 목록·북마크 폴더 목록·폴더별 게시글 쿼리를
+- 낙관적 반영(`post.queries.ts:258-300`): 피드 목록·북마크 폴더 목록·폴더별 게시글 쿼리를
   `cancelQueries`하고 스냅샷을 뜬 뒤,
-  - 모든 피드 목록 캐시에서 그 글을 빼고 `totalElements`를 1 줄인다.
+  - 모든 피드 목록 캐시에서 그 글을 빼고 `totalElements`를 1 줄인다(`Math.max(0, …)`로 0 아래는 막는다).
   - 폴더별 게시글 캐시에서도 카드를 뺀다.
   - 그 글이 북마크돼 있었다면 소속 폴더의 `bookmarkCount`(소속이 없으면 `uncategorizedCount`)를
     1 줄인다. 북마크 여부는 detail → 피드 목록 → 폴더 게시글 캐시 순으로 찾는다(`findCachedPost`,
-    `:180-195`).
-- 실패 시 세 스냅샷을 전부 복원하고(`:300-312`) 전역 핸들러가 "포스트 삭제에 실패했어요." 토스트.
+    `:181-196`).
+- 실패 시 세 스냅샷을 전부 복원하고 전역 핸들러가 "포스트 삭제에 실패했어요." 토스트.
+- 성공 시 북마크 폴더 목록·게시글을 무효화하고, **그 글의 detail 캐시를 지운다**(`postRemoveQueries.detail`,
+  `src/entities/post/api/post.keys.ts`). 상세에서 삭제하면 push로 피드에 가므로 히스토리에 지운 글의 상세가
+  남는데, 캐시가 남아 있으면 뒤로가기 때 staleTime(3분) 안에서 삭제된 글이 재조회 없이 다시 그려졌다.
+  지금은 다시 받아와 404 안내 후 피드로 돌아간다(`e2e/post-delete.spec.ts`).
   **성공 토스트는 없다**(카드가 사라지는 것 자체가 피드백).
 - 성공 시 `handlePostDeleteSuccess`로 북마크 폴더 목록·폴더 게시글만 재검증한다(피드 목록은 이미
   낙관적으로 반영됨).
@@ -279,18 +283,17 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - 성공 토스트는 방향별("이 게시물을 나만 보기로 전환했어요."/"이 게시물을 전체 공개로 전환했어요.",
   `src/shared/config/texts.ts:437-438`)이라
   `meta.successMessage`(정적 문자열)로 못 띄워, entity mutation의 `onSuccess`에서 직접
-  `toast.success`한다(`post.queries.ts:368-381`). 위젯 쪽 `mutate(vars, { onSuccess })`에 두면
+  `toast.success`한다(`post.queries.ts:371-384`). 위젯 쪽 `mutate(vars, { onSuccess })`에 두면
   가상 스크롤로 카드가 언마운트됐을 때 스킵되기 때문이다.
 
 ### 좋아요
 
-- `LikePostButton`(`src/features/post/like/ui/LikePostButton.tsx:15-42`)은 feature 래퍼
+- `LikePostButton`(`src/features/post/like/ui/LikePostButton.tsx:15-39`)은 feature 래퍼
   `useLikePost`(`src/features/post/like/hooks/useLikePost.ts`, mutation을 그대로 반환)를 거쳐
-  mutation을 쓴다. `useAuthGuard`로
-  비로그인이면 로그인 모달을 띄우고, 요청 중(`isPending`)엔 버튼을 `disabled`로 막는다.
-  토글 버튼 규약([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §10-A)과 달리 `ToggleButton`(400ms 더블클릭
-  가드)은 쓰지 않고, 요청 중 `disabled`가 중복 요청을 막는다. 댓글 좋아요 버튼은 이 `disabled`도 없다
-  ([`COMMENT.md`](./COMMENT.md) §11).
+  mutation을 쓴다. `useAuthGuard`로 비로그인이면 로그인 모달을 띄운다.
+  버튼은 `ToggleButton`이라 400ms 안의 재클릭을 무시한다([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §10-A).
+  요청 중 `disabled`는 두지 않는다 — 낙관적 업데이트로 아이콘이 이미 바뀌어 있어, 요청 동안 버튼을
+  흐리게(`disabled:opacity-50`) 하면 깜빡임만 생긴다(2026-10-02 제거, 댓글 좋아요도 같음).
 - `useLikePostMutation`(`src/entities/interaction/api/interaction.queries.ts:28-78`):
   `onMutate`에서 detail과 **모든** 피드 목록 캐시의 그 글을 `toggleLikeOnPost`(`:12-26`, `isLiked`
   반전 + `likeCount` ±1)로 바꾸고, 실패하면 두 스냅샷을 복원한다.
@@ -317,7 +320,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 무한 목록 캐시의 원본 shape은 `InfiniteData<PostPageResponse>`(`pages[].content`·`totalElements`·
 `last`·`page`)이고, 컴포넌트는 `select`가 덧붙인 `posts`(중복 제거·평탄화)와 `totalElements`(page
-0 값)를 쓴다(`post.queries.ts:136-147`). 좋아요 롤백은 이 원본 shape을 통째로 복원한다.
+0 값)를 쓴다(`post.queries.ts:137-148`). 좋아요 롤백은 이 원본 shape을 통째로 복원한다.
 
 ### 다른 엔티티가 post 캐시를 무효화하는 지점
 
@@ -354,7 +357,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 조회 로딩 표시 지연                     | 500ms                | `src/shared/config/const.ts:11`                              |
 | mutation 진행 표시 지연 / 최소 노출     | 500ms / 400ms        | `src/shared/config/const.ts:18-21`                           |
 | 쿼리 기본 staleTime / gcTime / retry    | 3분 / 5분 / 1회      | `src/shared/lib/react-query/config/queryClient.ts:70-73`     |
-| 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:164`                  |
+| 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:165`                  |
 | 카테고리 옵션 staleTime                 | 24시간               | `src/entities/category/api/category.queries.ts:14`           |
 
 행 높이 추정치와 최소 카드 폭은 직접 측정한 값이다 — 측정 방법은 `post-grid.const.ts`의 주석과
@@ -372,10 +375,10 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 수정 폼 / 제출               | `src/features/post/update/ui/UpdatePostForm.tsx`, `src/features/post/update/hooks/useUpdatePost.ts:68-73`                                                  |
 | 삭제 확인창                  | `src/features/post/delete/hooks/usePostDelete.ts:10-24`                                                                                                    |
 | 좋아요 버튼 / mutation       | `src/features/post/like/ui/LikePostButton.tsx`, `src/features/post/like/hooks/useLikePost.ts`, `src/entities/interaction/api/interaction.queries.ts:28-78` |
-| 등록 성공 캐시 처리          | `src/entities/post/api/post.queries.ts:67-108`                                                                                                             |
-| 삭제 낙관적 처리             | `src/entities/post/api/post.queries.ts:246-318`                                                                                                            |
-| 수정 성공 캐시 처리          | `src/entities/post/api/post.queries.ts:320-355`                                                                                                            |
-| 공개 전환                    | `src/entities/post/api/post.queries.ts:357-383`, `src/widgets/post/post-card/hooks/usePostCard.ts:63-99`                                                   |
+| 등록 성공 캐시 처리          | `src/entities/post/api/post.queries.ts:68-109`                                                                                                             |
+| 삭제 낙관적 처리             | `src/entities/post/api/post.queries.ts:247-321`                                                                                                            |
+| 수정 성공 캐시 처리          | `src/entities/post/api/post.queries.ts:323-358`                                                                                                            |
+| 공개 전환                    | `src/entities/post/api/post.queries.ts:360-386`, `src/widgets/post/post-card/hooks/usePostCard.ts:63-99`                                                   |
 | 진행 토스트                  | `src/app/ui/PostMutationLoadingToast.tsx:33-74`                                                                                                            |
 | 입력 검증                    | `src/entities/post/model/post.schema.ts:9-35`                                                                                                              |
 
@@ -476,12 +479,13 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
 - **좋아요 실패가 무음이다.** 롤백만 되고 토스트가 없어 사용자는 실패를 "눌렀는데 안 눌렸다"로
   본다. 또 성공 응답의 `isLiked`를 쓰지 않고 무효화도 하지 않아, 다른 탭·기기에서 바뀐 값과
   어긋나면 다음 재조회 전까지 FE 추측값이 남는다.
-- **상세에서 삭제 후 이동이 push다**(`usePostCard.ts:57`). 히스토리에 지운 글의 상세가 남아,
-  뒤로가기를 누르면 그 상세로 돌아가 404 토스트 + replace를 한 번 거쳐 피드로 온다(코드상
-  추론이며 e2e로 확인하지는 않았다). 작성 제출·404 리다이렉트는 replace를 쓴다.
-- **피드 목록 낙관적 삭제의 `totalElements`에 하한이 없다**(`post.queries.ts:285`). 같은 함수의
-  북마크 폴더 쪽은 `Math.max(0, ...)`로 감싼다. 지금 화면에서 피드 `totalElements`를 표시하지는
-  않는다.
+- **상세에서 삭제 후 이동이 push다**(`usePostCard.ts:57`). 히스토리에 지운 글의 상세가 남아
+  뒤로가기 때 404 안내를 한 번 거쳐 피드로 온다. 정정: 처음엔 이것만 문제로 봤으나 실제로는
+  detail 캐시가 남아 삭제된 글이 그대로 다시 그려졌다 — 2026-10-02 삭제 성공 시 캐시를 지우도록
+  고쳤다(§5 "삭제").
+- **낙관적 삭제가 그 글이 없는 목록의 `totalElements`까지 줄인다.** 모든 피드 목록 캐시에 일괄로
+  1을 빼서, 다른 필터의 목록은 실제보다 1 작아진다(0 아래는 2026-10-02부터 `Math.max`로 막는다).
+  지금 화면에서 피드 `totalElements`를 표시하지 않아 체감 영향은 없다.
 - **`useUpdatePost`의 카테고리 캐스팅**(`useUpdatePost.ts:32`): 폼 기본값에 카테고리 id를 문자열로
   넣고 `as unknown as number[]`로 타입을 속인다(체크박스 그룹이 문자열 값을 쓰고, 제출 시
   `z.coerce.number()`가 숫자로 돌린다). 타입이 실제 값과 다르다.
@@ -495,7 +499,7 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
   있다 — 컴포넌트가 이미 언마운트돼 있기 때문이다.
 - **`listRoot`** — `['post', 'list']`. 필터 조합마다 다른 목록 캐시를 한 번에 가리키는 접두사 키(§6).
 - **`prependCreatedPostToFirstPage`** — 새 글을 page 0 맨 앞에 넣고 page 1+을 버리는 함수
-  (`post.queries.ts:43-65`).
+  (`post.queries.ts:44-66`).
 - **`select`의 `posts`** — 무한 쿼리 페이지들을 평탄화하고 id 중복을 뺀 배열. 컴포넌트는 이것만
   쓴다.
 - **행 가상화** — 카드를 열 수만큼 묶은 "행"을 가상화 단위로 삼는 방식. 보이는 행 근처만 DOM에

@@ -30,6 +30,16 @@ export const postInvalidateQueries = {
   },
 };
 
+/**
+ * 무효화(재조회)가 아니라 캐시에서 아예 지워야 할 때 — 삭제된 글의 상세처럼 다시 받아올
+ * 대상이 없는 경우. 남겨 두면 뒤로가기로 돌아왔을 때 staleTime 안에서 삭제된 글이 그대로 그려진다.
+ */
+export const postRemoveQueries = {
+  detail: (queryClient: QueryClient, postId: Post['id']) => {
+    queryClient.removeQueries({ queryKey: postKeys.detail(postId), exact: true });
+  },
+};
+
 export const handlePostCreateSuccess = (queryClient: QueryClient) => {
   postInvalidateQueries.list(queryClient);
 };

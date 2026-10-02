@@ -1,5 +1,5 @@
 import { Post } from '@/entities/post/model/post.schema';
-import { Button } from '@/shared/ui/atoms/button';
+import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 import { ThumbsUp } from 'lucide-react';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { useLikePost } from '@/features/post/like/hooks/useLikePost';
@@ -13,7 +13,7 @@ interface LikePostButtonProps {
 }
 
 export function LikePostButton({ postId, isLiked, likeCount }: LikePostButtonProps) {
-  const { mutateAsync: likePost, isPending: isLiking } = useLikePost(postId);
+  const { mutateAsync: likePost } = useLikePost(postId);
   const guard = useAuthGuard();
 
   const handleLike = (e: React.MouseEvent) => {
@@ -22,7 +22,7 @@ export function LikePostButton({ postId, isLiked, likeCount }: LikePostButtonPro
   };
 
   return (
-    <Button
+    <ToggleButton
       variant="none"
       size="sm"
       className={cn(
@@ -30,13 +30,10 @@ export function LikePostButton({ postId, isLiked, likeCount }: LikePostButtonPro
         isLiked && 'text-destructive hover:text-destructive/80'
       )}
       onClick={handleLike}
-      disabled={isLiking}
       aria-label={isLiked ? TEXTS.ariaLabels.postUnlike : TEXTS.ariaLabels.postLike}
     >
-      <ThumbsUp
-        className={cn('size-4', isLiked && 'fill-current', isLiking && 'animate-pulse opacity-50')}
-      />
+      <ThumbsUp className={cn('size-4', isLiked && 'fill-current')} />
       <span className="font-bold select-none">{likeCount}</span>
-    </Button>
+    </ToggleButton>
   );
 }

@@ -242,7 +242,8 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 `LikeCommentButton`이 `useAuthGuard`로 감싸 feature 훅 `useLikeComment`
 (`src/features/comment/like/hooks/useLikeComment.ts:5-7`)를 부르고, 이 훅이
 `useLikeCommentMutation`(`src/entities/interaction/api/interaction.queries.ts:226-271`)을
-그대로 돌려준다.
+그대로 돌려준다. 버튼은 `ToggleButton`이라 400ms 안의 재클릭을 무시하고, 요청 중 `disabled`는 두지
+않는다(낙관적 반영 중 흐려지는 깜빡임을 피하려고 — [`POST.md`](./POST.md) §5 "좋아요"와 같은 결정, 2026-10-02).
 
 - `onMutate`에서 트리를 재귀로 돌며 `isLiked`·`likeCount`를 뒤집는다.
 - `meta: { manualErrorHandling: true }`인데 자체 토스트도 없다 — 실패하면 화면만 원래대로
@@ -507,10 +508,6 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   한다. 푸시 자체는 [`FCM-PUSH-NOTIFICATION.md`](./FCM-PUSH-NOTIFICATION.md).
 - **좋아요 실패가 조용하다** — 롤백만 하고 안내가 없으며, 성공 후에도 서버 값으로 다시
   맞추지 않는다. 다른 탭·기기에서 누른 좋아요는 목록이 재조회될 때까지 반영되지 않는다.
-- **좋아요 버튼이 `ToggleButton`이 아니다** — `LikeCommentButton`은 일반 `Button`이라
-  `ToggleButton`의 400ms 더블클릭 가드가 없다(`docs/FE-ARCHITECTURE.md` §10-A 규약과 다름). 게시글 좋아요
-  버튼도 `ToggleButton`은 아니지만 요청 중 `disabled`로 중복을 막는다([`POST.md`](./POST.md) §5) — 댓글 쪽은
-  그것도 없다.
 - **삭제가 낙관적이지 않다** — 하드 삭제인지 톰스톤인지 BE가 정하므로 응답과 재조회를
   기다린다. 그 사이 반응이 느려 보일 수 있다.
 - **"내 댓글" 카드가 이미지 URL을 글자 그대로 보여준다** — `MyCommentCard`는 `content`를

@@ -23,6 +23,7 @@ import {
   handlePostUpdateSuccess,
   postKeys,
   postMutationKeys,
+  postRemoveQueries,
 } from '@/entities/post/api/post.keys';
 import { POST_PAGE_SIZE } from '@/entities/post/config/post.const';
 import {
@@ -282,7 +283,7 @@ export const useDeletePostMutation = () => {
             pages: old.pages.map((page) => ({
               ...page,
               content: page.content.filter((post) => post.id !== postId),
-              totalElements: page.totalElements - 1,
+              totalElements: Math.max(0, page.totalElements - 1),
             })),
           };
         }
@@ -310,9 +311,11 @@ export const useDeletePostMutation = () => {
         queryClient.setQueryData(queryKey, data);
       });
     },
-    onSuccess: () => {
+    onSuccess: (_data, postId) => {
       // 북마크 폴더 페이지의 목록(folder posts) + 폴더별 bookmarkCount 재검증
       handlePostDeleteSuccess(queryClient);
+      // 상세에서 삭제한 뒤 뒤로가기로 돌아오면 남아 있던 detail 캐시가 삭제된 글을 다시 그린다
+      postRemoveQueries.detail(queryClient, postId);
     },
   });
 };
