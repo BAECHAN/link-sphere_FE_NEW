@@ -330,6 +330,8 @@ export const TEXTS = {
       pageTitle: '내 댓글',
       empty: '아직 작성한 댓글이 없어요.',
       loadError: '내 댓글을 불러오는데 실패했어요.',
+      // 이미지만 있는 댓글은 본문이 비므로 카드 본문 자리에 대신 보여준다
+      imageOnly: (count: number) => `사진 ${count}장`,
     },
   },
   bookmark: {
@@ -596,6 +598,7 @@ export const TEXTS = {
     // 게시글 상호작용
     postLike: '좋아요',
     postUnlike: '좋아요 취소',
+    myCommentImageCount: (count: number) => `첨부 이미지 ${count}장`,
     postMenu: '게시글 메뉴',
 
     // 게시글 검색 필터
