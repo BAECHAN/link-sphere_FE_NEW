@@ -19,6 +19,14 @@
 
   </details>
 
+- `comment` 댓글·답글 알림을 누르면 게시글 맨 위가 아니라 그 댓글로 이동
+  <details><summary>배경·구현</summary>
+
+  알림을 누르면 게시글 상세의 맨 위로만 가서, 댓글이 많으면 직접 찾아 내려가야 했다. BE는 이미 알림에 `commentId`를 담아 보내고 있었고, "내 댓글" 화면은 `#comment-<id>` 해시로 그 댓글까지 스크롤·강조하는 기능을 이미 쓰고 있었다. 서비스 워커의 알림 클릭과 탭이 열려 있을 때의 "보러가기" 토스트 두 곳 모두 이 해시를 붙여 같은 기능을 타게 했다. 받는 사람이 이미 그 게시글을 보던 중이면 목록에 새 댓글이 아직 없어 스크롤되지 않을 수 있다.
+  (`public/firebase-messaging-sw.js`, `src/shared/lib/firebase/useFcmForegroundMessage.ts`, `src/shared/lib/firebase/useFcmForegroundMessage.test.tsx`(신규), `docs/FCM-PUSH-NOTIFICATION.md`, `docs/COMMENT.md`, [PR #297](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/297))
+
+  </details>
+
 - `post` 상세에서 지운 글이 뒤로가기로 돌아오면 그대로 다시 보이던 문제
   <details><summary>배경·구현</summary>
 

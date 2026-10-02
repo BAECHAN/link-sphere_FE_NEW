@@ -36,13 +36,16 @@ export function useFcmForegroundMessage() {
         const title = payload.notification?.title ?? TEXTS.notification.defaultTitle;
         const body = payload.notification?.body ?? '';
         const postId = payload.data?.postId;
+        const commentId = payload.data?.commentId;
+        // "내 댓글"에서 들어올 때와 같은 해시(CommentList의 해시 스크롤·강조)를 붙여 그 댓글로 보낸다
+        const commentHash = commentId ? `#comment-${commentId}` : '';
 
         toast(title, {
           description: body,
           ...(postId && {
             action: {
               label: TEXTS.notification.viewAction,
-              onClick: () => navigate(`/post/${postId}`),
+              onClick: () => navigate(`/post/${postId}${commentHash}`),
             },
             closeButton: false,
           }),
