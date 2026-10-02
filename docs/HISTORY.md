@@ -1,4 +1,7 @@
 ### 2026-10-02 (FE)
+- 댓글 내 첨부 이미지 렌더링 오류 수정 ([#296](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/296))
+
+### 2026-10-02 (FE)
 - 게시글 삭제 후 뒤로가기 시 데이터 노출 문제 해결 및 좋아요 기능의 동기화 최적화를 통한 깜빡임 현상 개선 ([#295](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/295))
 
 ### 2026-10-01 (FE)
