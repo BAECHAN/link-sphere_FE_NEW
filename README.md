@@ -75,6 +75,9 @@ pnpm preview
 pnpm storybook
 ```
 
+> 처음 왔다면 기능별로 어느 문서·코드부터 보면 되는지 [`docs/ONBOARDING.md`](docs/ONBOARDING.md)에서
+> 시작하세요(FE·BE 공통 길잡이).
+
 ## 개발 명령어
 
 | 명령어                      | 설명                                                                         |
@@ -165,6 +168,10 @@ features/<도메인>/<액션>/
 `git commit` 시 pre-commit 훅으로 타입 체크 + lint-staged가, `git push` 시 pre-push 훅으로 테스트가 자동 실행되며, 실패 시 각각 커밋·push가 차단됩니다. 상세한 패턴·MSW·픽스처·트러블슈팅은 [테스트 가이드](docs/TESTING.md)를 참고하세요.
 
 ## 문서
+
+**처음 왔다면** — 여기서 시작
+
+- [`docs/ONBOARDING.md`](docs/ONBOARDING.md) — FE·BE 공통 길잡이: 전체 그림, 기능별 문서·코드 지도, 읽는 순서, 공통 용어
 
 **프로젝트 전반**
 
