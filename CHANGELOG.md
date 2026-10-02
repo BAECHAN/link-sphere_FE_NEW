@@ -11,6 +11,14 @@
 
 ### Fixed
 
+- `comment` 내 댓글 카드에 첨부 이미지 주소가 글자로 보이던 문제
+  <details><summary>배경·구현</summary>
+
+  BE는 댓글 이미지를 본문 끝에 URL을 한 줄씩 이어 붙여 저장하는데, "내 댓글" 카드가 본문을 그대로 그려 스토리지 주소가 세 줄 미리보기에 섞였고 이미지만 단 댓글은 카드 전체가 주소였다. 본문을 `splitContentImages`로 나눠 텍스트만 보여주고, 이미지는 원글 배지 옆에 개수로 알린다. 이미지만 있는 댓글은 본문 자리에 "사진 N장"을 흐리게 띄운다. 개수 표시·작은 썸네일·텍스트만 세 안을 실제 카드 스타일로 나란히 비교해, 카드 높이가 지금과 같은 개수 표시안을 골랐다.
+  (`src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx`, `src/widgets/comment/my-comment-list/ui/MyCommentCard.test.tsx`, `e2e/my-comments.spec.ts`, `src/shared/config/texts.ts`, `docs/COMMENT.md`, [PR #296](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/296))
+
+  </details>
+
 - `post` 상세에서 지운 글이 뒤로가기로 돌아오면 그대로 다시 보이던 문제
   <details><summary>배경·구현</summary>
 

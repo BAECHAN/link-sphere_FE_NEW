@@ -260,6 +260,11 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   (`src/widgets/comment/my-comment-list/hooks/useMyCommentList.ts:19`).
 - 가상화하지 않는다 — 카드가 가볍고 Ctrl+F를 살리려는 판단(`docs/DECISIONS.md` 2026-09-19
   가상화 항목의 "범위 밖").
+- 카드(`src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx`)는 본문을 `splitContentImages`로
+  나눠 텍스트만 3줄까지 보여주고, 첨부 이미지는 원글 배지 옆에 개수(🖼 N)로만 알린다. 이미지만
+  있는 댓글은 본문 자리에 "사진 N장"을 흐리게 띄운다. 2026-10-02 전까지는 본문을 그대로 그려
+  스토리지 URL이 글자로 보였다 — 개수 표시·작은 썸네일·텍스트만 세 안을 실제 카드 스타일로
+  나란히 비교해 카드 높이가 지금과 같은 개수 표시안을 골랐다(`e2e/my-comments.spec.ts`).
 - 카드는 `/post/${postId}#comment-${id}`로 링크한다
   (`src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx:18`).
 
@@ -382,7 +387,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 키·무효화 핸들러                | `src/entities/comment/api/comment.keys.ts:4-47`                                                                                    |
 | 바이트 스키마·전송량 추정       | `src/entities/comment/model/comment.schema.ts:8-15`, `src/entities/comment/utils/comment.util.ts:14-24`                            |
 | WAF 403 분류·문구               | `src/shared/api/client.ts:82-91`, `src/shared/lib/react-query/config/error-toast.ts:80-82`                                         |
-| 내 댓글 목록·카드               | `src/widgets/comment/my-comment-list/ui/MyCommentList.tsx:11-50`, `src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx:16-31` |
+| 내 댓글 목록·카드               | `src/widgets/comment/my-comment-list/ui/MyCommentList.tsx:11-50`, `src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx:23-57` |
 | UI 문구                         | `src/shared/config/texts.ts:299` (`TEXTS.comment`)                                                                                 |
 
 ### 자주 하는 수정
@@ -510,9 +515,6 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   맞추지 않는다. 다른 탭·기기에서 누른 좋아요는 목록이 재조회될 때까지 반영되지 않는다.
 - **삭제가 낙관적이지 않다** — 하드 삭제인지 톰스톤인지 BE가 정하므로 응답과 재조회를
   기다린다. 그 사이 반응이 느려 보일 수 있다.
-- **"내 댓글" 카드가 이미지 URL을 글자 그대로 보여준다** — `MyCommentCard`는 `content`를
-  `<p>`에 그대로 넣고(`MyCommentCard.tsx:20`) `splitContentImages`를 거치지 않는다.
-  이미지를 붙인 댓글은 세 줄 미리보기에 스토리지 URL이 텍스트로 섞인다.
 - **이미지 저장이 본문 이어붙이기다** — `comment_images` 테이블 분리는 2026-08-10에
   보류했다. 문장 중간의 이미지 링크와 첨부 이미지를 줄 단위 규칙으로만 구분한다.
 - **`z-scrim` 공유 충돌 미해결** — 펼친 모바일 댓글 시트와 사이드바 백드롭이 같은 층이다
