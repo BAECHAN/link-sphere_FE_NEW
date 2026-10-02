@@ -1,27 +1,33 @@
 // Firebase Messaging Service Worker
 // 브라우저가 닫혀 있거나 백그라운드 상태일 때 FCM 메시지를 수신해 시스템 알림을 표시합니다.
 //
-// ⚠️ Firebase 프로젝트 설정 후 아래 값을 채워주세요.
-// Firebase Console > Project Settings > General > Your apps > SDK setup and configuration
-// (Firebase config는 공개 값이므로 여기서 직접 사용해도 안전합니다)
+// Firebase 설정은 이 파일에 적지 않는다 — 앱이 빌드 때 주입된 값(VITE_FIREBASE_*)을 등록 URL의
+// 쿼리로 넘기고(src/shared/lib/firebase/fcm.ts의 buildServiceWorkerUrl), 여기서 읽는다.
+// 예전엔 값을 평문으로 적어 공개 레포에 커밋했다(2026-10-03 제거, #301 노출 수습).
 
 importScripts('https://www.gstatic.com/firebasejs/11.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.0.0/firebase-messaging-compat.js');
 
-firebase.initializeApp({
-  apiKey: 'AIzaSyA5ZYHnaSrXBoDKLdWY4ywThH6JLtAdl8Y',
-  authDomain: 'link-sphere-e8171.firebaseapp.com',
-  projectId: 'link-sphere-e8171',
-  storageBucket: 'link-sphere-e8171.firebasestorage.app',
-  messagingSenderId: '454216396347',
-  appId: '1:454216396347:web:e6d650147c9bcabbfcb61e',
-  measurementId: 'G-PZ0KK732TL',
-});
+const configParams = new URL(self.location.href).searchParams;
+const firebaseConfig = {
+  apiKey: configParams.get('apiKey'),
+  authDomain: configParams.get('authDomain'),
+  projectId: configParams.get('projectId'),
+  messagingSenderId: configParams.get('messagingSenderId'),
+  appId: configParams.get('appId'),
+};
 
-const messaging = firebase.messaging();
+// 쿼리 없이 등록된 경우(설정 누락)엔 초기화하지 않는다 — 알림 클릭 처리만 남는다
+const hasConfig = Object.values(firebaseConfig).every(Boolean);
+
+if (hasConfig) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+const messaging = hasConfig ? firebase.messaging() : null;
 
 // 백그라운드 메시지 수신 → 시스템 알림 표시
-messaging.onBackgroundMessage((payload) => {
+messaging?.onBackgroundMessage((payload) => {
   const { title, body } = payload.notification ?? {};
   const data = payload.data ?? {};
 
