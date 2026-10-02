@@ -1,15 +1,21 @@
+import { type ReactNode } from 'react';
 import { Bookmark } from 'lucide-react';
 import { Post } from '@/entities/post/model/post.schema';
 import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
-import { PostCardBookmarkFolderDialog } from '@/features/bookmark/toggle/ui/PostCardBookmarkFolderDialog';
+import {
+  PostCardBookmarkFolderDialog,
+  type BookmarkFolderSelectRenderProps,
+} from '@/features/bookmark/toggle/ui/PostCardBookmarkFolderDialog';
 import { useBookmarkPostButton } from '@/features/bookmark/toggle/hooks/useBookmarkPostButton';
 
 interface BookmarkPostButtonProps {
   postId: Post['id'];
   isBookmarked: boolean;
   bookmarkFolderIds: string[];
+  /** 폴더 선택 창을 그리는 함수 - 위층(PostCard)이 넘긴다 (docs/FE-ARCHITECTURE.md §26) */
+  renderFolderSelect: (props: BookmarkFolderSelectRenderProps) => ReactNode;
 }
 
 /**
@@ -23,6 +29,7 @@ export function BookmarkPostButton({
   postId,
   isBookmarked,
   bookmarkFolderIds,
+  renderFolderSelect,
 }: BookmarkPostButtonProps) {
   const { isOpen, handleClick, handleOpenChange, handlePrefetch } = useBookmarkPostButton(postId);
 
@@ -50,6 +57,7 @@ export function BookmarkPostButton({
         bookmarkFolderIds={bookmarkFolderIds}
         open={isOpen}
         onOpenChange={handleOpenChange}
+        renderFolderSelect={renderFolderSelect}
       />
     </>
   );

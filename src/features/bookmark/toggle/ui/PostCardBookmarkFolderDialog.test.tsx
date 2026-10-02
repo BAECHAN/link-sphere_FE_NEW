@@ -5,7 +5,11 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { toast } from '@/shared/lib/toast/toast';
-import { PostCardBookmarkFolderDialog } from '@/features/bookmark/toggle/ui/PostCardBookmarkFolderDialog';
+import {
+  PostCardBookmarkFolderDialog,
+  type BookmarkFolderSelectRenderProps,
+} from '@/features/bookmark/toggle/ui/PostCardBookmarkFolderDialog';
+import { BookmarkFolderSelectDialog } from '@/features/bookmark/select/ui/BookmarkFolderSelectDialog';
 import type {
   BookmarkFoldersResponse,
   BookmarkFolderListResponse,
@@ -13,6 +17,10 @@ import type {
 
 // PostCardBookmarkFolderDialog는 공통 프레젠테이션(features/bookmark/select/ui/BookmarkFolderSelectDialog)에
 // 얇게 위임하므로, 아래 케이스들은 BookmarkFolderSelectDialog의 행 렌더링·최근 구획도 함께 검증한다.
+// 실제 앱에서 PostCard가 하는 것처럼 renderFolderSelect로 진짜 창을 넘긴다(docs/FE-ARCHITECTURE.md §26).
+function renderFolderSelect(props: BookmarkFolderSelectRenderProps) {
+  return <BookmarkFolderSelectDialog {...props} />;
+}
 
 // 데스크탑 모달 스타일로 고정 — matchMedia 스텁만으로는 useIsMobile 값이 effect 이후에나 정해져 불안정하다
 vi.mock('@/shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }));
@@ -63,6 +71,7 @@ function renderDialog(
       bookmarkFolderIds={[FOLDER_A]}
       open
       onOpenChange={onOpenChange}
+      renderFolderSelect={renderFolderSelect}
       {...props}
     />
   );

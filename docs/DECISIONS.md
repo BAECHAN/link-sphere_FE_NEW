@@ -65,7 +65,7 @@ GitHub에서 직접 확인)는 features·widgets에 네 가지 전략을 든다.
 
 **상태**
 
-W1·W2·W3 적용(2026-10-03). F1·F2와 강제 규칙은 후속 PR.
+W1·W2·W3 적용, 이어서 F1·F2 적용과 dependency-cruiser `features-widgets-no-cross-slice-import` 추가(모두 2026-10-03). 규칙을 넣은 직후 교차 import 프로브 2건(일반 import 1, `import type` 1)을 넣어 둘 다 막히는 걸 확인하고 되돌렸다.
 
 ---
 

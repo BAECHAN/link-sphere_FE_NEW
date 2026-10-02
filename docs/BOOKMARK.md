@@ -301,7 +301,9 @@ Shneiderman(1994)](https://dl.acm.org/doi/10.1145/174630.174632)의 split menu
 
 `src/features/post/create/ui/PostCreateBookmarkFolderField.tsx`는 `/bookmark` 페이지가
 아니라 **링크 등록 폼**(`CreatePostForm`)에 있는 필드다. `PostCardBookmarkFolderDialog`와
-같은 `features/bookmark/select/ui/BookmarkFolderSelectDialog`를 쓰고 주입하는 콜백만 다르다 —
+같은 `features/bookmark/select/ui/BookmarkFolderSelectDialog`를 쓰고 주입하는 콜백만 다르다(두 feature는
+창을 직접 import하지 않고 위층 — 각각 `PostCard`·`PostSubmitPage` — 이 `renderFolderSelect`로 넘긴다,
+`docs/FE-ARCHITECTURE.md` §26) —
 저장 동작을 콜백으로 넘기는 쪽이 즉시 저장인지 지연 선택인지에 따라 핵심 동작이 갈린다.
 
 |                         | `PostCardBookmarkFolderDialog`(북마크 페이지)                                 | `PostCreateBookmarkFolderField`(등록 폼)                                            |
@@ -489,7 +491,8 @@ src/
 │   │                                                 # 이름이 겹쳐 호출 맥락(PostCard) 접두사를
 │   │                                                 # 붙임. 2026-09-30 …Modal→…Dialog 재개명)
 │   │                                                 # — 로직은 usePostCardBookmarkFolderDialog,
-│   │                                                 # 모달 마크업은 BookmarkFolderSelectDialog(아래)에 위임
+│   │                                                 # 모달 마크업은 BookmarkFolderSelectDialog(아래)에 위임 —
+│   │                                                 # PostCard가 renderFolderSelect로 넘긴다(§26)
 │   └── post/
 │       └── create/
 │           ├── hooks/

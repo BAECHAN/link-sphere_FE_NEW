@@ -6,12 +6,20 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { TEXTS } from '@/shared/config/texts';
-import { PostCreateBookmarkFolderField } from '@/features/post/create/ui/PostCreateBookmarkFolderField';
+import {
+  PostCreateBookmarkFolderField,
+  type PostCreateFolderSelectRenderProps,
+} from '@/features/post/create/ui/PostCreateBookmarkFolderField';
+import { BookmarkFolderSelectDialog } from '@/features/bookmark/select/ui/BookmarkFolderSelectDialog';
 import type { CreatePost } from '@/entities/post/model/post.schema';
 import type { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
 // PostCreateBookmarkFolderField는 공통 프레젠테이션(features/bookmark/select/ui/BookmarkFolderSelectDialog)에 얇게
 // 위임하므로, 아래 케이스들은 BookmarkFolderSelectDialog의 행 렌더링·최근 구획도 함께 검증한다.
+// 실제 앱에서 PostSubmitPage가 하는 것처럼 renderFolderSelect로 진짜 창을 넘긴다(docs/FE-ARCHITECTURE.md §26).
+function renderFolderSelect(props: PostCreateFolderSelectRenderProps) {
+  return <BookmarkFolderSelectDialog {...props} />;
+}
 
 // 데스크탑 모달 스타일로 고정 — matchMedia 스텁만으로는 useIsMobile 값이 effect 이후에나 정해져 불안정하다
 vi.mock('@/shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }));
@@ -64,7 +72,7 @@ function Harness() {
     <FormProvider {...form}>
       <div data-testid="bookmark-value">{String(bookmark)}</div>
       <div data-testid="folderIds-value">{folderIds.join(',')}</div>
-      <PostCreateBookmarkFolderField />
+      <PostCreateBookmarkFolderField renderFolderSelect={renderFolderSelect} />
     </FormProvider>
   );
 }

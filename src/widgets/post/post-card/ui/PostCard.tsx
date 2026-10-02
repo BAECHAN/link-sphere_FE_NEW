@@ -24,6 +24,8 @@ import { Pencil, Trash } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LikePostButton } from '@/features/post/like/ui/LikePostButton';
 import { BookmarkPostButton } from '@/features/bookmark/toggle/ui/BookmarkPostButton';
+import type { BookmarkFolderSelectRenderProps } from '@/features/bookmark/toggle/ui/PostCardBookmarkFolderDialog';
+import { BookmarkFolderSelectDialog } from '@/features/bookmark/select/ui/BookmarkFolderSelectDialog';
 import { TEXTS } from '@/shared/config/texts';
 import { usePostCard } from '@/widgets/post/post-card/hooks/usePostCard';
 import { cn } from '@/shared/lib/tailwind/utils';
@@ -31,6 +33,13 @@ import {
   CATEGORY_COLOR_CLASSNAME,
   CATEGORY_COLOR_COUNT,
 } from '@/entities/category/config/category.const';
+
+// 북마크 버튼(features/bookmark/toggle)과 폴더 선택 창(features/bookmark/select)은 같은
+// 레이어라 서로 import하지 않는다 — 위층인 여기서 창을 넘긴다. 모듈 최상단에 둬 렌더마다
+// 같은 함수가 넘어가게 한다 (docs/FE-ARCHITECTURE.md §26)
+function renderBookmarkFolderSelect(props: BookmarkFolderSelectRenderProps) {
+  return <BookmarkFolderSelectDialog {...props} />;
+}
 
 interface PostCardProps {
   post: Post;
@@ -360,6 +369,7 @@ export const PostCard = memo(function PostCard({
             postId={post.id}
             isBookmarked={post.userInteractions.isBookmarked}
             bookmarkFolderIds={post.userInteractions.bookmarkFolderIds}
+            renderFolderSelect={renderBookmarkFolderSelect}
           />
           <Button
             variant="ghost"
