@@ -97,10 +97,10 @@ infra/
 
 ### 환경별 동작
 
-| 환경     | 프론트엔드                                                          | 백엔드 연동                                                                           |
-| -------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| **운영** | CloudFront → S3 정적 배포. `VITE_API_BASE_URL`은 `/api` (상대 경로) | CloudFront `/api/*` behavior → Lambda Function URL(`prod` alias). context-path `/api` |
-| **개발** | Vite dev server (포트 31119). `/api` 요청을 proxy로 BE로 전달       | BE 로컬 (포트 **8080**). Supabase(DB·Storage), Gemini API 연동                        |
+| 환경     | 프론트엔드                                                          | 백엔드 연동                                                                                                                       |
+| -------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **운영** | CloudFront → S3 정적 배포. `VITE_API_BASE_URL`은 `/api` (상대 경로) | CloudFront `/api/*` behavior → Lambda Function URL(`prod` alias). context-path `/api`                                             |
+| **개발** | Vite dev server (포트 31119). `/api` 요청을 proxy로 BE로 전달       | `.env`의 `VITE_API_BASE_URL`: BE 로컬(`http://localhost:8080/api`) 또는 운영 API(`https://linksphere.click/api`, CloudFront 경유) |
 
 개발 시: Browser → Vite(31119) → proxy `/api` → BE(8080) → Supabase / Gemini.
 

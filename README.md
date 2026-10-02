@@ -55,7 +55,9 @@ pnpm dev
 ```
 
 > 기본 포트: **31119** — `/api` 요청은 `VITE_API_BASE_URL` 환경변수(`.env`)가 가리키는
-> BE로 프록시됩니다.
+> BE로 프록시됩니다. 값은 context-path `/api`까지 포함한 기준 주소입니다 — 운영 BE는
+> `https://linksphere.click/api`, 로컬 BE는 `http://localhost:8080/api`. Lambda Function URL을
+> 직접 쓰면 OAC 잠금 때문에 403이 납니다.
 
 ### 빌드
 

@@ -878,7 +878,7 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
 - **BE**: Spring Boot + Kotlin, port 8080, context-path `/api`
 - **FE**: React + TypeScript + Vite, FSD 아키텍처, port 31119
 - **배포**: CloudFront → `/api/*` Lambda(BE), `/*` S3(FE)
-- **개발 프록시**: `vite.config.ts` — `/api/*` → `VITE_API_BASE_URL` 환경변수(`.env`) 값으로 프록시(하드코딩된 포트 아님, rewrite 없음)
+- **개발 프록시**: `vite.config.ts` — `/api/*` → `VITE_API_BASE_URL` 환경변수(`.env`) 값으로 프록시(하드코딩된 포트 아님). 이 값은 `/api`까지 포함한 기준 주소(`https://linksphere.click/api`, 로컬 BE면 `http://localhost:8080/api`)라 프록시가 요청 경로의 `/api`를 떼고 넘긴다(2026-10-02, Lambda Function URL은 OAC 잠금 이후 403)
 - **커밋**: 작업 전 `.gitmessage` 파일 먼저 읽고 형식 준수
 - **커밋 단위**: 대화 턴(요청)마다 나누지 않고, 논리적으로 완결된 기능·수정 단위로 나눈다.
   같은 기능을 다듬는 과정에서 나온 후속 수정(버그 픽스 포함)은 원래 커밋에 합치고,

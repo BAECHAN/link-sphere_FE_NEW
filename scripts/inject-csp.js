@@ -62,8 +62,8 @@ function buildCsp(scriptHashes) {
 }
 
 function main() {
-  // Lighthouse CI(.github/workflows/ci.yml)는 VITE_API_BASE_URL을 Lambda Function
-  // URL(교차 출처)로 직접 가리켜 데이터가 채워진 화면을 측정한다 - connect-src 'self'인
+  // Lighthouse CI(.github/workflows/ci.yml)는 VITE_API_BASE_URL을 운영 API
+  // (https://linksphere.click/api, 교차 출처)로 가리켜 데이터가 채워진 화면을 측정한다 - connect-src 'self'인
   // CSP를 주입하면 그 호출이 전부 막혀 빈 화면을 측정하게 된다(pr-review-toolkit
   // 리뷰에서 발견). 실제 배포(deploy.yml)는 VITE_API_BASE_URL을 안 정해 같은 출처
   // (/api)로만 호출하므로 이 문제가 없다 - Lighthouse job에서만 건너뛴다.

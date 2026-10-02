@@ -185,8 +185,10 @@ node scripts/compute-font-preload-chunks.js
 - **측정마다 점수가 크게 흔들린다** — 다른 워크트리에서 동시에 `pnpm dev`/`pnpm preview`나
   무거운 빌드를 돌리고 있지 않은지 먼저 확인한다. Lighthouse variability 문서는
   _"같은 머신에서 동시에 여러 측정을 돌리지 말라"_(번역)고 명시한다.
-- **CORS 에러로 `/api/*` 호출이 실패한다** — 이 레포의 BE(Lambda Function URL)는
-  요청 Origin을 그대로 반사하는 CORS 설정이라(`Access-Control-Allow-Origin: <origin>`,
-  `Access-Control-Allow-Credentials: true`, 2026-09-26 직접 curl로 확인)
-  `localhost:4173`을 포함해 어떤 로컬 포트에서 호출해도 정상 동작해야 한다. 그래도
-  막히면 BE 쪽 CORS 설정이 바뀌었을 가능성이 높다.
+- **CORS 에러로 `/api/*` 호출이 실패한다** — Lighthouse 빌드는 운영 API
+  `https://linksphere.click/api`(CloudFront 경유)를 부른다. BE CORS 허용 목록에
+  `http://localhost:*`가 있어(`Access-Control-Allow-Origin: <origin>`,
+  `Access-Control-Allow-Credentials: true`, 2026-10-02 curl preflight로 확인)
+  `localhost:4173`에서 호출해도 정상 동작해야 한다. 그래도 막히면 BE 쪽 CORS 설정이
+  바뀌었을 가능성이 높다. Lambda Function URL을 직접 부르면 OAC 잠금(2026-09-29) 이후
+  CORS가 아니라 403이다.

@@ -211,10 +211,11 @@ jobs:
       - name: Build
         run: pnpm build
         env:
-          # 로컬 .env와 같은 프로덕션 API를 가리킨다(비밀값 아님 - 배포된 번들 네트워크
-          # 탭에서 누구나 볼 수 있는 URL이다). 이 BE는 요청 Origin을 그대로 반사하는
-          # CORS 설정이라(2026-09-26 curl로 확인) localhost 프리뷰에서도 정상 동작한다.
-          VITE_API_BASE_URL: https://452wlgf5pesg75zbpiaotptq7i0ckrsb.lambda-url.ap-northeast-1.on.aws
+          # 로컬 .env와 같은 운영 API를 CloudFront 경유로 가리킨다. Lambda Function URL을
+          # 직접 부르면 OAC 잠금(2026-09-29) 이후 403이라 데이터 없는 화면을 측정하게 된다.
+          # BE CORS 허용 목록에 http://localhost:*가 있어 localhost 프리뷰에서도 정상 동작한다
+          # (2026-10-02 curl preflight로 확인).
+          VITE_API_BASE_URL: https://linksphere.click/api
           # 위 API가 FE와 교차 출처라 connect-src 'self'인 CSP를 주입하면 모든 API
           # 호출이 막혀 빈 화면을 측정하게 된다(scripts/inject-csp.js 주석 참고) -
           # 실제 배포는 같은 출처(/api)만 쓰므로 이 문제가 없다.
