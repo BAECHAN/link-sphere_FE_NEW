@@ -31,6 +31,13 @@ const preview: Preview = {
     a11y: {
       test: 'error',
     },
+    // 루트 그룹을 FSD 레이어 순서(하위 → 상위)로 고정한다. 없으면 import 순서를 따라
+    // 레이어와 무관하게 섞인다. 제목 규칙은 docs/FE-ARCHITECTURE.md §18 참고.
+    options: {
+      storySort: {
+        order: ['Shared', 'Entities', 'Features', 'Widgets', 'Pages'],
+      },
+    },
   },
   globalTypes: {
     theme: {

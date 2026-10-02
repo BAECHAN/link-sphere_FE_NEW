@@ -273,7 +273,7 @@ function RoleTokensCatalog() {
 }
 
 const meta = {
-  title: 'Shared/UI/Tokens/Design Tokens',
+  title: 'Shared/UI/Tokens/DesignTokens',
   tags: ['autodocs'],
 } satisfies Meta;
 

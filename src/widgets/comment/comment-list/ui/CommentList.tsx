@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CommentForm, CommentFormHandle } from '@/features/comment/create/ui/CommentForm';
 import { MobileCommentBar } from '@/features/comment/create/ui/MobileCommentBar';
-import { ScrollToCommentFormButton } from '@/features/comment/create/ui/ScrollToCommentFormButton';
+import { ScrollToCommentFormButton } from '@/widgets/comment/comment-list/ui/ScrollToCommentFormButton';
 import { CommentItem } from '@/widgets/comment/comment-list/ui/CommentItem';
 import { Comment as PostComment } from '@/entities/comment/model/comment.schema';
 import { useCommentList } from '@/widgets/comment/comment-list/hooks/useCommentList';

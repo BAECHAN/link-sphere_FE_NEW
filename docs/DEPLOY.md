@@ -84,7 +84,8 @@ gh workflow run deploy.yml --repo BAECHAN/link-sphere_FE_NEW --ref main
 
 ## Storybook 공개 배포
 
-`shared/ui`의 컴포넌트 스토리(50개 파일, 172개 케이스)를 같은 S3 버킷·CloudFront
+컴포넌트 스토리(54개 파일, 188개 케이스 — `shared/ui` 51개 + Provider 없이 렌더되는 entities·widgets
+컴포넌트, 범위 기준은 [`FE-ARCHITECTURE.md`](FE-ARCHITECTURE.md) §18)를 같은 S3 버킷·CloudFront
 배포를 재사용해 `/storybook/` 경로에 공개 호스팅한다. 워크플로:
 [`.github/workflows/deploy-storybook.yml`](../.github/workflows/deploy-storybook.yml).
 

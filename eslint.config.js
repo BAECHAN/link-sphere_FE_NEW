@@ -783,6 +783,139 @@ export default [
       'custom-filename/no-non-ascii-filename': 'error',
     },
   },
+  // Storybook 스토리 title은 파일 경로에서 계산한 값과 같아야 한다 - 커스텀 규칙
+  // 사이드바 위치는 파일 경로가 아니라 title 문자열만 따르므로, 손으로 적다 보면
+  // 'Temp/...'처럼 경로와 무관한 그룹이 생긴다(2026-09-21 검증용 스토리가 그대로
+  // 공개 배포된 사례). 변환 규칙은 docs/FE-ARCHITECTURE.md §18 "Storybook 스토리" 참고.
+  // 자동 수정은 두지 않는다 - 스토리 URL이 title에서 나오므로 pre-commit의 --fix가
+  // URL을 조용히 바꾸지 않게 기대값만 메시지로 보여준다.
+  {
+    files: ['src/**/*.stories.tsx'],
+    plugins: {
+      'custom-storybook': {
+        rules: {
+          'title-matches-path': {
+            meta: {
+              type: 'problem',
+              docs: {
+                description: '스토리 title을 파일 경로에서 계산한 값과 일치시킨다',
+              },
+              messages: {
+                missingTitle:
+                  '스토리 meta에 title이 없습니다. "{{expected}}"로 지정해주세요. (docs/FE-ARCHITECTURE.md §18)',
+                mismatch:
+                  '스토리 title "{{actual}}"이 파일 경로와 다릅니다. "{{expected}}"로 바꿔주세요. (docs/FE-ARCHITECTURE.md §18)',
+              },
+            },
+            create(context) {
+              const toPascal = (segment) =>
+                segment === 'ui'
+                  ? 'UI'
+                  : segment
+                      .split('-')
+                      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                      .join('');
+
+              // src/<layer>/<...dirs>/<Name>.stories.tsx → <Layer>/<...Dirs>/<Name>
+              // - shared 밖의 ui 세그먼트와 _ 접두사(내부 전용) 폴더는 생략
+              // - 마지막 폴더명이 컴포넌트명과 같으면 중복이라 생략(dialog/alert/Alert → Dialog/Alert)
+              function computeExpectedTitle(filename) {
+                const relative = filename.replace(/\\/g, '/').split('/src/').pop();
+                const parts = relative.split('/');
+                const name = toPascal(parts.pop().replace(/\.stories\.tsx$/, ''));
+                const [layer, ...dirs] = parts;
+                const segments = [
+                  toPascal(layer),
+                  ...dirs
+                    .filter((dir) => !dir.startsWith('_') && !(dir === 'ui' && layer !== 'shared'))
+                    .map(toPascal),
+                ];
+
+                if (segments.at(-1).toLowerCase() === name.toLowerCase()) {
+                  segments.pop();
+                }
+
+                return [...segments, name].join('/');
+              }
+
+              function unwrapExpression(node) {
+                let current = node;
+
+                while (
+                  current &&
+                  (current.type === 'TSSatisfiesExpression' || current.type === 'TSAsExpression')
+                ) {
+                  current = current.expression;
+                }
+
+                return current;
+              }
+
+              // export default meta → const meta = {...} 의 객체 리터럴을 찾는다
+              function findMetaObject(declaration) {
+                const target = unwrapExpression(declaration);
+
+                if (target?.type === 'ObjectExpression') {
+                  return target;
+                }
+
+                if (target?.type !== 'Identifier') {
+                  return null;
+                }
+
+                const variable = context.sourceCode
+                  .getScope(declaration)
+                  .variables.find((item) => item.name === target.name);
+                const init = unwrapExpression(variable?.defs[0]?.node.init);
+
+                return init?.type === 'ObjectExpression' ? init : null;
+              }
+
+              return {
+                ExportDefaultDeclaration(node) {
+                  const metaObject = findMetaObject(node.declaration);
+
+                  if (!metaObject) {
+                    return;
+                  }
+
+                  const expected = computeExpectedTitle(context.filename);
+                  const titleProperty = metaObject.properties.find(
+                    (property) =>
+                      property.type === 'Property' &&
+                      property.key.type === 'Identifier' &&
+                      property.key.name === 'title'
+                  );
+
+                  if (!titleProperty) {
+                    context.report({
+                      node: metaObject,
+                      messageId: 'missingTitle',
+                      data: { expected },
+                    });
+                    return;
+                  }
+
+                  const actual = titleProperty.value.value;
+
+                  if (actual !== expected) {
+                    context.report({
+                      node: titleProperty.value,
+                      messageId: 'mismatch',
+                      data: { actual: String(actual), expected },
+                    });
+                  }
+                },
+              };
+            },
+          },
+        },
+      },
+    },
+    rules: {
+      'custom-storybook/title-matches-path': 'error',
+    },
+  },
   // Atoms 폴더: kebab-case
   {
     files: ['src/shared/ui/atoms/**/*.{ts,tsx}'],
