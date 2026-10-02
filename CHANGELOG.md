@@ -27,6 +27,14 @@
 
   </details>
 
+- `shared` 운영에서 이미지 첨부·프로필 사진 미리보기 썸네일이 안 보이던 문제
+  <details><summary>배경·구현</summary>
+
+  댓글에 이미지를 붙여넣거나 파일로 첨부해도 제출 전 썸네일이 깨져 보였다. 미리보기는 `URL.createObjectURL`로 만든 `blob:` 주소를 쓰는데, 빌드 때 주입하는 CSP(#242, 2026-09-29)의 `img-src`에 `blob:`이 빠져 브라우저가 막고 있었다. 같은 이유로 등록 직후 낙관적으로 보이는 댓글 이미지와 프로필 사진 변경 미리보기도 깨졌다. CSP는 운영 빌드에만 주입돼 dev·e2e에서는 드러나지 않았다. `img-src`에 `blob:`을 더했고, 운영 사이트에서는 `blob:` 이미지가 `img-src` 위반으로 막히고 수정 빌드에서는 정상으로 뜨는 것을 브라우저에서 비교 확인했다. 제출 후 이미지는 Supabase `https:` 주소라 원래 정상이었다.
+  (`scripts/inject-csp.js`, [PR #298](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/298))
+
+  </details>
+
 - `post` 상세에서 지운 글이 뒤로가기로 돌아오면 그대로 다시 보이던 문제
   <details><summary>배경·구현</summary>
 
