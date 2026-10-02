@@ -184,7 +184,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   한 줄(`:223-231`). **AI 처리 대기 중 표시나 폴링은 없다** — §11.
 - **수정 중 오버레이**: 같은 글의 수정 mutation이 진행 중이면(`useIsMutating`, 500ms 지연 +
   최소 400ms 유지, `usePostCard.ts:46-49`) 내용을 흐리게 하고 "수정 중..." 오버레이로 클릭을
-  막는다(`PostCard.tsx:77`, `:91-96`).
+  막는다(`PostCard.tsx:86`, `:100-105`).
 
 ### 상세
 
@@ -203,7 +203,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 1. 폼(`src/features/post/create/hooks/useCreatePost.ts:28-32`)은 `mode: 'onChange'`라 URL 형식
    오류가 타이핑 즉시 인풋 아래에 뜬다. 제출 버튼은 `isDirty && isValid && !isCreating`일 때만
-   활성(`CreatePostForm.tsx:29`)이고, 비활성 이유는 `TooltipWrapper`로 보여준다.
+   활성(`CreatePostForm.tsx:37`)이고, 비활성 이유는 `TooltipWrapper`로 보여준다.
 2. 스키마(`src/entities/post/model/post.schema.ts:9-27`): `url`은 `.url()` + http/https 스킴만
    허용하는 `refine`(BE `SafeUrlValidator`와 같은 제한). `title`은 선택(비우면 BE가 크롤링
    제목을 쓴다), `categoryIds`·`isPrivate`·`bookmark`·`folderIds`. **제목 길이 상한은 없다** — 카드는
@@ -231,7 +231,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
    "등록 중..."/"수정 중..." 로딩 토스트를 띄운다(최소 400ms 유지). 상단바 배지에서 이 방식으로
    바뀐 근거는 `docs/DECISIONS.md` 2026-08-13 항목.
 6. 모바일에서는 제출 버튼이 하단 탭바 바로 위에 고정된 바로 뜨고, 토스트가 그 위로 오도록
-   `--toast-offset-bottom`을 조정한다(`CreatePostForm.tsx:40-77`, `:122-145`).
+   `--toast-offset-bottom`을 조정한다(`CreatePostForm.tsx:48-85`, `:122-145`).
 
 ### 수정
 

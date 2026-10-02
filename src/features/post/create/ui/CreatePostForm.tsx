@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { type ReactNode, useLayoutEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/atoms/card';
 import { Button } from '@/shared/ui/atoms/button';
 import { useCreatePost } from '@/features/post/create/hooks/useCreatePost';
@@ -6,7 +6,10 @@ import { FormProvider } from 'react-hook-form';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { FormCheckboxGroup } from '@/shared/ui/elements/form/FormCheckboxGroup';
 import { FormCheckbox } from '@/shared/ui/elements/form/FormCheckbox';
-import { PostCreateBookmarkFolderField } from '@/features/post/create/ui/PostCreateBookmarkFolderField';
+import {
+  PostCreateBookmarkFolderField,
+  type PostCreateFolderSelectRenderProps,
+} from '@/features/post/create/ui/PostCreateBookmarkFolderField';
 import { useCategoryOptions } from '@/entities/category/hooks/useCategoryOptions';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
@@ -17,7 +20,12 @@ import { cn } from '@/shared/lib/tailwind/utils';
 const TAB_BAR_RESERVE = 'calc(4rem + env(safe-area-inset-bottom))';
 const TOAST_GAP_PX = 8;
 
-export function CreatePostForm() {
+interface CreatePostFormProps {
+  /** 북마크 폴더 선택 창을 그리는 함수 - 위층(PostSubmitPage)이 넘긴다 (docs/FE-ARCHITECTURE.md §26) */
+  renderFolderSelect: (props: PostCreateFolderSelectRenderProps) => ReactNode;
+}
+
+export function CreatePostForm({ renderFolderSelect }: CreatePostFormProps) {
   const { form, onSubmit, isCreating } = useCreatePost();
   const { categoryOptionList } = useCategoryOptions();
   const barRef = useRef<HTMLDivElement>(null);
@@ -109,7 +117,7 @@ export function CreatePostForm() {
                 options={categoryOptionList}
               />
 
-              <PostCreateBookmarkFolderField />
+              <PostCreateBookmarkFolderField renderFolderSelect={renderFolderSelect} />
 
               <div className="pt-2">
                 <FormCheckbox

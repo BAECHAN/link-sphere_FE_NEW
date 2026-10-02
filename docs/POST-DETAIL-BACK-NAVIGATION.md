@@ -140,7 +140,7 @@ Navbar와 버튼 바 두 줄이 스크롤 내내 함께 고정돼 모바일 화�
 
 | 하고 싶은 것                         | 위치                                                                                                                                                 | 방법                                                                                                                                                                       |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 새 유입 경로에 전용 라벨 추가        | [`PostCard.tsx:43`](../src/widgets/post/post-card/ui/PostCard.tsx#L43), [`usePostDetail.ts:10-36`](../src/pages/post/hooks/usePostDetail.ts#L10-L36) | `backSource` 유니온에 새 값 추가 → 그 목록을 렌더하는 페이지의 render 함수에서 `<PostCard backSource="새값" />` 지정 → `resolveBackLabel`에 분기·`texts.ts`에 라벨 키 추가 |
+| 새 유입 경로에 전용 라벨 추가        | [`PostCard.tsx:52`](../src/widgets/post/post-card/ui/PostCard.tsx#L52), [`usePostDetail.ts:10-36`](../src/pages/post/hooks/usePostDetail.ts#L10-L36) | `backSource` 유니온에 새 값 추가 → 그 목록을 렌더하는 페이지의 render 함수에서 `<PostCard backSource="새값" />` 지정 → `resolveBackLabel`에 분기·`texts.ts`에 라벨 키 추가 |
 | 돌아가기 동작(목적지) 자체를 바꾸기  | [`useGoBack.ts`](../src/shared/hooks/useGoBack.ts)                                                                                                   | 라벨 로직과 무관 — 이 훅만 수정하면 된다                                                                                                                                   |
 | 모바일에서도 버튼을 다시 보이게 하기 | [`PostDetailPage.tsx:26-40`](../src/pages/post/PostDetailPage.tsx#L26-L40)                                                                           | `hidden md:inline-flex`를 제거하기 전에 §4의 트레이드오프(124px 상시 고정 vs standalone PWA 위치 복원)를 먼저 재검토 — `docs/DECISIONS.md` 참고                            |
 | e2e에서 이 버튼/Feed 탭을 다시 찾기  | [`e2e/post-detail-back.spec.ts`](../e2e/post-detail-back.spec.ts), [`e2e/post-detail-back.mobile.spec.ts`](../e2e/post-detail-back.mobile.spec.ts)   | §10 "시행착오" 참고 — `role`만으로 찾으면 Sidebar의 숨은 사본과 strict mode 위반이 난다                                                                                    |
@@ -180,7 +180,7 @@ sticky를 걷어내는 과정 자체의 시행착오(0/12/16/24px 후보 비교,
 - **standalone PWA(홈 화면 추가) 모바일 사용자**는 정확한 위치 복귀 대신 `BottomTabBar`의
   Feed 탭(목록 최상단)으로만 돌아간다 — 의도적으로 받아들인 트레이드오프지만, 이
   사용자층 비중이 커지면 재검토 대상이다.
-- `PostCard.tsx:182,346`(제목 링크·댓글 수 버튼)이 `isDetail`일 때도 자기 자신
+- `PostCard.tsx:191,355`(제목 링크·댓글 수 버튼)이 `isDetail`일 때도 자기 자신
   (`/post/{id}`)을 링크해 상세에서 제목을 눌러도 히스토리가 쌓이는 기존 버그는 이번
   범위 밖으로 그대로 남아 있다(PR #100 노트에서 이미 명시, 2026-09-29 줄번호 재확인).
   정정(2026-09-30): 같은 주소로 가는 링크는 react-router `useLinkClickHandler`가 push가

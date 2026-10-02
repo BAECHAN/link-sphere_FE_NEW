@@ -94,7 +94,7 @@ test.describe('로그인 상태 — 게시글을 북마크 폴더에 저장', ()
 
     await accountResponse;
 
-    // 북마크 버튼(아직 미북마크 상태라 name은 '북마크 저장', BookmarkPostButton.tsx:45)
+    // 북마크 버튼(아직 미북마크 상태라 name은 '북마크 저장', BookmarkPostButton.tsx:48)
     await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).click();
 
     const folderDialog = page.getByRole('dialog');

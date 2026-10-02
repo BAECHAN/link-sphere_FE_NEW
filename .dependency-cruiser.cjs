@@ -18,6 +18,22 @@ module.exports = {
       },
     },
     {
+      name: 'features-widgets-no-cross-slice-import',
+      comment:
+        'features·widgets 슬라이스는 같은 레이어의 다른 슬라이스를 import하지 않는다 ' +
+        '(docs/FE-ARCHITECTURE.md §26). 다른 슬라이스의 UI를 그려야 하면 render<대상> 함수 prop을 받고 ' +
+        '위층(pages·app, features 입장에선 widgets)이 넘긴다.',
+      severity: 'error',
+      // 슬라이스는 항상 <도메인 그룹>/<슬라이스> 두 단계다(features/post/create, widgets/post/post-card) —
+      // 그룹 폴더 자체에는 파일이 없다(§1 "슬라이스 그룹 폴더" 행). $1은 레이어, $2는 자기 슬라이스.
+      // 테스트는 실제 앱처럼 위층 역할을 대신해 다른 슬라이스의 UI를 직접 넘기므로 제외한다.
+      from: { path: '^src/(features|widgets)/([^/]+/[^/]+)/', pathNot: '[.]test[.]tsx?$' },
+      to: {
+        path: '^src/$1/',
+        pathNot: '^src/$1/$2/',
+      },
+    },
+    {
       name: 'no-non-package-json',
       comment:
         'package.json에 없는 패키지는 import하지 않는다 — .npmrc가 shamefully-hoist=true라 ' +

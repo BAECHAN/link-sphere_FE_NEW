@@ -1,5 +1,6 @@
-// `pnpm check:deps` — .dependency-cruiser.cjs의 forbidden 규칙(entities는 @x로만, package.json에
-// 없는 패키지 금지, production 코드의 devDependency 금지)을 검사한다. `pnpm check`에 들어 있어
+// `pnpm check:deps` — .dependency-cruiser.cjs의 forbidden 규칙(entities는 @x로만, features·widgets는
+// 같은 레이어 다른 슬라이스 import 금지, package.json에 없는 패키지 금지, production 코드의
+// devDependency 금지)을 검사한다. `pnpm check`에 들어 있어
 // 로컬·CI(ci.yml)·배포(deploy.yml)가 같은 명령으로 막힌다(docs/plans/2026-10-01-dependency-cruiser.md).
 import { runDepcruise } from './lib/depcruise.js';
 
