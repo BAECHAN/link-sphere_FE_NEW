@@ -7,7 +7,7 @@
 > **읽고 나면**: 토큰 등록/해제부터 알림 클릭 시 딥링크까지 전체 경로를 이해하고,
 > 새 알림 타입을 추가하거나 배포 관련 문제를 진단할 수 있다.
 >
-> **마지막 검토**: 2026-09-29
+> **마지막 검토**: 2026-10-02
 
 댓글·답글 작성 시 포스트 작성자 또는 원댓글 작성자에게 FCM(Firebase Cloud
 Messaging) 푸시 알림을 전송하는 기능의 전체 구현 내역과 운영 중 마주친 삽질
@@ -193,10 +193,10 @@ sequenceDiagram
 
   alt 포그라운드 (탭 열려 있음)
     PostOwner->>PostOwner: onMessage() → toast
-    Note right of PostOwner: "보러가기" 버튼 클릭 시<br/>navigate('/post/:postId')
+    Note right of PostOwner: "보러가기" 버튼 클릭 시<br/>navigate('/post/:postId#comment-:commentId')
   else 백그라운드 / 탭 닫힘
     PostOwner->>PostOwner: SW onBackgroundMessage()<br/>→ showNotification()
-    Note right of PostOwner: 클릭 시 /post/:postId 이동<br/>이미 탭 열려 있으면 focus,<br/>없으면 openWindow
+    Note right of PostOwner: 클릭 시 /post/:postId#comment-:commentId 이동<br/>이미 탭 열려 있으면 focus,<br/>없으면 openWindow
   end
 ```
 
@@ -533,7 +533,7 @@ FCM 메시지의 `data` 페이로드는 이 기능 전체를 관통하는 계약
 | ----------- | ---------------------- | ---------------------------- | --------------------------------------------------------------- |
 | `type`      | `'COMMENT' \| 'REPLY'` | `FcmNotificationService`(BE) | FE는 현재 안 씀(향후 알림 타입별 분기에 쓸 수 있음)             |
 | `postId`    | 게시글 UUID 문자열     | 〃                           | FE `onMessage`/SW `notificationclick` — `/post/{postId}` 딥링크 |
-| `commentId` | 댓글 UUID 문자열       | 〃                           | FE는 현재 안 씀                                                 |
+| `commentId` | 댓글 UUID 문자열       | 〃                           | 딥링크 해시 `#comment-{commentId}`(2026-10-02~)                 |
 
 FE 쪽에서 토큰 등록에 필요한 상태는 `useAuthStore`(Zustand)의 `accessToken`
 필드 하나뿐이다 — `getAccessTokenFromStore()`(`fcm.ts`)가 React 렌더 사이클과

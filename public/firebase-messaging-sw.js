@@ -37,13 +37,17 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// 알림 클릭 시 해당 포스트 페이지로 이동
+// 알림 클릭 시 해당 포스트 페이지의 그 댓글 위치로 이동
+// (#comment-<id> 해시는 "내 댓글"에서 들어올 때와 같은 CommentList의 해시 스크롤·강조를 탄다)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   const data = event.notification.data ?? {};
   const postId = data.postId;
-  const targetUrl = postId ? `${self.location.origin}/post/${postId}` : self.location.origin;
+  const commentHash = data.commentId ? `#comment-${data.commentId}` : '';
+  const targetUrl = postId
+    ? `${self.location.origin}/post/${postId}${commentHash}`
+    : self.location.origin;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
