@@ -1,4 +1,7 @@
 ### 2026-10-02 (FE)
+- 댓글 및 답글 알림 클릭 시 해당 위치로 자동 스크롤 이동 기능 구현 ([#297](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/297))
+
+### 2026-10-02 (FE)
 - 댓글 내 첨부 이미지 렌더링 오류 수정 ([#296](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/296))
 
 ### 2026-10-02 (FE)
