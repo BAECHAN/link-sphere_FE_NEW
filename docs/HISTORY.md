@@ -1,3 +1,8 @@
+### 2026-10-03 (FE)
+- API 요청 한도 초과(429) 및 WAF 차단 시 예외 처리 로직 개선
+로그:
+- fix(api): 요청 한도 초과(429) 안내 토스트, 429·WAF 차단은 쿼리 재시도 안 함 ([#300](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/300))
+
 ### 2026-10-03 (BE)
 - 게시글 API 성능 최적화 및 안정성 강화 ([#61](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/61))
   - 고비용 엔드포인트 요청 한도 설정 및 검색 랭킹 강등 로직 구현
