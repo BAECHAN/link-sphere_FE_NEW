@@ -89,9 +89,63 @@ test.describe('게시글 등록', () => {
     await page.getByLabel(/^URL/).fill(NEW_URL);
     await page.getByRole('button', { name: TEXTS.post.form.create.submit }).click();
 
-    await expect(page.getByText(TEXTS.messages.error.postCreateFailed)).toBeVisible();
+    // 토스트가 아니라 버튼 위 안내(FormAlert, role=alert)에 남는다(PostUtil.resolveSubmitError)
+    await expect(page.getByRole('alert')).toContainText(
+      TEXTS.messages.error.postSubmit.createFailed
+    );
     await expect(page).toHaveURL(/\/post\/submit$/);
     await expect(page.getByLabel(/^URL/)).toHaveValue(NEW_URL);
     await expect(page.getByRole('button', { name: TEXTS.post.form.create.submit })).toBeEnabled();
+  });
+
+  test('도메인을 찾을 수 없으면 URL 칸 아래에 고칠 수 있는 안내가 뜨고, URL을 고치면 사라진다', async ({
+    page,
+  }) => {
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.post.base),
+      async (route) => {
+        if (route.request().method() === 'POST') {
+          return route.fulfill({
+            status: 400,
+            json: { status: 400, code: 'URL_UNRESOLVABLE', message: 'Cannot resolve host' },
+          });
+        }
+        return route.fulfill({ json: wrapResponse(mockPostListResponse) });
+      }
+    );
+
+    await page.goto('/post/submit');
+    await page.getByLabel(/^URL/).fill(NEW_URL);
+    await page.getByRole('button', { name: TEXTS.post.form.create.submit }).click();
+
+    await expect(page.getByText(TEXTS.messages.error.postSubmit.urlUnresolvable)).toBeVisible();
+    await expect(page.getByRole('alert')).toHaveCount(0);
+
+    await page.getByLabel(/^URL/).fill(`${NEW_URL}-fixed`);
+    await expect(page.getByText(TEXTS.messages.error.postSubmit.urlUnresolvable)).toHaveCount(0);
+  });
+
+  test('요청 한도를 넘으면 Retry-After를 분으로 바꿔 버튼 위에 안내한다', async ({ page }) => {
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.post.base),
+      async (route) => {
+        if (route.request().method() === 'POST') {
+          return route.fulfill({
+            status: 429,
+            headers: { 'Retry-After': '900' },
+            json: { status: 429, code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests' },
+          });
+        }
+        return route.fulfill({ json: wrapResponse(mockPostListResponse) });
+      }
+    );
+
+    await page.goto('/post/submit');
+    await page.getByLabel(/^URL/).fill(NEW_URL);
+    await page.getByRole('button', { name: TEXTS.post.form.create.submit }).click();
+
+    await expect(page.getByRole('alert')).toContainText(
+      TEXTS.messages.error.postSubmit.rateLimitedIn(15)
+    );
   });
 });

@@ -91,6 +91,16 @@ function parseErrorResponseBody(status: number, text: string): ApiErrorResponse 
   }
 }
 
+// Retry-After는 초 단위 정수이거나 HTTP-date일 수 있다(RFC 9110 §10.2.3). 우리 BE는 초 단위만
+// 보내므로(GlobalExceptionHandler) 그것만 읽고, 그 외 형식은 무시한다.
+function parseRetryAfterSeconds(value: string | null): number | undefined {
+  if (!value || !/^\d+$/.test(value.trim())) {
+    return undefined;
+  }
+
+  return Number(value.trim());
+}
+
 /**
  * API 클라이언트 - fetch 기반
  */
@@ -274,7 +284,11 @@ class ApiClient {
 
         // 2. 403 Forbidden / 404 Not Found 및 기타 에러
         // 사용자 토스트는 React Query 전역 핸들러가 담당
-        throw new ApiError(errorResponse);
+        const error = new ApiError(errorResponse);
+        // 429면 "약 N분 뒤 다시"를 안내할 수 있게 Retry-After(초)를 함께 넘긴다. API는 같은
+        // 출처(CloudFront 한 도메인)라 CORS 노출 헤더 설정 없이도 읽힌다.
+        error.retryAfterSeconds = parseRetryAfterSeconds(response.headers.get('Retry-After'));
+        throw error;
       }
 
       // 204 No Content 또는 Content-Length가 0인 경우 빈 객체 반환

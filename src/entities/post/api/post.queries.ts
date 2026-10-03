@@ -28,12 +28,14 @@ import {
 import { POST_PAGE_SIZE } from '@/entities/post/config/post.const';
 import {
   bookmarkFolderKeys,
+  handleBookmarkFolderDeleteSuccess,
   handleBookmarkToggleSuccess,
   handlePostContentUpdateSuccess,
   handlePostDeleteSuccess,
   BookmarkFolderListResponse,
 } from '@/entities/bookmark/folder/@x/post';
-import { PaginationRequest } from '@/shared/types/common.type';
+import { ApiError, PaginationRequest } from '@/shared/types/common.type';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 
 /**
  * 새 글 1개만큼 뒤 페이지들이 실제로는 한 칸씩 밀렸는데 여기서 그 재계산은 할 수
@@ -73,9 +75,23 @@ export const useCreatePostMutation = () => {
     mutationFn: async (payload: CreatePost) => {
       return await postApi.createPost(payload);
     },
+    // 실패 안내는 useCreatePost가 원인별로 입력칸·폼 안내에 직접 띄운다(PostUtil.resolveSubmitError) -
+    // 전역 토스트까지 뜨면 같은 실패가 두 번 보인다.
     meta: {
       successMessage: TEXTS.messages.success.postCreated,
-      errorMessage: TEXTS.messages.error.postCreateFailed,
+      manualErrorHandling: true,
+    },
+    onError: (error, variables) => {
+      // 고른 북마크 폴더가 그사이 삭제됐거나 내 폴더가 아니다(폴더를 고른 등록의 FORBIDDEN) -
+      // 폴더 목록이 옛 상태면 다시 골라도 같은 폴더가 보인다. 분류 기준은 PostUtil.resolveSubmitError와 같다.
+      const isFolderMissing =
+        error instanceof ApiError &&
+        (error.code === SERVER_ERROR_CODE.FOLDER_NOT_FOUND ||
+          (error.code === SERVER_ERROR_CODE.FORBIDDEN && variables.folderIds.length > 0));
+
+      if (isFolderMissing) {
+        handleBookmarkFolderDeleteSuccess(queryClient);
+      }
     },
     onSuccess: async (created, variables) => {
       // useCreatePost.onSubmit이 mutate 완료를 기다리지 않고 즉시 피드로 navigate하므로,
@@ -328,9 +344,10 @@ export const useUpdatePostMutation = (postId: string) => {
     mutationFn: async (payload: UpdatePost) => {
       return await postApi.updatePost(postId, payload);
     },
+    // 실패 안내는 useUpdatePost가 원인별로 직접 띄운다(useCreatePostMutation과 같은 이유).
     meta: {
       successMessage: TEXTS.messages.success.postUpdated,
-      errorMessage: TEXTS.messages.error.postUpdateFailed,
+      manualErrorHandling: true,
     },
     onSuccess: (updated) => {
       // 서버가 반환한 수정본을 캐시에 직접 반영 → 목록 재진입 시 옛 데이터 잔상 방지

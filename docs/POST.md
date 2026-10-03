@@ -109,8 +109,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 | 동작      | 화면을 먼저 바꾸나                 | 성공 시 캐시 처리                                           | 실패 시                   |
 | --------- | ---------------------------------- | ----------------------------------------------------------- | ------------------------- |
-| 작성      | 아니요(폼에서 응답 대기)           | 필터 없는 목록 page 0 맨 앞에 끼워 넣기 → 모든 목록 무효화  | 전역 에러 토스트, 폼 유지 |
-| 수정      | 아니요(폼에서 응답 대기)           | 상세 `setQueryData` + 목록 직접 교체(direct patch) → 무효화 | 전역 에러 토스트, 폼 유지 |
+| 작성      | 아니요(폼에서 응답 대기)           | 필터 없는 목록 page 0 맨 앞에 끼워 넣기 → 모든 목록 무효화  | 원인별 안내, 폼 유지      |
+| 수정      | 아니요(폼에서 응답 대기)           | 상세 `setQueryData` + 목록 직접 교체(direct patch) → 무효화 | 원인별 안내, 폼 유지      |
 | 삭제      | 예(목록·북마크 폴더 캐시에서 제거) | 북마크 폴더 목록·게시글 무효화                              | 스냅샷 롤백 + 에러 토스트 |
 | 좋아요    | 예(상세·모든 목록 토글)            | 없음                                                        | 스냅샷 롤백, 토스트 없음  |
 | 공개 전환 | 아니요                             | 방향별 토스트 → 상세·목록·북마크 폴더 게시글 무효화         | 전역 에러 토스트          |
@@ -216,7 +216,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
    - `createPost(...)`(`mutateAsync`)의 **응답을 기다린다**. 그동안 버튼은 비활성 + "등록 중..."
      (`CreatePostForm.tsx`, FE-ARCHITECTURE §10-A "저장 중 라벨"). 성공하면 `clearNow()`로 이탈
      가드 해제 → 폼 리셋 → `/post`로 **replace** 이동. 실패하면 아무것도 하지 않아 입력·이탈
-     가드가 그대로 남고, 에러 토스트는 전역 핸들러가 1개 띄운다. BE가 크롤링을 동기로 하지만
+     가드가 그대로 남고, 실패 원인은 7번 방식으로 안내한다. BE가 크롤링을 동기로 하지만
      실측 중앙값 2.7초라 기다리게 한다(근거·이전 방식과의 비교는 [`DECISIONS.md`](./DECISIONS.md)
      2026-10-03). 탭을 닫아도 요청이 끝까지 가도록 `keepalive`(`post.api.ts:21-27`).
 4. 성공 시(`post.queries.ts:80-107`, entity 레벨이라 폼이 언마운트돼도 실행된다):
@@ -230,13 +230,26 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
      (`listRoot`)을 무효화한다 — 필터 없는 목록은 끼워 넣은 덕에 재조회 전에도 이미 새 글을
      보여주고, 필터 목록은 이 재조회로 갱신된다. 북마크를 같이 골랐으면 `handleBookmarkToggleSuccess`로 폴더
      카운트·폴더 게시글도 무효화.
-   - 성공·실패 토스트는 `meta.successMessage`/`errorMessage`로 전역 핸들러가 띄운다.
+   - 성공 토스트는 `meta.successMessage`로 전역 핸들러가 띄운다. 실패는 `manualErrorHandling`이라
+     전역 토스트가 뜨지 않고 7번 방식으로 안내한다. 고른 폴더가 사라진 실패(`FOLDER_NOT_FOUND`)면
+     폴더 목록을 무효화해 다시 고를 때 사라진 폴더가 안 보이게 한다.
 5. **진행 표시**: 제출 버튼의 "등록 중..." 라벨이 맡는다. `src/app/ui/PostMutationLoadingToast.tsx`
    (하단 진행 토스트)는 2026-10-03부터 작성·수정을 관찰하지 않고 계정 수정만 남았다 — 폼이 화면에
    남아 있어 버튼 라벨과 겹치기 때문이다. 토스트 방식이 처음 생긴 근거는 `docs/DECISIONS.md`
    2026-08-13 항목.
 6. 모바일에서는 제출 버튼이 하단 탭바 바로 위에 고정된 바로 뜨고, 토스트가 그 위로 오도록
    `--toast-offset-bottom`을 조정한다(`CreatePostForm.tsx:48-85`, `:122-145`).
+7. **실패 원인 안내**(2026-10-03): `PostUtil.resolveSubmitError`(`entities/post/utils/post.util.ts`)가
+   실패를 둘로 나눈다. 서버 message(영어·내부 문구)는 노출하지 않고 code·status로만 판정한다.
+   - 입력칸을 고치면 해결되는 것 → 그 칸 아래 에러(`form.setError(..., { type: 'server' })` + 포커스):
+     도메인 없음(`URL_UNRESOLVABLE`), 내부망(`URL_NOT_ALLOWED`), 형식(`INVALID_URL`), 폴더 사라짐
+     (`FOLDER_NOT_FOUND`, 폴더를 고른 등록의 `FORBIDDEN`).
+   - 그 외 → 버튼 바로 위 `FormAlert`(`shared/ui/elements/FormAlert.tsx`, `role="alert"`): 요청 한도
+     (429, `Retry-After`를 분으로 올림), 네트워크, 응답 지연(504 — 이미 저장됐을 수 있어 "피드에서
+     확인하기" 링크), 이메일 미인증, WAF 차단, 그 외. 모바일에선 하단 고정 바 안 버튼 위에 붙는다.
+   - 사용자가 아무 값이나 고치면 안내와 서버 칸 에러가 지워진다(`clearSubmitErrorsOnEdit`).
+   - 대가: 저장 중 이탈 확인창에서 "나가기"를 골라 폼이 먼저 사라지면 실패가 안 보인다(드묾).
+   - 표시 위치·박스 모양 결정 근거는 [`DECISIONS.md`](./DECISIONS.md) 2026-10-03 "실패 원인 노출" 항목.
 
 ### 수정
 
@@ -390,16 +403,16 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                      | 방법                                                                                                                                                                          |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 한 번에 가져오는 게시글 수 변경   | `post.const.ts`의 `POST_PAGE_SIZE`. 북마크 폴더 목록도 `@x/bookmark.ts`로 같은 값을 쓰므로 함께 바뀐다                                                                        |
-| 무한 스크롤을 더 일찍/늦게 시작   | `usePostList.ts:16`의 `PREFETCH_ROW_LOOKAHEAD`                                                                                                                                |
-| 카드 최소 폭·최대 열 수 변경      | `post-card-grid.const.ts`의 `POST_CARD_GRID`(피드·북마크 목록과 스켈레톤이 페이지를 거쳐 같은 값을 받는다). 푸터 줄바꿈 회귀는 `e2e/post-card-footer-layout.spec.ts`가 잡는다 |
-| 폼 필드 추가                      | `post.schema.ts`의 `createPostSchema`/`updatePostSchema` + `useCreatePost`의 `DEFAULT_VALUES`·`useUpdatePost`의 `form.reset` + 폼 UI + BE 요청 DTO                            |
-| 새 mutation 뒤에 post 캐시 갱신   | 자기 엔티티 `.keys.ts`에 `handle<Event>Success`를 만들고 그 안에서 `postInvalidateQueries.*`를 `@x/<엔티티>.ts` 경유로 호출(§6 표 참고)                                       |
-| 카드에 소유자 전용 메뉴 항목 추가 | `PostCard.tsx`의 `HoverKebabMenu` 안 + 동작은 `usePostCard.ts`                                                                                                                |
-| 등록·수정 성공/실패 문구 변경     | `TEXTS.messages.success.postCreated`·`postUpdated`, `TEXTS.messages.error.postCreateFailed` 등(`src/shared/config/texts.ts`)                                                  |
-| 테스트 실행                       | `npx vitest run src/entities/post src/entities/interaction src/features/post src/widgets/post`                                                                                |
+| 하고 싶은 것                      | 방법                                                                                                                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 한 번에 가져오는 게시글 수 변경   | `post.const.ts`의 `POST_PAGE_SIZE`. 북마크 폴더 목록도 `@x/bookmark.ts`로 같은 값을 쓰므로 함께 바뀐다                                                                         |
+| 무한 스크롤을 더 일찍/늦게 시작   | `usePostList.ts:16`의 `PREFETCH_ROW_LOOKAHEAD`                                                                                                                                 |
+| 카드 최소 폭·최대 열 수 변경      | `post-card-grid.const.ts`의 `POST_CARD_GRID`(피드·북마크 목록과 스켈레톤이 페이지를 거쳐 같은 값을 받는다). 푸터 줄바꿈 회귀는 `e2e/post-card-footer-layout.spec.ts`가 잡는다  |
+| 폼 필드 추가                      | `post.schema.ts`의 `createPostSchema`/`updatePostSchema` + `useCreatePost`의 `DEFAULT_VALUES`·`useUpdatePost`의 `form.reset` + 폼 UI + BE 요청 DTO                             |
+| 새 mutation 뒤에 post 캐시 갱신   | 자기 엔티티 `.keys.ts`에 `handle<Event>Success`를 만들고 그 안에서 `postInvalidateQueries.*`를 `@x/<엔티티>.ts` 경유로 호출(§6 표 참고)                                        |
+| 카드에 소유자 전용 메뉴 항목 추가 | `PostCard.tsx`의 `HoverKebabMenu` 안 + 동작은 `usePostCard.ts`                                                                                                                 |
+| 등록·수정 성공/실패 문구 변경     | `TEXTS.messages.success.postCreated`·`postUpdated`, 실패 원인별 문구는 `TEXTS.messages.error.postSubmit.*`(`src/shared/config/texts.ts`), 분류는 `PostUtil.resolveSubmitError` |
+| 테스트 실행                       | `npx vitest run src/entities/post src/entities/interaction src/features/post src/widgets/post`                                                                                 |
 
 ## 9. 검증 결과
 

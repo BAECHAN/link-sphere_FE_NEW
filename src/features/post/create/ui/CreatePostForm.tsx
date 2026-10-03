@@ -15,6 +15,9 @@ import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { FormAlert } from '@/shared/ui/elements/FormAlert';
+import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { Link } from 'react-router-dom';
 
 // BottomTabBar(h-16 + safe-area)와 동일한 기준으로 그 위에 떠 있는다(MobileCommentBar.tsx 참고).
 const TAB_BAR_RESERVE = 'calc(4rem + env(safe-area-inset-bottom))';
@@ -26,7 +29,7 @@ interface CreatePostFormProps {
 }
 
 export function CreatePostForm({ renderFolderSelect }: CreatePostFormProps) {
-  const { form, onSubmit, isCreating } = useCreatePost();
+  const { form, onSubmit, isCreating, submitError } = useCreatePost();
   const { categoryOptionList } = useCategoryOptions();
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -130,11 +133,24 @@ export function CreatePostForm({ renderFolderSelect }: CreatePostFormProps) {
               <div
                 ref={barRef}
                 className={cn(
-                  'fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-panel border-t bg-background px-4 py-2',
+                  'fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-panel flex flex-col gap-2 border-t bg-background px-4 py-2',
                   'md:static md:border-0 md:bg-transparent md:p-0',
                   isMobileSearchOpen && 'hidden'
                 )}
               >
+                {submitError && (
+                  <FormAlert>
+                    {submitError.message}
+                    {submitError.action === 'checkFeed' && (
+                      <>
+                        {' '}
+                        <Link to={ROUTES_PATHS.POST.ROOT} className="underline underline-offset-2">
+                          {TEXTS.messages.error.postSubmit.checkFeed}
+                        </Link>
+                      </>
+                    )}
+                  </FormAlert>
+                )}
                 <TooltipWrapper
                   content={
                     !isDirty

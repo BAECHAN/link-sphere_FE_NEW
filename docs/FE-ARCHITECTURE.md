@@ -1000,6 +1000,12 @@ const { mutate } = useMutation({
 });
 ```
 
+**실제 선례**: 게시글 등록·수정(`useCreatePostMutation`·`useUpdatePostMutation`은
+`manualErrorHandling`, 분류는 `entities/post/utils/post.util.ts`의 `PostUtil.resolveSubmitError`,
+표시는 `useCreatePost`·`useUpdatePost`). 서버 code로 고칠 수 있는 입력칸이면 `form.setError(..., { type:
+'server' })`, 아니면 제출 버튼 위 `FormAlert`(`shared/ui/elements/FormAlert.tsx`)에 남긴다
+(`docs/POST.md` §5 작성 7번, 2026-10-03).
+
 ---
 
 ## 14. Toast 알림 (Sonner)

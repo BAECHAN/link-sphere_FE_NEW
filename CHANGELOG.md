@@ -11,6 +11,23 @@
 
 ### Changed
 
+- `post` 등록·수정 실패 원인을 입력칸 또는 버튼 위 안내로 보여줌(토스트 대신)
+  <details><summary>배경·구현</summary>
+
+  실패가 "포스트 생성에 실패했어요." 토스트 하나로만 보여 무엇을 고쳐야 할지 알 수 없었다.
+  `PostUtil.resolveSubmitError`가 서버 code·status로 나눈다.
+  - 고칠 수 있는 실패: 그 입력칸 아래 에러. 도메인 없음, 내부망, URL 형식, 사라진 폴더.
+  - 그 외: 버튼 위 `FormAlert`(신규 공용 컴포넌트, 스토리 포함). 요청 한도(`Retry-After`를 분으로),
+    네트워크, 응답 지연(피드 확인 링크), 이메일 미인증, WAF 차단.
+
+  등록·수정 mutation은 전역 토스트를 끄고(`manualErrorHandling`) 훅이 직접 안내한다. 사라진 폴더면
+  폴더 목록을 다시 불러온다. `client.ts`는 429의 `Retry-After`를 `ApiError.retryAfterSeconds`에 담는다.
+  근거와 시안 비교는 `docs/DECISIONS.md` 2026-10-03 "실패 원인 노출" 항목.
+  (`post.util.ts`·`FormAlert.tsx`(신규), `useCreatePost.ts`, `useUpdatePost.ts`, `CreatePostForm.tsx`,
+  `UpdatePostForm.tsx`, `post.queries.ts`, `client.ts`, `error-code.ts`, `texts.ts`)
+
+  </details>
+
 - `post` 게시글 등록·수정이 응답을 기다렸다가 이동, 실패하면 입력을 그대로 남김
   <details><summary>배경·구현</summary>
 
