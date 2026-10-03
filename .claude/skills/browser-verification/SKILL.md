@@ -71,7 +71,71 @@ dev 서버가 mkcert 자체서명 HTTPS(`https://localhost:31119`)라서 필요�
      북마크 추가 등으로 실제 데이터를 만들어둔다(2026-09-14, 북마크가 0개인 계정에서
      폴더 제목 폰트 크기를 "전체"라는 기본값으로만 검증했다가 "북마크가 실제로 있어야
      제목을 영상에서 볼 수 있다"는 지적을 받고 재녹화했다).
-5. `browser_stop_video`
+5. 마지막 결과 화면에서 **2~3초 머문 뒤** `browser_stop_video` — 아래 "마지막 화면 붙잡기" 참고
+
+## 모킹 녹화 — 운영 데이터를 쓰거나 실패 상태를 보여줘야 할 때
+
+dev 서버의 `/api`는 운영 BE로 프록시된다(`vite.config.ts`). 그래서 위 MCP 절차로 등록·수정·삭제를
+녹화하면 **운영 DB에 실제 글이 생긴다**. 429·500·504처럼 운영에서 일부러 일으킬 수 없는 실패 화면도
+위 절차로는 찍을 수 없다. 이런 흐름은 MCP 대신 **녹화 전용 Playwright 스펙**으로 찍는다.
+
+e2e(`e2e/`)의 모킹 도구(`installCatchAll`·`mockAuthRefresh`·`mockAccountQuery`·`isApiPath`·
+`wrapResponse`)를 그대로 쓴다. 캐치올이 모킹하지 않은 `/api` 요청을 막으므로 운영으로 새지 않는다.
+로그인 계정도 필요 없다.
+
+1. gitignore된 `.claude/browser-artifacts/`에 설정과 스펙을 둔다(레포에 커밋하지 않는다).
+
+   ```ts
+   // .claude/browser-artifacts/verify.playwright.config.ts
+   import base from '../../playwright.config';
+   import path from 'node:path';
+   import { fileURLToPath } from 'node:url';
+
+   // ESM이라 __dirname이 없다
+   const here = path.dirname(fileURLToPath(import.meta.url));
+
+   export default {
+     ...base,
+     testDir: here,
+     testMatch: 'verify-*.spec.ts',
+     outputDir: path.join(here, 'verify-<YYYY-MM-DD>-<slug>'),
+     reporter: 'list',
+     workers: 1,
+     use: {
+       ...base.use,
+       video: { mode: 'on', size: { width: 1280, height: 800 } },
+       viewport: { width: 1280, height: 800 },
+     },
+     webServer: { ...base.webServer, cwd: path.resolve(here, '../..') },
+   };
+   ```
+
+2. 스펙(`verify-<slug>.spec.ts`)은 `e2e/post-create.spec.ts`처럼 `beforeEach`에서 캐치올과 인증
+   모킹을 깔고, 시나리오마다 `test` 하나를 만든다. 테스트 이름은 `1-<짧은설명>`처럼 번호를 붙여
+   사용자에게 제시한 항목 순서와 맞춘다(위 "호출 순서" 4번과 같은 이유).
+   - 응답을 `setTimeout`으로 1초 남짓 늦춰 로딩 상태가 영상에 보이게 한다.
+   - 입력은 `fill` 대신 `pressSequentially(값, { delay: 30 })`로 해야 타이핑이 보인다.
+   - 모바일은 `test.describe` 안에서 `test.use(devices['Pixel 5'])`를 그대로 쓰면 거부된다
+     (`defaultBrowserType`이 섞여서). `viewport`·`userAgent`·`hasTouch`·`isMobile`·
+     `deviceScaleFactor`만 골라 넘긴다.
+   - 모킹이 요청 값과 상관없이 같은 응답을 돌려주면 "엉뚱한 값으로 요청했다" 같은 버그가 영상에
+     안 드러난다. 요청 URL·횟수가 중요하면 `page.on('request')`로 모아 단정한다(2026-10-03, 수정
+     폼이 원래 URL로 미리보기를 한 번 더 요청하던 버그를 녹화가 못 잡고 단위 테스트가 잡았다).
+3. 실행: `E2E_SERVER_PORT=$(node scripts/pick-e2e-port.js) npx playwright test -c .claude/browser-artifacts/verify.playwright.config.ts --project chromium`
+
+## 마지막 화면 붙잡기
+
+결과(토스트·에러 문구·이동한 화면)가 뜨자마자 녹화를 끝내면 영상이 그 직전에 잘려 사용자가 결과를
+못 본다(2026-10-03, "실패하면 에러 토스트 뜨는 게 안 보인다"는 지적). 결과를 단정한 뒤 2~3초
+(`page.waitForTimeout(2500)`) 머물고 끝낸다.
+
+보여주기 전에 마지막 프레임을 직접 확인한다 — 단정이 통과해도 화면이 기대와 다를 수 있다.
+
+```bash
+ffmpeg -loglevel error -y -sseof -1 -i <영상>.webm -frames:v 1 <영상>-last.png
+```
+
+이 PNG를 Read로 열어 본다. PNG도 같은 폴더(`.claude/browser-artifacts/`)에 둔다.
 
 ## 다 만든 뒤
 
@@ -79,11 +143,17 @@ dev 서버가 mkcert 자체서명 HTTPS(`https://localhost:31119`)라서 필요�
   않는다.** `SendUserFile`의 인라인 렌더 카드는 클라이언트에 따라 눈에 잘 안 띌 수
   있다(2026-09-14, VSCode 확장 환경에서 실제로 이 문제가 재발했다). 사용자가 카드를
   찾아 헤매지 않도록 절대경로를 코드 블록으로 병기한다.
-- 그 경로를 마크다운 링크로도 남겨 IDE에서 클릭 한 번에 새 탭으로 열리게 한다
-  (`[verify-....webm](.claude/worktrees/<워크트리명>/.claude/browser-artifacts/verify-....webm)`,
-  워크트리 세션의 "VSCode Extension Context" 안내대로 워크스페이스 루트 기준 상대경로).
-  Cursor 세션이면 대신 `cursor <경로>`로 직접 열어도 된다 — 어느 쪽이든 사용자가 파일을
-  검색하게 만들지 않는 것이 목적이다.
+- **사용자가 묻기 전에 영상을 에디터에서 직접 열어준다.** Playwright 기본 출력 폴더명은 한글·
+  `⋮`·`→`가 섞인 긴 테스트 제목이라 마크다운 링크가 잘 안 열린다. 같은 폴더 안에
+  `1-<짧은설명>.webm`처럼 짧은 이름으로 **복사**한 뒤 연다(2026-10-03, 링크만 주고 끝내 사용자가
+  매번 다시 요청해야 했다).
+  - macOS: `open -a Cursor <절대경로...>`(VS Code면 `open -a "Visual Studio Code"`). 파일 여러 개를
+    한 번에 넘길 수 있다.
+  - `cursor`·`code` 명령은 쓰지 않는다. PATH에 있더라도 에디터 CLI라는 보장이 없다(실제로 같은
+    이름의 다른 Node 스크립트가 잡혀 `ERR_UNKNOWN_FILE_EXTENSION`으로 실패한 머신이 있었다).
+- 연 뒤에도 짧은 이름 파일을 마크다운 링크로 남긴다
+  (`[1-....webm](.claude/worktrees/<워크트리명>/.claude/browser-artifacts/<폴더>/1-....webm)`,
+  워크스페이스 루트 기준 상대경로). 대화에는 파일마다 "무엇을 확인하면 되는지" 한 줄을 붙인다.
 - 사용자가 보고 승인한 뒤에만 커밋으로 넘어간다 — 승인 없이 먼저 커밋하지 않는다
 - 이상이 보이면 코드를 고치고 처음부터 다시 녹화한다. 실패 지점만 잘라 보여주지 않는다
   — 영상은 검증의 증거이지 검증 자체를 대체하지 않는다
@@ -95,7 +165,7 @@ dev 서버가 mkcert 자체서명 HTTPS(`https://localhost:31119`)라서 필요�
   `/tmp` 등으로 옮기는 것도 포함. 여기가 이미 gitignore·`--output-dir`로 정해둔 정위치다
   (2026-09-11, 이 규칙이 없어 세션이 결과물을 스크래치패드로 옮겼다가 사용자에게
   "왜 로컬로 보내냐, 원래 워크트리에서 관리하지 않았냐"는 지적을 받았다). 사용자에게
-  보여줄 때는 `SendUserFile`로 전달하거나 `cursor <경로>`로 그 자리에서 열면 된다
+  보여줄 때는 위 "다 만든 뒤"처럼 같은 폴더 안에서 짧은 이름으로 복사해 에디터로 연다
 - PR 본문에 남길 가치가 있는 영상만 직접 첨부한다(GitHub은 `.webm`을 PR에 그대로
   임베드한다, 무료 플랜 기준 파일당 10MB 한도)
 
