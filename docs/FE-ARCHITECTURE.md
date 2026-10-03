@@ -139,7 +139,7 @@ src/
 │   │   └── layouts/              # AppShellLayout, ProtectedLayout, PublicLayout, RootLayout
 │   ├── layouts/
 │   │   └── app-layout/           # AppLayout — nav shell. app/routes/layouts/AppShellLayout.tsx가 감싸 렌더
-│   └── ui/                       # PostMutationLoadingToast — post/account 뮤테이션 진행 상태
+│   └── ui/                       # PostMutationLoadingToast — 계정 수정 뮤테이션 진행 상태
 │                                 # 헤드리스 옵저버(여러 entities를 알아야 해서 app에 위치)
 │
 ├── pages/                        # 라우팅 진입점 — widgets/features 조합. hooks/ 세그먼트만 허용
@@ -776,12 +776,10 @@ Android([Material Design 3](https://m3.material.io/components/dialogs/guidelines
 바꾼다(`TEXTS.common.saving`/`submitting`/`updating` 재사용, 없으면 해당 도메인에 새로
 추가). 사용자가 클릭이 실제로 접수됐는지 알 수 있어야 한다.
 
-**예외**: 게시글 작성/수정(`CreatePostForm`·`UpdatePostForm`)은 이 규칙 대상이 **아니다** —
-`onSubmit`이 `mutate()` 호출 직후 바로 `navigate()`로 목록으로 이동해 응답을 기다리지
-않는다(URL 재크롤링·AI 재분석이 느려서 폼에서 기다리지 않기로 한 설계, `useCreatePost.ts`/
-`useUpdatePost.ts` 참고). 컴포넌트가 pending 상태가 되는 시점엔 이미 언마운트돼 있어
-라벨을 바꿔도 사용자 눈에 보일 일이 없다 — 2026-09-29에 이 두 폼에도 라벨 스왑을 넣었다가
-죽은 코드라는 걸 뒤늦게 발견해 되돌렸다(`docs/DECISIONS.md` 참고).
+게시글 작성/수정(`CreatePostForm`·`UpdatePostForm`)도 2026-10-03부터 이 규칙을 따른다 — 그전엔
+응답을 기다리지 않고 바로 목록으로 이동해 라벨을 바꿔도 보일 일이 없어 예외였지만, 실패 시
+입력이 사라지는 문제와 실측 응답 시간(중앙값 2.7초)을 근거로 응답 대기로 바꿨다
+(`docs/DECISIONS.md` 2026-10-03 항목).
 
 **토글 버튼** — 누를 때마다 상태를 뒤집는 버튼(펼침/접힘, 표시/숨김, 테마 전환, 필터 켜기/끄기)은
 `Button` 대신 `ToggleButton`(`src/shared/ui/elements/ToggleButton.tsx`)을 쓴다. 더블클릭하면

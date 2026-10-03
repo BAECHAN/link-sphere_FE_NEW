@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { createTestQueryClient } from '@/test/utils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -7,6 +7,15 @@ import { type ReactNode } from 'react';
 import { useUpdatePost } from '@/features/post/update/hooks/useUpdatePost';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
+import { http, HttpResponse } from 'msw';
+import { server } from '@/mocks/server';
+import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+
+const goBackSpy = vi.fn();
+
+vi.mock('@/shared/hooks/useGoBack', () => ({ useGoBack: () => goBackSpy }));
+
+const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -22,6 +31,7 @@ describe('useUpdatePost', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
+    goBackSpy.mockClear();
     queryClient = createTestQueryClient({ staleTime: Infinity });
     queryClient.setQueryData(postKeys.detail(mockPost.id), mockPost);
   });
@@ -55,5 +65,54 @@ describe('useUpdatePost', () => {
 
     await waitFor(() => expect(result.current.form.getValues('title')).toBe(''));
     expect(result.current.form.getValues('categoryIds')).toEqual([]);
+  });
+
+  it('수정이 성공한 뒤에만 이전 화면으로 돌아간다', async () => {
+    const { result } = renderHook(() => useUpdatePost(mockPost.id), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.form.getValues('url')).toBe(mockPost.url));
+
+    act(() => {
+      result.current.form.setValue('title', '고친 제목', {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    });
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(goBackSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('수정이 실패하면 돌아가지 않고 고친 값을 그대로 남긴다', async () => {
+    server.use(
+      http.patch(url(`${API_ENDPOINTS.post.base}/:id`), () =>
+        HttpResponse.json(
+          { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'boom' },
+          { status: 500 }
+        )
+      )
+    );
+    const { result } = renderHook(() => useUpdatePost(mockPost.id), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.form.getValues('url')).toBe(mockPost.url));
+
+    act(() => {
+      result.current.form.setValue('title', '고친 제목', {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    });
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(goBackSpy).not.toHaveBeenCalled();
+    expect(result.current.form.getValues('title')).toBe('고친 제목');
   });
 });

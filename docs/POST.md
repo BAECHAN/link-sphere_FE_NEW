@@ -24,13 +24,14 @@
 
 ## 1. 쉬운 설명
 
-게시판에 **포스트잇을 붙이는 일**과 비슷하다. 사용자는 링크만 적어 붙이고 곧바로 자리를
-뜬다(등록 화면이 응답을 기다리지 않는다). 직원(BE)이 그 링크를 열어보고 제목·설명을 채워
-넣는 동안, FE는 "등록 중..." 토스트를 띄워 두었다가 결과가 오면 피드 맨 앞에 그 포스트잇을
-직접 끼워 넣는다. AI 요약은 직원이 나중에 따로 적어 넣는 메모라, FE는 그걸 기다리지 않는다 —
+게시판에 **포스트잇을 붙이는 일**과 비슷하다. 사용자가 링크를 적어 내밀면, 직원(BE)이 그
+링크를 열어보고 제목·설명을 채워 넣는 몇 초 동안 사용자는 창구 앞에서 "등록 중..." 버튼을 보며
+기다린다. 다 붙었다는 답이 오면 그때 피드로 돌아가고, FE는 그 포스트잇을 피드 맨 앞에 직접
+끼워 넣는다. 실패하면 적은 내용을 그대로 손에 쥔 채 창구에 남는다(2026-10-03부터 — 그전엔
+링크만 맡기고 곧바로 자리를 떴다). AI 요약은 직원이 나중에 따로 적어 넣는 메모라, FE는 그걸 기다리지 않는다 —
 다음에 목록을 다시 가져올 때 메모가 붙어 있으면 보여줄 뿐이다.
 
-수정도 같은 모양이다(제출 → 즉시 원래 화면으로 복귀 → 응답 오면 캐시 교체). 반대로 **삭제와
+수정도 같은 모양이다(제출 → "수정 중..."으로 응답 대기 → 성공하면 원래 화면으로 복귀 + 캐시 교체). 반대로 **삭제와
 좋아요는 화면을 먼저 바꾸고**(낙관적 업데이트) 서버가 실패하면 되돌린다. 공개/비공개 전환만은
 낙관적이지 않아 서버 응답 뒤 재조회로 반영된다.
 
@@ -42,11 +43,11 @@ flowchart TD
   Detail -->|"404"| NotFound["토스트 + /post로 replace"]
 
   Feed -->|"Submit Link"| Create["작성 /post/submit"]
-  Create -->|"제출(응답 안 기다림)"| CreateReq["POST /post (keepalive)<br/>clearNow·reset<br/>navigate /post replace"]
+  Create -->|"제출 → 버튼 '등록 중...'(응답 대기)"| CreateReq["POST /post (keepalive)<br/>성공 시 clearNow·reset<br/>navigate /post replace<br/>실패 시 폼 유지"]
   CreateReq -->|"성공"| CreateOk["필터 없는 목록 cancelQueries<br/>→ page 0 맨 앞에 끼워 넣고 page 1+ 버림<br/>→ post.list 무효화"]
 
   Feed -->|"⋮ 수정"| Edit["수정 /post/edit/:id<br/>GET /post/{id}로 폼 reset"]
-  Edit -->|"제출(응답 안 기다림)"| EditReq["PATCH /post/{id} (keepalive)<br/>goBack · 카드에 '수정 중' 오버레이"]
+  Edit -->|"제출 → 버튼 '수정 중...'(응답 대기)"| EditReq["PATCH /post/{id} (keepalive)<br/>성공 시 clearNow·goBack<br/>실패 시 폼 유지"]
   EditReq -->|"성공"| EditOk["detail setQueryData<br/>목록 setQueriesData 직접 교체<br/>+ detail·list·북마크 폴더 게시글 무효화"]
 
   Feed -->|"⋮ 삭제 → 확인창"| Del["onMutate: 목록·폴더 캐시에서<br/>즉시 제거·카운트 -1"]
@@ -108,8 +109,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 | 동작      | 화면을 먼저 바꾸나                 | 성공 시 캐시 처리                                           | 실패 시                   |
 | --------- | ---------------------------------- | ----------------------------------------------------------- | ------------------------- |
-| 작성      | 아니요(응답 대기 없이 피드로 이동) | 필터 없는 목록 page 0 맨 앞에 끼워 넣기 → 모든 목록 무효화  | 전역 에러 토스트          |
-| 수정      | 아니요(카드에 "수정 중" 오버레이)  | 상세 `setQueryData` + 목록 직접 교체(direct patch) → 무효화 | 전역 에러 토스트          |
+| 작성      | 아니요(폼에서 응답 대기)           | 필터 없는 목록 page 0 맨 앞에 끼워 넣기 → 모든 목록 무효화  | 전역 에러 토스트, 폼 유지 |
+| 수정      | 아니요(폼에서 응답 대기)           | 상세 `setQueryData` + 목록 직접 교체(direct patch) → 무효화 | 전역 에러 토스트, 폼 유지 |
 | 삭제      | 예(목록·북마크 폴더 캐시에서 제거) | 북마크 폴더 목록·게시글 무효화                              | 스냅샷 롤백 + 에러 토스트 |
 | 좋아요    | 예(상세·모든 목록 토글)            | 없음                                                        | 스냅샷 롤백, 토스트 없음  |
 | 공개 전환 | 아니요                             | 방향별 토스트 → 상세·목록·북마크 폴더 게시글 무효화         | 전역 에러 토스트          |
@@ -184,7 +185,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   한 줄(`:223-231`). **AI 처리 대기 중 표시나 폴링은 없다** — §11.
 - **수정 중 오버레이**: 같은 글의 수정 mutation이 진행 중이면(`useIsMutating`, 500ms 지연 +
   최소 400ms 유지, `usePostCard.ts:46-49`) 내용을 흐리게 하고 "수정 중..." 오버레이로 클릭을
-  막는다(`PostCard.tsx:86`, `:100-105`).
+  막는다(`PostCard.tsx:86`, `:100-105`). 2026-10-03부터 수정 폼이 응답을 기다리므로 평소엔 보일
+  일이 없고, 저장 중에 이탈 확인창에서 "나가기"를 골라 목록으로 먼저 돌아간 경우에만 뜬다.
 
 ### 상세
 
@@ -211,9 +213,12 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 3. 제출(`useCreatePost.ts:36-49`):
    - 계정의 `emailVerified === false`면 서버로 보내지 않고 에러 토스트만 띄운다(BE도 403
      `EMAIL_NOT_VERIFIED`로 막는 이중 방어 — [`AUTH.md`](./AUTH.md) 게이트 D).
-   - `createPost(...)`를 **기다리지 않고** 호출(`mutate`) → `clearNow()`로 이탈 가드 해제 →
-     폼 리셋 → `/post`로 **replace** 이동. 응답이 늦어도(BE가 크롤링을 동기로 수행) 사용자는
-     바로 피드로 돌아간다. 탭을 닫아도 요청이 끝까지 가도록 `keepalive`(`post.api.ts:21-27`).
+   - `createPost(...)`(`mutateAsync`)의 **응답을 기다린다**. 그동안 버튼은 비활성 + "등록 중..."
+     (`CreatePostForm.tsx`, FE-ARCHITECTURE §10-A "저장 중 라벨"). 성공하면 `clearNow()`로 이탈
+     가드 해제 → 폼 리셋 → `/post`로 **replace** 이동. 실패하면 아무것도 하지 않아 입력·이탈
+     가드가 그대로 남고, 에러 토스트는 전역 핸들러가 1개 띄운다. BE가 크롤링을 동기로 하지만
+     실측 중앙값 2.7초라 기다리게 한다(근거·이전 방식과의 비교는 [`DECISIONS.md`](./DECISIONS.md)
+     2026-10-03). 탭을 닫아도 요청이 끝까지 가도록 `keepalive`(`post.api.ts:21-27`).
 4. 성공 시(`post.queries.ts:80-107`, entity 레벨이라 폼이 언마운트돼도 실행된다):
    - 필터 없는 목록 쿼리를 `cancelQueries` — 피드로 이동하자마자 시작된 목록 fetch가 등록
      완료 전 상태로 뒤늦게 응답해 끼워 넣은 값을 덮어쓰는 것을 막는다.
@@ -226,10 +231,10 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
      보여주고, 필터 목록은 이 재조회로 갱신된다. 북마크를 같이 골랐으면 `handleBookmarkToggleSuccess`로 폴더
      카운트·폴더 게시글도 무효화.
    - 성공·실패 토스트는 `meta.successMessage`/`errorMessage`로 전역 핸들러가 띄운다.
-5. **진행 표시**: `src/app/ui/PostMutationLoadingToast.tsx`가 `App.tsx`에 상시 마운트돼
-   작성·수정·계정 수정 mutation을 `useIsMutating`으로 관찰하다가, 500ms를 넘기면 하단에
-   "등록 중..."/"수정 중..." 로딩 토스트를 띄운다(최소 400ms 유지). 상단바 배지에서 이 방식으로
-   바뀐 근거는 `docs/DECISIONS.md` 2026-08-13 항목.
+5. **진행 표시**: 제출 버튼의 "등록 중..." 라벨이 맡는다. `src/app/ui/PostMutationLoadingToast.tsx`
+   (하단 진행 토스트)는 2026-10-03부터 작성·수정을 관찰하지 않고 계정 수정만 남았다 — 폼이 화면에
+   남아 있어 버튼 라벨과 겹치기 때문이다. 토스트 방식이 처음 생긴 근거는 `docs/DECISIONS.md`
+   2026-08-13 항목.
 6. 모바일에서는 제출 버튼이 하단 탭바 바로 위에 고정된 바로 뜨고, 토스트가 그 위로 오도록
    `--toast-offset-bottom`을 조정한다(`CreatePostForm.tsx:48-85`, `:122-145`).
 
@@ -244,8 +249,9 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   가져오고, 못 가져오면 기존 제목 유지" 안내(`UpdatePostForm.tsx:26-28`, `:48`, `:57`). 제목만
   비운 재수집이 다른 필드를 덮지 않는 BE 정책은 `docs/DECISIONS.md` 2026-09-08 "제목 비움
   재수집" 항목.
-- 제출(`:68-73`)은 작성과 같이 **기다리지 않고** `updatePost` → `clearNow()` → `goBack()`(들어온
-  화면으로, 목록 스크롤 유지). `keepalive`도 같다(`post.api.ts:69-75`).
+- 제출(`onSubmit`)은 작성과 같이 **응답을 기다린다**(버튼 "수정 중..."). 성공하면 `clearNow()` →
+  `goBack()`(들어온 화면으로, 목록 스크롤 유지), 실패하면 고친 내용과 이탈 가드를 그대로 남긴다.
+  `keepalive`도 같다(`post.api.ts:69-75`).
 - 성공 시(`post.queries.ts:335-356`): 서버가 돌려준 수정본으로 detail을 `setQueryData`, 모든
   목록 캐시에서 그 글을 `setQueriesData`로 **직접 교체**한 뒤, `handlePostUpdateSuccess`(detail +
   list 무효화)와 `handlePostContentUpdateSuccess`(북마크 폴더별 게시글 무효화)를 부른다. 직접
@@ -307,16 +313,16 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 ### 쿼리 키(`src/entities/post/api/post.keys.ts`)
 
-| 키                                      | 값                                  | 쓰는 곳                                          |
-| --------------------------------------- | ----------------------------------- | ------------------------------------------------ |
-| `postKeys.root`                         | `['post']`                          | 전체 무효화(`postInvalidateQueries.all`)         |
-| `postKeys.listRoot`                     | `['post', 'list']`                  | 모든 피드 목록에 한꺼번에 패치·취소·무효화       |
-| `postKeys.list(filters)`                | `['post', 'list', { search, ... }]` | 필터 조합마다 별도 무한 쿼리 캐시                |
-| `postKeys.detail(id)`                   | `['post', 'detail', id]`            | 상세·수정 폼·프리페치                            |
-| `postMutationKeys.create`               | `['post', 'create']`                | 진행 토스트 관찰                                 |
-| `postMutationKeys.update(id)`           | `['post', 'update', id]`            | 카드 "수정 중" 오버레이·진행 토스트(접두사 매칭) |
-| `postMutationKeys.delete`               | `['post', 'delete']`                |                                                  |
-| `postMutationKeys.updateVisibility(id)` | `['post', 'updateVisibility', id]`  |                                                  |
+| 키                                      | 값                                  | 쓰는 곳                                    |
+| --------------------------------------- | ----------------------------------- | ------------------------------------------ |
+| `postKeys.root`                         | `['post']`                          | 전체 무효화(`postInvalidateQueries.all`)   |
+| `postKeys.listRoot`                     | `['post', 'list']`                  | 모든 피드 목록에 한꺼번에 패치·취소·무효화 |
+| `postKeys.list(filters)`                | `['post', 'list', { search, ... }]` | 필터 조합마다 별도 무한 쿼리 캐시          |
+| `postKeys.detail(id)`                   | `['post', 'detail', id]`            | 상세·수정 폼·프리페치                      |
+| `postMutationKeys.create`               | `['post', 'create']`                | 작성 mutation 식별(관찰하는 곳 없음)       |
+| `postMutationKeys.update(id)`           | `['post', 'update', id]`            | 카드 "수정 중" 오버레이                    |
+| `postMutationKeys.delete`               | `['post', 'delete']`                |                                            |
+| `postMutationKeys.updateVisibility(id)` | `['post', 'updateVisibility', id]`  |                                            |
 
 무한 목록 캐시의 원본 shape은 `InfiniteData<PostPageResponse>`(`pages[].content`·`totalElements`·
 `last`·`page`)이고, 컴포넌트는 `select`가 덧붙인 `posts`(중복 제거·평탄화)와 `totalElements`(page
@@ -379,7 +385,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 삭제 낙관적 처리             | `src/entities/post/api/post.queries.ts:247-321`                                                                                                            |
 | 수정 성공 캐시 처리          | `src/entities/post/api/post.queries.ts:323-358`                                                                                                            |
 | 공개 전환                    | `src/entities/post/api/post.queries.ts:360-386`, `src/widgets/post/post-card/hooks/usePostCard.ts:63-99`                                                   |
-| 진행 토스트                  | `src/app/ui/PostMutationLoadingToast.tsx:33-74`                                                                                                            |
+| 제출 대기(응답 대기·라벨)    | `useCreatePost.ts` `onSubmit`, `useUpdatePost.ts` `onSubmit`                                                                                               |
 | 입력 검증                    | `src/entities/post/model/post.schema.ts:9-35`                                                                                                              |
 
 ### 자주 하는 수정
@@ -417,9 +423,10 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 
 **e2e**(`e2e/`, Playwright) — 이 기능을 덮는 스펙. 이번 검토에서 실행하지는 않았다.
 
-- `post-create.spec.ts` — 제출 즉시 `/post` 이동, 이탈 가드 미발동
+- `post-create.spec.ts` — 제출 시 "등록 중..." 라벨로 응답 대기 → `/post` 이동·이탈 가드 미발동,
+  실패 시 이동하지 않고 입력 유지
 - `post-create.mobile.spec.ts` — 모바일 하단 등록 바, Enter 제출
-- `post-update.spec.ts` — ⋮ → 수정 → 즉시 복귀 → "수정 중..." 오버레이 → 새 제목 반영, 직접
+- `post-update.spec.ts` — ⋮ → 수정 → 폼에서 "수정 중..." 대기 → 복귀 → 새 제목 반영, 직접
   교체가 재조회보다 먼저 보이는지
 - `post-delete.spec.ts` — 상세에서 삭제 후 `/post` 복귀, 재조회 없이 목록에서 사라짐
 - `post-visibility.spec.ts` — ⋮로 비공개 전환(재조회 반영·목록 전파), 자물쇠로 공개 복귀
@@ -495,8 +502,9 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
 ## 12. 용어 사전
 
 - **fire-and-forget 제출** — `mutate()`를 부르고 결과를 기다리지 않은 채 다음 화면으로 이동하는
-  방식. 작성·수정이 이 방식이라 결과 처리는 전부 entity mutation 레벨(`useMutation({ onSuccess })`)에
-  있다 — 컴포넌트가 이미 언마운트돼 있기 때문이다.
+  방식. 작성·수정이 2026-10-02까지 이 방식이었다(지금은 응답 대기 — §5 "작성"). 결과 처리가
+  전부 entity mutation 레벨(`useMutation({ onSuccess })`)에 있는 건 그 시절 구조가 남은 것이고,
+  이탈 확인창에서 "나가기"로 폼이 먼저 언마운트되는 경우에도 결과가 반영되도록 그대로 둔다.
 - **`listRoot`** — `['post', 'list']`. 필터 조합마다 다른 목록 캐시를 한 번에 가리키는 접두사 키(§6).
 - **`prependCreatedPostToFirstPage`** — 새 글을 page 0 맨 앞에 넣고 page 1+을 버리는 함수
   (`post.queries.ts:44-66`).
