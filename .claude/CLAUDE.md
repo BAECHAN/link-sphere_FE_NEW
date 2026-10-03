@@ -815,7 +815,9 @@ pnpm test:e2e        # Playwright e2e (chromium + mobile-chrome)
 UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브라우저 확인 화면을
 녹화해 사용자에게 보여주는 절차는 `browser-verification` skill
 (`.claude/skills/browser-verification/SKILL.md`)에 있다 — 커밋 전 검증이 필요할 때
-그 skill을 먼저 읽는다(2026-09-10 도입).
+그 skill을 먼저 읽는다(2026-09-10 도입). skill이 불리지 않아도 지켜지도록 한 가지만 여기 둔다 —
+녹화를 마치면 링크만 주지 말고, 같은 폴더에 짧은 이름으로 복사해 `open -a Cursor <절대경로...>`로
+바로 연다(2026-10-03, 링크만 줘 매번 다시 요청받았다. 상세는 skill "다 만든 뒤").
 
 ---
 
