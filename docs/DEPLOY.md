@@ -352,13 +352,16 @@ React 엘리먼트를 직접 조립) 이 룰이 막아주던 실질 위험이 �
 
 현재 룰 구성(우선순위순): `AWS-AWSManagedRulesAmazonIpReputationList` (오버라이드 없음) →
 `AWS-AWSManagedRulesCommonRuleSet`(`CrossSiteScripting_BODY`만 Count, 나머지는 Block —
-`SizeRestrictions_BODY` 포함) → `AWS-AWSManagedRulesKnownBadInputsRuleSet`(오버라이드 없음).
+`SizeRestrictions_BODY` 포함) → `AWS-AWSManagedRulesKnownBadInputsRuleSet`(오버라이드 없음) →
+`RateLimit-PerIP`(IP당 5분 1000회, **Count** — 2026-10-03 추가).
 
-IP별 요청 수 제한(rate-based rule)은 2026-10-02 점검 기준 **없다**. 4번째 룰
-`RateLimit-PerIP`(IP당 5분 1000회, 처음 1주는 Count)를 추가할 예정이고, 콘솔 절차·임계값
-근거는 BE 레포 `docs/TRAFFIC-MANAGEMENT.md` §8-1 런북이 정본이다. 추가하면 이 문단과 위 룰
-구성을 함께 고친다. CloudFront Free 플랜은 WAF 룰을 5개까지만 허용하고 차단 응답 코드를 바꿀
-수 없어, 이 룰에 걸린 요청도 429가 아니라 403(비-JSON)으로 와 FE에서 `EDGE_BLOCKED`로 분류된다.
+`RateLimit-PerIP`는 IP별 요청 수 제한(rate-based rule)이다. 처음 1주는 Count로 세기만 하고,
+정상 사용자가 걸린 흔적이 없으면 2026-10-10 무렵 Block으로 바꾼다. 적용·전환·되돌리기 절차와
+임계값 근거는 BE 레포 `docs/TRAFFIC-MANAGEMENT.md` §8-1 런북이 정본이다 — Free 플랜이라 WAF
+콘솔·CloudFront Security 탭 어디서도 규칙 추가 버튼이 없어 `update-web-acl` CLI로 넣었다.
+Block으로 바꾸면 이 문단을 고친다. CloudFront Free 플랜은 WAF 룰을 5개까지만 허용하고(지금 4개)
+차단 응답 코드를 바꿀 수 없어, 이 룰에 걸린 요청도 429가 아니라 403(비-JSON)으로 와 FE에서
+`EDGE_BLOCKED`로 분류된다.
 
 ```bash
 # 조회 (수정 전 반드시 백업 - update-web-acl은 전체 Rules 배열을 다시 보내야 함)
