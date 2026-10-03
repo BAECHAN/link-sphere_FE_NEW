@@ -12,7 +12,7 @@ import { useForm } from 'react-hook-form';
 export function useUpdatePost(postId: string) {
   const goBack = useGoBack(ROUTES_PATHS.POST.ROOT);
   const { data: post, isLoading } = useFetchPostDetailQuery(postId);
-  const { mutate: updatePost, isPending: isUpdating } = useUpdatePostMutation(postId);
+  const { mutateAsync: updatePost, isPending: isUpdating } = useUpdatePostMutation(postId);
 
   const form = useForm<UpdatePost>({
     resolver: zodResolver(updatePostSchema),
@@ -63,10 +63,17 @@ export function useUpdatePost(postId: string) {
 
   const { clearNow } = useUnsavedChanges(`post-update:${postId}`, form.formState.isDirty);
 
-  // 등록과 동일하게 요청을 백그라운드로 보내고 곧바로 목록으로 이동한다.
-  // (URL 변경 시 재크롤링 + AI 재분석 때문에 응답이 늦으므로 폼에서 기다리지 않는다)
-  const onSubmit = form.handleSubmit((formData: UpdatePost) => {
-    updatePost({ ...formData, url: UrlUtil.normalizeUrl(formData.url) });
+  // 등록과 동일하게 응답을 기다렸다가 성공했을 때만 이동한다 - 실패하면 고친 내용과 이탈
+  // 가드를 그대로 남긴다. 수정은 대부분 크롤링이 없는 짧은 요청이고, URL 변경 재크롤링도
+  // 등록과 같은 수 초 수준이다(docs/DECISIONS.md 2026-10-03 항목). 에러 토스트는 전역
+  // 핸들러가 띄우므로 reject만 삼킨다(useCreatePost.ts와 같은 이유).
+  const onSubmit = form.handleSubmit(async (formData: UpdatePost) => {
+    try {
+      await updatePost({ ...formData, url: UrlUtil.normalizeUrl(formData.url) });
+    } catch {
+      return;
+    }
+
     clearNow();
     // 수정 화면에 들어온 곳으로 되돌아간다 (목록 스크롤 위치 유지).
     goBack();

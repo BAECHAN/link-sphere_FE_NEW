@@ -29,16 +29,15 @@ test.describe('게시글 등록', () => {
     await mockCategoryOptions(page);
   });
 
-  test('등록을 제출하면 응답을 기다리지 않고 /post로 이동하고, 저장하지 않은 변경 가드가 뜨지 않는다', async ({
+  test('등록을 제출하면 버튼이 "등록 중..."으로 바뀌고, 응답이 온 뒤 /post로 이동하며 저장하지 않은 변경 가드가 뜨지 않는다', async ({
     page,
   }) => {
     await page.route(
       (url) => isApiPath(url, ENDPOINTS.post.base),
       async (route) => {
         if (route.request().method() === 'POST') {
-          // 응답을 약간 지연시켜, 이동이 "응답을 기다린 결과"가 아니라 응답 전에 이미
-          // 일어났음을 명확히 구분한다.
-          await new Promise((resolve) => setTimeout(resolve, 300));
+          // 응답을 지연시켜, 응답 전에는 폼에 머물며 진행 라벨을 보여주는지 확인할 틈을 만든다.
+          await new Promise((resolve) => setTimeout(resolve, 800));
           return route.fulfill({ json: wrapResponse(NEW_POST) });
         }
         return route.fulfill({ json: wrapResponse(mockPostListResponse) });
@@ -58,14 +57,41 @@ test.describe('게시글 등록', () => {
     );
     await submitButton.click();
 
-    // POST 응답(300ms 지연 중)을 기다리지 않고 즉시 /post로 이동한다(useCreatePost.ts).
-    await expect(page).toHaveURL(/\/post$/);
-    // clearNow()가 blocker를 실제로 풀어, 미저장 변경 확인 모달이 뜨지 않는다.
-    await expect(page.getByRole('alertdialog', { name: TEXTS.unsavedChanges.title })).toHaveCount(
-      0
-    );
+    // 응답 전: 폼에 머물고 버튼이 진행 라벨로 바뀐다(useCreatePost.ts - 응답 대기).
+    await expect(page.getByRole('button', { name: TEXTS.common.submitting })).toBeDisabled();
+    await expect(page).toHaveURL(/\/post\/submit$/);
 
     const createdRequestBody = (await created).request().postDataJSON();
     expect(createdRequestBody.url).toBe(NEW_URL);
+
+    // 응답 후: /post로 이동하고, clearNow()가 blocker를 풀어 미저장 변경 확인 모달이 뜨지 않는다.
+    await expect(page).toHaveURL(/\/post$/);
+    await expect(page.getByRole('alertdialog', { name: TEXTS.unsavedChanges.title })).toHaveCount(
+      0
+    );
+  });
+
+  test('등록이 실패하면 이동하지 않고 입력한 URL이 그대로 남는다', async ({ page }) => {
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.post.base),
+      async (route) => {
+        if (route.request().method() === 'POST') {
+          return route.fulfill({
+            status: 500,
+            json: { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'boom' },
+          });
+        }
+        return route.fulfill({ json: wrapResponse(mockPostListResponse) });
+      }
+    );
+
+    await page.goto('/post/submit');
+    await page.getByLabel(/^URL/).fill(NEW_URL);
+    await page.getByRole('button', { name: TEXTS.post.form.create.submit }).click();
+
+    await expect(page.getByText(TEXTS.messages.error.postCreateFailed)).toBeVisible();
+    await expect(page).toHaveURL(/\/post\/submit$/);
+    await expect(page.getByLabel(/^URL/)).toHaveValue(NEW_URL);
+    await expect(page.getByRole('button', { name: TEXTS.post.form.create.submit })).toBeEnabled();
   });
 });

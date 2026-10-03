@@ -9,6 +9,21 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `post` 게시글 등록·수정이 응답을 기다렸다가 이동, 실패하면 입력을 그대로 남김
+  <details><summary>배경·구현</summary>
+
+  작성·수정은 요청을 보내자마자 폼을 비우고 목록으로 이동해서, 요청이 실패하면(429·500·WAF 403)
+  입력이 이미 사라진 뒤였다. 운영 로그 실측(직접 측정) 결과 등록은 중앙값 2.7초·최대 6.5초라,
+  버튼을 "등록 중..."/"수정 중..."으로 바꾸고 응답을 기다린다. 성공하면 이동하고, 실패하면 폼과
+  이탈 가드를 남겨 바로 다시 시도할 수 있다. 하단 진행 토스트는 버튼 라벨과 겹쳐 작성·수정
+  관찰을 뺐다(계정 수정만 남음). 비동기 크롤링 등 대안 비교와 근거는 `docs/DECISIONS.md`
+  2026-10-03 항목. (`useCreatePost.ts`, `useUpdatePost.ts`, `CreatePostForm.tsx`,
+  `UpdatePostForm.tsx`, `PostMutationLoadingToast.tsx`)
+
+  </details>
+
 ### Security
 
 - `shared` 알림 서비스 워커의 Firebase 설정을 레포에서 빼고 빌드 값으로 주입

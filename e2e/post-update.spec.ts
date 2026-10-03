@@ -40,8 +40,8 @@ test.describe('게시글 수정', () => {
       (url) => /^\/api\/post\/[^/]+$/.test(url.pathname),
       async (route) => {
         if (route.request().method() === 'PATCH') {
-          // 500ms 지연 게이트(MUTATION_PROGRESS_DELAY_MS)를 넉넉히 넘겨야 "수정 중..."
-          // 오버레이가 실제로 뜬다 — 즉시 응답이면 게이트를 못 넘겨 오버레이가 안 보인다.
+          // 응답을 지연시켜, 응답 전에는 수정 폼에 머물며 "수정 중..." 버튼 라벨을 보여주는지
+          // 확인할 틈을 만든다.
           await new Promise((resolve) => setTimeout(resolve, 1500));
           updated = true;
           return route.fulfill({ json: wrapResponse(currentPost()) });
@@ -51,7 +51,7 @@ test.describe('게시글 수정', () => {
     );
   });
 
-  test('목록 ⋮ → 수정 → 제출 즉시 목록 복귀 → "수정 중..." 오버레이 → 응답 후 새 제목 반영', async ({
+  test('목록 ⋮ → 수정 → 제출 → 폼에서 "수정 중..." → 응답 후 목록 복귀, 새 제목 반영', async ({
     page,
   }) => {
     await page.goto('/post');
@@ -81,14 +81,13 @@ test.describe('게시글 수정', () => {
     );
     await page.getByRole('button', { name: TEXTS.post.form.update.update }).click();
 
-    // 응답을 기다리지 않고 즉시 목록(POP)으로 복귀한다.
-    await expect(page).toHaveURL(/\/post$/);
-    // '수정 중...'은 카드 오버레이와 전역 진행 토스트에 동시에 렌더돼 getByText가
-    // strict mode violation을 낸다 — aria-busy는 레포 전체에서 이 카드 하나뿐이라
-    // 안전하게 스코프된다.
-    await expect(page.locator('[aria-busy="true"]')).toContainText(TEXTS.common.updating);
+    // 응답 전: 수정 폼에 머물고 버튼이 진행 라벨로 바뀐다(useUpdatePost.ts - 응답 대기).
+    await expect(page.getByRole('button', { name: TEXTS.common.updating })).toBeDisabled();
+    await expect(page).toHaveURL(new RegExp(`/post/edit/${mockPost.id}$`));
 
     await patched;
+    // 응답 후: 목록(POP)으로 복귀한다.
+    await expect(page).toHaveURL(/\/post$/);
     await expect(page.getByRole('link', { name: NEW_TITLE })).toBeVisible();
     await expect(page.getByText(TEXTS.messages.success.postUpdated)).toBeVisible();
 
