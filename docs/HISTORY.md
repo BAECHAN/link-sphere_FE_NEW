@@ -1,3 +1,9 @@
+### 2026-10-03 (BE)
+- 게시글 API 성능 최적화 및 안정성 강화 ([#61](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/61))
+  - 고비용 엔드포인트 요청 한도 설정 및 검색 랭킹 강등 로직 구현
+  - 검색 결과 페이지네이션 size 파라미터 상한 제한 추가
+  - Redis를 활용한 레이트 리미트(Rate Limit) 원자적 처리 적용으로 동시성 이슈 해결
+
 ### 2026-10-02 (FE)
 - 폴더 선택 컴포넌트의 계층 구조를 상위로 이전하고, 동일 계층 간 import를 제한하여 모듈 의존성 규칙을 강화함 ([#304](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/304))
 
