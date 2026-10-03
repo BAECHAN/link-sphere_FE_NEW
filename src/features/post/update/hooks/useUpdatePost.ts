@@ -6,7 +6,8 @@ import { useGoBack } from '@/shared/hooks/useGoBack';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { UrlUtil } from '@/shared/utils/url.util';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { PostUtil, PostSubmitErrorResolution } from '@/entities/post/utils/post.util';
 import { useForm } from 'react-hook-form';
 
 export function useUpdatePost(postId: string) {
@@ -62,15 +63,51 @@ export function useUpdatePost(postId: string) {
   );
 
   const { clearNow } = useUnsavedChanges(`post-update:${postId}`, form.formState.isDirty);
+  // 입력칸과 무관한 실패(글 삭제됨·권한·네트워크 등)의 안내 - 버튼 위 FormAlert에 남는다
+  const [submitError, setSubmitError] = useState<Extract<
+    PostSubmitErrorResolution,
+    { kind: 'form' }
+  > | null>(null);
+
+  useEffect(
+    function clearSubmitErrorsOnEdit() {
+      // useCreatePost.ts의 같은 이름 effect와 같은 이유 - 고치면 이전 실패 안내를 지운다
+      const subscription = form.watch((_, { name }) => {
+        setSubmitError(null);
+
+        if (name && form.getFieldState(name).error?.type === 'server') {
+          form.clearErrors(name);
+        }
+      });
+
+      return () => subscription.unsubscribe();
+    },
+    [form]
+  );
 
   // 등록과 동일하게 응답을 기다렸다가 성공했을 때만 이동한다 - 실패하면 고친 내용과 이탈
   // 가드를 그대로 남긴다. 수정은 대부분 크롤링이 없는 짧은 요청이고, URL 변경 재크롤링도
-  // 등록과 같은 수 초 수준이다(docs/DECISIONS.md 2026-10-03 항목). 에러 토스트는 전역
-  // 핸들러가 띄우므로 reject만 삼킨다(useCreatePost.ts와 같은 이유).
+  // 등록과 같은 수 초 수준이다(docs/DECISIONS.md 2026-10-03 항목). 실패는 원인별 안내로
+  // 바꾼다(useCreatePost.ts와 같은 이유).
   const onSubmit = form.handleSubmit(async (formData: UpdatePost) => {
+    setSubmitError(null);
+
     try {
       await updatePost({ ...formData, url: UrlUtil.normalizeUrl(formData.url) });
-    } catch {
+    } catch (error) {
+      const resolution = PostUtil.resolveSubmitError(error, { mode: 'update', hasFolders: false });
+
+      // 수정 폼엔 북마크 폴더 칸이 없어 입력칸 에러는 URL 칸뿐이다(폴더 실패는 등록에서만 난다)
+      if (resolution.kind === 'form') {
+        setSubmitError(resolution);
+      } else if (resolution.field === 'url') {
+        form.setError(
+          'url',
+          { type: 'server', message: resolution.message },
+          { shouldFocus: true }
+        );
+      }
+
       return;
     }
 
@@ -85,5 +122,6 @@ export function useUpdatePost(postId: string) {
     isLoading,
     isUpdating,
     onSubmit,
+    submitError,
   };
 }

@@ -9,13 +9,16 @@ import { useUpdatePost } from '@/features/post/update/hooks/useUpdatePost';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
+import { FormAlert } from '@/shared/ui/elements/FormAlert';
+import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { Link } from 'react-router-dom';
 
 interface UpdatePostFormProps {
   postId: string;
 }
 
 export function UpdatePostForm({ postId }: UpdatePostFormProps) {
-  const { form, post, isLoading, isUpdating, onSubmit } = useUpdatePost(postId);
+  const { form, post, isLoading, isUpdating, onSubmit, submitError } = useUpdatePost(postId);
   const { categoryOptionList } = useCategoryOptions();
 
   const {
@@ -70,6 +73,19 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
                 />
               </div>
 
+              {submitError && (
+                <FormAlert>
+                  {submitError.message}
+                  {submitError.action === 'checkFeed' && (
+                    <>
+                      {' '}
+                      <Link to={ROUTES_PATHS.POST.ROOT} className="underline underline-offset-2">
+                        {TEXTS.messages.error.postSubmit.checkFeed}
+                      </Link>
+                    </>
+                  )}
+                </FormAlert>
+              )}
               <TooltipWrapper
                 content={!isDirty ? TEXTS.validation.noChanges : null}
                 disabled={!canSubmit}

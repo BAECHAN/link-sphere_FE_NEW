@@ -39,6 +39,8 @@ export class ApiError extends Error {
   status: number;
   code: string;
   data: ApiErrorResponse;
+  /** 429 응답의 Retry-After(초). 헤더가 없거나 초 단위가 아니면 undefined - client.ts가 채운다 */
+  retryAfterSeconds?: number;
 
   constructor(data: ApiErrorResponse) {
     super(data.message);

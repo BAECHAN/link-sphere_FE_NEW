@@ -488,8 +488,25 @@ export const TEXTS = {
         '이메일 인증이 필요해요. 계정 설정에서 인증 메일을 다시 보낼 수 있어요.',
 
       // 포스트 관련
-      postCreateFailed: '포스트 생성에 실패했어요.',
-      postUpdateFailed: '포스트 수정에 실패했어요.',
+      // 등록·수정 실패 원인 안내(PostUtil.resolveSubmitError) - 고칠 수 있는 건 입력칸 아래,
+      // 그 외는 버튼 위 FormAlert에 남는다(docs/DECISIONS.md 2026-10-03 실패 원인 노출 항목)
+      postSubmit: {
+        urlUnresolvable: '이 주소를 찾을 수 없어요. 도메인에 오타가 없는지 확인해주세요.',
+        urlNotAllowed: '내부망 주소는 등록할 수 없어요.',
+        urlInvalid: '올바른 URL이 아니에요. http:// 또는 https://로 시작하는지 확인해주세요.',
+        folderNotFound: '선택한 폴더를 찾을 수 없어요. 폴더를 다시 골라주세요.',
+        rateLimitedIn: (minutes: number) =>
+          `요청이 많아 잠시 막혔어요. 약 ${minutes}분 뒤 다시 시도해주세요.`,
+        rateLimited: '요청이 많아 잠시 막혔어요. 잠시 후 다시 시도해주세요.',
+        network: '인터넷 연결을 확인하고 다시 시도해주세요.',
+        timeout:
+          '응답이 늦어 처리됐는지 확인하지 못했어요. 피드에서 먼저 확인한 뒤 다시 시도해주세요.',
+        checkFeed: '피드에서 확인하기',
+        postDeleted: '이 포스트는 삭제돼서 수정할 수 없어요.',
+        notOwner: '내가 쓴 포스트만 수정할 수 있어요.',
+        createFailed: '일시적인 문제로 등록하지 못했어요. 잠시 후 다시 시도해주세요.',
+        updateFailed: '일시적인 문제로 수정하지 못했어요. 잠시 후 다시 시도해주세요.',
+      },
       fetchPosts: '포스트를 불러오는 중 오류가 발생했어요.',
       postDeleteFailed: '포스트 삭제에 실패했어요.',
       postVisibilityUpdateFailed: '게시물 공개 설정 변경에 실패했어요.',

@@ -8,6 +8,7 @@ import { server } from '@/mocks/server';
 import { createTestQueryClient } from '@/test/utils';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { TEXTS } from '@/shared/config/texts';
 import { useCreatePost } from '@/features/post/create/hooks/useCreatePost';
 
 const navigateSpy = vi.fn();
@@ -73,5 +74,28 @@ describe('useCreatePost', () => {
 
     expect(navigateSpy).not.toHaveBeenCalled();
     expect(result.current.form.getValues('url')).toBe(SUBMITTED_URL);
+    // 입력칸과 무관한 실패라 버튼 위 안내로 남는다
+    expect(result.current.submitError?.message).toBe(TEXTS.messages.error.postSubmit.rateLimited);
+  });
+
+  it('도메인을 찾을 수 없으면 URL 칸에 서버 에러를 붙이고 버튼 위 안내는 띄우지 않는다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.post.base), () =>
+        HttpResponse.json(
+          { status: 400, code: 'URL_UNRESOLVABLE', message: 'Cannot resolve host' },
+          { status: 400 }
+        )
+      )
+    );
+    const { result } = renderHook(() => useCreatePost(), {
+      wrapper: createWrapper(createTestQueryClient()),
+    });
+
+    await fillAndSubmit(result);
+
+    expect(result.current.form.getFieldState('url').error?.message).toBe(
+      TEXTS.messages.error.postSubmit.urlUnresolvable
+    );
+    expect(result.current.submitError).toBeNull();
   });
 });
