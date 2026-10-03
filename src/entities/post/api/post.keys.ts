@@ -16,6 +16,7 @@ export const postKeys = {
   list: (filters?: { search?: string; category?: string; filter?: string }) =>
     [...rootKey, 'list', filters] as const,
   detail: (postId: Post['id']) => [...rootKey, 'detail', postId] as const,
+  linkPreview: (url: string) => [...rootKey, 'linkPreview', url] as const,
 };
 
 export const postInvalidateQueries = {

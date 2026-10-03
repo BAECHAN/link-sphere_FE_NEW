@@ -8,11 +8,14 @@ import { UrlUtil } from '@/shared/utils/url.util';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useRef, useState } from 'react';
 import { PostUtil, PostSubmitErrorResolution } from '@/entities/post/utils/post.util';
+import { useLinkPreview } from '@/entities/post/hooks/useLinkPreview';
+import { useAccount } from '@/entities/account/hooks/useAccount';
 import { useForm } from 'react-hook-form';
 
 export function useUpdatePost(postId: string) {
   const goBack = useGoBack(ROUTES_PATHS.POST.ROOT);
   const { data: post, isLoading } = useFetchPostDetailQuery(postId);
+  const { account } = useAccount();
   const { mutateAsync: updatePost, isPending: isUpdating } = useUpdatePostMutation(postId);
 
   const form = useForm<UpdatePost>({
@@ -85,6 +88,22 @@ export function useUpdatePost(postId: string) {
     [form]
   );
 
+  // 작성 중 링크 미리보기 - URL을 원래 값에서 바꿨을 때만 묻는다(그대로면 이미 등록된 글이다).
+  // 미리보기 BE는 이메일 인증을 요구하므로 미인증이면 묻지 않는다(수정 자체는 미인증도 허용).
+  const isUrlChanged = Boolean(post) && urlValue.trim() !== post?.url;
+  const linkPreview = useLinkPreview(urlValue, isUrlChanged && account?.emailVerified === true);
+  const previewUrlError = linkPreview.status === 'urlError' ? linkPreview.message : null;
+
+  useEffect(
+    function showPreviewUrlErrorOnField() {
+      // useCreatePost.ts의 같은 이름 effect와 같은 이유
+      if (previewUrlError) {
+        form.setError('url', { type: 'server', message: previewUrlError });
+      }
+    },
+    [previewUrlError, form]
+  );
+
   // 등록과 동일하게 응답을 기다렸다가 성공했을 때만 이동한다 - 실패하면 고친 내용과 이탈
   // 가드를 그대로 남긴다. 수정은 대부분 크롤링이 없는 짧은 요청이고, URL 변경 재크롤링도
   // 등록과 같은 수 초 수준이다(docs/DECISIONS.md 2026-10-03 항목). 실패는 원인별 안내로
@@ -123,5 +142,6 @@ export function useUpdatePost(postId: string) {
     isUpdating,
     onSubmit,
     submitError,
+    linkPreview,
   };
 }

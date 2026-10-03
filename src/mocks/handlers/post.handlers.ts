@@ -32,6 +32,25 @@ export const postHandlers = [
     );
   }),
 
+  // GET /link-preview (작성 중 링크 미리보기)
+  http.get(url(API_ENDPOINTS.post.linkPreview), ({ request }) => {
+    const target = new URL(request.url).searchParams.get('url') ?? '';
+    return HttpResponse.json(
+      {
+        status: 200,
+        message: 'ok',
+        data: {
+          url: target,
+          title: 'Quick Start – React',
+          description: 'The library for web and native user interfaces',
+          ogImage: null,
+        },
+        timestamp: new Date().toISOString(),
+      },
+      { status: 200 }
+    );
+  }),
+
   // POST /post (생성)
   http.post(url(API_ENDPOINTS.post.base), async () => {
     return HttpResponse.json(

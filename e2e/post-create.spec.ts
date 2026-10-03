@@ -148,4 +148,54 @@ test.describe('게시글 등록', () => {
       TEXTS.messages.error.postSubmit.rateLimitedIn(15)
     );
   });
+
+  test('URL을 입력하면 등록 전에 미리보기 카드가 뜨고, 입력한 제목으로 보여준다', async ({
+    page,
+  }) => {
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.post.linkPreview),
+      async (route) => {
+        // 응답을 지연시켜 같은 자리에 먼저 깔리는 로딩 상태를 확인할 틈을 만든다.
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        return route.fulfill({
+          json: wrapResponse({
+            url: NEW_URL,
+            title: '크롤링한 제목',
+            description: '크롤링한 설명',
+            ogImage: null,
+          }),
+        });
+      }
+    );
+
+    await page.goto('/post/submit');
+    await page.getByLabel(/^URL/).fill(NEW_URL);
+
+    const card = page.getByLabel(TEXTS.post.form.preview.ariaLabel);
+    await expect(card).toContainText(TEXTS.post.form.preview.loading);
+    await expect(card).toContainText('크롤링한 제목');
+    await expect(card).toContainText('크롤링한 설명');
+
+    await page.getByLabel(/^제목/).fill(NEW_TITLE);
+    await expect(card).toContainText(NEW_TITLE);
+  });
+
+  test('미리보기에서 도메인을 찾을 수 없으면 제출 전에 URL 칸 아래에 안내한다', async ({
+    page,
+  }) => {
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.post.linkPreview),
+      (route) =>
+        route.fulfill({
+          status: 400,
+          json: { status: 400, code: 'URL_UNRESOLVABLE', message: 'Cannot resolve host' },
+        })
+    );
+
+    await page.goto('/post/submit');
+    await page.getByLabel(/^URL/).fill(NEW_URL);
+
+    await expect(page.getByText(TEXTS.messages.error.postSubmit.urlUnresolvable)).toBeVisible();
+    await expect(page.getByLabel(TEXTS.post.form.preview.ariaLabel)).toHaveCount(0);
+  });
 });

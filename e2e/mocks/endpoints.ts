@@ -20,6 +20,7 @@ export const ENDPOINTS = {
   },
   post: {
     base: '/post',
+    linkPreview: '/link-preview',
   },
   bookmark: {
     folders: '/bookmark/folders',

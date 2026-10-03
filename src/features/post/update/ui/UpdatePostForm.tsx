@@ -10,6 +10,7 @@ import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
 import { FormAlert } from '@/shared/ui/elements/FormAlert';
+import { LinkPreviewCard } from '@/entities/post/ui/LinkPreviewCard';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { Link } from 'react-router-dom';
 
@@ -18,7 +19,8 @@ interface UpdatePostFormProps {
 }
 
 export function UpdatePostForm({ postId }: UpdatePostFormProps) {
-  const { form, post, isLoading, isUpdating, onSubmit, submitError } = useUpdatePost(postId);
+  const { form, post, isLoading, isUpdating, onSubmit, submitError, linkPreview } =
+    useUpdatePost(postId);
   const { categoryOptionList } = useCategoryOptions();
 
   const {
@@ -53,6 +55,7 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
                 inputMode="url"
                 required
               />
+              <LinkPreviewCard state={linkPreview} titleOverride={form.watch('title')} />
               <FormInput
                 name="title"
                 label={TEXTS.post.form.update.titleLabel}

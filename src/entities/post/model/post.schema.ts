@@ -43,4 +43,5 @@ export type {
   PostListRequest,
   PostListResponse,
   CreatePostResponse,
+  LinkPreview,
 } from '@/entities/post/model/post.dto';

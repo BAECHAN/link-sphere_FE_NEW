@@ -10,6 +10,7 @@ import { useAccount } from '@/entities/account/hooks/useAccount';
 import { TEXTS } from '@/shared/config/texts';
 import { useEffect, useState } from 'react';
 import { PostUtil, PostSubmitErrorResolution } from '@/entities/post/utils/post.util';
+import { useLinkPreview } from '@/entities/post/hooks/useLinkPreview';
 
 type PostSubmitFormError = Extract<PostSubmitErrorResolution, { kind: 'form' }>;
 
@@ -35,6 +36,23 @@ export function useCreatePost() {
   });
 
   const { clearNow } = useUnsavedChanges('post-create', form.formState.isDirty);
+
+  // 작성 중 링크 미리보기 - 이메일 미인증이면 BE가 403으로 거절하므로 묻지 않는다
+  const urlValue = form.watch('url');
+  const titleValue = form.watch('title');
+  const linkPreview = useLinkPreview(urlValue, account?.emailVerified === true);
+  const previewUrlError = linkPreview.status === 'urlError' ? linkPreview.message : null;
+
+  useEffect(
+    function showPreviewUrlErrorOnField() {
+      // 도메인 없음 등은 등록해도 똑같이 실패하므로 등록 전에 URL 칸에 띄운다. URL을 고치면
+      // clearSubmitErrorsOnEdit이 type 'server' 에러를 지운다.
+      if (previewUrlError) {
+        form.setError('url', { type: 'server', message: previewUrlError });
+      }
+    },
+    [previewUrlError, form]
+  );
   // 입력칸과 무관한 실패(요청 한도·네트워크 등)의 안내 - 버튼 위 FormAlert에 남는다
   const [submitError, setSubmitError] = useState<PostSubmitFormError | null>(null);
 
@@ -109,5 +127,7 @@ export function useCreatePost() {
     isCreating,
     onFormReset,
     submitError,
+    linkPreview,
+    titleValue,
   };
 }

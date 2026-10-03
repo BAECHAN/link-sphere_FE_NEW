@@ -54,6 +54,8 @@ const API_ENDPOINTS = {
     comment: (commentId: string) => `${API_BASES.comment}/${commentId}`,
     commentReply: (commentId: string) => `${API_BASES.comment}/${commentId}/reply`,
     myComments: `${API_BASES.comment}/my`,
+    // GET /post/* 가 비로그인에게 열려 있어 BE가 /post 밖에 둔 로그인 전용 경로(LinkPreviewController)
+    linkPreview: '/link-preview',
   },
 
   common: {
