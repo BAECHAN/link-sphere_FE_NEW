@@ -6,6 +6,7 @@ NProgress.configure({ showSpinner: false });
 import {
   CreatePost,
   CreatePostResponse,
+  LinkPreview,
   PostListResponse,
   PostListRequest,
   Post,
@@ -54,6 +55,17 @@ export const postApi = {
         NProgress.done();
       }
     }
+  },
+
+  /**
+   * 작성 중 링크 미리보기 - 서버가 URL을 크롤링해 제목·설명·썸네일을 돌려준다(10분 캐시).
+   * 등록 요청과 같은 정규화된 URL을 넘겨야 BE 캐시가 등록 때 재사용된다.
+   * @param url - UrlUtil.normalizeUrl을 거친 URL
+   */
+  fetchLinkPreview: async (url: string): Promise<LinkPreview> => {
+    return await apiClient.get<LinkPreview>(API_ENDPOINTS.post.linkPreview, {
+      searchParams: { url },
+    });
   },
 
   fetchPostDetail: async (postId: string): Promise<Post> => {

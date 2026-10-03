@@ -16,6 +16,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { FormAlert } from '@/shared/ui/elements/FormAlert';
+import { LinkPreviewCard } from '@/entities/post/ui/LinkPreviewCard';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { Link } from 'react-router-dom';
 
@@ -29,7 +30,7 @@ interface CreatePostFormProps {
 }
 
 export function CreatePostForm({ renderFolderSelect }: CreatePostFormProps) {
-  const { form, onSubmit, isCreating, submitError } = useCreatePost();
+  const { form, onSubmit, isCreating, submitError, linkPreview, titleValue } = useCreatePost();
   const { categoryOptionList } = useCategoryOptions();
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -109,6 +110,7 @@ export function CreatePostForm({ renderFolderSelect }: CreatePostFormProps) {
                 inputMode="url"
                 required
               />
+              <LinkPreviewCard state={linkPreview} titleOverride={titleValue} />
               <FormInput
                 name="title"
                 label={TEXTS.post.form.create.titleLabel}

@@ -173,6 +173,24 @@ export const useFetchPostDetailQuery = (postId: string) => {
   });
 };
 
+// BE 캐시(LinkPreviewService.FRESH_FOR)와 같은 10분 - 같은 URL을 다시 입력해도 다시 묻지 않는다
+const LINK_PREVIEW_STALE_TIME_MS = 10 * 60 * 1000;
+
+/**
+ * 작성 중 링크 미리보기. 실패해도 토스트를 띄우지 않는다 - 미리보기는 등록을 돕는 부가 기능이라
+ * 실패는 카드 자리에 조용히 안내한다(useLinkPreview). 같은 결과가 나올 요청이라 재시도하지 않는다.
+ */
+export const useFetchLinkPreviewQuery = (url: string, enabled: boolean) => {
+  return useQuery({
+    queryKey: postKeys.linkPreview(url),
+    queryFn: () => postApi.fetchLinkPreview(url),
+    enabled,
+    staleTime: LINK_PREVIEW_STALE_TIME_MS,
+    retry: false,
+    meta: { manualErrorHandling: true },
+  });
+};
+
 export const useSuspenseFetchPostDetailQuery = (postId: string) => {
   return useSuspenseQuery({
     queryKey: postKeys.detail(postId),

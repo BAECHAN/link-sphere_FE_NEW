@@ -43,6 +43,8 @@ flowchart TD
   Detail -->|"404"| NotFound["토스트 + /post로 replace"]
 
   Feed -->|"Submit Link"| Create["작성 /post/submit"]
+  Create -->|"URL 입력, 0.5초 멈춤·형식 OK"| Preview["GET /link-preview?url=<br/>URL 칸 아래 카드 미리보기<br/>(BE가 10분 캐시)"]
+  Preview -->|"도메인 없음 등"| PreviewErr["카드 대신 URL 칸 에러"]
   Create -->|"제출 → 버튼 '등록 중...'(응답 대기)"| CreateReq["POST /post (keepalive)<br/>성공 시 clearNow·reset<br/>navigate /post replace<br/>실패 시 폼 유지"]
   CreateReq -->|"성공"| CreateOk["필터 없는 목록 cancelQueries<br/>→ page 0 맨 앞에 끼워 넣고 page 1+ 버림<br/>→ post.list 무효화"]
 
@@ -128,6 +130,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 | `GET`    | `/post/{id}`            | `fetchPostDetail`      | 비공개(남의 글)·삭제 글은 404                                          |
 | `POST`   | `/post`                 | `createPost`           | `keepalive: true`, 응답은 `PostResponse` 그대로                        |
 | `PATCH`  | `/post/{id}`            | `updatePost`           | `keepalive: true`                                                      |
+| `GET`    | `/link-preview?url=`    | `fetchLinkPreview`     | 작성 중 미리보기. 로그인 전용이라 `/post` 밖에 있다. 회원당 시간 60회  |
 | `PATCH`  | `/post/{id}/visibility` | `updatePostVisibility` | body `{ isPrivate }`                                                   |
 | `DELETE` | `/post/{id}`            | `deletePost`           |                                                                        |
 | `POST`   | `/post/{id}/like`       | `toggleLikePost`       | 토글. 응답 `{ isLiked }`는 FE가 쓰지 않는다(§11)                       |
@@ -250,6 +253,18 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
    - 사용자가 아무 값이나 고치면 안내와 서버 칸 에러가 지워진다(`clearSubmitErrorsOnEdit`).
    - 대가: 저장 중 이탈 확인창에서 "나가기"를 골라 폼이 먼저 사라지면 실패가 안 보인다(드묾).
    - 표시 위치·박스 모양 결정 근거는 [`DECISIONS.md`](./DECISIONS.md) 2026-10-03 "실패 원인 노출" 항목.
+8. **작성 중 링크 미리보기**(2026-10-03): URL 칸 바로 아래 `LinkPreviewCard`(`entities/post/ui/LinkPreviewCard.tsx`)가
+   "이렇게 등록돼요"를 등록 전에 보여준다.
+   - 조회는 `useLinkPreview`(`entities/post/hooks/useLinkPreview.ts:31-67`)가 한다. 입력이 0.5초 멈추고 스키마
+     형식이 맞고 이메일 인증된 계정일 때만 묻는다. 등록과 같은 `UrlUtil.normalizeUrl`을 거친 URL로 물어야
+     BE 캐시(10분)가 등록 때 재사용돼, 저장되는 글이 본 미리보기와 같아진다.
+   - 카드 모습: 가져오는 중이면 같은 높이의 스켈레톤(아래 폼이 밀리지 않게), 받으면 썸네일·제목·설명·URL.
+     사용자가 제목을 입력했으면 그 제목으로 보여준다(등록되는 제목과 맞춤).
+   - 도메인 없음·내부망·형식 오류는 등록해도 똑같이 실패하므로 카드 대신 URL 칸 에러로 띄운다
+     (`showPreviewUrlErrorOnField`, 7번과 같은 `PostUtil.resolveSubmitError` 문구). 그 외 실패(한도·서버
+     오류)는 "미리보기를 불러오지 못했어요. 그래도 등록할 수 있어요"만 보여주고 등록은 막지 않는다.
+   - 토스트는 띄우지 않는다(`useFetchLinkPreviewQuery`의 `manualErrorHandling`, `retry: false`).
+   - 위치(URL 칸 바로 아래)·모양(가로형) 결정은 [`DECISIONS.md`](./DECISIONS.md) 2026-10-03 "응답 대기" 항목의 상태.
 
 ### 수정
 
@@ -269,6 +284,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   목록 캐시에서 그 글을 `setQueriesData`로 **직접 교체**한 뒤, `handlePostUpdateSuccess`(detail +
   list 무효화)와 `handlePostContentUpdateSuccess`(북마크 폴더별 게시글 무효화)를 부른다. 직접
   교체가 먼저라 재조회 응답을 기다리지 않고 바로 새 제목이 보인다.
+- **URL을 바꿨을 때만** 작성과 같은 미리보기 카드가 뜬다(`useUpdatePost.ts:94`의 `isUrlChanged`). URL이
+  원래 값과 같으면 조회하지 않는다 — 다시 크롤링할 일이 없기 때문이다.
 
 ### 삭제
 
@@ -332,6 +349,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 | `postKeys.listRoot`                     | `['post', 'list']`                  | 모든 피드 목록에 한꺼번에 패치·취소·무효화 |
 | `postKeys.list(filters)`                | `['post', 'list', { search, ... }]` | 필터 조합마다 별도 무한 쿼리 캐시          |
 | `postKeys.detail(id)`                   | `['post', 'detail', id]`            | 상세·수정 폼·프리페치                      |
+| `postKeys.linkPreview(url)`             | `['post', 'linkPreview', url]`      | 작성 중 미리보기(정규화된 URL마다)         |
 | `postMutationKeys.create`               | `['post', 'create']`                | 작성 mutation 식별(관찰하는 곳 없음)       |
 | `postMutationKeys.update(id)`           | `['post', 'update', id]`            | 카드 "수정 중" 오버레이                    |
 | `postMutationKeys.delete`               | `['post', 'delete']`                |                                            |
@@ -377,6 +395,8 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | mutation 진행 표시 지연 / 최소 노출     | 500ms / 400ms        | `src/shared/config/const.ts:18-21`                                |
 | 쿼리 기본 staleTime / gcTime / retry    | 3분 / 5분 / 1회      | `src/shared/lib/react-query/config/queryClient.ts:70-73`          |
 | 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:165`                       |
+| 미리보기 조회 디바운스                  | 500ms                | `src/entities/post/hooks/useLinkPreview.ts:9`                     |
+| 미리보기 staleTime / 재시도             | 10분 / 없음          | `src/entities/post/api/post.queries.ts:177-190`                   |
 | 카테고리 옵션 staleTime                 | 24시간               | `src/entities/category/api/category.queries.ts:14`                |
 
 행 높이 추정치와 최소 카드 폭은 직접 측정한 값이다 — 측정 방법은 `post-card-grid.const.ts`의 주석과
@@ -399,6 +419,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 수정 성공 캐시 처리          | `src/entities/post/api/post.queries.ts:323-358`                                                                                                            |
 | 공개 전환                    | `src/entities/post/api/post.queries.ts:360-386`, `src/widgets/post/post-card/hooks/usePostCard.ts:63-99`                                                   |
 | 제출 대기(응답 대기·라벨)    | `useCreatePost.ts` `onSubmit`, `useUpdatePost.ts` `onSubmit`                                                                                               |
+| 작성 중 미리보기             | `src/entities/post/hooks/useLinkPreview.ts`, `src/entities/post/ui/LinkPreviewCard.tsx`, 폼 연결은 두 훅의 `showPreviewUrlErrorOnField`                    |
 | 입력 검증                    | `src/entities/post/model/post.schema.ts:9-35`                                                                                                              |
 
 ### 자주 하는 수정
@@ -509,6 +530,8 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
 - **`useUpdatePost`의 카테고리 캐스팅**(`useUpdatePost.ts:32`): 폼 기본값에 카테고리 id를 문자열로
   넣고 `as unknown as number[]`로 타입을 속인다(체크박스 그룹이 문자열 값을 쓰고, 제출 시
   `z.coerce.number()`가 숫자로 돌린다). 타입이 실제 값과 다르다.
+- **미리보기에서 제목을 바로 고칠 수 없다.** LinkedIn처럼 카드 안에서 편집하지 않고, 기존 제목
+  입력란에 쓰면 카드에 반영된다.
 - **공개 전환이 낙관적이지 않다.** 확인 후 재조회가 끝날 때까지 카드 표시가 그대로라 토스트가
   먼저 뜨고 아이콘이 뒤에 바뀐다.
 

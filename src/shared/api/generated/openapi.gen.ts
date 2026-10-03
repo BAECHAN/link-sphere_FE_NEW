@@ -586,6 +586,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/link-preview': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * 링크 미리보기
+     * @description 등록 전에 URL의 제목·설명·썸네일을 가져온다. 결과는 10분간 캐시돼 같은 URL로 등록·수정할 때 재사용된다. 실패: 400 INVALID_URL · 400 URL_UNRESOLVABLE(도메인 없음) · 400 URL_NOT_ALLOWED(내부망) · 403 EMAIL_NOT_VERIFIED · 429 RATE_LIMIT_EXCEEDED(회원당 시간당 한도)
+     */
+    get: operations['previewLink'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/post': {
     parameters: {
       query?: never;
@@ -595,13 +615,13 @@ export interface paths {
     };
     /**
      * 게시글 목록 조회
-     * @description category·search·filter·nickname 으로 필터링, page·size 로 페이지네이션한다. 인증 토큰을 보내면 본인의 좋아요·북마크 여부가 응답에 반영된다.
+     * @description category·search·filter·nickname 으로 필터링, page·size 로 페이지네이션한다. 인증 토큰을 보내면 본인의 좋아요·북마크 여부가 응답에 반영된다. size 는 최대 50 으로 잘린다. 같은 IP의 검색이 몰리면 의미 검색을 건너뛰고 키워드 검색 결과만 돌려준다(에러 아님).
      */
     get: operations['getAllPosts'];
     put?: never;
     /**
      * 게시글 등록
-     * @description URL 을 크롤링해 메타데이터를 추출하고 AI 요약을 비동기로 채운다. HTTP 상태는 200 이고 본문 status 필드만 201 이다. 실패: 400 INVALID_INPUT(URL 형식 오류)
+     * @description URL 을 크롤링해 메타데이터를 추출하고 AI 요약을 비동기로 채운다. 10분 안에 같은 URL을 GET /link-preview 로 미리 본 적이 있으면 크롤링 대신 그 결과를 쓴다. HTTP 상태는 200 이고 본문 status 필드만 201 이다. 실패: 400 INVALID_URL · 400 URL_UNRESOLVABLE(도메인 없음) · 400 URL_NOT_ALLOWED(내부망) · 403 EMAIL_NOT_VERIFIED · 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 429 RATE_LIMIT_EXCEEDED(회원당 시간당 등록 한도 초과)
      */
     post: operations['createPost'];
     delete?: never;
@@ -633,7 +653,7 @@ export interface paths {
     head?: never;
     /**
      * 게시글 수정
-     * @description HTTP 상태는 200 이고 본문 status 필드만 201 이 아니라 그대로 200 이다. 실패: 404 POST_NOT_FOUND · 403 FORBIDDEN(작성자 아님)
+     * @description HTTP 상태는 200 이고 본문 status 필드만 201 이 아니라 그대로 200 이다. URL을 바꾸면 크롤링을 다시 한다(10분 안에 미리 본 URL이면 그 결과를 쓴다). 실패: 404 POST_NOT_FOUND · 403 FORBIDDEN(작성자 아님) · 400 INVALID_URL · 400 URL_UNRESOLVABLE · 400 URL_NOT_ALLOWED(URL을 바꾼 경우)
      */
     patch: operations['updatePost'];
     trace?: never;
@@ -733,7 +753,7 @@ export interface paths {
     put?: never;
     /**
      * 이미지 업로드용 서명 URL 발급
-     * @description Supabase Storage 서명 URL 을 발급한다(실제 업로드는 클라이언트가 이 URL로 직접 한다). 허용 확장자가 아니면 400 이 아니라 404 NOT_FOUND 로 응답한다(IllegalArgumentException 공통 매핑). 실패: 404 NOT_FOUND(허용되지 않은 확장자)
+     * @description Supabase Storage 서명 URL 을 발급한다(실제 업로드는 클라이언트가 이 URL로 직접 한다). 허용 확장자가 아니면 400 이 아니라 404 NOT_FOUND 로 응답한다(IllegalArgumentException 공통 매핑). 실패: 404 NOT_FOUND(허용되지 않은 확장자) · 429 RATE_LIMIT_EXCEEDED(회원당 시간당 발급 한도 초과)
      */
     post: operations['createSignedUploadUrl'];
     delete?: never;
@@ -805,6 +825,13 @@ export interface components {
     };
     ApiResponseFolderResponse: {
       data: components['schemas']['FolderResponse'];
+      message: string;
+      /** Format: int32 */
+      status: number;
+      timestamp: string;
+    };
+    ApiResponseLinkPreviewResponse: {
+      data: components['schemas']['LinkPreviewResponse'];
       message: string;
       /** Format: int32 */
       status: number;
@@ -966,6 +993,12 @@ export interface components {
       sortOrder: number;
     };
     LinkMetadata: {
+      description?: string | null;
+      ogImage?: string | null;
+      title: string;
+      url: string;
+    };
+    LinkPreviewResponse: {
       description?: string | null;
       ogImage?: string | null;
       title: string;
@@ -1925,6 +1958,28 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  previewLink: {
+    parameters: {
+      query: {
+        url: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponseLinkPreviewResponse'];
+        };
       };
     };
   };

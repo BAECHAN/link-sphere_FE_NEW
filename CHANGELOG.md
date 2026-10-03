@@ -9,6 +9,22 @@
 
 ## [Unreleased]
 
+### Added
+
+- `post` 등록·수정 폼에서 URL을 입력하면 등록 전에 링크 미리보기 카드를 보여줌
+  <details><summary>배경·구현</summary>
+
+  등록 결과(제목·설명·썸네일)를 등록한 뒤에야 볼 수 있었다. URL 칸 바로 아래에 카드로 먼저 보여준다
+  (Slack·LinkedIn의 작성 중 미리보기 방식). 입력이 0.5초 멈추고 형식이 맞을 때만 BE
+  `GET /link-preview`에 묻는다. BE가 결과를 10분 캐시해 등록 때 재사용하므로, 등록이 빨라지고
+  저장되는 글이 본 미리보기와 같아진다. 도메인 없음처럼 등록해도 실패할 URL은 카드 대신 URL 칸
+  에러로 미리 알리고, 그 외 실패는 "그래도 등록할 수 있어요"만 보여준다. 수정 폼은 URL을 바꿨을
+  때만 보여준다. 위치·모양은 시안 비교 후 선택(`docs/DECISIONS.md` 2026-10-03 "응답 대기" 항목).
+  (`useLinkPreview.ts`·`LinkPreviewCard.tsx`(신규), `post.api.ts`, `post.keys.ts`, `post.queries.ts`,
+  `useCreatePost.ts`, `useUpdatePost.ts`, `CreatePostForm.tsx`, `UpdatePostForm.tsx`, `api.ts`, `texts.ts`)
+
+  </details>
+
 ### Changed
 
 - `post` 등록·수정 실패 원인을 입력칸 또는 버튼 위 안내로 보여줌(토스트 대신)

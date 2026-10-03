@@ -256,6 +256,12 @@ export const TEXTS = {
         privateDescription: POST_FORM_COMMON.privateDescription,
         update: '수정하기',
       },
+      // 작성 중 링크 미리보기 카드(LinkPreviewCard) - 등록·수정 폼 공용
+      preview: {
+        loading: '링크 정보를 가져오는 중이에요.',
+        failed: '미리보기를 불러오지 못했어요. 그래도 등록할 수 있어요.',
+        ariaLabel: '링크 미리보기',
+      },
     },
     card: {
       // 댓글(CommentAuthor, BE가 채워주는 "탈퇴한 사용자")과 표시를 통일한다 - 예전엔
