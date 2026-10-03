@@ -1,4 +1,7 @@
 ### 2026-10-03 (FE)
+- 포스트 등록 및 수정 폼 내 URL 링크 미리보기 기능 구현 ([#310](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/310))
+
+### 2026-10-03 (FE)
 - 게시글 등록 및 수정 시 실패 원인을 UI 내 직관적인 가이드 메시지로 제공하여 사용자 경험 개선 ([#309](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/309))
 
 ### 2026-10-03 (BE)
