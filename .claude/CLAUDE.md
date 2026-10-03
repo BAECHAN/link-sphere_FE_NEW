@@ -369,6 +369,13 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
   `engine-strict=true`(2026-09-10 추가)가 함께 있어 다른 버전이면 `pnpm install` 자체가
   에러로 막힌다 — 다만 이 세션은 워크트리 격리(`source` 명령 차단) 때문에 Node 20을 실제로
   깔아 재현 검증은 못 했다(engine-strict의 표준 동작 자체는 npm/pnpm 공식 문서 근거)
+- **Never** 키처럼 보이는 값(API 키·VAPID 키·Firebase 설정·토큰·접속 정보 등)을 "공개 값이라 괜찮다"고
+  스스로 판단해 파일에 넣거나 커밋 → 넣기 전에 **항상 사용자에게 묻는다**. 기술적으로 공개용이라는
+  근거는 질문의 판단 재료로만 붙인다. `.env.example` 같은 예시·템플릿 파일에는 빈 값만 둔다. 값을 다뤄야
+  할 때는 대화에 노출하지 않는다(`gh secret set` 프롬프트, 파일에서 stdin으로 파이프). 키를 교체할 때는
+  **새 값 반영(시크릿·`.env`) → 재배포 → 운영 확인 → 옛 값 삭제** 순서를 지킨다. 2026-10-02 #301에서
+  `.env.example`에 실제 Firebase·VAPID 값을 확인 없이 넣어 공개 레포에 병합했고, 이력은 지울 수 없어
+  VAPID·apiKey·웹 앱을 모두 교체했다(#302). 수습 중에도 이 순서가 어긋나 운영 알림이 두 번 깨졌다
 - **Never** native `confirm()` → 항상 `useAlert` + `openConfirm` 사용
 - **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만(2026-09-09 감사에서
   `shared/lib/firebase/fcm.ts`가 raw `fetch()`로 이 규칙을 어기고 있는 걸 발견해 같은 날
