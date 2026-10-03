@@ -51,6 +51,34 @@ describe('resolveErrorToast', () => {
     expect(decision).toEqual({ silent: false, message: TEXTS.messages.error.edgeBlocked });
   });
 
+  it('429는 meta.errorMessage보다 우선해 rateLimited 토스트를 띄운다', () => {
+    const error = apiError({ status: 429, code: 'RATE_LIMIT_EXCEEDED' });
+
+    const decision = resolveErrorToast(
+      error,
+      { errorMessage: '게시글 등록에 실패했어요.' },
+      MUTATION_ERROR_POLICY
+    );
+
+    expect(decision).toEqual({ silent: false, message: TEXTS.messages.error.rateLimited });
+  });
+
+  it('앱 에러 코드가 없는 429(Lambda 동시 실행 포화)도 rateLimited 토스트를 띄운다', () => {
+    const error = apiError({ status: 429, code: '429' });
+
+    const decision = resolveErrorToast(error, undefined, QUERY_ERROR_POLICY);
+
+    expect(decision).toEqual({ silent: false, message: TEXTS.messages.error.rateLimited });
+  });
+
+  it('manualErrorHandling은 429보다 우선한다', () => {
+    const error = apiError({ status: 429, code: 'RATE_LIMIT_EXCEEDED' });
+
+    const decision = resolveErrorToast(error, { manualErrorHandling: true }, MUTATION_ERROR_POLICY);
+
+    expect(decision).toEqual({ silent: true });
+  });
+
   it('meta.errorMessage가 있으면 그 메시지를 우선 사용한다', () => {
     const error = apiError({ code: SERVER_ERROR_CODE.INTERNAL_SERVER_ERROR });
 

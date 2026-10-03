@@ -6,6 +6,7 @@ import {
   QUERY_ERROR_POLICY,
   type CustomMutationMeta,
 } from '@/shared/lib/react-query/config/error-toast';
+import { shouldRetryQuery } from '@/shared/lib/react-query/config/retry-policy';
 
 /** 판정된 결과를 실제로 적용한다 — 토스트·콘솔 부수 효과는 이 한 곳에만 있다. */
 const applyErrorToast = (decision: ReturnType<typeof resolveErrorToast>) => {
@@ -69,7 +70,7 @@ export const queryClient = new QueryClient({
     queries: {
       staleTime: 3 * 60 * 1000, // 3분
       gcTime: 5 * 60 * 1000, // 5분
-      retry: 1,
+      retry: shouldRetryQuery,
       refetchOnWindowFocus: true,
       refetchOnMount: true,
       throwOnError: false, // ErrorBoundary 사용 시 true로 변경
