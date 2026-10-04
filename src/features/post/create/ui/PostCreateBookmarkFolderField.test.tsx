@@ -264,6 +264,26 @@ describe('PostCreateBookmarkFolderField', () => {
     expect(screen.getByTestId('bookmark-value')).toHaveTextContent('true');
   });
 
+  it('새 폴더 입력 중 모달을 닫았다가 다시 열면 입력창이 접혀 있고 입력값도 비어 있다', async () => {
+    const user = userEvent.setup();
+    renderField();
+
+    await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
+    await waitFor(() => expect(screen.getByText('새 폴더 만들기')).toBeInTheDocument());
+    await user.click(screen.getByText('새 폴더 만들기'));
+    await user.type(screen.getByPlaceholderText('새 폴더 이름'), '읽을거리');
+
+    await user.click(dialog().getByRole('button', { name: TEXTS.buttons.confirm }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
+    await waitFor(() => expect(screen.getByText('새 폴더 만들기')).toBeInTheDocument());
+    expect(screen.queryByPlaceholderText('새 폴더 이름')).not.toBeInTheDocument();
+
+    await user.click(screen.getByText('새 폴더 만들기'));
+    expect(screen.getByPlaceholderText('새 폴더 이름')).toHaveValue('');
+  });
+
   it('새 폴더 입력 중 취소를 누르면 입력만 접히고 모달은 열려 있다', async () => {
     const user = userEvent.setup();
     renderField();

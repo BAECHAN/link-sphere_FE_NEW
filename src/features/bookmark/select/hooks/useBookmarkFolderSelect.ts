@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import {
@@ -44,15 +44,20 @@ export function useBookmarkFolderSelect({
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const submittingRef = useRef(false);
 
+  const [prevOpen, setPrevOpen] = useState(open);
+
   // 다이얼로그가 닫히면 생성 입력 상태를 리셋한다 — 열려 있는 동안만 스스로 닫히는 즉시 저장
   // 경로(PostCardBookmarkFolderDialog)와 달리, 지연 선택(PostCreateBookmarkFolderField)은 확인 버튼으로 닫히므로
-  // 여기서 공통으로 처리해야 다음에 열 때 입력창이 남아있지 않는다.
-  useEffect(() => {
+  // 여기서 공통으로 처리해야 다음에 열 때 입력창이 남아있지 않는다. effect가 아니라 렌더 중에
+  // 맞춘다 (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+
     if (!open) {
       setCreatingMode(false);
       setNewFolderName('');
     }
-  }, [open]);
+  }
 
   const isUncategorizedSelected = isBookmarked && selectedFolderIds.length === 0;
   // 파괴적 조작(폴더 탭 한 번으로 북마크가 완전 삭제될 수 있음, 2026-09-11)이 생겨

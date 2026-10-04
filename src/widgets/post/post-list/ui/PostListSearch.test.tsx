@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import { renderWithProviders, userEvent } from '@/test/utils';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
@@ -21,14 +21,25 @@ function LocationSearchProbe() {
   return <div data-testid="location-search">{location.search}</div>;
 }
 
-function renderSearch(initialEntry: string) {
+// 뒤로가기(외부 URL 변경)를 재현하는 테스트 전용 버튼
+function BackButton() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      test-back
+    </button>
+  );
+}
+
+function renderSearch(...initialEntries: string[]) {
   return renderWithProviders(
     <>
       <PostListSearch />
       <LocationSearchProbe />
+      <BackButton />
     </>,
     {
-      wrapperOptions: { initialEntries: [initialEntry] },
+      wrapperOptions: { initialEntries },
     }
   );
 }
@@ -83,5 +94,44 @@ describe('PostListSearch — 조건 N개 적용 중 카운트', () => {
 
     await waitFor(() => expect(useHideBotsStore.getState().hideBots).toBe(true));
     expect(screen.queryByText(/조건 \d+개 적용 중/)).not.toBeInTheDocument();
+  });
+});
+
+describe('PostListSearch — 외부 변경 동기화', () => {
+  it('뒤로가기로 URL의 범위 필터가 바뀌면 칩도 따라간다', async () => {
+    const user = userEvent.setup();
+    renderSearch('/?filter=isBookmarked', '/');
+
+    const chip = screen.getByRole('button', { name: TEXTS.buttons.bookmarkOnly });
+    expect(chip).not.toHaveClass('bg-warning');
+
+    await user.click(screen.getByRole('button', { name: 'test-back' }));
+
+    await waitFor(() => expect(chip).toHaveClass('bg-warning'));
+  });
+
+  it('뒤로가기로 URL의 @카테고리가 바뀌면 카테고리 칩도 따라간다', async () => {
+    const user = userEvent.setup();
+    renderSearch('/?q=%40%EB%B0%B1%EC%97%94%EB%93%9C', '/');
+
+    const chip = await screen.findByRole('button', { name: '@백엔드' });
+    expect(chip).not.toHaveClass('bg-primary');
+
+    await user.click(screen.getByRole('button', { name: 'test-back' }));
+
+    await waitFor(() => expect(chip).toHaveClass('bg-primary'));
+  });
+
+  it('봇 글 숨기기 설정이 바깥에서 바뀌면 스위치도 따라간다', async () => {
+    renderSearch('/');
+
+    const toggle = screen.getByLabelText(TEXTS.buttons.hideBots);
+    expect(toggle).not.toBeChecked();
+
+    act(() => {
+      useHideBotsStore.setState({ hideBots: true });
+    });
+
+    await waitFor(() => expect(toggle).toBeChecked());
   });
 });

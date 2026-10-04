@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
@@ -35,16 +35,17 @@ export function usePostCardBookmarkFolderDialog({
   // 모달을 연 시점의 북마크 여부를 고정한다. 저장 중 낙관적 갱신으로 isBookmarked가
   // true로 바뀌어도, 닫힘 애니메이션 동안 '삭제하기' 버튼이 깜빡이지 않도록 방지한다.
   const [wasBookmarkedOnOpen, setWasBookmarkedOnOpen] = useState(isBookmarked);
-  useEffect(
-    function snapshotBookmarkStateOnOpen() {
-      if (open) {
-        setWasBookmarkedOnOpen(isBookmarked);
-      }
-      // open 이 true 로 전환되는 순간에만 스냅샷 — 저장 중 isBookmarked 변화는 의도적으로 무시
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [open]
-  );
+  const [prevOpen, setPrevOpen] = useState(open);
+
+  // open 이 true 로 전환되는 순간에만 스냅샷 — 저장 중 isBookmarked 변화는 의도적으로 무시.
+  // effect가 아니라 렌더 중에 맞춘다 (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+
+    if (open) {
+      setWasBookmarkedOnOpen(isBookmarked);
+    }
+  }
 
   // 저장 결과를 바로 확인할 수 있게 저장된 폴더로 데려간다. 액션과 닫기 버튼이 자리를 다투므로
   // FCM 알림 토스트와 동일하게 액션이 있을 때는 닫기 버튼을 끈다.

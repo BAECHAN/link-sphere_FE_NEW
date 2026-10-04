@@ -1,5 +1,5 @@
 import { ImageOff } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { hasImageFailed, recordImageFailure } from '@/shared/lib/image/failedImageCache';
 import { cn } from '@/shared/lib/tailwind/utils';
 
@@ -26,14 +26,15 @@ interface LinkThumbnailProps {
  */
 export function LinkThumbnail({ src, alt, className, priority = false }: LinkThumbnailProps) {
   const [hasError, setHasError] = useState(false);
+  const [prevSrc, setPrevSrc] = useState(src);
 
-  // src가 바뀌면(게시글 URL 수정 등) 이전 URL의 에러 상태를 들고 있지 않는다
-  useEffect(
-    function resetErrorOnSrcChange() {
-      setHasError(false);
-    },
-    [src]
-  );
+  // src가 바뀌면(게시글 URL 수정 등) 이전 URL의 에러 상태를 들고 있지 않는다. effect가 아니라
+  // 렌더 중에 리셋한다 - effect에서 하면 새 src를 폴백으로 한 번 더 그린다
+  // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  if (src !== prevSrc) {
+    setPrevSrc(src);
+    setHasError(false);
+  }
 
   if (!src) {
     return null;

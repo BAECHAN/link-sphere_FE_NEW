@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useRef, useState } from 'react';
+import { RefObject, useEffect, useState } from 'react';
 import { MessageSquarePlus } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { TEXTS } from '@/shared/config/texts';
@@ -27,17 +27,21 @@ export function ScrollToCommentFormButton({
   const [isVisible, setIsVisible] = useState(false);
   // isVisible이 false가 된 뒤에도 exit 애니메이션이 끝날 때까지 DOM에 남겨둔다.
   const [shouldRender, setShouldRender] = useState(false);
-  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // 보이기 시작하면 렌더 중에 바로 마운트한다 - effect에서 켜면 null로 한 번 더 렌더된다
+  // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  if (isVisible && !shouldRender) {
+    setShouldRender(true);
+  }
 
   useEffect(() => {
     if (isVisible) {
-      clearTimeout(hideTimeoutRef.current);
-      setShouldRender(true);
       return;
     }
 
-    hideTimeoutRef.current = setTimeout(() => setShouldRender(false), TRANSITION_MS);
-    return () => clearTimeout(hideTimeoutRef.current);
+    // 다시 보이게 되면 cleanup이 이 타이머를 취소해 사라지지 않는다
+    const hideTimeout = setTimeout(() => setShouldRender(false), TRANSITION_MS);
+    return () => clearTimeout(hideTimeout);
   }, [isVisible]);
 
   useEffect(

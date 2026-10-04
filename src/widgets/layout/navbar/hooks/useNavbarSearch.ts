@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useSearchParamsDraft } from '@/shared/hooks/useSearchParamsDraft';
@@ -20,11 +20,14 @@ export function useNavbarSearch() {
   const appliedQuery = isPostListPage ? (searchParams.get('q') ?? '') : '';
 
   const [searchInput, setSearchInput] = useState(appliedQuery);
+  const [prevAppliedQuery, setPrevAppliedQuery] = useState(appliedQuery);
 
   // URL의 q가 바뀌면(제출, 카테고리 칩 클릭, 뒤로가기, 페이지 이동 등) 입력값도 따라간다.
-  useEffect(() => {
+  // effect가 아니라 렌더 중에 맞춘다 (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  if (appliedQuery !== prevAppliedQuery) {
+    setPrevAppliedQuery(appliedQuery);
     setSearchInput(appliedQuery);
-  }, [appliedQuery]);
+  }
 
   // X 버튼: 입력값을 비우고, 게시글 목록 페이지에 있을 때만 URL의 q도 지워 검색을 해제한다
   // (useBookmarkSearch.handleClear와 동일한 선례). 다른 페이지(북마크 등)에서는 이름이 같은
