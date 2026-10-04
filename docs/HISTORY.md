@@ -1,4 +1,7 @@
 ### 2026-10-04 (FE)
+- 가상 스크롤 훅의 렌더링 단계 내 ref 및 setState 호출 문제를 수정하여 컴포넌트 안정성 확보 ([#320](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/320))
+
+### 2026-10-04 (FE)
 - 드롭다운 컴포넌트의 상태 관리 구조를 ref 객체 전달 방식에서 상태 제어 함수를 제공하는 context 기반으로 리팩토링하여 결합도 개선 ([#319](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/319))
 
 ### 2026-10-04 (FE)
