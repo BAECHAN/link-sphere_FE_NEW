@@ -3,16 +3,5 @@
     "react-hooks/set-state-in-effect": {
       "count": 1
     }
-  },
-  "src/shared/hooks/useWindowGridVirtualizer.ts": {
-    "react-hooks/immutability": {
-      "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 5
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
   }
 }
