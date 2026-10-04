@@ -1,3 +1,8 @@
+### 2026-10-04 (FE)
+- 게시글 등록 폼 레이아웃 개선 및 링크 미리보기 UI 오류 수정
+로그:
+- fix(post): 등록 폼에서 링크 미리보기가 뜰 때 데스크톱 등록 버튼이 밀리지 않게 함 ([#313](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/313))
+
 ### 2026-10-03 (FE)
 - 포스트 등록 및 수정 폼 내 URL 링크 미리보기 기능 구현 ([#310](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/310))
 
