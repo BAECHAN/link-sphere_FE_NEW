@@ -1,4 +1,7 @@
 ### 2026-10-04 (FE)
+- shared 훅 내의 부작용을 제거하고 렌더링 단계에서 값을 계산하도록 로직을 최적화하여 렌더링 안정성 향상 ([#316](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/316))
+
+### 2026-10-04 (FE)
 - React 공식 Hooks 규칙 도입 및 코드 정적 분석 강화
 - ESLint 설정 업데이트를 통해 Hooks 사용 규칙(`react-hooks/rules-of-hooks`, `react-hooks/exhaustive-deps`)을 활성화하고, 기존 위반 사항에 대한 일괄 억제(suppression)를 적용하여 향후 코드 품질 유지 기반 마련 ([#315](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/315))
 
