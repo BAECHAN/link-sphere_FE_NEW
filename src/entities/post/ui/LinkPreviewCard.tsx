@@ -1,18 +1,31 @@
 import { LinkThumbnail } from '@/shared/ui/atoms/link-thumbnail';
 import { Skeleton } from '@/shared/ui/atoms/skeleton';
 import { TEXTS } from '@/shared/config/texts';
+import { cn } from '@/shared/lib/tailwind/utils';
 import type { LinkPreviewState } from '@/entities/post/hooks/useLinkPreview';
 
 interface LinkPreviewCardProps {
   state: LinkPreviewState;
   /** 사용자가 제목을 직접 입력했으면 그 제목으로 보여준다 - 등록되는 제목과 맞춘다 */
   titleOverride?: string;
+  /**
+   * 조회 전(idle·urlError)에도 같은 높이의 안내 자리를 깔아 둔다. 데스크톱 등록 폼은 제출 버튼이
+   * 흐름 안에 있어 카드가 나타나는 순간 버튼이 밀리기 때문이다. 수정 폼은 URL을 바꿨을 때만
+   * 카드가 떠서 빈 자리가 어색하므로 끈다
+   */
+  reserveSpace?: boolean;
 }
+
+// 모든 상태(안내 자리·가져오는 중·카드·실패)의 높이를 통일해 상태가 바뀌어도 아래 폼이 밀리지 않게
+// 한다. 카드의 가장 큰 모습(제목 1줄 + 설명 2줄 + URL 1줄)이 들어가는 높이다(docs/POST.md "작성 중 링크 미리보기")
+const PREVIEW_HEIGHT_CLASSNAME = 'h-24';
 
 // 썸네일 열 너비 - 모바일은 좁혀 본문이 두 줄 이상 들어가게 한다(시안 비교 후 가로형 L1 채택,
 // docs/DECISIONS.md 2026-10-03 "게시글 등록·수정: 기다리지 않고 이동 → 응답 대기" 항목)
-const CARD_GRID_CLASSNAME =
-  'grid grid-cols-[104px_1fr] items-center overflow-hidden rounded-lg border bg-muted/30 sm:grid-cols-[128px_1fr]';
+const CARD_GRID_CLASSNAME = cn(
+  'grid grid-cols-[104px_1fr] items-center overflow-hidden rounded-lg border bg-muted/30 sm:grid-cols-[128px_1fr]',
+  PREVIEW_HEIGHT_CLASSNAME
+);
 
 /**
  * 등록·수정 폼의 URL 칸 바로 아래에 붙는 링크 미리보기. "이렇게 등록돼요"를 등록 전에 확인하게
@@ -20,14 +33,37 @@ const CARD_GRID_CLASSNAME =
  * 깔아 결과가 와도 아래 폼이 밀리지 않게 한다. 기존 댓글 링크 미리보기(CommentItem)의 색·테두리를
  * 그대로 쓴다.
  */
-export function LinkPreviewCard({ state, titleOverride }: LinkPreviewCardProps) {
+export function LinkPreviewCard({
+  state,
+  titleOverride,
+  reserveSpace = false,
+}: LinkPreviewCardProps) {
   if (state.status === 'idle' || state.status === 'urlError') {
-    return null;
+    if (!reserveSpace) {
+      return null;
+    }
+
+    return (
+      <p
+        className={cn(
+          'flex items-center justify-center rounded-lg border bg-muted/30 px-3 text-sm text-muted-foreground',
+          PREVIEW_HEIGHT_CLASSNAME
+        )}
+      >
+        {TEXTS.post.form.preview.placeholder}
+      </p>
+    );
   }
 
   if (state.status === 'failed') {
     return (
-      <p className="rounded-lg border px-3 py-2.5 text-sm text-muted-foreground" aria-live="polite">
+      <p
+        className={cn(
+          'flex items-center rounded-lg border px-3 text-sm text-muted-foreground',
+          PREVIEW_HEIGHT_CLASSNAME
+        )}
+        aria-live="polite"
+      >
         {TEXTS.post.form.preview.failed}
       </p>
     );
