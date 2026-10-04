@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * 최소 로딩 시간 보장 훅
@@ -9,71 +9,51 @@ import { useEffect, useState, useRef, useCallback } from 'react';
  * @param isLoading 실제 로딩 상태
  * @param minDuration 최소 유지 시간 (ms, 기본값 1000ms)
  * @param isError 에러 상태
- * @returns [showLoading, stopDelay]
- * - showLoading: 최소 시간이 보장된 로딩 상태
- * - stopDelay: 최소 유지 시간을 무시하고 즉시 로딩을 끝내는 함수 (예: 에러 발생 시)
+ * @returns 최소 시간이 보장된 로딩 상태 (isError면 즉시 false)
  */
 export function useMinimumLoading(
   isLoading: boolean,
   minDuration: number = 1000,
   isError: boolean = false
 ) {
-  const [showLoading, setShowLoading] = useState(isLoading);
-  const startTimeRef = useRef<number | null>(null);
-  const timerRef = useRef<NodeJS.Timeout>();
+  // 로딩이 시작될 때마다 1씩 늘리는 회차 - 최소 시간 타이머를 회차 단위로 건다
+  const [loadingRound, setLoadingRound] = useState(isLoading ? 1 : 0);
+  const [prevIsLoading, setPrevIsLoading] = useState(isLoading);
+  // 최소 시간이 지난 마지막 회차
+  const [settledRound, setSettledRound] = useState(0);
 
-  const stopDelay = useCallback(() => {
-    setShowLoading(false);
-    startTimeRef.current = null;
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = undefined;
-    }
-  }, []);
+  // 로딩 시작을 렌더 중에 감지한다 - effect에서 하면 로딩이 꺼진 채로 한 번 더 렌더된다
+  // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  if (isLoading !== prevIsLoading) {
+    setPrevIsLoading(isLoading);
 
-  useEffect(() => {
-    if (isError) {
-      stopDelay();
-    }
-  }, [isError, stopDelay]);
-
-  useEffect(() => {
     if (isLoading) {
-      // 로딩 시작 시점 기록
-      startTimeRef.current = Date.now();
-      setShowLoading(true);
-
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    } else {
-      // 로딩이 끝났을 때
-      if (startTimeRef.current) {
-        const elapsedTime = Date.now() - startTimeRef.current;
-        const remainingTime = minDuration - elapsedTime;
-
-        if (remainingTime > 0) {
-          // 최소 시간이 아직 안 지났으면 남은 시간만큼 기다림
-          timerRef.current = setTimeout(() => {
-            setShowLoading(false);
-            startTimeRef.current = null;
-          }, remainingTime);
-        } else {
-          // 최소 시간이 지났으면 바로 종료
-          setShowLoading(false);
-          startTimeRef.current = null;
-        }
-      } else {
-        setShowLoading(false);
-      }
+      setLoadingRound((round) => round + 1);
     }
+  }
+
+  useEffect(() => {
+    if (loadingRound === 0) {
+      return;
+    }
+
+    // 로딩이 끝나도 이 타이머는 그대로 둔다 - 시작 시점부터 minDuration을 채워야 하므로
+    // 다음 회차가 시작되거나 언마운트될 때만 정리한다
+    const timer = setTimeout(() => {
+      setSettledRound(loadingRound);
+    }, minDuration);
 
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
+      clearTimeout(timer);
     };
-  }, [isLoading, minDuration]);
+  }, [loadingRound, minDuration]);
 
-  return showLoading;
+  const isMinDurationPending = loadingRound !== settledRound;
+
+  // 에러가 나면 최소 유지 시간을 무시하고 즉시 끝낸다
+  if (isError) {
+    return false;
+  }
+
+  return isLoading || isMinDurationPending;
 }

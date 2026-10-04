@@ -29,11 +29,6 @@
       "count": 1
     }
   },
-  "src/shared/hooks/useDelayedLoading.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/shared/hooks/useImageAttachments.ts": {
     "react-hooks/refs": {
       "count": 1
@@ -45,16 +40,6 @@
   "src/shared/hooks/useIntersectionObserver.ts": {
     "react-hooks/refs": {
       "count": 1
-    }
-  },
-  "src/shared/hooks/useIsMobile.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/shared/hooks/useMinimumLoading.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 2
     }
   },
   "src/shared/hooks/useNewVersionReload.test.tsx": {
@@ -87,16 +72,6 @@
     }
   },
   "src/shared/ui/atoms/link-thumbnail.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/shared/ui/elements/ScrollToTop.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/shared/ui/elements/TooltipWrapper.tsx": {
     "react-hooks/set-state-in-effect": {
       "count": 1
     }

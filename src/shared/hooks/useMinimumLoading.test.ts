@@ -48,6 +48,42 @@ describe('useMinimumLoading', () => {
     expect(result.current).toBe(false);
   });
 
+  it('최소 시간을 기다리는 중에 로딩이 다시 시작되면 그 시점부터 최소 시간을 새로 센다', () => {
+    const { result, rerender } = renderHook(({ isLoading }) => useMinimumLoading(isLoading, 400), {
+      initialProps: { isLoading: true },
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    rerender({ isLoading: false });
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    rerender({ isLoading: true });
+    act(() => {
+      vi.advanceTimersByTime(50);
+    });
+    rerender({ isLoading: false });
+
+    // 재시작(200ms) + 400ms = 600ms까지 유지된다. 지금은 250ms
+    act(() => {
+      vi.advanceTimersByTime(349);
+    });
+    expect(result.current).toBe(true);
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(result.current).toBe(false);
+  });
+
+  it('처음부터 로딩이 아니면 false다', () => {
+    const { result } = renderHook(() => useMinimumLoading(false, 400));
+
+    expect(result.current).toBe(false);
+  });
+
   it('isError가 true가 되면 최소 시간과 무관하게 즉시 종료한다', () => {
     const { result, rerender } = renderHook(
       ({ isLoading, isError }) => useMinimumLoading(isLoading, 1000, isError),
