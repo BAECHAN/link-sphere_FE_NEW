@@ -1,29 +1,6 @@
 {
-  "src/app/routes/ProtectedRoute.tsx": {
-    "react-hooks/refs": {
-      "count": 2
-    }
-  },
   "src/shared/hooks/useImageAttachments.ts": {
-    "react-hooks/refs": {
-      "count": 1
-    },
     "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/shared/hooks/useIntersectionObserver.ts": {
-    "react-hooks/refs": {
-      "count": 1
-    }
-  },
-  "src/shared/hooks/useNewVersionReload.test.tsx": {
-    "react-hooks/globals": {
-      "count": 1
-    }
-  },
-  "src/shared/hooks/useUnsavedChangesGuard.ts": {
-    "react-hooks/refs": {
       "count": 1
     }
   },
@@ -40,19 +17,6 @@
   },
   "src/shared/ui/atoms/dropdown-menu.tsx": {
     "react-hooks/immutability": {
-      "count": 3
-    },
-    "react-hooks/refs": {
-      "count": 1
-    }
-  },
-  "src/shared/ui/elements/form/FormInput.tsx": {
-    "react-hooks/refs": {
-      "count": 5
-    }
-  },
-  "src/shared/ui/elements/form/FormInputPassword.tsx": {
-    "react-hooks/refs": {
       "count": 3
     }
   }

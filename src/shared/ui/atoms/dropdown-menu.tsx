@@ -4,7 +4,15 @@ import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { Check, ChevronRight, Circle } from 'lucide-react';
 
 import { cn } from '@/shared/lib/tailwind/utils';
-import { createContext, forwardRef, useContext, useEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  forwardRef,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useLayoutEffect,
+} from 'react';
 
 interface DropdownMenuOpenContextValue {
   open: boolean;
@@ -80,7 +88,15 @@ const DropdownMenu = ({
   };
 
   const setOpenRef = useRef(setOpen);
-  setOpenRef.current = setOpen;
+
+  // 렌더 중이 아니라 레이아웃 effect에서 갱신한다 - 렌더 중 ref 쓰기는 React 규칙 위반이고
+  // (https://react.dev/reference/eslint-plugin-react-hooks/lints/refs), 공식 대안인
+  // useEffectEvent는 React 19.2부터(https://react.dev/blog/2025/10/01/react-19-2)라 React 18인
+  // 이 레포에선 쓸 수 없다. 레이아웃 effect는 일반 effect·이벤트보다 먼저 돌아
+  // 읽는 쪽은 항상 최신 값을 본다
+  useLayoutEffect(() => {
+    setOpenRef.current = setOpen;
+  });
 
   useEffect(() => {
     if (!open) {

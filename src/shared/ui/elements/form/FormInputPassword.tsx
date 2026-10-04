@@ -30,7 +30,12 @@ export const FormInputPassword = ({
   ...props
 }: FormInputPasswordProps) => {
   const { control } = useFormContext<FieldValues>();
-  const { field, fieldState } = useController<FieldValues>({
+  // ref를 따로 떼어 둔다 - field.ref를 쓰면 React Compiler 린트가 field 전체를 ref로 오인해
+  // field.value 읽기까지 refs 위반으로 잡는다(https://react.dev/reference/eslint-plugin-react-hooks/lints/refs)
+  const {
+    field: { ref: inputRef, ...field },
+    fieldState,
+  } = useController<FieldValues>({
     name,
     control,
     rules: { deps },
@@ -56,7 +61,7 @@ export const FormInputPassword = ({
           field.onBlur();
           onBlur?.(event);
         }}
-        ref={field.ref}
+        ref={inputRef}
         required={required}
         className={fieldState.error ? 'border-destructive focus-visible:ring-destructive' : ''}
         {...props}

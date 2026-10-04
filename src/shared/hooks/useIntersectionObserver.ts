@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useLayoutEffect } from 'react';
 
 interface UseIntersectionObserverProps {
   threshold?: number;
@@ -22,7 +22,15 @@ export function useIntersectionObserver({
   // deps에서는 빼, observer 인스턴스 자체는 threshold/root/rootMargin/enabled가 바뀔
   // 때만 재생성되게 한다.
   const onIntersectRef = useRef(onIntersect);
-  onIntersectRef.current = onIntersect;
+
+  // 렌더 중이 아니라 레이아웃 effect에서 갱신한다 - 렌더 중 ref 쓰기는 React 규칙 위반이고
+  // (https://react.dev/reference/eslint-plugin-react-hooks/lints/refs), 공식 대안인
+  // useEffectEvent는 React 19.2부터(https://react.dev/blog/2025/10/01/react-19-2)라 React 18인
+  // 이 레포에선 쓸 수 없다. 레이아웃 effect는 일반 effect·이벤트보다 먼저 돌아
+  // 읽는 쪽은 항상 최신 값을 본다
+  useLayoutEffect(() => {
+    onIntersectRef.current = onIntersect;
+  });
 
   useEffect(() => {
     if (!enabled) {

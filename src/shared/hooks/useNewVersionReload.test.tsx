@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, render } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider, type RouteObject } from 'react-router-dom';
 import { useNewVersionReload } from '@/shared/hooks/useNewVersionReload';
 import { useAppVersionStore } from '@/shared/store/appVersion.store';
@@ -14,11 +14,15 @@ Object.defineProperty(window, 'location', {
   configurable: true,
 });
 
-let latestShouldReload = false;
-
+// 훅 결과를 바깥 변수에 대입하면 React Compiler 린트(react-hooks/globals)가 렌더 중 전역 재할당으로
+// 잡는다 - 화면에 그려 두고 읽는다
 function TestComponent() {
-  latestShouldReload = useNewVersionReload();
-  return null;
+  const shouldReload = useNewVersionReload();
+  return <div data-testid="should-reload">{String(shouldReload)}</div>;
+}
+
+function shouldReloadText() {
+  return screen.getByTestId('should-reload').textContent;
 }
 
 const routes: RouteObject[] = [{ path: '*', element: <TestComponent /> }];
@@ -32,7 +36,6 @@ function renderAtPath(initialPath: string) {
 describe('useNewVersionReload', () => {
   beforeEach(() => {
     reloadSpy.mockClear();
-    latestShouldReload = false;
     useAppVersionStore.setState({ detectedAtPathname: null });
   });
 
@@ -42,7 +45,7 @@ describe('useNewVersionReload', () => {
     await act(async () => router.navigate('/bookmark'));
 
     expect(reloadSpy).not.toHaveBeenCalled();
-    expect(latestShouldReload).toBe(false);
+    expect(shouldReloadText()).toBe('false');
   });
 
   it('플래그가 감지 시점 pathname 그대로면 리로드하지 않는다', () => {
@@ -50,7 +53,7 @@ describe('useNewVersionReload', () => {
     renderAtPath('/post');
 
     expect(reloadSpy).not.toHaveBeenCalled();
-    expect(latestShouldReload).toBe(false);
+    expect(shouldReloadText()).toBe('false');
   });
 
   it('플래그가 있는 상태에서 pathname이 바뀌면 정확히 1회 리로드한다', async () => {
@@ -60,7 +63,7 @@ describe('useNewVersionReload', () => {
     await act(async () => router.navigate('/bookmark'));
 
     expect(reloadSpy).toHaveBeenCalledTimes(1);
-    expect(latestShouldReload).toBe(true);
+    expect(shouldReloadText()).toBe('true');
   });
 
   it('쿼리스트링만 바뀌면 리로드하지 않는다 (북마크 폴더 전환 회귀 방지)', async () => {
@@ -70,6 +73,6 @@ describe('useNewVersionReload', () => {
     await act(async () => router.navigate('/bookmark?folder=abc'));
 
     expect(reloadSpy).not.toHaveBeenCalled();
-    expect(latestShouldReload).toBe(false);
+    expect(shouldReloadText()).toBe('false');
   });
 });
