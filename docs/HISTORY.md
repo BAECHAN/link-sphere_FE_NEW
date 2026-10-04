@@ -1,4 +1,7 @@
 ### 2026-10-04 (FE)
+- React effect 내 직접적인 상태 업데이트 패턴을 렌더링 중 계산(Render-time computation) 방식으로 최적화하여 렌더링 효율성 개선 ([#317](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/317))
+
+### 2026-10-04 (FE)
 - shared 훅 내의 부작용을 제거하고 렌더링 단계에서 값을 계산하도록 로직을 최적화하여 렌더링 안정성 향상 ([#316](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/316))
 
 ### 2026-10-04 (FE)
