@@ -14,10 +14,5 @@
     "react-hooks/set-state-in-effect": {
       "count": 1
     }
-  },
-  "src/shared/ui/atoms/dropdown-menu.tsx": {
-    "react-hooks/immutability": {
-      "count": 3
-    }
   }
 }

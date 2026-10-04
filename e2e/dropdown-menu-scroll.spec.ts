@@ -51,6 +51,11 @@ test.describe('드롭다운 메뉴 — 스크롤 허용·스크롤 시 닫힘·�
 
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
     await expect(page.getByRole('menu')).toHaveCount(0);
+    // 스크롤로 닫혔을 때는 트리거로 포커스를 돌리지 않는다 - 돌리면 focus()가 트리거 위치로
+    // 스크롤을 되돌린다(dropdown-menu.tsx onCloseAutoFocus). Esc로 닫을 때와 반대다(아래 케이스)
+    await expect(
+      page.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })
+    ).not.toBeFocused();
   });
 
   test('바깥 첫 클릭은 메뉴만 닫고, 다음 클릭은 정상 동작한다', async ({ page }) => {
