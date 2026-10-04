@@ -1,4 +1,7 @@
 ### 2026-10-04 (FE)
+- 드롭다운 컴포넌트의 상태 관리 구조를 ref 객체 전달 방식에서 상태 제어 함수를 제공하는 context 기반으로 리팩토링하여 결합도 개선 ([#319](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/319))
+
+### 2026-10-04 (FE)
 - 렌더링 중 발생하는 ref 부수 효과를 제거하고, 테스트 환경의 전역 변수 재할당 문제를 해결하여 코드 안정성 및 테스트 신뢰성 확보 ([#318](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/318))
 
 ### 2026-10-04 (FE)
