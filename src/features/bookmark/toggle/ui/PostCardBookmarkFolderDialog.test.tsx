@@ -379,6 +379,31 @@ describe('PostCardBookmarkFolderDialog', () => {
     expect(screen.queryByText('최근 저장한 폴더')).not.toBeInTheDocument();
   });
 
+  it('열려 있는 동안 북마크 여부가 바뀌어도 "북마크 제거" 행은 연 시점 기준으로 고정되고, 다시 열면 새로 반영된다', async () => {
+    const dialogElement = (isBookmarked: boolean, open: boolean) => (
+      <PostCardBookmarkFolderDialog
+        postId={POST_ID}
+        isBookmarked={isBookmarked}
+        bookmarkFolderIds={[]}
+        open={open}
+        onOpenChange={vi.fn()}
+        renderFolderSelect={renderFolderSelect}
+      />
+    );
+    const { rerender } = renderWithProviders(dialogElement(false, true));
+
+    await waitFor(() => expect(screen.getByText('개발')).toBeInTheDocument());
+    expect(screen.queryByText('북마크 제거')).not.toBeInTheDocument();
+
+    // 저장 중 낙관적 갱신으로 isBookmarked가 true가 돼도 열려 있는 동안은 그대로다
+    rerender(dialogElement(true, true));
+    expect(screen.queryByText('북마크 제거')).not.toBeInTheDocument();
+
+    rerender(dialogElement(true, false));
+    rerender(dialogElement(true, true));
+    await waitFor(() => expect(screen.getByText('북마크 제거')).toBeInTheDocument());
+  });
+
   it('북마크 제거 행을 누르면 토글(해제) 요청을 보낸다', async () => {
     const user = userEvent.setup();
     let toggleCalled = false;

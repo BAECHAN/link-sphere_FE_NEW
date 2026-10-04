@@ -1,13 +1,30 @@
 import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithProviders, userEvent } from '@/test/utils';
+import { useNavigate } from 'react-router-dom';
 import { TEXTS } from '@/shared/config/texts';
 import { BookmarkSearch } from '@/widgets/bookmark/bookmark-search/ui/BookmarkSearch';
 
-function renderBookmarkSearch(initialEntry: string) {
-  return renderWithProviders(<BookmarkSearch />, {
-    wrapperOptions: { initialEntries: [initialEntry] },
-  });
+// 뒤로가기(외부 URL 변경)를 재현하는 테스트 전용 버튼
+function BackButton() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      test-back
+    </button>
+  );
+}
+
+function renderBookmarkSearch(...initialEntries: string[]) {
+  return renderWithProviders(
+    <>
+      <BookmarkSearch />
+      <BackButton />
+    </>,
+    {
+      wrapperOptions: { initialEntries },
+    }
+  );
 }
 
 describe('BookmarkSearch — X 버튼', () => {
@@ -41,5 +58,19 @@ describe('BookmarkSearch — 모바일 키보드 힌트', () => {
       'enterkeyhint',
       'search'
     );
+  });
+});
+
+describe('BookmarkSearch — URL 동기화', () => {
+  it('뒤로가기로 URL의 q가 바뀌면 입력값도 따라간다', async () => {
+    const user = userEvent.setup();
+    renderBookmarkSearch('/bookmark?q=이전', '/bookmark?q=지금');
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.bookmarkSearch);
+    expect(input).toHaveValue('지금');
+
+    await user.click(screen.getByRole('button', { name: 'test-back' }));
+
+    expect(input).toHaveValue('이전');
   });
 });

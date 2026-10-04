@@ -18,17 +18,34 @@ interface UseAvailabilityCheckOptions {
  * 계정별 예외(본인 현재 닉네임 제외)가 있어 건드리지 않고 그대로 둔다.
  */
 export function useAvailabilityCheck({ value, schema, checkFn }: UseAvailabilityCheckOptions) {
-  const [status, setStatus] = useState<AvailabilityStatus>('idle');
+  // 마지막으로 조회를 마친 값과 그 결과. 화면에 보이는 status는 아래에서 렌더 중에 파생한다 -
+  // effect 안에서 'idle'/'checking'을 바로 넣으면 낡은 상태로 한 번 더 렌더된다
+  // (https://react.dev/reference/eslint-plugin-react-hooks/lints/set-state-in-effect)
+  const [result, setResult] = useState<{
+    value: string;
+    status: Exclude<AvailabilityStatus, 'checking'>;
+  } | null>(null);
   const checkedRef = useRef<string | null>(null);
   const debouncedValue = useDebounce(value, 500);
   const hasDebounceSettled = value === debouncedValue;
 
-  useEffect(() => {
-    const trimmed = debouncedValue.trim();
+  const trimmed = debouncedValue.trim();
+  // 형식 오류는 zod 리졸버가 별도로 안내하므로 여기서는 조회하지 않고 조용히 idle로 둔다
+  const isCheckable = !!trimmed && schema.safeParse(trimmed).success;
 
-    if (!trimmed || !schema.safeParse(trimmed).success) {
-      // 형식 오류는 zod 리졸버가 별도로 안내하므로 여기서는 조용히 idle로 둔다
-      setStatus('idle');
+  // 형식이 틀려지면 이전 결과를 버린다 - 같은 값으로 돌아와도 다시 조회하며 '확인 중'을 보여준다
+  if (!isCheckable && result !== null) {
+    setResult(null);
+  }
+
+  const status: AvailabilityStatus = !isCheckable
+    ? 'idle'
+    : result?.value === trimmed
+      ? result.status
+      : 'checking';
+
+  useEffect(() => {
+    if (!isCheckable) {
       checkedRef.current = null;
       return;
     }
@@ -37,7 +54,6 @@ export function useAvailabilityCheck({ value, schema, checkFn }: UseAvailability
     }
 
     let cancelled = false;
-    setStatus('checking');
     void (async () => {
       let available: boolean;
       try {
@@ -47,7 +63,7 @@ export function useAvailabilityCheck({ value, schema, checkFn }: UseAvailability
         // 확인된 게 아니므로) 확인됐다고 속이지도 않는다. 실제 중복이면 제출 시점에 BE가
         // 409로 다시 막아준다.
         if (!cancelled) {
-          setStatus('idle');
+          setResult({ value: trimmed, status: 'idle' });
         }
         return;
       }
@@ -57,13 +73,13 @@ export function useAvailabilityCheck({ value, schema, checkFn }: UseAvailability
       }
 
       checkedRef.current = trimmed;
-      setStatus(available ? 'available' : 'duplicate');
+      setResult({ value: trimmed, status: available ? 'available' : 'duplicate' });
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [debouncedValue, schema, checkFn]);
+  }, [trimmed, isCheckable, checkFn]);
 
   return {
     status,

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import type { FieldValues, Path, UseFormReturn } from 'react-hook-form';
 import { PasswordUtil, type PasswordViolation } from '@/entities/auth/utils/auth.util';
 import { TEXTS } from '@/shared/config/texts';
@@ -58,14 +58,14 @@ export function usePasswordFieldsFeedback<T extends FieldValues>(
   });
 
   // 불일치를 한 번 보여주면 고치는 동안(글자 수가 다시 모자라도) 매 글자 판정을 이어가고,
-  // 일치하거나 확인 칸을 비우면 풀어준다
-  useEffect(() => {
-    if (confirmStatus === 'mismatch') {
-      setIsConfirmLatched(true);
-    } else if (confirmStatus === 'match' || confirm === '') {
-      setIsConfirmLatched(false);
-    }
-  }, [confirmStatus, confirm]);
+  // 일치하거나 확인 칸을 비우면 풀어준다. effect가 아니라 렌더 중에 맞춘다 - effect에서 하면
+  // 래치 전 상태로 한 번 더 렌더된다
+  // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  if (confirmStatus === 'mismatch' && !isConfirmLatched) {
+    setIsConfirmLatched(true);
+  } else if ((confirmStatus === 'match' || confirm === '') && isConfirmLatched) {
+    setIsConfirmLatched(false);
+  }
 
   const passwordMessage = violation
     ? VIOLATION_MESSAGE[violation]

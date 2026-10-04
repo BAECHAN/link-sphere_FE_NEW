@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 import { renderWithProviders, userEvent } from '@/test/utils';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { TEXTS } from '@/shared/config/texts';
 import { NavbarSearch } from '@/widgets/layout/navbar/ui/NavbarSearch';
 
@@ -17,8 +17,18 @@ function LocationProbe() {
   );
 }
 
+// 뒤로가기(외부 URL 변경)를 재현하는 테스트 전용 버튼
+function BackButton() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      test-back
+    </button>
+  );
+}
+
 function renderNavbarSearch(
-  initialEntry: string,
+  initialEntry: string | string[],
   props: Partial<{
     recentSearches: string[];
     onAddRecentSearch: (query: string) => void;
@@ -40,8 +50,13 @@ function renderNavbarSearch(
         onClearRecentSearches={onClearRecentSearches}
       />
       <LocationProbe />
+      <BackButton />
     </>,
-    { wrapperOptions: { initialEntries: [initialEntry] } }
+    {
+      wrapperOptions: {
+        initialEntries: Array.isArray(initialEntry) ? initialEntry : [initialEntry],
+      },
+    }
   );
 
   return { ...utils, onAddRecentSearch, onRemoveRecentSearch, onClearRecentSearches };
@@ -399,5 +414,29 @@ describe('NavbarSearch — 모바일 키보드 힌트', () => {
       'enterkeyhint',
       'search'
     );
+  });
+});
+
+describe('NavbarSearch — URL 동기화', () => {
+  it('뒤로가기로 URL의 q가 바뀌면 입력값도 따라간다', async () => {
+    const user = userEvent.setup();
+    renderNavbarSearch(['/post?q=이전', '/post?q=지금']);
+
+    const input = screen.getByDisplayValue('지금');
+
+    await user.click(screen.getByRole('button', { name: 'test-back' }));
+
+    expect(input).toHaveValue('이전');
+  });
+
+  it('게시글 목록에서 다른 페이지로 가면 입력값이 비워진다', async () => {
+    const user = userEvent.setup();
+    renderNavbarSearch(['/bookmark?q=북마크', '/post?q=지금']);
+
+    const input = screen.getByDisplayValue('지금');
+
+    await user.click(screen.getByRole('button', { name: 'test-back' }));
+
+    expect(input).toHaveValue('');
   });
 });

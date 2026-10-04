@@ -1,5 +1,5 @@
 import { useCategoryOptions } from '@/entities/category/hooks/useCategoryOptions';
-import { startTransition, useEffect, useState } from 'react';
+import { startTransition, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { usePostListParams } from '@/widgets/post/post-list/hooks/usePostList';
 import { extractSearchTags, parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
@@ -40,11 +40,15 @@ export const usePostListSearch = () => {
 
   const activeFilters = currentFilter ? currentFilter.split(',') : [];
   const [optimisticFilters, setOptimisticFilters] = useState<string[]>(activeFilters);
+  const [prevCurrentFilter, setPrevCurrentFilter] = useState(currentFilter);
 
-  // transition 완료 후 URL과 동기화 (뒤로가기 등 외부 URL 변경 대응)
-  useEffect(() => {
-    setOptimisticFilters(currentFilter ? currentFilter.split(',') : []);
-  }, [currentFilter]);
+  // transition 완료 후 URL과 동기화 (뒤로가기 등 외부 URL 변경 대응). 아래 두 미러도 같은
+  // 방식으로, effect가 아니라 렌더 중에 맞춘다
+  // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  if (currentFilter !== prevCurrentFilter) {
+    setPrevCurrentFilter(currentFilter);
+    setOptimisticFilters(activeFilters);
+  }
 
   const handleToggleFilter = (targetFilter: string) => {
     // flushSync로 강제 동기 커밋 → toggleFilter의 startTransition 배칭에서 분리
@@ -66,18 +70,23 @@ export const usePostListSearch = () => {
     () => parseSearchQuery(searchQuery).category ?? ''
   );
 
-  useEffect(() => {
+  const [prevSearchQuery, setPrevSearchQuery] = useState(searchQuery);
+
+  if (searchQuery !== prevSearchQuery) {
+    setPrevSearchQuery(searchQuery);
     setOptimisticCategoryTags(parseSearchQuery(searchQuery).category ?? '');
-  }, [searchQuery]);
+  }
 
   // 봇 숨기기는 store(localStorage) 값이라 URL과 달리 라우터의 v7_startTransition 보호를
   // 받지 못한다. 그대로 두면 토글할 때마다 목록이 스켈레톤으로 떨어지므로, 스위치 자체는
   // flushSync로 즉시 반응시키고 실제 store 갱신(=재조회)만 startTransition으로 감싼다.
   const [optimisticHideBots, setOptimisticHideBots] = useState(hideBots);
+  const [prevHideBots, setPrevHideBots] = useState(hideBots);
 
-  useEffect(() => {
+  if (hideBots !== prevHideBots) {
+    setPrevHideBots(hideBots);
     setOptimisticHideBots(hideBots);
-  }, [hideBots]);
+  }
 
   const handleToggleHideBots = () => {
     const next = !optimisticHideBots;

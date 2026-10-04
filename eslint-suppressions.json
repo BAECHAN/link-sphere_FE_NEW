@@ -4,31 +4,6 @@
       "count": 2
     }
   },
-  "src/entities/auth/hooks/usePasswordFieldsFeedback.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/entities/user/ui/UserAvatar.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/features/auth/signup/hooks/useAvailabilityCheck.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/features/bookmark/select/hooks/useBookmarkFolderSelect.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/features/bookmark/toggle/hooks/usePostCardBookmarkFolderDialog.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/shared/hooks/useImageAttachments.ts": {
     "react-hooks/refs": {
       "count": 1
@@ -71,16 +46,6 @@
       "count": 1
     }
   },
-  "src/shared/ui/atoms/link-thumbnail.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/shared/ui/elements/dialog/image-viewer/ImageViewer.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/shared/ui/elements/form/FormInput.tsx": {
     "react-hooks/refs": {
       "count": 5
@@ -88,26 +53,6 @@
   },
   "src/shared/ui/elements/form/FormInputPassword.tsx": {
     "react-hooks/refs": {
-      "count": 3
-    }
-  },
-  "src/widgets/bookmark/bookmark-search/hooks/useBookmarkSearch.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/widgets/layout/navbar/hooks/useNavbarSearch.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/widgets/post/post-list/hooks/usePostListSearch.ts": {
-    "react-hooks/set-state-in-effect": {
       "count": 3
     }
   }

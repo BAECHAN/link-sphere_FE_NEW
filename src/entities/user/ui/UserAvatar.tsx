@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
 import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
@@ -49,10 +49,15 @@ export function UserAvatar({
   const { openImageViewer } = useImageViewer();
   const nicknameInitial = nickname?.[0]?.toUpperCase();
 
-  // 아바타 URL이 바뀌면(업로드 미리보기 전환 등) 이전 URL의 에러 상태를 들고 있지 않는다
-  useEffect(() => {
+  const [prevImage, setPrevImage] = useState(image);
+
+  // 아바타 URL이 바뀌면(업로드 미리보기 전환 등) 이전 URL의 에러 상태를 들고 있지 않는다.
+  // effect가 아니라 렌더 중에 리셋한다 - effect에서 하면 새 URL을 폴백으로 한 번 더 그린다
+  // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  if (image !== prevImage) {
+    setPrevImage(image);
     setHasError(false);
-  }, [image]);
+  }
 
   const showFallback = (!image || hasError) && nicknameInitial;
 

@@ -34,17 +34,18 @@ export function GlobalImageViewer() {
   const hasNext = currentIndex < images.length - 1;
   const hasPrev = currentIndex > 0;
 
-  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
-
-  // 이미지가 바뀌면(다음/이전) 새 이미지의 onLoad를 다시 기다려야 한다.
-  useEffect(() => {
-    setAspectRatio(null);
-  }, [image?.src]);
+  // 비율은 그 비율을 잰 이미지 src와 함께 기억한다 - 이미지가 바뀌면(다음/이전) src가 달라
+  // 자동으로 null이 되고 새 이미지의 onLoad를 다시 기다린다(effect로 리셋할 필요가 없다)
+  const [loadedRatio, setLoadedRatio] = useState<{ src: string; ratio: number } | null>(null);
+  const aspectRatio = loadedRatio && loadedRatio.src === image?.src ? loadedRatio.ratio : null;
 
   function handleImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
-    const { naturalWidth, naturalHeight } = e.currentTarget;
+    const { naturalWidth, naturalHeight, src } = e.currentTarget;
     const ratio = naturalWidth / naturalHeight;
-    setAspectRatio(Math.min(Math.max(ratio, MIN_ASPECT_RATIO), MAX_ASPECT_RATIO));
+    setLoadedRatio({
+      src: image?.src ?? src,
+      ratio: Math.min(Math.max(ratio, MIN_ASPECT_RATIO), MAX_ASPECT_RATIO),
+    });
   }
 
   useEffect(
