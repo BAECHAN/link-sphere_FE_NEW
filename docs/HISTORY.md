@@ -1,4 +1,7 @@
 ### 2026-10-04 (FE)
+- useAlert 훅의 알림 스토어 구독 방식을 전체 상태에서 특정 액션으로 최적화하여 불필요한 리렌더링 방지 ([#314](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/314))
+
+### 2026-10-04 (FE)
 - 게시글 등록 폼 레이아웃 개선 및 링크 미리보기 UI 오류 수정
 로그:
 - fix(post): 등록 폼에서 링크 미리보기가 뜰 때 데스크톱 등록 버튼이 밀리지 않게 함 ([#313](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/313))
