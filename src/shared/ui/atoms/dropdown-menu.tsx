@@ -17,8 +17,11 @@ import {
 interface DropdownMenuOpenContextValue {
   open: boolean;
   setOpen: (open: boolean) => void;
-  contentRef: React.MutableRefObject<HTMLDivElement | null>;
-  closedByScrollRef: React.MutableRefObject<boolean>;
+  // ref 자체가 아니라 ref를 다루는 함수를 넘긴다 - 자식이 context 값을 거쳐 ref를 고치면 React
+  // Compiler 린트가 "useContext 반환값 수정"으로 잡는다(react-hooks/immutability)
+  setContentNode: (node: HTMLDivElement | null) => void;
+  /** 스크롤로 닫혔는지 읽고 바로 false로 되돌린다 */
+  consumeClosedByScroll: () => boolean;
 }
 
 /**
@@ -148,8 +151,20 @@ const DropdownMenu = ({
     };
   }, [open]);
 
+  function setContentNode(node: HTMLDivElement | null) {
+    contentRef.current = node;
+  }
+
+  function consumeClosedByScroll() {
+    const closedByScroll = closedByScrollRef.current;
+    closedByScrollRef.current = false;
+    return closedByScroll;
+  }
+
   return (
-    <DropdownMenuOpenContext.Provider value={{ open, setOpen, contentRef, closedByScrollRef }}>
+    <DropdownMenuOpenContext.Provider
+      value={{ open, setOpen, setContentNode, consumeClosedByScroll }}
+    >
       <DropdownMenuPrimitive.Root {...props} modal={modal} open={open} onOpenChange={setOpen} />
     </DropdownMenuOpenContext.Provider>
   );
@@ -235,9 +250,7 @@ const DropdownMenuContent = forwardRef<
   const openContext = useContext(DropdownMenuOpenContext);
 
   function mergeContentRef(node: HTMLDivElement | null) {
-    if (openContext) {
-      openContext.contentRef.current = node;
-    }
+    openContext?.setContentNode(node);
 
     if (typeof ref === 'function') {
       ref(node);
@@ -286,8 +299,7 @@ const DropdownMenuContent = forwardRef<
             onCloseAutoFocus?.(event);
 
             // 스크롤로 닫혔을 때 트리거로 포커스를 돌리면 focus()가 트리거 위치로 스크롤을 되돌린다.
-            if (openContext?.closedByScrollRef.current) {
-              openContext.closedByScrollRef.current = false;
+            if (openContext?.consumeClosedByScroll()) {
               event.preventDefault();
             }
           }}
