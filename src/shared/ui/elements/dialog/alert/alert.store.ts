@@ -90,7 +90,10 @@ export function getOpenAlertId(): string | null {
  * Alert/Confirm을 호출하기 위한 Hook
  */
 export function useAlert() {
-  const { openAlert, openConfirm } = useAlertStore();
+  // 셀렉터로 액션만 구독한다 - 스토어 전체를 구독하면 알림이 열리고 닫힐 때마다(alerts 변경)
+  // 이 훅을 쓰는 모든 컴포넌트가 다시 렌더된다.
+  const openAlert = useAlertStore((state) => state.openAlert);
+  const openConfirm = useAlertStore((state) => state.openConfirm);
 
   return {
     openAlert: (options: OpenAlertOptions) => openAlert(options),
