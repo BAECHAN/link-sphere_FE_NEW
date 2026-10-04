@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { useLocation } from 'react-router-dom';
 import { useWindowVirtualizer, type VirtualItem, type Virtualizer } from '@tanstack/react-virtual';
 import { loadVirtualSnapshot, saveVirtualSnapshot } from '@/shared/lib/virtual/virtual-snapshot';
@@ -88,37 +96,38 @@ function resolveByWidth<T extends { minWidth: number }>(
 
 /** Tailwind 반응형 클래스(md:, lg: 등)와 같은 방식으로 뷰포트 너비별 값을 추적한다.
  * matchMedia 기반 감지는 useIsMobile.ts의 선례를 따른다. gap은 간격일 뿐 열 수에 영향을
- * 주지 않아 뷰포트 기준으로 남겨둔다 - 열 수만 컨테이너 실측 폭 기준(아래 참고). */
+ * 주지 않아 뷰포트 기준으로 남겨둔다 - 열 수만 컨테이너 실측 폭 기준(아래 참고).
+ * 브라우저 API 구독이라 useSyncExternalStore로 읽는다 - effect 안에서 setState하면 낡은 값으로
+ * 한 번 더 렌더된다(https://react.dev/reference/react/useSyncExternalStore#subscribing-to-a-browser-api).
+ * resolveByWidth는 breakpoints 배열의 원소 자체를 돌려줘 같은 너비 구간이면 참조가 같다 -
+ * getSnapshot이 매번 새 객체를 돌려주면 무한 재렌더가 나므로 이 성질에 기댄다. */
 function useResponsiveValue<T extends { minWidth: number }>(breakpoints: readonly T[]): T {
-  const resolve = useCallback(() => resolveByWidth(breakpoints, window.innerWidth), [breakpoints]);
-  const [value, setValue] = useState(resolve);
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      const queries = breakpoints.map((bp) => window.matchMedia(`(min-width: ${bp.minWidth}px)`));
 
-  useEffect(() => {
-    setValue(resolve());
-
-    const queries = breakpoints.map((bp) => window.matchMedia(`(min-width: ${bp.minWidth}px)`));
-    const handleChange = () => setValue(resolve());
-
-    queries.forEach((mediaQuery) => {
-      if (mediaQuery.addEventListener) {
-        mediaQuery.addEventListener('change', handleChange);
-      } else {
-        mediaQuery.addListener(handleChange);
-      }
-    });
-
-    return () => {
       queries.forEach((mediaQuery) => {
-        if (mediaQuery.removeEventListener) {
-          mediaQuery.removeEventListener('change', handleChange);
+        if (mediaQuery.addEventListener) {
+          mediaQuery.addEventListener('change', onChange);
         } else {
-          mediaQuery.removeListener(handleChange);
+          mediaQuery.addListener(onChange);
         }
       });
-    };
-  }, [breakpoints, resolve]);
 
-  return value;
+      return () => {
+        queries.forEach((mediaQuery) => {
+          if (mediaQuery.removeEventListener) {
+            mediaQuery.removeEventListener('change', onChange);
+          } else {
+            mediaQuery.removeListener(onChange);
+          }
+        });
+      };
+    },
+    [breakpoints]
+  );
+
+  return useSyncExternalStore(subscribe, () => resolveByWidth(breakpoints, window.innerWidth));
 }
 
 /**
@@ -228,23 +237,29 @@ export function useWindowGridVirtualizer<T>({
     [scrollMarginRef]
   );
 
-  // 아래 콜백들은 매 렌더 새로 만들어지는 rows/columnCount/items.length를 참조해야 하지만,
-  // 참조 자체는 안정적으로 유지해야 virtual-core 내부 캐시가 매 렌더 무효화되지 않는다.
-  const rowsRef = useRef(rows);
-  rowsRef.current = rows;
-  const getItemIdRef = useRef(getItemId);
-  getItemIdRef.current = getItemId;
+  // 아래 effect·ResizeObserver 콜백이 최신 columnCount/items.length를 읽기 위한 ref. 렌더 중이 아니라
+  // 레이아웃 effect에서 갱신한다(https://react.dev/reference/eslint-plugin-react-hooks/lints/refs) -
+  // 이 훅의 다른 레이아웃 effect보다 먼저 선언돼 있어 그쪽은 항상 최신 값을 본다.
   const columnCountRef = useRef(columnCount);
-  columnCountRef.current = columnCount;
   const itemCountRef = useRef(items.length);
-  itemCountRef.current = items.length;
+
+  useLayoutEffect(() => {
+    columnCountRef.current = columnCount;
+    itemCountRef.current = items.length;
+  });
 
   // 열 수가 바뀌면 행이 재청크돼 같은 카드가 다른 행으로 옮겨간다 - 키에 열 수를 접두어로
   // 붙여, 이전 열 수에서 측정한 행 높이를 새 열 수의 행이 잘못 재사용하지 않게 한다.
-  const getItemKey = useCallback((index: number): string | number => {
-    const firstItem = rowsRef.current[index]?.[0];
-    return firstItem ? `${columnCountRef.current}:${getItemIdRef.current(firstItem)}` : index;
-  }, []);
+  // virtual-core가 렌더 중에 이 함수를 부르므로(getVirtualItems) ref가 아니라 의존성으로 최신
+  // rows를 잡는다. rows는 items·columnCount가 바뀔 때만 새로 만들어지고 getItemId는 호출부의 모듈
+  // 상수라, 측정 위치 재계산도 그때만 일어난다(측정한 행 높이는 키 기준 캐시라 유지된다).
+  const getItemKey = useCallback(
+    (index: number): string | number => {
+      const firstItem = rows[index]?.[0];
+      return firstItem ? `${columnCount}:${getItemId(firstItem)}` : index;
+    },
+    [rows, columnCount, getItemId]
+  );
 
   const virtualizer = useWindowVirtualizer<HTMLDivElement>({
     count: rows.length,
@@ -259,10 +274,17 @@ export function useWindowGridVirtualizer<T>({
       : {}),
   });
 
+  // 옵션이 아니라 인스턴스 속성이라(virtual-core Virtualizer.shouldAdjustScrollPositionOnItemSizeChange)
+  // 대입할 수밖에 없다. effect로 옮기면 안 된다 - 이 가드가 막는 "라우트 이동 직후 첫 측정"은 행의
+  // measureElement ref 콜백에서 일어나는데, 자식 ref는 이 훅의 레이아웃 effect보다 먼저 실행된다
+  // eslint-disable-next-line react-hooks/immutability -- 위 이유로 렌더 중에 대입한다
   virtualizer.shouldAdjustScrollPositionOnItemSizeChange = shouldAdjustScrollOnItemResize;
 
   const virtualizerRef = useRef(virtualizer);
-  virtualizerRef.current = virtualizer;
+
+  useLayoutEffect(() => {
+    virtualizerRef.current = virtualizer;
+  });
 
   // 컨테이너 실측 폭으로 열 수를 정한다(뷰포트가 아니라) - 사이드바 접기/펴기, 북마크
   // 폴더트리처럼 목록이 실제로 받는 폭이 뷰포트보다 좁아지는 레이아웃을 반영하기 위함.
