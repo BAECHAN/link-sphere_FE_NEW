@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/entities/auth/hooks/useAuth';
 import { useAuthStore } from '@/shared/store/auth.store';
@@ -23,9 +23,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // 이 마운트에서 한 번이라도 로그인 상태였는지 추적.
   // - 처음부터 비로그인 = 보호 페이지 "접근 시도" → 로그인 모달을 띄운다.
   // - 로그인 상태였다가 false = 로그아웃/세션만료 → 모달 없이 조용히 피드로 보낸다.
-  const hasBeenAuthenticated = useRef(isAuthenticated);
-  if (isAuthenticated) {
-    hasBeenAuthenticated.current = true;
+  // 렌더 중에 읽으므로 ref가 아니라 state로 들고, 렌더 중에 맞춘다
+  // (https://react.dev/reference/eslint-plugin-react-hooks/lints/refs)
+  const [hasBeenAuthenticated, setHasBeenAuthenticated] = useState(isAuthenticated);
+  if (isAuthenticated && !hasBeenAuthenticated) {
+    setHasBeenAuthenticated(true);
   }
 
   // 비로그인 접근 시도일 때만: 로그인 페이지로 튕기지 않고 공개 피드를 배경으로
@@ -33,12 +35,19 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const intendedPath = location.pathname + location.search;
   useEffect(
     function setLoginCallbackWhenUnauthenticated() {
-      if (!isAuthResolved || isAuthenticated || hasBeenAuthenticated.current) {
+      if (!isAuthResolved || isAuthenticated || hasBeenAuthenticated) {
         return;
       }
       setLoginOnSuccess(() => navigate(intendedPath, { replace: true }));
     },
-    [isAuthResolved, isAuthenticated, setLoginOnSuccess, navigate, intendedPath]
+    [
+      isAuthResolved,
+      isAuthenticated,
+      hasBeenAuthenticated,
+      setLoginOnSuccess,
+      navigate,
+      intendedPath,
+    ]
   );
 
   if (!isAuthResolved) {
@@ -53,7 +62,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       <Navigate
         to={ROUTES_PATHS.POST.ROOT}
         replace
-        state={hasBeenAuthenticated.current ? undefined : { loginDialogOpen: true }}
+        state={hasBeenAuthenticated ? undefined : { loginDialogOpen: true }}
       />
     );
   }

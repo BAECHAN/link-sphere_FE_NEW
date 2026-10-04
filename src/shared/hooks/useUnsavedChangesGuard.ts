@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useLayoutEffect } from 'react';
 import { useBlocker, useLocation, type BlockerFunction } from 'react-router-dom';
 import { hasUnsavedChanges } from '@/shared/store/unsavedChanges.store';
 import { useAuthStore } from '@/shared/store/auth.store';
@@ -52,7 +52,15 @@ export function useUnsavedChangesGuard() {
   const { pathname } = useLocation();
 
   const blockerRef = useRef(blocker);
-  blockerRef.current = blocker;
+
+  // 렌더 중이 아니라 레이아웃 effect에서 갱신한다 - 렌더 중 ref 쓰기는 React 규칙 위반이고
+  // (https://react.dev/reference/eslint-plugin-react-hooks/lints/refs), 공식 대안인
+  // useEffectEvent는 React 19.2부터(https://react.dev/blog/2025/10/01/react-19-2)라 React 18인
+  // 이 레포에선 쓸 수 없다. 레이아웃 effect는 일반 effect·이벤트보다 먼저 돌아
+  // 읽는 쪽은 항상 최신 값을 본다
+  useLayoutEffect(() => {
+    blockerRef.current = blocker;
+  });
 
   useEffect(
     function confirmBlockedNavigation() {
