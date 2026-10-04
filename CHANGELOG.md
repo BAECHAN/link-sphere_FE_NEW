@@ -69,6 +69,13 @@
 
 ### Fixed
 
+- `post` 등록 폼에서 링크 미리보기가 뜰 때 데스크톱 등록 버튼이 밀리지 않게 함
+  <details><summary>배경·구현</summary>
+
+  데스크톱은 등록 버튼이 폼 흐름 안에 있어, URL을 붙여넣고 0.5초 뒤 카드가 나타나거나 가져오는 중·카드·실패 안내로 바뀔 때마다 높이가 달라져 버튼이 위아래로 움직였다(버튼으로 마우스를 옮기는 중에 빠져나감). 미리보기의 모든 모습을 같은 높이(96px)로 맞추고, 등록 폼은 URL을 넣기 전에도 같은 크기의 안내 자리("URL을 입력하면 미리보기가 여기 보여요.")를 깔아 둔다. web.dev "Optimize CLS"가 권하는 "늦게 들어오는 콘텐츠의 자리 미리 확보"(https://web.dev/articles/optimize-cls) 방식이다. 안내 자리 모양은 시안 두 가지(점선·옅은 박스)를 비교해 옅은 박스로 골랐다. 수정 폼은 URL을 바꿨을 때만 카드가 떠서 빈 자리는 두지 않고 높이 통일만 받는다. (`LinkPreviewCard.tsx`, `CreatePostForm.tsx`, `texts.ts`, [PR #313](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/313))
+
+  </details>
+
 - `api` 요청 한도 초과(429)에 "요청이 많아요" 안내를 띄우고, 429·WAF 차단은 재시도하지 않음
   <details><summary>배경·구현</summary>
 

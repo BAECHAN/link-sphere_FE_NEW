@@ -110,7 +110,7 @@ export function CreatePostForm({ renderFolderSelect }: CreatePostFormProps) {
                 inputMode="url"
                 required
               />
-              <LinkPreviewCard state={linkPreview} titleOverride={titleValue} />
+              <LinkPreviewCard state={linkPreview} titleOverride={titleValue} reserveSpace />
               <FormInput
                 name="title"
                 label={TEXTS.post.form.create.titleLabel}

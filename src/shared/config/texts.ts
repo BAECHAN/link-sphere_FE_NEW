@@ -258,6 +258,7 @@ export const TEXTS = {
       },
       // 작성 중 링크 미리보기 카드(LinkPreviewCard) - 등록·수정 폼 공용
       preview: {
+        placeholder: 'URL을 입력하면 미리보기가 여기 보여요.',
         loading: '링크 정보를 가져오는 중이에요.',
         failed: '미리보기를 불러오지 못했어요. 그래도 등록할 수 있어요.',
         ariaLabel: '링크 미리보기',
