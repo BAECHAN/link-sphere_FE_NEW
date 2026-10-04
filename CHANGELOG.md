@@ -27,6 +27,13 @@
 
 ### Changed
 
+- `shared` 알림·확인창을 열고 닫을 때 그 창을 부르는 컴포넌트가 다시 렌더되지 않음
+  <details><summary>배경·구현</summary>
+
+  `useAlert`가 셀렉터 없이 알림 스토어 전체를 구독해, 알림이 열리고 닫힐 때마다 이 훅을 쓰는 모든 컴포넌트(게시글 카드·삭제 훅·폴더 트리 등)가 다시 렌더됐다. react-doctor 정적 검사(`zustand-no-whole-store-destructure`, 2026-10-04)로 발견했다. `openAlert`·`openConfirm`만 셀렉터로 구독하도록 바꿨고, 반환 형태는 그대로다. 같은 스토어를 이미 셀렉터로 구독하던 `useUnsavedChangesGuard.ts`를 따랐다. (`alert.store.ts`, `alert.store.test.ts`(신규), [PR #314](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/314))
+
+  </details>
+
 - `post` 등록·수정 실패 원인을 입력칸 또는 버튼 위 안내로 보여줌(토스트 대신)
   <details><summary>배경·구현</summary>
 
