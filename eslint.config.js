@@ -540,6 +540,26 @@ export default [
       // React Hooks 규칙
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      // React 공식 lint 규칙(v7 recommended-latest의 React Compiler 진단 규칙).
+      // 컴파일러를 도입하지 않아도 쓸 수 있다 — https://react.dev/reference/eslint-plugin-react-hooks
+      // 기존 위반은 eslint-suppressions.json에 기록돼 있다(새 코드만 막는다). 고친 뒤엔
+      // `pnpm exec eslint . --prune-suppressions`로 그 기록을 지운다
+      'react-hooks/static-components': 'error',
+      'react-hooks/use-memo': 'error',
+      'react-hooks/void-use-memo': 'error',
+      'react-hooks/preserve-manual-memoization': 'error',
+      'react-hooks/immutability': 'error',
+      'react-hooks/globals': 'error',
+      'react-hooks/refs': 'error',
+      'react-hooks/set-state-in-effect': 'error',
+      'react-hooks/error-boundaries': 'error',
+      'react-hooks/purity': 'error',
+      'react-hooks/set-state-in-render': 'error',
+      'react-hooks/unsupported-syntax': 'warn',
+      'react-hooks/config': 'error',
+      'react-hooks/gating': 'error',
+      // React Compiler를 쓸 때만 의미 있는 안내(react-hook-form watch() 등)라 끈다
+      'react-hooks/incompatible-library': 'off',
     },
   },
   // Import 규칙: 일반 파일은 절대 경로(@/) 사용 강제
