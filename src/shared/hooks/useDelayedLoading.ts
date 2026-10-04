@@ -11,18 +11,21 @@ import { useEffect, useState } from 'react';
 export function useDelayedLoading(isLoading: boolean, delay: number = 300) {
   const [showLoading, setShowLoading] = useState(false);
 
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
+  // 로딩이 끝나면 즉시 showLoading을 false로 설정 - effect에서 끄면 낡은 true로 한 번 더
+  // 렌더된다(https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  if (!isLoading && showLoading) {
+    setShowLoading(false);
+  }
 
-    if (isLoading) {
-      // 로딩이 시작되면 delay만큼 기다렸다가 showLoading을 true로 설정
-      timer = setTimeout(() => {
-        setShowLoading(true);
-      }, delay);
-    } else {
-      // 로딩이 끝나면 즉시 showLoading을 false로 설정
-      setShowLoading(false);
+  useEffect(() => {
+    if (!isLoading) {
+      return;
     }
+
+    // 로딩이 시작되면 delay만큼 기다렸다가 showLoading을 true로 설정
+    const timer = setTimeout(() => {
+      setShowLoading(true);
+    }, delay);
 
     return () => {
       clearTimeout(timer);

@@ -19,8 +19,6 @@ export function useIsMobile() {
   const [isMobile, setIsMobile] = useState(checkIsMobile);
 
   useEffect(() => {
-    setIsMobile(checkIsMobile());
-
     // 화면 크기 변경 시 업데이트 (선택 사항)
     const mediaQuery = window.matchMedia('(max-width: 768px)');
     const handleChange = () => setIsMobile(checkIsMobile());

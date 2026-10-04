@@ -105,4 +105,35 @@ describe('TooltipWrapper', () => {
     fireEvent.pointerMove(trigger, { pointerType: 'mouse' });
     await waitFor(() => expect(getAllByText('변경한 내용이 없어요.').length).toBeGreaterThan(0));
   });
+
+  it('보이는 동안 content가 바뀌어도 문구를 고정하고, 닫힌 뒤 다시 뜨면 최신 문구를 보여준다', async () => {
+    function renderWithContent(content: string) {
+      return (
+        <TooltipProvider delayDuration={0}>
+          <TooltipWrapper content={content} disabled>
+            <Button disabled>저장</Button>
+          </TooltipWrapper>
+        </TooltipProvider>
+      );
+    }
+
+    const { getByRole, rerender, queryAllByText, getAllByText } = renderWithProviders(
+      renderWithContent('이전 이유')
+    );
+    const trigger = getByRole('button').parentElement as HTMLElement;
+
+    fireEvent.pointerMove(trigger, { pointerType: 'mouse' });
+    await waitFor(() => expect(getAllByText('이전 이유').length).toBeGreaterThan(0));
+
+    rerender(renderWithContent('새 이유'));
+    expect(getAllByText('이전 이유').length).toBeGreaterThan(0);
+    expect(queryAllByText('새 이유')).toHaveLength(0);
+
+    // jsdom에선 pointerLeave만으로 Radix가 닫히지 않아 Escape로 닫는다
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(queryAllByText('이전 이유')).toHaveLength(0));
+    fireEvent.pointerLeave(trigger);
+    fireEvent.pointerMove(trigger, { pointerType: 'mouse' });
+    await waitFor(() => expect(getAllByText('새 이유').length).toBeGreaterThan(0));
+  });
 });

@@ -55,11 +55,11 @@ export const TooltipWrapper = ({
   // 보이는 동안(호버 유지 중)엔 content가 바뀌어도(예: 닉네임 디바운스로 이유가 사라짐) 문구를
   // 고정한다 - 그대로 두면 조건부 렌더가 매번 언마운트→재마운트되며 등장 애니메이션이 깜빡인다.
   // 안 보일 때만 최신값을 반영해 다음에 뜰 때 새 이유를 보여준다.
-  useEffect(() => {
-    if (!visible) {
-      setFrozenContent(content);
-    }
-  }, [content, visible]);
+  // 렌더 중에 맞춘다 - effect에서 하면 낡은 문구로 한 번 더 렌더된다
+  // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  if (!visible && frozenContent !== content) {
+    setFrozenContent(content);
+  }
 
   const showTooltip = !!frozenContent;
 
