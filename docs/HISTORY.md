@@ -1,4 +1,7 @@
 ### 2026-10-04 (FE)
+- 렌더링 중 발생하는 ref 부수 효과를 제거하고, 테스트 환경의 전역 변수 재할당 문제를 해결하여 코드 안정성 및 테스트 신뢰성 확보 ([#318](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/318))
+
+### 2026-10-04 (FE)
 - React effect 내 직접적인 상태 업데이트 패턴을 렌더링 중 계산(Render-time computation) 방식으로 최적화하여 렌더링 효율성 개선 ([#317](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/317))
 
 ### 2026-10-04 (FE)
