@@ -23,14 +23,14 @@ describe('resizeImageFile - 크기 상한', () => {
     await expect(resizeImageFile(file, 512)).rejects.toThrow(TEXTS.validation.imageTooLarge(30));
   });
 
-  it('GIF가 15MB를 넘으면(30MB 미만이어도) 기본(댓글 이미지) 동작에서는 더 낮은 상한에 걸려 에러를 던진다', async () => {
+  it('GIF가 10MB를 넘으면(30MB 미만이어도) 기본(댓글 이미지) 동작에서는 더 낮은 상한에 걸려 에러를 던진다', async () => {
     const file = fakeFile('avatar.gif', 'image/gif', 20 * MB);
 
     // options 없음 = skipGifResize 기본값 true (댓글 이미지 등 애니메이션을 지켜야 하는 호출부)
-    await expect(resizeImageFile(file, 512)).rejects.toThrow(TEXTS.validation.imageTooLarge(15));
+    await expect(resizeImageFile(file, 512)).rejects.toThrow(TEXTS.validation.imageTooLarge(10));
   });
 
-  it('GIF가 15MB 이하면(기본 동작) 리사이즈 없이 원본 그대로 반환한다', async () => {
+  it('GIF가 10MB 이하면(기본 동작) 리사이즈 없이 원본 그대로 반환한다', async () => {
     const file = fakeFile('avatar.gif', 'image/gif', 10 * MB);
 
     const result = await resizeImageFile(file, 512);
@@ -38,7 +38,7 @@ describe('resizeImageFile - 크기 상한', () => {
     expect(result).toBe(file);
   });
 
-  it('skipGifResize: false(아바타 등)면 GIF는 15MB 상한 없이 일반 리사이즈 경로를 탄다', async () => {
+  it('skipGifResize: false(아바타 등)면 GIF는 10MB 상한 없이 일반 리사이즈 경로를 탄다', async () => {
     // 아바타는 항상 작게 고정 크기로 표시되므로 애니메이션을 지킬 필요가 없다 - GIF도 jpg/png와
     // 동일하게 30MB 원본 상한만 적용받는다. 테스트 환경(jsdom)엔 createImageBitmap이 없어
     // 리사이즈 자체는 시도되지 않고 원본이 그대로 반환되는 기존 폴백 경로를 탄다.
@@ -49,12 +49,12 @@ describe('resizeImageFile - 크기 상한', () => {
     expect(result).toBe(file);
   });
 
-  it('SVG는 skipGifResize 옵션과 무관하게 항상 15MB 상한을 적용받는다', async () => {
+  it('SVG는 skipGifResize 옵션과 무관하게 항상 10MB 상한을 적용받는다', async () => {
     const file = fakeFile('avatar.svg', 'image/svg+xml', 20 * MB);
 
-    await expect(resizeImageFile(file, 512)).rejects.toThrow(TEXTS.validation.imageTooLarge(15));
+    await expect(resizeImageFile(file, 512)).rejects.toThrow(TEXTS.validation.imageTooLarge(10));
     await expect(resizeImageFile(file, 512, { skipGifResize: false })).rejects.toThrow(
-      TEXTS.validation.imageTooLarge(15)
+      TEXTS.validation.imageTooLarge(10)
     );
   });
 });

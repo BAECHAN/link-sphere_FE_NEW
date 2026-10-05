@@ -6,10 +6,13 @@
  * - FE 첨부(useImageAttachments)·아바타(useUpdateAccount): 이 목록 밖이면 고르는 즉시 안내
  * - FE 업로드 확장자(uploadImageAndGetUrl): 파일명이 아니라 MIME에서 뽑는다(.jfif·확장자 없는 파일 대응)
  * - BE `UploadService.ALLOWED_EXTENSIONS`: 이 표의 확장자를 모두 포함해야 한다
- * - Supabase 버킷 `allowed_mime_types`: 이 표의 키와 같게 둔다(대시보드 설정)
+ * - Supabase 버킷 `allowed_mime_types`: 이 표의 키를 모두 포함해야 한다(대시보드·Storage API 설정,
+ *   2026-10-05 기준 png·jpeg·jpg·gif·webp·avif·svg+xml)
  * - 렌더러(MarkdownContent·imageContent의 확장자 정규식): 이 표의 확장자를 모두 포함해야 한다
  *
- * 사용자 안내 문구(TEXTS.validation.imageFileOnly)도 이 목록을 나열하므로 함께 고친다.
+ * HEIC·HEIF는 넣지 않는다 - MDN 웹 이미지 형식 가이드에 없는 형식이라 올려도 보는 브라우저에 따라 깨질
+ * 수 있다(2026-10-05 사용자 결정). 사용자 안내 문구(TEXTS.validation.imageFileOnly)도 이 목록을
+ * 나열하므로 함께 고친다.
  */
 export const UPLOAD_IMAGE_EXTENSION_BY_MIME: Readonly<Record<string, string>> = {
   'image/jpeg': 'jpg',
@@ -17,7 +20,5 @@ export const UPLOAD_IMAGE_EXTENSION_BY_MIME: Readonly<Record<string, string>> = 
   'image/gif': 'gif',
   'image/webp': 'webp',
   'image/avif': 'avif',
-  'image/heic': 'heic',
-  'image/heif': 'heif',
   'image/svg+xml': 'svg',
 };

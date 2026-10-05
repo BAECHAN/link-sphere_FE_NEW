@@ -14,12 +14,11 @@ const MAX_ORIGINAL_FILE_SIZE_MB = 30;
 const MAX_ORIGINAL_FILE_SIZE_BYTES = MAX_ORIGINAL_FILE_SIZE_MB * 1024 * 1024;
 
 // SVG는 항상, GIF는 skipGifResize가 true인 호출부(기본값 - 댓글 이미지)에서만 리사이즈 없이
-// 원본 그대로 업로드되므로 이때만 위 원본 상한과 별개로 더 낮은 상한을 둔다. 다른 서비스의 아바타
-// 업로드 제한(GitHub 1MB, Slack 1MB, X 2MB, Discord 10MB - 애니메이션 GIF 아바타를 지원하는
-// Discord가 가장 관대함) 중 가장 관대한 기준보다 여유를 두었다. Supabase 프로젝트 전역 상한
-// (무료 플랜 50MB)에는 충분히 안전하지만, 버킷별 커스텀 설정은 코드로 확인할 수 없으므로 실제
-// 값은 Supabase 대시보드에서 별도 확인 필요.
-const MAX_UNRESIZABLE_FILE_SIZE_MB = 15;
+// 원본 그대로 업로드되므로 이때만 위 원본 상한과 별개로 더 낮은 상한을 둔다. 값은 업로드 버킷의
+// file_size_limit(10,485,760바이트, 2026-10-05 Storage API로 확인)과 같게 맞춘다 - 이보다 크면
+// 고를 때는 통과해도 업로드에서 Supabase가 거부해, 원인 안내 없이 실패로만 보인다. 예전 값 15MB는
+// 버킷 설정을 확인하지 못한 채 다른 서비스의 아바타 제한을 참고해 정했던 값이다.
+const MAX_UNRESIZABLE_FILE_SIZE_MB = 10;
 const MAX_UNRESIZABLE_FILE_SIZE_BYTES = MAX_UNRESIZABLE_FILE_SIZE_MB * 1024 * 1024;
 
 function getExtension(file: File): string | undefined {

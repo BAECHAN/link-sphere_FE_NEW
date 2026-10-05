@@ -9,7 +9,7 @@
 > 원글의 그 댓글로 이동하는 방식을 이해하고, 상한·장수·캐시 무효화 범위를 어디서 바꾸는지
 > 안다.
 >
-> **마지막 검토**: 2026-10-02
+> **마지막 검토**: 2026-10-05
 
 게시글 상세(`/post/:id`) 하단의 댓글 섹션과, 내가 쓴 댓글을 모아보는 "내 댓글"
 화면(`/my/comments`)을 다룬다. 게시글 자체(목록·상세·작성)는
@@ -188,16 +188,18 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 ### 이미지 — 본문 끝에 URL을 붙이는 저장 방식
 
-- 첨부는 `useImageAttachments({ maxCount: 5 })`가 받는다. 이미지가 아닌 파일, 30MB 초과
-  (리사이즈하지 않는 SVG·GIF는 15MB 초과), 5장 초과는 토스트로 거른다.
+- 첨부는 `useImageAttachments({ maxCount: 5 })`가 받는다. 허용 형식(JPG·PNG·GIF·WEBP·AVIF·SVG,
+  `src/shared/config/image-format.ts`) 밖의 파일, 30MB 초과(리사이즈하지 않는 SVG·GIF는 10MB 초과),
+  5장 초과는 토스트로 거른다. 허용 형식과 SVG·GIF 상한은 업로드 버킷 설정(`allowed_mime_types`,
+  `file_size_limit` 10MB)과 맞춘 값이다 — 버킷보다 넓으면 고를 때는 통과해도 업로드에서 거부된다.
 - 업로드는 요청 직전 `uploadCommentImages`(`src/entities/comment/api/comment.api.ts:10-22`)가
   **2장씩** 처리한다. `createImageBitmap`이 디코드된 픽셀 수만큼 메모리를 쓰기 때문에
   동시 디코드를 줄이려는 것이고, 결과 배열은 입력 순서를 유지한다.
-- 장마다 `uploadImageAndGetUrl`(`src/shared/lib/upload/uploadImageAndGetUrl.ts:11-21`)이
+- 장마다 `uploadImageAndGetUrl`(`src/shared/lib/upload/uploadImageAndGetUrl.ts:14-30`)이
   1600px WebP로 리사이즈 → `POST /upload/signed-url` → 스토리지 `PUT` → `publicUrl`을
   돌려준다. 원본은 저장하지 않는다. 예외로 SVG는 항상, GIF는 댓글 업로드 기본값
   (`skipGifResize = true`)에서 리사이즈 없이 원본을 올린다
-  (`src/shared/lib/image/resizeImage.ts:16-22`, 48-49줄) — 그래서 상한이 15MB로 따로 있다.
+  (`src/shared/lib/image/resizeImage.ts:16-21`, 47-48줄) — 그래서 상한이 10MB로 따로 있다.
 - BE가 `content` 끝에 URL을 이어붙여 저장한다 — 본문이 있으면 빈 줄 하나 뒤에, 이미지
   URL은 한 줄에 하나씩(BE [`CommentService.kt`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/src/main/kotlin/com/example/linksphere/domain/comment/CommentService.kt)
   `buildFinalContent`, 421-429줄). FE는 낙관적 항목을 같은 규칙으로
@@ -346,9 +348,9 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 전송 상한                    | 7,500B                  | `src/entities/comment/config/comment.const.ts:26`                                                            |
 | 업로드 전 이미지 URL 추정치  | 200B                    | `src/entities/comment/config/comment.const.ts:33`                                                            |
 | 이미지 동시 업로드 수        | 2                       | `src/entities/comment/api/comment.api.ts:14`                                                                 |
-| 리사이즈 최대 변 길이        | 1600px                  | `src/shared/lib/upload/uploadImageAndGetUrl.ts:13`                                                           |
+| 리사이즈 최대 변 길이        | 1600px                  | `src/shared/lib/upload/uploadImageAndGetUrl.ts:16`                                                           |
 | 원본 파일 상한               | 30MB                    | `src/shared/lib/image/resizeImage.ts:13`                                                                     |
-| SVG·GIF(리사이즈 안 함) 상한 | 15MB                    | `src/shared/lib/image/resizeImage.ts:22`                                                                     |
+| SVG·GIF(리사이즈 안 함) 상한 | 10MB(버킷과 같게)       | `src/shared/lib/image/resizeImage.ts:21`                                                                     |
 | 해시 이동 강조 시간          | 1600ms                  | `src/widgets/comment/comment-list/ui/CommentList.tsx:62`                                                     |
 | 빈 제출 강조 시간            | 1300ms                  | `src/features/comment/create/ui/CommentForm.tsx:79`, `src/features/comment/update/ui/CommentEditForm.tsx:56` |
 | 내 댓글 선반입 거리          | 아래 1200px             | `src/widgets/comment/my-comment-list/hooks/useMyCommentList.ts:19`                                           |
