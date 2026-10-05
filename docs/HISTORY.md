@@ -1,4 +1,7 @@
 ### 2026-10-05 (FE)
+- 로그아웃 프로세스 내 불필요한 FCM 서버 삭제 요청 로직 제거 및 코드 리팩토링 ([#329](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/329))
+
+### 2026-10-05 (FE)
 - 이미지 업로드 처리 로직 개선 및 에러 핸들링 최적화
   - SVG 파일 업로드 시 링크로 표시되던 이슈 해결
   - 지원하지 않는 이미지 형식 업로드 시 서버 오류 대신 적절한 안내가 이루어지도록 예외 처리 개선 ([#325](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/325))
