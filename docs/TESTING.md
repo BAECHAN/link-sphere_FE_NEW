@@ -460,25 +460,19 @@ export const handlers = [
 ### 특정 테스트에서만 핸들러 오버라이드
 
 ```typescript
-import { toast } from 'sonner';
+import { Route, Routes } from 'react-router-dom';
 import { server } from '@/mocks/server';
 import { http, HttpResponse } from 'msw';
+import { renderWithProviders, screen } from '@/test/utils';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
-const mockNavigate = vi.fn();
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
-  return { ...actual, useNavigate: () => mockNavigate };
-});
-
-it('404 에러 시 안내 토스트 후 목록으로 이동한다', async () => {
+it('404 에러 시 주소를 그대로 둔 채 안내 화면을 보여준다', async () => {
   // server.use()로 이 테스트에서만 핸들러를 교체
   server.use(
-    http.get(url(`${API_ENDPOINTS.post.base}/999`), () => {
+    http.get(url(`${API_ENDPOINTS.post.base}/:id`), () => {
       return HttpResponse.json(
         { status: 404, code: 'POST_NOT_FOUND', message: '포스트를 찾을 수 없습니다.' },
         { status: 404 }
@@ -486,23 +480,21 @@ it('404 에러 시 안내 토스트 후 목록으로 이동한다', async () => 
     })
   );
 
-  renderWithProviders(<PostDetailPage />, {
-    wrapperOptions: { initialEntries: ['/post/999'] },
-  });
+  // PostDetailPage는 useParams로 id를 읽으므로 라우트 안에서 렌더한다
+  renderWithProviders(
+    <Routes>
+      <Route path="/post/:id" element={<PostDetailPage />} />
+    </Routes>,
+    { wrapperOptions: { initialEntries: ['/post/999'] } }
+  );
 
-  // usePostNotFoundRedirect.ts가 실제로 하는 일은 화면에 안내 텍스트를 렌더하는 게
-  // 아니라 toast.error() 후 /post로 replace navigate하는 것이다 — screen.getByText로
-  // 찾을 수 있는 문구가 화면에 남지 않는다.
-  await waitFor(() => {
-    expect(toast.error).toHaveBeenCalledWith(TEXTS.post.detail.notFound, {
-      id: 'post-detail-not-found',
-    });
-    expect(mockNavigate).toHaveBeenCalledWith(ROUTES_PATHS.POST.ROOT, { replace: true });
-  });
+  expect(await screen.findByText(TEXTS.post.detail.notFound.title)).toBeInTheDocument();
 
   // afterEach에서 server.resetHandlers()가 자동으로 원래 핸들러로 복원
 });
 ```
+
+실제 테스트(경로 유지·noindex·목록 이동까지)는 `src/pages/post/PostDetailPage.test.tsx`에 있다.
 
 ### 네트워크 오류 시뮬레이션
 
@@ -735,7 +727,7 @@ _"they run in the order opposite to their registration"_). 캐치올을 가장 �
 | `e2e/comment-delete.spec.ts`                    | 댓글 삭제 — 답글 없으면 hard delete(3개 캐시 감소), 답글 있으면 BE가 soft delete(톰스톤, 카운트 유지 + 액션행 숨김)                                                                                                                                                                                                                                                                     |
 | `e2e/bookmark-folder-delete.spec.ts`            | 북마크 폴더 삭제 — 선택 중인 폴더 삭제 시 `onBeforeDelete`가 DELETE 요청 전에 URL을 `all`로 이동, 죽은 폴더 쿼리는 재조회 안 됨                                                                                                                                                                                                                                                         |
 | `e2e/post-create.spec.ts`                       | 게시글 등록 — 응답을 기다리지 않고 `/post`로 이동(미저장 변경 가드 미발동), 요청 body 검증. 원래 함께 만들려던 "in-flight 재조회 취소" 케이스는 `cancelQueries`(revert:true)와 `invalidateQueries`의 후속 활성 재조회가 얽히는 상호작용으로 보이는 원인 때문에 e2e·유닛 양쪽에서 안정적으로 재현하지 못해 제외했다(별도 조사 필요, 후보 표 참고)                                        |
-| `e2e/post-detail-not-found.spec.ts`             | 게시글 상세 404 — 직접 진입/카드 클릭 진입 둘 다 안내 토스트 후 `/post`로 replace, 전역 서버 오류 토스트는 추가로 안 뜸(화면 소유 에러라는 계약), 뒤로가기로 그 상세에 재진입 불가                                                                                                                                                                                                      |
+| `e2e/post-detail-not-found.spec.ts`             | 게시글 상세 404 — 직접 진입/카드 클릭 진입 둘 다 주소를 그대로 둔 채 안내 화면(noindex 메타 포함), 전역 서버 오류 토스트는 추가로 안 뜸(화면 소유 에러라는 계약), 목록으로 버튼·뒤로가기로 `/post` 복귀                                                                                                                                                                                 |
 | `e2e/signup.spec.ts`                            | 회원가입 — 이메일·닉네임 실시간 중복확인(500ms 디바운스) 통과 후 메일함 확인 화면으로 전환, "로그인하러 가기"로 `/auth/login` 착지(GuestGuard가 안 튕김 = 가입이 로그인 상태를 안 만듦) 시 방금 가입한 이메일이 로그인 폼에 미리 채워짐. 중복 이메일이면 인라인 오류 + 제출 버튼 잠금 + "Sign In" 클릭 시에도 그 이메일이 채워지고, 저장된(localStorage) 이메일이 있어도 이 값이 우선함 |
 | `e2e/signup-unsaved-changes.spec.ts`            | 회원가입 폼 이탈 확인 — 비로그인 페이지(`GuestGuard`)에서도 가드가 동작하는지, "Sign In" 링크는 이메일 중복 확인 시에만 확인창 생략(그 외엔 뒤로가기와 동일하게 회원가입 전용 확인창), 제출 실패 후 재등록                                                                                                                                                                              |
 | `e2e/session-expired.spec.ts`                   | 세션 만료 — 로그인 상태에서 `GET /auth/account`가 401을 받으면 `/auth/login`으로 이동. 실측(계획 당시 예상과 다름): `AuthUtil.isLoggingOut()` 가드가 트리거 에러 자신에도 적용돼 토스트가 전혀 안 뜨고 조용히 이동함                                                                                                                                                                    |

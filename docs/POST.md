@@ -8,7 +8,7 @@
 > 파일에서 어떤 API를 부르고 어느 캐시를 어떻게 바꾸는지 안다. "등록 직후 새 글이 안 보인다",
 > "좋아요가 목록에 반영 안 된다" 같은 증상을 받았을 때 어디부터 열어볼지 정할 수 있다.
 >
-> **마지막 검토**: 2026-10-04
+> **마지막 검토**: 2026-10-05
 
 이 앱의 중심 데이터다. 사용자가 링크(URL)를 등록하면 BE가 그 페이지를 크롤링해 제목·설명·
 썸네일을 채우고, 그 뒤 비동기로 AI 요약·태그를 붙인다. FE는 그 결과를 피드(`/post`)에 카드로
@@ -196,10 +196,13 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - `usePostDetail`(`src/pages/post/hooks/usePostDetail.ts:76-94`)이
   `useSuspenseFetchPostDetailQuery`로 조회한다. 이 쿼리는 `retry: false`다(`post.queries.ts:160-167`)
   — 404는 재시도해도 같고 리다이렉트만 늦어진다.
-- **404 처리**: `PostDetailPage.tsx:55-64`의 에러 폴백이 `ApiError.status === 404`면
-  `usePostNotFoundRedirect`(`src/pages/post/hooks/usePostNotFoundRedirect.ts:11-24`)로
-  "포스트를 찾을 수 없어요." 토스트(고정 id로 중복 방지) + `/post`로 **replace**한다. replace라서
-  뒤로가기로 그 404 상세에 다시 들어가지 않는다. 그 밖의 에러는 화면 안 `ErrorState`.
+- **404 처리**: `PostDetailPage.tsx:81-87`의 에러 폴백이 `ApiError.status === 404`면 주소를 그대로 둔 채
+  그 자리에 안내 화면(`PostDetailPage.tsx:60-75`의 `PostNotFound`)을 그린다 — 아이콘·"삭제됐거나 볼 수 없는
+  포스트예요"·"목록으로". BE가 삭제와 비공개를 같은 404로 응답하므로 문구도 둘을 함께 덮는다. "목록으로"는
+  이동이라 버튼 모양의 링크(`Button asChild` + `Link`)로 `/post`에 간다. 화면이 떠 있는 동안 `useNoIndex`로
+  `noindex` 메타를 단다(200으로 응답하는 에러 화면이 검색엔진에 색인되는 soft 404 방지). 2026-10-05 이전에는
+  토스트 후 `/post`로 replace했는데, 사라지는 토스트에만 기대고 주소까지 잃게 해 바꿨다(계획:
+  `docs/plans/2026-10-05-url-error-responses.md`). 그 밖의 에러는 화면 안 `ErrorState`.
 - **열람 기록 반영**: 상세 조회가 BE `post_views`를 갱신하므로, 북마크의 "최근 열람순" 캐시를
   무효화한다(`usePostDetail.ts:86-91`).
 - 상세 화면은 같은 `PostCard`(`isDetail`) 아래 `CommentList`를 붙인다.
@@ -419,7 +422,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 피드 페이지 배치             | `src/pages/post/index.tsx`                                                                                                                                 |
 | 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:103-166`, `src/widgets/post/post-list/ui/PostList.tsx`                                                    |
 | 카드 UI / 카드 동작          | `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`                                                            |
-| 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:55-72`, `src/pages/post/hooks/usePostNotFoundRedirect.ts`                                                               |
+| 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:60-95`                                                                                                                  |
 | 작성 폼 / 제출               | `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/create/hooks/useCreatePost.ts:36-49`                                                  |
 | 수정 폼 / 제출               | `src/features/post/update/ui/UpdatePostForm.tsx`, `src/features/post/update/hooks/useUpdatePost.ts:68-73`                                                  |
 | 삭제 확인창                  | `src/features/post/delete/hooks/usePostDelete.ts:10-24`                                                                                                    |

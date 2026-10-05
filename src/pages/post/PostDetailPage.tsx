@@ -1,16 +1,17 @@
 import { FallbackProps } from 'react-error-boundary';
+import { Link } from 'react-router-dom';
 import { usePostDetail } from '@/pages/post/hooks/usePostDetail';
-import { usePostNotFoundRedirect } from '@/pages/post/hooks/usePostNotFoundRedirect';
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { CommentList } from '@/widgets/comment/comment-list/ui/CommentList';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, FileX } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { Divider } from '@/shared/ui/atoms/divider';
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { ErrorState } from '@/shared/ui/elements/ErrorState';
-import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { ApiError } from '@/shared/types/common.type';
+import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
+import { useNoIndex } from '@/shared/hooks/useNoIndex';
 
 function PostDetailContent() {
   const { post, backLabel, goBack } = usePostDetail();
@@ -49,15 +50,37 @@ function PostDetailContent() {
 }
 
 /**
- * 비공개·삭제 글(404)은 서버 장애가 아니라 접근 불가 상태다.
- * 안내 토스트 후 목록으로 돌려보낸다. 그 외 에러는 화면 안에서 인라인으로 알린다.
+ * 비공개·삭제 글(404). BE가 둘을 같은 404로 응답하므로 문구도 둘을 함께 덮는다.
+ * 주소는 그대로 두고 그 자리에서 안내한다 - 토스트 후 목록으로 replace하던 방식은
+ * 사라지는 토스트에만 기대고 어떤 링크가 죽었는지 주소까지 잃게 했다.
+ * 200으로 응답하는 화면이라 검색엔진 색인에서 빠지도록 noindex를 단다.
+ * "목록으로"는 이동이라 버튼 onClick이 아니라 링크로 둔다
+ * (https://www.w3.org/WAI/ARIA/apg/patterns/link/ - 네이티브 <a href> 권장).
+ */
+function PostNotFound() {
+  useNoIndex();
+
+  return (
+    <div className="mx-auto mt-6 flex max-w-sm flex-col items-center gap-2 text-center">
+      <div className="mb-2 flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <FileX className="size-6" />
+      </div>
+      <h2 className="text-screen-title text-foreground">{TEXTS.post.detail.notFound.title}</h2>
+      <p className="text-sm text-muted-foreground">{TEXTS.post.detail.notFound.description}</p>
+      <Button asChild className="mt-4">
+        <Link to={ROUTES_PATHS.POST.ROOT}>{TEXTS.post.detail.backToList}</Link>
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * 비공개·삭제 글(404)은 서버 장애가 아니라 접근 불가 상태라 그 자리에서 안내한다.
+ * 그 외 에러는 화면 안에서 인라인으로 알린다.
  */
 function PostDetailErrorFallback({ error }: FallbackProps) {
-  const isNotFound = error instanceof ApiError && error.status === 404;
-  usePostNotFoundRedirect(isNotFound);
-
-  if (isNotFound) {
-    return <SpinnerOverlay />;
+  if (error instanceof ApiError && error.status === 404) {
+    return <PostNotFound />;
   }
 
   return <ErrorState>{TEXTS.messages.error.fetchPosts}</ErrorState>;
