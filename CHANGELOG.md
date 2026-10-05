@@ -92,6 +92,14 @@
 
   </details>
 
+- `infra` 로그인 필요 페이지 성능 측정(`pnpm perf:lh:auth`)이 시작부터 실패하던 문제
+  <details><summary>배경·구현</summary>
+
+  측정 전에 자동 로그인하는 `scripts/lighthouse-login.js`가 두 군데에서 막혀, 도입(#195) 이후 한 번도 끝까지 돌지 못했다. LHCI는 이 파일을 `require()`로 불러오는데 레포가 `"type": "module"`이라 `.js`가 ESM으로 읽혀 `module.exports`에서 로드부터 실패했다(`ReferenceError: module is not defined in ES module scope`, LHCI와 같은 방식으로 불러와 재현). 로드되더라도 로그인 주소를 측정 URL의 마지막 경로 조각만 떼서 만들어 `/post/submit`이 없는 라우트 `/post/auth/login`이 됐다. 파일을 `lighthouserc*.cjs`처럼 `.cjs`로 바꾸고 로그인 주소를 오리진 기준으로 만든다. CI는 공개 페이지만 재서(`pnpm perf:lh`) 드러나지 않았다. 실제 로그인까지 이어지는 전체 실행은 테스트 계정 비밀번호가 필요해 확인하지 못했다.
+  (`scripts/lighthouse-login.cjs`(개명), `lighthouserc.auth.cjs`, `docs/PERFORMANCE.md`, [PR #327](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/327))
+
+  </details>
+
 - `comment` 업로드한 SVG가 링크로 보이던 문제, 허용 밖 이미지 형식이 "서버 오류"로만 보이던 문제
   <details><summary>배경·구현</summary>
 
