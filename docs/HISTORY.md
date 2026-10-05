@@ -1,4 +1,9 @@
 ### 2026-10-05 (BE)
+- 업로드 확장자 제한 및 댓글 관련 예외 처리 고도화
+- 로그:
+- feat(upload): 업로드 확장자 거부·댓글 없음·삭제된 댓글 수정에 원인별 에러 코드 ([#68](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/68))
+
+### 2026-10-05 (BE)
 - 미사용 이미지 리소스 자동 정리 스케줄러 도입
 로그:
 - feat(upload): 아무도 쓰지 않는 업로드 이미지를 4일마다 자동 정리 ([#67](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/67))
