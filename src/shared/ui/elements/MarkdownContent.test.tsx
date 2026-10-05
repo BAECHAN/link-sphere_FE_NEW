@@ -32,4 +32,12 @@ describe('MarkdownContent', () => {
     expect(img.parentElement?.className).not.toContain('aspect-square');
     expect(img.className).toContain('max-h-60');
   });
+
+  it('업로드한 SVG는 링크가 아니라 이미지로 렌더되고, 변환을 거치지 않은 원본 src를 쓴다', () => {
+    const svgUrl = 'https://project.supabase.co/storage/v1/object/public/comments/diagram.svg';
+    const { getByRole } = renderWithProviders(<MarkdownContent content={svgUrl} />);
+
+    const img = getByRole('img', { name: 'attachment' });
+    expect(img).toHaveAttribute('src', svgUrl);
+  });
 });

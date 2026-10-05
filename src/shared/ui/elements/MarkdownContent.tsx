@@ -12,7 +12,8 @@ interface MarkdownContentProps {
 }
 
 const URL_PATTERN = /(blob:https?:\/\/[^\s]+|https?:\/\/[^\s]+)/g;
-const IMAGE_EXT_PATTERN = /\.(jpeg|jpg|gif|png|webp|avif|heic|heif)(\?.*)?$/i;
+// 업로드 허용 확장자(config/image-format.ts)를 모두 포함해야 한다 - 빠지면 올린 이미지가 링크로 보인다
+const IMAGE_EXT_PATTERN = /\.(jpeg|jpg|gif|png|webp|avif|heic|heif|svg)(\?.*)?$/i;
 
 function isImageUrl(url: string): boolean {
   // blob: URL은 낙관적으로 삽입한 임시 댓글이 업로드 전 이미지를 미리 보여줄 때만 등장한다

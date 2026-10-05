@@ -87,6 +87,22 @@ describe('useUpdateAccount', () => {
     expect(result.current.avatarPreview).toBe(previousPreview);
   });
 
+  it('허용 목록 밖 형식(bmp)은 고르는 즉시 거부하고 미리보기를 바꾸지 않는다', () => {
+    const { result } = renderHook(() => useUpdateAccount(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    const file = new File(['img'], 'avatar.bmp', { type: 'image/bmp' });
+    const previousPreview = result.current.avatarPreview;
+
+    act(() => {
+      result.current.handleAvatarChange(file);
+    });
+
+    expect(result.current.avatarPreview).toBe(previousPreview);
+    expect(result.current.isDirty).toBe(false);
+  });
+
   it('제출 후 응답을 기다리는 동안(pending)에도 입력값이 그대로 유지된다', async () => {
     // PATCH 응답을 영원히 지연시켜, pending 중 폼 값이 건드려지지 않는지 확인한다
     server.use(

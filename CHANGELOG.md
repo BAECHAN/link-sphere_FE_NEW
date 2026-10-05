@@ -97,6 +97,21 @@
 
 ### Fixed
 
+- `comment` 업로드한 SVG가 링크로 보이던 문제, 허용 밖 이미지 형식이 "서버 오류"로만 보이던 문제
+  <details><summary>배경·구현</summary>
+
+  업로드 허용 형식이 네 곳(FE 첨부, BE 확장자 목록, 버킷, 렌더러)에서 어긋나 있었다. FE는 `image/*`를
+  모두 받고 확장자를 파일명에서 뽑아, `.jfif`(실제로는 JPEG)나 확장자 없는 파일, bmp 등은 BE에서
+  거부돼 제출 뒤 "서버 오류"로만 보였다. 아바타는 형식 검사가 아예 없었다. 업로드는 되는 SVG는
+  렌더러 목록에 빠져 있어 댓글에서 링크로 보였다. 허용 형식을 `config/image-format.ts` 한 곳에 두고
+  첨부·아바타가 고르는 즉시 형식 목록을 안내하게 했고, 업로드 확장자는 MIME에서 뽑는다. bmp·tiff처럼
+  목록 밖 형식은 이제 첨부 단계에서 막힌다(예전엔 1600px을 넘으면 webp 변환 덕에 우연히 통과했다).
+  (`image-format.ts`·`imageFormat.ts`(신규), `useImageAttachments.ts`, `useUpdateAccount.ts`,
+  `uploadImageAndGetUrl.ts`, `MarkdownContent.tsx`, `imageContent.ts`, `texts.ts`,
+  계획 `docs/plans/2026-10-05-image-upload-lifecycle.md`)
+
+  </details>
+
 - `post` 등록 폼에서 링크 미리보기가 뜰 때 데스크톱 등록 버튼이 밀리지 않게 함
   <details><summary>배경·구현</summary>
 

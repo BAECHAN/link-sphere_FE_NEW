@@ -1,5 +1,8 @@
 import { uploadApi } from '@/shared/api/upload.api';
+import { TEXTS } from '@/shared/config/texts';
+import { getUploadExtension } from '@/shared/lib/image/imageFormat';
 import { resizeImageFile } from '@/shared/lib/image/resizeImage';
+import { UserFacingError } from '@/shared/types/common.type';
 
 /**
  * 파일을 리사이즈한 뒤 스토리지에 직접 업로드하고 공개 URL을 반환한다
@@ -14,7 +17,13 @@ export async function uploadImageAndGetUrl(
   options?: Parameters<typeof resizeImageFile>[2]
 ): Promise<string> {
   const resized = await resizeImageFile(file, maxDimension, options);
-  const extension = resized.name.split('.').pop() || 'bin';
+  const extension = getUploadExtension(resized.type);
+
+  // 첨부·아바타 선택 단계에서 이미 허용 형식만 받으므로 정상 경로에서는 걸리지 않는다 - 타입 좁히기용
+  if (!extension) {
+    throw new UserFacingError(TEXTS.validation.imageFileOnly);
+  }
+
   const signed = await uploadApi.getSignedUploadUrl(extension);
   await uploadApi.uploadFileDirectly(signed, resized);
   return signed.publicUrl;

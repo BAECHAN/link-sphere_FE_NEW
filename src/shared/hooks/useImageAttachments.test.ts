@@ -151,6 +151,36 @@ describe('useImageAttachments', () => {
     expect(errorSpy).toHaveBeenCalledWith(TEXTS.validation.imageFileOnly);
   });
 
+  it('브라우저가 이미지로 보더라도 허용 목록 밖 형식(bmp)은 거부하고 형식 안내 토스트를 띄운다', () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    const { result } = renderHook(() => useImageAttachments({ maxCount: 5 }));
+    const bmpFile = new File([], 'scan.bmp', { type: 'image/bmp' });
+
+    act(() => {
+      result.current.addFiles([bmpFile]);
+    });
+
+    expect(result.current.images).toEqual([]);
+    expect(errorSpy).toHaveBeenCalledWith(TEXTS.validation.imageFileOnly);
+  });
+
+  it('SVG는 허용 목록에 있어 첨부된다', async () => {
+    const { result } = renderHook(() => useImageAttachments({ maxCount: 5 }));
+    const svgFile = new File(
+      ['<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>'],
+      'diagram.svg',
+      {
+        type: 'image/svg+xml',
+      }
+    );
+
+    act(() => {
+      result.current.addFiles([svgFile]);
+    });
+
+    await waitFor(() => expect(result.current.images).toHaveLength(1));
+  });
+
   it('StrictMode에서도 크기 초과 에러 토스트가 정확히 한 번만 뜬다 (setState updater 부수효과 회귀 방지)', () => {
     const errorSpy = vi.spyOn(toast, 'error');
     const { result } = renderHook(() => useImageAttachments({ maxCount: 5 }), {
