@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { MemoryRouter } from 'react-router-dom';
 import { fn } from 'storybook/test';
 import { ErrorLayout } from '@/shared/ui/layouts/ErrorLayout';
 
@@ -56,6 +57,23 @@ export const WithChildren: Story = {
         Error: Cannot read properties of undefined
       </div>
     ),
+  },
+};
+
+// 라우터 안 화면(403/404/500 페이지)이 쓰는 형태 - 홈 버튼이 링크(<a href>)로 렌더된다
+export const HomeLink: Story = {
+  decorators: [
+    (Story) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
+  args: {
+    title: '404',
+    description: '요청하신 페이지를 찾을 수 없습니다.',
+    homeTo: '/',
+    onHomeClick: undefined,
   },
 };
 

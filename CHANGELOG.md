@@ -34,6 +34,13 @@
 
   </details>
 
+- `shared` 403·404·500 페이지의 "홈" 버튼을 버튼 모양의 링크로 바꿈
+  <details><summary>배경·구현</summary>
+
+  세 에러 페이지가 각자 `useNavigate`로 홈 이동 핸들러를 만들어 버튼 `onClick`으로 넘겼다. 이동은 링크로 두는 게 관례다. [W3C ARIA APG](https://www.w3.org/WAI/ARIA/apg/patterns/link/)는 _"href 속성이 있는 HTML `<a>` 요소 같은 네이티브 링크 요소를 쓰도록 강력히 권장"_ (번역)하고, Next.js 공식 not-found 예제도 페이지에 `<Link href="/">`를 둔다. 링크가 되면 화면낭독기가 "링크"로 읽고, 가운데 클릭으로 새 탭에서 열 수 있다. 겉모습은 그대로다. `ErrorLayout`에 `homeTo`를 추가해 `Button asChild` + `Link`로 렌더하고, 라우터 밖에서도 뜨는 `AppErrorFallback`(새로고침으로 앱 상태를 비우는 게 목적)만 기존 `onHomeClick`을 쓴다. (`ErrorLayout.tsx`, `ErrorLayout.stories.tsx`, `ErrorLayout.test.tsx`(신규), `NotFoundPage.tsx`, `ForbiddenPage.tsx`, `ServerErrorPage.tsx`, [PR #323](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/323))
+
+  </details>
+
 - `shared` 알림·확인창을 열고 닫을 때 그 창을 부르는 컴포넌트가 다시 렌더되지 않음
   <details><summary>배경·구현</summary>
 
