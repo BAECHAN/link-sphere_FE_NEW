@@ -69,7 +69,7 @@ ACL)는 CloudFront 배포 전체(양쪽 비헤이비어 공통)에 붙어 요청
 저장소 루트의 `infra/`는 Vite 빌드에 포함되지 않고 **AWS 리소스에 직접 배포되는 코드**를 모아두는
 디렉토리다. `src/`(앱 코드)와 달리 브라우저에서 실행되지 않고, GitHub Actions `deploy.yml`도
 이 디렉토리를 배포 대상으로 보지 않는다(트리거 경로에 없음) — 여기 있는 것들은 AWS CLI로
-수동 배포·관리된다. 현재는 아래 CloudFront Function 하나만 있다.
+수동 배포·관리된다. 현재는 아래 CloudFront Function 두 개(`spa-fallback.js`·`spa-status.js`)만 있다.
 
 같은 CloudFront 배포에 WAF(Web ACL)도 콘솔 전용으로 붙어 있는데, 이건 소스 코드 자체가
 없어(설정값만 있음) 이 디렉토리에 담을 수 없다 — 룰 구성과 재적용 절차는
@@ -108,7 +108,7 @@ HTTP 상태는 진짜 404가 된다(2026-10-05, SPA soft 404 해소). 소스:
 | **운영** | CloudFront → S3 정적 배포. `VITE_API_BASE_URL`은 `/api` (상대 경로) | CloudFront `/api/*` behavior → Lambda Function URL(`prod` alias). context-path `/api`                                             |
 | **개발** | Vite dev server (포트 31119). `/api` 요청을 proxy로 BE로 전달       | `.env`의 `VITE_API_BASE_URL`: BE 로컬(`http://localhost:8080/api`) 또는 운영 API(`https://linksphere.click/api`, CloudFront 경유) |
 
-개발 시: Browser → Vite(31119) → proxy `/api` → BE(8080) → Supabase / Gemini.
+개발 시: Browser → Vite(31119) → proxy `/api` → BE(로컬 8080 또는 운영 CloudFront `/api`) → Supabase / Gemini.
 
 ---
 
@@ -123,8 +123,8 @@ flowchart LR
     FE_Build["pnpm build"]
     FE_S3["S3 sync"]
     FE_CF["CloudFront Invalidation"]
-    FE_Verify["배포 반영 검증<br/>(sha·캐시헤더·entry해시)"]
-    FE_Notify["notify-failure<br/>(검증 실패 시)"]
+    FE_Verify["배포 반영 검증<br/>(sha·캐시헤더·entry해시·404.html)"]
+    FE_Notify["notify-failure<br/>(deploy job 어느 스텝이든 실패 시)"]
     FE_Trigger --> FE_Build --> FE_S3 --> FE_CF --> FE_Verify
     FE_Verify -.실패.-> FE_Notify
   end
@@ -141,14 +141,14 @@ flowchart LR
 
 ### FE 배포 (Frontend Deploy)
 
-| 항목            | 내용                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **파일**        | `.github/workflows/deploy.yml` (FE 저장소)                                                                                                                                                                                                                                                                                                                                                                                                        |
-| **트리거**      | `push` to `main`, paths: `src/**`, `public/**`, `package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `postcss.config.js`, `index.html`, `tsconfig*.json`                                                                                                                                                                                                                                                                                           |
-| **단계**        | Checkout → Set up pnpm → Set up Node(`.nvmrc`) → `pnpm install --frozen-lockfile` → `pnpm check`(type-check·lint·format) → `pnpm test` → `pnpm build`(env: Firebase 6종) → Configure AWS → S3 업로드(index.html·version.json·SW는 무캐시, assets·fonts는 장기 캐시, 나머지는 sync) → CloudFront invalidation → 배포 반영 검증(sha·캐시헤더·entry해시, [`BUILD-VERSION.md`](./BUILD-VERSION.md)) → 실패 시 `notify-failure`(GitHub 이슈 자동 생성) |
-| **concurrency** | `deploy-main` 그룹, `cancel-in-progress: false`(연속 push는 대기열 처리 — `aws s3 sync --delete` 도중 취소 시 버킷 파손 방지)                                                                                                                                                                                                                                                                                                                     |
-| **Secrets**     | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, `CLOUDFRONT_DISTRIBUTION_ID`, `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, `VITE_FIREBASE_VAPID_KEY`                                                                                                                                                                            |
-| **리전**        | CLI/배포 워크플로우 리전은 ap-northeast-1. **S3 버킷 자체의 리전은 ap-northeast-2**다(`docs/DEPLOY.md` "커스텀 도메인" 절 — ACM 인증서만 CloudFront 요구사항으로 us-east-1 고정)                                                                                                                                                                                                                                                                  |
+| 항목            | 내용                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **파일**        | `.github/workflows/deploy.yml` (FE 저장소)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **트리거**      | `push` to `main`, paths: `src/**`, `public/**`, `package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `postcss.config.js`, `index.html`, `tsconfig*.json`, `scripts/inject-csp.js`                                                                                                                                                                                                                                                                                                                                                 |
+| **단계**        | Checkout → Set up pnpm → Set up Node(`.nvmrc`) → `pnpm install --frozen-lockfile` → `pnpm check`(type-check·lint·format) → `pnpm test` → `pnpm build`(env: Firebase 6종) → Configure AWS → S3 업로드(index.html·404.html(index.html 사본)·version.json·SW는 무캐시, assets·fonts는 장기 캐시, 나머지는 sync) → CloudFront invalidation → 배포 반영 검증(sha·캐시헤더·entry해시·404.html entry해시, [`BUILD-VERSION.md`](./BUILD-VERSION.md)) → 실패 시 `notify-failure`(deploy job 어느 스텝이든 실패하면 GitHub 이슈 자동 생성) |
+| **concurrency** | `deploy-main` 그룹, `cancel-in-progress: false`(연속 push는 대기열 처리 — `aws s3 sync --delete` 도중 취소 시 버킷 파손 방지)                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Secrets**     | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, `CLOUDFRONT_DISTRIBUTION_ID`, `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, `VITE_FIREBASE_VAPID_KEY`                                                                                                                                                                                                                                                           |
+| **리전**        | CLI/배포 워크플로우 리전은 ap-northeast-1. **S3 버킷 자체의 리전은 ap-northeast-2**다(`docs/DEPLOY.md` "커스텀 도메인" 절 — ACM 인증서만 CloudFront 요구사항으로 us-east-1 고정)                                                                                                                                                                                                                                                                                                                                                 |
 
 ### BE 배포 (Deploy to AWS Lambda)
 
@@ -234,10 +234,10 @@ Feature 훅은 `*.queries.ts`의 훅을 사용하고, UI는 Feature 훅만 호�
 ```mermaid
 flowchart TB
   subgraph layer1 [API Layer]
-    CTRL["Controllers(Auth, Post, Comment, Interaction, BookmarkFolder, Category, Upload, FcmToken)"]
+    CTRL["Controllers(Auth, Post, LinkPreview, Comment, Interaction, BookmarkFolder, Category, Upload, FcmToken)"]
   end
   subgraph layer2 [Business Layer]
-    SVC["Services(Auth, Post, Comment, Interaction, BookmarkFolder, Category, Member, PostAI, Upload)"]
+    SVC["주요 Services(Auth, Post, LinkPreview, Comment, Interaction, BookmarkFolder, Category, Member, PostAI, Upload)"]
   end
   subgraph layer3 [Data Layer]
     REPO["Repositories(Post, Comment, Reaction, Bookmark, BookmarkFolder, Member, Category)"]
@@ -268,10 +268,13 @@ flowchart TB
 
 ### BE 도메인·패키지
 
+주요 항목만 담는다 — 서비스·컨트롤러 전체 목록은 BE 저장소 `src/main/kotlin/`이 정본이다.
+
 | 도메인      | Controller               | Service                                 | 비고                                                                                                                                |
 | ----------- | ------------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | auth        | AuthController           | AuthService                             | 서버 관리 세션(access/refresh), 로그인/회원가입 — JWT는 PR #42로 폐지                                                               |
 | post        | PostController           | PostService, PostAiService              | UrlMetadataExtractor, Jsoup, YouTube Data API                                                                                       |
+| post        | LinkPreviewController    | PostService, LinkPreviewService         | 등록 전 링크 미리보기(`GET /link-preview`, 로그인 전용). 결과를 10분 캐시해 등록 때 재사용                                          |
 | comment     | CommentController        | CommentService                          |                                                                                                                                     |
 | interaction | InteractionController    | InteractionService                      | 좋아요, 북마크                                                                                                                      |
 | interaction | BookmarkFolderController | BookmarkFolderService                   | 북마크 폴더                                                                                                                         |
@@ -292,14 +295,14 @@ flowchart TB
 | Data      | JPA, Hibernate, PostgreSQL (Supabase pooler)                                                                              |
 | Security  | Spring Security, OAuth2 Client, 서버 관리 세션(access/refresh), X-Access-Token 헤더 우선 — JWT(jjwt)는 PR #42로 폐지      |
 | API 문서  | SpringDoc OpenAPI 2.7.0                                                                                                   |
-| 기타      | Jsoup, Actuator (health), SSE                                                                                             |
+| 기타      | Jsoup, Actuator (health)                                                                                                  |
 
-| 설정         | 값                                                                                                                                                                                                                                                                                            |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 서버 포트    | 8080 (`application.yml`)                                                                                                                                                                                                                                                                      |
-| context-path | `/api` (`application.yml`)                                                                                                                                                                                                                                                                    |
-| DDL          | none (마이그레이션 별도)                                                                                                                                                                                                                                                                      |
-| CORS         | `app.cors.allowed-origins`(`application.yml`)로 관리. localhost:31119, CloudFront 기본 도메인, 커스텀 도메인(`linksphere.click`, `www.linksphere.click`) — 새 프론트엔드 도메인을 추가할 때 이 목록 갱신을 빠뜨리면 로그인이 막힌다(BE `docs/DEPLOY.md`의 `APP_CORS_ALLOWED_ORIGINS` 절 참고) |
+| 설정         | 값                                                                                                                                                                                                                                                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 서버 포트    | 8080 (`application.yml`)                                                                                                                                                                                                                                                                                |
+| context-path | `/api` (`application.yml`)                                                                                                                                                                                                                                                                              |
+| DDL          | none (마이그레이션 별도)                                                                                                                                                                                                                                                                                |
+| CORS         | `app.cors.allowed-origins`(`application.yml`)로 관리. `localhost:*`(http·https), CloudFront 기본 도메인, 커스텀 도메인(`linksphere.click`, `www.linksphere.click`) — 새 프론트엔드 도메인을 추가할 때 이 목록 갱신을 빠뜨리면 로그인이 막힌다(BE `docs/DEPLOY.md`의 `APP_CORS_ALLOWED_ORIGINS` 절 참고) |
 
 ---
 

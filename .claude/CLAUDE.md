@@ -379,16 +379,17 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
 - **Never** native `confirm()` → 항상 `useAlert` + `openConfirm` 사용
 - **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만(2026-09-09 감사에서
   `shared/lib/firebase/fcm.ts`가 raw `fetch()`로 이 규칙을 어기고 있는 걸 발견해 같은 날
-  `shared/api/fcm.api.ts`로 옮겨 고쳤다 — 지금은 예외 없이 지켜지고 있다)
+  `shared/api/fcm.api.ts`로 옮겨 고쳤다 — 지금은 BE API 호출에는 예외 없이 지켜지고 있다. transport(`shared/api/client.ts`)를
+  빼면 `.api.ts` 밖의 `fetch`는 정적 파일을 읽는 `version.util.ts`(`/index.html`)·`build-info.util.ts`(`/version.json`) 2곳뿐이다)
 - **Never** 인라인 쿼리 키 → 항상 `<entity>Keys.*` 사용
-- **Never** 인라인 한글 UI 문자열 → 항상 `TEXTS.*` 사용 (ESLint `custom-i18n/no-hardcoded-hangul`가 빌드/pre-commit에서 자동 차단. 보간은 `texts.ts`의 함수형 키 사용 예: `messages.success.bookmarkSavedTo(folderName)`. 예외 전체 목록은 `texts-conventions` skill(`.claude/skills/texts-conventions/SKILL.md`) 참고)
+- **Never** 인라인 한글 UI 문자열 → 항상 `TEXTS.*` 사용 (ESLint `custom-i18n/no-hardcoded-hangul`가 pre-commit(lint-staged)과 CI·배포의 `pnpm check`에서 자동 차단 — `pnpm build` 자체는 ESLint를 돌리지 않는다. 보간은 `texts.ts`의 함수형 키 사용 예: `messages.success.bookmarkSavedTo(folderName)`. 예외 전체 목록은 `texts-conventions` skill(`.claude/skills/texts-conventions/SKILL.md`) 참고)
 - **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반
   Tailwind 클래스 사용 (`text-destructive`, `bg-success`, `text-warning` 등). 2026-09-09 감사에서
   `shared/ui/elements/ImageAttachmentField.tsx`·`SearchInput.tsx`, `shared/ui/layouts/AuthLayout.tsx`·
   `ErrorLayout.tsx`에 raw gray/zinc 팔레트 잔존이 발견돼 같은 날 토큰 기반 클래스로 고쳤다.
   2026-09-13부터는 ESLint `custom-tailwind/no-raw-color`(`eslint.config.js`)가 이 규칙을
-  강제한다 — black/white/gray/zinc 등 명명 팔레트 리터럴 클래스를 빌드/pre-commit에서
-  차단하므로, 위 감사에서 발견된 것과 같은 유형의 회귀는 이제 자동으로 잡힌다
+  강제한다 — black/white/gray/zinc 등 명명 팔레트 리터럴 클래스를 pre-commit(lint-staged)과
+  CI·배포의 `pnpm check`에서 차단하므로, 위 감사에서 발견된 것과 같은 유형의 회귀는 이제 자동으로 잡힌다
 - **Never** 인라인 API 경로 → 항상 `API_ENDPOINTS.*` 사용
 - **Never** feature hook에서 직접 `queryClient.invalidateQueries` → 항상 `.keys.ts` success handlers 사용
 - **Never** 다른 엔티티의 raw 쿼리 키를 재구성해 `queryClient.invalidateQueries`를 직접 호출 → 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()` 래퍼만 사용. 크로스 엔티티 무효화가 필요하면 자기 엔티티의 `.keys.ts`에 `handle<Event>Success` 함수를 만들어 그 안에서 호출한다 (`docs/FE-ARCHITECTURE.md` §5의 "크로스 엔티티 무효화" 참고)
@@ -397,7 +398,7 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
 - **Never** `features/**`·`pages/**`의 `hooks/` 밖(주로 `ui/`)에서 entity 쿼리 훅(`*.queries`) 직접 import → 조회는 자기 슬라이스의 `hooks/` 커스텀 훅이나 `entities/<entity>/hooks/`의 공용 훅(예: `useCategoryOptions`)에서 한다. `custom-query-rules/no-direct-query-import`는 `@tanstack/react-query` 직접 import만 막아 entity가 감싼 `*.queries` 훅 호출까지는 못 잡았고, 그 사이 `CreatePostForm.tsx`·`UpdatePostForm.tsx`가 `useFetchCategoryOptionQuery()`를 UI에서 직접 호출하는 게 5개월 넘게(dayjs 규칙과 같은 패턴) 안 잡혔다 — 2026-09-09 `custom-query-rules/no-entity-query-import-outside-hooks`로 승격(2026-09-29부터 pages도 대상에 추가, widgets는 §8 예외라 대상 아님)
 - **Never** React API(`memo`·`useCallback`·`useMemo`·`useEffect`·ref 등)를 학습한 일반론만으로 넣거나 빼지 않는다 → 판단 전에 react.dev 해당 문서를 조회하고(context7 또는 WebFetch) 링크를 주석·PR에 남긴다. 성능 최적화를 넣는 근거는 실제 코드 추적(자식이 `memo`인가, context·라우터를 구독하는가)과 측정이다 — react.dev는 `memo`를 _"같은 props로 자주 리렌더되고 렌더가 무거울 때만 가치가 있다"_ (번역, [memo](https://react.dev/reference/react/memo))고 쓴다. 공식 hooks 규칙(`eslint-plugin-react-hooks` v7 recommended)이 `eslint.config.js`에서 error로 켜져 있다 — 새 위반을 `eslint-suppressions.json`에 넣지 않는다(`--suppress-all`·`--suppress-rule` 금지). 정당한 예외만 그 줄에 `eslint-disable-next-line <규칙> -- <이유>`를 단다(예: `useWindowGridVirtualizer.ts`의 인스턴스 속성 대입). 2026-10-04 외부에서 받은 "memo·useCallback을 붙이라"는 분석이 실제 코드(자식이 `memo`가 아니고 라우터를 구독)와 맞지 않았던 것을 계기로 #315~#320에서 기존 52건을 정리했다
 - **Never** 대상 파일 양식 무시하고 코드 생성 → 항상 붙여넣을 파일(및 인접 코드)을 **먼저 읽고** 들여쓰기·네이밍·import 순서·따옴표·주석 밀도·정렬을 그대로 맞춘다. 본인 스타일을 강요하거나 기존 코드를 재포맷하지 않는다
-- **Never** raw HTML 요소로 UI를 일회성 구현 → 항상 공통 컴포넌트(`shared/ui/atoms`·`elements`·`widgets`) 우선. 반복되는 UI는 공통 컴포넌트를 만들거나 기존 것을 사용해 디자인을 단일 관리한다 (예: 버튼은 raw `<button>` 대신 `Button` 컴포넌트). 신규 코드 기준
+- **Never** raw HTML 요소로 UI를 일회성 구현 → 항상 공통 컴포넌트(`shared/ui/atoms`·`elements`·`layouts`) 우선. 반복되는 UI는 공통 컴포넌트를 만들거나 기존 것을 사용해 디자인을 단일 관리한다 (예: 버튼은 raw `<button>` 대신 `Button` 컴포넌트). 신규 코드 기준
 - **Never** `shared/ui/atoms`·`elements`에 컴포넌트를 추가하거나 시각적으로 변경하고 스토리 없이 커밋 → 항상 같은 커밋에 `<Component>.stories.tsx`를 함께 만들거나 갱신한다. `.storybook/main.ts`의 글롭이 `src/**/*.stories.tsx`를 자동 인식하므로 파일만 만들면 된다 (예시: `checkbox.tsx`+`checkbox.stories.tsx`, `switch.tsx`+`switch.stories.tsx`). 스토리 `title`은 파일 경로에서 계산한 값이어야 한다(ESLint `custom-storybook/title-matches-path`가 차단). 형식과 다른 레이어에 스토리를 둘 수 있는 기준은 `docs/FE-ARCHITECTURE.md` §18 "Storybook 스토리"를 먼저 읽는다
 - **Never** `if`문을 인라인으로 작성 (`if (x) return;`) → 항상 중괄호 블록으로 감싼다 (`if (x) {\n  return;\n}`). 한 줄짜리 본문도 예외 없음 (ESLint `curly: ['error', 'all']` 규칙으로 강제 중)
 - **Never** 문장을 다닥다닥 붙여 논리 그룹을 뭉개지 않는다 → 가드절(`if (...) { return; }`) 뒤, 그리고 `if`/`try` 같은 제어 블록 **앞뒤**에 **빈 줄 1줄**을 넣어 논리 단위를 분리한다 (Prettier가 아닌 컨벤션 — 아래 예시 참고)
@@ -562,8 +563,8 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 
 1. `pnpm type-check` — TypeScript 컴파일 에러 확인 (필수)
 2. `pnpm test` — 관련 테스트 실행 (테스트 파일이 존재하는 경우)
-3. `pnpm lint`·`pnpm check:deps` — ESLint 레이어 경계, entities `@x` 경유·미선언 패키지 위반 확인
-   (import 변경 시)
+3. `pnpm lint`·`pnpm check:deps` — ESLint 레이어 경계, entities `@x` 경유·features·widgets의 같은 레이어
+   슬라이스 import·미선언 패키지·production 코드의 devDependency 위반 확인 (import 변경 시)
 4. `pnpm check:docs` — README/docs/CLAUDE.md가 가리키는 경로·줄 번호가 실제와
    맞는지 확인 (`README.md`, `docs/*.md`, `.claude/CLAUDE.md`를 수정한 경우)
 
@@ -638,12 +639,12 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 
 ### 새 mutation 만들 때 토스트 결정표
 
-| 원하는 동작                           | 설정                                  | 결과                     |
-| ------------------------------------- | ------------------------------------- | ------------------------ |
-| 일반 에러 토스트면 충분               | (없음)                                | 전역이 `serverError` 1개 |
-| 메시지만 커스텀                       | `meta: { errorMessage }`              | 전역이 그 메시지 1개     |
-| `onError`/컴포넌트에서 **직접** toast | `meta: { manualErrorHandling: true }` | 내 토스트만 1개          |
-| 옵티미스틱 토글(실패 시 롤백만)       | `meta: { manualErrorHandling: true }` | 토스트 없이 롤백         |
+| 원하는 동작                           | 설정                                  | 결과                                                       |
+| ------------------------------------- | ------------------------------------- | ---------------------------------------------------------- |
+| 일반 에러 토스트면 충분               | (없음)                                | 전역이 `serverError` 1개                                   |
+| 메시지만 커스텀                       | `meta: { errorMessage }`              | 전역이 그 메시지 1개 (단, 429·WAF 차단은 전용 문구가 우선) |
+| `onError`/컴포넌트에서 **직접** toast | `meta: { manualErrorHandling: true }` | 내 토스트만 1개                                            |
+| 옵티미스틱 토글(실패 시 롤백만)       | `meta: { manualErrorHandling: true }` | 토스트 없이 롤백                                           |
 
 전역 자동 처리 규칙 상세와 `manualErrorHandling` 코드 예제는
 [`docs/FE-ARCHITECTURE.md`](../docs/FE-ARCHITECTURE.md) §13을 먼저 읽는다.
@@ -738,11 +739,11 @@ _"엔티티는 앱이 다루는 현실의 개념이다. 피처는 상호작용�
 > 실제로는 `hooks/`가 5:1로 우세했다. 2026-09-08 재검토 후 아래처럼 되돌렸다:
 > **entities도 `hooks/`를 쓴다.** `model/`은 스키마·타입 전용으로 좁힌다.
 
-| 레이어                | 허용 세그먼트                                                 | 규칙                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| --------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `entities`            | `api/`, `hooks/`, `model/`, `ui/`, `config/`, `utils/`, `@x/` | `model/`은 스키마·타입 정의 전용(`*.schema.ts`). 훅·비즈니스 로직은 `hooks/`, 상수는 `config/`, 순수 함수는 `<entity>.util.ts`로 `utils/`에(선례: `shared/utils/date.util.ts`·`common.util.ts` — 파일 접미사는 단수 `.util.ts`, 파일명은 함수명이 아니라 엔티티명). `ui/`에는 그 엔티티의 **시각적 표현**만 둔다 — 폼·버튼처럼 사용자가 무언가를 _하는_ 인터랙션 UI는 `features`에 둔다(출처: [FSD 공식 레이어 정의](https://feature-sliced.design/docs/reference/layers) — entities UI는 _"여러 페이지에서 재사용되는 시각적 표현"_ (번역), features UI는 _"폼처럼 상호작용을 수행하는 UI"_ (번역)). `@x/<참조하는-엔티티>.ts`는 다른 엔티티가 이 엔티티를 참조할 때 쓰는 교차 참조 표기(FSD 공식 관례, 2026-09-21 도입) — `docs/FE-ARCHITECTURE.md` §5 참고 |
-| `widgets`, `features` | `hooks/`, `ui/`, `utils/`, `config/`                          | 컴포넌트가 하나라도 있으면 반드시 `ui/` 아래에 둔다 — 슬라이스 루트에 직접 두지 않는다                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `pages`               | `hooks/`                                                      | 페이지 컴포넌트는 슬라이스 폴더에 바로 둔다. `hooks/`는 그 페이지 전용 오케스트레이션 로직(URL 파싱, 데이터 조회 포함, 리다이렉트 effect 등)만 담는다 — entity 쿼리도 features와 동일하게 `hooks/` 안에서만 호출한다(`custom-query-rules/no-entity-query-import-outside-hooks`가 pages도 대상). 여러 페이지에서 필요해지면 entities/features로 승격한다(2026-09-29, FSD v2.1 "pages first" 원칙 채택 — `PostDetailPage.tsx`가 유일하게 pages에 로직을 인라인으로 갖고 있던 문제를 계기로 도입)                                                                                                                                                                                                                                                                |
+| 레이어                | 허용 세그먼트                                                 | 규칙                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `entities`            | `api/`, `hooks/`, `model/`, `ui/`, `config/`, `utils/`, `@x/` | `model/`은 스키마·타입 정의 전용(`*.schema.ts`, `*.dto.ts`). 훅·비즈니스 로직은 `hooks/`, 상수는 `config/`, 순수 함수는 `<entity>.util.ts`로 `utils/`에(선례: `shared/utils/date.util.ts`·`common.util.ts` — 파일 접미사는 단수 `.util.ts`, 파일명은 함수명이 아니라 엔티티명). `ui/`에는 그 엔티티의 **시각적 표현**만 둔다 — 폼·버튼처럼 사용자가 무언가를 _하는_ 인터랙션 UI는 `features`에 둔다(출처: [FSD 공식 레이어 정의](https://feature-sliced.design/docs/reference/layers) — entities UI는 _"여러 페이지에서 재사용되는 시각적 표현"_ (번역), features UI는 _"폼처럼 상호작용을 수행하는 UI"_ (번역)). `@x/<참조하는-엔티티>.ts`는 다른 엔티티가 이 엔티티를 참조할 때 쓰는 교차 참조 표기(FSD 공식 관례, 2026-09-21 도입) — `docs/FE-ARCHITECTURE.md` §5 참고 |
+| `widgets`, `features` | `hooks/`, `ui/`, `utils/`, `config/`                          | 컴포넌트가 하나라도 있으면 반드시 `ui/` 아래에 둔다 — 슬라이스 루트에 직접 두지 않는다                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `pages`               | `hooks/`                                                      | 페이지 컴포넌트는 슬라이스 폴더에 바로 둔다. `hooks/`는 그 페이지 전용 오케스트레이션 로직(URL 파싱, 데이터 조회 포함, 리다이렉트 effect 등)만 담는다 — entity 쿼리도 features와 동일하게 `hooks/` 안에서만 호출한다(`custom-query-rules/no-entity-query-import-outside-hooks`가 pages도 대상). 여러 페이지에서 필요해지면 entities/features로 승격한다(2026-09-29, FSD v2.1 "pages first" 원칙 채택 — `PostDetailPage.tsx`가 유일하게 pages에 로직을 인라인으로 갖고 있던 문제를 계기로 도입)                                                                                                                                                                                                                                                                            |
 
 ### entities의 그룹 폴더
 
@@ -799,7 +800,7 @@ shared/
 | 커스텀 render | `src/test/utils.tsx` → `renderWithProviders()`, `createTestQueryClient()`          |
 | MSW           | `src/mocks/server.ts` + `handlers/` + `fixtures/`                                  |
 | API URL 전략  | Vitest는 `DEV`라 `/api` 고정 → MSW 인터셉트. `.env.test`는 e2e 전용(운영 API 차단) |
-| 강제 실행     | `.husky/pre-push` + GitHub Actions `deploy.yml`                                    |
+| 강제 실행     | `.husky/pre-push` + GitHub Actions `ci.yml`·`deploy.yml`                           |
 | e2e           | Playwright(`e2e/`), `page.route()` 모킹, 상세는 `docs/TESTING.md` §13 참고         |
 
 ```bash
@@ -856,14 +857,14 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
 
 ## 슬래시 커맨드 (`.claude/commands/`)
 
-| 커맨드            | 사용법                            | 역할                        |
-| ----------------- | --------------------------------- | --------------------------- |
-| `/new-domain`     | `/new-domain notification`        | entity + features 전체 생성 |
-| `/new-feature`    | `/new-feature post pin`           | feature hook + UI 생성      |
-| `/add-entity-api` | `/add-entity-api post tag`        | 3-layer API 파일 생성       |
-| `/add-schema`     | `/add-schema member address`      | Zod 스키마 파일 생성        |
-| `/fix-bug`        | `/fix-bug 삭제 후 목록 갱신 안됨` | 버그 분석 + 수정            |
-| `/code-review`    | `/code-review`                    | 아키텍처 준수 리뷰          |
+| 커맨드            | 사용법                            | 역할                                                   |
+| ----------------- | --------------------------------- | ------------------------------------------------------ |
+| `/new-domain`     | `/new-domain notification`        | entity 전체 생성(feature는 `/new-feature`로)           |
+| `/new-feature`    | `/new-feature post pin`           | feature hook + UI 생성                                 |
+| `/add-entity-api` | `/add-entity-api post tag`        | 3-layer API 파일 생성                                  |
+| `/add-schema`     | `/add-schema member address`      | BE 응답 타입(dto alias) 생성, 필요하면 Zod 요청 스키마 |
+| `/fix-bug`        | `/fix-bug 삭제 후 목록 갱신 안됨` | 버그 분석 + 수정                                       |
+| `/code-review`    | `/code-review`                    | 아키텍처 준수 리뷰                                     |
 
 ---
 
@@ -896,8 +897,8 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
   서로 무관한 변경끼리만 별도 커밋으로 분리한다.
 - **PR 머지는 항상 squash** — `gh pr merge <번호> --squash`. 저장소 설정(`allow_merge_commit`/
   `allow_rebase_merge`)이 꺼져 있어 다른 방식은 API에서부터 막힌다(2026-09-22). 지금
-  이유는 `main` 커밋 이력이 전부 `type(scope): 요약 (#PR번호)` 한 줄짜리라 CHANGELOG·
-  릴리즈 노트와 1:1로 대응한다는 것이다. 과거에는 두 번째 이유도 있었다 —
+  이유는 `main`에 PR로 병합된 커밋의 제목이 전부 `type(scope): 요약 (#PR번호)` 한 줄이라
+  CHANGELOG·릴리즈 노트와 1:1로 대응한다는 것이다(자동 history·release 커밋은 PR 번호가 없다). 과거에는 두 번째 이유도 있었다 —
   `doc-drift-check.yml`(`scripts/check-doc-drift.js`)이 병합 PR 수를 셀 때 당시
   정규식(`\(#\d+\)$`)이 병합 커밋("Merge pull request #N from ...")을 못 읽어, 이 형식의
   커밋을 한 번 썼더니 카운터가 조용히 어긋난 사례가 있었다(#171-173, 트래킹 이슈 #99
@@ -937,7 +938,7 @@ _"문서는 대체로 하나의 목적만 갖고, 그 목적에 충실해야 한
   역할이면서, **그 기능을 만들며 겪은 시행착오(버그를 발견하고 고친 과정)도
   같은 문서 안에 둔다** — 별도 파일로 떼어내지 않는다. 참고:
   `BOOKMARK.md`, `CI-CHECK-GATE.md`, `MYPAGE.md`, `FCM-PUSH-NOTIFICATION.md`(이미 이
-  형태로 "삽질 기록" 절을 포함하고 있음), `UNSAVED-CHANGES-GUARD.md`.
+  형태로 "시행착오" 절을 포함하고 있음), `UNSAVED-CHANGES-GUARD.md`.
 - **절차**(how-to·런북) — 예: `DEPLOY.md`, `TESTING.md`.
 - **레퍼런스** — 예: `VERSION-COMPATIBILITY.md`, `SYSTEM-ARCHITECTURE.md`.
   `FE-ARCHITECTURE.md`는 레퍼런스이면서 아래 "아키텍처 패턴" 섹션들을 담는 그릇이기도

@@ -25,6 +25,8 @@ Reference files for correct patterns:
 - [ ] UI components are thin — call one hook, render JSX, nothing else
 - [ ] Input-validation Zod schemas only in `entities/<entity>/model/<entity>.schema.ts` — response types come from `entities/<entity>/model/<entity>.dto.ts` (BE-generated type alias), never hand-rolled Zod
 - [ ] Query key constants come from `<entity>.keys.ts` — no inline `['entity', 'list']` strings
+- [ ] An entity imports another entity only through that entity's `@x/<this-entity>.ts` cross-reference file (FE-ARCHITECTURE §5; `pnpm check:deps` enforces `entities-cross-import-only-via-x`)
+- [ ] A `features`/`widgets` slice doesn't import another slice of the same layer — the receiving side takes a `render<Target>` function prop and the upper layer passes it (FE-ARCHITECTURE §26; `pnpm check:deps` enforces `features-widgets-no-cross-slice-import`)
 
 ### Naming Conventions
 
@@ -43,6 +45,7 @@ Reference files for correct patterns:
 - [ ] Submit button disabled state: `!isDirty || !isValid || isPending` — 단, `!isValid`(길이 초과 등 설명이 필요한 검증 실패)는 CLAUDE.md의 "폼 검증 실패를 disabled만으로 처리하지 않는다" 규칙 대상이면 이 패턴을 그대로 쓰지 말 것(진짜 "할 게 없음" 상태만 disabled로 막고, 나머지는 버튼을 눌러지게 둔 채 인라인 안내로 처리)
 - [ ] Toast messages via `meta.successMessage` / `meta.errorMessage` in `TEXTS.*`
 - [ ] Optimistic updates (if any): cancel queries → update cache → restore on error
+- [ ] Buttons that flip state on each press use `ToggleButton` (`@/shared/ui/elements/ToggleButton`), not `Button`; optimistic toggles have no `disabled` while pending (FE-ARCHITECTURE §10-A, `LikePostButton.tsx`) — not enforced by lint
 
 ### TypeScript Quality
 

@@ -9,13 +9,14 @@
 > `#닉네임` 태그가 어떻게 분해되는지 이해하고, 검색 관련 동작(유지·초기화·오타 보정)을
 > 어느 파일에서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-03
+> **마지막 검토**: 2026-10-05
 
 ## 1. 쉬운 설명
 
 게시글 검색어는 브라우저 주소창의 `?q=` 파라미터 **하나**가 진짜 원본이고, 헤더의 검색
 입력창은 그 원본을 보여주는 **거울**이다. 거울이 원본을 따라 움직이지, 거울을 직접 깨거나
-칠해도 원본(주소)은 바뀌지 않는다 — 그래서 입력창의 X 버튼을 눌러도 검색 결과는 그대로다.
+칠해도(타이핑·ESC로 비우기) 원본(주소)은 바뀌지 않는다. 단, 입력창의 X 버튼은 `/post`에서 거울과
+원본을 함께 지워 검색 자체를 해제한다(`useNavbarSearch`의 `handleClear`, #187).
 반대로 카테고리 칩을 클릭하거나 뒤로가기를 누르면 원본(주소)이 바뀌고, 거울(입력창)이 그
 변화를 뒤따라 비춘다.
 
@@ -32,7 +33,7 @@ flowchart TD
   Parse --> API["GET /post?search=&category=&nickname=&filter="]
   API --> Result["게시글 목록 렌더<br/>+ correctedSearch 있으면 오타 보정 안내"]
 
-  URL -->|"pathname === '/post'일 때만"| Mirror["useNavbarSearch:<br/>useEffect로 input에 q 되비침"]
+  URL -->|"pathname === '/post'일 때만"| Mirror["useNavbarSearch:<br/>렌더 중 이전 값 비교로 input에 q 되비침"]
   Mirror --> Type
 
   URL -->|"다른 페이지(예: /bookmark)"| Empty["헤더 입력창은 빈 값<br/>(북마크 자체 q와 혼동 방지)"]
@@ -45,13 +46,13 @@ flowchart TD
   Dropdown -->|"행 클릭 또는 ↓+Enter"| Submit
   Dropdown -->|"행의 X 또는 →+Enter"| RemoveOne["그 항목만 삭제, 드롭다운 유지"]
   Dropdown -->|"모두 지우기(Tab 밖, ↑+Enter로도 도달)"| ClearAll["전체 삭제 → 0개면 닫힘"]
-  Submit -->|"/post에서 제출"| Preserve["updateSearchParams: q만 갱신<br/>filter 등 기존 파라미터 보존"]
+  Submit -->|"/post에서 데스크톱 제출<br/>(모바일은 항상 위 navigate·replace라 filter 버림)"| Preserve["updateSearchParams: q만 갱신<br/>filter 등 기존 파라미터 보존"]
 ```
 
 ## 2. 전제 지식
 
 - **가정하지 않는 지식**: React Router의 `useSearchParams`, React Query의 캐시 무효화.
-  `.claude/CLAUDE.md`의 "3-Layer API 패턴"과 "React Query 라이프사이클 주의" 절을 먼저 보면
+  [`docs/FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §5 "3-Layer API 패턴"과 `.claude/CLAUDE.md`의 "React Query 라이프사이클 주의" 절을 먼저 보면
   이 문서의 `post.queries.ts`·`post.keys.ts` 언급이 더 잘 읽힌다.
 - **가정하는 지식**: FSD 레이어 구조(`entities`/`widgets`/`features`)와 URL이 상태 저장소로
   쓰일 수 있다는 개념.
@@ -64,7 +65,7 @@ flowchart TD
 **기능 자체**
 
 - React Router `useSearchParams`/`useLocation` — URL을 검색어 저장소로 사용
-- Zod — 응답 스키마(`post.schema.ts`)의 `correctedSearch` 등 검증
+- BE OpenAPI 생성 타입 — 응답 타입(`post.dto.ts`의 `PostListResponse`)에 `correctedSearch` 등이 정의된다(Zod 런타임 검증 없음)
 - Zustand — 봇 글 숨기기(`hideBots.store.ts`)만 예외적으로 사용 (개인 설정이라 URL 대상 아님)
 
 **구현·검증 과정에서 쓴 도구**
@@ -97,11 +98,11 @@ flowchart LR
     Q["URL ?q=..."]
   end
   NavbarSearch["NavbarSearch<br/>(useNavbarSearch)"] -->|"navigate"| Q
-  Q -->|"useEffect 동기화"| NavbarSearch
+  Q -->|"렌더 중 동기화"| NavbarSearch
   MobileNavbarSearch["MobileNavbarSearch<br/>(useNavbarSearch)"] -->|"onSubmit → navigate"| Q
-  Q -->|"useEffect 동기화"| MobileNavbarSearch
+  Q -->|"렌더 중 동기화"| MobileNavbarSearch
   PostListSearch["PostListSearch<br/>(usePostListSearch)"] -->|"setSearch"| Q
-  Q -->|"useEffect 동기화"| PostListSearch
+  Q -->|"렌더 중 동기화"| PostListSearch
   PostCard["PostCard 카테고리 배지<br/>(usePostCard.handleCategoryClick)"] -->|"q = @이름 (쓰기 전용)"| Q
 ```
 
@@ -181,17 +182,17 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 데이터는 기존 `postKeys`(`post.keys.ts`)가 소유한다. 헤더 입력창의 로컬 state만 아래 훅이
 소유한다.
 
-| 상태                                               | 소유자                                                                                                        | 비고                                                                                                                                                                                                                   |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 검색어 원본(`q`)                                   | URL `searchParams` (React Router)                                                                             | `@카테고리 #닉네임 키워드` 형태로 토큰이 섞여 들어간다                                                                                                                                                                 |
-| 헤더 입력값                                        | [`useNavbarSearch.ts`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts)의 로컬 `useState`               | `pathname === '/post'`일 때만 `q`를 초기값·동기화 대상으로 삼는다                                                                                                                                                      |
-| 필터 카드 낙관적 칩                                | [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts)의 `optimisticCategoryTags` | `flushSync`로 URL 반영 전에 즉시 활성화 표시                                                                                                                                                                           |
-| 커밋 전 URL 쓰기 의도(pending)                     | [`useSearchParamsDraft.ts`](../src/shared/hooks/useSearchParamsDraft.ts)의 모듈 스코프 `pendingIntent`        | 정지 구간 동안 `location.key` 기준으로 연속 조작을 이어붙임. 커밋되면(`location.key` 변경) 자동 폐기                                                                                                                   |
-| 봇 글 숨기기                                       | [`useHideBotsStore`](../src/shared/store/hideBots.store.ts) (zustand + localStorage)                          | 기기별 개인 설정이라 URL 대상 아님, "조건 N개" 카운트에서도 제외                                                                                                                                                       |
-| 최근 검색어(모바일·데스크톱 공용)                  | [`useRecentSearches.ts`](../src/widgets/layout/navbar/hooks/useRecentSearches.ts) (localStorage)              | `Navbar`가 한 번만 구독해 양쪽에 props로 내려줌(바로 위 §5 문단 참고)                                                                                                                                                  |
-| 모바일 검색 패널 열림                              | `location.state.mobileSearchOpen`(React Router)                                                               | 구독자 3곳 — `Navbar`(패널 렌더), [`MobileCommentBar`](../src/features/comment/create/ui/MobileCommentBar.tsx)(같은 z층 겹침 숨김), [`AppLayout`](../src/app/layouts/app-layout/AppLayout.tsx)(배경 `main` inert 차단) |
-| 데스크톱 드롭다운 열림(`isOpen`)                   | [`NavbarSearch.tsx`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx)의 로컬 `useState`                      | **이벤트(포커스/입력/blur/키보드)에서만 갱신 — 입력값에서 파생하거나 effect로 동기화하지 않는다.** ESC 2단계 재오픈 함정은 §10 참고                                                                                    |
-| 데스크톱 드롭다운 활성 셀(`activeRow`/`activeCol`) | 같은 파일의 로컬 `useState`                                                                                   | `activeRow===recentSearches.length`는 "모두 지우기" 행. 실제 DOM 포커스는 항상 입력창에 머물고, 이 값은 `aria-activedescendant`로만 노출된다                                                                           |
+| 상태                                               | 소유자                                                                                                        | 비고                                                                                                                                                                                                                                                                                                                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 검색어 원본(`q`)                                   | URL `searchParams` (React Router)                                                                             | `@카테고리 #닉네임 키워드` 형태로 토큰이 섞여 들어간다                                                                                                                                                                                                                                                                                                     |
+| 헤더 입력값                                        | [`useNavbarSearch.ts`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts)의 로컬 `useState`               | `pathname === '/post'`일 때만 `q`를 초기값·동기화 대상으로 삼는다                                                                                                                                                                                                                                                                                          |
+| 필터 카드 낙관적 칩                                | [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts)의 `optimisticCategoryTags` | `flushSync`로 URL 반영 전에 즉시 활성화 표시                                                                                                                                                                                                                                                                                                               |
+| 커밋 전 URL 쓰기 의도(pending)                     | [`useSearchParamsDraft.ts`](../src/shared/hooks/useSearchParamsDraft.ts)의 모듈 스코프 `pendingIntent`        | 정지 구간 동안 `location.key` 기준으로 연속 조작을 이어붙임. 커밋되면(`location.key` 변경) 자동 폐기                                                                                                                                                                                                                                                       |
+| 봇 글 숨기기                                       | [`useHideBotsStore`](../src/shared/store/hideBots.store.ts) (zustand + localStorage)                          | 기기별 개인 설정이라 URL 대상 아님, "조건 N개" 카운트에서도 제외                                                                                                                                                                                                                                                                                           |
+| 최근 검색어(모바일·데스크톱 공용)                  | [`useRecentSearches.ts`](../src/widgets/layout/navbar/hooks/useRecentSearches.ts) (localStorage)              | `Navbar`가 한 번만 구독해 양쪽에 props로 내려줌(바로 위 §5 문단 참고)                                                                                                                                                                                                                                                                                      |
+| 모바일 검색 패널 열림                              | `location.state.mobileSearchOpen`(React Router)                                                               | 구독자 4곳 — `Navbar`(패널 렌더, `useMobileSearchPanel` 경유), [`MobileCommentBar`](../src/features/comment/create/ui/MobileCommentBar.tsx)(같은 z층 겹침 숨김), [`CreatePostForm`](../src/features/post/create/ui/CreatePostForm.tsx)(등록 버튼 바, 같은 이유로 숨김), [`AppLayout`](../src/app/layouts/app-layout/AppLayout.tsx)(배경 `main` inert 차단) |
+| 데스크톱 드롭다운 열림(`isOpen`)                   | [`NavbarSearch.tsx`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx)의 로컬 `useState`                      | **이벤트(포커스/입력/blur/키보드)에서만 갱신 — 입력값에서 파생하거나 effect로 동기화하지 않는다.** ESC 2단계 재오픈 함정은 §10 참고                                                                                                                                                                                                                        |
+| 데스크톱 드롭다운 활성 셀(`activeRow`/`activeCol`) | 같은 파일의 로컬 `useState`                                                                                   | `activeRow===recentSearches.length`는 "모두 지우기" 행. 실제 DOM 포커스는 항상 입력창에 머물고, 이 값은 `aria-activedescendant`로만 노출된다                                                                                                                                                                                                               |
 
 ## 7. 운영 파라미터
 
@@ -203,24 +204,24 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 
 ## 8. 코드 지도와 자주 하는 수정
 
-| 하고 싶은 것                                                 | 파일:줄                                                                                                                                                                                                                                                   |
-| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 헤더 입력값이 URL과 동기화되는 조건 바꾸기                   | [`useNavbarSearch.ts:19`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts#L19) — `isPostListPage` 판정                                                                                                                                              |
-| 검색어 제출(경로·trim·filter 보존) 바꾸기 — 데스크톱         | [`NavbarSearch.tsx:53-80`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L53-L80) — `submitQuery`                                                                                                                                                      |
-| 검색어 제출 바꾸기 — 모바일                                  | [`useMobileSearchPanel.ts:39-47`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L39-L47) — `handleSearchSubmit`(최근검색 기록 포함)                                                                                                          |
-| X 버튼 동작 바꾸기                                           | 데스크톱 [`NavbarSearch.tsx:300-310`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L300-L310)(`handleClearClick`), 모바일 [`MobileNavbarSearch.tsx:22-29`](../src/widgets/layout/navbar/ui/MobileNavbarSearch.tsx#L22-L29)(`handleTrailingIconClick`) |
-| 데스크톱 드롭다운 열림/닫힘 규칙(포커스·입력·blur) 바꾸기    | [`NavbarSearch.tsx:92-118`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L92-L118) — `handleChange`/`handleFocus`/`handleBlur`                                                                                                                        |
-| 데스크톱 드롭다운 키보드(ESC 2단계·화살표·Enter) 바꾸기      | [`NavbarSearch.tsx:155-275`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L155-L275) — `handleKeyDown`                                                                                                                                                |
-| 드롭다운 목록 마크업(헤더 고정·행·삭제 버튼) 바꾸기          | [`RecentSearchDropdown.tsx`](../src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx)                                                                                                                                                                    |
-| 카드의 카테고리 배지를 눌렀을 때 동작 바꾸기                 | [`usePostCard.ts:146-158`](../src/widgets/post/post-card/hooks/usePostCard.ts#L146-L158) — `handleCategoryClick`, 배지 마크업은 [`PostCard.tsx:305`](../src/widgets/post/post-card/ui/PostCard.tsx#L305) 이하                                             |
-| `@카테고리`/`#닉네임`/키워드 분해 규칙 바꾸기                | [`search-parser.ts`](../src/widgets/post/post-list/utils/search-parser.ts) — `parseSearchQuery`                                                                                                                                                           |
-| "조건 N개 적용 중" 카운트 로직                               | [`usePostListSearch.ts:11-28`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L11-L28) — `computeAppliedFilterCount`                                                                                                                            |
-| 초기화 버튼(필터+검색어 전체 리셋)                           | [`usePostListSearch.ts:121-128`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L121-L128) — `handleClearSearch`                                                                                                                                |
-| 오타 보정 문구                                               | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx:71-75`](../src/widgets/post/post-list/ui/PostList.tsx#L71-L75)                                                                                                                                       |
-| 모바일 검색 패널 열림 상태                                   | [`useMobileSearchPanel.ts:17-22`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L17-L22) — `location.state.mobileSearchOpen`                                                                                                                 |
-| 검색 중 하단 댓글바 숨김 동작 바꾸기                         | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useHistoryOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                                                                           |
-| 검색 중 배경 클릭·포커스 차단 범위 바꾸기                    | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                                                                         |
-| "검색어와 의미가 비슷한 글이에요" 배지 문구·표시 조건 바꾸기 | [`PostCard.tsx:210-218`](../src/widgets/post/post-card/ui/PostCard.tsx#L210-L218) — `post.isSemanticMatch`, 문구는 `TEXTS.post.card.semanticMatch`                                                                                                        |
+| 하고 싶은 것                                                 | 파일:줄                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 헤더 입력값이 URL과 동기화되는 조건 바꾸기                   | [`useNavbarSearch.ts:19`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts#L19) — `isPostListPage` 판정                                                                                                                                                                                                                                                        |
+| 검색어 제출(경로·trim·filter 보존) 바꾸기 — 데스크톱         | [`NavbarSearch.tsx:53-80`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L53-L80) — `submitQuery`                                                                                                                                                                                                                                                                |
+| 검색어 제출 바꾸기 — 모바일                                  | [`useMobileSearchPanel.ts:39-47`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L39-L47) — `handleSearchSubmit`(최근검색 기록 포함)                                                                                                                                                                                                                    |
+| X 버튼 동작 바꾸기                                           | 공통 [`useNavbarSearch.ts`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts)의 `handleClear`(입력 비움 + `/post`면 URL `q` 해제), 데스크톱 [`NavbarSearch.tsx`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx)의 `handleClearClick`, 모바일 [`MobileNavbarSearch.tsx`](../src/widgets/layout/navbar/ui/MobileNavbarSearch.tsx)의 `handleTrailingIconClick` |
+| 데스크톱 드롭다운 열림/닫힘 규칙(포커스·입력·blur) 바꾸기    | [`NavbarSearch.tsx:92-118`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L92-L118) — `handleChange`/`handleFocus`/`handleBlur`                                                                                                                                                                                                                                  |
+| 데스크톱 드롭다운 키보드(ESC 2단계·화살표·Enter) 바꾸기      | [`NavbarSearch.tsx:155-275`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L155-L275) — `handleKeyDown`                                                                                                                                                                                                                                                          |
+| 드롭다운 목록 마크업(헤더 고정·행·삭제 버튼) 바꾸기          | [`RecentSearchDropdown.tsx`](../src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx)                                                                                                                                                                                                                                                                              |
+| 카드의 카테고리 배지를 눌렀을 때 동작 바꾸기                 | [`usePostCard.ts:146-158`](../src/widgets/post/post-card/hooks/usePostCard.ts#L146-L158) — `handleCategoryClick`, 배지 마크업은 [`PostCard.tsx:305`](../src/widgets/post/post-card/ui/PostCard.tsx#L305) 이하                                                                                                                                                       |
+| `@카테고리`/`#닉네임`/키워드 분해 규칙 바꾸기                | [`search-parser.ts`](../src/widgets/post/post-list/utils/search-parser.ts) — `parseSearchQuery`                                                                                                                                                                                                                                                                     |
+| "조건 N개 적용 중" 카운트 로직                               | [`usePostListSearch.ts:11-28`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L11-L28) — `computeAppliedFilterCount`                                                                                                                                                                                                                                      |
+| 초기화 버튼(필터+검색어 전체 리셋)                           | [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts) — `handleClearSearch`                                                                                                                                                                                                                                                            |
+| 오타 보정 문구                                               | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx:71-75`](../src/widgets/post/post-list/ui/PostList.tsx#L71-L75)                                                                                                                                                                                                                                                 |
+| 모바일 검색 패널 열림 상태                                   | [`useMobileSearchPanel.ts:17-22`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L17-L22) — `location.state.mobileSearchOpen`                                                                                                                                                                                                                           |
+| 검색 중 하단 댓글바 숨김 동작 바꾸기                         | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useHistoryOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                                                                                                                                                                                     |
+| 검색 중 배경 클릭·포커스 차단 범위 바꾸기                    | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                                                                                                                                                                                   |
+| "검색어와 의미가 비슷한 글이에요" 배지 문구·표시 조건 바꾸기 | [`PostCard.tsx:210-218`](../src/widgets/post/post-card/ui/PostCard.tsx#L210-L218) — `post.isSemanticMatch`, 문구는 `TEXTS.post.card.semanticMatch`                                                                                                                                                                                                                  |
 
 ## 9. 검증 결과
 
@@ -252,7 +253,8 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 "X를 누르면 검색 결과까지 지워야 하는가"가 쟁점이 됐다. 처음엔 URL까지 지우는 쪽이 일관돼
 보였지만, 실제로는 [Google 결과 페이지의 Clear 버튼](https://9to5google.com/2019/11/12/google-search-clear-text-desktop/)과
 네이티브 `<input type="search">` 모두 입력만 비운다는 게 확인되어 현행(입력만 비움)을
-유지했다. 자세한 경위는 [`docs/DECISIONS.md`](./DECISIONS.md) "2026-09-07" 참고.
+유지했다. 자세한 경위는 [`docs/DECISIONS.md`](./DECISIONS.md) "2026-09-07" 참고. (이후 #187, 2026-09-24에
+X가 `/post`에서 URL `q`까지 지우도록 바뀌었다 — §1 참고.)
 
 **필터 칩 클릭이 간헐적으로 URL·UI에 반영되지 않거나 되돌아가는 버그 → mutation 제거.**
 `usePostList.ts`의 `toggleFilter`/`setSearch`가 `useSearchParams()`가 돌려주는 공유
@@ -272,7 +274,7 @@ URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 수정(mutate)하
 **포스트 상세 모바일에서 검색 패널 아래로 댓글 작성바가 그대로 비침 → z층 공유가 원인.**
 `RecentSearchPanel`(`fixed top-16 bottom-0`)과 `MobileCommentBar` 접힘 상태가 둘 다
 `z-panel`(40)이라, 검색을 열어도 댓글바가 DOM 순서(더 나중에 렌더)만으로 패널 위에 그대로
-남아 있었다. 탭바(`z-nav`=50)가 검색 중에도 보이는 건 `Navbar.tsx:220`이 명시한 의도된
+남아 있었다. 탭바(`z-nav`=50)가 검색 중에도 보이는 건 `Navbar.tsx`의 `RecentSearchPanel` 렌더부 주석이 명시한 의도된
 설계라 그대로 두고, 댓글바만 [`useHistoryOverlay('mobileSearchOpen')`](../src/shared/hooks/useHistoryOverlay.ts)로
 같은 열림 상태를 구독해 `hidden`(`display:none`)을 붙였다. 언마운트하지 않은 이유는
 이탈 가드([`useUnsavedChangesGuard.ts`](../src/shared/hooks/useUnsavedChangesGuard.ts))가
@@ -388,9 +390,9 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
 - 데스크톱 드롭다운(`RecentSearchDropdown.tsx`)과 모바일 패널(`RecentSearchPanel.tsx`)의
   행 마크업(약 10줄)이 각자 따로 있다 — 공유되는 부분이 작고 나머지(고정 유무, 구분선,
   역할)가 서로 달라 공용 추출을 하지 않았다.
-- `Navbar`가 `useHistoryOverlay`를 쓰지 않고 `location.state.mobileSearchOpen`을 인라인으로
-  직접 push/pop한다 — `MobileCommentBar`·`AppLayout`은 같은 키를 `useHistoryOverlay`로
-  구독하므로, 키 문자열이 두 코드 경로에 흩어진 상태다.
+- `Navbar`가 쓰는 [`useMobileSearchPanel.ts`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts)가 `useHistoryOverlay`를 쓰지 않고
+  `location.state.mobileSearchOpen`을 직접 push/pop한다 — `MobileCommentBar`·`AppLayout`·`CreatePostForm`은 같은 키를
+  `useHistoryOverlay`로 구독하므로, 키 문자열이 두 코드 경로에 흩어진 상태다.
 - `/post` 목록에서 300px 이상 스크롤한 채 검색을 열면 `ScrollToTop` FAB(`z-nav`)이 같은
   이유(z층 공유)로 패널 위에 그대로 뜬다. `main` 밖이라 이번 `inert` 차단으로도 안 가려진다.
 - `useIsMobile`의 판정 기준(`max-width:768px` + UA)이 Tailwind `md:`(`min-width:768px`)와
@@ -401,11 +403,12 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
 
 - **SSOT(Single Source of Truth)**: 이 문서에서는 URL의 `q` 쿼리 파라미터를 가리킨다. 다른
   상태(헤더 입력값, 낙관적 칩)는 전부 이를 구독하는 파생 상태다.
-- **미러(mirror)**: URL `q`의 값을 그대로 반영하도록 `useEffect`로 동기화된 로컬 state.
+- **미러(mirror)**: URL `q`의 값을 그대로 반영하는 로컬 state. effect가 아니라 렌더 중에 이전 값과
+  비교해 맞춘다([react.dev](https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes), #317).
 - **낙관적 미러**: 서버/라우터 반영을 기다리지 않고 `flushSync`로 즉시 UI에 반영한 뒤 실제
   URL 변경이 뒤따라오게 하는 패턴.
 - **`correctedSearch`**: 한/영 자판 오타 보정 시 BE가 응답에 함께 내려주는, 실제로 검색에
-  쓰인 보정된 검색어. `post.schema.ts`.
+  쓰인 보정된 검색어. 타입은 `post.dto.ts`(BE OpenAPI 생성 타입 alias).
 
 ## 13. 관련 문서
 

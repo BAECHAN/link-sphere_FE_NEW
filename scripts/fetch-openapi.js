@@ -7,7 +7,7 @@
 // --from=local       : http://localhost:8080/api 에서 가져온다 (BE bootRun 실행 중이어야 함).
 //
 // servers 필드를 반드시 지운다 — springdoc이 요청받은 오리진을 그대로 servers[0].url 에
-// 채워 넣어서(로컬이면 localhost:8080, 운영이면 Lambda Function URL), 지우지 않으면
+// 채워 넣어서(로컬이면 localhost:8080, 운영이면 BE가 받은 요청의 오리진), 지우지 않으면
 // --from=local 과 --from=prod 결과가 매번 다른 바이트가 되어 드리프트 게이트(CI)가
 // 출처에 따라 오탐한다. 키 정렬도 같은 이유 — 응답 JSON의 키 순서가 매 요청 보장되지
 // 않으므로 정렬해야 재현 가능한 diff가 나온다.

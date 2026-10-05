@@ -119,16 +119,16 @@ framer-motion 아님, `package.json`에 없음)를 페이지별로 상호 배타
 ESLint 룰이 `z-50` 같은 raw 숫자 클래스를 pre-commit에서 차단한다 — 아래 값은 참고용,
 실제로는 토큰을 쓴다.
 
-| 토큰        | 값  | 사용처                                                                                                          |
-| ----------- | --- | --------------------------------------------------------------------------------------------------------------- |
-| `z-raised`  | 10  | 카드 내부 오버레이 (`DropTargetOverlay.tsx`, `PostCard.tsx`)                                                    |
-| `z-hitbox`  | 20  | 드롭 히트박스 (`DropTargetOverlay.tsx`)                                                                         |
-| `z-panel`   | 40  | `RecentSearchPanel`, `MobileCommentBar` 접힘 상태                                                               |
-| `z-nav`     | 50  | `Navbar`(sticky top), `BottomTabBar`, 플로팅 버튼(`ScrollToTop`/`ScrollToCommentFormButton`)                    |
-| `z-scrim`   | 55  | `Sidebar` 모바일 오버레이, `MobileCommentBar` 확장 상태                                                         |
-| `z-drawer`  | 60  | `Sidebar` 모바일 드로어                                                                                         |
-| `z-modal`   | 70  | `Dialog` 오버레이·콘텐츠(`shared/ui/atoms/dialog.tsx`) — Alert/Confirm, 로그인 모달, 이미지 뷰어 등 모든 모달   |
-| `z-popover` | 80  | 팝오버 — `tooltip`/`dropdown-menu`/`select`(`shared/ui/atoms/`), `RecentSearchDropdown.tsx`(widgets, 포털 아님) |
+| 토큰        | 값  | 사용처                                                                                                                                                  |
+| ----------- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `z-raised`  | 10  | 카드 내부 오버레이 (`DropTargetOverlay.tsx`, `PostCard.tsx`)                                                                                            |
+| `z-hitbox`  | 20  | 드롭 히트박스 (`DropTargetOverlay.tsx`)                                                                                                                 |
+| `z-panel`   | 40  | `RecentSearchPanel`, `MobileCommentBar` 접힘 상태, `CreatePostForm` 모바일 제출 바                                                                      |
+| `z-nav`     | 50  | `Navbar`(sticky top), `BottomTabBar`, 플로팅 버튼(`ScrollToTop`/`ScrollToCommentFormButton`)                                                            |
+| `z-scrim`   | 55  | `Sidebar` 모바일 오버레이, `MobileCommentBar` 확장 상태                                                                                                 |
+| `z-drawer`  | 60  | `Sidebar` 모바일 드로어                                                                                                                                 |
+| `z-modal`   | 70  | `Dialog` 오버레이·콘텐츠(`shared/ui/atoms/dialog.tsx`) — 로그인 모달, 이미지 뷰어 등, `AlertDialog`(`shared/ui/atoms/alert-dialog.tsx`) — Alert/Confirm |
+| `z-popover` | 80  | 팝오버 — `tooltip`/`dropdown-menu`/`select`(`shared/ui/atoms/`), `RecentSearchDropdown.tsx`(widgets, 포털 아님)                                         |
 
 `z-raised`/`z-hitbox`(10~20)는 카드 내부 지역 스택용이라 화면 고정 UI 사다리
 (`z-panel`~`z-drawer`, 40~60)와 층이 다르다. 모달(`z-modal`)·팝오버(`z-popover`) 층은

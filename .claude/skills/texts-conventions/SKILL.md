@@ -28,7 +28,8 @@ TEXTS
 ├── version.* (title, description, loadedBuild, deployedBuild, bannerMatch, bannerMismatch, ...)
 ├── recentSearch.* (title, clearAll, empty, removeItem)
 ├── post.form.create.* (title, description1/2, urlLabel, urlPlaceholder, titleLabel, ...)
-├── post.form.update.* (title, description, titleLabel, titlePlaceholder, updating, update, ...)
+├── post.form.update.* (title, description, titleLabel, titlePlaceholder, update, ...)
+├── post.form.preview.* (placeholder, loading, failed, ariaLabel) — 등록·수정 폼 공용 링크 미리보기
 ├── post.card.* (withdrawnAuthor, visitWebsite, aiSummary, edit, saving, ...)
 ├── post.detail.* (notFound, backToList, ...) — 중립 "뒤로가기"는 공용 buttons.back
 ├── post.search.corrected(query) / appliedCount(count)
@@ -43,7 +44,8 @@ TEXTS
 ├── messages.info.noData / noPosts
 ├── messages.warning.postDeleteConfirm / commentDeleteConfirm / memberDeleteConfirm
 ├── messages.success.postCreated / postUpdated / accountUpdated / linkCopied / accountDeleted / bookmarkSavedTo / ...
-├── messages.error.defaultError / loginFailed / postCreateFailed / linkCopyFailed / ...
+├── messages.error.defaultError / loginFailed / postDeleteFailed / linkCopyFailed / ...
+├── messages.error.postSubmit.* (urlUnresolvable, rateLimitedIn(minutes), createFailed, updateFailed, ...) — 등록·수정 실패 원인 안내
 ├── unsavedChanges.* (title, message, confirm, cancel, signup.*)
 ├── shortcuts.sidebarToggle / sidebarToggleMac
 └── ariaLabels.* (레이아웃, 헤더, 사이드바, 입력 필드 등)
@@ -52,7 +54,8 @@ TEXTS
 ### ESLint 하드코딩 한글 차단 예외
 
 `custom-i18n/no-hardcoded-hangul`(`eslint.config.js`)이 한글 UI 문자열 하드코딩을
-빌드/pre-commit에서 차단한다. 예외 7개(`eslint.config.js` ignores와 1:1):
+pre-commit(lint-staged)과 CI·배포의 `pnpm check`에서 차단한다(`pnpm build` 자체는 ESLint를
+돌리지 않는다). 예외 7개(`eslint.config.js` ignores와 1:1):
 
 - `src/shared/config/texts.ts` — TEXTS 단일 소스 자기 자신
 - `src/test/**/*.{ts,tsx}` — 테스트 인프라

@@ -6,7 +6,7 @@ import { MobileCommentBar } from '@/features/comment/create/ui/MobileCommentBar'
 import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
 import { TEXTS } from '@/shared/config/texts';
 
-// Navbar.tsx:69-77과 같은 방식(location.state.mobileSearchOpen)으로 검색 열림/닫힘을
+// useMobileSearchPanel.ts의 openMobileSearch와 같은 방식(location.state.mobileSearchOpen)으로 검색 열림/닫힘을
 // 흉내 내는 테스트 전용 프로브. open은 같은 경로로 새 엔트리를 push하고, close는
 // navigate(-1)로 그 엔트리를 pop한다.
 function SearchToggleProbe() {

@@ -40,13 +40,14 @@ flowchart TD
   Feed["피드 /post<br/>useSuspenseInfiniteQuery<br/>GET /post?page=0&size=10"] -->|"마지막 렌더 행이<br/>끝에서 5행 이내"| Next["fetchNextPage<br/>GET /post?page=N"]
   Feed -->|"카드 hover·focus"| Prefetch["prefetchPostDetail<br/>GET /post/{id} 미리 캐시"]
   Feed -->|"카드 클릭"| Detail["상세 /post/:id<br/>useSuspenseQuery retry:false"]
-  Detail -->|"404"| NotFound["토스트 + /post로 replace"]
+  Detail -->|"404"| NotFound["그 자리 안내 화면(PostNotFound)<br/>주소 유지·noindex"]
 
   Feed -->|"Submit Link"| Create["작성 /post/submit"]
   Create -->|"URL 입력, 0.5초 멈춤·형식 OK"| Preview["GET /link-preview?url=<br/>URL 칸 아래 카드 미리보기<br/>(BE가 10분 캐시)"]
   Preview -->|"도메인 없음 등"| PreviewErr["카드 대신 URL 칸 에러"]
-  Create -->|"제출 → 버튼 '등록 중...'(응답 대기)"| CreateReq["POST /post (keepalive)<br/>성공 시 clearNow·reset<br/>navigate /post replace<br/>실패 시 폼 유지"]
+  Create -->|"제출 → 버튼 '등록 중...'(응답 대기)"| CreateReq["POST /post (keepalive)<br/>실패 시 폼 유지"]
   CreateReq -->|"성공"| CreateOk["필터 없는 목록 cancelQueries<br/>→ page 0 맨 앞에 끼워 넣고 page 1+ 버림<br/>→ post.list 무효화"]
+  CreateOk -->|"그다음 폼에서"| CreateNav["clearNow·reset<br/>navigate /post replace"]
 
   Feed -->|"⋮ 수정"| Edit["수정 /post/edit/:id<br/>GET /post/{id}로 폼 reset"]
   Edit -->|"제출 → 버튼 '수정 중...'(응답 대기)"| EditReq["PATCH /post/{id} (keepalive)<br/>성공 시 clearNow·goBack<br/>실패 시 폼 유지"]
@@ -91,7 +92,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - **TanStack Virtual**(`useWindowGridVirtualizer`, `shared/hooks/`) — 피드 카드 그리드를 행
   단위로 가상화
 - **React Hook Form + Zod** — 작성·수정 폼(`createPostSchema`·`updatePostSchema`)
-- **Sonner 토스트**(`shared/lib/toast/toast.ts`) — 성공·실패·진행("등록 중...") 표시
+- **Sonner 토스트**(`shared/lib/toast/toast.ts`) — 성공 토스트, 삭제·공개 전환 실패 토스트(등록·수정의
+  진행은 버튼 라벨, 실패는 입력칸·`FormAlert` — §5 "작성" 7)
 - **`fetch` keepalive** — 작성·수정 요청을 탭을 닫아도 끝까지 보내기
 - **NProgress** — 목록 첫 페이지 조회 동안 상단 진행 막대
 
@@ -122,7 +124,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 ### API 엔드포인트
 
 `src/entities/post/api/post.api.ts`와 `src/entities/interaction/api/interaction.api.ts` 기준
-(`API_ENDPOINTS.post`, `src/shared/config/api.ts:46-48`).
+(`src/shared/config/api.ts`의 `API_ENDPOINTS.post`).
 
 | 메서드   | 경로                    | FE 함수                | 비고                                                                   |
 | -------- | ----------------------- | ---------------------- | ---------------------------------------------------------------------- |
@@ -148,10 +150,10 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 ### 피드 — 무한 스크롤 + 가상 그리드
 
-- **조회**: `useSuspenseFetchPostListQuery`(`src/entities/post/api/post.queries.ts:115-150`)가
+- **조회**: `useSuspenseFetchPostListQuery`(`src/entities/post/api/post.queries.ts`)가
   `page` 0부터 `POST_PAGE_SIZE`(10)개씩 가져온다. 다음 페이지 번호는 응답의 `last`가 거짓이면
   `page + 1`.
-- **중복 제거**: `select`(`:137-148`)가 모든 페이지를 평탄화하면서 이미 본 `id`를 걸러
+- **중복 제거**: 같은 쿼리의 `select`가 모든 페이지를 평탄화하면서 이미 본 `id`를 걸러
   `posts`를 만든다. 오프셋 페이지네이션 중 새 글이 끼어들면 다음 페이지에 같은 글이 또 오기
   때문이다.
 - **가상화**: `usePostList`(`src/widgets/post/post-list/hooks/usePostList.ts:120-129`)가
@@ -172,20 +174,20 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 `src/widgets/post/post-card/ui/PostCard.tsx`는 피드·상세·북마크 화면이 함께 쓴다(`isDetail`로 분기).
 
-- **카드 전체가 상세 링크**(목록만): 제목 `Link`의 `::after`를 카드 전체로 늘리고(`:83`),
+- **카드 전체가 상세 링크**(목록만): 제목 `Link`의 `::after`를 카드 전체로 늘리고(`stretchedLinkClassName`),
   아바타·소유자 액션·AI 요약·썸네일·카테고리 배지(`:307`)·푸터 버튼은 `relative z-raised`로 그
   위에 올린다. 썸네일은 상세가 아니라 원문 새 탭이고, 카테고리 배지를 누르면 피드를 그
   카테고리로 거른다([`SEARCH.md`](./SEARCH.md)). 근거는 `docs/DECISIONS.md` 2026-09-30 "게시글
   카드: 제목 확대 대신 카드 전체를 상세 진입 영역으로" 항목.
-- **제목**: 목록은 3줄 말줄임(`line-clamp-3`), 상세는 전문(`:192`). 근거는 `docs/DECISIONS.md`
+- **제목**: 목록은 3줄 말줄임(`line-clamp-3`), 상세는 전문(제목 `h3`의 `isDetail` 분기). 근거는 `docs/DECISIONS.md`
   2026-08-04 항목.
 - **프리페치**: 제목 링크의 `onMouseEnter`·`onFocus`가 `prefetchPostDetail`을 부른다
-  (`:186-187`, `usePostCard.ts:138-140`). 상세와 같은 키·`queryFn`이라 클릭 시 캐시가 바로 쓰인다.
-- **소유자 액션**(`isOwner`일 때만, `:120-180`): 비공개 글이면 자물쇠 버튼(누르면 공개 전환),
+  (`usePostCard.ts`의 `handlePrefetchDetail`). 상세와 같은 키·`queryFn`이라 클릭 시 캐시가 바로 쓰인다.
+- **소유자 액션**(`isOwner`일 때만): 비공개 글이면 자물쇠 버튼(누르면 공개 전환),
   그리고 ⋮(`HoverKebabMenu`) 안에 수정·공개/비공개 전환·삭제.
-- **AI 결과 표시**: `aiSummary`가 있을 때만 접이식 "AI 요약" 블록(`:233`). 설명이 없고
+- **AI 결과 표시**: `aiSummary`가 있을 때만 접이식 "AI 요약" 블록. 설명이 없고
   `aiStatus === 'NONE'`(1차 크롤링이 본문을 못 얻음)이면 "이 링크의 정보를 가져오지 못했어요"
-  한 줄(`:223-231`). **AI 처리 대기 중 표시나 폴링은 없다** — §11.
+  한 줄(`TEXTS.post.card.metadataUnavailable`). **AI 처리 대기 중 표시나 폴링은 없다** — §11.
 - **수정 중 오버레이**: 같은 글의 수정 mutation이 진행 중이면(`useIsMutating`, 500ms 지연 +
   최소 400ms 유지, `usePostCard.ts:46-49`) 내용을 흐리게 하고 "수정 중..." 오버레이로 클릭을
   막는다(`PostCard.tsx:86`, `:100-105`). 2026-10-03부터 수정 폼이 응답을 기다리므로 평소엔 보일
@@ -194,8 +196,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 ### 상세
 
 - `usePostDetail`(`src/pages/post/hooks/usePostDetail.ts:76-94`)이
-  `useSuspenseFetchPostDetailQuery`로 조회한다. 이 쿼리는 `retry: false`다(`post.queries.ts:160-167`)
-  — 404는 재시도해도 같고 리다이렉트만 늦어진다.
+  `useSuspenseFetchPostDetailQuery`로 조회한다. 이 쿼리는 `retry: false`다(`post.queries.ts`)
+  — 404는 재시도해도 같고 안내 화면만 늦어진다.
 - **404 처리**: `PostDetailPage.tsx:81-87`의 에러 폴백이 `ApiError.status === 404`면 주소를 그대로 둔 채
   그 자리에 안내 화면(`PostDetailPage.tsx:60-75`의 `PostNotFound`)을 그린다 — 아이콘·"삭제됐거나 볼 수 없는
   포스트예요"·"목록으로". BE가 삭제와 비공개를 같은 404로 응답하므로 문구도 둘을 함께 덮는다. "목록으로"는
@@ -209,30 +211,32 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 ### 작성
 
-1. 폼(`src/features/post/create/hooks/useCreatePost.ts:28-32`)은 `mode: 'onChange'`라 URL 형식
+1. 폼(`src/features/post/create/hooks/useCreatePost.ts`의 `useForm`)은 `mode: 'onChange'`라 URL 형식
    오류가 타이핑 즉시 인풋 아래에 뜬다. 제출 버튼은 `isDirty && isValid && !isCreating`일 때만
-   활성(`CreatePostForm.tsx:37`)이고, 비활성 이유는 `TooltipWrapper`로 보여준다.
+   활성(`CreatePostForm.tsx`의 `canSubmit`)이고, 비활성 이유는 `TooltipWrapper`로 보여준다.
 2. 스키마(`src/entities/post/model/post.schema.ts:9-27`): `url`은 `.url()` + http/https 스킴만
    허용하는 `refine`(BE `SafeUrlValidator`와 같은 제한). `title`은 선택(비우면 BE가 크롤링
    제목을 쓴다), `categoryIds`·`isPrivate`·`bookmark`·`folderIds`. **제목 길이 상한은 없다** — 카드는
    3줄 말줄임, 상세는 전문을 보여준다([`DECISIONS.md`](./DECISIONS.md) 2026-08-04).
-3. 제출(`useCreatePost.ts:36-49`):
-   - 계정의 `emailVerified === false`면 서버로 보내지 않고 에러 토스트만 띄운다(BE도 403
+3. 제출(`useCreatePost.ts`의 `onSubmit`):
+   - 계정의 `emailVerified === false`면 서버로 보내지 않고 버튼 위 `FormAlert`에 인증 안내를 남긴다(7번과
+     같은 자리, BE도 403
      `EMAIL_NOT_VERIFIED`로 막는 이중 방어 — [`AUTH.md`](./AUTH.md) 게이트 D).
    - `createPost(...)`(`mutateAsync`)의 **응답을 기다린다**. 그동안 버튼은 비활성 + "등록 중..."
      (`CreatePostForm.tsx`, FE-ARCHITECTURE §10-A "저장 중 라벨"). 성공하면 `clearNow()`로 이탈
      가드 해제 → 폼 리셋 → `/post`로 **replace** 이동. 실패하면 아무것도 하지 않아 입력·이탈
      가드가 그대로 남고, 실패 원인은 7번 방식으로 안내한다. BE가 크롤링을 동기로 하지만
      실측 중앙값 2.7초라 기다리게 한다(근거·이전 방식과의 비교는 [`DECISIONS.md`](./DECISIONS.md)
-     2026-10-03). 탭을 닫아도 요청이 끝까지 가도록 `keepalive`(`post.api.ts:21-27`).
-4. 성공 시(`post.queries.ts:80-107`, entity 레벨이라 폼이 언마운트돼도 실행된다):
-   - 필터 없는 목록 쿼리를 `cancelQueries` — 피드로 이동하자마자 시작된 목록 fetch가 등록
-     완료 전 상태로 뒤늦게 응답해 끼워 넣은 값을 덮어쓰는 것을 막는다.
-   - `prependCreatedPostToFirstPage`(`:44-66`)로 page 0 맨 앞에 새 글을 넣고 **page 1 이후는
+     2026-10-03). 탭을 닫아도 요청이 끝까지 가도록 `keepalive`(`post.api.ts`의 `createPost`).
+4. 성공 시(`post.queries.ts`의 `useCreatePostMutation` `onSuccess`, entity 레벨이라 폼이 언마운트돼도 실행된다):
+   - 필터 없는 목록 쿼리를 `cancelQueries` — 폼은 이 처리가 끝난 뒤에 이동하므로 평소엔 경쟁이 없지만,
+     저장 중 "나가기"로 먼저 피드에 갔거나 배경 재조회가 돌던 중이면 등록 완료 전 상태의 목록 fetch가
+     뒤늦게 응답해 끼워 넣은 값을 덮어쓸 수 있어 막는다.
+   - `prependCreatedPostToFirstPage`로 page 0 맨 앞에 새 글을 넣고 **page 1 이후는
      버린다** — 서버 오프셋이 한 칸씩 밀려 옛 page 1과 겹치기 때문이다. 다음 페이지는 스크롤 시
      다시 받는다.
    - 필터가 걸린 목록에는 끼워 넣지 않는다(새 글이 그 조건에 맞는지 모른다).
-   - 그다음 `handlePostCreateSuccess`(`post.keys.ts:43-45`)가 필터와 무관하게 **모든 목록**
+   - 그다음 `handlePostCreateSuccess`(`post.keys.ts`)가 필터와 무관하게 **모든 목록**
      (`listRoot`)을 무효화한다 — 필터 없는 목록은 끼워 넣은 덕에 재조회 전에도 이미 새 글을
      보여주고, 필터 목록은 이 재조회로 갱신된다. 북마크를 같이 골랐으면 `handleBookmarkToggleSuccess`로 폴더
      카운트·폴더 게시글도 무효화.
@@ -244,7 +248,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
    남아 있어 버튼 라벨과 겹치기 때문이다. 토스트 방식이 처음 생긴 근거는 `docs/DECISIONS.md`
    2026-08-13 항목.
 6. 모바일에서는 제출 버튼이 하단 탭바 바로 위에 고정된 바로 뜨고, 토스트가 그 위로 오도록
-   `--toast-offset-bottom`을 조정한다(`CreatePostForm.tsx:48-85`, `:122-145`).
+   `--toast-offset-bottom`을 조정한다(`CreatePostForm.tsx`의 `reserveToastSpaceAboveBar`, 하단 바 `barRef`).
 7. **실패 원인 안내**(2026-10-03): `PostUtil.resolveSubmitError`(`entities/post/utils/post.util.ts`)가
    실패를 둘로 나눈다. 서버 message(영어·내부 문구)는 노출하지 않고 code·status로만 판정한다.
    - 입력칸을 고치면 해결되는 것 → 그 칸 아래 에러(`form.setError(..., { type: 'server' })` + 포커스):
@@ -258,7 +262,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
    - 표시 위치·박스 모양 결정 근거는 [`DECISIONS.md`](./DECISIONS.md) 2026-10-03 "실패 원인 노출" 항목.
 8. **작성 중 링크 미리보기**(2026-10-03): URL 칸 바로 아래 `LinkPreviewCard`(`entities/post/ui/LinkPreviewCard.tsx`)가
    "이렇게 등록돼요"를 등록 전에 보여준다.
-   - 조회는 `useLinkPreview`(`entities/post/hooks/useLinkPreview.ts:31-67`)가 한다. 입력이 0.5초 멈추고 스키마
+   - 조회는 `useLinkPreview`(`entities/post/hooks/useLinkPreview.ts`)가 한다. 입력이 0.5초 멈추고 스키마
      형식이 맞고 이메일 인증된 계정일 때만 묻는다. 등록과 같은 `UrlUtil.normalizeUrl`을 거친 URL로 물어야
      BE 캐시(10분)가 등록 때 재사용돼, 저장되는 글이 본 미리보기와 같아진다.
    - 카드 모습: 가져오는 중이면 스켈레톤, 받으면 썸네일·제목·설명(최대 2줄)·URL. 사용자가 제목을
@@ -282,40 +286,39 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 ### 수정
 
 - `useUpdatePost`(`src/features/post/update/hooks/useUpdatePost.ts`)는 비-Suspense
-  `useFetchPostDetailQuery`로 원본을 받아 `form.reset`한다(`:26-40`). 로딩 중에는
+  `useFetchPostDetailQuery`로 원본을 받아 `form.reset`한다(`resetFormWithFetchedPost`). 로딩 중에는
   `UpdatePostForm`이 `SpinnerOverlay`를 그린다.
-- **URL을 바꾸면 제목·카테고리를 비운다**(`:46-62`) — 둘 다 옛 링크 기준이기 때문이다. 초기
+- **URL을 바꾸면 제목·카테고리를 비운다**(`clearDerivedFieldsOnUrlChange`) — 둘 다 옛 링크 기준이기 때문이다. 초기
   `reset` 직후의 오탐을 막으려 `form.getValues('url')`을 다시 읽어 비교한다.
 - 안내 문구: URL을 바꾸면 "다시 가져와요" 안내, URL은 그대로인데 제목만 비우면 "제목을 다시
-  가져오고, 못 가져오면 기존 제목 유지" 안내(`UpdatePostForm.tsx:26-28`, `:48`, `:57`). 제목만
+  가져오고, 못 가져오면 기존 제목 유지" 안내(`UpdatePostForm.tsx`의 `isUrlChanged`·`isTitleCleared`). 제목만
   비운 재수집이 다른 필드를 덮지 않는 BE 정책은 `docs/DECISIONS.md` 2026-09-08 "제목 비움
   재수집" 항목.
 - 제출(`onSubmit`)은 작성과 같이 **응답을 기다린다**(버튼 "수정 중..."). 성공하면 `clearNow()` →
   `goBack()`(들어온 화면으로, 목록 스크롤 유지), 실패하면 고친 내용과 이탈 가드를 그대로 남긴다.
-  `keepalive`도 같다(`post.api.ts:69-75`).
-- 성공 시(`post.queries.ts:335-356`): 서버가 돌려준 수정본으로 detail을 `setQueryData`, 모든
+  `keepalive`도 같다(`post.api.ts`의 `updatePost`).
+- 성공 시(`post.queries.ts`의 `useUpdatePostMutation` `onSuccess`): 서버가 돌려준 수정본으로 detail을 `setQueryData`, 모든
   목록 캐시에서 그 글을 `setQueriesData`로 **직접 교체**한 뒤, `handlePostUpdateSuccess`(detail +
   list 무효화)와 `handlePostContentUpdateSuccess`(북마크 폴더별 게시글 무효화)를 부른다. 직접
   교체가 먼저라 재조회 응답을 기다리지 않고 바로 새 제목이 보인다.
-- **URL을 바꿨을 때만** 작성과 같은 미리보기 카드가 뜬다(`useUpdatePost.ts:94`의 `isUrlChanged`). URL이
+- **URL을 바꿨을 때만** 작성과 같은 미리보기 카드가 뜬다(`useUpdatePost.ts`의 `isUrlChanged`). URL이
   원래 값과 같으면 조회하지 않는다 — 다시 크롤링할 일이 없기 때문이다.
 
 ### 삭제
 
 - 진입: 카드 ⋮ → "삭제" → `usePostDelete`(`src/features/post/delete/hooks/usePostDelete.ts:10-24`)가
   `openConfirm`(삭제 버튼 쪽 강조, `emphasis: 'confirm'`)을 띄우고 확인 시 `mutateAsync`를 기다린다.
-- 낙관적 반영(`post.queries.ts:258-300`): 피드 목록·북마크 폴더 목록·폴더별 게시글 쿼리를
+- 낙관적 반영(`post.queries.ts`의 `useDeletePostMutation` `onMutate`): 피드 목록·북마크 폴더 목록·폴더별 게시글 쿼리를
   `cancelQueries`하고 스냅샷을 뜬 뒤,
   - 모든 피드 목록 캐시에서 그 글을 빼고 `totalElements`를 1 줄인다(`Math.max(0, …)`로 0 아래는 막는다).
   - 폴더별 게시글 캐시에서도 카드를 뺀다.
   - 그 글이 북마크돼 있었다면 소속 폴더의 `bookmarkCount`(소속이 없으면 `uncategorizedCount`)를
-    1 줄인다. 북마크 여부는 detail → 피드 목록 → 폴더 게시글 캐시 순으로 찾는다(`findCachedPost`,
-    `:181-196`).
+    1 줄인다. 북마크 여부는 detail → 피드 목록 → 폴더 게시글 캐시 순으로 찾는다(`findCachedPost`).
 - 실패 시 세 스냅샷을 전부 복원하고 전역 핸들러가 "포스트 삭제에 실패했어요." 토스트.
 - 성공 시 북마크 폴더 목록·게시글을 무효화하고, **그 글의 detail 캐시를 지운다**(`postRemoveQueries.detail`,
   `src/entities/post/api/post.keys.ts`). 상세에서 삭제하면 push로 피드에 가므로 히스토리에 지운 글의 상세가
   남는데, 캐시가 남아 있으면 뒤로가기 때 staleTime(3분) 안에서 삭제된 글이 재조회 없이 다시 그려졌다.
-  지금은 다시 받아와 404 안내 후 피드로 돌아간다(`e2e/post-delete.spec.ts`).
+  지금은 다시 받아와 그 주소에서 "삭제됐거나 볼 수 없는 포스트예요" 안내를 띄운다(`e2e/post-delete.spec.ts`).
   **성공 토스트는 없다**(카드가 사라지는 것 자체가 피드백).
 - 성공 시 `handlePostDeleteSuccess`로 북마크 폴더 목록·폴더 게시글만 재검증한다(피드 목록은 이미
   낙관적으로 반영됨).
@@ -330,9 +333,9 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - **낙관적이지 않다** — 성공 후 `handlePostUpdateSuccess`·`handlePostContentUpdateSuccess`로
   재조회해서 반영된다.
 - 성공 토스트는 방향별("이 게시물을 나만 보기로 전환했어요."/"이 게시물을 전체 공개로 전환했어요.",
-  `src/shared/config/texts.ts:437-438`)이라
+  `TEXTS.messages.success.postSetToPrivate`·`postSetToPublic`)이라
   `meta.successMessage`(정적 문자열)로 못 띄워, entity mutation의 `onSuccess`에서 직접
-  `toast.success`한다(`post.queries.ts:371-384`). 위젯 쪽 `mutate(vars, { onSuccess })`에 두면
+  `toast.success`한다(`post.queries.ts`의 `useUpdatePostVisibilityMutation` `onSuccess`). 위젯 쪽 `mutate(vars, { onSuccess })`에 두면
   가상 스크롤로 카드가 언마운트됐을 때 스킵되기 때문이다.
 
 ### 좋아요
@@ -370,7 +373,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 무한 목록 캐시의 원본 shape은 `InfiniteData<PostPageResponse>`(`pages[].content`·`totalElements`·
 `last`·`page`)이고, 컴포넌트는 `select`가 덧붙인 `posts`(중복 제거·평탄화)와 `totalElements`(page
-0 값)를 쓴다(`post.queries.ts:137-148`). 좋아요 롤백은 이 원본 shape을 통째로 복원한다.
+0 값)를 쓴다(`useSuspenseFetchPostListQuery`의 `select`). 좋아요 롤백은 이 원본 shape을 통째로 복원한다.
 
 ### 다른 엔티티가 post 캐시를 무효화하는 지점
 
@@ -390,7 +393,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 ### 폼 값
 
 `CreatePost`·`UpdatePost`는 `post.schema.ts`의 `z.infer` 타입이다. 작성 폼 기본값은
-`useCreatePost.ts:13-20`(`url`·`title` 빈 문자열, `categoryIds`·`folderIds` 빈 배열,
+`useCreatePost.ts`의 `DEFAULT_VALUES`(`url`·`title` 빈 문자열, `categoryIds`·`folderIds` 빈 배열,
 `isPrivate`·`bookmark` false).
 
 ## 7. 운영 파라미터
@@ -407,7 +410,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 조회 로딩 표시 지연                     | 500ms                | `src/shared/config/const.ts:11`                                   |
 | mutation 진행 표시 지연 / 최소 노출     | 500ms / 400ms        | `src/shared/config/const.ts:18-21`                                |
 | 쿼리 기본 staleTime / gcTime / retry    | 3분 / 5분 / 1회      | `src/shared/lib/react-query/config/queryClient.ts:70-73`          |
-| 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:165`                       |
+| 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:199`                       |
 | 미리보기 조회 디바운스                  | 500ms                | `src/entities/post/hooks/useLinkPreview.ts:9`                     |
 | 미리보기 staleTime / 재시도             | 10분 / 없음          | `src/entities/post/api/post.queries.ts:177-190`                   |
 | 카테고리 옵션 staleTime                 | 24시간               | `src/entities/category/api/category.queries.ts:14`                |
@@ -423,14 +426,14 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:103-166`, `src/widgets/post/post-list/ui/PostList.tsx`                                                    |
 | 카드 UI / 카드 동작          | `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`                                                            |
 | 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:60-95`                                                                                                                  |
-| 작성 폼 / 제출               | `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/create/hooks/useCreatePost.ts:36-49`                                                  |
-| 수정 폼 / 제출               | `src/features/post/update/ui/UpdatePostForm.tsx`, `src/features/post/update/hooks/useUpdatePost.ts:68-73`                                                  |
+| 작성 폼 / 제출               | `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/create/hooks/useCreatePost.ts`의 `onSubmit`                                           |
+| 수정 폼 / 제출               | `src/features/post/update/ui/UpdatePostForm.tsx`, `src/features/post/update/hooks/useUpdatePost.ts`의 `onSubmit`                                           |
 | 삭제 확인창                  | `src/features/post/delete/hooks/usePostDelete.ts:10-24`                                                                                                    |
 | 좋아요 버튼 / mutation       | `src/features/post/like/ui/LikePostButton.tsx`, `src/features/post/like/hooks/useLikePost.ts`, `src/entities/interaction/api/interaction.queries.ts:28-78` |
-| 등록 성공 캐시 처리          | `src/entities/post/api/post.queries.ts:68-109`                                                                                                             |
-| 삭제 낙관적 처리             | `src/entities/post/api/post.queries.ts:247-321`                                                                                                            |
-| 수정 성공 캐시 처리          | `src/entities/post/api/post.queries.ts:323-358`                                                                                                            |
-| 공개 전환                    | `src/entities/post/api/post.queries.ts:360-386`, `src/widgets/post/post-card/hooks/usePostCard.ts:63-99`                                                   |
+| 등록 성공 캐시 처리          | `src/entities/post/api/post.queries.ts`의 `useCreatePostMutation`                                                                                          |
+| 삭제 낙관적 처리             | `src/entities/post/api/post.queries.ts`의 `useDeletePostMutation`                                                                                          |
+| 수정 성공 캐시 처리          | `src/entities/post/api/post.queries.ts`의 `useUpdatePostMutation`                                                                                          |
+| 공개 전환                    | `src/entities/post/api/post.queries.ts`의 `useUpdatePostVisibilityMutation`, `src/widgets/post/post-card/hooks/usePostCard.ts:63-99`                       |
 | 제출 대기(응답 대기·라벨)    | `useCreatePost.ts` `onSubmit`, `useUpdatePost.ts` `onSubmit`                                                                                               |
 | 작성 중 미리보기             | `src/entities/post/hooks/useLinkPreview.ts`, `src/entities/post/ui/LinkPreviewCard.tsx`, 폼 연결은 두 훅의 `showPreviewUrlErrorOnField`                    |
 | 입력 검증                    | `src/entities/post/model/post.schema.ts:9-35`                                                                                                              |
@@ -478,7 +481,8 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 - `post-delete.spec.ts` — 상세에서 삭제 후 `/post` 복귀, 재조회 없이 목록에서 사라짐
 - `post-visibility.spec.ts` — ⋮로 비공개 전환(재조회 반영·목록 전파), 자물쇠로 공개 복귀
 - `like.spec.ts` — 상세 좋아요가 재조회 없이 목록에 반영, 실패 시 상세·목록 모두 원복
-- `post-detail-not-found.spec.ts` — 삭제된 글 직접 진입 시 토스트 + replace, 카드 클릭 사이 삭제
+- `post-detail-not-found.spec.ts` — 삭제된 글 직접 진입 시 주소 유지 + 안내 화면 + "목록으로" 링크,
+  카드 클릭 사이 삭제 시 안내 후 뒤로가기로 목록 복귀
 - `post-card-click-area.spec.ts` — 카드 전체 클릭 영역과 내부 버튼 분리, 카테고리 배지
 - `post-card-footer-layout.spec.ts`, `post-card-hover-menu.spec.ts`,
   `post-list-virtualization.spec.ts`, `post-list-scroll-restore.spec.ts`, `post-list.spec.ts`,
@@ -534,13 +538,13 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
   본다. 또 성공 응답의 `isLiked`를 쓰지 않고 무효화도 하지 않아, 다른 탭·기기에서 바뀐 값과
   어긋나면 다음 재조회 전까지 FE 추측값이 남는다.
 - **상세에서 삭제 후 이동이 push다**(`usePostCard.ts:57`). 히스토리에 지운 글의 상세가 남아
-  뒤로가기 때 404 안내를 한 번 거쳐 피드로 온다. 정정: 처음엔 이것만 문제로 봤으나 실제로는
+  뒤로가기 때 그 주소의 404 안내 화면에 머문다. 정정: 처음엔 이것만 문제로 봤으나 실제로는
   detail 캐시가 남아 삭제된 글이 그대로 다시 그려졌다 — 2026-10-02 삭제 성공 시 캐시를 지우도록
   고쳤다(§5 "삭제").
 - **낙관적 삭제가 그 글이 없는 목록의 `totalElements`까지 줄인다.** 모든 피드 목록 캐시에 일괄로
   1을 빼서, 다른 필터의 목록은 실제보다 1 작아진다(0 아래는 2026-10-02부터 `Math.max`로 막는다).
   지금 화면에서 피드 `totalElements`를 표시하지 않아 체감 영향은 없다.
-- **`useUpdatePost`의 카테고리 캐스팅**(`useUpdatePost.ts:32`): 폼 기본값에 카테고리 id를 문자열로
+- **`useUpdatePost`의 카테고리 캐스팅**(`useUpdatePost.ts`의 `resetFormWithFetchedPost`): 폼 기본값에 카테고리 id를 문자열로
   넣고 `as unknown as number[]`로 타입을 속인다(체크박스 그룹이 문자열 값을 쓰고, 제출 시
   `z.coerce.number()`가 숫자로 돌린다). 타입이 실제 값과 다르다.
 - **미리보기에서 제목을 바로 고칠 수 없다.** LinkedIn처럼 카드 안에서 편집하지 않고, 기존 제목
@@ -556,7 +560,7 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
   이탈 확인창에서 "나가기"로 폼이 먼저 언마운트되는 경우에도 결과가 반영되도록 그대로 둔다.
 - **`listRoot`** — `['post', 'list']`. 필터 조합마다 다른 목록 캐시를 한 번에 가리키는 접두사 키(§6).
 - **`prependCreatedPostToFirstPage`** — 새 글을 page 0 맨 앞에 넣고 page 1+을 버리는 함수
-  (`post.queries.ts:44-66`).
+  (`post.queries.ts`).
 - **`select`의 `posts`** — 무한 쿼리 페이지들을 평탄화하고 id 중복을 뺀 배열. 컴포넌트는 이것만
   쓴다.
 - **행 가상화** — 카드를 열 수만큼 묶은 "행"을 가상화 단위로 삼는 방식. 보이는 행 근처만 DOM에

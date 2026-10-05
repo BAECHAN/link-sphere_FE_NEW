@@ -94,9 +94,9 @@ export const useCreatePostMutation = () => {
       }
     },
     onSuccess: async (created, variables) => {
-      // useCreatePost.onSubmit이 mutate 완료를 기다리지 않고 즉시 피드로 navigate하므로,
-      // 피드의 목록 쿼리가 이 등록 요청과 거의 동시에(완료 전에) 첫 fetch를 시작해버린다.
-      // 그 in-flight 요청이 이 시점 이후에 뒤늦게 응답하면 아래에서 꽂아 넣은 값을 다시
+      // useCreatePost.onSubmit은 이 onSuccess가 끝난 뒤에 피드로 이동하지만, 저장 중 이탈 확인창의
+      // "나가기"로 먼저 피드에 갔거나 배경 재조회가 돌던 중이면 등록 완료 전 상태의 목록 fetch가
+      // 떠 있을 수 있다. 그 요청이 뒤늦게 응답하면 아래에서 꽂아 넣은 값을 다시
       // 덮어써버리므로, 먼저 취소해 stale 응답이 캐시를 되돌리지 못하게 막는다.
       const unfilteredListPredicate = (query: { queryKey: readonly unknown[] }) => {
         const filters = query.queryKey[2] as PostListRequest | undefined;
@@ -195,7 +195,7 @@ export const useSuspenseFetchPostDetailQuery = (postId: string) => {
   return useSuspenseQuery({
     queryKey: postKeys.detail(postId),
     queryFn: () => postApi.fetchPostDetail(postId),
-    // 비공개·삭제 글은 404가 그대로 정답이므로 재시도해도 결과가 같다 (리다이렉트만 늦춰짐)
+    // 비공개·삭제 글은 404가 그대로 정답이므로 재시도해도 결과가 같다 (안내 화면만 늦춰짐)
     retry: false,
   });
 };

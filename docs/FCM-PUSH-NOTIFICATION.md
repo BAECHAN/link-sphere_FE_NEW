@@ -7,7 +7,7 @@
 > **읽고 나면**: 토큰 등록/해제부터 알림 클릭 시 딥링크까지 전체 경로를 이해하고,
 > 새 알림 타입을 추가하거나 배포 관련 문제를 진단할 수 있다.
 >
-> **마지막 검토**: 2026-10-02
+> **마지막 검토**: 2026-10-05
 
 댓글·답글 작성 시 포스트 작성자 또는 원댓글 작성자에게 FCM(Firebase Cloud
 Messaging) 푸시 알림을 전송하는 기능의 전체 구현 내역과 운영 중 마주친 삽질
@@ -25,7 +25,7 @@ Messaging) 푸시 알림을 전송하는 기능의 전체 구현 내역과 운�
 뜨는 것과 같은 원리다. **앱을 안 보고 있어도**(백그라운드) 브라우저가 대신
 알림을 띄워주는 역할을 **서비스워커**(Service Worker — 탭이 닫혀 있어도 백그라운드에서
 실행되는 스크립트)가 맡고, **앱을 보고 있을 때는**(포그라운드) 앱이 직접 토스트로
-보여준다. 어느 쪽이든 클릭하면 해당 게시글로 이동한다.
+보여준다. 어느 쪽이든 클릭하면 해당 게시글의 그 댓글 위치로 이동한다.
 
 2026-09-29부터는 여기에 "이 기기의 로그인 세션이 살아있는 동안에만 온다"는 조건이
 하나 더 붙었다 — 세션이 죽으면(로그아웃·비밀번호변경·자연만료 등) 그 기기의 등록은
@@ -96,7 +96,8 @@ React 훅·Service Worker의 기본 개념(탭이 닫혀도 백그라운드에�
 - **`vite-plugin-compression` / `vite-plugin-mkcert`** — 배포·로컬 환경별 빌드
   설정(§10 시행착오에서 둘 다 문제를 일으킨 적 있다)
 
-**구현·검증 과정에서 쓴 도구**: 별도 자동화 테스트 도구는 쓰지 않았다 — §9 참고.
+**구현·검증 과정에서 쓴 도구**: Vitest — 포그라운드 "보러가기" 클릭 이동 경로만
+(`useFcmForegroundMessage.test.tsx`). 발송 경로 자체는 자동화 테스트가 없다 — §9 참고.
 
 ## 4. 왜 만들었나
 
@@ -228,7 +229,13 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 // Service Worker를 지원하지 않는 환경(SSR, 구형 브라우저)에서 안전하게 null 처리
 let messaging: Messaging | null = null;
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  messaging = getMessaging(app);
+  // Firebase 설정값이 비었거나 잘못되면 동기적으로 throw해 앱 전체 렌더가 죽으므로
+  // FCM 기능만 비활성화되도록 감싼다
+  try {
+    messaging = getMessaging(app);
+  } catch (error) {
+    console.error('[Firebase] getMessaging init failed — FCM disabled:', error);
+  }
 }
 ```
 
@@ -315,13 +322,16 @@ export function useFcmForegroundMessage() {
         const title = payload.notification?.title ?? TEXTS.notification.defaultTitle;
         const body = payload.notification?.body ?? '';
         const postId = payload.data?.postId;
+        const commentId = payload.data?.commentId;
+        // "내 댓글"에서 들어올 때와 같은 해시(CommentList의 해시 스크롤·강조)를 붙여 그 댓글로 보낸다
+        const commentHash = commentId ? `#comment-${commentId}` : '';
 
         toast(title, {
           description: body,
           ...(postId && {
             action: {
               label: TEXTS.notification.viewAction,
-              onClick: () => navigate(`/post/${postId}`),
+              onClick: () => navigate(`/post/${postId}${commentHash}`),
             },
             closeButton: false,
           }),
@@ -393,7 +403,7 @@ Service Worker가 `self.location`에서 읽어 초기화한다. 값이 하나라
 
 2026-10-03 전까지는 config를 이 파일에 평문으로 하드코딩해 공개 레포에 커밋했다
 (2026-03-02부터). 브라우저에 내려가는 값이라도 레포에 대놓고 올리는 것과는 다르다는 판단으로
-쿼리 주입으로 바꾸고, 교체 가능한 값은 새로 발급한다 — VAPID 키는 2026-10-02에 교체했고, apiKey·appId도 이어서 교체한다(#301 노출 수습).
+쿼리 주입으로 바꾸고, 교체 가능한 값은 새로 발급한다 — VAPID 키는 2026-10-02에 교체했고, apiKey·appId(웹 앱)도 교체를 마쳤다(#301 노출 수습, 교체 완료 근거는 [`.claude/CLAUDE.md`](../.claude/CLAUDE.md) Critical Rules의 키 교체 사고 서술).
 등록 URL이 바뀌면 브라우저가 Service Worker를 새로 설치하는데, 설치 직후엔 활성 워커가 없어
 구독이 실패하므로 `navigator.serviceWorker.ready`를 기다린 등록으로 `getToken`을 부른다.
 
@@ -406,7 +416,9 @@ const params = new URL(self.location.href).searchParams;
 // apiKey·authDomain·projectId·messagingSenderId·appId를 쿼리에서 읽어 initializeApp
 const messaging = hasConfig ? firebase.messaging() : null;
 
-messaging.onBackgroundMessage((payload) => {
+// 설정이 없으면 messaging이 null - 옵셔널 체이닝이 없으면 SW 스크립트가 여기서 죽어
+// 아래 notificationclick 리스너도 등록되지 않는다
+messaging?.onBackgroundMessage((payload) => {
   const { title, body } = payload.notification ?? {};
   self.registration.showNotification(title ?? '새로운 알림', {
     body,
@@ -416,11 +428,15 @@ messaging.onBackgroundMessage((payload) => {
   });
 });
 
-// 알림 클릭 → 해당 포스트 페이지로 이동
+// 알림 클릭 → 해당 포스트 페이지의 그 댓글 위치로 이동
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const postId = event.notification.data?.postId;
-  const targetUrl = postId ? `${self.location.origin}/post/${postId}` : self.location.origin;
+  const data = event.notification.data ?? {};
+  const postId = data.postId;
+  const commentHash = data.commentId ? `#comment-${data.commentId}` : '';
+  const targetUrl = postId
+    ? `${self.location.origin}/post/${postId}${commentHash}`
+    : self.location.origin;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
@@ -531,11 +547,11 @@ FCM 메시지의 `data` 페이로드는 이 기능 전체를 관통하는 계약
 `FcmNotificationService`의 `mapOf(...)`에 흩어져 등장하지만 한 곳에 정리된 적이
 없었다.
 
-| 필드        | 값                     | 만드는 곳                    | 쓰는 곳                                                         |
-| ----------- | ---------------------- | ---------------------------- | --------------------------------------------------------------- |
-| `type`      | `'COMMENT' \| 'REPLY'` | `FcmNotificationService`(BE) | FE는 현재 안 씀(향후 알림 타입별 분기에 쓸 수 있음)             |
-| `postId`    | 게시글 UUID 문자열     | 〃                           | FE `onMessage`/SW `notificationclick` — `/post/{postId}` 딥링크 |
-| `commentId` | 댓글 UUID 문자열       | 〃                           | 딥링크 해시 `#comment-{commentId}`(2026-10-02~)                 |
+| 필드        | 값                     | 만드는 곳                    | 쓰는 곳                                                              |
+| ----------- | ---------------------- | ---------------------------- | -------------------------------------------------------------------- |
+| `type`      | `'COMMENT' \| 'REPLY'` | `FcmNotificationService`(BE) | FE 앱은 안 씀. SW가 알림 `tag`로 써서 같은 타입 알림은 서로 대체된다 |
+| `postId`    | 게시글 UUID 문자열     | 〃                           | FE `onMessage`/SW `notificationclick` — `/post/{postId}` 딥링크      |
+| `commentId` | 댓글 UUID 문자열       | 〃                           | 딥링크 해시 `#comment-{commentId}`(2026-10-02~)                      |
 
 FE 쪽에서 토큰 등록에 필요한 상태는 `useAuthStore`(Zustand)의 `accessToken`
 필드 하나뿐이다 — `getAccessTokenFromStore()`(`fcm.ts`)가 React 렌더 사이클과
@@ -563,14 +579,14 @@ FE 쪽에서 토큰 등록에 필요한 상태는 `useAuthStore`(Zustand)의 `ac
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                         | 방법                                                                                                                                                                                                                        |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 새 알림 타입 추가(예: 좋아요 알림)   | BE `FcmNotificationService`에 `send*Notification` 함수 추가 + `data.type` 값 추가, FE는 `type`을 안 쓰므로 기본적으로 손댈 곳 없음(딥링크만 되면 됨). 새 본문에도 닉네임·컨텐츠 내용을 넣지 않는다(§5 "왜 이렇게 바뀌었나") |
-| 알림 클릭 시 이동 경로 변경          | FE `useFcmForegroundMessage.ts`(포그라운드)와 `public/firebase-messaging-sw.js`의 `notificationclick`(백그라운드) **둘 다** 고쳐야 한다 — 한쪽만 고치면 포그라운드/백그라운드 동작이 갈린다                                 |
-| 알림 문구 변경                       | `TEXTS.notification.*`(`shared/config/texts.ts`), BE의 `title`/`body` 리터럴(`FcmNotificationService.kt`)                                                                                                                   |
-| 세션 바인딩 기준(family_id) 조정     | BE `FcmTokenRepository.deleteStaleTokensForUser`의 EXISTS 서브쿼리 조건                                                                                                                                                     |
-| 새 로그인 이벤트에도 FCM 재등록 추가 | FE에서 `void requestAndRegisterFcmToken()`을 그 이벤트의 성공 콜백에 추가(로그인·비밀번호변경·세션복원이 기존 선례)                                                                                                         |
-| VAPID 키 로테이션                    | Firebase Console에서 재발급 후 `VITE_FIREBASE_VAPID_KEY` GitHub Secret 갱신                                                                                                                                                 |
+| 하고 싶은 것                         | 방법                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 새 알림 타입 추가(예: 좋아요 알림)   | BE `FcmNotificationService`에 `send*Notification` 함수 추가 + `data.type` 값 추가, FE 앱은 `type`을 안 쓰므로 기본적으로 손댈 곳 없음(딥링크만 되면 됨, SW는 `type`을 알림 `tag`로만 씀 — 새 타입은 기존 타입 알림을 대체하지 않는다). 새 본문에도 닉네임·컨텐츠 내용을 넣지 않는다(§5 "왜 이렇게 바뀌었나")             |
+| 알림 클릭 시 이동 경로 변경          | FE `useFcmForegroundMessage.ts`(포그라운드)와 `public/firebase-messaging-sw.js`의 `notificationclick`(백그라운드) **둘 다** 고쳐야 한다 — 한쪽만 고치면 포그라운드/백그라운드 동작이 갈린다                                                                                                                              |
+| 알림 문구 변경                       | `TEXTS.notification.*`(`shared/config/texts.ts`), BE의 `title`/`body` 리터럴(`FcmNotificationService.kt`)                                                                                                                                                                                                                |
+| 세션 바인딩 기준(family_id) 조정     | BE `FcmTokenRepository.deleteStaleTokensForUser`의 EXISTS 서브쿼리 조건                                                                                                                                                                                                                                                  |
+| 새 로그인 이벤트에도 FCM 재등록 추가 | FE에서 `void requestAndRegisterFcmToken()`을 그 이벤트의 성공 콜백에 추가(로그인·비밀번호변경·세션복원이 기존 선례)                                                                                                                                                                                                      |
+| VAPID 키 로테이션                    | Firebase Console에서 재발급 → `VITE_FIREBASE_VAPID_KEY` GitHub Secret·로컬 `.env` 갱신 → 재배포(Secret만 바꾸면 `deploy.yml`이 돌지 않으므로 `gh workflow run "Frontend Deploy (S3 + CloudFront)" --ref main`) → 운영에서 알림 등록 확인. 키 교체 순서 전반은 `.claude/CLAUDE.md` Critical Rules의 키 교체 규칙을 따른다 |
 
 ## 9. 검증 결과
 
@@ -579,7 +595,9 @@ FE 쪽에서 토큰 등록에 필요한 상태는 `useAuthStore`(Zustand)의 `ac
 실제로 발견한 문제 6건이 §10 시행착오에 원인·해결과 함께 기록돼 있다. 2026-09-29
 세션 바인딩 도입으로 BE `FcmTokenServiceTest`(신규)가 토큰 등록(upsert)·
 `FcmTokenService`의 유닛 테스트를 커버하기 시작했지만, `sendToUser`의 stale
-토큰 삭제·실제 발송 자체는 여전히 수동 검증 대상이다.
+토큰 삭제·실제 발송 자체는 여전히 수동 검증 대상이다. FE에서는 포그라운드 "보러가기"
+클릭 이동 경로만 `useFcmForegroundMessage.test.tsx`(#297)가 `commentId` 유무 두 케이스로
+검증한다.
 
 ## 10. 시행착오
 
@@ -643,11 +661,16 @@ mode === 'localhost' && mkcert(),
 있기 때문에 `import.meta.env`가 동작하지 않는다. Vite는 `public/` 폴더의 파일을
 변환 없이 그대로 복사한다.
 
-**해결(현재 채택)**: Firebase 프론트엔드 Config 값은 원래 공개되어도 안전한
-값이므로 SW 파일에 직접 하드코딩한다(파일 상단 주석에 이 사실을 명시).
+**해결(2026-10-03 #302 이전 방식)**: Firebase 프론트엔드 Config 값은 원래 공개되어도 안전한
+값이므로 SW 파일에 직접 하드코딩했다(파일 상단 주석에 이 사실을 명시).
 
-**대안(미채택)**: Vite 플러그인을 사용해 빌드 타임에 환경변수를 SW 파일에
-주입하는 방법이 있지만 설정이 복잡해서 채택하지 않았다.
+**대안(당시 미채택)**: Vite 플러그인을 사용해 빌드 타임에 환경변수를 SW 파일에
+주입하는 방법이 있었지만 설정이 복잡해서 채택하지 않았다.
+
+**현재 방식(2026-10-03 #302~)**: SW 파일에는 설정을 적지 않는다. 앱이 빌드 때 주입된
+`VITE_FIREBASE_*` 값을 SW 등록 URL의 쿼리로 넘기고(`src/shared/lib/firebase/fcm.ts`의
+`buildServiceWorkerUrl`), SW가 `self.location`에서 읽어 초기화한다(§5 "백그라운드 메시지 수신").
+레포에 설정값이 남지 않으므로 SW 파일에 값을 다시 하드코딩하지 않는다.
 
 ### 10.5. 포그라운드 메시지가 자동으로 시스템 알림을 띄우지 않음
 

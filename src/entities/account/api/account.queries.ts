@@ -16,7 +16,7 @@ import { AuthUtil } from '@/shared/utils/auth.util';
 
 interface UpdateAccountPayload extends UpdateAccount {
   file?: File;
-  /** 낙관적 반영·실패 시 모달 재오픈용 blob 미리보기 URL. BE에는 전송하지 않는다 */
+  /** 낙관적 반영용 blob 미리보기 URL(실패 시엔 폼이 미리보기로 계속 쓴다). BE에는 전송하지 않는다 */
   previewUrl?: string;
 }
 

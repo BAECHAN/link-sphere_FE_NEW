@@ -47,7 +47,7 @@ interface PostCardProps {
   /**
    * 이 카드가 어느 목록에 있는지 - 상세로 넘어갈 때 history state에 실어 보내
    * 상세의 돌아가기 버튼이 "목록으로"(feed)와 "뒤로가기"(그 외)를 정확히 고르게 한다
-   * (PostDetailPage의 resolveBackLabel 참고). 지정하지 않으면 "뒤로가기"로 떨어진다.
+   * (pages/post/hooks/usePostDetail.ts의 resolveBackLabel 참고). 지정하지 않으면 "뒤로가기"로 떨어진다.
    */
   backSource?: 'feed' | 'bookmark';
   /**

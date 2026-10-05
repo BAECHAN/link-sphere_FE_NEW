@@ -19,8 +19,8 @@
 ## 빠른 시작
 
 ```bash
-pnpm build              # dist/를 만든다 (lighthouserc.cjs가 이걸 서빙해서 잰다)
-pnpm perf:lh            # 공개 페이지 4개 × 5회, 데스크톱 프리셋
+SKIP_CSP_INJECTION=1 pnpm build   # dist/를 만든다 (lighthouserc.cjs가 이걸 서빙해서 잰다). CSP 주입은 건너뛴다 — 아래 "자주 발생하는 문제"
+pnpm perf:lh                      # 공개 페이지 4개 × 5회, 데스크톱 프리셋
 ```
 
 `pnpm perf:lh`는 내부적으로 `vite preview --port 4173 --strictPort`로 서버를 직접
@@ -49,7 +49,7 @@ pnpm perf:lh            # 공개 페이지 4개 × 5회, 데스크톱 프리셋
 
 ```bash
 export LH_TEST_PASSWORD='...'   # 대화로만 받고 파일에 남기지 않는다
-pnpm build
+SKIP_CSP_INJECTION=1 pnpm build
 pnpm perf:lh:auth
 ```
 
@@ -59,7 +59,7 @@ pnpm perf:lh:auth
   2026-09-29: `docs/TESTING.md`에는 자체 "로그인 계정" 절이 없고, 그 문서도 같은
   skill 파일의 절을 가리킨다).
 - 로그인은 `scripts/lighthouse-login.js`(LHCI의 `puppeteerScript`)가 자동으로 한다.
-  이미 로그인 상태(`has-session` 쿠키가 살아있는 상태로 재실행)면 조용히 건너뛴다.
+  이미 로그인 상태(`has-session` localStorage 플래그가 살아있는 상태로 재실행)면 조용히 건너뛴다.
 - `disableStorageReset: true`로 5회 실행 내내 세션 쿠키를 유지한다 — 꺼두면 매
   실행마다 `/auth/refresh`를 한 번씩 더 타서 순수 페이지 성능과 무관한 지연이 섞인다.
 
@@ -185,6 +185,12 @@ node scripts/compute-font-preload-chunks.js
 - **측정마다 점수가 크게 흔들린다** — 다른 워크트리에서 동시에 `pnpm dev`/`pnpm preview`나
   무거운 빌드를 돌리고 있지 않은지 먼저 확인한다. Lighthouse variability 문서는
   _"같은 머신에서 동시에 여러 측정을 돌리지 말라"_(번역)고 명시한다.
+- **API 호출이 전부 막혀 데이터 없는 화면을 잰다(콘솔에 CSP `connect-src` 위반)** —
+  `SKIP_CSP_INJECTION=1` 없이 `pnpm build`한 경우다. 로컬 `.env`의 `VITE_API_BASE_URL`은
+  운영 API(`https://linksphere.click/api`, `localhost:4173`과 교차 출처)인데,
+  `scripts/inject-csp.js`가 주입하는 CSP의 `connect-src`에는 이 도메인이 없어 호출이
+  전부 막힌다. 로그인 필요 페이지 측정은 로그인 API부터 막힌다. CI(`ci.yml`의
+  `lighthouse` job)도 같은 이유로 이 변수를 준다.
 - **CORS 에러로 `/api/*` 호출이 실패한다** — Lighthouse 빌드는 운영 API
   `https://linksphere.click/api`(CloudFront 경유)를 부른다. BE CORS 허용 목록에
   `http://localhost:*`가 있어(`Access-Control-Allow-Origin: <origin>`,

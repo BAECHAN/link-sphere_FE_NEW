@@ -41,11 +41,12 @@ override가 필요 없으면 위 한 줄로 끝난다.
 ### 2. `src/entities/<entity>/model/<entity>.schema.ts` (요청·폼 검증, 필요할 때만)
 
 생성/수정 폼처럼 **사용자 입력을 검증**해야 할 때만 만든다. 순수 조회 전용 엔티티라면
-이 파일은 필요 없다 — `.dto.ts`의 타입을 그대로 쓴다.
+이 파일은 필요 없다 — `.dto.ts`의 타입을 그대로 쓴다. 이 경우 아래 api·keys·queries 템플릿에서
+create/update 함수·훅과 `Create<Entity>`·`Update<Entity>` import를 빼고, `<Entity>`는
+`@/entities/<entity>/model/<entity>.dto`에서 import한다.
 
 ```typescript
 import { z } from 'zod';
-import { TEXTS } from '@/shared/config/texts';
 
 export const create<Entity>Schema = z.object({
   // TODO: fields the user inputs to create
@@ -255,4 +256,9 @@ After creating these files, tell the user:
 1. The TODO fields in the schema file need to be filled in with actual entity fields
 2. Add a route constant to `src/shared/config/route-paths.ts`
 3. Register the route in `src/app/routes/index.tsx`
+   - Also add the path to `APP_ROUTES` (or `APP_ROUTE_PATTERNS` for dynamic segments) in
+     `infra/cloudfront-functions/spa-fallback.js` and redeploy the Function by hand
+     (`docs/DEPLOY.md` "CloudFront Function (수동 관리)") — otherwise
+     `src/app/routes/cloudfront-functions.test.ts` fails and production answers the new route
+     with a 404 status
 4. Create the first feature with `/new-feature $ARGUMENTS <feature-name>`

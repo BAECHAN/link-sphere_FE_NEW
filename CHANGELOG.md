@@ -14,14 +14,8 @@
 - `post` 등록·수정 폼에서 URL을 입력하면 등록 전에 링크 미리보기 카드를 보여줌
   <details><summary>배경·구현</summary>
 
-  등록 결과(제목·설명·썸네일)를 등록한 뒤에야 볼 수 있었다. URL 칸 바로 아래에 카드로 먼저 보여준다
-  (Slack·LinkedIn의 작성 중 미리보기 방식). 입력이 0.5초 멈추고 형식이 맞을 때만 BE
-  `GET /link-preview`에 묻는다. BE가 결과를 10분 캐시해 등록 때 재사용하므로, 등록이 빨라지고
-  저장되는 글이 본 미리보기와 같아진다. 도메인 없음처럼 등록해도 실패할 URL은 카드 대신 URL 칸
-  에러로 미리 알리고, 그 외 실패는 "그래도 등록할 수 있어요"만 보여준다. 수정 폼은 URL을 바꿨을
-  때만 보여준다. 위치·모양은 시안 비교 후 선택(`docs/DECISIONS.md` 2026-10-03 "응답 대기" 항목).
-  (`useLinkPreview.ts`·`LinkPreviewCard.tsx`(신규), `post.api.ts`, `post.keys.ts`, `post.queries.ts`,
-  `useCreatePost.ts`, `useUpdatePost.ts`, `CreatePostForm.tsx`, `UpdatePostForm.tsx`, `api.ts`, `texts.ts`)
+  등록 결과(제목·설명·썸네일)를 등록한 뒤에야 볼 수 있었다. URL 칸 바로 아래에 카드로 먼저 보여준다 (Slack·LinkedIn의 작성 중 미리보기 방식). 입력이 0.5초 멈추고 형식이 맞을 때만 BE `GET /link-preview`에 묻는다. BE가 결과를 10분 캐시해 등록 때 재사용하므로, 등록이 빨라지고 저장되는 글이 본 미리보기와 같아진다. 도메인 없음처럼 등록해도 실패할 URL은 카드 대신 URL 칸 에러로 미리 알리고, 그 외 실패는 "그래도 등록할 수 있어요"만 보여준다. 수정 폼은 URL을 바꿨을 때만 보여준다. 위치·모양은 시안 비교 후 선택(`docs/DECISIONS.md` 2026-10-03 "응답 대기" 항목).
+  (`useLinkPreview.ts`·`LinkPreviewCard.tsx`(신규), `post.api.ts`, `post.keys.ts`, `post.queries.ts`, `useCreatePost.ts`, `useUpdatePost.ts`, `CreatePostForm.tsx`, `UpdatePostForm.tsx`, `api.ts`, `texts.ts`, [PR #310](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/310))
 
   </details>
 
@@ -58,30 +52,19 @@
 - `post` 등록·수정 실패 원인을 입력칸 또는 버튼 위 안내로 보여줌(토스트 대신)
   <details><summary>배경·구현</summary>
 
-  실패가 "포스트 생성에 실패했어요." 토스트 하나로만 보여 무엇을 고쳐야 할지 알 수 없었다.
-  `PostUtil.resolveSubmitError`가 서버 code·status로 나눈다.
+  실패가 "포스트 생성에 실패했어요." 토스트 하나로만 보여 무엇을 고쳐야 할지 알 수 없었다. `PostUtil.resolveSubmitError`가 서버 code·status로 나눈다.
   - 고칠 수 있는 실패: 그 입력칸 아래 에러. 도메인 없음, 내부망, URL 형식, 사라진 폴더.
-  - 그 외: 버튼 위 `FormAlert`(신규 공용 컴포넌트, 스토리 포함). 요청 한도(`Retry-After`를 분으로),
-    네트워크, 응답 지연(피드 확인 링크), 이메일 미인증, WAF 차단.
+  - 그 외: 버튼 위 `FormAlert`(신규 공용 컴포넌트, 스토리 포함). 요청 한도(`Retry-After`를 분으로), 네트워크, 응답 지연(피드 확인 링크), 이메일 미인증, WAF 차단.
 
-  등록·수정 mutation은 전역 토스트를 끄고(`manualErrorHandling`) 훅이 직접 안내한다. 사라진 폴더면
-  폴더 목록을 다시 불러온다. `client.ts`는 429의 `Retry-After`를 `ApiError.retryAfterSeconds`에 담는다.
-  근거와 시안 비교는 `docs/DECISIONS.md` 2026-10-03 "실패 원인 노출" 항목.
-  (`post.util.ts`·`FormAlert.tsx`(신규), `useCreatePost.ts`, `useUpdatePost.ts`, `CreatePostForm.tsx`,
-  `UpdatePostForm.tsx`, `post.queries.ts`, `client.ts`, `error-code.ts`, `texts.ts`)
+  등록·수정 mutation은 전역 토스트를 끄고(`manualErrorHandling`) 훅이 직접 안내한다. 사라진 폴더면 폴더 목록을 다시 불러온다. `client.ts`는 429의 `Retry-After`를 `ApiError.retryAfterSeconds`에 담는다. 근거와 시안 비교는 `docs/DECISIONS.md` 2026-10-03 "실패 원인 노출" 항목.
+  (`post.util.ts`·`FormAlert.tsx`(신규), `useCreatePost.ts`, `useUpdatePost.ts`, `CreatePostForm.tsx`, `UpdatePostForm.tsx`, `post.queries.ts`, `client.ts`, `error-code.ts`, `texts.ts`, [PR #309](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/309))
 
   </details>
 
 - `post` 게시글 등록·수정이 응답을 기다렸다가 이동, 실패하면 입력을 그대로 남김
   <details><summary>배경·구현</summary>
 
-  작성·수정은 요청을 보내자마자 폼을 비우고 목록으로 이동해서, 요청이 실패하면(429·500·WAF 403)
-  입력이 이미 사라진 뒤였다. 운영 로그 실측(직접 측정) 결과 등록은 중앙값 2.7초·최대 6.5초라,
-  버튼을 "등록 중..."/"수정 중..."으로 바꾸고 응답을 기다린다. 성공하면 이동하고, 실패하면 폼과
-  이탈 가드를 남겨 바로 다시 시도할 수 있다. 하단 진행 토스트는 버튼 라벨과 겹쳐 작성·수정
-  관찰을 뺐다(계정 수정만 남음). 비동기 크롤링 등 대안 비교와 근거는 `docs/DECISIONS.md`
-  2026-10-03 항목. (`useCreatePost.ts`, `useUpdatePost.ts`, `CreatePostForm.tsx`,
-  `UpdatePostForm.tsx`, `PostMutationLoadingToast.tsx`)
+  작성·수정은 요청을 보내자마자 폼을 비우고 목록으로 이동해서, 요청이 실패하면(429·500·WAF 403) 입력이 이미 사라진 뒤였다. 운영 로그 실측(직접 측정) 결과 등록은 중앙값 2.7초·최대 6.5초라, 버튼을 "등록 중..."/"수정 중..."으로 바꾸고 응답을 기다린다. 성공하면 이동하고, 실패하면 폼과 이탈 가드를 남겨 바로 다시 시도할 수 있다. 하단 진행 토스트는 버튼 라벨과 겹쳐 작성·수정 관찰을 뺐다(계정 수정만 남음). 비동기 크롤링 등 대안 비교와 근거는 `docs/DECISIONS.md` 2026-10-03 항목. (`useCreatePost.ts`, `useUpdatePost.ts`, `CreatePostForm.tsx`, `UpdatePostForm.tsx`, `PostMutationLoadingToast.tsx`, [PR #308](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/308))
 
   </details>
 
@@ -91,7 +74,7 @@
   <details><summary>배경·구현</summary>
 
   서비스 워커(`public/firebase-messaging-sw.js`)는 `import.meta.env`를 못 읽어 Firebase 설정을 평문으로 적어 공개 레포에 커밋해 왔고(2026-03-02부터), 2026-10-02 #301에서는 `.env.example`에 실제 값까지 넣었다. 앱이 빌드 때 주입된 `VITE_FIREBASE_*` 값을 서비스 워커 등록 URL의 쿼리로 넘기고 서비스 워커가 `self.location`에서 읽도록 바꿨고, `.env.example`은 빈 값으로 되돌렸다. 교체 가능한 값은 새로 발급한다(VAPID 키 교체 완료, apiKey·appId 이어서). 등록 URL이 바뀌면 브라우저가 서비스 워커를 새로 설치하는데, 설치 직후엔 활성 워커가 없어 첫 알림 등록이 "no active Service Worker"로 실패하던 문제도 `navigator.serviceWorker.ready`를 기다리도록 함께 고쳤다.
-  (`public/firebase-messaging-sw.js`, `src/shared/lib/firebase/fcm.ts`, `.env.example`, `docs/FCM-PUSH-NOTIFICATION.md`, `README.md`, `docs/ONBOARDING.md`)
+  (`public/firebase-messaging-sw.js`, `src/shared/lib/firebase/fcm.ts`, `.env.example`, `docs/FCM-PUSH-NOTIFICATION.md`, `README.md`, `docs/ONBOARDING.md`, [PR #302](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/302))
 
   </details>
 
@@ -104,17 +87,11 @@
 
   </details>
 
-- `api` 요청 한도 초과(429)에 "요청이 많아요" 안내를 띄우고, 429·WAF 차단은 재시도하지 않음
+- `shared` 요청 한도 초과(429)에 "요청이 많아요" 안내를 띄우고, 429·WAF 차단은 재시도하지 않음
   <details><summary>배경·구현</summary>
 
-  BE가 글 등록·업로드 URL 발급에 회원별 한도를 걸면서(BE `docs/TRAFFIC-MANAGEMENT.md`)
-  429 `RATE_LIMIT_EXCEEDED`가 생겼다. 지금까지 FE는 429를 일반 서버 오류로 보고 "서버
-  오류가 발생했어요" 토스트를 띄웠고, 쿼리는 `retry: 1`로 한 번 더 보내 한도를 더
-  소모했다. 전역 판정(`resolveErrorToast`)이 상태 429를 `meta.errorMessage`보다 먼저
-  잡아 `TEXTS.messages.error.rateLimited`를 띄운다 - 코드가 아니라 상태로 판별해 Lambda
-  동시 실행 포화 때 Function URL이 주는 429도 같이 잡는다. 쿼리 재시도는
-  `shouldRetryQuery`가 429와 `EDGE_BLOCKED`를 빼고 기존처럼 1회만 한다.
-  (`error-toast.ts`, `retry-policy.ts`(신규), `queryClient.ts`, `texts.ts`)
+  BE가 글 등록·업로드 URL 발급에 회원별 한도를 걸면서(BE `docs/TRAFFIC-MANAGEMENT.md`) 429 `RATE_LIMIT_EXCEEDED`가 생겼다. 지금까지 FE는 429를 일반 서버 오류로 보고 "서버 오류가 발생했어요" 토스트를 띄웠고, 쿼리는 `retry: 1`로 한 번 더 보내 한도를 더 소모했다. 전역 판정(`resolveErrorToast`)이 상태 429를 `meta.errorMessage`보다 먼저 잡아 `TEXTS.messages.error.rateLimited`를 띄운다 - 코드가 아니라 상태로 판별해 Lambda 동시 실행 포화 때 Function URL이 주는 429도 같이 잡는다. 쿼리 재시도는 `shouldRetryQuery`가 429와 `EDGE_BLOCKED`를 빼고 기존처럼 1회만 한다.
+  (`error-toast.ts`, `retry-policy.ts`(신규), `queryClient.ts`, `texts.ts`, [PR #300](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/300))
 
   </details>
 

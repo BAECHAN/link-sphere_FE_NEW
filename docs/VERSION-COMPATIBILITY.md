@@ -19,19 +19,26 @@ BE·FE는 레포가 분리돼 있고 SemVer도 각자 독립적으로 올라가�
 | BE   | [v0.10.0](https://github.com/BAECHAN/link-sphere_BE_NEW/releases/tag/v0.10.0) |
 | FE   | [v0.18.0](https://github.com/BAECHAN/link-sphere_FE_NEW/releases/tag/v0.18.0) |
 
-FE v0.18.0에 BE PR에 의존하는 기능이 있는데, 그 BE PR(#47·#48)은 병합만 됐고 BE
+FE v0.18.0에 BE PR에 의존하는 기능이 있는데, 그 BE PR(#44~#48)은 병합만 됐고 BE
 `[Unreleased]`에 남아 있어 아직 BE 버전이 없다 — **gap 있음**(BE 릴리즈 시 아래 표의
 "BE 요구 버전"을 그 버전으로 채운다):
 
+- 비밀번호 변경·회원 탈퇴, 비밀번호 찾기, 이메일 인증 — BE `link-sphere_BE_NEW` PR #44
+  (`PATCH /auth/account/password`, `DELETE /auth/account`), PR #45
+  (`POST /auth/password-reset/{request,confirm}`, `POST /auth/email-verification/{request,confirm}`,
+  `AccountResponse.emailVerified`, 미인증 글쓰기·댓글쓰기의 403 `EMAIL_NOT_VERIFIED`),
+  [PR #46](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/46)(`AccountResponse.email`)
+  필요. **BE 먼저** — BE v0.10.0에는 이 엔드포인트들이 없어 해당 화면의 요청이 실패한다.
 - 회원탈퇴 14일 유예기간 — BE `link-sphere_BE_NEW`
   [PR #48](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/48) 필요(로그인
   응답에 `deletionCancelled` 필드 추가, `DELETE /auth/account`가 즉시 익명화에서
   14일 유예 신청으로 변경). **배포 순서: BE 먼저** — 구버전 BE에 신버전 FE를
   배포하면 에러 없이 복구 토스트만 영영 안 뜬다.
 - CloudFront OAC 전환 대응(`X-Access-Token` 헤더·CSP 빌드 시 주입) — BE
-  [PR #47](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/47)(Lambda Function
-  URL `AuthType` 전환)과 짝. 전환 전까지는 하위 호환 — BE가 `X-Access-Token`과
-  기존 `Authorization: Bearer` 둘 다 읽는다. 상세는
+  [PR #47](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/47)(`X-Access-Token` 헤더
+  우선 읽기)과 짝. Lambda Function URL `AuthType` 전환(OAC 잠금)은 그 PR 범위 밖의 별도
+  인프라 작업으로 2026-09-29에 적용됐다. BE는 지금도 `X-Access-Token`과 기존
+  `Authorization: Bearer`(로컬 개발·Swagger용 폴백)를 둘 다 읽는다. 상세는
   [`docs/DEPLOY.md`](./DEPLOY.md)의 "CloudFront Origin Access Control(OAC)" 절 참고.
 
 ## 알려진 상호 의존 지점
@@ -49,12 +56,13 @@ FE v0.18.0에 BE PR에 의존하는 기능이 있는데, 그 BE PR(#47·#48)은 
 | v0.12.0 (2026-08-13) | v0.8.0 (2026-08-13)      | 신규 `GET /auth/email-availability`(이메일 중복 사전 조회, 비로그인 공개), `GET /auth/account/nickname-availability` 비로그인 허용으로 확장(가입 화면 실시간 중복확인), `POST /post`에 `bookmark`/`folderIds` 필드 추가(등록과 동시에 북마크 생성), `GET /bookmark/folders` 응답에 `lastUsedAt` 필드 추가, 이메일·닉네임 중복 409를 `DUPLICATE_MEMBER`/`DUPLICATE_NICKNAME`으로 분리 | BE 먼저 배포 권장 — 북마크 동시 생성만 BE 먼저 필요(구 BE는 `bookmark`/`folderIds`를 조용히 무시해 등록은 되지만 북마크가 안 생김). 나머지(중복확인 엔드포인트·`lastUsedAt`·`DUPLICATE_NICKNAME`)는 구 BE에서도 fail-open/기존 동작으로 조용히 저하될 뿐 순서 무관 |
 | v0.13.0 (2026-09-06) | v0.9.0 (2026-09-06)      | `GET /post`에 `filter=excludeBots` 값 추가(봇 계정 RSS 글 숨기기)                                                                                                                                                                                                                                                                                                                    | 배포 순서 무관 — 구버전 BE는 모르는 filter 값을 조용히 무시하고, 구버전 FE는 이 값을 아예 보내지 않는다                                                                                                                                                            |
 | v0.14.0 (2026-09-14) | v0.10.0 (2026-09-14)     | 신규 `GET /comment/my`(내 댓글 목록 조회)                                                                                                                                                                                                                                                                                                                                            | **BE 먼저 배포 필수** — 구버전 BE에는 이 경로가 없어 FE만 먼저 배포하면 "내 댓글" 화면 진입 시 404가 뜬다                                                                                                                                                          |
-| v0.18.0 (2026-10-02) | 미릴리즈 (BE PR #47·#48) | 로그인 응답 `deletionCancelled` 필드 추가, `DELETE /auth/account`가 즉시 익명화에서 14일 유예 신청으로 변경(PR #48). 인증 헤더 `X-Access-Token` 우선 읽기(PR #47, CloudFront OAC 전환 대응)                                                                                                                                                                                          | 회원탈퇴 유예는 **BE 먼저** — 구버전 BE면 에러 없이 복구 토스트만 안 뜬다. OAC 대응은 하위 호환 — BE가 `X-Access-Token`과 `Authorization: Bearer`를 둘 다 읽는다                                                                                                   |
+| v0.18.0 (2026-10-02) | 미릴리즈 (BE PR #44~#48) | 비밀번호 변경·회원 탈퇴 API(PR #44), 비밀번호 찾기·이메일 인증 API와 `AccountResponse.emailVerified`(PR #45), `AccountResponse.email`(PR #46). 로그인 응답 `deletionCancelled` 필드 추가, `DELETE /auth/account`가 즉시 익명화에서 14일 유예 신청으로 변경(PR #48). 인증 헤더 `X-Access-Token` 우선 읽기(PR #47, CloudFront OAC 전환 대응)                                           | 비밀번호 변경·찾기·이메일 인증은 **BE 먼저** — BE v0.10.0에는 엔드포인트가 없다. 회원탈퇴 유예는 **BE 먼저** — 구버전 BE면 에러 없이 복구 토스트만 안 뜬다. OAC 대응은 하위 호환 — BE가 `X-Access-Token`과 `Authorization: Bearer`를 둘 다 읽는다                  |
 
 ## 앞으로 지켜야 할 규칙
 
 - API 계약을 바꾸는 변경은 FE는 `### Notes`, BE는 `### Migration`(또는 `Changed`) 섹션에
   상대 레포 최소 버전을 명시한다 (기존 컨벤션 유지, 예: `BE API 의존: ... (BE v0.3.0)`).
-- 그 항목이 버전 승격되면 이 표에도 한 줄 추가한다 (BE·FE 양쪽 문서 동일하게 갱신).
+- 그 항목이 버전 승격되면 이 표에도 한 줄 추가한다 (정본은 이 FE 문서 하나다 — BE
+  `docs/VERSION-COMPATIBILITY.md`는 2026-09-14부터 이 파일을 가리키는 안내만 둔다).
 - 단순 "동시 배포"로 부족하고 배포 순서 자체가 중요하면(예: 구 API를 먼저 내려야 하는 경우)
   비고 칸에 어느 쪽이 먼저/나중이어야 하는지 명시한다.

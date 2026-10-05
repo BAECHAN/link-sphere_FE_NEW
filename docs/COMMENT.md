@@ -9,7 +9,7 @@
 > 원글의 그 댓글로 이동하는 방식을 이해하고, 상한·장수·캐시 무효화 범위를 어디서 바꾸는지
 > 안다.
 >
-> **마지막 검토**: 2026-10-02
+> **마지막 검토**: 2026-10-05
 
 게시글 상세(`/post/:id`) 하단의 댓글 섹션과, 내가 쓴 댓글을 모아보는 "내 댓글"
 화면(`/my/comments`)을 다룬다. 게시글 자체(목록·상세·작성)는
@@ -89,7 +89,7 @@ Playwright e2e(`page.route()` 모킹), Storybook 인터랙션 테스트 — §9 
 
 - **느림** — 등록 후 서버 응답(당시엔 링크 프리뷰 크롤링 포함)과 목록 재조회를 기다려야
   댓글이 보였다 → 2026-08-03 낙관적 업데이트로 전환(`595b678`). 지금 BE는 링크 프리뷰를
-  커밋 후 별도 Lambda에서 크롤링한다(BE `CommentService.kt` 434-435줄 주석).
+  커밋 후 별도 Lambda에서 크롤링한다(BE `CommentService.kt` 주석, `CommentPostProcessService`).
 - **이미지 첨부 발견성** — 붙여넣기로만 첨부할 수 있어 모바일에선 사실상 불가능했다 →
   2026-08-10 버튼·드래그앤드롭, 최대 5장(`docs/DECISIONS.md` 2026-08-10)
 - **원인 불명의 403** — 긴 댓글·태그가 섞인 댓글이 CloudFront WAF에 막혔다 →
@@ -200,7 +200,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   (`src/shared/lib/image/resizeImage.ts:16-22`, 48-49줄) — 그래서 상한이 15MB로 따로 있다.
 - BE가 `content` 끝에 URL을 이어붙여 저장한다 — 본문이 있으면 빈 줄 하나 뒤에, 이미지
   URL은 한 줄에 하나씩(BE [`CommentService.kt`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/src/main/kotlin/com/example/linksphere/domain/comment/CommentService.kt)
-  `buildFinalContent`, 421-429줄). FE는 낙관적 항목을 같은 규칙으로
+  `buildFinalContent`). FE는 낙관적 항목을 같은 규칙으로
   조립하고(`buildOptimisticComment`, comment.queries.ts 22-50줄), 수정 폼은 역함수
   `splitContentImages`(`src/shared/lib/content/imageContent.ts:13-27`)로 텍스트와 이미지
   줄을 다시 나눈다. 테이블을 분리하지 않은 이유는 `docs/DECISIONS.md` 2026-08-10 항목.
@@ -233,7 +233,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 "삭제된 댓글입니다."로 바꾼 `isDeleted: true` 톰스톤으로 남는다. 이 분기는 BE
 `deleteComment`가 `existsByParentId`로 정한다(BE
 [`CommentService.kt`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/src/main/kotlin/com/example/linksphere/domain/comment/CommentService.kt)
-290-325줄, 문구 상수는 21줄, 조회 응답에서도 99줄에서 같은 문구로 내려준다). FE는 그
+`deleteComment`, 문구 상수는 `DELETED_COMMENT_CONTENT`, 조회 응답에서도 같은 상수로 내려준다). FE는 그
 결과를 재조회로 받기만 한다. `e2e/comment-delete.spec.ts`가 두 경우를 모킹으로 재현해
 검증한다.
 
@@ -266,7 +266,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   스토리지 URL이 글자로 보였다 — 개수 표시·작은 썸네일·텍스트만 세 안을 실제 카드 스타일로
   나란히 비교해 카드 높이가 지금과 같은 개수 표시안을 골랐다(`e2e/my-comments.spec.ts`).
 - 카드는 `/post/${postId}#comment-${id}`로 링크한다
-  (`src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx:18`).
+  (`src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx`의 `Link`).
 
 **해시 이동**: 상세의 `CommentList`가 `location.hash`로 대상을 찾아
 `scrollIntoView({ behavior: 'smooth', block: 'start' })`하고 1.6초 동안 링으로 강조한다
@@ -286,7 +286,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 데스크톱 | 목록 위 인라인 `CommentForm` + `ScrollToCommentFormButton`    | 폼이 navbar 아래로 사라지면 우하단에 버튼 노출, 누르면 폼으로 스크롤 후 `focus({ preventScroll: true })` |
 
 - 모바일 헤더 검색이 열리면 바를 **언마운트하지 않고** `hidden`으로만 숨긴다
-  (`src/features/comment/create/ui/MobileCommentBar.tsx:24`, 71·89줄). 이탈 가드는 같은
+  (`src/features/comment/create/ui/MobileCommentBar.tsx`의 `isMobileSearchOpen && 'hidden'`). 이탈 가드는 같은
   pathname 이동을 통과시키므로, 언마운트하면 쓰던 글이 경고 없이 사라진다.
 - 펼친 시트의 `z-scrim`은 사이드바 백드롭과 같은 층이다 — 미해결 충돌(§11), 근거는
   [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md) §4.
@@ -360,10 +360,10 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 - 본문 상한을 바꾸면 BE `MAX_COMMENT_CONTENT_BYTES = 6_000`(BE
   [`CommentService.kt`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/src/main/kotlin/com/example/linksphere/domain/comment/CommentService.kt)
-  51줄, 등록·답글·수정에서 각각 검사)과 안내 문구
-  `TEXTS.validation.commentContentTooLong`("한글 2,000자", `src/shared/config/texts.ts:416`)도
+  `companion object`, 등록·답글·수정에서 각각 검사)과 안내 문구
+  `TEXTS.validation.commentContentTooLong`("한글 2,000자", `src/shared/config/texts.ts`)도
   함께 고친다 — 자동 동기화 장치는 없다.
-- 장수 상한은 BE `MAX_COMMENT_IMAGES = 5`(같은 파일 43줄, 등록·답글·수정에서 검사)와
+- 장수 상한은 BE `MAX_COMMENT_IMAGES = 5`(같은 파일 `companion object`, 등록·답글·수정에서 검사)와
   같아야 한다.
 - 7,500B는 WAF 8,192B 벽에서 약 700B 여유를 둔 값이다. 올리면 그 여유가 준다.
 
@@ -377,7 +377,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 작성 검증·제출·복원             | `src/features/comment/create/hooks/useCreateComment.ts:32-164`                                                                     |
 | 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx:30-198`                                                                            |
 | 모바일 바                       | `src/features/comment/create/ui/MobileCommentBar.tsx:16-104`                                                                       |
-| 데스크톱 플로팅 버튼            | `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.tsx:23-103`                                                         |
+| 데스크톱 플로팅 버튼            | `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.tsx:23-107`                                                         |
 | 수정 검증·제출                  | `src/features/comment/update/hooks/useUpdateComment.ts:27-143`                                                                     |
 | 삭제 확인                       | `src/features/comment/delete/hooks/useDeleteComment.ts:9-31`                                                                       |
 | 좋아요 버튼·feature 훅          | `src/features/comment/like/ui/LikeCommentButton.tsx:17-41`, `src/features/comment/like/hooks/useLikeComment.ts:5-7`                |
@@ -388,20 +388,20 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 바이트 스키마·전송량 추정       | `src/entities/comment/model/comment.schema.ts:8-15`, `src/entities/comment/utils/comment.util.ts:14-24`                            |
 | WAF 403 분류·문구               | `src/shared/api/client.ts:82-91`, `src/shared/lib/react-query/config/error-toast.ts:80-82`                                         |
 | 내 댓글 목록·카드               | `src/widgets/comment/my-comment-list/ui/MyCommentList.tsx:11-50`, `src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx:23-57` |
-| UI 문구                         | `src/shared/config/texts.ts:299` (`TEXTS.comment`)                                                                                 |
+| UI 문구                         | `src/shared/config/texts.ts:310` (`TEXTS.comment`)                                                                                 |
 
 ### 자주 하는 수정
 
-| 하고 싶은 것             | 방법                                                                                                                                                                                                                                                          |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 이미지 장수 변경         | `MAX_COMMENT_IMAGES` + BE 검증 동시 변경. 늘리면 7,500B 전송 상한 안에 들어가는지 다시 계산                                                                                                                                                                   |
-| 본문 길이 상한 변경      | §7 "함께 바꿔야 하는 값" 세 곳을 한 커밋에서. WAF 8,192B를 넘기는 값은 불가(`.claude/CLAUDE.md` WAF 항목)                                                                                                                                                     |
-| 답글 깊이 늘리기         | BE 변경이 먼저다 — BE `CommentService.kt`가 답글에 대한 답글을 "Max Depth 1"로 거절한다(248-253줄). FE도 `CommentItem.tsx:40`의 `depth < 1`만으로는 안 되고, `useCreateReplyMutation`이 루트의 `replies`만 찾으므로(comment.queries.ts 170-179줄) 함께 고친다 |
-| 루트 정렬을 오래된순으로 | `useCommentList.ts:16-18`의 비교 순서를 뒤집는다. 낙관적 삽입 위치(맨 앞)도 함께 맞춘다                                                                                                                                                                       |
-| 무효화 범위 조정         | `comment.keys.ts`의 `handleComment*Success`만 고친다(feature 훅에서 직접 무효화 금지)                                                                                                                                                                         |
-| 해시 이동 정렬·강조 시간 | `CommentList.tsx:46`(`block`), `:62`(시간), 도착 여백은 `CommentItem.tsx:51`                                                                                                                                                                                  |
-| 좋아요 실패 시 안내 추가 | `useLikeCommentMutation`의 `meta.manualErrorHandling`을 빼면 전역 토스트가 뜬다                                                                                                                                                                               |
-| 테스트 실행              | `npx vitest run src/entities/comment src/features/comment`, e2e는 `pnpm test:e2e e2e/comment.spec.ts`                                                                                                                                                         |
+| 하고 싶은 것             | 방법                                                                                                                                                                                                                                                                        |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 이미지 장수 변경         | `MAX_COMMENT_IMAGES` + BE 검증 동시 변경. 늘리면 7,500B 전송 상한 안에 들어가는지 다시 계산                                                                                                                                                                                 |
+| 본문 길이 상한 변경      | §7 "함께 바꿔야 하는 값" 세 곳을 한 커밋에서. WAF 8,192B를 넘기는 값은 불가(`.claude/CLAUDE.md` WAF 항목)                                                                                                                                                                   |
+| 답글 깊이 늘리기         | BE 변경이 먼저다 — BE `CommentService.kt`가 답글에 대한 답글을 "Max Depth 1"로 거절한다(답글 등록의 Depth Check). FE도 `CommentItem.tsx:40`의 `depth < 1`만으로는 안 되고, `useCreateReplyMutation`이 루트의 `replies`만 찾으므로(comment.queries.ts 170-179줄) 함께 고친다 |
+| 루트 정렬을 오래된순으로 | `useCommentList.ts:16-18`의 비교 순서를 뒤집는다. 낙관적 삽입 위치(맨 앞)도 함께 맞춘다                                                                                                                                                                                     |
+| 무효화 범위 조정         | `comment.keys.ts`의 `handleComment*Success`만 고친다(feature 훅에서 직접 무효화 금지)                                                                                                                                                                                       |
+| 해시 이동 정렬·강조 시간 | `CommentList.tsx:46`(`block`), `:62`(시간), 도착 여백은 `CommentItem.tsx:51`                                                                                                                                                                                                |
+| 좋아요 실패 시 안내 추가 | `useLikeCommentMutation`의 `meta.manualErrorHandling`을 빼면 전역 토스트가 뜬다                                                                                                                                                                                             |
+| 테스트 실행              | `npx vitest run src/entities/comment src/features/comment`, e2e는 `pnpm test:e2e e2e/comment.spec.ts`                                                                                                                                                                       |
 
 ## 9. 검증 결과
 
