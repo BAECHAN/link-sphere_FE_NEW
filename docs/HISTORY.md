@@ -1,4 +1,9 @@
 ### 2026-10-05 (BE)
+- 미사용 이미지 리소스 자동 정리 스케줄러 도입
+로그:
+- feat(upload): 아무도 쓰지 않는 업로드 이미지를 4일마다 자동 정리 ([#67](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/67))
+
+### 2026-10-05 (BE)
 - 댓글 삭제 시 외부 이미지 URL과 연동된 파일이 함께 삭제되던 버그 수정 및 로직 최적화 ([#66](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/66))
 
 ### 2026-10-05 (FE)
