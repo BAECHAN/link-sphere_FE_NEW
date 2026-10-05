@@ -8,7 +8,7 @@
 > 읽고 나면: 응답 타입이 어디서 오는지, 새 엔티티를 추가할 때 무엇을 만들어야 하는지,
 > BE 스펙이 바뀌면 무슨 일이 일어나는지, BE nullable 정보가 왜 가끔 유실되는지 알게 된다.
 >
-> 마지막 검토: 2026-09-30
+> 마지막 검토: 2026-10-05
 
 ## 1. 쉬운 설명
 
@@ -130,7 +130,7 @@ pnpm codegen         # 네트워크 X — openapi.json → openapi.gen.ts, CI가
 `openapi-typescript`(타입만, 런타임 0)를 골랐다. 대안이었던 `orval`(훅까지 생성)은 이
 레포와 직접 충돌한다 — ESLint `custom-query-rules/no-direct-query-import`가
 `@tanstack/react-query` import를 `*.queries.ts`/`hooks/`로 제한해 orval 생성 훅이 생성
-즉시 lint 위반이 되고, `apiClient`가 담당하는 401 자동 refresh(`client.ts:162-206`)·NFC
+즉시 lint 위반이 되고, `apiClient`가 담당하는 401 자동 refresh(`client.ts`의 `handleTokenExpired`)·NFC
 정규화·WAF 403 판별 같은 로직을 custom mutator로 다시 감싸야 해서 이점이 사라진다.
 `openapi-zod-client`도 검토했으나, 이 레포는 응답에 `.parse()`를 쓴 적이 없어(§9) 쓰지
 않는 런타임 코드가 번들에 들어가고, 기존 Zod에 섞인 FE 전용 검증(댓글 바이트 상한 등)은
@@ -177,14 +177,14 @@ export type { CategoryOption } from '@/entities/category/model/category.dto';
 이 기능은 새 스토어나 쿼리 키를 도입하지 않는다. 대신 "타입의 정본이 어디 있는가"가
 엔티티마다 세 갈래로 나뉜다:
 
-| 엔티티            | `.dto.ts` (응답 정본)                                                   | `.schema.ts`에 남은 것                                                                     |
-| ----------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `category`        | `CategoryOption`                                                        | 재수출만(2줄)                                                                              |
-| `auth`            | `LoginResponse`                                                         | `loginSchema`/`createAccountSchema`(폼)                                                    |
-| `bookmark-folder` | `BookmarkFolder`/`BookmarkFolderListResponse`/`BookmarkFoldersResponse` | `createBookmarkFolderSchema`/`bookmarkFolderSortEnum`(폼)                                  |
-| `comment`         | `Comment`/`MyComment`/`MyCommentListResponse`                           | `commentContentFormSchema`(폼)                                                             |
-| `account`         | `Account`                                                               | `updateAccountSchema`(폼), `nicknameValidationSchema`/`emailValidationSchema`(재사용 검증) |
-| `post`            | `Post`/`PostListResponse`/`PostListRequest`/`CreatePostResponse`        | `createPostSchema`/`updatePostSchema`(폼)                                                  |
+| 엔티티            | `.dto.ts` (응답 정본)                                                          | `.schema.ts`에 남은 것                                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `category`        | `CategoryOption`                                                               | 재수출만(2줄)                                                                                                                |
+| `auth`            | `LoginResponse`                                                                | `loginSchema`/`createAccountSchema` 외 비밀번호 재설정·변경, 이메일 인증 스키마(폼), `passwordValidationSchema`(재사용 검증) |
+| `bookmark-folder` | `BookmarkFolder`/`BookmarkFolderListResponse`/`BookmarkFoldersResponse`        | `createBookmarkFolderSchema`/`bookmarkFolderSortEnum`(폼)                                                                    |
+| `comment`         | `Comment`/`MyComment`/`MyCommentListResponse`                                  | `commentContentFormSchema`(폼)                                                                                               |
+| `account`         | `Account`                                                                      | `updateAccountSchema`/`deleteAccountSchema`(폼), `nicknameValidationSchema`/`emailValidationSchema`(재사용 검증)             |
+| `post`            | `Post`/`PostListResponse`/`PostListRequest`/`CreatePostResponse`/`LinkPreview` | `createPostSchema`/`updatePostSchema`(폼)                                                                                    |
 
 override가 있는 타입(원본 대신 `Omit<...> & {...}`로 재정의한 것)은 `src/shared/api/generated/openapi.gen.ts`를
 직접 읽지 않고 아래 §8 표에서 파일:줄로 찾는다.
@@ -237,7 +237,7 @@ override가 있는 타입(원본 대신 `Omit<...> & {...}`로 재정의한 것)
 | ---------------------------- | ------------------------------------ | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `bookmark-folder.lastUsedAt` | 넓힘(`string?` → `string \| null?`)  | `entities/bookmark/folder/model/bookmark-folder.dto.ts:13-15` | `$ref` 아님(원시 타입)이지만 Phase 4 시점엔 BE 컨버터가 아직 없어서 override. 지금은 BE가 이미 처리하므로 이 override는 안전한 중복(제거해도 무방하지만 유지 — §11) |
 | `comment.linkMetadata`       | 넓힘(`X?` → `X \| null?`)            | `entities/comment/model/comment.dto.ts:18-21`                 | `$ref` 프로퍼티라 BE 컨버터가 적용 안 됨. `CommentDTO.kt`의 실제 타입은 `LinkMetadata? = null`                                                                      |
-| `account.role`               | 좁힘(`string` → `'USER' \| 'ADMIN'`) | `entities/account/model/account.dto.ts:18-21`                 | BE가 enum class가 아니라 String으로 선언해(`AuthDTO.kt:37`) 스펙에 enum이 안 실림                                                                                   |
+| `account.role`               | 좁힘(`string` → `'USER' \| 'ADMIN'`) | `entities/account/model/account.dto.ts:18-21`                 | BE가 enum class가 아니라 String으로 선언해(`AuthDTO.kt`의 `AccountResponse.role`) 스펙에 enum이 안 실림                                                             |
 | `account.nickname`           | 좁힘(`string \| null?` → `string`)   | `entities/account/model/account.dto.ts:18-21`                 | 스펙은 nullable이지만 계정 생성 경로(`SignupRequest.nickname`)가 필수라 실제로는 항상 존재. 실측(§9)으로 확인                                                       |
 
 override 방향을 정하는 기준: **실제 런타임 데이터가 더 넓으면(값이 있을 수도, null일

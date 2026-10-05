@@ -29,6 +29,9 @@
     - Node.js 24 버전을 사용합니다 (`.nvmrc` 기준).
 3.  **Install Dependencies**:
     - `pnpm install --frozen-lockfile`로 의존성을 설치합니다.
+    - 이어서 `pnpm check`(타입 체크·린트·포맷·의존성 검사)와 `pnpm test`가 실행됩니다 —
+      하나라도 실패하면 빌드·배포로 넘어가지 않습니다(게이트 상세는
+      [CI-CHECK-GATE.md](./CI-CHECK-GATE.md)).
 4.  **Build**:
     - `pnpm build`(`package.json`: `tsc -b && vite build && node scripts/inject-csp.js`)로
       프로젝트를 빌드합니다 — 타입 체크 → Vite 빌드 → 마지막으로 `dist/index.html`에
@@ -56,7 +59,8 @@
     - invalidation 직후 실제 CloudFront URL(`vars.SITE_URL`, 미설정 시 하드코딩된
       도메인)을 직접 호출해 ①`/version.json`의 sha가 이번 커밋과 같은지(최대 2분
       재시도) ②`index.html`의 `cache-control`에 `no-store`가 여전히 있는지
-      ③라이브 entry 청크 해시가 방금 빌드한 것과 같은지 확인합니다. 자세한 근거는
+      ③라이브 entry 청크 해시가 방금 빌드한 것과 같은지 ④`/404.html`(없는 경로에 쓰는
+      `index.html` 사본)의 entry 청크 해시도 같은지 확인합니다. 자세한 근거는
       [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고.
 9.  **실패 시 알림** (`notify-failure` job):
     - 위 어느 스텝이든 실패하면 별도 job이 커밋 sha·run 링크를 담은 GitHub 이슈를
@@ -84,7 +88,7 @@ gh workflow run deploy.yml --repo BAECHAN/link-sphere_FE_NEW --ref main
 
 ## Storybook 공개 배포
 
-컴포넌트 스토리(54개 파일, 188개 케이스 — `shared/ui` 51개 + Provider 없이 렌더되는 entities·widgets
+컴포넌트 스토리(55개 파일, 191개 케이스 — `shared/ui` 52개 + Provider 없이 렌더되는 entities·widgets
 컴포넌트, 범위 기준은 [`FE-ARCHITECTURE.md`](FE-ARCHITECTURE.md) §18)를 같은 S3 버킷·CloudFront
 배포를 재사용해 `/storybook/` 경로에 공개 호스팅한다. 워크플로:
 [`.github/workflows/deploy-storybook.yml`](../.github/workflows/deploy-storybook.yml).
@@ -105,9 +109,10 @@ gh workflow run deploy.yml --repo BAECHAN/link-sphere_FE_NEW --ref main
 - **무효화 범위**: `/storybook/*`로 한정한다. `/*`를 쓰면 앱의 엣지 캐시까지
   비워 실사용자 지연과 오리진 요청 급증을 유발한다 — 스토리 수정 때문에 앱
   성능을 깎을 이유가 없다.
-- **자산 경로**: `vite.config.ts`의 `base: '/'`는 `.storybook/main.ts`가 그
-  설정 파일을 import하지 않아 Storybook 빌드에 상속되지 않는다. Storybook
-  10.1의 정적 빌드는 기본적으로 상대경로(`./assets/...`)를 생성하므로,
+- **자산 경로**: Storybook의 Vite 빌더(`@storybook/builder-vite`)는 프로젝트 루트의
+  `vite.config.ts`를 자동으로 읽어 병합하지만 `base`만은 `'./'`로 덮어쓴다(설치된
+  builder-vite 소스로 직접 확인, 2026-10-05) — 그래서 `vite.config.ts`의 `base: '/'`는
+  Storybook 빌드에 적용되지 않고, 정적 빌드는 상대경로(`./assets/...`)를 생성하므로,
   `/storybook/` 서브패스에서 그대로 정상 동작한다(직접 로컬 정적 서버로
   `/storybook/` 하위 서빙을 재현해 확인함) — 별도 `base` 설정이 필요 없다.
 - **롤백**: 워크플로우는 PR revert로 되돌리되, S3 객체는 자동으로 지워지지
@@ -180,7 +185,7 @@ GET이 아닌 문자열 바디가 있는 요청에는 `x-amz-content-sha256` 헤
 FormData를 보내는 프로덕션 경로가 없다(이미지 업로드는 Supabase 서명 URL로 직접
 감, `upload.api.ts` 참고). 전환 직후 한동안은 하위 호환이었다 — BE가
 `X-Access-Token`과 기존 `Authorization: Bearer` 둘 다 읽는다(`CHANGELOG.md`
-`[Unreleased]` "CloudFront Origin Access Control(OAC) 전환" 항목 참고).
+`[0.18.0]` "CloudFront Origin Access Control(OAC) 전환" 항목 참고).
 
 ## 커스텀 도메인 (수동 관리) — 적용 완료 (2026-09-29)
 
@@ -540,7 +545,9 @@ CI 파이프라인 자체를 재실행하려면(AWS 자격증명 불필요) 위 
 
 **주의**: `aws s3 sync dist/ ... --delete`를 `--exclude` 없이 그대로 쓰면 같은
 버킷의 `storybook/` 접두사(별도 워크플로 `deploy-storybook.yml`이 올리는 공개
-Storybook — 위 "Storybook 공개 배포" 절 참고)를 통째로 지운다. 이 sync는 또한
+Storybook — 위 "Storybook 공개 배포" 절 참고)를 통째로 지운다. `404.html`도 `dist/`에
+없는 파일이라(`deploy.yml`이 `index.html`을 복사해 따로 올린다) 함께 지워지고, 그러면 앱
+라우트가 아닌 모든 경로가 S3 403 XML이 된다(위 "CloudFront Function" 절). 이 sync는 또한
 `index.html`·`version.json`·`assets/`·`fonts/`가 각각 받는 무캐시/장기 캐시 구분
 없이 전부 기본 헤더로 올려 캐시 정책도 깨진다. 가능하면 로컬 수동 배포 대신 위
 "GitHub Actions 수동 재실행"으로 정식 파이프라인(`deploy.yml`)을 재실행하는 쪽을
@@ -550,9 +557,14 @@ Storybook — 위 "Storybook 공개 배포" 절 참고)를 통째로 지운다. 
 # 1. 빌드
 pnpm build
 
-# 2. S3 업로드 (버킷명 변경 필요, storybook/ 접두사는 보존)
-aws s3 sync dist/ s3://<YOUR_BUCKET_NAME> --delete --exclude "storybook/*"
+# 2. 404.html 업로드 (index.html 사본 - deploy.yml과 같은 무캐시 정책)
+aws s3 cp dist/index.html s3://<YOUR_BUCKET_NAME>/404.html \
+  --cache-control "no-cache, no-store, must-revalidate" \
+  --content-type "text/html"
 
-# 3. CloudFront 무효화 (Distribution ID 변경 필요)
+# 3. S3 업로드 (버킷명 변경 필요, storybook/ 접두사와 위 404.html은 보존)
+aws s3 sync dist/ s3://<YOUR_BUCKET_NAME> --delete --exclude "storybook/*" --exclude "404.html"
+
+# 4. CloudFront 무효화 (Distribution ID 변경 필요)
 aws cloudfront create-invalidation --distribution-id <YOUR_DISTRIBUTION_ID> --paths "/*"
 ```

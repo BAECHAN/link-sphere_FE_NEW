@@ -10,13 +10,14 @@
 > 토큰 카탈로그를 어떻게 보는지, Storybook a11y 게이트가 CI에서 어떻게 도는지 안다.
 > spacing 토큰은 왜 없는지, 지금 아는 a11y 위반이 뭐고 왜 아직 안 고쳤는지도 안다.
 >
-> **마지막 검토**: 2026-09-30
+> **마지막 검토**: 2026-10-05
 
 ## 1. 쉬운 설명
 
 이 레포는 한글 UI 문자열에 이미 완성된 시스템이 있다 — 모든 문구는
 `src/shared/config/texts.ts`의 `TEXTS.*`에 모여 있고, ESLint
-`custom-i18n/no-hardcoded-hangul`이 한글을 직접 쓰면 빌드를 막는다. 그래서 문구가
+`custom-i18n/no-hardcoded-hangul`이 한글을 직접 쓰면 pre-commit(lint-staged)과 CI·배포의
+`pnpm check`에서 막는다(`pnpm build` 자체는 ESLint를 돌리지 않는다). 그래서 문구가
 일관된다. 스타일에는 색상 축(`globals.css`)에만 이런 사전이 있었고, 그 외(spacing·
 타이포·z-index)에는 없었다 — 그래서 같은 파일 안에서도 페이지 제목이 세 가지 크기로
 갈리고, 아이콘 크기 지정이 조용히 무시되는 일이 생겼다.
@@ -99,6 +100,7 @@ flowchart LR
         E2["no-raw-color"]
         E3["no-classname-template-literal"]
         E4["no-raw-title (신규)<br/>텍스트 크기+font-semibold/bold 조합"]
+        E5["no-raw-text-size<br/>px 임의값 폰트 크기"]
     end
     subgraph catalog ["4. 카탈로그 (Storybook)"]
         S1["DesignTokens.stories.tsx<br/>Colors·Radius·ZIndex·Typography·RoleTokens(8종)"]
@@ -119,7 +121,7 @@ flowchart LR
 import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있다. `globals.css`의 토큰 중
 `--category`(카테고리 배지)는 link-sphere 도메인 고유값이고, 나머지(z-index 스케일,
 반경, 딤 오버레이 등)는 범용이다 — 이번 라운드는 실제 레지스트리 인프라를 만들지
-않고, 이 구분만 §4의 표로 남겨 다음 프로젝트를 시작할 때 그대로 추출할 수 있게 했다
+않고, 이 구분만 이 문단에 남겨 다음 프로젝트를 시작할 때 그대로 추출할 수 있게 했다
 (2026-09-13 대화에서 확정, 레지스트리 자체 구축은 범위 밖으로 결정). `--category-1`~`8`
 (2026-09-21 추가)도 같은 분류 - 카테고리 개수·id 기반 배정이 link-sphere 고유
 비즈니스 규칙이다.
@@ -166,7 +168,7 @@ URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`�
 | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 새 z-index 층 추가                                | `src/app/globals.css`의 `@theme static` 블록 (§ z-index 주석)                                                  | `--z-index-<name>: <값>` 추가 → `design-tokens` skill 표 갱신 → `DesignTokens.stories.tsx`의 `Z_INDEX_LAYERS` 배열에 항목 추가                                                                                                                                                                            |
 | 새 색 토큰 추가                                   | `globals.css`의 `:root`/`.dark` + `@theme inline` 매핑                                                         | 값 정의 → `--color-<name>: var(--<name>)` 매핑 추가 → skill 문서 표 갱신                                                                                                                                                                                                                                  |
-| 새 Tailwind 커스텀 ESLint 룰 추가                 | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화) | 기존 5개 룰(`no-raw-z-index`/`no-raw-color`/`no-raw-text-size`/`no-raw-title`/`no-classname-template-literal`, 2026-09-29 재확인)과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭) 따르기                                                                                         |
+| 새 Tailwind 커스텀 ESLint 룰 추가                 | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화) | 기존 5개 룰(`no-raw-z-index`/`no-raw-color`/`no-raw-text-size`/`no-raw-title`/`no-classname-template-literal`, 2026-09-29 재확인)과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭 — `no-classname-template-literal`만 `JSXAttribute`/`VariableDeclarator` 방문) 따르기            |
 | 새 타이포 역할 토큰 추가                          | `globals.css`의 (static 아닌) `@theme` 블록                                                                    | `--text-<role>`/`--text-<role>--line-height`(필요시 `--font-weight`) 추가 → 실제 사용처에 클래스 적용 → `design-tokens` skill 역할 토큰 표 갱신                                                                                                                                                           |
 | 토큰 카탈로그에 새 섹션 추가                      | `src/shared/ui/tokens/DesignTokens.stories.tsx`                                                                | 새 `export const <Name>: Story` 추가(기존 `Colors`/`Radius`/`ZIndex` 참고)                                                                                                                                                                                                                                |
 | Storybook에서 다크모드 확인                       | `.storybook/preview.tsx`의 툴바 테마 토글                                                                      | 별도 설정 불필요 — 이미 `.dark` 클래스를 토글하도록 연결됨                                                                                                                                                                                                                                                |
@@ -542,7 +544,8 @@ Storybook a11y 게이트가 실측한 4개 토큰의 라이트 모드 대비 미
   통일)과 `PostListSearch.tsx`의 필터 카드(공용 `Card` 재사용, raw div
   재구현 정리)를 고쳤다.
   - **로딩 스피너 래퍼 패딩(재검토 결과 버그 아님으로 판단)**: `py-10`
-    (`BookmarkFolderSelectDialog.tsx`, 모달 내부)·`py-4`(`FolderTree.tsx`,
+    (`BookmarkFolderSelectDialog.tsx`, 모달 내부 — #275 이후 스켈레톤 행으로 바뀌어 지금은
+    없다)·`py-4`(`FolderTree.tsx`,
     좁은 사이드바)는 `py-12`(`BookmarkPostList.tsx`/`MobileFolderList.tsx`,
     전체 화면 본문 영역)와 다르지만, 다시 읽어보니 **맥락(좁은 임베드 공간 vs
     본문 영역)이 실제로 달라 의도된 밀도 차이일 가능성이 높다** — 처음엔

@@ -16,7 +16,7 @@ https://linksphere.click/post (구 도메인 https://dbw3brui6htwk.cloudfront.ne
 
 https://linksphere.click/storybook/ (구 도메인 https://dbw3brui6htwk.cloudfront.net/storybook/ 도 계속 동작)
 
-`shared/ui` 중심의 컴포넌트 스토리(54개 파일, 188개 케이스)를 공개 배포한 것입니다. 로컬에서 보려면
+`shared/ui` 중심의 컴포넌트 스토리(55개 파일, 191개 케이스)를 공개 배포한 것입니다. 로컬에서 보려면
 아래 "스토리북" 섹션을 참고하세요.
 
 ## 테스트 계정
@@ -103,21 +103,21 @@ pnpm storybook
 | `pnpm test`                 | 테스트 1회 실행 (CI / pre-push 동일)                                         |
 | `pnpm test:watch`           | 테스트 감시 모드 (파일 변경 시 재실행)                                       |
 | `pnpm test:coverage`        | 커버리지 리포트 생성 (`coverage/index.html`)                                 |
-| `pnpm test:e2e`             | Playwright e2e 테스트 (Chromium 헤드리스)                                    |
+| `pnpm test:e2e`             | Playwright e2e 테스트 (chromium + mobile-chrome, 헤드리스)                   |
 
 ## 기술 스택
 
-| 항목         | 기술                                                                          |
-| ------------ | ----------------------------------------------------------------------------- |
-| Framework    | React 18, TypeScript 5.7, Vite 6                                              |
-| Routing      | React Router 6                                                                |
-| Server State | TanStack Query 5                                                              |
-| Client State | Zustand 5                                                                     |
-| Form         | React Hook Form 7, Zod 3                                                      |
-| UI           | Shadcn/ui (Radix UI), TailwindCSS 4, CVA                                      |
-| 기타         | Sonner, Supabase JS, dayjs, Firebase(FCM)                                     |
-| 개발 도구    | ESLint 9, Prettier 3, Husky, Storybook 10                                     |
-| 테스트       | Vitest 4, jsdom, Testing Library, MSW 2, @vitest/coverage-v8, Playwright(e2e) |
+| 항목         | 기술                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------ |
+| Framework    | React 18, TypeScript 5.7, Vite 6                                                     |
+| Routing      | React Router 6                                                                       |
+| Server State | TanStack Query 5                                                                     |
+| Client State | Zustand 5                                                                            |
+| Form         | React Hook Form 7, Zod 3                                                             |
+| UI           | Shadcn/ui (Radix UI), TailwindCSS 4, CVA                                             |
+| 기타         | Sonner, Supabase JS(의존성만 선언돼 있고 코드에서는 쓰지 않음), dayjs, Firebase(FCM) |
+| 개발 도구    | ESLint 9, Prettier 3, Husky, Storybook 10                                            |
+| 테스트       | Vitest 4, jsdom, Testing Library, MSW 2, @vitest/coverage-v8, Playwright(e2e)        |
 
 ## 프로젝트 구조
 
@@ -147,7 +147,7 @@ entities/<entity>/api/
 └── *.queries.ts   # useQuery / useMutation 래퍼 훅
 ```
 
-일부 엔티티는 예외다 — `interaction`은 `keys.ts` 없이 다른 엔티티의 키를 직접 쓴다.
+일부 엔티티는 예외다 — `interaction`은 `keys.ts` 없이 다른 엔티티의 `@x` 공개 표면을 거쳐 그 키를 쓴다.
 `upload`는 엔티티가 아니라 `shared/api/upload.api.ts`로 이동했다(용도별 정책 없이
 서명 URL 발급만 담당하는 범용 API라 entity가 아니었다). 상세는 FE-ARCHITECTURE.md
 §3·§4 참고.
@@ -182,7 +182,7 @@ features/<도메인>/<액션>/
 
 **독립 기능 문서(서사형)** — "지금 어떻게 동작하는가"
 
-- [`docs/AUTH.md`](docs/AUTH.md) — 인증·세션·토큰 갱신: 세 개의 독립된 인증 게이트, 상태 저장 위치, 401 자동 갱신
+- [`docs/AUTH.md`](docs/AUTH.md) — 인증·세션·토큰 갱신: 네 개의 독립된 인증 게이트(이메일 인증 쓰기 인가 포함), 상태 저장 위치, 401 자동 갱신
 - [`docs/BOOKMARK.md`](docs/BOOKMARK.md) — 북마크 페이지: 폴더 분류, 반응형 3분기, 폴더 내 검색
 - [`docs/BUILD-VERSION.md`](docs/BUILD-VERSION.md) — 배포 반영 확인: `/version` 화면과 CI 자동 검증으로 "지금 이 탭"과 "서버에 배포된 것"을 대조
 - [`docs/CI-CHECK-GATE.md`](docs/CI-CHECK-GATE.md) — `pnpm check`가 실제로는 아무 데도 안 걸려 있던 문제와 PR·배포 게이트 정비

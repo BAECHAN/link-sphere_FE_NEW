@@ -20,7 +20,7 @@ export const postApi = {
    * @returns CreatePostResponse
    */
   createPost: async (payload: CreatePost): Promise<CreatePostResponse> => {
-    // keepalive: 제출 직후 폼을 리셋하고 페이지를 이동하므로, 탭을 닫아도
+    // keepalive: 폼이 응답을 기다리는 동안 탭을 닫거나 새로고침해도
     // 브라우저가 이미 시작된 요청을 끝까지 전송하도록 보장한다.
     return await apiClient.post<CreatePostResponse>(API_ENDPOINTS.post.base, payload, {
       keepalive: true,
@@ -79,7 +79,7 @@ export const postApi = {
   },
 
   updatePost: async (postId: string, payload: UpdatePost): Promise<Post> => {
-    // keepalive: createPost와 동일한 이유 - 제출 직후 뒤로가기하므로, 탭을 닫아도
+    // keepalive: createPost와 동일한 이유 - 응답을 기다리는 동안 탭을 닫거나 새로고침해도
     // 브라우저가 이미 시작된 요청을 끝까지 전송하도록 보장한다.
     return await apiClient.patch<Post>(`${API_ENDPOINTS.post.base}/${postId}`, payload, {
       keepalive: true,

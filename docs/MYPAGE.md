@@ -7,7 +7,7 @@
 > **읽고 나면**: 저장 실패 시 입력값이 유지되는 방식과 닉네임 중복확인이 어떻게
 > 동작하는지 이해하고, 이 폼에 필드를 추가하거나 캐시 무효화 범위를 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-09-29
+> **마지막 검토**: 2026-10-05
 
 "계정 설정"(`/my/account`) 페이지 맨 위, 비밀번호 변경 섹션 바로 위에 있는
 프로필 섹션입니다. 닉네임 변경 및 프로필 이미지(아바타) 교체를 지원합니다.
@@ -155,7 +155,7 @@ JSON `null`로 직렬화된다. `z.string().optional()`은 `null`을 거부하�
 (`UpdateAccountForm.tsx`). 그 컴포넌트의 실제 fallback 조건은 `!image`뿐이 아니라
 `(!image || hasError) && nicknameInitial`이다 — `hasError`는 `AvatarImage`의
 `onLoadingStatusChange`가 `'error'`를 보고할 때만 켜지는 로컬 상태이고, `image`
-prop이 바뀔 때마다(`useEffect`) 초기화된다. `image && !hasError`일 때만
+prop이 바뀌면 렌더 중에 이전 값(`prevImage`)과 비교해 초기화된다(effect 아님). `image && !hasError`일 때만
 `AvatarImage`를 렌더링하고, `showFallback`(`(!image || hasError) &&
 nicknameInitial`)일 때만 `AvatarFallback`을 렌더링해 두 요소가 동시에 DOM에
 있는 경우를 없애므로, 로딩 중 → Fallback → 이미지 순의 깜빡임이 생기지 않는다.
@@ -274,7 +274,8 @@ src/
 │   │   │   ├── account.queries.ts           # useUpdateAccountMutation (§5)
 │   │   │   └── account.keys.ts              # handleAccountUpdateSuccess (§6)
 │   │   └── model/
-│   │       └── account.schema.ts            # updateAccountSchema, Account
+│   │       ├── account.dto.ts               # Account(BE 스펙 생성 alias)
+│   │       └── account.schema.ts            # updateAccountSchema
 │   ├── auth/
 │   │   └── api/
 │   │       └── auth.queries.ts              # useLogoutMutation (§5)

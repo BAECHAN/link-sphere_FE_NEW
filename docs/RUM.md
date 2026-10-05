@@ -7,7 +7,7 @@
 > **읽고 나면**: RUM이 어떻게 수집·전송되는지, 그 데이터를 실제 개선에 어떻게
 > 쓰는지 알고, App Monitor 설정을 바꾸거나 재부트스트랩할 수 있다.
 >
-> **마지막 검토**: 2026-09-29
+> **마지막 검토**: 2026-10-05
 
 AWS CloudWatch RUM으로 실사용자(방문자)의 페이지 로딩 성능·에러를 자동 수집합니다.
 Cognito 없이 리소스 기반 정책으로 익명 수집하며, FE 코드에는 `index.html`의
@@ -42,7 +42,7 @@ flowchart TD
 이 문서는 **왜** Cloudflare Web Analytics 대신 CloudWatch RUM을 택했는지는
 다루지 않는다 — `docs/DECISIONS.md` 2026-09-26 "RUM" 항목을 먼저 본다. AWS
 IAM의 기본 개념(정책, 리소스 기반 정책)과 이 레포가 BE 배포에도 쓰는 AWS
-계정 구조(`link-sphere-user`, `docs/DEPLOY.md`)를 안다고 가정한다.
+계정 구조(`link-sphere-user`, BE 저장소 `docs/DEPLOY.md`)를 안다고 가정한다.
 
 ## 3. 사용한 도구·기술
 

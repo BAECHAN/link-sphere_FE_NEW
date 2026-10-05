@@ -8,7 +8,7 @@
 > 코드"와 "서버에 실제로 올라간 코드"를 어떻게 비교하는지, 배지 색이 왜 그 색인지,
 > 검증이 실패하면 어떻게 알림이 오는지 알고 판정 조건을 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-09-30
+> **마지막 검토**: 2026-10-05
 
 배포 워크플로우가 success로 끝났다는 것과, 실제로 그 코드가 사용자 화면에 반영된
 것은 다른 사건이다. 이 기능은 그 둘 사이를 사람이 눈으로(`/version` 화면), 그리고
@@ -43,6 +43,7 @@ flowchart TD
     B --> D["s3 sync assets/<br/>max-age=31536000"]
     C --> E["s3 cp version.json<br/>no-cache, no-store"]
     F["s3 cp index.html<br/>no-cache, no-store"] --> G["CloudFront invalidation /*"]
+    F2["s3 cp index.html → 404.html<br/>no-cache, no-store"] --> G
     D --> G
     E --> G
   end
@@ -51,9 +52,11 @@ flowchart TD
     G --> H["curl /version.json<br/>.sha == GITHUB_SHA ?"]
     G --> I["curl -I /index.html<br/>cache-control에 no-store ?"]
     G --> J["curl /index.html entry 해시<br/>== dist/index.html ?"]
-    H --> K{"셋 다 통과?"}
+    G --> J2["curl /404.html entry 해시<br/>== dist/index.html ?"]
+    H --> K{"넷 다 통과?"}
     I --> K
     J --> K
+    J2 --> K
     K -->|예| M["배포 성공"]
     K -->|아니오| L["notify-failure job<br/>gh issue create"]
   end
@@ -144,7 +147,7 @@ mode}`(커밋 단위로 결정론적인 값)만 담고, `builtAt`·`runNumber`�
 자체를 호출하지 않아(`useAppVersionCheck.ts:26-28`) 이 문제가 드러난 적이 없었다.
 `VersionPage`는 이 함수를 새로 노출하는 자리라 이 문제가 처음 드러났고, `VersionUtil`
 쪽을 고치는 대신 `VersionPage`가 DEV 모드에서 그 줄 자체를 숨긴다
-([VersionPage.tsx:105-111](../src/pages/version/VersionPage.tsx#L105-L111)) —
+([VersionPage.tsx:106-113](../src/pages/version/VersionPage.tsx#L106-L113)) —
 `VersionUtil`의 계약은 그대로 유지된다.
 
 ### 배너 색과 세 가지 상태
@@ -213,11 +216,11 @@ Public 레포라(`gh repo view` 확인, 2026-09-20) `/version`이 링크하는 �
 
 ## 7. 운영 파라미터
 
-| 값                                        | 위치                                                            | 의미                                                                      |
-| ----------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| 검증 재시도 횟수·간격(12회·10초=최대 2분) | [deploy.yml:131-138](../.github/workflows/deploy.yml#L131-L138) | `version.json` 전파 지연을 감안한 재시도 한도                             |
-| `SITE_URL` 폴백                           | [deploy.yml:122](../.github/workflows/deploy.yml#L122)          | 레포 Variable 미설정 시 하드코딩된 커스텀 도메인(`linksphere.click`) 사용 |
-| `concurrency.group`(`deploy-main`)        | [deploy.yml:26-28](../.github/workflows/deploy.yml#L26-L28)     | 연속 push 시 배포가 대기열로 처리(취소 아님)                              |
+| 값                                        | 위치                                                                                        | 의미                                                                      |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| 검증 재시도 횟수·간격(12회·10초=최대 2분) | [deploy.yml](../.github/workflows/deploy.yml) "배포 반영 검증" 스텝의 `seq 1 12`·`sleep 10` | `version.json` 전파 지연을 감안한 재시도 한도                             |
+| `SITE_URL` 폴백                           | [deploy.yml](../.github/workflows/deploy.yml) "배포 반영 검증" 스텝의 `env.SITE_URL`        | 레포 Variable 미설정 시 하드코딩된 커스텀 도메인(`linksphere.click`) 사용 |
+| `concurrency.group`(`deploy-main`)        | [deploy.yml:26-28](../.github/workflows/deploy.yml#L26-L28)                                 | 연속 push 시 배포가 대기열로 처리(취소 아님)                              |
 
 ## 8. 코드 지도와 자주 하는 수정
 

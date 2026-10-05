@@ -18,7 +18,8 @@ const NEW_POST = { ...mockPost, id: 'post-uuid-new', url: NEW_URL, title: NEW_TI
 // 옵저버 + MSW 정밀 타이밍 제어) 양쪽에서 시도했으나 안정적으로 재현하지 못했다. 원인은
 // cancelQueries의 기본 옵션(revert:true)이 handlePostCreateSuccess의 invalidateQueries가
 // 만드는 후속 활성 재조회와 얽히는 React Query 내부 상호작용으로 보이며, 이 스펙의 범위를
-// 벗어나는 별도 조사가 필요해 제외했다(2026-09-14, docs/plans 참고).
+// 벗어나는 별도 조사가 필요해 제외했다(2026-09-14, docs/plans 참고). 이후 #308에서 등록이 응답을
+// 기다린 뒤 이동하도록 바뀌어 이 시나리오의 전제 자체가 사라졌다(docs/TESTING.md 제외 판정 표).
 test.describe('게시글 등록', () => {
   test.beforeEach(async ({ page }) => {
     await installCatchAll(page);

@@ -28,7 +28,7 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 
 ## Easing 규약
 
-레포 전체에 `ease-*` 클래스 사용이 0건이다(전부 브라우저 기본 easing에 의존).
+레포 전체에 `ease-*` 클래스 사용이 1건뿐이다(`select.tsx` 화살표의 `ease-in-out`, 나머지는 전부 브라우저 기본 easing에 의존).
 앞으로는:
 
 > "Never use ease-in for UI animations. It starts slow, which makes the
@@ -55,7 +55,7 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 `transition-all`이 12건 있다 — 레이아웃까지 포함한 모든 속성 변화를 감시해
 불필요한 리페인트 비용이 든다. 새 코드는 실제로 바뀌는 속성만 지정한다
 (`transition-colors`/`transition-opacity`/`transition-transform` — 레포에
-이미 각각 10/4/3건 선례가 있다). 기존 12건은 이번 skill 도입만으로 일괄
+이미 각각 10/5/4건 선례가 있다). 기존 12건은 이번 skill 도입만으로 일괄
 리팩터링하지 않는다.
 
 ## `prefers-reduced-motion` 미대응
@@ -75,7 +75,7 @@ CSS만으로 exit(사라짐) 애니메이션을 만들 때 "화면에서 사라�
 | 값                     | 위치                                                                                                                                                                  |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `TRANSITION_MS = 200`  | `src/shared/ui/elements/ScrollToTop.tsx:10`, `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.tsx:9` — 각자 독립 선언, CSS `duration-200`과 수동 동기화 |
-| `setTimeout(..., 300)` | `src/shared/ui/elements/dialog/alert/alert.store.ts:74`, `src/shared/ui/elements/dialog/alert/Alert.tsx:55`                                                           |
+| `setTimeout(..., 300)` | `src/shared/ui/elements/dialog/alert/alert.store.ts:74`, `src/shared/ui/elements/dialog/alert/Alert.tsx:56`                                                           |
 
 같은 패턴(exit 애니메이션 + `shouldRender` 상태 + `setTimeout`)을 새로 만들
 때는 이 값이 실제 CSS `duration-*` 클래스와 정확히 일치해야 한다는 걸 놓치지

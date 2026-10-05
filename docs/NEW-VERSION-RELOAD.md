@@ -7,7 +7,7 @@
 > **읽고 나면**: 배포 후 열려 있던 탭이 왜·언제 자동으로 새로고침되는지, 스로틀·루프
 > 가드가 무엇을 막는지 알고, 감지 주기나 판정 조건을 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-09-20
+> **마지막 검토**: 2026-10-05
 
 배포 직후에도 이미 열려 있던 탭은 계속 구 버전 JS 번들을 쓴다. 이 기능은 탭이
 포커스를 받을 때마다 서버의 최신 `index.html`을 확인해 새 배포 여부를 판단하고,
@@ -91,8 +91,8 @@ Zustand 기본 개념과 React Router의 `useLocation`/`useBlocker`를 안다고
 ## 4. 왜 만들었나
 
 배포 후 구 번들을 계속 쓰는 문제에 대해 이 레포엔 이미 사후 대응 하나가 있다 —
-`AppErrorFallback`이 청크 로드 실패(`ChunkLoadError`류 에러 메시지)를 잡아 세션당
-한 번 자동 새로고침한다(`shared/utils/error.util.ts`의 `isChunkLoadError`,
+`AppErrorFallback`이 청크 로드 실패(`ChunkLoadError`류 에러 메시지)를 잡아 경로별로
+세션당 한 번 자동 새로고침한다(`shared/utils/error.util.ts`의 `isChunkLoadError`,
 `shared/config/storage-keys.ts`의 `chunkReloadKey`). 하지만 이건 **사용자가 실제로
 삭제된 구 청크를 요청해서 에러가 나야만** 발동한다 — 지연 로드되는 라우트로
 이동하기 전까지는 감지되지 않고, 그마저도 "에러 화면을 잠깐 스쳐 지나가는" 경험이다.

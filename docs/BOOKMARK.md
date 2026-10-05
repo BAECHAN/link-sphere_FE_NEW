@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-03
+> **마지막 검토**: 2026-10-05
 
 ## 1. 쉬운 설명
 
@@ -69,7 +69,8 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
   된 변경을 덮어쓰지 않는다(§10). `BookmarkPage.tsx`는 이 훅의 반환값을 받아 렌더링만
   한다(#227, URL 파라미터 처리 로직을 `pages/*/hooks/`로 옮긴 pages-first 원칙).
 - **TanStack Query** — 폴더 목록·폴더별 게시글 무한 스크롤·낙관적 업데이트
-- **Zod** — `bookmark-folder.schema.ts`의 폴더·요청/응답 스키마
+- **Zod** — `bookmark-folder.schema.ts`의 폴더 생성/수정 요청 스키마·정렬 enum(응답 타입은
+  `bookmark-folder.dto.ts`의 BE OpenAPI 생성 타입 alias, §6)
 - **Radix Dialog 기반 `BookmarkFolderSelectDialog`** — 데스크탑 중앙 모달 / 모바일 Bottom Sheet
   (`SheetDialogContent`) 공용 프레젠테이션. (2026-09-08 정정: 이전엔 "Popover 기반"으로
   적혀 있었으나 실제 코드는 Popover를 쓴 적이 없다 — `Dialog` + `SheetDialogContent`뿐)
@@ -306,7 +307,7 @@ Shneiderman(1994)](https://dl.acm.org/doi/10.1145/174630.174632)의 split menu
 `docs/FE-ARCHITECTURE.md` §26) —
 저장 동작을 콜백으로 넘기는 쪽이 즉시 저장인지 지연 선택인지에 따라 핵심 동작이 갈린다.
 
-|                         | `PostCardBookmarkFolderDialog`(북마크 페이지)                                 | `PostCreateBookmarkFolderField`(등록 폼)                                            |
+|                         | `PostCardBookmarkFolderDialog`(PostCard — 피드·상세·북마크 공용)              | `PostCreateBookmarkFolderField`(등록 폼)                                            |
 | ----------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | 대상                    | 이미 존재하는 북마크                                                          | 아직 만들어지지 않은 게시글                                                         |
 | 행 탭                   | 즉시 API 호출로 저장/제거 + 모달 닫힘                                         | 폼의 `bookmark`/`folderIds` 값만 변경, 모달 안 닫힘                                 |
@@ -384,9 +385,9 @@ bookmarkFolderKeys.posts(folderKey, sort, search);
 지금은 없다 — 다만 여전히 `Date` 메서드를 직접 호출하지 말고 `dayjs(value)`로
 감싸야 한다(CLAUDE.md의 `new Date()`/`.getTime()` 금지 규칙,
 `entities/bookmark/folder/utils/bookmark-folder.util.ts`의 `pickRecentFolders` 참고).
-BE 스펙 자체는 `lastUsedAt`을 optional로만 표기하지만(nullable 미표기, springdoc이
-Kotlin nullable을 required 여부로만 반영), 런타임은 Jackson `JsonInclude.ALWAYS`라
-키가 항상 있고 값이 `null`로 온다 — `bookmark-folder.dto.ts` 파일 상단 주석 참고.
+BE 스펙도 `lastUsedAt`을 optional + `nullable: true`로 표기하고(`shared/api/generated/openapi.json`의
+`FolderResponse`, #139 이후), 런타임은 Jackson `JsonInclude.ALWAYS`라 키가 항상 있고 값이
+`null`로 온다 — `bookmark-folder.dto.ts`의 타입 넓히기는 이제 생성 타입과 같은 모양이다(파일 상단 주석 참고).
 
 ## 7. 운영 파라미터
 
@@ -536,8 +537,8 @@ src/
 
 테스트: `src/mocks/fixtures/bookmark-folder.fixtures.ts`,
 `src/mocks/handlers/bookmark-folder.handlers.ts`(폴더 목록 + 소속 3개 엔드포인트 기본
-핸들러), §9의 8개 테스트 파일(`find src/widgets/bookmark src/features/bookmark -name
-"*.test.*" | wc -l`로 재확인, 2026-09-29).
+핸들러), §9의 7개 테스트 파일(`find src/widgets/bookmark src/features/bookmark -name
+"*.test.*" | wc -l`로 재확인, 2026-10-05).
 
 이 문서에서 파일명만으로 등장하는 식별자의 위치: `activeFolderKey`는
 `useBookmarkPage.ts:47`(`pages/bookmark/hooks/`)의 로컬 변수(`folderKey ?? 'all'`,
@@ -546,14 +547,14 @@ src/
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                      | 방법                                                                                                                                                                               |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "최근 저장한 폴더" 노출 개수 조정 | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`(§7 완전 일치 배제 조건도 이 값을 그대로 참조하므로 함께 검토)                          |
-| 정렬 옵션 추가                    | `bookmark-folder.schema.ts`의 `bookmarkFolderSortEnum`에 값 추가 + BE 대응 필요                                                                                                    |
-| 폴더 내 검색 빈 상태 문구 변경    | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                                                                    |
-| 모바일 감지 기준 변경             | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                                                                    |
-| 새 폴더 만들기 취소 동작 변경     | 세 곳 각각의 `handleCancel`/`handleCancelCreate` — `useBookmarkFolderSelect.ts`, `useFolderTree.ts`(`useInlineCreateFolderInput`), `useMobileFolderList.ts`(`useCreateFolderCard`) |
-| 테스트 실행                       | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-tree src/features/bookmark/toggle src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`     |
+| 하고 싶은 것                      | 방법                                                                                                                                                                                                                                                                                             |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "최근 저장한 폴더" 노출 개수 조정 | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`(§7 완전 일치 배제 조건도 이 값을 그대로 참조하므로 함께 검토)                                                                                                                                        |
+| 정렬 옵션 추가                    | `bookmark-folder.schema.ts`의 `bookmarkFolderSortEnum` + `useBookmarkPage.ts`의 `VALID_SORTS`(드롭다운·URL 파싱) + `BookmarkPage.tsx`의 `SORT_LABELS` + `TEXTS.bookmark.folder.sort.*`에 값 추가 + BE 대응 필요 — `VALID_SORTS`를 빠뜨리면 드롭다운에 안 뜨고 `?sort=새값`이 `latest`로 떨어진다 |
+| 폴더 내 검색 빈 상태 문구 변경    | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                                                                                                                                                                                  |
+| 모바일 감지 기준 변경             | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                                                                                                                                                                                  |
+| 새 폴더 만들기 취소 동작 변경     | 세 곳 각각의 `handleCancel`/`handleCancelCreate` — `useBookmarkFolderSelect.ts`, `useFolderTree.ts`(`useInlineCreateFolderInput`), `useMobileFolderList.ts`(`useCreateFolderCard`)                                                                                                               |
+| 테스트 실행                       | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-tree src/features/bookmark/toggle src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`                                                                                                                   |
 
 ## 9. 검증 결과
 
@@ -1032,7 +1033,7 @@ CSS 정렬 버그 하나에 들이기엔 과한 인프라라고 판단했다.
   전부 이 접두사를 쓰는데 entities만 안 쓰던 불일치를 해소). 2026-09-30 Dialog 명칭
   통일(`docs/FE-ARCHITECTURE.md` §18)로 지금 이름이 됐다.
 - **`PostCreateBookmarkFolderField`** — §5 "링크 등록 폼의 폴더 선택" 참고. 등록 폼
-  전용이고, 북마크 페이지의 `PostCardBookmarkFolderDialog`와는 별개 컴포넌트다
+  전용이고, PostCard(피드·상세·북마크 공용)의 `PostCardBookmarkFolderDialog`와는 별개 컴포넌트다
   (2026-09-08 이전에는 각각 `BookmarkFolderPicker`·`FolderSelector`로, 그 뒤
   `BookmarkFolderField`·`BookmarkFolderModal`로 불렸으나 `entities/bookmark/folder/ui/FolderPickerModal`
   (현재 `BookmarkFolderSelectDialog`)과 이름·설명이 겹쳐 구분이 안 돼 호출 맥락 접두사

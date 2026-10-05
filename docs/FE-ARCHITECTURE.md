@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-09-22
+> **마지막 검토**: 2026-10-05
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -18,10 +18,11 @@
 
 이 프로젝트는 **Feature-Sliced Design(FSD)을 뼈대로 쓰되, FSD의 핵심 규칙 중 하나(Public
 API)를 성능을 이유로 정반대로 채택**하고, 그 위에 도메인 그룹핑·3-Layer API 등 여러 패턴을
-얹은 변형이다. "FSD를 그대로 쓴다"고 기대하면 두 가지에서 어긋난다 — 슬라이스는 `index.ts`
-배럴로 캡슐화되지 않고(import 문자열이 `/index`로 끝나는 배럴 import만 금지 — 디렉터리
-암묵 해석으로 진입점을 노출하는 배럴 파일 자체는 존재한다, 예: `src/mocks/handlers/index.ts`),
-같은 레이어 안 슬라이스끼리도 자유롭게 서로를 참조한다.
+얹은 변형이다. "FSD를 그대로 쓴다"고 기대하면 한 가지에서 어긋난다 — 슬라이스는 `index.ts`
+배럴로 캡슐화되지 않는다(import 문자열이 `/index`로 끝나는 배럴 import만 금지 — 디렉터리
+암묵 해석으로 진입점을 노출하는 배럴 파일 자체는 존재한다, 예: `src/mocks/handlers/index.ts`).
+같은 레이어 슬라이스 격리는 FSD대로 지킨다 — entities는 `@x` 표기로만 서로를 참조하고,
+features·widgets는 같은 레이어의 다른 슬라이스를 import하지 않는다(§2·§26).
 
 ### 조합된 개념
 
@@ -58,9 +59,9 @@ API)를 성능을 이유로 정반대로 채택**하고, 그 위에 도메인 �
 
 ```mermaid
 flowchart TD
-  App["app<br/>providers · routes · layouts"] --> Pages["pages<br/>post · auth · bookmark · 403 · 404 · 500"]
+  App["app<br/>providers · routes · layouts"] --> Pages["pages<br/>post · auth · bookmark · myaccount · mycomment · version · 403 · 404 · 500"]
   Pages --> Widgets["widgets<br/>post · comment · bookmark · layout"]
-  Widgets --> Features["features<br/>post · comment · auth · bookmark"]
+  Widgets --> Features["features<br/>post · comment · auth · account · bookmark"]
   Features --> Entities["entities<br/>post · comment · interaction · auth · account · user · bookmark/folder · category"]
   Entities --> Shared["shared<br/>api · config · hooks · lib · store · types · ui · utils"]
 
@@ -116,6 +117,8 @@ flowchart TD
 | `curly` (`['error', 'all']`)                                  | 인라인 `if`문 (`if (x) return;`) — 항상 중괄호 블록 강제                                                                                                                                     |
 | `import/no-cycle`                                             | 순환 참조(A→B→A) 금지 — 동작하려면 `eslint.config.js`의 리졸버 설정 3개가 함께 필요, 그 주석 참고                                                                                            |
 | `custom-route/no-hardcoded-route-path`                        | `navigate()`·`window.location.href`·JSX `to=`에 경로 문자열 직접 쓰기 금지 — `ROUTES_PATHS.*`만 허용                                                                                         |
+| `custom-storybook/title-matches-path`                         | 스토리 `title`이 파일 경로에서 계산한 값과 다르거나 없음 — 형식은 §18 "Storybook 스토리"                                                                                                     |
+| `react-hooks/*` (v7 recommended)                              | React 공식 hooks 규칙 위반(`rules-of-hooks`·`refs`·`set-state-in-effect`·`purity` 등) — 기존 위반은 `eslint-suppressions.json`에 기록돼 새 코드만 막는다                                     |
 | `entities-cross-import-only-via-x` (dependency-cruiser)       | entity가 다른 entity를 `@x/` 공개 표면 없이 직접 import — 테스트 파일은 예외(§5의 `@x` 표기 참고)                                                                                            |
 | `features-widgets-no-cross-slice-import` (dependency-cruiser) | features·widgets 슬라이스가 같은 레이어의 다른 슬라이스를 import — 위층이 `render<대상>` 함수로 넘긴다(§26). 테스트 파일은 예외(실제 앱의 위층 역할을 대신해 다른 슬라이스 UI를 직접 넘긴다) |
 | `no-non-package-json` (dependency-cruiser)                    | `package.json`에 없는 패키지 import — `.npmrc`가 `shamefully-hoist=true`라 pnpm이 못 막는다                                                                                                  |
@@ -140,7 +143,8 @@ src/
 │   ├── layouts/
 │   │   └── app-layout/           # AppLayout — nav shell. app/routes/layouts/AppShellLayout.tsx가 감싸 렌더
 │   └── ui/                       # PostMutationLoadingToast — 계정 수정 뮤테이션 진행 상태
-│                                 # 헤드리스 옵저버(여러 entities를 알아야 해서 app에 위치)
+│                                 # 헤드리스 옵저버(App.tsx 최상단에 마운트. 2026-10-03부터 게시글
+│                                 # 등록·수정은 관찰하지 않아 이름과 달리 계정 수정만 본다)
 │
 ├── pages/                        # 라우팅 진입점 — widgets/features 조합. hooks/ 세그먼트만 허용
 │   ├── post/                     # index(Post), PostDetailPage, PostEditPage, PostSubmitPage
@@ -224,8 +228,11 @@ src/
 │   ├── post/
 │   │   ├── @x/                   # comment·account·auth·bookmark·interaction 각각에 공개하는 표면
 │   │   ├── api/                  # post.api.ts, post.keys.ts, post.queries.ts
-│   │   ├── model/                # post.dto.ts(응답 타입) + post.schema.ts(폼 검증, comment 스키마 re-export 포함)
-│   │   └── config/                # post.const.ts (POST_PAGE_SIZE)
+│   │   ├── model/                # post.dto.ts(응답 타입) + post.schema.ts(폼 검증)
+│   │   ├── config/                # post.const.ts (POST_PAGE_SIZE)
+│   │   ├── hooks/                # useLinkPreview (등록·수정 폼의 작성 중 링크 미리보기 조회)
+│   │   ├── ui/                   # LinkPreviewCard (링크 미리보기 카드)
+│   │   └── utils/                # post.util.ts (PostUtil.resolveSubmitError — 등록·수정 실패 분류)
 │   ├── comment/
 │   │   ├── @x/                   # account·interaction에 공개하는 표면
 │   │   ├── api/                  # comment.api.ts, comment.keys.ts, comment.queries.ts
@@ -251,11 +258,15 @@ src/
 │   ├── category/
 │   │   ├── api/                  # category.api.ts, category.keys.ts, category.queries.ts
 │   │   ├── model/                # category.dto.ts(응답 타입). category.schema.ts는 기존 import 경로 호환용 re-export만
+│   │   ├── config/               # category.const.ts (CATEGORY_COLOR_CLASSNAME 외)
 │   │   └── hooks/                 # useCategoryOptions — 등록·수정 폼 + 목록 검색 카드가 공유
 │   ├── auth/                     # 인증(로그인·로그아웃·회원가입·세션) 전용
 │   │   ├── api/                  # auth.api.ts, auth.keys.ts, auth.queries.ts
 │   │   ├── model/                # auth.dto.ts(응답 타입) + auth.schema.ts (loginSchema, createAccountSchema 등)
-│   │   └── hooks/                 # useAuth, useAppInitialization, useAuthGuard, useProtectedNavigate
+│   │   ├── config/               # auth.const.ts (PASSWORD_MIN_LENGTH·PASSWORD_REQUIREMENTS 외)
+│   │   ├── utils/                # auth.util.ts (PasswordUtil — 비밀번호 조건 판정)
+│   │   ├── ui/                   # PasswordRequirementList, PasswordConfirmMessage
+│   │   └── hooks/                 # useAuth, useAppInitialization, useAuthGuard, useProtectedNavigate, usePasswordFieldsFeedback
 │   ├── account/                  # 내 계정 프로필(닉네임·이미지·이메일) 조회·수정 전용
 │   │   ├── @x/                   # auth에 공개하는 표면
 │   │   ├── api/                  # account.api.ts, account.keys.ts, account.queries.ts
@@ -275,6 +286,7 @@ src/
     │   ├── texts.ts               # 모든 UI 문자열 (TEXTS)
     │   ├── api.ts                 # 모든 API 엔드포인트 (API_ENDPOINTS)
     │   ├── route-paths.ts         # 라우트 경로 상수 (ROUTES_PATHS)
+    │   ├── build-info.ts          # BUILD_INFO — 이 번들이 빌드된 커밋(빌드타임 주입)
     │   ├── nav-items.ts
     │   ├── storage-keys.ts
     │   ├── const.ts
@@ -282,7 +294,7 @@ src/
     ├── hooks/                     # 재사용 훅 (useDebounce, useIntersectionObserver, usePullToRefresh 등)
     ├── lib/
     │   ├── react-query/
-    │   │   └── config/                 # queryClient.ts(중앙 QueryClient 인스턴스), error-toast.ts(resolveErrorToast)
+    │   │   └── config/                 # queryClient.ts(중앙 QueryClient 인스턴스), error-toast.ts(resolveErrorToast), retry-policy.ts(shouldRetryQuery)
     │   ├── toast/toast.ts         # sonner 래퍼 (직접 import 금지, 이걸 통해서만 사용)
     │   ├── upload/uploadImageAndGetUrl.ts  # 리사이즈 + uploadApi 조합 편의 함수
     │   ├── firebase/, image/, content/, virtual/, router/
@@ -294,10 +306,10 @@ src/
     │   ├── atoms/                 # CVA 기반 Shadcn 기본 컴포넌트
     │   ├── elements/              # 조합 컴포넌트 (MarkdownContent 포함)
     │   │   ├── form/
-    │   │   ├── modal/{alert,image-viewer}/
-    │   │   └── modal/SheetDialogContent.tsx
+    │   │   ├── dialog/{alert,image-viewer}/
+    │   │   └── dialog/SheetDialogContent.tsx
     │   └── layouts/                # AuthLayout, ErrorLayout
-    └── utils/                     # auth, build-info, common, date, error, file, form, logout-grace, storage, url, version (.util.ts)
+    └── utils/                     # auth, build-info, common, date, error, form, logout-grace, storage, url, version (.util.ts)
 ```
 
 레이어에 속하지 않는 최상위 디렉터리도 있다 — `src/mocks/`(MSW `handlers/`·`fixtures/`),
@@ -344,7 +356,8 @@ src/
 
 **절대로 레이어를 건너뛰거나 합치지 않는다.**
 
-**예외 — 실시간 중복확인(디바운스형 유효성 검사)**: `features/auth/signup/hooks/useAvailabilityCheck.ts`,
+**예외 — 실시간 중복확인(디바운스형 유효성 검사)**: `features/auth/signup/hooks/useSignUp.ts`(Layer 1
+함수를 `useAvailabilityCheck.ts`에 `checkFn`으로 넘긴다),
 `features/account/update/hooks/useUpdateAccount.ts`의 닉네임·이메일 중복확인은 Layer 1
 (`accountApi.checkNicknameAvailability`, `authApi.checkEmailAvailability`)을 Layer 3 없이
 직접 호출한다(2026-09-09 문서-코드 정합성 감사 중 확인). React Query의 `useQuery`가 캐싱을
@@ -441,7 +454,7 @@ export const handleEntityUpdateSuccess = (queryClient: QueryClient, id: Entity['
 ```typescript
 // entities/comment/api/comment.keys.ts
 import type { QueryClient } from '@tanstack/react-query';
-import { postInvalidateQueries } from '@/entities/post/@x/comment';
+import { Post, postInvalidateQueries } from '@/entities/post/@x/comment';
 
 export const handleCommentCreateSuccess = (queryClient: QueryClient, postId: Post['id']) => {
   // 댓글 목록은 mutation의 onMutate/onSuccess가 낙관적으로 직접 갱신하므로 여기서 다시
@@ -449,6 +462,9 @@ export const handleCommentCreateSuccess = (queryClient: QueryClient, postId: Pos
   // commentCount가 걸린 게시글 상세/목록만 갱신한다.
   postInvalidateQueries.detail(queryClient, postId); // 댓글 수가 반영되는 포스트 상세
   postInvalidateQueries.list(queryClient); // 목록의 댓글 수 배지
+  // "내 댓글" 목록은 위와 달리 낙관적으로 patch하지 않는다(원글 제목까지 새로 조립해야
+  // 해서 비용 대비 이득이 낮음) - 무효화로 다음 진입 시 새로고침되게 한다.
+  commentInvalidateQueries.my(queryClient);
 };
 ```
 
@@ -522,8 +538,8 @@ export const useFetchEntityQuery = (id: string) =>
 ```
 
 > 예외: `entities/interaction/`은 `keys.ts`가 없다 — 자체 캐시 키를 갖지 않고
-> `entities/{post,comment,folder}/api/*.keys.ts`의 키·invalidation을 직접 가져다 쓴다
-> (`interaction.queries.ts:3-8`). §1 "정식 FSD와 다른 점"의 entities 교차 참조 사례이기도 하다.
+> `entities/{post,comment,bookmark/folder}/@x/interaction.ts`를 거쳐 그 엔티티들의 키·무효화 핸들러를
+> 가져다 쓴다(`interaction.queries.ts` 상단 import). §1 "정식 FSD와 다른 점"의 entities 교차 참조 사례이기도 하다.
 
 ---
 
@@ -604,7 +620,7 @@ hook에서 직접 mutation을 써도 된다(아래 "뮤테이션 예외" 참고)
 ```typescript
 // widgets/<domain>/<widget>/hooks/use<Widget>.ts — 패턴을 보여주는 간소화 예시(실제 이름
 // 아님). 실제 참조 구현은 src/widgets/post/post-list/hooks/usePostList.ts — URL 파라미터
-// 관리·로컬 필터 병합·IntersectionObserver까지 포함해 이 예시보다 훨씬 복잡하다.
+// 관리·로컬 필터 병합·가상 스크롤 기반 다음 페이지 prefetch까지 포함해 이 예시보다 훨씬 복잡하다.
 export function useExampleWidget(filter: EntityFilter) {
   const { data, isFetchingNextPage, hasNextPage, fetchNextPage } =
     useSuspenseFetchEntityListQuery(filter);
@@ -756,7 +772,9 @@ openConfirm({
 </div>
 ```
 
-댓글 작성/수정 폼, 새 폴더 만들기(데스크톱·모바일) 4곳이 이미 이 형태를 예외 없이 쓴다.
+댓글 작성/수정 폼, 새 폴더 만들기(데스크톱·모바일) 4곳이 이미 이 순서(ghost 취소 왼쪽, 채움 확정
+오른쪽)를 예외 없이 쓴다. 단 모바일 새 폴더(`MobileFolderList.tsx`)는 `justify-end` 대신 두 버튼을
+`flex-1`로 나눠 폭을 채운다.
 
 **데스크톱·모바일을 다르게 두지 않는 이유**: 확인/생성처럼 사람들이 가장 많이 고를
 버튼을 오른쪽에 두는 건 macOS·iOS([Apple HIG](https://developer.apple.com/design/human-interface-guidelines/alerts) —
@@ -868,12 +886,12 @@ onError: (_err, _vars, context) => {
 
 `src/shared/lib/react-query/config/queryClient.ts`
 
-| 설정       | 값                         |
-| ---------- | -------------------------- |
-| Stale Time | 3분 (`3 * 60 * 1000`)      |
-| GC Time    | 5분 (`5 * 60 * 1000`)      |
-| Retry      | 실패 시 1회 재시도         |
-| Refetch    | 윈도우 포커스 및 마운트 시 |
+| 설정       | 값                                                                                              |
+| ---------- | ----------------------------------------------------------------------------------------------- |
+| Stale Time | 3분 (`3 * 60 * 1000`)                                                                           |
+| GC Time    | 5분 (`5 * 60 * 1000`)                                                                           |
+| Retry      | 실패 시 1회 재시도 — 429·`EDGE_BLOCKED`는 재시도 안 함 (`retry-policy.ts`의 `shouldRetryQuery`) |
+| Refetch    | 윈도우 포커스 및 마운트 시                                                                      |
 
 싱글턴 `queryClient`는 `QueryProvider`가 마운트 시 한 번 `QueryClientProvider`에 주입하고,
 그 아래 앱 코드는 전부 `useQueryClient()`로 그 인스턴스를 Context에서 꺼내 쓴다(같은
@@ -964,7 +982,7 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
   처리할 도메인 상태(삭제·비공개 글 등)이므로 query는 조용히 넘기고 각 화면의
   ErrorBoundary가 안내를 소유한다. mutation의 404는 진짜 실패이므로 토스트를 띄운다.
 - **`ApiError`가 아닌 에러**(네트워크 단절 등): `policy.toastOnNonApiError`가 mutation만
-  `true`다. query가 조용한 이유는 `refetchOnWindowFocus: true` + `retry: 1` 조합에서
+  `true`다. query가 조용한 이유는 `refetchOnWindowFocus: true` + 1회 재시도(`shouldRetryQuery`) 조합에서
   화면에 떠 있는 쿼리 수만큼 토스트가 동시에 뜨는 것을 막기 위해서다.
 
 공통 판정(우선순위 순서대로):
@@ -977,6 +995,9 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
 - **`EDGE_BLOCKED`**: `meta.errorMessage`보다 먼저 처리한다(순서 고정 — `docs/DECISIONS.md`
   2026-09-06 참고). 그러지 않으면 게시글 등록처럼 `errorMessage`를 쓰는 mutation이 이
   원인을 일반 메시지로 덮어써 사용자가 실제 원인을 알 수 없다.
+- **429(요청 한도 초과)**: `EDGE_BLOCKED`와 같은 이유로 `meta.errorMessage`보다 먼저
+  `TEXTS.messages.error.rateLimited` 토스트를 띄운다. 에러 코드가 아니라 HTTP 상태로 판별한다 —
+  BE 레이트리밋뿐 아니라 앱 에러 코드 없이 오는 Lambda 동시 실행 포화 429도 같은 안내를 받는다.
 - **`meta.errorMessage`**: 있으면 그 메시지를 사용
 - **401 (`NOT_LOGGED_IN` / `INVALID_TOKEN`)**: 로그인 필요 토스트만 표시한다. 세션 정리
   (`AuthUtil.clearAll()` → `/auth/login` 리다이렉트)는 `client.ts`의 fetch 인터셉터가 이미
@@ -1117,8 +1138,8 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 **`<entity>List` 각주** (2026-09-08) — "단수/복수"가 아니라 "배열인가 아닌가"로
 가른다. BE 응답 계약과 매핑된 이름(`BookmarkFolderListResponse`, `useBookmarkFolderListQuery`,
-`fetchBookmarkFolderList`, `<entity>Keys.list` 등 — `bookmark-folder.schema.ts`의 "BE
-FolderListResponse 와 매핑" 주석 참고)과, 배열이 아니라 동작·응답 객체·불리언이라
+`fetchBookmarkFolderList`, `<entity>Keys.list` 등 — `bookmark-folder.dto.ts`의
+`BookmarkFolderListResponse`가 BE `FolderListResponse` 스키마를 가리키는 alias 참고)과, 배열이 아니라 동작·응답 객체·불리언이라
 복수형이 그 자체로 맞는 이름(`BookmarkFoldersResponse`,
 `useBookmarkFolders`, `wasInFolders`, `clearBookmarkFolders`, `postFolders`
 엔드포인트 등)은 이 규칙 대상이 아니다 — 그대로 복수형을 쓴다.

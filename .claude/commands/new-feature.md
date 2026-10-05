@@ -39,7 +39,7 @@ const DEFAULT_VALUES: <FormType> = {
 
 export function use<FeatureName>() {
   const navigate = useNavigate();
-  const { mutate: <action><Entity>, isPending: is<Action>ing } = use<Action><Entity>Mutation();
+  const { mutateAsync: <action><Entity>, isPending: is<Action>ing } = use<Action><Entity>Mutation();
 
   const form = useForm<<FormType>>({
     resolver: zodResolver(<formSchema>),
@@ -51,13 +51,19 @@ export function use<FeatureName>() {
   // useCreatePost.ts. 첫 인자는 페이지별 고유 키(라우트/슬라이스 이름과 맞춘다).
   const { clearNow } = useUnsavedChanges('<domain>-<slice>', form.formState.isDirty);
 
-  const onSubmit = form.handleSubmit((formData: <FormType>) => {
-    <action><Entity>(formData, {
-      onSuccess: () => {
-        form.reset(DEFAULT_VALUES);
-      },
-    });
+  const onSubmit = form.handleSubmit(async (formData: <FormType>) => {
+    // 응답을 기다렸다가 성공했을 때만 폼을 비우고 이동한다 — 실패하면 입력·이탈 가드를 그대로
+    // 남겨 바로 다시 시도할 수 있게 한다(선례: useCreatePost.ts). 에러 토스트는 전역 핸들러가
+    // mutation의 meta.errorMessage로 이미 띄우므로 여기서는 reject만 받고 다시 던지지 않는다 —
+    // 던지면 handleSubmit 밖으로 처리되지 않은 rejection이 샌다.
+    try {
+      await <action><Entity>(formData);
+    } catch {
+      return;
+    }
+
     clearNow();
+    form.reset(DEFAULT_VALUES);
     // replace: 제출이 끝난 폼 엔트리를 결과 화면으로 대체 → 뒤로가기 시 빈 폼으로 돌아가지 않음
     navigate(ROUTES_PATHS.<DOMAIN>.ROOT, { replace: true });
   });
@@ -117,14 +123,13 @@ export function use<FeatureName>(<entity>Id: string) {
 ```typescript
 import { FormProvider } from 'react-hook-form';
 import { use<FeatureName> } from '@/features/<domain>/<slice>/hooks/use<FeatureName>';
-import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { Button } from '@/shared/ui/atoms/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/atoms/card';
 import { TEXTS } from '@/shared/config/texts';
 
 // 한글 UI 문자열 하드코딩 금지(custom-i18n/no-hardcoded-hangul) — TEXTS.<domain>.form.<slice>.*에
-// 먼저 키를 추가하고 참조한다. 로딩 중 라벨을 따로 바꾸지 않는다 — 기존 코드(CreatePostForm)도
-// disabled만으로 pending을 표시하고 텍스트는 고정이다.
+// 먼저 키를 추가하고 참조한다. 응답을 기다리는 동안 라벨을 TEXTS.common.submitting(수정 폼이면
+// updating)으로 바꾼다 — CreatePostForm과 동일(docs/FE-ARCHITECTURE.md §10-A "저장 중 라벨").
 export function <FeatureName>Form() {
   const { form, onSubmit, is<Action>ing } = use<FeatureName>();
   const { isDirty, isValid } = form.formState;
@@ -138,9 +143,9 @@ export function <FeatureName>Form() {
       <CardContent>
         <FormProvider {...form}>
           <form onSubmit={onSubmit} className="space-y-4" noValidate>
-            {/* TODO: add FormInput, FormCheckbox, FormCheckboxGroup fields */}
-            <Button type="submit" className="w-full" disabled={!canSubmit}>
-              {TEXTS.<domain>.form.<slice>.submit}
+            {/* TODO: add FormInput, FormCheckbox, FormCheckboxGroup fields (@/shared/ui/elements/form/) */}
+            <Button type="submit" className="w-full h-11" disabled={!canSubmit}>
+              {is<Action>ing ? TEXTS.common.submitting : TEXTS.<domain>.form.<slice>.submit}
             </Button>
           </form>
         </FormProvider>
@@ -154,7 +159,7 @@ export function <FeatureName>Form() {
 
 ```typescript
 import { cn } from '@/shared/lib/tailwind/utils';
-import { Button } from '@/shared/ui/atoms/button';
+import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 import { use<FeatureName> } from '@/features/<domain>/<slice>/hooks/use<FeatureName>';
 import { TEXTS } from '@/shared/config/texts';
 
@@ -165,21 +170,23 @@ interface <FeatureName>ButtonProps {
 }
 
 export function <FeatureName>Button({ <entity>Id, is<State>, count }: <FeatureName>ButtonProps) {
-  const { handle<Action>, is<Action>ing } = use<FeatureName>(<entity>Id);
+  const { handle<Action> } = use<FeatureName>(<entity>Id);
 
+  // 누를 때마다 상태를 뒤집는 버튼이라 Button 대신 ToggleButton(더블클릭 가드 내장)을 쓴다.
+  // 낙관적 업데이트로 아이콘이 먼저 바뀌는 토글엔 요청 중 disabled를 두지 않는다 — 버튼만
+  // 흐려졌다 돌아오는 깜빡임이 생긴다(docs/FE-ARCHITECTURE.md §10-A, 선례: LikePostButton.tsx).
   return (
-    <Button
+    <ToggleButton
       variant="ghost"
       size="sm"
       className={cn('gap-1 rounded-full', is<State> && 'text-primary')}
       onClick={(e) => { e.preventDefault(); handle<Action>(); }}
-      disabled={is<Action>ing}
       // 아이콘만 있고 텍스트 라벨이 없는 버튼이라 스크린리더용 라벨이 꼭 필요하다
       // (선례: LikePostButton.tsx). 상태별로 다른 문구를 TEXTS.ariaLabels.*에 추가한다.
       aria-label={is<State> ? TEXTS.ariaLabels.<domain><FeatureName>Off : TEXTS.ariaLabels.<domain><FeatureName>On}
     >
       {/* icon + count */}
-    </Button>
+    </ToggleButton>
   );
 }
 ```
