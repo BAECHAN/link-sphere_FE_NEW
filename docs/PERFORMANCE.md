@@ -58,7 +58,7 @@ pnpm perf:lh:auth
   `.claude/skills/browser-verification/SKILL.md`의 "로그인 계정" 절과 같다(정정,
   2026-09-29: `docs/TESTING.md`에는 자체 "로그인 계정" 절이 없고, 그 문서도 같은
   skill 파일의 절을 가리킨다).
-- 로그인은 `scripts/lighthouse-login.js`(LHCI의 `puppeteerScript`)가 자동으로 한다.
+- 로그인은 `scripts/lighthouse-login.cjs`(LHCI의 `puppeteerScript`)가 자동으로 한다.
   이미 로그인 상태(`has-session` localStorage 플래그가 살아있는 상태로 재실행)면 조용히 건너뛴다.
 - `disableStorageReset: true`로 5회 실행 내내 세션 쿠키를 유지한다 — 꺼두면 매
   실행마다 `/auth/refresh`를 한 번씩 더 타서 순수 페이지 성능과 무관한 지연이 섞인다.

@@ -8,6 +8,10 @@
  *
  * 비밀번호는 코드에 남기지 않고 환경변수(LH_TEST_PASSWORD)로만 받는다 — 로컬에서는
  * 실행 직전에 셸에서 export, CI에서는 GitHub Actions secret으로 주입한다.
+ *
+ * 확장자가 `.cjs`인 이유: LHCI는 이 파일을 `require()`로 불러오는데(@lhci/cli
+ * `puppeteer-manager.js`), package.json이 `"type": "module"`이라 `.js`면 ESM으로 읽혀
+ * `module.exports`에서 "module is not defined"로 로드부터 실패한다(lighthouserc*.cjs와 같은 이유).
  */
 const TEST_EMAIL = 'tester_new_999@example.com';
 
@@ -22,14 +26,16 @@ module.exports = async (browser, context) => {
 
   const page = await browser.newPage();
 
-  await page.goto(`${context.url.replace(/\/[^/]*$/, '')}/auth/login`, {
+  // 측정 URL의 경로가 아니라 오리진 기준으로 로그인 페이지를 연다 — 마지막 경로 조각만
+  // 떼면 `/post/submit`이 `/post/auth/login`(없는 라우트)이 된다.
+  await page.goto(`${new URL(context.url).origin}/auth/login`, {
     waitUntil: 'networkidle0',
   });
 
   const stillOnLoginPage = page.url().includes('/auth/login');
 
   if (!stillOnLoginPage) {
-    // has-session 쿠키가 이미 있어 GuestGuard가 /post로 리다이렉트한 경우 — 이미 로그인된 상태다.
+    // has-session 플래그(localStorage)가 이미 있어 GuestGuard가 /post로 리다이렉트한 경우 — 이미 로그인된 상태다.
     await page.close();
     return;
   }

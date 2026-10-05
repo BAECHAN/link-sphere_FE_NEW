@@ -2,7 +2,7 @@
  * Lighthouse CI 설정 — 로그인 필요 페이지 전용.
  *
  * lighthouserc.cjs와 assertion·측정 방식은 동일하고, 대상 URL과 로그인 스크립트만 다르다.
- * 실행 전 셸에서 `export LH_TEST_PASSWORD=...`가 필요하다(scripts/lighthouse-login.js 참고).
+ * 실행 전 셸에서 `export LH_TEST_PASSWORD=...`가 필요하다(scripts/lighthouse-login.cjs 참고).
  * `pnpm perf:lh:auth`로 실행한다.
  *
  * `/post/edit/:id`는 애초 계획에 있었지만, 테스트 계정이 소유한 고정 게시글이 없어 한 번
@@ -30,7 +30,7 @@ module.exports = {
         preset: 'desktop',
         // 로그인 세션(httpOnly 쿠키 + has-session 플래그)이 URL마다 리셋되지 않도록 유지한다.
         disableStorageReset: true,
-        puppeteerScript: './scripts/lighthouse-login.js',
+        puppeteerScript: './scripts/lighthouse-login.cjs',
       },
     },
     assert: {
