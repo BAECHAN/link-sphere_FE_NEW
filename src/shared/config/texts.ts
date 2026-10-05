@@ -290,7 +290,11 @@ export const TEXTS = {
       visibilityConfirmButtonToPrivate: '나만 보기로 전환',
     },
     detail: {
-      notFound: '포스트를 찾을 수 없어요.',
+      // BE가 삭제·비공개를 같은 404로 응답해 둘을 함께 덮는다
+      notFound: {
+        title: '삭제됐거나 볼 수 없는 포스트예요',
+        description: '작성자가 지웠거나 나만 보기로 바꿨을 수 있어요.',
+      },
       // 유입 경로별로 실제 목적지가 달라 라벨을 그때그때 고른다 (PostDetailPage 참고).
       // backToList: 피드·검색 유입, 외부(공유링크·FCM·새로고침) 유입 — 실제로 /post로 감,
       //   이름 있는 화면(포스트 목록)이라 약속할 수 있다.

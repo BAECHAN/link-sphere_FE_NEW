@@ -144,7 +144,7 @@ src/
 │
 ├── pages/                        # 라우팅 진입점 — widgets/features 조합. hooks/ 세그먼트만 허용
 │   ├── post/                     # index(Post), PostDetailPage, PostEditPage, PostSubmitPage
-│   │   └── hooks/                # usePostDetail, usePostNotFoundRedirect
+│   │   └── hooks/                # usePostDetail
 │   ├── auth/                     # LoginPage, SignUpPage, ForgotPasswordPage, ResetPasswordPage, VerifyEmailPage
 │   ├── bookmark/                 # BookmarkPage
 │   │   └── hooks/                # useBookmarkPage

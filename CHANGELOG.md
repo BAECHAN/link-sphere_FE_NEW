@@ -27,6 +27,13 @@
 
 ### Changed
 
+- `post` 삭제·비공개 글 주소로 들어오면 목록으로 보내지 않고 그 자리에서 안내함
+  <details><summary>배경·구현</summary>
+
+  지금까지는 "포스트를 찾을 수 없어요" 토스트를 띄우고 목록으로 replace 이동했다. 사라지는 토스트에만 기대고, 어떤 링크가 죽었는지 주소까지 잃게 했다. 이제 같은 주소에서 아이콘·제목·설명과 "목록으로" 링크(버튼 모양)를 보여준다. 이동이라 버튼 onClick 대신 링크로 뒀다([W3C APG](https://www.w3.org/WAI/ARIA/apg/patterns/link/)는 네이티브 `<a href>`를 권장). BE가 삭제와 비공개를 같은 404로 응답하므로 문구도 둘을 함께 덮는다. React Router 공식 패턴(없는 레코드는 그 라우트의 에러 화면에서 안내, [errorElement](https://reactrouter.com/6.30.3/route/error-element))을 따랐다. 안내 화면과 일반 404 페이지에는 `noindex` 메타를 단다. SPA라 200으로 응답하는 에러 화면이 검색엔진에 색인되는 soft 404를 Google이 JS로 noindex를 넣는 방법으로 피하라고 안내한다([JavaScript SEO 기본](https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics)). 화면 모양은 시안 3개를 비교해 골랐다. (`useNoIndex.ts`(신규), `PostDetailPage.tsx`, `NotFoundPage.tsx`, `texts.ts`, `usePostNotFoundRedirect.ts`(삭제), [PR #322](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/322))
+
+  </details>
+
 - `shared` 알림·확인창을 열고 닫을 때 그 창을 부르는 컴포넌트가 다시 렌더되지 않음
   <details><summary>배경·구현</summary>
 

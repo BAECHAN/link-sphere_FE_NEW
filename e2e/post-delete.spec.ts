@@ -117,9 +117,9 @@ test.describe('게시글 삭제', () => {
     await expect(page).toHaveURL(/\/post$/);
 
     // 상세가 떠 있는 동안 detail 캐시를 지워도 재조회가 일어나지 않아야 한다 — 일어나면
-    // 이동 직전에 404 안내 토스트가 깜빡인다.
+    // 이동 직전에 404 안내 화면이 깜빡인다.
     const getsBeforeBack = detailGetCount;
-    await expect(page.getByText(TEXTS.post.detail.notFound)).toHaveCount(0);
+    await expect(page.getByText(TEXTS.post.detail.notFound.title)).toHaveCount(0);
 
     // 서버에서 글이 지워진 상태를 재현한다(이후 상세 GET은 404). LIFO라 위 목들보다 먼저 탄다.
     await page.route(
@@ -140,9 +140,9 @@ test.describe('게시글 삭제', () => {
 
     await page.goBack();
 
-    // 캐시가 남아 있었다면 재조회 없이 삭제된 글이 그려졌다 — 지금은 다시 받아와 404 안내 후 목록으로 간다.
-    await expect(page.getByText(TEXTS.post.detail.notFound)).toBeVisible();
-    await expect(page).toHaveURL(/\/post$/);
+    // 캐시가 남아 있었다면 재조회 없이 삭제된 글이 그려졌다 — 지금은 다시 받아와 그 자리에서 404 안내를 띄운다.
+    await expect(page.getByText(TEXTS.post.detail.notFound.title)).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
     expect(detailGetCount).toBeGreaterThan(getsBeforeBack);
   });
 });
