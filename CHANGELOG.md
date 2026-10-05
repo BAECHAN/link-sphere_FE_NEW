@@ -97,6 +97,18 @@
 
 ### Fixed
 
+- `comment` 첨부 허용 형식·크기를 업로드 버킷 설정에 맞춤(HEIC·HEIF 제외, SVG·GIF 10MB)
+  <details><summary>배경·구현</summary>
+
+  바로 아래 항목을 배포한 뒤 버킷 설정을 Storage API로 확인해 보니, 버킷이 이미 10MB·png/jpeg/jpg/
+  gif/webp로 제한돼 있었다. 그래서 FE가 허용 목록에 넣은 SVG·AVIF·HEIC·HEIF와 10~15MB GIF·SVG는
+  고를 때는 통과해도 업로드에서 거부됐다. 사용자 결정(2026-10-05)에 따라 버킷에 AVIF·SVG를 더하고
+  (Storage API로 변경), FE 허용 목록에서 HEIC·HEIF를 뺐다(MDN 웹 이미지 형식 가이드에 없는 형식이라
+  보는 브라우저에 따라 깨질 수 있음). SVG·GIF(리사이즈 안 함) 상한은 15MB에서 버킷과 같은 10MB로
+  낮췄다. (`image-format.ts`, `resizeImage.ts`, `texts.ts`, `docs/COMMENT.md`)
+
+  </details>
+
 - `comment` 업로드한 SVG가 링크로 보이던 문제, 허용 밖 이미지 형식이 "서버 오류"로만 보이던 문제
   <details><summary>배경·구현</summary>
 

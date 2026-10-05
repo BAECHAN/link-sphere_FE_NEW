@@ -433,7 +433,7 @@ export const TEXTS = {
     imageTooLarge: (maxSizeMB: number) => `이미지 용량은 ${maxSizeMB}MB를 초과할 수 없어요.`,
     imageCountExceeded: (max: number) => `이미지는 최대 ${max}장까지 첨부할 수 있어요.`,
     // 나열한 형식은 config/image-format.ts의 허용 목록과 같아야 한다
-    imageFileOnly: 'JPG·PNG·GIF·WEBP·AVIF·HEIC·HEIF·SVG 이미지만 올릴 수 있어요.',
+    imageFileOnly: 'JPG·PNG·GIF·WEBP·AVIF·SVG 이미지만 올릴 수 있어요.',
   },
   messages: {
     info: {

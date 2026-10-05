@@ -9,8 +9,8 @@ describe('imageFormat', () => {
     expect(getUploadExtension('image/webp')).toBe('webp');
   });
 
-  it('브라우저가 이미지로 보더라도 허용 목록 밖 형식(bmp·tiff·ico)은 거부한다', () => {
-    ['image/bmp', 'image/tiff', 'image/x-icon'].forEach((type) => {
+  it('브라우저가 이미지로 보더라도 허용 목록 밖 형식(bmp·tiff·ico·heic·heif)은 거부한다', () => {
+    ['image/bmp', 'image/tiff', 'image/x-icon', 'image/heic', 'image/heif'].forEach((type) => {
       expect(isAllowedImageType(type)).toBe(false);
       expect(getUploadExtension(type)).toBeUndefined();
     });
