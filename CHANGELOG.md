@@ -27,6 +27,13 @@
 
 ### Changed
 
+- `infra` 없는 경로(`/oops`, `/.git/config` 등)가 200 대신 404 상태로 응답함
+  <details><summary>배경·구현</summary>
+
+  SPA라 앱 라우트가 아닌 경로도 index.html을 200으로 돌려주고 화면만 404 페이지였다. Google은 2xx로 에러 화면을 보이면 _"Search Console이 soft 404 에러를 표시한다"_ (번역, [HTTP 상태 코드 문서](https://developers.google.com/search/docs/crawling-indexing/http-network-errors))고 쓴다. viewer-request Function(`spa-fallback.js`)에 앱 라우트 목록을 넣어 아닌 경로는 `/404.html`(배포 때 올리는 index.html 사본)로 보내고, 새 viewer-response Function(`spa-status.js`)이 그 응답의 상태만 404로 바꾼다. body를 지정하지 않으면 원래 본문이 그대로 가므로([CloudFront Functions 이벤트 구조](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/functions-event-structure.html)) 화면은 기존 404 페이지 그대로다. 라우트 목록이 앱과 어긋나면 `cloudfront-functions.test.ts`가 실패한다. `/.env` 같은 WAF 차단 경로, `/api/*`, 확장자 있는 정적 파일은 바뀌지 않는다. Function은 수동 배포라 이 PR 병합 후 `docs/DEPLOY.md` 절차로 반영한다. (`spa-fallback.js`, `spa-status.js`(신규), `cloudfront-functions.test.ts`(신규), `deploy.yml`, `docs/DEPLOY.md`, `docs/SYSTEM-ARCHITECTURE.md`, `docs/FE-ARCHITECTURE.md`, [PR #324](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/324))
+
+  </details>
+
 - `post` 삭제·비공개 글 주소로 들어오면 목록으로 보내지 않고 그 자리에서 안내함
   <details><summary>배경·구현</summary>
 

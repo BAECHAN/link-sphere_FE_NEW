@@ -1309,6 +1309,9 @@ CLI로 이 컴포넌트를 다시 생성하면 `cursor-default`가 되돌아오�
 - [ ] 복합 UI가 필요하면 `src/widgets/<도메인>/<슬라이스>/` 생성 (hooks/, ui/)
 - [ ] `src/shared/config/route-paths.ts` — 라우트 상수 추가
 - [ ] `src/app/routes/index.tsx` — 라우트 등록
+- [ ] `infra/cloudfront-functions/spa-fallback.js`의 `APP_ROUTES` — 같은 경로 추가 후 Function 재배포
+      (`docs/DEPLOY.md` "CloudFront Function (수동 관리)"). 빠뜨리면 `src/app/routes/cloudfront-functions.test.ts`가
+      실패하고, 그대로 배포하면 새 라우트에 직접 접속했을 때 화면은 정상이지만 HTTP 상태가 404가 된다
 - [ ] `src/pages/<page>/` — 페이지 파일 생성
 - [ ] ESLint 레이어 경계 확인 (상위 레이어 import 없는지)
 

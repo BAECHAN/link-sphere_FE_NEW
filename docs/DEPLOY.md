@@ -247,43 +247,56 @@ Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 
 
 ## CloudFront Function (수동 관리)
 
-SPA 클라이언트 라우팅 폴백(`/post/abc123` 같은 경로를 `/index.html`로 리라이트)은
-`link-sphere-spa-fallback`이라는 CloudFront Function이 담당한다. 소스는 이 저장소의
-[`infra/cloudfront-functions/spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js).
+기본(S3) 비헤이비어에 CloudFront Function 두 개가 붙는다. 소스는 이 저장소의
+[`infra/cloudfront-functions/`](../infra/cloudfront-functions/)에 있다.
 
-- **이 Function은 위 `deploy.yml` 파이프라인이 배포하지 않는다** — `src/**` 변경 트리거 대상이
-  아니고, 함수 코드가 바뀌는 일도 거의 없다. 변경이 필요하면 아래 절차를 수동으로 다시 실행한다.
-- **반드시 기본(S3) 비헤이비어의 `viewer-request`에만 연결한다.** `/api/*` 비헤이비어에 연결하면
-  BE(Lambda)의 정상 403/404 응답까지 `/index.html`로 가려버린다 — 실제로 2026-07-28에 이
-  문제(구 방식인 배포 레벨 `CustomErrorResponses`가 원인)를 발견하고 이 Function으로 교체했다.
-  `infra/` 디렉토리 자체의 역할과 자세한 배경은
+| Function                   | 이벤트          | 하는 일                                                                                                   | 소스                                                               |
+| -------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `link-sphere-spa-fallback` | viewer-request  | 앱 라우트 → `/index.html`, 앱 라우트가 아닌 확장자 없는 경로 → `/404.html`, 정적 파일·`/storybook`은 통과 | [`spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js) |
+| `link-sphere-spa-status`   | viewer-response | `/404.html` 응답의 상태만 404로 바꿈(본문은 그대로라 화면은 앱의 404 페이지)                              | [`spa-status.js`](../infra/cloudfront-functions/spa-status.js)     |
+
+`/404.html`은 `deploy.yml`이 매 배포마다 `dist/index.html`을 복사해 올리는 사본이다. `index.html`과 같은
+`no-store` 캐시 정책을 쓰고, 배포 검증 단계 4번이 entry 청크가 같은지 확인한다. 경로별 최종 응답은 아래
+"URL별 에러 응답" 절 참고.
+
+- **이 Function들은 위 `deploy.yml` 파이프라인이 배포하지 않는다** — 변경이 필요하면 아래 절차를 수동으로 실행한다.
+- **라우트를 추가하면 `spa-fallback.js`의 `APP_ROUTES`도 고치고 재배포한다.** Function은 앱 코드를 import할 수
+  없어 `src/app/routes/index.tsx`의 경로를 손으로 옮겨 뒀다. 빠뜨리면
+  [`src/app/routes/cloudfront-functions.test.ts`](../src/app/routes/cloudfront-functions.test.ts)가 실패한다. 재배포를
+  잊으면 새 라우트에 직접 접속했을 때 화면은 정상이지만 HTTP 상태가 404가 된다(사용자는 모르고 검색엔진·링크
+  미리보기만 영향을 받는다).
+- **반드시 기본(S3) 비헤이비어에만 연결한다.** `/api/*` 비헤이비어에 연결하면 BE(Lambda)의 정상 403/404 응답까지
+  가려버린다 — 실제로 2026-07-28에 이 문제(구 방식인 배포 레벨 `CustomErrorResponses`가 원인)를 발견하고 이
+  Function으로 교체했다. `infra/` 디렉토리 자체의 역할과 자세한 배경은
   [`docs/SYSTEM-ARCHITECTURE.md`](./SYSTEM-ARCHITECTURE.md)의 "infra/ — AWS 인프라 직접 배포 코드" 절 참고.
-- **`/storybook` 하위 요청은 SPA 폴백보다 먼저 분기해 그대로 통과시킨다.** 위 "Storybook
-  공개 배포"가 올리는 정적 사이트라 `/index.html`로 리라이트하면 안 된다. S3 REST 오리진은
-  인덱스 문서를 자동 해석하지 않으므로 `/storybook`·`/storybook/`만 `/storybook/index.html`로
-  명시적으로 리라이트하고, 그 외 `/storybook` 하위 경로는 손대지 않는다. 이 분기가 없으면
-  공개 URL 전체가 앱 화면으로 리다이렉트된다.
-- **이 함수를 바꿀 때는 아래 6케이스로 `test-function`을 검증한다** — 앞 3개는 기존 SPA
-  라우팅이 무회귀인지, 뒤 3개는 `/storybook` 분기가 의도대로 동작하는지 확인한다.
+- **`/storybook` 하위 요청은 SPA 폴백보다 먼저 분기해 그대로 통과시킨다.** 위 "Storybook 공개 배포"가 올리는
+  정적 사이트라 `/index.html`로 리라이트하면 안 된다. S3 REST 오리진은 인덱스 문서를 자동 해석하지 않으므로
+  `/storybook`·`/storybook/`만 `/storybook/index.html`로 명시적으로 리라이트하고, 그 외 `/storybook` 하위 경로는
+  손대지 않는다.
+- **`spa-fallback.js`를 바꿀 때는 아래 케이스로 `test-function`을 검증한다.** 같은 케이스를
+  `cloudfront-functions.test.ts`가 레포에서도 돌린다.
 
   | 입력 URI                        | 기대 결과               |
   | ------------------------------- | ----------------------- |
   | `/post/abc123`                  | `/index.html`           |
   | `/auth/login`                   | `/index.html`           |
+  | `/post/`                        | `/index.html`           |
+  | `/oops`                         | `/404.html`             |
+  | `/.git/config`                  | `/404.html`             |
   | `/favicon.ico`                  | 그대로                  |
   | `/storybook/`                   | `/storybook/index.html` |
   | `/storybook`                    | `/storybook/index.html` |
   | `/storybook/assets/iframe-*.js` | 그대로                  |
 
 ```bash
-# 1. 함수 코드 수정 후 업데이트 (기존 함수가 있으면 update-function, ETag 필요)
+# 1. 함수 코드 수정 후 업데이트 (ETag 필요). spa-status는 이름·파일만 바꿔 같은 절차
 aws cloudfront describe-function --name link-sphere-spa-fallback --stage DEVELOPMENT
 aws cloudfront update-function --name link-sphere-spa-fallback \
   --if-match <위 ETag> \
   --function-config '{"Comment":"SPA 클라이언트 라우팅 폴백 (기본 비헤이비어 전용; api 비헤이비어 미연결)","Runtime":"cloudfront-js-1.0"}' \
   --function-code fileb://infra/cloudfront-functions/spa-fallback.js
 
-# 2. 테스트 (선택, 실배포 전 검증)
+# 2. 테스트 (실배포 전 검증)
 aws cloudfront test-function --name link-sphere-spa-fallback \
   --if-match <update 응답의 ETag> --stage DEVELOPMENT \
   --event-object fileb://<테스트 이벤트 JSON>
@@ -291,6 +304,49 @@ aws cloudfront test-function --name link-sphere-spa-fallback \
 # 3. LIVE로 배포 (이미 비헤이비어에 연결돼 있다면 이걸로 자동 반영됨 — 배포 설정 재변경 불필요)
 aws cloudfront publish-function --name link-sphere-spa-fallback --if-match <최신 ETag>
 ```
+
+`link-sphere-spa-status`를 처음 만들 때(2026-10-05)는 `create-function` → `publish-function` 뒤, 배포 설정의
+`DefaultCacheBehavior.FunctionAssociations`에 `{"EventType":"viewer-response","FunctionARN":<LIVE ARN>}`을 추가해
+`update-distribution`했다(ETag → IfMatch 절차는 위 "커스텀 도메인" 절과 같다). **`spa-fallback`이 `/404.html`로
+보내기 시작하기 전에 S3에 `/404.html`이 있어야 한다** — 없으면 없는 경로가 S3 403 XML이 된다. 그래서 `deploy.yml`의
+`404.html` 업로드가 먼저 배포된 뒤에 Function을 바꾼다.
+
+**되돌리려면**: `spa-fallback.js`를 이전 커밋 버전으로 `update-function` → `publish-function`하면 확장자 없는
+경로가 전부 다시 `/index.html`(200)로 간다. `spa-status`는 연결을 빼지 않아도 무해하다(`/404.html` 요청이 없어진다).
+
+## URL별 에러 응답
+
+어떤 경로가 어떤 상태·화면을 받는지의 정본이다(2026-10-05 정리, 계획:
+[`docs/plans/2026-10-05-url-error-responses.md`](./plans/2026-10-05-url-error-responses.md)).
+
+```mermaid
+flowchart TD
+    R["요청"] --> W{"WAF<br/>(배포 전체)"}
+    W -- "룰에 걸림<br/>예: /.env" --> WB["403 + CloudFront 기본 HTML"]
+    W -- 통과 --> B{"/api/* 인가"}
+    B -- 예 --> L["Lambda(BE) JSON 그대로"]
+    B -- 아니오 --> F{"spa-fallback.js<br/>(viewer-request)"}
+    F -- "앱 라우트" --> I["/index.html → 200"]
+    F -- "확장자 없음 + 앱 라우트 아님" --> N["/404.html → spa-status.js가 404로<br/>화면: 앱 NotFoundPage"]
+    F -- "확장자 있음" --> S{"S3에 파일이 있나"}
+    S -- 있음 --> OK["200"]
+    S -- 없음 --> X["403 AccessDenied XML"]
+```
+
+| 경로 종류               | 예                                   | 화면                              | 상태                  |
+| ----------------------- | ------------------------------------ | --------------------------------- | --------------------- |
+| WAF 탐지 경로           | `/.env`                              | CloudFront 기본 차단 HTML         | 403                   |
+| 앱 라우트               | `/`, `/post/abc`, `/auth/login`      | 정상 페이지                       | 200                   |
+| 앱 라우트가 아닌 경로   | `/oops`, `/.git/config`, `/wp-admin` | 앱 404 페이지(`noindex` 포함)     | 404                   |
+| 앱 라우트 + 데이터 없음 | `/post/<삭제된 id>`                  | 그 자리 안내 화면(`noindex` 포함) | 200(엣지는 DB를 모름) |
+| 확장자 있는 없는 파일   | `/robots.txt`, `/.env.local`         | S3 XML                            | 403                   |
+| API                     | `/api/...`                           | BE JSON                           | BE가 정함             |
+
+**진단 요령**: 403인데 본문이 `Request blocked.` HTML이면 WAF, `AccessDenied` XML이면 S3(파일 없음 — 버킷 정책이
+`s3:GetObject`만 허용해 404 대신 403이 나온다,
+[S3 GetObject 문서](https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html)), 404인데 앱 화면이면
+`APP_ROUTES`에 없는 경로다. 없는 정적 파일을 404로 바꾸려면 버킷 정책에 `s3:ListBucket`이 필요한데, 그러면
+Function이 빠졌을 때 버킷 루트에서 객체 목록이 노출될 수 있어 하지 않았다(계획의 B안).
 
 ## CloudFront WAF (수동 관리)
 
