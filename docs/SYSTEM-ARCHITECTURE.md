@@ -78,15 +78,21 @@ ACL)는 CloudFront 배포 전체(양쪽 비헤이비어 공통)에 붙어 요청
 ```
 infra/
 └── cloudfront-functions/
-    └── spa-fallback.js   # CloudFront Function 소스 (아래 참고)
+    ├── spa-fallback.js   # viewer-request: 앱 라우트 → /index.html, 아닌 경로 → /404.html (아래 참고)
+    └── spa-status.js     # viewer-response: /404.html 응답의 상태만 404로
 ```
 
 #### SPA 라우팅 폴백 (CloudFront Function)
 
 `/post/abc123`처럼 실제 S3 오브젝트가 아닌 클라이언트 라우트를 새로고침/직접 진입해도 되도록,
 **기본(S3) 비헤이비어의 viewer-request에만** CloudFront Function(`link-sphere-spa-fallback`)을
-연결해 확장자 없는 요청을 `/index.html`로 리라이트한다. 소스:
-[`infra/cloudfront-functions/spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js).
+연결해 확장자 없는 요청 중 앱 라우트는 `/index.html`로, 앱 라우트가 아닌 경로(`/oops`, `/.git/config` 등)는
+`/404.html`(배포 때 올리는 index.html 사본)로 리라이트한다. 같은 비헤이비어의 viewer-response에 연결한
+`link-sphere-spa-status`가 `/404.html` 응답의 상태만 404로 바꿔, 화면은 앱의 404 페이지 그대로 두고
+HTTP 상태는 진짜 404가 된다(2026-10-05, SPA soft 404 해소). 소스:
+[`infra/cloudfront-functions/spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js),
+[`infra/cloudfront-functions/spa-status.js`](../infra/cloudfront-functions/spa-status.js). 경로별 응답 전체 표는
+[`docs/DEPLOY.md`](./DEPLOY.md)의 "URL별 에러 응답" 절.
 
 과거에는 배포 레벨 `CustomErrorResponses`(403/404 → `/index.html`)로 이 역할을 했는데, 이 설정은
 오리진 구분 없이 **배포 전체**에 걸려 `/api/*`(Lambda) 오리진에서 온 정상적인 403/404 응답까지

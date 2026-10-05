@@ -79,6 +79,12 @@ jobs:
           aws s3 cp dist/index.html s3://${{ secrets.S3_BUCKET_NAME }}/index.html \
             --cache-control "no-cache, no-store, must-revalidate" \
             --content-type "text/html"
+          # 404.html — index.html 사본. CloudFront Function(spa-fallback.js)이 앱 라우트가 아닌
+          # 경로를 이 파일로 보내고 spa-status.js가 상태만 404로 바꾼다. 내용이 index.html과
+          # 같아야 해서(같은 entry 청크) 같은 캐시 정책으로 매 배포마다 다시 올린다.
+          aws s3 cp dist/index.html s3://${{ secrets.S3_BUCKET_NAME }}/404.html \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --content-type "text/html"
           # 배포 식별자 — index.html과 같은 이유로 캐시 비활성화(배포 반영 확인용)
           aws s3 cp dist/version.json s3://${{ secrets.S3_BUCKET_NAME }}/version.json \
             --cache-control "no-cache, no-store, must-revalidate" \
@@ -100,6 +106,7 @@ jobs:
           # Storybook이 통째로 삭제된다.
           aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete \
             --exclude "index.html" \
+            --exclude "404.html" \
             --exclude "firebase-messaging-sw.js" \
             --exclude "version.json" \
             --exclude "version.json.gz" \
@@ -155,6 +162,14 @@ jobs:
           LIVE_ENTRY=$(curl -fsS "$SITE_URL/index.html" | grep -o 'assets/js/index-[A-Za-z0-9_-]*\.js' | head -1)
           if [ "$LIVE_ENTRY" != "$LOCAL_ENTRY" ]; then
             echo "::error::entry 청크 불일치: live=$LIVE_ENTRY local=$LOCAL_ENTRY"
+            exit 1
+          fi
+
+          # 4) 404.html(없는 경로에 쓰는 index.html 사본)도 같은 entry 해시인가 - 어긋나면
+          #    없는 경로에서 옛 청크를 불러 화면이 깨진다. Function이 상태를 404로 바꾸므로 -f 없이 받는다.
+          NOT_FOUND_ENTRY=$(curl -sS "$SITE_URL/404.html" | grep -o 'assets/js/index-[A-Za-z0-9_-]*\.js' | head -1)
+          if [ "$NOT_FOUND_ENTRY" != "$LOCAL_ENTRY" ]; then
+            echo "::error::404.html entry 청크 불일치: live=$NOT_FOUND_ENTRY local=$LOCAL_ENTRY"
             exit 1
           fi
 
