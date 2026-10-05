@@ -1,3 +1,6 @@
+### 2026-10-05 (FE)
+- 에러 페이지(403, 404, 500) 내 홈 버튼을 `<Link>` 컴포넌트로 리팩토링하여 사용자 경험 및 라우팅 효율 개선 ([#323](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/323))
+
 ### 2026-10-04 (FE)
 - 가상 스크롤 훅의 렌더링 단계 내 ref 및 setState 호출 문제를 수정하여 컴포넌트 안정성 확보 ([#320](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/320))
 
