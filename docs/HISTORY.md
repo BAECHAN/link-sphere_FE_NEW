@@ -1,4 +1,9 @@
 ### 2026-10-05 (FE)
+- 잘못된 경로 접근 시 404 상태 코드 반환하도록 인프라 설정 개선
+로그:
+- feat(infra): 없는 경로(/oops, /.git/config 등)가 200 대신 404 상태로 응답하게 함 ([#324](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/324))
+
+### 2026-10-05 (FE)
 - 에러 페이지(403, 404, 500) 내 홈 버튼을 `<Link>` 컴포넌트로 리팩토링하여 사용자 경험 및 라우팅 효율 개선 ([#323](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/323))
 
 ### 2026-10-04 (FE)
