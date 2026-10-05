@@ -18,9 +18,6 @@ const STORAGE_KEYS = {
   SEARCH: {
     RECENT: `${STORAGE_PREFIX}:search:recent`,
   },
-  FCM: {
-    TOKEN: `${STORAGE_PREFIX}:fcm:token`,
-  },
   PREFERENCES: {
     HIDE_BOTS: `${STORAGE_PREFIX}:preferences:hide-bots`,
   },

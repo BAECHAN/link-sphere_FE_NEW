@@ -1,5 +1,4 @@
 import { useAuthStore } from '@/shared/store/auth.store';
-import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 import { fcmApi } from '@/shared/api/fcm.api';
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY as string;
@@ -75,7 +74,13 @@ export async function requestAndRegisterFcmToken(): Promise<void> {
 }
 
 /**
- * 로그아웃 시 서버에서 FCM 토큰을 삭제합니다.
+ * 로그아웃 시 이 기기의 FCM 토큰을 무효화합니다(Firebase `deleteToken`).
+ *
+ * 서버의 fcm_tokens 행은 FE가 지우지 않는다 - 로그아웃(auth.queries.ts의 useLogoutMutation)은
+ * 이 함수보다 먼저 auth 상태를 비워 DELETE를 보낼 accessToken이 남아 있지 않다. 그 행은
+ * 로그아웃으로 폐기된 세션 계열(session_family_id)에 묶여 있어 발송 대상에서 빠지고, BE가
+ * 다음 발송 직전에 지운다(FcmService.sendToUser → deleteStaleTokensForUser,
+ * docs/FCM-PUSH-NOTIFICATION.md §5).
  */
 export async function unregisterFcmToken(): Promise<void> {
   const [{ deleteToken }, { messaging }] = await Promise.all([
@@ -88,14 +93,7 @@ export async function unregisterFcmToken(): Promise<void> {
   }
 
   try {
-    const deleted = await deleteToken(messaging);
-    if (deleted) {
-      const storedToken = sessionStorage.getItem(STORAGE_KEYS.FCM.TOKEN);
-      if (storedToken) {
-        await deleteTokenFromServer(storedToken);
-        sessionStorage.removeItem(STORAGE_KEYS.FCM.TOKEN);
-      }
-    }
+    await deleteToken(messaging);
   } catch (error) {
     console.error('[FCM] Error unregistering FCM token:', error);
   }
@@ -114,17 +112,7 @@ async function registerTokenToServer(token: string): Promise<void> {
   }
 
   await fcmApi.registerToken(token);
-  sessionStorage.setItem(STORAGE_KEYS.FCM.TOKEN, token);
   console.info('[FCM] Token registered to server');
-}
-
-async function deleteTokenFromServer(token: string): Promise<void> {
-  const accessToken = getAccessTokenFromStore();
-  if (!accessToken) {
-    return;
-  }
-
-  await fcmApi.unregisterToken(token);
 }
 
 /** Zustand auth store에서 accessToken을 꺼내옵니다. (React 컴포넌트 외부에서 getState() 사용) */

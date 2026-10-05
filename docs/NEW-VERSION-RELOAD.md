@@ -172,7 +172,7 @@ react-router가 history를 이미 목적지로 밀어둔 상태라, `reload()`�
 | 값                                   | 위치                                                                    | 의미                          |
 | ------------------------------------ | ----------------------------------------------------------------------- | ----------------------------- |
 | `VERSION_CHECK_THROTTLE_MS`(5분)     | [useAppVersionCheck.ts:9](../src/shared/hooks/useAppVersionCheck.ts#L9) | 재확인 최소 간격              |
-| `STORAGE_KEYS.VERSION.LAST_DETECTED` | [storage-keys.ts:27-30](../src/shared/config/storage-keys.ts#L27-L30)   | 루프 가드용 sessionStorage 키 |
+| `STORAGE_KEYS.VERSION.LAST_DETECTED` | [storage-keys.ts:24-27](../src/shared/config/storage-keys.ts#L24-L27)   | 루프 가드용 sessionStorage 키 |
 
 ## 8. 코드 지도와 자주 하는 수정
 

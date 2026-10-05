@@ -146,14 +146,14 @@ sequenceDiagram
   BE->>BE: SessionAuthenticationFilter가 access 토큰 → familyId 판정
   BE->>DB: INSERT ... ON CONFLICT(token) DO UPDATE user_id, session_family_id
   BE-->>FE: 200 OK
-  FE->>FE: sessionStorage.setItem(STORAGE_KEYS.FCM.TOKEN, token)
 
   Note over User,DB: 로그아웃 시 토큰 해제
   User->>FE: 로그아웃
-  FE->>FE: deleteToken(messaging)
-  FE->>BE: DELETE /fcm/token { token }
-  BE->>DB: DELETE WHERE user_id = ? AND token = ?
-  FE->>FE: sessionStorage.removeItem(STORAGE_KEYS.FCM.TOKEN)
+  FE->>BE: POST /auth/logout
+  BE->>SessDB: 그 세션 계열 revoked_at 채움
+  FE->>FE: auth 상태 비움(accessToken = null)
+  FE->>FE: deleteToken(messaging) - 이 기기 토큰 무효화
+  Note right of DB: 서버 DELETE는 보내지 않는다(accessToken이 이미 없다) -<br/>fcm_tokens 행은 폐기된 계열에 묶여 발송 대상에서 빠지고<br/>다음 "발송 흐름"(아래)에서 정리된다
 
   Note over User,DB: 세션이 자연 만료·비밀번호변경 등으로 죽는 경우(로그아웃 아님)
   BE->>SessDB: revoked_at 채워짐 또는 refresh_expires_at 지남
@@ -210,11 +210,11 @@ sequenceDiagram
 ```
 src/shared/lib/firebase/
 ├── firebase.ts                  # Firebase 앱 초기화 + messaging 인스턴스
-├── fcm.ts                       # 토큰 등록·해제 함수 (fcm.api.ts 호출)
+├── fcm.ts                       # 토큰 등록(fcm.api.ts 호출)·기기 토큰 해제 함수
 └── useFcmForegroundMessage.ts   # 포그라운드 메시지 수신 훅
 
 src/shared/api/
-└── fcm.api.ts                   # /fcm/token API 호출 (apiClient 경유)
+└── fcm.api.ts                   # POST /fcm/token(등록) 호출 (apiClient 경유)
 
 public/
 └── firebase-messaging-sw.js     # Service Worker (백그라운드 수신)
@@ -254,13 +254,14 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
 확실히 없는 ①만 있던 예전에는 이 문제가 없었다).
 
 서버 등록은 별도 함수(`registerTokenToServer`)로 분리돼 있다. 예전에는
-`sessionStorage`(키는 `STORAGE_KEYS.FCM.TOKEN`, §12)에 같은 토큰 문자열이 있으면
+`sessionStorage`(키는 `STORAGE_KEYS.FCM.TOKEN`)에 같은 토큰 문자열이 있으면
 서버 재등록 자체를 건너뛰었지만, 이 캐시는 제거했다 - 세션이 바뀌어도(비밀번호
 변경 등) 토큰 문자열 자체는 그대로인 경우가 많아, 캐시가 있으면 새 familyId로
 재등록해야 할 때 조용히 스킵돼버린다(정확히 사용자가 "세션 만료 후 같은 탭에서
-재로그인해도 알림이 안 온다"로 겪었던 재현 경로다). `sessionStorage`에 토큰을
-써두는 것 자체는 유지한다 - `unregisterFcmToken`이 로그아웃 시 어떤 토큰을
-지울지 알아야 하기 때문이다. 등록에는 그 시점의 `accessToken`이 필요한데 로그인
+재로그인해도 알림이 안 온다"로 겪었던 재현 경로다). 그 뒤에도 토큰을
+`sessionStorage`에 써두는 것은 남아 있었는데(로그아웃 때 서버에서 지울 토큰을 찾는
+용도), 그 서버 삭제가 실행될 수 없는 경로라(아래 "토큰 해제") 2026-10-05에 저장과
+키(`STORAGE_KEYS.FCM.TOKEN`)를 함께 없앴다. 등록에는 그 시점의 `accessToken`이 필요한데 로그인
 직후 타이밍 문제가 §10.6 시행착오의 원인이었다. 실제 `/fcm/token` 호출은
 `shared/api/fcm.api.ts`의 `fcmApi`(다른 엔티티와 같은 3-layer API 규약대로
 `apiClient` 경유)가 맡는다 — 인증 헤더·baseURL·401 갱신은 `apiClient`가 이미
@@ -275,12 +276,17 @@ async function registerTokenToServer(token: string): Promise<void> {
   if (!accessToken) return; // 아직 로그인 상태가 스토어에 반영 안 됐으면 조용히 skip
 
   await fcmApi.registerToken(token); // shared/api/fcm.api.ts → apiClient.post(API_ENDPOINTS.fcm.token)
-  sessionStorage.setItem(STORAGE_KEYS.FCM.TOKEN, token);
 }
 ```
 
-토큰 해제(`unregisterFcmToken`)는 로그아웃 직전에 호출된다. Firebase SDK의
-`deleteToken()` + 서버 `DELETE /fcm/token`을 순서대로 호출한다.
+토큰 해제(`unregisterFcmToken`)는 로그아웃(`auth.queries.ts`의 `useLogoutMutation`)이
+auth 상태를 비운 **뒤** 백그라운드로 호출되고, Firebase SDK의 `deleteToken()`으로 이
+기기의 토큰만 무효화한다. 서버 `DELETE /fcm/token`은 보내지 않는다 — 이 시점엔
+요청에 실을 accessToken이 이미 없고, 서버의 `fcm_tokens` 행은 로그아웃으로 폐기된
+세션 계열에 묶여 있어 발송 대상에서 빠진 뒤 다음 발송 직전에 BE가 지운다(§5
+"알림 발송 흐름"). 2026-10-05 전에는 서버 삭제 코드(`deleteTokenFromServer`)가 있었지만,
+accessToken이 없으면 조용히 return하는 구조라 같은 이유로 요청이 한 번도 나가지
+않아 지웠다(BE 엔드포인트 `DELETE /fcm/token`은 남아 있다).
 
 **포그라운드 메시지 수신**(`useFcmForegroundMessage.ts`)
 
@@ -566,12 +572,11 @@ FE 쪽에서 토큰 등록에 필요한 상태는 `useAuthStore`(Zustand)의 `ac
 
 ## 7. 운영 파라미터
 
-| 파라미터                                    | 값                                               | 실제 위치                                           |
-| ------------------------------------------- | ------------------------------------------------ | --------------------------------------------------- |
-| 한 유저 동시 발송 토큰 수                   | 최대 500(멀티 디바이스)                          | BE `FcmService.sendToUser`의 `sendEachForMulticast` |
-| 자동 삭제 대상 에러                         | `UNREGISTERED`, `INVALID_ARGUMENT`               | BE `FcmService.sendToUser`의 실패 응답 필터         |
-| 토큰 세션 캐시 키                           | `STORAGE_KEYS.FCM.TOKEN`(`linksphere:fcm:token`) | `src/shared/config/storage-keys.ts:21-23`           |
-| 세션 절대 수명(=알림 수신 가능 기간의 상한) | 7일(재로그인 없이는 이 기간 지나면 알림도 끊김)  | BE `MemberSessionService.REFRESH_TOKEN_VALIDITY`    |
+| 파라미터                                    | 값                                              | 실제 위치                                           |
+| ------------------------------------------- | ----------------------------------------------- | --------------------------------------------------- |
+| 한 유저 동시 발송 토큰 수                   | 최대 500(멀티 디바이스)                         | BE `FcmService.sendToUser`의 `sendEachForMulticast` |
+| 자동 삭제 대상 에러                         | `UNREGISTERED`, `INVALID_ARGUMENT`              | BE `FcmService.sendToUser`의 실패 응답 필터         |
+| 세션 절대 수명(=알림 수신 가능 기간의 상한) | 7일(재로그인 없이는 이 기간 지나면 알림도 끊김) | BE `MemberSessionService.REFRESH_TOKEN_VALIDITY`    |
 
 ## 8. 코드 지도와 자주 하는 수정
 
