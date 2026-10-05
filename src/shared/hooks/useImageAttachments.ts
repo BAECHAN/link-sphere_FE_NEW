@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { getImageFileSizeError, normalizeSvgDimensions } from '@/shared/lib/image/resizeImage';
+import { isAllowedImageType } from '@/shared/lib/image/imageFormat';
 
 interface UseImageAttachmentsOptions {
   /** 총 허용 장수 */
@@ -111,7 +112,9 @@ export function useImageAttachments({
       const accepted: File[] = [];
       const errors = new Set<string>();
       for (const file of fileArray) {
-        if (!file.type.startsWith('image/')) {
+        // image/*가 아니라 허용 목록으로 본다 - bmp·tiff처럼 브라우저는 이미지로 보지만 BE·버킷이 받지
+        // 않는 형식을 여기서 막아야 제출 뒤 "서버 오류"로 뭉개지지 않는다(config/image-format.ts).
+        if (!isAllowedImageType(file.type)) {
           errors.add(TEXTS.validation.imageFileOnly);
           continue;
         }

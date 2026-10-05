@@ -1,5 +1,6 @@
 const URL_TOKEN_PATTERN = /^https?:\/\/[^\s]+$/;
-const IMAGE_EXT_PATTERN = /\.(jpeg|jpg|gif|png|webp|avif|heic|heif)(\?.*)?$/i;
+// MarkdownContent.tsx의 같은 이름 정규식과 같아야 한다(업로드 허용 확장자 config/image-format.ts 포함)
+const IMAGE_EXT_PATTERN = /\.(jpeg|jpg|gif|png|webp|avif|heic|heif|svg)(\?.*)?$/i;
 
 function isImageUrlLine(trimmed: string): boolean {
   return !!trimmed && URL_TOKEN_PATTERN.test(trimmed) && IMAGE_EXT_PATTERN.test(trimmed);
