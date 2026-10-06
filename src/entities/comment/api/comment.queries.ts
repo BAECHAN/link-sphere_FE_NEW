@@ -8,12 +8,14 @@ import dayjs from 'dayjs';
 import { commentApi } from '@/entities/comment/api/comment.api';
 import {
   commentKeys,
+  handleCommentCreateOutcomeUnknown,
   handleCommentCreateSuccess,
   handleCommentDeleteSuccess,
   handleCommentUpdateSuccess,
 } from '@/entities/comment/api/comment.keys';
 import { Comment } from '@/entities/comment/model/comment.schema';
 import { COMMENT_PAGE_SIZE } from '@/entities/comment/config/comment.const';
+import { CommentUtil } from '@/entities/comment/utils/comment.util';
 import { PaginationRequest } from '@/shared/types/common.type';
 
 // 서버 응답을 기다리는 동안 목록에 즉시 꽂아 넣는 임시 댓글을 만든다.
@@ -107,6 +109,8 @@ export const useCreateCommentMutation = (postId: string) => {
   return useMutation({
     mutationFn: (payload: { content?: string; images?: File[]; author: Comment['author'] }) =>
       commentApi.createComment(postId, { content: payload.content, images: payload.images }),
+    // 실패 원인은 폼이 버튼 위 FormAlert로 안내한다(useCreateComment) - 전역 토스트와 겹치지 않게 끈다
+    meta: { manualErrorHandling: true },
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: commentKeys.list(postId) });
 
@@ -131,9 +135,13 @@ export const useCreateCommentMutation = (postId: string) => {
       );
       handleCommentCreateSuccess(queryClient, postId);
     },
-    onError: (_err, _variables, context) => {
+    onError: (error, _variables, context) => {
       if (context?.previousComments) {
         queryClient.setQueryData(commentKeys.list(postId), context.previousComments);
+      }
+
+      if (CommentUtil.isOutcomeUnknown(error)) {
+        handleCommentCreateOutcomeUnknown(queryClient, postId);
       }
     },
     onSettled: (_data, _err, _variables, context) => {
@@ -156,6 +164,8 @@ export const useCreateReplyMutation = (postId: string) => {
       images?: File[];
       author: Comment['author'];
     }) => commentApi.createReply(commentId, { content, images }),
+    // 실패 원인은 폼이 버튼 위 FormAlert로 안내한다(useCreateComment) - 전역 토스트와 겹치지 않게 끈다
+    meta: { manualErrorHandling: true },
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: commentKeys.list(postId) });
 
@@ -195,9 +205,13 @@ export const useCreateReplyMutation = (postId: string) => {
       );
       handleCommentCreateSuccess(queryClient, postId);
     },
-    onError: (_err, _variables, context) => {
+    onError: (error, _variables, context) => {
       if (context?.previousComments) {
         queryClient.setQueryData(commentKeys.list(postId), context.previousComments);
+      }
+
+      if (CommentUtil.isOutcomeUnknown(error)) {
+        handleCommentCreateOutcomeUnknown(queryClient, postId);
       }
     },
     onSettled: (_data, _err, _variables, context) => {
@@ -232,6 +246,8 @@ export const useUpdateCommentMutation = (postId: string) => {
       images?: File[];
       existingImages?: string[];
     }) => commentApi.updateComment(commentId, { content, images, existingImages }),
+    // 실패 원인은 폼이 버튼 위 FormAlert로 안내한다(useUpdateComment) - 전역 토스트와 겹치지 않게 끈다
+    meta: { manualErrorHandling: true },
     onSuccess: (data) => {
       // 응답을 캐시에 먼저 반영한 뒤(mutation-level onSuccess) 호출부의 onSuccess(폼 닫기)가
       // 실행되므로, 폼이 닫히는 순간엔 이미 새 내용이 캐시에 있다 - 옛 내용이 스치지 않는다.

@@ -523,6 +523,48 @@ export const TEXTS = {
       postDeleteFailed: '포스트 삭제에 실패했어요.',
       postVisibilityUpdateFailed: '게시물 공개 설정 변경에 실패했어요.',
 
+      // 이미지 업로드 관련
+      // 이미지를 올린 뒤 제출하는 폼(댓글 등록·수정, 프로필 사진)의 업로드 단계 실패 안내
+      // (ErrorUtil.resolveImageUploadMessage). 끝의 동작을 그 폼의 버튼 이름에 맞춰 register(댓글
+      // 등록)·save(댓글 수정·프로필 사진)로 나눈다. 10MB는 업로드 버킷의 용량 제한이다.
+      uploadSubmit: {
+        imageUnsupportedType:
+          '올릴 수 없는 형식의 이미지가 있어요. JPG·PNG·GIF·WEBP·AVIF·SVG만 올릴 수 있어요.',
+        register: {
+          imageTooLarge:
+            '10MB를 넘는 이미지가 있어 올리지 못했어요. 그 이미지를 빼고 다시 등록해주세요.',
+          imageRateLimitedIn: (minutes: number) =>
+            `이미지를 짧은 시간에 너무 많이 올려 잠시 막혔어요. 약 ${minutes}분 뒤 다시 등록해주세요.`,
+          imageRateLimited:
+            '이미지를 짧은 시간에 너무 많이 올려 잠시 막혔어요. 잠시 후 다시 등록해주세요.',
+          storageUnavailable: '이미지 저장소가 잠시 불안정해요. 잠시 후 다시 등록해주세요.',
+          network: '인터넷 연결을 확인하고 다시 등록해주세요.',
+        },
+        save: {
+          imageTooLarge:
+            '10MB를 넘는 이미지가 있어 올리지 못했어요. 그 이미지를 빼고 다시 저장해주세요.',
+          imageRateLimitedIn: (minutes: number) =>
+            `이미지를 짧은 시간에 너무 많이 올려 잠시 막혔어요. 약 ${minutes}분 뒤 다시 저장해주세요.`,
+          imageRateLimited:
+            '이미지를 짧은 시간에 너무 많이 올려 잠시 막혔어요. 잠시 후 다시 저장해주세요.',
+          storageUnavailable: '이미지 저장소가 잠시 불안정해요. 잠시 후 다시 저장해주세요.',
+          network: '인터넷 연결을 확인하고 다시 저장해주세요.',
+        },
+      },
+
+      // 댓글 관련
+      // 댓글·답글 등록과 댓글 수정 실패 원인 안내(CommentUtil.resolveSubmitError) - 폼의 버튼 위
+      // FormAlert에 남는다(docs/COMMENT.md "이미지 업로드 실패 안내")
+      commentSubmit: {
+        outcomeUnknown:
+          '응답이 늦어 등록됐는지 확인하지 못했어요. 목록을 새로 불러왔으니 먼저 확인해주세요.',
+        postDeleted: '이 글이 삭제돼 댓글을 달 수 없어요.',
+        parentDeleted: '답글을 달 댓글이 삭제됐어요.',
+        commentDeleted: '이 댓글은 삭제돼 수정할 수 없어요.',
+        createFailed: '일시적인 문제로 등록하지 못했어요. 잠시 후 다시 시도해주세요.',
+        updateFailed: '일시적인 문제로 수정하지 못했어요. 잠시 후 다시 시도해주세요.',
+      },
+
       // 북마크 폴더 관련
       folderRenameFailed: '이름 변경에 실패했어요.',
       folderDeleteFailed: '폴더 삭제에 실패했어요.',
@@ -548,7 +590,6 @@ export const TEXTS = {
 
       // 유틸
       linkCopyFailed: '링크 복사에 실패했어요.',
-      imageUploadFailed: '이미지 업로드에 실패했어요.',
     },
   },
   unsavedChanges: {

@@ -5,6 +5,7 @@ import { cn } from '@/shared/lib/tailwind/utils';
 import { Textarea } from '@/shared/ui/atoms/textarea';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { ImageAttachmentField } from '@/shared/ui/elements/ImageAttachmentField';
+import { FormAlert } from '@/shared/ui/elements/FormAlert';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { DropTargetOverlay } from '@/shared/ui/elements/DropTargetOverlay';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
@@ -37,6 +38,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
     isReply,
     contentValue,
     isOverLimit,
+    failureMessage,
     images,
     imagePreviewUrls,
     isDraggingOver,
@@ -160,6 +162,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
           onAttach={addFiles}
           onRemove={clearImage}
         />
+        {failureMessage && <FormAlert>{failureMessage}</FormAlert>}
         <div className="flex justify-end gap-2">
           {onCancel ? (
             <Button type="button" variant="ghost" size="sm" onClick={onCancel}>

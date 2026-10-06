@@ -6,13 +6,19 @@ import {
   handleAccountUpdateSuccess,
 } from '@/entities/account/api/account.keys';
 import { useAuthStore } from '@/shared/store/auth.store';
-import { ApiError, UserFacingError } from '@/shared/types/common.type';
+import {
+  ApiError,
+  ImageUploadError,
+  NetworkError,
+  UserFacingError,
+} from '@/shared/types/common.type';
 import { Account, UpdateAccount, DeleteAccount } from '@/entities/account/model/account.schema';
 import { STALE_TIME_ONE_DAY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { AuthUtil } from '@/shared/utils/auth.util';
+import { ErrorUtil } from '@/shared/utils/error.util';
 
 interface UpdateAccountPayload extends UpdateAccount {
   file?: File;
@@ -22,16 +28,29 @@ interface UpdateAccountPayload extends UpdateAccount {
 
 // 닉네임 중복(409)은 전용 메시지. 그 외 서버발 ApiError는 상세를 노출하지 않고 일반
 // 메시지로 감춘다(보안·UX 정책, queryClient.ts의 전역 핸들러와 동일). 이 mutation 안에서
-// 우리가 직접 던진 UserFacingError(이미지 용량 초과·스토리지 업로드 실패 등)는 이미
-// TEXTS.*로 작성한 사용자용 메시지이므로 뭉개지 않고 그대로 보여준다 - 안 그러면 원인이
-// 뭐든 "프로필 업데이트에 실패했습니다"로만 보여 사용자가 무엇이 문제인지 알 수 없다.
-// 네트워크 실패 등 그 외 일반 Error는 UserFacingError가 아니므로 여전히 일반 메시지로
-// 감싼다 - 브라우저의 날것 기술 에러 문구(예: "Failed to fetch")를 그대로 노출하지 않는다.
+// 우리가 직접 던진 UserFacingError(이미지 용량 초과 등)는 이미 TEXTS.*로 작성한 사용자용
+// 메시지이므로 뭉개지 않고 그대로 보여준다 - 안 그러면 원인이 뭐든 "프로필 업데이트에
+// 실패했습니다"로만 보여 사용자가 무엇이 문제인지 알 수 없다. 사진 업로드 단계 실패
+// (ImageUploadError)·요청 한도(429)·연결 끊김(NetworkError)도 같은 이유로 원인별로 안내한다
+// (댓글 폼과 같은 문구, docs/COMMENT.md "이미지 업로드 실패 안내"). 그 외 일반 Error는 여전히
+// 일반 메시지로 감싼다 - 브라우저의 날것 기술 에러 문구를 그대로 노출하지 않는다.
 function resolveAccountUpdateErrorMessage(error: unknown): string {
+  if (error instanceof ImageUploadError) {
+    return (
+      ErrorUtil.resolveImageUploadMessage(error, 'save') ?? TEXTS.messages.error.accountUpdateFailed
+    );
+  }
+  if (error instanceof NetworkError) {
+    return TEXTS.messages.error.uploadSubmit.save.network;
+  }
   if (error instanceof ApiError) {
-    return error.status === 409
-      ? TEXTS.messages.error.nicknameDuplicate
-      : TEXTS.messages.error.accountUpdateFailed;
+    if (error.status === 409) {
+      return TEXTS.messages.error.nicknameDuplicate;
+    }
+    if (error.status === 429) {
+      return TEXTS.messages.error.rateLimited;
+    }
+    return TEXTS.messages.error.accountUpdateFailed;
   }
   if (error instanceof UserFacingError) {
     return error.message;

@@ -154,7 +154,7 @@ describe('useUpdateAccountMutation', () => {
     expect(result.current.data?.image).toBe('https://example.com/new-avatar.png');
   });
 
-  it('네트워크 오류 등 일반 에러는 날것 메시지 대신 일반 실패 메시지로 감싼다', async () => {
+  it('연결이 끊기면 날것 메시지 대신 인터넷 연결을 확인하라고 안내한다', async () => {
     // MSW의 네트워크 레벨 에러 - fetch가 TypeError를 던지는 실제 오프라인 상황과 동일하게 재현
     server.use(http.patch(url(API_ENDPOINTS.auth.updateAccount), () => HttpResponse.error()));
 
@@ -166,7 +166,7 @@ describe('useUpdateAccountMutation', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(mockToastError).toHaveBeenCalledWith(
-      TEXTS.messages.error.accountUpdateFailed,
+      TEXTS.messages.error.uploadSubmit.save.network,
       expect.anything()
     );
     // 브라우저의 날것 네트워크 에러 문구가 그대로 노출되지 않았는지 확인
@@ -189,6 +189,30 @@ describe('useUpdateAccountMutation', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(mockToastError).toHaveBeenCalledWith(
       TEXTS.validation.imageTooLarge(30),
+      expect.anything()
+    );
+  });
+
+  it('사진 업로드 한도(429)에 걸리면 Retry-After로 기다릴 시간을 안내한다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.upload.signedUrl), () =>
+        HttpResponse.json(
+          { status: 429, code: 'RATE_LIMIT_EXCEEDED', message: 'too many', timestamp: '' },
+          { status: 429, headers: { 'Retry-After': '1380' } }
+        )
+      )
+    );
+
+    const file = new File(['img'], 'avatar.png', { type: 'image/png' });
+    const { result } = renderHook(() => useUpdateAccountMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ nickname: mockAccount.nickname, file });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(mockToastError).toHaveBeenCalledWith(
+      TEXTS.messages.error.uploadSubmit.save.imageRateLimitedIn(23),
       expect.anything()
     );
   });

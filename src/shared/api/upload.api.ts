@@ -1,12 +1,39 @@
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/config/api';
-import { TEXTS } from '@/shared/config/texts';
-import { UserFacingError } from '@/shared/types/common.type';
+import {
+  ImageUploadError,
+  ImageUploadFailureReason,
+  NetworkError,
+} from '@/shared/types/common.type';
 
 interface SignedUploadUrl {
   uploadUrl: string;
   token: string;
   publicUrl: string;
+}
+
+// Supabase Storage는 버킷 용량·형식 제한 위반도 HTTP 400으로 돌려주고 실제 원인은 본문 statusCode
+// ("413"·"415")에 담는다. 혼잡(429)·장애(5xx, DB 타임아웃 544)는 HTTP 상태로 온다(storage 서버 소스
+// 조사, docs/COMMENT.md "이미지 업로드 실패 안내" 참고). 본문이 없거나 JSON이 아니면 HTTP 상태로 판정한다.
+async function resolveStorageFailureReason(response: Response): Promise<ImageUploadFailureReason> {
+  const body: unknown = await response.json().catch(() => null);
+  const bodyStatus =
+    body && typeof body === 'object' && 'statusCode' in body ? Number(body.statusCode) : NaN;
+  const status = Number.isNaN(bodyStatus) ? response.status : bodyStatus;
+
+  if (status === 413) {
+    return 'tooLarge';
+  }
+
+  if (status === 415) {
+    return 'unsupportedType';
+  }
+
+  if (status === 429 || status >= 500) {
+    return 'storageUnavailable';
+  }
+
+  return 'failed';
 }
 
 /**
@@ -36,9 +63,11 @@ export const uploadApi = {
         'cache-control': 'public, max-age=31536000, immutable',
       },
       body: file,
+    }).catch(() => {
+      throw new NetworkError();
     });
     if (!response.ok) {
-      throw new UserFacingError(TEXTS.messages.error.imageUploadFailed);
+      throw new ImageUploadError(await resolveStorageFailureReason(response));
     }
   },
 };

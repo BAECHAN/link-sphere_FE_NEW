@@ -5,6 +5,7 @@ import { X, Check } from 'lucide-react';
 import { Kbd } from '@/shared/ui/atoms/kbd';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { ImageAttachmentField } from '@/shared/ui/elements/ImageAttachmentField';
+import { FormAlert } from '@/shared/ui/elements/FormAlert';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { DropTargetOverlay } from '@/shared/ui/elements/DropTargetOverlay';
 import { LinkThumbnail } from '@/shared/ui/atoms/link-thumbnail';
@@ -30,6 +31,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
     isUpdating,
     canSubmit,
     isOverLimit,
+    failureMessage,
     imagePreviewUrls,
     isDraggingOver,
     addFiles,
@@ -129,6 +131,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
           onAttach={addFiles}
           onRemove={clearImage}
         />
+        {failureMessage && <FormAlert>{failureMessage}</FormAlert>}
         <div className="flex justify-end gap-2">
           <Button
             type="button"

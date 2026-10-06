@@ -1,8 +1,42 @@
 import { uploadApi } from '@/shared/api/upload.api';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { TEXTS } from '@/shared/config/texts';
 import { getUploadExtension } from '@/shared/lib/image/imageFormat';
 import { resizeImageFile } from '@/shared/lib/image/resizeImage';
-import { UserFacingError } from '@/shared/types/common.type';
+import {
+  ApiError,
+  ImageUploadError,
+  NetworkError,
+  UserFacingError,
+} from '@/shared/types/common.type';
+
+// 서명 URL 발급·스토리지 PUT 실패를 ImageUploadError로 모은다 - 본 요청(댓글 등록 등)의 실패와
+// 구분해야 같은 429·네트워크라도 알맞은 안내를 고를 수 있다. 서명 URL의 5xx도 여기서 바꾼다 - 그대로
+// 두면 504가 "본 요청이 저장됐는지 모름"으로 읽힌다. 로그인 만료·보안 정책 차단처럼 단계와 무관하게
+// 뜻이 같은 ApiError는 그대로 둔다.
+function toImageUploadError(error: unknown): unknown {
+  if (error instanceof NetworkError) {
+    return new ImageUploadError('network');
+  }
+
+  if (!(error instanceof ApiError)) {
+    return error;
+  }
+
+  if (error.code === SERVER_ERROR_CODE.UNSUPPORTED_IMAGE_TYPE) {
+    return new ImageUploadError('unsupportedType');
+  }
+
+  if (error.status === 429) {
+    return new ImageUploadError('rateLimited', error.retryAfterSeconds);
+  }
+
+  if (error.status >= 500) {
+    return new ImageUploadError('failed');
+  }
+
+  return error;
+}
 
 /**
  * 파일을 리사이즈한 뒤 스토리지에 직접 업로드하고 공개 URL을 반환한다
@@ -24,7 +58,11 @@ export async function uploadImageAndGetUrl(
     throw new UserFacingError(TEXTS.validation.imageFileOnly);
   }
 
-  const signed = await uploadApi.getSignedUploadUrl(extension);
-  await uploadApi.uploadFileDirectly(signed, resized);
-  return signed.publicUrl;
+  try {
+    const signed = await uploadApi.getSignedUploadUrl(extension);
+    await uploadApi.uploadFileDirectly(signed, resized);
+    return signed.publicUrl;
+  } catch (error) {
+    throw toImageUploadError(error);
+  }
 }

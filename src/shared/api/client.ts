@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { TEXTS } from '@/shared/config/texts';
-import { ApiError, ApiResponse, ApiErrorResponse } from '@/shared/types/common.type';
+import { ApiError, ApiResponse, ApiErrorResponse, NetworkError } from '@/shared/types/common.type';
 import { useAuthStore } from '@/shared/store/auth.store';
 
 import { FormUtil } from '@/shared/utils/form.util';
@@ -257,6 +257,13 @@ class ApiClient {
         ...options,
         headers,
         credentials: 'include', // 쿠키 전송을 위해 필요 (필요 시)
+      }).catch((error: unknown) => {
+        // 응답 없이 끝난 요청(오프라인·연결 끊김) - 사용자가 취소한 AbortError만 그대로 둔다
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw error;
+        }
+
+        throw new NetworkError();
       });
 
       if (!response.ok) {

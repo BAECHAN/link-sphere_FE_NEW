@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-10-05
+> **마지막 검토**: 2026-10-06
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -1025,7 +1025,9 @@ const { mutate } = useMutation({
 `manualErrorHandling`, 분류는 `entities/post/utils/post.util.ts`의 `PostUtil.resolveSubmitError`,
 표시는 `useCreatePost`·`useUpdatePost`). 서버 code로 고칠 수 있는 입력칸이면 `form.setError(..., { type:
 'server' })`, 아니면 제출 버튼 위 `FormAlert`(`shared/ui/elements/FormAlert.tsx`)에 남긴다
-(`docs/POST.md` §5 작성 7번, 2026-10-03).
+(`docs/POST.md` §5 작성 7번, 2026-10-03). 댓글 등록·답글·수정도 같은 방식이다(분류는
+`entities/comment/utils/comment.util.ts`의 `CommentUtil.resolveSubmitError`, 입력칸 에러 없이 전부
+`FormAlert`, `docs/COMMENT.md` §5 "실패 안내").
 
 ---
 
