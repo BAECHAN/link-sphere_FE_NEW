@@ -34,6 +34,13 @@ export const handleCommentCreateSuccess = (queryClient: QueryClient, postId: Pos
   commentInvalidateQueries.my(queryClient);
 };
 
+// 등록 요청이 응답 없이 끝나(504·연결 끊김) 저장됐는지 모를 때 - 낙관적 댓글은 onError가 이미
+// 되돌렸으니, 실제로 저장됐다면 다시 보이도록 목록과 댓글 수를 서버 기준으로 다시 불러온다.
+export const handleCommentCreateOutcomeUnknown = (queryClient: QueryClient, postId: Post['id']) => {
+  commentInvalidateQueries.list(queryClient, postId);
+  handleCommentCreateSuccess(queryClient, postId);
+};
+
 export const handleCommentDeleteSuccess = (queryClient: QueryClient, postId: Post['id']) => {
   commentInvalidateQueries.list(queryClient, postId);
   commentInvalidateQueries.my(queryClient);

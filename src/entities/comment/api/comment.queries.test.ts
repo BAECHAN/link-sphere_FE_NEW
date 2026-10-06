@@ -14,6 +14,7 @@ import type { Comment } from '@/entities/comment/model/comment.schema';
 import {
   useCreateCommentMutation,
   useCreateReplyMutation,
+  useSuspenseComments,
   useUpdateCommentMutation,
 } from '@/entities/comment/api/comment.queries';
 
@@ -118,6 +119,55 @@ describe('useCreateCommentMutation', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(queryClient.getQueryData<Comment[]>(commentKeys.list(POST_ID))).toEqual([existing]);
+  });
+
+  it('응답 없이 끝나면(504) 저장됐을 수 있으니 댓글 목록을 서버에서 다시 불러온다', async () => {
+    const saved: Comment = { ...mockComment, id: 'comment-saved', content: '사실은 저장된 댓글' };
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), () =>
+        HttpResponse.json({}, { status: 504 })
+      ),
+      http.get(url(API_ENDPOINTS.post.postComment(POST_ID)), () =>
+        HttpResponse.json({ status: 200, message: 'ok', data: [saved], timestamp: '' })
+      )
+    );
+    queryClient.setQueryData(commentKeys.list(POST_ID), []);
+    // 무효화가 재조회로 이어지려면 그 쿼리를 보는 화면(관찰자)이 있어야 한다
+    renderHook(() => useSuspenseComments(POST_ID), { wrapper: Wrapper });
+
+    const { result } = renderHook(() => useCreateCommentMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ content: '사실은 저장된 댓글', author: AUTHOR });
+    });
+
+    await waitFor(() =>
+      expect(queryClient.getQueryData<Comment[]>(commentKeys.list(POST_ID))).toEqual([saved])
+    );
+  });
+
+  it('결과가 확실한 실패(500)면 목록을 다시 불러오지 않는다', async () => {
+    let refetched = false;
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), () =>
+        HttpResponse.json({}, { status: 500 })
+      ),
+      http.get(url(API_ENDPOINTS.post.postComment(POST_ID)), () => {
+        refetched = true;
+        return HttpResponse.json({ status: 200, message: 'ok', data: [], timestamp: '' });
+      })
+    );
+    queryClient.setQueryData(commentKeys.list(POST_ID), []);
+    renderHook(() => useSuspenseComments(POST_ID), { wrapper: Wrapper });
+
+    const { result } = renderHook(() => useCreateCommentMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ content: '실패할 댓글', author: AUTHOR });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(refetched).toBe(false);
   });
 });
 

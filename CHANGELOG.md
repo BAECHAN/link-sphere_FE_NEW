@@ -21,6 +21,18 @@
 
 ### Changed
 
+- `comment` 등록·수정 실패 원인을 버튼 위에 보여줌(이미지 형식·용량·업로드 한도·저장소·연결)
+  <details><summary>배경·구현</summary>
+
+  댓글 등록이 실패하면 원인과 상관없이 거의 다 "서버 오류가 발생했어요." 토스트였다. 이제 `CommentUtil.resolveSubmitError`가 실패 단계와 원인을 나눠, 첨부 썸네일과 버튼 사이의 `FormAlert`에 고칠 방법이나 기다릴 시간을 남긴다(댓글 등록·답글·수정 mutation은 `manualErrorHandling`).
+  - 업로드 단계: 허용 밖 형식, 10MB 초과, 업로드 한도(`Retry-After`를 분으로), 저장소 혼잡·장애, 연결 끊김. `uploadImageAndGetUrl`이 `ImageUploadError`로 감싸고, Supabase가 HTTP 400 본문 `statusCode`에 담는 원인("413"·"415"·"544")을 읽는다.
+  - 본 요청: 504·연결 끊김은 저장됐을 수 있어 "확인해주세요"와 함께 댓글 목록·개수를 다시 불러온다(등록·답글만). 글·답글 대상·수정 대상 삭제는 각각 안내한다(BE #68의 `COMMENT_NOT_FOUND`·`COMMENT_DELETED`).
+  - 요청 도중 폼이 닫히면(답글 취소·모바일 바 접기) 같은 문구를 토스트로 대신 띄운다.
+
+  `fetch` reject는 `NetworkError`로 바꿔 브라우저 문구(`'Failed to fetch'`) 비교 없이 판별한다. 프로필 사진 저장 실패 토스트도 같은 원인별 문구를 쓴다. 위치는 시안 비교 후 사용자가 골랐다(`docs/DECISIONS.md` 2026-10-06). (`comment.util.ts`, `comment.keys.ts`, `comment.queries.ts`, `useCreateComment.ts`, `useUpdateComment.ts`, `CommentForm.tsx`, `CommentEditForm.tsx`, `uploadImageAndGetUrl.ts`, `upload.api.ts`, `client.ts`, `common.type.ts`, `error.util.ts`, `error-code.ts`, `account.queries.ts`, `texts.ts`, `docs/COMMENT.md`, [PR #330](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/330))
+
+  </details>
+
 - `infra` 없는 경로(`/oops`, `/.git/config` 등)가 200 대신 404 상태로 응답함
   <details><summary>배경·구현</summary>
 

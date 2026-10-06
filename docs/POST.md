@@ -381,7 +381,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 
 | 사건                                   | 무효화                      | 위치                                                             |
 | -------------------------------------- | --------------------------- | ---------------------------------------------------------------- |
-| 댓글 작성·삭제(`commentCount` 변동)    | detail + list               | `src/entities/comment/api/comment.keys.ts:26-42`                 |
+| 댓글 작성·삭제(`commentCount` 변동)    | detail + list               | `src/entities/comment/api/comment.keys.ts:26-49`                 |
 | 프로필 수정(작성자 닉네임·이미지)      | `post` 전체                 | `src/entities/account/api/account.keys.ts:29`                    |
 | 세션 복원 성공(비로그인으로 받은 목록) | list                        | `src/entities/auth/api/auth.keys.ts:10-12`                       |
 | 북마크 폴더 삭제·소속 변경             | list(+ 소속 변경 시 detail) | `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:53-95` |

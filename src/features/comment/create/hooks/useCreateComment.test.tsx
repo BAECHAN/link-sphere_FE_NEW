@@ -224,4 +224,133 @@ describe('useCreateComment', () => {
     expect(requested).toBe(false);
     expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.emailVerificationRequired);
   });
+
+  it('등록이 실패하면 원인 안내를 남기고, 입력을 고치면 지운다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), () =>
+        HttpResponse.json({}, { status: 500 })
+      )
+    );
+
+    const result = await renderLoggedIn(queryClient);
+
+    act(() => {
+      result.current.form.setValue('content', '실패할 댓글', { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    await waitFor(() =>
+      expect(result.current.failureMessage).toBe(TEXTS.messages.error.commentSubmit.createFailed)
+    );
+    // 복원(reset)이 안내를 지우지 않았는지 - 내용과 안내가 함께 남아야 한다
+    expect(result.current.form.getValues('content')).toBe('실패할 댓글');
+
+    act(() => {
+      result.current.form.setValue('content', '고친 댓글', { shouldDirty: true });
+    });
+
+    expect(result.current.failureMessage).toBeNull();
+  });
+
+  it('첨부 이미지까지 복원돼도 안내는 남고, 이미지를 빼면 지운다', async () => {
+    // 업로드 한도(429)에 걸린 경우 - 복원된 이미지가 미리보기를 다시 만들 때 안내가 지워지면 안 된다
+    server.use(
+      http.post(url(API_ENDPOINTS.upload.signedUrl), () =>
+        HttpResponse.json(
+          { status: 429, code: 'RATE_LIMIT_EXCEEDED', message: 'too many', timestamp: '' },
+          { status: 429, headers: { 'Retry-After': '1380' } }
+        )
+      )
+    );
+
+    const result = await renderLoggedIn(queryClient);
+
+    act(() => {
+      result.current.addFiles([new File(['img'], 'photo.png', { type: 'image/png' })]);
+    });
+    await waitFor(() => expect(result.current.images).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    await waitFor(() =>
+      expect(result.current.failureMessage).toBe(
+        TEXTS.messages.error.uploadSubmit.register.imageRateLimitedIn(23)
+      )
+    );
+    expect(result.current.images).toHaveLength(1);
+    // 미리보기 재생성(이미지 effect)이 끝난 뒤에도 남아 있는지 한 번 더 기다려 본다
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(result.current.failureMessage).not.toBeNull();
+
+    act(() => {
+      result.current.clearImage(0);
+    });
+
+    expect(result.current.failureMessage).toBeNull();
+  });
+
+  it('등록 요청이 응답 없이 끝나면(504) 등록 여부부터 확인하라고 안내한다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), () =>
+        HttpResponse.json({}, { status: 504 })
+      )
+    );
+
+    const result = await renderLoggedIn(queryClient);
+
+    act(() => {
+      result.current.form.setValue('content', '저장됐을 수도 있는 댓글', { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    await waitFor(() =>
+      expect(result.current.failureMessage).toBe(TEXTS.messages.error.commentSubmit.outcomeUnknown)
+    );
+  });
+
+  it('요청 도중 폼이 닫히면 안내할 자리가 없으니 토스트로 대신 알린다', async () => {
+    let respond: (() => void) | null = null;
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), async () => {
+        await new Promise<void>((resolve) => {
+          respond = resolve;
+        });
+        return HttpResponse.json({}, { status: 500 });
+      })
+    );
+    const errorSpy = vi.spyOn(toast, 'error');
+
+    useAuthStore.getState().setAuth('test-access-token');
+    const { result, unmount } = renderHook(() => useCreateComment({ postId: POST_ID }), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => expect(queryClient.getQueryData(accountKeys.root)).toEqual(mockAccount));
+
+    act(() => {
+      result.current.form.setValue('content', '닫힌 뒤 실패할 댓글', { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    // 요청이 서버(핸들러)에 닿은 뒤에 폼을 닫고 실패 응답을 돌려준다
+    await waitFor(() => expect(respond).not.toBeNull());
+    unmount();
+    respond!();
+
+    await waitFor(() =>
+      expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.commentSubmit.createFailed)
+    );
+  });
 });

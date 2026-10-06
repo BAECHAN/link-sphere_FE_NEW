@@ -7,7 +7,7 @@ import { NavigationService } from '@/shared/lib/router/navigation';
 import { AuthUtil } from '@/shared/utils/auth.util';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
-import { ApiError } from '@/shared/types/common.type';
+import { ApiError, NetworkError } from '@/shared/types/common.type';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 
 // NavigationService 모듈 전체를 mock — vi.spyOn 중첩 문제 방지
@@ -314,6 +314,18 @@ describe('ApiClient — 인증 오류 처리', () => {
 
       expect(caught).toBeInstanceOf(ApiError);
       expect((caught as ApiError).code).toBe('ACCESS_DENIED');
+    });
+  });
+
+  describe('Case 6: 응답을 못 받음 (오프라인·연결 끊김)', () => {
+    it('fetch가 reject하면 브라우저 문구 대신 NetworkError로 던진다', async () => {
+      server.use(http.post(COMMENT_HANDLER_URL, () => HttpResponse.error()));
+
+      useAuthStore.getState().setAuth('valid-access-token');
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        NetworkError
+      );
     });
   });
 });

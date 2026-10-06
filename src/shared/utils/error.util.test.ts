@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { ErrorUtil } from '@/shared/utils/error.util';
-import { ApiError, UserFacingError } from '@/shared/types/common.type';
+import {
+  ApiError,
+  ImageUploadError,
+  NetworkError,
+  UserFacingError,
+} from '@/shared/types/common.type';
 import { TEXTS } from '@/shared/config/texts';
 
 function makeApiError(status: number): ApiError {
@@ -20,8 +25,37 @@ describe('ErrorUtil.isServerError', () => {
     expect(ErrorUtil.isServerError(new TypeError('Failed to fetch'))).toBe(true);
   });
 
+  it('fetch 단계에서 응답을 못 받은 NetworkError는 브라우저 문구와 무관하게 true다', () => {
+    expect(ErrorUtil.isServerError(new NetworkError())).toBe(true);
+  });
+
   it('그 외 일반 Error는 false다', () => {
     expect(ErrorUtil.isServerError(new Error('무언가 실패'))).toBe(false);
+  });
+});
+
+describe('ErrorUtil.resolveImageUploadMessage', () => {
+  const texts = TEXTS.messages.error.uploadSubmit;
+
+  it('제출 동작(register·save)에 맞춘 문구를 고른다', () => {
+    const error = new ImageUploadError('storageUnavailable');
+
+    expect(ErrorUtil.resolveImageUploadMessage(error, 'register')).toBe(
+      texts.register.storageUnavailable
+    );
+    expect(ErrorUtil.resolveImageUploadMessage(error, 'save')).toBe(texts.save.storageUnavailable);
+  });
+
+  it('Retry-After가 있으면 분 단위로 올림한 대기 시간을 넣는다', () => {
+    expect(
+      ErrorUtil.resolveImageUploadMessage(new ImageUploadError('rateLimited', 1380), 'save')
+    ).toBe(texts.save.imageRateLimitedIn(23));
+  });
+
+  it('원인을 특정하지 못한 실패는 null - 호출부가 일반 문구를 고른다', () => {
+    expect(ErrorUtil.resolveImageUploadMessage(new ImageUploadError('failed'), 'register')).toBe(
+      null
+    );
   });
 });
 

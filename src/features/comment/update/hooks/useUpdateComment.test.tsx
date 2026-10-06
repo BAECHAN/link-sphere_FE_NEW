@@ -177,4 +177,38 @@ describe('useUpdateComment', () => {
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
   });
+
+  it('삭제된 댓글을 수정하려 하면 원인 안내를 남기고 폼을 닫지 않는다', async () => {
+    server.use(
+      http.patch(url(API_ENDPOINTS.post.comment(mockComment.id)), () =>
+        HttpResponse.json(
+          { status: 409, code: 'COMMENT_DELETED', message: 'deleted', timestamp: '' },
+          { status: 409 }
+        )
+      )
+    );
+
+    const onSuccess = vi.fn();
+    const { result } = renderHook(
+      () => useUpdateComment({ comment: mockComment, postId: mockPost.id, onSuccess }),
+      { wrapper: createWrapper(queryClient) }
+    );
+
+    act(() => {
+      result.current.form.setValue('content', '수정된 내용', { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(result.current.failureMessage).toBe(TEXTS.messages.error.commentSubmit.commentDeleted);
+    expect(onSuccess).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.form.setValue('content', '다시 고친 내용', { shouldDirty: true });
+    });
+
+    expect(result.current.failureMessage).toBeNull();
+  });
 });

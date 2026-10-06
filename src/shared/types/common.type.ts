@@ -63,6 +63,52 @@ export class UserFacingError extends Error {
   }
 }
 
+/**
+ * 서버 응답을 받기 전에 fetch가 실패한 경우(오프라인·연결 끊김 등). fetch는 이때 TypeError로
+ * reject한다([MDN](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch)). 문구는
+ * 브라우저가 정하므로 문구 대신 이 타입으로 판별한다. client.ts·upload.api.ts가 fetch 호출 자리에서만
+ * 바꾼다 - 다른 TypeError는 코드 버그일 수 있어 그대로 둔다.
+ */
+export class NetworkError extends Error {
+  constructor() {
+    super('Network request failed');
+    this.name = 'NetworkError';
+  }
+}
+
+/**
+ * 이미지 업로드 단계(서명 URL 발급 → 스토리지 PUT)에서 실패한 원인.
+ * - unsupportedType·tooLarge: 그 이미지를 바꾸면 해결된다
+ * - rateLimited: 우리 서버의 업로드 한도(시간당 30회). retryAfterSeconds가 함께 온다
+ * - storageUnavailable: 스토리지 혼잡(429)·장애(5xx)
+ * - failed: 원인을 특정하지 못했다
+ */
+export type ImageUploadFailureReason =
+  | 'unsupportedType'
+  | 'tooLarge'
+  | 'rateLimited'
+  | 'storageUnavailable'
+  | 'network'
+  | 'failed';
+
+/**
+ * 이미지 업로드 단계의 실패. 본 요청(댓글 등록 등)을 보내기 전이라 그 글은 저장되지 않았다 - 같은
+ * 429·네트워크 실패라도 본 요청의 실패와 안내가 달라 타입으로 구분한다. 원인은
+ * shared/lib/upload/uploadImageAndGetUrl.ts와 upload.api.ts가 판정한다.
+ */
+export class ImageUploadError extends Error {
+  reason: ImageUploadFailureReason;
+  /** reason이 rateLimited일 때 서버가 준 Retry-After(초) */
+  retryAfterSeconds?: number;
+
+  constructor(reason: ImageUploadFailureReason, retryAfterSeconds?: number) {
+    super(`Image upload failed: ${reason}`);
+    this.name = 'ImageUploadError';
+    this.reason = reason;
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
 export type SelectOptionType<T = unknown> = {
   label: string;
   value: string;

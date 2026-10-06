@@ -27,6 +27,13 @@ export const SERVER_ERROR_CODE = {
   POST_NOT_FOUND: 'POST_NOT_FOUND',
   FORBIDDEN: 'FORBIDDEN',
 
+  // Comment 답글·수정 대상 없음, 삭제된 댓글 수정 시도(BE #68)
+  COMMENT_NOT_FOUND: 'COMMENT_NOT_FOUND',
+  COMMENT_DELETED: 'COMMENT_DELETED',
+
+  // Upload - 서명 URL 발급 시 허용 목록 밖 확장자(BE #68)
+  UNSUPPORTED_IMAGE_TYPE: 'UNSUPPORTED_IMAGE_TYPE',
+
   // Common
   INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
   // CloudFront/WAF가 앱에 닿기 전에 막은 요청 (403 + 비-JSON HTML 응답)

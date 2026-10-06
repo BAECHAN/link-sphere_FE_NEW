@@ -5,11 +5,11 @@
 > **대상 독자**: 이 레포 FE를 처음 보거나 오랜만에 돌아온 개발자.
 >
 > **읽고 나면**: 댓글이 등록되기 전 화면에 먼저 뜨는 이유(낙관적 업데이트), 길이 상한이
-> 두 겹(6,000B·7,500B)인 이유, 이미지가 본문 끝에 URL로 붙는 저장 방식, "내 댓글"에서
-> 원글의 그 댓글로 이동하는 방식을 이해하고, 상한·장수·캐시 무효화 범위를 어디서 바꾸는지
-> 안다.
+> 두 겹(6,000B·7,500B)인 이유, 이미지가 본문 끝에 URL로 붙는 저장 방식, 업로드·등록이
+> 실패했을 때 원인별로 무엇을 안내하는지, "내 댓글"에서 원글의 그 댓글로 이동하는 방식을
+> 이해하고, 상한·장수·캐시 무효화 범위·실패 문구를 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-05
+> **마지막 검토**: 2026-10-06
 
 게시글 상세(`/post/:id`) 하단의 댓글 섹션과, 내가 쓴 댓글을 모아보는 "내 댓글"
 화면(`/my/comments`)을 다룬다. 게시글 자체(목록·상세·작성)는
@@ -20,7 +20,7 @@
 댓글 작성은 **메신저에서 메시지를 보내는 것**과 비슷하다. 전송 버튼을 누르면 서버
 답을 기다리지 않고 내 메시지가 대화창에 반투명하게 먼저 뜨고, 서버가 받았다고 답하면
 진짜 메시지로 조용히 바뀐다. 전송이 실패하면 반투명 메시지가 사라지고 입력창에 쓰던
-글이 되돌아온다.
+글이 되돌아오며, 등록 버튼 바로 위에 실패 원인과 할 일이 남는다(§5 "실패 안내").
 
 다른 점이 둘 있다.
 
@@ -42,9 +42,14 @@ flowchart TD
   Payload -->|"예"| PayloadToast["안내 토스트"]
   Payload -->|"아니오"| Optimistic["폼 즉시 비움<br/>temp- 댓글을 setQueryData로 맨 앞에 삽입<br/>(이미지는 blob: URL)"]
   Optimistic --> Upload["이미지 업로드: 2장씩<br/>POST /upload/signed-url + 스토리지 PUT"]
-  Upload --> Post["POST /post/:id/comment<br/>(답글은 POST /comment/:id/reply)"]
+  Upload -->|"실패"| UploadFail["업로드 단계 실패(ImageUploadError)<br/>형식·용량·업로드 한도·저장소·네트워크"]
+  Upload -->|"성공"| Post["POST /post/:id/comment<br/>(답글은 POST /comment/:id/reply)"]
   Post -->|"성공"| Replace["temp- 항목을 응답으로 치환<br/>handleCommentCreateSuccess:<br/>post 상세·목록, 내 댓글 무효화"]
-  Post -->|"실패"| Rollback["목록 롤백 + 전역 에러 토스트<br/>(WAF 403이면 edgeBlocked 문구)<br/>입력·이미지 복원"]
+  Post -->|"504·연결 끊김"| Unknown["결과 모름: 롤백 뒤<br/>handleCommentCreateOutcomeUnknown:<br/>댓글 목록·개수 재조회"]
+  Post -->|"그 외 실패"| Settled["확정 실패<br/>글·부모 삭제, 미인증, WAF 차단 등"]
+  UploadFail --> Rollback["목록 롤백 + 입력·이미지 복원<br/>CommentUtil.resolveSubmitError로 원인 판정<br/>버튼 위 FormAlert(폼이 닫혔으면 토스트)"]
+  Unknown --> Rollback
+  Settled --> Rollback
   Replace --> Revoke["onSettled: blob URL 해제"]
   Rollback --> Revoke
 ```
@@ -138,31 +143,32 @@ Playwright e2e(`page.route()` 모킹), Storybook 인터랙션 테스트 — §9 
 `useCreateComment`(`src/features/comment/create/hooks/useCreateComment.ts`)의 제출 순서는
 §1 순서도와 같다. 구현상 짚을 점:
 
-1. **검증은 세 군데로 나뉜다** — zod(본문 6,000B, 실패 시 `onInvalid` 토스트 160-163줄),
-   `account.emailVerified === false` 토스트(114-117줄), `getCommentSubmitError`(빈 입력·
+1. **검증은 세 군데로 나뉜다** — zod(본문 6,000B, 실패 시 `onInvalid` 토스트 210-213줄),
+   `account.emailVerified === false` 토스트(183-186줄), `getCommentSubmitError`(빈 입력·
    전송 7,500B, 32-51줄). 빈 입력 판정은 이미지만 있어도 통과다.
-2. **줄바꿈 정규화** — CRLF·CR을 LF로 바꾼 뒤 잰다(119줄). 붙여넣은 Windows 텍스트가
+2. **줄바꿈 정규화** — CRLF·CR을 LF로 바꾼 뒤 잰다(188줄). 붙여넣은 Windows 텍스트가
    바이트를 부풀리지 않게 한다.
-3. **폼은 즉시 비우고, 닫기는 미룬다** — `reset()`·`clearAllImages()`를 먼저 하고(136-137줄)
-   폼을 닫는 `onSuccess`는 `mutate` 콜백으로 넘긴다. 답글 폼·모바일 바는 성공 시
-   언마운트되는데, 지금 닫으면 React Query가 언마운트된 컴포넌트의 `mutate` 스코프
-   `onError`를 부르지 않아 복원 수단이 사라진다.
+3. **폼은 즉시 비우고, 닫기는 미룬다** — `reset()`·`clearAllImages()`를 먼저 하고(204-205줄)
+   폼을 닫는 `onSuccess`는 `mutateAsync`가 성공한 뒤에 부른다(`submitComment`, 136-171줄).
+   답글 폼·모바일 바는 성공 시 언마운트되는데, 지금 닫으면 실패했을 때 입력을 되돌리고
+   원인을 안내할 자리가 사라진다. `mutate` 콜백 대신 `mutateAsync`를 기다리는 이유는 아래
+   "실패 안내"의 "폼이 닫힌 뒤 실패하면"을 본다.
 4. **실패 복원은 덮어쓰지 않는다** — 요청이 도는 사이 사용자가 새 글을 쓰기 시작했으면
-   본문을 되돌리지 않고, 이미지도 비어 있을 때만 되돌린다(139-146줄). 토스트는 전역
-   핸들러가 소유하므로 여기서 띄우지 않는다.
-5. **낙관적 삽입** — `useCreateCommentMutation`(`src/entities/comment/api/comment.queries.ts:104-143`)이
-   `temp-<uuid>` 댓글을 목록 맨 앞에, `useCreateReplyMutation`(145-207줄)이 부모의
+   본문을 되돌리지 않고, 이미지도 비어 있을 때만 되돌린다(159-164줄). 복원한 뒤 원인
+   안내를 남긴다(아래 "실패 안내").
+5. **낙관적 삽입** — `useCreateCommentMutation`(`src/entities/comment/api/comment.queries.ts:106-151`)이
+   `temp-<uuid>` 댓글을 목록 맨 앞에, `useCreateReplyMutation`(153-221줄)이 부모의
    `replies` 끝에 넣는다. 성공하면 id로 응답과 치환하고 목록은 재조회하지 않는다.
 
-버튼 비활성화는 **빈 입력일 때만**이다(`src/features/comment/create/ui/CommentForm.tsx:59`).
+버튼 비활성화는 **빈 입력일 때만**이다(`src/features/comment/create/ui/CommentForm.tsx:61`).
 길이 초과는 버튼을 막지 않고 인라인 안내 문구 + `aria-invalid`로 보여준 뒤, 눌렀을 때
 zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증 실패를 버튼
 `disabled`만으로 처리하지 않는다" 항목과 §10. 빈 상태에서 ⌘+Enter를 누르면 답글 폼이
 여러 개 열려 있을 수 있어 그 폼 자체를 화면 중앙으로 스크롤하고 1.3초 강조한다
-(76-80줄).
+(78-82줄).
 
 이탈 가드 키는 `comment-create:${postId}:${parentId ?? 'root'}`(useCreateComment.ts
-93-96줄)이다. 동작은 [`UNSAVED-CHANGES-GUARD.md`](./UNSAVED-CHANGES-GUARD.md) 참고.
+123-126줄)이다. 동작은 [`UNSAVED-CHANGES-GUARD.md`](./UNSAVED-CHANGES-GUARD.md) 참고.
 
 ### 길이 상한 — 두 겹인 이유
 
@@ -174,16 +180,17 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 본문 바이트만 재면 줄바꿈이 JSON에서 `\n`(2바이트)로 늘어나는 것과 이미지 URL 몫을
 놓친다. 그래서 실제 전송될 JSON과 같은 모양을 만들어 다시 잰다. 아직 업로드 전인
-이미지는 URL을 모르므로 200바이트 자리표시자로 채운다(`src/entities/comment/utils/comment.util.ts:14-24`).
+이미지는 URL을 모르므로 200바이트 자리표시자로 채운다(`src/entities/comment/utils/comment.util.ts:113-123`).
 
 **왜 6,000B인가** — 이미지 URL 5개(약 650B)와 JSON 봉투를 더해도 8,192B 벽 안에 여유 있게 들어가도록
 잡은 값이다(`src/entities/comment/config/comment.const.ts:5-15` 주석). 7,500B는 그 벽 대비 약 700B 여유를 둔
 전송 상한이다. 값이 지금으로 정해진 경위는 §10을 본다.
 
 그래도 WAF에 막히면 403이 HTML로 온다. `client.ts`는 JSON 파싱에 실패한 403을
-`EDGE_BLOCKED`로 분류하고(`src/shared/api/client.ts:82-91`), 전역 토스트 판정이 이 코드를
-`meta.errorMessage`보다 먼저 처리해 "보안 정책에 막혔다"는 문구를 띄운다
-(`src/shared/lib/react-query/config/error-toast.ts:80-82`). WAF 룰을 완화하면 안 되는
+`EDGE_BLOCKED`로 분류하고(`src/shared/api/client.ts:82-91`), 댓글 폼은
+`CommentUtil.resolveSubmitError`가 이 코드를 "보안 정책에 막혔다"는 문구로 바꿔 버튼 위에
+남긴다(아래 "실패 안내"). 전역 토스트를 쓰는 다른 화면은 토스트 판정이 같은 문구를
+`meta.errorMessage`보다 먼저 고른다(`src/shared/lib/react-query/config/error-toast.ts:80-82`). WAF 룰을 완화하면 안 되는
 이유는 `.claude/CLAUDE.md` Critical Rules의 WAF 항목에 있다.
 
 ### 이미지 — 본문 끝에 URL을 붙이는 저장 방식
@@ -195,7 +202,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 - 업로드는 요청 직전 `uploadCommentImages`(`src/entities/comment/api/comment.api.ts:10-22`)가
   **2장씩** 처리한다. `createImageBitmap`이 디코드된 픽셀 수만큼 메모리를 쓰기 때문에
   동시 디코드를 줄이려는 것이고, 결과 배열은 입력 순서를 유지한다.
-- 장마다 `uploadImageAndGetUrl`(`src/shared/lib/upload/uploadImageAndGetUrl.ts:14-30`)이
+- 장마다 `uploadImageAndGetUrl`(`src/shared/lib/upload/uploadImageAndGetUrl.ts:48-68`)이
   1600px WebP로 리사이즈 → `POST /upload/signed-url` → 스토리지 `PUT` → `publicUrl`을
   돌려준다. 원본은 저장하지 않는다. 예외로 SVG는 항상, GIF는 댓글 업로드 기본값
   (`skipGifResize = true`)에서 리사이즈 없이 원본을 올린다
@@ -203,7 +210,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 - BE가 `content` 끝에 URL을 이어붙여 저장한다 — 본문이 있으면 빈 줄 하나 뒤에, 이미지
   URL은 한 줄에 하나씩(BE [`CommentService.kt`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/src/main/kotlin/com/example/linksphere/domain/comment/CommentService.kt)
   `buildFinalContent`). FE는 낙관적 항목을 같은 규칙으로
-  조립하고(`buildOptimisticComment`, comment.queries.ts 22-50줄), 수정 폼은 역함수
+  조립하고(`buildOptimisticComment`, comment.queries.ts 21-52줄), 수정 폼은 역함수
   `splitContentImages`(`src/shared/lib/content/imageContent.ts:13-27`)로 텍스트와 이미지
   줄을 다시 나눈다. 테이블을 분리하지 않은 이유는 `docs/DECISIONS.md` 2026-08-10 항목.
 - 렌더링은 `MarkdownContent`가 이미지 확장자 URL과 `blob:` URL을 이미지로 그린다.
@@ -214,15 +221,66 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 - 편집 시작 시점에 `splitContentImages`로 한 번만 스냅샷을 뜬다(53-54줄). 기존 이미지는
   URL 썸네일로, 새로 붙인 것은 `File`로 따로 관리한다.
-- 기존 이미지 장수를 `reservedCount`로 넘겨 합계 5장을 지킨다(77줄).
+- 기존 이미지 장수를 `reservedCount`로 넘겨 합계 5장을 지킨다(100줄).
 - 전송 상한 계산에 기존 URL을 실제 길이로 포함한다(39-41줄).
 - PATCH 바디의 `images`는 `[...남은 기존 URL, ...새 업로드 URL]`이다(comment.api.ts 60-61줄).
 - 성공 시 응답을 통째로 넣지 않고 `content`·`linkMetadata`만 병합한다
-  (`patchCommentRecursively`, comment.queries.ts 55-69줄·238-243줄). PATCH 응답은
+  (`patchCommentRecursively`, comment.queries.ts 54-71줄·253-261줄). PATCH 응답은
   `replies`·`likeCount`·`isLiked`를 항상 기본값으로 주기 때문에 통째로 넣으면 답글이
   사라지고 좋아요가 리셋된다. 병합 뒤 `handleCommentUpdateSuccess`가 목록을 한 번 더
   무효화한다(정합성 백스톱).
-- 작성과 달리 **낙관적이지 않다** — 응답이 와야 폼이 닫힌다.
+- 작성과 달리 **낙관적이지 않다** — 응답이 와야 폼이 닫힌다. 실패하면 폼을 닫지 않고
+  버튼 위에 원인을 남긴다(아래 "실패 안내").
+
+### 실패 안내 — 원인과 할 일을 버튼 위에
+
+등록·답글·수정이 실패하면 `CommentUtil.resolveSubmitError`
+(`src/entities/comment/utils/comment.util.ts:29-102`)가 원인을 판정하고, 폼 훅이 그 문구를
+`failureMessage`로 들고 있다가 첨부 썸네일과 버튼 사이의 `FormAlert`에 남긴다
+(`CommentForm.tsx:165`, `CommentEditForm.tsx:134`). 세 mutation은 `manualErrorHandling`이라
+전역 토스트는 뜨지 않는다. 안내는 입력을 고치거나 첨부를 바꾸거나 다시 제출하면 지워진다.
+위치(버튼 바로 위)는 게시글 폼과 같은 자리로, 시안을 나란히 비교해 정했다
+(`docs/DECISIONS.md` 2026-10-06).
+
+판정은 **어느 단계에서 실패했는가**부터 나눈다. 업로드 단계는 본 요청을 보내기 전이라
+댓글이 저장되지 않은 게 확실하고, 본 요청 단계의 504·연결 끊김은 서버에 저장됐을 수도
+있다. 같은 429·네트워크 실패라도 안내가 달라야 해서, 업로드 단계 실패는
+`uploadImageAndGetUrl`이 `ImageUploadError`로 따로 감싼다
+(`src/shared/lib/upload/uploadImageAndGetUrl.ts:13-39`).
+
+| 단계    | 원인                                 | 판별 근거                                                                                    | 문구 키(`TEXTS.messages.error.*`)                            |
+| ------- | ------------------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| 업로드  | 허용 밖 형식                         | 서명 URL `UNSUPPORTED_IMAGE_TYPE`, 스토리지 `statusCode` "415"                               | `uploadSubmit.imageUnsupportedType`                          |
+| 업로드  | 10MB 초과                            | 스토리지 `statusCode` "413"                                                                  | `uploadSubmit.register.imageTooLarge`                        |
+| 업로드  | 업로드 한도(회원당 시간당 30회)      | 서명 URL 429 + `Retry-After`                                                                 | `uploadSubmit.register.imageRateLimitedIn(분)`               |
+| 업로드  | 저장소 혼잡·장애                     | 스토리지 429·5xx(544 DB 타임아웃 포함)                                                       | `uploadSubmit.register.storageUnavailable`                   |
+| 업로드  | 연결 끊김                            | `fetch` reject → `NetworkError`                                                              | `uploadSubmit.register.network`                              |
+| 본 요청 | 결과 모름(등록·답글만)               | 504, `NetworkError`                                                                          | `commentSubmit.outcomeUnknown` + 목록 재조회                 |
+| 본 요청 | 글 삭제 / 답글 대상 삭제 / 수정 대상 | `POST_NOT_FOUND` / 답글의 `COMMENT_NOT_FOUND` / 수정의 `COMMENT_NOT_FOUND`·`COMMENT_DELETED` | `commentSubmit.postDeleted`·`parentDeleted`·`commentDeleted` |
+| 본 요청 | 이메일 미인증·WAF 차단·로그인 만료   | `EMAIL_NOT_VERIFIED`·`EDGE_BLOCKED`·`NOT_LOGGED_IN`                                          | 기존 문구 그대로                                             |
+| 그 외   | 나머지                               | —                                                                                            | `commentSubmit.createFailed`·`updateFailed`                  |
+
+- **수정 폼은 끝맺음이 "저장"이다** — 업로드 단계 문구는 `register`(등록)·`save`(저장) 두
+  벌이 있고, 수정 폼과 프로필 사진은 `save`를 쓴다. 수정은 결과를 몰라도 다시 보내면 같은
+  내용으로 덮어쓸 뿐이라 결과 모름 안내 대신 일반 안내(`save.network`·`updateFailed`)를 쓴다.
+- **스토리지 원인은 본문에 있다** — Supabase Storage는 500이 아닌 오류를 HTTP 400으로 보내고
+  원래 상태 코드는 본문 `statusCode`에 남긴다([storage 서버 `http` 폴더의 `error-handler.ts`](https://github.com/supabase/storage/tree/master/src/http),
+  413·415·544 정의는 [`internal/errors` 폴더의 `codes.ts`](https://github.com/supabase/storage/tree/master/src/internal/errors),
+  2026-10-06 소스 확인). 그래서 `upload.api.ts`의 `resolveStorageFailureReason`이 본문을 먼저 읽고,
+  없으면 HTTP 상태로 판정한다.
+- **결과 모름이면 목록을 다시 불러온다** — 504면 CloudFront가 기다림을 끊었을 뿐 서버는
+  저장을 마쳤을 수 있다. 낙관적 댓글을 롤백한 뒤 `handleCommentCreateOutcomeUnknown`
+  (`src/entities/comment/api/comment.keys.ts:37-42`)이 목록과 댓글 수를 다시 불러와, 실제로
+  저장됐다면 다시 보이게 한다. 입력은 그대로 복원되니 목록을 보고 판단하면 된다.
+- **폼이 닫힌 뒤 실패하면 토스트로 대신 알린다** — `mutate` 콜백은 요청 도중 컴포넌트가
+  언마운트되면 불리지 않는다. 전역 토스트를 끈 지금 그대로 두면 답글 폼을 취소하거나 모바일
+  바를 접은 뒤의 실패가 조용히 묻힌다. 그래서 `mutateAsync`를 기다리고, 그 시점에 폼이
+  언마운트됐으면(`isMountedRef`) 같은 문구를 토스트로 띄운다.
+- **연결 끊김 판별** — `client.ts`·`upload.api.ts`가 `fetch` 호출 자리의 reject만
+  `NetworkError`로 바꾼다. 예전에는 Chrome 문구 `'Failed to fetch'`만 비교했다
+  (`ErrorUtil.isServerError`는 두 방식을 모두 본다).
+- **프로필 사진도 같은 문구를 쓴다** — `account.queries.ts`의 `resolveAccountUpdateErrorMessage`가
+  업로드 단계 실패·연결 끊김·429를 `save` 문구로 토스트한다([`MYPAGE.md`](./MYPAGE.md) §5).
 
 ### 삭제 — 확인 후 서버 판단을 기다린다
 
@@ -299,13 +357,14 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 `src/entities/comment/api/comment.keys.ts`가 정본이다.
 
-| 이벤트      | 댓글 목록(`list`)         | 내 댓글(`myRoot`) | 게시글 상세·목록    |
-| ----------- | ------------------------- | ----------------- | ------------------- |
-| 작성·답글   | ❌ (낙관적으로 직접 갱신) | ✅                | ✅ (`commentCount`) |
-| 수정        | ✅ (병합 뒤 백스톱)       | ✅                | ❌                  |
-| 삭제        | ✅                        | ✅                | ✅                  |
-| 좋아요      | ❌ (낙관적 값 유지)       | ❌                | ❌                  |
-| 프로필 변경 | ✅ (`root` 전체)          | ✅                | —                   |
+| 이벤트                        | 댓글 목록(`list`)         | 내 댓글(`myRoot`) | 게시글 상세·목록    |
+| ----------------------------- | ------------------------- | ----------------- | ------------------- |
+| 작성·답글                     | ❌ (낙관적으로 직접 갱신) | ✅                | ✅ (`commentCount`) |
+| 작성 결과 모름(504·연결 끊김) | ✅ (롤백 뒤 재조회)       | ✅                | ✅ (`commentCount`) |
+| 수정                          | ✅ (병합 뒤 백스톱)       | ✅                | ❌                  |
+| 삭제                          | ✅                        | ✅                | ✅                  |
+| 좋아요                        | ❌ (낙관적 값 유지)       | ❌                | ❌                  |
+| 프로필 변경                   | ✅ (`root` 전체)          | ✅                | —                   |
 
 게시글 쪽은 `entities/post/@x/comment.ts`가 공개한 `postInvalidateQueries`로만 건드린다.
 프로필 변경 시 무효화는 `entities/account`가 `src/entities/comment/@x/account.ts`를 거쳐
@@ -325,17 +384,17 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 ### 낙관적 항목의 수명
 
-| 단계        | 캐시 상태                                     | 화면                        |
-| ----------- | --------------------------------------------- | --------------------------- |
-| `onMutate`  | `temp-<uuid>` 항목 삽입, 이미지는 `blob:` URL | 반투명, 액션 줄 없음        |
-| `onSuccess` | 같은 자리를 서버 응답으로 치환                | 불투명, 액션 줄 표시        |
-| `onError`   | 삽입 전 스냅샷으로 통째로 복원                | 항목 사라짐, 폼에 입력 복원 |
-| `onSettled` | `URL.revokeObjectURL`로 blob 해제             | —                           |
+| 단계        | 캐시 상태                                                   | 화면                                  |
+| ----------- | ----------------------------------------------------------- | ------------------------------------- |
+| `onMutate`  | `temp-<uuid>` 항목 삽입, 이미지는 `blob:` URL               | 반투명, 액션 줄 없음                  |
+| `onSuccess` | 같은 자리를 서버 응답으로 치환                              | 불투명, 액션 줄 표시                  |
+| `onError`   | 삽입 전 스냅샷으로 통째로 복원(결과 모름이면 이어서 재조회) | 항목 사라짐, 폼에 입력 복원·실패 안내 |
+| `onSettled` | `URL.revokeObjectURL`로 blob 해제                           | —                                     |
 
 ### 폼 훅 반환값
 
-`useCreateComment`·`useUpdateComment`는 `form`·`onSubmit`·`contentValue`·`isOverLimit`와
-첨부 핸들러 묶음을 돌려준다. `useUpdateComment`만 `canSubmit`(빈 입력·요청 중이면
+`useCreateComment`·`useUpdateComment`는 `form`·`onSubmit`·`contentValue`·`isOverLimit`·
+`failureMessage`(버튼 위 실패 안내, 없으면 `null`)와 첨부 핸들러 묶음을 돌려준다. `useUpdateComment`만 `canSubmit`(빈 입력·요청 중이면
 `false`)을 직접 계산해 준다. 원본 시그니처는 각 파일을 본다.
 
 ## 7. 운영 파라미터
@@ -348,11 +407,11 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 전송 상한                    | 7,500B                  | `src/entities/comment/config/comment.const.ts:26`                                                            |
 | 업로드 전 이미지 URL 추정치  | 200B                    | `src/entities/comment/config/comment.const.ts:33`                                                            |
 | 이미지 동시 업로드 수        | 2                       | `src/entities/comment/api/comment.api.ts:14`                                                                 |
-| 리사이즈 최대 변 길이        | 1600px                  | `src/shared/lib/upload/uploadImageAndGetUrl.ts:16`                                                           |
+| 리사이즈 최대 변 길이        | 1600px                  | `src/shared/lib/upload/uploadImageAndGetUrl.ts:50`                                                           |
 | 원본 파일 상한               | 30MB                    | `src/shared/lib/image/resizeImage.ts:13`                                                                     |
 | SVG·GIF(리사이즈 안 함) 상한 | 10MB(버킷과 같게)       | `src/shared/lib/image/resizeImage.ts:21`                                                                     |
 | 해시 이동 강조 시간          | 1600ms                  | `src/widgets/comment/comment-list/ui/CommentList.tsx:62`                                                     |
-| 빈 제출 강조 시간            | 1300ms                  | `src/features/comment/create/ui/CommentForm.tsx:79`, `src/features/comment/update/ui/CommentEditForm.tsx:56` |
+| 빈 제출 강조 시간            | 1300ms                  | `src/features/comment/create/ui/CommentForm.tsx:81`, `src/features/comment/update/ui/CommentEditForm.tsx:58` |
 | 내 댓글 선반입 거리          | 아래 1200px             | `src/widgets/comment/my-comment-list/hooks/useMyCommentList.ts:19`                                           |
 | 해시 도착 여백               | navbar + 24px           | `src/widgets/comment/comment-list/ui/CommentItem.tsx:51`                                                     |
 | 플로팅 버튼 전환 시간        | 200ms                   | `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.tsx:9`                                        |
@@ -376,18 +435,20 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 목록 정렬·개수                  | `src/widgets/comment/comment-list/hooks/useCommentList.ts:6-23`                                                                    |
 | 목록 렌더·해시 이동·진입점 배치 | `src/widgets/comment/comment-list/ui/CommentList.tsx:20-123`                                                                       |
 | 댓글 한 개(액션·답글 폼·재귀)   | `src/widgets/comment/comment-list/ui/CommentItem.tsx:26-183`                                                                       |
-| 작성 검증·제출·복원             | `src/features/comment/create/hooks/useCreateComment.ts:32-164`                                                                     |
-| 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx:30-198`                                                                            |
+| 작성 검증·제출·복원             | `src/features/comment/create/hooks/useCreateComment.ts:32-214`                                                                     |
+| 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx:31-201`                                                                            |
 | 모바일 바                       | `src/features/comment/create/ui/MobileCommentBar.tsx:16-104`                                                                       |
 | 데스크톱 플로팅 버튼            | `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.tsx:23-107`                                                         |
-| 수정 검증·제출                  | `src/features/comment/update/hooks/useUpdateComment.ts:27-143`                                                                     |
+| 수정 검증·제출                  | `src/features/comment/update/hooks/useUpdateComment.ts:27-163`                                                                     |
 | 삭제 확인                       | `src/features/comment/delete/hooks/useDeleteComment.ts:9-31`                                                                       |
 | 좋아요 버튼·feature 훅          | `src/features/comment/like/ui/LikeCommentButton.tsx:17-41`, `src/features/comment/like/hooks/useLikeComment.ts:5-7`                |
 | 좋아요 낙관적 토글              | `src/entities/interaction/api/interaction.queries.ts:226-271`                                                                      |
 | API·이미지 업로드               | `src/entities/comment/api/comment.api.ts:10-67`                                                                                    |
-| 쿼리·낙관적 업데이트            | `src/entities/comment/api/comment.queries.ts:22-247`                                                                               |
-| 키·무효화 핸들러                | `src/entities/comment/api/comment.keys.ts:4-47`                                                                                    |
-| 바이트 스키마·전송량 추정       | `src/entities/comment/model/comment.schema.ts:8-15`, `src/entities/comment/utils/comment.util.ts:14-24`                            |
+| 쿼리·낙관적 업데이트            | `src/entities/comment/api/comment.queries.ts:21-263`                                                                               |
+| 키·무효화 핸들러                | `src/entities/comment/api/comment.keys.ts:4-54`                                                                                    |
+| 바이트 스키마·전송량 추정       | `src/entities/comment/model/comment.schema.ts:8-15`, `src/entities/comment/utils/comment.util.ts:113-123`                          |
+| 실패 원인 판정                  | `src/entities/comment/utils/comment.util.ts:21-102`, `src/shared/utils/error.util.ts:39-68`                                        |
+| 업로드 단계 실패 분류           | `src/shared/lib/upload/uploadImageAndGetUrl.ts:13-39`, `src/shared/api/upload.api.ts:15-37`                                        |
 | WAF 403 분류·문구               | `src/shared/api/client.ts:82-91`, `src/shared/lib/react-query/config/error-toast.ts:80-82`                                         |
 | 내 댓글 목록·카드               | `src/widgets/comment/my-comment-list/ui/MyCommentList.tsx:11-50`, `src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx:23-57` |
 | UI 문구                         | `src/shared/config/texts.ts:310` (`TEXTS.comment`)                                                                                 |
@@ -402,6 +463,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 루트 정렬을 오래된순으로 | `useCommentList.ts:16-18`의 비교 순서를 뒤집는다. 낙관적 삽입 위치(맨 앞)도 함께 맞춘다                                                                                                                                                                                     |
 | 무효화 범위 조정         | `comment.keys.ts`의 `handleComment*Success`만 고친다(feature 훅에서 직접 무효화 금지)                                                                                                                                                                                       |
 | 해시 이동 정렬·강조 시간 | `CommentList.tsx:46`(`block`), `:62`(시간), 도착 여백은 `CommentItem.tsx:51`                                                                                                                                                                                                |
+| 실패 문구 바꾸기         | `texts.ts`의 `messages.error.commentSubmit`(본 요청)·`uploadSubmit`(업로드 단계, 등록·저장 두 벌). 새 원인을 나누려면 `CommentUtil.resolveSubmitError`에 분기를 더한다                                                                                                      |
 | 좋아요 실패 시 안내 추가 | `useLikeCommentMutation`의 `meta.manualErrorHandling`을 빼면 전역 토스트가 뜬다                                                                                                                                                                                             |
 | 테스트 실행              | `npx vitest run src/entities/comment src/features/comment`, e2e는 `pnpm test:e2e e2e/comment.spec.ts`                                                                                                                                                                       |
 
@@ -428,6 +490,16 @@ npx vitest run src/entities/comment src/features/comment \
 
 `EDGE_BLOCKED` 분류는 `src/shared/api/client.test.ts`와
 `src/shared/lib/react-query/config/error-toast.test.ts`가 다룬다.
+
+실패 안내(§5 "실패 안내")는 2026-10-06에 따로 확인했다.
+
+- 단위 테스트: 분류 표는 `src/entities/comment/utils/comment.util.test.ts`, 스토리지 응답 판정은
+  `src/shared/api/upload.api.test.ts`, 안내가 버튼 위에 그려지고 입력을 고치면 사라지는 것은
+  `src/features/comment/update/ui/CommentEditForm.test.tsx`가 본다. 첨부 이미지가 복원돼도 안내가 남는지,
+  폼이 닫힌 뒤 실패하면 토스트로 대신 알리는지는 `useCreateComment.test.tsx`가 본다.
+- 브라우저 녹화(모킹, 운영 데이터 미사용): 업로드 한도·10MB 초과·504 결과 모름·답글 대상 삭제·수정 대상
+  삭제·답글 폼을 닫은 뒤 실패·모바일 바 연결 끊김·프로필 사진 업로드 한도의 8개 화면에서 문구와 위치를
+  확인했다.
 
 e2e(이번에 다시 돌리지 않았다, 파일 기준):
 
@@ -524,6 +596,12 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   (`docs/DECISIONS.md` 2026-09-13, [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md) §4).
 - **해시 대상이 없으면 조용히 무시한다** — 삭제됐거나 목록에 없는 댓글로 들어오면
   `scrollToHashedComment`가 아무 안내 없이 끝난다(CommentList.tsx 42-45줄).
+- **실패한 업로드의 파일은 바로 지우지 않는다** — 이미지 일부만 올라간 뒤 실패하거나 본 요청이
+  확정 실패하면 올라간 파일이 고아로 남는다. BE 정리 작업(4일마다, 24시간 지난 미참조 객체)이
+  회수하고, 결과가 확실한 실패에서 바로 지우는 것은 BE 업로더 기록 도입 뒤로 미뤘다
+  (BE `docs/plans/2026-10-05-image-upload-lifecycle.md`).
+- **수정의 504는 결과 모름으로 다루지 않는다** — 다시 보내면 같은 내용으로 덮어쓸 뿐이라 일반
+  실패 안내를 쓴다. 실제로는 저장됐는데 "수정하지 못했어요"가 보일 수 있다.
 
 ## 12. 용어 사전
 
@@ -558,6 +636,14 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 - **해시 이동** — `/post/:id#comment-:id`로 들어왔을 때 그 댓글로 스크롤하고 링으로
   강조하는 동작(`scrollToHashedComment`).
 - **`z-panel` / `z-scrim`** — `src/app/globals.css:103-105`의 z-index 토큰(40 / 55).
+- **`ImageUploadError`** — 이미지 업로드 단계(서명 URL 발급·스토리지 PUT)의 실패. `reason`
+  (형식·용량·한도·저장소·네트워크·원인 불명)과 한도일 때 `retryAfterSeconds`를 담는다
+  (`src/shared/types/common.type.ts`).
+- **`NetworkError`** — 서버 응답을 받기 전에 `fetch`가 실패한 경우(오프라인·연결 끊김).
+- **결과 모름(outcome unknown)** — 본 요청을 보냈지만 응답을 못 받은 실패(504·연결 끊김).
+  서버에는 저장됐을 수 있다(`CommentUtil.isOutcomeUnknown`).
+- **`FormAlert`** — 특정 입력칸과 무관한 제출 실패를 버튼 위에 남기는 안내 상자
+  (`src/shared/ui/elements/FormAlert.tsx`). 토스트와 달리 다음 제출이나 입력 수정까지 남는다.
 
 ## 13. 관련 문서
 
@@ -573,6 +659,6 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   §11 낙관적 업데이트
 - [`DECISIONS.md`](./DECISIONS.md) — 2026-08-10(이미지 다중 첨부), 2026-09-06(403·WAF,
   `space-y` 흔들림), 2026-09-13(`z-scrim`), 2026-09-14(돌아가기 라벨·로그아웃 캐시),
-  2026-09-19(가상화 범위 밖)
+  2026-09-19(가상화 범위 밖), 2026-10-06(실패 안내 분류·위치)
 - [`ONBOARDING.md`](./ONBOARDING.md) — FE·BE 전체 길잡이
 - `.claude/CLAUDE.md` Critical Rules — WAF 바디 크기 룰, `disabled` 버튼 검증 규칙
