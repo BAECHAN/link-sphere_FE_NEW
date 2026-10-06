@@ -1,3 +1,6 @@
+### 2026-10-06 (FE)
+- 댓글 등록 및 수정 실패 시, 이미지 형식·용량·글자 수 제한·서버 연결 등 오류 원인을 버튼 상단에 안내하여 사용자 경험 개선 ([#330](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/330))
+
 ### 2026-10-05 (FE)
 - 로그아웃 프로세스 내 불필요한 FCM 서버 삭제 요청 로직 제거 및 코드 리팩토링 ([#329](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/329))
 
