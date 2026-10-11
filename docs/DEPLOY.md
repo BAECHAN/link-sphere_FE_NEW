@@ -414,15 +414,18 @@ React 엘리먼트를 직접 조립) 이 룰이 막아주던 실질 위험이 �
 현재 룰 구성(우선순위순): `AWS-AWSManagedRulesAmazonIpReputationList` (오버라이드 없음) →
 `AWS-AWSManagedRulesCommonRuleSet`(`CrossSiteScripting_BODY`만 Count, 나머지는 Block —
 `SizeRestrictions_BODY` 포함) → `AWS-AWSManagedRulesKnownBadInputsRuleSet`(오버라이드 없음) →
-`RateLimit-PerIP`(IP당 5분 1000회, **Count** — 2026-10-03 추가).
+`RateLimit-PerIP`(IP당 5분 1000회, **Block** — 2026-10-03 Count로 추가, 2026-10-11 Block 전환).
 
-`RateLimit-PerIP`는 IP별 요청 수 제한(rate-based rule)이다. 처음 1주는 Count로 세기만 하고,
-정상 사용자가 걸린 흔적이 없으면 2026-10-10 무렵 Block으로 바꾼다. 적용·전환·되돌리기 절차와
-임계값 근거는 BE 레포 `docs/TRAFFIC-MANAGEMENT.md` §8-1 런북이 정본이다 — Free 플랜이라 WAF
-콘솔·CloudFront Security 탭 어디서도 규칙 추가 버튼이 없어 `update-web-acl` CLI로 넣었다.
-Block으로 바꾸면 이 문단을 고친다. CloudFront Free 플랜은 WAF 룰을 5개까지만 허용하고(지금 4개)
-차단 응답 코드를 바꿀 수 없어, 이 룰에 걸린 요청도 429가 아니라 403(비-JSON)으로 와 FE에서
-`EDGE_BLOCKED`로 분류된다.
+`RateLimit-PerIP`는 IP별 요청 수 제한(rate-based rule)이다. 처음 1주는 Count로 세기만 했고,
+그동안 이 규칙에 걸린 요청이 0건이라(정상 사용자가 걸린 흔적 없음) 2026-10-11 Block으로 바꿨다.
+감지까지 지연이 있고 IP별로 세므로 **한 IP가 몇 분 이상 계속 몰아치는 경우만** 막는다 — 짧은 몰림이나
+여러 IP로 나눈 요청은 못 막는다. 적용·전환·되돌리기 절차, 막는 범위, 관찰 결과는 BE 레포
+`docs/TRAFFIC-MANAGEMENT.md` §8-1·§9-3이 정본이다 — Free 플랜이라 WAF 콘솔·CloudFront Security 탭
+어디서도 규칙 추가 버튼이 없어 `update-web-acl` CLI로 넣었다. CloudFront Free 플랜은 WAF 룰을
+5개까지만 허용하고(지금 4개) 차단 응답 코드를 바꿀 수 없어, 이 룰에 걸린 요청도 429가 아니라
+403(비-JSON)으로 와 FE에서 `EDGE_BLOCKED`로 분류된다. 그래서 이 룰에 걸린 사용자도
+`TEXTS.messages.error.edgeBlocked`("내용이 너무 길거나 허용되지 않는 문자…")를 보게 되는데, 이
+경우엔 원인 설명이 맞지 않는다 — 문구를 고칠지는 미정이다(2026-10-11).
 
 ```bash
 # 조회 (수정 전 반드시 백업 - update-web-acl은 전체 Rules 배열을 다시 보내야 함)
