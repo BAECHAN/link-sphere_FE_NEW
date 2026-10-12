@@ -92,6 +92,14 @@
 
 ### Fixed
 
+- `auth` 토큰 갱신 직후 늦게 도착한 401 때문에 로그인이 풀리던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  액세스 토큰이 만료된 채 여러 요청이 나가면 첫 401만 refresh하고 나머지는 큐에서 기다린다. 그런데 refresh가 끝나는 즉시 큐가 닫혀(리더의 `finally`가 재시도 완료를 기다리지 않음), 그 뒤에 도착한 401은 refresh를 한 번 더 불렀다. BE는 refresh마다 세션을 회전시키므로 첫 refresh 토큰으로 재시도 중이던 요청이 만료돼 재시도 상한(1회)에 걸리고 로그인 화면으로 이동했다. 이제 401을 받은 요청이 보낸 토큰과 지금 토큰이 다르면 refresh 없이 지금 토큰으로 재시도한다. refresh 실패 시 대기 요청을 reject하지 않고 pending으로 두는 기존 동작은 그대로 두고 이유를 주석·테스트로 고정했다. 두 탭이 같은 순간 refresh하는 경우는 다루지 않았다(`docs/AUTH.md` §11 항목 8).
+  (`src/shared/api/client.ts`, `client.test.ts`(Case 1-3·2-1 추가), `docs/AUTH.md`, [PR #333](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/333))
+
+  </details>
+
 - `comment` 첨부 허용 형식·크기를 업로드 버킷 설정에 맞춤(HEIC·HEIF 제외, SVG·GIF 10MB)
   <details><summary>배경·구현</summary>
 
