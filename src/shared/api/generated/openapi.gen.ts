@@ -163,7 +163,7 @@ export interface paths {
     put?: never;
     /**
      * 로그아웃 (이 기기만)
-     * @description refreshToken 쿠키를 maxAge=0 으로 덮어써 만료시키고, 그 쿠키가 가리키던 세션도 서버에서 즉시 폐기한다(다른 기기의 세션은 그대로 유지). 쿠키가 없거나 이미 무효해도 200을 반환한다.
+     * @description refreshToken 쿠키를 maxAge=0 으로 덮어써 만료시키고, 그 쿠키가 속한 로그인의 세션 전체를 서버에서 즉시 폐기한다(다른 기기의 세션은 그대로 유지). 쿠키가 없거나 이미 무효해도 200을 반환한다.
      */
     post: operations['logout'];
     delete?: never;
@@ -243,7 +243,7 @@ export interface paths {
     put?: never;
     /**
      * 액세스 토큰 갱신
-     * @description 요청 본문이 아니라 refreshToken 쿠키를 읽는다. 성공 시 쿠키도 새로 발급된다(회전 - 이전 refresh는 그 순간 폐기되고 재사용하면 같은 로그인에서 나온 세션 전체가 폐기된다). 실패: 401 MISSING_REFRESH_TOKEN(쿠키 없음) · 401 INVALID_REFRESH_TOKEN(만료·위조·이미 소비됨)
+     * @description 요청 본문이 아니라 refreshToken 쿠키를 읽는다. 성공 시 쿠키도 새로 발급된다(회전 - 이전 refresh는 그 순간 폐기되고 재사용하면 같은 로그인에서 나온 세션 전체가 폐기된다. 단 회전 후 10초 안의 재사용은 여러 탭의 동시 갱신으로 보고 같은 로그인으로 새 토큰을 하나 더 발급한다). 실패: 401 MISSING_REFRESH_TOKEN(쿠키 없음) · 401 INVALID_REFRESH_TOKEN(만료·위조·이미 소비됨)
      */
     post: operations['refresh'];
     delete?: never;
@@ -473,14 +473,14 @@ export interface paths {
     post?: never;
     /**
      * 댓글 삭제
-     * @description 실패: 404 NOT_FOUND(댓글 없음) · 403 FORBIDDEN(작성자가 아님)
+     * @description 실패: 404 COMMENT_NOT_FOUND(댓글 없음) · 403 FORBIDDEN(작성자가 아님)
      */
     delete: operations['deleteComment'];
     options?: never;
     head?: never;
     /**
      * 댓글 수정
-     * @description 실패: 404 NOT_FOUND(댓글 없음) · 400 INVALID_INPUT(이미지 개수·본문 길이 초과) · 403 FORBIDDEN(작성자가 아님). 이미 삭제된 댓글이면 409가 아니라 500 INTERNAL_SERVER_ERROR 로 응답한다(IllegalStateException 전용 핸들러가 없음 — 알려진 결함, 이 수정 범위 밖).
+     * @description 실패: 404 COMMENT_NOT_FOUND(댓글 없음) · 400 INVALID_INPUT(이미지 개수·본문 길이 초과) · 403 FORBIDDEN(작성자가 아님) · 409 COMMENT_DELETED(이미 삭제된 댓글)
      */
     patch: operations['updateComment'];
     trace?: never;
@@ -516,7 +516,7 @@ export interface paths {
     put?: never;
     /**
      * 답글 작성
-     * @description 답글의 답글은 허용하지 않는다(최대 depth 1). HTTP 상태는 200 이고 본문 status 필드만 201 이다. 실패: 404 NOT_FOUND(부모 댓글 없음·depth 초과·다른 글의 댓글) · 400 INVALID_INPUT(이미지 개수·본문 길이 초과)
+     * @description 답글의 답글은 허용하지 않는다(최대 depth 1). HTTP 상태는 200 이고 본문 status 필드만 201 이다. 실패: 404 COMMENT_NOT_FOUND(부모 댓글 없음) · 404 NOT_FOUND(depth 초과·다른 글의 댓글) · 400 INVALID_INPUT(이미지 개수·본문 길이 초과)
      */
     post: operations['createReply'];
     delete?: never;
@@ -753,7 +753,7 @@ export interface paths {
     put?: never;
     /**
      * 이미지 업로드용 서명 URL 발급
-     * @description Supabase Storage 서명 URL 을 발급한다(실제 업로드는 클라이언트가 이 URL로 직접 한다). 허용 확장자가 아니면 400 이 아니라 404 NOT_FOUND 로 응답한다(IllegalArgumentException 공통 매핑). 실패: 404 NOT_FOUND(허용되지 않은 확장자) · 429 RATE_LIMIT_EXCEEDED(회원당 시간당 발급 한도 초과)
+     * @description Supabase Storage 서명 URL 을 발급한다(실제 업로드는 클라이언트가 이 URL로 직접 한다). 실패: 400 UNSUPPORTED_IMAGE_TYPE(허용되지 않은 확장자) · 429 RATE_LIMIT_EXCEEDED(회원당 시간당 발급 한도 초과)
      */
     post: operations['createSignedUploadUrl'];
     delete?: never;
