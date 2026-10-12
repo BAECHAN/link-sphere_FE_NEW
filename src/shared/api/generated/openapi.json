@@ -302,6 +302,25 @@
         "required": ["data", "message", "status", "timestamp"],
         "type": "object"
       },
+      "ApiResponsePostLikeResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PostLikeResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
       "ApiResponsePostPageResponse": {
         "properties": {
           "data": {
@@ -940,6 +959,19 @@
           "url",
           "userInteractions"
         ],
+        "type": "object"
+      },
+      "PostLikeResponse": {
+        "properties": {
+          "isLiked": {
+            "type": "boolean"
+          },
+          "likeCount": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": ["isLiked", "likeCount"],
         "type": "object"
       },
       "PostStats": {
@@ -2650,7 +2682,7 @@
     },
     "/post/{postId}/like": {
       "post": {
-        "description": "이미 눌렀으면 취소된다. data 는 {\"isLiked\": true|false} 한 쌍이다(스키마에는 additionalProperties 로만 나타난다). 실패: 404 POST_NOT_FOUND",
+        "description": "이미 눌렀으면 취소된다. data 는 {\"isLiked\": true|false, \"likeCount\": 12} 형태다. 실패: 404 POST_NOT_FOUND",
         "operationId": "likePost",
         "parameters": [
           {
@@ -2668,7 +2700,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseMapStringBoolean"
+                  "$ref": "#/components/schemas/ApiResponsePostLikeResponse"
                 }
               }
             },

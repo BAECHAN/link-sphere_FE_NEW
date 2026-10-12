@@ -11,7 +11,10 @@ import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/bookmark-fold
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import type { Post, PostListResponse } from '@/entities/post/model/post.schema';
 import type { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
-import { useBookmarkPostMutation } from '@/entities/interaction/api/interaction.queries';
+import {
+  useBookmarkPostMutation,
+  useLikePostMutation,
+} from '@/entities/interaction/api/interaction.queries';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
@@ -299,5 +302,104 @@ describe('useBookmarkPostMutation', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
     });
+  });
+});
+
+describe('useLikePostMutation', () => {
+  beforeEach(() => {
+    server.use(
+      http.post(url(API_ENDPOINTS.post.togglePostLike(POST_ID)), () =>
+        HttpResponse.json(
+          {
+            status: 200,
+            message: '좋아요 성공',
+            data: { isLiked: true, likeCount: 15 },
+            timestamp: new Date().toISOString(),
+          },
+          { status: 200 }
+        )
+      )
+    );
+  });
+
+  it('서버가 likeCount=15를 반환하면 낙관적 ±1(11)이 15로 교정된다', async () => {
+    const seededPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: false, bookmarkFolderIds: [] },
+      stats: { ...mockPost.stats, likeCount: 10 },
+    };
+    queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
+
+    const seededList: InfiniteData<PostListResponse> = {
+      pages: [
+        { page: 0, size: 10, content: [seededPost], totalElements: 1, totalPages: 1, last: true },
+      ],
+      pageParams: [0],
+    };
+    queryClient.setQueryData(postKeys.list(), seededList);
+
+    const { result } = renderHook(() => useLikePostMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate();
+    });
+
+    // onSuccess 이후 서버 권위값(15)으로 교정됐는지 확인
+    // (낙관적 업데이트 10→11, 교정 11→15)
+    await waitFor(() => {
+      const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
+      expect(post?.stats.likeCount).toBe(15);
+    });
+
+    const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
+    expect(post?.userInteractions.isLiked).toBe(true);
+
+    const list = queryClient.getQueryData<InfiniteData<PostListResponse>>(postKeys.list());
+    const listedPost = list?.pages[0]?.content.find((p) => p.id === POST_ID);
+    expect(listedPost?.stats.likeCount).toBe(15);
+    expect(listedPost?.userInteractions.isLiked).toBe(true);
+  });
+
+  it('서버 에러 시 detail + 목록 스냅샷으로 롤백된다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.post.togglePostLike(POST_ID)), () =>
+        HttpResponse.json(
+          { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'boom', timestamp: '' },
+          { status: 500 }
+        )
+      )
+    );
+
+    const seededPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: false, bookmarkFolderIds: [] },
+      stats: { ...mockPost.stats, likeCount: 10 },
+    };
+    queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
+
+    const seededList: InfiniteData<PostListResponse> = {
+      pages: [
+        { page: 0, size: 10, content: [seededPost], totalElements: 1, totalPages: 1, last: true },
+      ],
+      pageParams: [0],
+    };
+    queryClient.setQueryData(postKeys.list(), seededList);
+
+    const { result } = renderHook(() => useLikePostMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate();
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
+    expect(post?.stats.likeCount).toBe(10);
+    expect(post?.userInteractions.isLiked).toBe(false);
+
+    const list = queryClient.getQueryData<InfiniteData<PostListResponse>>(postKeys.list());
+    const listedPost = list?.pages[0]?.content.find((p) => p.id === POST_ID);
+    expect(listedPost?.stats.likeCount).toBe(10);
+    expect(listedPost?.userInteractions.isLiked).toBe(false);
   });
 });

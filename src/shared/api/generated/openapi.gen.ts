@@ -733,7 +733,7 @@ export interface paths {
     put?: never;
     /**
      * 게시글 좋아요 토글
-     * @description 이미 눌렀으면 취소된다. data 는 {"isLiked": true|false} 한 쌍이다(스키마에는 additionalProperties 로만 나타난다). 실패: 404 POST_NOT_FOUND
+     * @description 이미 눌렀으면 취소된다. data 는 {"isLiked": true|false, "likeCount": 12} 형태다. 실패: 404 POST_NOT_FOUND
      */
     post: operations['likePost'];
     delete?: never;
@@ -869,6 +869,13 @@ export interface components {
     };
     ApiResponseNicknameAvailabilityResponse: {
       data: components['schemas']['NicknameAvailabilityResponse'];
+      message: string;
+      /** Format: int32 */
+      status: number;
+      timestamp: string;
+    };
+    ApiResponsePostLikeResponse: {
+      data: components['schemas']['PostLikeResponse'];
       message: string;
       /** Format: int32 */
       status: number;
@@ -1080,6 +1087,11 @@ export interface components {
       title: string;
       url: string;
       userInteractions: components['schemas']['PostUserInteractions'];
+    };
+    PostLikeResponse: {
+      isLiked: boolean;
+      /** Format: int32 */
+      likeCount: number;
     };
     PostStats: {
       /** Format: int32 */
@@ -2217,7 +2229,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          '*/*': components['schemas']['ApiResponseMapStringBoolean'];
+          '*/*': components['schemas']['ApiResponsePostLikeResponse'];
         };
       };
     };
