@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '@/shared/config/api';
 
 export const interactionApi = {
   toggleLikePost: async (postId: string) => {
-    return await apiClient.post<{ isLiked: boolean }>(
+    return await apiClient.post<{ isLiked: boolean; likeCount: number }>(
       API_ENDPOINTS.post.togglePostLike(postId),
       {}
     );

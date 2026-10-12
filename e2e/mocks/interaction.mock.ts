@@ -1,10 +1,19 @@
 import type { Page } from '@playwright/test';
 
-/** POST /post/:id/like (성공) — 204 no body(post.handlers.ts와 동일 형태). */
+/** POST /post/:id/like (성공) — 200 + { isLiked, likeCount }. */
 export async function mockLikePost(page: Page): Promise<void> {
   await page.route(
     (url) => /^\/api\/post\/[^/]+\/like$/.test(url.pathname),
-    (route) => route.fulfill({ status: 204 })
+    (route) =>
+      route.fulfill({
+        status: 200,
+        json: {
+          status: 200,
+          message: '좋아요 성공',
+          data: { isLiked: true, likeCount: 1 },
+          timestamp: new Date().toISOString(),
+        },
+      })
   );
 }
 

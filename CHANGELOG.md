@@ -21,6 +21,13 @@
 
 ### Changed
 
+- `post` 좋아요 토글 직후 서버가 반환한 likeCount로 캐시를 교정함
+  <details><summary>배경·구현</summary>
+
+  낙관적 ±1 추정이 3분(staleTime) 동안 실제 DB 값과 어긋날 수 있었다. 두 사용자가 동시에 같은 게시글에 좋아요를 누르면 각자의 캐시가 서로 다른 기준에서 ±1을 적용하기 때문이다. BE 토글 응답을 `{ isLiked }` → `{ isLiked, likeCount }`로 확장(동일 트랜잭션 내 COUNT 쿼리)하고, FE `onSuccess`에서 서버 권위값으로 detail + list 캐시를 즉시 교정한다. (`interaction.api.ts`, `interaction.queries.ts`, `interaction.queries.test.ts`, `post.handlers.ts`, `openapi.json`, `openapi.gen.ts`, [PR #338](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/338))
+
+  </details>
+
 - `comment` 등록·수정 실패 원인을 버튼 위에 보여줌(이미지 형식·용량·업로드 한도·저장소·연결)
   <details><summary>배경·구현</summary>
 

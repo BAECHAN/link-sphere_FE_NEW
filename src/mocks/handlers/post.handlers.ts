@@ -84,7 +84,15 @@ export const postHandlers = [
 
   // POST /post/:id/like (좋아요 토글)
   http.post(url(API_ENDPOINTS.post.togglePostLike(':id')), () => {
-    return new HttpResponse(null, { status: 204 });
+    return HttpResponse.json(
+      {
+        status: 200,
+        message: '좋아요 성공',
+        data: { isLiked: true, likeCount: mockPost.stats.likeCount + 1 },
+        timestamp: new Date().toISOString(),
+      },
+      { status: 200 }
+    );
   }),
 
   // POST /post/:id/bookmark (북마크 토글)

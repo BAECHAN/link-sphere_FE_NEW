@@ -65,7 +65,44 @@ export const useLikePostMutation = (postId: Post['id']) => {
       );
       return { previousPost, previousLists };
     },
-    onSuccess: () => {},
+    onSuccess: ({ isLiked: serverIsLiked, likeCount: serverLikeCount }) => {
+      queryClient.setQueryData<Post>(postKeys.detail(postId), (cached) => {
+        if (!cached) {
+          return cached;
+        }
+
+        return {
+          ...cached,
+          userInteractions: { ...cached.userInteractions, isLiked: serverIsLiked },
+          stats: { ...cached.stats, likeCount: serverLikeCount },
+        };
+      });
+
+      queryClient.setQueriesData<InfiniteData<PostListResponse>>(
+        { queryKey: postKeys.listRoot },
+        (oldData) => {
+          if (!oldData) {
+            return oldData;
+          }
+
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) => ({
+              ...page,
+              content: page.content.map((post) =>
+                post.id === postId
+                  ? {
+                      ...post,
+                      userInteractions: { ...post.userInteractions, isLiked: serverIsLiked },
+                      stats: { ...post.stats, likeCount: serverLikeCount },
+                    }
+                  : post
+              ),
+            })),
+          };
+        }
+      );
+    },
     onError: (_err, _variables, context) => {
       if (context?.previousPost) {
         queryClient.setQueryData(postKeys.detail(postId), context.previousPost);
