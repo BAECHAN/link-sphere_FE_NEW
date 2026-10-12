@@ -1,3 +1,7 @@
+### 2026-10-12 (FE)
+- 토큰 갱신 로직의 경쟁 상태(Race Condition)를 해결하여 인증 안정성 강화
+  - 토큰 갱신 중 발생하는 401 에러에 대한 예외 처리 로직 보완 및 세션 유지 오류 수정 ([#333](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/333))
+
 ### 2026-10-06 (FE)
 - 댓글 등록 및 수정 실패 시, 이미지 형식·용량·글자 수 제한·서버 연결 등 오류 원인을 버튼 상단에 안내하여 사용자 경험 개선 ([#330](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/330))
 
