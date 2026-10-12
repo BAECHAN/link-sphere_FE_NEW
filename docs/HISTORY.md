@@ -1,4 +1,7 @@
 ### 2026-10-12 (FE)
+- API 요청 제한 시 적절한 보안 정책 차단 안내 메시지 노출 기능 구현 ([#336](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/336))
+
+### 2026-10-12 (FE)
 - 인증 토큰 갱신 시 탭 간 충돌 방지를 위한 백엔드 10초 유예 로직 적용 및 운영 환경 스펙 문서 현행화 ([#334](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/334))
 
 ### 2026-10-12 (BE)
