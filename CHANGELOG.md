@@ -99,6 +99,13 @@
 
 ### Fixed
 
+- `infra` 연속 병합 때 자동 변경 이력(HISTORY.md) 항목이 빠지던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  Gemini History Updater는 실행에 약 30초가 걸리는데, 그사이 main에 다른 PR이 병합되거나 BE 히스토리 실행이 먼저 push하면 자기 push가 `rejected (fetch first)`로 거절되고 끝났다. 재시도가 없고 다음 실행은 자기 커밋 범위만 보므로 그 항목은 복구되지 않았다(2026-10-12 #338 병합 26초 뒤 #339가 병합돼 #338 항목 유실). 09-16~10-12 실행 200건 중 22건이 실패했고, 그중 경합 거절이 11건(나머지 11건은 09-20 규칙셋 위반으로 규칙셋 수정 뒤 0건)이었다. 이제 스크립트는 Gemini 결과를 임시 파일로만 남기고, 워크플로가 최신 main을 받아 그 항목을 맨 위에 붙여 push하며 거절되면 최대 5회 다시 받아 붙인다. `git pull --rebase`는 상대가 다른 히스토리 실행이면 둘 다 1행에 붙여 충돌하므로 쓰지 않았다. 로컬 bare 저장소로 수정 전 블록은 같은 거절을 재현했고, 수정 후 블록은 main 이동·push 직전 끼어들기·5회 소진·항목 없음 네 경우 모두 기대대로 동작했다. 이미 빠진 항목 중 #338만 병합 뒤 보충한다. (`.github/workflows/history.yml`, `scripts/generate-history.js`, [PR #341](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/341))
+
+  </details>
+
 - `shared` 요청이 너무 많아 보안 정책에 막혔을 때 원인과 다른 안내가 뜨던 문제 수정
   <details><summary>배경·구현</summary>
 
