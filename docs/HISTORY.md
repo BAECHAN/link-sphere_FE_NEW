@@ -1,4 +1,7 @@
 ### 2026-10-12 (BE)
+- 게시글 좋아요 토글 API 응답에 현재 좋아요 개수(`likeCount`) 필드 추가 ([#74](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/74))
+
+### 2026-10-12 (BE)
 - 게시글, 댓글, 상호작용 조회 시 created_at 값이 동일할 경우 발생하는 비결정적 정렬 문제를 식별자(ID) 기반 정렬을 추가하여 해결 ([#75](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/75))
 
 ### 2026-10-12 (FE)
