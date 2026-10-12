@@ -230,6 +230,111 @@ client.ts의 handleTokenExpired() 메서드
 
 `src/shared/lib/react-query/config/error-toast.ts`의 `resolveErrorToast()`(mutation·query 전역 에러 핸들러가 공유하는 판정 함수, `queryClient.ts`가 호출)는 `NOT_LOGGED_IN`·`INVALID_TOKEN`·`ACCESS_DENIED`·`EDGE_BLOCKED`·429(코드가 아니라 상태로 판별, `rateLimited` 안내)·404(query 정책만 — `ErrorToastPolicy.skipNotFound`)는 다루지만 **`TOKEN_EXPIRED`는 다루지 않습니다.** 실수가 아니라 설계입니다 — `client.ts`가 그 코드를 절대 밖으로 흘리지 않기(재시도하거나 영구 pending) 때문에 다룰 필요가 없습니다.
 
+#### 토큰 갱신이 겹칠 때 — 팔찌와 쿠폰 비유
+
+위 의사코드만으로는 "왜 그 분기가 필요한가"가 잘 안 보여서, 2026-10-12 #333(같은 탭)·BE #71(여러 탭)을
+작업하며 설명한 비유를 남깁니다. 동작의 정본은 위 의사코드와 코드이고, 이 절은 그걸 따라가기 위한 길잡이입니다.
+
+**등장하는 것**
+
+- **입장 팔찌** = access 토큰. 1시간짜리이고 탭마다 하나씩 찹니다. 놀이기구(API)를 탈 때마다 보여줍니다.
+- **재발급 쿠폰** = refresh 토큰. 브라우저 전체에 **한 장**뿐이고 모든 탭이 같은 서랍(쿠키)을 씁니다.
+- **팔찌와 쿠폰은 한 세트**입니다(BE에서 한 행). 쿠폰을 바꾸면 그 세트의 팔찌도 무효가 됩니다.
+- 줄 설 때는 팔찌를 맡기지 않고 **그 순간 팔찌의 사진**을 냅니다. **사진**(그 요청이 보낸 토큰)은 나중에
+  바뀌지 않고, **손목**(탭이 지금 들고 있는 최신 토큰)은 매표소에 다녀오면 바뀝니다.
+
+**매표소(BE) 규칙**
+
+1. 쿠폰을 내면 새 팔찌와 새 쿠폰을 주고, 낸 쿠폰은 **찢습니다**(회전).
+2. 이미 찢은 쿠폰이 또 오면 "도둑이다"라고 보고 **그 가족의 팔찌를 전부 무효**로 합니다(재사용 탐지). 단,
+   찢은 지 **10초 안**이고 가족이 아직 살아 있으면 같은 가족이 동시에 온 것으로 보고 팔찌를 하나 더 줍니다(BE #71).
+
+**문제 1 — 같은 탭에서 늦게 도착한 만료 통보 (#333)**
+
+탭 하나가 놀이기구 A·B에 동시에 줄을 섰고, B 직원은 느립니다(서버 응답이 늦게 오는 경우).
+
+```mermaid
+sequenceDiagram
+    participant T as 탭(손목)
+    participant A as 놀이기구 A
+    participant B as 놀이기구 B(느림)
+    participant M as 매표소(BE)
+    Note over T: 손목 빨강(이미 만료), 서랍에 쿠폰1
+    T->>A: 빨강 사진 제출
+    T->>B: 빨강 사진 제출
+    A-->>T: 빨강 만료
+    Note over T: 매표소 가는 중 팻말을 걸고 출발
+    T->>M: 쿠폰1
+    M-->>T: 파랑 팔찌와 쿠폰2(쿠폰1은 찢음)
+    Note over T: 손목이 파랑으로 바뀜, 팻말을 뗌
+    T->>A: 파랑 사진으로 다시 줄 섬
+    B-->>T: 빨강 만료(이제야 도착)
+    alt 고치기 전
+        Note over T: 팻말이 없으니 내가 가야지
+        T->>M: 쿠폰2
+        M-->>T: 초록 팔찌와 쿠폰3(쿠폰2와 한 세트인 파랑은 무효)
+        A-->>T: 파랑 무효
+        Note over T: 새 팔찌로 다시 탔는데도 안 됨, 로그아웃
+    else 고친 뒤
+        Note over T: 사진은 빨강, 손목은 파랑, 다르니 이미 바꿔 온 것
+        T->>B: 파랑 사진으로 다시 줄 섬(매표소 안 감)
+        A-->>T: 탑승
+        B-->>T: 탑승
+    end
+```
+
+- 원래 있던 "한 명만 매표소에 가고 나머지는 줄 서서 기다리기"(팻말)는 **팻말이 걸려 있는 동안** 온 통보만
+  기다리게 합니다. B의 통보는 팻말을 뗀 **뒤**에 와서 그 규칙을 비껴갔습니다.
+- 고친 뒤에는 매표소에 가기 전에 "통보받은 사진이 지금 손목과 같은가"를 봅니다. 다르면 누군가 이미 바꿔 온
+  것이라 매표소에 다시 가지 않고, 그래서 멀쩡한 파랑 팔찌가 죽을 일이 없습니다. 같으면(둘 다 빨강) 아직 아무도
+  안 다녀온 것이라 원래대로 갑니다.
+
+**문제 2 — 여러 탭이 같은 쿠폰을 동시에 냄 (BE #71)**
+
+새 탭은 열리자마자 매표소에 갑니다(§8-C 부트스트랩). 링크 여러 개를 연달아 새 탭으로 열면 두 탭이 같은 쿠폰을
+들고 동시에 도착합니다. 탭끼리는 연락할 방법이 없어 FE에서 줄을 세울 수 없으므로 매표소 규칙을 바꿨습니다.
+
+```mermaid
+sequenceDiagram
+    participant TA as 탭 A(새로 연 탭)
+    participant TB as 탭 B(새로 연 탭)
+    participant M as 매표소(BE)
+    Note over TA,TB: 서랍의 쿠폰은 한 장(쿠폰1), 두 탭 다 그걸 들고 감
+    TA->>M: 쿠폰1
+    TB->>M: 쿠폰1
+    M-->>TA: 팔찌A와 쿠폰A(쿠폰1은 찢음)
+    Note over M: 탭 B가 낸 쿠폰1은 방금 찢겼음
+    alt 고치기 전
+        Note over M: 도둑으로 판단, 가족 팔찌 전부 무효
+        M-->>TB: 거절(401)
+        Note over TA,TB: 팔찌A도 무효라 두 탭 모두 로그아웃
+    else 고친 뒤
+        Note over M: 찢은 지 10초 안이고 가족이 살아 있음
+        M-->>TB: 팔찌B와 쿠폰B
+        Note over TA,TB: 두 탭 모두 로그인 유지
+    end
+```
+
+- 10초가 지나서 찢은 쿠폰이 오면 여전히 도둑으로 보고 가족 전체를 무효로 합니다 — 보안 장치는 그대로입니다.
+- 이제 한 가족이 팔찌를 여러 개 가질 수 있어서, **퇴장(로그아웃)할 때 그 가족의 팔찌를 전부 회수**합니다.
+- 운영에서 확인한 결과(배포 전 `[200, 401]` → 배포 후 `[200, 200]`)와 남은 좁은 틈은 §11 항목 8에 있습니다.
+
+**비유와 실제 대응**
+
+| 비유                        | 실제                                               | 위치                                                       |
+| --------------------------- | -------------------------------------------------- | ---------------------------------------------------------- |
+| 입장 팔찌                   | access 토큰(1시간)                                 | `useAuthStore`의 `accessToken`, 요청 헤더 `X-Access-Token` |
+| 재발급 쿠폰                 | refresh 토큰(최대 7일)                             | httpOnly 쿠키 `__Host-refreshToken`(§6)                    |
+| 팔찌와 쿠폰이 한 세트       | BE `member_sessions` 한 행에 access·refresh가 함께 | BE `TableMemberSession.kt`                                 |
+| 가족                        | 회전 계열(`family_id`, 로그인 한 번)               | BE `TableMemberSession.kt`                                 |
+| 매표소에 가기, 쿠폰 찢기    | `POST /auth/refresh`, 회전(이전 행 폐기)           | BE `MemberSessionService.rotate`                           |
+| "매표소 가는 중" 팻말       | `isRefreshing`                                     | `src/shared/api/client.ts:109`                             |
+| 줄 서서 기다리기            | `refreshSubscribers` 대기열                        | `src/shared/api/client.ts:110`                             |
+| 팔찌 사진                   | `sentToken`(그 요청이 보낸 토큰)                   | `src/shared/api/client.ts:299`(넘기는 곳)                  |
+| 사진과 손목 비교            | `currentToken !== sentToken`                       | `src/shared/api/client.ts:188`                             |
+| 찢은 지 10초 안이면 하나 더 | 회전 유예 `REUSE_LEEWAY`                           | BE `MemberSessionService.isReuseWithinLeeway`              |
+| 퇴장 시 가족 팔찌 전부 회수 | 로그아웃 계열 폐기                                 | BE `MemberSessionService.revokeByRefreshToken`             |
+
 ### 8-C. 부트스트랩 (새로고침·최초 로드)
 
 ```ts
