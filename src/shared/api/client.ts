@@ -168,13 +168,27 @@ class ApiClient {
   }
 
   /**
-   * TOKEN_EXPIRED 401 처리 - 재시도 상한, refresh 실행, refresh 대기 3갈래를 모두 담당한다.
+   * TOKEN_EXPIRED 401 처리 - 이미 갱신된 토큰으로 재시도, 재시도 상한, refresh 실행,
+   * refresh 대기 4갈래를 모두 담당한다.
    */
   private async handleTokenExpired<T>(
     endpoint: string,
     options: ApiRequestOptions | undefined,
-    retryCount: number
+    retryCount: number,
+    sentToken: string | undefined
   ): Promise<T> {
+    // 이 요청을 보낸 뒤 다른 요청이 이미 refresh를 마쳤다면(늦게 도착한 401) refresh 없이
+    // 지금 토큰으로 재시도만 한다. 리더의 finally는 재시도 완료를 기다리지 않고
+    // isRefreshing을 내리므로 이런 401은 대기 큐가 아니라 아래 리더 경로로 들어오는데,
+    // 거기서 refresh를 또 부르면 BE가 세션을 회전시켜(이전 행 폐기) 첫 refresh 토큰으로
+    // 재시도 중이던 요청까지 만료돼 로그아웃된다(client.test.ts Case 1-3). 토큰이 실제로
+    // 바뀌었을 때만 타므로 재시도 상한보다 먼저 둬도 같은 토큰으로 반복 재시도하지 않는다.
+    const currentToken = useAuthStore.getState().accessToken;
+
+    if (currentToken && currentToken !== sentToken) {
+      return this.request<T>(endpoint, options, retryCount + 1);
+    }
+
     // refresh로 새로 받은 토큰으로 재시도한 요청이 다시 TOKEN_EXPIRED를 받으면
     // (서버 시계 오차 등) 더 재시도해도 회복되지 않는다 - 상한 없이 재귀하면
     // 무한 루프가 될 수 있으므로 1회 재시도 후에는 refresh 실패와 동일하게 처리한다.
@@ -200,6 +214,10 @@ class ApiClient {
         return this.request<T>(endpoint, options, retryCount + 1);
       } catch (error) {
         console.error(error);
+        // 대기 큐의 요청들과 리더 자신 모두 reject하지 않고 영원히 pending으로 둔다 -
+        // clearAll()이 곧 로그인 화면으로 이동시키는데, reject하면 진행 중이던 mutation마다
+        // 전역 핸들러가 실패 토스트를 띄운다(error-toast.ts의 resolveErrorToast).
+        // 동작은 client.test.ts Case 2-1이 고정한다.
         this.refreshSubscribers = [];
         AuthUtil.clearAll();
         return new Promise(() => {});
@@ -274,7 +292,12 @@ class ApiClient {
         if (response.status === 401) {
           // 토큰 만료 처리
           if (errorResponse.code === SERVER_ERROR_CODE.TOKEN_EXPIRED) {
-            return this.handleTokenExpired<T>(endpoint, options, retryCount);
+            return this.handleTokenExpired<T>(
+              endpoint,
+              options,
+              retryCount,
+              headers['X-Access-Token']
+            );
           } else if (isSessionInvalidCode(errorResponse.code)) {
             if (endpoint.includes(API_ENDPOINTS.auth.refresh)) {
               // 앱 초기화 시 자동 호출되는 refresh는 조용히 실패 (toast/navigate 불필요)

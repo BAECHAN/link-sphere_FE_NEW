@@ -3,7 +3,7 @@
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
 > 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지, 그리고 로그인한 사람도 글을 못 쓸 때가 있는 이유를 설명할 수 있게 됩니다. 비밀번호를 새로 만드는 폼이 입력 중에 언제 무엇을 보여주는지(§8-G)도 여기서 다룹니다.
-> **마지막 검토**: 2026-10-05
+> **마지막 검토**: 2026-10-12
 
 ---
 
@@ -155,7 +155,7 @@ RootLayout
 | 파라미터                                   | 값                                                                                                                             | 위치                                                                     |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
 | 계정 정보(`accountKeys.root`) `staleTime`  | 1일(`STALE_TIME_ONE_DAY`)                                                                                                      | `src/entities/account/api/account.queries.ts:68`                         |
-| 동시 401 발생 시 실제 refresh 호출 횟수    | 항상 1회(리더-팔로워 큐잉, §9)                                                                                                 | `src/shared/api/client.ts`의 `handleTokenExpired` 메서드                 |
+| 동시 401 발생 시 실제 refresh 호출 횟수    | 1회(리더-팔로워 큐잉 + refresh가 끝난 뒤 늦게 온 401은 refresh 없이 재시도, §8-B·§9)                                           | `src/shared/api/client.ts`의 `handleTokenExpired` 메서드                 |
 | refresh 재시도 상한                        | **1회**(재시도한 요청이 다시 `TOKEN_EXPIRED`를 받으면 refresh를 또 호출하지 않고 실패 처리 — 2026-09-21 추가, §11 항목 1 참고) | `src/shared/api/client.ts`의 `handleTokenExpired`, `retryCount > 0` 가드 |
 | 로그아웃 직후 유예 시간(`LOGOUT_GRACE_MS`) | 2초 — §8-E 참고                                                                                                                | `src/shared/utils/logout-grace.util.ts:25`                               |
 
@@ -204,6 +204,8 @@ client.ts의 request() 메서드 — 401 분기
       else if (!AuthUtil.isLoggingOut()) AuthUtil.clearAll()
 
 client.ts의 handleTokenExpired() 메서드
+  if (지금 토큰 && 지금 토큰 !== sentToken)        → 늦게 도착한 401(이미 누가 갱신함)
+    return this.request(endpoint, options, retryCount + 1)   // refresh 없이 재시도
   if (retryCount > 0)                              → 재시도한 요청도 다시 TOKEN_EXPIRED
     refreshSubscribers 비움, clearAll(), 영구 pending Promise 반환(더 재귀하지 않음)
   if (!this.isRefreshing)                          → 리더 경로
@@ -214,6 +216,15 @@ client.ts의 handleTokenExpired() 메서드
   else                                             → 팔로워 경로
     new Promise(resolve => subscribeTokenRefresh(...))
 ```
+
+`sentToken`은 그 요청이 실제로 실어 보낸 `X-Access-Token` 값입니다. 첫 분기가 필요한
+이유는 리더의 `finally`가 **재시도 완료를 기다리지 않고** `isRefreshing`을 내리기
+때문입니다(`return this.request(...)`를 `await` 없이 반환). refresh가 끝난 뒤에 도착한
+401은 대기 큐가 아니라 리더 경로로 들어오는데, 거기서 refresh를 또 부르면 BE가 세션을
+회전시키면서(이전 행 폐기, BE `MemberSessionService.rotate`) 첫 refresh 토큰으로 재시도
+중이던 요청이 `TOKEN_EXPIRED`를 받고, 재시도 상한에 걸려 로그아웃됩니다. 2026-10-12에
+`client.test.ts` Case 1-3으로 재현(수정 전 refresh 2회 + 로그인 이동)한 뒤 이 분기를
+추가했습니다.
 
 `TOKEN_EXPIRED`는 "재시도하면 회복 가능"(리프레시), `NOT_LOGGED_IN`/`INVALID_TOKEN`은 "회복 불가능"(즉시 로그아웃)이라는 서로 다른 처방을 받습니다. 이 구분은 `error-code.ts:3-5`에서 코드 자체가 나뉘어 있는 것과 일치합니다.
 
@@ -541,10 +552,10 @@ flowchart TD
 
 ## 9. 검증 결과
 
-`src/shared/api/client.test.ts`(446줄, 최상위 `describe` 2개)가 게이트 B와 OAC 대응 헤더
+`src/shared/api/client.test.ts`(590줄, 최상위 `describe` 2개)가 게이트 B와 OAC 대응 헤더
 로직을 검증합니다.
 
-**`describe('ApiClient — 인증 오류 처리')`**(`:60-319`, 7 Case)가 게이트 B를 케이스별로
+**`describe('ApiClient — 인증 오류 처리')`**(`:60-463`, 10 Case)가 게이트 B를 케이스별로
 검증합니다:
 
 | Case             | 시나리오                                             | 확인하는 것                                                                                            |
@@ -552,26 +563,29 @@ flowchart TD
 | 1 (`:74-107`)    | 액세스 만료, 리프레시 유효                           | 재시도 1회 성공, 토스트·이동 없음(`:105` `navigate` 미호출 단언)                                       |
 | 1-1 (`:112-151`) | 동시에 두 요청이 401 `TOKEN_EXPIRED`                 | refresh는 1번만 호출(리더-팔로워 큐잉), 두 요청 모두 재시도 성공                                       |
 | 1-2 (`:157-194`) | refresh 성공 후 재시도한 요청도 다시 `TOKEN_EXPIRED` | refresh를 다시 호출하지 않고 `clearAll()` + 로그인 이동(§11 항목 1의 2026-09-21 재시도 상한 가드 검증) |
-| 2 (`:199-220`)   | 액세스·리프레시 둘 다 만료                           | `clearAuth` + `/auth/login` replace 이동                                                               |
-| 3 (`:225-241`)   | 토큰 없이 요청(`NOT_LOGGED_IN`)                      | 로그인 리다이렉트                                                                                      |
-| 4 (`:246-263`)   | 토큰 형식 손상(`INVALID_TOKEN`)                      | Case 3과 동일                                                                                          |
-| 5 (`:268-318`)   | 403 WAF 차단 vs 앱이 낸 정상 `ACCESS_DENIED`         | `EDGE_BLOCKED`로 오분류 안 됨(it 2개)                                                                  |
+| 1-3 (`:202-288`) | refresh가 끝난 뒤 늦게 도착한 401 `TOKEN_EXPIRED`    | refresh는 1번만, 늦은 요청은 갱신된 토큰으로 바로 재시도, 두 요청 모두 성공·이동 없음(§8-B)            |
+| 2 (`:293-314`)   | 액세스·리프레시 둘 다 만료                           | `clearAuth` + `/auth/login` replace 이동                                                               |
+| 2-1 (`:320-352`) | 동시에 두 요청이 401 + refresh 실패                  | refresh 1번, 두 요청 모두 reject 없이 pending, 로그인 이동 1번(§11 항목 3)                             |
+| 3 (`:357-373`)   | 토큰 없이 요청(`NOT_LOGGED_IN`)                      | 로그인 리다이렉트                                                                                      |
+| 4 (`:378-395`)   | 토큰 형식 손상(`INVALID_TOKEN`)                      | Case 3과 동일                                                                                          |
+| 5 (`:400-450`)   | 403 WAF 차단 vs 앱이 낸 정상 `ACCESS_DENIED`         | `EDGE_BLOCKED`로 오분류 안 됨(it 2개)                                                                  |
+| 6 (`:452-462`)   | 응답을 못 받음(오프라인·연결 끊김)                   | `fetch` reject를 `NetworkError`로 바꿔 던짐                                                            |
 
-**`describe('ApiClient — 요청 헤더 (CloudFront OAC 대응)')`**(`:327-446`, 5 Case) —
+**`describe('ApiClient — 요청 헤더 (CloudFront OAC 대응)')`**(`:471-590`, 5 Case) —
 2026-09-29 OAC 전환(FE Phase 6, `docs/plans/2026-09-29-oac-lockdown.md`)으로 추가됨,
 401 처리와는 무관한 별개 관심사라 최상위 `describe`를 분리했습니다:
 
 | 시나리오                                | 확인하는 것                                                           |
 | --------------------------------------- | --------------------------------------------------------------------- |
-| 토큰 있을 때(`:336-351`)                | `Authorization` 대신 `X-Access-Token` 헤더, `Authorization` 헤더 없음 |
-| JSON 바디(`:353-374`)                   | `x-amz-content-sha256`에 바디의 SHA256 해시                           |
-| FormData 바디(`:376-392`)               | `x-amz-content-sha256` 헤더 자체를 생략                               |
-| 바디 없는 POST, 예: refresh(`:394-419`) | 빈 문자열의 고정 해시값(`e3b0c442...`)을 그대로 실음                  |
-| 로그인 엔드포인트(`:421-445`)           | `isAuthEndpoint` 목록은 `X-Access-Token` 헤더를 붙이지 않음           |
+| 토큰 있을 때(`:480-495`)                | `Authorization` 대신 `X-Access-Token` 헤더, `Authorization` 헤더 없음 |
+| JSON 바디(`:497-518`)                   | `x-amz-content-sha256`에 바디의 SHA256 해시                           |
+| FormData 바디(`:520-536`)               | `x-amz-content-sha256` 헤더 자체를 생략                               |
+| 바디 없는 POST, 예: refresh(`:538-563`) | 빈 문자열의 고정 해시값(`e3b0c442...`)을 그대로 실음                  |
+| 로그인 엔드포인트(`:565-589`)           | `isAuthEndpoint` 목록은 `X-Access-Token` 헤더를 붙이지 않음           |
 
-**동시 401 요청이 refresh를 정확히 1번만 내는지**는 이제 Case 1-1이 검증합니다. **refresh
-실패 시 대기 중인 팔로워 요청들의 운명**은 여전히 어떤 Case에도 없습니다 — §11 항목 3·4와
-연결됩니다.
+**동시 401 요청이 refresh를 정확히 1번만 내는지**는 Case 1-1(refresh 도중 도착)과 Case
+1-3(refresh가 끝난 뒤 도착)이 함께 검증합니다. **refresh 실패 시 대기 중인 팔로워 요청들의
+운명**은 Case 2-1이 고정합니다(§11 항목 3·4).
 
 게이트 A(`ProtectedRoute`)는 `src/app/routes/ProtectedRoute.test.tsx`가 화면 분기 자체(스피너/리다이렉트/모달 조건)를 검증합니다. §8-A의 사실("`restoreAuth`가 실제로 refresh를 호출하지 않는다")도 여기 고정돼 있습니다.
 
@@ -675,16 +689,14 @@ flowchart TD
 
 3. **refresh 실패 시 대기 중이던 팔로워 요청들이 영구 pending으로 남습니다.** `client.ts`의
    `handleTokenExpired` catch 블록(`this.refreshSubscribers = []`)이 `refreshSubscribers`를 콜백 호출 없이 비웁니다.
-   리더 자신도 같은 catch에서 영구 pending Promise를 반환합니다(`return new Promise(() => {})`) — 에러를 throw하지
-   않고 Promise를 영원히 pending 상태로 두면 호출부의 catch가 실행되지 않아 결과적으로
-   에러 토스트도 뜨지 않는다는 뜻으로 보이지만, 이 의도를 명시한 주석은 현재 코드에
-   없습니다(추론). 팔로워 쪽도 같은 결과(영구 pending)지만 의도가 명시돼 있지 않은 건
-   동일합니다.
-4. **동시 401 큐잉(리더-팔로워 메커니즘) 자체는 Case 1-1(`client.test.ts:112-151`)이
-   검증합니다.** 여전히 테스트가 없는 것은 위 항목 3(팔로워가 refresh 실패 시 영구
-   pending으로 남는 경로)입니다 — `client.test.ts`의 `describe('ApiClient — 인증 오류 처리')`
-   7개 Case 중 동시 요청 시나리오는 Case 1-1 하나뿐이고, 그마저 refresh가 **성공**하는
-   경로만 다룹니다.
+   리더 자신도 같은 catch에서 영구 pending Promise를 반환합니다(`return new Promise(() => {})`).
+   **2026-10-12 정리**: 동작은 그대로 두고 이유를 catch 블록 주석으로 남겼습니다 — reject하면
+   진행 중이던 mutation마다 전역 핸들러가 실패 토스트를 띄우는데(`error-toast.ts`의
+   `resolveErrorToast`), 그 순간 `clearAll()`이 로그인 화면으로 이동시키고 있어 토스트만
+   겹칩니다. 동작은 `client.test.ts` Case 2-1이 고정합니다.
+4. **동시 401 큐잉(리더-팔로워 메커니즘)의 테스트 공백** — **2026-10-12 해소.** Case 1-1(refresh
+   도중 도착, 성공 경로), Case 1-3(refresh가 끝난 뒤 늦게 도착), Case 2-1(refresh 실패
+   경로)이 각각 고정합니다(§9 표).
 5. **게이트 D(§8-F)의 클라이언트 사전 체크는 `useCreateComment`에만 테스트가 있고
    `useCreatePost`엔 없습니다.** `useCreateComment.test.tsx:182-226`이 `emailVerified:
 false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCreatePost.test.tsx`(#308부터
@@ -699,6 +711,20 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
 7. **비밀번호 정책은 NIST SP 800-63B-4와 다릅니다.** 최신판([링크](https://pages.nist.gov/800-63-4/sp800-63b.html), 2025)은 조합 규칙을 금지하고 비밀번호 단일 인증 시 최소 15자를 요구하지만, 이 앱은
    2026-09-28에 조합 규칙 유지·8~64자로 확정했습니다([계획](plans/2026-09-28-auth-hardening.md)).
    §8-G는 표시 방식만 바꿨고 정책은 건드리지 않았습니다 — 재검토는 별도 결정입니다.
+8. **탭 사이의 refresh는 조율하지 않습니다.** `isRefreshing`은 탭마다 따로인 메모리 값이고,
+   액세스 토큰도 탭마다 메모리에만 있습니다(`auth.store.ts`, persist 없음). 그래서:
+   - 두 탭이 **같은 순간** refresh하면 같은 refresh 쿠키가 두 번 제시되고, BE는 진 쪽을
+     재사용으로 보고 계열 전체를 폐기해 두 탭 모두 로그아웃됩니다. BE
+     `MemberSessionService.rotate` 주석이 이 결과를 감수한다고 명시한 트레이드오프입니다.
+   - 한 탭이 refresh한 순간 다른 탭에서 이미 재시도 중이던 요청(`retryCount` 1)은, 그
+     탭의 토큰이 바뀌지 않았으므로 §8-B의 첫 분기를 타지 못하고 재시도 상한에 걸릴 수
+     있습니다(코드 추적으로 확인, 재현 테스트는 없음).
+
+   FE 쪽에서 막는다면 [Web Locks API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API)로
+   refresh를 탭 사이에서 줄 세우는 방법이 있습니다. MDN은 이 API가 _"2022년 3월부터 여러
+   브라우저에서 사용 가능"_ (번역)하다고 적고 있습니다. 락은 같은 브라우저·같은 출처 안에서만
+   걸리므로, 다른 기기에서 탈취한 토큰을 쓰는 경우의 BE 재사용 탐지는 약해지지 않습니다.
+   아직 도입 여부는 정하지 않았습니다(2026-10-12).
 
 ---
 
@@ -708,7 +734,8 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
 - **`TOKEN_EXPIRED`**: BE가 액세스 토큰의 유효기간이 지났을 때 주는 코드. "재시도하면 회복 가능"으로 취급됩니다.
 - **`INVALID_TOKEN`/`NOT_LOGGED_IN`**: 토큰이 없거나 형식이 잘못됐을 때. "회복 불가능"으로 취급되어 즉시 로그아웃됩니다.
 - **`EMAIL_NOT_VERIFIED`**: 이메일 미인증 계정이 글쓰기·댓글쓰기(그리고 글 작성·수정 폼의 링크 미리보기)를 시도했을 때 BE가 주는 403 코드(게이트 D, §8-F). `TOKEN_EXPIRED`/`INVALID_TOKEN`/`NOT_LOGGED_IN`과 달리 401이 아니라 403입니다 — 인증 자체는 됐고 권한(인가)만 없는 상태이기 때문입니다.
-- **`isRefreshing`/`refreshSubscribers`**: `client.ts`의 동시 401 처리 상태. 첫 401(리더)만 실제로 refresh를 트리거하고, 그 사이 도착한 나머지(팔로워)는 큐에 쌓였다가 리더의 refresh 완료 후 함께 재시도됩니다.
+- **`isRefreshing`/`refreshSubscribers`**: `client.ts`의 동시 401 처리 상태. 첫 401(리더)만 실제로 refresh를 트리거하고, 그 사이 도착한 나머지(팔로워)는 큐에 쌓였다가 리더의 refresh 완료 후 함께 재시도됩니다. refresh가 끝난 뒤 도착한 401은 큐에 들어가지 않고 `sentToken` 비교로 걸러집니다(§8-B).
+- **`sentToken`**: `handleTokenExpired`의 인자. 401을 받은 그 요청이 실제로 실어 보낸 `X-Access-Token` 값입니다. 지금 스토어의 토큰과 다르면 "이 요청을 보낸 뒤 이미 누가 갱신했다"는 뜻이라 refresh 없이 재시도합니다.
 - **`hasBeenAuthenticated`**: `ProtectedRoute`가 "이 마운트에서 한 번이라도 로그인 상태였는가"를 추적하는 state(`useState`, 렌더 중에 맞춤 — 렌더 중에 읽으므로 ref가 아님). 로그아웃/세션만료(true였다가 false)와 애초에 비로그인(처음부터 false)을 구분해, 후자만 로그인 모달을 띄웁니다.
 - **`has-session` 플래그**: 리프레시 토큰이 httpOnly라 존재 여부를 JS가 알 수 없으므로 대신 두는 "세션이 있을 가능성" 힌트. 진짜 인증 상태가 아닙니다.
 - **reward early, punish late**: 입력 검증 시점 원칙(§8-G). 맞는 쪽으로 가는 변화는 즉시 알리고, 틀린 것은 입력이 끝난 뒤(칸을 벗어나거나 제출한 뒤) 알린다. 이미 틀렸다고 알린 상태를 고치는 중이면 입력하는 대로 다시 판정한다.
