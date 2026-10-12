@@ -1,3 +1,6 @@
+### 2026-10-12 (BE)
+- 게시글, 댓글, 상호작용 조회 시 created_at 값이 동일할 경우 발생하는 비결정적 정렬 문제를 식별자(ID) 기반 정렬을 추가하여 해결 ([#75](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/75))
+
 ### 2026-10-12 (FE)
 - API 요청 제한 시 적절한 보안 정책 차단 안내 메시지 노출 기능 구현 ([#336](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/336))
 
