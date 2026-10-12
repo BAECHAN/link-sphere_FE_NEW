@@ -711,20 +711,26 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
 7. **비밀번호 정책은 NIST SP 800-63B-4와 다릅니다.** 최신판([링크](https://pages.nist.gov/800-63-4/sp800-63b.html), 2025)은 조합 규칙을 금지하고 비밀번호 단일 인증 시 최소 15자를 요구하지만, 이 앱은
    2026-09-28에 조합 규칙 유지·8~64자로 확정했습니다([계획](plans/2026-09-28-auth-hardening.md)).
    §8-G는 표시 방식만 바꿨고 정책은 건드리지 않았습니다 — 재검토는 별도 결정입니다.
-8. **탭 사이의 refresh는 조율하지 않습니다.** `isRefreshing`은 탭마다 따로인 메모리 값이고,
-   액세스 토큰도 탭마다 메모리에만 있습니다(`auth.store.ts`, persist 없음). 그래서:
-   - 두 탭이 **같은 순간** refresh하면 같은 refresh 쿠키가 두 번 제시되고, BE는 진 쪽을
-     재사용으로 보고 계열 전체를 폐기해 두 탭 모두 로그아웃됩니다. BE
-     `MemberSessionService.rotate` 주석이 이 결과를 감수한다고 명시한 트레이드오프입니다.
+8. **탭 사이의 refresh는 FE에서 조율하지 않습니다.** `isRefreshing`은 탭마다 따로인 메모리
+   값이고, 액세스 토큰도 탭마다 메모리에만 있습니다(`auth.store.ts`, persist 없음). 그래서:
+   - 두 탭이 **같은 순간** refresh하면(새 탭 여러 개를 연달아 열기·탭 복원 — 새 탭은 열릴
+     때마다 `useAppInitialization`이 refresh한다) 같은 refresh 쿠키가 두 번 제시됩니다.
+     **2026-10-12 해소(BE)**: 예전엔 BE가 진 쪽을 재사용으로 보고 계열 전체를 폐기해 모든 탭이
+     로그아웃됐습니다(운영에서 동시 refresh 2개로 `[200, 401]` 재현). 이제 BE가 회전된 지
+     10초 안의 재사용은 같은 계열로 새 토큰을 하나 더 발급합니다(배포 후 같은 시험에서
+     `[200, 200]`). 근거·보안 트레이드오프는 BE `docs/plans/2026-10-12-refresh-reuse-leeway.md`.
    - 한 탭이 refresh한 순간 다른 탭에서 이미 재시도 중이던 요청(`retryCount` 1)은, 그
      탭의 토큰이 바뀌지 않았으므로 §8-B의 첫 분기를 타지 못하고 재시도 상한에 걸릴 수
-     있습니다(코드 추적으로 확인, 재현 테스트는 없음).
+     있습니다(코드 추적으로 확인, 재현 테스트는 없음). BE 유예와 무관하게 남아 있습니다.
 
-   FE 쪽에서 막는다면 [Web Locks API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API)로
-   refresh를 탭 사이에서 줄 세우는 방법이 있습니다. MDN은 이 API가 _"2022년 3월부터 여러
-   브라우저에서 사용 가능"_ (번역)하다고 적고 있습니다. 락은 같은 브라우저·같은 출처 안에서만
-   걸리므로, 다른 기기에서 탈취한 토큰을 쓰는 경우의 BE 재사용 탐지는 약해지지 않습니다.
-   아직 도입 여부는 정하지 않았습니다(2026-10-12).
+   **정정(2026-10-12)**: 처음엔 FE에서 [Web Locks API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API)로
+   refresh를 탭 사이에서 줄 세우면 된다고 적었는데, 그것만으로는 부족했습니다. 뒤 탭의 refresh가
+   앞 탭이 방금 받은 토큰이 든 세션 행을 폐기해, 앞 탭에서 재시도 중이던 요청이 위 두 번째
+   항목처럼 상한에 걸릴 수 있습니다. 또 새 탭의 부트스트랩 refresh(`authApi.refresh()`)는
+   `handleTokenExpired`를 거치지 않습니다. 그래서 서버 쪽 유예로 풀었습니다 —
+   [Okta](https://developer.okta.com/docs/guides/refresh-tokens/main/)(grace period 기본 30초)·
+   [Supabase](https://supabase.com/docs/guides/auth/sessions)(reuse interval 기본 10초)도 같은
+   방식입니다.
 
 ---
 
