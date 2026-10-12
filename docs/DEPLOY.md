@@ -423,9 +423,9 @@ React 엘리먼트를 직접 조립) 이 룰이 막아주던 실질 위험이 �
 `docs/TRAFFIC-MANAGEMENT.md` §8-1·§9-3이 정본이다 — Free 플랜이라 WAF 콘솔·CloudFront Security 탭
 어디서도 규칙 추가 버튼이 없어 `update-web-acl` CLI로 넣었다. CloudFront Free 플랜은 WAF 룰을
 5개까지만 허용하고(지금 4개) 차단 응답 코드를 바꿀 수 없어, 이 룰에 걸린 요청도 429가 아니라
-403(비-JSON)으로 와 FE에서 `EDGE_BLOCKED`로 분류된다. 그래서 이 룰에 걸린 사용자도
-`TEXTS.messages.error.edgeBlocked`("내용이 너무 길거나 허용되지 않는 문자…")를 보게 되는데, 이
-경우엔 원인 설명이 맞지 않는다 — 문구를 고칠지는 미정이다(2026-10-11).
+403(비-JSON)으로 와 FE에서 `EDGE_BLOCKED`로 분류된다. 내용 검사 룰에 걸린 것과 구분할 수 없어,
+`TEXTS.messages.error.edgeBlocked`는 두 원인(내용이 너무 길거나 허용되지 않는 문자, 짧은 시간에 너무
+많은 요청)을 함께 안내한다(2026-10-12).
 
 ```bash
 # 조회 (수정 전 반드시 백업 - update-web-acl은 전체 Rules 배열을 다시 보내야 함)
