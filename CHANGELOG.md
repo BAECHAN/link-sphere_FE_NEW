@@ -92,6 +92,13 @@
 
 ### Fixed
 
+- `shared` 요청이 너무 많아 보안 정책에 막혔을 때 원인과 다른 안내가 뜨던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  2026-10-11 WAF `RateLimit-PerIP`(IP당 5분 1000회)를 Block으로 바꾸면서, 이 규칙에 걸린 요청도 내용 검사 룰과 같은 403으로 와 `EDGE_BLOCKED`로 분류된다(Free 플랜이라 응답을 바꿀 수 없어 FE가 둘을 구분할 수 없다). 그런데 안내 문구는 "내용이 너무 길거나 허용되지 않는 문자"만 말해서, 피드를 보다가 막힌 사람에게도 입력 내용을 탓했다. 기존 두 문장은 그대로 두고 "짧은 시간에 요청이 많았다면 잠시 후 다시 시도해주세요."를 덧붙였다. 전역 토스트·글 등록 안내 박스·댓글 버튼 위 안내가 같은 문구를 쓴다. 후보 비교 후 사용자가 골랐다. (`texts.ts`, `docs/DEPLOY.md`, [PR #336](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/336))
+
+  </details>
+
 - `auth` 토큰 갱신 직후 늦게 도착한 401 때문에 로그인이 풀리던 문제 수정
   <details><summary>배경·구현</summary>
 
