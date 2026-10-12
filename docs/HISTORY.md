@@ -1,3 +1,8 @@
+### 2026-10-12 (BE)
+- 인증 시스템의 동시성 제어 개선 및 세션 유지 안정화
+로그:
+- fix(auth): 여러 탭 동시 토큰 갱신 시 전부 로그아웃되던 문제에 10초 유예 ([#71](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/71))
+
 ### 2026-10-12 (FE)
 - 토큰 갱신 로직의 경쟁 상태(Race Condition)를 해결하여 인증 안정성 강화
   - 토큰 갱신 중 발생하는 401 에러에 대한 예외 처리 로직 보완 및 세션 유지 오류 수정 ([#333](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/333))
