@@ -1,4 +1,7 @@
 ### 2026-10-13 (FE)
+- 좋아요 기능의 안정성 확보를 위한 낙관적 업데이트(Optimistic Update) 응답 전 상태 처리 및 롤백 로직 테스트 코드 보강
+
+### 2026-10-13 (FE)
 - Playwright 버전 1.64.0 업데이트를 통한 Ubuntu 26.04 러너 환경 대응 및 E2E 테스트 안정성 확보 ([#343](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/343))
 
 ### 2026-10-12 (BE)
