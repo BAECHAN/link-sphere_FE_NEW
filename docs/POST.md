@@ -8,7 +8,7 @@
 > 파일에서 어떤 API를 부르고 어느 캐시를 어떻게 바꾸는지 안다. "등록 직후 새 글이 안 보인다",
 > "좋아요가 목록에 반영 안 된다" 같은 증상을 받았을 때 어디부터 열어볼지 정할 수 있다.
 >
-> **마지막 검토**: 2026-10-05
+> **마지막 검토**: 2026-10-13
 
 이 앱의 중심 데이터다. 사용자가 링크(URL)를 등록하면 BE가 그 페이지를 크롤링해 제목·설명·
 썸네일을 채우고, 그 뒤 비동기로 AI 요약·태그를 붙인다. FE는 그 결과를 피드(`/post`)에 카드로
@@ -346,12 +346,13 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   버튼은 `ToggleButton`이라 400ms 안의 재클릭을 무시한다([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §10-A).
   요청 중 `disabled`는 두지 않는다 — 낙관적 업데이트로 아이콘이 이미 바뀌어 있어, 요청 동안 버튼을
   흐리게(`disabled:opacity-50`) 하면 깜빡임만 생긴다(2026-10-02 제거, 댓글 좋아요도 같음).
-- `useLikePostMutation`(`src/entities/interaction/api/interaction.queries.ts:28-78`):
+- `useLikePostMutation`(`src/entities/interaction/api/interaction.queries.ts:28-115`):
   `onMutate`에서 detail과 **모든** 피드 목록 캐시의 그 글을 `toggleLikeOnPost`(`:12-26`, `isLiked`
-  반전 + `likeCount` ±1)로 바꾸고, 실패하면 두 스냅샷을 복원한다.
+  반전 + `likeCount` ±1)로 바꾸고, 실패하면 두 스냅샷을 복원한다. 성공하면 응답의 `isLiked`·`likeCount`로
+  detail과 모든 피드 목록 캐시의 그 글을 다시 덮어쓴다(`:68-105`) — 무효화·재조회는 하지 않는다
+  (`CHANGELOG.md` v0.19.0, PR #338).
 - `meta.manualErrorHandling: true`이고 직접 띄우는 토스트도 없어 **실패해도 토스트 없이 롤백만
-  된다**(`CHANGELOG.md` v0.1.1 "옵티미스틱 토글 실패 시 토스트 없이 롤백"). 성공 시 무효화도
-  하지 않는다(`onSuccess: () => {}`).
+  된다**(`CHANGELOG.md` v0.1.1 "옵티미스틱 토글 실패 시 토스트 없이 롤백").
 - 북마크 토글(`useBookmarkPostMutation`)은 같은 파일에 있지만 [`BOOKMARK.md`](./BOOKMARK.md)가
   정본이다.
 
@@ -420,23 +421,23 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 
 ## 8. 코드 지도와 자주 하는 수정
 
-| 단계                         | 파일                                                                                                                                                       |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 피드 페이지 배치             | `src/pages/post/index.tsx`                                                                                                                                 |
-| 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:103-166`, `src/widgets/post/post-list/ui/PostList.tsx`                                                    |
-| 카드 UI / 카드 동작          | `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`                                                            |
-| 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:60-95`                                                                                                                  |
-| 작성 폼 / 제출               | `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/create/hooks/useCreatePost.ts`의 `onSubmit`                                           |
-| 수정 폼 / 제출               | `src/features/post/update/ui/UpdatePostForm.tsx`, `src/features/post/update/hooks/useUpdatePost.ts`의 `onSubmit`                                           |
-| 삭제 확인창                  | `src/features/post/delete/hooks/usePostDelete.ts:10-24`                                                                                                    |
-| 좋아요 버튼 / mutation       | `src/features/post/like/ui/LikePostButton.tsx`, `src/features/post/like/hooks/useLikePost.ts`, `src/entities/interaction/api/interaction.queries.ts:28-78` |
-| 등록 성공 캐시 처리          | `src/entities/post/api/post.queries.ts`의 `useCreatePostMutation`                                                                                          |
-| 삭제 낙관적 처리             | `src/entities/post/api/post.queries.ts`의 `useDeletePostMutation`                                                                                          |
-| 수정 성공 캐시 처리          | `src/entities/post/api/post.queries.ts`의 `useUpdatePostMutation`                                                                                          |
-| 공개 전환                    | `src/entities/post/api/post.queries.ts`의 `useUpdatePostVisibilityMutation`, `src/widgets/post/post-card/hooks/usePostCard.ts:63-99`                       |
-| 제출 대기(응답 대기·라벨)    | `useCreatePost.ts` `onSubmit`, `useUpdatePost.ts` `onSubmit`                                                                                               |
-| 작성 중 미리보기             | `src/entities/post/hooks/useLinkPreview.ts`, `src/entities/post/ui/LinkPreviewCard.tsx`, 폼 연결은 두 훅의 `showPreviewUrlErrorOnField`                    |
-| 입력 검증                    | `src/entities/post/model/post.schema.ts:9-35`                                                                                                              |
+| 단계                         | 파일                                                                                                                                                        |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 피드 페이지 배치             | `src/pages/post/index.tsx`                                                                                                                                  |
+| 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:103-166`, `src/widgets/post/post-list/ui/PostList.tsx`                                                     |
+| 카드 UI / 카드 동작          | `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`                                                             |
+| 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:60-95`                                                                                                                   |
+| 작성 폼 / 제출               | `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/create/hooks/useCreatePost.ts`의 `onSubmit`                                            |
+| 수정 폼 / 제출               | `src/features/post/update/ui/UpdatePostForm.tsx`, `src/features/post/update/hooks/useUpdatePost.ts`의 `onSubmit`                                            |
+| 삭제 확인창                  | `src/features/post/delete/hooks/usePostDelete.ts:10-24`                                                                                                     |
+| 좋아요 버튼 / mutation       | `src/features/post/like/ui/LikePostButton.tsx`, `src/features/post/like/hooks/useLikePost.ts`, `src/entities/interaction/api/interaction.queries.ts:28-115` |
+| 등록 성공 캐시 처리          | `src/entities/post/api/post.queries.ts`의 `useCreatePostMutation`                                                                                           |
+| 삭제 낙관적 처리             | `src/entities/post/api/post.queries.ts`의 `useDeletePostMutation`                                                                                           |
+| 수정 성공 캐시 처리          | `src/entities/post/api/post.queries.ts`의 `useUpdatePostMutation`                                                                                           |
+| 공개 전환                    | `src/entities/post/api/post.queries.ts`의 `useUpdatePostVisibilityMutation`, `src/widgets/post/post-card/hooks/usePostCard.ts:63-99`                        |
+| 제출 대기(응답 대기·라벨)    | `useCreatePost.ts` `onSubmit`, `useUpdatePost.ts` `onSubmit`                                                                                                |
+| 작성 중 미리보기             | `src/entities/post/hooks/useLinkPreview.ts`, `src/entities/post/ui/LinkPreviewCard.tsx`, 폼 연결은 두 훅의 `showPreviewUrlErrorOnField`                     |
+| 입력 검증                    | `src/entities/post/model/post.schema.ts:9-35`                                                                                                               |
 
 ### 자주 하는 수정
 
@@ -453,7 +454,9 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 
 ## 9. 검증 결과
 
-**단위 테스트** — 2026-10-02 위 명령으로 9개 파일 79개 테스트 통과(직접 실행).
+**단위 테스트** — 2026-10-02 위 명령으로 9개 파일 79개 테스트 통과(직접 실행). 2026-10-13 다시
+실행해 13개 파일 127개 통과(직접 실행). 아래 목록은 그때 `interaction.queries.test.ts`만 갱신했고,
+나머지 개수는 2026-10-02 기준이다.
 
 - `src/entities/post/api/post.queries.test.ts`(12) — 수정 시 detail 교체·폴더 게시글 무효화,
   공개 전환 방향별 토스트·실패 시 미호출·**언마운트 후에도** 토스트, 등록 시 필터 없는 목록
@@ -468,8 +471,12 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
   [`SEARCH.md`](./SEARCH.md)가 정본
 - `src/widgets/post/post-card/config/post-card-grid.const.test.ts`(1)
 - `src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`(15) — [`BOOKMARK.md`](./BOOKMARK.md) §9
-- `src/entities/interaction/api/interaction.queries.test.ts`(7) — **전부 북마크 토글 테스트다.
-  좋아요 mutation 단위 테스트는 없고** e2e `like.spec.ts`만 덮는다.
+- `src/entities/interaction/api/interaction.queries.test.ts`(17) — 북마크 토글 9개(동작
+  설명은 [`BOOKMARK.md`](./BOOKMARK.md)), 좋아요 8개다. 좋아요 테스트는 서버 응답 전 중간 상태(그 글만 ±1·`isLiked` 반전,
+  북마크 값 유지), 응답 뒤 서버 값 교정, 실패 롤백, detail 캐시 없이 목록에만 있는 글,
+  데이터 없는 목록 캐시를 덮는다. 응답 전 상태는 핸들러가 응답을 붙잡아 두는 방식으로 본다 — 바로
+  응답하면 `waitFor`가 중간값을 보기 전에 `onSuccess`가 덮어쓴다(2026-10-13 추가, 뮤테이션 테스트로
+  찾은 공백).
 
 **e2e**(`e2e/`, Playwright) — 이 기능을 덮는 스펙. 이번 검토에서 실행하지는 않았다.
 
@@ -536,7 +543,8 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
   staleTime 3분 경과, 다른 무효화) 때 BE가 채워 둔 값이 있으면 그제야 보인다.
 - **좋아요 실패가 무음이다.** 롤백만 되고 토스트가 없어 사용자는 실패를 "눌렀는데 안 눌렸다"로
   본다. 또 성공 응답의 `isLiked`를 쓰지 않고 무효화도 하지 않아, 다른 탭·기기에서 바뀐 값과
-  어긋나면 다음 재조회 전까지 FE 추측값이 남는다.
+  어긋나면 다음 재조회 전까지 FE 추측값이 남는다. 정정: 둘째 문제는 2026-10-12 PR #338부터 성공
+  응답의 `isLiked`·`likeCount`로 캐시를 교정해 해소됐다(§5 "좋아요"). 실패가 무음인 것은 그대로다.
 - **상세에서 삭제 후 이동이 push다**(`usePostCard.ts:57`). 히스토리에 지운 글의 상세가 남아
   뒤로가기 때 그 주소의 404 안내 화면에 머문다. 정정: 처음엔 이것만 문제로 봤으나 실제로는
   detail 캐시가 남아 삭제된 글이 그대로 다시 그려졌다 — 2026-10-02 삭제 성공 시 캐시를 지우도록
