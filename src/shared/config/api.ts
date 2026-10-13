@@ -45,8 +45,8 @@ const API_ENDPOINTS = {
 
   post: {
     base: API_BASES.post,
-    togglePostLike: (postId: string) => `${API_BASES.post}/${postId}/like`,
-    toggleCommentLike: (commentId: string) => `${API_BASES.comment}/${commentId}/like`,
+    postLike: (postId: string) => `${API_BASES.post}/${postId}/like`,
+    commentLike: (commentId: string) => `${API_BASES.comment}/${commentId}/like`,
 
     postBookmark: (postId: string) => `${API_BASES.post}/${postId}/bookmark`,
 

@@ -13,12 +13,14 @@ interface LikePostButtonProps {
 }
 
 export function LikePostButton({ postId, isLiked, likeCount }: LikePostButtonProps) {
-  const { mutateAsync: likePost } = useLikePost(postId);
+  // mutateAsync는 실패를 throw해 아무도 잡지 않으면 "Uncaught (in promise)"가 남는다 — 실패
+  // 처리(롤백)는 mutation 쪽에 있으니 결과를 기다리지 않는 mutate를 쓴다.
+  const { mutate: likePost } = useLikePost(postId);
   const guard = useAuthGuard();
 
   const handleLike = (e: React.MouseEvent) => {
     e.preventDefault();
-    guard(() => likePost());
+    guard(() => likePost(!isLiked));
   };
 
   return (

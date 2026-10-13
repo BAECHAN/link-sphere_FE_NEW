@@ -82,13 +82,26 @@ export const postHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  // POST /post/:id/like (좋아요 토글)
-  http.post(url(API_ENDPOINTS.post.togglePostLike(':id')), () => {
+  // PUT /post/:id/like (좋아요)
+  http.put(url(API_ENDPOINTS.post.postLike(':id')), () => {
     return HttpResponse.json(
       {
         status: 200,
         message: '좋아요 성공',
         data: { isLiked: true, likeCount: mockPost.stats.likeCount + 1 },
+        timestamp: new Date().toISOString(),
+      },
+      { status: 200 }
+    );
+  }),
+
+  // DELETE /post/:id/like (좋아요 취소)
+  http.delete(url(API_ENDPOINTS.post.postLike(':id')), () => {
+    return HttpResponse.json(
+      {
+        status: 200,
+        message: '좋아요 취소 성공',
+        data: { isLiked: false, likeCount: mockPost.stats.likeCount },
         timestamp: new Date().toISOString(),
       },
       { status: 200 }

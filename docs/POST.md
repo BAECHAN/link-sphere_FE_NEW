@@ -57,8 +57,11 @@ flowchart TD
   Del -->|"DELETE /post/{id} 실패"| DelRollback["스냅샷으로 전부 롤백 + 에러 토스트"]
   Del -->|"성공"| DelOk["북마크 폴더 list·posts 무효화"]
 
-  Feed -->|"좋아요"| Like["onMutate: detail·모든 목록에서<br/>isLiked 반전·likeCount ±1"]
-  Like -->|"POST /post/{id}/like 실패"| LikeRollback["스냅샷 롤백(토스트 없음)"]
+  Feed -->|"좋아요(누를 때마다)"| Like["onMutate: detail·피드·북마크 폴더 목록에서<br/>isLiked를 원하는 값으로·likeCount ±1"]
+  Like -->|"PUT·DELETE /post/{id}/like<br/>같은 글은 한 줄로(scope)"| LikeLast{"마지막 요청인가"}
+  LikeLast -->|"아니면"| LikeSkip["응답·실패 무시<br/>(뒤 요청이 정한다)"]
+  LikeLast -->|"성공"| LikeOk["응답 isLiked·likeCount로 교정"]
+  LikeLast -->|"실패"| LikeRollback["스냅샷 롤백 + 그 글 캐시 무효화<br/>(토스트 없음)"]
 
   Feed -->|"자물쇠·⋮ 공개 전환 → 확인창"| Vis["PATCH /post/{id}/visibility"]
   Vis -->|"성공"| VisOk["방향별 성공 토스트<br/>detail·list·북마크 폴더 게시글 무효화"]
@@ -111,13 +114,13 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 ### mutation별 캐시 전략 한눈에 보기
 
-| 동작      | 화면을 먼저 바꾸나                 | 성공 시 캐시 처리                                           | 실패 시                   |
-| --------- | ---------------------------------- | ----------------------------------------------------------- | ------------------------- |
-| 작성      | 아니요(폼에서 응답 대기)           | 필터 없는 목록 page 0 맨 앞에 끼워 넣기 → 모든 목록 무효화  | 원인별 안내, 폼 유지      |
-| 수정      | 아니요(폼에서 응답 대기)           | 상세 `setQueryData` + 목록 직접 교체(direct patch) → 무효화 | 원인별 안내, 폼 유지      |
-| 삭제      | 예(목록·북마크 폴더 캐시에서 제거) | 북마크 폴더 목록·게시글 무효화                              | 스냅샷 롤백 + 에러 토스트 |
-| 좋아요    | 예(상세·모든 목록 토글)            | 없음                                                        | 스냅샷 롤백, 토스트 없음  |
-| 공개 전환 | 아니요                             | 방향별 토스트 → 상세·목록·북마크 폴더 게시글 무효화         | 전역 에러 토스트          |
+| 동작      | 화면을 먼저 바꾸나                 | 성공 시 캐시 처리                                           | 실패 시                    |
+| --------- | ---------------------------------- | ----------------------------------------------------------- | -------------------------- |
+| 작성      | 아니요(폼에서 응답 대기)           | 필터 없는 목록 page 0 맨 앞에 끼워 넣기 → 모든 목록 무효화  | 원인별 안내, 폼 유지       |
+| 수정      | 아니요(폼에서 응답 대기)           | 상세 `setQueryData` + 목록 직접 교체(direct patch) → 무효화 | 원인별 안내, 폼 유지       |
+| 삭제      | 예(목록·북마크 폴더 캐시에서 제거) | 북마크 폴더 목록·게시글 무효화                              | 스냅샷 롤백 + 에러 토스트  |
+| 좋아요    | 예(상세·피드·북마크 폴더 목록)     | 마지막 요청의 응답 값으로 교정                              | 롤백 + 무효화, 토스트 없음 |
+| 공개 전환 | 아니요                             | 방향별 토스트 → 상세·목록·북마크 폴더 게시글 무효화         | 전역 에러 토스트           |
 
 각 행의 상세와 근거 줄은 아래 하위 절에 있다.
 
@@ -126,16 +129,17 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 `src/entities/post/api/post.api.ts`와 `src/entities/interaction/api/interaction.api.ts` 기준
 (`src/shared/config/api.ts`의 `API_ENDPOINTS.post`).
 
-| 메서드   | 경로                    | FE 함수                | 비고                                                                   |
-| -------- | ----------------------- | ---------------------- | ---------------------------------------------------------------------- |
-| `GET`    | `/post`                 | `fetchPostList`        | `page`·`size` + 값이 있을 때만 `search`·`category`·`filter`·`nickname` |
-| `GET`    | `/post/{id}`            | `fetchPostDetail`      | 비공개(남의 글)·삭제 글은 404                                          |
-| `POST`   | `/post`                 | `createPost`           | `keepalive: true`, 응답은 `PostResponse` 그대로                        |
-| `PATCH`  | `/post/{id}`            | `updatePost`           | `keepalive: true`                                                      |
-| `GET`    | `/link-preview?url=`    | `fetchLinkPreview`     | 작성 중 미리보기. 로그인 전용이라 `/post` 밖에 있다. 회원당 시간 60회  |
-| `PATCH`  | `/post/{id}/visibility` | `updatePostVisibility` | body `{ isPrivate }`                                                   |
-| `DELETE` | `/post/{id}`            | `deletePost`           |                                                                        |
-| `POST`   | `/post/{id}/like`       | `toggleLikePost`       | 토글. 응답 `{ isLiked }`는 FE가 쓰지 않는다(§11)                       |
+| 메서드   | 경로                    | FE 함수                | 비고                                                                     |
+| -------- | ----------------------- | ---------------------- | ------------------------------------------------------------------------ |
+| `GET`    | `/post`                 | `fetchPostList`        | `page`·`size` + 값이 있을 때만 `search`·`category`·`filter`·`nickname`   |
+| `GET`    | `/post/{id}`            | `fetchPostDetail`      | 비공개(남의 글)·삭제 글은 404                                            |
+| `POST`   | `/post`                 | `createPost`           | `keepalive: true`, 응답은 `PostResponse` 그대로                          |
+| `PATCH`  | `/post/{id}`            | `updatePost`           | `keepalive: true`                                                        |
+| `GET`    | `/link-preview?url=`    | `fetchLinkPreview`     | 작성 중 미리보기. 로그인 전용이라 `/post` 밖에 있다. 회원당 시간 60회    |
+| `PATCH`  | `/post/{id}/visibility` | `updatePostVisibility` | body `{ isPrivate }`                                                     |
+| `DELETE` | `/post/{id}`            | `deletePost`           |                                                                          |
+| `PUT`    | `/post/{id}/like`       | `likePost`             | 좋아요(멱등). 응답 `{ isLiked, likeCount }`                              |
+| `DELETE` | `/post/{id}/like`       | `unlikePost`           | 좋아요 취소(멱등). 응답은 PUT과 같다. 옛 `POST` 토글은 BE에서 deprecated |
 
 응답 타입은 BE OpenAPI 스펙에서 생성된 `PostResponse`·`PostPageResponse`의 별칭이다
 (`src/entities/post/model/post.dto.ts:8-13`). 생성 파이프라인은
@@ -340,17 +344,29 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 ### 좋아요
 
-- `LikePostButton`(`src/features/post/like/ui/LikePostButton.tsx:15-39`)은 feature 래퍼
+- `LikePostButton`(`src/features/post/like/ui/LikePostButton.tsx`)은 feature 래퍼
   `useLikePost`(`src/features/post/like/hooks/useLikePost.ts`, mutation을 그대로 반환)를 거쳐
-  mutation을 쓴다. `useAuthGuard`로 비로그인이면 로그인 모달을 띄운다.
+  mutation을 쓴다. `useAuthGuard`로 비로그인이면 로그인 모달을 띄운다. 누르면 지금 보이는 상태의
+  반대(`mutate(!isLiked)`)를 **원하는 상태**로 보낸다 — `mutateAsync`가 아니라 `mutate`라 실패가
+  콘솔에 `Uncaught (in promise)`로 새지 않는다.
   버튼은 `ToggleButton`이라 400ms 안의 재클릭을 무시한다([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §10-A).
   요청 중 `disabled`는 두지 않는다 — 낙관적 업데이트로 아이콘이 이미 바뀌어 있어, 요청 동안 버튼을
   흐리게(`disabled:opacity-50`) 하면 깜빡임만 생긴다(2026-10-02 제거, 댓글 좋아요도 같음).
-- `useLikePostMutation`(`src/entities/interaction/api/interaction.queries.ts:28-115`):
-  `onMutate`에서 detail과 **모든** 피드 목록 캐시의 그 글을 `toggleLikeOnPost`(`:12-26`, `isLiked`
-  반전 + `likeCount` ±1)로 바꾸고, 실패하면 두 스냅샷을 복원한다. 성공하면 응답의 `isLiked`·`likeCount`로
-  detail과 모든 피드 목록 캐시의 그 글을 다시 덮어쓴다(`:68-105`) — 무효화·재조회는 하지 않는다
-  (`CHANGELOG.md` v0.19.0, PR #338).
+- `useLikePostMutation`(`src/entities/interaction/api/interaction.queries.ts`): 토글(POST)이 아니라
+  상태 지정형 API를 쓴다 — 켜기는 `PUT`, 끄기는 `DELETE`이고 같은 요청이 여러 번 가도 결과가 같다.
+  - `onMutate`에서 detail·**모든** 피드 목록·북마크 폴더 목록 캐시의 그 글을 `setLikeOnPost`로
+    원하는 상태로 바꾼다(이미 그 상태면 수도 그대로). 세 캐시를 함께 고치는 건 `patchPostEverywhere`다 —
+    북마크 화면은 폴더 캐시로 카드를 그려서, 예전엔 거기서 좋아요가 화면에 안 바뀌었다.
+  - **연타 처리**: 같은 글의 요청은 `scope`로 한 줄로 보낸다(화면 반영은 클릭마다 즉시). 응답 반영과
+    롤백은 그 글의 **마지막 요청**(`isMutating({ mutationKey }) === 1`)에서만 한다 — 중간 응답으로 덮으면
+    앞 상태로 깜빡이고, 중간 실패는 뒤 요청이 상태를 다시 정하기 때문이다. 마지막 요청이 성공하면 응답의
+    `isLiked`·`likeCount`로 세 캐시를 교정하고, 실패하면 스냅샷으로 되돌린 뒤 `handleLikePostFailure`로
+    그 글의 캐시를 무효화한다(앞 요청까지 실패했다면 스냅샷도 서버와 다를 수 있어서). 패턴 설명은
+    [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §11 "같은 대상의 연속 mutation".
+  - 로그아웃(세션 만료)에서 `AuthUtil.clearAll`이 mutation 캐시도 비운다 — 끝나지 않은 요청이 줄 맨 앞에
+    남아 재로그인 뒤 그 글의 좋아요가 영원히 안 나가는 것을 막는다([`AUTH.md`](./AUTH.md) §11).
+  - 배경: 2026-10-13 연타한 토글 요청 둘이 토큰 갱신 뒤 동시에 재시도되어 BE가 500을 냈다(§10,
+    계획 [`plans/2026-10-13-like-concurrency.md`](./plans/2026-10-13-like-concurrency.md)).
 - `meta.manualErrorHandling: true`이고 직접 띄우는 토스트도 없어 **실패해도 토스트 없이 롤백만
   된다**(`CHANGELOG.md` v0.1.1 "옵티미스틱 토글 실패 시 토스트 없이 롤백").
 - 북마크 토글(`useBookmarkPostMutation`)은 같은 파일에 있지만 [`BOOKMARK.md`](./BOOKMARK.md)가
@@ -421,23 +437,23 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 
 ## 8. 코드 지도와 자주 하는 수정
 
-| 단계                         | 파일                                                                                                                                                        |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 피드 페이지 배치             | `src/pages/post/index.tsx`                                                                                                                                  |
-| 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:103-166`, `src/widgets/post/post-list/ui/PostList.tsx`                                                     |
-| 카드 UI / 카드 동작          | `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`                                                             |
-| 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:60-95`                                                                                                                   |
-| 작성 폼 / 제출               | `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/create/hooks/useCreatePost.ts`의 `onSubmit`                                            |
-| 수정 폼 / 제출               | `src/features/post/update/ui/UpdatePostForm.tsx`, `src/features/post/update/hooks/useUpdatePost.ts`의 `onSubmit`                                            |
-| 삭제 확인창                  | `src/features/post/delete/hooks/usePostDelete.ts:10-24`                                                                                                     |
-| 좋아요 버튼 / mutation       | `src/features/post/like/ui/LikePostButton.tsx`, `src/features/post/like/hooks/useLikePost.ts`, `src/entities/interaction/api/interaction.queries.ts:28-115` |
-| 등록 성공 캐시 처리          | `src/entities/post/api/post.queries.ts`의 `useCreatePostMutation`                                                                                           |
-| 삭제 낙관적 처리             | `src/entities/post/api/post.queries.ts`의 `useDeletePostMutation`                                                                                           |
-| 수정 성공 캐시 처리          | `src/entities/post/api/post.queries.ts`의 `useUpdatePostMutation`                                                                                           |
-| 공개 전환                    | `src/entities/post/api/post.queries.ts`의 `useUpdatePostVisibilityMutation`, `src/widgets/post/post-card/hooks/usePostCard.ts:63-99`                        |
-| 제출 대기(응답 대기·라벨)    | `useCreatePost.ts` `onSubmit`, `useUpdatePost.ts` `onSubmit`                                                                                                |
-| 작성 중 미리보기             | `src/entities/post/hooks/useLinkPreview.ts`, `src/entities/post/ui/LinkPreviewCard.tsx`, 폼 연결은 두 훅의 `showPreviewUrlErrorOnField`                     |
-| 입력 검증                    | `src/entities/post/model/post.schema.ts:9-35`                                                                                                               |
+| 단계                         | 파일                                                                                                                                                                                                                 |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 피드 페이지 배치             | `src/pages/post/index.tsx`                                                                                                                                                                                           |
+| 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:103-166`, `src/widgets/post/post-list/ui/PostList.tsx`                                                                                                              |
+| 카드 UI / 카드 동작          | `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`                                                                                                                      |
+| 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:60-95`                                                                                                                                                                            |
+| 작성 폼 / 제출               | `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/create/hooks/useCreatePost.ts`의 `onSubmit`                                                                                                     |
+| 수정 폼 / 제출               | `src/features/post/update/ui/UpdatePostForm.tsx`, `src/features/post/update/hooks/useUpdatePost.ts`의 `onSubmit`                                                                                                     |
+| 삭제 확인창                  | `src/features/post/delete/hooks/usePostDelete.ts:10-24`                                                                                                                                                              |
+| 좋아요 버튼 / mutation       | `src/features/post/like/ui/LikePostButton.tsx`, `src/features/post/like/hooks/useLikePost.ts`, `src/entities/interaction/api/interaction.queries.ts`의 `useLikePostMutation`, 키·실패 무효화는 `interaction.keys.ts` |
+| 등록 성공 캐시 처리          | `src/entities/post/api/post.queries.ts`의 `useCreatePostMutation`                                                                                                                                                    |
+| 삭제 낙관적 처리             | `src/entities/post/api/post.queries.ts`의 `useDeletePostMutation`                                                                                                                                                    |
+| 수정 성공 캐시 처리          | `src/entities/post/api/post.queries.ts`의 `useUpdatePostMutation`                                                                                                                                                    |
+| 공개 전환                    | `src/entities/post/api/post.queries.ts`의 `useUpdatePostVisibilityMutation`, `src/widgets/post/post-card/hooks/usePostCard.ts:63-99`                                                                                 |
+| 제출 대기(응답 대기·라벨)    | `useCreatePost.ts` `onSubmit`, `useUpdatePost.ts` `onSubmit`                                                                                                                                                         |
+| 작성 중 미리보기             | `src/entities/post/hooks/useLinkPreview.ts`, `src/entities/post/ui/LinkPreviewCard.tsx`, 폼 연결은 두 훅의 `showPreviewUrlErrorOnField`                                                                              |
+| 입력 검증                    | `src/entities/post/model/post.schema.ts:9-35`                                                                                                                                                                        |
 
 ### 자주 하는 수정
 
@@ -471,12 +487,17 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
   [`SEARCH.md`](./SEARCH.md)가 정본
 - `src/widgets/post/post-card/config/post-card-grid.const.test.ts`(1)
 - `src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`(15) — [`BOOKMARK.md`](./BOOKMARK.md) §9
-- `src/entities/interaction/api/interaction.queries.test.ts`(17) — 북마크 토글 9개(동작
-  설명은 [`BOOKMARK.md`](./BOOKMARK.md)), 좋아요 8개다. 좋아요 테스트는 서버 응답 전 중간 상태(그 글만 ±1·`isLiked` 반전,
-  북마크 값 유지), 응답 뒤 서버 값 교정, 실패 롤백, detail 캐시 없이 목록에만 있는 글,
-  데이터 없는 목록 캐시를 덮는다. 응답 전 상태는 핸들러가 응답을 붙잡아 두는 방식으로 본다 — 바로
-  응답하면 `waitFor`가 중간값을 보기 전에 `onSuccess`가 덮어쓴다(2026-10-13 추가, 뮤테이션 테스트로
-  찾은 공백).
+- `src/entities/interaction/api/interaction.queries.test.ts`(25) — 북마크 토글 9개(동작
+  설명은 [`BOOKMARK.md`](./BOOKMARK.md)), 게시글 좋아요 15개, 댓글 좋아요 1개다. 게시글 좋아요 테스트는
+  서버 응답 전 중간 상태(그 글만 ±1·`isLiked` 변경, 북마크 값 유지, 이미 그 상태면 수 그대로), 응답 뒤 서버
+  값 교정, 실패 롤백, detail 캐시 없이 목록에만 있는 글, 데이터 없는 목록 캐시, 북마크 폴더 캐시 반영을
+  덮는다. 응답 전 상태는 핸들러가 응답을 붙잡아 두는 방식으로 본다 — 바로 응답하면 `waitFor`가 중간값을
+  보기 전에 `onSuccess`가 덮어쓴다(2026-10-13 추가, 뮤테이션 테스트로 찾은 공백).
+  연타 테스트 5개(2026-10-13)는 두 번째 요청이 첫 응답 뒤에 나가는지, 첫 응답으로 깜빡이지 않는지, 중간
+  실패를 되돌리지 않는지, 마지막 실패면 되돌린 뒤 무효화하는지를 본다. 중간 실패 테스트는 세 번 누른다 —
+  두 번이면 "첫 클릭 전 상태"와 "두 번째 클릭 뒤 상태"가 같아져, 잘못 되돌려도 통과한다("마지막 요청일 때만"
+  조건을 꺼서 실패하는 것을 확인). 받은 요청을 메서드별로 기록해 핸들러가 실제로 불렸는지 함께 단언한다 —
+  경로가 어긋나도 MSW는 경고만 하고(`setup.ts`의 `onUnhandledRequest: 'warn'`) 롤백 테스트가 통과한다.
 
 **e2e**(`e2e/`, Playwright) — 이 기능을 덮는 스펙. 이번 검토에서 실행하지는 않았다.
 
@@ -512,6 +533,17 @@ mutation만 폴더 카운트를 낙관적으로 줄이지 않고 있었다(다�
 같은 구멍이 북마크 토글에도 있어 이어서 고쳤다(`9d3c28d` #69). 회귀는 `e2e/like.spec.ts`의
 실패 케이스가 잡는다.
 
+**좋아요 연타가 500을 내던 문제(2026-10-13, BE #79·#80, FE 이 PR)**: 좋아요를 연달아 누른 토글
+요청 두 개가 둘 다 401 `TOKEN_EXPIRED`를 받았고, 토큰 갱신 큐(`client.ts` `handleTokenExpired`)가
+갱신 뒤 둘을 같은 순간에 재시도했다. 서로 다른 Lambda에서 동시에 실행된 BE 토글은 둘 다 "좋아요 있음"을
+보고 지우려다 두 번째가 `StaleObjectStateException`으로 500이 됐다(운영 CloudWatch 로그로 확정). BE는
+토글을 "일괄 삭제 후 0행이면 추가"로 바꿔 500을 없앴고(#79), 상태 지정형 `PUT`/`DELETE`를 추가했다(#80).
+FE는 이 API로 옮기고 같은 글의 요청을 `scope`로 한 줄로 세웠다. 토큰 갱신 큐는 그대로 뒀다 — RFC 9110은
+401을 _"요청이 적용되지 않았다"_ (번역, [RFC 9110 §15.5.2](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.5.2))는
+뜻으로 정의해 재시도 자체는 정당하고, 문제는 같은 대상에 겹친 것이었다.
+판단 근거와 기각한 대안은 [`plans/2026-10-13-like-concurrency.md`](./plans/2026-10-13-like-concurrency.md)와
+[`DECISIONS.md`](./DECISIONS.md) 2026-10-13 항목.
+
 **공개 전환 성공 토스트를 entity로 옮긴 이유(2026-09-21, `20da54e` #149)**: 성공해도 피드백이
 없었고(공개로 바꾸면 자물쇠 아이콘이 사라질 뿐), 낙관적 업데이트도 없어 드롭다운이 닫힌 뒤
 한참 뒤에야 반영됐다. 토스트를 위젯의 `mutate(vars, { onSuccess })`에 두면 가상 스크롤로 카드가
@@ -545,6 +577,9 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
   본다. 또 성공 응답의 `isLiked`를 쓰지 않고 무효화도 하지 않아, 다른 탭·기기에서 바뀐 값과
   어긋나면 다음 재조회 전까지 FE 추측값이 남는다. 정정: 둘째 문제는 2026-10-12 PR #338부터 성공
   응답의 `isLiked`·`likeCount`로 캐시를 교정해 해소됐다(§5 "좋아요"). 실패가 무음인 것은 그대로다.
+- **연타 중 요청이 모두 실패하면 잠깐 서버와 다른 값이 보인다.** 마지막 요청이 실패하면 그 직전 스냅샷으로
+  되돌리는데, 앞 요청까지 실패했다면 그 스냅샷도 서버와 다르다. 곧바로 무효화해 다시 조회하므로 재조회가
+  끝날 때까지만이다(화면에 그 글을 그리는 쿼리가 없으면 다음 진입 때 맞춰진다).
 - **상세에서 삭제 후 이동이 push다**(`usePostCard.ts:57`). 히스토리에 지운 글의 상세가 남아
   뒤로가기 때 그 주소의 404 안내 화면에 머문다. 정정: 처음엔 이것만 문제로 봤으나 실제로는
   detail 캐시가 남아 삭제된 글이 그대로 다시 그려졌다 — 2026-10-02 삭제 성공 시 캐시를 지우도록

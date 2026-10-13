@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-10-06
+> **마지막 검토**: 2026-10-13
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -879,6 +879,58 @@ onError: (_err, _vars, context) => {
   });
 },
 ```
+
+### 같은 대상의 연속 mutation (연타)
+
+같은 대상에 mutation이 겹칠 수 있으면(좋아요 연타 등) 위 패턴만으로는 깨진다 — 응답이 오는 순서대로
+`onSuccess`가 화면을 덮어 앞 상태로 깜빡이고, `onError`는 저마다 자기 스냅샷으로 되돌린다. 요청끼리도
+동시에 서버에 닿는다(토큰 갱신 큐가 대기 요청을 한꺼번에 재시도하는 경우 포함, [`AUTH.md`](./AUTH.md) §11).
+참조: `useLikePostMutation`·`useLikeCommentMutation`, 키는 `interaction.keys.ts`.
+
+1. **서버엔 "원하는 상태"를 보낸다** — 토글 대신 `PUT`/`DELETE`처럼 멱등한 요청이면 같은 요청이 여러 번 가도
+   결과가 같다. 낙관적 업데이트도 "뒤집기"가 아니라 "그 상태로 만들기"로 쓴다.
+2. **`mutationKey`와 `scope`로 요청을 한 줄로 세운다** — TanStack Query 공식 문서는 `scope`를 _"같은
+   `scope.id`를 공유하는 mutation은 시작된 순서대로 직렬 실행된다"_ (번역,
+   [useMutation](https://tanstack.com/query/latest/docs/framework/react/reference/useMutation))고 쓴다.
+   줄을 서도 `onMutate`(화면 반영)는 바로 실행되고 `mutationFn`만 기다린다(query-core 5.90 `mutation.ts`
+   `execute`에서 확인).
+3. **응답 반영·롤백은 마지막 요청에서만 한다** — `onSuccess`·`onError` 시점엔 자기 자신도 pending이라
+   `isMutating({ mutationKey }) === 1`이면 남은 요청이 없다. TanStack 메인테이너 TkDodo의
+   [동시 낙관적 업데이트 글](https://tkdodo.eu/blog/concurrent-optimistic-updates-in-react-query)이 같은
+   검사(_"`isMutating`이 1일 때만"_, 번역)를 권한다. 중간 실패는 뒤 요청이 상태를 다시 정하니 넘긴다.
+4. **마지막 요청이 실패하면 되돌린 뒤 무효화한다** — 앞 요청까지 실패했다면 그 스냅샷도 서버와 다르다
+   (연속 실패). 실패할 때만 다시 조회하는 비용이 묶음마다 기준 상태를 따로 저장하는 것보다 작다.
+5. **로그아웃 정리에 mutation 캐시도 넣는다** — 끝나지 않는 pending mutation이 줄 맨 앞에 남으면 같은
+   scope의 다음 요청이 영원히 안 나간다(`AuthUtil.clearAll`).
+
+```typescript
+const mutationKey = interactionMutationKeys.likePost(postId);
+const isLastPending = () => queryClient.isMutating({ mutationKey }) === 1;
+
+useMutation({
+  mutationKey,
+  scope: { id: mutationKey.join(':') },
+  mutationFn: (nextLiked: boolean) => (nextLiked ? api.like(postId) : api.unlike(postId)),
+  onMutate: async (nextLiked) => {
+    /* cancel → 스냅샷 → "nextLiked로 만들기" 패치 */
+  },
+  onSuccess: (server) => {
+    if (!isLastPending()) {
+      return;
+    }
+    // 서버 값으로 교정
+  },
+  onError: (_err, _next, context) => {
+    if (!isLastPending()) {
+      return;
+    }
+    // 스냅샷 복원 → handle<Event>Failure(무효화)
+  },
+});
+```
+
+테스트는 두 번이 아니라 **세 번** 누르는 경우로 쓴다 — 두 번이면 "첫 클릭 전 상태"와 "두 번째 클릭 뒤
+상태"가 같아져, 잘못 되돌려도 화면이 같아 보여 통과한다(`interaction.queries.test.ts`의 연타 describe).
 
 ---
 

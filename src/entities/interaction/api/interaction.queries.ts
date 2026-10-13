@@ -1,5 +1,11 @@
-import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query';
+import { useMutation, useQueryClient, InfiniteData, QueryClient } from '@tanstack/react-query';
 import { interactionApi } from '@/entities/interaction/api/interaction.api';
+import {
+  interactionMutationKeys,
+  handleLikePostFailure,
+  handleLikeCommentFailure,
+} from '@/entities/interaction/api/interaction.keys';
+import type { PostLikeResponse } from '@/entities/interaction/model/interaction.dto';
 import { postKeys, Post, PostListResponse } from '@/entities/post/@x/interaction';
 import { commentKeys, Comment } from '@/entities/comment/@x/interaction';
 import {
@@ -9,107 +15,115 @@ import {
   BookmarkFolderListResponse,
 } from '@/entities/bookmark/folder/@x/interaction';
 
-function toggleLikeOnPost(post: Post): Post {
+// 좋아요는 "뒤집기"가 아니라 "이 상태로 만들기"다 — 이미 그 상태면 수도 그대로 둔다.
+function setLikeOnPost(post: Post, nextLiked: boolean): Post {
+  if (post.userInteractions.isLiked === nextLiked) {
+    return post;
+  }
+
   return {
     ...post,
-    userInteractions: {
-      ...post.userInteractions,
-      isLiked: !post.userInteractions.isLiked,
-    },
-    stats: {
-      ...post.stats,
-      likeCount: post.userInteractions.isLiked
-        ? post.stats.likeCount - 1
-        : post.stats.likeCount + 1,
-    },
+    userInteractions: { ...post.userInteractions, isLiked: nextLiked },
+    stats: { ...post.stats, likeCount: post.stats.likeCount + (nextLiked ? 1 : -1) },
   };
 }
 
+function applyServerLikeToPost(post: Post, { isLiked, likeCount }: PostLikeResponse): Post {
+  return {
+    ...post,
+    userInteractions: { ...post.userInteractions, isLiked },
+    stats: { ...post.stats, likeCount },
+  };
+}
+
+// 그 글이 그려지는 캐시 3곳(상세·피드 목록·북마크 폴더 목록)에 같은 변환을 적용한다. 북마크
+// 화면은 폴더 캐시로 카드를 그려서(BookmarkPage) 여기를 빠뜨리면 그 화면의 좋아요가 안 바뀐다.
+function patchPostEverywhere(
+  queryClient: QueryClient,
+  postId: Post['id'],
+  update: (post: Post) => Post
+) {
+  // 상세 캐시가 없으면 updater가 undefined를 돌려 새로 만들지 않는다
+  queryClient.setQueryData<Post>(postKeys.detail(postId), (cached) =>
+    cached ? update(cached) : cached
+  );
+
+  for (const queryKey of [postKeys.listRoot, bookmarkFolderKeys.postsRoot]) {
+    queryClient.setQueriesData<InfiniteData<PostListResponse>>({ queryKey }, (oldData) => {
+      if (!oldData) {
+        return oldData;
+      }
+
+      return {
+        ...oldData,
+        pages: oldData.pages.map((page) => ({
+          ...page,
+          content: page.content.map((post) => (post.id === postId ? update(post) : post)),
+        })),
+      };
+    });
+  }
+}
+
+/**
+ * 좋아요 연타 처리(docs/plans/2026-10-13-like-concurrency.md, docs/FE-ARCHITECTURE.md §11):
+ * 화면은 클릭마다 onMutate가 즉시 바꾸고, 요청은 scope로 한 줄로 보내 클릭 순서대로 서버에
+ * 닿게 한다. 응답 반영·롤백은 같은 글의 마지막 요청에서만 한다 — 중간 응답으로 덮으면 앞 상태로
+ * 깜빡이고, 중간 실패는 뒤 요청이 상태를 다시 정하기 때문이다.
+ */
 export const useLikePostMutation = (postId: Post['id']) => {
   const queryClient = useQueryClient();
+  const mutationKey = interactionMutationKeys.likePost(postId);
+  // onSuccess·onError가 불리는 시점엔 자기 자신도 아직 pending이라, 1이면 남은 요청이 없다
+  const isLastPendingLike = () => queryClient.isMutating({ mutationKey }) === 1;
 
   return useMutation({
-    mutationFn: () => interactionApi.toggleLikePost(postId),
+    mutationKey,
+    scope: { id: mutationKey.join(':') },
+    mutationFn: (nextLiked: boolean) =>
+      nextLiked ? interactionApi.likePost(postId) : interactionApi.unlikePost(postId),
     meta: { manualErrorHandling: true },
-    onMutate: async () => {
+    onMutate: async (nextLiked) => {
       await queryClient.cancelQueries({ queryKey: postKeys.detail(postId) });
       await queryClient.cancelQueries({ queryKey: postKeys.listRoot });
+      await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.postsRoot });
 
+      // 패치 전 스냅샷 — onError 롤백용(useBookmarkPostMutation과 같은 패턴)
       const previousPost = queryClient.getQueryData<Post>(postKeys.detail(postId));
-      // 패치 전 목록 스냅샷 — onError 롤백용(useBookmarkPostMutation의
-      // previousFolderPosts와 같은 패턴, L96-98/L233-235 참고).
       const previousLists = queryClient.getQueriesData<InfiniteData<PostListResponse>>({
         queryKey: postKeys.listRoot,
       });
-
-      if (previousPost) {
-        queryClient.setQueryData<Post>(postKeys.detail(postId), toggleLikeOnPost(previousPost));
-      }
-
-      queryClient.setQueriesData<InfiniteData<PostListResponse>>(
-        { queryKey: postKeys.listRoot },
-        (oldData) => {
-          if (!oldData) {
-            return oldData;
-          }
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page) => ({
-              ...page,
-              content: page.content.map((post) =>
-                post.id === postId ? toggleLikeOnPost(post) : post
-              ),
-            })),
-          };
-        }
-      );
-      return { previousPost, previousLists };
-    },
-    onSuccess: ({ isLiked: serverIsLiked, likeCount: serverLikeCount }) => {
-      queryClient.setQueryData<Post>(postKeys.detail(postId), (cached) => {
-        if (!cached) {
-          return cached;
-        }
-
-        return {
-          ...cached,
-          userInteractions: { ...cached.userInteractions, isLiked: serverIsLiked },
-          stats: { ...cached.stats, likeCount: serverLikeCount },
-        };
+      const previousFolderPosts = queryClient.getQueriesData<InfiniteData<PostListResponse>>({
+        queryKey: bookmarkFolderKeys.postsRoot,
       });
 
-      queryClient.setQueriesData<InfiniteData<PostListResponse>>(
-        { queryKey: postKeys.listRoot },
-        (oldData) => {
-          if (!oldData) {
-            return oldData;
-          }
+      patchPostEverywhere(queryClient, postId, (post) => setLikeOnPost(post, nextLiked));
 
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page) => ({
-              ...page,
-              content: page.content.map((post) =>
-                post.id === postId
-                  ? {
-                      ...post,
-                      userInteractions: { ...post.userInteractions, isLiked: serverIsLiked },
-                      stats: { ...post.stats, likeCount: serverLikeCount },
-                    }
-                  : post
-              ),
-            })),
-          };
-        }
-      );
+      return { previousPost, previousLists, previousFolderPosts };
     },
-    onError: (_err, _variables, context) => {
+    onSuccess: (serverLike) => {
+      if (!isLastPendingLike()) {
+        return;
+      }
+
+      patchPostEverywhere(queryClient, postId, (post) => applyServerLikeToPost(post, serverLike));
+    },
+    onError: (_err, _nextLiked, context) => {
+      if (!isLastPendingLike()) {
+        return;
+      }
+
+      // 즉시 되돌린 뒤 서버 값으로 다시 맞춘다 — 앞선 요청까지 실패했다면 이 스냅샷도 틀리다
       if (context?.previousPost) {
         queryClient.setQueryData(postKeys.detail(postId), context.previousPost);
       }
       context?.previousLists?.forEach(([key, data]) => {
         queryClient.setQueryData(key, data);
       });
+      context?.previousFolderPosts?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
+      handleLikePostFailure(queryClient, postId);
     },
   });
 };
@@ -260,13 +274,20 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
   });
 };
 
+// useLikePostMutation 과 같은 연타 처리(scope 직렬화 + 마지막 요청에서만 롤백). 댓글 좋아요
+// 응답에는 likeCount가 없어 서버 값 반영은 하지 않는다.
 export const useLikeCommentMutation = (commentId: Comment['id'], postId: Post['id']) => {
   const queryClient = useQueryClient();
+  const mutationKey = interactionMutationKeys.likeComment(commentId);
+  const isLastPendingLike = () => queryClient.isMutating({ mutationKey }) === 1;
 
   return useMutation({
-    mutationFn: () => interactionApi.toggleLikeComment(commentId),
+    mutationKey,
+    scope: { id: mutationKey.join(':') },
+    mutationFn: (nextLiked: boolean) =>
+      nextLiked ? interactionApi.likeComment(commentId) : interactionApi.unlikeComment(commentId),
     meta: { manualErrorHandling: true },
-    onMutate: async () => {
+    onMutate: async (nextLiked) => {
       await queryClient.cancelQueries({ queryKey: commentKeys.list(postId) });
 
       const previousComments = queryClient.getQueryData<Comment[]>(commentKeys.list(postId));
@@ -275,10 +296,14 @@ export const useLikeCommentMutation = (commentId: Comment['id'], postId: Post['i
         const updateCommentsRecursively = (comments: Comment[]): Comment[] => {
           return comments.map((comment) => {
             if (comment.id === commentId) {
+              if (comment.isLiked === nextLiked) {
+                return comment;
+              }
+
               return {
                 ...comment,
-                isLiked: !comment.isLiked,
-                likeCount: comment.isLiked ? comment.likeCount - 1 : comment.likeCount + 1,
+                isLiked: nextLiked,
+                likeCount: comment.likeCount + (nextLiked ? 1 : -1),
               };
             }
             if (comment.replies && comment.replies.length > 0) {
@@ -299,10 +324,16 @@ export const useLikeCommentMutation = (commentId: Comment['id'], postId: Post['i
 
       return { previousComments };
     },
-    onError: (_err, _variables, context) => {
+    onError: (_err, _nextLiked, context) => {
+      if (!isLastPendingLike()) {
+        return;
+      }
+
       if (context?.previousComments) {
         queryClient.setQueryData(commentKeys.list(postId), context.previousComments);
       }
+
+      handleLikeCommentFailure(queryClient, postId);
     },
   });
 };

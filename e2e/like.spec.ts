@@ -26,7 +26,7 @@ test.describe('좋아요 — 상세↔목록 캐시 전파', () => {
 
     // 목록 GET 요청이 정확히 1번(최초 진입)만 나가는지 센다 — 뒤로가기 이후 카운트가
     // 반영돼 있다면, 그건 서버가 새로 알려줘서가 아니라 onMutate가 postKeys.listRoot를
-    // 직접 패치했기 때문임을 증명한다(interaction.queries.ts:41-71).
+    // 직접 패치했기 때문임을 증명한다(interaction.queries.ts의 patchPostEverywhere).
     let postListRequestCount = 0;
     page.on('request', (req) => {
       if (new URL(req.url()).pathname === '/api/post') {
@@ -46,7 +46,7 @@ test.describe('좋아요 — 상세↔목록 캐시 전파', () => {
     await likeButton.click();
 
     // 낙관적 갱신 — 클릭 즉시 aria-label이 postUnlike로 바뀌고 카운트가 1이 된다
-    // (interaction.queries.ts:19-39, 서버 응답을 기다리지 않는다).
+    // (interaction.queries.ts의 useLikePostMutation onMutate, 서버 응답을 기다리지 않는다).
     const likedButton = page.getByRole('button', { name: TEXTS.ariaLabels.postUnlike });
     await expect(likedButton).toBeVisible();
     await expect(likedButton).toContainText('1');
