@@ -43,7 +43,9 @@
       `/api` 상대 경로로 폴백하고, 운영에서는 FE·BE가 같은 CloudFront 오리진을 쓰므로
       이걸로 충분합니다.
 5.  **AWS Authentication**:
-    - AWS Access Key와 Secret Key를 사용하여 인증합니다.
+    - 영구 액세스 키 없이 GitHub OIDC로 IAM 역할(`link-sphere-fe-deploy`)을 맡아, 이 job
+      동안만 쓰는 임시 자격증명을 받습니다(`role-to-assume: secrets.AWS_ROLE_ARN`, 기본 1시간
+      뒤 만료). 역할의 신뢰 조건·권한은 아래 "AWS IAM 권한 요구사항" 참고(2026-10-13 전환).
     - 리전: `ap-northeast-1` (Tokyo)
 6.  **Deploy to S3**:
     - 빌드된 `dist/` 디렉토리의 내용을 S3 버킷과 동기화합니다.
@@ -158,9 +160,9 @@ gh api repos/<owner>/<repo>/commits/<커밋 sha> --jq .sha   # 원 저장소에 
 - **왜 별도 버킷·배포가 아닌가**: 이 프로젝트는 1인 개발이고 Storybook에 앱과 다른
   접근 권한이 필요하지 않다. 전용 인프라를 만들면 시크릿 2세트·도메인 2개·배포
   절차 이원화 비용만 생긴다. 격리가 필요해지면(예: 접근 제한) 그때 재검토한다.
-- **인증**: `deploy.yml`과 동일한 `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`를
-  재사용한다 — 새 Secret이나 IAM 권한 추가가 필요 없다(기존 `s3:PutObject`/
-  `DeleteObject`/`ListBucket`, `cloudfront:CreateInvalidation` 범위 안).
+- **인증**: `deploy.yml`과 같은 역할(`AWS_ROLE_ARN`)을 OIDC로 맡는다 — 같은 버킷·같은
+  배포라 역할 권한(`s3:PutObject`/`DeleteObject`/`ListBucket`,
+  `cloudfront:CreateInvalidation`) 범위 안이다.
 - **캐시 정책**: 앱 배포와 같은 철학이다 — 해시 없는 `index.html`/`iframe.html`은
   `no-cache`, 콘텐츠 해시가 붙은 `assets/`·`fonts/`는 1년 immutable, 그 외
   (`sb-manager/`, `sb-addons/` 등 해시 없는 런타임 파일)는 `max-age=300`.
@@ -186,18 +188,17 @@ gh api repos/<owner>/<repo>/commits/<커밋 sha> --jq .sha   # 원 저장소에 
 
 GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서 다음 Secrets를 설정해야 합니다.
 
-| Secret 이름                         | 설명                     | 비고                       |
-| :---------------------------------- | :----------------------- | :------------------------- |
-| `AWS_ACCESS_KEY_ID`                 | AWS IAM 사용자 액세스 키 | S3 및 CloudFront 권한 필요 |
-| `AWS_SECRET_ACCESS_KEY`             | AWS IAM 사용자 시크릿 키 |                            |
-| `S3_BUCKET_NAME`                    | 배포할 S3 버킷 이름      | 예: `link-sphere-frontend` |
-| `CLOUDFRONT_DISTRIBUTION_ID`        | CloudFront 배포 ID       | 예: `E1234567890ABC`       |
-| `VITE_FIREBASE_API_KEY`             | Firebase(FCM) 설정값     | 빌드 시점에 주입됨         |
-| `VITE_FIREBASE_AUTH_DOMAIN`         | Firebase(FCM) 설정값     | 빌드 시점에 주입됨         |
-| `VITE_FIREBASE_PROJECT_ID`          | Firebase(FCM) 설정값     | 빌드 시점에 주입됨         |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase(FCM) 설정값     | 빌드 시점에 주입됨         |
-| `VITE_FIREBASE_APP_ID`              | Firebase(FCM) 설정값     | 빌드 시점에 주입됨         |
-| `VITE_FIREBASE_VAPID_KEY`           | Firebase(FCM) 설정값     | 빌드 시점에 주입됨         |
+| Secret 이름                         | 설명                     | 비고                         |
+| :---------------------------------- | :----------------------- | :--------------------------- |
+| `AWS_ROLE_ARN`                      | OIDC로 맡을 IAM 역할 ARN | 아래 "AWS IAM 권한 요구사항" |
+| `S3_BUCKET_NAME`                    | 배포할 S3 버킷 이름      | 예: `link-sphere-frontend`   |
+| `CLOUDFRONT_DISTRIBUTION_ID`        | CloudFront 배포 ID       | 예: `E1234567890ABC`         |
+| `VITE_FIREBASE_API_KEY`             | Firebase(FCM) 설정값     | 빌드 시점에 주입됨           |
+| `VITE_FIREBASE_AUTH_DOMAIN`         | Firebase(FCM) 설정값     | 빌드 시점에 주입됨           |
+| `VITE_FIREBASE_PROJECT_ID`          | Firebase(FCM) 설정값     | 빌드 시점에 주입됨           |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase(FCM) 설정값     | 빌드 시점에 주입됨           |
+| `VITE_FIREBASE_APP_ID`              | Firebase(FCM) 설정값     | 빌드 시점에 주입됨           |
+| `VITE_FIREBASE_VAPID_KEY`           | Firebase(FCM) 설정값     | 빌드 시점에 주입됨           |
 
 **Variables**(Secret이 아닌 레포 Variable — Settings > Secrets and variables > Actions > Variables 탭):
 
@@ -207,10 +208,22 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
 
 ## AWS IAM 권한 요구사항
 
-배포에 사용되는 IAM 사용자는 최소한 다음 권한이 필요합니다.
+배포(`deploy.yml`·`deploy-storybook.yml`)는 IAM 사용자의 영구 키가 아니라, GitHub OIDC로 맡는 역할
+`link-sphere-fe-deploy`로 한다(2026-10-13 전환). GitHub 문서가 꼽는 이유는 _"클라우드 자격증명을 수명이
+긴 GitHub 시크릿으로 복제할 필요가 없다"_ 는 것과 _"단일 job에서만 유효하고 자동으로 만료되는
+토큰"_ 이다(번역, [GitHub Docs — OpenID Connect](https://docs.github.com/en/actions/concepts/security/openid-connect)).
 
-- **S3**: `s3:PutObject`, `s3:ListBucket`, `s3:DeleteObject` (버킷 동기화용)
-- **CloudFront**: `cloudfront:CreateInvalidation` (캐시 무효화용)
+- **신뢰 조건**: 제공자 `token.actions.githubusercontent.com`, `aud`=`sts.amazonaws.com`,
+  `sub`=`repo:BAECHAN/link-sphere_FE_NEW:ref:refs/heads/main` — 이 레포의 main 브랜치에서 도는 job만
+  맡을 수 있다(push·수동 실행 모두 해당). 다른 브랜치를 골라 수동 실행하면 역할을 못 맡아 실패한다.
+- **권한**(인라인 정책 `deploy`):
+  - **S3**: `s3:ListBucket`(버킷), `s3:PutObject`·`s3:DeleteObject`(버킷 안 객체) — 동기화용
+  - **CloudFront**: `cloudfront:CreateInvalidation`(이 배포 하나) — 캐시 무효화용
+- **만든 방법**: 콘솔 CloudShell 스크립트로 OIDC 제공자와 역할을 만들었다(스크립트 원문:
+  [`docs/plans/2026-10-13-github-oidc-aws.md`](./plans/2026-10-13-github-oidc-aws.md) 부록 A — 여러 번
+  실행해도 안전하니 권한을 바꿀 때 고쳐서 다시 돌린다). 역할 ARN은 레포 Secret `AWS_ROLE_ARN`.
+- **로컬 IAM 사용자로는 확인할 수 없다**: 로컬 프로필(`link-sphere-user` 등)에는 IAM 조회 권한이 없다.
+  역할·정책을 볼 때는 콘솔(IAM → 역할 → `link-sphere-fe-deploy`)에서 본다.
 
 ## CloudFront Origin Access Control (OAC)
 

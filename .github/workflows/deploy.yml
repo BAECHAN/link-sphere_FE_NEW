@@ -72,8 +72,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # 영구 키 대신 GitHub OIDC 토큰으로 역할을 맡아 이 job 동안만 쓰는 임시 자격증명을 받는다.
+          # 역할은 이 레포의 main 브랜치 job만 맡을 수 있다(신뢰 정책, docs/DEPLOY.md "AWS IAM 권한 요구사항").
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ap-northeast-1
 
       - name: Upload to S3
