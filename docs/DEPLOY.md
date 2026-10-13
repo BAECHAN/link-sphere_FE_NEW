@@ -224,6 +224,13 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
   실행해도 안전하니 권한을 바꿀 때 고쳐서 다시 돌린다). 역할 ARN은 레포 Secret `AWS_ROLE_ARN`.
 - **로컬 IAM 사용자로는 확인할 수 없다**: 로컬 프로필(`link-sphere-user` 등)에는 IAM 조회 권한이 없다.
   역할·정책을 볼 때는 콘솔(IAM → 역할 → `link-sphere-fe-deploy`)에서 본다.
+- **전제 — 도쿄 리전 STS 활성화**: IAM → Account settings → Security Token Service (STS) → Endpoints에서
+  Asia Pacific (Tokyo)가 Active여야 한다. 전환 첫 배포(#345 병합 직후)가 _"이 리전에서 STS가 활성화돼 있지
+  않다"_ (번역)로 실패해 콘솔에서 켰다. AWS 문서는 _"기본으로 켜진 리전은 임시 자격증명이 만들어지는 계정에서
+  그 리전의 STS 창구를 활성화해야 한다"_ (번역,
+  [Manage AWS STS in an AWS Region](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html))고
+  쓴다. 로컬의 `aws sts get-caller-identity`는 임시 자격증명을 만들지 않아 이 설정과 무관하게 성공하므로 확인
+  수단이 되지 못한다. BE 역할(`link-sphere-be-deploy`, BE `docs/DEPLOY.md` "AWS 초기 설정")도 같은 전제다.
 
 ## CloudFront Origin Access Control (OAC)
 
