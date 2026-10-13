@@ -16,6 +16,10 @@ coverage
 # Lighthouse CI 로컬 실행 결과물 (pnpm perf:lh / perf:lh:auth)
 .lighthouseci
 
+# 뮤테이션 테스트(pnpm test:mutation) 보고서와 실행 중 샌드박스
+reports/
+.stryker-tmp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

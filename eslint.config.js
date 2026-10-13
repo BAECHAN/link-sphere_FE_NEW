@@ -444,6 +444,9 @@ export default [
       // 남긴 test-results/의 트레이스 뷰어 번들이 코드처럼 검사돼 수천 건의 오탐이 났다).
       '**/playwright-report/**',
       '**/test-results/**',
+      // 뮤테이션 테스트(pnpm test:mutation)가 실행 중 프로젝트를 복사해 두는 샌드박스 —
+      // 실행이 중간에 끊기면 남는다.
+      '**/.stryker-tmp/**',
     ],
   },
   {

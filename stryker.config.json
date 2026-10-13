@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "packageManager": "pnpm",
+  "testRunner": "vitest",
+  "plugins": ["@stryker-mutator/vitest-runner"],
+  "vitest": {
+    "configFile": "vitest.stryker.config.ts"
+  },
+  "ignoreStatic": true,
+  "reporters": ["clear-text", "json"],
+  "thresholds": { "high": 80, "low": 60, "break": null },
+  "tempDirName": ".stryker-tmp"
+}
