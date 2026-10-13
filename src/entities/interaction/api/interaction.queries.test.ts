@@ -496,6 +496,25 @@ describe('useLikePostMutation', () => {
     return queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
   }
 
+  it('좋아요 PUT은 본문 없이 보낸다(상태가 경로에 다 들어 있어 BE가 본문을 읽지 않는다)', async () => {
+    let putBody: string | undefined;
+    server.use(
+      http.put(url(API_ENDPOINTS.post.postLike(POST_ID)), async ({ request }) => {
+        putBody = await request.text();
+        return likeResponse(true, 1);
+      })
+    );
+
+    const { result } = renderHook(() => useLikePostMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate(true);
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(putBody).toBe('');
+  });
+
   it('서버가 likeCount=15를 반환하면 낙관적 ±1(11)이 15로 교정된다', async () => {
     const seededPost = seedPost(false);
     queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);

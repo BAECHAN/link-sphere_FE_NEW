@@ -30,7 +30,7 @@ export const authApi = {
    * 로그아웃 요청
    */
   logout: async (): Promise<void> => {
-    await apiClient.post(API_ENDPOINTS.auth.logout, {});
+    await apiClient.post(API_ENDPOINTS.auth.logout);
   },
 
   /**

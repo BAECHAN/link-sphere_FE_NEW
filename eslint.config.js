@@ -42,6 +42,14 @@ const RESTRICTED_SYNTAX_COMMON = [
     message:
       '클래스 컴포넌트는 사용할 수 없습니다. 함수형 컴포넌트를 사용하세요. (Hooks 호환성, 코드 재사용성, 번들 크기 최적화)',
   },
+  // [금지] apiClient 요청에 빈 본문 {} 넘기기 — BE가 본문을 읽지 않는 요청에 의미 없는 본문을 싣는다
+  // (2026-10-13 좋아요 PUT·북마크 토글·로그아웃에서 발견)
+  {
+    selector:
+      'CallExpression[callee.object.name="apiClient"][callee.property.name=/^(post|put|patch|delete)$/] > ObjectExpression[properties.length=0]',
+    message:
+      '본문 없는 요청에 {}를 보내지 마세요. post·delete는 data를 빼고, put·patch는 undefined를 넘기세요.',
+  },
 ];
 
 // [금지] 날짜 처리에 new Date()/.getTime() 직접 사용
