@@ -22,5 +22,11 @@
     "noImplicitAny": true,
     "strictNullChecks": true
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "dev-server.config.ts"]
+  "include": [
+    "vite.config.ts",
+    "vitest.config.ts",
+    "vitest.unit.ts",
+    "vitest.stryker.config.ts",
+    "dev-server.config.ts"
+  ]
 }

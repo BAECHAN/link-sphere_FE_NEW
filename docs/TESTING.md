@@ -16,10 +16,11 @@
 10. [픽스처 추가](#픽스처-추가)
 11. [테스트 강제 실행 (pre-push / CI)](#테스트-강제-실행)
 12. [커버리지 리포트](#커버리지-리포트)
-13. [Playwright e2e 자동화 테스트](#playwright-e2e-자동화-테스트)
-14. [자주 발생하는 문제](#자주-발생하는-문제)
-15. [브라우저 수동 테스트 — DevTools 기기 에뮬레이션 주의사항](#브라우저-수동-테스트--devtools-기기-에뮬레이션-주의사항)
-16. [Playwright MCP로 로그인 필요 화면 시각 검증하기](#playwright-mcp로-로그인-필요-화면-시각-검증하기)
+13. [뮤테이션 테스트 (PR 비차단 보고)](#뮤테이션-테스트-pr-비차단-보고)
+14. [Playwright e2e 자동화 테스트](#playwright-e2e-자동화-테스트)
+15. [자주 발생하는 문제](#자주-발생하는-문제)
+16. [브라우저 수동 테스트 — DevTools 기기 에뮬레이션 주의사항](#브라우저-수동-테스트--devtools-기기-에뮬레이션-주의사항)
+17. [Playwright MCP로 로그인 필요 화면 시각 검증하기](#playwright-mcp로-로그인-필요-화면-시각-검증하기)
 
 ---
 
@@ -565,7 +566,8 @@ git push  # → pre-push 훅이 pnpm test 실행
 ### GitHub Actions (CI/CD)
 
 PR을 만들면 `ci.yml`이 `pnpm check`(타입+린트+포맷+의존성 규칙 `check:deps`)와 `pnpm test`를 검증합니다. `main`에
-push되면 `deploy.yml`이 같은 검증을 다시 거친 뒤 빌드·배포합니다.
+push되면 `deploy.yml`이 같은 검증을 다시 거친 뒤 빌드·배포합니다. PR에는 머지를 막지 않는 뮤테이션 테스트 보고도
+붙습니다([뮤테이션 테스트](#뮤테이션-테스트-pr-비차단-보고)).
 
 ```
 Install dependencies → Type check/lint/format(check) → Run tests → Build → Deploy to S3
@@ -600,6 +602,67 @@ All files |   72.5  |   68.3   |   75.0  |   72.1  |
  form.util|   85.0  |   80.0   |  100.0  |   85.0  |
 ----------|---------|----------|---------|---------|
 ```
+
+---
+
+## 뮤테이션 테스트 (PR 비차단 보고)
+
+커버리지는 "그 줄이 실행됐는가"만 본다. 뮤테이션 테스트는 코드를 조금씩 바꿔 본 뒤(`+ 1` → `- 1`, 조건 → `true` 등)
+테스트가 실패하는지 본다. 바꿔도 테스트가 통과하면 그 동작은 테스트로 지켜지지 않는다는 뜻이다. 도구는
+[StrykerJS](https://stryker-mutator.io/docs/stryker-js/introduction/)(vitest 러너)다. 도입 근거는
+`docs/plans/2026-10-13-mutation-ci-report.md`.
+
+### CI에서
+
+- PR마다 `ci.yml`의 `mutation` job이 `check`와 나란히 돈다. **머지를 막지 않는다** — 점수 기준이 없고
+  (`stryker.config.json`의 `thresholds.break: null`), Stryker 실행이 실패하거나 15분을 넘겨도 job은 통과한다
+  (보고에 "보고서가 없다"고 적힌다). 필수 체크가 아니라서, 대상 고르기·설치처럼 다른 스텝이 실패해 job이 빨개져도
+  머지는 막히지 않는다.
+- 대상은 이 PR이 바꾼 `src/**/*.ts` 로직 파일(테스트·스토리·`src/mocks/`·`src/test/`·생성 타입 제외)과, 테스트
+  파일만 바뀌었으면 같은 폴더의 짝 원본(`x.test.ts(x)` → `x.ts`)이다. 테스트만 바꾼 PR(단언 삭제 등)도 점수 변화가
+  보이게 하려는 것이다. 컴포넌트(`.tsx`)는 넣지 않는다 — 로직은 `hooks/`에 둔다는 규칙(`docs/FE-ARCHITECTURE.md` §6)과
+  맞추고, className·문구 뮤턴트 잡음을 피한다.
+- 바꾼 줄만이 아니라 **파일 전체**를 돈다. 그 파일에 원래 있던 공백도 보인다.
+- 결과는 job의 Step Summary와 PR 댓글 하나(push마다 같은 댓글을 갱신)에 붙는다. 선별·보고 코드는
+  `scripts/mutation-report.js`다.
+
+### 보고 읽는 법
+
+| 상태           | 뜻                               | 할 일                                                                |
+| -------------- | -------------------------------- | -------------------------------------------------------------------- |
+| 죽음           | 바꾼 코드를 테스트가 잡았다      | 없음                                                                 |
+| 살아남음       | 바꿔도 테스트가 통과했다         | 그 동작을 요구 기준으로 단언하는 테스트를 더한다. 등가 뮤턴트면 둔다 |
+| 테스트 안 닿음 | 그 코드를 실행하는 테스트가 없다 | 테스트로 지킬 동작인지 판단한다                                      |
+
+점수(닿은 것 기준)는 죽음 ÷ (죽음 + 살아남음)이다. 100%를 목표로 하지 않는다.
+
+- **등가 뮤턴트**는 바꿔도 동작이 같아 어떤 테스트로도 구분할 수 없는 것이다. 예를 들어 `setQueryData`는 업데이터
+  결과가 `undefined`면 아무것도 하지 않아서, 롤백의 `if (context?.previousPost)`를 `true`로 바꿔도 결과가 같다
+  (PR #348에서 분류한 사례).
+- 보강 예: PR #348은 좋아요 낙관적 업데이트의 응답 전 중간 상태를, 응답을 붙잡아 둔 채 단언해 살아남음을 59에서
+  30으로 줄였다.
+
+### 로컬에서 돌리기
+
+```bash
+pnpm test:mutation --mutate src/entities/interaction/api/interaction.queries.ts
+# 여러 파일은 쉼표로 잇는다: --mutate a.ts,b.ts
+# 결과: 터미널 표 + reports/mutation/mutation.json (gitignore 대상)
+```
+
+`--mutate` 없이 돌리면 `src` 전체가 대상이 돼 오래 걸린다. 참고 수치(직접 측정, 2026-10-13 로컬 Apple Silicon):
+`interaction.queries.ts` 뮤턴트 221개에 37초.
+
+### 설정과 한계
+
+- 설정: `stryker.config.json`, unit 전용 vitest 설정 `vitest.stryker.config.ts`. unit 프로젝트 설정은
+  `vitest.unit.ts` 한 곳에 두고 `vitest.config.ts`와 같이 쓴다(복사해 두면 한쪽만 바뀌어 어긋난다).
+- Stryker vitest 러너는 브라우저 모드를 지원하지 않는다([공식 문서 Limitations](https://stryker-mutator.io/docs/stryker-js/vitest-runner/)).
+  그래서 Storybook 프로젝트 테스트는 쓰지 않고 unit 테스트만으로 잰다.
+- `ignoreStatic`: 모듈을 불러올 때 한 번만 실행되는 코드(상수 초기화 등)의 뮤턴트는 건너뛴다. 그런 뮤턴트는
+  매번 모듈을 다시 불러와야 해서 시간이 많이 든다.
+- pnpm에서는 `plugins`를 명시해야 플러그인을 찾는다([공식 troubleshooting](https://stryker-mutator.io/docs/stryker-js/troubleshooting/)).
+- Stryker 버전은 Dependabot이 올리지 않는다(`.github/dependabot.yml`은 github-actions만 본다).
 
 ---
 

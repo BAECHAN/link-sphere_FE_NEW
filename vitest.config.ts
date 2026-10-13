@@ -1,17 +1,15 @@
 import path from 'path';
 
-import react from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 
+import { sharedViteConfig, unitTestConfig } from './vitest.unit';
+
 const dirname = path.resolve(__dirname);
 
 export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: { '@': path.resolve(__dirname, './src') },
-  },
+  ...sharedViteConfig,
   test: {
     // 이전엔 단일 프로젝트(jsdom)였다. Storybook addon-vitest로 스토리를 실제
     // 컴포넌트 테스트로 구성해 a11y 검사를 CI에서 돌리기 위해 두 프로젝트로
@@ -21,14 +19,7 @@ export default defineConfig({
     projects: [
       {
         extends: true,
-        test: {
-          name: 'unit',
-          environment: 'jsdom',
-          globals: true,
-          setupFiles: ['./src/test/setup.ts'],
-          include: ['src/**/*.{test,spec}.{ts,tsx}'],
-          exclude: ['node_modules', 'dist', '.storybook', 'src/**/*.stories.{ts,tsx}'],
-        },
+        test: unitTestConfig,
       },
       {
         extends: true,
