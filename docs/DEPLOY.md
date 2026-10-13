@@ -66,6 +66,14 @@
     - 위 어느 스텝이든 실패하면 별도 job이 커밋 sha·run 링크를 담은 GitHub 이슈를
       자동 생성합니다. `deploy` job과 권한을 분리해뒀습니다(AWS 자격증명을 다루는
       job에 `issues: write`를 더하지 않기 위함).
+10. **성공 시 실패 이슈 자동 종료** (`close-resolved-failures` job):
+    - `deploy` job이 성공하면, 9번이 만든 열린 이슈(작성자 `github-actions[bot]`, 제목이
+      `배포 실패: `로 시작)를 이번 커밋 sha·run 링크 코멘트와 함께 닫습니다. 원인을 고친
+      PR 없이 재시도만으로 통과한 경우라면 실패 run 로그를 확인하고 이슈를 다시 엽니다.
+    - 9번과 같은 이유로 별도 job이고, `continue-on-error: true`라 이 job이 실패해도 배포
+      run 결론은 `deploy` job 결과를 따릅니다.
+    - 도입 배경: 9번만 있던 시절 첫 실패 이슈(#136)가 원인 수정(#138) 뒤에도 수정 PR과
+      연결되지 않아 22일간 열린 채 남았습니다.
 
 ### GitHub Actions 수동 재실행
 

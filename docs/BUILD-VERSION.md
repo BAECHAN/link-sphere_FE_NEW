@@ -6,9 +6,9 @@
 >
 > **읽고 나면**: `/version` 화면과 배포 파이프라인의 자동 검증이 "지금 이 탭이 보는
 > 코드"와 "서버에 실제로 올라간 코드"를 어떻게 비교하는지, 배지 색이 왜 그 색인지,
-> 검증이 실패하면 어떻게 알림이 오는지 알고 판정 조건을 바꿀 수 있다.
+> 검증이 실패하면 어떻게 알림이 오고 언제 닫히는지 알고 판정 조건을 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-10-05
+> **마지막 검토**: 2026-10-13
 
 배포 워크플로우가 success로 끝났다는 것과, 실제로 그 코드가 사용자 화면에 반영된
 것은 다른 사건이다. 이 기능은 그 둘 사이를 사람이 눈으로(`/version` 화면), 그리고
@@ -58,6 +58,7 @@ flowchart TD
     J --> K
     J2 --> K
     K -->|예| M["배포 성공"]
+    M --> M2["close-resolved-failures job<br/>열린 '배포 실패:' 이슈 gh issue close"]
     K -->|아니오| L["notify-failure job<br/>gh issue create"]
   end
 
@@ -107,7 +108,7 @@ NEW-VERSION-RELOAD는 **자동으로** 리로드시키는 기능이고, 이 문�
 - **Playwright MCP(`browser-verification` skill)** — 실제 브라우저에서 세 배너
   상태를 녹화해 사용자 승인을 받음(§9)
 - **`actionlint`, `shellcheck`(actionlint 내장)** — `deploy.yml`의 새 검증
-  스텝·`notify-failure` job 문법을 정적 검증
+  스텝·`notify-failure`·`close-resolved-failures` job 문법을 정적 검증
 - **`curl`(운영 CloudFront 직접 호출)** — 캐시 정책 실측(§9)
 
 ## 4. 왜 만들었나
@@ -240,18 +241,19 @@ src/
 
 vite.config.ts                          # §5 — bundledBuildInfo/deployedBuildInfo 계산 + emit-version-json 플러그인
 src/vite-env.d.ts                       # __BUILD_INFO__ global declare
-.github/workflows/deploy.yml            # §5 — version.json 업로드 + 배포 반영 검증 + notify-failure job
+.github/workflows/deploy.yml            # §5 — version.json 업로드 + 배포 반영 검증 + notify-failure·close-resolved-failures job
 ```
 
 ### 자주 하는 수정
 
-| 하고 싶은 것               | 방법                                                                                                               |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| 배너 문구·색 변경          | `VersionPage.tsx`의 `STATUS_BANNER_CLASSNAME`/`STATUS_BANNER_TEXT`, 문구는 `texts.ts`의 `TEXTS.version.*`          |
-| 검증 재시도 횟수·간격 변경 | `deploy.yml`의 "배포 반영 검증" 스텝, `seq 1 12`·`sleep 10`                                                        |
-| 검증 대상 URL 변경         | GitHub 레포 Settings → Variables에 `SITE_URL` 추가(Secret 아님 — 이미 `README.md`에 공개된 값)                     |
-| 실패 알림 문구·수신처 변경 | `deploy.yml`의 `notify-failure` job                                                                                |
-| 서버 빌드 정보에 필드 추가 | `vite.config.ts`의 `deployedBuildInfo` 객체 + `build-info.util.ts`의 `DeployedBuildInfo` 인터페이스 양쪽 동시 수정 |
+| 하고 싶은 것                  | 방법                                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 배너 문구·색 변경             | `VersionPage.tsx`의 `STATUS_BANNER_CLASSNAME`/`STATUS_BANNER_TEXT`, 문구는 `texts.ts`의 `TEXTS.version.*`          |
+| 검증 재시도 횟수·간격 변경    | `deploy.yml`의 "배포 반영 검증" 스텝, `seq 1 12`·`sleep 10`                                                        |
+| 검증 대상 URL 변경            | GitHub 레포 Settings → Variables에 `SITE_URL` 추가(Secret 아님 — 이미 `README.md`에 공개된 값)                     |
+| 실패 알림 문구·수신처 변경    | `deploy.yml`의 `notify-failure` job                                                                                |
+| 실패 이슈 자동 종료 조건 변경 | `deploy.yml`의 `close-resolved-failures` job — 작성자(`github-actions[bot]`)·제목 접두사(`배포 실패: `) 필터       |
+| 서버 빌드 정보에 필드 추가    | `vite.config.ts`의 `deployedBuildInfo` 객체 + `build-info.util.ts`의 `DeployedBuildInfo` 인터페이스 양쪽 동시 수정 |
 
 ## 9. 검증 결과
 
@@ -284,8 +286,10 @@ x-cache: RefreshHit from cloudfront   # 3회 연속 요청 모두 동일
 아니라 `vite preview`가 S3와 다른 기본 헤더(`no-store` 없음)를 내려주는 로컬 환경
 차이였다. 오히려 이 체크가 실제로 차이를 잡아낸다는 것을 증명했다.
 
-**미실측**: 실제 GitHub Actions 러너에서 검증 스텝·`notify-failure` job이 도는
-것은 머지 후 실제 배포에서 확인해야 한다(로컬에서 완전 재현 불가 — §11).
+**실측(머지 후)**: 실제 GitHub Actions 러너에서 검증 스텝은 이후 배포마다 돌아
+통과하고 있고, `notify-failure`는 2026-09-20 run `35515311104`(커밋 `b467774`)가
+테스트 단계에서 실패했을 때 이슈 #136을 실제로 생성했다(원인과 수정은
+[`TESTING.md`](./TESTING.md) "자주 발생하는 문제" 11번).
 
 ## 10. 시행착오
 
@@ -300,16 +304,24 @@ x-cache: RefreshHit from cloudfront   # 3회 연속 요청 모두 동일
   다르지 않냐"는 질문에 추측으로 답하지 않고 운영 CloudFront에 직접 curl을 쏴서
   확인했다(§9). 결과가 예상과 달랐다면(예: `Hit from cloudfront`가 나왔다면)
   `notify-failure`의 알림 신뢰도 자체를 재검토해야 했을 것이다.
+- **실패 이슈가 닫히지 않고 방치됨**: `notify-failure`는 이슈를 만들기만 하고 닫는
+  경로가 없었다. 첫 실패 이슈 #136은 같은 날 원인이 고쳐졌는데(#138) 수정 PR 본문에
+  `Closes #136`이 없어 22일간 열린 채 남았다(2026-10-13 발견). 규칙(`Closes #N`)에
+  기대는 대신 배포가 성공하면 열린 실패 이슈를 닫는 `close-resolved-failures` job을
+  더했다 — 재시도로만 풀린 실패(PR이 없음)도 닫히고, 같은 실패가 다시 나면
+  `notify-failure`가 새 이슈를 만드므로 반복되는 문제는 묻히지 않는다.
 
 ## 11. 남은 것
 
-- 실제 GitHub Actions 환경에서 배포 반영 검증 스텝·`notify-failure` job이 의도대로
-  동작하는지는 머지 후 확인이 필요하다. 특히 알림 경로는 한 번쯤 의도적으로
-  실패시켜(잘못된 기대값으로 `workflow_dispatch`) 이슈가 실제로 생성되는지
-  실측해야 한다 — 안 하면 "알림이 있다고 믿는데 실은 안 온다" 상태가 될 수 있다.
-  참고로 `notify-failure`는 배포 반영 검증 스텝뿐 아니라 `deploy` job의 어느
-  스텝이든(`pnpm check`·`pnpm test`·`pnpm build`·S3 업로드 등) 실패하면 발동한다
-  (`if: failure()`, `deploy.yml`) — 실패 재현 시 어느 스텝을 의도적으로 깨뜨려도 된다.
+- 해소: `notify-failure`가 실제 러너에서 이슈를 만드는지는 2026-09-20 #136으로
+  실측됐다(§9). `notify-failure`는 배포 반영 검증 스텝뿐 아니라 `deploy` job의
+  어느 스텝이든(`pnpm check`·`pnpm test`·`pnpm build`·S3 업로드 등) 실패하면 발동한다
+  (`if: failure()`, `deploy.yml`).
+- `close-resolved-failures` job 자체가 실패했을 때 배포 run이 success로 남는지는
+  의도적 실패 주입 없이 실측하지 않았다 — job 단위 `continue-on-error`의 공식 정의
+  (_"job이 실패해도 workflow run이 실패하지 않게 한다"_ (번역,
+  [GitHub 문서](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idcontinue-on-error)))에만
+  근거한다.
 - `docs/DEPLOY.md`·`docs/CI-CHECK-GATE.md`·`docs/SYSTEM-ARCHITECTURE.md`의 배포
   파이프라인 서술을 이번 변경(version.json 업로드, 검증 스텝, notify-failure)에
   맞춰 갱신하는 작업은 이후 완료됐다 — 세 문서 모두 배포 반영 검증·notify-failure
