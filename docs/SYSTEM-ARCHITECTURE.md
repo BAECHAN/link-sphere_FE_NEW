@@ -159,7 +159,7 @@ flowchart LR
 | **파일**    | `.github/workflows/deploy.yml` (BE 저장소)                                                                                                                  |
 | **트리거**  | `push` to `main`, paths: `src/**`, `build.gradle.kts`, `settings.gradle.kts`, `gradle/**`, `.github/workflows/deploy.yml`                                   |
 | **단계**    | Checkout → JDK 17 → `./gradlew ktlintCheck test shadowJar` → S3 업로드 → `update-function-code` → `publish-version`(SnapStart 스냅샷) → `update-alias prod` |
-| **Secrets** | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `FIREBASE_SERVICE_ACCOUNT_JSON`                                                                               |
+| **Secrets** | `AWS_ROLE_ARN`(OIDC 역할), `FIREBASE_SERVICE_ACCOUNT_JSON`                                                                                                  |
 | **런타임**  | java17 / arm64 / 2048MB / SnapStart `PublishedVersions`, 리전 ap-northeast-1                                                                                |
 
 > **App Runner·ECR 방식은 더 이상 쓰지 않는다.** 컨테이너 이미지 배포는 SnapStart를 쓸 수 없어
