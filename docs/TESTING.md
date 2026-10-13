@@ -913,6 +913,12 @@ _"they run in the order opposite to their registration"_). 캐치올을 가장 �
 업로드된다 — 다운로드해 `npx playwright show-report`로 그대로 열어보면 CI에서 무엇이
 실패했는지 로컬에서 재현 없이 확인할 수 있다.
 
+CI에서는 실패한 테스트를 두 번까지 다시 돌린다(`retries: 2`). 다만 **재시도로만 통과한 테스트(flaky)도
+실패로 친다**(`failOnFlakyTests: !!process.env.CI`). 재시도는 트레이스·영상을 남기는 진단용이고, 통과로
+넘기면 원인이 묻힌다. 2026-10-13에 재보니 최근 성공 run 40건 중 3건이 이렇게 숨어 있었다
+(`docs/UNSAVED-CHANGES-GUARD.md` §10). CI에서 flaky로 실패하면 리포트의 "flaky" 표시와 첫 시도의
+트레이스를 보고 원인을 고친다. 재시도 횟수를 늘리거나 skip으로 덮지 않는다.
+
 ### 결과를 눈으로 확인하는 방법
 
 **HTML 리포트** (`pnpm test:e2e:report`)는 `playwright-report/`를 서빙하는

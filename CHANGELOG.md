@@ -18,6 +18,13 @@
 
   </details>
 
+- `shared` 입력 직후의 바깥 클릭·뒤로가기를 가드가 놓칠 수 있던 문제 수정
+  <details><summary>배경·구현</summary>
+
+  로그인 모달의 "입력이 있으면 바깥 클릭으로 닫지 않기"와 폼 이탈 가드 등록이 `useEffect`라 화면이 그려진 뒤에야 켜졌다. CI e2e에서 재시도로만 통과한 경우가 최근 성공 run 40건 중 3건이었고, 테스트는 로그인 모달과 회원가입 이탈 확인 두 개였다. 로그인 모달은 원인을 재현했다: CPU 6배 스로틀에서 입력 직후의 바깥 클릭이 모달을 닫아 30회 중 26회 실패했고, `useLayoutEffect`로 바꾼 뒤 0회가 됐다(직접 측정). 회원가입은 같은 조건에서 재현되지 않아, 같은 구조(가입 실패 후 화면은 바뀌었는데 이탈 가드 등록은 늦음)라는 코드 근거로 함께 고쳤다. 사람 손으로는 거의 생기지 않는 짧은 틈이다. 함께 CI의 Playwright에 `failOnFlakyTests`를 켜, 재시도로만 통과한 테스트도 실패로 친다. 상세는 `docs/UNSAVED-CHANGES-GUARD.md` §10, 계획 `docs/plans/2026-10-13-e2e-flaky-layout-effect.md`. (`useUnsavedChanges.ts`, `useLogin.ts`, `playwright.config.ts`, [PR #354](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/354))
+
+  </details>
+
 ### Notes
 
 - **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #80](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/80)(`PUT`/`DELETE /post/{postId}/like`, `/comment/{commentId}/like`)이 있어야 한다. 구버전 BE에는 이 경로가 없어 좋아요가 전부 실패한다(롤백만 되고 토스트 없음). 2026-10-13 BE 운영에 배포됨.

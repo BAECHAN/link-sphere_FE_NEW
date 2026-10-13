@@ -7,7 +7,7 @@
 > **읽고 나면**: "dirty"·"전역 레지스트리"가 정확히 무엇을 가리키는지 알고, 새 폼에
 > 이 가드를 붙이거나 이탈 판정 조건을 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-10-05
+> **마지막 검토**: 2026-10-13
 
 게시글 등록/수정, 댓글·답글 작성, 댓글 수정, 회원가입 폼에서 저장하지 않은 입력이 있는
 상태로 페이지를 벗어나려 하면 한 번 막습니다. 앱 내 이동은 확인 모달, 새로고침·탭 닫기는
@@ -221,12 +221,15 @@ _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 
 
 ```typescript
 export function useUnsavedChanges(key: string, isDirty: boolean) {
-  // isDirty가 true면 markDirty(key), false면 markClean(key)를 effect로 동기화하고,
-  // 언마운트 시에는 항상 markClean(key)(작성 중이던 폼이 사라지면 이름표도 뗀다)
+  // isDirty가 true면 markDirty(key), false면 markClean(key)를 레이아웃 effect(useLayoutEffect)로
+  // 동기화하고, 언마운트 시에는 항상 markClean(key)(작성 중이던 폼이 사라지면 이름표도 뗀다)
   // ...
   return { clearNow: () => clearUnsavedChanges(key) };
 }
 ```
+
+등록은 `useEffect`가 아니라 `useLayoutEffect`로 한다 — 화면이 그려지기 전에 등록돼야, 화면이 바뀐
+직후(예: 가입 실패 뒤 버튼이 다시 눌러짐)의 뒤로가기·링크 이동도 가드가 막는다(§10 2026-10-13).
 
 `clearNow`는 제출 성공 직후처럼 "지금 즉시" 해제해야 할 때 동기 호출한다
 (§5 "의도적으로 막지 않는 경우").
@@ -294,6 +297,28 @@ Cloudscape 인용도 그 전용 링크만 겨냥한 것이었다). 실사용 중
 다시 나눴다 — 중복 확인 시에만 생략, 그 외엔 뒤로가기와 동일하게 확인창. "링크
 개수를 하나로 줄인 것"과 "그 링크의 확인창 생략 조건"은 서로 다른 결정이었는데,
 처음엔 이 둘을 한 번에 바꿔서 결과적으로 두 번 고치게 됐다.
+
+**2026-10-13, 가드가 화면보다 늦게 켜지던 e2e flaky.** CI e2e가 재시도(`retries: 2`)로만
+통과한 경우를 세 보니 최근 성공 run 40건 중 3건이었고, 테스트는 두 개였다.
+`signup-unsaved-changes.spec.ts`의 "가입 요청이 실패한 뒤 뒤로가기를 누르면 확인창이 다시
+뜬다"(뒤로가기 뒤 확인창이 없음)와 `dialog-outside-click.spec.ts`의 로그인 모달 "비밀번호를
+입력했으면 바깥을 눌러도 그대로 있다"(바깥 클릭 뒤 모달이 사라짐)다. 둘 다 가드 상태를
+`useEffect`로 반영하고 있었다.
+
+- `useEffect`는 화면을 그린 뒤에 돈다. 그래서 화면은 이미 "준비됨"으로 보이는데 가드는 아직
+  꺼져 있는 틈이 생긴다. 예를 들어 버튼이 다시 눌러지는 화면은 떴는데 `markDirty`는 아직 안
+  돌았거나, 입력은 보이는데 `dismissOnOutsideClick`은 아직 `true`인 상태다. Playwright는 그 틈에
+  다음 동작을 한다.
+- **재현(직접 측정)**: 두 스펙에 CPU 6배 스로틀(`Emulation.setCPUThrottlingRate`)을 임시로 넣고
+  각 30회 돌렸다. 로그인 모달은 30회 중 26회가 바깥 클릭 직후 `toBeVisible()`에서 실패했다.
+  회원가입은 6배·20배에서 모두 통과했고, 12워커 병렬에서도 과부하로 앞 단계가 타임아웃 났을 뿐
+  확인창 단계 실패는 없었다. 그래서 회원가입 쪽은 재현하지 못했고, 같은 구조라는 코드 근거로 함께 고쳤다.
+- **고침**: `useUnsavedChanges`의 등록과 `useLogin`의 `reportInputDirty`를 `useLayoutEffect`로
+  바꿨다. 화면을 그리기 전에 돌고 그 안의 상태 변경도 그리기 전에 처리된다
+  ([react.dev useLayoutEffect](https://react.dev/reference/react/useLayoutEffect)). 같은 스로틀 조건에서
+  두 테스트 각 30회 모두 통과했다.
+- 같은 PR에서 `playwright.config.ts`에 `failOnFlakyTests: !!process.env.CI`를 켰다. 재시도로만
+  통과한 테스트가 다시 숨지 않게 하려는 것이다(`docs/TESTING.md` "CI 연동").
 
 ## 11. 남은 것
 
