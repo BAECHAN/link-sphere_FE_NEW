@@ -1,4 +1,7 @@
 ### 2026-10-13 (FE)
+- API 요청 최적화: 불필요한 빈 본문(empty body) 전송을 제거하여 네트워크 페이로드 개선 ([#352](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/352))
+
+### 2026-10-13 (FE)
 - Playwright 테스트 환경 안정성 강화 및 린트 설정 개선
   - 테스트 코드 내 `.only` 사용을 금지하는 `forbidOnly` 설정 추가
   - 린트 규칙을 통해 테스트 건너뛰기 및 단독 실행 방지 ([#350](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/350))
