@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { useLocation } from 'react-router-dom';
@@ -58,7 +58,11 @@ export function useLogin({ onInputDirtyChange }: UseLoginOptions = {}): UseLogin
   const { dirtyFields } = form.formState;
   const hasUserInput = Boolean(dirtyFields.email || dirtyFields.password);
 
-  useEffect(
+  // 화면을 그리기 전에 부모(LoginDialog의 dismissOnOutsideClick)까지 반영한다. useEffect면 입력이
+  // 화면에 보인 뒤에야 돌아, 그 사이 바깥 클릭이 옛 값으로 모달을 닫고 입력을 지웠다(CPU 6배
+  // 느리게 한 e2e에서 30회 중 26회 재현, docs/UNSAVED-CHANGES-GUARD.md §10).
+  // https://react.dev/reference/react/useLayoutEffect
+  useLayoutEffect(
     function reportInputDirty() {
       onInputDirtyChange?.(hasUserInput);
     },

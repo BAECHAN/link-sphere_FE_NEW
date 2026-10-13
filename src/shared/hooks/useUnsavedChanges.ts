@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { clearUnsavedChanges, useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
 
 /**
@@ -13,7 +13,10 @@ export function useUnsavedChanges(key: string, isDirty: boolean) {
   const markDirty = useUnsavedChangesStore((state) => state.markDirty);
   const markClean = useUnsavedChangesStore((state) => state.markClean);
 
-  useEffect(
+  // 화면을 그리기 전에 등록한다. useEffect면 화면이 먼저 바뀐 뒤(예: 가입 실패 후 버튼이 다시 눌러짐)
+  // 등록돼, 그 사이의 뒤로가기·링크 이동을 가드가 막지 못한다(docs/UNSAVED-CHANGES-GUARD.md §10).
+  // https://react.dev/reference/react/useLayoutEffect
+  useLayoutEffect(
     function syncDirtyKey() {
       if (isDirty) {
         markDirty(key);

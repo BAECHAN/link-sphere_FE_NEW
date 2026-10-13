@@ -400,7 +400,7 @@ effect(`:58-74`, #228로 `features/auth/login`에서 이 경로로 이동)가 �
 
 **사용처**: `useAuthGuard`는 `LikePostButton.tsx`(좋아요, 재개 안 함), `useBookmarkPostButton.ts`(북마크, `resumeAfterLogin: true`), `LikeCommentButton.tsx`(댓글 좋아요, 재개 안 함), `useCreateComment.ts`(댓글 제출, 재개 안 함)에서 씁니다. `useProtectedNavigate`는 사이드바·하단 탭바의 "등록"·"북마크" 항목(`nav-items.ts:34`, `:41`의 `requiresAuth: true`)과 피드 화면의 등록 버튼(`pages/post/index.tsx`)에서 씁니다.
 
-**바깥 클릭 닫기**: 로그인 모달은 이메일·비밀번호를 **직접 입력했을 때만** 바깥(오버레이) 클릭으로 닫히지 않습니다 — 닫히면 입력이 사라지기 때문입니다. 저장된 이메일로 미리 채워진 값은 입력으로 보지 않습니다(react-hook-form `dirtyFields` 기준). `useLogin`의 `onInputDirtyChange` 옵션 → `LoginForm` → `useLoginDialog`의 `hasUserInput` → `DialogContent`의 `dismissOnOutsideClick` 순으로 전달됩니다. ESC·X·뒤로가기는 입력이 있어도 그대로 닫힙니다. 정책 전체와 근거는 [`docs/DECISIONS.md`](DECISIONS.md) 2026-09-30 "바깥 클릭 닫기 정책" 항목 참고.
+**바깥 클릭 닫기**: 로그인 모달은 이메일·비밀번호를 **직접 입력했을 때만** 바깥(오버레이) 클릭으로 닫히지 않습니다 — 닫히면 입력이 사라지기 때문입니다. 저장된 이메일로 미리 채워진 값은 입력으로 보지 않습니다(react-hook-form `dirtyFields` 기준). `useLogin`의 `onInputDirtyChange` 옵션 → `LoginForm` → `useLoginDialog`의 `hasUserInput` → `DialogContent`의 `dismissOnOutsideClick` 순으로 전달됩니다. 첫 단계(`useLogin`의 보고)는 `useLayoutEffect`라 입력이 화면에 보이기 전에 모달까지 반영됩니다 — `useEffect`일 때는 입력 직후의 바깥 클릭이 옛 값으로 모달을 닫았습니다(2026-10-13, [`docs/UNSAVED-CHANGES-GUARD.md`](UNSAVED-CHANGES-GUARD.md) §10). ESC·X·뒤로가기는 입력이 있어도 그대로 닫힙니다. 정책 전체와 근거는 [`docs/DECISIONS.md`](DECISIONS.md) 2026-09-30 "바깥 클릭 닫기 정책" 항목 참고.
 
 ### 8-E. 로그인·로그아웃 시 React Query 캐시 처리
 

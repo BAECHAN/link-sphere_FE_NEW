@@ -24,6 +24,10 @@ export default defineConfig({
   // 디버깅용 .only를 허용하고, 커밋 전에는 ESLint(playwright/no-focused-test)가 막는다.
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  // 재시도로만 통과한 테스트(flaky)도 CI에서는 실패로 친다. 재시도는 트레이스·영상을 남기는 진단용으로
+  // 두되, 통과로 넘기면 원인이 묻힌다(2026-10-13 측정: 최근 성공 run 40건 중 3건이 이렇게 숨어 있었다,
+  // docs/plans/2026-10-13-e2e-flaky-layout-effect.md).
+  failOnFlakyTests: !!process.env.CI,
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
     baseURL,
