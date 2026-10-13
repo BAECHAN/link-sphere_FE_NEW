@@ -1,3 +1,6 @@
+### 2026-10-13 (BE)
+- 게시글 및 댓글 좋아요 기능 개선: 상태 지정형 PUT 및 DELETE 메서드 도입을 통한 API 명세 최적화 ([#80](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/80))
+
 ### 2026-10-13 (FE)
 - PR 단위 뮤테이션 테스트 도입 및 결과 비차단 보고 기능 구현 ([#349](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/349))
 
