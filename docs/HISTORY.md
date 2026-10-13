@@ -1,3 +1,6 @@
+### 2026-10-13 (FE)
+- Playwright 버전 1.64.0 업데이트를 통한 Ubuntu 26.04 러너 환경 대응 및 E2E 테스트 안정성 확보 ([#343](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/343))
+
 ### 2026-10-12 (BE)
 - 게시글 좋아요 토글 API 응답에 현재 좋아요 개수(`likeCount`) 필드 추가 ([#74](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/74))
 
