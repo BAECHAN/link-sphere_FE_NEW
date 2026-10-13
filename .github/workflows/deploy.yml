@@ -13,6 +13,9 @@ on:
       - 'index.html'
       - 'tsconfig*.json'
       - 'scripts/inject-csp.js'
+      # 자기 파일이 바뀌면(Dependabot의 액션 버전 갱신 포함) 바로 한 번 돌려 확인한다 -
+      # 안 그러면 다음 실제 배포 때까지 아무도 실행해 보지 않는다(deploy-storybook.yml과 같은 방식).
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -32,13 +35,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
@@ -67,7 +70,7 @@ jobs:
           VITE_FIREBASE_VAPID_KEY: ${{ secrets.VITE_FIREBASE_VAPID_KEY }}
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

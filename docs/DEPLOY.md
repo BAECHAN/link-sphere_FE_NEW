@@ -18,7 +18,8 @@
 
 1.  **Trigger**: `main` 브랜치에 푸시되면 워크플로우가 시작됩니다 — 단, 경로 필터가
     걸려 있어 `src/**`·`public/**`·`package.json`·`pnpm-lock.yaml`·`vite.config.ts`·
-    `postcss.config.js`·`index.html`·`tsconfig*.json`·`scripts/inject-csp.js` 중
+    `postcss.config.js`·`index.html`·`tsconfig*.json`·`scripts/inject-csp.js`·
+    `.github/workflows/deploy.yml`(자기 파일 — 아래 "액션 버전 관리" 참고) 중
     하나라도 바뀐 push에만 실행됩니다(`.github/workflows/deploy.yml`의 `on.push.paths`).
     즉 `CHANGELOG.md`나 `docs/` 아래 파일만 바뀐 push는 이 워크플로우를 **트리거하지
     않습니다** — 직전 배포가 실패해 있던 상태를 문서 수정 커밋으로 고쳤다고 착각하기
@@ -93,6 +94,55 @@ gh workflow run deploy.yml --repo BAECHAN/link-sphere_FE_NEW --ref main
 ```
 
 또는 GitHub 저장소 → Actions → "Frontend Deploy (S3 + CloudFront)" → Run workflow.
+
+## 액션 버전 관리 (SHA 고정 + Dependabot)
+
+모든 워크플로(`.github/workflows/*.yml`)의 `uses:`는 태그(`@v4`)가 아니라 커밋 SHA로 고정하고,
+사람이 읽을 버전은 같은 줄 주석으로 단다(2026-10-13 도입).
+
+```yaml
+- uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+```
+
+**왜**: GitHub 보안 가이드는 _"작성자를 믿더라도 위험이 있다. 공격자가 액션을 보관한
+저장소에 접근하면 태그를 옮기거나 지울 수 있기 때문이다"_ (번역,
+[GitHub Docs — Secure use reference](https://docs.github.com/en/actions/reference/security/secure-use))라고
+쓴다. 배포 job은 AWS 자격증명을 다루므로 태그 바꿔치기 사고(tj-actions/changed-files,
+2025-03, [GHSA-mrrh-fwg8-r2c3](https://github.com/advisories/GHSA-mrrh-fwg8-r2c3))와 같은
+조건이다. 같은 가이드가 SHA 고정보다 앞에 두는 lockfile은 아직 public preview이고 개인 계정
+제공 여부가 확인되지 않아, 그다음 수단인 SHA 고정을 택했다(사용자 결정).
+
+**대가와 보완**:
+
+- SHA는 저절로 안 올라간다 → [`.github/dependabot.yml`](../.github/dependabot.yml)이 한 달에
+  한 번, 액션 업데이트를 PR 하나로 묶어 올린다. Dependabot은 새 릴리스가 _"최소 3일"_ (번역,
+  [GitHub changelog 2026-07-14](https://github.blog/changelog/2026-07-14-dependabot-version-updates-introduce-default-package-cooldown/))
+  지난 뒤에 PR을 연다(기본값, 설정 불필요).
+- 같은 보안 가이드에 따르면 Dependabot은 SHA로 고정한 액션에는 취약점 알림을 만들지 않는다 —
+  월간 업데이트로 대신 따라간다.
+- 액션이 내부에서 쓰는 다른 액션(전이 의존)은 SHA 고정으로 막지 못한다(reviewdog 사례,
+  [GHSA-qmg3-hpqr-gqvc](https://github.com/advisories/GHSA-qmg3-hpqr-gqvc)). lockfile을 개인
+  계정에서 쓸 수 있게 되면 다시 검토한다.
+
+**Dependabot PR이 오면**:
+
+1. PR의 CI(`ci.yml`)가 통과했는지 본다 — `ci.yml`은 시크릿을 쓰지 않아 Dependabot PR에서도
+   그대로 돈다.
+2. 메이저가 올라간 액션이 있으면 그 액션 릴리스 노트의 깨지는 변경(Breaking)만 훑는다.
+3. squash 병합 후 확인한다. `deploy.yml`·`deploy-storybook.yml`은 자기 파일이 바뀌면 병합
+   직후 자동 실행되므로 그 run이 성공했는지 본다(`gh run list --branch main`). 수동 실행이
+   없는 `history.yml`·`release.yml`은 다음 실제 이벤트 때, `openapi-drift-check.yml`은 다음
+   예약 실행 때 처음 돈다.
+
+**SHA를 손으로 바꿀 때**: 주석 태그(annotated tag)는 태그 객체를 한 번 더 따라가야 커밋 SHA가
+나온다. 그리고 그 SHA가 포크가 아니라 원 저장소의 커밋인지 확인한다 — 같은 보안 가이드는
+_"SHA를 고를 때는 포크가 아니라 액션 저장소의 것인지 확인해야 한다"_ (번역)고 쓴다.
+
+```bash
+gh api repos/<owner>/<repo>/git/ref/tags/<tag> --jq '.object.sha + " " + .object.type'
+# type이 tag면 한 번 더: gh api repos/<owner>/<repo>/git/tags/<위 sha> --jq .object.sha
+gh api repos/<owner>/<repo>/commits/<커밋 sha> --jq .sha   # 원 저장소에 있는 커밋인지 확인
+```
 
 ## Storybook 공개 배포
 
