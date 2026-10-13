@@ -16,6 +16,26 @@ export const bookmarkFolderMutationKeys = {
   clearBookmarkFolders: (postId: string) => [...rootKey, 'clearBookmarkFolders', postId] as const,
 };
 
+/**
+ * 같은 글의 북마크 요청(저장·해제·폴더 추가·제거·비우기)이 함께 서는 줄 — 되돌리기 토스트(8초)가
+ * 다이얼로그보다 오래 남아, 되돌리기 요청과 다시 연 다이얼로그의 요청이 겹칠 수 있다. 같은 scope.id는
+ * 시작한 순서대로 하나씩 나가 클릭 순서대로 서버에 닿는다(docs/plans/2026-10-13-bookmark-set-state.md).
+ */
+export const bookmarkPostScope = (postId: string) => ({ id: `bookmark:${postId}` });
+
+/**
+ * 같은 글의 북마크 요청 중 지금 끝나는 것이 마지막인가 — onSuccess·onError 시점엔 자기 자신도
+ * pending이라 1이면 남은 요청이 없다. 여러 mutation이 한 scope를 공유해 mutationKey 대신 scope로 센다.
+ */
+export const isLastPendingBookmarkMutation = (queryClient: QueryClient, postId: string) => {
+  const scopeId = bookmarkPostScope(postId).id;
+
+  return (
+    queryClient.isMutating({ predicate: (mutation) => mutation.options.scope?.id === scopeId }) ===
+    1
+  );
+};
+
 export const bookmarkFolderKeys = {
   root: rootKey,
   list: [...rootKey, 'list'] as const,
@@ -59,7 +79,8 @@ export const handleBookmarkFolderDeleteSuccess = (queryClient: QueryClient) => {
 };
 
 /**
- * 북마크 토글(추가/제거) 후 — 폴더 목록(bookmarkCount) + 모든 폴더별 게시글(totalElements) 재검증
+ * 북마크가 생기거나 없어진 뒤(저장·해제 PUT/DELETE, 북마크와 함께 글 작성) — 폴더 목록(bookmarkCount) +
+ * 모든 폴더별 게시글(totalElements) 재검증
  */
 export const handleBookmarkToggleSuccess = (queryClient: QueryClient) => {
   bookmarkFolderInvalidateQueries.list(queryClient);

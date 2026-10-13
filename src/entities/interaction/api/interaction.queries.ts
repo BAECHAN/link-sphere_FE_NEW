@@ -2,15 +2,21 @@ import { useMutation, useQueryClient, InfiniteData, QueryClient } from '@tanstac
 import { interactionApi } from '@/entities/interaction/api/interaction.api';
 import {
   interactionMutationKeys,
+  handleBookmarkPostFailure,
   handleLikePostFailure,
   handleLikeCommentFailure,
 } from '@/entities/interaction/api/interaction.keys';
-import type { PostLikeResponse } from '@/entities/interaction/model/interaction.dto';
+import type {
+  PostBookmarkResponse,
+  PostLikeResponse,
+} from '@/entities/interaction/model/interaction.dto';
 import { postKeys, Post, PostListResponse } from '@/entities/post/@x/interaction';
 import { commentKeys, Comment } from '@/entities/comment/@x/interaction';
 import {
   bookmarkFolderKeys,
+  bookmarkPostScope,
   handleBookmarkToggleSuccess,
+  isLastPendingBookmarkMutation,
   resolveCurrentBookmarkState,
   BookmarkFolderListResponse,
 } from '@/entities/bookmark/folder/@x/interaction';
@@ -128,7 +134,13 @@ export const useLikePostMutation = (postId: Post['id']) => {
   });
 };
 
-function applyBookmarkToggleToPost(post: Post, nextBookmarked: boolean): Post {
+// 북마크도 "뒤집기"가 아니라 "이 상태로 만들기"다 — 이미 그 상태면 그대로 둔다. 새로 저장하면
+// 미분류(소속 없음)로 보이고, 실제 소속은 성공 응답으로 교정한다(서버는 기존 소속을 유지한다).
+function setBookmarkOnPost(post: Post, nextBookmarked: boolean): Post {
+  if (post.userInteractions.isBookmarked === nextBookmarked) {
+    return post;
+  }
+
   return {
     ...post,
     userInteractions: {
@@ -143,13 +155,32 @@ function applyBookmarkToggleToPost(post: Post, nextBookmarked: boolean): Post {
   };
 }
 
+function applyServerBookmarkToPost(post: Post, server: PostBookmarkResponse): Post {
+  return {
+    ...post,
+    userInteractions: {
+      ...post.userInteractions,
+      isBookmarked: server.isBookmarked,
+      bookmarkFolderIds: server.folderIds,
+    },
+  };
+}
+
+/**
+ * 북마크 저장·해제 — 좋아요와 같은 연타 처리(docs/FE-ARCHITECTURE.md §11)에, 같은 글의 폴더 추가·제거·
+ * 비우기까지 한 줄(bookmarkPostScope)로 세운다. 되돌리기 토스트가 다이얼로그보다 오래 남아 서로 섞이기
+ * 때문이다. 응답 반영·롤백은 그 줄의 마지막 요청에서만 한다(docs/plans/2026-10-13-bookmark-set-state.md).
+ */
 export const useBookmarkPostMutation = (postId: Post['id']) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => interactionApi.toggleBookmarkPost(postId),
+    mutationKey: interactionMutationKeys.bookmarkPost(postId),
+    scope: bookmarkPostScope(postId),
+    mutationFn: (nextBookmarked: boolean) =>
+      nextBookmarked ? interactionApi.bookmarkPost(postId) : interactionApi.unbookmarkPost(postId),
     meta: { manualErrorHandling: true },
-    onMutate: async () => {
+    onMutate: async (nextBookmarked) => {
       await queryClient.cancelQueries({ queryKey: postKeys.detail(postId) });
       await queryClient.cancelQueries({ queryKey: postKeys.listRoot });
       await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.list });
@@ -168,43 +199,18 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
         bookmarkFolderKeys.list
       );
 
-      // 방향(ON/OFF)은 detail → 메인 피드 목록 → 폴더 게시글 캐시 순으로 찾은
-      // isBookmarked 값 하나로만 결정한다. bookmark-folder.queries.ts의 동일 로직과
-      // 공유 — 메인 피드에서만 조작하면 항상 false로 오판하던 버그 수정(§Phase 0).
+      // 방향은 호출부가 화면에 보이는 상태로 정해 넘긴다(nextBookmarked). 이전 상태는 폴더 목록 수
+      // (공유 캐시 하나)를 바뀔 때만 조정하려고 읽는다 — 패치 전에 읽어야 한다.
       const { isBookmarked: wasBookmarked, folderIds: prevFolderIds } = resolveCurrentBookmarkState(
         queryClient,
         postId
       );
-      const nextBookmarked = !wasBookmarked;
 
-      if (previousPost) {
-        queryClient.setQueryData<Post>(
-          postKeys.detail(postId),
-          applyBookmarkToggleToPost(previousPost, nextBookmarked)
-        );
-      }
+      patchPostEverywhere(queryClient, postId, (post) => setBookmarkOnPost(post, nextBookmarked));
 
-      queryClient.setQueriesData<InfiniteData<PostListResponse>>(
-        { queryKey: postKeys.listRoot },
-        (oldData) => {
-          if (!oldData) {
-            return oldData;
-          }
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page) => ({
-              ...page,
-              content: page.content.map((post) =>
-                post.id === postId ? applyBookmarkToggleToPost(post, nextBookmarked) : post
-              ),
-            })),
-          };
-        }
-      );
-
-      // 북마크 화면(folder 캐시) 낙관적 반영
+      // 북마크 화면(folder 캐시) 낙관적 반영 — 해제면 카드가 있는 폴더 캐시마다 뺀다. 이전 상태로
+      // 조건을 걸지 않는다: 상세 캐시가 낡아 "저장 안 됨"이어도 북마크 화면의 카드는 빠져야 한다.
       if (!nextBookmarked) {
-        // OFF — 소속돼있던 모든 폴더 캐시(+ 미분류)에서 카드 제거
         queryClient.setQueriesData<InfiniteData<PostListResponse>>(
           { queryKey: bookmarkFolderKeys.postsRoot },
           (oldData) => {
@@ -227,9 +233,12 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
             };
           }
         );
+      }
 
-        // 폴더 건수 감소 — 소속돼있던 폴더 전부(여러 개일 수 있음), 소속 0개였다면 uncategorizedCount
-        if (previousFolderList) {
+      // 폴더 목록 수 — 상태가 실제로 바뀔 때만 조정한다(어차피 성공 뒤 무효화로 서버 값이 된다)
+      if (previousFolderList && wasBookmarked !== nextBookmarked) {
+        if (!nextBookmarked) {
+          // 해제 — 소속돼있던 폴더 전부(여러 개일 수 있음), 소속 0개였다면 uncategorizedCount
           const prevIdSet = new Set(prevFolderIds);
           queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, {
             ...previousFolderList,
@@ -243,21 +252,33 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
                 : folder
             ),
           });
+        } else {
+          // 저장 — 미분류로 새로 생김
+          queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, {
+            ...previousFolderList,
+            uncategorizedCount: previousFolderList.uncategorizedCount + 1,
+          });
         }
-      } else if (previousFolderList) {
-        // ON — 미분류로 새로 생성됨
-        queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, {
-          ...previousFolderList,
-          uncategorizedCount: previousFolderList.uncategorizedCount + 1,
-        });
       }
 
       return { previousPost, previousLists, previousFolderPosts, previousFolderList };
     },
-    onSuccess: () => {
+    onSuccess: (serverBookmark) => {
+      if (!isLastPendingBookmarkMutation(queryClient, postId)) {
+        return;
+      }
+
+      patchPostEverywhere(queryClient, postId, (post) =>
+        applyServerBookmarkToPost(post, serverBookmark)
+      );
       handleBookmarkToggleSuccess(queryClient);
     },
-    onError: (_err, _variables, context) => {
+    onError: (_err, _nextBookmarked, context) => {
+      if (!isLastPendingBookmarkMutation(queryClient, postId)) {
+        return;
+      }
+
+      // 즉시 되돌린 뒤 서버 값으로 다시 맞춘다 — 앞선 요청까지 실패했다면 이 스냅샷도 틀리다
       if (context?.previousPost) {
         queryClient.setQueryData(postKeys.detail(postId), context.previousPost);
       }
@@ -270,6 +291,7 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
       context?.previousFolderPosts?.forEach(([key, data]) => {
         queryClient.setQueryData(key, data);
       });
+      handleBookmarkPostFailure(queryClient, postId);
     },
   });
 };

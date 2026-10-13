@@ -2,6 +2,7 @@ import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/config/api';
 import type {
   CommentLikeResponse,
+  PostBookmarkResponse,
   PostLikeResponse,
 } from '@/entities/interaction/model/interaction.dto';
 
@@ -28,7 +29,15 @@ export const interactionApi = {
     return await apiClient.delete<CommentLikeResponse>(API_ENDPOINTS.post.commentLike(commentId));
   },
 
-  toggleBookmarkPost: async (postId: string) => {
-    return await apiClient.post<{ isBookmarked: boolean }>(API_ENDPOINTS.post.postBookmark(postId));
+  // 북마크도 좋아요처럼 원하는 상태를 보낸다 — PUT은 저장(기존 폴더 소속 유지), DELETE는 해제(소속도 삭제)
+  bookmarkPost: async (postId: string) => {
+    return await apiClient.put<PostBookmarkResponse>(
+      API_ENDPOINTS.post.postBookmark(postId),
+      undefined
+    );
+  },
+
+  unbookmarkPost: async (postId: string) => {
+    return await apiClient.delete<PostBookmarkResponse>(API_ENDPOINTS.post.postBookmark(postId));
   },
 };

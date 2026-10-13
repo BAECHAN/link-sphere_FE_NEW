@@ -11,10 +11,12 @@ import {
   bookmarkFolderInvalidateQueries,
   bookmarkFolderKeys,
   bookmarkFolderMutationKeys,
+  bookmarkPostScope,
   handleBookmarkFolderChangeSuccess,
   handleBookmarkFolderCreateSuccess,
   handleBookmarkFolderDeleteSuccess,
   handleBookmarkFolderUpdateSuccess,
+  isLastPendingBookmarkMutation,
 } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
 import {
   BookmarkFolderKey,
@@ -345,6 +347,8 @@ export const useAddBookmarkFolderMutation = (postId: string) => {
 
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.addBookmarkFolder(postId),
+    // 같은 글의 북마크 저장·해제와 한 줄로 선다 — 성공·실패 처리는 그 줄의 마지막 요청에서만
+    scope: bookmarkPostScope(postId),
     mutationFn: (folderId: string) => bookmarkFolderApi.addBookmarkFolder(postId, folderId),
     meta: { manualErrorHandling: true },
 
@@ -389,10 +393,18 @@ export const useAddBookmarkFolderMutation = (postId: string) => {
     },
 
     onError: (_err, _folderId, context) => {
+      if (!isLastPendingBookmarkMutation(queryClient, postId)) {
+        return;
+      }
+
       rollbackBookmarkFolderMutation(queryClient, postId, context);
     },
 
     onSuccess: () => {
+      if (!isLastPendingBookmarkMutation(queryClient, postId)) {
+        return;
+      }
+
       handleBookmarkFolderChangeSuccess(queryClient, postId);
     },
   });
@@ -411,6 +423,7 @@ export const useRemoveBookmarkFolderMutation = (postId: string) => {
 
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.removeBookmarkFolder(postId),
+    scope: bookmarkPostScope(postId),
     mutationFn: (folderId: string) => bookmarkFolderApi.removeBookmarkFolder(postId, folderId),
     meta: { manualErrorHandling: true },
 
@@ -444,10 +457,18 @@ export const useRemoveBookmarkFolderMutation = (postId: string) => {
     },
 
     onError: (_err, _folderId, context) => {
+      if (!isLastPendingBookmarkMutation(queryClient, postId)) {
+        return;
+      }
+
       rollbackBookmarkFolderMutation(queryClient, postId, context);
     },
 
     onSuccess: () => {
+      if (!isLastPendingBookmarkMutation(queryClient, postId)) {
+        return;
+      }
+
       handleBookmarkFolderChangeSuccess(queryClient, postId);
     },
   });
@@ -466,6 +487,7 @@ export const useClearBookmarkFoldersMutation = (postId: string) => {
 
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.clearBookmarkFolders(postId),
+    scope: bookmarkPostScope(postId),
     mutationFn: () => bookmarkFolderApi.clearBookmarkFolders(postId),
     meta: { manualErrorHandling: true },
 
@@ -497,10 +519,18 @@ export const useClearBookmarkFoldersMutation = (postId: string) => {
     },
 
     onError: (_err, _variables, context) => {
+      if (!isLastPendingBookmarkMutation(queryClient, postId)) {
+        return;
+      }
+
       rollbackBookmarkFolderMutation(queryClient, postId, context);
     },
 
     onSuccess: () => {
+      if (!isLastPendingBookmarkMutation(queryClient, postId)) {
+        return;
+      }
+
       handleBookmarkFolderChangeSuccess(queryClient, postId);
     },
   });
