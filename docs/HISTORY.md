@@ -1,3 +1,6 @@
+### 2026-10-13 (FE)
+- PR 단위 뮤테이션 테스트 도입 및 결과 비차단 보고 기능 구현 ([#349](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/349))
+
 ### 2026-10-13 (BE)
 - 좋아요 및 북마크 토글 기능의 동시 요청 처리 로직을 개선하여 500 에러 발생 문제를 해결 ([#79](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/79))
 
