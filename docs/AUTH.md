@@ -3,7 +3,7 @@
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
 > 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지, 그리고 로그인한 사람도 글을 못 쓸 때가 있는 이유를 설명할 수 있게 됩니다. 비밀번호를 새로 만드는 폼이 입력 중에 언제 무엇을 보여주는지(§8-G)도 여기서 다룹니다.
-> **마지막 검토**: 2026-10-12
+> **마지막 검토**: 2026-10-13
 
 ---
 
@@ -836,6 +836,20 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
    [Okta](https://developer.okta.com/docs/guides/refresh-tokens/main/)(grace period 기본 30초)·
    [Supabase](https://supabase.com/docs/guides/auth/sessions)(reuse interval 기본 10초)도 같은
    방식입니다.
+
+9. **갱신 뒤 재시도는 대기 요청을 한꺼번에 내보냅니다.** 리더의 재시도와 `notifySubscribers`가 같은
+   tick에 돌아, 토큰 만료 중에 쌓인 요청들이 같은 순간 서버에 닿습니다. 2026-10-13 좋아요를 연타한
+   토글 요청 두 개가 이렇게 동시에 재시도돼 BE가 500을 냈습니다. **큐는 그대로 두고 대상 단위로
+   풀었습니다** — RFC 9110 §15.5.2는 401을 _"요청이 적용되지 않았다"_ (번역,
+   [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.5.2))는 뜻으로 정의해 재시도
+   자체는 정당하고, 문제는 같은 대상에 대한 비멱등 요청이 겹친 것이었기 때문입니다. 좋아요는 상태
+   지정형 `PUT`/`DELETE`로 바꾸고 같은 대상의 요청을 `scope`로 한 줄로 세웠습니다
+   ([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §11 "같은 대상의 연속 mutation"). 다른 비멱등
+   요청(글 작성 등)이 같은 식으로 겹쳐도 되는지는 그 기능에서 따로 봐야 합니다.
+
+   함께 **`clearAll`이 mutation 캐시도 비웁니다.** 위 3번처럼 refresh가 실패하면 요청이 영구 pending으로
+   남는데, pending mutation은 GC로도 지워지지 않아 같은 `scope`의 다음 요청을 영원히 막습니다
+   (`auth.util.ts`의 `clearQueriesWithoutRefetch`, `auth.util.test.ts`가 고정).
 
 ---
 

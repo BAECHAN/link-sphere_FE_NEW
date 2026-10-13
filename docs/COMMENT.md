@@ -9,7 +9,7 @@
 > 실패했을 때 원인별로 무엇을 안내하는지, "내 댓글"에서 원글의 그 댓글로 이동하는 방식을
 > 이해하고, 상한·장수·캐시 무효화 범위·실패 문구를 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-06
+> **마지막 검토**: 2026-10-13
 
 게시글 상세(`/post/:id`) 하단의 댓글 섹션과, 내가 쓴 댓글을 모아보는 "내 댓글"
 화면(`/my/comments`)을 다룬다. 게시글 자체(목록·상세·작성)는
@@ -115,7 +115,8 @@ Playwright e2e(`page.route()` 모킹), Storybook 인터랙션 테스트 — §9 
 | `POST`   | `/comment/{commentId}/reply` | 답글 등록(바디 동일)                                         |
 | `PATCH`  | `/comment/{commentId}`       | 수정 `{ content, images: [...기존 URL, ...새 업로드 URL] }`  |
 | `DELETE` | `/comment/{commentId}`       | 삭제                                                         |
-| `POST`   | `/comment/{commentId}/like`  | 좋아요 토글(`entities/interaction`이 소유)                   |
+| `PUT`    | `/comment/{commentId}/like`  | 좋아요(멱등, `entities/interaction`이 소유)                  |
+| `DELETE` | `/comment/{commentId}/like`  | 좋아요 취소(멱등). 옛 `POST` 토글은 BE에서 deprecated        |
 | `GET`    | `/comment/my?page&size`      | 내 댓글 페이지(`postId`·`postTitle` 포함, 0부터 시작)        |
 
 응답 타입은 BE OpenAPI 생성 타입의 alias다(`src/entities/comment/model/comment.dto.ts`).
@@ -297,18 +298,24 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 결과를 재조회로 받기만 한다. `e2e/comment-delete.spec.ts`가 두 경우를 모킹으로 재현해
 검증한다.
 
-### 좋아요 — 낙관적 토글, 실패는 조용히 롤백
+### 좋아요 — 낙관적 반영, 실패는 조용히 롤백
 
 `LikeCommentButton`이 `useAuthGuard`로 감싸 feature 훅 `useLikeComment`
-(`src/features/comment/like/hooks/useLikeComment.ts:5-7`)를 부르고, 이 훅이
-`useLikeCommentMutation`(`src/entities/interaction/api/interaction.queries.ts:226-271`)을
+(`src/features/comment/like/hooks/useLikeComment.ts`)를 부르고, 이 훅이
+`useLikeCommentMutation`(`src/entities/interaction/api/interaction.queries.ts`)을
 그대로 돌려준다. 버튼은 `ToggleButton`이라 400ms 안의 재클릭을 무시하고, 요청 중 `disabled`는 두지
 않는다(낙관적 반영 중 흐려지는 깜빡임을 피하려고 — [`POST.md`](./POST.md) §5 "좋아요"와 같은 결정, 2026-10-02).
 
-- `onMutate`에서 트리를 재귀로 돌며 `isLiked`·`likeCount`를 뒤집는다.
+- 누르면 지금 상태의 반대(`mutate(!isLiked)`)를 원하는 상태로 보낸다 — 켜기는 `PUT`, 끄기는 `DELETE`다
+  (2026-10-13, 토글에서 전환).
+- `onMutate`에서 트리를 재귀로 돌며 그 댓글의 `isLiked`를 원하는 값으로, `likeCount`를 ±1한다(이미 그
+  상태면 그대로).
+- 연타는 게시글 좋아요와 같이 처리한다 — 같은 댓글의 요청은 `scope`로 한 줄로 보내고, 롤백은 마지막 요청이
+  실패했을 때만 한 뒤 `handleLikeCommentFailure`로 그 글의 댓글 목록을 무효화한다
+  ([`POST.md`](./POST.md) §5 "좋아요").
 - `meta: { manualErrorHandling: true }`인데 자체 토스트도 없다 — 실패하면 화면만 원래대로
   돌아가고 아무 안내가 없다.
-- 성공 후 무효화·응답 반영이 없다. 낙관적 값이 그대로 정답으로 남는다.
+- 성공 후 무효화·응답 반영이 없다. 응답에 `likeCount`가 없어 낙관적 값이 그대로 정답으로 남는다.
 
 ### 내 댓글(`/my/comments`)
 
@@ -357,14 +364,14 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 `src/entities/comment/api/comment.keys.ts`가 정본이다.
 
-| 이벤트                        | 댓글 목록(`list`)         | 내 댓글(`myRoot`) | 게시글 상세·목록    |
-| ----------------------------- | ------------------------- | ----------------- | ------------------- |
-| 작성·답글                     | ❌ (낙관적으로 직접 갱신) | ✅                | ✅ (`commentCount`) |
-| 작성 결과 모름(504·연결 끊김) | ✅ (롤백 뒤 재조회)       | ✅                | ✅ (`commentCount`) |
-| 수정                          | ✅ (병합 뒤 백스톱)       | ✅                | ❌                  |
-| 삭제                          | ✅                        | ✅                | ✅                  |
-| 좋아요                        | ❌ (낙관적 값 유지)       | ❌                | ❌                  |
-| 프로필 변경                   | ✅ (`root` 전체)          | ✅                | —                   |
+| 이벤트                        | 댓글 목록(`list`)          | 내 댓글(`myRoot`) | 게시글 상세·목록    |
+| ----------------------------- | -------------------------- | ----------------- | ------------------- |
+| 작성·답글                     | ❌ (낙관적으로 직접 갱신)  | ✅                | ✅ (`commentCount`) |
+| 작성 결과 모름(504·연결 끊김) | ✅ (롤백 뒤 재조회)        | ✅                | ✅ (`commentCount`) |
+| 수정                          | ✅ (병합 뒤 백스톱)        | ✅                | ❌                  |
+| 삭제                          | ✅                         | ✅                | ✅                  |
+| 좋아요                        | ✅ (마지막 요청 실패 때만) | ❌                | ❌                  |
+| 프로필 변경                   | ✅ (`root` 전체)           | ✅                | —                   |
 
 게시글 쪽은 `entities/post/@x/comment.ts`가 공개한 `postInvalidateQueries`로만 건드린다.
 프로필 변경 시 무효화는 `entities/account`가 `src/entities/comment/@x/account.ts`를 거쳐
@@ -441,8 +448,8 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 데스크톱 플로팅 버튼            | `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.tsx:23-107`                                                         |
 | 수정 검증·제출                  | `src/features/comment/update/hooks/useUpdateComment.ts:27-163`                                                                     |
 | 삭제 확인                       | `src/features/comment/delete/hooks/useDeleteComment.ts:9-31`                                                                       |
-| 좋아요 버튼·feature 훅          | `src/features/comment/like/ui/LikeCommentButton.tsx:17-41`, `src/features/comment/like/hooks/useLikeComment.ts:5-7`                |
-| 좋아요 낙관적 토글              | `src/entities/interaction/api/interaction.queries.ts:226-271`                                                                      |
+| 좋아요 버튼·feature 훅          | `src/features/comment/like/ui/LikeCommentButton.tsx`, `src/features/comment/like/hooks/useLikeComment.ts`                          |
+| 좋아요 낙관적 반영              | `src/entities/interaction/api/interaction.queries.ts`의 `useLikeCommentMutation`, 실패 무효화는 `interaction.keys.ts`              |
 | API·이미지 업로드               | `src/entities/comment/api/comment.api.ts:10-67`                                                                                    |
 | 쿼리·낙관적 업데이트            | `src/entities/comment/api/comment.queries.ts:21-263`                                                                               |
 | 키·무효화 핸들러                | `src/entities/comment/api/comment.keys.ts:4-54`                                                                                    |

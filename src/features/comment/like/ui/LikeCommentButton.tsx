@@ -28,7 +28,7 @@ export function LikeCommentButton({
       type="button"
       variant="ghost"
       size="sm"
-      onClick={() => guard(() => likeMutation.mutate())}
+      onClick={() => guard(() => likeMutation.mutate(!isLiked))}
       className={cn(
         'flex items-center gap-1 min-h-11 px-2 md:h-auto md:min-h-0 hover:text-destructive transition-colors',
         isLiked && 'text-destructive font-medium'

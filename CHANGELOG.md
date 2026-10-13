@@ -9,6 +9,19 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `shared` 좋아요를 연달아 누르면 깜빡이거나 마지막 클릭과 다른 상태로 끝나던 문제
+  <details><summary>배경·구현</summary>
+
+  2026-10-13 좋아요를 연타한 토글 요청 둘이 토큰 갱신 뒤 같은 순간에 재시도되어 BE가 500을 냈다(BE 쪽은 BE #79에서 수정). FE도 같은 글의 요청이 동시에 나갔고, 응답이 온 순서대로 화면을 덮어 앞 상태로 깜빡였으며, 실패하면 각자 자기 스냅샷으로 되돌렸다. 게시글·댓글 좋아요를 토글(`POST`)에서 상태 지정형(`PUT` 좋아요, `DELETE` 취소)으로 바꾸고, 같은 대상의 요청은 TanStack Query `scope`로 한 줄로 보낸다(화면은 클릭마다 즉시 바뀜). 응답 반영과 롤백은 그 대상의 마지막 요청에서만 하고, 마지막 요청이 실패하면 되돌린 뒤 캐시를 무효화해 서버 값으로 맞춘다. 세션 만료로 로그아웃할 때 mutation 캐시도 비워, 끝나지 않은 요청이 줄 맨 앞에 남아 재로그인 뒤 좋아요가 안 나가는 일을 막는다. 함께 고친 것: 북마크 화면(폴더 목록)에서 좋아요를 눌러도 화면이 안 바뀌던 문제, 실패 시 콘솔에 남던 `Uncaught (in promise)`. 근거·기각한 대안은 `docs/DECISIONS.md` 2026-10-13, 계획 `docs/plans/2026-10-13-like-concurrency.md`. (`interaction.api.ts`, `interaction.keys.ts`·`interaction.dto.ts`(신규), `interaction.queries.ts`, `LikePostButton.tsx`, `LikeCommentButton.tsx`, `auth.util.ts`, `api.ts`, `openapi.json`, `openapi.gen.ts`, [PR #351](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/351))
+
+  </details>
+
+### Notes
+
+- **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #80](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/80)(`PUT`/`DELETE /post/{postId}/like`, `/comment/{commentId}/like`)이 있어야 한다. 구버전 BE에는 이 경로가 없어 좋아요가 전부 실패한다(롤백만 되고 토스트 없음). 2026-10-13 BE 운영에 배포됨.
+
 ## [0.19.0] - 2026-10-12
 
 ### Added

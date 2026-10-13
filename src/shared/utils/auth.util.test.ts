@@ -103,6 +103,28 @@ describe('AuthUtil.clearAll — 화면이 곧 사라지는 로그아웃(보호 �
       replace: true,
     });
   });
+
+  it('끝나지 않는 mutation을 mutation 캐시에서 지워 같은 scope의 다음 mutation을 막지 않는다', async () => {
+    // refresh 실패 시 client.ts가 요청을 영원히 pending으로 남기는 상황을 재현한다
+    const stuck = queryClient
+      .getMutationCache()
+      .build(queryClient, { mutationFn: () => new Promise(() => {}), scope: { id: 'probe' } });
+    void stuck.execute(undefined);
+    await waitFor(() => expect(queryClient.isMutating()).toBe(1));
+
+    AuthUtil.clearAll();
+
+    expect(queryClient.isMutating()).toBe(0);
+    expect(queryClient.getMutationCache().getAll()).toHaveLength(0);
+
+    // 같은 scope로 새로 시작한 mutation의 요청이 실제로 나간다
+    const mutationFn = vi.fn().mockResolvedValue('ok');
+    const next = queryClient
+      .getMutationCache()
+      .build(queryClient, { mutationFn, scope: { id: 'probe' } });
+    await next.execute(undefined);
+    expect(mutationFn).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('AuthUtil.clearQueries — 제자리 로그아웃(비보호 경로)', () => {

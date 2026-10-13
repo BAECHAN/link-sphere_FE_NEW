@@ -53,10 +53,17 @@ export class AuthUtil {
    * (cancelQueries()를 따로 부를 필요가 없는 것도 같은 이유다).
    * "옵저버가 갱신되지 않는다"는 clear()의 단점(clearQueries 주석 참고)은 이 경로에선
    * 무해하다 - 뒤따르는 navigate가 그 화면을 통째로 언마운트하기 때문이다.
+   *
+   * mutation 캐시도 비운다 - refresh가 실패하면 client.ts가 요청을 영원히 끝나지 않는 Promise로
+   * 남기는데(handleTokenExpired), 그 mutation은 pending이라 GC로도 지워지지 않는다(query-core
+   * mutation.ts optionalRemove). 같은 scope의 다음 mutation은 앞선 pending이 끝나야 요청을
+   * 보내므로(좋아요 직렬화, interaction.queries.ts), 남겨 두면 재로그인 뒤 그 글의 좋아요
+   * 요청이 영원히 나가지 않는다(docs/plans/2026-10-13-like-concurrency.md).
    */
   private static clearQueriesWithoutRefetch(): void {
     LogoutGraceUtil.markClearedAt();
     queryClient.removeQueries();
+    queryClient.getMutationCache().clear();
   }
 
   static clearAll(redirectTo: string = ROUTES_PATHS.AUTH.LOGIN): void {

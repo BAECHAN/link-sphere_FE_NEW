@@ -493,13 +493,22 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    put?: never;
     /**
-     * 댓글 좋아요 토글
-     * @description 이미 눌렀으면 취소된다. data 는 {"isLiked": true|false} 한 쌍이다. 실패: 404 POST_NOT_FOUND(글 없음·비공개) · 400 INVALID_INPUT(삭제된 댓글)
+     * 댓글 좋아요
+     * @description 이미 좋아요한 상태여도 200 이다(멱등). data 는 {"isLiked": true} 다. 실패: 404 POST_NOT_FOUND(글 없음·비공개) · 400 INVALID_INPUT(삭제된 댓글)
+     */
+    put: operations['putCommentLike'];
+    /**
+     * 댓글 좋아요 토글 (deprecated)
+     * @deprecated
+     * @description PUT/DELETE /comment/{commentId}/like 를 쓴다. 이미 눌렀으면 취소된다. data 는 {"isLiked": true|false} 한 쌍이다. 실패: 404 POST_NOT_FOUND(글 없음·비공개) · 400 INVALID_INPUT(삭제된 댓글)
      */
     post: operations['likeComment'];
-    delete?: never;
+    /**
+     * 댓글 좋아요 취소
+     * @description 좋아요하지 않은 상태여도 200 이다(멱등). data 는 {"isLiked": false} 다. 실패: 404 POST_NOT_FOUND(글 없음·비공개) · 400 INVALID_INPUT(삭제된 댓글)
+     */
+    delete: operations['deleteCommentLike'];
     options?: never;
     head?: never;
     patch?: never;
@@ -730,13 +739,22 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    put?: never;
     /**
-     * 게시글 좋아요 토글
-     * @description 이미 눌렀으면 취소된다. data 는 {"isLiked": true|false, "likeCount": 12} 형태다. 실패: 404 POST_NOT_FOUND
+     * 게시글 좋아요
+     * @description 이미 좋아요한 상태여도 200 이다(멱등). data 는 {"isLiked": true, "likeCount": 12} 형태다. 실패: 404 POST_NOT_FOUND
+     */
+    put: operations['putPostLike'];
+    /**
+     * 게시글 좋아요 토글 (deprecated)
+     * @deprecated
+     * @description PUT/DELETE /post/{postId}/like 를 쓴다. 이미 눌렀으면 취소된다. data 는 {"isLiked": true|false, "likeCount": 12} 형태다. 실패: 404 POST_NOT_FOUND
      */
     post: operations['likePost'];
-    delete?: never;
+    /**
+     * 게시글 좋아요 취소
+     * @description 좋아요하지 않은 상태여도 200 이다(멱등). data 는 {"isLiked": false, "likeCount": 11} 형태다. 실패: 404 POST_NOT_FOUND
+     */
+    delete: operations['deletePostLike'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1055,6 +1073,11 @@ export interface components {
       title?: string | null;
       url: string;
     };
+    PostLikeResponse: {
+      isLiked: boolean;
+      /** Format: int32 */
+      likeCount: number;
+    };
     PostPageResponse: {
       content: components['schemas']['PostResponse'][];
       correctedSearch?: string | null;
@@ -1087,11 +1110,6 @@ export interface components {
       title: string;
       url: string;
       userInteractions: components['schemas']['PostUserInteractions'];
-    };
-    PostLikeResponse: {
-      isLiked: boolean;
-      /** Format: int32 */
-      likeCount: number;
     };
     PostStats: {
       /** Format: int32 */
@@ -1839,7 +1857,51 @@ export interface operations {
       };
     };
   };
+  putCommentLike: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        commentId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponseMapStringBoolean'];
+        };
+      };
+    };
+  };
   likeComment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        commentId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponseMapStringBoolean'];
+        };
+      };
+    };
+  };
+  deleteCommentLike: {
     parameters: {
       query?: never;
       header?: never;
@@ -2212,7 +2274,51 @@ export interface operations {
       };
     };
   };
+  putPostLike: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        postId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponsePostLikeResponse'];
+        };
+      };
+    };
+  };
   likePost: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        postId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponsePostLikeResponse'];
+        };
+      };
+    };
+  };
+  deletePostLike: {
     parameters: {
       query?: never;
       header?: never;

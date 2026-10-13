@@ -63,8 +63,13 @@ export const commentHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  // POST /comment/:id/like (댓글 좋아요 토글)
-  http.post(url(API_ENDPOINTS.post.toggleCommentLike(':id')), () => {
+  // PUT /comment/:id/like (댓글 좋아요)
+  http.put(url(API_ENDPOINTS.post.commentLike(':id')), () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // DELETE /comment/:id/like (댓글 좋아요 취소)
+  http.delete(url(API_ENDPOINTS.post.commentLike(':id')), () => {
     return new HttpResponse(null, { status: 204 });
   }),
 
