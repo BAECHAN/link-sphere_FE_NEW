@@ -20,6 +20,9 @@ const baseURL = `http://localhost:${e2eServerPort}`;
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  // CI에서 test.only가 남아 있으면 나머지 스펙이 조용히 빠지므로 실행 자체를 실패시킨다. 로컬에서는
+  // 디버깅용 .only를 허용하고, 커밋 전에는 ESLint(playwright/no-focused-test)가 막는다.
+  forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
