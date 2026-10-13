@@ -89,6 +89,11 @@ test.describe('드롭다운 메뉴 — 스크롤 허용·스크롤 시 닫힘·�
 
     await trigger.click();
     await expect(page.getByRole('menu')).toBeVisible();
+    // 보이는 것만으로는 Esc 리스너가 붙었다는 보장이 없다 - Radix는 그려진 뒤 effect에서
+    // document keydown을 등록해, 부하가 크면 그 사이에 누른 Esc가 무시된다(Playwright 1.64
+    // 전체 실행에서 재현). 메뉴 포커스는 그 리스너(DismissableLayer, 자식)보다 나중에 도는
+    // 부모 FocusScope effect가 옮기므로, 포커스가 메뉴에 있으면 리스너도 붙어 있다.
+    await expect(page.getByRole('menu')).toBeFocused();
 
     await page.keyboard.press('Escape');
     await expect(page.getByRole('menu')).toHaveCount(0);

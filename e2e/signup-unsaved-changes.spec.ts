@@ -168,7 +168,11 @@ test.describe('회원가입 폼 이탈 확인', () => {
     await fillSignupForm(page);
     await page.getByRole('button', { name: TEXTS.auth.signup.signUp }).click();
 
-    // 요청 실패 - 여전히 회원가입 페이지에 남아있어야 한다.
+    // 요청 실패가 반영될 때까지 기다린다 - URL은 클릭 직후에도 이미 sign-up이라 그것만 보면 실패
+    // 전에 goBack이 먼저 실행될 수 있다(Playwright 1.64에서 5회 중 4회 실패). 토스트는 실패
+    // 뒤에만 뜨고, 그 다음 버튼이 다시 눌러지면 isPending이 false로 돌아온 렌더다.
+    await expect(page.getByText(TEXTS.messages.error.accountCreateFailed)).toBeVisible();
+    await expect(page.getByRole('button', { name: TEXTS.auth.signup.signUp })).toBeEnabled();
     await expect(page).toHaveURL(/\/auth\/sign-up$/);
 
     // useSignUp.ts의 onSubmit이 요청 직전에 clearNow()로 지웠던 키가, 실패로 isPending이
