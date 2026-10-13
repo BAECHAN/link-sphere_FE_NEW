@@ -1,0 +1,15 @@
+# 워크플로의 액션은 커밋 SHA로 고정해 둔다(태그 바꿔치기 대비). 고정한 SHA는 저절로 안 올라가므로
+# 이 봇이 새 버전을 한 달에 한 번, PR 하나로 묶어 올린다. 근거와 PR 처리 절차는
+# docs/DEPLOY.md "액션 버전 관리" 참고.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      github-actions:
+        patterns: ['*']
+    commit-message:
+      prefix: ci
+      include: scope
