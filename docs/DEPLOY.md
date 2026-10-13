@@ -188,23 +188,42 @@ gh api repos/<owner>/<repo>/commits/<커밋 sha> --jq .sha   # 원 저장소에 
 
 GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서 다음 Secrets를 설정해야 합니다.
 
-| Secret 이름                         | 설명                     | 비고                         |
-| :---------------------------------- | :----------------------- | :--------------------------- |
-| `AWS_ROLE_ARN`                      | OIDC로 맡을 IAM 역할 ARN | 아래 "AWS IAM 권한 요구사항" |
-| `S3_BUCKET_NAME`                    | 배포할 S3 버킷 이름      | 예: `link-sphere-frontend`   |
-| `CLOUDFRONT_DISTRIBUTION_ID`        | CloudFront 배포 ID       | 예: `E1234567890ABC`         |
-| `VITE_FIREBASE_API_KEY`             | Firebase(FCM) 설정값     | 빌드 시점에 주입됨           |
-| `VITE_FIREBASE_AUTH_DOMAIN`         | Firebase(FCM) 설정값     | 빌드 시점에 주입됨           |
-| `VITE_FIREBASE_PROJECT_ID`          | Firebase(FCM) 설정값     | 빌드 시점에 주입됨           |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase(FCM) 설정값     | 빌드 시점에 주입됨           |
-| `VITE_FIREBASE_APP_ID`              | Firebase(FCM) 설정값     | 빌드 시점에 주입됨           |
-| `VITE_FIREBASE_VAPID_KEY`           | Firebase(FCM) 설정값     | 빌드 시점에 주입됨           |
+| Secret 이름                         | 설명                      | 비고                          |
+| :---------------------------------- | :------------------------ | :---------------------------- |
+| `AWS_ROLE_ARN`                      | OIDC로 맡을 IAM 역할 ARN  | 아래 "AWS IAM 권한 요구사항"  |
+| `S3_BUCKET_NAME`                    | 배포할 S3 버킷 이름       | 예: `link-sphere-frontend`    |
+| `CLOUDFRONT_DISTRIBUTION_ID`        | CloudFront 배포 ID        | 예: `E1234567890ABC`          |
+| `VITE_FIREBASE_API_KEY`             | Firebase(FCM) 설정값      | 빌드 시점에 주입됨            |
+| `VITE_FIREBASE_AUTH_DOMAIN`         | Firebase(FCM) 설정값      | 빌드 시점에 주입됨            |
+| `VITE_FIREBASE_PROJECT_ID`          | Firebase(FCM) 설정값      | 빌드 시점에 주입됨            |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase(FCM) 설정값      | 빌드 시점에 주입됨            |
+| `VITE_FIREBASE_APP_ID`              | Firebase(FCM) 설정값      | 빌드 시점에 주입됨            |
+| `VITE_FIREBASE_VAPID_KEY`           | Firebase(FCM) 설정값      | 빌드 시점에 주입됨            |
+| `HISTORY_APP_PRIVATE_KEY`           | 히스토리 앱 개인 키(.pem) | 아래 "히스토리 봇 GitHub App" |
 
 **Variables**(Secret이 아닌 레포 Variable — Settings > Secrets and variables > Actions > Variables 탭):
 
-| Variable 이름 | 설명                        | 비고                                                                                                                                                                        |
-| :------------ | :-------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SITE_URL`    | 배포 반영 검증이 호출할 URL | 미설정 시 커스텀 도메인(`linksphere.click`)으로 하드코딩된 폴백 사용. Secret으로 두면 로그가 `***`로 마스킹돼 디버깅이 어려워 Variable로 둔다(이미 `README.md`에 공개된 값) |
+| Variable 이름           | 설명                        | 비고                                                                                                                                                                        |
+| :---------------------- | :-------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SITE_URL`              | 배포 반영 검증이 호출할 URL | 미설정 시 커스텀 도메인(`linksphere.click`)으로 하드코딩된 폴백 사용. Secret으로 두면 로그가 `***`로 마스킹돼 디버깅이 어려워 Variable로 둔다(이미 `README.md`에 공개된 값) |
+| `HISTORY_APP_CLIENT_ID` | 히스토리 앱 Client ID       | 아래 "히스토리 봇 GitHub App". 비밀 값은 아니지만 값은 문서에 적지 않는다                                                                                                   |
+
+### 히스토리 봇 GitHub App
+
+`history.yml`(Gemini History Updater)은 main에 `docs/HISTORY.md`를 직접 push하는 유일한 자동화다. main 규칙셋이
+필수 체크(`check`·`e2e`)를 요구하고 사람에게는 예외가 없어서(`docs/CI-CHECK-GATE.md` §6), 이 봇은 규칙셋 예외로
+등록된 사용자 소유 GitHub App의 설치 토큰으로 push한다. 기본 `GITHUB_TOKEN`은 개인 계정 레포에서 규칙셋 예외로
+등록할 수 없다(2026-10-13 실측: HTTP 422 `Actor GitHub Actions integration must be part of the ruleset source or owner organization`).
+
+- **앱**: `link-sphere-history-bot`(사용자 계정 소유, "Only on this account"). App ID·Client ID는 앱 설정 페이지에서 확인한다
+  - 권한: Repository permissions의 Contents 읽기·쓰기만 있다. Webhook은 끄고, 설치 범위는 `link-sphere_FE_NEW` 하나다.
+  - 규칙셋 "Main Branch Protect"의 예외 목록에 이 앱 하나만 "항상 허용"으로 들어 있다.
+- **토큰**: `actions/create-github-app-token`이 실행마다 짧은 수명의 설치 토큰을 받는다(`permission-contents: write`).
+- **키 교체 순서**: 앱 설정에서 새 개인 키 생성 → `gh secret set HISTORY_APP_PRIVATE_KEY -R BAECHAN/link-sphere_FE_NEW < 새키.pem`
+  → 다음 히스토리 실행이 성공하는지 확인 → 앱 설정에서 옛 키 삭제. 키 파일은 `~/Downloads`처럼 macOS가 보호하는
+  폴더에 두면 터미널에서 `operation not permitted`가 나므로 홈 폴더로 옮겨서 등록한다.
+- **실측(2026-10-13, 직접 측정)**: 이 앱을 예외로 둔 임시 규칙셋(필수 체크 미충족 브랜치)에 앱 토큰으로 push하자
+  `Bypassed rule violations`로 통과했다. 상세는 공통 지침 저장소 `docs/RESEARCH.md` §7.5.
 
 ## AWS IAM 권한 요구사항
 
