@@ -1,3 +1,6 @@
+### 2026-10-13 (BE)
+- 게시글 북마크 기능 고도화: 상태 지정형 PUT 및 DELETE 메서드 도입을 통한 북마크 관리 효율화 ([#85](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/85))
+
 ### 2026-10-13 (FE)
 - 입력 레이어의 가드 처리 로직 개선을 통해 E2E 테스트의 안정성 확보 및 Flaky 현상 해결
 
