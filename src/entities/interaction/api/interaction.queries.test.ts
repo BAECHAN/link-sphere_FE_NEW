@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse, delay } from 'msw';
 import { createElement, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider, type InfiniteData } from '@tanstack/react-query';
 import { server } from '@/mocks/server';
@@ -45,6 +45,17 @@ const seedFolderList = (
   uncategorizedCount: 1,
   ...overrides,
 });
+
+// 서버 응답을 테스트가 release()를 부를 때까지 붙잡아 둔다. MSW가 바로 응답하면 waitFor가
+// 낙관적 중간값을 보기 전에 onSuccess/onError가 값을 덮어써서, 중간 상태를 경쟁 없이 볼 수 없다.
+function createResponseGate() {
+  let release!: () => void;
+  const wait = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  return { wait, release };
+}
 
 beforeEach(() => {
   queryClient = createTestQueryClient({ gcTime: Infinity });
@@ -303,6 +314,103 @@ describe('useBookmarkPostMutation', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
     });
   });
+
+  it('해제하면 그 글이 든 폴더 캐시에서 그 카드만 빠지고 총개수가 1 줄며, 그 글이 없는 폴더 캐시는 그대로다', async () => {
+    const seededPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [FOLDER_A] },
+      stats: { ...mockPost.stats, bookmarkCount: 5 },
+    };
+    const otherInA1: Post = { ...mockPost, id: 'post-uuid-a1' };
+    const otherInA2: Post = { ...mockPost, id: 'post-uuid-a2' };
+    const otherInB: Post = { ...mockPost, id: 'post-uuid-b' };
+    queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
+    queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList());
+
+    // 폴더 A: 그 글은 첫 페이지가 아닌 두 번째 페이지에 다른 글과 함께 있다(총 3개)
+    const folderAPosts: InfiniteData<PostListResponse> = {
+      pages: [
+        { page: 0, size: 2, content: [otherInA1], totalElements: 3, totalPages: 2, last: false },
+        {
+          page: 1,
+          size: 2,
+          content: [seededPost, otherInA2],
+          totalElements: 3,
+          totalPages: 2,
+          last: true,
+        },
+      ],
+      pageParams: [0, 1],
+    };
+    // 폴더 B: 그 글이 들어 있지 않다
+    const folderBPosts: InfiniteData<PostListResponse> = {
+      pages: [
+        { page: 0, size: 2, content: [otherInB], totalElements: 1, totalPages: 1, last: true },
+      ],
+      pageParams: [0],
+    };
+    queryClient.setQueryData(bookmarkFolderKeys.posts(FOLDER_A), folderAPosts);
+    queryClient.setQueryData(bookmarkFolderKeys.posts(FOLDER_B), folderBPosts);
+
+    const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate();
+    });
+
+    await waitFor(() => {
+      const folderA = queryClient.getQueryData<InfiniteData<PostListResponse>>(
+        bookmarkFolderKeys.posts(FOLDER_A)
+      );
+      expect(folderA?.pages[1]?.content.map((p) => p.id)).toEqual([otherInA2.id]);
+    });
+
+    const folderA = queryClient.getQueryData<InfiniteData<PostListResponse>>(
+      bookmarkFolderKeys.posts(FOLDER_A)
+    );
+    expect(folderA?.pages[0]?.content.map((p) => p.id)).toEqual([otherInA1.id]);
+    expect(folderA?.pages.map((page) => page.totalElements)).toEqual([2, 2]);
+
+    expect(queryClient.getQueryData(bookmarkFolderKeys.posts(FOLDER_B))).toEqual(folderBPosts);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
+  it('토글에 성공하면 폴더 목록과 폴더별 게시글 캐시를 무효화해 서버 값으로 다시 맞춘다', async () => {
+    const seededPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: false, bookmarkFolderIds: [] },
+      stats: { ...mockPost.stats, bookmarkCount: 5 },
+    };
+    const uncategorizedPosts: InfiniteData<PostListResponse> = {
+      pages: [{ page: 0, size: 10, content: [], totalElements: 0, totalPages: 0, last: true }],
+      pageParams: [0],
+    };
+    queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
+    queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList());
+    queryClient.setQueryData(bookmarkFolderKeys.posts('uncategorized'), uncategorizedPosts);
+
+    expect(queryClient.getQueryState(bookmarkFolderKeys.list)?.isInvalidated).toBe(false);
+    expect(
+      queryClient.getQueryState(bookmarkFolderKeys.posts('uncategorized'))?.isInvalidated
+    ).toBe(false);
+
+    const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate();
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    // 낙관적 반영은 추정값이고, 새로 북마크한 글은 미분류 목록을 다시 불러와야 나타난다
+    await waitFor(() => {
+      expect(queryClient.getQueryState(bookmarkFolderKeys.list)?.isInvalidated).toBe(true);
+      expect(
+        queryClient.getQueryState(bookmarkFolderKeys.posts('uncategorized'))?.isInvalidated
+      ).toBe(true);
+    });
+  });
 });
 
 describe('useLikePostMutation', () => {
@@ -401,5 +509,256 @@ describe('useLikePostMutation', () => {
     const listedPost = list?.pages[0]?.content.find((p) => p.id === POST_ID);
     expect(listedPost?.stats.likeCount).toBe(10);
     expect(listedPost?.userInteractions.isLiked).toBe(false);
+  });
+
+  const OTHER_POST: Post = {
+    ...mockPost,
+    id: 'post-uuid-other',
+    userInteractions: { isLiked: false, isBookmarked: false, bookmarkFolderIds: [] },
+    stats: { ...mockPost.stats, likeCount: 3 },
+  };
+
+  function seedLikeList(posts: Post[]) {
+    const seededList: InfiniteData<PostListResponse> = {
+      pages: [
+        {
+          page: 0,
+          size: 10,
+          content: posts,
+          totalElements: posts.length,
+          totalPages: 1,
+          last: true,
+        },
+      ],
+      pageParams: [0],
+    };
+    queryClient.setQueryData(postKeys.list(), seededList);
+  }
+
+  function findListedPost(postId: Post['id']) {
+    const list = queryClient.getQueryData<InfiniteData<PostListResponse>>(postKeys.list());
+    return list?.pages[0]?.content.find((p) => p.id === postId);
+  }
+
+  function gateLikeResponse(respond: () => Response) {
+    const gate = createResponseGate();
+    server.use(
+      http.post(url(API_ENDPOINTS.post.togglePostLike(POST_ID)), async () => {
+        await gate.wait;
+        return respond();
+      })
+    );
+    return gate;
+  }
+
+  const likeSuccessResponse = () =>
+    HttpResponse.json(
+      {
+        status: 200,
+        message: '좋아요 성공',
+        data: { isLiked: true, likeCount: 15 },
+        timestamp: '',
+      },
+      { status: 200 }
+    );
+
+  it('서버 응답 전에 상세·목록의 그 글만 좋아요 수가 1 늘고 좋아요 상태가 켜진다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.post.togglePostLike(POST_ID)), async () => {
+        await delay('infinite');
+      })
+    );
+    const seededPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [FOLDER_A] },
+      stats: { ...mockPost.stats, likeCount: 10 },
+    };
+    queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
+    seedLikeList([seededPost, OTHER_POST]);
+
+    const { result } = renderHook(() => useLikePostMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate();
+    });
+
+    await waitFor(() => {
+      const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
+      expect(post?.stats.likeCount).toBe(11);
+      expect(post?.userInteractions.isLiked).toBe(true);
+    });
+
+    // 좋아요는 북마크 상태를 건드리지 않는다
+    const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
+    expect(post?.userInteractions.isBookmarked).toBe(true);
+    expect(post?.userInteractions.bookmarkFolderIds).toEqual([FOLDER_A]);
+
+    const listedPost = findListedPost(POST_ID);
+    expect(listedPost?.stats.likeCount).toBe(11);
+    expect(listedPost?.userInteractions.isLiked).toBe(true);
+    expect(listedPost?.userInteractions.isBookmarked).toBe(true);
+    expect(findListedPost(OTHER_POST.id)).toEqual(OTHER_POST);
+  });
+
+  it('이미 좋아요한 글은 서버 응답 전에 좋아요 수가 1 줄고 좋아요 상태가 꺼진다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.post.togglePostLike(POST_ID)), async () => {
+        await delay('infinite');
+      })
+    );
+    const seededPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: true, isBookmarked: false, bookmarkFolderIds: [] },
+      stats: { ...mockPost.stats, likeCount: 10 },
+    };
+    queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
+    seedLikeList([seededPost]);
+
+    const { result } = renderHook(() => useLikePostMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate();
+    });
+
+    await waitFor(() => {
+      const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
+      expect(post?.stats.likeCount).toBe(9);
+      expect(post?.userInteractions.isLiked).toBe(false);
+    });
+
+    const listedPost = findListedPost(POST_ID);
+    expect(listedPost?.stats.likeCount).toBe(9);
+    expect(listedPost?.userInteractions.isLiked).toBe(false);
+  });
+
+  it('응답 전에는 +1(11)이 보이고, 응답이 오면 서버 값(15)으로 바뀌며 목록의 다른 글은 그대로다', async () => {
+    const gate = gateLikeResponse(likeSuccessResponse);
+    const seededPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: false, bookmarkFolderIds: [] },
+      stats: { ...mockPost.stats, likeCount: 10 },
+    };
+    queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
+    seedLikeList([seededPost, OTHER_POST]);
+
+    const { result } = renderHook(() => useLikePostMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate();
+    });
+
+    await waitFor(() => {
+      const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
+      expect(post?.stats.likeCount).toBe(11);
+      expect(post?.userInteractions.isLiked).toBe(true);
+      expect(findListedPost(POST_ID)?.stats.likeCount).toBe(11);
+      expect(findListedPost(POST_ID)?.userInteractions.isLiked).toBe(true);
+    });
+
+    gate.release();
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
+    expect(post?.stats.likeCount).toBe(15);
+    expect(post?.userInteractions.isLiked).toBe(true);
+
+    const listedPost = findListedPost(POST_ID);
+    expect(listedPost?.stats.likeCount).toBe(15);
+    expect(listedPost?.userInteractions.isLiked).toBe(true);
+    expect(findListedPost(OTHER_POST.id)).toEqual(OTHER_POST);
+  });
+
+  it('실패하면 응답 전에 반영됐던 +1과 좋아요 상태가 상세·목록 모두 원래대로 돌아간다', async () => {
+    const gate = gateLikeResponse(() =>
+      HttpResponse.json(
+        { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'boom', timestamp: '' },
+        { status: 500 }
+      )
+    );
+    const seededPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: false, bookmarkFolderIds: [] },
+      stats: { ...mockPost.stats, likeCount: 10 },
+    };
+    queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
+    seedLikeList([seededPost]);
+
+    const { result } = renderHook(() => useLikePostMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate();
+    });
+
+    await waitFor(() => {
+      const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
+      expect(post?.stats.likeCount).toBe(11);
+      expect(post?.userInteractions.isLiked).toBe(true);
+      expect(findListedPost(POST_ID)?.stats.likeCount).toBe(11);
+      expect(findListedPost(POST_ID)?.userInteractions.isLiked).toBe(true);
+    });
+
+    gate.release();
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
+    expect(post?.stats.likeCount).toBe(10);
+    expect(post?.userInteractions.isLiked).toBe(false);
+
+    const listedPost = findListedPost(POST_ID);
+    expect(listedPost?.stats.likeCount).toBe(10);
+    expect(listedPost?.userInteractions.isLiked).toBe(false);
+  });
+
+  it('상세 캐시 없이 목록에만 있는 글도 좋아요가 반영되고, 상세 캐시를 새로 만들지 않는다', async () => {
+    const seededPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: false, bookmarkFolderIds: [] },
+      stats: { ...mockPost.stats, likeCount: 10 },
+    };
+    seedLikeList([seededPost]);
+
+    const { result } = renderHook(() => useLikePostMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate();
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const listedPost = findListedPost(POST_ID);
+    expect(listedPost?.stats.likeCount).toBe(15);
+    expect(listedPost?.userInteractions.isLiked).toBe(true);
+    expect(queryClient.getQueryData(postKeys.detail(POST_ID))).toBeUndefined();
+  });
+
+  it('피드 목록 조회가 실패해 데이터 없는 목록 캐시가 남아 있어도 상세 좋아요가 반영된다', async () => {
+    await queryClient.prefetchInfiniteQuery({
+      queryKey: postKeys.list(),
+      queryFn: () => Promise.reject(new Error('목록 조회 실패')),
+      initialPageParam: 0,
+    });
+    expect(queryClient.getQueryState(postKeys.list())?.status).toBe('error');
+    expect(queryClient.getQueryData(postKeys.list())).toBeUndefined();
+
+    const seededPost: Post = {
+      ...mockPost,
+      userInteractions: { isLiked: false, isBookmarked: false, bookmarkFolderIds: [] },
+      stats: { ...mockPost.stats, likeCount: 10 },
+    };
+    queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
+
+    const { result } = renderHook(() => useLikePostMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate();
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const post = queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
+    expect(post?.stats.likeCount).toBe(15);
+    expect(post?.userInteractions.isLiked).toBe(true);
   });
 });
