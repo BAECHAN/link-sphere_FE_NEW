@@ -5,6 +5,8 @@ import unicornPlugin from 'eslint-plugin-unicorn';
 import prettierConfig from 'eslint-config-prettier';
 import prettierPlugin from 'eslint-plugin-prettier';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
+import vitestPlugin from '@vitest/eslint-plugin';
+import playwrightPlugin from 'eslint-plugin-playwright';
 
 // 파일명 약어 허용 목록
 // PascalCase 규칙에서 예외로 처리할 약어들
@@ -1086,6 +1088,34 @@ export default [
     files: ['src/shared/utils/date.util.ts', '**/*.test.{ts,tsx}', 'src/mocks/**'],
     rules: {
       'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAX_COMMON],
+    },
+  },
+
+  // ============================================================
+  // [금지] 테스트 건너뛰기(.skip·.fixme·x 접두사)와 단독 실행(.only)
+  // 이유: 건너뛴 테스트는 통과로 보이지만 아무것도 지키지 않고, .only가 남으면 나머지 테스트가
+  //       조용히 빠진다. Claude가 편집할 때는 test-guard 훅이 확인 창을 띄우지만, 그 밖의 경로는
+  //       못 막으므로 린트로 막는다. Playwright는 본문 안 조건부 test.skip(조건, 이유)도 막는다 — 정당한
+  //       예외(환경 문제 등)는 그 줄에 `eslint-disable-next-line <규칙> -- <이유>`를 단다
+  //       (docs/plans/2026-10-13-test-skip-only-lint.md). vitest의 it.skipIf·runIf는 이 규칙이 잡지 못한다.
+  //       vitest는 .only를 자동으로 지우지 않게 fixable을 끈다 — lint-staged가 eslint --fix를 돌려서,
+  //       켜 두면 커밋할 때 말없이 사라진다. CI 실행 단계에서도 vitest(allowOnly 기본값)와
+  //       Playwright(playwright.config.ts의 forbidOnly)가 .only를 실패로 처리한다.
+  // ============================================================
+  {
+    files: ['src/**/*.{test,spec}.{ts,tsx}'],
+    plugins: { vitest: vitestPlugin },
+    rules: {
+      'vitest/no-focused-tests': ['error', { fixable: false }],
+      'vitest/no-disabled-tests': 'error',
+    },
+  },
+  {
+    files: ['e2e/**/*.ts'],
+    plugins: { playwright: playwrightPlugin },
+    rules: {
+      'playwright/no-focused-test': 'error',
+      'playwright/no-skipped-test': ['error', { disallowFixme: true }],
     },
   },
 

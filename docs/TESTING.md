@@ -575,6 +575,31 @@ Install dependencies → Type check/lint/format(check) → Run tests → Build �
                                                         실패 시 여기서 중단
 ```
 
+### 건너뛰기·단독 실행 금지
+
+건너뛴 테스트는 통과로 보이지만 아무것도 지키지 않고, `.only`가 남으면 나머지 테스트가 조용히 빠진다. 그래서
+린트(커밋 시 lint-staged, CI의 `pnpm check`)와 CI 실행 단계에서 둘 다 막는다(근거:
+`docs/plans/2026-10-13-test-skip-only-lint.md`).
+
+| 대상                                 | 막는 것                                                                 | 위치                                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| vitest(`src/**/*.{test,spec}.ts(x)`) | `.only`, `.skip`, `x` 접두사(`xit` 등)                                  | `eslint.config.js`의 `vitest/no-focused-tests`·`vitest/no-disabled-tests`           |
+| Playwright(`e2e/**/*.ts`)            | `.only`, `.skip`(본문 안 조건부 `test.skip(조건, 이유)` 포함), `.fixme` | `eslint.config.js`의 `playwright/no-focused-test`·`playwright/no-skipped-test`      |
+| CI 실행 단계                         | `.only`가 남은 채 실행                                                  | vitest `allowOnly`(기본값 `!process.env.CI`), `playwright.config.ts`의 `forbidOnly` |
+
+- `.only`는 자동으로 지우지 않는다(`fixable: false`). lint-staged가 `eslint --fix`를 돌리므로, 자동 수정이 켜져 있으면
+  커밋할 때 말없이 사라진다.
+- `it.todo('...')`는 린트가 막지 않는다. 아직 쓰지 않은 테스트의 자리 표시라 실행 결과에 "todo"로 남는다.
+- vitest의 조건부 건너뛰기(`it.skipIf(조건)`·`describe.runIf(조건)`)는 `vitest/no-disabled-tests`가 잡지 못한다(2026-10-13
+  재현, 지금 `src`에서 쓰는 곳은 없다). 쓰게 되면 리뷰에서 이유를 확인한다.
+- **정당한 예외**(앱이 아니라 실행 환경의 한계 등)만 그 줄에 이유를 달아 둔다. 실제 사례는
+  `e2e/dropdown-menu-scroll.mobile.spec.ts`의 조건부 skip이다.
+
+  ```ts
+  // eslint-disable-next-line playwright/no-skipped-test -- <왜 이 환경에서만 건너뛰는지>
+  test.skip(!baselineScrolled, '...');
+  ```
+
 ### 테스트를 통과하지 않고 push하는 방법 (비상시)
 
 ```bash

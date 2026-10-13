@@ -52,6 +52,7 @@ test.describe('모바일 — 드롭다운 메뉴 스크롤 허용·스크롤 시
         () => true,
         () => false
       );
+    // eslint-disable-next-line playwright/no-skipped-test -- 위 기준선이 실패하는 환경(CI 헤드리스)에서만 건너뛴다. 앱이 아니라 합성 터치 제스처의 한계라 실패시키면 원인을 구분할 수 없다
     test.skip(!baselineScrolled, '이 환경에서는 합성 터치 스크롤 제스처가 스크롤을 일으키지 않음');
 
     await page.evaluate(() => window.scrollTo(0, 0));
