@@ -191,3 +191,29 @@ jobs:
           gh issue create --repo "$GITHUB_REPOSITORY" \
             --title "배포 실패: ${GITHUB_SHA:0:7} (run #${{ github.run_number }})" \
             --body "$(printf '커밋: %s\n실행 로그: %s\n\n확인 순서는 docs/DEPLOY.md 의 "배포 반영 검증하는 법" 절 참고.' "$GITHUB_SHA" "$RUN_URL")"
+
+  # notify-failure가 만든 이슈는 닫는 경로가 없어, 원인을 고친 뒤에도 열린 채 남았다(#136, 22일).
+  # 성공한 배포가 "main이 배포 안 된 상태"를 해소하는 신호이므로 그때 닫는다. 이 job이 실패해도
+  # 배포 run 결론은 deploy job을 따르게 continue-on-error를 둔다 - job 단위 continue-on-error는
+  # "job이 실패해도 workflow run이 실패하지 않게 한다"(번역, https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idcontinue-on-error).
+  close-resolved-failures:
+    needs: deploy
+    if: success()
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      issues: write
+    steps:
+      - name: 해결된 배포 실패 이슈 닫기
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          gh issue list --repo "$GITHUB_REPOSITORY" --state open --author "github-actions[bot]" \
+            --json number,title --jq '.[] | select(.title | startswith("배포 실패: ")) | .number' |
+          while read -r number; do
+            gh issue close "$number" --repo "$GITHUB_REPOSITORY" \
+              --comment "$(printf '후속 배포 성공으로 자동 종료: 커밋 %s\n실행 로그: %s\n\n원인을 고친 PR 없이 재시도만으로 통과했다면 실패 run 로그를 확인하고 다시 열 것.' "$GITHUB_SHA" "$RUN_URL")"
+          done
