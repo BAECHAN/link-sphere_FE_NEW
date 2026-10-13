@@ -41,14 +41,38 @@ jobs:
           # 스크립트가 기존처럼 BEFORE_SHA/CURRENT_SHA로 직접 git log를 계산한다.
           PRECOMPUTED_LOGS: ${{ github.event.client_payload.logs }}
           SOURCE_LABEL: ${{ github.event.client_payload.source || 'FE' }}
+          HISTORY_ENTRY_FILE: ${{ runner.temp }}/history-entry.md
+      # 실행 중(약 30초) main에 다른 PR 병합이나 다른 히스토리 실행이 끼어들면 push가 거절된다
+      # (2026-10-12 #338 유실). 그때 최신 main을 다시 받아 같은 항목을 맨 위에 다시 붙여 재시도한다.
       - name: Commit & Push
+        env:
+          ENTRY_FILE: ${{ runner.temp }}/history-entry.md
+          SOURCE_LABEL: ${{ github.event.client_payload.source || 'FE' }}
         run: |
+          if [ ! -s "$ENTRY_FILE" ]; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
           git config --local user.name "Gemini-Bot"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/HISTORY.md
-          if ! git diff --staged --quiet; then
-            git commit -m "docs: auto-update history by Gemini (${{ github.event.client_payload.source || 'FE' }}) [skip ci]"
-            git push origin main
-          else
-            echo "No changes to commit"
-          fi
+
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard FETCH_HEAD
+            cat "$ENTRY_FILE" docs/HISTORY.md > "$RUNNER_TEMP/HISTORY.md"
+            mv "$RUNNER_TEMP/HISTORY.md" docs/HISTORY.md
+            git commit -m "docs: auto-update history by Gemini ($SOURCE_LABEL) [skip ci]" -- docs/HISTORY.md
+
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 5 ]; then
+              echo "push 거절(시도 $attempt/5) — 최신 main 위에서 다시 시도"
+              sleep $((attempt * 5))
+            fi
+          done
+
+          echo "::error::push가 5회 모두 거절돼 HISTORY.md 갱신을 반영하지 못했다"
+          exit 1

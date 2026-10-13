@@ -118,9 +118,9 @@ async function main() {
     (_, prNumber) => `([#${prNumber}](https://github.com/${repoSlug}/pull/${prNumber}))`
   );
 
-  // 3. docs/HISTORY.md 파일 상단에 추가
-  const currentHistory = fs.readFileSync('docs/HISTORY.md', 'utf8');
-  fs.writeFileSync('docs/HISTORY.md', `${aiResponse}\n\n${currentHistory}`);
+  // 3. 항목만 파일로 남긴다 — HISTORY.md 맨 위에 붙이는 일은 history.yml의 push 재시도 루프가
+  // 최신 main 위에서 매번 다시 한다(push 경합 시 Gemini를 다시 부르지 않기 위함)
+  fs.writeFileSync(process.env.HISTORY_ENTRY_FILE, `${aiResponse}\n\n`);
 }
 
 main();
