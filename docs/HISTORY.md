@@ -1,3 +1,8 @@
+### 2026-10-13 (FE)
+- Playwright 테스트 환경 안정성 강화 및 린트 설정 개선
+  - 테스트 코드 내 `.only` 사용을 금지하는 `forbidOnly` 설정 추가
+  - 린트 규칙을 통해 테스트 건너뛰기 및 단독 실행 방지 ([#350](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/350))
+
 ### 2026-10-13 (BE)
 - 게시글 및 댓글 좋아요 기능 개선: 상태 지정형 PUT 및 DELETE 메서드 도입을 통한 API 명세 최적화 ([#80](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/80))
 
