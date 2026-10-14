@@ -8,7 +8,7 @@
 > 라벨("목록으로"/"뒤로가기")이 유입 경로에 따라 어떻게 정해지는지 알고, 새 유입 경로를
 > 추가하거나 버튼의 노출·동작을 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-10-05
+> **마지막 검토**: 2026-10-14
 
 게시글 상세(`/post/:id`)에서 돌아가는 수단은 화면 크기에 따라 아예 다릅니다 — 데스크톱은
 버튼이 있고, 모바일은 버튼이 없는 대신 하단 탭바를 씁니다. 버튼이 있을 때도 라벨은
@@ -128,7 +128,7 @@ Navbar와 버튼 바 두 줄이 스크롤 내내 함께 고정돼 모바일 화�
 
 `backSource`는 피드 페이지의 `renderFeedPost`(`src/pages/post/index.tsx`, →`'feed'`)와 북마크 페이지의
 `renderBookmarkPost`(`src/pages/bookmark/BookmarkPage.tsx`, →`'bookmark'`)만 채운다 — 목록 위젯은 카드를
-직접 그리지 않고 페이지가 넘긴 함수로 그린다(`docs/FE-ARCHITECTURE.md` §26). "내 댓글" 카드나 상세 자신의 제목 링크처럼 그 외 진입 경로는 `undefined`로
+직접 그리지 않고 페이지가 넘긴 함수로 그린다(`docs/FE-ARCHITECTURE.md` §26). "내 댓글" 카드나 상세 자신의 제목 링크·댓글 아이콘처럼 그 외 진입 경로는 `undefined`로
 남고, `resolveBackLabel`이 이를 중립 라벨("뒤로가기")로 처리한다.
 
 ## 7. 운영 파라미터
@@ -141,7 +141,7 @@ Navbar와 버튼 바 두 줄이 스크롤 내내 함께 고정돼 모바일 화�
 
 | 하고 싶은 것                         | 위치                                                                                                                                                 | 방법                                                                                                                                                                       |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 새 유입 경로에 전용 라벨 추가        | [`PostCard.tsx:52`](../src/widgets/post/post-card/ui/PostCard.tsx#L52), [`usePostDetail.ts:10-36`](../src/pages/post/hooks/usePostDetail.ts#L10-L36) | `backSource` 유니온에 새 값 추가 → 그 목록을 렌더하는 페이지의 render 함수에서 `<PostCard backSource="새값" />` 지정 → `resolveBackLabel`에 분기·`texts.ts`에 라벨 키 추가 |
+| 새 유입 경로에 전용 라벨 추가        | [`PostCard.tsx:53`](../src/widgets/post/post-card/ui/PostCard.tsx#L53), [`usePostDetail.ts:10-36`](../src/pages/post/hooks/usePostDetail.ts#L10-L36) | `backSource` 유니온에 새 값 추가 → 그 목록을 렌더하는 페이지의 render 함수에서 `<PostCard backSource="새값" />` 지정 → `resolveBackLabel`에 분기·`texts.ts`에 라벨 키 추가 |
 | 돌아가기 동작(목적지) 자체를 바꾸기  | [`useGoBack.ts`](../src/shared/hooks/useGoBack.ts)                                                                                                   | 라벨 로직과 무관 — 이 훅만 수정하면 된다                                                                                                                                   |
 | 모바일에서도 버튼을 다시 보이게 하기 | [`PostDetailPage.tsx`](../src/pages/post/PostDetailPage.tsx)의 `PostDetailContent` 돌아가기 `Button`                                                 | `hidden md:inline-flex`를 제거하기 전에 §4의 트레이드오프(124px 상시 고정 vs standalone PWA 위치 복원)를 먼저 재검토 — `docs/DECISIONS.md` 참고                            |
 | e2e에서 이 버튼/Feed 탭을 다시 찾기  | [`e2e/post-detail-back.spec.ts`](../e2e/post-detail-back.spec.ts), [`e2e/post-detail-back.mobile.spec.ts`](../e2e/post-detail-back.mobile.spec.ts)   | §10 "시행착오" 참고 — `role`만으로 찾으면 Sidebar의 숨은 사본과 strict mode 위반이 난다                                                                                    |
@@ -181,14 +181,18 @@ sticky를 걷어내는 과정 자체의 시행착오(0/12/16/24px 후보 비교,
 - **standalone PWA(홈 화면 추가) 모바일 사용자**는 정확한 위치 복귀 대신 `BottomTabBar`의
   Feed 탭(목록 최상단)으로만 돌아간다 — 의도적으로 받아들인 트레이드오프지만, 이
   사용자층 비중이 커지면 재검토 대상이다.
-- `PostCard.tsx:191,355`(제목 링크·댓글 수 버튼)이 `isDetail`일 때도 자기 자신
+- `PostCard.tsx:193,360`(제목 링크·댓글 수 버튼)이 `isDetail`일 때도 자기 자신
   (`/post/{id}`)을 링크해 상세에서 제목을 눌러도 히스토리가 쌓이는 기존 버그는 이번
   범위 밖으로 그대로 남아 있다(PR #100 노트에서 이미 명시, 2026-09-29 줄번호 재확인).
   정정(2026-09-30): 같은 주소로 가는 링크는 react-router `useLinkClickHandler`가 push가
   아니라 replace로 바꾸므로 히스토리가 쌓이지는 않는다. 대신 현재 엔트리가 교체돼 state
   (`backSource`)와 `'default'` key가 사라진다 — 공유 링크로 들어와 제목을 누르면 라벨이
   "뒤로가기"가 되고 `useGoBack`도 `navigate(-1)`로 바뀐다(`e2e/post-detail-back-label.spec.ts`의
-  네 번째(마지막) 케이스가 이 동작을 고정한다).
+  네 번째(마지막) 케이스가 이 동작을 고정한다). 댓글 수 버튼은 2026-10-14부터 댓글 작성 폼으로
+  스크롤하려고 `/post/{id}#comments`로 가는데, 해시가 붙어 같은 주소가 아니므로 `replace={isDetail}`를
+  명시해 같은 replace 동작을 유지하고, `preventScrollReset`으로 맨 위로 올라갔다 내려오지 않게 한다
+  (replace를 빼면 돌아가기가 같은 글로 돌아간다 —
+  `e2e/comment-icon-scroll.spec.ts`, [`COMMENT.md`](./COMMENT.md) "해시 이동").
 - `backSource`가 없는 유입 경로(북마크·내 댓글 등)는 전부 중립 라벨 "뒤로가기"로
   뭉뚱그려져 있다 — 특정 경로에 전용 라벨을 붙이고 싶으면 §8 레시피를 따른다.
 - **2026-09-19 추가**: `PostList`·`BookmarkPostList`가 가상 스크롤로 바뀌면서, 여기 적힌

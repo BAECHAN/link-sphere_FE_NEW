@@ -1,8 +1,10 @@
 import {
   useMutation,
+  usePrefetchQuery,
   useSuspenseQuery,
   useSuspenseInfiniteQuery,
   useQueryClient,
+  type QueryClient,
 } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { commentApi } from '@/entities/comment/api/comment.api';
@@ -76,6 +78,27 @@ function isFirstOccurrence(id: string, seen: Set<string>): boolean {
 
 export const useSuspenseComments = (postId: string) => {
   return useSuspenseQuery({
+    queryKey: commentKeys.list(postId),
+    queryFn: () => commentApi.getComments(postId),
+  });
+};
+
+/** hover 시 댓글 미리 로드 — useSuspenseComments 와 동일 키/queryFn */
+export const prefetchComments = (queryClient: QueryClient, postId: string) => {
+  queryClient.prefetchQuery({
+    queryKey: commentKeys.list(postId),
+    queryFn: () => commentApi.getComments(postId),
+  });
+};
+
+/**
+ * 렌더 중에 댓글 요청을 시작만 하고 기다리지 않는다 — useSuspenseComments 와 동일 키/queryFn.
+ * 게시글을 기다리는 suspense 경계 바깥에서 불러, 게시글이 온 뒤에야 CommentList가 마운트돼
+ * 요청하던 순차 요청(워터폴)을 없앤다
+ * (https://github.com/tanstack/query/blob/main/docs/framework/react/guides/prefetching.md).
+ */
+export const usePrefetchComments = (postId: string) => {
+  usePrefetchQuery({
     queryKey: commentKeys.list(postId),
     queryFn: () => commentApi.getComments(postId),
   });

@@ -4,6 +4,7 @@ import { useIsMutating, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/lib/toast/toast';
 import { Post } from '@/entities/post/model/post.schema';
 import { useFetchAccountQuery } from '@/entities/account/api/account.queries';
+import { prefetchComments } from '@/entities/comment/api/comment.queries';
 import {
   prefetchPostDetail,
   useUpdatePostVisibilityMutation,
@@ -135,6 +136,13 @@ export function usePostCard(post: Post, isDetail = false) {
     navigate(ROUTES_PATHS.POST.EDIT.replace(':id', post.id));
   };
 
+  // 댓글 아이콘 hover·focus용 — 댓글을 보러 간다는 의도가 분명해 댓글까지 미리 받는다.
+  // 제목 링크는 ::after가 카드 전체를 덮어 카드 위를 지나가기만 해도 발동하므로 게시글만 받는다
+  const handlePrefetchDetailWithComments = () => {
+    prefetchPostDetail(queryClient, post.id);
+    prefetchComments(queryClient, post.id);
+  };
+
   const handlePrefetchDetail = () => {
     prefetchPostDetail(queryClient, post.id);
   };
@@ -171,6 +179,7 @@ export function usePostCard(post: Post, isDetail = false) {
     handleCopyOriginalUrl,
     handleNavigateToEdit,
     handlePrefetchDetail,
+    handlePrefetchDetailWithComments,
     handleCategoryClick,
   };
 }

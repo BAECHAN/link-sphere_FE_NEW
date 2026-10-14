@@ -187,6 +187,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   2026-08-04 항목.
 - **프리페치**: 제목 링크의 `onMouseEnter`·`onFocus`가 `prefetchPostDetail`을 부른다
   (`usePostCard.ts`의 `handlePrefetchDetail`). 상세와 같은 키·`queryFn`이라 클릭 시 캐시가 바로 쓰인다.
+  댓글 아이콘(💬)의 hover·focus는 게시글과 댓글을 함께 미리 받고(`handlePrefetchDetailWithComments`),
+  상세 페이지는 들어올 때 댓글을 게시글과 동시에 요청한다([`COMMENT.md`](./COMMENT.md) "해시 이동").
 - **소유자 액션**(`isOwner`일 때만): 비공개 글이면 자물쇠 버튼(누르면 공개 전환),
   그리고 ⋮(`HoverKebabMenu`) 안에 수정·공개/비공개 전환·삭제.
 - **AI 결과 표시**: `aiSummary`가 있을 때만 접이식 "AI 요약" 블록. 설명이 없고
@@ -194,7 +196,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   한 줄(`TEXTS.post.card.metadataUnavailable`). **AI 처리 대기 중 표시나 폴링은 없다** — §11.
 - **수정 중 오버레이**: 같은 글의 수정 mutation이 진행 중이면(`useIsMutating`, 500ms 지연 +
   최소 400ms 유지, `usePostCard.ts:46-49`) 내용을 흐리게 하고 "수정 중..." 오버레이로 클릭을
-  막는다(`PostCard.tsx:86`, `:100-105`). 2026-10-03부터 수정 폼이 응답을 기다리므로 평소엔 보일
+  막는다(`PostCard.tsx:88`, `:102-107`). 2026-10-03부터 수정 폼이 응답을 기다리므로 평소엔 보일
   일이 없고, 저장 중에 이탈 확인창에서 "나가기"를 골라 목록으로 먼저 돌아간 경우에만 뜬다.
 
 ### 상세
