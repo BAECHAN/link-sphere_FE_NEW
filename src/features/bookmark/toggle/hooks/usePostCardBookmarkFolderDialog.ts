@@ -89,13 +89,28 @@ export function usePostCardBookmarkFolderDialog({
     const wasInFolders = isBookmarked && bookmarkFolderIds.length > 0;
 
     try {
-      await selectUncategorized();
-      toast.success(
-        wasInFolders
-          ? TEXTS.messages.success.bookmarkClearedAllFolders
-          : TEXTS.messages.success.bookmarkSavedTo(TEXTS.bookmark.folder.uncategorized),
-        viewSavedOptions('uncategorized')
-      );
+      const saved = await selectUncategorized();
+      // 낡은 화면에서 저장했는데 서버엔 이미 폴더 소속이 있었다면 저장은 그 소속을 유지한다 —
+      // 미분류에 저장된 게 아니므로 그 사실을 알리고, 어느 폴더인지는 전체 목록에서 보게 한다
+      const isInOtherFolders = !wasInFolders && saved.folderIds.length > 0;
+
+      if (wasInFolders) {
+        toast.success(
+          TEXTS.messages.success.bookmarkClearedAllFolders,
+          viewSavedOptions('uncategorized')
+        );
+      } else if (isInOtherFolders) {
+        toast.success(
+          TEXTS.messages.success.bookmarkAlreadyInOtherFolders,
+          viewSavedOptions('all')
+        );
+      } else {
+        toast.success(
+          TEXTS.messages.success.bookmarkSavedTo(TEXTS.bookmark.folder.uncategorized),
+          viewSavedOptions('uncategorized')
+        );
+      }
+
       onOpenChange(false);
     } catch {
       toast.error(TEXTS.messages.error.bookmarkSaveFailed);

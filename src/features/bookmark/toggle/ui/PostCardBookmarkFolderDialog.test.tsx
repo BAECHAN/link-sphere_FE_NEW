@@ -4,6 +4,7 @@ import { renderWithProviders, userEvent } from '@/test/utils';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { toast } from '@/shared/lib/toast/toast';
 import {
   PostCardBookmarkFolderDialog,
@@ -21,6 +22,14 @@ import type {
 function renderFolderSelect(props: BookmarkFolderSelectRenderProps) {
   return <BookmarkFolderSelectDialog {...props} />;
 }
+
+// 토스트 "보기"가 어느 폴더로 보내는지 확인한다
+const navigateSpy = vi.fn();
+
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>();
+  return { ...actual, useNavigate: () => navigateSpy };
+});
 
 // 데스크탑 모달 스타일로 고정 — matchMedia 스텁만으로는 useIsMobile 값이 effect 이후에나 정해져 불안정하다
 vi.mock('@/shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }));
@@ -341,8 +350,36 @@ describe('PostCardBookmarkFolderDialog', () => {
 
     const [message, options] = vi.mocked(toast.success).mock.calls[0]!;
     expect(message).toBe('미분류에 저장했어요.');
-    const action = options?.action as unknown as { label: string };
+    const action = options?.action as unknown as { label: string; onClick: () => void };
     expect(action.label).toBe('보기');
+    action.onClick();
+    expect(navigateSpy).toHaveBeenCalledWith(`${ROUTES_PATHS.BOOKMARK}?folder=uncategorized`);
+  });
+
+  // 다른 기기에서 이미 폴더에 저장한 글을 낡은 화면에서 "미분류"로 저장한 경우 — 서버는 기존 소속을
+  // 유지하므로(PUT은 폴더를 건드리지 않음) "미분류에 저장했어요"는 사실이 아니다
+  it('미분류를 탭했는데 서버엔 이미 다른 폴더 소속이 있으면 그 사실을 알리고, 보기는 북마크 전체로 보낸다', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.put(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () =>
+        HttpResponse.json(
+          { status: 200, message: 'ok', data: bookmarkFoldersResponse([FOLDER_A]), timestamp: '' },
+          { status: 200 }
+        )
+      )
+    );
+    renderDialog({ isBookmarked: false, bookmarkFolderIds: [] });
+
+    await waitFor(() => expect(screen.getByRole('button', { name: /^미분류/ })).toBeEnabled());
+    await user.click(screen.getByText('미분류'));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+
+    const [message, options] = vi.mocked(toast.success).mock.calls[0]!;
+    expect(message).toBe('이미 다른 폴더에 저장돼 있어요.');
+    const action = options?.action as unknown as { onClick: () => void };
+    action.onClick();
+    expect(navigateSpy).toHaveBeenCalledWith(`${ROUTES_PATHS.BOOKMARK}?folder=all`);
   });
 
   it('소속 폴더가 있는 상태에서 미분류를 탭하면 여전히 전체 해제된다', async () => {

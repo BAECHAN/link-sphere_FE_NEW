@@ -26,6 +26,14 @@
 
   </details>
 
+- `bookmark` 이미 폴더에 있는 글을 미분류로 저장하면 잘못된 토스트가 뜨던 문제
+  <details><summary>배경·구현</summary>
+
+  다른 기기에서 이미 폴더에 저장한 글을 낡은 화면에서 "미분류"로 저장하면, 서버는 기존 폴더 소속을 그대로 두는데 토스트는 "미분류에 저장했어요."를 띄우고 "보기"도 미분류로 보냈다. 저장 응답의 `folderIds`에 소속이 있으면 "이미 다른 폴더에 저장돼 있어요."를 띄우고 "보기"는 북마크 전체로 보낸다.
+  (`usePostCardBookmarkFolderDialog.ts`, `useBookmarkFolders.ts`, `texts.ts`, [PR #363](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/363))
+
+  </details>
+
 - `shared` 입력 직후의 바깥 클릭·뒤로가기를 가드가 놓칠 수 있던 문제 수정
   <details><summary>배경·구현</summary>
 

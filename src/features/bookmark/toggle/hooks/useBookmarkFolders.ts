@@ -33,14 +33,14 @@ export function useBookmarkFolders(
   const { mutateAsync: removeBookmarkFolder } = useRemoveBookmarkFolderMutation(postId);
   const { mutateAsync: clearBookmarkFolders } = useClearBookmarkFoldersMutation(postId);
 
+  // 서버 응답을 돌려준다 — 낡은 화면에서 저장하면 응답의 folderIds에 화면에 없던 기존 소속이 담겨 온다
   const selectUncategorized = async () => {
     if (isBookmarked && bookmarkFolderIds.length > 0) {
-      await clearBookmarkFolders();
-      return;
+      return clearBookmarkFolders();
     }
 
     // 미북마크면 저장, 이미 미분류(소속 0개)면 완전 삭제
-    await setBookmark(!isBookmarked);
+    return setBookmark(!isBookmarked);
   };
 
   const selectFolder = async (folderId: string) => {
