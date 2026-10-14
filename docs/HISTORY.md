@@ -1,4 +1,7 @@
 ### 2026-10-14 (FE)
+- 카드 댓글 인터랙션 최적화: 댓글 아이콘 클릭 시 작성 폼으로 자동 스크롤 및 선제적 데이터 페칭 구현 ([#375](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/375))
+
+### 2026-10-14 (FE)
 - Broadcast Channel API를 활용하여 브라우저 탭 간 실시간 인증 상태 동기화 및 뒤로가기 시 로그인 상태 복원 로직 구현 ([#376](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/376))
 
 ### 2026-10-14 (FE)
