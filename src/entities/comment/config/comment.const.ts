@@ -31,3 +31,11 @@ export const MAX_COMMENT_PAYLOAD_BYTES = 7_500;
  * 실측 150~160바이트대라 여유를 두고 200으로 잡는다.
  */
 export const ESTIMATED_IMAGE_URL_BYTES = 200;
+
+/**
+ * 게시글 카드의 댓글 아이콘이 붙이는 해시. CommentList가 이 값을 보고 댓글 영역(제목 +
+ * 데스크톱 작성 폼)으로 스크롤한다. DOM id로 두지 않는다 - 같은 id의 요소가 있으면
+ * react-router ScrollRestoration이 먼저 즉시 점프해(캐시 재방문·상세 안 클릭) 부드러운
+ * 스크롤이 안 보인다.
+ */
+export const COMMENT_SECTION_HASH = '#comments';

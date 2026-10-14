@@ -25,6 +25,20 @@
 
   </details>
 
+- `comment` 카드의 댓글 아이콘을 누르면 상세의 댓글 작성 폼으로 스크롤
+  <details><summary>배경·구현</summary>
+
+  피드·북마크·상세 카드의 💬이 상세 맨 위로만 가서 댓글을 쓰려면 직접 내려가야 했다. 링크를 `/post/:id#comments`로 바꾸고, "내 댓글"이 이미 쓰던 해시 이동(`scrollToHashedComment`)에 `#comments` 분기를 더해 작성 폼으로 부드럽게 스크롤한다. 데스크톱은 플로팅 버튼(`ScrollToCommentFormButton`)처럼 입력창에 포커스하고, 인라인 폼이 없는 모바일은 "댓글 N" 제목까지만 오고 하단 바는 접힌 채 둔다. 즉시 이동·직접 만든 250ms·브라우저 기본 smooth 세 안을 녹화로 나란히 비교해, 기존 댓글 화면 스크롤과 같고 업계 표준(Bootstrap·Tailwind)인 브라우저 기본을 골랐다(근거·측정은 `docs/COMMENT.md` "해시 이동"). `#comments`는 DOM id가 아니라 `CommentList`가 ref로 찾는 신호다 — id가 있으면 react-router `ScrollRestoration`이 먼저 즉시 점프해 재방문·상세 안 클릭에서 부드러운 스크롤이 안 보였다. 상세 안의 💬은 `replace`(돌아가기가 같은 글로 가지 않게)와 `preventScrollReset`(맨 위로 올라갔다 내려오지 않게)으로 이동한다. 함께 고친 것: 해시로 들어온 뒤 이미지 뷰어·북마크 폴더 창 같은 오버레이를 열었다 닫으면 해시가 되살아나 대상 위치로 다시 끌려가던 문제("내 댓글"에도 있었다) — 이미 이동한 히스토리 엔트리면 건너뛴다. 주소창에는 `#comments`가 남지만 공유 버튼 링크에는 붙지 않는다. 계획 `docs/plans/2026-10-14-comment-icon-scroll-to-form.md`. (`PostCard.tsx`, `CommentList.tsx`, `comment.const.ts`, `e2e/comment-icon-scroll.spec.ts`·`e2e/comment-icon-scroll.mobile.spec.ts`(신규), `docs/COMMENT.md`, `docs/POST-DETAIL-BACK-NAVIGATION.md`, [PR #375](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/375))
+
+  </details>
+
+- `comment` 상세의 댓글을 게시글과 동시에 받고, 💬에 마우스를 올리면 미리 받기
+  <details><summary>배경·구현</summary>
+
+  상세의 `CommentList`가 게시글을 기다리며 멈추는 경계 안에 있어, 게시글 응답이 와야 댓글을 요청하는 순차 요청이었다. `PostDetailPage`가 경계 바깥에서 `usePrefetchQuery`로 댓글 요청을 함께 시작하고(TanStack Query 프리페치 가이드의 "게시글 + 댓글" 예시와 같은 구조), `CommentList`는 같은 키의 캐시를 읽는다. 카드의 💬 hover·focus는 게시글과 댓글을 미리 받는다 — 제목 링크는 카드 전체를 덮어 지나가기만 해도 발동하므로 지금처럼 게시글만 받는다. 💬 클릭부터 댓글 폼 도착까지(직접 측정, API당 300ms 목 응답): 순차 약 1.15초 → 동시 요청 약 0.86초 → 0.4초 hover 후 클릭 약 0.53초. 알려진 부작용: 주소의 id 형식이 잘못되면 게시글·댓글 둘 다 400을 받아 토스트가 2개 뜬다(전 1개, 직접 측정 — 미리 받기 실패를 조용히 하면 일시 실패 때 알림이 사라져 그대로 둠). 계획 `docs/plans/2026-10-14-comment-scroll-speed.md`. (`comment.queries.ts`, `usePostDetail.ts`, `PostDetailPage.tsx`, `usePostCard.ts`, `PostCard.tsx`, `e2e/post-detail-comment-prefetch.spec.ts`(신규), `docs/COMMENT.md`, `docs/POST.md`, [PR #375](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/375))
+
+  </details>
+
 - `shared` 앱·탭 전환 후 돌아올 때도 새 배포를 확인
   <details><summary>배경·구현</summary>
 

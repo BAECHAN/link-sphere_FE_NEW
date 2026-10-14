@@ -33,6 +33,7 @@ import {
   CATEGORY_COLOR_CLASSNAME,
   CATEGORY_COLOR_COUNT,
 } from '@/entities/category/config/category.const';
+import { COMMENT_SECTION_HASH } from '@/entities/comment/config/comment.const';
 
 // 북마크 버튼(features/bookmark/toggle)과 폴더 선택 창(features/bookmark/select)은 같은
 // 레이어라 서로 import하지 않는다 — 위층인 여기서 창을 넘긴다. 모듈 최상단에 둬 렌더마다
@@ -79,6 +80,7 @@ export const PostCard = memo(function PostCard({
     handleCopyOriginalUrl,
     handleNavigateToEdit,
     handlePrefetchDetail,
+    handlePrefetchDetailWithComments,
     handleCategoryClick,
   } = usePostCard(post, isDetail);
 
@@ -352,7 +354,17 @@ export const PostCard = memo(function PostCard({
             likeCount={post.stats.likeCount}
           />
           <div className="w-px h-3 bg-muted-foreground/20 mx-0.5 md:mx-1" />
-          <Link to={`/post/${post.id}`} state={backSource ? { backSource } : undefined}>
+          {/* 댓글 영역으로 스크롤한다(CommentList의 해시 이동). 상세 안에서는 replace로 같은 글
+              엔트리를 하나 더 쌓지 않고(쌓이면 돌아가기 navigate(-1)가 같은 글로 돌아간다),
+              preventScrollReset으로 ScrollRestoration이 맨 위로 올렸다 내려오지 않게 한다 */}
+          <Link
+            to={`/post/${post.id}${COMMENT_SECTION_HASH}`}
+            replace={isDetail}
+            preventScrollReset={isDetail}
+            state={backSource ? { backSource } : undefined}
+            onMouseEnter={handlePrefetchDetailWithComments}
+            onFocus={handlePrefetchDetailWithComments}
+          >
             <Button
               variant="none"
               size="sm"

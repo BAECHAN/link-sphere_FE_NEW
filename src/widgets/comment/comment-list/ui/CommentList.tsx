@@ -5,6 +5,7 @@ import { MobileCommentBar } from '@/features/comment/create/ui/MobileCommentBar'
 import { ScrollToCommentFormButton } from '@/widgets/comment/comment-list/ui/ScrollToCommentFormButton';
 import { CommentItem } from '@/widgets/comment/comment-list/ui/CommentItem';
 import { Comment as PostComment } from '@/entities/comment/model/comment.schema';
+import { COMMENT_SECTION_HASH } from '@/entities/comment/config/comment.const';
 import { useCommentList } from '@/widgets/comment/comment-list/hooks/useCommentList';
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { Divider } from '@/shared/ui/atoms/divider';
@@ -34,16 +35,42 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
   // 앵커 링크(#id) 이동과 같은 "시작부를 위로" 정렬로 맞춘다. sticky navbar에 가려지지
   // 않도록 앵커 요소(CommentItem 루트)에 scroll-mt-(--navbar-height)를 함께 둔다(아래
   // CommentForm 컨테이너의 scroll-mt-(--navbar-height)와 동일 패턴).
+  //
+  // 게시글 카드의 댓글 아이콘(#comments)은 댓글 하나가 아니라 작성 폼으로 보낸다 -
+  // ScrollToCommentFormButton처럼 부드럽게 스크롤 + 포커스하고, 모바일은 인라인 폼이 없어
+  // 제목까지만 온다(commentFormRef가 null). 이 해시는 DOM id가 아니라 ref로 찾는다 - id가
+  // 있으면 ScrollRestoration이 먼저 즉시 점프해 부드러운 스크롤이 안 보인다. 즉시 이동·직접
+  // 만든 250ms와 비교한 근거는 docs/COMMENT.md "해시 이동".
+  //
+  // 오버레이(이미지 뷰어·북마크 폴더 창 등, useHistoryOverlay)는 해시를 빼고 push하므로 닫는
+  // 뒤로가기(POP)에서 해시가 되살아난다. 이미 이동한 엔트리(같은 location.key)로 돌아온
+  // 것이라 다시 끌어오지 않는다. 같은 이유로 StrictMode의 effect 재실행도 건너뛰므로, 강조
+  // 해제 타이머는 cleanup에서 취소하지 않는다(취소하면 링이 남는다).
+  const scrolledEntryKeyRef = useRef<string | null>(null);
+
   useEffect(
     function scrollToHashedComment() {
-      if (!location.hash) {
+      if (!location.hash || scrolledEntryKeyRef.current === location.key) {
         return;
       }
-      const target = document.querySelector<HTMLElement>(location.hash);
+
+      const isCommentSection = location.hash === COMMENT_SECTION_HASH;
+      const target = isCommentSection
+        ? formContainerRef.current
+        : document.querySelector<HTMLElement>(location.hash);
+
       if (!target) {
         return;
       }
+
+      scrolledEntryKeyRef.current = location.key;
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      if (isCommentSection) {
+        commentFormRef.current?.focus();
+        return;
+      }
+
       target.classList.add(
         'rounded-lg',
         'ring-2',
@@ -51,7 +78,7 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
         'ring-offset-2',
         'ring-offset-background'
       );
-      const timer = setTimeout(() => {
+      setTimeout(() => {
         target.classList.remove(
           'rounded-lg',
           'ring-2',
@@ -60,9 +87,8 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
           'ring-offset-background'
         );
       }, 1600);
-      return () => clearTimeout(timer);
     },
-    [location.hash]
+    [location.hash, location.key]
   );
 
   return (

@@ -127,6 +127,7 @@ Playwright e2e(`page.route()` 모킹), Storybook 인터랙션 테스트 — §9 
 
 - `useCommentList`(`src/widgets/comment/comment-list/hooks/useCommentList.ts:14-23`)가
   루트 댓글만 `createdAt` 내림차순으로 다시 정렬한다. 답글은 서버가 준 순서 그대로다.
+- 상세에 들어가면 댓글은 게시글과 동시에 요청된다(§5 "내 댓글" 절의 해시 이동, 기다림 줄이기 항목).
 - 헤딩 옆 개수(`countComments`, 같은 파일 6-8줄)는 답글과 **삭제된 톰스톤까지** 센다 —
   `PostCard`의 `commentCount`와 맞추기 위해서다.
 - 답글은 한 단계만 허용한다. 답글 버튼 조건은
@@ -337,11 +338,55 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 **해시 이동**: 상세의 `CommentList`가 `location.hash`로 대상을 찾아
 `scrollIntoView({ behavior: 'smooth', block: 'start' })`하고 1.6초 동안 링으로 강조한다
-(`src/widgets/comment/comment-list/ui/CommentList.tsx:37-66`). 대상 요소는
+(`src/widgets/comment/comment-list/ui/CommentList.tsx:49-92`). 대상 요소는
 `CommentItem` 루트의 `id="comment-<id>"`이고, sticky navbar에 가리지 않도록
 `scroll-mt-[calc(var(--navbar-height)_+_24px)]`를 둔다(CommentItem.tsx 45·51줄). 상세의
 돌아가기 버튼 라벨은 [`POST-DETAIL-BACK-NAVIGATION.md`](./POST-DETAIL-BACK-NAVIGATION.md)가
 다룬다.
+
+- **카드 댓글 아이콘(`#comments`, 2026-10-14)** — 피드·북마크·상세 카드의 💬은
+  `/post/:id#comments`로 간다(`PostCard.tsx:360`). 대상은 댓글 제목과 데스크톱 작성 폼을 감싼
+  컨테이너(`formContainerRef`)라 링 대신 플로팅 버튼처럼 부드럽게 스크롤한 뒤 입력창에 포커스한다.
+  모바일은 인라인 폼이 없어 제목까지만 오고 하단 바는 접힌 채다.
+- **`#comments`는 DOM id가 아니라 신호다** — 같은 id의 요소가 있으면 react-router
+  `ScrollRestoration`이 이 effect보다 먼저 그 요소로 즉시 점프해(캐시가 있는 재방문·상세 안 클릭)
+  부드러운 스크롤이 안 보였다(시안 녹화로 확인). 그래서 `CommentList`가 해시(`COMMENT_SECTION_HASH`,
+  `src/entities/comment/config/comment.const.ts:41`)를 보고 ref로 찾는다. 상세 안 💬은 `replace`
+  (돌아가기가 같은 글로 가지 않게)와 `preventScrollReset`(ScrollRestoration이 맨 위로 올렸다
+  내려오지 않게)을 함께 준다.
+- **스크롤 방식은 브라우저 기본 `smooth`(2026-10-14)** — 세 안을 같은 화면으로 녹화해 나란히
+  비교했다(애니메이션 시간은 직접 측정, dev 서버·Playwright chromium).
+
+  | 안                           | 애니메이션                  | 결과                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+  | ---------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | A 즉시(`behavior: 'auto'`)   | 0ms                         | 기각 — "갑자기 댓글이 보이면 당황하고, 화면이 확 바뀌면 거부감이 든다"(사용자 피드백). NN/g의 Laubheimer는 앵커 링크의 부드러운 스크롤이 _"콘텐츠가 모두 한 페이지 안에 있다는 것과 그것이 페이지의 어디에 있는지를 보여준다"_ (번역, [The Role of Animation and Motion in UX](https://www.nngroup.com/articles/animation-purpose-ux/))고 쓴다                                                                                                                              |
+  | B 직접 만든 250ms(ease-out)  | 216~234ms                   | 기각 — `scrollTo`·`scrollIntoView`에는 지속시간 옵션이 없어([MDN](https://developer.mozilla.org/en-US/docs/Web/API/Window/scrollTo)) 프레임마다 위치를 옮기는 코드를 직접 짜야 하고, 💬 하나만 다른 댓글 화면 스크롤과 방식이 달라진다. 지속시간 조절은 [GSAP ScrollToPlugin](https://gsap.com/docs/v3/Plugins/ScrollToPlugin/) 같은 애니메이션 라이브러리의 몫이다                                                                                                         |
+  | **C 브라우저 기본 `smooth`** | 데스크톱 416ms·모바일 500ms | 채택 — 플로팅 버튼·내 댓글 이동과 같은 방식이고, [Bootstrap](https://getbootstrap.com/docs/5.3/getting-started/accessibility/)·[Tailwind](https://tailwindcss.com/docs/scroll-behavior)도 브라우저 기본 `scroll-behavior: smooth`를 쓴다. 다만 Laubheimer는 _"400ms는 아주 느린 애니메이션이라 큰 화면을 가로지르는 큰 움직임에만 쓴다"_ (번역, [Executing UX Animations](https://www.nngroup.com/articles/animation-duration/))고 쓰므로, 기다림은 아래 미리 받기로 줄였다 |
+
+- **기다림 줄이기(2026-10-14)** — 게시글을 기다리며 멈추는 `PostDetailContent` 안에 `CommentList`가
+  있어, 게시글이 와야 댓글을 요청하는 순차 요청이었다. 두 가지로 줄였다.
+  - 상세 진입: `PostDetailPage`가 경계 바깥에서 `usePostDetailPrefetch`(`src/pages/post/hooks/usePostDetail.ts:81`)
+    → `usePrefetchComments`(`src/entities/comment/api/comment.queries.ts:100`)를 불러 댓글을
+    게시글과 동시에 요청한다. `CommentList`는 같은 키의 캐시를 읽어 다시 요청하지 않는다
+    ([TanStack Query 프리페치 가이드](https://github.com/tanstack/query/blob/main/docs/framework/react/guides/prefetching.md)의 "게시글 + 댓글" 예시와 같은 구조).
+  - 💬 hover·focus: `handlePrefetchDetailWithComments`(`src/widgets/post/post-card/hooks/usePostCard.ts:141`)가
+    게시글과 `prefetchComments`(`comment.queries.ts:87`)를 미리 받는다. 제목 링크는 `::after`가
+    카드 전체를 덮어 카드 위를 지나가기만 해도 발동하므로 지금처럼 게시글만 받는다.
+
+  클릭부터 도착까지(직접 측정, API당 300ms 목 응답, 3회 반복):
+
+  | 방식                             | 0.4초 hover 후 클릭 | 바로 클릭 |
+  | -------------------------------- | ------------------- | --------- |
+  | 순차 요청(이전)                  | 약 1.15초           | 약 1.18초 |
+  | + 동시 요청                      | 약 0.86초           | 약 0.88초 |
+  | + 동시 요청 + 💬 hover 미리 받기 | 약 0.53초           | 약 0.81초 |
+
+- **한 엔트리에 한 번만** — 오버레이(이미지 뷰어·북마크 폴더 창 등, `useHistoryOverlay`)는
+  해시를 빼고 push해서, 닫는 뒤로가기(POP)에서 해시가 되살아난다. 그때마다 다시 스크롤하면
+  보던 자리에서 대상으로 끌려가므로(가드를 빼면 17px → 763px, `e2e/comment-icon-scroll.spec.ts`)
+  처리한 `location.key`를 ref에 기억해 같은 엔트리면 건너뛴다. 새로고침·다른 화면에서 돌아오기는
+  다시 마운트돼 ref가 비므로 예전처럼 다시 이동한다. 같은 가드가 StrictMode의 effect 재실행도
+  건너뛰므로 강조 해제 타이머는 cleanup에서 취소하지 않는다(취소하면 링이 남는다).
 
 ### 모바일 댓글 바 · 데스크톱 플로팅 버튼
 
@@ -357,7 +402,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   pathname 이동을 통과시키므로, 언마운트하면 쓰던 글이 경고 없이 사라진다.
 - 펼친 시트의 `z-scrim`은 사이드바 백드롭과 같은 층이다 — 미해결 충돌(§11), 근거는
   [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md) §4.
-- 두 컴포넌트는 `space-y-6` 형제 목록 **밖**에 둔다(CommentList.tsx 105-120줄). 안에 두면
+- 두 컴포넌트는 `space-y-6` 형제 목록 **밖**에 둔다(CommentList.tsx 131-146줄). 안에 두면
   마운트·언마운트 때마다 24px 레이아웃이 흔들린다(§10).
 
 ### 캐시 무효화 범위
@@ -417,7 +462,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 리사이즈 최대 변 길이        | 1600px                  | `src/shared/lib/upload/uploadImageAndGetUrl.ts:50`                                                           |
 | 원본 파일 상한               | 30MB                    | `src/shared/lib/image/resizeImage.ts:13`                                                                     |
 | SVG·GIF(리사이즈 안 함) 상한 | 10MB(버킷과 같게)       | `src/shared/lib/image/resizeImage.ts:21`                                                                     |
-| 해시 이동 강조 시간          | 1600ms                  | `src/widgets/comment/comment-list/ui/CommentList.tsx:62`                                                     |
+| 해시 이동 강조 시간          | 1600ms                  | `src/widgets/comment/comment-list/ui/CommentList.tsx:89`                                                     |
 | 빈 제출 강조 시간            | 1300ms                  | `src/features/comment/create/ui/CommentForm.tsx:81`, `src/features/comment/update/ui/CommentEditForm.tsx:58` |
 | 내 댓글 선반입 거리          | 아래 1200px             | `src/widgets/comment/my-comment-list/hooks/useMyCommentList.ts:19`                                           |
 | 해시 도착 여백               | navbar + 24px           | `src/widgets/comment/comment-list/ui/CommentItem.tsx:51`                                                     |
@@ -440,7 +485,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 단계                            | 파일:줄                                                                                                                            |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | 목록 정렬·개수                  | `src/widgets/comment/comment-list/hooks/useCommentList.ts:6-23`                                                                    |
-| 목록 렌더·해시 이동·진입점 배치 | `src/widgets/comment/comment-list/ui/CommentList.tsx:20-123`                                                                       |
+| 목록 렌더·해시 이동·진입점 배치 | `src/widgets/comment/comment-list/ui/CommentList.tsx:21-149`                                                                       |
 | 댓글 한 개(액션·답글 폼·재귀)   | `src/widgets/comment/comment-list/ui/CommentItem.tsx:26-183`                                                                       |
 | 작성 검증·제출·복원             | `src/features/comment/create/hooks/useCreateComment.ts:32-214`                                                                     |
 | 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx:31-201`                                                                            |
@@ -469,7 +514,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 답글 깊이 늘리기         | BE 변경이 먼저다 — BE `CommentService.kt`가 답글에 대한 답글을 "Max Depth 1"로 거절한다(답글 등록의 Depth Check). FE도 `CommentItem.tsx:40`의 `depth < 1`만으로는 안 되고, `useCreateReplyMutation`이 루트의 `replies`만 찾으므로(comment.queries.ts 170-179줄) 함께 고친다 |
 | 루트 정렬을 오래된순으로 | `useCommentList.ts:16-18`의 비교 순서를 뒤집는다. 낙관적 삽입 위치(맨 앞)도 함께 맞춘다                                                                                                                                                                                     |
 | 무효화 범위 조정         | `comment.keys.ts`의 `handleComment*Success`만 고친다(feature 훅에서 직접 무효화 금지)                                                                                                                                                                                       |
-| 해시 이동 정렬·강조 시간 | `CommentList.tsx:46`(`block`), `:62`(시간), 도착 여백은 `CommentItem.tsx:51`                                                                                                                                                                                                |
+| 해시 이동 정렬·강조 시간 | `CommentList.tsx:67`(`block`), `:89`(시간), 도착 여백은 `CommentItem.tsx:51`                                                                                                                                                                                                |
 | 실패 문구 바꾸기         | `texts.ts`의 `messages.error.commentSubmit`(본 요청)·`uploadSubmit`(업로드 단계, 등록·저장 두 벌). 새 원인을 나누려면 `CommentUtil.resolveSubmitError`에 분기를 더한다                                                                                                      |
 | 좋아요 실패 시 안내 추가 | `useLikeCommentMutation`의 `meta.manualErrorHandling`을 빼면 전역 토스트가 뜬다                                                                                                                                                                                             |
 | 테스트 실행              | `npx vitest run src/entities/comment src/features/comment`, e2e는 `pnpm test:e2e e2e/comment.spec.ts`                                                                                                                                                                       |
@@ -517,8 +562,16 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 - `e2e/post-detail-search-overlay.mobile.spec.ts` — 검색을 열면 댓글 바가 사라지고, 닫으면
   쓰던 내용이 남음
 
-**테스트 공백**: `useLikeCommentMutation`과 해시 이동(`scrollToHashedComment`)은
-단위·e2e 어디에도 전용 테스트가 없다. `useDeleteComment`는 단위 테스트만 없다 —
+해시 이동은 2026-10-14 `e2e/comment-icon-scroll.spec.ts`(데스크톱 5개)·
+`e2e/comment-icon-scroll.mobile.spec.ts`(1개)·`e2e/post-detail-comment-prefetch.spec.ts`(3개)를
+추가해 돌렸고 모두 통과했다 — 피드·북마크·상세 카드 💬 → "댓글 N" 제목이 navbar 바로 아래·입력창
+포커스, 상세 💬은 누르기 전 위치보다 위로 튀지 않고 돌아가기 한 번에 피드, 오버레이를 열고 닫아도
+제자리, `#comment-<id>` 스크롤과 링 해제, 모바일은 제목까지·바 접힘, 상세 진입 때 게시글 응답 전에
+댓글 요청(총 1회), 💬 hover는 게시글·댓글을, 제목 hover는 게시글만 미리 받음. 엔트리 가드·`replace`·
+`preventScrollReset`·포커스·타이머 cleanup·`usePostDetailPrefetch` 호출·💬 `onMouseEnter`를 하나씩
+되돌리면 해당 테스트가 실패하는 것도 확인했다.
+
+**테스트 공백**: `useLikeCommentMutation`은 단위·e2e 어디에도 전용 테스트가 없다. `useDeleteComment`는 단위 테스트만 없다 —
 `e2e/comment-delete.spec.ts`가 확인 다이얼로그(확정 버튼 포커스 포함)부터 하드 삭제·
 톰스톤까지 이 훅을 거쳐 검증한다.
 
@@ -574,7 +627,7 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 
 **정정**: `docs/DECISIONS.md` 2026-09-14 "포스트 상세 돌아가기 버튼" 항목의 배경은 아직
 `scrollIntoView({ block: 'center' })`라고 적혀 있다. 그 항목이 쓰인 시점의 사실이고,
-현재 코드는 `'start'`다(`CommentList.tsx:46`). DECISIONS.md는 append-only라 그대로 둔다.
+현재 코드는 `'start'`다(`CommentList.tsx:67`). DECISIONS.md는 append-only라 그대로 둔다.
 
 ### 로그아웃 후 "내 댓글"이 계속 에러로 남던 문제(2026-09-14)
 
@@ -601,8 +654,20 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   보류했다. 문장 중간의 이미지 링크와 첨부 이미지를 줄 단위 규칙으로만 구분한다.
 - **`z-scrim` 공유 충돌 미해결** — 펼친 모바일 댓글 시트와 사이드바 백드롭이 같은 층이다
   (`docs/DECISIONS.md` 2026-09-13, [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md) §4).
+- **미리 받기 실패가 캐시에 남는다** — TanStack Query의 suspense 쿼리는 에러 경계가 리셋되기
+  전까지 실패 상태로 캐시된 쿼리를 마운트할 때 다시 요청하지 않는다(`retryOnMount`를 끈다,
+  `@tanstack/react-query`의 `errorBoundaryUtils.js` `ensurePreventErrorBoundaryRetry`). 💬 hover 미리
+  받기가 실패하면 5분(gcTime) 안에 들어간 상세의 댓글 영역이 다시 요청하지 않고 바로 에러가 된다.
+  제목 hover의 `prefetchPostDetail`도 같은 성질이다.
+- **주소의 id 형식이 잘못되면 토스트가 두 개 뜬다** — 게시글과 동시에 요청한 댓글도 400
+  (`INVALID_PATH_VARIABLE`)을 받아 각자 토스트를 띄운다(직접 측정: 동시 요청 전 1개 → 후 2개).
+  미리 받기 실패를 조용히 하면 이 경우는 1개가 되지만, 위 성질 때문에 댓글 요청이 일시적으로
+  실패할 때 에러 화면만 남고 토스트가 사라져(직접 측정) 그대로 두었다. 주소를 손으로 잘못 칠 때만
+  생긴다.
+- **모션 줄이기 미대응** — 댓글 화면의 `smooth` 스크롤 전부가 `prefers-reduced-motion`을 보지
+  않는다(`.claude/skills/motion-ux/SKILL.md` "prefers-reduced-motion 미대응").
 - **해시 대상이 없으면 조용히 무시한다** — 삭제됐거나 목록에 없는 댓글로 들어오면
-  `scrollToHashedComment`가 아무 안내 없이 끝난다(CommentList.tsx 42-45줄).
+  `scrollToHashedComment`가 아무 안내 없이 끝난다(CommentList.tsx 58-64줄).
 - **실패한 업로드의 파일은 바로 지우지 않는다** — 이미지 일부만 올라간 뒤 실패하거나 본 요청이
   확정 실패하면 올라간 파일이 고아로 남는다. BE 정리 작업(4일마다, 24시간 지난 미참조 객체)이
   회수하고, 결과가 확실한 실패에서 바로 지우는 것은 BE 업로더 기록 도입 뒤로 미뤘다
@@ -641,7 +706,8 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 - **`patchCommentRecursively`** — 트리에서 id가 같은 댓글을 찾아 일부 필드만 병합하는
   수정 성공 처리 함수.
 - **해시 이동** — `/post/:id#comment-:id`로 들어왔을 때 그 댓글로 스크롤하고 링으로
-  강조하는 동작(`scrollToHashedComment`).
+  강조하는 동작(`scrollToHashedComment`). `#comments`(카드 💬, `COMMENT_SECTION_HASH`)면 작성
+  폼 컨테이너를 ref로 찾아 스크롤하고 포커스한다 — DOM id가 아니라 이 effect가 해석하는 신호다.
 - **`z-panel` / `z-scrim`** — `src/app/globals.css:103-105`의 z-index 토큰(40 / 55).
 - **`ImageUploadError`** — 이미지 업로드 단계(서명 URL 발급·스토리지 PUT)의 실패. `reason`
   (형식·용량·한도·저장소·네트워크·원인 불명)과 한도일 때 `retryAfterSeconds`를 담는다
