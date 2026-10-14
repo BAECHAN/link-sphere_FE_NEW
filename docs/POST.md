@@ -472,7 +472,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 ## 9. 검증 결과
 
 **단위 테스트** — 2026-10-02 위 명령으로 9개 파일 79개 테스트 통과(직접 실행). 2026-10-13 다시
-실행해 13개 파일 142개 통과(북마크 저장·해제 전환 뒤, 직접 실행). 아래 목록은 그때 `interaction.queries.test.ts`만 갱신했고,
+실행해 13개 파일 142개 통과(북마크 저장·해제 전환 뒤, 직접 실행). 2026-10-14 마지막 폴더 해제 변경 뒤 143개(직접 실행). 아래 목록은 그때 `interaction.queries.test.ts`만 갱신했고,
 나머지 개수는 2026-10-02 기준이다.
 
 - `src/entities/post/api/post.queries.test.ts`(12) — 수정 시 detail 교체·폴더 게시글 무효화,
@@ -488,7 +488,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
   [`SEARCH.md`](./SEARCH.md)가 정본
 - `src/widgets/post/post-card/config/post-card-grid.const.test.ts`(1)
 - `src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`(15) — [`BOOKMARK.md`](./BOOKMARK.md) §9
-- `src/entities/interaction/api/interaction.queries.test.ts`(32) — 북마크 저장·해제 15개(동작
+- `src/entities/interaction/api/interaction.queries.test.ts`(33) — 북마크 저장·해제 16개(동작
   설명은 [`BOOKMARK.md`](./BOOKMARK.md) §9), 게시글 좋아요 16개, 댓글 좋아요 1개다. 게시글 좋아요 테스트는
   서버 응답 전 중간 상태(그 글만 ±1·`isLiked` 변경, 북마크 값 유지, 이미 그 상태면 수 그대로), 응답 뒤 서버
   값 교정, 실패 롤백, detail 캐시 없이 목록에만 있는 글, 데이터 없는 목록 캐시, 북마크 폴더 캐시 반영을

@@ -120,14 +120,18 @@ export function usePostCardBookmarkFolderDialog({
   const handleSelectFolder = async (folder: BookmarkFolder) => {
     const wasSelected = bookmarkFolderIds.includes(folder.id);
     // 이게 마지막 폴더였다면 미분류로 남기지 않고 북마크 자체를 완전 삭제한다
-    // (2026-09-11 변경 — useBookmarkFolders.selectFolder가 이미 해제(setBookmark(false))로
+    // (2026-09-11 변경 — useBookmarkFolders.selectFolder가 이미 마지막 폴더 해제로
     // 분기해뒀다). 되돌리기는 같은 폴더로 addBookmarkFolder를 다시 호출하는 것과
     // 정확히 같아서(멱등) 안전하게 원복된다.
     const isLastFolder = wasSelected && bookmarkFolderIds.length === 1;
 
     try {
-      await selectFolder(folder.id);
-      if (isLastFolder) {
+      const result = await selectFolder(folder.id);
+      // 화면상 마지막이었어도 다른 기기가 추가한 소속이 남아 있으면 서버가 북마크를 지킨다 —
+      // 실제 결과는 "그 폴더에서만 빠짐"이라 일반 제거 토스트를 띄운다
+      const removedBookmark = isLastFolder && !result.isBookmarked;
+
+      if (removedBookmark) {
         toast.success(TEXTS.messages.success.bookmarkRemovedFromFolder(folder.name), {
           description: TEXTS.messages.success.bookmarkRemovedWithLastFolderDescription,
           ...undoOptions(() => restoreFolder(folder.id)),

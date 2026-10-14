@@ -522,6 +522,40 @@ describe('useBookmarkPostMutation', () => {
       expect(readDetail()?.userInteractions.bookmarkFolderIds).toEqual([FOLDER_A]);
     });
 
+    // 화면상 마지막 폴더를 빼며 해제 — 서버가 남은 소속으로 판단하므로, 다른 기기가 그사이 추가한 폴더가
+    // 있으면 북마크가 남고 화면은 그 소속으로 맞춰진다(docs/plans/2026-10-14-last-folder-keeps-others.md)
+    it('마지막 폴더로 해제하면 폴더 제거 API에 removeBookmarkIfEmpty=true로 나가고, 다른 소속이 남은 응답이면 그 소속으로 교정된다', async () => {
+      seedDetailAndList(seedPost(true, [FOLDER_A]));
+      const gate = createResponseGate();
+      let removeBookmarkIfEmpty: string | null = null;
+      server.use(
+        http.delete(
+          url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)),
+          async ({ request }) => {
+            removeBookmarkIfEmpty = new URL(request.url).searchParams.get('removeBookmarkIfEmpty');
+            await gate.wait;
+            return bookmarkResponse(true, [FOLDER_B]);
+          }
+        )
+      );
+      const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
+
+      act(() => {
+        result.current.mutate({ lastFolderId: FOLDER_A });
+      });
+
+      // 응답 전에는 해제로 보인다(아이콘이 바로 꺼진다)
+      await waitFor(() => expect(readDetail()?.userInteractions.isBookmarked).toBe(false));
+      await waitFor(() => expect(removeBookmarkIfEmpty).toBe('true'));
+      expect(bookmarkRequests).toEqual([]);
+
+      gate.release();
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(readDetail()?.userInteractions.isBookmarked).toBe(true);
+      expect(readDetail()?.userInteractions.bookmarkFolderIds).toEqual([FOLDER_B]);
+    });
+
     it('해제→저장→해제를 연달아 누르면 요청이 순서대로 하나씩 나가고, 중간 응답으로 화면을 덮지 않는다', async () => {
       // 세 번 누른다 — 두 번이면 "첫 클릭 전"과 "두 번째 클릭 뒤" 상태가 같아 잘못 되돌려도 통과한다
       seedDetailAndList(seedPost(true));

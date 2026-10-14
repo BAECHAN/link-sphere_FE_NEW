@@ -14,7 +14,8 @@ import {
  *   이미 미분류(소속 0개)면 완전 삭제(2026-09-11 변경). 되돌리기는 restoreBookmark로.
  * - selectFolder: 폴더 탭 — 비소속이면 추가(북마크 없으면 자동 생성), 소속이면 그 폴더에서만 제거.
  *   단, 그 폴더가 유일한 소속(마지막 폴더)이면 미분류로 남기지 않고 북마크 자체를 완전
- *   삭제한다(2026-09-11 변경 — 되돌리기는 restoreFolder로).
+ *   삭제한다(2026-09-11 변경 — 되돌리기는 restoreFolder로). "마지막"은 화면 기준이라, 서버가 실제 남은
+ *   소속을 보고 판단한다 — 다른 기기가 추가한 폴더가 있으면 북마크를 남긴다(2026-10-14).
  * - restoreFolder: selectFolder가 마지막 폴더를 삭제한 뒤 되돌리기 토스트에서 쓰는 복원 —
  *   addBookmarkFolder를 그대로 재사용한다("북마크 보장 + 소속 보장"이 멱등이라 정확히 원복됨).
  * - removeBookmark: 북마크 제거 행 — 북마크 자체를 완전 삭제 (소속도 전부 삭제). 멱등이라 화면 상태와
@@ -43,17 +44,16 @@ export function useBookmarkFolders(
     return setBookmark(!isBookmarked);
   };
 
+  // 서버 응답을 돌려준다 — 마지막 폴더를 뺐는데 다른 소속이 남아 있으면 isBookmarked가 참으로 온다
   const selectFolder = async (folderId: string) => {
     if (!bookmarkFolderIds.includes(folderId)) {
-      await addBookmarkFolder(folderId);
-      return;
+      return addBookmarkFolder(folderId);
     }
     const isLastFolder = bookmarkFolderIds.length === 1;
     if (isLastFolder) {
-      await setBookmark(false);
-    } else {
-      await removeBookmarkFolder(folderId);
+      return setBookmark({ lastFolderId: folderId });
     }
+    return removeBookmarkFolder(folderId);
   };
 
   const restoreFolder = async (folderId: string) => {

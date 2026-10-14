@@ -240,19 +240,24 @@ describe('PostCardBookmarkFolderDialog', () => {
     expect(toast.success).toHaveBeenCalledWith('개발 폴더에서 제거했어요.');
   });
 
-  it('마지막 폴더를 탭하면 폴더에서만 빼지 않고 북마크 자체를 완전 삭제하며 되돌리기를 제공한다', async () => {
+  it('마지막 폴더를 탭하면 남은 소속이 없을 때만 북마크도 지우라는 폴더 제거 요청을 보내고, 지워졌으면 되돌리기를 제공한다', async () => {
     const user = userEvent.setup();
     let unbookmarkCalled = false;
-    let removeFolderCalled = false;
+    let removeFolderQuery: string | null = null;
     server.use(
       http.delete(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => {
         unbookmarkCalled = true;
         return postBookmarkResponse(false);
       }),
-      http.delete(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () => {
-        removeFolderCalled = true;
+      http.delete(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), ({ request }) => {
+        removeFolderQuery = new URL(request.url).searchParams.get('removeBookmarkIfEmpty');
         return HttpResponse.json(
-          { status: 200, message: 'ok', data: bookmarkFoldersResponse([]), timestamp: '' },
+          {
+            status: 200,
+            message: 'ok',
+            data: { postId: POST_ID, isBookmarked: false, folderIds: [] },
+            timestamp: '',
+          },
           { status: 200 }
         );
       })
@@ -263,9 +268,9 @@ describe('PostCardBookmarkFolderDialog', () => {
     await waitFor(() => expect(screen.getByText('개발')).toBeInTheDocument());
     await user.click(screen.getByText('개발'));
 
-    // 폴더에서만 제거하는 요청이 아니라 북마크 자체를 지우는 DELETE가 나가야 한다
-    await waitFor(() => expect(unbookmarkCalled).toBe(true));
-    expect(removeFolderCalled).toBe(false);
+    // 북마크째 지우는 DELETE가 아니라, 서버가 실제 남은 소속으로 판단하는 폴더 제거 요청이 나가야 한다
+    await waitFor(() => expect(removeFolderQuery).toBe('true'));
+    expect(unbookmarkCalled).toBe(false);
 
     const [message, options] = vi.mocked(toast.success).mock.calls[0]!;
     expect(message).toBe('개발 폴더에서 제거했어요.');
@@ -287,6 +292,27 @@ describe('PostCardBookmarkFolderDialog', () => {
     action.onClick();
 
     await waitFor(() => expect(restoreCalled).toBe(true));
+  });
+
+  // 화면은 "개발" 하나뿐인데 다른 기기가 그사이 다른 폴더에도 추가해 둔 경우 — 서버가 북마크와 그 소속을
+  // 지키므로, 실제 결과인 "그 폴더에서만 빠짐"을 알린다(설명·되돌리기 없음)
+  it('마지막 폴더를 탭했는데 서버엔 다른 소속이 남아 있으면 일반 폴더 제거 토스트만 띄운다', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.delete(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () =>
+        HttpResponse.json(
+          { status: 200, message: 'ok', data: bookmarkFoldersResponse([FOLDER_B]), timestamp: '' },
+          { status: 200 }
+        )
+      )
+    );
+    renderDialog();
+
+    await waitFor(() => expect(screen.getByText('개발')).toBeInTheDocument());
+    await user.click(screen.getByText('개발'));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    expect(toast.success).toHaveBeenCalledWith('개발 폴더에서 제거했어요.');
   });
 
   it('체크된 미분류를 탭하면 북마크 자체를 완전 삭제하고 되돌리기를 제공한다', async () => {
