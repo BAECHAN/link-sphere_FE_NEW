@@ -17,7 +17,7 @@ import dotenv from 'dotenv';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-const CSS_PATH = path.join(ROOT, 'public/fonts/web/variable/pretendard-dynamic-subset.css');
+const CSS_PATH = path.join(ROOT, 'public/fonts/pretendard-1.3.9/pretendard-dynamic-subset.css');
 const RECENT_POST_LIMIT = 300;
 const PAGE_SIZE = 50;
 
@@ -121,7 +121,7 @@ async function main() {
 
   for (const index of sorted) {
     console.log(
-      `    <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/web/variable/woff2-dynamic-subset/PretendardVariable.subset.${index}.woff2" />`
+      `    <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/pretendard-1.3.9/woff2-dynamic-subset/PretendardVariable.subset.${index}.woff2" />`
     );
   }
 }
