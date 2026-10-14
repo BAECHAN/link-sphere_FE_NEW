@@ -1,4 +1,9 @@
 ### 2026-10-14 (FE)
+- 배포 프로세스 개선을 통한 폰트 리소스 관리 최적화
+  - 폰트 파일 매 배포 시 재업로드 로직 적용
+  - 이전 버전 폰트 파일의 7일 보존 정책 수립 ([#371](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/371))
+
+### 2026-10-14 (FE)
 - 폰트 최적화 및 에셋 용량 절감
   - 폰트 경로 버전 관리 적용 및 미사용 폰트(11MB) 제거를 통한 빌드 효율 개선 ([#370](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/370))
 
