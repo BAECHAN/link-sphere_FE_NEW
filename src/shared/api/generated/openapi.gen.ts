@@ -498,12 +498,7 @@ export interface paths {
      * @description 이미 좋아요한 상태여도 200 이다(멱등). data 는 {"isLiked": true} 다. 실패: 404 POST_NOT_FOUND(글 없음·비공개) · 400 INVALID_INPUT(삭제된 댓글)
      */
     put: operations['putCommentLike'];
-    /**
-     * 댓글 좋아요 토글 (deprecated)
-     * @deprecated
-     * @description PUT/DELETE /comment/{commentId}/like 를 쓴다. 이미 눌렀으면 취소된다. data 는 {"isLiked": true|false} 한 쌍이다. 실패: 404 POST_NOT_FOUND(글 없음·비공개) · 400 INVALID_INPUT(삭제된 댓글)
-     */
-    post: operations['likeComment'];
+    post?: never;
     /**
      * 댓글 좋아요 취소
      * @description 좋아요하지 않은 상태여도 200 이다(멱등). data 는 {"isLiked": false} 다. 실패: 404 POST_NOT_FOUND(글 없음·비공개) · 400 INVALID_INPUT(삭제된 댓글)
@@ -700,12 +695,7 @@ export interface paths {
      * @description 이미 저장된 상태여도 200 이다(멱등). 북마크만 보장하고 기존 폴더 소속은 건드리지 않는다 — 응답 folderIds 는 서버의 실제 소속이다. 실패: 404 POST_NOT_FOUND
      */
     put: operations['putPostBookmark'];
-    /**
-     * 게시글 북마크 토글 (deprecated)
-     * @deprecated
-     * @description PUT/DELETE /post/{postId}/bookmark 를 쓴다. 이미 저장했으면 취소된다(모든 폴더 소속도 함께 삭제). data 는 {"isBookmarked": true|false} 한 쌍이다. 실패: 404 POST_NOT_FOUND
-     */
-    post: operations['bookmarkPost'];
+    post?: never;
     /**
      * 게시글 북마크 해제
      * @description 저장 안 된 상태여도 200 이다(멱등). 모든 폴더 소속도 함께 삭제한다. 낡은 화면에서도 누를 수 있도록 글 공개 여부는 확인하지 않는다
@@ -753,12 +743,7 @@ export interface paths {
      * @description 이미 좋아요한 상태여도 200 이다(멱등). data 는 {"isLiked": true, "likeCount": 12} 형태다. 실패: 404 POST_NOT_FOUND
      */
     put: operations['putPostLike'];
-    /**
-     * 게시글 좋아요 토글 (deprecated)
-     * @deprecated
-     * @description PUT/DELETE /post/{postId}/like 를 쓴다. 이미 눌렀으면 취소된다. data 는 {"isLiked": true|false, "likeCount": 12} 형태다. 실패: 404 POST_NOT_FOUND
-     */
-    post: operations['likePost'];
+    post?: never;
     /**
      * 게시글 좋아요 취소
      * @description 좋아요하지 않은 상태여도 200 이다(멱등). data 는 {"isLiked": false, "likeCount": 11} 형태다. 실패: 404 POST_NOT_FOUND
@@ -1890,28 +1875,6 @@ export interface operations {
       };
     };
   };
-  likeComment: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        commentId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          '*/*': components['schemas']['ApiResponseMapStringBoolean'];
-        };
-      };
-    };
-  };
   deleteCommentLike: {
     parameters: {
       query?: never;
@@ -2237,28 +2200,6 @@ export interface operations {
       };
     };
   };
-  bookmarkPost: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        postId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          '*/*': components['schemas']['ApiResponseMapStringBoolean'];
-        };
-      };
-    };
-  };
   deletePostBookmark: {
     parameters: {
       query?: never;
@@ -2330,28 +2271,6 @@ export interface operations {
     };
   };
   putPostLike: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        postId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          '*/*': components['schemas']['ApiResponsePostLikeResponse'];
-        };
-      };
-    };
-  };
-  likePost: {
     parameters: {
       query?: never;
       header?: never;

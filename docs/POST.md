@@ -129,17 +129,17 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 `src/entities/post/api/post.api.ts`와 `src/entities/interaction/api/interaction.api.ts` 기준
 (`src/shared/config/api.ts`의 `API_ENDPOINTS.post`).
 
-| 메서드   | 경로                    | FE 함수                | 비고                                                                     |
-| -------- | ----------------------- | ---------------------- | ------------------------------------------------------------------------ |
-| `GET`    | `/post`                 | `fetchPostList`        | `page`·`size` + 값이 있을 때만 `search`·`category`·`filter`·`nickname`   |
-| `GET`    | `/post/{id}`            | `fetchPostDetail`      | 비공개(남의 글)·삭제 글은 404                                            |
-| `POST`   | `/post`                 | `createPost`           | `keepalive: true`, 응답은 `PostResponse` 그대로                          |
-| `PATCH`  | `/post/{id}`            | `updatePost`           | `keepalive: true`                                                        |
-| `GET`    | `/link-preview?url=`    | `fetchLinkPreview`     | 작성 중 미리보기. 로그인 전용이라 `/post` 밖에 있다. 회원당 시간 60회    |
-| `PATCH`  | `/post/{id}/visibility` | `updatePostVisibility` | body `{ isPrivate }`                                                     |
-| `DELETE` | `/post/{id}`            | `deletePost`           |                                                                          |
-| `PUT`    | `/post/{id}/like`       | `likePost`             | 좋아요(멱등). 응답 `{ isLiked, likeCount }`                              |
-| `DELETE` | `/post/{id}/like`       | `unlikePost`           | 좋아요 취소(멱등). 응답은 PUT과 같다. 옛 `POST` 토글은 BE에서 deprecated |
+| 메서드   | 경로                    | FE 함수                | 비고                                                                           |
+| -------- | ----------------------- | ---------------------- | ------------------------------------------------------------------------------ |
+| `GET`    | `/post`                 | `fetchPostList`        | `page`·`size` + 값이 있을 때만 `search`·`category`·`filter`·`nickname`         |
+| `GET`    | `/post/{id}`            | `fetchPostDetail`      | 비공개(남의 글)·삭제 글은 404                                                  |
+| `POST`   | `/post`                 | `createPost`           | `keepalive: true`, 응답은 `PostResponse` 그대로                                |
+| `PATCH`  | `/post/{id}`            | `updatePost`           | `keepalive: true`                                                              |
+| `GET`    | `/link-preview?url=`    | `fetchLinkPreview`     | 작성 중 미리보기. 로그인 전용이라 `/post` 밖에 있다. 회원당 시간 60회          |
+| `PATCH`  | `/post/{id}/visibility` | `updatePostVisibility` | body `{ isPrivate }`                                                           |
+| `DELETE` | `/post/{id}`            | `deletePost`           |                                                                                |
+| `PUT`    | `/post/{id}/like`       | `likePost`             | 좋아요(멱등). 응답 `{ isLiked, likeCount }`                                    |
+| `DELETE` | `/post/{id}/like`       | `unlikePost`           | 좋아요 취소(멱등). 응답은 PUT과 같다. 옛 `POST` 토글은 2026-10-14 제거(BE #92) |
 
 응답 타입은 BE OpenAPI 스펙에서 생성된 `PostResponse`·`PostPageResponse`의 별칭이다
 (`src/entities/post/model/post.dto.ts:8-13`). 생성 파이프라인은
