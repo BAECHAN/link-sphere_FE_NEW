@@ -7,7 +7,7 @@
 > **읽고 나면**: `pnpm check`가 실제로 어느 시점에 도는지, ignore 패턴을 추가하거나
 > PR 게이트에 스텝을 더할 때 어디를 고치면 되는지 안다.
 >
-> **마지막 검토**: 2026-10-13
+> **마지막 검토**: 2026-10-14
 
 ## 1. 쉬운 설명
 
@@ -218,6 +218,11 @@ ignore 패턴만 고친 시점의 중간 검증: `pnpm exec eslint .` → **0 pr
   ✓ Upload to S3
   ✓ CloudFront Invalidation
 ```
+
+§6 "main 규칙셋(필수 체크)"를 적용한 뒤의 확인(2026-10-14, 직접 관측): PR은 체크가 대기 중일 때 `BLOCKED`,
+통과한 뒤 `CLEAN`이었다(FE #360). 예외인 히스토리 앱은 main에
+`Bypassed rule violations for refs/heads/main: 2 of 2 required status checks are expected`로 push했다
+(`cef0f38`, `docs/DEPLOY.md` "히스토리 봇 GitHub App").
 
 ## 9. 시행착오
 
