@@ -28,7 +28,7 @@
 - `infra` 폰트 경로에 버전을 넣고 쓰지 않는 폰트 11MB를 정리
   <details><summary>배경·구현</summary>
 
-  `public/fonts`(추적 파일 114개·약 14MB) 중 실제로 쓰는 것은 dynamic-subset CSS 1개와 woff2 조각 92개(3.0MB)뿐이었는데, 해시 없는 파일명으로 1년 `immutable` 캐시되고 쓰지 않는 정적·가변 원본까지 매 배포 다시 올라갔다(S3 `fonts/` 118개·13.7MB, 2026-10-14 조회). 쓰는 파일만 `public/fonts/pretendard-1.3.9/`로 옮기고 나머지는 지웠다. 폰트를 바꿀 땐 디렉터리 버전을 올려 URL을 바꾼다(해시 대신 경로로 캐시를 깨는 방식, Vite 해시화는 preload·로딩 순서가 바뀌어 기각 — 2026-10-14 사용자 결정). 폰트 동기화는 `--size-only`로 재업로드를 건너뛰고, 옛 `fonts/web/` 객체는 옛 자산 정리가 7일 뒤 지운다. 계획 `docs/plans/2026-10-14-cache-strategy.md`. (`public/fonts/pretendard-1.3.9/`, `index.html`, `scripts/compute-font-preload-chunks.js`, `.github/workflows/deploy.yml`, `docs/DEPLOY.md`, [PR #370](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/370))
+  `public/fonts`(추적 파일 114개·약 14MB) 중 실제로 쓰는 것은 dynamic-subset CSS 1개와 woff2 조각 92개(3.0MB)뿐이었는데, 해시 없는 파일명으로 1년 `immutable` 캐시되고 쓰지 않는 정적·가변 원본까지 매 배포 다시 올라갔다(S3 `fonts/` 118개·13.7MB, 2026-10-14 조회). 쓰는 파일만 `public/fonts/pretendard-1.3.9/`로 옮기고 나머지는 지웠다. 폰트를 바꿀 땐 디렉터리 버전을 올려 URL을 바꾼다(해시 대신 경로로 캐시를 깨는 방식, Vite 해시화는 preload·로딩 순서가 바뀌어 기각 — 2026-10-14 사용자 결정). 옛 `fonts/web/` 객체는 옛 자산 정리가 7일 뒤 지운다. 처음엔 폰트 동기화에 `--size-only`를 붙여 재업로드를 건너뛰었는데, 그러면 업로드 시각이 처음 올린 때에 고정돼 다음에 폰트 버전을 올리는 배포에서 옛 폰트가 7일을 기다리지 않고 바로 지워진다는 것을 같은 날 문서 리뷰에서 찾아 뺐다(폰트 약 3MB는 매 배포 다시 올린다). 계획 `docs/plans/2026-10-14-cache-strategy.md`. (`public/fonts/pretendard-1.3.9/`, `index.html`, `scripts/compute-font-preload-chunks.js`, `.github/workflows/deploy.yml`, `docs/DEPLOY.md`, [PR #370](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/370), [PR #371](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/371))
 
   </details>
 
