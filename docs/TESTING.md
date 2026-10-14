@@ -559,7 +559,7 @@ export const mockNotification: Notification = {
 ### git push 시 자동 실행
 
 ```bash
-git push  # → pre-push 훅이 pnpm test 실행
+git push  # → pre-push 훅이 pnpm check:docs(문서 참조 검사) → pnpm test 실행
           # → 실패 시 push 차단
 ```
 

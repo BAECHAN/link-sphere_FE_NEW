@@ -168,7 +168,7 @@ features/<도메인>/<액션>/
 - **감시 모드**: `pnpm test:watch` (TDD 루프)
 - **커버리지**: `pnpm test:coverage` → `coverage/index.html`에서 확인
 
-`git commit` 시 pre-commit 훅으로 타입 체크 + lint-staged가, `git push` 시 pre-push 훅으로 테스트가 자동 실행되며, 실패 시 각각 커밋·push가 차단됩니다. 상세한 패턴·MSW·픽스처·트러블슈팅은 [테스트 가이드](docs/TESTING.md)를 참고하세요.
+`git commit` 시 pre-commit 훅으로 타입 체크 + lint-staged가, `git push` 시 pre-push 훅으로 문서 참조 검사(`check:docs`)와 테스트가 자동 실행되며, 실패 시 각각 커밋·push가 차단됩니다. 상세한 패턴·MSW·픽스처·트러블슈팅은 [테스트 가이드](docs/TESTING.md)를 참고하세요.
 
 ## 문서
 
