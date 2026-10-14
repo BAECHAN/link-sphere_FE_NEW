@@ -343,6 +343,8 @@ x-cache: RefreshHit from cloudfront   # 3회 연속 요청 모두 동일
 
 ## 13. 관련 문서
 
+- [CACHE-STRATEGY.md](./CACHE-STRATEGY.md) — 옛 화면 신고 진단 순서의 2단계(새 탭도 옛것인가)에서
+  이 기능의 `/version` 화면을 쓴다. 파일별 캐시 정책 전체 그림
 - [NEW-VERSION-RELOAD.md](./NEW-VERSION-RELOAD.md) — 이 기능이 재사용하는
   `VersionUtil`의 원출처, entry script 판정 로직
 - [DEPLOY.md](./DEPLOY.md) — 이 기능이 검증하는 S3+CloudFront 배포 파이프라인 자체

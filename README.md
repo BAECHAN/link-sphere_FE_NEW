@@ -185,6 +185,7 @@ features/<도메인>/<액션>/
 - [`docs/AUTH.md`](docs/AUTH.md) — 인증·세션·토큰 갱신: 네 개의 독립된 인증 게이트(이메일 인증 쓰기 인가 포함), 상태 저장 위치, 401 자동 갱신
 - [`docs/BOOKMARK.md`](docs/BOOKMARK.md) — 북마크 페이지: 폴더 분류, 반응형 3분기, 폴더 내 검색
 - [`docs/BUILD-VERSION.md`](docs/BUILD-VERSION.md) — 배포 반영 확인: `/version` 화면과 CI 자동 검증으로 "지금 이 탭"과 "서버에 배포된 것"을 대조
+- [`docs/CACHE-STRATEGY.md`](docs/CACHE-STRATEGY.md) — 배포 후 옛 화면이 남는 네 군데(정적 파일·HTML·열린 탭·Service Worker)와 파일별 캐시 정책·배포 순서·옛 자산 정리, 옛 화면 신고 진단 순서
 - [`docs/CI-CHECK-GATE.md`](docs/CI-CHECK-GATE.md) — `pnpm check`가 실제로는 아무 데도 안 걸려 있던 문제와 PR·배포 게이트 정비
 - [`docs/COMMENT.md`](docs/COMMENT.md) — 댓글·답글: 낙관적 작성, 이미지 첨부, 바이트 상한(WAF 8KB), 댓글 좋아요, 내 댓글 해시 이동
 - [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md) — 디자인 토큰(색상·반경·z-index)·컴포넌트·ESLint 강제 규칙·Storybook 카탈로그

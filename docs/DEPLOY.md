@@ -2,6 +2,7 @@
 
 이 문서는 Link Sphere Frontend 애플리케이션의 배포 아키텍처와 GitHub Actions를 이용한 자동화 절차에 대해 설명합니다.
 이 파이프라인 위에 걸려 있는 PR·배포 검사 게이트(타입체크·린트·테스트)는 [CI-CHECK-GATE.md](./CI-CHECK-GATE.md)를 참고하세요.
+업로드 순서·파일별 캐시 헤더·옛 자산 정리를 왜 이렇게 정했는지(배포 후 옛 화면이 남는 이유)는 [CACHE-STRATEGY.md](./CACHE-STRATEGY.md)를 참고하세요.
 
 ## 아키텍처 (Architecture)
 
