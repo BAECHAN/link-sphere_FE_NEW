@@ -809,7 +809,7 @@ shared/
 | 커스텀 render | `src/test/utils.tsx` → `renderWithProviders()`, `createTestQueryClient()`          |
 | MSW           | `src/mocks/server.ts` + `handlers/` + `fixtures/`                                  |
 | API URL 전략  | Vitest는 `DEV`라 `/api` 고정 → MSW 인터셉트. `.env.test`는 e2e 전용(운영 API 차단) |
-| 강제 실행     | `.husky/pre-push` + GitHub Actions `ci.yml`·`deploy.yml`                           |
+| 강제 실행     | `.husky/scripts/pre-push` + GitHub Actions `ci.yml`·`deploy.yml`                   |
 | e2e           | Playwright(`e2e/`), `page.route()` 모킹, 상세는 `docs/TESTING.md` §13 참고         |
 
 ```bash

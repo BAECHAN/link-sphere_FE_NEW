@@ -1,17 +1,12 @@
-echo "🔍 커밋 전 검사 시작..."
+# 중계만 한다 — 실제 검사는 .husky/scripts/pre-commit에 있다.
+# core.hooksPath가 메인 체크아웃의 .husky/_를 가리켜, 어느 워크트리에서 커밋해도 메인 체크아웃의 이
+# 파일이 실행된다. 메인 체크아웃이 뒤처지면 옛 검사가 돌던 문제(docs/CI-CHECK-GATE.md §9.7)를 막으려고,
+# 훅이 실행되는 위치(지금 워크트리의 루트 — githooks 문서)의 스크립트를 실행한다.
+# 그 워크트리에 스크립트가 없으면(도입 전에 갈라진 브랜치) 이 파일 옆의 것을 쓴다.
+script=".husky/scripts/pre-commit"
 
-# TypeScript 타입 체크
-echo "📝 TypeScript 타입 체크 실행 중..."
-pnpm type-check || {
-  echo "❌ TypeScript 타입 에러가 있습니다. 커밋을 중단합니다."
-  exit 1
-}
+if [ ! -f "$script" ]; then
+  script="$(dirname "$0")/scripts/pre-commit"
+fi
 
-# ESLint 검사 (staged 파일만)
-echo "🔍 ESLint 린트 검사 실행 중..."
-pnpm exec lint-staged || {
-  echo "❌ ESLint 에러가 있습니다. 커밋을 중단합니다."
-  exit 1
-}
-
-echo "✅ 모든 검사 통과!"
+exec sh -e "$script" "$@"

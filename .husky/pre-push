@@ -1,17 +1,12 @@
-echo "📄 푸시 전 문서 참조 검사 중..."
+# 중계만 한다 — 실제 검사는 .husky/scripts/pre-push에 있다.
+# core.hooksPath가 메인 체크아웃의 .husky/_를 가리켜, 어느 워크트리에서 push해도 메인 체크아웃의 이
+# 파일이 실행된다. 메인 체크아웃이 뒤처지면 옛 검사가 돌던 문제(docs/CI-CHECK-GATE.md §9.7)를 막으려고,
+# 훅이 실행되는 위치(지금 워크트리의 루트 — githooks 문서)의 스크립트를 실행한다.
+# 그 워크트리에 스크립트가 없으면(도입 전에 갈라진 브랜치) 이 파일 옆의 것을 쓴다.
+script=".husky/scripts/pre-push"
 
-# 깨진 <details> 짝·없는 경로·범위를 벗어난 줄 번호를 PR CI까지 가기 전에 막는다
-# (rebase가 CHANGELOG 항목의 </details>를 지운 채 push된 일이 반복됐다 — docs/CI-CHECK-GATE.md §9.6)
-pnpm check:docs || {
-  echo "❌ 문서 검사 실패. 푸시를 중단합니다."
-  exit 1
-}
+if [ ! -f "$script" ]; then
+  script="$(dirname "$0")/scripts/pre-push"
+fi
 
-echo "🧪 푸시 전 테스트 실행 중..."
-
-pnpm test || {
-  echo "❌ 테스트 실패. 푸시를 중단합니다."
-  exit 1
-}
-
-echo "✅ 테스트 통과! 푸시를 진행합니다."
+exec sh -e "$script" "$@"
