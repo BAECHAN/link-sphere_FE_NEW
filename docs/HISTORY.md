@@ -1,4 +1,7 @@
 ### 2026-10-14 (BE)
+- 폴더 제거 시 빈 북마크를 함께 처리하는 `removeBookmarkIfEmpty` 옵션 추가 ([#89](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/89))
+
+### 2026-10-14 (BE)
 - 사용하지 않는 FCM 토큰 삭제 메서드 제거를 통한 코드 베이스 최적화
 
 ### 2026-10-14 (FE)
