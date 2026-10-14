@@ -1,4 +1,7 @@
 ### 2026-10-14 (FE)
+- CloudFront 인프라 설정의 스냅샷 관리 및 변경 사항 추적 기능 도입 ([#374](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/374))
+
+### 2026-10-14 (FE)
 - React Query의 기본 동작인 window focus 시 재조회(refetchOnWindowFocus) 설정을 복원하여 탭 복귀 시 데이터 최신성 유지하도록 개선 ([#373](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/373))
 
 ### 2026-10-14 (FE)
