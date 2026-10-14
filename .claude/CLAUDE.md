@@ -494,11 +494,19 @@ const handleCreateAndSelect = async () => {
 - **Never** `EnterWorktree` 기본값(`fresh` = `origin/main` 기준)을 확인 없이 사용 → 다른 세션이
   로컬 main에만 커밋하고 아직 push하지 않았다면 그 커밋이 빠진 채로 새 워크트리가 갈라진다.
   작업 시작 전 `git log origin/main..main`으로 미푸시 커밋이 있는지 먼저 확인한다
-- **Never** 사용자 요청 없이 워크트리를 지우지 않는다 → 병합·배포까지 확인됐더라도
-  `ExitWorktree(action: "remove")`는 사용자가 "정리해"처럼 명시적으로 요청할 때만 실행한다
-  (2026-09-14 사용자 결정 "당분간은 냅두자"). 작업이 끝나면 `ExitWorktree(action: "keep")`으로
-  나온다. 새 워크트리를 만들기 전 `git worktree list`로 목록을 훑고, 디렉토리는 있는데 목록엔 없는
-  경우(비정상 종료로 등록이 깨진 경우)만 `git worktree prune`으로 정리한다
+- **Never** 병합·배포까지 확인된 워크트리를 남겨 두지 않는다 → PR을 병합하고 그 병합으로 도는
+  배포가 성공한 것까지 확인했으면(배포가 트리거되지 않는 변경이면 병합 확인까지) 그 세션이 바로
+  워크트리와 로컬 브랜치를 지운다 — `ExitWorktree(action: "remove")`. 원격 브랜치는 레포 설정
+  `delete_branch_on_merge`가 병합 때 자동으로 지운다. 배포가 실패하면 원인을 다 볼 때까지 남겨 두고,
+  병합 전에 세션을 떠날 때는 `ExitWorktree(action: "keep")`으로 나온다. 병합되지 않은 워크트리는
+  사용자 요청 없이 지우지 않는다(2026-10-14 사용자 결정 — 2026-09-14 "당분간은 냅두자"를 대체).
+  `ExitWorktree(remove)`가 거부되면(다른 세션이 만들었거나 아래 path 재진입 사례) 손으로 지우되,
+  squash 병합이라 로컬 브랜치가 main에 병합된 것으로 안 잡혀 `git branch -d`가 안 되므로 먼저
+  ① `gh pr view <번호> --json state,headRefOid`가 `MERGED`이고 ② `headRefOid`가
+  `git -C <경로> rev-parse HEAD`와 같고 ③ `git -C <경로> status --porcelain`이 비어 있는지 확인한 뒤
+  `git worktree remove <경로>`(`--force` 없이) + `git branch -D <브랜치>`. 새 워크트리를 만들기 전
+  `git worktree list`로 목록을 훑고, 디렉토리는 있는데 목록엔 없는 경우(비정상 종료로 등록이 깨진
+  경우)만 `git worktree prune`으로 정리한다
 - **Never** 같은 워크트리에서 여러 서브에이전트를 병렬로 돌릴 때 stash 경고 없이 프롬프트만
   보낸다 → "공유 stash 스택" 경고(워크트리 진입 시 harness가 주는 환경 안내)는 대화형 세션에만
   자동으로 뜨고, `Agent` 도구로 스폰한 서브에이전트에게는 전달되지 않는다. 프롬프트에 "git
@@ -514,9 +522,10 @@ stash`/`git stash pop`을 실행했다 — 다른 3개 에이전트가 동시에
   나왔다가, 나중에 같은 세션에서 `EnterWorktree({ path })`로 그 워크트리에 다시 들어가면
   harness가 더 이상 이 세션을 owner로 인식하지 않아 `ExitWorktree(remove)`가 거부한다
   (2026-09-27 실제 발견, 에러 메시지: "This session is not the owner of the worktree..."). 이
-  경우 `ExitWorktree(action: "keep")`으로 원래 디렉토리로 돌아온 뒤, 루트에서 `git worktree
-remove --force <경로>`로 수동 정리한다(사전에 `git diff origin/main -- <경로>`가 비어있는지
-  확인해 병합 완료를 검증한 뒤 지운다)
+  경우 `ExitWorktree(action: "keep")`으로 원래 디렉토리로 돌아온 뒤, 루트에서 위 규칙의 ①②③을
+  확인하고 수동 정리한다. 이전에 쓰던 `git diff origin/main -- <경로>` 확인은 워크트리 경로가 git
+  추적 대상이 아니라 항상 비어 나와 병합 여부를 가려내지 못했다(2026-10-14 발견) — 그래서
+  `--force`와 함께 쓰지 않는다
 - **Never** `eslint.config.js`의 ignore 패턴을 루트 상대 경로로만 작성 →
   `.claude/worktrees/`처럼 중첩된 경로가 새서 워크트리 안 빌드 산출물(`dist/`)이 그대로
   검사 대상에 걸린다. `.gitignore`에 있어도 ESLint는 자동으로 읽지 않으므로
