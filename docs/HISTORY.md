@@ -1,3 +1,7 @@
+### 2026-10-14 (FE)
+- API 명세 최신화 및 미사용 코드 제거
+  - BE의 POST 토글 제거 사항을 OpenAPI 스키마 및 관련 API 문서에 반영하여 기술 부채 해소 ([#367](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/367))
+
 ### 2026-10-14 (BE)
 - FCM 토큰 관리 로직 내 데이터베이스 스키마 및 주석 일관성 개선
 로그:
