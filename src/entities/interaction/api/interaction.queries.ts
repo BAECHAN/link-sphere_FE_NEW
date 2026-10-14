@@ -166,6 +166,10 @@ function applyServerBookmarkToPost(post: Post, server: PostBookmarkResponse): Po
   };
 }
 
+// true(저장)·false(해제), 또는 화면상 마지막 폴더를 빼며 해제({ lastFolderId }) — 마지막 폴더는 화면에선
+// 해제와 같지만, 다른 기기가 추가한 소속이 남아 있으면 서버가 북마크를 지키고 응답으로 교정된다
+type BookmarkPostTarget = boolean | { lastFolderId: string };
+
 /**
  * 북마크 저장·해제 — 좋아요와 같은 연타 처리(docs/FE-ARCHITECTURE.md §11)에, 같은 글의 폴더 추가·제거·
  * 비우기까지 한 줄(bookmarkPostScope)로 세운다. 되돌리기 토스트가 다이얼로그보다 오래 남아 서로 섞이기
@@ -177,10 +181,18 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
   return useMutation({
     mutationKey: interactionMutationKeys.bookmarkPost(postId),
     scope: bookmarkPostScope(postId),
-    mutationFn: (nextBookmarked: boolean) =>
-      nextBookmarked ? interactionApi.bookmarkPost(postId) : interactionApi.unbookmarkPost(postId),
+    mutationFn: (target: BookmarkPostTarget) => {
+      if (typeof target === 'object') {
+        return interactionApi.unbookmarkPostFromLastFolder(postId, target.lastFolderId);
+      }
+
+      return target ? interactionApi.bookmarkPost(postId) : interactionApi.unbookmarkPost(postId);
+    },
     meta: { manualErrorHandling: true },
-    onMutate: async (nextBookmarked) => {
+    onMutate: async (target) => {
+      // 마지막 폴더 해제도 화면에선 해제와 같다 — 다른 소속이 남았는지는 응답이 알려준다
+      const nextBookmarked = typeof target === 'object' ? false : target;
+
       await queryClient.cancelQueries({ queryKey: postKeys.detail(postId) });
       await queryClient.cancelQueries({ queryKey: postKeys.listRoot });
       await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.list });
@@ -273,7 +285,7 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
       );
       handleBookmarkToggleSuccess(queryClient);
     },
-    onError: (_err, _nextBookmarked, context) => {
+    onError: (_err, _target, context) => {
       if (!isLastPendingBookmarkMutation(queryClient, postId)) {
         return;
       }

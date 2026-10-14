@@ -1949,7 +1949,7 @@
     },
     "/bookmark/{postId}/folders/{folderId}": {
       "delete": {
-        "description": "북마크 자체는 유지되고 그 폴더 소속만 지워진다.",
+        "description": "북마크 자체는 유지되고 그 폴더 소속만 지워진다. removeBookmarkIfEmpty=true 면 남은 소속이 하나도 없을 때만 북마크도 지운다(다른 폴더가 남아 있으면 북마크를 유지). data 는 삭제 뒤 실제 상태 {\"postId\", \"isBookmarked\", \"folderIds\"} 다.",
         "operationId": "removeBookmarkFolder",
         "parameters": [
           {
@@ -1968,6 +1968,15 @@
             "schema": {
               "format": "uuid",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "removeBookmarkIfEmpty",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
             }
           }
         ],

@@ -26,6 +26,14 @@
 
   </details>
 
+- `bookmark` 마지막 폴더를 빼면 다른 기기가 추가한 폴더까지 지워지던 문제
+  <details><summary>배경·구현</summary>
+
+  다이얼로그는 화면이 아는 소속이 하나뿐이면 "마지막 폴더"로 보고 북마크째 해제했다. 화면이 낡아 다른 기기가 그사이 다른 폴더에도 추가해 뒀다면 북마크 삭제의 FK cascade로 그 소속까지 말없이 지워졌고, 되돌리기는 마지막 폴더만 복구했다. 이제 마지막 폴더 해제는 폴더 제거 API에 `removeBookmarkIfEmpty=true`로 요청해 서버가 실제 남은 소속을 보고 판단한다. 화면은 지금처럼 즉시 해제로 바뀌고, 다른 소속이 남았다는 응답이 오면 그 소속으로 교정되며 토스트는 일반 제거만 띄운다. 계획은 `docs/plans/2026-10-14-last-folder-keeps-others.md`.
+  (`interaction.api.ts`, `interaction.queries.ts`, `useBookmarkFolders.ts`, `usePostCardBookmarkFolderDialog.ts`, `bookmark-folder.handlers.ts`, [PR #364](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/364))
+
+  </details>
+
 - `bookmark` 이미 폴더에 있는 글을 미분류로 저장하면 잘못된 토스트가 뜨던 문제
   <details><summary>배경·구현</summary>
 
@@ -52,6 +60,7 @@
 
 - **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #80](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/80)(`PUT`/`DELETE /post/{postId}/like`, `/comment/{commentId}/like`)이 있어야 한다. 구버전 BE에는 이 경로가 없어 좋아요가 전부 실패한다(롤백만 되고 토스트 없음). 2026-10-13 BE 운영에 배포됨.
 - **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #85](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/85)(`PUT`/`DELETE /post/{postId}/bookmark`)가 있어야 한다. 구버전 BE에는 이 경로가 없어 북마크 저장·해제가 전부 실패한다(롤백 + 실패 토스트). 2026-10-13 BE 운영에 배포됨.
+- **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #89](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/89)(`DELETE /bookmark/{postId}/folders/{folderId}`의 `removeBookmarkIfEmpty` 옵션)가 있어야 한다. 구버전 BE는 이 옵션을 무시해, 마지막 폴더를 빼도 북마크가 미분류로 남는다(에러는 없음).
 
 ## [0.19.0] - 2026-10-12
 

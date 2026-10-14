@@ -96,18 +96,18 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 `src/entities/bookmark/folder/api/bookmark-folder.api.ts` 기준(`API_ENDPOINTS.bookmark`,
 `shared/config/api.ts`).
 
-| 메서드   | 경로                                                  | 설명                                                                                |
-| -------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `GET`    | `/bookmark/folders`                                   | 내 폴더 목록(`bookmarkCount`·`lastUsedAt` 포함, `sortOrder` ASC)                    |
-| `POST`   | `/bookmark/folders`                                   | 폴더 생성(`sort_order = max+1`)                                                     |
-| `PATCH`  | `/bookmark/folders/{id}`                              | 폴더 이름 수정                                                                      |
-| `DELETE` | `/bookmark/folders/{id}`                              | 폴더 삭제(**이 폴더에만 있던** 북마크만 미분류로 — 다른 폴더에도 있으면 유지)       |
-| `GET`    | `/bookmark/folders/{key}/posts?page&size&sort&search` | 폴더별 게시글 조회(검색 포함)                                                       |
-| `POST`   | `/bookmark/{postId}/folders/{folderId}`               | 폴더에 추가(북마크 없으면 자동 생성)                                                |
-| `DELETE` | `/bookmark/{postId}/folders/{folderId}`               | 그 폴더에서만 제거(북마크 자체는 유지)                                              |
-| `DELETE` | `/bookmark/{postId}/folders`                          | 폴더 소속 전부 해제 → 미분류                                                        |
-| `PUT`    | `/post/{postId}/bookmark`                             | 북마크 저장(없으면 미분류로 생성, **기존 폴더 소속은 유지**) — `interaction.api.ts` |
-| `DELETE` | `/post/{postId}/bookmark`                             | 북마크 해제(소속도 전부 삭제) — `interaction.api.ts`                                |
+| 메서드   | 경로                                                  | 설명                                                                                                        |
+| -------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/bookmark/folders`                                   | 내 폴더 목록(`bookmarkCount`·`lastUsedAt` 포함, `sortOrder` ASC)                                            |
+| `POST`   | `/bookmark/folders`                                   | 폴더 생성(`sort_order = max+1`)                                                                             |
+| `PATCH`  | `/bookmark/folders/{id}`                              | 폴더 이름 수정                                                                                              |
+| `DELETE` | `/bookmark/folders/{id}`                              | 폴더 삭제(**이 폴더에만 있던** 북마크만 미분류로 — 다른 폴더에도 있으면 유지)                               |
+| `GET`    | `/bookmark/folders/{key}/posts?page&size&sort&search` | 폴더별 게시글 조회(검색 포함)                                                                               |
+| `POST`   | `/bookmark/{postId}/folders/{folderId}`               | 폴더에 추가(북마크 없으면 자동 생성)                                                                        |
+| `DELETE` | `/bookmark/{postId}/folders/{folderId}`               | 그 폴더에서만 제거(북마크 자체는 유지). `?removeBookmarkIfEmpty=true`면 남은 소속이 없을 때만 북마크도 삭제 |
+| `DELETE` | `/bookmark/{postId}/folders`                          | 폴더 소속 전부 해제 → 미분류                                                                                |
+| `PUT`    | `/post/{postId}/bookmark`                             | 북마크 저장(없으면 미분류로 생성, **기존 폴더 소속은 유지**) — `interaction.api.ts`                         |
+| `DELETE` | `/post/{postId}/bookmark`                             | 북마크 해제(소속도 전부 삭제) — `interaction.api.ts`                                                        |
 
 - `folderKey`(경로의 `{key}`): `'all' | 'uncategorized' | UUID`
 - `sort`: `'latest' | 'oldest' | 'title' | 'views' | 'viewed'` — `viewed`(최근 열람순)는
@@ -157,16 +157,17 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 전에는 셋 다 같은 스크롤 영역에 있어 폴더가 많으면 두 행이 스크롤 밖으로
 밀렸다).
 
-| 행          | 상태                      | 탭하면                                            | 토스트                                                                                                 |
-| ----------- | ------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 미분류      | 북마크 아님               | 북마크 저장(`PUT`, 미분류로 생성)                 | `{folderName}에 저장했어요.`(미분류)                                                                   |
-| 미분류      | 북마크 O, 소속 0개(✓)     | **북마크 자체를 완전 삭제**(2026-09-11 변경)      | `북마크를 제거했어요.` + 되돌리기 액션(8초)                                                            |
-| 미분류      | 북마크 O, 소속 1개 이상   | 소속 전부 해제                                    | `모든 폴더에서 제거했어요.`                                                                            |
-| 폴더 X      | 비소속                    | 그 폴더에 추가(자동 북마크)                       | `{folderName}에 저장했어요.`                                                                           |
-| 폴더 X      | 소속(✓), 다른 폴더도 있음 | 그 폴더에서만 제거                                | `{folderName} 폴더에서 제거했어요.`                                                                    |
-| 폴더 X      | 소속(✓), **마지막 폴더**  | **북마크 자체를 완전 삭제**(미분류로 남기지 않음) | `{folderName} 폴더에서 제거했어요.` + "마지막 폴더라서 북마크도 함께 제거했어요." + 되돌리기 액션(8초) |
-| 북마크 제거 | 소속 0~1개                | 북마크 완전 삭제(소속도 전부)                     | `북마크를 제거했어요.` + 되돌리기 액션(8초)                                                            |
-| 북마크 제거 | 소속 2개 이상             | 북마크 완전 삭제(소속도 전부)                     | `북마크를 제거했어요.`(되돌리기 없음 — 일괄 복원 범위 밖)                                              |
+| 행          | 상태                                           | 탭하면                                            | 토스트                                                                                                 |
+| ----------- | ---------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 미분류      | 북마크 아님                                    | 북마크 저장(`PUT`, 미분류로 생성)                 | `{folderName}에 저장했어요.`(미분류)                                                                   |
+| 미분류      | 북마크 O, 소속 0개(✓)                          | **북마크 자체를 완전 삭제**(2026-09-11 변경)      | `북마크를 제거했어요.` + 되돌리기 액션(8초)                                                            |
+| 미분류      | 북마크 O, 소속 1개 이상                        | 소속 전부 해제                                    | `모든 폴더에서 제거했어요.`                                                                            |
+| 폴더 X      | 비소속                                         | 그 폴더에 추가(자동 북마크)                       | `{folderName}에 저장했어요.`                                                                           |
+| 폴더 X      | 소속(✓), 다른 폴더도 있음                      | 그 폴더에서만 제거                                | `{folderName} 폴더에서 제거했어요.`                                                                    |
+| 폴더 X      | 소속(✓), **마지막 폴더**                       | **북마크 자체를 완전 삭제**(미분류로 남기지 않음) | `{folderName} 폴더에서 제거했어요.` + "마지막 폴더라서 북마크도 함께 제거했어요." + 되돌리기 액션(8초) |
+| 폴더 X      | 화면상 마지막 폴더인데 서버엔 다른 소속이 남음 | 그 폴더에서만 제거(북마크 유지, 2026-10-14)       | `{folderName} 폴더에서 제거했어요.`                                                                    |
+| 북마크 제거 | 소속 0~1개                                     | 북마크 완전 삭제(소속도 전부)                     | `북마크를 제거했어요.` + 되돌리기 액션(8초)                                                            |
+| 북마크 제거 | 소속 2개 이상                                  | 북마크 완전 삭제(소속도 전부)                     | `북마크를 제거했어요.`(되돌리기 없음 — 일괄 복원 범위 밖)                                              |
 
 체크된 미분류를 다시 탭하면 폴더 행의 "마지막 폴더 탭"과 똑같이 파괴적 조작이 된다
 (2026-09-11 재결정, §10) — 처음엔 "미분류는 되돌릴 폴더가 없어 Undo가 불가능하다"는
@@ -668,6 +669,8 @@ DELETE → PUT 순서로 단정) · `bookmark-folder.queries.test.ts`(8, 무수�
 테스트를 추가했다(수정 전 코드에서는 "미분류에 저장했어요."로 실패). 일반 미분류 저장 테스트에는 보기가
 미분류로 가는지 단언을 더했다.
 
+**2026-10-14 갱신(2)** — 마지막 폴더 해제를 서버 판단으로 바꾼 뒤(§5, §10) `PostCardBookmarkFolderDialog.test.tsx`(16→17): 마지막 폴더 탭이 북마크째 해제가 아니라 폴더 제거 API에 `removeBookmarkIfEmpty=true`로 나가는지 단정하도록 기존 테스트를 바꾸고, 서버에 다른 소속이 남은 응답이면 설명·되돌리기 없는 일반 제거 토스트만 뜨는 테스트를 추가했다(둘 다 수정 전 코드에서 실패 확인). `interaction.queries.test.ts`(32→33): 마지막 폴더 해제가 화면은 즉시 해제로 바꾸고, 다른 소속이 남은 응답이면 그 소속으로 교정되는지.
+
 ## 10. 시행착오
 
 ### "최근 저장한 폴더"가 삭제 후 옛 값으로 굳어 있던 문제
@@ -1066,6 +1069,23 @@ scope를 나눠 써서 `mutationKey` 대신 `scope.id`로 센다(`isLastPendingB
 `features/bookmark/toggle/hooks/useBookmarkFolders.ts`, `mocks/handlers/post.handlers.ts`, 테스트 2개 파일.
 계획: [`docs/plans/2026-10-13-bookmark-set-state.md`](./plans/2026-10-13-bookmark-set-state.md).
 
+### 마지막 폴더를 빼면 다른 기기가 추가한 폴더까지 지워지던 문제
+
+위 전환 뒤에도 남아 있던 같은 계열의 문제다(2026-10-14). 다이얼로그는 화면이 아는 소속이 하나뿐이면 "마지막
+폴더"로 보고 북마크째 해제(`DELETE /post/{postId}/bookmark`)했다. 화면이 낡아 다른 기기가 그사이 폴더 B에도
+추가해 뒀다면, 북마크 삭제의 FK cascade로 B 소속까지 말없이 지워졌고 되돌리기는 A만 복구했다.
+
+수정(BE PR #89 → FE): 폴더 제거 API에 `removeBookmarkIfEmpty` 옵션을 더해, 서버가 소속을 뺀 뒤 남은 소속이
+없을 때만 북마크를 지운다(`NOT EXISTS` 조건 DELETE 한 문장). FE는 마지막 폴더 해제를 `useBookmarkPostMutation`에
+`{ lastFolderId }`로 넘겨, 화면은 지금처럼 즉시 해제로 바꾸고 요청만 이 옵션으로 보낸다. 다른 소속이 남았다는
+응답이 오면 마지막 요청 확정 단계에서 그 소속으로 교정되고, 토스트는 일반 제거("개발 폴더에서 제거했어요.")만
+띄운다. 근거와 기각한 대안(FE만 고치기·그대로 두기)은 계획
+[`docs/plans/2026-10-14-last-folder-keeps-others.md`](./plans/2026-10-14-last-folder-keeps-others.md).
+
+영향 파일: `entities/interaction/api/interaction.{api,queries}.ts`, `features/bookmark/toggle/hooks/useBookmarkFolders.ts`,
+`features/bookmark/toggle/hooks/usePostCardBookmarkFolderDialog.ts`, `mocks/handlers/bookmark-folder.handlers.ts`,
+테스트 2개 파일.
+
 ## 11. 남은 것
 
 - `북마크 제거` 행의 되돌리기는 삭제 전 소속이 0~1개일 때만 제공된다(§5). 소속이
@@ -1074,8 +1094,6 @@ scope를 나눠 써서 `mutationKey` 대신 `scope.id`로 센다(`isLastPendingB
 - 모바일은 hover가 없어 첫 탭에서는 폴더 목록을 여전히 기다린다(이후 staleTime 3분 동안은
   캐시로 즉시 뜬다). 기다리는 동안 모달이 늘어나는 문제는 골격 화면으로 줄였지만(§5), 폴더
   수가 3개와 다르면 도착할 때 조금 늘거나 준다.
-- 마지막 폴더 A를 빼면 북마크째 해제(`DELETE`)한다. 그사이 다른 기기가 폴더 B를 추가했다면 B 소속도 함께
-  지워진다(토글 시절과 같다). `removeBookmarkFolder(A)` 응답의 `folderIds`가 비었을 때만 해제하는 방식을 검토한다.
 - 옛 토글 `POST /post/{postId}/bookmark`는 BE에 deprecated로 남아 있다. 좋아요 토글과 함께 호출 로그
   (`deprecated bookmark toggle called`)가 0건이 되면 BE에서 제거한다.
 

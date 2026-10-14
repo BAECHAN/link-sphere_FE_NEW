@@ -33,18 +33,24 @@ export const bookmarkFolderHandlers = [
     );
   }),
 
-  // DELETE /bookmark/:postId/folders/:folderId (그 폴더에서만 제거)
-  http.delete(url(API_ENDPOINTS.bookmark.postFolder(':postId', ':folderId')), ({ params }) => {
-    const data: BookmarkFoldersResponse = {
-      postId: String(params['postId']),
-      isBookmarked: true,
-      folderIds: [],
-    };
-    return HttpResponse.json(
-      { status: 200, message: 'ok', data, timestamp: new Date().toISOString() },
-      { status: 200 }
-    );
-  }),
+  // DELETE /bookmark/:postId/folders/:folderId (그 폴더에서만 제거). removeBookmarkIfEmpty=true면
+  // 남은 소속이 없으니(folderIds: []) 북마크도 지워진 응답이다
+  http.delete(
+    url(API_ENDPOINTS.bookmark.postFolder(':postId', ':folderId')),
+    ({ params, request }) => {
+      const removeBookmarkIfEmpty =
+        new URL(request.url).searchParams.get('removeBookmarkIfEmpty') === 'true';
+      const data: BookmarkFoldersResponse = {
+        postId: String(params['postId']),
+        isBookmarked: !removeBookmarkIfEmpty,
+        folderIds: [],
+      };
+      return HttpResponse.json(
+        { status: 200, message: 'ok', data, timestamp: new Date().toISOString() },
+        { status: 200 }
+      );
+    }
+  ),
 
   // DELETE /bookmark/:postId/folders (소속 전체 해제)
   http.delete(url(API_ENDPOINTS.bookmark.postFolders(':postId')), ({ params }) => {

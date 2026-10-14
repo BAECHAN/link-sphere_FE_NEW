@@ -40,4 +40,15 @@ export const interactionApi = {
   unbookmarkPost: async (postId: string) => {
     return await apiClient.delete<PostBookmarkResponse>(API_ENDPOINTS.post.postBookmark(postId));
   },
+
+  // 화면상 마지막 폴더를 빼며 해제 — 서버가 그 소속을 뺀 뒤 남은 소속이 없을 때만 북마크를 지운다.
+  // 화면이 낡아 다른 기기가 추가한 폴더가 있으면 북마크와 그 소속이 남는다
+  // (docs/plans/2026-10-14-last-folder-keeps-others.md)
+  unbookmarkPostFromLastFolder: async (postId: string, folderId: string) => {
+    return await apiClient.delete<PostBookmarkResponse>(
+      API_ENDPOINTS.bookmark.postFolder(postId, folderId),
+      undefined,
+      { searchParams: { removeBookmarkIfEmpty: true } }
+    );
+  },
 };
