@@ -53,7 +53,10 @@ export function useFcmForegroundMessage() {
       });
     }
 
-    subscribe();
+    // SDK 청크 로드 실패를 잡는다 - 놓치면 처리되지 않은 rejection이 된다
+    subscribe().catch((error: unknown) => {
+      console.error('[FCM] Error subscribing to foreground messages:', error);
+    });
 
     return () => {
       cancelled = true;
