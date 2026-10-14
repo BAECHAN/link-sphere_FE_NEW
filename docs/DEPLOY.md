@@ -200,6 +200,7 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
 | `VITE_FIREBASE_APP_ID`              | Firebase(FCM) 설정값      | 빌드 시점에 주입됨            |
 | `VITE_FIREBASE_VAPID_KEY`           | Firebase(FCM) 설정값      | 빌드 시점에 주입됨            |
 | `HISTORY_APP_PRIVATE_KEY`           | 히스토리 앱 개인 키(.pem) | 아래 "히스토리 봇 GitHub App" |
+| `GEMINI_API_KEY`                    | 히스토리 요약용 Gemini 키 | `history.yml`이 사용          |
 
 **Variables**(Secret이 아닌 레포 Variable — Settings > Secrets and variables > Actions > Variables 탭):
 
