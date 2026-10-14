@@ -22,6 +22,7 @@
     "check": "pnpm type-check && pnpm lint && pnpm format:check && pnpm check:deps",
     "check:docs": "node scripts/check-docs.js",
     "check:deps": "node scripts/check-deps.js",
+    "check:cloudfront": "node scripts/check-cloudfront-drift.js",
     "check:fix": "pnpm lint:fix && pnpm format && pnpm type-check",
     "graph": "node scripts/dep-graph.js --reaches",
     "graph:focus": "node scripts/dep-graph.js --focus",
