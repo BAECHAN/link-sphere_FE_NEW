@@ -1,4 +1,7 @@
 ### 2026-10-14 (FE)
+- React Query의 기본 동작인 window focus 시 재조회(refetchOnWindowFocus) 설정을 복원하여 탭 복귀 시 데이터 최신성 유지하도록 개선 ([#373](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/373))
+
+### 2026-10-14 (FE)
 - 배포 프로세스 개선을 통한 폰트 리소스 관리 최적화
   - 폰트 파일 매 배포 시 재업로드 로직 적용
   - 이전 버전 폰트 파일의 7일 보존 정책 수립 ([#371](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/371))
