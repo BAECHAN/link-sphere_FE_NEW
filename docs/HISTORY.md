@@ -1,4 +1,7 @@
 ### 2026-10-14 (FE)
+- 앱 및 탭 전환 시점의 신규 배포 확인 로직 보완을 통해 최신 버전 유지 기능 강화
+
+### 2026-10-14 (FE)
 - API 명세 최신화 및 미사용 코드 제거
   - BE의 POST 토글 제거 사항을 OpenAPI 스키마 및 관련 API 문서에 반영하여 기술 부채 해소 ([#367](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/367))
 
