@@ -33,6 +33,13 @@
 
   </details>
 
+- `shared` 에러 화면의 noindex 메타가 화면이 그려진 뒤에야 붙던 문제
+  <details><summary>배경·구현</summary>
+
+  `useNoIndex`가 `useEffect`로 메타를 달아, 게시글 404 안내 화면과 앱 404 페이지가 먼저 그려지고 `noindex`는 그 뒤에 붙었다. 단위 테스트 "안내 화면이 떠 있는 동안 noindex 메타를 단다"가 그 틈에 걸려 CI에서 가끔 실패했고(FE #357 첫 실행), 같은 테스트를 10개씩 동시에 돌리는 부하 재현에서 40번 중 2번 실패했다(직접 측정). 필수 체크가 켜져 이 실패가 머지를 막게 되면서 고쳤다. 테스트 단언은 그대로 두고 `useLayoutEffect`로 바꿔 화면을 그리기 전에 메타를 단다(같은 재현 80번 중 실패 0번). 상세는 `docs/POST.md` §10. (`useNoIndex.ts`, [PR #360](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/360))
+
+  </details>
+
 ### Notes
 
 - **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #80](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/80)(`PUT`/`DELETE /post/{postId}/like`, `/comment/{commentId}/like`)이 있어야 한다. 구버전 BE에는 이 경로가 없어 좋아요가 전부 실패한다(롤백만 되고 토스트 없음). 2026-10-13 BE 운영에 배포됨.
