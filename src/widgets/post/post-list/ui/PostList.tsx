@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
-import { usePostList } from '@/widgets/post/post-list/hooks/usePostList';
+import { usePostList, usePostListErrorReset } from '@/widgets/post/post-list/hooks/usePostList';
 import { PostListSkeleton } from '@/widgets/post/post-list/ui/PostCardSkeleton';
 import { Post } from '@/entities/post/model/post.schema';
 
@@ -25,6 +25,8 @@ interface PostListProps {
 }
 
 export function PostList({ renderPost, grid }: PostListProps) {
+  const { resetKeys, onReset } = usePostListErrorReset();
+
   return (
     <AsyncBoundary
       loadingFallback={
@@ -33,6 +35,8 @@ export function PostList({ renderPost, grid }: PostListProps) {
         </DelayedFallback>
       }
       errorFallback={() => <ErrorState>{TEXTS.messages.error.fetchPosts}</ErrorState>}
+      resetKeys={resetKeys}
+      onReset={onReset}
     >
       <PostListContent renderPost={renderPost} grid={grid} />
     </AsyncBoundary>

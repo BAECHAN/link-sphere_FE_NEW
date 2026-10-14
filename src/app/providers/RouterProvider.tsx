@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider as RRRouterProvider } from 'react-r
 import { appRoutes } from '@/app/routes';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { NavigationService } from '@/shared/lib/router/navigation';
+import { RouterEvents } from '@/shared/lib/router/router-events';
 
 const router = createBrowserRouter(appRoutes, {
   future: {
@@ -11,6 +12,7 @@ const router = createBrowserRouter(appRoutes, {
 });
 
 NavigationService.setNavigate(router.navigate.bind(router));
+RouterEvents.setSource(router);
 
 export function RouterProvider() {
   return (

@@ -6,6 +6,7 @@ import { useAuthStore } from '@/shared/store/auth.store';
 // storage.util만 import해 각 테스트 파일의 vi.mock 순서에 영향을 주지 않는다(logout-grace.util.ts reset() 주석 참고)
 import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 import { resetPendingSearchParams } from '@/shared/hooks/useSearchParamsDraft';
+import { resetRouterEvents } from '@/shared/lib/router/router-events';
 import { resetFailedImages } from '@/shared/lib/image/failedImageCache';
 
 // MSW 서버 라이프사이클
@@ -17,6 +18,7 @@ afterEach(() => {
   useAuthStore.getState().clearAuth();
   AuthEpochUtil.reset();
   resetPendingSearchParams();
+  resetRouterEvents();
   resetFailedImages();
 });
 

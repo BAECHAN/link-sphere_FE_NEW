@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { NavigateOptions, useLocation, useSearchParams } from 'react-router-dom';
+import { RouterEvents } from '@/shared/lib/router/router-events';
 
 /**
  * 아직 커밋되지 않은 URL 쓰기 의도. react-router의 `useSearchParams()`는 라우터가 실제로
@@ -28,10 +29,11 @@ export function resetPendingSearchParams() {
  * 안에서 연속으로 쓰면, 두 번째 쓰기는 커밋된 URL이 아니라 **첫 번째 쓰기가 남긴 draft** 위에
  * 이어붙는다 - mutation이 우연히 보장하던 "연속 조작 누적"을 명시적으로 재현한다.
  *
- * 신선도 판정은 `location.key`로 한다(react-router가 push/replace/pop마다 새로 발급).
+ * 신선도 판정은 `location.key`로 한다(react-router가 push/replace마다 새로 발급).
  * `useSearchParams()` 인스턴스 identity로는 훅 호출부마다 별도 memo라 서로 다른 컴포넌트가
  * pending을 공유할 수 없고, URL 문자열 비교로는 "A→B→A(뒤로가기)"에서 옛 pending이
- * 되살아나는 구멍이 남는다.
+ * 되살아나는 구멍이 남는다. 단 pop(뒤로/앞으로 가기)은 돌아간 항목의 key를 그대로 되돌려주므로
+ * key만으로는 못 잡는다 - 그래서 POP은 라우터 구독(RouterEvents)으로 따로 받아 pending을 비운다.
  *
  * 읽기(`searchParams`)에는 pending을 섞지 않는다 - 이 값을 쿼리 키나 effect 의존성으로 쓰는
  * 코드가 지금처럼 "커밋된 URL"만 기준으로 돌아야 낙관적 UI 미러와 이중 반영되지 않는다.
@@ -51,6 +53,16 @@ export function useSearchParamsDraft() {
     lastSeenLocationKey = locationKey;
     pendingIntent = null;
   }, [locationKey]);
+
+  // 정지 구간에 뒤로가기를 하면 커밋 전의 원래 항목으로 돌아가 커밋된 key가 끝내 안 바뀐다 -
+  // 위 effect가 돌지 않아, 떠난 항목에 쓰려던 pending이 남아 다음 조작에 되살아난다.
+  useEffect(
+    () =>
+      RouterEvents.onPop(() => {
+        pendingIntent = null;
+      }),
+    []
+  );
 
   const updateSearchParams = useCallback(
     (updater: (draft: URLSearchParams) => void, navigateOptions?: NavigateOptions) => {
