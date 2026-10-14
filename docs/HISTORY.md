@@ -1,3 +1,7 @@
+### 2026-10-14 (FE)
+- 배포 프로세스 최적화 및 런타임 안정성 개선
+  - 배포 중 발생하는 화이트 아웃 현상 및 Chunk load error 대응을 위한 배포 전략 수정 ([#366](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/366))
+
 ### 2026-10-14 (BE)
 - PostgreSQL 기반의 데이터베이스 통합 테스트 환경 구축
 로그:
