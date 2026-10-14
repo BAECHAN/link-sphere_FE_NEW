@@ -19,6 +19,7 @@
 1.  **Trigger**: `main` 브랜치에 푸시되면 워크플로우가 시작됩니다 — 단, 경로 필터가
     걸려 있어 `src/**`·`public/**`·`package.json`·`pnpm-lock.yaml`·`vite.config.ts`·
     `postcss.config.js`·`index.html`·`tsconfig*.json`·`scripts/inject-csp.js`·
+    `scripts/prune-old-assets.js`·`scripts/lib/prune-assets.js`·
     `.github/workflows/deploy.yml`(자기 파일 — 아래 "액션 버전 관리" 참고) 중
     하나라도 바뀐 push에만 실행됩니다(`.github/workflows/deploy.yml`의 `on.push.paths`).
     즉 `CHANGELOG.md`나 `docs/` 아래 파일만 바뀐 push는 이 워크플로우를 **트리거하지
@@ -55,9 +56,9 @@
       `index.html`을 맨 먼저 올려, 새 HTML이 아직 없는 entry 청크를 가리키는 공백이
       생겼습니다(2026-10-14 run 38515585972 실측 21.6초 — 그 사이 새 방문자는 청크 403으로
       흰 화면).
-    - `assets/`와 `fonts/`는 **지우지 않습니다**(`--delete` 없이 동기화, ③의 `--delete`도 이
-      두 접두사를 제외) — 이미 열려 있는 탭이 옛 lazy 청크를 계속 받을 수 있게 하기
-      위해서입니다(2026-05-23 `46727dc`부터).
+    - `assets/`와 `fonts/`는 업로드 때 **지우지 않습니다**(`--delete` 없이 동기화, ③의
+      `--delete`도 이 두 접두사를 제외) — 이미 열려 있는 탭이 옛 lazy 청크를 계속 받을 수
+      있게 하기 위해서입니다(2026-05-23 `46727dc`부터). 대신 7일 지난 것은 9번이 정리합니다.
     - ⑤ `index.html`·⑥ `dist/version.json`(커밋 sha·배포 시각 등 빌드 식별자,
       [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고)·④ Service Worker는 무캐시
       (`no-cache, no-store, must-revalidate`)로 올립니다. `version.json`은 "배포 완료"
@@ -75,17 +76,32 @@
       ③라이브 entry 청크 해시가 방금 빌드한 것과 같은지 ④`/404.html`(없는 경로에 쓰는
       `index.html` 사본)의 entry 청크 해시도 같은지 확인합니다. 자세한 근거는
       [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고.
-9.  **실패 시 알림** (`notify-failure` job):
+9.  **옛 자산 정리**:
+    - 8번이 통과한 뒤 `scripts/prune-old-assets.js`가 **지금 빌드(`dist/`)에 없고 마지막
+      업로드가 7일 넘은** `assets/`·`fonts/` 객체를 지웁니다(선별 규칙은
+      `scripts/lib/prune-assets.js`, 보존 일수 `RETENTION_DAYS`). 6번이 옛 청크를 지우지
+      않아 무기한 쌓이던 것을 막습니다(2026-10-14 실측: assets 14,679개·119MB, entry 청크
+      624개).
+    - 날짜만 보는 S3 lifecycle 규칙을 쓰지 않는 이유: 배포가 7일 끊기면 지금 쓰는 파일까지
+      지웁니다. 지금 빌드에 있는 파일은 업로드 시각과 상관없이 남깁니다.
+    - "7일"은 그 파일이 **마지막으로 배포에 포함된 뒤** 7일이다(배포마다 지금 빌드 파일을 다시
+      올려 업로드 시각이 갱신된다). 그래서 배포 간격이 7일 넘게 벌어지면 다음 배포 직후 직전
+      빌드의 청크가 바로 지워진다.
+    - 지워진 청크를 열려 있던 탭이 요청하면, 경로별 1회 자동 새로고침으로
+      복구됩니다([NEW-VERSION-RELOAD.md](./NEW-VERSION-RELOAD.md) §4).
+    - 권한은 기존 `s3:ListBucket`·`s3:DeleteObject`로 충분합니다. 로컬에서 대상만 확인하려면
+      빌드 후 읽기 전용으로 `node scripts/prune-old-assets.js --bucket <버킷> --dry-run`.
+10. **실패 시 알림** (`notify-failure` job):
     - 위 어느 스텝이든 실패하면 별도 job이 커밋 sha·run 링크를 담은 GitHub 이슈를
       자동 생성합니다. `deploy` job과 권한을 분리해뒀습니다(AWS 자격증명을 다루는
       job에 `issues: write`를 더하지 않기 위함).
-10. **성공 시 실패 이슈 자동 종료** (`close-resolved-failures` job):
-    - `deploy` job이 성공하면, 9번이 만든 열린 이슈(작성자 `github-actions[bot]`, 제목이
+11. **성공 시 실패 이슈 자동 종료** (`close-resolved-failures` job):
+    - `deploy` job이 성공하면, 10번이 만든 열린 이슈(작성자 `github-actions[bot]`, 제목이
       `배포 실패: `로 시작)를 이번 커밋 sha·run 링크 코멘트와 함께 닫습니다. 원인을 고친
       PR 없이 재시도만으로 통과한 경우라면 실패 run 로그를 확인하고 이슈를 다시 엽니다.
-    - 9번과 같은 이유로 별도 job이고, `continue-on-error: true`라 이 job이 실패해도 배포
+    - 10번과 같은 이유로 별도 job이고, `continue-on-error: true`라 이 job이 실패해도 배포
       run 결론은 `deploy` job 결과를 따릅니다.
-    - 도입 배경: 9번만 있던 시절 첫 실패 이슈(#136)가 원인 수정(#138) 뒤에도 수정 PR과
+    - 도입 배경: 10번만 있던 시절 첫 실패 이슈(#136)가 원인 수정(#138) 뒤에도 수정 PR과
       연결되지 않아 22일간 열린 채 남았습니다.
 
 ### GitHub Actions 수동 재실행
@@ -696,8 +712,8 @@ CI 파이프라인 자체를 재실행하려면(AWS 자격증명 불필요) 위 
 명령을 여기 따로 적어 두지 않는다 — 두 곳에 두면 한쪽만 고쳐져 어긋난다. 대신:
 
 ```bash
-# 1. 빌드
-pnpm build
+# 1. 빌드 - CI=true로 CI와 같게 빌드한다(없으면 번들 분석 dist/stats.html이 생겨 운영에 올라간다)
+CI=true pnpm build
 
 # 2. S3 업로드 - .github/workflows/deploy.yml의 "Upload to S3" 스텝 run 블록을 위에서부터
 #    그대로 실행한다. ${{ secrets.S3_BUCKET_NAME }}만 실제 버킷명으로 바꾼다

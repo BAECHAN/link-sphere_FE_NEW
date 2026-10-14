@@ -13,6 +13,8 @@ on:
       - 'index.html'
       - 'tsconfig*.json'
       - 'scripts/inject-csp.js'
+      - 'scripts/prune-old-assets.js'
+      - 'scripts/lib/prune-assets.js'
       # 자기 파일이 바뀌면(Dependabot의 액션 버전 갱신 포함) 바로 한 번 돌려 확인한다 -
       # 안 그러면 다음 실제 배포 때까지 아무도 실행해 보지 않는다(deploy-storybook.yml과 같은 방식).
       - '.github/workflows/deploy.yml'
@@ -100,7 +102,6 @@ jobs:
             --exclude "404.html" \
             --exclude "firebase-messaging-sw.js" \
             --exclude "version.json" \
-            --exclude "version.json.gz" \
             --exclude "assets/*" \
             --exclude "fonts/*" \
             --exclude "storybook" \
@@ -184,6 +185,13 @@ jobs:
           fi
 
           echo "배포 반영 검증 통과: sha=$LIVE_SHA entry=$LIVE_ENTRY"
+
+      - name: 옛 자산 정리
+        # 열린 탭을 위해 옛 해시 청크를 지우지 않는 대신(위 Upload 스텝), 지금 빌드에 없고 마지막
+        # 업로드가 7일 넘은 assets/·fonts/만 지운다 - 무기한 쌓이지 않게(docs/DEPLOY.md 9번).
+        # 배포 반영 검증이 통과한 뒤에만 돈다(앞 스텝이 실패하면 건너뛴다). 정리는 부수 작업이라
+        # 실패해도 배포 run을 실패로 만들지 않는다(실패 이슈가 열리지 않게) - 경고 주석만 남긴다.
+        run: node scripts/prune-old-assets.js --bucket "${{ secrets.S3_BUCKET_NAME }}" || echo "::warning::옛 자산 정리 실패 - 사이트 배포는 끝났다. 이 스텝 로그 확인"
 
   notify-failure:
     needs: deploy
