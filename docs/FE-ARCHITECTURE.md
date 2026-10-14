@@ -1556,6 +1556,12 @@ flowchart TD
 | 뒤로가기(POP)                                      | 저장된 위치로 복원     | 없음                                                                                                                                                                                                                                                                                                               |
 | 같은 URL에 `state`만 싣는 push(오버레이·모달·패널) | **스크롤 유지해야 함** | `preventScrollReset: true`를 명시한다 — 선례: [`useHistoryOverlay.ts`](../src/shared/hooks/useHistoryOverlay.ts)(사이드바·로그인 모달·이미지뷰어), [`useMobileSearchPanel.ts`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts), [`MarkdownContent.tsx`](../src/shared/ui/elements/MarkdownContent.tsx) |
 
+**코드로 스크롤할 때는 `behavior: ScrollUtil.getBehavior()`(2026-10-14).** `scrollIntoView`·`scrollTo`에
+`behavior: 'smooth'`를 직접 쓰면 기기에서 "동작 줄이기"를 켠 사용자에게도 화면이 미끄러진다(WCAG 2.3.3).
+[`scroll.util.ts`](../src/shared/utils/scroll.util.ts)가 `prefers-reduced-motion: reduce`면 `'auto'`(즉시)를,
+아니면 `'smooth'`를 준다. ESLint `no-restricted-syntax`가 `behavior: 'smooth'` 리터럴을 막는다(`eslint.config.js`
+`RESTRICTED_SYNTAX_COMMON`). CSS 애니메이션·트랜지션은 아직 대응하지 않았다(`motion-ux` skill).
+
 **가상 스크롤 목록의 함정(2026-09-30에 고침).** 피드·북마크 목록은 TanStack Virtual로 그리는데,
 새 행을 처음 측정할 때 "현재 스크롤 위쪽 행이 추정보다 커졌으면 그만큼 스크롤을 보정"한다. 이
 판단에 쓰는 스크롤 위치 캐시는 scroll 이벤트로만 갱신되므로, `ScrollRestoration`이 방금 맨 위로

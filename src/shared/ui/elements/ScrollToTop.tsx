@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ArrowUp } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { ScrollUtil } from '@/shared/utils/scroll.util';
 
 // framer-motion의 AnimatePresence와 같은 fade+scale+slide 지속시간(ms) - exit
 // 애니메이션이 끝날 때까지 마운트를 유지하려면 CSS transition 시간과 정확히 맞아야 한다.
@@ -42,7 +43,7 @@ export function ScrollToTop() {
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
-      behavior: 'smooth',
+      behavior: ScrollUtil.getBehavior(),
     });
   };
 

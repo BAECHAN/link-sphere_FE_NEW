@@ -50,6 +50,14 @@ const RESTRICTED_SYNTAX_COMMON = [
     message:
       '본문 없는 요청에 {}를 보내지 마세요. post·delete는 data를 빼고, put·patch는 undefined를 넘기세요.',
   },
+  // [금지] 스크롤에 behavior: 'smooth' 직접 쓰기 — 기기에서 "동작 줄이기"를 켠 사용자에게도
+  // 화면이 미끄러진다(WCAG 2.3.3). ScrollUtil.getBehavior()가 그 설정이면 즉시 이동으로 바꾼다
+  // (2026-10-14 스크롤 5곳 정리)
+  {
+    selector: 'Property[key.name="behavior"][value.value="smooth"]',
+    message:
+      "behavior: 'smooth' 대신 behavior: ScrollUtil.getBehavior()를 쓰세요(@/shared/utils/scroll.util) — 동작 줄이기 설정을 존중합니다.",
+  },
 ];
 
 // [금지] 날짜 처리에 new Date()/.getTime() 직접 사용

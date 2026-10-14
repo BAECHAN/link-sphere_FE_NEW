@@ -15,6 +15,7 @@ import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/comment.const';
 import { Comment } from '@/entities/comment/model/comment.schema';
 import { useUpdateComment } from '@/features/comment/update/hooks/useUpdateComment';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
+import { ScrollUtil } from '@/shared/utils/scroll.util';
 
 interface CommentEditFormProps {
   comment: Comment;
@@ -53,7 +54,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
   // ⌘+Enter로 빈 상태 제출 시, 토스트만으로는 어느 폼인지 알기 어려워 그 폼 자신을 화면
   // 중앙으로 스크롤하고 잠깐 강조한다.
   function highlightEmptyForm() {
-    containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    containerRef.current?.scrollIntoView({ behavior: ScrollUtil.getBehavior(), block: 'center' });
     setShowValidationHighlight(true);
     setTimeout(() => setShowValidationHighlight(false), 1300);
   }
