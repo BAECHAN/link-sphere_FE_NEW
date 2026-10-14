@@ -1,4 +1,7 @@
 ### 2026-10-14 (FE)
+- 브라우저 뒤로가기 시 이전 화면을 즉시 복원하도록 HTML 캐시 정책을 no-cache로 설정하여 사용자 경험 개선 ([#377](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/377))
+
+### 2026-10-14 (FE)
 - 카드 댓글 인터랙션 최적화: 댓글 아이콘 클릭 시 작성 폼으로 자동 스크롤 및 선제적 데이터 페칭 구현 ([#375](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/375))
 
 ### 2026-10-14 (FE)
