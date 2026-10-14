@@ -225,6 +225,15 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
   폴더에 두면 터미널에서 `operation not permitted`가 나므로 홈 폴더로 옮겨서 등록한다.
 - **실측(2026-10-13, 직접 측정)**: 이 앱을 예외로 둔 임시 규칙셋(필수 체크 미충족 브랜치)에 앱 토큰으로 push하자
   `Bypassed rule violations`로 통과했다. 상세는 공통 지침 저장소 `docs/RESEARCH.md` §7.5.
+- **main 실동작(2026-10-14)**: 규칙셋 적용 뒤 첫 `src` 머지(#360)의 히스토리 run이 main에 push했다(`cef0f38`). 로그에
+  `Bypassed rule violations for refs/heads/main: 2 of 2 required status checks are expected`가 찍혔다 — 필수 체크 없이
+  예외 앱이라 통과했다는 뜻이다.
+- **Gemini가 429·503이면 그 머지의 항목이 빠진다**: `scripts/generate-history.js`는 쿼터 소진·과부하면 요약을 건너뛰고
+  run은 성공으로 끝난다. 생성 스텝 로그에 "Gemini 요약 실패, HISTORY.md 갱신을 건너뜁니다", Commit & Push 스텝에
+  "No changes to commit"이 찍힌다. 항목이 필요하면 `gh run rerun <run id> -R BAECHAN/link-sphere_FE_NEW`로 다시 돌린다
+  — 같은 push 이벤트의 커밋 범위(`BEFORE_SHA`·`CURRENT_SHA`)로 다시 요약하고, 건너뛴 run은 아무것도 쓰지 않았으므로
+  항목이 겹치지 않는다. 2026-10-14 #360 머지 run은 503(`This model is currently experiencing high demand`)으로 두 번
+  건너뛰고, 약 10분 뒤 세 번째 실행에서 성공했다.
 
 ## AWS IAM 권한 요구사항
 
@@ -316,6 +325,22 @@ sni-only`, `MinimumProtocolVersion: TLSv1.2_2021`) — `update-distribution`은
 - **새 도메인을 CORS 허용 목록에 추가하는 걸 빠뜨리면 로그인이 막힌다.** 실제로
   이 도메인 연결 직후 겪은 장애다 - BE `docs/DEPLOY.md`의 `APP_CORS_ALLOWED_ORIGINS`
   절 참고. 앞으로 도메인을 또 추가할 때 반드시 같이 갱신한다.
+- **등록자 이메일 확인을 끝내지 않으면 도메인이 정지된다.** Route 53 문서는 확인 링크를 정해진 기간(작업과 도메인
+  종류에 따라 3~15일) 안에 누르지 않으면 _"도메인을 정지해 인터넷에서 접속할 수 없게 한다"_ 고 쓴다(번역,
+  [Route 53 문서](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/domain-click-email-link.html)). 실제로
+  등록(2026-09-28) 15일 뒤인 2026-10-13 22:18Z에 `clientHold`가 걸려 10-14 02:31Z까지 약 4시간 FE·BE(`/api`)가 모두
+  끊겼다. 정지 중에도 Route 53 호스팅 존은 정상이고(`dig @ns-130.awsdns-16.com linksphere.click`은 응답), `.click`
+  레지스트리 존에서 도메인이 빠질 뿐이다.
+  - 증상: `curl: (6) Could not resolve host`, 공용 DNS(`dig @8.8.8.8`)가 `NXDOMAIN`, FE 배포의 "배포 반영 검증"
+    스텝이 실패해 배포 실패 이슈가 자동으로 열린다.
+  - 확인: `whois linksphere.click | grep -i "Domain Status"`(정지면 `clientHold`),
+    `aws route53domains get-contact-reachability-status --domain-name linksphere.click --region us-east-1`(미확인이면 `PENDING`).
+  - 해결: 등록자 메일함(스팸함 포함)에서 `noreply@registrar.amazon` 메일의 링크를 누른다. 기간이 지나 링크가
+    만료됐으면 Route 53 콘솔 → Registered domains → 도메인 → **Send email again**으로 다시 받는다. 2026-10-14에는
+    확인(`DONE`) 뒤 10분 안에 whois가 `ok`가 됐고, 그 1분 뒤 공용 DNS가 복구됐다(직접 관측). 복구 뒤
+    `gh workflow run "Frontend Deploy (S3 + CloudFront)" --ref main`으로 배포를 다시 돌리면 실패 이슈가 자동으로 닫힌다.
+  - 도메인을 새로 등록하면 같은 기간 제한이 다시 걸린다. 등록자 이름·이메일을 바꿀 때도 승인 메일이 오는데, 이때는
+    누르지 않으면 정지가 아니라 변경이 취소된다(같은 Route 53 문서).
 
 ```bash
 # 1. ACM 인증서 발급 (us-east-1 고정)
