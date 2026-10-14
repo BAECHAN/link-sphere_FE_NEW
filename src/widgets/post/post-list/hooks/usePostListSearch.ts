@@ -5,7 +5,7 @@ import { usePostListParams } from '@/widgets/post/post-list/hooks/usePostList';
 import { extractSearchTags, parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
 
-const SCOPE_FILTERS = ['isBookmarked', 'isMyPosts', 'isPrivate'] as const;
+const SCOPE_FILTERS = ['isBookmarked', 'isLiked', 'isMyPosts', 'isPrivate'] as const;
 
 // "조건 N개 적용 중" 카운트 — 봇 글 숨기기(localStorage 개인 설정, 초기화 대상 아님)는 제외.
 function computeAppliedFilterCount(
@@ -99,6 +99,7 @@ export const usePostListSearch = () => {
   };
 
   const isClickedBookmark = optimisticFilters.includes('isBookmarked');
+  const isClickedLiked = optimisticFilters.includes('isLiked');
   const isClickedMyPosts = optimisticFilters.includes('isMyPosts');
   const isClickedPrivate = optimisticFilters.includes('isPrivate');
 
@@ -141,6 +142,7 @@ export const usePostListSearch = () => {
     selectedCategories,
     toggleCategoryTagInSearch,
     isClickedBookmark,
+    isClickedLiked,
     isClickedMyPosts,
     isClickedPrivate,
     handleToggleFilter,

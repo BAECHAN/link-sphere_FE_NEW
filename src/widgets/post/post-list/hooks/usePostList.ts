@@ -20,7 +20,7 @@ function getPostId(post: Post): string {
   return post.id;
 }
 
-// URL filter(칩 3개)에 옛 북마크·공유 링크가 남긴 excludeBots가 섞여 있어도 무시하고,
+// URL filter(칩 4개)에 옛 북마크·공유 링크가 남긴 excludeBots가 섞여 있어도 무시하고,
 // 봇 숨기기 여부는 오직 localStorage 설정(useHideBotsStore)만 따른다
 function buildCombinedFilter(
   currentFilter: string | undefined,
@@ -40,7 +40,7 @@ function buildCombinedFilter(
  * 데이터 페칭을 포함하지 않으므로 Suspense를 유발하지 않습니다.
  *
  * 봇 글 숨기기(excludeBots)는 URL이 아닌 localStorage 개인 설정(useHideBotsStore)으로
- * 관리하므로, 여기서 다루는 filter는 나머지 칩(북마크한/내가 작성한/비공개)만 대상으로 한다.
+ * 관리하므로, 여기서 다루는 filter는 나머지 칩(북마크한/좋아요한/내가 작성한/비공개)만 대상으로 한다.
  */
 export const usePostListParams = () => {
   const { searchParams, updateSearchParams, clearSearchParams } = useSearchParamsDraft();

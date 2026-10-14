@@ -46,6 +46,12 @@ export const ActiveVariants: Story = {
         onClick={() => {}}
       />
       <FilterChip
+        label="좋아요한"
+        isActive
+        activeClassName="bg-destructive text-destructive-foreground"
+        onClick={() => {}}
+      />
+      <FilterChip
         label="내가 작성한"
         isActive
         activeClassName="bg-info text-info-foreground"

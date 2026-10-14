@@ -11,6 +11,13 @@
 
 ### Added
 
+- `post` 피드 범위 필터에 "좋아요한" 칩을 추가해 좋아요한 글만 보기
+  <details><summary>배경·구현</summary>
+
+  좋아요한 글을 다시 찾을 방법이 앱에 없었다. "내 댓글"을 좋아요·북마크까지 담는 "내 활동" 페이지로 넓히는 안(종류별 탭, 한 목록에 섞는 타임라인)과 비교해, 기존 "북마크한"·"내가 작성한" 칩과 같은 방식의 칩 하나로 정했다(2026-10-14 사용자 결정). 켜면 URL `filter`에 `isLiked`가 붙고 BE `GET /post?filter=isLiked`가 내가 좋아요한 글만 돌려준다. 다른 칩과 AND로 묶이고 "조건 N개"·초기화에도 잡힌다. 자리는 "북마크한" 바로 뒤, 켜진 색은 좋아요 버튼과 같은 `destructive`다(시안 비교 후 사용자 선택). 정렬은 피드와 같은 글 작성순이고, 이 칩을 켠 목록에서 좋아요를 취소해도 카드는 하트만 꺼진 채 남았다가 다음 재조회 때 빠진다("북마크한"과 같은 동작). (`widgets/post/post-list/ui/PostListSearch.tsx`, `widgets/post/post-list/hooks/usePostListSearch.ts`, `shared/config/texts.ts`, 계획 `docs/plans/2026-10-14-liked-filter-chip.md`, [PR #382](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/382))
+
+  </details>
+
 - `auth` 한 탭의 로그인·로그아웃을 다른 탭과 뒤로가기 복원 화면에도 반영
   <details><summary>배경·구현</summary>
 
@@ -149,6 +156,7 @@
 - **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #80](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/80)(`PUT`/`DELETE /post/{postId}/like`, `/comment/{commentId}/like`)이 있어야 한다. 구버전 BE에는 이 경로가 없어 좋아요가 전부 실패한다(롤백만 되고 토스트 없음). 2026-10-13 BE 운영에 배포됨.
 - **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #85](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/85)(`PUT`/`DELETE /post/{postId}/bookmark`)가 있어야 한다. 구버전 BE에는 이 경로가 없어 북마크 저장·해제가 전부 실패한다(롤백 + 실패 토스트). 2026-10-13 BE 운영에 배포됨.
 - **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #89](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/89)(`DELETE /bookmark/{postId}/folders/{folderId}`의 `removeBookmarkIfEmpty` 옵션)가 있어야 한다. 구버전 BE는 이 옵션을 무시해, 마지막 폴더를 빼도 북마크가 미분류로 남는다(에러는 없음).
+- **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #94](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/94)(`GET /post`의 `filter=isLiked`)가 있어야 한다. 구버전 BE는 모르는 `filter` 값을 조용히 무시해, "좋아요한" 칩을 켜도 전체 피드가 나온다.
 
 ## [0.19.0] - 2026-10-12
 

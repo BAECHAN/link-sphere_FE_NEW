@@ -31,7 +31,8 @@ test.describe('비로그인 인증 가드 — 요청 없이 로그인 모달만 
     });
 
     await page.goto('/post');
-    await page.getByRole('button', { name: TEXTS.ariaLabels.postLike }).click();
+    // exact — 이름 부분 일치면 피드의 "좋아요한" 범위 칩까지 걸린다
+    await page.getByRole('button', { name: TEXTS.ariaLabels.postLike, exact: true }).click();
 
     await expect(page.getByRole('dialog', { name: TEXTS.auth.guard.title })).toBeVisible();
     expect(likeRequestCount).toBe(0);

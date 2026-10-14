@@ -9,6 +9,7 @@ import { mockLikePost, mockLikePostFailure } from './mocks/interaction.mock';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 
+// 좋아요 버튼은 exact로 찾는다 — 이름 부분 일치면 피드의 "좋아요한" 범위 칩까지 걸린다
 test.describe('좋아요 — 상세↔목록 캐시 전파', () => {
   test.beforeEach(async ({ page }) => {
     await installCatchAll(page);
@@ -42,7 +43,7 @@ test.describe('좋아요 — 상세↔목록 캐시 전파', () => {
     // (docs/TESTING.md "자주 발생하는 문제" 13). 상세에만 있는 버튼으로 전환 커밋을 기다린다.
     await expect(page.getByRole('button', { name: TEXTS.post.detail.backToList })).toBeVisible();
 
-    const likeButton = page.getByRole('button', { name: TEXTS.ariaLabels.postLike });
+    const likeButton = page.getByRole('button', { name: TEXTS.ariaLabels.postLike, exact: true });
     await likeButton.click();
 
     // 낙관적 갱신 — 클릭 즉시 aria-label이 postUnlike로 바뀌고 카운트가 1이 된다
@@ -71,16 +72,22 @@ test.describe('좋아요 — 상세↔목록 캐시 전파', () => {
     // 위 테스트와 같은 이유로 상세 전환 커밋을 기다린다
     await expect(page.getByRole('button', { name: TEXTS.post.detail.backToList })).toBeVisible();
 
-    await page.getByRole('button', { name: TEXTS.ariaLabels.postLike }).click();
+    await page.getByRole('button', { name: TEXTS.ariaLabels.postLike, exact: true }).click();
 
-    const revertedDetailButton = page.getByRole('button', { name: TEXTS.ariaLabels.postLike });
+    const revertedDetailButton = page.getByRole('button', {
+      name: TEXTS.ariaLabels.postLike,
+      exact: true,
+    });
     await expect(revertedDetailButton).toBeVisible();
     await expect(revertedDetailButton).toContainText('0');
 
     await page.getByRole('button', { name: TEXTS.post.detail.backToList }).click();
     await expect(page).toHaveURL(/\/post$/);
 
-    const revertedListButton = page.getByRole('button', { name: TEXTS.ariaLabels.postLike });
+    const revertedListButton = page.getByRole('button', {
+      name: TEXTS.ariaLabels.postLike,
+      exact: true,
+    });
     await expect(revertedListButton).toBeVisible();
     await expect(revertedListButton).toContainText('0');
   });
