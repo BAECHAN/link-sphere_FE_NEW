@@ -1,4 +1,7 @@
 ### 2026-10-14 (FE)
+- 피드 범위 필터에 '좋아요한' 옵션을 추가하여 사용자가 좋아요를 누른 게시글만 필터링하여 조회할 수 있도록 개선 ([#382](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/382))
+
+### 2026-10-14 (FE)
 - 동작 줄이기(Reduce Motion) 설정 사용자를 위한 즉시 스크롤 이동 기능 적용 ([#379](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/379))
 
 ### 2026-10-14 (BE)
