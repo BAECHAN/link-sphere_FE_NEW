@@ -211,12 +211,12 @@ src/
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                          | 방법                                                                                                                                                                                           |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 재확인 주기 변경                      | `useAppVersionCheck.ts`의 `VERSION_CHECK_THROTTLE_MS`                                                                                                                                          |
-| 탭 복귀 대신 폴링(setInterval)로 전환 | `useAppVersionCheck.ts`의 `checkDeployedVersionOnReturn` — 단, [useWindowFocusManager.ts](../src/shared/hooks/useWindowFocusManager.ts)와 같은 이벤트 구독 방식이 이 레포의 기존 선례임을 감안 |
-| 리로드 시 보여줄 화면 변경            | `RootLayout.tsx`의 `isReloadingForNewVersion` 분기 — 현재 `SpinnerOverlay`                                                                                                                     |
-| entry script 판정 방식 변경           | `version.util.ts`의 `ENTRY_SCRIPT_SELECTOR`·`readEntryScriptSrc`                                                                                                                               |
+| 하고 싶은 것                          | 방법                                                                       |
+| ------------------------------------- | -------------------------------------------------------------------------- |
+| 재확인 주기 변경                      | `useAppVersionCheck.ts`의 `VERSION_CHECK_THROTTLE_MS`                      |
+| 탭 복귀 대신 폴링(setInterval)로 전환 | `useAppVersionCheck.ts`의 `checkDeployedVersionOnReturn`                   |
+| 리로드 시 보여줄 화면 변경            | `RootLayout.tsx`의 `isReloadingForNewVersion` 분기 — 현재 `SpinnerOverlay` |
+| entry script 판정 방식 변경           | `version.util.ts`의 `ENTRY_SCRIPT_SELECTOR`·`readEntryScriptSrc`           |
 
 ## 9. 검증 결과
 

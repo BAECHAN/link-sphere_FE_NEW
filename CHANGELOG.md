@@ -11,6 +11,13 @@
 
 ### Changed
 
+- `shared` 탭 복귀 재조회를 React Query 기본(탭이 다시 보일 때)으로 되돌림
+  <details><summary>배경·구현</summary>
+
+  `useWindowFocusManager`가 창 `focus`/`blur`로 React Query의 포커스 판단을 덮어쓰고 있었다(2026-01-18 첫 커밋부터, 이유 기록 없음). TanStack Query v5는 창 포커스 재조회를 `focus` 대신 `visibilitychange`로만 하도록 바꿨고, 근거 PR([TanStack/query#4805](https://github.com/TanStack/query/pull/4805))은 iframe·`alert`/`confirm`·DevTools·파일 선택 창에서 focus가 잘못 발생하는 문제를 든다 — 이 앱에도 파일 입력이 2곳 있다. 또 `focusManager.setFocused(boolean)`을 한 번 부르면 그 뒤로는 탭이 보이는지를 보지 않아(`@tanstack/query-core` `focusManager.ts`의 `isFocused()`), 떠날 때 `blur`만 오고 돌아올 때 `focus`가 안 오는 브라우저에선 돌아와도 재조회되지 않을 수 있었다. 훅을 지워 기본으로 되돌렸다. 데스크톱에서 두 창을 나란히 띄우고 오갈 때(둘 다 보이는 상태)는 더 이상 재조회하지 않는다(2026-10-14 사용자 결정). 새 배포 감지(`useAppVersionCheck`)는 그대로 `focus`·`visibilitychange`를 모두 듣는다. 계획 `docs/plans/2026-10-14-cache-strategy-followups.md`. (`QueryProvider.tsx`, `useWindowFocusManager.ts`(삭제), `eslint.config.js`, `docs/CACHE-STRATEGY.md`, [PR #373](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/373))
+
+  </details>
+
 - `shared` 앱·탭 전환 후 돌아올 때도 새 배포를 확인
   <details><summary>배경·구현</summary>
 

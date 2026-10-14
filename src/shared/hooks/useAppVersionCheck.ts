@@ -13,11 +13,11 @@ export const VERSION_CHECK_THROTTLE_MS = 1000 * 60 * 5;
  * 플래그로만 남긴다. 화면에는 아무것도 띄우지 않는다 - 적용은 useNewVersionReload가 라우트 이동
  * 시점에 한다.
  *
- * window focus 구독 방식은 useWindowFocusManager를 따랐고, visibilitychange(visible)도 함께 듣는다 -
- * 앱·탭 전환 후 돌아올 때 focus가 오지 않는 경우를 메우려는 것이다(추론, 기기별로 측정하지
- * 않았다). TanStack Query v5도 창 포커스 감지를 focus 대신 visibilitychange로만 하도록 바꿨다
- * (https://tanstack.com/query/latest/docs/framework/react/guides/migrating-to-v5). focus를 빼지
- * 않는 이유는 데스크톱 창 전환처럼 가시성은 그대로인 복귀도 잡기 위해서다. 두 이벤트가 연달아
+ * window focus와 visibilitychange(visible)를 함께 듣는다 - visibilitychange는 앱·탭 전환 후 돌아올 때
+ * focus가 오지 않는 경우를 메우려는 것이다(추론, 기기별로 측정하지 않았다). TanStack Query v5도 창
+ * 포커스 감지를 focus 대신 visibilitychange로만 하도록 바꿨고, React Query 재조회는 그 기본을 그대로
+ * 쓴다(https://tanstack.com/query/latest/docs/framework/react/guides/migrating-to-v5). 여기서 focus를
+ * 빼지 않는 이유는 데스크톱 창 전환처럼 가시성은 그대로인 복귀도 잡기 위해서다. 두 이벤트가 연달아
  * 와도 아래 스로틀이 한 번만 확인하게 한다. setInterval 폴링은 하지 않는다.
  * dev 서버에서는 첫 module script가 /@vite/client라 비교가 무의미하므로 아무것도 하지 않는다.
  * 앱 전체에서 RootLayout 한 곳에서만 호출한다.

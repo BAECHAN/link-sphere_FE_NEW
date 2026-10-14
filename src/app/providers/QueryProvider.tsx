@@ -1,4 +1,3 @@
-import { useWindowFocusManager } from '@/shared/hooks/useWindowFocusManager';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -9,8 +8,6 @@ interface QueryProviderProps {
 }
 
 export function QueryProvider({ children }: QueryProviderProps) {
-  useWindowFocusManager();
-
   return (
     <QueryClientProvider client={queryClient}>
       {children}

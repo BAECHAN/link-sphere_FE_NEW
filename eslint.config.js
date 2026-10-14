@@ -1171,8 +1171,6 @@ export default [
       'src/app/**/*.{ts,tsx}',
       // React Query 인프라 자체 (queryClient.ts, utils/hooks.ts)
       'src/shared/lib/react-query/**/*.{ts,tsx}',
-      // 전역 focusManager 제어
-      'src/shared/hooks/useWindowFocusManager.ts',
       // 3-Layer API의 Layer 3 — 쿼리·뮤테이션 훅을 정의하는 자리
       'src/**/api/*.queries.ts',
       // hooks/ 세그먼트 — entity/feature/widget/page 커스텀 훅
