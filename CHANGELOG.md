@@ -56,6 +56,20 @@
 
   </details>
 
+- `infra` 배포 중 새 HTML이 아직 없는 청크를 가리켜 흰 화면이 날 수 있던 문제
+  <details><summary>배경·구현</summary>
+
+  배포 워크플로가 `index.html`을 해시 자산보다 먼저 올려, 새 HTML이 아직 S3에 없는 entry 청크를 가리키는 공백이 생겼다(2026-10-14 run 38515585972 실측 21.6초). CloudFront 최소 TTL이 1초라 그 사이 들어온 방문자는 새 HTML을 받고 청크 403으로 흰 화면을 봤고, JS가 하나도 실행되지 않아 자동 복구도 없었다. 업로드 순서를 assets → fonts → 그 외 → Service Worker → `index.html`·`404.html` → `version.json`으로 바꿔, HTML이 가리키는 파일이 항상 먼저 있게 했다. 배포 문서의 "`--delete`로 옛 파일 삭제" 서술과 옛 청크까지 지우던 수동 배포 명령도 실제 동작(assets 보존)에 맞게 고쳤다. 계획 `docs/plans/2026-10-14-cache-strategy.md`. (`.github/workflows/deploy.yml`, `docs/DEPLOY.md`, `docs/SYSTEM-ARCHITECTURE.md`, [PR #366](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/366))
+
+  </details>
+
+- `shared` 새 배포 후 청크 로드 실패 복구가 일부 동작하지 않던 문제
+  <details><summary>배경·구현</summary>
+
+  `main.tsx`의 청크 실패 리스너가 2026-03부터 `vite:preload-error`를 듣고 있었는데 Vite는 `vite:preloadError`만 보내 한 번도 실행되지 않았다. JS 청크 실패는 에러 경계가 대신 새로고침해 티가 나지 않았지만, CSS 프리로드 실패는 청크 에러로 판별되지 않아 일반 에러 화면이 떴다. 또 같은 경로에서 새로고침하고도 다시 실패하면 안내도 버튼도 없이 스피너만 계속 돌았다. 리스너 이름을 고치고, 리스너와 에러 경계가 "경로별 세션당 1회 새로고침" 판단을 `ChunkReloadUtil`로 공유하게 했다(리스너가 먼저 새로고침을 건 뒤 렌더된 에러 경계가 "이미 시도함"으로 오판해 에러 화면이 깜빡이지 않게 페이지 단위 플래그를 둔다). 재시도가 소진되면 기존 "문제가 발생했어요" 화면과 홈 버튼을 보여준다. FCM SDK 청크 로드 실패가 처리되지 않은 rejection으로 남던 것도 잡았다. (`main.tsx`, `chunk-reload.util.ts`(신규), `AppErrorFallback.tsx`, `fcm.ts`, `useFcmForegroundMessage.ts`, `docs/NEW-VERSION-RELOAD.md`, [PR #366](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/366))
+
+  </details>
+
 ### Notes
 
 - **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #80](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/80)(`PUT`/`DELETE /post/{postId}/like`, `/comment/{commentId}/like`)이 있어야 한다. 구버전 BE에는 이 경로가 없어 좋아요가 전부 실패한다(롤백만 되고 토스트 없음). 2026-10-13 BE 운영에 배포됨.

@@ -48,11 +48,21 @@
       뒤 만료). 역할의 신뢰 조건·권한은 아래 "AWS IAM 권한 요구사항" 참고(2026-10-13 전환).
     - 리전: `ap-northeast-1` (Tokyo)
 6.  **Deploy to S3**:
-    - 빌드된 `dist/` 디렉토리의 내용을 S3 버킷과 동기화합니다.
-    - `--delete` 옵션을 사용하여 로컬 빌드 결과물에 없는 파일은 S3에서도 삭제합니다.
-    - `index.html`과 함께 `dist/version.json`(커밋 sha·배포 시각 등 빌드 식별자,
-      [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고)도 같은 이유로 무캐시 업로드됩니다.
-    - 이 `--delete`는 같은 버킷의 `storybook/` 접두사를 `--exclude`로 제외한다 —
+    - 빌드된 `dist/` 디렉토리의 내용을 S3 버킷에 올립니다. **순서가 곧 원자성**입니다 —
+      HTML이 가리키는 파일이 HTML보다 먼저 S3에 있어야 하므로 ① `assets/`(해시 파일명,
+      1년 `immutable`) → ② `fonts/`(1년) → ③ 그 외 파일(`--delete` 동기화) → ④ Service
+      Worker → ⑤ `index.html`·`404.html` → ⑥ `version.json` 순서로 올립니다. 예전엔
+      `index.html`을 맨 먼저 올려, 새 HTML이 아직 없는 entry 청크를 가리키는 공백이
+      생겼습니다(2026-10-14 run 38515585972 실측 21.6초 — 그 사이 새 방문자는 청크 403으로
+      흰 화면).
+    - `assets/`와 `fonts/`는 **지우지 않습니다**(`--delete` 없이 동기화, ③의 `--delete`도 이
+      두 접두사를 제외) — 이미 열려 있는 탭이 옛 lazy 청크를 계속 받을 수 있게 하기
+      위해서입니다(2026-05-23 `46727dc`부터).
+    - ⑤ `index.html`·⑥ `dist/version.json`(커밋 sha·배포 시각 등 빌드 식별자,
+      [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고)·④ Service Worker는 무캐시
+      (`no-cache, no-store, must-revalidate`)로 올립니다. `version.json`은 "배포 완료"
+      신호라 맨 마지막이고, 8번 검증의 ①이 이 sha가 바뀌기를 기다립니다.
+    - ③의 `--delete`는 같은 버킷의 `storybook/` 접두사를 `--exclude`로 제외한다 —
       아래 "Storybook 공개 배포"가 그 접두사에 별도로 올리는 파일이라, 제외하지
       않으면 이 워크플로우가 돌 때마다 방금 배포한 Storybook이 통째로 삭제된다.
 7.  **CloudFront Invalidation**:
@@ -671,31 +681,28 @@ open https://linksphere.click/version
 
 ## 수동 배포 (참고)
 
-로컬 환경에서 수동으로 배포해야 할 경우 다음 명령어를 사용할 수 있습니다 (AWS CLI 설정 필요).
+로컬 환경에서 수동으로 배포해야 할 경우 아래 절차를 따릅니다 (AWS CLI 설정 필요).
 CI 파이프라인 자체를 재실행하려면(AWS 자격증명 불필요) 위 "GitHub Actions 수동 재실행"을 대신 쓴다.
 
-**주의**: `aws s3 sync dist/ ... --delete`를 `--exclude` 없이 그대로 쓰면 같은
-버킷의 `storybook/` 접두사(별도 워크플로 `deploy-storybook.yml`이 올리는 공개
-Storybook — 위 "Storybook 공개 배포" 절 참고)를 통째로 지운다. `404.html`도 `dist/`에
-없는 파일이라(`deploy.yml`이 `index.html`을 복사해 따로 올린다) 함께 지워지고, 그러면 앱
-라우트가 아닌 모든 경로가 S3 403 XML이 된다(위 "CloudFront Function" 절). 이 sync는 또한
-`index.html`·`version.json`·`assets/`·`fonts/`가 각각 받는 무캐시/장기 캐시 구분
-없이 전부 기본 헤더로 올려 캐시 정책도 깨진다. 가능하면 로컬 수동 배포 대신 위
-"GitHub Actions 수동 재실행"으로 정식 파이프라인(`deploy.yml`)을 재실행하는 쪽을
-권장한다. 그래도 로컬에서 직접 해야 한다면:
+**주의**: `aws s3 sync dist/ ... --delete` 한 줄로 끝내면 안 된다. 같은 버킷의
+`storybook/` 접두사(별도 워크플로 `deploy-storybook.yml`이 올리는 공개 Storybook — 위
+"Storybook 공개 배포" 절 참고)와 `404.html`(`dist/`에 없는 파일 — `deploy.yml`이
+`index.html`을 복사해 따로 올린다, 지워지면 앱 라우트가 아닌 모든 경로가 S3 403 XML이 된다,
+위 "CloudFront Function" 절)이 지워진다. `assets/`의 옛 청크도 지워져 이미 열려 있는 탭이
+다음 페이지로 이동할 때 청크 403을 받는다. 무캐시/장기 캐시 구분 없이 전부 기본 헤더로
+올라가 캐시 정책도 깨지고, 순서 없이 올라가 위 6번의 "새 HTML이 없는 청크를 가리키는
+공백"도 다시 생긴다. 가능하면 로컬 수동 배포 대신 위 "GitHub Actions 수동 재실행"으로
+정식 파이프라인(`deploy.yml`)을 재실행하는 쪽을 권장한다. 그래도 로컬에서 직접 해야 한다면
+명령을 여기 따로 적어 두지 않는다 — 두 곳에 두면 한쪽만 고쳐져 어긋난다. 대신:
 
 ```bash
 # 1. 빌드
 pnpm build
 
-# 2. 404.html 업로드 (index.html 사본 - deploy.yml과 같은 무캐시 정책)
-aws s3 cp dist/index.html s3://<YOUR_BUCKET_NAME>/404.html \
-  --cache-control "no-cache, no-store, must-revalidate" \
-  --content-type "text/html"
+# 2. S3 업로드 - .github/workflows/deploy.yml의 "Upload to S3" 스텝 run 블록을 위에서부터
+#    그대로 실행한다. ${{ secrets.S3_BUCKET_NAME }}만 실제 버킷명으로 바꾼다
+#    (순서·헤더·--exclude 목록을 바꾸지 않는다 - 위 6번 참고)
 
-# 3. S3 업로드 (버킷명 변경 필요, storybook/ 접두사와 위 404.html은 보존)
-aws s3 sync dist/ s3://<YOUR_BUCKET_NAME> --delete --exclude "storybook/*" --exclude "404.html"
-
-# 4. CloudFront 무효화 (Distribution ID 변경 필요)
+# 3. CloudFront 무효화 (Distribution ID 변경 필요)
 aws cloudfront create-invalidation --distribution-id <YOUR_DISTRIBUTION_ID> --paths "/*"
 ```

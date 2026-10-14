@@ -78,25 +78,12 @@ jobs:
           aws-region: ap-northeast-1
 
       - name: Upload to S3
+        # 순서가 곧 원자성이다 - HTML이 가리키는 파일은 HTML보다 먼저 S3에 있어야 한다.
+        # 예전엔 index.html을 맨 먼저 올려, 새 HTML이 아직 없는 entry 청크를 가리키는 공백이
+        # 생겼다(2026-10-14 run 38515585972 실측 21.6초 - 그 사이 새 방문자는 청크 403으로
+        # 흰 화면). CloudFront 최소 TTL이 1초라 엣지는 이 공백 동안에도 S3의 새 HTML을 바로
+        # 가져간다. 그래서 해시 자산 → 그 외 파일 → HTML → version.json 순서로 올린다.
         run: |
-          # index.html — 항상 최신 버전을 받도록 캐시 비활성화
-          aws s3 cp dist/index.html s3://${{ secrets.S3_BUCKET_NAME }}/index.html \
-            --cache-control "no-cache, no-store, must-revalidate" \
-            --content-type "text/html"
-          # 404.html — index.html 사본. CloudFront Function(spa-fallback.js)이 앱 라우트가 아닌
-          # 경로를 이 파일로 보내고 spa-status.js가 상태만 404로 바꾼다. 내용이 index.html과
-          # 같아야 해서(같은 entry 청크) 같은 캐시 정책으로 매 배포마다 다시 올린다.
-          aws s3 cp dist/index.html s3://${{ secrets.S3_BUCKET_NAME }}/404.html \
-            --cache-control "no-cache, no-store, must-revalidate" \
-            --content-type "text/html"
-          # 배포 식별자 — index.html과 같은 이유로 캐시 비활성화(배포 반영 확인용)
-          aws s3 cp dist/version.json s3://${{ secrets.S3_BUCKET_NAME }}/version.json \
-            --cache-control "no-cache, no-store, must-revalidate" \
-            --content-type "application/json"
-          # Service Worker — 캐시 없이 서빙 (브라우저가 항상 최신 버전 체크)
-          aws s3 cp dist/firebase-messaging-sw.js s3://${{ secrets.S3_BUCKET_NAME }}/firebase-messaging-sw.js \
-            --cache-control "no-cache, no-store, must-revalidate" \
-            --content-type "text/javascript"
           # assets (hash 포함) — 장기 캐시, 구 파일 유지 (접속 중 유저가 구 청크 요청 가능)
           aws s3 sync dist/assets/ s3://${{ secrets.S3_BUCKET_NAME }}/assets/ \
             --cache-control "public, max-age=31536000, immutable"
@@ -118,6 +105,25 @@ jobs:
             --exclude "fonts/*" \
             --exclude "storybook" \
             --exclude "storybook/*"
+          # Service Worker — 캐시 없이 서빙 (브라우저가 항상 최신 버전 체크)
+          aws s3 cp dist/firebase-messaging-sw.js s3://${{ secrets.S3_BUCKET_NAME }}/firebase-messaging-sw.js \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --content-type "text/javascript"
+          # index.html — 항상 최신 버전을 받도록 캐시 비활성화. 이 업로드부터 새 버전이 공개된다
+          aws s3 cp dist/index.html s3://${{ secrets.S3_BUCKET_NAME }}/index.html \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --content-type "text/html"
+          # 404.html — index.html 사본. CloudFront Function(spa-fallback.js)이 앱 라우트가 아닌
+          # 경로를 이 파일로 보내고 spa-status.js가 상태만 404로 바꾼다. 내용이 index.html과
+          # 같아야 해서(같은 entry 청크) 같은 캐시 정책으로 매 배포마다 다시 올린다.
+          aws s3 cp dist/index.html s3://${{ secrets.S3_BUCKET_NAME }}/404.html \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --content-type "text/html"
+          # 배포 식별자 — index.html과 같은 이유로 캐시 비활성화(배포 반영 확인용). "배포 완료"
+          # 신호라 맨 마지막에 올린다 - 아래 검증 스텝 1)이 이 sha가 바뀌기를 기다린다
+          aws s3 cp dist/version.json s3://${{ secrets.S3_BUCKET_NAME }}/version.json \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --content-type "application/json"
 
       - name: CloudFront Invalidation
         # 새 파일이 반영되도록 캐시를 무효화합니다.

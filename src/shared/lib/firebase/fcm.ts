@@ -36,16 +36,18 @@ export async function requestAndRegisterFcmToken(): Promise<void> {
     return;
   }
 
-  const [{ getToken }, { messaging }] = await Promise.all([
-    import('firebase/messaging'),
-    import('@/shared/lib/firebase/firebase'),
-  ]);
-
-  if (!messaging) {
-    return;
-  }
-
+  // SDK 청크 로드 실패도 아래 catch로 잡는다 - 호출부가 void로 부르므로 여기서 놓치면 처리되지
+  // 않은 rejection이 된다(새로고침 여부는 main.tsx의 vite:preloadError 리스너가 정한다)
   try {
+    const [{ getToken }, { messaging }] = await Promise.all([
+      import('firebase/messaging'),
+      import('@/shared/lib/firebase/firebase'),
+    ]);
+
+    if (!messaging) {
+      return;
+    }
+
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       console.info('[FCM] Notification permission denied');
