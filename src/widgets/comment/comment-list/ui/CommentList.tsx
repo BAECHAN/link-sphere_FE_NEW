@@ -11,6 +11,7 @@ import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { Divider } from '@/shared/ui/atoms/divider';
 import { EmptyState } from '@/shared/ui/elements/EmptyState';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
+import { ScrollUtil } from '@/shared/utils/scroll.util';
 import { TEXTS } from '@/shared/config/texts';
 
 interface CommentListProps {
@@ -64,7 +65,7 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
       }
 
       scrolledEntryKeyRef.current = location.key;
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      target.scrollIntoView({ behavior: ScrollUtil.getBehavior(), block: 'start' });
 
       if (isCommentSection) {
         commentFormRef.current?.focus();

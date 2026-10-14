@@ -196,4 +196,38 @@ test.describe('카드 댓글 아이콘 — 상세의 댓글 작성 폼으로 스
     // 실행의 해제 타이머가 cleanup에 취소되면 링이 계속 남는다(CommentList.tsx 주석).
     await expect(comment).not.toHaveClass(/ring-2/, { timeout: 3000 });
   });
+
+  test('기기에서 동작 줄이기를 켰으면 미끄러지지 않고 바로 폼으로 간다', async ({ page }) => {
+    // ScrollUtil.getBehavior()가 prefers-reduced-motion: reduce면 'auto'(즉시)를 준다
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/post');
+    await expect(commentIconLink(page)).toBeVisible();
+    await page.evaluate(() => {
+      const samples: number[] = [];
+      (window as unknown as { __scrollSamples: number[] }).__scrollSamples = samples;
+      const start = performance.now();
+
+      function sample() {
+        samples.push(Math.round(window.scrollY));
+
+        if (performance.now() - start < 2000) {
+          requestAnimationFrame(sample);
+        }
+      }
+
+      requestAnimationFrame(sample);
+    });
+
+    await commentIconLink(page).click();
+    await expectArrivedAtCommentForm(page);
+    await page.waitForTimeout(500);
+
+    // 맨 위(0)와 도착 위치 사이의 중간 위치가 한 프레임도 없어야 한다
+    const samples = await page.evaluate(
+      () => (window as unknown as { __scrollSamples: number[] }).__scrollSamples
+    );
+    const arrivedY = samples[samples.length - 1]!;
+    expect(arrivedY).toBeGreaterThan(0);
+    expect(samples.filter((y) => y !== 0 && y !== arrivedY)).toEqual([]);
+  });
 });

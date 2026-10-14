@@ -3,6 +3,7 @@ import { MessageSquarePlus } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { TEXTS } from '@/shared/config/texts';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { ScrollUtil } from '@/shared/utils/scroll.util';
 
 // ScrollToTop.tsx와 같은 fade+scale+slide 지속시간(ms) - exit 애니메이션이 끝날
 // 때까지 마운트를 유지하려면 CSS transition 시간과 정확히 맞아야 한다.
@@ -77,7 +78,7 @@ export function ScrollToCommentFormButton({
   );
 
   function scrollToCommentForm() {
-    targetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    targetRef.current?.scrollIntoView({ behavior: ScrollUtil.getBehavior(), block: 'start' });
     // focus({ preventScroll: true })로 포커스하므로 스크롤 애니메이션이 끝나길
     // 기다리지 않고 바로 불러도 서로 간섭하지 않는다.
     onAfterScroll?.();

@@ -58,11 +58,14 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 이미 각각 10/5/4건 선례가 있다). 기존 12건은 이번 skill 도입만으로 일괄
 리팩터링하지 않는다.
 
-## `prefers-reduced-motion` 미대응
+## `prefers-reduced-motion` — 스크롤만 대응
 
-레포 전체에 `prefers-reduced-motion` 대응이 0건이다(WCAG 2.3.3 Animation
-from Interactions 미충족). 이 skill은 그 공백을 기록만 하고 전역 대응 코드는
-추가하지 않는다 — 별도 작업으로 남긴다.
+코드로 일으키는 스크롤은 2026-10-14부터 대응한다 — `behavior: ScrollUtil.getBehavior()`
+(`src/shared/utils/scroll.util.ts`)가 "동작 줄이기"면 즉시 이동을 주고, `behavior: 'smooth'`
+리터럴은 ESLint가 막는다(`docs/FE-ARCHITECTURE.md` §25). CSS 애니메이션·트랜지션
+(`animate-*`·`transition-*`)은 여전히 대응 0건이다(WCAG 2.3.3 Animation from Interactions
+미충족) — 새로 붙일 때 Tailwind `motion-reduce:`/`motion-safe:` 변형을 검토하고, 기존
+클래스 일괄 정리는 별도 작업으로 남긴다.
 
 ## exit 애니메이션 동기화 함정
 
@@ -88,7 +91,7 @@ CSS만으로 exit(사라짐) 애니메이션을 만들 때 "화면에서 사라�
 | ------------------------ | -------------------------------------------------------------------------------------------- |
 | `duration-*`             | 150×1, 200×7, 300×3                                                                          |
 | `ease-*`                 | 0건                                                                                          |
-| `prefers-reduced-motion` | 0건                                                                                          |
+| `prefers-reduced-motion` | 0건(이 표 기준일. 스크롤은 2026-10-14 `ScrollUtil`로 대응)                                   |
 | `transition-all`         | 12건(`transition-colors` 10, `transition-opacity` 4, `transition-transform` 3 — 속성별 선례) |
 | `globals.css` 모션 토큰  | 0개(색상·반경·z-index·타이포그래피는 있음)                                                   |
 

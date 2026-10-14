@@ -27,6 +27,13 @@
 
   </details>
 
+- `shared` 기기에서 "동작 줄이기"를 켜면 스크롤이 미끄러지지 않고 바로 이동
+  <details><summary>배경·구현</summary>
+
+  💬 이동·"댓글 쓰기" 플로팅 버튼·빈 댓글 ⌘+Enter·맨 위로 버튼의 스크롤 5곳이 `behavior: 'smooth'`를 직접 써서, OS의 "동작 줄이기"(`prefers-reduced-motion: reduce`)를 켠 사용자에게도 화면이 미끄러졌다. 화면 전체가 움직이는 패닝은 전정기관 장애가 있는 사람에게 어지럼증을 일으킬 수 있다(MDN) — WCAG 2.3.3(AAA) 미충족. `ScrollUtil.getBehavior()`가 그 설정이면 `'auto'`(CSS `scroll-behavior` 미설정이라 즉시 이동)를, 아니면 `'smooth'`를 주고 5곳이 이를 쓴다. `behavior: 'smooth'` 리터럴은 ESLint `no-restricted-syntax`가 막는다. Firefox는 이 설정이면 스스로 즉시 이동하지만(Mozilla Bug 1832598) 다른 브라우저는 확인하지 못해 직접 처리했다. CSS 애니메이션·트랜지션은 아직 대응하지 않는다. (`scroll.util.ts`·`scroll.util.test.ts`(신규), `CommentList.tsx`, `ScrollToCommentFormButton.tsx`, `CommentForm.tsx`, `CommentEditForm.tsx`, `ScrollToTop.tsx`, `eslint.config.js`, `e2e/comment-icon-scroll.spec.ts`, `docs/FE-ARCHITECTURE.md`, `docs/COMMENT.md`, `.claude/skills/motion-ux/SKILL.md`, [PR #379](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/379))
+
+  </details>
+
 - `infra` 뒤로가기가 이전 화면을 즉시 복원하도록 HTML을 no-cache로
   <details><summary>배경·구현</summary>
 
