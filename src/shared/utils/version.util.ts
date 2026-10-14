@@ -1,4 +1,4 @@
-/** Vite가 index.html에 심는 진입 스크립트 - dev는 /src/main.tsx, prod는 /assets/js/index-<hash>.js */
+/** Vite가 index.html에 심는 진입 스크립트 - prod는 /assets/js/index-<hash>.js(dev는 첫 module script가 /@vite/client라 비교에 쓰지 않는다) */
 const ENTRY_SCRIPT_SELECTOR = 'script[type="module"][src]';
 
 /**
