@@ -114,17 +114,19 @@ jobs:
           aws s3 cp dist/firebase-messaging-sw.js s3://${{ secrets.S3_BUCKET_NAME }}/firebase-messaging-sw.js \
             --cache-control "no-cache, no-store, must-revalidate" \
             --content-type "text/javascript"
-          # index.html — 항상 최신 버전을 받도록 캐시 비활성화. 이 업로드부터 새 버전이 공개된다
+          # index.html — 이 업로드부터 새 버전이 공개된다. no-cache: 저장은 하되 쓸 때마다 서버에 재검증해
+          # 항상 최신을 받는다. no-store가 아니어서 뒤로가기가 bfcache로 즉시 복원된다 - 그 사이 로그아웃·
+          # 계정 변경은 useAuthEpochSync가 맞춘다(docs/CACHE-STRATEGY.md §5.10)
           aws s3 cp dist/index.html s3://${{ secrets.S3_BUCKET_NAME }}/index.html \
-            --cache-control "no-cache, no-store, must-revalidate" \
+            --cache-control "no-cache" \
             --content-type "text/html"
           # 404.html — index.html 사본. CloudFront Function(spa-fallback.js)이 앱 라우트가 아닌
           # 경로를 이 파일로 보내고 spa-status.js가 상태만 404로 바꾼다. 내용이 index.html과
           # 같아야 해서(같은 entry 청크) 같은 캐시 정책으로 매 배포마다 다시 올린다.
           aws s3 cp dist/index.html s3://${{ secrets.S3_BUCKET_NAME }}/404.html \
-            --cache-control "no-cache, no-store, must-revalidate" \
+            --cache-control "no-cache" \
             --content-type "text/html"
-          # 배포 식별자 — index.html과 같은 이유로 캐시 비활성화(배포 반영 확인용). "배포 완료"
+          # 배포 식별자 — 페이지가 아니라 JS가 읽는 배포 반영 확인용이라 저장하지 않는다(no-store). "배포 완료"
           # 신호라 맨 마지막에 올린다 - 아래 검증 스텝 1)이 이 sha가 바뀌기를 기다린다
           aws s3 cp dist/version.json s3://${{ secrets.S3_BUCKET_NAME }}/version.json \
             --cache-control "no-cache, no-store, must-revalidate" \
@@ -163,12 +165,17 @@ jobs:
             exit 1
           fi
 
-          # 2) index.html 캐시 헤더 회귀 - no-store 가 깨지면 NEW-VERSION-RELOAD 전제가 무너진다
+          # 2) index.html 캐시 헤더 회귀 - no-cache(재사용 전 재검증)가 빠지면 새 배포 감지·적용
+          #    (NEW-VERSION-RELOAD) 전제가 무너지고, no-store가 다시 붙으면 뒤로가기 bfcache 복원이 꺼진다
           CC=$(curl -fsSI "$SITE_URL/index.html" | tr -d '\r' | grep -i '^cache-control:' || echo "")
           case "$CC" in
-            *no-store*) echo "cache-control OK: $CC" ;;
+            *no-store*)
+              echo "::error::index.html cache-control 에 no-store 가 있음(bfcache 회귀): '$CC'"
+              exit 1
+              ;;
+            *no-cache*) echo "cache-control OK: $CC" ;;
             *)
-              echo "::error::index.html cache-control 에 no-store 없음: '$CC'"
+              echo "::error::index.html cache-control 에 no-cache 없음: '$CC'"
               exit 1
               ;;
           esac

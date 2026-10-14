@@ -38,7 +38,7 @@
 
 ```mermaid
 flowchart TD
-  Focus["탭 복귀<br/>(창 focus 또는 visibilitychange → visible)"] --> Dev{"DEV 모드?"}
+  Focus["탭 복귀·뒤로가기 복원<br/>(창 focus, visibilitychange → visible,<br/>pageshow persisted)"] --> Dev{"DEV 모드?"}
   Dev -->|예| Skip1["아무 것도 안 함<br/>(entry script 비교 무의미)"]
   Dev -->|아니오| Throttle{"마지막 확인 후<br/>5분 지났나?"}
   Throttle -->|아니오| Skip2["무시"]
@@ -83,7 +83,9 @@ Zustand 기본 개념과 React Router의 `useLocation`/`useBlocker`를 안다고
 - **`window` `focus` + `document` `visibilitychange`** — 감지 트리거. 데스크톱 창 전환은
   focus로, 앱·탭 전환 후 복귀는 visibilitychange로 잡는다(§5). TanStack Query v5도 창
   포커스 감지를 visibilitychange로만 하도록 바꿨다
-  ([마이그레이션 가이드](https://tanstack.com/query/latest/docs/framework/react/guides/migrating-to-v5))
+  ([마이그레이션 가이드](https://tanstack.com/query/latest/docs/framework/react/guides/migrating-to-v5)).
+  `window` `pageshow`(persisted)는 뒤로가기로 bfcache에서 되살아난 페이지를 잡는다(2026-10-14 HTML
+  `no-cache` 전환 뒤, [CACHE-STRATEGY.md](./CACHE-STRATEGY.md) §5.10)
 
 **구현·검증 과정에서 쓴 도구**
 
@@ -144,7 +146,8 @@ react-router가 history를 이미 목적지로 밀어둔 상태라, `reload()`�
    (Vite HMR 클라이언트)라 비교 자체가 무의미하다(2026-10-14 정정: 처음엔
    `/src/main.tsx`라고 적었지만 [BUILD-VERSION.md](./BUILD-VERSION.md) §5가 실측한 값은
    `/@vite/client`다).
-2. **윈도우 `focus` 이벤트와 `document`의 `visibilitychange`(visible일 때만)마다**
+2. **윈도우 `focus` 이벤트, `document`의 `visibilitychange`(visible일 때만), 윈도우 `pageshow`(bfcache
+   복원일 때만)마다**
    마지막 확인 이후 5분(`VERSION_CHECK_THROTTLE_MS`)이
    안 지났으면 무시한다. 마운트 시각을 "마지막 확인 시각"의 초깃값으로 쓴다 — 부팅
    자체가 방금 최신 `index.html`을 받아온 시점이라, 마운트 직후 첫 focus까지
@@ -220,7 +223,7 @@ src/
 
 ## 9. 검증 결과
 
-`useAppVersionCheck.test.ts`(7개, 2026-10-14 `visibilitychange` 케이스 3개 추가로 10개)·`useNewVersionReload.test.tsx`(4개)·
+`useAppVersionCheck.test.ts`(7개, 2026-10-14 `visibilitychange` 케이스 3개 추가로 10개, 같은 날 `pageshow` 케이스 1개 추가로 11개)·`useNewVersionReload.test.tsx`(4개)·
 `version.util.test.ts`(8개) 전체 통과. 저장소 전체 테스트(`pnpm test`, 50개 파일·
 333개 테스트)·`pnpm type-check`·`pnpm lint` 모두 통과 상태에서 이 문서를 작성했다.
 실제 배포 환경(CloudFront)에서의 전파 지연 구간 동작은 별도로 실측하지 않았다 —

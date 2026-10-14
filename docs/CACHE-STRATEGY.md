@@ -35,25 +35,25 @@ Threads 글은 HTML을 입구에 비유한다 — _"입구가 옛날이면 새 �
 - **배달 대행(Service Worker)**이 따로 재료를 쌓아 두는 가게라면 거기도 확인해야 하지만, 이 레포의
   Service Worker는 알림만 전달하고 재료를 쌓아 두지 않는다.
 
-| 옛 버전이 남는 자리             | 왜 남나                                | 이 레포의 대응(자세히는 §5)                             |
-| ------------------------------- | -------------------------------------- | ------------------------------------------------------- |
-| ① 정적 파일(JS·CSS·이미지·폰트) | 브라우저가 한 번 받은 파일을 다시 쓴다 | 내용이 바뀌면 URL이 바뀐다(해시·버전 경로) → 1년 캐시   |
-| ② HTML                          | HTML이 어떤 파일을 받을지 정한다       | 저장하지 않는다(`no-store`), 배포마다 CloudFront 무효화 |
-| ③ 이미 열린 탭                  | 실행 중인 JS는 배포로 바뀌지 않는다    | 탭 복귀 때 새 배포 감지 → 다음 페이지 이동 때 새로고침  |
-| ④ Service Worker                | 설치·대기·활성화라는 별도 생명주기     | 푸시 전용이라 앱 파일을 캐시하지 않는다(해당 없음)      |
-| + 배포 순서                     | HTML이 아직 없는 파일을 가리킬 수 있다 | 자산을 먼저, HTML과 `version.json`을 마지막에 올린다    |
+| 옛 버전이 남는 자리             | 왜 남나                                | 이 레포의 대응(자세히는 §5)                              |
+| ------------------------------- | -------------------------------------- | -------------------------------------------------------- |
+| ① 정적 파일(JS·CSS·이미지·폰트) | 브라우저가 한 번 받은 파일을 다시 쓴다 | 내용이 바뀌면 URL이 바뀐다(해시·버전 경로) → 1년 캐시    |
+| ② HTML                          | HTML이 어떤 파일을 받을지 정한다       | 쓸 때마다 재검증(`no-cache`), 배포마다 CloudFront 무효화 |
+| ③ 이미 열린 탭                  | 실행 중인 JS는 배포로 바뀌지 않는다    | 탭 복귀 때 새 배포 감지 → 다음 페이지 이동 때 새로고침   |
+| ④ Service Worker                | 설치·대기·활성화라는 별도 생명주기     | 푸시 전용이라 앱 파일을 캐시하지 않는다(해당 없음)       |
+| + 배포 순서                     | HTML이 아직 없는 파일을 가리킬 수 있다 | 자산을 먼저, HTML과 `version.json`을 마지막에 올린다     |
 
 ```mermaid
 flowchart TD
   subgraph Deploy["배포 (deploy.yml)"]
-    U1["assets·fonts 업로드<br/>(1년 immutable)"] --> U2["그 외 파일·SW"] --> U3["index.html·404.html<br/>(no-store) — 여기서 공개"] --> U4["version.json<br/>(배포 완료 신호)"]
-    U4 --> INV["CloudFront /* 무효화"] --> VER["배포 반영 검증<br/>(sha·no-store·entry 해시)"] --> PRUNE["옛 자산 정리<br/>(지금 빌드에 없고 7일 지난 assets·fonts)"]
+    U1["assets·fonts 업로드<br/>(1년 immutable)"] --> U2["그 외 파일·SW"] --> U3["index.html·404.html<br/>(no-cache) — 여기서 공개"] --> U4["version.json<br/>(배포 완료 신호)"]
+    U4 --> INV["CloudFront /* 무효화"] --> VER["배포 반영 검증<br/>(sha·no-cache·entry 해시)"] --> PRUNE["옛 자산 정리<br/>(지금 빌드에 없고 7일 지난 assets·fonts)"]
   end
   subgraph New["새로 여는 탭"]
-    N1["GET index.html<br/>(저장 안 함 → 항상 최신)"] --> N2["해시 자산<br/>(1년 캐시 재사용)"]
+    N1["GET index.html<br/>(매번 재검증 → 항상 최신)"] --> N2["해시 자산<br/>(1년 캐시 재사용)"]
   end
   subgraph Open["이미 열린 탭"]
-    O1["탭 복귀<br/>(focus·visibilitychange)"] --> O2{"5분 지났나?"}
+    O1["탭 복귀·뒤로가기 복원<br/>(focus·visibilitychange·pageshow)"] --> O2{"5분 지났나?"}
     O2 -->|"예"| O3["GET /index.html<br/>entry 해시 비교"]
     O3 -->|"다름"| O4["다음 페이지 이동 때<br/>전체 새로고침"]
     O5["lazy 청크 로드 실패"] --> O6{"이 경로에서<br/>이미 새로고침했나?"}
@@ -142,15 +142,15 @@ S3에 올린 정적 파일을 CloudFront로 서빙한다는 사실.
   `index.html`에 `no-cache`를 권한다. MDN에 따르면 `no-cache`는 _"저장은 하되 재사용할 때마다 원
   서버에 확인"_ (번역, [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control))하라는
   뜻이지 저장 금지가 아니다(Threads 글도 이 오해를 짚는다).
-- **이 레포**: `no-cache, no-store, must-revalidate`로 올린다. MDN은 이런 조합이 결국 가장 엄격한
-  `no-store`와 같다고 설명한다 — 즉 브라우저는 HTML을 아예 저장하지 않는다. 배포 검증이 이 `no-store`가
-  사라지지 않았는지 매번 확인한다([DEPLOY.md](./DEPLOY.md) 8번).
-- **CDN 쪽**: CloudFront 캐시 정책은 오리진(S3)이 `no-store`를 보내도 정책의 최소 TTL만큼 엣지에
+- **이 레포**: `no-cache`로 올린다(2026-10-14부터, 그 전에는 `no-cache, no-store, must-revalidate` —
+  MDN은 이런 조합이 결국 가장 엄격한 `no-store`와 같다고 설명한다). 배포 검증이 `no-cache`가 있고
+  `no-store`가 다시 붙지 않았는지 매번 확인한다([DEPLOY.md](./DEPLOY.md) 8번).
+- **CDN 쪽**: CloudFront 캐시 정책은 오리진(S3)이 `no-cache`·`no-store`를 보내도 정책의 최소 TTL만큼 엣지에
   둔다([AWS 만료 문서](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Expiration.html), 값은 §7) —
   그래서 배포마다 `/*`를 무효화한다. AWS는 자주 바뀌는 파일에는 무효화보다 버전 붙은 파일명을 우선
   쓰라고 권하는데([AWS 무효화 문서](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Invalidation.html)),
   해시 자산이 그 방식이고 무효화는 이름을 바꿀 수 없는 HTML 등을 위한 보조다.
-- **판정**: 표준(`no-cache`)보다 엄격하다. 의도적으로 유지한다 — §5.10.
+- **판정**: 표준과 같다. `no-store`에서 바꾼 이유와 안전장치는 §5.10.
 
 ### 5.4 배포 순서 — HTML이 가리키는 파일이 먼저 있어야 한다
 
@@ -173,7 +173,8 @@ Threads 글의 네 군데에는 없지만 §5.3의 반대편이다 — HTML이 �
 - **업계 표준**: Vercel은 버전 불일치를 감지하면 전체 페이지 새로고침으로 넘기고, 그래서
   _"사용자는 다음 전체 페이지 이동 때 최신 버전을 받는다"_ (번역, [Vercel Skew Protection](https://vercel.com/docs/skew-protection)).
   옛 배포 자산은 기본으로 그 배포가 만들어진 때부터 하루 동안 계속 서빙한다(같은 문서의 Maximum Age).
-- **이 레포**: 같은 구조다. 탭으로 돌아올 때(창 `focus` 또는 `visibilitychange` → visible, 5분 간격)
+- **이 레포**: 같은 구조다. 탭으로 돌아오거나 뒤로가기로 bfcache에서 되살아날 때(창 `focus`,
+  `visibilitychange` → visible, `pageshow` persisted 중 하나, 5분 간격)
   서버의 `index.html`을 다시 받아 entry 해시를 비교하고, 다르면 다음 pathname 이동 때 전체
   새로고침한다. 세부는 [NEW-VERSION-RELOAD.md](./NEW-VERSION-RELOAD.md). 옛 자산은 7일 보존한다(§5.8).
 - **판정**: 표준과 같다(보존 기간은 더 길고, 기준점은 다르다 — §5.8).
@@ -221,33 +222,36 @@ Threads 글의 네 군데에는 없지만 §5.3의 반대편이다 — HTML이 �
 
 ### 5.9 비교표(2026-10-14, 고친 뒤 기준)
 
-| 자리           | 업계 표준                                         | 이 레포                            | 판정                        |
-| -------------- | ------------------------------------------------- | ---------------------------------- | --------------------------- |
-| 해시 자산      | 해시 URL + 1년 캐시                               | 같음                               | ✅                          |
-| 폰트           | 내용이 바뀌면 URL도 바뀌게                        | 경로 버전 + 1년 캐시               | ✅                          |
-| HTML           | `no-cache`(재사용 전 재검증)                      | `no-store`(저장 안 함)             | △ 의도적으로 더 엄격(§5.10) |
-| CDN            | 버전 파일명 우선, 무효화는 보조                   | 해시 자산 + 배포마다 `/*` 무효화   | ✅                          |
-| 배포 원자성    | 모든 파일이 올라간 뒤 공개                        | 업로드 순서로 보장(해시 자산 기준) | ✅                          |
-| 열린 탭        | 불일치 감지 → 다음 이동 때 새로고침, 옛 자산 보존 | 같음, 7일 보존                     | ✅                          |
-| 청크 실패      | `vite:preloadError`에서 새로고침                  | 경로별 1회 + 소진 시 안내 화면     | ✅                          |
-| Service Worker | 생명주기 관리                                     | 푸시 전용, 해당 없음               | ✅                          |
-| 산출물 정리    | 옛 배포를 기간 지나면 정리                        | 빌드에서 빠진 뒤 7일 지나면 정리   | ✅                          |
+| 자리           | 업계 표준                                         | 이 레포                                     | 판정 |
+| -------------- | ------------------------------------------------- | ------------------------------------------- | ---- |
+| 해시 자산      | 해시 URL + 1년 캐시                               | 같음                                        | ✅   |
+| 폰트           | 내용이 바뀌면 URL도 바뀌게                        | 경로 버전 + 1년 캐시                        | ✅   |
+| HTML           | `no-cache`(재사용 전 재검증)                      | 같음(2026-10-14 `no-store`에서 전환, §5.10) | ✅   |
+| CDN            | 버전 파일명 우선, 무효화는 보조                   | 해시 자산 + 배포마다 `/*` 무효화            | ✅   |
+| 배포 원자성    | 모든 파일이 올라간 뒤 공개                        | 업로드 순서로 보장(해시 자산 기준)          | ✅   |
+| 열린 탭        | 불일치 감지 → 다음 이동 때 새로고침, 옛 자산 보존 | 같음, 7일 보존                              | ✅   |
+| 청크 실패      | `vite:preloadError`에서 새로고침                  | 경로별 1회 + 소진 시 안내 화면              | ✅   |
+| Service Worker | 생명주기 관리                                     | 푸시 전용, 해당 없음                        | ✅   |
+| 산출물 정리    | 옛 배포를 기간 지나면 정리                        | 빌드에서 빠진 뒤 7일 지나면 정리            | ✅   |
 
-### 5.10 HTML을 `no-cache`로 바꾸지 않은 이유(2026-10-14 사용자 결정)
+### 5.10 HTML을 `no-store`에서 `no-cache`로 바꾼 이유(2026-10-14 사용자 결정)
 
-- **바꾸면 얻을 수 있는 것**: 뒤로가기 즉시 복원(bfcache). Chrome 154로 운영 페이지를 측정해 보니
-  지금은 bfcache에서 복원되지 않았고, 사유는 `response-cache-control-no-store`·
-  `response-cache-control-no-store-with-js-network-request`·`masked`였다(§9). 모바일은 본문 링크를 같은
-  탭으로 열어 외부 사이트에서 돌아올 일이 많다. 다만 `masked`는 가려진 다른 차단 사유라
-  ([MDN `NotRestoredReasonDetails.reason`](https://developer.mozilla.org/en-US/docs/Web/API/NotRestoredReasonDetails/reason)),
-  `no-cache`로 바꿔도 복원된다는 보장은 없다.
-- **잃는 것**: Chrome은 Chrome 116부터 실험해 2025년 3~4월에 `no-store` 페이지도 bfcache에 넣도록
-  바꿨지만, _"쿠키나 다른 인증 수단이 바뀌면 bfcache에서 내보낸다"_ (번역, [Chrome — bfcache와 no-store](https://developer.chrome.com/docs/web-platform/bfcache-ccns)).
-  이 레포는 access token을 메모리에만 두고 탭 간 로그아웃 동기화가 없어, `no-cache`로 바꾸면 다른 탭에서
-  로그아웃한 뒤 뒤로가기로 로그인 상태 화면이 복원될 수 있다. 막으려면 `pageshow` 이벤트의
-  `persisted`(bfcache에서 복원됨)일 때 인증·버전을 다시 확인하는 코드가 새로 필요하다.
-- **이미 있는 보완**: 전체 재로드 뒤에도 목록 위치를 복원한다([useWindowGridVirtualizer.ts:353](../src/shared/hooks/useWindowGridVirtualizer.ts#L353)의 `pagehide` 스냅샷).
-- **재검토 조건**: 탭 간 로그아웃 동기화와 `pageshow` 재확인이 생기면 다시 본다(§11).
+처음(같은 날 오전)에는 `no-store`를 유지하기로 했다. 아래 "잃는 것"을 막을 장치가 없었기 때문이다. 그 장치를
+만든 뒤(#376) 전환했다.
+
+- **얻는 것 — 뒤로가기 즉시 복원(bfcache)**: `no-store`였던 운영 페이지는 Chrome 154에서 bfcache로 복원되지
+  않았고, 사유는 `response-cache-control-no-store`·`response-cache-control-no-store-with-js-network-request`·
+  `masked`였다(§9). HTML 헤더만 `no-cache`로 바꿔 같은 흐름을 재면 복원됐다(§9, Playwright Chromium 143). API
+  응답도 `no-store`(Spring 기본)지만, Chrome 문서는 이를 _"no-store 페이지가 보낸 fetch·XHR의 응답이 no-store면
+  그 페이지도 bfcache에서 내보낸다"_ (번역, [Chrome — bfcache와 no-store](https://developer.chrome.com/docs/web-platform/bfcache-ccns))고
+  써서 HTML이 `no-store`일 때만 해당한다. 모바일은 본문 링크를 같은 탭으로 열어 외부 사이트에서 돌아올 일이 많다.
+- **잃는 것과 막는 장치**: Chrome은 `no-store` 페이지를 _"쿠키나 다른 인증 수단이 바뀌면 bfcache에서 내보낸다"_
+  (번역, 같은 문서). `no-cache`에는 이 보호가 없어, 다른 탭에서 로그아웃한 뒤 뒤로가기로 로그인 상태 화면이
+  메모리째 돌아올 수 있다. 그래서 명시적 로그인·로그아웃마다 바뀌는 **인증 세대** 값을 두고, 탭 복귀·bfcache
+  복원(`pageshow` persisted) 때 이 탭이 알던 값과 다르면 그 자리에서 로그아웃 처리·세션 복원을 한다
+  ([AUTH.md](./AUTH.md) §8-H). 새 배포 감지도 `pageshow`(persisted) 때 다시 확인한다(§5.5).
+- **이미 있던 보완**: 전체 재로드 뒤에도 목록 위치를 복원한다([useWindowGridVirtualizer.ts:353](../src/shared/hooks/useWindowGridVirtualizer.ts#L353)의 `pagehide` 스냅샷).
+- **측정하지 않은 것**: Safari·Firefox의 bfcache 동작, 모바일 실기기.
 
 ## 6. 상태 모델
 
@@ -255,31 +259,33 @@ Threads 글의 네 군데에는 없지만 §5.3의 반대편이다 — HTML이 �
 2종(청크 새로고침 기록은 2026-03-14, 감지 기록은 2026-09-09 #51에서 생겼다)과 모듈 변수 1개(2026-10-14
 #366)다.
 
-| 자리                                                  | 무엇이 남나                            | 얼마나                         | 비우는 방법                                                                                  |
-| ----------------------------------------------------- | -------------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------- |
-| 브라우저 HTTP 캐시                                    | 해시 자산·폰트                         | 1년                            | URL이 바뀌면 자동으로 안 씀                                                                  |
-| 브라우저 HTTP 캐시                                    | HTML·`version.json`·SW                 | 저장 안 함(`no-store`)         | —                                                                                            |
-| 브라우저 HTTP 캐시                                    | 그 외 public 파일(favicon·manifest 등) | 캐시 헤더가 없어 브라우저 판단 | 배포마다 덮어씀(바뀌어도 화면 영향 적음)                                                     |
-| bfcache                                               | 떠난 페이지 전체                       | 지금은 복원 안 됨(§5.10)       | —                                                                                            |
-| CloudFront 엣지                                       | 모든 파일                              | 정책 TTL(값은 §7)              | 배포마다 `/*` 무효화                                                                         |
-| S3                                                    | 지금 빌드 + 옛 `assets/`·`fonts/`      | 마지막 배포 포함 후 7일        | 옛 자산 정리 스텝                                                                            |
-| 탭 메모리                                             | 실행 중인 JS 번들                      | 탭을 닫거나 새로고침할 때까지  | 감지 → 다음 이동 때 새로고침                                                                 |
-| `sessionStorage` `linksphere:version:last-detected`   | 마지막으로 감지한 entry                | 탭 세션                        | 같은 값 재감지 루프 가드([storage-keys.ts:28](../src/shared/config/storage-keys.ts#L28))     |
-| `sessionStorage` `linksphere:chunk-reload:<pathname>` | 그 경로에서 새로고침했음               | 탭 세션                        | 청크 실패 새로고침 루프 가드([storage-keys.ts:34](../src/shared/config/storage-keys.ts#L34)) |
-| 모듈 변수 `isReloadInFlight`                          | 이 페이지에서 새로고침을 걸었음        | 페이지 수명                    | 새로고침되면 초기화([chunk-reload.util.ts:8](../src/shared/utils/chunk-reload.util.ts#L8))   |
+| 자리                                                  | 무엇이 남나                            | 얼마나                                | 비우는 방법                                                                                  |
+| ----------------------------------------------------- | -------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 브라우저 HTTP 캐시                                    | 해시 자산·폰트                         | 1년                                   | URL이 바뀌면 자동으로 안 씀                                                                  |
+| 브라우저 HTTP 캐시                                    | HTML(`index.html`·`404.html`)          | 저장하되 쓸 때마다 재검증(`no-cache`) | 서버 응답이 바뀌면 그 자리에서 새 것                                                         |
+| 브라우저 HTTP 캐시                                    | `version.json`·SW                      | 저장 안 함(`no-store`)                | —                                                                                            |
+| 브라우저 HTTP 캐시                                    | 그 외 public 파일(favicon·manifest 등) | 캐시 헤더가 없어 브라우저 판단        | 배포마다 덮어씀(바뀌어도 화면 영향 적음)                                                     |
+| bfcache                                               | 떠난 페이지 전체(JS 메모리 포함)       | 브라우저 판단(Chrome은 최대 수 분)    | 복원 때 인증 세대·새 배포를 다시 확인(§5.10)                                                 |
+| CloudFront 엣지                                       | 모든 파일                              | 정책 TTL(값은 §7)                     | 배포마다 `/*` 무효화                                                                         |
+| S3                                                    | 지금 빌드 + 옛 `assets/`·`fonts/`      | 마지막 배포 포함 후 7일               | 옛 자산 정리 스텝                                                                            |
+| 탭 메모리                                             | 실행 중인 JS 번들                      | 탭을 닫거나 새로고침할 때까지         | 감지 → 다음 이동 때 새로고침                                                                 |
+| `sessionStorage` `linksphere:version:last-detected`   | 마지막으로 감지한 entry                | 탭 세션                               | 같은 값 재감지 루프 가드([storage-keys.ts:28](../src/shared/config/storage-keys.ts#L28))     |
+| `sessionStorage` `linksphere:chunk-reload:<pathname>` | 그 경로에서 새로고침했음               | 탭 세션                               | 청크 실패 새로고침 루프 가드([storage-keys.ts:34](../src/shared/config/storage-keys.ts#L34)) |
+| 모듈 변수 `isReloadInFlight`                          | 이 페이지에서 새로고침을 걸었음        | 페이지 수명                           | 새로고침되면 초기화([chunk-reload.util.ts:8](../src/shared/utils/chunk-reload.util.ts#L8))   |
 
 `useAppVersionStore`(감지 결과)의 shape는 [NEW-VERSION-RELOAD.md](./NEW-VERSION-RELOAD.md) §6.
 
 ## 7. 운영 파라미터
 
-| 값                                                                                                | 위치                                                                                                                                                                                                                                           | 의미                               |
-| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `public, max-age=31536000, immutable`                                                             | [deploy.yml:91](../.github/workflows/deploy.yml#L91)(assets), [:98](../.github/workflows/deploy.yml#L98)(fonts)                                                                                                                                | 해시 자산·폰트 1년 캐시            |
-| `no-cache, no-store, must-revalidate`                                                             | [deploy.yml:115](../.github/workflows/deploy.yml#L115)(SW), [:119](../.github/workflows/deploy.yml#L119)(`index.html`), [:125](../.github/workflows/deploy.yml#L125)(`404.html`), [:130](../.github/workflows/deploy.yml#L130)(`version.json`) | 저장 안 함                         |
-| 무효화 경로 `/*`                                                                                  | [deploy.yml:133](../.github/workflows/deploy.yml#L133) 스텝                                                                                                                                                                                    | 배포마다 엣지 캐시 비움            |
-| 캐시 정책 `Managed-CachingOptimized`(최소 TTL 1초·기본 86400초·최대 31536000초, `Compress: true`) | CloudFront 콘솔(파이프라인이 배포하지 않음, [infra/cloudfront/snapshot.json](../infra/cloudfront/snapshot.json)에 스냅샷)                                                                                                                      | 엣지 TTL — 아래 명령으로 다시 조회 |
-| 감지 간격 5분                                                                                     | [useAppVersionCheck.ts:9](../src/shared/hooks/useAppVersionCheck.ts#L9)                                                                                                                                                                        | 탭 복귀 때 재확인 최소 간격        |
-| 옛 자산 보존 7일                                                                                  | [prune-assets.js:10](../scripts/lib/prune-assets.js#L10)                                                                                                                                                                                       | 정리 기준                          |
+| 값                                                                                                | 위치                                                                                                                           | 의미                               |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| `public, max-age=31536000, immutable`                                                             | [deploy.yml:91](../.github/workflows/deploy.yml#L91)(assets), [:98](../.github/workflows/deploy.yml#L98)(fonts)                | 해시 자산·폰트 1년 캐시            |
+| `no-cache`                                                                                        | [deploy.yml:121](../.github/workflows/deploy.yml#L121)(`index.html`), [:127](../.github/workflows/deploy.yml#L127)(`404.html`) | 저장하되 쓸 때마다 재검증          |
+| `no-cache, no-store, must-revalidate`                                                             | [deploy.yml:115](../.github/workflows/deploy.yml#L115)(SW), [:132](../.github/workflows/deploy.yml#L132)(`version.json`)       | 저장 안 함                         |
+| 무효화 경로 `/*`                                                                                  | [deploy.yml:135](../.github/workflows/deploy.yml#L135) 스텝                                                                    | 배포마다 엣지 캐시 비움            |
+| 캐시 정책 `Managed-CachingOptimized`(최소 TTL 1초·기본 86400초·최대 31536000초, `Compress: true`) | CloudFront 콘솔(파이프라인이 배포하지 않음, [infra/cloudfront/snapshot.json](../infra/cloudfront/snapshot.json)에 스냅샷)      | 엣지 TTL — 아래 명령으로 다시 조회 |
+| 감지 간격 5분                                                                                     | [useAppVersionCheck.ts:9](../src/shared/hooks/useAppVersionCheck.ts#L9)                                                        | 탭 복귀 때 재확인 최소 간격        |
+| 옛 자산 보존 7일                                                                                  | [prune-assets.js:10](../scripts/lib/prune-assets.js#L10)                                                                       | 정리 기준                          |
 
 CloudFront 캐시 정책 값 조회(읽기 전용). 배포 ID는 GitHub 시크릿 `CLOUDFRONT_DISTRIBUTION_ID`와 같은
 값이고, 모르면 `aws cloudfront list-distributions --query 'DistributionList.Items[].[Id,Aliases.Items]'`로 찾는다.
@@ -306,7 +312,8 @@ aws cloudfront get-cache-policy --id <정책 ID> \
    그 탭에서 주소를 직접 입력해 `/version`을 열면 탭이 새로 로드돼 이 증거가 사라진다.
 2. **새로 연 탭도 옛것인가** — 새 탭에서 `/version`([BUILD-VERSION.md](./BUILD-VERSION.md))을 열어 배너가
    여전히 "배포와 달라요"면 ② HTML·엣지 문제다. `curl -sI https://linksphere.click/index.html`의
-   `cache-control`에 `no-store`가 있는지, 마지막 배포 run이 성공했는지(무효화 포함) 본다.
+   `cache-control`이 `no-cache`인지, 마지막 배포 run이 성공했는지(무효화 포함) 본다. 뒤로가기로 돌아온
+   화면만 옛것이면 bfcache 복원이다 — 복원 때 새 배포를 다시 확인해 다음 페이지 이동 때 새로고침된다(§5.10).
 3. **흰 화면·에러 화면이었나** — 청크 403이면 배포 중이었는지(run 로그의 업로드 시각), 7일 지나
    정리된 청크인지 확인한다(§5.4·§5.8).
 4. **Service Worker** — DevTools Application 탭에 `firebase-messaging-sw.js`만 있어야 한다(④). 다른
@@ -319,10 +326,10 @@ aws cloudfront get-cache-policy --id <정책 ID> \
 | 단계                  | 위치                                                                                                                                                                                |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 해시 파일명           | [vite.config.ts:90-100](../vite.config.ts#L90-L100)                                                                                                                                 |
-| 업로드 순서·헤더      | [deploy.yml:82-131](../.github/workflows/deploy.yml#L82-L131)("Upload to S3")                                                                                                       |
-| 무효화·배포 반영 검증 | [deploy.yml:133](../.github/workflows/deploy.yml#L133), [:140](../.github/workflows/deploy.yml#L140)                                                                                |
-| 옛 자산 정리          | [deploy.yml:193](../.github/workflows/deploy.yml#L193), [prune-old-assets.js](../scripts/prune-old-assets.js), [prune-assets.js](../scripts/lib/prune-assets.js)                    |
-| 새 배포 감지·적용     | [useAppVersionCheck.ts:83-84](../src/shared/hooks/useAppVersionCheck.ts#L83-L84), [useNewVersionReload.ts:28](../src/shared/hooks/useNewVersionReload.ts#L28)                       |
+| 업로드 순서·헤더      | [deploy.yml:82-133](../.github/workflows/deploy.yml#L82-L133)("Upload to S3")                                                                                                       |
+| 무효화·배포 반영 검증 | [deploy.yml:135](../.github/workflows/deploy.yml#L135), [:142](../.github/workflows/deploy.yml#L142)                                                                                |
+| 옛 자산 정리          | [deploy.yml:200](../.github/workflows/deploy.yml#L200), [prune-old-assets.js](../scripts/prune-old-assets.js), [prune-assets.js](../scripts/lib/prune-assets.js)                    |
+| 새 배포 감지·적용     | [useAppVersionCheck.ts:94-96](../src/shared/hooks/useAppVersionCheck.ts#L94-L96), [useNewVersionReload.ts:28](../src/shared/hooks/useNewVersionReload.ts#L28)                       |
 | 청크 실패 새로고침    | [main.tsx:15](../src/main.tsx#L15), [chunk-reload.util.ts](../src/shared/utils/chunk-reload.util.ts), [AppErrorFallback.tsx:31](../src/shared/ui/elements/AppErrorFallback.tsx#L31) |
 
 ### 자주 하는 수정
@@ -331,7 +338,7 @@ aws cloudfront get-cache-policy --id <정책 ID> \
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `public/`에 오래 캐시할 새 디렉터리 추가 | assets·fonts와 같은 형태로 한다. ① 경로에 버전을 넣는다 ② "Upload to S3"에 헤더를 지정한 동기화를 `--delete` 동기화 **앞**(HTML 업로드보다도 앞)에 둔다 — 뒤에 두면 이미 올라간 객체라 건너뛰어 헤더가 안 붙는다 ③ `--delete` 동기화에 `--exclude "<디렉터리>/*"`를 더한다 — 빼면 옛 버전 디렉터리가 바로 지워진다 ④ 옛 버전을 정리하려면 `PRUNE_PREFIXES`([prune-assets.js:13](../scripts/lib/prune-assets.js#L13))에 넣고, 그 동기화는 매 배포 다시 올리게 둔다(§5.2) |
 | 폰트 교체                                | [DEPLOY.md](./DEPLOY.md) 워크플로 6번의 폰트 항목(디렉터리 버전 올리기)                                                                                                                                                                                                                                                                                                                                                                                                 |
-| HTML 캐시 헤더 변경                      | 먼저 §5.10의 결정과 재검토 조건을 확인한다. 바꾼다면 `deploy.yml`의 `index.html`·`404.html` 업로드 2곳, 배포 반영 검증 ②(`no-store` 확인)와 그 주석, [DEPLOY.md](./DEPLOY.md) "배포 반영 검증하는 법", [BUILD-VERSION.md](./BUILD-VERSION.md)의 검증 서술, 이 문서의 §1 표·§5.3·§5.9·§6·§7을 함께 고친다                                                                                                                                                                |
+| HTML 캐시 헤더 변경                      | 먼저 §5.10의 결정을 확인한다 — `no-store`로 되돌리면 bfcache 복원이 꺼지고, 저장·재사용을 허용하는 쪽(`max-age` 등)으로 가면 새 배포 감지가 무너진다. 바꾼다면 `deploy.yml`의 `index.html`·`404.html` 업로드 2곳, 배포 반영 검증 ②(`no-cache` 필수·`no-store` 금지)와 그 주석, [DEPLOY.md](./DEPLOY.md) "배포 반영 검증하는 법", [BUILD-VERSION.md](./BUILD-VERSION.md)의 검증 서술, 이 문서의 §1 표·§5.3·§5.9·§5.10·§6·§7을 함께 고친다                                |
 | 옛 자산 보존 기간 변경                   | [prune-assets.js:10](../scripts/lib/prune-assets.js#L10)의 `RETENTION_DAYS`와 함께 경계 테스트(`src/test/scripts/prune-assets.test.ts`의 7일 경계 시각), `deploy.yml` "옛 자산 정리" 주석, `scripts/prune-old-assets.js` 머리말, [DEPLOY.md](./DEPLOY.md) 9번, 이 문서의 §5.5·§5.8·§6·§7을 고친다                                                                                                                                                                       |
 | 감지 간격·트리거 변경                    | [NEW-VERSION-RELOAD.md](./NEW-VERSION-RELOAD.md) §8                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
@@ -339,9 +346,9 @@ aws cloudfront get-cache-policy --id <정책 ID> \
 
 모두 2026-10-14 직접 측정했다.
 
-- **운영 응답 헤더**(`curl -I`): `index.html`·`version.json`·`firebase-messaging-sw.js`는
+- **운영 응답 헤더**(`curl -I`, HTML 전환 전): `index.html`·`version.json`·`firebase-messaging-sw.js`는
   `no-cache, no-store, must-revalidate`, entry 청크와 폰트는 `public, max-age=31536000, immutable`,
-  없는 청크는 S3 403(XML).
+  없는 청크는 S3 403(XML). 전환 뒤 `index.html`·`404.html`은 `no-cache`이고 배포 검증 ②가 매번 확인한다.
 - **CloudFront 설정**(AWS API `GetDistributionConfig`·`GetCachePolicy`): 기본 비헤이비어
   `Managed-CachingOptimized`, `Compress: true`, viewer-request·viewer-response Function 각 1개,
   배포 레벨 `CustomErrorResponses` 없음.
@@ -353,8 +360,16 @@ aws cloudfront get-cache-policy --id <정책 ID> \
   안내 화면·홈 버튼(새로고침 정확히 1회), `vite:preloadError` → 1회 새로고침·재발생 시 무반응.
 - **탭 복귀 감지**(프로덕션 빌드 + Playwright, #368): hidden 0건, visible 1건, 이어진 focus 추가 0건.
   headless Chromium은 실제 탭 전환 때 가시성 이벤트를 보내지 않아 상태를 바꿔 넣었다.
-- **bfcache**(Chrome 154, 운영 `/post` → `/version` → 뒤로): 미복원, 사유는 §5.10의 3개. Playwright
-  Chromium은 bfcache가 꺼져 있어 측정에 쓸 수 없었다.
+- **bfcache**(운영 `/post` → `/version` → 뒤로):
+  - HTML `no-store`(전환 전): Chrome 154에서 미복원, 사유는 `response-cache-control-no-store`·
+    `response-cache-control-no-store-with-js-network-request`·`masked`.
+  - 같은 흐름을 Playwright Chromium 143(기본으로 꺼진 bfcache를 `ignoreDefaultArgs`로 켬)으로 재며 문서 응답
+    헤더만 바꿔 비교: 가로채기 없이 `no-store` → 미복원(위와 같은 사유), 가로채기 + `no-store`(대조군) → 같음,
+    가로채기 + `no-cache` → **복원**(`pageshow.persisted=true`). 복원 때 이벤트는 `resume` →
+    `visibilitychange(visible)` → `pageshow(persisted)` 순이었다.
+  - 프로덕션 빌드 + HTML `no-cache`에서 로그인 상태 `/bookmark`도 복원됐다(막는 사유 없음). 다른 탭
+    로그아웃·계정 변경 뒤 뒤로가기는 인증 세대로 그 자리에서 맞춰졌고, 30fps 녹화에서 이전 화면은 한 프레임도
+    보이지 않았다([AUTH.md](./AUTH.md) §8-H, #376).
 - **정리**([#369 첫 배포](https://github.com/BAECHAN/link-sphere_FE_NEW/actions/runs/38533245689)): 13,309개 삭제,
   버킷 15,196개·167MB → 2,028개·48.5MB(`aws s3 ls --recursive --summarize`), `stats.html` 200 → 403,
   `.gz` 업로드 0건.
@@ -373,11 +388,13 @@ aws cloudfront get-cache-policy --id <정책 ID> \
 | 2026-09-09 | 열린 탭은 실패하지 않는 한 옛 화면에 머묾                                                                                                                                                                           | 새 배포 감지·적용([NEW-VERSION-RELOAD.md](./NEW-VERSION-RELOAD.md), #51)                                                    |
 | 2026-10-14 | Threads 글 대조 중 발견: HTML 먼저 업로드(21.6초 공백), 리스너 이름 오타, 2번째 실패 시 무한 스피너, 감지 트리거가 `focus` 하나, `stats.html` 공개, 쓰이지 않는 `.gz`, 옛 자산 무기한 누적, 해시 없는 폰트 1년 캐시 | #366·#368·#369·#370                                                                                                         |
 | 2026-10-14 | 이 문서의 리뷰에서 발견: 폰트 동기화의 `--size-only`(#370)가 업로드 시각을 고정해, 폰트 버전을 올리는 배포에서 옛 폰트가 7일을 기다리지 않고 바로 지워짐                                                            | 폰트도 매 배포 다시 올림(#371)                                                                                              |
+| 2026-10-14 | HTML `no-store` 때문에 뒤로가기가 bfcache로 복원되지 않음. 바꾸면 로그아웃 뒤 뒤로가기로 이전 화면이 메모리째 돌아오는 문제가 생김                                                                                  | 인증 세대로 탭 간 동기화·복원 재확인을 먼저 만들고(#376) HTML을 `no-cache`로 전환, 복원 때 새 배포도 다시 확인              |
 
 ## 11. 남은 것
 
-- **HTML `no-cache` 전환** — 탭 간 로그아웃 동기화와 `pageshow` 재확인이 생기면 다시 본다(§5.10). 측정은
-  §3의 `notRestoredReasons`로 한다.
+- **Safari·Firefox의 bfcache** — 측정은 Chromium만 했다. 복원 때 확인은 `visibilitychange`와 `pageshow`
+  둘 다 들어 어느 쪽이 먼저 와도 동작하게 했다. 측정은 §3의 `notRestoredReasons`(Chromium 계열)나 `pageshow`의
+  `persisted`로 한다.
 - **CloudFront 설정은 여전히 콘솔·CLI로 바꾼다** — 2026-10-14부터 스냅샷과 차이 검사(`pnpm check:cloudfront`)로
   변경을 git에 남기지만 로컬에서만 돈다. CI에서 정기적으로 돌리려면 배포 역할에 CloudFront·WAF 읽기 권한을
   더해야 한다([DEPLOY.md](./DEPLOY.md) "CloudFront 설정 스냅샷과 차이 검사").

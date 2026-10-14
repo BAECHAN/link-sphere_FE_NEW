@@ -67,8 +67,10 @@
       올립니다(약 3MB, 2026-10-14 전엔 쓰지 않는 파일 포함 118개·13.7MB). `--size-only`로
       건너뛰지 않는 이유: 업로드 시각이 처음 올린 때에 고정되면, 버전을 올린 배포에서 9번이 옛
       폰트를 7일 기다리지 않고 바로 지워 열린 탭이 아직 안 받은 글자 조각이 403이 됩니다.
-    - ⑤ `index.html`·⑥ `dist/version.json`(커밋 sha·배포 시각 등 빌드 식별자,
-      [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고)·④ Service Worker는 무캐시
+    - ⑤ `index.html`(와 사본 `404.html`)은 `no-cache`(저장하되 쓸 때마다 재검증)로 올립니다 —
+      `no-store`가 아니어서 뒤로가기가 bfcache로 즉시 복원됩니다(2026-10-14 전환, 이유는
+      [`docs/CACHE-STRATEGY.md`](./CACHE-STRATEGY.md) §5.10). ⑥ `dist/version.json`(커밋 sha·배포 시각 등
+      빌드 식별자, [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고)·④ Service Worker는 무캐시
       (`no-cache, no-store, must-revalidate`)로 올립니다. `version.json`은 "배포 완료"
       신호라 맨 마지막이고, 8번 검증의 ①이 이 sha가 바뀌기를 기다립니다.
     - ③의 `--delete`는 같은 버킷의 `storybook/` 접두사를 `--exclude`로 제외한다 —
@@ -80,7 +82,7 @@
 8.  **배포 반영 검증**:
     - invalidation 직후 실제 CloudFront URL(`vars.SITE_URL`, 미설정 시 하드코딩된
       도메인)을 직접 호출해 ①`/version.json`의 sha가 이번 커밋과 같은지(최대 2분
-      재시도) ②`index.html`의 `cache-control`에 `no-store`가 여전히 있는지
+      재시도) ②`index.html`의 `cache-control`에 `no-cache`가 있고 `no-store`가 다시 붙지 않았는지
       ③라이브 entry 청크 해시가 방금 빌드한 것과 같은지 ④`/404.html`(없는 경로에 쓰는
       `index.html` 사본)의 entry 청크 해시도 같은지 확인합니다. 자세한 근거는
       [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고.
@@ -443,7 +445,7 @@ Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 
 | `link-sphere-spa-status`   | viewer-response | `/404.html` 응답의 상태만 404로 바꿈(본문은 그대로라 화면은 앱의 404 페이지)                              | [`spa-status.js`](../infra/cloudfront-functions/spa-status.js)     |
 
 `/404.html`은 `deploy.yml`이 매 배포마다 `dist/index.html`을 복사해 올리는 사본이다. `index.html`과 같은
-`no-store` 캐시 정책을 쓰고, 배포 검증 단계 4번이 entry 청크가 같은지 확인한다. 경로별 최종 응답은 아래
+`no-cache` 캐시 정책을 쓰고, 배포 검증 단계 4번이 entry 청크가 같은지 확인한다. 경로별 최종 응답은 아래
 "URL별 에러 응답" 절 참고.
 
 - **이 Function들은 위 `deploy.yml` 파이프라인이 배포하지 않는다** — 변경이 필요하면 아래 절차를 수동으로 실행한다.
@@ -722,7 +724,7 @@ aws cloudfront create-response-headers-policy --response-headers-policy-config '
 # 1. 지금 서버에 올라간 커밋 확인
 curl -s https://linksphere.click/version.json | jq
 
-# 2. index.html 캐시 헤더 확인 - no-store가 있어야 정상
+# 2. index.html 캐시 헤더 확인 - no-cache여야 정상(no-store가 붙으면 bfcache 회귀)
 curl -sI https://linksphere.click/index.html | grep -i cache-control
 
 # 3. 브라우저로 직접 확인
@@ -730,8 +732,8 @@ open https://linksphere.click/version
 ```
 
 세 값이 서로 다른 걸 가리키는 흔한 원인과 대응은 [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md)
-§5·§9 참고 — 특히 `no-store` 헤더가 빠지면 [NEW-VERSION-RELOAD.md](./NEW-VERSION-RELOAD.md)의
-자동 리로드 기능 전체가 조용히 죽는다.
+§5·§9 참고 — 특히 `no-cache` 헤더가 빠지면(브라우저가 HTML을 재검증 없이 재사용하면)
+[NEW-VERSION-RELOAD.md](./NEW-VERSION-RELOAD.md)의 자동 리로드 기능 전체가 조용히 죽는다.
 
 ## 수동 배포 (참고)
 

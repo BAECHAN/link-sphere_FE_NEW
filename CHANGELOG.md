@@ -20,6 +20,13 @@
 
 ### Changed
 
+- `infra` 뒤로가기가 이전 화면을 즉시 복원하도록 HTML을 no-cache로
+  <details><summary>배경·구현</summary>
+
+  `index.html`·`404.html`이 `no-cache, no-store, must-revalidate`라 Chrome이 뒤로가기 즉시 복원(bfcache)을 하지 않았다(운영 실측 사유 `response-cache-control-no-store`·`response-cache-control-no-store-with-js-network-request`·`masked`). 헤더만 `no-cache`(저장하되 쓸 때마다 재검증)로 바꿔 재면 복원됐다(Playwright Chromium, 같은 흐름에 대조군 포함). 모바일은 본문 링크를 같은 탭으로 열어 외부 사이트에서 돌아올 일이 많다. `no-store`가 해 주던 보호(쿠키가 바뀌면 bfcache에서 내보냄)는 앞선 인증 세대 동기화(#376)가 대신하고, 새 배포 감지도 bfcache 복원(`pageshow` persisted) 때 다시 확인한다. 배포 검증 ②는 `no-cache`가 있고 `no-store`가 다시 붙지 않았는지 본다. `version.json`·Service Worker는 페이지가 아니라 그대로 `no-store`. 처음엔 `no-store` 유지로 정했다가 안전장치를 만든 뒤 바꿨다(2026-10-14 사용자 결정). 계획 `docs/plans/2026-10-14-cache-strategy-followups.md`. (`.github/workflows/deploy.yml`, `useAppVersionCheck.ts`, `build-info.util.ts`, `docs/CACHE-STRATEGY.md`, `docs/DEPLOY.md`, `docs/BUILD-VERSION.md`, `docs/NEW-VERSION-RELOAD.md`, `docs/SYSTEM-ARCHITECTURE.md`, [PR #377](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/377))
+
+  </details>
+
 - `infra` CloudFront 설정을 스냅샷으로 커밋하고 차이를 검사
   <details><summary>배경·구현</summary>
 

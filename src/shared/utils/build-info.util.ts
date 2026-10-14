@@ -1,5 +1,5 @@
-/** 서버(/version.json)에 지금 올라가 있는 빌드 정보. deploy.yml이 dist/index.html과 같은 이유로
- * no-store로 올린다 - 캐시되면 "지금 서버 상태"라는 이 파일의 존재 이유가 무너진다. */
+/** 서버(/version.json)에 지금 올라가 있는 빌드 정보. deploy.yml이 no-store로 올린다 - 캐시되면
+ * "지금 서버 상태"라는 이 파일의 존재 이유가 무너진다. */
 interface DeployedBuildInfo {
   sha: string;
   ref: string;
