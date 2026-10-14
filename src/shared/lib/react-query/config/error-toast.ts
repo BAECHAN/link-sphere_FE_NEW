@@ -1,4 +1,4 @@
-import { ApiError } from '@/shared/types/common.type';
+import { ApiError, SessionChangedError } from '@/shared/types/common.type';
 import { TEXTS } from '@/shared/config/texts';
 import { LogoutGraceUtil } from '@/shared/utils/logout-grace.util';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
@@ -64,6 +64,17 @@ export function resolveErrorToast(
     return { silent: true };
   }
 
+  // 보낸 뒤 인증 세대가 바뀌어 처리하지 않고 끝낸 요청(client.ts) - meta의 커스텀 문구보다 먼저 본다(조회에
+  // errorMessage가 붙어 있어도 조용히). 조회는 동기화(useAuthEpochSync)가 새 인증으로 다시 불러오고, 로그아웃을
+  // 반영하는 중이면 화면이 이미 바뀌고 있으니 알리지 않는다. 그 밖에 사용자가 누른 동작만 이유를 알린다.
+  if (error instanceof SessionChangedError) {
+    if (!policy.toastOnNonApiError || LogoutGraceUtil.isLoggingOut()) {
+      return { silent: true };
+    }
+
+    return { silent: false, message: TEXTS.messages.error.sessionChanged };
+  }
+
   // 로그아웃 처리 중(clearQueries의 배경 재요청) 온 401은 세션 만료가 아니라 레이스이므로
   // meta의 커스텀 에러 메시지보다 먼저 걸러 어떤 토스트도 뜨지 않게 한다.
   if (
@@ -95,7 +106,7 @@ export function resolveErrorToast(
   if (error instanceof ApiError) {
     if (isSessionInvalidCode(error.code)) {
       // 세션 정리(clearAll)는 client.ts의 401 인터셉터가 이미 수행했다 - 여기서는
-      // 토스트만 띄운다(토스트 단일 소유 원칙, client.ts:218 주석 참고).
+      // 토스트만 띄운다(토스트 단일 소유 원칙, client.ts:262 주석 참고).
       return { silent: false, message: TEXTS.messages.error.loginRequired };
     }
 

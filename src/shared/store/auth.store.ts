@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { LocalStorageUtil } from '@/shared/utils/storage.util';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
+import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 
 /**
  * 세션 존재 플래그 키.
@@ -50,21 +51,29 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       isAuthenticated: false,
       isAuthResolved: false,
+      // 토큰을 넣고 뺄 때마다 그 토큰이 속한 인증 세대를 맞춘다(client.ts가 요청 시작 때 기억해 401 때 비교).
+      // 세대 "쓰기"는 여기서 하지 않는다 - 그건 명시적 로그인·로그아웃 호출부의 몫이다(auth-epoch.util.ts)
       setAuth: (token) => {
         syncSessionFlag(token);
         set({ accessToken: token, isAuthenticated: !!token });
+        AuthEpochUtil.bindToken();
       },
       setAccessToken: (token) => {
         syncSessionFlag(token);
         set({ accessToken: token, isAuthenticated: !!token });
+        AuthEpochUtil.bindToken();
       },
       setAuthResolved: (resolved) => set({ isAuthResolved: resolved }),
       clearAuth: () => {
         syncSessionFlag(null);
         LocalStorageUtil.removeItem(STORAGE_KEYS.AUTH.LAST_AVATAR);
         set({ accessToken: null, isAuthenticated: false });
+        AuthEpochUtil.bindToken();
       },
-      clearLocalAuth: () => set({ accessToken: null, isAuthenticated: false }),
+      clearLocalAuth: () => {
+        set({ accessToken: null, isAuthenticated: false });
+        AuthEpochUtil.bindToken();
+      },
     }),
     { name: 'auth-store' }
   )

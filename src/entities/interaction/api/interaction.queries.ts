@@ -20,6 +20,7 @@ import {
   resolveCurrentBookmarkState,
   BookmarkFolderListResponse,
 } from '@/entities/bookmark/folder/@x/interaction';
+import { assertMutationAuthEpochUnchanged } from '@/shared/lib/react-query/config/mutation-auth-epoch';
 
 // 좋아요는 "뒤집기"가 아니라 "이 상태로 만들기"다 — 이미 그 상태면 수도 그대로 둔다.
 function setLikeOnPost(post: Post, nextLiked: boolean): Post {
@@ -86,8 +87,12 @@ export const useLikePostMutation = (postId: Post['id']) => {
   return useMutation({
     mutationKey,
     scope: { id: mutationKey.join(':') },
-    mutationFn: (nextLiked: boolean) =>
-      nextLiked ? interactionApi.likePost(postId) : interactionApi.unlikePost(postId),
+    mutationFn: (nextLiked: boolean, context) => {
+      // 줄에서 기다리는 사이 다른 계정이 됐으면 보내지 않는다(이하 scope mutation 공통)
+      assertMutationAuthEpochUnchanged(context);
+
+      return nextLiked ? interactionApi.likePost(postId) : interactionApi.unlikePost(postId);
+    },
     meta: { manualErrorHandling: true },
     onMutate: async (nextLiked) => {
       await queryClient.cancelQueries({ queryKey: postKeys.detail(postId) });
@@ -181,7 +186,9 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
   return useMutation({
     mutationKey: interactionMutationKeys.bookmarkPost(postId),
     scope: bookmarkPostScope(postId),
-    mutationFn: (target: BookmarkPostTarget) => {
+    mutationFn: (target: BookmarkPostTarget, context) => {
+      assertMutationAuthEpochUnchanged(context);
+
       if (typeof target === 'object') {
         return interactionApi.unbookmarkPostFromLastFolder(postId, target.lastFolderId);
       }
@@ -318,8 +325,13 @@ export const useLikeCommentMutation = (commentId: Comment['id'], postId: Post['i
   return useMutation({
     mutationKey,
     scope: { id: mutationKey.join(':') },
-    mutationFn: (nextLiked: boolean) =>
-      nextLiked ? interactionApi.likeComment(commentId) : interactionApi.unlikeComment(commentId),
+    mutationFn: (nextLiked: boolean, context) => {
+      assertMutationAuthEpochUnchanged(context);
+
+      return nextLiked
+        ? interactionApi.likeComment(commentId)
+        : interactionApi.unlikeComment(commentId);
+    },
     meta: { manualErrorHandling: true },
     onMutate: async (nextLiked) => {
       await queryClient.cancelQueries({ queryKey: commentKeys.list(postId) });

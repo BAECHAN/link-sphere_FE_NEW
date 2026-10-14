@@ -18,6 +18,13 @@ const readStoredEpoch = (): string | null => LocalStorageUtil.getItem<string>(KE
 /** 이 페이지가 마지막으로 맞춰 둔 세대. 모듈을 처음 불러올 때(= 페이지 로드) 저장값으로 시작한다 */
 let knownEpoch = readStoredEpoch();
 
+/**
+ * 이 탭이 지금 들고 있는 토큰이 속한 세대. 토큰을 넣고 뺄 때(auth.store의 setAuth·clearAuth 등) 그 순간의
+ * 저장값으로 맞춘다. knownEpoch와 다른 점: 다른 탭의 변화를 알아채고 acknowledge한 뒤에도 새 세션을 받아들이기
+ * 전까지는 옛 토큰을 들고 있으므로, 그 사이 시작한 요청은 이 값(옛 세대)으로 잡혀야 한다(client.ts).
+ */
+let tokenEpoch = knownEpoch;
+
 export class AuthEpochUtil {
   /** 이 탭에서 명시적으로 로그인했다 */
   static markLogin(): void {
@@ -39,6 +46,21 @@ export class AuthEpochUtil {
     knownEpoch = readStoredEpoch();
   }
 
+  /** 이 탭이 지금 들고 있는 토큰이 속한 세대 - 요청을 시작할 때 기억해 둔다(client.ts) */
+  static ofToken(): string | null {
+    return tokenEpoch;
+  }
+
+  /** 토큰을 넣거나 뺀 직후 부른다 - 그 토큰은 지금 저장된 세대의 것이다(auth.store) */
+  static bindToken(): void {
+    tokenEpoch = readStoredEpoch();
+  }
+
+  /** 기억해 둔 세대 이후 저장된 세대가 바뀌었나 - 바뀌었으면 그 사이 공유 쿠키가 다른 계정의 것일 수 있다 */
+  static hasChangedSince(epoch: string | null): boolean {
+    return readStoredEpoch() !== epoch;
+  }
+
   /** 지금 저장값이 로그인으로 생긴 값인가 */
   static isLoginEpoch(): boolean {
     return readStoredEpoch()?.startsWith('in:') ?? false;
@@ -48,13 +70,16 @@ export class AuthEpochUtil {
   static reset(): void {
     LocalStorageUtil.removeItem(KEY);
     knownEpoch = null;
+    tokenEpoch = null;
   }
 
   private static write(kind: 'in' | 'out'): void {
     LocalStorageUtil.setItem(KEY, `${kind}:${crypto.randomUUID()}`);
     // 쓴 뒤 다시 읽는다 - 저장이 실패하면(LocalStorageUtil이 예외를 삼킨다) 메모리도 저장값과 같게 남아,
     // 이 탭이 스스로를 "바뀜"으로 오판해 로그아웃하지 않는다. 쓴 탭에는 storage 이벤트가 오지 않으므로
-    // 이 탭의 메모리를 맞추는 길은 이것뿐이다.
+    // 이 탭의 메모리를 맞추는 길은 이것뿐이다. 이 탭의 토큰도 이 세대의 것이다(로그인은 setAuth 뒤, 로그아웃은
+    // 정리 뒤에 부른다).
     knownEpoch = readStoredEpoch();
+    tokenEpoch = knownEpoch;
   }
 }

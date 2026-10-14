@@ -7,8 +7,11 @@ import { NavigationService } from '@/shared/lib/router/navigation';
 import { AuthUtil } from '@/shared/utils/auth.util';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
-import { ApiError, NetworkError } from '@/shared/types/common.type';
+import { ApiError, NetworkError, SessionChangedError } from '@/shared/types/common.type';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { STORAGE_KEYS } from '@/shared/config/storage-keys';
+import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
+import { LocalStorageUtil } from '@/shared/utils/storage.util';
 
 // NavigationService 모듈 전체를 mock — vi.spyOn 중첩 문제 방지
 vi.mock('@/shared/lib/router/navigation', () => ({
@@ -458,6 +461,191 @@ describe('ApiClient — 인증 오류 처리', () => {
       await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
         NetworkError
       );
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Case 7: 요청을 보낸 뒤 인증 세대가 바뀜(다른 탭·같은 탭의 명시적 로그인·로그아웃)
+  // 그 사이 공유 refresh 쿠키가 새 계정의 것이 되어, 갱신·재시도하면 이 요청이 새 계정으로 실행된다.
+  // 세대 변경은 요청이 서버에 가 있는 동안(MSW 핸들러 안에서) 저장값을 바꿔 흉내 낸다.
+  // ─────────────────────────────────────────────────────────────
+  describe('Case 7: 요청을 보낸 뒤 인증 세대가 바뀜', () => {
+    const otherTabSignsIn = () => LocalStorageUtil.setItem(STORAGE_KEYS.AUTH.EPOCH, 'in:other-tab');
+
+    const refreshOk = (accessToken: string) =>
+      HttpResponse.json(
+        { status: 200, message: 'ok', data: { accessToken }, timestamp: new Date().toISOString() },
+        { status: 200 }
+      );
+
+    it('7-1: TOKEN_EXPIRED여도 refresh·재시도 없이 SessionChangedError로 끝난다 - 새 계정으로 재실행하지 않는다', async () => {
+      let commentCallCount = 0;
+      let refreshCallCount = 0;
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => {
+          commentCallCount++;
+          otherTabSignsIn();
+          return make401('TOKEN_EXPIRED');
+        }),
+        http.post(REFRESH_HANDLER_URL, () => {
+          refreshCallCount++;
+          return refreshOk('token-b');
+        })
+      );
+      useAuthStore.getState().setAuth('token-a');
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionChangedError
+      );
+
+      expect(refreshCallCount).toBe(0);
+      expect(commentCallCount).toBe(1);
+      expect(useAuthStore.getState().accessToken).toBe('token-a');
+      expect(NavigationService.navigate).not.toHaveBeenCalled();
+    });
+
+    it('7-2: 이 탭이 이미 새 세션을 받아들여 토큰이 바뀌었어도, 보낸 뒤 세대가 바뀌었으면 재시도하지 않는다', async () => {
+      let commentCallCount = 0;
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => {
+          commentCallCount++;
+          // 다른 탭의 로그인 → 이 탭이 쿠키로 새 세션을 받아들임(useAuthEpochSync)
+          otherTabSignsIn();
+          useAuthStore.getState().setAuth('token-b');
+          return make401('TOKEN_EXPIRED');
+        })
+      );
+      useAuthStore.getState().setAuth('token-a');
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionChangedError
+      );
+
+      expect(commentCallCount).toBe(1);
+    });
+
+    it('7-3: refresh 응답을 기다리는 사이 세대가 바뀌면 받은 토큰을 버리고 리더·대기 요청 모두 SessionChangedError', async () => {
+      let commentCallCount = 0;
+      let refreshCallCount = 0;
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => {
+          commentCallCount++;
+          return make401('TOKEN_EXPIRED');
+        }),
+        http.post(REFRESH_HANDLER_URL, () => {
+          refreshCallCount++;
+          otherTabSignsIn();
+          return refreshOk('token-b');
+        })
+      );
+      useAuthStore.getState().setAuth('token-a');
+
+      const results = await Promise.allSettled([
+        apiClient.post(COMMENT_PATH, makeCommentFormData()),
+        apiClient.post(COMMENT_PATH, makeCommentFormData()),
+      ]);
+
+      expect(results.map((r) => r.status)).toEqual(['rejected', 'rejected']);
+      results.forEach((r) => {
+        expect(r.status === 'rejected' && r.reason).toBeInstanceOf(SessionChangedError);
+      });
+      expect(refreshCallCount).toBe(1);
+      expect(commentCallCount).toBe(2);
+      expect(useAuthStore.getState().accessToken).toBe('token-a');
+      expect(NavigationService.navigate).not.toHaveBeenCalled();
+    });
+
+    it('7-4: refresh가 실패해도 그사이 세대가 바뀌었으면 로그인 화면으로 보내지 않고 리더·대기 요청 모두 끝낸다', async () => {
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => make401('TOKEN_EXPIRED')),
+        http.post(REFRESH_HANDLER_URL, () => {
+          LocalStorageUtil.setItem(STORAGE_KEYS.AUTH.EPOCH, 'out:other-tab');
+          return make401('INVALID_REFRESH_TOKEN');
+        })
+      );
+      useAuthStore.getState().setAuth('token-a');
+
+      const results = await Promise.allSettled([
+        apiClient.post(COMMENT_PATH, makeCommentFormData()),
+        apiClient.post(COMMENT_PATH, makeCommentFormData()),
+      ]);
+
+      results.forEach((r) => {
+        expect(r.status === 'rejected' && r.reason).toBeInstanceOf(SessionChangedError);
+      });
+      expect(NavigationService.navigate).not.toHaveBeenCalled();
+    });
+
+    it('7-5: 같은 탭에서 로그아웃한 순간 진행 중이던 요청이 TOKEN_EXPIRED여도 로그인 화면으로 다시 보내지 않는다', async () => {
+      let refreshCallCount = 0;
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => {
+          // 로그아웃: 토큰·세션 플래그 정리 뒤 세대 기록(auth.queries.ts useLogoutMutation)
+          useAuthStore.getState().clearAuth();
+          AuthEpochUtil.markLogout();
+          return make401('TOKEN_EXPIRED');
+        }),
+        http.post(REFRESH_HANDLER_URL, () => {
+          refreshCallCount++;
+          return make401('INVALID_REFRESH_TOKEN');
+        })
+      );
+      useAuthStore.getState().setAuth('token-a');
+      AuthEpochUtil.markLogin();
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionChangedError
+      );
+
+      expect(refreshCallCount).toBe(0);
+      expect(NavigationService.navigate).not.toHaveBeenCalled();
+    });
+
+    it('7-6: 인라인 로그인 직전에 비로그인으로 보낸 요청이 NOT_LOGGED_IN으로 돌아와도 방금 한 로그인을 지우지 않는다', async () => {
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => {
+          // 요청이 서버에 가 있는 동안 이 탭에서 로그인(auth.queries.ts useLoginMutation 순서)
+          useAuthStore.getState().setAuth('token-new');
+          AuthEpochUtil.markLogin();
+          return make401('NOT_LOGGED_IN');
+        })
+      );
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionChangedError
+      );
+
+      expect(useAuthStore.getState().accessToken).toBe('token-new');
+      expect(NavigationService.navigate).not.toHaveBeenCalled();
+    });
+
+    it('7-7: 다른 탭의 로그인을 알아챈 뒤 새 세션을 받아들이기 전에 시작한 요청도 옛 세대로 잡혀 재실행하지 않는다', async () => {
+      // 시작할 때 저장 세대를 읽었다면 이 요청은 새 세대로 잡혀 refresh(새 계정 쿠키) → 재시도로 새 계정이 실행된다
+      let commentCallCount = 0;
+      let refreshCallCount = 0;
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => {
+          commentCallCount++;
+          return make401('TOKEN_EXPIRED');
+        }),
+        http.post(REFRESH_HANDLER_URL, () => {
+          refreshCallCount++;
+          return refreshOk('token-b');
+        })
+      );
+      useAuthStore.getState().setAuth('token-a');
+      AuthEpochUtil.markLogin();
+      // useAuthEpochSync가 알아챘지만(acknowledge) 받아들이기 refresh는 아직 - 토큰은 그대로 token-a
+      otherTabSignsIn();
+      AuthEpochUtil.acknowledge();
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionChangedError
+      );
+
+      expect(refreshCallCount).toBe(0);
+      expect(commentCallCount).toBe(1);
+      expect(useAuthStore.getState().accessToken).toBe('token-a');
     });
   });
 });

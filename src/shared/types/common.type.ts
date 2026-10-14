@@ -77,6 +77,18 @@ export class NetworkError extends Error {
 }
 
 /**
+ * 요청을 보낸 뒤 인증 세대가 바뀌어(다른 탭·같은 탭의 명시적 로그인·로그아웃) 처리하지 않고 끝낸 요청.
+ * 그 사이 공유 refresh 쿠키가 다른 계정의 것이 됐을 수 있어 갱신·재시도하면 다른 계정으로 실행된다
+ * (client.ts handleTokenExpired, docs/AUTH.md §8-B). 화면은 인증 세대 동기화(useAuthEpochSync)가 맞춘다.
+ */
+export class SessionChangedError extends Error {
+  constructor() {
+    super('Auth session changed while the request was in flight');
+    this.name = 'SessionChangedError';
+  }
+}
+
+/**
  * 이미지 업로드 단계(서명 URL 발급 → 스토리지 PUT)에서 실패한 원인.
  * - unsupportedType·tooLarge: 그 이미지를 바꾸면 해결된다
  * - rateLimited: 우리 서버의 업로드 한도(시간당 30회). retryAfterSeconds가 함께 온다

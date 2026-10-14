@@ -7,6 +7,7 @@ import {
   type CustomMutationMeta,
 } from '@/shared/lib/react-query/config/error-toast';
 import { shouldRetryQuery } from '@/shared/lib/react-query/config/retry-policy';
+import { rememberMutationAuthEpoch } from '@/shared/lib/react-query/config/mutation-auth-epoch';
 
 /** 판정된 결과를 실제로 적용한다 — 토스트·콘솔 부수 효과는 이 한 곳에만 있다. */
 const applyErrorToast = (decision: ReturnType<typeof resolveErrorToast>) => {
@@ -63,6 +64,7 @@ export const queryClient = new QueryClient({
     },
   }),
   mutationCache: new MutationCache({
+    onMutate: (_variables, _mutation, context) => rememberMutationAuthEpoch(context),
     onError: mutationErrorHandler,
     onSuccess: mutationSuccessHandler,
   }),

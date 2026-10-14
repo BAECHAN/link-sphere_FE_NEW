@@ -25,6 +25,7 @@ import {
   CreateBookmarkFolderRequest,
   UpdateBookmarkFolderRequest,
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
+import { assertMutationAuthEpochUnchanged } from '@/shared/lib/react-query/config/mutation-auth-epoch';
 import {
   POST_PAGE_SIZE,
   postInvalidateQueries,
@@ -349,7 +350,12 @@ export const useAddBookmarkFolderMutation = (postId: string) => {
     mutationKey: bookmarkFolderMutationKeys.addBookmarkFolder(postId),
     // 같은 글의 북마크 저장·해제와 한 줄로 선다 — 성공·실패 처리는 그 줄의 마지막 요청에서만
     scope: bookmarkPostScope(postId),
-    mutationFn: (folderId: string) => bookmarkFolderApi.addBookmarkFolder(postId, folderId),
+    mutationFn: (folderId: string, context) => {
+      // 줄에서 기다리는 사이 다른 계정이 됐으면 보내지 않는다(이하 scope mutation 공통)
+      assertMutationAuthEpochUnchanged(context);
+
+      return bookmarkFolderApi.addBookmarkFolder(postId, folderId);
+    },
     meta: { manualErrorHandling: true },
 
     onMutate: async (folderId): Promise<BookmarkFolderMutationContext> => {
@@ -424,7 +430,11 @@ export const useRemoveBookmarkFolderMutation = (postId: string) => {
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.removeBookmarkFolder(postId),
     scope: bookmarkPostScope(postId),
-    mutationFn: (folderId: string) => bookmarkFolderApi.removeBookmarkFolder(postId, folderId),
+    mutationFn: (folderId: string, context) => {
+      assertMutationAuthEpochUnchanged(context);
+
+      return bookmarkFolderApi.removeBookmarkFolder(postId, folderId);
+    },
     meta: { manualErrorHandling: true },
 
     onMutate: async (folderId): Promise<BookmarkFolderMutationContext> => {
@@ -488,7 +498,11 @@ export const useClearBookmarkFoldersMutation = (postId: string) => {
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.clearBookmarkFolders(postId),
     scope: bookmarkPostScope(postId),
-    mutationFn: () => bookmarkFolderApi.clearBookmarkFolders(postId),
+    mutationFn: (_variables: void, context) => {
+      assertMutationAuthEpochUnchanged(context);
+
+      return bookmarkFolderApi.clearBookmarkFolders(postId);
+    },
     meta: { manualErrorHandling: true },
 
     onMutate: async (): Promise<BookmarkFolderMutationContext> => {
