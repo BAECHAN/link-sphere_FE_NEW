@@ -84,7 +84,8 @@ test.describe('PostCard 클릭 영역 — 카드 전체가 상세 진입, 내부
   test('좋아요를 누르면 이동하지 않고 좋아요만 반영된다', async ({ page }) => {
     await mockLikePost(page);
     await page.goto('/post');
-    await page.getByRole('button', { name: TEXTS.ariaLabels.postLike }).click();
+    // exact — 이름 부분 일치면 피드의 "좋아요한" 범위 칩까지 걸린다
+    await page.getByRole('button', { name: TEXTS.ariaLabels.postLike, exact: true }).click();
 
     await expect(page.getByRole('button', { name: TEXTS.ariaLabels.postUnlike })).toBeVisible();
     await expect(page).toHaveURL(/\/post$/);

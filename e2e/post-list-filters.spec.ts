@@ -5,7 +5,7 @@ import { mockPostList } from './mocks/post.mock';
 import { TEXTS } from '@/shared/config/texts';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 
-// usePostList.ts:77-83 — URL의 filter(범위 칩 3개)에서 excludeBots는 무조건 제거한 뒤,
+// usePostList.ts:77-83 — URL의 filter(범위 칩 4개)에서 excludeBots는 무조건 제거한 뒤,
 // localStorage 기반 useHideBotsStore가 true면 다시 붙인다. 이 합성 로직 자체를 검증하는
 // 유닛은 없다 — search-parser.test.ts는 순수 파싱만, PostListSearch.test.tsx는 PostList를
 // 렌더하지 않아 usePostList가 아예 안 돈다(카운트 표시만 봄).

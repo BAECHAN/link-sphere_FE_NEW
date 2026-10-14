@@ -605,6 +605,17 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
   입력란에 쓰면 카드에 반영된다.
 - **공개 전환이 낙관적이지 않다.** 확인 후 재조회가 끝날 때까지 카드 표시가 그대로라 토스트가
   먼저 뜨고 아이콘이 뒤에 바뀐다.
+- **"북마크한"·"좋아요한" 칩을 켠 목록은 좋아요·북마크 직후 최대 3분간 옛 상태일 수 있다.**
+  좋아요·북마크 mutation은 목록을 무효화하지 않고, `patchPostEverywhere`
+  ([`interaction.queries.ts:47-72`](../src/entities/interaction/api/interaction.queries.ts#L47-L72))가
+  `setQueriesData`로 모든 `['post','list']` 캐시에서 그 글만 고친다. 그런데 TanStack Query는 이렇게
+  고친 캐시마다 받은 시각을 지금으로 바꾸고 무효 표시를 지운다(query-core 5.90.16 `query.js`의
+  `setData` → `successState`, `node_modules`에서 직접 확인). 그래서 ① 칩을 켠 목록에서 해제·취소해도
+  카드가 아이콘만 꺼진 채 남고, ② 다른 화면에서 새로 좋아요·북마크한 글이, 이미 캐시된 칩 목록을
+  다시 켰을 때 staleTime(3분) 동안 안 보일 수 있다. ①은 실수로 눌러도 바로 되돌릴 수 있어서
+  2026-10-14 "좋아요한" 칩을 추가할 때 그대로 두기로 했다
+  ([계획](./plans/2026-10-14-liked-filter-chip.md)). ②를 고치려면 성공 시 범위 필터가 든 목록
+  캐시만 다시 받지 않고 stale 표시(`refetchType: 'none'`)하는 방법이 있다.
 
 ## 12. 용어 사전
 

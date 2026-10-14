@@ -62,6 +62,7 @@ export const TEXTS = {
     excelDownload: '엑셀 다운로드',
     reset: '초기화',
     bookmarkOnly: '북마크한',
+    likedOnly: '좋아요한',
     myPosts: '내가 작성한',
     privateOnly: '나만 볼 수 있는',
     hideBots: '봇 글 숨기기',

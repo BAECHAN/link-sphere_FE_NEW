@@ -84,6 +84,25 @@ describe('PostListSearch — 조건 N개 적용 중 카운트', () => {
     );
   });
 
+  // SCOPE_FILTERS에 키가 빠지면 이 칩만 켠 상태에서 카운트가 안 뜨고 초기화도 early return한다
+  it('"좋아요한" 칩은 카운트에 잡히고, 초기화하면 URL에서 빠진다', async () => {
+    const user = userEvent.setup();
+    renderSearch('/');
+
+    await user.click(screen.getByRole('button', { name: TEXTS.buttons.likedOnly }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location-search')).toHaveTextContent('filter=isLiked')
+    );
+    expect(screen.getByText(TEXTS.post.search.appliedCount(1))).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: TEXTS.buttons.reset }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location-search')).not.toHaveTextContent('isLiked')
+    );
+  });
+
   it('봇 글 숨기기는 localStorage 개인 설정이라 켜도 카운트가 오르지 않는다', async () => {
     const user = userEvent.setup();
     renderSearch('/');

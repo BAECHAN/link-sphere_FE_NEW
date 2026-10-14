@@ -9,7 +9,7 @@
 > `#닉네임` 태그가 어떻게 분해되는지 이해하고, 검색 관련 동작(유지·초기화·오타 보정)을
 > 어느 파일에서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-05
+> **마지막 검토**: 2026-10-14
 
 ## 1. 쉬운 설명
 
@@ -129,6 +129,25 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 `submitQuery`(`NavbarSearch.tsx`)도 `/post`에 있을 때는 이 훅을 거친다 — 그래야 검색
 제출이 게시글 범위 필터(`filter`) 등 기존 파라미터를 지우지 않는다.
 
+**범위 칩은 "북마크한·좋아요한·내가 작성한·나만 볼 수 있는" 4개다.** 켜진 값은 URL `filter`에
+콤마로 이어 붙고(`?filter=isBookmarked,isLiked`), BE `GET /post`가 AND로 묶는다. 칩 키 목록은
+[`usePostListSearch.ts:8`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L8)의
+`SCOPE_FILTERS` 하나이고, "조건 N개" 카운트와 초기화가 이 배열을 본다. 새 칩을 추가하면서 여기
+빠뜨리면 그 칩만 켠 상태에서 카운트가 안 뜨고 초기화도 아무 일을 하지 않는다
+(`PostListSearch.test.tsx`가 "좋아요한"으로 이를 검증한다). BE는 모르는 `filter` 값을 조용히
+무시하므로, 새 값은 BE를 먼저 배포한다.
+
+"좋아요한"(2026-10-14)은 좋아요한 글을 다시 찾을 방법이 없던 빈 곳을 메운다. "내 댓글"을
+좋아요·북마크까지 담는 "내 활동" 페이지로 넓히는 안(종류별 탭, 한 목록에 섞는 타임라인)과
+비교해 칩 하나로 정했다. 비교와 다른 서비스 선례는
+[계획 문서](./plans/2026-10-14-liked-filter-chip.md)에 있다. 이 선택으로 감수한 점:
+
+- 정렬은 좋아요한 순이 아니라 피드와 같은 글 작성순이다
+- 이 칩을 켠 목록에서 좋아요를 취소해도 카드가 하트만 꺼진 채 남고, 다음 재조회 때 빠진다.
+  "북마크한"과 같은 동작이고 좋아요 캐시 코드는 바꾸지 않았다([`POST.md`](./POST.md) §11)
+- 자리는 "북마크한" 바로 뒤, 켜진 색은 좋아요 버튼과 같은 `destructive`다(위치 2안·색 2안 시안
+  비교 후 사용자 선택: https://claude.ai/artifact/QLhkfEDkpYT6UdGZfRch2D)
+
 **게시글 카드의 카테고리 배지도 `q`에 쓰는 진입점이다(쓰기 전용).** 카드의 카테고리 배지를
 누르면 [`usePostCard.ts`](../src/widgets/post/post-card/hooks/usePostCard.ts)의
 `handleCategoryClick`이 검색어를 `@이름` 하나로 바꾼다. 경로 분기는 헤더의 `submitQuery`와
@@ -216,6 +235,7 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 카드의 카테고리 배지를 눌렀을 때 동작 바꾸기                 | [`usePostCard.ts:146-158`](../src/widgets/post/post-card/hooks/usePostCard.ts#L146-L158) — `handleCategoryClick`, 배지 마크업은 [`PostCard.tsx:307`](../src/widgets/post/post-card/ui/PostCard.tsx#L307) 이하                                                                                                                                                       |
 | `@카테고리`/`#닉네임`/키워드 분해 규칙 바꾸기                | [`search-parser.ts`](../src/widgets/post/post-list/utils/search-parser.ts) — `parseSearchQuery`                                                                                                                                                                                                                                                                     |
 | "조건 N개 적용 중" 카운트 로직                               | [`usePostListSearch.ts:11-28`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L11-L28) — `computeAppliedFilterCount`                                                                                                                                                                                                                                      |
+| 범위 칩(북마크한·좋아요한 등) 추가·순서·색 바꾸기            | [`PostListSearch.tsx:48-80`](../src/widgets/post/post-list/ui/PostListSearch.tsx#L48-L80) — 칩 마크업, 키는 [`usePostListSearch.ts:8`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L8) `SCOPE_FILTERS`에도 넣는다                                                                                                                                      |
 | 초기화 버튼(필터+검색어 전체 리셋)                           | [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts) — `handleClearSearch`                                                                                                                                                                                                                                                            |
 | 오타 보정 문구                                               | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx:71-75`](../src/widgets/post/post-list/ui/PostList.tsx#L71-L75)                                                                                                                                                                                                                                                 |
 | 모바일 검색 패널 열림 상태                                   | [`useMobileSearchPanel.ts:17-22`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L17-L22) — `location.state.mobileSearchOpen`                                                                                                                                                                                                                           |

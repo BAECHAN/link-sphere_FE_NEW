@@ -12,6 +12,7 @@ export function PostListSearch() {
     selectedCategories,
     toggleCategoryTagInSearch,
     isClickedBookmark,
+    isClickedLiked,
     isClickedMyPosts,
     isClickedPrivate,
     handleToggleFilter,
@@ -54,6 +55,13 @@ export function PostListSearch() {
           isActive={isClickedBookmark}
           activeClassName="bg-warning text-warning-foreground"
           onClick={() => handleToggleFilter('isBookmarked')}
+        />
+
+        <FilterChip
+          label={TEXTS.buttons.likedOnly}
+          isActive={isClickedLiked}
+          activeClassName="bg-destructive text-destructive-foreground"
+          onClick={() => handleToggleFilter('isLiked')}
         />
 
         <FilterChip
