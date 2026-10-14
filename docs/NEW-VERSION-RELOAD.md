@@ -253,6 +253,8 @@ src/
 
 ## 13. 관련 문서
 
+- [CACHE-STRATEGY.md](./CACHE-STRATEGY.md) — 이 기능이 맡은 "이미 열린 탭"을 포함해 배포 후 옛
+  화면이 남는 네 군데 전체 그림과 진단 순서
 - [UNSAVED-CHANGES-GUARD.md](./UNSAVED-CHANGES-GUARD.md) — 이 기능이 그대로 물려받은
   "라우트 이동 후에 판단" 설계와 단일 blocker 제약의 원출처
 - [DEPLOY.md](./DEPLOY.md) — 이 기능이 보완하는 CloudFront 배포·캐시 무효화 파이프라인
