@@ -1,3 +1,8 @@
+### 2026-10-14 (FE)
+- 북마크 상태 관리 최적화 및 네트워크 요청 효율화
+- 로그:
+  - fix(interaction): 북마크 저장·해제를 상태 지정형으로 바꾸고 한 줄로 전송 ([#358](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/358))
+
 ### 2026-10-13 (BE)
 - 게시글 북마크 기능 고도화: 상태 지정형 PUT 및 DELETE 메서드 도입을 통한 북마크 관리 효율화 ([#85](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/85))
 
