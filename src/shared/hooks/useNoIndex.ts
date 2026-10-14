@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 
 /**
  * 마운트된 동안 `<meta name="robots" content="noindex">`를 head에 둔다.
@@ -9,7 +9,10 @@ import { useEffect } from 'react';
  * 언마운트 시 제거해 정상 페이지로 이동한 뒤까지 남지 않게 한다.
  */
 export function useNoIndex() {
-  useEffect(function addNoIndexMeta() {
+  // 화면을 그리기 전에 단다. useEffect면 에러 화면이 먼저 그려진 뒤 붙어, 그 사이에는 noindex 없는
+  // 에러 화면이 보인다(docs/POST.md §10). 하는 일이 meta 하나 추가라 그리기를 막는 시간은 무시할 만하다.
+  // https://react.dev/reference/react/useLayoutEffect
+  useLayoutEffect(function addNoIndexMeta() {
     const meta = document.createElement('meta');
     meta.name = 'robots';
     meta.content = 'noindex';
