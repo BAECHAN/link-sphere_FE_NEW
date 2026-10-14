@@ -1,3 +1,6 @@
+### 2026-10-14 (FE)
+- 북마크 폴더 삭제 시 동기화 로직을 개선하여 타 기기에서 추가한 폴더 데이터 유지 기능 구현 ([#364](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/364))
+
 ### 2026-10-14 (BE)
 - 폴더 제거 시 빈 북마크를 함께 처리하는 `removeBookmarkIfEmpty` 옵션 추가 ([#89](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/89))
 
