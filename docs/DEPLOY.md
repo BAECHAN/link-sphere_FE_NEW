@@ -62,9 +62,10 @@
     - `fonts/`는 파일명에 해시가 없는 대신 **경로에 폰트 버전**이 들어갑니다
       (`public/fonts/pretendard-1.3.9/`). 1년 `immutable`로 캐시되므로, 폰트를 바꿀 땐 같은
       경로의 파일을 덮어쓰지 말고 디렉터리 버전을 올립니다(`index.html`의 preload·stylesheet
-      경로와 `scripts/compute-font-preload-chunks.js`도 함께). 경로가 내용을 대표하므로 ②는
-      `--size-only`로 매 배포 재업로드를 건너뜁니다(2026-10-14부터. 그 전엔 쓰지 않는 파일
-      포함 118개·13.7MB를 매번 다시 올렸다).
+      경로와 `scripts/compute-font-preload-chunks.js`도 함께). ②는 폰트를 매 배포 다시
+      올립니다(약 3MB, 2026-10-14 전엔 쓰지 않는 파일 포함 118개·13.7MB). `--size-only`로
+      건너뛰지 않는 이유: 업로드 시각이 처음 올린 때에 고정되면, 버전을 올린 배포에서 9번이 옛
+      폰트를 7일 기다리지 않고 바로 지워 열린 탭이 아직 안 받은 글자 조각이 403이 됩니다.
     - ⑤ `index.html`·⑥ `dist/version.json`(커밋 sha·배포 시각 등 빌드 식별자,
       [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고)·④ Service Worker는 무캐시
       (`no-cache, no-store, must-revalidate`)로 올립니다. `version.json`은 "배포 완료"

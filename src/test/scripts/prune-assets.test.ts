@@ -18,7 +18,7 @@ describe('selectPrunableKeys', () => {
     expect(selectPrunableKeys(objects, new Set(), NOW)).toEqual(['assets/js/index-old.js']);
   });
 
-  it('지금 빌드에 있는 파일은 업로드가 오래됐어도 남긴다 - 다시 올리지 않는 폰트 등', () => {
+  it('지금 빌드에 있는 파일은 업로드가 오래됐어도 남긴다 - 업로드를 건너뛴 파일에 대한 안전장치', () => {
     const objects = [{ Key: 'fonts/pretendard/a.woff2', LastModified: OLD }];
     const currentKeys = new Set(['fonts/pretendard/a.woff2']);
 
