@@ -695,13 +695,22 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    put?: never;
     /**
-     * 게시글 북마크 토글
-     * @description 이미 저장했으면 취소되고(모든 폴더 소속도 함께 삭제) 폴더 소속은 초기화된다. data 는 {"isBookmarked": true|false} 한 쌍이다. 실패: 404 POST_NOT_FOUND
+     * 게시글 북마크
+     * @description 이미 저장된 상태여도 200 이다(멱등). 북마크만 보장하고 기존 폴더 소속은 건드리지 않는다 — 응답 folderIds 는 서버의 실제 소속이다. 실패: 404 POST_NOT_FOUND
+     */
+    put: operations['putPostBookmark'];
+    /**
+     * 게시글 북마크 토글 (deprecated)
+     * @deprecated
+     * @description PUT/DELETE /post/{postId}/bookmark 를 쓴다. 이미 저장했으면 취소된다(모든 폴더 소속도 함께 삭제). data 는 {"isBookmarked": true|false} 한 쌍이다. 실패: 404 POST_NOT_FOUND
      */
     post: operations['bookmarkPost'];
-    delete?: never;
+    /**
+     * 게시글 북마크 해제
+     * @description 저장 안 된 상태여도 200 이다(멱등). 모든 폴더 소속도 함께 삭제한다. 낡은 화면에서도 누를 수 있도록 글 공개 여부는 확인하지 않는다
+     */
+    delete: operations['deletePostBookmark'];
     options?: never;
     head?: never;
     patch?: never;
@@ -2204,6 +2213,28 @@ export interface operations {
       };
     };
   };
+  putPostBookmark: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        postId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponseBookmarkFoldersResponse'];
+        };
+      };
+    };
+  };
   bookmarkPost: {
     parameters: {
       query?: never;
@@ -2222,6 +2253,28 @@ export interface operations {
         };
         content: {
           '*/*': components['schemas']['ApiResponseMapStringBoolean'];
+        };
+      };
+    };
+  };
+  deletePostBookmark: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        postId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponseBookmarkFoldersResponse'];
         };
       };
     };

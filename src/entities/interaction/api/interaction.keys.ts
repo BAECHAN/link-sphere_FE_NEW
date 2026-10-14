@@ -5,10 +5,12 @@ import { bookmarkFolderInvalidateQueries } from '@/entities/bookmark/folder/@x/i
 
 const rootKey = ['interaction'] as const;
 
-// 같은 대상의 좋아요 mutation을 묶는 키 — isMutating 필터와 scope id(직렬화)에 함께 쓴다
+// 같은 대상의 좋아요 mutation을 묶는 키 — isMutating 필터와 scope id(직렬화)에 함께 쓴다.
+// 북마크는 폴더 mutation과 줄을 공유해 scope(bookmarkPostScope)로 세므로 이 키는 식별용이다.
 export const interactionMutationKeys = {
   likePost: (postId: Post['id']) => [...rootKey, 'likePost', postId] as const,
   likeComment: (commentId: Comment['id']) => [...rootKey, 'likeComment', commentId] as const,
+  bookmarkPost: (postId: Post['id']) => [...rootKey, 'bookmarkPost', postId] as const,
 };
 
 /**
@@ -19,6 +21,14 @@ export const interactionMutationKeys = {
 export const handleLikePostFailure = (queryClient: QueryClient, postId: Post['id']) => {
   postInvalidateQueries.detail(queryClient, postId);
   postInvalidateQueries.list(queryClient);
+  bookmarkFolderInvalidateQueries.postsRoot(queryClient);
+};
+
+/** handleLikePostFailure 의 북마크판 — 북마크는 폴더 목록 수에도 드러나 그것까지 다시 맞춘다. */
+export const handleBookmarkPostFailure = (queryClient: QueryClient, postId: Post['id']) => {
+  postInvalidateQueries.detail(queryClient, postId);
+  postInvalidateQueries.list(queryClient);
+  bookmarkFolderInvalidateQueries.list(queryClient);
   bookmarkFolderInvalidateQueries.postsRoot(queryClient);
 };
 

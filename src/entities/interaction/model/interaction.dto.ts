@@ -12,3 +12,6 @@ export type PostLikeResponse = Schemas['PostLikeResponse'];
 
 // PUT/DELETE /comment/{commentId}/like 응답({ isLiked }) — BE가 Map으로 내려 이름 없는 스키마다
 export type CommentLikeResponse = Unwrap<'ApiResponseMapStringBoolean'>;
+
+// PUT/DELETE /post/{postId}/bookmark 응답 — 요청한 상태와 서버의 실제 폴더 소속(PUT은 기존 소속을 유지한다)
+export type PostBookmarkResponse = Schemas['BookmarkFoldersResponse'];

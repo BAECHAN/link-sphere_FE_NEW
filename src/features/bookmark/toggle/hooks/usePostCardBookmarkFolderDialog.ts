@@ -105,7 +105,7 @@ export function usePostCardBookmarkFolderDialog({
   const handleSelectFolder = async (folder: BookmarkFolder) => {
     const wasSelected = bookmarkFolderIds.includes(folder.id);
     // 이게 마지막 폴더였다면 미분류로 남기지 않고 북마크 자체를 완전 삭제한다
-    // (2026-09-11 변경 — useBookmarkFolders.selectFolder가 이미 toggleBookmark로
+    // (2026-09-11 변경 — useBookmarkFolders.selectFolder가 이미 해제(setBookmark(false))로
     // 분기해뒀다). 되돌리기는 같은 폴더로 addBookmarkFolder를 다시 호출하는 것과
     // 정확히 같아서(멱등) 안전하게 원복된다.
     const isLastFolder = wasSelected && bookmarkFolderIds.length === 1;

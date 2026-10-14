@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-05
+> **마지막 검토**: 2026-10-13
 
 ## 1. 쉬운 설명
 
@@ -96,25 +96,34 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 `src/entities/bookmark/folder/api/bookmark-folder.api.ts` 기준(`API_ENDPOINTS.bookmark`,
 `shared/config/api.ts`).
 
-| 메서드   | 경로                                                  | 설명                                                                          |
-| -------- | ----------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `GET`    | `/bookmark/folders`                                   | 내 폴더 목록(`bookmarkCount`·`lastUsedAt` 포함, `sortOrder` ASC)              |
-| `POST`   | `/bookmark/folders`                                   | 폴더 생성(`sort_order = max+1`)                                               |
-| `PATCH`  | `/bookmark/folders/{id}`                              | 폴더 이름 수정                                                                |
-| `DELETE` | `/bookmark/folders/{id}`                              | 폴더 삭제(**이 폴더에만 있던** 북마크만 미분류로 — 다른 폴더에도 있으면 유지) |
-| `GET`    | `/bookmark/folders/{key}/posts?page&size&sort&search` | 폴더별 게시글 조회(검색 포함)                                                 |
-| `POST`   | `/bookmark/{postId}/folders/{folderId}`               | 폴더에 추가(북마크 없으면 자동 생성)                                          |
-| `DELETE` | `/bookmark/{postId}/folders/{folderId}`               | 그 폴더에서만 제거(북마크 자체는 유지)                                        |
-| `DELETE` | `/bookmark/{postId}/folders`                          | 폴더 소속 전부 해제 → 미분류                                                  |
+| 메서드   | 경로                                                  | 설명                                                                                |
+| -------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `GET`    | `/bookmark/folders`                                   | 내 폴더 목록(`bookmarkCount`·`lastUsedAt` 포함, `sortOrder` ASC)                    |
+| `POST`   | `/bookmark/folders`                                   | 폴더 생성(`sort_order = max+1`)                                                     |
+| `PATCH`  | `/bookmark/folders/{id}`                              | 폴더 이름 수정                                                                      |
+| `DELETE` | `/bookmark/folders/{id}`                              | 폴더 삭제(**이 폴더에만 있던** 북마크만 미분류로 — 다른 폴더에도 있으면 유지)       |
+| `GET`    | `/bookmark/folders/{key}/posts?page&size&sort&search` | 폴더별 게시글 조회(검색 포함)                                                       |
+| `POST`   | `/bookmark/{postId}/folders/{folderId}`               | 폴더에 추가(북마크 없으면 자동 생성)                                                |
+| `DELETE` | `/bookmark/{postId}/folders/{folderId}`               | 그 폴더에서만 제거(북마크 자체는 유지)                                              |
+| `DELETE` | `/bookmark/{postId}/folders`                          | 폴더 소속 전부 해제 → 미분류                                                        |
+| `PUT`    | `/post/{postId}/bookmark`                             | 북마크 저장(없으면 미분류로 생성, **기존 폴더 소속은 유지**) — `interaction.api.ts` |
+| `DELETE` | `/post/{postId}/bookmark`                             | 북마크 해제(소속도 전부 삭제) — `interaction.api.ts`                                |
 
 - `folderKey`(경로의 `{key}`): `'all' | 'uncategorized' | UUID`
 - `sort`: `'latest' | 'oldest' | 'title' | 'views' | 'viewed'` — `viewed`(최근 열람순)는
   개인별 열람 기록(BE `post_views` 테이블) 기준. 한 번도 안 연 글은 항상 맨 뒤
 - `search`: 값이 있을 때만 쿼리에 붙는다(`bookmark-folder.api.ts`의
   `if (search) searchParams.search = search`)
-- 폴더 소속 관련 3개 엔드포인트(추가/제거/전체해제)는 모두 **멱등** — 이미 그 상태여도
-  200을 반환하고 404를 던지지 않는다. 응답은 세 엔드포인트 공통으로
+- 폴더 소속 관련 3개 엔드포인트(추가/제거/전체해제)와 북마크 저장·해제(`PUT`/`DELETE`)는 모두
+  **멱등** — 이미 그 상태여도 200을 반환한다. 응답은 다섯 엔드포인트 공통으로
   `{ postId, isBookmarked, folderIds }`(`BookmarkFoldersResponse`)
+- 저장·해제는 2026-10-13 토글(`POST /post/{postId}/bookmark`)에서 바뀌었다 — 토글은 서버가 "지금의 반대"를
+  정해, 다른 기기에서 이미 해제한 북마크를 낡은 화면에서 "제거"하면 되살아났다(§10). 옛 POST 토글은 BE에
+  deprecated로 남아 있다
+- **같은 글의 북마크 요청 5종(저장·해제·폴더 추가·제거·비우기)은 한 줄로 나간다**(`bookmarkPostScope`,
+  `bookmark-folder.keys.ts`) — 되돌리기 토스트(8초)가 다이얼로그보다 오래 남아 되돌리기와 다시 연
+  다이얼로그의 요청이 겹칠 수 있어서다. 화면 반영은 클릭마다 즉시, 응답 반영·롤백은 그 줄의 마지막
+  요청에서만 한다(`isLastPendingBookmarkMutation`, 패턴은 [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §11)
 
 ### 다중 폴더 소속 모델
 
@@ -150,7 +159,7 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 
 | 행          | 상태                      | 탭하면                                            | 토스트                                                                                                 |
 | ----------- | ------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 미분류      | 북마크 아님               | 북마크 켜기(미분류로 생성)                        | `{folderName}에 저장했어요.`(미분류)                                                                   |
+| 미분류      | 북마크 아님               | 북마크 저장(`PUT`, 미분류로 생성)                 | `{folderName}에 저장했어요.`(미분류)                                                                   |
 | 미분류      | 북마크 O, 소속 0개(✓)     | **북마크 자체를 완전 삭제**(2026-09-11 변경)      | `북마크를 제거했어요.` + 되돌리기 액션(8초)                                                            |
 | 미분류      | 북마크 O, 소속 1개 이상   | 소속 전부 해제                                    | `모든 폴더에서 제거했어요.`                                                                            |
 | 폴더 X      | 비소속                    | 그 폴더에 추가(자동 북마크)                       | `{folderName}에 저장했어요.`                                                                           |
@@ -163,11 +172,17 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 (2026-09-11 재결정, §10) — 처음엔 "미분류는 되돌릴 폴더가 없어 Undo가 불가능하다"는
 이유로 no-op으로 막아뒀지만, 이는 틀린 전제였다: 하단 `북마크 제거` 행이 이미
 같은 상태(소속 0개)에서 되돌리기를 제공하고 있었다(`restoreBookmark([])` →
-`toggleBookmark()`로 재생성). 새 메커니즘을 만들지 않고 그 경로를 그대로 위임했다
+북마크 저장(`PUT`)으로 재생성, 2026-10-13 전엔 토글). 새 메커니즘을 만들지 않고 그 경로를 그대로 위임했다
 (`handleSelectUncategorized`가 이미 미분류면 `handleRemove()`를 호출).
 `docs/DECISIONS.md`의 같은 날짜 항목("미분류 재탭 no-op 결정 번복") 참고. 소속된
 모든 폴더에 **동일한 ✓ 아이콘**이 표시된다(다중 선택 UI가 아니라, 탭할 때마다 즉시
-반영되는 토글 방식).
+반영되는 방식).
+
+저장·해제의 방향은 다이얼로그가 화면에 보이는 상태(props)로 정해 `setBookmark(true|false)`로 넘긴다
+(`useBookmarkFolders.ts`). 2026-10-13 전엔 mutation이 캐시를 뒤져 방향을 다시 계산해, 둘이 어긋나면
+"제거"를 눌렀는데 화면엔 저장으로 뜨는 경우가 있었다. 낡은 화면에서 "미분류" 저장을 눌렀는데 서버엔 이미
+다른 폴더 소속이 있으면, 서버는 그 소속을 유지하고 화면은 응답의 `folderIds`로 맞춰진다(토스트는 "미분류에
+저장했어요"로 뜬다 — §11).
 
 ### 열림 상태는 히스토리로, 폴더 목록은 hover 때 미리(2026-09-30)
 
@@ -476,9 +491,9 @@ src/
 │   │   │                                         # FolderListLoading(§5, 2026-09-30)
 │   │   └── toggle/
 │   │       ├── hooks/
-│   │       │   ├── useBookmarkFolders.ts             # add/remove/clear/toggle 라우팅
+│   │       │   ├── useBookmarkFolders.ts             # add/remove/clear/저장·해제 라우팅
 │   │       │   │                                     # (마지막 폴더 제거·미분류 재탭 모두
-│   │       │   │                                     # toggle로 완전 삭제, §5)
+│   │       │   │                                     # 해제(DELETE)로 완전 삭제, §5)
 │   │       │   ├── useBookmarkPostButton.ts          # 열림 상태(useHistoryOverlay, postId별 키)
 │   │       │   │                                     # + 인증 가드 + hover 프리페치(§5, 2026-09-30)
 │   │       │   └── usePostCardBookmarkFolderDialog.ts # 즉시 저장 동작 + 토스트 분기 + 닫힘
@@ -636,6 +651,15 @@ no-op 테스트를 완전 삭제+되돌리기 검증으로 교체하고 미북�
 config 기준) e2e 전체가 무회귀로 통과했다 — `bookmark.mobile.spec.ts`(MobileFolderList
 포함)·`post-update.spec.ts`·`post-visibility.spec.ts`(PostCard 제어형 메뉴)·
 `account-update.spec.ts`(Navbar 계정 메뉴)까지 이 컴포넌트를 쓰는 4곳을 모두 덮는다.
+
+**2026-10-13 갱신** — 토글을 저장·해제(`PUT`/`DELETE`)로 바꾸고 같은 글의 북마크 요청을 한 줄로 세운
+뒤(§5, §10) 관련 테스트 6개 파일, 69개 테스트 통과: `interaction.queries.test.ts`(26→32, 북마크 9→15 —
+본문 없는 PUT/DELETE, 이미 그 상태면 수 그대로, 낡은 화면 응답의 `folderIds` 반영, 해제→저장→해제 세 번
+연타의 순서·마지막 확정, 중간 실패는 롤백 안 함·마지막 실패는 무효화, 폴더 추가 직후 해제가 순서대로
+나감) · `PostCardBookmarkFolderDialog.test.tsx`(15, 토글 핸들러를 PUT/DELETE로 바꾸고 "제거 + 되돌리기"를
+DELETE → PUT 순서로 단정) · `bookmark-folder.queries.test.ts`(8, 무수정 통과). 마지막 확정 조건
+(`isLastPendingBookmarkMutation`의 `=== 1`)을 `>= 1`로 일부러 꺼 보면 새 연타 테스트 3건이 실패하는 것을
+확인했다. 전체 스위트 115개 파일 1290개 테스트, e2e 115개, `pnpm type-check`·`pnpm check` 모두 통과.
 
 ## 10. 시행착오
 
@@ -1002,6 +1026,39 @@ CSS 정렬 버그 하나에 들이기엔 과한 인프라라고 판단했다.
 영향 파일: `shared/ui/atoms/dialog.tsx`, `shared/ui/atoms/dialog.test.tsx`,
 `e2e/guest-guard.spec.ts`, `e2e/bookmark-folder-dialog.spec.ts`(신규).
 
+### 낡은 화면에서 "제거"를 누르면 북마크가 되살아나던 문제
+
+2026-10-13, 좋아요 연타 500(`docs/POST.md` §10)을 고치면서 같은 구조인 북마크 토글을 함께 살폈다. 토글
+(`POST /post/{postId}/bookmark`)은 서버가 "지금의 반대"를 정한다. 다른 기기에서 이미 해제한 글을 이 기기의
+낡은 화면에서 "북마크 제거"로 누르면, 서버엔 북마크가 없으니 새로 만들었다.
+
+조사하면서 같은 뿌리의 문제가 세 가지 더 나왔다.
+
+- **방향을 두 곳에서 따로 정했다** — 다이얼로그(`useBookmarkFolders.ts`)는 화면 props로 저장/제거를 고르고,
+  `useBookmarkPostMutation`(`interaction.queries.ts`)은 캐시로 방향을 다시 계산했다. 둘이 어긋나면 "제거"를
+  눌렀는데 화면엔 저장으로 떴다.
+- **같은 글의 요청이 겹쳤다** — 되돌리기 토스트(8초)는 다이얼로그가 닫혀도 남는다. 되돌리기 요청이 진행 중일 때
+  다이얼로그를 다시 열어 행을 누르면 요청 두 개가 동시에 나가 늦게 도착한 쪽이 이겼다. 정정: 좋아요 계획
+  (`docs/plans/2026-10-13-like-concurrency.md`)은 "북마크는 같은 탭에서 동시 토글이 생기지 않는다"고 봤는데,
+  이 경로를 놓친 판단이었다.
+- **성공 응답을 버렸고, 수를 무조건 ±1 했다** — 서버 결과가 낙관적 값과 다르면 상세·피드가 틀린 채 남았다.
+
+수정(BE PR #85 → FE): 좋아요와 같은 방식으로 저장 `PUT`·해제 `DELETE`를 쓰고, 호출부가 원하는 상태를
+`setBookmark(true|false)`로 넘긴다. 저장은 기존 폴더 소속을 건드리지 않는다(`addBookmarkFolder`와 같은 방식,
+근거는 `docs/DECISIONS.md` 2026-10-13 북마크 항목). 같은 글의 북마크 요청 5종(저장·해제·폴더 추가·제거·비우기)은
+`bookmarkPostScope`로 한 줄에 세우고, 응답 반영·롤백은 그 줄의 마지막 요청에서만 한다. 다섯 mutation이 한
+scope를 나눠 써서 `mutationKey` 대신 `scope.id`로 센다(`isLastPendingBookmarkMutation`).
+
+테스트에서 걸린 점: "폴더 추가 직후 해제" 테스트가 처음엔 마지막 확정 조건이 켜진 상태에서도 실패했다. 폴더 추가
+응답을 풀어준 시점에 해제 요청이 아직 줄에 서지 않아, 추가가 자기가 마지막이라고 판단한 것이다. 실제 사용에서도
+같다 — 줄에 선 요청만 센다. 그래서 테스트를 "추가가 서버에 닿음 → 해제 클릭(화면 반영 확인) → 추가 응답 풀기 →
+무효화 없음 단정 → 해제 응답 풀기" 순서로 고쳤다.
+
+영향 파일: `entities/interaction/api/interaction.{api,keys,queries}.ts`, `entities/interaction/model/interaction.dto.ts`,
+`entities/bookmark/folder/api/bookmark-folder.{keys,queries}.ts`, `entities/bookmark/folder/@x/interaction.ts`,
+`features/bookmark/toggle/hooks/useBookmarkFolders.ts`, `mocks/handlers/post.handlers.ts`, 테스트 2개 파일.
+계획: [`docs/plans/2026-10-13-bookmark-set-state.md`](./plans/2026-10-13-bookmark-set-state.md).
+
 ## 11. 남은 것
 
 - `북마크 제거` 행의 되돌리기는 삭제 전 소속이 0~1개일 때만 제공된다(§5). 소속이
@@ -1010,6 +1067,12 @@ CSS 정렬 버그 하나에 들이기엔 과한 인프라라고 판단했다.
 - 모바일은 hover가 없어 첫 탭에서는 폴더 목록을 여전히 기다린다(이후 staleTime 3분 동안은
   캐시로 즉시 뜬다). 기다리는 동안 모달이 늘어나는 문제는 골격 화면으로 줄였지만(§5), 폴더
   수가 3개와 다르면 도착할 때 조금 늘거나 준다.
+- 낡은 화면에서 "미분류"로 저장했는데 서버엔 이미 폴더 X 소속이 있으면, 화면은 응답대로 X로 맞춰지지만
+  토스트는 "미분류에 저장했어요"로 뜬다(§5). 응답의 `folderIds`로 문구를 고를 수 있다.
+- 마지막 폴더 A를 빼면 북마크째 해제(`DELETE`)한다. 그사이 다른 기기가 폴더 B를 추가했다면 B 소속도 함께
+  지워진다(토글 시절과 같다). `removeBookmarkFolder(A)` 응답의 `folderIds`가 비었을 때만 해제하는 방식을 검토한다.
+- 옛 토글 `POST /post/{postId}/bookmark`는 BE에 deprecated로 남아 있다. 좋아요 토글과 함께 호출 로그
+  (`deprecated bookmark toggle called`)가 0건이 되면 BE에서 제거한다.
 
 ## 12. 용어 사전
 
@@ -1038,6 +1101,13 @@ CSS 정렬 버그 하나에 들이기엔 과한 인프라라고 판단했다.
   `BookmarkFolderField`·`BookmarkFolderModal`로 불렸으나 `entities/bookmark/folder/ui/FolderPickerModal`
   (현재 `BookmarkFolderSelectDialog`)과 이름·설명이 겹쳐 구분이 안 돼 호출 맥락 접두사
   `PostCreate`·`PostCard`를 붙여 다시 개명했다)
+- **`bookmarkPostScope`** — `entities/bookmark/folder/api/bookmark-folder.keys.ts`. 같은 글의 북마크 요청
+  5종이 함께 쓰는 TanStack Query mutation `scope`(`{ id: 'bookmark:<postId>' }`). 같은 `scope.id`의 mutation은
+  시작한 순서대로 하나씩 서버에 나간다(§5)
+- **`isLastPendingBookmarkMutation`** — 같은 파일. 지금 끝나는 북마크 요청이 그 줄의 마지막인지 판정한다.
+  응답 반영·롤백은 이 값이 참일 때만 한다
+- **`setBookmark`** — `useBookmarkFolders.ts`가 `useBookmarkPostMutation`의 `mutateAsync`에 붙인 이름.
+  `true`면 저장(`PUT`), `false`면 해제(`DELETE`)
 
 ## 13. 관련 문서
 

@@ -95,6 +95,19 @@ function bookmarkFoldersResponse(folderIds: string[]): BookmarkFoldersResponse {
   return { postId: POST_ID, isBookmarked: true, folderIds };
 }
 
+// PUT(저장)·DELETE(해제) /post/{id}/bookmark 응답 — 204로 두면 apiClient가 {}로 바꿔 folderIds가 사라진다
+function postBookmarkResponse(isBookmarked: boolean) {
+  return HttpResponse.json(
+    {
+      status: 200,
+      message: 'ok',
+      data: { postId: POST_ID, isBookmarked, folderIds: [] },
+      timestamp: '',
+    },
+    { status: 200 }
+  );
+}
+
 describe('PostCardBookmarkFolderDialog', () => {
   it('목록을 기다리는 동안 고정 행을 비활성으로 먼저 그리고, 도착하면 실제 행으로 바뀐다', async () => {
     let resolveList: () => void = () => {};
@@ -220,12 +233,12 @@ describe('PostCardBookmarkFolderDialog', () => {
 
   it('마지막 폴더를 탭하면 폴더에서만 빼지 않고 북마크 자체를 완전 삭제하며 되돌리기를 제공한다', async () => {
     const user = userEvent.setup();
-    let toggleCalled = false;
+    let unbookmarkCalled = false;
     let removeFolderCalled = false;
     server.use(
-      http.post(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => {
-        toggleCalled = true;
-        return new HttpResponse(null, { status: 204 });
+      http.delete(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => {
+        unbookmarkCalled = true;
+        return postBookmarkResponse(false);
       }),
       http.delete(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () => {
         removeFolderCalled = true;
@@ -241,8 +254,8 @@ describe('PostCardBookmarkFolderDialog', () => {
     await waitFor(() => expect(screen.getByText('개발')).toBeInTheDocument());
     await user.click(screen.getByText('개발'));
 
-    // 폴더에서만 제거하는 DELETE가 아니라 북마크 자체를 지우는 토글이 나가야 한다
-    await waitFor(() => expect(toggleCalled).toBe(true));
+    // 폴더에서만 제거하는 요청이 아니라 북마크 자체를 지우는 DELETE가 나가야 한다
+    await waitFor(() => expect(unbookmarkCalled).toBe(true));
     expect(removeFolderCalled).toBe(false);
 
     const [message, options] = vi.mocked(toast.success).mock.calls[0]!;
@@ -269,12 +282,16 @@ describe('PostCardBookmarkFolderDialog', () => {
 
   it('체크된 미분류를 탭하면 북마크 자체를 완전 삭제하고 되돌리기를 제공한다', async () => {
     const user = userEvent.setup();
-    let toggleCallCount = 0;
+    const bookmarkRequests: string[] = [];
     let clearCalled = false;
     server.use(
-      http.post(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => {
-        toggleCallCount += 1;
-        return new HttpResponse(null, { status: 204 });
+      http.delete(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => {
+        bookmarkRequests.push('DELETE');
+        return postBookmarkResponse(false);
+      }),
+      http.put(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => {
+        bookmarkRequests.push('PUT');
+        return postBookmarkResponse(true);
       }),
       http.delete(url(API_ENDPOINTS.bookmark.postFolders(POST_ID)), () => {
         clearCalled = true;
@@ -290,8 +307,8 @@ describe('PostCardBookmarkFolderDialog', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /^미분류/ })).toBeEnabled());
     await user.click(screen.getByText('미분류'));
 
-    // 전체 해제(DELETE)가 아니라 북마크 자체를 지우는 토글이 나가야 한다
-    await waitFor(() => expect(toggleCallCount).toBe(1));
+    // 폴더 소속 전체 해제가 아니라 북마크 자체를 지우는 DELETE가 나가야 한다
+    await waitFor(() => expect(bookmarkRequests).toEqual(['DELETE']));
     expect(clearCalled).toBe(false);
 
     const [message, options] = vi.mocked(toast.success).mock.calls[0]!;
@@ -299,19 +316,19 @@ describe('PostCardBookmarkFolderDialog', () => {
     const action = options?.action as unknown as { label: string; onClick: () => void };
     expect(action.label).toBe('되돌리기');
 
-    // 되돌리기를 누르면 같은 엔드포인트(토글)로 다시 요청이 나가 미분류로 복원된다
+    // 되돌리기를 누르면 저장(PUT)이 나가 미분류로 복원된다
     action.onClick();
 
-    await waitFor(() => expect(toggleCallCount).toBe(2));
+    await waitFor(() => expect(bookmarkRequests).toEqual(['DELETE', 'PUT']));
   });
 
   it('미북마크 상태에서 미분류를 탭하면 여전히 미분류로 저장된다 (생성)', async () => {
     const user = userEvent.setup();
-    let toggleCalled = false;
+    let bookmarkCalled = false;
     server.use(
-      http.post(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => {
-        toggleCalled = true;
-        return new HttpResponse(null, { status: 204 });
+      http.put(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => {
+        bookmarkCalled = true;
+        return postBookmarkResponse(true);
       })
     );
     renderDialog({ isBookmarked: false, bookmarkFolderIds: [] });
@@ -320,7 +337,7 @@ describe('PostCardBookmarkFolderDialog', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /^미분류/ })).toBeEnabled());
     await user.click(screen.getByText('미분류'));
 
-    await waitFor(() => expect(toggleCalled).toBe(true));
+    await waitFor(() => expect(bookmarkCalled).toBe(true));
 
     const [message, options] = vi.mocked(toast.success).mock.calls[0]!;
     expect(message).toBe('미분류에 저장했어요.');
@@ -354,7 +371,7 @@ describe('PostCardBookmarkFolderDialog', () => {
   it('체크된 미분류 삭제가 실패하면 에러 토스트만 뜨고 모달이 닫히지 않는다', async () => {
     const user = userEvent.setup();
     server.use(
-      http.post(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () =>
+      http.delete(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () =>
         HttpResponse.json(
           { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'boom', timestamp: '' },
           { status: 500 }
@@ -404,13 +421,13 @@ describe('PostCardBookmarkFolderDialog', () => {
     await waitFor(() => expect(screen.getByText('북마크 제거')).toBeInTheDocument());
   });
 
-  it('북마크 제거 행을 누르면 토글(해제) 요청을 보낸다', async () => {
+  it('북마크 제거 행을 누르면 해제(DELETE) 요청을 보낸다', async () => {
     const user = userEvent.setup();
-    let toggleCalled = false;
+    let unbookmarkCalled = false;
     server.use(
-      http.post(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => {
-        toggleCalled = true;
-        return new HttpResponse(null, { status: 204 });
+      http.delete(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => {
+        unbookmarkCalled = true;
+        return postBookmarkResponse(false);
       })
     );
     renderDialog();
@@ -418,7 +435,7 @@ describe('PostCardBookmarkFolderDialog', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: '북마크 제거' })).toBeEnabled());
     await user.click(screen.getByText('북마크 제거'));
 
-    await waitFor(() => expect(toggleCalled).toBe(true));
+    await waitFor(() => expect(unbookmarkCalled).toBe(true));
   });
 
   describe('최근 저장한 폴더 (split menu 상단 구획)', () => {

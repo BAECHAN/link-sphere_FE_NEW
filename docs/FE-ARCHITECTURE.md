@@ -932,6 +932,22 @@ useMutation({
 테스트는 두 번이 아니라 **세 번** 누르는 경우로 쓴다 — 두 번이면 "첫 클릭 전 상태"와 "두 번째 클릭 뒤
 상태"가 같아져, 잘못 되돌려도 화면이 같아 보여 통과한다(`interaction.queries.test.ts`의 연타 describe).
 
+**종류가 다른 mutation이 한 줄을 나눠 쓸 때**는 `mutationKey`가 서로 달라 `isMutating({ mutationKey })`로는
+못 센다. 공유 scope를 만드는 함수를 두고 `predicate`로 `scope.id`를 비교해 센다. 참조: 북마크 저장·해제와
+폴더 추가·제거·비우기가 함께 쓰는 `bookmarkPostScope`·`isLastPendingBookmarkMutation`
+(`bookmark-folder.keys.ts`, 배경은 [`BOOKMARK.md`](./BOOKMARK.md) §5).
+
+```typescript
+export const isLastPendingBookmarkMutation = (queryClient: QueryClient, postId: string) => {
+  const scopeId = bookmarkPostScope(postId).id;
+
+  return (
+    queryClient.isMutating({ predicate: (mutation) => mutation.options.scope?.id === scopeId }) ===
+    1
+  );
+};
+```
+
 ---
 
 ## 12. React Query 설정

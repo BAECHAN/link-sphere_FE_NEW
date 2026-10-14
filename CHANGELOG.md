@@ -18,6 +18,14 @@
 
   </details>
 
+- `bookmark` 낡은 화면에서 북마크를 제거하면 되살아나거나 요청이 겹치던 문제
+  <details><summary>배경·구현</summary>
+
+  북마크 토글(`POST /post/{postId}/bookmark`)은 서버가 "지금의 반대"를 정해, 다른 기기에서 이미 해제한 글을 낡은 화면에서 "북마크 제거"로 누르면 북마크가 다시 생겼다. 다이얼로그는 화면 상태로, mutation은 캐시로 방향을 따로 계산해 둘이 어긋나면 "제거"를 눌렀는데 화면엔 저장으로 떴다. 되돌리기 토스트(8초)가 다이얼로그보다 오래 남아, 되돌리기가 진행 중일 때 다이얼로그를 다시 열어 누르면 요청이 겹쳐 늦게 도착한 쪽이 이겼다. 좋아요와 같은 방식으로 저장 `PUT`·해제 `DELETE`를 쓰고 호출부가 원하는 상태를 넘긴다. 저장은 기존 폴더 소속을 유지하고, 응답의 `isBookmarked`·`folderIds`로 상세·피드를 맞춘다. 같은 글의 북마크 요청 5종(저장·해제·폴더 추가·제거·비우기)은 공유 `scope`(`bookmarkPostScope`)로 클릭 순서대로 보내고, 응답 반영·롤백은 그 줄의 마지막 요청에서만 한다(`isLastPendingBookmarkMutation`). 이미 그 상태면 폴더 수를 바꾸지 않는다. 근거는 `docs/DECISIONS.md` 2026-10-13 북마크 항목, 계획은 `docs/plans/2026-10-13-bookmark-set-state.md`.
+  (`interaction.api.ts`, `interaction.keys.ts`, `interaction.queries.ts`, `interaction.dto.ts`, `bookmark-folder.keys.ts`, `bookmark-folder.queries.ts`, `@x/interaction.ts`, `useBookmarkFolders.ts`, `post.handlers.ts`, `openapi.gen.ts`, [PR #358](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/358))
+
+  </details>
+
 - `shared` 입력 직후의 바깥 클릭·뒤로가기를 가드가 놓칠 수 있던 문제 수정
   <details><summary>배경·구현</summary>
 
@@ -28,6 +36,7 @@
 ### Notes
 
 - **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #80](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/80)(`PUT`/`DELETE /post/{postId}/like`, `/comment/{commentId}/like`)이 있어야 한다. 구버전 BE에는 이 경로가 없어 좋아요가 전부 실패한다(롤백만 되고 토스트 없음). 2026-10-13 BE 운영에 배포됨.
+- **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #85](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/85)(`PUT`/`DELETE /post/{postId}/bookmark`)가 있어야 한다. 구버전 BE에는 이 경로가 없어 북마크 저장·해제가 전부 실패한다(롤백 + 실패 토스트). 2026-10-13 BE 운영에 배포됨.
 
 ## [0.19.0] - 2026-10-12
 

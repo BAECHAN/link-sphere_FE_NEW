@@ -108,8 +108,29 @@ export const postHandlers = [
     );
   }),
 
-  // POST /post/:id/bookmark (북마크 토글)
-  http.post(url(API_ENDPOINTS.post.postBookmark(':id')), () => {
-    return new HttpResponse(null, { status: 204 });
+  // PUT /post/:id/bookmark (북마크 저장 — 기존 폴더 소속 유지)
+  http.put(url(API_ENDPOINTS.post.postBookmark(':id')), ({ params }) => {
+    return HttpResponse.json(
+      {
+        status: 200,
+        message: '북마크 성공',
+        data: { postId: params.id, isBookmarked: true, folderIds: [] },
+        timestamp: new Date().toISOString(),
+      },
+      { status: 200 }
+    );
+  }),
+
+  // DELETE /post/:id/bookmark (북마크 해제 — 소속도 삭제)
+  http.delete(url(API_ENDPOINTS.post.postBookmark(':id')), ({ params }) => {
+    return HttpResponse.json(
+      {
+        status: 200,
+        message: '북마크 취소 성공',
+        data: { postId: params.id, isBookmarked: false, folderIds: [] },
+        timestamp: new Date().toISOString(),
+      },
+      { status: 200 }
+    );
   }),
 ];

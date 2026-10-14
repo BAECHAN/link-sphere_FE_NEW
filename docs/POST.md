@@ -369,8 +369,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
     계획 [`plans/2026-10-13-like-concurrency.md`](./plans/2026-10-13-like-concurrency.md)).
 - `meta.manualErrorHandling: true`이고 직접 띄우는 토스트도 없어 **실패해도 토스트 없이 롤백만
   된다**(`CHANGELOG.md` v0.1.1 "옵티미스틱 토글 실패 시 토스트 없이 롤백").
-- 북마크 토글(`useBookmarkPostMutation`)은 같은 파일에 있지만 [`BOOKMARK.md`](./BOOKMARK.md)가
-  정본이다.
+- 북마크 저장·해제(`useBookmarkPostMutation`, 2026-10-13 토글에서 `PUT`/`DELETE`로 바뀜)는 같은 파일에 있지만
+  [`BOOKMARK.md`](./BOOKMARK.md)가 정본이다.
 
 ## 6. 상태 모델
 
@@ -396,16 +396,16 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`), 다른 엔티티는 그 래퍼만 쓴다.
 
-| 사건                                   | 무효화                      | 위치                                                             |
-| -------------------------------------- | --------------------------- | ---------------------------------------------------------------- |
-| 댓글 작성·삭제(`commentCount` 변동)    | detail + list               | `src/entities/comment/api/comment.keys.ts:26-49`                 |
-| 프로필 수정(작성자 닉네임·이미지)      | `post` 전체                 | `src/entities/account/api/account.keys.ts:29`                    |
-| 세션 복원 성공(비로그인으로 받은 목록) | list                        | `src/entities/auth/api/auth.keys.ts:10-12`                       |
-| 북마크 폴더 삭제·소속 변경             | list(+ 소속 변경 시 detail) | `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:53-95` |
+| 사건                                   | 무효화                      | 위치                                                              |
+| -------------------------------------- | --------------------------- | ----------------------------------------------------------------- |
+| 댓글 작성·삭제(`commentCount` 변동)    | detail + list               | `src/entities/comment/api/comment.keys.ts:26-49`                  |
+| 프로필 수정(작성자 닉네임·이미지)      | `post` 전체                 | `src/entities/account/api/account.keys.ts:29`                     |
+| 세션 복원 성공(비로그인으로 받은 목록) | list                        | `src/entities/auth/api/auth.keys.ts:10-12`                        |
+| 북마크 폴더 삭제·소속 변경             | list(+ 소속 변경 시 detail) | `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:73-116` |
 
 반대 방향으로 post mutation이 부르는 북마크 쪽 핸들러(`handlePostDeleteSuccess`,
 `handlePostContentUpdateSuccess`, `handleBookmarkToggleSuccess`)는
-`src/entities/bookmark/folder/api/bookmark-folder.keys.ts:64-84`에 있다.
+`src/entities/bookmark/folder/api/bookmark-folder.keys.ts:85-105`에 있다.
 
 ### 폼 값
 
@@ -471,7 +471,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 ## 9. 검증 결과
 
 **단위 테스트** — 2026-10-02 위 명령으로 9개 파일 79개 테스트 통과(직접 실행). 2026-10-13 다시
-실행해 13개 파일 127개 통과(직접 실행). 아래 목록은 그때 `interaction.queries.test.ts`만 갱신했고,
+실행해 13개 파일 142개 통과(북마크 저장·해제 전환 뒤, 직접 실행). 아래 목록은 그때 `interaction.queries.test.ts`만 갱신했고,
 나머지 개수는 2026-10-02 기준이다.
 
 - `src/entities/post/api/post.queries.test.ts`(12) — 수정 시 detail 교체·폴더 게시글 무효화,
@@ -487,8 +487,8 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
   [`SEARCH.md`](./SEARCH.md)가 정본
 - `src/widgets/post/post-card/config/post-card-grid.const.test.ts`(1)
 - `src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`(15) — [`BOOKMARK.md`](./BOOKMARK.md) §9
-- `src/entities/interaction/api/interaction.queries.test.ts`(25) — 북마크 토글 9개(동작
-  설명은 [`BOOKMARK.md`](./BOOKMARK.md)), 게시글 좋아요 15개, 댓글 좋아요 1개다. 게시글 좋아요 테스트는
+- `src/entities/interaction/api/interaction.queries.test.ts`(32) — 북마크 저장·해제 15개(동작
+  설명은 [`BOOKMARK.md`](./BOOKMARK.md) §9), 게시글 좋아요 16개, 댓글 좋아요 1개다. 게시글 좋아요 테스트는
   서버 응답 전 중간 상태(그 글만 ±1·`isLiked` 변경, 북마크 값 유지, 이미 그 상태면 수 그대로), 응답 뒤 서버
   값 교정, 실패 롤백, detail 캐시 없이 목록에만 있는 글, 데이터 없는 목록 캐시, 북마크 폴더 캐시 반영을
   덮는다. 응답 전 상태는 핸들러가 응답을 붙잡아 두는 방식으로 본다 — 바로 응답하면 `waitFor`가 중간값을
@@ -620,7 +620,7 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
 - **`goBack` / `useGoBack(fallbackPath)`** — `src/shared/hooks/useGoBack.ts`. 앱 안 이력이 있으면
   `navigate(-1)`, 이력 없이 들어왔으면 `fallbackPath`로 replace한다.
 - **`postsRoot`** — 북마크 폴더별 게시글 목록 캐시의 접두사 키(`bookmarkFolderKeys.postsRoot`,
-  `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:22`). 피드 목록(`listRoot`)과 별개
+  `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:42`). 피드 목록(`listRoot`)과 별개
   캐시라 post 수정·삭제 때 따로 무효화한다.
 - **`HoverKebabMenu`** — `src/shared/ui/elements/HoverKebabMenu.tsx`. 카드의 ⋮ 드롭다운 공통
   컴포넌트(소유자 메뉴).

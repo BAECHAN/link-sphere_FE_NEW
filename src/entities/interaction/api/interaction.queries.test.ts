@@ -8,6 +8,7 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { createTestQueryClient } from '@/test/utils';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
+import { useAddBookmarkFolderMutation } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import { commentKeys } from '@/entities/comment/api/comment.keys';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import type { Post, PostListResponse } from '@/entities/post/model/post.schema';
@@ -60,16 +61,45 @@ function createResponseGate() {
   return { wait, release };
 }
 
+// PUT/DELETE /post/{id}/bookmark 성공 응답(BookmarkFoldersResponse). 204로 두면 apiClient가 {}로
+// 바꿔 onSuccess가 folderIds를 undefined로 덮으므로 실제 BE처럼 JSON을 돌려준다.
+const bookmarkResponse = (isBookmarked: boolean, folderIds: string[] = []) =>
+  HttpResponse.json(
+    {
+      status: 200,
+      message: isBookmarked ? '북마크 성공' : '북마크 취소 성공',
+      data: { postId: POST_ID, isBookmarked, folderIds },
+      timestamp: '',
+    },
+    { status: 200 }
+  );
+
+const bookmarkErrorResponse = () =>
+  HttpResponse.json(
+    { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'boom', timestamp: '' },
+    { status: 500 }
+  );
+
+// 받은 북마크 요청을 순서대로 기록한다 — 핸들러가 실제로 불렸는지와 요청 순서를 함께 단언한다
+let bookmarkRequests: Array<{ method: 'PUT' | 'DELETE'; body: string }>;
+
+function respondBookmark(method: 'PUT' | 'DELETE', respond: () => Response | Promise<Response>) {
+  const register = method === 'PUT' ? http.put : http.delete;
+  server.use(
+    register(url(API_ENDPOINTS.post.postBookmark(POST_ID)), async ({ request }) => {
+      bookmarkRequests.push({ method, body: await request.text() });
+      return respond();
+    })
+  );
+}
+
 beforeEach(() => {
   queryClient = createTestQueryClient({ gcTime: Infinity });
-  // 기본 postHandlers 의 토글 핸들러는 API_BASE_URL 접두사(/api) 없이 등록돼 있어
+  bookmarkRequests = [];
+  // 기본 postHandlers 의 북마크 핸들러는 API_BASE_URL 접두사(/api) 없이 등록돼 있어
   // 테스트 환경(VITE_API_BASE_URL) 요청 경로와 매칭되지 않는다 — url() 로 명시 등록.
-  server.use(
-    http.post(
-      url(API_ENDPOINTS.post.postBookmark(POST_ID)),
-      () => new HttpResponse(null, { status: 204 })
-    )
-  );
+  respondBookmark('PUT', () => bookmarkResponse(true));
+  respondBookmark('DELETE', () => bookmarkResponse(false));
 });
 
 describe('useBookmarkPostMutation', () => {
@@ -89,7 +119,7 @@ describe('useBookmarkPostMutation', () => {
     const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
 
     act(() => {
-      result.current.mutate();
+      result.current.mutate(false);
     });
 
     await waitFor(() => {
@@ -119,7 +149,7 @@ describe('useBookmarkPostMutation', () => {
     const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
 
     act(() => {
-      result.current.mutate();
+      result.current.mutate(false);
     });
 
     await waitFor(() => {
@@ -150,7 +180,7 @@ describe('useBookmarkPostMutation', () => {
     const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
 
     act(() => {
-      result.current.mutate();
+      result.current.mutate(false);
     });
 
     await waitFor(() => {
@@ -164,7 +194,7 @@ describe('useBookmarkPostMutation', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
   });
 
-  it('토글 ON(신규 북마크)이면 미분류로 생성되어 uncategorizedCount가 +1된다', async () => {
+  it('저장(신규 북마크)이면 미분류로 생성되어 uncategorizedCount가 +1된다', async () => {
     const seededPost: Post = {
       ...mockPost,
       userInteractions: { isLiked: false, isBookmarked: false, bookmarkFolderIds: [] },
@@ -176,7 +206,7 @@ describe('useBookmarkPostMutation', () => {
     const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
 
     act(() => {
-      result.current.mutate();
+      result.current.mutate(true);
     });
 
     await waitFor(() => {
@@ -192,14 +222,7 @@ describe('useBookmarkPostMutation', () => {
   });
 
   it('서버 에러 시 post.detail·post.list·folder.list를 롤백한다', async () => {
-    server.use(
-      http.post(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () =>
-        HttpResponse.json(
-          { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'boom', timestamp: '' },
-          { status: 500 }
-        )
-      )
-    );
+    respondBookmark('DELETE', bookmarkErrorResponse);
 
     const seededPost: Post = {
       ...mockPost,
@@ -233,7 +256,7 @@ describe('useBookmarkPostMutation', () => {
     const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
 
     act(() => {
-      result.current.mutate();
+      result.current.mutate(false);
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -279,7 +302,7 @@ describe('useBookmarkPostMutation', () => {
       const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
 
       act(() => {
-        result.current.mutate();
+        result.current.mutate(false);
       });
 
       await waitFor(() => {
@@ -304,7 +327,7 @@ describe('useBookmarkPostMutation', () => {
       const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
 
       act(() => {
-        result.current.mutate();
+        result.current.mutate(false);
       });
 
       await waitFor(() => {
@@ -358,7 +381,7 @@ describe('useBookmarkPostMutation', () => {
     const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
 
     act(() => {
-      result.current.mutate();
+      result.current.mutate(false);
     });
 
     await waitFor(() => {
@@ -379,7 +402,7 @@ describe('useBookmarkPostMutation', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
   });
 
-  it('토글에 성공하면 폴더 목록과 폴더별 게시글 캐시를 무효화해 서버 값으로 다시 맞춘다', async () => {
+  it('저장에 성공하면 폴더 목록과 폴더별 게시글 캐시를 무효화해 서버 값으로 다시 맞춘다', async () => {
     const seededPost: Post = {
       ...mockPost,
       userInteractions: { isLiked: false, isBookmarked: false, bookmarkFolderIds: [] },
@@ -401,7 +424,7 @@ describe('useBookmarkPostMutation', () => {
     const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
 
     act(() => {
-      result.current.mutate();
+      result.current.mutate(true);
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -412,6 +435,249 @@ describe('useBookmarkPostMutation', () => {
       expect(
         queryClient.getQueryState(bookmarkFolderKeys.posts('uncategorized'))?.isInvalidated
       ).toBe(true);
+    });
+  });
+
+  describe('상태 지정·연타 — 같은 글의 북마크 요청은 한 줄로 나가고, 마지막 요청에서만 확정한다', () => {
+    function seedDetailAndList(post: Post) {
+      queryClient.setQueryData(postKeys.detail(POST_ID), post);
+      queryClient.setQueryData<InfiniteData<PostListResponse>>(postKeys.list(), {
+        pages: [
+          { page: 0, size: 10, content: [post], totalElements: 1, totalPages: 1, last: true },
+        ],
+        pageParams: [0],
+      });
+    }
+
+    function seedPost(isBookmarked: boolean, bookmarkFolderIds: string[] = []): Post {
+      return {
+        ...mockPost,
+        userInteractions: { isLiked: false, isBookmarked, bookmarkFolderIds },
+        stats: { ...mockPost.stats, bookmarkCount: 5 },
+      };
+    }
+
+    const readDetail = () => queryClient.getQueryData<Post>(postKeys.detail(POST_ID));
+
+    function gateBookmark(method: 'PUT' | 'DELETE', respond: () => Response) {
+      const gate = createResponseGate();
+      respondBookmark(method, async () => {
+        await gate.wait;
+        return respond();
+      });
+      return gate;
+    }
+
+    it('저장은 본문 없는 PUT, 해제는 DELETE로 나간다', async () => {
+      seedDetailAndList(seedPost(false));
+      const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
+
+      act(() => {
+        result.current.mutate(true);
+      });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      act(() => {
+        result.current.mutate(false);
+      });
+      await waitFor(() => expect(bookmarkRequests).toHaveLength(2));
+
+      expect(bookmarkRequests).toEqual([
+        { method: 'PUT', body: '' },
+        { method: 'DELETE', body: '' },
+      ]);
+    });
+
+    it('이미 그 상태로 만들라고 하면 북마크 수와 폴더 목록 수를 바꾸지 않는다', async () => {
+      seedDetailAndList(seedPost(true));
+      queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList());
+      gateBookmark('PUT', () => bookmarkResponse(true));
+      const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
+
+      act(() => {
+        result.current.mutate(true);
+      });
+      await waitFor(() => expect(bookmarkRequests).toHaveLength(1));
+
+      expect(readDetail()?.stats.bookmarkCount).toBe(5);
+      expect(
+        queryClient.getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list)
+          ?.uncategorizedCount
+      ).toBe(1);
+    });
+
+    // 다른 기기에서 이미 폴더 A에 저장한 글을 이 기기의 낡은 화면에서 "미분류" 저장한 경우 —
+    // 서버는 기존 소속을 유지하고, 화면은 응답의 folderIds로 맞춰진다
+    it('낡은 화면에서 저장하면 서버가 돌려준 기존 폴더 소속으로 교정된다', async () => {
+      seedDetailAndList(seedPost(false));
+      respondBookmark('PUT', () => bookmarkResponse(true, [FOLDER_A]));
+      const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
+
+      act(() => {
+        result.current.mutate(true);
+      });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(readDetail()?.userInteractions.isBookmarked).toBe(true);
+      expect(readDetail()?.userInteractions.bookmarkFolderIds).toEqual([FOLDER_A]);
+    });
+
+    it('해제→저장→해제를 연달아 누르면 요청이 순서대로 하나씩 나가고, 중간 응답으로 화면을 덮지 않는다', async () => {
+      // 세 번 누른다 — 두 번이면 "첫 클릭 전"과 "두 번째 클릭 뒤" 상태가 같아 잘못 되돌려도 통과한다
+      seedDetailAndList(seedPost(true));
+      queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList());
+      const isFolderListInvalidated = () =>
+        queryClient.getQueryState(bookmarkFolderKeys.list)?.isInvalidated;
+      const firstDelete = createResponseGate();
+      const lastDelete = createResponseGate();
+      let deleteCount = 0;
+      respondBookmark('DELETE', async () => {
+        deleteCount += 1;
+        await (deleteCount === 1 ? firstDelete.wait : lastDelete.wait);
+        return bookmarkResponse(false);
+      });
+      const putGate = gateBookmark('PUT', () => bookmarkResponse(true, [FOLDER_B]));
+      const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
+
+      act(() => {
+        result.current.mutate(false);
+      });
+      act(() => {
+        result.current.mutate(true);
+      });
+      act(() => {
+        result.current.mutate(false);
+      });
+      await waitFor(() => expect(readDetail()?.userInteractions.isBookmarked).toBe(false));
+      expect(bookmarkRequests.map((r) => r.method)).toEqual(['DELETE']);
+
+      firstDelete.release();
+      await waitFor(() => expect(bookmarkRequests.map((r) => r.method)).toEqual(['DELETE', 'PUT']));
+      expect(isFolderListInvalidated()).toBe(false);
+
+      putGate.release();
+      await waitFor(() =>
+        expect(bookmarkRequests.map((r) => r.method)).toEqual(['DELETE', 'PUT', 'DELETE'])
+      );
+      // 두 번째 요청(저장, 폴더 B) 응답이 왔지만 마지막 해제가 남아 있어 화면을 덮지도, 무효화하지도 않는다
+      expect(readDetail()?.userInteractions.isBookmarked).toBe(false);
+      expect(readDetail()?.userInteractions.bookmarkFolderIds).toEqual([]);
+      expect(isFolderListInvalidated()).toBe(false);
+
+      lastDelete.release();
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(readDetail()?.userInteractions.isBookmarked).toBe(false);
+      expect(readDetail()?.userInteractions.bookmarkFolderIds).toEqual([]);
+      expect(isFolderListInvalidated()).toBe(true);
+    });
+
+    it('중간 요청이 실패해도 되돌리지 않고, 마지막 요청이 실패하면 되돌린 뒤 4곳을 무효화한다', async () => {
+      seedDetailAndList(seedPost(true));
+      queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList());
+      queryClient.setQueryData<InfiniteData<PostListResponse>>(
+        bookmarkFolderKeys.posts('uncategorized'),
+        {
+          pages: [{ page: 0, size: 10, content: [], totalElements: 0, totalPages: 0, last: true }],
+          pageParams: [0],
+        }
+      );
+      const firstDelete = createResponseGate();
+      let deleteCount = 0;
+      respondBookmark('DELETE', async () => {
+        deleteCount += 1;
+
+        if (deleteCount === 1) {
+          await firstDelete.wait;
+        }
+
+        return bookmarkErrorResponse();
+      });
+      const putGate = gateBookmark('PUT', () => bookmarkResponse(true));
+      const { result } = renderHook(() => useBookmarkPostMutation(POST_ID), { wrapper: Wrapper });
+
+      act(() => {
+        result.current.mutate(false);
+      });
+      act(() => {
+        result.current.mutate(true);
+      });
+      act(() => {
+        result.current.mutate(false);
+      });
+
+      firstDelete.release();
+      await waitFor(() => expect(bookmarkRequests.map((r) => r.method)).toEqual(['DELETE', 'PUT']));
+      // 첫 해제가 실패했지만 첫 클릭 전(저장됨)으로 되돌리지 않고 마지막 클릭 상태(해제) 그대로다
+      expect(readDetail()?.userInteractions.isBookmarked).toBe(false);
+      expect(queryClient.getQueryState(postKeys.detail(POST_ID))?.isInvalidated).toBe(false);
+
+      putGate.release();
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      // 마지막(해제) 직전 스냅샷 = 두 번째 클릭(저장)의 낙관적 상태로 되돌리고 서버 값으로 다시 맞춘다
+      expect(readDetail()?.userInteractions.isBookmarked).toBe(true);
+      expect(queryClient.getQueryState(postKeys.detail(POST_ID))?.isInvalidated).toBe(true);
+      expect(queryClient.getQueryState(postKeys.list())?.isInvalidated).toBe(true);
+      expect(queryClient.getQueryState(bookmarkFolderKeys.list)?.isInvalidated).toBe(true);
+      expect(
+        queryClient.getQueryState(bookmarkFolderKeys.posts('uncategorized'))?.isInvalidated
+      ).toBe(true);
+    });
+
+    // 되돌리기 토스트가 다이얼로그보다 오래 남아, 되돌리기(폴더 추가)와 다시 연 다이얼로그의 해제가 섞일 수 있다
+    it('폴더 추가 직후 해제하면 요청이 순서대로 나가고, 앞선 폴더 추가의 성공 처리는 건너뛴다', async () => {
+      seedDetailAndList(seedPost(true, [FOLDER_A]));
+      const addGate = createResponseGate();
+      const order: string[] = [];
+      server.use(
+        http.post(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), async () => {
+          order.push('ADD');
+          await addGate.wait;
+          return HttpResponse.json({
+            status: 200,
+            message: '',
+            data: { postId: POST_ID, isBookmarked: true, folderIds: [FOLDER_A] },
+            timestamp: '',
+          });
+        })
+      );
+      const deleteGate = createResponseGate();
+      respondBookmark('DELETE', async () => {
+        order.push('DELETE');
+        await deleteGate.wait;
+        return bookmarkResponse(false);
+      });
+      const { result } = renderHook(
+        () => ({
+          add: useAddBookmarkFolderMutation(POST_ID),
+          bookmark: useBookmarkPostMutation(POST_ID),
+        }),
+        { wrapper: Wrapper }
+      );
+
+      // 되돌리기(폴더 추가)를 누른 뒤, 그 요청이 아직 진행 중일 때 다이얼로그를 다시 열어 해제한다
+      act(() => {
+        result.current.add.mutate(FOLDER_A);
+      });
+      await waitFor(() => expect(order).toEqual(['ADD']));
+      act(() => {
+        result.current.bookmark.mutate(false);
+      });
+      await waitFor(() => expect(readDetail()?.userInteractions.isBookmarked).toBe(false));
+      expect(order).toEqual(['ADD']);
+
+      addGate.release();
+      await waitFor(() => expect(result.current.add.isSuccess).toBe(true));
+      await waitFor(() => expect(order).toEqual(['ADD', 'DELETE']));
+      // 폴더 추가가 끝났지만 해제가 남아 있어 성공 처리(상세·피드까지 전체 무효화 → 재조회가 해제를
+      // 덮을 수 있음)를 건너뛴다
+      expect(queryClient.getQueryState(postKeys.detail(POST_ID))?.isInvalidated).toBe(false);
+      expect(readDetail()?.userInteractions.isBookmarked).toBe(false);
+
+      deleteGate.release();
+      await waitFor(() => expect(result.current.bookmark.isSuccess).toBe(true));
+      expect(readDetail()?.userInteractions.isBookmarked).toBe(false);
     });
   });
 });
