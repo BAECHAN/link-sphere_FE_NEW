@@ -9,6 +9,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- `auth` 한 탭의 로그인·로그아웃을 다른 탭과 뒤로가기 복원 화면에도 반영
+  <details><summary>배경·구현</summary>
+
+  액세스 토큰이 탭 메모리에만 있어, 한 탭에서 로그아웃해도 다른 탭은 다음 인증 요청에서 401을 받을 때까지 로그인 화면 그대로였다. 또 HTML을 `no-cache`로 바꿔 뒤로가기를 bfcache로 즉시 복원하려면(캐시 전략 후속, 2026-10-14 사용자 결정), 로그아웃 뒤 뒤로가기로 이전 화면이 메모리째 돌아오는 것을 막아야 한다 — 지금은 HTML이 `no-store`라 Chrome이 쿠키가 바뀐 페이지를 bfcache에서 내보내 막아 준다. 명시적 로그인·로그아웃·탈퇴 때만 바뀌는 "인증 세대" 값(`in:`/`out:` + UUID)을 localStorage에 쓰고, 다른 탭의 storage 이벤트·탭 복귀·bfcache 복원 때 이 탭이 알던 값과 비교해 다르면 이 탭만 로그아웃 처리(보호 경로면 `/post`)한 뒤 다른 탭이 로그인했으면 쿠키로 세션을 받아들인다. 새로고침하지 않아 작성 중인 폼의 이탈 확인창이 뜨지 않고, 열려 있던 로그인 모달의 "로그인 후 할 일"은 버린다. 토큰 갱신·갱신 실패에서는 세대를 바꾸지 않아 한 탭의 네트워크 오류가 모든 탭을 로그아웃시키지 않는다. 검증: bfcache를 켠 Chromium에서 로그인 상태 페이지(`/bookmark`)도 bfcache에 들어갔고, 다른 탭 로그아웃·계정 변경 뒤 뒤로가기에서 이전 화면이 30fps 녹화로 한 프레임도 보이지 않았다. 계획 `docs/plans/2026-10-14-cache-strategy-followups.md`, 설명 `docs/AUTH.md` §8-H. (`auth-epoch.util.ts`·`useAuthEpochSync.ts`·`e2e/auth-tab-sync.spec.ts`(신규), `auth.store.ts`, `auth.util.ts`, `auth.keys.ts`, `auth.queries.ts`, `account.queries.ts`, `AuthProvider.tsx`, [PR #376](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/376))
+
+  </details>
+
 ### Changed
 
 - `infra` CloudFront 설정을 스냅샷으로 커밋하고 차이를 검사

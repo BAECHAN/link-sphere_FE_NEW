@@ -7,8 +7,16 @@ import { createTestQueryClient } from '@/test/utils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { createElement, type ReactNode } from 'react';
-import { useCreateAccountMutation, useLoginMutation } from '@/entities/auth/api/auth.queries';
+import {
+  useCreateAccountMutation,
+  useLoginMutation,
+  useLogoutMutation,
+} from '@/entities/auth/api/auth.queries';
 import { TEXTS } from '@/shared/config/texts';
+import { STORAGE_KEYS } from '@/shared/config/storage-keys';
+import { useAuthStore } from '@/shared/store/auth.store';
+import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
+import { LocalStorageUtil } from '@/shared/utils/storage.util';
 import { ApiError } from '@/shared/types/common.type';
 import { commentKeys } from '@/entities/comment/api/comment.keys';
 import { postKeys } from '@/entities/post/api/post.keys';
@@ -92,6 +100,21 @@ describe('useLoginMutation', () => {
     expect(state?.status).toBe('pending');
     expect(state?.error).toBeNull();
     expect(state?.data).toBeUndefined();
+  });
+
+  it('로그인하면 세션 플래그를 쓴 뒤 인증 세대를 in:으로 바꾼다 - 다른 탭이 알아채는 신호', async () => {
+    const { result } = renderHook(() => useLoginMutation(), { wrapper: LoginWrapper });
+
+    act(() => {
+      result.current.mutate({ email: 'user@example.com', password: 'password1!' });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(LocalStorageUtil.getItem(STORAGE_KEYS.AUTH.HAS_SESSION)).toBe(true);
+    expect(LocalStorageUtil.getItem<string>(STORAGE_KEYS.AUTH.EPOCH)).toMatch(/^in:/);
+    // 이 탭이 쓴 값이라 이 탭 기준으로는 바뀐 게 아니다
+    expect(AuthEpochUtil.isStale()).toBe(false);
   });
 
   it('정상 데이터가 있는 쿼리는 로그인 후에도 캐시를 그대로 둔다', async () => {
@@ -186,6 +209,24 @@ describe('useLoginMutation', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockToastSuccess).not.toHaveBeenCalled();
+  });
+});
+
+describe('useLogoutMutation', () => {
+  it('로그아웃하면 세션 플래그를 지운 뒤 인증 세대를 out:으로 바꾼다 - 키를 지우지 않는다', () => {
+    useAuthStore.getState().setAuth('token-a');
+    AuthEpochUtil.markLogin();
+
+    const { result } = renderHook(() => useLogoutMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate();
+    });
+
+    expect(useAuthStore.getState().accessToken).toBeNull();
+    expect(LocalStorageUtil.getItem(STORAGE_KEYS.AUTH.HAS_SESSION)).toBeNull();
+    expect(LocalStorageUtil.getItem<string>(STORAGE_KEYS.AUTH.EPOCH)).toMatch(/^out:/);
+    expect(AuthEpochUtil.isStale()).toBe(false);
   });
 });
 

@@ -4,7 +4,7 @@ import { useAuthStore } from '@/shared/store/auth.store';
 //   - shared/api/client.ts:173,193,266,268 (fetch 인터셉터의 401/refresh 실패 경로)
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { NavigationService } from '@/shared/lib/router/navigation';
-import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { ROUTES_PATHS, isProtectedPath } from '@/shared/config/route-paths';
 import { LogoutGraceUtil } from '@/shared/utils/logout-grace.util';
 
 export class AuthUtil {
@@ -70,6 +70,23 @@ export class AuthUtil {
     this.clearAuth();
     this.clearQueriesWithoutRefetch();
     NavigationService.navigate(redirectTo, { replace: true });
+  }
+
+  /**
+   * 다른 탭(또는 bfcache에 멈춰 있던 사이)의 로그아웃을 이 탭에 반영한다 - 로그아웃 분기
+   * (useLogoutMutation)와 같은 정리지만 localStorage는 건드리지 않는다. 세션 플래그는 로그아웃한 탭이
+   * 이미 지웠고, 그 사이 다른 탭이 새로 로그인했다면 지우면 안 된다. 로그아웃 API·FCM 해제도 그 탭이 했다.
+   */
+  static applySignOutFromElsewhere(): void {
+    useAuthStore.getState().clearLocalAuth();
+
+    if (isProtectedPath(window.location.pathname)) {
+      this.clearQueriesWithoutRefetch();
+      NavigationService.navigate(ROUTES_PATHS.POST.ROOT, { replace: true });
+      return;
+    }
+
+    this.clearQueries();
   }
 
   /**

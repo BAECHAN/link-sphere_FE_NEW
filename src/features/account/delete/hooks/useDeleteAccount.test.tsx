@@ -7,6 +7,8 @@ import { createTestQueryClient } from '@/test/utils';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { useDeleteAccount } from '@/features/account/delete/hooks/useDeleteAccount';
+import { STORAGE_KEYS } from '@/shared/config/storage-keys';
+import { LocalStorageUtil } from '@/shared/utils/storage.util';
 
 vi.mock('@/shared/lib/toast/toast', () => ({
   toast: { error: vi.fn(), success: vi.fn() },
@@ -59,5 +61,9 @@ describe('useDeleteAccount', () => {
     });
 
     await waitFor(() => expect(requestBody).toEqual({ password: 'myPassword1!' }));
+    // 탈퇴 성공 뒤 다른 탭·bfcache 페이지도 로그아웃 상태로 맞추도록 인증 세대를 바꾼다
+    await waitFor(() =>
+      expect(LocalStorageUtil.getItem<string>(STORAGE_KEYS.AUTH.EPOCH)).toMatch(/^out:/)
+    );
   });
 });

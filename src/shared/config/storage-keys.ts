@@ -14,6 +14,8 @@ const STORAGE_KEYS = {
     HAS_SESSION: `${STORAGE_PREFIX}:auth:has-session`,
     SAVED_EMAIL: `${STORAGE_PREFIX}:auth:saved-email`,
     LAST_AVATAR: `${STORAGE_PREFIX}:auth:last-avatar`,
+    // 명시적 로그인·로그아웃마다 바뀌는 값 - 다른 탭·bfcache 복원 페이지가 인증 변화를 알아챈다(auth-epoch.util.ts)
+    EPOCH: `${STORAGE_PREFIX}:auth:epoch`,
   },
   SEARCH: {
     RECENT: `${STORAGE_PREFIX}:search:recent`,
