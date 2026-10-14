@@ -118,8 +118,8 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
   **멱등** — 이미 그 상태여도 200을 반환한다. 응답은 다섯 엔드포인트 공통으로
   `{ postId, isBookmarked, folderIds }`(`BookmarkFoldersResponse`)
 - 저장·해제는 2026-10-13 토글(`POST /post/{postId}/bookmark`)에서 바뀌었다 — 토글은 서버가 "지금의 반대"를
-  정해, 다른 기기에서 이미 해제한 북마크를 낡은 화면에서 "제거"하면 되살아났다(§10). 옛 POST 토글은 BE에
-  deprecated로 남아 있다
+  정해, 다른 기기에서 이미 해제한 북마크를 낡은 화면에서 "제거"하면 되살아났다(§10). 옛 POST 토글은 호출 로그가
+  0건인 것을 확인하고 2026-10-14 BE에서 지웠다(BE #92)
 - **같은 글의 북마크 요청 5종(저장·해제·폴더 추가·제거·비우기)은 한 줄로 나간다**(`bookmarkPostScope`,
   `bookmark-folder.keys.ts`) — 되돌리기 토스트(8초)가 다이얼로그보다 오래 남아 되돌리기와 다시 연
   다이얼로그의 요청이 겹칠 수 있어서다. 화면 반영은 클릭마다 즉시, 응답 반영·롤백은 그 줄의 마지막
@@ -1094,8 +1094,6 @@ scope를 나눠 써서 `mutationKey` 대신 `scope.id`로 센다(`isLastPendingB
 - 모바일은 hover가 없어 첫 탭에서는 폴더 목록을 여전히 기다린다(이후 staleTime 3분 동안은
   캐시로 즉시 뜬다). 기다리는 동안 모달이 늘어나는 문제는 골격 화면으로 줄였지만(§5), 폴더
   수가 3개와 다르면 도착할 때 조금 늘거나 준다.
-- 옛 토글 `POST /post/{postId}/bookmark`는 BE에 deprecated로 남아 있다. 좋아요 토글과 함께 호출 로그
-  (`deprecated bookmark toggle called`)가 0건이 되면 BE에서 제거한다.
 
 ## 12. 용어 사전
 

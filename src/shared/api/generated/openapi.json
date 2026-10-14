@@ -2176,36 +2176,6 @@
         "summary": "댓글 좋아요 취소",
         "tags": ["좋아요·북마크"]
       },
-      "post": {
-        "deprecated": true,
-        "description": "PUT/DELETE /comment/{commentId}/like 를 쓴다. 이미 눌렀으면 취소된다. data 는 {\"isLiked\": true|false} 한 쌍이다. 실패: 404 POST_NOT_FOUND(글 없음·비공개) · 400 INVALID_INPUT(삭제된 댓글)",
-        "operationId": "likeComment",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "commentId",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseMapStringBoolean"
-                }
-              }
-            },
-            "description": "OK"
-          }
-        },
-        "summary": "댓글 좋아요 토글 (deprecated)",
-        "tags": ["좋아요·북마크"]
-      },
       "put": {
         "description": "이미 좋아요한 상태여도 200 이다(멱등). data 는 {\"isLiked\": true} 다. 실패: 404 POST_NOT_FOUND(글 없음·비공개) · 400 INVALID_INPUT(삭제된 댓글)",
         "operationId": "putCommentLike",
@@ -2676,36 +2646,6 @@
         "summary": "게시글 북마크 해제",
         "tags": ["좋아요·북마크"]
       },
-      "post": {
-        "deprecated": true,
-        "description": "PUT/DELETE /post/{postId}/bookmark 를 쓴다. 이미 저장했으면 취소된다(모든 폴더 소속도 함께 삭제). data 는 {\"isBookmarked\": true|false} 한 쌍이다. 실패: 404 POST_NOT_FOUND",
-        "operationId": "bookmarkPost",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "postId",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseMapStringBoolean"
-                }
-              }
-            },
-            "description": "OK"
-          }
-        },
-        "summary": "게시글 북마크 토글 (deprecated)",
-        "tags": ["좋아요·북마크"]
-      },
       "put": {
         "description": "이미 저장된 상태여도 200 이다(멱등). 북마크만 보장하고 기존 폴더 소속은 건드리지 않는다 — 응답 folderIds 는 서버의 실제 소속이다. 실패: 404 POST_NOT_FOUND",
         "operationId": "putPostBookmark",
@@ -2835,36 +2775,6 @@
           }
         },
         "summary": "게시글 좋아요 취소",
-        "tags": ["좋아요·북마크"]
-      },
-      "post": {
-        "deprecated": true,
-        "description": "PUT/DELETE /post/{postId}/like 를 쓴다. 이미 눌렀으면 취소된다. data 는 {\"isLiked\": true|false, \"likeCount\": 12} 형태다. 실패: 404 POST_NOT_FOUND",
-        "operationId": "likePost",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "postId",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponsePostLikeResponse"
-                }
-              }
-            },
-            "description": "OK"
-          }
-        },
-        "summary": "게시글 좋아요 토글 (deprecated)",
         "tags": ["좋아요·북마크"]
       },
       "put": {
