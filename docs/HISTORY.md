@@ -1,4 +1,7 @@
 ### 2026-10-14 (FE)
+- Broadcast Channel API를 활용하여 브라우저 탭 간 실시간 인증 상태 동기화 및 뒤로가기 시 로그인 상태 복원 로직 구현 ([#376](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/376))
+
+### 2026-10-14 (FE)
 - CloudFront 인프라 설정의 스냅샷 관리 및 변경 사항 추적 기능 도입 ([#374](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/374))
 
 ### 2026-10-14 (FE)
