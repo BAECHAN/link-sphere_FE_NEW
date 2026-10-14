@@ -9,6 +9,15 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `shared` 앱·탭 전환 후 돌아올 때도 새 배포를 확인
+  <details><summary>배경·구현</summary>
+
+  열린 탭의 새 배포 감지(`useAppVersionCheck`)가 창 `focus` 이벤트 하나에만 반응해, 앱·탭 전환 후 돌아올 때 focus가 오지 않으면 감지가 다음 focus까지 미뤄질 수 있었다(추론, 기기별로 측정하지 않음). `document`의 `visibilitychange`(visible일 때만)도 함께 듣는다. TanStack Query v5가 창 포커스 감지를 focus 대신 visibilitychange로만 하도록 바꾼 것을 근거로 삼았고, 데스크톱 창 전환(가시성 변화 없음)을 위해 focus는 남겼다. 두 이벤트가 연달아 와도 기존 5분 간격 제한이 한 번만 확인한다. dev 서버의 첫 module script를 `/src/main.tsx`로 잘못 적은 주석·문서도 실제 값(`/@vite/client`)으로 고쳤다. 계획 `docs/plans/2026-10-14-cache-strategy.md`. (`useAppVersionCheck.ts`, `version.util.ts`, `docs/NEW-VERSION-RELOAD.md`, [PR #368](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/368))
+
+  </details>
+
 ### Fixed
 
 - `shared` 좋아요를 연달아 누르면 깜빡이거나 마지막 클릭과 다른 상태로 끝나던 문제

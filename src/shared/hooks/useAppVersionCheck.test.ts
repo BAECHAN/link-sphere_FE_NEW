@@ -29,6 +29,11 @@ function dispatchFocus() {
   window.dispatchEvent(new Event('focus'));
 }
 
+function dispatchVisibilityChange(visibilityState: DocumentVisibilityState) {
+  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue(visibilityState);
+  document.dispatchEvent(new Event('visibilitychange'));
+}
+
 // setTimeout은 실제(real) 타이머로 남긴다 - MSW의 네트워크 응답과 vi.waitFor의 폴링이 여기 의존한다.
 // Date만 페이크해서 "마운트 직후 첫 focus는 쓰로틀에 걸린다"는 실제 정책을 우회한다 -
 // 그렇지 않으면 renderHook 직후 dispatchFocus는 항상 쓰로틀에 막혀 fetch가 발생하지 않는다.
@@ -53,6 +58,7 @@ describe('useAppVersionCheck', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllEnvs();
+    vi.restoreAllMocks();
     document.head.innerHTML = '';
   });
 
@@ -113,6 +119,43 @@ describe('useAppVersionCheck', () => {
     advancePastThrottle();
     dispatchFocus();
     dispatchFocus();
+    dispatchFocus();
+
+    await vi.waitFor(() => {
+      expect(useAppVersionStore.getState().detectedAtPathname).toBe('/');
+    });
+    expect(handlerCalled).toHaveBeenCalledTimes(1);
+  });
+
+  it('탭이 다시 보이면(visibilitychange → visible) focus 없이도 확인한다', async () => {
+    mockDeployedIndexHtml(NEW_SRC);
+    renderHook(() => useAppVersionCheck());
+
+    advancePastThrottle();
+    dispatchVisibilityChange('visible');
+
+    await vi.waitFor(() => {
+      expect(useAppVersionStore.getState().detectedAtPathname).toBe('/');
+    });
+  });
+
+  it('탭이 숨겨질 때(hidden)는 확인하지 않는다', async () => {
+    const handlerCalled = mockDeployedIndexHtml(NEW_SRC);
+    renderHook(() => useAppVersionCheck());
+
+    advancePastThrottle();
+    dispatchVisibilityChange('hidden');
+    await flushFetchChain();
+
+    expect(handlerCalled).not.toHaveBeenCalled();
+  });
+
+  it('복귀 때 focus와 visibilitychange가 연달아 와도 fetch는 한 번만 보낸다', async () => {
+    const handlerCalled = mockDeployedIndexHtml(NEW_SRC);
+    renderHook(() => useAppVersionCheck());
+
+    advancePastThrottle();
+    dispatchVisibilityChange('visible');
     dispatchFocus();
 
     await vi.waitFor(() => {

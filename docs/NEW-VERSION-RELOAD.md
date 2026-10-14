@@ -9,8 +9,9 @@
 >
 > **마지막 검토**: 2026-10-14
 
-배포 직후에도 이미 열려 있던 탭은 계속 구 버전 JS 번들을 쓴다. 이 기능은 탭이
-포커스를 받을 때마다 서버의 최신 `index.html`을 확인해 새 배포 여부를 판단하고,
+배포 직후에도 이미 열려 있던 탭은 계속 구 버전 JS 번들을 쓴다. 이 기능은 탭으로
+돌아올 때마다(창 포커스, 또는 탭이 다시 보일 때) 서버의 최신 `index.html`을 확인해 새
+배포 여부를 판단하고,
 감지되면 사용자가 **다음에 실제로 페이지를 이동하는 시점**에 맞춰 조용히 전체
 새로고침한다 — 지금 보고 있는 화면은 건드리지 않는다.
 
@@ -23,7 +24,7 @@
 
 그래서 이 기능은 두 가지 별개의 역할로 나눠 푼다.
 
-- **감지(`useAppVersionCheck`)**: 탭에 포커스가 돌아올 때마다 우편함에 직접
+- **감지(`useAppVersionCheck`)**: 탭으로 돌아올 때마다 우편함에 직접
   가서("서버의 `index.html`을 다시 받아서") 주소록이 최신인지 확인한다. 다르면
   "새 우편함이 왔다"는 메모만 남기고 아무것도 하지 않는다 — 화면엔 아무 표시도
   없다.
@@ -37,7 +38,7 @@
 
 ```mermaid
 flowchart TD
-  Focus["탭 포커스 획득"] --> Dev{"DEV 모드?"}
+  Focus["탭 복귀<br/>(창 focus 또는 visibilitychange → visible)"] --> Dev{"DEV 모드?"}
   Dev -->|예| Skip1["아무 것도 안 함<br/>(entry script 비교 무의미)"]
   Dev -->|아니오| Throttle{"마지막 확인 후<br/>5분 지났나?"}
   Throttle -->|아니오| Skip2["무시"]
@@ -79,6 +80,10 @@ Zustand 기본 개념과 React Router의 `useLocation`/`useBlocker`를 안다고
   경로를 뽑는다(§5)
 - **`sessionStorage`** — 같은 값으로 이미 한 번 감지했는지 기록하는 루프 가드(§7)
 - **React Router `useLocation`** — 적용 시점을 pathname 변경으로 판정한다(§5)
+- **`window` `focus` + `document` `visibilitychange`** — 감지 트리거. 데스크톱 창 전환은
+  focus로, 앱·탭 전환 후 복귀는 visibilitychange로 잡는다(§5). TanStack Query v5도 창
+  포커스 감지를 visibilitychange로만 하도록 바꿨다
+  ([마이그레이션 가이드](https://tanstack.com/query/latest/docs/framework/react/guides/migrating-to-v5))
 
 **구현·검증 과정에서 쓴 도구**
 
@@ -133,19 +138,22 @@ react-router가 history를 이미 목적지로 밀어둔 상태라, `reload()`�
 
 §1 순서도의 왼쪽 절반. `RootLayout`에서 앱 전체에 1곳만 마운트된다.
 
-1. **DEV 모드면 아무것도 안 한다.** dev 서버 진입 스크립트는 `/src/main.tsx`
-   고정이라 비교 자체가 무의미하다.
-2. **윈도우 `focus` 이벤트마다** 마지막 확인 이후 5분(`VERSION_CHECK_THROTTLE_MS`)이
+1. **DEV 모드면 아무것도 안 한다.** dev 서버의 첫 module script는 `/@vite/client`
+   (Vite HMR 클라이언트)라 비교 자체가 무의미하다(2026-10-14 정정: 처음엔
+   `/src/main.tsx`라고 적었지만 [BUILD-VERSION.md](./BUILD-VERSION.md) §5가 실측한 값은
+   `/@vite/client`다).
+2. **윈도우 `focus` 이벤트와 `document`의 `visibilitychange`(visible일 때만)마다**
+   마지막 확인 이후 5분(`VERSION_CHECK_THROTTLE_MS`)이
    안 지났으면 무시한다. 마운트 시각을 "마지막 확인 시각"의 초깃값으로 쓴다 — 부팅
    자체가 방금 최신 `index.html`을 받아온 시점이라, 마운트 직후 첫 focus까지
    재확인할 필요는 없다.
 3. 스로틀을 통과하면 `/index.html`을 `cache: 'no-store'`로 다시 받아 entry script
    경로를 비교한다(§3의 `VersionUtil`). 네트워크 실패·비정상 응답·파싱 실패는 전부
-   조용히 무시(다음 focus에서 재시도).
+   조용히 무시(다음 복귀에서 재시도).
 4. 경로가 같으면(최신 상태) 아무 것도 안 한다.
 5. 다르면, `sessionStorage`에 **같은 값**이 이미 기록돼 있는지 먼저 확인한다(§7의
    루프 가드) — CloudFront 엣지가 잠깐 옛 `index.html`을 돌려주다가 다시 새
-   버전으로 바뀌는 짧은 전파 지연 구간에서, 매 focus마다 감지 → 리로드 →
+   버전으로 바뀌는 짧은 전파 지연 구간에서, 복귀할 때마다 감지 → 리로드 →
    재감지가 반복되는 걸 막는다.
 6. 새로운 값이면 `sessionStorage`에 기록하고, zustand 스토어에
    `detectedAtPathname`을 **현재 pathname**으로 세운다.
@@ -190,7 +198,7 @@ src/
 │   ├── store/
 │   │   └── appVersion.store.ts        # §6 — 감지 플래그(Zustand, persist 없음)
 │   ├── hooks/
-│   │   ├── useAppVersionCheck.ts      # §5 — 감지(포커스 시 index.html 재확인)
+│   │   ├── useAppVersionCheck.ts      # §5 — 감지(탭 복귀 시 index.html 재확인)
 │   │   └── useNewVersionReload.ts     # §5 — 적용(라우트 이동 시 리로드)
 │   ├── utils/
 │   │   └── version.util.ts            # §3 — entry script src 추출·비교
@@ -201,16 +209,16 @@ src/
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                         | 방법                                                                                                                                                                                          |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 재확인 주기 변경                     | `useAppVersionCheck.ts`의 `VERSION_CHECK_THROTTLE_MS`                                                                                                                                         |
-| 포커스 대신 폴링(setInterval)로 전환 | `useAppVersionCheck.ts`의 `checkDeployedVersionOnFocus` — 단, [useWindowFocusManager.ts](../src/shared/hooks/useWindowFocusManager.ts)와 같은 포커스 구독 방식이 이 레포의 기존 선례임을 감안 |
-| 리로드 시 보여줄 화면 변경           | `RootLayout.tsx`의 `isReloadingForNewVersion` 분기 — 현재 `SpinnerOverlay`                                                                                                                    |
-| entry script 판정 방식 변경          | `version.util.ts`의 `ENTRY_SCRIPT_SELECTOR`·`readEntryScriptSrc`                                                                                                                              |
+| 하고 싶은 것                          | 방법                                                                                                                                                                                           |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 재확인 주기 변경                      | `useAppVersionCheck.ts`의 `VERSION_CHECK_THROTTLE_MS`                                                                                                                                          |
+| 탭 복귀 대신 폴링(setInterval)로 전환 | `useAppVersionCheck.ts`의 `checkDeployedVersionOnReturn` — 단, [useWindowFocusManager.ts](../src/shared/hooks/useWindowFocusManager.ts)와 같은 이벤트 구독 방식이 이 레포의 기존 선례임을 감안 |
+| 리로드 시 보여줄 화면 변경            | `RootLayout.tsx`의 `isReloadingForNewVersion` 분기 — 현재 `SpinnerOverlay`                                                                                                                     |
+| entry script 판정 방식 변경           | `version.util.ts`의 `ENTRY_SCRIPT_SELECTOR`·`readEntryScriptSrc`                                                                                                                               |
 
 ## 9. 검증 결과
 
-`useAppVersionCheck.test.ts`(7개)·`useNewVersionReload.test.tsx`(4개)·
+`useAppVersionCheck.test.ts`(7개, 2026-10-14 `visibilitychange` 케이스 3개 추가로 10개)·`useNewVersionReload.test.tsx`(4개)·
 `version.util.test.ts`(8개) 전체 통과. 저장소 전체 테스트(`pnpm test`, 50개 파일·
 333개 테스트)·`pnpm type-check`·`pnpm lint` 모두 통과 상태에서 이 문서를 작성했다.
 실제 배포 환경(CloudFront)에서의 전파 지연 구간 동작은 별도로 실측하지 않았다 —

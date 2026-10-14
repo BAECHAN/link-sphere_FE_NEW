@@ -145,7 +145,7 @@ mode}`(커밋 단위로 결정론적인 값)만 담고, `builtAt`·`runNumber`�
 `VersionUtil.readEntryScriptSrc`는 `document`의 첫 `script[type="module"][src]`를
 읽는데, dev 서버에서는 그게 실제 엔트리(`/src/main.tsx`)가 아니라 Vite HMR
 클라이언트(`/@vite/client`)다. `useAppVersionCheck`는 애초에 DEV 모드에서 이 함수
-자체를 호출하지 않아(`useAppVersionCheck.ts:26-28`) 이 문제가 드러난 적이 없었다.
+자체를 호출하지 않아(`useAppVersionCheck.ts:32-34`) 이 문제가 드러난 적이 없었다.
 `VersionPage`는 이 함수를 새로 노출하는 자리라 이 문제가 처음 드러났고, `VersionUtil`
 쪽을 고치는 대신 `VersionPage`가 DEV 모드에서 그 줄 자체를 숨긴다
 ([VersionPage.tsx:106-113](../src/pages/version/VersionPage.tsx#L106-L113)) —

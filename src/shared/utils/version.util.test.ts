@@ -21,9 +21,11 @@ const DEPLOYED_HTML = `<!doctype html>
 </html>
 `;
 
+// vite dev 서버가 돌려주는 형태 - HMR 클라이언트가 앱 진입 스크립트보다 먼저 온다(BUILD-VERSION.md §5 실측)
 const DEV_HTML = `<!doctype html>
 <html lang="ko">
   <head>
+    <script type="module" src="/@vite/client"></script>
     <script type="module" src="/src/main.tsx"></script>
   </head>
   <body>
@@ -43,8 +45,8 @@ describe('VersionUtil.readEntryScriptSrc', () => {
     );
   });
 
-  it('dev 형태(/src/main.tsx)도 그대로 반환한다 - 판단은 호출부 몫', () => {
-    expect(VersionUtil.readEntryScriptSrc(parse(DEV_HTML))).toBe('/src/main.tsx');
+  it('dev 형태는 첫 module script(/@vite/client)를 그대로 반환한다 - 판단은 호출부 몫', () => {
+    expect(VersionUtil.readEntryScriptSrc(parse(DEV_HTML))).toBe('/@vite/client');
   });
 
   it('script 태그가 없으면 null이다', () => {
