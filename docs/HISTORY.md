@@ -1,4 +1,9 @@
 ### 2026-10-14 (BE)
+- FCM 토큰 관리 로직 내 데이터베이스 스키마 및 주석 일관성 개선
+로그:
+- docs(fcm): fcm_tokens.user_id에 FK가 없다는 틀린 주석 바로잡기 ([#93](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/93))
+
+### 2026-10-14 (BE)
 - 좋아요 및 북마크 관련 레거시 POST 토글 API 제거를 통한 인터랙션 로직 최적화 및 코드 정리 ([#92](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/92))
 
 ### 2026-10-14 (FE)
