@@ -78,7 +78,7 @@ jobs:
           aws s3 sync storybook-static/assets/ "$DEST/assets/" --delete \
             --cache-control "public, max-age=31536000, immutable"
 
-          # Pretendard 정적 서브셋 - 앱과 동일 정책
+          # Pretendard 폰트(경로에 버전이 들어간 dynamic subset, public/fonts/) - 앱과 동일 정책
           aws s3 sync storybook-static/fonts/ "$DEST/fonts/" --delete \
             --cache-control "public, max-age=31536000, immutable"
 

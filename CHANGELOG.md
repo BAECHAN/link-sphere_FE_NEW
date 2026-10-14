@@ -11,6 +11,13 @@
 
 ### Changed
 
+- `infra` CloudFront 설정을 스냅샷으로 커밋하고 차이를 검사
+  <details><summary>배경·구현</summary>
+
+  CloudFront 배포 설정(캐시 정책·Function 연결·OAC·도메인·WAF)은 콘솔·CLI로만 바꿔 무엇이 언제 바뀌었는지 git에 남지 않았고, 레포의 `infra/cloudfront-functions/`가 실제로 배포된 코드와 같은지도 아무도 확인하지 않았다. 지금 설정을 가려서(버킷 이름·계정 ID·배포 ID·Lambda Function URL·인증서·WAF·OAC 식별자) `infra/cloudfront/snapshot.json`에 커밋하고, `pnpm check:cloudfront`가 지금 설정·배포된 Function 코드와 비교해 다르면 경로별 차이를 내고 실패한다(`--write`로 갱신). 읽기 전용 호출만 하지만 배포 역할에 읽기 권한이 없어 로컬에서만 돈다(2026-10-14 사용자 결정 "우선 로컬"). 첫 실행에서 Function 2개 모두 레포 파일과 같았다. 함께: `deploy-storybook.yml`의 낡은 폰트 주석 정정. 계획 `docs/plans/2026-10-14-cache-strategy-followups.md`. (`scripts/check-cloudfront-drift.js`·`scripts/lib/cloudfront-snapshot.js`·`infra/cloudfront/snapshot.json`(신규), `package.json`, `docs/DEPLOY.md`, [PR #374](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/374))
+
+  </details>
+
 - `shared` 탭 복귀 재조회를 React Query 기본(탭이 다시 보일 때)으로 되돌림
   <details><summary>배경·구현</summary>
 

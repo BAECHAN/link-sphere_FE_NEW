@@ -1,0 +1,343 @@
+{
+  "distribution": {
+    "CallerReference": "<CALLER_REFERENCE>",
+    "Aliases": {
+      "Quantity": 2,
+      "Items": ["www.linksphere.click", "linksphere.click"]
+    },
+    "DefaultRootObject": "index.html",
+    "Origins": {
+      "Quantity": 2,
+      "Items": [
+        {
+          "Id": "link-sphere-be",
+          "DomainName": "<FUNCTION_URL_ID>.lambda-url.ap-northeast-1.on.aws",
+          "OriginPath": "",
+          "CustomHeaders": {
+            "Quantity": 0
+          },
+          "CustomOriginConfig": {
+            "HTTPPort": 80,
+            "HTTPSPort": 443,
+            "OriginProtocolPolicy": "https-only",
+            "OriginSslProtocols": {
+              "Quantity": 1,
+              "Items": ["TLSv1.2"]
+            },
+            "OriginReadTimeout": 60,
+            "OriginKeepaliveTimeout": 5
+          },
+          "ConnectionAttempts": 3,
+          "ConnectionTimeout": 10,
+          "OriginShield": {
+            "Enabled": false
+          },
+          "OriginAccessControlId": "<OAC_ID>"
+        },
+        {
+          "Id": "<BUCKET>.s3.ap-northeast-2.amazonaws.com-mlsxpcwf29r",
+          "DomainName": "<BUCKET>.s3.ap-northeast-2.amazonaws.com",
+          "OriginPath": "",
+          "CustomHeaders": {
+            "Quantity": 0
+          },
+          "S3OriginConfig": {
+            "OriginAccessIdentity": "",
+            "OriginReadTimeout": 30
+          },
+          "ConnectionAttempts": 3,
+          "ConnectionTimeout": 10,
+          "OriginShield": {
+            "Enabled": false
+          },
+          "OriginAccessControlId": "<OAC_ID>"
+        }
+      ]
+    },
+    "OriginGroups": {
+      "Quantity": 0
+    },
+    "DefaultCacheBehavior": {
+      "TargetOriginId": "<BUCKET>.s3.ap-northeast-2.amazonaws.com-mlsxpcwf29r",
+      "TrustedSigners": {
+        "Enabled": false,
+        "Quantity": 0
+      },
+      "TrustedKeyGroups": {
+        "Enabled": false,
+        "Quantity": 0
+      },
+      "ViewerProtocolPolicy": "redirect-to-https",
+      "AllowedMethods": {
+        "Quantity": 2,
+        "Items": ["HEAD", "GET"],
+        "CachedMethods": {
+          "Quantity": 2,
+          "Items": ["HEAD", "GET"]
+        }
+      },
+      "SmoothStreaming": false,
+      "Compress": true,
+      "LambdaFunctionAssociations": {
+        "Quantity": 0
+      },
+      "FunctionAssociations": {
+        "Quantity": 2,
+        "Items": [
+          {
+            "FunctionARN": "arn:aws:cloudfront::<ACCOUNT_ID>:function/link-sphere-spa-fallback",
+            "EventType": "viewer-request"
+          },
+          {
+            "FunctionARN": "arn:aws:cloudfront::<ACCOUNT_ID>:function/link-sphere-spa-status",
+            "EventType": "viewer-response"
+          }
+        ]
+      },
+      "FieldLevelEncryptionId": "",
+      "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+      "GrpcConfig": {
+        "Enabled": false
+      }
+    },
+    "CacheBehaviors": {
+      "Quantity": 1,
+      "Items": [
+        {
+          "PathPattern": "/api/*",
+          "TargetOriginId": "link-sphere-be",
+          "TrustedSigners": {
+            "Enabled": false,
+            "Quantity": 0
+          },
+          "TrustedKeyGroups": {
+            "Enabled": false,
+            "Quantity": 0
+          },
+          "ViewerProtocolPolicy": "redirect-to-https",
+          "AllowedMethods": {
+            "Quantity": 7,
+            "Items": ["HEAD", "DELETE", "POST", "GET", "OPTIONS", "PUT", "PATCH"],
+            "CachedMethods": {
+              "Quantity": 2,
+              "Items": ["HEAD", "GET"]
+            }
+          },
+          "SmoothStreaming": false,
+          "Compress": true,
+          "LambdaFunctionAssociations": {
+            "Quantity": 0
+          },
+          "FunctionAssociations": {
+            "Quantity": 0
+          },
+          "FieldLevelEncryptionId": "",
+          "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+          "OriginRequestPolicyId": "b689b0a8-53d0-40ab-baf2-68738e2966ac",
+          "GrpcConfig": {
+            "Enabled": false
+          }
+        }
+      ]
+    },
+    "CustomErrorResponses": {
+      "Quantity": 0
+    },
+    "Comment": "",
+    "Logging": {
+      "Enabled": false,
+      "IncludeCookies": false,
+      "Bucket": "",
+      "Prefix": ""
+    },
+    "PriceClass": "PriceClass_All",
+    "Enabled": true,
+    "ViewerCertificate": {
+      "CloudFrontDefaultCertificate": false,
+      "ACMCertificateArn": "arn:aws:acm:us-east-1:<ACCOUNT_ID>:certificate/<CERTIFICATE_ID>",
+      "SSLSupportMethod": "sni-only",
+      "MinimumProtocolVersion": "TLSv1.2_2021",
+      "Certificate": "arn:aws:acm:us-east-1:<ACCOUNT_ID>:certificate/<CERTIFICATE_ID>",
+      "CertificateSource": "acm"
+    },
+    "Restrictions": {
+      "GeoRestriction": {
+        "RestrictionType": "none",
+        "Quantity": 0
+      }
+    },
+    "WebACLId": "arn:aws:wafv2:us-east-1:<ACCOUNT_ID>:global/webacl/CreatedByCloudFront-bcd729fb/<WEB_ACL_ID>",
+    "HttpVersion": "http2",
+    "IsIPV6Enabled": true,
+    "ContinuousDeploymentPolicyId": "",
+    "Staging": false
+  },
+  "cachePolicies": {
+    "658327ea-f89d-4fab-a63d-7e88639e58f6": {
+      "Comment": "Policy with caching enabled. Supports Gzip and Brotli compression.",
+      "Name": "Managed-CachingOptimized",
+      "DefaultTTL": 86400,
+      "MaxTTL": 31536000,
+      "MinTTL": 1,
+      "ParametersInCacheKeyAndForwardedToOrigin": {
+        "EnableAcceptEncodingGzip": true,
+        "EnableAcceptEncodingBrotli": true,
+        "HeadersConfig": {
+          "HeaderBehavior": "none"
+        },
+        "CookiesConfig": {
+          "CookieBehavior": "none"
+        },
+        "QueryStringsConfig": {
+          "QueryStringBehavior": "none"
+        }
+      }
+    },
+    "4135ea2d-6df8-44a3-9df3-4b5a84be39ad": {
+      "Comment": "Policy with caching disabled",
+      "Name": "Managed-CachingDisabled",
+      "DefaultTTL": 0,
+      "MaxTTL": 0,
+      "MinTTL": 0,
+      "ParametersInCacheKeyAndForwardedToOrigin": {
+        "EnableAcceptEncodingGzip": false,
+        "EnableAcceptEncodingBrotli": false,
+        "HeadersConfig": {
+          "HeaderBehavior": "none"
+        },
+        "CookiesConfig": {
+          "CookieBehavior": "none"
+        },
+        "QueryStringsConfig": {
+          "QueryStringBehavior": "none"
+        }
+      }
+    }
+  },
+  "originRequestPolicies": {
+    "b689b0a8-53d0-40ab-baf2-68738e2966ac": {
+      "Comment": "Policy to forward all parameters in viewer requests except for the Host header",
+      "Name": "Managed-AllViewerExceptHostHeader",
+      "HeadersConfig": {
+        "HeaderBehavior": "allExcept",
+        "Headers": {
+          "Quantity": 1,
+          "Items": ["host"]
+        }
+      },
+      "CookiesConfig": {
+        "CookieBehavior": "all"
+      },
+      "QueryStringsConfig": {
+        "QueryStringBehavior": "all"
+      }
+    }
+  },
+  "functions": [
+    {
+      "Name": "link-sphere-spa-fallback",
+      "EventType": "viewer-request",
+      "Runtime": "cloudfront-js-1.0",
+      "Comment": "SPA 라우팅: 앱 라우트 → /index.html, 아닌 경로 → /404.html (기본 비헤이비어 전용; api 미연결) + /storybook 통과",
+      "RepoFile": "infra/cloudfront-functions/spa-fallback.js",
+      "CodeMatchesRepo": true
+    },
+    {
+      "Name": "link-sphere-spa-status",
+      "EventType": "viewer-response",
+      "Runtime": "cloudfront-js-1.0",
+      "Comment": "/404.html 응답의 상태만 404로 (기본 비헤이비어 viewer-response 전용; api 미연결)",
+      "RepoFile": "infra/cloudfront-functions/spa-status.js",
+      "CodeMatchesRepo": true
+    }
+  ],
+  "webAcl": {
+    "Name": "CreatedByCloudFront-bcd729fb",
+    "DefaultAction": {
+      "Allow": {}
+    },
+    "Rules": [
+      {
+        "Name": "AWS-AWSManagedRulesAmazonIpReputationList",
+        "Priority": 0,
+        "Statement": {
+          "ManagedRuleGroupStatement": {
+            "VendorName": "AWS",
+            "Name": "AWSManagedRulesAmazonIpReputationList"
+          }
+        },
+        "OverrideAction": {
+          "None": {}
+        },
+        "VisibilityConfig": {
+          "SampledRequestsEnabled": true,
+          "CloudWatchMetricsEnabled": true,
+          "MetricName": "AWS-AWSManagedRulesAmazonIpReputationList"
+        }
+      },
+      {
+        "Name": "AWS-AWSManagedRulesCommonRuleSet",
+        "Priority": 1,
+        "Statement": {
+          "ManagedRuleGroupStatement": {
+            "VendorName": "AWS",
+            "Name": "AWSManagedRulesCommonRuleSet",
+            "RuleActionOverrides": [
+              {
+                "Name": "CrossSiteScripting_BODY",
+                "ActionToUse": {
+                  "Count": {}
+                }
+              }
+            ]
+          }
+        },
+        "OverrideAction": {
+          "None": {}
+        },
+        "VisibilityConfig": {
+          "SampledRequestsEnabled": true,
+          "CloudWatchMetricsEnabled": true,
+          "MetricName": "AWS-AWSManagedRulesCommonRuleSet"
+        }
+      },
+      {
+        "Name": "AWS-AWSManagedRulesKnownBadInputsRuleSet",
+        "Priority": 2,
+        "Statement": {
+          "ManagedRuleGroupStatement": {
+            "VendorName": "AWS",
+            "Name": "AWSManagedRulesKnownBadInputsRuleSet"
+          }
+        },
+        "OverrideAction": {
+          "None": {}
+        },
+        "VisibilityConfig": {
+          "SampledRequestsEnabled": true,
+          "CloudWatchMetricsEnabled": true,
+          "MetricName": "AWS-AWSManagedRulesKnownBadInputsRuleSet"
+        }
+      },
+      {
+        "Name": "RateLimit-PerIP",
+        "Priority": 3,
+        "Statement": {
+          "RateBasedStatement": {
+            "Limit": 1000,
+            "EvaluationWindowSec": 300,
+            "AggregateKeyType": "IP"
+          }
+        },
+        "Action": {
+          "Block": {}
+        },
+        "VisibilityConfig": {
+          "SampledRequestsEnabled": true,
+          "CloudWatchMetricsEnabled": true,
+          "MetricName": "RateLimit-PerIP"
+        }
+      }
+    ]
+  }
+}

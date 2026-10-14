@@ -295,6 +295,29 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
   쓴다. 로컬의 `aws sts get-caller-identity`는 임시 자격증명을 만들지 않아 이 설정과 무관하게 성공하므로 확인
   수단이 되지 못한다. BE 역할(`link-sphere-be-deploy`, BE `docs/DEPLOY.md` "AWS 초기 설정")도 같은 전제다.
 
+## CloudFront 설정 스냅샷과 차이 검사
+
+아래 절들(OAC·커스텀 도메인·CloudFront Function·WAF·응답 헤더 정책)은 콘솔·CLI로만 바꾸고 이 레포 파이프라인이
+배포하지 않는다. 그래서 무엇이 언제 바뀌었는지 git에 남지 않는다. 지금 설정을 가려서
+[`infra/cloudfront/snapshot.json`](../infra/cloudfront/snapshot.json)에 커밋해 두고 `pnpm check:cloudfront`로
+비교한다(2026-10-14 도입).
+
+```bash
+pnpm check:cloudfront            # 지금 설정과 커밋된 스냅샷 비교 - 다르면 경로별 차이를 출력하고 exit 1
+pnpm check:cloudfront --write    # 스냅샷을 지금 설정으로 갱신(콘솔에서 바꾼 뒤 같은 PR로 커밋)
+```
+
+- **담는 것**: 배포 설정 전체(오리진·비헤이비어·Function 연결·인증서·WAF 연결), 쓰는 캐시·오리진 요청 정책의
+  설정, Function의 런타임·설명과 **배포된(LIVE) 코드가 `infra/cloudfront-functions/`의 파일과 같은지**, WAF
+  기본 동작과 규칙.
+- **가리는 것**: 버킷 이름, 계정 ID, 배포 ID, Lambda Function URL, 인증서·WAF·OAC 식별자, `CallerReference`를
+  자리표시자(`<BUCKET>` 등)로 바꾼다. 그래서 이 값들이 바뀐 것은 잡지 못한다. 규칙은
+  [`scripts/lib/cloudfront-snapshot.js`](../scripts/lib/cloudfront-snapshot.js).
+- **로컬에서만 돈다**: 읽기 전용 호출(get·list·describe)만 하지만, 배포 역할 `link-sphere-fe-deploy`에는
+  CloudFront·WAF 읽기 권한이 없어 CI에 넣지 않았다(위 "AWS IAM 권한 요구사항"). 로컬 IAM 사용자는 읽을 수 있다.
+- **Function 코드 차이는 `--write`로 사라지지 않는다** — 아래 "CloudFront Function" 절차로 배포하거나 레포 파일을
+  고친다.
+
 ## CloudFront Origin Access Control (OAC)
 
 S3 오리진과 `/api/*` Lambda 오리진 둘 다 CloudFront Origin Access Control(OAC,
@@ -407,6 +430,8 @@ aws rum update-app-monitor --name link-sphere-post \
 `{"CloudFrontDefaultCertificate": true}`로 되돌리고 `update-distribution` —
 Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 쓰일 뿐).
 
+**바꾼 뒤**: `pnpm check:cloudfront --write`로 스냅샷을 갱신해 같은 PR로 커밋한다(위 "CloudFront 설정 스냅샷과 차이 검사").
+
 ## CloudFront Function (수동 관리)
 
 기본(S3) 비헤이비어에 CloudFront Function 두 개가 붙는다. 소스는 이 저장소의
@@ -465,6 +490,9 @@ aws cloudfront test-function --name link-sphere-spa-fallback \
 
 # 3. LIVE로 배포 (이미 비헤이비어에 연결돼 있다면 이걸로 자동 반영됨 — 배포 설정 재변경 불필요)
 aws cloudfront publish-function --name link-sphere-spa-fallback --if-match <최신 ETag>
+
+# 4. 배포된 코드가 레포 파일과 같은지 확인 (설정을 바꿨으면 --write로 스냅샷도 갱신)
+pnpm check:cloudfront
 ```
 
 `link-sphere-spa-status`를 처음 만들 때(2026-10-05)는 `create-function` → `publish-function` 뒤, 배포 설정의
@@ -609,6 +637,8 @@ curl -sS -o /dev/null -w '%{http_code}\n' -X POST "$URL" -H 'Content-Type: appli
 **되돌리려면**(재발 시): `AWS-AWSManagedRulesCommonRuleSet`의
 `RuleActionOverrides`에서 `CrossSiteScripting_BODY` 항목을 제거하고
 `update-web-acl`로 재적용.
+
+**바꾼 뒤**: 규칙을 바꿨으면 `pnpm check:cloudfront --write`로 스냅샷을 갱신해 같은 PR로 커밋한다(위 "CloudFront 설정 스냅샷과 차이 검사").
 
 ## CloudFront 응답 헤더 정책 (적용 시도함 — Free 요금제 제약으로 미적용, 2026-09-29)
 

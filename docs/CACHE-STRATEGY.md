@@ -277,7 +277,7 @@ Threads 글의 네 군데에는 없지만 §5.3의 반대편이다 — HTML이 �
 | `public, max-age=31536000, immutable`                                                             | [deploy.yml:91](../.github/workflows/deploy.yml#L91)(assets), [:98](../.github/workflows/deploy.yml#L98)(fonts)                                                                                                                                | 해시 자산·폰트 1년 캐시            |
 | `no-cache, no-store, must-revalidate`                                                             | [deploy.yml:115](../.github/workflows/deploy.yml#L115)(SW), [:119](../.github/workflows/deploy.yml#L119)(`index.html`), [:125](../.github/workflows/deploy.yml#L125)(`404.html`), [:130](../.github/workflows/deploy.yml#L130)(`version.json`) | 저장 안 함                         |
 | 무효화 경로 `/*`                                                                                  | [deploy.yml:133](../.github/workflows/deploy.yml#L133) 스텝                                                                                                                                                                                    | 배포마다 엣지 캐시 비움            |
-| 캐시 정책 `Managed-CachingOptimized`(최소 TTL 1초·기본 86400초·최대 31536000초, `Compress: true`) | CloudFront 콘솔(코드로 관리 안 함, 2026-10-14 조회)                                                                                                                                                                                            | 엣지 TTL — 아래 명령으로 다시 조회 |
+| 캐시 정책 `Managed-CachingOptimized`(최소 TTL 1초·기본 86400초·최대 31536000초, `Compress: true`) | CloudFront 콘솔(파이프라인이 배포하지 않음, [infra/cloudfront/snapshot.json](../infra/cloudfront/snapshot.json)에 스냅샷)                                                                                                                      | 엣지 TTL — 아래 명령으로 다시 조회 |
 | 감지 간격 5분                                                                                     | [useAppVersionCheck.ts:9](../src/shared/hooks/useAppVersionCheck.ts#L9)                                                                                                                                                                        | 탭 복귀 때 재확인 최소 간격        |
 | 옛 자산 보존 7일                                                                                  | [prune-assets.js:10](../scripts/lib/prune-assets.js#L10)                                                                                                                                                                                       | 정리 기준                          |
 
@@ -290,6 +290,9 @@ aws cloudfront get-distribution-config --id <배포 ID> \
 aws cloudfront get-cache-policy --id <정책 ID> \
   --query 'CachePolicy.CachePolicyConfig.[Name,MinTTL,DefaultTTL,MaxTTL]'
 ```
+
+배포 설정 전체·정책·Function 코드·WAF 규칙은 `pnpm check:cloudfront`가 커밋된 스냅샷과 비교한다
+([DEPLOY.md](./DEPLOY.md) "CloudFront 설정 스냅샷과 차이 검사").
 
 ## 8. 코드 지도와 자주 하는 수정
 
@@ -375,13 +378,12 @@ aws cloudfront get-cache-policy --id <정책 ID> \
 
 - **HTML `no-cache` 전환** — 탭 간 로그아웃 동기화와 `pageshow` 재확인이 생기면 다시 본다(§5.10). 측정은
   §3의 `notRestoredReasons`로 한다.
-- **CloudFront 설정이 코드가 아니다** — 캐시 정책·Function 연결은 콘솔·CLI로 관리한다. 값은 §7의 조회
-  명령으로 확인한다.
+- **CloudFront 설정은 여전히 콘솔·CLI로 바꾼다** — 2026-10-14부터 스냅샷과 차이 검사(`pnpm check:cloudfront`)로
+  변경을 git에 남기지만 로컬에서만 돈다. CI에서 정기적으로 돌리려면 배포 역할에 CloudFront·WAF 읽기 권한을
+  더해야 한다([DEPLOY.md](./DEPLOY.md) "CloudFront 설정 스냅샷과 차이 검사").
 - **실제 탭·앱 전환 때의 가시성 이벤트** — headless에서 재현하지 못했다. 모바일 기기 실측은 없다. React Query
   재조회는 TanStack 기본대로 `visibilitychange`만 보고(2026-10-14 `focus`/`blur`로 덮어쓰던 훅을 뺐다), 새 배포
   감지는 `focus`·`visibilitychange`를 모두 듣는다.
-- **Storybook 배포 주석** — `deploy-storybook.yml`의 "Pretendard 정적 서브셋" 주석이 지금 폰트 구성과
-  맞지 않는다(동작 영향 없음).
 
 ## 12. 용어 사전
 
