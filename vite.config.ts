@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import dayjs from 'dayjs';
 import { defineConfig, loadEnv } from 'vite';
-import compression from 'vite-plugin-compression'; // 추가
 import mkcert from 'vite-plugin-mkcert';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { DEV_SERVER_PORT } from './dev-server.config';
@@ -47,19 +46,18 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      compression({
-        algorithm: 'gzip',
-        ext: '.gz',
-        // firebase-messaging-sw.js는 SW 특성상 압축 제외
-        filter: /^(?!.*firebase-messaging-sw).*\.(js|css|html|json|svg)$/,
-      }),
+      // gzip 압축(vite-plugin-compression)은 2026-10-14 뺐다 - CloudFront가 응답을 직접 압축하므로
+      // (기본 비헤이비어 Compress: true) 미리 만든 .gz는 한 번도 서빙되지 않고 업로드만 늘렸다
       mode === 'localhost' && mkcert(),
-      visualizer({
-        open: false,
-        filename: 'dist/stats.html',
-        gzipSize: true,
-        brotliSize: true,
-      }),
+      // 번들 분석 리포트는 로컬 빌드에서만 만든다 - CI(GitHub Actions는 CI=true)에서 만들면
+      // dist/stats.html이 그대로 배포돼 운영에서 누구나 열 수 있었다(2026-10-14 발견)
+      !process.env.CI &&
+        visualizer({
+          open: false,
+          filename: 'dist/stats.html',
+          gzipSize: true,
+          brotliSize: true,
+        }),
       {
         name: 'emit-version-json',
         apply: 'build',

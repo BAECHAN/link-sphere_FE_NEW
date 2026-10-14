@@ -4,12 +4,6 @@
 // 해시해 script-src 허용 목록에 넣는다. 더 강력하고 meta 태그로 못 넣는 지시어
 // (frame-ancestors 등)는 CloudFront 응답 헤더 정책으로 별도 적용한다(docs/DEPLOY.md
 // "CloudFront 응답 헤더 정책" 절 참고, 이 스크립트의 범위 밖).
-//
-// vite-plugin-compression이 vite build 도중 CSP 주입 "전" index.html을 이미
-// index.html.gz로 압축해둔다 - 하지만 deploy.yml이 index.html은 그 gz를 거치지 않고
-// dist/index.html을 직접 S3에 업로드하므로(일반 sync에서도 "index.html"만 제외라
-// index.html.gz는 실제로 서빙되진 않는다) 서빙 정확성 문제는 없다. 다만 죽은 채로
-// 업로드되는 걸 막기 위해 아래에서 지운다.
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -98,12 +92,6 @@ function main() {
   }
 
   fs.writeFileSync(INDEX_PATH, updatedHtml, 'utf8');
-
-  const staleGzipPath = `${INDEX_PATH}.gz`;
-
-  if (fs.existsSync(staleGzipPath)) {
-    fs.unlinkSync(staleGzipPath);
-  }
 
   console.log(
     `[inject-csp] CSP meta 태그 주입 완료 (인라인 스크립트 해시 ${scriptContents.length}개)`

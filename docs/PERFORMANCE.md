@@ -89,7 +89,7 @@ npx lhci collect --url=https://linksphere.click/post \
 
 ### 코드 변경 전후 비교 (직접 측정, 2026-09-26)
 
-`pnpm build` 결과물(`dist/`, `dist/stats.html`)을 이 PR의 각 커밋 전후로 직접 비교해서 잰
+`pnpm build` 결과물(`dist/`, `dist/stats.html` — 이 번들 분석 리포트는 2026-10-14부터 로컬 빌드에서만 만들어지고 CI·배포 빌드에는 없다, `vite.config.ts`)을 이 PR의 각 커밋 전후로 직접 비교해서 잰
 값이다 — 추정이 아니라 실제 빌드 산출물 크기다. 재현 절차: `pnpm build` 후
 `ls -la dist/assets/js/`와 `grep -o 'href="[^"]*"' dist/index.html`로 modulepreload 목록을
 확인한다.

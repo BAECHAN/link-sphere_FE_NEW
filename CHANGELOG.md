@@ -18,6 +18,13 @@
 
   </details>
 
+- `infra` 운영에 공개되던 번들 분석 파일을 내리고 옛 자산을 7일 뒤 정리
+  <details><summary>배경·구현</summary>
+
+  배포 산출물을 업계 표준과 대조하다 세 가지를 정리했다. ① 번들 분석 리포트 `dist/stats.html`이 CI 빌드에서도 만들어져 `https://linksphere.click/stats.html`로 누구나 열 수 있었다(의존성 구조 노출) — CI(`process.env.CI`)에서는 만들지 않게 해 `--delete` 동기화가 운영 사본을 지운다. 로컬 빌드는 그대로 만든다. ② `vite-plugin-compression`이 만든 `.gz`(버킷에 5,997개·28.7MB)는 CloudFront가 응답을 직접 압축(`Compress: true`)해 한 번도 서빙되지 않았다 — 플러그인과 관련 예외 처리를 지웠다. ③ 열린 탭을 위해 옛 해시 청크를 지우지 않다 보니 assets가 14,679개·119MB까지 쌓였다 — 배포 반영 검증 뒤 "지금 빌드에 없고 마지막 업로드가 7일 넘은" `assets/`·`fonts/`만 지우는 스텝을 추가했다(날짜만 보는 S3 lifecycle은 배포가 끊기면 지금 쓰는 파일까지 지워 쓰지 않았다). 첫 실행 예상 약 13,300개 삭제(로컬 dry-run 기준). 계획 `docs/plans/2026-10-14-cache-strategy.md`. (`vite.config.ts`, `package.json`, `scripts/inject-csp.js`, `scripts/prune-old-assets.js`·`scripts/lib/prune-assets.js`(신규), `.github/workflows/deploy.yml`, `docs/DEPLOY.md`, [PR #369](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/369))
+
+  </details>
+
 ### Fixed
 
 - `shared` 좋아요를 연달아 누르면 깜빡이거나 마지막 클릭과 다른 상태로 끝나던 문제

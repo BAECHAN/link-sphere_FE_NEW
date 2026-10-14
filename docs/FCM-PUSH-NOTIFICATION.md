@@ -93,8 +93,8 @@ React 훅·Service Worker의 기본 개념(탭이 닫혀도 백그라운드에�
   상태에서 시스템 알림 표시
 - **Firebase Admin SDK**(BE) — 서버에서 특정 사용자에게 푸시 발송
 - **Zustand**(`auth.store`) — 토큰 등록 시점에 필요한 `accessToken` 조회
-- **`vite-plugin-compression` / `vite-plugin-mkcert`** — 배포·로컬 환경별 빌드
-  설정(§10 시행착오에서 둘 다 문제를 일으킨 적 있다)
+- **`vite-plugin-mkcert`** — 로컬 HTTPS 빌드 설정(§10 시행착오에서 문제를 일으킨 적
+  있다). 같이 적혀 있던 `vite-plugin-compression`은 2026-10-14 제거했다(§10.1)
 
 **구현·검증 과정에서 쓴 도구**: Vitest — 포그라운드 "보러가기" 클릭 이동 경로만
 (`useFcmForegroundMessage.test.tsx`). 발송 경로 자체는 자동화 테스트가 없다 — §9 참고.
@@ -630,6 +630,11 @@ compression({
   filter: /^(?!.*firebase-messaging-sw).*\.(js|css|html|json|svg)$/,
 }),
 ```
+
+(2026-10-14 후속: 플러그인 자체를 제거했다. CloudFront가 응답을 직접 압축해서(기본
+비헤이비어 `Compress: true`) 미리 만든 `.gz`가 필요 없었고, 업로드만 늘리고 있었다 —
+[`docs/plans/2026-10-14-cache-strategy.md`](./plans/2026-10-14-cache-strategy.md). 위 코드는
+당시 해결 기록으로 남긴다.)
 
 ### 10.2. CloudFront 캐싱으로 SW 갱신 안 됨
 
