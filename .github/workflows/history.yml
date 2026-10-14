@@ -19,12 +19,25 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+    # main 규칙셋은 필수 체크(check·e2e)를 요구하고 사람에게는 예외가 없다. 이 봇의 커밋은 CI를
+    # 거치지 않으므로 규칙셋 예외로 등록된 사용자 소유 GitHub App(link-sphere-history-bot)의
+    # 설치 토큰으로 push한다 - 기본 GITHUB_TOKEN은 개인 계정 레포에서 규칙셋 예외로 등록할 수 없다
+    # (2026-10-13 실측, HTTP 422). 앱 키 관리는 docs/DEPLOY.md "환경 변수 및 Secrets 설정" 참고.
+    # 커밋 메시지의 [skip ci]가 그대로라 앱 토큰 push가 다른 워크플로를 연쇄로 돌리지 않는다.
     permissions:
-      contents: write
+      contents: read
     steps:
+      - name: 히스토리 앱 토큰 받기
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.HISTORY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.HISTORY_APP_PRIVATE_KEY }}
+          permission-contents: write
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

@@ -64,7 +64,7 @@ paths: CHANGELOG.md
 
 1. `[Unreleased]` 항목들을 새 버전 섹션 `## [X.Y.Z] - YYYY-MM-DD` 으로 승격 (빈 `[Unreleased]` 유지), 하단 compare 링크 갱신 (`https://github.com/BAECHAN/link-sphere_FE_NEW`)
 2. API 계약(BE 의존 사항)이 바뀌었다면 `docs/VERSION-COMPATIBILITY.md`에도 상대 레포 최소 버전 행 추가
-3. `chore(release): vX.Y.Z` 커밋 → `git push origin main`
+3. `chore(release): vX.Y.Z` 커밋을 워크트리 브랜치에 올려 **PR로 머지**한다(#340 방식). main 규칙셋이 필수 체크를 요구하고 사람에게 예외가 없어 `git push origin main`은 거절된다(`GH013`, 2026-10-14부터 — `docs/CI-CHECK-GATE.md` §6 "main 규칙셋"). 머지되면 아래 4번의 `release.yml`이 main push를 감지한다
 4. **태그·GitHub Release는 수동으로 만들지 않는다** — `.github/workflows/release.yml`이 `CHANGELOG.md` push를 감지해 최신 버전 섹션을 파싱, 동명 태그가 없으면 자동으로 태그 생성 + `gh release create`까지 수행한다(이미 있으면 스킵하는 멱등 동작). `git tag`/`gh release create`를 직접 실행할 필요 없음.
 
 - 버전 체계 기준점: `0.1.0`부터 시작(정식 릴리즈 전 개발 단계 = `0.x`). 현재 버전은
