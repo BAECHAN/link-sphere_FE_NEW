@@ -1,4 +1,7 @@
 ### 2026-10-14 (FE)
+- noindex 메타 태그의 사전 적용을 통해 안내 화면 테스트의 flaky 현상 해결
+
+### 2026-10-14 (FE)
 - 북마크 상태 관리 최적화 및 네트워크 요청 효율화
 - 로그:
   - fix(interaction): 북마크 저장·해제를 상태 지정형으로 바꾸고 한 줄로 전송 ([#358](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/358))
