@@ -66,12 +66,14 @@ jobs:
         run: |
           DEST="s3://${{ secrets.S3_BUCKET_NAME }}/storybook"
 
-          # 해시 없는 진입점 - 항상 최신 버전을 받도록 캐시 비활성화
+          # 해시 없는 진입점 - 저장하되 쓸 때마다 재검증(no-cache)해 항상 최신을 받는다. 앱 index.html과
+          # 같은 정책이다(docs/CACHE-STRATEGY.md §5.10). Storybook엔 로그인이 없어 bfcache 복원에 따로
+          # 맞출 인증 상태도 없다
           aws s3 cp storybook-static/index.html "$DEST/index.html" \
-            --cache-control "no-cache, no-store, must-revalidate" \
+            --cache-control "no-cache" \
             --content-type "text/html"
           aws s3 cp storybook-static/iframe.html "$DEST/iframe.html" \
-            --cache-control "no-cache, no-store, must-revalidate" \
+            --cache-control "no-cache" \
             --content-type "text/html"
 
           # 콘텐츠 해시가 붙은 번들 - 장기 캐시

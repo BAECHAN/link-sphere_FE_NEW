@@ -201,7 +201,8 @@ gh api repos/<owner>/<repo>/commits/<커밋 sha> --jq .sha   # 원 저장소에 
   `cloudfront:CreateInvalidation`) 범위 안이다.
 - **캐시 정책**: 앱 배포와 같은 철학이다 — 해시 없는 `index.html`/`iframe.html`은
   `no-cache`, 콘텐츠 해시가 붙은 `assets/`·`fonts/`는 1년 immutable, 그 외
-  (`sb-manager/`, `sb-addons/` 등 해시 없는 런타임 파일)는 `max-age=300`.
+  (`sb-manager/`, `sb-addons/` 등 해시 없는 런타임 파일)는 `max-age=300`. (2026-10-14 전에는 HTML 설정이
+  `no-cache, no-store, must-revalidate`라 이 서술과 달랐다 — 앱 HTML을 `no-cache`로 바꿀 때 함께 맞췄다.)
 - **무효화 범위**: `/storybook/*`로 한정한다. `/*`를 쓰면 앱의 엣지 캐시까지
   비워 실사용자 지연과 오리진 요청 급증을 유발한다 — 스토리 수정 때문에 앱
   성능을 깎을 이유가 없다.
@@ -329,6 +330,11 @@ S3 오리진과 `/api/*` Lambda 오리진 둘 다 CloudFront Origin Access Contr
 참고. 이 인프라 전환(OAC 생성·연결, Function URL `AuthType` 변경) 자체는 이 레포
 코드로 존재하지 않는다 — 아래 "커스텀 도메인"·"CloudFront Function"·"CloudFront WAF"
 절과 같은 성격.
+
+계정의 OAC는 위 두 개(S3용·Lambda용)뿐이다. 2026-10-14 어느 배포에도 연결되지 않은 3개(콘솔이 앱 버킷용으로
+한 번 더 만든 중복 1개, `link-sphere-fe-test-bucket`용 2개)를 지웠다 — 계정의 배포가 하나뿐이고 그 배포가
+참조하지 않는 것을 삭제 직전에 다시 확인했다. S3 버킷 정책은 OAC ID가 아니라 배포 ARN을 조건으로 쓰므로
+버킷 접근에는 영향이 없었다(삭제 뒤 사이트·자산·API 200).
 
 OAC가 오리진 요청의 `Authorization` 헤더를 CloudFront 자신의 SigV4 서명으로 덮어쓰므로,
 FE는 실제 로그인 토큰을 `Authorization` 대신 `X-Access-Token`이라는 커스텀 헤더로

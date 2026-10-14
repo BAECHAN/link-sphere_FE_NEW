@@ -20,6 +20,13 @@
 
 ### Changed
 
+- `infra` Storybook HTML도 앱과 같은 no-cache로, 쓰이지 않는 OAC 3개 정리
+  <details><summary>배경·구현</summary>
+
+  `docs/DEPLOY.md`는 Storybook의 `index.html`·`iframe.html`을 _앱 배포와 같은 철학_ 으로 `no-cache`라고 적었지만 실제 설정은 `no-cache, no-store, must-revalidate`였다. 앱 HTML이 같은 날 `no-cache`로 바뀌어(#377) 설정을 문서·앱에 맞췄다(2026-10-14 사용자 결정). Storybook엔 로그인이 없어 bfcache 복원 때 맞출 인증 상태가 없다. 함께 CloudFront 스냅샷 작업(#374)에서 찾은, 어느 배포에도 연결되지 않은 OAC 3개(콘솔이 만든 앱 버킷용 중복 1, 테스트 버킷용 2)를 AWS에서 지웠다 — 삭제 직전 연결 여부를 다시 확인했고 삭제 뒤 사이트·자산·API 모두 200. (`.github/workflows/deploy-storybook.yml`, `docs/DEPLOY.md`, [PR #378](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/378))
+
+  </details>
+
 - `infra` 뒤로가기가 이전 화면을 즉시 복원하도록 HTML을 no-cache로
   <details><summary>배경·구현</summary>
 
