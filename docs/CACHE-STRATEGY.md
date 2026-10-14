@@ -375,12 +375,11 @@ aws cloudfront get-cache-policy --id <정책 ID> \
 
 - **HTML `no-cache` 전환** — 탭 간 로그아웃 동기화와 `pageshow` 재확인이 생기면 다시 본다(§5.10). 측정은
   §3의 `notRestoredReasons`로 한다.
-- **React Query 포커스 감지** — [useWindowFocusManager.ts](../src/shared/hooks/useWindowFocusManager.ts)가
-  `focus`/`blur`로 React Query의 포커스 판단을 덮어써, TanStack Query v5 기본(`visibilitychange`)과 다르다.
-  이 문서의 범위 밖이라 그대로 뒀다.
 - **CloudFront 설정이 코드가 아니다** — 캐시 정책·Function 연결은 콘솔·CLI로 관리한다. 값은 §7의 조회
   명령으로 확인한다.
-- **실제 탭·앱 전환 때의 가시성 이벤트** — headless에서 재현하지 못했다. 모바일 기기 실측은 없다.
+- **실제 탭·앱 전환 때의 가시성 이벤트** — headless에서 재현하지 못했다. 모바일 기기 실측은 없다. React Query
+  재조회는 TanStack 기본대로 `visibilitychange`만 보고(2026-10-14 `focus`/`blur`로 덮어쓰던 훅을 뺐다), 새 배포
+  감지는 `focus`·`visibilitychange`를 모두 듣는다.
 - **Storybook 배포 주석** — `deploy-storybook.yml`의 "Pretendard 정적 서브셋" 주석이 지금 폰트 구성과
   맞지 않는다(동작 영향 없음).
 
