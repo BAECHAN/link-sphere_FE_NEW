@@ -1,3 +1,6 @@
+### 2026-10-14 (FE)
+- 동작 줄이기(Reduce Motion) 설정 사용자를 위한 즉시 스크롤 이동 기능 적용 ([#379](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/379))
+
 ### 2026-10-14 (BE)
 - 게시글 목록 조회 API에 `filter=isLiked` 파라미터를 추가하여 사용자가 좋아요한 게시글만 필터링하여 조회하는 기능 구현 ([#94](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/94))
 
