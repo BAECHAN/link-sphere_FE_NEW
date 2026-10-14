@@ -1,3 +1,12 @@
+echo "📄 푸시 전 문서 참조 검사 중..."
+
+# 깨진 <details> 짝·없는 경로·범위를 벗어난 줄 번호를 PR CI까지 가기 전에 막는다
+# (rebase가 CHANGELOG 항목의 </details>를 지운 채 push된 일이 반복됐다 — docs/CI-CHECK-GATE.md §9.6)
+pnpm check:docs || {
+  echo "❌ 문서 검사 실패. 푸시를 중단합니다."
+  exit 1
+}
+
 echo "🧪 푸시 전 테스트 실행 중..."
 
 pnpm test || {

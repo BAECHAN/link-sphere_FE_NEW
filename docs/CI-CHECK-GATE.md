@@ -29,7 +29,7 @@
 ```mermaid
 flowchart LR
   Commit["git commit"] --> PreCommit["pre-commit 훅<br/>type-check 전체 + lint-staged(변경 파일만)"]
-  Push["git push"] --> PrePush["pre-push 훅<br/>테스트만"]
+  Push["git push"] --> PrePush["pre-push 훅<br/>문서 참조 검사 + 테스트"]
   PR["Pull Request"] --> CI["ci.yml (신규)<br/>pnpm check + test"]
   Merge["main에 merge"] --> Deploy["deploy.yml<br/>pnpm check 게이트 추가 + test + build + 배포"]
 ```
@@ -131,7 +131,7 @@ ignore 패턴(`'dist/**/*'`, 루트 상대 경로)에 안 걸려서 그대로 �
 | docs/plans 불변성 검사         | PR base 브랜치 대비 `docs/plans/` 기존 파일이 수정(`M`)됐으면 실패 — append-only 강제                                                                                                                                                                                                                                                                                                                                                                                                                                                  | `ci.yml`의 "docs/plans 불변성 확인" 스텝                                                                                                                                  |
 | 생성 타입(OpenAPI) 최신성 검사 | 커밋된 `openapi.json`으로 `pnpm codegen` 재실행 후 `openapi.gen.ts` diff 없어야 통과. 네트워크 미사용 — 운영 BE와의 실제 대조는 별도 cron(`openapi-drift-check.yml`)이 담당                                                                                                                                                                                                                                                                                                                                                            | `ci.yml`의 "생성 타입 최신성 확인" 스텝                                                                                                                                   |
 | 배포 게이트 위치               | `pnpm install` 직후, `pnpm test` 이전                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | `deploy.yml` "Type check, lint & format check" 스텝                                                                                                                       |
-| 문서-코드 참조 게이트          | `pnpm test` 이후 (PR CI 전용, 배포는 막지 않음)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | `scripts/check-docs.js`, `ci.yml` "Check docs" 스텝                                                                                                                       |
+| 문서-코드 참조 게이트          | PR CI는 `pnpm test` 이후(배포는 막지 않음). 로컬은 `pre-push` 훅이 테스트보다 먼저 돌린다(2026-10-14, §9.6)                                                                                                                                                                                                                                                                                                                                                                                                                            | `scripts/check-docs.js`, `ci.yml` "Check docs" 스텝                                                                                                                       |
 | 의존성 규칙 검사               | `pnpm check`의 마지막 단계 `check:deps`(dependency-cruiser) — PR·배포 양쪽 "Type check, lint & format check" 스텝에서 함께 돈다                                                                                                                                                                                                                                                                                                                                                                                                        | `package.json`의 `check`·`check:deps` 스크립트, `scripts/check-deps.js`                                                                                                   |
 | Claude 훅 회귀 테스트          | `.claude/hooks/*.test.mjs`를 `node --test`로 실행(vitest 범위 밖), `pnpm test` 이후 (PR CI 전용)                                                                                                                                                                                                                                                                                                                                                                                                                                       | `ci.yml`의 "Claude 훅 회귀 테스트" 스텝                                                                                                                                   |
 | PR 영향 그래프                 | 정보용 — 바뀐 src 파일과 import로 닿는 파일을 Mermaid로 Step Summary·PR 댓글(PR당 1개를 갱신)에 붙인다. `continue-on-error`라 실패해도 잡은 통과                                                                                                                                                                                                                                                                                                                                                                                       | `ci.yml`의 "PR 영향 그래프" 스텝, `scripts/dep-graph.js`                                                                                                                  |
@@ -313,6 +313,24 @@ Rules에 규칙으로 명문화).
 `eslint.config.js`처럼 자주 바뀌는 파일은 애초에 줄 번호 대신 규칙명으로
 인용하도록 `FE-ARCHITECTURE.md` 쪽도 함께 고쳤다 — 자동 검사와 인용 방식
 변경을 병행해야 한다는 게 이번에 얻은 교훈이다.
+
+### 9.6 rebase가 CHANGELOG 항목의 `</details>`를 조용히 지웠다 (2026-10-14)
+
+여러 워크트리가 `CHANGELOG.md`의 같은 자리(섹션 맨 위)에 항목을 넣은 뒤 rebase하면, 먼저 들어간
+항목의 `</details>` 닫는 줄이 사라지는 일이 반복됐다 — `main`에 복구 커밋만 3개(`1c3262e`·`caac4e8`
+2026-08-13, `f90968d` 2026-09-11)이고, 2026-10-14 하루에도 PR 두 개(#375·#379)에서 rebase 직후 다시
+났다(PR CI의 `check:docs`가 잡아 `main`에는 안 들어감).
+
+원인은 `.gitattributes`의 `CHANGELOG.md merge=union`(2026-08-13, 동시 세션의 충돌을 피하려고 도입)이었다.
+임시 저장소에서 두 브랜치가 같은 자리에 `<details>` 항목을 넣고 rebase해 직접 재현했다 — union이면 충돌
+없이 자동 병합되면서 `<details>` 3개·`</details>` 2개가 됐고(양쪽에 똑같이 있는 끝부분 줄 "빈 줄·
+`</details>`·빈 줄"이 한 번만 남음), union이 없으면 충돌로 멈췄다. 조용히 깨지는 쪽보다 멈추는 쪽이
+낫다고 보고 `CHANGELOG.md`·`docs/DECISIONS.md`의 union을 지웠다(DECISIONS.md는 항목이 `---`로 끝나
+같은 식으로 구분선이 사라질 수 있다 — 재현은 안 함). 이제 같은 자리면 rebase가 충돌로 멈추고 양쪽 항목을
+모두 남기면 된다(`changelog-release` skill).
+
+로컬에서는 PR을 열기 전까지 아무 검사도 없어 깨진 채 push됐으므로, `pre-push` 훅이 테스트보다 먼저
+`pnpm check:docs`(직접 측정 0.24초)를 돌리게 했다.
 
 ## 10. 남은 것
 
