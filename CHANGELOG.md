@@ -92,6 +92,13 @@
 
 ### Fixed
 
+- `auth` 다른 탭에서 계정이 바뀐 순간 진행 중이던 요청이 새 계정으로 실행되던 문제
+  <details><summary>배경·구현</summary>
+
+  refresh 쿠키는 모든 탭이 한 장을 같이 쓴다. 요청이 서버에 가 있는 사이 다른 탭에서 로그아웃하고 다른 계정으로 로그인하면, 그 요청이 받은 `TOKEN_EXPIRED`(BE는 폐기된 세션의 토큰에도 이 코드를 준다)를 처리하며 새 계정의 쿠키로 갱신해 원 요청을 다시 보냈다 — A가 누른 좋아요·댓글이 B 계정으로 실행될 수 있었다. 같은 `scope`로 줄 서 있던 좋아요·북마크도 앞 요청이 끝나면 바뀐 계정으로 실행됐다. 인증 세대 동기화(#376)로 구간이 줄었지만 남아 있었다(설계 검토에서 발견). 이제 요청마다 그 토큰이 속한 인증 세대를 기억해 두고, 401 때 저장된 세대가 바뀌었으면 갱신·재시도·로그인 화면 이동 없이 `SessionChangedError`로 끝낸다(대기 요청도 함께). 줄 서 있던 좋아요·북마크는 누른 순간의 세대를 전역 `onMutate`가 기록해 두고, 차례가 왔을 때 세대가 바뀌었으면 보내지 않고 같은 에러로 끝낸다(실패로 끝나 롤백이 돌고 결과를 기다리던 화면도 풀린다 — 처음엔 줄 선 것을 버렸으나 끝나지 않아 북마크 폴더 대화상자가 잠길 수 있어 바꿨다, 2026-10-14 사용자 결정). 같은 수정으로 함께 고쳐진 것: 같은 탭 로그아웃 순간 진행 중이던 요청이 `/post`로 옮겨진 사용자를 `/auth/login`으로 다시 보내던 것, 인라인 로그인 직전에 보낸 비로그인 요청의 `NOT_LOGGED_IN`이 방금 한 로그인을 지우던 것 — 셋 다 수정 전 코드로 먼저 재현했다. 사용자가 누른 동작이 이렇게 끝나면 "로그인 상태가 바뀌어서 처리되지 않았어요" 토스트를 띄우고, 조회·로그아웃 반영 중에는 조용하다. 감수한 것: 다른 탭에서 같은 계정으로 다시 로그인한 순간 진행 중이던 요청도 실패로 끝난다(토큰이 불투명해 같은 계정인지 가릴 수 없다). 계획 `docs/plans/2026-10-14-session-changed-guard.md`, 설명 `docs/AUTH.md` §8-B. (`client.ts`, `auth-epoch.util.ts`, `auth.store.ts`, `mutation-auth-epoch.ts`(신규), `queryClient.ts`, `interaction.queries.ts`, `bookmark-folder.queries.ts`, `common.type.ts`, `error-toast.ts`, `retry-policy.ts`, `texts.ts`, `e2e/auth-tab-sync.spec.ts`, `docs/AUTH.md`, `docs/FE-ARCHITECTURE.md`, [PR #381](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/381))
+
+  </details>
+
 - `shared` 좋아요를 연달아 누르면 깜빡이거나 마지막 클릭과 다른 상태로 끝나던 문제
   <details><summary>배경·구현</summary>
 

@@ -902,6 +902,11 @@ onError: (_err, _vars, context) => {
    (연속 실패). 실패할 때만 다시 조회하는 비용이 묶음마다 기준 상태를 따로 저장하는 것보다 작다.
 5. **로그아웃 정리에 mutation 캐시도 넣는다** — 끝나지 않는 pending mutation이 줄 맨 앞에 남으면 같은
    scope의 다음 요청이 영원히 안 나간다(`AuthUtil.clearAll`).
+6. **`mutationFn` 첫 줄에서 `assertMutationAuthEpochUnchanged(context)`를 부른다** — 줄에서 기다리는 사이 다른
+   탭에서 계정이 바뀌면, 차례가 왔을 때 새 계정으로 요청이 나간다. 전역 `MutationCache` `onMutate`가 누른 순간의
+   인증 세대를 기록하고(`queryClient.ts`), 이 확인이 달라졌으면 보내지 않고 `SessionChangedError`로 끝낸다 —
+   실패로 끝나야 `onError`(롤백)가 돌고 결과를 기다리던 화면이 풀린다(`mutation-auth-epoch.ts`, [`AUTH.md`](./AUTH.md) §8-B).
+   scope를 쓰는 mutation 6곳이 모두 부른다.
 
 ```typescript
 const mutationKey = interactionMutationKeys.likePost(postId);
@@ -910,7 +915,11 @@ const isLastPending = () => queryClient.isMutating({ mutationKey }) === 1;
 useMutation({
   mutationKey,
   scope: { id: mutationKey.join(':') },
-  mutationFn: (nextLiked: boolean) => (nextLiked ? api.like(postId) : api.unlike(postId)),
+  mutationFn: (nextLiked: boolean, context) => {
+    assertMutationAuthEpochUnchanged(context);
+
+    return nextLiked ? api.like(postId) : api.unlike(postId);
+  },
   onMutate: async (nextLiked) => {
     /* cancel → 스냅샷 → "nextLiked로 만들기" 패치 */
   },

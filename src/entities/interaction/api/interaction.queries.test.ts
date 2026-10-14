@@ -2,9 +2,19 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse, delay } from 'msw';
 import { createElement, type ReactNode } from 'react';
-import { QueryClient, QueryClientProvider, type InfiniteData } from '@tanstack/react-query';
+import {
+  MutationCache,
+  QueryClient,
+  QueryClientProvider,
+  type InfiniteData,
+} from '@tanstack/react-query';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { STORAGE_KEYS } from '@/shared/config/storage-keys';
+import { rememberMutationAuthEpoch } from '@/shared/lib/react-query/config/mutation-auth-epoch';
+import { SessionChangedError } from '@/shared/types/common.type';
+import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
+import { LocalStorageUtil } from '@/shared/utils/storage.util';
 import { createTestQueryClient } from '@/test/utils';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
@@ -1261,6 +1271,40 @@ describe('useLikePostMutation', () => {
       expect(queryClient.getQueryState(postKeys.detail(POST_ID))?.isInvalidated).toBe(true);
       expect(queryClient.getQueryState(postKeys.list())?.isInvalidated).toBe(true);
       expect(queryClient.getQueryState(folderPostsKey)?.isInvalidated).toBe(true);
+    });
+
+    it('(e) 줄에서 기다리는 사이 다른 계정이 되면 뒤 요청은 보내지 않고 실패로 끝나, 마지막 요청으로서 되돌린다', async () => {
+      // 운영 queryClient.ts처럼 누른 순간의 인증 세대를 기록하는 전역 onMutate를 단다
+      queryClient = new QueryClient({
+        mutationCache: new MutationCache({
+          onMutate: (_variables, _mutation, context) => rememberMutationAuthEpoch(context),
+        }),
+        defaultOptions: { queries: { retry: 0, gcTime: Infinity }, mutations: { retry: 0 } },
+      });
+      AuthEpochUtil.markLogin();
+      const putGate = gateLike('PUT', () => likeResponse(true, 11));
+      const { result } = renderWithPost(seedPost(false));
+
+      act(() => {
+        result.current.mutate(true);
+      });
+      act(() => {
+        result.current.mutate(false);
+      });
+      await waitFor(() => expect(likeRequests).toEqual(['PUT']));
+
+      // 다른 탭에서 다른 계정으로 로그인했다
+      LocalStorageUtil.setItem(STORAGE_KEYS.AUTH.EPOCH, 'in:other-tab');
+      putGate.release();
+
+      // 끝나지 않은 채 남지 않는다 - 결과를 기다리던 화면(북마크 폴더 대화상자 등)이 풀린다
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.error).toBeInstanceOf(SessionChangedError);
+      expect(likeRequests).toEqual(['PUT']);
+      // 뒤 요청 직전 스냅샷(켜짐, 11)으로 되돌리고, 서버 값으로 다시 맞추도록 무효화한다
+      expect(readDetail()?.userInteractions.isLiked).toBe(true);
+      expect(readDetail()?.stats.likeCount).toBe(11);
+      expect(queryClient.getQueryState(postKeys.detail(POST_ID))?.isInvalidated).toBe(true);
     });
   });
 });

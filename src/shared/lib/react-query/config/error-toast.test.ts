@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { ApiError, type ApiErrorResponse } from '@/shared/types/common.type';
+import { ApiError, SessionChangedError, type ApiErrorResponse } from '@/shared/types/common.type';
 import { TEXTS } from '@/shared/config/texts';
 import { LogoutGraceUtil } from '@/shared/utils/logout-grace.util';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
@@ -185,5 +185,49 @@ describe('resolveErrorToast', () => {
     const decision = resolveErrorToast('boom', undefined, QUERY_ERROR_POLICY);
 
     expect(decision).toEqual({ silent: true });
+  });
+
+  describe('SessionChangedError (보낸 뒤 인증 세대가 바뀜)', () => {
+    it('mutation은 meta.errorMessage보다 우선해 sessionChanged 토스트를 띄운다', () => {
+      const decision = resolveErrorToast(
+        new SessionChangedError(),
+        { errorMessage: '좋아요에 실패했어요.' },
+        MUTATION_ERROR_POLICY
+      );
+
+      expect(decision).toEqual({ silent: false, message: TEXTS.messages.error.sessionChanged });
+    });
+
+    it('query는 meta.errorMessage가 있어도 조용히 종료한다', () => {
+      const decision = resolveErrorToast(
+        new SessionChangedError(),
+        { errorMessage: '목록을 불러오지 못했어요.' },
+        QUERY_ERROR_POLICY
+      );
+
+      expect(decision).toEqual({ silent: true });
+    });
+
+    it('로그아웃 유예 중이면 mutation도 조용히 종료한다', () => {
+      LogoutGraceUtil.markClearedAt();
+
+      const decision = resolveErrorToast(
+        new SessionChangedError(),
+        undefined,
+        MUTATION_ERROR_POLICY
+      );
+
+      expect(decision).toEqual({ silent: true });
+    });
+
+    it('manualErrorHandling이 우선한다', () => {
+      const decision = resolveErrorToast(
+        new SessionChangedError(),
+        { manualErrorHandling: true },
+        MUTATION_ERROR_POLICY
+      );
+
+      expect(decision).toEqual({ silent: true });
+    });
   });
 });

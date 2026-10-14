@@ -475,6 +475,8 @@ export const TEXTS = {
       unknownError: '알 수 없는 오류가 발생했어요.',
       apiRequestFailed: 'API 요청 실패', // 콘솔 로그 전용 - 톤 규칙 대상 아님
       loginRequired: '로그인이 필요해요.',
+      // 요청을 보낸 뒤 다른 탭에서 로그인 상태가 바뀌어 처리하지 않고 끝낸 경우(SessionChangedError)
+      sessionChanged: '로그인 상태가 바뀌어서 처리되지 않았어요. 다시 시도해 주세요.',
 
       // 인증 관련
       unauthorizedAccessToken: '액세스 토큰이 유효하지 않아요.',

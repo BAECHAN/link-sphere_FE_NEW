@@ -1,11 +1,18 @@
 import dayjs from 'dayjs';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { TEXTS } from '@/shared/config/texts';
-import { ApiError, ApiResponse, ApiErrorResponse, NetworkError } from '@/shared/types/common.type';
+import {
+  ApiError,
+  ApiResponse,
+  ApiErrorResponse,
+  NetworkError,
+  SessionChangedError,
+} from '@/shared/types/common.type';
 import { useAuthStore } from '@/shared/store/auth.store';
 
 import { FormUtil } from '@/shared/utils/form.util';
 import { AuthUtil } from '@/shared/utils/auth.util';
+import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 import { DateUtil } from '@/shared/utils/date.util';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 
@@ -18,6 +25,12 @@ interface ApiRequestOptions extends RequestInit {
 // 없다(레이어 하향 의존 규칙). /auth/refresh 응답 중 여기서 실제로 쓰는 필드만 로컬로 선언한다.
 interface RefreshTokenResponse {
   accessToken: string;
+}
+
+/** 리더의 refresh를 기다리는 요청 - 끝나면 재시도하거나, 그사이 인증 세대가 바뀌었으면 취소한다 */
+interface RefreshSubscriber {
+  retry: () => void;
+  cancel: (error: Error) => void;
 }
 
 function appendSearchParams(url: string, searchParams?: Record<string, any>): string {
@@ -107,18 +120,23 @@ function parseRetryAfterSeconds(value: string | null): number | undefined {
 class ApiClient {
   private baseURL: string;
   private isRefreshing = false;
-  private refreshSubscribers: Array<(token: string) => void> = [];
+  private refreshSubscribers: RefreshSubscriber[] = [];
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
   }
 
-  private subscribeTokenRefresh(cb: (token: string) => void) {
-    this.refreshSubscribers.push(cb);
+  private subscribeTokenRefresh(subscriber: RefreshSubscriber) {
+    this.refreshSubscribers.push(subscriber);
   }
 
-  private notifySubscribers(token: string) {
-    this.refreshSubscribers.forEach((cb) => cb(token));
+  private notifySubscribers() {
+    this.refreshSubscribers.forEach((subscriber) => subscriber.retry());
+    this.refreshSubscribers = [];
+  }
+
+  private cancelSubscribers(error: Error) {
+    this.refreshSubscribers.forEach((subscriber) => subscriber.cancel(error));
     this.refreshSubscribers = [];
   }
 
@@ -170,13 +188,24 @@ class ApiClient {
   /**
    * TOKEN_EXPIRED 401 처리 - 이미 갱신된 토큰으로 재시도, 재시도 상한, refresh 실행,
    * refresh 대기 4갈래를 모두 담당한다.
+   *
+   * authEpoch는 이 요청을 처음 보낼 때 이 탭 토큰이 속했던 인증 세대다. 그 뒤 저장된 세대가 바뀌었으면
+   * (다른 탭·같은 탭의 명시적 로그인·로그아웃) 공유 refresh 쿠키가 다른 계정의 것일 수 있다 - BE는 폐기된
+   * 세션의 토큰도 TOKEN_EXPIRED로 답하므로, 갱신·재시도하면 이 요청이 다른 계정으로 실행된다. 그래서 그런
+   * 요청은 갱신·재시도·로그인 화면 이동 없이 SessionChangedError로 끝내고, 화면은 useAuthEpochSync가
+   * 맞춘다(client.test.ts Case 7, docs/AUTH.md §8-B).
    */
   private async handleTokenExpired<T>(
     endpoint: string,
     options: ApiRequestOptions | undefined,
     retryCount: number,
-    sentToken: string | undefined
+    sentToken: string | undefined,
+    authEpoch: string | null
   ): Promise<T> {
+    if (AuthEpochUtil.hasChangedSince(authEpoch)) {
+      throw new SessionChangedError();
+    }
+
     // 이 요청을 보낸 뒤 다른 요청이 이미 refresh를 마쳤다면(늦게 도착한 401) refresh 없이
     // 지금 토큰으로 재시도만 한다. 리더의 finally는 재시도 완료를 기다리지 않고
     // isRefreshing을 내리므로 이런 401은 대기 큐가 아니라 아래 리더 경로로 들어오는데,
@@ -186,7 +215,7 @@ class ApiClient {
     const currentToken = useAuthStore.getState().accessToken;
 
     if (currentToken && currentToken !== sentToken) {
-      return this.request<T>(endpoint, options, retryCount + 1);
+      return this.request<T>(endpoint, options, retryCount + 1, authEpoch);
     }
 
     // refresh로 새로 받은 토큰으로 재시도한 요청이 다시 TOKEN_EXPIRED를 받으면
@@ -208,11 +237,26 @@ class ApiClient {
             `${TEXTS.messages.error.tokenRefreshFailed} ${TEXTS.messages.error.unauthorizedAccessToken}`
           );
         }
+
+        // refresh를 기다리는 사이 세대가 바뀌었으면 받은 토큰은 다른 계정의 것일 수 있다 - 버린다(아래 catch)
+        if (AuthEpochUtil.hasChangedSince(authEpoch)) {
+          throw new SessionChangedError();
+        }
+
         const { accessToken } = authData;
         useAuthStore.getState().setAuth(accessToken);
-        this.notifySubscribers(accessToken);
-        return this.request<T>(endpoint, options, retryCount + 1);
+        this.notifySubscribers();
+        return this.request<T>(endpoint, options, retryCount + 1, authEpoch);
       } catch (error) {
+        // 세대가 바뀌었으면 refresh 성공·실패와 상관없이 리더·대기 요청 모두 끝낸다. 대기 요청은 refresh 전
+        // 토큰으로 보낸 것이라 재시도하면 같은 토큰으로 다시 만료돼 로그아웃 경로로 빠진다. clearAll도 하지
+        // 않는다 - 이동·정리는 로그아웃한 쪽과 useAuthEpochSync가 이미 했다
+        if (error instanceof SessionChangedError || AuthEpochUtil.hasChangedSince(authEpoch)) {
+          const sessionChanged = new SessionChangedError();
+          this.cancelSubscribers(sessionChanged);
+          throw sessionChanged;
+        }
+
         console.error(error);
         // 대기 큐의 요청들과 리더 자신 모두 reject하지 않고 영원히 pending으로 둔다 -
         // clearAll()이 곧 로그인 화면으로 이동시키는데, reject하면 진행 중이던 mutation마다
@@ -226,18 +270,25 @@ class ApiClient {
       }
     } else {
       // 이미 갱신 중이라면 새 토큰 발급 완료까지 대기 후 재시도
-      return new Promise<T>((resolve) => {
-        this.subscribeTokenRefresh(() => {
-          resolve(this.request<T>(endpoint, options, retryCount + 1));
+      return new Promise<T>((resolve, reject) => {
+        // 재시도는 리더가 C2(세대 확인)를 통과한 직후에만 불려, 그때 대기 요청의 세대도 리더와 같다
+        this.subscribeTokenRefresh({
+          retry: () => resolve(this.request<T>(endpoint, options, retryCount + 1, authEpoch)),
+          cancel: reject,
         });
       });
     }
   }
 
+  /**
+   * @param authEpoch 이 요청이 속한 인증 세대. 처음 보낼 때 이 탭 토큰의 세대로 잡고, 재시도는 처음 값을
+   *   그대로 넘긴다(handleTokenExpired 참고).
+   */
   private async request<T>(
     endpoint: string,
     options?: ApiRequestOptions,
-    retryCount = 0
+    retryCount = 0,
+    authEpoch: string | null = AuthEpochUtil.ofToken()
   ): Promise<T> {
     let url = endpoint.startsWith('http') ? endpoint : `${this.baseURL}${endpoint}`;
     const isAuth = this.isAuthEndpoint(endpoint);
@@ -296,12 +347,18 @@ class ApiClient {
               endpoint,
               options,
               retryCount,
-              headers['X-Access-Token']
+              headers['X-Access-Token'],
+              authEpoch
             );
           } else if (isSessionInvalidCode(errorResponse.code)) {
             if (endpoint.includes(API_ENDPOINTS.auth.refresh)) {
               // 앱 초기화 시 자동 호출되는 refresh는 조용히 실패 (toast/navigate 불필요)
               throw new ApiError(errorResponse);
+            }
+            // 보낸 뒤 인증 세대가 바뀌었으면(예: 비로그인으로 보낸 요청이 돌아오기 전에 이 탭에서 로그인)
+            // 이 401은 지금 세션과 무관하다 - clearAll로 방금 한 로그인을 지우지 않는다(client.test.ts Case 7-6)
+            if (AuthEpochUtil.hasChangedSince(authEpoch)) {
+              throw new SessionChangedError();
             }
             // 로그아웃 처리 중(clearQueries의 배경 재요청) 온 401은 세션 만료가 아니라 레이스이므로 재이동하지 않는다
             if (!AuthUtil.isLoggingOut()) {
@@ -355,8 +412,12 @@ class ApiClient {
         return text as unknown as T;
       }
     } catch (error) {
-      // AbortError는 사용자가 의도적으로 취소한 것이므로 로그 출력 제외
-      if (error instanceof Error && error.name === 'AbortError') {
+      // AbortError는 사용자가 의도적으로 취소한 것, SessionChangedError는 인증 세대가 바뀌어 일부러 끝낸
+      // 것이므로 로그 출력 제외
+      if (
+        (error instanceof Error && error.name === 'AbortError') ||
+        error instanceof SessionChangedError
+      ) {
         throw error;
       }
 

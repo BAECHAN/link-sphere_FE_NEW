@@ -55,4 +55,43 @@ describe('AuthEpochUtil', () => {
     expect(readStored()).toBeNull();
     expect(AuthEpochUtil.isStale()).toBe(false);
   });
+
+  describe('토큰이 속한 세대 (client.ts가 요청마다 기억)', () => {
+    it('이 탭의 로그인·로그아웃은 토큰 세대도 새 값으로 맞춘다', () => {
+      AuthEpochUtil.markLogin();
+      expect(AuthEpochUtil.ofToken()).toBe(readStored());
+
+      AuthEpochUtil.markLogout();
+      expect(AuthEpochUtil.ofToken()).toBe(readStored());
+    });
+
+    it('다른 탭이 쓴 값은 acknowledge해도 토큰 세대를 바꾸지 않는다 - 새 토큰을 넣을 때(bindToken)만 맞춘다', () => {
+      AuthEpochUtil.markLogin();
+      const before = AuthEpochUtil.ofToken();
+      writeFromOtherTab('in:other-tab');
+
+      AuthEpochUtil.acknowledge();
+
+      expect(AuthEpochUtil.ofToken()).toBe(before);
+      expect(AuthEpochUtil.hasChangedSince(before)).toBe(true);
+
+      AuthEpochUtil.bindToken();
+
+      expect(AuthEpochUtil.ofToken()).toBe('in:other-tab');
+      expect(AuthEpochUtil.hasChangedSince(AuthEpochUtil.ofToken())).toBe(false);
+    });
+
+    it('세대 키가 없는 사용자는 null끼리 같아 바뀌지 않은 것으로 본다', () => {
+      expect(AuthEpochUtil.ofToken()).toBeNull();
+      expect(AuthEpochUtil.hasChangedSince(null)).toBe(false);
+    });
+
+    it('reset은 토큰 세대도 비운다', () => {
+      AuthEpochUtil.markLogin();
+
+      AuthEpochUtil.reset();
+
+      expect(AuthEpochUtil.ofToken()).toBeNull();
+    });
+  });
 });
