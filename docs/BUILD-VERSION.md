@@ -8,7 +8,7 @@
 > 코드"와 "서버에 실제로 올라간 코드"를 어떻게 비교하는지, 배지 색이 왜 그 색인지,
 > 검증이 실패하면 어떻게 알림이 오고 언제 닫히는지 알고 판정 조건을 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-10-13
+> **마지막 검토**: 2026-10-14
 
 배포 워크플로우가 success로 끝났다는 것과, 실제로 그 코드가 사용자 화면에 반영된
 것은 다른 사건이다. 이 기능은 그 둘 사이를 사람이 눈으로(`/version` 화면), 그리고
@@ -42,15 +42,15 @@ flowchart TD
   subgraph DEPLOY["② 배포 (deploy.yml)"]
     B --> D["s3 sync assets/<br/>max-age=31536000"]
     C --> E["s3 cp version.json<br/>no-cache, no-store"]
-    F["s3 cp index.html<br/>no-cache, no-store"] --> G["CloudFront invalidation /*"]
-    F2["s3 cp index.html → 404.html<br/>no-cache, no-store"] --> G
+    F["s3 cp index.html<br/>no-cache"] --> G["CloudFront invalidation /*"]
+    F2["s3 cp index.html → 404.html<br/>no-cache"] --> G
     D --> G
     E --> G
   end
 
   subgraph VERIFY["③ 자동 검증 (배포 직후, 최대 2분 재시도)"]
     G --> H["curl /version.json<br/>.sha == GITHUB_SHA ?"]
-    G --> I["curl -I /index.html<br/>cache-control에 no-store ?"]
+    G --> I["curl -I /index.html<br/>no-cache 있고 no-store 없나?"]
     G --> J["curl /index.html entry 해시<br/>== dist/index.html ?"]
     G --> J2["curl /404.html entry 해시<br/>== dist/index.html ?"]
     H --> K{"넷 다 통과?"}
@@ -96,8 +96,7 @@ NEW-VERSION-RELOAD는 **자동으로** 리로드시키는 기능이고, 이 문�
   `version.json`을 강제로 재요청한다(§5). `VersionUtil.fetchDeployedEntryScriptSrc`와
   같은 패턴
 - **GitHub Actions `concurrency`** — 연속 배포가 검증 스텝을 서로 밟지 않게 한다(§5)
-- **`aws s3 cp --cache-control`** — `index.html`과 같은 이유로 `version.json`도
-  무캐시로 올린다(§5)
+- **`aws s3 cp --cache-control`** — `version.json`을 저장하지 않게(`no-store`) 올린다(§5)
 - **GitHub `compare`/`commit`/`blob` URL** — "이 빌드에 뭐가 들어있나"를 앱이 직접
   구현하지 않고 GitHub에 위임한다(§5)
 
@@ -145,7 +144,7 @@ mode}`(커밋 단위로 결정론적인 값)만 담고, `builtAt`·`runNumber`�
 `VersionUtil.readEntryScriptSrc`는 `document`의 첫 `script[type="module"][src]`를
 읽는데, dev 서버에서는 그게 실제 엔트리(`/src/main.tsx`)가 아니라 Vite HMR
 클라이언트(`/@vite/client`)다. `useAppVersionCheck`는 애초에 DEV 모드에서 이 함수
-자체를 호출하지 않아(`useAppVersionCheck.ts:32-34`) 이 문제가 드러난 적이 없었다.
+자체를 호출하지 않아(`useAppVersionCheck.ts:33-35`) 이 문제가 드러난 적이 없었다.
 `VersionPage`는 이 함수를 새로 노출하는 자리라 이 문제가 처음 드러났고, `VersionUtil`
 쪽을 고치는 대신 `VersionPage`가 DEV 모드에서 그 줄 자체를 숨긴다
 ([VersionPage.tsx:106-113](../src/pages/version/VersionPage.tsx#L106-L113)) —
@@ -280,6 +279,8 @@ x-cache: RefreshHit from cloudfront   # 3회 연속 요청 모두 동일
 실질적으로 동일하게 동작한다는 것도 함께 확인됐다 — 로컬 브라우저 캐시는
 `no-store`라 애초에 저장되지 않고, CDN 엣지도 캐시 없이 매번 재검증하므로 "소프트
 새로고침으로는 CDN 캐시를 못 뚫는다"는 우려가 이 파이프라인에는 해당하지 않는다.
+(2026-10-14부터 HTML은 `no-cache`다 — 브라우저가 저장은 하지만 쓸 때마다 재검증하므로 이 결론은 그대로다.
+바꾼 이유는 [CACHE-STRATEGY.md](./CACHE-STRATEGY.md) §5.10, 배포 검증 ②도 그때부터 `no-cache`를 본다.)
 
 로컬 `vite preview`로 배포 반영 검증 스크립트를 드라이런한 결과, ①sha 일치·③entry
 해시 일치는 통과했고 ②cache-control 체크는 "실패"로 나왔다 — 이건 스크립트 버그가

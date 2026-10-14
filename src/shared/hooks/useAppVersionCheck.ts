@@ -18,7 +18,8 @@ export const VERSION_CHECK_THROTTLE_MS = 1000 * 60 * 5;
  * 포커스 감지를 focus 대신 visibilitychange로만 하도록 바꿨고, React Query 재조회는 그 기본을 그대로
  * 쓴다(https://tanstack.com/query/latest/docs/framework/react/guides/migrating-to-v5). 여기서 focus를
  * 빼지 않는 이유는 데스크톱 창 전환처럼 가시성은 그대로인 복귀도 잡기 위해서다. 두 이벤트가 연달아
- * 와도 아래 스로틀이 한 번만 확인하게 한다. setInterval 폴링은 하지 않는다.
+ * 와도 아래 스로틀이 한 번만 확인하게 한다. 뒤로가기로 bfcache에서 되살아날 때(pageshow persisted)도
+ * 같은 확인을 한다. setInterval 폴링은 하지 않는다.
  * dev 서버에서는 첫 module script가 /@vite/client라 비교가 무의미하므로 아무것도 하지 않는다.
  * 앱 전체에서 RootLayout 한 곳에서만 호출한다.
  */
@@ -80,12 +81,24 @@ export function useAppVersionCheck() {
         void checkDeployedVersion();
       };
 
+      // 뒤로가기로 bfcache에서 되살아난 페이지는 그 사이 배포가 있었을 수 있다. Chromium은 복원 때
+      // visibilitychange도 보내지만(2026-10-14 실측) 다른 브라우저를 위해 pageshow(persisted)도 듣는다
+      const handlePageShow = (event: PageTransitionEvent) => {
+        if (!event.persisted) {
+          return;
+        }
+
+        void checkDeployedVersion();
+      };
+
       window.addEventListener('focus', handleFocus);
       document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('pageshow', handlePageShow);
 
       return () => {
         window.removeEventListener('focus', handleFocus);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('pageshow', handlePageShow);
       };
     },
     [markNewVersionDetected]

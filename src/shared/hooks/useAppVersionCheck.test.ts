@@ -139,6 +139,22 @@ describe('useAppVersionCheck', () => {
     });
   });
 
+  it('bfcache에서 되살아나면(pageshow persisted) 확인하고, 일반 로드(persisted false)는 무시한다', async () => {
+    const handlerCalled = mockDeployedIndexHtml(NEW_SRC);
+    renderHook(() => useAppVersionCheck());
+
+    advancePastThrottle();
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false }));
+    await flushFetchChain();
+    expect(handlerCalled).not.toHaveBeenCalled();
+
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+
+    await vi.waitFor(() => {
+      expect(useAppVersionStore.getState().detectedAtPathname).toBe('/');
+    });
+  });
+
   it('탭이 숨겨질 때(hidden)는 확인하지 않는다', async () => {
     const handlerCalled = mockDeployedIndexHtml(NEW_SRC);
     renderHook(() => useAppVersionCheck());
