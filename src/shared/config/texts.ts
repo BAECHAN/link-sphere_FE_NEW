@@ -454,6 +454,8 @@ export const TEXTS = {
       linkCopied: '링크를 복사했어요.',
       originalLinkCopied: '원본 링크를 복사했어요.',
       bookmarkSavedTo: (folderName: string) => `${folderName}에 저장했어요.`,
+      // 낡은 화면에서 미분류로 저장했는데 서버엔 이미 폴더 소속이 있던 경우(저장은 기존 소속을 유지한다)
+      bookmarkAlreadyInOtherFolders: '이미 다른 폴더에 저장돼 있어요.',
       bookmarkRemovedFromFolder: (folderName: string) => `${folderName} 폴더에서 제거했어요.`,
       bookmarkClearedAllFolders: '모든 폴더에서 제거했어요.',
       bookmarkRemovedWithLastFolderDescription: '마지막 폴더라서 북마크도 함께 제거했어요.',
