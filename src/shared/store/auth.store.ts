@@ -27,6 +27,12 @@ interface AuthState {
   setAccessToken: (token: string | null) => void; // 하위 호환성 유지
   setAuthResolved: (resolved: boolean) => void;
   clearAuth: () => void;
+  /**
+   * 이 탭의 메모리 토큰만 지운다 - 세션 플래그 등 localStorage는 건드리지 않는다. 다른 탭에서 일어난
+   * 로그아웃·로그인을 이 탭에 반영할 때 쓴다(useAuthEpochSync): 그 값은 다른 탭이 이미 최종값으로
+   * 써 뒀고, clearAuth처럼 지우면 다른 탭이 방금 만든 세션 플래그를 깨뜨린다.
+   */
+  clearLocalAuth: () => void;
 }
 
 /** 세션 플래그는 인증 상태 변경 지점에서만 갱신한다 (단일 소유) */
@@ -58,6 +64,7 @@ export const useAuthStore = create<AuthState>()(
         LocalStorageUtil.removeItem(STORAGE_KEYS.AUTH.LAST_AVATAR);
         set({ accessToken: null, isAuthenticated: false });
       },
+      clearLocalAuth: () => set({ accessToken: null, isAuthenticated: false }),
     }),
     { name: 'auth-store' }
   )

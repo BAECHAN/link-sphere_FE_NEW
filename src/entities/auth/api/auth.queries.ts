@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient, type Query } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/entities/auth/api/auth.api';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { ApiError } from '@/shared/types/common.type';
@@ -18,11 +18,11 @@ import { toast } from '@/shared/lib/toast/toast';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { useNavigate } from 'react-router-dom';
 import { requestAndRegisterFcmToken, unregisterFcmToken } from '@/shared/lib/firebase/fcm';
-import { handleEmailVerificationConfirmSuccess } from '@/entities/auth/api/auth.keys';
-
-function isErroredCacheWithoutData(query: Query): boolean {
-  return query.state.status === 'error' && query.state.data === undefined;
-}
+import {
+  handleEmailVerificationConfirmSuccess,
+  isErroredCacheWithoutData,
+} from '@/entities/auth/api/auth.keys';
+import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 
 export const useLoginMutation = () => {
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -32,8 +32,10 @@ export const useLoginMutation = () => {
     mutationFn: (payload: Login) => authApi.login(payload),
     meta: { manualErrorHandling: true },
     onSuccess: (data) => {
-      // 1. 새 토큰 저장 (인증 상태 전환)
+      // 1. 새 토큰 저장 (인증 상태 전환). 세션 플래그를 쓴 뒤에 인증 세대를 바꿔야, 그 변화를 받은
+      //    다른 탭(useAuthEpochSync)이 세션 플래그를 보고 쿠키로 세션을 받아들인다
       setAuth(data.accessToken);
+      AuthEpochUtil.markLogin();
       // 2. 로그아웃이 남긴 에러 캐시만 초기화한다. clearQueries()의 resetQueries()가 토큰을
       //    지운 직후 화면에 남아있던 쿼리를 배경 재요청시켜 401로 error 상태를 만드는데,
       //    Suspense 쿼리는 캐시가 error면 재마운트해도 retryOnMount=false로 막혀 새 요청을
@@ -95,7 +97,11 @@ export const useLogoutMutation = () => {
       AuthUtil.clearQueries();
     }
 
-    // 3. FCM 토큰 해제는 백그라운드로 처리
+    // 3. 다른 탭·bfcache 페이지가 이 로그아웃을 알아채게 인증 세대를 바꾼다(useAuthEpochSync).
+    //    세션 플래그를 지운 뒤라 그쪽은 세션 복원 없이 로그아웃 상태로 끝난다
+    AuthEpochUtil.markLogout();
+
+    // 4. FCM 토큰 해제는 백그라운드로 처리
     unregisterFcmToken().catch((error) => {
       console.error('[LOGOUT] Error unregistering FCM token:', error);
     });

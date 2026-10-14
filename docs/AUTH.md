@@ -3,7 +3,7 @@
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
 > 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지, 그리고 로그인한 사람도 글을 못 쓸 때가 있는 이유를 설명할 수 있게 됩니다. 비밀번호를 새로 만드는 폼이 입력 중에 언제 무엇을 보여주는지(§8-G)도 여기서 다룹니다.
-> **마지막 검토**: 2026-10-13
+> **마지막 검토**: 2026-10-14
 
 ---
 
@@ -128,6 +128,8 @@ RootLayout
 | localStorage                      | `linksphere:auth:has-session` | **boolean 하나뿐**                                             | 영구(자가 복구, 아래 참고)                                 | 가능     |
 | localStorage                      | `linksphere:auth:saved-email` | 로그인 폼 "이메일 저장" 값                                     | 영구                                                       | 가능     |
 | localStorage                      | `linksphere:auth:last-avatar` | 아바타 URL(선반입용)                                           | 영구(로그아웃 시 제거)                                     | 가능     |
+| localStorage                      | `linksphere:auth:epoch`       | 인증 세대 `in:<UUID>`(로그인)·`out:<UUID>`(로그아웃·탈퇴)      | 영구(명시적 로그인·로그아웃마다 새 값, §8-H)               | 가능     |
+| 모듈 변수(`auth-epoch.util.ts`)   | `knownEpoch`                  | 이 페이지가 마지막으로 맞춘 세대                               | 페이지 수명(bfcache 복원 때는 멈추기 전 값 그대로)         | 가능     |
 | httpOnly 쿠키(BE 설정)            | `__Host-refreshToken`         | 리프레시 토큰(불투명)                                          | 최대 7일(BE `MemberSessionService.REFRESH_TOKEN_VALIDITY`) | **불가** |
 
 로그인 폼 이메일 입력의 초기값은 위 `saved-email`뿐 아니라 `location.state.email`의 영향도
@@ -139,9 +141,9 @@ RootLayout
 
 **절대 저장하지 않는 것**: 액세스 토큰(어떤 스토리지에도 없음, 메모리 전용), 리프레시 토큰(JS가 못 만짐), 계정 정보(React Query 캐시에만, `accountKeys.root`) — 게이트 D가 보는 `account.emailVerified`도 이 캐시 안에 있고 `useAuthStore`에는 없습니다.
 
-**비밀번호 변경 시 세션 회전**: `useChangePasswordMutation`(`auth.queries.ts:185-197`)의 `onSuccess`가 BE가 새로 발급한 세션으로 `setAuth(data.accessToken)`을 호출합니다 — BE가 비밀번호 변경 시 이 기기를 포함한 세션 회전 계열(familyId)을 새로 만들고 다른 기기의 세션은 전부 폐기하기 때문입니다. 로그인·refresh와 마찬가지로 `useAuthStore`의 `accessToken`을 갱신하는 세 번째 트리거입니다.
+**비밀번호 변경 시 세션 회전**: `useChangePasswordMutation`(`auth.queries.ts:191-203`)의 `onSuccess`가 BE가 새로 발급한 세션으로 `setAuth(data.accessToken)`을 호출합니다 — BE가 비밀번호 변경 시 이 기기를 포함한 세션 회전 계열(familyId)을 새로 만들고 다른 기기의 세션은 전부 폐기하기 때문입니다. 로그인·refresh와 마찬가지로 `useAuthStore`의 `accessToken`을 갱신하는 세 번째 트리거입니다.
 
-`useAuthStore`(`src/shared/store/auth.store.ts:41-63`)는 `devtools` 미들웨어만 쓰고 **`persist`가 없습니다 — 의도적입니다.** `accessToken`은 항상 `isAuthenticated`와 함께 `setAuth`/`clearAuth` 한 곳에서만 갱신되므로(`auth.store.ts:47-50`, `:56-60`) 두 값은 절대 어긋나지 않습니다. **이 등가성이 §8-A의 동작을 결정짓는 핵심 사실입니다.**
+`useAuthStore`(`src/shared/store/auth.store.ts:47-71`)는 `devtools` 미들웨어만 쓰고 **`persist`가 없습니다 — 의도적입니다.** `accessToken`은 항상 `isAuthenticated`와 함께 `setAuth`/`clearAuth`/`clearLocalAuth`에서만 갱신되므로(`auth.store.ts:53-56`, `:62-67`) 두 값은 절대 어긋나지 않습니다. `clearLocalAuth`는 `clearAuth`와 달리 localStorage를 건드리지 않는 메모리 전용 정리로, 다른 탭에서 일어난 변화를 이 탭에 반영할 때만 씁니다(§8-H). **이 등가성이 §8-A의 동작을 결정짓는 핵심 사실입니다.**
 
 `linksphere:auth:has-session` 플래그(`auth.store.ts:16-19`)는 "세션이 있을 가능성"에 대한 힌트일 뿐, 진짜 인증 상태가 아닙니다:
 
@@ -405,7 +407,7 @@ effect(`:58-74`, #228로 `features/auth/login`에서 이 경로로 이동)가 �
 ### 8-E. 로그인·로그아웃 시 React Query 캐시 처리
 
 **로그아웃은 화면이 곧 다른 곳으로 이동하는지에 따라 캐시 처리 방식이 갈립니다**
-(`useLogoutMutation`의 `isProtectedPath` 분기, `auth.queries.ts:82-107`, 분기 자체는 `:91`):
+(`useLogoutMutation`의 `isProtectedPath` 분기, `auth.queries.ts:84-113`, 분기 자체는 `:93`):
 
 | 경로                                      | 호출                             | 캐시 처리                                         | 배경 재요청 | 왜                                                                     |
 | ----------------------------------------- | -------------------------------- | ------------------------------------------------- | ----------- | ---------------------------------------------------------------------- |
@@ -641,6 +643,56 @@ flowchart TD
 배치 시안(A 2열 · B 세로 · C 가로 한 줄)은 Artifact 미리보기
 (https://claude.ai/artifact/7msbwHbj9WtYc5ni5jycLq)로 나란히 보고 C를 골랐습니다.
 
+### 8-H. 탭 간 동기화와 bfcache 복원 재확인 (인증 세대)
+
+**왜 필요한가**: 액세스 토큰은 탭 메모리에만 있어서, 한 탭에서 로그아웃해도 다른 탭은 다음 인증
+요청에서 401을 받을 때까지 로그인 화면 그대로였습니다. 또 HTML을 `no-cache`로 바꿔 뒤로가기가
+bfcache로 복원되면([CACHE-STRATEGY.md](./CACHE-STRATEGY.md) §5.10), 로그아웃 뒤 뒤로가기에 이전 화면이 메모리째 돌아옵니다.
+지금까지는 HTML이 `no-store`라 Chrome이 쿠키가 바뀌면 그 페이지를 bfcache에서 내보내 막아 줬습니다
+([Chrome — bfcache와 no-store](https://developer.chrome.com/docs/web-platform/bfcache-ccns)).
+
+**인증 세대**([`auth-epoch.util.ts`](../src/shared/utils/auth-epoch.util.ts)): 명시적 로그인은
+`in:<UUID>`, 로그아웃·탈퇴는 `out:<UUID>`를 localStorage `linksphere:auth:epoch`에 씁니다. 세션 플래그를
+쓴 **뒤에** 씁니다. 토큰 갱신·앱 시작 복원·갱신 실패 정리에서는 바꾸지 않습니다 — 한 탭의 네트워크
+오류가 모든 탭을 로그아웃시키지 않게 하려는 것이라, `setAuth`/`clearAuth` 안이 아니라 호출부
+(`auth.queries.ts`의 로그인·로그아웃, `account.queries.ts`의 탈퇴)에서 씁니다.
+
+**재확인**([`useAuthEpochSync.ts`](../src/entities/auth/hooks/useAuthEpochSync.ts), `AuthProvider`에서 마운트):
+
+```mermaid
+flowchart TD
+  EV["다른 탭의 storage 이벤트"] --> R
+  V["탭이 다시 보임(visibilitychange)<br/>bfcache 복원 때 pageshow보다 먼저 옴"] --> R
+  PS["bfcache 복원(pageshow persisted)"] --> R
+  R{"메모리 세대 = 저장 세대?"}
+  R -->|"같음"| N["아무것도 안 함"]
+  R -->|"다름"| T{"이 탭이 토큰을 들고 있나?"}
+  T -->|"예 + 살아 있는 탭이 로그인 이벤트를 받음"| AD["이동 없이 쿠키로 새 세션 받아들이기"]
+  T -->|"예 (그 밖)"| SO["이 탭만 로그아웃 처리<br/>(localStorage는 안 건드림)<br/>보호 경로면 /post로"]
+  T -->|"아니오"| S
+  SO --> S{"저장값 in: 이고 세션 플래그 있음?"}
+  S -->|"예"| RS["로그인 모달 재개 동작 비우기<br/>→ 쿠키로 세션 복원<br/>→ 로그인과 같은 캐시 처리"]
+  S -->|"아니오"| E["로그아웃 상태로 끝"]
+  RS -->|"실패"| E
+  AD -->|"실패(같은 쿠키라 재시도 없음)"| SO2["이 탭만 로그아웃 처리"]
+```
+
+- **새로고침하지 않는 이유**: 작성 중인 폼이 있으면 `beforeunload` 이탈 확인창이 뜨고([UNSAVED-CHANGES-GUARD.md](./UNSAVED-CHANGES-GUARD.md)),
+  취소하면 이전 사용자 화면이 남습니다. 그래서 지금의 로그아웃 분기와 같은 제자리 정리를 합니다.
+- **`document`에 리스너를 다는 이유**: bfcache 복원 때 `visibilitychange`가 `pageshow`보다 먼저 와서
+  (2026-10-14 Chromium 실측), React Query가 옛 토큰으로 재조회하기 전에 정리해야 합니다. TanStack Query는
+  `window`에서 듣고, 이벤트는 `document`를 먼저 지납니다.
+- **살아 있는 탭이 로그인 이벤트를 받았는데 토큰을 들고 있으면 내보내지 않습니다**: 명시적 로그아웃이
+  있었다면 이 탭이 그 `out:` 이벤트를 이미 받아 로그아웃됐을 것이므로, 조용히 세션을 잃은 탭에서 같은
+  사람이 다시 로그인한 경우입니다. 내보내면 작성 중이던 폼이 사라집니다. bfcache·탭 복귀 경로는 그 사이
+  로그아웃이 있었는지 알 수 없어 엄격하게(로그아웃 처리 뒤 복원) 합니다.
+- **복원 실패**는 이 탭만 로그아웃 상태로 둡니다(세션 플래그를 지우지 않음). 앱 시작 복원이 진행 중이면
+  (`isAuthResolved=false`) 복원을 그쪽에 맡깁니다.
+- **검증**(2026-10-14, 프로덕션 빌드 + bfcache를 켠 Chromium, HTML `no-cache`): 로그인 상태 `/bookmark`도
+  bfcache에 들어갔고(막는 사유 없음), 다른 탭 로그아웃 뒤 뒤로가기 → `/post` 비로그인, 다른 계정 로그인 뒤
+  뒤로가기 → `/post` 새 계정. 30fps 녹화에서 이전 화면은 한 프레임도 보이지 않았습니다. 탭 간 동기화는
+  `e2e/auth-tab-sync.spec.ts`가 고정합니다.
+
 ### 자주 하는 수정
 
 | 하고 싶은 것                     | 건드릴 파일                                                                                                                                                                                                                                       |
@@ -851,6 +903,13 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
    남는데, pending mutation은 GC로도 지워지지 않아 같은 `scope`의 다음 요청을 영원히 막습니다
    (`auth.util.ts`의 `clearQueriesWithoutRefetch`, `auth.util.test.ts`가 고정).
 
+10. **다른 탭에서 계정이 바뀐 순간 진행 중이던 요청은 새 계정으로 재실행될 수 있습니다**(2026-10-14 설계
+    검토에서 확인, 재현 테스트 없음). 옛 토큰으로 나간 요청이 `TOKEN_EXPIRED`를 받으면 `handleTokenExpired`가
+    공유 쿠키(이미 새 계정의 것)로 갱신해 그 요청을 다시 보냅니다(`client.ts`의 `handleTokenExpired`). §8-H의
+    동기화가 다른 탭의 로그아웃·로그인을 즉시 반영해 이 구간을 "이벤트 순간 진행 중이던 요청"으로 줄였지만
+    없애지는 못했습니다. 근본 수정(요청·갱신 시작 때 인증 세대를 기억해 응답 때 다르면 버리기)은 전송 계층을
+    바꾸는 일이라 따로 판단합니다.
+
 ---
 
 ## 12. 용어 사전
@@ -863,6 +922,8 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
 - **`sentToken`**: `handleTokenExpired`의 인자. 401을 받은 그 요청이 실제로 실어 보낸 `X-Access-Token` 값입니다. 지금 스토어의 토큰과 다르면 "이 요청을 보낸 뒤 이미 누가 갱신했다"는 뜻이라 refresh 없이 재시도합니다.
 - **`hasBeenAuthenticated`**: `ProtectedRoute`가 "이 마운트에서 한 번이라도 로그인 상태였는가"를 추적하는 state(`useState`, 렌더 중에 맞춤 — 렌더 중에 읽으므로 ref가 아님). 로그아웃/세션만료(true였다가 false)와 애초에 비로그인(처음부터 false)을 구분해, 후자만 로그인 모달을 띄웁니다.
 - **`has-session` 플래그**: 리프레시 토큰이 httpOnly라 존재 여부를 JS가 알 수 없으므로 대신 두는 "세션이 있을 가능성" 힌트. 진짜 인증 상태가 아닙니다.
+- **인증 세대(epoch)**: 명시적 로그인·로그아웃마다 바뀌는 localStorage 값(`in:`/`out:` + UUID). 다른 탭과 bfcache로 되살아난 페이지가 "내가 알던 뒤로 인증이 바뀌었는가"를 알아채는 데 씁니다(§8-H).
+- **bfcache**: 뒤로/앞으로 이동 때 떠났던 페이지를 메모리(JS 상태 포함)째 복원하는 브라우저 기능. 복원되면 `pageshow` 이벤트의 `persisted`가 `true`입니다.
 - **reward early, punish late**: 입력 검증 시점 원칙(§8-G). 맞는 쪽으로 가는 변화는 즉시 알리고, 틀린 것은 입력이 끝난 뒤(칸을 벗어나거나 제출한 뒤) 알린다. 이미 틀렸다고 알린 상태를 고치는 중이면 입력하는 대로 다시 판정한다.
 - **latch(확인 칸)**: `usePasswordFieldsFeedback`의 `isConfirmLatched`. 확인 칸에 불일치를 한 번 보여줬다는 표시로, 켜져 있으면 글자 수가 모자라도 매 글자 판정을 이어간다. 일치하거나 확인 칸을 비우면 꺼진다.
 - **불투명(opaque) 세션 토큰**: payload에 아무 정보도 담지 않는 무작위 문자열 토큰. BE가

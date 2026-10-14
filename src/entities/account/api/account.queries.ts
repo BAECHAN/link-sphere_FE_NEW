@@ -18,6 +18,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { AuthUtil } from '@/shared/utils/auth.util';
+import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 import { ErrorUtil } from '@/shared/utils/error.util';
 
 interface UpdateAccountPayload extends UpdateAccount {
@@ -129,6 +130,8 @@ export const useDeleteAccountMutation = () => {
     onSuccess: () => {
       toast.success(TEXTS.messages.success.accountDeleted);
       AuthUtil.clearAll();
+      // 다른 탭·bfcache 페이지도 로그아웃 상태로 맞추게 한다(useAuthEpochSync)
+      AuthEpochUtil.markLogout();
     },
     onError: (error) => {
       if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.INVALID_CREDENTIALS) {

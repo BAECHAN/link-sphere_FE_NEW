@@ -3,6 +3,8 @@ import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { server } from '@/mocks/server';
 import { useAuthStore } from '@/shared/store/auth.store';
+// storage.util만 import해 각 테스트 파일의 vi.mock 순서에 영향을 주지 않는다(logout-grace.util.ts reset() 주석 참고)
+import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 import { resetPendingSearchParams } from '@/shared/hooks/useSearchParamsDraft';
 import { resetFailedImages } from '@/shared/lib/image/failedImageCache';
 
@@ -13,6 +15,7 @@ afterEach(() => {
   server.resetHandlers();
   cleanup();
   useAuthStore.getState().clearAuth();
+  AuthEpochUtil.reset();
   resetPendingSearchParams();
   resetFailedImages();
 });

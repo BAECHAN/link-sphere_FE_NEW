@@ -264,8 +264,8 @@ Threads 글의 네 군데에는 없지만 §5.3의 반대편이다 — HTML이 �
 | CloudFront 엣지                                       | 모든 파일                              | 정책 TTL(값은 §7)              | 배포마다 `/*` 무효화                                                                         |
 | S3                                                    | 지금 빌드 + 옛 `assets/`·`fonts/`      | 마지막 배포 포함 후 7일        | 옛 자산 정리 스텝                                                                            |
 | 탭 메모리                                             | 실행 중인 JS 번들                      | 탭을 닫거나 새로고침할 때까지  | 감지 → 다음 이동 때 새로고침                                                                 |
-| `sessionStorage` `linksphere:version:last-detected`   | 마지막으로 감지한 entry                | 탭 세션                        | 같은 값 재감지 루프 가드([storage-keys.ts:26](../src/shared/config/storage-keys.ts#L26))     |
-| `sessionStorage` `linksphere:chunk-reload:<pathname>` | 그 경로에서 새로고침했음               | 탭 세션                        | 청크 실패 새로고침 루프 가드([storage-keys.ts:32](../src/shared/config/storage-keys.ts#L32)) |
+| `sessionStorage` `linksphere:version:last-detected`   | 마지막으로 감지한 entry                | 탭 세션                        | 같은 값 재감지 루프 가드([storage-keys.ts:28](../src/shared/config/storage-keys.ts#L28))     |
+| `sessionStorage` `linksphere:chunk-reload:<pathname>` | 그 경로에서 새로고침했음               | 탭 세션                        | 청크 실패 새로고침 루프 가드([storage-keys.ts:34](../src/shared/config/storage-keys.ts#L34)) |
 | 모듈 변수 `isReloadInFlight`                          | 이 페이지에서 새로고침을 걸었음        | 페이지 수명                    | 새로고침되면 초기화([chunk-reload.util.ts:8](../src/shared/utils/chunk-reload.util.ts#L8))   |
 
 `useAppVersionStore`(감지 결과)의 shape는 [NEW-VERSION-RELOAD.md](./NEW-VERSION-RELOAD.md) §6.

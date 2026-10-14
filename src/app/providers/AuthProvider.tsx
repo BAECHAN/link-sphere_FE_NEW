@@ -1,4 +1,5 @@
 import { useAppInitialization } from '@/entities/auth/hooks/useAppInitialization';
+import { useAuthEpochSync } from '@/entities/auth/hooks/useAuthEpochSync';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -15,6 +16,8 @@ interface AuthProviderProps {
  */
 export function AuthProvider({ children }: AuthProviderProps) {
   useAppInitialization();
+  // 다른 탭의 로그인·로그아웃과 bfcache 복원 때의 인증 변화를 이 탭에 맞춘다
+  useAuthEpochSync();
 
   return <>{children}</>;
 }
