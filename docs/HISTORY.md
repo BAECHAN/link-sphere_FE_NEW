@@ -1,4 +1,7 @@
 ### 2026-10-14 (FE)
+- 인증 상태 동기화 로직 개선을 통해 멀티 탭 환경에서의 세션 충돌 방지 및 요청 무결성 확보 ([#381](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/381))
+
+### 2026-10-14 (FE)
 - 피드 범위 필터에 '좋아요한' 옵션을 추가하여 사용자가 좋아요를 누른 게시글만 필터링하여 조회할 수 있도록 개선 ([#382](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/382))
 
 ### 2026-10-14 (FE)
