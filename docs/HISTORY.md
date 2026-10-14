@@ -1,3 +1,6 @@
+### 2026-10-14 (BE)
+- 게시글 목록 조회 API에 `filter=isLiked` 파라미터를 추가하여 사용자가 좋아요한 게시글만 필터링하여 조회하는 기능 구현 ([#94](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/94))
+
 ### 2026-10-14 (FE)
 - 브라우저 뒤로가기 시 이전 화면을 즉시 복원하도록 HTML 캐시 정책을 no-cache로 설정하여 사용자 경험 개선 ([#377](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/377))
 
