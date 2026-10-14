@@ -1,3 +1,8 @@
+### 2026-10-14 (BE)
+- PostgreSQL 기반의 데이터베이스 통합 테스트 환경 구축
+로그:
+- test(infra): 저장소 쿼리를 실제 Postgres로 검증하는 통합 테스트 도입 ([#91](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/91))
+
 ### 2026-10-14 (FE)
 - 북마크 폴더 삭제 시 동기화 로직을 개선하여 타 기기에서 추가한 폴더 데이터 유지 기능 구현 ([#364](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/364))
 
