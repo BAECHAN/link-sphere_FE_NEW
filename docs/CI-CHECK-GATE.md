@@ -152,6 +152,7 @@ ignore 패턴(`'dist/**/*'`, 루트 상대 경로)에 안 걸려서 그대로 �
 | 배포 게이트에 검사 스텝 추가       | `.github/workflows/deploy.yml`의 "Type check, lint & format check" 스텝                                                                                                                                       |
 | Node 버전 변경                     | `.nvmrc` — `ci.yml`·`deploy.yml` 등 워크플로가 모두 `node-version-file`로 그 값을 읽는다. 24 미만으로 낮출 때는 `package.json`의 `engines.node`(`>=24`, `.npmrc`의 `engine-strict=true`로 강제)도 함께 고친다 |
 | `--max-warnings` 임계값 변경       | `package.json`의 `lint`·`lint:fix` 스크립트와 `lint-staged` 설정                                                                                                                                              |
+| 커밋·push 전 검사 내용 바꾸기      | `.husky/scripts/pre-commit`·`.husky/scripts/pre-push` — `.husky/pre-commit`·`pre-push`는 지금 워크트리의 스크립트로 넘기는 중계라 고치지 않는다(§9.7)                                                         |
 | 문서-코드 참조 검사 규칙 추가·수정 | `scripts/check-docs.js` — 경로 실존/줄 번호 범위/README↔docs 동기화/검토일 신선도/`<details>` 짝(CHANGELOG.md 포함) 5종                                                                                       |
 
 ### 자주 하는 수정
@@ -331,6 +332,26 @@ Rules에 규칙으로 명문화).
 
 로컬에서는 PR을 열기 전까지 아무 검사도 없어 깨진 채 push됐으므로, `pre-push` 훅이 테스트보다 먼저
 `pnpm check:docs`(직접 측정 0.24초)를 돌리게 했다.
+
+### 9.7 워크트리가 메인 체크아웃의 옛 훅을 돌리고 있었다 (2026-10-14)
+
+§9.6의 pre-push 변경을 push해 보니 새 문서 검사가 돌지 않았다. `.git/config`의 `core.hooksPath`가 메인
+체크아웃의 `.husky/_`(절대경로)를 가리키고, husky가 만든 `.husky/_/h`는 자기 위 폴더의 `.husky/<훅>`, 즉 메인
+체크아웃의 파일을 실행한다. 메인 체크아웃의 로컬 `main`은 그때 `origin/main`보다 31커밋 뒤처져 있었다 — 모든
+워크트리가 그 시점의 훅을 돌리고 있었던 것이다. 워크트리마다 훅 폴더를 두는 husky 기본 방식은 `.npmrc`의
+`ignore-scripts=true`(보안 설정) 때문에 `pnpm install`이 `prepare: husky`를 돌리지 않아 워크트리에 `.husky/_`가
+생기지 않는다. 절대경로로 바뀐 경위는 기록이 없다(이 때문이라고 추정).
+
+그래서 `.husky/pre-commit`·`pre-push`를 중계로 바꾸고 실제 검사는 `.husky/scripts/`로 옮겼다. git은 훅을 실행하기
+전에 작업 디렉터리를 그 작업 트리의 루트로 바꾸므로([githooks 문서](https://git-scm.com/docs/githooks)) 중계는 지금
+워크트리의 `.husky/scripts/<훅>`을 실행하고, 없으면(도입 전에 갈라진 브랜치) 자기 옆의 것을 쓴다. 가짜
+워크트리·메인 폴더로 흉내 내 ① 지금 위치의 스크립트를 고르고 ② 없으면 메인 것으로 대체하며 ③ 인자·표준입력·
+종료 코드를 그대로 넘기는 것을 확인했다(직접 실행). 이제 검사 내용을 바꾸면 그 브랜치에서 바로 적용된다 — 중계
+파일 자체를 바꿀 때만 메인 체크아웃을 `git -C <메인 체크아웃> merge --ff-only origin/main`으로 갱신하면 된다.
+
+기각한 대안: husky 기본 방식(상대경로 + 워크트리마다 `pnpm exec husky`) — 부트스트랩 단계가 하나 늘고, 빠뜨린
+워크트리는 훅이 조용히 아예 안 돈다. 병합마다 메인 체크아웃 자동 갱신 — 여러 세션이 같이 쓰는 체크아웃을
+자동으로 건드린다.
 
 ## 10. 남은 것
 
