@@ -1,3 +1,6 @@
+### 2026-10-14 (BE)
+- 좋아요 및 북마크 관련 레거시 POST 토글 API 제거를 통한 인터랙션 로직 최적화 및 코드 정리 ([#92](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/92))
+
 ### 2026-10-14 (FE)
 - 배포 프로세스 최적화 및 런타임 안정성 개선
   - 배포 중 발생하는 화이트 아웃 현상 및 Chunk load error 대응을 위한 배포 전략 수정 ([#366](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/366))
