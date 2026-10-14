@@ -59,6 +59,12 @@
     - `assets/`와 `fonts/`는 업로드 때 **지우지 않습니다**(`--delete` 없이 동기화, ③의
       `--delete`도 이 두 접두사를 제외) — 이미 열려 있는 탭이 옛 lazy 청크를 계속 받을 수
       있게 하기 위해서입니다(2026-05-23 `46727dc`부터). 대신 7일 지난 것은 9번이 정리합니다.
+    - `fonts/`는 파일명에 해시가 없는 대신 **경로에 폰트 버전**이 들어갑니다
+      (`public/fonts/pretendard-1.3.9/`). 1년 `immutable`로 캐시되므로, 폰트를 바꿀 땐 같은
+      경로의 파일을 덮어쓰지 말고 디렉터리 버전을 올립니다(`index.html`의 preload·stylesheet
+      경로와 `scripts/compute-font-preload-chunks.js`도 함께). 경로가 내용을 대표하므로 ②는
+      `--size-only`로 매 배포 재업로드를 건너뜁니다(2026-10-14부터. 그 전엔 쓰지 않는 파일
+      포함 118개·13.7MB를 매번 다시 올렸다).
     - ⑤ `index.html`·⑥ `dist/version.json`(커밋 sha·배포 시각 등 빌드 식별자,
       [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고)·④ Service Worker는 무캐시
       (`no-cache, no-store, must-revalidate`)로 올립니다. `version.json`은 "배포 완료"

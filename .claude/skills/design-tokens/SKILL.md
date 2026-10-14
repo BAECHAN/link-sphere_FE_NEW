@@ -190,11 +190,12 @@ Tailwind v4 preflight엔 v3에 있던 `button, [role="button"] { cursor: pointer
 - 기본 폰트: `Pretendard` — Pretendard 공식 "dynamic subset"(가변 폰트 + unicode-range
   분할, npm 패키지 `pretendard`의 `dist/web/variable/pretendardvariable-dynamic-subset.css`를
   `font-family`만 `'Pretendard'`로 맞춰 복사한 것). `index.html`의 `<link rel="stylesheet">`가
-  `/fonts/web/variable/pretendard-dynamic-subset.css`를 가리키고, `@font-face` 92개가
+  `/fonts/pretendard-1.3.9/pretendard-dynamic-subset.css`를 가리키고, `@font-face` 92개가
   화면에 실제 쓰인 글자만큼만 조금씩(파일당 20~40KB) 내려받는다. 당근마켓·
   마켓컬리 프로덕션 실측 결과로 확인한 방식이다(2026-09-26,
   `docs/plans/2026-09-25-lighthouse-perf.md` 참고). 다만 `/post` 피드는 필요한 조각이 많아
   자주 쓰는 조각만 `index.html`에서 preload한다(`scripts/compute-font-preload-chunks.js`로
-  계산, `docs/PERFORMANCE.md` "폰트 preload 유지보수" 참고). 정적 굵기별 파일(`woff2-subset/`)은
-  더 이상 쓰지 않는다
+  계산, `docs/PERFORMANCE.md` "폰트 preload 유지보수" 참고). 정적 굵기별 파일은
+  더 이상 쓰지 않아 2026-10-14 레포에서 지웠다. 폰트 경로에 버전(`pretendard-1.3.9`)이 들어가는
+  이유와 교체 절차는 `docs/DEPLOY.md` 6번 참고(파일명에 해시가 없어 경로로 캐시를 깬다)
 - Tailwind: `font-sans` → Pretendard > sans-serif
