@@ -68,7 +68,9 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 - **스크롤**(2026-10-14) — `behavior: ScrollUtil.getBehavior()`(`src/shared/utils/scroll.util.ts`)가
   "동작 줄이기"면 즉시 이동을 준다. `behavior: 'smooth'` 리터럴은 ESLint가 막는다(`docs/FE-ARCHITECTURE.md` §25).
 - **CSS 애니메이션·트랜지션**(2026-10-15) — `src/app/globals.css` 끝의 `@media (prefers-reduced-motion: reduce)`
-  블록 하나가 전역으로 처리한다. 컴포넌트마다 `motion-reduce:`를 붙이지 않는다.
+  블록 하나가 전역으로 처리한다. 컴포넌트마다 `motion-reduce:`를 붙이지 않는다 — 특히
+  `motion-reduce:animate-none`은 스피너를 멈추고 페이드까지 없애 이 규칙과 어긋난다(#390이 필터 대기
+  표시에 붙였던 2곳을 2026-10-15에 걷어냈다).
   - `tw-animate-css`의 `animate-in`/`animate-out`(zoom·slide)은 이동·확대·회전·흐림 변수(`--tw-enter-*`·`--tw-exit-*`)를
     덮어 페이드만 남는다 — 다이얼로그·하단 시트·드롭다운·툴팁.
   - `transition-property`를 색·투명도·그림자로 고정해(`!important`, `transition-all`·인라인 style까지) `translate`·`scale`·`rotate`·높이
@@ -89,10 +91,10 @@ CSS만으로 exit(사라짐) 애니메이션을 만들 때 "화면에서 사라�
 이 값이 지금 코드 두 군데에 **매직넘버로 중복**돼 있다 — 하나를 고치면 다른
 쪽은 그대로 남는 함정이다.
 
-| 값                     | 위치                                                                                                                                                                  |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TRANSITION_MS = 200`  | `src/shared/ui/elements/ScrollToTop.tsx:10`, `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.tsx:9` — 각자 독립 선언, CSS `duration-200`과 수동 동기화 |
-| `setTimeout(..., 300)` | `src/shared/ui/elements/dialog/alert/alert.store.ts:74`, `src/shared/ui/elements/dialog/alert/Alert.tsx:56`                                                           |
+| 값                     | 위치                                                                                                                                                                   |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TRANSITION_MS = 200`  | `src/shared/ui/elements/ScrollToTop.tsx:11`, `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.tsx:10` — 각자 독립 선언, CSS `duration-200`과 수동 동기화 |
+| `setTimeout(..., 300)` | `src/shared/ui/elements/dialog/alert/alert.store.ts:74`, `src/shared/ui/elements/dialog/alert/Alert.tsx:56`                                                            |
 
 같은 패턴(exit 애니메이션 + `shouldRender` 상태 + `setTimeout`)을 새로 만들
 때는 이 값이 실제 CSS `duration-*` 클래스와 정확히 일치해야 한다는 걸 놓치지
@@ -110,15 +112,18 @@ CSS만으로 exit(사라짐) 애니메이션을 만들 때 "화면에서 사라�
 `transition-[translate,...]`를 쓴다. 게시글 카드 hover 들림이 이 문제로 처음부터 애니메이션 없이
 바로 바뀌었다(`PostCard.tsx`, 2026-10-15 수정).
 
-## 실측 현황 (직접 측정, 2026-09-22)
+## 실측 현황 (직접 측정, 2026-10-15)
 
-| 항목                     | 값                                                                                           |
-| ------------------------ | -------------------------------------------------------------------------------------------- |
-| `duration-*`             | 150×1, 200×7, 300×3                                                                          |
-| `ease-*`                 | 0건                                                                                          |
-| `prefers-reduced-motion` | 0건(이 표 기준일. 스크롤은 2026-10-14 `ScrollUtil`, CSS는 2026-10-15 `globals.css`로 대응)   |
-| `transition-all`         | 12건(`transition-colors` 10, `transition-opacity` 4, `transition-transform` 3 — 속성별 선례) |
-| `globals.css` 모션 토큰  | 0개(색상·반경·z-index·타이포그래피는 있음)                                                   |
+`src`의 `.ts`·`.tsx` 332개(테스트·스토리 제외)에서 앞뒤가 클래스 경계인 토큰만 셌다. 처음 잰
+2026-09-22 표는 본문과 `ease-*`·속성별 선례 수가 어긋나 있어 다시 쟀다.
+
+| 항목                     | 값                                                                                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `duration-*`             | 150×1, 200×10, 300×3                                                                                                                            |
+| `ease-*`                 | 1건(`select.tsx`의 `ease-in-out`)                                                                                                               |
+| `prefers-reduced-motion` | `globals.css` 전역 블록 1곳, 코드 1곳(`scroll.util.ts`), 컴포넌트 `motion-reduce:` 0곳                                                          |
+| `transition-all`         | 12건(속성별 선례: `transition-colors` 10, `transition-shadow` 6, `transition-opacity` 5, `transition-transform` 4, 임의값 `transition-[...]` 5) |
+| `globals.css` 모션 토큰  | 0개(색상·반경·z-index·타이포그래피는 있음)                                                                                                      |
 
 ## 점검 항목
 

@@ -127,6 +127,13 @@
 
 ### Fixed
 
+- `post` 동작 줄이기를 켜면 필터 대기 표시의 스피너만 멈추던 문제
+  <details><summary>배경·구현</summary>
+
+  필터 응답이 늦을 때 목록을 덮는 대기 표시(#390)는 덮개와 스피너에 `motion-reduce:animate-none`을 붙여, 동작 줄이기를 켜면 덮개는 페이드 없이 나타나고 스피너는 멈췄다. 같은 날 병합된 #392는 이 설정에서 페이드는 남기고 스피너는 2초에 한 바퀴로 느리게 돌리는 규칙을 `globals.css` 한 곳에 두기로 했는데(사용자 결정), 두 PR이 따로 진행돼 이 화면만 예외로 남았다. 두 클래스를 걷어내 다른 스피너 13곳과 같게 했다(2026-10-15 사용자 결정). 기본 설정 화면은 그대로다. (`widgets/post/post-list/ui/PostList.tsx`, `.claude/skills/motion-ux/SKILL.md`, [PR #395](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/395))
+
+  </details>
+
 - `shared` 맨 위로·댓글 폼 버튼 등장과 카드 hover 들림이 애니메이션 없이 바뀌던 문제
   <details><summary>배경·구현</summary>
 
