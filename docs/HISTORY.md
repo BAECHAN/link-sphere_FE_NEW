@@ -1,3 +1,6 @@
+### 2026-10-15 (BE)
+- 실 DB 테스트 환경 관련 주석 현행화 ([#95](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/95))
+
 ### 2026-10-14 (FE)
 - 인증 상태 동기화 로직 개선을 통해 멀티 탭 환경에서의 세션 충돌 방지 및 요청 무결성 확보 ([#381](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/381))
 
