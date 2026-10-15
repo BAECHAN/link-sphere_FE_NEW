@@ -1,3 +1,6 @@
+### 2026-10-15 (BE)
+- 인증 보안 강화: 리프레시 토큰 재발급 시 요청 주체와 토큰 소유자의 일치 여부를 검증하여 비정상적인 토큰 탈취 및 오남용 방지 ([#97](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/97))
+
 ### 2026-10-15 (FE)
 - 인증 세션 관리 로직 개선: 계정 전환 시 이전 세션 정보가 유지되어 토큰 갱신이 잘못된 계정으로 수행되던 문제 해결 ([#391](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/391))
 
