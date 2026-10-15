@@ -1,4 +1,7 @@
 ### 2026-10-15 (FE)
+- 내 댓글 카드 호버 시 원글 및 댓글 데이터 프리페칭 기능 구현 ([#387](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/387))
+
+### 2026-10-15 (FE)
 - 피드 필터 로딩 시 발생하는 버그 3건 수정 및 안정성 개선 ([#385](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/385))
 
 ### 2026-10-15 (BE)
