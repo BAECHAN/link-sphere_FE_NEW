@@ -3,10 +3,13 @@ import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { authApi } from '@/entities/auth/api/auth.api';
 import { handleSessionAdoptedSuccess } from '@/entities/auth/api/auth.keys';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
+import { TEXTS } from '@/shared/config/texts';
+import { toast } from '@/shared/lib/toast/toast';
 import { hasStoredSession, useAuthStore } from '@/shared/store/auth.store';
 import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 import { AuthUtil } from '@/shared/utils/auth.util';
+import { ErrorUtil } from '@/shared/utils/error.util';
 
 // 아래 두 함수는 이벤트가 온 시점의 스토어 값을 읽어야 해서 훅 밖 모듈 함수로 둔다 - 훅 안의 getState()는
 // eslint.config.js의 no-restricted-syntax가 막는다(선례: useUnsavedChangesGuard.ts의 shouldBlockNavigation).
@@ -14,9 +17,13 @@ import { AuthUtil } from '@/shared/utils/auth.util';
 /**
  * 쿠키로 지금 세션을 받아 이 탭의 인증으로 삼는다. useAuth().restoreAuth는 렌더 시점 토큰으로 조기
  * 반환해 이벤트 핸들러에서 쓸 수 없고, 실패 때 clearAuth로 다른 탭의 세션 플래그까지 지운다 - 여기서는
- * 실패해도 이 탭만 정리한다(onFailure). FCM 등록은 로그인한 탭이 이미 했다.
+ * 실패해도 이 탭만 정리한다(onFailure, 실패 원인을 넘긴다). FCM 등록은 로그인한 탭이 이미 했다.
  */
-async function adoptSessionFromCookie(queryClient: QueryClient, onFailure: () => void) {
+async function adoptSessionFromCookie(
+  queryClient: QueryClient,
+  onFailure: (error?: unknown) => void,
+  onSuccess?: () => void
+) {
   // 이 탭에 열려 있던 로그인 모달의 "로그인 후 할 일"이 다른 탭의 로그인으로 실행되지 않게 한다
   const { setOnSuccess, setPendingAction } = useLoginDialogStore.getState();
   setOnSuccess(undefined);
@@ -32,9 +39,10 @@ async function adoptSessionFromCookie(queryClient: QueryClient, onFailure: () =>
 
     useAuthStore.getState().setAuth(authData.accessToken);
     handleSessionAdoptedSuccess(queryClient);
+    onSuccess?.();
   } catch (error) {
     console.error('[AUTH] Failed to adopt session from another tab', error);
-    onFailure();
+    onFailure(error);
   }
 }
 
@@ -57,8 +65,21 @@ function reconcileAuthEpoch(queryClient: QueryClient, fromOtherTab: boolean) {
   // 이벤트를 받아 로그아웃됐을 것이므로, 조용히 세션을 잃은 탭에서 같은 사람이 다시 로그인한 경우다.
   // 내보내면 작성 중이던 폼이 사라지므로 이동 없이 새 세션을 받아들인다.
   // 받아들이기가 실패하면 로그아웃 처리로 끝낸다 - 방금 같은 쿠키로 refresh가 실패했으니 다시 복원하지 않는다.
+  // 단 실패 원인이 SESSION_MISMATCH(쿠키는 유효, 다른 계정)면 토큰 없이 다시 복원한다(아래).
   if (accessToken && fromOtherTab && signedInElsewhere) {
-    void adoptSessionFromCookie(queryClient, () => AuthUtil.applySignOutFromElsewhere());
+    void adoptSessionFromCookie(queryClient, (error) => {
+      AuthUtil.applySignOutFromElsewhere();
+
+      // 같은 사람이 아니었다 - BE가 이 탭 토큰과 쿠키 주인이 다른 회원이라며 거절했다(SESSION_MISMATCH). 화면을 그대로
+      // 둔 채 그 계정이 되면 이전 계정으로 쓰던 폼이 새 계정으로 제출되므로, 로그아웃 처리(보호 경로면 /post) 뒤
+      // 쿠키 주인 계정으로 복원한다 - bfcache 복원 때와 같은 엄격한 처리다. 토큰을 비웠으니 두 번째 refresh는 헤더 없이
+      // 나가 성공한다. 세대가 바뀐 경로라 옛 토큰으로 나간 요청은 client.ts·mutation-auth-epoch.ts가 이미 막는다.
+      if (ErrorUtil.isSessionMismatch(error)) {
+        void adoptSessionFromCookie(queryClient, clearLocalAuth, () =>
+          toast.info(TEXTS.messages.info.switchedToOtherAccount)
+        );
+      }
+    });
     return;
   }
 

@@ -14,6 +14,7 @@ import { FormUtil } from '@/shared/utils/form.util';
 import { AuthUtil } from '@/shared/utils/auth.util';
 import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 import { DateUtil } from '@/shared/utils/date.util';
+import { ErrorUtil } from '@/shared/utils/error.util';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 
 interface ApiRequestOptions extends RequestInit {
@@ -157,10 +158,11 @@ class ApiClient {
 
   private isAuthEndpoint(endpoint: string): boolean {
     // 토큰이 만료되어도 401에러가 뜨지 않고 통과되어야 하는 API 목록
-    // 로그인·회원가입만 포함한다 — 리프레시(/auth/refresh)는 이 목록에 없어 만료된
-    // X-Access-Token 헤더가 있으면 그대로 실려 나간다. BE SessionAuthenticationFilter가
-    // 만료된 토큰을 만나도 예외를 삼키고 필터체인을 통과시키며, refresh 핸들러는 이
-    // 헤더를 아예 읽지 않아 무해함이 BE 소스로 확인됐다. 상세: docs/AUTH.md §11 항목 2
+    // 로그인·회원가입만 포함한다 — 리프레시(/auth/refresh)를 여기 넣으면 안 된다. refresh는
+    // X-Access-Token(만료된 토큰이어도)을 읽어 쿠키 주인과 같은 회원인지 확인한다(다르면 409
+    // SESSION_MISMATCH, handleTokenExpired). 헤더를 빼면 그 확인이 조용히 꺼진다. BE
+    // SessionAuthenticationFilter는 만료된 토큰을 만나도 예외를 삼키고 필터체인을 통과시킨다.
+    // 상세: docs/AUTH.md §11 항목 2
     const authEndpoints = [API_ENDPOINTS.auth.login, API_ENDPOINTS.auth.signup];
     return authEndpoints.some((path) => endpoint.includes(path));
   }
@@ -231,7 +233,15 @@ class ApiClient {
     if (!this.isRefreshing) {
       this.isRefreshing = true;
       try {
-        const authData = await apiClient.post<RefreshTokenResponse>(API_ENDPOINTS.auth.refresh);
+        // 원 요청이 보낸 토큰을 실어 보낸다 - BE가 refresh 쿠키의 회원과 비교해 다르면 발급하지 않고 409
+        // SESSION_MISMATCH로 답한다(다른 탭에서 다른 계정으로 로그인해 공유 쿠키가 바뀐 경우). 지금 스토어 토큰이
+        // 아니라 sentToken이어야 한다: 불일치로 이 탭을 로그아웃한 뒤 늦게 도착한 401은 스토어에 토큰이 없어
+        // 헤더 없이 갱신되고, 그러면 BE가 비교를 건너뛰어 그 요청이 새 계정으로 재실행된다.
+        const authData = await apiClient.post<RefreshTokenResponse>(
+          API_ENDPOINTS.auth.refresh,
+          undefined,
+          sentToken ? { headers: { 'X-Access-Token': sentToken } } : undefined
+        );
         if (!authData || !authData.accessToken) {
           throw new Error(
             `${TEXTS.messages.error.tokenRefreshFailed} ${TEXTS.messages.error.unauthorizedAccessToken}`
@@ -252,6 +262,20 @@ class ApiClient {
         // 토큰으로 보낸 것이라 재시도하면 같은 토큰으로 다시 만료돼 로그아웃 경로로 빠진다. clearAll도 하지
         // 않는다 - 이동·정리는 로그아웃한 쪽과 useAuthEpochSync가 이미 했다
         if (error instanceof SessionChangedError || AuthEpochUtil.hasChangedSince(authEpoch)) {
+          const sessionChanged = new SessionChangedError();
+          this.cancelSubscribers(sessionChanged);
+          throw sessionChanged;
+        }
+
+        // 쿠키 주인이 다른 회원이라 BE가 갱신을 거절했다 - 인증 세대는 그대로인 경우다(업데이트 전 번들 탭의 로그인,
+        // localStorage 쓰기 실패 등). 이 탭을 로그아웃하고 리더·대기 요청을 모두 끝낸다. clearAll은 하지 않는다 -
+        // 공유 세션 플래그를 지우면 쿠키 주인 계정의 탭이 새로고침 때 복원되지 않는다. 늦게 도착한 401로 이미
+        // 로그아웃한 뒤라면(스토어 토큰이 원 요청의 토큰과 다름) 다시 하지 않는다.
+        if (ErrorUtil.isSessionMismatch(error)) {
+          if (useAuthStore.getState().accessToken === sentToken) {
+            AuthUtil.applySessionMismatch();
+          }
+
           const sessionChanged = new SessionChangedError();
           this.cancelSubscribers(sessionChanged);
           throw sessionChanged;

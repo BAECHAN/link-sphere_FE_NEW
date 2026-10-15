@@ -189,7 +189,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 전송 상한이다. 값이 지금으로 정해진 경위는 §10을 본다.
 
 그래도 WAF에 막히면 403이 HTML로 온다. `client.ts`는 JSON 파싱에 실패한 403을
-`EDGE_BLOCKED`로 분류하고(`src/shared/api/client.ts:95-104`), 댓글 폼은
+`EDGE_BLOCKED`로 분류하고(`src/shared/api/client.ts:96-105`), 댓글 폼은
 `CommentUtil.resolveSubmitError`가 이 코드를 "보안 정책에 막혔다"는 문구로 바꿔 버튼 위에
 남긴다(아래 "실패 안내"). 전역 토스트를 쓰는 다른 화면은 토스트 판정이 같은 문구를
 `meta.errorMessage`보다 먼저 고른다(`src/shared/lib/react-query/config/error-toast.ts:91-93`). WAF 룰을 완화하면 안 되는
@@ -503,9 +503,9 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 쿼리·낙관적 업데이트            | `src/entities/comment/api/comment.queries.ts:21-263`                                                                               |
 | 키·무효화 핸들러                | `src/entities/comment/api/comment.keys.ts:4-54`                                                                                    |
 | 바이트 스키마·전송량 추정       | `src/entities/comment/model/comment.schema.ts:8-15`, `src/entities/comment/utils/comment.util.ts:113-123`                          |
-| 실패 원인 판정                  | `src/entities/comment/utils/comment.util.ts:21-102`, `src/shared/utils/error.util.ts:39-68`                                        |
+| 실패 원인 판정                  | `src/entities/comment/utils/comment.util.ts:21-102`, `src/shared/utils/error.util.ts:45-74`                                        |
 | 업로드 단계 실패 분류           | `src/shared/lib/upload/uploadImageAndGetUrl.ts:13-39`, `src/shared/api/upload.api.ts:15-37`                                        |
-| WAF 403 분류·문구               | `src/shared/api/client.ts:95-104`, `src/shared/lib/react-query/config/error-toast.ts:91-93`                                        |
+| WAF 403 분류·문구               | `src/shared/api/client.ts:96-105`, `src/shared/lib/react-query/config/error-toast.ts:91-93`                                        |
 | 내 댓글 목록·카드               | `src/widgets/comment/my-comment-list/ui/MyCommentList.tsx:11-50`, `src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx:23-57` |
 | UI 문구                         | `src/shared/config/texts.ts:310` (`TEXTS.comment`)                                                                                 |
 

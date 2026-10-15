@@ -106,7 +106,7 @@ export function resolveErrorToast(
   if (error instanceof ApiError) {
     if (isSessionInvalidCode(error.code)) {
       // 세션 정리(clearAll)는 client.ts의 401 인터셉터가 이미 수행했다 - 여기서는
-      // 토스트만 띄운다(토스트 단일 소유 원칙, client.ts:262 주석 참고).
+      // 토스트만 띄운다(토스트 단일 소유 원칙, client.ts:286 주석 참고).
       return { silent: false, message: TEXTS.messages.error.loginRequired };
     }
 

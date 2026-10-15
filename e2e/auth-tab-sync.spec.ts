@@ -7,6 +7,8 @@ import { mockPostList } from './mocks/post.mock';
 import { mockBookmarkFolderList, mockBookmarkFolderPosts } from './mocks/bookmark-folder.mock';
 import { ENDPOINTS } from './mocks/endpoints';
 import { isApiPath } from './mocks/route-match';
+import { wrapResponse } from './mocks/wrap-response';
+import { mockLoginResponse } from '@/mocks/fixtures/auth.fixtures';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 import { TEXTS } from '@/shared/config/texts';
@@ -164,5 +166,62 @@ test.describe('탭 간 로그인·로그아웃 동기화', () => {
     // 서버 값으로 다시 맞춰진다(받아들이기의 재조회) - 재전송돼 성공했다면 좋아요 상태로 남는다
     await expect(feedTab.getByRole('button', { name: TEXTS.ariaLabels.postUnlike })).toHaveCount(0);
     await expect(feedTab.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })).toBeVisible();
+  });
+
+  test('받아들이려던 세션이 다른 계정이면(BE 409 SESSION_MISMATCH) 보호 화면을 떠나 그 계정으로 복원하고 알린다', async ({
+    context,
+  }) => {
+    // 토큰을 든 살아 있는 탭이 다른 탭의 로그인을 받으면 같은 사람이라 보고 이동 없이 받아들이는데(§8-H), BE가
+    // 들고 있던 토큰과 쿠키 주인이 다른 회원이라며 거절하면 이전 계정의 화면을 떠나야 한다(docs/AUTH.md §8-B)
+    await context.addInitScript((key) => {
+      window.localStorage.setItem(key, 'true');
+    }, STORAGE_KEYS.AUTH.HAS_SESSION);
+    const bookmarkTab = await context.newPage();
+    await installMocks(bookmarkTab);
+    // BE처럼: 토큰을 실어 보내면(이 탭의 옛 계정) 409, 없이 보내면(새로고침·로그아웃 뒤) 쿠키 주인 계정의 토큰
+    const hints: Array<string | null> = [];
+    await bookmarkTab.route(
+      (url) => isApiPath(url, ENDPOINTS.auth.refresh),
+      (route) => {
+        const hint = route.request().headers()['x-access-token'] ?? null;
+        hints.push(hint);
+
+        if (hint) {
+          return route.fulfill({
+            status: 409,
+            json: {
+              status: 409,
+              code: SERVER_ERROR_CODE.SESSION_MISMATCH,
+              message: 'session mismatch',
+              timestamp: new Date().toISOString(),
+            },
+          });
+        }
+
+        return route.fulfill({ json: wrapResponse(mockLoginResponse) });
+      }
+    );
+
+    await bookmarkTab.goto('/bookmark');
+    await expect(
+      bookmarkTab.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })
+    ).toBeVisible();
+
+    // 다른 탭에서 (다른 계정으로) 로그인했다
+    const otherTab = await context.newPage();
+    await installMocks(otherTab);
+    await otherTab.goto('/post');
+    await otherTab.evaluate(
+      ([key, value]) => window.localStorage.setItem(key, JSON.stringify(value)),
+      [STORAGE_KEYS.AUTH.EPOCH, 'in:other-tab'] as const
+    );
+
+    await expect(bookmarkTab).toHaveURL(/\/post$/);
+    await expect(bookmarkTab.getByText(TEXTS.messages.info.switchedToOtherAccount)).toBeVisible();
+    await expect(
+      bookmarkTab.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })
+    ).toBeVisible();
+    // 부트스트랩(헤더 없음) → 받아들이기(옛 토큰, 409) → 로그아웃 뒤 복원(헤더 없음)
+    expect(hints).toEqual([null, mockLoginResponse.accessToken, null]);
   });
 });

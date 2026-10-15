@@ -440,6 +440,11 @@ export const TEXTS = {
     info: {
       noData: '조회할 데이터가 없어요.',
       noPosts: '등록된 링크가 없거나 검색 결과가 없어요.',
+      // 다른 탭에서 다른 계정으로 로그인해 refresh가 거절됨(SESSION_MISMATCH) - 이 탭만 로그아웃했을 때
+      signedOutForOtherAccount:
+        '다른 탭에서 다른 계정으로 로그인해서 이 탭은 로그아웃했어요. 새로고침하면 그 계정으로 이어서 쓸 수 있어요.',
+      // 같은 경우, 다른 탭의 로그인 이벤트를 받아 이 탭도 그 계정으로 바꿨을 때(useAuthEpochSync)
+      switchedToOtherAccount: '다른 탭에서 로그인한 계정으로 바뀌었어요.',
     },
     warning: {
       memberDeleteConfirm: '정말 이 회원을 삭제할까요? 삭제된 데이터는 복구할 수 없어요.',

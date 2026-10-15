@@ -5,7 +5,12 @@ import { useAuthStore } from '@/shared/store/auth.store';
 import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { ROUTES_PATHS, isProtectedPath } from '@/shared/config/route-paths';
+import { TEXTS } from '@/shared/config/texts';
+import { toast } from '@/shared/lib/toast/toast';
 import { LogoutGraceUtil } from '@/shared/utils/logout-grace.util';
+
+// 같은 이유의 안내가 겹쳐 뜨지 않게 한다(선례: TooltipWrapper의 REASON_TOAST_ID)
+const SESSION_MISMATCH_TOAST_ID = 'session-mismatch';
 
 export class AuthUtil {
   static clearAuth(): void {
@@ -87,6 +92,18 @@ export class AuthUtil {
     }
 
     this.clearQueries();
+  }
+
+  /**
+   * refresh가 SESSION_MISMATCH로 거절됐을 때(client.ts handleTokenExpired) - 다른 탭에서 다른 계정으로 로그인해
+   * 공유 쿠키가 그 계정의 것이 됐다. 이 탭만 로그아웃하고(세션 플래그는 남겨 새로고침하면 쿠키 주인으로 복원) 이유를
+   * 알린다 - 로그아웃 유예가 이어지는 SessionChangedError 토스트를 조용히 해 그대로 두면 이유 없는 로그아웃이 된다.
+   * 여기서 바로 새 계정으로 바꾸지 않는다: 인증 세대가 그대로라 옛 토큰으로 나간 늦은 401이 바뀐 토큰으로 곧장
+   * 재시도돼(client.ts의 "늦게 도착한 401" 분기) 새 계정으로 실행된다(docs/AUTH.md §8-B).
+   */
+  static applySessionMismatch(): void {
+    this.applySignOutFromElsewhere();
+    toast.info(TEXTS.messages.info.signedOutForOtherAccount, { id: SESSION_MISMATCH_TOAST_ID });
   }
 
   /**
