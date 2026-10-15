@@ -1,3 +1,6 @@
+### 2026-10-15 (FE)
+- 인증 세션 관리 로직 개선: 계정 전환 시 이전 세션 정보가 유지되어 토큰 갱신이 잘못된 계정으로 수행되던 문제 해결 ([#391](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/391))
+
 ### 2026-10-15 (BE)
 - 댓글 목록 조회 기능에 대한 Postgres 기반 통합 테스트 추가 및 검증 로직 구현 ([#96](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/96))
 
