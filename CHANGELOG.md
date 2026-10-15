@@ -106,6 +106,13 @@
 
 ### Fixed
 
+- `auth` 인증 세대가 안 바뀐 채 다른 계정이 되면 갱신이 새 계정으로 되던 문제(BE 배포 후)
+  <details><summary>배경·구현</summary>
+
+  #381의 인증 세대 확인은 이 브라우저의 모든 탭이 세대를 쓸 때만 작동해, 업데이트 전 번들로 열린 탭에서 다른 계정으로 로그인하거나 localStorage 쓰기가 실패하면 진행 중이던 요청이 여전히 새 계정으로 갱신·재실행될 수 있었다. 또 #376의 "새 세션 받아들이기"는 같은 사람이라고 가정해, 다른 계정이면 화면·폼을 그대로 둔 채 조용히 그 계정이 됐다(설계 검토에서 발견). 이제 refresh에 원 요청이 보낸 토큰을 `X-Access-Token`으로 싣고, BE가 refresh 쿠키의 회원과 다르면 409 `SESSION_MISMATCH`로 거절한다(BE PR, 이 FE를 먼저 배포). 거절을 받으면 이 탭만 로그아웃하고(보호 경로면 `/post`, 공유 세션 플래그는 남겨 새로고침하면 쿠키 주인 계정으로 복원) 안내를 1번 띄우며(2026-10-15 사용자 결정), 함께 기다리던 요청도 끝낸다. 받아들이기 경로에서 거절되면 로그아웃 처리 뒤 쿠키 주인 계정으로 복원하고 알린다. 스토어 토큰이 아니라 원 요청 토큰을 싣는 이유: 로그아웃 뒤 늦게 온 같은 토큰의 401이 헤더 없이 갱신돼 새 계정으로 재실행되는 것을 수정 전 방식으로 재현했다. 그 자리에서 새 계정으로 바꾸지 않는 것도 같은 이유다. BE 배포 뒤 업데이트 전 번들로 열려 있던 탭은 409를 몰라 로그인 화면으로 간다(새로고침하면 끝, 일시적). 안내 토스트는 `client.ts`의 refresh catch에서 `AuthUtil`로 띄워 "transport는 토스트를 띄우지 않는다" 규칙 문구와 겹친다 — 전역 에러 핸들러로 옮기면 좋아요·북마크·조회에서 시작된 경우 안내가 안 떠서다(`docs/AUTH.md` §8-B). `/auth/refresh`를 헤더를 떼는 `isAuthEndpoint` 목록에 넣으면 확인이 꺼진다 — 테스트로 고정. 계획 `docs/plans/2026-10-15-drift-ci-and-refresh-guard.md`, 설명 `docs/AUTH.md` §8-B. (`client.ts`, `auth.util.ts`, `error.util.ts`, `useAuthEpochSync.ts`, `error-code.ts`, `texts.ts`, `e2e/auth-tab-sync.spec.ts`, `docs/AUTH.md`, `docs/COMMENT.md`, [PR #391](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/391))
+
+  </details>
+
 - `auth` 다른 탭에서 계정이 바뀐 순간 진행 중이던 요청이 새 계정으로 실행되던 문제
   <details><summary>배경·구현</summary>
 

@@ -7,6 +7,8 @@ import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { TEXTS } from '@/shared/config/texts';
+import { toast } from '@/shared/lib/toast/toast';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
@@ -52,11 +54,12 @@ function signInInOtherTab({ dispatch = true } = {}) {
   }
 }
 
+/** spy는 refresh가 실어 보낸 X-Access-Token(없으면 null)으로 불린다 */
 function mockRefresh(accessToken: string | null) {
   const spy = vi.fn();
   server.use(
-    http.post(url(API_ENDPOINTS.auth.refresh), () => {
-      spy();
+    http.post(url(API_ENDPOINTS.auth.refresh), ({ request }) => {
+      spy(request.headers.get('X-Access-Token'));
 
       if (!accessToken) {
         return HttpResponse.json(
@@ -124,7 +127,47 @@ describe('useAuthEpochSync', () => {
 
     await waitFor(() => expect(useAuthStore.getState().accessToken).toBe('token-b'));
     expect(refresh).toHaveBeenCalledTimes(1);
+    // 들고 있던 토큰을 실어 보내 BE가 같은 회원인지 확인한다
+    expect(refresh).toHaveBeenCalledWith('token-a');
     expect(NavigationService.navigate).not.toHaveBeenCalled();
+  });
+
+  it('받아들이려던 세션이 다른 계정이면(SESSION_MISMATCH) 로그아웃 처리 뒤 그 계정으로 복원하고 알린다', async () => {
+    window.history.replaceState(null, '', ROUTES_PATHS.BOOKMARK);
+    signInThisTab('token-a');
+    // BE처럼: 토큰을 실어 보내면(이 탭의 옛 계정) 409, 토큰 없이 보내면 쿠키 주인 계정의 새 토큰
+    const hints: Array<string | null> = [];
+    server.use(
+      http.post(url(API_ENDPOINTS.auth.refresh), ({ request }) => {
+        const hint = request.headers.get('X-Access-Token');
+        hints.push(hint);
+
+        if (hint) {
+          return HttpResponse.json(
+            { status: 409, code: 'SESSION_MISMATCH', message: '', timestamp: '' },
+            { status: 409 }
+          );
+        }
+
+        return HttpResponse.json(
+          { status: 200, message: 'ok', data: { accessToken: 'token-b' }, timestamp: '' },
+          { status: 200 }
+        );
+      })
+    );
+    const toastInfo = vi.spyOn(toast, 'info');
+    renderHook(() => useAuthEpochSync(), { wrapper: Wrapper });
+
+    signInInOtherTab();
+
+    await waitFor(() => expect(useAuthStore.getState().accessToken).toBe('token-b'));
+    expect(hints).toEqual(['token-a', null]);
+    // 이전 계정으로 쓰던 보호 화면은 떠난다(bfcache 복원 때와 같은 엄격한 처리)
+    expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.POST.ROOT, {
+      replace: true,
+    });
+    expect(toastInfo).toHaveBeenCalledWith(TEXTS.messages.info.switchedToOtherAccount);
+    toastInfo.mockRestore();
   });
 
   it('bfcache 복원 때 그 사이 다른 계정이 로그인했으면 로그아웃 처리 뒤 새 세션으로 복원한다', async () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { apiClient } from '@/shared/api/client';
@@ -7,6 +7,8 @@ import { NavigationService } from '@/shared/lib/router/navigation';
 import { AuthUtil } from '@/shared/utils/auth.util';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { TEXTS } from '@/shared/config/texts';
+import { toast } from '@/shared/lib/toast/toast';
 import { ApiError, NetworkError, SessionChangedError } from '@/shared/types/common.type';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
@@ -648,6 +650,166 @@ describe('ApiClient — 인증 오류 처리', () => {
       expect(useAuthStore.getState().accessToken).toBe('token-a');
     });
   });
+
+  // ─────────────────────────────────────────────────────────────
+  // Case 8: refresh 쿠키 주인이 다른 회원(BE 409 SESSION_MISMATCH) - 인증 세대는 그대로
+  // 업데이트 전 번들 탭의 로그인처럼 세대를 안 바꾸고 계정이 바뀐 경우다. MSW refresh는 BE처럼 X-Access-Token이
+  // 있으면(이 탭의 옛 계정 토큰) 409, 없으면 새 계정 토큰을 준다.
+  // ─────────────────────────────────────────────────────────────
+  describe('Case 8: refresh 쿠키 주인이 다른 회원 (SESSION_MISMATCH)', () => {
+    const make409Mismatch = () =>
+      HttpResponse.json(
+        {
+          status: 409,
+          code: SERVER_ERROR_CODE.SESSION_MISMATCH,
+          message: 'session mismatch',
+          timestamp: new Date().toISOString(),
+        },
+        { status: 409 }
+      );
+
+    const refreshLikeBe = (onRequest?: (hint: string | null) => void) =>
+      http.post(REFRESH_HANDLER_URL, ({ request }) => {
+        const hint = request.headers.get('X-Access-Token');
+        onRequest?.(hint);
+
+        if (hint) {
+          return make409Mismatch();
+        }
+
+        return HttpResponse.json(
+          { status: 200, message: 'ok', data: { accessToken: 'token-b' }, timestamp: '' },
+          { status: 200 }
+        );
+      });
+
+    // 안내 토스트는 AuthUtil이 래퍼(@/shared/lib/toast/toast)로 띄운다 - 그 info를 지켜본다
+    let toastInfo: MockInstance<typeof toast.info>;
+
+    beforeEach(() => {
+      toastInfo = vi.spyOn(toast, 'info');
+    });
+
+    afterEach(() => {
+      toastInfo.mockRestore();
+      window.history.replaceState(null, '', '/');
+    });
+
+    it('8-1: 원 요청의 토큰을 실어 갱신하고, 거절되면 이 탭만 로그아웃·안내 1번 - 로그인 화면 이동·세션 플래그 삭제 없음', async () => {
+      const hints: Array<string | null> = [];
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => make401('TOKEN_EXPIRED')),
+        refreshLikeBe((hint) => hints.push(hint))
+      );
+      useAuthStore.getState().setAuth('token-a');
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionChangedError
+      );
+
+      expect(hints).toEqual(['token-a']);
+      expect(useAuthStore.getState().accessToken).toBeNull();
+      // 쿠키 주인 계정이 새로고침 때 복원되도록 공유 세션 플래그는 남는다(clearAll과 다름)
+      expect(LocalStorageUtil.getItem(STORAGE_KEYS.AUTH.HAS_SESSION)).toBe(true);
+      expect(NavigationService.navigate).not.toHaveBeenCalled();
+      expect(toastInfo).toHaveBeenCalledTimes(1);
+      expect(toastInfo).toHaveBeenCalledWith(
+        TEXTS.messages.info.signedOutForOtherAccount,
+        expect.objectContaining({ id: 'session-mismatch' })
+      );
+    });
+
+    it('8-2: 함께 기다리던 요청도 영원히 남지 않고 SessionChangedError로 끝난다', async () => {
+      let refreshCallCount = 0;
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => make401('TOKEN_EXPIRED')),
+        refreshLikeBe(() => {
+          refreshCallCount++;
+        })
+      );
+      useAuthStore.getState().setAuth('token-a');
+
+      const results = await Promise.allSettled([
+        apiClient.post(COMMENT_PATH, makeCommentFormData()),
+        apiClient.post(COMMENT_PATH, makeCommentFormData()),
+      ]);
+
+      results.forEach((r) => {
+        expect(r.status === 'rejected' && r.reason).toBeInstanceOf(SessionChangedError);
+      });
+      expect(refreshCallCount).toBe(1);
+    });
+
+    it('8-3: 보호 경로에 있었으면 /post로 옮긴다', async () => {
+      window.history.replaceState(null, '', ROUTES_PATHS.BOOKMARK);
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => make401('TOKEN_EXPIRED')),
+        refreshLikeBe()
+      );
+      useAuthStore.getState().setAuth('token-a');
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionChangedError
+      );
+
+      expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.POST.ROOT, {
+        replace: true,
+      });
+    });
+
+    it('8-4: 로그아웃 뒤 늦게 도착한 같은 토큰 요청의 401도 새 계정으로 재실행하지 않고, 로그아웃·안내를 반복하지 않는다', async () => {
+      // 첫 요청의 401로 이 탭이 로그아웃된 뒤 두 번째 요청의 401이 온다. 스토어 토큰이 비어 있어 헤더를 스토어에서
+      // 만들면 BE가 비교를 건너뛰고 새 계정 토큰을 준다 - 그러면 두 번째 요청이 새 계정으로 재실행된다.
+      let releaseSecond!: () => void;
+      const secondHeld = new Promise<void>((resolve) => {
+        releaseSecond = resolve;
+      });
+      let commentCallCount = 0;
+      server.use(
+        http.post(COMMENT_HANDLER_URL, async () => {
+          commentCallCount++;
+
+          if (commentCallCount === 2) {
+            await secondHeld;
+          }
+
+          return make401('TOKEN_EXPIRED');
+        }),
+        refreshLikeBe()
+      );
+      useAuthStore.getState().setAuth('token-a');
+
+      const first = apiClient.post(COMMENT_PATH, makeCommentFormData());
+      const second = apiClient.post(COMMENT_PATH, makeCommentFormData());
+      await expect(first).rejects.toBeInstanceOf(SessionChangedError);
+      expect(useAuthStore.getState().accessToken).toBeNull();
+
+      releaseSecond();
+
+      await expect(second).rejects.toBeInstanceOf(SessionChangedError);
+      expect(commentCallCount).toBe(2);
+      expect(useAuthStore.getState().accessToken).toBeNull();
+      expect(toastInfo).toHaveBeenCalledTimes(1);
+    });
+
+    it('8-5: 세대도 바뀌었으면 세대 분기가 먼저 처리한다 - 이 탭은 useAuthEpochSync가 맞추므로 여기서 로그아웃·안내하지 않는다', async () => {
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => make401('TOKEN_EXPIRED')),
+        http.post(REFRESH_HANDLER_URL, () => {
+          LocalStorageUtil.setItem(STORAGE_KEYS.AUTH.EPOCH, 'in:other-tab');
+          return make409Mismatch();
+        })
+      );
+      useAuthStore.getState().setAuth('token-a');
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionChangedError
+      );
+
+      expect(useAuthStore.getState().accessToken).toBe('token-a');
+      expect(toastInfo).not.toHaveBeenCalled();
+    });
+  });
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -774,5 +936,25 @@ describe('ApiClient — 요청 헤더 (CloudFront OAC 대응)', () => {
     await apiClient.post(API_ENDPOINTS.auth.login, { email: 'a@b.com', password: 'pw' });
 
     expect(capturedHeaders?.has('x-access-token')).toBe(false);
+  });
+
+  it('refresh 요청에는 X-Access-Token을 그대로 싣는다 - BE가 쿠키 주인과 같은 회원인지 확인하는 데 쓴다', async () => {
+    // refresh를 isAuthEndpoint 목록에 넣으면 이 헤더가 빠져 SESSION_MISMATCH 확인이 조용히 꺼진다
+    useAuthStore.getState().setAuth('valid-access-token');
+
+    let capturedHeaders: Headers | undefined;
+    server.use(
+      http.post(mswUrl(API_ENDPOINTS.auth.refresh), ({ request }) => {
+        capturedHeaders = request.headers;
+        return HttpResponse.json(
+          { status: 200, message: 'ok', data: { accessToken: 'next' }, timestamp: '' },
+          { status: 200 }
+        );
+      })
+    );
+
+    await apiClient.post(API_ENDPOINTS.auth.refresh);
+
+    expect(capturedHeaders?.get('x-access-token')).toBe('valid-access-token');
   });
 });

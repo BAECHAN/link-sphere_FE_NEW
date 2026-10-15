@@ -5,6 +5,7 @@ import {
   UserFacingError,
 } from '@/shared/types/common.type';
 import { TEXTS } from '@/shared/config/texts';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 
 const SECONDS_PER_MINUTE = 60;
 
@@ -29,6 +30,11 @@ export class ErrorUtil {
       return true;
     }
     return false;
+  }
+
+  /** refresh를 BE가 "쿠키 주인이 다른 회원"이라며 거절했는지(409 SESSION_MISMATCH, client.ts·useAuthEpochSync) */
+  static isSessionMismatch(error: unknown): boolean {
+    return error instanceof ApiError && error.code === SERVER_ERROR_CODE.SESSION_MISMATCH;
   }
 
   /**
