@@ -1,4 +1,7 @@
 ### 2026-10-15 (FE)
+- 백엔드 리프레시 토큰 및 회원 인증 상태(409 Conflict)에 대한 API 명세 최신화 ([#393](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/393))
+
+### 2026-10-15 (FE)
 - 필터링 지연 시 기존 목록을 비활성화(dimmed)하고 로딩 상태를 표시하여 사용자 경험 개선 ([#390](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/390))
 
 ### 2026-10-15 (FE)
