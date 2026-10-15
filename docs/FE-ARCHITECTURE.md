@@ -101,6 +101,7 @@ flowchart TD
 | `custom-query-rules/no-direct-query-import`                   | `@tanstack/react-query` 직접 import — 허용목록(`app/**`·`**/api/*.queries.ts`·`**/hooks/**` 등) 밖에서는 금지                                                                                |
 | `custom-query-rules/no-entity-query-import-outside-hooks`     | `features/**`·`pages/**`에서 entity 쿼리 훅(`*.queries`) import — 각 레이어의 `hooks/**` 밖에서는 금지 (2026-09-29 pages도 대상에 추가, widgets는 대상 아님, §8 참고)                        |
 | `custom-query-rules/no-query-client-singleton-import`         | `queryClient` 싱글턴 직접 import — `QueryProvider.tsx`·`auth.util.ts` 두 곳만 예외                                                                                                           |
+| `custom-query-rules/scope-mutation-auth-epoch`                | `scope`·`mutationFn`을 함께 가진 객체에서 첫 줄의 `assertMutationAuthEpochUnchanged(context)` 누락 — §11 6번. 본체는 `scripts/lib/`, 옵션을 변수·스프레드로 넘기면 못 잡음                   |
 | `custom-i18n/no-hardcoded-hangul`                             | 한글 UI 문자열 하드코딩 — `TEXTS`만 허용                                                                                                                                                     |
 | `custom-tailwind/no-raw-color`                                | black/white/명명 팔레트(gray-500 등) 리터럴 색상 클래스 금지 — `globals.css` 디자인 토큰 클래스만 허용                                                                                       |
 | `custom-tailwind/no-raw-z-index`                              | 숫자 그대로 쓰는 raw `z-*` 유틸리티 금지 — `globals.css`의 명명된 z-index 토큰만 허용                                                                                                        |
@@ -906,7 +907,8 @@ onError: (_err, _vars, context) => {
    탭에서 계정이 바뀌면, 차례가 왔을 때 새 계정으로 요청이 나간다. 전역 `MutationCache` `onMutate`가 누른 순간의
    인증 세대를 기록하고(`queryClient.ts`), 이 확인이 달라졌으면 보내지 않고 `SessionChangedError`로 끝낸다 —
    실패로 끝나야 `onError`(롤백)가 돌고 결과를 기다리던 화면이 풀린다(`mutation-auth-epoch.ts`, [`AUTH.md`](./AUTH.md) §8-B).
-   scope를 쓰는 mutation 6곳이 모두 부른다.
+   scope를 쓰는 mutation 6곳이 모두 부른다. 새 scope mutation이 빠뜨리면 ESLint
+   `custom-query-rules/scope-mutation-auth-epoch`가 pre-commit·CI에서 막는다(§2).
 
 ```typescript
 const mutationKey = interactionMutationKeys.likePost(postId);
