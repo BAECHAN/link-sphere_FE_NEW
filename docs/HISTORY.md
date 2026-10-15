@@ -1,4 +1,7 @@
 ### 2026-10-15 (FE)
+- 필터링 지연 시 기존 목록을 비활성화(dimmed)하고 로딩 상태를 표시하여 사용자 경험 개선 ([#390](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/390))
+
+### 2026-10-15 (FE)
 - 접근성 개선: '동작 줄이기' 설정 활성화 시 화면 전환 효과를 페이드 방식으로 최적화 ([#392](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/392))
 
 ### 2026-10-15 (BE)
