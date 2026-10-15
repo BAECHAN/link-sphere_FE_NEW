@@ -34,6 +34,13 @@
 
 ### Changed
 
+- `infra` CloudFront 설정 차이 검사를 매일 CI에서 돌려 차이가 있으면 이슈로 알림
+  <details><summary>배경·구현</summary>
+
+  2026-10-14에 만든 `pnpm check:cloudfront`(커밋된 스냅샷과 지금 CloudFront 설정·Function 코드 비교, #374)는 배포 역할에 읽기 권한이 없어 로컬에서만 돌았다. 콘솔에서 바꾼 설정은 git에 남지 않아 누가 돌리지 않으면 아무도 모른다. 새 워크플로 `cloudfront-drift-check.yml`이 매일 01:00 UTC(수동 실행도 가능)에 배포와 같은 OIDC 역할로 검사하고, 차이가 있으면 라벨 `cloudfront-drift` 이슈를 열고 없어지면 닫는다(검사 주기는 2026-10-15 사용자 결정 "매일 1번"). 이슈 쓰기 권한은 AWS 자격증명을 다루는 job과 분리했다. 스크립트는 차이(exit 1)와 AWS 호출 오류(exit 2)를 나눠, 권한·네트워크 오류는 이슈 대신 워크플로 실패로 알린다. 배포 역할에 읽기 전용 인라인 정책 `cloudfront-drift-read`(권한 7개)를 사용자가 CloudShell로 추가했다 — 로컬 키로는 IAM을 바꿀 수 없다. 역할이 main 브랜치만 허용해 PR CI에는 넣지 않았다. (`.github/workflows/cloudfront-drift-check.yml`(신규), `scripts/check-cloudfront-drift.js`, `docs/DEPLOY.md`, `docs/CACHE-STRATEGY.md`, [PR #389](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/389))
+
+  </details>
+
 - `shared` 기기에서 "동작 줄이기"를 켜면 화면 움직임을 페이드로 바꾸기
   <details><summary>배경·구현</summary>
 

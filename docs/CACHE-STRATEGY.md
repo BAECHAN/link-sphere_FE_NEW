@@ -9,7 +9,7 @@
 > 파일·어느 값으로 다루는지 알고, 신고가 오면 어디부터 확인할지, 파일 종류별 캐시 정책을 어떻게
 > 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-14
+> **마지막 검토**: 2026-10-15
 
 배포는 서버(S3·CloudFront)의 파일을 바꾸는 일이지, 사용자 브라우저에 이미 있는 파일과 이미
 실행 중인 코드를 바꾸는 일이 아니다. [2weekhun의 Threads 글](https://www.threads.com/@2weekhun/post/Dec8KBXkzYM)은
@@ -396,8 +396,8 @@ aws cloudfront get-cache-policy --id <정책 ID> \
   둘 다 들어 어느 쪽이 먼저 와도 동작하게 했다. 측정은 §3의 `notRestoredReasons`(Chromium 계열)나 `pageshow`의
   `persisted`로 한다.
 - **CloudFront 설정은 여전히 콘솔·CLI로 바꾼다** — 2026-10-14부터 스냅샷과 차이 검사(`pnpm check:cloudfront`)로
-  변경을 git에 남기지만 로컬에서만 돈다. CI에서 정기적으로 돌리려면 배포 역할에 CloudFront·WAF 읽기 권한을
-  더해야 한다([DEPLOY.md](./DEPLOY.md) "CloudFront 설정 스냅샷과 차이 검사").
+  변경을 git에 남기고, 2026-10-15부터 매일 CI가 같은 검사를 돌려 차이가 있으면 이슈를 연다. 콘솔 변경 자체를 막지는
+  못하고 하루 안에 알려 줄 뿐이다([DEPLOY.md](./DEPLOY.md) "CloudFront 설정 스냅샷과 차이 검사").
 - **실제 탭·앱 전환 때의 가시성 이벤트** — headless에서 재현하지 못했다. 모바일 기기 실측은 없다. React Query
   재조회는 TanStack 기본대로 `visibilitychange`만 보고(2026-10-14 `focus`/`blur`로 덮어쓰던 훅을 뺐다), 새 배포
   감지는 `focus`·`visibilitychange`를 모두 듣는다.

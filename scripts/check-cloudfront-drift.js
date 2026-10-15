@@ -4,10 +4,10 @@
 // 배포되지 않는다(docs/DEPLOY.md "CloudFront 설정 스냅샷과 차이 검사"). 그래서 누가 무엇을 바꿨는지 git에
 // 남지 않는다. 이 스크립트는 지금 설정을 읽어 커밋된 스냅샷(infra/cloudfront/snapshot.json)과 비교하고,
 // 배포된 CloudFront Function 코드가 infra/cloudfront-functions/의 파일과 같은지도 확인한다.
-//   - 기본: 다르면 차이를 출력하고 exit 1
+//   - 기본: 다르면 차이를 출력하고 exit 1, AWS 호출·설정 오류면 exit 2(CI가 차이와 권한 오류를 나눠 보고한다)
 //   - --write: 스냅샷 파일을 지금 설정으로 갱신(콘솔에서 바꾼 뒤 같은 PR로 커밋한다)
-// 읽기 전용 호출(get-*·list-*·describe-*)만 하고, 로컬 AWS 자격증명으로 실행한다 - CI 배포 역할에는 아직
-// 읽기 권한이 없다(docs/DEPLOY.md "AWS IAM 권한 요구사항"). 마스킹·비교 규칙은 lib/cloudfront-snapshot.js.
+// 읽기 전용 호출(get-*·list-*·describe-*)만 한다. 로컬 AWS 자격증명으로도, 매일 도는 CI(배포 역할의 읽기 정책,
+// .github/workflows/cloudfront-drift-check.yml)로도 실행된다. 마스킹·비교 규칙은 lib/cloudfront-snapshot.js.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -21,6 +21,8 @@ import {
 } from './lib/cloudfront-snapshot.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const EXIT_DRIFT = 1;
+const EXIT_ERROR = 2;
 const ALIAS = 'linksphere.click';
 // CloudFront용 WAF는 리전이 us-east-1로 고정이다
 const WAF_REGION = 'us-east-1';
@@ -200,14 +202,15 @@ function main() {
     );
   }
 
-  throw new Error(
-    '차이가 있다 - 콘솔 변경이 의도한 것이면 `pnpm check:cloudfront --write`로 스냅샷을 갱신해 커밋하고, 아니면 되돌린다'
+  console.error(
+    '[check-cloudfront] 차이가 있다 - 콘솔 변경이 의도한 것이면 `pnpm check:cloudfront --write`로 스냅샷을 갱신해 커밋하고, 아니면 되돌린다'
   );
+  process.exitCode = EXIT_DRIFT;
 }
 
 try {
   main();
 } catch (error) {
   console.error(`[check-cloudfront] 실패: ${error.message}`);
-  process.exit(1);
+  process.exit(EXIT_ERROR);
 }
