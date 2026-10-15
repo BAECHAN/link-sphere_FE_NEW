@@ -27,6 +27,13 @@
 
 ### Changed
 
+- `shared` 기기에서 "동작 줄이기"를 켜면 화면 움직임을 페이드로 바꾸기
+  <details><summary>배경·구현</summary>
+
+  코드로 하는 스크롤은 #379에서 "동작 줄이기"를 따르게 했지만, CSS 애니메이션·트랜지션은 그대로라 다이얼로그 확대 등장, 모바일 하단 시트·사이드바 슬라이드, 떠 있는 버튼의 이동·확대가 이 설정을 켠 사용자에게도 나갔다(WCAG 2.3.3). `globals.css` 끝에 `@media (prefers-reduced-motion: reduce)` 블록 하나를 둬 전역으로 처리한다(컴포넌트마다 `motion-reduce:`를 붙이는 안, 모든 애니메이션을 0초로 만드는 안과 비교해 2026-10-15 사용자 결정). `tw-animate-css`의 이동·확대·회전·흐림 변수를 덮어 다이얼로그·시트·드롭다운·툴팁은 페이드만 남기고, `transition-property`를 색·투명도·그림자로 고정해 사이드바·카드 hover·떠 있는 버튼의 위치·크기 변화는 애니메이션 없이 바로 바뀐다. 스피너는 끄지 않고 2초에 한 바퀴로 느리게 돈다(Bootstrap 방식, 사용자 선택). 근거는 줄이기가 없애기가 아니라는 Val Head의 [Smashing Magazine 글](https://www.smashingmagazine.com/2020/09/design-reduced-motion-sensitivities/)과 [Bootstrap 접근성 문서](https://getbootstrap.com/docs/5.3/getting-started/accessibility/)다. 기본 설정 사용자의 화면은 그대로다. (`src/app/globals.css`, `e2e/reduced-motion.spec.ts`(신규), `.claude/skills/motion-ux/SKILL.md`, `docs/FE-ARCHITECTURE.md`, 계획 `docs/plans/2026-10-15-reduced-motion-css.md`, [PR #392](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/392))
+
+  </details>
+
 - `comment` 내 댓글 카드에 마우스를 올리면 원글과 댓글을 미리 받기
   <details><summary>배경·구현</summary>
 

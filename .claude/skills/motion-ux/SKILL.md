@@ -58,14 +58,28 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 이미 각각 10/5/4건 선례가 있다). 기존 12건은 이번 skill 도입만으로 일괄
 리팩터링하지 않는다.
 
-## `prefers-reduced-motion` — 스크롤만 대응
+## `prefers-reduced-motion` — 전역 대응
 
-코드로 일으키는 스크롤은 2026-10-14부터 대응한다 — `behavior: ScrollUtil.getBehavior()`
-(`src/shared/utils/scroll.util.ts`)가 "동작 줄이기"면 즉시 이동을 주고, `behavior: 'smooth'`
-리터럴은 ESLint가 막는다(`docs/FE-ARCHITECTURE.md` §25). CSS 애니메이션·트랜지션
-(`animate-*`·`transition-*`)은 여전히 대응 0건이다(WCAG 2.3.3 Animation from Interactions
-미충족) — 새로 붙일 때 Tailwind `motion-reduce:`/`motion-safe:` 변형을 검토하고, 기존
-클래스 일괄 정리는 별도 작업으로 남긴다.
+"동작 줄이기"를 켠 사용자에게는 움직임(이동·확대·회전)만 빼고 페이드·색 변화는 남긴다
+(WCAG 2.3.3 Animation from Interactions). 줄이기는 없애기가 아니라는 근거는 Val Head의
+[Smashing Magazine 글](https://www.smashingmagazine.com/2020/09/design-reduced-motion-sensitivities/),
+스피너를 끄지 않고 느리게 하는 선례는 [Bootstrap 접근성 문서](https://getbootstrap.com/docs/5.3/getting-started/accessibility/)다.
+
+- **스크롤**(2026-10-14) — `behavior: ScrollUtil.getBehavior()`(`src/shared/utils/scroll.util.ts`)가
+  "동작 줄이기"면 즉시 이동을 준다. `behavior: 'smooth'` 리터럴은 ESLint가 막는다(`docs/FE-ARCHITECTURE.md` §25).
+- **CSS 애니메이션·트랜지션**(2026-10-15) — `src/app/globals.css` 끝의 `@media (prefers-reduced-motion: reduce)`
+  블록 하나가 전역으로 처리한다. 컴포넌트마다 `motion-reduce:`를 붙이지 않는다.
+  - `tw-animate-css`의 `animate-in`/`animate-out`(zoom·slide)은 이동·확대·회전·흐림 변수(`--tw-enter-*`·`--tw-exit-*`)를
+    덮어 페이드만 남는다 — 다이얼로그·하단 시트·드롭다운·툴팁.
+  - `transition-property`를 색·투명도·그림자로 고정해(`!important`, `transition-all`·인라인 style까지) `translate`·`scale`·`rotate`·높이
+    변화는 애니메이션 없이 바로 바뀐다 — 사이드바 드로어, 카드 hover, 떠 있는 버튼.
+  - `animate-spin`은 2초에 한 바퀴(기본 1초)로 느리게 돌고, `animate-pulse`(스켈레톤)는 그대로다.
+  - 숨김 상태에 `scale`·`translate`를 함께 쓰는 버튼(`ScrollToTop`·`ScrollToCommentFormButton`)은 사라질 때
+    크기·위치가 바로 바뀐 뒤 흐려진다. 2026-10-15 녹화로 보고 그대로 두기로 했다(사용자 결정).
+  - 회귀는 `e2e/reduced-motion.spec.ts`가 잡는다.
+- **새 코드** — `tw-animate-css` 클래스나 Tailwind `translate-*`·`scale-*`·`rotate-*` + `transition-*`로 만들면
+  할 일이 없다. `@keyframes`를 직접 만들거나 JS(Web Animations API 등)로 움직이면 이 블록이 못 잡으므로
+  `motion-reduce:` 변형이나 같은 미디어 쿼리를 함께 넣는다.
 
 ## exit 애니메이션 동기화 함정
 
@@ -91,7 +105,7 @@ CSS만으로 exit(사라짐) 애니메이션을 만들 때 "화면에서 사라�
 | ------------------------ | -------------------------------------------------------------------------------------------- |
 | `duration-*`             | 150×1, 200×7, 300×3                                                                          |
 | `ease-*`                 | 0건                                                                                          |
-| `prefers-reduced-motion` | 0건(이 표 기준일. 스크롤은 2026-10-14 `ScrollUtil`로 대응)                                   |
+| `prefers-reduced-motion` | 0건(이 표 기준일. 스크롤은 2026-10-14 `ScrollUtil`, CSS는 2026-10-15 `globals.css`로 대응)   |
 | `transition-all`         | 12건(`transition-colors` 10, `transition-opacity` 4, `transition-transform` 3 — 속성별 선례) |
 | `globals.css` 모션 토큰  | 0개(색상·반경·z-index·타이포그래피는 있음)                                                   |
 
