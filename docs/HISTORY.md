@@ -1,3 +1,6 @@
+### 2026-10-15 (FE)
+- 접근성 개선: '동작 줄이기' 설정 활성화 시 화면 전환 효과를 페이드 방식으로 최적화 ([#392](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/392))
+
 ### 2026-10-15 (BE)
 - 인증 보안 강화: 리프레시 토큰 재발급 시 요청 주체와 토큰 소유자의 일치 여부를 검증하여 비정상적인 토큰 탈취 및 오남용 방지 ([#97](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/97))
 
