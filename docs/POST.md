@@ -8,7 +8,7 @@
 > 파일에서 어떤 API를 부르고 어느 캐시를 어떻게 바꾸는지 안다. "등록 직후 새 글이 안 보인다",
 > "좋아요가 목록에 반영 안 된다" 같은 증상을 받았을 때 어디부터 열어볼지 정할 수 있다.
 >
-> **마지막 검토**: 2026-10-14
+> **마지막 검토**: 2026-10-15
 
 이 앱의 중심 데이터다. 사용자가 링크(URL)를 등록하면 BE가 그 페이지를 크롤링해 제목·설명·
 썸네일을 채우고, 그 뒤 비동기로 AI 요약·태그를 붙인다. FE는 그 결과를 피드(`/post`)에 카드로
@@ -160,23 +160,27 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - **중복 제거**: 같은 쿼리의 `select`가 모든 페이지를 평탄화하면서 이미 본 `id`를 걸러
   `posts`를 만든다. 오프셋 페이지네이션 중 새 글이 끼어들면 다음 페이지에 같은 글이 또 오기
   때문이다.
-- **가상화**: `usePostList`(`src/widgets/post/post-list/hooks/usePostList.ts:152-161`)가
+- **가상화**: `usePostList`(`src/widgets/post/post-list/hooks/usePostList.ts:180-189`)가
   컨테이너 실측 폭으로 열 수(최대 3, 최소 카드 폭 330px)를 정하고, 게시글을 열 수만큼 묶은
-  **행** 단위로 가상화한다. `PostList.tsx:105-135`가 보이는 행만 `translateY`로 배치한다.
+  **행** 단위로 가상화한다. `PostList.tsx:139-169`가 보이는 행만 `translateY`로 배치한다.
 - **다음 페이지 트리거**: 마지막으로 렌더된 가상 행 번호가 `rows.length - 5` 이상이면
-  `fetchNextPage()`(`usePostList.ts:170-183`). IntersectionObserver 센티넬은 가상화 도입 때
+  `fetchNextPage()`(`usePostList.ts:198-211`). IntersectionObserver 센티넬은 가상화 도입 때
   이 방식으로 바뀌었다.
-- **로딩·빈 상태**: `PostList.tsx:27-44`의 `AsyncBoundary`가 Suspense 동안
+- **로딩·빈 상태**: `PostList.tsx:31-78`의 `AsyncBoundary`가 Suspense 동안
   `DelayedFallback`(500ms 지연) 안의 스켈레톤 6장(`PostCardSkeleton.tsx:64`)을 보여준다.
-  0건이면 `EmptyState`(`PostList.tsx:62-68`). 당겨서 새로고침(`usePullToRefresh`)이
+  0건이면 `EmptyState`(`PostList.tsx:96-102`). 당겨서 새로고침(`usePullToRefresh`)이
   `refetch`를 부른다.
 - **조회 실패**: 같은 `AsyncBoundary`가 에러 문구(`TEXTS.messages.error.fetchPosts`)를 띄운다.
   검색 조건(q·filter·봇 숨기기)이 바뀌면 에러 상태를 풀고 다시 조회한다(`resetKeys`,
-  `usePostListErrorReset`, `usePostList.ts:118-128`). 풀 때 실패한 목록 쿼리를 캐시에서 지워,
+  `usePostListErrorReset`, `usePostList.ts:122-132`). 풀 때 실패한 목록 쿼리를 캐시에서 지워,
   실패했던 조건을 나중에 다시 골라도 새로 요청한다. 경위는 [`SEARCH.md`](./SEARCH.md) §10
   2026-10-14 항목.
+- **조건을 바꾼 뒤 응답 대기**: 목록은 새 응답이 올 때까지 이전 결과를 유지한다(스켈레톤 없음).
+  0.5초가 지나도 응답이 없으면 `PostList.tsx:55-75`이 이전 목록을 흐리게 덮고 "결과를 불러오는
+  중이에요."를 띄운다(`usePostListApplying`, `usePostList.ts:134-156`). 판정과 근거는
+  [`SEARCH.md`](./SEARCH.md) §5.
 - **봇 글 숨기기**: URL이 아니라 localStorage 설정(`useHideBotsStore`)을 `filter`에
-  `excludeBots`로 합쳐 보낸다(`usePostList.ts:27-38`). 칩·검색 파라미터 자체는
+  `excludeBots`로 합쳐 보낸다(`usePostList.ts:31-42`). 칩·검색 파라미터 자체는
   [`SEARCH.md`](./SEARCH.md).
 
 ### 카드(`PostCard`)
@@ -426,8 +430,8 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 파라미터                                | 값                   | 실제 위치                                                         |
 | --------------------------------------- | -------------------- | ----------------------------------------------------------------- |
 | 목록 페이지 크기                        | 10                   | `src/entities/post/config/post.const.ts:1`                        |
-| 다음 페이지 선행 로드 행 수             | 5행                  | `src/widgets/post/post-list/hooks/usePostList.ts:18`              |
-| 행 높이 추정 기본값(열 수 매핑 없을 때) | 600px                | `src/widgets/post/post-list/hooks/usePostList.ts:19`              |
+| 다음 페이지 선행 로드 행 수             | 5행                  | `src/widgets/post/post-list/hooks/usePostList.ts:22`              |
+| 행 높이 추정 기본값(열 수 매핑 없을 때) | 600px                | `src/widgets/post/post-list/hooks/usePostList.ts:23`              |
 | 카드 최소 폭 / 최대 열 수               | 330px / 3            | `src/widgets/post/post-card/config/post-card-grid.const.ts:26-27` |
 | 행 간격(md 이상 / 미만)                 | 16px / 12px          | `src/widgets/post/post-card/config/post-card-grid.const.ts:28-31` |
 | 열 수별 행 높이 추정치(3·2·1열)         | 654 / 635 / 582px    | `src/widgets/post/post-card/config/post-card-grid.const.ts:32-36` |
@@ -448,7 +452,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 단계                         | 파일                                                                                                                                                                                                                 |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 피드 페이지 배치             | `src/pages/post/index.tsx`                                                                                                                                                                                           |
-| 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:135-198`, `src/widgets/post/post-list/ui/PostList.tsx`                                                                                                              |
+| 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:163-226`, `src/widgets/post/post-list/ui/PostList.tsx`                                                                                                              |
 | 카드 UI / 카드 동작          | `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`                                                                                                                      |
 | 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:60-95`                                                                                                                                                                            |
 | 작성 폼 / 제출               | `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/create/hooks/useCreatePost.ts`의 `onSubmit`                                                                                                     |
@@ -468,7 +472,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 하고 싶은 것                      | 방법                                                                                                                                                                           |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 한 번에 가져오는 게시글 수 변경   | `post.const.ts`의 `POST_PAGE_SIZE`. 북마크 폴더 목록도 `@x/bookmark.ts`로 같은 값을 쓰므로 함께 바뀐다                                                                         |
-| 무한 스크롤을 더 일찍/늦게 시작   | `usePostList.ts:18`의 `PREFETCH_ROW_LOOKAHEAD`                                                                                                                                 |
+| 무한 스크롤을 더 일찍/늦게 시작   | `usePostList.ts:22`의 `PREFETCH_ROW_LOOKAHEAD`                                                                                                                                 |
 | 카드 최소 폭·최대 열 수 변경      | `post-card-grid.const.ts`의 `POST_CARD_GRID`(피드·북마크 목록과 스켈레톤이 페이지를 거쳐 같은 값을 받는다). 푸터 줄바꿈 회귀는 `e2e/post-card-footer-layout.spec.ts`가 잡는다  |
 | 폼 필드 추가                      | `post.schema.ts`의 `createPostSchema`/`updatePostSchema` + `useCreatePost`의 `DEFAULT_VALUES`·`useUpdatePost`의 `form.reset` + 폼 UI + BE 요청 DTO                             |
 | 새 mutation 뒤에 post 캐시 갱신   | 자기 엔티티 `.keys.ts`에 `handle<Event>Success`를 만들고 그 안에서 `postInvalidateQueries.*`를 `@x/<엔티티>.ts` 경유로 호출(§6 표 참고)                                        |

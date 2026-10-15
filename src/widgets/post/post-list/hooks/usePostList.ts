@@ -1,6 +1,10 @@
-import { useEffect, useLayoutEffect } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParamsDraft } from '@/shared/hooks/useSearchParamsDraft';
+import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
+import { RouterEvents } from '@/shared/lib/router/router-events';
+import { LOADING_INDICATOR_DELAY_MS } from '@/shared/config/const';
 import { useSuspenseFetchPostListQuery } from '@/entities/post/api/post.queries';
 import { postRemoveQueries } from '@/entities/post/api/post.keys';
 import { extractSearchTags, parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
@@ -125,6 +129,30 @@ export const usePostListErrorReset = () => {
   };
 
   return { resetKeys: [searchQuery, currentFilter, hideBots], onReset };
+};
+
+/**
+ * 검색 조건을 바꾼 뒤 새 목록이 오기 전(정지 구간)인지. 라우터는 이미 새 위치에 가 있는데 React가
+ * 보는(커밋된) 위치는 응답이 올 때까지 이전 그대로라, 둘의 쿼리가 다르면 "적용 중"이다. 같은 경로
+ * 안에서만 본다 - 다른 페이지로 가는 이동은 곧 언마운트된다. 짧은 대기에서 깜빡이지 않도록
+ * LOADING_INDICATOR_DELAY_MS가 지나야 true가 된다. 봇 글 숨기기는 URL을 바꾸지 않아 잡히지 않는다.
+ */
+export const usePostListApplying = () => {
+  const { pathname, search } = useLocation();
+  const [latestLocation, setLatestLocation] = useState(() => RouterEvents.getLocation());
+
+  // useSyncExternalStore로 읽지 않는다 - 정지 구간에 칩을 또 누르면 이 값이 transition 도중에 바뀌는데,
+  // 그러면 React가 그 transition을 블로킹으로 다시 돌려 이전 목록 대신 스켈레톤이 뜰 수 있다
+  // (https://react.dev/reference/react/useSyncExternalStore#caveats). 라우터 구독은 외부 이벤트라
+  // effect 자리다(https://react.dev/learn/synchronizing-with-effects#subscribing-to-events).
+  useEffect(() => RouterEvents.onNavigate(setLatestLocation), []);
+
+  const isApplying =
+    latestLocation !== null &&
+    latestLocation.pathname === pathname &&
+    latestLocation.search !== search;
+
+  return useDelayedLoading(isApplying, LOADING_INDICATOR_DELAY_MS);
 };
 
 /**
