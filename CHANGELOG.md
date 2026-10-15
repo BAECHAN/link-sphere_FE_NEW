@@ -113,6 +113,27 @@
 
   </details>
 
+- `post` 목록 조회가 한 번 실패하면 검색 조건을 바꿔도 에러 문구가 남던 문제
+  <details><summary>배경·구현</summary>
+
+  피드 목록의 에러 경계(`AsyncBoundary`)에 리셋 조건이 없어, 한 번 실패하면 라벨·범위 칩을 바꿔도 새로고침 전까지 "포스트를 불러오는 중 오류가 발생했어요."가 남았다(2026-10-14 운영에서 응답 500 주입으로 재현). `AsyncBoundary`가 선택 prop `resetKeys`를 받게 하고, 목록은 검색 조건(q·filter·봇 숨기기)을 넘긴다. 에러 경계를 풀 때 실패한 목록 쿼리를 캐시에서 지운다 — TanStack Query는 이미 마운트된 suspense 쿼리가 에러 상태인 키로 바뀌면 다시 요청하지 않아(query-core `shouldFetchOptionally`), 남겨 두면 실패했던 조건을 다시 고를 때 요청 없이 같은 에러가 떴다. 설명 `docs/SEARCH.md` §10, 계획 `docs/plans/2026-10-14-post-filter-pending-bugs.md`. (`AsyncBoundary.tsx`, `post.keys.ts`, `usePostList.ts`, `PostList.tsx`, `PostList.test.tsx`(신규), [PR #385](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/385))
+
+  </details>
+
+- `post` 목록 로딩 중 뒤로가기를 하면 필터 칩이 켜진 채 남던 문제
+  <details><summary>배경·구현</summary>
+
+  칩을 누르고 새 목록이 오기 전에 뒤로가기를 하면 URL과 목록은 원래대로인데 칩만 켜진 채 남았고, 다음 칩을 누르면 취소했던 범위 필터가 되살아나기도 했다. 뒤로가기(POP)는 돌아간 항목의 `location.key`를 그대로 되돌려줘, 커밋 전에 원래 항목으로 돌아가면 React 쪽에서는 아무 변화가 없어 칩 미러와 아직 반영 안 된 URL 쓰기 의도(pending)가 정리되지 않았다. 라우터 구독(`router.subscribe`)을 주입받는 `RouterEvents.onPop`으로 POP을 받아 pending을 비우고 칩을 돌아간 URL에 맞춘다 — raw `popstate` 리스너는 `docs/DECISIONS.md` 뒤로가기 정책의 금지 사항이라 쓰지 않았다. 설명 `docs/SEARCH.md` §5·§10. (`router-events.ts`(신규), `RouterProvider.tsx`, `useSearchParamsDraft.ts`, `usePostListSearch.ts`, `setup.ts`, `usePostList.test.tsx`, [PR #385](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/385))
+
+  </details>
+
+- `post` 목록 로딩 중 라벨을 연달아 누르면 먼저 누른 라벨이 사라지던 문제
+  <details><summary>배경·구현</summary>
+
+  라벨 칩 토글이 아직 반영 안 된 pending이 아니라 화면에 반영된 검색어로 새 검색어를 만들어 통째로 덮어써, 로딩 중 두 번째 라벨을 누르면 첫 번째가 지워졌다. 2026-09-14 수정은 범위 칩(`toggleFilter`)만 pending 기준으로 바꿨고 라벨은 빠져 있었다. `usePostListParams`에 `toggleSearchTag`를 두어 범위 칩과 같은 방식(draft 기준)으로 계산하고, 쓰는 곳이 없어진 `setSearch`는 지웠다. 설명 `docs/SEARCH.md` §10. (`usePostList.ts`, `usePostListSearch.ts`, `usePostList.test.tsx`, [PR #385](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/385))
+
+  </details>
+
 - `shared` 좋아요를 연달아 누르면 깜빡이거나 마지막 클릭과 다른 상태로 끝나던 문제
   <details><summary>배경·구현</summary>
 

@@ -1,7 +1,9 @@
 import { useEffect, useLayoutEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParamsDraft } from '@/shared/hooks/useSearchParamsDraft';
 import { useSuspenseFetchPostListQuery } from '@/entities/post/api/post.queries';
-import { parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
+import { postRemoveQueries } from '@/entities/post/api/post.keys';
+import { extractSearchTags, parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
 import {
   useWindowGridVirtualizer,
   type CardGridSpec,
@@ -49,14 +51,26 @@ export const usePostListParams = () => {
 
   const { category, nickname, search } = parseSearchQuery(q);
 
-  const setSearch = (newSearch: string) => {
+  // 라벨(@카테고리) 칩 토글 - 기존 자유 검색어는 지우고 @카테고리/#닉네임 태그만 유지한다.
+  // toggleFilter와 같은 이유로 커밋된 q가 아니라 draft(정지 구간의 pending 포함)의 q를 기준으로
+  // 계산해야, 로딩 중에 라벨을 연달아 눌러도 먼저 누른 라벨이 덮어써지지 않는다. 칩 미러를
+  // 맞출 수 있게 새 q를 돌려준다.
+  const toggleSearchTag = (tag: string): string => {
+    let nextSearch = '';
+
     updateSearchParams((draft) => {
-      if (!newSearch) {
+      const tags = extractSearchTags(draft.get('q') || '');
+      const nextTags = tags.includes(tag) ? tags.filter((t) => t !== tag) : [...tags, tag];
+      nextSearch = nextTags.join(' ');
+
+      if (!nextSearch) {
         draft.delete('q');
       } else {
-        draft.set('q', newSearch);
+        draft.set('q', nextSearch);
       }
     });
+
+    return nextSearch;
   };
 
   const toggleFilter = (targetFilter: string) => {
@@ -89,10 +103,28 @@ export const usePostListParams = () => {
     category,
     nickname,
     search,
-    setSearch,
+    toggleSearchTag,
     toggleFilter,
     clearSearch,
   };
+};
+
+/**
+ * PostList 에러 경계에 넘길 리셋 조건. 목록 조회가 한 번 실패해도 검색 조건(q·filter·봇 숨기기)이
+ * 바뀌면 에러 화면을 풀고 다시 조회한다 - 없으면 새로고침 전까지 에러 화면이 남는다.
+ * 풀 때 실패한 목록 쿼리도 캐시에서 지운다 - 남겨 두면 나중에 그 조건을 다시 골랐을 때 요청 없이
+ * 같은 에러가 바로 뜬다(postRemoveQueries.erroredLists 주석 참고).
+ */
+export const usePostListErrorReset = () => {
+  const { searchQuery, currentFilter } = usePostListParams();
+  const hideBots = useHideBotsStore((state) => state.hideBots);
+  const queryClient = useQueryClient();
+
+  const onReset = () => {
+    postRemoveQueries.erroredLists(queryClient);
+  };
+
+  return { resetKeys: [searchQuery, currentFilter, hideBots], onReset };
 };
 
 /**

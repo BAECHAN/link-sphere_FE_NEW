@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter, RouterProvider, createMemoryRouter, useLocation } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Suspense } from 'react';
 import { http, HttpResponse } from 'msw';
@@ -12,6 +12,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { PostListSearch } from '@/widgets/post/post-list/ui/PostListSearch';
 import { usePostList } from '@/widgets/post/post-list/hooks/usePostList';
 import type { CardGridSpec } from '@/shared/hooks/useWindowGridVirtualizer';
+import { RouterEvents } from '@/shared/lib/router/router-events';
 
 // PostListSearch.test.tsx는 usePostList()를 호출하지 않아(=목록 쿼리가 suspend하지 않아)
 // 이 파일이 다루는 버그 클래스(RouterProvider.tsx의 v7_startTransition 때문에 필터 변경이
@@ -133,6 +134,45 @@ function renderPostList(initialEntry: string) {
       </MemoryRouter>
     </QueryClientProvider>
   );
+}
+
+/**
+ * 뒤로가기(POP)는 라우터 구독(RouterEvents)으로만 잡히는데, 그건 데이터 라우터에만 있다 -
+ * MemoryRouter 컴포넌트 대신 createMemoryRouter로 만들어 앱(RouterProvider.tsx)처럼 주입한다.
+ */
+function renderPostListWithDataRouter(initialEntry: string) {
+  const queryClient = createTestQueryClient();
+  const router = createMemoryRouter(
+    [
+      {
+        path: '/',
+        element: (
+          <>
+            <PostListSearch />
+            <Suspense fallback={<div data-testid="loading" />}>
+              <PostListProbe />
+            </Suspense>
+            <LocationSearchProbe />
+          </>
+        ),
+      },
+    ],
+    { initialEntries: [initialEntry] }
+  );
+
+  RouterEvents.setSource(router);
+
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} future={{ v7_startTransition: true }} />
+    </QueryClientProvider>
+  );
+
+  return router;
+}
+
+function readCommittedParams() {
+  return new URLSearchParams(screen.getByTestId('location-search').textContent ?? '');
 }
 
 beforeEach(() => {
@@ -286,5 +326,118 @@ describe('usePostList — 정지 구간(v7_startTransition) 중 필터 조작', 
       expect(decodeURIComponent(search)).toContain('filter=isMyPosts');
       expect(search).not.toContain('isBookmarked');
     });
+  });
+  it('시나리오 E: 로딩 중 라벨 두 개를 연달아 눌러도 먼저 누른 라벨이 남는다', async () => {
+    server.use(
+      http.get(url(API_ENDPOINTS.common.categoryOption), () =>
+        HttpResponse.json(
+          {
+            status: 200,
+            message: 'ok',
+            data: [
+              { id: 1, name: '백엔드', slug: 'backend', sortOrder: 0, createdAt: '2025-01-01' },
+              {
+                id: 2,
+                name: '프론트엔드',
+                slug: 'frontend',
+                sortOrder: 1,
+                createdAt: '2025-01-01',
+              },
+            ],
+            timestamp: '',
+          },
+          { status: 200 }
+        )
+      )
+    );
+    const { getGate, inOrder } = createGateRegistry();
+    mockGatedPostList(getGate);
+    const user = userEvent.setup();
+
+    renderPostList('/');
+    await waitForGateCount(inOrder, 1);
+    await releaseAllGates(inOrder);
+    await screen.findByTestId('post-count');
+
+    const backendChip = await screen.findByRole('button', { name: '@백엔드' });
+    const frontendChip = screen.getByRole('button', { name: '@프론트엔드' });
+
+    await user.click(backendChip);
+    await waitForGateCount(inOrder, 2);
+    // 아직 release 전 — 정지 구간 안이라 커밋된 URL은 그대로다
+    expect(screen.getByTestId('location-search')).toHaveTextContent('');
+
+    await user.click(frontendChip);
+    await waitForGateCount(inOrder, 3);
+    // 커밋 전에도 두 칩이 모두 켜져 있다 - URL 갱신이 먼저 나가도 미러는 바로 반영된다
+    expect(backendChip).toHaveClass('bg-primary');
+    expect(frontendChip).toHaveClass('bg-primary');
+
+    await releaseAllGates(inOrder);
+
+    await waitFor(() => {
+      expect(readCommittedParams().get('q')).toBe('@백엔드 @프론트엔드');
+    });
+  });
+
+  it('시나리오 F: 로딩 중 뒤로가기를 하면 칩이 꺼지고, 다음 조작에 취소한 필터가 되살아나지 않는다', async () => {
+    const { getGate, inOrder } = createGateRegistry();
+    mockGatedPostList(getGate);
+    const user = userEvent.setup();
+
+    const router = renderPostListWithDataRouter('/');
+    await waitForGateCount(inOrder, 1);
+    await releaseAllGates(inOrder);
+    await screen.findByTestId('post-count');
+
+    const bookmarkChip = screen.getByRole('button', { name: TEXTS.buttons.bookmarkOnly });
+    await user.click(bookmarkChip);
+    await waitForGateCount(inOrder, 2);
+    expect(bookmarkChip).toHaveClass('bg-warning');
+
+    // 커밋 전에 원래 항목으로 돌아간다 - location.key가 처음과 같아 React 쪽에선 변화가 안 보인다
+    await act(async () => {
+      await router.navigate(-1);
+    });
+
+    await waitFor(() => expect(bookmarkChip).not.toHaveClass('bg-warning'));
+
+    await user.click(screen.getByRole('button', { name: TEXTS.buttons.myPosts }));
+    await waitForGateCount(inOrder, 3);
+    await releaseAllGates(inOrder);
+
+    await waitFor(() => {
+      expect(readCommittedParams().get('filter')).toBe('isMyPosts');
+    });
+    expect(bookmarkChip).not.toHaveClass('bg-warning');
+  });
+
+  it('시나리오 F-2: 로딩 중 뒤로가기를 하면 라벨 칩도 꺼지고 검색어가 남지 않는다', async () => {
+    const { getGate, inOrder } = createGateRegistry();
+    mockGatedPostList(getGate);
+    const user = userEvent.setup();
+
+    const router = renderPostListWithDataRouter('/');
+    await waitForGateCount(inOrder, 1);
+    await releaseAllGates(inOrder);
+    await screen.findByTestId('post-count');
+
+    const backendChip = await screen.findByRole('button', { name: '@백엔드' });
+    await user.click(backendChip);
+    await waitForGateCount(inOrder, 2);
+    expect(backendChip).toHaveClass('bg-primary');
+
+    await act(async () => {
+      await router.navigate(-1);
+    });
+
+    await waitFor(() => expect(backendChip).not.toHaveClass('bg-primary'));
+
+    await releaseAllGates(inOrder);
+
+    await waitFor(() => {
+      expect(readCommittedParams().get('q')).toBeNull();
+    });
+    expect(backendChip).not.toHaveClass('bg-primary');
   });
 });

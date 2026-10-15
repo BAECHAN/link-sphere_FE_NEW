@@ -39,6 +39,17 @@ export const postRemoveQueries = {
   detail: (queryClient: QueryClient, postId: Post['id']) => {
     queryClient.removeQueries({ queryKey: postKeys.detail(postId), exact: true });
   },
+  /**
+   * 조회에 실패한 목록. suspense 쿼리는 이미 마운트된 화면이 에러 상태인 키로 바뀌면 일부러 다시
+   * 요청하지 않는다(query-core queryObserver.ts의 shouldFetchOptionally - 에러 경계와의 무한 루프
+   * 방지). 남겨 두면 실패했던 검색 조건을 다시 골랐을 때 요청 없이 같은 에러가 바로 뜬다.
+   */
+  erroredLists: (queryClient: QueryClient) => {
+    queryClient.removeQueries({
+      queryKey: postKeys.listRoot,
+      predicate: (query) => query.state.status === 'error',
+    });
+  },
 };
 
 export const handlePostCreateSuccess = (queryClient: QueryClient) => {

@@ -26,6 +26,11 @@ export interface AsyncBoundaryProps {
    * 제공하지 않으면 재시도 버튼 표시
    */
   onReset?: () => void;
+  /**
+   * 이 배열의 값 중 하나라도 바뀌면 에러 상태를 풀고 children을 다시 그린다(그때 onReset도 호출).
+   * 없으면 에러 화면이 리마운트 전까지 남는다 - 같은 화면에서 조회 조건이 바뀌는 곳(검색 필터 등)에 넘긴다
+   */
+  resetKeys?: unknown[];
 }
 
 /**
@@ -60,6 +65,7 @@ export function AsyncBoundary({
   errorFallback,
   onError,
   onReset,
+  resetKeys,
 }: AsyncBoundaryProps) {
   const handleError = (error: Error, info: ErrorInfo) => {
     console.error('[AsyncBoundary]', error);
@@ -71,6 +77,7 @@ export function AsyncBoundary({
       FallbackComponent={errorFallback || DefaultErrorFallback}
       onError={handleError}
       onReset={onReset}
+      resetKeys={resetKeys}
     >
       <Suspense fallback={loadingFallback}>{children}</Suspense>
     </ErrorBoundary>

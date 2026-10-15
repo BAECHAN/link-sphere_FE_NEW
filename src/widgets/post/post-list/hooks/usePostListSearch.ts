@@ -1,9 +1,11 @@
 import { useCategoryOptions } from '@/entities/category/hooks/useCategoryOptions';
-import { startTransition, useState } from 'react';
+import { startTransition, useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
+import { useLocation } from 'react-router-dom';
 import { usePostListParams } from '@/widgets/post/post-list/hooks/usePostList';
-import { extractSearchTags, parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
+import { parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
+import { RouterEvents } from '@/shared/lib/router/router-events';
 
 const SCOPE_FILTERS = ['isBookmarked', 'isLiked', 'isMyPosts', 'isPrivate'] as const;
 
@@ -34,7 +36,9 @@ function computeAppliedFilterCount(
  */
 export const usePostListSearch = () => {
   const { categoryOptionList } = useCategoryOptions();
-  const { searchQuery, currentFilter, setSearch, toggleFilter, clearSearch } = usePostListParams();
+  const { searchQuery, currentFilter, toggleSearchTag, toggleFilter, clearSearch } =
+    usePostListParams();
+  const { pathname } = useLocation();
   const hideBots = useHideBotsStore((state) => state.hideBots);
   const setHideBots = useHideBotsStore((state) => state.setHideBots);
 
@@ -64,7 +68,7 @@ export const usePostListSearch = () => {
 
   // 카테고리 태그(@라벨)는 검색어(q) 안에 들어가는 값이라 URL(searchQuery)이 기준이다.
   // 검색창이 헤더로 이동하면서 로컬 미러가 사라졌으므로, 범위 필터 칩과 같은 이유로
-  // (setSearch도 라우터 startTransition에 감싸여 있어 그대로 두면 칩이 늦게 반응한다)
+  // (toggleSearchTag도 라우터 startTransition에 감싸여 있어 그대로 두면 칩이 늦게 반응한다)
   // 여기서도 flushSync 낙관적 미러를 둔다.
   const [optimisticCategoryTags, setOptimisticCategoryTags] = useState(
     () => parseSearchQuery(searchQuery).category ?? ''
@@ -76,6 +80,27 @@ export const usePostListSearch = () => {
     setPrevSearchQuery(searchQuery);
     setOptimisticCategoryTags(parseSearchQuery(searchQuery).category ?? '');
   }
+
+  // 정지 구간에 뒤로/앞으로 가기를 하면 커밋 전의 원래 항목으로 돌아가 커밋된 URL 값이 끝내
+  // 안 바뀐다 - 위 두 렌더 중 동기화가 돌지 않아 방금 누른 칩이 켜진 채 남는다. 라우터의 POP을
+  // 직접 구독해 미러를 돌아간 URL로 맞춘다. 외부 이벤트 구독이라 effect 자리다
+  // (https://react.dev/learn/synchronizing-with-effects#subscribing-to-events).
+  useEffect(
+    () =>
+      RouterEvents.onPop((location) => {
+        // 다른 페이지로 가는 POP이면 곧 언마운트된다 - 그 사이 칩이 꺼져 보이지 않게 둔다
+        if (location.pathname !== pathname) {
+          return;
+        }
+
+        const params = new URLSearchParams(location.search);
+        const filter = params.get('filter');
+
+        setOptimisticFilters(filter ? filter.split(',') : []);
+        setOptimisticCategoryTags(parseSearchQuery(params.get('q') ?? '').category ?? '');
+      }),
+    [pathname]
+  );
 
   // 봇 숨기기는 store(localStorage) 값이라 URL과 달리 라우터의 v7_startTransition 보호를
   // 받지 못한다. 그대로 두면 토글할 때마다 목록이 스켈레톤으로 떨어지므로, 스위치 자체는
@@ -114,18 +139,14 @@ export const usePostListSearch = () => {
   );
 
   const toggleCategoryTagInSearch = (category: (typeof categoryOptionList)[number]) => {
-    // 라벨 클릭 시 기존 자유 검색어는 초기화하고, 이미 선택된 @카테고리/#닉네임 태그만 유지한다.
-    const tag = `@${category.label}`;
-    const isSelected = selectedCategories.has(category.label);
-    const existingTags = extractSearchTags(searchQuery);
-    const tagsWithoutSelf = existingTags.filter((t) => t !== tag);
-    const newTags = isSelected ? tagsWithoutSelf : [...tagsWithoutSelf, tag];
-    const newSearch = newTags.join(' ');
+    // 새 q는 정지 구간의 pending까지 반영해 toggleSearchTag가 계산한다. 그 값을 받아야 해서
+    // 범위 칩과 달리 URL 갱신이 먼저 나가지만, 미러는 flushSync라 transition과 섞이지 않고
+    // 바로 반영된다.
+    const nextSearch = toggleSearchTag(`@${category.label}`);
 
     flushSync(() => {
-      setOptimisticCategoryTags(parseSearchQuery(newSearch).category ?? '');
+      setOptimisticCategoryTags(parseSearchQuery(nextSearch).category ?? '');
     });
-    setSearch(newSearch);
   };
 
   const handleClearSearch = () => {
