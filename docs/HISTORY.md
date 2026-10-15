@@ -1,3 +1,6 @@
+### 2026-10-15 (BE)
+- 댓글 목록 조회 기능에 대한 Postgres 기반 통합 테스트 추가 및 검증 로직 구현 ([#96](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/96))
+
 ### 2026-10-15 (FE)
 - 내 댓글 카드 호버 시 원글 및 댓글 데이터 프리페칭 기능 구현 ([#387](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/387))
 
