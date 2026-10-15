@@ -1,0 +1,110 @@
+name: CloudFront Drift Check
+
+# CloudFront 배포 설정(캐시 정책·Function 연결·OAC·도메인·WAF)이 커밋된 스냅샷(infra/cloudfront/snapshot.json)과
+# 여전히 같은지, 배포된 Function 코드가 infra/cloudfront-functions/와 같은지 매일 확인해 GitHub 이슈로 보고한다
+# (scripts/check-cloudfront-drift.js, docs/DEPLOY.md "CloudFront 설정 스냅샷과 차이 검사"). 콘솔에서 바꾼 설정은
+# git에 남지 않아 이 검사가 유일한 알림이다. 배포 역할의 신뢰 정책이 main만 허용해 PR 게이트로는 못 돌린다.
+# 형태는 openapi-drift-check.yml(매일 + 수동, 이슈 열고 닫기)과 BE prod-alias-drift-check.yml(배포와 같은 OIDC
+# 역할에 조회 권한)을 따른다. 이 워크플로는 레포에 쓰기 작업을 하지 않는다.
+on:
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # AWS OIDC 인증(아래 AWS 자격증명 설정)에 필요하다.
+      contents: read
+    outputs:
+      drift: ${{ steps.check.outputs.drift }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: AWS 자격증명 설정
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          # deploy.yml과 같은 역할을 OIDC로 맡는다. 읽기 권한은 별도 인라인 정책 cloudfront-drift-read
+          # (docs/DEPLOY.md "AWS IAM 권한 요구사항").
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-northeast-1
+
+      - name: 커밋된 스냅샷과 지금 설정 비교
+        id: check
+        # 스크립트는 차이면 exit 1, AWS 호출·설정 오류면 exit 2다. 차이는 이슈로 보고하고(아래 report job),
+        # 오류는 이 job을 실패시켜 워크플로 실패 알림으로 받는다. 차이 출력은 마스킹된 값만 담지만, 오류일 때는
+        # AWS CLI 오류 메시지(역할 ARN 등)가 그대로 나온다 - deploy.yml이 실패할 때와 같은 수준이다.
+        run: |
+          set +e
+          node scripts/check-cloudfront-drift.js > drift.txt 2>&1
+          status=$?
+          set -e
+
+          cat drift.txt
+          {
+            echo '## CloudFront 설정 차이 검사'
+            echo
+            echo '```'
+            cat drift.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$status" -eq 0 ]; then
+            echo "drift=false" >> "$GITHUB_OUTPUT"
+          elif [ "$status" -eq 1 ]; then
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+          else
+            exit "$status"
+          fi
+
+  # 이슈 쓰기 권한은 AWS 자격증명을 다루는 job과 분리한다(deploy.yml의 notify-failure와 같은 이유).
+  report:
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # checkout을 안 해서 gh CLI가 git remote로 레포를 추론할 수 없다 - 명시한다.
+      GH_REPO: ${{ github.repository }}
+      DRIFT_LABEL: cloudfront-drift
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: 라벨 존재 보장 (멱등)
+        run: |
+          gh label create "$DRIFT_LABEL" --color d73a4a \
+            --description "CloudFront 설정이 커밋된 스냅샷과 다름" --force
+
+      - name: 차이가 있으면 이슈 열기 (이미 열려 있으면 생략)
+        if: needs.check.outputs.drift == 'true'
+        run: |
+          existing=$(gh issue list --label "$DRIFT_LABEL" --state open --json number -q '.[0].number')
+
+          if [ -n "$existing" ]; then
+            echo "이미 열린 이슈 #$existing 있음 - 생략"
+            exit 0
+          fi
+
+          # 본문의 백틱은 마크다운 코드 표기라 그대로 둬야 한다
+          # shellcheck disable=SC2016
+          gh issue create \
+            --title "CloudFront 설정이 커밋된 스냅샷과 다름" \
+            --label "$DRIFT_LABEL" \
+            --body "$(printf '차이 내용: %s (Summary)\n\n- 의도한 콘솔 변경이면 로컬에서 `pnpm check:cloudfront --write`로 스냅샷을 갱신해 커밋한다.\n- 의도하지 않은 변경이면 콘솔에서 되돌린다.\n- Function 코드 차이는 스냅샷 갱신으로 사라지지 않는다 - docs/DEPLOY.md "CloudFront Function" 절차로 배포하거나 레포 파일을 고친다.\n\n차이가 없어지면 다음 정기 검사(매일)에서 자동으로 닫힌다.' "$RUN_URL")"
+
+      - name: 차이가 없으면 열린 이슈 닫기
+        if: needs.check.outputs.drift == 'false'
+        run: |
+          existing=$(gh issue list --label "$DRIFT_LABEL" --state open --json number -q '.[0].number')
+
+          if [ -n "$existing" ]; then
+            gh issue close "$existing" --comment "$(printf '커밋된 스냅샷과 지금 설정이 다시 같아져 자동으로 닫는다: %s' "$RUN_URL")"
+          fi

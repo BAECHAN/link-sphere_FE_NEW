@@ -285,6 +285,14 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
 - **권한**(인라인 정책 `deploy`):
   - **S3**: `s3:ListBucket`(버킷), `s3:PutObject`·`s3:DeleteObject`(버킷 안 객체) — 동기화용
   - **CloudFront**: `cloudfront:CreateInvalidation`(이 배포 하나) — 캐시 무효화용
+- **권한**(인라인 정책 `cloudfront-drift-read`, 2026-10-15 추가 — 아래 "CloudFront 설정 스냅샷과 차이 검사"의
+  매일 검사용, 모두 읽기):
+  - `cloudfront:ListDistributions`(`*` — 목록 API라 리소스를 지정할 수 없다), `cloudfront:GetDistributionConfig`(이 배포)
+  - `cloudfront:GetCachePolicy`·`GetOriginRequestPolicy`(`*` — 쓰는 정책이 AWS 관리형이라 계정 ARN으로 좁힐 수
+    있는지 확인하지 못했다. 민감하지 않은 설정 읽기다)
+  - `cloudfront:DescribeFunction`·`GetFunction`(이 계정의 Function), `wafv2:GetWebACL`(us-east-1의 CloudFront용 WAF)
+  - `deploy` 정책과 이름을 나눠, 부록 A 스크립트를 다시 돌려 `deploy`를 덮어써도 이 정책은 남는다. 추가 스크립트는
+    아래 "CloudFront 설정 스냅샷과 차이 검사"에 있다.
 - **만든 방법**: 콘솔 CloudShell 스크립트로 OIDC 제공자와 역할을 만들었다(스크립트 원문:
   [`docs/plans/2026-10-13-github-oidc-aws.md`](./plans/2026-10-13-github-oidc-aws.md) 부록 A — 여러 번
   실행해도 안전하니 권한을 바꿀 때 고쳐서 다시 돌린다). 역할 ARN은 레포 Secret `AWS_ROLE_ARN`.
@@ -306,7 +314,7 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
 비교한다(2026-10-14 도입).
 
 ```bash
-pnpm check:cloudfront            # 지금 설정과 커밋된 스냅샷 비교 - 다르면 경로별 차이를 출력하고 exit 1
+pnpm check:cloudfront            # 지금 설정과 커밋된 스냅샷 비교 - 다르면 경로별 차이를 출력하고 exit 1(AWS 오류는 exit 2)
 pnpm check:cloudfront --write    # 스냅샷을 지금 설정으로 갱신(콘솔에서 바꾼 뒤 같은 PR로 커밋)
 ```
 
@@ -316,10 +324,52 @@ pnpm check:cloudfront --write    # 스냅샷을 지금 설정으로 갱신(콘�
 - **가리는 것**: 버킷 이름, 계정 ID, 배포 ID, Lambda Function URL, 인증서·WAF·OAC 식별자, `CallerReference`를
   자리표시자(`<BUCKET>` 등)로 바꾼다. 그래서 이 값들이 바뀐 것은 잡지 못한다. 규칙은
   [`scripts/lib/cloudfront-snapshot.js`](../scripts/lib/cloudfront-snapshot.js).
-- **로컬에서만 돈다**: 읽기 전용 호출(get·list·describe)만 하지만, 배포 역할 `link-sphere-fe-deploy`에는
-  CloudFront·WAF 읽기 권한이 없어 CI에 넣지 않았다(위 "AWS IAM 권한 요구사항"). 로컬 IAM 사용자는 읽을 수 있다.
+- **매일 CI에서 돈다**(2026-10-15, 그 전엔 로컬 전용): [`cloudfront-drift-check.yml`](../.github/workflows/cloudfront-drift-check.yml)이
+  매일 01:00 UTC(수동 실행도 가능)에 배포 역할로 같은 스크립트를 돌린다. 차이가 있으면 라벨 `cloudfront-drift`로
+  이슈를 열고(이미 열려 있으면 생략), 없어지면 닫는다. 차이 내용은 그 실행의 Summary에 있다. 권한·네트워크 오류(exit 2)는
+  이슈 대신 워크플로 실패로 알린다. 배포 역할은 main 브랜치 job만 맡을 수 있어(위 "AWS IAM 권한 요구사항") PR
+  CI에는 넣지 않았다. 형태는 `openapi-drift-check.yml`(매일, 이슈 열고 닫기)과 BE `prod-alias-drift-check.yml`
+  (배포와 같은 역할에 조회 권한)을 따랐다.
 - **Function 코드 차이는 `--write`로 사라지지 않는다** — 아래 "CloudFront Function" 절차로 배포하거나 레포 파일을
-  고친다.
+  고친다. `spa-fallback.js`를 고친 PR이 병합된 뒤 Function을 수동 배포하기 전까지는 매일 검사가 이 차이로 이슈를
+  연다 — 배포하라는 알림으로 쓰면 된다.
+
+### 읽기 권한 추가 스크립트
+
+배포 역할에 위 읽기 정책 `cloudfront-drift-read`를 넣는다. IAM 권한이 있는 계정으로 콘솔 CloudShell에 붙여넣는다
+(로컬 IAM 사용자는 IAM을 바꿀 수 없다). 같은 이름의 정책을 덮어쓰므로 여러 번 실행해도 안전하다.
+
+```bash
+ROLE=link-sphere-fe-deploy
+ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+DIST_ID=$(aws cloudfront list-distributions \
+  --query "DistributionList.Items[?Aliases.Items && contains(Aliases.Items, 'linksphere.click')].Id | [0]" \
+  --output text)
+echo "account=$ACCOUNT distribution=$DIST_ID"   # 둘 다 None이 아닌지 확인
+
+cat > /tmp/cloudfront-drift-read.json <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Sid": "ListDistributions", "Effect": "Allow", "Action": "cloudfront:ListDistributions", "Resource": "*" },
+    { "Sid": "ReadDistribution", "Effect": "Allow", "Action": "cloudfront:GetDistributionConfig",
+      "Resource": "arn:aws:cloudfront::${ACCOUNT}:distribution/${DIST_ID}" },
+    { "Sid": "ReadPolicies", "Effect": "Allow",
+      "Action": ["cloudfront:GetCachePolicy", "cloudfront:GetOriginRequestPolicy"], "Resource": "*" },
+    { "Sid": "ReadFunctions", "Effect": "Allow", "Action": ["cloudfront:DescribeFunction", "cloudfront:GetFunction"],
+      "Resource": "arn:aws:cloudfront::${ACCOUNT}:function/*" },
+    { "Sid": "ReadWebAcl", "Effect": "Allow", "Action": "wafv2:GetWebACL",
+      "Resource": "arn:aws:wafv2:us-east-1:${ACCOUNT}:global/webacl/*" }
+  ]
+}
+EOF
+
+aws iam put-role-policy --role-name "$ROLE" --policy-name cloudfront-drift-read \
+  --policy-document file:///tmp/cloudfront-drift-read.json
+aws iam list-role-policies --role-name "$ROLE"   # deploy와 cloudfront-drift-read 둘 다 보이면 끝
+```
+
+추가한 뒤 Actions에서 "CloudFront Drift Check"를 수동 실행해 성공하는지 본다.
 
 ## CloudFront Origin Access Control (OAC)
 
