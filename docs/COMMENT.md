@@ -322,7 +322,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 - `MyCommentPage`(`src/pages/mycomment/MyCommentPage.tsx`) → `MyCommentList` →
   `useMyCommentList`. 보호 경로다(`src/shared/config/route-paths.ts:45`).
-- `useSuspenseMyCommentsInfiniteQuery`(comment.queries.ts 82-102줄)가 0페이지부터 10개씩
+- `useSuspenseMyCommentsInfiniteQuery`(comment.queries.ts 107-127줄)가 0페이지부터 10개씩
   가져오고, `select`에서 페이지 경계 중복 id를 걸러 낸다.
 - 다음 페이지는 목록 끝 감시 요소가 화면 아래 1200px 안에 들어오면 미리 부른다
   (`src/widgets/comment/my-comment-list/hooks/useMyCommentList.ts:19`).
