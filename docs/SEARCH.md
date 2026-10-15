@@ -9,7 +9,7 @@
 > `#닉네임` 태그가 어떻게 분해되는지 이해하고, 검색 관련 동작(유지·초기화·오타 보정)을
 > 어느 파일에서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-14
+> **마지막 검토**: 2026-10-15
 
 ## 1. 쉬운 설명
 
@@ -41,6 +41,7 @@ flowchart TD
   ChipClick["카테고리 칩 클릭<br/>(PostListSearch.tsx)"] -->|"flushSync 낙관적 미러"| ChipUI["칩 즉시 활성화"]
   ChipClick --> Navigate2["toggleSearchTag(@라벨) → URL q 갱신<br/>(아직 반영 안 된 pending까지 포함해 계산)"]
   Navigate2 --> Mirror
+  Navigate2 -->|"새 목록 응답이 0.5초 넘게 늦으면"| Applying["이전 목록을 흐리게 덮고<br/>'결과를 불러오는 중이에요.' 표시"]
 
   Focus["데스크톱 입력창 포커스<br/>(최근검색 1개 이상)"] --> Dropdown["최근검색 드롭다운 열림<br/>(role=grid, 헤더 고정+행만 스크롤)"]
   Dropdown -->|"행 클릭 또는 ↓+Enter"| Submit
@@ -156,6 +157,25 @@ history 항목의 `location.key`를 그대로 되돌려주므로, 커밋 전에 
 (`useSearchParamsDraft`) 칩 미러를 돌아간 URL로 맞춘다(`usePostListSearch`). raw `popstate`
 리스너는 [`docs/DECISIONS.md`](./DECISIONS.md) 뒤로가기 정책의 금지 사항이라 쓰지 않았다.
 
+**정지 구간이 길어지면 이전 목록을 흐리게 덮는다.** 칩·검색어·카드 배지로 조건을 바꾸면 주소는 바로
+바뀌지만 목록은 응답이 올 때까지 이전 결과다. 그 사이를 사용자가 새 결과로 읽지 않도록,
+[`usePostListApplying`](../src/widgets/post/post-list/hooks/usePostList.ts)이 "적용 중"을 판정하고
+[`PostList.tsx`](../src/widgets/post/post-list/ui/PostList.tsx)가 덮개를 그린다.
+
+- 판정: 라우터의 최신 위치(`RouterEvents.onNavigate`)와 React가 커밋한 위치(`useLocation`)가 같은
+  경로인데 쿼리가 다르면 "적용 중"이다. 다른 페이지로 가는 이동은 곧 언마운트되므로 보지 않는다.
+- 0.5초(`LOADING_INDICATOR_DELAY_MS`, 스켈레톤과 같은 값)가 지나야 띄운다. 응답 대부분은 그 안에
+  와서 아무것도 보이지 않는다.
+- 모양: `bg-background/60` 덮개 + 스피너와 "결과를 불러오는 중이에요." 알약. 알약은 navbar 바로
+  아래(`top-[calc(var(--navbar-height)+1rem)]`)에 붙어 목록을 내려 본 상태에서도 보인다.
+  덮개가 떠 있는 동안 이전 카드는 눌리지 않는다.
+- 최신 위치는 `useSyncExternalStore`가 아니라 `useState` + 구독으로 받는다. 정지 구간에 칩을 또
+  누르면 이 값이 transition 도중에 바뀌는데, `useSyncExternalStore`면 React가 그 transition을
+  블로킹으로 다시 돌려 이전 목록 대신 스켈레톤이 뜰 수 있다(react.dev 주의 사항).
+- 봇 글 숨기기 스위치는 URL을 바꾸지 않아 이 판정에 잡히지 않는다.
+- 왜 목록 쪽(A2)을 골랐는지, 기각한 안(필터 카드 스피너 등)과 근거는
+  [`docs/DECISIONS.md`](./DECISIONS.md) "2026-10-15" 항목.
+
 **게시글 카드의 카테고리 배지도 `q`에 쓰는 진입점이다(쓰기 전용).** 카드의 카테고리 배지를
 누르면 [`usePostCard.ts`](../src/widgets/post/post-card/hooks/usePostCard.ts)의
 `handleCategoryClick`이 검색어를 `@이름` 하나로 바꾼다. 경로 분기는 헤더의 `submitQuery`와
@@ -209,25 +229,27 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 데이터는 기존 `postKeys`(`post.keys.ts`)가 소유한다. 헤더 입력창의 로컬 state만 아래 훅이
 소유한다.
 
-| 상태                                               | 소유자                                                                                                        | 비고                                                                                                                                                                                                                                                                                                                                                       |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 검색어 원본(`q`)                                   | URL `searchParams` (React Router)                                                                             | `@카테고리 #닉네임 키워드` 형태로 토큰이 섞여 들어간다                                                                                                                                                                                                                                                                                                     |
-| 헤더 입력값                                        | [`useNavbarSearch.ts`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts)의 로컬 `useState`               | `pathname === '/post'`일 때만 `q`를 초기값·동기화 대상으로 삼는다                                                                                                                                                                                                                                                                                          |
-| 필터 카드 낙관적 칩                                | [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts)의 `optimisticCategoryTags` | `flushSync`로 URL 반영 전에 즉시 활성화 표시. 뒤로/앞으로 가기(POP)면 `RouterEvents.onPop`으로 돌아간 URL에 다시 맞춘다(§5)                                                                                                                                                                                                                                |
-| 커밋 전 URL 쓰기 의도(pending)                     | [`useSearchParamsDraft.ts`](../src/shared/hooks/useSearchParamsDraft.ts)의 모듈 스코프 `pendingIntent`        | 정지 구간 동안 `location.key` 기준으로 연속 조작을 이어붙임. 커밋되면(`location.key` 변경) 자동 폐기, 뒤로/앞으로 가기(POP)면 `RouterEvents.onPop`으로 폐기(§5)                                                                                                                                                                                            |
-| 봇 글 숨기기                                       | [`useHideBotsStore`](../src/shared/store/hideBots.store.ts) (zustand + localStorage)                          | 기기별 개인 설정이라 URL 대상 아님, "조건 N개" 카운트에서도 제외                                                                                                                                                                                                                                                                                           |
-| 최근 검색어(모바일·데스크톱 공용)                  | [`useRecentSearches.ts`](../src/widgets/layout/navbar/hooks/useRecentSearches.ts) (localStorage)              | `Navbar`가 한 번만 구독해 양쪽에 props로 내려줌(바로 위 §5 문단 참고)                                                                                                                                                                                                                                                                                      |
-| 모바일 검색 패널 열림                              | `location.state.mobileSearchOpen`(React Router)                                                               | 구독자 4곳 — `Navbar`(패널 렌더, `useMobileSearchPanel` 경유), [`MobileCommentBar`](../src/features/comment/create/ui/MobileCommentBar.tsx)(같은 z층 겹침 숨김), [`CreatePostForm`](../src/features/post/create/ui/CreatePostForm.tsx)(등록 버튼 바, 같은 이유로 숨김), [`AppLayout`](../src/app/layouts/app-layout/AppLayout.tsx)(배경 `main` inert 차단) |
-| 데스크톱 드롭다운 열림(`isOpen`)                   | [`NavbarSearch.tsx`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx)의 로컬 `useState`                      | **이벤트(포커스/입력/blur/키보드)에서만 갱신 — 입력값에서 파생하거나 effect로 동기화하지 않는다.** ESC 2단계 재오픈 함정은 §10 참고                                                                                                                                                                                                                        |
-| 데스크톱 드롭다운 활성 셀(`activeRow`/`activeCol`) | 같은 파일의 로컬 `useState`                                                                                   | `activeRow===recentSearches.length`는 "모두 지우기" 행. 실제 DOM 포커스는 항상 입력창에 머물고, 이 값은 `aria-activedescendant`로만 노출된다                                                                                                                                                                                                               |
+| 상태                                               | 소유자                                                                                                         | 비고                                                                                                                                                                                                                                                                                                                                                       |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 검색어 원본(`q`)                                   | URL `searchParams` (React Router)                                                                              | `@카테고리 #닉네임 키워드` 형태로 토큰이 섞여 들어간다                                                                                                                                                                                                                                                                                                     |
+| 헤더 입력값                                        | [`useNavbarSearch.ts`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts)의 로컬 `useState`                | `pathname === '/post'`일 때만 `q`를 초기값·동기화 대상으로 삼는다                                                                                                                                                                                                                                                                                          |
+| 필터 카드 낙관적 칩                                | [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts)의 `optimisticCategoryTags`  | `flushSync`로 URL 반영 전에 즉시 활성화 표시. 뒤로/앞으로 가기(POP)면 `RouterEvents.onPop`으로 돌아간 URL에 다시 맞춘다(§5)                                                                                                                                                                                                                                |
+| 커밋 전 URL 쓰기 의도(pending)                     | [`useSearchParamsDraft.ts`](../src/shared/hooks/useSearchParamsDraft.ts)의 모듈 스코프 `pendingIntent`         | 정지 구간 동안 `location.key` 기준으로 연속 조작을 이어붙임. 커밋되면(`location.key` 변경) 자동 폐기, 뒤로/앞으로 가기(POP)면 `RouterEvents.onPop`으로 폐기(§5)                                                                                                                                                                                            |
+| 라우터 최신 위치(정지 구간 판정용)                 | [`usePostList.ts`](../src/widgets/post/post-list/hooks/usePostList.ts)의 `usePostListApplying` 로컬 `useState` | `RouterEvents.onNavigate`로 갱신. 커밋된 위치와 쿼리가 다르면 "적용 중"(§5)                                                                                                                                                                                                                                                                                |
+| 봇 글 숨기기                                       | [`useHideBotsStore`](../src/shared/store/hideBots.store.ts) (zustand + localStorage)                           | 기기별 개인 설정이라 URL 대상 아님, "조건 N개" 카운트에서도 제외                                                                                                                                                                                                                                                                                           |
+| 최근 검색어(모바일·데스크톱 공용)                  | [`useRecentSearches.ts`](../src/widgets/layout/navbar/hooks/useRecentSearches.ts) (localStorage)               | `Navbar`가 한 번만 구독해 양쪽에 props로 내려줌(바로 위 §5 문단 참고)                                                                                                                                                                                                                                                                                      |
+| 모바일 검색 패널 열림                              | `location.state.mobileSearchOpen`(React Router)                                                                | 구독자 4곳 — `Navbar`(패널 렌더, `useMobileSearchPanel` 경유), [`MobileCommentBar`](../src/features/comment/create/ui/MobileCommentBar.tsx)(같은 z층 겹침 숨김), [`CreatePostForm`](../src/features/post/create/ui/CreatePostForm.tsx)(등록 버튼 바, 같은 이유로 숨김), [`AppLayout`](../src/app/layouts/app-layout/AppLayout.tsx)(배경 `main` inert 차단) |
+| 데스크톱 드롭다운 열림(`isOpen`)                   | [`NavbarSearch.tsx`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx)의 로컬 `useState`                       | **이벤트(포커스/입력/blur/키보드)에서만 갱신 — 입력값에서 파생하거나 effect로 동기화하지 않는다.** ESC 2단계 재오픈 함정은 §10 참고                                                                                                                                                                                                                        |
+| 데스크톱 드롭다운 활성 셀(`activeRow`/`activeCol`) | 같은 파일의 로컬 `useState`                                                                                    | `activeRow===recentSearches.length`는 "모두 지우기" 행. 실제 DOM 포커스는 항상 입력창에 머물고, 이 값은 `aria-activedescendant`로만 노출된다                                                                                                                                                                                                               |
 
 ## 7. 운영 파라미터
 
-| 값                                         | 위치                                                                                                     |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| 최근 검색어 최대 개수(10)                  | [`useRecentSearches.ts:5`](../src/widgets/layout/navbar/hooks/useRecentSearches.ts#L5)                   |
-| `/` 검색 단축키                            | [`NavbarSearch.tsx:48-51`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L48-L51)                     |
-| 데스크톱 드롭다운 행 목록 최대 높이(190px) | [`RecentSearchDropdown.tsx`](../src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx)의 `max-h-[190px]` |
+| 값                                         | 위치                                                                                                                    |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| 최근 검색어 최대 개수(10)                  | [`useRecentSearches.ts:5`](../src/widgets/layout/navbar/hooks/useRecentSearches.ts#L5)                                  |
+| `/` 검색 단축키                            | [`NavbarSearch.tsx:48-51`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L48-L51)                                    |
+| 데스크톱 드롭다운 행 목록 최대 높이(190px) | [`RecentSearchDropdown.tsx`](../src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx)의 `max-h-[190px]`                |
+| 정지 구간 "불러오는 중" 표시 지연(500ms)   | [`const.ts:11`](../src/shared/config/const.ts#L11) `LOADING_INDICATOR_DELAY_MS` — 스켈레톤(`DelayedFallback`)과 같은 값 |
 
 ## 8. 코드 지도와 자주 하는 수정
 
@@ -244,11 +266,13 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | `@카테고리`/`#닉네임`/키워드 분해 규칙 바꾸기                | [`search-parser.ts`](../src/widgets/post/post-list/utils/search-parser.ts) — `parseSearchQuery`                                                                                                                                                                                                                                                                     |
 | 범위 칩(북마크한·좋아요한 등) 추가·순서·색 바꾸기            | [`PostListSearch.tsx:48-80`](../src/widgets/post/post-list/ui/PostListSearch.tsx#L48-L80) — 칩 마크업, 키는 [`usePostListSearch.ts:10`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L10) `SCOPE_FILTERS`에도 넣는다                                                                                                                                    |
 | "조건 N개 적용 중" 카운트 로직                               | [`usePostListSearch.ts:13-30`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L13-L30) — `computeAppliedFilterCount`                                                                                                                                                                                                                                      |
-| 라벨(@카테고리) 칩을 눌렀을 때 새 검색어 계산 규칙 바꾸기    | [`usePostList.ts:58-74`](../src/widgets/post/post-list/hooks/usePostList.ts#L58-L74) — `toggleSearchTag`(pending 포함 draft 기준). 칩 미러 갱신은 [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts)의 `toggleCategoryTagInSearch`                                                                                                  |
+| 라벨(@카테고리) 칩을 눌렀을 때 새 검색어 계산 규칙 바꾸기    | [`usePostList.ts:62-78`](../src/widgets/post/post-list/hooks/usePostList.ts#L62-L78) — `toggleSearchTag`(pending 포함 draft 기준). 칩 미러 갱신은 [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts)의 `toggleCategoryTagInSearch`                                                                                                  |
 | 뒤로/앞으로 가기 때 칩·pending 정리 바꾸기                   | [`router-events.ts`](../src/shared/lib/router/router-events.ts)(POP 감지), [`usePostListSearch.ts:88-103`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L88-L103)(칩 미러), [`useSearchParamsDraft.ts:59-65`](../src/shared/hooks/useSearchParamsDraft.ts#L59-L65)(pending), 주입은 [`RouterProvider.tsx`](../src/app/providers/RouterProvider.tsx)     |
-| 목록 조회 실패 화면이 풀리는 조건 바꾸기                     | [`usePostList.ts:118-128`](../src/widgets/post/post-list/hooks/usePostList.ts#L118-L128) — `usePostListErrorReset`(리셋 키), 실패한 목록 캐시 삭제는 [`post.keys.ts`](../src/entities/post/api/post.keys.ts)의 `postRemoveQueries.erroredLists`                                                                                                                     |
+| 목록 조회 실패 화면이 풀리는 조건 바꾸기                     | [`usePostList.ts:122-132`](../src/widgets/post/post-list/hooks/usePostList.ts#L122-L132) — `usePostListErrorReset`(리셋 키), 실패한 목록 캐시 삭제는 [`post.keys.ts`](../src/entities/post/api/post.keys.ts)의 `postRemoveQueries.erroredLists`                                                                                                                     |
+| 정지 구간 "불러오는 중" 표시 조건·지연 바꾸기                | [`usePostList.ts:134-156`](../src/widgets/post/post-list/hooks/usePostList.ts#L134-L156) — `usePostListApplying`(최신 위치와 커밋된 위치 비교, 0.5초 지연)                                                                                                                                                                                                          |
+| 정지 구간 "불러오는 중" 덮개 모양 바꾸기                     | [`PostList.tsx:55-75`](../src/widgets/post/post-list/ui/PostList.tsx#L55-L75) — 덮개·알약, 문구는 `TEXTS.post.search.applying`                                                                                                                                                                                                                                      |
 | 초기화 버튼(필터+검색어 전체 리셋)                           | [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts) — `handleClearSearch`                                                                                                                                                                                                                                                            |
-| 오타 보정 문구                                               | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx:75-79`](../src/widgets/post/post-list/ui/PostList.tsx#L75-L79)                                                                                                                                                                                                                                                 |
+| 오타 보정 문구                                               | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx:109-113`](../src/widgets/post/post-list/ui/PostList.tsx#L109-L113)                                                                                                                                                                                                                                             |
 | 모바일 검색 패널 열림 상태                                   | [`useMobileSearchPanel.ts:17-22`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L17-L22) — `location.state.mobileSearchOpen`                                                                                                                                                                                                                           |
 | 검색 중 하단 댓글바 숨김 동작 바꾸기                         | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useHistoryOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                                                                                                                                                                                     |
 | 검색 중 배경 클릭·포커스 차단 범위 바꾸기                    | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                                                                                                                                                                                   |
@@ -275,6 +299,11 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
   - 수정 전 코드로 되돌려 E·F와 "같은 조건 재선택"이 실패하고, POP 때 라벨 미러를 맞추는 줄을
     빼면 F-2가 실패하는 것도 확인했다.
   - 녹화 전용 Playwright 스펙(API 모킹, 응답 2.5초 지연·500 주입)으로 Chromium에서 세 항목을 녹화했다.
+- 정지 구간 "불러오는 중" 표시(2026-10-15, §5):
+  - 단위 테스트: `PostList.test.tsx` — 응답이 0.5초 안에 오면 표시가 없고, 늦으면 0.5초 뒤 떴다가
+    응답 뒤 걷힌다. 덮개 렌더링을 꺼 두면 두 번째 테스트가 실패하는 것도 확인했다.
+  - 녹화 전용 Playwright 스펙(API 모킹)으로 빠른 응답, 느린 응답, 목록을 내려 본 상태에서 카드 배지
+    클릭, 모바일 네 경우를 녹화했다. 내려 본 상태에서도 알약이 navbar 아래 화면 안에 보였다.
 
 ## 10. 시행착오
 
@@ -434,27 +463,24 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
   - 2026-09-14 수정은 범위 칩(`toggleFilter`)만 draft 기준으로 바꿨고 라벨은 빠져 있었다.
   - 수정: 라벨도 draft 기준(`toggleSearchTag`)으로 계산한다.
 
+**"불러오는 중" 덮개를 `absolute`로 띄우려다 가상 스크롤 위치가 틀어짐 → grid 같은 칸 겹치기로
+해결(2026-10-15).** 처음에는 `PostList`를 `relative` 래퍼로 감싸고 덮개를 `absolute inset-0`으로
+띄웠다. 단위 테스트와 녹화는 통과했지만 PR CI의 e2e `virtualizer-scroll-adjust.spec.ts`("⌘B로 열 수가
+바뀌어도 맨 윗줄 카드가 그대로 남는다")가 실패했다.
+
+- 원인: `useWindowGridVirtualizer.ts`의 `useScrollMargin`이 목록의 문서 내 위치를 `node.offsetTop`으로
+  잰다. `offsetTop`은 가장 가까운 `position` 지정 조상 기준이라, `relative` 래퍼가 그 기준이 되면서
+  scrollMargin이 0 근처로 틀어졌다. 열 수가 바뀔 때 스크롤 보정이 어긋나는 실제 회귀다.
+- 해결: 래퍼에서 `position`을 빼고 `display: grid`의 같은 칸(`[grid-area:1/1]`)에 목록과 덮개를
+  겹쳤다. grid 항목은 `position` 없이도 `z-index`가 적용된다.
+- 교훈: 가상 목록 바깥에 `relative`·`absolute`·`fixed`·`sticky` 같은 위치 지정 래퍼를 새로 두면
+  scrollMargin 기준이 바뀐다. 이 목록 주변에 겹치는 UI를 둘 때는 grid 겹치기를 쓴다.
+
 ## 11. 남은 것
 
-- **정지 구간 동안 로딩 표시가 없다(2026-10-14 미결).** 위 §10 제보의 원인이다.
-  2026-09-14에는 로딩 UI를 범위에서 뺐다([`docs/DECISIONS.md`](./DECISIONS.md) 같은 날짜 항목).
-  이번 제보를 계기로 업계·연구 자료를 다시 조사했다.
-  - [NN/g "User Intent Affects Filter Design"](https://www.nngroup.com/articles/applying-filters/)은
-    _"효과적인 패싯 내비게이션 시스템 다수는 새 결과를 보여주기 전에 결과 목록을 흐리게 하고
-    진행 표시를 보여준다"_ (번역)고 쓴다.
-  - [React `useDeferredValue` 문서](https://react.dev/reference/react/useDeferredValue)는 이전 결과를
-    표시 없이 보여주면 _"새 결과가 오래 걸릴 때 사용자가 혼란스러울 수 있다"_ (번역)며, 이전 목록을
-    흐리게 하는 예시를 든다. 다만 같은 문서가 _"업데이트가 Transition 안에 있으면
-    useDeferredValue는 항상 새 값을 돌려준다"_ (번역)고 밝혀, 라우터가 이미 startTransition을
-    쓰는 이 구조에는 예시를 그대로 쓸 수 없다.
-  - [NN/g "Progress Indicators"](https://www.nngroup.com/articles/progress-indicators/)는
-    _"1초 미만인 작업에 반복 애니메이션을 쓰면 산만하다"_ (번역)고 쓴다.
-    [GitHub Primer Loading](https://primer.style/ui-patterns/loading)도 1초 미만이면 로딩 상태를
-    보여주지 말라고 권한다.
-  - Shopify Polaris `Filters`는 _"비동기 작업이 실행 중인지 여부"_ (번역)를 받는 `loading` prop을
-    검색 필드로 넘긴다([Shopify/polaris](https://github.com/Shopify/polaris/tree/main/polaris-react) `polaris-react` 패키지의 `Filters.tsx` 소스 확인, 화면 표현은 미확인).
-  - 다음 단계: A1(필터 카드 안 작은 스피너)·A2(목록 흐리게 + 스피너)를, 둘 다 "늦을 때만" 보이게
-    해서 미리보기로 나란히 비교한 뒤 정한다. 정하면 대안 비교와 함께 `DECISIONS.md`에 남긴다.
+- **봇 글 숨기기 스위치를 바꾼 동안에는 "불러오는 중" 표시가 없다.** 정지 구간 표시(§5)는 URL
+  변화로 판정하는데, 이 스위치는 URL이 아니라 localStorage 설정을 바꾼다. 같은 표시가 필요하면
+  `usePostListSearch`의 봇 숨기기 미러와 커밋된 값을 비교하는 신호를 따로 둬야 한다.
 - 헤더 검색창 입력값은 정지 구간에 뒤로가기를 해도 사용자가 친 값이 그대로 남는다
   (`useNavbarSearch`) — 직접 타이핑한 값이라 의도적으로 그대로 둔다.
 
@@ -503,6 +529,8 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
 - **POP**: 브라우저 뒤로/앞으로 가기로 history 항목을 옮기는 이동. 새 key를 만들지 않고 돌아간
   항목의 `location.key`를 그대로 되돌려준다. 이 문서에서는 `RouterEvents.onPop`
   ([`router-events.ts`](../src/shared/lib/router/router-events.ts))이 이를 받아 칩·pending을 정리한다.
+- **적용 중**: 라우터는 새 위치에 가 있는데 React가 커밋한 위치는 아직 이전인 상태(= 정지 구간 중).
+  0.5초 넘게 이어지면 `PostList`가 이전 목록을 흐리게 덮는다(`usePostListApplying`, §5).
 - **`correctedSearch`**: 한/영 자판 오타 보정 시 BE가 응답에 함께 내려주는, 실제로 검색에
   쓰인 보정된 검색어. 타입은 `post.dto.ts`(BE OpenAPI 생성 타입 alias).
 

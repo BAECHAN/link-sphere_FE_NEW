@@ -1,6 +1,10 @@
 import { Fragment, type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
-import { usePostList, usePostListErrorReset } from '@/widgets/post/post-list/hooks/usePostList';
+import {
+  usePostList,
+  usePostListApplying,
+  usePostListErrorReset,
+} from '@/widgets/post/post-list/hooks/usePostList';
 import { PostListSkeleton } from '@/widgets/post/post-list/ui/PostCardSkeleton';
 import { Post } from '@/entities/post/model/post.schema';
 
@@ -26,20 +30,50 @@ interface PostListProps {
 
 export function PostList({ renderPost, grid }: PostListProps) {
   const { resetKeys, onReset } = usePostListErrorReset();
+  const isApplying = usePostListApplying();
 
+  // 덮개는 absolute가 아니라 grid 같은 칸에 겹친다 - 이 래퍼를 relative로 두면 가상 스크롤이
+  // 목록 위치를 재는 offsetTop(useWindowGridVirtualizer.ts의 useScrollMargin)의 기준이 이 래퍼로
+  // 바뀌어 scrollMargin이 틀어진다. grid 항목은 position 없이도 z-index가 적용된다.
   return (
-    <AsyncBoundary
-      loadingFallback={
-        <DelayedFallback>
-          <PostListSkeleton grid={grid} />
-        </DelayedFallback>
-      }
-      errorFallback={() => <ErrorState>{TEXTS.messages.error.fetchPosts}</ErrorState>}
-      resetKeys={resetKeys}
-      onReset={onReset}
-    >
-      <PostListContent renderPost={renderPost} grid={grid} />
-    </AsyncBoundary>
+    <div className="grid grid-cols-1" aria-busy={isApplying}>
+      <div className="min-w-0 [grid-area:1/1]">
+        <AsyncBoundary
+          loadingFallback={
+            <DelayedFallback>
+              <PostListSkeleton grid={grid} />
+            </DelayedFallback>
+          }
+          errorFallback={() => <ErrorState>{TEXTS.messages.error.fetchPosts}</ErrorState>}
+          resetKeys={resetKeys}
+          onReset={onReset}
+        >
+          <PostListContent renderPost={renderPost} grid={grid} />
+        </AsyncBoundary>
+      </div>
+
+      {/* 조건을 바꾼 뒤 응답이 늦으면 이전 목록을 흐리게 덮는다 - PostCard의 isUpdating 덮개와 같은
+          형태. 문구는 카드 글자 위에 겹치지 않게 알약에 담고, 긴 목록을 내려 보고 있어도 보이도록
+          navbar 바로 아래에 붙여 따라오게 한다(BookmarkPage 폴더 패널과 같은 top, docs/SEARCH.md §5) */}
+      {isApplying && (
+        <div className="z-raised bg-background/60 animate-in fade-in duration-200 motion-reduce:animate-none [grid-area:1/1]">
+          <div
+            role="status"
+            className="sticky top-[calc(var(--navbar-height)+1rem)] flex justify-center pt-6"
+          >
+            <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 shadow-sm">
+              <Loader2
+                aria-hidden="true"
+                className="h-4 w-4 animate-spin text-muted-foreground motion-reduce:animate-none"
+              />
+              <span className="text-sm font-medium text-muted-foreground">
+                {TEXTS.post.search.applying}
+              </span>
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
