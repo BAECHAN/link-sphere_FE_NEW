@@ -133,7 +133,11 @@ test.describe('탭 간 로그인·로그아웃 동기화', () => {
 
     await feedTab.goto('/post');
     await expect(feedTab.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })).toBeVisible();
-    await feedTab.getByRole('button', { name: TEXTS.ariaLabels.postLike }).first().click();
+    // exact — 이름 부분 일치면 피드의 "좋아요한" 범위 칩이 먼저 걸린다
+    await feedTab
+      .getByRole('button', { name: TEXTS.ariaLabels.postLike, exact: true })
+      .first()
+      .click();
     await expect.poll(() => likeRequests).toBe(1);
 
     // 좋아요가 서버에 가 있는 사이 다른 탭에서 로그인했다 - 이 탭은 쿠키로 새 세션을 받아들인다
