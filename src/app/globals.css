@@ -484,3 +484,36 @@ font-family만 'Pretendard'로 맞춘 것)에서 한다 — 당근마켓·마켓
 #nprogress .spinner-icon {
   @apply !border-t-primary !border-l-primary;
 }
+
+/* 동작 줄이기(prefers-reduced-motion: reduce) — 움직임만 빼고 페이드·색 변화는 남긴다.
+   줄이기는 없애기가 아니다: 큰 이동·확대·회전은 페이드로 바꾸고 투명도·색 변화는 둔다
+   (Val Head, https://www.smashingmagazine.com/2020/09/design-reduced-motion-sensitivities/).
+   스피너처럼 상태를 알리는 애니메이션은 끄지 않고 느리게 한다
+   (Bootstrap, https://getbootstrap.com/docs/5.3/getting-started/accessibility/).
+   레이어 밖에 둬야 utilities 레이어의 zoom-in-95·slide-in-from-* 변수를 이긴다. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    /* tw-animate-css의 enter/exit 키프레임이 읽는 변수 — 투명도(--tw-*-opacity)만 남는다 */
+    --tw-enter-translate-x: 0;
+    --tw-enter-translate-y: 0;
+    --tw-enter-scale: 1;
+    --tw-enter-rotate: 0;
+    --tw-enter-blur: 0;
+    --tw-exit-translate-x: 0;
+    --tw-exit-translate-y: 0;
+    --tw-exit-scale: 1;
+    --tw-exit-rotate: 0;
+    --tw-exit-blur: 0;
+    /* transform·translate·scale·rotate·height는 빠져 애니메이션 없이 바로 바뀐다.
+       !important는 transition-all 클래스와 인라인 style(NProgress 막대 등)까지 덮기 위해서다 */
+    transition-property:
+      color, background-color, border-color, outline-color, text-decoration-color, fill, stroke,
+      opacity, box-shadow !important;
+  }
+
+  .animate-spin {
+    animation-duration: 2s;
+  }
+}
