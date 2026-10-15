@@ -99,6 +99,17 @@ CSS만으로 exit(사라짐) 애니메이션을 만들 때 "화면에서 사라�
 않는다. 값을 `globals.css` 토큰으로 중앙화해 중복 자체를 없애는 리팩터링은
 이번 범위 밖 — 후속 과제로 남긴다.
 
+**등장(enter)도 따로 챙긴다.** 이 패턴은 보이는 상태 그대로 마운트되므로, 마운트한 뒤 상태가
+바뀌지 않으면 트랜지션이 일어나지 않는다. framer-motion을 CSS로 옮긴 2026-09-21(`2c126c68`)에
+`initial`이 빠져, 맨 위로·댓글 폼 버튼의 등장 애니메이션이 2026-10-15까지 사라져 있었다. 숨김 상태
+클래스를 `starting:`(CSS `@starting-style`)으로도 붙여, 처음 그려질 때 그 상태에서 출발시킨다
+(`ScrollToTop.tsx`). 회귀는 `e2e/reduced-motion.spec.ts`의 "맨 위로 버튼 등장 트랜지션"이 잡는다.
+
+**Tailwind v4의 `translate-*`·`scale-*`·`rotate-*`는 `transform`이 아니라 같은 이름의 개별 속성이다.**
+`transition-[transform,...]`로는 움직이지 않으니 `transition-transform`(넷 다 포함)이나
+`transition-[translate,...]`를 쓴다. 게시글 카드 hover 들림이 이 문제로 처음부터 애니메이션 없이
+바로 바뀌었다(`PostCard.tsx`, 2026-10-15 수정).
+
 ## 실측 현황 (직접 측정, 2026-09-22)
 
 | 항목                     | 값                                                                                           |

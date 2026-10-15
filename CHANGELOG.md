@@ -120,6 +120,13 @@
 
 ### Fixed
 
+- `shared` 맨 위로·댓글 폼 버튼 등장과 카드 hover 들림이 애니메이션 없이 바뀌던 문제
+  <details><summary>배경·구현</summary>
+
+  framer-motion을 CSS 트랜지션으로 옮길 때(2026-09-21) `initial`(등장 출발점)이 빠졌다. 그래서 맨 위로·댓글 폼 버튼은 보이는 상태로 바로 마운트돼 툭 나타나고, 사라질 때만 움직였다. 숨김 상태를 Tailwind `starting:`(CSS [`@starting-style`](https://developer.mozilla.org/en-US/docs/Web/CSS/@starting-style), MDN 표기 Baseline 2024)으로도 붙여, 처음 그려질 때 흐리고 작은 상태에서 커지며 올라오게 했다. 지원하지 않는 브라우저에서는 지금처럼 바로 나타난다. 게시글 카드 hover 들림(`-translate-y-0.5`)은 Tailwind v4에서 `translate` 속성인데, 트랜지션 대상이 `transform`이라 처음부터 바로 바뀌었다. 대상을 `translate`로 고쳤다(직접 측정: hover 직후 `translate`가 한 프레임 만에 -2px로 바뀌던 것이 9프레임에 걸쳐 올라감). 동작 줄이기를 켠 사용자에게는 #392 규칙대로 등장할 때 페이드만 된다. (`ScrollToTop.tsx`, `ScrollToCommentFormButton.tsx`, `PostCard.tsx`, `e2e/reduced-motion.spec.ts`, `.claude/skills/motion-ux/SKILL.md`, [PR #394](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/394))
+
+  </details>
+
 - `auth` 인증 세대가 안 바뀐 채 다른 계정이 되면 갱신이 새 계정으로 되던 문제(BE 배포 후)
   <details><summary>배경·구현</summary>
 

@@ -92,6 +92,8 @@ export function ScrollToCommentFormButton({
     <div
       className={cn(
         'fixed bottom-6 right-6 z-nav transition-all duration-200',
+        // 등장 출발점 - ScrollToTop.tsx와 같은 이유(@starting-style)
+        'starting:opacity-0 starting:scale-[0.8] starting:translate-y-5',
         isVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-[0.8] translate-y-5'
       )}
     >
