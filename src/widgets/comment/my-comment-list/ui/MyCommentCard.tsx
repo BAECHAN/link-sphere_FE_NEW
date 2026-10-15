@@ -6,6 +6,7 @@ import { DateUtil } from '@/shared/utils/date.util';
 import { splitContentImages } from '@/shared/lib/content/imageContent';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
+import { useMyCommentCard } from '@/widgets/comment/my-comment-list/hooks/useMyCommentCard';
 
 interface MyCommentCardProps {
   comment: MyComment;
@@ -24,9 +25,15 @@ export function MyCommentCard({ comment }: MyCommentCardProps) {
   const { text, imageUrls } = splitContentImages(comment.content);
   const imageCount = imageUrls.length;
   const isImageOnly = !text && imageCount > 0;
+  const { handlePrefetchDetailWithComments } = useMyCommentCard(comment.postId);
 
   return (
-    <Link to={`/post/${comment.postId}#comment-${comment.id}`} className="block">
+    <Link
+      to={`/post/${comment.postId}#comment-${comment.id}`}
+      className="block"
+      onMouseEnter={handlePrefetchDetailWithComments}
+      onFocus={handlePrefetchDetailWithComments}
+    >
       <Card className="p-3 gap-2 hover:shadow-md transition-shadow">
         <p
           className={cn(

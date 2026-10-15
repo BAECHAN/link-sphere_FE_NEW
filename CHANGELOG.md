@@ -27,6 +27,13 @@
 
 ### Changed
 
+- `comment` 내 댓글 카드에 마우스를 올리면 원글과 댓글을 미리 받기
+  <details><summary>배경·구현</summary>
+
+  "내 댓글" 카드를 누르면 원글의 그 댓글(`#comment-<id>`)로 스크롤하는데, 원글과 댓글 목록을 클릭한 뒤에야 받기 시작했다. 카드 hover·focus 때 둘을 미리 받아 둔다 — 게시글 카드 💬 hover(#375)와 같은 방식이다. 카드 전체가 링크라 지나가기만 해도 발동하지만, 이 카드는 누르면 항상 특정 댓글로 가서 댓글 목록까지 필요하다. 받은 데이터는 3분(staleTime) 동안 다시 요청하지 않는다. (`useMyCommentCard.ts`(신규), `MyCommentCard.tsx`, `e2e/my-comments.spec.ts`, `docs/COMMENT.md`, [PR #387](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/387))
+
+  </details>
+
 - `infra` Storybook HTML도 앱과 같은 no-cache로, 쓰이지 않는 OAC 3개 정리
   <details><summary>배경·구현</summary>
 
