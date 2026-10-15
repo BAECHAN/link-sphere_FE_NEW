@@ -1,4 +1,9 @@
 ### 2026-10-15 (FE)
+- 맨 위로 이동 버튼, 댓글 폼 버튼 인터랙션 및 카드 Hover 애니메이션 복구
+로그:
+- fix(shared): 맨 위로·댓글 폼 버튼 등장과 카드 hover 들림 애니메이션 되살리기 ([#394](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/394))
+
+### 2026-10-15 (FE)
 - 백엔드 리프레시 토큰 및 회원 인증 상태(409 Conflict)에 대한 API 명세 최신화 ([#393](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/393))
 
 ### 2026-10-15 (FE)
