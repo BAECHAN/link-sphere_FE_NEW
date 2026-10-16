@@ -1,4 +1,7 @@
 ### 2026-10-16 (FE)
+- 인증 세션 충돌 방지 및 예외 처리 로직 개선 ([#399](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/399))
+
+### 2026-10-16 (FE)
 - 링크 등록 화면 진입 시 URL 입력 필드 자동 포커스 기능 추가 ([#400](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/400))
 
 ### 2026-10-15 (FE)
