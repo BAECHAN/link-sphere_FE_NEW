@@ -1,3 +1,6 @@
+### 2026-10-16 (FE)
+- 인증 동기화 로직 개선: localStorage 접근 제한 환경에서 타 탭의 계정 변경 시 발생하는 요청 충돌 이슈 해결 및 데이터 무결성 강화 ([#406](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/406))
+
 ### 2026-10-16 (BE)
 - 카테고리 목록 응답에 Cache-Control 헤더를 적용하여 브라우저 캐싱을 통한 성능 최적화 ([#102](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/102))
 
