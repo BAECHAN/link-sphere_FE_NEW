@@ -3,7 +3,7 @@
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
 > 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지, 그리고 로그인한 사람도 글을 못 쓸 때가 있는 이유를 설명할 수 있게 됩니다. 비밀번호를 새로 만드는 폼이 입력 중에 언제 무엇을 보여주는지(§8-G)도 여기서 다룹니다.
-> **마지막 검토**: 2026-10-15
+> **마지막 검토**: 2026-10-16
 
 ---
 
@@ -330,6 +330,11 @@ flowchart TD
   `removeQueries`, 그 밖은 `cancelQueries`) 조회에서 시작된 경우 query-core가 취소로 처리하고 전역 `onError`를 부르지
   않습니다(5.90 `query.ts`의 `fetch` catch). mutation은 핸들러까지 오지만 `manualErrorHandling`(좋아요·북마크)이나
   로그아웃 유예로 조용히 끝납니다.
+- **유예 창은 경로와 상관없이 엽니다**: `applySessionMismatch`는 `clearAll`과 같은 2초 유예 창(`markClearedAt`, §8-E)을
+  보호 경로 여부와 상관없이 엽니다. 보호 경로가 아니면 정리가 `clearQueries`를 타는데, 그 유예는 재조회가 끝나면
+  풀립니다. 화면에 활성 쿼리가 없으면 재조회가 몇 틱 만에 끝나, refresh를 기다리던 mutation의 `SessionChangedError`가
+  유예가 풀린 뒤 전역 핸들러에 닿아 안내와 함께 _"로그인 상태가 바뀌어서 처리되지 않았어요."_ 에러 토스트가
+  떴습니다(문구 뒤 "다시 시도해 주세요." 생략). 2026-10-16 `session-mismatch-toast.test.ts`로 재현한 뒤(§9) 고쳤습니다.
 
 `TOKEN_EXPIRED`는 "재시도하면 회복 가능"(리프레시), `NOT_LOGGED_IN`/`INVALID_TOKEN`은 "회복 불가능"(즉시 로그아웃)이라는 서로 다른 처방을 받습니다. 이 구분은 `error-code.ts:3-5`에서 코드 자체가 나뉘어 있는 것과 일치합니다.
 
@@ -548,6 +553,7 @@ error여도 정상적으로 재요청됩니다. 반면 **Suspense 훅**(`useSusp
 `isLoggingOut()`은 두 경로 모두의 "로그아웃 직후 구간"을 하나로
 묶어 판단합니다 — 제자리 로그아웃은 `resetQueries()` Promise가 도는 동안,
 이동 수반 로그아웃은 `clearedAt` 이후 유예 시간(`LOGOUT_GRACE_MS`, 2초) 동안.
+SESSION_MISMATCH로 이 탭만 로그아웃할 때(§8-B)는 경로와 상관없이 `clearedAt` 창도 엽니다.
 `AuthUtil.isLoggingOut()`(`auth.util.ts`)은 얇은 위임일 뿐, `loggingOut`/`clearedAt`
 상태 자체와 `LOGOUT_GRACE_MS`는 의존성이 없는 `logout-grace.util.ts`에 있습니다 —
 `error-toast.ts`의 `resolveErrorToast()`(§8-B, mutation·query 전역 에러 핸들러가 공유하는
@@ -847,6 +853,11 @@ flowchart TD
 | 6 (`:457-467`)   | 응답을 못 받음(오프라인·연결 끊김)                            | `fetch` reject를 `NetworkError`로 바꿔 던짐                                                                   |
 | 7 (`:474-652`)   | 요청을 보낸 뒤 인증 세대가 바뀜(it 7개)                       | refresh·재시도·로그인 이동 없이 `SessionChangedError`, 대기 요청도 함께, 방금 한 로그인 유지(§8-B)            |
 | 8 (`:659-812`)   | refresh 쿠키 주인이 다른 회원(409 `SESSION_MISMATCH`, it 5개) | refresh에 원 요청 토큰, 이 탭만 로그아웃·세션 플래그 유지·안내 1번, 늦게 온 같은 토큰 401도 재실행 없음(§8-B) |
+
+Case 8은 `apiClient`를 직접 불러 전역 에러 핸들러를 거치지 않습니다. 그래서 **SESSION_MISMATCH 로그아웃과 전역
+에러 토스트가 겹치지 않는지**는 `src/shared/api/session-mismatch-toast.test.ts`가 따로 검증합니다 — 전역 핸들러가 붙은
+실제 `queryClient`로 mutation을 실행해, 보호 경로가 아니고 활성 쿼리가 없을 때도 안내만 뜨고 에러 토스트는 뜨지
+않는지 봅니다. `applySessionMismatch`의 유예 창(§8-B "유예 창은 경로와 상관없이 엽니다")을 빼면 실패합니다.
 
 **`describe('ApiClient — 요청 헤더 (CloudFront OAC 대응)')`**(`:821-960`, 6 Case) —
 2026-09-29 OAC 전환(FE Phase 6, `docs/plans/2026-09-29-oac-lockdown.md`)으로 추가됨,

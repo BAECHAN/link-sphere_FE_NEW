@@ -28,7 +28,7 @@ export class LogoutGraceUtil {
   /** clearQueries()의 resetQueries() 배경 재요청이 아직 진행 중인지 (isLoggingOut 참고) */
   private static loggingOut = false;
 
-  /** 재요청 없이 캐시를 버린(clearAll) 시각. 유예 창 판정에만 쓴다 */
+  /** 재요청 없이 캐시를 버린(clearAll) 시각 - SESSION_MISMATCH 로그아웃도 찍는다(markClearedAt). 유예 창 판정에만 쓴다 */
   private static clearedAt = 0;
 
   /**
@@ -55,7 +55,7 @@ export class LogoutGraceUtil {
     this.loggingOut = false;
   }
 
-  /** clearQueriesWithoutRefetch()가 캐시를 지운 시각을 기록한다 */
+  /** clearQueriesWithoutRefetch()가 캐시를 지운 시각, 또는 applySessionMismatch()가 이 탭을 로그아웃한 시각을 기록한다 */
   static markClearedAt(): void {
     this.clearedAt = Date.now();
   }

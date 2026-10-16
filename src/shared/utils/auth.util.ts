@@ -103,6 +103,10 @@ export class AuthUtil {
    */
   static applySessionMismatch(): void {
     this.applySignOutFromElsewhere();
+    // 보호 경로가 아니면 위 정리는 clearQueries를 타는데, 그 유예는 재조회가 끝나면 풀린다. 화면에 활성 쿼리가 없으면
+    // 재조회가 몇 틱 만에 끝나, 이 refresh를 기다리던 mutation의 SessionChangedError가 유예가 풀린 뒤 전역 핸들러에
+    // 닿아 안내와 함께 에러 토스트가 뜬다(session-mismatch-toast.test.ts). 경로와 상관없이 clearAll과 같은 유예 창을 연다.
+    LogoutGraceUtil.markClearedAt();
     toast.info(TEXTS.messages.info.signedOutForOtherAccount, { id: SESSION_MISMATCH_TOAST_ID });
   }
 

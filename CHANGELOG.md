@@ -127,6 +127,13 @@
 
 ### Fixed
 
+- `auth` 다른 계정 로그인 안내와 함께 "로그인 상태가 바뀌어서" 에러 토스트가 뜰 수 있던 문제
+  <details><summary>배경·구현</summary>
+
+  refresh가 409 `SESSION_MISMATCH`로 거절돼 이 탭만 로그아웃할 때(#391), 그 refresh를 기다리던 mutation의 `SessionChangedError` 에러 토스트는 로그아웃 유예로 꺼진다는 것이 설계였다. 그런데 보호 경로가 아니면 정리가 `clearQueries`를 타고 그 유예는 재조회가 끝나면 풀려서, 화면에 활성 쿼리가 없으면 재조회가 몇 틱 만에 끝나 유예가 에러보다 먼저 풀렸다 — 안내와 함께 "로그인 상태가 바뀌어서 처리되지 않았어요" 에러 토스트가 떴다. 전역 핸들러가 붙은 실제 `queryClient`로 mutation을 돌리는 테스트로 재현(5회 모두)한 뒤, `applySessionMismatch`가 경로와 상관없이 `clearAll`과 같은 2초 유예 창(`markClearedAt`)을 열게 했다. 그 2초 동안 토큰 없이 재조회한 요청의 401도 토스트·`clearAll` 없이 넘어간다. 실제 화면에서 이 조건(활성 쿼리 0개)이 되는 경로는 찾지 못했다. 설명은 `docs/AUTH.md` §8-B "유예 창은 경로와 상관없이 엽니다". (`shared/utils/auth.util.ts`, `shared/utils/logout-grace.util.ts`, `shared/api/session-mismatch-toast.test.ts`(신규), [PR #399](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/399))
+
+  </details>
+
 - `post` 동작 줄이기를 켜면 필터 대기 표시의 스피너만 멈추던 문제
   <details><summary>배경·구현</summary>
 
