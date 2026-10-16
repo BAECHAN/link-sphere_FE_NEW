@@ -59,10 +59,10 @@ describe('AuthEpochUtil', () => {
   describe('토큰이 속한 세대 (client.ts가 요청마다 기억)', () => {
     it('이 탭의 로그인·로그아웃은 토큰 세대도 새 값으로 맞춘다', () => {
       AuthEpochUtil.markLogin();
-      expect(AuthEpochUtil.ofToken()).toBe(readStored());
+      expect(AuthEpochUtil.ofToken().stored).toBe(readStored());
 
       AuthEpochUtil.markLogout();
-      expect(AuthEpochUtil.ofToken()).toBe(readStored());
+      expect(AuthEpochUtil.ofToken().stored).toBe(readStored());
     });
 
     it('다른 탭이 쓴 값은 acknowledge해도 토큰 세대를 바꾸지 않는다 - 새 토큰을 넣을 때(bindToken)만 맞춘다', () => {
@@ -72,18 +72,18 @@ describe('AuthEpochUtil', () => {
 
       AuthEpochUtil.acknowledge();
 
-      expect(AuthEpochUtil.ofToken()).toBe(before);
+      expect(AuthEpochUtil.ofToken()).toEqual(before);
       expect(AuthEpochUtil.hasChangedSince(before)).toBe(true);
 
       AuthEpochUtil.bindToken();
 
-      expect(AuthEpochUtil.ofToken()).toBe('in:other-tab');
+      expect(AuthEpochUtil.ofToken().stored).toBe('in:other-tab');
       expect(AuthEpochUtil.hasChangedSince(AuthEpochUtil.ofToken())).toBe(false);
     });
 
     it('세대 키가 없는 사용자는 null끼리 같아 바뀌지 않은 것으로 본다', () => {
-      expect(AuthEpochUtil.ofToken()).toBeNull();
-      expect(AuthEpochUtil.hasChangedSince(null)).toBe(false);
+      expect(AuthEpochUtil.ofToken().stored).toBeNull();
+      expect(AuthEpochUtil.hasChangedSince(AuthEpochUtil.ofToken())).toBe(false);
     });
 
     it('reset은 토큰 세대도 비운다', () => {
@@ -91,7 +91,33 @@ describe('AuthEpochUtil', () => {
 
       AuthEpochUtil.reset();
 
-      expect(AuthEpochUtil.ofToken()).toBeNull();
+      expect(AuthEpochUtil.ofToken()).toEqual({ stored: null, inTab: 0 });
+    });
+  });
+
+  describe('탭 안 세대 (localStorage에 못 쓰는 탭의 같은 탭 계정 전환)', () => {
+    it('저장이 실패해도 이 탭의 로그인·로그아웃은 hasChangedSince가 알아챈다 - isStale은 그대로 false', () => {
+      AuthEpochUtil.markLogin();
+      const before = AuthEpochUtil.ofToken();
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('QuotaExceededError');
+      });
+
+      AuthEpochUtil.markLogout();
+      AuthEpochUtil.markLogin();
+
+      expect(AuthEpochUtil.ofToken().stored).toBe(before.stored);
+      expect(AuthEpochUtil.hasChangedSince(before)).toBe(true);
+      expect(AuthEpochUtil.isStale()).toBe(false);
+    });
+
+    it('refresh처럼 토큰만 넣고 빼면(bindToken) 탭 안 세대는 그대로다', () => {
+      AuthEpochUtil.markLogin();
+      const before = AuthEpochUtil.ofToken();
+
+      AuthEpochUtil.bindToken();
+
+      expect(AuthEpochUtil.hasChangedSince(before)).toBe(false);
     });
   });
 });

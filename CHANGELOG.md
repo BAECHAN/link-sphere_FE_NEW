@@ -134,6 +134,13 @@
 
 ### Fixed
 
+- `auth` localStorage에 못 쓰는 탭에서 같은 탭으로 계정을 바꾸면 옛 요청이 새 계정으로 실행되던 문제
+  <details><summary>배경·구현</summary>
+
+  인증 세대(#381)는 localStorage 값 하나라, 저장이 실패하는 탭에서는 같은 탭에서 로그아웃하고 다른 계정으로 로그인해도 세대가 그대로였다. 그래서 옛 토큰으로 나간 요청의 `TOKEN_EXPIRED`가 "늦게 도착한 401" 분기로 refresh 없이 새 계정 토큰으로 재시도됐다 — refresh를 거치지 않아 BE의 `SESSION_MISMATCH` 확인(#391)에도 닿지 않았다. 같은 원인으로 비로그인 요청의 `NOT_LOGGED_IN`이 방금 한 로그인을 지우고, 같은 `scope`로 줄 서 있던 좋아요·북마크가 새 계정으로 나가고, refresh를 기다리던 응답이 새 로그인을 덮었다. 네 가지 모두 수정 전 코드로 재현했다(쓰기 실패는 `Storage.prototype.setItem`이 던지게 해 흉내 냄). 이제 요청이 기억하는 세대에 메모리 "탭 안 세대"(이 탭의 명시적 로그인·로그아웃 횟수, 저장이 실패해도 늘어남)를 함께 담고, 둘 중 하나라도 바뀌었으면 쓰기 정상 탭처럼 `SessionChangedError`로 끝낸다. refresh는 탭 안 세대를 바꾸지 않아 늦은 401의 정상 재시도(Case 1-3)는 그대로이고, 다른 탭의 변화를 보는 `isStale`에는 섞지 않았다(섞으면 쓰기 실패 탭이 자기 로그인을 다른 탭 변화로 보고 스스로 로그아웃한다). 쓰기 정상 탭은 동작이 바뀌지 않는다. 계획 `docs/plans/2026-10-16-in-tab-auth-epoch.md`, 설명 `docs/AUTH.md` §8-B "localStorage에 못 쓰는 탭". (`shared/utils/auth-epoch.util.ts`, `shared/api/client.ts`, `shared/lib/react-query/config/mutation-auth-epoch.ts`, `client.test.ts`, `mutation-auth-epoch.test.ts`, `auth-epoch.util.test.ts`, `docs/AUTH.md`, [PR #406](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/406))
+
+  </details>
+
 - `post` 피드 첫 진입 때 카테고리 칩이 늦게 떠 필터 카드 아래가 밀리던 문제
   <details><summary>배경·구현</summary>
 

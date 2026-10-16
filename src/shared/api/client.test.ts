@@ -810,6 +810,115 @@ describe('ApiClient — 인증 오류 처리', () => {
       expect(toastInfo).not.toHaveBeenCalled();
     });
   });
+
+  // ─────────────────────────────────────────────────────────────
+  // Case 9: 인증 세대를 저장하지 못하는 탭 (localStorage 쓰기 실패)
+  // 이 탭에서 명시적으로 로그아웃하고 다른 계정으로 로그인해도 저장 세대가 그대로다. BE의 SESSION_MISMATCH 확인은
+  // refresh를 거칠 때만 닿으므로 여기서는 이 탭이 스스로 알아채야 한다. 같은 탭의 계정 전환은 실제 호출 순서
+  // (useLogoutMutation: clearAuth → markLogout, useLoginMutation: setAuth → markLogin)대로 흉내 낸다.
+  // ─────────────────────────────────────────────────────────────
+  describe('Case 9: 인증 세대를 저장하지 못하는 탭 (localStorage 쓰기 실패)', () => {
+    // 선례: auth-epoch.util.test.ts의 저장 실패 케이스 - LocalStorageUtil이 이 예외를 삼킨다
+    let storageWrites: MockInstance<Storage['setItem']>;
+
+    beforeEach(() => {
+      storageWrites = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('QuotaExceededError');
+      });
+    });
+
+    afterEach(() => {
+      storageWrites.mockRestore();
+    });
+
+    const signOutAndSignInAsOtherAccount = () => {
+      useAuthStore.getState().clearAuth();
+      AuthEpochUtil.markLogout();
+      useAuthStore.getState().setAuth('token-b');
+      AuthEpochUtil.markLogin();
+    };
+
+    const refreshOk = (accessToken: string) =>
+      HttpResponse.json(
+        { status: 200, message: 'ok', data: { accessToken }, timestamp: new Date().toISOString() },
+        { status: 200 }
+      );
+
+    it('9-1: 옛 토큰 요청의 TOKEN_EXPIRED가 이 탭에서 다른 계정으로 로그인한 뒤 돌아와도 새 계정 토큰으로 재시도하지 않는다', async () => {
+      const sentTokens: Array<string | null> = [];
+      let refreshCallCount = 0;
+      server.use(
+        http.post(COMMENT_HANDLER_URL, ({ request }) => {
+          const token = request.headers.get('X-Access-Token');
+          sentTokens.push(token);
+
+          if (token === 'token-a') {
+            signOutAndSignInAsOtherAccount();
+            return make401('TOKEN_EXPIRED');
+          }
+
+          // 새 계정 토큰으로 다시 나가면 서버는 그 계정의 댓글로 처리한다
+          return makeCommentSuccess();
+        }),
+        http.post(REFRESH_HANDLER_URL, () => {
+          refreshCallCount++;
+          return refreshOk('token-a2');
+        })
+      );
+      useAuthStore.getState().setAuth('token-a');
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionChangedError
+      );
+
+      expect(sentTokens).toEqual(['token-a']);
+      expect(refreshCallCount).toBe(0);
+      expect(useAuthStore.getState().accessToken).toBe('token-b');
+      expect(NavigationService.navigate).not.toHaveBeenCalled();
+    });
+
+    it('9-2: 비로그인으로 보낸 요청의 NOT_LOGGED_IN이 이 탭에서 로그인한 뒤 돌아와도 방금 한 로그인을 지우지 않는다', async () => {
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => {
+          useAuthStore.getState().setAuth('token-b');
+          AuthEpochUtil.markLogin();
+          return make401('NOT_LOGGED_IN');
+        })
+      );
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionChangedError
+      );
+
+      expect(useAuthStore.getState().accessToken).toBe('token-b');
+      expect(NavigationService.navigate).not.toHaveBeenCalled();
+    });
+
+    it('9-3: refresh를 기다리는 사이 이 탭에서 다른 계정으로 로그인하면 받은 토큰으로 새 로그인을 덮지 않는다', async () => {
+      let commentCallCount = 0;
+      server.use(
+        http.post(COMMENT_HANDLER_URL, ({ request }) => {
+          commentCallCount++;
+          return request.headers.get('X-Access-Token') === 'token-a'
+            ? make401('TOKEN_EXPIRED')
+            : makeCommentSuccess();
+        }),
+        http.post(REFRESH_HANDLER_URL, () => {
+          signOutAndSignInAsOtherAccount();
+          return refreshOk('token-a2');
+        })
+      );
+      useAuthStore.getState().setAuth('token-a');
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionChangedError
+      );
+
+      expect(useAuthStore.getState().accessToken).toBe('token-b');
+      expect(commentCallCount).toBe(1);
+      expect(NavigationService.navigate).not.toHaveBeenCalled();
+    });
+  });
 });
 
 // ─────────────────────────────────────────────────────────────

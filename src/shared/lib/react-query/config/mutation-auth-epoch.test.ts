@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MutationCache, QueryClient, type MutationFunctionContext } from '@tanstack/react-query';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 import { SessionChangedError } from '@/shared/types/common.type';
@@ -47,6 +47,10 @@ async function startQueuedPair(client: QueryClient) {
 }
 
 describe('mutation 인증 세대 확인 (줄 서 있던 mutation)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('줄에서 기다리는 사이 세대가 바뀌면 보내지 않고 SessionChangedError로 끝난다 - 기다리던 쪽도 끝난다', async () => {
     AuthEpochUtil.markLogin();
     const { firstResult, queuedResult, queued, send, finishFirst } =
@@ -71,6 +75,22 @@ describe('mutation 인증 세대 확인 (줄 서 있던 mutation)', () => {
     await firstResult;
     await expect(queuedResult).resolves.toBe('sent');
     expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it('세대를 저장하지 못하는 탭에서도 줄에서 기다리는 사이 이 탭에서 로그아웃·다른 계정 로그인을 하면 보내지 않는다', async () => {
+    // localStorage 쓰기 실패 - LocalStorageUtil이 예외를 삼켜 저장 세대가 그대로 남는다(auth-epoch.util.test.ts 선례)
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+    const { firstResult, queuedResult, send, finishFirst } = await startQueuedPair(createClient());
+
+    AuthEpochUtil.markLogout();
+    AuthEpochUtil.markLogin();
+    finishFirst();
+
+    await firstResult;
+    await expect(queuedResult).rejects.toBeInstanceOf(SessionChangedError);
+    expect(send).not.toHaveBeenCalled();
   });
 
   it('시작 세대가 기록되지 않은 mutation(전역 onMutate가 없는 클라이언트)은 확인하지 않는다', async () => {
