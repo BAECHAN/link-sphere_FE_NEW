@@ -6,6 +6,7 @@ import { AppShellLayout } from '@/app/routes/layouts/AppShellLayout';
 import { PublicLayout } from '@/app/routes/layouts/PublicLayout';
 import { RootLayout } from '@/app/routes/layouts/RootLayout';
 import { RouteErrorBoundary } from '@/app/routes/RouteErrorBoundary';
+import { usePrefetchCategoryOptions } from '@/entities/category/api/category.queries';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { AuthLayout } from '@/shared/ui/layouts/AuthLayout';
@@ -105,6 +106,18 @@ function GuestGuard({ children }: { children: React.ReactNode }) {
 function RootRedirect() {
   return <Navigate to={ROUTES_PATHS.POST.ROOT} replace />;
 }
+
+/**
+ * 게시글 목록(피드) 라우트 — 페이지 청크를 요청하는 같은 렌더에서 필터 카드의 카테고리도 요청한다.
+ * 필터 카드의 useQuery는 커밋 뒤에야 요청하므로, 페이지 첫 커밋이 게시글을 기다리거나(청크가 빨리 온
+ * 경우) 청크가 늦게 와 카드가 먼저 그려지면 칩이 뒤늦게 들어와 그 아래가 밀렸다(docs/SEARCH.md §10).
+ * lazy 청크 밖에 있어 이 라우트에 들어올 때마다 페이지보다 먼저 렌더된다.
+ */
+function PostFeedRoute() {
+  usePrefetchCategoryOptions();
+
+  return withSuspense(Post);
+}
 /**
  * App Routes Configuration
  * Route Objects 배열 방식으로 라우팅 설정
@@ -125,7 +138,7 @@ export const appRoutes: RouteObject[] = [
           },
           {
             path: ROUTES_PATHS.POST.ROOT,
-            element: withSuspense(Post),
+            element: <PostFeedRoute />,
           },
           {
             path: '/post/:id',

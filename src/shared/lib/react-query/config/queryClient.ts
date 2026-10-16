@@ -19,7 +19,7 @@ const applyErrorToast = (decision: ReturnType<typeof resolveErrorToast>) => {
     console.error(...decision.log);
   }
 
-  toast.error(decision.message);
+  toast.error(decision.message, { id: decision.id });
 };
 
 /**

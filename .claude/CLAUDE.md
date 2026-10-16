@@ -33,7 +33,7 @@
   없으면(네이티브 바이너리 등) 확인하지 못했다고 밝히고, 그 가정에 기댄 결론을 확정처럼 쓰지
   않는다(2026-10-16, 목록 카테고리 칩 레이아웃 시프트 진단에서 "`useQuery`는 커밋 뒤에야
   요청한다"를 추론으로 둔 채 해결 범위를 물었다가, 사용자 지적으로 `useBaseQuery.js`·
-  `queryObserver.js`·`react-dom.development.js`를 따라가 확인한 사례).
+  `queryObserver.js`·`react-dom.development.js`를 따라가 확인한 사례 — 추적 경로는 `docs/SEARCH.md` §10).
 
 ## 2. 단순함이 우선이다
 

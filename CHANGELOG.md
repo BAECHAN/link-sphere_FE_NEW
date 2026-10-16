@@ -134,6 +134,13 @@
 
 ### Fixed
 
+- `post` 피드 첫 진입 때 카테고리 칩이 늦게 떠 필터 카드 아래가 밀리던 문제
+  <details><summary>배경·구현</summary>
+
+  필터 카드의 카테고리 `useQuery`는 커밋 뒤에야 요청하는데, 목록이 게시글을 기다리며 suspend하면 React 18이 페이지 첫 커밋을 게시글 응답까지(최대 500ms) 미뤄 카테고리 요청이 게시글 뒤로 밀렸다. 칩이 카드보다 늦게 그려지며 범위 필터 행·목록이 밀렸고, 운영 측정으로 390px CLS 0.0916, 1280px 0.0141이었다. 페이지 청크가 늦게 오는 첫 방문에서도 카드가 먼저 그려진 뒤 칩이 들어와 0.0245가 남았다. `/post` 라우트 element(`PostFeedRoute`)가 페이지 청크를 요청하는 같은 렌더에서 `usePrefetchQuery`로 카테고리를 요청하게 바꿔, 로컬 프로덕션 빌드 측정에서 두 경우 모두 0이 됐다(카테고리 응답이 게시글보다 늦게 온 1회 제외). 이 과정에서 카테고리가 429면 미리 받기와 필터 카드 마운트 재요청이 함께 실패해 "요청이 많아요" 토스트가 2개 뜨던 것을, 429·WAF 차단 안내 토스트에 원인별 고정 id를 달아 앱 전체에서 하나로 합쳤다. 칩 자리 스켈레톤과 카테고리까지 기다렸다 함께 표시하는 안은 근거를 비교한 뒤 고르지 않았다. 원인을 따라간 소스 경로·측정·기각한 안은 `docs/SEARCH.md` §10, 계획은 `docs/plans/2026-10-16-post-list-category-cls.md`. (`app/routes/index.tsx`, `entities/category/api/category.queries.ts`, `shared/lib/react-query/config/error-toast.ts`, `shared/lib/react-query/config/queryClient.ts`, `error-toast.test.ts`, `e2e/post-list-category-prefetch.spec.ts`(신규), [PR #405](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/405))
+
+  </details>
+
 - `post` 봇 글 숨기기를 바꿀 때 목록이 잠깐 사라지며 피드가 좌우로 흔들리던 문제
   <details><summary>배경·구현</summary>
 

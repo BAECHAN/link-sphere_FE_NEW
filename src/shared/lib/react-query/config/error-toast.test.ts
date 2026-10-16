@@ -48,7 +48,7 @@ describe('resolveErrorToast', () => {
       MUTATION_ERROR_POLICY
     );
 
-    expect(decision).toEqual({ silent: false, message: TEXTS.messages.error.edgeBlocked });
+    expect(decision).toMatchObject({ silent: false, message: TEXTS.messages.error.edgeBlocked });
   });
 
   it('429는 meta.errorMessage보다 우선해 rateLimited 토스트를 띄운다', () => {
@@ -60,7 +60,7 @@ describe('resolveErrorToast', () => {
       MUTATION_ERROR_POLICY
     );
 
-    expect(decision).toEqual({ silent: false, message: TEXTS.messages.error.rateLimited });
+    expect(decision).toMatchObject({ silent: false, message: TEXTS.messages.error.rateLimited });
   });
 
   it('앱 에러 코드가 없는 429(Lambda 동시 실행 포화)도 rateLimited 토스트를 띄운다', () => {
@@ -68,7 +68,44 @@ describe('resolveErrorToast', () => {
 
     const decision = resolveErrorToast(error, undefined, QUERY_ERROR_POLICY);
 
-    expect(decision).toEqual({ silent: false, message: TEXTS.messages.error.rateLimited });
+    expect(decision).toMatchObject({ silent: false, message: TEXTS.messages.error.rateLimited });
+  });
+
+  it('429·EDGE_BLOCKED 안내는 원인별 고정 id를 달아 동시에 여러 요청이 실패해도 하나로 합쳐진다', () => {
+    const rateLimitedByQuery = resolveErrorToast(
+      apiError({ status: 429, code: '429' }),
+      undefined,
+      QUERY_ERROR_POLICY
+    );
+    const rateLimitedByMutation = resolveErrorToast(
+      apiError({ status: 429, code: 'RATE_LIMIT_EXCEEDED' }),
+      undefined,
+      MUTATION_ERROR_POLICY
+    );
+    const edgeBlocked = resolveErrorToast(
+      apiError({ code: SERVER_ERROR_CODE.EDGE_BLOCKED }),
+      undefined,
+      QUERY_ERROR_POLICY
+    );
+
+    const idOf = (decision: ReturnType<typeof resolveErrorToast>) =>
+      decision.silent ? undefined : decision.id;
+
+    // 조회·등록 어느 쪽에서 나든 같은 id - 원인이 다르면 다른 id(서로 덮어쓰지 않게)
+    expect(idOf(rateLimitedByQuery)).toBeDefined();
+    expect(idOf(rateLimitedByQuery)).toBe(idOf(rateLimitedByMutation));
+    expect(idOf(edgeBlocked)).toBeDefined();
+    expect(idOf(edgeBlocked)).not.toBe(idOf(rateLimitedByQuery));
+  });
+
+  it('그 밖의 서버 에러는 id 없이 매번 띄운다', () => {
+    const decision = resolveErrorToast(
+      apiError({ code: SERVER_ERROR_CODE.INTERNAL_SERVER_ERROR }),
+      undefined,
+      QUERY_ERROR_POLICY
+    );
+
+    expect(decision).not.toHaveProperty('id');
   });
 
   it('manualErrorHandling은 429보다 우선한다', () => {

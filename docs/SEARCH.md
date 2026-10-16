@@ -279,6 +279,7 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 검색 중 하단 댓글바 숨김 동작 바꾸기                         | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useHistoryOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                                                                                                                                                                                     |
 | 검색 중 배경 클릭·포커스 차단 범위 바꾸기                    | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                                                                                                                                                                                   |
 | "검색어와 의미가 비슷한 글이에요" 배지 문구·표시 조건 바꾸기 | [`PostCard.tsx:212-220`](../src/widgets/post/post-card/ui/PostCard.tsx#L212-L220) — `post.isSemanticMatch`, 문구는 `TEXTS.post.card.semanticMatch`                                                                                                                                                                                                                  |
+| 필터 카드 카테고리 칩 미리 받기 바꾸기                       | [`src/app/routes/index.tsx:116`](../src/app/routes/index.tsx#L116) — `PostFeedRoute`(페이지 청크 요청과 같은 렌더에서 요청), 훅은 [`category.queries.ts:24`](../src/entities/category/api/category.queries.ts#L24) `usePrefetchCategoryOptions`                                                                                                                     |
 
 ## 9. 검증 결과
 
@@ -306,6 +307,20 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
     응답 뒤 걷힌다. 덮개 렌더링을 꺼 두면 두 번째 테스트가 실패하는 것도 확인했다.
   - 녹화 전용 Playwright 스펙(API 모킹)으로 빠른 응답, 느린 응답, 목록을 내려 본 상태에서 카드 배지
     클릭, 모바일 네 경우를 녹화했다. 내려 본 상태에서도 알약이 navbar 아래 화면 안에 보였다.
+
+- 카테고리 칩 밀림(2026-10-16, §10): 운영에서 쓴 것과 같은 Playwright `layout-shift` 측정을 로컬
+  프로덕션 빌드(`vite build` + `vite preview`, `/api`는 운영으로 프록시)에서 고치기 전·후 빌드로 화면별 3회씩
+  비교했다. 아래는 범위 필터 행을 움직인 시프트 점수다. 고치기 전 수치는 운영 측정과 같았다.
+
+  | 조건            | 고치기 전 390px / 1280px | 고친 뒤 390px / 1280px |
+  | --------------- | ------------------------ | ---------------------- |
+  | 청크 정상       | 0.0916 / 0.0141 (매회)   | 0·0·0 / 0·0·0.0141     |
+  | 청크 800ms 지연 | 0.0245 / 0.002 (매회)    | 0 (6회 모두)           |
+
+  고친 뒤 1280px 한 번(0.0141)은 카테고리 응답(260ms)이 게시글 응답(228ms)보다 늦게 온 경우다(§11).
+  - e2e `post-list-category-prefetch.spec.ts` 3케이스(요청 순서·횟수, 범위 필터 행 시프트 0, 429 토스트 1개).
+    고치기 전 코드로 시프트 검사가 3/3 실패하고, 고정 id를 빼면 429 검사가 5/5 실패하는 것을 확인했다.
+  - 단위 테스트 `error-toast.test.ts`에 고정 id 2케이스를 추가했다.
 
 ## 10. 시행착오
 
@@ -514,8 +529,60 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
   상수(`commentKeys.myRoot`)라 store 값이 들어가지 않는다. 앱 코드에서 `useSyncExternalStore`를 직접 쓰는 곳은
   `useWindowGridVirtualizer.ts`의 창 폭 구독뿐인데, 이 값은 쿼리 키가 아니다.
 
+**필터 카드 카테고리 칩이 늦게 떠 그 아래가 밀림 → 피드 라우트에서 미리 받기(2026-10-16).** `/post`에 처음
+들어오면 카테고리 칩이 카드보다 늦게 그려져 범위 필터 행·하단 행·목록이 칩 줄 수만큼 밀렸다. 운영에서 직접
+측정했다(Playwright `layout-shift` 관찰, 비로그인, 화면별 3회): 390×844에서 CLS 0.0916(106px, 칩 3줄),
+1280×900에서 0.0141(30px).
+
+- 원인 — 설치된 react-dom 18.3.1·@tanstack/react-query 5.90.16 소스를 따라가 확인했다.
+  1. `PostList`의 `useSuspenseInfiniteQuery`는 렌더 중에 게시글을 요청한다. 필터 카드의 `useQuery`는 렌더
+     중에 관찰자만 만들고(`useBaseQuery.js:48-54`), 커밋 뒤 `useSyncExternalStore` 구독(passive effect,
+     `react-dom.development.js:16022`)에서야 요청한다(`queryObserver.js:48-52`).
+  2. lazy 페이지 청크가 도착해 다시 그리는 렌더는 "재시도"라, 안쪽 목록이 suspend하면 React가 커밋을 스피너가
+     처음 보인 시각 + 500ms까지 미룬다(`FALLBACK_THROTTLE_MS`, `react-dom.development.js:25940-25969`).
+     그 사이 게시글이 오면 카드와 목록이 함께 커밋되고, 카테고리 요청은 그제야 나간다. 운영 타임라인:
+     게시글 595→1036ms, 카드 등장 1086ms, 카테고리 요청 1084ms, 칩 1277ms.
+  3. 청크가 늦게 오면(800ms 지연으로 재현) 커밋 대기가 이미 끝나 카드가 바로 그려진다. 카테고리는 게시글과
+     동시에 요청되지만 칩은 그 뒤에 들어와 카드 안이 밀렸다(390px 0.0245).
+- 해결: [`src/app/routes/index.tsx`](../src/app/routes/index.tsx)의 `PostFeedRoute`가 `usePrefetchCategoryOptions`
+  (`usePrefetchQuery`)로 페이지 청크를 요청하는 같은 렌더에서 카테고리를 요청하고, 필터 카드의 `useQuery`는
+  같은 키의 캐시를 읽는다. [TanStack Query 프리페치 가이드](https://tanstack.com/query/latest/docs/framework/react/guides/prefetching)가
+  권하는 "Suspense 경계 앞에서 `usePrefetchQuery`" 형태이고, 상세 댓글 워터폴([`COMMENT.md`](./COMMENT.md))과
+  같은 부류다.
+  - 처음에는 페이지 컴포넌트에서 불렀다. 청크가 늦을 때는 효과가 없다는 걸 측정으로 확인하고 라우트로
+    옮겼다(로컬 e2e, 청크 800ms 지연 10회: 페이지에서 부를 때 3회 밀림, 라우트에서 0회). 라우트 element는
+    lazy 청크 밖이라 이 라우트에 들어올 때마다 페이지보다 먼저 렌더된다.
+- 함께 고친 회귀: 미리 받기가 429로 곧바로 실패한 뒤, 필터 카드가 마운트하며 다시 보낸 요청도 실패해
+  "요청이 많아요" 토스트가 2개 떴다. `prefetchQuery`는 promise 실패만 삼키고(`queryClient.js:192-194`)
+  QueryCache `onError`는 그대로 불린다(`query.js:303`). 데이터 없는 에러 쿼리에 관찰자가 붙으면 다시
+  요청한다(`queryObserver.js:442-443`). 429·WAF 차단 안내에 원인별 고정 id를 달아
+  ([`error-toast.ts`](../src/shared/lib/react-query/config/error-toast.ts)) 하나로 합쳤다. 요청은 2회 그대로다.
+  500은 1회 재시도를 기다리는 동안 관찰자가 합류해 원래도 1개였다.
+  - 고르지 않은 해결: 미리 받기에만 `manualErrorHandling`을 다는 방법은 관찰자가 렌더 중 생성될 때
+    `query.setOptions`가 옵션을 통째로 바꿔(`query.js:42-43`) meta가 사라진다. 카테고리 쿼리에
+    `retryOnMount: false`를 주면 등록·수정 폼이 에러 상태의 쿼리를 다시 요청하지 않아 목록이 빈 채로 남는다.
+- 검토하고 고르지 않은 안(사용자 결정):
+  - 칩 자리 스켈레톤: [web.dev "Optimize CLS"](https://web.dev/articles/optimize-cls)는 _"플레이스홀더나
+    스켈레톤 UI로 뷰포트에 미리 충분한 자리를 확보하라"_ (번역)고 권하지만, 카테고리 개수·라벨 너비를 몰라
+    모바일 줄 수를 맞출 수 없다. NN/g의 Tankala는 _"1초 안에 로드되면 스켈레톤이나 스피너가 필요 없다"_
+    (번역, [Skeleton Screens 101](https://www.nngroup.com/articles/skeleton-screens/))고 쓰고, Viget의 136명
+    실험에선 체감 대기가 스켈레톤 2.82초로 스피너(2.41초)·빈 화면(2.29초)보다 길었다
+    ([A Bone to Pick with Skeleton Screens](https://viget.com/articles/a-bone-to-pick-with-skeleton-screens)).
+  - 카테고리까지 받은 뒤 한 번에 표시(`useSuspenseQuery`): 밀림은 원천 차단되지만, 카테고리 요청이 콜드
+    Lambda에 걸리면 피드 전체가 그만큼 더 기다린다. 최근 14일 BE 호출 18,256건 중 2.1%가 스냅샷 복원이었고,
+    복원 시 응답은 p50 910ms·p90 2.77s였다(CloudWatch Logs Insights 직접 집계, HTTP 외 호출 포함). 카테고리
+    실패가 피드로 번지지 않게 경계도 따로 둬야 한다.
+- e2e에서 겪은 것: Vite dev 서버가 의존성을 처음 최적화하는 콜드 실행에선 청크가 늦게 와 요청 순서 검사가
+  고치기 전에도 통과했다 — 고치기 전 코드를 늘 잡는 건 범위 필터 행 시프트 검사다. 토스트 개수는 재시도하는
+  `toHaveCount(1)`이 겹친 토스트가 하나씩 사라지며 잠깐 1개가 되는 순간 통과해 버려, 기다린 뒤 한 번만 잰다.
+
 ## 11. 남은 것
 
+- **카테고리 응답이 게시글보다 늦으면 칩은 여전히 늦게 들어와 밀린다.** 미리 받기는 요청 순서만 앞당긴다.
+  카테고리 요청이 콜드 Lambda에 걸리거나 로컬 측정 6회 중 1회처럼 응답이 더 늦게 오는 경우다(§9·§10).
+  다시 문제가 되면 칩 자리 확보(§10에서 고르지 않은 안)를 재검토한다.
+- **카테고리가 429면 요청이 2번 나간다**(토스트는 1개). 미리 받기가 실패한 뒤 필터 카드가 마운트하며 다시
+  요청하기 때문이다.
 - 헤더 검색창 입력값은 정지 구간에 뒤로가기를 해도 사용자가 친 값이 그대로 남는다
   (`useNavbarSearch`) — 직접 타이핑한 값이라 의도적으로 그대로 둔다.
 
@@ -566,6 +633,11 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
   ([`router-events.ts`](../src/shared/lib/router/router-events.ts))이 이를 받아 칩·pending을 정리한다.
 - **적용 중**: 라우터는 새 위치에 가 있는데 React가 커밋한 위치는 아직 이전인 상태(= 정지 구간 중).
   0.5초 넘게 이어지면 `PostList`가 이전 목록을 흐리게 덮는다(`usePostListApplying`, §5).
+- **재시도 커밋 대기**: lazy 청크처럼 suspend했던 경계를 다시 그리는 렌더에서 안쪽이 또 suspend하면, React
+  18이 커밋을 스피너가 처음 보인 시각 + 500ms까지 미루는 동작(`FALLBACK_THROTTLE_MS`). 그 사이 데이터가 오면
+  한 번에 커밋한다(§10).
+- **`PostFeedRoute`**: `/post` 라우트 element. 페이지 청크와 같은 렌더에서 필터 카드의 카테고리를 미리
+  요청한다([`src/app/routes/index.tsx`](../src/app/routes/index.tsx)).
 - **`correctedSearch`**: 한/영 자판 오타 보정 시 BE가 응답에 함께 내려주는, 실제로 검색에
   쓰인 보정된 검색어. 타입은 `post.dto.ts`(BE OpenAPI 생성 타입 alias).
 
