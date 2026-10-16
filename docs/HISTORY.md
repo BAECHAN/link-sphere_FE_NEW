@@ -1,3 +1,6 @@
+### 2026-10-16 (BE)
+- 카테고리 목록 응답에 Cache-Control 헤더를 적용하여 브라우저 캐싱을 통한 성능 최적화 ([#102](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/102))
+
 ### 2026-10-16 (FE)
 - 봇 글 숨기기 토글 시 피드 레이아웃 흔들림 현상 수정 ([#402](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/402))
 
