@@ -498,7 +498,8 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
     사라졌다. 본문이 `mx-auto` 중앙 정렬이라 스크롤바 폭의 절반(7.5px)만큼 움직였다.
   - 도입 당시(2026-09-06) "스켈레톤이 안 뜬다"는 확인은 `startTransition`이 아니라 `DelayedFallback`의
     지연 덕분이었던 것으로 보인다(추정). [`docs/DECISIONS.md`](./DECISIONS.md) "2026-09-10 — 로딩
-    인디케이터 지연 게이트" 항목의 "봇숨기기 전환은 이미 해결돼 있다"도 같은 전제 위에 있다.
+    인디케이터 지연 게이트" 항목의 "봇숨기기 전환은 이미 해결돼 있다"도 같은 전제 위에 있었다 — 같은 문서의
+    "2026-10-16 — (정정)" 항목으로 바로잡았다.
 - 수정: `usePostList.ts`가 봇 숨기기 값을 `useDeferredValue`로 늦춰 쿼리 키에 쓴다.
   [react.dev](https://react.dev/reference/react/useDeferredValue)는 _"새 값으로 인한 백그라운드 갱신이
   suspend하면 사용자는 fallback 대신 데이터가 올 때까지 이전 값을 본다"_ (번역)고 쓴다. 이제 다른 칩처럼
@@ -508,6 +509,10 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
   목록에 `display: none !important`가 붙어 실패했다.
 - 교훈: zustand 같은 외부 store 값으로 suspense 쿼리 키를 바꾸면 `startTransition`이 듣지 않는다.
   이전 화면을 유지해야 하면 그 값을 `useDeferredValue`로 늦춰 쓴다.
+- 같은 함정이 다른 곳에 있는지(2026-10-16 점검): suspense 쿼리는 이 목록 외에 게시글 상세·댓글 목록·내 댓글
+  목록 3개뿐이고, 키는 각각 URL 파라미터(`usePostDetail.ts`), 상세 조회 결과의 `post.id`(`PostDetailPage.tsx`),
+  상수(`commentKeys.myRoot`)라 store 값이 들어가지 않는다. 앱 코드에서 `useSyncExternalStore`를 직접 쓰는 곳은
+  `useWindowGridVirtualizer.ts`의 창 폭 구독뿐인데, 이 값은 쿼리 키가 아니다.
 
 ## 11. 남은 것
 

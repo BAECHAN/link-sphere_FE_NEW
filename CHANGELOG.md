@@ -14,7 +14,7 @@
 - `post` 필터를 바꾼 뒤 응답이 늦으면 이전 목록을 흐리게 하고 "불러오는 중" 표시
   <details><summary>배경·구현</summary>
 
-  칩·검색어·카드 배지로 조건을 바꾸면 주소는 바로 바뀌지만 목록은 새 응답이 올 때까지 이전 결과를 그대로 보여줘, "URL은 바뀌었는데 결과가 그대로"로 읽혔다(2026-10-14 제보). 응답이 0.5초(`LOADING_INDICATOR_DELAY_MS`, 스켈레톤과 같은 값) 넘게 늦으면 이전 목록을 `bg-background/60`으로 덮고 "결과를 불러오는 중이에요." 알약을 navbar 바로 아래에 띄운다(덮개가 떠 있는 동안 이전 카드는 눌리지 않는다). "적용 중"은 라우터의 최신 위치(`RouterEvents.onNavigate`)와 React가 커밋한 위치의 쿼리가 다를 때다. 필터 카드 스피너(A1)와 비교한 미리보기에서 사용자가 골랐고, [NN/g](https://www.nngroup.com/articles/applying-filters/)가 효과적인 패싯 내비게이션은 _"결과 목록을 흐리게 하고 진행 표시를 보여준다"_ (번역, 일부)고 쓴 것이 근거다. 봇 글 숨기기 스위치는 URL을 바꾸지 않아 대상이 아니다. 근거·기각한 안은 `docs/DECISIONS.md` 2026-10-15, 설명은 `docs/SEARCH.md` §5. (`router-events.ts`, `usePostList.ts`, `PostList.tsx`, `texts.ts`, `PostList.test.tsx`, [PR #390](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/390))
+  칩·검색어·카드 배지로 조건을 바꾸면 주소는 바로 바뀌지만 목록은 새 응답이 올 때까지 이전 결과를 그대로 보여줘, "URL은 바뀌었는데 결과가 그대로"로 읽혔다(2026-10-14 제보). 응답이 0.5초(`LOADING_INDICATOR_DELAY_MS`, 스켈레톤과 같은 값) 넘게 늦으면 이전 목록을 `bg-background/60`으로 덮고 "결과를 불러오는 중이에요." 알약을 navbar 바로 아래에 띄운다(덮개가 떠 있는 동안 이전 카드는 눌리지 않는다). "적용 중"은 라우터의 최신 위치(`RouterEvents.onNavigate`)와 React가 커밋한 위치의 쿼리가 다를 때다. 필터 카드 스피너(A1)와 비교한 미리보기에서 사용자가 골랐고, [NN/g](https://www.nngroup.com/articles/applying-filters/)가 효과적인 패싯 내비게이션은 _"결과 목록을 흐리게 하고 진행 표시를 보여준다"_ (번역, 일부)고 쓴 것이 근거다. 봇 글 숨기기 스위치는 URL을 바꾸지 않아 처음엔 대상이 아니었고, PR #402부터 같은 표시를 띄운다(아래 Fixed "봇 글 숨기기를 바꿀 때" 항목). 근거·기각한 안은 `docs/DECISIONS.md` 2026-10-15, 설명은 `docs/SEARCH.md` §5. (`router-events.ts`, `usePostList.ts`, `PostList.tsx`, `texts.ts`, `PostList.test.tsx`, [PR #390](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/390))
 
   </details>
 
