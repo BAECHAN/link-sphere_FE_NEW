@@ -131,6 +131,7 @@ RootLayout
 | localStorage                      | `linksphere:auth:epoch`       | 인증 세대 `in:<UUID>`(로그인)·`out:<UUID>`(로그아웃·탈퇴)       | 영구(명시적 로그인·로그아웃마다 새 값, §8-H)               | 가능     |
 | 모듈 변수(`auth-epoch.util.ts`)   | `knownEpoch`                  | 이 페이지가 마지막으로 맞춘 세대                                | 페이지 수명(bfcache 복원 때는 멈추기 전 값 그대로)         | 가능     |
 | 〃                                | `tokenEpoch`                  | 이 탭이 지금 들고 있는 토큰이 속한 세대(토큰을 넣고 뺄 때 맞춤) | 〃                                                         | 가능     |
+| 〃                                | `inTabEpoch`                  | 이 탭에서 명시적으로 로그인·로그아웃한 횟수(저장 실패해도 증가) | 〃                                                         | 가능     |
 | httpOnly 쿠키(BE 설정)            | `__Host-refreshToken`         | 리프레시 토큰(불투명)                                           | 최대 7일(BE `MemberSessionService.REFRESH_TOKEN_VALIDITY`) | **불가** |
 
 로그인 폼 이메일 입력의 초기값은 위 `saved-email`뿐 아니라 `location.state.email`의 영향도
@@ -198,7 +199,7 @@ early-return하는 구조상 애초에 아무 일도 하지 않았고(§10, 2026
 ### 8-B. 게이트 B — 반응형 401 인터셉터
 
 ```
-client.ts의 request() 메서드 — authEpoch = 이 탭 토큰의 세대(처음 보낼 때 잡고 재시도에 그대로 넘김)
+client.ts의 request() 메서드 — authEpoch = 이 탭 토큰의 세대(저장 세대 + 탭 안 세대, 처음 보낼 때 잡고 재시도에 그대로 넘김)
   if (response.status === 401)
     if (code === TOKEN_EXPIRED)
       return this.handleTokenExpired(...)          → 아래 handleTokenExpired로 위임
@@ -250,6 +251,14 @@ refresh 쿠키는 브라우저에 한 장이라 모든 탭이 같이 씁니다. 
   갱신·재시도·로그인 화면 이동 없이 `SessionChangedError`(`common.type.ts`)로 끝내고, 화면은 §8-H 동기화가
   맞춥니다. refresh를 기다리던 대기 요청도 함께 끝냅니다 — 영구 pending으로 두면 같은 `scope`의 다음
   요청이 막히고 낙관적 업데이트도 롤백되지 않습니다.
+- **localStorage에 못 쓰는 탭**: 저장이 실패하면 같은 탭에서 로그아웃하고 다른 계정으로 로그인해도 저장 세대가
+  그대로입니다. 그러면 옛 토큰으로 나간 요청의 `TOKEN_EXPIRED`가 위 "늦게 도착한 401" 분기로 새 계정 토큰으로
+  재시도되고(refresh를 건너뛰어 아래 BE 확인에도 닿지 않음), 비로그인 요청의 `NOT_LOGGED_IN`은 방금 한 로그인을
+  지우고, 줄 선 mutation은 새 계정으로 나갑니다. 2026-10-16 `client.test.ts` Case 9와 `mutation-auth-epoch.test.ts`로
+  재현한 뒤 고쳤습니다. 이제 요청의 세대에는 **탭 안 세대**(`inTabEpoch`, 이 탭의 명시적 로그인·로그아웃 횟수, 메모리)도
+  함께 담기고, 저장 세대나 탭 안 세대 중 하나라도 다르면 "세대가 바뀜"입니다(`AuthEpochUtil.hasChangedSince`). 탭 안
+  세대는 `markLogin`·`markLogout`에서만 늘어나 refresh로는 바뀌지 않습니다. 다른 탭의 변화를 보는 `isStale`에는 섞지
+  않습니다 — 섞으면 쓰기가 실패하는 탭이 자기 로그인을 다른 탭의 변화로 보고 스스로 로그아웃합니다.
 - **같은 탭의 변화도 잡힙니다**: 같은 탭에서 로그아웃한 순간 진행 중이던 요청은 전에는 refresh 실패 →
   `clearAll()`로 `/post`에 있던 사용자를 `/auth/login`으로 다시 보냈고, 인라인 로그인 직전에 비로그인으로
   보낸 요청의 `NOT_LOGGED_IN`은 방금 한 로그인을 지웠습니다. 둘 다 세대가 바뀐 뒤 돌아온 401이라 이제
@@ -269,13 +278,13 @@ refresh 쿠키는 브라우저에 한 장이라 모든 탭이 같이 씁니다. 
 
 ```mermaid
 flowchart TD
-  MQ["scope 줄에서 차례가 온 mutation"] --> MC{"누른 순간 세대 ≠ 저장 세대?<br/>(mutationFn 첫 줄)"}
+  MQ["scope 줄에서 차례가 온 mutation"] --> MC{"누른 순간 세대 이후 바뀜?<br/>(mutationFn 첫 줄)"}
   MC -->|"예"| SC
   MC -->|"아니오"| Q
-  T["토큰을 넣고 뺄 때<br/>tokenEpoch = 그 순간 저장된 세대"] --> Q["request() 시작: 이 요청의 세대 = tokenEpoch"]
+  T["토큰을 넣고 뺄 때<br/>tokenEpoch = 그 순간 저장된 세대"] --> Q["request() 시작: 이 요청의 세대<br/>= tokenEpoch + 탭 안 세대"]
   Q --> E{"401"}
-  E -->|"TOKEN_EXPIRED"| C1{"저장 세대 ≠ 요청 세대?"}
-  E -->|"NOT_LOGGED_IN·INVALID_TOKEN"| C5{"저장 세대 ≠ 요청 세대?"}
+  E -->|"TOKEN_EXPIRED"| C1{"저장 세대나 탭 안 세대가<br/>요청 세대와 다름?"}
+  E -->|"NOT_LOGGED_IN·INVALID_TOKEN"| C5{"저장 세대나 탭 안 세대가<br/>요청 세대와 다름?"}
   C1 -->|"예"| SC["SessionChangedError<br/>refresh·재시도·clearAll 없음"]
   C1 -->|"아니오"| OLD["기존 갱신 경로"]
   C5 -->|"예"| SC
@@ -295,10 +304,12 @@ flowchart TD
 
 #### 쿠키 주인이 다른 회원이라 갱신이 거절될 때 (SESSION_MISMATCH)
 
-위 세대 확인은 **이 브라우저의 모든 탭이 세대를 쓸 때만** 작동합니다. 업데이트 전 번들로 열려 있던 탭에서 다른
-계정으로 로그인하거나 localStorage 쓰기가 실패하면 세대가 그대로라, 위 경로대로 갱신하면 원 요청이 새 계정으로
-다시 나갑니다. 그래서 BE도 확인합니다(2026-10-15, BE `MemberSessionService.rotate`). FE가 먼저 배포되고 BE가
-뒤따르므로, 그 사이에는 BE가 헤더를 읽지 않아 아래 409가 오지 않을 뿐 동작은 이전과 같습니다.
+위 세대 확인이 **다른 탭의** 로그인을 알아채는 것은 이 브라우저의 모든 탭이 세대를 쓸 때뿐입니다. 업데이트 전
+번들로 열려 있던 탭이나 localStorage 쓰기가 실패하는 다른 탭에서 다른 계정으로 로그인하면 저장 세대가 그대로라,
+위 경로대로 갱신하면 원 요청이 새 계정으로 다시 나갑니다. 그래서 BE도 확인합니다(2026-10-15, BE
+`MemberSessionService.rotate`). 같은 탭의 로그인·로그아웃은 저장에 실패해도 탭 안 세대가 알아챕니다(위 "localStorage에
+못 쓰는 탭"). FE가 먼저 배포되고 BE가 뒤따르므로, 그 사이에는 BE가 헤더를 읽지 않아 아래 409가 오지 않을 뿐 동작은
+이전과 같습니다.
 
 - **FE가 보내는 것**: 리더의 refresh에 원 요청이 보낸 토큰(`sentToken`)을 `X-Access-Token`으로 싣습니다. 지금
   스토어 토큰이 아니라 `sentToken`인 이유: 아래처럼 이 탭을 로그아웃한 뒤 같은 토큰으로 나갔던 요청의 401이 늦게
@@ -836,33 +847,37 @@ flowchart TD
 
 ## 9. 검증 결과
 
-`src/shared/api/client.test.ts`(960줄, 최상위 `describe` 2개)가 게이트 B와 OAC 대응 헤더
+`src/shared/api/client.test.ts`(1069줄, 최상위 `describe` 2개)가 게이트 B와 OAC 대응 헤더
 로직을 검증합니다.
 
-**`describe('ApiClient — 인증 오류 처리')`**(`:65-813`, 12 Case)가 게이트 B를 케이스별로
+**`describe('ApiClient — 인증 오류 처리')`**(`:65-922`, 13 Case)가 게이트 B를 케이스별로
 검증합니다:
 
-| Case             | 시나리오                                                      | 확인하는 것                                                                                                   |
-| ---------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| 1 (`:79-112`)    | 액세스 만료, 리프레시 유효                                    | 재시도 1회 성공, 토스트·이동 없음(`:110` `navigate` 미호출 단언)                                              |
-| 1-1 (`:117-156`) | 동시에 두 요청이 401 `TOKEN_EXPIRED`                          | refresh는 1번만 호출(리더-팔로워 큐잉), 두 요청 모두 재시도 성공                                              |
-| 1-2 (`:162-199`) | refresh 성공 후 재시도한 요청도 다시 `TOKEN_EXPIRED`          | refresh를 다시 호출하지 않고 `clearAll()` + 로그인 이동(§11 항목 1의 2026-09-21 재시도 상한 가드 검증)        |
-| 1-3 (`:207-293`) | refresh가 끝난 뒤 늦게 도착한 401 `TOKEN_EXPIRED`             | refresh는 1번만, 늦은 요청은 갱신된 토큰으로 바로 재시도, 두 요청 모두 성공·이동 없음(§8-B)                   |
-| 2 (`:298-319`)   | 액세스·리프레시 둘 다 만료                                    | `clearAuth` + `/auth/login` replace 이동                                                                      |
-| 2-1 (`:325-357`) | 동시에 두 요청이 401 + refresh 실패                           | refresh 1번, 두 요청 모두 reject 없이 pending, 로그인 이동 1번(§11 항목 3)                                    |
-| 3 (`:362-378`)   | 토큰 없이 요청(`NOT_LOGGED_IN`)                               | 로그인 리다이렉트                                                                                             |
-| 4 (`:383-400`)   | 토큰 형식 손상(`INVALID_TOKEN`)                               | Case 3과 동일                                                                                                 |
-| 5 (`:405-455`)   | 403 WAF 차단 vs 앱이 낸 정상 `ACCESS_DENIED`                  | `EDGE_BLOCKED`로 오분류 안 됨(it 2개)                                                                         |
-| 6 (`:457-467`)   | 응답을 못 받음(오프라인·연결 끊김)                            | `fetch` reject를 `NetworkError`로 바꿔 던짐                                                                   |
-| 7 (`:474-652`)   | 요청을 보낸 뒤 인증 세대가 바뀜(it 7개)                       | refresh·재시도·로그인 이동 없이 `SessionChangedError`, 대기 요청도 함께, 방금 한 로그인 유지(§8-B)            |
-| 8 (`:659-812`)   | refresh 쿠키 주인이 다른 회원(409 `SESSION_MISMATCH`, it 5개) | refresh에 원 요청 토큰, 이 탭만 로그아웃·세션 플래그 유지·안내 1번, 늦게 온 같은 토큰 401도 재실행 없음(§8-B) |
+| Case             | 시나리오                                                      | 확인하는 것                                                                                                       |
+| ---------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 1 (`:79-112`)    | 액세스 만료, 리프레시 유효                                    | 재시도 1회 성공, 토스트·이동 없음(`:110` `navigate` 미호출 단언)                                                  |
+| 1-1 (`:117-156`) | 동시에 두 요청이 401 `TOKEN_EXPIRED`                          | refresh는 1번만 호출(리더-팔로워 큐잉), 두 요청 모두 재시도 성공                                                  |
+| 1-2 (`:162-199`) | refresh 성공 후 재시도한 요청도 다시 `TOKEN_EXPIRED`          | refresh를 다시 호출하지 않고 `clearAll()` + 로그인 이동(§11 항목 1의 2026-09-21 재시도 상한 가드 검증)            |
+| 1-3 (`:207-293`) | refresh가 끝난 뒤 늦게 도착한 401 `TOKEN_EXPIRED`             | refresh는 1번만, 늦은 요청은 갱신된 토큰으로 바로 재시도, 두 요청 모두 성공·이동 없음(§8-B)                       |
+| 2 (`:298-319`)   | 액세스·리프레시 둘 다 만료                                    | `clearAuth` + `/auth/login` replace 이동                                                                          |
+| 2-1 (`:325-357`) | 동시에 두 요청이 401 + refresh 실패                           | refresh 1번, 두 요청 모두 reject 없이 pending, 로그인 이동 1번(§11 항목 3)                                        |
+| 3 (`:362-378`)   | 토큰 없이 요청(`NOT_LOGGED_IN`)                               | 로그인 리다이렉트                                                                                                 |
+| 4 (`:383-400`)   | 토큰 형식 손상(`INVALID_TOKEN`)                               | Case 3과 동일                                                                                                     |
+| 5 (`:405-455`)   | 403 WAF 차단 vs 앱이 낸 정상 `ACCESS_DENIED`                  | `EDGE_BLOCKED`로 오분류 안 됨(it 2개)                                                                             |
+| 6 (`:457-467`)   | 응답을 못 받음(오프라인·연결 끊김)                            | `fetch` reject를 `NetworkError`로 바꿔 던짐                                                                       |
+| 7 (`:474-652`)   | 요청을 보낸 뒤 인증 세대가 바뀜(it 7개)                       | refresh·재시도·로그인 이동 없이 `SessionChangedError`, 대기 요청도 함께, 방금 한 로그인 유지(§8-B)                |
+| 8 (`:659-812`)   | refresh 쿠키 주인이 다른 회원(409 `SESSION_MISMATCH`, it 5개) | refresh에 원 요청 토큰, 이 탭만 로그아웃·세션 플래그 유지·안내 1번, 늦게 온 같은 토큰 401도 재실행 없음(§8-B)     |
+| 9 (`:820-921`)   | localStorage에 못 쓰는 탭에서 같은 탭 계정 전환(it 3개)       | 늦은 401·`NOT_LOGGED_IN`·refresh 대기 모두 `SessionChangedError`, 새 계정 재시도·로그인 삭제·토큰 덮기 없음(§8-B) |
 
 Case 8은 `apiClient`를 직접 불러 전역 에러 핸들러를 거치지 않습니다. 그래서 **SESSION_MISMATCH 로그아웃과 전역
 에러 토스트가 겹치지 않는지**는 `src/shared/api/session-mismatch-toast.test.ts`가 따로 검증합니다 — 전역 핸들러가 붙은
 실제 `queryClient`로 mutation을 실행해, 보호 경로가 아니고 활성 쿼리가 없을 때도 안내만 뜨고 에러 토스트는 뜨지
 않는지 봅니다. `applySessionMismatch`의 유예 창(§8-B "유예 창은 경로와 상관없이 엽니다")을 빼면 실패합니다.
 
-**`describe('ApiClient — 요청 헤더 (CloudFront OAC 대응)')`**(`:821-960`, 6 Case) —
+Case 9의 줄 선 mutation 쪽(같은 탭 계정 전환 뒤 차례가 온 mutation을 보내지 않음)은
+`src/shared/lib/react-query/config/mutation-auth-epoch.test.ts`가 검증합니다.
+
+**`describe('ApiClient — 요청 헤더 (CloudFront OAC 대응)')`**(`:930-1069`, 6 Case) —
 2026-09-29 OAC 전환(FE Phase 6, `docs/plans/2026-09-29-oac-lockdown.md`)으로 추가됨,
 401 처리와는 무관한 별개 관심사라 최상위 `describe`를 분리했습니다:
 
@@ -1071,6 +1086,13 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
     계정이면 화면을 그대로 둔 채 조용히 그 계정이 되는 것을 이때 찾았습니다. 이제 refresh가 원 요청이 보낸 토큰을
     실어 보내고, BE가 쿠키 주인과 다른 회원이면 409 `SESSION_MISMATCH`로 거절합니다(§8-B "쿠키 주인이 다른 회원이라
     갱신이 거절될 때", 계획 [`plans/2026-10-15-drift-ci-and-refresh-guard.md`](plans/2026-10-15-drift-ci-and-refresh-guard.md)).
+    **정정 — 같은 탭은 BE 확인에 닿지 않았다(2026-10-16 해소).** 위 서버 보완은 다른 탭의 계정 변경만 막았습니다.
+    localStorage에 못 쓰는 탭이 **같은 탭에서** 로그아웃하고 다른 계정으로 로그인하면, 옛 토큰 요청의 `TOKEN_EXPIRED`는
+    "늦게 도착한 401" 분기로 refresh 없이 새 계정 토큰으로 재시도돼 BE 확인을 거치지 않았습니다. 비로그인 요청의
+    `NOT_LOGGED_IN`이 방금 한 로그인을 지우는 것, 줄 선 mutation이 새 계정으로 나가는 것, refresh 대기 중이던 응답이 새
+    로그인을 덮는 것도 같은 원인입니다. 네 가지를 수정 전 코드로 재현한 뒤(`client.test.ts` Case 9,
+    `mutation-auth-epoch.test.ts`), 세대에 메모리 탭 안 세대를 더해 고쳤습니다(§8-B "localStorage에 못 쓰는 탭", 계획
+    [`plans/2026-10-16-in-tab-auth-epoch.md`](plans/2026-10-16-in-tab-auth-epoch.md)).
     **감수 사항 완화는 보류**: BE가 같은 회원인지 알려 주므로 위 "같은 계정으로 다시 로그인한 순간 진행 중이던 요청도
     실패"를 풀 수도 있지만 하지 않았습니다 — 세대가 바뀐 뒤에도 갱신을 시도하려면 BE가 "확인했다"를 알리는 계약이
     더 필요하고(토큰이 없거나 행이 없으면 확인을 건너뛰므로 200이 "같은 회원"을 뜻하지 않음), 같은 탭의 받아들이기와
@@ -1093,7 +1115,8 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
 - **`hasBeenAuthenticated`**: `ProtectedRoute`가 "이 마운트에서 한 번이라도 로그인 상태였는가"를 추적하는 state(`useState`, 렌더 중에 맞춤 — 렌더 중에 읽으므로 ref가 아님). 로그아웃/세션만료(true였다가 false)와 애초에 비로그인(처음부터 false)을 구분해, 후자만 로그인 모달을 띄웁니다.
 - **`has-session` 플래그**: 리프레시 토큰이 httpOnly라 존재 여부를 JS가 알 수 없으므로 대신 두는 "세션이 있을 가능성" 힌트. 진짜 인증 상태가 아닙니다.
 - **인증 세대(epoch)**: 명시적 로그인·로그아웃마다 바뀌는 localStorage 값(`in:`/`out:` + UUID). 다른 탭과 bfcache로 되살아난 페이지가 "내가 알던 뒤로 인증이 바뀌었는가"를 알아채는 데 씁니다(§8-H).
-- **`tokenEpoch`**: 이 탭이 지금 들고 있는 토큰이 속한 인증 세대(메모리). 토큰을 넣고 뺄 때 맞추고, `client.ts`가 요청마다 기억해 401 때 저장된 세대와 비교합니다(§8-B).
+- **`tokenEpoch`**: 이 탭이 지금 들고 있는 토큰이 속한 인증 세대(메모리). 토큰을 넣고 뺄 때 맞추고, `client.ts`가 요청마다 탭 안 세대와 함께 기억해 401 때 지금 저장된 세대·탭 안 세대와 비교합니다(§8-B).
+- **탭 안 세대(`inTabEpoch`)**: 이 탭에서 명시적으로 로그인·로그아웃한 횟수(메모리, `auth-epoch.util.ts`). localStorage에 못 써도 늘어나, 요청이 기억한 값과 다르면 같은 탭에서 계정이 바뀐 것으로 봅니다. refresh로는 바뀌지 않고, 다른 탭의 변화를 보는 `isStale`에는 쓰지 않습니다(§8-B).
 - **`SessionChangedError`**: 요청을 보낸 뒤 인증 세대가 바뀌어 일부러 처리하지 않고 끝낸 요청의 에러(`common.type.ts`). 재시도하지 않고, 사용자가 누른 동작에만 안내 토스트를 띄웁니다(§8-B).
 - **bfcache**: 뒤로/앞으로 이동 때 떠났던 페이지를 메모리(JS 상태 포함)째 복원하는 브라우저 기능. 복원되면 `pageshow` 이벤트의 `persisted`가 `true`입니다.
 - **reward early, punish late**: 입력 검증 시점 원칙(§8-G). 맞는 쪽으로 가는 변화는 즉시 알리고, 틀린 것은 입력이 끝난 뒤(칸을 벗어나거나 제출한 뒤) 알린다. 이미 틀렸다고 알린 상태를 고치는 중이면 입력하는 대로 다시 판정한다.

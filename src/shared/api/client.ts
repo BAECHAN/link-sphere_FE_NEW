@@ -12,7 +12,7 @@ import { useAuthStore } from '@/shared/store/auth.store';
 
 import { FormUtil } from '@/shared/utils/form.util';
 import { AuthUtil } from '@/shared/utils/auth.util';
-import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
+import { AuthEpochUtil, type AuthEpoch } from '@/shared/utils/auth-epoch.util';
 import { DateUtil } from '@/shared/utils/date.util';
 import { ErrorUtil } from '@/shared/utils/error.util';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
@@ -191,18 +191,18 @@ class ApiClient {
    * TOKEN_EXPIRED 401 처리 - 이미 갱신된 토큰으로 재시도, 재시도 상한, refresh 실행,
    * refresh 대기 4갈래를 모두 담당한다.
    *
-   * authEpoch는 이 요청을 처음 보낼 때 이 탭 토큰이 속했던 인증 세대다. 그 뒤 저장된 세대가 바뀌었으면
-   * (다른 탭·같은 탭의 명시적 로그인·로그아웃) 공유 refresh 쿠키가 다른 계정의 것일 수 있다 - BE는 폐기된
-   * 세션의 토큰도 TOKEN_EXPIRED로 답하므로, 갱신·재시도하면 이 요청이 다른 계정으로 실행된다. 그래서 그런
-   * 요청은 갱신·재시도·로그인 화면 이동 없이 SessionChangedError로 끝내고, 화면은 useAuthEpochSync가
-   * 맞춘다(client.test.ts Case 7, docs/AUTH.md §8-B).
+   * authEpoch는 이 요청을 처음 보낼 때 이 탭 토큰이 속했던 인증 세대다. 그 뒤 세대가 바뀌었으면(다른 탭·같은 탭의
+   * 명시적 로그인·로그아웃 - 같은 탭은 localStorage에 못 써도 잡힌다) 공유 refresh 쿠키가 다른 계정의 것일 수 있다 -
+   * BE는 폐기된 세션의 토큰도 TOKEN_EXPIRED로 답하므로, 갱신·재시도하면 이 요청이 다른 계정으로 실행된다. 그래서
+   * 그런 요청은 갱신·재시도·로그인 화면 이동 없이 SessionChangedError로 끝내고, 화면은 useAuthEpochSync가
+   * 맞춘다(client.test.ts Case 7·9, docs/AUTH.md §8-B).
    */
   private async handleTokenExpired<T>(
     endpoint: string,
     options: ApiRequestOptions | undefined,
     retryCount: number,
     sentToken: string | undefined,
-    authEpoch: string | null
+    authEpoch: AuthEpoch
   ): Promise<T> {
     if (AuthEpochUtil.hasChangedSince(authEpoch)) {
       throw new SessionChangedError();
@@ -312,7 +312,7 @@ class ApiClient {
     endpoint: string,
     options?: ApiRequestOptions,
     retryCount = 0,
-    authEpoch: string | null = AuthEpochUtil.ofToken()
+    authEpoch: AuthEpoch = AuthEpochUtil.ofToken()
   ): Promise<T> {
     let url = endpoint.startsWith('http') ? endpoint : `${this.baseURL}${endpoint}`;
     const isAuth = this.isAuthEndpoint(endpoint);
