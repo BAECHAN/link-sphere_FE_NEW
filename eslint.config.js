@@ -7,6 +7,7 @@ import prettierPlugin from 'eslint-plugin-prettier';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import vitestPlugin from '@vitest/eslint-plugin';
 import playwrightPlugin from 'eslint-plugin-playwright';
+import { scopeMutationAuthEpochRule } from './scripts/lib/scope-mutation-auth-epoch-rule.js';
 
 // 파일명 약어 허용 목록
 // PascalCase 규칙에서 예외로 처리할 약어들
@@ -192,6 +193,9 @@ const customQueryRulesPlugin = {
         };
       },
     },
+    // [필수] scope로 줄 서는 mutation은 mutationFn 첫 줄에서 인증 세대를 확인한다(적용 블록의 주석 참고).
+    // 규칙 본체는 단위 테스트를 위해 scripts/lib에 따로 둔다 - 그 파일 머리말 참고
+    'scope-mutation-auth-epoch': scopeMutationAuthEpochRule,
   },
 };
 
@@ -1214,6 +1218,22 @@ export default [
     plugins: { 'custom-query-rules': customQueryRulesPlugin },
     rules: {
       'custom-query-rules/no-entity-query-import-outside-hooks': 'error',
+    },
+  },
+
+  // ============================================================
+  // [필수] scope로 줄 서는 mutation은 mutationFn 첫 줄에서 assertMutationAuthEpochUnchanged(context)를 부른다
+  // 이유: 줄에서 기다리는 사이 다른 탭에서 계정이 바뀌면 차례가 왔을 때 요청이 새 계정으로 나간다.
+  //       FE-ARCHITECTURE §11 "같은 대상의 연속 mutation" 6번에 문서로만 있던 규칙이라(#391·#381에서
+  //       6곳에 넣음) 새 scope mutation이 빠뜨려도 막을 장치가 없었다(2026-10-15).
+  //       테스트는 scope mutation을 일부러 확인 없이 만들기도 해서 제외한다.
+  // ============================================================
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.{ts,tsx}', 'src/test/**', 'src/mocks/**'],
+    plugins: { 'custom-query-rules': customQueryRulesPlugin },
+    rules: {
+      'custom-query-rules/scope-mutation-auth-epoch': 'error',
     },
   },
 
