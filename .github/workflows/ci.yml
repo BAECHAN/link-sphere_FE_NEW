@@ -83,6 +83,12 @@ jobs:
         # 사용자 설정에 등록돼 모든 세션에서 돈다. vitest(src/) 밖이라 따로 node --test로 돌린다.
         run: node --test .claude/hooks/*.test.mjs
 
+      - name: git 훅 회귀 테스트
+        # 임시 git 레포에서 이 레포의 lint-staged로 경로 지정 커밋(git commit -- <경로>)을 해, 커밋 직후
+        # 인덱스가 prettier 이전 내용으로 남지 않는지 본다(lint-staged 16.2.7에서 MM이 남았다 —
+        # docs/plans/2026-10-16-lint-staged-pathspec-index.md, docs/CI-CHECK-GATE.md §9.8).
+        run: node --test .husky/scripts/*.test.mjs
+
       - name: Check docs
         run: pnpm check:docs
 

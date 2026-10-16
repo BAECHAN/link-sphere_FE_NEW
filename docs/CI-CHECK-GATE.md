@@ -7,7 +7,7 @@
 > **읽고 나면**: `pnpm check`가 실제로 어느 시점에 도는지, ignore 패턴을 추가하거나
 > PR 게이트에 스텝을 더할 때 어디를 고치면 되는지 안다.
 >
-> **마지막 검토**: 2026-10-14
+> **마지막 검토**: 2026-10-16
 
 ## 1. 쉬운 설명
 
@@ -134,6 +134,8 @@ ignore 패턴(`'dist/**/*'`, 루트 상대 경로)에 안 걸려서 그대로 �
 | 문서-코드 참조 게이트          | PR CI는 `pnpm test` 이후(배포는 막지 않음). 로컬은 `pre-push` 훅이 테스트보다 먼저 돌린다(2026-10-14, §9.6)                                                                                                                                                                                                                                                                                                                                                                                                                            | `scripts/check-docs.js`, `ci.yml` "Check docs" 스텝                                                                                                                       |
 | 의존성 규칙 검사               | `pnpm check`의 마지막 단계 `check:deps`(dependency-cruiser) — PR·배포 양쪽 "Type check, lint & format check" 스텝에서 함께 돈다                                                                                                                                                                                                                                                                                                                                                                                                        | `package.json`의 `check`·`check:deps` 스크립트, `scripts/check-deps.js`                                                                                                   |
 | Claude 훅 회귀 테스트          | `.claude/hooks/*.test.mjs`를 `node --test`로 실행(vitest 범위 밖), `pnpm test` 이후 (PR CI 전용)                                                                                                                                                                                                                                                                                                                                                                                                                                       | `ci.yml`의 "Claude 훅 회귀 테스트" 스텝                                                                                                                                   |
+| git 훅 회귀 테스트             | `.husky/scripts/*.test.mjs`를 `node --test`로 실행 — 임시 레포에서 경로 지정 커밋(`git commit -- <경로>`) 직후 `git status`가 비는지 본다(§9.8). "Claude 훅 회귀 테스트" 다음 (PR CI 전용)                                                                                                                                                                                                                                                                                                                                             | `ci.yml`의 "git 훅 회귀 테스트" 스텝                                                                                                                                      |
+| lint-staged 버전               | 17.5.1 정확 고정. 17.0.4 이상이라야 경로 지정 커밋 뒤 인덱스가 어긋나지 않는다. 17.6.0부터는 작업 전후 워킹트리 diff로 스테이징 범위가 넓어져, 같은 워크트리에서 남이 고친 파일이 섞일 수 있어 올리지 않았다(§9.8)                                                                                                                                                                                                                                                                                                                     | `package.json`의 `devDependencies`                                                                                                                                        |
 | PR 영향 그래프                 | 정보용 — 바뀐 src 파일과 import로 닿는 파일을 Mermaid로 Step Summary·PR 댓글(PR당 1개를 갱신)에 붙인다. `continue-on-error`라 실패해도 잡은 통과                                                                                                                                                                                                                                                                                                                                                                                       | `ci.yml`의 "PR 영향 그래프" 스텝, `scripts/dep-graph.js`                                                                                                                  |
 | "마지막 검토" 신선도 기준      | 30일 초과 시 경고(exit 0, 게이트 통과에 영향 없음)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | `scripts/check-docs.js`의 `STALE_REVIEW_DAYS`                                                                                                                             |
 | Build 게이트                   | `pnpm build` — `globals.css`의 `@theme` 토큰이 실제 CSS로 정상 생성되는지 등을 머지 전에 확인                                                                                                                                                                                                                                                                                                                                                                                                                                          | `ci.yml`의 "Build" 스텝                                                                                                                                                   |
@@ -153,6 +155,7 @@ ignore 패턴(`'dist/**/*'`, 루트 상대 경로)에 안 걸려서 그대로 �
 | Node 버전 변경                     | `.nvmrc` — `ci.yml`·`deploy.yml` 등 워크플로가 모두 `node-version-file`로 그 값을 읽는다. 24 미만으로 낮출 때는 `package.json`의 `engines.node`(`>=24`, `.npmrc`의 `engine-strict=true`로 강제)도 함께 고친다 |
 | `--max-warnings` 임계값 변경       | `package.json`의 `lint`·`lint:fix` 스크립트와 `lint-staged` 설정                                                                                                                                              |
 | 커밋·push 전 검사 내용 바꾸기      | `.husky/scripts/pre-commit`·`.husky/scripts/pre-push` — `.husky/pre-commit`·`pre-push`는 지금 워크트리의 스크립트로 넘기는 중계라 고치지 않는다(§9.7)                                                         |
+| lint-staged 버전 올리기            | `package.json`의 `lint-staged` — 올린 뒤 `node --test .husky/scripts/*.test.mjs`를 돌린다. 17.6 이상이면 스테이징 범위가 넓어진 동작(§9.8)이 같은 워크트리의 남의 변경을 섞지 않는지 먼저 확인한다            |
 | 문서-코드 참조 검사 규칙 추가·수정 | `scripts/check-docs.js` — 경로 실존/줄 번호 범위/README↔docs 동기화/검토일 신선도/`<details>` 짝(CHANGELOG.md 포함) 5종                                                                                       |
 
 ### 자주 하는 수정
@@ -352,6 +355,52 @@ Rules에 규칙으로 명문화).
 기각한 대안: husky 기본 방식(상대경로 + 워크트리마다 `pnpm exec husky`) — 부트스트랩 단계가 하나 늘고, 빠뜨린
 워크트리는 훅이 조용히 아예 안 돈다. 병합마다 메인 체크아웃 자동 갱신 — 여러 세션이 같이 쓰는 체크아웃을
 자동으로 건드린다.
+
+### 9.8 경로 지정 커밋 뒤 인덱스에 prettier 이전 내용이 남았다 (2026-10-16)
+
+새 파일을 `git add -- <파일>`한 뒤 `git commit -m "…" -- <경로>`로 커밋했다(`.claude/CLAUDE.md`가 정한 절차).
+그러자 lint-staged의 `prettier --write`가 고친 결과는 커밋과 워킹트리에 들어갔는데, 실제 인덱스에는 고치기 전
+내용이 남아 `git status`가 `MM`이었다(2026-10-15 #398, 계획 대비 구현 대조 중 발견). 그대로 두면 워크트리 정리가
+막힌다. [git-worktree 문서](https://git-scm.com/docs/git-worktree)는 _"깨끗한 워크트리(미추적 파일도, 추적 파일
+수정도 없는)만 지울 수 있다"_ (번역)라고 쓴다.
+
+원인은 git의 부분 커밋 방식과 lint-staged 16.2.7의 조합이다. git은 경로 커밋에서 훅을 돌리기 전에 실제 인덱스
+잠금 파일(`index.lock`)에 그 경로의 워킹트리 내용을 미리 써 둔다. 훅은 HEAD에 그 경로만 얹은 가짜 인덱스 위에서
+돈다.
+
+> (1) 실제 인덱스 파일에 잠금을 건다 (2) 주어진 경로로 the_index를 갱신한다 (3) the_index를 실제 인덱스에
+> 쓴다(잠금은 유지) (…) 호출자는 잠긴 가짜 인덱스 위에서 훅을 돌리고 거기서 커밋을 만들어야 한다. 그다음 (A)
+> 모두 잘되면 실제 인덱스를 확정한다 (…) (번역, 생략)
+>
+> — git 소스 `builtin/commit.c`의 `prepare_index()` 주석, https://github.com/git/git/blob/master/builtin/commit.c
+
+lint-staged 16.2.7은 작업 뒤 `git add`를 훅이 물려받은 가짜 인덱스에만 했다. 그래서 커밋에는 정렬 후 내용이,
+실제 인덱스에는 정렬 전 내용이 들어갔다. 임시 레포로 재현했더니 새 파일뿐 아니라 add 없이 기존 파일을 경로 커밋해도,
+링크드 워크트리에서도 똑같이 `MM`이 남았다(직접 실행: `.husky/scripts/lint-staged-pathspec.test.mjs`를 16.2.7에서
+돌리면 4건 모두 실패한다).
+
+lint-staged 17.0.4([#1788](https://github.com/lint-staged/lint-staged/pull/1788))가 이 경우를 고쳤다.
+
+> 활성 인덱스 파일이 기본이 아닌 잠금 파일이면, `git add`를 명시적으로 하지 않고 경로를 지정해 커밋하는
+> 중이다. 이 경우 기본 인덱스도 갱신해야 한다. 그러지 않으면 커밋한 뒤에 diff가 남는다. (번역)
+>
+> — lint-staged v17.5.1 `lib/gitWorkflow.js` 주석, https://github.com/lint-staged/lint-staged/blob/v17.5.1/lib/gitWorkflow.js
+
+그래서 17.5.1로 올려 고정했다(위 테스트 4건 통과). 17.6.0을 쓰지 않은 이유는 이렇다. 17.6.0
+([#1854](https://github.com/lint-staged/lint-staged/pull/1854))은 _"작업이 수정한 모든 추적 파일의 변경을
+스테이징한다"_ (번역). 작업 전후의 워킹트리 전체 diff를 비교하므로, 같은 워크트리를 쓰는 다른 에이전트가 그 사이에
+고친 파일도 커밋에 섞일 수 있다(코드로 추론, 실측 아님). 위 테스트는 CI의 "git 훅 회귀 테스트" 스텝에서 돈다. 버전을
+바꿔 이 문제가 되살아나면 PR에서 잡힌다. 다만 17.6의 동시 편집 혼입은 이 테스트로 잡지 못한다.
+
+기각한 대안(상세는 [계획 파일](./plans/2026-10-16-lint-staged-pathspec-index.md)):
+
+- post-commit 훅으로 인덱스를 사후 정리: 업스트림이 고친 것을 셸로 중복 구현하고, 메인 체크아웃 중계가 필요하다(§9.7).
+- Claude Code PostToolUse 훅: Claude 세션에서만 돈다.
+- add 전에 prettier를 먼저 돌리는 절차: 문서 규칙만 추가하는 안이다.
+- `--fail-on-changes`: 고칠 게 있는 커밋이 한 번 실패해서 사용자가 체감하는 동작이 바뀐다.
+- 워크트리에서 추적 파일 add 허용: 같은 워크트리를 쓰는 에이전트끼리 인덱스가 섞인다.
+
+BE는 pre-commit이 `ktlintCheck`(검사만)라 파일을 고치지 않으므로 해당 없다.
 
 ## 10. 남은 것
 
