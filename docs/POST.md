@@ -8,7 +8,7 @@
 > 파일에서 어떤 API를 부르고 어느 캐시를 어떻게 바꾸는지 안다. "등록 직후 새 글이 안 보인다",
 > "좋아요가 목록에 반영 안 된다" 같은 증상을 받았을 때 어디부터 열어볼지 정할 수 있다.
 >
-> **마지막 검토**: 2026-10-15
+> **마지막 검토**: 2026-10-16
 
 이 앱의 중심 데이터다. 사용자가 링크(URL)를 등록하면 BE가 그 페이지를 크롤링해 제목·설명·
 썸네일을 채우고, 그 뒤 비동기로 AI 요약·태그를 붙인다. FE는 그 결과를 피드(`/post`)에 카드로
@@ -230,6 +230,13 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 1. 폼(`src/features/post/create/hooks/useCreatePost.ts`의 `useForm`)은 `mode: 'onChange'`라 URL 형식
    오류가 타이핑 즉시 인풋 아래에 뜬다. 제출 버튼은 `isDirty && isValid && !isCreating`일 때만
    활성(`CreatePostForm.tsx`의 `canSubmit`)이고, 비활성 이유는 `TooltipWrapper`로 보여준다.
+   - 화면에 들어오면 URL 칸에 바로 포커스가 간다(URL `FormInput`의 `autoFocus`, 2026-10-16). 데스크톱은
+     클릭 없이 바로 붙여넣을 수 있다. iOS는 다르다 — Apple WebKit 엔지니어는 _"사용자 제스처에 대한
+     응답이 아닌 프로그래밍 포커스로는 키보드를 올리지 않기를 원한다"_ (번역,
+     [WebKit 버그 195884](https://bugs.webkit.org/show_bug.cgi?id=195884), 2019)고 썼다. 이 화면은 탭한
+     뒤 지연 로딩(Suspense)을 거쳐 마운트되므로, iPhone에서는 칸을 한 번 탭해야 할 것으로 본다(실기기
+     미확인). Android Chrome에서 키보드가 바로 뜨는지도 아직 확인하지 못했다. 포커스 자체는
+     `e2e/post-create.spec.ts`·`post-create.mobile.spec.ts`가 확인한다.
 2. 스키마(`src/entities/post/model/post.schema.ts:9-27`): `url`은 `.url()` + http/https 스킴만
    허용하는 `refine`(BE `SafeUrlValidator`와 같은 제한). `title`은 선택(비우면 BE가 크롤링
    제목을 쓴다), `categoryIds`·`isPrivate`·`bookmark`·`folderIds`. **제목 길이 상한은 없다** — 카드는
