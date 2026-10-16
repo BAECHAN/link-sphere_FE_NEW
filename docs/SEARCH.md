@@ -280,6 +280,7 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 검색 중 배경 클릭·포커스 차단 범위 바꾸기                    | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                                                                                                                                                                                   |
 | "검색어와 의미가 비슷한 글이에요" 배지 문구·표시 조건 바꾸기 | [`PostCard.tsx:212-220`](../src/widgets/post/post-card/ui/PostCard.tsx#L212-L220) — `post.isSemanticMatch`, 문구는 `TEXTS.post.card.semanticMatch`                                                                                                                                                                                                                  |
 | 필터 카드 카테고리 칩 미리 받기 바꾸기                       | [`src/app/routes/index.tsx:116`](../src/app/routes/index.tsx#L116) — `PostFeedRoute`(페이지 청크 요청과 같은 렌더에서 요청), 훅은 [`category.queries.ts:24`](../src/entities/category/api/category.queries.ts#L24) `usePrefetchCategoryOptions`                                                                                                                     |
+| 카테고리 응답 캐시 시간 바꾸기                               | BE `CategoryController.kt`의 `CATEGORY_LIST_CACHE_CONTROL`(BE #102)                                                                                                                                                                                                                                                                                                 |
 
 ## 9. 검증 결과
 
@@ -321,6 +322,13 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
   - e2e `post-list-category-prefetch.spec.ts` 3케이스(요청 순서·횟수, 범위 필터 행 시프트 0, 429 토스트 1개).
     고치기 전 코드로 시프트 검사가 3/3 실패하고, 고정 id를 빼면 429 검사가 5/5 실패하는 것을 확인했다.
   - 단위 테스트 `error-toast.test.ts`에 고정 id 2케이스를 추가했다.
+
+- 카테고리 응답 캐시 헤더(2026-10-16, BE #102, §10): 운영에서 같은 브라우저 컨텍스트로 `/post`에 두 번
+  들어갔다(Playwright, `page.route` 없이 — 쓰면 HTTP 캐시가 꺼진다). 바로 다시 들어간 두 번째 방문은 카테고리
+  응답이 HTTP 캐시에서 나왔고(`deliveryType: "cache"`, `transferSize` 0, 0ms), 범위 필터 행 시프트는 390·1280px
+  모두 0이었다. 5분이 지난 뒤(320초) 다시 들어간 방문(390px)도 카테고리는 캐시에서 1ms에 나왔고, 같은 때 뒤에서
+  네트워크로 새로 받은 응답이 1건 있었다(CDP `Network.responseReceived`) — `stale-while-revalidate`대로 동작했다.
+  시프트는 0이었다.
 
 ## 10. 시행착오
 
@@ -575,14 +583,29 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
 - e2e에서 겪은 것: Vite dev 서버가 의존성을 처음 최적화하는 콜드 실행에선 청크가 늦게 와 요청 순서 검사가
   고치기 전에도 통과했다 — 고치기 전 코드를 늘 잡는 건 범위 필터 행 시프트 검사다. 토스트 개수는 재시도하는
   `toHaveCount(1)`이 겹친 토스트가 하나씩 사라지며 잠깐 1개가 되는 순간 통과해 버려, 기다린 뒤 한 번만 잰다.
+- 후속 — 남은 한계를 BE 캐시 헤더로 줄임(2026-10-16, BE #102): 카테고리 응답에 Spring Security 기본 헤더
+  `no-cache, no-store`가 붙어 브라우저도 CloudFront도 저장하지 않았다. 그래서 방문마다 Lambda에서 새로 받다가
+  콜드에 걸리면 게시글보다 늦었다. 이제 BE가 `Cache-Control: max-age=300, public, stale-while-revalidate=604800`을
+  보내, 7일 안의 재방문은 네트워크 없이 HTTP 캐시에서 받는다(5분이 지나면 옛 목록을 즉시 쓰고 뒤에서 새로
+  받는다). 캐시 시간은 사용자 결정이다. 앱은 이미 같은 탭 안에서 카테고리를 하루 동안 다시 받지 않아
+  (`STALE_TIME_ONE_DAY`), 방문 한 번만큼 늦는 신선도를 받아들일 수 있다고 봤다.
+  - 고르지 않은 안: CloudFront 엣지 캐시는 트래픽이 적어 적중률을 장담할 수 없다(모든 방문자가 받는 메인 JS도
+    첫 요청은 `Miss`였다). 그래서 `/api/*`는 `Managed-CachingDisabled` 그대로 둔다. FE가 마지막 목록을
+    localStorage에 저장하는 안은 표준 HTTP 캐시와 효과가 같아 뺐다. 칩을 가로 스크롤 한 줄로 바꾸면 높이가
+    고정돼 타이밍과 무관하게 밀리지 않지만, 화면이 바뀌어 근거 조사와 시안이 먼저 필요하다.
+  - `stale-while-revalidate`는 MDN 호환성 데이터 기준 Chrome 75+, Firefox 68+, Safari 14+가 지원한다.
 
 ## 11. 남은 것
 
-- **카테고리 응답이 게시글보다 늦으면 칩은 여전히 늦게 들어와 밀린다.** 미리 받기는 요청 순서만 앞당긴다.
-  카테고리 요청이 콜드 Lambda에 걸리거나 로컬 측정 6회 중 1회처럼 응답이 더 늦게 오는 경우다(§9·§10).
-  다시 문제가 되면 칩 자리 확보(§10에서 고르지 않은 안)를 재검토한다.
-- **카테고리가 429면 요청이 2번 나간다**(토스트는 1개). 미리 받기가 실패한 뒤 필터 카드가 마운트하며 다시
-  요청하기 때문이다.
+- **첫 방문이나 7일 넘게 지난 재방문에서 카테고리 응답이 게시글보다 늦으면 칩은 여전히 늦게 들어와 밀린다.**
+  미리 받기는 요청 순서만 앞당기고, 브라우저 캐시(BE #102)는 그 밖의 재방문만 덮는다. 첫 방문은 페이지 청크를
+  받는 동안 카테고리가 먼저 출발해(운영 측정 약 870ms 앞섬) 늦을 가능성이 낮다. 실제로 얼마나 생기는지는 모른다
+  — BE 로그에 요청 경로가 없고 실사용 측정(RUM)도 없다. 다시 문제가 되면 CloudFront 엣지 캐시나 칩 자리
+  확보(§10에서 고르지 않은 안)를 재검토한다.
+- **브라우저 캐시에 카테고리가 없을 때 429가 나면 요청이 2번 나간다**(토스트는 1개). 미리 받기가 실패한 뒤
+  필터 카드가 마운트하며 다시 요청하기 때문이다.
+- **카테고리를 DB에서 바꾸면 방문 한 번만큼 늦게 보인다**(BE #102의 캐시 헤더). 그사이 지운 카테고리를 골라
+  등록하면 에러 없이 그 카테고리만 빠진 채 저장된다(BE `PostService`의 `findAllByIdIn`).
 - 헤더 검색창 입력값은 정지 구간에 뒤로가기를 해도 사용자가 친 값이 그대로 남는다
   (`useNavbarSearch`) — 직접 타이핑한 값이라 의도적으로 그대로 둔다.
 
