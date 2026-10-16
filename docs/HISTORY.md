@@ -1,3 +1,6 @@
+### 2026-10-16 (FE)
+- 봇 글 숨기기 토글 시 피드 레이아웃 흔들림 현상 수정 ([#402](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/402))
+
 ### 2026-10-16 (BE)
 - Spring Boot 내장 기능과 중복되는 DataSourceCracHook 제거를 통한 코드 구조 최적화 ([#100](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/100))
 
