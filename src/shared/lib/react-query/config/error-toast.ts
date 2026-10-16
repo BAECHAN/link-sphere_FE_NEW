@@ -16,10 +16,20 @@ declare module '@tanstack/react-query' {
   }
 }
 
-/** 전역 에러 토스트를 띄울지, 띄운다면 어떤 문구로 띄울지에 대한 판정 결과. */
+/**
+ * 전역 에러 토스트를 띄울지, 띄운다면 어떤 문구로 띄울지에 대한 판정 결과. id가 있으면 같은 id의
+ * 토스트가 떠 있는 동안 새로 띄우지 않고 그 토스트를 갱신한다(sonner).
+ */
 export type ErrorToastDecision =
   | { silent: true }
-  | { silent: false; message: string; log?: readonly unknown[] };
+  | { silent: false; message: string; log?: readonly unknown[]; id?: string };
+
+// 요청 한도 초과·보안 정책 차단은 요청 하나가 아니라 지금 앱 상태에 대한 안내라, 같은 순간 여러 요청이
+// 함께 실패해도 하나만 보이게 고정 id를 단다. 재시도하지 않는 실패라(retry-policy.ts) 미리 받기가 먼저
+// 실패한 뒤 화면이 마운트하며 다시 보낸 요청도 곧바로 실패해, id가 없으면 같은 토스트가 두 번 뜬다
+// (docs/SEARCH.md §10).
+const EDGE_BLOCKED_TOAST_ID = 'error-edge-blocked';
+const RATE_LIMITED_TOAST_ID = 'error-rate-limited';
 
 /** mutation과 query가 의도적으로 다르게 처리하는 지점만 모은 정책. 나머지 판정은 양쪽 동일하다. */
 export interface ErrorToastPolicy {
@@ -89,14 +99,14 @@ export function resolveErrorToast(
   // 먼저 처리한다. 그러지 않으면 게시글 등록처럼 errorMessage를 쓰는 mutation은 이 원인을
   // "게시글 등록에 실패했어요" 같은 일반 메시지로 덮어써 사용자가 실제 원인을 알 수 없다.
   if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.EDGE_BLOCKED) {
-    return { silent: false, message: TEXTS.messages.error.edgeBlocked };
+    return { silent: false, message: TEXTS.messages.error.edgeBlocked, id: EDGE_BLOCKED_TOAST_ID };
   }
 
   // 요청 한도 초과 - EDGE_BLOCKED와 같은 이유로 meta.errorMessage보다 먼저 처리한다. 코드가
   // 아니라 상태로 판별한다: BE 레이트리밋(RATE_LIMIT_EXCEEDED)뿐 아니라 Lambda 동시 실행
   // 포화 시 Function URL이 주는 429(앱 에러 코드 없음)도 같은 안내가 맞다.
   if (error instanceof ApiError && error.status === 429) {
-    return { silent: false, message: TEXTS.messages.error.rateLimited };
+    return { silent: false, message: TEXTS.messages.error.rateLimited, id: RATE_LIMITED_TOAST_ID };
   }
 
   if (meta?.errorMessage) {
