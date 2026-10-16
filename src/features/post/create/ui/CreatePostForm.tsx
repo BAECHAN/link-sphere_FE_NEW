@@ -102,12 +102,15 @@ export function CreatePostForm({ renderFolderSelect }: CreatePostFormProps) {
         <CardContent>
           <FormProvider {...form}>
             <form onSubmit={onSubmit} className="space-y-4 md:space-y-6" noValidate>
+              {/* 들어오자마자 붙여넣을 수 있게 URL 칸에 포커스한다. iOS는 사용자 제스처 밖의 포커스로
+                  키보드를 올리지 않아 모바일에선 칸을 한 번 탭해야 한다(docs/POST.md "작성" 1번) */}
               <FormInput
                 name="url"
                 label="URL"
                 placeholder={TEXTS.post.form.create.urlPlaceholder}
                 autoComplete="off"
                 inputMode="url"
+                autoFocus
                 required
               />
               <LinkPreviewCard state={linkPreview} titleOverride={titleValue} reserveSpace />

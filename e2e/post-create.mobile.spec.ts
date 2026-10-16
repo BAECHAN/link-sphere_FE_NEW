@@ -22,6 +22,14 @@ test.describe('게시글 등록 — 모바일 등록 바', () => {
     await mockCategoryOptions(page);
   });
 
+  test('등록 화면에 들어오면 URL 칸에 바로 포커스가 있다', async ({ page }) => {
+    // 포커스만 확인한다 - 에뮬레이션은 가상 키보드를 띄우지 않아, 실제 키보드가 올라오는지는
+    // 실기기로만 확인할 수 있다(docs/POST.md "작성" 1번).
+    await page.goto('/post/submit');
+    // URL 필드는 필수 표시(*)가 붙어 접근 가능한 이름이 "URL*"가 된다 - 앞부분만 고정해서 매칭한다.
+    await expect(page.getByLabel(/^URL/)).toBeFocused();
+  });
+
   test('URL만 입력해도 스크롤 없이 등록 버튼이 보인다', async ({ page }) => {
     await page.goto('/post/submit');
     // URL 필드는 필수 표시(*)가 붙어 접근 가능한 이름이 "URL*"가 된다 - 앞부분만 고정해서 매칭한다.

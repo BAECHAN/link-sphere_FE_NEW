@@ -30,6 +30,12 @@ test.describe('게시글 등록', () => {
     await mockCategoryOptions(page);
   });
 
+  test('등록 화면에 들어오면 URL 칸에 바로 포커스가 있다', async ({ page }) => {
+    await page.goto('/post/submit');
+    // URL 필드는 필수 표시(*)가 붙어 접근 가능한 이름이 "URL*"가 된다 - 앞부분만 고정해서 매칭한다.
+    await expect(page.getByLabel(/^URL/)).toBeFocused();
+  });
+
   test('등록을 제출하면 버튼이 "등록 중..."으로 바뀌고, 응답이 온 뒤 /post로 이동하며 저장하지 않은 변경 가드가 뜨지 않는다', async ({
     page,
   }) => {

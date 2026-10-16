@@ -34,6 +34,13 @@
 
 ### Changed
 
+- `post` 링크 등록 화면에 들어오면 URL 칸에 바로 포커스
+  <details><summary>배경·구현</summary>
+
+  등록 화면에 오는 목적은 거의 언제나 복사해 둔 링크를 붙여넣는 것인데, URL 칸을 한 번 눌러야 붙여넣을 수 있었다. URL `FormInput`에 `autoFocus`를 줘, 데스크톱에서는 들어오자마자 ⌘V로 붙여넣는다. 모바일에도 적용했지만(2026-10-15 사용자 결정) iOS는 사용자 제스처 밖의 프로그램 포커스로 키보드를 올리지 않아([WebKit 버그 195884](https://bugs.webkit.org/show_bug.cgi?id=195884)) 칸을 한 번 탭해야 한다. Android Chrome에서 키보드가 바로 뜨는지는 실기기로 확인하기 전이다. 데스크톱에서만 포커스하는 안은 기각했고, Android 키보드가 거슬리면 그쪽으로 좁힌다. 수정 화면은 URL이 이미 채워져 있어 바꾸지 않았다. 설명은 `docs/POST.md` "작성" 1번, 계획은 `docs/plans/2026-10-16-submit-url-autofocus.md`. (`features/post/create/ui/CreatePostForm.tsx`, `e2e/post-create.spec.ts`, `e2e/post-create.mobile.spec.ts`, [PR #400](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/400))
+
+  </details>
+
 - `infra` CloudFront 설정 차이 검사를 매일 CI에서 돌려 차이가 있으면 이슈로 알림
   <details><summary>배경·구현</summary>
 
