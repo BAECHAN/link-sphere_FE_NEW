@@ -1,5 +1,5 @@
 import { useCategoryOptions } from '@/entities/category/hooks/useCategoryOptions';
-import { startTransition, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { usePostListParams } from '@/widgets/post/post-list/hooks/usePostList';
@@ -31,8 +31,8 @@ function computeAppliedFilterCount(
 
 /**
  * 목록 검색 카드(카테고리·범위 필터·봇 숨기기)의 낙관적 상태와 핸들러를 포함하는 훅.
- * URL/store 갱신은 라우터 startTransition에 감싸여 있어 칩 반응이 늦으므로,
- * flushSync로 즉시 반영하는 낙관적 미러를 따로 둔다.
+ * URL 갱신은 라우터 startTransition에 감싸여 있어 칩 반응이 늦으므로,
+ * flushSync로 즉시 반영하는 낙관적 미러를 따로 둔다(봇 숨기기 store는 갱신이 바로 반영돼 미러가 없다).
  */
 export const usePostListSearch = () => {
   const { categoryOptionList } = useCategoryOptions();
@@ -102,25 +102,11 @@ export const usePostListSearch = () => {
     [pathname]
   );
 
-  // 봇 숨기기는 store(localStorage) 값이라 URL과 달리 라우터의 v7_startTransition 보호를
-  // 받지 못한다. 그대로 두면 토글할 때마다 목록이 스켈레톤으로 떨어지므로, 스위치 자체는
-  // flushSync로 즉시 반응시키고 실제 store 갱신(=재조회)만 startTransition으로 감싼다.
-  const [optimisticHideBots, setOptimisticHideBots] = useState(hideBots);
-  const [prevHideBots, setPrevHideBots] = useState(hideBots);
-
-  if (hideBots !== prevHideBots) {
-    setPrevHideBots(hideBots);
-    setOptimisticHideBots(hideBots);
-  }
-
+  // 봇 숨기기는 store(zustand) 값이라 갱신이 블로킹으로 바로 반영된다 - 스위치는 미러 없이 즉시
+  // 반응하고, 목록이 이전 결과를 유지하는 건 usePostList가 늦춘 값(useDeferredValue)으로 조회해서다.
+  // startTransition으로 감싸도 store 갱신은 transition이 되지 않는다(docs/SEARCH.md §10).
   const handleToggleHideBots = () => {
-    const next = !optimisticHideBots;
-    flushSync(() => {
-      setOptimisticHideBots(next);
-    });
-    startTransition(() => {
-      setHideBots(next);
-    });
+    setHideBots(!hideBots);
   };
 
   const isClickedBookmark = optimisticFilters.includes('isBookmarked');
@@ -167,7 +153,7 @@ export const usePostListSearch = () => {
     isClickedMyPosts,
     isClickedPrivate,
     handleToggleFilter,
-    optimisticHideBots,
+    hideBots,
     handleToggleHideBots,
     appliedCount,
     handleClearSearch,

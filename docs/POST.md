@@ -160,11 +160,11 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - **중복 제거**: 같은 쿼리의 `select`가 모든 페이지를 평탄화하면서 이미 본 `id`를 걸러
   `posts`를 만든다. 오프셋 페이지네이션 중 새 글이 끼어들면 다음 페이지에 같은 글이 또 오기
   때문이다.
-- **가상화**: `usePostList`(`src/widgets/post/post-list/hooks/usePostList.ts:180-189`)가
+- **가상화**: `usePostList`(`src/widgets/post/post-list/hooks/usePostList.ts:197-206`)가
   컨테이너 실측 폭으로 열 수(최대 3, 최소 카드 폭 330px)를 정하고, 게시글을 열 수만큼 묶은
   **행** 단위로 가상화한다. `PostList.tsx:139-169`가 보이는 행만 `translateY`로 배치한다.
 - **다음 페이지 트리거**: 마지막으로 렌더된 가상 행 번호가 `rows.length - 5` 이상이면
-  `fetchNextPage()`(`usePostList.ts:198-211`). IntersectionObserver 센티넬은 가상화 도입 때
+  `fetchNextPage()`(`usePostList.ts:215-228`). IntersectionObserver 센티넬은 가상화 도입 때
   이 방식으로 바뀌었다.
 - **로딩·빈 상태**: `PostList.tsx:31-78`의 `AsyncBoundary`가 Suspense 동안
   `DelayedFallback`(500ms 지연) 안의 스켈레톤 6장(`PostCardSkeleton.tsx:64`)을 보여준다.
@@ -177,7 +177,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   2026-10-14 항목.
 - **조건을 바꾼 뒤 응답 대기**: 목록은 새 응답이 올 때까지 이전 결과를 유지한다(스켈레톤 없음).
   0.5초가 지나도 응답이 없으면 `PostList.tsx:55-75`이 이전 목록을 흐리게 덮고 "결과를 불러오는
-  중이에요."를 띄운다(`usePostListApplying`, `usePostList.ts:134-156`). 판정과 근거는
+  중이에요."를 띄운다(`usePostListApplying`, `usePostList.ts:147-173`). 판정과 근거는
   [`SEARCH.md`](./SEARCH.md) §5.
 - **봇 글 숨기기**: URL이 아니라 localStorage 설정(`useHideBotsStore`)을 `filter`에
   `excludeBots`로 합쳐 보낸다(`usePostList.ts:31-42`). 칩·검색 파라미터 자체는
@@ -459,7 +459,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 단계                         | 파일                                                                                                                                                                                                                 |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 피드 페이지 배치             | `src/pages/post/index.tsx`                                                                                                                                                                                           |
-| 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:163-226`, `src/widgets/post/post-list/ui/PostList.tsx`                                                                                                              |
+| 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:180-243`, `src/widgets/post/post-list/ui/PostList.tsx`                                                                                                              |
 | 카드 UI / 카드 동작          | `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`                                                                                                                      |
 | 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:60-95`                                                                                                                                                                            |
 | 작성 폼 / 제출               | `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/create/hooks/useCreatePost.ts`의 `onSubmit`                                                                                                     |

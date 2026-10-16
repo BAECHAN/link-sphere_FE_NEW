@@ -9,7 +9,7 @@
 > `#닉네임` 태그가 어떻게 분해되는지 이해하고, 검색 관련 동작(유지·초기화·오타 보정)을
 > 어느 파일에서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-15
+> **마지막 검토**: 2026-10-16
 
 ## 1. 쉬운 설명
 
@@ -172,7 +172,9 @@ history 항목의 `location.key`를 그대로 되돌려주므로, 커밋 전에 
 - 최신 위치는 `useSyncExternalStore`가 아니라 `useState` + 구독으로 받는다. 정지 구간에 칩을 또
   누르면 이 값이 transition 도중에 바뀌는데, `useSyncExternalStore`면 React가 그 transition을
   블로킹으로 다시 돌려 이전 목록 대신 스켈레톤이 뜰 수 있다(react.dev 주의 사항).
-- 봇 글 숨기기 스위치는 URL을 바꾸지 않아 이 판정에 잡히지 않는다.
+- 봇 글 숨기기 스위치는 URL을 바꾸지 않는다. 대신 store 값과 목록이 조회에 쓰는 늦춘 값
+  (`useDeferredValue`)이 다른 동안을 "적용 중"으로 본다 — 늦춘 값을 쓰는 이유는 §10 "봇 글 숨기기를
+  켜면 피드가 좌우로 흔들림".
 - 왜 목록 쪽(A2)을 골랐는지, 기각한 안(필터 카드 스피너 등)과 근거는
   [`docs/DECISIONS.md`](./DECISIONS.md) "2026-10-15" 항목.
 
@@ -236,7 +238,7 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 필터 카드 낙관적 칩                                | [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts)의 `optimisticCategoryTags`  | `flushSync`로 URL 반영 전에 즉시 활성화 표시. 뒤로/앞으로 가기(POP)면 `RouterEvents.onPop`으로 돌아간 URL에 다시 맞춘다(§5)                                                                                                                                                                                                                                |
 | 커밋 전 URL 쓰기 의도(pending)                     | [`useSearchParamsDraft.ts`](../src/shared/hooks/useSearchParamsDraft.ts)의 모듈 스코프 `pendingIntent`         | 정지 구간 동안 `location.key` 기준으로 연속 조작을 이어붙임. 커밋되면(`location.key` 변경) 자동 폐기, 뒤로/앞으로 가기(POP)면 `RouterEvents.onPop`으로 폐기(§5)                                                                                                                                                                                            |
 | 라우터 최신 위치(정지 구간 판정용)                 | [`usePostList.ts`](../src/widgets/post/post-list/hooks/usePostList.ts)의 `usePostListApplying` 로컬 `useState` | `RouterEvents.onNavigate`로 갱신. 커밋된 위치와 쿼리가 다르면 "적용 중"(§5)                                                                                                                                                                                                                                                                                |
-| 봇 글 숨기기                                       | [`useHideBotsStore`](../src/shared/store/hideBots.store.ts) (zustand + localStorage)                           | 기기별 개인 설정이라 URL 대상 아님, "조건 N개" 카운트에서도 제외                                                                                                                                                                                                                                                                                           |
+| 봇 글 숨기기                                       | [`useHideBotsStore`](../src/shared/store/hideBots.store.ts) (zustand + localStorage)                           | 기기별 개인 설정이라 URL 대상 아님, "조건 N개" 카운트에서도 제외. 목록 조회는 `useDeferredValue`로 늦춘 값을 쓴다(§10)                                                                                                                                                                                                                                     |
 | 최근 검색어(모바일·데스크톱 공용)                  | [`useRecentSearches.ts`](../src/widgets/layout/navbar/hooks/useRecentSearches.ts) (localStorage)               | `Navbar`가 한 번만 구독해 양쪽에 props로 내려줌(바로 위 §5 문단 참고)                                                                                                                                                                                                                                                                                      |
 | 모바일 검색 패널 열림                              | `location.state.mobileSearchOpen`(React Router)                                                                | 구독자 4곳 — `Navbar`(패널 렌더, `useMobileSearchPanel` 경유), [`MobileCommentBar`](../src/features/comment/create/ui/MobileCommentBar.tsx)(같은 z층 겹침 숨김), [`CreatePostForm`](../src/features/post/create/ui/CreatePostForm.tsx)(등록 버튼 바, 같은 이유로 숨김), [`AppLayout`](../src/app/layouts/app-layout/AppLayout.tsx)(배경 `main` inert 차단) |
 | 데스크톱 드롭다운 열림(`isOpen`)                   | [`NavbarSearch.tsx`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx)의 로컬 `useState`                       | **이벤트(포커스/입력/blur/키보드)에서만 갱신 — 입력값에서 파생하거나 effect로 동기화하지 않는다.** ESC 2단계 재오픈 함정은 §10 참고                                                                                                                                                                                                                        |
@@ -269,7 +271,7 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 라벨(@카테고리) 칩을 눌렀을 때 새 검색어 계산 규칙 바꾸기    | [`usePostList.ts:62-78`](../src/widgets/post/post-list/hooks/usePostList.ts#L62-L78) — `toggleSearchTag`(pending 포함 draft 기준). 칩 미러 갱신은 [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts)의 `toggleCategoryTagInSearch`                                                                                                  |
 | 뒤로/앞으로 가기 때 칩·pending 정리 바꾸기                   | [`router-events.ts`](../src/shared/lib/router/router-events.ts)(POP 감지), [`usePostListSearch.ts:88-103`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L88-L103)(칩 미러), [`useSearchParamsDraft.ts:59-65`](../src/shared/hooks/useSearchParamsDraft.ts#L59-L65)(pending), 주입은 [`RouterProvider.tsx`](../src/app/providers/RouterProvider.tsx)     |
 | 목록 조회 실패 화면이 풀리는 조건 바꾸기                     | [`usePostList.ts:122-132`](../src/widgets/post/post-list/hooks/usePostList.ts#L122-L132) — `usePostListErrorReset`(리셋 키), 실패한 목록 캐시 삭제는 [`post.keys.ts`](../src/entities/post/api/post.keys.ts)의 `postRemoveQueries.erroredLists`                                                                                                                     |
-| 정지 구간 "불러오는 중" 표시 조건·지연 바꾸기                | [`usePostList.ts:134-156`](../src/widgets/post/post-list/hooks/usePostList.ts#L134-L156) — `usePostListApplying`(최신 위치와 커밋된 위치 비교, 0.5초 지연)                                                                                                                                                                                                          |
+| 정지 구간 "불러오는 중" 표시 조건·지연 바꾸기                | [`usePostList.ts:147-173`](../src/widgets/post/post-list/hooks/usePostList.ts#L147-L173) — `usePostListApplying`(최신 위치와 커밋된 위치 비교, 봇 숨기기 늦춘 값 비교, 0.5초 지연)                                                                                                                                                                                  |
 | 정지 구간 "불러오는 중" 덮개 모양 바꾸기                     | [`PostList.tsx:55-75`](../src/widgets/post/post-list/ui/PostList.tsx#L55-L75) — 덮개·알약, 문구는 `TEXTS.post.search.applying`                                                                                                                                                                                                                                      |
 | 초기화 버튼(필터+검색어 전체 리셋)                           | [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts) — `handleClearSearch`                                                                                                                                                                                                                                                            |
 | 오타 보정 문구                                               | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx:109-113`](../src/widgets/post/post-list/ui/PostList.tsx#L109-L113)                                                                                                                                                                                                                                             |
@@ -476,11 +478,39 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
 - 교훈: 가상 목록 바깥에 `relative`·`absolute`·`fixed`·`sticky` 같은 위치 지정 래퍼를 새로 두면
   scrollMargin 기준이 바뀐다. 이 목록 주변에 겹치는 UI를 둘 때는 grid 겹치기를 쓴다.
 
+**봇 글 숨기기를 켜면 피드가 좌우로 흔들림 → store 값을 `useDeferredValue`로 늦춰 조회(2026-10-16).**
+스위치를 누르면 피드 전체가 살짝 오른쪽으로 갔다가 돌아왔다.
+
+- 직접 측정: 운영 `/post`에서 토글 직후 DOM 변경마다(`MutationObserver`, `requestAnimationFrame`)
+  문서 높이·스크롤바 폭·제목 x 좌표·목록의 `display`를 기록했다(Playwright 6개 시나리오 + 스크롤바가
+  15px인 macOS Chrome 1회).
+  - 스크롤바 15px Chrome: 9ms 뒤 목록이 `display:none`, 문서 높이 7147→929(화면 높이), 스크롤바
+    15→0px, 제목 x 528.5→536. 354ms 뒤(응답 도착) 모두 원래대로.
+  - 캐시가 있는 조건으로 다시 토글하면 숨김이 없었다. 카테고리 칩은 캐시가 없어도 숨김이 없었다.
+  - 1500px 내린 상태에서는 `scrollY`가 0으로 튀었다가 돌아왔다.
+- 원인:
+  - 스위치는 store 갱신을 `startTransition`으로 감싸 "스켈레톤으로 떨어지지 않게" 했다고 적혀 있었다.
+    하지만 zustand v5는 `useSyncExternalStore`로 구독하고,
+    [react.dev](https://react.dev/reference/react/useSyncExternalStore#caveats)는 _"외부 store의 변경은
+    non-blocking Transition으로 표시할 수 없어 가장 가까운 Suspense fallback을 띄운다"_ (번역)고 쓴다.
+  - 그래서 쿼리 키가 블로킹으로 바뀌고 `AsyncBoundary`가 이미 보이던 목록을 숨겼다. fallback인
+    `DelayedFallback`은 0.5초 동안 아무것도 그리지 않아, 그 사이 문서가 화면보다 짧아져 세로 스크롤바가
+    사라졌다. 본문이 `mx-auto` 중앙 정렬이라 스크롤바 폭의 절반(7.5px)만큼 움직였다.
+  - 도입 당시(2026-09-06) "스켈레톤이 안 뜬다"는 확인은 `startTransition`이 아니라 `DelayedFallback`의
+    지연 덕분이었던 것으로 보인다(추정). [`docs/DECISIONS.md`](./DECISIONS.md) "2026-09-10 — 로딩
+    인디케이터 지연 게이트" 항목의 "봇숨기기 전환은 이미 해결돼 있다"도 같은 전제 위에 있다.
+- 수정: `usePostList.ts`가 봇 숨기기 값을 `useDeferredValue`로 늦춰 쿼리 키에 쓴다.
+  [react.dev](https://react.dev/reference/react/useDeferredValue)는 _"새 값으로 인한 백그라운드 갱신이
+  suspend하면 사용자는 fallback 대신 데이터가 올 때까지 이전 값을 본다"_ (번역)고 쓴다. 이제 다른 칩처럼
+  이전 목록이 남고, 늦으면 "적용 중" 덮개가 뜬다(§5). 효과가 없던 `startTransition`과 그 때문에 둔
+  스위치 낙관적 미러는 지웠다.
+- 회귀 테스트: `PostList.test.tsx`의 "봇 글 숨기기를 바꾼 뒤 응답을 기다리는 동안" — 수정 전에는 이전
+  목록에 `display: none !important`가 붙어 실패했다.
+- 교훈: zustand 같은 외부 store 값으로 suspense 쿼리 키를 바꾸면 `startTransition`이 듣지 않는다.
+  이전 화면을 유지해야 하면 그 값을 `useDeferredValue`로 늦춰 쓴다.
+
 ## 11. 남은 것
 
-- **봇 글 숨기기 스위치를 바꾼 동안에는 "불러오는 중" 표시가 없다.** 정지 구간 표시(§5)는 URL
-  변화로 판정하는데, 이 스위치는 URL이 아니라 localStorage 설정을 바꾼다. 같은 표시가 필요하면
-  `usePostListSearch`의 봇 숨기기 미러와 커밋된 값을 비교하는 신호를 따로 둬야 한다.
 - 헤더 검색창 입력값은 정지 구간에 뒤로가기를 해도 사용자가 친 값이 그대로 남는다
   (`useNavbarSearch`) — 직접 타이핑한 값이라 의도적으로 그대로 둔다.
 

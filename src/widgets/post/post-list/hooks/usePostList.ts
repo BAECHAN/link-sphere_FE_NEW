@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useDeferredValue, useEffect, useLayoutEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParamsDraft } from '@/shared/hooks/useSearchParamsDraft';
@@ -132,14 +132,30 @@ export const usePostListErrorReset = () => {
 };
 
 /**
+ * 봇 글 숨기기 설정(hideBots)과, 목록 조회에 실제로 쓰는 한 박자 늦춘 값(deferredHideBots).
+ * store는 zustand(useSyncExternalStore)라 startTransition으로 감싸도 블로킹 갱신이 되고, 그 값으로 바로
+ * 쿼리 키를 바꾸면 이미 보이던 목록이 Suspense fallback으로 숨겨진다
+ * (https://react.dev/reference/react/useSyncExternalStore#caveats). 늦춘 값으로 조회하면 새 값의 렌더가
+ * suspend하는 동안 React가 이전 목록을 그대로 둔다(https://react.dev/reference/react/useDeferredValue).
+ */
+function useDeferredHideBots() {
+  const hideBots = useHideBotsStore((state) => state.hideBots);
+  const deferredHideBots = useDeferredValue(hideBots);
+
+  return { hideBots, deferredHideBots };
+}
+
+/**
  * 검색 조건을 바꾼 뒤 새 목록이 오기 전(정지 구간)인지. 라우터는 이미 새 위치에 가 있는데 React가
  * 보는(커밋된) 위치는 응답이 올 때까지 이전 그대로라, 둘의 쿼리가 다르면 "적용 중"이다. 같은 경로
  * 안에서만 본다 - 다른 페이지로 가는 이동은 곧 언마운트된다. 짧은 대기에서 깜빡이지 않도록
- * LOADING_INDICATOR_DELAY_MS가 지나야 true가 된다. 봇 글 숨기기는 URL을 바꾸지 않아 잡히지 않는다.
+ * LOADING_INDICATOR_DELAY_MS가 지나야 true가 된다. 봇 글 숨기기는 URL을 바꾸지 않으므로 설정값과
+ * 목록이 쓰는 늦춘 값이 다른지로 따로 본다.
  */
 export const usePostListApplying = () => {
   const { pathname, search } = useLocation();
   const [latestLocation, setLatestLocation] = useState(() => RouterEvents.getLocation());
+  const { hideBots, deferredHideBots } = useDeferredHideBots();
 
   // useSyncExternalStore로 읽지 않는다 - 정지 구간에 칩을 또 누르면 이 값이 transition 도중에 바뀌는데,
   // 그러면 React가 그 transition을 블로킹으로 다시 돌려 이전 목록 대신 스켈레톤이 뜰 수 있다
@@ -147,10 +163,11 @@ export const usePostListApplying = () => {
   // effect 자리다(https://react.dev/learn/synchronizing-with-effects#subscribing-to-events).
   useEffect(() => RouterEvents.onNavigate(setLatestLocation), []);
 
-  const isApplying =
+  const isApplyingSearch =
     latestLocation !== null &&
     latestLocation.pathname === pathname &&
     latestLocation.search !== search;
+  const isApplying = isApplyingSearch || hideBots !== deferredHideBots;
 
   return useDelayedLoading(isApplying, LOADING_INDICATOR_DELAY_MS);
 };
@@ -162,9 +179,9 @@ export const usePostListApplying = () => {
  */
 export const usePostList = (grid: CardGridSpec) => {
   const { category, nickname, search, currentFilter, ...params } = usePostListParams();
-  const hideBots = useHideBotsStore((state) => state.hideBots);
+  const { deferredHideBots } = useDeferredHideBots();
 
-  const combinedFilter = buildCombinedFilter(currentFilter, hideBots);
+  const combinedFilter = buildCombinedFilter(currentFilter, deferredHideBots);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
     useSuspenseFetchPostListQuery({

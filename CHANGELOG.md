@@ -134,6 +134,13 @@
 
 ### Fixed
 
+- `post` 봇 글 숨기기를 바꿀 때 목록이 잠깐 사라지며 피드가 좌우로 흔들리던 문제
+  <details><summary>배경·구현</summary>
+
+  스위치는 zustand store 갱신을 `startTransition`으로 감싸 이전 목록을 유지하려 했지만, zustand는 `useSyncExternalStore`로 구독해 transition이 듣지 않는다([react.dev](https://react.dev/reference/react/useSyncExternalStore#caveats)). 그래서 새 조건의 목록이 캐시에 없으면 응답이 올 때까지(측정 약 0.35초) 이전 목록이 `display:none`으로 숨겨졌고, 스켈레톤은 0.5초 지연 게이트 때문에 안 떠서 자리가 비었다. 그 사이 문서가 화면보다 짧아져 세로 스크롤바가 사라지면 가운데 정렬된 본문이 스크롤바 폭의 절반(15px 스크롤바 Chrome 직접 측정: 7.5px)만큼 오른쪽으로 갔다가 돌아왔고, 스크롤을 내린 상태면 위치도 튀었다. 목록이 봇 숨기기 값을 `useDeferredValue`로 늦춰 조회하게 해, 다른 칩처럼 이전 목록을 유지하고 응답이 0.5초 넘게 늦으면 "결과를 불러오는 중이에요." 덮개를 띄운다. 효과 없던 `startTransition`과 스위치 낙관적 미러는 지웠다. 측정·원인은 `docs/SEARCH.md` §10, 계획 `docs/plans/2026-10-16-hide-bots-layout-shift.md`. (`widgets/post/post-list/hooks/usePostList.ts`, `widgets/post/post-list/hooks/usePostListSearch.ts`, `widgets/post/post-list/ui/PostListSearch.tsx`, `widgets/post/post-list/ui/PostList.test.tsx`, [PR #402](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/402))
+
+  </details>
+
 - `auth` 다른 계정 로그인 안내와 함께 "로그인 상태가 바뀌어서" 에러 토스트가 뜰 수 있던 문제
   <details><summary>배경·구현</summary>
 
