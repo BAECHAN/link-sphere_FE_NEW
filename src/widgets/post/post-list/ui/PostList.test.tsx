@@ -13,6 +13,7 @@ import { PostListSearch } from '@/widgets/post/post-list/ui/PostListSearch';
 import type { CardGridSpec } from '@/shared/hooks/useWindowGridVirtualizer';
 import { RouterEvents } from '@/shared/lib/router/router-events';
 import { LOADING_INDICATOR_DELAY_MS } from '@/shared/config/const';
+import { useHideBotsStore } from '@/shared/store/hideBots.store';
 
 // 목록 조회가 한 번 실패하면 PostList의 에러 경계가 에러 문구를 띄운다. 예전에는 경계에
 // resetKeys가 없어 검색 조건을 바꿔도 새로고침 전까지 에러 문구가 남았다(docs/SEARCH.md §10).
@@ -146,6 +147,47 @@ describe('PostList — 목록 조회 실패 후 복구', () => {
     await screen.findByText(TEXTS.messages.info.noPosts);
     expect(screen.queryByText(TEXTS.messages.error.fetchPosts)).not.toBeInTheDocument();
   });
+
+  // 목록은 늦춘 봇 숨기기 값(useDeferredValue)으로 조회하지만, 에러 경계는 즉시 값으로 리셋된다.
+  // 리셋 때 목록이 새로 마운트돼 첫 렌더의 늦춘 값이 곧 새 값이므로 실패한 옛 조건을 다시 묻지 않는다
+  it('실패한 뒤 봇 글 숨기기를 바꾸면 실패한 조건을 다시 요청하지 않고 새 조건으로 목록을 그린다', async () => {
+    useHideBotsStore.setState({ hideBots: false });
+    const requestedFilters: string[] = [];
+    server.use(
+      http.get(url(API_ENDPOINTS.post.base), ({ request }) => {
+        const filter = new URL(request.url).searchParams.get('filter') ?? '';
+        requestedFilters.push(filter);
+
+        if (!filter.includes('excludeBots')) {
+          return HttpResponse.json(
+            { status: 500, message: 'injected', code: 'INTERNAL_SERVER_ERROR', timestamp: '' },
+            { status: 500 }
+          );
+        }
+
+        return HttpResponse.json(
+          {
+            status: 200,
+            message: 'ok',
+            data: { ...mockPostListResponse, content: [], totalElements: 0 },
+            timestamp: '',
+          },
+          { status: 200 }
+        );
+      })
+    );
+    const user = userEvent.setup();
+
+    renderFeed();
+    await screen.findByText(TEXTS.messages.error.fetchPosts);
+    const failedRequestCount = requestedFilters.length;
+
+    await user.click(screen.getByLabelText(TEXTS.buttons.hideBots));
+
+    await screen.findByText(TEXTS.messages.info.noPosts);
+    expect(screen.queryByText(TEXTS.messages.error.fetchPosts)).not.toBeInTheDocument();
+    expect(requestedFilters.slice(failedRequestCount)).toEqual(['excludeBots']);
+  });
 });
 
 /** 카테고리 요청만 delayMs 늦게 빈 목록으로 응답한다(첫 조회는 즉시) */
@@ -232,6 +274,73 @@ describe('PostList — 조건을 바꾼 뒤 응답을 기다리는 동안', () =
     ).toBeInTheDocument();
     // 이전 목록(빈 상태 문구)은 덮인 채 그대로 남아 있다
     expect(screen.getByText(TEXTS.messages.info.noPosts)).toBeInTheDocument();
+
+    await waitFor(
+      () => expect(screen.queryByText(TEXTS.post.search.applying)).not.toBeInTheDocument(),
+      { timeout: 2500 }
+    );
+  });
+});
+
+/** 봇 숨기기(filter=excludeBots) 요청만 delayMs 늦게 빈 목록으로 응답한다(첫 조회는 즉시) */
+function mockSlowHideBotsList(delayMs: number) {
+  server.use(
+    http.get(url(API_ENDPOINTS.post.base), async ({ request }) => {
+      if (new URL(request.url).searchParams.get('filter')?.includes('excludeBots')) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+
+      return HttpResponse.json(
+        {
+          status: 200,
+          message: 'ok',
+          data: { ...mockPostListResponse, content: [], totalElements: 0 },
+          timestamp: '',
+        },
+        { status: 200 }
+      );
+    })
+  );
+}
+
+// 봇 숨기기는 URL이 아니라 zustand store(useSyncExternalStore)를 바꾼다 - startTransition으로 감싸도
+// 블로킹 갱신이 돼, 예전에는 응답이 올 때까지 이전 목록이 display:none으로 숨겨졌다(docs/SEARCH.md §10)
+describe('PostList — 봇 글 숨기기를 바꾼 뒤 응답을 기다리는 동안', () => {
+  beforeEach(() => {
+    useHideBotsStore.setState({ hideBots: false });
+  });
+
+  it('응답이 0.5초 안에 오면 이전 목록을 숨기지 않고 "결과를 불러오는 중" 표시도 띄우지 않는다', async () => {
+    mockSlowHideBotsList(150);
+    const user = userEvent.setup();
+
+    renderFeedWithDataRouter();
+    await screen.findByText(TEXTS.messages.info.noPosts);
+
+    await user.click(screen.getByLabelText(TEXTS.buttons.hideBots));
+    expect(screen.getByText(TEXTS.messages.info.noPosts)).toBeVisible();
+
+    await wait(LOADING_INDICATOR_DELAY_MS + 300);
+
+    expect(screen.queryByText(TEXTS.post.search.applying)).not.toBeInTheDocument();
+  });
+
+  it('응답이 늦으면 이전 목록을 보이는 채로 두고 0.5초 뒤 표시를 띄우며, 응답이 오면 걷는다', async () => {
+    mockSlowHideBotsList(1500);
+    const user = userEvent.setup();
+
+    renderFeedWithDataRouter();
+    await screen.findByText(TEXTS.messages.info.noPosts);
+
+    await user.click(screen.getByLabelText(TEXTS.buttons.hideBots));
+    expect(screen.getByLabelText(TEXTS.buttons.hideBots)).toBeChecked();
+    expect(screen.getByText(TEXTS.messages.info.noPosts)).toBeVisible();
+    expect(screen.queryByText(TEXTS.post.search.applying)).not.toBeInTheDocument();
+
+    expect(
+      await screen.findByText(TEXTS.post.search.applying, undefined, { timeout: 1200 })
+    ).toBeInTheDocument();
+    expect(screen.getByText(TEXTS.messages.info.noPosts)).toBeVisible();
 
     await waitFor(
       () => expect(screen.queryByText(TEXTS.post.search.applying)).not.toBeInTheDocument(),

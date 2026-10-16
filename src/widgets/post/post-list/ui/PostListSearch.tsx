@@ -16,7 +16,7 @@ export function PostListSearch() {
     isClickedMyPosts,
     isClickedPrivate,
     handleToggleFilter,
-    optimisticHideBots,
+    hideBots,
     handleToggleHideBots,
     appliedCount,
     handleClearSearch,
@@ -91,11 +91,7 @@ export function PostListSearch() {
           className="inline-flex items-center gap-2 min-h-7 cursor-pointer select-none text-xs text-muted-foreground"
         >
           <span>{TEXTS.buttons.hideBots}</span>
-          <Switch
-            id="hide-bots-switch"
-            checked={optimisticHideBots}
-            onCheckedChange={handleToggleHideBots}
-          />
+          <Switch id="hide-bots-switch" checked={hideBots} onCheckedChange={handleToggleHideBots} />
         </label>
 
         <div className="flex items-center gap-2">
