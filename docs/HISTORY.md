@@ -1,3 +1,6 @@
+### 2026-10-16 (BE)
+- 워밍 핑 중 발생하는 DB EAUTHTIMEOUT 오류 해결 및 연결 안정성 개선 ([#99](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/99))
+
 ### 2026-10-16 (FE)
 - 인증 세션 충돌 방지 및 예외 처리 로직 개선 ([#399](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/399))
 
