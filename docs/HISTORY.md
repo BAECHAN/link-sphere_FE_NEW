@@ -1,4 +1,7 @@
 ### 2026-10-16 (BE)
+- Spring Boot 내장 기능과 중복되는 DataSourceCracHook 제거를 통한 코드 구조 최적화 ([#100](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/100))
+
+### 2026-10-16 (BE)
 - 워밍 핑 중 발생하는 DB EAUTHTIMEOUT 오류 해결 및 연결 안정성 개선 ([#99](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/99))
 
 ### 2026-10-16 (FE)
