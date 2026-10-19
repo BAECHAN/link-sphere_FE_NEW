@@ -1,3 +1,6 @@
+### 2026-10-19 (BE)
+- 게시글 검색 정확도 개선: 영문 검색어 사용 시 검색어와 일치하는 전체 단어가 포함된 게시글이 우선 노출되도록 검색 알고리즘 최적화 ([#103](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/103))
+
 ### 2026-10-16 (FE)
 - 인증 동기화 로직 개선: localStorage 접근 제한 환경에서 타 탭의 계정 변경 시 발생하는 요청 충돌 이슈 해결 및 데이터 무결성 강화 ([#406](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/406))
 
