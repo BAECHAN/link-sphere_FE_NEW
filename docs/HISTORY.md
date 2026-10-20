@@ -1,3 +1,8 @@
+### 2026-10-20 (BE)
+- 인증 및 인가 로직 개선
+로그:
+- fix(auth): 만료된 토큰으로 피드를 조회하면 401 대신 비로그인 결과를 주던 문제 ([#104](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/104))
+
 ### 2026-10-19 (BE)
 - 게시글 검색 정확도 개선: 영문 검색어 사용 시 검색어와 일치하는 전체 단어가 포함된 게시글이 우선 노출되도록 검색 알고리즘 최적화 ([#103](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/103))
 
