@@ -1,4 +1,7 @@
 ### 2026-10-20 (BE)
+- 부적절한 Accept 헤더 요청 시 500 에러 대신 406 Not Acceptable 응답을 반환하도록 예외 처리 수정
+
+### 2026-10-20 (BE)
 - 인증 및 인가 로직 개선
 로그:
 - fix(auth): 만료된 토큰으로 피드를 조회하면 401 대신 비로그인 결과를 주던 문제 ([#104](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/104))
