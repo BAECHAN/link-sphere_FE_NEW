@@ -389,6 +389,11 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
   **새 값 반영(시크릿·`.env`) → 재배포 → 운영 확인 → 옛 값 삭제** 순서를 지킨다. 2026-10-02 #301에서
   `.env.example`에 실제 Firebase·VAPID 값을 확인 없이 넣어 공개 레포에 병합했고, 이력은 지울 수 없어
   VAPID·apiKey·웹 앱을 모두 교체했다(#302). 수습 중에도 이 순서가 어긋나 운영 알림이 두 번 깨졌다
+- **Never** 운영 DB 임시 조회에 BE 앱 계정(`application-secret.yml`)·트랜잭션 풀러 6543을 쓰거나 세션 수준
+  `SET`을 건다 → 항상 읽기 전용 계정으로 `/opt/homebrew/opt/libpq/bin/psql "service=linksphere-ro" -c "…"`.
+  6543은 서버 커넥션을 앱과 돌려 써서 세션 설정이 앱 요청에 남는다 — 2026-10-05 이 레포 세션이 고아 이미지를
+  대조하며 건 `SET default_transaction_read_only = on`이 1분간 Lambda 쓰기 6건을 500으로 만들었다. 쓰기는
+  사용자가 직접 한다. 계정·접속 설정·사건 경위는 BE [`docs/DEPLOY.md` 12장](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/DEPLOY.md#12-운영-db-임시-조회-전용-읽기-계정-supabase--적용-완료-2026-10-20)
 - **Never** native `confirm()` → 항상 `useAlert` + `openConfirm` 사용
 - **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만(2026-09-09 감사에서
   `shared/lib/firebase/fcm.ts`가 raw `fetch()`로 이 규칙을 어기고 있는 걸 발견해 같은 날
