@@ -90,6 +90,7 @@ test.describe('댓글 삭제', () => {
     await expect(page.getByText(TEXTS.comment.list.empty)).toBeVisible();
     // <h2>댓글<span>{count}</span></h2> — 문자열 사이에 공백이 없어 접근명은 '댓글0'(실측).
     await expect(page.getByRole('heading', { level: 2, name: '댓글0' })).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.success.commentDeleted)).toBeVisible();
 
     const detailBody = await (await detailRefetch).json();
     expect(detailBody.data.stats.commentCount).toBe(0);
@@ -142,6 +143,8 @@ test.describe('댓글 삭제', () => {
     await commentRefetch;
 
     await expect(page.getByText('삭제된 댓글입니다.')).toBeVisible();
+    // 행이 톰스톤으로 남아도 삭제는 성공한 것이라 같은 성공 토스트가 뜬다.
+    await expect(page.getByText(TEXTS.messages.success.commentDeleted)).toBeVisible();
     // 액션 행(좋아요/답글/수정/삭제) 전체가 사라진다 — isDeleted가 true면
     // CommentItem.tsx가 그 행 자체를 렌더하지 않는다.
     await expect(page.getByRole('button', { name: TEXTS.buttons.delete })).toHaveCount(0);

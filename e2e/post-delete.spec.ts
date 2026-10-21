@@ -83,6 +83,9 @@ test.describe('게시글 삭제', () => {
     // "사라져야 한다"를 "나타나야 한다"로 뒤집는다 — 낙관적 제거로 content가 0개가 되어
     // 빈 상태 문구가 뜨는 것을 양성 단언한다(.not.toBeVisible()의 실측된 false negative 회피).
     await expect(page.getByText(TEXTS.messages.info.noPosts)).toBeVisible();
+    // 상세에서 지우면 카드가 사라지는 장면 없이 피드로 옮겨 오므로 성공 토스트로 결과를 알린다
+    // (texts-conventions "성공 토스트 표시 기준" 축 4).
+    await expect(page.getByText(TEXTS.messages.success.postDeleted)).toBeVisible();
     // 목록이 재조회 없이(onSuccess가 post 목록을 invalidate하지 않음, bookmark-folder.keys.ts)
     // onMutate의 낙관적 patch만으로 비었음을 증명한다.
     expect(postListRequestCount).toBe(1);

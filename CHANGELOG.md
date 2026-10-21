@@ -34,6 +34,13 @@
 
 ### Changed
 
+- `shared` 게시글·댓글·북마크 폴더를 삭제하면 "삭제했어요" 성공 토스트를 띄움
+  <details><summary>배경·구현</summary>
+
+  2026-08-04(`537ac2bf`)에 "목록에서 바로 사라지는 게 피드백"이라며 게시글·폴더 삭제 성공 토스트를 뺐다(댓글 삭제 토스트는 처음부터 없었다). 실제로 써 보니 결과가 눈에 안 들어와 한 번 더 확인하게 된다는 사용자 관찰이 있었다(2026-10-21). 코드를 따라가 보면 확인 버튼이 확인창 닫기와 삭제를 함께 시작해 카드가 사라지는 순간이 확인창이 닫히는 순간과 겹치고, 상세에서 지우면 피드로 이동해 사라지는 장면이 없으며, 댓글·폴더는 낙관적 업데이트가 없어 재조회가 끝날 때까지 화면이 그대로다. 확인창("복구할 수 없어요")을 거치는 영구 삭제 세 가지에만 `meta.successMessage`로 "포스트를 삭제했어요."·"댓글을 삭제했어요."·"폴더를 삭제했어요."를 띄운다(범위는 사용자 결정). 확인창이 없는 좋아요 취소·최근 검색어 삭제·첨부 이미지 빼기는 그대로 토스트가 없다. BE가 하드 삭제라 되돌리기는 붙이지 않았다. GitLab Pajamas·GitHub Primer는 결과가 보이면 토스트를 쓰지 않는다는 입장이라 외부 근거는 엇갈린다 — 판단 기준(축 4)과 근거는 `.claude/skills/texts-conventions/SKILL.md` "성공 토스트 표시 기준", 계획은 `docs/plans/2026-10-21-delete-success-toast.md`. (`shared/config/texts.ts`, `entities/post/api/post.queries.ts`, `entities/comment/api/comment.queries.ts`, `entities/bookmark/folder/api/bookmark-folder.queries.ts`, `e2e/post-delete.spec.ts`, `e2e/comment-delete.spec.ts`, `e2e/bookmark-folder-delete.spec.ts`, [PR #410](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/410))
+
+  </details>
+
 - `post` 링크 등록 화면에 들어오면 URL 칸에 바로 포커스
   <details><summary>배경·구현</summary>
 

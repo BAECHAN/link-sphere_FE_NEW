@@ -465,7 +465,8 @@ src/
 │           │   │                          # CreateFolderCard(생성 토글) 훅
 │           │   ├── useFolderActions.ts   # 폴더 이름변경(rename)·삭제(delete) — FolderItem·
 │           │   │                         # FolderCard 공유. 삭제 확인창은 emphasis: 'confirm'
-│           │   │                         # (docs/DECISIONS.md 2026-09-29 항목)
+│           │   │                         # (docs/DECISIONS.md 2026-09-29 항목). 삭제 성공 토스트
+│           │   │                         # "폴더를 삭제했어요."는 entity meta.successMessage(2026-10-21)
 │           │   └── useCreateFolderForm.ts # 폴더 생성 폼 코어 로직 — 사이드바·모바일 카드 공유
 │           └── ui/
 │               ├── FolderTree.tsx            # 데스크탑 사이드바 (폴더 트리, 전체 행은 숫자 없음).

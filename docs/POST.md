@@ -342,7 +342,9 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   `src/entities/post/api/post.keys.ts`). 상세에서 삭제하면 push로 피드에 가므로 히스토리에 지운 글의 상세가
   남는데, 캐시가 남아 있으면 뒤로가기 때 staleTime(3분) 안에서 삭제된 글이 재조회 없이 다시 그려졌다.
   지금은 다시 받아와 그 주소에서 "삭제됐거나 볼 수 없는 포스트예요" 안내를 띄운다(`e2e/post-delete.spec.ts`).
-  **성공 토스트는 없다**(카드가 사라지는 것 자체가 피드백).
+  성공하면 `meta.successMessage`로 "포스트를 삭제했어요." 토스트가 뜬다. 카드가 사라지는 순간은 확인창이
+  닫히는 순간과 겹치고, 상세에서 지우면 사라지는 장면 자체가 없어서다(2026-10-21 복원, 판단 기준은
+  `.claude/skills/texts-conventions/SKILL.md` "성공 토스트 표시 기준" 축 4).
 - 성공 시 `handlePostDeleteSuccess`로 북마크 폴더 목록·폴더 게시글만 재검증한다(피드 목록은 이미
   낙관적으로 반영됨).
 - 상세에서 삭제하면 `navigate('/post')`로 이동한다 — **push**다(`usePostCard.ts:57`). §11.

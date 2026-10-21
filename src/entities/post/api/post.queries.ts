@@ -287,6 +287,7 @@ export const useDeletePostMutation = () => {
       return await postApi.deletePost(postId);
     },
     meta: {
+      successMessage: TEXTS.messages.success.postDeleted,
       errorMessage: TEXTS.messages.error.postDeleteFailed,
     },
     onMutate: async (postId: string) => {
