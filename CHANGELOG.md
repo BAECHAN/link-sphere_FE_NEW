@@ -141,6 +141,13 @@
 
 ### Fixed
 
+- `post` 저장 중 떠나려다 확인창이 뜨면 등록·수정 뒤 이동이 사라지거나 꼬이던 문제
+  <details><summary>배경·구현</summary>
+
+  모바일에서 게시글 등록 중 탭이나 뒤로가기를 눌러 "작성 중인 내용이 있어요" 확인창이 뜬 채로 등록이 끝나면, 성공 뒤의 `/post` 이동이 열린 확인창 때문에 다시 막혔다. 이미 막힌 blocker를 또 막으면 새 목적지로 덮어쓰는데(@remix-run/router 1.23.2 `router.js` 1852-1879행, 상태 전이표 3008행) 상태는 그대로 `'blocked'`라 같은 확인창이 남았고, "계속 작성"이 그 이동을 버려 저장된 글을 두고 빈 폼에 머물렀다(제보: "계속 작성 뒤 직접 나가야 목록에 반영된다" — 실제로는 이미 저장돼 있었다). 응답 전에 "나가기"로 떠난 경우에는 언마운트된 폼의 `navigate`가 그대로 실행돼 떠난 화면이 피드로 바뀌었고(수정은 `navigate(-1)`로 한 칸 더 뒤로), 실패는 아무 안내가 없었다. 이제 이탈 가드가 dirty 스토어를 구독하다가 자기 확인창이 떠 있는 동안 작성 중인 폼이 모두 해제되면 그 확인창을 취소해 폼의 성공 이동이 평소대로 통과하고, 등록·수정 훅은 응답 뒤 `useHasLeftPage`로 떠났는지 먼저 보고 떠났으면 이동하지 않은 채 실패만 에러 토스트로 알린다. 떠났는지는 언마운트뿐 아니라 라우터의 최신 경로로도 본다 — "나가기" 직후 다음 화면이 suspend하는 동안엔 폼이 마운트된 채 남기 때문이다. 같은 규칙으로 댓글 수정 저장 중 뜬 확인창도 수정이 성공하면 저절로 닫힌다(사용자 승인). 동작은 레포 선례(e2e 등록 계약, 댓글 폼의 언마운트 토스트)에 맞췄고 다른 제품 사례 조사는 하지 않았다. 데이터 라우터로 저장 중 이탈 경합을 재현하는 유닛 테스트를 새로 두었다(고치기 전 RED 10회). 설명 `docs/UNSAVED-CHANGES-GUARD.md` §5 "저장 요청 중 이탈"·§10, 계획 `docs/plans/2026-10-21-post-submit-leave-guard.md`. (`shared/hooks/useUnsavedChangesGuard.ts`, `shared/hooks/useHasLeftPage.ts`(신규), `features/post/create/hooks/useCreatePost.ts`, `features/post/update/hooks/useUpdatePost.ts`, `useUnsavedChangesGuard.test.tsx`·`useCreatePost.guard.test.tsx`·`useUpdatePost.guard.test.tsx`(신규), `docs/UNSAVED-CHANGES-GUARD.md`, `docs/POST.md`, `docs/TESTING.md`, `e2e/unsaved-changes.spec.ts`, [PR #411](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/411))
+
+  </details>
+
 - `auth` localStorage에 못 쓰는 탭에서 같은 탭으로 계정을 바꾸면 옛 요청이 새 계정으로 실행되던 문제
   <details><summary>배경·구현</summary>
 

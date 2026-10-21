@@ -4,6 +4,8 @@ import { UpdatePost, updatePostSchema } from '@/entities/post/model/post.schema'
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useGoBack } from '@/shared/hooks/useGoBack';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
+import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
+import { toast } from '@/shared/lib/toast/toast';
 import { UrlUtil } from '@/shared/utils/url.util';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useRef, useState } from 'react';
@@ -66,6 +68,7 @@ export function useUpdatePost(postId: string) {
   );
 
   const { clearNow } = useUnsavedChanges(`post-update:${postId}`, form.formState.isDirty);
+  const hasLeftPage = useHasLeftPage();
   // 입력칸과 무관한 실패(글 삭제됨·권한·네트워크 등)의 안내 - 버튼 위 FormAlert에 남는다
   const [submitError, setSubmitError] = useState<Extract<
     PostSubmitErrorResolution,
@@ -116,6 +119,12 @@ export function useUpdatePost(postId: string) {
     } catch (error) {
       const resolution = PostUtil.resolveSubmitError(error, { mode: 'update', hasFolders: false });
 
+      // useCreatePost.ts와 같은 이유 - 떠난 뒤의 실패는 토스트로 대신 알린다
+      if (hasLeftPage()) {
+        toast.error(resolution.message);
+        return;
+      }
+
       // 수정 폼엔 북마크 폴더 칸이 없어 입력칸 에러는 URL 칸뿐이다(폴더 실패는 등록에서만 난다)
       if (resolution.kind === 'form') {
         setSubmitError(resolution);
@@ -127,6 +136,12 @@ export function useUpdatePost(postId: string) {
         );
       }
 
+      return;
+    }
+
+    // useCreatePost.ts와 같은 이유 - 떠났으면 goBack(navigate(-1))이 옮겨 간 화면에서 한 칸 더
+    // 뒤로 가므로 그대로 둔다
+    if (hasLeftPage()) {
       return;
     }
 

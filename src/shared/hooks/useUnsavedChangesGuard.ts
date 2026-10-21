@@ -1,6 +1,6 @@
 import { useEffect, useRef, useLayoutEffect } from 'react';
 import { useBlocker, useLocation, type BlockerFunction } from 'react-router-dom';
-import { hasUnsavedChanges } from '@/shared/store/unsavedChanges.store';
+import { hasUnsavedChanges, useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { getOpenAlertId, useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
 import { PUBLIC_PATHS, ROUTES_PATHS } from '@/shared/config/route-paths';
@@ -52,6 +52,8 @@ export function useUnsavedChangesGuard() {
   const { pathname } = useLocation();
 
   const blockerRef = useRef(blocker);
+  // 가드가 띄운 이탈 확인창의 id. 답하면(나가기·계속 작성) 비운다
+  const confirmIdRef = useRef<string | null>(null);
 
   // 렌더 중이 아니라 레이아웃 effect에서 갱신한다 - 렌더 중 ref 쓰기는 React 규칙 위반이고
   // (https://react.dev/reference/eslint-plugin-react-hooks/lints/refs), 공식 대안인
@@ -86,11 +88,42 @@ export function useUnsavedChangesGuard() {
         message: texts.message,
         confirmText: texts.confirm,
         cancelText: texts.cancel,
-        onConfirm: () => blockerRef.current.proceed?.(),
-        onCancel: () => blockerRef.current.reset?.(),
+        onConfirm: () => {
+          confirmIdRef.current = null;
+          blockerRef.current.proceed?.();
+        },
+        onCancel: () => {
+          confirmIdRef.current = null;
+          blockerRef.current.reset?.();
+        },
       });
+      // openConfirm은 id를 돌려주지 않는다 - 바로 위에서 열린 Alert가 없음을 확인했으니
+      // 지금 열려 있는 것이 방금 띄운 확인창이다
+      confirmIdRef.current = getOpenAlertId();
     },
     [blocker.state, openConfirm, cancelAlert, pathname]
+  );
+
+  useEffect(
+    function cancelConfirmWhenNothingUnsaved() {
+      // 확인창이 떠 있는 동안 저장이 끝나 작성 중인 폼이 모두 해제되면 "입력한 내용이 사라져요"라는
+      // 전제가 사라진다 - 확인창을 취소(막힌 이동은 reset)해 폼의 성공 이동이 평소대로 통과하게 한다.
+      // 그대로 두면 그 이동이 열린 확인창 때문에 다시 막히고(blocked→blocked) "계속 작성"이 버린다
+      // (docs/UNSAVED-CHANGES-GUARD.md §10, 2026-10-21). clearNow() 직후 같은 틱에 navigate가 오므로
+      // 렌더 뒤에 도는 선택자 구독이 아니라 동기로 불리는 store.subscribe로 받는다
+      // (https://github.com/pmndrs/zustand#readingwriting-state-and-reacting-to-changes-outside-components,
+      // 외부 저장소 구독은 effect에서 - https://react.dev/reference/react/useEffect).
+      return useUnsavedChangesStore.subscribe(() => {
+        const confirmId = confirmIdRef.current;
+
+        if (!confirmId || hasUnsavedChanges()) {
+          return;
+        }
+
+        cancelAlert(confirmId);
+      });
+    },
+    [cancelAlert]
   );
 
   useEffect(function warnBeforeUnload() {
