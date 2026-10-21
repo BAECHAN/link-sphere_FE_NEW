@@ -1,4 +1,7 @@
 ### 2026-10-21 (FE)
+- 게시글 저장 및 수정 시 페이지 이탈 방지 모달 로직 수정 ([#411](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/411))
+
+### 2026-10-21 (FE)
 - 게시글, 댓글, 북마크 폴더 삭제 기능에 대한 사용자 피드백 개선 및 삭제 성공 알림 토스트 메시지 구현 ([#410](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/410))
 
 ### 2026-10-20 (BE)
