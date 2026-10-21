@@ -18,6 +18,7 @@ import {
 import { Comment } from '@/entities/comment/model/comment.schema';
 import { COMMENT_PAGE_SIZE } from '@/entities/comment/config/comment.const';
 import { CommentUtil } from '@/entities/comment/utils/comment.util';
+import { TEXTS } from '@/shared/config/texts';
 import { PaginationRequest } from '@/shared/types/common.type';
 
 // 서버 응답을 기다리는 동안 목록에 즉시 꽂아 넣는 임시 댓글을 만든다.
@@ -248,6 +249,7 @@ export const useDeleteCommentMutation = (postId: string) => {
 
   return useMutation({
     mutationFn: (commentId: string) => commentApi.deleteComment(commentId),
+    meta: { successMessage: TEXTS.messages.success.commentDeleted },
     onSuccess: () => {
       handleCommentDeleteSuccess(queryClient, postId);
     },

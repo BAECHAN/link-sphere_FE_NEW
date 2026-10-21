@@ -33,6 +33,7 @@ import {
   Post,
   PostListResponse,
 } from '@/entities/post/@x/bookmark';
+import { TEXTS } from '@/shared/config/texts';
 import { PaginationRequest } from '@/shared/types/common.type';
 
 // ==================== Queries ====================
@@ -167,7 +168,7 @@ export const useDeleteBookmarkFolderMutation = (folderId: string) => {
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.delete(folderId),
     mutationFn: () => bookmarkFolderApi.deleteBookmarkFolder(folderId),
-    meta: { manualErrorHandling: true },
+    meta: { manualErrorHandling: true, successMessage: TEXTS.messages.success.folderDeleted },
     onSuccess: () => {
       handleBookmarkFolderDeleteSuccess(queryClient);
     },

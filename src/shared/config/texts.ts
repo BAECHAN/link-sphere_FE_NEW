@@ -455,8 +455,11 @@ export const TEXTS = {
     success: {
       postCreated: '포스트를 생성했어요.',
       postUpdated: '포스트를 수정했어요.',
+      postDeleted: '포스트를 삭제했어요.',
       postSetToPrivate: '이 게시물을 나만 보기로 전환했어요.',
       postSetToPublic: '이 게시물을 전체 공개로 전환했어요.',
+      commentDeleted: '댓글을 삭제했어요.',
+      folderDeleted: '폴더를 삭제했어요.',
       accountUpdated: '프로필을 수정했어요.',
       linkCopied: '링크를 복사했어요.',
       originalLinkCopied: '원본 링크를 복사했어요.',

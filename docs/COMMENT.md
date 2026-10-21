@@ -289,7 +289,9 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 `useDeleteComment`(`src/features/comment/delete/hooks/useDeleteComment.ts:13-25`)가
 `openConfirm`(확정 강조 `emphasis: 'confirm'`)을 띄우고 확인 시 `mutateAsync`로 지운다.
 낙관적 반영은 없고, 성공하면 `handleCommentDeleteSuccess`가 댓글 목록·내 댓글·게시글
-상세·게시글 목록을 무효화한다.
+상세·게시글 목록을 무효화한다. 같은 때 `meta.successMessage`로 "댓글을 삭제했어요." 토스트가
+뜬다 — 확인창이 닫힌 뒤 재조회가 끝날 때까지 화면이 그대로라서다(2026-10-21, 판단 기준은
+`.claude/skills/texts-conventions/SKILL.md` "성공 토스트 표시 기준" 축 4).
 
 답글이 없는 댓글은 행 자체가 지워져 목록에서 사라지고, 답글이 있는 댓글은 본문을
 "삭제된 댓글입니다."로 바꾼 `isDeleted: true` 톰스톤으로 남는다. 이 분기는 BE

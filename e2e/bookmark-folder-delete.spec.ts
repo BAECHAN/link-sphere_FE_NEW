@@ -112,6 +112,7 @@ test.describe('북마크 폴더 삭제', () => {
 
     await deleteRes;
     await expect(page.getByRole('button', { name: TEXTS.ariaLabels.folderMenu })).toHaveCount(0);
+    await expect(page.getByText(TEXTS.messages.success.folderDeleted)).toBeVisible();
     // 언마운트된(죽은) 폴더의 게시글 쿼리는 stale 마킹만 되고 재조회되지 않는다.
     expect(folderPostsCount).toBe(beforeDeleteCount);
     // Alert가 location.key 변경으로 자동 취소됐는지도 확인한다.
