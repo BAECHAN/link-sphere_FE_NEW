@@ -5,6 +5,8 @@ import { CreatePost, createPostSchema } from '@/entities/post/model/post.schema'
 import { useNavigate } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
+import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
+import { toast } from '@/shared/lib/toast/toast';
 import { UrlUtil } from '@/shared/utils/url.util';
 import { useAccount } from '@/entities/account/hooks/useAccount';
 import { TEXTS } from '@/shared/config/texts';
@@ -36,6 +38,7 @@ export function useCreatePost() {
   });
 
   const { clearNow } = useUnsavedChanges('post-create', form.formState.isDirty);
+  const hasLeftPage = useHasLeftPage();
 
   // 작성 중 링크 미리보기 - 이메일 미인증이면 BE가 403으로 거절하므로 묻지 않는다
   const urlValue = form.watch('url');
@@ -98,6 +101,12 @@ export function useCreatePost() {
         hasFolders: (formData.folderIds?.length ?? 0) > 0,
       });
 
+      // 응답 전에 "나가기"로 떠났으면 안내를 띄울 폼이 없다 - 그때만 토스트로 대신 알린다
+      if (hasLeftPage()) {
+        toast.error(resolution.message);
+        return;
+      }
+
       if (resolution.kind === 'field') {
         form.setError(
           resolution.field,
@@ -108,6 +117,12 @@ export function useCreatePost() {
         setSubmitError(resolution);
       }
 
+      return;
+    }
+
+    // 응답 전에 "나가기"로 떠났으면 옮겨 간 화면에 그대로 둔다 - 성공 토스트는 mutation의
+    // meta.successMessage가 띄운다. clearNow보다 먼저 본다: 같은 경로에 새로 열린 폼의 키를 지우지 않게
+    if (hasLeftPage()) {
       return;
     }
 

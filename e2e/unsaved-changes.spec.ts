@@ -11,8 +11,9 @@ import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 // useUnsavedChangesGuard(shared/hooks/useUnsavedChangesGuard.ts) — React Router blocker
-// 기반이라 실제 라우터 없이는 재현 불가능한 영역. 유닛 테스트 파일 자체가 없다
-// (docs/UNSAVED-CHANGES-GUARD.md도 통합 테스트 확인 안 됐다고 명시).
+// 기반이라 실제 라우터 없이는 재현 불가능한 영역. 유닛 테스트는 createMemoryRouter로 메모리
+// 히스토리만 본다(useUnsavedChangesGuard.test.tsx, 게시글 폼은 *.guard.test.tsx) — 실제 브라우저의
+// history·popstate는 이 스펙이 맡는다(docs/UNSAVED-CHANGES-GUARD.md §9).
 test.describe('저장하지 않은 변경 가드', () => {
   test.beforeEach(async ({ page }) => {
     await installCatchAll(page);

@@ -8,7 +8,7 @@
 > 파일에서 어떤 API를 부르고 어느 캐시를 어떻게 바꾸는지 안다. "등록 직후 새 글이 안 보인다",
 > "좋아요가 목록에 반영 안 된다" 같은 증상을 받았을 때 어디부터 열어볼지 정할 수 있다.
 >
-> **마지막 검토**: 2026-10-16
+> **마지막 검토**: 2026-10-21
 
 이 앱의 중심 데이터다. 사용자가 링크(URL)를 등록하면 BE가 그 페이지를 크롤링해 제목·설명·
 썸네일을 채우고, 그 뒤 비동기로 AI 요약·태그를 붙인다. FE는 그 결과를 피드(`/post`)에 카드로
@@ -47,10 +47,10 @@ flowchart TD
   Preview -->|"도메인 없음 등"| PreviewErr["카드 대신 URL 칸 에러"]
   Create -->|"제출 → 버튼 '등록 중...'(응답 대기)"| CreateReq["POST /post (keepalive)<br/>실패 시 폼 유지"]
   CreateReq -->|"성공"| CreateOk["필터 없는 목록 cancelQueries<br/>→ page 0 맨 앞에 끼워 넣고 page 1+ 버림<br/>→ post.list 무효화"]
-  CreateOk -->|"그다음 폼에서"| CreateNav["clearNow·reset<br/>navigate /post replace"]
+  CreateOk -->|"그다음 폼에서"| CreateNav["clearNow·reset<br/>navigate /post replace<br/>(응답 전에 떠났으면 이동 안 함)"]
 
   Feed -->|"⋮ 수정"| Edit["수정 /post/edit/:id<br/>GET /post/{id}로 폼 reset"]
-  Edit -->|"제출 → 버튼 '수정 중...'(응답 대기)"| EditReq["PATCH /post/{id} (keepalive)<br/>성공 시 clearNow·goBack<br/>실패 시 폼 유지"]
+  Edit -->|"제출 → 버튼 '수정 중...'(응답 대기)"| EditReq["PATCH /post/{id} (keepalive)<br/>성공 시 clearNow·goBack<br/>(응답 전에 떠났으면 안 함)<br/>실패 시 폼 유지"]
   EditReq -->|"성공"| EditOk["detail setQueryData<br/>목록 setQueriesData 직접 교체<br/>+ detail·list·북마크 폴더 게시글 무효화"]
 
   Feed -->|"⋮ 삭제 → 확인창"| Del["onMutate: 목록·폴더 캐시에서<br/>즉시 제거·카운트 -1"]
@@ -251,6 +251,9 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
      가드가 그대로 남고, 실패 원인은 7번 방식으로 안내한다. BE가 크롤링을 동기로 하지만
      실측 중앙값 2.7초라 기다리게 한다(근거·이전 방식과의 비교는 [`DECISIONS.md`](./DECISIONS.md)
      2026-10-03). 탭을 닫아도 요청이 끝까지 가도록 `keepalive`(`post.api.ts`의 `createPost`).
+   - 저장 중 떠나려 하면 이탈 확인창이 뜬다. 확인창이 떠 있는 동안 성공하면 확인창이 닫히고 그대로 `/post`로
+     간다. 응답 전에 "나가기"로 떠났으면 `useHasLeftPage`로 알아보고 이동하지 않는다(실패 안내는 7번 참고) —
+     [`UNSAVED-CHANGES-GUARD.md`](./UNSAVED-CHANGES-GUARD.md) §5 "저장 요청 중 이탈"(2026-10-21).
 4. 성공 시(`post.queries.ts`의 `useCreatePostMutation` `onSuccess`, entity 레벨이라 폼이 언마운트돼도 실행된다):
    - 필터 없는 목록 쿼리를 `cancelQueries` — 폼은 이 처리가 끝난 뒤에 이동하므로 평소엔 경쟁이 없지만,
      저장 중 "나가기"로 먼저 피드에 갔거나 배경 재조회가 돌던 중이면 등록 완료 전 상태의 목록 fetch가
@@ -281,7 +284,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
      (429, `Retry-After`를 분으로 올림), 네트워크, 응답 지연(504 — 이미 저장됐을 수 있어 "피드에서
      확인하기" 링크), 이메일 미인증, WAF 차단, 그 외. 모바일에선 하단 고정 바 안 버튼 위에 붙는다.
    - 사용자가 아무 값이나 고치면 안내와 서버 칸 에러가 지워진다(`clearSubmitErrorsOnEdit`).
-   - 대가: 저장 중 이탈 확인창에서 "나가기"를 골라 폼이 먼저 사라지면 실패가 안 보인다(드묾).
+   - 저장 중 이탈 확인창에서 "나가기"로 먼저 떠났으면 안내할 폼이 없어 같은 문구를 에러 토스트로 띄운다
+     (2026-10-21 — 전에는 실패가 안 보였다).
    - 표시 위치·박스 모양 결정 근거는 [`DECISIONS.md`](./DECISIONS.md) 2026-10-03 "실패 원인 노출" 항목.
 8. **작성 중 링크 미리보기**(2026-10-03): URL 칸 바로 아래 `LinkPreviewCard`(`entities/post/ui/LinkPreviewCard.tsx`)가
    "이렇게 등록돼요"를 등록 전에 보여준다.
@@ -319,6 +323,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   재수집" 항목.
 - 제출(`onSubmit`)은 작성과 같이 **응답을 기다린다**(버튼 "수정 중..."). 성공하면 `clearNow()` →
   `goBack()`(들어온 화면으로, 목록 스크롤 유지), 실패하면 고친 내용과 이탈 가드를 그대로 남긴다.
+  응답 전에 이탈 확인창에서 "나가기"로 떠났으면 `goBack()`하지 않고(전에는 떠난 화면에서 한 칸 더 뒤로 갔다),
+  실패는 에러 토스트로 알린다 — 등록과 같다(2026-10-21).
   `keepalive`도 같다(`post.api.ts`의 `updatePost`).
 - 성공 시(`post.queries.ts`의 `useUpdatePostMutation` `onSuccess`): 서버가 돌려준 수정본으로 detail을 `setQueryData`, 모든
   목록 캐시에서 그 글을 `setQueriesData`로 **직접 교체**한 뒤, `handlePostUpdateSuccess`(detail +
@@ -500,6 +506,9 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 - `src/entities/post/model/post.schema.test.ts`(18) — 필수·선택 필드, `file://` 등 스킴 거부
 - `src/features/post/update/hooks/useUpdatePost.test.tsx`(2) — 초기 로드 시 제목·카테고리 유지,
   URL 변경 시 비움
+- `src/features/post/create/hooks/useCreatePost.guard.test.tsx`(9)·
+  `src/features/post/update/hooks/useUpdatePost.guard.test.tsx`(4) — 저장 중 이탈 확인창과 응답이 겹치는
+  경우(2026-10-21 추가, 목록은 [`UNSAVED-CHANGES-GUARD.md`](./UNSAVED-CHANGES-GUARD.md) §9가 정본)
 - `src/widgets/post/post-list/hooks/usePostList.test.tsx`(5),
   `src/widgets/post/post-list/ui/PostListSearch.test.tsx`(3),
   `src/widgets/post/post-list/utils/search-parser.test.ts`(16) — 검색 동작은

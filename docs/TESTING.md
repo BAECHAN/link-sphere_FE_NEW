@@ -117,6 +117,11 @@ src/
 들었으나 둘 다 실제로 존재하지 않는 파일이었다 — 이 문서가 자기 레포에 없는 파일을
 규범 예시로 쓰고 있었다.)
 
+한 소스에 서로 다른 하네스가 필요하면 `<소스>.<시나리오>.test.tsx`로 나눈다 — 예를 들어
+`useCreatePost.test.tsx`는 `useNavigate`를 모듈 단위로 mock하는데, 이탈 가드와의 경합은 실제 데이터
+라우터가 있어야 보여서 `useCreatePost.guard.test.tsx`로 따로 둔다(2026-10-21). `.tsx`는 PascalCase,
+`use*` 파일은 camelCase 파일명 규칙(`eslint.config.js`)이 첫 점 앞부분만 보므로 이 형식은 통과한다.
+
 ---
 
 ## 무엇에 테스트를 쓰는가 (테스트 범위 기준)
