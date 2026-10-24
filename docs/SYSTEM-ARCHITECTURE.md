@@ -1,7 +1,8 @@
 # Link-Sphere 시스템 아키텍처
 
 프로젝트 전반의 시스템 구성, 배포 파이프라인, FE/BE 아키텍처를 Mermaid 다이어그램으로 정리한 문서입니다.
-상세 패턴·컨벤션은 [FE-ARCHITECTURE.md](./FE-ARCHITECTURE.md)를 참고하세요.
+상세 패턴·컨벤션은 FE는 [FE-ARCHITECTURE.md](./FE-ARCHITECTURE.md), BE는 BE 레포
+[`docs/BE-ARCHITECTURE.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/BE-ARCHITECTURE.md)를 참고하세요.
 
 ---
 
@@ -231,7 +232,10 @@ Feature 훅은 `*.queries.ts`의 훅을 사용하고, UI는 Feature 훅만 호�
 
 ## 4. BE 아키텍처
 
-백엔드 도메인 구조와 외부 연동입니다.
+백엔드 도메인 구조와 외부 연동입니다. 요청 파이프라인(HTTP 경로와 `linksphereJob` 내부 잡 6종 — 커밋 뒤 self-invoke
+3종, EventBridge 3종)·레이어 규칙·에러 계약·패턴의 정본은 BE 레포
+[`docs/BE-ARCHITECTURE.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/BE-ARCHITECTURE.md)이고, 아래
+그림은 도메인 구조 요약입니다.
 
 ```mermaid
 flowchart TB
