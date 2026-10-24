@@ -1,4 +1,7 @@
 ### 2026-10-24 (BE)
+- 스토리지가 응답하지 않을 때 발생하는 업로드 서명 요청의 무한 대기 현상 해결 ([#108](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/108))
+
+### 2026-10-24 (BE)
 - 백엔드 아키텍처 및 패턴 표준화 가이드라인 수립 및 자동 검사 로직 도입 ([#107](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/107))
 
 ### 2026-10-21 (FE)
