@@ -110,7 +110,7 @@ flowchart LR
 flowchart TD
   C["공통 1일차<br/>SYSTEM-ARCHITECTURE §1 → 이 문서 §5 기능 지도"]
   C --> F["FE 개발자<br/>FE-ARCHITECTURE §1·3·5·6 → AUTH 1~5장 → TESTING"]
-  C --> B["BE 개발자<br/>BE README 프로젝트 구조·API 엔드포인트 → AI-ASYNC-PROCESSING → BE DEPLOY"]
+  C --> B["BE 개발자<br/>BE README 프로젝트 구조·API 엔드포인트 → BE-ARCHITECTURE → AI-ASYNC-PROCESSING → BE DEPLOY"]
   F --> M["맡은 기능의 문서 (§5)"]
   B --> M
   M -.->|"왜 이렇게 했지? 싶을 때"| D["DECISIONS 검색"]
@@ -118,7 +118,9 @@ flowchart TD
 
 - FE: [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §1·§3·§5·§6 → [`AUTH.md`](./AUTH.md) 1~5장 →
   [`TESTING.md`](./TESTING.md)
-- BE: [BE README](https://github.com/BAECHAN/link-sphere_BE_NEW#readme) → [AI-ASYNC-PROCESSING](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/AI-ASYNC-PROCESSING.md)
+- BE: [BE README](https://github.com/BAECHAN/link-sphere_BE_NEW#readme) →
+  [BE-ARCHITECTURE](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/BE-ARCHITECTURE.md) §1·§3·§7 →
+  [AI-ASYNC-PROCESSING](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/AI-ASYNC-PROCESSING.md)
   → [BE DEPLOY](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/DEPLOY.md)
 - 기능 문서는 1장 "쉬운 설명"(장 끝 순서도 포함)만 먼저 읽어도 흐름이 잡힌다. 코드 지도·시행착오는 그 기능을
   고칠 때 읽는다.
@@ -151,7 +153,8 @@ flowchart TD
 - **feat·fix·perf 커밋은 같은 커밋에 `CHANGELOG.md` `[Unreleased]` 항목을 넣는다.**
 - **동작을 바꾸면 그 동작을 서술한 문서도 함께 고친다** — 반대편 레포 문서 포함. 기능 문서를 추가·삭제하면
   이 문서 §5 기능 지도도 갱신한다.
-- **새 엔티티·기능 추가**: [FE-ARCHITECTURE](./FE-ARCHITECTURE.md) §21·§22 체크리스트, Claude Code를 쓰면
+- **새 엔티티·기능 추가**: FE는 [FE-ARCHITECTURE](./FE-ARCHITECTURE.md) §21·§22, BE는
+  [BE-ARCHITECTURE](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/BE-ARCHITECTURE.md) §10 체크리스트, Claude Code를 쓰면
   `/add-entity-api`·`/new-feature`·`/new-domain` 슬래시 커맨드가 같은 형태로 뼈대를 만든다.
 - **FE 검증 순서**: `pnpm type-check` → `pnpm test` → `pnpm lint`·`pnpm check:deps` → (문서 수정 시) `pnpm check:docs`.
 
@@ -161,3 +164,4 @@ flowchart TD
 - [BE README `## 문서`](https://github.com/BAECHAN/link-sphere_BE_NEW#문서) — BE 문서 전체 목록
 - [`SYSTEM-ARCHITECTURE.md`](./SYSTEM-ARCHITECTURE.md) — 인프라·배포·FE/BE 구조 다이어그램
 - [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) — FE 구조와 재사용 패턴
+- [BE `docs/BE-ARCHITECTURE.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/BE-ARCHITECTURE.md) — BE 요청 파이프라인, 레이어 규칙, 에러 계약, 재사용 패턴
