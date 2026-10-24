@@ -1,3 +1,6 @@
+### 2026-10-24 (BE)
+- 백엔드 아키텍처 및 패턴 표준화 가이드라인 수립 및 자동 검사 로직 도입 ([#107](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/107))
+
 ### 2026-10-21 (FE)
 - 게시글 저장 및 수정 시 페이지 이탈 방지 모달 로직 수정 ([#411](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/411))
 
