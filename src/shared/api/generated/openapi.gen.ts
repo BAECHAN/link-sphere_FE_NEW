@@ -13,7 +13,7 @@ export interface paths {
     };
     /**
      * 내 계정 조회
-     * @description 인증된 세션이 가리키는 회원 ID로 조회한다. 실패: 404 NOT_FOUND(탈퇴 등으로 회원이 없을 때)
+     * @description 인증된 세션이 가리키는 회원 ID로 조회한다.
      */
     get: operations['getAccount'];
     put?: never;
@@ -27,7 +27,7 @@ export interface paths {
     head?: never;
     /**
      * 내 계정 수정
-     * @description nickname·image 만 부분 수정한다(null 인 필드는 유지). 실패: 404 NOT_FOUND · 409 DUPLICATE_MEMBER(닉네임 중복 시에도 이 코드다)
+     * @description nickname·image 만 부분 수정한다(null 인 필드는 유지). 실패: 409 DUPLICATE_NICKNAME(닉네임 중복)
      */
     patch: operations['updateAccount'];
     trace?: never;
@@ -480,7 +480,7 @@ export interface paths {
     head?: never;
     /**
      * 댓글 수정
-     * @description 실패: 404 COMMENT_NOT_FOUND(댓글 없음) · 400 INVALID_INPUT(이미지 개수·본문 길이 초과) · 403 FORBIDDEN(작성자가 아님) · 409 COMMENT_DELETED(이미 삭제된 댓글)
+     * @description 실패: 404 COMMENT_NOT_FOUND(댓글 없음) · 400 INVALID_INPUT(content·images 가 둘 다 비어 있음, 이미지 개수·본문 길이 초과) · 403 FORBIDDEN(작성자가 아님) · 409 COMMENT_DELETED(이미 삭제된 댓글)
      */
     patch: operations['updateComment'];
     trace?: never;
@@ -495,13 +495,13 @@ export interface paths {
     get?: never;
     /**
      * 댓글 좋아요
-     * @description 이미 좋아요한 상태여도 200 이다(멱등). data 는 {"isLiked": true} 다. 실패: 404 POST_NOT_FOUND(글 없음·비공개) · 400 INVALID_INPUT(삭제된 댓글)
+     * @description 이미 좋아요한 상태여도 200 이다(멱등). data 는 {"isLiked": true} 다. 실패: 404 COMMENT_NOT_FOUND(댓글 없음) · 404 POST_NOT_FOUND(글 없음·비공개) · 400 INVALID_INPUT(삭제된 댓글)
      */
     put: operations['putCommentLike'];
     post?: never;
     /**
      * 댓글 좋아요 취소
-     * @description 좋아요하지 않은 상태여도 200 이다(멱등). data 는 {"isLiked": false} 다. 실패: 404 POST_NOT_FOUND(글 없음·비공개) · 400 INVALID_INPUT(삭제된 댓글)
+     * @description 좋아요하지 않은 상태여도 200 이다(멱등). data 는 {"isLiked": false} 다. 실패: 404 COMMENT_NOT_FOUND(댓글 없음) · 404 POST_NOT_FOUND(글 없음·비공개) · 400 INVALID_INPUT(삭제된 댓글)
      */
     delete: operations['deleteCommentLike'];
     options?: never;
@@ -520,7 +520,7 @@ export interface paths {
     put?: never;
     /**
      * 답글 작성
-     * @description 답글의 답글은 허용하지 않는다(최대 depth 1). HTTP 상태는 200 이고 본문 status 필드만 201 이다. 실패: 404 COMMENT_NOT_FOUND(부모 댓글 없음) · 404 NOT_FOUND(depth 초과·다른 글의 댓글) · 400 INVALID_INPUT(이미지 개수·본문 길이 초과)
+     * @description 답글의 답글은 허용하지 않는다(최대 depth 1). HTTP 상태는 200 이고 본문 status 필드만 201 이다. 실패: 404 COMMENT_NOT_FOUND(부모 댓글 없음) · 400 INVALID_INPUT(content·images 가 둘 다 비어 있음, depth 초과, 이미지 개수·본문 길이 초과)
      */
     post: operations['createReply'];
     delete?: never;
@@ -555,7 +555,7 @@ export interface paths {
     };
     /**
      * slug 로 카테고리 단건 조회
-     * @description 실패: 404 NOT_FOUND
+     * @description 실패: 404 CATEGORY_NOT_FOUND
      */
     get: operations['getCategoryBySlug'];
     put?: never;
@@ -577,12 +577,12 @@ export interface paths {
     put?: never;
     /**
      * FCM 토큰 등록
-     * @description 다른 컨트롤러와 달리 ApiResponse 로 감싸지 않고 본문 없는 200/401 을 그대로 준다. 실패: 401(인증 principal을 UUID로 파싱하지 못했을 때)
+     * @description 로그인 후 브라우저·앱에서 호출한다. data 는 비어 있다.
      */
     post: operations['registerToken'];
     /**
      * FCM 토큰 해제
-     * @description 본문 없는 200/401 을 그대로 준다. 실패: 401(인증 principal을 UUID로 파싱하지 못했을 때)
+     * @description data 는 비어 있다.
      */
     delete: operations['deleteToken'];
     options?: never;
@@ -721,7 +721,7 @@ export interface paths {
     put?: never;
     /**
      * 댓글 작성
-     * @description HTTP 상태는 200 이고 본문 status 필드만 201 이다. content·images 가 둘 다 비어 있으면 400 이 아니라 404 NOT_FOUND 로 응답한다(IllegalArgumentException 공통 매핑). 실패: 404 POST_NOT_FOUND · 404 NOT_FOUND(내용 없음) · 400 INVALID_INPUT(이미지 개수·본문 길이 초과)
+     * @description HTTP 상태는 200 이고 본문 status 필드만 201 이다. 실패: 404 POST_NOT_FOUND · 400 INVALID_INPUT(content·images 가 둘 다 비어 있음, 이미지 개수·본문 길이 초과)
      */
     post: operations['createComment'];
     delete?: never;
@@ -1985,7 +1985,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          '*/*': components['schemas']['ApiResponseUnit'];
+        };
       };
     };
   };
@@ -2007,7 +2009,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          '*/*': components['schemas']['ApiResponseUnit'];
+        };
       };
     };
   };
