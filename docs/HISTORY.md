@@ -1,4 +1,8 @@
 ### 2026-10-25 (BE)
+- 트랜잭션 경계 최적화 및 안정성 확보
+  - 트랜잭션 경계 설정 오류가 의심되던 6개 케이스에 대해 재현 테스트 완료 및 코드 수정 ([#112](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/112))
+
+### 2026-10-25 (BE)
 - 인증 계층 리팩토링을 통한 사용자 식별 로직 표준화
 로그:
 - refactor(auth): 컨트롤러의 사용자 id 추출을 Authentication + getUserId()로 통일 ([#111](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/111))
