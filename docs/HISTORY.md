@@ -1,3 +1,8 @@
+### 2026-10-25 (BE)
+- API 예외 처리 고도화 및 응답 코드 표준화
+로그:
+- fix(api): IllegalArgumentException 17곳을 의미 있는 예외로 바꿔 응답 코드를 바로잡음 ([#110](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/110))
+
 ### 2026-10-24 (BE)
 - 스토리지가 응답하지 않을 때 발생하는 업로드 서명 요청의 무한 대기 현상 해결 ([#108](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/108))
 
