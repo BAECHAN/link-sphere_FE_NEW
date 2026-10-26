@@ -281,7 +281,6 @@ src/
     │   ├── client.ts             # HTTP 클라이언트 (apiClient) — fetch 기반, axios 아님
     │   ├── upload.api.ts         # uploadApi — 서명 URL 발급 + PUT 요청 함수
     │   ├── fcm.api.ts             # fcmApi — FCM 토큰 등록/해제
-    │   ├── api.type.ts           # Unwrap 헬퍼 — ApiResponse<T> 래퍼가 익명 타입일 때만 사용
     │   └── generated/            # openapi.json(스펙 스냅샷) + openapi.gen.ts(생성 타입) — 커밋됨, 직접 편집 금지
     ├── config/
     │   ├── texts.ts               # 모든 UI 문자열 (TEXTS)

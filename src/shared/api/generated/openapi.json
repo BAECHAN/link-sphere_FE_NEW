@@ -103,6 +103,25 @@
         "required": ["data", "message", "status", "timestamp"],
         "type": "object"
       },
+      "ApiResponseCommentLikeResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CommentLikeResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
       "ApiResponseCommentResponse": {
         "properties": {
           "data": {
@@ -227,28 +246,6 @@
               "$ref": "#/components/schemas/CommentResponse"
             },
             "type": "array"
-          },
-          "message": {
-            "type": "string"
-          },
-          "status": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "timestamp": {
-            "type": "string"
-          }
-        },
-        "required": ["data", "message", "status", "timestamp"],
-        "type": "object"
-      },
-      "ApiResponseMapStringBoolean": {
-        "properties": {
-          "data": {
-            "additionalProperties": {
-              "type": "boolean"
-            },
-            "type": "object"
           },
           "message": {
             "type": "string"
@@ -514,6 +511,15 @@
           }
         },
         "required": ["id", "nickname"],
+        "type": "object"
+      },
+      "CommentLikeResponse": {
+        "properties": {
+          "isLiked": {
+            "type": "boolean"
+          }
+        },
+        "required": ["isLiked"],
         "type": "object"
       },
       "CommentResponse": {
@@ -1175,7 +1181,7 @@
     }
   },
   "info": {
-    "description": "로컬 개발용 API 문서. 운영 Lambda 에는 Swagger UI 가 포함되지 않는다(스펙 JSON 만).\n\n- 성공 응답은 모두 `ApiResponse<T>`(status·message·data·timestamp)로 감싼다.\n- 실패 응답은 모두 `ErrorResponse`(status·code·message·timestamp)다. code 는 대문자 SNAKE_CASE(예: POST_NOT_FOUND).\n- 자물쇠가 붙은 API 는 Authorization: Bearer <accessToken> 이 필요하다. 누락·만료·위조 시 401(NOT_LOGGED_IN / TOKEN_EXPIRED / INVALID_TOKEN)이다.\n- 처리되지 않은 예외는 500 INTERNAL_SERVER_ERROR 로 통일된다.\n- 대부분의 API 는 ResponseEntity 를 쓰지 않아 **HTTP 상태가 항상 200** 이다. 본문 status 필드가 201 이어도 HTTP 는 200 이다(예외: POST /auth/signup 만 실제 201).",
+    "description": "로컬 개발용 API 문서. 운영 Lambda 에는 Swagger UI 가 포함되지 않는다(스펙 JSON 만).\n\n- 성공 응답은 모두 `ApiResponse<T>`(status·message·data·timestamp)로 감싼다.\n- 실패 응답은 모두 `ErrorResponse`(status·code·message·timestamp)다. code 는 대문자 SNAKE_CASE(예: POST_NOT_FOUND).\n- 자물쇠가 붙은 API 는 Authorization: Bearer <accessToken> 이 필요하다. 누락·만료·위조 시 401(NOT_LOGGED_IN / TOKEN_EXPIRED / INVALID_TOKEN)이다.\n- 처리되지 않은 예외는 500 INTERNAL_SERVER_ERROR 로 통일된다.\n- 성공 응답의 HTTP 상태는 본문 status 필드와 같다 - 자원을 만드는 POST 는 201, 그 밖은 200 이다.",
     "title": "Link Sphere API",
     "version": "1.0.0"
   },
@@ -1613,7 +1619,7 @@
           "required": true
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "*/*": {
                 "schema": {
@@ -1621,7 +1627,7 @@
                 }
               }
             },
-            "description": "OK"
+            "description": "Created"
           }
         },
         "security": [],
@@ -1760,7 +1766,7 @@
         "tags": ["북마크 폴더"]
       },
       "post": {
-        "description": "HTTP 상태는 200 이고 본문 status 필드만 201 이다(ResponseEntity 를 쓰지 않는다). 실패: 400 INVALID_INPUT(이름 공백) · 409 DUPLICATE_FOLDER_NAME",
+        "description": "HTTP 상태와 본문 status 모두 201 이다. 실패: 400 INVALID_INPUT(이름 공백) · 409 DUPLICATE_FOLDER_NAME",
         "operationId": "createFolder",
         "requestBody": {
           "content": {
@@ -1773,7 +1779,7 @@
           "required": true
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "*/*": {
                 "schema": {
@@ -1781,7 +1787,7 @@
                 }
               }
             },
-            "description": "OK"
+            "description": "Created"
           }
         },
         "summary": "북마크 폴더 생성",
@@ -2174,7 +2180,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseMapStringBoolean"
+                  "$ref": "#/components/schemas/ApiResponseCommentLikeResponse"
                 }
               }
             },
@@ -2203,7 +2209,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseMapStringBoolean"
+                  "$ref": "#/components/schemas/ApiResponseCommentLikeResponse"
                 }
               }
             },
@@ -2216,7 +2222,7 @@
     },
     "/comment/{commentId}/reply": {
       "post": {
-        "description": "답글의 답글은 허용하지 않는다(최대 depth 1). HTTP 상태는 200 이고 본문 status 필드만 201 이다. 실패: 404 COMMENT_NOT_FOUND(부모 댓글 없음) · 400 INVALID_INPUT(content·images 가 둘 다 비어 있음, depth 초과, 이미지 개수·본문 길이 초과)",
+        "description": "답글의 답글은 허용하지 않는다(최대 depth 1). HTTP 상태와 본문 status 모두 201 이다. 실패: 404 COMMENT_NOT_FOUND(부모 댓글 없음) · 400 INVALID_INPUT(content·images 가 둘 다 비어 있음, depth 초과, 이미지 개수·본문 길이 초과)",
         "operationId": "createReply",
         "parameters": [
           {
@@ -2240,7 +2246,7 @@
           "required": true
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "*/*": {
                 "schema": {
@@ -2248,7 +2254,7 @@
                 }
               }
             },
-            "description": "OK"
+            "description": "Created"
           }
         },
         "summary": "답글 작성",
@@ -2469,7 +2475,7 @@
         "tags": ["게시글"]
       },
       "post": {
-        "description": "URL 을 크롤링해 메타데이터를 추출하고 AI 요약을 비동기로 채운다. 10분 안에 같은 URL을 GET /link-preview 로 미리 본 적이 있으면 크롤링 대신 그 결과를 쓴다. HTTP 상태는 200 이고 본문 status 필드만 201 이다. 실패: 400 INVALID_URL · 400 URL_UNRESOLVABLE(도메인 없음) · 400 URL_NOT_ALLOWED(내부망) · 403 EMAIL_NOT_VERIFIED · 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 429 RATE_LIMIT_EXCEEDED(회원당 시간당 등록 한도 초과)",
+        "description": "URL 을 크롤링해 메타데이터를 추출하고 AI 요약을 비동기로 채운다. 10분 안에 같은 URL을 GET /link-preview 로 미리 본 적이 있으면 크롤링 대신 그 결과를 쓴다. HTTP 상태와 본문 status 모두 201 이다. 실패: 400 INVALID_URL · 400 URL_UNRESOLVABLE(도메인 없음) · 400 URL_NOT_ALLOWED(내부망) · 403 EMAIL_NOT_VERIFIED · 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 429 RATE_LIMIT_EXCEEDED(회원당 시간당 등록 한도 초과)",
         "operationId": "createPost",
         "requestBody": {
           "content": {
@@ -2482,7 +2488,7 @@
           "required": true
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "*/*": {
                 "schema": {
@@ -2490,7 +2496,7 @@
                 }
               }
             },
-            "description": "OK"
+            "description": "Created"
           }
         },
         "summary": "게시글 등록",
@@ -2558,7 +2564,7 @@
         "tags": ["게시글"]
       },
       "patch": {
-        "description": "HTTP 상태는 200 이고 본문 status 필드만 201 이 아니라 그대로 200 이다. URL을 바꾸면 크롤링을 다시 한다(10분 안에 미리 본 URL이면 그 결과를 쓴다). 실패: 404 POST_NOT_FOUND · 403 FORBIDDEN(작성자 아님) · 400 INVALID_URL · 400 URL_UNRESOLVABLE · 400 URL_NOT_ALLOWED(URL을 바꾼 경우)",
+        "description": "URL을 바꾸면 크롤링을 다시 한다(10분 안에 미리 본 URL이면 그 결과를 쓴다). 실패: 404 POST_NOT_FOUND · 403 FORBIDDEN(작성자 아님) · 400 INVALID_URL · 400 URL_UNRESOLVABLE · 400 URL_NOT_ALLOWED(URL을 바꾼 경우)",
         "operationId": "updatePost",
         "parameters": [
           {
@@ -2730,7 +2736,7 @@
         "tags": ["댓글"]
       },
       "post": {
-        "description": "HTTP 상태는 200 이고 본문 status 필드만 201 이다. 실패: 404 POST_NOT_FOUND · 400 INVALID_INPUT(content·images 가 둘 다 비어 있음, 이미지 개수·본문 길이 초과)",
+        "description": "HTTP 상태와 본문 status 모두 201 이다. 실패: 404 POST_NOT_FOUND · 400 INVALID_INPUT(content·images 가 둘 다 비어 있음, 이미지 개수·본문 길이 초과)",
         "operationId": "createComment",
         "parameters": [
           {
@@ -2754,7 +2760,7 @@
           "required": true
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "*/*": {
                 "schema": {
@@ -2762,7 +2768,7 @@
                 }
               }
             },
-            "description": "OK"
+            "description": "Created"
           }
         },
         "summary": "댓글 작성",
@@ -2844,7 +2850,7 @@
           "required": true
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "*/*": {
                 "schema": {
@@ -2852,7 +2858,7 @@
                 }
               }
             },
-            "description": "OK"
+            "description": "Created"
           }
         },
         "summary": "이미지 업로드용 서명 URL 발급",

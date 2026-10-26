@@ -141,11 +141,14 @@ pnpm codegen         # 네트워크 X — openapi.json → openapi.gen.ts, CI가
 ```
 src/shared/api/
 ├── client.ts        (기존)
-├── api.type.ts       (신규 · 수기 — Unwrap 헬퍼)
 └── generated/
     ├── openapi.json  (커밋)
     └── openapi.gen.ts (커밋)
 ```
+
+처음에는 이름 없는 응답(`Map` 등)의 `data`를 꺼내는 수기 헬퍼 `api.type.ts`(`Unwrap`)도 있었다. 마지막 사용처였던
+댓글 좋아요 응답이 BE에서 이름 있는 스키마(`CommentLikeResponse`)가 되면서 2026-10-26에 지웠다. BE는 이제
+`ApiResponse<Map>`을 검사(`ControllerSignatureRulesTest`)로 막는다.
 
 `generated/`에 `index.ts`를 두지 않는다 — `custom-barrel-rules/no-barrel-import`가
 `/index`로 끝나는 import를 금지하므로 배럴을 만들면 아무도 import할 수 없다. 직접 경로
