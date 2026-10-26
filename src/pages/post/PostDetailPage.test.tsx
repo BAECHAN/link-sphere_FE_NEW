@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Link, Route, Routes, useLocation } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { renderWithProviders, screen, userEvent } from '@/test/utils';
@@ -75,6 +75,67 @@ describe('PostDetailPage - 삭제·비공개 포스트(404)', () => {
 
     expect(screen.getByTestId('location')).toHaveTextContent(ROUTES_PATHS.POST.ROOT);
     expect(document.head.querySelector('meta[name="robots"][content="noindex"]')).toBeNull();
+  });
+});
+
+describe('PostDetailPage - 탭 제목', () => {
+  it('글 제목을 탭 제목으로 쓰고, 상세를 떠나면 원래 제목으로 되돌린다', async () => {
+    document.title = 'Link Sphere';
+    const user = userEvent.setup();
+    // renderWithProviders에는 TooltipProvider가 없다 - 카드의 TooltipWrapper가 요구해 직접 감싼다
+    renderWithProviders(
+      <TooltipProvider>
+        <Routes>
+          <Route path="/post/:id" element={<PostDetailPage />} />
+          <Route path={ROUTES_PATHS.POST.ROOT} element={<div>post list</div>} />
+        </Routes>
+      </TooltipProvider>,
+      { wrapperOptions: { initialEntries: [`/post/${mockPost.id}`] } }
+    );
+
+    await screen.findByText(mockPost.title);
+
+    expect(document.title).toBe(TEXTS.post.detail.documentTitle(mockPost.title));
+
+    // 앱 내 이력 없이 들어왔으므로 돌아가기 버튼이 목록으로 replace한다(useGoBack)
+    await user.click(screen.getByRole('button', { name: TEXTS.post.detail.backToList }));
+
+    expect(await screen.findByText('post list')).toBeInTheDocument();
+    expect(document.title).toBe('Link Sphere');
+  });
+
+  // 알림 클릭처럼 상세에서 다른 상세로 가면 같은 컴포넌트가 남아 있어, 탭 제목이 바뀐 글을 따라가야 한다
+  it('상세가 떠 있는 채로 다른 글로 가면 탭 제목도 그 글 제목으로 바뀐다', async () => {
+    server.use(
+      http.get(`${API_BASE_URL}${API_ENDPOINTS.post.base}/:id`, ({ params }) =>
+        HttpResponse.json({
+          status: 200,
+          message: 'ok',
+          data: {
+            ...mockPost,
+            id: String(params['id']),
+            title: `title of ${String(params['id'])}`,
+          },
+          timestamp: '',
+        })
+      )
+    );
+    const user = userEvent.setup();
+    renderWithProviders(
+      <TooltipProvider>
+        <Routes>
+          <Route path="/post/:id" element={<PostDetailPage />} />
+        </Routes>
+        <Link to="/post/next-post">next</Link>
+      </TooltipProvider>,
+      { wrapperOptions: { initialEntries: ['/post/first-post'] } }
+    );
+
+    await screen.findByText('title of first-post');
+    await user.click(screen.getByRole('link', { name: 'next' }));
+    await screen.findByText('title of next-post');
+
+    expect(document.title).toBe(TEXTS.post.detail.documentTitle('title of next-post'));
   });
 });
 

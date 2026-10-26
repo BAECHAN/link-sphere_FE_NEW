@@ -215,7 +215,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 ### 상세
 
-- `usePostDetail`(`src/pages/post/hooks/usePostDetail.ts:76-94`)이
+- `usePostDetail`(`src/pages/post/hooks/usePostDetail.ts:76-109`)이
   `useSuspenseFetchPostDetailQuery`로 조회한다. 이 쿼리는 `retry: false`다(`post.queries.ts`)
   — 404는 재시도해도 같고 안내 화면만 늦어진다.
 - **미리 받기**: 상세 라우트(`PostDetailRoute`, `src/app/routes/index.tsx:147`)가 lazy 페이지 청크를 요청하는
@@ -234,6 +234,11 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   `docs/plans/2026-10-05-url-error-responses.md`). 그 밖의 에러는 화면 안 `ErrorState`.
 - **열람 기록 반영**: 상세 조회가 BE `post_views`를 갱신하므로, 북마크의 "최근 열람순" 캐시를
   무효화한다(`usePostDetail.ts:86-91`).
+- **브라우저 탭 제목**: 상세가 떠 있는 동안 탭 제목을 `{글 제목} - Link Sphere`(`TEXTS.post.detail.documentTitle`)로
+  바꾸고, 상세를 떠나면 원래 제목으로 되돌린다(`usePostDetail.ts:93-106`, 2026-10-26). 설치본 react-dom 18.3.1은
+  컴포넌트에서 렌더한 `<title>`을 head로 올려 주지 않아(React 19부터) effect로 `document.title`을 바꾼다. 404 안내
+  화면은 게시글을 받지 못해 기본 탭 제목(`Link Sphere`)이 그대로다. 카카오톡·슬랙 같은 링크 미리보기에는 이 제목이
+  쓰이지 않는다(§11).
 - 상세 화면은 같은 `PostCard`(`isDetail`) 아래 `CommentList`를 붙인다.
 
 ### 작성
@@ -655,6 +660,13 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
   2026-10-14 "좋아요한" 칩을 추가할 때 그대로 두기로 했다
   ([계획](./plans/2026-10-14-liked-filter-chip.md)). ②를 고치려면 성공 시 범위 필터가 든 목록
   캐시만 다시 받지 않고 stale 표시(`refetchType: 'none'`)하는 방법이 있다.
+- **링크 미리보기에 글 제목이 안 나온다.** 탭 제목은 화면이 뜬 뒤 JavaScript로 바꾸는데, 카카오 데브톡
+  [스크랩 체크리스트](https://devtalk.kakao.com/t/scrap-url/116202)는 _"og 태그를 front스크립트로 로딩하거나 응답결과가
+  변경될 수 있으므로 curl로 주소를 호출하여 og 태그를 다시 확인"_ 하라고 안내한다 — 스크랩 봇은 서버가 처음 준 HTML을
+  본다는 뜻으로 읽힌다. `index.html`에는 og 태그도 없다. 글마다 미리보기를 띄우려면 CloudFront 엣지에서 HTML의 og
+  태그를 바꿔야 한다. 반대로 Google은 _"JavaScript로 meta description과 `<title>` 요소를 설정하거나 바꿀 수 있다"_
+  (번역, [JavaScript SEO 기본](https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics))고
+  쓴다.
 
 ## 12. 용어 사전
 

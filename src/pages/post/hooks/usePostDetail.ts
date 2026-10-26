@@ -90,5 +90,20 @@ export function usePostDetail() {
     [post.id, queryClient]
   );
 
+  // 브라우저 탭 제목을 글 제목으로 바꾸고, 상세를 떠나면 원래 제목으로 되돌린다. 설치본 react-dom
+  // 18.3.1은 컴포넌트에서 <title>을 렌더해 head로 올려 주지 않아(React 19부터) effect로 직접 바꾼다
+  // (https://react.dev/blog/2024/12/05/react-19).
+  useEffect(
+    function syncDocumentTitle() {
+      const previousTitle = document.title;
+      document.title = TEXTS.post.detail.documentTitle(post.title);
+
+      return () => {
+        document.title = previousTitle;
+      };
+    },
+    [post.title]
+  );
+
   return { post, backLabel, goBack };
 }
