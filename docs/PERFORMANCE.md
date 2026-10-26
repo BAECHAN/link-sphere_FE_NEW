@@ -86,6 +86,19 @@ npx lhci collect --url=https://linksphere.click/post \
   선이다. 기준 미달이면 job이 실패하지만(로컬 `pnpm perf:lh`도 종료 코드 1), 필수 체크가 아니라 병합은 막히지
   않는다. 처음엔 전부 `warn`이었는데(`docs/DECISIONS.md` 2026-09-26), Best Practices는 통과/실패형 감사라 타이밍
   지표 같은 노이즈가 없어 2026-10-26에 이 항목만 올렸다(`docs/plans/2026-10-26-lighthouse-best-practices.md`).
+- **흔들림 격리**: PR 코드와 무관한 감점으로 빨간 ✗가 뜨지 않게 두 가지를 둔다(2026-10-26, PR #416의 CI에서
+  코드는 그대로인데 `/post`가 첫 실행 0.93, 재실행 0.96으로 갈렸다).
+  - Best Practices만 5회 중 가장 좋은 실행으로 판정한다(`aggregationMethod: 'optimistic'`). 다른 단언이 쓰는
+    `median-run`은 성능 지표가 중간인 실행 하나의 점수를 그대로 써서, 간헐적인 콘솔 에러가 그 실행에 걸리느냐로
+    결과가 갈렸다. 5회 내내 나는 문제는 그대로 잡힌다.
+  - CloudWatch RUM 전송(`dataplane.rum.ap-northeast-1…`)을 `blockedUrlPatterns`로 막는다. RUM 허용 도메인에
+    localhost가 없어 CI에서는 전송이 400으로 거절되고 그 콘솔 에러가 감점이 됐다. 차단된 요청은 Lighthouse가 콘솔
+    에러로 세지 않는다. RUM 스크립트 자체는 실제 사용자도 받는 비용이라 막지 않는다.
+  - 근거: Lighthouse CI 문서는 결과가 흔들리면 _"외부 의존을 피하라(광고, YouTube 임베드, 애널리틱스 같은 가변적인
+    서드파티 연동을 끈다)"_ (번역, [troubleshooting.md](https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/troubleshooting.md))고
+    권한다. 기준(0.9)을 낮추는 방법은 진짜 회귀까지 가려 쓰지 않았다.
+  - 남는 흔들림: CI 빌드가 운영 API의 실제 피드를 그리므로, 응답에 `Set-Cookie`를 싣는 외부 썸네일이 피드 첫
+    화면에 있으면 `inspector-issues`(가중치 1)가 깎인다(2026-10-26 `skills.sh/og.jpeg`).
 - **결과 보기**: `scripts/lighthouse-report.js`가 페이지별 4개 카테고리 중앙값, 기준을 못 넘은 항목, 실행 과반에서
   실패한 Best Practices 감사를 표로 만들어 PR 댓글 1개(다시 push하면 갱신)와 job Step Summary에 싣는다. 로컬에서는
   `pnpm perf:lh` 뒤 `node scripts/lighthouse-report.js`로 같은 표를 본다.
