@@ -141,6 +141,13 @@
 
 ### Fixed
 
+- `auth` 로그인 상태로 앱을 열 때·비밀번호를 바꿀 때 알림 권한을 묻던 문제
+  <details><summary>배경·구현</summary>
+
+  세션 복원·비밀번호 변경에 성공하면 FCM 토큰을 새 세션 계열로 다시 등록하는데(#246), 두 경로가 로그인과 같은 `requestAndRegisterFcmToken`을 불러 사용자가 아무것도 누르지 않았는데도 `Notification.requestPermission()`을 호출했다. 아직 권한을 정하지 않은 사용자에게는 앱을 열 때마다 맥락 없는 권한 팝업이 떴다. web.dev는 _"페이지 로드 시나 사용자 상호작용 없이 절대 묻지 마라"_ (번역, [Permissions best practices](https://web.dev/articles/permissions-best-practices))고 쓰고, Lighthouse도 `notification-on-start` 감사로 감점한다. 비밀번호 변경은 사용자가 누른 직후지만 알림과 무관한 동작이라 같은 문제다. 두 경로는 새 함수 `reregisterFcmTokenIfGranted`를 불러, 이미 허용한 기기만 묻지 않고 재등록하고 나머지는 Firebase SDK도 불러오지 않는다. 아직 정하지 않은 사용자는 다음 로그인 때 질문을 받는다. 로그인 경로는 그대로 권한을 묻는다. (`src/shared/lib/firebase/fcm.ts`, `src/entities/auth/hooks/useAuth.ts`, `src/entities/auth/api/auth.queries.ts`, `src/shared/lib/firebase/fcm.test.ts`(신규), `docs/FCM-PUSH-NOTIFICATION.md`, [PR #418](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/418))
+
+  </details>
+
 - `infra` 외부 썸네일 요청에 다른 사이트 쿠키가 실려 Best Practices가 깎이던 문제
   <details><summary>배경·구현</summary>
 

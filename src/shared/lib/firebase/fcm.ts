@@ -24,13 +24,40 @@ function buildServiceWorkerUrl(): string {
 /**
  * 브라우저 알림 권한을 요청하고 FCM 토큰을 서버에 등록합니다.
  * 로그인 성공 직후 호출하세요.
+ */
+export async function requestAndRegisterFcmToken(): Promise<void> {
+  await registerFcmToken(() => Notification.requestPermission());
+}
+
+/**
+ * 이미 알림을 허용한 기기만 FCM 토큰을 새 세션 계열로 다시 등록합니다. 권한은 묻지 않습니다.
+ * 앱을 열 때 세션이 복원되면(useAuth.ts의 restoreAuth), 비밀번호를 바꾸면(auth.queries.ts의
+ * useChangePasswordMutation) 호출하세요.
  *
- * Firebase SDK를 여기서 동적 import하는 이유: 이 함수는 로그인에 성공했을 때만
+ * 세션 복원은 사용자가 아무것도 누르지 않은 때라 권한을 묻지 않는다 - web.dev는 _"페이지 로드 시나
+ * 사용자 상호작용 없이 절대 묻지 마라"_ (번역, https://web.dev/articles/permissions-best-practices)고
+ * 쓰고, Lighthouse도 이를 notification-on-start 감사로 감점한다. 비밀번호 변경은 사용자가 누른 직후지만
+ * 알림과 무관한 동작이라 여기서도 묻지 않는다. 아직 정하지 않은 사용자는 다음 로그인 때
+ * requestAndRegisterFcmToken이 묻는다. 권한이 없으면 Firebase SDK도 불러오지 않는다.
+ */
+export async function reregisterFcmTokenIfGranted(): Promise<void> {
+  // 보안 컨텍스트가 아니거나 알림을 지원하지 않는 브라우저에는 Notification 자체가 없다.
+  if (!('Notification' in window) || Notification.permission !== 'granted') {
+    return;
+  }
+
+  await registerFcmToken(async () => Notification.permission);
+}
+
+/**
+ * Firebase SDK를 여기서 동적 import하는 이유: 이 함수는 로그인 상태에서만
  * 호출된다 - 정적으로 import하면 비로그인 방문자도 초기 번들에서 Firebase 전체를
  * 받게 된다(실측: 2026-09-26 빌드에서 vendor 청크에 포함돼 있었다,
  * docs/plans/2026-09-25-lighthouse-perf.md 참고).
  */
-export async function requestAndRegisterFcmToken(): Promise<void> {
+async function registerFcmToken(
+  resolvePermission: () => Promise<NotificationPermission>
+): Promise<void> {
   if (!VAPID_KEY) {
     console.warn('[FCM] VITE_FIREBASE_VAPID_KEY is not set');
     return;
@@ -48,7 +75,7 @@ export async function requestAndRegisterFcmToken(): Promise<void> {
       return;
     }
 
-    const permission = await Notification.requestPermission();
+    const permission = await resolvePermission();
     if (permission !== 'granted') {
       console.info('[FCM] Notification permission denied');
       return;
