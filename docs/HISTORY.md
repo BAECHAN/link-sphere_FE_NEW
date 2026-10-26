@@ -1,4 +1,7 @@
 ### 2026-10-26 (FE)
+- 게시글 상세 페이지 접근 시 브라우저 탭 제목이 해당 게시글의 제목으로 동적 변경되도록 개선 ([#422](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/422))
+
+### 2026-10-26 (FE)
 - 피드 및 상세 페이지 데이터 요청 시 페이지 청크 단위를 적용하여 네트워크 효율성 개선 ([#421](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/421))
 
 ### 2026-10-26 (BE)
