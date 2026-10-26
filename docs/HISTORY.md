@@ -1,3 +1,6 @@
+### 2026-10-26 (BE)
+- Lambda 환경 내 Tomcat 8080 포트 바인딩 최적화 및 멀티값 응답 헤더 처리 이슈 해결 ([#121](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/121))
+
 ### 2026-10-26 (FE)
 - OpenAPI 3.1 스펙 반영 및 springdoc 2.10.0 업데이트 ([#419](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/419))
 
