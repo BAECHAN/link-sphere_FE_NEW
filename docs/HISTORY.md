@@ -1,3 +1,6 @@
+### 2026-10-26 (BE)
+- 운영 앱 로그 포맷을 요청 ID가 포함된 단일 라인 JSON 형식으로 개선하여 로그 추적성 및 가독성 향상
+
 ### 2026-10-26 (FE)
 - 검색 엔진 최적화(SEO) 강화를 위해 사이트 메타 설명(meta description) 설정 기능 추가 ([#420](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/420))
 
