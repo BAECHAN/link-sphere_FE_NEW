@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -9,6 +9,13 @@ import { useAuth } from '@/entities/auth/hooks/useAuth';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { requestAndRegisterFcmToken, reregisterFcmTokenIfGranted } from '@/shared/lib/firebase/fcm';
+
+vi.mock('@/shared/lib/firebase/fcm', () => ({
+  requestAndRegisterFcmToken: vi.fn(),
+  reregisterFcmTokenIfGranted: vi.fn(),
+  unregisterFcmToken: vi.fn(),
+}));
 
 // login/logout mutation은 auth.queries.test.ts가 이미 검증한다 - 여기서는
 // restoreAuth 4갈래 판단과 discriminated union 반환 계약만 다룬다.
@@ -86,6 +93,25 @@ describe('useAuth', () => {
       expect(restored).toBe(true);
       await waitFor(() => expect(useAuthStore.getState().isAuthenticated).toBe(true));
       expect(useAuthStore.getState().accessToken).toBe('refreshed-token');
+    });
+
+    it('세션을 복원하면 알림 권한을 묻지 않는 FCM 재등록만 부른다', async () => {
+      vi.mocked(requestAndRegisterFcmToken).mockClear();
+      vi.mocked(reregisterFcmTokenIfGranted).mockClear();
+      server.use(
+        http.post(url(API_ENDPOINTS.auth.refresh), () =>
+          HttpResponse.json(
+            { status: 200, message: 'ok', data: { accessToken: 'refreshed-token' }, timestamp: '' },
+            { status: 200 }
+          )
+        )
+      );
+
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(queryClient) });
+      await act(async () => result.current.restoreAuth());
+
+      expect(reregisterFcmTokenIfGranted).toHaveBeenCalledTimes(1);
+      expect(requestAndRegisterFcmToken).not.toHaveBeenCalled();
     });
 
     it('refresh 응답에 accessToken이 없으면 인증을 지우고 false를 반환한다', async () => {

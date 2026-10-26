@@ -17,7 +17,11 @@ import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { useNavigate } from 'react-router-dom';
-import { requestAndRegisterFcmToken, unregisterFcmToken } from '@/shared/lib/firebase/fcm';
+import {
+  requestAndRegisterFcmToken,
+  reregisterFcmTokenIfGranted,
+  unregisterFcmToken,
+} from '@/shared/lib/firebase/fcm';
 import {
   handleEmailVerificationConfirmSuccess,
   isErroredCacheWithoutData,
@@ -198,7 +202,8 @@ export const useChangePasswordMutation = () => {
       setAuth(data.accessToken);
       // BE가 비밀번호 변경 시 이 기기의 세션 회전 계열(familyId)을 새로 발급하므로,
       // FCM 토큰도 새 계열로 재등록해야 다음 알림부터 끊기지 않는다(fcm.ts 참고).
-      void requestAndRegisterFcmToken();
+      // 알림과 무관한 비밀번호 변경 맥락이라 권한은 묻지 않고, 이미 허용한 기기만 재등록한다.
+      void reregisterFcmTokenIfGranted();
     },
     onError: (error) => {
       if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.INVALID_CREDENTIALS) {

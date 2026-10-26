@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { createElement, type ReactNode } from 'react';
 import {
+  useChangePasswordMutation,
   useCreateAccountMutation,
   useLoginMutation,
   useLogoutMutation,
@@ -20,6 +21,7 @@ import { LocalStorageUtil } from '@/shared/utils/storage.util';
 import { ApiError } from '@/shared/types/common.type';
 import { commentKeys } from '@/entities/comment/api/comment.keys';
 import { postKeys } from '@/entities/post/api/post.keys';
+import { requestAndRegisterFcmToken, reregisterFcmTokenIfGranted } from '@/shared/lib/firebase/fcm';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
@@ -34,6 +36,13 @@ vi.mock('@/shared/lib/toast/toast', () => ({
       mockToastSuccess(...args);
     },
   },
+}));
+
+// 로그아웃은 unregisterFcmToken()의 반환값에 .catch를 이어 붙이므로 Promise를 돌려줘야 한다.
+vi.mock('@/shared/lib/firebase/fcm', () => ({
+  requestAndRegisterFcmToken: vi.fn(),
+  reregisterFcmTokenIfGranted: vi.fn(),
+  unregisterFcmToken: vi.fn().mockResolvedValue(undefined),
 }));
 
 function Wrapper({ children }: { children: ReactNode }) {
@@ -227,6 +236,40 @@ describe('useLogoutMutation', () => {
     expect(LocalStorageUtil.getItem(STORAGE_KEYS.AUTH.HAS_SESSION)).toBeNull();
     expect(LocalStorageUtil.getItem<string>(STORAGE_KEYS.AUTH.EPOCH)).toMatch(/^out:/);
     expect(AuthEpochUtil.isStale()).toBe(false);
+  });
+});
+
+describe('useChangePasswordMutation', () => {
+  it('비밀번호를 바꾸면 새 토큰으로 갱신하고, 알림 권한을 묻지 않는 FCM 재등록만 부른다', async () => {
+    server.use(
+      http.patch(url(API_ENDPOINTS.auth.changePassword), () =>
+        HttpResponse.json(
+          {
+            status: 200,
+            message: 'ok',
+            data: { accessToken: 'new-token' },
+            timestamp: new Date().toISOString(),
+          },
+          { status: 200 }
+        )
+      )
+    );
+    vi.mocked(requestAndRegisterFcmToken).mockClear();
+    vi.mocked(reregisterFcmTokenIfGranted).mockClear();
+
+    const { result } = renderHook(() => useChangePasswordMutation(), { wrapper: Wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        currentPassword: 'oldPassword1!',
+        newPassword: 'newPassword1!',
+        confirmPassword: 'newPassword1!',
+      });
+    });
+
+    expect(useAuthStore.getState().accessToken).toBe('new-token');
+    expect(reregisterFcmTokenIfGranted).toHaveBeenCalledTimes(1);
+    expect(requestAndRegisterFcmToken).not.toHaveBeenCalled();
   });
 });
 

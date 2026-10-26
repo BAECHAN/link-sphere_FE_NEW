@@ -7,7 +7,7 @@
 > **읽고 나면**: 토큰 등록/해제부터 알림 클릭 시 딥링크까지 전체 경로를 이해하고,
 > 새 알림 타입을 추가하거나 배포 관련 문제를 진단할 수 있다.
 >
-> **마지막 검토**: 2026-10-05
+> **마지막 검토**: 2026-10-26
 
 댓글·답글 작성 시 포스트 작성자 또는 원댓글 작성자에게 FCM(Firebase Cloud
 Messaging) 푸시 알림을 전송하는 기능의 전체 구현 내역과 운영 중 마주친 삽질
@@ -137,8 +137,12 @@ sequenceDiagram
 
   Note over User,DB: 등록(로그인 성공 / 비밀번호 변경 성공 / 앱 부팅 세션복원 성공)
   User->>FE: 위 세 이벤트 중 하나
-  FE->>User: Notification.requestPermission()
-  User-->>FE: "granted"
+  alt 로그인
+    FE->>User: Notification.requestPermission()
+    User-->>FE: "granted"
+  else 비밀번호 변경·앱 부팅 세션 복원
+    FE->>FE: Notification.permission이 "granted"일 때만 계속(권한을 묻지 않음)
+  end
   FE->>FE: navigator.serviceWorker.register('/firebase-messaging-sw.js?apiKey=…&appId=…')
   FE->>FE: await navigator.serviceWorker.ready (활성 워커 대기)
   FE->>FE: getToken(messaging, { vapidKey, serviceWorkerRegistration })
@@ -245,13 +249,22 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
 
 **FCM 토큰 등록·해제**(`fcm.ts` + `shared/api/fcm.api.ts`)
 
-`requestAndRegisterFcmToken`은 세 곳에서 호출된다 — ① 로그인 성공
+토큰 등록은 세 곳에서 일어난다 — ① 로그인 성공
 (`auth.queries.ts`의 `useLoginMutation.onSuccess`), ② 비밀번호 변경 성공
 (`useChangePasswordMutation.onSuccess`), ③ 앱 부팅 시 세션 복원 성공
 (`useAuth.ts`의 `restoreAuth`). ②·③은 2026-09-29에 추가됐다 - BE가 그 시점마다
 이 기기의 세션 회전 계열(familyId)을 새로 발급하는데, FCM 토큰을 재등록하지
 않으면 옛 계열에 묶인 채로 다음 알림부터 끊겨버리기 때문이다(계정 정보가
 확실히 없는 ①만 있던 예전에는 이 문제가 없었다).
+
+①은 `requestAndRegisterFcmToken`을 불러 알림 권한을 묻는다. ②·③은 2026-10-26부터
+`reregisterFcmTokenIfGranted`를 불러, 이미 권한을 허용한 기기만 묻지 않고 재등록하고
+나머지는 Firebase SDK도 불러오지 않고 끝낸다. 사용자가 아무것도 누르지 않은 앱 부팅
+시점에 권한을 물으면 맥락 없는 팝업이 되기 때문이다 - web.dev는 _"페이지 로드 시나 사용자
+상호작용 없이 절대 묻지 마라"_ (번역, [Permissions best practices](https://web.dev/articles/permissions-best-practices))고
+쓰고, Lighthouse도 `notification-on-start` 감사로 감점한다. 비밀번호 변경은 사용자가 누른
+직후지만 알림과 무관한 동작이라 같은 방식으로 묻지 않는다. 그래서 아직 권한을 정하지 않은
+사용자는 다음 로그인 때 질문을 받는다.
 
 서버 등록은 별도 함수(`registerTokenToServer`)로 분리돼 있다. 예전에는
 `sessionStorage`(키는 `STORAGE_KEYS.FCM.TOKEN`)에 같은 토큰 문자열이 있으면
@@ -590,7 +603,7 @@ FE 쪽에서 토큰 등록에 필요한 상태는 `useAuthStore`(Zustand)의 `ac
 | 알림 클릭 시 이동 경로 변경          | FE `useFcmForegroundMessage.ts`(포그라운드)와 `public/firebase-messaging-sw.js`의 `notificationclick`(백그라운드) **둘 다** 고쳐야 한다 — 한쪽만 고치면 포그라운드/백그라운드 동작이 갈린다                                                                                                                              |
 | 알림 문구 변경                       | `TEXTS.notification.*`(`shared/config/texts.ts`), BE의 `title`/`body` 리터럴(`FcmNotificationService.kt`)                                                                                                                                                                                                                |
 | 세션 바인딩 기준(family_id) 조정     | BE `FcmTokenRepository.deleteStaleTokensForUser`의 EXISTS 서브쿼리 조건                                                                                                                                                                                                                                                  |
-| 새 로그인 이벤트에도 FCM 재등록 추가 | FE에서 `void requestAndRegisterFcmToken()`을 그 이벤트의 성공 콜백에 추가(로그인·비밀번호변경·세션복원이 기존 선례)                                                                                                                                                                                                      |
+| 새 로그인 이벤트에도 FCM 재등록 추가 | FE에서 그 이벤트의 성공 콜백에 추가한다. 로그인 직후처럼 알림 권한을 물어도 되는 시점이면 묻는 `void requestAndRegisterFcmToken()`(선례: 로그인), 그 외에는 묻지 않는 `void reregisterFcmTokenIfGranted()`(선례: 비밀번호 변경·세션 복원)                                                                                |
 | VAPID 키 로테이션                    | Firebase Console에서 재발급 → `VITE_FIREBASE_VAPID_KEY` GitHub Secret·로컬 `.env` 갱신 → 재배포(Secret만 바꾸면 `deploy.yml`이 돌지 않으므로 `gh workflow run "Frontend Deploy (S3 + CloudFront)" --ref main`) → 운영에서 알림 등록 확인. 키 교체 순서 전반은 `.claude/CLAUDE.md` Critical Rules의 키 교체 규칙을 따른다 |
 
 ## 9. 검증 결과
