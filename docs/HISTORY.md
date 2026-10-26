@@ -1,4 +1,7 @@
 ### 2026-10-26 (BE)
+- 생성 API의 HTTP 상태 코드 201 적용 및 댓글 좋아요 응답 스키마 구조화 ([#115](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/115))
+
+### 2026-10-26 (BE)
 - API 예외 처리 강화: 지원하지 않는 HTTP 메서드, 잘못된 Content-Type, 필수 파라미터 누락 시 발생하는 500 에러를 적절한 클라이언트 에러 응답으로 개선 ([#114](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/114))
 
 ### 2026-10-26 (BE)
