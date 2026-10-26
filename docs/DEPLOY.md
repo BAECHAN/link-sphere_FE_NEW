@@ -495,10 +495,10 @@ Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 
 기본(S3) 비헤이비어에 CloudFront Function 두 개가 붙는다. 소스는 이 저장소의
 [`infra/cloudfront-functions/`](../infra/cloudfront-functions/)에 있다.
 
-| Function                   | 이벤트          | 하는 일                                                                                                   | 소스                                                               |
-| -------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `link-sphere-spa-fallback` | viewer-request  | 앱 라우트 → `/index.html`, 앱 라우트가 아닌 확장자 없는 경로 → `/404.html`, 정적 파일·`/storybook`은 통과 | [`spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js) |
-| `link-sphere-spa-status`   | viewer-response | `/404.html` 응답의 상태만 404로 바꿈(본문은 그대로라 화면은 앱의 404 페이지)                              | [`spa-status.js`](../infra/cloudfront-functions/spa-status.js)     |
+| Function                   | 이벤트          | 하는 일                                                                                                                                                                                                                                               | 소스                                                               |
+| -------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `link-sphere-spa-fallback` | viewer-request  | 앱 라우트 → `/index.html`, 앱 라우트가 아닌 확장자 없는 경로 → `/404.html`, 정적 파일·`/storybook`은 통과                                                                                                                                             | [`spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js) |
+| `link-sphere-spa-status`   | viewer-response | `/404.html` 응답의 상태를 404로 바꿈(본문은 그대로라 화면은 앱의 404 페이지). `/index.html`·`/404.html` 응답에 `Cross-Origin-Embedder-Policy: credentialless`를 붙여 외부 썸네일 요청에서 쿠키를 뺌(`docs/PERFORMANCE.md` "Best Practices 77점 사례") | [`spa-status.js`](../infra/cloudfront-functions/spa-status.js)     |
 
 `/404.html`은 `deploy.yml`이 매 배포마다 `dist/index.html`을 복사해 올리는 사본이다. `index.html`과 같은
 `no-cache` 캐시 정책을 쓰고, 배포 검증 단계 4번이 entry 청크가 같은지 확인한다. 경로별 최종 응답은 아래

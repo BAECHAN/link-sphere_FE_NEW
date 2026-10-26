@@ -8,7 +8,11 @@ import { appRoutes } from '@/app/routes';
  * infra/cloudfront-functions/*.js는 CloudFront 런타임용 평문 JS라 export가 없다.
  * 파일 내용을 읽어 handler를 꺼내 실행한다.
  */
-type CloudFrontHandler = (event: unknown) => { uri?: string; statusCode?: number };
+type CloudFrontHandler = (event: unknown) => {
+  uri?: string;
+  statusCode?: number;
+  headers?: Record<string, { value: string }>;
+};
 
 function loadHandler(fileName: string): CloudFrontHandler {
   const code = readFileSync(
@@ -76,15 +80,36 @@ describe('spa-fallback.js (viewer-request)', () => {
 });
 
 describe('spa-status.js (viewer-response)', () => {
-  it('/404.html 응답은 상태만 404로 바꾼다', () => {
+  function respond(uri: string) {
     const response = { statusCode: 200, statusDescription: 'OK', headers: {} };
 
-    expect(spaStatus({ request: { uri: '/404.html' }, response }).statusCode).toBe(404);
+    return spaStatus({ request: { uri }, response });
+  }
+
+  it('/404.html 응답은 상태를 404로 바꾼다', () => {
+    expect(respond('/404.html').statusCode).toBe(404);
   });
 
-  it('그 외 응답은 건드리지 않는다', () => {
-    const response = { statusCode: 200, statusDescription: 'OK', headers: {} };
-
-    expect(spaStatus({ request: { uri: '/index.html' }, response }).statusCode).toBe(200);
+  it('/index.html 응답의 상태는 그대로 둔다', () => {
+    expect(respond('/index.html').statusCode).toBe(200);
   });
+
+  it.each(['/index.html', '/404.html'])(
+    '앱 HTML %s에는 외부 이미지 요청에서 쿠키를 빼도록 COEP credentialless를 붙인다',
+    (uri) => {
+      expect(respond(uri).headers?.['cross-origin-embedder-policy']).toEqual({
+        value: 'credentialless',
+      });
+    }
+  );
+
+  it.each(['/assets/js/index-abc.js', '/firebase-messaging-sw.js', '/storybook/index.html'])(
+    'HTML이 아니거나 앱 밖인 %s는 건드리지 않는다',
+    (uri) => {
+      const result = respond(uri);
+
+      expect(result.statusCode).toBe(200);
+      expect(result.headers).toEqual({});
+    }
+  );
 });

@@ -141,6 +141,13 @@
 
 ### Fixed
 
+- `infra` 외부 썸네일 요청에 다른 사이트 쿠키가 실려 Best Practices가 깎이던 문제
+  <details><summary>배경·구현</summary>
+
+  평소 쓰는 Chrome(로그인 상태)의 DevTools Lighthouse 13.4.1로 운영 게시글 상세를 재자 Best Practices가 77점이 나왔다(2026-10-26 사용자 제보). 감점은 `third-party-cookies`(가중치 5)와 `inspector-issues`(1)뿐이었다. og 썸네일은 외부 사이트 이미지를 `<img>`로 바로 불러오는데, 그때 브라우저가 사용자 쿠키 저장소에 있던 그 사이트 쿠키(Hotjar·RTB House 등)를 함께 보낸 것이다. 쿠키 저장소가 빈 CI·headless 측정에서는 96~100점이라 재현되지 않았다. CloudFront viewer-response 함수가 앱 HTML(`/index.html`·`/404.html`) 응답에 `Cross-Origin-Embedder-Policy: credentialless`를 붙여, 브라우저가 no-cors 교차 출처 요청에서 쿠키를 빼게 했다(Chrome 96·Firefox 119, Safari 미지원). 쿠키를 심은 외부 이미지와 진짜 헤더를 보내는 로컬 서버로 비교하니, 헤더가 있으면 `Cookie` 헤더와 Chrome 쿠키 이슈가 모두 사라졌다. 운영을 중계한 `/post`·`/post/:id`·`/auth/login`의 이미지 로드 수·API·RUM·콘솔 에러는 헤더 유무와 관계없이 같았다. 쿠키가 있어야만 이미지를 주는 사이트가 있다면 그 썸네일은 대체 아이콘으로 바뀐다. 이미지 프록시(BE)·`crossOrigin="anonymous"`(ACAO 없는 이미지가 깨짐)는 기각했다. 설명 `docs/PERFORMANCE.md` "Best Practices 77점 사례", 계획 `docs/plans/2026-10-26-lighthouse-best-practices.md`. (`infra/cloudfront-functions/spa-status.js`, `src/app/routes/cloudfront-functions.test.ts`, [PR #414](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/414))
+
+  </details>
+
 - `post` 저장 중 떠나려다 확인창이 뜨면 등록·수정 뒤 이동이 사라지거나 꼬이던 문제
   <details><summary>배경·구현</summary>
 

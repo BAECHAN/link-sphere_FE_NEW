@@ -80,7 +80,7 @@ ACL)는 CloudFront 배포 전체(양쪽 비헤이비어 공통)에 붙어 요청
 infra/
 └── cloudfront-functions/
     ├── spa-fallback.js   # viewer-request: 앱 라우트 → /index.html, 아닌 경로 → /404.html (아래 참고)
-    └── spa-status.js     # viewer-response: /404.html 응답의 상태만 404로
+    └── spa-status.js     # viewer-response: /404.html 응답의 상태를 404로, 앱 HTML에 COEP credentialless
 ```
 
 #### SPA 라우팅 폴백 (CloudFront Function)
@@ -90,7 +90,9 @@ infra/
 연결해 확장자 없는 요청 중 앱 라우트는 `/index.html`로, 앱 라우트가 아닌 경로(`/oops`, `/.git/config` 등)는
 `/404.html`(배포 때 올리는 index.html 사본)로 리라이트한다. 같은 비헤이비어의 viewer-response에 연결한
 `link-sphere-spa-status`가 `/404.html` 응답의 상태만 404로 바꿔, 화면은 앱의 404 페이지 그대로 두고
-HTTP 상태는 진짜 404가 된다(2026-10-05, SPA soft 404 해소). 소스:
+HTTP 상태는 진짜 404가 된다(2026-10-05, SPA soft 404 해소). 같은 함수가 앱 HTML(`/index.html`·`/404.html`)
+응답에 `Cross-Origin-Embedder-Policy: credentialless`도 붙여, 외부 og 썸네일 요청에 사용자 쿠키가 실리지 않게
+한다(2026-10-26, [`docs/PERFORMANCE.md`](./PERFORMANCE.md) "Best Practices 77점 사례"). 소스:
 [`infra/cloudfront-functions/spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js),
 [`infra/cloudfront-functions/spa-status.js`](../infra/cloudfront-functions/spa-status.js). 경로별 응답 전체 표는
 [`docs/DEPLOY.md`](./DEPLOY.md)의 "URL별 에러 응답" 절.
