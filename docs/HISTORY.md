@@ -1,4 +1,9 @@
 ### 2026-10-26 (BE)
+- OAuth2 클라이언트 의존성 제거에 따른 보안 강화 및 운영 환경 내 개발용 인증 정보 비활성화
+로그:
+- fix(auth): oauth2-client 제거로 켜진 Boot 기본 사용자와 운영 로그의 개발용 비밀번호를 끔 ([#126](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/126))
+
+### 2026-10-26 (BE)
 - 불필요한 의존성 및 미사용 Repository 메서드 제거와 코드 리팩토링 ([#124](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/124))
 
 ### 2026-10-26 (BE)
