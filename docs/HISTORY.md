@@ -1,3 +1,6 @@
+### 2026-10-26 (FE)
+- OpenAPI 3.1 스펙 반영 및 springdoc 2.10.0 업데이트 ([#419](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/419))
+
 ### 2026-10-26 (BE)
 - 의존성 업데이트를 통한 보안 취약점 해결 및 라이브러리 버전 최적화
 로그:
