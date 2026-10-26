@@ -7,6 +7,8 @@ import { PostDetailPage } from '@/pages/post/PostDetailPage';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
+import { mockPost } from '@/mocks/fixtures/post.fixtures';
+import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
 
 const DELETED_POST_PATH = '/post/deleted-post-id';
 
@@ -73,5 +75,38 @@ describe('PostDetailPage - 삭제·비공개 포스트(404)', () => {
 
     expect(screen.getByTestId('location')).toHaveTextContent(ROUTES_PATHS.POST.ROOT);
     expect(document.head.querySelector('meta[name="robots"][content="noindex"]')).toBeNull();
+  });
+});
+
+describe('PostDetailPage - 썸네일', () => {
+  const OG_IMAGE = 'https://example.com/og.png';
+
+  // 상세 썸네일이 이 페이지의 LCP 요소다 - lazy면 레이아웃이 끝난 뒤에야 요청을 시작한다
+  it('썸네일을 지연 로딩하지 않고 높은 우선순위로 요청한다', async () => {
+    server.use(
+      http.get(`${API_BASE_URL}${API_ENDPOINTS.post.base}/:id`, ({ params }) =>
+        HttpResponse.json({
+          status: 200,
+          message: 'ok',
+          data: { ...mockPost, id: String(params['id']), ogImage: OG_IMAGE },
+          timestamp: '',
+        })
+      )
+    );
+    // renderWithProviders에는 TooltipProvider가 없다 - 카드의 TooltipWrapper가 요구해 직접 감싼다
+    renderWithProviders(
+      <TooltipProvider>
+        <Routes>
+          <Route path="/post/:id" element={<PostDetailPage />} />
+        </Routes>
+      </TooltipProvider>,
+      { wrapperOptions: { initialEntries: [`/post/${mockPost.id}`] } }
+    );
+
+    await screen.findByText(mockPost.title);
+    const thumbnail = document.querySelector(`img[src="${OG_IMAGE}"]`);
+
+    expect(thumbnail).toHaveAttribute('loading', 'eager');
+    expect(thumbnail).toHaveAttribute('fetchpriority', 'high');
   });
 });

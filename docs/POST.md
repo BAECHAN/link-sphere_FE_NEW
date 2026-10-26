@@ -8,7 +8,7 @@
 > 파일에서 어떤 API를 부르고 어느 캐시를 어떻게 바꾸는지 안다. "등록 직후 새 글이 안 보인다",
 > "좋아요가 목록에 반영 안 된다" 같은 증상을 받았을 때 어디부터 열어볼지 정할 수 있다.
 >
-> **마지막 검토**: 2026-10-21
+> **마지막 검토**: 2026-10-26
 
 이 앱의 중심 데이터다. 사용자가 링크(URL)를 등록하면 BE가 그 페이지를 크롤링해 제목·설명·
 썸네일을 채우고, 그 뒤 비동기로 AI 요약·태그를 붙인다. FE는 그 결과를 피드(`/post`)에 카드로
@@ -147,8 +147,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 ### 라우트
 
-`src/app/routes/index.tsx`에서 피드·상세는 비로그인도 볼 수 있는 그룹(`:126-133`), 작성·수정은
-`ProtectedLayout` 그룹(`:139-147`)에 있다. 각 페이지 컴포넌트는 얇다 — `pages/post/index.tsx`는
+`src/app/routes/index.tsx`에서 피드·상세는 비로그인도 볼 수 있는 그룹(`:165-181`), 작성·수정은
+`ProtectedLayout` 그룹(`:183-207`)에 있다. 각 페이지 컴포넌트는 얇다 — `pages/post/index.tsx`는
 제목·"Submit Link" 버튼(`useProtectedNavigate`)·`PostListSearch`·`PostList`만 배치하고,
 `PostSubmitPage`·`PostEditPage`는 각 feature 폼을 그대로 렌더한다.
 
@@ -157,14 +157,19 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - **조회**: `useSuspenseFetchPostListQuery`(`src/entities/post/api/post.queries.ts`)가
   `page` 0부터 `POST_PAGE_SIZE`(10)개씩 가져온다. 다음 페이지 번호는 응답의 `last`가 거짓이면
   `page + 1`.
+- **첫 페이지 미리 받기**: 피드 라우트(`PostFeedRoute`, `src/app/routes/index.tsx:131`)가 lazy 페이지 청크를
+  요청하는 같은 렌더에서 같은 조건으로 첫 페이지를 요청한다(`usePostFeedPrefetch` → `usePrefetchPostList`).
+  목록 화면은 진행 중인 그 요청을 이어받아 다시 요청하지 않는다. 두 쪽이 같은 옵션 묶음(`postListInfiniteOptions`)과
+  같은 조건 계산(`toPostListPayload`)을 써야 키가 같다. 청크를 기다린 뒤 요청하던 직렬 대기를 없앤 것이다
+  (2026-10-26, [`PERFORMANCE.md`](./PERFORMANCE.md) "LCP 데이터 요청 시점").
 - **중복 제거**: 같은 쿼리의 `select`가 모든 페이지를 평탄화하면서 이미 본 `id`를 걸러
   `posts`를 만든다. 오프셋 페이지네이션 중 새 글이 끼어들면 다음 페이지에 같은 글이 또 오기
   때문이다.
-- **가상화**: `usePostList`(`src/widgets/post/post-list/hooks/usePostList.ts:197-206`)가
+- **가상화**: `usePostList`(`src/widgets/post/post-list/hooks/usePostList.ts:176-185`)가
   컨테이너 실측 폭으로 열 수(최대 3, 최소 카드 폭 330px)를 정하고, 게시글을 열 수만큼 묶은
   **행** 단위로 가상화한다. `PostList.tsx:139-169`가 보이는 행만 `translateY`로 배치한다.
 - **다음 페이지 트리거**: 마지막으로 렌더된 가상 행 번호가 `rows.length - 5` 이상이면
-  `fetchNextPage()`(`usePostList.ts:215-228`). IntersectionObserver 센티넬은 가상화 도입 때
+  `fetchNextPage()`(`usePostList.ts:194-207`). IntersectionObserver 센티넬은 가상화 도입 때
   이 방식으로 바뀌었다.
 - **로딩·빈 상태**: `PostList.tsx:31-78`의 `AsyncBoundary`가 Suspense 동안
   `DelayedFallback`(500ms 지연) 안의 스켈레톤 6장(`PostCardSkeleton.tsx:64`)을 보여준다.
@@ -172,15 +177,15 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   `refetch`를 부른다.
 - **조회 실패**: 같은 `AsyncBoundary`가 에러 문구(`TEXTS.messages.error.fetchPosts`)를 띄운다.
   검색 조건(q·filter·봇 숨기기)이 바뀌면 에러 상태를 풀고 다시 조회한다(`resetKeys`,
-  `usePostListErrorReset`, `usePostList.ts:122-132`). 풀 때 실패한 목록 쿼리를 캐시에서 지워,
+  `usePostListErrorReset`, `usePostList.ts:106-116`). 풀 때 실패한 목록 쿼리를 캐시에서 지워,
   실패했던 조건을 나중에 다시 골라도 새로 요청한다. 경위는 [`SEARCH.md`](./SEARCH.md) §10
   2026-10-14 항목.
 - **조건을 바꾼 뒤 응답 대기**: 목록은 새 응답이 올 때까지 이전 결과를 유지한다(스켈레톤 없음).
   0.5초가 지나도 응답이 없으면 `PostList.tsx:55-75`이 이전 목록을 흐리게 덮고 "결과를 불러오는
-  중이에요."를 띄운다(`usePostListApplying`, `usePostList.ts:147-173`). 판정과 근거는
+  중이에요."를 띄운다(`usePostListApplying`, `usePostList.ts:131-157`). 판정과 근거는
   [`SEARCH.md`](./SEARCH.md) §5.
 - **봇 글 숨기기**: URL이 아니라 localStorage 설정(`useHideBotsStore`)을 `filter`에
-  `excludeBots`로 합쳐 보낸다(`usePostList.ts:31-42`). 칩·검색 파라미터 자체는
+  `excludeBots`로 합쳐 보낸다(`src/widgets/post/post-list/utils/post-list-payload.ts:7-18`). 칩·검색 파라미터 자체는
   [`SEARCH.md`](./SEARCH.md).
 
 ### 카드(`PostCard`)
@@ -197,7 +202,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - **프리페치**: 제목 링크의 `onMouseEnter`·`onFocus`가 `prefetchPostDetail`을 부른다
   (`usePostCard.ts`의 `handlePrefetchDetail`). 상세와 같은 키·`queryFn`이라 클릭 시 캐시가 바로 쓰인다.
   댓글 아이콘(💬)의 hover·focus는 게시글과 댓글을 함께 미리 받고(`handlePrefetchDetailWithComments`),
-  상세 페이지는 들어올 때 댓글을 게시글과 동시에 요청한다([`COMMENT.md`](./COMMENT.md) "해시 이동").
+  상세 라우트는 들어올 때 페이지 청크와 함께 게시글과 댓글을 요청한다([`COMMENT.md`](./COMMENT.md) "해시 이동").
 - **소유자 액션**(`isOwner`일 때만): 비공개 글이면 자물쇠 버튼(누르면 공개 전환),
   그리고 ⋮(`HoverKebabMenu`) 안에 수정·공개/비공개 전환·삭제.
 - **AI 결과 표시**: `aiSummary`가 있을 때만 접이식 "AI 요약" 블록. 설명이 없고
@@ -213,8 +218,14 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - `usePostDetail`(`src/pages/post/hooks/usePostDetail.ts:76-94`)이
   `useSuspenseFetchPostDetailQuery`로 조회한다. 이 쿼리는 `retry: false`다(`post.queries.ts`)
   — 404는 재시도해도 같고 안내 화면만 늦어진다.
-- **404 처리**: `PostDetailPage.tsx:81-87`의 에러 폴백이 `ApiError.status === 404`면 주소를 그대로 둔 채
-  그 자리에 안내 화면(`PostDetailPage.tsx:60-75`의 `PostNotFound`)을 그린다 — 아이콘·"삭제됐거나 볼 수 없는
+- **미리 받기**: 상세 라우트(`PostDetailRoute`, `src/app/routes/index.tsx:147`)가 lazy 페이지 청크를 요청하는
+  같은 렌더에서 게시글(`usePrefetchPostDetail`)과 댓글(`usePrefetchComments`)을 요청한다. 게시글은 상세 조회와
+  같은 옵션 묶음(`postDetailQueryOptions`)을 써 `retry: false`까지 같다. 진행 중인 요청은 먼저 시작한 쪽 옵션으로
+  돌기 때문이다.
+- **썸네일**: 상세 카드의 썸네일이 이 페이지의 LCP 요소라 `priorityThumbnail`로 `loading="eager"`·
+  `fetchPriority="high"`를 준다(2026-10-26, 그 전에는 목록과 같은 `lazy`).
+- **404 처리**: `PostDetailPage.tsx:82-88`의 에러 폴백이 `ApiError.status === 404`면 주소를 그대로 둔 채
+  그 자리에 안내 화면(`PostDetailPage.tsx:61-76`의 `PostNotFound`)을 그린다 — 아이콘·"삭제됐거나 볼 수 없는
   포스트예요"·"목록으로". BE가 삭제와 비공개를 같은 404로 응답하므로 문구도 둘을 함께 덮는다. "목록으로"는
   이동이라 버튼 모양의 링크(`Button asChild` + `Link`)로 `/post`에 간다. 화면이 떠 있는 동안 `useNoIndex`로
   `noindex` 메타를 단다(200으로 응답하는 에러 화면이 검색엔진에 색인되는 soft 404 방지). 메타는 화면이
@@ -445,8 +456,8 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 파라미터                                | 값                   | 실제 위치                                                         |
 | --------------------------------------- | -------------------- | ----------------------------------------------------------------- |
 | 목록 페이지 크기                        | 10                   | `src/entities/post/config/post.const.ts:1`                        |
-| 다음 페이지 선행 로드 행 수             | 5행                  | `src/widgets/post/post-list/hooks/usePostList.ts:22`              |
-| 행 높이 추정 기본값(열 수 매핑 없을 때) | 600px                | `src/widgets/post/post-list/hooks/usePostList.ts:23`              |
+| 다음 페이지 선행 로드 행 수             | 5행                  | `src/widgets/post/post-list/hooks/usePostList.ts:21`              |
+| 행 높이 추정 기본값(열 수 매핑 없을 때) | 600px                | `src/widgets/post/post-list/hooks/usePostList.ts:22`              |
 | 카드 최소 폭 / 최대 열 수               | 330px / 3            | `src/widgets/post/post-card/config/post-card-grid.const.ts:26-27` |
 | 행 간격(md 이상 / 미만)                 | 16px / 12px          | `src/widgets/post/post-card/config/post-card-grid.const.ts:28-31` |
 | 열 수별 행 높이 추정치(3·2·1열)         | 654 / 635 / 582px    | `src/widgets/post/post-card/config/post-card-grid.const.ts:32-36` |
@@ -454,9 +465,9 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 조회 로딩 표시 지연                     | 500ms                | `src/shared/config/const.ts:11`                                   |
 | mutation 진행 표시 지연 / 최소 노출     | 500ms / 400ms        | `src/shared/config/const.ts:18-21`                                |
 | 쿼리 기본 staleTime / gcTime / retry    | 3분 / 5분 / 1회      | `src/shared/lib/react-query/config/queryClient.ts:72-75`          |
-| 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:199`                       |
+| 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:227`                       |
 | 미리보기 조회 디바운스                  | 500ms                | `src/entities/post/hooks/useLinkPreview.ts:9`                     |
-| 미리보기 staleTime / 재시도             | 10분 / 없음          | `src/entities/post/api/post.queries.ts:177-190`                   |
+| 미리보기 staleTime / 재시도             | 10분 / 없음          | `src/entities/post/api/post.queries.ts:201-214`                   |
 | 카테고리 옵션 staleTime                 | 24시간               | `src/entities/category/api/category.queries.ts:14`                |
 
 행 높이 추정치와 최소 카드 폭은 직접 측정한 값이다 — 측정 방법은 `post-card-grid.const.ts`의 주석과
@@ -467,9 +478,10 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 단계                         | 파일                                                                                                                                                                                                                 |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 피드 페이지 배치             | `src/pages/post/index.tsx`                                                                                                                                                                                           |
-| 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:180-243`, `src/widgets/post/post-list/ui/PostList.tsx`                                                                                                              |
+| 피드·상세 미리 받기          | `src/app/routes/index.tsx`의 `PostFeedRoute`·`PostDetailRoute`, `src/widgets/post/post-list/hooks/usePostFeedPrefetch.ts`, 조건 계산은 `src/widgets/post/post-list/utils/post-list-payload.ts`                       |
+| 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:164-222`, `src/widgets/post/post-list/ui/PostList.tsx`                                                                                                              |
 | 카드 UI / 카드 동작          | `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`                                                                                                                      |
-| 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:60-95`                                                                                                                                                                            |
+| 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:61-94`                                                                                                                                                                            |
 | 작성 폼 / 제출               | `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/create/hooks/useCreatePost.ts`의 `onSubmit`                                                                                                     |
 | 수정 폼 / 제출               | `src/features/post/update/ui/UpdatePostForm.tsx`, `src/features/post/update/hooks/useUpdatePost.ts`의 `onSubmit`                                                                                                     |
 | 삭제 확인창                  | `src/features/post/delete/hooks/usePostDelete.ts:10-24`                                                                                                                                                              |
@@ -487,7 +499,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 하고 싶은 것                      | 방법                                                                                                                                                                           |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 한 번에 가져오는 게시글 수 변경   | `post.const.ts`의 `POST_PAGE_SIZE`. 북마크 폴더 목록도 `@x/bookmark.ts`로 같은 값을 쓰므로 함께 바뀐다                                                                         |
-| 무한 스크롤을 더 일찍/늦게 시작   | `usePostList.ts:22`의 `PREFETCH_ROW_LOOKAHEAD`                                                                                                                                 |
+| 무한 스크롤을 더 일찍/늦게 시작   | `usePostList.ts:21`의 `PREFETCH_ROW_LOOKAHEAD`                                                                                                                                 |
 | 카드 최소 폭·최대 열 수 변경      | `post-card-grid.const.ts`의 `POST_CARD_GRID`(피드·북마크 목록과 스켈레톤이 페이지를 거쳐 같은 값을 받는다). 푸터 줄바꿈 회귀는 `e2e/post-card-footer-layout.spec.ts`가 잡는다  |
 | 폼 필드 추가                      | `post.schema.ts`의 `createPostSchema`/`updatePostSchema` + `useCreatePost`의 `DEFAULT_VALUES`·`useUpdatePost`의 `form.reset` + 폼 UI + BE 요청 DTO                             |
 | 새 mutation 뒤에 post 캐시 갱신   | 자기 엔티티 `.keys.ts`에 `handle<Event>Success`를 만들고 그 안에서 `postInvalidateQueries.*`를 `@x/<엔티티>.ts` 경유로 호출(§6 표 참고)                                        |
@@ -651,6 +663,9 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
   전부 entity mutation 레벨(`useMutation({ onSuccess })`)에 있는 건 그 시절 구조가 남은 것이고,
   이탈 확인창에서 "나가기"로 폼이 먼저 언마운트되는 경우에도 결과가 반영되도록 그대로 둔다.
 - **`listRoot`** — `['post', 'list']`. 필터 조합마다 다른 목록 캐시를 한 번에 가리키는 접두사 키(§6).
+- **라우트 미리 받기** — 라우트 element(`PostFeedRoute`·`PostDetailRoute`, `src/app/routes/index.tsx`)가
+  lazy 페이지 청크를 요청하는 같은 렌더에서 그 페이지가 쓸 데이터를 `usePrefetch*Query`로 먼저 요청하는 것.
+  기다리지 않으므로 화면을 멈추지 않고, 청크 안의 suspense 쿼리가 같은 키의 진행 중 요청을 이어받는다.
 - **`prependCreatedPostToFirstPage`** — 새 글을 page 0 맨 앞에 넣고 page 1+을 버리는 함수
   (`post.queries.ts`).
 - **`select`의 `posts`** — 무한 쿼리 페이지들을 평탄화하고 id 중복을 뺀 배열. 컴포넌트는 이것만

@@ -8,14 +8,13 @@ import { LOADING_INDICATOR_DELAY_MS } from '@/shared/config/const';
 import { useSuspenseFetchPostListQuery } from '@/entities/post/api/post.queries';
 import { postRemoveQueries } from '@/entities/post/api/post.keys';
 import { extractSearchTags, parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
+import { toPostListPayload } from '@/widgets/post/post-list/utils/post-list-payload';
 import {
   useWindowGridVirtualizer,
   type CardGridSpec,
 } from '@/shared/hooks/useWindowGridVirtualizer';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
 import { Post } from '@/entities/post/model/post.schema';
-
-const HIDE_BOTS_FILTER = 'excludeBots';
 
 // 3열 기준 옛 IntersectionObserver rootMargin(3000px)과 체감이 비슷하도록 잡은 값
 // (3000px ÷ 행 높이+간격 약 670px ≈ 4.5행)
@@ -24,21 +23,6 @@ const DEFAULT_ROW_HEIGHT = 600;
 
 function getPostId(post: Post): string {
   return post.id;
-}
-
-// URL filter(칩 4개)에 옛 북마크·공유 링크가 남긴 excludeBots가 섞여 있어도 무시하고,
-// 봇 숨기기 여부는 오직 localStorage 설정(useHideBotsStore)만 따른다
-function buildCombinedFilter(
-  currentFilter: string | undefined,
-  hideBots: boolean
-): string | undefined {
-  const filters = (currentFilter ? currentFilter.split(',') : []).filter(
-    (f) => f !== HIDE_BOTS_FILTER
-  );
-  if (hideBots) {
-    filters.push(HIDE_BOTS_FILTER);
-  }
-  return filters.length > 0 ? filters.join(',') : undefined;
 }
 
 /**
@@ -181,15 +165,10 @@ export const usePostList = (grid: CardGridSpec) => {
   const { category, nickname, search, currentFilter, ...params } = usePostListParams();
   const { deferredHideBots } = useDeferredHideBots();
 
-  const combinedFilter = buildCombinedFilter(currentFilter, deferredHideBots);
-
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
-    useSuspenseFetchPostListQuery({
-      search,
-      category,
-      nickname,
-      filter: combinedFilter,
-    });
+    useSuspenseFetchPostListQuery(
+      toPostListPayload({ category, nickname, search }, currentFilter, deferredHideBots)
+    );
 
   const posts = data.posts;
   const correctedSearch = data.pages[0]?.correctedSearch;

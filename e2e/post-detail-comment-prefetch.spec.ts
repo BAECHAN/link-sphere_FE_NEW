@@ -11,8 +11,8 @@ import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import { COMMENT_SECTION_HASH } from '@/entities/comment/config/comment.const';
 import { TEXTS } from '@/shared/config/texts';
 
-// 상세 페이지는 게시글을 기다리는 경계 바깥에서 댓글 요청을 함께 시작한다(PostDetailPage의
-// usePostDetailPrefetch) - 안쪽 CommentList는 게시글이 와야 마운트돼 그때서야 요청하던 순차
+// 상세는 게시글을 기다리는 경계 바깥에서 댓글 요청을 함께 시작한다(app/routes의 PostDetailRoute -
+// lazy 페이지 청크 밖에서 게시글과 함께 요청한다) - 안쪽 CommentList는 게시글이 와야 마운트돼 그때서야 요청하던 순차
 // 요청을 없앤 것이다. 카드의 댓글 아이콘은 hover·focus만으로 게시글과 댓글을 미리 받고, 제목
 // 링크는 카드 전체를 덮어 지나가기만 해도 발동하므로 지금처럼 게시글만 받는다.
 const POST_DETAIL_DELAY_MS = 1000;

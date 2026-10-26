@@ -35,10 +35,21 @@ test.describe('게시글 상세 404', () => {
   test('삭제된 글을 직접 열면 주소를 그대로 둔 채 안내 화면을 띄우고, 목록으로 링크로 /post에 간다', async ({
     page,
   }) => {
+    let detailRequests = 0;
+
+    page.on('request', (request) => {
+      if (/^\/api\/post\/[^/]+$/.test(new URL(request.url()).pathname)) {
+        detailRequests += 1;
+      }
+    });
+
     // 주소창에 직접 URL을 입력해 진입하는 것과 같은 경로 — 카드 클릭(prefetch)을 거치지 않는다.
     await page.goto(`/post/${mockPost.id}`);
 
     await expect(page.getByText(TEXTS.post.detail.notFound.title)).toBeVisible();
+    // 404는 다시 시도해도 결과가 같다 — 라우트의 미리 받기(PostDetailRoute)도 상세 조회와 같은
+    // retry: false를 실어야 재시도만큼 안내가 늦게 뜨지 않는다(post.queries.ts).
+    expect(detailRequests).toBe(1);
     await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
     // 200으로 응답하는 화면이라 검색엔진 색인에서 빠지도록 noindex를 단다(useNoIndex.ts).
     await expect(page.locator('meta[name="robots"][content="noindex"]')).toHaveCount(1);

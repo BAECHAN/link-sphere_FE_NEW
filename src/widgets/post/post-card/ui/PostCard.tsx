@@ -52,7 +52,7 @@ interface PostCardProps {
    */
   backSource?: 'feed' | 'bookmark';
   /**
-   * 썸네일이 LCP 후보인 카드(목록 첫 행)면 true로 넘긴다 - LinkThumbnail의 우선 로딩으로
+   * 썸네일이 LCP 후보인 카드(목록 첫 행, 상세 페이지의 카드)면 true로 넘긴다 - LinkThumbnail의 우선 로딩으로
    * 그대로 전달한다. 기본값 false(lazy)는 스크롤해야 보이는 나머지 카드용이다.
    */
   priorityThumbnail?: boolean;

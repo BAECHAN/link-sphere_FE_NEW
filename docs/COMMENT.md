@@ -9,7 +9,7 @@
 > 실패했을 때 원인별로 무엇을 안내하는지, "내 댓글"에서 원글의 그 댓글로 이동하는 방식을
 > 이해하고, 상한·장수·캐시 무효화 범위·실패 문구를 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-14
+> **마지막 검토**: 2026-10-26
 
 게시글 상세(`/post/:id`) 하단의 댓글 섹션과, 내가 쓴 댓글을 모아보는 "내 댓글"
 화면(`/my/comments`)을 다룬다. 게시글 자체(목록·상세·작성)는
@@ -371,9 +371,11 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 - **기다림 줄이기(2026-10-14)** — 게시글을 기다리며 멈추는 `PostDetailContent` 안에 `CommentList`가
   있어, 게시글이 와야 댓글을 요청하는 순차 요청이었다. 두 가지로 줄였다.
-  - 상세 진입: `PostDetailPage`가 경계 바깥에서 `usePostDetailPrefetch`(`src/pages/post/hooks/usePostDetail.ts:81`)
-    → `usePrefetchComments`(`src/entities/comment/api/comment.queries.ts:100`)를 불러 댓글을
-    게시글과 동시에 요청한다. `CommentList`는 같은 키의 캐시를 읽어 다시 요청하지 않는다
+  - 상세 진입: 상세 라우트(`PostDetailRoute`, `src/app/routes/index.tsx:147`)가
+    `usePrefetchComments`(`src/entities/comment/api/comment.queries.ts:101`)를 불러 댓글을
+    게시글과 동시에 요청한다. 처음엔 `PostDetailPage`가 경계 바깥에서 불렀다. 2026-10-26부터는 lazy 페이지
+    청크도 기다리지 않도록 라우트로 옮겼다([`PERFORMANCE.md`](./PERFORMANCE.md) "LCP 데이터 요청 시점").
+    `CommentList`는 같은 키의 캐시를 읽어 다시 요청하지 않는다
     ([TanStack Query 프리페치 가이드](https://github.com/tanstack/query/blob/main/docs/framework/react/guides/prefetching.md)의 "게시글 + 댓글" 예시와 같은 구조).
   - 💬 hover·focus: `handlePrefetchDetailWithComments`(`src/widgets/post/post-card/hooks/usePostCard.ts:141`)가
     게시글과 `prefetchComments`(`comment.queries.ts:87`)를 미리 받는다. 제목 링크는 `::after`가
@@ -586,7 +588,9 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 제자리, `#comment-<id>` 스크롤과 링 해제, 모바일은 제목까지·바 접힘, 상세 진입 때 게시글 응답 전에
 댓글 요청(총 1회), 💬 hover는 게시글·댓글을, 제목 hover는 게시글만 미리 받음. 엔트리 가드·`replace`·
 `preventScrollReset`·포커스·타이머 cleanup·`usePostDetailPrefetch` 호출·💬 `onMouseEnter`를 하나씩
-되돌리면 해당 테스트가 실패하는 것도 확인했다.
+되돌리면 해당 테스트가 실패하는 것도 확인했다. 2026-10-26 댓글 미리 받기를 라우트(`PostDetailRoute`)로
+옮긴 뒤에는 `e2e/post-route-prefetch.spec.ts`가 페이지 청크를 붙잡아 둔 채 댓글이 요청되는지(총 1회)를
+확인하고, 라우트의 미리 받기를 빼면 실패하는 것도 확인했다.
 
 **테스트 공백**: `useLikeCommentMutation`은 단위·e2e 어디에도 전용 테스트가 없다. `useDeleteComment`는 단위 테스트만 없다 —
 `e2e/comment-delete.spec.ts`가 확인 다이얼로그(확정 버튼 포커스 포함)부터 하드 삭제·
