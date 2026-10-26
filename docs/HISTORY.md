@@ -1,4 +1,7 @@
 ### 2026-10-26 (BE)
+- API 예외 처리 강화: 지원하지 않는 HTTP 메서드, 잘못된 Content-Type, 필수 파라미터 누락 시 발생하는 500 에러를 적절한 클라이언트 에러 응답으로 개선 ([#114](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/114))
+
+### 2026-10-26 (BE)
 - 레이어드 아키텍처 가이드라인 정립 및 패키지 의존성 검증 자동화 도입
 로그:
 - docs(arch): 레이어 골격·패키지 그래프를 문서로 정본화하고 검사로 고정 ([#113](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/113))
