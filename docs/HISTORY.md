@@ -1,4 +1,7 @@
 ### 2026-10-26 (BE)
+- 불필요한 의존성 및 미사용 Repository 메서드 제거와 코드 리팩토링 ([#124](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/124))
+
+### 2026-10-26 (BE)
 - SSRF 보안 정책 강화 및 회원 조회와 폴더 생성 로직의 예외 처리 최적화 ([#123](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/123))
 
 ### 2026-10-26 (BE)
