@@ -121,7 +121,7 @@ function buildReport(lhciDir) {
   const sections = [
     HEADING,
     `이 PR 빌드를 localhost 프리뷰로 페이지마다 ${runCount}회 잰 카테고리별 중앙값이다(\`lighthouserc.cjs\`). ` +
-      'Best Practices가 0.9 미만이면 job이 실패하지만 필수 체크가 아니라 병합은 막지 않는다. 나머지 기준은 경고만 한다.',
+      `Best Practices는 ${runCount}회 중 가장 좋은 실행도 0.9 미만이면 job이 실패하지만 필수 체크가 아니라 병합은 막지 않는다. 나머지 기준은 경고만 한다.`,
     `| 페이지 | ${CATEGORIES.map(([, label]) => label).join(' | ')} | 리포트 |\n| --- | ${CATEGORIES.map(() => '---').join(' | ')} | --- |\n${scoreRows.join('\n')}`,
     assertionRows.length
       ? `**기준을 못 넘은 항목**\n\n| 수준 | 페이지 | 항목 | 측정값 | 기준 |\n| --- | --- | --- | --- | --- |\n${assertionRows.join('\n')}`

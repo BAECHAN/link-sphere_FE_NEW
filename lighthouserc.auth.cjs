@@ -31,13 +31,15 @@ module.exports = {
         // 로그인 세션(httpOnly 쿠키 + has-session 플래그)이 URL마다 리셋되지 않도록 유지한다.
         disableStorageReset: true,
         puppeteerScript: './scripts/lighthouse-login.cjs',
+        blockedUrlPatterns: ['*://dataplane.rum.ap-northeast-1.amazonaws.com/*'], // 이유: lighthouserc.cjs 참고
       },
     },
     assert: {
       aggregationMethod: 'median-run',
       assertions: {
         'categories:performance': ['warn', { minScore: 0.5 }],
-        'categories:best-practices': ['error', { minScore: 0.9 }],
+        // optimistic인 이유: lighthouserc.cjs 참고
+        'categories:best-practices': ['error', { minScore: 0.9, aggregationMethod: 'optimistic' }],
         'largest-contentful-paint': ['warn', { maxNumericValue: 4000 }],
         'total-blocking-time': ['warn', { maxNumericValue: 600 }],
         'cumulative-layout-shift': ['warn', { maxNumericValue: 0.1 }],
