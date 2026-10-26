@@ -177,6 +177,39 @@ node scripts/compute-font-preload-chunks.js
   preload 없이 쓰는 건 업계에서도 안 풀린 문제로 보이고, 우리는 여기서 선례를
   따라가는 대신 직접 풀기로 했다.
 
+## Best Practices 77점 사례 (2026-10-26)
+
+사용자가 평소 쓰는 Chrome(로그인 상태)의 DevTools Lighthouse 13.4.1로 운영 `/post/:id`를 재자 Best
+Practices가 77점이 나왔다. 감점은 `third-party-cookies`(가중치 5)와 `inspector-issues`(가중치 1) 두 항목뿐이었다.
+Lighthouse 13의 적용 대상 가중치 합이 26이라 20/26 = 77점이다.
+
+- **원인**: og 썸네일(`src/shared/ui/atoms/link-thumbnail.tsx`)은 외부 사이트 이미지를 `<img>`로 바로 불러온다.
+  그러면 브라우저가 사용자 쿠키 저장소에 이미 있던 그 사이트 쿠키를 함께 보낸다. 리포트에는 jobkorea·thevc
+  배너 이미지 요청에 실린 Hotjar(`_hjSession*`)·RTB House(`__rtbh.*`) 쿠키 8개가 찍혔다.
+- **CI·headless에서 재현되지 않는 이유**: 쿠키 저장소가 비어 있어 실을 쿠키가 없다. 같은 날 운영을 headless
+  Lighthouse 12.6.1로 재면 96~100점이었다. 점수는 "피드에 뜬 외부 이미지 × 측정하는 사람의 쿠키 저장소"에 따라
+  달라지므로, 이 감점은 어떤 자동 측정으로도 재현되지 않는다.
+- **조치**: 앱 HTML 응답에 `Cross-Origin-Embedder-Policy: credentialless`를 붙인다
+  (`infra/cloudfront-functions/spa-status.js`). MDN은 이 값을 _"no-cors 모드로 요청하는 교차 출처 리소스를
+  CORP 헤더 없이 불러올 수 있다. 이때 요청은 자격 증명 없이 보내진다: 요청에서 쿠키를 빼고, 응답의 쿠키도
+  무시한다"_(번역, [MDN COEP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Embedder-Policy))고
+  설명한다. 지원 범위는 Chrome 96·Firefox 119이고 Safari는 미지원이다
+  ([MDN BCD](https://github.com/mdn/browser-compat-data/blob/main/http/headers/Cross-Origin-Embedder-Policy.json)).
+  쿠키가 있어야만 이미지를 주는 사이트가 있다면 그 썸네일은 대체 아이콘으로 바뀐다.
+
+**검증 결과 (직접 측정, 2026-10-26)** — Playwright Chromium. 외부 이미지 호스트에 더미 쿠키를 심고, 진짜
+헤더를 보내는 로컬 서버로 비교했다.
+
+| 비교                                                                                         | 헤더 없음                                   | COEP `credentialless` |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------- | --------------------- |
+| 외부 이미지 3개 요청의 `Cookie` 헤더                                                         | 3개 모두 실림                               | 없음                  |
+| Chrome 쿠키 이슈(`Audits.issueAdded`)                                                        | `WarnThirdPartyPhaseout` 3건 + SameSite 1건 | 없음                  |
+| 운영을 중계한 `/post`·`/post/:id`·`/auth/login`의 API 응답·외부 이미지 로드 수·RUM·콘솔 에러 | 기준                                        | 차이 없음             |
+
+`WarnThirdPartyPhaseout`은 Lighthouse `third-party-cookies` 감사가 세는 사유다(설치본
+`lighthouse@12.6.1/core/audits/third-party-cookies.js`). Playwright `route.fulfill`로 문서 응답에 헤더를 끼워 넣는
+방식은 COEP가 적용되지 않아(쿠키가 그대로 실림) 이 시험에 쓸 수 없었다. 진짜 헤더를 보내는 서버로 재야 한다.
+
 ## 자주 발생하는 문제
 
 - **`Error: Unable to connect to Chrome`** — 이 머신에 Chrome/Chromium이 없다.

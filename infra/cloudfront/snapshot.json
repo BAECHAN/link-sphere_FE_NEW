@@ -246,7 +246,7 @@
       "Name": "link-sphere-spa-status",
       "EventType": "viewer-response",
       "Runtime": "cloudfront-js-1.0",
-      "Comment": "/404.html 응답의 상태만 404로 (기본 비헤이비어 viewer-response 전용; api 미연결)",
+      "Comment": "/404.html 상태를 404로, 앱 HTML에 COEP credentialless (기본 비헤이비어 viewer-response 전용; api 미연결)",
       "RepoFile": "infra/cloudfront-functions/spa-status.js",
       "CodeMatchesRepo": true
     }
