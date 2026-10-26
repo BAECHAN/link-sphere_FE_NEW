@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { NavigationType, useLocation, useNavigationType, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSuspenseFetchPostDetailQuery } from '@/entities/post/api/post.queries';
-import { usePrefetchComments } from '@/entities/comment/api/comment.queries';
 import { bookmarkFolderInvalidateQueries } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
@@ -72,15 +71,6 @@ function useBackLabel(): string {
   }
 
   return snapshot.label;
-}
-
-/**
- * 상세 페이지 경계(AsyncBoundary) 바깥에서 부른다 — 댓글을 게시글과 동시에 요청한다.
- * 안쪽 usePostDetail은 게시글을 기다리며 suspend하므로 여기 둘 수 없다.
- */
-export function usePostDetailPrefetch() {
-  const { id } = useParams<{ id: string }>();
-  usePrefetchComments(id || '');
 }
 
 export function usePostDetail() {

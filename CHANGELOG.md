@@ -41,6 +41,13 @@
 
 ### Changed
 
+- `post` 피드·상세 데이터를 페이지 코드와 함께 요청하고 상세 썸네일을 먼저 받음
+  <details><summary>배경·구현</summary>
+
+  피드·상세의 LCP 요소인 og 썸네일은 주소가 게시글 응답에 있는데, 게시글 요청이 lazy 페이지 청크가 도착해 렌더된 뒤에야 나가 청크 → API → 썸네일이 차례로 이어졌다. 운영에서 직접 잰 요청 시작은 `/post` 목록이 모바일 5,273ms·데스크톱 338ms로, 라우트에서 미리 받는 카테고리(4,734ms·241ms)보다 늦었다. 피드 라우트(`PostFeedRoute`)와 새 상세 라우트(`PostDetailRoute`)가 페이지 청크를 요청하는 같은 렌더에서 목록 첫 페이지·상세·댓글을 `usePrefetchInfiniteQuery`/`usePrefetchQuery`로 요청하고, 청크 안의 suspense 쿼리는 진행 중인 그 요청을 이어받아 다시 요청하지 않는다. 키와 요청 옵션이 어긋나지 않도록 목록·상세 옵션 묶음(`postListInfiniteOptions`·`postDetailQueryOptions`, 상세의 `retry: false` 포함)과 목록 조건 계산(`toPostListPayload`)을 미리 받기와 화면이 함께 쓴다. 상세 댓글 미리 받기는 페이지(`usePostDetailPrefetch`)에서 라우트로 옮겼다. 상세 카드 썸네일은 `loading="lazy"`였던 것을 목록 첫 행처럼 `eager` + `fetchPriority="high"`로 바꿨다. 측정과 근거는 `docs/PERFORMANCE.md` "LCP 데이터 요청 시점"·`docs/SEARCH.md` §10, 계획은 `docs/plans/2026-10-26-lcp-prefetch-font-preload.md`. (`app/routes/index.tsx`, `entities/post/api/post.queries.ts`, `widgets/post/post-list/hooks/usePostFeedPrefetch.ts`(신규), `widgets/post/post-list/utils/post-list-payload.ts`(신규), `widgets/post/post-list/hooks/usePostList.ts`, `pages/post/PostDetailPage.tsx`, `pages/post/hooks/usePostDetail.ts`, `e2e/post-route-prefetch.spec.ts`(신규), [PR #421](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/421))
+
+  </details>
+
 - `shared` 게시글·댓글·북마크 폴더를 삭제하면 "삭제했어요" 성공 토스트를 띄움
   <details><summary>배경·구현</summary>
 

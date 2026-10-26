@@ -9,7 +9,7 @@
 > `#닉네임` 태그가 어떻게 분해되는지 이해하고, 검색 관련 동작(유지·초기화·오타 보정)을
 > 어느 파일에서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-16
+> **마지막 검토**: 2026-10-26
 
 ## 1. 쉬운 설명
 
@@ -268,10 +268,10 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | `@카테고리`/`#닉네임`/키워드 분해 규칙 바꾸기                | [`search-parser.ts`](../src/widgets/post/post-list/utils/search-parser.ts) — `parseSearchQuery`                                                                                                                                                                                                                                                                     |
 | 범위 칩(북마크한·좋아요한 등) 추가·순서·색 바꾸기            | [`PostListSearch.tsx:48-80`](../src/widgets/post/post-list/ui/PostListSearch.tsx#L48-L80) — 칩 마크업, 키는 [`usePostListSearch.ts:10`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L10) `SCOPE_FILTERS`에도 넣는다                                                                                                                                    |
 | "조건 N개 적용 중" 카운트 로직                               | [`usePostListSearch.ts:13-30`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L13-L30) — `computeAppliedFilterCount`                                                                                                                                                                                                                                      |
-| 라벨(@카테고리) 칩을 눌렀을 때 새 검색어 계산 규칙 바꾸기    | [`usePostList.ts:62-78`](../src/widgets/post/post-list/hooks/usePostList.ts#L62-L78) — `toggleSearchTag`(pending 포함 draft 기준). 칩 미러 갱신은 [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts)의 `toggleCategoryTagInSearch`                                                                                                  |
+| 라벨(@카테고리) 칩을 눌렀을 때 새 검색어 계산 규칙 바꾸기    | [`usePostList.ts:46-62`](../src/widgets/post/post-list/hooks/usePostList.ts#L46-L62) — `toggleSearchTag`(pending 포함 draft 기준). 칩 미러 갱신은 [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts)의 `toggleCategoryTagInSearch`                                                                                                  |
 | 뒤로/앞으로 가기 때 칩·pending 정리 바꾸기                   | [`router-events.ts`](../src/shared/lib/router/router-events.ts)(POP 감지), [`usePostListSearch.ts:88-103`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L88-L103)(칩 미러), [`useSearchParamsDraft.ts:59-65`](../src/shared/hooks/useSearchParamsDraft.ts#L59-L65)(pending), 주입은 [`RouterProvider.tsx`](../src/app/providers/RouterProvider.tsx)     |
-| 목록 조회 실패 화면이 풀리는 조건 바꾸기                     | [`usePostList.ts:122-132`](../src/widgets/post/post-list/hooks/usePostList.ts#L122-L132) — `usePostListErrorReset`(리셋 키), 실패한 목록 캐시 삭제는 [`post.keys.ts`](../src/entities/post/api/post.keys.ts)의 `postRemoveQueries.erroredLists`                                                                                                                     |
-| 정지 구간 "불러오는 중" 표시 조건·지연 바꾸기                | [`usePostList.ts:147-173`](../src/widgets/post/post-list/hooks/usePostList.ts#L147-L173) — `usePostListApplying`(최신 위치와 커밋된 위치 비교, 봇 숨기기 늦춘 값 비교, 0.5초 지연)                                                                                                                                                                                  |
+| 목록 조회 실패 화면이 풀리는 조건 바꾸기                     | [`usePostList.ts:106-116`](../src/widgets/post/post-list/hooks/usePostList.ts#L106-L116) — `usePostListErrorReset`(리셋 키), 실패한 목록 캐시 삭제는 [`post.keys.ts`](../src/entities/post/api/post.keys.ts)의 `postRemoveQueries.erroredLists`                                                                                                                     |
+| 정지 구간 "불러오는 중" 표시 조건·지연 바꾸기                | [`usePostList.ts:131-157`](../src/widgets/post/post-list/hooks/usePostList.ts#L131-L157) — `usePostListApplying`(최신 위치와 커밋된 위치 비교, 봇 숨기기 늦춘 값 비교, 0.5초 지연)                                                                                                                                                                                  |
 | 정지 구간 "불러오는 중" 덮개 모양 바꾸기                     | [`PostList.tsx:55-75`](../src/widgets/post/post-list/ui/PostList.tsx#L55-L75) — 덮개·알약, 문구는 `TEXTS.post.search.applying`                                                                                                                                                                                                                                      |
 | 초기화 버튼(필터+검색어 전체 리셋)                           | [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts) — `handleClearSearch`                                                                                                                                                                                                                                                            |
 | 오타 보정 문구                                               | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx:109-113`](../src/widgets/post/post-list/ui/PostList.tsx#L109-L113)                                                                                                                                                                                                                                             |
@@ -279,7 +279,8 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 검색 중 하단 댓글바 숨김 동작 바꾸기                         | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useHistoryOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                                                                                                                                                                                     |
 | 검색 중 배경 클릭·포커스 차단 범위 바꾸기                    | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                                                                                                                                                                                   |
 | "검색어와 의미가 비슷한 글이에요" 배지 문구·표시 조건 바꾸기 | [`PostCard.tsx:212-220`](../src/widgets/post/post-card/ui/PostCard.tsx#L212-L220) — `post.isSemanticMatch`, 문구는 `TEXTS.post.card.semanticMatch`                                                                                                                                                                                                                  |
-| 필터 카드 카테고리 칩 미리 받기 바꾸기                       | [`src/app/routes/index.tsx:116`](../src/app/routes/index.tsx#L116) — `PostFeedRoute`(페이지 청크 요청과 같은 렌더에서 요청), 훅은 [`category.queries.ts:24`](../src/entities/category/api/category.queries.ts#L24) `usePrefetchCategoryOptions`                                                                                                                     |
+| 필터 카드 카테고리 칩 미리 받기 바꾸기                       | [`src/app/routes/index.tsx:131`](../src/app/routes/index.tsx#L131) — `PostFeedRoute`(페이지 청크 요청과 같은 렌더에서 요청), 훅은 [`category.queries.ts:24`](../src/entities/category/api/category.queries.ts#L24) `usePrefetchCategoryOptions`                                                                                                                     |
+| 목록 첫 페이지 미리 받기 바꾸기                              | [`usePostFeedPrefetch.ts`](../src/widgets/post/post-list/hooks/usePostFeedPrefetch.ts)(라우트의 `PostFeedPrefetch`가 부른다). 조건 계산은 목록과 같은 [`post-list-payload.ts`](../src/widgets/post/post-list/utils/post-list-payload.ts)의 `toPostListPayload`를 써야 키가 같다                                                                                     |
 | 카테고리 응답 캐시 시간 바꾸기                               | BE `CategoryController.kt`의 `CATEGORY_LIST_CACHE_CONTROL`(BE #102)                                                                                                                                                                                                                                                                                                 |
 
 ## 9. 검증 결과
@@ -595,6 +596,40 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
     고정돼 타이밍과 무관하게 밀리지 않지만, 화면이 바뀌어 근거 조사와 시안이 먼저 필요하다.
   - `stale-while-revalidate`는 MDN 호환성 데이터 기준 Chrome 75+, Firefox 68+, Safari 14+가 지원한다.
 
+**목록 첫 페이지도 피드 라우트에서 요청(2026-10-26).** 카테고리와 달리 게시글 목록은 여전히 lazy 페이지 청크
+안의 `PostList`가 렌더된 뒤에야 요청됐다. 그래서 청크 다운로드 → 목록 요청 → 썸네일(LCP 요소)이 차례로
+이어졌다. 운영에서 직접 측정한 요청 시작 시각은 아래와 같다(Playwright Chromium, 캐시 없음, 모바일은 CDP 150ms·1.44Mbps·CPU 4배 감속).
+
+|          | 카테고리(라우트에서 요청) | 게시글 목록(청크 안에서 요청) |
+| -------- | ------------------------- | ----------------------------- |
+| 모바일   | 4,734ms                   | 5,273ms                       |
+| 데스크톱 | 241ms                     | 338ms                         |
+
+LCP 전체 측정과 다른 개선 후보는 [`PERFORMANCE.md`](./PERFORMANCE.md) "LCP 데이터 요청 시점"에 있다.
+
+- 해결: `PostFeedRoute`가 형제 컴포넌트 `PostFeedPrefetch`를 함께 렌더한다. 이 컴포넌트가
+  [`usePostFeedPrefetch`](../src/widgets/post/post-list/hooks/usePostFeedPrefetch.ts)로 지금 URL과 봇 숨기기 설정의
+  첫 페이지를 `usePrefetchInfiniteQuery`로 요청한다. 설치본 @tanstack/react-query 5.90.16에서 이 훅은 그 키의 상태가
+  없을 때만 요청한다(`usePrefetchInfiniteQuery.js:4-7`). 청크 안의 `useSuspenseInfiniteQuery`는 진행 중인 요청의
+  promise를 그대로 받아(`query-core/build/modern/query.js:166-175`) 다시 요청하지 않는다.
+  - 키를 맞추는 방법: 두 쪽이 같은 옵션 묶음(`post.queries.ts`의 `postListInfiniteOptions`)과 같은 조건 계산
+    ([`post-list-payload.ts`](../src/widgets/post/post-list/utils/post-list-payload.ts)의 `toPostListPayload`)을 쓴다.
+    조건 계산을 `usePostList.ts`에서 떼어 낸 건 라우트가 그 파일을 import하면 가상화 코드까지 첫 로딩 청크로
+    끌려오기 때문이다.
+  - URL 구독을 형제 컴포넌트에 둔 이유: `PostFeedRoute`가 직접 구독하면 오버레이 열기처럼 위치만 바뀌어도
+    페이지 전체가 다시 렌더된다.
+- 조건을 바꿀 때도 미리 받기는 지금 URL을 따라간다. 미리 받기는 기다리지 않아 화면을 멈추지 않는다. 같은 키가
+  이미 있으면 아무것도 하지 않는다. 그래서 정지 구간(§5)의 이전 목록 유지와 "적용 중" 표시는 그대로다.
+  봇 숨기기는 목록이 늦춘 값(`useDeferredValue`)을 쓰고, 미리 받기는 지금 값을 쓴다. 첫 렌더의 `useDeferredValue`는
+  받은 값을 그대로 돌려주므로([useDeferredValue](https://react.dev/reference/react/useDeferredValue)) 첫 진입 키는
+  같다. 설정을 바꾼 직후에는 미리 받기가 한 박자 먼저 요청할 뿐이다. 이전 목록이 보이는 채로 새 조건을
+  한 번만 요청하는지는 `usePostFeedPrefetch.test.tsx`가 확인한다.
+- 검증: `e2e/post-route-prefetch.spec.ts`가 페이지 모듈을 붙잡아 둔 채 목록이 요청되는지, 풀어 준 뒤에도
+  1회인지 본다. 라우트의 미리 받기를 빼면 실패한다.
+- 위 2026-10-16 항목의 e2e 메모("콜드 실행에선 요청 순서 검사가 고치기 전에도 통과")는 이제 맞지 않는다.
+  목록도 라우트에서 요청하므로 청크가 늦어도 게시글 응답이 청크를 기다리지 않는다. 그래서 카테고리 미리 받기를
+  빼고 페이지 청크를 800ms 붙잡으면, 카테고리 요청이 게시글 응답보다 726ms 늦어 검사가 실패했다(로컬 1회).
+
 ## 11. 남은 것
 
 - **첫 방문이나 7일 넘게 지난 재방문에서 카테고리 응답이 게시글보다 늦으면 칩은 여전히 늦게 들어와 밀린다.**
@@ -659,8 +694,9 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
 - **재시도 커밋 대기**: lazy 청크처럼 suspend했던 경계를 다시 그리는 렌더에서 안쪽이 또 suspend하면, React
   18이 커밋을 스피너가 처음 보인 시각 + 500ms까지 미루는 동작(`FALLBACK_THROTTLE_MS`). 그 사이 데이터가 오면
   한 번에 커밋한다(§10).
-- **`PostFeedRoute`**: `/post` 라우트 element. 페이지 청크와 같은 렌더에서 필터 카드의 카테고리를 미리
-  요청한다([`src/app/routes/index.tsx`](../src/app/routes/index.tsx)).
+- **`PostFeedRoute`**: `/post` 라우트 element. 페이지 청크와 같은 렌더에서 필터 카드의 카테고리와 목록 첫
+  페이지를 미리 요청한다([`src/app/routes/index.tsx`](../src/app/routes/index.tsx)). 목록은 URL을 구독해야 해서
+  형제 컴포넌트 `PostFeedPrefetch`가 맡는다(§10 2026-10-26).
 - **`correctedSearch`**: 한/영 자판 오타 보정 시 BE가 응답에 함께 내려주는, 실제로 검색에
   쓰인 보정된 검색어. 타입은 `post.dto.ts`(BE OpenAPI 생성 타입 alias).
 

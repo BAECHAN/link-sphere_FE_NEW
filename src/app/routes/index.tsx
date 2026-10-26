@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { Navigate, useLocation, type RouteObject } from 'react-router-dom';
+import { Navigate, useLocation, useParams, type RouteObject } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { ProtectedLayout } from './layouts/ProtectedLayout';
 import { AppShellLayout } from '@/app/routes/layouts/AppShellLayout';
@@ -7,6 +7,9 @@ import { PublicLayout } from '@/app/routes/layouts/PublicLayout';
 import { RootLayout } from '@/app/routes/layouts/RootLayout';
 import { RouteErrorBoundary } from '@/app/routes/RouteErrorBoundary';
 import { usePrefetchCategoryOptions } from '@/entities/category/api/category.queries';
+import { usePrefetchComments } from '@/entities/comment/api/comment.queries';
+import { usePrefetchPostDetail } from '@/entities/post/api/post.queries';
+import { usePostFeedPrefetch } from '@/widgets/post/post-list/hooks/usePostFeedPrefetch';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { AuthLayout } from '@/shared/ui/layouts/AuthLayout';
@@ -108,15 +111,45 @@ function RootRedirect() {
 }
 
 /**
- * 게시글 목록(피드) 라우트 — 페이지 청크를 요청하는 같은 렌더에서 필터 카드의 카테고리도 요청한다.
- * 필터 카드의 useQuery는 커밋 뒤에야 요청하므로, 페이지 첫 커밋이 게시글을 기다리거나(청크가 빨리 온
- * 경우) 청크가 늦게 와 카드가 먼저 그려지면 칩이 뒤늦게 들어와 그 아래가 밀렸다(docs/SEARCH.md §10).
+ * 피드 목록 첫 페이지 요청을 페이지 청크와 같은 렌더에서 시작한다. URL과 봇 숨기기 설정을 구독하므로
+ * PostFeedRoute가 아니라 따로 둔 이 컴포넌트에서 부른다 - PostFeedRoute가 구독하면 오버레이 열기처럼
+ * 위치만 바뀌어도 페이지 전체가 다시 렌더된다(지금은 페이지 안에서 구독하는 컴포넌트만 렌더된다).
+ */
+function PostFeedPrefetch() {
+  usePostFeedPrefetch();
+
+  return null;
+}
+
+/**
+ * 게시글 목록(피드) 라우트 — 페이지 청크를 요청하는 같은 렌더에서 필터 카드의 카테고리와 목록 첫 페이지도
+ * 요청한다. 필터 카드의 useQuery는 커밋 뒤에야 요청하므로, 페이지 첫 커밋이 게시글을 기다리거나(청크가 빨리
+ * 온 경우) 청크가 늦게 와 카드가 먼저 그려지면 칩이 뒤늦게 들어와 그 아래가 밀렸다(docs/SEARCH.md §10).
+ * 목록도 청크 안에서만 요청하면 청크 다운로드 → 목록 요청 → 썸네일(LCP)이 차례로 이어진다.
  * lazy 청크 밖에 있어 이 라우트에 들어올 때마다 페이지보다 먼저 렌더된다.
  */
 function PostFeedRoute() {
   usePrefetchCategoryOptions();
 
-  return withSuspense(Post);
+  return (
+    <>
+      <PostFeedPrefetch />
+      {withSuspense(Post)}
+    </>
+  );
+}
+
+/**
+ * 게시글 상세 라우트 — 페이지 청크를 요청하는 같은 렌더에서 게시글과 댓글을 함께 요청한다. 페이지 안에서
+ * 요청하면 청크 다운로드 → 게시글 요청 → 썸네일(LCP)이 차례로 이어진다. 댓글은 게시글을 기다리는 경계
+ * 안쪽(CommentList)에서야 마운트되므로 게시글과 동시에 시작한다.
+ */
+function PostDetailRoute() {
+  const { id } = useParams<{ id: string }>();
+  usePrefetchPostDetail(id || '');
+  usePrefetchComments(id || '');
+
+  return withSuspense(PostDetailPage);
 }
 /**
  * App Routes Configuration
@@ -142,7 +175,7 @@ export const appRoutes: RouteObject[] = [
           },
           {
             path: '/post/:id',
-            element: withSuspense(PostDetailPage),
+            element: <PostDetailRoute />,
           },
         ],
       },

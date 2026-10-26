@@ -1,5 +1,9 @@
 import {
+  infiniteQueryOptions,
+  queryOptions,
   useMutation,
+  usePrefetchInfiniteQuery,
+  usePrefetchQuery,
   useSuspenseInfiniteQuery,
   useSuspenseQuery,
   useQuery,
@@ -128,10 +132,15 @@ function isFirstOccurrence(id: string, seen: Set<string>): boolean {
   return seen.has(id) ? false : seen.add(id) && true;
 }
 
-export const useSuspenseFetchPostListQuery = (
-  payload?: Pick<PostListRequest, 'search' | 'category' | 'filter' | 'nickname'>
-) => {
-  return useSuspenseInfiniteQuery({
+type PostListPayload = Pick<PostListRequest, 'search' | 'category' | 'filter' | 'nickname'>;
+
+/**
+ * 목록 조회의 키·queryFn·페이지 계산 — 라우트의 미리 받기(usePrefetchPostList)가 채운 캐시를 목록
+ * 화면(useSuspenseFetchPostListQuery)이 그대로 읽으므로 둘이 한곳의 옵션을 쓴다. 따로 적으면
+ * initialPageParam·getNextPageParam이 어긋나도 같은 키라 조용히 섞인다.
+ */
+const postListInfiniteOptions = (payload?: PostListPayload) =>
+  infiniteQueryOptions({
     queryKey: postKeys.list(payload),
     queryFn: ({ pageParam }: { pageParam: PaginationRequest['page'] }) => {
       return postApi.fetchPostList({
@@ -150,6 +159,11 @@ export const useSuspenseFetchPostListQuery = (
       }
       return lastPage.page + 1;
     },
+  });
+
+export const useSuspenseFetchPostListQuery = (payload?: PostListPayload) => {
+  return useSuspenseInfiniteQuery({
+    ...postListInfiniteOptions(payload),
     select: (data) => {
       const seen = new Set<string>();
       const posts = data.pages
@@ -163,6 +177,16 @@ export const useSuspenseFetchPostListQuery = (
       };
     },
   });
+};
+
+/**
+ * 렌더 중에 목록 첫 페이지 요청을 시작만 하고 기다리지 않는다 — 피드 라우트(lazy 페이지 청크 밖)에서
+ * 불러, 청크가 도착해 목록이 렌더된 뒤에야 요청하던 순차 요청을 없앤다. 진행 중인 요청은 목록 화면의
+ * suspense 쿼리가 그대로 이어받는다
+ * (https://github.com/tanstack/query/blob/main/docs/framework/react/guides/prefetching.md).
+ */
+export const usePrefetchPostList = (payload?: PostListPayload) => {
+  usePrefetchInfiniteQuery(postListInfiniteOptions(payload));
 };
 
 export const useFetchPostDetailQuery = (postId: string) => {
@@ -191,13 +215,28 @@ export const useFetchLinkPreviewQuery = (url: string, enabled: boolean) => {
   });
 };
 
-export const useSuspenseFetchPostDetailQuery = (postId: string) => {
-  return useSuspenseQuery({
+/**
+ * 상세 조회 옵션 — 라우트의 미리 받기(usePrefetchPostDetail)와 상세 화면이 같이 쓴다. 진행 중인 요청은
+ * 먼저 시작한 쪽 옵션으로 돌므로, 미리 받기에도 retry: false가 실려야 404 안내가 늦어지지 않는다.
+ */
+const postDetailQueryOptions = (postId: string) =>
+  queryOptions({
     queryKey: postKeys.detail(postId),
     queryFn: () => postApi.fetchPostDetail(postId),
     // 비공개·삭제 글은 404가 그대로 정답이므로 재시도해도 결과가 같다 (안내 화면만 늦춰짐)
     retry: false,
   });
+
+export const useSuspenseFetchPostDetailQuery = (postId: string) => {
+  return useSuspenseQuery(postDetailQueryOptions(postId));
+};
+
+/**
+ * 렌더 중에 상세 요청을 시작만 하고 기다리지 않는다 — 상세 라우트(lazy 페이지 청크 밖)에서 불러,
+ * 청크가 도착한 뒤에야 요청하던 순차 요청을 없앤다.
+ */
+export const usePrefetchPostDetail = (postId: string) => {
+  usePrefetchQuery(postDetailQueryOptions(postId));
 };
 
 /** hover 시 게시글 상세 미리 로드 — useSuspenseFetchPostDetailQuery 와 동일 키/queryFn */

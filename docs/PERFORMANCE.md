@@ -142,10 +142,11 @@ npx lhci collect --url=https://linksphere.click/post \
 
 **LCP 후보 이미지**
 
-| 항목                        | 이전                                 | 이후                                       |
-| --------------------------- | ------------------------------------ | ------------------------------------------ |
-| 목록 첫 행(최대 3장) 썸네일 | `loading="lazy"`, 우선순위 힌트 없음 | `loading="eager"` + `fetchPriority="high"` |
-| 나머지 썸네일               | `loading="lazy"`                     | 변경 없음(그대로 lazy)                     |
+| 항목                        | 이전                                 | 이후                                                                                |
+| --------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------- |
+| 목록 첫 행(최대 3장) 썸네일 | `loading="lazy"`, 우선순위 힌트 없음 | `loading="eager"` + `fetchPriority="high"`                                          |
+| 상세 페이지 카드 썸네일     | `loading="lazy"`, 우선순위 힌트 없음 | `loading="eager"` + `fetchPriority="high"`(2026-10-26, 아래 "LCP 데이터 요청 시점") |
+| 나머지 썸네일               | `loading="lazy"`                     | 변경 없음(그대로 lazy)                                                              |
 
 ### Lighthouse 지표
 
@@ -203,6 +204,31 @@ node scripts/compute-font-preload-chunks.js
   근거로 쓸 수 없다 — 이 페이지 유형(다양한 텍스트가 섞인 피드)에서 dynamic subset을
   preload 없이 쓰는 건 업계에서도 안 풀린 문제로 보이고, 우리는 여기서 선례를
   따라가는 대신 직접 풀기로 했다.
+
+### LCP 데이터 요청 시점 (직접 측정, 2026-10-26)
+
+피드와 상세 모두 LCP 요소는 외부 og 썸네일(IMG)이었다. 그 썸네일 주소는 게시글 API 응답에 들어 있다.
+그런데 게시글 요청은 lazy 페이지 청크가 도착해 렌더된 뒤에야 나가서, 청크 다운로드 → API → 썸네일이
+차례로 이어졌다.
+
+측정 방법은 운영 대상 Playwright Chromium이다. 캐시를 끈 새 페이지에서 `PerformanceObserver('largest-contentful-paint')`와
+Resource Timing을 모았다. 모바일은 CDP `Network.emulateNetworkConditions`(지연 150ms, 1.44Mbps)와 CPU 4배 감속,
+412×823 조건이다. RUM 전송은 차단했다.
+
+| 관찰(적용 전)                            | 모바일                       | 데스크톱       |
+| ---------------------------------------- | ---------------------------- | -------------- |
+| `/post` 카테고리 요청 시작(라우트에서)   | 4,734ms                      | 241ms          |
+| `/post` 게시글 목록 요청 시작(청크 안)   | 5,273ms                      | 338ms          |
+| 상세: 페이지 청크 → `GET /post/:id` 시작 | 청크 4,727~5,329 → API 5,343 | 177~312 → 315  |
+| `/post` FCP → LCP                        | 4.7s → 8.2s                  | LCP 0.48~0.70s |
+
+- **바꾼 것**: 피드·상세 라우트가 페이지 청크를 요청하는 같은 렌더에서 목록 첫 페이지·상세·댓글을 요청한다.
+  그 경위는 [`SEARCH.md`](SEARCH.md) §10 2026-10-26 항목과 [`POST.md`](POST.md) "상세"에 있다. 아울러 상세 썸네일을
+  아래 "LCP 후보 이미지" 표대로 우선 로딩한다. web.dev는 _"LCP 이미지는 절대 lazy-load하지 마라"_
+  (번역, [Optimize LCP](https://web.dev/articles/optimize-lcp))고 쓴다.
+- **기대 효과(추정)**: API 시작이 `/post`는 모바일 약 0.5s·데스크톱 약 0.1s, 상세는 0.2~0.35s 앞당겨진다.
+  모바일 LCP는 여전히 썸네일 다운로드(227KB PNG, 2.7~3.5s)와 폰트 바이트가 지배한다.
+- 계획과 다른 후보(폰트 preload, og 썸네일 축소, 첫 로딩 JS)는 `docs/plans/2026-10-26-lcp-prefetch-font-preload.md`에 있다.
 
 ## Best Practices 77점 사례 (2026-10-26)
 

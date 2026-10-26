@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse, delay } from 'msw';
-import { createElement, type ReactNode } from 'react';
+import { createElement, Suspense, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
@@ -16,9 +16,12 @@ import type { BookmarkFolderListResponse } from '@/entities/bookmark/folder/mode
 import {
   useCreatePostMutation,
   useDeletePostMutation,
+  usePrefetchPostDetail,
+  useSuspenseFetchPostDetailQuery,
   useUpdatePostMutation,
   useUpdatePostVisibilityMutation,
 } from '@/entities/post/api/post.queries';
+import { shouldRetryQuery } from '@/shared/lib/react-query/config/retry-policy';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
@@ -496,5 +499,59 @@ describe('useDeletePostMutation', () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+});
+
+// 상세 라우트(app/routes의 PostDetailRoute)가 페이지 청크 밖에서 상세를 미리 요청한다. 진행 중인 요청은
+// 먼저 시작한 쪽 옵션으로 돌므로, 운영 재시도 정책(404도 1회 재시도) 아래에서도 미리 받기가 상세 화면과
+// 같은 retry: false를 실어야 삭제·비공개 안내가 재시도만큼 늦어지지 않는다.
+describe('usePrefetchPostDetail', () => {
+  let detailRequests: number;
+
+  beforeEach(() => {
+    detailRequests = 0;
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: shouldRetryQuery, retryDelay: 0, gcTime: Infinity } },
+    });
+  });
+
+  it('404면 운영 재시도 정책이 있어도 다시 요청하지 않는다', async () => {
+    server.use(
+      http.get(url(`${API_ENDPOINTS.post.base}/:id`), () => {
+        detailRequests += 1;
+
+        return HttpResponse.json(
+          { status: 404, code: 'POST_NOT_FOUND', message: 'not found', timestamp: '' },
+          { status: 404 }
+        );
+      })
+    );
+
+    renderHook(() => usePrefetchPostDetail(POST_ID), { wrapper: Wrapper });
+
+    await waitFor(() =>
+      expect(queryClient.getQueryState(postKeys.detail(POST_ID))?.status).toBe('error')
+    );
+    expect(detailRequests).toBe(1);
+  });
+
+  it('미리 받는 중에 상세 화면이 마운트되면 같은 요청을 이어받아 한 번만 요청한다', async () => {
+    server.use(
+      http.get(url(`${API_ENDPOINTS.post.base}/:id`), async () => {
+        detailRequests += 1;
+        await delay(100);
+
+        return HttpResponse.json({ status: 200, message: 'ok', data: mockPost, timestamp: '' });
+      })
+    );
+
+    renderHook(() => usePrefetchPostDetail(POST_ID), { wrapper: Wrapper });
+    const { result } = renderHook(() => useSuspenseFetchPostDetailQuery(POST_ID), {
+      wrapper: ({ children }: { children: ReactNode }) =>
+        createElement(Wrapper, null, createElement(Suspense, { fallback: null }, children)),
+    });
+
+    await waitFor(() => expect(result.current?.data).toEqual(mockPost));
+    expect(detailRequests).toBe(1);
   });
 });

@@ -1,6 +1,6 @@
 import { FallbackProps } from 'react-error-boundary';
 import { Link } from 'react-router-dom';
-import { usePostDetail, usePostDetailPrefetch } from '@/pages/post/hooks/usePostDetail';
+import { usePostDetail } from '@/pages/post/hooks/usePostDetail';
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { CommentList } from '@/widgets/comment/comment-list/ui/CommentList';
 import { ArrowLeft, FileX } from 'lucide-react';
@@ -40,7 +40,8 @@ function PostDetailContent() {
           {backLabel}
         </Button>
 
-        <PostCard post={post} isDetail />
+        {/* 상세 썸네일이 이 페이지의 LCP 요소다 - lazy로 두면 레이아웃 뒤에야 요청한다 */}
+        <PostCard post={post} isDetail priorityThumbnail />
       </div>
 
       <Divider />
@@ -87,9 +88,7 @@ function PostDetailErrorFallback({ error }: FallbackProps) {
 }
 
 export function PostDetailPage() {
-  // 경계 바깥에서 댓글 요청을 게시글과 동시에 시작한다(안쪽 CommentList는 게시글이 와야 마운트된다)
-  usePostDetailPrefetch();
-
+  // 게시글·댓글 요청은 페이지 청크 밖의 라우트(app/routes의 PostDetailRoute)가 미리 시작한다
   return (
     <AsyncBoundary errorFallback={PostDetailErrorFallback}>
       <PostDetailContent />
