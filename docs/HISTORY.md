@@ -1,3 +1,6 @@
+### 2026-10-26 (FE)
+- 외부 리소스 요청 시 보안 강화를 위한 COEP(Cross-Origin-Embedder-Policy) 헤더 적용 ([#414](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/414))
+
 ### 2026-10-26 (BE)
 - 생성 API의 HTTP 상태 코드 201 적용 및 댓글 좋아요 응답 스키마 구조화 ([#115](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/115))
 
