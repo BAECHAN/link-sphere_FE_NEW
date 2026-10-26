@@ -344,7 +344,7 @@ export interface paths {
     put?: never;
     /**
      * 북마크 폴더 생성
-     * @description HTTP 상태는 200 이고 본문 status 필드만 201 이다(ResponseEntity 를 쓰지 않는다). 실패: 400 INVALID_INPUT(이름 공백) · 409 DUPLICATE_FOLDER_NAME
+     * @description HTTP 상태와 본문 status 모두 201 이다. 실패: 400 INVALID_INPUT(이름 공백) · 409 DUPLICATE_FOLDER_NAME
      */
     post: operations['createFolder'];
     delete?: never;
@@ -520,7 +520,7 @@ export interface paths {
     put?: never;
     /**
      * 답글 작성
-     * @description 답글의 답글은 허용하지 않는다(최대 depth 1). HTTP 상태는 200 이고 본문 status 필드만 201 이다. 실패: 404 COMMENT_NOT_FOUND(부모 댓글 없음) · 400 INVALID_INPUT(content·images 가 둘 다 비어 있음, depth 초과, 이미지 개수·본문 길이 초과)
+     * @description 답글의 답글은 허용하지 않는다(최대 depth 1). HTTP 상태와 본문 status 모두 201 이다. 실패: 404 COMMENT_NOT_FOUND(부모 댓글 없음) · 400 INVALID_INPUT(content·images 가 둘 다 비어 있음, depth 초과, 이미지 개수·본문 길이 초과)
      */
     post: operations['createReply'];
     delete?: never;
@@ -625,7 +625,7 @@ export interface paths {
     put?: never;
     /**
      * 게시글 등록
-     * @description URL 을 크롤링해 메타데이터를 추출하고 AI 요약을 비동기로 채운다. 10분 안에 같은 URL을 GET /link-preview 로 미리 본 적이 있으면 크롤링 대신 그 결과를 쓴다. HTTP 상태는 200 이고 본문 status 필드만 201 이다. 실패: 400 INVALID_URL · 400 URL_UNRESOLVABLE(도메인 없음) · 400 URL_NOT_ALLOWED(내부망) · 403 EMAIL_NOT_VERIFIED · 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 429 RATE_LIMIT_EXCEEDED(회원당 시간당 등록 한도 초과)
+     * @description URL 을 크롤링해 메타데이터를 추출하고 AI 요약을 비동기로 채운다. 10분 안에 같은 URL을 GET /link-preview 로 미리 본 적이 있으면 크롤링 대신 그 결과를 쓴다. HTTP 상태와 본문 status 모두 201 이다. 실패: 400 INVALID_URL · 400 URL_UNRESOLVABLE(도메인 없음) · 400 URL_NOT_ALLOWED(내부망) · 403 EMAIL_NOT_VERIFIED · 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 429 RATE_LIMIT_EXCEEDED(회원당 시간당 등록 한도 초과)
      */
     post: operations['createPost'];
     delete?: never;
@@ -657,7 +657,7 @@ export interface paths {
     head?: never;
     /**
      * 게시글 수정
-     * @description HTTP 상태는 200 이고 본문 status 필드만 201 이 아니라 그대로 200 이다. URL을 바꾸면 크롤링을 다시 한다(10분 안에 미리 본 URL이면 그 결과를 쓴다). 실패: 404 POST_NOT_FOUND · 403 FORBIDDEN(작성자 아님) · 400 INVALID_URL · 400 URL_UNRESOLVABLE · 400 URL_NOT_ALLOWED(URL을 바꾼 경우)
+     * @description URL을 바꾸면 크롤링을 다시 한다(10분 안에 미리 본 URL이면 그 결과를 쓴다). 실패: 404 POST_NOT_FOUND · 403 FORBIDDEN(작성자 아님) · 400 INVALID_URL · 400 URL_UNRESOLVABLE · 400 URL_NOT_ALLOWED(URL을 바꾼 경우)
      */
     patch: operations['updatePost'];
     trace?: never;
@@ -721,7 +721,7 @@ export interface paths {
     put?: never;
     /**
      * 댓글 작성
-     * @description HTTP 상태는 200 이고 본문 status 필드만 201 이다. 실패: 404 POST_NOT_FOUND · 400 INVALID_INPUT(content·images 가 둘 다 비어 있음, 이미지 개수·본문 길이 초과)
+     * @description HTTP 상태와 본문 status 모두 201 이다. 실패: 404 POST_NOT_FOUND · 400 INVALID_INPUT(content·images 가 둘 다 비어 있음, 이미지 개수·본문 길이 초과)
      */
     post: operations['createComment'];
     delete?: never;
@@ -814,6 +814,13 @@ export interface components {
       status: number;
       timestamp: string;
     };
+    ApiResponseCommentLikeResponse: {
+      data: components['schemas']['CommentLikeResponse'];
+      message: string;
+      /** Format: int32 */
+      status: number;
+      timestamp: string;
+    };
     ApiResponseCommentResponse: {
       data: components['schemas']['CommentResponse'];
       message: string;
@@ -858,15 +865,6 @@ export interface components {
     };
     ApiResponseListCommentResponse: {
       data: components['schemas']['CommentResponse'][];
-      message: string;
-      /** Format: int32 */
-      status: number;
-      timestamp: string;
-    };
-    ApiResponseMapStringBoolean: {
-      data: {
-        [key: string]: boolean;
-      };
       message: string;
       /** Format: int32 */
       status: number;
@@ -958,6 +956,9 @@ export interface components {
       id: string;
       image?: string | null;
       nickname: string;
+    };
+    CommentLikeResponse: {
+      isLiked: boolean;
     };
     CommentResponse: {
       author: components['schemas']['CommentAuthor'];
@@ -1508,8 +1509,8 @@ export interface operations {
       };
     };
     responses: {
-      /** @description OK */
-      200: {
+      /** @description Created */
+      201: {
         headers: {
           [name: string]: unknown;
         };
@@ -1628,8 +1629,8 @@ export interface operations {
       };
     };
     responses: {
-      /** @description OK */
-      200: {
+      /** @description Created */
+      201: {
         headers: {
           [name: string]: unknown;
         };
@@ -1872,7 +1873,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          '*/*': components['schemas']['ApiResponseMapStringBoolean'];
+          '*/*': components['schemas']['ApiResponseCommentLikeResponse'];
         };
       };
     };
@@ -1894,7 +1895,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          '*/*': components['schemas']['ApiResponseMapStringBoolean'];
+          '*/*': components['schemas']['ApiResponseCommentLikeResponse'];
         };
       };
     };
@@ -1914,8 +1915,8 @@ export interface operations {
       };
     };
     responses: {
-      /** @description OK */
-      200: {
+      /** @description Created */
+      201: {
         headers: {
           [name: string]: unknown;
         };
@@ -2077,8 +2078,8 @@ export interface operations {
       };
     };
     responses: {
-      /** @description OK */
-      200: {
+      /** @description Created */
+      201: {
         headers: {
           [name: string]: unknown;
         };
@@ -2265,8 +2266,8 @@ export interface operations {
       };
     };
     responses: {
-      /** @description OK */
-      200: {
+      /** @description Created */
+      201: {
         headers: {
           [name: string]: unknown;
         };
@@ -2333,8 +2334,8 @@ export interface operations {
       };
     };
     responses: {
-      /** @description OK */
-      200: {
+      /** @description Created */
+      201: {
         headers: {
           [name: string]: unknown;
         };

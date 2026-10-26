@@ -1,5 +1,4 @@
 import type { components } from '@/shared/api/generated/openapi.gen';
-import type { Unwrap } from '@/shared/api/api.type';
 
 type Schemas = components['schemas'];
 
@@ -10,8 +9,8 @@ type Schemas = components['schemas'];
 // PUT/DELETE /post/{postId}/like 응답 — 요청한 상태와 그 뒤의 좋아요 수
 export type PostLikeResponse = Schemas['PostLikeResponse'];
 
-// PUT/DELETE /comment/{commentId}/like 응답({ isLiked }) — BE가 Map으로 내려 이름 없는 스키마다
-export type CommentLikeResponse = Unwrap<'ApiResponseMapStringBoolean'>;
+// PUT/DELETE /comment/{commentId}/like 응답 — 요청 뒤의 좋아요 상태({ isLiked })
+export type CommentLikeResponse = Schemas['CommentLikeResponse'];
 
 // PUT/DELETE /post/{postId}/bookmark 응답 — 요청한 상태와 서버의 실제 폴더 소속(PUT은 기존 소속을 유지한다)
 export type PostBookmarkResponse = Schemas['BookmarkFoldersResponse'];
