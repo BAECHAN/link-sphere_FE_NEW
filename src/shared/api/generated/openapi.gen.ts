@@ -913,7 +913,6 @@ export interface components {
       timestamp: string;
     };
     ApiResponseUnit: {
-      data: components['schemas']['Unit'];
       message: string;
       /** Format: int32 */
       status: number;
@@ -971,7 +970,7 @@ export interface components {
       isLiked: boolean;
       /** Format: int32 */
       likeCount: number;
-      linkMetadata?: components['schemas']['LinkMetadata'];
+      linkMetadata?: components['schemas']['LinkMetadata'] | null;
       replies: components['schemas']['CommentResponse'][];
     };
     CreateCommentRequest: {
@@ -994,6 +993,7 @@ export interface components {
       token: string;
     };
     EmailVerificationRequest: {
+      /** Format: email */
       email: string;
     };
     FolderListResponse: {
@@ -1058,6 +1058,7 @@ export interface components {
       token: string;
     };
     PasswordResetRequest: {
+      /** Format: email */
       email: string;
     };
     PostCreateRequest: {
@@ -1135,6 +1136,7 @@ export interface components {
       token: string;
     };
     SignupRequest: {
+      /** Format: email */
       email: string;
       nickname: string;
       password: string;
@@ -1143,7 +1145,6 @@ export interface components {
       accessToken: string;
       deletionCancelled: boolean;
     };
-    Unit: Record<string, never>;
     UpdateAccountRequest: {
       image?: string | null;
       nickname?: string | null;
