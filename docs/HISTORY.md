@@ -1,3 +1,6 @@
+### 2026-10-26 (FE)
+- 검색 엔진 최적화(SEO) 강화를 위해 사이트 메타 설명(meta description) 설정 기능 추가 ([#420](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/420))
+
 ### 2026-10-26 (BE)
 - Lambda 환경 내 Tomcat 8080 포트 바인딩 최적화 및 멀티값 응답 헤더 처리 이슈 해결 ([#121](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/121))
 
