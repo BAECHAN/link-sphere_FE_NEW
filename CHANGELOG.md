@@ -11,6 +11,13 @@
 
 ### Added
 
+- `shared` 검색 결과에 보일 사이트 설명(meta description) 추가
+  <details><summary>배경·구현</summary>
+
+  `index.html`에 charset·viewport·title만 있어 검색 결과에 보일 설명이 없었고, Lighthouse SEO도 `meta-description` 감사(가중치 1)로 감점했다. 설치본 Lighthouse 12.6.1의 이 감사는 태그가 있고 내용이 비어 있지 않은지만 본다(`core/audits/seo/meta-description.js`). 문구는 "유용한 아티클과 리소스 링크를 공유하고, 다른 사람이 모은 링크를 발견하는 소셜 플랫폼이에요."로 정했다. SPA라 모든 경로에 같은 문구가 붙고, 게시글별 설명은 런타임에 태그를 바꾸는 장치가 따로 필요해 이번 범위에서 뺐다. (`index.html`, [PR #420](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/420))
+
+  </details>
+
 - `post` 필터를 바꾼 뒤 응답이 늦으면 이전 목록을 흐리게 하고 "불러오는 중" 표시
   <details><summary>배경·구현</summary>
 
