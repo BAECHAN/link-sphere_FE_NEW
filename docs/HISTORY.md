@@ -1,4 +1,7 @@
 ### 2026-10-26 (FE)
+- 백엔드 표준 예외 및 생성 응답 상태코드(201) 정책에 맞춘 OpenAPI 규격 호환성 업데이트 ([#415](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/415))
+
+### 2026-10-26 (FE)
 - 외부 리소스 요청 시 보안 강화를 위한 COEP(Cross-Origin-Embedder-Policy) 헤더 적용 ([#414](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/414))
 
 ### 2026-10-26 (BE)
