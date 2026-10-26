@@ -79,11 +79,25 @@ npx lhci collect --url=https://linksphere.click/post \
 
 ## CI 게이트
 
-`.github/workflows/ci.yml`의 `lighthouse` job이 PR마다 공개 페이지 4개를 측정해
-`warn` 리포트를 artifact로 남긴다. 로그인 필요 페이지는 CI에 없다 — 테스트 계정
-비밀번호를 GitHub Actions secret으로 등록하는 별도 절차가 필요해 이번 범위에 넣지
-않았다(추가하려면 `LH_TEST_PASSWORD`를 레포 secret으로 등록하고 `lighthouserc.auth.cjs`
-로 job을 하나 더 두면 된다).
+`.github/workflows/ci.yml`의 `lighthouse` job이 PR마다 공개 페이지 4개를 측정한다.
+
+- **기준**: Best Practices만 `error`(`minScore: 0.9`)이고 나머지는 `warn`이다. 0.9는 가중치 1짜리 감사 2개까지는
+  통과하고, 3·5짜리(`paste-preventing-inputs`·`deprecations`·`third-party-cookies` 등)는 하나만 실패해도 걸리는
+  선이다. 기준 미달이면 job이 실패하지만(로컬 `pnpm perf:lh`도 종료 코드 1), 필수 체크가 아니라 병합은 막히지
+  않는다. 처음엔 전부 `warn`이었는데(`docs/DECISIONS.md` 2026-09-26), Best Practices는 통과/실패형 감사라 타이밍
+  지표 같은 노이즈가 없어 2026-10-26에 이 항목만 올렸다(`docs/plans/2026-10-26-lighthouse-best-practices.md`).
+- **결과 보기**: `scripts/lighthouse-report.js`가 페이지별 4개 카테고리 중앙값, 기준을 못 넘은 항목, 실행 과반에서
+  실패한 Best Practices 감사를 표로 만들어 PR 댓글 1개(다시 push하면 갱신)와 job Step Summary에 싣는다. 로컬에서는
+  `pnpm perf:lh` 뒤 `node scripts/lighthouse-report.js`로 같은 표를 본다.
+- **리포트 보관**: 원본 JSON·HTML은 job 아티팩트 `lighthouse-report`(30일)에 있다. `.lighthouseci/`가 숨김 폴더라
+  `include-hidden-files: true` 없이는 업로드가 통째로 빠졌다(2026-10-26 이전 run 전부). 댓글의 리포트 링크는 LHCI
+  임시 저장소라 며칠 뒤 지워진다.
+- **CI가 못 보는 것**: 빈 프로필로 재므로 측정자 쿠키 저장소에 따라 달라지는 감점(아래 "Best Practices 77점 사례")은
+  재현되지 않는다. 엔진도 `@lhci/cli` 0.15.1에 묶인 Lighthouse 12.6.1이라 DevTools(13.x)와 점수가 조금
+  다를 수 있다(13은 Best Practices에서 `viewport`·`font-size`를 뺐다).
+- **로그인 필요 페이지는 CI에 없다** — 테스트 계정 비밀번호를 GitHub Actions secret으로 등록하는 별도 절차가 필요해
+  넣지 않았다(추가하려면 `LH_TEST_PASSWORD`를 레포 secret으로 등록하고 `lighthouserc.auth.cjs`로 job을 하나 더 두면
+  된다).
 
 ## 실측 결과
 

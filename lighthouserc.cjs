@@ -10,8 +10,12 @@
  * "5회 실행의 중앙값 점수가 1회보다 2배 안정적이다" (번역)
  * https://github.com/GoogleChrome/lighthouse/blob/main/docs/variability.md
  *
- * 전부 warn인 이유(총점이 아니라 결정적 지표부터 승격하는 정책)는 Civitai 선례를 따른다:
+ * 성능 지표가 warn인 이유(총점이 아니라 결정적 지표부터 승격하는 정책)는 Civitai 선례를 따른다:
  * https://github.com/civitai/civitai/blob/main/lighthouserc.json
+ * Best Practices만 error다(2026-10-26) — 통과/실패형 감사라 타이밍 지표 같은 측정 노이즈가 없고, warn이던
+ * 동안 점수가 떨어져도 아무도 못 봤다. 0.9는 가중치 1짜리 감사 2개까지는 통과, 3·5짜리는 하나만 실패해도
+ * 걸리는 선이다(docs/plans/2026-10-26-lighthouse-best-practices.md). lighthouse job은 필수 체크가 아니라
+ * 실패해도 병합은 막히지 않는다.
  *
  * `/post/:id`(게시글 상세)는 애초 계획에 있었지만, 존재가 보장된 고정 게시글이 없어 한 번
  * 뺐었다(PR #195 "계획 대비 구현" 참고) — 2026-09-26 tester_new_999 계정으로 공개 게시글을
@@ -24,7 +28,10 @@ module.exports = {
       // vite preview의 출력("➜ Local: http://...")은 LHCI 기본 패턴(/listen|ready/i)과
       // 안 맞아 매번 "서버 시작 대기 타임아웃" 경고가 뜬다(2026-09-26 실행에서 직접 확인).
       // 실제로는 기다렸다 통과하긴 하지만, 정확한 패턴을 줘서 그 경고와 불필요한 대기를 없앤다.
-      startServerReadyPattern: 'Local:',
+      // 'Local:'이 아니라 'Local'인 이유: CI에서는 picocolors가 env.CI를 보고 색을 켜서 vite가
+      // bold("Local") 뒤에 ANSI 코드를 넣어 "Local"과 ":"가 떨어진다 — 'Local:'로는 CI에서 계속
+      // 타임아웃 경고가 났다(2026-10-25 ci.yml run 로그, vite 6.4.1).
+      startServerReadyPattern: 'Local',
       url: [
         'http://localhost:4173/post',
         'http://localhost:4173/post/06ec0958-a33c-4c3f-81f6-0481badbbeb7',
@@ -40,6 +47,7 @@ module.exports = {
       aggregationMethod: 'median-run',
       assertions: {
         'categories:performance': ['warn', { minScore: 0.5 }],
+        'categories:best-practices': ['error', { minScore: 0.9 }],
         'largest-contentful-paint': ['warn', { maxNumericValue: 4000 }],
         'total-blocking-time': ['warn', { maxNumericValue: 600 }],
         'cumulative-layout-shift': ['warn', { maxNumericValue: 0.1 }],
