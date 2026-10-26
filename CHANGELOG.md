@@ -11,6 +11,13 @@
 
 ### Added
 
+- `post` 게시글 상세에서 브라우저 탭 제목을 글 제목으로 표시
+  <details><summary>배경·구현</summary>
+
+  지금까지는 모든 페이지의 탭 제목이 `Link Sphere`라 상세를 여러 탭으로 열면 구분되지 않았고, 방문 기록·북마크 이름도 모두 같았다. 상세가 떠 있는 동안 탭 제목을 `{글 제목} - Link Sphere`로 바꾸고, 상세를 떠나면 원래 제목으로 되돌린다. 설치본 react-dom 18.3.1은 컴포넌트에서 렌더한 `<title>`을 head로 올려 주지 않아(React 19부터, [React 19](https://react.dev/blog/2024/12/05/react-19)) effect로 `document.title`을 바꾼다. 404 안내 화면은 기본 제목 그대로다. 화면이 뜬 뒤 바꾸는 값이라 카카오톡·슬랙 링크 미리보기에는 쓰이지 않는다. (`src/pages/post/hooks/usePostDetail.ts`, `src/shared/config/texts.ts`, `src/pages/post/PostDetailPage.test.tsx`, `docs/POST.md`, [PR #422](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/422))
+
+  </details>
+
 - `shared` 검색 결과에 보일 사이트 설명(meta description) 추가
   <details><summary>배경·구현</summary>
 

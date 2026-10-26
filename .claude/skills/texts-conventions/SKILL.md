@@ -31,7 +31,7 @@ TEXTS
 ├── post.form.update.* (title, description, titleLabel, titlePlaceholder, update, ...)
 ├── post.form.preview.* (placeholder, loading, failed, ariaLabel) — 등록·수정 폼 공용 링크 미리보기
 ├── post.card.* (withdrawnAuthor, visitWebsite, aiSummary, edit, saving, ...)
-├── post.detail.* (notFound, backToList, ...) — 중립 "뒤로가기"는 공용 buttons.back
+├── post.detail.* (notFound, backToList, documentTitle(title) — 브라우저 탭 제목, ...) — 중립 "뒤로가기"는 공용 buttons.back
 ├── post.search.corrected(query) / appliedCount(count)
 ├── comment.list.* (loadError, heading, empty)
 ├── comment.form.* (replyPlaceholder, commentPlaceholder, preview, cancel, save, ...)

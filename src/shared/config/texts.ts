@@ -302,6 +302,8 @@ export const TEXTS = {
       // 그 외(북마크 - 폴더마다 화면이 달라 하나로 이름 붙일 수 없음, 상세 자기 링크 등
       //   출처 불명)는 목적지를 약속하지 않는 공용 문구 buttons.back을 쓴다.
       backToList: '목록으로',
+      // 브라우저 탭 제목. 뒤쪽 이름은 index.html의 기본 탭 제목(<title>Link Sphere</title>)에 맞춘다.
+      documentTitle: (title: string) => `${title} - Link Sphere`,
     },
     search: {
       corrected: (query: string) => `'${query}'(으)로 검색한 결과예요.`,
