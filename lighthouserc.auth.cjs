@@ -18,7 +18,7 @@ module.exports = {
   ci: {
     collect: {
       startServerCommand: 'pnpm preview --port 4173 --strictPort',
-      startServerReadyPattern: 'Local:', // 이유: lighthouserc.cjs 참고
+      startServerReadyPattern: 'Local', // 이유: lighthouserc.cjs 참고
       url: [
         'http://localhost:4173/post/submit',
         'http://localhost:4173/post/edit/06ec0958-a33c-4c3f-81f6-0481badbbeb7',
@@ -37,6 +37,7 @@ module.exports = {
       aggregationMethod: 'median-run',
       assertions: {
         'categories:performance': ['warn', { minScore: 0.5 }],
+        'categories:best-practices': ['error', { minScore: 0.9 }],
         'largest-contentful-paint': ['warn', { maxNumericValue: 4000 }],
         'total-blocking-time': ['warn', { maxNumericValue: 600 }],
         'cumulative-layout-shift': ['warn', { maxNumericValue: 0.1 }],

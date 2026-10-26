@@ -195,9 +195,14 @@ jobs:
   lighthouse:
     # 공개 페이지만 잰다 - 로그인 필요 페이지(pnpm perf:lh:auth)는 테스트 계정 비밀번호를
     # secret으로 등록하는 별도 절차가 필요해 로컬 수동 실행용으로만 남겨뒀다
-    # (docs/PERFORMANCE.md 참고). assertion은 전부 warn이라 이 job이 실패해도 PR은
-    # 막히지 않는다 - 근거는 docs/DECISIONS.md 2026-09-26 "Lighthouse CI" 항목.
+    # (docs/PERFORMANCE.md 참고). Best Practices만 error(0.9 미만이면 이 job이 실패)이고 성능
+    # 지표는 warn이다 - 이 job은 필수 체크가 아니라 실패해도 병합은 막히지 않는다. 근거는
+    # docs/DECISIONS.md 2026-09-26 "Lighthouse CI" 항목과 docs/plans/2026-10-26-lighthouse-best-practices.md.
     runs-on: ubuntu-latest
+    # pull-requests: write는 아래 "결과 보고" 스텝이 PR 댓글을 달고 갱신하는 데 필요하다(mutation job과 같은 이유).
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -230,12 +235,49 @@ jobs:
       - name: Run Lighthouse CI
         run: pnpm perf:lh
 
+      - name: 결과 보고 (Step Summary·PR 댓글)
+        # 경고·실패가 job 원본 로그에만 있어 Best Practices가 떨어져도 아무도 못 봤다(2026-10-26). 점수 표를
+        # Step Summary와 PR 댓글에 싣는다. 댓글은 PR마다 하나다 — 맨 앞 표식 주석으로 이전 댓글을 찾아
+        # 갱신하고, 없으면 새로 단다(mutation job의 같은 이름 스텝과 같은 형태). 기준 미달로 위 스텝이
+        # 실패해도 결과를 보여야 하므로 always()다. 수동 실행(workflow_dispatch)은 PR이 없어 Summary만 쓴다.
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          report="$RUNNER_TEMP/lighthouse-report.md"
+          comment="$RUNNER_TEMP/lighthouse-comment.md"
+          marker='<!-- lighthouse-report -->'
+
+          node scripts/lighthouse-report.js > "$report"
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -z "$PR_NUMBER" ]; then
+            exit 0
+          fi
+
+          { echo "$marker"; cat "$report"; } > "$comment"
+
+          comment_id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" \
+            | head -n 1)
+
+          if [ -n "$comment_id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment_id" -F body=@"$comment" > /dev/null
+          else
+            gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$comment"
+          fi
+
       - name: Upload Lighthouse report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: lighthouse-report
           path: .lighthouseci/
+          # .lighthouseci/는 숨김 폴더라 기본값(false)이면 통째로 빠져 "No files were found"로 끝났다
+          # (2026-10-16·10-25 run 확인 — 그동안 리포트가 한 번도 보관되지 않았다).
+          include-hidden-files: true
           retention-days: 30
 
   mutation:
