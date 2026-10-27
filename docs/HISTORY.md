@@ -1,3 +1,6 @@
+### 2026-10-27 (FE)
+- 북마크 폴더명 UI 개선: 텍스트 제한(15자) 및 줄바꿈 처리를 통한 가독성 향상 ([#424](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/424))
+
 ### 2026-10-26 (FE)
 - 게시글 상세 페이지 접근 시 브라우저 탭 제목이 해당 게시글의 제목으로 동적 변경되도록 개선 ([#422](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/422))
 
