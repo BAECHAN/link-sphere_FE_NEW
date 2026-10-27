@@ -183,6 +183,13 @@
 
 ### Fixed
 
+- `shared` 휴대폰 가로 화면·태블릿에서 글 상세의 댓글 입력창이 사라지던 문제
+  <details><summary>배경·구현</summary>
+
+  `useIsMobile`이 UA에 Android·iPhone 등이 있으면 폭과 무관하게 모바일로 봤다. 휴대폰을 가로로 돌리거나(844~932px) 안드로이드 태블릿이면 CSS(Tailwind `md`, 48rem 이상)는 데스크톱 배치인데 JS만 모바일 UI를 골라, 글 상세의 하단 댓글 바는 `md:hidden`으로 숨고 인라인 폼은 그려지지 않아 댓글을 쓸 곳이 없었다. 북마크는 데스크톱 사이드바 옆에 모바일용 폴더 목록 화면이 떴다. 정확히 768px인 창도 JS만 모바일이었다(`max-width: 768px`). 이제 폭만 보고, 조건을 Tailwind `max-md`와 같은 `(width < 48rem)`로 맞췄다(설치본 tailwindcss 4.1.18 `theme.css`의 `--breakpoint-md: 48rem`, `max-*`는 `(width < …)`로 생성). MDN도 UA로 모바일 기기를 가려내는 것을 흔한 오용으로 꼽고 레이아웃은 미디어 쿼리로 하라고 권한다([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Browser_detection_using_the_user_agent)). 그 폭에서는 북마크가 데스크톱 배치, 폴더 선택 창이 하단 시트 대신 가운데 창, 댓글 본문 링크가 새 탭, 댓글 폼 미리보기가 기본 펼침이 된다. 피드의 당겨서 새로고침은 화면 배치가 아니라 터치 제스처라 폭 대신 `(pointer: coarse)`로 판정한다(사용자 결정) — 휴대폰 가로·태블릿에서 그대로 켜져 있고, iPad Safari(iPad mini 외에는 Mac과 같은 UA라 폭으로만 판정되던 기기, [WebKit](https://webkit.org/blog/9674/new-webkit-features-in-safari-13/))에는 새로 생긴다. 회귀는 `e2e/post-detail-landscape.mobile.spec.ts`(Pixel 5 가로 851px — 수정 전 실패 확인)가 잡는다. (`useIsMobile.ts`·`.test.ts`, `usePullToRefresh.ts`·`.test.ts`, `AppLayout.tsx`, `e2e/post-detail-landscape.mobile.spec.ts`(신규), `docs/SEARCH.md`, `docs/TESTING.md`, `.claude/skills/responsive-ux/SKILL.md`, [PR #432](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/432))
+
+  </details>
+
 - `post` 글 등록 화면에서 맨 위로 버튼이 우연히 숨겨지던 조건을 명시
   <details><summary>배경·구현</summary>
 

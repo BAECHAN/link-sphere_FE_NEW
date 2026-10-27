@@ -676,9 +676,6 @@ LCP 전체 측정과 다른 개선 후보는 [`PERFORMANCE.md`](./PERFORMANCE.md
   `useHistoryOverlay`로 구독하므로, 키 문자열이 두 코드 경로에 흩어진 상태다.
 - `/post` 목록에서 300px 이상 스크롤한 채 검색을 열면 `ScrollToTop` FAB(`z-nav`)이 같은
   이유(z층 공유)로 패널 위에 그대로 뜬다. `main` 밖이라 이번 `inert` 차단으로도 안 가려진다.
-- `useIsMobile`의 판정 기준(`max-width:768px` + UA)이 Tailwind `md:`(`min-width:768px`)와
-  경계가 어긋나, iPad 등에서 `MobileCommentBar`가 마운트되지만 `md:hidden`으로 숨겨져
-  하단 댓글 입력 수단이 아예 사라진다.
 
 ## 12. 용어 사전
 

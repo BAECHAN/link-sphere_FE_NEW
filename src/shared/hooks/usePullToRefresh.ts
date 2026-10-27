@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
+// 당김은 터치 제스처라 화면 폭이 아니라 주 입력 장치로 정한다 - 폭으로 정하면 휴대폰 가로·태블릿처럼
+// 넓은 터치 기기에서 꺼진다. MDN "Browser detection using the user agent"도 터치 여부는 UA·폭이 아니라
+// 기능으로 감지하라고 권한다(https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Browser_detection_using_the_user_agent).
+const TOUCH_POINTER_QUERY = '(pointer: coarse)';
 
 interface UsePullToRefreshProps {
   onRefresh: () => void | Promise<unknown>;
@@ -14,7 +17,7 @@ interface UsePullToRefreshProps {
 }
 
 /**
- * 모바일에서 화면 최상단(window.scrollY === 0)을 아래로 당기면 onRefresh를 호출하는 훅.
+ * 터치가 주 입력인 기기에서 화면 최상단(window.scrollY === 0)을 아래로 당기면 onRefresh를 호출하는 훅.
  * 이 앱은 전용 스크롤 컨테이너 없이 window/body 스크롤을 쓰므로 리스너를 window에 붙인다.
  */
 export function usePullToRefresh({
@@ -24,7 +27,6 @@ export function usePullToRefresh({
   maxPull = 120,
   resistance = 0.5,
 }: UsePullToRefreshProps) {
-  const isMobile = useIsMobile();
   const [pullDistance, setPullDistance] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
 
@@ -32,11 +34,9 @@ export function usePullToRefresh({
   // touchend가 렌더 타이밍과 무관하게 최신 당김 거리를 읽도록 ref로 추적한다
   const pullDistanceRef = useRef(0);
 
-  const active = enabled && isMobile;
-
   useEffect(
     function attachPullToRefreshListeners() {
-      if (!active) {
+      if (!enabled || !window.matchMedia(TOUCH_POINTER_QUERY).matches) {
         return;
       }
 
@@ -89,7 +89,7 @@ export function usePullToRefresh({
         window.removeEventListener('touchend', handleTouchEnd);
       };
     },
-    [active, onRefresh, threshold, maxPull, resistance]
+    [enabled, onRefresh, threshold, maxPull, resistance]
   );
 
   return { pullDistance, isPulling, isReady: pullDistance >= threshold };

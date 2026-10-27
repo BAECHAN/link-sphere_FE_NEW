@@ -12,7 +12,16 @@ paths: src/**/*.tsx
 ## 브레이크포인트
 
 - `md` = 768px. Tailwind `md:` 분기를 기본으로 쓴다.
-- JS 분기가 꼭 필요할 때만 `useIsMobile()`(`src/shared/hooks/useIsMobile.ts`, UA + `matchMedia('(max-width: 768px)')`).
+- JS 분기가 꼭 필요할 때만 `useIsMobile()`(`src/shared/hooks/useIsMobile.ts`, `matchMedia('(width < 48rem)')` —
+  Tailwind `max-md`와 같은 조건). **UA는 보지 않는다.** 2026-10-27까지는 UA에 Android·iPhone 등이 있으면
+  폭과 무관하게 모바일로 봐서, 휴대폰 가로 화면·안드로이드 태블릿처럼 CSS는 데스크톱 배치인 폭에서 JS만
+  모바일 UI를 골랐다 — 글 상세의 하단 댓글 바는 `md:hidden`으로 숨고 인라인 폼은 그려지지 않아 댓글 입력
+  수단이 아예 없었다(`e2e/post-detail-landscape.mobile.spec.ts`가 회귀를 잡는다). MDN은
+  _"UA 스니핑(과 클라이언트 힌트)의 흔한 오용은 클라이언트가 모바일 기기인지 알아내는 것이다"_ (번역)라고
+  쓰고, 레이아웃 변경은 _"대부분 미디어 쿼리가 맡아야 한다"_ (번역)고 권한다
+  ([MDN, Browser detection using the user agent](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Browser_detection_using_the_user_agent)).
+- 터치 제스처처럼 폭이 아니라 입력 장치가 기준인 분기는 `matchMedia('(pointer: coarse)')`로 따로 판정한다
+  (선례: `src/shared/hooks/usePullToRefresh.ts` — 폭으로 정하면 넓은 터치 기기에서 당겨서 새로고침이 꺼진다).
 - **예외 — 카드 그리드 열 수는 뷰포트 브레이크포인트로 정하지 않는다.** 사이드바·폴더트리처럼
   목록 옆에서 폭을 가져가는 레이아웃이 있으면 뷰포트 기준 `md:grid-cols-2 lg:grid-cols-3`는
   실제로 그리드가 받는 폭을 반영하지 못해 카드가 찌그러진다(2026-09-29, PostCard 푸터
@@ -70,7 +79,7 @@ flex h-16
 | 하단 고정 + safe-area                 | `src/widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx`                               |
 | 접힘/펼침 하단 sticky 입력바          | `src/features/comment/create/ui/MobileCommentBar.tsx`                                 |
 | 모바일 전용 풀스크린 오버레이         | `src/widgets/layout/navbar/ui/RecentSearchPanel.tsx`                                  |
-| 모바일 제스처(pull-to-refresh)        | `src/widgets/post/post-list/ui/PostList.tsx` + `src/shared/hooks/usePullToRefresh.ts` |
+| 터치 제스처(pull-to-refresh)          | `src/widgets/post/post-list/ui/PostList.tsx` + `src/shared/hooks/usePullToRefresh.ts` |
 | 모바일 링크 동작 분기(`target=_self`) | `src/shared/ui/elements/MarkdownContent.tsx`                                          |
 
 ## 데스크톱 규약
