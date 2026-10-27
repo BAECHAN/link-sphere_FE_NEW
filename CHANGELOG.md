@@ -169,6 +169,13 @@
 
 ### Fixed
 
+- `post` 글 등록 화면에서 맨 위로 버튼이 우연히 숨겨지던 조건을 명시
+  <details><summary>배경·구현</summary>
+
+  맨 위로 버튼은 상세 화면에서만 빼려고 `useMatch('/post/:id')`로 골랐는데, 이 패턴이 `/post/submit`의 `submit`도 글 id로 읽어 글 등록 화면에서도 우연히 숨겨져 있었다. 모바일 등록 화면에는 하단 탭바 위에 등록 바가 붙어 있어(#206), 조건만 바로잡으면 버튼이 이 바를 가린다. 글 등록·수정은 폼 화면이라 맨 위로 버튼을 두지 않기로 하고, 상세·등록·수정을 각각 이름 붙인 조건(`showScrollToTop`)으로 바꿨다. 수정 화면은 원래 버튼이 뜰 만큼(300px) 내려가지 않아 보이는 변화는 없다 — Playwright로 6가지 화면 크기(360×640~1920×947)에서 직접 측정한 최대 스크롤이 116px였다. (`src/app/layouts/app-layout/AppLayout.tsx`, `src/app/layouts/app-layout/AppLayout.test.tsx`(신규), `.claude/skills/responsive-ux/SKILL.md`, [PR #429](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/429))
+
+  </details>
+
 - `post` 지워진 글을 카드에서 hover한 뒤 누르면 404 안내가 늦게 뜨던 문제
   <details><summary>배경·구현</summary>
 

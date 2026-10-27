@@ -2,6 +2,7 @@ import { ReactNode, useLayoutEffect, useRef } from 'react';
 import { useMatch } from 'react-router-dom';
 
 import { TEXTS } from '@/shared/config/texts';
+import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { Navbar } from '@/widgets/layout/navbar/ui/Navbar';
 import { Sidebar } from '@/widgets/layout/sidebar/ui/Sidebar';
 import { BottomTabBar } from '@/widgets/layout/bottom-tab-bar/ui/BottomTabBar';
@@ -13,7 +14,15 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: Readonly<AppLayoutProps>) {
-  const isDetailPage = useMatch('/post/:id');
+  const isPostSubmitPage = useMatch(ROUTES_PATHS.POST.SUBMIT) !== null;
+  const isPostEditPage = useMatch(ROUTES_PATHS.POST.EDIT) !== null;
+  // '/post/:id'는 'submit'도 id로 읽는다 - 라우터는 정적 경로를 먼저 고르지만 useMatch는
+  // 패턴 하나만 대조하므로 등록 화면을 직접 빼야 한다.
+  const isPostDetailPage = useMatch('/post/:id') !== null && !isPostSubmitPage;
+  // 맨 위로 버튼을 빼는 화면 - 상세는 같은 자리(오른쪽 아래)를 데스크톱의 댓글 쓰기로 이동
+  // 버튼과 모바일의 하단 댓글 바가 쓴다. 글 등록·수정은 폼 화면이라 두지 않는다(모바일
+  // 등록 화면에서는 하단 등록 바를 가린다).
+  const showScrollToTop = !isPostDetailPage && !isPostSubmitPage && !isPostEditPage;
   const mainRef = useRef<HTMLElement>(null);
 
   // 모바일 검색 패널(RecentSearchPanel)은 시각적으로만 배경을 덮고 스크림·포커스
@@ -65,7 +74,7 @@ export function AppLayout({ children }: Readonly<AppLayoutProps>) {
         </main>
       </div>
       <BottomTabBar />
-      {!isDetailPage && <ScrollToTop />}
+      {showScrollToTop && <ScrollToTop />}
     </div>
   );
 }
