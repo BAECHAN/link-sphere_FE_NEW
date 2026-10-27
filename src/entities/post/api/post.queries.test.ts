@@ -14,6 +14,7 @@ import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import type { Post, PostListResponse } from '@/entities/post/model/post.schema';
 import type { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import {
+  prefetchPostDetail,
   useCreatePostMutation,
   useDeletePostMutation,
   usePrefetchPostDetail,
@@ -552,6 +553,39 @@ describe('usePrefetchPostDetail', () => {
     });
 
     await waitFor(() => expect(result.current?.data).toEqual(mockPost));
+    expect(detailRequests).toBe(1);
+  });
+});
+
+// 카드·내 댓글 hover의 미리 받기도 같은 이유로 retry: false를 실어야 한다 — hover 직후 클릭하면 상세 화면이
+// 이 요청을 이어받으므로, 지워진 글의 안내가 재시도만큼 늦어진다.
+describe('prefetchPostDetail', () => {
+  let detailRequests: number;
+
+  beforeEach(() => {
+    detailRequests = 0;
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: shouldRetryQuery, retryDelay: 0, gcTime: Infinity } },
+    });
+  });
+
+  it('404면 운영 재시도 정책이 있어도 다시 요청하지 않는다', async () => {
+    server.use(
+      http.get(url(`${API_ENDPOINTS.post.base}/:id`), () => {
+        detailRequests += 1;
+
+        return HttpResponse.json(
+          { status: 404, code: 'POST_NOT_FOUND', message: 'not found', timestamp: '' },
+          { status: 404 }
+        );
+      })
+    );
+
+    prefetchPostDetail(queryClient, POST_ID);
+
+    await waitFor(() =>
+      expect(queryClient.getQueryState(postKeys.detail(POST_ID))?.status).toBe('error')
+    );
     expect(detailRequests).toBe(1);
   });
 });

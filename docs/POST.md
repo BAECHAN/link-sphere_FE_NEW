@@ -225,7 +225,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - **미리 받기**: 상세 라우트(`PostDetailRoute`, `src/app/routes/index.tsx:147`)가 lazy 페이지 청크를 요청하는
   같은 렌더에서 게시글(`usePrefetchPostDetail`)과 댓글(`usePrefetchComments`)을 요청한다. 게시글은 상세 조회와
   같은 옵션 묶음(`postDetailQueryOptions`)을 써 `retry: false`까지 같다. 진행 중인 요청은 먼저 시작한 쪽 옵션으로
-  돌기 때문이다.
+  돌기 때문이다. 카드·내 댓글 hover의 `prefetchPostDetail`도 같은 옵션 묶음을 쓴다(2026-10-27 전에는 `retry`가
+  빠져 있어, 지워진 글을 hover 직후 클릭하면 404 안내가 재시도만큼 늦었다).
 - **썸네일**: 상세 카드의 썸네일이 이 페이지의 LCP 요소라 `priorityThumbnail`로 `loading="eager"`·
   `fetchPriority="high"`를 준다(2026-10-26, 그 전에는 목록과 같은 `lazy`). 피드는 첫 행(최대 3장)만 같은 우선
   로딩을 받고 나머지 카드는 `lazy`다(`pages/post/index.tsx`의 `renderFeedPost`, #195).
@@ -485,7 +486,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 조회 로딩 표시 지연                     | 500ms                | `src/shared/config/const.ts:11`                                   |
 | mutation 진행 표시 지연 / 최소 노출     | 500ms / 400ms        | `src/shared/config/const.ts:18-21`                                |
 | 쿼리 기본 staleTime / gcTime / retry    | 3분 / 5분 / 1회      | `src/shared/lib/react-query/config/queryClient.ts:72-75`          |
-| 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:227`                       |
+| 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:228`                       |
 | 미리보기 조회 디바운스                  | 500ms                | `src/entities/post/hooks/useLinkPreview.ts:9`                     |
 | 미리보기 staleTime / 재시도             | 10분 / 없음          | `src/entities/post/api/post.queries.ts:201-214`                   |
 | 카테고리 옵션 staleTime                 | 24시간               | `src/entities/category/api/category.queries.ts:14`                |
