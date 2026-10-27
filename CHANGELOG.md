@@ -169,6 +169,13 @@
 
 ### Fixed
 
+- `post` 지워진 글을 카드에서 hover한 뒤 누르면 404 안내가 늦게 뜨던 문제
+  <details><summary>배경·구현</summary>
+
+  상세 조회는 비공개·삭제 글의 404를 재시도하지 않도록 `retry: false`를 갖는데, 카드·내 댓글 hover에서 상세를 미리 받는 `prefetchPostDetail`만 이 옵션 없이 `queryKey`·`queryFn`을 따로 적고 있었다. 그래서 전역 재시도 정책(`shouldRetryQuery`)이 404를 한 번 더 요청했다. 진행 중인 요청은 먼저 시작한 쪽 옵션으로 돌기 때문에, hover 직후 클릭하면 상세 화면도 이 요청을 이어받아 안내 화면이 재시도만큼 늦게 떴다. 미리 받기가 상세 화면·라우트 미리 받기와 같은 `postDetailQueryOptions`를 쓰도록 바꿨다. (`src/entities/post/api/post.queries.ts`, `src/entities/post/api/post.queries.test.ts`, `docs/POST.md`, [PR #428](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/428))
+
+  </details>
+
 - `auth` 로그인 상태로 앱을 열 때·비밀번호를 바꿀 때 알림 권한을 묻던 문제
   <details><summary>배경·구현</summary>
 

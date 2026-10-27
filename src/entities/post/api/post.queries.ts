@@ -216,8 +216,9 @@ export const useFetchLinkPreviewQuery = (url: string, enabled: boolean) => {
 };
 
 /**
- * 상세 조회 옵션 — 라우트의 미리 받기(usePrefetchPostDetail)와 상세 화면이 같이 쓴다. 진행 중인 요청은
- * 먼저 시작한 쪽 옵션으로 돌므로, 미리 받기에도 retry: false가 실려야 404 안내가 늦어지지 않는다.
+ * 상세 조회 옵션 — 미리 받기(라우트의 usePrefetchPostDetail, hover의 prefetchPostDetail)와 상세 화면이 같이
+ * 쓴다. 진행 중인 요청은 먼저 시작한 쪽 옵션으로 돌므로, 미리 받기에도 retry: false가 실려야 404 안내가
+ * 늦어지지 않는다.
  */
 const postDetailQueryOptions = (postId: string) =>
   queryOptions({
@@ -239,12 +240,9 @@ export const usePrefetchPostDetail = (postId: string) => {
   usePrefetchQuery(postDetailQueryOptions(postId));
 };
 
-/** hover 시 게시글 상세 미리 로드 — useSuspenseFetchPostDetailQuery 와 동일 키/queryFn */
+/** hover 시 게시글 상세 미리 로드 — useSuspenseFetchPostDetailQuery 와 같은 옵션(retry: false 포함) */
 export const prefetchPostDetail = (queryClient: QueryClient, postId: string) => {
-  queryClient.prefetchQuery({
-    queryKey: postKeys.detail(postId),
-    queryFn: () => postApi.fetchPostDetail(postId),
-  });
+  queryClient.prefetchQuery(postDetailQueryOptions(postId));
 };
 
 /**
