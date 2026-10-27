@@ -1,3 +1,8 @@
+### 2026-10-27 (BE)
+- 북마크 폴더 이름 최대 글자 수 제한 변경 ([#128](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/128))
+로그:
+- feat(bookmark): 폴더 이름 상한을 100자에서 15자로 낮춰 FE와 맞춤 ([#128](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/128))
+
 ### 2026-10-27 (FE)
 - 북마크 폴더명 UI 개선: 텍스트 제한(15자) 및 줄바꿈 처리를 통한 가독성 향상 ([#424](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/424))
 
