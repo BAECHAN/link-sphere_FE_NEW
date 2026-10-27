@@ -1,3 +1,6 @@
+### 2026-10-27 (FE)
+- 공유 라이브러리 및 커맨드 문서 최신화 ([#427](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/427))
+
 ### 2026-10-27 (BE)
 - 북마크 폴더 이름 최대 글자 수 제한 변경 ([#128](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/128))
 로그:
