@@ -419,7 +419,7 @@ aws cloudfront get-cache-policy --id <정책 ID> \
 - **viewer-request·viewer-response** — CloudFront Function이 실행되는 시점. 요청이 엣지에 들어올 때와 응답이 나갈 때다
 - **entry 청크** — `index.html`의 `<script type="module">`이 가리키는 시작 JS 파일(`/assets/js/index-<해시>.js`)
 - **lazy 청크** — 페이지에 처음 들어갈 때 동적 import로 받는 JS 조각
-- **preload** — `index.html`의 `<link rel="preload">`로 브라우저가 미리 받게 하는 파일(여기서는 자주 쓰는 폰트 조각 19개)
+- **preload** — `index.html`의 `<link rel="preload">`로 브라우저가 미리 받게 하는 파일(여기서는 공개 페이지가 모두 쓰는 폰트 조각 5개, 2026-10-27까지는 19개)
 - **version skew** — 클라이언트와 서버(여기서는 열린 탭과 배포된 파일)가 서로 다른 버전으로 동시에 도는 상태
 - **원자적 배포** — 새 버전의 모든 파일이 준비된 뒤에 한 번에 공개하는 배포
 - **bfcache** — 뒤로/앞으로 이동 때 떠났던 페이지를 메모리에서 그대로 복원하는 브라우저 기능

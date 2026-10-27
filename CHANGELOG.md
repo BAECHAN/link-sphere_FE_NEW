@@ -69,6 +69,13 @@
 
   </details>
 
+- `shared` 첫 로딩에 미리 받는 폰트 조각을 19개에서 5개로 줄임
+  <details><summary>배경·구현</summary>
+
+  `index.html`이 Pretendard dynamic-subset 조각 19개를 preload했는데, 이 목록은 최근 게시글 300개의 글자 합집합이라 첫 화면에 안 쓰는 조각까지 받았다. 운영 HTML의 preload를 지우고 공개 페이지 4개를 데스크톱·모바일로 열어 보니 19개 중 7개는 어느 페이지도 요청하지 않았고, 8개 조합이 모두 요청한 조각은 87~91번 5개였다. 같은 빌드에서 preload만 바꾼 사본으로 Lighthouse simulate·devtools 두 방식을 번갈아 잰 결과, 5개(M)는 8개 조합 어디서도 19개보다 나빠지지 않았고 모바일 LCP가 1.5~2.1초 빨라졌다. preload를 모두 뺀 안(D)은 simulate에서 FCP가 0.12~0.45초 늦어져 뺐다. 필름스트립·첫 방문 영상을 비교한 뒤 사용자가 골랐다. 합집합 계산 스크립트는 기준이 달라 지웠고, 다시 고르는 절차는 `docs/PERFORMANCE.md` "폰트 preload 유지보수"에 적었다. 계획 `docs/plans/2026-10-26-lcp-prefetch-font-preload.md`. (`index.html`, `scripts/compute-font-preload-chunks.js`(삭제), `docs/PERFORMANCE.md`, `docs/DEPLOY.md`, `docs/CACHE-STRATEGY.md`, `.claude/skills/design-tokens/SKILL.md`, [PR #425](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/425))
+
+  </details>
+
 - `post` 피드·상세 데이터를 페이지 코드와 함께 요청하고 상세 썸네일을 먼저 받음
   <details><summary>배경·구현</summary>
 

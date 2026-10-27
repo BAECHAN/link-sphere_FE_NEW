@@ -63,7 +63,8 @@
     - `fonts/`는 파일명에 해시가 없는 대신 **경로에 폰트 버전**이 들어갑니다
       (`public/fonts/pretendard-1.3.9/`). 1년 `immutable`로 캐시되므로, 폰트를 바꿀 땐 같은
       경로의 파일을 덮어쓰지 말고 디렉터리 버전을 올립니다(`index.html`의 preload·stylesheet
-      경로와 `scripts/compute-font-preload-chunks.js`도 함께). ②는 폰트를 매 배포 다시
+      경로도 함께 — 새 버전에서 조각 번호·범위가 같다는 보장이 없어 preload 목록도 다시 고릅니다,
+      [`PERFORMANCE.md`](./PERFORMANCE.md) "폰트 preload 유지보수"). ②는 폰트를 매 배포 다시
       올립니다(약 3MB, 2026-10-14 전엔 쓰지 않는 파일 포함 118개·13.7MB). `--size-only`로
       건너뛰지 않는 이유: 업로드 시각이 처음 올린 때에 고정되면, 버전을 올린 배포에서 9번이 옛
       폰트를 7일 기다리지 않고 바로 지워 열린 탭이 아직 안 받은 글자 조각이 403이 됩니다.
