@@ -27,11 +27,22 @@ describe('AppLayout 맨 위로 버튼', () => {
   it.each(['/post', '/bookmark', '/my/comments', '/my/account'])('%s에서는 보인다', (path) => {
     renderAt(path);
 
-    expect(screen.getByRole('button', { name: 'Scroll to top' })).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: 'Scroll to top' });
+
+    expect(button.closest('.max-md\\:hidden')).toBeNull();
+  });
+
+  // jsdom은 CSS를 적용하지 않아 폭별 노출은 e2e(scroll-to-top-detail.spec.ts)가 본다
+  it('글 상세에서는 모바일 폭에서 숨기는 감쌈 안에 둔다', () => {
+    renderAt('/post/abc');
+
+    const button = screen.getByRole('button', { name: 'Scroll to top' });
+
+    expect(button.closest('.max-md\\:hidden')).not.toBeNull();
   });
 
   // /post/submit은 '/post/:id' 패턴에도 맞는다 - 상세로 착각해 우연히 숨던 것을 명시 조건으로 바꿨다
-  it.each(['/post/abc', '/post/submit', '/post/edit/abc'])('%s에서는 숨긴다', (path) => {
+  it.each(['/post/submit', '/post/edit/abc'])('%s에서는 숨긴다', (path) => {
     renderAt(path);
 
     expect(screen.queryByRole('button', { name: 'Scroll to top' })).not.toBeInTheDocument();

@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CommentForm, CommentFormHandle } from '@/features/comment/create/ui/CommentForm';
 import { MobileCommentBar } from '@/features/comment/create/ui/MobileCommentBar';
-import { ScrollToCommentFormButton } from '@/widgets/comment/comment-list/ui/ScrollToCommentFormButton';
 import { CommentItem } from '@/widgets/comment/comment-list/ui/CommentItem';
 import { Comment as PostComment } from '@/entities/comment/model/comment.schema';
 import { COMMENT_SECTION_HASH } from '@/entities/comment/config/comment.const';
@@ -38,7 +37,7 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
   // CommentForm 컨테이너의 scroll-mt-(--navbar-height)와 동일 패턴).
   //
   // 게시글 카드의 댓글 아이콘(#comments)은 댓글 하나가 아니라 작성 폼으로 보낸다 -
-  // ScrollToCommentFormButton처럼 부드럽게 스크롤 + 포커스하고, 모바일은 인라인 폼이 없어
+  // 데스크톱은 부드럽게 스크롤한 뒤 입력창에 포커스하고, 모바일은 인라인 폼이 없어
   // 제목까지만 온다(commentFormRef가 null). 이 해시는 DOM id가 아니라 ref로 찾는다 - id가
   // 있으면 ScrollRestoration이 먼저 즉시 점프해 부드러운 스크롤이 안 보인다. 즉시 이동·직접
   // 만든 250ms와 비교한 근거는 docs/COMMENT.md "해시 이동".
@@ -130,21 +129,14 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
       </div>
 
       {/*
-       * MobileCommentBar/ScrollToCommentFormButton은 둘 다 position: fixed라 화면에 보이는
-       * 위치와 무관하지만, 위 space-y-6 형제로 두면 Tailwind의 :not(:last-child) 마진 규칙이
-       * DOM 순서만으로 "마지막 자식"을 판단해 그 앞의 실제 콘텐츠(댓글 목록)에 24px 여백을
-       * 붙였다 뗐다 한다. 이 컴포넌트들이 스크롤에 따라 마운트/언마운트될 때마다 문서 전체
-       * 높이가 24px씩 흔들리고, 페이지 하단 근처에서는 브라우저가 스크롤 위치를 강제로
-       * 보정하면서 화면이 살짝 밀리는 것처럼 보였다 — space-y-6 형제 목록 밖으로 분리해 제거.
+       * MobileCommentBar는 position: fixed라 화면에 보이는 위치와 무관하지만, 위 space-y-6
+       * 형제로 두면 Tailwind의 :not(:last-child) 마진 규칙이 DOM 순서만으로 "마지막 자식"을
+       * 판단해 그 앞의 실제 콘텐츠(댓글 목록)에 24px 여백을 붙였다 뗐다 한다. 마운트/언마운트될
+       * 때마다 문서 전체 높이가 24px씩 흔들리고, 페이지 하단 근처에서는 브라우저가 스크롤
+       * 위치를 강제로 보정하면서 화면이 살짝 밀리는 것처럼 보였다 — space-y-6 형제 목록 밖으로
+       * 분리해 제거.
        */}
       {isMobile && <MobileCommentBar postId={postId} />}
-
-      {!isMobile && (
-        <ScrollToCommentFormButton
-          targetRef={formContainerRef}
-          onAfterScroll={() => commentFormRef.current?.focus()}
-        />
-      )}
     </>
   );
 }

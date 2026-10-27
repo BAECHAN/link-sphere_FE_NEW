@@ -678,7 +678,6 @@ export const TEXTS = {
     imageViewerNext: '다음 이미지',
     profileImageZoom: '프로필 사진 확대',
     commentBarExpand: '댓글 작성창 펼치기',
-    scrollToCommentForm: '댓글 작성창으로 이동',
 
     // 입력 필드
     inputClear: '입력값 지우기',

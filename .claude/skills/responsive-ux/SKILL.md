@@ -104,10 +104,12 @@ shadow-lg`, CSS transition + `setTimeout`으로 exit 애니메이션 동안 마�
 framer-motion 아님, `package.json`에 없음)를 페이지별로 상호 배타적으로 나눠 쓴다.
 세로 위치와 노출 조건은 컴포넌트별로 다르다:
 
-| 컴포넌트                                                            | 세로 위치                                   | 노출/게이트                                                                                                                  | 적용 페이지                                                      |
-| ------------------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `src/shared/ui/elements/ScrollToTop.tsx`                            | `bottom-20 md:bottom-6`(모바일은 탭바 회피) | `window.scrollY > 300`. 모바일+데스크톱 공용, 뷰포트 게이트 없음                                                             | 글 상세·등록·수정 제외 전역(`AppLayout.tsx`의 `showScrollToTop`) |
-| `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.tsx` | `bottom-6`                                  | `IntersectionObserver`로 상단 작성 폼이 화면 밖으로 나갔는지 감지 + JS `!isMobile` 게이트(`CommentList.tsx`)로 데스크톱 전용 | 상세 페이지 전용(`CommentList`가 이 페이지에서만 쓰임)           |
+| 컴포넌트                                 | 세로 위치                                   | 노출/게이트                                                                                                                       | 적용 페이지                                                                                          |
+| ---------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `src/shared/ui/elements/ScrollToTop.tsx` | `bottom-20 md:bottom-6`(모바일은 탭바 회피) | `window.scrollY > 300`. 상세에서는 `max-md:hidden` 감쌈으로 데스크톱만(모바일은 하단 댓글 바가 있고 버튼이 댓글 수정·삭제를 가림) | 글 등록·수정 제외 전역(`AppLayout.tsx`의 `showScrollToTop`), 근거는 `docs/COMMENT.md` "맨 위로 버튼" |
+
+상세의 "댓글 쓰기로 이동" 플로팅 버튼(`ScrollToCommentFormButton`)은 2026-10-27 맨 위로 버튼으로 바꾸며
+지웠다 — 한 화면에 플로팅 버튼을 둘 쌓지 않는다(Material Design 3 FAB 가이드, 위 문서 참고).
 
 새 플로팅 버튼이 필요하면 이 표에 어느 페이지에서 켜지는지부터 정하고, 기존 버튼과
 같은 페이지에서 동시에 뜨지 않게 한다(`z-nav` 하나뿐이라 자리가 겹치면 시각적으로
@@ -124,7 +126,7 @@ ESLint 룰이 `z-50` 같은 raw 숫자 클래스를 pre-commit에서 차단한�
 | `z-raised`  | 10  | 카드 내부 오버레이 (`DropTargetOverlay.tsx`, `PostCard.tsx`), 필터 응답 대기 중 목록 위 오버레이(`PostList.tsx`)                                        |
 | `z-hitbox`  | 20  | 드롭 히트박스 (`DropTargetOverlay.tsx`)                                                                                                                 |
 | `z-panel`   | 40  | `RecentSearchPanel`, `MobileCommentBar` 접힘 상태, `CreatePostForm` 모바일 제출 바                                                                      |
-| `z-nav`     | 50  | `Navbar`(sticky top), `BottomTabBar`, 플로팅 버튼(`ScrollToTop`/`ScrollToCommentFormButton`)                                                            |
+| `z-nav`     | 50  | `Navbar`(sticky top), `BottomTabBar`, 플로팅 버튼(`ScrollToTop`)                                                                                        |
 | `z-scrim`   | 55  | `Sidebar` 모바일 오버레이, `MobileCommentBar` 확장 상태                                                                                                 |
 | `z-drawer`  | 60  | `Sidebar` 모바일 드로어                                                                                                                                 |
 | `z-modal`   | 70  | `Dialog` 오버레이·콘텐츠(`shared/ui/atoms/dialog.tsx`) — 로그인 모달, 이미지 뷰어 등, `AlertDialog`(`shared/ui/atoms/alert-dialog.tsx`) — Alert/Confirm |
