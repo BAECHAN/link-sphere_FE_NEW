@@ -374,7 +374,9 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
   위치는 전역 규칙(`globals.css`의 `word-break: keep-all` + `overflow-wrap: break-word`)을 따라 어절 단위다.
 - 예외: 글쓰기 화면의 폴더 요약(`PostCreateBookmarkFolderField`, 고른 폴더 이름을 쉼표로 이은 한 줄)은 말줄임을 그대로 둔다.
   여러 이름의 요약이라 한 줄로 두는 편이 낫다.
-- 이미 저장된 15자 초과 이름은 그대로 남고 여러 줄로 보인다. 운영 DB에 몇 개 있는지는 확인하지 못했다.
+- 이미 저장된 15자 초과 이름이 있어도 그대로 남고 여러 줄로 보인다(DB 컬럼은 `varchar(100)` 그대로). 다만 2026-10-27 운영
+  DB를 직접 집계해 보니 폴더 37개(사용자 4명) 중 가장 긴 이름이 8자라, 15자를 넘는 이름은 0개였다. 읽기 전용 계정
+  (`psql "service=linksphere-ro"`)으로 이름은 읽지 않고 `char_length(btrim(name))`만 셌다.
 
 ### 링크 등록 폼의 폴더 선택(`PostCreateBookmarkFolderField`) — 이 페이지가 아닌 다른 화면
 
