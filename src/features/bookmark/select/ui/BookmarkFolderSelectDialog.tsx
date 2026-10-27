@@ -62,6 +62,7 @@ export function BookmarkFolderSelectDialog({
     setCreatingMode,
     newFolderName,
     setNewFolderName,
+    newFolderNameError,
     isCreating,
     handleSelectUncategorized,
     handleSelectFolder,
@@ -117,48 +118,54 @@ export function BookmarkFolderSelectDialog({
                 위쪽 경계를 이미 그리므로 이 블록은 아래쪽에만 border-b를 둔다 */}
             <ul className="py-1 border-b">
               {creatingMode ? (
-                <li className="flex items-center gap-2 px-4 py-2.5">
-                  <FolderPlus className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <Input
-                    autoFocus
-                    enterKeyHint="done"
-                    placeholder={TEXTS.bookmark.folder.namePlaceholder}
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    onKeyDown={(e) => {
-                      // IME(한글 등) 조합 중 엔터는 무시. ESC는 Dialog의 onEscapeKeyDown이
-                      // 소유한다(위 참고) — 여기서 또 처리하면 같은 일을 두 번 하게 된다
-                      if (e.nativeEvent.isComposing) {
-                        return;
-                      }
+                <li className="flex flex-col gap-1 px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <FolderPlus className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <Input
+                      autoFocus
+                      enterKeyHint="done"
+                      placeholder={TEXTS.bookmark.folder.namePlaceholder}
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      onKeyDown={(e) => {
+                        // IME(한글 등) 조합 중 엔터는 무시. ESC는 Dialog의 onEscapeKeyDown이
+                        // 소유한다(위 참고) — 여기서 또 처리하면 같은 일을 두 번 하게 된다
+                        if (e.nativeEvent.isComposing) {
+                          return;
+                        }
 
-                      if (e.key === 'Enter') {
-                        handleCreateAndSelect();
-                      }
-                    }}
-                    className="h-8 flex-1"
-                    disabled={isCreating}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCancelCreate}
-                    disabled={isCreating}
-                  >
-                    {TEXTS.buttons.cancel}
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleCreateAndSelect}
-                    disabled={!newFolderName.trim() || isCreating}
-                  >
-                    {isCreating ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      TEXTS.bookmark.folder.createSubmit
-                    )}
-                  </Button>
+                        if (e.key === 'Enter') {
+                          handleCreateAndSelect();
+                        }
+                      }}
+                      className="h-8 flex-1"
+                      disabled={isCreating}
+                      aria-invalid={newFolderNameError !== null}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancelCreate}
+                      disabled={isCreating}
+                    >
+                      {TEXTS.buttons.cancel}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleCreateAndSelect}
+                      disabled={!newFolderName.trim() || newFolderNameError !== null || isCreating}
+                    >
+                      {isCreating ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        TEXTS.bookmark.folder.createSubmit
+                      )}
+                    </Button>
+                  </div>
+                  {newFolderNameError && (
+                    <p className="text-xs text-destructive">{newFolderNameError}</p>
+                  )}
                 </li>
               ) : (
                 <li>
@@ -390,7 +397,8 @@ function FolderRow({ icon, name, count, isSelected, isPending, onClick }: Folder
         )}
       >
         <span className="text-muted-foreground">{icon}</span>
-        <span className="flex-1 text-left truncate">{name}</span>
+        {/* 말줄임 대신 어절 단위 줄바꿈(docs/BOOKMARK.md "폴더 이름 길이") — Button의 whitespace-nowrap을 푼다 */}
+        <span className="min-w-0 flex-1 text-left whitespace-normal">{name}</span>
         {typeof count === 'number' && (
           <span className="text-xs text-muted-foreground">{count}</span>
         )}

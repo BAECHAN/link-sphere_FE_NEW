@@ -48,6 +48,13 @@
 
 ### Changed
 
+- `bookmark` 폴더 이름을 15자로 제한하고, 잘리지 않게 줄바꿈해 보여 줌
+  <details><summary>배경·구현</summary>
+
+  폴더 이름은 사이드바·모바일 카드·폴더 제목·폴더 선택 창에서 한 줄 말줄임이라, "자바스크립트 심화 학습 자료"(14자)가 "자바스크립트 심화…"로 잘렸다. 한글·영문·공백은 폭이 달라 글자 수만으로는 화면 폭을 맞출 수 없다(Pretendard 14px 실측: 한글 12.1px, 영문 소문자 평균 7.1px, 공백 3.5px). 네 안(한 줄 8자, 한 줄 화면 폭, 줄바꿈 15자, 그대로)을 실제 폭으로 그린 미리보기에서 사용자가 줄바꿈 15자를 골랐다. 이제 이름은 말줄임 없이 어절 단위로 줄바꿈되고(가장 좁은 360px 폰 카드에서 보통 2줄), 16자부터는 입력 바로 아래에 "폴더 이름은 15자까지 쓸 수 있어요. (지금 N자)"를 띄우고 생성을 막는다. 이름 변경은 넘친 채 바깥을 눌러도 닫히지 않는다. 글자 수는 BE처럼 앞뒤 공백을 뺀 코드포인트로 센다. 이미 15자를 넘는 이름은 그대로 남고 여러 줄로 보인다. 글쓰기 화면의 폴더 요약(여러 이름을 쉼표로 이은 한 줄)은 말줄임을 유지한다. 근거·실측은 `docs/BOOKMARK.md` §5 "폴더 이름 길이". (`bookmark-folder.const.ts`, `bookmark-folder.util.ts`, `useCreateFolderForm.ts`, `useFolderActions.ts`, `useFolderTree.ts`, `useMobileFolderList.ts`, `useBookmarkFolderSelect.ts`, `FolderTree.tsx`, `MobileFolderList.tsx`, `BookmarkFolderSelectDialog.tsx`, `BookmarkPage.tsx`, `texts.ts`, `e2e/bookmark-folder-name.spec.ts`, `e2e/bookmark-folder-name.mobile.spec.ts`, [PR #424](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/424))
+
+  </details>
+
 - `post` 피드·상세 데이터를 페이지 코드와 함께 요청하고 상세 썸네일을 먼저 받음
   <details><summary>배경·구현</summary>
 

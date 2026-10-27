@@ -7,6 +7,7 @@ import {
   useUpdateBookmarkFolderMutation,
 } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
+import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-folder.util';
 
 interface UseFolderActionsParams {
   folder: BookmarkFolder;
@@ -26,6 +27,7 @@ export const useFolderActions = ({ folder, onBeforeDelete }: UseFolderActionsPar
   const { mutateAsync: deleteFolder } = useDeleteBookmarkFolderMutation(folder.id);
   const { openConfirm } = useAlert();
   const submittingRef = useRef(false);
+  const nameError = BookmarkFolderUtil.nameLengthError(name);
 
   const startRename = () => {
     setRenaming(true);
@@ -41,6 +43,13 @@ export const useFolderActions = ({ folder, onBeforeDelete }: UseFolderActionsPar
       setName(folder.name);
       return;
     }
+
+    // 너무 길면 입력을 닫지 않는다 — 입력 아래 문구로 이유를 보여 준 채 고칠 기회를 둔다(blur로
+    // 닫아 버리면 쓰던 이름이 사라진다). Escape는 지금처럼 원래 이름으로 되돌린다
+    if (nameError) {
+      return;
+    }
+
     submittingRef.current = true;
     try {
       await updateFolder({ name: next });
@@ -91,6 +100,7 @@ export const useFolderActions = ({ folder, onBeforeDelete }: UseFolderActionsPar
     startRename,
     name,
     setName,
+    nameError,
     isUpdating,
     submitRename,
     handleRenameKeyDown,

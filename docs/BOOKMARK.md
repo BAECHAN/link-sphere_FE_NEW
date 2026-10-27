@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-14
+> **마지막 검토**: 2026-10-27
 
 ## 1. 쉬운 설명
 
@@ -316,6 +316,66 @@ Shneiderman(1994)](https://dl.acm.org/doi/10.1145/174630.174632)의 split menu
 "'내 폴더' 라벨이 스크롤에 같이 밀리고..." 참고). "내 폴더" 라벨도 같은 상단
 블록에 고정돼 있어 스크롤은 그 아래 폴더 행에만 적용된다.
 
+### 폴더 이름 길이 — 15자, 말줄임 대신 줄바꿈(2026-10-27)
+
+**문제.** 폴더 이름은 다섯 자리에 나온다. 사이드바 행(`FolderTree`), 모바일 폴더 카드(`MobileFolderList`), 폴더 화면
+제목(모바일·데스크톱, `BookmarkPage`), 폴더 선택 창 행(`BookmarkFolderSelectDialog`)이다. 전부 한 줄 + 말줄임(`truncate`)이었고,
+길이 제한은 BE의 100자(DB `varchar(100)`)뿐이었다. 그래서 "자바스크립트 심화 학습 자료"(14자)가 사이드바와 모바일 카드에서
+"자바스크립트 심화…"로 잘렸다. 한글·영문·공백은 글자 폭이 달라 "몇 자"만으로는 화면 폭을 맞출 수 없다.
+
+**실측**(직접 측정, Pretendard 1.3.9 · Chromium). FE `public/fonts`를 띄운 페이지에서 글자 폭을
+`getBoundingClientRect`로 쟀고, 칸 폭은 각 컴포넌트의 클래스 값(`w-60`, `px-3`, `gap-3`, `size-9` 등)으로 계산했다.
+14px에서 한글은 모두 12.1px이고, 영문 소문자는 평균 7.1px, 대문자는 9.0px, 공백은 3.5px이다. `W`는 12.8px로 한글보다 넓고
+`i`는 3.1px이다.
+
+| 자리                              | 이름 칸 폭                    | 한글만    | 영문 소문자만 |
+| --------------------------------- | ----------------------------- | --------- | ------------- |
+| 모바일 폴더 카드(360px 폰, 2열)   | 108px · 14px 굵게             | 8자       | 15자          |
+| 데스크톱 사이드바(`w-60`)         | 126px(Windows 스크롤바 111px) | 10자(9자) | 17자          |
+| 모바일 폴더 제목                  | 160px · 20px 굵게             | 9자       | 15자          |
+| 폴더 선택 창(데스크톱 `max-w-sm`) | 270px                         | 22자      | 38자          |
+
+**대안 비교.** 2026-10-27 네 안을 실제 폭과 Pretendard로 나란히 그린 미리보기를 보고 사용자가 C를 골랐다.
+
+| 안                                | 잘림                          | 쓸 수 있는 길이           | 진 이유 / 채택 이유                                                                                     |
+| --------------------------------- | ----------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| 지금(100자 · 한 줄 말줄임)        | 긴 이름은 잘림                | 100자                     | 사이드바·카드에서 이름을 다 못 본다                                                                     |
+| A. 한 줄 · 8자                    | 없음(360px 이상 폰)           | 어떤 글자든 8자           | 화면에 들어가는 "React 공부 자료"(12자)도 막힌다. 영문·공백이 손해                                      |
+| B. 한 줄 · 화면 폭(글꼴로 잰 폭)  | 없음(360px 이상 폰)           | 한글 약 8자, 영문 약 15자 | "몇 자까지"로 안내할 수 없고, BE는 폭을 못 재 같은 규칙을 둘 수 없다. 글꼴 로딩·OS별 이모지 폭에 기댄다 |
+| (기각) 한 줄 · 트위터식 가중치 16 | 남음                          | 한글 2, 나머지 1로 16     | 영문 소문자 16자가 모바일 카드·Windows 사이드바에서 잘렸다(실측). 폭을 보장하지 못한다                  |
+| **C. 줄바꿈 · 15자(채택)**        | 없음(어느 폭이든 줄만 늘어남) | 15자                      | 가장 좁은 자리에서 보통 2줄, 짧은 단어 뒤에 아주 긴 단어가 붙을 때만 3줄. FE·BE가 같은 규칙을 쓴다      |
+
+트위터식 가중치는 [twitter-text 설정](https://github.com/twitter/twitter-text/blob/master/config/v3.json)(기본 가중치 200,
+U+0000~U+10FF 등만 100 — 한글 음절은 2자)을 본뜬 것이다. 공정하게 "세는" 방법이지 폭을 맞추는 방법이 아니었다.
+
+줄바꿈 쪽 근거:
+
+> 잘림은 사용자에게 유용한 정보를 숨길 위험이 있으므로, 줄바꿈(텍스트가 끊겨 여러 줄로 이어지게 하는 것)이 더 나은지 항상
+> 검토할 가치가 있다. (…) 내비게이션 항목, 제목, 라벨, 오류 메시지, 힌트 텍스트, 알림은 자르지 않는다. (번역)
+>
+> — Maersk Design System, https://designsystem.maersk.com/content/truncation/
+
+PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘린 항목에는 전체 문자열을 보여 주는 툴팁을 항상 달라고 한다(번역,
+[PatternFly Truncate 디자인 지침](https://www.patternfly.org/components/truncate/design-guidelines)). 폴더 이름이 나오는 사이드바
+항목과 폴더 제목이 정확히 그 두 자리다. 툴팁은 호버가 없는 터치 기기에서 쓸 수 없어 대안이 되지 못했다.
+
+**동작.**
+
+- 상한은 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`(15) 하나다. 앞뒤 공백을 뺀 뒤 코드포인트로 센다. BE
+  `BookmarkFolderService.MAX_FOLDER_NAME_LENGTH`도 같은 값·같은 셈법(trim 뒤 `codePointCount`)이다. `string.length`는 이모지
+  하나를 2로 세므로 쓰지 않는다.
+- 입력 다섯 곳(사이드바·모바일 카드·폴더 선택 창의 새 폴더, 사이드바·모바일 카드의 이름 변경)이 모두
+  `BookmarkFolderUtil.nameLengthError`로 검사한다. 넘치면 입력 바로 아래에 이유(`TEXTS.validation.folderNameTooLong`, 상한과 지금
+  길이)를 띄우고 `aria-invalid`를 건다. 생성 버튼은 막는다 — 이유가 입력 아래에 늘 보이므로 CLAUDE.md의 "disabled만으로 처리하지
+  않는다" 조건을 충족한다(선례: `CommentForm.tsx`의 댓글 길이 안내). Enter도 보내지 않는다.
+- 이름 변경은 넘친 채로 바깥을 눌러도(blur) 입력을 닫지 않는다. 쓰던 이름이 사라지지 않게 하려는 것이다. Escape는 지금처럼
+  원래 이름으로 되돌린다. 이미 15자를 넘는 예전 이름은 고치지 않고 닫으면 요청 없이 그대로 닫힌다.
+- 표시는 `whitespace-normal`(Button의 `whitespace-nowrap`을 푼다) + `min-w-0`(공백 없는 긴 이름도 칸 안에서 끊기게)이다. 줄바꿈
+  위치는 전역 규칙(`globals.css`의 `word-break: keep-all` + `overflow-wrap: break-word`)을 따라 어절 단위다.
+- 예외: 글쓰기 화면의 폴더 요약(`PostCreateBookmarkFolderField`, 고른 폴더 이름을 쉼표로 이은 한 줄)은 말줄임을 그대로 둔다.
+  여러 이름의 요약이라 한 줄로 두는 편이 낫다.
+- 이미 저장된 15자 초과 이름은 그대로 남고 여러 줄로 보인다. 운영 DB에 몇 개 있는지는 확인하지 못했다.
+
 ### 링크 등록 폼의 폴더 선택(`PostCreateBookmarkFolderField`) — 이 페이지가 아닌 다른 화면
 
 `src/features/post/create/ui/PostCreateBookmarkFolderField.tsx`는 `/bookmark` 페이지가
@@ -411,12 +471,13 @@ BE 스펙도 `lastUsedAt`을 optional + `nullable: true`로 표기하고(`shared
 
 "최근 저장한 폴더" 상단 구획 노출 기준.
 
-| 파라미터                                     | 값    | 실제 위치                                                                                   |
-| -------------------------------------------- | ----- | ------------------------------------------------------------------------------------------- |
-| 상단 구획 노출 최소 "저장 이력 있는" 폴더 수 | 3     | `pickRecentFolders`(`entities/bookmark/folder/utils/bookmark-folder.util.ts`)               |
-| 상단 구획 노출 제외 조건(완전 일치)          | —     | 전체 폴더 수가 `RECENT_BOOKMARK_FOLDER_COUNT`(3)와 같을 때만 예외로 숨김(아래 설명)         |
-| 상단 구획 고정 노출 개수                     | 3     | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT` |
-| 열린 직후 클릭 무시 시간                     | 400ms | `shared/config/const.ts`의 `DOUBLE_CLICK_GUARD_MS`(위 "열린 직후 클릭 무시" 소절)           |
+| 파라미터                                     | 값    | 실제 위치                                                                                                                                                     |
+| -------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 상단 구획 노출 최소 "저장 이력 있는" 폴더 수 | 3     | `pickRecentFolders`(`entities/bookmark/folder/utils/bookmark-folder.util.ts`)                                                                                 |
+| 상단 구획 노출 제외 조건(완전 일치)          | —     | 전체 폴더 수가 `RECENT_BOOKMARK_FOLDER_COUNT`(3)와 같을 때만 예외로 숨김(아래 설명)                                                                           |
+| 상단 구획 고정 노출 개수                     | 3     | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`                                                                   |
+| 열린 직후 클릭 무시 시간                     | 400ms | `shared/config/const.ts`의 `DOUBLE_CLICK_GUARD_MS`(위 "열린 직후 클릭 무시" 소절)                                                                             |
+| 폴더 이름 최대 길이(코드포인트)              | 15    | `entities/bookmark/folder/config/bookmark-folder.const.ts:8`의 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`(BE `BookmarkFolderService.MAX_FOLDER_NAME_LENGTH`와 같은 값) |
 
 둘 다 만족해야 상단 구획이 뜬다(0개 아니면 3개, 1~2개인 중간 상태는 없음) — 개수가
 흔들리면 아래 본 목록의 시작 위치도 흔들리기 때문이다.
@@ -573,6 +634,7 @@ src/
 | 폴더 내 검색 빈 상태 문구 변경    | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                                                                                                                                                                                  |
 | 모바일 감지 기준 변경             | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                                                                                                                                                                                  |
 | 새 폴더 만들기 취소 동작 변경     | 세 곳 각각의 `handleCancel`/`handleCancelCreate` — `useBookmarkFolderSelect.ts`, `useFolderTree.ts`(`useInlineCreateFolderInput`), `useMobileFolderList.ts`(`useCreateFolderCard`)                                                                                                               |
+| 폴더 이름 최대 길이 변경          | FE `bookmark-folder.const.ts`의 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`와 BE `BookmarkFolderService.MAX_FOLDER_NAME_LENGTH`를 같이 바꾼다. 늘리면 가장 좁은 자리(360px 폰 카드)에서 줄 수가 늘어난다(§5 "폴더 이름 길이")                                                                              |
 | 테스트 실행                       | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-tree src/features/bookmark/toggle src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`                                                                                                                   |
 
 ## 9. 검증 결과

@@ -38,6 +38,42 @@ afterEach(() => {
 });
 
 describe('useFolderActions — 이름 변경', () => {
+  it('15자를 넘기면 요청 없이 편집을 열어 둔 채 이유를 보여 준다', async () => {
+    let requested = false;
+    server.use(
+      http.patch(url(API_ENDPOINTS.bookmark.folder(mockBookmarkFolder.id)), () => {
+        requested = true;
+        return HttpResponse.json({}, { status: 200 });
+      })
+    );
+    const { result } = renderHook(() => useFolderActions({ folder: mockBookmarkFolder }), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.startRename();
+      result.current.setName('가'.repeat(16));
+    });
+    await act(async () => result.current.submitRename());
+
+    expect(requested).toBe(false);
+    expect(result.current.renaming).toBe(true);
+    expect(result.current.name).toBe('가'.repeat(16));
+    expect(result.current.nameError).toBe('폴더 이름은 15자까지 쓸 수 있어요. (지금 16자)');
+  });
+
+  it('이미 15자를 넘는 예전 이름은 고치지 않고 닫으면 그대로 닫힌다', async () => {
+    const longNamedFolder = { ...mockBookmarkFolder, name: '가'.repeat(20) };
+    const { result } = renderHook(() => useFolderActions({ folder: longNamedFolder }), {
+      wrapper: Wrapper,
+    });
+
+    act(() => result.current.startRename());
+    await act(async () => result.current.submitRename());
+
+    expect(result.current.renaming).toBe(false);
+  });
+
   it('이름을 바꿔 제출하면 PATCH가 나가고 편집 모드가 닫힌다', async () => {
     let requestedBody: unknown;
     server.use(

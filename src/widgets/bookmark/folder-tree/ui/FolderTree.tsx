@@ -174,6 +174,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
     startRename,
     name,
     setName,
+    nameError,
     isUpdating,
     submitRename,
     handleRenameKeyDown,
@@ -182,18 +183,22 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
 
   if (renaming) {
     return (
-      <div className="flex items-center gap-2 px-3 py-1">
-        <Bookmark className="h-4 w-4 text-muted-foreground shrink-0" />
-        <Input
-          autoFocus
-          enterKeyHint="done"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={submitRename}
-          onKeyDown={handleRenameKeyDown}
-          disabled={isUpdating}
-          className="h-7 flex-1"
-        />
+      <div className="flex flex-col gap-1 px-3 py-1">
+        <div className="flex items-center gap-2">
+          <Bookmark className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Input
+            autoFocus
+            enterKeyHint="done"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={submitRename}
+            onKeyDown={handleRenameKeyDown}
+            disabled={isUpdating}
+            aria-invalid={nameError !== null}
+            className="h-7 flex-1"
+          />
+        </div>
+        {nameError && <p className="text-xs text-destructive">{nameError}</p>}
       </div>
     );
   }
@@ -220,7 +225,10 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
         className="h-auto min-w-0 flex-1 justify-start gap-3 px-3 py-2"
       >
         <Bookmark className={cn('h-4 w-4', selected ? 'text-primary' : 'text-muted-foreground')} />
-        <span className="flex-1 text-left truncate">{folder.name}</span>
+        {/* 이름은 말줄임 없이 어절 단위로 줄바꿈한다 — 내비게이션 항목을 자르면 어느 폴더인지
+            못 알아본다(docs/BOOKMARK.md "폴더 이름 길이"). Button의 whitespace-nowrap을 풀고,
+            min-w-0이 있어야 공백 없는 긴 이름도 폭 안에서 끊긴다 */}
+        <span className="min-w-0 flex-1 text-left whitespace-normal">{folder.name}</span>
         <span className="text-xs text-muted-foreground">{folder.bookmarkCount}</span>
       </Button>
 
@@ -258,7 +266,7 @@ interface InlineCreateFolderInputProps {
 }
 
 function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
-  const { name, setName, isPending, submit, handleCancel, handleKeyDown, handleBlur } =
+  const { name, setName, nameError, isPending, submit, handleCancel, handleKeyDown, handleBlur } =
     useInlineCreateFolderInput(onClose);
 
   return (
@@ -274,8 +282,10 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
         onKeyDown={handleKeyDown}
         placeholder={TEXTS.bookmark.folder.namePlaceholder}
         disabled={isPending}
+        aria-invalid={nameError !== null}
         className="h-7 w-full"
       />
+      {nameError && <p className="text-xs text-destructive">{nameError}</p>}
       <div className="flex justify-end gap-1">
         <Button
           type="button"
@@ -291,7 +301,12 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
         >
           {TEXTS.buttons.cancel}
         </Button>
-        <Button size="sm" className="h-7" onClick={submit} disabled={!name.trim() || isPending}>
+        <Button
+          size="sm"
+          className="h-7"
+          onClick={submit}
+          disabled={!name.trim() || nameError !== null || isPending}
+        >
           {isPending ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (

@@ -29,6 +29,28 @@ afterEach(() => {
 });
 
 describe('useCreateFolderForm', () => {
+  it('15자를 넘기면 입력 아래에 띄울 이유를 돌려주고 요청을 보내지 않는다', async () => {
+    let requested = false;
+    server.use(
+      http.post(url(API_ENDPOINTS.bookmark.folders), () => {
+        requested = true;
+        return HttpResponse.json({}, { status: 201 });
+      })
+    );
+    const onCreated = vi.fn();
+    const { result } = renderHook(() => useCreateFolderForm({ onCreated }), {
+      wrapper: Wrapper,
+    });
+
+    act(() => result.current.setName('가'.repeat(16)));
+    await act(async () => result.current.submit());
+
+    expect(result.current.nameError).toBe('폴더 이름은 15자까지 쓸 수 있어요. (지금 16자)');
+    expect(requested).toBe(false);
+    expect(onCreated).not.toHaveBeenCalled();
+    expect(result.current.name).toBe('가'.repeat(16));
+  });
+
   it('이름을 넣고 제출하면 POST가 나가고 입력이 비워지며 onCreated가 호출된다', async () => {
     let requestedBody: unknown;
     server.use(
