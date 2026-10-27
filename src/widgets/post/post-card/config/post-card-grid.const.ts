@@ -26,8 +26,8 @@ export const POST_CARD_GRID: CardGridSpec = {
   minColumnWidth: 330,
   maxColumns: 3,
   rowGap: [
-    { minWidth: 768, gap: 16 },
-    { minWidth: 0, gap: 12 },
+    { minWidthRem: 48, gap: 16 },
+    { minWidthRem: 0, gap: 12 },
   ],
   rowHeightEstimate: {
     3: 654,

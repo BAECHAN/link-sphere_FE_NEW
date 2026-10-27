@@ -190,6 +190,13 @@
 
 ### Fixed
 
+- `shared` 브라우저 기본 글꼴 크기를 바꾼 사용자에게서 화면 배치와 폭 판정이 갈리던 문제
+  <details><summary>배경·구현</summary>
+
+  미디어 쿼리의 rem은 페이지 스타일이 아니라 사용자가 브라우저에서 정한 기본 글꼴 크기를 따른다([Media Queries 4 §1.3](https://www.w3.org/TR/mediaqueries-4/)). 화면 배치(Tailwind `md`)와 `useIsMobile`은 48rem인데, 모바일 검색 중 본문 잠금(`AppLayout`)·글쓰기 하단 바 위 토스트 자리(`CreatePostForm`)·탭바 위 토스트 자리(`globals.css`)·사이드바 첫 펼침(`sidebar.store`)·카드 행 간격(`POST_CARD_GRID`)은 768px로 판정했다. 기본 글꼴을 20px로 바꾸면 48rem은 960px이라, 폭 768~959px에서 화면은 모바일 배치인데 이 판정들은 데스크톱으로 봐 검색 중 배경으로 포커스가 새고 토스트가 하단 바에 겹쳤다(12px이면 576~767px에서 반대로 갈린다, Chromium 156 실측). Tailwind·Bootstrap·MUI·Chakra를 조사해 보니 단위(rem·px)는 갈려도 모두 JS가 CSS와 같은 값을 써서, 이 레포 CSS의 단위인 rem으로 맞췄다(사용자 결정, 조사 결과는 PR 본문). JS는 `MOBILE_MEDIA_QUERY`·`DESKTOP_MEDIA_QUERY`(`shared/config/const.ts`)를, CSS는 `@variant max-md`를 쓴다. 그리드 간격은 공용 훅 `useWindowGridVirtualizer`의 `GapBreakpoint.minWidth`(px)를 `minWidthRem`으로 바꾸고 `innerWidth` 비교 대신 같은 rem 조건의 `matchMedia`로 고른다. 기본 글꼴 16px에서는 동작이 그대로다. `matchMedia`에 px 경계를 넘기면 ESLint `no-restricted-syntax`가 막고, 회귀는 `e2e/font-size-breakpoint.spec.ts`(기본 글꼴 20px·폭 800px — 수정 전 실패 확인)가 잡는다. (`const.ts`, `useIsMobile.ts`, `AppLayout.tsx`, `CreatePostForm.tsx`, `sidebar.store.ts`, `globals.css`, `useWindowGridVirtualizer.ts`, `post-card-grid.const.ts`·`.test.ts`, `eslint.config.js`, `e2e/font-size-breakpoint.spec.ts`(신규), `docs/TESTING.md`, `.claude/skills/responsive-ux/SKILL.md`, [PR #434](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/434))
+
+  </details>
+
 - `bookmark` 맨 아래까지 내리면 사이드바 "전체" 행이 상단바 뒤로 숨던 문제
   <details><summary>배경·구현</summary>
 

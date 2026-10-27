@@ -36,3 +36,11 @@ export const UNDO_TOAST_DURATION_MS = 8000;
 // 값으로 어긋나지 않도록 SSOT로 둔다.
 /** 무의식적 중복 클릭/탭으로 보고 무시하는 시간 */
 export const DOUBLE_CLICK_GUARD_MS = 400;
+
+// JS에서 Tailwind md 경계(--breakpoint-md: 48rem, tailwindcss/theme.css)를 판정할 때 쓴다. px(768px)로
+// 적으면 안 된다 - 미디어 쿼리의 rem은 사용자가 브라우저에서 정한 기본 글꼴 크기를 따라서, 그 설정을
+// 바꾼 사용자에게서 CSS 배치와 JS 판정이 갈린다(근거는 responsive-ux skill "브레이크포인트").
+/** Tailwind max-md와 같은 조건 - 모바일 배치 */
+export const MOBILE_MEDIA_QUERY = '(width < 48rem)';
+/** Tailwind md와 같은 조건 - 데스크톱 배치 */
+export const DESKTOP_MEDIA_QUERY = '(width >= 48rem)';

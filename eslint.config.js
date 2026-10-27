@@ -59,6 +59,16 @@ const RESTRICTED_SYNTAX_COMMON = [
     message:
       "behavior: 'smooth' 대신 behavior: ScrollUtil.getBehavior()를 쓰세요(@/shared/utils/scroll.util) — 동작 줄이기 설정을 존중합니다.",
   },
+  // [금지] matchMedia에 px 경계 쓰기 — Tailwind 브레이크포인트는 rem이고, 미디어 쿼리의 rem은
+  // 브라우저 기본 글꼴 크기를 따라서 그 설정을 바꾼 사용자에게서 CSS 배치와 JS 판정이 갈린다
+  // (2026-10-27 AppLayout·CreatePostForm·그리드 간격 정리, responsive-ux skill "브레이크포인트").
+  // 문자열 인자(`'(min-width: 768px)'`)와 템플릿 인자(`` `(min-width: ${n}px)` ``)를 함께 잡는다
+  {
+    selector:
+      'CallExpression:matches([callee.name="matchMedia"], [callee.property.name="matchMedia"]) :matches(Literal[value=/\\dpx|^px/], TemplateElement[value.raw=/\\dpx|^px/])',
+    message:
+      'matchMedia에 px 경계를 쓰지 마세요. @/shared/config/const의 MOBILE_MEDIA_QUERY·DESKTOP_MEDIA_QUERY나 rem 단위를 쓰세요 — 브라우저 기본 글꼴 크기를 바꾼 사용자에게서 Tailwind(rem)와 갈립니다.',
+  },
 ];
 
 // [금지] 날짜 처리에 new Date()/.getTime() 직접 사용

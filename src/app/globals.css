@@ -461,14 +461,15 @@ font-family만 'Pretendard'로 맞춘 것)에서 한다 — 당근마켓·마켓
 }
 
 /* 하단 toast는 모바일 하단 탭바(h-16 + safe-area) 위로 띄운다.
-   sonner의 모바일 CSS는 600px 기준이지만 탭바는 md(768px) 기준이라 변수로 직접 맞춘다. */
+   sonner의 모바일 CSS는 600px 기준이지만 탭바는 md(48rem) 기준이라 변수로 직접 맞춘다.
+   경계는 탭바의 md:hidden과 같은 max-md 변형으로 둔다 - px(767px)로 적으면 브라우저 기본
+   글꼴 크기를 바꾼 사용자에게서 탭바와 갈린다(responsive-ux skill "브레이크포인트"). */
 :root {
   --toast-offset-bottom: 24px;
   /* Navbar.tsx가 마운트 시 실측해 덮어씀 - 이 값은 실측 전 fallback */
   --navbar-height: 64px;
-}
-@media (max-width: 767px) {
-  :root {
+
+  @variant max-md {
     --toast-offset-bottom: calc(4rem + env(safe-area-inset-bottom) + 0.75rem);
   }
 }
