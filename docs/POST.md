@@ -457,14 +457,14 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 댓글 작성·삭제(`commentCount` 변동)    | detail + list                      | `src/entities/comment/api/comment.keys.ts:26-49`                                                         |
 | 프로필 수정(작성자 닉네임·이미지)      | `post` 전체                        | `src/entities/account/api/account.keys.ts:29`                                                            |
 | 세션 복원 성공(비로그인으로 받은 목록) | list                               | `src/entities/auth/api/auth.keys.ts:15-17`                                                               |
-| 북마크 폴더 삭제·소속 변경             | list(+ 소속 변경 시 detail)        | `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:73-116`                                        |
+| 북마크 폴더 삭제·소속 변경             | list(+ 소속 변경 시 detail)        | `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:81-125`                                        |
 | 폴더 추가·제거·전체 해제 실패(롤백)    | list(detail은 스냅샷으로 복원)     | `src/entities/bookmark/folder/api/bookmark-folder.queries.ts`의 `rollbackBookmarkFolderMutation`         |
 | 좋아요·북마크 연타의 마지막 요청 실패  | detail + list                      | `src/entities/interaction/api/interaction.keys.ts`의 `handleLikePostFailure`·`handleBookmarkPostFailure` |
 | 다른 탭의 로그인을 이 탭이 받아들임    | 모든 쿼리(에러만 남은 캐시는 리셋) | `src/entities/auth/api/auth.keys.ts`의 `handleSessionAdoptedSuccess`                                     |
 
 반대 방향으로 post mutation이 부르는 북마크 쪽 핸들러(`handlePostDeleteSuccess`,
 `handlePostContentUpdateSuccess`, `handleBookmarkToggleSuccess`)는
-`src/entities/bookmark/folder/api/bookmark-folder.keys.ts:85-105`에 있다.
+`src/entities/bookmark/folder/api/bookmark-folder.keys.ts:94-114`에 있다.
 
 ### 폼 값
 
@@ -722,7 +722,7 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
 - **`goBack` / `useGoBack(fallbackPath)`** — `src/shared/hooks/useGoBack.ts`. 앱 안 이력이 있으면
   `navigate(-1)`, 이력 없이 들어왔으면 `fallbackPath`로 replace한다.
 - **`postsRoot`** — 북마크 폴더별 게시글 목록 캐시의 접두사 키(`bookmarkFolderKeys.postsRoot`,
-  `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:42`). 피드 목록(`listRoot`)과 별개
+  `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:43`). 피드 목록(`listRoot`)과 별개
   캐시라 post 수정·삭제 때 따로 무효화한다.
 - **`HoverKebabMenu`** — `src/shared/ui/elements/HoverKebabMenu.tsx`. 카드의 ⋮ 드롭다운 공통
   컴포넌트(소유자 메뉴).

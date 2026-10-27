@@ -52,4 +52,25 @@ export class BookmarkFolderUtil {
 
     return TEXTS.validation.folderNameTooLong(BOOKMARK_FOLDER_NAME_MAX_LENGTH, length);
   }
+
+  // pinnedAt은 lastUsedAt처럼 BE가 null로 보낸다(JsonInclude.ALWAYS). 옛 캐시·픽스처엔 키가 없을 수 있어
+  // undefined도 고정 안 함으로 본다.
+  static isPinned(folder: BookmarkFolder): boolean {
+    return folder.pinnedAt !== null && folder.pinnedAt !== undefined;
+  }
+
+  // "내 폴더" 정렬 — 고정한 폴더를 맨 위로 올린다. 고정한 순서(pinnedAt 오름차순)라 새로 고정한 폴더는 고정 묶음
+  // 아래에 붙고 이미 고정한 폴더의 자리는 흔들리지 않는다. 같은 시각이면 sortOrder를 따르고, 고정하지 않은 폴더는
+  // 받은 순서 그대로다(docs/BOOKMARK.md §5).
+  static orderPinnedFirst(folderList: BookmarkFolder[]): BookmarkFolder[] {
+    const pinnedFolderList = folderList
+      .filter((folder) => BookmarkFolderUtil.isPinned(folder))
+      .sort(
+        (a, b) =>
+          dayjs(a.pinnedAt).valueOf() - dayjs(b.pinnedAt).valueOf() || a.sortOrder - b.sortOrder
+      );
+    const unpinnedFolderList = folderList.filter((folder) => !BookmarkFolderUtil.isPinned(folder));
+
+    return [...pinnedFolderList, ...unpinnedFolderList];
+  }
 }

@@ -36,6 +36,9 @@ export function useBookmarkFolderSelect({
   // 잘못 라우팅된 응답(HTML 등) 방어 — 배열이 아니면 빈 목록으로 처리해 화면 전체 크래시 방지
   const folderList = Array.isArray(data?.folders) ? data.folders : [];
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
+  // "내 폴더" — 고정한 폴더를 맨 위로 올린다. 스냅샷 없이 매번 계산한다 — 이 모달 안에는 고정을 바꾸는 조작이
+  // 없어 열려 있는 동안 순서가 바뀌는 건 다른 기기에서 고정한 드문 경우뿐이다
+  const orderedFolderList = BookmarkFolderUtil.orderPinnedFirst(folderList);
   // 상단 "최근 저장한 폴더" 구획 — 열 때마다(open) 새로 스냅샷, 열려있는 동안은 고정
   const { recentFolderList } = useRecentBookmarkFolders(folderList, isFetching, open);
   const { mutateAsync: createFolder, isPending: isCreating } = useCreateBookmarkFolderMutation();
@@ -127,7 +130,7 @@ export function useBookmarkFolderSelect({
 
   return {
     isLoading,
-    folderList,
+    folderList: orderedFolderList,
     uncategorizedCount,
     recentFolderList,
     isUncategorizedSelected,

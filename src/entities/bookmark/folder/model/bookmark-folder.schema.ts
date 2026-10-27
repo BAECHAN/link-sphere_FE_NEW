@@ -20,5 +20,6 @@ export type BookmarkFolderSort = z.infer<typeof bookmarkFolderSortEnum>;
 export type {
   BookmarkFolder,
   BookmarkFolderListResponse,
+  BookmarkFolderPinResponse,
   BookmarkFoldersResponse,
 } from '@/entities/bookmark/folder/model/bookmark-folder.dto';

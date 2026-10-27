@@ -1,4 +1,4 @@
-import { KeyboardEvent, useState } from 'react';
+import { KeyboardEvent, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { prefetchBookmarkFolderPosts } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import {
@@ -9,11 +9,14 @@ import {
 import { useFolderSections } from '@/widgets/bookmark/folder-tree/hooks/useFolderSections';
 import { useFolderActions } from '@/widgets/bookmark/folder-tree/hooks/useFolderActions';
 import { useCreateFolderForm } from '@/widgets/bookmark/folder-tree/hooks/useCreateFolderForm';
+import { useFollowFocusOnReorder } from '@/widgets/bookmark/folder-tree/hooks/useFollowFocusOnReorder';
 
 /** FolderTree(데스크탑 사이드바) 루트 */
 export const useFolderTree = (sort?: BookmarkFolderSort, search?: string) => {
   const { folderList, uncategorizedCount, recentFolderList, isLoading } = useFolderSections();
   const queryClient = useQueryClient();
+  const folderListRef = useRef<HTMLDivElement>(null);
+  useFollowFocusOnReorder(folderListRef, folderList?.map((folder) => folder.id) ?? []);
 
   const prefetchFolder = (folderKey: BookmarkFolderKey) => {
     prefetchBookmarkFolderPosts(queryClient, folderKey, sort, search);
@@ -21,6 +24,7 @@ export const useFolderTree = (sort?: BookmarkFolderSort, search?: string) => {
 
   return {
     folderList,
+    folderListRef,
     uncategorizedCount,
     recentFolderList,
     isLoading,

@@ -20,6 +20,8 @@ export interface HoverKebabMenuProps {
   hoverReveal?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** 메뉴가 닫히는 애니메이션까지 끝난 뒤 불린다(Radix `DropdownMenuContent`의 `onCloseAutoFocus`) */
+  onCloseAutoFocus?: (event: Event) => void;
 }
 
 /**
@@ -36,6 +38,7 @@ export function HoverKebabMenu({
   hoverReveal = false,
   open,
   onOpenChange,
+  onCloseAutoFocus,
 }: HoverKebabMenuProps) {
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
@@ -53,7 +56,7 @@ export function HoverKebabMenu({
           <MoreVertical className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className={className}>
+      <DropdownMenuContent align="end" className={className} onCloseAutoFocus={onCloseAutoFocus}>
         {children}
       </DropdownMenuContent>
     </DropdownMenu>

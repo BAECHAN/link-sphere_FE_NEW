@@ -5,6 +5,7 @@ import {
   BookmarkFolder,
   BookmarkFolderKey,
   BookmarkFolderListResponse,
+  BookmarkFolderPinResponse,
   BookmarkFolderSort,
   BookmarkFoldersResponse,
   CreateBookmarkFolderRequest,
@@ -33,6 +34,21 @@ export const bookmarkFolderApi = {
   /** 폴더 삭제 — 이 폴더에만 있던 북마크만 미분류로 이동 (다른 폴더에도 있으면 그대로 유지) */
   deleteBookmarkFolder: async (folderId: string): Promise<void> => {
     return await apiClient.delete<void>(API_ENDPOINTS.bookmark.folder(folderId));
+  },
+
+  /** 폴더 고정 — 이미 고정이면 처음 고정한 시각을 그대로 둔다(멱등). 본문은 없어 undefined를 넘긴다 */
+  pinBookmarkFolder: async (folderId: string): Promise<BookmarkFolderPinResponse> => {
+    return await apiClient.put<BookmarkFolderPinResponse>(
+      API_ENDPOINTS.bookmark.folderPin(folderId),
+      undefined
+    );
+  },
+
+  /** 폴더 고정 해제 — 고정 안 된 폴더여도 200(멱등) */
+  unpinBookmarkFolder: async (folderId: string): Promise<BookmarkFolderPinResponse> => {
+    return await apiClient.delete<BookmarkFolderPinResponse>(
+      API_ENDPOINTS.bookmark.folderPin(folderId)
+    );
   },
 
   /** 폴더별 게시글 조회 — folderKey: 'all' | 'uncategorized' | UUID */

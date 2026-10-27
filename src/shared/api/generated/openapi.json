@@ -177,6 +177,25 @@
         "required": ["data", "message", "status", "timestamp"],
         "type": "object"
       },
+      "ApiResponseFolderPinResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FolderPinResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": ["data", "message", "status", "timestamp"],
+        "type": "object"
+      },
       "ApiResponseFolderResponse": {
         "properties": {
           "data": {
@@ -661,6 +680,20 @@
         "required": ["folders", "uncategorizedCount"],
         "type": "object"
       },
+      "FolderPinResponse": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "pinnedAt": {
+            "format": "date-time",
+            "type": ["string", "null"]
+          }
+        },
+        "required": ["id"],
+        "type": "object"
+      },
       "FolderResponse": {
         "properties": {
           "bookmarkCount": {
@@ -677,6 +710,10 @@
           },
           "name": {
             "type": "string"
+          },
+          "pinnedAt": {
+            "format": "date-time",
+            "type": ["string", "null"]
           },
           "sortOrder": {
             "format": "int32",
@@ -1848,6 +1885,66 @@
           }
         },
         "summary": "북마크 폴더 이름 수정",
+        "tags": ["북마크 폴더"]
+      }
+    },
+    "/bookmark/folders/{folderId}/pin": {
+      "delete": {
+        "description": "고정 안 된 상태여도 200 이다(멱등). 실패: 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더)",
+        "operationId": "deleteFolderPin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folderId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFolderPinResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "북마크 폴더 고정 해제",
+        "tags": ["북마크 폴더"]
+      },
+      "put": {
+        "description": "이미 고정된 상태여도 200 이다(멱등). 처음 고정한 시각을 유지한다 — 고정 구획은 이 시각 오름차순이다. 실패: 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더)",
+        "operationId": "putFolderPin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folderId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFolderPinResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "북마크 폴더 고정",
         "tags": ["북마크 폴더"]
       }
     },

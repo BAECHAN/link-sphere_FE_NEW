@@ -5,7 +5,7 @@
 > **대상 독자**: 이 레포 FE를 처음 보거나 오랜만에 돌아온 개발자.
 >
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
-> 캐시 구조를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
+> 캐시 구조·폴더 고정 순서를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
 > **마지막 검토**: 2026-10-27
 
@@ -100,10 +100,12 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 
 | 메서드   | 경로                                                  | 설명                                                                                                                                                                               |
 | -------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/bookmark/folders`                                   | 내 폴더 목록(`bookmarkCount`·`lastUsedAt` 포함, `sortOrder` ASC)                                                                                                                   |
+| `GET`    | `/bookmark/folders`                                   | 내 폴더 목록(`bookmarkCount`·`lastUsedAt`·`pinnedAt` 포함, `sortOrder` ASC)                                                                                                        |
 | `POST`   | `/bookmark/folders`                                   | 폴더 생성(`sort_order = max+1`)                                                                                                                                                    |
 | `PATCH`  | `/bookmark/folders/{id}`                              | 폴더 이름 수정                                                                                                                                                                     |
 | `DELETE` | `/bookmark/folders/{id}`                              | 폴더 삭제(**이 폴더에만 있던** 북마크만 미분류로 — 다른 폴더에도 있으면 유지)                                                                                                      |
+| `PUT`    | `/bookmark/folders/{id}/pin`                          | 폴더 고정(이미 고정이면 처음 고정한 시각 유지). 응답 `{ id, pinnedAt }`(`FolderPinResponse`, 2026-10-26)                                                                           |
+| `DELETE` | `/bookmark/folders/{id}/pin`                          | 고정 해제(이미 해제면 그대로). 응답은 위와 같고 `pinnedAt`이 `null`                                                                                                                |
 | `GET`    | `/bookmark/folders/{key}/posts?page&size&sort&search` | 폴더별 게시글 조회(검색 포함)                                                                                                                                                      |
 | `POST`   | `/bookmark/{postId}/folders/{folderId}`               | 폴더에 추가(북마크 없으면 자동 생성)                                                                                                                                               |
 | `DELETE` | `/bookmark/{postId}/folders/{folderId}`               | 그 폴더에서만 제거(북마크 자체는 유지). `?removeBookmarkIfEmpty=true`면 남은 소속이 없을 때만 북마크도 삭제 — 이 옵션 호출은 `interaction.api.ts`의 `unbookmarkPostFromLastFolder` |
@@ -116,6 +118,8 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
   개인별 열람 기록(BE `post_views` 테이블) 기준. 한 번도 안 연 글은 항상 맨 뒤
 - `search`: 값이 있을 때만 쿼리에 붙는다(`bookmark-folder.api.ts`의
   `if (search) searchParams.search = search`)
+- 폴더 고정·해제(`PUT`/`DELETE …/pin`)는 "뒤집기"가 아니라 "그 상태로 만들기"라 멱등이다(BE #127,
+  `docs/DECISIONS.md` 2026-10-13 좋아요·북마크 결정과 같은 형태). 고정해도 폴더의 `updatedAt`은 바뀌지 않는다
 - 폴더 소속 관련 3개 엔드포인트(추가/제거/전체해제)와 북마크 저장·해제(`PUT`/`DELETE`)는 모두
   **멱등** — 이미 그 상태여도 200을 반환한다. 응답은 다섯 엔드포인트 공통으로
   `{ postId, isBookmarked, folderIds }`(`BookmarkFoldersResponse`)
@@ -313,6 +317,58 @@ Shneiderman(1994)](https://dl.acm.org/doi/10.1145/174630.174632)의 split menu
 건너뛴다. 노출 조건 자체(전체 폴더 수와 무관하게 "최근 구획과 본 목록이 완전히
 같아지는 경우"만 배제)는 §7로 뺐다.
 
+### 고정 — 내 폴더 맨 위로(2026-10-26)
+
+"최근 저장한 폴더"는 3개까지라, 예전에 쓰던 폴더를 바로 보고 싶을 때는 내 폴더 목록에서 찾아야 했다. 그래서
+사용자가 ⋮ 메뉴로 고른 폴더를 "내 폴더" 맨 위로 올린다. 고정 상태는 서버(`bookmark_folders.pinned_at`, BE #127)에
+저장해 모바일과 PC가 같은 순서를 본다. 처음(10-26)에는 고정한 폴더를 별도 "고정한 폴더" 구획에 한 번 더 모았는데,
+커밋 전에 목업을 나란히 비교한 뒤 사용자가 내 폴더 맨 위 방식으로 바꿨다(10-27). 서버 저장·배치·표시를 고른 근거와
+기각한 대안은 `docs/DECISIONS.md` 2026-10-26 항목에 있다.
+
+| 무엇               | 동작                                                                                                                                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 보이는 곳          | 데스크톱 사이드바(`FolderTree`), 모바일 그리드(`MobileFolderList`), 저장 다이얼로그(`BookmarkFolderSelectDialog` — 카드 저장·글 등록 모두)의 "내 폴더"                                   |
+| 내 폴더 안 순서    | 고정한 폴더가 먼저, 고정한 순서대로(`pinnedAt` 오름차순, 같으면 `sortOrder`). 새로 고정한 폴더는 고정 묶음 맨 아래에 붙는다. 나머지는 `sortOrder` 그대로라 해제하면 원래 자리로 돌아간다 |
+| 고정 묶음과 나머지 | 구분선·라벨 없음 — 핀 아이콘이 한 열에 모여 경계가 보인다(목업 비교 후 사용자 선택)                                                                                                      |
+| 최근 구획과의 관계 | 영향 없음. 고정한 폴더도 최근 구획에 나올 수 있다(위 split menu의 중복 표시와 같다)                                                                                                      |
+| 조작               | 사이드바 행·모바일 카드의 ⋮ 메뉴 맨 앞 "고정"/"고정 해제". 다이얼로그에는 조작이 없고 표시만 한다                                                                                        |
+| 표시               | 행 왼쪽 북마크 아이콘 자리에 핀 아이콘(스크린 리더 "고정됨"). 최근 구획 행에도 붙는다. 이름 칸 폭은 고정 여부와 상관없이 같다                                                            |
+| 성공 피드백        | "{이름} 폴더를 고정했어요." / "{이름} 폴더 고정을 해제했어요." 토스트 — 아래쪽 폴더를 고정하면 그 행이 맨 위로 옮겨 가 화면 밖으로 사라질 수 있어서다                                    |
+| 실패 피드백        | 화면을 되돌리고 목록을 다시 받은 뒤 "폴더를 고정하지 못했어요." / "폴더 고정을 해제하지 못했어요." 토스트                                                                                |
+| 상한               | 없음                                                                                                                                                                                     |
+
+**고정하면 본 목록 순서가 바뀐다.** 위 split menu 원칙("아래 본 목록 순서는 절대 바꾸지 않는다")의 예외다. 시스템이
+알아서 순서를 바꾸는 게 아니라 사용자가 직접 고른 결과라서 받아들였다(`docs/DECISIONS.md` 2026-10-26).
+
+**연타와 실패 처리**는 좋아요·북마크와 같은 "같은 대상의 연속 mutation" 형태다(`docs/FE-ARCHITECTURE.md` §11).
+같은 폴더의 고정 요청은 `mutationKey`·`scope`(`['folder', 'pin', <폴더 id>]`)가 같아 한 줄로 서고, 응답으로 교정하거나
+되돌리고 토스트를 띄우는 건 그 줄의 마지막 요청만 한다. 같은 폴더가 최근 구획과 내 폴더에 두 번 그려져 훅 인스턴스가
+둘이어도 키가 같아 함께 센다. 성공·실패 토스트는 컴포넌트가 아니라 `useSetBookmarkFolderPinMutation`의
+`onSuccess`·`onError`가 띄운다 — `mutate(vars, { onSuccess })`에 두면 누른 행이 언마운트될 때 실행되지 않는다
+(CLAUDE.md "React Query 라이프사이클 주의").
+
+**다이얼로그에서는 내 폴더 순서를 매번 다시 계산한다.** 최근 구획은 지금처럼 열 때 스냅샷을 찍지만, 내 폴더 정렬은
+스냅샷 없이 매 렌더 계산한다. 다이얼로그 안에서는 고정을 바꿀 방법이 없어 열린 동안 바뀌는 건 다른 기기에서 고정한
+드문 경우뿐이다(§11).
+
+**고정·해제할 때 움직임 — 메뉴가 다 닫힌 뒤 보내고, 옮겨 간 폴더로 부드럽게 스크롤한다(2026-10-27).** 처음에는 ⋮
+메뉴에서 고르는 즉시 요청을 보냈다. 그러자 닫히던 메뉴가 옮겨 간 행을 따라가 "고정 해제"로 바뀐 채 사라졌다(§10).
+그래서 세 안을 데스크톱·모바일로 녹화해 나란히 비교했고, 사용자가 A2를 골랐다.
+
+| 안           | 동작                                                                                                                                  | 녹화에서 본 것                                                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| A            | 메뉴가 다 닫힌 뒤 요청을 보낸다. 화면은 브라우저의 스크롤 고정(scroll anchoring)이 옮겨 간 폴더로 한 프레임 만에 옮긴다               | 메뉴는 제자리에서 사라진다. 화면이 순간이동하듯 점프한다                                                                        |
+| **A2(채택)** | A에 더해 목록 컨테이너의 스크롤 고정을 끄고(`[overflow-anchor:none]`), `useFollowFocusOnReorder`가 옮겨 간 폴더로 부드럽게 스크롤한다 | 목록이 굴러가며 폴더가 간 곳이 보인다(데스크톱 약 0.24초). 모바일은 거리가 짧아 A와 차이가 작다                                 |
+| A+B          | A에 더해 옮겨 간 항목이 옛 자리에서 새 자리로 미끄러진다(0.25초)                                                                      | 데스크톱은 행 배경이 투명해 날아가는 행의 글자가 다른 행 글자와 겹친다. 모바일 2열 그리드는 카드 8장이 모두 대각선으로 엇갈린다 |
+
+[NN/g "애니메이션의 목적"](https://www.nngroup.com/articles/animation-purpose-ux/)은 애니메이션이 _"방향 감각을 잃지
+않게 한다"_ (번역)고 쓰면서, _"쓸데없는 애니메이션은 사용자를 산만하게 하고 짜증 나게 한다"_ (번역)고도 쓴다.
+A2는 앞쪽 목적만 남기고, A+B의 엇갈림은 뒤쪽에 가깝다고 판단했다.
+
+- "동작 줄이기"를 켠 기기는 `ScrollUtil.getBehavior()`대로 바로 이동한다.
+- 포커스가 목록 밖에 있으면(최근 구획 행에서 고정) 따라가지 않는다. 사용자가 누른 최근 행은 제자리라서다.
+- 모바일 카드에는 `scroll-mt-(--navbar-height)`를 둬, 따라간 카드가 상단바 뒤에 숨지 않는다(`CommentList.tsx`와 같은 방식).
+
 ### 사이드바 "새 폴더 만들기" 위치 — 상단 고정
 
 `FolderTree`(데스크톱 사이드바)에서 "새 폴더 만들기"는 상단 고정 블록의 마지막
@@ -442,11 +498,13 @@ bookmarkFolderKeys.list; // ['folder', 'list']              — 폴더 목록(�
 bookmarkFolderKeys.postsRoot; // ['folder', 'posts']              — 모든 폴더별 게시글 쿼리의 공통 조상
 bookmarkFolderKeys.posts(folderKey, sort, search);
 // ['folder', 'posts', folderKey, sort ?? 'latest', search ?? '']
+
+bookmarkFolderMutationKeys.pin(folderId); // ['folder', 'pin', folderId] — mutationKey이자 scope.id('folder:pin:<id>')
 ```
 
 무효화는 `bookmarkFolderInvalidateQueries`(`all`/`list`/`postsRoot`/`posts`)를 통해서만
-하고, 실제로 "이런 변경 후엔 뭘 무효화하는지"는 같은 파일의 `handle*Success` 함수
-7개가 결정한다 — 예를 들어 `handleBookmarkFolderChangeSuccess`(폴더 소속 변경 후)는
+하고, 실제로 "이런 변경 후엔 뭘 무효화하는지"는 같은 파일의 `handle*Success`·`handle*Failure` 함수
+8개가 결정한다(고정 실패 뒤 목록을 다시 받는 `handleBookmarkFolderPinFailure`는 2026-10-26 추가) — 예를 들어 `handleBookmarkFolderChangeSuccess`(폴더 소속 변경 후)는
 `bookmarkFolderKeys.list` + `bookmarkFolderKeys.postsRoot` + `post.detail`/`post.list`까지
 무효화한다. 원본은 옮겨적지 않는다 — 정확한 최신 목록은 `bookmark-folder.keys.ts`를 직접
 확인한다.
@@ -469,6 +527,12 @@ bookmarkFolderKeys.posts(folderKey, sort, search);
 | `sortOrder`     | `number`                   |                                                                             |
 | `bookmarkCount` | `number`                   |                                                                             |
 | `lastUsedAt`    | `string \| null`(optional) | 이 폴더에 마지막으로 저장한 시각(ISO 문자열). 한 번도 저장 안 됐으면 `null` |
+| `pinnedAt`      | `string \| null`(optional) | 고정한 시각(ISO 문자열, 서버 시간대 KST). 고정 안 했으면 `null`(2026-10-26) |
+
+고정·해제 응답은 `BookmarkFolderPinResponse`(`{ id, pinnedAt }`, 같은 파일)다. 단건 `FolderResponse`를 돌려주지 않는
+이유: 생성·수정 응답의 `lastUsedAt`은 항상 `null`이라, 그걸로 목록 캐시의 폴더를 덮으면 최근 구획 순서가 깨진다.
+낙관적 갱신은 `pinnedAt`만 바꾸고 이미 고정이면 처음 시각을 유지한다. 브라우저 시간대가 KST가 아니면 낙관적
+값(`dayjs().format()`)이 서버 값과 몇 시간 어긋날 수 있지만, 응답이 오면 서버 값으로 교정된다.
 
 `createdAt`/`updatedAt` 필드 자체가 없다 — BE `FolderResponse`에 그 필드가 없다.
 타입이 이미 `string`으로 선언돼 있어 "타입은 Date인데 런타임은 문자열"이라는 괴리는
@@ -482,7 +546,15 @@ BE 스펙도 `lastUsedAt`을 optional + null 허용으로 표기하고(`shared/a
 
 ## 7. 운영 파라미터
 
-"최근 저장한 폴더" 상단 구획 노출 기준.
+폴더 고정(2026-10-26, §5 "고정 — 내 폴더 맨 위로").
+
+| 파라미터           | 값                                                                         | 실제 위치                                                                               |
+| ------------------ | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 내 폴더 순서       | 고정한 폴더(`pinnedAt` 오름차순, 같으면 `sortOrder`) → 나머지(`sortOrder`) | `orderPinnedFirst`(`entities/bookmark/folder/utils/bookmark-folder.util.ts:65`)         |
+| 순서를 적용하는 곳 | 사이드바·모바일, 저장 다이얼로그                                           | `useFolderSections.ts:17`(사이드바·모바일), `useBookmarkFolderSelect.ts:41`(다이얼로그) |
+| 고정 개수 상한     | 없음                                                                       | —                                                                                       |
+
+"최근 저장한 폴더" 상단 구획 노출 기준. 고정 여부와 상관없이 전체 폴더로 고른다.
 
 | 파라미터                                     | 값    | 실제 위치                                                                                                                                                                                |
 | -------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -533,15 +605,19 @@ src/
 │       │                                   # 치수(grid = POST_CARD_GRID)는 BookmarkPage가 넘긴다
 │       └── folder-tree/
 │           ├── hooks/
-│           │   ├── useFolderSections.ts  # 폴더 목록 조회 + "최근 저장한 폴더" 계산(§5) —
+│           │   ├── useFolderSections.ts  # 폴더 목록 조회 + "최근 저장한 폴더" 계산 + 내 폴더를
+│           │   │                         # 고정한 폴더 먼저로 정렬(§5) —
 │           │   │                         # useFolderTree(데스크탑)·useMobileFolderList가 위임.
 │           │   │                         # 스냅샷 없이 매 렌더 최신으로 계산한다(2026-09-21)
 │           │   ├── useFolderTree.ts      # FolderTree(데스크탑 사이드바) 루트 — useFolderSections
 │           │   │                         # 위임 + prefetchFolder
 │           │   ├── useMobileFolderList.ts # MobileFolderList 루트(useFolderSections 그대로) +
 │           │   │                          # CreateFolderCard(생성 토글) 훅
-│           │   ├── useFolderActions.ts   # 폴더 이름변경(rename)·삭제(delete) — FolderItem·
-│           │   │                         # FolderCard 공유. 삭제 확인창은 emphasis: 'confirm'
+│           │   ├── useFollowFocusOnReorder.ts # 고정·해제로 순서가 바뀌면 포커스가 든 폴더로
+│           │   │                          # 부드럽게 스크롤(§5) — useFolderTree·useMobileFolderList가 호출
+│           │   ├── useFolderActions.ts   # 폴더 고정(pin)·이름변경(rename)·삭제(delete) — FolderItem·
+│           │   │                         # FolderCard 공유. 고정은 ⋮ 메뉴가 다 닫힌 뒤 보낸다
+│           │   │                         # (queuePinToggle → handleMenuCloseAutoFocus, §10). 삭제 확인창은 emphasis: 'confirm'
 │           │   │                         # (docs/DECISIONS.md 2026-09-29 항목). 삭제 성공 토스트
 │           │   │                         # "폴더를 삭제했어요."는 entity meta.successMessage(2026-10-21)
 │           │   └── useCreateFolderForm.ts # 폴더 생성 폼 코어 로직 — 사이드바·모바일 카드 공유
@@ -554,7 +630,9 @@ src/
 │                                              # 버튼 가로 행 + 취소(§5, 2026-09-21). ⋮ 메뉴도
 │                                              # 같은 HoverKebabMenu 사용
 │                                              # 위 둘 + BookmarkFolderSelectDialog(아래) 모두 "최근 저장한
-│                                              # 폴더" + "내 폴더" 두 구획 포함(§5)
+│                                              # 폴더" + "내 폴더" 두 구획 포함(§5). 고정한 폴더는 핀
+│                                              # 아이콘을 달고 내 폴더 맨 위에 온다. 행·카드의 ⋮ 메뉴
+│                                              # 맨 앞이 고정/고정 해제
 ├── features/
 │   ├── bookmark/                     # 2026-09-08 post/bookmark에서 승격 — entities/widgets/
 │   │   │                             # pages와 bookmark 도메인 그룹을 통일
@@ -606,9 +684,10 @@ src/
 │   └── bookmark/
 │       └── folder/
 │           ├── api/
-│           │   ├── bookmark-folder.api.ts     # 폴더 CRUD + 소속 추가/제거/전체해제 + 폴더별 게시글 API
+│           │   ├── bookmark-folder.api.ts     # 폴더 CRUD + 고정·해제 + 소속 추가/제거/전체해제 + 폴더별 게시글 API
 │           │   ├── bookmark-folder.queries.ts # useBookmarkFolderListQuery, mutations (낙관적
-│           │   │                             # 갱신 공용 헬퍼 포함)
+│           │   │                             # 갱신 공용 헬퍼 포함). 고정·해제는
+│           │   │                             # useSetBookmarkFolderPinMutation(:211, §5)
 │           │   └── bookmark-folder.keys.ts    # §6 쿼리 키 + cross-invalidation
 │           ├── model/
 │           │   ├── bookmark-folder.schema.ts  # 생성/수정 요청 Zod 스키마 + BookmarkFolder 등
@@ -620,7 +699,8 @@ src/
 │           ├── utils/
 │           │   ├── bookmark-folder.util.ts      # pickRecentFolders — "최근 저장한 폴더" 선정 로직(§7)
 │           │   │                                # + nameLengthError — 폴더 이름 길이 검사(§5)
-│           │   └── bookmark-folder.util.test.ts # 임계값·완전 일치 배제·정렬·이름 길이 순수 로직 테스트
+│           │   │                                # + isPinned(:58)·orderPinnedFirst(:65) — 내 폴더 고정 순서(§5, §7)
+│           │   └── bookmark-folder.util.test.ts # 임계값·완전 일치 배제·정렬·이름 길이·고정 순수 로직 테스트
 │           └── hooks/
 │               └── useRecentBookmarkFolders.ts # 모달(BookmarkFolderSelectDialog) 전용 스냅샷 로직
 │                                               # (§5, §10) — 상시 화면은 위 folder-tree/hooks/
@@ -652,6 +732,9 @@ src/
 | 정렬 옵션 추가                    | `bookmark-folder.schema.ts`의 `bookmarkFolderSortEnum` + `useBookmarkPage.ts`의 `VALID_SORTS`(드롭다운·URL 파싱) + `BookmarkPage.tsx`의 `SORT_LABELS` + `TEXTS.bookmark.folder.sort.*`에 값 추가 + BE 대응 필요 — `VALID_SORTS`를 빠뜨리면 드롭다운에 안 뜨고 `?sort=새값`이 `latest`로 떨어진다 |
 | 폴더 내 검색 빈 상태 문구 변경    | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                                                                                                                                                                                  |
 | 모바일 감지 기준 변경             | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                                                                                                                                                                                  |
+| 고정한 폴더끼리의 순서 변경       | `bookmark-folder.util.ts`의 `orderPinnedFirst` 정렬 — BE에는 고정 순서 필드가 없고 `pinnedAt`만 있으므로, 사용자가 직접 순서를 바꾸게 하려면 BE 컬럼·API부터 필요하다                                                                                                                            |
+| 고정·해제 뒤 따라가는 스크롤 변경 | `useFollowFocusOnReorder.ts`의 `scrollIntoView` 옵션. 끄려면 훅 호출과 함께 `FolderTree.tsx`·`MobileFolderList.tsx` 목록 컨테이너의 `[overflow-anchor:none]`도 뺀다 — 그러면 브라우저 스크롤 고정이 한 프레임 만에 따라간다(§5 A안)                                                              |
+| 고정 아이콘 모양·위치 변경        | `FolderTree.tsx`의 `FolderItem`, `MobileFolderList.tsx`의 `FolderCard`(둘 다 `useFolderActions`의 `isPinned`로 왼쪽 아이콘을 바꾼다), `BookmarkFolderSelectDialog.tsx`의 `renderFolderIcon`(`FolderRow`의 `icon` prop으로 넘긴다)                                                                |
 | 새 폴더 만들기 취소 동작 변경     | 세 곳 각각의 `handleCancel`/`handleCancelCreate` — `useBookmarkFolderSelect.ts`, `useFolderTree.ts`(`useInlineCreateFolderInput`), `useMobileFolderList.ts`(`useCreateFolderCard`)                                                                                                               |
 | 폴더 이름 최대 길이 변경          | FE `bookmark-folder.const.ts`의 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`와 BE `BookmarkFolderService.MAX_FOLDER_NAME_LENGTH`를 같이 바꾼다. 늘리면 가장 좁은 자리(360px 폰 카드)에서 줄 수가 늘어난다(§5 "폴더 이름 길이")                                                                              |
 | 테스트 실행                       | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-tree src/features/bookmark/toggle src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`                                                                                                                   |
@@ -752,6 +835,38 @@ DELETE → PUT 순서로 단정) · `bookmark-folder.queries.test.ts`(8, 무수�
 미분류로 가는지 단언을 더했다.
 
 **2026-10-14 갱신(2)** — 마지막 폴더 해제를 서버 판단으로 바꾼 뒤(§5, §10) `PostCardBookmarkFolderDialog.test.tsx`(16→17): 마지막 폴더 탭이 북마크째 해제가 아니라 폴더 제거 API에 `removeBookmarkIfEmpty=true`로 나가는지 단정하도록 기존 테스트를 바꾸고, 서버에 다른 소속이 남은 응답이면 설명·되돌리기 없는 일반 제거 토스트만 뜨는 테스트를 추가했다(둘 다 수정 전 코드에서 실패 확인). `interaction.queries.test.ts`(32→33): 마지막 폴더 해제가 화면은 즉시 해제로 바꾸고, 다른 소속이 남은 응답이면 그 소속으로 교정되는지.
+
+**2026-10-26 갱신** — 폴더 고정(§5 "고정 — 내 폴더 맨 위로") 추가 뒤 관련 테스트가 늘었다(괄호는 병합 전 main → 이 PR).
+
+- `bookmark-folder.util.test.ts`(8→13): `isPinned`, `orderPinnedFirst`의 고정 폴더 `pinnedAt` 오름차순 + 나머지 원래 순서,
+  같은 시각이면 `sortOrder`, 고정 0개면 그대로, 전부 고정이면 고정 순서만
+- `useFolderSections.test.ts`(3→4): 언마운트 없이 고정이 반영되면 내 폴더 맨 위로 오고, 최근 구획은 고정과 상관없이
+  그대로인지
+- `useFolderActions.test.ts`(12→16): 고정 안 된 폴더는 PUT, 고정된 폴더는 DELETE. 메뉴에서 고르기만 하고 아직 안
+  닫혔으면 보내지 않고, 고르지 않고 닫으면 보내지 않으며, 한 번 고르면 한 번만 보낸다
+- `useFollowFocusOnReorder.test.ts`(신규 3): 순서가 바뀌면 포커스가 든 항목으로 스크롤하고, 순서가 그대로이거나
+  포커스가 목록 밖이면 스크롤하지 않는다
+- `bookmark-folder.queries.test.ts`(8→13): PUT/DELETE, 즉시 반영 뒤 서버 값으로 교정, 이미 고정이면 시각 유지,
+  성공 토스트는 응답 뒤 한 번, 실패 시 롤백·재조회·토스트 1회, 고정→해제→고정 세 번 연타의 최종 상태와 토스트 1회
+- `PostCardBookmarkFolderDialog.test.tsx`(17→19): 내 폴더 맨 위에 고정 폴더가 오고 "고정한 폴더" 구획이 없는지,
+  열린 동안 최근 구획은 그대로이고 내 폴더 순서는 매번 계산되는지
+- `useRecentBookmarkFolders.test.ts`(6): 고치지 않고 통과했다. 엔티티 훅 시그니처를 바꾸지 않았다는 증거다.
+
+전체 스위트 132개 파일 1465개 테스트, e2e 148개(`CI=1`, 재시도 0), `pnpm type-check`·`pnpm lint`·`pnpm check:deps`·
+`pnpm check:docs`가 모두 통과했다.
+
+브라우저는 Playwright로 녹화했다. 모킹 서버는 상태를 갖고, 고정 API는 1초 지연을 둔다. 확인한 것은 여섯 가지다.
+
+1. 폴더 14개 중 맨 아래 폴더를 고정하면 내 폴더 맨 위로 오고 성공 토스트가 뜬다. 최근 구획은 그대로다.
+2. 최근 구획 행에서 고정하면 고정 묶음 아래에 붙고 최근 행에도 핀이 붙는다. 해제하면 원래 자리(맨 아래)로 돌아간다.
+3. 새로고침 뒤에도 남고, 카드 저장·글 등록 다이얼로그의 내 폴더 맨 위에도 고정 폴더가 온다.
+4. 고정한 폴더의 이름 변경(입력 중에도 핀 유지)·삭제가 반영된다. 오프라인 고정은 맨 위로 갔다가 되돌아가고 토스트가 뜬다.
+5. 창 높이 650px에서 폴더 행만 스크롤되고 "내 폴더" 라벨은 사이드바 안에서 제자리다. 다크 모드도 확인했다.
+6. 모바일 그리드에서 아래쪽 긴 이름 카드를 고정하면 내 폴더 맨 위로 오고 토스트가 뜬다.
+
+고정·해제 움직임(§5)은 따로 A·A2·A+B 세 안을 데스크톱(폴더 14개 중 맨 아래)·모바일(카드 8장 중 맨 아래)에서 고정했다가
+해제하며 녹화해 비교했다. 고른 A2에서는 두 화면 모두 메뉴가 제자리에서 사라진 뒤, 옮겨 간 폴더로 화면이 따라갔다.
+데스크톱은 스크롤 영역이 약 0.24초 동안 맨 위로 굴러갔고, 모바일은 카드가 상단바 바로 아래에 보였다.
 
 **2026-10-27 갱신** — 폴더 이름 15자 제한·줄바꿈(§5 "폴더 이름 길이", #424)과 함께 추가된 테스트(테스트 수·전체 스위트
 결과는 기록하지 않았다):
@@ -1180,6 +1295,38 @@ scope를 나눠 써서 `mutationKey` 대신 `scope.id`로 센다(`isLastPendingB
 `features/bookmark/toggle/hooks/usePostCardBookmarkFolderDialog.ts`, `mocks/handlers/bookmark-folder.handlers.ts`,
 테스트 2개 파일.
 
+### ⋮ 메뉴가 옮겨 간 행을 따라가며 "고정 해제"로 바뀐 채 사라지던 문제(2026-10-27)
+
+모바일 녹화에서 아래쪽 카드를 고정하자, 닫히던 ⋮ 메뉴가 맨 위로 옮겨 간 카드를 따라가 "고정 해제"로 바뀐 채
+사라졌다. 카드가 순간이동하는 것과 겹쳐 정신없어 보였다. 원인은 설치본 소스로 확인했다.
+
+1. 낙관적 갱신이라 고르는 즉시 행이 맨 위로 옮겨 간다.
+2. 메뉴는 닫히는 애니메이션(tw-animate-css 1.4.0 `animate-out` 기본 0.15초)이 끝날 때까지 마운트돼 있다
+   (`@radix-ui/react-presence` 1.1.5 `dist/index.mjs:80`·`:99`, animationend 때 언마운트).
+3. 그동안 Popper의 `autoUpdate`(`@radix-ui/react-popper` 1.2.8 `dist/index.mjs:95-97`)가 트리거가 움직인 걸 감지해
+   (`@floating-ui/dom` 1.7.4 `:615` `layoutShift`) 메뉴를 새 자리로 옮긴다. 메뉴 문구는 `isPinned`를 따라 "고정 해제"가 된다.
+
+**고친 방법** — 메뉴 항목은 고른 것만 표시하고(`queuePinToggle`), 요청은 메뉴가 다 닫힌 뒤 `onCloseAutoFocus`에서
+보낸다(`handleMenuCloseAutoFocus`). 이 콜백은 내용이 언마운트될 때(`@radix-ui/react-focus-scope` 1.1.7
+`dist/index.mjs:87-96`) `DropdownMenuContent`가 부른다(`@radix-ui/react-dropdown-menu` 2.1.16 `dist/index.mjs:113-117`).
+`HoverKebabMenu`에 이 콜백을 넘기는 `onCloseAutoFocus` prop을 더했다.
+
+**그다음 발견: 화면이 점프했다** — 메뉴가 닫히며 포커스가 ⋮ 버튼으로 돌아온 뒤 순서가 바뀌자, 화면이 한 프레임 만에
+옮겨 간 폴더로 점프했다. 녹화 브라우저에서 매 프레임 스크롤 위치를 기록해 원인을 좁혔다(직접 측정, 데스크톱 사이드바).
+
+| 조건                                      | 스크롤 위치(px)                 |
+| ----------------------------------------- | ------------------------------- |
+| 그대로                                    | 203 → 0, 한 프레임              |
+| 우리 `scrollIntoView`를 빈 함수로 바꿈    | 203 → 0, 한 프레임(그대로 점프) |
+| 목록에 `overflow-anchor: none`            | 203 → 0, 약 230ms에 걸쳐 줄어듦 |
+| 순서 변경 없이 `scrollTo({ behavior })`만 | 203 → 0, 약 230ms에 걸쳐 줄어듦 |
+
+점프는 우리 코드가 아니라 브라우저의 스크롤 고정이 만들었다. 기준점이 포커스가 든 행이라는 건 점프한 위치로 미뤄
+본 것이다. 이 측정을 바탕으로 §5의 세 안을 녹화해 비교했다. A+B를 위해 만든 미끄러짐 코드는 A2를 고른 뒤 지웠다.
+
+**옛 설명 정정** — 10-26 녹화 설명은 데스크톱 목록이 따라 올라간 이유를 Radix가 ⋮ 버튼으로 포커스를 돌려줘서라고
+적었다. 그건 요청을 즉시 보내던 때의 이야기다. 지금은 위 순서대로 `useFollowFocusOnReorder`가 따라간다.
+
 ## 11. 남은 것
 
 - `북마크 제거` 행의 되돌리기는 삭제 전 소속이 0~1개일 때만 제공된다(§5). 소속이
@@ -1188,6 +1335,12 @@ scope를 나눠 써서 `mutationKey` 대신 `scope.id`로 센다(`isLastPendingB
 - 모바일은 hover가 없어 첫 탭에서는 폴더 목록을 여전히 기다린다(이후 staleTime 3분 동안은
   캐시로 즉시 뜬다). 기다리는 동안 모달이 늘어나는 문제는 골격 화면으로 줄였지만(§5), 폴더
   수가 3개와 다르면 도착할 때 조금 늘거나 준다.
+- 폴더 고정(2026-10-26)에서 이번 범위 밖으로 둔 것: 고정한 폴더끼리 순서를 직접 바꾸기(드래그), 저장 다이얼로그
+  안에서 고정·해제.
+- 폴더 이름 변경이 실패하면 `useUpdateBookmarkFolderMutation`이 이름 변경 직전의 목록 전체로 되돌린다. 그 사이
+  고정·해제가 성공했다면 그 결과도 다음 목록 재조회 전까지 화면에서 되돌아가 보인다(서버 값은 그대로).
+- 저장 다이얼로그가 열려 있는 동안 다른 기기에서 폴더를 고정하면, 그 폴더가 열린 채로 내 폴더 맨 위로 옮겨 간다
+  (최근 구획 스냅샷은 그대로다) — 열린 동안 순서를 고정한다는 원칙(§5 split menu)의 드문 예외다.
 
 ## 12. 용어 사전
 
@@ -1225,6 +1378,20 @@ scope를 나눠 써서 `mutationKey` 대신 `scope.id`로 센다(`isLastPendingB
   `true`면 저장(`PUT`), `false`면 해제(`DELETE`), `{ lastFolderId }`면 화면상 마지막 폴더 해제
   (`?removeBookmarkIfEmpty=true` 폴더 제거 — 서버에 다른 소속이 남으면 북마크 유지, `interaction.queries.ts`의
   `BookmarkPostTarget`)
+- **`pinnedAt`** — `BookmarkFolder`의 필드(§6). 폴더를 고정한 시각, 고정 안 했으면 `null`. 값이 있으면 고정 상태다
+  (`BookmarkFolderUtil.isPinned`)
+- **`orderPinnedFirst`** — `entities/bookmark/folder/utils/bookmark-folder.util.ts`. 내 폴더 목록을 고정한 폴더
+  먼저(`pinnedAt` 오름차순, 같으면 `sortOrder`), 나머지는 받은 순서 그대로 이어 붙여 돌려준다(§5, §7)
+- **`useSetBookmarkFolderPinMutation`** — `entities/bookmark/folder/api/bookmark-folder.queries.ts`. 폴더 하나의
+  고정·해제 mutation. `mutate(true)`면 고정(`PUT`), `mutate(false)`면 해제(`DELETE`). 성공·실패 토스트까지 이 훅이 띄운다
+- **`queuePinToggle` / `handleMenuCloseAutoFocus`** — `useFolderActions.ts`. ⋮ 메뉴에서 "고정"/"고정 해제"를 고르면
+  앞의 것이 표시만 해 두고, 메뉴가 다 닫힌 뒤 뒤의 것(`HoverKebabMenu`의 `onCloseAutoFocus`)이 실제로 요청을 보낸다(§10)
+- **`useFollowFocusOnReorder`** — `widgets/bookmark/folder-tree/hooks/useFollowFocusOnReorder.ts`. 넘긴 순서가 바뀌면
+  컨테이너의 직계 자식 중 포커스가 든 항목으로 부드럽게 스크롤한다(§5)
+- **스크롤 고정(scroll anchoring)** — 화면 위쪽 내용이 바뀌어도 보고 있던 내용이 밀리지 않게 브라우저가 스크롤 위치를
+  알아서 고치는 기능. CSS `overflow-anchor: none`으로 끈다. 폴더 목록에서는 이 기능이 고정 직후 점프를 만들어 껐다(§10)
+- **`isLastPendingPin`** — 같은 훅 안의 지역 함수. 지금 끝나는 고정 요청이 그 폴더 줄의 마지막인지 판정한다
+  (`isLastPendingBookmarkMutation`과 같은 역할)
 
 ## 13. 관련 문서
 

@@ -1,4 +1,12 @@
-import { Bookmark, ChevronRight, Folder as FolderIcon, Inbox, Loader2, Plus } from 'lucide-react';
+import {
+  Bookmark,
+  ChevronRight,
+  Folder as FolderIcon,
+  Inbox,
+  Loader2,
+  Pin,
+  Plus,
+} from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { Divider } from '@/shared/ui/atoms/divider';
 import { Input } from '@/shared/ui/atoms/input';
@@ -25,7 +33,8 @@ interface MobileFolderListProps {
 
 /** 모바일 — 폴더 목록 페이지 (drill-down 패턴) */
 export function MobileFolderList({ onSelect, className }: MobileFolderListProps) {
-  const { folderList, uncategorizedCount, recentFolderList, isLoading } = useMobileFolderList();
+  const { folderList, folderListRef, uncategorizedCount, recentFolderList, isLoading } =
+    useMobileFolderList();
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -69,7 +78,8 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
             <Spinner />
           </DelayedFallback>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          // 고정·해제로 옮겨 간 카드를 useFollowFocusOnReorder가 부드럽게 따라가도록 브라우저 스크롤 고정을 끈다
+          <div ref={folderListRef} className="grid grid-cols-2 gap-3 [overflow-anchor:none]">
             {folderList?.map((folder) => (
               <FolderCard key={folder.id} folder={folder} onSelect={onSelect} />
             ))}
@@ -113,6 +123,9 @@ interface FolderCardProps {
 
 function FolderCard({ folder, onSelect }: FolderCardProps) {
   const {
+    isPinned,
+    queuePinToggle,
+    handleMenuCloseAutoFocus,
     renaming,
     startRename,
     name,
@@ -127,7 +140,11 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
   if (renaming) {
     return (
       <div className="rounded-lg border bg-card p-3 flex flex-col gap-2">
-        <Bookmark className="h-5 w-5 text-muted-foreground" />
+        {isPinned ? (
+          <Pin className="h-5 w-5 text-muted-foreground" />
+        ) : (
+          <Bookmark className="h-5 w-5 text-muted-foreground" />
+        )}
         <Input
           autoFocus
           enterKeyHint="done"
@@ -144,15 +161,25 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
     );
   }
 
+  // scroll-mt — 고정·해제로 옮겨 간 카드를 화면이 따라갈 때 상단바 뒤에 숨지 않게 한다(CommentList.tsx와 같은 방식)
   return (
-    <div className="relative rounded-lg border bg-card overflow-hidden">
+    <div className="relative rounded-lg border bg-card overflow-hidden scroll-mt-(--navbar-height)">
       <Button
         type="button"
         variant="ghost"
         onClick={() => onSelect(folder.id)}
         className="h-auto w-full flex-col items-stretch justify-start gap-2 rounded-none p-3 text-left active:bg-accent"
       >
-        <Bookmark className="h-5 w-5 text-muted-foreground" />
+        {/* 고정한 폴더는 북마크 아이콘 자리에 핀을 둔다 — 이름 칸을 줄이지 않는다(docs/BOOKMARK.md §5) */}
+        {isPinned ? (
+          <Pin
+            role="img"
+            aria-label={TEXTS.ariaLabels.folderPinned}
+            className="h-5 w-5 text-muted-foreground"
+          />
+        ) : (
+          <Bookmark className="h-5 w-5 text-muted-foreground" />
+        )}
         {/* 말줄임 대신 어절 단위 줄바꿈(docs/BOOKMARK.md "폴더 이름 길이") — Button의 whitespace-nowrap을 푼다 */}
         <div className="font-medium whitespace-normal pr-6">{folder.name}</div>
         <div className="text-xs text-muted-foreground">{folder.bookmarkCount}</div>
@@ -160,7 +187,11 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
       <HoverKebabMenu
         aria-label={TEXTS.ariaLabels.folderMenu}
         triggerClassName="absolute top-1 right-1 h-7 w-7"
+        onCloseAutoFocus={handleMenuCloseAutoFocus}
       >
+        <DropdownMenuItem onClick={queuePinToggle}>
+          {isPinned ? TEXTS.bookmark.folder.unpin : TEXTS.bookmark.folder.pin}
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={startRename}>{TEXTS.bookmark.folder.rename}</DropdownMenuItem>
         <DropdownMenuItem onClick={handleDelete} className="text-destructive">
           {TEXTS.buttons.delete}

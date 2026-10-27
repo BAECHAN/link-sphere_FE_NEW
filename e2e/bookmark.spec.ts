@@ -16,7 +16,7 @@ import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 /**
  * useAddBookmarkFolderMutation은 onMutate에서 낙관적 패치를 하지만, 성공 후
- * handleBookmarkFolderChangeSuccess(bookmark-folder.keys.ts:96-101)가
+ * handleBookmarkFolderChangeSuccess(bookmark-folder.keys.ts:120-125)가
  * postInvalidateQueries.list()도 함께 호출해 GET /post를 다시 부른다. beforeEach의
  * 정적 mockPostList/mockAddBookmarkFolder만 쓰면 이 재조회가 항상 isBookmarked:false인
  * 고정값을 돌려줘, 방금 낙관적으로 채워진 아이콘을 도로 되돌리는 것처럼 보인다

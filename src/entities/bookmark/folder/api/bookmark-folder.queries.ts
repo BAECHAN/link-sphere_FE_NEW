@@ -6,6 +6,7 @@ import {
   useQueryClient,
   type QueryClient,
 } from '@tanstack/react-query';
+import dayjs from 'dayjs';
 import { bookmarkFolderApi } from '@/entities/bookmark/folder/api/bookmark-folder.api';
 import {
   bookmarkFolderInvalidateQueries,
@@ -15,6 +16,7 @@ import {
   handleBookmarkFolderChangeSuccess,
   handleBookmarkFolderCreateSuccess,
   handleBookmarkFolderDeleteSuccess,
+  handleBookmarkFolderPinFailure,
   handleBookmarkFolderUpdateSuccess,
   isLastPendingBookmarkMutation,
 } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
@@ -34,6 +36,7 @@ import {
   PostListResponse,
 } from '@/entities/post/@x/bookmark';
 import { TEXTS } from '@/shared/config/texts';
+import { toast } from '@/shared/lib/toast/toast';
 import { PaginationRequest } from '@/shared/types/common.type';
 
 // ==================== Queries ====================
@@ -171,6 +174,104 @@ export const useDeleteBookmarkFolderMutation = (folderId: string) => {
     meta: { manualErrorHandling: true, successMessage: TEXTS.messages.success.folderDeleted },
     onSuccess: () => {
       handleBookmarkFolderDeleteSuccess(queryClient);
+    },
+  });
+};
+
+/** 목록 캐시에서 그 폴더의 pinnedAt만 바꾼다 — 이름·개수·lastUsedAt은 그대로 둔다 */
+function patchFolderPinnedAt(
+  queryClient: QueryClient,
+  folderId: string,
+  nextPinnedAt: (pinnedAt: string | null | undefined) => string | null
+) {
+  queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, (oldData) => {
+    if (!oldData) {
+      return oldData;
+    }
+
+    return {
+      ...oldData,
+      folders: oldData.folders.map((folder) =>
+        folder.id === folderId ? { ...folder, pinnedAt: nextPinnedAt(folder.pinnedAt) } : folder
+      ),
+    };
+  });
+}
+
+/**
+ * 폴더 고정·해제 — "뒤집기"가 아니라 "그 상태로 만들기"(PUT/DELETE)라 연타해도 마지막으로 누른 상태가 남는다
+ * (docs/FE-ARCHITECTURE.md §11 "같은 대상의 연속 mutation"). 같은 폴더가 최근 구획과 내 폴더에 함께 그려져 훅
+ * 인스턴스가 둘이어도, mutationKey·scope가 폴더 id로 같아 한 줄로 서고 "마지막 요청" 판정도 함께 센다.
+ *
+ * 성공·실패 토스트는 mutate 콜백이 아니라 여기서 띄운다 — mutate 콜백은 누른 행이 언마운트되면 불리지 않는다
+ * (.claude/CLAUDE.md "React Query 라이프사이클 주의"). 연타 중간의 결과는 뒤 요청이 상태를 다시 정하니 마지막
+ * 요청에서만 한 번 띄운다. 성공 토스트는 고정·해제한 행이 내 폴더 맨 위(또는 원래 자리)로 옮겨 가 화면 밖으로
+ * 사라질 수 있어서 띄운다(docs/BOOKMARK.md §5).
+ */
+export const useSetBookmarkFolderPinMutation = (folderId: string) => {
+  const queryClient = useQueryClient();
+  const mutationKey = bookmarkFolderMutationKeys.pin(folderId);
+  // onSuccess·onError가 불리는 시점엔 자기 자신도 아직 pending이라, 1이면 남은 요청이 없다
+  const isLastPendingPin = () => queryClient.isMutating({ mutationKey }) === 1;
+
+  return useMutation({
+    mutationKey,
+    scope: { id: mutationKey.join(':') },
+    mutationFn: (nextPinned: boolean, context) => {
+      // 줄에서 기다리는 사이 다른 계정이 됐으면 보내지 않는다(이하 scope mutation 공통)
+      assertMutationAuthEpochUnchanged(context);
+
+      return nextPinned
+        ? bookmarkFolderApi.pinBookmarkFolder(folderId)
+        : bookmarkFolderApi.unpinBookmarkFolder(folderId);
+    },
+    meta: { manualErrorHandling: true },
+    onMutate: async (nextPinned) => {
+      await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.list });
+
+      const previous = queryClient.getQueryData<BookmarkFolderListResponse>(
+        bookmarkFolderKeys.list
+      );
+
+      // 이미 고정이면 처음 시각을 유지한다 — 서버(setFolderPinned)와 같아야 고정 묶음 순서가 흔들리지 않는다
+      patchFolderPinnedAt(queryClient, folderId, (pinnedAt) =>
+        nextPinned ? (pinnedAt ?? dayjs().format()) : null
+      );
+
+      return { previous };
+    },
+    onSuccess: (server, nextPinned) => {
+      if (!isLastPendingPin()) {
+        return;
+      }
+
+      patchFolderPinnedAt(queryClient, folderId, () => server.pinnedAt ?? null);
+
+      const folder = queryClient
+        .getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list)
+        ?.folders.find((f) => f.id === folderId);
+
+      if (folder) {
+        toast.success(
+          nextPinned
+            ? TEXTS.messages.success.folderPinned(folder.name)
+            : TEXTS.messages.success.folderUnpinned(folder.name)
+        );
+      }
+    },
+    onError: (_err, nextPinned, context) => {
+      if (!isLastPendingPin()) {
+        return;
+      }
+
+      if (context?.previous) {
+        queryClient.setQueryData(bookmarkFolderKeys.list, context.previous);
+      }
+
+      handleBookmarkFolderPinFailure(queryClient);
+      toast.error(
+        nextPinned ? TEXTS.messages.error.folderPinFailed : TEXTS.messages.error.folderUnpinFailed
+      );
     },
   });
 };

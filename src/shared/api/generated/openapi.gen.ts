@@ -377,6 +377,30 @@ export interface paths {
     patch: operations['updateFolder'];
     trace?: never;
   };
+  '/bookmark/folders/{folderId}/pin': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * 북마크 폴더 고정
+     * @description 이미 고정된 상태여도 200 이다(멱등). 처음 고정한 시각을 유지한다 — 고정 구획은 이 시각 오름차순이다. 실패: 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더)
+     */
+    put: operations['putFolderPin'];
+    post?: never;
+    /**
+     * 북마크 폴더 고정 해제
+     * @description 고정 안 된 상태여도 200 이다(멱등). 실패: 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더)
+     */
+    delete: operations['deleteFolderPin'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/bookmark/folders/{folderKey}/posts': {
     parameters: {
       query?: never;
@@ -842,6 +866,13 @@ export interface components {
       status: number;
       timestamp: string;
     };
+    ApiResponseFolderPinResponse: {
+      data: components['schemas']['FolderPinResponse'];
+      message: string;
+      /** Format: int32 */
+      status: number;
+      timestamp: string;
+    };
     ApiResponseFolderResponse: {
       data: components['schemas']['FolderResponse'];
       message: string;
@@ -1001,6 +1032,12 @@ export interface components {
       /** Format: int32 */
       uncategorizedCount: number;
     };
+    FolderPinResponse: {
+      /** Format: uuid */
+      id: string;
+      /** Format: date-time */
+      pinnedAt?: string | null;
+    };
     FolderResponse: {
       /** Format: int32 */
       bookmarkCount: number;
@@ -1009,6 +1046,8 @@ export interface components {
       /** Format: date-time */
       lastUsedAt?: string | null;
       name: string;
+      /** Format: date-time */
+      pinnedAt?: string | null;
       /** Format: int32 */
       sortOrder: number;
     };
@@ -1685,6 +1724,50 @@ export interface operations {
         };
         content: {
           '*/*': components['schemas']['ApiResponseFolderResponse'];
+        };
+      };
+    };
+  };
+  putFolderPin: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        folderId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponseFolderPinResponse'];
+        };
+      };
+    };
+  };
+  deleteFolderPin: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        folderId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponseFolderPinResponse'];
         };
       };
     };

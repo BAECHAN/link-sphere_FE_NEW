@@ -932,7 +932,7 @@ onError: (_err, _nextLiked, context) => {
    탭에서 계정이 바뀌면, 차례가 왔을 때 새 계정으로 요청이 나간다. 전역 `MutationCache` `onMutate`가 누른 순간의
    인증 세대를 기록하고(`queryClient.ts`), 이 확인이 달라졌으면 보내지 않고 `SessionChangedError`로 끝낸다 —
    실패로 끝나야 `onError`(롤백)가 돌고 결과를 기다리던 화면이 풀린다(`mutation-auth-epoch.ts`, [`AUTH.md`](./AUTH.md) §8-B).
-   scope를 쓰는 mutation 6곳이 모두 부른다. 새 scope mutation이 빠뜨리면 ESLint
+   scope를 쓰는 mutation 7곳이 모두 부른다. 새 scope mutation이 빠뜨리면 ESLint
    `custom-query-rules/scope-mutation-auth-epoch`가 pre-commit·CI에서 막는다(§2).
 
 ```typescript

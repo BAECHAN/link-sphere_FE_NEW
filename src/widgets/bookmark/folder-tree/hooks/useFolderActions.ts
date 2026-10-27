@@ -4,6 +4,7 @@ import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
 import { TEXTS } from '@/shared/config/texts';
 import {
   useDeleteBookmarkFolderMutation,
+  useSetBookmarkFolderPinMutation,
   useUpdateBookmarkFolderMutation,
 } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
@@ -16,7 +17,8 @@ interface UseFolderActionsParams {
 }
 
 /**
- * 폴더 이름변경(rename) + 삭제(delete) 로직 — FolderTree(FolderItem)·MobileFolderList(FolderCard)가 공유한다.
+ * 폴더 고정(pin) + 이름변경(rename) + 삭제(delete) 로직 — FolderTree(FolderItem)·MobileFolderList(FolderCard)가 공유한다.
+ * 고정 실패 토스트·롤백은 mutation이 소유한다(useSetBookmarkFolderPinMutation).
  */
 export const useFolderActions = ({ folder, onBeforeDelete }: UseFolderActionsParams) => {
   const [renaming, setRenaming] = useState(false);
@@ -25,12 +27,35 @@ export const useFolderActions = ({ folder, onBeforeDelete }: UseFolderActionsPar
     folder.id
   );
   const { mutateAsync: deleteFolder } = useDeleteBookmarkFolderMutation(folder.id);
+  const { mutate: setPinned } = useSetBookmarkFolderPinMutation(folder.id);
+  const isPinned = BookmarkFolderUtil.isPinned(folder);
   const { openConfirm } = useAlert();
   const submittingRef = useRef(false);
   const nameError = BookmarkFolderUtil.nameLengthError(name);
 
   const startRename = () => {
     setRenaming(true);
+  };
+
+  const togglePin = () => {
+    setPinned(!isPinned);
+  };
+
+  // ⋮ 메뉴에서 고르면 메뉴가 다 닫힌 뒤에 보낸다 — 바로 보내면 행이 옮겨 가는 동안 닫히던 메뉴가 그 행을
+  // 따라가 새 자리에서 "고정 해제"로 바뀐 채 사라졌다(docs/BOOKMARK.md §5)
+  const pinAfterMenuCloseRef = useRef(false);
+
+  const queuePinToggle = () => {
+    pinAfterMenuCloseRef.current = true;
+  };
+
+  const handleMenuCloseAutoFocus = () => {
+    if (!pinAfterMenuCloseRef.current) {
+      return;
+    }
+
+    pinAfterMenuCloseRef.current = false;
+    togglePin();
   };
 
   const submitRename = async () => {
@@ -96,6 +121,9 @@ export const useFolderActions = ({ folder, onBeforeDelete }: UseFolderActionsPar
   };
 
   return {
+    isPinned,
+    queuePinToggle,
+    handleMenuCloseAutoFocus,
     renaming,
     startRename,
     name,
