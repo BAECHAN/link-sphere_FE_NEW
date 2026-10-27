@@ -3,7 +3,7 @@
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
 > 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지, 그리고 로그인한 사람도 글을 못 쓸 때가 있는 이유를 설명할 수 있게 됩니다. 비밀번호를 새로 만드는 폼이 입력 중에 언제 무엇을 보여주는지(§8-G)도 여기서 다룹니다.
-> **마지막 검토**: 2026-10-20
+> **마지막 검토**: 2026-10-27
 
 ---
 
@@ -143,9 +143,9 @@ RootLayout
 
 **절대 저장하지 않는 것**: 액세스 토큰(어떤 스토리지에도 없음, 메모리 전용), 리프레시 토큰(JS가 못 만짐), 계정 정보(React Query 캐시에만, `accountKeys.root`) — 게이트 D가 보는 `account.emailVerified`도 이 캐시 안에 있고 `useAuthStore`에는 없습니다.
 
-**비밀번호 변경 시 세션 회전**: `useChangePasswordMutation`(`auth.queries.ts:191-203`)의 `onSuccess`가 BE가 새로 발급한 세션으로 `setAuth(data.accessToken)`을 호출합니다 — BE가 비밀번호 변경 시 이 기기를 포함한 세션 회전 계열(familyId)을 새로 만들고 다른 기기의 세션은 전부 폐기하기 때문입니다. 로그인·refresh와 마찬가지로 `useAuthStore`의 `accessToken`을 갱신하는 세 번째 트리거입니다.
+**비밀번호 변경 시 세션 회전**: `useChangePasswordMutation`(`auth.queries.ts`)의 `onSuccess`가 BE가 새로 발급한 세션으로 `setAuth(data.accessToken)`을 호출합니다 — BE가 비밀번호 변경 시 이 기기를 포함한 세션 회전 계열(familyId)을 새로 만들고 다른 기기의 세션은 전부 폐기하기 때문입니다. 로그인·refresh와 마찬가지로 `useAuthStore`의 `accessToken`을 갱신하는 세 번째 트리거입니다.
 
-`useAuthStore`(`src/shared/store/auth.store.ts:48-80`)는 `devtools` 미들웨어만 쓰고 **`persist`가 없습니다 — 의도적입니다.** `accessToken`은 항상 `isAuthenticated`와 함께 `setAuth`/`clearAuth`/`clearLocalAuth`에서만 갱신되므로(`auth.store.ts:56-65`, `:67-76`) 두 값은 절대 어긋나지 않습니다. `clearLocalAuth`는 `clearAuth`와 달리 localStorage를 건드리지 않는 메모리 전용 정리로, 다른 탭에서 일어난 변화를 이 탭에 반영할 때만 씁니다(§8-H). **이 등가성이 §8-A의 동작을 결정짓는 핵심 사실입니다.**
+`useAuthStore`(`src/shared/store/auth.store.ts:48-80`)는 `devtools` 미들웨어만 쓰고 **`persist`가 없습니다 — 의도적입니다.** `accessToken`은 항상 `isAuthenticated`와 함께 `setAuth`/`setAccessToken`(하위 호환)/`clearAuth`/`clearLocalAuth`에서만 갱신되므로(`auth.store.ts:56-65`, `:67-76`) 두 값은 절대 어긋나지 않습니다. `clearLocalAuth`는 `clearAuth`와 달리 localStorage를 건드리지 않는 메모리 전용 정리로, 다른 탭에서 일어난 변화를 이 탭에 반영할 때만 씁니다(§8-H). **이 등가성이 §8-A의 동작을 결정짓는 핵심 사실입니다.**
 
 `linksphere:auth:has-session` 플래그(`auth.store.ts:17-20`)는 "세션이 있을 가능성"에 대한 힌트일 뿐, 진짜 인증 상태가 아닙니다:
 
@@ -158,7 +158,7 @@ RootLayout
 
 | 파라미터                                   | 값                                                                                                                             | 위치                                                                     |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| 계정 정보(`accountKeys.root`) `staleTime`  | 1일(`STALE_TIME_ONE_DAY`)                                                                                                      | `src/entities/account/api/account.queries.ts:68`                         |
+| 계정 정보(`accountKeys.root`) `staleTime`  | 1일(`STALE_TIME_ONE_DAY`)                                                                                                      | `src/entities/account/api/account.queries.ts`의 `useFetchAccountQuery`   |
 | 동시 401 발생 시 실제 refresh 호출 횟수    | 1회(리더-팔로워 큐잉 + refresh가 끝난 뒤 늦게 온 401은 refresh 없이 재시도, §8-B·§9)                                           | `src/shared/api/client.ts`의 `handleTokenExpired` 메서드                 |
 | refresh 재시도 상한                        | **1회**(재시도한 요청이 다시 `TOKEN_EXPIRED`를 받으면 refresh를 또 호출하지 않고 실패 처리 — 2026-09-21 추가, §11 항목 1 참고) | `src/shared/api/client.ts`의 `handleTokenExpired`, `retryCount > 0` 가드 |
 | 로그아웃 직후 유예 시간(`LOGOUT_GRACE_MS`) | 2초 — §8-E 참고                                                                                                                | `src/shared/utils/logout-grace.util.ts:25`                               |
@@ -208,7 +208,7 @@ client.ts의 request() 메서드 — authEpoch = 이 탭 토큰의 세대(저장
     if (code === TOKEN_EXPIRED)
       return this.handleTokenExpired(...)          → 아래 handleTokenExpired로 위임
     else if (isSessionInvalidCode(code))            → NOT_LOGGED_IN / INVALID_TOKEN
-      if (endpoint === /auth/refresh) throw         → 앱 부팅 시 자동 refresh는 조용히 실패
+      if (endpoint === /auth/refresh) throw         → refresh 자신은 clearAll 없이 throw(방어용, 아래 설명)
       if (세대가 바뀜) throw SessionChangedError     → 지금 세션과 무관한 401, clearAll 안 함
       else if (!AuthUtil.isLoggingOut()) AuthUtil.clearAll()
 
@@ -222,6 +222,7 @@ client.ts의 handleTokenExpired() 메서드
     POST /auth/refresh (X-Access-Token = sentToken)  → BE가 쿠키 주인과 같은 회원인지 확인
     if (세대가 바뀜) 받은 토큰 버림 → catch로
     setAuth(accessToken)
+    notifySubscribers()                            → 대기 요청들 재시도
     return this.request(endpoint, options, retryCount + 1)   // 원 요청 재시도
     catch → 세대가 바뀌었으면 리더·대기 요청 모두 SessionChangedError
             409 SESSION_MISMATCH면 이 탭만 로그아웃(1번) + 리더·대기 요청 모두 SessionChangedError
@@ -238,6 +239,13 @@ client.ts의 handleTokenExpired() 메서드
 중이던 요청이 `TOKEN_EXPIRED`를 받고, 재시도 상한에 걸려 로그아웃됩니다. 2026-10-12에
 `client.test.ts` Case 1-3으로 재현(수정 전 refresh 2회 + 로그인 이동)한 뒤 이 분기를
 추가했습니다.
+
+refresh 자신이 실패하면 BE는 `NOT_LOGGED_IN`/`INVALID_TOKEN`이 아니라 401
+`MISSING_REFRESH_TOKEN`(쿠키 없음)·`INVALID_REFRESH_TOKEN`(만료·위조·이미 소비됨)을 줍니다(BE
+`GlobalExceptionHandler.kt`, `/auth/refresh`는 `SecurityConfig.kt`의 `permitAll` 목록). 이 코드는 위 401 분기
+어디에도 걸리지 않고 일반 `ApiError`로 던져지므로, 의사코드의 `/auth/refresh` 분기는 방어용입니다. 앱 부팅 시
+자동 refresh가 조용히 실패하는 것은 `restoreAuth`의 catch가 `clearAuth()`만 하기 때문이고(§8-C), 갱신 중
+refresh가 실패하면 위 리더의 catch가 `clearAll()`로 처리합니다.
 
 #### 인증 세대가 바뀐 뒤 돌아온 401
 
@@ -274,7 +282,7 @@ refresh 쿠키는 브라우저에 한 장이라 모든 탭이 같이 씁니다. 
   누른 순간의 세대를 전역 `MutationCache` `onMutate`가 기록하고(`queryClient.ts`, 줄을 서도 `onMutate`는
   누른 순간에 돕니다), 그 mutation들의 `mutationFn`이 보내기 직전에 확인해 달라졌으면 보내지 않고
   `SessionChangedError`로 끝냅니다(`mutation-auth-epoch.ts`의 `assertMutationAuthEpochUnchanged`, scope
-  mutation 6곳). 기록의 키는 query-core가 한 mutation의 `onMutate`와 `mutationFn`에 함께 넘기는 context
+  mutation 6곳 — 빠뜨리면 ESLint `custom-query-rules/scope-mutation-auth-epoch`가 막습니다). 기록의 키는 query-core가 한 mutation의 `onMutate`와 `mutationFn`에 함께 넘기는 context
   객체입니다(5.90 `mutation.ts`의 `execute`). 실패로 끝나므로 `onError`(롤백)가 돌고, 결과를 기다리던 화면
   (북마크 폴더 대화상자의 행 잠금 등)도 풀립니다.
 - **감수한 것**: 다른 탭에서 같은 계정으로 다시 로그인한 순간 진행 중이던 요청도 실패로 끝납니다. 토큰이
@@ -484,10 +492,11 @@ setAuthResolved(true); // :59 성공/실패/미시도 무관 항상
 "쿠키 주인과 같은 회원인가" 확인(§8-B "쿠키 주인이 다른 회원이라 갱신이 거절될 때")을 거치지 않고 쿠키 주인
 계정으로 복원됩니다 — 새로 연 탭과 같은 동작이고, 의도한 것입니다.
 
-`restoreAuth`(`useAuth.ts:65-89`)는 refresh 성공 시 FCM 토큰도 함께 재등록합니다(`:82`
-`void requestAndRegisterFcmToken();`) — 이 기기의 로그인 세션이 부팅 시점에 복원되면, 새
+`useAuth.ts`의 `restoreAuth`는 refresh 성공 시 FCM 토큰도 함께 재등록합니다
+(`void reregisterFcmTokenIfGranted();`) — 이 기기의 로그인 세션이 부팅 시점에 복원되면, 새
 세션의 회전 계열(familyId)로 FCM 토큰을 다시 등록해야 다음 발송부터 끊기지 않기
-때문입니다(`shared/lib/firebase/fcm.ts` 참고, 상세는 `docs/FCM-PUSH-NOTIFICATION.md`).
+때문입니다. 사용자가 아무것도 누르지 않은 때라 알림 권한은 묻지 않고, 이미 허용한 기기만
+재등록합니다(#418, `shared/lib/firebase/fcm.ts` 참고, 상세는 `docs/FCM-PUSH-NOTIFICATION.md`).
 
 ### 8-D. 게이트 C — 로그인 유도
 
@@ -537,7 +546,7 @@ effect(`:58-74`, #228로 `features/auth/login`에서 이 경로로 이동)가 �
 ### 8-E. 로그인·로그아웃 시 React Query 캐시 처리
 
 **로그아웃은 화면이 곧 다른 곳으로 이동하는지에 따라 캐시 처리 방식이 갈립니다**
-(`useLogoutMutation`의 `isProtectedPath` 분기, `auth.queries.ts:84-113`, 분기 자체는 `:93`):
+(`auth.queries.ts`의 `useLogoutMutation` 안 `isProtectedPath` 분기):
 
 | 경로                                      | 호출                             | 캐시 처리                                         | 배경 재요청 | 왜                                                                     |
 | ----------------------------------------- | -------------------------------- | ------------------------------------------------- | ----------- | ---------------------------------------------------------------------- |
@@ -554,10 +563,12 @@ effect(`:58-74`, #228로 `features/auth/login`에서 이 경로로 이동)가 �
 이게 왜 문제가 되는가는 조회 훅의 종류에 달려 있습니다. 일반 `useQuery`는
 `throwOnError: false`가 전역 기본값(`queryClient.ts`)이라 재마운트 시 캐시가
 error여도 정상적으로 재요청됩니다. 반면 **Suspense 훅**(`useSuspenseQuery`/
-`useSuspenseInfiniteQuery`)은 캐시가 이미 `error`면 TanStack Query 내부
-(`queryObserver`의 `shouldLoadOnMount`)가 `retryOnMount`를 강제로 `false`로
-만들어 **재마운트해도 네트워크 요청 자체를 내지 않고** 캐시된 옛 에러를 그대로
-다시 throw합니다. `gcTime`(기본 5분)이 지나 캐시가 수거될 때까지 이 상태가
+`useSuspenseInfiniteQuery`)은 캐시가 이미 `error`면 TanStack Query가
+`retryOnMount`를 강제로 `false`로 만들고(react-query 5.90.16
+`build/modern/errorBoundaryUtils.js`의 `ensurePreventErrorBoundaryRetry` — suspense이고
+`QueryErrorResetBoundary`가 리셋되지 않았을 때), query-core `queryObserver`의
+`shouldLoadOnMount`가 그 값을 보고 **재마운트해도 네트워크 요청 자체를 내지 않아** 캐시된
+옛 에러를 그대로 다시 throw합니다. `gcTime`(기본 5분)이 지나 캐시가 수거될 때까지 이 상태가
 풀리지 않습니다. (이 함정은 제자리 로그아웃 경로에서만 생깁니다 — 이동 수반
 로그아웃은 애초에 배경 재요청 자체가 없어 캐시가 error로 오염되지 않습니다.)
 
@@ -587,14 +598,15 @@ SESSION_MISMATCH로 이 탭만 로그아웃할 때(§8-B)는 경로와 상관없
 (`client.ts`의 같은 가드), 제자리 로그아웃 경로의 **캐시가 error 상태로 오염되는
 것 자체는 막지 못합니다.**
 
-**로그인**(`auth.queries.ts`의 `useLoginMutation`(`:27-80`), `onSuccess`는 `:34-61`)이
+**로그인**(`auth.queries.ts`의 `useLoginMutation` `onSuccess`)이
 제자리 로그아웃이 남긴 이 error 캐시를 정리합니다:
 
 ```ts
 setAuth(data.accessToken); // 1. 새 토큰 저장
+AuthEpochUtil.markLogin(); //    다른 탭·bfcache 페이지가 알아챌 인증 세대 쓰기(§8-H)
 void queryClient.resetQueries({
-  // 2. 로그아웃이 남긴 에러 캐시만 초기화
-  predicate: (query) => query.state.status === 'error' && query.state.data === undefined,
+  // 2. 로그아웃이 남긴 에러 캐시만 초기화 — auth.keys.ts: status === 'error' && data === undefined
+  predicate: isErroredCacheWithoutData,
 });
 void queryClient.invalidateQueries(); // 3. 전체 invalidate (활성 쿼리 재조회)
 void requestAndRegisterFcmToken(); // 4. FCM 토큰 등록 (브라우저 알림 권한 요청 + 서버 등록)
@@ -680,7 +692,8 @@ BE는 글 작성·수정 폼의 링크 미리보기(`PostService.previewLink`)�
   빨강이 됩니다.
 
 비밀번호 정책 자체(조합 규칙·8~64자·출력 가능 ASCII만)는 바뀌지 않았습니다 —
-`auth.schema.ts:8-12`와 BE `AuthDTO.kt` 그대로입니다.
+`auth.schema.ts:8-12`와 BE `member/MemberDTO.kt`(가입 `SignupRequest`)·`auth/AuthDTO.kt`(변경·재설정
+요청) 그대로입니다.
 
 **구조**: 폼은 그대로 `mode: 'onSubmit'` + zodResolver입니다. RHF 에러는 제출 차단·첫 에러
 포커스·빨간 테두리만 맡고, 화면 문구는 `usePasswordFieldsFeedback`이 입력값에서 직접 계산해
@@ -690,7 +703,7 @@ BE는 글 작성·수정 폼의 링크 미리보기(`PostService.previewLink`)�
 | 역할            | 위치                                                                                                                                                                           |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 판정(순수 함수) | `src/entities/auth/utils/auth.util.ts`의 `PasswordUtil` — `checkRequirements`(`:29`), `findViolation`(`:39`), `resolveRequirementStates`(`:64`), `resolveConfirmStatus`(`:91`) |
-| 상태·연결(훅)   | `src/entities/auth/hooks/usePasswordFieldsFeedback.ts` — 확인 칸 포커스·latch(`:62`), 비밀번호 칸의 `deps`(`:81`)                                                              |
+| 상태·연결(훅)   | `src/entities/auth/hooks/usePasswordFieldsFeedback.ts` — 확인 칸 포커스·latch(렌더 중 `setIsConfirmLatched` 조정), 비밀번호 칸의 `deps`(`passwordInputProps`)                  |
 | 표시            | `src/entities/auth/ui/PasswordRequirementList.tsx`, `src/entities/auth/ui/PasswordConfirmMessage.tsx`                                                                          |
 | shared 확장     | `src/shared/ui/elements/form/FormInputPassword.tsx`의 `useController`(`rules.deps`), `src/shared/ui/elements/form/_base/FormField.tsx:42`(`hideErrorMessage`)                  |
 | 길이 상수       | `src/entities/auth/config/auth.const.ts`                                                                                                                                       |
@@ -837,15 +850,15 @@ flowchart TD
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                     | 건드릴 파일                                                                                                                                                                                                                                       |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 새 보호 페이지 추가              | `route-paths.ts`에 경로 추가 → `route-paths.ts:39-48` `isProtectedPath`에 prefix 추가 → `routes/index.tsx`의 Protected Content Group에 라우트 등록                                                                                                |
-| 로그인 필요한 새 액션(버튼) 추가 | `useAuthGuard()`로 액션을 감싸기(§8-D 패턴)                                                                                                                                                                                                       |
-| 로그인 필요한 새 이동(링크) 추가 | `useProtectedNavigate()` 사용, 또는 `nav-items.ts`에 `requiresAuth: true` 항목 추가                                                                                                                                                               |
-| 새 401 에러 코드 처리 추가       | `error-code.ts`에 상수 추가 → `client.ts`의 `request()` 401 분기(`response.status === 401`) 또는 `error-toast.ts`의 `resolveErrorToast()`에 분기 추가(그 코드가 재시도 가능한지/즉시 로그아웃인지 먼저 결정)                                      |
-| 새 Suspense 조회 화면 추가       | `useSuspenseQuery`/`useSuspenseInfiniteQuery`는 캐시가 error면 재마운트해도 재요청하지 않는다 — §8-E의 로그인 리셋이 전제다                                                                                                                       |
-| 비밀번호 조건 추가·변경          | 정책(`auth.schema.ts`, BE `AuthDTO.kt`)과 체크리스트(`auth.util.ts`의 `REQUIREMENT_TESTS`, `auth.const.ts`의 `PASSWORD_REQUIREMENTS`, `TEXTS.auth.password.requirements`)를 함께 — 한쪽만 바꾸면 `auth.util.test.ts`의 차등 비교가 실패한다(§8-G) |
-| 비밀번호를 새로 만드는 폼 추가   | `usePasswordFieldsFeedback(form, { password, confirm })`의 반환값을 `FormInputPassword` 두 개와 `PasswordRequirementList`·`PasswordConfirmMessage`에 펼친다(`SignUpForm.tsx:110` 참고, §8-G)                                                      |
+| 하고 싶은 것                     | 건드릴 파일                                                                                                                                                                                                                                                      |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 새 보호 페이지 추가              | `route-paths.ts`에 경로 추가 → `route-paths.ts:39-48` `isProtectedPath`에 prefix 추가 → `routes/index.tsx`의 Protected Content Group에 라우트 등록                                                                                                               |
+| 로그인 필요한 새 액션(버튼) 추가 | `useAuthGuard()`로 액션을 감싸기(§8-D 패턴)                                                                                                                                                                                                                      |
+| 로그인 필요한 새 이동(링크) 추가 | `useProtectedNavigate()` 사용, 또는 `nav-items.ts`에 `requiresAuth: true` 항목 추가                                                                                                                                                                              |
+| 새 401 에러 코드 처리 추가       | `error-code.ts`에 상수 추가 → `client.ts`의 `request()` 401 분기(`response.status === 401`) 또는 `error-toast.ts`의 `resolveErrorToast()`에 분기 추가(그 코드가 재시도 가능한지/즉시 로그아웃인지 먼저 결정)                                                     |
+| 새 Suspense 조회 화면 추가       | `useSuspenseQuery`/`useSuspenseInfiniteQuery`는 캐시가 error면 재마운트해도 재요청하지 않는다 — §8-E의 로그인 리셋이 전제다                                                                                                                                      |
+| 비밀번호 조건 추가·변경          | 정책(`auth.schema.ts`, BE `MemberDTO.kt`·`AuthDTO.kt`)과 체크리스트(`auth.util.ts`의 `REQUIREMENT_TESTS`, `auth.const.ts`의 `PASSWORD_REQUIREMENTS`, `TEXTS.auth.password.requirements`)를 함께 — 한쪽만 바꾸면 `auth.util.test.ts`의 차등 비교가 실패한다(§8-G) |
+| 비밀번호를 새로 만드는 폼 추가   | `usePasswordFieldsFeedback(form, { password, confirm })`의 반환값을 `FormInputPassword` 두 개와 `PasswordRequirementList`·`PasswordConfirmMessage`에 펼친다(호출은 `useSignUp.ts`, 펼치는 곳은 `SignUpForm.tsx`의 `passwordFeedback` 참고, §8-G)                 |
 
 ---
 
@@ -885,14 +898,14 @@ Case 9의 줄 선 mutation 쪽(같은 탭 계정 전환 뒤 차례가 온 mutati
 2026-09-29 OAC 전환(FE Phase 6, `docs/plans/2026-09-29-oac-lockdown.md`)으로 추가됨,
 401 처리와는 무관한 별개 관심사라 최상위 `describe`를 분리했습니다:
 
-| 시나리오                                | 확인하는 것                                                           |
-| --------------------------------------- | --------------------------------------------------------------------- |
-| 토큰 있을 때(`:830-845`)                | `Authorization` 대신 `X-Access-Token` 헤더, `Authorization` 헤더 없음 |
-| JSON 바디(`:847-868`)                   | `x-amz-content-sha256`에 바디의 SHA256 해시                           |
-| FormData 바디(`:870-886`)               | `x-amz-content-sha256` 헤더 자체를 생략                               |
-| 바디 없는 POST, 예: refresh(`:888-913`) | 빈 문자열의 고정 해시값(`e3b0c442...`)을 그대로 실음                  |
-| 로그인 엔드포인트(`:915-939`)           | `isAuthEndpoint` 목록은 `X-Access-Token` 헤더를 붙이지 않음           |
-| refresh(`:941-959`)                     | refresh에는 `X-Access-Token`을 그대로 실음(BE 회원 확인용)            |
+| 시나리오(`it()` 제목)                                                        | 확인하는 것                                                           |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `토큰이 있으면 Authorization 대신 X-Access-Token 헤더로 보낸다`              | `Authorization` 대신 `X-Access-Token` 헤더, `Authorization` 헤더 없음 |
+| `JSON 바디가 있으면 x-amz-content-sha256 헤더에 바디의 SHA256 해시를 싣는다` | `x-amz-content-sha256`에 바디의 SHA256 해시                           |
+| `FormData 바디에는 x-amz-content-sha256 헤더를 붙이지 않는다`                | `x-amz-content-sha256` 헤더 자체를 생략                               |
+| `바디 없는 POST(예: refresh)에도 빈 문자열의 해시를 싣는다`                  | 빈 문자열의 고정 해시값(`e3b0c442...`)을 그대로 실음                  |
+| `로그인 엔드포인트는 X-Access-Token 헤더를 붙이지 않는다`                    | `isAuthEndpoint` 목록은 `X-Access-Token` 헤더를 붙이지 않음           |
+| `refresh 요청에는 X-Access-Token을 그대로 싣는다 - ...`                      | refresh에는 `X-Access-Token`을 그대로 실음(BE 회원 확인용)            |
 
 **동시 401 요청이 refresh를 정확히 1번만 내는지**는 Case 1-1(refresh 도중 도착)과 Case
 1-3(refresh가 끝난 뒤 도착)이 함께 검증합니다. **refresh 실패 시 대기 중인 팔로워 요청들의
@@ -1130,9 +1143,10 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
     실패"를 풀 수도 있지만 하지 않았습니다 — 세대가 바뀐 뒤에도 갱신을 시도하려면 BE가 "확인했다"를 알리는 계약이
     더 필요하고(토큰이 없거나 행이 없으면 확인을 건너뛰므로 200이 "같은 회원"을 뜻하지 않음), 같은 탭의 받아들이기와
     refresh가 겹치며, 줄 선 요청은 보내기 전에 BE에 물을 수 없어 여전히 실패하고, Case 7을 다시 써야 합니다.
-    **남은 것**: 앞으로 `scope`를 쓰는 mutation을 새로 만들면 `mutationFn`에 같은 확인을 넣어야 합니다(자동 검사는
-    없음, [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §11 "같은 대상의 연속 mutation" 6번). BE 확인은 헤더를 보내야
-    작동하는 정합성 장치라 보안 경계가 아닙니다.
+    **새 `scope` mutation**: `mutationFn` 첫 줄에 같은 확인(`assertMutationAuthEpochUnchanged(context)`)을 넣어야
+    합니다. 빠뜨리면 ESLint `custom-query-rules/scope-mutation-auth-epoch`(`scripts/lib/scope-mutation-auth-epoch-rule.js`,
+    #397)가 error로 막습니다 — 옵션을 변수·스프레드로 넘기면 못 잡습니다([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md)
+    §11 "같은 대상의 연속 mutation" 6번). BE 확인은 헤더를 보내야 작동하는 정합성 장치라 보안 경계가 아닙니다.
 
 ---
 

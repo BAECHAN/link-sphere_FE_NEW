@@ -20,7 +20,7 @@ export class VersionUtil {
    * 네트워크 실패·비정상 응답·파싱 실패는 전부 null - 조용히 넘어간다.
    *
    * DOMParser로 만든 문서는 browsing context가 없어 스크립트 실행·하위 리소스 로드가 없다
-   * (index.html의 Google Fonts stylesheet·폰트 preload가 다시 받아지지 않는다).
+   * (index.html의 폰트 stylesheet·폰트 preload가 다시 받아지지 않는다).
    */
   static async fetchDeployedEntryScriptSrc(): Promise<string | null> {
     try {

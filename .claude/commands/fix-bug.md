@@ -13,8 +13,8 @@ Architecture: FSD (Feature-Sliced Design) with strict layer separation:
 - `<entity>.api.ts` — pure API calls only
 - `<entity>.keys.ts` — query keys + invalidation + success handlers
 - `<entity>.queries.ts` — React Query mutation/query hooks
-- `features/<feature>/hooks/use<FeatureName>.ts` — all business logic
-- `features/<feature>/ui/<FeatureName>.tsx` — thin UI, calls hook only
+- `features/<domain>/<slice>/hooks/use<FeatureName>.ts` — all business logic
+- `features/<domain>/<slice>/ui/<FeatureName>.tsx` — thin UI, calls hook only
 
 ## Step 1: Locate the issue
 
@@ -24,14 +24,16 @@ Search for relevant code in this order:
 2. Widget hook (if the bug shows up on a widget-rendered screen): `widgets/<domain>/<slice>/hooks/`
 3. Page hook (if the bug is page-level orchestration — URL parsing, redirects, an entity
    query called from the page): `pages/<page>/hooks/`
-4. Query/mutation hooks: `entities/<entity>/api/<entity>.queries.ts`
-5. Keys + invalidation: `entities/<entity>/api/<entity>.keys.ts`
-6. API layer: `entities/<entity>/api/<entity>.api.ts`
-7. Response DTO: `entities/<entity>/model/<entity>.dto.ts`
-8. Request/form schema: `entities/<entity>/model/<entity>.schema.ts`
-9. UI component: `features/<domain>/<slice>/ui/`
-10. Shared config: `src/shared/config/`
-11. Shared utilities: `src/shared/`
+4. Entity shared hooks (data derivation shared by several slices, e.g. `useAuth`·`useAccount`·`useCategoryOptions`): `entities/<entity>/hooks/`
+5. Query/mutation hooks: `entities/<entity>/api/<entity>.queries.ts`
+6. Keys + invalidation: `entities/<entity>/api/<entity>.keys.ts`
+7. API layer: `entities/<entity>/api/<entity>.api.ts`
+8. Response DTO: `entities/<entity>/model/<entity>.dto.ts`
+9. Request/form schema: `entities/<entity>/model/<entity>.schema.ts`
+10. Entity pure functions (e.g. submit-error classification `PostUtil.resolveSubmitError`): `entities/<entity>/utils/<entity>.util.ts`
+11. UI component: `features/<domain>/<slice>/ui/`
+12. Shared config: `src/shared/config/`
+13. Shared utilities: `src/shared/`
 
 ## Step 2: Diagnose by layer
 

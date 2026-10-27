@@ -16,7 +16,7 @@ https://linksphere.click/post (구 도메인 https://dbw3brui6htwk.cloudfront.ne
 
 https://linksphere.click/storybook/ (구 도메인 https://dbw3brui6htwk.cloudfront.net/storybook/ 도 계속 동작)
 
-`shared/ui` 중심의 컴포넌트 스토리(55개 파일, 191개 케이스)를 공개 배포한 것입니다. 로컬에서 보려면
+`shared/ui` 중심의 컴포넌트 스토리(55개 파일, 192개 케이스 — 2026-10-27 기준)를 공개 배포한 것입니다. 로컬에서 보려면
 아래 "스토리북" 섹션을 참고하세요.
 
 ## 테스트 계정
@@ -147,7 +147,8 @@ entities/<entity>/api/
 └── *.queries.ts   # useQuery / useMutation 래퍼 훅
 ```
 
-일부 엔티티는 예외다 — `interaction`은 `keys.ts` 없이 다른 엔티티의 `@x` 공개 표면을 거쳐 그 키를 쓴다.
+모든 엔티티가 이 세 파일을 갖는다. 다만 `interaction`의 `keys.ts`는 자체 쿼리 키 없이 mutation 키와,
+요청이 실패했을 때 다른 엔티티 캐시를 다시 맞추는 핸들러(그 엔티티의 `@x` 공개 표면 경유)만 둔다.
 `upload`는 엔티티가 아니라 `shared/api/upload.api.ts`로 이동했다(용도별 정책 없이
 서명 URL 발급만 담당하는 범용 API라 entity가 아니었다). 상세는 FE-ARCHITECTURE.md
 §3·§4 참고.

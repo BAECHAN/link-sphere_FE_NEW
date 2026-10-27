@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 // 이 파일은 단일 컴포넌트가 아니라 src/app/globals.css의 디자인 토큰을 한눈에 보여주는
-// 카탈로그다. 값을 복제하지 않고 CSS 커스텀 프로퍼티(var(--color-primary) 등)를 인라인
-// style로 직접 읽어 렌더링한다 - 토큰이 바뀌면 이 스토리도 자동으로 따라간다.
+// 카탈로그다. 값을 복제하지 않고 CSS 커스텀 프로퍼티 원본 이름(var(--primary) 등, `var(--${token})`)을
+// 인라인 style로 직접 읽어 렌더링한다 - 토큰이 바뀌면 이 스토리도 자동으로 따라간다.
 // (Tailwind의 `bg-${token}`처럼 클래스명을 동적으로 조합하면 JIT 스캐너가 정적 문자열만
 // 인식하기 때문에 생성되지 않는다 - 그래서 여기서는 클래스가 아니라 CSS 변수를 직접 쓴다.)
 // 다크모드는 툴바의 테마 토글(.storybook/preview.tsx)로 확인한다.

@@ -7,7 +7,7 @@
 > **읽고 나면**: 토큰 등록/해제부터 알림 클릭 시 딥링크까지 전체 경로를 이해하고,
 > 새 알림 타입을 추가하거나 배포 관련 문제를 진단할 수 있다.
 >
-> **마지막 검토**: 2026-10-26
+> **마지막 검토**: 2026-10-27
 
 댓글·답글 작성 시 포스트 작성자 또는 원댓글 작성자에게 FCM(Firebase Cloud
 Messaging) 푸시 알림을 전송하는 기능의 전체 구현 내역과 운영 중 마주친 삽질
@@ -96,8 +96,9 @@ React 훅·Service Worker의 기본 개념(탭이 닫혀도 백그라운드에�
 - **`vite-plugin-mkcert`** — 로컬 HTTPS 빌드 설정(§10 시행착오에서 문제를 일으킨 적
   있다). 같이 적혀 있던 `vite-plugin-compression`은 2026-10-14 제거했다(§10.1)
 
-**구현·검증 과정에서 쓴 도구**: Vitest — 포그라운드 "보러가기" 클릭 이동 경로만
-(`useFcmForegroundMessage.test.tsx`). 발송 경로 자체는 자동화 테스트가 없다 — §9 참고.
+**구현·검증 과정에서 쓴 도구**: Vitest — 포그라운드 "보러가기" 클릭 이동 경로
+(`useFcmForegroundMessage.test.tsx`)와 토큰 등록 시 권한을 묻는지/묻지 않는지(`fcm.test.ts`,
+`useAuth.test.tsx`, `auth.queries.test.ts`). 발송 경로 자체는 자동화 테스트가 없다 — §9 참고.
 
 ## 4. 왜 만들었나
 
@@ -177,7 +178,7 @@ sequenceDiagram
   participant PostOwner as 포스트 작성자 브라우저
 
   Commenter->>BE: POST /post/{postId}/comment { content }<br/>또는 POST /comment/{commentId}/reply { content }
-  BE->>BE: CommentService.createComment()
+  BE->>BE: CommentService.createComment()<br/>또는 createReply()
   BE->>BE: commentRepository.save() (트랜잭션 커밋)
   BE-->>Commenter: 응답 반환 (알림 발송을 기다리지 않음)
   BE->>Job: 커밋 후 이벤트 → 별도 Lambda 호출로 위임
@@ -252,10 +253,15 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
 토큰 등록은 세 곳에서 일어난다 — ① 로그인 성공
 (`auth.queries.ts`의 `useLoginMutation.onSuccess`), ② 비밀번호 변경 성공
 (`useChangePasswordMutation.onSuccess`), ③ 앱 부팅 시 세션 복원 성공
-(`useAuth.ts`의 `restoreAuth`). ②·③은 2026-09-29에 추가됐다 - BE가 그 시점마다
-이 기기의 세션 회전 계열(familyId)을 새로 발급하는데, FCM 토큰을 재등록하지
-않으면 옛 계열에 묶인 채로 다음 알림부터 끊겨버리기 때문이다(계정 정보가
-확실히 없는 ①만 있던 예전에는 이 문제가 없었다).
+(`useAuth.ts`의 `restoreAuth`). ②·③은 2026-09-29에 추가됐다. 이유는 둘이 다르다.
+
+- ② 비밀번호 변경: BE가 모든 세션을 폐기하고 이 기기에 새 세션 회전 계열(familyId)을
+  발급한다(BE `AuthService.changePassword` → `MemberSessionService.createSession`). 재등록하지
+  않으면 토큰이 옛 계열에 묶인 채로 남아 다음 알림부터 끊긴다.
+- ③ 세션 복원: `/auth/refresh`는 계열을 유지한 채 토큰만 회전한다(BE `MemberSessionService.rotate`,
+  §12 `family_id`). 그래도 재등록하는 이유는, 이 기기 토큰이 아직 서버에 없거나 계열 도입 전에
+  등록된 레거시 행(`session_family_id` NULL)이면 다음 발송 때 비활성으로 간주돼 지워지기
+  때문이다 — 살아 있는 계열로 다시 묶어 둔다.
 
 ①은 `requestAndRegisterFcmToken`을 불러 알림 권한을 묻는다. ②·③은 2026-10-26부터
 `reregisterFcmTokenIfGranted`를 불러, 이미 권한을 허용한 기기만 묻지 않고 재등록하고
@@ -324,7 +330,9 @@ export function useFcmForegroundMessage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      return;
+    }
 
     let unsubscribe: (() => void) | undefined;
     let cancelled = false;
@@ -335,7 +343,9 @@ export function useFcmForegroundMessage() {
         import('@/shared/lib/firebase/firebase'),
       ]);
 
-      if (!messaging || cancelled) return;
+      if (!messaging || cancelled) {
+        return;
+      }
 
       unsubscribe = onMessage(messaging, (payload) => {
         const title = payload.notification?.title ?? TEXTS.notification.defaultTitle;
@@ -358,7 +368,10 @@ export function useFcmForegroundMessage() {
       });
     }
 
-    subscribe();
+    // SDK 청크 로드 실패를 잡는다 - 놓치면 처리되지 않은 rejection이 된다
+    subscribe().catch((error: unknown) => {
+      console.error('[FCM] Error subscribing to foreground messages:', error);
+    });
 
     return () => {
       cancelled = true;
@@ -439,11 +452,14 @@ const messaging = hasConfig ? firebase.messaging() : null;
 // 아래 notificationclick 리스너도 등록되지 않는다
 messaging?.onBackgroundMessage((payload) => {
   const { title, body } = payload.notification ?? {};
+  const data = payload.data ?? {};
+
   self.registration.showNotification(title ?? '새로운 알림', {
-    body,
+    body: body ?? '',
     icon: '/favicons/android-chrome-192x192.png',
-    data: payload.data,
-    tag: payload.data?.type ?? 'notification',
+    badge: '/favicons/favicon-32x32.png',
+    data: data,
+    tag: data.type ?? 'notification',
   });
 });
 
@@ -520,8 +536,8 @@ DO UPDATE`로 upsert한다 - 같은 토큰이 이미 있으면(기기 재사용�
   `deleteStaleTokensForUser`가 발송 직전에 걸러냄(§5 "왜 이렇게 바뀌었나")
 - 회원탈퇴를 신청함(14일 유예 진입) → 신청 즉시(퍼지 대기까지 기다리지 않고)
   `AccountDeletionService.requestDeletion`이 그 회원의 모든 세션을 폐기하면서
-  FCM 토큰도 전부 삭제한다(BE `AccountDeletionService.kt:71-72`,
-  `fcmTokenRepository.deleteByUserId(id)`)
+  FCM 토큰도 전부 삭제한다(BE `AccountDeletionService.requestDeletion`의
+  `memberSessionService.revokeAllForMember(id)` 다음 `fcmTokenRepository.deleteByUserId(id)`)
 
 ### 배포 설정
 
@@ -546,17 +562,25 @@ classpath:firebase-service-account.json`. 키 파일은 Firebase Console > 프�
 §10.1·§10.2 시행착오 참고):
 
 ```yaml
-# .github/workflows/deploy.yml
-
-# SW 파일은 no-cache + text/javascript 로 개별 업로드
+# .github/workflows/deploy.yml "Upload to S3" 스텝 — 발췌, 일부 생략
+# 실제 순서: assets → fonts → 그 외 파일 sync → SW → index.html → 404.html → version.json
+# (순서가 곧 원자성이라 바꾸지 않는다 — 스텝 머리 주석 참고)
 - name: Upload to S3
   run: |
+    # (assets·fonts 업로드 생략)
+
+    # 그 외 파일 sync에서는 SW를 제외한다(실제로는 index.html·404.html·version.json·assets·fonts·
+    # storybook 제외도 함께 있다 — 빠뜨리면 같은 버킷의 Storybook이 --delete로 지워진다)
+    aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete \
+      --exclude "firebase-messaging-sw.js" \
+      ...
+
+    # SW 파일은 no-cache + text/javascript 로 개별 업로드
     aws s3 cp dist/firebase-messaging-sw.js s3://${{ secrets.S3_BUCKET_NAME }}/firebase-messaging-sw.js \
       --cache-control "no-cache, no-store, must-revalidate" \
       --content-type "text/javascript"
 
-    aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete \
-      --exclude "firebase-messaging-sw.js"
+    # (index.html·404.html·version.json 업로드 생략)
 ```
 
 ## 6. 상태 모델
@@ -580,16 +604,18 @@ FE 쪽에서 토큰 등록에 필요한 상태는 `useAuthStore`(Zustand)의 `ac
 `platform`(`WEB` 고정 사용 중)/`sessionFamilyId`(nullable — 이 컬럼 도입 이전
 레거시 행이거나 세션 정보를 못 읽은 경우 `null`, 즉시 비활성 취급됨)/
 `createdAt`/`updatedAt`. `sessionFamilyId`는 BE `member_sessions.family_id`를
-가리키지만 JPA 연관관계로 묶여있지 않다(리포지토리 레벨 서브쿼리로만 참조 -
-`fcm_tokens.user_id`도 원래 FK가 아닌 이 레포의 기존 관례를 따른 것).
+가리키지만 JPA 연관관계·FK로 묶여있지 않다(리포지토리 레벨 EXISTS 서브쿼리로만 참조 -
+회전한 세션 행들이 함께 쓰는 계열 id라 FK로 걸 대상이 없다). 반면 `fcm_tokens.user_id`는
+`members(id)`에 `ON DELETE CASCADE` FK가 있다(BE 테스트 리소스의 운영 스키마
+덤프 `db/schema.sql`에 있는 `fcm_tokens_user_id_fkey`).
 
 ## 7. 운영 파라미터
 
-| 파라미터                                    | 값                                              | 실제 위치                                           |
-| ------------------------------------------- | ----------------------------------------------- | --------------------------------------------------- |
-| 한 유저 동시 발송 토큰 수                   | 최대 500(멀티 디바이스)                         | BE `FcmService.sendToUser`의 `sendEachForMulticast` |
-| 자동 삭제 대상 에러                         | `UNREGISTERED`, `INVALID_ARGUMENT`              | BE `FcmService.sendToUser`의 실패 응답 필터         |
-| 세션 절대 수명(=알림 수신 가능 기간의 상한) | 7일(재로그인 없이는 이 기간 지나면 알림도 끊김) | BE `MemberSessionService.REFRESH_TOKEN_VALIDITY`    |
+| 파라미터                                    | 값                                              | 실제 위치                                                                                                                                                                                                                 |
+| ------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 한 유저 동시 발송 토큰 수                   | 최대 500(멀티 디바이스)                         | firebase-admin 9.4.2 `MulticastMessage` 생성자의 제약(2026-10-27 설치본 jar를 javap로 확인). BE `FcmService.sendToUser`는 500개 단위로 나눠 보내지 않는다 — 넘으면 생성 시 예외가 나 그 유저 발송 전체가 catch에 흡수된다 |
+| 자동 삭제 대상 에러                         | `UNREGISTERED`, `INVALID_ARGUMENT`              | BE `FcmService.sendToUser`의 실패 응답 필터                                                                                                                                                                               |
+| 세션 절대 수명(=알림 수신 가능 기간의 상한) | 7일(재로그인 없이는 이 기간 지나면 알림도 끊김) | BE `MemberSessionService.REFRESH_TOKEN_VALIDITY`                                                                                                                                                                          |
 
 ## 8. 코드 지도와 자주 하는 수정
 
@@ -612,10 +638,20 @@ FE 쪽에서 토큰 등록에 필요한 상태는 `useAuthStore`(Zustand)의 `ac
 필요한 발송 경로 자체는 자동화 테스트가 없다 — 배포 환경에서 수동으로 검증하며
 실제로 발견한 문제 6건이 §10 시행착오에 원인·해결과 함께 기록돼 있다. 2026-09-29
 세션 바인딩 도입으로 BE `FcmTokenServiceTest`(신규)가 토큰 등록(upsert)·
-`FcmTokenService`의 유닛 테스트를 커버하기 시작했지만, `sendToUser`의 stale
-토큰 삭제·실제 발송 자체는 여전히 수동 검증 대상이다. FE에서는 포그라운드 "보러가기"
-클릭 이동 경로만 `useFcmForegroundMessage.test.tsx`(#297)가 `commentId` 유무 두 케이스로
-검증한다.
+`FcmTokenService`의 유닛 테스트를 커버하기 시작했다. BE에는 그 밖에 `FcmTokenControllerTest`(등록·해제
+응답과 회원 id 위임)와 `FcmServiceIntegrationTest`(토큰 정리가 DB 오류로 실패해도 같은 후처리 잡의
+다른 쓰기는 커밋되는지 — `sendToUser`의 `REQUIRES_NEW` 격리)가 있다. 다만 `deleteStaleTokensForUser`
+쿼리가 실제로 죽은 계열의 토큰만 지우는지와 실제 발송은 여전히 수동 검증 대상이다.
+
+FE 테스트:
+
+- `useFcmForegroundMessage.test.tsx`(#297) — 포그라운드 "보러가기" 클릭 이동 경로를 `commentId` 유무
+  두 케이스로 검증한다.
+- `fcm.test.ts`(#418) — `reregisterFcmTokenIfGranted`가 권한 미결정·거부·`Notification` 없는 브라우저에서는
+  묻지도 등록하지도 않고, 허용한 기기만 묻지 않고 재등록하는지, 로그인 경로(`requestAndRegisterFcmToken`)는
+  여전히 권한을 묻는지 본다.
+- `useAuth.test.tsx`·`auth.queries.test.ts`(#418) — 세션 복원·비밀번호 변경이 권한을 묻지 않는
+  재등록(`reregisterFcmTokenIfGranted`)만 부르는지 본다.
 
 ## 10. 시행착오
 
@@ -762,7 +798,7 @@ onSuccess: (data) => {
   Worker의 고전적인 `importScripts()` 방식으로만 로드할 수 있어, 일반 앱
   코드가 쓰는 모듈형 SDK와는 별도로 SW 전용으로 불러온다
 - **`auth.store`** — `src/shared/store/auth.store.ts`의 Zustand 스토어.
-  `accessToken` 필드를 FCM 토큰 등록/해제 시 직접 읽는다(§6)
+  `accessToken` 필드를 FCM 토큰 등록 시 직접 읽는다(§6). 해제(`unregisterFcmToken`)는 읽지 않는다
 - **토스트 래퍼** — 이 문서의 다이어그램·코드에서 "toast"라고만 쓴 것은 sonner
   라이브러리를 직접 부르는 게 아니라 이 레포 공통 래퍼
   `@/shared/lib/toast/toast`를 가리킨다

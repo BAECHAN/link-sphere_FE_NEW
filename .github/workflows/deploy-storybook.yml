@@ -1,8 +1,8 @@
 name: Storybook Deploy (S3 + CloudFront)
 
-# shared/ui 43개 컴포넌트가 이미 Storybook 스토리 100%(153개 케이스)를 갖췄지만
-# 지금까지는 배포 워크플로가 없어 로컬 `pnpm storybook`으로만 볼 수 있었다. 이
-# 워크플로는 같은 S3 버킷의 storybook/ 접두사에 정적 빌드를 올려 공개 URL을 만든다.
+# 컴포넌트 스토리(shared/ui 컴포넌트 + Provider 없이 렌더되는 일부 entities·widgets, 범위 기준은
+# docs/FE-ARCHITECTURE.md §18)를 같은 S3 버킷의 storybook/ 접두사에 정적 빌드로 올려 공개 URL을
+# 만든다. 이 워크플로가 생기기 전에는 로컬 `pnpm storybook`으로만 볼 수 있었다.
 #
 # deploy.yml과 별도 파일로 분리한 이유: paths 필터는 워크플로 단위라, deploy.yml에
 # job으로 얹으면 .storybook/** 변경만으로도 프로덕션 배포 + 앱 캐시 전역(/*) 무효화가

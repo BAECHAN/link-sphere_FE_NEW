@@ -8,7 +8,7 @@
 > 읽고 나면: 응답 타입이 어디서 오는지, 새 엔티티를 추가할 때 무엇을 만들어야 하는지,
 > BE 스펙이 바뀌면 무슨 일이 일어나는지, BE nullable 정보가 왜 가끔 유실되는지 알게 된다.
 >
-> 마지막 검토: 2026-10-05
+> 마지막 검토: 2026-10-27
 
 ## 1. 쉬운 설명
 
@@ -56,7 +56,8 @@ flowchart TD
 ## 2. 전제 지식
 
 - **가정하는 지식**: 이 레포의 FSD 레이어 구조와 3-Layer API 패턴(`docs/FE-ARCHITECTURE.md`
-  §1·§5), Zod 기본 사용법, OpenAPI 3.0 스펙의 기본 개념(`paths`/`components.schemas`/`$ref`).
+  §1·§5), Zod 기본 사용법, OpenAPI 3.1 스펙의 기본 개념(`paths`/`components.schemas`/`$ref`).
+  §10 시행착오는 3.0 시절 이야기라 3.0의 `nullable` 키도 함께 나온다.
 - **가정하지 않는 지식**: `openapi-typescript`의 내부 동작, swagger-core/springdoc의 모델
   변환 파이프라인(§10 시행착오에서 필요한 만큼 설명), BE Kotlin 코드베이스(필요한 부분만
   파일:줄로 인용).
@@ -67,12 +68,15 @@ flowchart TD
 
 - **기능 자체**:
   - [`openapi-typescript`](https://www.npmjs.com/package/openapi-typescript) 7.13.0 —
-    OpenAPI 3.0 JSON을 TypeScript 타입 선언으로 변환(런타임 코드 0, 타입만)
-  - BE `springdoc-openapi-starter-webmvc-api` 2.7.0 — Kotlin 컨트롤러/DTO에서 OpenAPI
-    스펙을 생성해 `/v3/api-docs`로 공개(운영 포함)
+    OpenAPI 3.1 JSON을 TypeScript 타입 선언으로 변환(런타임 코드 0, 타입만)
+  - BE `springdoc-openapi-starter-webmvc-api` 2.10.0(BE `build.gradle.kts`) — Kotlin
+    컨트롤러/DTO에서 OpenAPI 스펙을 생성해 `/v3/api-docs`로 공개(운영 포함). 2026-10-26
+    2.7.0에서 올라가며(BE #116) 스펙이 OpenAPI 3.0에서 3.1.0이 됐고, FE는 그 스펙을
+    스냅샷에 반영했다(FE #419)
   - BE `NullableAwareModelConverter`/`NullableAwareOpenApiCustomizer`(swagger-core
-    `ModelConverter` + springdoc `OpenApiCustomizer`) — Kotlin nullable 타입을 스펙의
-    `nullable: true`로 반영(§10)
+    `ModelConverter` + springdoc `OpenApiCustomizer`) — Kotlin nullable 타입을 스키마의
+    `nullable = true`로 표시한다(§10). 3.1로 직렬화된 스펙에는 `nullable` 키가 없고,
+    `type: ["string", "null"]`처럼 타입 배열로 나온다
 - **구현·검증 과정에서 쓴 도구**: `jq`(스펙 구조 확인·대조), `curl`(운영 스펙·실제 API
   응답 직접 확인), 로컬 `./gradlew bootRun`(BE 컨버터 실측), Python(`json` 모듈로 스펙
   전후 구조적 diff 확인)
@@ -175,6 +179,9 @@ export type { CategoryOption } from '@/entities/category/model/category.dto';
 이 재수출 패턴 덕분에 **소비 파일(`*.api.ts` 등)은 import 경로를 한 줄도 안 바꿔도
 된다** — 마이그레이션 6개 엔티티 전체에서 소비 파일 변경이 0건이었던 이유다(§9).
 
+예외: `interaction`은 폼 검증이 없어 `.schema.ts`가 없다. 그래서 `interaction.api.ts`·
+`interaction.queries.ts`가 `interaction.dto.ts`를 직접 import한다(§6 표).
+
 ## 6. 상태 모델
 
 이 기능은 새 스토어나 쿼리 키를 도입하지 않는다. 대신 "타입의 정본이 어디 있는가"가
@@ -188,19 +195,21 @@ export type { CategoryOption } from '@/entities/category/model/category.dto';
 | `comment`         | `Comment`/`MyComment`/`MyCommentListResponse`                                  | `commentContentFormSchema`(폼)                                                                                               |
 | `account`         | `Account`                                                                      | `updateAccountSchema`/`deleteAccountSchema`(폼), `nicknameValidationSchema`/`emailValidationSchema`(재사용 검증)             |
 | `post`            | `Post`/`PostListResponse`/`PostListRequest`/`CreatePostResponse`/`LinkPreview` | `createPostSchema`/`updatePostSchema`(폼)                                                                                    |
+| `interaction`     | `PostLikeResponse`/`CommentLikeResponse`/`PostBookmarkResponse`                | `.schema.ts` 없음 — 소비 파일이 `.dto.ts`를 직접 import(§5-4 예외)                                                           |
 
 override가 있는 타입(원본 대신 `Omit<...> & {...}`로 재정의한 것)은 `src/shared/api/generated/openapi.gen.ts`를
 직접 읽지 않고 아래 §8 표에서 파일:줄로 찾는다.
 
 ## 7. 운영 파라미터
 
-| 값                         | 위치                                                                    | 비고                                                                                                                         |
-| -------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| 스펙 fetch 대상(로컬)      | `.env`의 `VITE_API_BASE_URL`                                            | 운영 API 기준 주소 `https://linksphere.click/api`(Lambda Function URL은 OAC 잠금 이후 403, 2026-10-02 교체)                  |
-| 스펙 fetch 대상(cron)      | `scripts/check-openapi-drift.js`의 `PROD_SPEC_URL` 상수                 | 운영 커스텀 도메인 `linksphere.click`(`README.md`에 이미 공개) — 실제 사용자가 거치는 경로를 그대로 확인, 별도 시크릿 불필요 |
-| 드리프트 cron 주기         | `.github/workflows/openapi-drift-check.yml`의 `cron: '0 0 * * *'`       | 매일 1회(UTC 0시)                                                                                                            |
-| openapi-typescript 버전    | `package.json`의 devDependencies, `save-exact=true`(`.npmrc:23`)로 고정 | 7.13.0                                                                                                                       |
-| 스펙 규모(2026-09-24 기준) | —                                                                       | `paths` 29개, `components.schemas` 53개, `nullable` 프로퍼티 24개                                                            |
+| 값                         | 위치                                                                    | 비고                                                                                                                          |
+| -------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 스펙 fetch 대상(로컬)      | `.env`의 `VITE_API_BASE_URL`                                            | 운영 API 기준 주소 `https://linksphere.click/api`(Lambda Function URL은 OAC 잠금 이후 403, 2026-10-02 교체)                   |
+| 스펙 fetch 대상(cron)      | `scripts/check-openapi-drift.js`의 `PROD_SPEC_URL` 상수                 | 운영 커스텀 도메인 `linksphere.click`(`README.md`에 이미 공개) — 실제 사용자가 거치는 경로를 그대로 확인, 별도 시크릿 불필요  |
+| 드리프트 cron 주기         | `.github/workflows/openapi-drift-check.yml`의 `cron: '0 0 * * *'`       | 매일 1회(UTC 0시)                                                                                                             |
+| openapi-typescript 버전    | `package.json`의 devDependencies, `save-exact=true`(`.npmrc:23`)로 고정 | 7.13.0                                                                                                                        |
+| 스펙 규모(2026-09-24 기준) | —                                                                       | `paths` 29개, `components.schemas` 53개, `nullable` 프로퍼티 24개                                                             |
+| 스펙 규모(2026-10-27 기준) | `src/shared/api/generated/openapi.json`(OpenAPI 3.1.0)                  | `paths` 36개, `components.schemas` 63개, nullable 프로퍼티 27개(`type` 배열의 `"null"` 26개 + `oneOf`의 `{type: "null"}` 1개) |
 
 ## 8. 코드 지도와 자주 하는 수정
 
@@ -230,18 +239,23 @@ override가 있는 타입(원본 대신 `Omit<...> & {...}`로 재정의한 것)
 ### 기존 엔티티에서 BE 응답이 nullable인데 FE 타입에 `null`이 없다면(또는 반대)
 
 **원시 타입 프로퍼티**(string/number/boolean)는 BE `NullableAwareModelConverter`가 이미
-`nullable: true`를 붙인다 — 스펙을 다시 받아오면(`pnpm codegen:fetch && pnpm codegen`)
-해결된다.
+nullable로 표시하고, 3.1 스펙에는 `type: ["string", "null"]`처럼 나온다 — 스펙을 다시
+받아오면(`pnpm codegen:fetch && pnpm codegen`) 해결된다.
 
-**`$ref`로 참조되는 중첩 객체 프로퍼티**(다른 스키마를 가리키는 필드)는 이 컨버터가
-적용되지 않는다(§10). `.dto.ts`에서 직접 override한다 — 실제 사례 4건:
+**`$ref`로 참조되는 중첩 객체 프로퍼티**(다른 스키마를 가리키는 필드)도 3.1 전환(FE #419)
+뒤로는 `oneOf: [{"$ref": "..."}, {"type": "null"}]`로 nullable이 실린다(2026-10-27
+`openapi.json`의 `CommentResponse.linkMetadata` 확인 — 이 `oneOf`를 어느 단계가 만드는지는
+swagger-core 소스로 따라가 확인하지 않았다). 3.0 시절에는 이 컨버터가 `$ref` 프로퍼티에
+통하지 않아(§10) `.dto.ts`에서 직접 override했다. 아래는 지금 `.dto.ts`에 남아 있는
+override 전부다 — 응답 쪽 4건과 요청 쪽 1건:
 
-| 엔티티.필드                  | 방향                                 | 파일:줄                                                       | 근거                                                                                                                                                                |
-| ---------------------------- | ------------------------------------ | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bookmark-folder.lastUsedAt` | 넓힘(`string?` → `string \| null?`)  | `entities/bookmark/folder/model/bookmark-folder.dto.ts:13-15` | `$ref` 아님(원시 타입)이지만 Phase 4 시점엔 BE 컨버터가 아직 없어서 override. 지금은 BE가 이미 처리하므로 이 override는 안전한 중복(제거해도 무방하지만 유지 — §11) |
-| `comment.linkMetadata`       | 넓힘(`X?` → `X \| null?`)            | `entities/comment/model/comment.dto.ts:18-21`                 | `$ref` 프로퍼티라 BE 컨버터가 적용 안 됨. `CommentDTO.kt`의 실제 타입은 `LinkMetadata? = null`                                                                      |
-| `account.role`               | 좁힘(`string` → `'USER' \| 'ADMIN'`) | `entities/account/model/account.dto.ts:18-21`                 | BE가 enum class가 아니라 String으로 선언해(`AuthDTO.kt`의 `AccountResponse.role`) 스펙에 enum이 안 실림                                                             |
-| `account.nickname`           | 좁힘(`string \| null?` → `string`)   | `entities/account/model/account.dto.ts:18-21`                 | 스펙은 nullable이지만 계정 생성 경로(`SignupRequest.nickname`)가 필수라 실제로는 항상 존재. 실측(§9)으로 확인                                                       |
+| 엔티티.필드                    | 방향                                 | 파일:줄                                                       | 근거                                                                                                                                                                                               |
+| ------------------------------ | ------------------------------------ | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bookmark-folder.lastUsedAt`   | 넓힘(`string?` → `string \| null?`)  | `entities/bookmark/folder/model/bookmark-folder.dto.ts:13-15` | `$ref` 아님(원시 타입)이지만 Phase 4 시점엔 BE 컨버터가 아직 없어서 override. 지금은 BE가 이미 처리하므로 이 override는 안전한 중복(제거해도 무방하지만 유지 — §11)                                |
+| `comment.linkMetadata`         | 넓힘(`X?` → `X \| null?`)            | `entities/comment/model/comment.dto.ts:18-21`                 | 3.0 시절엔 `$ref` 프로퍼티라 nullable이 유실돼 override. 3.1 전환 뒤로는 생성 타입이 이미 `LinkMetadata \| null`이라 안전한 중복(유지 — §11). `CommentDTO.kt`의 실제 타입은 `LinkMetadata? = null` |
+| `account.role`                 | 좁힘(`string` → `'USER' \| 'ADMIN'`) | `entities/account/model/account.dto.ts:18-21`                 | BE가 enum class가 아니라 String으로 선언해(`AuthDTO.kt`의 `AccountResponse.role`) 스펙에 enum이 안 실림                                                                                            |
+| `account.nickname`             | 좁힘(`string \| null?` → `string`)   | `entities/account/model/account.dto.ts:18-21`                 | 스펙은 nullable이지만 계정 생성 경로(`SignupRequest.nickname`, BE `member/MemberDTO.kt`)가 필수라 실제로는 항상 존재. 실측(§9)으로 확인                                                            |
+| `post` 목록 요청 `page`·`size` | 좁힘(선택 → 필수)                    | `entities/post/model/post.dto.ts:21-27`(`PostListRequest`)    | 요청 쪽 override. BE에 기본값이 있어 스펙상 선택이지만(`PostController.kt`의 `defaultValue`), FE가 페이지네이션 상태를 항상 명시적으로 관리해 `operations['getAllPosts']`에서 둘만 필수로 좁힌다   |
 
 override 방향을 정하는 기준: **실제 런타임 데이터가 더 넓으면(값이 있을 수도, null일
 수도 있으면) 넓히고, 실제로 존재할 수 없는 상태면 좁힌다.** 좁히기 전에는 항상 실제
@@ -314,13 +328,16 @@ Class를 볼 수 있는 시점이므로 "스키마 이름 → nullable 프로퍼
 적용했다. `$ref` 참조 자체는 형제 키(`nullable` 포함)를 가질 수 없다는 OpenAPI 3.0 제약
 때문에, `$ref`로 참조되는 중첩 객체 프로퍼티(`comment.linkMetadata` 등)에는 이 방법으로도
 `nullable`이 안 붙는다 — 원시 타입 프로퍼티에만 통한다. 이 잔여 한계가 §8의 override
-표에 있는 항목들의 존재 이유다.
+표에 있는 항목들의 존재 이유다(여기까지는 3.0 시절 이야기다 — 2026-10-26 3.1 전환(FE #419)
+뒤로는 `$ref` 프로퍼티에도 `oneOf`로 nullable이 실린다, §8·§11).
 
 ### FE 타입이 이미 거짓말을 하고 있던 걸 발견했다
 
 `bookmark-folder.util.ts`의 기존 주석이 이미 이렇게 밝히고 있었다: _"apiClient.get<BookmarkFolderListResponse>()는
 캐싱만 할 뿐 bookmarkFolderSchema로 파싱하지 않는다 — 그래서 lastUsedAt은 (BookmarkFolder
-타입상 Date로 보여도) 실제로는 BE가 보낸 원시 ISO 문자열 그대로 들어온다."_ 즉 기존
+타입상 Date로 보여도) 실제로는 BE가 보낸 원시 ISO 문자열 그대로 들어온다."_(2026-10-27 주석
+정리 전 문구라 지금 그 파일에서는 찾을 수 없다 — 지금 주석은 타입대로 `string | null`인 ISO
+문자열을 dayjs로 비교한다고만 쓴다) 즉 기존
 `BookmarkFolder.lastUsedAt: Date` 타입은 처음부터 틀린 타입이었다 — 아무도 실제로
 `Date`로 파싱한 적이 없었다. 마찬가지로 `post.schema.ts`의 `categories: z.array(...).nullable()`도
 BE `PostDTO.kt`를 확인하니 `val categories: List<CategoryResponse>`(non-null)였다 —
@@ -340,18 +357,21 @@ BE `PostDTO.kt`를 확인하니 `val categories: List<CategoryResponse>`(non-nul
 ## 11. 남은 것
 
 - `bookmark-folder.dto.ts`의 `lastUsedAt` override는 BE `NullableAwareModelConverter`
-  도입(Phase 0.5) 이전에 만들어진 것이라, 지금은 BE가 이미 `nullable: true`를 정확히
-  보내므로 **안전한 중복**이다(없애도 동작은 같음) — 제거하지 않고 남겨뒀다. 이후 유사
-  케이스를 만들 때 "BE 컨버터가 먼저 처리 중인 필드인지" 확인하는 습관이 필요하다
-- BE `NullableAwareModelConverter`를 `$ref` 프로퍼티까지 처리하도록 넓히는 건 이번 범위
-  밖으로 남겨뒀다(가능한 방법: OpenAPI 3.0의 `{"allOf": [{"$ref": "..."}], "nullable": true}`
-  래핑) — 처리하면 §8의 override 표에서 `comment.linkMetadata`(`$ref` 프로퍼티) 항목이
-  불필요해진다. `bookmark-folder.lastUsedAt`(원시 타입)은 이 확장과 무관하게 이미
-  BE 컨버터가 처리 중이라 지금도 안전한 중복이다(위 §11 첫 항목)
+  도입(Phase 0.5) 이전에 만들어진 것이라, 지금은 BE가 이미 nullable을 정확히
+  보내므로(3.1 스펙에서는 `type: ["string", "null"]`) **안전한 중복**이다(없애도 동작은 같음) —
+  제거하지 않고 남겨뒀다. 이후 유사 케이스를 만들 때 "BE 컨버터가 먼저 처리 중인 필드인지"
+  확인하는 습관이 필요하다
+- (해소됨, 2026-10-27 확인) BE `NullableAwareModelConverter`를 `$ref` 프로퍼티까지 처리하도록
+  넓히는 건 범위 밖으로 남겨뒀었다(당시 검토한 방법: OpenAPI 3.0의
+  `{"allOf": [{"$ref": "..."}], "nullable": true}` 래핑). 컨버터를 넓히지 않았는데도 3.1
+  전환(springdoc 2.10.0, BE #116 / FE #419) 뒤로는 스펙이 `CommentResponse.linkMetadata`를
+  `oneOf: [{"$ref": "..."}, {"type": "null"}]`로 싣고 생성 타입도 `LinkMetadata | null`이 됐다.
+  그래서 §8 표의 `comment.linkMetadata` override도 `lastUsedAt`처럼 안전한 중복이 됐고,
+  같은 이유로 제거하지 않고 남겨 둔다
 - `LocalDateTime`에 타임존이 없다(`"2026-09-20T17:47:15.905264"` 형태) — 이 기능 범위
   밖의 기존 이슈. `new Date(문자열)`을 쓰면 로컬 시간대로 잘못 파싱될 위험이 있는데,
-  `eslint.config.js`의 `no-native-date` 규칙이 이미 `new Date()` 직접 사용을 막아 안전망
-  역할을 한다
+  `eslint.config.js`의 `no-restricted-syntax` 규칙(`RESTRICTED_SYNTAX_NO_NATIVE_DATE` 목록)이
+  이미 `new Date()` 직접 사용을 막아 안전망 역할을 한다
 
 ## 12. 용어 사전
 
@@ -364,8 +384,9 @@ BE `PostDTO.kt`를 확인하니 `val categories: List<CategoryResponse>`(non-nul
 - **드리프트(drift)**: 커밋된 생성 타입/스펙 스냅샷이 실제 BE 상태와 어긋나는 것.
   1층(재생성 불일치)과 2층(운영 스펙 불일치)으로 나눠 감지한다(§5-1)
 - **`$ref` 프로퍼티**: OpenAPI 스키마에서 다른 스키마를 참조하는 프로퍼티
-  (`{"$ref": "#/components/schemas/X"}`). 형제 키를 가질 수 없다는 OpenAPI 3.0 제약 때문에
-  BE nullable 컨버터의 한계가 여기서 생긴다(§10)
+  (`{"$ref": "#/components/schemas/X"}`). 3.0 시절에는 형제 키를 가질 수 없다는 제약 때문에
+  BE nullable 컨버터의 한계가 여기서 생겼다(§10). 3.1 스펙에서는 nullable `$ref`가
+  `oneOf: [{"$ref": "..."}, {"type": "null"}]`로 나온다(§8)
 
 ## 13. 관련 문서
 

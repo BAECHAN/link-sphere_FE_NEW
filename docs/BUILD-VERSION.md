@@ -8,7 +8,7 @@
 > 코드"와 "서버에 실제로 올라간 코드"를 어떻게 비교하는지, 배지 색이 왜 그 색인지,
 > 검증이 실패하면 어떻게 알림이 오고 언제 닫히는지 알고 판정 조건을 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-10-14
+> **마지막 검토**: 2026-10-27
 
 배포 워크플로우가 success로 끝났다는 것과, 실제로 그 코드가 사용자 화면에 반영된
 것은 다른 사건이다. 이 기능은 그 둘 사이를 사람이 눈으로(`/version` 화면), 그리고
@@ -57,7 +57,8 @@ flowchart TD
     I --> K
     J --> K
     J2 --> K
-    K -->|예| M["배포 성공"]
+    K -->|예| PR["옛 자산 정리<br/>(실패해도 경고만, run은 성공)"]
+    PR --> M["배포 성공"]
     M --> M2["close-resolved-failures job<br/>열린 '배포 실패:' 이슈 gh issue close"]
     K -->|아니오| L["notify-failure job<br/>gh issue create"]
   end
@@ -137,7 +138,7 @@ NEW-VERSION-RELOAD는 **자동으로** 리로드시키는 기능이고, 이 문�
 재배포에도 열려 있던 모든 탭이 강제 새로고침**된다. 그래서 `define`은 `{sha, ref,
 mode}`(커밋 단위로 결정론적인 값)만 담고, `builtAt`·`runNumber`는
 `dist/version.json`에만 싣는다
-([vite.config.ts:33-46](../vite.config.ts#L33-L46)).
+([vite.config.ts](../vite.config.ts)의 `bundledBuildInfo`·`deployedBuildInfo`).
 
 ### dev 모드에서 entry script가 `/@vite/client`로 잘못 읽히는 문제
 
@@ -169,7 +170,7 @@ mode}`(커밋 단위로 결정론적인 값)만 담고, `builtAt`·`runNumber`�
 
 불일치 시 `compare/<로드된sha>...<배포된sha>` 링크를 보여준다 — 커밋 목록을 앱
 안에 직접 구현하지 않는다. `git log`를 빌드타임에 뽑아 번들에 넣는 방식도
-검토했지만, `actions/checkout@v4`의 기본 얕은 클론(depth 1)에선 로그 자체가 없고
+검토했지만, `actions/checkout`의 기본 얕은 클론(`fetch-depth: 1`)에선 로그 자체가 없고
 번들 크기만 늘어 기각했다. GitHub compare 페이지가 이미 "N commits ahead/behind"를
 정확히 렌더해준다.
 
@@ -220,7 +221,7 @@ Public 레포라(`gh repo view` 확인, 2026-09-20) `/version`이 링크하는 �
 | ----------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | 검증 재시도 횟수·간격(12회·10초=최대 2분) | [deploy.yml](../.github/workflows/deploy.yml) "배포 반영 검증" 스텝의 `seq 1 12`·`sleep 10` | `version.json` 전파 지연을 감안한 재시도 한도                             |
 | `SITE_URL` 폴백                           | [deploy.yml](../.github/workflows/deploy.yml) "배포 반영 검증" 스텝의 `env.SITE_URL`        | 레포 Variable 미설정 시 하드코딩된 커스텀 도메인(`linksphere.click`) 사용 |
-| `concurrency.group`(`deploy-main`)        | [deploy.yml:26-28](../.github/workflows/deploy.yml#L26-L28)                                 | 연속 push 시 배포가 대기열로 처리(취소 아님)                              |
+| `concurrency.group`(`deploy-main`)        | [deploy.yml](../.github/workflows/deploy.yml)의 `concurrency:` 블록                         | 연속 push 시 배포가 대기열로 처리(취소 아님)                              |
 
 ## 8. 코드 지도와 자주 하는 수정
 
@@ -317,7 +318,8 @@ x-cache: RefreshHit from cloudfront   # 3회 연속 요청 모두 동일
 - 해소: `notify-failure`가 실제 러너에서 이슈를 만드는지는 2026-09-20 #136으로
   실측됐다(§9). `notify-failure`는 배포 반영 검증 스텝뿐 아니라 `deploy` job의
   어느 스텝이든(`pnpm check`·`pnpm test`·`pnpm build`·S3 업로드 등) 실패하면 발동한다
-  (`if: failure()`, `deploy.yml`).
+  (`if: failure()`, `deploy.yml`). 예외는 마지막 "옛 자산 정리" 스텝이다 — 실패해도 경고 주석만 남기고
+  job을 실패시키지 않아 이슈가 열리지 않는다([DEPLOY.md](./DEPLOY.md) 9번).
 - `close-resolved-failures` job 자체가 실패했을 때 배포 run이 success로 남는지는
   의도적 실패 주입 없이 실측하지 않았다 — job 단위 `continue-on-error`의 공식 정의
   (_"job이 실패해도 workflow run이 실패하지 않게 한다"_ (번역,

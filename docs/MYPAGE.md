@@ -7,9 +7,10 @@
 > **읽고 나면**: 저장 실패 시 입력값이 유지되는 방식과 닉네임 중복확인이 어떻게
 > 동작하는지 이해하고, 이 폼에 필드를 추가하거나 캐시 무효화 범위를 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-10-06
+> **마지막 검토**: 2026-10-27
 
-"계정 설정"(`/my/account`) 페이지 맨 위, 비밀번호 변경 섹션 바로 위에 있는
+"계정 설정"(`/my/account`) 페이지 맨 위(이메일 미인증 계정이면 그 위에 이메일 인증
+안내 배너 `EmailVerificationBanner`가 먼저 뜬다), 비밀번호 변경 섹션 바로 위에 있는
 프로필 섹션입니다. 닉네임 변경 및 프로필 이미지(아바타) 교체를 지원합니다.
 2026-09-29 전에는 Navbar 드롭다운의 "프로필 수정" 메뉴로 여는 별도 모달이었으나,
 같은 페이지 섹션으로 통합됐다(배경은 `docs/DECISIONS.md` 2026-09-29 항목 참고).
@@ -104,7 +105,9 @@ Navbar 드롭다운에서 여는 모달이었는데, 계정 설정(`/my/account`
 §1 순서도의 각 단계가 실제로 어떻게 구현됐는지:
 
 1. **파일 선택 즉시 검증**(`handleAvatarChange`) — 업로드 시점까지 기다리지
-   않고 고르는 즉시 `getImageFileSizeError`로 용량을 검사한다. 통과하면
+   않고 고르는 즉시 먼저 `isAllowedImageType`(`shared/lib/image/imageFormat.ts`)으로
+   형식을 확인해 허용 목록 밖이면 `TEXTS.validation.imageFileOnly` 토스트로 거부하고,
+   이어서 `getImageFileSizeError`로 용량을 검사한다. 둘 다 통과하면
    `objectURL`로 미리보기만 만들고(`pendingFile` 상태), 실제 업로드는 아직
    하지 않는다.
 2. **제출**(`onSubmit`) — `updateAccount({ nickname, image, file, previewUrl },
@@ -171,8 +174,9 @@ nicknameInitial`)일 때만 `AvatarFallback`을 렌더링해 두 요소가 동�
 없음) + 공개 피드로 이동)를, **비로그인도 볼 수 있는 경로**면
 `AuthUtil.clearAuth()` + `AuthUtil.clearQueries()`(캐시 리셋 + 배경 재요청)만
 호출하고 이동은 하지 않는다. 두 경로의 캐시 처리 방식이 다른 이유는
-`docs/AUTH.md` §8-E 참고. FCM 토큰 해제는 백그라운드로 처리한다
-(`unregisterFcmToken().catch(...)`).
+`docs/AUTH.md` §8-E 참고. 어느 경로든 정리 뒤에는 `AuthEpochUtil.markLogout()`으로
+인증 세대를 바꿔 다른 탭·bfcache 페이지가 이 로그아웃을 알아채게 한다(`docs/AUTH.md`
+§8-H). FCM 토큰 해제는 백그라운드로 처리한다(`unregisterFcmToken().catch(...)`).
 
 ```typescript
 // entities/auth/api/auth.queries.ts (요지만 발췌)
@@ -185,6 +189,8 @@ const logout = () => {
     AuthUtil.clearAuth();
     AuthUtil.clearQueries();
   }
+
+  AuthEpochUtil.markLogout();
 
   unregisterFcmToken().catch((error) =>
     console.error('[LOGOUT] Error unregistering FCM token:', error)
@@ -286,6 +292,7 @@ src/
 │           └── UserAvatar.tsx               # 공통 아바타 컴포넌트
 └── shared/
     ├── lib/
+    │   ├── image/imageFormat.ts             # isAllowedImageType — 아바타 형식 검증
     │   └── image/resizeImage.ts             # getImageFileSizeError — 아바타 업로드 전 용량 검증
     └── config/
         ├── api.ts                           # updateAccount 엔드포인트, upload.signedUrl(범용)
@@ -309,12 +316,17 @@ src/
 ## 8. 검증 결과
 
 `useUpdateAccount.test.tsx` 15개 테스트 모두 통과(2026-09-29 재확인) — 위
-12개(초기값 세팅, 이미지 선택/용량 검증, 닉네임 API 호출, 디바운스 검사, 형식
-오류 시 조회 생략, 가용한 닉네임 처리, 디바운스 미정착 시 저장 버튼 비활성,
-원래 값으로 되돌렸을 때 재조회 생략)에 더해 pending 중 입력값 유지, 성공 시
+11개(초기값 세팅, 이미지 선택/용량 검증, 닉네임 API 호출, 디바운스 검사, 형식
+오류 시 조회 생략, 가용한 닉네임 처리, 가용성 조회 자체 실패, 디바운스 미정착 시
+저장 버튼 비활성, 원래 값으로 되돌렸을 때 재조회 생략)에 더해 pending 중 입력값 유지, 성공 시
 폼 reset, 409 롤백 후에도 닉네임·이미지 미리보기 유지, account 뒤늦은 도착
-시 하이드레이션 1회 검증 4개가 새로 추가됐다. `e2e/account-update.spec.ts`
+시 하이드레이션 1회 검증 4개가 새로 추가됐다(정정, 2026-10-27 — 예전에는 "12개"로
+적혀 있어 15와 합이 맞지 않았다). `e2e/account-update.spec.ts`
 2개 테스트(저장 중 비활성화 + 409 롤백 후 값 유지, 롤백 후 재시도 성공)도 통과.
+
+그 뒤 #325(2026-10-05)에서 허용 목록 밖 형식(bmp)을 고르는 즉시 거부하는 테스트가
+추가돼, 지금 파일에는 16개 테스트가 있다(2026-10-27 파일 기준 개수 — 이 검토에서
+다시 실행하지는 않았다).
 
 ## 9. 시행착오
 

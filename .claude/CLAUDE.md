@@ -592,8 +592,10 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 2. `pnpm test` — 관련 테스트 실행 (테스트 파일이 존재하는 경우)
 3. `pnpm lint`·`pnpm check:deps` — ESLint 레이어 경계, entities `@x` 경유·features·widgets의 같은 레이어
    슬라이스 import·미선언 패키지·production 코드의 devDependency 위반 확인 (import 변경 시)
-4. `pnpm check:docs` — README/docs/CLAUDE.md가 가리키는 경로·줄 번호가 실제와
-   맞는지 확인 (`README.md`, `docs/*.md`, `.claude/CLAUDE.md`를 수정한 경우)
+4. `pnpm check:docs` — README/docs/CLAUDE.md/skill·커맨드가 가리키는 경로·줄 번호가 실제와
+   맞는지, `<details>` 짝이 맞는지 확인 (`README.md`, `docs/*.md`, `.claude/CLAUDE.md`,
+   `.claude/skills/**`, `.claude/commands/**`, `CHANGELOG.md`를 수정한 경우 — push 때
+   `pre-push` 훅도 같은 검사를 돈다)
 
 에러가 있으면 진행 전 반드시 수정.
 
@@ -637,19 +639,19 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 정본으로 있다 — 여기 복사해두지 않는다(두 곳에 같은 코드를 유지하면 한쪽만 갱신되고 다른
 쪽이 낡는 문제가 실제로 있었다, 2026-09-07). 패턴을 쓸 때는 해당 절을 **먼저 읽는다**.
 
-| 패턴                                                                               | 정본  | 한 줄 요약                                                                                                                                                                                                                           |
-| ---------------------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 3-Layer API (`*.api.ts` → `*.keys.ts` → `*.queries.ts`) + 크로스 엔티티 무효화     | §5    | 레이어를 건너뛰거나 합치지 않는다. 다른 엔티티 캐시는 그 엔티티의 `InvalidateQueries` 래퍼로만                                                                                                                                       |
-| Feature Hook (`hooks/`에 로직 전부, `ui/`는 JSX만)                                 | §6    | UI 파일은 훅 호출 + 렌더링만                                                                                                                                                                                                         |
-| Widget Hook (entity query 조합 + 파생 상태, 원칙적으로 mutation 없음)              | §8    | query 1개 + trivial 파생만이면 컴포넌트에서 직접 사용 (widgets 한정, features는 §6 예외 없음). 단, 그 widget 전용이라 재사용되지 않는 CRUD는 widget hook에서 직접 mutation을 써도 된다 — `usePostCard.ts`(아래 레퍼런스)가 실제 예시 |
-| Zod Schema (`z.infer`로 타입 파생)                                                 | §9    | `nullable()`=null 허용, `optional()`=undefined 허용                                                                                                                                                                                  |
-| Delete with Confirm                                                                | §10   | native `confirm()` 금지, 항상 `useAlert` + `openConfirm`                                                                                                                                                                             |
-| 토글 버튼 (`ToggleButton`)                                                         | §10-A | 상태를 뒤집는 버튼은 `Button` 대신 `ToggleButton` — 더블클릭 가드(400ms) 내장. 닫기·지우기처럼 항상 같은 상태로 만드는 버튼은 대상 아님                                                                                              |
-| Optimistic Update (`onMutate` → `cancelQueries` → `setQueryData` → 롤백)           | §11   | 참조 구현: `entities/interaction/api/interaction.queries.ts`                                                                                                                                                                         |
-| Util Class (`*.util.ts`는 바레 함수 대신 `export class <Name>Util { static ... }`) | §23   | 함수 하나뿐이어도 클래스로 감싼다 — `shared/utils/`의 10개 파일 전부가 이 형태                                                                                                                                                       |
-| 모바일 키보드 힌트 (`enterKeyHint`·`inputMode`)                                    | §24   | 뒤에 다른 필드 없는 단일 입력 지점에만 `enterKeyHint`(Android 회귀 위험), 자체 검증 있는 필드는 `type` 대신 `inputMode`, `type="search"`는 지양                                                                                      |
-| 스크롤 규칙 (URL이 바뀌면 맨 위로)                                                 | §25   | 전역 `<ScrollRestoration />`이 처리하므로 기능마다 `window.scrollTo`를 넣지 않는다. 스크롤을 유지해야 하는 state-only push(오버레이·모달·패널)만 `preventScrollReset: true`로 빠진다                                                 |
-| 위층 조립 (같은 레이어 슬라이스를 직접 import하지 않음)                            | §26   | 목록이 카드를 그리는 식이면 받는 쪽이 `render<대상>` 함수 prop을 받고 위층(페이지 등)이 넘긴다. 함수는 모듈 최상단에 선언, 인자 타입은 받는 쪽이 선언                                                                                |
+| 패턴                                                                               | 정본  | 한 줄 요약                                                                                                                                                                                                                             |
+| ---------------------------------------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3-Layer API (`*.api.ts` → `*.keys.ts` → `*.queries.ts`) + 크로스 엔티티 무효화     | §5    | 레이어를 건너뛰거나 합치지 않는다. 다른 엔티티 캐시는 그 엔티티의 `InvalidateQueries` 래퍼로만                                                                                                                                         |
+| Feature Hook (`hooks/`에 로직 전부, `ui/`는 JSX만)                                 | §6    | UI 파일은 훅 호출 + 렌더링만                                                                                                                                                                                                           |
+| Widget Hook (entity query 조합 + 파생 상태, 원칙적으로 mutation 없음)              | §8    | query 1개 + trivial 파생만이면 컴포넌트에서 직접 사용 (widgets 한정, features는 §6 예외 없음). 단, 그 widget 전용이라 재사용되지 않는 CRUD는 widget hook에서 직접 mutation을 써도 된다 — `usePostCard.ts`(아래 레퍼런스)가 실제 예시   |
+| Zod Schema (`z.infer`로 타입 파생)                                                 | §9    | `nullable()`=null 허용, `optional()`=undefined 허용                                                                                                                                                                                    |
+| Delete with Confirm                                                                | §10   | native `confirm()` 금지, 항상 `useAlert` + `openConfirm`                                                                                                                                                                               |
+| 토글 버튼 (`ToggleButton`)                                                         | §10-A | 상태를 뒤집는 버튼은 `Button` 대신 `ToggleButton` — 더블클릭 가드(400ms) 내장. 닫기·지우기처럼 항상 같은 상태로 만드는 버튼은 대상 아님                                                                                                |
+| Optimistic Update (`onMutate` → `cancelQueries` → `setQueryData` → 롤백)           | §11   | 참조 구현: `entities/interaction/api/interaction.queries.ts`                                                                                                                                                                           |
+| Util Class (`*.util.ts`는 바레 함수 대신 `export class <Name>Util { static ... }`) | §23   | 함수 하나뿐이어도 클래스로 감싼다 — `shared/utils/`의 모든 `*.util.ts`가 이 형태                                                                                                                                                       |
+| 모바일 키보드 힌트 (`enterKeyHint`·`inputMode`)                                    | §24   | 뒤에 다른 필드 없는 단일 입력 지점에만 `enterKeyHint`(Android 회귀 위험), 자체 검증 있는 필드는 `type` 대신 `inputMode`, `type="search"`는 지양                                                                                        |
+| 스크롤 규칙 (URL이 바뀌면 맨 위로)                                                 | §25   | 전역 `<ScrollRestoration />`이 처리하므로 기능마다 `window.scrollTo`를 넣지 않는다. 스크롤을 유지해야 하는 state-only push(오버레이·모달·패널)와 지금 보는 화면 안의 해시 이동(상세의 댓글 링크)만 `preventScrollReset: true`로 빠진다 |
+| 위층 조립 (같은 레이어 슬라이스를 직접 import하지 않음)                            | §26   | 목록이 카드를 그리는 식이면 받는 쪽이 `render<대상>` 함수 prop을 받고 위층(페이지 등)이 넘긴다. 함수는 모듈 최상단에 선언, 인자 타입은 받는 쪽이 선언                                                                                  |
 
 ---
 
@@ -824,15 +826,15 @@ shared/
 
 ## 테스트 환경
 
-| 항목          | 내용                                                                               |
-| ------------- | ---------------------------------------------------------------------------------- |
-| 테스트 러너   | Vitest 4.x + jsdom                                                                 |
-| 글로벌 셋업   | `src/test/setup.ts` (MSW, jsdom stubs, toast mock)                                 |
-| 커스텀 render | `src/test/utils.tsx` → `renderWithProviders()`, `createTestQueryClient()`          |
-| MSW           | `src/mocks/server.ts` + `handlers/` + `fixtures/`                                  |
-| API URL 전략  | Vitest는 `DEV`라 `/api` 고정 → MSW 인터셉트. `.env.test`는 e2e 전용(운영 API 차단) |
-| 강제 실행     | `.husky/scripts/pre-push` + GitHub Actions `ci.yml`·`deploy.yml`                   |
-| e2e           | Playwright(`e2e/`), `page.route()` 모킹, 상세는 `docs/TESTING.md` §13 참고         |
+| 항목          | 내용                                                                                                     |
+| ------------- | -------------------------------------------------------------------------------------------------------- |
+| 테스트 러너   | Vitest 4.x + jsdom                                                                                       |
+| 글로벌 셋업   | `src/test/setup.ts` (MSW, jsdom stubs, toast mock)                                                       |
+| 커스텀 render | `src/test/utils.tsx` → `renderWithProviders()`, `createTestQueryClient()`                                |
+| MSW           | `src/mocks/server.ts` + `handlers/` + `fixtures/`                                                        |
+| API URL 전략  | Vitest는 `DEV`라 `/api` 고정 → MSW 인터셉트. `.env.test`는 e2e 전용(운영 API 차단)                       |
+| 강제 실행     | `.husky/scripts/pre-push` + GitHub Actions `ci.yml`·`deploy.yml`                                         |
+| e2e           | Playwright(`e2e/`), `page.route()` 모킹, 상세는 `docs/TESTING.md` "Playwright e2e 자동화 테스트" 절 참고 |
 
 ```bash
 pnpm test            # 1회 실행 (CI / pre-push)
@@ -936,7 +938,7 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
   상태 불일치로 발견). 2026-09-25부터 이 정규식이 두 형식을 모두 인식하도록 넓어졌다.
 - **병합된 PR의 원격 브랜치는 GitHub이 자동으로 지운다** — FE·BE 저장소 설정
   `delete_branch_on_merge=true`(2026-10-12 사용자 결정, 그 전까지 쌓인 병합 브랜치 57개도 같은 날 정리).
-  로컬 브랜치와 워크트리는 남으므로 정리는 위 워크트리 규칙대로 사용자가 요청할 때 한다. 지워진 브랜치는
+  로컬 브랜치와 워크트리는 남으므로, 위 워크트리 규칙대로 병합·배포를 확인한 세션이 `ExitWorktree(action: "remove")`로 정리한다. 지워진 브랜치는
   병합된 PR 화면의 "Restore branch"로 되살릴 수 있다
 
 ---

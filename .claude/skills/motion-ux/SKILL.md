@@ -23,7 +23,8 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 > — emil-design-eng skill(Emil Kowalski), https://github.com/emilkowalski/skills/blob/main/skills/emil-design-eng/SKILL.md
 
 이 기준에 비춰보면 기존 `duration-200`(플로팅 버튼 등, 팝오버급)·`duration-300`
-(모달급)은 범위 안이지만 `duration-150`은 어느 용도 범주에도 명확히 안 든다 —
+(댓글 폼 강조 그림자·카드 썸네일 hover 확대 — 모달에는 쓰지 않는다)은 범위 안이지만
+`duration-150`은 어느 용도 범주에도 명확히 안 든다 —
 새로 쓸 때 참고만 하고, 기존 3곳을 이번에 일괄 교정하지는 않는다.
 
 ## Easing 규약

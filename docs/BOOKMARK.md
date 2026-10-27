@@ -16,7 +16,9 @@
 개에 동시에** 속할 수 있고 어느 폴더에도 없으면 **미분류**로 취급된다(§5 "다중 폴더
 소속 모델"). 단, 이 비유는 **마지막 라벨을 뗄 때는 어긋난다** — Gmail은 라벨을 다
 떼도 메일이 "전체 편지함"에 남지만, 이 앱은 마지막 폴더에서 빠지면 미분류로 남기지
-않고 북마크 자체를 완전히 지운다(§5, §10). 이미 미분류(폴더가 하나도 안 붙은
+않고 북마크 자체를 완전히 지운다(§5, §10). 여기서 "마지막"은 화면 기준이다 — 다른
+기기에서 붙인 폴더가 서버에 남아 있으면 그 폴더에서만 빠지고 북마크는 남는다
+(2026-10-14, §5 행 동작 표). 이미 미분류(폴더가 하나도 안 붙은
 상태)인 북마크를 다시 "제거"해도 마찬가지다 — 미분류는 "마지막 라벨을 뗀 상태"와
 같은 상태이므로 같은 규칙을 그대로 적용한다(2026-09-11 재결정, §10).
 
@@ -96,18 +98,18 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 `src/entities/bookmark/folder/api/bookmark-folder.api.ts` 기준(`API_ENDPOINTS.bookmark`,
 `shared/config/api.ts`).
 
-| 메서드   | 경로                                                  | 설명                                                                                                        |
-| -------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/bookmark/folders`                                   | 내 폴더 목록(`bookmarkCount`·`lastUsedAt` 포함, `sortOrder` ASC)                                            |
-| `POST`   | `/bookmark/folders`                                   | 폴더 생성(`sort_order = max+1`)                                                                             |
-| `PATCH`  | `/bookmark/folders/{id}`                              | 폴더 이름 수정                                                                                              |
-| `DELETE` | `/bookmark/folders/{id}`                              | 폴더 삭제(**이 폴더에만 있던** 북마크만 미분류로 — 다른 폴더에도 있으면 유지)                               |
-| `GET`    | `/bookmark/folders/{key}/posts?page&size&sort&search` | 폴더별 게시글 조회(검색 포함)                                                                               |
-| `POST`   | `/bookmark/{postId}/folders/{folderId}`               | 폴더에 추가(북마크 없으면 자동 생성)                                                                        |
-| `DELETE` | `/bookmark/{postId}/folders/{folderId}`               | 그 폴더에서만 제거(북마크 자체는 유지). `?removeBookmarkIfEmpty=true`면 남은 소속이 없을 때만 북마크도 삭제 |
-| `DELETE` | `/bookmark/{postId}/folders`                          | 폴더 소속 전부 해제 → 미분류                                                                                |
-| `PUT`    | `/post/{postId}/bookmark`                             | 북마크 저장(없으면 미분류로 생성, **기존 폴더 소속은 유지**) — `interaction.api.ts`                         |
-| `DELETE` | `/post/{postId}/bookmark`                             | 북마크 해제(소속도 전부 삭제) — `interaction.api.ts`                                                        |
+| 메서드   | 경로                                                  | 설명                                                                                                                                                                               |
+| -------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/bookmark/folders`                                   | 내 폴더 목록(`bookmarkCount`·`lastUsedAt` 포함, `sortOrder` ASC)                                                                                                                   |
+| `POST`   | `/bookmark/folders`                                   | 폴더 생성(`sort_order = max+1`)                                                                                                                                                    |
+| `PATCH`  | `/bookmark/folders/{id}`                              | 폴더 이름 수정                                                                                                                                                                     |
+| `DELETE` | `/bookmark/folders/{id}`                              | 폴더 삭제(**이 폴더에만 있던** 북마크만 미분류로 — 다른 폴더에도 있으면 유지)                                                                                                      |
+| `GET`    | `/bookmark/folders/{key}/posts?page&size&sort&search` | 폴더별 게시글 조회(검색 포함)                                                                                                                                                      |
+| `POST`   | `/bookmark/{postId}/folders/{folderId}`               | 폴더에 추가(북마크 없으면 자동 생성)                                                                                                                                               |
+| `DELETE` | `/bookmark/{postId}/folders/{folderId}`               | 그 폴더에서만 제거(북마크 자체는 유지). `?removeBookmarkIfEmpty=true`면 남은 소속이 없을 때만 북마크도 삭제 — 이 옵션 호출은 `interaction.api.ts`의 `unbookmarkPostFromLastFolder` |
+| `DELETE` | `/bookmark/{postId}/folders`                          | 폴더 소속 전부 해제 → 미분류                                                                                                                                                       |
+| `PUT`    | `/post/{postId}/bookmark`                             | 북마크 저장(없으면 미분류로 생성, **기존 폴더 소속은 유지**) — `interaction.api.ts`                                                                                                |
+| `DELETE` | `/post/{postId}/bookmark`                             | 북마크 해제(소속도 전부 삭제) — `interaction.api.ts`                                                                                                                               |
 
 - `folderKey`(경로의 `{key}`): `'all' | 'uncategorized' | UUID`
 - `sort`: `'latest' | 'oldest' | 'title' | 'views' | 'viewed'` — `viewed`(최근 열람순)는
@@ -123,7 +125,9 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 - **같은 글의 북마크 요청 5종(저장·해제·폴더 추가·제거·비우기)은 한 줄로 나간다**(`bookmarkPostScope`,
   `bookmark-folder.keys.ts`) — 되돌리기 토스트(8초)가 다이얼로그보다 오래 남아 되돌리기와 다시 연
   다이얼로그의 요청이 겹칠 수 있어서다. 화면 반영은 클릭마다 즉시, 응답 반영·롤백은 그 줄의 마지막
-  요청에서만 한다(`isLastPendingBookmarkMutation`, 패턴은 [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §11)
+  요청에서만 한다(`isLastPendingBookmarkMutation`, 패턴은 [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §11).
+  줄에서 기다리는 사이 다른 탭 등에서 계정이 바뀌었으면 그 요청은 보내지 않고 실패로 끝낸다
+  (`mutationFn` 첫 줄의 `assertMutationAuthEpochUnchanged`, [`AUTH.md`](./AUTH.md) §8-B "줄 서 있던 요청")
 
 ### 다중 폴더 소속 모델
 
@@ -139,7 +143,9 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 - **폴더에서 제거 ≠ 북마크 제거 — 단, 마지막 폴더는 예외.** 소속된 폴더가 2개 이상일
   때 그중 하나에서 빼면 다른 폴더 소속이나 북마크 자체는 그대로다. 하지만 그 폴더가
   유일한 소속(마지막 폴더)이었다면 미분류로 남기지 않고 북마크 자체를 완전 삭제한다
-  (2026-09-11 변경, §10 참고) — 되돌리기 토스트로 8초 안에 원복할 수 있다. 여러
+  (2026-09-11 변경, §10 참고) — 되돌리기 토스트로 8초 안에 원복할 수 있다. "마지막"은
+  화면 기준이라, 서버에 다른 소속이 남아 있으면 그 폴더에서만 빠지고 북마크는 유지된다
+  (2026-10-14, 아래 행 동작 표). 여러
   폴더에서 한꺼번에 빠지는 미분류 행("소속 전부 해제")은 이 규칙과 무관하게 여전히
   북마크를 미분류로 남긴다 — 사용자가 명시적으로 "전체 해제"를 고른 것이지 마지막
   하나를 무심코 뺀 게 아니기 때문이다. 반대로 **이미 미분류인 상태에서** 미분류
@@ -180,7 +186,8 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 반영되는 방식).
 
 저장·해제의 방향은 다이얼로그가 화면에 보이는 상태(props)로 정해 `setBookmark(true|false)`로 넘긴다
-(`useBookmarkFolders.ts`). 2026-10-13 전엔 mutation이 캐시를 뒤져 방향을 다시 계산해, 둘이 어긋나면
+(`useBookmarkFolders.ts`). 화면상 마지막 폴더를 뺄 때만 `setBookmark({ lastFolderId })`로 넘겨
+`?removeBookmarkIfEmpty=true` 폴더 제거를 보낸다(`interaction.queries.ts`의 `BookmarkPostTarget`). 2026-10-13 전엔 mutation이 캐시를 뒤져 방향을 다시 계산해, 둘이 어긋나면
 "제거"를 눌렀는데 화면엔 저장으로 뜨는 경우가 있었다. 낡은 화면에서 "미분류" 저장을 눌렀는데 서버엔 이미
 다른 폴더 소속이 있으면, 서버는 그 소속을 유지하고 화면은 응답의 `folderIds`로 맞춰진다. 이때 토스트는
 "미분류에 저장했어요." 대신 "이미 다른 폴더에 저장돼 있어요."를 띄우고, "보기"는 미분류가 아니라 북마크
@@ -402,8 +409,11 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
 
 폼 스키마(`entities/post/model/post.schema.ts`의 `createPostSchema`)에
 `bookmark: boolean`, `folderIds: string[]` 두 필드가 있고, 등록 성공 시
-`useCreatePostMutation`이 이 값을 보고 폴더 캐시를 조건부로 무효화한다(§6 상태
-모델의 `handleBookmarkFolderChangeSuccess`와 같은 종류의 후속 처리).
+`useCreatePostMutation`이 이 값을 보고 폴더 캐시를 조건부로 무효화한다 — 북마크와 함께
+등록했으면 `handleBookmarkToggleSuccess`(폴더 목록 + 폴더별 게시글, §6 상태 모델). 등록이
+`FOLDER_NOT_FOUND`나 폴더를 고른 등록의 `FORBIDDEN`으로 실패하면 고른 폴더가 그사이 삭제됐거나
+내 폴더가 아니라는 뜻이라, `onError`가 `handleBookmarkFolderDeleteSuccess`로 폴더 목록을 다시
+받게 한다(낡은 목록이면 다시 골라도 같은 폴더가 보이기 때문이다).
 
 등록 폼 모달의 열림 상태는 `usePostCreateBookmarkFolderField`가 `useHistoryOverlay`로
 같은 경로(`/post/submit`)의 히스토리 엔트리에 싣는다(2026-09-30). 경로가 바뀌지 않는
@@ -465,21 +475,22 @@ bookmarkFolderKeys.posts(folderKey, sort, search);
 지금은 없다 — 다만 여전히 `Date` 메서드를 직접 호출하지 말고 `dayjs(value)`로
 감싸야 한다(CLAUDE.md의 `new Date()`/`.getTime()` 금지 규칙,
 `entities/bookmark/folder/utils/bookmark-folder.util.ts`의 `pickRecentFolders` 참고).
-BE 스펙도 `lastUsedAt`을 optional + `nullable: true`로 표기하고(`shared/api/generated/openapi.json`의
-`FolderResponse`, #139 이후), 런타임은 Jackson `JsonInclude.ALWAYS`라 키가 항상 있고 값이
+BE 스펙도 `lastUsedAt`을 optional + null 허용으로 표기하고(`shared/api/generated/openapi.json`의
+`FolderResponse`, #139 이후 — #419로 스펙이 OpenAPI 3.1이 된 뒤로는 `nullable: true` 대신
+`"type": ["string", "null"]`), 런타임은 Jackson `JsonInclude.ALWAYS`라 키가 항상 있고 값이
 `null`로 온다 — `bookmark-folder.dto.ts`의 타입 넓히기는 이제 생성 타입과 같은 모양이다(파일 상단 주석 참고).
 
 ## 7. 운영 파라미터
 
 "최근 저장한 폴더" 상단 구획 노출 기준.
 
-| 파라미터                                     | 값    | 실제 위치                                                                                                                                                     |
-| -------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 상단 구획 노출 최소 "저장 이력 있는" 폴더 수 | 3     | `pickRecentFolders`(`entities/bookmark/folder/utils/bookmark-folder.util.ts`)                                                                                 |
-| 상단 구획 노출 제외 조건(완전 일치)          | —     | 전체 폴더 수가 `RECENT_BOOKMARK_FOLDER_COUNT`(3)와 같을 때만 예외로 숨김(아래 설명)                                                                           |
-| 상단 구획 고정 노출 개수                     | 3     | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`                                                                   |
-| 열린 직후 클릭 무시 시간                     | 400ms | `shared/config/const.ts`의 `DOUBLE_CLICK_GUARD_MS`(위 "열린 직후 클릭 무시" 소절)                                                                             |
-| 폴더 이름 최대 길이(코드포인트)              | 15    | `entities/bookmark/folder/config/bookmark-folder.const.ts:8`의 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`(BE `BookmarkFolderService.MAX_FOLDER_NAME_LENGTH`와 같은 값) |
+| 파라미터                                     | 값    | 실제 위치                                                                                                                                                                                |
+| -------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 상단 구획 노출 최소 "저장 이력 있는" 폴더 수 | 3     | `entities/bookmark/folder/utils/bookmark-folder.util.ts:21`의 `wouldDuplicateMyFoldersSection`(`pickRecentFolders`가 호출) — 별도 상수 없이 `RECENT_BOOKMARK_FOLDER_COUNT`를 그대로 쓴다 |
+| 상단 구획 노출 제외 조건(완전 일치)          | —     | 전체 폴더 수가 `RECENT_BOOKMARK_FOLDER_COUNT`(3)와 같을 때만 예외로 숨김(아래 설명)                                                                                                      |
+| 상단 구획 고정 노출 개수                     | 3     | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`                                                                                              |
+| 열린 직후 클릭 무시 시간                     | 400ms | `shared/config/const.ts`의 `DOUBLE_CLICK_GUARD_MS`(위 "열린 직후 클릭 무시" 소절)                                                                                                        |
+| 폴더 이름 최대 길이(코드포인트)              | 15    | `entities/bookmark/folder/config/bookmark-folder.const.ts:8`의 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`(BE `BookmarkFolderService.MAX_FOLDER_NAME_LENGTH`와 같은 값)                            |
 
 둘 다 만족해야 상단 구획이 뜬다(0개 아니면 3개, 1~2개인 중간 상태는 없음) — 개수가
 흔들리면 아래 본 목록의 시작 위치도 흔들리기 때문이다.
@@ -509,8 +520,11 @@ src/
 │           └── useBookmarkPage.ts        # folder/sort/q URL 파라미터 wiring + activeFolderKey
 ├── widgets/
 │   └── bookmark/
-│       ├── bookmark-search/ui/
-│       │   └── BookmarkSearch.tsx        # 검색 위젯 (q URL 파라미터 자체 관리)
+│       ├── bookmark-search/
+│       │   ├── hooks/
+│       │   │   └── useBookmarkSearch.ts  # q URL 파라미터 읽기·쓰기(useSearchParamsDraft 경유, §3)
+│       │   └── ui/
+│       │       └── BookmarkSearch.tsx    # 검색 위젯(JSX) — 로직은 useBookmarkSearch
 │       ├── bookmark-post-list/
 │       │   ├── hooks/
 │       │   │   └── useBookmarkPostList.ts  # 무한스크롤 쿼리 + 그리드 가상화(useWindowGridVirtualizer)
@@ -559,8 +573,10 @@ src/
 │   │   └── toggle/
 │   │       ├── hooks/
 │   │       │   ├── useBookmarkFolders.ts             # add/remove/clear/저장·해제 라우팅
-│   │       │   │                                     # (마지막 폴더 제거·미분류 재탭 모두
-│   │       │   │                                     # 해제(DELETE)로 완전 삭제, §5)
+│   │       │   │                                     # (미분류 재탭은 해제(DELETE), 화면상
+│   │       │   │                                     # 마지막 폴더는 setBookmark({ lastFolderId })로
+│   │       │   │                                     # ?removeBookmarkIfEmpty=true 제거 — 서버에
+│   │       │   │                                     # 다른 소속이 남으면 북마크 유지, §5)
 │   │       │   ├── useBookmarkPostButton.ts          # 열림 상태(useHistoryOverlay, postId별 키)
 │   │       │   │                                     # + 인증 가드 + hover 프리페치(§5, 2026-09-30)
 │   │       │   └── usePostCardBookmarkFolderDialog.ts # 즉시 저장 동작 + 토스트 분기 + 닫힘
@@ -600,10 +616,11 @@ src/
 │           │   └── bookmark-folder.dto.ts     # §6 BookmarkFolder 등 응답 타입 원본(BE OpenAPI
 │           │                                  # 생성 타입에 얇은 alias)
 │           ├── config/
-│           │   └── bookmark-folder.const.ts   # RECENT_BOOKMARK_FOLDER_COUNT
+│           │   └── bookmark-folder.const.ts   # RECENT_BOOKMARK_FOLDER_COUNT + BOOKMARK_FOLDER_NAME_MAX_LENGTH
 │           ├── utils/
 │           │   ├── bookmark-folder.util.ts      # pickRecentFolders — "최근 저장한 폴더" 선정 로직(§7)
-│           │   └── bookmark-folder.util.test.ts # 임계값·완전 일치 배제·정렬 순수 로직 테스트
+│           │   │                                # + nameLengthError — 폴더 이름 길이 검사(§5)
+│           │   └── bookmark-folder.util.test.ts # 임계값·완전 일치 배제·정렬·이름 길이 순수 로직 테스트
 │           └── hooks/
 │               └── useRecentBookmarkFolders.ts # 모달(BookmarkFolderSelectDialog) 전용 스냅샷 로직
 │                                               # (§5, §10) — 상시 화면은 위 folder-tree/hooks/
@@ -631,7 +648,7 @@ src/
 
 | 하고 싶은 것                      | 방법                                                                                                                                                                                                                                                                                             |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| "최근 저장한 폴더" 노출 개수 조정 | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`(§7 완전 일치 배제 조건도 이 값을 그대로 참조하므로 함께 검토)                                                                                                                                        |
+| "최근 저장한 폴더" 노출 개수 조정 | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`(§7의 최소 저장 이력 폴더 수와 완전 일치 배제 조건도 이 값을 그대로 참조하므로 함께 검토)                                                                                                             |
 | 정렬 옵션 추가                    | `bookmark-folder.schema.ts`의 `bookmarkFolderSortEnum` + `useBookmarkPage.ts`의 `VALID_SORTS`(드롭다운·URL 파싱) + `BookmarkPage.tsx`의 `SORT_LABELS` + `TEXTS.bookmark.folder.sort.*`에 값 추가 + BE 대응 필요 — `VALID_SORTS`를 빠뜨리면 드롭다운에 안 뜨고 `?sort=새값`이 `latest`로 떨어진다 |
 | 폴더 내 검색 빈 상태 문구 변경    | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                                                                                                                                                                                  |
 | 모바일 감지 기준 변경             | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                                                                                                                                                                                  |
@@ -735,6 +752,18 @@ DELETE → PUT 순서로 단정) · `bookmark-folder.queries.test.ts`(8, 무수�
 미분류로 가는지 단언을 더했다.
 
 **2026-10-14 갱신(2)** — 마지막 폴더 해제를 서버 판단으로 바꾼 뒤(§5, §10) `PostCardBookmarkFolderDialog.test.tsx`(16→17): 마지막 폴더 탭이 북마크째 해제가 아니라 폴더 제거 API에 `removeBookmarkIfEmpty=true`로 나가는지 단정하도록 기존 테스트를 바꾸고, 서버에 다른 소속이 남은 응답이면 설명·되돌리기 없는 일반 제거 토스트만 뜨는 테스트를 추가했다(둘 다 수정 전 코드에서 실패 확인). `interaction.queries.test.ts`(32→33): 마지막 폴더 해제가 화면은 즉시 해제로 바꾸고, 다른 소속이 남은 응답이면 그 소속으로 교정되는지.
+
+**2026-10-27 갱신** — 폴더 이름 15자 제한·줄바꿈(§5 "폴더 이름 길이", #424)과 함께 추가된 테스트(테스트 수·전체 스위트
+결과는 기록하지 않았다):
+
+- `bookmark-folder.util.test.ts`의 `nameLengthError` — 15자까지는 문구 없음, 16자부터 상한·지금 길이 문구, 앞뒤 공백은 세지
+  않음, 이모지는 BE `codePointCount`처럼 한 글자
+- `useCreateFolderForm.test.ts` — 15자를 넘기면 입력 아래 이유를 돌려주고 요청을 보내지 않는다
+- `useFolderActions.test.ts` — 15자를 넘기면 요청 없이 편집을 열어 둔 채 이유를 보여 준다, 이미 15자를 넘는 예전 이름은
+  고치지 않고 닫으면 그대로 닫힌다
+- e2e `bookmark-folder-name.spec.ts` — 긴 이름이 사이드바와 폴더 제목에서 잘리지 않는다, 상한을 넘기면 입력 아래에 이유를
+  보여 주고 생성을 막는다
+- e2e `bookmark-folder-name.mobile.spec.ts` — 360px 폰의 폴더 카드와 폴더 제목에서 긴 이름이 잘리지 않는다
 
 ## 10. 시행착오
 
@@ -977,7 +1006,7 @@ Radix `DropdownMenu` 2.1.16 소스를 직접 읽어 원인을 추적했다:
 그 항목에서 직접 누르지 않았어도 거기서 손을 떼면 클릭을 강제 발동한다
 (`@radix-ui/react-menu/dist/index.mjs:398`). 손이 몇 px만 밀려 "이름 수정" 항목
 위에서 손을 떼면 `startRename()`이 실행돼 행이 `<Input>`으로 바뀌지만, 이름이
-그대로라 `submitRename`이 API 호출 없이 조용히 원복한다(`useFolderActions.ts:39-43`)
+그대로라 `submitRename`이 API 호출 없이 조용히 원복한다(`useFolderActions.ts`의 `submitRename` 안 `!next || next === folder.name` 분기)
 — 그래서 사용자에겐 "메뉴가 떴다 그냥 사라진" 것으로만 보였다.
 
 이 패턴은 WCAG 2.2 SC 2.5.2(Pointer Cancellation, Level A)가 명시적으로 막는
@@ -1193,7 +1222,9 @@ scope를 나눠 써서 `mutationKey` 대신 `scope.id`로 센다(`isLastPendingB
 - **`isLastPendingBookmarkMutation`** — 같은 파일. 지금 끝나는 북마크 요청이 그 줄의 마지막인지 판정한다.
   응답 반영·롤백은 이 값이 참일 때만 한다
 - **`setBookmark`** — `useBookmarkFolders.ts`가 `useBookmarkPostMutation`의 `mutateAsync`에 붙인 이름.
-  `true`면 저장(`PUT`), `false`면 해제(`DELETE`)
+  `true`면 저장(`PUT`), `false`면 해제(`DELETE`), `{ lastFolderId }`면 화면상 마지막 폴더 해제
+  (`?removeBookmarkIfEmpty=true` 폴더 제거 — 서버에 다른 소속이 남으면 북마크 유지, `interaction.queries.ts`의
+  `BookmarkPostTarget`)
 
 ## 13. 관련 문서
 

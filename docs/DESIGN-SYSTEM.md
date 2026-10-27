@@ -8,9 +8,9 @@
 > **읽고 나면**: 색상·반경·z-index·타이포그래피(스케일+역할) 토큰이 어디 정의돼 있고
 > 어떻게 확장하는지, ESLint가 어떤 Tailwind className 규칙을 강제하는지, Storybook
 > 토큰 카탈로그를 어떻게 보는지, Storybook a11y 게이트가 CI에서 어떻게 도는지 안다.
-> spacing 토큰은 왜 없는지, 지금 아는 a11y 위반이 뭐고 왜 아직 안 고쳤는지도 안다.
+> spacing 토큰은 왜 없는지, 지금까지 찾은 a11y 위반을 어떻게 해소했는지도 안다.
 >
-> **마지막 검토**: 2026-10-05
+> **마지막 검토**: 2026-10-27
 
 ## 1. 쉬운 설명
 
@@ -126,10 +126,11 @@ import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있
 (2026-09-21 추가)도 같은 분류 - 카테고리 개수·id 기반 배정이 link-sphere 고유
 비즈니스 규칙이다.
 
-**신규 shared/ui/atoms(2026-09-29 확인)**: 위 재사용성 절 이후 `Divider`
-(`divider.tsx`), `IconBadge`(`icon-badge.tsx`), `LabeledDivider`(`labeled-divider.tsx`)가
-`src/shared/ui/atoms/`에 추가됐다 — 셋 다 CLAUDE.md의 "스토리 없이 커밋 금지" 규칙에
-맞춰 같은 이름의 `.stories.tsx`를 함께 갖고 있다.
+**신규 shared/ui/atoms**: 위 재사용성 절 이후 `RequiredMark`(`required-mark.tsx`),
+`Divider`(`divider.tsx`), `IconBadge`(`icon-badge.tsx`), `LabeledDivider`(`labeled-divider.tsx`),
+`AlertDialog`(`alert-dialog.tsx`) 등이 `src/shared/ui/atoms/`에 추가됐다 — 이들을 포함해
+`shared/ui/atoms`·`elements`의 모든 컴포넌트가 CLAUDE.md의 "스토리 없이 커밋 금지" 규칙에
+맞춰 같은 이름의 `.stories.tsx`를 함께 갖고 있다(2026-10-27 재확인, 목록 정본은 디렉터리 자체).
 
 **타이포그래피 전역 규칙 — `word-break: keep-all`**: `src/app/globals.css`의 `body`
 셀렉터가 `word-break: keep-all` + `overflow-wrap: break-word`를 전역으로 건다. 한글은
@@ -536,8 +537,11 @@ Storybook a11y 게이트가 실측한 4개 토큰의 라이트 모드 대비 미
   해소 중(2026-09-16~17)**: Tailwind v4의 `--spacing`은 `gap-2`·`p-4`·`h-9`·
   `size-4`가 전부 파생되는 단일 배수 변수라, 색상/z-index와 같은 "CSS 커스텀
   프로퍼티 + `no-raw-*` 룰" 해법이 안 맞는다 — `--spacing: initial`로 잠그면
-  591개 className이 무너진다. 게다가 raw 이스케이프(`p-[…]`류) 자체가 이미
-  0건이라 "하드코딩 색상"에 해당하는 문제도 없다. 실제 문제는 같은 의미의
+  591개 className이 무너진다. 게다가 padding·margin·gap에 고정 숫자를 넣은 이스케이프
+  (`p-[13px]`류)가 0건이라 "하드코딩 색상"에 해당하는 문제도 없다 — 남은 이스케이프 3건
+  (`MobileCommentBar.tsx`·`BottomTabBar.tsx`의 `pb-[…env(safe-area-inset-bottom)…]`,
+  `CommentItem.tsx`의 `scroll-mt-[calc(var(--navbar-height)_+_24px)]`)은 safe-area·navbar
+  높이처럼 배수 토큰으로 못 바꾸는 값을 계산한다(2026-10-27 재확인). 실제 문제는 같은 의미의
   UI를 여러 곳이 각자 구현하며 서로 다른 숫자를 고른 것 — `EmptyState`(신규,
   `ErrorState`와 대칭 구조)로 빈 상태 문구 패턴 5곳을, 이어서 `PostCard.tsx`
   안 조회수 gap(`gap-1` → `gap-1 md:gap-1.5`, 같은 파일 안 다른 액션 버튼과

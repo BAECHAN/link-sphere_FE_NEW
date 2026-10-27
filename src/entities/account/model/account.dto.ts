@@ -10,7 +10,7 @@ import type { components } from '@/shared/api/generated/openapi.gen';
 //
 // nickname: 스펙은 optional + nullable이다(AuthDTO.kt의 AccountResponse.nickname
 // `val nickname: String? = null`). 그런데 계정을 만드는 유일한 경로인 SignupRequest.nickname은
-// @NotBlank 필수라(같은 파일) 실제로 존재하는 계정은 전부 nickname을 갖는다 — Kotlin의 nullable 기본값은
+// @NotBlank 필수라(BE member/MemberDTO.kt) 실제로 존재하는 계정은 전부 nickname을 갖는다 — Kotlin의 nullable 기본값은
 // DTO 재사용을 위한 방어적 선언일 뿐 실제 도달 가능한 상태가 아니다. 필수로 좁히지 않고
 // 그대로 두면 댓글/게시글 작성자 등 nickname을 필수로 요구하는 다른 타입들(CommentAuthor,
 // UserSummary 등)에 값을 전달하는 곳마다 무의미한 `?? ''` 폴백이 번진다(실제로 type-check가

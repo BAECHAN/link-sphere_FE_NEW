@@ -121,7 +121,7 @@ ESLint 룰이 `z-50` 같은 raw 숫자 클래스를 pre-commit에서 차단한�
 
 | 토큰        | 값  | 사용처                                                                                                                                                  |
 | ----------- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `z-raised`  | 10  | 카드 내부 오버레이 (`DropTargetOverlay.tsx`, `PostCard.tsx`)                                                                                            |
+| `z-raised`  | 10  | 카드 내부 오버레이 (`DropTargetOverlay.tsx`, `PostCard.tsx`), 필터 응답 대기 중 목록 위 오버레이(`PostList.tsx`)                                        |
 | `z-hitbox`  | 20  | 드롭 히트박스 (`DropTargetOverlay.tsx`)                                                                                                                 |
 | `z-panel`   | 40  | `RecentSearchPanel`, `MobileCommentBar` 접힘 상태, `CreatePostForm` 모바일 제출 바                                                                      |
 | `z-nav`     | 50  | `Navbar`(sticky top), `BottomTabBar`, 플로팅 버튼(`ScrollToTop`/`ScrollToCommentFormButton`)                                                            |
