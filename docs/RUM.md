@@ -7,7 +7,7 @@
 > **읽고 나면**: RUM이 어떻게 수집·전송되는지, 그 데이터를 실제 개선에 어떻게
 > 쓰는지 알고, App Monitor 설정을 바꾸거나 재부트스트랩할 수 있다.
 >
-> **마지막 검토**: 2026-10-15
+> **마지막 검토**: 2026-10-27
 
 AWS CloudWatch RUM으로 실사용자(방문자)의 페이지 로딩 성능·에러를 자동 수집합니다.
 Cognito 없이 리소스 기반 정책으로 익명 수집하며, FE 코드에는 `index.html`의
@@ -41,8 +41,9 @@ flowchart TD
 
 이 문서는 **왜** Cloudflare Web Analytics 대신 CloudWatch RUM을 택했는지는
 다루지 않는다 — `docs/DECISIONS.md` 2026-09-26 "RUM" 항목을 먼저 본다. AWS
-IAM의 기본 개념(정책, 리소스 기반 정책)과 이 레포가 BE 배포에도 쓰는 AWS
-계정 구조(`link-sphere-user`, BE 저장소 `docs/DEPLOY.md`)를 안다고 가정한다.
+IAM의 기본 개념(정책, 리소스 기반 정책)과 이 레포의 AWS 계정 구조 — 로컬 AWS CLI에
+쓰는 IAM 사용자 `link-sphere-user`(CI 배포는 2026-10-13부터 GitHub OIDC 역할, BE 저장소
+`docs/DEPLOY.md`) — 를 안다고 가정한다.
 
 ## 3. 사용한 도구·기술
 
@@ -91,31 +92,36 @@ Cognito identity pool 없이 **리소스 기반 정책**(`aws rum put-resource-p
 
 ## 7. 운영 파라미터
 
-| 파라미터             | 값                                                                                                    | 위치            |
-| -------------------- | ----------------------------------------------------------------------------------------------------- | --------------- |
-| App Monitor 이름     | `link-sphere-post`(AWS CLI `--name` 인자 — `index.html`에는 이름이 아니라 ID만 있다)                  | AWS 측 설정     |
-| App Monitor ID       | `81cbaae5-b6f2-48d9-9c05-f6f6f5f648cc`                                                                | `index.html:29` |
-| 리전                 | `ap-northeast-1`                                                                                      | `index.html:31` |
-| 로더 URL             | `https://client.rum.us-east-1.amazonaws.com/3.x/cwr.js`(항상 us-east-1 고정, App Monitor 리전과 무관) | `index.html:32` |
-| dataplane 엔드포인트 | `https://dataplane.rum.ap-northeast-1.amazonaws.com`                                                  | `index.html:35` |
-| `sessionSampleRate`  | `1`(전수 수집)                                                                                        | `index.html:34` |
-| `telemetries`        | `['errors', 'performance']`                                                                           | `index.html:36` |
-| `allowCookies`       | `true`                                                                                                | `index.html:37` |
-| `signing`            | `false`(리소스 기반 정책과 짝)                                                                        | `index.html:39` |
+| 파라미터             | 값                                                                                                    | 위치                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| App Monitor 이름     | `link-sphere-post`(AWS CLI `--name` 인자 — `index.html`에는 이름이 아니라 ID만 있다)                  | AWS 측 설정                          |
+| App Monitor ID       | `81cbaae5-b6f2-48d9-9c05-f6f6f5f648cc`                                                                | `index.html:34`(로더 IIFE 둘째 인자) |
+| 리전                 | `ap-northeast-1`                                                                                      | `index.html:36`(넷째 인자)           |
+| 로더 URL             | `https://client.rum.us-east-1.amazonaws.com/3.x/cwr.js`(항상 us-east-1 고정, App Monitor 리전과 무관) | `index.html:37`(다섯째 인자)         |
+| dataplane 엔드포인트 | `https://dataplane.rum.ap-northeast-1.amazonaws.com`                                                  | `index.html:40`(`endpoint`)          |
+| `sessionSampleRate`  | `1`(전수 수집)                                                                                        | `index.html:39`(`sessionSampleRate`) |
+| `telemetries`        | `['errors', 'performance']`                                                                           | `index.html:41`(`telemetries`)       |
+| `allowCookies`       | `true`                                                                                                | `index.html:42`(`allowCookies`)      |
+| `signing`            | `false`(리소스 기반 정책과 짝)                                                                        | `index.html:44`(`signing`)           |
 
 ## 8. 코드 지도와 자주 하는 수정
 
-| 하고 싶은 일                 | 파일:줄         | 방법                                                                             |
-| ---------------------------- | --------------- | -------------------------------------------------------------------------------- |
-| 표본 비율 조정(비용 절감 등) | `index.html:34` | `sessionSampleRate` 값을 0~1 사이로 조정                                         |
-| 새 이벤트 종류 추가          | `index.html:36` | `telemetries` 배열에 추가(`aws-rum-web` 지원 목록 확인 필요)                     |
-| App Monitor 설정 변경        | AWS CLI         | `aws rum update-app-monitor --name link-sphere-post --region ap-northeast-1 ...` |
-| 익명 수집 정책 변경          | AWS CLI         | `aws rum put-resource-policy` — 정책 JSON은 "5. 구조" 참고                       |
+| 하고 싶은 일                 | 파일:줄                              | 방법                                                                             |
+| ---------------------------- | ------------------------------------ | -------------------------------------------------------------------------------- |
+| 표본 비율 조정(비용 절감 등) | `index.html:39`(`sessionSampleRate`) | `sessionSampleRate` 값을 0~1 사이로 조정                                         |
+| 새 이벤트 종류 추가          | `index.html:41`(`telemetries`)       | `telemetries` 배열에 추가(`aws-rum-web` 지원 목록 확인 필요)                     |
+| App Monitor 설정 변경        | AWS CLI                              | `aws rum update-app-monitor --name link-sphere-post --region ap-northeast-1 ...` |
+| 익명 수집 정책 변경          | AWS CLI                              | `aws rum put-resource-policy` — 정책 JSON은 "5. 구조" 참고                       |
 
 이 스니펫 외에 RUM을 직접 다루는 FE 코드는 없지만, `scripts/inject-csp.js`가 빌드
 시 CSP `script-src`에 로더 도메인(`https://client.rum.us-east-1.amazonaws.com`)을,
 `connect-src`에 dataplane 도메인(`https://dataplane.rum.ap-northeast-1.amazonaws.com`)을
 허용 목록으로 넣는다 — 이 CSP가 없으면 RUM 스니펫 자체가 막혀 조용히 데이터가 끊긴다.
+또 Lighthouse CI 설정(`lighthouserc.cjs`·`lighthouserc.auth.cjs`의 `settings.blockedUrlPatterns`)이
+dataplane 전송 주소만 막는다 — App Monitor 허용 도메인에 `localhost`가 없어 CI에서는 전송이 400으로
+거절되고, 그 콘솔 에러가 Best Practices 점수를 흔들었기 때문이다(로더 `cwr.js`는 실제 사용자도 받는
+비용이라 막지 않는다, 이유는 `lighthouserc.cjs` 주석). 리전이나 dataplane 주소를 바꾸면 CSP와 함께
+이 두 파일도 고친다.
 
 ## 9. 검증 결과
 
@@ -176,8 +182,8 @@ _"권한 부여 설정을 건너뛸 수 있다"_(번역)고 안내해 서로 엇
   권한도 없어 개별 이벤트를 조회할 수 없다. 실제 트래픽도 하루 3~21세션(2026-10-01~14 `SessionCount`)이라
   통계로 쓰기 어렵다. 그래서 운영 사이트에 직접 접속하는 측정으로 대신했다(`docs/COMMENT.md` "해시 이동"의
   "기다림 줄이기").
-- 지금 쌓인 데이터는 검증용 테스트 트래픽뿐이다 — 실사용자 트래픽이 유의미한
-  기간 동안 쌓이기를 기다리는 중이다.
+- 실사용자 트래픽이 하루 3~21세션(위 항목, 2026-10-01~14 `SessionCount`)이라 통계로 쓰기엔
+  적다 — 유의미한 양이 쌓이기를 기다리는 중이다.
 - CLI로 원본 이벤트를 보려면 `rum:GetAppMonitorData` 권한을 관리형 정책에
   추가해야 한다(필요해지면 추가).
 - 비용은 정밀 비교하지 않았다(`docs/DECISIONS.md`에 이미 명시) — 트래픽이 늘어

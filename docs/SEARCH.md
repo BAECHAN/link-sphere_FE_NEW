@@ -9,7 +9,7 @@
 > `#닉네임` 태그가 어떻게 분해되는지 이해하고, 검색 관련 동작(유지·초기화·오타 보정)을
 > 어느 파일에서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-26
+> **마지막 검토**: 2026-10-27
 
 ## 1. 쉬운 설명
 
@@ -71,8 +71,9 @@ flowchart TD
 
 **구현·검증 과정에서 쓴 도구**
 
-- Vitest + Testing Library — `NavbarSearch.test.tsx`, `MobileNavbarSearch.test.tsx`,
-  `PostListSearch.test.tsx`
+- Vitest + Testing Library — `NavbarSearch.test.tsx`, `MobileNavbarSearch.test.tsx`, `RecentSearchPanel.test.tsx`,
+  `Navbar.test.tsx`, `PostListSearch.test.tsx`, `PostList.test.tsx`, `usePostList.test.tsx`, `search-parser.test.ts`,
+  `useSearchParamsDraft.test.tsx`
 - 웹 리서치([Baymard #346](https://baymard.com/blog/persist-search-queries)) — 검색어 유지
   여부의 UX 근거 확보
 
@@ -144,7 +145,7 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 [계획 문서](./plans/2026-10-14-liked-filter-chip.md)에 있다. 이 선택으로 감수한 점:
 
 - 정렬은 좋아요한 순이 아니라 피드와 같은 글 작성순이다
-- 이 칩을 켠 목록에서 좋아요를 취소해도 카드가 하트만 꺼진 채 남고, 다음 재조회 때 빠진다.
+- 이 칩을 켠 목록에서 좋아요를 취소해도 카드가 좋아요 아이콘만 꺼진 채 남고, 다음 재조회 때 빠진다.
   "북마크한"과 같은 동작이고 좋아요 캐시 코드는 바꾸지 않았다([`POST.md`](./POST.md) §11)
 - 자리는 "북마크한" 바로 뒤, 켜진 색은 좋아요 버튼과 같은 `destructive`다(위치 2안·색 2안 시안
   비교 후 사용자 선택: https://claude.ai/artifact/QLhkfEDkpYT6UdGZfRch2D)
@@ -264,7 +265,7 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 데스크톱 드롭다운 열림/닫힘 규칙(포커스·입력·blur) 바꾸기    | [`NavbarSearch.tsx:92-118`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L92-L118) — `handleChange`/`handleFocus`/`handleBlur`                                                                                                                                                                                                                                  |
 | 데스크톱 드롭다운 키보드(ESC 2단계·화살표·Enter) 바꾸기      | [`NavbarSearch.tsx:155-275`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L155-L275) — `handleKeyDown`                                                                                                                                                                                                                                                          |
 | 드롭다운 목록 마크업(헤더 고정·행·삭제 버튼) 바꾸기          | [`RecentSearchDropdown.tsx`](../src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx)                                                                                                                                                                                                                                                                              |
-| 카드의 카테고리 배지를 눌렀을 때 동작 바꾸기                 | [`usePostCard.ts:146-158`](../src/widgets/post/post-card/hooks/usePostCard.ts#L146-L158) — `handleCategoryClick`, 배지 마크업은 [`PostCard.tsx:307`](../src/widgets/post/post-card/ui/PostCard.tsx#L307) 이하                                                                                                                                                       |
+| 카드의 카테고리 배지를 눌렀을 때 동작 바꾸기                 | [`usePostCard.ts`](../src/widgets/post/post-card/hooks/usePostCard.ts) — `handleCategoryClick`, 배지 마크업은 [`PostCard.tsx:307`](../src/widgets/post/post-card/ui/PostCard.tsx#L307) 이하                                                                                                                                                                         |
 | `@카테고리`/`#닉네임`/키워드 분해 규칙 바꾸기                | [`search-parser.ts`](../src/widgets/post/post-list/utils/search-parser.ts) — `parseSearchQuery`                                                                                                                                                                                                                                                                     |
 | 범위 칩(북마크한·좋아요한 등) 추가·순서·색 바꾸기            | [`PostListSearch.tsx:48-80`](../src/widgets/post/post-list/ui/PostListSearch.tsx#L48-L80) — 칩 마크업, 키는 [`usePostListSearch.ts:10`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L10) `SCOPE_FILTERS`에도 넣는다                                                                                                                                    |
 | "조건 N개 적용 중" 카운트 로직                               | [`usePostListSearch.ts:13-30`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L13-L30) — `computeAppliedFilterCount`                                                                                                                                                                                                                                      |
@@ -272,9 +273,9 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 뒤로/앞으로 가기 때 칩·pending 정리 바꾸기                   | [`router-events.ts`](../src/shared/lib/router/router-events.ts)(POP 감지), [`usePostListSearch.ts:88-103`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L88-L103)(칩 미러), [`useSearchParamsDraft.ts:59-65`](../src/shared/hooks/useSearchParamsDraft.ts#L59-L65)(pending), 주입은 [`RouterProvider.tsx`](../src/app/providers/RouterProvider.tsx)     |
 | 목록 조회 실패 화면이 풀리는 조건 바꾸기                     | [`usePostList.ts:106-116`](../src/widgets/post/post-list/hooks/usePostList.ts#L106-L116) — `usePostListErrorReset`(리셋 키), 실패한 목록 캐시 삭제는 [`post.keys.ts`](../src/entities/post/api/post.keys.ts)의 `postRemoveQueries.erroredLists`                                                                                                                     |
 | 정지 구간 "불러오는 중" 표시 조건·지연 바꾸기                | [`usePostList.ts:131-157`](../src/widgets/post/post-list/hooks/usePostList.ts#L131-L157) — `usePostListApplying`(최신 위치와 커밋된 위치 비교, 봇 숨기기 늦춘 값 비교, 0.5초 지연)                                                                                                                                                                                  |
-| 정지 구간 "불러오는 중" 덮개 모양 바꾸기                     | [`PostList.tsx:55-75`](../src/widgets/post/post-list/ui/PostList.tsx#L55-L75) — 덮개·알약, 문구는 `TEXTS.post.search.applying`                                                                                                                                                                                                                                      |
+| 정지 구간 "불러오는 중" 덮개 모양 바꾸기                     | [`PostList.tsx`](../src/widgets/post/post-list/ui/PostList.tsx)의 `isApplying` 분기 — 덮개·알약, 문구는 `TEXTS.post.search.applying`                                                                                                                                                                                                                                |
 | 초기화 버튼(필터+검색어 전체 리셋)                           | [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts) — `handleClearSearch`                                                                                                                                                                                                                                                            |
-| 오타 보정 문구                                               | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx:109-113`](../src/widgets/post/post-list/ui/PostList.tsx#L109-L113)                                                                                                                                                                                                                                             |
+| 오타 보정 문구                                               | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx`](../src/widgets/post/post-list/ui/PostList.tsx)의 `PostListContent`(`correctedSearch` 분기)                                                                                                                                                                                                                   |
 | 모바일 검색 패널 열림 상태                                   | [`useMobileSearchPanel.ts:17-22`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L17-L22) — `location.state.mobileSearchOpen`                                                                                                                                                                                                                           |
 | 검색 중 하단 댓글바 숨김 동작 바꾸기                         | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useHistoryOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                                                                                                                                                                                     |
 | 검색 중 배경 클릭·포커스 차단 범위 바꾸기                    | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                                                                                                                                                                                   |
@@ -362,6 +363,8 @@ URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 수정(mutate)하
 훅 인스턴스(BookmarkPage·useBookmarkSearch)가 그걸 공유해야 하기 때문이다 — 근거는
 [`docs/DECISIONS.md`](./DECISIONS.md) "2026-09-14" 항목. 같은 필터를 정지 구간 안에서
 재클릭하면 취소되는 동작은 고치지 않았다 — 토글 버튼의 정상 동작으로 간주했다(같은 항목 참고).
+그 뒤 2026-09-21부터 칩이 400ms 안의 재클릭은 중복 클릭으로 보고 무시해(#156에서 가드 도입, #162에서 400ms로 조정,
+지금은 `ToggleButton`), 그보다 늦은 재클릭만 취소된다(`usePostList.test.tsx` 시나리오 C·C-2).
 
 **포스트 상세 모바일에서 검색 패널 아래로 댓글 작성바가 그대로 비침 → z층 공유가 원인.**
 `RecentSearchPanel`(`fixed top-16 bottom-0`)과 `MobileCommentBar` 접힘 상태가 둘 다
@@ -374,7 +377,7 @@ URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 수정(mutate)하
 작성 중이던 본문·첨부 이미지가 경고 없이 사라진다. 같은 김에 `RecentSearchPanel`에
 스크림·포커스 트랩이 없어 Tab 키로 배경 게시글·댓글에 포커스가 새는 문제도 함께 발견해,
 [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx)의 `main`에 `inert`를 걸어
-막았다(React 18.2라 JSX `inert` prop 대신 ref로 DOM 프로퍼티를 직접 설정 —
+막았다(React 18(설치본 18.3.1)이라 JSX `inert` prop 대신 ref로 DOM 프로퍼티를 직접 설정 —
 [facebook/react#24730](https://github.com/facebook/react/pull/24730)).
 
 **태그 붙여쓰기(`@a@b`)가 조용히 0건이 됨 → 태그 경계 규칙 도입.** 사용자가 `@라이프스타일`과
@@ -640,13 +643,14 @@ LCP 전체 측정과 다른 개선 후보는 [`PERFORMANCE.md`](./PERFORMANCE.md
 - **브라우저 캐시에 카테고리가 없을 때 429가 나면 요청이 2번 나간다**(토스트는 1개). 미리 받기가 실패한 뒤
   필터 카드가 마운트하며 다시 요청하기 때문이다.
 - **카테고리를 DB에서 바꾸면 방문 한 번만큼 늦게 보인다**(BE #102의 캐시 헤더). 그사이 지운 카테고리를 골라
-  등록하면 에러 없이 그 카테고리만 빠진 채 저장된다(BE `PostService`의 `findAllByIdIn`).
+  등록하면 에러 없이 그 카테고리만 빠진 채 저장된다(BE `PostService`가 부르는 `CategoryService.getCategoriesByIds` →
+  `CategoryRepository.findAllByIdIn`).
 - 헤더 검색창 입력값은 정지 구간에 뒤로가기를 해도 사용자가 친 값이 그대로 남는다
   (`useNavbarSearch`) — 직접 타이핑한 값이라 의도적으로 그대로 둔다.
 
 - **이 문서는 "검색어가 어떻게 URL·입력창을 오가는지"만 다룬다.** 2026-09-28부터 BE가
   키워드뿐 아니라 의미(임베딩 코사인 거리) 기반으로도 결과를 찾고, 키워드로는 안 걸렸지만
-  의미로 걸린 결과에는 `PostCard.tsx`에 "검색어와 의미가 비슷한 글이에요" 배지가 붙는다
+  의미로 걸린 결과에는 `PostCard.tsx`에 "검색어와 의미가 비슷한 글이에요"라는 옅은 안내 한 줄(전구 아이콘)이 붙는다
   (`post.isSemanticMatch`). 매칭 알고리즘·임계값·BE 쪽 설계는 이 문서의 범위가 아니다 —
   BE 레포 `docs/plans/2026-09-27-search-quality.md`가 그 정본이다.
 - **닉네임을 2개 이상 지정하면 결과가 0건이 된다.** FE는 `#철수 #영희`를

@@ -17,6 +17,13 @@ Parse:
 1. Read the existing entity's `entities/<entity>/api/` to understand which mutations/queries already exist
 2. Read an existing feature hook (e.g. `src/features/post/create/hooks/useCreatePost.ts`) to match the exact style
 3. If the required mutation/query hook doesn't exist yet in `<entity>.queries.ts`, create it there first
+   - 토글 mutation은 "뒤집기"가 아니라 "이 상태로 만들기"로 만든다 — 변수로 다음 상태(`next<State>: boolean`)를
+     받아 `PUT`/`DELETE`로 보낸다. 연타해도 요청이 누른 순서대로 서버에 닿게 `mutationKey`·
+     `scope: { id: mutationKey.join(':') }`·`mutationFn` 첫 줄 `assertMutationAuthEpochUnchanged(context)`·
+     `meta: { manualErrorHandling: true }`를 갖추고, 응답 반영·롤백은 마지막 요청(`isMutating({ mutationKey }) === 1`)에서만
+     한다. 골격과 근거는 `docs/FE-ARCHITECTURE.md` §11 "같은 대상의 연속 mutation (연타)", 선례는
+     `src/entities/interaction/api/interaction.queries.ts`의 `useLikePostMutation`(첫 줄 확인이 빠지면 ESLint
+     `custom-query-rules/scope-mutation-auth-epoch`가 막는다)
 
 ## Files to create
 
@@ -32,6 +39,7 @@ import { useNavigate } from 'react-router-dom';
 import { <FormType>, <formSchema> } from '@/entities/<entity>/model/<entity>.schema';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
+import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
 
 const DEFAULT_VALUES: <FormType> = {
   // fill with actual default values
@@ -50,6 +58,9 @@ export function use<FeatureName>() {
   // 폼에 값을 입력하고 제출 없이 떠나면(뒤로가기 등) 이탈 확인창을 띄운다 — 선례:
   // useCreatePost.ts. 첫 인자는 페이지별 고유 키(라우트/슬라이스 이름과 맞춘다).
   const { clearNow } = useUnsavedChanges('<domain>-<slice>', form.formState.isDirty);
+  // 저장 응답을 기다리는 사이 "나가기"로 떠났는지 본다(docs/UNSAVED-CHANGES-GUARD.md §5
+  // "저장 요청 중 이탈", 선례: useCreatePost.ts).
+  const hasLeftPage = useHasLeftPage();
 
   const onSubmit = form.handleSubmit(async (formData: <FormType>) => {
     // 응답을 기다렸다가 성공했을 때만 폼을 비우고 이동한다 — 실패하면 입력·이탈 가드를 그대로
@@ -59,6 +70,12 @@ export function use<FeatureName>() {
     try {
       await <action><Entity>(formData);
     } catch {
+      return;
+    }
+
+    // 응답 전에 "나가기"로 떠났으면 옮겨 간 화면에 그대로 둔다. clearNow보다 먼저 본다: 같은 경로에
+    // 새로 열린 폼의 키를 지우지 않게
+    if (hasLeftPage()) {
       return;
     }
 
@@ -107,12 +124,10 @@ export function use<FeatureName>() {
 ```typescript
 import { use<Action><Entity>Mutation } from '@/entities/<entity>/api/<entity>.queries';
 
+// 낙관적 업데이트·연타 직렬화·롤백은 엔티티 mutation이 다 갖는다(위 "Before creating files" 3번) —
+// feature 훅은 그대로 넘긴다(선례: src/features/post/like/hooks/useLikePost.ts).
 export function use<FeatureName>(<entity>Id: string) {
-  const { mutate: <action><Entity>, isPending: is<Action>ing } = use<Action><Entity>Mutation(<entity>Id);
-
-  const handle<Action> = () => { <action><Entity>(); };
-
-  return { handle<Action>, is<Action>ing };
+  return use<Action><Entity>Mutation(<entity>Id);
 }
 ```
 
@@ -161,6 +176,7 @@ export function <FeatureName>Form() {
 import { cn } from '@/shared/lib/tailwind/utils';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 import { use<FeatureName> } from '@/features/<domain>/<slice>/hooks/use<FeatureName>';
+import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
 import { TEXTS } from '@/shared/config/texts';
 
 interface <FeatureName>ButtonProps {
@@ -170,17 +186,28 @@ interface <FeatureName>ButtonProps {
 }
 
 export function <FeatureName>Button({ <entity>Id, is<State>, count }: <FeatureName>ButtonProps) {
-  const { handle<Action> } = use<FeatureName>(<entity>Id);
+  // mutateAsync는 실패를 throw해 아무도 잡지 않으면 "Uncaught (in promise)"가 남는다 — 실패
+  // 처리(롤백)는 mutation 쪽에 있으니 결과를 기다리지 않는 mutate를 쓴다(선례: LikePostButton.tsx).
+  const { mutate: <action><Entity> } = use<FeatureName>(<entity>Id);
+  // 비로그인이면 요청 대신 로그인 모달을 띄운다
+  const guard = useAuthGuard();
+
+  // 뒤집은 값이 아니라 "누른 뒤 될 상태"를 넘긴다 — mutation이 그 상태를 PUT/DELETE로 보낸다
+  const handle<Action> = (e: React.MouseEvent) => {
+    e.preventDefault();
+    guard(() => <action><Entity>(!is<State>));
+  };
 
   // 누를 때마다 상태를 뒤집는 버튼이라 Button 대신 ToggleButton(더블클릭 가드 내장)을 쓴다.
   // 낙관적 업데이트로 아이콘이 먼저 바뀌는 토글엔 요청 중 disabled를 두지 않는다 — 버튼만
   // 흐려졌다 돌아오는 깜빡임이 생긴다(docs/FE-ARCHITECTURE.md §10-A, 선례: LikePostButton.tsx).
+  // variant="none"이라 hover 배경을 className에 직접 준다.
   return (
     <ToggleButton
-      variant="ghost"
+      variant="none"
       size="sm"
-      className={cn('gap-1 rounded-full', is<State> && 'text-primary')}
-      onClick={(e) => { e.preventDefault(); handle<Action>(); }}
+      className={cn('gap-1 rounded-full hover:bg-background/80', is<State> && 'text-primary')}
+      onClick={handle<Action>}
       // 아이콘만 있고 텍스트 라벨이 없는 버튼이라 스크린리더용 라벨이 꼭 필요하다
       // (선례: LikePostButton.tsx). 상태별로 다른 문구를 TEXTS.ariaLabels.*에 추가한다.
       aria-label={is<State> ? TEXTS.ariaLabels.<domain><FeatureName>Off : TEXTS.ariaLabels.<domain><FeatureName>On}

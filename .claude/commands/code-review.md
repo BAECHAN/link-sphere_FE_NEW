@@ -32,7 +32,7 @@ Reference files for correct patterns:
 
 - [ ] Feature directories use kebab-case domain-grouping: `features/<domain>/<slice>/` (e.g. `post/create/`, `comment/like/`)
 - [ ] Mutation hooks named `use<Action><Entity>Mutation`
-- [ ] Query hooks named `useFetch<Entity>Query` or `useSuspenseFetch<Entity>Query`
+- [ ] Query hooks named `useFetch<Entity>Query` or `useSuspenseFetch<Entity>Query`; render-time prefetch hooks `usePrefetch<Entity>`, event-time prefetch functions taking `queryClient` `prefetch<Entity>` (FE-ARCHITECTURE §18 — older names like `useBookmarkFolderListQuery`·`useSuspenseComments` exist but new code uses the standard forms)
 - [ ] Success handlers follow `handle<Entity><Action>Success`
 - [ ] API object follows `<entity>Api`
 - [ ] Query keys object follows `<entity>Keys`
@@ -41,7 +41,7 @@ Reference files for correct patterns:
 
 - [ ] Delete actions use `useAlert` + `openConfirm` — NOT native `confirm()`
 - [ ] Form submissions use `form.handleSubmit()` with `zodResolver`
-- [ ] Forms use `FormProvider` + shared atoms (`FormInput`, `FormCheckbox`, etc.)
+- [ ] Forms use `FormProvider` + shared form elements (`shared/ui/elements/form/`: `FormInput`, `FormCheckbox`, etc.)
 - [ ] Submit button disabled state: `!isDirty || !isValid || isPending` — 단, `!isValid`(길이 초과 등 설명이 필요한 검증 실패)는 CLAUDE.md의 "폼 검증 실패를 disabled만으로 처리하지 않는다" 규칙 대상이면 이 패턴을 그대로 쓰지 말 것(진짜 "할 게 없음" 상태만 disabled로 막고, 나머지는 버튼을 눌러지게 둔 채 인라인 안내로 처리)
 - [ ] Toast messages via `meta.successMessage` / `meta.errorMessage` in `TEXTS.*`
 - [ ] Optimistic updates (if any): cancel queries → update cache → restore on error

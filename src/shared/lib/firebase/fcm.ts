@@ -30,9 +30,11 @@ export async function requestAndRegisterFcmToken(): Promise<void> {
 }
 
 /**
- * 이미 알림을 허용한 기기만 FCM 토큰을 새 세션 계열로 다시 등록합니다. 권한은 묻지 않습니다.
- * 앱을 열 때 세션이 복원되면(useAuth.ts의 restoreAuth), 비밀번호를 바꾸면(auth.queries.ts의
- * useChangePasswordMutation) 호출하세요.
+ * 이미 알림을 허용한 기기만 FCM 토큰을 서버에 다시 등록합니다. 권한은 묻지 않습니다.
+ * 비밀번호를 바꾸면(auth.queries.ts의 useChangePasswordMutation) 세션 계열(familyId)이 새로 발급돼
+ * 토큰을 새 계열로 옮겨야 합니다. 앱을 열 때 세션이 복원되면(useAuth.ts의 restoreAuth) 계열은
+ * 그대로지만(/auth/refresh는 같은 계열 안에서 회전한다), 서버에 아직 없거나 계열이 비어 있는
+ * (session_family_id NULL) 옛 토큰이 다음 발송 때 지워지지 않도록 다시 등록합니다.
  *
  * 세션 복원은 사용자가 아무것도 누르지 않은 때라 권한을 묻지 않는다 - web.dev는 _"페이지 로드 시나
  * 사용자 상호작용 없이 절대 묻지 마라"_ (번역, https://web.dev/articles/permissions-best-practices)고

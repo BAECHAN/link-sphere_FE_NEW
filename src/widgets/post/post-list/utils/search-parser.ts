@@ -37,7 +37,8 @@ export const parseSearchQuery = (query: string): SearchParams => {
 
   // #으로 시작하는 태그를 제거하고 콤마로 연결
   // 주의: 백엔드는 이 콤마 구분 문자열을 split하지 않고 LIKE 패턴 전체에 그대로 넣는다
-  // (PostRepositoryImpl.kt:153-168) - 즉 닉네임을 2개 이상 지정하면 결과가 0건이 된다.
+  // (BE PostRepositoryImpl.kt의 buildPredicates, nickname 조건) - 즉 닉네임을 2개 이상
+  // 지정하면 결과가 0건이 된다.
   // 알려진 백엔드 버그이며 이 함수의 책임 밖이다 (docs/SEARCH.md §11 참고)
   const nicknameTags = tags.filter((tag) => tag.startsWith('#'));
   const nickname = nicknameTags.length

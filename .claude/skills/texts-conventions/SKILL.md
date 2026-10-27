@@ -18,7 +18,7 @@ paths: src/shared/config/texts.ts
 TEXTS
 ├── common.* (submitting, updating, saving, confirm, cancel, ...)
 ├── pages.home / pages.post.ROOT / pages.post.SUBMIT
-├── labels.nickname / email / password / message
+├── labels.nickname / email / password / currentPassword / newPassword / confirmPassword / message
 ├── placeholders.nickname / email / password / message / postSearch / bookmarkSearch / ...
 ├── buttons.retry / refresh / home / back / login / logout / delete / search / ...
 ├── auth.title / description / guard.title / login.* / signup.* / forgotPassword.* / resetPassword.* / verifyEmail.* / password.* (requirements.*, confirmMatch)
@@ -32,16 +32,16 @@ TEXTS
 ├── post.form.preview.* (placeholder, loading, failed, ariaLabel) — 등록·수정 폼 공용 링크 미리보기
 ├── post.card.* (withdrawnAuthor, visitWebsite, aiSummary, edit, saving, ...)
 ├── post.detail.* (notFound, backToList, documentTitle(title) — 브라우저 탭 제목, ...) — 중립 "뒤로가기"는 공용 buttons.back
-├── post.search.corrected(query) / appliedCount(count)
+├── post.search.corrected(query) / appliedCount(count) / applying
 ├── comment.list.* (loadError, heading, empty)
 ├── comment.form.* (replyPlaceholder, commentPlaceholder, preview, cancel, save, ...)
 ├── comment.item.* (authorBadge, reply, edit, like)
-├── comment.myList.* (pageTitle, empty, loadError)
+├── comment.myList.* (pageTitle, empty, loadError, imageOnly(count))
 ├── bookmark.* (folder.myFolders/create/all/uncategorized, empty.all/uncategorized/folder, ...)
 ├── errors.* (notFound/forbidden/unexpected — title+description, serverError — description만)
 ├── notification.* (defaultTitle, viewAction)
 ├── validation.urlFormat / urlRequired / titleRequired / passwordRegex / emailRegex / ...
-├── messages.info.noData / noPosts
+├── messages.info.noData / noPosts / signedOutForOtherAccount / switchedToOtherAccount
 ├── messages.warning.postDeleteConfirm / commentDeleteConfirm / memberDeleteConfirm
 ├── messages.success.postCreated / postUpdated / accountUpdated / linkCopied / accountDeleted / bookmarkSavedTo / ...
 ├── messages.error.defaultError / loginFailed / postDeleteFailed / linkCopyFailed / ...

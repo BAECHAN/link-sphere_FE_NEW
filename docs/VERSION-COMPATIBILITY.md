@@ -17,9 +17,9 @@ BE·FE는 레포가 분리돼 있고 SemVer도 각자 독립적으로 올라가�
 | 레포 | 버전                                                                          |
 | ---- | ----------------------------------------------------------------------------- |
 | BE   | [v0.10.0](https://github.com/BAECHAN/link-sphere_BE_NEW/releases/tag/v0.10.0) |
-| FE   | [v0.18.0](https://github.com/BAECHAN/link-sphere_FE_NEW/releases/tag/v0.18.0) |
+| FE   | [v0.19.0](https://github.com/BAECHAN/link-sphere_FE_NEW/releases/tag/v0.19.0) |
 
-FE v0.18.0에 BE PR에 의존하는 기능이 있는데, 그 BE PR(#44~#48)은 병합만 됐고 BE
+FE v0.18.0·v0.19.0에 BE PR에 의존하는 기능이 있는데, 그 BE PR(#44~#48, #74)은 병합만 됐고 BE
 `[Unreleased]`에 남아 있어 아직 BE 버전이 없다 — **gap 있음**(BE 릴리즈 시 아래 표의
 "BE 요구 버전"을 그 버전으로 채운다):
 
@@ -40,6 +40,9 @@ FE v0.18.0에 BE PR에 의존하는 기능이 있는데, 그 BE PR(#44~#48)은 �
   인프라 작업으로 2026-09-29에 적용됐다. BE는 지금도 `X-Access-Token`과 기존
   `Authorization: Bearer`(로컬 개발·Swagger용 폴백)를 둘 다 읽는다. 상세는
   [`docs/DEPLOY.md`](./DEPLOY.md)의 "CloudFront Origin Access Control(OAC)" 절 참고.
+- (v0.19.0) 게시글 좋아요 응답의 `likeCount` — BE `link-sphere_BE_NEW`
+  [PR #74](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/74) 필요. **BE 먼저** — BE v0.10.0은
+  `{isLiked}`만 줘서 좋아요 수가 다음 재조회 전까지 사라진다(아래 표 v0.19.0 행).
 
 ## 알려진 상호 의존 지점
 
@@ -67,6 +70,7 @@ FE v0.18.0에 BE PR에 의존하는 기능이 있는데, 그 BE PR(#44~#48)은 �
 | 미릴리즈 (2026-10-25) | 미릴리즈 (BE PR #110~#112) | 에러 code 정정 — 빈 댓글·답글 깊이 초과는 404 `NOT_FOUND` → 400 `INVALID_INPUT`, 없는 댓글 좋아요는 `COMMENT_NOT_FOUND`, 내 계정 수정 닉네임 중복은 `DUPLICATE_MEMBER` → `DUPLICATE_NICKNAME`, 없는 카테고리 slug는 `CATEGORY_NOT_FOUND`, 라이브러리발 잘못된 인자(예: `page=-1`)는 400 `INVALID_INPUT`(#110). `POST·DELETE /fcm/token` 응답이 빈 본문 → `ApiResponse` JSON(#111). 동시 가입·폴더 생성 레이스의 409가 `DUPLICATE_RESOURCE` → 사전 확인과 같은 code, 상세 조회 응답의 조회수가 이번 조회를 포함(#112) | 순서 무관 — FE는 이 code·본문으로 분기하지 않는다(댓글 오류는 기본 문구, 404·409는 상태값, FCM은 결과를 버림). FE 코드 변경 없음, openapi 스냅샷만 동기화                                                                                                          |
 | 미릴리즈 (2026-10-26) | 미릴리즈 (BE PR #114·#115) | Spring MVC 표준 예외(지원하지 않는 메서드·Content-Type, 필수 파라미터 누락)가 500 → 405(`Allow` 헤더 포함)·415·400 `INVALID_INPUT`(#114). 생성 API(글·댓글·답글·북마크 폴더·업로드 서명 URL)의 HTTP 상태 200 → 201(가입은 원래 201), 댓글 좋아요·취소 응답 스키마 `ApiResponseMapStringBoolean` → `ApiResponseCommentLikeResponse`(JSON `{ isLiked }`은 같음)(#115)                                                                                                                                                  | 순서 무관 — FE는 `response.ok`로 판정하고 바뀐 code·상태로 분기하지 않는다. FE는 `interaction.dto.ts`의 `CommentLikeResponse` 별칭만 새 스키마 이름으로 바꾸고 openapi 스냅샷을 동기화                                                                             |
 | 미릴리즈 (2026-10-26) | 미릴리즈 (BE PR #116)      | 보안 업데이트로 springdoc 2.7.0 → 2.10.0이 되며 운영 스펙이 OpenAPI 3.0.1 → 3.1.0으로 바뀜 — `nullable: true`가 `type: [X, "null"]`로, `@NotBlank`가 `minLength: 1`로 나오고, `ApiResponseUnit`에서 `data`가 빠지고 `CommentResponse.linkMetadata`가 `\| null`이 됨. JSON 응답 모양은 그대로                                                                                                                                                                                                                         | 순서 무관 — 생성 타입만 바뀌고 FE 손코드는 그대로 type-check 통과. openapi 스냅샷만 동기화                                                                                                                                                                         |
+| 미릴리즈 (2026-10-27) | 미릴리즈 (BE PR #128)      | 북마크 폴더 이름 상한 100자 → 15자(trim 뒤 코드포인트로 셈). 생성·이름 변경에서 16자 이상은 400 `INVALID_INPUT`. DB 컬럼은 그대로라 이미 저장된 16~100자 이름은 계속 읽힌다. OpenAPI 스펙은 바뀌지 않는다(검사가 서비스 안에 있다). FE는 같은 상한을 입력 단계에서 검사한다(FE #424)                                                                                                                                                                                                                                 | **FE 먼저 배포** — BE가 먼저 나가면 옛 FE에서 16~100자 이름이 입력 안내 없이 일반 실패 토스트로 끝난다(에러 외 동작은 같음). 새 FE는 16자부터 입력 아래 안내와 함께 제출을 막는다. BE #128 커밋 기준 FE #424를 먼저 배포함                                         |
 
 ## 앞으로 지켜야 할 규칙
 

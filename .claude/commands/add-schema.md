@@ -44,15 +44,17 @@ import type { components } from '@/shared/api/generated/openapi.gen';
 export type <Entity> = components['schemas']['<BE스키마이름>Response'];
 ```
 
-BE의 nullable이 스펙에 정확히 반영 안 되는 경우(원시 타입 프로퍼티는 대부분 정확하지만,
-`$ref`로 참조되는 중첩 객체 프로퍼티는 실측상 안 됨 — `docs/OPENAPI-CODEGEN.md` §시행착오
-참고)나, BE가 enum class가 아니라 String을 써서 스펙에 enum이 안 실리는 경우, `Omit` +
-intersection으로 override한다. 반드시 **BE 소스 파일:줄과 실제 런타임 확인 결과를 근거로
-남긴다**(추측으로 좁히지 않는다):
+override하기 전에 생성 타입(`openapi.gen.ts`)을 먼저 확인한다. 운영 스펙이 OpenAPI 3.1(BE #116,
+FE #419)이 된 뒤로는 BE의 nullable이 원시 타입 프로퍼티는 `type: [X, "null"]`로, `$ref`로 참조되는
+중첩 객체 프로퍼티는 `oneOf: [$ref, {type: "null"}]`로 실려 생성 타입에 이미 `| null`이 붙는다
+(`CommentResponse.linkMetadata`로 확인. 3.0 시절엔 `$ref` 쪽이 유실됐다 — `docs/OPENAPI-CODEGEN.md`
+§10 시행착오). 그래도 생성 타입이 실제와 다른 경우(nullable이 빠졌거나, BE가 enum class가 아니라
+String을 써서 스펙에 enum이 안 실리는 경우)에만 `Omit` + intersection으로 override한다. 반드시
+**BE 소스(파일·심볼)와 실제 런타임 확인 결과를 근거로 남긴다**(추측으로 좁히지 않는다):
 
 ```typescript
-// role: BE가 enum class가 아니라 String으로 선언해(AuthDTO.kt:37) 스펙에 enum이 실리지
-// 않는다. BE를 enum class로 바꾸기 전까지 FE에서 좁힌다.
+// role: BE가 enum class가 아니라 String으로 선언해(AuthDTO.kt의 AccountResponse.role
+// `val role: String = "USER"`) 스펙에 enum이 실리지 않는다. BE를 enum class로 바꾸기 전까지 FE에서 좁힌다.
 export type Account = Omit<components['schemas']['AccountResponse'], 'role'> & {
   role: 'USER' | 'ADMIN';
 };
@@ -96,7 +98,7 @@ export type Create<Entity> = z.infer<typeof create<Entity>Schema>;
   표시할 때는 `dayjs(value)`나 `DateUtil`을 쓴다
 - Zod의 `.nullable()`/`.optional()` 구분은 **폼 필드에만** 적용한다 — 응답 필드의
   null/undefined 여부는 생성 타입이 이미 스펙대로 표현한다
-- override는 반드시 근거 주석(BE 파일:줄, 실측 결과)을 남긴다 — 이유 없이 좁히지 않는다
+- override는 반드시 근거 주석(BE 파일·심볼, 실측 결과)을 남긴다 — 이유 없이 좁히지 않는다
 - 기존 엔티티에 필드를 추가하는 경우, `.schema.ts`가 이미
   `export type { <Entity> } from '@/entities/<entity>/model/<entity>.dto'`로 재수출하고
   있다면 소비 파일의 import 경로는 그대로 둔다(엔티티를 새로 만드는 경우는 소비 파일이

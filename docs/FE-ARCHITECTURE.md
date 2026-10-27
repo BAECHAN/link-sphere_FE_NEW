@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-10-13
+> **마지막 검토**: 2026-10-27
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -95,36 +95,37 @@ flowchart TD
 `.dependency-cruiser.cjs`에 있고, `pnpm check:deps`(`pnpm check`에 포함 — 로컬·`ci.yml`·
 `deploy.yml` 공통)가 검사한다.
 
-| 규칙                                                          | 무엇을 막나                                                                                                                                                                                  |
-| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `custom-barrel-rules/no-barrel-import`                        | `/index`로 끝나는 import (배럴 금지)                                                                                                                                                         |
-| `custom-query-rules/no-direct-query-import`                   | `@tanstack/react-query` 직접 import — 허용목록(`app/**`·`**/api/*.queries.ts`·`**/hooks/**` 등) 밖에서는 금지                                                                                |
-| `custom-query-rules/no-entity-query-import-outside-hooks`     | `features/**`·`pages/**`에서 entity 쿼리 훅(`*.queries`) import — 각 레이어의 `hooks/**` 밖에서는 금지 (2026-09-29 pages도 대상에 추가, widgets는 대상 아님, §8 참고)                        |
-| `custom-query-rules/no-query-client-singleton-import`         | `queryClient` 싱글턴 직접 import — `QueryProvider.tsx`·`auth.util.ts` 두 곳만 예외                                                                                                           |
-| `custom-query-rules/scope-mutation-auth-epoch`                | `scope`·`mutationFn`을 함께 가진 객체에서 첫 줄의 `assertMutationAuthEpochUnchanged(context)` 누락 — §11 6번. 본체는 `scripts/lib/`, 옵션을 변수·스프레드로 넘기면 못 잡음                   |
-| `custom-i18n/no-hardcoded-hangul`                             | 한글 UI 문자열 하드코딩 — `TEXTS`만 허용                                                                                                                                                     |
-| `custom-tailwind/no-raw-color`                                | black/white/명명 팔레트(gray-500 등) 리터럴 색상 클래스 금지 — `globals.css` 디자인 토큰 클래스만 허용                                                                                       |
-| `custom-tailwind/no-raw-z-index`                              | 숫자 그대로 쓰는 raw `z-*` 유틸리티 금지 — `globals.css`의 명명된 z-index 토큰만 허용                                                                                                        |
-| `custom-tailwind/no-raw-text-size`                            | px 단위 임의값(bracket) 폰트 크기 유틸리티(`text-[16px]` 등) 금지 — 타이포그래피 역할·스케일 토큰만 허용                                                                                     |
-| `custom-tailwind/no-raw-title`                                | 텍스트 크기+`font-semibold`/`font-bold` 조합(제목처럼 보이는 raw 클래스) 금지 — 제목 역할 토큰이나 예외 주석 필요                                                                            |
-| `custom-tailwind/no-classname-template-literal`               | `className`에 템플릿 리터럴(백틱) 사용 금지 — `cn()` 경유 강제                                                                                                                               |
-| `import/no-default-export`                                    | default export 금지                                                                                                                                                                          |
-| `custom-filename/no-non-ascii-filename`                       | 파일명에 비-ASCII 문자(한글 등) 사용 금지                                                                                                                                                    |
-| `custom-import/no-sonner-toast-direct-import`                 | `sonner` 직접 import — `@/shared/lib/toast/toast` 경유 강제                                                                                                                                  |
-| `custom-import/no-relative-import-except-styles`              | 상대 경로 import(`../`) 금지, `.styles.ts` 파일만 예외                                                                                                                                       |
-| `no-restricted-syntax` (Zustand·날짜·클래스 컴포넌트)         | 스토어 `getState()` 직접 호출 금지(셀렉터 훅 강제), `new Date()`/`.getTime()` 직접 사용 금지(`dayjs` 강제), 클래스 컴포넌트 금지                                                             |
-| 파일명 규칙                                                   | `*.api.ts`·`*.queries.ts`·`*.schema.ts`·`config/`·`utils/` 등 세그먼트별 파일명 패턴                                                                                                         |
-| `custom-a11y/clickable-needs-interactive-element`             | `div`/`span`에 `onClick`만 달기 — `role="button"` 없이는 금지                                                                                                                                |
-| `curly` (`['error', 'all']`)                                  | 인라인 `if`문 (`if (x) return;`) — 항상 중괄호 블록 강제                                                                                                                                     |
-| `import/no-cycle`                                             | 순환 참조(A→B→A) 금지 — 동작하려면 `eslint.config.js`의 리졸버 설정 3개가 함께 필요, 그 주석 참고                                                                                            |
-| `custom-route/no-hardcoded-route-path`                        | `navigate()`·`window.location.href`·JSX `to=`에 경로 문자열 직접 쓰기 금지 — `ROUTES_PATHS.*`만 허용                                                                                         |
-| `custom-storybook/title-matches-path`                         | 스토리 `title`이 파일 경로에서 계산한 값과 다르거나 없음 — 형식은 §18 "Storybook 스토리"                                                                                                     |
-| `react-hooks/*` (v7 recommended)                              | React 공식 hooks 규칙 위반(`rules-of-hooks`·`refs`·`set-state-in-effect`·`purity` 등) — 기존 위반은 `eslint-suppressions.json`에 기록돼 새 코드만 막는다                                     |
-| `entities-cross-import-only-via-x` (dependency-cruiser)       | entity가 다른 entity를 `@x/` 공개 표면 없이 직접 import — 테스트 파일은 예외(§5의 `@x` 표기 참고)                                                                                            |
-| `features-widgets-no-cross-slice-import` (dependency-cruiser) | features·widgets 슬라이스가 같은 레이어의 다른 슬라이스를 import — 위층이 `render<대상>` 함수로 넘긴다(§26). 테스트 파일은 예외(실제 앱의 위층 역할을 대신해 다른 슬라이스 UI를 직접 넘긴다) |
-| `no-non-package-json` (dependency-cruiser)                    | `package.json`에 없는 패키지 import — `.npmrc`가 `shamefully-hoist=true`라 pnpm이 못 막는다                                                                                                  |
-| `not-to-dev-dep` (dependency-cruiser)                         | production 코드에서 devDependency import — 테스트·스토리·`src/test`·`src/mocks`·`.d.ts`와 `QueryProvider.tsx`(devtools)는 예외                                                               |
-| `not-to-unresolvable` (dependency-cruiser)                    | 디스크에서 찾을 수 없는 모듈 import — 해석에 실패한 import는 `no-non-package-json` 판정을 조용히 건너뛰기 때문에 함께 막는다                                                                 |
+| 규칙                                                                                                           | 무엇을 막나                                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `custom-barrel-rules/no-barrel-import`                                                                         | `/index`로 끝나는 import (배럴 금지)                                                                                                                                                                                                                                                         |
+| `custom-query-rules/no-direct-query-import`                                                                    | `@tanstack/react-query` 직접 import — 허용목록(`app/**`·`**/api/*.queries.ts`·`**/hooks/**` 등) 밖에서는 금지                                                                                                                                                                                |
+| `custom-query-rules/no-entity-query-import-outside-hooks`                                                      | `features/**`·`pages/**`에서 entity 쿼리 훅(`*.queries`) import — 각 레이어의 `hooks/**` 밖에서는 금지 (2026-09-29 pages도 대상에 추가, widgets는 대상 아님, §8 참고)                                                                                                                        |
+| `custom-query-rules/no-query-client-singleton-import`                                                          | `queryClient` 싱글턴 직접 import — `QueryProvider.tsx`·`auth.util.ts` 두 곳만 예외                                                                                                                                                                                                           |
+| `custom-query-rules/scope-mutation-auth-epoch`                                                                 | `scope`·`mutationFn`을 함께 가진 객체에서 첫 줄의 `assertMutationAuthEpochUnchanged(context)` 누락 — §11 6번. 본체는 `scripts/lib/`, 옵션을 변수·스프레드로 넘기면 못 잡음                                                                                                                   |
+| `custom-i18n/no-hardcoded-hangul`                                                                              | 한글 UI 문자열 하드코딩 — `TEXTS`만 허용                                                                                                                                                                                                                                                     |
+| `custom-tailwind/no-raw-color`                                                                                 | black/white/명명 팔레트(gray-500 등) 리터럴 색상 클래스 금지 — `globals.css` 디자인 토큰 클래스만 허용                                                                                                                                                                                       |
+| `custom-tailwind/no-raw-z-index`                                                                               | 숫자 그대로 쓰는 raw `z-*` 유틸리티 금지 — `globals.css`의 명명된 z-index 토큰만 허용                                                                                                                                                                                                        |
+| `custom-tailwind/no-raw-text-size`                                                                             | px 단위 임의값(bracket) 폰트 크기 유틸리티(`text-[16px]` 등) 금지 — 타이포그래피 역할·스케일 토큰만 허용                                                                                                                                                                                     |
+| `custom-tailwind/no-raw-title`                                                                                 | 텍스트 크기+`font-semibold`/`font-bold` 조합(제목처럼 보이는 raw 클래스) 금지 — 제목 역할 토큰이나 예외 주석 필요                                                                                                                                                                            |
+| `custom-tailwind/no-classname-template-literal`                                                                | `className`에 템플릿 리터럴(백틱) 사용 금지 — `cn()` 경유 강제                                                                                                                                                                                                                               |
+| `import/no-default-export`                                                                                     | default export 금지                                                                                                                                                                                                                                                                          |
+| `custom-filename/no-non-ascii-filename`                                                                        | 파일명에 비-ASCII 문자(한글 등) 사용 금지                                                                                                                                                                                                                                                    |
+| `custom-import/no-sonner-toast-direct-import`                                                                  | `sonner` 직접 import — `@/shared/lib/toast/toast` 경유 강제                                                                                                                                                                                                                                  |
+| `custom-import/no-relative-import-except-styles`                                                               | 상대 경로 import(`../`) 금지, `.styles.ts` 파일만 예외                                                                                                                                                                                                                                       |
+| `no-restricted-syntax` (Zustand·날짜·클래스 컴포넌트·빈 본문·smooth 스크롤)                                    | 스토어 `getState()` 직접 호출 금지(셀렉터 훅 강제), `new Date()`/`.getTime()` 직접 사용 금지(`dayjs` 강제), 클래스 컴포넌트 금지, `apiClient.post/put/patch/delete`에 빈 본문 `{}` 넘기기 금지, `behavior: 'smooth'` 직접 쓰기 금지(`ScrollUtil.getBehavior()` 강제 — 동작 줄이기 설정 존중) |
+| 파일명 규칙                                                                                                    | `*.api.ts`·`*.queries.ts`·`*.schema.ts`·`config/`·`utils/` 등 세그먼트별 파일명 패턴                                                                                                                                                                                                         |
+| `custom-a11y/clickable-needs-interactive-element`                                                              | `div`/`span`에 `onClick`만 달기 — `role="button"` 없이는 금지                                                                                                                                                                                                                                |
+| `curly` (`['error', 'all']`)                                                                                   | 인라인 `if`문 (`if (x) return;`) — 항상 중괄호 블록 강제                                                                                                                                                                                                                                     |
+| `import/no-cycle`                                                                                              | 순환 참조(A→B→A) 금지 — 동작하려면 `eslint.config.js`의 리졸버 설정 3개가 함께 필요, 그 주석 참고                                                                                                                                                                                            |
+| `custom-route/no-hardcoded-route-path`                                                                         | `navigate()`·`window.location.href`·JSX `to=`에 경로 문자열 직접 쓰기 금지 — `ROUTES_PATHS.*`만 허용. 문자열 리터럴만 검사하고 템플릿 리터럴(`` `/post/${id}` ``)은 잡지 못한다                                                                                                              |
+| `custom-storybook/title-matches-path`                                                                          | 스토리 `title`이 파일 경로에서 계산한 값과 다르거나 없음 — 형식은 §18 "Storybook 스토리"                                                                                                                                                                                                     |
+| `react-hooks/*` (v7 recommended)                                                                               | React 공식 hooks 규칙 위반(`rules-of-hooks`·`refs`·`set-state-in-effect`·`purity` 등) — 기존 위반은 `eslint-suppressions.json`에 기록돼 새 코드만 막는다                                                                                                                                     |
+| `vitest/no-focused-tests`·`vitest/no-disabled-tests`·`playwright/no-focused-test`·`playwright/no-skipped-test` | 단위 테스트(`src/**/*.{test,spec}.{ts,tsx}`)·e2e(`e2e/**/*.ts`)에 `.only`·`.skip`(e2e는 `fixme`·본문 안 조건부 `test.skip`도) 남기기 금지 — 정당한 예외는 그 줄에 `eslint-disable-next-line <규칙> -- <이유>`. vitest의 `it.skipIf`·`runIf`는 못 잡는다                                      |
+| `entities-cross-import-only-via-x` (dependency-cruiser)                                                        | entity가 다른 entity를 `@x/` 공개 표면 없이 직접 import — 테스트 파일은 예외(§5의 `@x` 표기 참고)                                                                                                                                                                                            |
+| `features-widgets-no-cross-slice-import` (dependency-cruiser)                                                  | features·widgets 슬라이스가 같은 레이어의 다른 슬라이스를 import — 위층이 `render<대상>` 함수로 넘긴다(§26). 테스트 파일은 예외(실제 앱의 위층 역할을 대신해 다른 슬라이스 UI를 직접 넘긴다)                                                                                                 |
+| `no-non-package-json` (dependency-cruiser)                                                                     | `package.json`에 없는 패키지 import — `.npmrc`가 `shamefully-hoist=true`라 pnpm이 못 막는다                                                                                                                                                                                                  |
+| `not-to-dev-dep` (dependency-cruiser)                                                                          | production 코드에서 devDependency import — 테스트·스토리·`src/test`·`src/mocks`·`.d.ts`와 `QueryProvider.tsx`(devtools)는 예외                                                                                                                                                               |
+| `not-to-unresolvable` (dependency-cruiser)                                                                     | 디스크에서 찾을 수 없는 모듈 import — 해석에 실패한 import는 `no-non-package-json` 판정을 조용히 건너뛰기 때문에 함께 막는다                                                                                                                                                                 |
 
 ---
 
@@ -163,9 +164,9 @@ src/
 ├── widgets/                      # 복합 UI 블록 — 도메인 그룹 → 슬라이스
 │   ├── post/
 │   │   ├── post-list/
-│   │   │   ├── hooks/            # usePostList, usePostListSearch
+│   │   │   ├── hooks/            # usePostList, usePostListSearch, usePostFeedPrefetch
 │   │   │   ├── ui/               # PostList, PostListSearch, PostCardSkeleton
-│   │   │   └── utils/            # search-parser
+│   │   │   └── utils/            # search-parser, post-list-payload
 │   │   └── post-card/
 │   │       ├── config/           # post-card-grid.const.ts (POST_CARD_GRID — 목록에는 페이지가 넘김)
 │   │       ├── hooks/            # usePostCard
@@ -175,7 +176,7 @@ src/
 │   │   │   ├── hooks/            # useCommentList
 │   │   │   └── ui/               # CommentList, CommentItem, ScrollToCommentFormButton
 │   │   └── my-comment-list/
-│   │       ├── hooks/            # useMyCommentList
+│   │       ├── hooks/            # useMyCommentList, useMyCommentCard
 │   │       └── ui/               # MyCommentList, MyCommentCard, MyCommentCardSkeleton
 │   ├── bookmark/
 │   │   ├── bookmark-post-list/{hooks,ui}  # useBookmarkPostList, BookmarkPostList
@@ -241,7 +242,9 @@ src/
 │   │   ├── utils/                # comment.util.ts (estimateCommentPayloadBytes)
 │   │   └── config/                # comment.const.ts (MAX_COMMENT_CONTENT_BYTES 외)
 │   ├── interaction/
-│   │   └── api/                  # interaction.api.ts, interaction.queries.ts (keys.ts 없음 — post/comment/folder의 @x를 통해 keys를 가져다 씀)
+│   │   ├── api/                  # interaction.api.ts, interaction.keys.ts, interaction.queries.ts (keys.ts에는 mutationKey와
+│   │   │                         # 실패 시 무효화 handle*Failure만 있고 자체 쿼리 키는 없다 — 캐시 키는 post/comment/folder의 @x로 가져다 씀)
+│   │   └── model/                # interaction.dto.ts(응답 타입)
 │   ├── bookmark/                 # entities 최초의 그룹 폴더 — folder라는 이름만으로 북마크
 │   │   │                         # 폴더인지 불분명했던 문제를 features/widgets와 같은 방식으로 해소
 │   │   └── folder/
@@ -267,7 +270,7 @@ src/
 │   │   ├── config/               # auth.const.ts (PASSWORD_MIN_LENGTH·PASSWORD_REQUIREMENTS 외)
 │   │   ├── utils/                # auth.util.ts (PasswordUtil — 비밀번호 조건 판정)
 │   │   ├── ui/                   # PasswordRequirementList, PasswordConfirmMessage
-│   │   └── hooks/                 # useAuth, useAppInitialization, useAuthGuard, useProtectedNavigate, usePasswordFieldsFeedback
+│   │   └── hooks/                 # useAuth, useAppInitialization, useAuthGuard, useAuthEpochSync, useProtectedNavigate, usePasswordFieldsFeedback
 │   ├── account/                  # 내 계정 프로필(닉네임·이미지·이메일) 조회·수정 전용
 │   │   ├── @x/                   # auth에 공개하는 표면
 │   │   ├── api/                  # account.api.ts, account.keys.ts, account.queries.ts
@@ -280,13 +283,14 @@ src/
     ├── api/
     │   ├── client.ts             # HTTP 클라이언트 (apiClient) — fetch 기반, axios 아님
     │   ├── upload.api.ts         # uploadApi — 서명 URL 발급 + PUT 요청 함수
-    │   ├── fcm.api.ts             # fcmApi — FCM 토큰 등록/해제
+    │   ├── fcm.api.ts             # fcmApi — FCM 토큰 등록
     │   └── generated/            # openapi.json(스펙 스냅샷) + openapi.gen.ts(생성 타입) — 커밋됨, 직접 편집 금지
     ├── config/
     │   ├── texts.ts               # 모든 UI 문자열 (TEXTS)
     │   ├── api.ts                 # 모든 API 엔드포인트 (API_ENDPOINTS)
     │   ├── route-paths.ts         # 라우트 경로 상수 (ROUTES_PATHS)
     │   ├── build-info.ts          # BUILD_INFO — 이 번들이 빌드된 커밋(빌드타임 주입)
+    │   ├── image-format.ts        # UPLOAD_IMAGE_EXTENSION_BY_MIME — 업로드 허용 이미지 형식
     │   ├── nav-items.ts
     │   ├── storage-keys.ts
     │   ├── const.ts
@@ -294,7 +298,8 @@ src/
     ├── hooks/                     # 재사용 훅 (useDebounce, useIntersectionObserver, usePullToRefresh 등)
     ├── lib/
     │   ├── react-query/
-    │   │   └── config/                 # queryClient.ts(중앙 QueryClient 인스턴스), error-toast.ts(resolveErrorToast), retry-policy.ts(shouldRetryQuery)
+    │   │   └── config/                 # queryClient.ts(중앙 QueryClient 인스턴스), error-toast.ts(resolveErrorToast), retry-policy.ts(shouldRetryQuery),
+    │   │                               # mutation-auth-epoch.ts(assertMutationAuthEpochUnchanged — §11 6번)
     │   ├── toast/toast.ts         # sonner 래퍼 (직접 import 금지, 이걸 통해서만 사용)
     │   ├── upload/uploadImageAndGetUrl.ts  # 리사이즈 + uploadApi 조합 편의 함수
     │   ├── firebase/, image/, content/, virtual/, router/
@@ -308,8 +313,9 @@ src/
     │   │   ├── form/
     │   │   ├── dialog/{alert,image-viewer}/
     │   │   └── dialog/SheetDialogContent.tsx
-    │   └── layouts/                # AuthLayout, ErrorLayout
-    └── utils/                     # auth, build-info, common, date, error, form, logout-grace, storage, url, version (.util.ts)
+    │   ├── layouts/                # AuthLayout, ErrorLayout
+    │   └── tokens/                 # DesignTokens.stories.tsx(디자인 토큰 스토리만)
+    └── utils/                     # auth, auth-epoch, build-info, chunk-reload, common, date, error, form, logout-grace, scroll, storage, url, version (.util.ts)
 ```
 
 레이어에 속하지 않는 최상위 디렉터리도 있다 — `src/mocks/`(MSW `handlers/`·`fixtures/`),
@@ -356,11 +362,11 @@ src/
 
 **절대로 레이어를 건너뛰거나 합치지 않는다.**
 
-**예외 — 실시간 중복확인(디바운스형 유효성 검사)**: `features/auth/signup/hooks/useSignUp.ts`(Layer 1
-함수를 `useAvailabilityCheck.ts`에 `checkFn`으로 넘긴다),
-`features/account/update/hooks/useUpdateAccount.ts`의 닉네임·이메일 중복확인은 Layer 1
-(`accountApi.checkNicknameAvailability`, `authApi.checkEmailAvailability`)을 Layer 3 없이
-직접 호출한다(2026-09-09 문서-코드 정합성 감사 중 확인). React Query의 `useQuery`가 캐싱을
+**예외 — 실시간 중복확인(디바운스형 유효성 검사)**: `features/auth/signup/hooks/useSignUp.ts`의
+이메일·닉네임 중복확인(Layer 1 함수 `authApi.checkEmailAvailability`·`accountApi.checkNicknameAvailability`를
+`useAvailabilityCheck.ts`에 `checkFn`으로 넘긴다)과 `features/account/update/hooks/useUpdateAccount.ts`의
+닉네임 중복확인(`accountApi.checkNicknameAvailability`)은 Layer 1을 Layer 3 없이 직접 호출한다(2026-09-09
+문서-코드 정합성 감사 중 확인). React Query의 `useQuery`가 캐싱을
 전제하는데, 이 검증은 매 입력마다 새로 확인해야 하고 결과를 캐시하면 안 되며 디바운스·
 요청 취소(`cancelled` flag)·자체 상태머신(`idle/checking/available/duplicate`)이 핵심이라
 캐싱 모델과 안 맞는다 — Layer 3로 억지로 감싸는 것보다 Layer 1 직접 호출이 더 단순하다.
@@ -537,9 +543,11 @@ export const useFetchEntityQuery = (id: string) =>
   });
 ```
 
-> 예외: `entities/interaction/`은 `keys.ts`가 없다 — 자체 캐시 키를 갖지 않고
-> `entities/{post,comment,bookmark/folder}/@x/interaction.ts`를 거쳐 그 엔티티들의 키·무효화 핸들러를
-> 가져다 쓴다(`interaction.queries.ts` 상단 import). §1 "정식 FSD와 다른 점"의 entities 교차 참조 사례이기도 하다.
+> 예외: `entities/interaction/`은 자체 쿼리 키(캐시 키)가 없다 — `interaction.keys.ts`에는
+> mutationKey(`interactionMutationKeys`)와 실패 시 무효화 핸들러(`handleLikePostFailure` 등)만 있고,
+> 캐시 키·무효화 래퍼는 `entities/{post,comment,bookmark/folder}/@x/interaction.ts`를 거쳐 그 엔티티들의
+> 것을 가져다 쓴다(`interaction.keys.ts`·`interaction.queries.ts` 상단 import). §1 "정식 FSD와 다른 점"의
+> entities 교차 참조 사례이기도 하다.
 
 ---
 
@@ -549,32 +557,47 @@ feature hook = 모든 비즈니스 로직. UI 파일은 훅을 호출하고 JSX�
 
 ```typescript
 // features/<도메인>/<액션>/hooks/use<FeatureName>.ts
+const DEFAULT_VALUES: CreateEntity = { name: '' };
+
 export function useCreateEntity() {
   const navigate = useNavigate();
   const { mutateAsync: createEntity, isPending: isCreating } = useCreateEntityMutation();
 
   const form = useForm<CreateEntity>({
     resolver: zodResolver(createEntitySchema),
-    defaultValues: { name: '' },
+    defaultValues: DEFAULT_VALUES,
     mode: 'onChange',
   });
 
-  const onSubmit = form.handleSubmit(async (data) => {
+  const hasLeftPage = useHasLeftPage();
+
+  const onSubmit = form.handleSubmit(async (data: CreateEntity) => {
     try {
-      await createEntity(data, {
-        onSuccess: () => {
-          form.reset();
-          navigate(ROUTES_PATHS.ENTITY.ROOT);
-        },
-      });
-    } catch (error) {
-      console.error(error);
+      await createEntity(data);
+    } catch {
+      // 다시 던지지 않는다 — 던지면 handleSubmit 밖으로 처리되지 않은 rejection이 샌다.
+      // 일반 에러 토스트는 전역 핸들러가 띄운다(§13). 원인별 안내가 필요하면 여기서 정한다
+      return;
     }
+
+    // 응답을 기다리는 사이 다른 화면으로 떠났으면 그 화면을 덮어쓰지 않는다
+    if (hasLeftPage()) {
+      return;
+    }
+
+    form.reset(DEFAULT_VALUES);
+    navigate(ROUTES_PATHS.ENTITY.ROOT, { replace: true });
   });
 
   return { form, onSubmit, isCreating };
 }
 ```
+
+성공 뒤 처리(폼 비우기·이동)는 `mutateAsync(vars, { onSuccess })` 옵션이 아니라 `await` 다음
+줄에 둔다 — 호출 단위 `onSuccess`는 컴포넌트가 마운트돼 있을 때만 실행된다(`.claude/CLAUDE.md`
+"React Query 라이프사이클 주의"). 실제 형태는 `features/post/create/hooks/useCreatePost.ts`를
+본다 — 실패 원인을 입력칸·버튼 위 안내로 나누는 `PostUtil.resolveSubmitError`, 이탈 가드
+`useUnsavedChanges`, 떠난 뒤 실패를 토스트로 대신 알리는 `useHasLeftPage` 분기가 함께 있다.
 
 조회가 필요하면 슬라이스 자신의 `hooks/` 커스텀 훅이나 `entities/<entity>/hooks/`의 공용 훅(여러
 슬라이스가 같은 조회를 공유할 때, 예: `useCategoryOptions`)에서 한다 — features에는 예외를 두지
@@ -667,7 +690,8 @@ import { z } from 'zod';
 import { TEXTS } from '@/shared/config/texts';
 
 export const createEntitySchema = z.object({
-  name: z.string().min(1, TEXTS.validation.nameRequired),
+  // 공용 nameRequired 키는 없다 — 필드마다 별도 키(선례: folderNameRequired, categoryNameRequired)
+  name: z.string().min(1, TEXTS.validation.entityNameRequired),
 });
 export const updateEntitySchema = z.object({ name: z.string().min(1) });
 
@@ -822,22 +846,24 @@ Android([Material Design 3](https://m3.material.io/components/dialogs/guidelines
 
 ## 11. Optimistic Update 패턴
 
-참조: `src/entities/interaction/api/interaction.queries.ts` (`useLikePostMutation`)
+참조: `src/entities/interaction/api/interaction.queries.ts` (`useLikePostMutation`) — 아래 두 스니펫은
+단일 요청 기본형이다. 같은 대상을 연달아 누를 수 있으면 아래 "같은 대상의 연속 mutation"까지 적용한
+형태가 실제 참조 코드다.
 
 ```typescript
 const queryClient = useQueryClient(); // 훅 최상단 — mutation 콜백들이 이 클로저를 공유한다
 
 // ...
-onMutate: async () => {
+// 변수로 "원하는 상태"를 받는다 — 뒤집기(!old.isLiked)는 연타에 깨진다(아래 "연속 mutation" 1번)
+onMutate: async (nextLiked: boolean) => {
   await queryClient.cancelQueries({ queryKey: entityKeys.detail(id) });
   const previous = queryClient.getQueryData<Entity>(entityKeys.detail(id));
   queryClient.setQueryData<Entity>(entityKeys.detail(id), (old) =>
-    old ? { ...old, isLiked: !old.isLiked } : old
+    old ? { ...old, isLiked: nextLiked } : old
   );
   return { previous };
 },
-onSuccess: () => {},
-onError: (_err, _vars, context) => {
+onError: (_err, _nextLiked, context) => {
   queryClient.setQueryData(entityKeys.detail(id), context?.previous);
 },
 ```
@@ -848,7 +874,7 @@ onError: (_err, _vars, context) => {
 발견돼 고쳐졌다 — 아래가 고친 뒤의 형태):
 
 ```typescript
-onMutate: async () => {
+onMutate: async (nextLiked: boolean) => {
   // ...위 detail 스냅샷과 함께
   const previousLists = queryClient.getQueriesData<InfiniteData<EntityListResponse>>({
     queryKey: entityKeys.listRoot,
@@ -863,7 +889,7 @@ onMutate: async () => {
         pages: oldData.pages.map((page) => ({
           ...page,
           content: page.content.map((item) =>
-            item.id === id ? { ...item, isLiked: !item.isLiked } : item
+            item.id === id ? { ...item, isLiked: nextLiked } : item
           ),
         })),
       };
@@ -872,7 +898,7 @@ onMutate: async () => {
 
   return { previous, previousLists };
 },
-onError: (_err, _vars, context) => {
+onError: (_err, _nextLiked, context) => {
   queryClient.setQueryData(entityKeys.detail(id), context?.previous);
   context?.previousLists?.forEach(([key, data]) => {
     queryClient.setQueryData(key, data);
@@ -964,12 +990,12 @@ export const isLastPendingBookmarkMutation = (queryClient: QueryClient, postId: 
 
 `src/shared/lib/react-query/config/queryClient.ts`
 
-| 설정       | 값                                                                                              |
-| ---------- | ----------------------------------------------------------------------------------------------- |
-| Stale Time | 3분 (`3 * 60 * 1000`)                                                                           |
-| GC Time    | 5분 (`5 * 60 * 1000`)                                                                           |
-| Retry      | 실패 시 1회 재시도 — 429·`EDGE_BLOCKED`는 재시도 안 함 (`retry-policy.ts`의 `shouldRetryQuery`) |
-| Refetch    | 윈도우 포커스 및 마운트 시                                                                      |
+| 설정       | 값                                                                                                                    |
+| ---------- | --------------------------------------------------------------------------------------------------------------------- |
+| Stale Time | 3분 (`3 * 60 * 1000`)                                                                                                 |
+| GC Time    | 5분 (`5 * 60 * 1000`)                                                                                                 |
+| Retry      | 실패 시 1회 재시도 — `SessionChangedError`·429·`EDGE_BLOCKED`는 재시도 안 함 (`retry-policy.ts`의 `shouldRetryQuery`) |
+| Refetch    | 탭이 다시 보일 때(`visibilitychange` — TanStack Query 5의 `focusManager` 기준) 및 마운트 시                           |
 
 싱글턴 `queryClient`는 `QueryProvider`가 마운트 시 한 번 `QueryClientProvider`에 주입하고,
 그 아래 앱 코드는 전부 `useQueryClient()`로 그 인스턴스를 Context에서 꺼내 쓴다(같은
@@ -1066,6 +1092,10 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
 공통 판정(우선순위 순서대로):
 
 - **`meta.manualErrorHandling`**: 조용히 종료. mutation·query 둘 다 지원한다.
+- **`SessionChangedError`**(보낸 뒤 인증 세대가 바뀌어 처리하지 않고 끝낸 요청): `meta.errorMessage`보다
+  먼저 본다. query이거나 로그아웃을 반영하는 중(`LogoutGraceUtil.isLoggingOut()`)이면 조용히 종료하고 —
+  query는 `useAuthEpochSync`가 새 인증으로 다시 불러온다 — 그 밖의 mutation만
+  `TEXTS.messages.error.sessionChanged` 토스트를 띄운다. 상세: [`AUTH.md`](./AUTH.md) §8-B
 - **로그아웃 레이스**(`LogoutGraceUtil.isLoggingOut()`): 401(`NOT_LOGGED_IN` /
   `INVALID_TOKEN`)이 로그아웃 직후 구간에 온 경우 `meta.errorMessage`보다 먼저 걸러
   조용히 종료한다 — 세션 만료가 아니라 로그아웃 레이스(제자리 로그아웃의 배경 재요청,
@@ -1076,6 +1106,8 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
 - **429(요청 한도 초과)**: `EDGE_BLOCKED`와 같은 이유로 `meta.errorMessage`보다 먼저
   `TEXTS.messages.error.rateLimited` 토스트를 띄운다. 에러 코드가 아니라 HTTP 상태로 판별한다 —
   BE 레이트리밋뿐 아니라 앱 에러 코드 없이 오는 Lambda 동시 실행 포화 429도 같은 안내를 받는다.
+  `EDGE_BLOCKED`와 429 토스트는 고정 id(`EDGE_BLOCKED_TOAST_ID`·`RATE_LIMITED_TOAST_ID`)를 달아,
+  여러 요청이 함께 실패해도 하나만 보인다(id가 같으면 sonner가 새로 띄우지 않고 갱신한다).
 - **`meta.errorMessage`**: 있으면 그 메시지를 사용
 - **401 (`NOT_LOGGED_IN` / `INVALID_TOKEN`)**: 로그인 필요 토스트만 표시한다. 세션 정리
   (`AuthUtil.clearAll()` → `/auth/login` 리다이렉트)는 `client.ts`의 fetch 인터셉터가 이미
@@ -1196,25 +1228,26 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ## 18. 네이밍 컨벤션
 
-| 항목                          | 규칙                                                                                                                                                                                                                                                                                                                                  | 예시                                        |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| Feature 디렉토리              | `<도메인>/<액션>` kebab-case                                                                                                                                                                                                                                                                                                          | `post/create/`                              |
-| Widget 디렉토리               | `<도메인>/<슬라이스>` kebab-case                                                                                                                                                                                                                                                                                                      | `post/post-card/`                           |
-| Shared 디렉토리               | camelCase                                                                                                                                                                                                                                                                                                                             | `hooks/`, `utils/`                          |
-| 컴포넌트 파일                 | PascalCase.tsx                                                                                                                                                                                                                                                                                                                        | `CreatePostForm.tsx`                        |
-| Feature 훅                    | `use<FeatureName>.ts`                                                                                                                                                                                                                                                                                                                 | `useCreatePost.ts`                          |
-| Mutation 훅                   | `use<Action><Entity>Mutation`                                                                                                                                                                                                                                                                                                         | `useCreatePostMutation`                     |
-| Query 훅                      | `useFetch<Entity>Query` (표준). 기존 코드엔 `use<Entity>ListQuery`(`useBookmarkFolderListQuery`), `use<Entity>InfiniteQuery`(`useBookmarkFolderPostsInfiniteQuery`)도 있다(과거 `useComments`도 이 부류였으나 현재는 `useSuspenseComments`로 이름이 바뀌었다) — 새로 만들 땐 표준형을 쓴다                                            | `useFetchPostDetailQuery`                   |
-| 쿼리 키 객체                  | `<entity>Keys`                                                                                                                                                                                                                                                                                                                        | `postKeys`                                  |
-| Invalidate 헬퍼               | `<entity>InvalidateQueries`                                                                                                                                                                                                                                                                                                           | `postInvalidateQueries`                     |
-| Success 핸들러                | `handle<Entity><Action>Success`                                                                                                                                                                                                                                                                                                       | `handlePostCreateSuccess`                   |
-| API 객체                      | `<entity>Api`                                                                                                                                                                                                                                                                                                                         | `postApi`                                   |
-| Zod 스키마 (요청/폼 검증만)   | `create<Entity>Schema`, `update<Entity>Schema`                                                                                                                                                                                                                                                                                        | `createPostSchema`, `updatePostSchema`      |
-| 응답 타입 파일 (Layer 0)      | `<entity>.dto.ts` — BE 생성 타입 alias                                                                                                                                                                                                                                                                                                | `post.dto.ts`                               |
-| TS 타입                       | 스키마와 동일 (PascalCase)                                                                                                                                                                                                                                                                                                            | `Post`, `CreatePost`                        |
-| `config/` 파일                | `<entity>.const.ts` — `api/`·`model/`·`utils/`와 같은 `<entity>.<역할>.ts` 규칙(`const.ts` 단독 금지, `shared/config/const.ts`처럼 도메인이 없는 전역 설정은 예외). `<entity>`는 **엔티티명**이지 디렉터리 세그먼트명이 아니다 — 그룹 폴더(`entities/bookmark/folder/`) 아래에서도 파일 접두사는 엔티티명(`bookmark-folder`)을 따른다 | `bookmark-folder.const.ts`, `post.const.ts` |
-| `<Entity>[]` 배열 변수/반환값 | `<entity>List` — 지역변수·훅 반환 필드·구조분해값이 실제로 배열일 때. 아래 각주의 예외 2가지는 대상 아님                                                                                                                                                                                                                              | `folderList`                                |
-| 창·오버레이 식별자            | 창 자체(컴포넌트·훅·스토어·타입·경로·히스토리 키)는 `Dialog`, 뒤를 조작 불가로 만드는 성질은 `modal`, alert/confirm 전용은 `Alert`. 식별자에만 적용하고 한국어 산문의 "모달"은 허용 — 아래 각주                                                                                                                                       | `LoginDialog`, `modal={false}`, `useAlert`  |
+| 항목                          | 규칙                                                                                                                                                                                                                                                                                                                                  | 예시                                          |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Feature 디렉토리              | `<도메인>/<액션>` kebab-case                                                                                                                                                                                                                                                                                                          | `post/create/`                                |
+| Widget 디렉토리               | `<도메인>/<슬라이스>` kebab-case                                                                                                                                                                                                                                                                                                      | `post/post-card/`                             |
+| Shared 디렉토리               | camelCase                                                                                                                                                                                                                                                                                                                             | `hooks/`, `utils/`                            |
+| 컴포넌트 파일                 | PascalCase.tsx                                                                                                                                                                                                                                                                                                                        | `CreatePostForm.tsx`                          |
+| Feature 훅                    | `use<FeatureName>.ts`                                                                                                                                                                                                                                                                                                                 | `useCreatePost.ts`                            |
+| Mutation 훅                   | `use<Action><Entity>Mutation`                                                                                                                                                                                                                                                                                                         | `useCreatePostMutation`                       |
+| Query 훅                      | `useFetch<Entity>Query` (표준). 기존 코드엔 `use<Entity>ListQuery`(`useBookmarkFolderListQuery`), `use<Entity>InfiniteQuery`(`useBookmarkFolderPostsInfiniteQuery`)도 있다(과거 `useComments`도 이 부류였으나 현재는 `useSuspenseComments`로 이름이 바뀌었다) — 새로 만들 땐 표준형을 쓴다                                            | `useFetchPostDetailQuery`                     |
+| 미리 받기(prefetch)           | 렌더 중에 요청을 시작만 하는 훅(`usePrefetchQuery`·`usePrefetchInfiniteQuery`)은 `usePrefetch<Entity>`, hover 등 이벤트에서 `queryClient`를 인자로 받아 부르는 함수는 `prefetch<Entity>` — 둘 다 같은 `.queries.ts`에 둔다                                                                                                            | `usePrefetchPostDetail`, `prefetchPostDetail` |
+| 쿼리 키 객체                  | `<entity>Keys`                                                                                                                                                                                                                                                                                                                        | `postKeys`                                    |
+| Invalidate 헬퍼               | `<entity>InvalidateQueries`                                                                                                                                                                                                                                                                                                           | `postInvalidateQueries`                       |
+| Success 핸들러                | `handle<Entity><Action>Success`                                                                                                                                                                                                                                                                                                       | `handlePostCreateSuccess`                     |
+| API 객체                      | `<entity>Api`                                                                                                                                                                                                                                                                                                                         | `postApi`                                     |
+| Zod 스키마 (요청/폼 검증만)   | `create<Entity>Schema`, `update<Entity>Schema`                                                                                                                                                                                                                                                                                        | `createPostSchema`, `updatePostSchema`        |
+| 응답 타입 파일 (Layer 0)      | `<entity>.dto.ts` — BE 생성 타입 alias                                                                                                                                                                                                                                                                                                | `post.dto.ts`                                 |
+| TS 타입                       | 스키마와 동일 (PascalCase)                                                                                                                                                                                                                                                                                                            | `Post`, `CreatePost`                          |
+| `config/` 파일                | `<entity>.const.ts` — `api/`·`model/`·`utils/`와 같은 `<entity>.<역할>.ts` 규칙(`const.ts` 단독 금지, `shared/config/const.ts`처럼 도메인이 없는 전역 설정은 예외). `<entity>`는 **엔티티명**이지 디렉터리 세그먼트명이 아니다 — 그룹 폴더(`entities/bookmark/folder/`) 아래에서도 파일 접두사는 엔티티명(`bookmark-folder`)을 따른다 | `bookmark-folder.const.ts`, `post.const.ts`   |
+| `<Entity>[]` 배열 변수/반환값 | `<entity>List` — 지역변수·훅 반환 필드·구조분해값이 실제로 배열일 때. 아래 각주의 예외 2가지는 대상 아님                                                                                                                                                                                                                              | `folderList`                                  |
+| 창·오버레이 식별자            | 창 자체(컴포넌트·훅·스토어·타입·경로·히스토리 키)는 `Dialog`, 뒤를 조작 불가로 만드는 성질은 `modal`, alert/confirm 전용은 `Alert`. 식별자에만 적용하고 한국어 산문의 "모달"은 허용 — 아래 각주                                                                                                                                       | `LoginDialog`, `modal={false}`, `useAlert`    |
 
 **`<entity>List` 각주** (2026-09-08) — "단수/복수"가 아니라 "배열인가 아닌가"로
 가른다. BE 응답 계약과 매핑된 이름(`BookmarkFolderListResponse`, `useBookmarkFolderListQuery`,
@@ -1302,6 +1335,8 @@ pnpm check          # type-check + lint + format:check + check:deps 일괄
 pnpm check:fix      # lint:fix + format + type-check
 pnpm check:docs     # README/docs/CLAUDE.md가 가리키는 경로·줄 번호 검증 (scripts/check-docs.js)
 pnpm check:deps     # 의존성 규칙 검사 — entities @x·미선언 패키지 등 (.dependency-cruiser.cjs, scripts/check-deps.js)
+pnpm check:cloudfront  # CloudFront 설정을 커밋된 스냅샷과 비교 (AWS 자격증명 필요, --write로 갱신, docs/DEPLOY.md)
+pnpm validate       # .env 존재 확인(check:env) + check
 pnpm graph <정규식>  # 그 모듈에 import로 닿는 파일을 레이어별 색 그림으로 (scripts/dep-graph.js, 예: "useClickGuard[.]ts$")
 pnpm graph:focus <정규식>  # 그 모듈의 바로 이웃만 — 그 모듈을 import하는 파일(위)과 그 모듈이 import하는 파일(아래)
                     # graph·graph:focus 뒤에 --text를 붙이면 브라우저 없이 목록만 출력(.claude/CLAUDE.md §5)
@@ -1314,6 +1349,9 @@ pnpm test:watch     # Vitest 테스트 감시 모드
 pnpm test:coverage  # 커버리지 리포트
 pnpm test:storybook # Storybook 스토리 테스트 (vitest --project=storybook)
 pnpm test:e2e       # Playwright e2e (chromium + mobile-chrome, docs/TESTING.md §13)
+pnpm test:mutation  # StrykerJS 변이 테스트 (stryker.config.json, docs/TESTING.md — --mutate <파일> 없이 돌리면 src 전체라 오래 걸린다)
+pnpm perf:lh        # Lighthouse CI — 공개 페이지 (lighthouserc.cjs, docs/PERFORMANCE.md)
+pnpm perf:lh:auth   # Lighthouse CI — 로그인 필요 페이지 (lighthouserc.auth.cjs, LH_TEST_PASSWORD 필요)
 pnpm storybook      # Storybook (port 6006)
 ```
 
@@ -1422,12 +1460,13 @@ CLI로 이 컴포넌트를 다시 생성하면 `cursor-default`가 되돌아오�
 
 `*.util.ts`(디렉터리는 복수 `utils/`, 파일 접미사는 단수 `.util.ts`)는 바레 함수를
 export하지 않고 `export class <Name>Util { static ... }` 형태로 정적 메서드를 묶는다 —
-`shared/utils/`의 10개 파일(`AuthUtil`·`BuildInfoUtil`·`CommonUtil`·`DateUtil`·
-`ErrorUtil`·`FormUtil`·`LogoutGraceUtil`·`LocalStorageUtil`/`SessionStorageUtil`·`UrlUtil`·
-`VersionUtil`)이 모두 이 형태다(유일한 예외였던 객체 리터럴 `file.util.ts`는 쓰는 곳이 없어
-2026-10-01에 지웠다). `entities/*/utils/`도 같은 형태를 따른다.
+`shared/utils/`의 모든 `*.util.ts`(`AuthUtil`·`AuthEpochUtil`·`BuildInfoUtil`·`ChunkReloadUtil`·
+`CommonUtil`·`DateUtil`·`ErrorUtil`·`FormUtil`·`LogoutGraceUtil`·`ScrollUtil`·
+`LocalStorageUtil`/`SessionStorageUtil`·`UrlUtil`·`VersionUtil`, 2026-10-27 기준)가 이 형태다(유일한
+예외였던 객체 리터럴 `file.util.ts`는 쓰는 곳이 없어 2026-10-01에 지웠다). `entities/*/utils/`도 같은
+형태를 따른다.
 
-참조: `src/shared/utils/common.util.ts`
+참조: `src/entities/comment/utils/comment.util.ts`(아래 예시), `src/shared/utils/common.util.ts`
 
 ```typescript
 export class CommentUtil {
@@ -1560,11 +1599,12 @@ flowchart TD
 담당한다. 키가 `location.key`라 검색 파라미터만 바뀌어도 새 위치로 보고 맨 위로 보내며,
 뒤로가기(POP)는 저장된 위치로 복원한다.
 
-| 이동 종류                                          | 동작                   | 해야 할 일                                                                                                                                                                                                                                                                                                         |
-| -------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 경로·검색 파라미터 변경(필터·검색·폴더 전환 등)    | 맨 위로                | 없음 — 전역 규칙이 처리                                                                                                                                                                                                                                                                                            |
-| 뒤로가기(POP)                                      | 저장된 위치로 복원     | 없음                                                                                                                                                                                                                                                                                                               |
-| 같은 URL에 `state`만 싣는 push(오버레이·모달·패널) | **스크롤 유지해야 함** | `preventScrollReset: true`를 명시한다 — 선례: [`useHistoryOverlay.ts`](../src/shared/hooks/useHistoryOverlay.ts)(사이드바·로그인 모달·이미지뷰어), [`useMobileSearchPanel.ts`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts), [`MarkdownContent.tsx`](../src/shared/ui/elements/MarkdownContent.tsx) |
+| 이동 종류                                                            | 동작                                | 해야 할 일                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 경로·검색 파라미터 변경(필터·검색·폴더 전환 등)                      | 맨 위로                             | 없음 — 전역 규칙이 처리                                                                                                                                                                                                                                                                                            |
+| 뒤로가기(POP)                                                        | 저장된 위치로 복원                  | 없음                                                                                                                                                                                                                                                                                                               |
+| 같은 URL에 `state`만 싣는 push(오버레이·모달·패널)                   | **스크롤 유지해야 함**              | `preventScrollReset: true`를 명시한다 — 선례: [`useHistoryOverlay.ts`](../src/shared/hooks/useHistoryOverlay.ts)(사이드바·로그인 모달·이미지뷰어), [`useMobileSearchPanel.ts`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts), [`MarkdownContent.tsx`](../src/shared/ui/elements/MarkdownContent.tsx) |
+| 지금 보는 화면 안의 해시 이동(상세의 댓글 링크 `/post/:id#comments`) | **맨 위로 올리지 않고 해시 위치로** | `replace`(같은 글 엔트리를 쌓지 않음) + `preventScrollReset`을 함께 준다 — 선례: [`PostCard.tsx`](../src/widgets/post/post-card/ui/PostCard.tsx)의 댓글 `Link`(`isDetail`일 때만), 해시 위치로의 스크롤은 `CommentList`가 맡는다                                                                                   |
 
 **코드로 스크롤할 때는 `behavior: ScrollUtil.getBehavior()`(2026-10-14).** `scrollIntoView`·`scrollTo`에
 `behavior: 'smooth'`를 직접 쓰면 기기에서 "동작 줄이기"를 켠 사용자에게도 화면이 미끄러진다(WCAG 2.3.3).

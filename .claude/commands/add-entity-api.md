@@ -157,9 +157,10 @@ export const useDelete<Entity>Mutation = () => {
     mutationKey: <entity>MutationKeys.delete,
     mutationFn: (id: string) => <entity>Api.delete<Entity>(id),
     meta: {
-      // 삭제는 목록에서 바로 사라져 결과가 눈에 보이므로 성공 토스트를 따로 띄우지
-      // 않는다(texts-conventions skill "성공 토스트 표시 기준" — postDeleted도 같은
-      // 이유로 없음). 화면 밖에서 바뀌어 눈에 안 띄는 경우에만 successMessage를 추가한다.
+      // 확인창(openConfirm)을 거친 영구 삭제는 결과가 화면에 보여도 성공 토스트를 띄운다
+      // (texts-conventions skill "성공 토스트 표시 기준" 축 4 — useDeletePostMutation의
+      // postDeleted와 같다). 확인창 없이 그 자리에서 바뀌는 가벼운 제거면 successMessage를 뺀다.
+      successMessage: TEXTS.messages.success.<entity>Deleted,
       errorMessage: TEXTS.messages.error.<entity>DeleteFailed,
     },
     onSuccess: () => handle<Entity>DeleteSuccess(queryClient),
@@ -189,6 +190,7 @@ Add under `messages`:
 success: {
   <entity>Created: '<Entity>를 생성했어요.',
   <entity>Updated: '<Entity>를 수정했어요.',
+  <entity>Deleted: '<Entity>를 삭제했어요.',
 },
 error: {
   <entity>CreateFailed: '<Entity> 생성에 실패했어요.',
@@ -200,9 +202,11 @@ warning: {
 },
 ```
 
-삭제 성공 토스트(`<entity>Deleted`)는 넣지 않는다 — 삭제는 목록에서 바로 사라져 결과가
-눈에 보인다(`texts-conventions` skill "성공 토스트 표시 기준" 참고, 실제로 `postDeleted`
-키도 없다). 수정처럼 화면 밖에서 바뀌어 눈에 안 띄는 필드가 있을 때만 성공 토스트를 쓴다.
+삭제 성공 토스트(`<entity>Deleted`)는 확인창(`openConfirm`)을 거치는 영구 삭제일 때 넣는다 —
+목록에서 사라져도 그 순간이 확인창 닫힘과 겹쳐 결과가 눈에 잘 안 들어온다(`texts-conventions`
+skill "성공 토스트 표시 기준" 축 4, 선례 `postDeleted`·`commentDeleted`·`folderDeleted`). 확인창
+없이 그 자리에서 바뀌고 다시 누르면 돌아가는 가벼운 제거(좋아요 취소·최근 검색어 삭제 등)는
+토스트를 뺀다.
 
 ## Notes
 
@@ -215,5 +219,5 @@ warning: {
   notation, `docs/FE-ARCHITECTURE.md` §5) and call its `<entity>InvalidateQueries.xxx()`
   wrapper from the success handler in `<entity>.keys.ts`. If that `@x` file doesn't exist yet,
   create it in the other entity's folder, re-exporting only what this entity actually needs
-  (reference: `src/entities/bookmark/folder/@x/post.ts`, consumed by
-  `src/entities/post/api/post.queries.ts`)
+  (reference: `src/entities/post/@x/comment.ts`, whose `postInvalidateQueries` is called from
+  the success handlers in `src/entities/comment/api/comment.keys.ts`)

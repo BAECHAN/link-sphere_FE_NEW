@@ -9,7 +9,7 @@
 > 파일·어느 값으로 다루는지 알고, 신고가 오면 어디부터 확인할지, 파일 종류별 캐시 정책을 어떻게
 > 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-15
+> **마지막 검토**: 2026-10-27
 
 배포는 서버(S3·CloudFront)의 파일을 바꾸는 일이지, 사용자 브라우저에 이미 있는 파일과 이미
 실행 중인 코드를 바꾸는 일이 아니다. [2weekhun의 Threads 글](https://www.threads.com/@2weekhun/post/Dec8KBXkzYM)은
@@ -185,7 +185,7 @@ Threads 글의 네 군데에는 없지만 §5.3의 반대편이다 — HTML이 �
   실패한다. 이때 화면을 그대로 두면 사용자는 고장으로 본다.
 - **업계 표준**: Vite는 이때 `vite:preloadError` 이벤트를 보내고, 문서는 이 이벤트에서 새로고침하는
   예시를 든다([Vite Load Error Handling](https://vite.dev/guide/build#load-error-handling)).
-- **이 레포**: 그 리스너([main.tsx:15](../src/main.tsx#L15))와 에러 경계([AppErrorFallback.tsx:31](../src/shared/ui/elements/AppErrorFallback.tsx#L31),
+- **이 레포**: 그 리스너([main.tsx:15](../src/main.tsx#L15))와 에러 경계([AppErrorFallback.tsx](../src/shared/ui/elements/AppErrorFallback.tsx)의 `isReloadPending`,
   라우트에서는 [RouteErrorBoundary.tsx](../src/app/routes/RouteErrorBoundary.tsx)가 이것을 그린다)가 같은 판단
   `ChunkReloadUtil`을 쓴다 — 경로별로 세션당 1회만 새로고침하고([chunk-reload.util.ts:23](../src/shared/utils/chunk-reload.util.ts#L23)),
   새로고침하고도 또 실패하면 "문제가 발생했어요" 화면과 홈 버튼을 보여준다. 페이지 단위
@@ -323,14 +323,14 @@ aws cloudfront get-cache-policy --id <정책 ID> \
 
 ### 코드 지도
 
-| 단계                  | 위치                                                                                                                                                                                |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 해시 파일명           | [vite.config.ts:90-100](../vite.config.ts#L90-L100)                                                                                                                                 |
-| 업로드 순서·헤더      | [deploy.yml:82-133](../.github/workflows/deploy.yml#L82-L133)("Upload to S3")                                                                                                       |
-| 무효화·배포 반영 검증 | [deploy.yml:135](../.github/workflows/deploy.yml#L135), [:142](../.github/workflows/deploy.yml#L142)                                                                                |
-| 옛 자산 정리          | [deploy.yml:200](../.github/workflows/deploy.yml#L200), [prune-old-assets.js](../scripts/prune-old-assets.js), [prune-assets.js](../scripts/lib/prune-assets.js)                    |
-| 새 배포 감지·적용     | [useAppVersionCheck.ts:94-96](../src/shared/hooks/useAppVersionCheck.ts#L94-L96), [useNewVersionReload.ts:28](../src/shared/hooks/useNewVersionReload.ts#L28)                       |
-| 청크 실패 새로고침    | [main.tsx:15](../src/main.tsx#L15), [chunk-reload.util.ts](../src/shared/utils/chunk-reload.util.ts), [AppErrorFallback.tsx:31](../src/shared/ui/elements/AppErrorFallback.tsx#L31) |
+| 단계                  | 위치                                                                                                                                                                                            |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 해시 파일명           | [vite.config.ts:90-100](../vite.config.ts#L90-L100)                                                                                                                                             |
+| 업로드 순서·헤더      | [deploy.yml:82-133](../.github/workflows/deploy.yml#L82-L133)("Upload to S3")                                                                                                                   |
+| 무효화·배포 반영 검증 | [deploy.yml:135](../.github/workflows/deploy.yml#L135), [:142](../.github/workflows/deploy.yml#L142)                                                                                            |
+| 옛 자산 정리          | [deploy.yml:200](../.github/workflows/deploy.yml#L200), [prune-old-assets.js](../scripts/prune-old-assets.js), [prune-assets.js](../scripts/lib/prune-assets.js)                                |
+| 새 배포 감지·적용     | [useAppVersionCheck.ts:94-96](../src/shared/hooks/useAppVersionCheck.ts#L94-L96), [useNewVersionReload.ts:28](../src/shared/hooks/useNewVersionReload.ts#L28)                                   |
+| 청크 실패 새로고침    | [main.tsx:15](../src/main.tsx#L15), [chunk-reload.util.ts](../src/shared/utils/chunk-reload.util.ts), [AppErrorFallback.tsx](../src/shared/ui/elements/AppErrorFallback.tsx)(`isReloadPending`) |
 
 ### 자주 하는 수정
 

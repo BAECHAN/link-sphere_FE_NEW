@@ -11,10 +11,11 @@
   GitHub Actions CI가 같은 설정 파일을 공유한다.
 - 측정 대상은 **이 브랜치의 빌드 결과물**이다(`vite preview`로 로컬에서 서빙) — 배포된
   프로덕션이 아니다. 프로덕션 자체를 재려면 "프로덕션 재측정" 절을 본다.
-- 5회 측정 후 중앙값을 쓴다. Lighthouse 공식 variability 문서: _"5회 실행의 중앙값
-  점수가 1회보다 2배 안정적이다"_(번역, [출처](https://github.com/GoogleChrome/lighthouse/blob/main/docs/variability.md)).
-- assertion은 전부 `warn`이다 — PR을 막지 않고 리포트만 남긴다. 근거와 향후 `error`
-  승격 기준은 `docs/DECISIONS.md`를 본다.
+- 5회 측정 후 중앙값을 쓴다(Best Practices 판정만 5회 중 가장 좋은 실행 — 아래 "CI 게이트"). Lighthouse 공식
+  variability 문서: _"5회 실행의 중앙값 점수가 1회보다 2배 안정적이다"_(번역, [출처](https://github.com/GoogleChrome/lighthouse/blob/main/docs/variability.md)).
+- assertion은 Best Practices만 `error`(`minScore: 0.9`)이고 나머지는 `warn`이다. 기준 미달이면 job이 실패하지만
+  필수 체크가 아니라 병합은 막히지 않는다 — 상세는 아래 "CI 게이트", 처음 전부 `warn`으로 둔 근거는
+  `docs/DECISIONS.md`를 본다.
 
 ## 빠른 시작
 
@@ -65,13 +66,21 @@ pnpm perf:lh:auth
 
 ## 프로덕션 재측정
 
-배포 후 실제 체감 성능을 확인할 때는 프로덕션 URL을 직접 넘긴다(로컬 설정 파일을
-쓰지 않는다 — `startServerCommand`가 로컬 빌드를 서빙하는 용도라 프로덕션에는 안 맞는다):
+배포 후 실제 체감 성능을 확인할 때는 프로덕션 URL을 직접 넘기고, 로컬 설정 파일은 `--no-lighthouserc`로
+끈다 — `startServerCommand`가 로컬 빌드를 서빙하는 용도라 프로덕션에는 안 맞는다:
 
 ```bash
-npx lhci collect --url=https://linksphere.click/post \
-  --numberOfRuns=5 --preset=desktop
+npx lhci collect --no-lighthouserc --url=https://linksphere.click/post \
+  --numberOfRuns=5 --settings.preset=desktop
 ```
+
+- `--no-lighthouserc`를 빼면 레포 루트에서 실행할 때 `lighthouserc.cjs`가 자동으로 읽혀 `startServerCommand`
+  (`vite preview`)·RUM 차단(`blockedUrlPatterns`)·프리셋이 그대로 적용된다(설치본 `@lhci/utils` 0.15.1의
+  `lighthouserc.js` 안 `RC_FILE_NAMES`·`hasOptedOutOfRcDetection`, `@lhci/cli` 0.15.1의 `cli.js` 안
+  `createYargsConfigArguments`). 환경변수 `LHCI_NO_LIGHTHOUSERC=1`도 같은 효과다.
+- 프리셋은 `--settings.preset`으로 넘긴다. `collect`가 Lighthouse에 넘기는 건 `settings` 옵션뿐이라
+  (`@lhci/cli` 0.15.1의 `collect/collect.js` 안 `runOnUrl`) `--preset=desktop`은 오류 없이 무시되고,
+  설정 파일도 끈 상태면 Lighthouse 기본값(모바일)으로 잰다.
 
 모바일(느린 4G) 프리셋으로 재려면 [PageSpeed Insights](https://pagespeed.web.dev/)를
 직접 쓰는 편이 더 간단하다 — Lighthouse 코어와 같은 엔진이고 모바일 스로틀링·CrUX
@@ -142,11 +151,11 @@ npx lhci collect --url=https://linksphere.click/post \
 
 **LCP 후보 이미지**
 
-| 항목                        | 이전                                 | 이후                                                                                |
-| --------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------- |
-| 목록 첫 행(최대 3장) 썸네일 | `loading="lazy"`, 우선순위 힌트 없음 | `loading="eager"` + `fetchPriority="high"`                                          |
-| 상세 페이지 카드 썸네일     | `loading="lazy"`, 우선순위 힌트 없음 | `loading="eager"` + `fetchPriority="high"`(2026-10-26, 아래 "LCP 데이터 요청 시점") |
-| 나머지 썸네일               | `loading="lazy"`                     | 변경 없음(그대로 lazy)                                                              |
+| 항목                                      | 이전                                 | 이후                                                                                |
+| ----------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------- |
+| 피드(`/post`) 목록 첫 행(최대 3장) 썸네일 | `loading="lazy"`, 우선순위 힌트 없음 | `loading="eager"` + `fetchPriority="high"`                                          |
+| 상세 페이지 카드 썸네일                   | `loading="lazy"`, 우선순위 힌트 없음 | `loading="eager"` + `fetchPriority="high"`(2026-10-26, 아래 "LCP 데이터 요청 시점") |
+| 나머지 썸네일                             | `loading="lazy"`                     | 변경 없음(그대로 lazy)                                                              |
 
 ### Lighthouse 지표
 

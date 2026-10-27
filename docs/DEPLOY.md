@@ -101,9 +101,12 @@
       복구됩니다([NEW-VERSION-RELOAD.md](./NEW-VERSION-RELOAD.md) §4).
     - 권한은 기존 `s3:ListBucket`·`s3:DeleteObject`로 충분합니다. 로컬에서 대상만 확인하려면
       빌드 후 읽기 전용으로 `node scripts/prune-old-assets.js --bucket <버킷> --dry-run`.
+    - 정리는 부수 작업이라 실패해도 배포 run을 실패로 만들지 않습니다 — 스텝이
+      `|| echo "::warning::옛 자산 정리 실패 …"`로 끝나 경고 주석만 남고, 10번 이슈도 열리지 않습니다.
+      버킷이 다시 커지면 run 로그에서 이 경고를 찾습니다([CACHE-STRATEGY.md](./CACHE-STRATEGY.md) §5.8).
 10. **실패 시 알림** (`notify-failure` job):
-    - 위 어느 스텝이든 실패하면 별도 job이 커밋 sha·run 링크를 담은 GitHub 이슈를
-      자동 생성합니다. `deploy` job과 권한을 분리해뒀습니다(AWS 자격증명을 다루는
+    - 위 스텝 중 9번(옛 자산 정리)을 뺀 어느 스텝이든 실패하면 별도 job이 커밋 sha·run 링크를 담은
+      GitHub 이슈를 자동 생성합니다. `deploy` job과 권한을 분리해뒀습니다(AWS 자격증명을 다루는
       job에 `issues: write`를 더하지 않기 위함).
 11. **성공 시 실패 이슈 자동 종료** (`close-resolved-failures` job):
     - `deploy` job이 성공하면, 10번이 만든 열린 이슈(작성자 `github-actions[bot]`, 제목이
@@ -169,8 +172,8 @@ gh workflow run deploy.yml --repo BAECHAN/link-sphere_FE_NEW --ref main
 2. 메이저가 올라간 액션이 있으면 그 액션 릴리스 노트의 깨지는 변경(Breaking)만 훑는다.
 3. squash 병합 후 확인한다. `deploy.yml`·`deploy-storybook.yml`은 자기 파일이 바뀌면 병합
    직후 자동 실행되므로 그 run이 성공했는지 본다(`gh run list --branch main`). 수동 실행이
-   없는 `history.yml`·`release.yml`은 다음 실제 이벤트 때, `openapi-drift-check.yml`은 다음
-   예약 실행 때 처음 돈다.
+   없는 `history.yml`·`release.yml`은 다음 실제 이벤트 때, `openapi-drift-check.yml`·
+   `cloudfront-drift-check.yml`은 다음 예약 실행 때 처음 돈다(둘 다 수동 실행으로 앞당길 수 있다).
 
 **SHA를 손으로 바꿀 때**: 주석 태그(annotated tag)는 태그 객체를 한 번 더 따라가야 커밋 SHA가
 나온다. 그리고 그 SHA가 포크가 아니라 원 저장소의 커밋인지 확인한다 — 같은 보안 가이드는
@@ -184,7 +187,7 @@ gh api repos/<owner>/<repo>/commits/<커밋 sha> --jq .sha   # 원 저장소에 
 
 ## Storybook 공개 배포
 
-컴포넌트 스토리(55개 파일, 191개 케이스 — `shared/ui` 52개 + Provider 없이 렌더되는 entities·widgets
+컴포넌트 스토리(2026-10-27 기준 55개 파일·192개 케이스 — `shared/ui` 52개 + Provider 없이 렌더되는 entities·widgets
 컴포넌트, 범위 기준은 [`FE-ARCHITECTURE.md`](FE-ARCHITECTURE.md) §18)를 같은 S3 버킷·CloudFront
 배포를 재사용해 `/storybook/` 경로에 공개 호스팅한다. 워크플로:
 [`.github/workflows/deploy-storybook.yml`](../.github/workflows/deploy-storybook.yml).
@@ -200,7 +203,7 @@ gh api repos/<owner>/<repo>/commits/<커밋 sha> --jq .sha   # 원 저장소에 
   배포라 역할 권한(`s3:PutObject`/`DeleteObject`/`ListBucket`,
   `cloudfront:CreateInvalidation`) 범위 안이다.
 - **캐시 정책**: 앱 배포와 같은 철학이다 — 해시 없는 `index.html`/`iframe.html`은
-  `no-cache`, 콘텐츠 해시가 붙은 `assets/`·`fonts/`는 1년 immutable, 그 외
+  `no-cache`, 콘텐츠 해시가 붙은 `assets/`와 경로에 버전이 들어간 `fonts/`는 1년 immutable, 그 외
   (`sb-manager/`, `sb-addons/` 등 해시 없는 런타임 파일)는 `max-age=300`. (2026-10-14 전에는 HTML 설정이
   `no-cache, no-store, must-revalidate`라 이 서술과 달랐다 — 앱 HTML을 `no-cache`로 바꿀 때 함께 맞췄다.)
 - **무효화 범위**: `/storybook/*`로 한정한다. `/*`를 쓰면 앱의 엣지 캐시까지
@@ -535,10 +538,13 @@ Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 
 
 ```bash
 # 1. 함수 코드 수정 후 업데이트 (ETag 필요). spa-status는 이름·파일만 바꿔 같은 절차
+#    Comment는 함수마다 다르다 - infra/cloudfront/snapshot.json에서 그 함수의 functions[].Comment(LIVE 값)를
+#    그대로 넣는다. 매일 차이 검사가 LIVE의 Comment도 비교하므로, 다른 문구를 넣으면 다음 날 drift 이슈가 열린다
+#    (설명을 일부러 바꿨다면 4번에서 --write로 스냅샷도 갱신한다)
 aws cloudfront describe-function --name link-sphere-spa-fallback --stage DEVELOPMENT
 aws cloudfront update-function --name link-sphere-spa-fallback \
   --if-match <위 ETag> \
-  --function-config '{"Comment":"SPA 클라이언트 라우팅 폴백 (기본 비헤이비어 전용; api 비헤이비어 미연결)","Runtime":"cloudfront-js-1.0"}' \
+  --function-config '{"Comment":"<snapshot.json의 이 함수 Comment>","Runtime":"cloudfront-js-1.0"}' \
   --function-code fileb://infra/cloudfront-functions/spa-fallback.js
 
 # 2. 테스트 (실배포 전 검증)
@@ -728,6 +734,9 @@ Custom response headers policy
 - **이 정책도 어떤 파이프라인도 배포하지 않는다** — 위 WAF Web ACL과 같은 성격.
   콘솔 또는 AWS CLI로만 바꿀 수 있고, git 이력에 남지 않는다. 요금제를 올려서 실제로
   적용하면 이 절을 갱신한다.
+- **Free 요금제에서 응답 헤더를 붙이는 선례는 따로 있다** — 2026-10-26부터 viewer-response Function
+  `link-sphere-spa-status`(위 "CloudFront Function" 절)가 앱 HTML 응답에 `Cross-Origin-Embedder-Policy`를
+  붙인다. HSTS 등 이 절의 헤더를 같은 방식으로 붙일 수 있는지는 확인하지 않았다.
 - **meta 태그의 CSP와 중복·충돌 주의**: 브라우저는 meta 태그 CSP와 HTTP 헤더 CSP가
   둘 다 있으면 **더 엄격한 쪽으로 합집합이 아니라 각각 독립적으로 적용**한다(정책이
   여러 개면 전부 통과해야 함) — 그래서 나중에 요금제를 올려 이 절차를 실행할 때도

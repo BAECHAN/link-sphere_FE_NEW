@@ -67,17 +67,22 @@ ACL)는 CloudFront 배포 전체(양쪽 비헤이비어 공통)에 붙어 요청
 
 ### `infra/` — AWS 인프라 직접 배포 코드
 
-저장소 루트의 `infra/`는 Vite 빌드에 포함되지 않고 **AWS 리소스에 직접 배포되는 코드**를 모아두는
-디렉토리다. `src/`(앱 코드)와 달리 브라우저에서 실행되지 않고, GitHub Actions `deploy.yml`도
-이 디렉토리를 배포 대상으로 보지 않는다(트리거 경로에 없음) — 여기 있는 것들은 AWS CLI로
-수동 배포·관리된다. 현재는 아래 CloudFront Function 두 개(`spa-fallback.js`·`spa-status.js`)만 있다.
+저장소 루트의 `infra/`는 Vite 빌드에 포함되지 않고 **AWS 리소스에 직접 배포되는 코드**와 **콘솔에서만
+바꾸는 CloudFront 설정의 스냅샷**을 모아두는 디렉토리다. `src/`(앱 코드)와 달리 브라우저에서 실행되지
+않고, GitHub Actions `deploy.yml`도 이 디렉토리를 배포 대상으로 보지 않는다(트리거 경로에 없음) — 여기
+있는 것들은 AWS CLI로 수동 배포·관리된다. 배포되는 코드는 아래 CloudFront Function 두 개
+(`spa-fallback.js`·`spa-status.js`)다.
 
-같은 CloudFront 배포에 WAF(Web ACL)도 콘솔 전용으로 붙어 있는데, 이건 소스 코드 자체가
-없어(설정값만 있음) 이 디렉토리에 담을 수 없다 — 룰 구성과 재적용 절차는
-[`docs/DEPLOY.md`](./DEPLOY.md)의 "CloudFront WAF (수동 관리)" 절 참고.
+같은 CloudFront 배포에 WAF(Web ACL)도 콘솔 전용으로 붙어 있다. 소스 코드가 없는 설정값이라 배포할 파일은
+없지만, 지금 규칙은 배포 설정·캐시 정책·Function 설명과 함께 `infra/cloudfront/snapshot.json`에 식별자를
+가린 채 기록된다. `pnpm check:cloudfront`와 매일 도는 `cloudfront-drift-check.yml`이 이 스냅샷을 지금
+설정(배포된 Function 코드 포함)과 비교한다 — [`docs/DEPLOY.md`](./DEPLOY.md)의 "CloudFront 설정 스냅샷과
+차이 검사" 절. 룰 구성과 재적용 절차는 같은 문서의 "CloudFront WAF (수동 관리)" 절 참고.
 
 ```
 infra/
+├── cloudfront/
+│   └── snapshot.json     # 콘솔 설정 스냅샷(배포 대상 아님) — pnpm check:cloudfront가 비교
 └── cloudfront-functions/
     ├── spa-fallback.js   # viewer-request: 앱 라우트 → /index.html, 아닌 경로 → /404.html (아래 참고)
     └── spa-status.js     # viewer-response: /404.html 응답의 상태를 404로, 앱 HTML에 COEP credentialless
@@ -102,14 +107,15 @@ HTTP 상태는 진짜 404가 된다(2026-10-05, SPA soft 404 해소). 같은 함
 `/index.html`(200)로 가려버리는 버그가 있었다(2026-07-28 발견·수정). CloudFront Function은
 비헤이비어 단위로 연결되므로 구조적으로 `/api/*`를 건드릴 수 없다 — **이 Function을 `/api/*`
 비헤이비어에 연결하거나 `CustomErrorResponses`에 403/404 항목을 다시 추가하지 말 것.**
-배포는 GitHub Actions가 아닌 AWS CLI로 수동 관리한다(코드 변경 트리거 경로가 아님).
+배포는 GitHub Actions가 아닌 AWS CLI로 수동 관리한다(코드 변경 트리거 경로가 아님). 다만 배포된 코드가
+레포 파일과 다르면 매일 도는 차이 검사(`cloudfront-drift-check.yml`)가 이슈를 연다.
 
 ### 환경별 동작
 
-| 환경     | 프론트엔드                                                          | 백엔드 연동                                                                                                                       |
-| -------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **운영** | CloudFront → S3 정적 배포. `VITE_API_BASE_URL`은 `/api` (상대 경로) | CloudFront `/api/*` behavior → Lambda Function URL(`prod` alias). context-path `/api`                                             |
-| **개발** | Vite dev server (포트 31119). `/api` 요청을 proxy로 BE로 전달       | `.env`의 `VITE_API_BASE_URL`: BE 로컬(`http://localhost:8080/api`) 또는 운영 API(`https://linksphere.click/api`, CloudFront 경유) |
+| 환경     | 프론트엔드                                                                                         | 백엔드 연동                                                                                                                       |
+| -------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **운영** | CloudFront → S3 정적 배포. `VITE_API_BASE_URL`은 주입하지 않고 `api.ts`가 `/api`(상대 경로)로 폴백 | CloudFront `/api/*` behavior → Lambda Function URL(`prod` alias). context-path `/api`                                             |
+| **개발** | Vite dev server (포트 31119). `/api` 요청을 proxy로 BE로 전달                                      | `.env`의 `VITE_API_BASE_URL`: BE 로컬(`http://localhost:8080/api`) 또는 운영 API(`https://linksphere.click/api`, CloudFront 경유) |
 
 개발 시: Browser → Vite(31119) → proxy `/api` → BE(로컬 8080 또는 운영 CloudFront `/api`) → Supabase / Gemini.
 
@@ -127,43 +133,45 @@ flowchart LR
     FE_S3["S3 sync"]
     FE_CF["CloudFront Invalidation"]
     FE_Verify["배포 반영 검증<br/>(sha·캐시헤더·entry해시·404.html)"]
-    FE_Notify["notify-failure<br/>(deploy job 어느 스텝이든 실패 시)"]
+    FE_Prune["옛 자산 정리<br/>(실패해도 경고만, run은 성공)"]
+    FE_Notify["notify-failure<br/>(옛 자산 정리를 뺀 스텝이 실패 시)"]
     FE_Close["close-resolved-failures<br/>(열린 배포 실패 이슈 종료)"]
-    FE_Trigger --> FE_Build --> FE_S3 --> FE_CF --> FE_Verify
+    FE_Trigger --> FE_Build --> FE_S3 --> FE_CF --> FE_Verify --> FE_Prune
     FE_Verify -.실패.-> FE_Notify
-    FE_Verify -.성공.-> FE_Close
+    FE_Prune -.->|deploy job 성공| FE_Close
   end
   subgraph be_deploy [BE Deploy]
     BE_Trigger["push main / paths"]
-    BE_Jar["./gradlew shadowJar"]
+    BE_Jar["./gradlew ktlintCheck test shadowJar"]
     BE_S3["S3 업로드"]
     BE_Code["update-function-code"]
     BE_Ver["publish-version<br/>(SnapStart 스냅샷)"]
+    BE_Gate["새 버전 5회 연속 호출 검증<br/>(하나라도 실패하면 prod 유지)"]
     BE_Alias["update-alias prod"]
-    BE_Trigger --> BE_Jar --> BE_S3 --> BE_Code --> BE_Ver --> BE_Alias
+    BE_Trigger --> BE_Jar --> BE_S3 --> BE_Code --> BE_Ver --> BE_Gate --> BE_Alias
   end
 ```
 
 ### FE 배포 (Frontend Deploy)
 
-| 항목            | 내용                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **파일**        | `.github/workflows/deploy.yml` (FE 저장소)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| **트리거**      | `push` to `main`, paths: `src/**`, `public/**`, `package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `postcss.config.js`, `index.html`, `tsconfig*.json`, `scripts/inject-csp.js`, `scripts/prune-old-assets.js`, `scripts/lib/prune-assets.js`, `.github/workflows/deploy.yml`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| **단계**        | Checkout → Set up pnpm → Set up Node(`.nvmrc`) → `pnpm install --frozen-lockfile` → `pnpm check`(type-check·lint·format) → `pnpm test` → `pnpm build`(env: Firebase 6종) → Configure AWS → S3 업로드(순서: assets·fonts 장기 캐시 → 나머지 sync → SW → index.html·404.html(index.html 사본) → version.json, index.html·404.html은 `no-cache`(재검증)·SW·version.json은 무캐시 — HTML이 가리키는 파일을 먼저 올린다, [`DEPLOY.md`](./DEPLOY.md) 6번) → CloudFront invalidation → 배포 반영 검증(sha·캐시헤더·entry해시·404.html entry해시, [`BUILD-VERSION.md`](./BUILD-VERSION.md)) → 옛 자산 정리(지금 빌드에 없고 7일 지난 assets·fonts 삭제, [`DEPLOY.md`](./DEPLOY.md) 9번) → 실패 시 `notify-failure`(deploy job 어느 스텝이든 실패하면 GitHub 이슈 자동 생성), 성공 시 `close-resolved-failures`(열린 배포 실패 이슈 자동 종료) |
-| **concurrency** | `deploy-main` 그룹, `cancel-in-progress: false`(연속 push는 대기열 처리 — `aws s3 sync --delete` 도중 취소 시 버킷 파손 방지)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| **Secrets**     | `AWS_ROLE_ARN`(OIDC 역할), `S3_BUCKET_NAME`, `CLOUDFRONT_DISTRIBUTION_ID`, `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, `VITE_FIREBASE_VAPID_KEY`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| **리전**        | CLI/배포 워크플로우 리전은 ap-northeast-1. **S3 버킷 자체의 리전은 ap-northeast-2**다(`docs/DEPLOY.md` "커스텀 도메인" 절 — ACM 인증서만 CloudFront 요구사항으로 us-east-1 고정)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 항목            | 내용                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **파일**        | `.github/workflows/deploy.yml` (FE 저장소)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **트리거**      | `push` to `main`, paths: `src/**`, `public/**`, `package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `postcss.config.js`, `index.html`, `tsconfig*.json`, `scripts/inject-csp.js`, `scripts/prune-old-assets.js`, `scripts/lib/prune-assets.js`, `.github/workflows/deploy.yml`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **단계**        | Checkout → Set up pnpm → Set up Node(`.nvmrc`) → `pnpm install --frozen-lockfile` → `pnpm check`(type-check·lint·format·의존성 검사) → `pnpm test` → `pnpm build`(env: Firebase 6종) → Configure AWS → S3 업로드(순서: assets·fonts 장기 캐시 → 나머지 sync → SW → index.html·404.html(index.html 사본) → version.json, index.html·404.html은 `no-cache`(재검증)·SW·version.json은 무캐시 — HTML이 가리키는 파일을 먼저 올린다, [`DEPLOY.md`](./DEPLOY.md) 6번) → CloudFront invalidation → 배포 반영 검증(sha·캐시헤더·entry해시·404.html entry해시, [`BUILD-VERSION.md`](./BUILD-VERSION.md)) → 옛 자산 정리(지금 빌드에 없고 7일 지난 assets·fonts 삭제, [`DEPLOY.md`](./DEPLOY.md) 9번) → 실패 시 `notify-failure`(옛 자산 정리를 뺀 deploy job의 어느 스텝이든 실패하면 GitHub 이슈 자동 생성 — 정리는 실패해도 경고 주석만 남기고 run은 성공), 성공 시 `close-resolved-failures`(열린 배포 실패 이슈 자동 종료) |
+| **concurrency** | `deploy-main` 그룹, `cancel-in-progress: false`(연속 push는 대기열 처리 — `aws s3 sync --delete` 도중 취소 시 버킷 파손 방지)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **Secrets**     | `AWS_ROLE_ARN`(OIDC 역할), `S3_BUCKET_NAME`, `CLOUDFRONT_DISTRIBUTION_ID`, `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, `VITE_FIREBASE_VAPID_KEY`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **리전**        | CLI/배포 워크플로우 리전은 ap-northeast-1. **S3 버킷 자체의 리전은 ap-northeast-2**다(`docs/DEPLOY.md` "커스텀 도메인" 절 — ACM 인증서만 CloudFront 요구사항으로 us-east-1 고정)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ### BE 배포 (Deploy to AWS Lambda)
 
-| 항목        | 내용                                                                                                                                                        |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **파일**    | `.github/workflows/deploy.yml` (BE 저장소)                                                                                                                  |
-| **트리거**  | `push` to `main`, paths: `src/**`, `build.gradle.kts`, `settings.gradle.kts`, `gradle/**`, `.github/workflows/deploy.yml`                                   |
-| **단계**    | Checkout → JDK 17 → `./gradlew ktlintCheck test shadowJar` → S3 업로드 → `update-function-code` → `publish-version`(SnapStart 스냅샷) → `update-alias prod` |
-| **Secrets** | `AWS_ROLE_ARN`(OIDC 역할), `FIREBASE_SERVICE_ACCOUNT_JSON`                                                                                                  |
-| **런타임**  | java17 / arm64 / 2048MB / SnapStart `PublishedVersions`, 리전 ap-northeast-1                                                                                |
+| 항목        | 내용                                                                                                                                                                                                                                                                                                                                                                               |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **파일**    | `.github/workflows/deploy.yml` (BE 저장소)                                                                                                                                                                                                                                                                                                                                         |
+| **트리거**  | `push` to `main`, paths: `src/**`, `build.gradle.kts`, `settings.gradle.kts`, `gradle/**`, `.github/workflows/deploy.yml`                                                                                                                                                                                                                                                          |
+| **단계**    | Checkout → JDK 17 → Firebase 서비스 계정 JSON 생성 → `./gradlew ktlintCheck test shadowJar` → JAR 검증 → Configure AWS → S3 업로드 → `update-function-code` → `publish-version`(SnapStart 스냅샷) → SnapStart 활성 대기 → 새 버전 5회 연속 호출 검증(하나라도 실패하면 워크플로 실패, `prod`는 이전 버전 유지) → `update-alias prod`(정본: BE 저장소 `docs/DEPLOY.md` "배포 흐름") |
+| **Secrets** | `AWS_ROLE_ARN`(OIDC 역할), `FIREBASE_SERVICE_ACCOUNT_JSON`                                                                                                                                                                                                                                                                                                                         |
+| **런타임**  | java17 / arm64 / 2048MB / SnapStart `PublishedVersions`, 리전 ap-northeast-1                                                                                                                                                                                                                                                                                                       |
 
 > **App Runner·ECR 방식은 더 이상 쓰지 않는다.** 컨테이너 이미지 배포는 SnapStart를 쓸 수 없어
 > Shadow JAR 직접 배포로 전환했다. 상세는 BE 저장소 `docs/DEPLOY.md` 참고.
@@ -188,7 +196,7 @@ flowchart TB
     Queries["*.queries.ts useQuery/useMutation"]
     Keys["*.keys.ts keys + invalidate + success handlers"]
     Api["*.api.ts async fetch"]
-    Schema["*.schema.ts Zod + types"]
+    Schema["*.schema.ts Zod 폼 검증<br/>*.dto.ts 응답 타입(BE 스펙 생성)"]
     Queries --> Keys
     Queries --> Api
     Queries --> Schema
@@ -281,7 +289,7 @@ flowchart TB
 | 도메인      | Controller               | Service                                 | 비고                                                                                                                                |
 | ----------- | ------------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | auth        | AuthController           | AuthService                             | 서버 관리 세션(access/refresh), 로그인/회원가입 — JWT는 PR #42로 폐지                                                               |
-| post        | PostController           | PostService, PostAiService              | UrlMetadataExtractor, Jsoup, YouTube Data API                                                                                       |
+| post        | PostController           | PostService, PostAIService              | UrlMetadataExtractor, Jsoup, YouTube Data API                                                                                       |
 | post        | LinkPreviewController    | PostService, LinkPreviewService         | 등록 전 링크 미리보기(`GET /link-preview`, 로그인 전용). 결과를 10분 캐시해 등록 때 재사용                                          |
 | comment     | CommentController        | CommentService                          |                                                                                                                                     |
 | interaction | InteractionController    | InteractionService                      | 좋아요, 북마크                                                                                                                      |
@@ -297,12 +305,12 @@ flowchart TB
 
 | 항목      | 기술                                                                                                                      |
 | --------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Runtime   | Kotlin 2.1, Java 17, Spring Boot 3.5.8                                                                                    |
+| Runtime   | Kotlin 2.1, Java 17, Spring Boot 3.5.16                                                                                   |
 | 실행 형태 | AWS Lambda (Shadow JAR, SnapStart + CRaC). `LambdaHandler`가 MockMvc로 `DispatcherServlet` 직접 호출 — Tomcat 소켓 미사용 |
 | Web       | spring-boot-starter-web (서블릿 스택)                                                                                     |
-| Data      | JPA, Hibernate, PostgreSQL (Supabase pooler)                                                                              |
-| Security  | Spring Security, OAuth2 Client, 서버 관리 세션(access/refresh), X-Access-Token 헤더 우선 — JWT(jjwt)는 PR #42로 폐지      |
-| API 문서  | SpringDoc OpenAPI 2.7.0                                                                                                   |
+| Data      | JPA, Hibernate, PostgreSQL + pgvector(`hibernate-vector`) (Supabase pooler)                                               |
+| Security  | Spring Security, 서버 관리 세션(access/refresh), X-Access-Token 헤더 우선 — JWT(jjwt)는 PR #42로 폐지                     |
+| API 문서  | SpringDoc OpenAPI 2.10.0                                                                                                  |
 | 기타      | Jsoup, Actuator (health)                                                                                                  |
 
 | 설정         | 값                                                                                                                                                                                                                                                                                                      |

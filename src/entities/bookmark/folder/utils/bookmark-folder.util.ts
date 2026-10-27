@@ -25,9 +25,8 @@ function wouldDuplicateMyFoldersSection(
 
 export class BookmarkFolderUtil {
   // bookmarkFolderApi.fetchBookmarkFolderList는 apiClient.get<BookmarkFolderListResponse>()로
-  // 캐싱만 할 뿐 bookmarkFolderSchema로 파싱하지 않는다 — 그래서 lastUsedAt은 (BookmarkFolder
-  // 타입상 Date로 보여도) 실제로는 BE가 보낸 원시 ISO 문자열 그대로 들어온다. dayjs(value)는
-  // 문자열·Date 어느 쪽이 와도 안전하게 파싱한다.
+  // 캐싱만 할 뿐 런타임 파싱을 하지 않는다 — lastUsedAt은 타입(string | null) 그대로 BE가 보낸
+  // ISO 문자열이고, 정렬 비교는 dayjs(value)로 감싸서 한다.
   static pickRecentFolders(folderList: BookmarkFolder[]): BookmarkFolder[] {
     const usedFolderList = folderList.filter(
       (folder) => folder.lastUsedAt !== null && folder.lastUsedAt !== undefined

@@ -7,7 +7,7 @@
 > **읽고 나면**: 배포 후 열려 있던 탭이 왜·언제 자동으로 새로고침되는지, 스로틀·루프
 > 가드가 무엇을 막는지 알고, 감지 주기나 판정 조건을 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-10-14
+> **마지막 검토**: 2026-10-27
 
 배포 직후에도 이미 열려 있던 탭은 계속 구 버전 JS 번들을 쓴다. 이 기능은 탭으로
 돌아올 때마다(창 포커스, 또는 탭이 다시 보일 때) 서버의 최신 `index.html`을 확인해 새
@@ -145,7 +145,8 @@ react-router가 history를 이미 목적지로 밀어둔 상태라, `reload()`�
 1. **DEV 모드면 아무것도 안 한다.** dev 서버의 첫 module script는 `/@vite/client`
    (Vite HMR 클라이언트)라 비교 자체가 무의미하다(2026-10-14 정정: 처음엔
    `/src/main.tsx`라고 적었지만 [BUILD-VERSION.md](./BUILD-VERSION.md) §5가 실측한 값은
-   `/@vite/client`다).
+   `/@vite/client`다). 운영 빌드라도 지금 문서에서 entry script를 찾지 못하면
+   (`readEntryScriptSrc`가 빈 값) 비교할 기준이 없어 이벤트 리스너를 아예 붙이지 않는다.
 2. **윈도우 `focus` 이벤트, `document`의 `visibilitychange`(visible일 때만), 윈도우 `pageshow`(bfcache
    복원일 때만)마다**
    마지막 확인 이후 5분(`VERSION_CHECK_THROTTLE_MS`)이
@@ -154,7 +155,10 @@ react-router가 history를 이미 목적지로 밀어둔 상태라, `reload()`�
    재확인할 필요는 없다.
 3. 스로틀을 통과하면 `/index.html`을 `cache: 'no-store'`로 다시 받아 entry script
    경로를 비교한다(§3의 `VersionUtil`). 네트워크 실패·비정상 응답·파싱 실패는 전부
-   조용히 무시(다음 복귀에서 재시도).
+   조용히 무시한다. 마지막 확인 시각은 요청을 보내기 **전에** 갱신하고 실패해도 되돌리지
+   않으므로, 실패한 뒤의 재확인은 바로 다음 복귀가 아니라 다시 5분이 지난 뒤의 복귀에서
+   일어난다 — 응답을 기다리는 사이 포커스가 오가도 요청이 겹치지 않고, 오프라인에서
+   복귀마다 요청이 쌓이지도 않게 하려는 것이다(`checkDeployedVersion`의 주석).
 4. 경로가 같으면(최신 상태) 아무 것도 안 한다.
 5. 다르면, `sessionStorage`에 **같은 값**이 이미 기록돼 있는지 먼저 확인한다(§7의
    루프 가드) — CloudFront 엣지가 잠깐 옛 `index.html`을 돌려주다가 다시 새

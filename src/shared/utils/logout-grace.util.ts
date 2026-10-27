@@ -16,11 +16,11 @@
  * clearAll()은 재요청을 아예 하지 않으므로 붙잡을 Promise가 없다. 대신 로그아웃
  * 시점에 이미 떠 있던 요청 - 어떤 queryFn도 AbortSignal을 apiClient에 넘기지 않아
  * cancelQueries()로도 실제로 끊기지 않는다 - 의 401이 돌아오는 구간만 창으로 덮는다.
- * 이 401을 놓치면 client.ts:219 가드가 풀려 clearAll()이 기본값(/auth/login)으로
- * 한 번 더 호출되고, 보호 경로 로그아웃이 /post에 도착한 직후 로그인 페이지로 튕긴다.
- * 폭은 지금까지 resetQueries() Promise가 사실상 열어두던 창(재요청 1회 + 실패 시
- * 기본 재시도 1회 = RTT + 1000ms + RTT, query-core retryer.ts의 기본 재시도 지연
- * `1000 * 2**0`)에 맞췄다.
+ * 이 401을 놓치면 client.ts request() 401 분기의 `!AuthUtil.isLoggingOut()` 가드가 풀려
+ * clearAll()이 기본값(/auth/login)으로 한 번 더 호출되고, 보호 경로 로그아웃이 /post에
+ * 도착한 직후 로그인 페이지로 튕긴다. 폭은 지금까지 resetQueries() Promise가 사실상
+ * 열어두던 창(재요청 1회 + 실패 시 기본 재시도 1회 = RTT + 1000ms + RTT, query-core
+ * retryer.ts의 기본 재시도 지연 `1000 * 2**0`)에 맞췄다.
  */
 const LOGOUT_GRACE_MS = 2000;
 

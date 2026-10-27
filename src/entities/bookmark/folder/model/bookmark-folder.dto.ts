@@ -7,7 +7,7 @@ import type { components } from '@/shared/api/generated/openapi.gen';
 // 실제 런타임은 Jackson JsonInclude.ALWAYS라 lastUsedAt 키는 항상 있고 값이 null로 온다 —
 // bookmark-folder.util.ts의 `!== null` 가드가 그걸 전제한다. 아래 재선언은 스펙에 nullable이
 // 없던 때(springdoc이 Kotlin nullable을 required 여부로만 반영) FE 타입을 런타임에 맞게
-// 넓히려고 둔 것이다. 지금은 스펙도 nullable: true를 표기해(openapi.json의 FolderResponse)
+// 넓히려고 둔 것이다. 지금은 스펙도 nullable을 표기해(openapi.json의 FolderResponse, 3.1의 type: ["string", "null"])
 // 생성 타입이 이미 `lastUsedAt?: string | null`이라 재선언과 같은 모양이다(제거해도 무방하지만
 // 유지 — docs/OPENAPI-CODEGEN.md §11).
 export type BookmarkFolder = Omit<components['schemas']['FolderResponse'], 'lastUsedAt'> & {

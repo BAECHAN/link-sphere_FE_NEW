@@ -8,7 +8,7 @@
 > 라벨("목록으로"/"뒤로가기")이 유입 경로에 따라 어떻게 정해지는지 알고, 새 유입 경로를
 > 추가하거나 버튼의 노출·동작을 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-10-14
+> **마지막 검토**: 2026-10-27
 
 게시글 상세(`/post/:id`)에서 돌아가는 수단은 화면 크기에 따라 아예 다릅니다 — 데스크톱은
 버튼이 있고, 모바일은 버튼이 없는 대신 하단 탭바를 씁니다. 버튼이 있을 때도 라벨은
@@ -118,13 +118,14 @@ Navbar와 버튼 바 두 줄이 스크롤 내내 함께 고정돼 모바일 화�
 
 ## 6. 상태 모델
 
-새 전역 스토어나 스키마는 없다. 유일한 상태는 React Router의 history location이 실어
-나르는 두 값뿐이다:
+새 전역 스토어나 스키마는 없다. 입력은 React Router의 history location이 실어 나르는 두 값이고,
+여기에 `useBackLabel`이 라벨을 유지하려고 두는 컴포넌트 로컬 상태 하나가 더해진다:
 
-| 값                          | 타입                                | 누가 채우나                                                                | 누가 읽나                             |
-| --------------------------- | ----------------------------------- | -------------------------------------------------------------------------- | ------------------------------------- |
-| `location.key`              | `string` (react-router 내장)        | react-router — 세션 첫 진입은 `'default'`, 그 외는 매 이동마다 임의 문자열 | `resolveBackLabel`, `useGoBack` 둘 다 |
-| `location.state.backSource` | `'feed' \| 'bookmark' \| undefined` | `PostCard`가 `<Link state={{ backSource }}>`로 실어 보냄                   | `resolveBackLabel`만                  |
+| 값                          | 타입                                   | 누가 채우나                                                                                                                         | 누가 읽나                             |
+| --------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `location.key`              | `string` (react-router 내장)           | react-router — 세션 첫 진입은 `'default'`, 그 외는 매 이동마다 임의 문자열                                                          | `resolveBackLabel`, `useGoBack` 둘 다 |
+| `location.state.backSource` | `'feed' \| 'bookmark' \| undefined`    | `PostCard`가 `<Link state={{ backSource }}>`로 실어 보냄                                                                            | `resolveBackLabel`만                  |
+| `useBackLabel`의 스냅샷     | `{ key, pathname, label }`(`useState`) | `useBackLabel` — `location.key`가 바뀔 때 `useNavigationType()`이 PUSH이고 경로가 같으면(오버레이) 직전 라벨 유지, 아니면 다시 계산 | 돌아가기 버튼 라벨(§5 표)             |
 
 `backSource`는 피드 페이지의 `renderFeedPost`(`src/pages/post/index.tsx`, →`'feed'`)와 북마크 페이지의
 `renderBookmarkPost`(`src/pages/bookmark/BookmarkPage.tsx`, →`'bookmark'`)만 채운다 — 목록 위젯은 카드를

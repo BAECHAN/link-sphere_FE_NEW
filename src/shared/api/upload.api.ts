@@ -14,7 +14,7 @@ interface SignedUploadUrl {
 
 // Supabase Storage는 버킷 용량·형식 제한 위반도 HTTP 400으로 돌려주고 실제 원인은 본문 statusCode
 // ("413"·"415")에 담는다. 혼잡(429)·장애(5xx, DB 타임아웃 544)는 HTTP 상태로 온다(storage 서버 소스
-// 조사, docs/COMMENT.md "이미지 업로드 실패 안내" 참고). 본문이 없거나 JSON이 아니면 HTTP 상태로 판정한다.
+// 조사, docs/COMMENT.md "실패 안내 — 원인과 할 일을 버튼 위에" 참고). 본문이 없거나 JSON이 아니면 HTTP 상태로 판정한다.
 async function resolveStorageFailureReason(response: Response): Promise<ImageUploadFailureReason> {
   const body: unknown = await response.json().catch(() => null);
   const bodyStatus =
