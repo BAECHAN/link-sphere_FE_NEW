@@ -48,6 +48,13 @@
 
 ### Changed
 
+- `comment` 데스크톱 글 상세의 우하단 버튼을 "댓글 쓰기로 이동"에서 맨 위로로 바꿈
+  <details><summary>배경·구현</summary>
+
+  상세에는 맨 위로 버튼이 없었고, 데스크톱 우하단에는 댓글 작성 폼으로 가는 플로팅 버튼(`ScrollToCommentFormButton`)이 있었다. 긴 글·댓글을 읽은 뒤 위로 돌아갈 수단을 더하려고 서비스 11곳(네이버·다음 뉴스, velog, dev.to, 브런치, 티스토리, 네이버 블로그, Medium 등)을 조사해 보니 플로팅 버튼 둘을 쌓은 곳은 없었고, Material Design 3 FAB 가이드도 한 화면에 FAB를 여러 개 두지 말라고 한다. 쌓기·지금처럼·모바일에도 ↑까지 실제 화면 미리보기로 비교해 사용자가 골랐다 — 데스크톱은 그 자리를 맨 위로 하나로 바꾸고, 모바일은 하단 댓글 바가 있어 두지 않는다(미리보기에서 ↑가 마지막 댓글의 "삭제" 버튼을 가렸다). 댓글 폼으로는 본문 아래 💬(댓글 수) 버튼으로 간다. 그래서 댓글을 한참 읽다가 폼으로 가는 동작은 한 번에서 두 번(↑ 뒤 💬)이 됐다. 상세에서만 `max-md:hidden`으로 감싸 폭 경계를 버튼 자리(`bottom-20 md:bottom-6`)와 같은 Tailwind `md`로 맞췄다. 근거·대안 비교는 `docs/COMMENT.md` "맨 위로 버튼". (`AppLayout.tsx`·`AppLayout.test.tsx`, `CommentList.tsx`, `ScrollToCommentFormButton.tsx`·`.test.tsx`·`.stories.tsx`(삭제), `texts.ts`, `e2e/scroll-to-top-detail.spec.ts`·`e2e/scroll-to-top-detail.mobile.spec.ts`(신규), `docs/COMMENT.md`, `docs/FE-ARCHITECTURE.md`, `docs/TESTING.md`, `.claude/skills/responsive-ux/SKILL.md`, `.claude/skills/motion-ux/SKILL.md`, [PR #431](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/431))
+
+  </details>
+
 - `bookmark` 폴더 이름을 15자로 제한하고, 잘리지 않게 줄바꿈해 보여 줌
   <details><summary>배경·구현</summary>
 

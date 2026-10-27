@@ -174,7 +174,7 @@ src/
 │   ├── comment/
 │   │   ├── comment-list/
 │   │   │   ├── hooks/            # useCommentList
-│   │   │   └── ui/               # CommentList, CommentItem, ScrollToCommentFormButton
+│   │   │   └── ui/               # CommentList, CommentItem
 │   │   └── my-comment-list/
 │   │       ├── hooks/            # useMyCommentList, useMyCommentCard
 │   │       └── ui/               # MyCommentList, MyCommentCard, MyCommentCardSkeleton
@@ -1294,12 +1294,15 @@ Radix `Dialog` 기반 창을 코드에서 `*Modal`·`*Dialog`로 섞어 부르�
 **제목**: `title`은 항상 직접 적고(auto-title 미사용), 아래 형식을 따른다. 사이드바 루트
 순서는 `.storybook/preview.tsx`의 `storySort`가 레이어 순서로 고정한다.
 
-| 레이어            | 형식                                               | 예                                                      |
-| ----------------- | -------------------------------------------------- | ------------------------------------------------------- |
-| shared            | `Shared/UI/<세그먼트>/<컴포넌트>`                  | `Shared/UI/Atoms/Button`                                |
-| entities          | `Entities/<슬라이스>[/<하위 슬라이스>]/<컴포넌트>` | `Entities/Auth/PasswordConfirmMessage`                  |
-| features, widgets | `<레이어>/<도메인>/<슬라이스>/<컴포넌트>`          | `Widgets/Comment/CommentList/ScrollToCommentFormButton` |
-| pages             | `Pages/<슬라이스>/<컴포넌트>`                      | `Pages/Version/VersionPage`                             |
+| 레이어            | 형식                                               | 예                                               |
+| ----------------- | -------------------------------------------------- | ------------------------------------------------ |
+| shared            | `Shared/UI/<세그먼트>/<컴포넌트>`                  | `Shared/UI/Atoms/Button`                         |
+| entities          | `Entities/<슬라이스>[/<하위 슬라이스>]/<컴포넌트>` | `Entities/Auth/PasswordConfirmMessage`           |
+| features, widgets | `<레이어>/<도메인>/<슬라이스>/<컴포넌트>`          | `Widgets/Comment/CommentList/<컴포넌트>`(형식만) |
+| pages             | `Pages/<슬라이스>/<컴포넌트>`                      | `Pages/Version/VersionPage`                      |
+
+features·widgets에는 지금 스토리가 없다 — 하나뿐이던 `Widgets/Comment/CommentList/ScrollToCommentFormButton`이
+2026-10-27 컴포넌트와 함께 지워졌다(`docs/COMMENT.md` "맨 위로 버튼").
 
 - 모든 단계는 PascalCase로 쓰고(`comment-list` → `CommentList`, `alert-dialog.stories.tsx` →
   `AlertDialog`), 슬라이스 안의 `ui` 세그먼트는 생략한다. shared만 슬라이스가 없어

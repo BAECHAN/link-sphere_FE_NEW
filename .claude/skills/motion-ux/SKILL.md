@@ -77,7 +77,7 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
   - `transition-property`를 색·투명도·그림자로 고정해(`!important`, `transition-all`·인라인 style까지) `translate`·`scale`·`rotate`·높이
     변화는 애니메이션 없이 바로 바뀐다 — 사이드바 드로어, 카드 hover, 떠 있는 버튼.
   - `animate-spin`은 2초에 한 바퀴(기본 1초)로 느리게 돌고, `animate-pulse`(스켈레톤)는 그대로다.
-  - 숨김 상태에 `scale`·`translate`를 함께 쓰는 버튼(`ScrollToTop`·`ScrollToCommentFormButton`)은 사라질 때
+  - 숨김 상태에 `scale`·`translate`를 함께 쓰는 버튼(`ScrollToTop`)은 사라질 때
     크기·위치가 바로 바뀐 뒤 흐려진다. 2026-10-15 녹화로 보고 그대로 두기로 했다(사용자 결정).
   - 회귀는 `e2e/reduced-motion.spec.ts`가 잡는다.
 - **새 코드** — `tw-animate-css` 클래스나 Tailwind `translate-*`·`scale-*`·`rotate-*` + `transition-*`로 만들면
@@ -89,13 +89,13 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 CSS만으로 exit(사라짐) 애니메이션을 만들 때 "화면에서 사라지는 순간까지 DOM에
 남겨두는" 시간(JS `setTimeout`)과 실제 CSS transition 시간이 어긋나면,
 애니메이션이 끝나기 전에 언마운트되거나 반대로 다 끝난 뒤에도 빈 시간이 남는다.
-이 값이 지금 코드 두 군데에 **매직넘버로 중복**돼 있다 — 하나를 고치면 다른
-쪽은 그대로 남는 함정이다.
+이 값이 지금 JS 상수와 CSS `duration-*`에 따로 적혀 있고, 300ms는 두 파일에 **매직넘버로
+중복**돼 있다 — 하나를 고치면 다른 쪽은 그대로 남는 함정이다.
 
-| 값                     | 위치                                                                                                                                                                   |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TRANSITION_MS = 200`  | `src/shared/ui/elements/ScrollToTop.tsx:11`, `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.tsx:10` — 각자 독립 선언, CSS `duration-200`과 수동 동기화 |
-| `setTimeout(..., 300)` | `src/shared/ui/elements/dialog/alert/alert.store.ts:74`, `src/shared/ui/elements/dialog/alert/Alert.tsx:56`                                                            |
+| 값                     | 위치                                                                                                        |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `TRANSITION_MS = 200`  | `src/shared/ui/elements/ScrollToTop.tsx:11` — CSS `duration-200`과 수동 동기화                              |
+| `setTimeout(..., 300)` | `src/shared/ui/elements/dialog/alert/alert.store.ts:74`, `src/shared/ui/elements/dialog/alert/Alert.tsx:56` |
 
 같은 패턴(exit 애니메이션 + `shouldRender` 상태 + `setTimeout`)을 새로 만들
 때는 이 값이 실제 CSS `duration-*` 클래스와 정확히 일치해야 한다는 걸 놓치지

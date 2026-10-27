@@ -80,11 +80,11 @@ React Hook Form + zod resolver의 기본 동작은 안다고 가정한다.
 - **`useImageAttachments`**(`src/shared/hooks/useImageAttachments.ts`) — 붙여넣기·파일
   선택·드래그앤드롭 첨부, 장수·용량 검증
 - **스토리지 직접 업로드** — `uploadImageAndGetUrl`(리사이즈 → 서명 URL 발급 → PUT)
-- **`IntersectionObserver`** — 내 댓글 다음 페이지 선반입, 데스크톱 플로팅 버튼 노출 판정
+- **`IntersectionObserver`** — 내 댓글 다음 페이지 선반입
 - **`ResizeObserver`** — 모바일 댓글 바 높이만큼 토스트 위치를 올림
 
 **구현·검증 과정에서 쓴 도구**: Vitest + MSW(`src/mocks/handlers/comment.handlers.ts`),
-Playwright e2e(`page.route()` 모킹), Storybook 인터랙션 테스트 — §9 참고.
+Playwright e2e(`page.route()` 모킹) — §9 참고.
 
 ## 4. 왜 만들었나
 
@@ -412,22 +412,66 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   다시 마운트돼 ref가 비므로 예전처럼 다시 이동한다. 같은 가드가 StrictMode의 effect 재실행도
   건너뛰므로 강조 해제 타이머는 cleanup에서 취소하지 않는다(취소하면 링이 남는다).
 
-### 모바일 댓글 바 · 데스크톱 플로팅 버튼
+### 모바일 댓글 바 · 데스크톱 인라인 폼
 
 `CommentList`는 화면 폭에 따라 작성 진입점을 다르게 둔다.
 
-| 폭       | 진입점                                                        | 핵심 동작                                                                                                |
-| -------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| 모바일   | `MobileCommentBar` — 탭바 위 고정 바, 탭하면 하단 시트로 펼침 | 접힘 `z-panel`, 펼침 `z-scrim`. 바 높이만큼 `--toast-offset-bottom`을 올려 토스트가 바 위에 뜨게 함      |
-| 데스크톱 | 목록 위 인라인 `CommentForm` + `ScrollToCommentFormButton`    | 폼이 navbar 아래로 사라지면 우하단에 버튼 노출, 누르면 폼으로 스크롤 후 `focus({ preventScroll: true })` |
+| 폭       | 진입점                                                        | 핵심 동작                                                                                                 |
+| -------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 모바일   | `MobileCommentBar` — 탭바 위 고정 바, 탭하면 하단 시트로 펼침 | 접힘 `z-panel`, 펼침 `z-scrim`. 바 높이만큼 `--toast-offset-bottom`을 올려 토스트가 바 위에 뜨게 함       |
+| 데스크톱 | 목록 위 인라인 `CommentForm`                                  | 멀리 내려간 뒤 폼으로 돌아가려면 우하단 맨 위로(↑) → 본문 아래 💬(댓글 수) 버튼(아래 "맨 위로 버튼" 참고) |
 
 - 모바일 헤더 검색이 열리면 바를 **언마운트하지 않고** `hidden`으로만 숨긴다
   (`src/features/comment/create/ui/MobileCommentBar.tsx`의 `isMobileSearchOpen && 'hidden'`). 이탈 가드는 같은
   pathname 이동을 통과시키므로, 언마운트하면 쓰던 글이 경고 없이 사라진다.
 - 펼친 시트의 `z-scrim`은 사이드바 백드롭과 같은 층이다 — 미해결 충돌(§11), 근거는
   [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md) §4.
-- 두 컴포넌트는 `space-y-6` 형제 목록 **밖**에 둔다(CommentList.tsx `CommentListContent`의 반환 JSX 끝, 이유를 적은 주석 아래). 안에 두면
+- `MobileCommentBar`는 `space-y-6` 형제 목록 **밖**에 둔다(CommentList.tsx `CommentListContent`의 반환 JSX 끝, 이유를 적은 주석 아래). 안에 두면
   마운트·언마운트 때마다 24px 레이아웃이 흔들린다(§10).
+
+### 맨 위로 버튼 — 데스크톱에만, 댓글 이동 버튼 대신(2026-10-27)
+
+상세의 우하단 플로팅 자리는 **데스크톱에서만 맨 위로(`ScrollToTop`)가 쓴다. 모바일 상세에는 두지 않는다.**
+그 전까지 이 자리는 데스크톱 전용 "댓글 쓰기로 이동" 버튼(`ScrollToCommentFormButton`)이었고, 상세에는
+맨 위로가 없었다(등록 화면을 상세로 잘못 읽어 숨기던 조건까지 포함한 경위는 PR #429).
+
+- **조건** — `src/app/layouts/app-layout/AppLayout.tsx`의 `showScrollToTop`(글 등록·수정이 아니면 그린다)과,
+  상세일 때(`isPostDetailPage`) 감싸는 `max-md:hidden`. 폭 경계를 JS가 아니라 Tailwind `md`(48rem)로 둔 것은
+  버튼 자신의 세로 위치(`bottom-20 md:bottom-6`)가 같은 경계에서 바뀌기 때문이다.
+- **댓글로 가는 길** — 본문 아래 💬(댓글 수) 버튼이 맡는다(`PostCard.tsx`의 `COMMENT_SECTION_HASH` 링크). 데스크톱은
+  폼으로 스크롤한 뒤 입력창에 포커스한다(위 "해시 이동").
+- **잃은 것** — 댓글을 한참 읽다가 작성 폼으로 가는 동작이 한 번(💬 플로팅)에서 두 번(↑ 뒤 💬)이 됐다.
+
+근거는 두 가이드라인과 서비스 11곳 조사다. NN/g는 맨 위로 버튼을 이렇게 쓰라고 한다.
+
+> 4화면보다 긴 페이지에는 맨 위로 버튼을 쓴다. 페이지 오른쪽 아래에 고정된 맨 위로 버튼을 둔다. 섹션마다
+> 링크를 여러 개 넣지 말고 페이지당 고정된 맨 위로 링크 하나를 둔다. (번역, 지침 세 줄을 이어 붙임)
+>
+> — NN/g, Hoa Loranger, "Back-to-Top Button Design Guidelines"(2017), https://www.nngroup.com/articles/back-to-top/
+
+같은 글은 Home 키 같은 기본 수단을 두고 _"기술에 밝은 독자는 알지 몰라도 대부분의 사용자는 모른다"_ (번역)고
+쓴다. [Material Design 3 FAB 가이드](https://m3.material.io/components/floating-action-button/guidelines)는
+_"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 문구는 2026-10-27 조사 에이전트가 브라우저로 열어
+옮긴 것의 재인용이다(페이지가 스크립트로만 그려져 이 문서를 쓰며 직접 다시 열지 못했다).
+[WCAG 2.4.11](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html)은 고정 요소가
+키보드 포커스를 받은 요소를 완전히 가리지 않을 것을 요구한다 — 고정 요소를 쌓을수록 그 위험이 커진다.
+
+서비스 조사는 2026-10-27 조사 에이전트가 Playwright로 서비스마다 글 하나를 로그아웃 상태로 열어 본 것이다.
+
+| 방식        | 서비스                                                 | 맨 위로                     | 댓글 입력                          |
+| ----------- | ------------------------------------------------------ | --------------------------- | ---------------------------------- |
+| 포털 방식   | 네이버 뉴스, 다음 뉴스                                 | 오른쪽 아래 플로팅 **하나** | 본문 흐름 안(또는 별도 페이지)     |
+| 블로그 방식 | velog, dev.to, 브런치, 티스토리, 네이버 블로그, Medium | **없음**                    | 하단 고정 바·측면 레일의 댓글 버튼 |
+
+플로팅 버튼 둘을 쌓은 곳은 없었다. 데스크톱 상세(인라인 폼)는 포털 방식, 모바일 상세(하단 댓글 바)는 블로그
+방식과 구조가 같다. 맨 위로 버튼을 출시했다가 없앤 사례는 찾지 못했다.
+
+| 안                             | 데스크톱       | 모바일            | 결과     | 이유                                                                                                                                                                 |
+| ------------------------------ | -------------- | ----------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 변경 전                        | 💬 폼으로 이동 | 없음              | 기각     | 우하단 버튼의 뜻이 상세에서만 달랐다. 댓글로 가는 길은 본문 아래 💬가 이미 있다                                                                                      |
+| **하나로 바꾸기**              | ↑              | 없음              | **채택** | 포털 방식 선례와 같고, 목록 화면과 같은 자리·같은 규칙이 된다                                                                                                        |
+| 쌓기                           | 💬 위, ↑ 아래  | —                 | 기각     | 11곳 중 선례 없음, M3의 "FAB 하나"와 어긋나고 포커스를 가릴 위험이 커진다                                                                                            |
+| 모바일에도 ↑(위로 스크롤할 때) | —              | 댓글 바 위에 잠깐 | 기각     | 블로그 방식 6곳 모두 없음. 실제 컴포넌트로 만든 미리보기에서 ↑가 마지막 댓글의 "삭제" 버튼을 가렸다. NN/g가 말하는 "위로 올리려 할 때만" 노출이지만 선례는 못 찾았다 |
 
 ### 캐시 무효화 범위
 
@@ -490,7 +534,6 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 빈 제출 강조 시간            | 1300ms                  | `src/features/comment/create/ui/CommentForm.tsx`·`src/features/comment/update/ui/CommentEditForm.tsx`의 `highlightEmptyForm` 안 `setTimeout` |
 | 내 댓글 선반입 거리          | 아래 1200px             | `src/widgets/comment/my-comment-list/hooks/useMyCommentList.ts:19`                                                                           |
 | 해시 도착 여백               | navbar + 24px           | `src/widgets/comment/comment-list/ui/CommentItem.tsx:51`                                                                                     |
-| 플로팅 버튼 전환 시간        | 200ms                   | `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.tsx`의 `TRANSITION_MS`                                                        |
 | 모바일 바 ↔ 토스트 간격      | 8px                     | `src/features/comment/create/ui/MobileCommentBar.tsx:14`                                                                                     |
 
 **함께 바꿔야 하는 값**:
@@ -514,7 +557,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 작성 검증·제출·복원             | `src/features/comment/create/hooks/useCreateComment.ts`의 `getCommentSubmitError`·`useCreateComment`                                           |
 | 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx`의 `CommentForm`                                                                               |
 | 모바일 바                       | `src/features/comment/create/ui/MobileCommentBar.tsx:16-104`                                                                                   |
-| 데스크톱 플로팅 버튼            | `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.tsx`의 `ScrollToCommentFormButton`                                              |
+| 상세의 맨 위로 버튼 조건        | `src/app/layouts/app-layout/AppLayout.tsx`의 `showScrollToTop`·`isPostDetailPage`                                                              |
 | 수정 검증·제출                  | `src/features/comment/update/hooks/useUpdateComment.ts`의 `getCommentUpdateSubmitError`·`useUpdateComment`                                     |
 | 삭제 확인                       | `src/features/comment/delete/hooks/useDeleteComment.ts:9-31`                                                                                   |
 | 좋아요 버튼·feature 훅          | `src/features/comment/like/ui/LikeCommentButton.tsx`, `src/features/comment/like/hooks/useLikeComment.ts`                                      |
@@ -541,6 +584,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 | 해시 이동 정렬·강조 시간 | `CommentList.tsx`의 `scrollToHashedComment`(`block`·강조 `setTimeout` 시간), 도착 여백은 `CommentItem.tsx:51`                                                                                                                                                                                                       |
 | 실패 문구 바꾸기         | `texts.ts`의 `messages.error.commentSubmit`(본 요청)·`uploadSubmit`(업로드 단계, 등록·저장 두 벌). 새 원인을 나누려면 `CommentUtil.resolveSubmitError`에 분기를 더한다                                                                                                                                              |
 | 좋아요 실패 시 안내 추가 | `useLikeCommentMutation`의 `meta.manualErrorHandling`을 빼면 전역 토스트가 뜬다                                                                                                                                                                                                                                     |
+| 모바일 상세에도 맨 위로  | `AppLayout.tsx`에서 상세일 때 붙는 `max-md:hidden`을 뺀다. 버튼이 하단 댓글 바·댓글의 수정·삭제를 가리지 않는지 먼저 확인한다(§5 "맨 위로 버튼")                                                                                                                                                                    |
 | 테스트 실행              | `npx vitest run src/entities/comment src/features/comment`, e2e는 `pnpm test:e2e e2e/comment.spec.ts`                                                                                                                                                                                                               |
 
 ## 9. 검증 결과
@@ -555,14 +599,13 @@ npx vitest run src/entities/comment src/features/comment \
 
 댓글 전용분은 다음과 같다(개수는 2026-10-02 실행 기준. 2026-10-27에 `it(` 선언을 다시 세어 보니 `comment.queries.test.ts` 10개, `useCreateComment.test.tsx` 10개, `useUpdateComment.test.tsx` 7개로 늘었다 — 이 날은 테스트를 다시 돌리지 않았다).
 
-| 파일                                                                        | 개수 | 확인하는 것                                                                |
-| --------------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------- |
-| `src/entities/comment/api/comment.queries.test.ts`                          | 8    | 낙관적 삽입·치환·롤백(루트·답글), 수정 시 좋아요·답글 보존, 수정 후 무효화 |
-| `src/entities/comment/api/comment.api.test.ts`                              | 2    | 5장 업로드 시 동시 2개 제한, 순서 유지                                     |
-| `src/features/comment/create/hooks/useCreateComment.test.tsx`               | 6    | 즉시 비움, 실패 복원, 새 입력 보호, 6,000B·7,500B 차단, 이메일 미인증 차단 |
-| `src/features/comment/update/hooks/useUpdateComment.test.tsx`               | 6    | 원본 초기화, `canSubmit`, 초과 시 버튼 미차단·제출 차단, 전송량 차단, 성공 |
-| `src/features/comment/create/ui/MobileCommentBar.test.tsx`                  | 4    | 검색 오버레이 중 숨김·상태 보존, 토스트 오프셋                             |
-| `src/widgets/comment/comment-list/ui/ScrollToCommentFormButton.stories.tsx` | 1    | Storybook 인터랙션                                                         |
+| 파일                                                          | 개수 | 확인하는 것                                                                |
+| ------------------------------------------------------------- | ---- | -------------------------------------------------------------------------- |
+| `src/entities/comment/api/comment.queries.test.ts`            | 8    | 낙관적 삽입·치환·롤백(루트·답글), 수정 시 좋아요·답글 보존, 수정 후 무효화 |
+| `src/entities/comment/api/comment.api.test.ts`                | 2    | 5장 업로드 시 동시 2개 제한, 순서 유지                                     |
+| `src/features/comment/create/hooks/useCreateComment.test.tsx` | 6    | 즉시 비움, 실패 복원, 새 입력 보호, 6,000B·7,500B 차단, 이메일 미인증 차단 |
+| `src/features/comment/update/hooks/useUpdateComment.test.tsx` | 6    | 원본 초기화, `canSubmit`, 초과 시 버튼 미차단·제출 차단, 전송량 차단, 성공 |
+| `src/features/comment/create/ui/MobileCommentBar.test.tsx`    | 4    | 검색 오버레이 중 숨김·상태 보존, 토스트 오프셋                             |
 
 `EDGE_BLOCKED` 분류는 `src/shared/api/client.test.ts`와
 `src/shared/lib/react-query/config/error-toast.test.ts`가 다룬다.
@@ -585,6 +628,10 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 - `e2e/guest-guard.spec.ts` — 비로그인 작성 시도 → 로그인 모달, `POST` 요청 없음
 - `e2e/post-detail-search-overlay.mobile.spec.ts` — 검색을 열면 댓글 바가 사라지고, 닫으면
   쓰던 내용이 남음
+
+맨 위로 버튼(§5)은 2026-10-27 `src/app/layouts/app-layout/AppLayout.test.tsx`(목록·북마크·내 댓글·계정은 보이고,
+상세는 `max-md:hidden` 감쌈 안, 등록·수정은 없음)와 `e2e/scroll-to-top-detail.spec.ts`(데스크톱 — 내리면 나타나고
+누르면 scrollY 0)·`e2e/scroll-to-top-detail.mobile.spec.ts`(모바일 — 300px 넘게 내려도 없음)를 돌려 모두 통과했다.
 
 해시 이동은 2026-10-14 `e2e/comment-icon-scroll.spec.ts`(데스크톱 5개)·
 `e2e/comment-icon-scroll.mobile.spec.ts`(1개)·`e2e/post-detail-comment-prefetch.spec.ts`(3개)를
@@ -635,7 +682,8 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 기각한 뒤, `MobileCommentBar`·`ScrollToCommentFormButton`이 `space-y-6`의 형제로
 마운트·언마운트되며 `:not(:last-child)` 마진이 앞 요소에 붙었다 떨어지는 게 원인임을
 찾았다. 두 컴포넌트를 형제 목록 밖으로 뺐다(`docs/DECISIONS.md` 2026-09-06 "상세 화면
-스크롤 시 본문이 밀리던 문제").
+스크롤 시 본문이 밀리던 문제"). `ScrollToCommentFormButton`은 2026-10-27 맨 위로 버튼으로 바뀌어 지금은
+`MobileCommentBar`만 남았다(§5 "맨 위로 버튼").
 
 ### 낙관적 작성·수정의 깜빡임(2026-08-03)
 
@@ -734,6 +782,8 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 - **해시 이동** — `/post/:id#comment-:id`로 들어왔을 때 그 댓글로 스크롤하고 링으로
   강조하는 동작(`scrollToHashedComment`). `#comments`(카드 💬, `COMMENT_SECTION_HASH`)면 작성
   폼 컨테이너를 ref로 찾아 스크롤하고 포커스한다 — DOM id가 아니라 이 effect가 해석하는 신호다.
+- **맨 위로 버튼(`ScrollToTop`)** — 300px 넘게 내리면 우하단에 뜨는 전역 플로팅 버튼
+  (`src/shared/ui/elements/ScrollToTop.tsx`). 어느 화면에 그릴지는 `AppLayout.tsx`가 정한다.
 - **`z-panel` / `z-scrim`** — `src/app/globals.css:103-105`의 z-index 토큰(40 / 55).
 - **`ImageUploadError`** — 이미지 업로드 단계(서명 URL 발급·스토리지 PUT)의 실패. `reason`
   (형식·용량·한도·저장소·네트워크·원인 불명)과 한도일 때 `retryAfterSeconds`를 담는다
