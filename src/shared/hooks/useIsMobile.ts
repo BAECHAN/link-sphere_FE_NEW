@@ -1,16 +1,12 @@
 import { useState, useEffect } from 'react';
 
+// Tailwind max-md와 같은 조건이다(md = 48rem, tailwindcss/theme.css). UA는 보지 않는다 - 휴대폰을
+// 가로로 돌리거나 태블릿이면 CSS는 데스크톱 배치인데 UA로 모바일이라 하면 JS만 모바일 UI를 골라
+// 둘이 어긋난다(근거는 responsive-ux skill "브레이크포인트").
+const MOBILE_QUERY = '(width < 48rem)';
+
 function checkIsMobile() {
-  const userAgent = typeof window.navigator === 'undefined' ? '' : navigator.userAgent;
-  const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    userAgent
-  );
-
-  // 화면 너비를 통한 보조 체크 (옵션)
-  const isNarrowScreen =
-    typeof window === 'undefined' ? false : window.matchMedia('(max-width: 768px)').matches;
-
-  return isMobileDevice || isNarrowScreen;
+  return typeof window === 'undefined' ? false : window.matchMedia(MOBILE_QUERY).matches;
 }
 
 export function useIsMobile() {
@@ -20,7 +16,7 @@ export function useIsMobile() {
 
   useEffect(() => {
     // 화면 크기 변경 시 업데이트 (선택 사항)
-    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const mediaQuery = window.matchMedia(MOBILE_QUERY);
     const handleChange = () => setIsMobile(checkIsMobile());
 
     // 구형 브라우저 지원 처리

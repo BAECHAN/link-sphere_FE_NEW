@@ -40,10 +40,8 @@ export function AppLayout({ children }: Readonly<AppLayoutProps>) {
         return;
       }
 
-      // Tailwind md:(min-width:768px)와 같은 경계를 쓴다. useIsMobile()은
-      // max-width:768px + UA 매칭이라 정확히 768px과 iPad에서 어긋나는데, 검색
-      // 패널이 md:hidden으로 사라진 화면을 inert로 잠그면 닫을 UI가 없어진다
-      // (검색을 연 채로 창을 넓힌 경우).
+      // Tailwind md:(min-width:768px)와 같은 경계를 쓴다. 검색 패널이 md:hidden으로
+      // 사라진 화면을 inert로 잠그면 닫을 UI가 없어진다(검색을 연 채로 창을 넓힌 경우).
       const desktop = window.matchMedia('(min-width: 768px)');
 
       function syncInert() {

@@ -8,21 +8,27 @@ import { useIsMobile } from '@/shared/hooks/useIsMobile';
 function stubMatchMedia(initialMatches: boolean) {
   const media = { matches: initialMatches };
   const listeners: Array<() => void> = [];
+  const queries: string[] = [];
 
-  vi.stubGlobal('matchMedia', (query: string) => ({
-    get matches() {
-      return media.matches;
-    },
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: (_type: string, listener: () => void) => listeners.push(listener),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  }));
+  vi.stubGlobal('matchMedia', (query: string) => {
+    queries.push(query);
+
+    return {
+      get matches() {
+        return media.matches;
+      },
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: (_type: string, listener: () => void) => listeners.push(listener),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    };
+  });
 
   return {
+    queries,
     change(matches: boolean) {
       media.matches = matches;
       listeners.forEach((listener) => listener());
@@ -33,6 +39,7 @@ function stubMatchMedia(initialMatches: boolean) {
 describe('useIsMobile', () => {
   afterEach(() => {
     stubMatchMedia(false);
+    vi.restoreAllMocks();
   });
 
   it('첫 렌더부터 좁은 화면이면 true다 (데스크톱 UI가 잠깐 보이는 깜빡임 방지)', () => {
@@ -45,6 +52,26 @@ describe('useIsMobile', () => {
 
   it('넓은 화면이면 false다', () => {
     stubMatchMedia(false);
+
+    const { result } = renderHook(() => useIsMobile());
+
+    expect(result.current).toBe(false);
+  });
+
+  // CSS(Tailwind md:)가 데스크톱 배치로 그리는 폭에서 JS만 모바일 UI를 고르면 둘이 어긋난다
+  it('Tailwind max-md와 같은 조건으로 묻는다', () => {
+    const mediaQuery = stubMatchMedia(false);
+
+    renderHook(() => useIsMobile());
+
+    expect(new Set(mediaQuery.queries)).toEqual(new Set(['(width < 48rem)']));
+  });
+
+  it('UA가 모바일이어도 넓은 화면이면 false다 (휴대폰 가로·태블릿)', () => {
+    stubMatchMedia(false);
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
+      'Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
+    );
 
     const { result } = renderHook(() => useIsMobile());
 

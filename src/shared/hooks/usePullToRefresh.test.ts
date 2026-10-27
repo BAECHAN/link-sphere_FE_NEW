@@ -2,10 +2,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { usePullToRefresh } from '@/shared/hooks/usePullToRefresh';
 
-// 모바일 게이트를 항상 통과시켜 순수 당김 로직만 검증
-vi.mock('@/shared/hooks/useIsMobile', () => ({
-  useIsMobile: () => true,
-}));
+// setup.ts의 matchMedia 스텁은 matches:false 고정이다. 터치 기기(pointer: coarse)로 보이게 다시
+// 씌우고, afterEach에서 터치가 아닌 기기로 되돌린다(useIsMobile.test.ts와 같은 이유로 unstubAllGlobals 미사용).
+function stubPointer(pointer: 'coarse' | 'fine') {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: query === `(pointer: ${pointer})`,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+}
 
 function fireTouch(type: 'touchstart' | 'touchmove' | 'touchend', clientY: number) {
   const event = new Event(type, { cancelable: true, bubbles: true }) as TouchEvent;
@@ -23,9 +33,11 @@ function setScrollY(value: number) {
 describe('usePullToRefresh', () => {
   beforeEach(() => {
     setScrollY(0);
+    stubPointer('coarse');
   });
 
   afterEach(() => {
+    stubPointer('fine');
     vi.clearAllMocks();
   });
 
@@ -73,6 +85,21 @@ describe('usePullToRefresh', () => {
   it('enabled=false면 당겨도 호출하지 않는다', () => {
     const onRefresh = vi.fn();
     renderHook(() => usePullToRefresh({ onRefresh, enabled: false, threshold: 70, resistance: 1 }));
+
+    act(() => {
+      fireTouch('touchstart', 0);
+      fireTouch('touchmove', 100);
+      fireTouch('touchend', 100);
+    });
+
+    expect(onRefresh).not.toHaveBeenCalled();
+  });
+
+  // 휴대폰 가로·태블릿처럼 폭이 넓어도 터치 기기면 켜지고, 마우스·트랙패드가 주 입력이면 꺼진다
+  it('터치가 주 입력이 아니면 당겨도 호출하지 않는다', () => {
+    stubPointer('fine');
+    const onRefresh = vi.fn();
+    renderHook(() => usePullToRefresh({ onRefresh, threshold: 70, resistance: 1 }));
 
     act(() => {
       fireTouch('touchstart', 0);
