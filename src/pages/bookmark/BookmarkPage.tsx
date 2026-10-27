@@ -98,8 +98,11 @@ export function BookmarkPage() {
   }
 
   // ============== 데스크탑 — 사이드바 + 게시글 ==============
+  // 바깥 줄을 AppLayout main의 아래 여백(md:pb-16)까지 늘리고, 그 여백은 게시글 칸이 갖는다.
+  // sticky 사이드바는 바깥 줄 안에서만 붙어 있어, 줄이 여백 위에서 끝나면 맨 아래까지 내렸을 때
+  // 48px 밀려 상단바 뒤로 들어갔다(docs/BOOKMARK.md §10). AppLayout 여백을 바꾸면 같이 바꾼다.
   return (
-    <div className="flex gap-6">
+    <div className="flex gap-6 -mb-16">
       <FolderTree
         selectedKey={activeFolderKey}
         onSelect={setFolderKey}
@@ -107,7 +110,7 @@ export function BookmarkPage() {
         search={search}
         className="w-60 shrink-0 sticky top-[calc(var(--navbar-height)+1rem)] h-[calc(100vh-var(--navbar-height)-2rem)] self-start"
       />
-      <main className="flex-1 min-w-0">
+      <main className="flex-1 min-w-0 pb-16">
         <header className="flex items-center justify-between mb-4">
           <h1 className="text-screen-title min-w-0 select-none">{currentFolderName}</h1>
           <Select value={sort} onValueChange={(v) => setSort(v as BookmarkFolderSort)}>

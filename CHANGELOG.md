@@ -190,6 +190,13 @@
 
 ### Fixed
 
+- `bookmark` 맨 아래까지 내리면 사이드바 "전체" 행이 상단바 뒤로 숨던 문제
+  <details><summary>배경·구현</summary>
+
+  데스크톱 북마크 화면을 맨 아래까지 내리면 왼쪽 폴더 목록이 48px 밀려 올라가 "전체" 행이 상단바 뒤로 들어갔다. 글이 적은 폴더는 내릴 수 있는 거리가 그 48px뿐이라 조금만 내려도 보였다. sticky 사이드바는 바깥 줄 안에서만 붙어 있는데, 이 줄이 `AppLayout` main의 아래 여백(`md:pb-16`, 64px) 위에서 끝나고 사이드바 높이식은 아래 여백을 16px로 가정한 탓이다. 바깥 줄을 `-mb-16`으로 아래 여백까지 늘리고 그 여백은 게시글 칸이 `pb-16`으로 갖게 했다. 사이드바 높이를 48px 줄이는 안과 실제 화면으로 비교한 뒤 모양이 지금과 같은 쪽을 골랐다(사용자 결정). 글이 적은 폴더에서 괜히 48px 내려가던 스크롤도 없어졌다. 설명은 `docs/BOOKMARK.md` §10. (`src/pages/bookmark/BookmarkPage.tsx`, `e2e/bookmark-sidebar-sticky.spec.ts`(신규), `.claude/skills/responsive-ux/SKILL.md`, [PR #433](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/433))
+
+  </details>
+
 - `shared` 휴대폰 가로 화면·태블릿에서 글 상세의 댓글 입력창이 사라지던 문제
   <details><summary>배경·구현</summary>
 
