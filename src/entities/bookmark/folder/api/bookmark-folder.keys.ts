@@ -11,6 +11,7 @@ export const bookmarkFolderMutationKeys = {
   create: [...rootKey, 'create'] as const,
   update: (folderId: string) => [...rootKey, 'update', folderId] as const,
   delete: (folderId: string) => [...rootKey, 'delete', folderId] as const,
+  pin: (folderId: string) => [...rootKey, 'pin', folderId] as const,
   addBookmarkFolder: (postId: string) => [...rootKey, 'addBookmarkFolder', postId] as const,
   removeBookmarkFolder: (postId: string) => [...rootKey, 'removeBookmarkFolder', postId] as const,
   clearBookmarkFolders: (postId: string) => [...rootKey, 'clearBookmarkFolders', postId] as const,
@@ -66,6 +67,14 @@ export const handleBookmarkFolderCreateSuccess = (queryClient: QueryClient) => {
 
 /** 폴더 이름 수정 후 — 목록만 갱신 */
 export const handleBookmarkFolderUpdateSuccess = (queryClient: QueryClient) => {
+  bookmarkFolderInvalidateQueries.list(queryClient);
+};
+
+/**
+ * 고정·해제 연타의 마지막 요청이 실패한 뒤 — 스냅샷으로 되돌린 목록을 서버 값으로 다시 맞춘다.
+ * 앞 요청까지 실패했다면 그 스냅샷도 서버와 다르다(handleLikePostFailure와 같은 이유).
+ */
+export const handleBookmarkFolderPinFailure = (queryClient: QueryClient) => {
   bookmarkFolderInvalidateQueries.list(queryClient);
 };
 

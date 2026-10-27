@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { createElement, type ReactNode } from 'react';
@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { createTestQueryClient } from '@/test/utils';
+import { toast } from '@/shared/lib/toast/toast';
+import { TEXTS } from '@/shared/config/texts';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
@@ -18,6 +20,7 @@ import {
   useAddBookmarkFolderMutation,
   useClearBookmarkFoldersMutation,
   useRemoveBookmarkFolderMutation,
+  useSetBookmarkFolderPinMutation,
 } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
@@ -52,6 +55,10 @@ const seedFolderList: BookmarkFolderListResponse = {
 
 beforeEach(() => {
   queryClient = createTestQueryClient({ gcTime: Infinity });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('useAddBookmarkFolderMutation', () => {
@@ -324,5 +331,206 @@ describe('useClearBookmarkFoldersMutation', () => {
     expect(folders?.uncategorizedCount).toBe(2);
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+});
+
+describe('useSetBookmarkFolderPinMutation', () => {
+  const PINNED_AT = '2026-10-01T09:00:00';
+  let pinRequests: string[];
+
+  beforeEach(() => {
+    pinRequests = [];
+  });
+
+  const pinResponse = (pinnedAt: string | null) =>
+    HttpResponse.json(
+      { status: 200, message: 'ok', data: { id: FOLDER_A, pinnedAt }, timestamp: '' },
+      { status: 200 }
+    );
+  const errorResponse = () =>
+    HttpResponse.json(
+      { status: 500, code: 'SERVER_ERROR', message: '', timestamp: '' },
+      { status: 500 }
+    );
+
+  function respondPin(method: 'PUT' | 'DELETE', respond: () => Response | Promise<Response>) {
+    const handler = () => {
+      pinRequests.push(method);
+      return respond();
+    };
+    server.use(
+      method === 'PUT'
+        ? http.put(url(API_ENDPOINTS.bookmark.folderPin(FOLDER_A)), handler)
+        : http.delete(url(API_ENDPOINTS.bookmark.folderPin(FOLDER_A)), handler)
+    );
+  }
+
+  function createResponseGate() {
+    let release!: () => void;
+    const wait = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    return { wait, release };
+  }
+
+  function seedWithPinnedAt(pinnedAt: string | null) {
+    queryClient.setQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list, {
+      ...seedFolderList,
+      folders: seedFolderList.folders.map((folder) =>
+        folder.id === FOLDER_A ? { ...folder, lastUsedAt: '2026-09-01T00:00:00', pinnedAt } : folder
+      ),
+    });
+  }
+
+  const readFolderA = () =>
+    queryClient
+      .getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list)
+      ?.folders.find((folder) => folder.id === FOLDER_A);
+
+  it('고정은 PUT, 해제는 DELETE를 보내고 화면은 응답 전에, 성공 토스트는 응답 뒤에 뜬다', async () => {
+    const successSpy = vi.spyOn(toast, 'success');
+    seedWithPinnedAt(null);
+    const gate = createResponseGate();
+    respondPin('PUT', async () => {
+      await gate.wait;
+      return pinResponse(PINNED_AT);
+    });
+    respondPin('DELETE', () => pinResponse(null));
+    const { result } = renderHook(() => useSetBookmarkFolderPinMutation(FOLDER_A), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.mutate(true);
+    });
+
+    await waitFor(() => expect(readFolderA()?.pinnedAt).toEqual(expect.any(String)));
+    // 이름·개수·lastUsedAt은 건드리지 않는다 — 최근 구획 순서가 그대로여야 한다
+    expect(readFolderA()).toMatchObject({
+      name: '개발',
+      bookmarkCount: 2,
+      lastUsedAt: '2026-09-01T00:00:00',
+    });
+    expect(successSpy).not.toHaveBeenCalled();
+
+    gate.release();
+    await waitFor(() => expect(readFolderA()?.pinnedAt).toBe(PINNED_AT));
+    expect(successSpy).toHaveBeenLastCalledWith(TEXTS.messages.success.folderPinned('개발'));
+
+    act(() => {
+      result.current.mutate(false);
+    });
+
+    await waitFor(() => expect(pinRequests).toEqual(['PUT', 'DELETE']));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(readFolderA()?.pinnedAt).toBeNull();
+    expect(successSpy).toHaveBeenLastCalledWith(TEXTS.messages.success.folderUnpinned('개발'));
+    expect(successSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('이미 고정된 폴더를 다시 고정해도 처음 고정한 시각을 유지한다', async () => {
+    seedWithPinnedAt(PINNED_AT);
+    const gate = createResponseGate();
+    respondPin('PUT', async () => {
+      await gate.wait;
+      return pinResponse(PINNED_AT);
+    });
+    const { result } = renderHook(() => useSetBookmarkFolderPinMutation(FOLDER_A), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.mutate(true);
+    });
+
+    await waitFor(() => expect(pinRequests).toEqual(['PUT']));
+    expect(readFolderA()?.pinnedAt).toBe(PINNED_AT);
+
+    gate.release();
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(readFolderA()?.pinnedAt).toBe(PINNED_AT);
+  });
+
+  it('실패하면 되돌리고 목록을 다시 조회하도록 무효화하며 실패 토스트를 한 번 띄운다', async () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    seedWithPinnedAt(null);
+    respondPin('PUT', errorResponse);
+    const { result } = renderHook(() => useSetBookmarkFolderPinMutation(FOLDER_A), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.mutate(true);
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(readFolderA()?.pinnedAt).toBeNull();
+    expect(queryClient.getQueryState(bookmarkFolderKeys.list)?.isInvalidated).toBe(true);
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.folderPinFailed);
+  });
+
+  it('해제가 실패하면 해제 실패 문구를 띄운다', async () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    seedWithPinnedAt(PINNED_AT);
+    respondPin('DELETE', errorResponse);
+    const { result } = renderHook(() => useSetBookmarkFolderPinMutation(FOLDER_A), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.mutate(false);
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(readFolderA()?.pinnedAt).toBe(PINNED_AT);
+    expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.folderUnpinFailed);
+  });
+
+  // 세 번 누른다(고정→해제→고정). 두 번만 누르면 "첫 클릭 전 상태"와 "두 번째 클릭 뒤 상태"가 같아져, 잘못
+  // 되돌려도 화면이 같아 보여 아무것도 증명하지 못한다(interaction.queries.test.ts 연타 describe와 같은 이유)
+  it('연타: 중간 요청이 실패해도 되돌리거나 토스트를 띄우지 않고, 마지막 응답 값과 성공 토스트 한 번으로 끝난다', async () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    const successSpy = vi.spyOn(toast, 'success');
+    seedWithPinnedAt(null);
+    const firstPutGate = createResponseGate();
+    let putCount = 0;
+    respondPin('PUT', async () => {
+      putCount += 1;
+
+      if (putCount === 1) {
+        await firstPutGate.wait;
+        return errorResponse();
+      }
+
+      return pinResponse(PINNED_AT);
+    });
+    respondPin('DELETE', () => pinResponse(null));
+    const { result } = renderHook(() => useSetBookmarkFolderPinMutation(FOLDER_A), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.mutate(true);
+    });
+    act(() => {
+      result.current.mutate(false);
+    });
+    act(() => {
+      result.current.mutate(true);
+    });
+    await waitFor(() => expect(readFolderA()?.pinnedAt).toEqual(expect.any(String)));
+    // 요청은 한 줄로 선다 — 첫 응답 전에는 하나뿐이다
+    expect(pinRequests).toEqual(['PUT']);
+
+    firstPutGate.release();
+
+    await waitFor(() => expect(pinRequests).toEqual(['PUT', 'DELETE', 'PUT']));
+    await waitFor(() => expect(readFolderA()?.pinnedAt).toBe(PINNED_AT));
+    expect(errorSpy).not.toHaveBeenCalled();
+    // 가운데 DELETE의 성공은 뒤에 PUT이 남아 있어 띄우지 않는다
+    await waitFor(() => expect(successSpy).toHaveBeenCalledTimes(1));
+    expect(successSpy).toHaveBeenCalledWith(TEXTS.messages.success.folderPinned('개발'));
   });
 });

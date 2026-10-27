@@ -37,6 +37,95 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe('useFolderActions — 고정', () => {
+  it.each([
+    { label: '고정 안 된 폴더는 PUT', pinnedAt: null, method: 'PUT' },
+    { label: '고정된 폴더는 DELETE', pinnedAt: '2026-10-26T12:00:00', method: 'DELETE' },
+  ])('$label 으로 /pin을 부른다', async ({ pinnedAt, method }) => {
+    let requestedMethod: string | undefined;
+    const folder = { ...mockBookmarkFolder, pinnedAt };
+    const respond = ({ request }: { request: Request }) => {
+      requestedMethod = request.method;
+      return HttpResponse.json(
+        { status: 200, message: 'ok', data: { id: folder.id, pinnedAt: null }, timestamp: '' },
+        { status: 200 }
+      );
+    };
+    server.use(
+      http.put(url(API_ENDPOINTS.bookmark.folderPin(folder.id)), respond),
+      http.delete(url(API_ENDPOINTS.bookmark.folderPin(folder.id)), respond)
+    );
+    const { result } = renderHook(() => useFolderActions({ folder }), { wrapper: Wrapper });
+
+    expect(result.current.isPinned).toBe(pinnedAt !== null);
+
+    act(() => {
+      result.current.queuePinToggle();
+      result.current.handleMenuCloseAutoFocus();
+    });
+
+    await waitFor(() => expect(requestedMethod).toBe(method));
+  });
+
+  // ⋮ 메뉴에서 고른 순간이 아니라 메뉴가 다 닫힌 뒤에 보낸다(docs/BOOKMARK.md §5)
+  it('메뉴에서 고르기만 하고 메뉴가 아직 안 닫혔으면 요청을 보내지 않는다', async () => {
+    const onPin = vi.fn();
+    server.use(
+      http.put(url(API_ENDPOINTS.bookmark.folderPin(mockBookmarkFolder.id)), () => {
+        onPin();
+        return HttpResponse.json({}, { status: 200 });
+      })
+    );
+    const { result } = renderHook(() => useFolderActions({ folder: mockBookmarkFolder }), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.queuePinToggle();
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(onPin).not.toHaveBeenCalled();
+  });
+
+  it('고정을 고르지 않고 메뉴만 닫으면 요청을 보내지 않고, 한 번 고르면 한 번만 보낸다', async () => {
+    const onPin = vi.fn();
+    server.use(
+      http.put(url(API_ENDPOINTS.bookmark.folderPin(mockBookmarkFolder.id)), () => {
+        onPin();
+        return HttpResponse.json(
+          {
+            status: 200,
+            message: 'ok',
+            data: { id: mockBookmarkFolder.id, pinnedAt: '2026-10-27T12:00:00' },
+            timestamp: '',
+          },
+          { status: 200 }
+        );
+      })
+    );
+    const { result } = renderHook(() => useFolderActions({ folder: mockBookmarkFolder }), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.handleMenuCloseAutoFocus();
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(onPin).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.queuePinToggle();
+      result.current.handleMenuCloseAutoFocus();
+      result.current.handleMenuCloseAutoFocus();
+    });
+
+    await waitFor(() => expect(onPin).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(onPin).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('useFolderActions — 이름 변경', () => {
   it('15자를 넘기면 요청 없이 편집을 열어 둔 채 이유를 보여 준다', async () => {
     let requested = false;

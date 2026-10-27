@@ -97,4 +97,64 @@ describe('BookmarkFolderUtil', () => {
       expect(BookmarkFolderUtil.nameLengthError('😀'.repeat(16))).not.toBeNull();
     });
   });
+
+  describe('isPinned', () => {
+    it('pinnedAt이 있으면 고정, null·undefined면 고정이 아니다', () => {
+      expect(
+        BookmarkFolderUtil.isPinned(makeFolder({ id: 'f1', pinnedAt: '2026-10-26T12:00:00' }))
+      ).toBe(true);
+      expect(BookmarkFolderUtil.isPinned(makeFolder({ id: 'f2', pinnedAt: null }))).toBe(false);
+      expect(BookmarkFolderUtil.isPinned(makeFolder({ id: 'f3' }))).toBe(false);
+    });
+  });
+
+  describe('orderPinnedFirst', () => {
+    it('고정한 폴더를 고정한 시각 오름차순으로 맨 위에 두고, 나머지는 받은 순서 그대로 잇는다', () => {
+      const folders = [
+        makeFolder({ id: 'f1', sortOrder: 0, pinnedAt: '2026-10-26T12:00:02' }),
+        makeFolder({ id: 'f2', sortOrder: 1, pinnedAt: null }),
+        makeFolder({ id: 'f3', sortOrder: 2, pinnedAt: '2026-10-26T12:00:01' }),
+        makeFolder({ id: 'f4', sortOrder: 3 }),
+      ];
+
+      expect(BookmarkFolderUtil.orderPinnedFirst(folders).map((f) => f.id)).toEqual([
+        'f3',
+        'f1',
+        'f2',
+        'f4',
+      ]);
+    });
+
+    it('고정한 시각이 같으면 sortOrder를 따른다', () => {
+      const folders = [
+        makeFolder({ id: 'f1', sortOrder: 2, pinnedAt: '2026-10-26T12:00:00' }),
+        makeFolder({ id: 'f2', sortOrder: 1, pinnedAt: '2026-10-26T12:00:00' }),
+      ];
+
+      expect(BookmarkFolderUtil.orderPinnedFirst(folders).map((f) => f.id)).toEqual(['f2', 'f1']);
+    });
+
+    it('고정한 폴더가 없으면 받은 순서를 그대로 둔다', () => {
+      const folders = [
+        makeFolder({ id: 'f1', sortOrder: 0 }),
+        makeFolder({ id: 'f2', sortOrder: 1, pinnedAt: null }),
+      ];
+
+      expect(BookmarkFolderUtil.orderPinnedFirst(folders).map((f) => f.id)).toEqual(['f1', 'f2']);
+    });
+
+    it('전부 고정했으면 고정한 시각 순서만 남는다', () => {
+      const folders = [
+        makeFolder({ id: 'f1', sortOrder: 0, pinnedAt: '2026-10-26T12:00:03' }),
+        makeFolder({ id: 'f2', sortOrder: 1, pinnedAt: '2026-10-26T12:00:01' }),
+        makeFolder({ id: 'f3', sortOrder: 2, pinnedAt: '2026-10-26T12:00:02' }),
+      ];
+
+      expect(BookmarkFolderUtil.orderPinnedFirst(folders).map((f) => f.id)).toEqual([
+        'f2',
+        'f3',
+        'f1',
+      ]);
+    });
+  });
 });

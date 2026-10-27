@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import { renderWithProviders, userEvent } from '@/test/utils';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
@@ -11,6 +11,7 @@ import {
   type BookmarkFolderSelectRenderProps,
 } from '@/features/bookmark/toggle/ui/PostCardBookmarkFolderDialog';
 import { BookmarkFolderSelectDialog } from '@/features/bookmark/select/ui/BookmarkFolderSelectDialog';
+import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
 import type {
   BookmarkFoldersResponse,
   BookmarkFolderListResponse,
@@ -595,6 +596,103 @@ describe('PostCardBookmarkFolderDialog', () => {
       await user.click(screen.getAllByText('최근폴더')[0]!);
 
       await waitFor(() => expect(called).toBe(true));
+    });
+
+    describe('고정한 폴더 (내 폴더 맨 위)', () => {
+      // 맨 아래 기타와 가장 최근에 저장한 최근폴더를 고정한다(기타가 먼저). 최근 구획은 고정과 상관없이
+      // 저장 이력 순(최근폴더·디자인·읽을거리)으로 뜬다
+      const pinnedResponse: BookmarkFolderListResponse = {
+        ...manyFoldersResponse,
+        folders: manyFoldersResponse.folders.map((folder) => {
+          if (folder.id === 'folder-uuid-e') {
+            return { ...folder, pinnedAt: '2026-10-27T12:00:00' };
+          }
+
+          if (folder.id === RECENT_A) {
+            return { ...folder, pinnedAt: '2026-10-27T12:00:01' };
+          }
+
+          return { ...folder, pinnedAt: null };
+        }),
+      };
+
+      // 구획 머리(li) 다음부터 다음 머리 전까지의 행 이름 — 행 textContent는 "이름 + 개수"라 끝 숫자를 뗀다
+      function sectionRowNames(label: string): string[] {
+        const header = screen.getByText(label);
+        const items = Array.from(header.closest('ul')?.children ?? []);
+        const rows = items.slice(items.indexOf(header) + 1);
+        const end = rows.findIndex((item) => item.querySelector('button') === null);
+
+        return (end === -1 ? rows : rows.slice(0, end)).map((item) =>
+          (item.textContent ?? '').replace(/\d+$/, '')
+        );
+      }
+
+      beforeEach(() => {
+        server.use(
+          http.get(url(API_ENDPOINTS.bookmark.folders), () =>
+            HttpResponse.json(
+              { status: 200, message: 'ok', data: pinnedResponse, timestamp: '' },
+              { status: 200 }
+            )
+          )
+        );
+      });
+
+      it('고정한 폴더는 별도 구획 없이 내 폴더 맨 위에 고정한 순서로 오고, 최근 구획에도 그대로 나온다', async () => {
+        renderDialog();
+
+        await waitFor(() => expect(screen.getByText('내 폴더')).toBeInTheDocument());
+
+        expect(screen.queryByText('고정한 폴더')).not.toBeInTheDocument();
+        expect(sectionRowNames('내 폴더')).toEqual([
+          '기타',
+          '최근폴더',
+          '개발',
+          '나중에 읽기',
+          '디자인',
+          '읽을거리',
+        ]);
+        expect(sectionRowNames('최근 저장한 폴더')).toEqual(['최근폴더', '디자인', '읽을거리']);
+        // 핀은 북마크 아이콘 자리에 붙는다 — 내 폴더의 기타·최근폴더 + 최근 구획의 최근폴더
+        expect(screen.getAllByRole('img', { name: '고정됨' })).toHaveLength(3);
+      });
+
+      it('열려 있는 동안 내 폴더 순서는 바로 다시 계산되고, 최근 구획 구성은 연 시점 그대로다', async () => {
+        const { queryClient } = renderDialog();
+
+        await waitFor(() => expect(screen.getByText('내 폴더')).toBeInTheDocument());
+
+        // 다른 기기에서 나중에 읽기를 고정하고, 읽을거리에 막 저장한 상황
+        const changed: BookmarkFolderListResponse = {
+          ...pinnedResponse,
+          folders: pinnedResponse.folders.map((folder) => {
+            if (folder.id === FOLDER_B) {
+              return { ...folder, pinnedAt: '2026-10-27T12:00:02' };
+            }
+
+            if (folder.id === 'folder-uuid-d') {
+              return { ...folder, lastUsedAt: '2099-01-01' };
+            }
+
+            return folder;
+          }),
+        };
+        act(() => {
+          queryClient.setQueryData(bookmarkFolderKeys.list, changed);
+        });
+
+        // 나중에 읽기가 고정 묶음 맨 아래(세 번째)로 올라온다
+        await waitFor(() =>
+          expect(sectionRowNames('내 폴더').slice(0, 3)).toEqual([
+            '기타',
+            '최근폴더',
+            '나중에 읽기',
+          ])
+        );
+        // 최근 구획 순서는 연 시점 그대로다 — 읽을거리가 맨 위로 오지 않는다
+        expect(sectionRowNames('최근 저장한 폴더')).toEqual(['최근폴더', '디자인', '읽을거리']);
+      });
     });
   });
 });

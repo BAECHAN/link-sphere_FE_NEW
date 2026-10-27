@@ -1,9 +1,16 @@
-import { KeyboardEvent, useState } from 'react';
+import { KeyboardEvent, useRef, useState } from 'react';
 import { useFolderSections } from '@/widgets/bookmark/folder-tree/hooks/useFolderSections';
 import { useCreateFolderForm } from '@/widgets/bookmark/folder-tree/hooks/useCreateFolderForm';
+import { useFollowFocusOnReorder } from '@/widgets/bookmark/folder-tree/hooks/useFollowFocusOnReorder';
 
 /** MobileFolderList 루트 */
-export const useMobileFolderList = () => useFolderSections();
+export const useMobileFolderList = () => {
+  const sections = useFolderSections();
+  const folderListRef = useRef<HTMLDivElement>(null);
+  useFollowFocusOnReorder(folderListRef, sections.folderList?.map((folder) => folder.id) ?? []);
+
+  return { ...sections, folderListRef };
+};
 
 /** CreateFolderCard — creating 토글 + 생성 폼 */
 export const useCreateFolderCard = () => {

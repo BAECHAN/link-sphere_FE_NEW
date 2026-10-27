@@ -277,12 +277,12 @@ refresh 쿠키는 브라우저에 한 장이라 모든 탭이 같이 씁니다. 
   그냥 끝납니다.
 - **세대 키가 없는 사용자**(이 기능 전에 로그인해 한 번도 명시적 로그인·로그아웃을 안 함)는 `null`끼리
   같아 기존 동작 그대로입니다. 첫 명시적 로그인·로그아웃부터 보호됩니다.
-- **줄 서 있던 요청**(같은 `scope`의 좋아요·북마크): 아직 서버에 가지 않았으니 401로는 못 잡습니다. 앞
+- **줄 서 있던 요청**(같은 `scope`의 좋아요·북마크·폴더 고정): 아직 서버에 가지 않았으니 401로는 못 잡습니다. 앞
   요청이 끝나면 query-core가 줄에서 다음 것을 꺼내 실행하는데, 그때는 이미 다른 계정일 수 있습니다. 그래서
   누른 순간의 세대를 전역 `MutationCache` `onMutate`가 기록하고(`queryClient.ts`, 줄을 서도 `onMutate`는
   누른 순간에 돕니다), 그 mutation들의 `mutationFn`이 보내기 직전에 확인해 달라졌으면 보내지 않고
   `SessionChangedError`로 끝냅니다(`mutation-auth-epoch.ts`의 `assertMutationAuthEpochUnchanged`, scope
-  mutation 6곳 — 빠뜨리면 ESLint `custom-query-rules/scope-mutation-auth-epoch`가 막습니다). 기록의 키는 query-core가 한 mutation의 `onMutate`와 `mutationFn`에 함께 넘기는 context
+  mutation 7곳 — 빠뜨리면 ESLint `custom-query-rules/scope-mutation-auth-epoch`가 막습니다). 기록의 키는 query-core가 한 mutation의 `onMutate`와 `mutationFn`에 함께 넘기는 context
   객체입니다(5.90 `mutation.ts`의 `execute`). 실패로 끝나므로 `onError`(롤백)가 돌고, 결과를 기다리던 화면
   (북마크 폴더 대화상자의 행 잠금 등)도 풀립니다.
 - **감수한 것**: 다른 탭에서 같은 계정으로 다시 로그인한 순간 진행 중이던 요청도 실패로 끝납니다. 토큰이

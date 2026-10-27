@@ -123,4 +123,31 @@ describe('useFolderSections', () => {
     await waitFor(() => expect(result.current.folderList?.length).toBe(3));
     expect(result.current.recentFolderList).toEqual([]);
   });
+
+  // 고정은 "내 폴더" 순서만 바꾼다 — 최근 구획은 고정과 상관없이 원래 규칙(0개 아니면 3개)으로 고른다.
+  // 폴더 4개를 모두 저장해 둔 채 하나를 고정해도 최근 구획이 그대로 남는다(docs/BOOKMARK.md §5).
+  it('고정한 폴더는 내 폴더 맨 위로 오고, 최근 구획은 고정과 상관없이 고른다', async () => {
+    const folders = [1, 2, 3, 4].map((n) =>
+      makeFolder({ id: `f${n}`, sortOrder: n, lastUsedAt: `2025-01-0${n}`, pinnedAt: null })
+    );
+    mockFolderListResponse(folders);
+    const { result } = renderHook(() => useFolderSections(), { wrapper: Wrapper });
+
+    await waitFor(() =>
+      expect(result.current.folderList?.map((f) => f.id)).toEqual(['f1', 'f2', 'f3', 'f4'])
+    );
+
+    // 맨 아래 f4를 고정 — 언마운트 없이 목록이 갱신되면 내 폴더 순서가 바로 바뀐다
+    mockFolderListResponse(
+      folders.map((f) => (f.id === 'f4' ? { ...f, pinnedAt: '2026-10-27T12:00:00' } : f))
+    );
+    await act(async () => {
+      bookmarkFolderInvalidateQueries.list(queryClient);
+    });
+
+    await waitFor(() =>
+      expect(result.current.folderList?.map((f) => f.id)).toEqual(['f4', 'f1', 'f2', 'f3'])
+    );
+    expect(result.current.recentFolderList.map((f) => f.id)).toEqual(['f4', 'f3', 'f2']);
+  });
 });

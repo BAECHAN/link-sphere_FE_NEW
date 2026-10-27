@@ -3,7 +3,8 @@ import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-fo
 
 /**
  * 폴더 목록 조회 + "최근 저장한 폴더" 구획을 함께 제공하는 훅.
- * FolderTree(데스크탑)·MobileFolderList(모바일)가 공유한다.
+ * FolderTree(데스크탑)·MobileFolderList(모바일)가 공유한다. `folderList`("내 폴더")는 고정한 폴더를
+ * 맨 위로 올린 순서다(BookmarkFolderUtil.orderPinnedFirst).
  *
  * 상단 구획은 스냅샷 없이 매 렌더 최신 `folderList`로 다시 계산한다 — 이 두 화면은
  * 페이지 방문 내내 떠 있어서 새 스냅샷을 찍을 계기(모달의 열림 전환 같은 것)가 아예
@@ -13,9 +14,9 @@ import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-fo
  */
 export const useFolderSections = () => {
   const { data, isLoading } = useBookmarkFolderListQuery();
-  const folderList = data?.folders;
+  const folderList = data ? BookmarkFolderUtil.orderPinnedFirst(data.folders) : undefined;
   const uncategorizedCount = data ? (data.uncategorizedCount ?? 0) : undefined;
-  const recentFolderList = BookmarkFolderUtil.pickRecentFolders(folderList ?? []);
+  const recentFolderList = BookmarkFolderUtil.pickRecentFolders(data?.folders ?? []);
 
   return {
     folderList,

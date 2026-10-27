@@ -11,6 +11,13 @@
 
 ### Added
 
+- `bookmark` 자주 보는 폴더를 고정해 내 폴더 맨 위로 올리기
+  <details><summary>배경·구현</summary>
+
+  "최근 저장한 폴더"는 3개까지라, 예전에 쓰던 폴더를 바로 열고 싶을 때는 내 폴더 목록에서 찾아야 했다(2026-10-26 요청). 사이드바 행·모바일 카드의 ⋮ 메뉴 맨 앞 "고정"/"고정 해제"로 고르면 그 폴더가 내 폴더 맨 위로 먼저 고정한 순서대로 올라가고, 해제하면 원래 자리로 돌아간다. 고정한 폴더만 모은 별도 구획을 두는 안은 같은 폴더가 두 번 나와 기각했다(2026-10-27 사용자 결정). 고정 상태는 서버(`PUT`/`DELETE /bookmark/folders/{id}/pin`, BE #127)에 저장해 모바일과 PC가 같은 순서를 본다. 저장 다이얼로그(카드 저장·글 등록)의 내 폴더도 같은 순서이고, 여기서는 보여 주기만 한다. 고정한 폴더는 행 왼쪽 북마크 아이콘 자리에 핀이 붙어 이름 칸이 줄지 않는다. 최근 구획은 고정과 상관없이 원래 규칙으로 고른다. 고정·해제한 행이 화면 밖으로 옮겨 갈 수 있어 성공 토스트("{이름} 폴더를 고정했어요.")를 띄우고, 실패하면 되돌린 뒤 목록을 다시 받고 실패 토스트를 띄운다. ⋮ 메뉴에서 고르면 메뉴가 다 닫힌 뒤 요청을 보내고, 화면은 옮겨 간 폴더로 부드럽게 따라간다 — 바로 보내면 닫히던 메뉴가 옮겨 간 행을 따라가 "고정 해제"로 바뀐 채 사라졌다(세 안을 녹화해 비교, `docs/BOOKMARK.md` §5·§10). 연타는 같은 폴더의 요청을 한 줄로 보내 마지막 요청으로 확정한다(`docs/FE-ARCHITECTURE.md` §11). 근거·기각한 대안은 `docs/DECISIONS.md` 2026-10-26, 동작은 `docs/BOOKMARK.md` §5 "고정 — 내 폴더 맨 위로", 계획은 `docs/plans/2026-10-26-bookmark-folder-pin.md`·`docs/plans/2026-10-27-bookmark-folder-pin-in-my-folders.md`. (`entities/bookmark/folder/api/bookmark-folder.{api,keys,queries}.ts`, `entities/bookmark/folder/utils/bookmark-folder.util.ts`, `entities/bookmark/folder/model/bookmark-folder.{dto,schema}.ts`, `widgets/bookmark/folder-tree/hooks/useFolderSections.ts`·`useFolderActions.ts`·`useFollowFocusOnReorder.ts`, `shared/ui/elements/HoverKebabMenu.tsx`, `widgets/bookmark/folder-tree/ui/FolderTree.tsx`·`MobileFolderList.tsx`, `features/bookmark/select/hooks/useBookmarkFolderSelect.ts`, `features/bookmark/select/ui/BookmarkFolderSelectDialog.tsx`, `shared/config/api.ts`, `shared/config/texts.ts`, `shared/api/generated/openapi.{json,gen.ts}`, `mocks/handlers/bookmark-folder.handlers.ts`, [PR #430](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/430))
+
+  </details>
+
 - `post` 게시글 상세에서 브라우저 탭 제목을 글 제목으로 표시
   <details><summary>배경·구현</summary>
 
@@ -346,6 +353,7 @@
 - **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #85](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/85)(`PUT`/`DELETE /post/{postId}/bookmark`)가 있어야 한다. 구버전 BE에는 이 경로가 없어 북마크 저장·해제가 전부 실패한다(롤백 + 실패 토스트). 2026-10-13 BE 운영에 배포됨.
 - **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #89](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/89)(`DELETE /bookmark/{postId}/folders/{folderId}`의 `removeBookmarkIfEmpty` 옵션)가 있어야 한다. 구버전 BE는 이 옵션을 무시해, 마지막 폴더를 빼도 북마크가 미분류로 남는다(에러는 없음).
 - **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #94](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/94)(`GET /post`의 `filter=isLiked`)가 있어야 한다. 구버전 BE는 모르는 `filter` 값을 조용히 무시해, "좋아요한" 칩을 켜도 전체 피드가 나온다.
+- **BE 먼저 배포 필수** — BE `link-sphere_BE_NEW` [PR #127](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/127)(`PUT`/`DELETE /bookmark/folders/{folderId}/pin`, 폴더 응답의 `pinnedAt`)이 있어야 한다. 구버전 BE에는 이 경로가 없어 폴더 고정이 전부 실패한다(롤백 + 실패 토스트). 2026-10-26 BE 운영에 배포됨.
 
 ## [0.19.0] - 2026-10-12
 

@@ -371,6 +371,8 @@ export const TEXTS = {
       selectorTitle: '북마크에 저장',
       selectorDescription: '폴더를 탭하면 바로 저장돼요.',
       recentSection: '최근 저장한 폴더',
+      pin: '고정',
+      unpin: '고정 해제',
       removeBookmark: '북마크 제거',
       viewAction: '보기',
       undoAction: '되돌리기',
@@ -464,6 +466,9 @@ export const TEXTS = {
       postSetToPublic: '이 게시물을 전체 공개로 전환했어요.',
       commentDeleted: '댓글을 삭제했어요.',
       folderDeleted: '폴더를 삭제했어요.',
+      // 고정·해제하면 행이 내 폴더 맨 위로(또는 원래 자리로) 옮겨 가 화면 밖으로 사라질 수 있다(docs/BOOKMARK.md §5)
+      folderPinned: (folderName: string) => `${folderName} 폴더를 고정했어요.`,
+      folderUnpinned: (folderName: string) => `${folderName} 폴더 고정을 해제했어요.`,
       accountUpdated: '프로필을 수정했어요.',
       linkCopied: '링크를 복사했어요.',
       originalLinkCopied: '원본 링크를 복사했어요.',
@@ -586,6 +591,8 @@ export const TEXTS = {
       // 북마크 폴더 관련
       folderRenameFailed: '이름 변경에 실패했어요.',
       folderDeleteFailed: '폴더 삭제에 실패했어요.',
+      folderPinFailed: '폴더를 고정하지 못했어요.',
+      folderUnpinFailed: '폴더 고정을 해제하지 못했어요.',
       folderCreateFailed: '폴더 생성에 실패했어요.',
       folderCreateFailedFull: '폴더 생성에 실패했어요.',
       bookmarkSaveFailed: '저장에 실패했어요.',
@@ -681,6 +688,8 @@ export const TEXTS = {
 
     // 북마크 폴더
     folderMenu: '폴더 메뉴',
+    // 본 목록 행의 고정 아이콘 — 아이콘만으로는 스크린리더가 고정 여부를 알 수 없다
+    folderPinned: '고정됨',
     close: '닫기',
     backToFolderList: '폴더 목록으로',
     bookmarkChange: '북마크 폴더 변경',

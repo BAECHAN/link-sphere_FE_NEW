@@ -1,4 +1,4 @@
-import { Bookmark, BookmarkX, Check, FolderPlus, Loader2, Plus, X } from 'lucide-react';
+import { Bookmark, BookmarkX, Check, FolderPlus, Loader2, Pin, Plus, X } from 'lucide-react';
 import { Dialog, DialogTitle, DialogDescription } from '@/shared/ui/atoms/dialog';
 import { SheetDialogContent } from '@/shared/ui/elements/dialog/SheetDialogContent';
 import { Button } from '@/shared/ui/atoms/button';
@@ -14,6 +14,7 @@ import {
   UNCATEGORIZED_PENDING_KEY,
 } from '@/features/bookmark/select/hooks/useBookmarkFolderSelect';
 import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
+import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-folder.util';
 
 interface BookmarkFolderSelectDialogProps {
   open: boolean;
@@ -204,7 +205,7 @@ export function BookmarkFolderSelectDialog({
                     {recentFolderList.map((folder) => (
                       <FolderRow
                         key={`recent-${folder.id}`}
-                        icon={<Bookmark className="h-4 w-4" />}
+                        icon={renderFolderIcon(folder)}
                         name={folder.name}
                         count={folder.bookmarkCount}
                         isSelected={selectedFolderIds.includes(folder.id)}
@@ -227,7 +228,7 @@ export function BookmarkFolderSelectDialog({
                 {folderList.map((folder) => (
                   <FolderRow
                     key={folder.id}
-                    icon={<Bookmark className="h-4 w-4" />}
+                    icon={renderFolderIcon(folder)}
                     name={folder.name}
                     count={folder.bookmarkCount}
                     isSelected={selectedFolderIds.includes(folder.id)}
@@ -371,6 +372,15 @@ function FolderListLoading({ isMobile, dangerActionLabel }: FolderListLoadingPro
         </ul>
       )}
     </>
+  );
+}
+
+// 고정한 폴더는 북마크 아이콘 자리에 핀을 둔다 — 이름 칸을 줄이지 않는다(docs/BOOKMARK.md §5)
+function renderFolderIcon(folder: BookmarkFolder) {
+  return BookmarkFolderUtil.isPinned(folder) ? (
+    <Pin role="img" aria-label={TEXTS.ariaLabels.folderPinned} className="h-4 w-4" />
+  ) : (
+    <Bookmark className="h-4 w-4" />
   );
 }
 

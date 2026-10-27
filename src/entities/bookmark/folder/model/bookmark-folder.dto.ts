@@ -22,3 +22,5 @@ export type BookmarkFolderListResponse = Omit<
 };
 
 export type BookmarkFoldersResponse = components['schemas']['BookmarkFoldersResponse'];
+
+export type BookmarkFolderPinResponse = components['schemas']['FolderPinResponse'];

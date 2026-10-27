@@ -1,4 +1,4 @@
-import { Bookmark, Folder as FolderIcon, Inbox, Loader2, Plus } from 'lucide-react';
+import { Bookmark, Folder as FolderIcon, Inbox, Loader2, Pin, Plus } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { Divider } from '@/shared/ui/atoms/divider';
 import { Input } from '@/shared/ui/atoms/input';
@@ -30,8 +30,14 @@ interface FolderTreeProps {
 
 /** 데스크탑 — 좌측 사이드바 트리 */
 export function FolderTree({ selectedKey, onSelect, sort, search, className }: FolderTreeProps) {
-  const { folderList, uncategorizedCount, recentFolderList, isLoading, prefetchFolder } =
-    useFolderTree(sort, search);
+  const {
+    folderList,
+    folderListRef,
+    uncategorizedCount,
+    recentFolderList,
+    isLoading,
+    prefetchFolder,
+  } = useFolderTree(sort, search);
 
   return (
     <aside className={cn('flex flex-col gap-1 overflow-hidden py-2', className)}>
@@ -106,7 +112,8 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
           위 고정 블록과 짝 — 둘 다 있어야 스크롤바 유무와 무관하게 콘텐츠 폭이 같아진다
           (2026-09-21, docs/BOOKMARK.md §10). */}
       <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
-        <div className="flex flex-col gap-1">
+        {/* 고정·해제로 옮겨 간 행을 useFollowFocusOnReorder가 부드럽게 따라가도록 브라우저 스크롤 고정을 끈다 */}
+        <div ref={folderListRef} className="flex flex-col gap-1 [overflow-anchor:none]">
           {isLoading ? (
             <DelayedFallback className="flex items-center justify-center py-4">
               <Spinner />
@@ -170,6 +177,9 @@ interface FolderItemProps {
 
 function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: FolderItemProps) {
   const {
+    isPinned,
+    queuePinToggle,
+    handleMenuCloseAutoFocus,
     renaming,
     startRename,
     name,
@@ -185,7 +195,11 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
     return (
       <div className="flex flex-col gap-1 px-3 py-1">
         <div className="flex items-center gap-2">
-          <Bookmark className="h-4 w-4 text-muted-foreground shrink-0" />
+          {isPinned ? (
+            <Pin className="h-4 w-4 text-muted-foreground shrink-0" />
+          ) : (
+            <Bookmark className="h-4 w-4 text-muted-foreground shrink-0" />
+          )}
           <Input
             autoFocus
             enterKeyHint="done"
@@ -224,7 +238,18 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
         onFocus={onPrefetch}
         className="h-auto min-w-0 flex-1 justify-start gap-3 px-3 py-2"
       >
-        <Bookmark className={cn('h-4 w-4', selected ? 'text-primary' : 'text-muted-foreground')} />
+        {/* 고정한 폴더는 북마크 아이콘 자리에 핀을 둔다 — 이름 칸을 줄이지 않는다(docs/BOOKMARK.md §5) */}
+        {isPinned ? (
+          <Pin
+            role="img"
+            aria-label={TEXTS.ariaLabels.folderPinned}
+            className={cn('h-4 w-4', selected ? 'text-primary' : 'text-muted-foreground')}
+          />
+        ) : (
+          <Bookmark
+            className={cn('h-4 w-4', selected ? 'text-primary' : 'text-muted-foreground')}
+          />
+        )}
         {/* 이름은 말줄임 없이 어절 단위로 줄바꿈한다 — 내비게이션 항목을 자르면 어느 폴더인지
             못 알아본다(docs/BOOKMARK.md "폴더 이름 길이"). Button의 whitespace-nowrap을 풀고,
             min-w-0이 있어야 공백 없는 긴 이름도 폭 안에서 끊긴다 */}
@@ -232,7 +257,14 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
         <span className="text-xs text-muted-foreground">{folder.bookmarkCount}</span>
       </Button>
 
-      <HoverKebabMenu aria-label={TEXTS.ariaLabels.folderMenu} hoverReveal>
+      <HoverKebabMenu
+        aria-label={TEXTS.ariaLabels.folderMenu}
+        hoverReveal
+        onCloseAutoFocus={handleMenuCloseAutoFocus}
+      >
+        <DropdownMenuItem onClick={queuePinToggle}>
+          {isPinned ? TEXTS.bookmark.folder.unpin : TEXTS.bookmark.folder.pin}
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={startRename}>{TEXTS.bookmark.folder.rename}</DropdownMenuItem>
         <DropdownMenuItem onClick={handleDelete} className="text-destructive">
           {TEXTS.buttons.delete}
