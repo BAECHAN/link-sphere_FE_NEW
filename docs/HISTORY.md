@@ -1,4 +1,7 @@
 ### 2026-10-27 (FE)
+- 북마크 내 폴더 고정 기능 구현을 통해 자주 사용하는 폴더 접근성 개선 ([#430](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/430))
+
+### 2026-10-27 (FE)
 - 글 등록·수정 화면 내 '맨 위로 이동' 버튼 노출 로직 수정 ([#429](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/429))
 
 ### 2026-10-27 (FE)
