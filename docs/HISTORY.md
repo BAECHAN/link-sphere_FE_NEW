@@ -1,4 +1,7 @@
 ### 2026-10-27 (FE)
+- 초기 로딩 성능 최적화를 위해 폰트 프리로드 개수를 19개에서 5개로 최적화 ([#425](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/425))
+
+### 2026-10-27 (FE)
 - 북마크 내 폴더 고정 기능 구현을 통해 자주 사용하는 폴더 접근성 개선 ([#430](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/430))
 
 ### 2026-10-27 (FE)
