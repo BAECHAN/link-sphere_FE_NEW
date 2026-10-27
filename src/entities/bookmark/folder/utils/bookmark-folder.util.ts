@@ -1,6 +1,10 @@
 import dayjs from 'dayjs';
 import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
-import { RECENT_BOOKMARK_FOLDER_COUNT } from '@/entities/bookmark/folder/config/bookmark-folder.const';
+import {
+  BOOKMARK_FOLDER_NAME_MAX_LENGTH,
+  RECENT_BOOKMARK_FOLDER_COUNT,
+} from '@/entities/bookmark/folder/config/bookmark-folder.const';
+import { TEXTS } from '@/shared/config/texts';
 
 // "최근 저장한 폴더"는 최대 RECENT_BOOKMARK_FOLDER_COUNT(3)개만 보여준다. 폴더
 // 총수가 정확히 그 값과 같으면(= 저장 이력 있는 폴더가 전부 3개뿐) 최근 구획과
@@ -36,5 +40,17 @@ export class BookmarkFolderUtil {
     return [...usedFolderList]
       .sort((a, b) => dayjs(b.lastUsedAt).valueOf() - dayjs(a.lastUsedAt).valueOf())
       .slice(0, RECENT_BOOKMARK_FOLDER_COUNT);
+  }
+
+  // 앞뒤 공백을 뺀 이름을 코드포인트로 센다 — 제출할 때 trim하고, BE도 trim 뒤 codePointCount로
+  // 센다(string.length는 이모지 하나를 2로 센다). 상한을 넘으면 입력 아래에 띄울 문구를 돌려준다.
+  static nameLengthError(name: string): string | null {
+    const length = [...name.trim()].length;
+
+    if (length <= BOOKMARK_FOLDER_NAME_MAX_LENGTH) {
+      return null;
+    }
+
+    return TEXTS.validation.folderNameTooLong(BOOKMARK_FOLDER_NAME_MAX_LENGTH, length);
   }
 }

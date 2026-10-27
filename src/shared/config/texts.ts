@@ -423,6 +423,8 @@ export const TEXTS = {
     nicknameLength: '2자 이상 20자 이하로 입력해주세요.',
     nicknameCharset: '한글·영문·숫자·_ . -만 사용해주세요.',
     folderNameRequired: '폴더 이름을 입력해주세요.',
+    folderNameTooLong: (max: number, current: number) =>
+      `폴더 이름은 ${max}자까지 쓸 수 있어요. (지금 ${current}자)`,
     categoryNameRequired: '카테고리 이름을 입력해주세요.',
     invalidIdFormat: '유효하지 않은 ID 형식이에요.',
     commentOrImageRequired: '내용 또는 이미지를 추가해주세요.',

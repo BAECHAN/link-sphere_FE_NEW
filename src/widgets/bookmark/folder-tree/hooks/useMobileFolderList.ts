@@ -8,7 +8,7 @@ export const useMobileFolderList = () => useFolderSections();
 /** CreateFolderCard — creating 토글 + 생성 폼 */
 export const useCreateFolderCard = () => {
   const [creating, setCreating] = useState(false);
-  const { name, setName, isPending, submit } = useCreateFolderForm({
+  const { name, setName, nameError, isPending, submit } = useCreateFolderForm({
     onCreated: () => setCreating(false),
   });
 
@@ -41,6 +41,7 @@ export const useCreateFolderCard = () => {
     startCreating: () => setCreating(true),
     name,
     setName,
+    nameError,
     isPending,
     submit,
     handleCancel,

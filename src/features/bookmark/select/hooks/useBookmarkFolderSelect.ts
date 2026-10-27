@@ -7,6 +7,7 @@ import {
 } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import { useRecentBookmarkFolders } from '@/entities/bookmark/folder/hooks/useRecentBookmarkFolders';
 import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
+import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-folder.util';
 
 // 미분류 행의 pending 식별자 — folderKey 관례('all' | 'uncategorized' | UUID)와 동일한 sentinel이라
 // 실제 폴더 UUID와 충돌하지 않는다.
@@ -41,6 +42,7 @@ export function useBookmarkFolderSelect({
 
   const [creatingMode, setCreatingMode] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const newFolderNameError = BookmarkFolderUtil.nameLengthError(newFolderName);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const submittingRef = useRef(false);
 
@@ -100,7 +102,7 @@ export function useBookmarkFolderSelect({
 
     const name = newFolderName.trim();
 
-    if (!name) {
+    if (!name || newFolderNameError) {
       return;
     }
 
@@ -135,6 +137,7 @@ export function useBookmarkFolderSelect({
     setCreatingMode,
     newFolderName,
     setNewFolderName,
+    newFolderNameError,
     isCreating,
     handleSelectUncategorized,
     handleSelectFolder,

@@ -74,4 +74,27 @@ describe('BookmarkFolderUtil', () => {
       ]);
     });
   });
+
+  describe('nameLengthError', () => {
+    it('15자까지는 문구를 돌려주지 않는다', () => {
+      expect(BookmarkFolderUtil.nameLengthError('가'.repeat(15))).toBeNull();
+      expect(BookmarkFolderUtil.nameLengthError('W'.repeat(15))).toBeNull();
+    });
+
+    it('16자부터는 상한과 지금 길이를 담은 문구를 돌려준다', () => {
+      expect(BookmarkFolderUtil.nameLengthError('React 공부 자료 모음집 정리')).toBe(
+        '폴더 이름은 15자까지 쓸 수 있어요. (지금 18자)'
+      );
+    });
+
+    it('앞뒤 공백은 세지 않는다 — 제출할 때 trim하는 것과 같다', () => {
+      expect(BookmarkFolderUtil.nameLengthError(`  ${'가'.repeat(15)}  `)).toBeNull();
+    });
+
+    it('이모지는 BE codePointCount처럼 한 글자로 센다', () => {
+      // '😀'.length는 2다 — string.length로 세면 8개만으로 16을 넘는다
+      expect(BookmarkFolderUtil.nameLengthError('😀'.repeat(15))).toBeNull();
+      expect(BookmarkFolderUtil.nameLengthError('😀'.repeat(16))).not.toBeNull();
+    });
+  });
 });

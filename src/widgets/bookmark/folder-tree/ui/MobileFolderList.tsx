@@ -117,6 +117,7 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
     startRename,
     name,
     setName,
+    nameError,
     isUpdating,
     submitRename,
     handleRenameKeyDown,
@@ -135,8 +136,10 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
           onBlur={submitRename}
           onKeyDown={handleRenameKeyDown}
           disabled={isUpdating}
+          aria-invalid={nameError !== null}
           className="h-8"
         />
+        {nameError && <p className="text-xs text-destructive">{nameError}</p>}
       </div>
     );
   }
@@ -150,7 +153,8 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
         className="h-auto w-full flex-col items-stretch justify-start gap-2 rounded-none p-3 text-left active:bg-accent"
       >
         <Bookmark className="h-5 w-5 text-muted-foreground" />
-        <div className="font-medium truncate pr-6">{folder.name}</div>
+        {/* 말줄임 대신 어절 단위 줄바꿈(docs/BOOKMARK.md "폴더 이름 길이") — Button의 whitespace-nowrap을 푼다 */}
+        <div className="font-medium whitespace-normal pr-6">{folder.name}</div>
         <div className="text-xs text-muted-foreground">{folder.bookmarkCount}</div>
       </Button>
       <HoverKebabMenu
@@ -172,6 +176,7 @@ function CreateFolderCard() {
     startCreating,
     name,
     setName,
+    nameError,
     isPending,
     submit,
     handleCancel,
@@ -192,8 +197,10 @@ function CreateFolderCard() {
           onKeyDown={handleKeyDown}
           placeholder={TEXTS.bookmark.folder.namePlaceholder}
           disabled={isPending}
+          aria-invalid={nameError !== null}
           className="h-8"
         />
+        {nameError && <p className="text-xs text-destructive">{nameError}</p>}
         {/* 버튼을 가로로 나열한다 — 세로 스택은 카드 높이가 늘어 grid row 전체가
             커지고 옆 FolderCard까지 함께 늘어난다 */}
         <div className="flex gap-2">
@@ -214,7 +221,7 @@ function CreateFolderCard() {
           <Button
             size="sm"
             onClick={submit}
-            disabled={!name.trim() || isPending}
+            disabled={!name.trim() || nameError !== null || isPending}
             className="h-7 flex-1"
           >
             {isPending ? (
