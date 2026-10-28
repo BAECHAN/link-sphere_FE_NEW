@@ -9,6 +9,8 @@
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-10-28
+
 ### Added
 
 - `bookmark` 폴더 화면 제목 옆 연필로 그 자리에서 폴더 이름 바꾸기
@@ -3509,7 +3511,8 @@ BE API 의존: 댓글 생성/답글/수정 요청 바디가 `multipart/form-data
   `PostResponse.userInteractions.bookmarkFolderId` 필요
 - 드래그앤드랍 · 다중 선택 · 폴더 공유는 차후 별도 작업
 
-[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.19.0...HEAD
+[Unreleased]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/BAECHAN/link-sphere_FE_NEW/compare/v0.16.0...v0.17.0
