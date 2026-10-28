@@ -2,6 +2,7 @@ import { ApiError, SessionChangedError, SessionExpiredError } from '@/shared/typ
 import { TEXTS } from '@/shared/config/texts';
 import { LogoutGraceUtil } from '@/shared/utils/logout-grace.util';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { useAuthStore } from '@/shared/store/auth.store';
 
 export interface CustomMutationMeta {
   successMessage?: string;
@@ -92,11 +93,12 @@ export function resolveErrorToast(
   }
 
   // 로그아웃 처리 중(clearQueries의 배경 재요청) 온 401은 세션 만료가 아니라 레이스이므로
-  // meta의 커스텀 에러 메시지보다 먼저 걸러 어떤 토스트도 뜨지 않게 한다.
+  // meta의 커스텀 에러 메시지보다 먼저 걸러 어떤 토스트도 뜨지 않게 한다. 로그인이 풀린 채 쓰던 화면에 머무는
+  // 동안(auth.store signedOutInPlace)도 같다 - 다시 로그인하라는 안내는 로그인 창이 이미 맡고 있다.
   if (
     error instanceof ApiError &&
     isSessionInvalidCode(error.code) &&
-    LogoutGraceUtil.isLoggingOut()
+    (LogoutGraceUtil.isLoggingOut() || useAuthStore.getState().signedOutInPlace)
   ) {
     return { silent: true };
   }

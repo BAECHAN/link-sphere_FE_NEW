@@ -7,6 +7,7 @@ import { useNewVersionReload } from '@/shared/hooks/useNewVersionReload';
 import { GlobalImageViewer } from '@/shared/ui/elements/dialog/image-viewer/ImageViewer';
 import { GlobalAlerts } from '@/shared/ui/elements/dialog/alert/Alert';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
+import { useLeaveOnMemberChange } from '@/app/hooks/useLeaveOnMemberChange';
 
 // 비로그인 방문자 대다수는 한 번도 열지 않는 모달이라 초기 번들에서 뺀다(form-vendor
 // 포함) - 실측: 2026-09-26 빌드에서 이 모듈이 진입 청크에 정적으로 포함돼 있었다
@@ -26,6 +27,8 @@ const LoginDialog = lazy(() =>
 export function RootLayout() {
   useFcmForegroundMessage();
   useUnsavedChangesGuard();
+  // 쓰는 중에 다른 회원으로 바뀌면 쓰던 글을 버리고 피드로 간다(로그인이 풀려도 쓰던 화면에 두기 때문)
+  useLeaveOnMemberChange();
   useAppVersionCheck();
 
   const isReloadingForNewVersion = useNewVersionReload();

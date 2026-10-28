@@ -57,6 +57,11 @@ function isSessionInvalidCode(code: string): boolean {
   return code === SERVER_ERROR_CODE.NOT_LOGGED_IN || code === SERVER_ERROR_CODE.INVALID_TOKEN;
 }
 
+/** BE가 refresh를 401로 거절했는지 - 로그인 만료로 보는 유일한 refresh 실패다(handleTokenExpired) */
+function isRefreshRejected(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 401;
+}
+
 function isApiResponseShape(json: unknown): boolean {
   return !!json && typeof json === 'object' && 'data' in json && 'status' in json;
 }
@@ -148,13 +153,19 @@ class ApiClient {
    * 로그인이 만료됐다 - 이 탭을 정리하고 리더·대기 요청을 모두 SessionExpiredError로 끝낸다. 끝내지 않고 두면
    * 화면에 남은 폼이 "저장 중"에 멈추고 댓글은 비웠던 입력을 되돌리지 못한다. 실패 토스트는 뜨지 않는다 - 전역
    * 핸들러와 직접 토스트를 띄우는 곳 모두 이 에러를 조용히 넘긴다(error-toast.ts, ErrorUtil.isSessionExpired).
+   * 화면은 떠나지 않는다 - 그 자리에서 다시 로그인하게 한다(AuthUtil.applySessionExpired). 스토어 토큰이 이 요청이 보낸
+   * 토큰일 때만 정리한다 - 그 사이 다른 경로(먼저 끝난 만료, 로그아웃)가 이미 토큰을 바꿨으면 다시 정리하지 않는다.
    * 동작은 client.test.ts Case 1-2·2·2-1이 고정한다.
    */
   private expireSession(sentToken: string | undefined): never {
     const expired = new SessionExpiredError();
     this.expiredToken = sentToken;
     this.cancelSubscribers(expired);
-    AuthUtil.clearAll();
+
+    if (useAuthStore.getState().accessToken === sentToken) {
+      AuthUtil.applySessionExpired();
+    }
+
     throw expired;
   }
 
@@ -305,6 +316,15 @@ class ApiClient {
         }
 
         console.error(error);
+
+        // refresh가 401로 거절된 경우만 만료다. 네트워크·5xx·429는 세션이 아니라 연결·서버 문제라 로그인을 그대로 두고
+        // 그 에러로 끝낸다 - 만료로 정리하면 잠깐 끊긴 것만으로 로그아웃되고 다른 탭과 함께 쓰는 세션 플래그까지 지워진다
+        // (docs/plans/2026-10-28-session-expiry-draft-preservation.md 결정 12, client.test.ts Case 2-3)
+        if (!isRefreshRejected(error)) {
+          this.cancelSubscribers(error as Error);
+          throw error;
+        }
+
         return this.expireSession(sentToken);
       } finally {
         this.isRefreshing = false;
@@ -401,6 +421,26 @@ class ApiClient {
             if (AuthEpochUtil.hasChangedSince(authEpoch)) {
               throw new SessionChangedError();
             }
+
+            // 로그인이 풀린 채 쓰던 화면에 머무는 중이다(auth.store signedOutInPlace) - 로그인 창이 이미 떠 있거나
+            // 사용자가 닫았다. 로그인 페이지로 보내면 쓰던 글이 사라지므로 조용히 끝낸다. 폼은 이 에러를 보고
+            // "로그인이 풀려 저장하지 못했어요"를 띄운다(ErrorUtil.isSessionExpired, 결정 13)
+            if (useAuthStore.getState().signedOutInPlace) {
+              throw new SessionExpiredError();
+            }
+
+            // 토큰을 실어 보냈는데 무효라고 했다 - 로그인 만료다. NOT_LOGGED_IN은 BE가 토큰이 아예 없을 때만 주므로
+            // 만료로 보지 않는다(로그인한 적 없는 사용자에게 "만료" 안내가 뜨지 않게, 결정 13)
+            const sentToken = headers['X-Access-Token'];
+
+            if (sentToken && errorResponse.code === SERVER_ERROR_CODE.INVALID_TOKEN) {
+              if (useAuthStore.getState().accessToken === sentToken) {
+                AuthUtil.applySessionExpired();
+              }
+
+              throw new SessionExpiredError();
+            }
+
             // 로그아웃 처리 중(clearQueries의 배경 재요청) 온 401은 세션 만료가 아니라 레이스이므로 재이동하지 않는다
             if (!AuthUtil.isLoggingOut()) {
               // 토스트는 React Query 전역 핸들러(queryClient)가 단일 소유

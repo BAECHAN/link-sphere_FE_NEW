@@ -4,7 +4,11 @@ import { useLocation } from 'react-router-dom';
 import { renderWithProviders, userEvent } from '@/test/utils';
 import { LoginDialog } from '@/widgets/layout/login-dialog/ui/LoginDialog';
 import { useAuthStore } from '@/shared/store/auth.store';
-import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
+import {
+  SIGNED_OUT_IN_PLACE_DIALOG_STATE,
+  useLoginDialogStore,
+} from '@/shared/store/loginDialog.store';
+import { TEXTS } from '@/shared/config/texts';
 
 // 이 테스트는 LoginDialog의 열림/닫힘 전이와 pendingAction 재개 타이밍만 검증한다 -
 // 실제 로그인 폼 제출·네트워크는 useLogin.test.ts 등 다른 테스트의 책임이므로 스텁한다.
@@ -91,4 +95,30 @@ describe('LoginDialog', () => {
     expect(onSuccess).toHaveBeenCalledTimes(1);
     expect(pendingAction).not.toHaveBeenCalled();
   });
+
+  it('이유 없이 연 창은 기본 문구를 쓴다', () => {
+    renderOpenDialog();
+
+    expect(screen.getByRole('dialog', { name: TEXTS.auth.guard.title })).toBeInTheDocument();
+    expect(screen.getByText(TEXTS.auth.description)).toBeInTheDocument();
+  });
+
+  it.each(['expired', 'signedOutElsewhere'] as const)(
+    '로그인이 풀린 화면에서 연 창(%s)은 그 이유를 제목·설명으로 알린다',
+    (reason) => {
+      renderWithProviders(<LoginDialog />, {
+        wrapperOptions: {
+          initialEntries: [
+            { pathname: '/post/submit' },
+            { pathname: '/post/submit', state: SIGNED_OUT_IN_PLACE_DIALOG_STATE[reason] },
+          ],
+        },
+      });
+
+      expect(
+        screen.getByRole('dialog', { name: TEXTS.auth.guard[reason].title })
+      ).toBeInTheDocument();
+      expect(screen.getByText(TEXTS.auth.guard[reason].description)).toBeInTheDocument();
+    }
+  );
 });

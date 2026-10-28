@@ -17,6 +17,7 @@ import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { ROUTES_PATHS } from '@/shared/config/route-paths';
 
 // 기본 commentHandlers는 API_BASE_URL 접두사(/api) 없이 등록돼 있어 테스트 환경 요청 경로와
 // 매칭되지 않는다(comment.queries.test.ts와 동일한 이유) - url()로 명시 등록.
@@ -298,8 +299,8 @@ describe('useCreateComment', () => {
     expect(result.current.failureMessage).toBeNull();
   });
 
-  it('로그인이 만료돼 끝나면 비웠던 입력을 되돌리고 실패 안내·토스트는 띄우지 않는다', async () => {
-    // 안내는 만료 정리가 맡는다(ErrorUtil.isSessionExpired) - 정리가 부르는 화면 이동은 여기서 막는다
+  it('로그인이 만료돼 끝나면 비웠던 입력을 되돌리고 저장하지 못했다는 안내만 남긴다 - 실패 토스트는 없다', async () => {
+    // 다시 로그인하라는 안내는 만료 정리(로그인 창·토스트)가 맡는다 - 정리가 부르는 화면 이동은 여기서 막는다
     const navigateSpy = vi.spyOn(NavigationService, 'navigate').mockImplementation(() => {});
     // toast는 셋업에서 이미 mock이라 앞 테스트의 호출이 남아 있다 - 이 테스트의 호출만 센다
     const errorSpy = vi.spyOn(toast, 'error');
@@ -330,9 +331,16 @@ describe('useCreateComment', () => {
     });
 
     await waitFor(() => expect(result.current.form.getValues('content')).toBe('만료 중에 쓴 댓글'));
-    expect(result.current.failureMessage).toBeNull();
+    expect(result.current.failureMessage).toBe(TEXTS.messages.error.signedOutBeforeSave);
     expect(errorSpy).not.toHaveBeenCalled();
-    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    // 쓰던 화면을 떠나지 않는다 - 로그인 페이지로 보내지 않는다
+    expect(navigateSpy).not.toHaveBeenCalledWith(ROUTES_PATHS.AUTH.LOGIN, expect.anything());
+
+    // 다시 로그인하면 안내가 사라진다 - 남으면 로그인한 뒤에도 아직 풀린 것처럼 읽힌다
+    act(() => useAuthStore.getState().setAuth('test-access-token'));
+
+    expect(result.current.failureMessage).toBeNull();
+    expect(result.current.form.getValues('content')).toBe('만료 중에 쓴 댓글');
 
     navigateSpy.mockRestore();
     errorSpy.mockRestore();

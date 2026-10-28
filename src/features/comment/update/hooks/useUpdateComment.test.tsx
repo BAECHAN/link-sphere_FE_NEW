@@ -14,6 +14,10 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/comment.const';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
 import { TEXTS } from '@/shared/config/texts';
+import { useAuthStore } from '@/shared/store/auth.store';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { NavigationService } from '@/shared/lib/router/navigation';
+import { SIGNED_OUT_IN_PLACE_DIALOG_STATE } from '@/shared/store/loginDialog.store';
 
 // 기본 commentHandlers는 API_BASE_URL 접두사(/api) 없이 등록돼 있어 테스트 환경 요청 경로와
 // 매칭되지 않는다(comment.queries.test.ts와 동일한 이유) - url()로 명시 등록.
@@ -34,6 +38,8 @@ describe('useUpdateComment', () => {
 
   beforeEach(() => {
     queryClient = createTestQueryClient();
+    // 저장은 로그인 상태에서만 보낸다(useAuthGuard) - 셋업이 테스트마다 로그인 상태를 지운다
+    useAuthStore.getState().setAuth('test-access-token');
   });
 
   it('편집을 시작하면 원본 댓글 내용으로 초기화된다', () => {
@@ -210,5 +216,92 @@ describe('useUpdateComment', () => {
     });
 
     expect(result.current.failureMessage).toBeNull();
+  });
+
+  it('로그인이 풀린 채 그 화면에 머물다 누르면 보내지 않고 그 이유의 로그인 창을 연다', async () => {
+    // 로그인 창을 닫고 그대로 누른 경우 - 댓글·답글 등록과 같은 창이 다시 뜨고, 고친 내용은 그대로 남는다
+    const dialogSpy = vi.spyOn(NavigationService, 'navigate').mockImplementation(() => {});
+    let requestCount = 0;
+    server.use(
+      http.patch(url(API_ENDPOINTS.post.comment(mockComment.id)), () => {
+        requestCount += 1;
+        return HttpResponse.json({ status: 200, message: 'ok', data: null });
+      })
+    );
+    useAuthStore.getState().expireSession(`/post/${mockPost.id}`);
+
+    const onSuccess = vi.fn();
+    const { result } = renderHook(
+      () => useUpdateComment({ comment: mockComment, postId: mockPost.id, onSuccess }),
+      { wrapper: createWrapper(queryClient) }
+    );
+
+    act(() => {
+      result.current.form.setValue('content', '로그인이 풀린 채 고친 내용', { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(requestCount).toBe(0);
+    expect(dialogSpy).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ state: SIGNED_OUT_IN_PLACE_DIALOG_STATE.expired })
+    );
+    // 로그아웃된 동안에는 저장을 눌렀든 안 눌렀든 폼 안에 같은 안내가 보인다(useSignedOutNotice)
+    expect(result.current.failureMessage).toBe(TEXTS.messages.error.signedOutBeforeSave);
+    expect(result.current.form.getValues('content')).toBe('로그인이 풀린 채 고친 내용');
+    expect(onSuccess).not.toHaveBeenCalled();
+
+    dialogSpy.mockRestore();
+  });
+
+  it('저장하는 사이 로그인이 만료되면 고친 내용을 남기고 저장하지 못했다는 안내를 띄운다', async () => {
+    // 만료 정리(AuthUtil.applySessionExpired)가 여는 로그인 창의 이동은 여기서 막는다
+    const dialogSpy = vi.spyOn(NavigationService, 'navigate').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(toast, 'error');
+    errorSpy.mockClear();
+    server.use(
+      http.patch(url(API_ENDPOINTS.post.comment(mockComment.id)), () =>
+        HttpResponse.json(
+          { status: 401, code: SERVER_ERROR_CODE.TOKEN_EXPIRED, message: '', timestamp: '' },
+          { status: 401 }
+        )
+      ),
+      http.post(url(API_ENDPOINTS.auth.refresh), () =>
+        HttpResponse.json(
+          { status: 401, code: 'INVALID_REFRESH_TOKEN', message: '', timestamp: '' },
+          { status: 401 }
+        )
+      )
+    );
+
+    const onSuccess = vi.fn();
+    const { result } = renderHook(
+      () => useUpdateComment({ comment: mockComment, postId: mockPost.id, onSuccess }),
+      { wrapper: createWrapper(queryClient) }
+    );
+
+    act(() => {
+      result.current.form.setValue('content', '만료 중에 고친 내용', { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(result.current.failureMessage).toBe(TEXTS.messages.error.signedOutBeforeSave);
+    expect(result.current.form.getValues('content')).toBe('만료 중에 고친 내용');
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+
+    // 다시 로그인하면 안내가 사라진다(useCreatePost.test.tsx와 같은 이유)
+    act(() => useAuthStore.getState().setAuth('test-access-token'));
+
+    expect(result.current.failureMessage).toBeNull();
+
+    errorSpy.mockRestore();
+    dialogSpy.mockRestore();
   });
 });

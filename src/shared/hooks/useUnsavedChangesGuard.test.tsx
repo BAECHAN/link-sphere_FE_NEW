@@ -90,3 +90,36 @@ describe('useUnsavedChangesGuard', () => {
     expect(screen.getByTestId('other')).toBeInTheDocument();
   });
 });
+
+describe('useUnsavedChangesGuard — 로그인이 풀린 상태', () => {
+  beforeEach(() => {
+    useAlertStore.setState({ alerts: [] });
+    useUnsavedChangesStore.setState({ dirtyKeys: new Set() });
+  });
+
+  it('로그인이 풀린 채 쓰던 화면에 둔 동안(signedOutInPlace)에는 평소처럼 이탈을 막는다', async () => {
+    useAuthStore.getState().expireSession('/form');
+    const router = renderGuard();
+
+    await act(async () => {
+      await router.navigate('/other');
+    });
+
+    expect(
+      await screen.findByRole('alertdialog', { name: TEXTS.unsavedChanges.title })
+    ).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/form');
+  });
+
+  it('그 표시가 없는 로그아웃 상태면 지금처럼 막지 않는다 - 보호 화면의 강제 이동에 갇히지 않게', async () => {
+    useAuthStore.getState().clearAuth();
+    const router = renderGuard();
+
+    await act(async () => {
+      await router.navigate('/other');
+    });
+
+    expect(router.state.location.pathname).toBe('/other');
+    expect(getOpenAlertId()).toBeNull();
+  });
+});

@@ -38,6 +38,8 @@ async function adoptSessionFromCookie(
     }
 
     useAuthStore.getState().setAuth(authData.accessToken);
+    // 만료로 띄워 둔 안내(닫을 때까지 남는다)는 다시 로그인했으니 닫는다(AuthUtil.applySessionExpired)
+    AuthUtil.dismissSessionExpiredToast();
     handleSessionAdoptedSuccess(queryClient);
     onSuccess?.();
   } catch (error) {
@@ -68,23 +70,27 @@ function reconcileAuthEpoch(queryClient: QueryClient, fromOtherTab: boolean) {
   // 단 실패 원인이 SESSION_MISMATCH(쿠키는 유효, 다른 계정)면 토큰 없이 다시 복원한다(아래).
   if (accessToken && fromOtherTab && signedInElsewhere) {
     void adoptSessionFromCookie(queryClient, (error) => {
-      AuthUtil.applySignOutFromElsewhere();
-
       // 같은 사람이 아니었다 - BE가 이 탭 토큰과 쿠키 주인이 다른 회원이라며 거절했다(SESSION_MISMATCH). 화면을 그대로
-      // 둔 채 그 계정이 되면 이전 계정으로 쓰던 폼이 새 계정으로 제출되므로, 로그아웃 처리(보호 경로면 /post) 뒤
-      // 쿠키 주인 계정으로 복원한다 - bfcache 복원 때와 같은 엄격한 처리다. 토큰을 비웠으니 두 번째 refresh는 헤더 없이
-      // 나가 성공한다. 세대가 바뀐 경로라 옛 토큰으로 나간 요청은 client.ts·mutation-auth-epoch.ts가 이미 막는다.
+      // 둔 채 그 계정이 되면 이전 계정으로 쓰던 폼이 새 계정으로 제출되므로, 로그아웃 처리(보호 경로면 /post, 쓰던 글은
+      // 버리고 /post) 뒤 쿠키 주인 계정으로 복원한다 - bfcache 복원 때와 같은 엄격한 처리다. 토큰을 비웠으니 두 번째
+      // refresh는 헤더 없이 나가 성공한다. 세대가 바뀐 경로라 옛 토큰으로 나간 요청은 client.ts·mutation-auth-epoch.ts가
+      // 이미 막는다.
       if (ErrorUtil.isSessionMismatch(error)) {
+        AuthUtil.signOutForOtherAccount();
         void adoptSessionFromCookie(queryClient, clearLocalAuth, () =>
           toast.info(TEXTS.messages.info.switchedToOtherAccount)
         );
+        return;
       }
+
+      AuthUtil.applySignOutFromElsewhere();
     });
     return;
   }
 
+  // 쓰는 중이면 화면을 떠나게 하지 않고 그 자리에 로그인 창을 띄운다 - 아니면 지금처럼 로그아웃 처리(보호 경로면 /post)
   if (accessToken) {
-    AuthUtil.applySignOutFromElsewhere();
+    AuthUtil.reflectSignOutFromElsewhere();
   }
 
   // 앱 시작 복원이 아직 진행 중이면 그쪽이 같은 일을 한다(같은 탭에서 refresh가 두 번 나가지 않게)
@@ -96,7 +102,7 @@ function reconcileAuthEpoch(queryClient: QueryClient, fromOtherTab: boolean) {
 /**
  * 다른 탭의 로그인·로그아웃과, bfcache에 멈춰 있던 사이의 인증 변화를 이 탭에 맞춘다(docs/AUTH.md §8-H).
  *
- * 토큰을 들고 있으면 이 탭만 로그아웃 처리하고(보호 경로면 /post로), 저장된 세대가 로그인이면 쿠키로
+ * 토큰을 들고 있으면 이 탭만 로그아웃 처리하고(보호 경로면 /post로. 쓰는 중이면 이동 없이 로그인 창), 저장된 세대가 로그인이면 쿠키로
  * 세션을 복원한다 - 새로 연 탭과 같은 상태가 된다. 새로고침(location.reload)하지 않는 이유: 작성 중인 폼이
  * 있으면 이탈 확인창이 뜨고, 취소하면 이전 사용자 화면이 그대로 남는다.
  *

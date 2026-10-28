@@ -13,8 +13,12 @@ function isGuestOnlyPage(pathname: string): boolean {
 }
 
 const shouldBlockNavigation: BlockerFunction = ({ currentLocation, nextLocation }) => {
+  const { isAuthenticated, signedOutInPlace } = useAuthStore.getState();
+
   // 로그아웃·세션만료 시 ProtectedRoute의 강제 리다이렉트까지 막으면 폼에(또는 열린 대화상자에) 갇힌다.
-  if (!useAuthStore.getState().isAuthenticated && !isGuestOnlyPage(currentLocation.pathname)) {
+  // 단 로그인이 풀린 채 쓰던 화면에 둔 동안(signedOutInPlace)에는 강제 리다이렉트가 없으므로 평소처럼 막는다 -
+  // 로그인 창을 닫고 다른 화면으로 가면 쓰던 글이 확인 없이 사라진다(docs/plans/2026-10-28-keep-writing-in-place.md 결정 5)
+  if (!isAuthenticated && !signedOutInPlace && !isGuestOnlyPage(currentLocation.pathname)) {
     return false;
   }
   // Alert/Confirm은 히스토리에 묶여있지 않아(T0) 뒤로가기가 그대로 페이지를 이동시켜버린다 -

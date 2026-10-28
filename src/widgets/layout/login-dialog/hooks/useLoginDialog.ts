@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
+import {
+  useLoginDialogStore,
+  type LoginDialogLocationState,
+} from '@/shared/store/loginDialog.store';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
@@ -12,8 +15,19 @@ import { ROUTES_PATHS } from '@/shared/config/route-paths';
 export function useLoginDialog() {
   const { onSuccess, setOnSuccess, pendingAction, setPendingAction } = useLoginDialogStore();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   const { isOpen, close } = useHistoryOverlay('loginDialogOpen');
+  // 로그인이 풀려 쓰던 화면에서 연 창이면 그 이유(AuthUtil이 history state에 싣는다) - 제목·설명이 이유를 알린다.
+  // 닫히면 state에서 이유가 빠지므로, 닫히는 애니메이션 동안 기본 문구로 바뀌어 보이지 않게 열려 있던 때의 값을 붙잡는다.
+  // 렌더 중에 읽으므로 state로 들고 렌더 중에 맞춘다(ProtectedRoute의 hasBeenAuthenticated와 같은 방식,
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  const reasonInState = (location.state as LoginDialogLocationState | null)?.loginDialogReason;
+  const [reason, setReason] = useState(reasonInState);
+
+  if (isOpen && reasonInState !== reason) {
+    setReason(reasonInState);
+  }
 
   // 로그인 성공 → onSuccess(원래 가려던 페이지 이동 등) 실행 후 닫기.
   // onSuccess가 있으면 그 navigate가 이미 이 위치(loginDialogOpen인 엔트리)를 벗어나므로
@@ -93,5 +107,11 @@ export function useLoginDialog() {
   // 모달이 닫히면 LoginForm이 언마운트되고, 다시 열 때 새 폼이 마운트되며 false를 알린다.
   const [hasUserInput, setHasUserInput] = useState(false);
 
-  return { isOpen, handleOpenChange, hasUserInput, handleInputDirtyChange: setHasUserInput };
+  return {
+    isOpen,
+    reason,
+    handleOpenChange,
+    hasUserInput,
+    handleInputDirtyChange: setHasUserInput,
+  };
 }

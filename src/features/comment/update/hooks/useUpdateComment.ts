@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
+import { useSignedOutNotice } from '@/entities/auth/hooks/useSignedOutNotice';
 import { useUpdateCommentMutation } from '@/entities/comment/api/comment.queries';
 import { Comment, commentContentFormSchema } from '@/entities/comment/model/comment.schema';
 import { CommentUtil } from '@/entities/comment/utils/comment.util';
@@ -49,6 +51,7 @@ function getCommentUpdateSubmitError(
 
 export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommentOptions) {
   const { mutateAsync: updateComment, isPending: isUpdating } = useUpdateCommentMutation(postId);
+  const guard = useAuthGuard();
 
   // 편집 세션은 컴포넌트 마운트~언마운트 동안만 유지되므로, 시작 시점 스냅샷은 한 번만 계산한다.
   const [initialSnapshot] = useState(() => splitContentImages(comment.content));
@@ -126,47 +129,60 @@ export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommen
     existingImageUrls.length !== initialSnapshot.imageUrls.length;
 
   useUnsavedChanges(`comment-update:${comment.id}`, isDirty);
+  const signedOutNotice = useSignedOutNotice(isDirty);
 
+  async function submitUpdate(data: FormValues) {
+    const content = (data.content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    const submitError = getCommentUpdateSubmitError(content, editImages, existingImageUrls);
+
+    if (submitError) {
+      toast.error(submitError);
+      return;
+    }
+
+    setFailureMessage(null);
+
+    // mutate 콜백 대신 mutateAsync를 기다린다 - mutate 콜백은 요청 도중 폼이 언마운트되면 호출되지
+    // 않는데, 전역 토스트를 꺼둔(manualErrorHandling) 지금은 그러면 실패가 조용히 묻힌다.
+    try {
+      await updateComment({
+        commentId: comment.id,
+        content,
+        images: editImages,
+        existingImages: existingImageUrls,
+      });
+    } catch (error) {
+      // 요청하는 사이 로그인이 만료됐다(ErrorUtil.isSessionExpired) - 풀린 뒤에 누르면 가드가 먼저 막아 여기 오지 않는다.
+      // 다시 로그인하라는 안내는 로그인 창이, 폼 안 안내는 useSignedOutNotice가 맡는다. 고친 내용은 그대로 남는다
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
+      const message = CommentUtil.resolveSubmitError(error, 'update');
+
+      if (isMountedRef.current) {
+        setFailureMessage(message);
+      } else {
+        toast.error(message);
+      }
+
+      return;
+    }
+
+    onSuccess?.();
+  }
+
+  // useCreatePost.ts와 같은 이유 - 로그인이 풀린 채 눌렀으면 보내지 않고 로그인 창을 연다
   const onSubmit = form.handleSubmit(
     async (data: FormValues) => {
-      const content = (data.content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      let submitting: Promise<void> | undefined;
 
-      const submitError = getCommentUpdateSubmitError(content, editImages, existingImageUrls);
+      guard(() => {
+        submitting = submitUpdate(data);
+      });
 
-      if (submitError) {
-        toast.error(submitError);
-        return;
-      }
-
-      setFailureMessage(null);
-
-      // mutate 콜백 대신 mutateAsync를 기다린다 - mutate 콜백은 요청 도중 폼이 언마운트되면 호출되지
-      // 않는데, 전역 토스트를 꺼둔(manualErrorHandling) 지금은 그러면 실패가 조용히 묻힌다.
-      try {
-        await updateComment({
-          commentId: comment.id,
-          content,
-          images: editImages,
-          existingImages: existingImageUrls,
-        });
-      } catch (error) {
-        // 로그인 만료로 끝났으면 안내는 만료 정리가 맡는다 - 고친 내용은 그대로 남는다(ErrorUtil.isSessionExpired)
-        if (ErrorUtil.isSessionExpired(error)) {
-          return;
-        }
-
-        const message = CommentUtil.resolveSubmitError(error, 'update');
-
-        if (isMountedRef.current) {
-          setFailureMessage(message);
-        } else {
-          toast.error(message);
-        }
-
-        return;
-      }
-
-      onSuccess?.();
+      await submitting;
     },
     () => {
       // zod가 막은 경우(길이 초과) - 없으면 제출이 아무 반응 없이 삼켜진다.
@@ -188,7 +204,8 @@ export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommen
     isUpdating,
     canSubmit,
     isOverLimit,
-    failureMessage,
+    // 로그인이 풀린 채 남아 있으면 그 안내가 먼저다(useCreatePost.ts와 같은 이유)
+    failureMessage: signedOutNotice ?? failureMessage,
     imagePreviewUrls,
     isDraggingOver,
     addFiles: clearingFailure(addFiles),

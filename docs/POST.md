@@ -307,6 +307,13 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
      (429, `Retry-After`를 분으로 올림), 네트워크, 응답 지연(504 — 이미 저장됐을 수 있어 "피드에서
      확인하기" 링크), 이메일 미인증, WAF 차단, 로그인 필요(`NOT_LOGGED_IN`·`INVALID_TOKEN`), 수정할 때만 글이
      삭제됨(`POST_NOT_FOUND`)·남의 글(`FORBIDDEN`), 그 외. 모바일에선 하단 고정 바 안 버튼 위에 붙는다.
+   - 로그인이 풀린 채 그 화면에 남아 있는 동안(저장하다 만료됐든, 쓰던 중 다른 탭에서 로그아웃했든) 같은
+     `FormAlert`에 `TEXTS.messages.error.signedOutBeforeSave`("로그인이 풀렸어요. 로그인한 뒤 저장해 주세요.")를 띄우고, 다시 로그인하면
+     지운다(2026-10-28, `useSignedOutNotice`). 저장하다 만료된 실패(`SessionExpiredError`)는
+     `PostUtil.resolveSubmitError`를 거치지 않고 입력만 남긴다. 화면도 떠나지 않는다 — 그 자리에 뜬 로그인 창에서 다시
+     로그인한 뒤 다시 누르면 된다([`AUTH.md`](./AUTH.md) §8-I).
+   - 로그인이 풀린 채(로그인 창을 닫고) 그 화면에 남아 누르면 요청을 보내지 않고 그 이유의 로그인 창을 다시
+     연다 — 제출이 댓글·답글 등록과 같은 `useAuthGuard`로 감싸여 있다(`onSubmit` → `submitPost`).
    - 사용자가 아무 값이나 고치면 안내와 서버 칸 에러가 지워진다(`clearSubmitErrorsOnEdit`).
    - 저장 중 이탈 확인창에서 "나가기"로 먼저 떠났으면 안내할 폼이 없어 같은 문구를 에러 토스트로 띄운다
      (2026-10-21 — 전에는 실패가 안 보였다).
@@ -338,7 +345,9 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 - `useUpdatePost`(`src/features/post/update/hooks/useUpdatePost.ts`)는 비-Suspense
   `useFetchPostDetailQuery`로 원본을 받아 `form.reset`한다(`resetFormWithFetchedPost`). 로딩 중에는
-  `UpdatePostForm`이 `SpinnerOverlay`를 그린다.
+  `UpdatePostForm`이 `SpinnerOverlay`를 그린다. 처음 받을 때와 아직 고치지 않았을 때(`formState.isDirty`가 false)만
+  다시 맞추고, 고치던 중에 글을 다시 불러오면(로그인이 풀린 채 이 화면에 남았다가 다시 로그인한 뒤의 재조회 등)
+  고친 값을 덮지 않는다(2026-10-28, [`AUTH.md`](./AUTH.md) §8-I).
 - **URL을 바꾸면 제목·카테고리를 비운다**(`clearDerivedFieldsOnUrlChange`) — 둘 다 옛 링크 기준이기 때문이다. 초기
   `reset` 직후의 오탐을 막으려 `form.getValues('url')`을 다시 읽어 비교한다.
 - 안내 문구: URL을 바꾸면 "다시 가져와요" 안내, URL은 그대로인데 제목만 비우면 "제목을 다시
@@ -415,8 +424,10 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
     (`interaction.keys.ts`)로 그 글의 detail과 피드 목록 전체·폴더별 게시글 전체를 무효화한다(앞 요청까지
     실패했다면 스냅샷도 서버와 다를 수 있어서). 패턴 설명은
     [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §11 "같은 대상의 연속 mutation".
-  - 로그아웃(세션 만료)에서 `AuthUtil.clearAll`이 mutation 캐시도 비운다 — 끝나지 않은 요청이 줄 맨 앞에
-    남아 재로그인 뒤 그 글의 좋아요가 영원히 안 나가는 것을 막는다([`AUTH.md`](./AUTH.md) §11).
+  - 로그아웃 정리(`AuthUtil.clearAll`)가 mutation 캐시도 비운다 — 끝나지 않은 요청이 줄 맨 앞에
+    남아 재로그인 뒤 그 글의 좋아요가 영원히 안 나가는 것을 막는다([`AUTH.md`](./AUTH.md) §11). 로그인 만료는
+    2026-10-28부터 화면을 떠나지 않아 `clearAll`을 거치지 않지만, 만료로 끝난 요청은 모두 `SessionExpiredError`로
+    끝나 줄에 남지 않는다([`AUTH.md`](./AUTH.md) §8-B).
   - 줄에서 기다리는 사이 이 탭의 계정이 바뀌었으면(다른 탭·같은 탭의 로그인·로그아웃) 그 요청은 보내지 않고
     `SessionChangedError`로 끝낸다(`mutationFn`의 `assertMutationAuthEpochUnchanged`, #381) — 보내면 바뀐
     계정으로 좋아요가 실행된다([`AUTH.md`](./AUTH.md) §8-B).

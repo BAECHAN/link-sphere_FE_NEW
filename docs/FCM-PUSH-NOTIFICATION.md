@@ -383,7 +383,7 @@ export function useFcmForegroundMessage() {
 
 이 훅은 `RootLayout`에서 최상단에 마운트한다 — 호출은 앱 전체에서 한 번뿐이지만,
 실제 FCM 구독은 위 설명대로 로그인 상태에서만 활성화된다. `RootLayout`은 이 훅
-하나만 쓰는 게 아니라 여러 전역 관심사(저장하지 않은 입력 가드, 앱 버전 체크·새
+하나만 쓰는 게 아니라 여러 전역 관심사(저장하지 않은 입력 가드, 쓰는 중 회원 변경 처리(`docs/AUTH.md` §8-I), 앱 버전 체크·새
 버전 리로드, 로그인 모달, 이미지 뷰어, 알림창)를 함께 마운트하는 자리다.
 
 **정정(2026-09-29)**: `LoginDialog`는 직접 렌더링되지 않는다 — 비로그인 방문자
@@ -408,6 +408,7 @@ const LoginDialog = lazy(() =>
 export function RootLayout() {
   useFcmForegroundMessage();
   useUnsavedChangesGuard();
+  useLeaveOnMemberChange();
   useAppVersionCheck();
 
   const isReloadingForNewVersion = useNewVersionReload();

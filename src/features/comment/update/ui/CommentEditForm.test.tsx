@@ -1,4 +1,4 @@
-import { afterEach, describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { renderWithProviders, screen, userEvent, waitFor } from '@/test/utils';
 import { server } from '@/mocks/server';
@@ -8,6 +8,7 @@ import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
 import { CommentEditForm } from '@/features/comment/update/ui/CommentEditForm';
+import { useAuthStore } from '@/shared/store/auth.store';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
@@ -29,6 +30,11 @@ function renderEditForm() {
 }
 
 describe('CommentEditForm', () => {
+  beforeEach(() => {
+    // 저장은 로그인 상태에서만 보낸다(useAuthGuard) - 셋업이 테스트마다 로그인 상태를 지운다
+    useAuthStore.getState().setAuth('test-access-token');
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });

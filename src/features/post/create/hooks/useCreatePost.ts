@@ -9,6 +9,8 @@ import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
 import { toast } from '@/shared/lib/toast/toast';
 import { UrlUtil } from '@/shared/utils/url.util';
 import { useAccount } from '@/entities/account/hooks/useAccount';
+import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
+import { useSignedOutNotice } from '@/entities/auth/hooks/useSignedOutNotice';
 import { TEXTS } from '@/shared/config/texts';
 import { ErrorUtil } from '@/shared/utils/error.util';
 import { useEffect, useState } from 'react';
@@ -40,6 +42,8 @@ export function useCreatePost() {
 
   const { clearNow } = useUnsavedChanges('post-create', form.formState.isDirty);
   const hasLeftPage = useHasLeftPage();
+  const guard = useAuthGuard();
+  const signedOutNotice = useSignedOutNotice(form.formState.isDirty);
 
   // 작성 중 링크 미리보기 - 이메일 미인증이면 BE가 403으로 거절하므로 묻지 않는다
   const urlValue = form.watch('url');
@@ -77,7 +81,7 @@ export function useCreatePost() {
     [form]
   );
 
-  const onSubmit = form.handleSubmit(async (formData: CreatePost) => {
+  async function submitPost(formData: CreatePost) {
     // BE도 같은 검사를 403 EMAIL_NOT_VERIFIED로 거절하지만(방어 계층 중복), 클릭 가능한
     // 채로 두고 안내만 보여준다(disabled 대신 - CLAUDE.md 폼 검증 실패 처리 규칙과 동일 패턴).
     // 다른 실패 안내와 같은 자리(버튼 위 FormAlert)에 남긴다.
@@ -95,7 +99,8 @@ export function useCreatePost() {
     try {
       await createPost({ ...formData, url: UrlUtil.normalizeUrl(formData.url) });
     } catch (error) {
-      // 로그인 만료로 끝났으면 안내는 만료 정리가 맡는다 - 입력은 그대로 남는다(ErrorUtil.isSessionExpired)
+      // 요청하는 사이 로그인이 만료됐다(ErrorUtil.isSessionExpired) - 풀린 뒤에 누르면 가드가 먼저 막아 여기 오지 않는다.
+      // 다시 로그인하라는 안내는 로그인 창이, 폼 안 안내는 useSignedOutNotice가 맡는다. 입력은 그대로 남는다
       if (ErrorUtil.isSessionExpired(error)) {
         return;
       }
@@ -136,6 +141,18 @@ export function useCreatePost() {
     onFormReset();
     // replace: 제출이 끝난 폼 엔트리를 결과 화면으로 대체 → 뒤로가기 시 빈 폼으로 돌아가지 않음
     navigate(ROUTES_PATHS.POST.ROOT, { replace: true });
+  }
+
+  // 로그인이 풀린 채 눌렀으면 보내지 않고 로그인 창을 연다 - 입력은 그대로고, 로그인한 뒤 다시 누르면 등록한다
+  // (댓글·답글 등록과 같은 useAuthGuard). 로그인 상태면 가드가 바로 실행하므로 그 저장이 끝날 때까지 기다린다
+  const onSubmit = form.handleSubmit(async (formData: CreatePost) => {
+    let submitting: Promise<void> | undefined;
+
+    guard(() => {
+      submitting = submitPost(formData);
+    });
+
+    await submitting;
   });
 
   const onFormReset = () => {
@@ -147,7 +164,10 @@ export function useCreatePost() {
     onSubmit,
     isCreating,
     onFormReset,
-    submitError,
+    // 로그인이 풀린 채 남아 있으면 그 안내가 먼저다 - 다시 로그인하면 사라지고 이전 안내가 다시 보인다
+    submitError: signedOutNotice
+      ? { kind: 'form' as const, message: signedOutNotice }
+      : submitError,
     linkPreview,
     titleValue,
   };

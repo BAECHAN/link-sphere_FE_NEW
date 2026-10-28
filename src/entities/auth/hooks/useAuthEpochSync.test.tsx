@@ -11,6 +11,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
+import { clearUnsavedChanges, useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
 import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 import { LocalStorageUtil } from '@/shared/utils/storage.util';
 import { createTestQueryClient } from '@/test/utils';
@@ -77,9 +78,35 @@ function mockRefresh(accessToken: string | null) {
   return spy;
 }
 
+/** BE처럼: 토큰을 실어 보내면(이 탭의 옛 계정) 409, 토큰 없이 보내면 쿠키 주인 계정의 새 토큰. 실어 보낸 토큰을 차례로 담는다 */
+function mockRefreshMismatch() {
+  const hints: Array<string | null> = [];
+  server.use(
+    http.post(url(API_ENDPOINTS.auth.refresh), ({ request }) => {
+      const hint = request.headers.get('X-Access-Token');
+      hints.push(hint);
+
+      if (hint) {
+        return HttpResponse.json(
+          { status: 409, code: 'SESSION_MISMATCH', message: '', timestamp: '' },
+          { status: 409 }
+        );
+      }
+
+      return HttpResponse.json(
+        { status: 200, message: 'ok', data: { accessToken: 'token-b' }, timestamp: '' },
+        { status: 200 }
+      );
+    })
+  );
+  return hints;
+}
+
 function restoreFromBfcache() {
   window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
 }
+
+const DIRTY_KEY = 'post-create';
 
 describe('useAuthEpochSync', () => {
   beforeEach(() => {
@@ -91,6 +118,7 @@ describe('useAuthEpochSync', () => {
     AuthUtil.resetLogoutGuard();
     useAuthStore.getState().setAuthResolved(false);
     useLoginDialogStore.setState({ onSuccess: undefined, pendingAction: undefined });
+    clearUnsavedChanges(DIRTY_KEY);
     window.localStorage.clear();
   });
 
@@ -117,6 +145,43 @@ describe('useAuthEpochSync', () => {
     });
   });
 
+  it('쓰는 중에 다른 탭이 로그아웃하면 보호 경로여도 옮기지 않고 그 자리에 로그인 창을 연다', () => {
+    window.history.replaceState(null, '', ROUTES_PATHS.POST.SUBMIT);
+    signInThisTab();
+    useUnsavedChangesStore.getState().markDirty(DIRTY_KEY);
+    renderHook(() => useAuthEpochSync(), { wrapper: Wrapper });
+
+    signOutInOtherTab();
+
+    expect(useAuthStore.getState().accessToken).toBeNull();
+    expect(useAuthStore.getState().signedOutInPlace).toEqual({
+      reason: 'signedOutElsewhere',
+      pathname: ROUTES_PATHS.POST.SUBMIT,
+    });
+    expect(NavigationService.navigate).toHaveBeenCalledTimes(1);
+    expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.POST.SUBMIT, {
+      state: { loginDialogOpen: true, loginDialogReason: 'signedOutElsewhere' },
+      replace: false,
+      preventScrollReset: true,
+    });
+  });
+
+  it('쓰는 중에 다른 탭이 로그아웃하면 공개 경로에서도 그 자리에 로그인 창을 연다', () => {
+    window.history.replaceState(null, '', '/post/post-1');
+    signInThisTab();
+    useUnsavedChangesStore.getState().markDirty(DIRTY_KEY);
+    renderHook(() => useAuthEpochSync(), { wrapper: Wrapper });
+
+    signOutInOtherTab();
+
+    expect(useAuthStore.getState().accessToken).toBeNull();
+    expect(NavigationService.navigate).toHaveBeenCalledWith('/post/post-1', {
+      state: { loginDialogOpen: true, loginDialogReason: 'signedOutElsewhere' },
+      replace: false,
+      preventScrollReset: true,
+    });
+  });
+
   it('토큰을 든 살아 있는 탭이 다른 탭의 로그인을 받으면 내보내지 않고 새 세션을 받아들인다', async () => {
     window.history.replaceState(null, '', ROUTES_PATHS.BOOKMARK);
     signInThisTab('token-a');
@@ -135,26 +200,7 @@ describe('useAuthEpochSync', () => {
   it('받아들이려던 세션이 다른 계정이면(SESSION_MISMATCH) 로그아웃 처리 뒤 그 계정으로 복원하고 알린다', async () => {
     window.history.replaceState(null, '', ROUTES_PATHS.BOOKMARK);
     signInThisTab('token-a');
-    // BE처럼: 토큰을 실어 보내면(이 탭의 옛 계정) 409, 토큰 없이 보내면 쿠키 주인 계정의 새 토큰
-    const hints: Array<string | null> = [];
-    server.use(
-      http.post(url(API_ENDPOINTS.auth.refresh), ({ request }) => {
-        const hint = request.headers.get('X-Access-Token');
-        hints.push(hint);
-
-        if (hint) {
-          return HttpResponse.json(
-            { status: 409, code: 'SESSION_MISMATCH', message: '', timestamp: '' },
-            { status: 409 }
-          );
-        }
-
-        return HttpResponse.json(
-          { status: 200, message: 'ok', data: { accessToken: 'token-b' }, timestamp: '' },
-          { status: 200 }
-        );
-      })
-    );
+    const hints = mockRefreshMismatch();
     const toastInfo = vi.spyOn(toast, 'info');
     renderHook(() => useAuthEpochSync(), { wrapper: Wrapper });
 
@@ -168,6 +214,24 @@ describe('useAuthEpochSync', () => {
     });
     expect(toastInfo).toHaveBeenCalledWith(TEXTS.messages.info.switchedToOtherAccount);
     toastInfo.mockRestore();
+  });
+
+  it('공개 화면에서 쓰는 중에 받아들이려던 세션이 다른 계정이면 쓰던 글을 버리고 /post로 간다', async () => {
+    window.history.replaceState(null, '', '/post/post-1');
+    signInThisTab('token-a');
+    useUnsavedChangesStore.getState().markDirty(DIRTY_KEY);
+    const hints = mockRefreshMismatch();
+    renderHook(() => useAuthEpochSync(), { wrapper: Wrapper });
+
+    signInInOtherTab();
+
+    await waitFor(() => expect(useAuthStore.getState().accessToken).toBe('token-b'));
+    expect(hints).toEqual(['token-a', null]);
+    // 이전 계정의 글이 쿠키 주인 계정에게 보이지 않게 이탈 확인 등록까지 비운다
+    expect(useUnsavedChangesStore.getState().dirtyKeys.size).toBe(0);
+    expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.POST.ROOT, {
+      replace: true,
+    });
   });
 
   it('bfcache 복원 때 그 사이 다른 계정이 로그인했으면 로그아웃 처리 뒤 새 세션으로 복원한다', async () => {

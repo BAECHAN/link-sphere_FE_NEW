@@ -41,3 +41,15 @@ export function hasUnsavedChanges(): boolean {
 export function clearUnsavedChanges(key: string): void {
   useUnsavedChangesStore.getState().markClean(key);
 }
+
+/**
+ * 등록된 키를 모두 즉시(동기) 해제한다.
+ * 쓰던 글을 버리고 화면을 옮겨야 할 때(다른 회원으로 바뀜, 직접 로그아웃 확인) 그 이동을 이탈 확인창이 막지 않게 한다.
+ */
+export function clearAllUnsavedChanges(): void {
+  if (!hasUnsavedChanges()) {
+    return;
+  }
+
+  useUnsavedChangesStore.setState({ dirtyKeys: new Set() });
+}
