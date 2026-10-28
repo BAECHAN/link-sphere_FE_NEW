@@ -1,4 +1,7 @@
 ### 2026-10-28 (FE)
+- Windows 및 안드로이드 환경의 키보드 입력 오류를 수정하여 Ctrl+Enter 단축키를 통한 댓글 등록 기능을 개선함 ([#445](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/445))
+
+### 2026-10-28 (FE)
 - 인증 토큰 만료 시 발생하는 무한 루프 및 요청 대기 현상 해결 ([#444](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/444))
 
 ### 2026-10-28 (FE)
