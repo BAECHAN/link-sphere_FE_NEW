@@ -51,8 +51,10 @@ const SelectTrigger = forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
     size?: 'default' | 'sm';
+    /** 아이콘만 있는 트리거처럼 오른쪽 ▾를 그리지 않을 때. 글자가 없으면 aria-label에 지금 값을 넣는다 */
+    hideIcon?: boolean;
   }
->(({ className, children, size = 'default', ...props }, ref) => (
+>(({ className, children, size = 'default', hideIcon = false, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
     data-slot="select-trigger"
@@ -64,9 +66,11 @@ const SelectTrigger = forwardRef<
     {...props}
   >
     {children}
-    <SelectPrimitive.Icon asChild>
-      <ChevronDown className="size-4 opacity-50 transition-transform duration-200 ease-in-out in-data-[state=open]:rotate-180" />
-    </SelectPrimitive.Icon>
+    {!hideIcon && (
+      <SelectPrimitive.Icon asChild>
+        <ChevronDown className="size-4 opacity-50 transition-transform duration-200 ease-in-out in-data-[state=open]:rotate-180" />
+      </SelectPrimitive.Icon>
+    )}
   </SelectPrimitive.Trigger>
 ));
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;

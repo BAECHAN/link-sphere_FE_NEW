@@ -11,6 +11,20 @@
 
 ### Added
 
+- `bookmark` 폴더 화면 제목 옆 연필로 그 자리에서 폴더 이름 바꾸기
+  <details><summary>배경·구현</summary>
+
+  폴더를 연 채로 이름을 바꾸려면 사이드바나 폴더 목록으로 돌아가 ⋮ 메뉴를 열어야 했다(2026-10-27 요청). 실제 폴더 화면의 제목 바로 뒤에 연필 버튼을 두고, 누르면 지금 이름이 든 입력이 열린다. Enter·바깥 클릭은 저장, Esc는 취소, 15자를 넘으면 입력 아래 이유를 보여 주고 닫지 않는다 — 사이드바·카드와 같은 훅이라 동작이 같고, 저장하면 세 곳이 함께 바뀐다. 전체·미분류에는 연필이 없다. 편집 입력은 모바일은 카드와 같은 기본 크기(칸이 좁아 제목 크기로는 긴 이름 앞이 잘린다), 데스크톱은 제목 크기 그대로다(두 안을 나란히 비교 후 사용자 선택). 근거는 연필보다 ⋮ 메뉴 쪽이었으나(Pinterest·NN/g) 사용자가 보고 연필을 골랐다. 이름 바꾸기 로직은 `useFolderActions`(widgets)에서 features로 옮겨 제목과 사이드바·카드가 같이 쓰고, 편집을 열 때 입력값을 지금 이름으로 다시 맞춰 한쪽에서 바꾼 뒤 다른 쪽을 열면 옛 이름이 뜨던 경우를 막는다. 연필은 다른 화면에서도 쓰도록 공용 `EditButton`으로 만들었다. 동작·근거는 `docs/BOOKMARK.md` §5 "폴더 화면에서 이름 바꾸기", 계획은 `docs/plans/2026-10-28-bookmark-folder-title-rename-sort-icon.md`. (`features/bookmark/rename/hooks/useRenameBookmarkFolder.ts`(신규), `features/bookmark/rename/ui/BookmarkFolderTitle.tsx`(신규), `shared/ui/elements/EditButton.tsx`(신규), `widgets/bookmark/folder-tree/hooks/useFolderActions.ts`, `pages/bookmark/BookmarkPage.tsx`, `pages/bookmark/hooks/useBookmarkPage.ts`, `e2e/bookmark-folder-title-rename.spec.ts`·`.mobile.spec.ts`(신규), [PR #440](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/440))
+
+  </details>
+
+- `bookmark` 모바일 폴더 화면 정렬을 ↕ 아이콘으로 줄이고 기본값이 아니면 점 표시
+  <details><summary>배경·구현</summary>
+
+  모바일 정렬 칸(128px)이 제목과 같은 줄을 차지해 15자 이름이 360px 폰에서 3줄까지 됐다. 정렬을 아래 줄로 내리지 않고 같은 줄에 두기로 해(2026-10-28 사용자 결정), 글자 없이 ↕ 아이콘만 있는 32px 버튼으로 바꿨다. 최신 북마크순이 아니면 아이콘 오른쪽 위에 점을 찍고, 누르면 같은 목록이 버튼 오른쪽 끝에 맞춰 열리며 고른 항목에 체크가 붙는다. 화면 읽기 프로그램용 버튼 이름에 지금 정렬을 넣는다("북마크 정렬 기준 선택, 지금 제목순"). 지금 정렬을 글자로 보여 주라는 지침(GitLab Pajamas·Apple HIG·NN/g)과 다른 결정이라 근거와 함께 남겼다. 공용 `SelectTrigger`에 ▾를 숨기는 `hideIcon`(기본 false)을 더했고, 데스크톱 정렬은 그대로다. 동작·근거는 `docs/BOOKMARK.md` §5 "모바일 정렬 아이콘". (`pages/bookmark/BookmarkPage.tsx`, `shared/ui/atoms/select.tsx`·`select.stories.tsx`, `shared/config/texts.ts`, `e2e/bookmark-sort-icon.mobile.spec.ts`(신규), [PR #440](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/440))
+
+  </details>
+
 - `bookmark` 자주 보는 폴더를 고정해 내 폴더 맨 위로 올리기
   <details><summary>배경·구현</summary>
 

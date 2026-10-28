@@ -46,13 +46,15 @@ export function useBookmarkPage() {
   const isMobileListMode = isMobile && !folderKey;
   const activeFolderKey: BookmarkFolderKey = folderKey ?? 'all';
 
+  // 제목 옆 연필로 이름을 바꿀 폴더 — 전체·미분류·아직 못 불러온 폴더면 없다
+  const currentFolder = folderList?.find((f) => f.id === activeFolderKey);
+
   const currentFolderName =
     activeFolderKey === 'all'
       ? TEXTS.bookmark.folder.all
       : activeFolderKey === 'uncategorized'
         ? TEXTS.bookmark.folder.uncategorized
-        : (folderList?.find((f) => f.id === activeFolderKey)?.name ??
-          TEXTS.bookmark.folder.fallbackName);
+        : (currentFolder?.name ?? TEXTS.bookmark.folder.fallbackName);
 
   const setFolderKey = (key: BookmarkFolderKey) => {
     updateSearchParams(
@@ -118,6 +120,7 @@ export function useBookmarkPage() {
     isMobile,
     isMobileListMode,
     activeFolderKey,
+    currentFolder,
     currentFolderName,
     sort,
     search,

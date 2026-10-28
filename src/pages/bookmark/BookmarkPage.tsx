@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import {
   Select,
@@ -14,6 +14,7 @@ import { FolderTree } from '@/widgets/bookmark/folder-tree/ui/FolderTree';
 import { MobileFolderList } from '@/widgets/bookmark/folder-tree/ui/MobileFolderList';
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { POST_CARD_GRID } from '@/widgets/post/post-card/config/post-card-grid.const';
+import { BookmarkFolderTitle } from '@/features/bookmark/rename/ui/BookmarkFolderTitle';
 import { BookmarkFolderSort } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import type { Post } from '@/entities/post/model/post.schema';
 import { useBookmarkPage, VALID_SORTS } from '@/pages/bookmark/hooks/useBookmarkPage';
@@ -36,6 +37,7 @@ export function BookmarkPage() {
     isMobile,
     isMobileListMode,
     activeFolderKey,
+    currentFolder,
     currentFolderName,
     sort,
     search,
@@ -68,15 +70,31 @@ export function BookmarkPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-screen-title min-w-0 flex-1 select-none">{currentFolderName}</h1>
+          {/* 폴더가 바뀌면 이름 입력 상태를 새로 시작한다 */}
+          <BookmarkFolderTitle
+            key={activeFolderKey}
+            folder={currentFolder}
+            title={currentFolderName}
+            className="flex-1"
+            titleClassName="flex-1"
+          />
           <Select value={sort} onValueChange={(v) => setSort(v as BookmarkFolderSort)}>
+            {/* 제목과 같은 줄에 두려고 글자 대신 ↕ 아이콘만 둔다. 기본(최신 북마크순)이 아니면 점을 찍고,
+                지금 정렬은 이름(aria-label)으로 알린다(docs/BOOKMARK.md §5 "모바일 정렬 아이콘") */}
             <SelectTrigger
-              className="w-32 h-8 text-xs"
-              aria-label={TEXTS.ariaLabels.bookmarkSortSelect}
+              hideIcon
+              className="relative size-8 shrink-0 justify-center border-transparent bg-transparent px-0 shadow-none dark:bg-transparent"
+              aria-label={TEXTS.ariaLabels.bookmarkSortSelectCurrent(SORT_LABELS[sort])}
             >
-              <SelectValue placeholder={TEXTS.bookmark.folder.sortPlaceholder} />
+              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+              {sort !== 'latest' && (
+                <span
+                  aria-hidden="true"
+                  className="absolute top-[5px] right-[5px] size-[7px] rounded-full bg-primary"
+                />
+              )}
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent align="end">
               {VALID_SORTS.map((s) => (
                 <SelectItem key={s} value={s}>
                   {SORT_LABELS[s]}
@@ -111,8 +129,13 @@ export function BookmarkPage() {
         className="w-60 shrink-0 sticky top-[calc(var(--navbar-height)+1rem)] h-[calc(100vh-var(--navbar-height)-2rem)] self-start"
       />
       <main className="flex-1 min-w-0 pb-16">
-        <header className="flex items-center justify-between mb-4">
-          <h1 className="text-screen-title min-w-0 select-none">{currentFolderName}</h1>
+        <header className="flex items-center justify-between gap-4 mb-4">
+          <BookmarkFolderTitle
+            key={activeFolderKey}
+            folder={currentFolder}
+            title={currentFolderName}
+            className="flex-1"
+          />
           <Select value={sort} onValueChange={(v) => setSort(v as BookmarkFolderSort)}>
             <SelectTrigger className="w-36" aria-label={TEXTS.ariaLabels.bookmarkSortSelect}>
               <SelectValue placeholder={TEXTS.bookmark.folder.sortPlaceholder} />

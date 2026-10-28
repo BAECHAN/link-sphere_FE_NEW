@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { ArrowUpDown } from 'lucide-react';
 import {
   Select,
   SelectGroup,
@@ -86,6 +87,29 @@ export const Disabled: Story = {
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="apple">Apple</SelectItem>
+      </SelectContent>
+    </Select>
+  ),
+};
+
+// 북마크 화면 모바일 정렬처럼 글자 없이 아이콘만 두는 트리거 — 지금 값이 안 보이므로 aria-label에 넣는다
+export const IconOnly: Story = {
+  render: () => (
+    <Select defaultValue="title">
+      <SelectTrigger
+        hideIcon
+        className="relative size-8 justify-center border-transparent bg-transparent px-0 shadow-none dark:bg-transparent"
+        aria-label="정렬 기준 선택, 지금 제목순"
+      >
+        <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+        <span
+          aria-hidden="true"
+          className="absolute top-[5px] right-[5px] size-[7px] rounded-full bg-primary"
+        />
+      </SelectTrigger>
+      <SelectContent align="end">
+        <SelectItem value="latest">최신순</SelectItem>
+        <SelectItem value="title">제목순</SelectItem>
       </SelectContent>
     </Select>
   ),

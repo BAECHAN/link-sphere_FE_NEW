@@ -4,7 +4,11 @@ import {
   mockBookmarkFolder,
   mockBookmarkFolderListResponse,
 } from '@/mocks/fixtures/bookmark-folder.fixtures';
-import type { BookmarkFoldersResponse } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
+import type {
+  BookmarkFolder,
+  BookmarkFoldersResponse,
+  UpdateBookmarkFolderRequest,
+} from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { ENDPOINTS } from './endpoints';
 import { isApiPath } from './route-match';
 import { wrapResponse } from './wrap-response';
@@ -47,4 +51,44 @@ export async function mockAddBookmarkFolder(page: Page): Promise<void> {
     (url) => isApiPath(url, ENDPOINTS.bookmark.postFolder(mockPost.id, mockBookmarkFolder.id)),
     (route) => route.fulfill({ json: wrapResponse(data) })
   );
+}
+
+/**
+ * GET /bookmark/folders + PATCH /bookmark/folders/:folderId — 이름 바꾸기 e2e용.
+ * PATCH를 받으면 목록의 이름도 바꿔, 저장 뒤 목록 재조회(handleBookmarkFolderUpdateSuccess)가 새 이름을 받는다.
+ * 받은 PATCH 본문을 순서대로 담는 배열을 돌려준다.
+ */
+export async function mockBookmarkFolderRename(
+  page: Page,
+  folders: BookmarkFolder[]
+): Promise<UpdateBookmarkFolderRequest[]> {
+  const current = folders.map((folder) => ({ ...folder }));
+  const patchBodies: UpdateBookmarkFolderRequest[] = [];
+
+  await page.route(
+    (url) => isApiPath(url, ENDPOINTS.bookmark.folders),
+    (route) => route.fulfill({ json: wrapResponse({ folders: current, uncategorizedCount: 0 }) })
+  );
+  // 폴더 게시글(/folders/:key/posts)·삭제(DELETE)와 경로가 겹치지 않게 끝을 막고 method를 본다
+  await page.route(
+    (url) => /^\/api\/bookmark\/folders\/[^/]+$/.test(url.pathname),
+    (route) => {
+      if (route.request().method() !== 'PATCH') {
+        return route.fallback();
+      }
+
+      const body = route.request().postDataJSON() as UpdateBookmarkFolderRequest;
+      const folderId = new URL(route.request().url()).pathname.split('/').pop();
+      const folder = current.find((f) => f.id === folderId);
+      patchBodies.push(body);
+
+      if (folder) {
+        folder.name = body.name;
+      }
+
+      return route.fulfill({ json: wrapResponse(folder) });
+    }
+  );
+
+  return patchBodies;
 }
