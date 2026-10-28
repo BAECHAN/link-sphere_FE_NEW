@@ -508,6 +508,86 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
 - 바꾸지 않은 자리: 폴더 화면 제목(자르지 않음), 폴더 선택 창 행(위 "폴더 이름 길이" 표대로 한 줄에 22자가 들어가
   15자는 한 줄).
 
+### 폴더 화면에서 이름 바꾸기(2026-10-28)
+
+**문제.** 폴더를 연 채로 이름을 바꾸려면 사이드바(데스크톱)나 폴더 목록(모바일)으로 돌아가 ⋮ 메뉴를 열어야 했다. 2026-10-27
+사용자가 상세 화면에서도 이름을 고칠 수 있게 해 달라고 했다.
+
+**동작.**
+
+- 실제 폴더를 연 화면에서 제목 바로 뒤에 연필 버튼(`EditButton`, 32px)이 붙는다. 전체·미분류·아직 못 불러온 폴더(제목
+  `'폴더'`)에는 없다 — 바꿀 대상이 없다.
+- 누르면 제목 자리에 지금 이름이 든 입력이 열린다. Enter나 바깥을 누르면 저장하고, Esc는 취소한다. 15자를 넘으면 입력 아래
+  이유를 보여 주고 닫지 않는다. 사이드바·카드와 같은 훅(`useRenameBookmarkFolder`)이라 동작이 갈리지 않는다.
+- 저장은 기존 `useUpdateBookmarkFolderMutation`(낙관적 갱신)이라 사이드바·카드·제목이 함께 바뀐다. 실패하면 되돌리고
+  "이름 변경에 실패했어요." 토스트가 뜬다.
+- 편집을 열 때(`startRename`) 입력값을 지금 이름으로 다시 맞춘다. 데스크톱에서는 사이드바와 제목이 같은 폴더를 동시에
+  그리는데, 예전 훅은 처음 그릴 때 이름을 한 번만 담아 한쪽에서 바꾼 뒤 다른 쪽을 열면 옛 이름이 떴다.
+- 모바일에서 두 줄 제목을 편집하면 한 줄 입력으로 바뀌는 만큼 헤더가 54px에서 36px로 줄어, 아래 검색창·목록이 약 17px
+  올라간다. 열고 닫을 때 한 번씩이라 그대로 둔다(사용자 결정 2026-10-28).
+
+**편집 모양.** 두 안을 실제 화면에서 찍어 나란히 보고 사용자가 골랐다(2026-10-28). 수치는 직접 측정(Playwright 모킹 화면에서
+`getComputedStyle`·`getBoundingClientRect`, 14자 이름).
+
+| 안                       | 모바일 360px                                                | 데스크톱 1280px                   | 결과                |
+| ------------------------ | ----------------------------------------------------------- | --------------------------------- | ------------------- |
+| A. 제목 글꼴 그대로      | 20px 굵게. 칸이 224px라 이름 앞이 잘린다("ㅅ크립트 심화 …") | 20px 굵게, 칸 552px. 다 들어간다  | **데스크톱에 채택** |
+| B. 카드와 같은 기본 입력 | 16px. 이름이 다 보인다                                      | 14px. 편집을 열면 글자가 작아진다 | **모바일에 채택**   |
+
+데스크톱 입력은 important(`md:text-screen-title!`)로 제목 크기를 지킨다. tailwind-merge 3.4.0은 역할 토큰
+`text-screen-title`을 글자 크기로 알아보지 못해 — `twMerge('text-muted-foreground', 'text-screen-title')`가 앞의 색 클래스를
+지운다, 즉 색으로 본다 — Input 기본 `text-base md:text-sm`과 함께 남기고, 그쪽이 이겨 모바일 16px·데스크톱 14px로 나왔다
+(직접 측정). e2e `bookmark-folder-title-rename.spec.ts`가 입력과 제목의 글자 크기가 같은지 본다.
+
+**근거와 다른 결정.** 조사한 근거는 연필보다 ⋮ 메뉴 쪽이었다. 사용자가 이 근거를 보고 연필을 골랐다(2026-10-28).
+
+- [Pinterest 도움말](https://help.pinterest.com/en/article/edit-a-board)은 보드를 연 화면에서 데스크톱은 _"보드 이름 옆
+  말줄임표 아이콘을 누른다"_, 모바일은 _"화면 오른쪽 위 말줄임표 아이콘을 누른다"_ 고 안내한다(번역) — 메뉴 안에서 고친다.
+- [NN/g](https://www.nngroup.com/articles/contextual-menus-guidelines/)는 맥락 메뉴가 _"필요할 때 찾을 수 있되 핵심 흐름을
+  방해하면 안 되는 보조·낮은 우선순위 옵션에 가장 알맞다"_ 고 한다(번역). 같은 글은 사용자들이 _"⋮·⋯ 아이콘은 알아보더라도
+  정보 향기가 낮아 그 뒤에 어떤 옵션이 숨어 있는지 잘 몰랐다"_ 고도 쓴다(번역).
+- 그 자리 편집 지침은 자주 고치는 데이터를 전제로 한다. [Atlassian](https://atlassian.design/components/inline-edit/usage)은
+  _"작업 항목 페이지처럼 정보를 자주 갱신해야 하는 화면에서 쓴다"_, [PatternFly](https://www.patternfly.org/components/inline-edit/design-guidelines)는
+  쓸 때로 _"데이터를 자주 갱신해야 한다"_ 를 든다(번역). 폴더 이름은 자주 바꾸지 않는다.
+- 참고로 폴더 화면에서 ⋮ 메뉴를 쓰면 지금은 항목이 "이름 수정" 하나뿐이다. 상세 화면의 삭제·고정은 이번 범위 밖이다(§11).
+
+**공용 버튼.** 연필은 `shared/ui/elements/EditButton.tsx`(ghost 아이콘 버튼, lucide `Pencil`)로 만들어 다른 화면에서도
+쓰게 했다(사용자 요청). 이름은 `ActionButton`·`ToggleButton`처럼 `<역할>Button`이다. 마우스를 올리면 뜨는 힌트는 `title`
+속성이다 — 이 레포에서 아이콘 버튼 힌트를 단 선례가 `PostCard.tsx`의 잠금 버튼(`title` + `aria-label`)뿐이고,
+`TooltipWrapper`는 비활성 이유를 알리는 데만 쓴다.
+
+**터치 크기.** 연필·정렬 버튼 모두 32px로, 같은 줄 뒤로 버튼과 맞췄다. `responsive-ux` skill이 권하는 44px보다 작다. 같은
+줄 크기에 맞춰 줄인 선례는 모바일 칩을 28px로 되돌린 결정이다(`docs/DECISIONS.md` 2026-09-06 "모바일 칩 높이 되돌림").
+[WCAG 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)의 최소 24px는 넘는다.
+
+### 모바일 정렬 아이콘(2026-10-28)
+
+**문제.** 모바일 폴더 화면에서 정렬 칸(`SelectTrigger w-32`, 128px)이 제목과 같은 줄을 차지해, 15자 이름이 360px 폰에서
+최대 3줄이 됐다(위 "폴더 이름 줄 수"). 사용자는 정렬을 아래 줄로 내리지 말고 같은 줄에 두자고 했다(2026-10-28).
+
+**동작.**
+
+- 모바일 정렬은 글자 없이 ↕ 아이콘(lucide `ArrowUpDown`)만 있는 32px 버튼이다. 기본(최신 북마크순)이 아니면 아이콘 오른쪽 위에
+  점(`bg-primary`)을 찍는다.
+- 누르면 지금과 같은 목록이 버튼 오른쪽 끝에 맞춰(`align="end"`) 열리고, 고른 항목에 체크가 붙는다. 화면 오른쪽 끝 버튼이라
+  왼쪽 맞춤이면 목록이 화면 밖으로 밀린다.
+- 글자가 없어 화면 읽기 프로그램이 지금 값을 모르므로, 버튼 이름에 넣는다("북마크 정렬 기준 선택, 지금 제목순",
+  `TEXTS.ariaLabels.bookmarkSortSelectCurrent`). 점은 `aria-hidden`이다 — 상단바 계정 버튼의 점(`Navbar.tsx`)과 같은 방식이다.
+- 아이콘만 두려고 공용 `SelectTrigger`에 `hideIcon`(기본 false)을 더해 ▾를 숨긴다. 데스크톱 정렬은 그대로다.
+- "최신 등록순"(글 등록일) 정렬은 더하지 않는다(사용자 결정 2026-10-28). 지금 "최신 북마크순·오래된순"은 둘 다 북마크한
+  시각 기준이다.
+
+**근거와 다른 결정.** 지금 정렬을 겉에 글자로 보여 주라는 지침이 많다. 사용자가 이 근거를 보고 아이콘을 골랐다(2026-10-28).
+
+- [GitLab Pajamas](https://design.gitlab.com/components/sorting)는 _"드롭다운 트리거 버튼의 글자는 선택된 정렬 옵션의 글자다"_
+  라고 한다(번역).
+- [Apple HIG 팝업 버튼](https://developer.apple.com/design/human-interface-guidelines/pop-up-buttons)도 _"메뉴에서 항목을 고르면
+  메뉴가 닫히고, 버튼은 지금 선택을 나타내도록 내용을 갱신할 수 있다"_ 고 쓴다(번역).
+- [NN/g](https://www.nngroup.com/articles/icon-usability/)는 _"거의 모든 아이콘이 가진 모호함을 넘으려면, 그 맥락에서 의미를
+  분명히 하도록 아이콘 옆에 텍스트 라벨이 있어야 한다"_ 고 한다(번역).
+- 정렬 아이콘에 "기본값 아님"을 점으로 표시하라는 지침은 찾지 못했다. 점은 "기본과 다르다"만 알려 주고, 무엇으로 정렬됐는지는
+  목록을 열어야 보인다.
+
 ### 링크 등록 폼의 폴더 선택(`PostCreateBookmarkFolderField`) — 이 페이지가 아닌 다른 화면
 
 `src/features/post/create/ui/PostCreateBookmarkFolderField.tsx`는 `/bookmark` 페이지가
@@ -654,9 +734,11 @@ _"사용자는 두 항목이 중복이라는 걸 모르기 때문에 결국 둘 
 src/
 ├── pages/
 │   └── bookmark/
-│       ├── BookmarkPage.tsx              # 3분기 렌더링만(JSX) — 로직은 아래 useBookmarkPage(#227)
+│       ├── BookmarkPage.tsx              # 3분기 렌더링만(JSX) — 로직은 아래 useBookmarkPage(#227).
+│       │                                 # 모바일 정렬은 ↕ 아이콘 + 기본 아님 점(§5 "모바일 정렬 아이콘")
 │       └── hooks/
-│           └── useBookmarkPage.ts        # folder/sort/q URL 파라미터 wiring + activeFolderKey
+│           └── useBookmarkPage.ts        # folder/sort/q URL 파라미터 wiring + activeFolderKey +
+│                                         # currentFolder(지금 연 폴더 객체, 제목 이름 바꾸기용)
 ├── widgets/
 │   └── bookmark/
 │       ├── bookmark-search/
@@ -683,7 +765,8 @@ src/
 │           │   ├── useFollowFocusOnReorder.ts # 고정·해제로 순서가 바뀌면 포커스가 든 폴더로
 │           │   │                          # 부드럽게 스크롤(§5) — useFolderTree·useMobileFolderList가 호출
 │           │   ├── useFolderActions.ts   # 폴더 고정(pin)·이름변경(rename)·삭제(delete) — FolderItem·
-│           │   │                         # FolderCard 공유. 고정은 ⋮ 메뉴가 다 닫힌 뒤 보낸다
+│           │   │                         # FolderCard 공유. 이름변경은 features/bookmark/rename의
+│           │   │                         # useRenameBookmarkFolder를 그대로 돌려준다. 고정은 ⋮ 메뉴가 다 닫힌 뒤 보낸다
 │           │   │                         # (queuePinToggle → handleMenuCloseAutoFocus, §10). 삭제 확인창은 emphasis: 'confirm'
 │           │   │                         # (docs/DECISIONS.md 2026-09-29 항목). 삭제 성공 토스트
 │           │   │                         # "폴더를 삭제했어요."는 entity meta.successMessage(2026-10-21)
@@ -703,6 +786,13 @@ src/
 ├── features/
 │   ├── bookmark/                     # 2026-09-08 post/bookmark에서 승격 — entities/widgets/
 │   │   │                             # pages와 bookmark 도메인 그룹을 통일
+│   │   ├── rename/
+│   │   │   ├── hooks/
+│   │   │   │   └── useRenameBookmarkFolder.ts # 이름 바꾸기 로직(15자 검사·Enter/Esc·저장 중복 방지) —
+│   │   │   │                                 # 폴더 화면 제목과 useFolderActions(사이드바·카드)가 같이 쓴다(§5)
+│   │   │   └── ui/
+│   │   │       └── BookmarkFolderTitle.tsx  # 폴더 화면 제목 + 연필(EditButton). 편집 중에는 입력 —
+│   │   │                                    # 모바일 기본 입력, 데스크톱 제목 크기(§5 "폴더 화면에서 이름 바꾸기")
 │   │   ├── select/
 │   │   │   ├── hooks/
 │   │   │   │   └── useBookmarkFolderSelect.ts # BookmarkFolderSelectDialog의 로직 전부(조회·생성·
@@ -774,7 +864,10 @@ src/
 │                                               # useFolderSections.ts가 대신 pickRecentFolders를 직접 호출
 └── shared/
     ├── api/client.ts                     # apiClient — 공통 HTTP 클라이언트
+    ├── ui/atoms/
+    │   └── select.tsx                    # SelectTrigger hideIcon — 모바일 정렬 아이콘이 ▾를 숨길 때
     ├── ui/elements/
+    │   ├── EditButton.tsx                # 공용 연필 버튼(label을 aria-label·title에 함께) — 폴더 화면 제목
     │   └── SearchInput.tsx               # 공통 검색 입력 (아이콘 + 단축키 Kbd)
     └── config/
         ├── api.ts                        # bookmark 엔드포인트
@@ -783,8 +876,8 @@ src/
 
 테스트: `src/mocks/fixtures/bookmark-folder.fixtures.ts`,
 `src/mocks/handlers/bookmark-folder.handlers.ts`(폴더 목록 + 소속 3개 엔드포인트 기본
-핸들러), §9의 7개 테스트 파일(`find src/widgets/bookmark src/features/bookmark -name
-"*.test.*" | wc -l`로 재확인, 2026-10-05).
+핸들러), §9의 9개 테스트 파일(`find src/widgets/bookmark src/features/bookmark -name
+"*.test.*" | wc -l`로 재확인, 2026-10-28).
 
 이 문서에서 파일명만으로 등장하는 식별자의 위치: `activeFolderKey`는
 `useBookmarkPage.ts:47`(`pages/bookmark/hooks/`)의 로컬 변수(`folderKey ?? 'all'`,
@@ -793,19 +886,22 @@ src/
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                      | 방법                                                                                                                                                                                                                                                                                             |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| "최근 저장한 폴더" 노출 개수 조정 | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`(§7의 최소 저장 이력 폴더 수와 완전 일치 배제 조건도 이 값을 그대로 참조하므로 함께 검토)                                                                                                             |
-| 정렬 옵션 추가                    | `bookmark-folder.schema.ts`의 `bookmarkFolderSortEnum` + `useBookmarkPage.ts`의 `VALID_SORTS`(드롭다운·URL 파싱) + `BookmarkPage.tsx`의 `SORT_LABELS` + `TEXTS.bookmark.folder.sort.*`에 값 추가 + BE 대응 필요 — `VALID_SORTS`를 빠뜨리면 드롭다운에 안 뜨고 `?sort=새값`이 `latest`로 떨어진다 |
-| 폴더 내 검색 빈 상태 문구 변경    | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                                                                                                                                                                                  |
-| 모바일 감지 기준 변경             | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                                                                                                                                                                                  |
-| 고정한 폴더끼리의 순서 변경       | `bookmark-folder.util.ts`의 `orderPinnedFirst` 정렬 — BE에는 고정 순서 필드가 없고 `pinnedAt`만 있으므로, 사용자가 직접 순서를 바꾸게 하려면 BE 컬럼·API부터 필요하다                                                                                                                            |
-| 고정·해제 뒤 따라가는 스크롤 변경 | `useFollowFocusOnReorder.ts`의 `scrollIntoView` 옵션. 끄려면 훅 호출과 함께 `FolderTree.tsx`·`MobileFolderList.tsx` 목록 컨테이너의 `[overflow-anchor:none]`도 뺀다 — 그러면 브라우저 스크롤 고정이 한 프레임 만에 따라간다(§5 A안)                                                              |
-| 고정 아이콘 모양·위치 변경        | `FolderTree.tsx`의 `FolderItem`, `MobileFolderList.tsx`의 `FolderCard`(둘 다 `useFolderActions`의 `isPinned`로 왼쪽 아이콘을 바꾼다), `BookmarkFolderSelectDialog.tsx`의 `renderFolderIcon`(`FolderRow`의 `icon` prop으로 넘긴다)                                                                |
-| 새 폴더 만들기 취소 동작 변경     | 세 곳 각각의 `handleCancel`/`handleCancelCreate` — `useBookmarkFolderSelect.ts`, `useFolderTree.ts`(`useInlineCreateFolderInput`), `useMobileFolderList.ts`(`useCreateFolderCard`)                                                                                                               |
-| 폴더 이름 최대 길이 변경          | FE `bookmark-folder.const.ts`의 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`와 BE `BookmarkFolderService.MAX_FOLDER_NAME_LENGTH`를 같이 바꾼다. 늘리면 가장 좁은 자리(360px 폰 카드)에서 줄 수가 늘어난다(§5 "폴더 이름 길이")                                                                              |
-| 폴더 이름 보이는 줄 수 변경       | 모바일 카드는 `MobileFolderList.tsx` `FolderCard`의 `line-clamp-2 min-h-[2lh]`와 `CreateFolderCard`의 `min-h-[2lh]`를 같은 숫자로, 사이드바는 `FolderTree.tsx` `FolderItem`의 `line-clamp-2`를 바꾼다(§5 "폴더 이름 줄 수")                                                                      |
-| 테스트 실행                       | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-tree src/features/bookmark/toggle src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`                                                                                                                   |
+| 하고 싶은 것                          | 방법                                                                                                                                                                                                                                                                                             |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "최근 저장한 폴더" 노출 개수 조정     | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`(§7의 최소 저장 이력 폴더 수와 완전 일치 배제 조건도 이 값을 그대로 참조하므로 함께 검토)                                                                                                             |
+| 정렬 옵션 추가                        | `bookmark-folder.schema.ts`의 `bookmarkFolderSortEnum` + `useBookmarkPage.ts`의 `VALID_SORTS`(드롭다운·URL 파싱) + `BookmarkPage.tsx`의 `SORT_LABELS` + `TEXTS.bookmark.folder.sort.*`에 값 추가 + BE 대응 필요 — `VALID_SORTS`를 빠뜨리면 드롭다운에 안 뜨고 `?sort=새값`이 `latest`로 떨어진다 |
+| 폴더 내 검색 빈 상태 문구 변경        | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                                                                                                                                                                                  |
+| 모바일 감지 기준 변경                 | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                                                                                                                                                                                  |
+| 고정한 폴더끼리의 순서 변경           | `bookmark-folder.util.ts`의 `orderPinnedFirst` 정렬 — BE에는 고정 순서 필드가 없고 `pinnedAt`만 있으므로, 사용자가 직접 순서를 바꾸게 하려면 BE 컬럼·API부터 필요하다                                                                                                                            |
+| 고정·해제 뒤 따라가는 스크롤 변경     | `useFollowFocusOnReorder.ts`의 `scrollIntoView` 옵션. 끄려면 훅 호출과 함께 `FolderTree.tsx`·`MobileFolderList.tsx` 목록 컨테이너의 `[overflow-anchor:none]`도 뺀다 — 그러면 브라우저 스크롤 고정이 한 프레임 만에 따라간다(§5 A안)                                                              |
+| 고정 아이콘 모양·위치 변경            | `FolderTree.tsx`의 `FolderItem`, `MobileFolderList.tsx`의 `FolderCard`(둘 다 `useFolderActions`의 `isPinned`로 왼쪽 아이콘을 바꾼다), `BookmarkFolderSelectDialog.tsx`의 `renderFolderIcon`(`FolderRow`의 `icon` prop으로 넘긴다)                                                                |
+| 새 폴더 만들기 취소 동작 변경         | 세 곳 각각의 `handleCancel`/`handleCancelCreate` — `useBookmarkFolderSelect.ts`, `useFolderTree.ts`(`useInlineCreateFolderInput`), `useMobileFolderList.ts`(`useCreateFolderCard`)                                                                                                               |
+| 폴더 이름 최대 길이 변경              | FE `bookmark-folder.const.ts`의 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`와 BE `BookmarkFolderService.MAX_FOLDER_NAME_LENGTH`를 같이 바꾼다. 늘리면 가장 좁은 자리(360px 폰 카드)에서 줄 수가 늘어난다(§5 "폴더 이름 길이")                                                                              |
+| 폴더 이름 보이는 줄 수 변경           | 모바일 카드는 `MobileFolderList.tsx` `FolderCard`의 `line-clamp-2 min-h-[2lh]`와 `CreateFolderCard`의 `min-h-[2lh]`를 같은 숫자로, 사이드바는 `FolderTree.tsx` `FolderItem`의 `line-clamp-2`를 바꾼다(§5 "폴더 이름 줄 수")                                                                      |
+| 이름 바꾸기 동작 변경(Enter·Esc·검사) | `features/bookmark/rename/hooks/useRenameBookmarkFolder.ts` 한 곳 — 폴더 화면 제목과 사이드바·카드(`useFolderActions`)가 같이 바뀐다                                                                                                                                                             |
+| 폴더 화면 편집 입력 모양 변경         | `BookmarkFolderTitle.tsx`의 `Input` `className`. 제목 크기를 쓰려면 important(`text-screen-title!`)가 필요하다 — 없으면 Input 기본 크기가 이긴다(§5 "폴더 화면에서 이름 바꾸기")                                                                                                                 |
+| 모바일 정렬 점 조건·위치 변경         | `BookmarkPage.tsx` 모바일 분기의 `sort !== 'latest'`와 점 `span`의 `top-[5px] right-[5px] size-[7px]`(10-28 승인 시안 값). 기본 정렬을 바꾸면 이 조건도 같이 바꾼다                                                                                                                              |
+| 테스트 실행                           | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-tree src/features/bookmark/toggle src/features/bookmark/rename src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`                                                                                      |
 
 ## 9. 검증 결과
 
@@ -963,6 +1059,22 @@ DELETE → PUT 순서로 단정) · `bookmark-folder.queries.test.ts`(8, 무수�
 통과했다. 이름 6개 모킹 화면(위 "폴더 이름 줄 수"와 같은 이름)에서 다시 재 보니 사이드바 행은 36·56px 두 가지, 360px 폰 카드는
 "새 폴더" 카드까지 전부 114px, 개수 위치는 전부 85px였다. 전체 스위트 132개 파일 1471개 테스트, e2e 156개(`CI=1`, 재시도 0),
 `pnpm type-check`·`pnpm lint`·`pnpm check:deps`·`pnpm check:docs`가 모두 통과했다.
+
+**2026-10-28 갱신** — 폴더 화면에서 이름 바꾸기·모바일 정렬 아이콘(§5)과 함께 테스트를 더했다.
+
+- `useRenameBookmarkFolder.test.ts` — 다른 곳에서 이름이 바뀐 뒤 편집을 열면 입력에 새 이름이 들어간다. 저장·검사·Esc는
+  `useFolderActions.test.ts`의 이름 변경 8건을 고치지 않고 그대로 통과시켜, 로직을 옮긴 전후가 같음을 확인했다
+- e2e `bookmark-folder-title-rename.spec.ts`(5건) — 연필 → 지금 이름이 든 입력 → Enter로 저장하면 PATCH 본문·제목·사이드바가
+  바뀐다, 입력 글자 크기가 제목과 같다, Esc는 저장하지 않는다, 16자는 이유를 보여 주고 닫지 않는다, 전체·미분류에는 연필이 없다
+- e2e `bookmark-folder-title-rename.mobile.spec.ts`(1건) — 14자 이름이 입력에서 잘리지 않고 다 보이고, 저장하면 제목이 바뀐다
+- e2e `bookmark-sort-icon.mobile.spec.ts`(2건) — 기본은 점 없음, 제목순을 고르면 URL·버튼 이름이 바뀌고 점이 생긴다, 열린
+  목록의 지금 정렬에 체크가 붙는다
+
+수정 전 `BookmarkPage.tsx`(HEAD)로 돌리면 새 e2e 8건 중 7건이 실패했다. "전체·미분류에는 연필이 없다"는 그때도 연필이 없어
+통과한다. 입력 클래스를 처음 쓴 `h-auto text-screen-title md:text-screen-title`로 돌리면 글자 크기 단언이 "20px이어야 하는데
+14px"로, 모든 화면에 제목 크기(`h-auto text-screen-title!`)를 쓰면 모바일 단언이 "잘려 보임"으로 실패했다. 모킹 화면에서 잰 입력은
+모바일(360px) 16px·36px, 데스크톱(1280px) 20px 굵게·37px이었다. 전체 스위트 133개 파일 1472개 테스트, Storybook 55개 파일 194개 테스트,
+e2e 164개(`CI=1`, 재시도 0), `pnpm type-check`·`pnpm lint`·`pnpm check:deps`·`pnpm check:docs`·`pnpm format:check`가 모두 통과했다.
 
 ## 10. 시행착오
 
@@ -1460,9 +1572,9 @@ B의 대가는 바깥 줄이 `AppLayout`의 여백 값을 알아야 한다는 �
   고정·해제가 성공했다면 그 결과도 다음 목록 재조회 전까지 화면에서 되돌아가 보인다(서버 값은 그대로).
 - 저장 다이얼로그가 열려 있는 동안 다른 기기에서 폴더를 고정하면, 그 폴더가 열린 채로 내 폴더 맨 위로 옮겨 간다
   (최근 구획 스냅샷은 그대로다) — 열린 동안 순서를 고정한다는 원칙(§5 split menu)의 드문 예외다.
-- 폴더 화면 제목 옆 연필 버튼으로 이름을 바로 바꾸는 기능과, 모바일 정렬을 아이콘(↕, 기본값이 아니면 점 표시)으로 줄이는
-  일은 다음 PR로 미뤘다(2026-10-28 사용자 결정, §5 "폴더 이름 줄 수"와 같은 요청에서 나왔다). 지금은 사이드바·카드의 ⋮
-  메뉴에서만 이름을 바꿀 수 있다.
+- 폴더 화면에서는 이름만 바꿀 수 있다(§5 "폴더 화면에서 이름 바꾸기"). 삭제·고정은 여전히 사이드바·카드의 ⋮ 메뉴에서만
+  된다 — 상세에서 삭제하면 목록으로 돌아가는 처리가 새로 필요해 범위 밖으로 뒀다. 편집을 닫은 뒤 포커스를 연필 버튼으로
+  되돌리는 것도 하지 않는다(사이드바·카드도 지금 하지 않는다).
 
 ## 12. 용어 사전
 
@@ -1514,6 +1626,13 @@ B의 대가는 바깥 줄이 `AppLayout`의 여백 값을 알아야 한다는 �
   알아서 고치는 기능. CSS `overflow-anchor: none`으로 끈다. 폴더 목록에서는 이 기능이 고정 직후 점프를 만들어 껐다(§10)
 - **`isLastPendingPin`** — 같은 훅 안의 지역 함수. 지금 끝나는 고정 요청이 그 폴더 줄의 마지막인지 판정한다
   (`isLastPendingBookmarkMutation`과 같은 역할)
+- **`useRenameBookmarkFolder`** — `features/bookmark/rename/hooks/useRenameBookmarkFolder.ts`. 폴더 하나의 이름 바꾸기 상태
+  (`renaming`·`name`·`nameError`)와 `startRename`·`submitRename`·`handleRenameKeyDown`을 돌려준다. 폴더 화면 제목과
+  `useFolderActions`(사이드바·카드)가 같이 쓴다(§5)
+- **`BookmarkFolderTitle`** — `features/bookmark/rename/ui/BookmarkFolderTitle.tsx`. 폴더 화면의 `h1` 제목. 실제 폴더면 연필
+  버튼을 달고, 누르면 그 자리에서 이름 입력으로 바뀐다. 전체·미분류에서는 제목만 그린다(§5)
+- **`EditButton`** — `shared/ui/elements/EditButton.tsx`. 연필 아이콘만 있는 공용 버튼. `label`을 화면 읽기 이름(`aria-label`)과
+  마우스 힌트(`title`)에 함께 쓴다(§5)
 
 ## 13. 관련 문서
 

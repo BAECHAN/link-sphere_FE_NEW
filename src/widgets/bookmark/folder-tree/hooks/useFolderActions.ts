@@ -1,14 +1,14 @@
-import { KeyboardEvent, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { toast } from '@/shared/lib/toast/toast';
 import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
 import { TEXTS } from '@/shared/config/texts';
 import {
   useDeleteBookmarkFolderMutation,
   useSetBookmarkFolderPinMutation,
-  useUpdateBookmarkFolderMutation,
 } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-folder.util';
+import { useRenameBookmarkFolder } from '@/features/bookmark/rename/hooks/useRenameBookmarkFolder';
 
 interface UseFolderActionsParams {
   folder: BookmarkFolder;
@@ -18,24 +18,24 @@ interface UseFolderActionsParams {
 
 /**
  * 폴더 고정(pin) + 이름변경(rename) + 삭제(delete) 로직 — FolderTree(FolderItem)·MobileFolderList(FolderCard)가 공유한다.
+ * 이름변경은 폴더 화면 제목과 함께 쓰는 features 훅(useRenameBookmarkFolder)을 그대로 돌려준다.
  * 고정 실패 토스트·롤백은 mutation이 소유한다(useSetBookmarkFolderPinMutation).
  */
 export const useFolderActions = ({ folder, onBeforeDelete }: UseFolderActionsParams) => {
-  const [renaming, setRenaming] = useState(false);
-  const [name, setName] = useState(folder.name);
-  const { mutateAsync: updateFolder, isPending: isUpdating } = useUpdateBookmarkFolderMutation(
-    folder.id
-  );
+  const {
+    renaming,
+    startRename,
+    name,
+    setName,
+    nameError,
+    isUpdating,
+    submitRename,
+    handleRenameKeyDown,
+  } = useRenameBookmarkFolder({ folder });
   const { mutateAsync: deleteFolder } = useDeleteBookmarkFolderMutation(folder.id);
   const { mutate: setPinned } = useSetBookmarkFolderPinMutation(folder.id);
   const isPinned = BookmarkFolderUtil.isPinned(folder);
   const { openConfirm } = useAlert();
-  const submittingRef = useRef(false);
-  const nameError = BookmarkFolderUtil.nameLengthError(name);
-
-  const startRename = () => {
-    setRenaming(true);
-  };
 
   const togglePin = () => {
     setPinned(!isPinned);
@@ -56,48 +56,6 @@ export const useFolderActions = ({ folder, onBeforeDelete }: UseFolderActionsPar
 
     pinAfterMenuCloseRef.current = false;
     togglePin();
-  };
-
-  const submitRename = async () => {
-    if (submittingRef.current || isUpdating) {
-      return;
-    }
-    const next = name.trim();
-    if (!next || next === folder.name) {
-      setRenaming(false);
-      setName(folder.name);
-      return;
-    }
-
-    // 너무 길면 입력을 닫지 않는다 — 입력 아래 문구로 이유를 보여 준 채 고칠 기회를 둔다(blur로
-    // 닫아 버리면 쓰던 이름이 사라진다). Escape는 지금처럼 원래 이름으로 되돌린다
-    if (nameError) {
-      return;
-    }
-
-    submittingRef.current = true;
-    try {
-      await updateFolder({ name: next });
-      setRenaming(false);
-    } catch {
-      toast.error(TEXTS.messages.error.folderRenameFailed);
-      setName(folder.name);
-    } finally {
-      submittingRef.current = false;
-    }
-  };
-
-  const handleRenameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.nativeEvent.isComposing) {
-      return;
-    }
-    if (e.key === 'Enter') {
-      submitRename();
-    }
-    if (e.key === 'Escape') {
-      setRenaming(false);
-      setName(folder.name);
-    }
   };
 
   const handleDelete = () => {

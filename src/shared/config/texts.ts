@@ -694,6 +694,8 @@ export const TEXTS = {
     bookmarkChange: '북마크 폴더 변경',
     bookmarkSave: '북마크 저장',
     bookmarkSortSelect: '북마크 정렬 기준 선택',
+    // 모바일 정렬은 아이콘만 있어 지금 정렬이 화면에 안 보인다 — 이름에 넣는다
+    bookmarkSortSelectCurrent: (label: string) => `북마크 정렬 기준 선택, 지금 ${label}`,
 
     // 게시글 상호작용
     postLike: '좋아요',
