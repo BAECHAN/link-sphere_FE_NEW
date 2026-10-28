@@ -19,7 +19,10 @@ paths: src/**/*.tsx
   960px이 돼, `(min-width: 768px)`로 판정하던 `AppLayout`은 폭 768~959px에서 CSS가 모바일 배치인데도 데스크톱으로
   봐 모바일 검색 중 본문을 잠그지 않았다(2026-10-27 Chromium 156 실측, `e2e/font-size-breakpoint.spec.ts`가 회귀를
   잡는다). JS는 `src/shared/config/const.ts`의 `MOBILE_MEDIA_QUERY`·`DESKTOP_MEDIA_QUERY`를, CSS는
-  `@variant max-md`처럼 Tailwind 변형을 쓴다. `matchMedia`에 px 경계를 넘기면 ESLint `no-restricted-syntax`가 막는다.
+  `@variant max-md`처럼 Tailwind 변형을 쓴다. `matchMedia`에 px 경계를 넘기면 ESLint `no-restricted-syntax`가 막고,
+  `innerWidth >= 768`처럼 창 폭을 숫자로 비교하는 길은 `innerWidth`·`outerWidth`를 읽는 것 자체를
+  `no-restricted-properties`·`no-restricted-globals`가 막는다. 폭 판정이 아닌 측정(가상 스크롤의 첫 창 크기 등)만
+  그 줄에 `eslint-disable-next-line`과 이유를 단다(선례: `useWindowGridVirtualizer.ts`의 `initialRect`).
 - JS 분기가 꼭 필요할 때만 `useIsMobile()`(`src/shared/hooks/useIsMobile.ts`, `matchMedia(MOBILE_MEDIA_QUERY)` —
   Tailwind `max-md`와 같은 조건). **UA는 보지 않는다.** 2026-10-27까지는 UA에 Android·iPhone 등이 있으면
   폭과 무관하게 모바일로 봐서, 휴대폰 가로 화면·안드로이드 태블릿처럼 CSS는 데스크톱 배치인 폭에서 JS만

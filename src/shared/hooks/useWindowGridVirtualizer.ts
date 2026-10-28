@@ -275,6 +275,7 @@ export function useWindowGridVirtualizer<T>({
     gap,
     scrollMargin,
     getItemKey,
+    // eslint-disable-next-line no-restricted-properties -- 폭 판정이 아니라 첫 렌더의 창 크기다(virtual-core도 창 크기를 window.innerWidth로 잰다)
     initialRect: { width: window.innerWidth, height: window.innerHeight },
     ...(snapshot
       ? { initialMeasurementsCache: snapshot.items, initialOffset: snapshot.offset }
