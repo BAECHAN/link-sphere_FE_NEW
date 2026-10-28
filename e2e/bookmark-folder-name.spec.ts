@@ -14,12 +14,29 @@ import { TEXTS } from '@/shared/config/texts';
 // 14자 — 사이드바 이름 칸(126px)에 한 줄로는 안 들어가 예전에는 말줄임(…)으로 잘렸다
 const LONG_NAME = '자바스크립트 심화 학습 자료';
 const LONG_FOLDER = { ...mockBookmarkFolder, id: 'folder-long-name', name: LONG_NAME };
+// 15자 — 짧은 어절 뒤에 칸보다 긴 어절이 붙어 사이드바에서 3줄이 된다
+const THREE_LINE_NAME = 'JS 프론트엔드성능최적화자료';
+const THREE_LINE_FOLDER = {
+  ...mockBookmarkFolder,
+  id: 'folder-three-line-name',
+  name: THREE_LINE_NAME,
+  sortOrder: 1,
+};
 
-// 폴더 이름은 말줄임 없이 줄바꿈한다(docs/BOOKMARK.md "폴더 이름 길이") — 글자가 가로로 넘쳐
-// 가려지지 않았는지 본다
+// 폴더 이름은 줄바꿈하고 사이드바에서는 2줄에서 자른다(docs/BOOKMARK.md "폴더 이름 줄 수") — 글자가
+// 가로·세로로 넘쳐 가려지지 않았는지 본다
 async function isFullyVisible(locator: Locator): Promise<boolean> {
   return locator.evaluate(
-    (el) => getComputedStyle(el).textOverflow !== 'ellipsis' && el.scrollWidth <= el.clientWidth
+    (el) =>
+      getComputedStyle(el).textOverflow !== 'ellipsis' &&
+      el.scrollWidth <= el.clientWidth &&
+      el.scrollHeight <= el.clientHeight
+  );
+}
+
+async function visibleLineCount(locator: Locator): Promise<number> {
+  return locator.evaluate((el) =>
+    Math.round(el.clientHeight / parseFloat(getComputedStyle(el).lineHeight))
   );
 }
 
@@ -41,7 +58,7 @@ test.describe('북마크 폴더 이름 — 줄바꿈 표시와 길이 제한', (
         }
 
         return route.fulfill({
-          json: wrapResponse({ folders: [LONG_FOLDER], uncategorizedCount: 0 }),
+          json: wrapResponse({ folders: [LONG_FOLDER, THREE_LINE_FOLDER], uncategorizedCount: 0 }),
         });
       }
     );
@@ -55,6 +72,21 @@ test.describe('북마크 폴더 이름 — 줄바꿈 표시와 길이 제한', (
     expect(await isFullyVisible(sidebarName)).toBe(true);
 
     const title = page.getByRole('heading', { level: 1, name: LONG_NAME });
+    await expect(title).toBeVisible();
+    expect(await isFullyVisible(title)).toBe(true);
+  });
+
+  test('3줄이 되는 이름은 사이드바에서 2줄로 자르고, 폴더 제목에서는 다 보여 준다', async ({
+    page,
+  }) => {
+    await page.goto(`/bookmark?folder=${THREE_LINE_FOLDER.id}`);
+
+    const sidebarName = page.getByRole('complementary').getByText(THREE_LINE_NAME, { exact: true });
+    await expect(sidebarName).toBeVisible();
+    expect(await visibleLineCount(sidebarName)).toBe(2);
+    expect(await isFullyVisible(sidebarName)).toBe(false);
+
+    const title = page.getByRole('heading', { level: 1, name: THREE_LINE_NAME });
     await expect(title).toBeVisible();
     expect(await isFullyVisible(title)).toBe(true);
   });
