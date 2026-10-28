@@ -86,6 +86,10 @@ const RESTRICTED_SYNTAX_NO_NATIVE_DATE = [
   },
 ];
 
+// [금지] 창 폭(innerWidth·outerWidth) 직접 읽기 — 아래 no-restricted-properties·globals 블록이 쓴다
+const VIEWPORT_WIDTH_MESSAGE =
+  '창 폭을 px로 읽어 판정하지 마세요. matchMedia에 @/shared/config/const의 MOBILE_MEDIA_QUERY·DESKTOP_MEDIA_QUERY를 쓰세요 — 브라우저 기본 글꼴 크기를 바꾼 사용자에게서 Tailwind(rem)와 갈립니다. 폭 판정이 아닌 측정이면 그 줄에 eslint-disable-next-line과 이유를 다세요.';
+
 // queryClient 싱글턴(config/queryClient.ts)을 상대 경로로 우회 import하는 것까지 잡기 위해
 // 절대 경로 문자열과 상대 경로 접미사(끝이 /react-query/config/queryClient) 둘 다 검사한다.
 const QUERY_CLIENT_SINGLETON_PATH = '@/shared/lib/react-query/config/queryClient';
@@ -1118,6 +1122,31 @@ export default [
     files: ['src/shared/utils/date.util.ts', '**/*.test.{ts,tsx}', 'src/mocks/**'],
     rules: {
       'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAX_COMMON],
+    },
+  },
+
+  // ============================================================
+  // [금지] 창 폭(innerWidth·outerWidth) 직접 읽기
+  // 이유: px 숫자라 `innerWidth >= 768`처럼 비교하면 Tailwind 브레이크포인트(rem)와 갈린다 — 미디어
+  //       쿼리의 rem은 브라우저 기본 글꼴 크기를 따른다(responsive-ux skill "브레이크포인트"). 위
+  //       matchMedia px 셀렉터는 인자만 봐서 이 비교를 못 잡으므로, 비교식 모양 대신 읽기 자체를
+  //       막는다 — 변수에 담았다 비교하거나 상수와 비교해도 걸린다. window.innerWidth·구조 분해는
+  //       no-restricted-properties가, window. 없이 쓴 전역은 no-restricted-globals가 잡는다.
+  //       두 rule key는 이 블록에서만 선언한다 — 다른 블록에서 다시 선언하면 이 목록이 통째로 덮어써진다.
+  // ============================================================
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        { property: 'innerWidth', message: VIEWPORT_WIDTH_MESSAGE },
+        { property: 'outerWidth', message: VIEWPORT_WIDTH_MESSAGE },
+      ],
+      'no-restricted-globals': [
+        'error',
+        { name: 'innerWidth', message: VIEWPORT_WIDTH_MESSAGE },
+        { name: 'outerWidth', message: VIEWPORT_WIDTH_MESSAGE },
+      ],
     },
   },
 
