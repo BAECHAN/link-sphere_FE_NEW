@@ -2,6 +2,7 @@ import {
   ApiError,
   ImageUploadError,
   NetworkError,
+  SessionExpiredError,
   UserFacingError,
 } from '@/shared/types/common.type';
 import { TEXTS } from '@/shared/config/texts';
@@ -35,6 +36,14 @@ export class ErrorUtil {
   /** refresh를 BE가 "쿠키 주인이 다른 회원"이라며 거절했는지(409 SESSION_MISMATCH, client.ts·useAuthEpochSync) */
   static isSessionMismatch(error: unknown): boolean {
     return error instanceof ApiError && error.code === SERVER_ERROR_CODE.SESSION_MISMATCH;
+  }
+
+  /**
+   * 로그인이 만료돼 처리하지 못하고 끝난 요청인지(client.ts) - 안내는 만료 정리가 맡으므로, 실패 토스트를 직접
+   * 띄우는 곳은 이 경우 조용히 끝낸다
+   */
+  static isSessionExpired(error: unknown): boolean {
+    return error instanceof SessionExpiredError;
   }
 
   /**

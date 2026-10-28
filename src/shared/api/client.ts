@@ -7,6 +7,7 @@ import {
   ApiErrorResponse,
   NetworkError,
   SessionChangedError,
+  SessionExpiredError,
 } from '@/shared/types/common.type';
 import { useAuthStore } from '@/shared/store/auth.store';
 
@@ -122,6 +123,8 @@ class ApiClient {
   private baseURL: string;
   private isRefreshing = false;
   private refreshSubscribers: RefreshSubscriber[] = [];
+  // refresh가 거절돼 만료로 정리한 토큰 - 그 토큰으로 나갔다가 늦게 도착한 401이 refresh·정리를 다시 일으키지 않게 한다
+  private expiredToken: string | undefined;
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
@@ -139,6 +142,20 @@ class ApiClient {
   private cancelSubscribers(error: Error) {
     this.refreshSubscribers.forEach((subscriber) => subscriber.cancel(error));
     this.refreshSubscribers = [];
+  }
+
+  /**
+   * 로그인이 만료됐다 - 이 탭을 정리하고 리더·대기 요청을 모두 SessionExpiredError로 끝낸다. 끝내지 않고 두면
+   * 화면에 남은 폼이 "저장 중"에 멈추고 댓글은 비웠던 입력을 되돌리지 못한다. 실패 토스트는 뜨지 않는다 - 전역
+   * 핸들러와 직접 토스트를 띄우는 곳 모두 이 에러를 조용히 넘긴다(error-toast.ts, ErrorUtil.isSessionExpired).
+   * 동작은 client.test.ts Case 1-2·2·2-1이 고정한다.
+   */
+  private expireSession(sentToken: string | undefined): never {
+    const expired = new SessionExpiredError();
+    this.expiredToken = sentToken;
+    this.cancelSubscribers(expired);
+    AuthUtil.clearAll();
+    throw expired;
   }
 
   private getAuthHeaders(): Record<string, string> {
@@ -220,14 +237,20 @@ class ApiClient {
       return this.request<T>(endpoint, options, retryCount + 1, authEpoch);
     }
 
+    // 이미 만료로 정리한 토큰으로 나갔던 요청이 늦게 돌아왔다 - refresh를 또 부르면 같은 거절을 한 번 더 겪고
+    // 정리가 두 번 돈다(화면이 다시 불러와지며 깜빡인다). 같은 만료로 끝낸다(client.test.ts Case 2-2).
+    // "지금 토큰이 없다"만으로 판정하지 않는다 - SESSION_MISMATCH 로그아웃도 세대를 그대로 둔 채 토큰만 지우는데,
+    // 그 뒤 늦게 온 401은 아래 refresh가 다시 거절당해 SessionChangedError로 끝나야 한다(Case 8-4).
+    if (!currentToken && sentToken && sentToken === this.expiredToken) {
+      throw new SessionExpiredError();
+    }
+
     // refresh로 새로 받은 토큰으로 재시도한 요청이 다시 TOKEN_EXPIRED를 받으면
     // (서버 시계 오차 등) 더 재시도해도 회복되지 않는다 - 상한 없이 재귀하면
     // 무한 루프가 될 수 있으므로 1회 재시도 후에는 refresh 실패와 동일하게 처리한다.
     if (retryCount > 0) {
       console.error('Token refresh succeeded but retried request still expired');
-      this.refreshSubscribers = [];
-      AuthUtil.clearAll();
-      return new Promise(() => {});
+      return this.expireSession(sentToken);
     }
 
     if (!this.isRefreshing) {
@@ -282,13 +305,7 @@ class ApiClient {
         }
 
         console.error(error);
-        // 대기 큐의 요청들과 리더 자신 모두 reject하지 않고 영원히 pending으로 둔다 -
-        // clearAll()이 곧 로그인 화면으로 이동시키는데, reject하면 진행 중이던 mutation마다
-        // 전역 핸들러가 실패 토스트를 띄운다(error-toast.ts의 resolveErrorToast).
-        // 동작은 client.test.ts Case 2-1이 고정한다.
-        this.refreshSubscribers = [];
-        AuthUtil.clearAll();
-        return new Promise(() => {});
+        return this.expireSession(sentToken);
       } finally {
         this.isRefreshing = false;
       }

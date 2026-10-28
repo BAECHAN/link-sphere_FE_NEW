@@ -9,7 +9,12 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
-import { ApiError, NetworkError, SessionChangedError } from '@/shared/types/common.type';
+import {
+  ApiError,
+  NetworkError,
+  SessionChangedError,
+  SessionExpiredError,
+} from '@/shared/types/common.type';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
@@ -160,7 +165,7 @@ describe('ApiClient — 인증 오류 처리', () => {
   // (서버 시계 오차 등 회복 불가능한 상황) — 상한 없이 재귀하면 무한 루프
   // ─────────────────────────────────────────────────────────────
   describe('Case 1-2: refresh 성공 후 재시도한 요청도 다시 TOKEN_EXPIRED', () => {
-    it('refresh를 다시 호출하지 않고 auth 초기화 + 로그인 페이지 이동으로 멈춘다', async () => {
+    it('refresh를 다시 호출하지 않고 auth 초기화 + 로그인 페이지 이동 후 SessionExpiredError로 끝난다', async () => {
       let refreshCallCount = 0;
 
       server.use(
@@ -182,15 +187,13 @@ describe('ApiClient — 인증 오류 처리', () => {
 
       useAuthStore.getState().setAuth('expired-access-token');
 
-      // 요청은 영원히 pending — await하지 않고 side-effect만 검증
-      apiClient.post(COMMENT_PATH, makeCommentFormData());
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionExpiredError
+      );
 
-      await vi.waitFor(() => {
-        expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.AUTH.LOGIN, {
-          replace: true,
-        });
+      expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.AUTH.LOGIN, {
+        replace: true,
       });
-
       // refresh는 1회만 — 재시도 후 다시 실패했다고 refresh를 또 호출하지 않는다
       expect(refreshCallCount).toBe(1);
       expect(useAuthStore.getState().accessToken).toBeNull();
@@ -296,7 +299,7 @@ describe('ApiClient — 인증 오류 처리', () => {
   // Case 2: Access Token 만료 + Refresh Token도 만료
   // ─────────────────────────────────────────────────────────────
   describe('Case 2: Access Token 만료 + Refresh Token도 만료', () => {
-    it('댓글 요청 → 401 TOKEN_EXPIRED → 갱신 실패 → auth 초기화 + 로그인 페이지 이동', async () => {
+    it('댓글 요청 → 401 TOKEN_EXPIRED → 갱신 실패 → auth 초기화 + 로그인 페이지 이동 → SessionExpiredError', async () => {
       server.use(
         http.post(COMMENT_HANDLER_URL, () => make401('TOKEN_EXPIRED')),
         http.post(REFRESH_HANDLER_URL, () => make401('INVALID_REFRESH_TOKEN'))
@@ -304,13 +307,13 @@ describe('ApiClient — 인증 오류 처리', () => {
 
       useAuthStore.getState().setAuth('expired-access-token');
 
-      // 요청은 영원히 pending — await하지 않고 side-effect만 검증
-      apiClient.post(COMMENT_PATH, makeCommentFormData());
+      // 끝나지 않고 남으면 화면의 폼이 "저장 중"에 멈춘다 - 실패로 끝나야 폼이 입력을 되돌린다
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionExpiredError
+      );
 
-      await vi.waitFor(() => {
-        expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.AUTH.LOGIN, {
-          replace: true,
-        });
+      expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.AUTH.LOGIN, {
+        replace: true,
       });
 
       expect(useAuthStore.getState().accessToken).toBeNull();
@@ -323,7 +326,7 @@ describe('ApiClient — 인증 오류 처리', () => {
   // 큐에서 기다리던 요청(팔로워)이 어떻게 끝나는지 — client.ts catch 블록 주석 참고
   // ─────────────────────────────────────────────────────────────
   describe('Case 2-1: 동시에 두 요청이 401 TOKEN_EXPIRED + refresh 실패', () => {
-    it('refresh는 한 번만 호출되고, 두 요청 모두 reject 없이 pending으로 남은 채 로그인 페이지로 한 번 이동한다', async () => {
+    it('refresh는 한 번만 호출되고, 두 요청 모두 SessionExpiredError로 끝나며 로그인 페이지로 한 번 이동한다', async () => {
       let refreshCallCount = 0;
 
       server.use(
@@ -336,23 +339,66 @@ describe('ApiClient — 인증 오류 처리', () => {
 
       useAuthStore.getState().setAuth('expired-access-token');
 
-      const settled = vi.fn();
-      apiClient.post(COMMENT_PATH, makeCommentFormData()).then(settled, settled);
-      apiClient.post(COMMENT_PATH, makeCommentFormData()).then(settled, settled);
+      // 먼저 401을 받은 쪽이 refresh를 맡고(리더), 다른 쪽은 그 결과를 기다린다(대기 요청)
+      const results = await Promise.allSettled([
+        apiClient.post(COMMENT_PATH, makeCommentFormData()),
+        apiClient.post(COMMENT_PATH, makeCommentFormData()),
+      ]);
 
-      await vi.waitFor(() => {
-        expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.AUTH.LOGIN, {
-          replace: true,
-        });
+      expect(results.map((r) => r.status)).toEqual(['rejected', 'rejected']);
+      results.forEach((r) => {
+        expect(r.status === 'rejected' && r.reason).toBeInstanceOf(SessionExpiredError);
+      });
+      expect(refreshCallCount).toBe(1);
+      expect(NavigationService.navigate).toHaveBeenCalledTimes(1);
+      expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.AUTH.LOGIN, {
+        replace: true,
+      });
+      expect(useAuthStore.getState().accessToken).toBeNull();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Case 2-2: 만료로 정리한 뒤에 늦게 도착한 401 TOKEN_EXPIRED
+  // 같은 만료 토큰으로 나갔지만 응답이 refresh 실패보다 늦게 온 요청. refresh를 또 부르면 같은 거절을
+  // 한 번 더 겪고 정리·이동이 두 번 돈다.
+  // ─────────────────────────────────────────────────────────────
+  describe('Case 2-2: 만료로 정리한 뒤 늦게 도착한 401 TOKEN_EXPIRED', () => {
+    it('refresh를 다시 부르지 않고 SessionExpiredError로 끝나며, 정리·이동은 한 번뿐이다', async () => {
+      const ACCOUNT_HANDLER_URL = mswUrl(API_ENDPOINTS.auth.account);
+      let refreshCallCount = 0;
+
+      // 응답 순서를 강제하는 게이트 - 계정 조회의 401은 댓글 요청이 만료로 끝난 뒤에 도착한다
+      let releaseAccount!: () => void;
+      const accountReleased = new Promise<void>((resolve) => {
+        releaseAccount = resolve;
       });
 
-      // 이동 뒤에 늦게라도 resolve·reject되는지 몇 틱 더 흘려본다
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => make401('TOKEN_EXPIRED')),
+        http.get(ACCOUNT_HANDLER_URL, async () => {
+          await accountReleased;
+          return make401('TOKEN_EXPIRED');
+        }),
+        http.post(REFRESH_HANDLER_URL, () => {
+          refreshCallCount++;
+          return make401('INVALID_REFRESH_TOKEN');
+        })
+      );
 
-      expect(refreshCallCount).toBe(1);
-      expect(settled).not.toHaveBeenCalled();
-      expect(NavigationService.navigate).toHaveBeenCalledTimes(1);
+      useAuthStore.getState().setAuth('late-expired-access-token');
+
+      const commentRequest = apiClient.post(COMMENT_PATH, makeCommentFormData());
+      const accountRequest = apiClient.get(API_ENDPOINTS.auth.account);
+
+      await expect(commentRequest).rejects.toBeInstanceOf(SessionExpiredError);
       expect(useAuthStore.getState().accessToken).toBeNull();
+
+      releaseAccount();
+
+      await expect(accountRequest).rejects.toBeInstanceOf(SessionExpiredError);
+      expect(refreshCallCount).toBe(1);
+      expect(NavigationService.navigate).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
+import { ErrorUtil } from '@/shared/utils/error.util';
 import { useCreateBookmarkFolderMutation } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-folder.util';
 
@@ -33,7 +34,11 @@ export const useCreateFolderForm = ({ onCreated }: UseCreateFolderFormParams) =>
       await createFolder({ name: trimmed });
       setName('');
       onCreated();
-    } catch {
+    } catch (error) {
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
       toast.error(TEXTS.messages.error.folderCreateFailed);
     } finally {
       submittingRef.current = false;

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
+import { ErrorUtil } from '@/shared/utils/error.util';
 import {
   useCreateBookmarkFolderMutation,
   useBookmarkFolderListQuery,
@@ -116,7 +117,11 @@ export function useBookmarkFolderSelect({
       setNewFolderName('');
       setCreatingMode(false);
       await handleSelectFolder(created);
-    } catch {
+    } catch (error) {
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
       toast.error(TEXTS.messages.error.folderCreateFailedFull);
     } finally {
       submittingRef.current = false;

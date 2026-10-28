@@ -15,6 +15,8 @@ import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/comment.con
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
+import { NavigationService } from '@/shared/lib/router/navigation';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 
 // 기본 commentHandlers는 API_BASE_URL 접두사(/api) 없이 등록돼 있어 테스트 환경 요청 경로와
 // 매칭되지 않는다(comment.queries.test.ts와 동일한 이유) - url()로 명시 등록.
@@ -294,6 +296,46 @@ describe('useCreateComment', () => {
     });
 
     expect(result.current.failureMessage).toBeNull();
+  });
+
+  it('로그인이 만료돼 끝나면 비웠던 입력을 되돌리고 실패 안내·토스트는 띄우지 않는다', async () => {
+    // 안내는 만료 정리가 맡는다(ErrorUtil.isSessionExpired) - 정리가 부르는 화면 이동은 여기서 막는다
+    const navigateSpy = vi.spyOn(NavigationService, 'navigate').mockImplementation(() => {});
+    // toast는 셋업에서 이미 mock이라 앞 테스트의 호출이 남아 있다 - 이 테스트의 호출만 센다
+    const errorSpy = vi.spyOn(toast, 'error');
+    errorSpy.mockClear();
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), () =>
+        HttpResponse.json(
+          { status: 401, code: SERVER_ERROR_CODE.TOKEN_EXPIRED, message: '', timestamp: '' },
+          { status: 401 }
+        )
+      ),
+      http.post(url(API_ENDPOINTS.auth.refresh), () =>
+        HttpResponse.json(
+          { status: 401, code: 'INVALID_REFRESH_TOKEN', message: '', timestamp: '' },
+          { status: 401 }
+        )
+      )
+    );
+
+    const result = await renderLoggedIn(queryClient);
+
+    act(() => {
+      result.current.form.setValue('content', '만료 중에 쓴 댓글', { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    await waitFor(() => expect(result.current.form.getValues('content')).toBe('만료 중에 쓴 댓글'));
+    expect(result.current.failureMessage).toBeNull();
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+
+    navigateSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   it('등록 요청이 응답 없이 끝나면(504) 등록 여부부터 확인하라고 안내한다', async () => {

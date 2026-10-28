@@ -19,6 +19,7 @@ import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
 import { useAccount } from '@/entities/account/hooks/useAccount';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
+import { ErrorUtil } from '@/shared/utils/error.util';
 
 type FormValues = { content: string };
 
@@ -152,10 +153,17 @@ export function useCreateComment({
         await createComment({ content, images: submittedImages, author });
       }
     } catch (error) {
-      const message = CommentUtil.resolveSubmitError(error, isReply ? 'reply' : 'create');
+      // 로그인 만료로 끝났으면 안내는 만료 정리가 맡는다(ErrorUtil.isSessionExpired) - 실패 문구 없이 비웠던
+      // 입력만 되돌린다
+      const message = ErrorUtil.isSessionExpired(error)
+        ? null
+        : CommentUtil.resolveSubmitError(error, isReply ? 'reply' : 'create');
 
       if (!isMountedRef.current) {
-        toast.error(message);
+        if (message) {
+          toast.error(message);
+        }
+
         return;
       }
 

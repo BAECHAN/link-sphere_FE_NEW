@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { ApiError, SessionChangedError, type ApiErrorResponse } from '@/shared/types/common.type';
+import {
+  ApiError,
+  SessionChangedError,
+  SessionExpiredError,
+  type ApiErrorResponse,
+} from '@/shared/types/common.type';
 import { TEXTS } from '@/shared/config/texts';
 import { LogoutGraceUtil } from '@/shared/utils/logout-grace.util';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
@@ -262,6 +267,29 @@ describe('resolveErrorToast', () => {
         new SessionChangedError(),
         { manualErrorHandling: true },
         MUTATION_ERROR_POLICY
+      );
+
+      expect(decision).toEqual({ silent: true });
+    });
+  });
+
+  // 안내는 만료 정리가 맡는다 - ApiError가 아니라 유예 창(LogoutGraceUtil) 판정과 상관없이 조용해야 한다
+  describe('SessionExpiredError (로그인 만료로 처리하지 못함)', () => {
+    it('mutation은 meta.errorMessage가 있어도 조용히 종료한다', () => {
+      const decision = resolveErrorToast(
+        new SessionExpiredError(),
+        { errorMessage: '좋아요에 실패했어요.' },
+        MUTATION_ERROR_POLICY
+      );
+
+      expect(decision).toEqual({ silent: true });
+    });
+
+    it('query도 조용히 종료한다', () => {
+      const decision = resolveErrorToast(
+        new SessionExpiredError(),
+        { errorMessage: '목록을 불러오지 못했어요.' },
+        QUERY_ERROR_POLICY
       );
 
       expect(decision).toEqual({ silent: true });

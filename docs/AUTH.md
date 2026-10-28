@@ -3,7 +3,7 @@
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
 > 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지, 그리고 로그인한 사람도 글을 못 쓸 때가 있는 이유를 설명할 수 있게 됩니다. 비밀번호를 새로 만드는 폼이 입력 중에 언제 무엇을 보여주는지(§8-G)도 여기서 다룹니다.
-> **마지막 검토**: 2026-10-27
+> **마지막 검토**: 2026-10-28
 
 ---
 
@@ -216,8 +216,10 @@ client.ts의 handleTokenExpired() 메서드
   if (세대가 바뀜) throw SessionChangedError        → refresh·재시도·clearAll 없음(아래 설명)
   if (지금 토큰 && 지금 토큰 !== sentToken)        → 늦게 도착한 401(이미 누가 갱신함)
     return this.request(endpoint, options, retryCount + 1)   // refresh 없이 재시도
+  if (지금 토큰 없음 && sentToken === 만료로 정리한 토큰) → 만료 정리 뒤 늦게 도착한 401
+    throw SessionExpiredError                      // refresh·clearAll 다시 안 함
   if (retryCount > 0)                              → 재시도한 요청도 다시 TOKEN_EXPIRED
-    refreshSubscribers 비움, clearAll(), 영구 pending Promise 반환(더 재귀하지 않음)
+    expireSession()                                // 아래 "만료로 끝내기", 더 재귀하지 않음
   if (!this.isRefreshing)                          → 리더 경로
     POST /auth/refresh (X-Access-Token = sentToken)  → BE가 쿠키 주인과 같은 회원인지 확인
     if (세대가 바뀜) 받은 토큰 버림 → catch로
@@ -226,10 +228,32 @@ client.ts의 handleTokenExpired() 메서드
     return this.request(endpoint, options, retryCount + 1)   // 원 요청 재시도
     catch → 세대가 바뀌었으면 리더·대기 요청 모두 SessionChangedError
             409 SESSION_MISMATCH면 이 탭만 로그아웃(1번) + 리더·대기 요청 모두 SessionChangedError
-            아니면 refreshSubscribers 비움, clearAll(), 영구 pending Promise 반환
+            아니면 expireSession()
   else                                             → 팔로워 경로
-    new Promise(subscribeTokenRefresh({ 재시도, 취소 }))   // 취소는 위 catch의 세대 변경 때
+    new Promise(subscribeTokenRefresh({ 재시도, 취소 }))   // 취소는 위 catch의 세대 변경·만료 때
+
+client.ts의 expireSession(sentToken) — 만료로 끝내기
+  만료로 정리한 토큰 = sentToken                   → 위 "늦게 도착한 401" 분기가 비교
+  대기 요청 모두 SessionExpiredError로 취소
+  clearAll()                                       → 토큰·캐시 정리 + /auth/login 이동(지금 동작)
+  throw SessionExpiredError                        → 리더 자신도 같은 에러로 끝남
 ```
+
+**만료로 끝낸 요청은 실패(reject)로 끝납니다**(2026-10-28, 그 전에는 끝나지 않는 Promise였다 — §11 항목 3).
+끝나지 않으면 화면에 남은 폼이 "저장 중"에 멈추고, 댓글 등록은 제출하며 비운 입력을 되돌리지 못합니다.
+`SessionExpiredError`(`common.type.ts`)에는 아무 실패 토스트도 뜨지 않습니다 — 안내는 만료 정리가 맡습니다.
+
+- 전역 핸들러: `error-toast.ts`의 `resolveErrorToast()`가 `meta.errorMessage`보다 먼저 조용히 끝냅니다. 이 에러는
+  `ApiError`가 아니라 로그아웃 유예 창(`LogoutGraceUtil`)의 무음 처리를 타지 않으므로 이 분기가 따로 필요합니다
+  (`session-expired-toast.test.ts`가 고정).
+- 직접 토스트를 띄우는 곳(`meta.manualErrorHandling`): 토스트를 띄우기 전에 `ErrorUtil.isSessionExpired(error)`면
+  return합니다. 롤백은 경우마다 다릅니다 — 계정 수정은 롤백도 건너뜁니다(만료 정리가 비운 계정 캐시를 이전 계정 값으로
+  되살리지 않게). 폴더 고정은 롤백한 뒤에 확인합니다(화면에 남은 목록을 서버 상태로 되돌리는 일이라서).
+- 폼 4곳(글 등록·수정, 댓글 등록·수정): 실패 안내 없이 끝나고 입력은 그대로 남습니다(댓글 등록은 비웠던 입력을
+  되돌립니다).
+- 재시도: `retry-policy.ts`가 재시도하지 않습니다.
+- 줄 선 mutation: 누를 때는 토큰이 있었는데 차례가 왔을 때 없으면 보내지 않고 `SessionExpiredError`로 끝냅니다
+  (`mutation-auth-epoch.ts`). 만료 정리는 인증 세대를 바꾸지 않아(`auth-epoch.util.ts`) 세대 비교만으로는 모릅니다.
 
 `sentToken`은 그 요청이 실제로 실어 보낸 `X-Access-Token` 값입니다. 첫 분기가 필요한
 이유는 리더의 `finally`가 **재시도 완료를 기다리지 않고** `isRefreshing`을 내리기
@@ -364,7 +388,7 @@ flowchart TD
 
 `TOKEN_EXPIRED`는 "재시도하면 회복 가능"(리프레시), `NOT_LOGGED_IN`/`INVALID_TOKEN`은 "회복 불가능"(즉시 로그아웃)이라는 서로 다른 처방을 받습니다. 이 구분은 `error-code.ts:3-5`에서 코드 자체가 나뉘어 있는 것과 일치합니다.
 
-`src/shared/lib/react-query/config/error-toast.ts`의 `resolveErrorToast()`(mutation·query 전역 에러 핸들러가 공유하는 판정 함수, `queryClient.ts`가 호출)는 `NOT_LOGGED_IN`·`INVALID_TOKEN`·`ACCESS_DENIED`·`EDGE_BLOCKED`·429(코드가 아니라 상태로 판별, `rateLimited` 안내)·404(query 정책만 — `ErrorToastPolicy.skipNotFound`)는 다루지만 **`TOKEN_EXPIRED`는 다루지 않습니다.** 실수가 아니라 설계입니다 — `client.ts`가 그 코드를 절대 밖으로 흘리지 않기(재시도하거나 영구 pending, 세대가 바뀌었으면 `SessionChangedError`로 바꿔 던짐) 때문에 다룰 필요가 없습니다.
+`src/shared/lib/react-query/config/error-toast.ts`의 `resolveErrorToast()`(mutation·query 전역 에러 핸들러가 공유하는 판정 함수, `queryClient.ts`가 호출)는 `NOT_LOGGED_IN`·`INVALID_TOKEN`·`ACCESS_DENIED`·`EDGE_BLOCKED`·429(코드가 아니라 상태로 판별, `rateLimited` 안내)·404(query 정책만 — `ErrorToastPolicy.skipNotFound`)는 다루지만 **`TOKEN_EXPIRED`는 다루지 않습니다.** 실수가 아니라 설계입니다 — `client.ts`가 그 코드를 절대 밖으로 흘리지 않기(재시도하거나, 갱신에 실패하면 `SessionExpiredError`, 세대가 바뀌었으면 `SessionChangedError`로 바꿔 던짐) 때문에 다룰 필요가 없습니다.
 
 #### 토큰 갱신이 겹칠 때 — 팔찌와 쿠폰 비유
 
@@ -464,10 +488,10 @@ sequenceDiagram
 | 팔찌와 쿠폰이 한 세트       | BE `member_sessions` 한 행에 access·refresh가 함께 | BE `TableMemberSession.kt`                                 |
 | 가족                        | 회전 계열(`family_id`, 로그인 한 번)               | BE `TableMemberSession.kt`                                 |
 | 매표소에 가기, 쿠폰 찢기    | `POST /auth/refresh`, 회전(이전 행 폐기)           | BE `MemberSessionService.rotate`                           |
-| "매표소 가는 중" 팻말       | `isRefreshing`                                     | `src/shared/api/client.ts:123`                             |
-| 줄 서서 기다리기            | `refreshSubscribers` 대기열                        | `src/shared/api/client.ts:124`                             |
-| 팔찌 사진                   | `sentToken`(그 요청이 보낸 토큰)                   | `src/shared/api/client.ts:374`(넘기는 곳)                  |
-| 사진과 손목 비교            | `currentToken !== sentToken`                       | `src/shared/api/client.ts:219`                             |
+| "매표소 가는 중" 팻말       | `isRefreshing`                                     | `src/shared/api/client.ts:124`                             |
+| 줄 서서 기다리기            | `refreshSubscribers` 대기열                        | `src/shared/api/client.ts:125`                             |
+| 팔찌 사진                   | `sentToken`(그 요청이 보낸 토큰)                   | `src/shared/api/client.ts:391`(넘기는 곳)                  |
+| 사진과 손목 비교            | `currentToken !== sentToken`                       | `src/shared/api/client.ts:236`                             |
 | 찢은 지 10초 안이면 하나 더 | 회전 유예 `REUSE_LEEWAY`                           | BE `MemberSessionService.isReuseWithinLeeway`              |
 | 퇴장 시 가족 팔찌 전부 회수 | 로그아웃 계열 폐기                                 | BE `MemberSessionService.revokeByRefreshToken`             |
 
@@ -867,24 +891,25 @@ flowchart TD
 `src/shared/api/client.test.ts`(1069줄, 최상위 `describe` 2개)가 게이트 B와 OAC 대응 헤더
 로직을 검증합니다.
 
-**`describe('ApiClient — 인증 오류 처리')`**(`:65-922`, 13 Case)가 게이트 B를 케이스별로
+**`describe('ApiClient — 인증 오류 처리')`**(`:70-968`, 14 Case)가 게이트 B를 케이스별로
 검증합니다:
 
 | Case             | 시나리오                                                      | 확인하는 것                                                                                                       |
 | ---------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| 1 (`:79-112`)    | 액세스 만료, 리프레시 유효                                    | 재시도 1회 성공, 토스트·이동 없음(`:110` `navigate` 미호출 단언)                                                  |
-| 1-1 (`:117-156`) | 동시에 두 요청이 401 `TOKEN_EXPIRED`                          | refresh는 1번만 호출(리더-팔로워 큐잉), 두 요청 모두 재시도 성공                                                  |
-| 1-2 (`:162-199`) | refresh 성공 후 재시도한 요청도 다시 `TOKEN_EXPIRED`          | refresh를 다시 호출하지 않고 `clearAll()` + 로그인 이동(§11 항목 1의 2026-09-21 재시도 상한 가드 검증)            |
-| 1-3 (`:207-293`) | refresh가 끝난 뒤 늦게 도착한 401 `TOKEN_EXPIRED`             | refresh는 1번만, 늦은 요청은 갱신된 토큰으로 바로 재시도, 두 요청 모두 성공·이동 없음(§8-B)                       |
-| 2 (`:298-319`)   | 액세스·리프레시 둘 다 만료                                    | `clearAuth` + `/auth/login` replace 이동                                                                          |
-| 2-1 (`:325-357`) | 동시에 두 요청이 401 + refresh 실패                           | refresh 1번, 두 요청 모두 reject 없이 pending, 로그인 이동 1번(§11 항목 3)                                        |
-| 3 (`:362-378`)   | 토큰 없이 요청(`NOT_LOGGED_IN`)                               | 로그인 리다이렉트                                                                                                 |
-| 4 (`:383-400`)   | 토큰 형식 손상(`INVALID_TOKEN`)                               | Case 3과 동일                                                                                                     |
-| 5 (`:405-455`)   | 403 WAF 차단 vs 앱이 낸 정상 `ACCESS_DENIED`                  | `EDGE_BLOCKED`로 오분류 안 됨(it 2개)                                                                             |
-| 6 (`:457-467`)   | 응답을 못 받음(오프라인·연결 끊김)                            | `fetch` reject를 `NetworkError`로 바꿔 던짐                                                                       |
-| 7 (`:474-652`)   | 요청을 보낸 뒤 인증 세대가 바뀜(it 7개)                       | refresh·재시도·로그인 이동 없이 `SessionChangedError`, 대기 요청도 함께, 방금 한 로그인 유지(§8-B)                |
-| 8 (`:659-812`)   | refresh 쿠키 주인이 다른 회원(409 `SESSION_MISMATCH`, it 5개) | refresh에 원 요청 토큰, 이 탭만 로그아웃·세션 플래그 유지·안내 1번, 늦게 온 같은 토큰 401도 재실행 없음(§8-B)     |
-| 9 (`:820-921`)   | localStorage에 못 쓰는 탭에서 같은 탭 계정 전환(it 3개)       | 늦은 401·`NOT_LOGGED_IN`·refresh 대기 모두 `SessionChangedError`, 새 계정 재시도·로그인 삭제·토큰 덮기 없음(§8-B) |
+| 1 (`:84-117`)    | 액세스 만료, 리프레시 유효                                    | 재시도 1회 성공, 토스트·이동 없음(`:110` `navigate` 미호출 단언)                                                  |
+| 1-1 (`:122-161`) | 동시에 두 요청이 401 `TOKEN_EXPIRED`                          | refresh는 1번만 호출(리더-팔로워 큐잉), 두 요청 모두 재시도 성공                                                  |
+| 1-2 (`:167-202`) | refresh 성공 후 재시도한 요청도 다시 `TOKEN_EXPIRED`          | refresh를 다시 호출하지 않고 `clearAll()` + 로그인 이동, `SessionExpiredError`로 끝남(§11 항목 1 재시도 상한)     |
+| 1-3 (`:210-296`) | refresh가 끝난 뒤 늦게 도착한 401 `TOKEN_EXPIRED`             | refresh는 1번만, 늦은 요청은 갱신된 토큰으로 바로 재시도, 두 요청 모두 성공·이동 없음(§8-B)                       |
+| 2 (`:301-322`)   | 액세스·리프레시 둘 다 만료                                    | `clearAuth` + `/auth/login` replace 이동, `SessionExpiredError`로 끝남                                            |
+| 2-1 (`:328-359`) | 동시에 두 요청이 401 + refresh 실패                           | refresh 1번, 리더·대기 요청 모두 `SessionExpiredError`, 로그인 이동 1번(§11 항목 3)                               |
+| 2-2 (`:366-403`) | 만료로 정리한 뒤 늦게 도착한 401 `TOKEN_EXPIRED`              | refresh를 다시 부르지 않고 `SessionExpiredError`, 정리·이동은 1번뿐(§8-B)                                         |
+| 3 (`:408-424`)   | 토큰 없이 요청(`NOT_LOGGED_IN`)                               | 로그인 리다이렉트                                                                                                 |
+| 4 (`:429-446`)   | 토큰 형식 손상(`INVALID_TOKEN`)                               | Case 3과 동일                                                                                                     |
+| 5 (`:451-501`)   | 403 WAF 차단 vs 앱이 낸 정상 `ACCESS_DENIED`                  | `EDGE_BLOCKED`로 오분류 안 됨(it 2개)                                                                             |
+| 6 (`:503-513`)   | 응답을 못 받음(오프라인·연결 끊김)                            | `fetch` reject를 `NetworkError`로 바꿔 던짐                                                                       |
+| 7 (`:520-698`)   | 요청을 보낸 뒤 인증 세대가 바뀜(it 7개)                       | refresh·재시도·로그인 이동 없이 `SessionChangedError`, 대기 요청도 함께, 방금 한 로그인 유지(§8-B)                |
+| 8 (`:705-858`)   | refresh 쿠키 주인이 다른 회원(409 `SESSION_MISMATCH`, it 5개) | refresh에 원 요청 토큰, 이 탭만 로그아웃·세션 플래그 유지·안내 1번, 늦게 온 같은 토큰 401도 재실행 없음(§8-B)     |
+| 9 (`:866-967`)   | localStorage에 못 쓰는 탭에서 같은 탭 계정 전환(it 3개)       | 늦은 401·`NOT_LOGGED_IN`·refresh 대기 모두 `SessionChangedError`, 새 계정 재시도·로그인 삭제·토큰 덮기 없음(§8-B) |
 
 Case 8은 `apiClient`를 직접 불러 전역 에러 핸들러를 거치지 않습니다. 그래서 **SESSION_MISMATCH 로그아웃과 전역
 에러 토스트가 겹치지 않는지**는 `src/shared/api/session-mismatch-toast.test.ts`가 따로 검증합니다 — 전역 핸들러가 붙은
@@ -892,9 +917,15 @@ Case 8은 `apiClient`를 직접 불러 전역 에러 핸들러를 거치지 않�
 않는지 봅니다. `applySessionMismatch`의 유예 창(§8-B "유예 창은 경로와 상관없이 엽니다")을 빼면 실패합니다.
 
 Case 9의 줄 선 mutation 쪽(같은 탭 계정 전환 뒤 차례가 온 mutation을 보내지 않음)은
-`src/shared/lib/react-query/config/mutation-auth-epoch.test.ts`가 검증합니다.
+`src/shared/lib/react-query/config/mutation-auth-epoch.test.ts`가 검증합니다. 줄에서 기다리는 사이 로그인이 만료된
+경우(`SessionExpiredError`)도 같은 파일이 봅니다.
 
-**`describe('ApiClient — 요청 헤더 (CloudFront OAC 대응)')`**(`:930-1069`, 6 Case) —
+**로그인 만료로 끝난 mutation이 실패 토스트를 띄우지 않는지**는 `src/shared/api/session-expired-toast.test.ts`가
+검증합니다 — 위와 같이 실제 `queryClient`로 `meta.errorMessage`가 붙은 mutation을 실행해, 정리 직후의 실패와 유예 창이
+닫힌 뒤 늦게 도착한 실패(Case 2-2 경로) 모두 에러 토스트가 0번인지 봅니다. `error-toast.ts`의 만료 분기를 빼면
+실패합니다.
+
+**`describe('ApiClient — 요청 헤더 (CloudFront OAC 대응)')`**(`:976-1115`, 6 Case) —
 2026-09-29 OAC 전환(FE Phase 6, `docs/plans/2026-09-29-oac-lockdown.md`)으로 추가됨,
 401 처리와는 무관한 별개 관심사라 최상위 `describe`를 분리했습니다:
 
@@ -1007,7 +1038,7 @@ Case 9의 줄 선 mutation 쪽(같은 탭 계정 전환 뒤 차례가 온 mutati
 1. ~~`client.ts`의 `retryCount`가 선언·전달만 되고 상한 검사를 받지 않습니다~~ →
    2026-09-21 수정. `client.ts`의 `handleTokenExpired`에서 `retryCount > 0`이면(이미 한 번 재시도한
    요청이 또 `TOKEN_EXPIRED`를 받으면) refresh를 다시 호출하지 않고 §2의 실패
-   경로(`clearAll()` + 영구 pending)로 합류하도록 가드를 추가했다. 재현 테스트:
+   경로(`clearAll()` + 영구 pending, 2026-10-28부터는 `SessionExpiredError` — 항목 3)로 합류하도록 가드를 추가했다. 재현 테스트:
    `client.test.ts`의 "Case 1-2: refresh 성공 후 재시도한 요청도 다시
    TOKEN_EXPIRED".
 2. ~~`/auth/refresh` 요청 자체가 만료된 `Authorization` 헤더를 달고 나갑니다~~ →
@@ -1046,13 +1077,19 @@ Case 9의 줄 선 mutation 쪽(같은 탭 계정 전환 뒤 차례가 온 mutati
    비로그인 결과를 줬고, BE [#104](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/104)부터 이 세 경로는 401을
    준다(BE `SecurityConfig.kt`의 `exception` 속성 규칙, 경위는 §10 "후속 — 공개 조회는 401을 주지 않았다").
 
-3. **refresh 실패 시 대기 중이던 팔로워 요청들이 영구 pending으로 남습니다.** `client.ts`의
-   `handleTokenExpired` catch 블록(`this.refreshSubscribers = []`)이 `refreshSubscribers`를 콜백 호출 없이 비웁니다.
-   리더 자신도 같은 catch에서 영구 pending Promise를 반환합니다(`return new Promise(() => {})`).
+3. **refresh 실패 시 대기 중이던 팔로워 요청들이 영구 pending으로 남았습니다.** `client.ts`의
+   `handleTokenExpired` catch 블록(`this.refreshSubscribers = []`)이 `refreshSubscribers`를 콜백 호출 없이 비웠고,
+   리더 자신도 같은 catch에서 영구 pending Promise를 반환했습니다(`return new Promise(() => {})`).
    **2026-10-12 정리**: 동작은 그대로 두고 이유를 catch 블록 주석으로 남겼습니다 — reject하면
    진행 중이던 mutation마다 전역 핸들러가 실패 토스트를 띄우는데(`error-toast.ts`의
    `resolveErrorToast`), 그 순간 `clearAll()`이 로그인 화면으로 이동시키고 있어 토스트만
-   겹칩니다. 동작은 `client.test.ts` Case 2-1이 고정합니다.
+   겹칩니다.
+   **2026-10-28 해소.** 리더·대기 요청 모두 `SessionExpiredError`로 끝내고(`expireSession`), 그 에러는 전역 핸들러와
+   직접 토스트를 띄우는 곳 모두에서 조용히 넘깁니다(§8-B "만료로 끝낸 요청은 실패로 끝납니다"). 토스트가 겹칠
+   걱정 없이 끝낼 수 있게 되면서, 화면에 남은 폼이 "저장 중"에 멈추거나 댓글 등록이 비운 입력을 되돌리지 못하던
+   문제도 함께 사라졌습니다. 계기는 로그인이 만료돼도 쓰던 글을 잃지 않게 하는 작업이고, 화면을 떠나지 않고 다시
+   로그인하는 흐름은 같은 계획의 다음 단계입니다([`plans/2026-10-28-session-expiry-draft-preservation.md`](./plans/2026-10-28-session-expiry-draft-preservation.md)).
+   동작은 `client.test.ts` Case 1-2·2·2-1이 고정합니다.
 4. **동시 401 큐잉(리더-팔로워 메커니즘)의 테스트 공백** — **2026-10-12 해소.** Case 1-1(refresh
    도중 도착, 성공 경로), Case 1-3(refresh가 끝난 뒤 늦게 도착), Case 2-1(refresh 실패
    경로)이 각각 고정합니다(§9 표).
@@ -1101,8 +1138,8 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
    ([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §11 "같은 대상의 연속 mutation"). 다른 비멱등
    요청(글 작성 등)이 같은 식으로 겹쳐도 되는지는 그 기능에서 따로 봐야 합니다.
 
-   함께 **`clearAll`이 mutation 캐시도 비웁니다.** 위 3번처럼 refresh가 실패하면 요청이 영구 pending으로
-   남는데, pending mutation은 GC로도 지워지지 않아 같은 `scope`의 다음 요청을 영원히 막습니다
+   함께 **`clearAll`이 mutation 캐시도 비웁니다.** 응답이 늦거나 오지 않는 요청의 pending mutation은 GC로도
+   지워지지 않아 같은 `scope`의 다음 요청을 그 뒤에 묶습니다(당시 근거였던 위 3번의 영구 pending은 2026-10-28 해소)
    (`auth.util.ts`의 `clearQueriesWithoutRefetch`, `auth.util.test.ts`가 고정).
 
 10. **다른 탭에서 계정이 바뀐 순간 진행 중이던 요청은 새 계정으로 재실행될 수 있습니다**(2026-10-14 설계

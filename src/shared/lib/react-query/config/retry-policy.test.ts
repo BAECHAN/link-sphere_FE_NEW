@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { ApiError, SessionChangedError, type ApiErrorResponse } from '@/shared/types/common.type';
+import {
+  ApiError,
+  SessionChangedError,
+  SessionExpiredError,
+  type ApiErrorResponse,
+} from '@/shared/types/common.type';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { shouldRetryQuery } from '@/shared/lib/react-query/config/retry-policy';
 
@@ -36,5 +41,9 @@ describe('shouldRetryQuery', () => {
 
   it('SessionChangedError(보낸 뒤 인증 세대가 바뀜)는 재시도하지 않는다', () => {
     expect(shouldRetryQuery(0, new SessionChangedError())).toBe(false);
+  });
+
+  it('SessionExpiredError(로그인 만료로 처리하지 못함)는 재시도하지 않는다', () => {
+    expect(shouldRetryQuery(0, new SessionExpiredError())).toBe(false);
   });
 });

@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import { PostUtil, PostSubmitErrorResolution } from '@/entities/post/utils/post.util';
 import { useLinkPreview } from '@/entities/post/hooks/useLinkPreview';
 import { useAccount } from '@/entities/account/hooks/useAccount';
+import { ErrorUtil } from '@/shared/utils/error.util';
 import { useForm } from 'react-hook-form';
 
 export function useUpdatePost(postId: string) {
@@ -117,6 +118,11 @@ export function useUpdatePost(postId: string) {
     try {
       await updatePost({ ...formData, url: UrlUtil.normalizeUrl(formData.url) });
     } catch (error) {
+      // 로그인 만료로 끝났으면 안내는 만료 정리가 맡는다 - 입력은 그대로 남는다(ErrorUtil.isSessionExpired)
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
       const resolution = PostUtil.resolveSubmitError(error, { mode: 'update', hasFolders: false });
 
       // useCreatePost.ts와 같은 이유 - 떠난 뒤의 실패는 토스트로 대신 알린다

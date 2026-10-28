@@ -37,6 +37,7 @@ import {
 } from '@/entities/post/@x/bookmark';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
+import { ErrorUtil } from '@/shared/utils/error.util';
 import { PaginationRequest } from '@/shared/types/common.type';
 
 // ==================== Queries ====================
@@ -259,7 +260,7 @@ export const useSetBookmarkFolderPinMutation = (folderId: string) => {
         );
       }
     },
-    onError: (_err, nextPinned, context) => {
+    onError: (error, nextPinned, context) => {
       if (!isLastPendingPin()) {
         return;
       }
@@ -269,6 +270,14 @@ export const useSetBookmarkFolderPinMutation = (folderId: string) => {
       }
 
       handleBookmarkFolderPinFailure(queryClient);
+
+      // 로그인 만료로 끝났으면 안내는 만료 정리가 맡는다(ErrorUtil.isSessionExpired) - 롤백은 위에서 그대로 한다:
+      // 화면에 남은 목록을 서버 상태로 되돌리는 일이라 만료와 상관없다(정리가 mutation 캐시를 비웠으면
+      // isLastPendingPin이 먼저 끝낸다)
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
       toast.error(
         nextPinned ? TEXTS.messages.error.folderPinFailed : TEXTS.messages.error.folderUnpinFailed
       );

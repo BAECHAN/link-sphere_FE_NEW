@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { toast } from '@/shared/lib/toast/toast';
 import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
 import { TEXTS } from '@/shared/config/texts';
+import { ErrorUtil } from '@/shared/utils/error.util';
 import {
   useDeleteBookmarkFolderMutation,
   useSetBookmarkFolderPinMutation,
@@ -71,7 +72,11 @@ export const useFolderActions = ({ folder, onBeforeDelete }: UseFolderActionsPar
         onBeforeDelete?.();
         try {
           await deleteFolder();
-        } catch {
+        } catch (error) {
+          if (ErrorUtil.isSessionExpired(error)) {
+            return;
+          }
+
           toast.error(TEXTS.messages.error.folderDeleteFailed);
         }
       },

@@ -669,6 +669,7 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 - mutation 에러는 전부 `mutationErrorHandler`를 지나가며, `meta.manualErrorHandling`이 없으면 거기서 토스트 1개가 자동으로 뜬다 (mutation·query 공통 판정은 [error-toast.ts](../src/shared/lib/react-query/config/error-toast.ts)의 `resolveErrorToast()`, `if (meta?.manualErrorHandling) { return { silent: true }; }`).
 
 > ⚠️ **Never** mutation `onError`나 그 mutation을 쓰는 컴포넌트 `catch`에서 `toast.`를 직접 부르면서 `meta.manualErrorHandling`을 빼먹지 말 것 → 전역 토스트와 겹쳐 **두 번 뜬다**. 직접 토스트를 띄우면 반드시 `manualErrorHandling: true`.
+> 그리고 그 `onError`·`catch`에서 토스트를 띄우기 전에 `ErrorUtil.isSessionExpired(error)`면 조용히 return한다 — 로그인 만료로 끝난 요청(`SessionExpiredError`)의 안내는 만료 정리가 맡는다. 롤백은 만료 정리가 비운 캐시를 이전 값으로 되살리면 함께 건너뛴다(계정 수정). 근거는 `docs/AUTH.md` §8-B "만료로 끝낸 요청은 실패로 끝납니다".
 
 ### 새 mutation 만들 때 토스트 결정표
 

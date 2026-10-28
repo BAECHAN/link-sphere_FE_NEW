@@ -107,6 +107,12 @@ export const useUpdateAccountMutation = () => {
       }
     },
     onError: (error, _variables, context) => {
+      // 로그인 만료로 끝났으면 롤백도 안내도 하지 않는다 - 만료 정리가 이미 비운 계정 캐시를 이전 계정 값으로
+      // 되살리면, 로그아웃 상태인데 그 계정 정보가 남는다(안내는 만료 정리가 맡는다, ErrorUtil.isSessionExpired)
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
       if (context?.previous) {
         queryClient.setQueryData(accountKeys.root, context.previous);
       }
@@ -134,6 +140,10 @@ export const useDeleteAccountMutation = () => {
       AuthEpochUtil.markLogout();
     },
     onError: (error) => {
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
       if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.INVALID_CREDENTIALS) {
         toast.error(TEXTS.messages.error.currentPasswordMismatch);
       } else {

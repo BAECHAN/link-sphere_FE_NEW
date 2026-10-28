@@ -89,6 +89,18 @@ export class SessionChangedError extends Error {
 }
 
 /**
+ * 이 탭의 로그인이 만료돼(refresh가 거절됨) 처리하지 못하고 끝낸 요청. 만료 정리(AuthUtil)가 화면과 안내를
+ * 맡으므로 이 에러를 받은 쪽은 실패 토스트를 띄우지 않는다(client.ts handleTokenExpired, docs/AUTH.md §8-B).
+ * refresh를 기다리던 요청도 같은 에러로 끝난다 - 끝나지 않는 채로 두면 화면에 남은 폼이 "저장 중"에 멈춘다.
+ */
+export class SessionExpiredError extends Error {
+  constructor() {
+    super('Auth session expired before the request could be processed');
+    this.name = 'SessionExpiredError';
+  }
+}
+
+/**
  * 이미지 업로드 단계(서명 URL 발급 → 스토리지 PUT)에서 실패한 원인.
  * - unsupportedType·tooLarge: 그 이미지를 바꾸면 해결된다
  * - rateLimited: 우리 서버의 업로드 한도(시간당 30회). retryAfterSeconds가 함께 온다

@@ -105,7 +105,7 @@ describe('AuthUtil.clearAll — 화면이 곧 사라지는 로그아웃(보호 �
   });
 
   it('끝나지 않는 mutation을 mutation 캐시에서 지워 같은 scope의 다음 mutation을 막지 않는다', async () => {
-    // refresh 실패 시 client.ts가 요청을 영원히 pending으로 남기는 상황을 재현한다
+    // 응답이 오지 않는 요청이 줄 맨 앞에 걸려 있는 상황을 재현한다
     const stuck = queryClient
       .getMutationCache()
       .build(queryClient, { mutationFn: () => new Promise(() => {}), scope: { id: 'probe' } });

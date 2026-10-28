@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MutationCache, QueryClient, type MutationFunctionContext } from '@tanstack/react-query';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
-import { SessionChangedError } from '@/shared/types/common.type';
+import { SessionChangedError, SessionExpiredError } from '@/shared/types/common.type';
+import { useAuthStore } from '@/shared/store/auth.store';
 import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 import { LocalStorageUtil } from '@/shared/utils/storage.util';
 import {
@@ -91,6 +92,33 @@ describe('mutation 인증 세대 확인 (줄 서 있던 mutation)', () => {
     await firstResult;
     await expect(queuedResult).rejects.toBeInstanceOf(SessionChangedError);
     expect(send).not.toHaveBeenCalled();
+  });
+
+  it('줄에서 기다리는 사이 로그인이 만료되면(세대는 그대로, 토큰만 사라짐) 보내지 않고 SessionExpiredError로 끝난다', async () => {
+    useAuthStore.getState().setAuth('token-a');
+    AuthEpochUtil.markLogin();
+    const { firstResult, queuedResult, send, finishFirst } = await startQueuedPair(createClient());
+
+    // 만료 정리는 토큰만 지우고 세대는 쓰지 않는다(auth-epoch.util.ts)
+    useAuthStore.getState().clearAuth();
+    finishFirst();
+
+    await firstResult;
+    await expect(queuedResult).rejects.toBeInstanceOf(SessionExpiredError);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('줄에서 기다리는 사이 토큰이 갱신만 됐으면(세대 그대로) 그대로 보낸다', async () => {
+    useAuthStore.getState().setAuth('token-a');
+    AuthEpochUtil.markLogin();
+    const { firstResult, queuedResult, send, finishFirst } = await startQueuedPair(createClient());
+
+    useAuthStore.getState().setAuth('token-a-refreshed');
+    finishFirst();
+
+    await firstResult;
+    await expect(queuedResult).resolves.toBe('sent');
+    expect(send).toHaveBeenCalledTimes(1);
   });
 
   it('시작 세대가 기록되지 않은 mutation(전역 onMutate가 없는 클라이언트)은 확인하지 않는다', async () => {

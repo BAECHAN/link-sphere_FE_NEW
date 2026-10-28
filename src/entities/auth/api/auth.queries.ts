@@ -12,6 +12,7 @@ import {
   EmailVerificationConfirm,
 } from '@/entities/auth/model/auth.schema';
 import { AuthUtil } from '@/shared/utils/auth.util';
+import { ErrorUtil } from '@/shared/utils/error.util';
 import { ROUTES_PATHS, isProtectedPath } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
@@ -207,6 +208,11 @@ export const useChangePasswordMutation = () => {
       void reregisterFcmTokenIfGranted();
     },
     onError: (error) => {
+      // 로그인 만료로 끝났으면 안내는 만료 정리가 맡는다(ErrorUtil.isSessionExpired)
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
       if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.INVALID_CREDENTIALS) {
         // useLoginMutation의 401 처리와 같은 이유로 서버 원문 메시지는 노출하지 않는다.
         toast.error(TEXTS.messages.error.currentPasswordMismatch);
@@ -229,7 +235,11 @@ export const useRequestEmailVerificationMutation = () => {
       successMessage: TEXTS.messages.success.emailVerificationResent,
       manualErrorHandling: true,
     },
-    onError: () => {
+    onError: (error) => {
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
       toast.error(TEXTS.messages.error.emailVerificationRequestFailed);
     },
   });
