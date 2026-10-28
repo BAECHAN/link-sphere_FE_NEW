@@ -1,4 +1,7 @@
 ### 2026-10-28 (FE)
+- 세로 태블릿 환경에서의 UI 레이아웃 대응 및 터치 버튼 가시성 최적화 ([#446](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/446))
+
+### 2026-10-28 (FE)
 - Windows 및 안드로이드 환경의 키보드 입력 오류를 수정하여 Ctrl+Enter 단축키를 통한 댓글 등록 기능을 개선함 ([#445](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/445))
 
 ### 2026-10-28 (FE)
