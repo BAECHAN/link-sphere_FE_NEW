@@ -250,10 +250,12 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
             className={cn('h-4 w-4', selected ? 'text-primary' : 'text-muted-foreground')}
           />
         )}
-        {/* 이름은 말줄임 없이 어절 단위로 줄바꿈한다 — 내비게이션 항목을 자르면 어느 폴더인지
-            못 알아본다(docs/BOOKMARK.md "폴더 이름 길이"). Button의 whitespace-nowrap을 풀고,
+        {/* 이름은 어절 단위로 줄바꿈하고 2줄에서 말줄임한다 — 전체 이름은 폴더를 열면 제목에 나온다
+            (docs/BOOKMARK.md "폴더 이름 줄 수"). Button의 whitespace-nowrap을 풀고,
             min-w-0이 있어야 공백 없는 긴 이름도 폭 안에서 끊긴다 */}
-        <span className="min-w-0 flex-1 text-left whitespace-normal">{folder.name}</span>
+        <span className="min-w-0 flex-1 text-left whitespace-normal line-clamp-2">
+          {folder.name}
+        </span>
         <span className="text-xs text-muted-foreground">{folder.bookmarkCount}</span>
       </Button>
 

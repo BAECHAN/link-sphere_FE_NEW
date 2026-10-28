@@ -55,6 +55,13 @@
 
 ### Changed
 
+- `bookmark` 폴더 이름을 사이드바·모바일 카드에서 2줄까지 보이고 넘치면 말줄임
+  <details><summary>배경·구현</summary>
+
+  15자 줄바꿈(#424) 뒤로 이름이 1~3줄이 되면서 높이가 들쭉날쭉했다. 360px 폰에서 모바일 카드는 줄마다 114·134px로 달랐고 같은 줄 두 카드의 개수 숫자 위치도 65·85px로 어긋났으며, 데스크톱 사이드바 행은 36·56·76px였다. 3줄은 "JS 프론트엔드성능최적화자료"처럼 짧은 어절 뒤에 칸보다 긴 어절이 붙을 때 생긴다. 실제 화면에 덧입힌 시안을 나란히 보고 사용자가 골랐다 — 모바일 카드는 늘 2줄 자리를 비워 두고 넘치면 말줄임해 카드 높이·개수 위치를 모두 114px·85px로 맞췄고("새 폴더" 카드도 같은 높이), 사이드바는 2줄에서 말줄임만 해 76px 행을 없앴다(행 36·56px). 툴팁은 달지 않았고(사용자 결정), 전체 이름은 폴더를 열면 제목에 그대로 나온다. 긴 이름만 글씨를 줄이는 안은 12px로도 3줄이 남고, 사이드바에서는 그려진 뒤 줄 수를 재는 코드가 필요한 데다(폴더 500개·CPU 4배 감속에서 44.9ms 추가, 직접 측정) 선례를 찾지 못해 기각했다. 근거·대안 비교는 `docs/BOOKMARK.md` §5 "폴더 이름 줄 수". (`FolderTree.tsx`, `MobileFolderList.tsx`, `e2e/bookmark-folder-name.spec.ts`, `e2e/bookmark-folder-name.mobile.spec.ts`, `docs/BOOKMARK.md`, [PR #436](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/436))
+
+  </details>
+
 - `comment` 데스크톱 글 상세의 우하단 버튼을 "댓글 쓰기로 이동"에서 맨 위로로 바꿈
   <details><summary>배경·구현</summary>
 

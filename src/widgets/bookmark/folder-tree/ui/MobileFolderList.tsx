@@ -180,8 +180,11 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
         ) : (
           <Bookmark className="h-5 w-5 text-muted-foreground" />
         )}
-        {/* 말줄임 대신 어절 단위 줄바꿈(docs/BOOKMARK.md "폴더 이름 길이") — Button의 whitespace-nowrap을 푼다 */}
-        <div className="font-medium whitespace-normal pr-6">{folder.name}</div>
+        {/* 어절 단위로 줄바꿈하되 2줄 자리를 늘 비워 두고 넘치면 말줄임 — 카드 높이·개수 위치를 맞춘다
+            (docs/BOOKMARK.md "폴더 이름 줄 수"). Button의 whitespace-nowrap을 푼다 */}
+        <div className="font-medium whitespace-normal line-clamp-2 min-h-[2lh] pr-6">
+          {folder.name}
+        </div>
         <div className="text-xs text-muted-foreground">{folder.bookmarkCount}</div>
       </Button>
       <HoverKebabMenu
@@ -274,7 +277,8 @@ function CreateFolderCard() {
       className="h-auto flex-col items-stretch justify-start gap-2 rounded-lg border border-dashed bg-card p-3 active:bg-accent text-muted-foreground"
     >
       <Plus className="h-5 w-5" />
-      <div className="font-medium">{TEXTS.bookmark.folder.new}</div>
+      {/* 폴더 카드와 같은 2줄 자리 — 마지막 줄에 혼자 남아도 높이가 같다 */}
+      <div className="font-medium min-h-[2lh]">{TEXTS.bookmark.folder.new}</div>
       <div className="text-xs">&nbsp;</div>
     </Button>
   );
