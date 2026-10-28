@@ -250,7 +250,7 @@ Threads 글의 네 군데에는 없지만 §5.3의 반대편이다 — HTML이 �
   메모리째 돌아올 수 있다. 그래서 명시적 로그인·로그아웃마다 바뀌는 **인증 세대** 값을 두고, 탭 복귀·bfcache
   복원(`pageshow` persisted) 때 이 탭이 알던 값과 다르면 그 자리에서 로그아웃 처리·세션 복원을 한다
   ([AUTH.md](./AUTH.md) §8-H). 새 배포 감지도 `pageshow`(persisted) 때 다시 확인한다(§5.5).
-- **이미 있던 보완**: 전체 재로드 뒤에도 목록 위치를 복원한다([useWindowGridVirtualizer.ts:353](../src/shared/hooks/useWindowGridVirtualizer.ts#L353)의 `pagehide` 스냅샷).
+- **이미 있던 보완**: 전체 재로드 뒤에도 목록 위치를 복원한다([useWindowGridVirtualizer.ts:419](../src/shared/hooks/useWindowGridVirtualizer.ts#L419)의 `pagehide` 스냅샷).
 - **측정하지 않은 것**: Safari·Firefox의 bfcache 동작, 모바일 실기기.
 
 ## 6. 상태 모델

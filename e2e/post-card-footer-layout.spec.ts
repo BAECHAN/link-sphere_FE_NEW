@@ -8,9 +8,9 @@ import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import type { Post, PostListResponse } from '@/entities/post/model/post.schema';
 
 // 열 수를 뷰포트가 아니라 컨테이너 실측 폭으로 정하도록 바꾼 변경(지금은 post-card-grid.const.ts)의
-// 회귀 테스트 - PostCard 푸터(좋아요/댓글 pill + 북마크·공유 + 조회수)가 인기글 수준의
-// 자릿수에서도 한 줄을 유지하는지, 사이드바 토글로 열 수가 바뀌어도 보던 카드가 화면에
-// 남는지 확인한다. minColumnWidth 실측 근거는 docs/plans/2026-09-29-container-width-grid.md.
+// 회귀 테스트 - PostCard 푸터(좋아요/댓글 pill + 북마크·공유)가 최악값 자릿수에서도 한 줄을
+// 유지하는지, 사이드바 토글로 열 수가 바뀌어도 보던 카드가 화면에 남는지 확인한다.
+// minColumnWidth 실측 근거는 docs/plans/2026-10-28-tablet-width-rail.md.
 const POST_COUNT = 30;
 
 function footerPostTitle(index: number): string {
@@ -19,14 +19,15 @@ function footerPostTitle(index: number): string {
 
 /**
  * GET /post - PostCard 푸터가 절대 안 줄바꿈되도록 보장하는 최소 폭(POST_CARD_GRID.minColumnWidth)의
- * 근거였던 "인기글" 시나리오(좋아요·댓글 세 자리, 조회 다섯 자리)로 고정된 통계를 돌려준다.
+ * 근거인 최악값(좋아요·댓글 9,990,000 → 축약 "999만")으로 고정된 통계를 돌려준다. 목록 카드에는
+ * 조회수가 없다(docs/plans/2026-10-28-tablet-width-rail.md).
  */
 async function mockWorstCasePosts(page: Page, total: number): Promise<void> {
   const content: Post[] = Array.from({ length: total }, (_, index) => ({
     ...mockPost,
     id: `footer-post-${index}`,
     title: footerPostTitle(index),
-    stats: { viewCount: 99999, likeCount: 999, commentCount: 999, bookmarkCount: 0 },
+    stats: { viewCount: 99999, likeCount: 9_990_000, commentCount: 9_990_000, bookmarkCount: 0 },
   }));
 
   const body: PostListResponse = {
@@ -45,7 +46,7 @@ async function mockWorstCasePosts(page: Page, total: number): Promise<void> {
 }
 
 /**
- * 현재 화면에 렌더된 모든 카드 푸터가 한 줄인지 - 세 그룹(좋아요/댓글, 북마크·공유, 조회수)의
+ * 현재 화면에 렌더된 모든 카드 푸터가 한 줄인지 - 그룹(좋아요/댓글, 북마크·공유, 상세면 조회수)의
  * "세로 중심"(offsetTop + offsetHeight/2)이 같아야 줄바꿈이 없다. footer는 items-center라
  * 한 줄에서는 그룹 높이가 서로 달라도(예: 좋아요 pill ~36px vs 조회수 ~16px) 세로 중심은
  * 항상 일치한다 - offsetTop만 비교하면 안 되는 이유(같은 줄에서도 높이 차이로 top이
@@ -85,6 +86,14 @@ async function countTopRowColumns(page: Page): Promise<number> {
   });
 }
 
+/** 데스크톱 사이드바(첫 번째 aside) 폭 - 펼침 w-60(240), 레일 w-20(80) */
+async function desktopSidebarWidth(page: Page): Promise<number> {
+  return page
+    .locator('aside')
+    .first()
+    .evaluate((el) => el.getBoundingClientRect().width);
+}
+
 test.describe('PostCard 푸터 줄바꿈 방지 - 피드', () => {
   test.beforeEach(async ({ page }) => {
     await installCatchAll(page);
@@ -100,12 +109,51 @@ test.describe('PostCard 푸터 줄바꿈 방지 - 피드', () => {
     await expectNoFooterWrap(page);
   });
 
-  test('800px(1열)에서도 푸터가 줄바꿈되지 않는다', async ({ page }) => {
+  test('800px(세로 태블릿)은 사이드바를 레일로 접은 채 시작해 2열이고, 푸터가 줄바꿈되지 않는다', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 800, height: 800 });
     await page.goto('/post');
     await expect(page.getByRole('link', { name: footerPostTitle(0) })).toBeVisible();
 
+    expect(await desktopSidebarWidth(page)).toBe(80);
+    await expect.poll(() => countTopRowColumns(page)).toBe(2);
     await expectNoFooterWrap(page);
+  });
+
+  test('맨 위에서 ⌘B로 열 수가 바뀌어도 스크롤 위치가 그대로다', async ({ page }) => {
+    // 800px에서 레일(2열) → 펼침(1열). 고치기 전에는 열 수가 바뀌면 첫 행을 화면 꼭대기로
+    // 끌어올려 scrollY가 0에서 318로 튀었다(useWindowGridVirtualizer.ts의 앵커 조건)
+    await page.setViewportSize({ width: 800, height: 800 });
+    await page.goto('/post');
+    await expect(page.getByRole('link', { name: footerPostTitle(0) })).toBeVisible();
+    await expect.poll(() => countTopRowColumns(page)).toBe(2);
+
+    await page.keyboard.press('Control+b');
+    await expect.poll(() => countTopRowColumns(page)).toBe(1);
+    // 앵커 보정(scrollToIndex)이 다음 프레임에 일어날 수 있어 두 프레임 기다린 뒤 잰다
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    );
+
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  });
+
+  test('64rem 경계를 넘나들면 사이드바가 그 폭의 기본값(펼침·레일)으로 바뀐다', async ({
+    page,
+  }) => {
+    // 태블릿을 가로(1280)로 연 뒤 세로(800)로 돌렸을 때 펼친 채 남으면 목록이 1열로 줄어든다
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/post');
+    await expect(page.getByRole('link', { name: footerPostTitle(0) })).toBeVisible();
+    expect(await desktopSidebarWidth(page)).toBe(240);
+
+    await page.setViewportSize({ width: 800, height: 800 });
+    await expect.poll(() => desktopSidebarWidth(page)).toBe(80);
+    await expect.poll(() => countTopRowColumns(page)).toBe(2);
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect.poll(() => desktopSidebarWidth(page)).toBe(240);
   });
 
   test('1200px에서 ⌘B로 사이드바를 접으면 열 수가 바뀌고, 스크롤해 둔 카드가 화면에 남는다', async ({
@@ -113,8 +161,8 @@ test.describe('PostCard 푸터 줄바꿈 방지 - 피드', () => {
   }) => {
     test.setTimeout(60_000);
 
-    // 1200px는 사이드바가 펼쳐져 있으면(w-60) 2열, 접히면(w-20) 3열이 되는 실측 경계다
-    // (Playwright로 직접 측정: 펼침 896px→2열, 접힘 1056px→3열, minColumnWidth=330 기준).
+    // 1200px는 사이드바가 펼쳐져 있으면(w-60) 2열, 접히면(w-20) 3열이 된다
+    // (Playwright로 직접 측정한 목록 폭: 펼침 896px→2열, 접힘 1056px→3열, minColumnWidth=292 기준).
     await page.setViewportSize({ width: 1200, height: 900 });
     await page.goto('/post');
     await expect(page.getByRole('link', { name: footerPostTitle(0) })).toBeVisible();

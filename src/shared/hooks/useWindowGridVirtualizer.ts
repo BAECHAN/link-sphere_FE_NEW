@@ -8,7 +8,12 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useWindowVirtualizer, type VirtualItem, type Virtualizer } from '@tanstack/react-virtual';
+import {
+  measureElement,
+  useWindowVirtualizer,
+  type VirtualItem,
+  type Virtualizer,
+} from '@tanstack/react-virtual';
 import { loadVirtualSnapshot, saveVirtualSnapshot } from '@/shared/lib/virtual/virtual-snapshot';
 
 export interface GapBreakpoint {
@@ -181,6 +186,14 @@ export function shouldAdjustScrollOnItemResize(
   return item.start + itemSize <= offset && instance.scrollDirection !== 'backward';
 }
 
+/** 화면 위에 붙어 콘텐츠를 가리는 상단바 높이(px) - Navbar.tsx가 실측해 --navbar-height로 게시한다.
+ * 그 아래부터가 사용자가 실제로 보는 영역이다. */
+function readNavbarHeight(): number {
+  return (
+    parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--navbar-height')) || 0
+  );
+}
+
 /** 목록 컨테이너의 문서 최상단으로부터의 거리(scrollMargin)를 추적한다. 검색 안내
  * 문구·pull-to-refresh 인디케이터처럼 컨테이너 위 콘텐츠 높이가 바뀔 수 있어, 마운트·
  * 리사이즈 시 자동으로 재측정하고 그 외 시점은 remeasureScrollMargin을 노출해 호출부가
@@ -232,6 +245,11 @@ export function useWindowGridVirtualizer<T>({
   const [snapshot] = useState(() => loadVirtualSnapshot(listId, location.key, items.length));
   const [columnCount, setColumnCount] = useState(() => snapshot?.columnCount ?? 1);
   const [containerNode, setContainerNode] = useState<HTMLDivElement | null>(null);
+  // 열 수가 바뀔 때 앵커 행을 화면 꼭대기에서 얼마나 떨어진 곳에 둘지(px). scrollToIndex(align:
+  // 'start')가 item.start - scrollPaddingStart로 목표를 잡고 측정이 끝날 때까지 다시 맞추므로
+  // (virtual-core 3.17.11 getOffsetForIndex·reconcileScroll) 이 옵션으로 넘긴다. scrollToIndex를
+  // 부르는 곳은 아래 앵커 이펙트뿐이라 다른 스크롤에는 영향이 없다.
+  const [anchorScrollPadding, setAnchorScrollPadding] = useState(0);
 
   const rows = useMemo(() => chunkIntoRows(items, columnCount), [items, columnCount]);
   const { containerRef: scrollMarginRef, scrollMargin, remeasureScrollMargin } = useScrollMargin();
@@ -268,13 +286,44 @@ export function useWindowGridVirtualizer<T>({
     [rows, columnCount, getItemId]
   );
 
+  // 컨테이너 폭이 바뀌면 행 ResizeObserver(virtual-core가 첫 행을 그릴 때 만들어 이 훅의
+  // ResizeObserver보다 먼저 돈다)가 열 수를 다시 정하기 전의 행을 새 폭으로 한 번 잰다. 그 높이가
+  // 옛 열 수 키로 캐시되면 그 열 수로 돌아올 때 위쪽 행 높이가 틀려, 앵커 행이 제자리에 놓인 뒤
+  // 밀린다 - 800px 레일에서 2→1→2열로 오가면 90px(직접 측정). 위로 점프한 직후라 virtual-core가
+  // 재측정을 보정하지 않는다(역방향 스크롤, dist/esm/index.js resizeItem). 그래서 렌더된 열 수가
+  // 지금 폭의 열 수와 다르면 그 측정은 버리고 캐시 값을 돌려준다(라이브러리 useCachedMeasurements
+  // 분기와 같은 형태, dist/esm/index.js:129-133). 옵션은 렌더 중에 갱신되므로(react-virtual 3.14.13
+  // dist/esm/index.js:113) 새 열 수로 다시 그린 행은 이 함수의 새 columnCount로 정상 측정된다.
+  const measureRow = useCallback(
+    (
+      element: HTMLDivElement,
+      entry: ResizeObserverEntry | undefined,
+      instance: Virtualizer<Window, HTMLDivElement>
+    ): number => {
+      const width = containerNode?.getBoundingClientRect().width ?? 0;
+
+      if (width > 0 && resolveColumnCount(width, minColumnWidth, gap, maxColumns) !== columnCount) {
+        const index = instance.indexFromElement(element);
+        return (
+          instance.itemSizeCache.get(instance.options.getItemKey(index)) ??
+          instance.options.estimateSize(index)
+        );
+      }
+
+      return measureElement(element, entry, instance);
+    },
+    [containerNode, minColumnWidth, gap, maxColumns, columnCount]
+  );
+
   const virtualizer = useWindowVirtualizer<HTMLDivElement>({
     count: rows.length,
     estimateSize: () => estimateRowHeight(columnCount),
     overscan,
     gap,
     scrollMargin,
+    scrollPaddingStart: anchorScrollPadding,
     getItemKey,
+    measureElement: measureRow,
     // eslint-disable-next-line no-restricted-properties -- 폭 판정이 아니라 첫 렌더의 창 크기다(virtual-core도 창 크기를 window.innerWidth로 잰다)
     initialRect: { width: window.innerWidth, height: window.innerHeight },
     ...(snapshot
@@ -296,8 +345,12 @@ export function useWindowGridVirtualizer<T>({
 
   // 컨테이너 실측 폭으로 열 수를 정한다(뷰포트가 아니라) - 사이드바 접기/펴기, 북마크
   // 폴더트리처럼 목록이 실제로 받는 폭이 뷰포트보다 좁아지는 레이아웃을 반영하기 위함.
-  // 열 수가 바뀔 때는(사이드바 토글 등) 화면 맨 위 행의 첫 카드 index를 저장해뒀다가,
-  // 아래 두 번째 이펙트에서 재청크된 새 행으로 스크롤을 다시 맞춘다.
+  // 열 수가 바뀔 때는(사이드바 토글, 태블릿 회전 등) 상단바 아래에 처음 보이는 행의 첫 카드
+  // index와 그 행이 상단바에서 떨어진 거리를 저장해뒀다가, 아래 두 번째 이펙트에서 재청크된 새
+  // 행을 같은 거리에 다시 놓는다 - 보던 카드가 화면의 같은 높이에 남는다. 브라우저 스크롤
+  // 앵커링(CSS Scroll Anchoring)·Android RecyclerView가 지키는 것과 같은 "항목 + px 위치"다
+  // (근거: docs/DECISIONS.md 2026-10-28). 브라우저 앵커링은 카드 폭·transform이 바뀌면 꺼져
+  // 여기서 직접 한다.
   const hasMeasuredRef = useRef(false);
   const anchorItemIndexRef = useRef<number | null>(null);
 
@@ -317,11 +370,20 @@ export function useWindowGridVirtualizer<T>({
       const nextColumnCount = resolveColumnCount(width, minColumnWidth, gap, maxColumns);
 
       if (hasMeasuredRef.current && nextColumnCount !== columnCountRef.current) {
-        const topRow = virtualizerRef.current.getVirtualItemForOffset(
-          virtualizerRef.current.scrollOffset ?? 0
-        );
-        if (topRow) {
+        // scrollY 자리는 상단바에 가려져 있다 - 거기서 행을 고르면 사용자가 보던 카드가 아니라
+        // 상단바 뒤의 윗줄이 기준이 돼, 2→1열에서 보던 카드가 720px 밀렸다(직접 측정)
+        const navbarHeight = readNavbarHeight();
+        const viewTop = (virtualizerRef.current.scrollOffset ?? 0) + navbarHeight;
+        const topRow = virtualizerRef.current.getVirtualItemForOffset(viewTop);
+        // 보이는 영역 꼭대기가 목록 시작보다 위(필터 영역 등)면 앵커를 잡지 않는다. virtual-core
+        // 3.17.11의 getVirtualItemForOffset은 첫 행 start(scrollMargin 포함)보다 작은 offset에도 첫
+        // 행을 돌려줘(dist/esm/index.js findNearestBinarySearch), 맨 위에서 열 수만 바뀌어도 첫 행을
+        // 화면 꼭대기로 끌어올렸다(scrollY 0 → 318 직접 측정). 목록 위 영역의 높이는 열 수와
+        // 상관없어 scrollY를 그대로 두면 보던 화면이 유지된다
+        if (topRow && viewTop >= topRow.start) {
           anchorItemIndexRef.current = topRow.index * columnCountRef.current;
+          // 행이 상단바 아래로 반쯤 올라가 있었으면(topRow.start < viewTop) 그만큼 올라간 채로 둔다
+          setAnchorScrollPadding(navbarHeight + topRow.start - viewTop);
         }
       }
 

@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/test/utils';
+import { WIDE_MEDIA_QUERY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
 import { useSidebarStore } from '@/shared/store/sidebar.store';
 import { Sidebar } from '@/widgets/layout/sidebar/ui/Sidebar';
@@ -68,6 +69,60 @@ describe('Sidebar — 데스크톱 햄버거 더블클릭', () => {
     await user.click(toggle);
     await new Promise((resolve) => setTimeout(resolve, 450));
     await user.click(toggle);
+
+    expect(useSidebarStore.getState().isOpen).toBe(false);
+  });
+});
+
+// setup.ts의 matchMedia 스텁은 change 이벤트를 낼 수 없어 이 파일에서 다시 씌운다. 다른 쿼리의
+// 리스너까지 깨우지 않도록 WIDE_MEDIA_QUERY의 리스너만 모은다(useIsMobile.test.ts와 같은 방식).
+function stubWideMediaQuery() {
+  const listeners: Array<(e: { matches: boolean }) => void> = [];
+
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: (_type: string, listener: (e: { matches: boolean }) => void) => {
+      if (query === WIDE_MEDIA_QUERY) {
+        listeners.push(listener);
+      }
+    },
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+
+  return {
+    change(matches: boolean) {
+      act(() => listeners.forEach((listener) => listener({ matches })));
+    },
+  };
+}
+
+describe('Sidebar — 폭이 64rem을 넘나들면 그 폭의 기본값으로 맞춘다', () => {
+  // vi.unstubAllGlobals()는 setup.ts의 다른 스텁까지 걷어내므로 같은 모양(matches:false)으로 되돌린다
+  afterEach(() => {
+    stubWideMediaQuery();
+  });
+
+  it('넓어지면 접어 둔 사이드바를 펼친다', () => {
+    useSidebarStore.setState({ isOpen: false });
+    const media = stubWideMediaQuery();
+    renderWithProviders(<Sidebar />, { wrapperOptions: { initialEntries: ['/post'] } });
+
+    media.change(true);
+
+    expect(useSidebarStore.getState().isOpen).toBe(true);
+  });
+
+  it('좁아지면 펼친 사이드바를 레일로 접는다(가로로 연 태블릿을 세로로 돌린 경우)', () => {
+    useSidebarStore.setState({ isOpen: true });
+    const media = stubWideMediaQuery();
+    renderWithProviders(<Sidebar />, { wrapperOptions: { initialEntries: ['/post'] } });
+
+    media.change(false);
 
     expect(useSidebarStore.getState().isOpen).toBe(false);
   });

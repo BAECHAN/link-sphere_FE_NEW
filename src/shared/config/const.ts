@@ -44,3 +44,5 @@ export const DOUBLE_CLICK_GUARD_MS = 400;
 export const MOBILE_MEDIA_QUERY = '(width < 48rem)';
 /** Tailwind md와 같은 조건 - 데스크톱 배치 */
 export const DESKTOP_MEDIA_QUERY = '(width >= 48rem)';
+/** Tailwind lg와 같은 조건 - 사이드바를 펼친 채 두는 폭(그 아래 데스크톱 배치는 레일로 접는다) */
+export const WIDE_MEDIA_QUERY = '(width >= 64rem)';

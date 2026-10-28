@@ -5,6 +5,7 @@ import { cn } from '@/shared/lib/tailwind/utils';
 import { useLikePost } from '@/features/post/like/hooks/useLikePost';
 import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
 import { TEXTS } from '@/shared/config/texts';
+import { NumberUtil } from '@/shared/utils/number.util';
 
 interface LikePostButtonProps {
   postId: Post['id'];
@@ -35,7 +36,7 @@ export function LikePostButton({ postId, isLiked, likeCount }: LikePostButtonPro
       aria-label={isLiked ? TEXTS.ariaLabels.postUnlike : TEXTS.ariaLabels.postLike}
     >
       <ThumbsUp className={cn('size-4', isLiked && 'fill-current')} />
-      <span className="font-bold select-none">{likeCount}</span>
+      <span className="font-bold select-none">{NumberUtil.formatCompact(likeCount)}</span>
     </ToggleButton>
   );
 }

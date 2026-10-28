@@ -354,7 +354,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 다룬다.
 
 - **카드 댓글 아이콘(`#comments`, 2026-10-14)** — 피드·북마크·상세 카드의 💬은
-  `/post/:id#comments`로 간다(`PostCard.tsx:360`). 대상은 댓글 제목과 데스크톱 작성 폼을 감싼
+  `/post/:id#comments`로 간다(`PostCard.tsx:361`). 대상은 댓글 제목과 데스크톱 작성 폼을 감싼
   컨테이너(`formContainerRef`)라 링 대신 플로팅 버튼처럼 부드럽게 스크롤한 뒤 입력창에 포커스한다.
   모바일은 인라인 폼이 없어 제목까지만 오고 하단 바는 접힌 채다.
 - **`#comments`는 DOM id가 아니라 신호다** — 같은 id의 요소가 있으면 react-router

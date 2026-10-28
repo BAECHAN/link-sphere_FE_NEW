@@ -69,6 +69,13 @@
 
 ### Changed
 
+- `shared` 세로 태블릿(48~64rem)에서 사이드바를 레일로 접고 피드를 2열로
+  <details><summary>배경·구현</summary>
+
+  갤럭시 탭 S6 Lite를 세로로 들면(약 800px 추정) 데스크톱 배치라 사이드바가 펼친 채(240px) 시작하고 카드 최소 폭이 330px이라 피드가 1열이었다(2026-10-28 제보). 48~64rem에서는 사이드바를 이미 있던 레일(80px, 아이콘과 작은 이름)로 시작하고, 화면을 돌리는 등 폭이 64rem을 넘나들면 그 폭의 기본값(넓으면 펼침, 좁으면 레일)으로 다시 맞춘다 — 가로로 연 뒤 세로로 돌리면 펼친 채 남아 다시 1열이 되기 때문이다. ⌘B로 바꾼 상태는 경계를 넘기 전까지 유지된다. 카드 최소 폭은 목록 카드에서 조회수를 빼고(상세에는 그대로) 좋아요·댓글·조회수를 1.2천·5.7만처럼 줄여 써(`Intl.NumberFormat` ko-KR compact) 330에서 292로 낮췄다(직접 측정 291 + 여유 1, 최악값 999만). 그래서 800에서 2열(카드 약 328px)이 되고, 레일 기준 2열 조건은 뷰포트 728px 이상이다. 대가로 데스크톱 1280(사이드바 펼침)은 2열에서 3열이 되고(3열 경계 1326 → 1212), 1000 이상은 정확한 숫자가 안 보이며, 데스크톱에서 접어 둔 사이드바가 창을 1024 아래로 줄였다 늘리면 다시 펼쳐진다. 하단 탭바를 64rem까지 넓히는 안, 사이드바를 숨기는 안, 최소 폭 250(공유 버튼까지 빼기)은 실제 앱을 띄운 시안을 나란히 보고 기각했다. 근거는 `docs/DECISIONS.md` 2026-10-28, 계획과 측정 절차는 `docs/plans/2026-10-28-tablet-width-rail.md`. (`shared/config/const.ts`, `shared/store/sidebar.store.ts`, `widgets/layout/sidebar/ui/Sidebar.tsx`, `shared/utils/number.util.ts`(신규), `features/post/like/ui/LikePostButton.tsx`, `widgets/post/post-card/ui/PostCard.tsx`, `widgets/post/post-card/config/post-card-grid.const.ts`, `e2e/post-card-footer-layout.spec.ts`, `e2e/bookmark-card-footer-layout.spec.ts`, `.claude/skills/responsive-ux/SKILL.md`, [PR #443](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/443))
+
+  </details>
+
 - `shared` 앱 시작 스크립트가 쓰지 않는 zod를 기다리지 않고 시작함
   <details><summary>배경·구현</summary>
 
@@ -217,6 +224,18 @@
   </details>
 
 ### Fixed
+
+- `shared` 카드 열 수가 바뀌면 보던 카드가 밀리거나 스크롤이 튀던 문제
+  <details><summary>배경·구현</summary>
+
+  사이드바를 접거나 펴서(⌘B) 카드 열 수가 바뀌면 행이 다시 묶여, 훅이 보던 행으로 스크롤을 다시 맞춘다. 세로 태블릿의 레일 도입으로 화면을 돌릴 때마다 열 수가 바뀌게 돼 이 보정의 문제 셋을 함께 고쳤다(계획에 없던 추가, 사용자 결정).
+  - **맨 위에서 튐**: 페이지 맨 위(필터 영역)를 보고 있어도 첫 카드 행을 화면 꼭대기로 끌어올려 필터가 화면 밖으로 밀렸다(scrollY 0 → 318, 직접 측정). 설치본 virtual-core 3.17.11의 `getVirtualItemForOffset`이 첫 행보다 위의 offset에도 첫 행을 돌려주기 때문이다(`dist/esm/index.js`의 `findNearestBinarySearch`). 보이는 영역 꼭대기가 목록 시작보다 위면 앵커를 잡지 않는다 — 목록 위 영역의 높이는 열 수와 상관없다.
+  - **목록 중간에서 밀림**: 상단바 뒤(scrollY 자리)의 행을 골라 화면 꼭대기(상단바 밑)에 붙여, 800px 레일에서 펼치면 보던 카드가 64에서 784로 밀렸다(직접 측정). 브라우저 스크롤 앵커링 스펙·Android RecyclerView처럼 상단바 아래 첫 행의 첫 카드와 그 행의 px 위치를 지키게 했다(`scrollToIndex` + `scrollPaddingStart`, 근거는 `docs/DECISIONS.md` 2026-10-28).
+  - **돌아올 때 90px 밀림**: 폭이 바뀐 직후 한 프레임 동안 옛 열 수의 행이 새 폭으로 측정돼 그 열 수의 높이 캐시에 틀린 값이 남았고, 그 열 수로 돌아오면 앵커 행이 제자리에 놓인 뒤 밀렸다(800px 2→1→2열에서 90px, 직접 측정). 렌더된 열 수와 지금 폭의 열 수가 다른 측정은 버린다(`measureRow`).
+
+  오른쪽 열 카드를 보고 있었으면 그 카드는 여전히 다른 높이로 간다(줄의 첫 칸이 기준). 회귀는 `e2e/post-card-footer-layout.spec.ts`(맨 위, 수정 전 318로 실패)와 `e2e/virtualizer-scroll-adjust.spec.ts`(1200px 2↔3열·800px 2↔1열, 예전 앵커로 되돌리면 136px·`measureRow`를 빼면 90px로 실패)가 잡는다. (`shared/hooks/useWindowGridVirtualizer.ts`, `docs/FE-ARCHITECTURE.md` §25, [PR #443](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/443))
+
+  </details>
 
 - `shared` 창이 뜨기 전에 여는 버튼을 두 번 누르면 닫기도 두 번 눌러야 하던 문제
   <details><summary>배경·구현</summary>

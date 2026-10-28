@@ -10,11 +10,12 @@ import type { CardGridSpec } from '@/shared/hooks/useWindowGridVirtualizer';
  *   접거나 펴도(w-60/w-20) 목록이 실제로 받는 폭이 달라지는데, 뷰포트 브레이크포인트는 그
  *   차이를 반영하지 못해 카드가 찌그러지고 PostCard 푸터 아이콘이 줄바꿈됐다
  *   (docs/plans/2026-09-29-container-width-grid.md 참고).
- * - minColumnWidth: PostCard 푸터(좋아요/댓글 pill + 북마크·공유 + 조회수)가 한 줄을 유지하는
- *   최소 카드 폭(px) - 직접 측정: 1280px·md+ 기준, Playwright로 좋아요·댓글 999, 조회수
- *   99,999인 카드의 푸터를 position:absolute로 띄워 getBoundingClientRect().width + Card 보더
- *   2px(border 기본값)을 잰 값(329px)을 올림. 측정 스크립트·재현 절차는
- *   docs/plans/2026-09-29-container-width-grid.md 참고.
+ * - minColumnWidth: 카드가 깨지지 않는 최소 폭(px) - 직접 측정: 1280px·md+ 기준, Playwright로
+ *   첫 카드 행의 폭을 1px씩 줄이며 푸터 줄바꿈·날짜 잘림·닉네임 18px 미만·넘침 중 하나가 처음
+ *   생기기 직전 폭(291px)에 1px 여유를 뒀다. 최악값은 좋아요·댓글 999만(NumberUtil.formatCompact로
+ *   축약), 1년 넘은 글의 긴 날짜, 내 글(⋮ 메뉴)이고 목록 카드에는 조회수가 없다. 세로 태블릿(800)이
+ *   레일 사이드바로 2열을 받는 값이다. 재현 절차는 docs/plans/2026-10-28-tablet-width-rail.md 참고
+ *   (그 전 값 330의 근거는 docs/plans/2026-09-29-container-width-grid.md).
  * - rowGap: className의 gap-*와 정확히 일치해야 한다 (Tailwind v4 기본 --spacing: 0.25rem = 4px)
  * - rowHeightEstimate: 열 수별 행 높이 추정치(px) - 프로덕션에서 195개 게시글 전부 로드 후
  *   실측한 중앙값(docs/plans/2026-09-19-virtualize-post-list.md Phase 0 참고). 열 수를 뷰포트가
@@ -23,7 +24,7 @@ import type { CardGridSpec } from '@/shared/hooks/useWindowGridVirtualizer';
  */
 export const POST_CARD_GRID: CardGridSpec = {
   className: 'grid gap-3 md:gap-4',
-  minColumnWidth: 330,
+  minColumnWidth: 292,
   maxColumns: 3,
   rowGap: [
     { minWidthRem: 48, gap: 16 },
