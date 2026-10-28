@@ -1,4 +1,7 @@
 ### 2026-10-28 (FE)
+- Supabase 이미지 변환 실패 시 대체 처리를 통한 댓글 이미지 렌더링 오류 수정 ([#447](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/447))
+
+### 2026-10-28 (FE)
 - 세로 태블릿 환경에서의 UI 레이아웃 대응 및 터치 버튼 가시성 최적화 ([#446](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/446))
 
 ### 2026-10-28 (FE)
