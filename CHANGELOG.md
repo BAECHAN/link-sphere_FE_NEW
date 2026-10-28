@@ -197,6 +197,13 @@
 
 ### Fixed
 
+- `shared` 태블릿처럼 터치가 주 입력인 기기에서 키보드 단축키 힌트가 보이던 문제
+  <details><summary>배경·구현</summary>
+
+  갤럭시 탭 S6 Lite를 세로로 들면(약 800px 추정) 폭이 md(48rem) 이상이라 데스크톱 배치가 되고, 검색창의 `/` 힌트와 댓글 등록 버튼의 `⌘ + Enter` 힌트가 키보드가 없는데도 보였다(2026-10-28 제보). 힌트가 폭만 보고 떴기 때문이다. [web.dev](https://web.dev/learn/design/interaction)는 _"화면 크기로 입력 방식을 짐작하지 말고 CSS 미디어 기능을 써라"_ (번역)고 쓰고, [Pagefind](https://pagefind.app/docs/components/keyboard-hints/)도 _"터치 전용 기기에서 키보드 힌트를 자동으로 숨긴다"_ (번역). 그래서 세 힌트에 Tailwind 내장 변형 `pointer-coarse:hidden`(`@media (pointer: coarse)`)을 붙여, 주 입력이 터치면 숨긴다. 단축키 자체는 그대로 동작한다. 키보드를 붙인 태블릿에서도 힌트가 숨는 것은 받아들였다(사용자 결정 — 키보드 존재를 알려 주는 미디어 기능은 없다). 마우스를 쓰는 터치 노트북은 주 포인터가 fine이라 힌트가 그대로 보인다. 회귀는 `e2e/tablet-input.mobile.spec.ts`(800×1280 터치 에뮬레이션 — 수정 전 실패 확인)가 잡는다. 계획은 `docs/plans/2026-10-28-tablet-width-and-input-axes.md`. (`widgets/layout/navbar/ui/NavbarSearch.tsx`, `features/comment/create/ui/CommentForm.tsx`, `features/comment/update/ui/CommentEditForm.tsx`, `e2e/tablet-input.mobile.spec.ts`(신규), `.claude/skills/responsive-ux/SKILL.md`, [PR #438](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/438))
+
+  </details>
+
 - `shared` 브라우저 기본 글꼴 크기를 바꾼 사용자에게서 화면 배치와 폭 판정이 갈리던 문제
   <details><summary>배경·구현</summary>
 

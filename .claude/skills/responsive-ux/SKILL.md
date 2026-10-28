@@ -33,6 +33,12 @@ paths: src/**/*.tsx
   ([MDN, Browser detection using the user agent](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Browser_detection_using_the_user_agent)).
 - 터치 제스처처럼 폭이 아니라 입력 장치가 기준인 분기는 `matchMedia('(pointer: coarse)')`로 따로 판정한다
   (선례: `src/shared/hooks/usePullToRefresh.ts` — 폭으로 정하면 넓은 터치 기기에서 당겨서 새로고침이 꺼진다).
+- **키보드 단축키 힌트(`Kbd`)는 `pointer-coarse:hidden`으로 숨긴다** — `md:` 같은 폭 조건만으로 띄우지 않는다.
+  태블릿 세로(갤럭시 탭 S6 Lite 약 800px 추정)는 폭이 md 이상이라 데스크톱 배치인데 입력은 터치여서, 폭만 보던
+  `/`·`⌘ + Enter` 힌트가 키보드 없는 화면에 떴다(2026-10-28). 키보드 존재를 알려 주는 미디어 기능은 없어서 주 입력이
+  터치인지로 판정하고, 키보드를 붙인 태블릿에서도 숨는 것은 받아들였다(사용자 결정). 선례:
+  `src/widgets/layout/navbar/ui/NavbarSearch.tsx`, `src/features/comment/create/ui/CommentForm.tsx`, 회귀는
+  `e2e/tablet-input.mobile.spec.ts`가 잡는다.
 - **예외 — 카드 그리드 열 수는 뷰포트 브레이크포인트로 정하지 않는다.** 사이드바·폴더트리처럼
   목록 옆에서 폭을 가져가는 레이아웃이 있으면 뷰포트 기준 `md:grid-cols-2 lg:grid-cols-3`는
   실제로 그리드가 받는 폭을 반영하지 못해 카드가 찌그러진다(2026-09-29, PostCard 푸터
