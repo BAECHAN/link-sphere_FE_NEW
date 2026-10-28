@@ -1,3 +1,6 @@
+### 2026-10-28 (FE)
+- 공유 컴포넌트의 글꼴 크기 변경에 따른 레이아웃 및 폭 판정 오류 해결 ([#434](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/434))
+
 ### 2026-10-27 (FE)
 - 초기 로딩 성능 최적화를 위해 폰트 프리로드 개수를 19개에서 5개로 최적화 ([#425](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/425))
 
