@@ -10,6 +10,7 @@ import { after, before, test } from 'node:test';
 
 import {
   FIRST_RUN_GRACE_MS,
+  LAGGING_RUN_SETTLE_MS,
   formatReport,
   needsAttention,
   watchSha,
@@ -162,11 +163,28 @@ test('resolveTargets: push는 원격 추적 ref, 병합은 병합 커밋, 생성
   assert.deepEqual(broken, []);
 });
 
-/** 호출할 때마다 다음 응답을 내는 가짜 gh. `run list --commit`과 `--workflow` 조회를 나눠 받는다. */
-function fakeGh({ commitRuns, workflowRuns = {} }) {
+/**
+ * 호출할 때마다 다음 응답을 내는 가짜 gh. `run list --commit`·`--workflow` 조회·`api .../runs/<id>/jobs`를
+ * 나눠 받는다. jobs는 run id별 응답 목록이고 호출마다 다음 것을 낸다. 없으면 실패해 run 값으로 판정된다.
+ */
+function fakeGh({ commitRuns, workflowRuns = {}, jobs = {} }) {
   let call = 0;
+  const jobCalls = {};
 
   return (args) => {
+    if (args[0] === 'api') {
+      const id = Number(args[1].match(/runs\/(\d+)\/jobs$/)[1]);
+      const seq = jobs[id];
+
+      if (!seq) {
+        throw new Error('jobs 없음');
+      }
+
+      jobCalls[id] = (jobCalls[id] ?? 0) + 1;
+
+      return { jobs: seq[Math.min(jobCalls[id] - 1, seq.length - 1)] };
+    }
+
     if (args.includes('--workflow')) {
       return workflowRuns[args[args.indexOf('--workflow') + 1]] ?? [];
     }
@@ -266,6 +284,85 @@ test('watchSha: 시한까지 안 끝나면 시한 초과로 깨우고 watch 명�
   assert.equal(result.timedOut, true);
   assert.equal(needsAttention(result), true);
   assert.match(report, /gh run watch 9 --exit-status/);
+});
+
+const job = (name, status, conclusion, steps = [], id = 100) => ({
+  id,
+  name,
+  status,
+  conclusion,
+  steps,
+});
+
+test('watchSha: run 목록이 진행 중으로 남아도 job이 다 끝나면 시한 초과로 깨우지 않는다', async () => {
+  // 2026-10-27 Storybook run 40511990513 — job은 1분 만에 끝났는데 run은 20분 뒤에야 completed가 됐다.
+  const clock = fakeClock();
+  const result = await watchSha(
+    { sha: 'sha1', repo: 'FE', isMain: false, cwd: FE_WT, deadlineMs: 10 * 60_000 },
+    {
+      gh: fakeGh({
+        commitRuns: [[run('Storybook Deploy (S3 + CloudFront)', 'in_progress', '', 7)]],
+        jobs: { 7: [[job('deploy', 'completed', 'success')]] },
+      }),
+      clock,
+    }
+  );
+
+  assert.equal(result.timedOut, false);
+  assert.equal(needsAttention(result), false);
+  assert.ok(clock.now() >= LAGGING_RUN_SETTLE_MS);
+});
+
+test('watchSha: run 목록이 먼저 성공으로 보여도 job이 끝날 때까지 보고, job 실패를 알린다', async () => {
+  // 2026-10-27 #432 배포 run 40516883699 — deploy job이 queued인데 run 목록은 completed success였다.
+  const result = await watch(
+    fakeGh({
+      commitRuns: [[run('Frontend Deploy (S3 + CloudFront)', 'completed', 'success', 8)]],
+      jobs: {
+        8: [
+          [job('deploy', 'queued', null)],
+          [job('deploy', 'in_progress', null)],
+          [
+            job('deploy', 'completed', 'failure', [
+              { name: 'Build', status: 'completed', conclusion: 'success' },
+              { name: '배포 반영 검증', status: 'completed', conclusion: 'failure' },
+            ]),
+          ],
+        ],
+      },
+    })
+  );
+  const report = formatReport(result, { repo: 'FE', source: 'PR #1 병합 → main' });
+
+  assert.equal(needsAttention(result), true);
+  assert.match(report, /실패한 단계: deploy › 배포 반영 검증/);
+  assert.match(report, /gh run view 8 --log-failed/);
+  assert.match(report, /curl .*linksphere\.click\/version\.json/);
+});
+
+test('watchSha: 사이트를 받지 않는 단계의 실패에는 사이트 확인 안내를 붙이지 않는다', async () => {
+  const result = await watch(
+    fakeGh({
+      commitRuns: [[run('CI', 'completed', 'failure', 9)]],
+      jobs: {
+        9: [
+          [
+            job('check', 'completed', 'failure', [
+              {
+                name: 'Type check, lint & format check',
+                status: 'completed',
+                conclusion: 'failure',
+              },
+            ]),
+          ],
+        ],
+      },
+    })
+  );
+  const report = formatReport(result, { repo: 'FE', source: 'x push' });
+
+  assert.match(report, /실패한 단계: check › Type check, lint & format check/);
+  assert.doesNotMatch(report, /linksphere\.click/);
 });
 
 test('watchSha: main이면 이 커밋이 안 돌린 배포 워크플로의 실패 잔존을 찾는다', async () => {

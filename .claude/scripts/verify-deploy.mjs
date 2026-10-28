@@ -17,6 +17,9 @@ export const POLL_MS = 15_000;
 export const FIRST_RUN_GRACE_MS = 120_000;
 // 전부 끝난 뒤에도 이만큼 새 run이 안 붙으면 종료한다(같은 push 이벤트의 run은 거의 동시에 등록된다).
 export const SETTLE_MS = 30_000;
+// run 목록은 아직 진행 중인데 job은 다 끝났을 때 기다리는 시간. needs로 이어지는 job은 앞 job이 끝난 뒤에야
+// 목록에 생겨서(2026-10-27 배포 run의 close-resolved-failures는 3초 뒤) 그 틈에 끝났다고 보지 않으려고 길게 둔다.
+export const LAGGING_RUN_SETTLE_MS = 120_000;
 export const DEFAULT_DEADLINE_MS = 25 * 60_000;
 
 // 세션을 깨울 결론. cancelled는 FE·BE ci.yml의 cancel-in-progress(연속 push) 때문에 흔해서 중립으로 둔다.
@@ -28,6 +31,11 @@ export const DEPLOY_WORKFLOWS = {
   FE: ['Frontend Deploy (S3 + CloudFront)', 'Storybook Deploy (S3 + CloudFront)'],
   BE: ['Deploy to AWS Lambda (SnapStart)'],
 };
+
+// 운영 사이트를 직접 받아 반영을 확인하는 단계(FE deploy.yml). 여기서 실패하면 배포가 아니라 사이트로 가는 길
+// (WAF·도메인·CloudFront)이 원인일 수 있어 보고문에 확인 순서를 덧붙인다. 이름이 바뀌면 여기도 고친다.
+// BE deploy.yml의 검증은 Lambda를 직접 invoke해 이 길을 거치지 않는다.
+export const LIVE_SITE_CHECK_STEPS = new Set(['배포 반영 검증']);
 
 const RUN_FIELDS = 'databaseId,workflowName,status,conclusion,event,headSha,url';
 // 훅 프로세스 PATH에 gh가 없을 때를 대비한 후보(2026-09-30 스파이크에서는 PATH에 있었다).
@@ -80,9 +88,50 @@ export const realClock = {
 
 function runKey(runs) {
   return runs
-    .map((r) => `${r.databaseId}:${r.status}:${r.conclusion}`)
+    .map((r) => {
+      const jobs = (r.jobs ?? []).map((j) => `${j.id}:${j.status}:${j.conclusion}`).join(',');
+
+      return `${r.databaseId}:${r.status}:${r.conclusion}:${jobs}`;
+    })
     .sort()
     .join('|');
+}
+
+/** run의 job 목록(재실행이면 마지막 시도). `gh api`는 -R을 받지 않아 저장소를 경로에 직접 넣는다. */
+function fetchJobs(run, { cwd, repoSlug }, gh) {
+  const repo = repoSlug ?? '{owner}/{repo}';
+
+  return gh(['api', `repos/${repo}/actions/runs/${run.databaseId}/jobs`], { cwd }).jobs;
+}
+
+/**
+ * run 하나의 상태를 job으로 다시 정한다. run 목록의 status는 job과 어긋난다 — 2026-10-27 Storybook run
+ * 40511990513은 job이 13:27에 끝났는데 run은 13:47에야 completed가 돼 시한 초과로 잘못 깨웠고, 같은 날
+ * #432 배포 run 40516883699는 deploy job이 queued인데 run 목록은 completed success였다(이대로 끝나면
+ * 그 뒤 job 실패를 놓친다). job을 못 읽었거나 아직 없으면 run 값을 그대로 쓴다.
+ */
+function settleRun(run, jobs) {
+  if (!jobs?.length) {
+    return { ...run, listedStatus: run.status, jobs: null };
+  }
+
+  const done = jobs.every((j) => j.status === 'completed');
+  const failedJob = jobs.find((j) => FAILED_CONCLUSIONS.has(j.conclusion));
+  let conclusion = '';
+
+  if (failedJob) {
+    conclusion = failedJob.conclusion;
+  } else if (done) {
+    conclusion = run.status === 'completed' ? run.conclusion : 'success';
+  }
+
+  return {
+    ...run,
+    status: done ? 'completed' : 'in_progress',
+    conclusion,
+    listedStatus: run.status,
+    jobs,
+  };
 }
 
 /**
@@ -148,12 +197,34 @@ export async function watchSha(
   let lastKey = null;
   let lastChangeAt = start;
   let timedOut = false;
+  // run 목록도 끝났고 job도 다 끝난 run은 더 바뀌지 않아 job을 다시 읽지 않는다.
+  const finalJobs = new Map();
 
   for (;;) {
     try {
-      runs = gh(['run', 'list', '--commit', sha, '--limit', '50', '--json', RUN_FIELDS], {
+      const listed = gh(['run', 'list', '--commit', sha, '--limit', '50', '--json', RUN_FIELDS], {
         cwd,
         repoSlug,
+      });
+
+      runs = listed.map((run) => {
+        let jobs = finalJobs.get(run.databaseId) ?? null;
+
+        if (!jobs) {
+          try {
+            jobs = fetchJobs(run, { cwd, repoSlug }, gh);
+          } catch {
+            jobs = null;
+          }
+        }
+
+        const settled = settleRun(run, jobs);
+
+        if (settled.jobs && settled.status === 'completed' && run.status === 'completed') {
+          finalJobs.set(run.databaseId, settled.jobs);
+        }
+
+        return settled;
       });
       fetched = true;
     } catch (error) {
@@ -169,8 +240,11 @@ export async function watchSha(
     }
 
     const allDone = runs.length > 0 && runs.every((r) => r.status === 'completed');
+    const settleMs = runs.some((r) => r.listedStatus !== 'completed')
+      ? LAGGING_RUN_SETTLE_MS
+      : SETTLE_MS;
 
-    if (allDone && now - lastChangeAt >= SETTLE_MS) {
+    if (allDone && now - lastChangeAt >= settleMs) {
       break;
     }
 
@@ -224,7 +298,26 @@ export function formatReport(result, { repo, source, deadlineMs = DEFAULT_DEADLI
 
   for (const r of result.failed) {
     lines.push(`- ${r.workflowName}: ${r.conclusion} — ${r.url}`);
+
+    const failedSteps = (r.jobs ?? []).flatMap((j) =>
+      (j.steps ?? [])
+        .filter((s) => FAILED_CONCLUSIONS.has(s.conclusion))
+        .map((s) => ({ job: j.name, step: s.name }))
+    );
+
+    if (failedSteps.length > 0) {
+      lines.push(`  실패한 단계: ${failedSteps.map((s) => `${s.job} › ${s.step}`).join(', ')}`);
+    }
+
     lines.push(`  원인 확인: gh run view ${r.databaseId} --log-failed`);
+
+    if (failedSteps.some((s) => LIVE_SITE_CHECK_STEPS.has(s.step))) {
+      lines.push(
+        '  이 단계는 운영 사이트를 직접 받아 본다 — 배포가 아니라 사이트로 가는 길이 막혔을 수도 있으니, 배포 탓으로 단정하기 전에 지금 상태부터 본다:',
+        "  curl -sS -o /dev/null -w '%{http_code}\\n' https://linksphere.click/version.json",
+        '  403이면 WAF 차단(규칙별 차단 지표는 BE docs/TRAFFIC-MANAGEMENT.md 8장. 로컬에서도 403이면 운영 반복 측정 뒤 우리 IP가 IP당 요청 제한에 걸린 것일 수 있다), 이름을 못 찾으면 도메인 상태(whois·Route 53 연락처), 5xx면 CloudFront·S3'
+      );
+    }
   }
 
   for (const r of result.stale) {
