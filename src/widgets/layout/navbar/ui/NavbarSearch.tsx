@@ -309,7 +309,9 @@ export const NavbarSearch = ({
           <XIcon className="size-4 text-muted-foreground" />
         </Button>
       ) : (
-        <Kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border px-1.5 font-mono text-micro font-medium opacity-100 flex size-5">
+        // 터치가 주 입력인 기기(태블릿 등)에서는 숨긴다 - 폭이 md 이상이어도 키보드가 없을 수 있다
+        // (responsive-ux skill "브레이크포인트"). "/" 단축키 자체는 그대로 동작한다.
+        <Kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border px-1.5 font-mono text-micro font-medium opacity-100 flex size-5 pointer-coarse:hidden">
           <span className="text-xs">/</span>
         </Kbd>
       )}

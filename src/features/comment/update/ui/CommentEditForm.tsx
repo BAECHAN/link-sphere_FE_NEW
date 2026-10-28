@@ -153,7 +153,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
               {isUpdating ? TEXTS.comment.form.saving : TEXTS.comment.form.save}
               {!isMobile && (
                 <Kbd
-                  className="font-sans"
+                  className="font-sans pointer-coarse:hidden"
                   style={{
                     backgroundColor: 'var(--kbd-in-primary-bg)',
                     color: 'var(--kbd-in-primary-color)',

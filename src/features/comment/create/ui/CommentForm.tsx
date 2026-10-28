@@ -184,7 +184,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
               {isReply ? TEXTS.comment.form.submitReply : TEXTS.comment.form.submitComment}
               {!isMobile && (
                 <Kbd
-                  className="font-sans"
+                  className="font-sans pointer-coarse:hidden"
                   style={{
                     backgroundColor: 'var(--kbd-in-primary-bg)',
                     color: 'var(--kbd-in-primary-color)',
