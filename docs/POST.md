@@ -170,7 +170,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   `posts`를 만든다. 오프셋 페이지네이션 중 새 글이 끼어들면 다음 페이지에 같은 글이 또 오기
   때문이다.
 - **가상화**: `usePostList`(`src/widgets/post/post-list/hooks/usePostList.ts:176-185`)가
-  컨테이너 실측 폭으로 열 수(최대 3, 최소 카드 폭 330px)를 정하고, 게시글을 열 수만큼 묶은
+  컨테이너 실측 폭으로 열 수(최대 3, 최소 카드 폭 292px)를 정하고, 게시글을 열 수만큼 묶은
   **행** 단위로 가상화한다. `PostList.tsx`의 `PostListContent`(`virtualizer.getVirtualItems().map` 행 렌더)가 보이는 행만 `translateY`로 배치한다.
 - **다음 페이지 트리거**: 마지막으로 렌더된 가상 행 번호가 `rows.length - 5` 이상이면
   `fetchNextPage()`(`usePostList.ts:194-207`). IntersectionObserver 센티넬은 가상화 도입 때
@@ -214,7 +214,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   한 줄(`TEXTS.post.card.metadataUnavailable`). **AI 처리 대기 중 표시나 폴링은 없다** — §11.
 - **수정 중 오버레이**: 같은 글의 수정 mutation이 진행 중이면(`useIsMutating`, 500ms 지연 +
   최소 400ms 유지, `usePostCard.ts`의 `isUpdating`) 내용을 흐리게 하고 "수정 중..." 오버레이로 클릭을
-  막는다(`PostCard.tsx:88`, `:102-107`). 2026-10-03부터 수정 폼이 응답을 기다리므로 평소엔 보일
+  막는다(`PostCard.tsx:89`, `:103-108`). 2026-10-03부터 수정 폼이 응답을 기다리므로 평소엔 보일
   일이 없고, 저장 중에 이탈 확인창에서 "나가기"를 골라 목록으로 먼저 돌아간 경우에만 뜬다.
 
 ### 상세
@@ -479,9 +479,9 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 목록 페이지 크기                        | 10                   | `src/entities/post/config/post.const.ts:1`                        |
 | 다음 페이지 선행 로드 행 수             | 5행                  | `src/widgets/post/post-list/hooks/usePostList.ts:21`              |
 | 행 높이 추정 기본값(열 수 매핑 없을 때) | 600px                | `src/widgets/post/post-list/hooks/usePostList.ts:22`              |
-| 카드 최소 폭 / 최대 열 수               | 330px / 3            | `src/widgets/post/post-card/config/post-card-grid.const.ts:26-27` |
-| 행 간격(md 이상 / 미만)                 | 16px / 12px          | `src/widgets/post/post-card/config/post-card-grid.const.ts:28-31` |
-| 열 수별 행 높이 추정치(3·2·1열)         | 654 / 635 / 582px    | `src/widgets/post/post-card/config/post-card-grid.const.ts:32-36` |
+| 카드 최소 폭 / 최대 열 수               | 292px / 3            | `src/widgets/post/post-card/config/post-card-grid.const.ts:27-28` |
+| 행 간격(md 이상 / 미만)                 | 16px / 12px          | `src/widgets/post/post-card/config/post-card-grid.const.ts:29-32` |
+| 열 수별 행 높이 추정치(3·2·1열)         | 654 / 635 / 582px    | `src/widgets/post/post-card/config/post-card-grid.const.ts:33-37` |
 | 스켈레톤 카드 수                        | 6                    | `src/widgets/post/post-list/ui/PostCardSkeleton.tsx:64`           |
 | 조회 로딩 표시 지연                     | 500ms                | `src/shared/config/const.ts:11`                                   |
 | mutation 진행 표시 지연 / 최소 노출     | 500ms / 400ms        | `src/shared/config/const.ts:18-21`                                |

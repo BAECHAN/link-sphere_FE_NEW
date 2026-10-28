@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { UserAvatar } from '@/entities/user/ui/UserAvatar';
 import { DateUtil } from '@/shared/utils/date.util';
+import { NumberUtil } from '@/shared/utils/number.util';
 import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';
 import { HoverKebabMenu } from '@/shared/ui/elements/HoverKebabMenu';
 import { Pencil, Trash } from 'lucide-react';
@@ -371,7 +372,9 @@ export const PostCard = memo(function PostCard({
               className="gap-1 md:gap-1.5 text-muted-foreground h-6 md:h-8 px-2 md:px-3 text-micro md:text-sm rounded-full hover:bg-background/80 hover:text-foreground"
             >
               <MessageSquare className={'h-3 w-3 md:h-4 md:w-4'} />
-              <span className={'sm:inline'}>{post.stats.commentCount || 0}</span>
+              <span className={'sm:inline'}>
+                {NumberUtil.formatCompact(post.stats.commentCount || 0)}
+              </span>
             </Button>
           </Link>
         </div>
@@ -394,10 +397,15 @@ export const PostCard = memo(function PostCard({
           </Button>
         </div>
 
-        <div className="items-center gap-1 md:gap-1.5 text-muted-foreground text-xs flex">
-          <Eye className="h-3 w-3" />
-          <span>{post.stats.viewCount || 0}</span>
-        </div>
+        {/* 목록 카드에서는 조회수를 빼 푸터가 한 줄을 유지하는 최소 폭을 줄인다
+            (post-card-grid.const.ts의 minColumnWidth). 숨김 클래스로 두면 e2e 푸터 줄바꿈 검사
+            (footer.children의 세로 중심 비교)가 크기 0인 칸까지 세므로 렌더하지 않는다 */}
+        {isDetail && (
+          <div className="items-center gap-1 md:gap-1.5 text-muted-foreground text-xs flex">
+            <Eye className="h-3 w-3" />
+            <span>{NumberUtil.formatCompact(post.stats.viewCount || 0)}</span>
+          </div>
+        )}
       </CardFooter>
     </Card>
   );

@@ -23,6 +23,12 @@ paths: src/**/*.tsx
   `innerWidth >= 768`처럼 창 폭을 숫자로 비교하는 길은 `innerWidth`·`outerWidth`를 읽는 것 자체를
   `no-restricted-properties`·`no-restricted-globals`가 막는다. 폭 판정이 아닌 측정(가상 스크롤의 첫 창 크기 등)만
   그 줄에 `eslint-disable-next-line`과 이유를 단다(선례: `useWindowGridVirtualizer.ts`의 `initialRect`).
+- **데스크톱 배치는 64rem(`lg`)에서 한 번 더 나뉜다.** 48~64rem(세로 태블릿 등)은 사이드바를 레일(`w-20`)로,
+  64rem 이상은 펼친 채(`w-60`) 시작하고, 폭이 64rem을 넘나들면 그 폭의 기본값으로 다시 맞춘다(회전 대응,
+  `src/shared/store/sidebar.store.ts`·`src/widgets/layout/sidebar/ui/Sidebar.tsx`). 펼친 사이드바가 240px을 가져가면
+  갤럭시 탭 S6 Lite 세로(약 800px 추정)에서 피드가 1열이 됐다(2026-10-28). JS 판정은 `WIDE_MEDIA_QUERY`
+  (`const.ts`)를 쓴다. 근거와 기각한 대안(하단 탭바 확장, 덮는 사이드바)은 `docs/DECISIONS.md` 2026-10-28 항목,
+  회귀는 `e2e/post-card-footer-layout.spec.ts`가 잡는다.
 - JS 분기가 꼭 필요할 때만 `useIsMobile()`(`src/shared/hooks/useIsMobile.ts`, `matchMedia(MOBILE_MEDIA_QUERY)` —
   Tailwind `max-md`와 같은 조건). **UA는 보지 않는다.** 2026-10-27까지는 UA에 Android·iPhone 등이 있으면
   폭과 무관하게 모바일로 봐서, 휴대폰 가로 화면·안드로이드 태블릿처럼 CSS는 데스크톱 배치인 폭에서 JS만

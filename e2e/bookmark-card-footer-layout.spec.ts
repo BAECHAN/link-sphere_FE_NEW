@@ -20,13 +20,13 @@ function footerPostTitle(index: number): string {
 }
 
 /** GET /bookmark/folders/:folderKey/posts - post-card-footer-layout.spec.ts의
- * mockWorstCasePosts와 같은 "인기글" 통계 고정값. */
+ * mockWorstCasePosts와 같은 최악값(좋아요·댓글 9,990,000 → 축약 "999만") 통계 고정값. */
 async function mockWorstCaseBookmarkPosts(page: Page, total: number): Promise<void> {
   const content: Post[] = Array.from({ length: total }, (_, index) => ({
     ...mockPost,
     id: `bookmark-footer-post-${index}`,
     title: footerPostTitle(index),
-    stats: { viewCount: 99999, likeCount: 999, commentCount: 999, bookmarkCount: 0 },
+    stats: { viewCount: 99999, likeCount: 9_990_000, commentCount: 9_990_000, bookmarkCount: 0 },
   }));
 
   const body: PostListResponse = {

@@ -7,6 +7,7 @@ import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { WIDE_MEDIA_QUERY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
 import { NAV_ITEMS, type NavItemConfig } from '@/shared/config/nav-items';
 import { useSidebarStore } from '@/shared/store/sidebar.store';
@@ -91,7 +92,7 @@ function SidebarHeader({ expanded, onToggle, showCloseIcon = false }: SidebarHea
 }
 
 export function Sidebar() {
-  const { isOpen, toggle } = useSidebarStore(); // 데스크톱 접힘/펼침 상태
+  const { isOpen, toggle, open, close: collapse } = useSidebarStore(); // 데스크톱 접힘/펼침 상태
   // 모바일 드로어는 뒤로가기로 닫혀야 하므로 히스토리 엔트리로 관리한다 (데스크톱 접힘 상태와는 별개)
   const { isOpen: isMobileOpen, close } = useHistoryOverlay('sidebarOpen');
   // 백드롭에 건 배경 스크롤 잠금(RemoveScroll)이 드로어 패널 안쪽 스크롤은 허용하도록
@@ -109,6 +110,25 @@ export function Sidebar() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toggle]);
+
+  // 태블릿을 돌리는 등 폭이 64rem을 넘나들면 그 폭의 기본값(넓으면 펼침, 좁으면 레일)으로 맞춘다.
+  // 가로로 연 뒤 세로로 돌렸을 때 펼친 채 남아 목록이 1열로 줄어드는 것을 막는다. ⌘B로 바꾼
+  // 상태는 경계를 넘기 전까지만 유지된다(docs/plans/2026-10-28-tablet-width-rail.md)
+  useEffect(() => {
+    const wide = window.matchMedia(WIDE_MEDIA_QUERY);
+
+    function syncOpen(e: MediaQueryListEvent) {
+      if (e.matches) {
+        open();
+      } else {
+        collapse();
+      }
+    }
+
+    wide.addEventListener('change', syncOpen);
+
+    return () => wide.removeEventListener('change', syncOpen);
+  }, [open, collapse]);
 
   return (
     <>
