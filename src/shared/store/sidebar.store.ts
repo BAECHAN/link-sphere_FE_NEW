@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { DESKTOP_MEDIA_QUERY } from '@/shared/config/const';
 
 interface SidebarState {
   isOpen: boolean;
@@ -6,7 +7,7 @@ interface SidebarState {
   close: () => void;
 }
 
-const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+const isDesktop = typeof window !== 'undefined' && window.matchMedia(DESKTOP_MEDIA_QUERY).matches;
 
 export const useSidebarStore = create<SidebarState>()((set) => ({
   isOpen: isDesktop,

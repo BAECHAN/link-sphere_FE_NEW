@@ -111,7 +111,7 @@ const TEST_GRID: CardGridSpec = {
   className: 'grid',
   minColumnWidth: 330,
   maxColumns: 3,
-  rowGap: [{ minWidth: 0, gap: 12 }],
+  rowGap: [{ minWidthRem: 0, gap: 12 }],
   rowHeightEstimate: {},
 };
 

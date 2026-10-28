@@ -12,7 +12,8 @@ import { useWindowVirtualizer, type VirtualItem, type Virtualizer } from '@tanst
 import { loadVirtualSnapshot, saveVirtualSnapshot } from '@/shared/lib/virtual/virtual-snapshot';
 
 export interface GapBreakpoint {
-  minWidth: number;
+  /** 이 뷰포트 폭(rem) 이상에서 gap을 쓴다 - Tailwind 브레이크포인트와 같은 rem 단위 */
+  minWidthRem: number;
   gap: number;
 }
 
@@ -84,27 +85,33 @@ export function resolveColumnCount(
   return Math.min(Math.max(count, 1), maxColumns);
 }
 
-function resolveByWidth<T extends { minWidth: number }>(
-  breakpoints: readonly T[],
-  width: number
-): T {
-  const sorted = [...breakpoints].sort((a, b) => b.minWidth - a.minWidth);
-  // 항상 minWidth: 0인 항목이 하나 포함돼 있어(post-card-grid.const.ts 등 호출부 계약) 마지막
-  // 원소가 비어있을 일은 없다
-  return sorted.find((bp) => width >= bp.minWidth) ?? sorted[sorted.length - 1]!;
+function minWidthQuery(minWidthRem: number) {
+  return `(width >= ${minWidthRem}rem)`;
 }
 
-/** Tailwind 반응형 클래스(md:, lg: 등)와 같은 방식으로 뷰포트 너비별 값을 추적한다.
+function resolveByViewport<T extends { minWidthRem: number }>(breakpoints: readonly T[]): T {
+  const sorted = [...breakpoints].sort((a, b) => b.minWidthRem - a.minWidthRem);
+  // 항상 minWidthRem: 0인 항목이 하나 포함돼 있어(post-card-grid.const.ts 등 호출부 계약) 마지막
+  // 원소가 비어있을 일은 없다
+  return (
+    sorted.find((bp) => window.matchMedia(minWidthQuery(bp.minWidthRem)).matches) ??
+    sorted[sorted.length - 1]!
+  );
+}
+
+/** Tailwind 반응형 클래스(md:, lg: 등)와 같은 rem 조건으로 뷰포트 너비별 값을 추적한다.
+ * innerWidth(px)와 비교하지 않는다 - 미디어 쿼리의 rem은 브라우저 기본 글꼴 크기를 따라서,
+ * 그 설정을 바꾼 사용자에게서 CSS gap과 갈린다(responsive-ux skill "브레이크포인트").
  * matchMedia 기반 감지는 useIsMobile.ts의 선례를 따른다. gap은 간격일 뿐 열 수에 영향을
  * 주지 않아 뷰포트 기준으로 남겨둔다 - 열 수만 컨테이너 실측 폭 기준(아래 참고).
  * 브라우저 API 구독이라 useSyncExternalStore로 읽는다 - effect 안에서 setState하면 낡은 값으로
  * 한 번 더 렌더된다(https://react.dev/reference/react/useSyncExternalStore#subscribing-to-a-browser-api).
- * resolveByWidth는 breakpoints 배열의 원소 자체를 돌려줘 같은 너비 구간이면 참조가 같다 -
+ * resolveByViewport는 breakpoints 배열의 원소 자체를 돌려줘 같은 너비 구간이면 참조가 같다 -
  * getSnapshot이 매번 새 객체를 돌려주면 무한 재렌더가 나므로 이 성질에 기댄다. */
-function useResponsiveValue<T extends { minWidth: number }>(breakpoints: readonly T[]): T {
+function useResponsiveValue<T extends { minWidthRem: number }>(breakpoints: readonly T[]): T {
   const subscribe = useCallback(
     (onChange: () => void) => {
-      const queries = breakpoints.map((bp) => window.matchMedia(`(min-width: ${bp.minWidth}px)`));
+      const queries = breakpoints.map((bp) => window.matchMedia(minWidthQuery(bp.minWidthRem)));
 
       queries.forEach((mediaQuery) => {
         if (mediaQuery.addEventListener) {
@@ -127,7 +134,7 @@ function useResponsiveValue<T extends { minWidth: number }>(breakpoints: readonl
     [breakpoints]
   );
 
-  return useSyncExternalStore(subscribe, () => resolveByWidth(breakpoints, window.innerWidth));
+  return useSyncExternalStore(subscribe, () => resolveByViewport(breakpoints));
 }
 
 /**

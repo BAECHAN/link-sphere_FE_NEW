@@ -18,6 +18,7 @@ import { cn } from '@/shared/lib/tailwind/utils';
 import { FormAlert } from '@/shared/ui/elements/FormAlert';
 import { LinkPreviewCard } from '@/entities/post/ui/LinkPreviewCard';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { DESKTOP_MEDIA_QUERY } from '@/shared/config/const';
 import { Link } from 'react-router-dom';
 
 // BottomTabBar(h-16 + safe-area)와 동일한 기준으로 그 위에 떠 있는다(MobileCommentBar.tsx 참고).
@@ -57,7 +58,7 @@ export function CreatePostForm({ renderFolderSelect }: CreatePostFormProps) {
         return;
       }
 
-      const desktop = window.matchMedia('(min-width: 768px)');
+      const desktop = window.matchMedia(DESKTOP_MEDIA_QUERY);
 
       // 창 너비가 md 경계를 오가는 경우까지 매번 다시 판정한다 - desktop.matches를
       // 안 보고 무조건 재계산하면 데스크톱으로 넓혔을 때도 모바일 값이 남는다.

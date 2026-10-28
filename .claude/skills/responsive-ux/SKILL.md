@@ -11,8 +11,16 @@ paths: src/**/*.tsx
 
 ## 브레이크포인트
 
-- `md` = 768px. Tailwind `md:` 분기를 기본으로 쓴다.
-- JS 분기가 꼭 필요할 때만 `useIsMobile()`(`src/shared/hooks/useIsMobile.ts`, `matchMedia('(width < 48rem)')` —
+- `md` = 48rem(`tailwindcss/theme.css`의 `--breakpoint-md`, 브라우저 기본 글꼴 16px에서 768px). Tailwind `md:`
+  분기를 기본으로 쓴다.
+- **같은 경계를 JS나 CSS에서 직접 판정할 때도 px(768px)로 적지 않는다.** 미디어 쿼리의 rem은 페이지 스타일이 아니라
+  사용자가 브라우저에서 정한 기본 글꼴 크기를 따른다 — Media Queries 4는 _"미디어 쿼리의 상대 길이 단위는 초기값을
+  기준으로 한다"_ (번역, [§1.3](https://www.w3.org/TR/mediaqueries-4/))고 쓴다. 기본 글꼴을 20px로 바꾸면 48rem은
+  960px이 돼, `(min-width: 768px)`로 판정하던 `AppLayout`은 폭 768~959px에서 CSS가 모바일 배치인데도 데스크톱으로
+  봐 모바일 검색 중 본문을 잠그지 않았다(2026-10-27 Chromium 156 실측, `e2e/font-size-breakpoint.spec.ts`가 회귀를
+  잡는다). JS는 `src/shared/config/const.ts`의 `MOBILE_MEDIA_QUERY`·`DESKTOP_MEDIA_QUERY`를, CSS는
+  `@variant max-md`처럼 Tailwind 변형을 쓴다. `matchMedia`에 px 경계를 넘기면 ESLint `no-restricted-syntax`가 막는다.
+- JS 분기가 꼭 필요할 때만 `useIsMobile()`(`src/shared/hooks/useIsMobile.ts`, `matchMedia(MOBILE_MEDIA_QUERY)` —
   Tailwind `max-md`와 같은 조건). **UA는 보지 않는다.** 2026-10-27까지는 UA에 Android·iPhone 등이 있으면
   폭과 무관하게 모바일로 봐서, 휴대폰 가로 화면·안드로이드 태블릿처럼 CSS는 데스크톱 배치인 폭에서 JS만
   모바일 UI를 골랐다 — 글 상세의 하단 댓글 바는 `md:hidden`으로 숨고 인라인 폼은 그려지지 않아 댓글 입력
@@ -63,8 +71,10 @@ flex h-16
 `src/app/globals.css`에 `--toast-offset-bottom`이 정의돼 있고, 탭바 높이를 피해 계산된다:
 
 ```css
-@media (max-width: 767px) {
-  :root {
+:root {
+  --toast-offset-bottom: 24px;
+
+  @variant max-md {
     --toast-offset-bottom: calc(4rem + env(safe-area-inset-bottom) + 0.75rem);
   }
 }

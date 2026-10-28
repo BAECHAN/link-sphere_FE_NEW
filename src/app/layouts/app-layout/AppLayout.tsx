@@ -3,6 +3,7 @@ import { useMatch } from 'react-router-dom';
 
 import { TEXTS } from '@/shared/config/texts';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { DESKTOP_MEDIA_QUERY } from '@/shared/config/const';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { Navbar } from '@/widgets/layout/navbar/ui/Navbar';
 import { Sidebar } from '@/widgets/layout/sidebar/ui/Sidebar';
@@ -40,9 +41,9 @@ export function AppLayout({ children }: Readonly<AppLayoutProps>) {
         return;
       }
 
-      // Tailwind md:(min-width:768px)와 같은 경계를 쓴다. 검색 패널이 md:hidden으로
-      // 사라진 화면을 inert로 잠그면 닫을 UI가 없어진다(검색을 연 채로 창을 넓힌 경우).
-      const desktop = window.matchMedia('(min-width: 768px)');
+      // Tailwind md와 같은 경계를 쓴다. 검색 패널이 md:hidden으로 사라진 화면을 inert로
+      // 잠그면 닫을 UI가 없어진다(검색을 연 채로 창을 넓힌 경우).
+      const desktop = window.matchMedia(DESKTOP_MEDIA_QUERY);
 
       function syncInert() {
         node!.inert = isMobileSearchOpen && !desktop.matches;
