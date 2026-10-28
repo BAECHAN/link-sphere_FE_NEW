@@ -69,6 +69,13 @@
 
 ### Changed
 
+- `shared` 앱 시작 스크립트가 쓰지 않는 zod를 기다리지 않고 시작함
+  <details><summary>배경·구현</summary>
+
+  `shared/types/common.type.ts`는 에러 클래스 때문에 진입 청크에 들어 있는데, 여기 있던 쓰이지 않는 zod 스키마 하나 때문에 진입 청크가 `zod-vendor`를 정적으로 import했다. 그래서 앱은 zod(brotli 11.35KB)를 다 받은 뒤에야 시작했다. 스키마를 지우고 같은 모양의 타입만 남겼다. 첫 로딩 JS(진입 + modulepreload, brotli)는 188.16KB에서 176.75KB가 됐다. 받는 총량은 같다 — 로그인 창이 첫 렌더에서 zod를 함께 받는다. 로컬 Lighthouse로 `/post`·상세를 main과 번갈아 5라운드씩 잰 차이는 모두 노이즈 범위였다 — devtools 방식에서는 두 페이지 모두 빠른 쪽으로 일관됐고, simulate 방식에서는 차이가 없었다. `vite.config.ts`와 `docs/PERFORMANCE.md`의 "entities 응답 스키마 검증에 쓰여서"라는 이유도 틀려 고쳤다. 같은 계획에서 로그인 창을 처음 열 때 받게 바꾸는 안도 재 봤는데, LCP가 빨라진 측정이 없고 Lighthouse devtools에서는 늦어져 되돌렸다(2026-10-28 사용자 결정). 측정은 `docs/PERFORMANCE.md` "첫 로딩 JS", 계획은 `docs/plans/2026-10-27-first-load-js.md`. (`shared/types/common.type.ts`, `vite.config.ts`, `docs/PERFORMANCE.md`, `docs/FCM-PUSH-NOTIFICATION.md`, [PR #442](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/442))
+
+  </details>
+
 - `bookmark` 폴더 이름을 사이드바·모바일 카드에서 2줄까지 보이고 넘치면 말줄임
   <details><summary>배경·구현</summary>
 
@@ -210,6 +217,13 @@
   </details>
 
 ### Fixed
+
+- `shared` 창이 뜨기 전에 여는 버튼을 두 번 누르면 닫기도 두 번 눌러야 하던 문제
+  <details><summary>배경·구현</summary>
+
+  로그인 창·이미지 뷰어·사이드바처럼 히스토리로 여는 창(`useHistoryOverlay`)은 `open`을 부를 때마다 엔트리를 쌓았다. 로그인 창 코드는 첫 렌더에서 받기 시작하지만, 느린 회선에서 도착하기 전에 로그인 버튼을 누르면 화면에 창이 없어 한 번 더 누를 수 있다. 그러면 엔트리가 두 칸 쌓여, 닫기를 한 번 눌러도 창이 남았다. 이미 열려 있으면 `open`이 엔트리를 쌓지 않게 막았다. 로그인 창 청크를 4초 늦게 주고 두 번 누른 뒤 닫기를 한 번 누르면 main은 창이 남았고 이 브랜치는 닫혔다(로컬 Playwright). (`shared/hooks/useHistoryOverlay.ts`·`.test.tsx`, [PR #442](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/442))
+
+  </details>
 
 - `shared` 좋아요·댓글 수 버튼과 작성자 배지·단축키 글자가 의도와 다른 크기·색으로 보이던 문제
   <details><summary>배경·구현</summary>

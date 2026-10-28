@@ -35,6 +35,22 @@ describe('useHistoryOverlay', () => {
     });
   });
 
+  it('이미 열려 있으면 open은 엔트리를 더 쌓지 않는다', () => {
+    // 오버레이 코드를 받는 동안(lazy) 화면이 비어 있어 한 번 더 누를 수 있다 - 그때 엔트리가
+    // 두 칸 쌓이면 닫기를 두 번 눌러야 닫힌다.
+    const { result } = renderHook(() => useHistoryOverlay('loginDialogOpen'), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <MemoryRouter initialEntries={[{ pathname: '/post/1', state: { loginDialogOpen: true } }]}>
+          {children}
+        </MemoryRouter>
+      ),
+    });
+
+    result.current.open();
+
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
   it('닫혀 있을 때 close는 navigate(-1)을 호출하지 않는다', () => {
     const { result } = renderHook(() => useHistoryOverlay('imageViewerOpen'), {
       wrapper: Wrapper,

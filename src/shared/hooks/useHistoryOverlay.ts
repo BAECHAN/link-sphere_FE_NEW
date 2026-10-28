@@ -16,13 +16,19 @@ export function useHistoryOverlay(key: string) {
   const isOpen = Boolean((location.state as Record<string, boolean> | null)?.[key]);
 
   const open = useCallback(() => {
+    // 이미 열려 있으면 엔트리를 더 쌓지 않는다 - 오버레이 코드를 받는 동안(lazy) 화면이 비어
+    // 한 번 더 누르면 엔트리가 두 칸 쌓여 닫기를 두 번 눌러야 닫혔다(로그인 창, 2026-10-28)
+    if (isOpen) {
+      return;
+    }
+
     // preventScrollReset 없으면 <ScrollRestoration/>이 이 PUSH를 새 페이지로 보고
     // window.scrollTo(0, 0)을 실행해 배경 스크롤이 최상단으로 튄다.
     navigate(`${location.pathname}${location.search}`, {
       state: { [key]: true },
       preventScrollReset: true,
     });
-  }, [navigate, location.pathname, location.search, key]);
+  }, [isOpen, navigate, location.pathname, location.search, key]);
 
   // navigate(-1)은 popstate를 거쳐 비동기로 반영된다 - 그 사이 close()가 한 번 더 불리면
   // isOpen이 아직 true라 위 가드를 그냥 통과해 back이 두 번 나가고 배경 페이지까지
