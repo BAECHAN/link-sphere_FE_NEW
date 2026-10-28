@@ -15,6 +15,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { Kbd } from '@/shared/ui/atoms/kbd';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { ScrollUtil } from '@/shared/utils/scroll.util';
+import { PlatformUtil } from '@/shared/utils/platform.util';
 
 interface CommentFormProps {
   postId: string;
@@ -74,7 +75,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
     focus: () => textareaRef.current?.focus({ preventScroll: true }),
   }));
 
-  // ⌘+Enter로 빈 상태 제출 시, 토스트만으로는 어느 폼(답글창이 여러 개 열려 있을 수 있음)인지
+  // ⌘/Ctrl+Enter로 빈 상태 제출 시, 토스트만으로는 어느 폼(답글창이 여러 개 열려 있을 수 있음)인지
   // 알기 어려워 그 폼 자신을 화면 중앙으로 스크롤하고 잠깐 강조한다.
   function highlightEmptyForm() {
     containerRef.current?.scrollIntoView({ behavior: ScrollUtil.getBehavior(), block: 'center' });
@@ -121,7 +122,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
           }}
           onPaste={handlePaste}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && e.metaKey) {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
               if (!canSubmit) {
                 highlightEmptyForm();
@@ -190,7 +191,9 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
                     color: 'var(--kbd-in-primary-color)',
                   }}
                 >
-                  ⌘ + Enter
+                  {PlatformUtil.isMac()
+                    ? TEXTS.shortcuts.commentSubmitMac
+                    : TEXTS.shortcuts.commentSubmit}
                 </Kbd>
               )}
             </Button>

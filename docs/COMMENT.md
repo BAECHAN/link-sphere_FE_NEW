@@ -9,7 +9,7 @@
 > 실패했을 때 원인별로 무엇을 안내하는지, "내 댓글"에서 원글의 그 댓글로 이동하는 방식을
 > 이해하고, 상한·장수·캐시 무효화 범위·실패 문구를 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-27
+> **마지막 검토**: 2026-10-28
 
 게시글 상세(`/post/:id`) 하단의 댓글 섹션과, 내가 쓴 댓글을 모아보는 "내 댓글"
 화면(`/my/comments`)을 다룬다. 게시글 자체(목록·상세·작성)는
@@ -32,7 +32,7 @@
 
 ```mermaid
 flowchart TD
-  Click["등록 버튼 또는 ⌘+Enter"] --> Zod{"zod: 본문 6,000B 이하?"}
+  Click["등록 버튼 또는 ⌘/Ctrl+Enter"] --> Zod{"zod: 본문 6,000B 이하?"}
   Zod -->|"초과"| TooLong["onInvalid 토스트<br/>(인라인 안내는 이미 표시 중)"]
   Zod -->|"통과"| Guard{"useAuthGuard:<br/>로그인?"}
   Guard -->|"비로그인"| LoginModal["로그인 모달<br/>요청 없음"]
@@ -165,7 +165,7 @@ Playwright e2e(`page.route()` 모킹) — §9 참고.
 버튼 비활성화는 **빈 입력일 때만**이다(`src/features/comment/create/ui/CommentForm.tsx`의 `canSubmit`).
 길이 초과는 버튼을 막지 않고 인라인 안내 문구 + `aria-invalid`로 보여준 뒤, 눌렀을 때
 zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증 실패를 버튼
-`disabled`만으로 처리하지 않는다" 항목과 §10. 빈 상태에서 ⌘+Enter를 누르면 답글 폼이
+`disabled`만으로 처리하지 않는다" 항목과 §10. 빈 상태에서 ⌘/Ctrl+Enter를 누르면 답글 폼이
 여러 개 열려 있을 수 있어 그 폼 자체를 화면 중앙으로 스크롤하고 1.3초 강조한다
 (`highlightEmptyForm`).
 

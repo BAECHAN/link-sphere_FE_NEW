@@ -225,6 +225,13 @@
 
 ### Fixed
 
+- `comment` Windows·안드로이드 키보드에서 Ctrl+Enter로 댓글을 등록할 수 없던 문제
+  <details><summary>배경·구현</summary>
+
+  댓글 등록·수정 단축키가 `e.metaKey`(⌘)만 봐서, ⌘가 없는 Windows·Linux·안드로이드(태블릿 키보드 포함)에서는 Ctrl+Enter로 제출되지 않았고 버튼의 힌트도 `⌘ + Enter`로만 보였다(#438 계획의 "남은 것"). 사이드바 단축키(`Sidebar.tsx`)처럼 ⌘와 Ctrl을 둘 다 받고, 힌트는 macOS면 `⌘ + Enter`, 아니면 `Ctrl + Enter`로 보여준다. macOS 판별은 `useKeydown.ts`와 같은 UA 식을 `PlatformUtil.isMac()`으로 꺼내 썼다. Mac에서도 Ctrl+Enter로 제출된다. 터치가 주 입력인 기기에서 힌트를 숨기는 것(#438)은 그대로다. 회귀는 두 폼의 단위 테스트가 잡는다(예전 코드로 되돌리면 Ctrl+Enter·Windows 힌트 4개가 실패). (`features/comment/create/ui/CommentForm.tsx`·`.test.tsx`(신규), `features/comment/update/ui/CommentEditForm.tsx`·`.test.tsx`, `shared/utils/platform.util.ts`·`.test.ts`(신규), `shared/config/texts.ts`, `docs/COMMENT.md`, [PR #445](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/445))
+
+  </details>
+
 - `auth` 로그인 만료 때 요청이 끝나지 않고 남거나 갱신을 한 번 더 부르던 문제
   <details><summary>배경·구현</summary>
 
