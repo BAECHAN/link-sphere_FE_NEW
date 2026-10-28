@@ -97,7 +97,10 @@ export function BookmarkFolderSelectDialog({
         {/* 헤더 */}
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div>
-            <DialogTitle className="text-base">{TEXTS.bookmark.folder.selectorTitle}</DialogTitle>
+            {/* eslint-disable-next-line custom-tailwind/no-raw-title -- 기본 제목 토큰(18px)보다 작게 둔 대화상자 제목. text-base가 토큰을 통째로 바꿔 두께도 빠지므로 지금 모습(16px·600)을 직접 준다 */}
+            <DialogTitle className="text-base font-semibold">
+              {TEXTS.bookmark.folder.selectorTitle}
+            </DialogTitle>
             <DialogDescription className="text-xs">{description}</DialogDescription>
           </div>
           <Button

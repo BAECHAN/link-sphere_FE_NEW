@@ -534,10 +534,12 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
 | A. 제목 글꼴 그대로      | 20px 굵게. 칸이 224px라 이름 앞이 잘린다("ㅅ크립트 심화 …") | 20px 굵게, 칸 552px. 다 들어간다  | **데스크톱에 채택** |
 | B. 카드와 같은 기본 입력 | 16px. 이름이 다 보인다                                      | 14px. 편집을 열면 글자가 작아진다 | **모바일에 채택**   |
 
-데스크톱 입력은 important(`md:text-screen-title!`)로 제목 크기를 지킨다. tailwind-merge 3.4.0은 역할 토큰
+데스크톱 입력은 `md:text-screen-title`로 제목 크기를 쓴다. 처음(#440)에는 tailwind-merge 3.4.0이 역할 토큰
 `text-screen-title`을 글자 크기로 알아보지 못해 — `twMerge('text-muted-foreground', 'text-screen-title')`가 앞의 색 클래스를
 지운다, 즉 색으로 본다 — Input 기본 `text-base md:text-sm`과 함께 남기고, 그쪽이 이겨 모바일 16px·데스크톱 14px로 나왔다
-(직접 측정). e2e `bookmark-folder-title-rename.spec.ts`가 입력과 제목의 글자 크기가 같은지 본다.
+(직접 측정). 그래서 important(`!`)로 지켰는데, 같은 원인이 다른 화면 4곳도 틀리게 그리고 있어 `cn()`에 글자 크기 토큰을
+등록하는 쪽으로 고치고 important를 뺐다(2026-10-28, `docs/DESIGN-SYSTEM.md` §10). e2e `bookmark-folder-title-rename.spec.ts`가
+입력과 제목의 글자 크기가 같은지 본다.
 
 **근거와 다른 결정.** 조사한 근거는 연필보다 ⋮ 메뉴 쪽이었다. 사용자가 이 근거를 보고 연필을 골랐다(2026-10-28).
 
@@ -899,7 +901,7 @@ src/
 | 폴더 이름 최대 길이 변경              | FE `bookmark-folder.const.ts`의 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`와 BE `BookmarkFolderService.MAX_FOLDER_NAME_LENGTH`를 같이 바꾼다. 늘리면 가장 좁은 자리(360px 폰 카드)에서 줄 수가 늘어난다(§5 "폴더 이름 길이")                                                                              |
 | 폴더 이름 보이는 줄 수 변경           | 모바일 카드는 `MobileFolderList.tsx` `FolderCard`의 `line-clamp-2 min-h-[2lh]`와 `CreateFolderCard`의 `min-h-[2lh]`를 같은 숫자로, 사이드바는 `FolderTree.tsx` `FolderItem`의 `line-clamp-2`를 바꾼다(§5 "폴더 이름 줄 수")                                                                      |
 | 이름 바꾸기 동작 변경(Enter·Esc·검사) | `features/bookmark/rename/hooks/useRenameBookmarkFolder.ts` 한 곳 — 폴더 화면 제목과 사이드바·카드(`useFolderActions`)가 같이 바뀐다                                                                                                                                                             |
-| 폴더 화면 편집 입력 모양 변경         | `BookmarkFolderTitle.tsx`의 `Input` `className`. 제목 크기를 쓰려면 important(`text-screen-title!`)가 필요하다 — 없으면 Input 기본 크기가 이긴다(§5 "폴더 화면에서 이름 바꾸기")                                                                                                                 |
+| 폴더 화면 편집 입력 모양 변경         | `BookmarkFolderTitle.tsx`의 `Input` `className`. `cn()`이 역할 토큰을 글자 크기로 알아 Input 기본 크기(`md:text-sm`)를 같은 변형(`md:`)끼리 바꾼다(§5 "폴더 화면에서 이름 바꾸기")                                                                                                               |
 | 모바일 정렬 점 조건·위치 변경         | `BookmarkPage.tsx` 모바일 분기의 `sort !== 'latest'`와 점 `span`의 `top-[5px] right-[5px] size-[7px]`(10-28 승인 시안 값). 기본 정렬을 바꾸면 이 조건도 같이 바꾼다                                                                                                                              |
 | 테스트 실행                           | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-tree src/features/bookmark/toggle src/features/bookmark/rename src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`                                                                                      |
 
