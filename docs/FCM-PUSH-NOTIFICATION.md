@@ -393,6 +393,10 @@ export function useFcmForegroundMessage() {
 경계를 타지 않도록 별도 경계를 둔 이유는, 같은 경계였다면 이 청크가 늦게 도착할 때
 페이지 본문까지 함께 멈추기 때문이다.
 
+**정정(2026-10-28)**: 진입 청크에서는 빠졌지만 항상 렌더하므로, 열지 않아도 첫 렌더에서
+청크를 받는다. 처음 열 때 마운트하는 안을 재 봤지만 LCP 이득이 없어 그대로 뒀다 — 측정은
+`docs/PERFORMANCE.md` "첫 로딩 JS" 절에 있다.
+
 ```typescript
 // src/app/routes/layouts/RootLayout.tsx
 const LoginDialog = lazy(() =>

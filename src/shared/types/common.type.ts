@@ -1,15 +1,15 @@
-import { z } from 'zod';
-
 /**
- * BE 페이지네이션 요청 스키마 — BE API 요청 바디/파라미터용으로 page가 0부터 시작하는
+ * BE 페이지네이션 요청 — BE API 요청 바디/파라미터용으로 page가 0부터 시작하는
  * API 관례를 따른다.
+ *
+ * 런타임 zod 스키마로 두지 않는다 - 이 파일은 에러 클래스 때문에 첫 로딩 청크에 들어가서,
+ * 쓰이지 않는 스키마 하나만으로도 zod 전체가 첫 로딩에 실렸다(2026-10-28 빌드 확인,
+ * docs/PERFORMANCE.md "첫 로딩 JS").
  */
-export const paginationRequestSchema = z.object({
-  page: z.number().int().nonnegative().default(0),
-  size: z.number().int().positive().default(10),
-});
-
-export type PaginationRequest = z.infer<typeof paginationRequestSchema>;
+export type PaginationRequest = {
+  page: number;
+  size: number;
+};
 
 /**
  * Standard API Response Structure

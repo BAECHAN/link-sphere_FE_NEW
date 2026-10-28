@@ -113,11 +113,13 @@ export default defineConfig(({ mode }) => {
               if (/[\\/]node_modules[\\/]@tanstack[\\/]react-query/.test(id)) {
                 return 'query-vendor';
               }
-              // zod는 폼 검증뿐 아니라 entities의 응답 스키마 검증에도 쓰여 폼이 없는
-              // 페이지(/post 피드 등)도 필요로 한다 - react-hook-form과 한 청크로 묶으면
-              // 폼이 아예 없는 페이지도 폼 라이브러리까지 통째로 받게 된다(실측: 2026-09-26
-              // 빌드에서 zod 하나 때문에 이 청크가 비로그인 /post 방문자에게도 modulepreload
-              // 됐다, docs/plans/2026-09-25-lighthouse-perf.md 참고).
+              // zod를 react-hook-form과 따로 둔 청크. 2026-09-26 빌드에서 zod가 비로그인 /post
+              // 방문자에게도 modulepreload돼, 한 청크로 묶여 있던 폼 라이브러리까지 함께 받던
+              // 것을 갈랐다(docs/plans/2026-09-25-lighthouse-perf.md). 정정(2026-10-28): 당시
+              // 이유로 적은 "entities 응답 스키마 검증"은 없었고, common.type.ts의 안 쓰는
+              // 스키마 하나가 zod를 첫 로딩 청크로 끌어오고 있었다 - 그 스키마를 지운 뒤로는
+              // 폼 훅만 zod를 쓴다. 다시 합칠 이득은 재 보지 않아 분리는 그대로 둔다
+              // (docs/PERFORMANCE.md "첫 로딩 JS").
               if (/[\\/]node_modules[\\/]zod[\\/]/.test(id)) {
                 return 'zod-vendor';
               }
