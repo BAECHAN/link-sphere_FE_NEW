@@ -10,6 +10,7 @@ import { toast } from '@/shared/lib/toast/toast';
 import { UrlUtil } from '@/shared/utils/url.util';
 import { useAccount } from '@/entities/account/hooks/useAccount';
 import { TEXTS } from '@/shared/config/texts';
+import { ErrorUtil } from '@/shared/utils/error.util';
 import { useEffect, useState } from 'react';
 import { PostUtil, PostSubmitErrorResolution } from '@/entities/post/utils/post.util';
 import { useLinkPreview } from '@/entities/post/hooks/useLinkPreview';
@@ -94,6 +95,11 @@ export function useCreatePost() {
     try {
       await createPost({ ...formData, url: UrlUtil.normalizeUrl(formData.url) });
     } catch (error) {
+      // 로그인 만료로 끝났으면 안내는 만료 정리가 맡는다 - 입력은 그대로 남는다(ErrorUtil.isSessionExpired)
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
       // 원인별로 고칠 수 있는 입력칸 아래 또는 버튼 위 안내에 남긴다 - mutation이
       // manualErrorHandling이라 전역 토스트는 뜨지 않는다(post.queries.ts).
       const resolution = PostUtil.resolveSubmitError(error, {

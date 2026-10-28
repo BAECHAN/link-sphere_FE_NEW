@@ -1,14 +1,14 @@
-import { ApiError, SessionChangedError } from '@/shared/types/common.type';
+import { ApiError, SessionChangedError, SessionExpiredError } from '@/shared/types/common.type';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 
 /**
  * 쿼리 재시도 정책 - 실패 시 1회 재시도하되, 다시 보내도 같은 결과일 요청은 재시도하지 않는다:
  * 429(요청 한도 초과 - 재시도가 한도를 더 소모한다), EDGE_BLOCKED(WAF 차단 - 같은 요청은
  * 또 막힌다), SessionChangedError(보낸 뒤 인증 세대가 바뀜 - 새 인증으로 다시 부르는 건
- * useAuthEpochSync의 몫이다).
+ * useAuthEpochSync의 몫이다), SessionExpiredError(로그인 만료 - 다시 보내도 토큰이 없다).
  */
 export const shouldRetryQuery = (failureCount: number, error: unknown): boolean => {
-  if (error instanceof SessionChangedError) {
+  if (error instanceof SessionChangedError || error instanceof SessionExpiredError) {
     return false;
   }
 

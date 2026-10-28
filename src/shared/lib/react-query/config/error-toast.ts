@@ -1,4 +1,4 @@
-import { ApiError, SessionChangedError } from '@/shared/types/common.type';
+import { ApiError, SessionChangedError, SessionExpiredError } from '@/shared/types/common.type';
 import { TEXTS } from '@/shared/config/texts';
 import { LogoutGraceUtil } from '@/shared/utils/logout-grace.util';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
@@ -71,6 +71,12 @@ export function resolveErrorToast(
   policy: ErrorToastPolicy
 ): ErrorToastDecision {
   if (meta?.manualErrorHandling) {
+    return { silent: true };
+  }
+
+  // 로그인이 만료돼 처리하지 못하고 끝낸 요청(client.ts) - 안내는 만료 정리가 맡는다. meta의 커스텀 문구보다
+  // 먼저 본다(errorMessage가 붙은 mutation도 "등록에 실패했어요"를 띄우지 않게).
+  if (error instanceof SessionExpiredError) {
     return { silent: true };
   }
 

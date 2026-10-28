@@ -1,6 +1,7 @@
 import { KeyboardEvent, useRef, useState } from 'react';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
+import { ErrorUtil } from '@/shared/utils/error.util';
 import { useUpdateBookmarkFolderMutation } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-folder.util';
@@ -50,7 +51,11 @@ export const useRenameBookmarkFolder = ({ folder }: UseRenameBookmarkFolderParam
     try {
       await updateFolder({ name: next });
       setRenaming(false);
-    } catch {
+    } catch (error) {
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
       toast.error(TEXTS.messages.error.folderRenameFailed);
       setName(folder.name);
     } finally {

@@ -225,6 +225,13 @@
 
 ### Fixed
 
+- `auth` 로그인 만료 때 요청이 끝나지 않고 남거나 갱신을 한 번 더 부르던 문제
+  <details><summary>배경·구현</summary>
+
+  refresh가 거절돼 로그인이 만료되면 그 요청과 refresh를 기다리던 요청이 끝나지 않는 Promise로 남았다. 지금은 곧바로 로그인 화면으로 옮겨져 드러나지 않지만, 하던 화면에서 다시 로그인하게 하려면(같은 계획의 다음 단계) 저장 버튼이 "저장 중"에 멈추고 댓글 등록이 제출하며 비운 입력을 되돌리지 못한다. 이제 모두 `SessionExpiredError`로 끝내고, 전역 에러 핸들러와 실패 토스트를 직접 띄우는 14곳·폼 4곳 모두 이 에러는 조용히 넘긴다 — 안내는 만료 정리가 맡는다. 계정 수정은 만료면 롤백하지 않아, 정리가 비운 계정 캐시를 이전 계정 값으로 되살리지 않는다. 만료로 정리한 토큰으로 나갔다가 늦게 도착한 401은 refresh를 다시 부르지 않는다(전에는 같은 거절을 한 번 더 겪고 정리·이동이 두 번 돌았다). 같은 줄(scope)에서 기다리던 mutation은 누를 땐 있던 토큰이 차례가 왔을 때 없으면 보내지 않는다. 화면 이동(`/auth/login`)은 그대로다. (`src/shared/api/client.ts`, `src/shared/types/common.type.ts`, `src/shared/utils/error.util.ts`, `src/shared/lib/react-query/config/error-toast.ts`·`retry-policy.ts`·`mutation-auth-epoch.ts`, 직접 토스트 14곳·폼 4곳, `src/shared/api/session-expired-toast.test.ts`(신규), 계획 [`docs/plans/2026-10-28-session-expiry-draft-preservation.md`](docs/plans/2026-10-28-session-expiry-draft-preservation.md) Phase 1, [PR #444](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/444))
+
+  </details>
+
 - `shared` 카드 열 수가 바뀌면 보던 카드가 밀리거나 스크롤이 튀던 문제
   <details><summary>배경·구현</summary>
 

@@ -15,6 +15,7 @@ import { splitContentImages } from '@/shared/lib/content/imageContent';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
+import { ErrorUtil } from '@/shared/utils/error.util';
 
 type FormValues = { content: string };
 
@@ -149,6 +150,11 @@ export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommen
           existingImages: existingImageUrls,
         });
       } catch (error) {
+        // 로그인 만료로 끝났으면 안내는 만료 정리가 맡는다 - 고친 내용은 그대로 남는다(ErrorUtil.isSessionExpired)
+        if (ErrorUtil.isSessionExpired(error)) {
+          return;
+        }
+
         const message = CommentUtil.resolveSubmitError(error, 'update');
 
         if (isMountedRef.current) {

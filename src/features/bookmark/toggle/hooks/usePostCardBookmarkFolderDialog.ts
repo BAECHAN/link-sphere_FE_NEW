@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
+import { ErrorUtil } from '@/shared/utils/error.util';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { UNDO_TOAST_DURATION_MS } from '@/shared/config/const';
 import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
@@ -64,7 +65,12 @@ export function usePostCardBookmarkFolderDialog({
     action: {
       label: TEXTS.bookmark.folder.undoAction,
       onClick: () => {
-        onUndo().catch(() => {
+        onUndo().catch((error: unknown) => {
+          // 로그인 만료로 끝났으면 안내는 만료 정리가 맡는다(ErrorUtil.isSessionExpired)
+          if (ErrorUtil.isSessionExpired(error)) {
+            return;
+          }
+
           toast.error(TEXTS.messages.error.bookmarkRestoreFailed);
         });
       },
@@ -112,7 +118,11 @@ export function usePostCardBookmarkFolderDialog({
       }
 
       onOpenChange(false);
-    } catch {
+    } catch (error) {
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
       toast.error(TEXTS.messages.error.bookmarkSaveFailed);
     }
   };
@@ -145,7 +155,11 @@ export function usePostCardBookmarkFolderDialog({
         );
       }
       onOpenChange(false);
-    } catch {
+    } catch (error) {
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
       if (isLastFolder) {
         toast.error(TEXTS.messages.error.bookmarkRemoveFailed);
       } else {
@@ -174,7 +188,11 @@ export function usePostCardBookmarkFolderDialog({
         toast.success(TEXTS.messages.success.bookmarkRemoved);
       }
       onOpenChange(false);
-    } catch {
+    } catch (error) {
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
       toast.error(TEXTS.messages.error.bookmarkRemoveFailed);
     }
   };
