@@ -405,7 +405,7 @@ function FolderRow({ icon, name, count, isSelected, isPending, onClick }: Folder
         onClick={onClick}
         disabled={isPending}
         className={cn(
-          'h-auto min-h-11 w-full justify-start gap-3 rounded-none px-4 py-2.5 text-sm md:min-h-0',
+          'h-auto min-h-11 w-full justify-start gap-3 rounded-none px-4 py-2.5 text-sm md:pointer-fine:min-h-0',
           isSelected && 'font-medium'
         )}
       >

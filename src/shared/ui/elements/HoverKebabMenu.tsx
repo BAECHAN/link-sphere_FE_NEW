@@ -15,8 +15,9 @@ export interface HoverKebabMenuProps {
   className?: string;
   /** 트리거 버튼에 붙는 클래스 — 위치 커스텀(예: absolute) 등에 사용 */
   triggerClassName?: string;
-  /** true면 평소엔 숨겼다가 부모의 `group` hover/열림 시에만 보인다. 부모 요소에
-   * `group` 클래스가 있어야 동작한다(FolderTree.tsx의 `.group` 선례 참고) */
+  /** true면 평소엔 숨겼다가 부모의 `group` hover·열림·키보드 포커스 때 보인다. 주 입력이
+   * 터치(pointer: coarse)면 hover가 없어 항상 보인다. 부모 요소에 `group` 클래스가 있어야
+   * 동작한다(FolderTree.tsx의 `.group` 선례 참고) */
   hoverReveal?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -49,7 +50,8 @@ export function HoverKebabMenu({
           size="icon"
           aria-label={ariaLabel}
           className={cn(
-            hoverReveal && 'opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100',
+            hoverReveal &&
+              'opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100',
             triggerClassName
           )}
         >

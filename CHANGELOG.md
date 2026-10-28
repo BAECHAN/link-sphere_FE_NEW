@@ -225,6 +225,13 @@
 
 ### Fixed
 
+- `shared` 세로 태블릿에서 터치 버튼이 작아지고 폴더 ⋮ 메뉴가 안 보이던 문제
+  <details><summary>배경·구현</summary>
+
+  세로 태블릿(갤럭시 탭 S6 Lite 세로 약 800px, 추정)은 폭이 md 이상이라 데스크톱 배치를 쓰지만 입력은 터치다(#438 계획의 "남은 것" 둘). 휴대폰에서 44px로 넓힌 터치 타깃을 폭만 보고(`md:min-h-0`) 되돌려, 태블릿에서 댓글 좋아요·답글·수정·삭제가 20px, 폴더 선택 창의 행이 40px, 글 등록 폼의 폴더 칸이 36px로 줄었다. 넓은 폭이면서 주 입력이 마우스일 때만 되돌리게(`md:pointer-fine:min-h-0`) 바꿔 6곳 모두 44px를 지킨다 — 태블릿에서 댓글 행동 줄은 24px 높아져 휴대폰과 같아지고 폴더 선택 창은 20px 길어진다. 데스크톱 마우스는 그대로다. 북마크 사이드바 폴더 행의 ⋮는 hover 때만 보여 터치에서는 보이지 않았고, 키보드로 포커스해도 투명해 포커스 테두리까지 안 보였다. 이제 주 입력이 터치면 늘 보이고(`pointer-coarse:opacity-100`), 키보드 포커스 때도 보인다(`focus-visible:opacity-100`). 실제 화면 시안을 보고 사용자가 승인했다. 규칙은 `responsive-ux` skill "터치 타깃"·"hover와 밀도"에 남겼다. 회귀는 e2e가 잡는다(예전 클래스로 되돌리면 4개 실패). (`widgets/comment/comment-list/ui/CommentItem.tsx`, `features/comment/like/ui/LikeCommentButton.tsx`, `features/bookmark/select/ui/BookmarkFolderSelectDialog.tsx`, `features/post/create/ui/PostCreateBookmarkFolderField.tsx`, `shared/ui/elements/HoverKebabMenu.tsx`·`.stories.tsx`, `e2e/touch-targets.mobile.spec.ts`·`touch-targets.spec.ts`(신규), `e2e/bookmark-folder-hover-menu.spec.ts`, [PR #446](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/446))
+
+  </details>
+
 - `comment` Windows·안드로이드 키보드에서 Ctrl+Enter로 댓글을 등록할 수 없던 문제
   <details><summary>배경·구현</summary>
 

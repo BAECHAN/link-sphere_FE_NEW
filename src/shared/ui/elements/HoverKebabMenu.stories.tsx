@@ -42,7 +42,7 @@ export const AlwaysVisible: Story = {
   },
 };
 
-/** FolderTree 선례 — 부모 `group` hover 시에만 노출 */
+/** FolderTree 선례 — 부모 `group` hover·키보드 포커스 때 노출(주 입력이 터치인 기기에서는 항상 노출) */
 export const HoverReveal: Story = {
   decorators: [
     (Story) => (
