@@ -633,6 +633,8 @@ export const TEXTS = {
   shortcuts: {
     sidebarToggle: 'Ctrl + B',
     sidebarToggleMac: '⌘ + B',
+    commentSubmit: 'Ctrl + Enter',
+    commentSubmitMac: '⌘ + Enter',
   },
   ariaLabels: {
     // 레이아웃

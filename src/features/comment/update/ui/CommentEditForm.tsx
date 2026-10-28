@@ -16,6 +16,7 @@ import { Comment } from '@/entities/comment/model/comment.schema';
 import { useUpdateComment } from '@/features/comment/update/hooks/useUpdateComment';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { ScrollUtil } from '@/shared/utils/scroll.util';
+import { PlatformUtil } from '@/shared/utils/platform.util';
 
 interface CommentEditFormProps {
   comment: Comment;
@@ -51,7 +52,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
   const containerRef = useRef<HTMLDivElement>(null);
   const [showValidationHighlight, setShowValidationHighlight] = useState(false);
 
-  // ⌘+Enter로 빈 상태 제출 시, 토스트만으로는 어느 폼인지 알기 어려워 그 폼 자신을 화면
+  // ⌘/Ctrl+Enter로 빈 상태 제출 시, 토스트만으로는 어느 폼인지 알기 어려워 그 폼 자신을 화면
   // 중앙으로 스크롤하고 잠깐 강조한다.
   function highlightEmptyForm() {
     containerRef.current?.scrollIntoView({ behavior: ScrollUtil.getBehavior(), block: 'center' });
@@ -84,7 +85,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
           {...register('content')}
           onPaste={handlePaste}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && e.metaKey) {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
               if (!canSubmit) {
                 highlightEmptyForm();
@@ -159,7 +160,9 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
                     color: 'var(--kbd-in-primary-color)',
                   }}
                 >
-                  ⌘ + Enter
+                  {PlatformUtil.isMac()
+                    ? TEXTS.shortcuts.commentSubmitMac
+                    : TEXTS.shortcuts.commentSubmit}
                 </Kbd>
               )}
             </Button>
