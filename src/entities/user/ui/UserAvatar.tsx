@@ -46,6 +46,7 @@ export function UserAvatar({
   zoomable = false,
 }: UserAvatarProps) {
   const [hasError, setHasError] = useState(false);
+  const [isTransformFailed, setIsTransformFailed] = useState(false);
   const { openImageViewer } = useImageViewer();
   const nicknameInitial = nickname?.[0]?.toUpperCase();
 
@@ -57,20 +58,31 @@ export function UserAvatar({
   if (image !== prevImage) {
     setPrevImage(image);
     setHasError(false);
+    setIsTransformFailed(false);
   }
 
   const showFallback = (!image || hasError) && nicknameInitial;
+  const transformedSrc = getTransformedImageUrl(image, { width: transformSizes[size] });
 
   const avatar = (
     <Avatar className={cn('bg-muted', sizeClasses[size], className)}>
       {image && !hasError && (
         <AvatarImage
-          src={getTransformedImageUrl(image, { width: transformSizes[size] })}
+          src={isTransformFailed ? image : transformedSrc}
           alt={nickname ?? ''}
           onLoadingStatusChange={(status) => {
-            if (status === 'error') {
-              setHasError(true);
+            if (status !== 'error') {
+              return;
             }
+
+            // 변환 주소가 실패하면 원본으로 한 번 더 받는다 - Supabase 이미지 변환은 공식 문서상
+            // Free 플랜에 없는 기능이라(지금은 동작한다, 2026-10-28 확인) 막혀도 사진은 보이게 한다
+            if (!isTransformFailed && transformedSrc !== image) {
+              setIsTransformFailed(true);
+              return;
+            }
+
+            setHasError(true);
           }}
         />
       )}
