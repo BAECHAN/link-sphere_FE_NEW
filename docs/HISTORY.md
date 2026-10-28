@@ -1,4 +1,7 @@
 ### 2026-10-28 (FE)
+- 북마크 폴더 이름 길이에 따른 UI 레이아웃 불일치 문제 해결 ([#436](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/436))
+
+### 2026-10-28 (FE)
 - innerWidth 기반 화면 폭 판정 로직에 대한 린트 규칙 적용으로 코드 안정성 강화 ([#435](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/435))
 
 ### 2026-10-28 (FE)
