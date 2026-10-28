@@ -225,6 +225,13 @@
 
 ### Fixed
 
+- `shared` Supabase 이미지 변환이 막히면 댓글 첨부 이미지가 깨지고 아바타가 사라지던 문제
+  <details><summary>배경·구현</summary>
+
+  아바타와 댓글 첨부 이미지는 Supabase 변환 주소(`/render/image/`)로 표시 크기에 맞춰 받는다. 그런데 Supabase 공식 문서상 이미지 변환은 Free 플랜에 없는 기능이고(가격표 _"포함되지 않음"_ (번역), [pricing](https://supabase.com/pricing)), 운영에서는 지금 동작한다(2026-10-28 직접 확인 — 978×990 PNG 1.38MB가 64×64 webp 2KB로 온다). 막히면 댓글 이미지는 깨진 아이콘이 되고(`onError` 없음) 아바타는 닉네임 첫 글자로 바뀌었다. 변환 주소가 실패하면 원본 주소(`/object/`)로 한 번 더 받게 했다. 변환이 성공하는 지금은 요청이 늘지 않는다. 원본까지 실패하면 아바타는 지금처럼 첫 글자를 보여 준다. (`entities/user/ui/UserAvatar.tsx`·`.test.tsx`, `shared/ui/elements/MarkdownContent.tsx`·`.test.tsx`, `docs/COMMENT.md`, [PR #447](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/447))
+
+  </details>
+
 - `shared` 세로 태블릿에서 터치 버튼이 작아지고 폴더 ⋮ 메뉴가 안 보이던 문제
   <details><summary>배경·구현</summary>
 

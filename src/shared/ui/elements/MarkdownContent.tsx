@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { useImageViewerStore } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
 import { NavigationService } from '@/shared/lib/router/navigation';
@@ -29,6 +29,38 @@ function isImageUrl(url: string): boolean {
 function extractImageUrls(content: string): string[] {
   const matches = content.match(URL_PATTERN) ?? [];
   return matches.filter(isImageUrl);
+}
+
+/**
+ * 첨부 이미지. Supabase 변환 주소가 실패하면 원본 주소로 한 번 더 받는다 - 이미지 변환은 공식
+ * 문서상 Free 플랜에 없는 기능이라(지금은 동작한다, 2026-10-28 확인) 막혀도 이미지는 보이게 한다.
+ * 변환을 타지 않는 주소(blob:·외부·svg)는 원본 그대로라 실패해도 바꿀 것이 없다.
+ */
+function AttachmentImage({ url, className }: { url: string; className: string }) {
+  const [isTransformFailed, setIsTransformFailed] = useState(false);
+  const [prevUrl, setPrevUrl] = useState(url);
+
+  // 댓글을 고쳐 주소가 바뀌면 이전 주소의 실패를 들고 있지 않는다. effect가 아니라 렌더 중에
+  // 리셋한다(https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  if (url !== prevUrl) {
+    setPrevUrl(url);
+    setIsTransformFailed(false);
+  }
+
+  const transformedSrc = getTransformedImageUrl(url, { width: 800 });
+
+  return (
+    <img
+      src={isTransformFailed ? url : transformedSrc}
+      alt="attachment"
+      className={className}
+      onError={() => {
+        if (transformedSrc !== url) {
+          setIsTransformFailed(true);
+        }
+      }}
+    />
+  );
 }
 
 function isClosedCodeBlock(segment: string): boolean {
@@ -74,12 +106,12 @@ function renderInlineLinks(
     }
     if (/^(blob:https?:\/\/[^\s]+|https?:\/\/[^\s]+)$/.test(part)) {
       if (isImageUrl(part)) {
-        const src = getTransformedImageUrl(part, { width: 800 });
-        // width만 넘겨 height=width(=800), resize=cover가 되므로 Supabase 변환을 타는
-        // 이미지는 응답이 항상 정사각으로 잘려 온다 - 로드 전에 그 자리를 미리 잡아두면
+        // AttachmentImage가 width만 넘겨 height=width(=800), resize=cover가 되므로 Supabase
+        // 변환을 타는 이미지는 응답이 항상 정사각으로 잘려 온다 - 로드 전에 그 자리를 미리 잡아두면
         // 아래 댓글이 밀리지 않는다(2026-09-14 직접 측정 + Supabase 공식 문서의 cover 정의,
-        // docs/plans/2026-09-14-*.md 참고). blob:(작성 중 미리보기)과 외부 이미지는
-        // 원본을 그대로 쓰므로 비율을 알 수 없어 기존 렌더링을 유지한다.
+        // docs/plans/2026-09-14-*.md 참고). 변환이 실패해 원본으로 바뀌어도 자리는 그대로다.
+        // blob:(작성 중 미리보기)과 외부 이미지는 원본을 그대로 쓰므로 비율을 알 수 없어 기존
+        // 렌더링을 유지한다.
         const hasReservedSquare = isTransformableImageUrl(part);
 
         nodes.push(
@@ -92,12 +124,11 @@ function renderInlineLinks(
           >
             {hasReservedSquare ? (
               <span className="my-2 flex aspect-square w-60 max-w-full items-center justify-center overflow-hidden rounded-md bg-muted">
-                <img src={src} alt="attachment" className="max-h-full max-w-full object-contain" />
+                <AttachmentImage url={part} className="max-h-full max-w-full object-contain" />
               </span>
             ) : (
-              <img
-                src={src}
-                alt="attachment"
+              <AttachmentImage
+                url={part}
                 className="max-w-full max-h-60 rounded-md my-2 object-contain"
               />
             )}

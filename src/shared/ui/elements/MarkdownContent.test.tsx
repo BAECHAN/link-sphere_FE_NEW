@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { fireEvent } from '@testing-library/react';
 import { renderWithProviders } from '@/test/utils';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 
@@ -11,6 +12,25 @@ describe('MarkdownContent', () => {
     const img = getByRole('img', { name: 'attachment' });
     expect(img.getAttribute('src')).toContain('/storage/v1/render/image/public/');
     expect(img.parentElement?.className).toContain('aspect-square');
+  });
+
+  it('Supabase 이미지 변환이 실패하면 원본 주소로 다시 받는다', () => {
+    const { getByRole } = renderWithProviders(<MarkdownContent content={STORAGE_URL} />);
+
+    fireEvent.error(getByRole('img', { name: 'attachment' }));
+
+    expect(getByRole('img', { name: 'attachment' })).toHaveAttribute('src', STORAGE_URL);
+  });
+
+  it('변환이 실패한 뒤 본문의 이미지 주소가 바뀌면 새 주소는 다시 변환 주소부터 받는다', () => {
+    const { getByRole, rerender } = renderWithProviders(<MarkdownContent content={STORAGE_URL} />);
+    fireEvent.error(getByRole('img', { name: 'attachment' }));
+
+    rerender(<MarkdownContent content={STORAGE_URL.replace('a.png', 'b.png')} />);
+
+    expect(getByRole('img', { name: 'attachment' }).getAttribute('src')).toContain(
+      '/storage/v1/render/image/public/comments/b.png'
+    );
   });
 
   it('blob: 미리보기는 원본 src 그대로, 자리 예약 래퍼 없이 렌더된다', () => {

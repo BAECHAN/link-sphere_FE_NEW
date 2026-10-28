@@ -51,4 +51,40 @@ describe('UserAvatar', () => {
 
     expect(screen.getByRole('button', { name: TEXTS.ariaLabels.profileImageZoom })).toBeVisible();
   });
+
+  describe('Supabase 이미지 변환이 실패하면', () => {
+    const STORAGE_URL = 'https://project.supabase.co/storage/v1/object/public/comments/a.png';
+
+    it('원본 주소로 한 번 더 받는다', () => {
+      renderWithProviders(<UserAvatar image={STORAGE_URL} nickname="링크" zoomable />);
+
+      expect(createdImages.at(-1)?.src).toContain('/storage/v1/render/image/public/');
+
+      failLastImage();
+
+      expect(createdImages.at(-1)?.src).toBe(STORAGE_URL);
+      expect(screen.queryByText('링')).not.toBeInTheDocument();
+    });
+
+    it('원본도 실패하면 이니셜로 대체한다', () => {
+      renderWithProviders(<UserAvatar image={STORAGE_URL} nickname="링크" zoomable />);
+
+      failLastImage();
+      failLastImage();
+
+      expect(screen.getByText('링')).toBeInTheDocument();
+    });
+
+    it('이미지 주소가 바뀌면 새 주소는 다시 변환 주소부터 받는다', () => {
+      const { rerender } = renderWithProviders(
+        <UserAvatar image={STORAGE_URL} nickname="링크" zoomable />
+      );
+      failLastImage();
+
+      const nextUrl = STORAGE_URL.replace('a.png', 'b.png');
+      rerender(<UserAvatar image={nextUrl} nickname="링크" zoomable />);
+
+      expect(createdImages.at(-1)?.src).toContain('/storage/v1/render/image/public/comments/b.png');
+    });
+  });
 });
