@@ -35,6 +35,8 @@ vi.mock('@/shared/lib/toast/toast', () => ({
     success: (...args: unknown[]) => {
       mockToastSuccess(...args);
     },
+    // 로그인 성공이 만료 안내 토스트를 닫는다(AuthUtil.dismissSessionExpiredToast)
+    dismiss: vi.fn(),
   },
 }));
 

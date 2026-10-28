@@ -76,6 +76,15 @@ export const TEXTS = {
     description: '아이디와 비밀번호를 입력해주세요.',
     guard: {
       title: '로그인이 필요한 서비스예요',
+      // 로그인이 풀렸는데 쓰던 화면에 그대로 두고 연 로그인 창 - 이유(auth.store SignedOutInPlaceReason)별 제목·설명
+      expired: {
+        title: '로그인이 만료됐어요',
+        description: '다시 로그인하면 하던 작업을 이어서 할 수 있어요.',
+      },
+      signedOutElsewhere: {
+        title: '다른 탭에서 로그아웃했어요',
+        description: '다시 로그인하면 작성 중인 내용을 이어서 쓸 수 있어요.',
+      },
     },
     login: {
       title: 'LinkSphere에 오신 걸 환영해요',
@@ -452,6 +461,8 @@ export const TEXTS = {
         '다른 탭에서 다른 계정으로 로그인해서 이 탭은 로그아웃했어요. 새로고침하면 그 계정으로 이어서 쓸 수 있어요.',
       // 같은 경우, 다른 탭의 로그인 이벤트를 받아 이 탭도 그 계정으로 바꿨을 때(useAuthEpochSync)
       switchedToOtherAccount: '다른 탭에서 로그인한 계정으로 바뀌었어요.',
+      // 보기만 하던 공개 화면에서 로그인이 만료됐을 때 - 닫을 때까지 남는 토스트(AuthUtil.applySessionExpired)
+      sessionExpired: '로그인이 만료됐어요. 다시 로그인하면 이어서 이용할 수 있어요.',
     },
     warning: {
       memberDeleteConfirm: '정말 이 회원을 삭제할까요? 삭제된 데이터는 복구할 수 없어요.',
@@ -496,6 +507,8 @@ export const TEXTS = {
       loginRequired: '로그인이 필요해요.',
       // 요청을 보낸 뒤 다른 탭에서 로그인 상태가 바뀌어 처리하지 않고 끝낸 경우(SessionChangedError)
       sessionChanged: '로그인 상태가 바뀌어서 처리되지 않았어요. 다시 시도해 주세요.',
+      // 로그인이 만료됐거나 풀린 채 제출해 저장하지 못한 경우(SessionExpiredError) - 글·댓글 폼의 버튼 위 FormAlert
+      signedOutBeforeSave: '로그인이 풀렸어요. 로그인한 뒤 저장해 주세요.',
 
       // 인증 관련
       unauthorizedAccessToken: '액세스 토큰이 유효하지 않아요.',
@@ -628,6 +641,13 @@ export const TEXTS = {
       message: '지금 나가면 입력한 가입 정보가 사라져요.',
       confirm: '나가기',
       cancel: '계속 가입하기',
+    },
+    // 쓰는 중에 이 탭에서 직접 로그아웃할 때(useDelayedLogout)
+    logout: {
+      title: '작성 중인 내용이 있어요',
+      message: '로그아웃하면 작성 중인 내용이 사라져요. 그래도 로그아웃할까요?',
+      confirm: '로그아웃',
+      cancel: '계속 작성',
     },
   },
   shortcuts: {

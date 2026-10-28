@@ -41,6 +41,8 @@ export const useLoginMutation = () => {
       //    다른 탭(useAuthEpochSync)이 세션 플래그를 보고 쿠키로 세션을 받아들인다
       setAuth(data.accessToken);
       AuthEpochUtil.markLogin();
+      // 만료로 띄워 둔 안내(닫을 때까지 남는다)는 다시 로그인했으니 닫는다(AuthUtil.applySessionExpired)
+      AuthUtil.dismissSessionExpiredToast();
       // 2. 로그아웃이 남긴 에러 캐시만 초기화한다. clearQueries()의 resetQueries()가 토큰을
       //    지운 직후 화면에 남아있던 쿼리를 배경 재요청시켜 401로 error 상태를 만드는데,
       //    Suspense 쿼리는 캐시가 error면 재마운트해도 retryOnMount=false로 막혀 새 요청을

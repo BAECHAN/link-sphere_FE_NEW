@@ -107,15 +107,23 @@ export const useUpdateAccountMutation = () => {
       }
     },
     onError: (error, _variables, context) => {
-      // 로그인 만료로 끝났으면 롤백도 안내도 하지 않는다 - 만료 정리가 이미 비운 계정 캐시를 이전 계정 값으로
-      // 되살리면, 로그아웃 상태인데 그 계정 정보가 남는다(안내는 만료 정리가 맡는다, ErrorUtil.isSessionExpired)
-      if (ErrorUtil.isSessionExpired(error)) {
+      const isSessionExpired = ErrorUtil.isSessionExpired(error);
+
+      // 로그인 만료로 끝났으면 만료 정리가 계정 캐시를 비웠을 수 있다 - 그때 이전 계정 값으로 되살리면 로그아웃 상태인데
+      // 그 계정 정보가 남으므로 되돌리지 않는다. 이 화면(보호 경로)에 그대로 둔 만료는 캐시를 남기므로 되돌린다 - 저장하지
+      // 못한 닉네임·이미지가 저장된 것처럼 남지 않게(AuthUtil.applySessionExpired)
+      if (
+        context?.previous &&
+        (!isSessionExpired || queryClient.getQueryData(accountKeys.root) !== undefined)
+      ) {
+        queryClient.setQueryData(accountKeys.root, context.previous);
+      }
+
+      // 만료 안내는 만료 정리가 맡는다(ErrorUtil.isSessionExpired)
+      if (isSessionExpired) {
         return;
       }
 
-      if (context?.previous) {
-        queryClient.setQueryData(accountKeys.root, context.previous);
-      }
       const message = resolveAccountUpdateErrorMessage(error);
 
       // previewUrl은 여기서 해제하지 않는다 - useUpdateAccount.ts의 onSubmit이 실패 시

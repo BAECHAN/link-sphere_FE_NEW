@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { apiClient } from '@/shared/api/client';
 import { useAuthStore } from '@/shared/store/auth.store';
+import { useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { AuthUtil } from '@/shared/utils/auth.util';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
@@ -68,15 +69,35 @@ const makeCommentSuccess = () =>
   );
 
 describe('ApiClient — 인증 오류 처리', () => {
+  // 만료 안내 토스트(AuthUtil.applySessionExpired)는 래퍼(@/shared/lib/toast/toast)로 뜬다 - 그 info를 지켜본다
+  let sessionToastInfo: MockInstance<typeof toast.info>;
+
   beforeEach(() => {
     vi.clearAllMocks(); // 각 테스트 전 mock 호출 기록 초기화
+    sessionToastInfo = vi.spyOn(toast, 'info');
   });
 
-  // Case 2~4가 각자 AuthUtil.clearAll()을 호출해 isLoggingOut() 유예 창을 연다 -
+  // Case 2~4가 각자 AuthUtil.clearAll()·applySessionExpired()를 호출해 isLoggingOut() 유예 창을 연다 -
   // 다음 케이스로 새지 않도록 매번 비운다(auth.util.ts의 resetLogoutGuard 주석 참고).
   afterEach(() => {
     AuthUtil.resetLogoutGuard();
+    sessionToastInfo.mockRestore();
+    window.history.replaceState(null, '', '/');
   });
+
+  /** 공개 화면에서 보기만 하던 중에 만료됐다 - 로그인 페이지로 보내지 않고 그 자리에 두며, 닫을 때까지 남는 안내 1번 */
+  const expectExpiredInPlaceWithToast = () => {
+    expect(NavigationService.navigate).not.toHaveBeenCalledWith(
+      ROUTES_PATHS.AUTH.LOGIN,
+      expect.anything()
+    );
+    expect(useAuthStore.getState().signedOutInPlace).toEqual({ reason: 'expired', pathname: '/' });
+    expect(sessionToastInfo).toHaveBeenCalledTimes(1);
+    expect(sessionToastInfo).toHaveBeenCalledWith(
+      TEXTS.messages.info.sessionExpired,
+      expect.objectContaining({ id: 'session-expired', duration: Infinity })
+    );
+  };
 
   // ─────────────────────────────────────────────────────────────
   // Case 1: Access Token 만료 + Refresh 성공
@@ -165,7 +186,7 @@ describe('ApiClient — 인증 오류 처리', () => {
   // (서버 시계 오차 등 회복 불가능한 상황) — 상한 없이 재귀하면 무한 루프
   // ─────────────────────────────────────────────────────────────
   describe('Case 1-2: refresh 성공 후 재시도한 요청도 다시 TOKEN_EXPIRED', () => {
-    it('refresh를 다시 호출하지 않고 auth 초기화 + 로그인 페이지 이동 후 SessionExpiredError로 끝난다', async () => {
+    it('refresh를 다시 호출하지 않고 auth 초기화 후 SessionExpiredError로 끝난다 - 로그인 페이지로 보내지 않는다', async () => {
       let refreshCallCount = 0;
 
       server.use(
@@ -191,9 +212,7 @@ describe('ApiClient — 인증 오류 처리', () => {
         SessionExpiredError
       );
 
-      expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.AUTH.LOGIN, {
-        replace: true,
-      });
+      expectExpiredInPlaceWithToast();
       // refresh는 1회만 — 재시도 후 다시 실패했다고 refresh를 또 호출하지 않는다
       expect(refreshCallCount).toBe(1);
       expect(useAuthStore.getState().accessToken).toBeNull();
@@ -299,7 +318,7 @@ describe('ApiClient — 인증 오류 처리', () => {
   // Case 2: Access Token 만료 + Refresh Token도 만료
   // ─────────────────────────────────────────────────────────────
   describe('Case 2: Access Token 만료 + Refresh Token도 만료', () => {
-    it('댓글 요청 → 401 TOKEN_EXPIRED → 갱신 실패 → auth 초기화 + 로그인 페이지 이동 → SessionExpiredError', async () => {
+    it('댓글 요청 → 401 TOKEN_EXPIRED → 갱신 실패 → auth 초기화 → SessionExpiredError, 공개 화면은 그대로 두고 토스트로 알린다', async () => {
       server.use(
         http.post(COMMENT_HANDLER_URL, () => make401('TOKEN_EXPIRED')),
         http.post(REFRESH_HANDLER_URL, () => make401('INVALID_REFRESH_TOKEN'))
@@ -312,12 +331,112 @@ describe('ApiClient — 인증 오류 처리', () => {
         SessionExpiredError
       );
 
-      expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.AUTH.LOGIN, {
-        replace: true,
-      });
-
+      expectExpiredInPlaceWithToast();
+      expect(NavigationService.navigate).not.toHaveBeenCalled();
       expect(useAuthStore.getState().accessToken).toBeNull();
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
+      // 만료는 이 세션이 끝났다는 뜻이라 함께 쓰는 세션 플래그도 지운다(clearAll과 같음)
+      expect(LocalStorageUtil.getItem(STORAGE_KEYS.AUTH.HAS_SESSION)).toBeNull();
+    });
+
+    it('보호 화면이면 그 주소 그대로 로그인 창을 연다 - 토스트는 띄우지 않는다', async () => {
+      const submitUrl = ROUTES_PATHS.POST.SUBMIT + '?from=feed';
+      window.history.replaceState(null, '', submitUrl);
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => make401('TOKEN_EXPIRED')),
+        http.post(REFRESH_HANDLER_URL, () => make401('INVALID_REFRESH_TOKEN'))
+      );
+      useAuthStore.getState().setAuth('expired-access-token');
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionExpiredError
+      );
+
+      expect(NavigationService.navigate).toHaveBeenCalledTimes(1);
+      expect(NavigationService.navigate).toHaveBeenCalledWith(submitUrl, {
+        state: { loginDialogOpen: true, loginDialogReason: 'expired' },
+        replace: false,
+        preventScrollReset: true,
+      });
+      expect(useAuthStore.getState().signedOutInPlace).toEqual({
+        reason: 'expired',
+        pathname: ROUTES_PATHS.POST.SUBMIT,
+      });
+      expect(sessionToastInfo).not.toHaveBeenCalled();
+    });
+
+    it('공개 화면이어도 쓰는 중이면 토스트 대신 로그인 창을 연다', async () => {
+      const DIRTY_KEY = 'comment-create:test-post-uuid';
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => make401('TOKEN_EXPIRED')),
+        http.post(REFRESH_HANDLER_URL, () => make401('INVALID_REFRESH_TOKEN'))
+      );
+      useAuthStore.getState().setAuth('expired-access-token');
+      useUnsavedChangesStore.getState().markDirty(DIRTY_KEY);
+
+      try {
+        await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+          SessionExpiredError
+        );
+      } finally {
+        useUnsavedChangesStore.getState().markClean(DIRTY_KEY);
+      }
+
+      expect(NavigationService.navigate).toHaveBeenCalledWith('/', {
+        state: { loginDialogOpen: true, loginDialogReason: 'expired' },
+        replace: false,
+        preventScrollReset: true,
+      });
+      expect(sessionToastInfo).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Case 2-3: refresh가 401이 아닌 이유로 실패 (네트워크·5xx·429)
+  // 세션이 아니라 연결·서버 문제다 - 만료로 정리하면 잠깐 끊긴 것만으로 로그아웃된다(결정 12)
+  // ─────────────────────────────────────────────────────────────
+  describe('Case 2-3: refresh가 401이 아닌 이유로 실패', () => {
+    it('5xx면 로그인을 그대로 두고 리더·대기 요청 모두 그 에러로 끝난다', async () => {
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => make401('TOKEN_EXPIRED')),
+        http.post(REFRESH_HANDLER_URL, () =>
+          HttpResponse.json(
+            { status: 503, code: 'SERVICE_UNAVAILABLE', message: 'down', timestamp: '' },
+            { status: 503 }
+          )
+        )
+      );
+      useAuthStore.getState().setAuth('expired-access-token');
+
+      const results = await Promise.allSettled([
+        apiClient.post(COMMENT_PATH, makeCommentFormData()),
+        apiClient.post(COMMENT_PATH, makeCommentFormData()),
+      ]);
+
+      results.forEach((r) => {
+        expect(r.status === 'rejected' && r.reason).toBeInstanceOf(ApiError);
+        expect(r.status === 'rejected' && (r.reason as ApiError).status).toBe(503);
+      });
+      expect(useAuthStore.getState().accessToken).toBe('expired-access-token');
+      expect(useAuthStore.getState().signedOutInPlace).toBeNull();
+      expect(LocalStorageUtil.getItem(STORAGE_KEYS.AUTH.HAS_SESSION)).toBe(true);
+      expect(NavigationService.navigate).not.toHaveBeenCalled();
+      expect(sessionToastInfo).not.toHaveBeenCalled();
+    });
+
+    it('응답을 못 받으면(오프라인) 로그인을 그대로 두고 NetworkError로 끝난다', async () => {
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => make401('TOKEN_EXPIRED')),
+        http.post(REFRESH_HANDLER_URL, () => HttpResponse.error())
+      );
+      useAuthStore.getState().setAuth('expired-access-token');
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        NetworkError
+      );
+
+      expect(useAuthStore.getState().accessToken).toBe('expired-access-token');
+      expect(NavigationService.navigate).not.toHaveBeenCalled();
     });
   });
 
@@ -326,7 +445,7 @@ describe('ApiClient — 인증 오류 처리', () => {
   // 큐에서 기다리던 요청(팔로워)이 어떻게 끝나는지 — client.ts catch 블록 주석 참고
   // ─────────────────────────────────────────────────────────────
   describe('Case 2-1: 동시에 두 요청이 401 TOKEN_EXPIRED + refresh 실패', () => {
-    it('refresh는 한 번만 호출되고, 두 요청 모두 SessionExpiredError로 끝나며 로그인 페이지로 한 번 이동한다', async () => {
+    it('refresh는 한 번만 호출되고, 두 요청 모두 SessionExpiredError로 끝나며 만료 안내는 한 번이다', async () => {
       let refreshCallCount = 0;
 
       server.use(
@@ -350,10 +469,7 @@ describe('ApiClient — 인증 오류 처리', () => {
         expect(r.status === 'rejected' && r.reason).toBeInstanceOf(SessionExpiredError);
       });
       expect(refreshCallCount).toBe(1);
-      expect(NavigationService.navigate).toHaveBeenCalledTimes(1);
-      expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.AUTH.LOGIN, {
-        replace: true,
-      });
+      expectExpiredInPlaceWithToast();
       expect(useAuthStore.getState().accessToken).toBeNull();
     });
   });
@@ -398,7 +514,7 @@ describe('ApiClient — 인증 오류 처리', () => {
 
       await expect(accountRequest).rejects.toBeInstanceOf(SessionExpiredError);
       expect(refreshCallCount).toBe(1);
-      expect(NavigationService.navigate).toHaveBeenCalledTimes(1);
+      expectExpiredInPlaceWithToast();
     });
   });
 
@@ -427,21 +543,39 @@ describe('ApiClient — 인증 오류 처리', () => {
   // Case 4: 유효하지 않은 토큰 (INVALID_TOKEN)
   // ─────────────────────────────────────────────────────────────
   describe('Case 4: 유효하지 않은 토큰 (INVALID_TOKEN)', () => {
-    it('댓글 요청 → 401 INVALID_TOKEN → auth 초기화 + 로그인 페이지 이동', async () => {
+    it('댓글 요청 → 401 INVALID_TOKEN → 로그인 만료로 보고 그 자리에 둔 채 SessionExpiredError', async () => {
       server.use(http.post(COMMENT_HANDLER_URL, () => make401('INVALID_TOKEN')));
 
       useAuthStore.getState().setAuth('malformed-token');
 
-      // INVALID_TOKEN은 throw로 처리되므로 unhandled rejection 방지
-      apiClient.post(COMMENT_PATH, makeCommentFormData()).catch(() => {});
-
-      await vi.waitFor(() => {
-        expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.AUTH.LOGIN, {
-          replace: true,
-        });
-      });
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionExpiredError
+      );
 
       expect(useAuthStore.getState().accessToken).toBeNull();
+      expectExpiredInPlaceWithToast();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Case 4-1: 로그인이 풀린 채 쓰던 화면에 머무는 중 (auth.store signedOutInPlace)
+  // 로그인 창을 닫고 그대로 저장을 누른 경우 - 로그인 페이지로 보내면 쓰던 글이 사라진다
+  // ─────────────────────────────────────────────────────────────
+  describe('Case 4-1: 로그인이 풀린 채 그 화면에 머무는 중', () => {
+    it('NOT_LOGGED_IN이 와도 로그인 페이지로 보내지 않고 SessionExpiredError로 조용히 끝난다', async () => {
+      server.use(http.post(COMMENT_HANDLER_URL, () => make401('NOT_LOGGED_IN')));
+      useAuthStore.getState().expireSession('/');
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionExpiredError
+      );
+
+      expect(NavigationService.navigate).not.toHaveBeenCalled();
+      expect(useAuthStore.getState().signedOutInPlace).toEqual({
+        reason: 'expired',
+        pathname: '/',
+      });
+      expect(sessionToastInfo).not.toHaveBeenCalled();
     });
   });
 

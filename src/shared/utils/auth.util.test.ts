@@ -1,9 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { cleanup, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { createElement, Suspense, type ReactNode } from 'react';
 import { QueryClientProvider, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { TEXTS } from '@/shared/config/texts';
+import { toast } from '@/shared/lib/toast/toast';
+import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
+import { clearUnsavedChanges, useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
 
 // AuthUtil이 import하는 queryClient/NavigationService는 이 파일 안에서만 모킹한다 - 전역
 // setup.ts에서 AuthUtil을 import하면 이 두 모듈이 각 테스트 파일의 vi.mock보다 먼저 "실제"
@@ -177,5 +181,295 @@ describe('AuthUtil.isLoggingOut', () => {
     expect(AuthUtil.isLoggingOut()).toBe(true);
 
     await waitFor(() => expect(AuthUtil.isLoggingOut()).toBe(false));
+  });
+});
+
+describe('AuthUtil.applySessionExpired — 로그인 만료를 그 자리에서 알린다', () => {
+  const DIRTY_KEY = 'post-create';
+  const dialogState = { loginDialogOpen: true, loginDialogReason: 'expired' };
+  let toastInfo: MockInstance<typeof toast.info>;
+
+  beforeEach(() => {
+    queryClient.clear();
+    vi.clearAllMocks();
+    toastInfo = vi.spyOn(toast, 'info');
+    useAuthStore.getState().setAuth('token-a');
+  });
+
+  afterEach(() => {
+    cleanup();
+    AuthUtil.resetLogoutGuard();
+    toastInfo.mockRestore();
+    clearUnsavedChanges(DIRTY_KEY);
+    window.history.replaceState(null, '', '/');
+  });
+
+  it('보호 경로면 캐시를 그대로 두고 같은 주소 위에 로그인 창을 연다', () => {
+    window.history.replaceState(null, '', ROUTES_PATHS.POST.SUBMIT);
+    queryClient.setQueryData(['probe'], 'kept');
+
+    AuthUtil.applySessionExpired();
+
+    expect(useAuthStore.getState().accessToken).toBeNull();
+    expect(useAuthStore.getState().signedOutInPlace).toEqual({
+      reason: 'expired',
+      pathname: ROUTES_PATHS.POST.SUBMIT,
+    });
+    expect(queryClient.getQueryData(['probe'])).toBe('kept');
+    expect(NavigationService.navigate).toHaveBeenCalledTimes(1);
+    expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.POST.SUBMIT, {
+      state: dialogState,
+      replace: false,
+      preventScrollReset: true,
+    });
+    expect(toastInfo).not.toHaveBeenCalled();
+  });
+
+  it('공개 경로에서 쓰는 중이면 비로그인으로 다시 불러오고 로그인 창을 연다', async () => {
+    window.history.replaceState(null, '', '/post/post-1');
+    useUnsavedChangesStore.getState().markDirty(DIRTY_KEY);
+    const queryFn = vi.fn().mockResolvedValue('data');
+    const { result } = renderHook(() => useQuery({ queryKey: ['probe'], queryFn }), {
+      wrapper: Wrapper,
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    AuthUtil.applySessionExpired();
+
+    await waitFor(() => expect(queryFn).toHaveBeenCalledTimes(2));
+    expect(NavigationService.navigate).toHaveBeenCalledWith('/post/post-1', {
+      state: dialogState,
+      replace: false,
+      preventScrollReset: true,
+    });
+    expect(toastInfo).not.toHaveBeenCalled();
+  });
+
+  it('공개 경로에서 저장 요청이 진행 중이면 로그인 창을 연다', () => {
+    window.history.replaceState(null, '', '/post/post-1');
+    void queryClient
+      .getMutationCache()
+      .build(queryClient, { mutationFn: () => new Promise(() => {}) })
+      .execute(undefined);
+
+    AuthUtil.applySessionExpired();
+
+    expect(NavigationService.navigate).toHaveBeenCalledWith('/post/post-1', {
+      state: dialogState,
+      replace: false,
+      preventScrollReset: true,
+    });
+    expect(toastInfo).not.toHaveBeenCalled();
+  });
+
+  it('공개 경로에서 보기만 하던 중이면 닫을 때까지 남는 토스트로 알리고, 그 버튼이 로그인 창을 연다', () => {
+    window.history.replaceState(null, '', '/post');
+
+    AuthUtil.applySessionExpired();
+
+    expect(NavigationService.navigate).not.toHaveBeenCalled();
+    expect(toastInfo).toHaveBeenCalledTimes(1);
+    const [message, options] = toastInfo.mock.calls[0]!;
+    expect(message).toBe(TEXTS.messages.info.sessionExpired);
+    expect(options).toMatchObject({ id: 'session-expired', duration: Infinity });
+
+    const action = options?.action as { label: string; onClick: () => void };
+    expect(action.label).toBe(TEXTS.buttons.login);
+    action.onClick();
+
+    expect(NavigationService.navigate).toHaveBeenCalledWith('/post', {
+      state: dialogState,
+      replace: false,
+      preventScrollReset: true,
+    });
+  });
+
+  it('로그인 창에 남아 있던 "로그인 후 할 일"을 비운다 - 만료 뒤 로그인이 이전 창의 일을 실행하지 않게', () => {
+    window.history.replaceState(null, '', ROUTES_PATHS.POST.SUBMIT);
+    useLoginDialogStore.getState().setPendingAction(vi.fn());
+    useLoginDialogStore.getState().setOnSuccess(vi.fn());
+
+    AuthUtil.applySessionExpired();
+
+    expect(useLoginDialogStore.getState().pendingAction).toBeUndefined();
+    expect(useLoginDialogStore.getState().onSuccess).toBeUndefined();
+  });
+
+  it('dismissSessionExpiredToast는 그 id의 토스트를 닫는다', () => {
+    const dismiss = vi.spyOn(toast, 'dismiss');
+
+    AuthUtil.dismissSessionExpiredToast();
+
+    expect(dismiss).toHaveBeenCalledWith('session-expired');
+    dismiss.mockRestore();
+  });
+});
+
+describe('AuthUtil.reflectSignOutFromElsewhere — 다른 탭의 로그아웃을 이 탭에 반영', () => {
+  const DIRTY_KEY = 'post-create';
+
+  beforeEach(() => {
+    queryClient.clear();
+    vi.clearAllMocks();
+    useAuthStore.getState().setAuth('token-a');
+  });
+
+  afterEach(() => {
+    cleanup();
+    AuthUtil.resetLogoutGuard();
+    clearUnsavedChanges(DIRTY_KEY);
+    window.history.replaceState(null, '', '/');
+  });
+
+  it('쓰는 중이 아니면 지금처럼 보호 경로에서 /post로 옮긴다 - 로그인 창은 열지 않는다', () => {
+    window.history.replaceState(null, '', ROUTES_PATHS.BOOKMARK);
+
+    AuthUtil.reflectSignOutFromElsewhere();
+
+    expect(useAuthStore.getState().accessToken).toBeNull();
+    expect(useAuthStore.getState().signedOutInPlace).toBeNull();
+    expect(NavigationService.navigate).toHaveBeenCalledTimes(1);
+    expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.POST.ROOT, {
+      replace: true,
+    });
+  });
+
+  it('보호 경로에서 쓰는 중이면 옮기지 않고 캐시를 둔 채 그 자리에 로그인 창을 연다', () => {
+    window.history.replaceState(null, '', ROUTES_PATHS.POST.SUBMIT);
+    useUnsavedChangesStore.getState().markDirty(DIRTY_KEY);
+    queryClient.setQueryData(['probe'], 'kept');
+
+    AuthUtil.reflectSignOutFromElsewhere();
+
+    expect(useAuthStore.getState().accessToken).toBeNull();
+    expect(useAuthStore.getState().signedOutInPlace).toEqual({
+      reason: 'signedOutElsewhere',
+      pathname: ROUTES_PATHS.POST.SUBMIT,
+    });
+    expect(queryClient.getQueryData(['probe'])).toBe('kept');
+    expect(NavigationService.navigate).toHaveBeenCalledTimes(1);
+    expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.POST.SUBMIT, {
+      state: { loginDialogOpen: true, loginDialogReason: 'signedOutElsewhere' },
+      replace: false,
+      preventScrollReset: true,
+    });
+  });
+
+  it('공개 경로에서 쓰는 중이면 비로그인으로 다시 불러오고 그 자리에 로그인 창을 연다', async () => {
+    window.history.replaceState(null, '', '/post/post-1');
+    useUnsavedChangesStore.getState().markDirty(DIRTY_KEY);
+    const queryFn = vi.fn().mockResolvedValue('data');
+    const { result } = renderHook(() => useQuery({ queryKey: ['probe'], queryFn }), {
+      wrapper: Wrapper,
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    AuthUtil.reflectSignOutFromElsewhere();
+
+    await waitFor(() => expect(queryFn).toHaveBeenCalledTimes(2));
+    expect(NavigationService.navigate).toHaveBeenCalledWith('/post/post-1', {
+      state: { loginDialogOpen: true, loginDialogReason: 'signedOutElsewhere' },
+      replace: false,
+      preventScrollReset: true,
+    });
+  });
+});
+
+describe('useAuthStore.leaveSignedOutInPlace — 그 화면을 떠나면 제자리 표시를 내린다', () => {
+  it('같은 화면 안의 이동(로그인 창 열고 닫기)은 그대로 두고, 다른 화면으로 가면 내린다', () => {
+    useAuthStore.getState().expireSession(ROUTES_PATHS.POST.SUBMIT);
+
+    useAuthStore.getState().leaveSignedOutInPlace(ROUTES_PATHS.POST.SUBMIT);
+    expect(useAuthStore.getState().signedOutInPlace).not.toBeNull();
+
+    useAuthStore.getState().leaveSignedOutInPlace(ROUTES_PATHS.POST.ROOT);
+    expect(useAuthStore.getState().signedOutInPlace).toBeNull();
+  });
+
+  it('다시 로그인하면(setAuth) 내린다', () => {
+    useAuthStore.getState().clearLocalAuthInPlace(ROUTES_PATHS.POST.SUBMIT);
+
+    useAuthStore.getState().setAuth('token-b');
+
+    expect(useAuthStore.getState().signedOutInPlace).toBeNull();
+  });
+});
+
+describe('AuthUtil.leaveSignedOutInPlace — 로그인 없이 그 화면을 떠나면 남겨 둔 것을 정리한다', () => {
+  beforeEach(() => {
+    queryClient.clear();
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    AuthUtil.resetLogoutGuard();
+  });
+
+  it('보호 경로에 둔 화면을 떠나면 화면을 남기려고 두었던 캐시(이전 회원의 계정 등)를 지운다', () => {
+    useAuthStore.getState().expireSession(ROUTES_PATHS.POST.SUBMIT);
+    queryClient.setQueryData(['probe'], 'previous-member');
+
+    AuthUtil.leaveSignedOutInPlace(ROUTES_PATHS.POST.ROOT);
+
+    expect(useAuthStore.getState().signedOutInPlace).toBeNull();
+    expect(queryClient.getQueryData(['probe'])).toBeUndefined();
+  });
+
+  it('같은 화면 안의 이동(로그인 창 열고 닫기)은 그대로 두고 캐시도 지우지 않는다', () => {
+    useAuthStore.getState().expireSession(ROUTES_PATHS.POST.SUBMIT);
+    queryClient.setQueryData(['probe'], 'kept');
+
+    AuthUtil.leaveSignedOutInPlace(ROUTES_PATHS.POST.SUBMIT);
+
+    expect(useAuthStore.getState().signedOutInPlace).not.toBeNull();
+    expect(queryClient.getQueryData(['probe'])).toBe('kept');
+  });
+
+  it('공개 경로는 로그인이 풀릴 때 이미 다시 불러왔으니 표시만 내린다', () => {
+    useAuthStore.getState().clearLocalAuthInPlace('/post/post-1');
+    queryClient.setQueryData(['probe'], 'guest-data');
+
+    AuthUtil.leaveSignedOutInPlace(ROUTES_PATHS.POST.ROOT);
+
+    expect(useAuthStore.getState().signedOutInPlace).toBeNull();
+    expect(queryClient.getQueryData(['probe'])).toBe('guest-data');
+  });
+});
+
+describe('AuthUtil.applySessionMismatch — 다른 계정으로 바뀐 공유 쿠키', () => {
+  const DIRTY_KEY = 'comment-create:post-1';
+
+  beforeEach(() => {
+    queryClient.clear();
+    vi.clearAllMocks();
+    useAuthStore.getState().setAuth('token-a');
+  });
+
+  afterEach(() => {
+    cleanup();
+    AuthUtil.resetLogoutGuard();
+    clearUnsavedChanges(DIRTY_KEY);
+    window.history.replaceState(null, '', '/');
+  });
+
+  it('공개 화면에서 쓰는 중이었으면 이전 계정의 글을 버리고 피드로 간다', () => {
+    window.history.replaceState(null, '', '/post/post-1');
+    useUnsavedChangesStore.getState().markDirty(DIRTY_KEY);
+
+    AuthUtil.applySessionMismatch();
+
+    expect(useUnsavedChangesStore.getState().dirtyKeys.size).toBe(0);
+    expect(NavigationService.navigate).toHaveBeenCalledTimes(1);
+    expect(NavigationService.navigate).toHaveBeenCalledWith(ROUTES_PATHS.POST.ROOT, {
+      replace: true,
+    });
+  });
+
+  it('공개 화면에서 쓰는 중이 아니면 그 자리에 둔다', () => {
+    window.history.replaceState(null, '', '/post/post-1');
+
+    AuthUtil.applySessionMismatch();
+
+    expect(NavigationService.navigate).not.toHaveBeenCalled();
   });
 });

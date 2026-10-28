@@ -2,7 +2,7 @@
 
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
-> 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지, 그리고 로그인한 사람도 글을 못 쓸 때가 있는 이유를 설명할 수 있게 됩니다. 비밀번호를 새로 만드는 폼이 입력 중에 언제 무엇을 보여주는지(§8-G)도 여기서 다룹니다.
+> 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지, 그리고 로그인한 사람도 글을 못 쓸 때가 있는 이유를 설명할 수 있게 됩니다. 비밀번호를 새로 만드는 폼이 입력 중에 언제 무엇을 보여주는지(§8-G), 로그인이 만료되거나 다른 탭에서 로그아웃해도 쓰던 화면에 남는 방식(§8-I)도 여기서 다룹니다.
 > **마지막 검토**: 2026-10-28
 
 ---
@@ -12,7 +12,7 @@
 이 앱의 인증·인가에는 성격이 다른 **네 개의 독립된 문지기**가 있습니다.
 
 - **문지기 A (`ProtectedRoute`)**: 건물 로비에서 "출입증 있어요?"만 확인하는 안내데스크입니다. 진짜 보안은 안 하고, 있으면 통과시키고 없으면 "1층 로비(공개 피드)로 가서 출입증부터 받으세요"라고 안내만 합니다. 안내데스크를 그냥 지나쳐도 각 사무실 문(BE API)은 따로 잠겨 있습니다.
-- **문지기 B (`client.ts`의 401 인터셉터)**: 각 사무실 문에 달린 진짜 자물쇠입니다. 출입증(액세스 토큰)이 만료됐으면 그 자리에서 조용히 새 출입증을 재발급받아(refresh) 문을 열어줍니다. 사용자는 문이 잠깐 안 열렸다는 것조차 눈치채지 못합니다. 재발급도 실패하면 그제서야 "퇴실 처리"(로그아웃)를 합니다.
+- **문지기 B (`client.ts`의 401 인터셉터)**: 각 사무실 문에 달린 진짜 자물쇠입니다. 출입증(액세스 토큰)이 만료됐으면 그 자리에서 조용히 새 출입증을 재발급받아(refresh) 문을 열어줍니다. 사용자는 문이 잠깐 안 열렸다는 것조차 눈치채지 못합니다. 재발급 창구가 "출입증 기한이 끝났다"(refresh 401)고 답하면 그제서야 출입증을 회수하지만, 쓰던 서류를 든 사람을 건물 밖으로 내보내지는 않습니다 — 그 자리에서 접수처(로그인 창)를 열어 주고, 다시 받으면 하던 일을 이어서 하게 합니다(§8-I). 창구가 잠깐 닫혀 대답이 없을 때(5xx·오프라인)는 출입증을 회수하지 않습니다.
 - **문지기 C (`useAuthGuard`/`useProtectedNavigate`)**: 출입증이 아예 없는 방문객이 사무실 문을 두드리기 **전에** "먼저 출입증부터 받고 오세요"라며 접수처(로그인 모달)로 안내하는 안내원입니다. 문을 두드려서 거절당하는 민망함(에러 토스트, 페이지 이탈) 자체를 막아줍니다.
 - **문지기 D (이메일 인증 게이트, `useCreatePost`/`useCreateComment`)**: 출입증은 있지만(로그인은 했지만) 특정 서류 접수창구(글쓰기·댓글쓰기, 글 작성·수정 화면의 링크 미리보기 포함)에는 신원이 한 번 더 확인된 사람만 받아주는 창구 직원입니다. 로비 출입(로그인)과 구경(읽기)은 막지 않고, 제출(쓰기)만 막습니다.
 
@@ -37,7 +37,8 @@ flowchart TD
     Nav --> Protected{"보호 라우트<br/>진입인가?"}
     Protected -->|예, isAuthResolved 대기| Gate["ProtectedRoute<br/>(문지기 A, 화면 분기용)"]
     Gate -->|"토큰 있음"| Children["children 렌더"]
-    Gate -->|"토큰 없음"| RedirectFeed["/post로 replace<br/>+ 로그인 모달"]
+    Gate -->|"토큰 없음, 그 화면에 둔 상태도 아님"| RedirectFeed["/post로 replace<br/>+ 로그인 모달"]
+    Gate -->|"토큰 없음, 그 화면에 둔 상태<br/>(signedOutInPlace)"| Children
 
     Children --> API1
     API1 --> Check401{"응답이<br/>401인가?"}
@@ -45,8 +46,10 @@ flowchart TD
     Check401 -->|"TOKEN_EXPIRED"| Interceptor["client.ts 인터셉터<br/>(문지기 B, 실제 보안)"]
     Interceptor --> Refresh2["POST /auth/refresh<br/>(동시 요청은 1번만)"]
     Refresh2 -->|성공| Retry["원 요청 자동 재시도<br/>사용자는 아무것도 못 느낌"]
-    Refresh2 -->|실패| ClearB["AuthUtil.clearAll()<br/>/auth/login으로 replace"]
-    Check401 -->|"NOT_LOGGED_IN / INVALID_TOKEN"| ClearB
+    Refresh2 -->|"401 거절"| InPlace["AuthUtil.applySessionExpired()<br/>그 화면에 둔 채 로그인 창<br/>(보기만 하던 공개 화면은 안내 토스트)<br/>§8-I"]
+    Refresh2 -->|"5xx·오프라인"| KeepLogin["로그인 유지<br/>원래 에러만 던짐"]
+    Check401 -->|"INVALID_TOKEN<br/>(토큰을 보냈음)"| InPlace
+    Check401 -->|"NOT_LOGGED_IN<br/>(토큰 없이 보냄)"| ClearB["AuthUtil.clearAll()<br/>/auth/login으로 replace"]
 
     Anon["비로그인 사용자가<br/>좋아요·북마크·댓글 클릭"] --> GuardC["useAuthGuard<br/>(문지기 C, 사전 유도)"]
     GuardC -->|"요청 자체를 안 보냄"| Modal["로그인 모달 오픈<br/>(제자리 유지)"]
@@ -88,15 +91,15 @@ flowchart TD
 
 ## 5. 구조 — 네 개의 게이트
 
-|               | 게이트 A: `ProtectedRoute`                             | 게이트 B: `client.ts` 인터셉터                                                                               | 게이트 C: `useAuthGuard`/`useProtectedNavigate`                      | 게이트 D: 이메일 인증(쓰기 인가)                                                                                         |
-| ------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| 위치          | `src/app/routes/ProtectedRoute.tsx`                    | `src/shared/api/client.ts`의 `handleTokenExpired` 메서드 + `request()`의 401 분기(`response.status === 401`) | `src/entities/auth/hooks/useAuthGuard.ts`, `useProtectedNavigate.ts` | `useCreatePost.ts`의 `onSubmit`, `useCreateComment.ts`의 `onSubmit`(`guard` 콜백 안) + BE `PostService`/`CommentService` |
-| 판단 근거     | 클라이언트 로컬 상태(`useAuthStore.isAuthenticated`)만 | BE의 실제 401 응답 코드                                                                                      | 클라이언트 로컬 상태만                                               | `account.emailVerified`(React Query 계정 캐시, `useAuthStore`와 별개)                                                    |
-| BE와 통신     | 안 함(사전 검증 로직 자체가 없음, §8-A)                | 함(`POST /auth/refresh`, 원 요청 재시도)                                                                     | 안 함(애초에 요청을 안 보냄)                                         | 제출 시 함(BE가 403 `EMAIL_NOT_VERIFIED`로 최종 판정, 방어 계층 중복)                                                    |
-| 발동 시점     | 보호 라우트가 **렌더**될 때                            | 실제 API 요청이 **401을 받은 뒤**                                                                            | 사용자가 **클릭**했을 때, 요청 전                                    | 글쓰기·댓글쓰기 **제출** 시도 시                                                                                         |
-| 책임          | 화면을 보여줄지 말지 분기, 스피너, 로그인 모달 유도    | 요청을 인증시켜 성공시키거나 세션을 끊음                                                                     | 실패할 게 뻔한 요청을 사전에 막고 로그인 유도                        | 미인증 사용자의 쓰기 제출을 막고 안내                                                                                    |
-| 실패 시 결과  | `/post`로 replace 이동(+ 조건부 모달)                  | `AuthUtil.clearAll()` → `/auth/login` replace                                                                | 로그인 모달(제자리 유지, 페이지 이동 없음)                           | 안내(댓글은 토스트, 글은 버튼 위 `FormAlert` 박스), 제출 차단(버튼은 `disabled` 아님 — 아래 참고)                        |
-| **보안 효과** | **없음.** 우회해도 API가 401을 낸다                    | **실질적 보안 경계**                                                                                         | 없음(UX 편의)                                                        | **부분적.** FE 체크는 UX용이고, 실제 방어는 BE의 403 판정                                                                |
+|               | 게이트 A: `ProtectedRoute`                                                                                            | 게이트 B: `client.ts` 인터셉터                                                                                                                                                                                   | 게이트 C: `useAuthGuard`/`useProtectedNavigate`                      | 게이트 D: 이메일 인증(쓰기 인가)                                                                                         |
+| ------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 위치          | `src/app/routes/ProtectedRoute.tsx`                                                                                   | `src/shared/api/client.ts`의 `handleTokenExpired` 메서드 + `request()`의 401 분기(`response.status === 401`)                                                                                                     | `src/entities/auth/hooks/useAuthGuard.ts`, `useProtectedNavigate.ts` | `useCreatePost.ts`의 `onSubmit`, `useCreateComment.ts`의 `onSubmit`(`guard` 콜백 안) + BE `PostService`/`CommentService` |
+| 판단 근거     | 클라이언트 로컬 상태(`useAuthStore.isAuthenticated`)만                                                                | BE의 실제 401 응답 코드                                                                                                                                                                                          | 클라이언트 로컬 상태만                                               | `account.emailVerified`(React Query 계정 캐시, `useAuthStore`와 별개)                                                    |
+| BE와 통신     | 안 함(사전 검증 로직 자체가 없음, §8-A)                                                                               | 함(`POST /auth/refresh`, 원 요청 재시도)                                                                                                                                                                         | 안 함(애초에 요청을 안 보냄)                                         | 제출 시 함(BE가 403 `EMAIL_NOT_VERIFIED`로 최종 판정, 방어 계층 중복)                                                    |
+| 발동 시점     | 보호 라우트가 **렌더**될 때                                                                                           | 실제 API 요청이 **401을 받은 뒤**                                                                                                                                                                                | 사용자가 **클릭**했을 때, 요청 전                                    | 글쓰기·댓글쓰기 **제출** 시도 시                                                                                         |
+| 책임          | 화면을 보여줄지 말지 분기, 스피너, 로그인 모달 유도                                                                   | 요청을 인증시켜 성공시키거나 세션을 끊음                                                                                                                                                                         | 실패할 게 뻔한 요청을 사전에 막고 로그인 유도                        | 미인증 사용자의 쓰기 제출을 막고 안내                                                                                    |
+| 실패 시 결과  | `/post`로 replace 이동(+ 조건부 모달). 단, 로그인이 풀린 채 그 화면에 둔 상태(`signedOutInPlace`)면 화면을 유지(§8-I) | refresh 401·토큰을 실은 `INVALID_TOKEN`은 `AuthUtil.applySessionExpired()` — 화면을 떠나지 않고 로그인 창 또는 안내 토스트(§8-I). 토큰 없이 보낸 `NOT_LOGGED_IN`만 `AuthUtil.clearAll()` → `/auth/login` replace | 로그인 모달(제자리 유지, 페이지 이동 없음)                           | 안내(댓글은 토스트, 글은 버튼 위 `FormAlert` 박스), 제출 차단(버튼은 `disabled` 아님 — 아래 참고)                        |
+| **보안 효과** | **없음.** 우회해도 API가 401을 낸다                                                                                   | **실질적 보안 경계**                                                                                                                                                                                             | 없음(UX 편의)                                                        | **부분적.** FE 체크는 UX용이고, 실제 방어는 BE의 403 판정                                                                |
 
 **왜 나뉘어 있나**: 게이트 A는 성능 결정([`docs/DECISIONS.md`](DECISIONS.md) 2026-07-25 항목)의 짝입니다 — `AuthProvider`가 라우터 렌더를 막지 않도록 바꾼 대가로, 복원이 끝나기 전 첫 페인트에서 로그인 사용자가 보호 페이지 새로고침 시 피드로 튕기는 걸 막는 화면 분기 장치로 도입됐습니다. 게이트 B는 "리프레시 토큰은 httpOnly라 JS가 존재·유효성을 전혀 모른다"는 사실에서 나옵니다 — 실제로 요청을 보내 401을 받아봐야 압니다. 게이트 C는 A·B 둘 다 못 막는 상황(비로그인 사용자가 공개 피드에 머문 채 좋아요를 누르는 것)을 막습니다: A는 페이지 단위라 이 상황에 개입 못 하고, B는 요청을 실제로 보내야 발동하는데 그러면 401 → `clearAll()` → 페이지 이탈로 사용자 문맥이 깨집니다. 게이트 D의 1차안은 "이메일 미인증이면 로그인 자체를 막는다"였지만, [GitHub 사례 조사](https://github.com/kamp-us/phoenix/issues/7485)에서 _"쓰기 권한(게시글·댓글)은 인증된 이메일에 게이팅되고, 마찰은 도착이 아니라 첫 '쓰기' 시점에 발생한다"_(번역)는 걸 확인하고 뒤집혔습니다 — 로그인·읽기까지 막으면 가입 직후 이탈이 너무 커진다는 판단입니다. 확정 경위는 `docs/plans/2026-09-28-auth-hardening.md`의 "확정된 결정들" 표를 참고하세요.
 
@@ -120,19 +123,20 @@ RootLayout
 
 ## 6. 상태 모델
 
-| 저장소                            | 키/필드                       | 값                                                              | 수명                                                       | JS 접근  |
-| --------------------------------- | ----------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------- | -------- |
-| zustand `useAuthStore` (메모리만) | `accessToken`                 | 불투명 세션 토큰 또는 `null`(BE 발급, payload 없음 — JWT 아님)  | 탭 수명(새로고침 시 소멸)                                  | 가능     |
-| 〃                                | `isAuthenticated`             | `!!accessToken`과 항상 동치                                     | 〃                                                         | 가능     |
-| 〃                                | `isAuthResolved`              | 복원 시도가 끝났는지                                            | 〃                                                         | 가능     |
-| localStorage                      | `linksphere:auth:has-session` | **boolean 하나뿐**                                              | 영구(자가 복구, 아래 참고)                                 | 가능     |
-| localStorage                      | `linksphere:auth:saved-email` | 로그인 폼 "이메일 저장" 값                                      | 영구                                                       | 가능     |
-| localStorage                      | `linksphere:auth:last-avatar` | 아바타 URL(선반입용)                                            | 영구(로그아웃 시 제거)                                     | 가능     |
-| localStorage                      | `linksphere:auth:epoch`       | 인증 세대 `in:<UUID>`(로그인)·`out:<UUID>`(로그아웃·탈퇴)       | 영구(명시적 로그인·로그아웃마다 새 값, §8-H)               | 가능     |
-| 모듈 변수(`auth-epoch.util.ts`)   | `knownEpoch`                  | 이 페이지가 마지막으로 맞춘 세대                                | 페이지 수명(bfcache 복원 때는 멈추기 전 값 그대로)         | 가능     |
-| 〃                                | `tokenEpoch`                  | 이 탭이 지금 들고 있는 토큰이 속한 세대(토큰을 넣고 뺄 때 맞춤) | 〃                                                         | 가능     |
-| 〃                                | `inTabEpoch`                  | 이 탭에서 명시적으로 로그인·로그아웃한 횟수(저장 실패해도 증가) | 〃                                                         | 가능     |
-| httpOnly 쿠키(BE 설정)            | `__Host-refreshToken`         | 리프레시 토큰(불투명)                                           | 최대 7일(BE `MemberSessionService.REFRESH_TOKEN_VALIDITY`) | **불가** |
+| 저장소                            | 키/필드                       | 값                                                                                                                       | 수명                                                       | JS 접근  |
+| --------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- | -------- |
+| zustand `useAuthStore` (메모리만) | `accessToken`                 | 불투명 세션 토큰 또는 `null`(BE 발급, payload 없음 — JWT 아님)                                                           | 탭 수명(새로고침 시 소멸)                                  | 가능     |
+| 〃                                | `isAuthenticated`             | `!!accessToken`과 항상 동치                                                                                              | 〃                                                         | 가능     |
+| 〃                                | `isAuthResolved`              | 복원 시도가 끝났는지                                                                                                     | 〃                                                         | 가능     |
+| 〃                                | `signedOutInPlace`            | 로그인이 풀렸지만 그 화면에 둔 이유와 화면 — `{ reason: 'expired' \| 'signedOutElsewhere'; pathname }` 또는 `null`(§8-I) | 〃(그 화면을 떠나거나 로그인·로그아웃하면 `null`)          | 가능     |
+| localStorage                      | `linksphere:auth:has-session` | **boolean 하나뿐**                                                                                                       | 영구(자가 복구, 아래 참고)                                 | 가능     |
+| localStorage                      | `linksphere:auth:saved-email` | 로그인 폼 "이메일 저장" 값                                                                                               | 영구                                                       | 가능     |
+| localStorage                      | `linksphere:auth:last-avatar` | 아바타 URL(선반입용)                                                                                                     | 영구(로그아웃 시 제거)                                     | 가능     |
+| localStorage                      | `linksphere:auth:epoch`       | 인증 세대 `in:<UUID>`(로그인)·`out:<UUID>`(로그아웃·탈퇴)                                                                | 영구(명시적 로그인·로그아웃마다 새 값, §8-H)               | 가능     |
+| 모듈 변수(`auth-epoch.util.ts`)   | `knownEpoch`                  | 이 페이지가 마지막으로 맞춘 세대                                                                                         | 페이지 수명(bfcache 복원 때는 멈추기 전 값 그대로)         | 가능     |
+| 〃                                | `tokenEpoch`                  | 이 탭이 지금 들고 있는 토큰이 속한 세대(토큰을 넣고 뺄 때 맞춤)                                                          | 〃                                                         | 가능     |
+| 〃                                | `inTabEpoch`                  | 이 탭에서 명시적으로 로그인·로그아웃한 횟수(저장 실패해도 증가)                                                          | 〃                                                         | 가능     |
+| httpOnly 쿠키(BE 설정)            | `__Host-refreshToken`         | 리프레시 토큰(불투명)                                                                                                    | 최대 7일(BE `MemberSessionService.REFRESH_TOKEN_VALIDITY`) | **불가** |
 
 로그인 폼 이메일 입력의 초기값은 위 `saved-email`뿐 아니라 `location.state.email`의 영향도
 받습니다 — 회원가입 화면에서 이메일이 이미 가입된 것으로 확인됐을 때(또는 가입 성공 직후)
@@ -145,7 +149,7 @@ RootLayout
 
 **비밀번호 변경 시 세션 회전**: `useChangePasswordMutation`(`auth.queries.ts`)의 `onSuccess`가 BE가 새로 발급한 세션으로 `setAuth(data.accessToken)`을 호출합니다 — BE가 비밀번호 변경 시 이 기기를 포함한 세션 회전 계열(familyId)을 새로 만들고 다른 기기의 세션은 전부 폐기하기 때문입니다. 로그인·refresh와 마찬가지로 `useAuthStore`의 `accessToken`을 갱신하는 세 번째 트리거입니다.
 
-`useAuthStore`(`src/shared/store/auth.store.ts:48-80`)는 `devtools` 미들웨어만 쓰고 **`persist`가 없습니다 — 의도적입니다.** `accessToken`은 항상 `isAuthenticated`와 함께 `setAuth`/`setAccessToken`(하위 호환)/`clearAuth`/`clearLocalAuth`에서만 갱신되므로(`auth.store.ts:56-65`, `:67-76`) 두 값은 절대 어긋나지 않습니다. `clearLocalAuth`는 `clearAuth`와 달리 localStorage를 건드리지 않는 메모리 전용 정리로, 다른 탭에서 일어난 변화를 이 탭에 반영할 때만 씁니다(§8-H). **이 등가성이 §8-A의 동작을 결정짓는 핵심 사실입니다.**
+`useAuthStore`(`src/shared/store/auth.store.ts:68-129`)는 `devtools` 미들웨어만 쓰고 **`persist`가 없습니다 — 의도적입니다.** `accessToken`은 항상 `isAuthenticated`와 함께 `setAuth`/`setAccessToken`(하위 호환)/`clearAuth`/`clearLocalAuth`/`expireSession`/`clearLocalAuthInPlace`에서만 갱신되므로(`auth.store.ts:77-116`) 두 값은 절대 어긋나지 않습니다. 뒤의 둘은 각각 `clearAuth`·`clearLocalAuth`와 같이 정리하면서 **같은 `set()` 한 번에서** `signedOutInPlace`를 세웁니다 — 두 값이 한 번에 바뀌므로, 토큰은 없는데 표시도 아직 없는 상태를 구독자(게이트 A의 렌더 가드 등)가 보는 순간이 없습니다(§8-I). `clearLocalAuth`는 `clearAuth`와 달리 localStorage를 건드리지 않는 메모리 전용 정리로, 다른 탭에서 일어난 변화를 이 탭에 반영할 때만 씁니다(§8-H). **이 등가성이 §8-A의 동작을 결정짓는 핵심 사실입니다.**
 
 `linksphere:auth:has-session` 플래그(`auth.store.ts:17-20`)는 "세션이 있을 가능성"에 대한 힌트일 뿐, 진짜 인증 상태가 아닙니다:
 
@@ -181,12 +185,17 @@ if (!isAuthResolved) {
   return <SpinnerOverlay className="h-screen" />;
 }
 
-if (!isAuthenticated) {
+if (!isAuthenticated && !isSignedOutInPlace) {
   return <Navigate to={ROUTES_PATHS.POST.ROOT} replace ... />;
 }
 
 return <>{children}</>;
 ```
+
+`isSignedOutInPlace`는 로그인이 풀렸지만 쓰던 화면에 그대로 두는 중인지입니다 — `useAuthStore`의 `signedOutInPlace`가
+세운 화면(`pathname`)을 붙잡아 두고, 지금 그리는 주소와 같을 때만 참입니다.
+이 값도 클라이언트 로컬 상태라 위 결론(게이트 A는 보안 장치가 아님)은 그대로입니다 — 그 화면이 다시 불러오는 요청은
+게이트 B가 막습니다(§8-I).
 
 **결론**: 이 앱에는 "만료 토큰의 사전(proactive) 재검증"이 없습니다. 만료 토큰 처리는
 전부 게이트 B가 담당합니다. 2026-09-29 이전에는 accessToken이 존재할 때마다
@@ -210,7 +219,11 @@ client.ts의 request() 메서드 — authEpoch = 이 탭 토큰의 세대(저장
     else if (isSessionInvalidCode(code))            → NOT_LOGGED_IN / INVALID_TOKEN
       if (endpoint === /auth/refresh) throw         → refresh 자신은 clearAll 없이 throw(방어용, 아래 설명)
       if (세대가 바뀜) throw SessionChangedError     → 지금 세션과 무관한 401, clearAll 안 함
-      else if (!AuthUtil.isLoggingOut()) AuthUtil.clearAll()
+      if (signedOutInPlace) throw SessionExpiredError → 이미 그 화면에 둔 채 로그인을 기다리는 중(§8-I), 조용히 끝냄
+      if (토큰을 실어 보냄 && code === INVALID_TOKEN) → 로그인 만료
+        if (지금 토큰 === sentToken) AuthUtil.applySessionExpired()   // §8-I
+        throw SessionExpiredError
+      if (!AuthUtil.isLoggingOut()) AuthUtil.clearAll()   → 토큰 없이 보낸 NOT_LOGGED_IN 등
 
 client.ts의 handleTokenExpired() 메서드
   if (세대가 바뀜) throw SessionChangedError        → refresh·재시도·clearAll 없음(아래 설명)
@@ -228,14 +241,15 @@ client.ts의 handleTokenExpired() 메서드
     return this.request(endpoint, options, retryCount + 1)   // 원 요청 재시도
     catch → 세대가 바뀌었으면 리더·대기 요청 모두 SessionChangedError
             409 SESSION_MISMATCH면 이 탭만 로그아웃(1번) + 리더·대기 요청 모두 SessionChangedError
-            아니면 expireSession()
+            refresh가 401로 거절된 게 아니면(5xx·429·오프라인) 로그인 유지, 대기 요청을 같은 에러로 취소하고 그 에러를 던짐
+            아니면(401 거절) expireSession()
   else                                             → 팔로워 경로
     new Promise(subscribeTokenRefresh({ 재시도, 취소 }))   // 취소는 위 catch의 세대 변경·만료 때
 
 client.ts의 expireSession(sentToken) — 만료로 끝내기
   만료로 정리한 토큰 = sentToken                   → 위 "늦게 도착한 401" 분기가 비교
   대기 요청 모두 SessionExpiredError로 취소
-  clearAll()                                       → 토큰·캐시 정리 + /auth/login 이동(지금 동작)
+  if (지금 토큰 === sentToken) AuthUtil.applySessionExpired()   → 화면을 떠나지 않고 그 자리에서 다시 로그인(§8-I)
   throw SessionExpiredError                        → 리더 자신도 같은 에러로 끝남
 ```
 
@@ -247,10 +261,13 @@ client.ts의 expireSession(sentToken) — 만료로 끝내기
   `ApiError`가 아니라 로그아웃 유예 창(`LogoutGraceUtil`)의 무음 처리를 타지 않으므로 이 분기가 따로 필요합니다
   (`session-expired-toast.test.ts`가 고정).
 - 직접 토스트를 띄우는 곳(`meta.manualErrorHandling`): 토스트를 띄우기 전에 `ErrorUtil.isSessionExpired(error)`면
-  return합니다. 롤백은 경우마다 다릅니다 — 계정 수정은 롤백도 건너뜁니다(만료 정리가 비운 계정 캐시를 이전 계정 값으로
-  되살리지 않게). 폴더 고정은 롤백한 뒤에 확인합니다(화면에 남은 목록을 서버 상태로 되돌리는 일이라서).
-- 폼 4곳(글 등록·수정, 댓글 등록·수정): 실패 안내 없이 끝나고 입력은 그대로 남습니다(댓글 등록은 비웠던 입력을
-  되돌립니다).
+  return합니다. 롤백은 경우마다 다릅니다 — 계정 수정은 계정 캐시가 남아 있으면 되돌리고(그 화면에 둔 보호 경로 만료는
+  캐시를 남깁니다 — 저장하지 못한 닉네임·이미지가 저장된 것처럼 남지 않게), 만료 정리가 캐시를 비웠으면 건너뜁니다(비운
+  캐시를 이전 계정 값으로 되살리지 않게, `account.queries.ts`의 `useUpdateAccountMutation` `onError`). 폴더 고정은 롤백한 뒤에 확인합니다(화면에 남은 목록을 서버 상태로 되돌리는 일이라서).
+- 폼 4곳(글 등록·수정, 댓글 등록·수정): 입력은 그대로 남기고(댓글 등록은 비웠던 입력을 되돌립니다) 그냥 끝냅니다. 폼 안
+  `FormAlert`의 `TEXTS.messages.error.signedOutBeforeSave`("로그인이 풀렸어요. 로그인한 뒤 저장해 주세요.")는 이 에러가 아니라 상태를 보고
+  `useSignedOutNotice`가 띄웁니다 — 로그인이 풀린 채 그 화면에 남아 있고(`signedOutInPlace`) 쓴 내용이 있는 동안 보이고,
+  다시 로그인하면 사라집니다(§8-I). 토스트가 아니라 폼 안 안내라 전역 단일 소유 원칙과 겹치지 않습니다.
 - 재시도: `retry-policy.ts`가 재시도하지 않습니다.
 - 줄 선 mutation: 누를 때는 토큰이 있었는데 차례가 왔을 때 없으면 보내지 않고 `SessionExpiredError`로 끝냅니다
   (`mutation-auth-epoch.ts`). 만료 정리는 인증 세대를 바꾸지 않아(`auth-epoch.util.ts`) 세대 비교만으로는 모릅니다.
@@ -269,7 +286,8 @@ refresh 자신이 실패하면 BE는 `NOT_LOGGED_IN`/`INVALID_TOKEN`이 아니�
 `GlobalExceptionHandler.kt`, `/auth/refresh`는 `SecurityConfig.kt`의 `permitAll` 목록). 이 코드는 위 401 분기
 어디에도 걸리지 않고 일반 `ApiError`로 던져지므로, 의사코드의 `/auth/refresh` 분기는 방어용입니다. 앱 부팅 시
 자동 refresh가 조용히 실패하는 것은 `restoreAuth`의 catch가 `clearAuth()`만 하기 때문이고(§8-C), 갱신 중
-refresh가 실패하면 위 리더의 catch가 `clearAll()`로 처리합니다.
+refresh가 401로 거절되면 위 리더의 catch가 `expireSession()`으로 처리합니다(5xx·오프라인은 로그인을 유지 —
+`client.test.ts` Case 2-3).
 
 #### 인증 세대가 바뀐 뒤 돌아온 401
 
@@ -324,12 +342,12 @@ flowchart TD
   C1 -->|"예"| SC["SessionChangedError<br/>refresh·재시도·clearAll 없음"]
   C1 -->|"아니오"| OLD["기존 갱신 경로"]
   C5 -->|"예"| SC
-  C5 -->|"아니오"| CA["clearAll(유예 중이면 생략)"]
+  C5 -->|"아니오"| CA["그 화면에 둔 상태면 SessionExpiredError<br/>토큰을 실은 INVALID_TOKEN이면 applySessionExpired<br/>그 밖은 clearAll(유예 중이면 생략)"]
   OLD --> L{"refresh 응답 뒤(성공·실패)<br/>세대가 바뀜?"}
   L -->|"예"| ALL["리더·대기 요청 모두 SessionChangedError"]
   L -->|"아니오"| M{"409 SESSION_MISMATCH?<br/>(쿠키 주인이 다른 회원)"}
-  M -->|"예"| MM["이 탭만 로그아웃·안내 1번<br/>리더·대기 요청 모두 SessionChangedError<br/>clearAll 없음"]
-  M -->|"아니오"| OK["기존: setAuth → 재시도, 실패면 clearAll"]
+  M -->|"예"| MM["이 탭만 로그아웃·안내 1번<br/>보호 화면, 또는 공개 화면에서 쓰는 중이면 /post<br/>리더·대기 요청 모두 SessionChangedError<br/>clearAll 없음"]
+  M -->|"아니오"| OK["기존: setAuth → 재시도<br/>401 거절이면 expireSession(그 화면에 둠, §8-I)<br/>5xx·오프라인이면 로그인 유지"]
 ```
 
 `SessionChangedError`는 쿼리 재시도 대상이 아니고(`retry-policy.ts` — 새 인증으로 다시 부르는 건 §8-H
@@ -362,7 +380,12 @@ flowchart TD
   남겨 새로고침하면 쿠키 주인 계정으로 복원) _"다른 탭에서 다른 계정으로 로그인해서 이 탭은 로그아웃했어요.
   새로고침하면 그 계정으로 이어서 쓸 수 있어요."_ 를 1번 띄운 뒤, 리더·대기 요청을 모두 `SessionChangedError`로
   끝냅니다. `clearAll`은 하지 않습니다 — 공유 세션 플래그를 지우면 쿠키 주인 계정의 탭이 새로고침 때 복원되지
-  않습니다. 늦게 도착한 같은 토큰의 401은 이미 로그아웃한 뒤라 다시 로그아웃·안내하지 않습니다.
+  않습니다. 늦게 도착한 같은 토큰의 401은 이미 로그아웃한 뒤라 다시 로그아웃·안내하지 않습니다. 공개 경로에서
+  쓰는 중이었으면 이탈 확인 등록을 모두 비우고(`clearAllUnsavedChanges`) 확인창 없이 `/post`로 갑니다 — 쓰던 글은
+  이전 계정의 것이라 그 화면에 두면 다른 계정으로 로그인한 화면에 남습니다(쓰는 중인지는 정리 전에 읽습니다. 보호
+  경로는 `applySignOutFromElsewhere`가 이미 `/post`로 보냈습니다, §8-I). 이 로그아웃과 글 버리기는
+  `AuthUtil.signOutForOtherAccount`가 맡고, 다른 탭의 로그인을 받아들이려다 같은 409로 거절될 때(§8-H
+  `useAuthEpochSync`)도 같은 메서드를 씁니다.
 - **그 자리에서 새 계정으로 바꾸지 않는 이유**: 세대가 그대로라 위 세대 확인이 아무것도 막지 못합니다. 옛 토큰으로
   나간 요청의 늦은 401이 위 의사코드의 "늦게 도착한 401" 분기(지금 토큰 ≠ `sentToken`)로 refresh 없이 새 계정
   토큰으로 재시도됩니다.
@@ -379,14 +402,15 @@ flowchart TD
   꺼집니다. 전역 에러 핸들러로는 옮길 수 없습니다. 이 함수가 throw보다 먼저 캐시를 정리하므로(보호 경로면
   `removeQueries`, 그 밖은 `cancelQueries`) 조회에서 시작된 경우 query-core가 취소로 처리하고 전역 `onError`를 부르지
   않습니다(5.90 `query.ts`의 `fetch` catch). mutation은 핸들러까지 오지만 `manualErrorHandling`(좋아요·북마크)이나
-  로그아웃 유예로 조용히 끝납니다.
+  로그아웃 유예로 조용히 끝납니다. 로그인 만료 안내(`applySessionExpired`의 info 토스트, id `session-expired`)도 같은
+  이유로 같은 예외에 들어갑니다(§8-I).
 - **유예 창은 경로와 상관없이 엽니다**: `applySessionMismatch`는 `clearAll`과 같은 2초 유예 창(`markClearedAt`, §8-E)을
   보호 경로 여부와 상관없이 엽니다. 보호 경로가 아니면 정리가 `clearQueries`를 타는데, 그 유예는 재조회가 끝나면
   풀립니다. 화면에 활성 쿼리가 없으면 재조회가 몇 틱 만에 끝나, refresh를 기다리던 mutation의 `SessionChangedError`가
   유예가 풀린 뒤 전역 핸들러에 닿아 안내와 함께 _"로그인 상태가 바뀌어서 처리되지 않았어요."_ 에러 토스트가
   떴습니다(문구 뒤 "다시 시도해 주세요." 생략). 2026-10-16 `session-mismatch-toast.test.ts`로 재현한 뒤(§9) 고쳤습니다.
 
-`TOKEN_EXPIRED`는 "재시도하면 회복 가능"(리프레시), `NOT_LOGGED_IN`/`INVALID_TOKEN`은 "회복 불가능"(즉시 로그아웃)이라는 서로 다른 처방을 받습니다. 이 구분은 `error-code.ts:3-5`에서 코드 자체가 나뉘어 있는 것과 일치합니다.
+`TOKEN_EXPIRED`는 "재시도하면 회복 가능"(리프레시), `NOT_LOGGED_IN`/`INVALID_TOKEN`은 "이 토큰으로는 회복 불가능"이라는 서로 다른 처방을 받습니다 — 토큰을 실어 보낸 `INVALID_TOKEN`은 로그인 만료라 그 화면에 둔 채 다시 로그인하게 하고(§8-I), 토큰 없이 보낸 `NOT_LOGGED_IN`은 지금처럼 `clearAll()`로 정리합니다(BE는 토큰이 아예 없을 때만 `NOT_LOGGED_IN`을 주므로, 로그인한 적 없는 사용자에게 "만료" 안내가 뜨지 않게 나눴습니다 — `docs/plans/2026-10-28-session-expiry-draft-preservation.md` 결정 13). 이 구분은 `error-code.ts:3-5`에서 코드 자체가 나뉘어 있는 것과 일치합니다.
 
 `src/shared/lib/react-query/config/error-toast.ts`의 `resolveErrorToast()`(mutation·query 전역 에러 핸들러가 공유하는 판정 함수, `queryClient.ts`가 호출)는 `NOT_LOGGED_IN`·`INVALID_TOKEN`·`ACCESS_DENIED`·`EDGE_BLOCKED`·429(코드가 아니라 상태로 판별, `rateLimited` 안내)·404(query 정책만 — `ErrorToastPolicy.skipNotFound`)는 다루지만 **`TOKEN_EXPIRED`는 다루지 않습니다.** 실수가 아니라 설계입니다 — `client.ts`가 그 코드를 절대 밖으로 흘리지 않기(재시도하거나, 갱신에 실패하면 `SessionExpiredError`, 세대가 바뀌었으면 `SessionChangedError`로 바꿔 던짐) 때문에 다룰 필요가 없습니다.
 
@@ -533,9 +557,15 @@ setAuthResolved(true); // :59 성공/실패/미시도 무관 항상
 | `pendingAction` | navigate하지 **않는** 재개 액션                                   | `useAuthGuard` (opt-in일 때만)                  | 먼저 `close()`로 직접 닫고, 그 닫힘이 반영된 뒤에 실행                       |
 
 ```ts
-// useAuthGuard.ts:25-46 요지 (액션형: 좋아요·북마크·댓글)
+// useAuthGuard.ts:37-55 요지 (액션형: 좋아요·북마크·댓글·글/댓글 저장)
 if (isAuthenticated) {
   action();
+  return;
+}
+if (signedOutInPlaceReason) {
+  // 로그인이 풀린 채 쓰던 화면에 남아 있다(§8-I) - 그 이유의 창으로 연다
+  AuthUtil.openSignInDialogInPlace(signedOutInPlaceReason);
+  setPendingAction(options?.resumeAfterLogin ? action : undefined);
   return;
 }
 setLoginOnSuccess(undefined); // navigate형 채널은 쓰지 않는다
@@ -563,7 +593,7 @@ effect(`:58-74`, #228로 `features/auth/login`에서 이 경로로 이동)가 �
 클로저의 `account`가 재개 시점엔 비어 있어 조용히 무반응이 됩니다. 자세한 근거는
 [`docs/DECISIONS.md`](DECISIONS.md) 2026-09-11 항목 참고.
 
-**사용처**: `useAuthGuard`는 `LikePostButton.tsx`(좋아요, 재개 안 함), `useBookmarkPostButton.ts`(북마크, `resumeAfterLogin: true`), `LikeCommentButton.tsx`(댓글 좋아요, 재개 안 함), `useCreateComment.ts`(댓글 제출, 재개 안 함)에서 씁니다. `useProtectedNavigate`는 사이드바·하단 탭바의 "등록"·"북마크" 항목(`nav-items.ts:34`, `:41`의 `requiresAuth: true`)과 피드 화면의 등록 버튼(`pages/post/index.tsx`)에서 씁니다.
+**사용처**: `useAuthGuard`는 `LikePostButton.tsx`(좋아요, 재개 안 함), `useBookmarkPostButton.ts`(북마크, `resumeAfterLogin: true`), `LikeCommentButton.tsx`(댓글 좋아요, 재개 안 함), `useCreateComment.ts`(댓글·답글 제출, 재개 안 함), `useCreatePost.ts`·`useUpdatePost.ts`·`useUpdateComment.ts`(글 등록·수정, 댓글 수정 제출, 재개 안 함 — 로그인이 풀린 채 그 화면에 남았을 때만 막힌다, §8-I)에서 씁니다. 로그인이 풀린 채 쓰던 화면에 남아 있으면(`auth.store`의 `signedOutInPlace`) 기본 문구 대신 그 이유의 창("로그인이 만료됐어요"·"다른 탭에서 로그아웃했어요")을 같은 주소 위에 엽니다(`AuthUtil.openSignInDialogInPlace`) — 창을 닫은 뒤 어느 폼에서 제출하든, 좋아요를 누르든 같은 창이 다시 뜹니다(2026-10-28). `useProtectedNavigate`는 사이드바·하단 탭바의 "등록"·"북마크" 항목(`nav-items.ts:34`, `:41`의 `requiresAuth: true`)과 피드 화면의 등록 버튼(`pages/post/index.tsx`)에서 씁니다.
 
 **바깥 클릭 닫기**: 로그인 모달은 이메일·비밀번호를 **직접 입력했을 때만** 바깥(오버레이) 클릭으로 닫히지 않습니다 — 닫히면 입력이 사라지기 때문입니다. 저장된 이메일로 미리 채워진 값은 입력으로 보지 않습니다(react-hook-form `dirtyFields` 기준). `useLogin`의 `onInputDirtyChange` 옵션 → `LoginForm` → `useLoginDialog`의 `hasUserInput` → `DialogContent`의 `dismissOnOutsideClick` 순으로 전달됩니다. 첫 단계(`useLogin`의 보고)는 `useLayoutEffect`라 입력이 화면에 보이기 전에 모달까지 반영됩니다 — `useEffect`일 때는 입력 직후의 바깥 클릭이 옛 값으로 모달을 닫았습니다(2026-10-13, [`docs/UNSAVED-CHANGES-GUARD.md`](UNSAVED-CHANGES-GUARD.md) §10). ESC·X·뒤로가기는 입력이 있어도 그대로 닫힙니다. 정책 전체와 근거는 [`docs/DECISIONS.md`](DECISIONS.md) 2026-09-30 "바깥 클릭 닫기 정책" 항목 참고.
 
@@ -572,10 +602,12 @@ effect(`:58-74`, #228로 `features/auth/login`에서 이 경로로 이동)가 �
 **로그아웃은 화면이 곧 다른 곳으로 이동하는지에 따라 캐시 처리 방식이 갈립니다**
 (`auth.queries.ts`의 `useLogoutMutation` 안 `isProtectedPath` 분기):
 
-| 경로                                      | 호출                             | 캐시 처리                                         | 배경 재요청 | 왜                                                                     |
-| ----------------------------------------- | -------------------------------- | ------------------------------------------------- | ----------- | ---------------------------------------------------------------------- |
-| 제자리 로그아웃(비보호 경로)              | `clearAuth()` + `clearQueries()` | `resetQueries()`                                  | 있음        | 화면이 남으므로 `isLiked`/`isBookmarked`를 비로그인 상태로 갱신해야 함 |
-| 이동 수반(보호 경로 로그아웃 · 세션 만료) | `clearAll()`                     | `clearQueriesWithoutRefetch()`(`removeQueries()`) | 없음        | 화면이 곧 교체돼 재요청이 100% 낭비                                    |
+| 경로                                                                   | 호출                                                            | 캐시 처리                                         | 배경 재요청 | 왜                                                                                                                                                                                                                                         |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 제자리 로그아웃(비보호 경로)                                           | `clearAuth()` + `clearQueries()`                                | `resetQueries()`                                  | 있음        | 화면이 남으므로 `isLiked`/`isBookmarked`를 비로그인 상태로 갱신해야 함                                                                                                                                                                     |
+| 이동 수반(보호 경로 로그아웃 · 탈퇴 · 토큰 없이 보낸 `NOT_LOGGED_IN`)  | `clearAll()`                                                    | `clearQueriesWithoutRefetch()`(`removeQueries()`) | 없음        | 화면이 곧 교체돼 재요청이 100% 낭비                                                                                                                                                                                                        |
+| 그 화면에 둠 — 보호 경로(로그인 만료 · 쓰는 중 다른 탭 로그아웃, §8-I) | `expireSession()`·`clearLocalAuthInPlace()` + `markClearedAt()` | 그대로 둠                                         | 없음        | 화면을 남겨 다시 로그인하면 이어서 쓰게 함. 데이터가 있는 Suspense 쿼리는 재조회가 실패해도 다시 throw하지 않아 화면이 유지됨(아래). 로그인 없이 그 화면을 떠나면 `AuthUtil.leaveSignedOutInPlace`가 `clearQueriesWithoutRefetch()`로 지움 |
+| 그 화면에 둠 — 공개 경로(같은 두 경우)                                 | `expireSession()`·`clearLocalAuthInPlace()` + `clearQueries()`  | `resetQueries()`                                  | 있음        | 제자리 로그아웃과 같은 이유 — 화면이 남으므로 비로그인 상태로 다시 불러옴                                                                                                                                                                  |
 
 **제자리 로그아웃**(`auth.util.ts`의 `clearQueries()`)은 `queryClient.clear()`가 아니라
 `resetQueries()`를 씁니다 — `clear()`는 마운트된 옵저버에 아무것도 알리지 않아 이전
@@ -596,6 +628,15 @@ error여도 정상적으로 재요청됩니다. 반면 **Suspense 훅**(`useSusp
 풀리지 않습니다. (이 함정은 제자리 로그아웃 경로에서만 생깁니다 — 이동 수반
 로그아웃은 애초에 배경 재요청 자체가 없어 캐시가 error로 오염되지 않습니다.)
 
+**그 화면에 두는 보호 경로**가 캐시를 그대로 두는 근거는 설치본 react-query 5.90.16의 Suspense 판정입니다 —
+`useSuspenseQuery`·`useSuspenseInfiniteQuery`는 `throwOnError`를 `defaultThrowOnError`로 고정하고
+(`build/modern/useSuspenseQuery.js:18`), 이 함수는 `query.state.data === void 0`일 때만 참입니다
+(`build/modern/suspense.js:2`). 에러를 throw할지 정하는 `getHasError`(`build/modern/errorBoundaryUtils.js:26`)도
+`suspense && result.data === void 0`이거나 그 `throwOnError`가 참일 때만 throw합니다. 그래서 로그인이 풀린 뒤 창
+포커스 등으로 재조회가 401로 실패해도, 이미 데이터를 들고 있는 화면은 그 데이터로 계속 그려집니다(그 401은
+`signedOutInPlace` 동안 조용히 끝납니다, §8-I). 위 "제자리 로그아웃"의 함정은 `resetQueries()`가 데이터를 먼저
+비우기 때문에 생기는 것이라 이 경로에는 해당하지 않습니다.
+
 **이동 수반 로그아웃**(`clearAll()`)은 `clearQueriesWithoutRefetch()`를 씁니다 —
 `resetQueries()`에는 `invalidateQueries`의 `refetchType: 'none'`에 해당하는
 "재요청은 하지 말고 리셋만" 옵션이 없어서, 대신 `queryClient.removeQueries()`로
@@ -606,7 +647,8 @@ error여도 정상적으로 재요청됩니다. 반면 **Suspense 훅**(`useSusp
 `isLoggingOut()`은 두 경로 모두의 "로그아웃 직후 구간"을 하나로
 묶어 판단합니다 — 제자리 로그아웃은 `resetQueries()` Promise가 도는 동안,
 이동 수반 로그아웃은 `clearedAt` 이후 유예 시간(`LOGOUT_GRACE_MS`, 2초) 동안.
-SESSION_MISMATCH로 이 탭만 로그아웃할 때(§8-B)는 경로와 상관없이 `clearedAt` 창도 엽니다.
+SESSION_MISMATCH로 이 탭만 로그아웃할 때(§8-B)와 로그인 만료(`applySessionExpired`, §8-I)는 경로와 상관없이,
+쓰는 중 다른 탭 로그아웃을 그 화면에 반영할 때(`reflectSignOutFromElsewhere`)는 보호 경로에서 `clearedAt` 창도 엽니다.
 `AuthUtil.isLoggingOut()`(`auth.util.ts`)은 얇은 위임일 뿐, `loggingOut`/`clearedAt`
 상태 자체와 `LOGOUT_GRACE_MS`는 의존성이 없는 `logout-grace.util.ts`에 있습니다 —
 `error-toast.ts`의 `resolveErrorToast()`(§8-B, mutation·query 전역 에러 핸들러가 공유하는
@@ -628,6 +670,7 @@ SESSION_MISMATCH로 이 탭만 로그아웃할 때(§8-B)는 경로와 상관없
 ```ts
 setAuth(data.accessToken); // 1. 새 토큰 저장
 AuthEpochUtil.markLogin(); //    다른 탭·bfcache 페이지가 알아챌 인증 세대 쓰기(§8-H)
+AuthUtil.dismissSessionExpiredToast(); //    닫을 때까지 남는 만료 안내를 닫음(§8-I)
 void queryClient.resetQueries({
   // 2. 로그아웃이 남긴 에러 캐시만 초기화 — auth.keys.ts: status === 'error' && data === undefined
   predicate: isErroredCacheWithoutData,
@@ -836,19 +879,26 @@ flowchart TD
   R -->|"같음"| N["아무것도 안 함"]
   R -->|"다름"| T{"이 탭이 토큰을 들고 있나?"}
   T -->|"예 + 살아 있는 탭이 로그인 이벤트를 받음"| AD["이동 없이 쿠키로 새 세션 받아들이기"]
-  T -->|"예 (그 밖)"| SO["이 탭만 로그아웃 처리<br/>(localStorage는 안 건드림)<br/>보호 경로면 /post로"]
+  T -->|"예 (그 밖)"| SO["이 탭만 로그아웃 처리<br/>(localStorage는 안 건드림)<br/>쓰는 중이면 그 화면에 둔 채 로그인 창(§8-I)<br/>아니면 보호 경로에서 /post로"]
   T -->|"아니오"| S
   SO --> S{"저장값 in: 이고 세션 플래그 있음?"}
   S -->|"예"| RS["로그인 모달 재개 동작 비우기<br/>→ 쿠키로 세션 복원<br/>→ 로그인과 같은 캐시 처리"]
   S -->|"아니오"| E["로그아웃 상태로 끝"]
   RS -->|"실패"| E
   AD -->|"실패(같은 쿠키라 재시도 없음)"| SO2["이 탭만 로그아웃 처리"]
-  AD -->|"409 SESSION_MISMATCH<br/>(다른 계정이었음)"| SO3["이 탭만 로그아웃 처리<br/>보호 경로면 /post"]
+  AD -->|"409 SESSION_MISMATCH<br/>(다른 계정이었음)"| SO3["이 탭만 로그아웃 처리<br/>보호 경로면 /post<br/>공개 경로에서 쓰는 중이면 글을 버리고 /post"]
   SO3 --> RS2["토큰 없이 다시 복원<br/>→ 쿠키 주인 계정 + 안내 토스트"]
 ```
 
 - **새로고침하지 않는 이유**: 작성 중인 폼이 있으면 `beforeunload` 이탈 확인창이 뜨고([UNSAVED-CHANGES-GUARD.md](./UNSAVED-CHANGES-GUARD.md)),
   취소하면 이전 사용자 화면이 남습니다. 그래서 지금의 로그아웃 분기와 같은 제자리 정리를 합니다.
+- **쓰는 중이면 화면을 떠나게 하지 않습니다**(2026-10-28): 토큰을 들고 있던 탭의 로그아웃 처리는
+  `AuthUtil.reflectSignOutFromElsewhere()`가 맡습니다. 이탈 확인창에 입력이 등록돼 있으면(`hasUnsavedChanges()`)
+  이동하지 않고 그 화면 위에 "다른 탭에서 로그아웃했어요" 로그인 창을 엽니다(§8-I). 쓰는 중이 아니면 전처럼
+  `applySignOutFromElsewhere()`(보호 경로면 `/post`)입니다 — 일부러 로그아웃할 때마다 다른 탭 모두에 로그인 창이
+  뜨지 않게 하려는 것입니다(`docs/plans/2026-10-28-keep-writing-in-place.md` 결정 2). 받아들이기 실패
+  경로는 그대로 `applySignOutFromElsewhere()`이고, SESSION_MISMATCH 경로는 다른 계정이라 쓰던 글을 버립니다(아래
+  "같은 사람이 아니었으면").
 - **`document`에 리스너를 다는 이유**: bfcache 복원 때 `visibilitychange`가 `pageshow`보다 먼저 와서
   (2026-10-14 Chromium 실측), React Query가 옛 토큰으로 재조회하기 전에 정리해야 합니다. TanStack Query는
   `window`에서 듣고, 이벤트는 `document`를 먼저 지납니다.
@@ -858,7 +908,8 @@ flowchart TD
   로그아웃이 있었는지 알 수 없어 엄격하게(로그아웃 처리 뒤 복원) 합니다.
 - **같은 사람이 아니었으면**: 받아들이기 refresh는 이 탭이 들고 있던 토큰을 싣고 나가므로, 쿠키 주인이 다른
   회원이면 BE가 409 `SESSION_MISMATCH`로 거절합니다(§8-B "쿠키 주인이 다른 회원이라 갱신이 거절될 때"). 그러면
-  위 엄격한 경로와 같이 로그아웃 처리(보호 경로면 `/post`) 뒤 토큰 없이 다시 복원해 쿠키 주인 계정이 되고,
+  위 엄격한 경로와 같이 로그아웃 처리(`AuthUtil.signOutForOtherAccount` — 보호 경로면 `/post`, 공개 경로에서 쓰는
+  중이면 이탈 확인 등록을 모두 비우고 `/post`. §8-B의 refresh 거절과 같은 메서드) 뒤 토큰 없이 다시 복원해 쿠키 주인 계정이 되고,
   _"다른 탭에서 로그인한 계정으로 바뀌었어요."_ 를 띄웁니다. 2026-10-15 이전에는 이 경우도 화면을 그대로 둔 채
   조용히 그 계정이 됐습니다(이전 계정으로 쓰던 폼이 새 계정으로 제출될 수 있었음). 세대가 바뀐 경로라 옛 토큰으로
   나간 요청은 §8-B의 세대 확인이 이미 막습니다.
@@ -870,46 +921,141 @@ flowchart TD
 - **검증**(2026-10-14, 프로덕션 빌드 + bfcache를 켠 Chromium, HTML `no-cache`): 로그인 상태 `/bookmark`도
   bfcache에 들어갔고(막는 사유 없음), 다른 탭 로그아웃 뒤 뒤로가기 → `/post` 비로그인, 다른 계정 로그인 뒤
   뒤로가기 → `/post` 새 계정. 30fps 녹화에서 이전 화면은 한 프레임도 보이지 않았습니다. 탭 간 동기화는
-  `e2e/auth-tab-sync.spec.ts`가 고정합니다.
+  `e2e/auth-tab-sync.spec.ts`가 고정합니다(쓰는 중 다른 탭 로그아웃은 같은 파일의 "쓰는 중에 다른 탭에서 로그아웃"
+  4개 테스트).
+
+### 8-I. 로그인이 풀려도 쓰던 화면에 두기 (`signedOutInPlace`)
+
+**왜 필요한가**: 2026-10-28 전에는 로그인이 만료되면 `clearAll()`이 `/auth/login`으로, 보호 화면에서 다른 탭이
+로그아웃하면 `/post`로 보냈습니다. 그 이동 때문에 쓰던 글이 확인 없이 사라졌습니다. 쓰던 글을 보관했다가 되살리는
+안(커밋된 계획의 Phase 2)은 상황이 너무 많아져 폐기하고, 화면을 떠나게 하지 않는 쪽으로 정했습니다 — 대안 비교는
+[`docs/DECISIONS.md`](DECISIONS.md) 2026-10-28 "쓰던 글 보관(Phase 2) 대신 로그인이 풀려도 쓰던 화면에 둔다" 항목,
+계획은 `docs/plans/2026-10-28-session-expiry-draft-preservation.md`(Phase 3)와
+`docs/plans/2026-10-28-keep-writing-in-place.md`입니다. W3C의 WCAG 2.2.5(재인증) 해설은 다시 로그인한 뒤의 모습을
+_"결제 과정이 같은 정보와 같은 단계로 복원된다"_ (번역, 생략, [W3C](https://www.w3.org/WAI/WCAG22/Understanding/re-authenticating.html))는
+예로 듭니다 — 이 해설은 "다시 로그인한 뒤 데이터를 잃지 않는다"는 목표만 말하고, 로그인 창을 그 화면 위에 띄우라는
+방법까지 정하지는 않습니다.
+
+**상황별 동작**("쓰는 중" = 이탈 확인창에 입력이 등록된 상태, `hasUnsavedChanges()`):
+
+| 상황                                                                                                           | 동작                                                                                                                                                                                                                                                                                                                      | 맡는 곳                                                                                         |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 로그인 만료(refresh 401 거절, 토큰을 실은 `INVALID_TOKEN`) — 보호 화면                                         | 그 화면 그대로 + "로그인이 만료됐어요" 로그인 창. 캐시는 그대로 둔다(§8-E)                                                                                                                                                                                                                                                | `AuthUtil.applySessionExpired`                                                                  |
+| 로그인 만료 — 공개 화면에서 저장 중(`isMutating() > 0`)이거나 쓰는 중                                          | 비로그인으로 다시 불러오고(`clearQueries`) 같은 로그인 창                                                                                                                                                                                                                                                                 | 〃                                                                                              |
+| 로그인 만료 — 공개 화면에서 보기만 하던 중                                                                     | 비로그인으로 다시 불러오고, 닫을 때까지 남는 안내 토스트(`duration: Infinity`, id `session-expired`, [로그인] 버튼이 같은 로그인 창을 연다)                                                                                                                                                                               | 〃                                                                                              |
+| 쓰는 중에 다른 탭이 로그아웃                                                                                   | 그 화면 그대로 + "다른 탭에서 로그아웃했어요" 로그인 창. 보호 화면은 캐시 유지, 공개 화면은 `clearQueries`                                                                                                                                                                                                                | `AuthUtil.reflectSignOutFromElsewhere`(§8-H)                                                    |
+| 쓰지 않을 때 다른 탭이 로그아웃                                                                                | 전과 같다(보호 화면이면 `/post`)                                                                                                                                                                                                                                                                                          | `AuthUtil.applySignOutFromElsewhere`                                                            |
+| 로그인이 풀린 채 그 화면에 남아 있는 동안                                                                      | 쓴 내용이 있는 폼의 `FormAlert`에 _"로그인이 풀렸어요. 로그인한 뒤 저장해 주세요."_ — 저장을 눌렀는지, 왜 풀렸는지(만료·다른 탭 로그아웃)와 상관없이 같다. 로그인 창을 닫고 남아도 보인다                                                                                                                                 | `useSignedOutNotice`(폼 훅 4곳이 안내 자리에 우선으로 넣음)                                     |
+| 로그인 창에서 같은 계정으로 다시 로그인                                                                        | 그 화면에서 이어 쓴다. 폼 안 안내는 사라진다(남으면 아직 풀린 것처럼 읽힌다). 저장하다 실패했으면 다시 누르면 된다. 글 수정 폼은 다시 불러온 같은 글의 값으로 고치던 내용을 덮지 않는다(다른 글로 바뀌면 덮는다)                                                                                                          | `useSignedOutNotice`, `useUpdatePost`의 `resetFormWithFetchedPost`                              |
+| 그 자리에 둔 화면에서 다른 계정으로 바뀜(로그인 창에서 다른 계정, 그 뒤 다른 탭의 다른 계정 로그인을 받아들임) | 쓰는 중이거나 보호 화면이면 이탈 확인 등록을 모두 비우고(`clearAllUnsavedChanges`) 확인창 없이 `/post` — 이전 계정의 글이 새 계정 화면에 남지 않게. 보호 화면은 쓰는 중이 아니어도 떠난다(남겨 둔 캐시가 이전 계정의 것이고, 글 수정 폼은 다시 불러오기가 실패해도 이전 값을 둔다). 공개 화면에서 쓰는 중이 아니면 그대로 | `useLeaveOnMemberChange`(app 레이어, `RootLayout`)                                              |
+| 평소대로 로그아웃한 뒤(그 자리에 두지 않은 로그아웃) 비로그인으로 쓰다가 다른 계정으로 로그인                  | 그대로 — 그 자리에 두지 않은 로그아웃이면 기억한 회원을 놓아 비교하지 않는다(그때는 이전 계정의 글이 남아 있지 않다)                                                                                                                                                                                                      | `useLeaveOnMemberChange`의 `forgetMemberWhenSignedOutForGood`                                   |
+| 갱신이나 다른 탭 로그인 받아들이기가 다른 계정의 쿠키로 거절됨(409 `SESSION_MISMATCH`) — 공개 화면에서 쓰는 중 | 이 탭만 로그아웃한 뒤 이탈 확인 등록을 모두 비우고 `/post`(보호 화면은 로그아웃 처리가 이미 `/post`로 보낸다)                                                                                                                                                                                                             | `AuthUtil.signOutForOtherAccount`(§8-B·§8-H)                                                    |
+| 보호 화면에서 로그인 없이 창을 닫음                                                                            | `/post`로 한 번 보낸다. 쓰는 중이면 이탈 확인창이 막고, "계속 작성"을 고르면 로그아웃 상태로 그 화면에 남는다(다시 보내지 않는다)                                                                                                                                                                                         | `ProtectedRoute`의 `leaveWhenSignInDialogClosedWithoutSignIn`                                   |
+| 공개 화면에서 로그인 없이 창을 닫음                                                                            | 그 화면에 그대로 남는다(같은 주소라 이탈 확인창도 뜨지 않음)                                                                                                                                                                                                                                                              | —                                                                                               |
+| 로그인이 풀린 채 다른 화면으로 이동                                                                            | 쓰는 중이면 이탈 확인창. 로그아웃 상태여도 동작한다                                                                                                                                                                                                                                                                       | `useUnsavedChangesGuard`의 `shouldBlockNavigation`                                              |
+| 로그인이 풀린 채 다시 저장                                                                                     | 보내지 않고 그 이유의 로그인 창을 다시 연다(로그인이 풀렸을 때 뜬 창과 같은 제목). 다섯 폼 모두 댓글·답글 등록과 같은 가드로 막는다. 입력은 그대로 남고, 로그인한 뒤 다시 누르면 저장한다. 누른 뒤 보내는 사이 풀렸으면 세션 무효 응답(401)을 토스트 없이 `SessionExpiredError`로 끝낸다(폼 안 안내는 위 행)              | `useAuthGuard`(§8-D)·`AuthUtil.openSignInDialogInPlace`, `client.ts` 401 분기, `error-toast.ts` |
+| 로그인이 풀린 채 내비게이션 바 [로그인]을 누름                                                                 | 늘 같은 기본 로그인 창("로그인이 필요한 서비스예요")을 연다 — 사용자가 직접 연 로그인이라 풀린 이유를 다시 알리지 않는다(2026-10-28 사용자 결정). 제출·좋아요처럼 가드를 거치는 동작만 그 이유의 창을 연다                                                                                                                | 내비게이션 바 로그인 버튼(`useHistoryOverlay`)                                                  |
+| 쓰는 중에 이 탭에서 직접 로그아웃                                                                              | 확인창 [로그아웃] [계속 작성]. 로그아웃을 고르면 이탈 확인 등록을 모두 비우고 로그아웃한 뒤 `/post`(공개 화면도)                                                                                                                                                                                                          | `useDelayedLogout`                                                                              |
+
+**상태 하나로 처리합니다**: `useAuthStore`의 `signedOutInPlace`(`{ reason: 'expired' | 'signedOutElsewhere'; pathname } | null`,
+`auth.store.ts:22-33`)를 아래가 모두 봅니다.
+
+- 세우는 곳: `expireSession(pathname)`(만료)·`clearLocalAuthInPlace(pathname)`(쓰는 중 다른 탭 로그아웃) — 토큰을 지우는 같은
+  `set()`에서 세웁니다(`auth.store.ts:99-116`).
+- 내리는 곳: `setAuth`·`setAccessToken`(다시 로그인)·`clearAuth`(그 화면에 둘 이유가 없는 로그아웃). 그리고 값을 세운 화면과
+  **다른 주소**로 옮겨 가면 `AuthUtil.leaveSignedOutInPlace`가 내립니다 — `RouterProvider.tsx`가 라우터 구독(`RouterEvents.onNavigate`)에
+  답니다. 같은 주소 안의 이동(로그인 창 열고 닫기)은 그대로 둡니다. 표시를 세운 화면이 보호 경로였으면 그 화면을 남기려고
+  두었던 캐시도 이때 재요청 없이 지웁니다(`clearQueriesWithoutRefetch`) — 남기면 다음 화면이 이전 회원의 계정·목록을
+  비로그인 상태로 보여 줍니다(코드 주석: 계정 조회가 꺼져도 캐시 값을 돌려줘 피드 카드에 그 회원 글의 수정·삭제 메뉴가 뜸).
+- 읽는 곳: 게이트 A의 화면 유지(`ProtectedRoute.tsx`의 `isSignedOutInPlace`와 렌더 가드), 세션 무효 401의 무음
+  처리(`client.ts`의 401 분기, `error-toast.ts`의 `resolveErrorToast`), 로그아웃 상태의 이탈 확인
+  (`useUnsavedChangesGuard.ts`의 `shouldBlockNavigation`).
+- 게이트 A는 전역 값만 보지 않습니다: 다른 화면으로 가는 순간 표시가 내려가도, `v7_startTransition` 때문에 새 위치가
+  커밋되기 전에 이 화면이 한 번 더 그려집니다. 그 렌더에서 전역 값만 보면 `/post`로 보내 고른 화면 대신 피드에
+  도착했습니다(`ProtectedRoute.tsx`의 `keptPathname` 주석). 그래서 표시를 세운 화면을 state로 붙잡아 두고 지금 그리는
+  `location.pathname`과 비교합니다.
+
+**로그인 창은 history state로 엽니다**: React 트리 밖이라 `AuthUtil`의 `openSignInDialogInPlace`(`auth.util.ts`)가
+`NavigationService`로 같은 `pathname+search`를 push합니다(`preventScrollReset: true`, 이미 열려 있으면 replace). state는
+`SIGNED_OUT_IN_PLACE_DIALOG_STATE[reason]`(`loginDialog.store.ts`)이고, 그 안의 `loginDialogReason`을
+`useLoginDialog`가 읽어 `LoginDialog`가 `TEXTS.auth.guard[reason]`의 제목·설명을 씁니다(닫히는 애니메이션 동안 문구가
+바뀌지 않게 열려 있던 때의 값을 붙잡습니다). 열기 전에 로그인 창의 `onSuccess`·`pendingAction`을 비웁니다 — 이전에 열렸던
+창의 "로그인 후 할 일"이 이번 로그인으로 실행되지 않게 하려는 것입니다. 다시 로그인하면 `useLoginMutation`과 §8-H의
+받아들이기가 `dismissSessionExpiredToast()`로 만료 토스트를 닫습니다.
+
+**토스트 위치**: 만료 안내 토스트는 `AuthUtil.applySessionExpired`가 띄웁니다 — `client.ts`에서 동기로 불려 "transport
+레이어는 UI 토스트를 띄우지 않는다" 규칙의 예외입니다(`.claude/CLAUDE.md` 에러 핸들링 전략, `applySessionMismatch`와
+같은 자리). 만료는 요청 하나가 아니라 이 탭 전체에 일어나는 일이라 어느 요청에서 드러났든(조회·mutation·
+`manualErrorHandling`) 한 번만 알려야 하고, 창을 띄울지 토스트를 띄울지가 정리 **전에** 읽은 상태(`isMutating()`·
+`hasUnsavedChanges()`)에 달려 있어 정리하는 자리에서 정합니다. 요청 쪽 `SessionExpiredError`는 전역 핸들러가 조용히
+넘기므로 두 번 뜨지 않습니다. info 토스트이고 고정 id라 여러 요청이 동시에 만료돼도 하나만 남습니다.
+
+```mermaid
+flowchart TD
+  A["로그인이 풀림"] --> B{"어떻게?"}
+  B -->|"만료: refresh 401 거절<br/>또는 토큰을 실은 INVALID_TOKEN"| C["applySessionExpired<br/>expireSession(pathname) + markClearedAt"]
+  B -->|"다른 탭 로그아웃<br/>(useAuthEpochSync)"| D{"쓰는 중?<br/>hasUnsavedChanges()"}
+  B -->|"이 탭에서 직접 로그아웃"| L{"쓰는 중?"}
+  D -->|"아니오"| D0["applySignOutFromElsewhere<br/>(전과 같음, 보호 화면이면 /post)"]
+  D -->|"예"| E["reflectSignOutFromElsewhere<br/>clearLocalAuthInPlace(pathname)<br/>보호: 캐시 유지 / 공개: clearQueries"]
+  C --> F{"보호 화면이거나<br/>저장 중·쓰는 중?"}
+  F -->|"예"| G["그 화면 위에 로그인 창<br/>(history state, loginDialogReason)"]
+  F -->|"아니오"| T["공개 화면 clearQueries<br/>닫을 때까지 남는 토스트 [로그인]"]
+  T -->|"[로그인]"| G
+  E --> G
+  G --> H{"다음은?"}
+  H -->|"같은 계정으로 로그인"| I["setAuth → 표시 내림<br/>그 화면에서 이어 씀"]
+  H -->|"다른 계정으로 로그인"| J["useLeaveOnMemberChange<br/>쓰는 중이거나 보호 화면이면<br/>clearAllUnsavedChanges → /post"]
+  H -->|"로그인 없이 닫음"| K{"보호 화면?"}
+  K -->|"예"| K1["/post로 한 번 보냄<br/>쓰는 중이면 이탈 확인창"]
+  K -->|"아니오"| K2["그 화면에 남음"]
+  H -->|"다른 화면으로 이동"| X["이탈 확인창(로그아웃 상태여도)<br/>떠나면 AuthUtil.leaveSignedOutInPlace가 표시 내림<br/>(보호 화면이었으면 남겨 둔 캐시도 지움)"]
+  L -->|"아니오"| L0["700ms 뒤 로그아웃(전과 같음)"]
+  L -->|"예"| L1["확인창 [로그아웃] [계속 작성]<br/>로그아웃: clearAllUnsavedChanges → 로그아웃 → /post"]
+```
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                     | 건드릴 파일                                                                                                                                                                                                                                                      |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 새 보호 페이지 추가              | `route-paths.ts`에 경로 추가 → `route-paths.ts:39-48` `isProtectedPath`에 prefix 추가 → `routes/index.tsx`의 Protected Content Group에 라우트 등록                                                                                                               |
-| 로그인 필요한 새 액션(버튼) 추가 | `useAuthGuard()`로 액션을 감싸기(§8-D 패턴)                                                                                                                                                                                                                      |
-| 로그인 필요한 새 이동(링크) 추가 | `useProtectedNavigate()` 사용, 또는 `nav-items.ts`에 `requiresAuth: true` 항목 추가                                                                                                                                                                              |
-| 새 401 에러 코드 처리 추가       | `error-code.ts`에 상수 추가 → `client.ts`의 `request()` 401 분기(`response.status === 401`) 또는 `error-toast.ts`의 `resolveErrorToast()`에 분기 추가(그 코드가 재시도 가능한지/즉시 로그아웃인지 먼저 결정)                                                     |
-| 새 Suspense 조회 화면 추가       | `useSuspenseQuery`/`useSuspenseInfiniteQuery`는 캐시가 error면 재마운트해도 재요청하지 않는다 — §8-E의 로그인 리셋이 전제다                                                                                                                                      |
-| 비밀번호 조건 추가·변경          | 정책(`auth.schema.ts`, BE `MemberDTO.kt`·`AuthDTO.kt`)과 체크리스트(`auth.util.ts`의 `REQUIREMENT_TESTS`, `auth.const.ts`의 `PASSWORD_REQUIREMENTS`, `TEXTS.auth.password.requirements`)를 함께 — 한쪽만 바꾸면 `auth.util.test.ts`의 차등 비교가 실패한다(§8-G) |
-| 비밀번호를 새로 만드는 폼 추가   | `usePasswordFieldsFeedback(form, { password, confirm })`의 반환값을 `FormInputPassword` 두 개와 `PasswordRequirementList`·`PasswordConfirmMessage`에 펼친다(호출은 `useSignUp.ts`, 펼치는 곳은 `SignUpForm.tsx`의 `passwordFeedback` 참고, §8-G)                 |
+| 하고 싶은 것                          | 건드릴 파일                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 새 보호 페이지 추가                   | `route-paths.ts`에 경로 추가 → `route-paths.ts:39-48` `isProtectedPath`에 prefix 추가 → `routes/index.tsx`의 Protected Content Group에 라우트 등록                                                                                                                                                                                                                                                                                      |
+| 로그인 필요한 새 액션(버튼) 추가      | `useAuthGuard()`로 액션을 감싸기(§8-D 패턴)                                                                                                                                                                                                                                                                                                                                                                                             |
+| 로그인 필요한 새 이동(링크) 추가      | `useProtectedNavigate()` 사용, 또는 `nav-items.ts`에 `requiresAuth: true` 항목 추가                                                                                                                                                                                                                                                                                                                                                     |
+| 새 401 에러 코드 처리 추가            | `error-code.ts`에 상수 추가 → `client.ts`의 `request()` 401 분기(`response.status === 401`) 또는 `error-toast.ts`의 `resolveErrorToast()`에 분기 추가(그 코드가 재시도 가능한지/즉시 로그아웃인지 먼저 결정)                                                                                                                                                                                                                            |
+| 새 Suspense 조회 화면 추가            | `useSuspenseQuery`/`useSuspenseInfiniteQuery`는 캐시가 error면 재마운트해도 재요청하지 않는다 — §8-E의 로그인 리셋이 전제다                                                                                                                                                                                                                                                                                                             |
+| 새 입력 폼 추가(로그인이 풀려도 남게) | `useUnsavedChanges`로 이탈 확인창에 입력을 등록한다 — `applySessionExpired`·`reflectSignOutFromElsewhere`가 이 등록(`hasUnsavedChanges()`)을 보고 그 화면에 둘지 정한다. 제출은 `useAuthGuard()`로 감싸고(로그인이 풀린 채 누르면 보내지 않고 그 이유의 로그인 창), 저장 실패가 `ErrorUtil.isSessionExpired(error)`면 입력만 남기고 끝내며, 폼 안 안내는 `useSignedOutNotice(쓰는 중)`의 값을 그 폼의 안내 자리에 우선으로 넣는다(§8-I) |
+| 그 화면에 둘 상황 추가·변경           | 표시는 `auth.store.ts`의 `expireSession`·`clearLocalAuthInPlace`(같은 `set()`에서 토큰과 함께), 로그인 창 열기는 `auth.util.ts`의 `openSignInDialogInPlace`, 문구는 `TEXTS.auth.guard`와 `loginDialog.store.ts`의 `SIGNED_OUT_IN_PLACE_DIALOG_STATE`(§8-I)                                                                                                                                                                              |
+| 비밀번호 조건 추가·변경               | 정책(`auth.schema.ts`, BE `MemberDTO.kt`·`AuthDTO.kt`)과 체크리스트(`auth.util.ts`의 `REQUIREMENT_TESTS`, `auth.const.ts`의 `PASSWORD_REQUIREMENTS`, `TEXTS.auth.password.requirements`)를 함께 — 한쪽만 바꾸면 `auth.util.test.ts`의 차등 비교가 실패한다(§8-G)                                                                                                                                                                        |
+| 비밀번호를 새로 만드는 폼 추가        | `usePasswordFieldsFeedback(form, { password, confirm })`의 반환값을 `FormInputPassword` 두 개와 `PasswordRequirementList`·`PasswordConfirmMessage`에 펼친다(호출은 `useSignUp.ts`, 펼치는 곳은 `SignUpForm.tsx`의 `passwordFeedback` 참고, §8-G)                                                                                                                                                                                        |
 
 ---
 
 ## 9. 검증 결과
 
-`src/shared/api/client.test.ts`(1069줄, 최상위 `describe` 2개)가 게이트 B와 OAC 대응 헤더
+`src/shared/api/client.test.ts`(1249줄, 최상위 `describe` 2개)가 게이트 B와 OAC 대응 헤더
 로직을 검증합니다.
 
-**`describe('ApiClient — 인증 오류 처리')`**(`:70-968`, 14 Case)가 게이트 B를 케이스별로
+**`describe('ApiClient — 인증 오류 처리')`**(`:71-1102`, 16 Case)가 게이트 B를 케이스별로
 검증합니다:
 
-| Case             | 시나리오                                                      | 확인하는 것                                                                                                       |
-| ---------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| 1 (`:84-117`)    | 액세스 만료, 리프레시 유효                                    | 재시도 1회 성공, 토스트·이동 없음(`:110` `navigate` 미호출 단언)                                                  |
-| 1-1 (`:122-161`) | 동시에 두 요청이 401 `TOKEN_EXPIRED`                          | refresh는 1번만 호출(리더-팔로워 큐잉), 두 요청 모두 재시도 성공                                                  |
-| 1-2 (`:167-202`) | refresh 성공 후 재시도한 요청도 다시 `TOKEN_EXPIRED`          | refresh를 다시 호출하지 않고 `clearAll()` + 로그인 이동, `SessionExpiredError`로 끝남(§11 항목 1 재시도 상한)     |
-| 1-3 (`:210-296`) | refresh가 끝난 뒤 늦게 도착한 401 `TOKEN_EXPIRED`             | refresh는 1번만, 늦은 요청은 갱신된 토큰으로 바로 재시도, 두 요청 모두 성공·이동 없음(§8-B)                       |
-| 2 (`:301-322`)   | 액세스·리프레시 둘 다 만료                                    | `clearAuth` + `/auth/login` replace 이동, `SessionExpiredError`로 끝남                                            |
-| 2-1 (`:328-359`) | 동시에 두 요청이 401 + refresh 실패                           | refresh 1번, 리더·대기 요청 모두 `SessionExpiredError`, 로그인 이동 1번(§11 항목 3)                               |
-| 2-2 (`:366-403`) | 만료로 정리한 뒤 늦게 도착한 401 `TOKEN_EXPIRED`              | refresh를 다시 부르지 않고 `SessionExpiredError`, 정리·이동은 1번뿐(§8-B)                                         |
-| 3 (`:408-424`)   | 토큰 없이 요청(`NOT_LOGGED_IN`)                               | 로그인 리다이렉트                                                                                                 |
-| 4 (`:429-446`)   | 토큰 형식 손상(`INVALID_TOKEN`)                               | Case 3과 동일                                                                                                     |
-| 5 (`:451-501`)   | 403 WAF 차단 vs 앱이 낸 정상 `ACCESS_DENIED`                  | `EDGE_BLOCKED`로 오분류 안 됨(it 2개)                                                                             |
-| 6 (`:503-513`)   | 응답을 못 받음(오프라인·연결 끊김)                            | `fetch` reject를 `NetworkError`로 바꿔 던짐                                                                       |
-| 7 (`:520-698`)   | 요청을 보낸 뒤 인증 세대가 바뀜(it 7개)                       | refresh·재시도·로그인 이동 없이 `SessionChangedError`, 대기 요청도 함께, 방금 한 로그인 유지(§8-B)                |
-| 8 (`:705-858`)   | refresh 쿠키 주인이 다른 회원(409 `SESSION_MISMATCH`, it 5개) | refresh에 원 요청 토큰, 이 탭만 로그아웃·세션 플래그 유지·안내 1번, 늦게 온 같은 토큰 401도 재실행 없음(§8-B)     |
-| 9 (`:866-967`)   | localStorage에 못 쓰는 탭에서 같은 탭 계정 전환(it 3개)       | 늦은 401·`NOT_LOGGED_IN`·refresh 대기 모두 `SessionChangedError`, 새 계정 재시도·로그인 삭제·토큰 덮기 없음(§8-B) |
+| Case             | 시나리오                                                      | 확인하는 것                                                                                                                                               |
+| ---------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 (`:105-138`)   | 액세스 만료, 리프레시 유효                                    | 재시도 1회 성공, 토스트·이동 없음(`:136` `navigate` 미호출 단언)                                                                                          |
+| 1-1 (`:143-182`) | 동시에 두 요청이 401 `TOKEN_EXPIRED`                          | refresh는 1번만 호출(리더-팔로워 큐잉), 두 요청 모두 재시도 성공                                                                                          |
+| 1-2 (`:188-221`) | refresh 성공 후 재시도한 요청도 다시 `TOKEN_EXPIRED`          | refresh를 다시 호출하지 않고 인증을 정리한 뒤 `SessionExpiredError`로 끝남, 로그인 페이지로 보내지 않음(§11 항목 1 재시도 상한)                           |
+| 1-3 (`:229-315`) | refresh가 끝난 뒤 늦게 도착한 401 `TOKEN_EXPIRED`             | refresh는 1번만, 늦은 요청은 갱신된 토큰으로 바로 재시도, 두 요청 모두 성공·이동 없음(§8-B)                                                               |
+| 2 (`:320-392`)   | 액세스·리프레시 둘 다 만료(refresh 401, it 3개)               | 인증 정리 + `SessionExpiredError`. 공개 화면은 그대로 두고 만료 토스트, 보호 화면은 그 주소 그대로 로그인 창, 공개 화면이어도 쓰는 중이면 로그인 창(§8-I) |
+| 2-3 (`:398-441`) | refresh가 401이 아닌 이유로 실패(5xx·오프라인, it 2개)        | 로그인을 그대로 두고 리더·대기 요청 모두 그 에러(`ApiError`·`NetworkError`)로 끝남(§8-B)                                                                  |
+| 2-1 (`:447-475`) | 동시에 두 요청이 401 + refresh 실패                           | refresh 1번, 리더·대기 요청 모두 `SessionExpiredError`, 만료 안내 1번(§11 항목 3)                                                                         |
+| 2-2 (`:482-519`) | 만료로 정리한 뒤 늦게 도착한 401 `TOKEN_EXPIRED`              | refresh를 다시 부르지 않고 `SessionExpiredError`, 정리·안내는 1번뿐(§8-B)                                                                                 |
+| 3 (`:524-540`)   | 토큰 없이 요청(`NOT_LOGGED_IN`)                               | 인증 정리 + 로그인 리다이렉트                                                                                                                             |
+| 4 (`:545-558`)   | 토큰을 실었는데 무효(`INVALID_TOKEN`)                         | 로그인 만료로 보고 그 자리에 둔 채 `SessionExpiredError`(§8-I)                                                                                            |
+| 4-1 (`:564-580`) | 로그인이 풀린 채 그 화면에 머무는 중 `NOT_LOGGED_IN`          | 로그인 페이지로 보내지 않고 `SessionExpiredError`로 조용히 끝남(§8-I)                                                                                     |
+| 5 (`:585-635`)   | 403 WAF 차단 vs 앱이 낸 정상 `ACCESS_DENIED`                  | `EDGE_BLOCKED`로 오분류 안 됨(it 2개)                                                                                                                     |
+| 6 (`:637-647`)   | 응답을 못 받음(오프라인·연결 끊김)                            | `fetch` reject를 `NetworkError`로 바꿔 던짐                                                                                                               |
+| 7 (`:654-832`)   | 요청을 보낸 뒤 인증 세대가 바뀜(it 7개)                       | refresh·재시도·로그인 이동 없이 `SessionChangedError`, 대기 요청도 함께, 방금 한 로그인 유지(§8-B)                                                        |
+| 8 (`:839-992`)   | refresh 쿠키 주인이 다른 회원(409 `SESSION_MISMATCH`, it 5개) | refresh에 원 요청 토큰, 이 탭만 로그아웃·세션 플래그 유지·안내 1번, 늦게 온 같은 토큰 401도 재실행 없음(§8-B)                                             |
+| 9 (`:1000-1101`) | localStorage에 못 쓰는 탭에서 같은 탭 계정 전환(it 3개)       | 늦은 401·`NOT_LOGGED_IN`·refresh 대기 모두 `SessionChangedError`, 새 계정 재시도·로그인 삭제·토큰 덮기 없음(§8-B)                                         |
 
 Case 8은 `apiClient`를 직접 불러 전역 에러 핸들러를 거치지 않습니다. 그래서 **SESSION_MISMATCH 로그아웃과 전역
 에러 토스트가 겹치지 않는지**는 `src/shared/api/session-mismatch-toast.test.ts`가 따로 검증합니다 — 전역 핸들러가 붙은
@@ -925,7 +1071,7 @@ Case 9의 줄 선 mutation 쪽(같은 탭 계정 전환 뒤 차례가 온 mutati
 닫힌 뒤 늦게 도착한 실패(Case 2-2 경로) 모두 에러 토스트가 0번인지 봅니다. `error-toast.ts`의 만료 분기를 빼면
 실패합니다.
 
-**`describe('ApiClient — 요청 헤더 (CloudFront OAC 대응)')`**(`:976-1115`, 6 Case) —
+**`describe('ApiClient — 요청 헤더 (CloudFront OAC 대응)')`**(`:1110-1249`, 6 Case) —
 2026-09-29 OAC 전환(FE Phase 6, `docs/plans/2026-09-29-oac-lockdown.md`)으로 추가됨,
 401 처리와는 무관한 별개 관심사라 최상위 `describe`를 분리했습니다:
 
@@ -943,6 +1089,24 @@ Case 9의 줄 선 mutation 쪽(같은 탭 계정 전환 뒤 차례가 온 mutati
 운명**은 Case 2-1이 고정합니다(§11 항목 3·4).
 
 게이트 A(`ProtectedRoute`)는 `src/app/routes/ProtectedRoute.test.tsx`가 화면 분기 자체(스피너/리다이렉트/모달 조건)를 검증합니다. §8-A의 사실("`restoreAuth`가 실제로 refresh를 호출하지 않는다")도 여기 고정돼 있습니다.
+
+**로그인이 풀려도 쓰던 화면에 두기(§8-I)**는 아래가 함께 고정합니다(2026-10-28).
+
+| 테스트                                                                                                                                                                                                                                              | 확인하는 것                                                                                                                                                                                                                                                                                                                                |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/app/routes/ProtectedRoute.test.tsx`의 `describe('ProtectedRoute - 로그인이 풀린 채 그 화면에 둠')`(`:296-427`, it 8개)                                                                                                                         | 피드로 보내지 않고 화면 유지·복귀 콜백 없음(만료·다른 탭 로그아웃 모두), 쓰는 중이 아니면 창을 닫을 때 피드로, 쓰는 중이면 이탈 확인창 → "계속 작성"이면 그 자리에 남고 다시 묻지 않음, "나가기"면 피드, 다시 로그인하면 이어 씀                                                                                                           |
+| `src/shared/utils/auth.util.test.ts`의 `applySessionExpired`(`:187-306`)·`reflectSignOutFromElsewhere`(`:308-376`)·`useAuthStore.leaveSignedOutInPlace`(`:378-396`)·`AuthUtil.leaveSignedOutInPlace`(`:398-437`)·`applySessionMismatch`(`:439-475`) | 화면 종류·저장 중·쓰는 중에 따른 로그인 창/토스트 분기, 캐시 처리, 표시를 내리는 조건, 공개 화면에서 쓰는 중 `SESSION_MISMATCH`면 등록을 비우고 `/post`(쓰는 중이 아니면 그 자리)                                                                                                                                                          |
+| `src/app/hooks/useLeaveOnMemberChange.test.tsx`                                                                                                                                                                                                     | 그 자리에 둔 채 쓰던 중 다른 회원으로 로그인하면 등록을 비우고 `/post`(공개·보호 화면 모두), 보호 화면이면 쓰는 중이 아니어도 `/post`. 같은 회원·비로그인에서 처음 로그인·공개 화면에서 쓰는 중이 아닐 때·평소 로그아웃 뒤 비로그인으로 새로 쓴 글은 그대로                                                                                |
+| `src/widgets/layout/navbar/hooks/useDelayedLogout.test.tsx`                                                                                                                                                                                         | 쓰지 않을 때는 묻지 않음, 쓰는 중이면 확인창 → "계속 작성"이면 아무것도 안 함, 확인하면 등록을 비우고 로그아웃(공개 화면은 직접 `/post`, 보호 화면은 로그아웃이 보냄)                                                                                                                                                                      |
+| `src/shared/hooks/useUnsavedChangesGuard.test.tsx`의 "로그인이 풀린 상태" `describe`                                                                                                                                                                | 로그아웃 상태여도 `signedOutInPlace` 동안에는 이탈을 막음                                                                                                                                                                                                                                                                                  |
+| `src/entities/auth/hooks/useAuthEpochSync.test.tsx`                                                                                                                                                                                                 | 쓰는 중에 다른 탭이 로그아웃하면 이동 없이 로그인 창, 다른 탭의 로그인을 받아들이려다 다른 계정이라 거절되면 공개 화면에서도 쓰던 글을 버리고 `/post`                                                                                                                                                                                      |
+| `useCreatePost`·`useUpdatePost`·`useCreateComment`·`useUpdateComment`의 테스트                                                                                                                                                                      | 로그인이 풀린 채 누르면 요청 없이 그 이유의 로그인 창(댓글 등록은 기존 가드 테스트), 로그아웃된 동안 폼 안 안내가 보이고 다시 로그인하면 사라짐, 보내는 사이 만료되면 입력을 남김, 글 수정은 다시 불러와도 고치던 값을 덮지 않고 다른 글로 바뀌면 덮음                                                                                     |
+| `src/entities/auth/hooks/useSignedOutNotice.test.ts`                                                                                                                                                                                                | 로그인이 풀린 채 남아 있고 쓴 내용이 있으면 안내(만료·다른 탭 로그아웃 모두), 쓴 내용이 없거나 다시 로그인했거나 평소 로그아웃이면 없음                                                                                                                                                                                                    |
+| `src/widgets/layout/login-dialog/ui/LoginDialog.test.tsx`                                                                                                                                                                                           | 이유(`loginDialogReason`)에 따른 제목·설명                                                                                                                                                                                                                                                                                                 |
+| `e2e/session-expired.spec.ts`(3개)                                                                                                                                                                                                                  | `TOKEN_EXPIRED` + refresh 401 — 공개 화면에서 보기만 하던 중 토스트 → [로그인]으로 다시 로그인, 공개 화면 댓글 저장 중 로그인 창 → 되돌린 입력으로 다시 등록, 보호 화면(`/post/submit`) 등록 중 로그인 창 → 입력한 그대로 등록                                                                                                             |
+| `e2e/auth-tab-sync.spec.ts`의 "쓰는 중에 다른 탭에서 로그아웃"(7개)                                                                                                                                                                                 | 글 등록·댓글에서 그 자리에 로그인 창 → 같은 계정이면 이어서 등록, 로그아웃된 동안 폼 안 안내가 보이고 로그인하면 사라짐, 창을 닫으면 이탈 확인창(글 등록) 또는 그 자리에 남고 다른 메뉴로 갈 때 이탈 확인창(댓글), 창을 닫고 등록을 누르면 보내지 않고 같은 창이 다시 뜨고 로그인한 뒤 등록, 다른 계정이면 묻지 않고 `/post`(글 등록·댓글) |
+| `src/entities/auth/hooks/useAuthGuard.test.tsx`                                                                                                                                                                                                     | 로그인이 풀린 채 쓰던 화면에 남아 있으면 action 없이 그 이유의 로그인 창, `resumeAfterLogin`이면 창을 연 뒤에도 재개 액션을 싣는다                                                                                                                                                                                                         |
+| `e2e/logout.spec.ts`의 "쓰는 중에 로그아웃"(2개)                                                                                                                                                                                                    | 댓글을 쓰는 중이면 먼저 묻고 고른 대로 처리, 글 등록 화면에서는 이탈 확인 없이 `/post`                                                                                                                                                                                                                                                     |
 
 게이트 D는 두 호출부의 테스트 커버리지가 다릅니다. `useCreateComment.test.tsx:189,212`가
 `emailVerified: false` 케이스(안내 토스트, `createComment` 미호출)를 검증하지만,
@@ -1038,7 +1202,7 @@ Case 9의 줄 선 mutation 쪽(같은 탭 계정 전환 뒤 차례가 온 mutati
 1. ~~`client.ts`의 `retryCount`가 선언·전달만 되고 상한 검사를 받지 않습니다~~ →
    2026-09-21 수정. `client.ts`의 `handleTokenExpired`에서 `retryCount > 0`이면(이미 한 번 재시도한
    요청이 또 `TOKEN_EXPIRED`를 받으면) refresh를 다시 호출하지 않고 §2의 실패
-   경로(`clearAll()` + 영구 pending, 2026-10-28부터는 `SessionExpiredError` — 항목 3)로 합류하도록 가드를 추가했다. 재현 테스트:
+   경로(`clearAll()` + 영구 pending, 2026-10-28부터는 `SessionExpiredError` + 그 화면에 둔 채 다시 로그인 — 항목 3, §8-I)로 합류하도록 가드를 추가했다. 재현 테스트:
    `client.test.ts`의 "Case 1-2: refresh 성공 후 재시도한 요청도 다시
    TOKEN_EXPIRED".
 2. ~~`/auth/refresh` 요청 자체가 만료된 `Authorization` 헤더를 달고 나갑니다~~ →
@@ -1087,9 +1251,10 @@ Case 9의 줄 선 mutation 쪽(같은 탭 계정 전환 뒤 차례가 온 mutati
    **2026-10-28 해소.** 리더·대기 요청 모두 `SessionExpiredError`로 끝내고(`expireSession`), 그 에러는 전역 핸들러와
    직접 토스트를 띄우는 곳 모두에서 조용히 넘깁니다(§8-B "만료로 끝낸 요청은 실패로 끝납니다"). 토스트가 겹칠
    걱정 없이 끝낼 수 있게 되면서, 화면에 남은 폼이 "저장 중"에 멈추거나 댓글 등록이 비운 입력을 되돌리지 못하던
-   문제도 함께 사라졌습니다. 계기는 로그인이 만료돼도 쓰던 글을 잃지 않게 하는 작업이고, 화면을 떠나지 않고 다시
-   로그인하는 흐름은 같은 계획의 다음 단계입니다([`plans/2026-10-28-session-expiry-draft-preservation.md`](./plans/2026-10-28-session-expiry-draft-preservation.md)).
-   동작은 `client.test.ts` Case 1-2·2·2-1이 고정합니다.
+   문제도 함께 사라졌습니다. 계기는 로그인이 만료돼도 쓰던 글을 잃지 않게 하는 작업이고([`plans/2026-10-28-session-expiry-draft-preservation.md`](./plans/2026-10-28-session-expiry-draft-preservation.md)),
+   같은 날 화면을 떠나지 않고 그 자리에서 다시 로그인하는 흐름(§8-I)까지 들어왔습니다. 같은 계획의 쓰던 글 보관·복원
+   단계(Phase 2)는 진행하지 않기로 했습니다([`plans/2026-10-28-keep-writing-in-place.md`](./plans/2026-10-28-keep-writing-in-place.md),
+   [`docs/DECISIONS.md`](DECISIONS.md) 2026-10-28 항목). 동작은 `client.test.ts` Case 1-2·2·2-1이 고정합니다.
 4. **동시 401 큐잉(리더-팔로워 메커니즘)의 테스트 공백** — **2026-10-12 해소.** Case 1-1(refresh
    도중 도착, 성공 경로), Case 1-3(refresh가 끝난 뒤 늦게 도착), Case 2-1(refresh 실패
    경로)이 각각 고정합니다(§9 표).
@@ -1140,7 +1305,9 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
 
    함께 **`clearAll`이 mutation 캐시도 비웁니다.** 응답이 늦거나 오지 않는 요청의 pending mutation은 GC로도
    지워지지 않아 같은 `scope`의 다음 요청을 그 뒤에 묶습니다(당시 근거였던 위 3번의 영구 pending은 2026-10-28 해소)
-   (`auth.util.ts`의 `clearQueriesWithoutRefetch`, `auth.util.test.ts`가 고정).
+   (`auth.util.ts`의 `clearQueriesWithoutRefetch`, `auth.util.test.ts`가 고정). 로그인 만료는 2026-10-28부터 `clearAll`을
+   거치지 않아 mutation 캐시를 비우지 않지만, 만료로 끝난 요청은 리더·대기 요청 모두 `SessionExpiredError`로 끝나
+   pending으로 남지 않습니다(§8-B).
 
 10. **다른 탭에서 계정이 바뀐 순간 진행 중이던 요청은 새 계정으로 재실행될 수 있습니다**(2026-10-14 설계
     검토에서 확인). 옛 토큰으로 나간 요청이 `TOKEN_EXPIRED`를 받으면 `handleTokenExpired`가
@@ -1185,22 +1352,47 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
     #397)가 error로 막습니다 — 옵션을 변수·스프레드로 넘기면 못 잡습니다([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md)
     §11 "같은 대상의 연속 mutation" 6번). BE 확인은 헤더를 보내야 작동하는 정합성 장치라 보안 경계가 아닙니다.
 
+11. **로그인이 풀려도 쓰던 화면에 두기(§8-I)의 남은 한계**(2026-10-28, 코드 추적으로 확인 — 따로 표시한 것 말고는 재현
+    테스트 없음):
+    - **"나중에 이어 쓰기"는 없습니다.** 화면을 떠나지 않게 할 뿐 글을 보관하지 않으므로, 이탈 확인창에서 "나가기"를
+      고르거나 다른 계정으로 바뀌거나 직접 로그아웃을 확인하면 그 글은 사라집니다(쓰던 글 보관 안을 폐기한 대가,
+      [`docs/DECISIONS.md`](DECISIONS.md) 2026-10-28).
+    - **공용 PC**: 다른 탭에서 일부러 로그아웃해도, 쓰던 탭에는 로그인 창 뒤로 그 글이 보인 채 남습니다(쓰는 중일 때만).
+      전에는 보호 화면이면 `/post`로 옮기며 사라졌습니다. 창을 닫아도 이탈 확인창을 거쳐야 화면을 떠납니다.
+    - **로그인이 풀린 순간 확인창(Alert)이 열려 있으면 로그인 창이 열리지 않습니다.** `openSignInDialogInPlace`의 같은 주소
+      push를 이탈 확인 가드가 "열린 Alert 때문에 막힌 이동"으로 보고 그 Alert를 취소한 뒤 이동을 되돌립니다
+      (`useUnsavedChangesGuard.ts`의 `confirmBlockedNavigation`). 표시(`signedOutInPlace`)는 세워져 있어 화면은 남고,
+      다음에 저장·등록을 누르면 그 이유의 로그인 창이 뜹니다(`useAuthGuard`).
+    - **로그인 창 엔트리 주소에는 해시가 빠집니다.** 같은 `pathname+search`를 push하므로 `#comment-<id>`로 들어온 화면이면
+      창이 열린 엔트리에는 해시가 없습니다. 창을 닫으면 `navigate(-1)`로 해시가 있던 원래 엔트리로 돌아갑니다.
+    - **다른 계정으로 로그인한 직후의 이동이 겹칩니다.** 로그인 창이 닫히며 부르는 `navigate(-1)`과
+      `useLeaveOnMemberChange`의 `/post` replace가 같은 때 일어납니다. `e2e/auth-tab-sync.spec.ts`의 "창에서 다른 계정으로
+      로그인하면…" 테스트가 최종 주소 `/post`와 이탈 확인창이 없는 것을 고정합니다. 두 이동의 순서를 코드로 보장하지는
+      않으므로, 이 테스트가 흔들리면 이 겹침부터 봅니다.
+
 ---
 
 ## 12. 용어 사전
 
 - **게이트 A/B/C/D**: 이 문서(§5)에서 붙인 이름. 코드베이스에 이 명칭 자체는 없습니다.
 - **`TOKEN_EXPIRED`**: BE가 액세스 토큰의 유효기간이 지났을 때 주는 코드. "재시도하면 회복 가능"으로 취급됩니다.
-- **`INVALID_TOKEN`/`NOT_LOGGED_IN`**: 토큰이 없거나 형식이 잘못됐을 때. "회복 불가능"으로 취급되어 즉시 로그아웃됩니다.
+- **`INVALID_TOKEN`/`NOT_LOGGED_IN`**: 토큰이 무효이거나(`INVALID_TOKEN`) 아예 없을 때(`NOT_LOGGED_IN`). "이 토큰으로는 회복 불가능"으로 취급됩니다 — 토큰을 실어 보낸 `INVALID_TOKEN`은 로그인 만료라 그 화면에 둔 채 다시 로그인하게 하고(§8-I), 토큰 없이 보낸 `NOT_LOGGED_IN`은 `clearAll()`로 로그인 페이지에 보냅니다(§8-B).
 - **`EMAIL_NOT_VERIFIED`**: 이메일 미인증 계정이 글쓰기·댓글쓰기(그리고 글 작성·수정 폼의 링크 미리보기)를 시도했을 때 BE가 주는 403 코드(게이트 D, §8-F). `TOKEN_EXPIRED`/`INVALID_TOKEN`/`NOT_LOGGED_IN`과 달리 401이 아니라 403입니다 — 인증 자체는 됐고 권한(인가)만 없는 상태이기 때문입니다.
 - **`isRefreshing`/`refreshSubscribers`**: `client.ts`의 동시 401 처리 상태. 첫 401(리더)만 실제로 refresh를 트리거하고, 그 사이 도착한 나머지(팔로워)는 큐에 쌓였다가 리더의 refresh 완료 후 함께 재시도됩니다. refresh가 끝난 뒤 도착한 401은 큐에 들어가지 않고 `sentToken` 비교로 걸러집니다(§8-B).
 - **`sentToken`**: `handleTokenExpired`의 인자. 401을 받은 그 요청이 실제로 실어 보낸 `X-Access-Token` 값입니다. 지금 스토어의 토큰과 다르면 "이 요청을 보낸 뒤 이미 누가 갱신했다"는 뜻이라 refresh 없이 재시도합니다. 리더의 refresh에도 이 값을 실어 BE가 쿠키 주인과 같은 회원인지 확인하게 합니다.
 - **`SESSION_MISMATCH`**: refresh에 실린 토큰의 회원과 refresh 쿠키의 회원이 다를 때 BE가 주는 409 코드(§8-B). 새 토큰은 발급되지 않고, FE는 그 탭만 로그아웃합니다.
-- **`hasBeenAuthenticated`**: `ProtectedRoute`가 "이 마운트에서 한 번이라도 로그인 상태였는가"를 추적하는 state(`useState`, 렌더 중에 맞춤 — 렌더 중에 읽으므로 ref가 아님). 로그아웃/세션만료(true였다가 false)와 애초에 비로그인(처음부터 false)을 구분해, 후자만 로그인 모달을 띄웁니다.
+- **`hasBeenAuthenticated`**: `ProtectedRoute`가 "이 마운트에서 한 번이라도 로그인 상태였는가"를 추적하는 state(`useState`, 렌더 중에 맞춤 — 렌더 중에 읽으므로 ref가 아님). 로그아웃(true였다가 false)과 애초에 비로그인(처음부터 false)을 구분해, 후자만 로그인 모달을 띄웁니다. 로그인이 풀렸지만 그 화면에 두는 경우(만료 등)는 이 값이 아니라 `signedOutInPlace`가 다룹니다.
 - **`has-session` 플래그**: 리프레시 토큰이 httpOnly라 존재 여부를 JS가 알 수 없으므로 대신 두는 "세션이 있을 가능성" 힌트. 진짜 인증 상태가 아닙니다.
 - **인증 세대(epoch)**: 명시적 로그인·로그아웃마다 바뀌는 localStorage 값(`in:`/`out:` + UUID). 다른 탭과 bfcache로 되살아난 페이지가 "내가 알던 뒤로 인증이 바뀌었는가"를 알아채는 데 씁니다(§8-H).
 - **`tokenEpoch`**: 이 탭이 지금 들고 있는 토큰이 속한 인증 세대(메모리). 토큰을 넣고 뺄 때 맞추고, `client.ts`가 요청마다 탭 안 세대와 함께 기억해 401 때 지금 저장된 세대·탭 안 세대와 비교합니다(§8-B).
 - **탭 안 세대(`inTabEpoch`)**: 이 탭에서 명시적으로 로그인·로그아웃한 횟수(메모리, `auth-epoch.util.ts`). localStorage에 못 써도 늘어나, 요청이 기억한 값과 다르면 같은 탭에서 계정이 바뀐 것으로 봅니다. refresh로는 바뀌지 않고, 다른 탭의 변화를 보는 `isStale`에는 쓰지 않습니다(§8-B).
+- **`signedOutInPlace`**: `useAuthStore`의 값. 로그인이 풀렸지만 쓰던 화면에 그대로 둔 이유(`'expired'` 만료 / `'signedOutElsewhere'` 쓰는 중 다른 탭 로그아웃)와 그 화면의 `pathname`. 이 값이 있는 동안 게이트 A는 화면을 남기고, 세션 무효 401은 조용히 끝나며, 로그아웃 상태여도 이탈 확인창이 동작합니다(§8-I).
+- **`applySessionExpired`**: 로그인 만료를 처리하는 `AuthUtil` 메서드. `client.ts`가 refresh 401 거절·토큰을 실은 `INVALID_TOKEN` 때 부릅니다. 화면을 떠나지 않고 로그인 창(보호 화면·저장 중·쓰는 중) 또는 닫을 때까지 남는 토스트(보기만 하던 공개 화면)를 띄웁니다(§8-I).
+- **`reflectSignOutFromElsewhere`**: 다른 탭의 로그아웃을 이 탭에 반영하는 `AuthUtil` 메서드. 쓰는 중이면 이동 없이 로그인 창을 열고, 아니면 `applySignOutFromElsewhere`(보호 화면이면 `/post`)를 부릅니다(§8-H·§8-I).
+- **`loginDialogReason`**: 로그인 창을 여는 history state에 함께 싣는 이유(`signedOutInPlace`의 `reason`과 같은 값). 로그인 창이 이 값으로 제목·설명을 고릅니다(§8-I).
+- **`useLeaveOnMemberChange`**: `RootLayout`에서 한 번 호출하는 app 레이어 훅(`src/app/hooks/`). 마지막으로 본 회원 id를 기억했다가 다른 회원으로 바뀌었을 때 쓰는 중이거나 보호 화면이면 이탈 확인 등록을 모두 비우고 `/post`로 보냅니다. 그 자리에 두지 않은 로그아웃(평소 로그아웃 등)이면 기억한 회원을 놓습니다(§8-I).
+- **`SessionExpiredError`**: 로그인 만료로 끝낸 요청의 에러(`common.type.ts`). 재시도하지 않고 어떤 실패 토스트도 띄우지 않습니다. 폼은 이 에러를 받으면 입력만 남기고 끝냅니다. 폼 안 안내는 `useSignedOutNotice`가 상태를 보고 띄웁니다(§8-B·§8-I).
+- **`useSignedOutNotice`**: 로그인이 풀린 채 쓰던 화면에 남아 있고 쓴 내용이 있는 동안 폼 안 안내 문구를 돌려주는 훅(`entities/auth/hooks/useSignedOutNotice.ts`). 다시 로그인하면 `null`이라 안내가 사라집니다(§8-I).
 - **`SessionChangedError`**: 요청을 보낸 뒤 인증 세대가 바뀌어 일부러 처리하지 않고 끝낸 요청의 에러(`common.type.ts`). 재시도하지 않고, 사용자가 누른 동작에만 안내 토스트를 띄웁니다(§8-B).
 - **bfcache**: 뒤로/앞으로 이동 때 떠났던 페이지를 메모리(JS 상태 포함)째 복원하는 브라우저 기능. 복원되면 `pageshow` 이벤트의 `persisted`가 `true`입니다.
 - **reward early, punish late**: 입력 검증 시점 원칙(§8-G). 맞는 쪽으로 가는 변화는 즉시 알리고, 틀린 것은 입력이 끝난 뒤(칸을 벗어나거나 제출한 뒤) 알린다. 이미 틀렸다고 알린 상태를 고치는 중이면 입력하는 대로 다시 판정한다.
@@ -1221,3 +1413,7 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
 - [`docs/plans/2026-09-28-auth-hardening.md`](plans/2026-09-28-auth-hardening.md) — JWT 폐지·이메일 인증 게이팅 범위(로그인/읽기 제외, 쓰기만) 등 "확정된 결정들"의 조사 근거 전문
 - [`docs/TESTING.md`](TESTING.md) — `client.test.ts`가 왜 존재하고 어떤 스타일로 401 시나리오를 검증하는지
 - [`docs/plans/2026-09-30-password-live-feedback.md`](plans/2026-09-30-password-live-feedback.md) — 비밀번호 입력 피드백(§8-G)의 계획 스냅샷: 판단 표, 확인 칸 판정 흐름, 영향 범위
+- [`docs/DECISIONS.md`](DECISIONS.md) 2026-10-28 "쓰던 글 보관(Phase 2) 대신 로그인이 풀려도 쓰던 화면에 둔다" — §8-I의 대안 비교와 대가
+- [`docs/plans/2026-10-28-session-expiry-draft-preservation.md`](plans/2026-10-28-session-expiry-draft-preservation.md) — 로그인 만료 전체 계획(Phase 1 요청 끝내기, Phase 3 만료 UX). Phase 2는 폐기
+- [`docs/plans/2026-10-28-keep-writing-in-place.md`](plans/2026-10-28-keep-writing-in-place.md) — Phase 2를 폐기하고 다른 탭 로그아웃·회원 변경·직접 로그아웃까지 넓힌 계획
+- [`docs/UNSAVED-CHANGES-GUARD.md`](UNSAVED-CHANGES-GUARD.md) — 로그인이 풀린 채 그 화면에 둔 동안에도 동작하는 이탈 확인창

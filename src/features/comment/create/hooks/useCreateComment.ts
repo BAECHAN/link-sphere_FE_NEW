@@ -16,6 +16,7 @@ import { useImageAttachments } from '@/shared/hooks/useImageAttachments';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
 import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
+import { useSignedOutNotice } from '@/entities/auth/hooks/useSignedOutNotice';
 import { useAccount } from '@/entities/account/hooks/useAccount';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
@@ -124,10 +125,10 @@ export function useCreateComment({
 
   const isOverLimit = getUtf8ByteLength(contentValue) > MAX_COMMENT_CONTENT_BYTES;
 
-  useUnsavedChanges(
-    `comment-create:${postId}:${parentId ?? 'root'}`,
-    contentValue.trim().length > 0 || images.length > 0
-  );
+  const hasInput = contentValue.trim().length > 0 || images.length > 0;
+
+  useUnsavedChanges(`comment-create:${postId}:${parentId ?? 'root'}`, hasInput);
+  const signedOutNotice = useSignedOutNotice(hasInput);
 
   useEffect(() => {
     if (autoFocus) {
@@ -153,8 +154,9 @@ export function useCreateComment({
         await createComment({ content, images: submittedImages, author });
       }
     } catch (error) {
-      // 로그인 만료로 끝났으면 안내는 만료 정리가 맡는다(ErrorUtil.isSessionExpired) - 실패 문구 없이 비웠던
-      // 입력만 되돌린다
+      // 요청하는 사이 로그인이 만료됐다(ErrorUtil.isSessionExpired) - 풀린 뒤에 누르면 가드가 먼저 막아 여기 오지 않는다.
+      // 다시 로그인하라는 안내는 로그인 창이, 폼 안 안내는 useSignedOutNotice가 맡는다(되돌린 입력이 있는 동안).
+      // 여기서는 비웠던 입력만 되돌린다. 폼이 닫혔으면 조용히 끝낸다
       const message = ErrorUtil.isSessionExpired(error)
         ? null
         : CommentUtil.resolveSubmitError(error, isReply ? 'reply' : 'create');
@@ -230,7 +232,8 @@ export function useCreateComment({
     isReply,
     contentValue,
     isOverLimit,
-    failureMessage,
+    // 로그인이 풀린 채 남아 있으면 그 안내가 먼저다(useCreatePost.ts와 같은 이유)
+    failureMessage: signedOutNotice ?? failureMessage,
     images,
     imagePreviewUrls,
     isDraggingOver,

@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
+import { AuthUtil } from '@/shared/utils/auth.util';
 
 interface AuthGuardOptions {
   /**
@@ -21,9 +22,12 @@ interface AuthGuardOptions {
  * 로그인 모달을 띄우고, 로그인 상태면 전달받은 action을 그대로 실행한다.
  * (기본값은 로그인 후 action을 자동 실행하지 않는다 — 로그인만 유도.
  * resumeAfterLogin을 켠 action만 재개하며, 서버에 쓰는 action에는 켜지 않는다.)
+ * 로그인이 풀린 채 쓰던 화면에 남아 있으면(auth.store signedOutInPlace) 그 이유를 알리는 창으로 연다 - 로그인이
+ * 풀렸을 때 뜬 창과 같은 창이라, 닫은 뒤 어느 폼에서 제출하든 같은 창이 다시 뜬다.
  */
 export function useAuthGuard() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const signedOutInPlaceReason = useAuthStore((state) => state.signedOutInPlace?.reason);
   const setLoginOnSuccess = useLoginDialogStore((state) => state.setOnSuccess);
   const setPendingAction = useLoginDialogStore((state) => state.setPendingAction);
   const { open: openLoginDialog } = useHistoryOverlay('loginDialogOpen');
@@ -34,6 +38,14 @@ export function useAuthGuard() {
         action();
         return;
       }
+
+      if (signedOutInPlaceReason) {
+        // 콜백·재개 액션을 비운 뒤 연다 - 재개 액션은 그 뒤에 다시 심는다
+        AuthUtil.openSignInDialogInPlace(signedOutInPlaceReason);
+        setPendingAction(options?.resumeAfterLogin ? action : undefined);
+        return;
+      }
+
       // 이전에 열렸을 때의 콜백이 남아 있지 않도록 비운다 - 이 가드는 navigate형
       // 채널(onSuccess)을 쓰지 않는다
       setLoginOnSuccess(undefined);
@@ -42,6 +54,6 @@ export function useAuthGuard() {
       setPendingAction(options?.resumeAfterLogin ? action : undefined);
       openLoginDialog();
     },
-    [isAuthenticated, setLoginOnSuccess, setPendingAction, openLoginDialog]
+    [isAuthenticated, signedOutInPlaceReason, setLoginOnSuccess, setPendingAction, openLoginDialog]
   );
 }

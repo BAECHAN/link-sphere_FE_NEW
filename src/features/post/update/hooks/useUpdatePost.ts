@@ -12,6 +12,8 @@ import { useEffect, useRef, useState } from 'react';
 import { PostUtil, PostSubmitErrorResolution } from '@/entities/post/utils/post.util';
 import { useLinkPreview } from '@/entities/post/hooks/useLinkPreview';
 import { useAccount } from '@/entities/account/hooks/useAccount';
+import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
+import { useSignedOutNotice } from '@/entities/auth/hooks/useSignedOutNotice';
 import { ErrorUtil } from '@/shared/utils/error.util';
 import { useForm } from 'react-hook-form';
 
@@ -28,20 +30,33 @@ export function useUpdatePost(postId: string) {
   });
 
   const initializedUrlRef = useRef<string | null>(null);
+  const initializedPostIdRef = useRef<string | null>(null);
   const wasUrlChangedRef = useRef(false);
 
   useEffect(
     function resetFormWithFetchedPost() {
-      if (post) {
-        form.reset({
-          url: post.url,
-          title: post.title,
-          categoryIds: (post.categories?.map((c) => String(c.id)) ?? []) as unknown as number[],
-          isPrivate: post.isPrivate,
-        });
-        initializedUrlRef.current = post.url;
-        wasUrlChangedRef.current = false;
+      if (!post) {
+        return;
       }
+
+      // 고치던 내용은 다시 불러온 서버 값으로 덮지 않는다 - 로그인이 풀린 채 이 화면에 남았다가 다시 로그인하면
+      // 무효화 재조회가 새 post 참조를 내려 수정 중이던 내용이 지워졌다(docs/plans/2026-10-28-keep-writing-in-place.md).
+      // formState.isDirty는 렌더 중에 읽혀 구독돼 있고, 이 렌더의 값을 돌려준다(react-hook-form 7.71.0
+      // dist/index.esm.mjs:2931 getProxyFormState). 다른 글로 바뀌었으면 덮는다 - PostEditPage가 같은 라우트에서 폼을
+      // 다시 마운트하지 않아, 두면 이전 글의 고친 값이 그 글로 저장된다.
+      if (initializedPostIdRef.current === post.id && form.formState.isDirty) {
+        return;
+      }
+
+      form.reset({
+        url: post.url,
+        title: post.title,
+        categoryIds: (post.categories?.map((c) => String(c.id)) ?? []) as unknown as number[],
+        isPrivate: post.isPrivate,
+      });
+      initializedUrlRef.current = post.url;
+      initializedPostIdRef.current = post.id;
+      wasUrlChangedRef.current = false;
     },
     [post, form]
   );
@@ -70,6 +85,8 @@ export function useUpdatePost(postId: string) {
 
   const { clearNow } = useUnsavedChanges(`post-update:${postId}`, form.formState.isDirty);
   const hasLeftPage = useHasLeftPage();
+  const guard = useAuthGuard();
+  const signedOutNotice = useSignedOutNotice(form.formState.isDirty);
   // 입력칸과 무관한 실패(글 삭제됨·권한·네트워크 등)의 안내 - 버튼 위 FormAlert에 남는다
   const [submitError, setSubmitError] = useState<Extract<
     PostSubmitErrorResolution,
@@ -112,13 +129,13 @@ export function useUpdatePost(postId: string) {
   // 가드를 그대로 남긴다. 수정은 대부분 크롤링이 없는 짧은 요청이고, URL 변경 재크롤링도
   // 등록과 같은 수 초 수준이다(docs/DECISIONS.md 2026-10-03 항목). 실패는 원인별 안내로
   // 바꾼다(useCreatePost.ts와 같은 이유).
-  const onSubmit = form.handleSubmit(async (formData: UpdatePost) => {
+  async function submitPost(formData: UpdatePost) {
     setSubmitError(null);
 
     try {
       await updatePost({ ...formData, url: UrlUtil.normalizeUrl(formData.url) });
     } catch (error) {
-      // 로그인 만료로 끝났으면 안내는 만료 정리가 맡는다 - 입력은 그대로 남는다(ErrorUtil.isSessionExpired)
+      // useCreatePost.ts와 같은 이유 - 폼 안 안내는 useSignedOutNotice가 맡는다
       if (ErrorUtil.isSessionExpired(error)) {
         return;
       }
@@ -154,6 +171,17 @@ export function useUpdatePost(postId: string) {
     clearNow();
     // 수정 화면에 들어온 곳으로 되돌아간다 (목록 스크롤 위치 유지).
     goBack();
+  }
+
+  // useCreatePost.ts와 같은 이유 - 로그인이 풀린 채 눌렀으면 보내지 않고 로그인 창을 연다
+  const onSubmit = form.handleSubmit(async (formData: UpdatePost) => {
+    let submitting: Promise<void> | undefined;
+
+    guard(() => {
+      submitting = submitPost(formData);
+    });
+
+    await submitting;
   });
 
   return {
@@ -162,7 +190,10 @@ export function useUpdatePost(postId: string) {
     isLoading,
     isUpdating,
     onSubmit,
-    submitError,
+    // useCreatePost.ts와 같은 이유
+    submitError: signedOutNotice
+      ? { kind: 'form' as const, message: signedOutNotice }
+      : submitError,
     linkPreview,
   };
 }

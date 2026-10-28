@@ -1,15 +1,19 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import { installCatchAll } from './mocks/catch-all';
 import { mockAuthRefresh, mockLoginSuccess } from './mocks/auth.mock';
 import { mockAccountQuery } from './mocks/account.mock';
 import { mockCategoryOptions } from './mocks/common.mock';
-import { mockPostList } from './mocks/post.mock';
+import { mockPostDetail, mockPostList } from './mocks/post.mock';
 import { mockBookmarkFolderList, mockBookmarkFolderPosts } from './mocks/bookmark-folder.mock';
 import { ENDPOINTS } from './mocks/endpoints';
 import { isApiPath } from './mocks/route-match';
 import { wrapResponse } from './mocks/wrap-response';
 import { mockLoginResponse } from '@/mocks/fixtures/auth.fixtures';
+import { mockAccount } from '@/mocks/fixtures/account.fixtures';
+import { mockPost } from '@/mocks/fixtures/post.fixtures';
+import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 import { TEXTS } from '@/shared/config/texts';
 
@@ -223,5 +227,332 @@ test.describe('탭 간 로그인·로그아웃 동기화', () => {
     ).toBeVisible();
     // 부트스트랩(헤더 없음) → 받아들이기(옛 토큰, 409) → 로그아웃 뒤 복원(헤더 없음)
     expect(hints).toEqual([null, mockLoginResponse.accessToken, null]);
+  });
+});
+
+// 쓰는 중에 다른 탭이 로그아웃하면 그 탭은 화면을 떠나지 않고 그 자리에서 다시 로그인하게 한다 - 이동하면 쓰던 글이 확인 없이
+// 사라진다(docs/plans/2026-10-28-keep-writing-in-place.md, AuthUtil.reflectSignOutFromElsewhere)
+test.describe('쓰는 중에 다른 탭에서 로그아웃', () => {
+  const NEW_URL = 'https://newlink.example.com/article';
+  const NEW_POST = { ...mockPost, id: 'post-uuid-new', url: NEW_URL, title: '새로 등록한 링크' };
+  const COMMENT_PATH = /^\/api\/post\/[^/]+\/comment$/;
+
+  /** 두 탭 모두 이전 로그인 흔적이 있는 상태로 열고, 쓰는 탭과 로그아웃할 탭을 준비한다 */
+  async function openWritingAndFeedTabs(context: BrowserContext) {
+    await context.addInitScript((key) => {
+      window.localStorage.setItem(key, 'true');
+    }, STORAGE_KEYS.AUTH.HAS_SESSION);
+    const writingTab = await context.newPage();
+    const feedTab = await context.newPage();
+    await installMocks(writingTab);
+    await installMocks(feedTab);
+
+    return { writingTab, feedTab };
+  }
+
+  /** 등록 요청은 성공하고, 목록 조회는 그대로 둔다(mockPostList와 같은 경로) */
+  async function mockPostCreate(page: Page) {
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.post.base),
+      (route) =>
+        route.request().method() === 'POST'
+          ? route.fulfill({ json: wrapResponse(NEW_POST) })
+          : route.fallback()
+    );
+  }
+
+  async function startWritingPost(page: Page) {
+    await page.goto('/post/submit');
+    await expect(page.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })).toBeVisible();
+    // URL 필드는 필수 표시(*)가 붙어 접근 가능한 이름이 "URL*"가 된다 - 앞부분만 고정해서 매칭한다
+    await page.getByLabel(/^URL/).fill(NEW_URL);
+  }
+
+  /** 글 상세에서 댓글을 쓰기 시작한다 - 댓글 목록은 비어 있다 */
+  async function startWritingComment(page: Page, content: string) {
+    await mockPostDetail(page);
+    await page.route(
+      (url) => COMMENT_PATH.test(url.pathname),
+      (route) => route.fulfill({ json: wrapResponse([]) })
+    );
+    await page.goto(`/post/${mockPost.id}`);
+    await expect(page.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })).toBeVisible();
+    const commentInput = page.getByPlaceholder(TEXTS.comment.form.commentPlaceholder);
+    await commentInput.fill(content);
+
+    return commentInput;
+  }
+
+  /** 다른 계정 - 로그인한 뒤의 계정 조회는 그 계정을 돌려준다 */
+  async function mockSignInAsOtherMember(page: Page) {
+    let signedInAsOther = false;
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.auth.login),
+      (route) => {
+        signedInAsOther = true;
+        return route.fulfill({
+          json: wrapResponse({ ...mockLoginResponse, accessToken: 'other-member-token' }),
+        });
+      }
+    );
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.auth.account),
+      (route) =>
+        signedInAsOther
+          ? route.fulfill({
+              json: wrapResponse({ ...mockAccount, id: 'other-member-id', nickname: 'other' }),
+            })
+          : route.fallback()
+    );
+  }
+
+  async function signOutFrom(page: Page) {
+    await page.goto('/post');
+    await page.getByRole('button', { name: TEXTS.ariaLabels.accountMenu }).click();
+    await page.getByRole('menuitem', { name: TEXTS.nav.logOut }).click();
+    await expect(page.getByRole('button', { name: TEXTS.nav.logIn })).toBeVisible();
+  }
+
+  async function signInFromDialog(page: Page, dialog: Locator) {
+    await dialog.getByLabel(`${TEXTS.labels.email}*`, { exact: true }).fill('test@example.com');
+    await dialog.getByLabel(`${TEXTS.labels.password}*`, { exact: true }).fill(VALID_PASSWORD);
+    // dialog.tsx의 열린 직후 클릭 가드 - 위 fill 두 번이 그 시간을 채운다는 보장이 없다(protected-nav.spec.ts 선례)
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await dialog.getByRole('button', { name: TEXTS.auth.login.signIn, exact: true }).click();
+    await expect(dialog).toBeHidden();
+  }
+
+  /** 확인창은 열린 직후 클릭을 무시한다(useOpenClickGuard) - 가드 시간을 흘려보낸 뒤 누른다 */
+  async function answerLeaveConfirm(page: Page, name: string) {
+    const confirm = page.getByRole('alertdialog', { name: TEXTS.unsavedChanges.title });
+    await expect(confirm).toBeVisible();
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await confirm.getByRole('button', { name }).click();
+    await expect(confirm).toBeHidden();
+  }
+
+  test('글 등록 화면에서 쓰는 중이면 보호 화면이어도 옮기지 않고 그 자리에 로그인 창을 띄우며, 같은 계정으로 다시 로그인하면 이어서 등록한다', async ({
+    context,
+  }) => {
+    const { writingTab, feedTab } = await openWritingAndFeedTabs(context);
+    await mockPostCreate(writingTab);
+    await startWritingPost(writingTab);
+
+    await signOutFrom(feedTab);
+
+    const dialog = writingTab.getByRole('dialog', {
+      name: TEXTS.auth.guard.signedOutElsewhere.title,
+    });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText(TEXTS.auth.guard.signedOutElsewhere.description)).toBeVisible();
+    await expect(writingTab).toHaveURL(/\/post\/submit$/);
+    // 저장을 누르지 않았어도 로그아웃된 동안에는 폼 안에 안내가 보인다 - 저장 중 만료와 같다
+    await expect(writingTab.getByText(TEXTS.messages.error.signedOutBeforeSave)).toBeVisible();
+
+    await signInFromDialog(writingTab, dialog);
+
+    await expect(writingTab).toHaveURL(/\/post\/submit$/);
+    await expect(writingTab.getByLabel(/^URL/)).toHaveValue(NEW_URL);
+    await expect(writingTab.getByText(TEXTS.messages.error.signedOutBeforeSave)).toHaveCount(0);
+
+    await writingTab.getByRole('button', { name: TEXTS.post.form.create.submit }).click();
+
+    await expect(writingTab).toHaveURL(/\/post$/);
+    await expect(
+      writingTab.getByRole('alertdialog', { name: TEXTS.unsavedChanges.title })
+    ).toHaveCount(0);
+  });
+
+  test('글 상세에서 댓글을 쓰는 중이면 그 자리에 로그인 창을 띄우고, 같은 계정으로 다시 로그인하면 쓰던 댓글을 등록한다', async ({
+    context,
+  }) => {
+    const { writingTab, feedTab } = await openWritingAndFeedTabs(context);
+    await mockPostDetail(writingTab);
+    let commentCreated = false;
+    await writingTab.route(
+      (url) => COMMENT_PATH.test(url.pathname),
+      (route) => {
+        if (route.request().method() === 'POST') {
+          commentCreated = true;
+          return route.fulfill({ status: 201, json: wrapResponse(mockComment) });
+        }
+
+        return route.fulfill({ json: wrapResponse(commentCreated ? [mockComment] : []) });
+      }
+    );
+
+    await writingTab.goto(`/post/${mockPost.id}`);
+    await expect(
+      writingTab.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })
+    ).toBeVisible();
+    const commentInput = writingTab.getByPlaceholder(TEXTS.comment.form.commentPlaceholder);
+    await commentInput.fill('다른 탭 로그아웃 중에 쓴 댓글');
+
+    await signOutFrom(feedTab);
+
+    const dialog = writingTab.getByRole('dialog', {
+      name: TEXTS.auth.guard.signedOutElsewhere.title,
+    });
+    await expect(dialog).toBeVisible();
+    await expect(writingTab).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
+
+    await signInFromDialog(writingTab, dialog);
+
+    await expect(commentInput).toHaveValue('다른 탭 로그아웃 중에 쓴 댓글');
+    await writingTab.getByRole('button', { name: TEXTS.comment.form.submitComment }).click();
+
+    await expect(writingTab.getByText(mockComment.content)).toBeVisible();
+    expect(commentCreated).toBe(true);
+  });
+
+  test('로그인 없이 창을 닫으면 이탈 확인창이 묻고, 계속 작성을 고르면 그 자리에 남으며, 다른 메뉴로 가려 하면 다시 묻고 나가기를 고르면 떠난다', async ({
+    context,
+  }) => {
+    const { writingTab, feedTab } = await openWritingAndFeedTabs(context);
+    await startWritingPost(writingTab);
+
+    await signOutFrom(feedTab);
+
+    const dialog = writingTab.getByRole('dialog', {
+      name: TEXTS.auth.guard.signedOutElsewhere.title,
+    });
+    await expect(dialog).toBeVisible();
+    await writingTab.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+
+    // 보호 화면은 로그인 없이 쓸 수 없어 피드로 보내려 하고, 쓰는 중이라 이탈 확인창이 막는다
+    await answerLeaveConfirm(writingTab, TEXTS.unsavedChanges.cancel);
+
+    await expect(writingTab).toHaveURL(/\/post\/submit$/);
+    await expect(writingTab.getByLabel(/^URL/)).toHaveValue(NEW_URL);
+    // 창을 닫아도 로그아웃됐다는 것은 폼 안 안내로 남는다
+    await expect(writingTab.getByText(TEXTS.messages.error.signedOutBeforeSave)).toBeVisible();
+    // 계속 쓰기로 했으니 로그인 창을 다시 열거나 다시 묻지 않는다
+    await writingTab.waitForTimeout(NO_FOLLOW_UP_WAIT_MS);
+    await expect(writingTab.getByRole('dialog')).toHaveCount(0);
+    await expect(writingTab.getByRole('alertdialog')).toHaveCount(0);
+
+    await writingTab.getByRole('link', { name: TEXTS.nav.feed }).click();
+    await answerLeaveConfirm(writingTab, TEXTS.unsavedChanges.confirm);
+
+    await expect(writingTab).toHaveURL(/\/post$/);
+  });
+
+  test('로그인 없이 창을 닫고 계속 쓰다 등록을 누르면 보내지 않고 같은 로그인 창을 다시 띄우며, 로그인한 뒤 다시 누르면 등록한다', async ({
+    context,
+  }) => {
+    const { writingTab, feedTab } = await openWritingAndFeedTabs(context);
+    let createRequests = 0;
+    await writingTab.route(
+      (url) => isApiPath(url, ENDPOINTS.post.base),
+      (route) => {
+        if (route.request().method() !== 'POST') {
+          return route.fallback();
+        }
+
+        createRequests += 1;
+        return route.fulfill({ json: wrapResponse(NEW_POST) });
+      }
+    );
+    await startWritingPost(writingTab);
+
+    await signOutFrom(feedTab);
+
+    const dialog = writingTab.getByRole('dialog', {
+      name: TEXTS.auth.guard.signedOutElsewhere.title,
+    });
+    await expect(dialog).toBeVisible();
+    await writingTab.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await answerLeaveConfirm(writingTab, TEXTS.unsavedChanges.cancel);
+
+    // 댓글·답글 등록과 같은 가드(useAuthGuard) - 로그인이 풀렸을 때 뜬 그 창이 다시 뜬다
+    await writingTab.getByRole('button', { name: TEXTS.post.form.create.submit }).click();
+
+    await expect(dialog).toBeVisible();
+    expect(createRequests).toBe(0);
+    await expect(writingTab.getByText(TEXTS.messages.error.signedOutBeforeSave)).toBeVisible();
+
+    await signInFromDialog(writingTab, dialog);
+
+    await expect(writingTab).toHaveURL(/\/post\/submit$/);
+    await expect(writingTab.getByLabel(/^URL/)).toHaveValue(NEW_URL);
+    await expect(writingTab.getByText(TEXTS.messages.error.signedOutBeforeSave)).toHaveCount(0);
+
+    await writingTab.getByRole('button', { name: TEXTS.post.form.create.submit }).click();
+
+    await expect(writingTab).toHaveURL(/\/post$/);
+    expect(createRequests).toBe(1);
+  });
+
+  test('창에서 다른 계정으로 로그인하면 이전 계정으로 쓰던 글을 묻지 않고 버린 채 /post로 간다', async ({
+    context,
+  }) => {
+    const { writingTab, feedTab } = await openWritingAndFeedTabs(context);
+    await mockSignInAsOtherMember(writingTab);
+    await startWritingPost(writingTab);
+
+    await signOutFrom(feedTab);
+
+    const dialog = writingTab.getByRole('dialog', {
+      name: TEXTS.auth.guard.signedOutElsewhere.title,
+    });
+    await signInFromDialog(writingTab, dialog);
+
+    await expect(writingTab).toHaveURL(/\/post$/);
+    await expect(
+      writingTab.getByRole('alertdialog', { name: TEXTS.unsavedChanges.title })
+    ).toHaveCount(0);
+    await expect(
+      writingTab.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })
+    ).toBeVisible();
+  });
+
+  test('글 상세에서 댓글을 쓰다 로그인 없이 창을 닫으면 그 자리에 남고, 다른 메뉴로 가려 하면 이탈 확인창이 묻고 나가기를 고르면 떠난다', async ({
+    context,
+  }) => {
+    const { writingTab, feedTab } = await openWritingAndFeedTabs(context);
+    const commentInput = await startWritingComment(writingTab, '창을 닫고 남긴 댓글');
+
+    await signOutFrom(feedTab);
+
+    const dialog = writingTab.getByRole('dialog', {
+      name: TEXTS.auth.guard.signedOutElsewhere.title,
+    });
+    await expect(dialog).toBeVisible();
+    await writingTab.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+
+    // 공개 화면이라 창을 닫아도 같은 주소에 남는다 - 이탈 확인창도 뜨지 않는다
+    await expect(writingTab).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
+    await expect(commentInput).toHaveValue('창을 닫고 남긴 댓글');
+    await expect(writingTab.getByText(TEXTS.messages.error.signedOutBeforeSave)).toBeVisible();
+    await expect(writingTab.getByRole('alertdialog')).toHaveCount(0);
+
+    await writingTab.getByRole('link', { name: TEXTS.nav.feed }).click();
+    await answerLeaveConfirm(writingTab, TEXTS.unsavedChanges.confirm);
+
+    await expect(writingTab).toHaveURL(/\/post$/);
+  });
+
+  test('글 상세에서 댓글을 쓰다 창에서 다른 계정으로 로그인하면 쓰던 댓글을 묻지 않고 버린 채 /post로 간다', async ({
+    context,
+  }) => {
+    const { writingTab, feedTab } = await openWritingAndFeedTabs(context);
+    await mockSignInAsOtherMember(writingTab);
+    await startWritingComment(writingTab, '이전 계정으로 쓴 댓글');
+
+    await signOutFrom(feedTab);
+
+    const dialog = writingTab.getByRole('dialog', {
+      name: TEXTS.auth.guard.signedOutElsewhere.title,
+    });
+    await signInFromDialog(writingTab, dialog);
+
+    await expect(writingTab).toHaveURL(/\/post$/);
+    await expect(
+      writingTab.getByRole('alertdialog', { name: TEXTS.unsavedChanges.title })
+    ).toHaveCount(0);
+    await expect(writingTab.getByText('이전 계정으로 쓴 댓글')).toHaveCount(0);
   });
 });

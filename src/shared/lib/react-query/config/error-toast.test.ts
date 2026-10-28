@@ -8,6 +8,7 @@ import {
 import { TEXTS } from '@/shared/config/texts';
 import { LogoutGraceUtil } from '@/shared/utils/logout-grace.util';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { useAuthStore } from '@/shared/store/auth.store';
 import {
   resolveErrorToast,
   MUTATION_ERROR_POLICY,
@@ -145,6 +146,20 @@ describe('resolveErrorToast', () => {
   it('로그아웃 유예 중인 401은 meta.errorMessage가 있어도 조용히 종료한다 (mutation)', () => {
     LogoutGraceUtil.markClearedAt();
     const error = apiError({ code: SERVER_ERROR_CODE.INVALID_TOKEN });
+
+    const decision = resolveErrorToast(
+      error,
+      { errorMessage: '게시글 등록에 실패했어요' },
+      MUTATION_ERROR_POLICY
+    );
+
+    expect(decision).toEqual({ silent: true });
+  });
+
+  it('로그인이 풀린 채 그 화면에 머무는 동안의 401은 meta.errorMessage가 있어도 조용히 종료한다', () => {
+    // 다시 로그인하라는 안내는 로그인 창·만료 토스트가 이미 맡고 있다(auth.store signedOutInPlace)
+    useAuthStore.getState().expireSession('/post/submit');
+    const error = apiError({ code: SERVER_ERROR_CODE.NOT_LOGGED_IN });
 
     const decision = resolveErrorToast(
       error,

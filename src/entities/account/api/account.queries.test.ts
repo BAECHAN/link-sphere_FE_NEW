@@ -14,6 +14,9 @@ import { accountKeys } from '@/entities/account/api/account.keys';
 import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 import type { Account } from '@/entities/account/model/account.schema';
 import { TEXTS } from '@/shared/config/texts';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { useAuthStore } from '@/shared/store/auth.store';
+import { SessionExpiredError } from '@/shared/types/common.type';
 
 vi.mock('@/shared/lib/firebase/fcm', () => ({
   requestAndRegisterFcmToken: vi.fn(),
@@ -54,6 +57,7 @@ function Wrapper({ children }: { children: ReactNode }) {
 
 beforeEach(() => {
   queryClient = createTestQueryClient({ gcTime: Infinity });
+  useAuthStore.getState().clearAuth();
 });
 
 describe('useUpdateAccountMutation', () => {
@@ -114,6 +118,56 @@ describe('useUpdateAccountMutation', () => {
     expect(queryClient.getQueryData<Account>(accountKeys.root)?.nickname).toBe(
       mockAccount.nickname
     );
+  });
+
+  it('로그인이 풀린 채 이 화면에 둔 만료로 끝나면 남아 있는 캐시를 이전 값으로 되돌리고 안내는 띄우지 않는다', async () => {
+    // 보호 경로의 만료는 캐시를 남긴다(AuthUtil.applySessionExpired) - 그 상태에서 보낸 요청은 무음 만료로 끝난다
+    useAuthStore.getState().expireSession('/my/account');
+    server.use(
+      http.patch(url(API_ENDPOINTS.auth.updateAccount), () =>
+        HttpResponse.json(
+          { status: 401, code: SERVER_ERROR_CODE.NOT_LOGGED_IN, message: '' },
+          { status: 401 }
+        )
+      )
+    );
+
+    const { result } = renderHook(() => useUpdateAccountMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ nickname: 'unsaved' });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error).toBeInstanceOf(SessionExpiredError);
+    expect(queryClient.getQueryData<Account>(accountKeys.root)?.nickname).toBe(
+      mockAccount.nickname
+    );
+    expect(mockToastError).not.toHaveBeenCalled();
+  });
+
+  it('만료 정리가 계정 캐시를 비웠으면 이전 계정 값으로 되살리지 않는다', async () => {
+    useAuthStore.getState().expireSession('/my/account');
+    server.use(
+      http.patch(url(API_ENDPOINTS.auth.updateAccount), () => {
+        // 응답이 오기 전에 만료 정리가 캐시를 비웠다
+        queryClient.removeQueries({ queryKey: accountKeys.root });
+
+        return HttpResponse.json(
+          { status: 401, code: SERVER_ERROR_CODE.NOT_LOGGED_IN, message: '' },
+          { status: 401 }
+        );
+      })
+    );
+
+    const { result } = renderHook(() => useUpdateAccountMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ nickname: 'unsaved' });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(queryClient.getQueryData(accountKeys.root)).toBeUndefined();
   });
 
   it('새 아바타 파일이 있으면 업로드 후 그 URL로 계정을 갱신한다', async () => {

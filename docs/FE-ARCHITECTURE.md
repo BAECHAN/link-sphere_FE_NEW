@@ -139,6 +139,8 @@ src/
 ├── app/                          # 앱 초기화, providers, routing
 │   ├── App.tsx                   # 최상위 App 컴포넌트
 │   ├── globals.css               # 디자인 토큰(CSS 변수) + Tailwind 레이어
+│   ├── hooks/                    # useLeaveOnMemberChange — 다른 회원으로 바뀌면 쓰는 중이거나 보호 화면일 때
+│   │                             # 쓰던 글을 버리고 /post로(RootLayout에서 1회 호출, AUTH.md §8-I)
 │   ├── providers/                # AuthProvider, QueryProvider, RouterProvider, ThemeProvider
 │   ├── routes/                   # 라우트 설정, ProtectedRoute, RouteErrorBoundary
 │   │   └── layouts/              # AppShellLayout, ProtectedLayout, PublicLayout, RootLayout
@@ -927,7 +929,9 @@ onError: (_err, _nextLiked, context) => {
 4. **마지막 요청이 실패하면 되돌린 뒤 무효화한다** — 앞 요청까지 실패했다면 그 스냅샷도 서버와 다르다
    (연속 실패). 실패할 때만 다시 조회하는 비용이 묶음마다 기준 상태를 따로 저장하는 것보다 작다.
 5. **로그아웃 정리에 mutation 캐시도 넣는다** — 끝나지 않는 pending mutation이 줄 맨 앞에 남으면 같은
-   scope의 다음 요청이 영원히 안 나간다(`AuthUtil.clearAll`).
+   scope의 다음 요청이 영원히 안 나간다(`AuthUtil.clearAll`). 로그인 만료는 2026-10-28부터 화면을 떠나지 않아
+   `clearAll`을 거치지 않지만, 만료로 끝낸 요청은 리더·대기 요청 모두 `SessionExpiredError`로 끝나 pending으로
+   남지 않는다([`AUTH.md`](./AUTH.md) §8-B·§8-I).
 6. **`mutationFn` 첫 줄에서 `assertMutationAuthEpochUnchanged(context)`를 부른다** — 줄에서 기다리는 사이 다른
    탭에서 계정이 바뀌면, 차례가 왔을 때 새 계정으로 요청이 나간다. 전역 `MutationCache` `onMutate`가 누른 순간의
    인증 세대를 기록하고(`queryClient.ts`), 이 확인이 달라졌으면 보내지 않고 `SessionChangedError`로 끝낸다 —
@@ -990,22 +994,22 @@ export const isLastPendingBookmarkMutation = (queryClient: QueryClient, postId: 
 
 `src/shared/lib/react-query/config/queryClient.ts`
 
-| 설정       | 값                                                                                                                    |
-| ---------- | --------------------------------------------------------------------------------------------------------------------- |
-| Stale Time | 3분 (`3 * 60 * 1000`)                                                                                                 |
-| GC Time    | 5분 (`5 * 60 * 1000`)                                                                                                 |
-| Retry      | 실패 시 1회 재시도 — `SessionChangedError`·429·`EDGE_BLOCKED`는 재시도 안 함 (`retry-policy.ts`의 `shouldRetryQuery`) |
-| Refetch    | 탭이 다시 보일 때(`visibilitychange` — TanStack Query 5의 `focusManager` 기준) 및 마운트 시                           |
+| 설정       | 값                                                                                                                                          |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stale Time | 3분 (`3 * 60 * 1000`)                                                                                                                       |
+| GC Time    | 5분 (`5 * 60 * 1000`)                                                                                                                       |
+| Retry      | 실패 시 1회 재시도 — `SessionChangedError`·`SessionExpiredError`·429·`EDGE_BLOCKED`는 재시도 안 함 (`retry-policy.ts`의 `shouldRetryQuery`) |
+| Refetch    | 탭이 다시 보일 때(`visibilitychange` — TanStack Query 5의 `focusManager` 기준) 및 마운트 시                                                 |
 
 싱글턴 `queryClient`는 `QueryProvider`가 마운트 시 한 번 `QueryClientProvider`에 주입하고,
 그 아래 앱 코드는 전부 `useQueryClient()`로 그 인스턴스를 Context에서 꺼내 쓴다(같은
 인스턴스이므로 프로덕션 동작은 동일 — 테스트에서 격리된 클라이언트를 주입할 수 있게 하려는
 목적이다). 싱글턴을 직접 import하는 예외는 두 곳뿐이다:
 
-| 파일                                  | 왜 예외인가                                                                                                |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `src/app/providers/QueryProvider.tsx` | 싱글턴을 provider에 주입하는 유일한 지점                                                                   |
-| `src/shared/utils/auth.util.ts`       | `clearAll()`/`clearQueries()`가 fetch 인터셉터(React 트리 밖)에서 호출되어 `useQueryClient()`를 쓸 수 없다 |
+| 파일                                  | 왜 예외인가                                                                                                                        |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/providers/QueryProvider.tsx` | 싱글턴을 provider에 주입하는 유일한 지점                                                                                           |
+| `src/shared/utils/auth.util.ts`       | `clearAll()`/`clearQueries()`/`applySessionExpired()`가 fetch 인터셉터(React 트리 밖)에서 호출되어 `useQueryClient()`를 쓸 수 없다 |
 
 `.keys.ts`처럼 React 훅을 쓸 수 없는 순수 모듈은 `useQueryClient()`로 얻은 인스턴스를 호출자가
 인자로 넘긴다(§5 Layer 2 참고).
@@ -1092,6 +1096,10 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
 공통 판정(우선순위 순서대로):
 
 - **`meta.manualErrorHandling`**: 조용히 종료. mutation·query 둘 다 지원한다.
+- **`SessionExpiredError`**(로그인 만료로 끝낸 요청): `meta.errorMessage`보다 먼저 조용히 종료한다 — 다시
+  로그인하라는 안내는 만료 정리(`AuthUtil.applySessionExpired`의 로그인 창·안내 토스트)가 맡고, 폼 안 안내
+  (`TEXTS.messages.error.signedOutBeforeSave`)는 이 에러가 아니라 상태를 보고 `useSignedOutNotice`가 띄운다 — 로그인이
+  풀린 채 그 화면에 남아 있는 동안 보이고 다시 로그인하면 사라진다. 상세: [`AUTH.md`](./AUTH.md) §8-B·§8-I
 - **`SessionChangedError`**(보낸 뒤 인증 세대가 바뀌어 처리하지 않고 끝낸 요청): `meta.errorMessage`보다
   먼저 본다. query이거나 로그아웃을 반영하는 중(`LogoutGraceUtil.isLoggingOut()`)이면 조용히 종료하고 —
   query는 `useAuthEpochSync`가 새 인증으로 다시 불러온다 — 그 밖의 mutation만
@@ -1099,7 +1107,9 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
 - **로그아웃 레이스**(`LogoutGraceUtil.isLoggingOut()`): 401(`NOT_LOGGED_IN` /
   `INVALID_TOKEN`)이 로그아웃 직후 구간에 온 경우 `meta.errorMessage`보다 먼저 걸러
   조용히 종료한다 — 세션 만료가 아니라 로그아웃 레이스(제자리 로그아웃의 배경 재요청,
-  또는 이동 수반 로그아웃 시점에 이미 떠 있던 요청)이기 때문이다. 상세: `docs/AUTH.md` §8-E
+  또는 이동 수반 로그아웃 시점에 이미 떠 있던 요청)이기 때문이다. 상세: `docs/AUTH.md` §8-E.
+  로그인이 풀린 채 쓰던 화면에 둔 동안(`useAuthStore`의 `signedOutInPlace`)에 온 같은 401도 같은 자리에서
+  조용히 종료한다 — 안내는 이미 떠 있는 로그인 창이 맡는다(`docs/AUTH.md` §8-I)
 - **`EDGE_BLOCKED`**: `meta.errorMessage`보다 먼저 처리한다(순서 고정 — `docs/DECISIONS.md`
   2026-09-06 참고). 그러지 않으면 게시글 등록처럼 `errorMessage`를 쓰는 mutation이 이
   원인을 일반 메시지로 덮어써 사용자가 실제 원인을 알 수 없다.
@@ -1111,7 +1121,9 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
 - **`meta.errorMessage`**: 있으면 그 메시지를 사용
 - **401 (`NOT_LOGGED_IN` / `INVALID_TOKEN`)**: 로그인 필요 토스트만 표시한다. 세션 정리
   (`AuthUtil.clearAll()` → `/auth/login` 리다이렉트)는 `client.ts`의 fetch 인터셉터가 이미
-  수행했으므로 여기서 다시 하지 않는다(토스트 단일 소유 원칙)
+  수행했으므로 여기서 다시 하지 않는다(토스트 단일 소유 원칙). 이 분기에 닿는 건 사실상 토큰 없이 보낸
+  `NOT_LOGGED_IN`뿐이다 — 토큰을 실어 보낸 `INVALID_TOKEN`은 로그인 만료라 `client.ts`가 `SessionExpiredError`로
+  바꿔 던진다(`docs/AUTH.md` §8-B)
 - **403 (`ACCESS_DENIED`)**: 접근 거부 토스트만 표시
 - **그 외 `ApiError`**: 콘솔에 상세 로깅 + 사용자에게는 일반적인 "서버 에러" 토스트
 - **알 수 없는 에러**: mutation은 콘솔 로깅 + 일반적인 에러 토스트, query는 조용히 종료
