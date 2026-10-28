@@ -1,4 +1,7 @@
 ### 2026-10-28 (FE)
+- 인증 토큰 만료 시 발생하는 무한 루프 및 요청 대기 현상 해결 ([#444](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/444))
+
+### 2026-10-28 (FE)
 - 앱 초기 로딩 성능 최적화: 앱 시작 스크립트에서 불필요한 zod 라이브러리 대기 로직을 제거하여 실행 속도 개선 ([#442](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/442))
 
 ### 2026-10-28 (FE)
