@@ -60,7 +60,7 @@ export function PostCreateBookmarkFolderField({
         onClick={() => setOpen(true)}
         onMouseEnter={handlePrefetch}
         onFocus={handlePrefetch}
-        className="w-full min-h-11 md:min-h-0 justify-between font-normal"
+        className="w-full min-h-11 md:pointer-fine:min-h-0 justify-between font-normal"
       >
         <span
           className={cn('truncate', !bookmark && folderIds.length === 0 && 'text-muted-foreground')}

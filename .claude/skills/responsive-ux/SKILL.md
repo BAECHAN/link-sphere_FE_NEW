@@ -57,8 +57,12 @@ paths: src/**/*.tsx
 
 ### 터치 타깃
 
-- 상호작용 요소(버튼, 링크, 아이콘 버튼)는 모바일에서 최소 44px.
-- 데스크톱 밀도를 유지해야 하면 `min-h-11 md:min-h-0` 형태로 모바일에만 적용.
+- 상호작용 요소(버튼, 링크, 아이콘 버튼)는 주 입력이 터치인 기기에서 최소 44px — 휴대폰뿐 아니라 md 이상
+  폭의 터치 태블릿도 포함한다.
+- 데스크톱 밀도를 유지해야 하면 `min-h-11 md:pointer-fine:min-h-0` 형태로 넓은 폭이면서 마우스일 때만
+  되돌린다. `md:min-h-0`처럼 폭만 보면 태블릿 세로(갤럭시 탭 S6 Lite 약 800px 추정)에서 댓글 버튼이
+  20px로 줄었다(2026-10-28, 선례: `CommentItem.tsx`·`LikeCommentButton.tsx`·`BookmarkFolderSelectDialog.tsx`·
+  `PostCreateBookmarkFolderField.tsx`).
 - 입력 요소(`input`/`textarea`) 폰트는 16px 이상 유지 — 작으면 iOS Safari가 포커스 시 자동 확대(줌)한다. `Textarea`는 `text-base md:text-sm`으로 이미 이 기준을 지킨다.
 
 ### 하단 고정 요소 충돌 규칙
@@ -112,7 +116,11 @@ flex h-16
 ### hover와 밀도
 
 - 데스크톱은 마우스 hover 상태를 쓸 수 있다(모바일엔 없음) — `hover:` 클래스는 데스크톱 상호작용의 기본.
-- 모바일에서 넓힌 터치 타깃(`min-h-11` 등)은 `md:min-h-0`처럼 되돌려 데스크톱 밀도를 원래대로 유지한다.
+- 모바일에서 넓힌 터치 타깃(`min-h-11` 등)은 `md:pointer-fine:min-h-0`처럼 되돌려 데스크톱 밀도를 원래대로
+  유지한다(위 "터치 타깃" — 폭만 보면 터치 태블릿까지 줄어든다).
+- **hover로만 드러나는 요소(`opacity-0 group-hover:opacity-100`)에는 `focus-visible:opacity-100`과
+  `pointer-coarse:opacity-100`을 함께 단다.** 터치 기기에는 hover가 없어 영영 안 보이고, 키보드로 포커스해도
+  투명한 채라 포커스 테두리까지 안 보였다(2026-10-28, 북마크 폴더 ⋮ — 선례 `HoverKebabMenu.tsx`의 `hoverReveal`).
 - **hover 스타일이 있는 컨테이너 안에 드롭다운·셀렉트·팝오버 트리거를 두면 `hover:` 대신
   `hover-or-open:`(`globals.css`)을 쓴다.** `DropdownMenuContent`(`shared/ui/atoms/dropdown-menu.tsx`)
   등 팝업 콘텐츠는 Portal로 `<body>`에 렌더돼 커서가 메뉴로 들어가는 순간 컨테이너는 더 이상

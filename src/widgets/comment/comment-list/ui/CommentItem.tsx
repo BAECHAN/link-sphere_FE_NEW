@@ -130,7 +130,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
                 icon={MessageSquare}
                 label={TEXTS.comment.item.reply}
                 onClick={() => setIsReplying(!isReplying)}
-                className="min-h-11 px-2 hover:text-info md:min-h-0 md:px-0"
+                className="min-h-11 px-2 hover:text-info md:pointer-fine:min-h-0 md:pointer-fine:px-0"
               />
             )}
 
@@ -140,13 +140,13 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
                   icon={Edit2}
                   label={TEXTS.comment.item.edit}
                   onClick={() => setIsEditing(true)}
-                  className="min-h-11 px-2 hover:text-info md:min-h-0 md:px-0"
+                  className="min-h-11 px-2 hover:text-info md:pointer-fine:min-h-0 md:pointer-fine:px-0"
                 />
                 <ActionButton
                   icon={Trash2}
                   label={TEXTS.buttons.delete}
                   onClick={() => onDelete(comment.id)}
-                  className="min-h-11 px-2 hover:text-destructive md:min-h-0 md:px-0"
+                  className="min-h-11 px-2 hover:text-destructive md:pointer-fine:min-h-0 md:pointer-fine:px-0"
                 />
               </>
             )}

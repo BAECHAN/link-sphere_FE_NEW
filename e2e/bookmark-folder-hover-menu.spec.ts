@@ -58,4 +58,22 @@ test.describe('북마크 폴더 행 hover 유지 — 드롭다운이 열려 있�
     const hoveredColor = await row.evaluate((el) => getComputedStyle(el).backgroundColor);
     expect(hoveredColor).not.toBe(baseColor);
   });
+
+  // ⋮는 hover 전에는 투명하다(HoverKebabMenu의 hoverReveal). 키보드로 오면 hover가 없으니
+  // 포커스(focus-visible)만으로 보여야 포커스 테두리도 함께 보인다.
+  test('키보드로 ⋮ 메뉴에 포커스하면 hover 없이도 보인다', async ({ page }) => {
+    await page.goto('/bookmark');
+
+    const folderButton = page.getByRole('button', { name: mockBookmarkFolder.name });
+    await expect(folderButton).toBeVisible();
+
+    const menuButton = page.getByRole('button', { name: TEXTS.ariaLabels.folderMenu });
+    await expect(menuButton).toHaveCSS('opacity', '0');
+
+    // 행 안에서 폴더 이름 버튼 다음 Tab 순서가 ⋮다
+    await folderButton.focus();
+    await page.keyboard.press('Tab');
+    await expect(menuButton).toBeFocused();
+    await expect(menuButton).toHaveCSS('opacity', '1');
+  });
 });
