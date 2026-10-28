@@ -211,6 +211,13 @@
 
 ### Fixed
 
+- `shared` 좋아요·댓글 수 버튼과 작성자 배지·단축키 글자가 의도와 다른 크기·색으로 보이던 문제
+  <details><summary>배경·구현</summary>
+
+  타이포그래피 토큰 도입(#110, 2026-09-16)으로 `text-[10px]`를 `text-micro`(11px)로 바꾼 4곳이 그 뒤로 다르게 보였다. 운영 360px에서 재 보니 목록 카드의 좋아요·댓글 수 버튼은 11px가 아니라 14px였고, 댓글 수 버튼은 회색이 아니라 본문색이었다(직접 측정). 댓글 작성자 배지와 검색창 `/` 단축키도 같은 구조로 12px에 원래 글자색이 빠져 있었다. 클래스를 합치는 `cn()`(tailwind-merge 3.4.0)이 기본 설정으로 `xs`~`9xl`만 글자 크기로 알아, `text-micro` 같은 토큰을 글자 색으로 봤기 때문이다 — 같이 쓴 색 클래스를 지우고 `Button`의 기본 `text-sm`은 남겨 토큰 크기가 무시됐다. `cn()`에 `globals.css`의 글자 크기 토큰 22개(`t1`~`t14`, 역할 토큰 8개)를 등록해 #110이 의도한 모습으로 되돌렸고, 토큰을 추가하고 등록을 빠뜨리면 테스트가 `globals.css`와 대조해 실패한다. 이제 역할 토큰 위에 기본 크기를 덮으면 두께도 함께 빠지므로 북마크 폴더 선택 대화상자 제목에 `font-semibold`를 더해 지금 모습(16px·굵게)을 지켰고, #440의 important 우회는 뺐다. 경위는 `docs/DESIGN-SYSTEM.md` §10. (`shared/lib/tailwind/utils.ts`, `shared/lib/tailwind/utils.test.ts`(신규), `features/bookmark/select/ui/BookmarkFolderSelectDialog.tsx`, `features/bookmark/rename/ui/BookmarkFolderTitle.tsx`, [PR #441](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/441))
+
+  </details>
+
 - `shared` 태블릿처럼 터치가 주 입력인 기기에서 키보드 단축키 힌트가 보이던 문제
   <details><summary>배경·구현</summary>
 

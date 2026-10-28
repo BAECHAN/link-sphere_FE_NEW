@@ -59,9 +59,8 @@ function RenameableTitle({ folder, className, titleClassName }: RenameableTitleP
           aria-label={TEXTS.bookmark.folder.rename}
           aria-invalid={nameError !== null}
           // 모바일은 카드와 같은 기본 입력 — 칸이 좁아 제목 크기로는 긴 이름 앞이 잘린다(docs/BOOKMARK.md §5).
-          // 데스크톱은 제목 크기 그대로 둔다. tailwind-merge가 역할 토큰(text-screen-title)을 글자 크기로 알아보지
-          // 못해 Input의 md:text-sm이 함께 남고 그쪽이 이겨(직접 측정: 14px로 나옴) important로 지킨다
-          className="md:h-auto md:text-screen-title!"
+          // 데스크톱은 제목 크기 그대로 둔다(cn이 Input의 md:text-sm을 이 토큰으로 바꾼다)
+          className="md:h-auto md:text-screen-title"
         />
         {nameError && <p className="text-xs text-destructive">{nameError}</p>}
       </div>

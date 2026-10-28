@@ -100,6 +100,13 @@ Storybook `Shared/UI/Tokens/DesignTokens` 스토리의 `ZIndex`에서 8단계를
 `TEXT_SIZE_PATTERN`). 역할 토큰·`t*` 스케일과 `font-bold`를 같이 쓰는 건 이 룰이
 못 잡으니 사람이 지킨다(제목이 아니라면 `eslint-disable-next-line`에 이유를 남긴다).
 
+**새 `--text-*` 토큰을 추가하면 `src/shared/lib/tailwind/utils.ts`의 `TEXT_SIZE_TOKENS`에도 이름을 넣는다.**
+`cn()`(tailwind-merge)은 기본 설정으로 `xs`~`9xl`만 글자 크기로 알아, 등록하지 않은 토큰은 글자 색으로 본다 —
+그러면 같이 쓴 색 클래스를 지우고 컴포넌트 기본 크기(`Button`의 `text-sm` 등)는 남겨 토큰 크기가 무시된다
+(2026-10-28 발견, 경위 `docs/DESIGN-SYSTEM.md` §10). 빠뜨리면 `utils.test.ts`가 `globals.css`와 대조해 실패한다.
+반대로 역할 토큰 위에 기본 크기를 덮으면(`DialogTitle className="text-base"`) `cn()`이 토큰을 통째로 지워 두께도
+빠지니 두께를 함께 준다.
+
 `--text-screen-title`은 두께를 semibold로 통일했다 — 기존 5곳 중 4곳이 이미
 semibold였고, `pages/post/index.tsx`만 유일하게 `font-bold` + 데스크톱에서 더 커지는
 반응형(`md:text-2xl`)이었다. 이 한 곳만 다른 4곳과 같은 고정 크기·두께로 맞춰

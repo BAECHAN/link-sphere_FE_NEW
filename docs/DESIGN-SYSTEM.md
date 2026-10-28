@@ -10,7 +10,7 @@
 > 토큰 카탈로그를 어떻게 보는지, Storybook a11y 게이트가 CI에서 어떻게 도는지 안다.
 > spacing 토큰은 왜 없는지, 지금까지 찾은 a11y 위반을 어떻게 해소했는지도 안다.
 >
-> **마지막 검토**: 2026-10-27
+> **마지막 검토**: 2026-10-28
 
 ## 1. 쉬운 설명
 
@@ -170,7 +170,7 @@ URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`�
 | 새 z-index 층 추가                                | `src/app/globals.css`의 `@theme static` 블록 (§ z-index 주석)                                                  | `--z-index-<name>: <값>` 추가 → `design-tokens` skill 표 갱신 → `DesignTokens.stories.tsx`의 `Z_INDEX_LAYERS` 배열에 항목 추가                                                                                                                                                                            |
 | 새 색 토큰 추가                                   | `globals.css`의 `:root`/`.dark` + `@theme inline` 매핑                                                         | 값 정의 → `--color-<name>: var(--<name>)` 매핑 추가 → skill 문서 표 갱신                                                                                                                                                                                                                                  |
 | 새 Tailwind 커스텀 ESLint 룰 추가                 | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화) | 기존 5개 룰(`no-raw-z-index`/`no-raw-color`/`no-raw-text-size`/`no-raw-title`/`no-classname-template-literal`, 2026-09-29 재확인)과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭 — `no-classname-template-literal`만 `JSXAttribute`/`VariableDeclarator` 방문) 따르기            |
-| 새 타이포 역할 토큰 추가                          | `globals.css`의 (static 아닌) `@theme` 블록                                                                    | `--text-<role>`/`--text-<role>--line-height`(필요시 `--font-weight`) 추가 → 실제 사용처에 클래스 적용 → `design-tokens` skill 역할 토큰 표 갱신                                                                                                                                                           |
+| 새 타이포 역할 토큰 추가                          | `globals.css`의 (static 아닌) `@theme` 블록                                                                    | `--text-<role>`/`--text-<role>--line-height`(필요시 `--font-weight`) 추가 → `src/shared/lib/tailwind/utils.ts`의 `TEXT_SIZE_TOKENS`에 이름 추가(빠뜨리면 `utils.test.ts` 실패, §10) → 실제 사용처에 클래스 적용 → `design-tokens` skill 역할 토큰 표 갱신                                                 |
 | 토큰 카탈로그에 새 섹션 추가                      | `src/shared/ui/tokens/DesignTokens.stories.tsx`                                                                | 새 `export const <Name>: Story` 추가(기존 `Colors`/`Radius`/`ZIndex` 참고)                                                                                                                                                                                                                                |
 | Storybook에서 다크모드 확인                       | `.storybook/preview.tsx`의 툴바 테마 토글                                                                      | 별도 설정 불필요 — 이미 `.dark` 클래스를 토글하도록 연결됨                                                                                                                                                                                                                                                |
 | a11y 위반을 로컬에서 확인                         | `pnpm test:storybook` (전체) 또는 `pnpm exec vitest run --project=storybook <파일>` (단일 파일)                | 실패 메시지의 axe 규칙 링크(dequeuniversity.com)로 원인 확인 → 고치거나 `parameters.a11y.test: 'todo'` + 사유 주석으로 낮추고 §11 목록에 추가                                                                                                                                                             |
@@ -462,6 +462,29 @@ a11y 12건, e2e 3건).
 - **재발 감시**: `ci.yml`의 해당 단계는 로그에 `optimized dependencies changed`가 찍히면 테스트 통과
   여부와 상관없이 실패하고, 발견된 의존성 목록을 출력한다. 이 문구는 Vite optimizer 로그 원문이라
   Vite를 올려 문구가 바뀌면 감시가 조용히 꺼질 수 있다 — Vite 업그레이드 때 확인한다.
+
+**역할 토큰으로 바꾼 4곳이 6주간 다른 크기·색으로 보였다 — `cn()`이 토큰을 글자 색으로 봤다(2026-10-28 발견).**
+타이포그래피 토큰 도입(#110, 2026-09-16)은 좋아요·댓글 수 버튼, 댓글 작성자 배지, 검색창 단축키(Kbd)의
+`text-[10px]`를 `text-micro`(11px)로 바꿨다. 빌드 CSS에 유틸리티가 생겼는지는 봤지만(§9), 화면 계산값은 재지 않았다.
+
+- **발견**: 북마크 폴더 화면 이름 수정(#440)에서 입력에 `md:text-screen-title`을 줬더니 14px로 나왔다. 같은
+  구조를 찾다가 운영(360px)에서 쟀더니 좋아요·댓글 버튼이 11px가 아니라 14px였고, 댓글 버튼은 회색
+  (`oklch(0.542 0 0)`)이 아니라 본문색(`oklch(0.145 0 0)`)이었다(직접 측정: `getComputedStyle`).
+- **원인**:
+  - `cn()`은 설정 없는 tailwind-merge 3.4.0이었다. 기본 설정은 `xs`~`9xl`만 글자 크기로 안다
+    (`node_modules/tailwind-merge/dist/bundle-mjs.mjs`의 `'font-size'` 그룹과 `theme.text: [isTshirtSize]`).
+  - 그래서 `text-micro`를 글자 색으로 분류했다. 같은 줄의 `text-muted-foreground`를 지웠고, `Button`의 `text-sm`은
+    다른 그룹이라 남겼다.
+  - 남은 둘 중 무엇이 이기는지는 Tailwind 4.1.18의 유틸리티 정렬이 정한다(`dist/lib.js`). 순서는 변형 → 처음 다른
+    속성 → 속성이 많은 쪽 먼저 → 이름순이다. 두께가 없는 `text-micro`는 이름순에서 `text-sm`보다 앞에 놓여
+    `text-sm`이 이겼다.
+  - 이전 `text-[10px]`는 tailwind-merge가 길이 값으로 알아 `text-sm`을 지웠기에 문제가 없었다.
+- **고침**: `src/shared/lib/tailwind/utils.ts`에서 `extendTailwindMerge`로 글자 크기 토큰 22개(`t1`~`t14`, 역할 8개)를
+  `theme.text`에 등록했다. 화면은 #110이 의도한 모습(11px·원래 색)으로 돌아왔다. 토큰을 빠뜨리지 않게
+  `utils.test.ts`가 `globals.css`의 `--text-*`를 읽어 하나씩 대조한다.
+- **반대 방향 부작용**: 이제 역할 토큰 위에 기본 크기를 덮으면 `cn()`이 토큰을 통째로 지워 두께도 빠진다.
+  `BookmarkFolderSelectDialog.tsx`의 `DialogTitle className="text-base"`가 그 자리라 `font-semibold`를 함께 줘 지금
+  모습(16px·600)을 지켰다. 같은 이유로 #440의 important(`md:text-screen-title!`)는 뺐다.
 
 ## 11. 남은 것
 
