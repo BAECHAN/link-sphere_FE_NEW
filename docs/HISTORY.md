@@ -1,4 +1,7 @@
 ### 2026-10-29 (FE)
+- 디자인 시스템 유지보수성 향상을 위한 무채색 색상 토큰 구조 최적화 ([#452](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/452))
+
+### 2026-10-29 (FE)
 - 인증 만료 상태의 앱 접근 시 사용자 안내 로직 구현 ([#451](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/451))
 
 ### 2026-10-28 (FE)
