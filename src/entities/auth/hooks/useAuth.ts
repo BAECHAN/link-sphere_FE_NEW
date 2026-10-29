@@ -18,7 +18,6 @@ type AuthRestoreResult = 'restored' | 'expired' | 'failed';
 
 type AuthActions = {
   login: (data: Login) => Promise<void>;
-  restoreAuth: () => Promise<boolean>;
   restoreAuthWithResult: () => Promise<AuthRestoreResult>;
   logout: () => void;
   setAuth: (accessToken: string | null, user?: Account | null) => void;
@@ -97,16 +96,9 @@ export const useAuth = (): UseAuthReturn => {
     }
   }, [accessToken, isAuthenticated, setAuth, clearAuth]);
 
-  // 토큰 복원 함수
-  const restoreAuth = useCallback(
-    async (): Promise<boolean> => (await restoreAuthWithResult()) === 'restored',
-    [restoreAuthWithResult]
-  );
-
   // 공통 액션
   const actions = {
     login,
-    restoreAuth,
     restoreAuthWithResult,
     logout,
     setAuth,

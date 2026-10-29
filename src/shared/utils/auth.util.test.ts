@@ -94,7 +94,7 @@ describe('AuthUtil.clearAll — 화면이 곧 사라지는 로그아웃(보호 �
 
     // 컴포넌트는 아직 마운트된 채로 남아있다(실제 앱에서는 이 직후 ProtectedRoute가
     // <Navigate>로 언마운트시킨다 - 여기서는 clearAll() 자체가 재요청을 유발하지
-    // 않는다는 것만 고정한다, auth.util.ts:82-93 주석 참고).
+    // 않는다는 것만 고정한다, auth.util.ts의 clearQueriesWithoutRefetch 주석 참고).
     await waitFor(() => expect(queryFn).toHaveBeenCalledTimes(1));
   });
 

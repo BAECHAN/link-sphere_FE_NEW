@@ -18,7 +18,7 @@ vi.mock('@/shared/lib/firebase/fcm', () => ({
 }));
 
 // login/logout mutation은 auth.queries.test.ts가 이미 검증한다 - 여기서는
-// restoreAuth 4갈래 판단과 discriminated union 반환 계약만 다룬다.
+// restoreAuthWithResult 갈래 판단과 discriminated union 반환 계약만 다룬다.
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
 function createWrapper(queryClient: QueryClient) {
@@ -59,8 +59,9 @@ describe('useAuth', () => {
     });
   });
 
-  describe('restoreAuth', () => {
-    it('이미 토큰이 있고 인증 상태면 네트워크 요청 없이 true를 반환한다', async () => {
+  // 앱 시작 때 만료 안내를 띄울지 가르는 갈래 - 실패면 어느 쪽이든 로그아웃한다(useAppInitialization)
+  describe('restoreAuthWithResult', () => {
+    it('이미 토큰이 있고 인증 상태면 네트워크 요청 없이 restored다', async () => {
       useAuthStore.getState().setAuth('existing-token');
       let requested = false;
       server.use(
@@ -71,13 +72,13 @@ describe('useAuth', () => {
       );
 
       const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(queryClient) });
-      const restored = await act(async () => result.current.restoreAuth());
+      const restored = await act(async () => result.current.restoreAuthWithResult());
 
-      expect(restored).toBe(true);
+      expect(restored).toBe('restored');
       expect(requested).toBe(false);
     });
 
-    it('refresh가 accessToken을 주면 인증 상태로 전환하고 true를 반환한다', async () => {
+    it('refresh가 accessToken을 주면 인증 상태로 전환하고 restored다', async () => {
       server.use(
         http.post(url(API_ENDPOINTS.auth.refresh), () =>
           HttpResponse.json(
@@ -88,9 +89,9 @@ describe('useAuth', () => {
       );
 
       const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(queryClient) });
-      const restored = await act(async () => result.current.restoreAuth());
+      const restored = await act(async () => result.current.restoreAuthWithResult());
 
-      expect(restored).toBe(true);
+      expect(restored).toBe('restored');
       await waitFor(() => expect(useAuthStore.getState().isAuthenticated).toBe(true));
       expect(useAuthStore.getState().accessToken).toBe('refreshed-token');
     });
@@ -108,64 +109,10 @@ describe('useAuth', () => {
       );
 
       const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(queryClient) });
-      await act(async () => result.current.restoreAuth());
+      await act(async () => result.current.restoreAuthWithResult());
 
       expect(reregisterFcmTokenIfGranted).toHaveBeenCalledTimes(1);
       expect(requestAndRegisterFcmToken).not.toHaveBeenCalled();
-    });
-
-    it('refresh 응답에 accessToken이 없으면 인증을 지우고 false를 반환한다', async () => {
-      server.use(
-        http.post(url(API_ENDPOINTS.auth.refresh), () =>
-          HttpResponse.json(
-            { status: 200, message: 'ok', data: {}, timestamp: '' },
-            { status: 200 }
-          )
-        )
-      );
-
-      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(queryClient) });
-      const restored = await act(async () => result.current.restoreAuth());
-
-      expect(restored).toBe(false);
-      expect(useAuthStore.getState().isAuthenticated).toBe(false);
-    });
-
-    it('refresh가 실패(401)하면 인증을 지우고 false를 반환한다', async () => {
-      server.use(
-        http.post(url(API_ENDPOINTS.auth.refresh), () =>
-          HttpResponse.json(
-            { status: 401, code: 'UNAUTHORIZED', message: '', timestamp: '' },
-            { status: 401 }
-          )
-        )
-      );
-
-      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(queryClient) });
-      const restored = await act(async () => result.current.restoreAuth());
-
-      expect(restored).toBe(false);
-      expect(useAuthStore.getState().isAuthenticated).toBe(false);
-    });
-  });
-
-  // 앱 시작 때 만료 안내를 띄울지 가르는 갈래 - 실패면 어느 쪽이든 로그아웃한다(useAppInitialization)
-  describe('restoreAuthWithResult', () => {
-    it('refresh가 accessToken을 주면 restored다', async () => {
-      server.use(
-        http.post(url(API_ENDPOINTS.auth.refresh), () =>
-          HttpResponse.json(
-            { status: 200, message: 'ok', data: { accessToken: 'refreshed-token' }, timestamp: '' },
-            { status: 200 }
-          )
-        )
-      );
-
-      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(queryClient) });
-      const restored = await act(async () => result.current.restoreAuthWithResult());
-
-      expect(restored).toBe('restored');
-      expect(useAuthStore.getState().accessToken).toBe('refreshed-token');
     });
 
     it('BE가 refresh를 401로 거절하면(쿠키 만료·폐기) 인증을 지우고 expired다', async () => {
@@ -205,7 +152,7 @@ describe('useAuth', () => {
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
     });
 
-    it('refresh 응답에 accessToken이 없으면 failed다', async () => {
+    it('refresh 응답에 accessToken이 없으면 인증을 지우고 failed다', async () => {
       server.use(
         http.post(url(API_ENDPOINTS.auth.refresh), () =>
           HttpResponse.json(
@@ -218,6 +165,7 @@ describe('useAuth', () => {
       const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(queryClient) });
 
       expect(await act(async () => result.current.restoreAuthWithResult())).toBe('failed');
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
     });
   });
 });
