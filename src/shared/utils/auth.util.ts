@@ -156,14 +156,24 @@ export class AuthUtil {
       return;
     }
 
-    toast.info(TEXTS.messages.info.sessionExpired, {
-      id: SESSION_EXPIRED_TOAST_ID,
-      duration: Infinity,
-      action: {
-        label: TEXTS.buttons.login,
-        onClick: () => this.openSignInDialogInPlace('expired'),
-      },
-    });
+    this.showSessionExpiredToast(() => this.openSignInDialogInPlace('expired'));
+  }
+
+  /**
+   * 앱을 열었는데 지난번 로그인이 끝나 있었다(useAppInitialization - 세션 플래그가 있는데 refresh가 401로 거절됨). 조용히
+   * 로그아웃만 되면 왜 풀렸는지 알 수 없어 applySessionExpired와 같은 안내를 띄운다. 보호 화면은 ProtectedRoute가 로그인
+   * 창을 열고 로그인·가입 화면은 폼이 바로 앞에 있어 띄우지 않는다. 버튼은 내비게이션 바 [로그인]과 같은 창을 연다 - 막
+   * 연 앱에는 이어서 할 작업이 없어 만료 문구 창을 쓰지 않는다(docs/AUTH.md §8-C, 2026-10-29 사용자 결정).
+   */
+  static notifySessionExpiredOnStart(): void {
+    const { pathname } = window.location;
+    const isAuthPath = Object.values(ROUTES_PATHS.AUTH).some((path) => pathname.startsWith(path));
+
+    if (isProtectedPath(pathname) || isAuthPath) {
+      return;
+    }
+
+    this.showSessionExpiredToast(() => this.openSignInDialog());
   }
 
   /**
@@ -207,6 +217,34 @@ export class AuthUtil {
   /** 다시 로그인했으면(로그인 창, 다른 탭의 로그인을 받아들임) 남아 있는 만료 안내를 닫는다 */
   static dismissSessionExpiredToast(): void {
     toast.dismiss(SESSION_EXPIRED_TOAST_ID);
+  }
+
+  /** 닫을 때까지 남는 만료 안내 - 기본 4초는 다른 창에 포커스한 사이 지나간다 */
+  private static showSessionExpiredToast(onSignIn: () => void): void {
+    toast.info(TEXTS.messages.info.sessionExpired, {
+      id: SESSION_EXPIRED_TOAST_ID,
+      duration: Infinity,
+      action: { label: TEXTS.buttons.login, onClick: onSignIn },
+    });
+  }
+
+  /**
+   * 지금 화면 위에 기본 로그인 창을 연다 - 내비게이션 바 [로그인]과 같은 창이다(useHistoryOverlay.open을 React 트리 밖에서
+   * 한 것). 이미 열려 있으면 엔트리를 더 쌓지 않는다 - 닫기를 두 번 눌러야 닫힌다(useHistoryOverlay.open과 같은 이유).
+   */
+  private static openSignInDialog(): void {
+    const currentState = RouterEvents.getLocation()?.state as LoginDialogLocationState | null;
+
+    if (currentState?.loginDialogOpen) {
+      return;
+    }
+
+    const { pathname, search } = window.location;
+
+    NavigationService.navigate(`${pathname}${search}`, {
+      state: { loginDialogOpen: true },
+      preventScrollReset: true,
+    });
   }
 
   /**

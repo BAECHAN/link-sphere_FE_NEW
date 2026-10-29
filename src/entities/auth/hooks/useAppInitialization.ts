@@ -7,6 +7,7 @@ import { handleAuthRestoreSuccess } from '@/entities/auth/api/auth.keys';
 import { LocalStorageUtil } from '@/shared/utils/storage.util';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 import { getTransformedImageUrl } from '@/shared/lib/image/supabaseImage';
+import { AuthUtil } from '@/shared/utils/auth.util';
 
 /**
  * 지난 방문에서 저장해둔 아바타 URL을 즉시 워밍한다.
@@ -28,7 +29,7 @@ function prefetchLastAvatar(): void {
  * auth.store의 isAuthResolved로 알린다(ProtectedRoute가 이 값을 기다린다).
  */
 export const useAppInitialization = () => {
-  const { restoreAuth, accessToken } = useAuth();
+  const { restoreAuthWithResult, accessToken } = useAuth();
   const setAuthResolved = useAuthStore((state) => state.setAuthResolved);
   const hasInitialized = useRef(false);
   const queryClient = useQueryClient();
@@ -48,9 +49,15 @@ export const useAppInitialization = () => {
         // 리프레시 쿠키가 있을 가능성이 있을 때만 호출한다.
         // 비로그인 방문자는 여기서 네트워크 요청 없이 즉시 끝난다.
         if (!accessToken && hasStoredSession()) {
-          const restored = await restoreAuth();
-          if (restored) {
+          const result = await restoreAuthWithResult();
+
+          if (result === 'restored') {
             handleAuthRestoreSuccess(queryClient);
+          }
+
+          // 지난번에 로그인했는데 세션이 끝나 있었다 - 조용히 로그아웃만 되면 왜 풀렸는지 알 수 없다
+          if (result === 'expired') {
+            AuthUtil.notifySessionExpiredOnStart();
           }
         }
       } catch (error) {
@@ -61,7 +68,7 @@ export const useAppInitialization = () => {
     };
 
     void initialize();
-    // 마운트 시 1회만 실행한다. accessToken/restoreAuth를 의존성에 넣으면
+    // 마운트 시 1회만 실행한다. accessToken/restoreAuthWithResult를 의존성에 넣으면
     // 복원 성공으로 토큰이 바뀔 때 재실행된다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

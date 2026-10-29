@@ -34,6 +34,18 @@ describe('ErrorUtil.isServerError', () => {
   });
 });
 
+describe('ErrorUtil.isRefreshRejected', () => {
+  it('401 ApiError(refresh 거절 - 쿠키 없음·만료·폐기)는 true다', () => {
+    expect(ErrorUtil.isRefreshRejected(makeApiError(401))).toBe(true);
+  });
+
+  it('5xx·429 ApiError와 NetworkError는 false다 - 세션이 아니라 연결·서버 문제다', () => {
+    expect(ErrorUtil.isRefreshRejected(makeApiError(500))).toBe(false);
+    expect(ErrorUtil.isRefreshRejected(makeApiError(429))).toBe(false);
+    expect(ErrorUtil.isRefreshRejected(new NetworkError())).toBe(false);
+  });
+});
+
 describe('ErrorUtil.resolveImageUploadMessage', () => {
   const texts = TEXTS.messages.error.uploadSubmit;
 

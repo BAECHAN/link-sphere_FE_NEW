@@ -33,6 +33,14 @@ export class ErrorUtil {
     return false;
   }
 
+  /**
+   * BE가 refresh를 401로 거절했는지(쿠키 없음·만료·폐기) - 로그인 만료로 보는 유일한 refresh 실패다. 네트워크·5xx·429는
+   * 세션이 아니라 연결·서버 문제다(client.ts handleTokenExpired, 앱 시작 복원 useAuth restoreAuthWithResult)
+   */
+  static isRefreshRejected(error: unknown): boolean {
+    return error instanceof ApiError && error.status === 401;
+  }
+
   /** refresh를 BE가 "쿠키 주인이 다른 회원"이라며 거절했는지(409 SESSION_MISMATCH, client.ts·useAuthEpochSync) */
   static isSessionMismatch(error: unknown): boolean {
     return error instanceof ApiError && error.code === SERVER_ERROR_CODE.SESSION_MISMATCH;

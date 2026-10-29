@@ -8,6 +8,8 @@ import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
 import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { clearUnsavedChanges, useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
+import { RouterEvents } from '@/shared/lib/router/router-events';
+import type { Location } from 'react-router-dom';
 
 // AuthUtil이 import하는 queryClient/NavigationService는 이 파일 안에서만 모킹한다 - 전역
 // setup.ts에서 AuthUtil을 import하면 이 두 모듈이 각 테스트 파일의 vi.mock보다 먼저 "실제"
@@ -302,6 +304,73 @@ describe('AuthUtil.applySessionExpired — 로그인 만료를 그 자리에서 
 
     expect(dismiss).toHaveBeenCalledWith('session-expired');
     dismiss.mockRestore();
+  });
+});
+
+describe('AuthUtil.notifySessionExpiredOnStart — 앱을 열 때 지난 로그인이 끝나 있었다', () => {
+  let toastInfo: MockInstance<typeof toast.info>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    toastInfo = vi.spyOn(toast, 'info');
+  });
+
+  afterEach(() => {
+    toastInfo.mockRestore();
+    vi.restoreAllMocks();
+    window.history.replaceState(null, '', '/');
+  });
+
+  it('공개 화면이면 닫을 때까지 남는 만료 안내를 띄우고, 그 버튼은 기본 로그인 창을 연다', () => {
+    window.history.replaceState(null, '', '/post?sort=latest');
+
+    AuthUtil.notifySessionExpiredOnStart();
+
+    expect(toastInfo).toHaveBeenCalledTimes(1);
+    const [message, options] = toastInfo.mock.calls[0]!;
+    expect(message).toBe(TEXTS.messages.info.sessionExpired);
+    expect(options).toMatchObject({ id: 'session-expired', duration: Infinity });
+
+    const action = options?.action as { label: string; onClick: () => void };
+    expect(action.label).toBe(TEXTS.buttons.login);
+    action.onClick();
+
+    // 만료 문구 창(loginDialogReason)이 아니라 내비게이션 바 [로그인]과 같은 창이다
+    expect(NavigationService.navigate).toHaveBeenCalledWith('/post?sort=latest', {
+      state: { loginDialogOpen: true },
+      preventScrollReset: true,
+    });
+  });
+
+  it('로그인 창이 이미 열려 있으면 버튼을 눌러도 엔트리를 더 쌓지 않는다', () => {
+    window.history.replaceState(null, '', '/post');
+    vi.spyOn(RouterEvents, 'getLocation').mockReturnValue({
+      state: { loginDialogOpen: true },
+    } as Location);
+
+    AuthUtil.notifySessionExpiredOnStart();
+    const action = toastInfo.mock.calls[0]![1]?.action as { label: string; onClick: () => void };
+    action.onClick();
+
+    expect(NavigationService.navigate).not.toHaveBeenCalled();
+  });
+
+  it('보호 화면이면 띄우지 않는다 - ProtectedRoute가 로그인 창을 연다', () => {
+    window.history.replaceState(null, '', ROUTES_PATHS.POST.SUBMIT);
+
+    AuthUtil.notifySessionExpiredOnStart();
+
+    expect(toastInfo).not.toHaveBeenCalled();
+  });
+
+  it('로그인·가입 화면이면 띄우지 않는다 - 폼이 바로 앞에 있다', () => {
+    window.history.replaceState(null, '', ROUTES_PATHS.AUTH.LOGIN);
+    AuthUtil.notifySessionExpiredOnStart();
+
+    window.history.replaceState(null, '', ROUTES_PATHS.AUTH.SIGNUP);
+    AuthUtil.notifySessionExpiredOnStart();
+
+    expect(toastInfo).not.toHaveBeenCalled();
   });
 });
 

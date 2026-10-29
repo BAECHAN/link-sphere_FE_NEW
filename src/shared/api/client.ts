@@ -57,11 +57,6 @@ function isSessionInvalidCode(code: string): boolean {
   return code === SERVER_ERROR_CODE.NOT_LOGGED_IN || code === SERVER_ERROR_CODE.INVALID_TOKEN;
 }
 
-/** BE가 refresh를 401로 거절했는지 - 로그인 만료로 보는 유일한 refresh 실패다(handleTokenExpired) */
-function isRefreshRejected(error: unknown): boolean {
-  return error instanceof ApiError && error.status === 401;
-}
-
 function isApiResponseShape(json: unknown): boolean {
   return !!json && typeof json === 'object' && 'data' in json && 'status' in json;
 }
@@ -320,7 +315,7 @@ class ApiClient {
         // refresh가 401로 거절된 경우만 만료다. 네트워크·5xx·429는 세션이 아니라 연결·서버 문제라 로그인을 그대로 두고
         // 그 에러로 끝낸다 - 만료로 정리하면 잠깐 끊긴 것만으로 로그아웃되고 다른 탭과 함께 쓰는 세션 플래그까지 지워진다
         // (docs/plans/2026-10-28-session-expiry-draft-preservation.md 결정 12, client.test.ts Case 2-3)
-        if (!isRefreshRejected(error)) {
+        if (!ErrorUtil.isRefreshRejected(error)) {
           this.cancelSubscribers(error as Error);
           throw error;
         }
