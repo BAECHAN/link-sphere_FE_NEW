@@ -1111,7 +1111,7 @@ Case 9의 줄 선 mutation 쪽(같은 탭 계정 전환 뒤 차례가 온 mutati
 1-3(refresh가 끝난 뒤 도착)이 함께 검증합니다. **refresh 실패 시 대기 중인 팔로워 요청들의
 운명**은 Case 2-1이 고정합니다(§11 항목 3·4).
 
-게이트 A(`ProtectedRoute`)는 `src/app/routes/ProtectedRoute.test.tsx`가 화면 분기 자체(스피너/리다이렉트/모달 조건)를 검증합니다. §8-A의 사실("`restoreAuth`가 실제로 refresh를 호출하지 않는다")도 여기 고정돼 있습니다.
+게이트 A(`ProtectedRoute`)는 `src/app/routes/ProtectedRoute.test.tsx`가 화면 분기 자체(스피너/리다이렉트/모달 조건)를 검증합니다. §8-A의 사실("게이트 A는 만료돼 보이는 토큰이 있어도 미리 refresh를 호출하지 않는다")도 여기 고정돼 있습니다.
 
 **로그인이 풀려도 쓰던 화면에 두기(§8-I)**는 아래가 함께 고정합니다(2026-10-28).
 
@@ -1422,7 +1422,7 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
 - **`signedOutInPlace`**: `useAuthStore`의 값. 로그인이 풀렸지만 쓰던 화면에 그대로 둔 이유(`'expired'` 만료 / `'signedOutElsewhere'` 쓰는 중 다른 탭 로그아웃)와 그 화면의 `pathname`. 이 값이 있는 동안 게이트 A는 화면을 남기고, 세션 무효 401은 조용히 끝나며, 로그아웃 상태여도 이탈 확인창이 동작합니다(§8-I).
 - **`applySessionExpired`**: 로그인 만료를 처리하는 `AuthUtil` 메서드. `client.ts`가 refresh 401 거절·토큰을 실은 `INVALID_TOKEN` 때 부릅니다. 화면을 떠나지 않고 로그인 창(보호 화면·저장 중·쓰는 중) 또는 닫을 때까지 남는 토스트(보기만 하던 공개 화면)를 띄웁니다(§8-I).
 - **`notifySessionExpiredOnStart`**: 앱을 열 때 지난번 로그인이 끝나 있었으면(플래그가 있는데 refresh가 401로 거절됨) 부르는 `AuthUtil` 메서드. 공개 화면에서만 `applySessionExpired`와 같은 토스트를 띄우고, [로그인]은 기본 로그인 창을 엽니다(§8-C).
-- **`restoreAuthWithResult`**: 앱 시작 복원(`useAuth`). 결과를 `'restored' | 'expired' | 'failed'`로 돌려줍니다 — `'expired'`는 refresh 401 거절, `'failed'`는 5xx·오프라인 등. 기존 `restoreAuth`(불리언)는 이 함수의 결과가 `'restored'`인지만 돌려줍니다.
+- **`restoreAuthWithResult`**: 앱 시작 복원(`useAuth`). 결과를 `'restored' | 'expired' | 'failed'`로 돌려줍니다 — `'expired'`는 refresh 401 거절, `'failed'`는 5xx·오프라인 등. 결과를 불리언으로 돌려주던 `restoreAuth`는 앱 코드에서 쓰는 곳이 없어져 지웠습니다(2026-10-29).
 - **`reflectSignOutFromElsewhere`**: 다른 탭의 로그아웃을 이 탭에 반영하는 `AuthUtil` 메서드. 쓰는 중이면 이동 없이 로그인 창을 열고, 아니면 `applySignOutFromElsewhere`(보호 화면이면 `/post`)를 부릅니다(§8-H·§8-I).
 - **`loginDialogReason`**: 로그인 창을 여는 history state에 함께 싣는 이유(`signedOutInPlace`의 `reason`과 같은 값). 로그인 창이 이 값으로 제목·설명을 고릅니다(§8-I).
 - **`useLeaveOnMemberChange`**: `RootLayout`에서 한 번 호출하는 app 레이어 훅(`src/app/hooks/`). 마지막으로 본 회원 id를 기억했다가 다른 회원으로 바뀌었을 때 쓰는 중이거나 보호 화면이면 이탈 확인 등록을 모두 비우고 `/post`로 보냅니다. 그 자리에 두지 않은 로그아웃(평소 로그아웃 등)이면 기억한 회원을 놓습니다(§8-I).
