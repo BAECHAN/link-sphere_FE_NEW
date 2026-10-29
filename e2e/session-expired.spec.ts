@@ -222,3 +222,52 @@ test.describe('로그인 만료', () => {
     );
   });
 });
+
+// 앱을 열 때 지난번 로그인이 끝나 있었다 = 세션 플래그(auth.fixture)가 있는데 부트스트랩 refresh부터 401로 거절된다
+// (useAppInitialization → AuthUtil.notifySessionExpiredOnStart, docs/AUTH.md §8-C)
+test.describe('앱을 열 때 로그인 만료', () => {
+  test.beforeEach(async ({ page }) => {
+    await installCatchAll(page);
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.auth.refresh),
+      (route) => fulfillUnauthorized(route, 'INVALID_REFRESH_TOKEN')
+    );
+    await mockLoginSuccess(page);
+    await mockAccountQuery(page);
+    await mockCategoryOptions(page);
+    await mockPostList(page);
+  });
+
+  test('공개 화면이면 닫을 때까지 남는 안내를 띄우고, 그 버튼은 기본 로그인 창을 연다', async ({
+    page,
+  }) => {
+    await page.goto('/post');
+
+    const expiredToast = page
+      .locator('[data-sonner-toast]')
+      .filter({ hasText: TEXTS.messages.info.sessionExpired });
+    await expect(expiredToast).toBeVisible();
+    await expect(page.getByRole('link', { name: mockPost.title })).toBeVisible();
+    await expectNoErrorToast(page);
+
+    await expiredToast.getByRole('button', { name: TEXTS.buttons.login }).click();
+
+    // 막 연 앱에는 이어서 할 작업이 없다 - 만료 문구 창이 아니라 내비게이션 바 [로그인]과 같은 창이다
+    const dialog = page.getByRole('dialog', { name: TEXTS.auth.guard.title });
+    await expect(dialog).toBeVisible();
+
+    await signInFromDialog(page, dialog);
+
+    await expect(page.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.info.sessionExpired)).toHaveCount(0);
+    await expect(page).toHaveURL(/\/post$/);
+  });
+
+  test('보호 화면이면 안내 없이 기본 로그인 창만 띄운다', async ({ page }) => {
+    await page.goto('/post/submit');
+
+    await expect(page.getByRole('dialog', { name: TEXTS.auth.guard.title })).toBeVisible();
+    await expect(page).toHaveURL(/\/post$/);
+    await expect(page.getByText(TEXTS.messages.info.sessionExpired)).toHaveCount(0);
+  });
+});

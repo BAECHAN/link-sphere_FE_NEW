@@ -11,6 +11,8 @@ import { LocalStorageUtil } from '@/shared/utils/storage.util';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { TEXTS } from '@/shared/config/texts';
+import { toast } from '@/shared/lib/toast/toast';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
@@ -87,6 +89,39 @@ describe('useAppInitialization', () => {
 
     await waitFor(() => expect(useAuthStore.getState().isAuthResolved).toBe(true));
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  });
+
+  it('지난번 로그인이 끝나 있었으면(refresh 401 거절) 닫을 때까지 남는 만료 안내를 띄운다', async () => {
+    LocalStorageUtil.setItem(STORAGE_KEYS.AUTH.HAS_SESSION, true);
+    const toastInfo = vi.spyOn(toast, 'info');
+    server.use(
+      http.post(url(API_ENDPOINTS.auth.refresh), () =>
+        HttpResponse.json(
+          { status: 401, code: 'INVALID_REFRESH_TOKEN', message: '', timestamp: '' },
+          { status: 401 }
+        )
+      )
+    );
+
+    renderHook(() => useAppInitialization(), { wrapper: createWrapper(queryClient) });
+
+    await waitFor(() => expect(useAuthStore.getState().isAuthResolved).toBe(true));
+    expect(toastInfo).toHaveBeenCalledWith(
+      TEXTS.messages.info.sessionExpired,
+      expect.objectContaining({ id: 'session-expired', duration: Infinity })
+    );
+  });
+
+  it('복원이 네트워크·서버 문제로 실패하면 만료 안내를 띄우지 않는다', async () => {
+    LocalStorageUtil.setItem(STORAGE_KEYS.AUTH.HAS_SESSION, true);
+    const toastInfo = vi.spyOn(toast, 'info');
+    server.use(http.post(url(API_ENDPOINTS.auth.refresh), () => HttpResponse.error()));
+
+    renderHook(() => useAppInitialization(), { wrapper: createWrapper(queryClient) });
+
+    await waitFor(() => expect(useAuthStore.getState().isAuthResolved).toBe(true));
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(toastInfo).not.toHaveBeenCalled();
   });
 
   it('재렌더돼도 refresh는 1회만 나간다 (hasInitialized ref)', async () => {

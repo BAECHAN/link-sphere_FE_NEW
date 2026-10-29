@@ -148,4 +148,76 @@ describe('useAuth', () => {
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
     });
   });
+
+  // 앱 시작 때 만료 안내를 띄울지 가르는 갈래 - 실패면 어느 쪽이든 로그아웃한다(useAppInitialization)
+  describe('restoreAuthWithResult', () => {
+    it('refresh가 accessToken을 주면 restored다', async () => {
+      server.use(
+        http.post(url(API_ENDPOINTS.auth.refresh), () =>
+          HttpResponse.json(
+            { status: 200, message: 'ok', data: { accessToken: 'refreshed-token' }, timestamp: '' },
+            { status: 200 }
+          )
+        )
+      );
+
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(queryClient) });
+      const restored = await act(async () => result.current.restoreAuthWithResult());
+
+      expect(restored).toBe('restored');
+      expect(useAuthStore.getState().accessToken).toBe('refreshed-token');
+    });
+
+    it('BE가 refresh를 401로 거절하면(쿠키 만료·폐기) 인증을 지우고 expired다', async () => {
+      server.use(
+        http.post(url(API_ENDPOINTS.auth.refresh), () =>
+          HttpResponse.json(
+            { status: 401, code: 'INVALID_REFRESH_TOKEN', message: '', timestamp: '' },
+            { status: 401 }
+          )
+        )
+      );
+
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(queryClient) });
+      const restored = await act(async () => result.current.restoreAuthWithResult());
+
+      expect(restored).toBe('expired');
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    });
+
+    it('5xx·네트워크 실패는 만료가 아니라 failed다', async () => {
+      server.use(
+        http.post(url(API_ENDPOINTS.auth.refresh), () =>
+          HttpResponse.json(
+            { status: 500, code: 'INTERNAL_SERVER_ERROR', message: '', timestamp: '' },
+            { status: 500 }
+          )
+        )
+      );
+
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(queryClient) });
+
+      expect(await act(async () => result.current.restoreAuthWithResult())).toBe('failed');
+
+      server.use(http.post(url(API_ENDPOINTS.auth.refresh), () => HttpResponse.error()));
+
+      expect(await act(async () => result.current.restoreAuthWithResult())).toBe('failed');
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    });
+
+    it('refresh 응답에 accessToken이 없으면 failed다', async () => {
+      server.use(
+        http.post(url(API_ENDPOINTS.auth.refresh), () =>
+          HttpResponse.json(
+            { status: 200, message: 'ok', data: {}, timestamp: '' },
+            { status: 200 }
+          )
+        )
+      );
+
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(queryClient) });
+
+      expect(await act(async () => result.current.restoreAuthWithResult())).toBe('failed');
+    });
+  });
 });

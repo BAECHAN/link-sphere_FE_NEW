@@ -6,12 +6,20 @@ import { useLoginMutation, useLogoutMutation } from '@/entities/auth/api/auth.qu
 import { Login } from '@/entities/auth/model/auth.schema';
 import { Account } from '@/entities/account/@x/auth';
 import { reregisterFcmTokenIfGranted } from '@/shared/lib/firebase/fcm';
+import { ErrorUtil } from '@/shared/utils/error.util';
 
 // ==================== Types ====================
+
+/**
+ * 세션 복원 결과 - 'expired'는 BE가 refresh를 401로 거절한 경우(쿠키 없음·만료·폐기), 'failed'는 그 밖의 실패
+ * (네트워크·5xx, 응답에 토큰 없음). 둘 다 이 탭을 로그아웃한다 - 앱 시작 때 만료 안내를 띄울지만 갈린다(useAppInitialization)
+ */
+type AuthRestoreResult = 'restored' | 'expired' | 'failed';
 
 type AuthActions = {
   login: (data: Login) => Promise<void>;
   restoreAuth: () => Promise<boolean>;
+  restoreAuthWithResult: () => Promise<AuthRestoreResult>;
   logout: () => void;
   setAuth: (accessToken: string | null, user?: Account | null) => void;
 };
@@ -61,18 +69,18 @@ export const useAuth = (): UseAuthReturn => {
     [loginMutation]
   );
 
-  // 토큰 복원 함수
-  const restoreAuth = useCallback(async (): Promise<boolean> => {
+  // 토큰 복원 함수 - 실패하면 만료인지 그 밖의 실패인지 함께 돌려준다
+  const restoreAuthWithResult = useCallback(async (): Promise<AuthRestoreResult> => {
     try {
       if (accessToken && isAuthenticated) {
-        return true;
+        return 'restored';
       }
 
       const authData = await authApi.refresh();
 
       if (!authData || !authData.accessToken) {
         clearAuth();
-        return false;
+        return 'failed';
       }
 
       setAuth(authData.accessToken);
@@ -81,18 +89,25 @@ export const useAuth = (): UseAuthReturn => {
       // 비활성으로 간주돼 지워진다(fcm.ts 참고). 사용자가 아무것도 누르지 않은 때라 권한은 묻지 않고,
       // 이미 허용한 기기만 재등록한다.
       void reregisterFcmTokenIfGranted();
-      return true;
+      return 'restored';
     } catch (error) {
       console.error('Auth restore failed', error);
       clearAuth();
-      return false;
+      return ErrorUtil.isRefreshRejected(error) ? 'expired' : 'failed';
     }
   }, [accessToken, isAuthenticated, setAuth, clearAuth]);
+
+  // 토큰 복원 함수
+  const restoreAuth = useCallback(
+    async (): Promise<boolean> => (await restoreAuthWithResult()) === 'restored',
+    [restoreAuthWithResult]
+  );
 
   // 공통 액션
   const actions = {
     login,
     restoreAuth,
+    restoreAuthWithResult,
     logout,
     setAuth,
     isLoginPending,

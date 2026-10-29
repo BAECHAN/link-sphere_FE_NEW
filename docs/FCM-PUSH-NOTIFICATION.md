@@ -253,7 +253,7 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
 토큰 등록은 세 곳에서 일어난다 — ① 로그인 성공
 (`auth.queries.ts`의 `useLoginMutation.onSuccess`), ② 비밀번호 변경 성공
 (`useChangePasswordMutation.onSuccess`), ③ 앱 부팅 시 세션 복원 성공
-(`useAuth.ts`의 `restoreAuth`). ②·③은 2026-09-29에 추가됐다. 이유는 둘이 다르다.
+(`useAuth.ts`의 `restoreAuthWithResult`). ②·③은 2026-09-29에 추가됐다. 이유는 둘이 다르다.
 
 - ② 비밀번호 변경: BE가 모든 세션을 폐기하고 이 기기에 새 세션 회전 계열(familyId)을
   발급한다(BE `AuthService.changePassword` → `MemberSessionService.createSession`). 재등록하지

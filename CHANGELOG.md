@@ -9,6 +9,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- `auth` 앱을 열 때 로그인이 이미 만료돼 있었으면 닫을 때까지 남는 안내 토스트
+  <details><summary>배경·구현</summary>
+
+  지난번에 로그인했던 브라우저로 다시 왔는데 그 사이 세션이 끝나 있으면(refresh 쿠키 만료·폐기, BE가 refresh를 401로 거절) 아무 안내 없이 로그아웃된 화면만 보였다. 이제 공개 화면이면 쓰는 중이 아닐 때의 만료 안내와 같은 토스트("로그인이 만료됐어요. 다시 로그인하면 이어서 이용할 수 있어요.", 닫을 때까지 남음)를 띄우고, [로그인]은 내비게이션 바 [로그인]과 같은 기본 로그인 창을 연다 — 막 연 앱에는 이어서 할 작업이 없어 만료 문구 창을 쓰지 않는다. 보호 화면은 지금처럼 피드로 보내며 기본 로그인 창만 열고(토스트까지 띄우면 겹친다), 로그인·가입 화면에는 띄우지 않는다(두 결정 모두 2026-10-29 사용자 선택). 5xx·오프라인 실패에는 띄우지 않는다 — 갱신 중 refresh 실패와 같은 기준(`ErrorUtil.isRefreshRejected`, `client.ts`에서 옮김)이다. 기존 `restoreAuth`는 그대로 두고 결과를 셋으로 돌려주는 `restoreAuthWithResult`를 더했다. 동작은 `docs/AUTH.md` §8-C "앱을 열 때 만료 안내", 계획은 [`docs/plans/2026-10-28-session-expiry-draft-preservation.md`](docs/plans/2026-10-28-session-expiry-draft-preservation.md) Phase 4. (`src/entities/auth/hooks/useAuth.ts`, `src/entities/auth/hooks/useAppInitialization.ts`, `src/shared/utils/auth.util.ts`, `src/shared/utils/error.util.ts`, `src/shared/api/client.ts`, `e2e/session-expired.spec.ts`)
+
+  </details>
+
 ### Fixed
 
 - `auth` 로그인이 풀려도 쓰던 글이 사라지지 않게 그 화면에 두고 로그인 창을 띄움
