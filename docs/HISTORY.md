@@ -1,3 +1,6 @@
+### 2026-10-29 (FE)
+- 인증 만료 상태의 앱 접근 시 사용자 안내 로직 구현 ([#451](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/451))
+
 ### 2026-10-28 (FE)
 - Supabase 이미지 변환 실패 시 대체 처리를 통한 댓글 이미지 렌더링 오류 수정 ([#447](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/447))
 
