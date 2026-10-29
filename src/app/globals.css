@@ -211,48 +211,67 @@
   --radius: 0.625rem;
   --kbd-in-primary-bg: rgba(255, 255, 255, 0.15);
   --kbd-in-primary-color: rgba(255, 255, 255, 0.6);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
+  /* 무채색 팔레트(Primitive 층) - 아래 의미 토큰(Semantic 층)은 무채색 값을 숫자 대신
+     이 변수로 참조한다. 값은 Tailwind 기본 neutral 팔레트(tailwindcss/theme.css의
+     --color-neutral-*)와 같지만, Tailwind 버전이 팔레트를 바꿔도 테마가 따라 바뀌지
+     않도록 여기 직접 정의한다. 실제로 참조하는 단계만 둔다. @theme가 아니라 :root에
+     두어 bg-palette-* 같은 유틸리티가 생기지 않는다 - 컴포넌트는 의미 토큰만 쓴다.
+     테마 무관이라 .dark에서 재정의하지 않는다. 유채색(info·success·category 등)은
+     모드마다 한 번씩만 쓰여 층을 나눠도 1:1 별칭만 늘어나므로 숫자로 둔다
+     (docs/DESIGN-SYSTEM.md §5). */
+  --palette-white: oklch(1 0 0);
+  --palette-neutral-50: oklch(0.985 0 0);
+  --palette-neutral-100: oklch(0.97 0 0);
+  --palette-neutral-200: oklch(0.922 0 0);
+  --palette-neutral-400: oklch(0.708 0 0);
+  --palette-neutral-500: oklch(0.556 0 0);
+  --palette-neutral-800: oklch(0.269 0 0);
+  --palette-neutral-900: oklch(0.205 0 0);
+  --palette-neutral-950: oklch(0.145 0 0);
+  --palette-black: oklch(0 0 0);
+  --background: var(--palette-white);
+  --foreground: var(--palette-neutral-950);
+  --card: var(--palette-white);
+  --card-foreground: var(--palette-neutral-950);
+  --popover: var(--palette-white);
+  --popover-foreground: var(--palette-neutral-950);
+  --primary: var(--palette-neutral-900);
+  --primary-foreground: var(--palette-neutral-50);
+  --secondary: var(--palette-neutral-100);
+  --secondary-foreground: var(--palette-neutral-900);
+  --muted: var(--palette-neutral-100);
   /* 명도(L)만 0.556→0.542로 낮췄다(색상·채도는 그대로) - 원래 값은 --muted
      배경(oklch(0.97 0 0), #f5f5f5) 위에서 4.34:1로 WCAG AA(4.5:1) 미달이었다
      (2026-09-16 Storybook a11y 게이트가 kbd/FilterChip/ScrollToTop 등에서 실측
      발견). OKLCH→sRGB 변환 후 WCAG 상대 휘도 공식으로 직접 계산해 4.60:1(여유
      포함)이 되는 최소 조정값을 찾았다 - 화면상 #737373→#6f6f6f로 육안 구분이
-     거의 안 되는 수준이다. Artifact 미리보기로 사용자 승인(2026-09-16). */
+     거의 안 되는 수준이다. Artifact 미리보기로 사용자 승인(2026-09-16). 그래서
+     팔레트(--palette-neutral-500 = 0.556) 밖의 값이라 var()가 아니라 숫자로 둔다. */
   --muted-foreground: oklch(0.542 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --accent: var(--palette-neutral-100);
+  --accent-foreground: var(--palette-neutral-900);
   --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(1 0 0);
+  --destructive-foreground: var(--palette-white);
   /* 딤(scrim) 오버레이 전용 - 테마 무관(라이트/다크 공통, .dark에서도 재정의하지 않음).
      button.tsx/badge.tsx의 destructive-foreground와 값은 같은 흰색이지만, 역할이
      다른(딤 위 텍스트 vs 버튼 위 텍스트) 별도 토큰이다. 각 사용처는 기존 투명도
      수식자(/40, /50, /60, /80 등)를 그대로 유지한다 - 화면 변화 없음
      (docs/DECISIONS.md 2026-09-13 참고). */
-  --scrim: oklch(0 0 0);
-  --scrim-foreground: oklch(1 0 0);
+  --scrim: var(--palette-black);
+  --scrim-foreground: var(--palette-white);
   /* info/category/success 3개 모두 같은 이유(2026-09-16 a11y 게이트 실측, 다크
      모드는 전부 7:1 이상이라 문제 없음을 확인) - 명도(L)만 낮춰 WCAG AA(4.5:1)를
      4.60:1 여유로 넘긴다. info·category는 1~2%p만 낮춰 육안 차이가 거의 없지만,
      success는 원래 3.29:1로 가장 크게 미달이라 눈에 띄게 진해진다(#2ba321→
      #008900). Artifact 미리보기로 사용자 승인(2026-09-16). */
   --info: oklch(0.575 0.233 262);
-  --info-foreground: oklch(1 0 0);
+  --info-foreground: var(--palette-white);
   --warning: oklch(0.769 0.188 85);
-  --warning-foreground: oklch(0.145 0 0);
+  --warning-foreground: var(--palette-neutral-950);
   --success: oklch(0.543 0.194 142);
-  --success-foreground: oklch(1 0 0);
+  --success-foreground: var(--palette-white);
   --category: oklch(0.597 0.256 292);
-  --category-foreground: oklch(1 0 0);
+  --category-foreground: var(--palette-white);
   /* 카테고리별 색상 8종(틴트) - id % 8로 배정한다(entities/category/config/category.const.ts).
      BE 응답(GET /common/category-option)에 color 필드가 없고 카테고리 개수가 가변이라
      이름 하드코딩 대신 id 기반으로 정했다. 라이트: 배경 색/12% 틴트 + 진한 글자(L 0.42).
@@ -274,86 +293,88 @@
   --category-7-foreground: oklch(0.42 0.11 85);
   --category-8: oklch(0.5 0.15 15 / 12%); /* 레드 */
   --category-8-foreground: oklch(0.42 0.15 15);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: var(--palette-neutral-200);
+  --input: var(--palette-neutral-200);
+  --ring: var(--palette-neutral-400);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: var(--palette-neutral-50);
+  --sidebar-foreground: var(--palette-neutral-950);
+  --sidebar-primary: var(--palette-neutral-900);
+  --sidebar-primary-foreground: var(--palette-neutral-50);
+  --sidebar-accent: var(--palette-neutral-100);
+  --sidebar-accent-foreground: var(--palette-neutral-900);
+  --sidebar-border: var(--palette-neutral-200);
+  --sidebar-ring: var(--palette-neutral-400);
 }
 
 .dark {
   --kbd-in-primary-bg: rgba(0, 0, 0, 0.2);
   --kbd-in-primary-color: rgba(0, 0, 0, 0.55);
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: var(--palette-neutral-950);
+  --foreground: var(--palette-neutral-50);
+  --card: var(--palette-neutral-900);
+  --card-foreground: var(--palette-neutral-50);
+  --popover: var(--palette-neutral-900);
+  --popover-foreground: var(--palette-neutral-50);
+  --primary: var(--palette-neutral-200);
+  --primary-foreground: var(--palette-neutral-900);
+  --secondary: var(--palette-neutral-800);
+  --secondary-foreground: var(--palette-neutral-50);
+  --muted: var(--palette-neutral-800);
+  --muted-foreground: var(--palette-neutral-400);
+  --accent: var(--palette-neutral-800);
+  --accent-foreground: var(--palette-neutral-50);
   --destructive: oklch(0.704 0.191 22.216);
   --info: oklch(0.707 0.165 254);
-  --info-foreground: oklch(1 0 0);
+  --info-foreground: var(--palette-white);
   --warning: oklch(0.769 0.188 85);
-  --warning-foreground: oklch(0.145 0 0);
+  --warning-foreground: var(--palette-neutral-950);
   --success: oklch(0.749 0.155 152);
-  --success-foreground: oklch(1 0 0);
+  --success-foreground: var(--palette-white);
   --category: oklch(0.714 0.203 292);
-  --category-foreground: oklch(1 0 0);
+  --category-foreground: var(--palette-white);
   /* 다크 카테고리 - 라이트와 반대로 솔리드 배경(L 0.75) + 어두운 글자.
      그림자가 어두운 배경에서 거의 안 보이는 것과 같은 이유로, 낮은 알파 틴트를
      다크 배경에 얹으면 대비가 부족해진다 - 직접 계산 결과 L 0.75 + 어두운 글자
      조합이 7.3~8.7:1로 라이트보다 오히려 여유 있게 통과한다. */
   --category-1: oklch(0.75 0.18 255);
-  --category-1-foreground: oklch(0.205 0 0);
+  --category-1-foreground: var(--palette-neutral-900);
   --category-2: oklch(0.75 0.14 30);
-  --category-2-foreground: oklch(0.205 0 0);
+  --category-2-foreground: var(--palette-neutral-900);
   --category-3: oklch(0.75 0.22 292);
-  --category-3-foreground: oklch(0.205 0 0);
+  --category-3-foreground: var(--palette-neutral-900);
   --category-4: oklch(0.75 0.16 340);
-  --category-4-foreground: oklch(0.205 0 0);
+  --category-4-foreground: var(--palette-neutral-900);
   --category-5: oklch(0.75 0.045 150);
-  --category-5-foreground: oklch(0.205 0 0);
+  --category-5-foreground: var(--palette-neutral-900);
   --category-6: oklch(0.75 0.05 200);
-  --category-6-foreground: oklch(0.205 0 0);
+  --category-6-foreground: var(--palette-neutral-900);
   --category-7: oklch(0.75 0.11 85);
-  --category-7-foreground: oklch(0.205 0 0);
+  --category-7-foreground: var(--palette-neutral-900);
   --category-8: oklch(0.75 0.15 15);
-  --category-8-foreground: oklch(0.205 0 0);
+  --category-8-foreground: var(--palette-neutral-900);
+  /* 흰색에 투명도를 얹은 값은 var() 뒤에 알파를 붙일 수 없어 팔레트 대신 숫자로 둔다
+     (--sidebar-border도 같다). */
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: var(--palette-neutral-500);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar: var(--palette-neutral-900);
+  --sidebar-foreground: var(--palette-neutral-50);
   --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-primary-foreground: var(--palette-neutral-50);
+  --sidebar-accent: var(--palette-neutral-800);
+  --sidebar-accent-foreground: var(--palette-neutral-50);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: var(--palette-neutral-500);
 }
 
 /*
