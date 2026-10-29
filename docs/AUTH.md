@@ -1226,6 +1226,55 @@ Case 9의 줄 선 mutation 쪽(같은 탭 계정 전환 뒤 차례가 온 mutati
 
 교훈은 위 "일반화되는 교훈"의 반대 방향입니다 — 다른 레이어의 방어에 기대기로 했다면, **그 방어가 발동하는 조건(여기서는 401)이 모든 경로에서 실제로 만들어지는지**도 확인해야 합니다.
 
+### 별건 — 제출 뒤 위 칸 fill이 확인 칸에 들어갔다 (2026-10-29, e2e)
+
+위 오진과는 무관한, §8-G 확인 칸 e2e의 흔들림 기록입니다. 앱 버그가 아니라 테스트의 타이밍 문제였습니다.
+
+- **증상**: #452 CI의 [e2e job](https://github.com/BAECHAN/link-sphere_FE_NEW/actions/runs/40856586719/job/123388971276)에서
+  `e2e/signup.spec.ts`의 "확인 칸에 불일치가 뜬 뒤 위 비밀번호를 고쳐 같아지면 바로 일치로 바뀐다(제출 전·후 모두)"가
+  첫 시도에 실패했습니다(재시도로 통과해 flaky — CI는 이것도 실패로 칩니다, `docs/TESTING.md` "CI 연동"). 실패
+  스냅샷에서 비밀번호 칸은 `TestPass1!` 그대로였고 확인 칸이 `TestPass1?TestPass1?`였습니다 — 비밀번호 칸에 넣으려던
+  글자가 확인 칸 끝에 붙었습니다.
+- **원인**: 두 라이브러리의 동작이 겹쳤습니다(둘 다 설치본 소스로 확인).
+  - react-hook-form 7.71.0은 검증에 실패한 제출에서 첫 에러 칸(여기서는 확인 칸)에 포커스를 주고, `setTimeout`으로 한
+    번 더 줍니다(`node_modules/react-hook-form/dist/index.esm.mjs:2205-2206`, `_focusError(); setTimeout(_focusError);`).
+  - Playwright 1.64.0의 `fill`은 비밀번호 칸에서 ① 페이지 안에서 칸에 포커스를 주고 전체 선택한 뒤 ② 따로
+    `keyboard.insertText`로 **지금 포커스가 있는 칸**에 글자를 넣습니다(`node_modules/playwright-core/lib/coreBundle.js:21550-21554`).
+  - 테스트는 제출 뒤 불일치 문구가 보이자마자 위 칸을 `fill`했습니다. RHF의 두 번째 포커스 타이머가 ①과 ② 사이에 돌면
+    포커스가 확인 칸으로 돌아가 ②가 거기에 입력합니다. 사용자는 클릭과 타이핑 사이에 이 틈이 없어 영향이 없습니다.
+- **재현(직접 측정)**: 이 테스트 본문을 옮긴 임시 spec에서 제출 직전부터 지연 0인 `setTimeout`만 80ms로 늦추고
+  (`addInitScript`로 `window.setTimeout` 감쌈), `fill`을 `selectText()` → 대기 → `keyboard.insertText()`로 나눠 틈을
+  고정했습니다. CPU 10배 감속(45회)이나 고정 지연(30회)만으로는 재현되지 않았습니다.
+
+  | 제출 뒤 대기                             | 결과(각 5회)                                                 |
+  | ---------------------------------------- | ------------------------------------------------------------ |
+  | 없음(수정 전)                            | 5회 모두 실패, CI와 같은 값                                  |
+  | 확인 칸 포커스만 기다림                  | 5회 모두 실패 — 첫 포커스가 동기라 이 단언은 곧바로 통과한다 |
+  | 확인 칸 포커스 + 대기 중인 타이머 비우기 | 5회 모두 통과                                                |
+  | (타이머를 늦추지 않으면) 세 경우 모두    | 5회 모두 통과                                                |
+
+- **수정**: 제출 뒤 `await expect(confirmInput).toBeFocused()`로 첫 포커스를 확인하고,
+  `page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)))`로 RHF가 먼저 예약한 타이머가 돈 뒤에 위 칸을
+  채웁니다. 이 대기는 HTML 표준의 타이머 순서 보장에 기댑니다 — "run steps after a timeout"은 _"같은 전역과
+  orderingIdentifier를 가진, 이것보다 먼저 시작했고 밀리초가 이것보다 작거나 같은 호출들이 끝날 때까지 기다린다"_
+  (번역, [HTML Standard §8.7](https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#run-steps-after-a-timeout))고
+  씁니다. `shouldFocusError: false`로 앱의 첫 에러 포커스를 끄는 방법은 사용자 동작이 바뀌어 택하지 않았습니다.
+- **같은 위험이 남은 곳**: `e2e/`에서 검증에 실패한 제출 직후 다른 칸을 `fill`하는 곳은 이 한 군데였습니다.
+
+```mermaid
+sequenceDiagram
+  participant T as e2e 테스트
+  participant P as Playwright fill
+  participant R as react-hook-form
+  T->>R: 가입 버튼 클릭(검증 실패)
+  R->>R: 확인 칸 포커스 + setTimeout(포커스) 예약
+  T->>P: 위 비밀번호 칸 fill
+  P->>P: ① 위 칸 포커스·전체 선택
+  R->>R: 예약한 타이머 실행 → 확인 칸 포커스
+  P->>P: ② insertText → 확인 칸에 입력됨
+  Note over T,R: 수정 후에는 fill 전에 toBeFocused + setTimeout(0) 대기로 타이머를 먼저 흘려보낸다
+```
+
 ---
 
 ## 11. 남은 것

@@ -129,6 +129,11 @@ test.describe('회원가입', () => {
     await expect(page.getByText(TEXTS.validation.passwordMismatch)).toBeVisible();
     await page.getByRole('button', { name: TEXTS.auth.signup.signUp }).click();
     await expect(page.getByText(TEXTS.validation.passwordMismatch)).toBeVisible();
+    // 제출이 실패하면 RHF가 확인 칸으로 포커스를 옮기고 setTimeout으로 한 번 더 옮긴다.
+    // 그 타이머가 fill의 포커스 단계와 입력 단계 사이에 돌면 글자가 확인 칸에 들어가므로
+    // 먼저 기다린다(docs/AUTH.md §10 "제출 뒤 위 칸 fill이 확인 칸에 들어갔다").
+    await expect(confirmInput).toBeFocused();
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)));
 
     await passwordInput.fill('TestPass1?');
     await expect(page.getByText(TEXTS.auth.password.confirmMatch)).toBeVisible();
