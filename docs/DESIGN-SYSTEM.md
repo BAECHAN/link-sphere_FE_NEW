@@ -10,7 +10,7 @@
 > 토큰 카탈로그를 어떻게 보는지, Storybook a11y 게이트가 CI에서 어떻게 도는지 안다.
 > spacing 토큰은 왜 없는지, 지금까지 찾은 a11y 위반을 어떻게 해소했는지도 안다.
 >
-> **마지막 검토**: 2026-10-28
+> **마지막 검토**: 2026-10-29
 
 ## 1. 쉬운 설명
 
@@ -90,7 +90,9 @@ flowchart LR
         T1["@theme inline<br/>색상 58 + font + radius"]
         T2["@theme static<br/>z-index 8단계 (신규)"]
         T3[":root/.dark<br/>scrim·destructive-foreground (신규)"]
+        T0[":root --palette-*<br/>무채색 10개 (Primitive)"]
     end
+    T0 -->|"var() 참조"| T3
     subgraph components ["2. 컴포넌트 (shared/ui)"]
         C1["ErrorState, DropTargetOverlay<br/>(신규 - 중복 흡수)"]
         C2["FormField, SearchInput<br/>(cn() 버그 수정)"]
@@ -126,6 +128,25 @@ import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있
 (2026-09-21 추가)도 같은 분류 - 카테고리 개수·id 기반 배정이 link-sphere 고유
 비즈니스 규칙이다.
 
+**색상 2층 — 무채색만 Primitive로 분리(2026-10-29)**: `:root`/`.dark`의 의미 토큰(Semantic,
+`--card` 등)은 무채색 값을 숫자 대신 `:root`의 `--palette-*`(Primitive)로 참조한다 —
+`--palette-white`·`--palette-black`과 `--palette-neutral-{50,100,200,400,500,800,900,950}`
+10개다. 타이포가 이미 스케일(t1~t14) → 역할 2층이라 색도 같은 구조로 맞췄다. 범위와 위치는
+이렇게 정했다:
+
+- **무채색만 분리**: 분리 전 무채색 선언 68개가 서로 다른 값 13개(투명도 붙은 2개 포함)에
+  몰려 있었다(`oklch(0.205 0 0)` 하나가 17번). 반면 유채색(info·success·category 등)은
+  모드마다 한 번씩만 쓰여, 층을 나눠도 1:1 별칭만 늘어난다.
+- **Tailwind `--color-neutral-*`를 참조하지 않고 직접 정의**: 값은 tailwindcss 4.1.18의
+  `theme.css` neutral 팔레트와 같지만, 참조하면 Tailwind가 팔레트 값을 바꿀 때 테마가 조용히
+  따라 바뀐다.
+- **`@theme`가 아니라 `:root`**: `bg-palette-*` 같은 유틸리티가 생기지 않는다. 컴포넌트는
+  의미 토큰만 쓴다(명명 팔레트 클래스는 `custom-tailwind/no-raw-color`가 이미 막는다).
+- **숫자로 남긴 예외 4개**: `--muted-foreground`(0.542 — a11y 대비 때문에 팔레트 0.556에서
+  내린 값), 다크 `--border`·`--input`·`--sidebar-border`(흰색 + 투명도 — `var()` 뒤에 알파를
+  붙일 수 없다). 각 자리에 이유 주석이 있다.
+- 안 쓰는 단계(300·600·700)는 정의하지 않는다 — 필요해지면 그때 추가한다.
+
 **신규 shared/ui/atoms**: 위 재사용성 절 이후 `RequiredMark`(`required-mark.tsx`),
 `Divider`(`divider.tsx`), `IconBadge`(`icon-badge.tsx`), `LabeledDivider`(`labeled-divider.tsx`),
 `AlertDialog`(`alert-dialog.tsx`) 등이 `src/shared/ui/atoms/`에 추가됐다 — 이들을 포함해
@@ -146,15 +167,16 @@ URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`�
 이 기능은 Zustand 스토어나 React Query 키를 도입하지 않는다 — 상태는 CSS 커스텀
 프로퍼티뿐이다. 새로 추가된 네임스페이스:
 
-| 네임스페이스                                                                                | 정의 위치                                                          | 정본                                                                                  |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| `--z-index-*` (8개)                                                                         | `src/app/globals.css`의 `@theme static` 블록                       | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "z-index 토큰"      |
-| `--destructive-foreground`, `--scrim`, `--scrim-foreground`                                 | `src/app/globals.css`의 `:root` (테마 무관, `.dark`에 재정의 없음) | 위와 동일 문서 "주요 색상 토큰" 표                                                    |
-| `--text-t1`~`--text-t14` (스케일 층, 2026-09-16 추가)                                       | `src/app/globals.css`의 `@theme static` 블록                       | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "타이포그래피 토큰" |
-| `--text-screen-title`/`section-title`/`subsection-title`/`micro` (역할 층, 2026-09-16 추가) | `src/app/globals.css`의 (static 아닌) `@theme` 블록                | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
-| `--category-1`~`--category-8` (+`-foreground`, 2026-09-21 추가)                             | `src/app/globals.css`의 `:root`/`.dark`. `category.id % 8`로 배정  | 위와 동일 문서, `entities/category/config/category.const.ts`                          |
-| `--text-card-title`/`group-label`/`display-title` (역할 층, 2026-09-16 추가)                | `src/app/globals.css`의 (static 아닌) `@theme` 블록                | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
-| `--text-detail-title` (역할 층, 2026-09-21 추가)                                            | `src/app/globals.css`의 (static 아닌) `@theme` 블록                | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
+| 네임스페이스                                                                                | 정의 위치                                                                | 정본                                                                                  |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `--z-index-*` (8개)                                                                         | `src/app/globals.css`의 `@theme static` 블록                             | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "z-index 토큰"      |
+| `--destructive-foreground`, `--scrim`, `--scrim-foreground`                                 | `src/app/globals.css`의 `:root` (테마 무관, `.dark`에 재정의 없음)       | 위와 동일 문서 "주요 색상 토큰" 표                                                    |
+| `--text-t1`~`--text-t14` (스케일 층, 2026-09-16 추가)                                       | `src/app/globals.css`의 `@theme static` 블록                             | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "타이포그래피 토큰" |
+| `--text-screen-title`/`section-title`/`subsection-title`/`micro` (역할 층, 2026-09-16 추가) | `src/app/globals.css`의 (static 아닌) `@theme` 블록                      | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
+| `--category-1`~`--category-8` (+`-foreground`, 2026-09-21 추가)                             | `src/app/globals.css`의 `:root`/`.dark`. `category.id % 8`로 배정        | 위와 동일 문서, `entities/category/config/category.const.ts`                          |
+| `--text-card-title`/`group-label`/`display-title` (역할 층, 2026-09-16 추가)                | `src/app/globals.css`의 (static 아닌) `@theme` 블록                      | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
+| `--text-detail-title` (역할 층, 2026-09-21 추가)                                            | `src/app/globals.css`의 (static 아닌) `@theme` 블록                      | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
+| `--palette-*` (무채색 Primitive 10개, 2026-10-29 추가)                                      | `src/app/globals.css`의 `:root` 맨 앞 (테마 무관, `.dark`에 재정의 없음) | 이 문서 §5 "색상 2층", `globals.css` 블록 주석                                        |
 
 전체 58개 색상 값 자체는 옮겨적지 않는다 — `globals.css`가 SSOT다(`@theme inline`
 블록의 `--color-*` 개수, 2026-09-29 `grep -c` 재확인).
@@ -168,7 +190,7 @@ URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`�
 | 하려는 것                                         | 위치                                                                                                           | 방법                                                                                                                                                                                                                                                                                                      |
 | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 새 z-index 층 추가                                | `src/app/globals.css`의 `@theme static` 블록 (§ z-index 주석)                                                  | `--z-index-<name>: <값>` 추가 → `design-tokens` skill 표 갱신 → `DesignTokens.stories.tsx`의 `Z_INDEX_LAYERS` 배열에 항목 추가                                                                                                                                                                            |
-| 새 색 토큰 추가                                   | `globals.css`의 `:root`/`.dark` + `@theme inline` 매핑                                                         | 값 정의 → `--color-<name>: var(--<name>)` 매핑 추가 → skill 문서 표 갱신                                                                                                                                                                                                                                  |
+| 새 색 토큰 추가                                   | `globals.css`의 `:root`/`.dark` + `@theme inline` 매핑                                                         | 값 정의(무채색이면 숫자 대신 `var(--palette-neutral-<단계>)` — 필요한 단계가 없으면 `:root` 팔레트 블록에 먼저 추가, 유채색은 숫자 그대로) → `--color-<name>: var(--<name>)` 매핑 추가 → skill 문서 표 갱신                                                                                               |
 | 새 Tailwind 커스텀 ESLint 룰 추가                 | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화) | 기존 5개 룰(`no-raw-z-index`/`no-raw-color`/`no-raw-text-size`/`no-raw-title`/`no-classname-template-literal`, 2026-09-29 재확인)과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭 — `no-classname-template-literal`만 `JSXAttribute`/`VariableDeclarator` 방문) 따르기            |
 | 새 타이포 역할 토큰 추가                          | `globals.css`의 (static 아닌) `@theme` 블록                                                                    | `--text-<role>`/`--text-<role>--line-height`(필요시 `--font-weight`) 추가 → `src/shared/lib/tailwind/utils.ts`의 `TEXT_SIZE_TOKENS`에 이름 추가(빠뜨리면 `utils.test.ts` 실패, §10) → 실제 사용처에 클래스 적용 → `design-tokens` skill 역할 토큰 표 갱신                                                 |
 | 토큰 카탈로그에 새 섹션 추가                      | `src/shared/ui/tokens/DesignTokens.stories.tsx`                                                                | 새 `export const <Name>: Story` 추가(기존 `Colors`/`Radius`/`ZIndex` 참고)                                                                                                                                                                                                                                |
@@ -357,6 +379,19 @@ PR #108·#110·#111·#112·#113·#114·#115·#116 머지 후 신선한 `main` �
   바꾸면 로딩→렌더 전환에서 시프트가 생기는 걸 미리 막았다
 - `pnpm type-check`/`pnpm lint`/`pnpm test`(380개)/`pnpm format:check`/
   `pnpm check:docs`/`pnpm build` 전부 통과
+
+2026-10-29 실측 (무채색 Primitive 층 분리, 워크트리 `color-palette-tokens`, `main` `2d813440`
+기준) — 직접 측정:
+
+- 바꾸기 전·후를 각각 `vite build`한 CSS(`dist/assets/index-*.css`)를 Chromium(Playwright)에
+  올리고, `:root`·`.dark` 규칙에 선언된 모든 커스텀 프로퍼티의 `getComputedStyle` 값을 라이트와
+  `.dark` 클래스를 켠 상태에서 각각 읽어 문자열로 비교했다 — 토큰 200개 × 2모드 = 400건 중
+  차이 0건. 추가된 건 `--palette-*` 10개뿐이다. 커스텀 프로퍼티의 계산값은 `var()`가 치환된
+  값이라(예: 다크 `--card` = `oklch(20.5% 0 0)`) 참조로 바꿔도 같은 문자열이 나와야 한다.
+- 비교가 실제로 틀린 곳을 잡는지 음성 대조: 결과 CSS의 `var(--palette-neutral-900)` 하나를
+  `var(--palette-neutral-90)`로 망가뜨리자 `--primary`·`--color-primary`가 빈 값으로 바뀐
+  2건이 잡혔다.
+- `pnpm type-check`/`pnpm test`(141개 파일 1,590개)/`prettier --check` 통과
 
 ## 10. 시행착오
 

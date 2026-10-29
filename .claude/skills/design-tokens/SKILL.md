@@ -15,6 +15,10 @@ paths: src/**/*.tsx
 
 Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금지** — 아래 의미론적 클래스를 사용한다.
 
+무채색 의미 토큰의 값은 `:root`의 `--palette-*`(Primitive 층)를 참조한다. `--palette-*`는 Tailwind
+클래스가 없고, 컴포넌트에서 `var(--palette-*)`로 직접 쓰지도 않는다 — 항상 아래 의미 토큰을 쓴다
+(층 구조와 예외는 `docs/DESIGN-SYSTEM.md` §5 "색상 2층").
+
 ### 주요 색상 토큰 → Tailwind 클래스
 
 | 의미                  | CSS 변수                            | Tailwind 클래스                                           | 사용 예                                                                                                                                                                                                                     |
