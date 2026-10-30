@@ -1,4 +1,7 @@
 ### 2026-10-30 (FE)
+- API 스펙 경로 및 타입 정의를 specClient로 이관하여 코드 구조 최적화 및 관리 효율성 개선 ([#456](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/456))
+
+### 2026-10-30 (FE)
 - MSW 핸들러의 타입 안정성 강화 및 백엔드 API 스펙 연동 검증 로직 도입 ([#455](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/455))
 
 ### 2026-10-30 (BE)
