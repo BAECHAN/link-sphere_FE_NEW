@@ -1,3 +1,6 @@
+### 2026-10-30 (FE)
+- Storybook 배포 환경을 운영 도메인에서 GitHub Pages로 분리하여 인프라 효율성 최적화 ([#459](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/459))
+
 ### 2026-10-30 (BE)
 - Gradle 의존성 버전 업데이트를 통한 빌드 환경 최적화
   로그:
