@@ -294,7 +294,7 @@ async function registerTokenToServer(token: string): Promise<void> {
   const accessToken = getAccessTokenFromStore(); // useAuthStore.getState().accessToken
   if (!accessToken) return; // 아직 로그인 상태가 스토어에 반영 안 됐으면 조용히 skip
 
-  await fcmApi.registerToken(token); // shared/api/fcm.api.ts → apiClient.post(API_ENDPOINTS.fcm.token)
+  await fcmApi.registerToken(token); // shared/api/fcm.api.ts → specClient.post('/fcm/token')
 }
 ```
 

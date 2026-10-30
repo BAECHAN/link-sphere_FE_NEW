@@ -127,7 +127,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 ### API 엔드포인트
 
 `src/entities/post/api/post.api.ts`와 `src/entities/interaction/api/interaction.api.ts` 기준
-(`src/shared/config/api.ts`의 `API_ENDPOINTS.post`).
+(`specClient`의 스펙 경로, `docs/OPENAPI-CODEGEN.md` §5-2).
 
 | 메서드   | 경로                    | FE 함수                | 비고                                                                           |
 | -------- | ----------------------- | ---------------------- | ------------------------------------------------------------------------------ |

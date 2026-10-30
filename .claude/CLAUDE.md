@@ -408,9 +408,13 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
   2026-09-13부터는 ESLint `custom-tailwind/no-raw-color`(`eslint.config.js`)가 이 규칙을
   강제한다 — black/white/gray/zinc 등 명명 팔레트 리터럴 클래스를 pre-commit(lint-staged)과
   CI·배포의 `pnpm check`에서 차단하므로, 위 감사에서 발견된 것과 같은 유형의 회귀는 이제 자동으로 잡힌다
-- **Never** 인라인 API 경로 → 앱 코드는 항상 `API_ENDPOINTS.*` 사용. 예외: 스펙 타입 MSW(`src/mocks/http.ts`)로
-  만드는 핸들러는 스펙 경로 템플릿(`'/post/{id}'`)을 그대로 쓴다 — 오타·없는 경로를 생성 스펙(`openapi.gen.ts`)이
-  컴파일 단계에서 막아 이 규칙의 목적(오타·흩어짐 방지)을 대신한다(2026-10-30, `docs/OPENAPI-CODEGEN.md` §5-5)
+- **Never** 문자열을 이어 붙인 API 경로·손으로 적은 응답 타입(``apiClient.get<Post>(`${API_ENDPOINTS.post.base}/${id}`)``)
+  → `*.api.ts`는 항상 `specClient`에 스펙 경로 템플릿을 쓴다(`specClient.get('/post/{id}', { path: { id } })`).
+  없는 경로·메서드, 빠뜨린 경로 변수, 스펙과 다른 본문·응답 타입을 생성 스펙(`openapi.gen.ts`)이 컴파일 단계에서 막아
+  예전 `API_ENDPOINTS` 규칙의 목적(오타·흩어짐 방지)을 대신한다. 스펙 타입 MSW(`src/mocks/http.ts`) 핸들러도 같은
+  템플릿을 쓴다. `apiClient` 값 import는 ESLint `custom-api-rules/no-raw-api-client-import`가 막는다(허용: `spec-client.ts`·
+  테스트). `API_ENDPOINTS`는 `client.ts`의 인증 경로 판별과 테스트·e2e 목에만 남아 있다(2026-10-30,
+  `docs/OPENAPI-CODEGEN.md` §5-2·§5-5)
 - **Never** feature hook에서 직접 `queryClient.invalidateQueries` → 항상 `.keys.ts` success handlers 사용
 - **Never** 다른 엔티티의 raw 쿼리 키를 재구성해 `queryClient.invalidateQueries`를 직접 호출 → 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()` 래퍼만 사용. 크로스 엔티티 무효화가 필요하면 자기 엔티티의 `.keys.ts`에 `handle<Event>Success` 함수를 만들어 그 안에서 호출한다 (`docs/FE-ARCHITECTURE.md` §5의 "크로스 엔티티 무효화" 참고)
 - **Never** 하위 레이어에서 상위 레이어 import → ESLint 강제 (레이어 방향 위반)
@@ -643,7 +647,7 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 
 | 패턴                                                                               | 정본  | 한 줄 요약                                                                                                                                                                                                                             |
 | ---------------------------------------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 3-Layer API (`*.api.ts` → `*.keys.ts` → `*.queries.ts`) + 크로스 엔티티 무효화     | §5    | 레이어를 건너뛰거나 합치지 않는다. 다른 엔티티 캐시는 그 엔티티의 `InvalidateQueries` 래퍼로만                                                                                                                                         |
+| 3-Layer API (`*.api.ts` → `*.keys.ts` → `*.queries.ts`) + 크로스 엔티티 무효화     | §5    | 레이어를 건너뛰거나 합치지 않는다. Layer 1은 `specClient`(스펙 경로)로만, 다른 엔티티 캐시는 그 엔티티의 `InvalidateQueries` 래퍼로만                                                                                                  |
 | Feature Hook (`hooks/`에 로직 전부, `ui/`는 JSX만)                                 | §6    | UI 파일은 훅 호출 + 렌더링만                                                                                                                                                                                                           |
 | Widget Hook (entity query 조합 + 파생 상태, 원칙적으로 mutation 없음)              | §8    | query 1개 + trivial 파생만이면 컴포넌트에서 직접 사용 (widgets 한정, features는 §6 예외 없음). 단, 그 widget 전용이라 재사용되지 않는 CRUD는 widget hook에서 직접 mutation을 써도 된다 — `usePostCard.ts`(아래 레퍼런스)가 실제 예시   |
 | Zod Schema (`z.infer`로 타입 파생)                                                 | §9    | `nullable()`=null 허용, `optional()`=undefined 허용                                                                                                                                                                                    |
@@ -876,7 +880,7 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
 | ----------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Feature Hook      | `src/features/post/create/hooks/useCreatePost.ts`     | `DEFAULT_VALUES` + `useForm/zodResolver` + `onSubmit` 핸들러 분리, 반환값 객체         |
 | Widget Hook       | `src/widgets/post/post-card/hooks/usePostCard.ts`     | Props(엔티티+옵션) + 권한 체크 + `toast` + `openConfirm` + try-catch                   |
-| API 함수          | `src/entities/post/api/post.api.ts`                   | `postApi` 객체 export, JSDoc 한글, 조건부 스프레드, `NProgress`                        |
+| API 함수          | `src/entities/post/api/post.api.ts`                   | `postApi` 객체 export, `specClient`, JSDoc 한글, 조건부 스프레드, `NProgress`          |
 | Query Keys        | `src/entities/post/api/post.keys.ts`                  | `postMutationKeys` + `postKeys` + `postInvalidateQueries` 헬퍼 + `handleXxxSuccess`    |
 | Query Hooks       | `src/entities/post/api/post.queries.ts`               | `useMutation(meta 메시지)` + `useSuspenseInfiniteQuery(select 변환)` + 낙관적 업데이트 |
 | Optimistic Update | `src/entities/interaction/api/interaction.queries.ts` | `onMutate → cancelQueries → setQueryData → return previous`                            |

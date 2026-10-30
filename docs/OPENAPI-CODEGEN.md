@@ -42,9 +42,11 @@ flowchart TD
     DTO["entities/&lt;e&gt;/model/&lt;e&gt;.dto.ts<br/>(도메인 이름 alias, 엔티티당 1파일)"]
     SCHEMA["entities/&lt;e&gt;/model/&lt;e&gt;.schema.ts<br/>(폼 검증 Zod + 응답 타입 재수출)"]
     CONSUMERS["소비 파일<br/>(*.api.ts 등, import 경로 불변)"]
+    SPEC["shared/api/spec-client.ts<br/>(스펙 경로 → 요청·응답 타입, §5-2)"]
 
     BE -->|fetch| FETCH -->|"servers 제거 + 키 정렬"| JSON
     JSON --> CODEGEN --> GEN --> DTO --> SCHEMA --> CONSUMERS
+    GEN --> SPEC -->|"*.api.ts가 호출"| CONSUMERS
 
     L1["CI 게이트(ci.yml)<br/>커밋된 json→ts 재생성 일치?<br/>네트워크 X, 결정론적"]
     L2["cron(openapi-drift-check.yml)<br/>커밋된 json = 운영 스펙?<br/>이슈로만 보고"]
@@ -79,6 +81,8 @@ flowchart TD
     `type: ["string", "null"]`처럼 타입 배열로 나온다
   - [`openapi-msw`](https://www.npmjs.com/package/openapi-msw) 2.1.1 — 생성된 `paths` 타입으로
     MSW 기본 핸들러의 경로·응답을 검사한다(§5-5, 2026-10-30 추가)
+  - `specClient`(`src/shared/api/spec-client.ts`) — 생성된 `paths`로 `*.api.ts`의 경로와 요청·응답
+    타입을 묶는 자체 래퍼. 기존 `apiClient`를 그대로 호출한다(§5-2, 2026-10-30 추가)
 - **구현·검증 과정에서 쓴 도구**: `jq`(스펙 구조 확인·대조), `curl`(운영 스펙·실제 API
   응답 직접 확인), 로컬 `./gradlew bootRun`(BE 컨버터 실측), Python(`json` 모듈로 스펙
   전후 구조적 diff 확인)
@@ -142,11 +146,46 @@ pnpm codegen         # 네트워크 X — openapi.json → openapi.gen.ts, CI가
 않는 런타임 코드가 번들에 들어가고, 기존 Zod에 섞인 FE 전용 검증(댓글 바이트 상한 등)은
 생성물이 재현 못 해 결국 Zod가 두 벌이 된다.
 
+**2026-10-30 추가 — 경로가 타입을 정하는 `specClient`**. 타입만 생성한다는 결정은 그대로지만, `*.api.ts`가
+생성 타입을 쓰는 방식을 바꿨다. 전에는 ``apiClient.get<Post>(`${API_ENDPOINTS.post.base}/${id}`)``처럼
+URL 문자열과 응답 타입 `T`를 따로 적어서, 엉뚱한 경로에 엉뚱한 `T`를 적어도 컴파일이 통과했다.
+[openapi-fetch](https://openapi-ts.dev/openapi-fetch/) 문서는 경로 타입 클라이언트의 이점으로 _"URL·파라미터에
+오타가 없다"_, _"버그를 숨기는 `as` 타입 덮어쓰기를 없앤다"_ 를 꼽는다(번역, `docs/plans/2026-10-29-api-contract-checks.md`
+"사전 조사"에서 재인용). openapi-fetch는 자기 `fetch`로 요청하므로 위 orval과 같은 이유(`apiClient`의 토큰
+갱신·NFC·WAF 판별)로 쓰지 않고, 같은 타입 아이디어만 얇은 래퍼로 가져왔다.
+
+- [`src/shared/api/spec-types.ts`](../src/shared/api/spec-types.ts): 경로·메서드에서 경로 변수·쿼리·본문·200/201
+  응답을 꺼낸다. 응답은 봉투를 벗긴 `data`이고, `ApiResponseUnit`(`data` 없음)은 `void`다(런타임 값은 `{}`지만
+  쓰지 않는다). header·cookie 파라미터는 다루지 않는다.
+- [`src/shared/api/spec-client.ts`](../src/shared/api/spec-client.ts): `specClient.{get,post,put,patch,delete}(경로,
+{ path, query, body }, options)`. `{id}`를 `encodeURIComponent`로 치환하고 `query`를 `searchParams`로 넘겨
+  기존 `apiClient`를 그대로 부른다. `options`(keepalive 등)도 그대로 넘긴다.
+- 스펙보다 좁힌 도메인 타입은 두 번째 제네릭으로만 좁힌다(`specClient.get<'/auth/account', Account>(…)`, 지금은
+  `Account` 3곳). 스펙 응답의 하위 타입이 아니면 오류이고, 반환 위치가 `NoInfer`라 대입할 변수 타입만으로는
+  좁혀지지 않는다(§10).
+- ESLint `custom-api-rules/no-raw-api-client-import`가 `apiClient` 값 import를 막는다(허용: `spec-client.ts`·테스트).
+
+**잡는 것과 못 잡는 것**(2026-10-30 실측, [`src/shared/api/spec-client.test.ts`](../src/shared/api/spec-client.test.ts)의
+`@ts-expect-error`):
+
+| `*.api.ts` 실수                                                            | `pnpm type-check`                         |
+| -------------------------------------------------------------------------- | ----------------------------------------- |
+| 스펙에 없는 경로·메서드                                                    | 실패                                      |
+| 경로 변수 누락·이름 혼동(`{postId}`↔`{id}`)                                | 실패                                      |
+| 필수 쿼리 누락·쿼리 이름 오타                                              | 실패                                      |
+| 필수 본문·본문 필수 필드 누락, 본문이 없는 엔드포인트에 본문               | 실패                                      |
+| 두 번째 제네릭에 스펙 응답의 하위 타입이 아닌 타입, 변수 타입으로만 좁히기 | 실패                                      |
+| `ApiResponseUnit` 응답을 값처럼 쓰기                                       | 실패 — `void`                             |
+| BE가 실제로 스펙과 다르게 응답                                             | 통과 — 런타임 검증은 하지 않는다(위 결정) |
+| 오류 응답(`ErrorResponse`)의 모양                                          | 대상 아님 — 스펙에 없다(§11)              |
+
 ### 5-3. 생성물 배치 — `shared/api/generated/`, 배럴 없음
 
 ```
 src/shared/api/
 ├── client.ts        (기존)
+├── spec-types.ts    (§5-2, 타입만)
+├── spec-client.ts   (§5-2)
 └── generated/
     ├── openapi.json  (커밋)
     └── openapi.gen.ts (커밋)
@@ -160,7 +199,8 @@ src/shared/api/
 `/index`로 끝나는 import를 금지하므로 배럴을 만들면 아무도 import할 수 없다. 직접 경로
 (`@/shared/api/generated/openapi.gen`)로만 쓴다.
 
-생성 파일을 직접 import하는 곳은 엔티티 `.dto.ts`(§5-4)와 `src/mocks/http.ts`(§5-5)뿐이다.
+생성 파일을 직접 import하는 곳은 엔티티 `.dto.ts`(§5-4), `src/shared/api/spec-types.ts`(§5-2),
+`src/mocks/http.ts`(§5-5), 그리고 `.dto.ts`가 없는 shared 레이어의 `upload.api.ts`(`UploadUrlResponse` 별칭)뿐이다.
 
 ### 5-4. 엔티티별 `.dto.ts` — 정본을 가리키는 얇은 표지판
 
@@ -185,6 +225,11 @@ export type { CategoryOption } from '@/entities/category/model/category.dto';
 
 예외: `interaction`은 폼 검증이 없어 `.schema.ts`가 없다. 그래서 `interaction.api.ts`·
 `interaction.queries.ts`가 `interaction.dto.ts`를 직접 import한다(§6 표).
+
+2026-10-30부터 `*.api.ts`가 돌려주는 값은 `specClient`의 스펙 응답 타입이고, 함수의 반환 타입
+(`Promise<Comment>` 등)은 여전히 이 `.dto.ts`의 도메인 이름이다. 둘이 맞지 않으면 그 `return`에서 컴파일
+오류가 난다. 넓히는 override(`Comment.linkMetadata` 등)는 그대로 대입되고, 좁히는 override(`Account`)만
+`specClient`의 두 번째 제네릭이 필요하다(§5-2).
 
 ### 5-5. MSW 기본 핸들러도 스펙 타입으로 검사한다
 
@@ -274,6 +319,18 @@ override가 있는 타입(원본 대신 `Omit<...> & {...}`로 재정의한 것)
 | PR 게이트(재생성 일치 확인)             | `.github/workflows/ci.yml`의 "생성 타입 최신성 확인" 스텝                      |
 | 운영 대조 cron                          | `.github/workflows/openapi-drift-check.yml` + `scripts/check-openapi-drift.js` |
 | ESLint가 생성 파일을 건너뛰게 하는 설정 | `eslint.config.js`의 전역 `ignores` 배열(`**/src/shared/api/generated/**`)     |
+| 경로 → 요청·응답 타입 계산              | `src/shared/api/spec-types.ts`                                                 |
+| 경로 치환·`apiClient` 호출              | `src/shared/api/spec-client.ts`                                                |
+| `apiClient` 직접 import 금지            | `eslint.config.js`의 `custom-api-rules/no-raw-api-client-import` 블록          |
+
+### 새 API 함수를 추가하려면
+
+1. 경로가 `src/shared/api/generated/openapi.gen.ts`의 `paths`에 있는지 확인한다. 없으면
+   `pnpm codegen:fetch && pnpm codegen`으로 스펙을 갱신한다(가져오는 곳은 §5-1)
+2. `<entity>.api.ts`에 `specClient.<메서드>('<스펙 경로>', { path, query, body })`를 쓰고, 반환 타입은
+   `.dto.ts`의 도메인 이름으로 적는다(`src/entities/post/api/post.api.ts` 참고)
+3. 도메인 타입이 스펙보다 좁으면 `specClient.<메서드><'<스펙 경로>', <도메인 타입>>(…)`으로 적고 근거 주석을
+   단다(`src/entities/account/api/account.api.ts` 참고)
 
 ### 새 엔티티에 응답 타입을 추가하려면
 
@@ -405,6 +462,15 @@ BE `PostDTO.kt`를 확인하니 `val categories: List<CategoryResponse>`(non-nul
 같은 이유로 함께 override했다(이 `post.dto.ts` override는 이후 §8 "정정(2026-09-29)"에서
 설명한 이유로 제거됐다 — 지금 파일에는 남아있지 않다).
 
+### 대입할 변수 타입만으로 응답 타입이 조용히 좁혀졌다
+
+2026-10-30 `specClient`를 처음 만들 때는 반환 타입을 `Promise<R>`로 뒀다. 타입 테스트에 "좁힌 도메인 타입에
+스펙 응답을 그대로 대입하면 오류" 케이스(`const account: NarrowedAccount = await specClient.get('/auth/account')`)를
+넣자 `@ts-expect-error`가 "Unused directive"로 실패했다. TypeScript가 대입할 변수 타입에서 `R`을 거꾸로 추론해,
+호출부에 `R`을 적지 않아도 `role: string`이 `'USER' | 'ADMIN'`으로 조용히 좁혀진 것이다 — 손으로 `T`를 적던
+예전 방식과 다를 바가 없었다. 반환 타입을 `Promise<NoInfer<R>>`로 바꿔(TypeScript 5.4부터, 설치본 5.7.3) 그
+위치에서는 추론하지 않게 했다. 지금은 같은 줄이 `role` 타입 불일치로 실패하고, `R`은 호출부에 적을 때만 좁혀진다.
+
 ## 11. 남은 것
 
 - `bookmark-folder.dto.ts`의 `lastUsedAt` override는 BE `NullableAwareModelConverter`
@@ -431,6 +497,10 @@ BE `PostDTO.kt`를 확인하니 `val categories: List<CategoryResponse>`(non-nul
   경고만 남긴다. `'error'`로 바꿀지는 아직 정하지 않았다
 - 스펙 타입 MSW는 응답 상태 코드와 null 본문을 타입으로 검사하지 못한다(§5-5 표). null 본문은 ESLint가
   기본 핸들러에서만 막는다
+- `specClient`는 스펙의 200·201 응답만 본다. 오류 응답(`ErrorResponse`)은 스펙에 없어 FE의 오류 코드 처리
+  (`SERVER_ERROR_CODE`)는 여전히 스펙과 연결되지 않았다
+- `API_ENDPOINTS`(`src/shared/config/api.ts`)는 `*.api.ts`에서는 빠졌지만 `client.ts`의 인증 경로 판별, 테스트
+  인라인 핸들러, e2e 목(`e2e/mocks/endpoints.ts`)이 아직 쓴다
 
 ## 12. 용어 사전
 
@@ -446,6 +516,9 @@ BE `PostDTO.kt`를 확인하니 `val categories: List<CategoryResponse>`(non-nul
   (`{"$ref": "#/components/schemas/X"}`). 3.0 시절에는 형제 키를 가질 수 없다는 제약 때문에
   BE nullable 컨버터의 한계가 여기서 생겼다(§10). 3.1 스펙에서는 nullable `$ref`가
   `oneOf: [{"$ref": "..."}, {"type": "null"}]`로 나온다(§8)
+- **봉투(envelope)**: BE 성공 응답의 공통 겉모양 `{ status, message, data, timestamp }`(스펙의 `ApiResponseX`).
+  `apiClient`가 벗겨 `data`만 돌려준다
+- **`specClient`**: 스펙 경로 템플릿(`'/post/{id}'`)이 경로 변수·쿼리·본문·응답 타입을 정하는 `apiClient` 래퍼(§5-2)
 
 ## 13. 관련 문서
 
