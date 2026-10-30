@@ -305,7 +305,7 @@ flowchart TB
 
 | 항목      | 기술                                                                                                                      |
 | --------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Runtime   | Kotlin 2.1, Java 17, Spring Boot 3.5.16                                                                                   |
+| Runtime   | Kotlin 2.4, Java 17, Spring Boot 3.5.16                                                                                   |
 | 실행 형태 | AWS Lambda (Shadow JAR, SnapStart + CRaC). `LambdaHandler`가 MockMvc로 `DispatcherServlet` 직접 호출 — Tomcat 소켓 미사용 |
 | Web       | spring-boot-starter-web (서블릿 스택)                                                                                     |
 | Data      | JPA, Hibernate, PostgreSQL + pgvector(`hibernate-vector`) (Supabase pooler)                                               |
