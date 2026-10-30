@@ -1,4 +1,7 @@
 ### 2026-10-30 (BE)
+- Lambda 배포용 JAR 파일의 무결성 검증을 위한 verifyShadowJar 태스크 도입 ([#140](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/140))
+
+### 2026-10-30 (BE)
 - 빌드 시스템 최적화 및 의존성 업데이트
 로그:
 - build: Gradle 9.8.2로 올리고 Shadow 플러그인을 com.gradleup.shadow 9.6.1로 옮김 ([#139](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/139))
