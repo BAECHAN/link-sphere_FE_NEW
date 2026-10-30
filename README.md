@@ -14,10 +14,17 @@ https://linksphere.click/post (구 도메인 https://dbw3brui6htwk.cloudfront.ne
 
 [![Storybook Deploy](https://github.com/BAECHAN/link-sphere_FE_NEW/actions/workflows/deploy-storybook.yml/badge.svg)](https://github.com/BAECHAN/link-sphere_FE_NEW/actions/workflows/deploy-storybook.yml)
 
-https://linksphere.click/storybook/ (구 도메인 https://dbw3brui6htwk.cloudfront.net/storybook/ 도 계속 동작)
+https://baechan.github.io/link-sphere_FE_NEW/
 
-`shared/ui` 중심의 컴포넌트 스토리(55개 파일, 192개 케이스 — 2026-10-27 기준)를 공개 배포한 것입니다. 로컬에서 보려면
-아래 "스토리북" 섹션을 참고하세요.
+`shared/ui` 중심의 컴포넌트 스토리(55개 파일, 192개 케이스 — 2026-10-27 기준)를 이 저장소의 GitHub Pages에 공개 배포한
+것입니다. 로컬에서 보려면 아래 "스토리북" 섹션을 참고하세요. 2026-10-30 전 주소(`https://linksphere.click/storybook/`)는
+없어졌습니다 — 운영 도메인에 앱이 아닌 코드를 두지 않으려고 옮겼습니다([`docs/DECISIONS.md`](docs/DECISIONS.md) 2026-10-30).
+
+# API 문서 (Swagger UI)
+
+https://baechan.github.io/link-sphere_BE_NEW/
+
+BE 저장소가 main 병합마다 OpenAPI 스펙을 만들어 GitHub Pages에 올리는 읽기 전용 문서입니다("Try it out" 없음).
 
 ## 테스트 계정
 

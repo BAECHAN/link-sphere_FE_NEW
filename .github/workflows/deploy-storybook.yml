@@ -1,12 +1,16 @@
-name: Storybook Deploy (S3 + CloudFront)
+name: Storybook Deploy (GitHub Pages)
 
 # 컴포넌트 스토리(shared/ui 컴포넌트 + Provider 없이 렌더되는 일부 entities·widgets, 범위 기준은
-# docs/FE-ARCHITECTURE.md §18)를 같은 S3 버킷의 storybook/ 접두사에 정적 빌드로 올려 공개 URL을
-# 만든다. 이 워크플로가 생기기 전에는 로컬 `pnpm storybook`으로만 볼 수 있었다.
+# docs/FE-ARCHITECTURE.md §18)를 정적 빌드로 이 저장소의 GitHub Pages(https://baechan.github.io/link-sphere_FE_NEW/)에
+# 올려 공개 URL을 만든다. 이 워크플로가 생기기 전에는 로컬 `pnpm storybook`으로만 볼 수 있었다.
+#
+# 운영 도메인(linksphere.click)이 아니라 github.io에 올리는 이유: 같은 출처에서 도는 스크립트는 refresh 쿠키를
+# 붙여 /api/auth/refresh를 부를 수 있어, 앱이 아닌 코드(Storybook과 그 의존성)를 그 출처에 두지 않는다.
+# 2026-10-30까지는 같은 S3 버킷의 storybook/ 접두사에 올렸다(docs/DECISIONS.md 2026-10-30 항목).
 #
 # deploy.yml과 별도 파일로 분리한 이유: paths 필터는 워크플로 단위라, deploy.yml에
-# job으로 얹으면 .storybook/** 변경만으로도 프로덕션 배포 + 앱 캐시 전역(/*) 무효화가
-# 함께 돈다. 상세 배경은 docs/DEPLOY.md "Storybook 공개 배포" 절 참고.
+# job으로 얹으면 .storybook/** 변경만으로도 프로덕션 배포가 함께 돈다.
+# 상세 배경은 docs/DEPLOY.md "Storybook 공개 배포" 절 참고.
 on:
   push:
     branches: ['main']
@@ -23,17 +27,23 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # S3 sync 도중 취소하면 일부 파일만 갱신된 상태로 남으므로 취소하지 않고 순서대로 처리한다.
-  group: deploy-storybook
+  # GitHub 공식 Pages 예제(actions/starter-workflows pages/static.yml)와 같다 - 진행 중인 게시를 취소하지 않고
+  # 순서대로 처리한다.
+  group: pages
   cancel-in-progress: false
 
 permissions:
-  id-token: write # AWS OIDC 인증(아래 Configure AWS credentials)에 필요하다.
   contents: read
+  pages: write # Pages 게시
+  id-token: write # deploy-pages가 게시 요청을 OIDC 토큰으로 증명한다
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # 저장소 Pages 소스가 "GitHub Actions"일 때 쓰는 환경 - main만 배포하도록 보호 규칙을 건다(docs/DEPLOY.md)
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -55,49 +65,11 @@ jobs:
         # firebase 모듈을 import하지 않는다.
         run: pnpm build-storybook
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          # deploy.yml과 같은 역할(같은 버킷의 storybook/ 접두사·같은 배포)을 OIDC로 맡는다.
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ap-northeast-1
+          path: storybook-static
 
-      - name: Upload to S3
-        run: |
-          DEST="s3://${{ secrets.S3_BUCKET_NAME }}/storybook"
-
-          # 해시 없는 진입점 - 저장하되 쓸 때마다 재검증(no-cache)해 항상 최신을 받는다. 앱 index.html과
-          # 같은 정책이다(docs/CACHE-STRATEGY.md §5.10). Storybook엔 로그인이 없어 bfcache 복원에 따로
-          # 맞출 인증 상태도 없다
-          aws s3 cp storybook-static/index.html "$DEST/index.html" \
-            --cache-control "no-cache" \
-            --content-type "text/html"
-          aws s3 cp storybook-static/iframe.html "$DEST/iframe.html" \
-            --cache-control "no-cache" \
-            --content-type "text/html"
-
-          # 콘텐츠 해시가 붙은 번들 - 장기 캐시
-          aws s3 sync storybook-static/assets/ "$DEST/assets/" --delete \
-            --cache-control "public, max-age=31536000, immutable"
-
-          # Pretendard 폰트(경로에 버전이 들어간 dynamic subset, public/fonts/) - 앱과 동일 정책
-          aws s3 sync storybook-static/fonts/ "$DEST/fonts/" --delete \
-            --cache-control "public, max-age=31536000, immutable"
-
-          # 그 외(sb-manager, sb-addons, sb-common-assets, favicons, index.json 등)
-          # - 파일명에 해시가 없어 immutable을 주면 안 되므로 짧은 캐시로 서빙한다.
-          # --delete는 storybook/ 접두사 범위로 한정되므로 앱 객체(dist/)에는 영향이 없다.
-          aws s3 sync storybook-static/ "$DEST" --delete \
-            --cache-control "public, max-age=300" \
-            --exclude "index.html" \
-            --exclude "iframe.html" \
-            --exclude "assets/*" \
-            --exclude "fonts/*"
-
-      - name: CloudFront Invalidation
-        # /storybook/* 로 한정한다 - /*를 쓰면 앱의 엣지 캐시까지 비워 실사용자
-        # 지연과 오리진 요청 급증을 유발한다. 스토리 수정 때문에 앱 성능을 깎을 이유가 없다.
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/storybook/*"
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

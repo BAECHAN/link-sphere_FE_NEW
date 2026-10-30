@@ -28,8 +28,8 @@ export const FAILED_CONCLUSIONS = new Set(['failure', 'timed_out', 'startup_fail
 // 경로 필터가 있어 "이 커밋은 다시 돌리지 않았는데 main의 직전 실패가 그대로 남은" 상태가 생길 수 있는
 // 배포 워크플로. 이름이 바뀌면 여기도 고친다(FE·BE .github/workflows/*.yml의 name).
 export const DEPLOY_WORKFLOWS = {
-  FE: ['Frontend Deploy (S3 + CloudFront)', 'Storybook Deploy (S3 + CloudFront)'],
-  BE: ['Deploy to AWS Lambda (SnapStart)'],
+  FE: ['Frontend Deploy (S3 + CloudFront)', 'Storybook Deploy (GitHub Pages)'],
+  BE: ['Deploy to AWS Lambda (SnapStart)', 'API Docs Deploy (GitHub Pages)'],
 };
 
 // 운영 사이트를 직접 받아 반영을 확인하는 단계(FE deploy.yml). 여기서 실패하면 배포가 아니라 사이트로 가는 길

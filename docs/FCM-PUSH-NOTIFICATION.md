@@ -574,8 +574,8 @@ classpath:firebase-service-account.json`. 키 파일은 Firebase Console > 프�
   run: |
     # (assets·fonts 업로드 생략)
 
-    # 그 외 파일 sync에서는 SW를 제외한다(실제로는 index.html·404.html·version.json·assets·fonts·
-    # storybook 제외도 함께 있다 — 빠뜨리면 같은 버킷의 Storybook이 --delete로 지워진다)
+    # 그 외 파일 sync에서는 SW를 제외한다(실제로는 index.html·404.html·version.json·assets·fonts
+    # 제외도 함께 있다)
     aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete \
       --exclude "firebase-messaging-sw.js" \
       ...

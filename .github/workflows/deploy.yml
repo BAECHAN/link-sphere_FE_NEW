@@ -97,19 +97,14 @@ jobs:
           aws s3 sync dist/fonts/ s3://${{ secrets.S3_BUCKET_NAME }}/fonts/ \
             --cache-control "public, max-age=31536000, immutable"
           # 그 외 파일 (favicon, manifest 등) — 최신 유지. 이 sync는 --delete라
-          # 버킷 안의 dist/에 없는 객체를 전부 지운다 - storybook/*는 별도
-          # 워크플로(deploy-storybook.yml)가 같은 버킷의 storybook/ 접두사에
-          # 올리므로, 여기서 제외하지 않으면 FE 배포가 돌 때마다 방금 배포한
-          # Storybook이 통째로 삭제된다.
+          # 버킷 안의 dist/에 없는 객체를 전부 지운다
           aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete \
             --exclude "index.html" \
             --exclude "404.html" \
             --exclude "firebase-messaging-sw.js" \
             --exclude "version.json" \
             --exclude "assets/*" \
-            --exclude "fonts/*" \
-            --exclude "storybook" \
-            --exclude "storybook/*"
+            --exclude "fonts/*"
           # Service Worker — 캐시 없이 서빙 (브라우저가 항상 최신 버전 체크)
           aws s3 cp dist/firebase-messaging-sw.js s3://${{ secrets.S3_BUCKET_NAME }}/firebase-messaging-sw.js \
             --cache-control "no-cache, no-store, must-revalidate" \
