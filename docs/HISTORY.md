@@ -1,3 +1,8 @@
+### 2026-10-30 (FE)
+- Vitest 의존성 버전 업데이트를 통한 보안 취약점 해결
+로그:
+- build(deps): Vitest를 4.1.12로 올려 보안 권고 2건 해소 ([#458](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/458))
+
 ### 2026-10-30 (BE)
 - Kotlin 빌드 안정성 개선: ktlint 실행 시 프로젝트 설정과 무관하게 지정된 컴파일러를 사용하도록 빌드 환경 최적화 ([#133](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/133))
 
