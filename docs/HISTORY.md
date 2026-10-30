@@ -1,3 +1,8 @@
+### 2026-10-30 (BE)
+- Gradle 의존성 버전 업데이트를 통한 빌드 환경 최적화
+  로그:
+  - build(deps): Bump the gradle-minor-patch group across 1 directory with 8 updates ([#118](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/118))
+
 ### 2026-10-30 (FE)
 - Vitest 의존성 버전 업데이트를 통한 보안 취약점 해결
 로그:
