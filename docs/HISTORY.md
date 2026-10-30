@@ -1,3 +1,6 @@
+### 2026-10-30 (BE)
+- CI/CD 파이프라인을 개선하여 읽기 전용 Swagger UI를 GitHub Pages에 자동 배포하도록 설정 ([#134](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/134))
+
 ### 2026-10-30 (FE)
 - Storybook 배포 환경을 운영 도메인에서 GitHub Pages로 분리하여 인프라 효율성 최적화 ([#459](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/459))
 
