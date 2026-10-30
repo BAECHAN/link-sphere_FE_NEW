@@ -1,4 +1,7 @@
 ### 2026-10-30 (BE)
+- Google HTTP Client Jackson2 라이브러리 버전 업데이트 및 보안 취약점 보완
+
+### 2026-10-30 (BE)
 - CI/CD 파이프라인을 개선하여 읽기 전용 Swagger UI를 GitHub Pages에 자동 배포하도록 설정 ([#134](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/134))
 
 ### 2026-10-30 (FE)
