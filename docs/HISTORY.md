@@ -1,3 +1,6 @@
+### 2026-10-30 (BE)
+- Kotlin 빌드 안정성 개선: ktlint 실행 시 프로젝트 설정과 무관하게 지정된 컴파일러를 사용하도록 빌드 환경 최적화 ([#133](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/133))
+
 ### 2026-10-30 (FE)
 - Storybook 10.6.5 업데이트를 통한 개발 서버 보안 취약점 해결
 
