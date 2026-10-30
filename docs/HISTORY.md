@@ -1,4 +1,9 @@
 ### 2026-10-30 (BE)
+- 빌드 시스템 최적화 및 의존성 업데이트
+로그:
+- build: Gradle 9.8.2로 올리고 Shadow 플러그인을 com.gradleup.shadow 9.6.1로 옮김 ([#139](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/139))
+
+### 2026-10-30 (BE)
 - Google HTTP Client Jackson2 라이브러리 버전 업데이트 및 보안 취약점 보완
 
 ### 2026-10-30 (BE)
