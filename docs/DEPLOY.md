@@ -190,16 +190,23 @@ gh api repos/<owner>/<repo>/commits/<커밋 sha> --jq .sha   # 원 저장소에 
 
 컴포넌트 스토리(2026-10-27 기준 55개 파일·192개 케이스 — `shared/ui` 52개 + Provider 없이 렌더되는 entities·widgets
 컴포넌트, 범위 기준은 [`FE-ARCHITECTURE.md`](FE-ARCHITECTURE.md) §18)를 이 저장소의 GitHub Pages
-(https://baechan.github.io/link-sphere_FE_NEW/)에 공개한다. 워크플로:
+(https://baechan.github.io/link-sphere_FE_NEW/storybook/)에 공개한다. 워크플로:
 [`.github/workflows/deploy-storybook.yml`](../.github/workflows/deploy-storybook.yml)
 (`Storybook Deploy (GitHub Pages)`). BE의 Swagger UI도 같은 방식으로 BE 저장소 Pages에 올린다
-(https://baechan.github.io/link-sphere_BE_NEW/).
+(https://baechan.github.io/link-sphere_BE_NEW/api-docs/).
 
 - **왜 운영 도메인이 아닌가**: `linksphere.click`에서 도는 스크립트는 refresh 쿠키(`__Host-refreshToken`,
   `Path=/`)를 붙여 `/api/auth/refresh`를 부를 수 있다. 앱이 아닌 코드(Storybook과 그 npm 의존성)를 그 출처에
   두지 않으려고 다른 사이트로 뗐다. `github.io`는 Public Suffix List에 올라 있어 `baechan.github.io`는
   `linksphere.click`과 다른 사이트다. 2026-10-30까지는 같은 S3 버킷의 `storybook/` 접두사 + 같은 CloudFront
   배포로 `/storybook/`에 올렸다 — 바꾼 이유와 비교한 대안은 [`DECISIONS.md`](DECISIONS.md) 2026-10-30 항목.
+- **주소 구조**: 저장소 하나에 Pages 사이트는 하나뿐이라, 문서마다 하위 경로(`storybook/`)를 쓰고 루트에는
+  첫 화면 [`pages-site/index.html`](../pages-site/index.html)을 둔다. 지금은 문서가 하나라 첫 화면이 `storybook/`으로
+  넘기고, 쿼리·해시를 그대로 붙여 루트에 Storybook이 있던 2026-10-30 첫 배포 때의 링크(`?path=…`)도 이어진다. Pages
+  배포는 사이트 전체를 바꾼다 — deploy-pages 기여자는 _"모든 콘텐츠를 배포 시점에 줘야 한다. 나중 배포가 모든 것을
+  대체한다"_ 고 답했다(번역, [actions/deploy-pages#50 댓글](https://github.com/actions/deploy-pages/issues/50#issuecomment-1252593074)).
+  그래서 문서를 더할 때는 다른 워크플로로 따로 올리지 않고 이 워크플로의 "사이트 조립" 단계에서 함께 만들어
+  `_site/<경로>/`에 넣고, 첫 화면을 목록 페이지로 바꾼다.
 - **왜 별도 워크플로우인가**: `paths` 필터는 워크플로우 단위로만 걸 수 있다.
   `deploy.yml`에 job으로 얹으면 `.storybook/**` 변경만으로도 앱 프로덕션 배포가 함께 돈다.
 - **권한**: AWS 역할을 쓰지 않는다. 워크플로가 `pages: write`·`id-token: write`로 Pages에 게시한다
@@ -214,7 +221,7 @@ gh api repos/<owner>/<repo>/commits/<커밋 sha> --jq .sha   # 원 저장소에 
 - **자산 경로**: Storybook의 Vite 빌더(`@storybook/builder-vite`)는 프로젝트 루트의
   `vite.config.ts`를 자동으로 읽어 병합하지만 `base`만은 `'./'`로 덮어쓴다(설치된
   builder-vite 소스로 직접 확인, 2026-10-05) — 그래서 정적 빌드는 상대경로(`./assets/...`)를 생성하고
-  `/link-sphere_FE_NEW/` 같은 하위 경로에서도 그대로 동작한다. 별도 `base` 설정이 필요 없다.
+  `/link-sphere_FE_NEW/storybook/` 같은 하위 경로에서도 그대로 동작한다. 별도 `base` 설정이 필요 없다.
 - **롤백**: 되돌릴 PR을 revert해 main에 병합하면 다시 게시된다. revert가 경로 필터에 걸리지 않으면
   `gh workflow run "Storybook Deploy (GitHub Pages)" --ref main`으로 수동 실행한다(수동 실행은 main 최신 커밋을
   빌드한다). 공개를 멈추려면 저장소 Settings → Pages에서 끄거나 `gh api -X DELETE repos/BAECHAN/link-sphere_FE_NEW/pages`.

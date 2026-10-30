@@ -1,8 +1,9 @@
 name: Storybook Deploy (GitHub Pages)
 
 # 컴포넌트 스토리(shared/ui 컴포넌트 + Provider 없이 렌더되는 일부 entities·widgets, 범위 기준은
-# docs/FE-ARCHITECTURE.md §18)를 정적 빌드로 이 저장소의 GitHub Pages(https://baechan.github.io/link-sphere_FE_NEW/)에
+# docs/FE-ARCHITECTURE.md §18)를 정적 빌드로 이 저장소의 GitHub Pages(https://baechan.github.io/link-sphere_FE_NEW/storybook/)에
 # 올려 공개 URL을 만든다. 이 워크플로가 생기기 전에는 로컬 `pnpm storybook`으로만 볼 수 있었다.
+# 사이트 루트는 pages-site/(첫 화면, 지금은 storybook/으로 넘김)이고 문서마다 하위 경로를 쓴다.
 #
 # 운영 도메인(linksphere.click)이 아니라 github.io에 올리는 이유: 같은 출처에서 도는 스크립트는 refresh 쿠키를
 # 붙여 /api/auth/refresh를 부를 수 있어, 앱이 아닌 코드(Storybook과 그 의존성)를 그 출처에 두지 않는다.
@@ -18,6 +19,7 @@ on:
       - 'src/**'
       - 'public/**'
       - '.storybook/**'
+      - 'pages-site/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'vite.config.ts'
@@ -65,10 +67,18 @@ jobs:
         # firebase 모듈을 import하지 않는다.
         run: pnpm build-storybook
 
+      # Pages는 배포마다 사이트 전체를 바꾼다(actions/deploy-pages#50) - 이 사이트에 다른 문서를 더할 때도 다른
+      # 워크플로로 따로 올리지 말고 여기서 함께 만들어 자기 하위 경로에 넣는다.
+      - name: 사이트 조립
+        run: |
+          mkdir -p _site
+          cp -R pages-site/. _site/
+          mv storybook-static _site/storybook
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          path: storybook-static
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
