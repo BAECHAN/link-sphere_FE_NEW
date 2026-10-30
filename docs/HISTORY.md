@@ -1,3 +1,6 @@
+### 2026-10-30 (FE)
+- MSW 핸들러의 타입 안정성 강화 및 백엔드 API 스펙 연동 검증 로직 도입 ([#455](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/455))
+
 ### 2026-10-30 (BE)
 - CI 파이프라인에 oasdiff 기반 API 변경 감지 도입 ([#131](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/131))
   - PR 생성 시 운영 환경의 OpenAPI 스펙과 변경 사항을 비교하여, FE에 영향을 주는 하위 호환성 위반(Breaking Changes)을 사전 차단하는 검증 단계 추가
