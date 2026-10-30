@@ -1,0 +1,20 @@
+<!doctype html>
+<!--
+  이 저장소 GitHub Pages(https://baechan.github.io/link-sphere_FE_NEW/)의 첫 화면. 문서는 경로로 나눠 두고(지금은
+  storybook/ 하나), 여기서는 storybook/으로 넘긴다. 2026-10-30 처음 올렸을 때는 Storybook이 이 루트에 있었으므로
+  그때 만든 링크(?path=…)가 이어지도록 쿼리·해시를 붙여 넘긴다. 문서가 늘면 이 파일을 목록 페이지로 바꾼다.
+  배포는 deploy-storybook.yml, 배경은 docs/DEPLOY.md "Storybook 공개 배포".
+-->
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>Link Sphere FE 문서</title>
+    <script>
+      location.replace('storybook/' + location.search + location.hash);
+    </script>
+    <noscript><meta http-equiv="refresh" content="0; url=storybook/" /></noscript>
+  </head>
+  <body>
+    <a href="storybook/">Storybook</a>
+  </body>
+</html>
