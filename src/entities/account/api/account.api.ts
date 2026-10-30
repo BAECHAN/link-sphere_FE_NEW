@@ -1,11 +1,12 @@
-import { apiClient } from '@/shared/api/client';
+import { specClient } from '@/shared/api/spec-client';
 import { Account, UpdateAccount, DeleteAccount } from '@/entities/account/model/account.schema';
-import { API_ENDPOINTS } from '@/shared/config/api';
 import { uploadImageAndGetUrl } from '@/shared/lib/upload/uploadImageAndGetUrl';
 
+// 계정 응답은 스펙의 AccountResponse보다 role·nickname을 좁힌 Account라 specClient의 두 번째
+// 제네릭으로 명시한다(근거: account.dto.ts 주석).
 export const accountApi = {
   fetchAccount: async (): Promise<Account> => {
-    const response = await apiClient.get<Account>(API_ENDPOINTS.auth.account);
+    const response = await specClient.get<'/auth/account', Account>('/auth/account');
     return response;
   },
 
@@ -17,9 +18,8 @@ export const accountApi = {
     const image = payload.file
       ? await uploadImageAndGetUrl(payload.file, 512, { skipGifResize: false })
       : payload.image;
-    const response = await apiClient.patch<Account>(API_ENDPOINTS.auth.updateAccount, {
-      nickname: payload.nickname,
-      image,
+    const response = await specClient.patch<'/auth/account', Account>('/auth/account', {
+      body: { nickname: payload.nickname, image },
     });
     return response;
   },
@@ -31,10 +31,9 @@ export const accountApi = {
    * 것"을 호출부가 구분할 수 없게 된다.
    */
   checkNicknameAvailability: async (nickname: string): Promise<boolean> => {
-    const response = await apiClient.get<{ available: boolean }>(
-      API_ENDPOINTS.auth.nicknameAvailability,
-      { searchParams: { nickname } }
-    );
+    const response = await specClient.get('/auth/account/nickname-availability', {
+      query: { nickname },
+    });
     return response.available;
   },
 
@@ -45,6 +44,6 @@ export const accountApi = {
    * 실제 익명화는 14일 뒤 BE 예약 작업(AccountPurgeService)이 처리한다.
    */
   deleteAccount: async (payload: DeleteAccount): Promise<void> => {
-    await apiClient.delete(API_ENDPOINTS.auth.deleteAccount, { password: payload.password });
+    await specClient.delete('/auth/account', { body: { password: payload.password } });
   },
 };
