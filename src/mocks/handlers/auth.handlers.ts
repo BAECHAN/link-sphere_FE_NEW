@@ -1,112 +1,57 @@
-import { http, HttpResponse } from 'msw';
 import { mockLoginResponse } from '@/mocks/fixtures/auth.fixtures';
 import { mockAccount } from '@/mocks/fixtures/account.fixtures';
-import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-
-/** 핸들러 URL에 API_BASE_URL prefix를 붙여 실제 요청 URL과 일치시킵니다. */
-const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
+import { http } from '@/mocks/http';
+import { MockEnvelopeUtil } from '@/mocks/mock-envelope.util';
 
 export const authHandlers = [
   // POST /auth/login
-  http.post(url(API_ENDPOINTS.auth.login), () => {
-    return HttpResponse.json(
-      {
-        status: 200,
-        message: 'ok',
-        data: mockLoginResponse,
-        timestamp: new Date().toISOString(),
-      },
-      { status: 200 }
-    );
+  http.post('/auth/login', () => {
+    return MockEnvelopeUtil.json(mockLoginResponse);
   }),
 
   // POST /auth/signup - 실제 BE는 ApiResponse로 감싼 AccountResponse를 돌려준다(빈 바디 아님)
-  http.post(url(API_ENDPOINTS.auth.signup), () => {
-    return HttpResponse.json(
-      {
-        status: 201,
-        message: 'ok',
-        data: mockAccount,
-        timestamp: new Date().toISOString(),
-      },
-      { status: 201 }
-    );
+  http.post('/auth/signup', () => {
+    return MockEnvelopeUtil.json(mockAccount, 201);
   }),
 
   // POST /auth/refresh
-  http.post(url(API_ENDPOINTS.auth.refresh), () => {
-    return HttpResponse.json(
-      {
-        status: 200,
-        message: 'ok',
-        data: mockLoginResponse,
-        timestamp: new Date().toISOString(),
-      },
-      { status: 200 }
-    );
+  http.post('/auth/refresh', () => {
+    return MockEnvelopeUtil.json(mockLoginResponse);
   }),
 
-  // POST /auth/logout
-  http.post(url(API_ENDPOINTS.auth.logout), () => {
-    return new HttpResponse(null, { status: 204 });
+  // POST /auth/logout — 실제 BE는 204가 아니라 200 + 봉투(ApiResponse<Unit>)
+  http.post('/auth/logout', () => {
+    return MockEnvelopeUtil.unit();
   }),
 
   // GET /auth/email-availability - 'taken@example.com'만 중복으로 취급 (가입 화면 전용)
-  http.get(url(API_ENDPOINTS.auth.emailAvailability), ({ request }) => {
-    const email = new URL(request.url).searchParams.get('email');
-    return HttpResponse.json(
-      {
-        status: 200,
-        message: 'ok',
-        data: { available: email !== 'taken@example.com' },
-        timestamp: new Date().toISOString(),
-      },
-      { status: 200 }
-    );
+  http.get('/auth/email-availability', ({ query }) => {
+    const email = query.get('email');
+    return MockEnvelopeUtil.json({ available: email !== 'taken@example.com' });
   }),
 
   // POST /auth/password-reset/request - 계정 존재 여부와 무관하게 항상 200
-  http.post(url(API_ENDPOINTS.auth.passwordResetRequest), () => {
-    return HttpResponse.json(
-      { status: 200, message: 'ok', data: null, timestamp: new Date().toISOString() },
-      { status: 200 }
-    );
+  http.post('/auth/password-reset/request', () => {
+    return MockEnvelopeUtil.unit();
   }),
 
   // POST /auth/password-reset/confirm
-  http.post(url(API_ENDPOINTS.auth.passwordResetConfirm), () => {
-    return HttpResponse.json(
-      { status: 200, message: 'ok', data: null, timestamp: new Date().toISOString() },
-      { status: 200 }
-    );
+  http.post('/auth/password-reset/confirm', () => {
+    return MockEnvelopeUtil.unit();
   }),
 
-  // PATCH /auth/account/password - 성공 시 실제 BE처럼 새 accessToken을 돌려준다
-  http.patch(url(API_ENDPOINTS.auth.changePassword), () => {
-    return HttpResponse.json(
-      {
-        status: 200,
-        message: 'ok',
-        data: { accessToken: mockLoginResponse.accessToken },
-        timestamp: new Date().toISOString(),
-      },
-      { status: 200 }
-    );
+  // PATCH /auth/account/password - 성공 시 실제 BE처럼 새 토큰 응답(TokenResponse)을 돌려준다
+  http.patch('/auth/account/password', () => {
+    return MockEnvelopeUtil.json(mockLoginResponse);
   }),
 
   // POST /auth/email-verification/request - 계정 존재·인증 여부와 무관하게 항상 200
-  http.post(url(API_ENDPOINTS.auth.emailVerificationRequest), () => {
-    return HttpResponse.json(
-      { status: 200, message: 'ok', data: null, timestamp: new Date().toISOString() },
-      { status: 200 }
-    );
+  http.post('/auth/email-verification/request', () => {
+    return MockEnvelopeUtil.unit();
   }),
 
   // POST /auth/email-verification/confirm
-  http.post(url(API_ENDPOINTS.auth.emailVerificationConfirm), () => {
-    return HttpResponse.json(
-      { status: 200, message: 'ok', data: null, timestamp: new Date().toISOString() },
-      { status: 200 }
-    );
+  http.post('/auth/email-verification/confirm', () => {
+    return MockEnvelopeUtil.unit();
   }),
 ];

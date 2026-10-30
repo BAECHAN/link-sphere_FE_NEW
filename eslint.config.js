@@ -1192,6 +1192,8 @@ export default [
   //       provider에 직접 꽂고 있었다).
   // 주의: no-restricted-imports로 쓰면 아래 FSD 레이어 블록이 같은 rule key를 다시
   //       선언해 통째로 덮어쓴다 — 그래서 고유 rule key의 커스텀 룰로 만들었다.
+  //       (FSD 블록과 files가 겹치지 않는 src/mocks/handlers/** 블록은 no-restricted-imports를
+  //       그대로 쓴다 — 아래 "[금지] MSW 기본 핸들러" 블록)
   // ============================================================
   {
     files: ['src/**/*.{ts,tsx}'],
@@ -1615,6 +1617,34 @@ export default [
               group: ['@/app/**'],
               message:
                 'pages 레이어는 app 레이어를 import할 수 없습니다. (app → pages 순서만 허용)',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // ============================================================
+  // [금지] MSW 기본 핸들러에서 msw의 http·HttpResponse 직접 import
+  // 이유: 기본 핸들러는 스펙 타입 http(src/mocks/http.ts)와 봉투 헬퍼(MockEnvelopeUtil)로만 응답해
+  //       경로·응답 모양을 스펙(openapi.gen.ts)과 컴파일 단계에서 대조한다. msw의 http는 경로·본문
+  //       타입이 없고, HttpResponse는 null 본문(new HttpResponse(null)·HttpResponse.json(null))이
+  //       스펙 타입 검사를 빠져나간다(src/mocks/http.test.ts, docs/OPENAPI-CODEGEN.md §5-5).
+  //       스펙 밖 요청(외부 스토리지)은 http.untyped를 쓴다.
+  // 주의: 같은 rule key를 쓰는 위 FSD 레이어 블록은 src/mocks/**를 다루지 않아 서로 덮어쓰지 않는다.
+  // ============================================================
+  {
+    files: ['src/mocks/handlers/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'msw',
+              importNames: ['http', 'HttpResponse'],
+              message:
+                "기본 핸들러는 '@/mocks/http'의 스펙 타입 http와 MockEnvelopeUtil로 응답합니다. 스펙 밖 요청은 http.untyped를 쓰세요.",
             },
           ],
         },

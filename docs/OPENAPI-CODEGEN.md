@@ -8,7 +8,7 @@
 > 읽고 나면: 응답 타입이 어디서 오는지, 새 엔티티를 추가할 때 무엇을 만들어야 하는지,
 > BE 스펙이 바뀌면 무슨 일이 일어나는지, BE nullable 정보가 왜 가끔 유실되는지 알게 된다.
 >
-> 마지막 검토: 2026-10-27
+> 마지막 검토: 2026-10-30
 
 ## 1. 쉬운 설명
 
@@ -77,6 +77,8 @@ flowchart TD
     `ModelConverter` + springdoc `OpenApiCustomizer`) — Kotlin nullable 타입을 스키마의
     `nullable = true`로 표시한다(§10). 3.1로 직렬화된 스펙에는 `nullable` 키가 없고,
     `type: ["string", "null"]`처럼 타입 배열로 나온다
+  - [`openapi-msw`](https://www.npmjs.com/package/openapi-msw) 2.1.1 — 생성된 `paths` 타입으로
+    MSW 기본 핸들러의 경로·응답을 검사한다(§5-5, 2026-10-30 추가)
 - **구현·검증 과정에서 쓴 도구**: `jq`(스펙 구조 확인·대조), `curl`(운영 스펙·실제 API
   응답 직접 확인), 로컬 `./gradlew bootRun`(BE 컨버터 실측), Python(`json` 모듈로 스펙
   전후 구조적 diff 확인)
@@ -158,6 +160,8 @@ src/shared/api/
 `/index`로 끝나는 import를 금지하므로 배럴을 만들면 아무도 import할 수 없다. 직접 경로
 (`@/shared/api/generated/openapi.gen`)로만 쓴다.
 
+생성 파일을 직접 import하는 곳은 엔티티 `.dto.ts`(§5-4)와 `src/mocks/http.ts`(§5-5)뿐이다.
+
 ### 5-4. 엔티티별 `.dto.ts` — 정본을 가리키는 얇은 표지판
 
 ```typescript
@@ -181,6 +185,52 @@ export type { CategoryOption } from '@/entities/category/model/category.dto';
 
 예외: `interaction`은 폼 검증이 없어 `.schema.ts`가 없다. 그래서 `interaction.api.ts`·
 `interaction.queries.ts`가 `interaction.dto.ts`를 직접 import한다(§6 표).
+
+### 5-5. MSW 기본 핸들러도 스펙 타입으로 검사한다
+
+2026-10-30에 추가했다. 단위 테스트의 기본 응답(`src/mocks/handlers/`, 40개)은 손으로 적은 목이라, BE
+응답과 달라져도 테스트는 계속 통과한다. Martin Fowler는 _"대역으로 테스트하면 그 대역이 실제 외부 서비스를
+정확히 나타내는지, 외부 서비스가 계약을 바꾸면 어떻게 되는지 늘 의문이 남는다"_ (번역,
+[ContractTest](https://martinfowler.com/bliki/ContractTest.html))고 쓴다. 실제로 이 작업 전에도 목 11개가 BE와
+달랐다.
+
+| 어긋남                                                                | 개수 | 실제 BE                             |
+| --------------------------------------------------------------------- | ---- | ----------------------------------- |
+| 성공 응답을 `204`·빈 본문으로 흉내(로그아웃·글/댓글 삭제·댓글 좋아요) | 5    | `200` + 봉투(BE에 `NO_CONTENT` 0건) |
+| `ApiResponse<Unit>` 엔드포인트에 `data: null`                         | 5    | `"data":{}`(아래 실측)              |
+| 비밀번호 변경 응답에 `deletionCancelled` 누락                         | 1    | `TokenResponse` 전체                |
+
+**구조**:
+
+- [`src/mocks/http.ts`](../src/mocks/http.ts): `createOpenApiHttp<paths>({ baseUrl: API_BASE_URL })`.
+  핸들러는 스펙 경로 템플릿(`'/post/{id}'`)을 그대로 쓰고, `API_BASE_URL`은 여기서 한 번만 붙는다.
+  [openapi-msw](https://www.npmjs.com/package/openapi-msw)는 스스로를 _"OpenAPI 스키마로 타입을 추론하는,
+  MSW를 감싼 작고 타입 안전한 래퍼"_ (번역, 패키지 설명)라고 소개한다. 경로 템플릿을 msw 경로(`:id`)로 바꾼
+  **뒤에** `baseUrl`을 붙이므로(openapi-msw 2.1.1 설치본의 `convertToColonPath`) `/api` 접두가 그대로 매칭된다.
+- [`src/mocks/mock-envelope.util.ts`](../src/mocks/mock-envelope.util.ts): `MockEnvelopeUtil.json(data, status)`와
+  `MockEnvelopeUtil.unit()`. 스펙 응답 미디어 타입이 전부 `*/*`라 openapi-msw의 `response(200).json()`
+  헬퍼는 쓸 수 없다. 이 헬퍼는 `*json` 미디어 타입만 받는다(openapi-msw의 `JSONLike` 타입). 그래서 봉투 헬퍼를 따로 둔다.
+- `ApiResponseUnit` 스키마에는 `data`가 없지만, 운영은 `"data":{}`를 보낸다. 2026-10-30 `POST /auth/logout`
+  익명 호출로 실측한 응답은 `{"status":200,"message":"Logout successful","data":{},…}`이었다. 그래서 `unit()`은
+  빈 객체를 넣는다.
+
+**잡는 것과 못 잡는 것**(2026-10-30 실측, [`src/mocks/http.test.ts`](../src/mocks/http.test.ts)의 `@ts-expect-error`):
+
+| 핸들러 실수                                                             | `pnpm type-check`                                   |
+| ----------------------------------------------------------------------- | --------------------------------------------------- |
+| 스펙에 없는 경로·메서드, 경로 변수 이름 혼동(`{postId}`↔`{id}`)         | 실패                                                |
+| `data`의 필수 필드 누락·필드 타입 오류, `data`가 필요한 경로에 `unit()` | 실패                                                |
+| 쿼리 이름 오타(`query.get('…')`)                                        | 실패                                                |
+| `new HttpResponse(null)`·`HttpResponse.json(null)`                      | **통과** — msw가 본문 타입과 무관하게 `null`을 허용 |
+| 응답 상태 코드(예: 스펙은 201인데 200)                                  | 통과 — 응답 타입이 상태 코드별 본문의 합집합이다    |
+
+null 본문은 타입으로 막을 수 없어서 ESLint(`no-restricted-imports`, `src/mocks/handlers/**`)가 핸들러에서
+`msw`의 `http`·`HttpResponse` import를 막는다. 스펙 밖 요청(외부 스토리지 PUT)은 `http.untyped`를 쓴다.
+
+**도구 선택**: 직접 만든 헬퍼(약 40줄)와 비교해 표준 도구를 먼저 시험했다. 걱정했던 점은 이 패키지가
+`.ts` 소스를 그대로 싣는다는 것이었다. `dist/exports/main.d.ts`가 `../src/*.ts`를 import하므로
+`skipLibCheck`(`.d.ts`만 건너뜀)이 적용되지 않는다. 시험해 보니 우리 strict 설정(`noUncheckedIndexedAccess` 등)에서도
+오류가 0건이어서 그대로 채택했다. 범위는 기본 핸들러만이다. 테스트 인라인 핸들러는 §11.
 
 ## 6. 상태 모델
 
@@ -208,6 +258,7 @@ override가 있는 타입(원본 대신 `Omit<...> & {...}`로 재정의한 것)
 | 스펙 fetch 대상(cron)      | `scripts/check-openapi-drift.js`의 `PROD_SPEC_URL` 상수                 | 운영 커스텀 도메인 `linksphere.click`(`README.md`에 이미 공개) — 실제 사용자가 거치는 경로를 그대로 확인, 별도 시크릿 불필요  |
 | 드리프트 cron 주기         | `.github/workflows/openapi-drift-check.yml`의 `cron: '0 0 * * *'`       | 매일 1회(UTC 0시)                                                                                                             |
 | openapi-typescript 버전    | `package.json`의 devDependencies, `save-exact=true`(`.npmrc:23`)로 고정 | 7.13.0                                                                                                                        |
+| openapi-msw 버전           | `package.json`의 devDependencies(정확히 고정)                           | 2.1.1 — peer `msw ^2.10.5 \|\| ^3.0.0`(설치 msw 2.12.10)                                                                      |
 | 스펙 규모(2026-09-24 기준) | —                                                                       | `paths` 29개, `components.schemas` 53개, `nullable` 프로퍼티 24개                                                             |
 | 스펙 규모(2026-10-27 기준) | `src/shared/api/generated/openapi.json`(OpenAPI 3.1.0)                  | `paths` 36개, `components.schemas` 63개, nullable 프로퍼티 27개(`type` 배열의 `"null"` 26개 + `oneOf`의 `{type: "null"}` 1개) |
 
@@ -372,6 +423,14 @@ BE `PostDTO.kt`를 확인하니 `val categories: List<CategoryResponse>`(non-nul
   밖의 기존 이슈. `new Date(문자열)`을 쓰면 로컬 시간대로 잘못 파싱될 위험이 있는데,
   `eslint.config.js`의 `no-restricted-syntax` 규칙(`RESTRICTED_SYNTAX_NO_NATIVE_DATE` 목록)이
   이미 `new Date()` 직접 사용을 막아 안전망 역할을 한다
+- 스펙 타입 MSW(§5-5)는 기본 핸들러 40개만 다룬다. 테스트 파일 안의 인라인 `http.*` 핸들러
+  (2026-10-30 기준 49개 파일, 280개)와 e2e `page.route()` 목은 여전히 스펙과 연결되지 않았다. 새 테스트의
+  성공 응답부터 `@/mocks/http`를 쓴다(`docs/TESTING.md` "MSW 핸들러 추가 및 오버라이드"). e2e는
+  `src/shared/config/api.ts`를 읽지 못해(`import.meta.env`) 따로 설계해야 한다
+- `src/test/setup.ts`가 `onUnhandledRequest: 'warn'`이라, 인라인 핸들러의 경로가 틀리면 테스트가 실패하지 않고
+  경고만 남긴다. `'error'`로 바꿀지는 아직 정하지 않았다
+- 스펙 타입 MSW는 응답 상태 코드와 null 본문을 타입으로 검사하지 못한다(§5-5 표). null 본문은 ESLint가
+  기본 핸들러에서만 막는다
 
 ## 12. 용어 사전
 

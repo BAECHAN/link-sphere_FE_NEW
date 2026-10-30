@@ -421,41 +421,38 @@ screen.getByTestId('submit-button');
 새로운 API 엔드포인트가 생기면 `src/mocks/handlers/`에 핸들러를 추가합니다. 아래는 아직
 없는 새 도메인(`notification`)을 추가하는 가정의 예시입니다 — 실존하는 핸들러는
 [`src/mocks/handlers/`](../src/mocks/handlers/)의 `auth`·`account`·`post`·`comment`·
-`bookmark-folder`·`upload` 6종을 참고하세요. 전부 로컬 `url()` 헬퍼로 `API_BASE_URL`을
-붙여 등록합니다(2026-09-21 기준 — 과거 `post`·`comment`·`bookmark-folder`가 이 헬퍼
-없이 등록해 실제 요청과 매칭되지 않던 버그가 있었다, 아래 "4. MSW 핸들러가 실행되지
-않음" 참고).
+`bookmark-folder`·`upload` 6종을 참고하세요.
+
+기본 핸들러는 스펙 타입 `http`([`src/mocks/http.ts`](../src/mocks/http.ts))와 봉투 헬퍼
+[`MockEnvelopeUtil`](../src/mocks/mock-envelope.util.ts)로만 만듭니다(2026-10-30부터).
+
+- **경로**: 스펙 경로 템플릿(`'/notification/{id}/read'`)을 그대로 씁니다. 스펙에 없는 경로·메서드,
+  스펙과 다른 경로 변수 이름은 `pnpm type-check`에서 실패합니다. 그래서 핸들러를 추가하기 전에 BE 스펙을
+  먼저 받아 타입을 생성해 둬야 합니다(`pnpm codegen:fetch` → `pnpm codegen`, `docs/OPENAPI-CODEGEN.md` §5-1).
+  `API_BASE_URL`(Vitest에서는 `/api`)은 `http.ts`가 한 번만 붙이므로 핸들러마다 붙이지 않습니다.
+- **응답**: 봉투(`{ status, message, data, timestamp }`)는 `MockEnvelopeUtil.json(data, status)`로,
+  `ApiResponse<Unit>`(스펙 `ApiResponseUnit`)은 `MockEnvelopeUtil.unit()`으로 만듭니다. `data`가 스펙
+  스키마와 다르면 타입 오류가 납니다. 실제 BE는 성공 응답에 204를 쓰지 않으니 `new HttpResponse(null, { status: 204 })`로
+  흉내 내지 않습니다. 이 null 본문은 타입 검사를 빠져나가므로, ESLint가 핸들러에서 `msw`의 `http`·`HttpResponse`
+  import 자체를 막습니다.
+- **스펙 밖 요청**(외부 스토리지 등): `http.untyped`(msw의 `http` 그대로)를 씁니다. 경로를 전체 URL로 적습니다.
+  `upload.handlers.ts` 참고.
 
 <!-- check-docs-ignore: 새로 만들 파일의 예시 경로, 아직 존재하지 않음 -->
 
 ```typescript
 // src/mocks/handlers/notification.handlers.ts
-import { http, HttpResponse } from 'msw';
-import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-
-/** 핸들러 URL에 API_BASE_URL prefix를 붙여 실제 요청 URL과 일치시킵니다. */
-const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
+import { http } from '@/mocks/http';
+import { MockEnvelopeUtil } from '@/mocks/mock-envelope.util';
+import { mockNotificationList } from '@/mocks/fixtures/notification.fixtures';
 
 export const notificationHandlers = [
-  http.get(url(API_ENDPOINTS.notification.base), () => {
-    return HttpResponse.json({
-      status: 200,
-      message: 'ok',
-      data: {
-        /* 응답 데이터 */
-      },
-      timestamp: new Date().toISOString(),
-    });
+  http.get('/notification', () => {
+    return MockEnvelopeUtil.json(mockNotificationList);
   }),
 
-  http.patch(url(`${API_ENDPOINTS.notification.base}/:id/read`), async ({ request }) => {
-    const body = await request.json();
-    return HttpResponse.json({
-      status: 200,
-      message: 'ok',
-      data: body,
-      timestamp: new Date().toISOString(),
-    });
+  http.patch('/notification/{id}/read', () => {
+    return MockEnvelopeUtil.unit();
   }),
 ];
 ```
@@ -477,6 +474,11 @@ export const handlers = [
 ```
 
 ### 특정 테스트에서만 핸들러 오버라이드
+
+새 테스트에서 **성공 응답**을 덮어쓸 때는 위와 같은 `@/mocks/http`의 `http`와 `MockEnvelopeUtil`을 쓰면
+덮어쓴 응답도 스펙 검사를 받습니다. **오류 응답**은 스펙에 오류 스키마(`ErrorResponse`)가 없어 타입 `http`로
+표현할 수 없으므로, 아래 예시처럼 msw의 `http`에 `API_BASE_URL`을 붙여 씁니다. 이미 있는 테스트 인라인
+핸들러(2026-10-30 기준 49개 파일, 280개)는 스펙과 연결하지 않은 채 그대로 둡니다(`docs/OPENAPI-CODEGEN.md` §11).
 
 ```typescript
 import { Route, Routes } from 'react-router-dom';
@@ -1010,8 +1012,9 @@ use: {
 **해결**: Vitest를 위해 `.env.test`를 손댈 필요는 없다(이 파일은 e2e의 `vite --mode test`
 전용이다 — 위 "API URL 처리 방식" 참고). MSW 핸들러를 새로 추가할 때는 실제 요청이
 `/api`로 시작한다는 것을 기준으로 경로를 등록한다 — 직접 `/api/...`를 하드코딩하지
-말고 기존 핸들러 파일 전부처럼 `API_BASE_URL`을 붙이는 로컬 `url()` 헬퍼를
-쓴다("MSW 핸들러 추가 및 오버라이드" 절 참고). 그래야 나중에 `API_BASE_URL` 값이
+말고, 기본 핸들러는 `API_BASE_URL`을 한 번 붙여 둔 스펙 타입 `http`(`src/mocks/http.ts`)를,
+테스트 인라인의 오류 응답처럼 msw `http`를 직접 쓸 때는 `API_BASE_URL`을 붙이는 로컬 `url()`
+헬퍼를 쓴다("MSW 핸들러 추가 및 오버라이드" 절 참고). 그래야 나중에 `API_BASE_URL` 값이
 바뀌어도 핸들러가 따라간다.
 
 ---
@@ -1083,7 +1086,8 @@ server.use(
 `http://localhost:3000/api/post`다. 세 파일이 등록한 URL은 `http://localhost:3000/post` —
 정확히 `/api` 한 구간이 빠져 매칭되지 않았다. `auth`·`account`·`upload` 핸들러는 이미
 로컬 `url()` 헬퍼로 `API_BASE_URL`을 붙이고 있었고, 이번에 나머지 세 파일도 같은
-헬퍼를 추가해 통일했다 — 지금은 6개 핸들러 파일 전부 동일 패턴이다.
+헬퍼를 추가해 통일했다. 2026-10-30부터는 핸들러별 `url()` 헬퍼 대신 스펙 타입 `http`
+(`src/mocks/http.ts`)가 `baseUrl`로 한 번만 붙인다 — 이 부류의 실수가 파일마다 다시 생길 자리가 없다.
 
 이 버그가 오래 안 잡힌 이유: 그 경로를 타는 테스트 대부분이 자체 `server.use()`
 오버라이드로 기본 핸들러를 우회하고 있어 영향이 없었고, 유일하게 영향받은

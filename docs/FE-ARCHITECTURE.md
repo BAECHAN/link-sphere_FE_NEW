@@ -111,6 +111,7 @@ flowchart TD
 | `import/no-default-export`                                                                                     | default export 금지                                                                                                                                                                                                                                                                          |
 | `custom-filename/no-non-ascii-filename`                                                                        | 파일명에 비-ASCII 문자(한글 등) 사용 금지                                                                                                                                                                                                                                                    |
 | `custom-import/no-sonner-toast-direct-import`                                                                  | `sonner` 직접 import — `@/shared/lib/toast/toast` 경유 강제                                                                                                                                                                                                                                  |
+| `no-restricted-imports` (`src/mocks/handlers/**`)                                                              | MSW 기본 핸들러에서 `msw`의 `http`·`HttpResponse` import 금지 — 스펙 타입 `http`(`src/mocks/http.ts`)와 `MockEnvelopeUtil`만 허용, 스펙 밖 요청은 `http.untyped`(`docs/OPENAPI-CODEGEN.md` §5-5)                                                                                             |
 | `custom-import/no-relative-import-except-styles`                                                               | 상대 경로 import(`../`) 금지, `.styles.ts` 파일만 예외                                                                                                                                                                                                                                       |
 | `no-restricted-syntax` (Zustand·날짜·클래스 컴포넌트·빈 본문·smooth 스크롤)                                    | 스토어 `getState()` 직접 호출 금지(셀렉터 훅 강제), `new Date()`/`.getTime()` 직접 사용 금지(`dayjs` 강제), 클래스 컴포넌트 금지, `apiClient.post/put/patch/delete`에 빈 본문 `{}` 넘기기 금지, `behavior: 'smooth'` 직접 쓰기 금지(`ScrollUtil.getBehavior()` 강제 — 동작 줄이기 설정 존중) |
 | 파일명 규칙                                                                                                    | `*.api.ts`·`*.queries.ts`·`*.schema.ts`·`config/`·`utils/` 등 세그먼트별 파일명 패턴                                                                                                                                                                                                         |
@@ -322,10 +323,11 @@ src/
 
 레이어에 속하지 않는 최상위 디렉터리도 있다 — `src/mocks/`(MSW `handlers/`·`fixtures/`),
 `src/test/`(Vitest `setup.ts`·`utils.tsx`), `src/types/`(전역 타입 선언), `src/main.tsx`(앱
-진입점). ESLint `no-restricted-imports` 5블록(줄 번호는 §2 관례대로 생략 — `grep -n
+진입점). ESLint `no-restricted-imports`의 레이어 5블록(줄 번호는 §2 관례대로 생략 — `grep -n
 "no-restricted-imports" eslint.config.js`로 찾는다)은
 `shared`/`entities`/`features`/`widgets`/`pages` 5개 레이어 디렉터리만 `files`로 잡아 이
-넷은 대상 밖이다(2026-09-09 문서-코드 정합성 감사 중 재확인) — `mocks`·`types`는 실제로
+넷은 대상 밖이다(2026-09-09 문서-코드 정합성 감사 중 재확인. 같은 rule key의 여섯 번째 블록은
+레이어와 무관하게 `src/mocks/handlers/**`의 msw import만 막는다 — §2 표) — `mocks`·`types`는 실제로
 상위 레이어를 import하는 코드가 없고, `main.tsx`가 `@/app/*`를 import하는 건 진입점이
 최상위 레이어(app)를 부트스트랩하는 정상 패턴이라 애초에 레이어 규칙 대상이면 안 된다.
 
