@@ -1,4 +1,7 @@
 ### 2026-10-30 (FE)
+- Storybook 10.6.5 업데이트를 통한 개발 서버 보안 취약점 해결
+
+### 2026-10-30 (FE)
 - API 스펙 경로 및 타입 정의를 specClient로 이관하여 코드 구조 최적화 및 관리 효율성 개선 ([#456](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/456))
 
 ### 2026-10-30 (FE)
