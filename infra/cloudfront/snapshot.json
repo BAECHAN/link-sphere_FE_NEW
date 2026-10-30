@@ -238,7 +238,7 @@
       "Name": "link-sphere-spa-fallback",
       "EventType": "viewer-request",
       "Runtime": "cloudfront-js-1.0",
-      "Comment": "SPA 라우팅: 앱 라우트 → /index.html, 아닌 경로 → /404.html (기본 비헤이비어 전용; api 미연결) + /storybook 통과",
+      "Comment": "SPA 라우팅: 앱 라우트 → /index.html, 아닌 경로 → /404.html (기본 비헤이비어 전용; api 미연결)",
       "RepoFile": "infra/cloudfront-functions/spa-fallback.js",
       "CodeMatchesRepo": true
     },

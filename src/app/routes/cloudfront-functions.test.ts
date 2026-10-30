@@ -61,20 +61,23 @@ describe('spa-fallback.js (viewer-request)', () => {
     expect(rewrite(uri)).toBe('/index.html');
   });
 
-  it.each(['/oops', '/.git/config', '/.git/HEAD', '/wp-admin', '/post/abc/extra', '/my'])(
-    '앱 라우트가 아닌 %s → /404.html',
-    (uri) => {
-      expect(rewrite(uri)).toBe('/404.html');
-    }
-  );
+  it.each([
+    '/oops',
+    '/.git/config',
+    '/.git/HEAD',
+    '/wp-admin',
+    '/post/abc/extra',
+    '/my',
+    '/storybook',
+    '/storybook/',
+  ])('앱 라우트가 아닌 %s → /404.html', (uri) => {
+    expect(rewrite(uri)).toBe('/404.html');
+  });
 
   it.each([
     ['/favicon.ico', '/favicon.ico'],
     ['/assets/js/index-abc.js', '/assets/js/index-abc.js'],
-    ['/storybook/', '/storybook/index.html'],
-    ['/storybook', '/storybook/index.html'],
-    ['/storybook/assets/iframe-x.js', '/storybook/assets/iframe-x.js'],
-  ])('정적 파일·storybook은 기존대로: %s → %s', (uri, expected) => {
+  ])('정적 파일은 그대로 통과: %s → %s', (uri, expected) => {
     expect(rewrite(uri)).toBe(expected);
   });
 });

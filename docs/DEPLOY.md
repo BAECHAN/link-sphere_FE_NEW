@@ -74,9 +74,9 @@
       빌드 식별자, [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고)·④ Service Worker는 무캐시
       (`no-cache, no-store, must-revalidate`)로 올립니다. `version.json`은 "배포 완료"
       신호라 맨 마지막이고, 8번 검증의 ①이 이 sha가 바뀌기를 기다립니다.
-    - ③의 `--delete`는 같은 버킷의 `storybook/` 접두사를 `--exclude`로 제외한다 —
-      아래 "Storybook 공개 배포"가 그 접두사에 별도로 올리는 파일이라, 제외하지
-      않으면 이 워크플로우가 돌 때마다 방금 배포한 Storybook이 통째로 삭제된다.
+    - ③의 `--delete`는 버킷에서 `dist/`에 없는 객체를 위 제외 목록 밖에서 전부 지웁니다. 2026-10-30
+      전에는 같은 버킷의 `storybook/` 접두사도 제외했지만, Storybook을 GitHub Pages로 옮기면서(아래
+      "Storybook 공개 배포") 제외를 지워 남은 객체가 다음 배포 때 지워지게 했습니다.
 7.  **CloudFront Invalidation**:
     - 배포 후 즉시 변경 사항이 반영되도록 CloudFront 캐시를 무효화합니다.
     - 대상 경로: `/*`
@@ -189,41 +189,35 @@ gh api repos/<owner>/<repo>/commits/<커밋 sha> --jq .sha   # 원 저장소에 
 ## Storybook 공개 배포
 
 컴포넌트 스토리(2026-10-27 기준 55개 파일·192개 케이스 — `shared/ui` 52개 + Provider 없이 렌더되는 entities·widgets
-컴포넌트, 범위 기준은 [`FE-ARCHITECTURE.md`](FE-ARCHITECTURE.md) §18)를 같은 S3 버킷·CloudFront
-배포를 재사용해 `/storybook/` 경로에 공개 호스팅한다. 워크플로:
-[`.github/workflows/deploy-storybook.yml`](../.github/workflows/deploy-storybook.yml).
+컴포넌트, 범위 기준은 [`FE-ARCHITECTURE.md`](FE-ARCHITECTURE.md) §18)를 이 저장소의 GitHub Pages
+(https://baechan.github.io/link-sphere_FE_NEW/)에 공개한다. 워크플로:
+[`.github/workflows/deploy-storybook.yml`](../.github/workflows/deploy-storybook.yml)
+(`Storybook Deploy (GitHub Pages)`). BE의 Swagger UI도 같은 방식으로 BE 저장소 Pages에 올린다
+(https://baechan.github.io/link-sphere_BE_NEW/).
 
+- **왜 운영 도메인이 아닌가**: `linksphere.click`에서 도는 스크립트는 refresh 쿠키(`__Host-refreshToken`,
+  `Path=/`)를 붙여 `/api/auth/refresh`를 부를 수 있다. 앱이 아닌 코드(Storybook과 그 npm 의존성)를 그 출처에
+  두지 않으려고 다른 사이트로 뗐다. `github.io`는 Public Suffix List에 올라 있어 `baechan.github.io`는
+  `linksphere.click`과 다른 사이트다. 2026-10-30까지는 같은 S3 버킷의 `storybook/` 접두사 + 같은 CloudFront
+  배포로 `/storybook/`에 올렸다 — 바꾼 이유와 비교한 대안은 [`DECISIONS.md`](DECISIONS.md) 2026-10-30 항목.
 - **왜 별도 워크플로우인가**: `paths` 필터는 워크플로우 단위로만 걸 수 있다.
-  `deploy.yml`에 job으로 얹으면 `.storybook/**` 변경만으로도 앱 프로덕션 배포와
-  `/*` 전역 캐시 무효화가 함께 돌게 된다. 별도 파일로 분리해 두 배포가 서로 다른
-  경로 필터·무효화 범위를 갖게 했다.
-- **왜 별도 버킷·배포가 아닌가**: 이 프로젝트는 1인 개발이고 Storybook에 앱과 다른
-  접근 권한이 필요하지 않다. 전용 인프라를 만들면 시크릿 2세트·도메인 2개·배포
-  절차 이원화 비용만 생긴다. 격리가 필요해지면(예: 접근 제한) 그때 재검토한다.
-- **인증**: `deploy.yml`과 같은 역할(`AWS_ROLE_ARN`)을 OIDC로 맡는다 — 같은 버킷·같은
-  배포라 역할 권한(`s3:PutObject`/`DeleteObject`/`ListBucket`,
-  `cloudfront:CreateInvalidation`) 범위 안이다.
-- **캐시 정책**: 앱 배포와 같은 철학이다 — 해시 없는 `index.html`/`iframe.html`은
-  `no-cache`, 콘텐츠 해시가 붙은 `assets/`와 경로에 버전이 들어간 `fonts/`는 1년 immutable, 그 외
-  (`sb-manager/`, `sb-addons/` 등 해시 없는 런타임 파일)는 `max-age=300`. (2026-10-14 전에는 HTML 설정이
-  `no-cache, no-store, must-revalidate`라 이 서술과 달랐다 — 앱 HTML을 `no-cache`로 바꿀 때 함께 맞췄다.)
-- **무효화 범위**: `/storybook/*`로 한정한다. `/*`를 쓰면 앱의 엣지 캐시까지
-  비워 실사용자 지연과 오리진 요청 급증을 유발한다 — 스토리 수정 때문에 앱
-  성능을 깎을 이유가 없다.
+  `deploy.yml`에 job으로 얹으면 `.storybook/**` 변경만으로도 앱 프로덕션 배포가 함께 돈다.
+- **권한**: AWS 역할을 쓰지 않는다. 워크플로가 `pages: write`·`id-token: write`로 Pages에 게시한다
+  (`actions/upload-pages-artifact` → `actions/deploy-pages`).
+- **저장소 설정(1회, 2026-10-30)**: Pages 소스를 "GitHub Actions"로 켜고
+  (`gh api -X POST repos/BAECHAN/link-sphere_FE_NEW/pages -f build_type=workflow`), 게시 환경 `github-pages`는
+  main 브랜치만 배포하도록 둔다. 다른 브랜치에서 수동 실행하면 환경 보호 규칙에 막힌다.
+- **캐시·한도**: 응답 헤더는 Pages가 정한다(우리가 바꿀 수 없다). Pages 한도는 사이트 1GB·월 대역폭 100GB(소프트)이고,
+  넘으면 GitHub이 연락하거나 제공을 제한한다 — 별도 과금 항목은 없다
+  ([GitHub Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)).
+  2026-10-30 S3에 있던 빌드는 253개 파일·13.2MB였다(`aws s3 ls --recursive --summarize`로 직접 측정).
 - **자산 경로**: Storybook의 Vite 빌더(`@storybook/builder-vite`)는 프로젝트 루트의
   `vite.config.ts`를 자동으로 읽어 병합하지만 `base`만은 `'./'`로 덮어쓴다(설치된
-  builder-vite 소스로 직접 확인, 2026-10-05) — 그래서 `vite.config.ts`의 `base: '/'`는
-  Storybook 빌드에 적용되지 않고, 정적 빌드는 상대경로(`./assets/...`)를 생성하므로,
-  `/storybook/` 서브패스에서 그대로 정상 동작한다(직접 로컬 정적 서버로
-  `/storybook/` 하위 서빙을 재현해 확인함) — 별도 `base` 설정이 필요 없다.
-- **롤백**: 워크플로우는 PR revert로 되돌리되, S3 객체는 자동으로 지워지지
-  않으므로 함께 실행한다:
-  ```bash
-  aws s3 rm s3://<BUCKET>/storybook --recursive
-  aws cloudfront create-invalidation --distribution-id <DIST_ID> --paths "/storybook/*"
-  ```
-  CloudFront Function의 `/storybook` 분기만 되돌릴 때는 아래 "CloudFront
-  Function" 절의 백업본을 재적용한다(앱 라우팅에는 영향 없음).
+  builder-vite 소스로 직접 확인, 2026-10-05) — 그래서 정적 빌드는 상대경로(`./assets/...`)를 생성하고
+  `/link-sphere_FE_NEW/` 같은 하위 경로에서도 그대로 동작한다. 별도 `base` 설정이 필요 없다.
+- **롤백**: 되돌릴 PR을 revert해 main에 병합하면 다시 게시된다. revert가 경로 필터에 걸리지 않으면
+  `gh workflow run "Storybook Deploy (GitHub Pages)" --ref main`으로 수동 실행한다(수동 실행은 main 최신 커밋을
+  빌드한다). 공개를 멈추려면 저장소 Settings → Pages에서 끄거나 `gh api -X DELETE repos/BAECHAN/link-sphere_FE_NEW/pages`.
 
 ## 환경 변수 및 Secrets 설정
 
@@ -278,8 +272,9 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
 
 ## AWS IAM 권한 요구사항
 
-배포(`deploy.yml`·`deploy-storybook.yml`)는 IAM 사용자의 영구 키가 아니라, GitHub OIDC로 맡는 역할
-`link-sphere-fe-deploy`로 한다(2026-10-13 전환). GitHub 문서가 꼽는 이유는 _"클라우드 자격증명을 수명이
+배포(`deploy.yml`)는 IAM 사용자의 영구 키가 아니라, GitHub OIDC로 맡는 역할
+`link-sphere-fe-deploy`로 한다(2026-10-13 전환). `deploy-storybook.yml`도 2026-10-30 GitHub Pages로 옮기기 전까지
+이 역할을 썼다. GitHub 문서가 꼽는 이유는 _"클라우드 자격증명을 수명이
 긴 GitHub 시크릿으로 복제할 필요가 없다"_ 는 것과 _"단일 job에서만 유효하고 자동으로 만료되는
 토큰"_ 이다(번역, [GitHub Docs — OpenID Connect](https://docs.github.com/en/actions/concepts/security/openid-connect)).
 
@@ -501,7 +496,7 @@ Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 
 
 | Function                   | 이벤트          | 하는 일                                                                                                                                                                                                                                               | 소스                                                               |
 | -------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `link-sphere-spa-fallback` | viewer-request  | 앱 라우트 → `/index.html`, 앱 라우트가 아닌 확장자 없는 경로 → `/404.html`, 정적 파일·`/storybook`은 통과                                                                                                                                             | [`spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js) |
+| `link-sphere-spa-fallback` | viewer-request  | 앱 라우트 → `/index.html`, 앱 라우트가 아닌 확장자 없는 경로 → `/404.html`, 정적 파일은 통과                                                                                                                                                          | [`spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js) |
 | `link-sphere-spa-status`   | viewer-response | `/404.html` 응답의 상태를 404로 바꿈(본문은 그대로라 화면은 앱의 404 페이지). `/index.html`·`/404.html` 응답에 `Cross-Origin-Embedder-Policy: credentialless`를 붙여 외부 썸네일 요청에서 쿠키를 뺌(`docs/PERFORMANCE.md` "Best Practices 77점 사례") | [`spa-status.js`](../infra/cloudfront-functions/spa-status.js)     |
 
 `/404.html`은 `deploy.yml`이 매 배포마다 `dist/index.html`을 복사해 올리는 사본이다. `index.html`과 같은
@@ -518,24 +513,21 @@ Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 
   가려버린다 — 실제로 2026-07-28에 이 문제(구 방식인 배포 레벨 `CustomErrorResponses`가 원인)를 발견하고 이
   Function으로 교체했다. `infra/` 디렉토리 자체의 역할과 자세한 배경은
   [`docs/SYSTEM-ARCHITECTURE.md`](./SYSTEM-ARCHITECTURE.md)의 "infra/ — AWS 인프라 직접 배포 코드" 절 참고.
-- **`/storybook` 하위 요청은 SPA 폴백보다 먼저 분기해 그대로 통과시킨다.** 위 "Storybook 공개 배포"가 올리는
-  정적 사이트라 `/index.html`로 리라이트하면 안 된다. S3 REST 오리진은 인덱스 문서를 자동 해석하지 않으므로
-  `/storybook`·`/storybook/`만 `/storybook/index.html`로 명시적으로 리라이트하고, 그 외 `/storybook` 하위 경로는
-  손대지 않는다.
+- **`/storybook`은 2026-10-30부터 다른 경로와 같이 `/404.html`이 된다.** 그 전에는 S3 `storybook/` 접두사에 올린
+  Storybook을 내보내려고 이 경로를 SPA 폴백보다 먼저 통과시켰다. Storybook을 GitHub Pages로 옮기면서(위 "Storybook
+  공개 배포") 분기를 지웠다.
 - **`spa-fallback.js`를 바꿀 때는 아래 케이스로 `test-function`을 검증한다.** 같은 케이스를
   `cloudfront-functions.test.ts`가 레포에서도 돌린다.
 
-  | 입력 URI                        | 기대 결과               |
-  | ------------------------------- | ----------------------- |
-  | `/post/abc123`                  | `/index.html`           |
-  | `/auth/login`                   | `/index.html`           |
-  | `/post/`                        | `/index.html`           |
-  | `/oops`                         | `/404.html`             |
-  | `/.git/config`                  | `/404.html`             |
-  | `/favicon.ico`                  | 그대로                  |
-  | `/storybook/`                   | `/storybook/index.html` |
-  | `/storybook`                    | `/storybook/index.html` |
-  | `/storybook/assets/iframe-*.js` | 그대로                  |
+  | 입력 URI       | 기대 결과     |
+  | -------------- | ------------- |
+  | `/post/abc123` | `/index.html` |
+  | `/auth/login`  | `/index.html` |
+  | `/post/`       | `/index.html` |
+  | `/oops`        | `/404.html`   |
+  | `/.git/config` | `/404.html`   |
+  | `/storybook/`  | `/404.html`   |
+  | `/favicon.ico` | 그대로        |
 
 ```bash
 # 1. 함수 코드 수정 후 업데이트 (ETag 필요). spa-status는 이름·파일만 바꿔 같은 절차
@@ -806,9 +798,7 @@ open https://linksphere.click/version
 로컬 환경에서 수동으로 배포해야 할 경우 아래 절차를 따릅니다 (AWS CLI 설정 필요).
 CI 파이프라인 자체를 재실행하려면(AWS 자격증명 불필요) 위 "GitHub Actions 수동 재실행"을 대신 쓴다.
 
-**주의**: `aws s3 sync dist/ ... --delete` 한 줄로 끝내면 안 된다. 같은 버킷의
-`storybook/` 접두사(별도 워크플로 `deploy-storybook.yml`이 올리는 공개 Storybook — 위
-"Storybook 공개 배포" 절 참고)와 `404.html`(`dist/`에 없는 파일 — `deploy.yml`이
+**주의**: `aws s3 sync dist/ ... --delete` 한 줄로 끝내면 안 된다. `404.html`(`dist/`에 없는 파일 — `deploy.yml`이
 `index.html`을 복사해 따로 올린다, 지워지면 앱 라우트가 아닌 모든 경로가 S3 403 XML이 된다,
 위 "CloudFront Function" 절)이 지워진다. `assets/`의 옛 청크도 지워져 이미 열려 있는 탭이
 다음 페이지로 이동할 때 청크 403을 받는다. 무캐시/장기 캐시 구분 없이 전부 기본 헤더로

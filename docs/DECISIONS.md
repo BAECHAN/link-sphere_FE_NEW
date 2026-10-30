@@ -6,6 +6,56 @@
 
 ---
 
+## 2026-10-30 — Storybook·Swagger UI 공개 호스팅을 운영 도메인에서 GitHub Pages로 옮김
+
+**배경**
+
+2026-09-20 항목(아래)은 Storybook을 같은 S3 버킷의 `storybook/` 접두사 + 같은 CloudFront 배포로
+`https://linksphere.click/storybook/`에 올리기로 했고, GitHub Pages는 "AWS 단일 배포 서사가 깨진다"는 이유로 기각했다.
+BE Swagger UI를 같은 방식으로 올리려다 그때 따지지 않은 위험을 확인했다.
+
+- 같은 출처(`https://linksphere.click`)에서 도는 스크립트는 `POST /api/auth/refresh`를 부를 수 있다. 브라우저가 refresh
+  쿠키(`__Host-refreshToken`, `Path=/`, `SameSite=Lax`)를 자동으로 붙이고, 같은 출처라 응답 본문(access token)도 읽힌다
+  (BE `AuthController.kt`, CSRF 보호는 `SecurityConfig.kt`에서 꺼져 있다).
+- 그래서 그 출처에 앱이 아닌 코드(Storybook 정적 빌드와 그 npm 의존성 수백 개)를 두면, 그 코드나 의존성 하나가 오염됐을 때
+  방문자의 세션을 빼앗길 수 있다.
+
+**검토**
+
+| 안                                                                | 판정                                                                                                                                                                                                                                                     |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A. 지금처럼 `linksphere.click/storybook/`(Swagger UI도 같은 방식) | 기각 — 위 위험이 그대로 남는다                                                                                                                                                                                                                           |
+| B. `storybook.linksphere.click` 같은 서브도메인                   | 기각 — 다른 출처지만 같은 사이트(same-site)라 `SameSite=Lax` 쿠키가 그쪽에서 보낸 요청에도 붙는다. 응답은 CORS로 못 읽어도, preflight가 없는 단순 요청이면 refresh 요청 자체는 서버에 닿는다. DNS·인증서·CloudFront 배포를 새로 관리해야 한다            |
+| C. **GitHub Pages(`baechan.github.io`)**                          | 채택 — `github.io`는 [Public Suffix List](https://publicsuffix.org/list/public_suffix_list.dat)에 올라 있어 `baechan.github.io`는 `linksphere.click`과 다른 사이트다. Lax 쿠키가 붙지 않고, BE CORS 허용 목록에도 없다. 공개 저장소라 비용이 들지 않는다 |
+
+옛 `/storybook/` 주소 처리도 비교했다.
+
+| 안                     | 판정                                                                      |
+| ---------------------- | ------------------------------------------------------------------------- |
+| 302로 새 주소에 보내기 | 기각 — 딥링크는 지키지만 CloudFront Function에 영구 분기가 남는다         |
+| 안내 HTML 한 장 남기기 | 기각 — 딥링크가 사라지고 같은 출처에 파일이 남는다                        |
+| **없애기(404)**        | 채택(사용자 결정) — 사용자에게 보이는 옛 링크는 `README.md` 한 곳뿐이었다 |
+
+09-20 항목이 지키려던 "AWS 단일 배포"는 이번에 깨진다. 앱 배포(`deploy.yml`)는 그대로 AWS이고, 문서 사이트 두 개만
+GitHub Pages로 나간다 — 같은 출처 위험이 그 비용보다 크다고 판단했다.
+
+**결정**
+
+- Storybook은 FE 저장소 Pages(https://baechan.github.io/link-sphere_FE_NEW/)에 올린다
+  (`.github/workflows/deploy-storybook.yml`, 이름 `Storybook Deploy (GitHub Pages)`).
+- `deploy.yml`의 `storybook/` 제외를 지워 S3에 남은 객체는 다음 FE 배포의 `--delete`가 지운다.
+- `infra/cloudfront-functions/spa-fallback.js`의 `/storybook` 분기를 지워 `/storybook/`은 앱 404 페이지(상태 404)가 된다.
+- Swagger UI는 처음부터 BE 저장소 Pages(https://baechan.github.io/link-sphere_BE_NEW/)에 올린다. 파일은 springdoc이 끌어오는
+  swagger-ui webjar에서 꺼내고, 스펙은 워크플로가 `./gradlew openApiSpec`으로 만든다. 운영 API로 요청을 보내지 않도록
+  "Try it out"을 끈다(`supportedSubmitMethods: []`). [Swagger UI 설정 문서](https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/)는
+  이 값을 빈 배열로 두면 _"모든 operation에서 'Try it out'이 꺼진다"_ (번역)고 쓴다.
+
+**상태**: FE 적용(이 PR). BE는 별도 PR. 계획 스냅샷:
+[`docs/plans/2026-10-30-docs-to-github-pages.md`](./plans/2026-10-30-docs-to-github-pages.md). 2026-09-20 항목의 "GitHub Pages 기각"과
+"S3+CloudFront 재사용" 결정은 이 항목으로 대체한다.
+
+---
+
 ## 2026-10-28 — 쓰던 글 보관(Phase 2) 대신 로그인이 풀려도 쓰던 화면에 둔다
 
 **배경**

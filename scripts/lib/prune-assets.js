@@ -9,7 +9,7 @@ import dayjs from 'dayjs';
  */
 export const RETENTION_DAYS = 7;
 
-/** 정리 대상 접두사. storybook/ 등 다른 워크플로가 올리는 파일은 건드리지 않는다 */
+/** 정리 대상 접두사. 이 밖의 객체(index.html 등 루트 파일)는 건드리지 않는다 */
 export const PRUNE_PREFIXES = ['assets/', 'fonts/'];
 
 /**

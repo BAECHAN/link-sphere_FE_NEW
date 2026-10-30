@@ -374,7 +374,7 @@ test('watchSha: main이면 이 커밋이 안 돌린 배포 워크플로의 실�
           { ...run('', 'completed', 'cancelled', 5), headSha: 'new1' },
           { ...run('', 'completed', 'failure', 4), headSha: 'old0' },
         ],
-        'Storybook Deploy (S3 + CloudFront)': [run('', 'completed', 'success', 3)],
+        'Storybook Deploy (GitHub Pages)': [run('', 'completed', 'success', 3)],
       },
     }),
     { isMain: true }
