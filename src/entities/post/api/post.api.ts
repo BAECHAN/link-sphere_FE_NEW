@@ -1,6 +1,5 @@
-import { apiClient } from '@/shared/api/client';
+import { specClient } from '@/shared/api/spec-client';
 import NProgress from 'nprogress';
-import { API_ENDPOINTS } from '@/shared/config/api';
 
 NProgress.configure({ showSpinner: false });
 import {
@@ -22,9 +21,7 @@ export const postApi = {
   createPost: async (payload: CreatePost): Promise<CreatePostResponse> => {
     // keepalive: 폼이 응답을 기다리는 동안 탭을 닫거나 새로고침해도
     // 브라우저가 이미 시작된 요청을 끝까지 전송하도록 보장한다.
-    return await apiClient.post<CreatePostResponse>(API_ENDPOINTS.post.base, payload, {
-      keepalive: true,
-    });
+    return await specClient.post('/post', { body: payload }, { keepalive: true });
   },
 
   /**
@@ -49,7 +46,7 @@ export const postApi = {
         ...(nickname && { nickname }),
       };
 
-      return await apiClient.get<PostListResponse>(API_ENDPOINTS.post.base, { searchParams });
+      return await specClient.get('/post', { query: searchParams });
     } finally {
       if (page === 0) {
         NProgress.done();
@@ -63,30 +60,31 @@ export const postApi = {
    * @param url - UrlUtil.normalizeUrl을 거친 URL
    */
   fetchLinkPreview: async (url: string): Promise<LinkPreview> => {
-    return await apiClient.get<LinkPreview>(API_ENDPOINTS.post.linkPreview, {
-      searchParams: { url },
-    });
+    return await specClient.get('/link-preview', { query: { url } });
   },
 
   fetchPostDetail: async (postId: string): Promise<Post> => {
-    return await apiClient.get<Post>(`${API_ENDPOINTS.post.base}/${postId}`);
+    return await specClient.get('/post/{id}', { path: { id: postId } });
   },
 
   updatePostVisibility: async (postId: string, isPrivate: boolean): Promise<Post> => {
-    return await apiClient.patch<Post>(`${API_ENDPOINTS.post.base}/${postId}/visibility`, {
-      isPrivate,
+    return await specClient.patch('/post/{id}/visibility', {
+      path: { id: postId },
+      body: { isPrivate },
     });
   },
 
   updatePost: async (postId: string, payload: UpdatePost): Promise<Post> => {
     // keepalive: createPost와 동일한 이유 - 응답을 기다리는 동안 탭을 닫거나 새로고침해도
     // 브라우저가 이미 시작된 요청을 끝까지 전송하도록 보장한다.
-    return await apiClient.patch<Post>(`${API_ENDPOINTS.post.base}/${postId}`, payload, {
-      keepalive: true,
-    });
+    return await specClient.patch(
+      '/post/{id}',
+      { path: { id: postId }, body: payload },
+      { keepalive: true }
+    );
   },
 
   deletePost: async (postId: string): Promise<void> => {
-    return await apiClient.delete<void>(`${API_ENDPOINTS.post.base}/${postId}`);
+    return await specClient.delete('/post/{id}', { path: { id: postId } });
   },
 };
