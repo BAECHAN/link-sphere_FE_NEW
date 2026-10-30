@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-10-27
+> **마지막 검토**: 2026-10-30
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -1334,8 +1334,9 @@ features·widgets에는 지금 스토리가 없다 — 하나뿐이던 `Widgets/
   `UI/<세그먼트>`를 남긴다.
 - `_` 접두사 내부 폴더는 생략하고(`form/_base/FormField` → `Form/FormField`), 마지막 폴더명이
   컴포넌트명과 같으면 한 번만 쓴다(`dialog/alert/Alert` → `Dialog/Alert`).
-- `Temp`·`WIP`처럼 상태를 뜻하는 임시 루트 그룹을 만들지 않는다. 공개 Storybook에 그대로
-  배포된다(2026-09-21 검증용 `Temp/` 스토리가 이렇게 남았던 것이 이 규칙의 계기).
+- `Temp`·`WIP`처럼 상태를 뜻하는 임시 루트 그룹을 만들지 않는다. 공개 Storybook
+  (https://baechan.github.io/link-sphere_FE_NEW/storybook/)에 그대로 배포된다(2026-09-21 검증용
+  `Temp/` 스토리가 이렇게 남았던 것이 이 규칙의 계기).
 - **ESLint `custom-storybook/title-matches-path`(`eslint.config.js`)가 강제한다** — 파일 경로에서
   위 규칙으로 계산한 값과 `title`이 다르거나 `title`이 없으면 에러를 내고 기대값을 메시지로
   보여준다. 자동 수정은 하지 않는다(스토리 URL이 `title`에서 나오므로 pre-commit의 `--fix`가
@@ -1380,7 +1381,7 @@ pnpm test:e2e       # Playwright e2e (chromium + mobile-chrome, docs/TESTING.md 
 pnpm test:mutation  # StrykerJS 변이 테스트 (stryker.config.json, docs/TESTING.md — --mutate <파일> 없이 돌리면 src 전체라 오래 걸린다)
 pnpm perf:lh        # Lighthouse CI — 공개 페이지 (lighthouserc.cjs, docs/PERFORMANCE.md)
 pnpm perf:lh:auth   # Lighthouse CI — 로그인 필요 페이지 (lighthouserc.auth.cjs, LH_TEST_PASSWORD 필요)
-pnpm storybook      # Storybook (port 6006)
+pnpm storybook      # Storybook (port 6006, 공개본은 https://baechan.github.io/link-sphere_FE_NEW/storybook/)
 ```
 
 ---

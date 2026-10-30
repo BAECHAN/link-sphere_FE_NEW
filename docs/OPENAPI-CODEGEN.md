@@ -72,7 +72,9 @@ flowchart TD
   - [`openapi-typescript`](https://www.npmjs.com/package/openapi-typescript) 7.13.0 —
     OpenAPI 3.1 JSON을 TypeScript 타입 선언으로 변환(런타임 코드 0, 타입만)
   - BE `springdoc-openapi-starter-webmvc-api` 2.10.0(BE `build.gradle.kts`) — Kotlin
-    컨트롤러/DTO에서 OpenAPI 스펙을 생성해 `/v3/api-docs`로 공개(운영 포함). 2026-10-26
+    컨트롤러/DTO에서 OpenAPI 스펙을 생성해 `/v3/api-docs`로 공개(운영 포함). 같은 스펙을
+    사람이 읽는 화면은 읽기 전용 Swagger UI(https://baechan.github.io/link-sphere_BE_NEW/api-docs/,
+    BE `main` 병합마다 갱신)다. 2026-10-26
     2.7.0에서 올라가며(BE #116) 스펙이 OpenAPI 3.0에서 3.1.0이 됐고, FE는 그 스펙을
     스냅샷에 반영했다(FE #419)
   - BE `NullableAwareModelConverter`/`NullableAwareOpenApiCustomizer`(swagger-core

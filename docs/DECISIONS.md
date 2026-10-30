@@ -50,9 +50,28 @@ GitHub Pages로 나간다 — 같은 출처 위험이 그 비용보다 크다고
   "Try it out"을 끈다(`supportedSubmitMethods: []`). [Swagger UI 설정 문서](https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/)는
   이 값을 빈 배열로 두면 _"모든 operation에서 'Try it out'이 꺼진다"_ (번역)고 쓴다.
 
-**상태**: FE 적용(이 PR). BE는 별도 PR. 계획 스냅샷:
-[`docs/plans/2026-10-30-docs-to-github-pages.md`](./plans/2026-10-30-docs-to-github-pages.md). 2026-09-20 항목의 "GitHub Pages 기각"과
-"S3+CloudFront 재사용" 결정은 이 항목으로 대체한다.
+**후속(같은 날) — 주소를 저장소별 하위 경로로**
+
+위 결정대로 올리고 보니 두 문서가 각 저장소 Pages의 루트를 통째로 차지했다. 저장소 하나에 Pages 사이트는 하나뿐이라 문서가 늘면
+주소로 구분할 수 없다. 게다가 Pages 배포는 매번 사이트 전체를 바꾼다. deploy-pages 기여자는 _"모든 콘텐츠를 배포 시점에 줘야
+한다. 나중 배포가 모든 것을 대체한다"_ 고 답했다(번역,
+[actions/deploy-pages#50 댓글](https://github.com/actions/deploy-pages/issues/50#issuecomment-1252593074)). 그래서 다른 문서를 다른
+워크플로로 따로 올리면 기존 문서가 지워진다.
+
+| 안                                                                                    | 판정                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A. 하위 경로**(`…/link-sphere_FE_NEW/storybook/`, `…/link-sphere_BE_NEW/api-docs/`) | 채택(사용자 결정) — 루트 첫 화면(`pages-site/index.html`)이 쿼리·해시를 붙여 넘겨 첫 배포 때의 링크도 이어진다. 주소가 만들어진 지 몇 시간이라 지금 옮기는 비용이 가장 작다 |
+| B. 두 번째 문서가 생길 때 옮기기                                                      | 기각 — 그 사이 루트 주소가 퍼진다. 어차피 그때 워크플로를 합쳐야 하는 건 같다                                                                                               |
+| C. 커스텀 도메인(`storybook.linksphere.click`)                                        | 기각 — 위 표의 서브도메인 안과 같은 이유(same-site라 Lax 쿠키가 붙는다)                                                                                                     |
+| D. 문서 전용 저장소 하나                                                              | 기각 — 주소에서 `_NEW`가 빠지지만 FE·BE 빌드 결과를 넘길 저장소 간 토큰·트리거가 필요하다                                                                                   |
+
+경로 이름은 도구를 바꿔도 맞는 `api-docs/`로 했다(`swagger/`는 도구 이름이고, `api/`는 실제 API 주소 `linksphere.click/api`와
+헷갈린다). 문서를 더할 때는 같은 워크플로의 "사이트 조립" 단계에서 함께 만들어 자기 하위 경로에 넣고, 첫 화면을 목록 페이지로
+바꾼다(`docs/DEPLOY.md` "Storybook 공개 배포"의 "주소 구조").
+
+**상태**: FE 적용(#459), BE 적용(BE #134), 하위 경로 이동(FE #460, BE #135). 계획 스냅샷:
+[`docs/plans/2026-10-30-docs-to-github-pages.md`](./plans/2026-10-30-docs-to-github-pages.md)(하위 경로 이동은 계획 밖 후속이라
+계획에 없다). 2026-09-20 항목의 "GitHub Pages 기각"과 "S3+CloudFront 재사용" 결정은 이 항목으로 대체한다.
 
 ---
 
