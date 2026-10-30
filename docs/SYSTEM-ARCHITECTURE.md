@@ -310,7 +310,7 @@ flowchart TB
 | Web       | spring-boot-starter-web (서블릿 스택)                                                                                     |
 | Data      | JPA, Hibernate, PostgreSQL + pgvector(`hibernate-vector`) (Supabase pooler)                                               |
 | Security  | Spring Security, 서버 관리 세션(access/refresh), X-Access-Token 헤더 우선 — JWT(jjwt)는 PR #42로 폐지                     |
-| API 문서  | SpringDoc OpenAPI 2.10.0                                                                                                  |
+| API 문서  | SpringDoc OpenAPI 2.10.0 — 공개 Swagger UI(읽기 전용): https://baechan.github.io/link-sphere_BE_NEW/api-docs/             |
 | 기타      | Jsoup, Actuator (health)                                                                                                  |
 
 | 설정         | 값                                                                                                                                                                                                                                                                                                      |
