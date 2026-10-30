@@ -48,7 +48,7 @@ Identify which layer the bug is in:
 | **Queries**            | Wrong `onSuccess` handler, missing `enabled` condition, wrong select transform                                    |
 | **Feature hook**       | Wrong form default values, incorrect submit flow, missing error handling                                          |
 | **UI**                 | Wrong prop passed to component, missing `FormProvider`, wrong form field name                                     |
-| **Config**             | Missing TEXTS key, wrong API_ENDPOINTS path                                                                       |
+| **Config**             | Missing TEXTS key, stale spec snapshot(`openapi.json`이 BE보다 뒤처져 `specClient` 타입이 틀림)                   |
 
 ## Step 3: Write a failing test that reproduces the bug
 

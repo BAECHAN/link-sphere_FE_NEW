@@ -213,6 +213,47 @@ const customQueryRulesPlugin = {
   },
 };
 
+// apiClient(shared/api/client.ts)를 상대 경로로 우회 import하는 것까지 잡는다 — src에 client.ts는
+// 이 파일 하나라 같은 폴더의 './client'도 이 파일이다.
+const API_CLIENT_PATH = '@/shared/api/client';
+
+const customApiRulesPlugin = {
+  rules: {
+    // [금지] apiClient 직접 import (적용 블록의 주석 참고)
+    'no-raw-api-client-import': {
+      meta: {
+        type: 'problem',
+        docs: { description: 'apiClient 직접 import 금지 (허용목록 방식)' },
+        messages: {
+          rawApiClientImport:
+            "apiClient를 직접 import할 수 없습니다. specClient(@/shared/api/spec-client)로 스펙 경로를 쓰세요 — 예: specClient.get('/post/{id}', { path: { id } }).",
+        },
+      },
+      create(context) {
+        return {
+          ImportDeclaration(node) {
+            const source = node.source.value;
+
+            if (typeof source !== 'string') {
+              return;
+            }
+
+            const isApiClientSource =
+              source === API_CLIENT_PATH || source.endsWith('/api/client') || source === './client';
+
+            // 타입 전용 import는 런타임 호출이 아니므로 허용한다
+            if (!isApiClientSource || isTypeOnlyImport(node)) {
+              return;
+            }
+
+            context.report({ node, messageId: 'rawApiClientImport' });
+          },
+        };
+      },
+    },
+  },
+};
+
 // Tailwind className 일관성 규칙 모음. no-hardcoded-hangul과 같은 전략(className
 // prop인지 따지지 않고 Literal/TemplateLiteral 전체를 훑어 패턴을 검사) - className
 // 속성 파싱을 별도로 안 해도 오탐 없이 잡을 수 있어서 이 레포 관례에 더 가깝다.
@@ -1207,6 +1248,29 @@ export default [
     plugins: { 'custom-query-rules': customQueryRulesPlugin },
     rules: {
       'custom-query-rules/no-query-client-singleton-import': 'error',
+    },
+  },
+
+  // ============================================================
+  // [금지] apiClient 직접 import — src/** 전체 금지 + 허용목록
+  // 이유: apiClient.get<T>('문자열')은 URL과 응답 타입 T가 따로라, 엉뚱한 경로에 엉뚱한 T를 적어도
+  //       컴파일이 통과한다. BE 호출은 생성 스펙 경로가 요청·응답 타입을 정하는 specClient로만
+  //       한다(docs/OPENAPI-CODEGEN.md §5-2, 2026-10-30 *.api.ts 9개 이관과 함께 도입).
+  // 타입 전용 import는 룰 구현에서 통과시킨다. no-restricted-imports가 아니라 커스텀 룰인 이유는
+  // 위 queryClient 블록의 "주의"와 같다(FSD 레이어 블록과 rule key가 겹친다).
+  // ============================================================
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: [
+      // apiClient 위에 스펙 경로 타입을 얹는 유일한 지점
+      'src/shared/api/spec-client.ts',
+      // 테스트 인프라·콜로케이션 테스트(토큰 갱신·세션 만료 등 apiClient 자체를 검증한다)
+      'src/test/**/*.{ts,tsx}',
+      '**/*.test.{ts,tsx}',
+    ],
+    plugins: { 'custom-api-rules': customApiRulesPlugin },
+    rules: {
+      'custom-api-rules/no-raw-api-client-import': 'error',
     },
   },
 

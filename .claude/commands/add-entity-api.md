@@ -16,34 +16,38 @@ Parse:
 1. Check if `src/entities/<entity>/model/<entity>.dto.ts` already exists — if not, run
    `/add-schema <domain> <entity>` first (creates the response DTO alias and, if needed,
    a request/form Zod schema — see that command for the current convention)
-2. Read `src/shared/config/api.ts` to understand current API_ENDPOINTS structure
+2. Find the BE paths in `src/shared/api/generated/openapi.gen.ts` (`paths`) — `specClient` only
+   accepts paths that exist there. If they are missing, refresh the spec with
+   `pnpm codegen:fetch && pnpm codegen` (`docs/OPENAPI-CODEGEN.md` §5-1)
 3. Read `src/shared/config/texts.ts` to understand current TEXTS structure
 
 ## Files to create
 
 ### 1. `src/entities/<entity>/api/<entity>.api.ts`
 
+Call the BE only through `specClient` with the spec path template — the path decides the
+`path`/`query`/`body` and response types (`docs/OPENAPI-CODEGEN.md` §5-2). Replace
+`/<entity-path>` and `{id}` with the exact path and variable names from `paths`.
+
 ```typescript
-import { apiClient } from '@/shared/api/client';
-import { API_ENDPOINTS } from '@/shared/config/api';
+import { specClient } from '@/shared/api/spec-client';
 import type { <Entity> } from '@/entities/<entity>/model/<entity>.dto';
 import { Create<Entity>, Update<Entity> } from '@/entities/<entity>/model/<entity>.schema';
 
 export const <entity>Api = {
   create<Entity>: async (payload: Create<Entity>): Promise<<Entity>> =>
-    apiClient.post<<Entity>>(API_ENDPOINTS.<domain>.<entity>, payload),
+    specClient.post('/<entity-path>', { body: payload }),
 
-  fetch<Entity>List: async (): Promise<<Entity>[]> =>
-    apiClient.get<<Entity>[]>(API_ENDPOINTS.<domain>.<entity>),
+  fetch<Entity>List: async (): Promise<<Entity>[]> => specClient.get('/<entity-path>'),
 
   fetch<Entity>: async (id: string): Promise<<Entity>> =>
-    apiClient.get<<Entity>>(`${API_ENDPOINTS.<domain>.<entity>}/${id}`),
+    specClient.get('/<entity-path>/{id}', { path: { id } }),
 
   update<Entity>: async (id: string, payload: Update<Entity>): Promise<<Entity>> =>
-    apiClient.patch<<Entity>>(`${API_ENDPOINTS.<domain>.<entity>}/${id}`, payload),
+    specClient.patch('/<entity-path>/{id}', { path: { id }, body: payload }),
 
   delete<Entity>: async (id: string): Promise<void> =>
-    apiClient.delete<void>(`${API_ENDPOINTS.<domain>.<entity>}/${id}`),
+    specClient.delete('/<entity-path>/{id}', { path: { id } }),
 };
 ```
 
@@ -170,16 +174,7 @@ export const useDelete<Entity>Mutation = () => {
 
 ## Files to update
 
-### `src/shared/config/api.ts`
-
-Add the new endpoint under the domain section:
-
-```typescript
-<domain>: {
-  ...existing,
-  <entity>: `${API_BASES.<domain>}/<entity-path>`,
-},
-```
+No `API_ENDPOINTS` entry is needed — `specClient` takes the spec path directly.
 
 ### `src/shared/config/texts.ts`
 
@@ -213,6 +208,9 @@ skill "성공 토스트 표시 기준" 축 4, 선례 `postDeleted`·`commentDele
 - If `<entity>.dto.ts` doesn't exist, run `/add-schema <domain> <entity>` first — see
   `src/entities/post/model/post.dto.ts` for the current response-type pattern
 - If only some CRUD operations are needed, omit the unused functions from api.ts and their corresponding hooks from queries.ts
+- If `<Entity>` narrows the spec type (an `Omit<...> & {...}` override in `.dto.ts`, like
+  `Account.role`), pass it as the second generic — `specClient.get<'/<entity-path>/{id}', <Entity>>(…)` —
+  with a comment pointing to the `.dto.ts` reason (reference: `src/entities/account/api/account.api.ts`)
 - For cross-domain invalidation (e.g. creating a comment also invalidates the post), don't
   import the other entity's `.keys.ts`/`.api.ts` directly — that exposes its entire public
   surface. Instead go through its `@x/<this-entity>.ts` cross-reference file (FSD `@x`

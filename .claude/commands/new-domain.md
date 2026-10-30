@@ -65,26 +65,28 @@ export type { <Entity> } from '@/entities/<entity>/model/<entity>.dto';
 
 ### 3. `src/entities/<entity>/api/<entity>.api.ts`
 
+BE 호출은 `specClient`에 스펙 경로 템플릿을 그대로 넘긴다 — 경로가 `path`·`query`·`body`와 응답 타입을
+정한다(`docs/OPENAPI-CODEGEN.md` §5-2). `/<domain-path>`와 `{id}`는 `src/shared/api/generated/openapi.gen.ts`의
+`paths`에 있는 실제 경로·변수 이름으로 바꾼다.
+
 ```typescript
-import { apiClient } from '@/shared/api/client';
-import { API_ENDPOINTS } from '@/shared/config/api';
+import { specClient } from '@/shared/api/spec-client';
 import { Create<Entity>, Update<Entity>, <Entity> } from '@/entities/<entity>/model/<entity>.schema';
 
 export const <entity>Api = {
   create<Entity>: async (payload: Create<Entity>): Promise<<Entity>> =>
-    apiClient.post<<Entity>>(API_ENDPOINTS.<domain>.base, payload),
+    specClient.post('/<domain-path>', { body: payload }),
 
-  fetch<Entity>List: async (): Promise<<Entity>[]> =>
-    apiClient.get<<Entity>[]>(API_ENDPOINTS.<domain>.base),
+  fetch<Entity>List: async (): Promise<<Entity>[]> => specClient.get('/<domain-path>'),
 
   fetch<Entity>: async (id: string): Promise<<Entity>> =>
-    apiClient.get<<Entity>>(`${API_ENDPOINTS.<domain>.base}/${id}`),
+    specClient.get('/<domain-path>/{id}', { path: { id } }),
 
   update<Entity>: async (id: string, payload: Update<Entity>): Promise<<Entity>> =>
-    apiClient.patch<<Entity>>(`${API_ENDPOINTS.<domain>.base}/${id}`, payload),
+    specClient.patch('/<domain-path>/{id}', { path: { id }, body: payload }),
 
   delete<Entity>: async (id: string): Promise<void> =>
-    apiClient.delete<void>(`${API_ENDPOINTS.<domain>.base}/${id}`),
+    specClient.delete('/<domain-path>/{id}', { path: { id } }),
 };
 ```
 
@@ -211,20 +213,11 @@ export const useDelete<Entity>Mutation = () => {
 
 ## Step 3: Update shared config files
 
-### `src/shared/config/api.ts`
+### `src/shared/api/generated/` (스펙)
 
-Add a new entry under `API_ENDPOINTS` and `API_BASES`:
-
-```typescript
-// In API_BASES — prefix 없는 상대 경로만. API_BASE_URL은 apiClient가 한 번만 붙인다
-// (여기서 다시 붙이면 prefix가 중복된다):
-<domain>: '/<domain-path>',
-
-// In API_ENDPOINTS:
-<domain>: {
-  base: API_BASES.<domain>,
-},
-```
+`API_ENDPOINTS`에는 항목을 추가하지 않는다 — `specClient`가 스펙 경로를 직접 받는다. 새 도메인의 경로가
+`openapi.gen.ts`의 `paths`에 없으면 `pnpm codegen:fetch && pnpm codegen`으로 스펙을 갱신한다
+(`docs/OPENAPI-CODEGEN.md` §5-1).
 
 ### `src/shared/config/texts.ts`
 

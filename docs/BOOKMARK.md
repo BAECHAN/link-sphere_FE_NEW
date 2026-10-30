@@ -95,8 +95,8 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 
 ### API 엔드포인트
 
-`src/entities/bookmark/folder/api/bookmark-folder.api.ts` 기준(`API_ENDPOINTS.bookmark`,
-`shared/config/api.ts`).
+`src/entities/bookmark/folder/api/bookmark-folder.api.ts` 기준(`specClient`의 스펙 경로,
+`docs/OPENAPI-CODEGEN.md` §5-2).
 
 | 메서드   | 경로                                                  | 설명                                                                                                                                                                               |
 | -------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

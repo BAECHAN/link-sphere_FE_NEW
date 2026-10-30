@@ -60,7 +60,9 @@ Reference files for correct patterns:
 
 - [ ] No hardcoded UI strings — use `TEXTS.*`
 - [ ] No hardcoded route strings — use `ROUTES_PATHS.*`
-- [ ] No hardcoded API paths — use `API_ENDPOINTS.*`
+- [ ] BE calls in `*.api.ts` use `specClient` with the spec path template (`'/post/{id}'`) — no
+      `apiClient`, no string-built paths, no hand-written response generics. A domain type narrower
+      than the spec goes only in the second generic, with a comment pointing to its `.dto.ts` reason
 - [ ] `console.error` in catch blocks is acceptable; `console.log` for debugging is not
 
 ### Common Mistakes

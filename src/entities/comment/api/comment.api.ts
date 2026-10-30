@@ -1,6 +1,5 @@
-import { apiClient } from '@/shared/api/client';
+import { specClient } from '@/shared/api/spec-client';
 import { Comment, MyCommentListResponse } from '@/entities/comment/model/comment.schema';
-import { API_ENDPOINTS } from '@/shared/config/api';
 import { uploadImageAndGetUrl } from '@/shared/lib/upload/uploadImageAndGetUrl';
 import { PaginationRequest } from '@/shared/types/common.type';
 
@@ -22,46 +21,50 @@ async function uploadCommentImages(images?: File[]): Promise<string[]> {
 }
 
 export const commentApi = {
-  getComments: async (postId: string) => {
-    return await apiClient.get<Comment[]>(API_ENDPOINTS.post.postComment(postId));
+  getComments: async (postId: string): Promise<Comment[]> => {
+    return await specClient.get('/post/{postId}/comment', { path: { postId } });
   },
 
   getMyComments: async (payload: PaginationRequest): Promise<MyCommentListResponse> => {
     const { page, size } = payload;
-    return await apiClient.get<MyCommentListResponse>(API_ENDPOINTS.post.myComments, {
-      searchParams: { page, size },
-    });
+    return await specClient.get('/comment/my', { query: { page, size } });
   },
 
-  createComment: async (postId: string, payload: { content?: string; images?: File[] }) => {
+  createComment: async (
+    postId: string,
+    payload: { content?: string; images?: File[] }
+  ): Promise<Comment> => {
     const images = await uploadCommentImages(payload.images);
-    return await apiClient.post<Comment>(API_ENDPOINTS.post.postComment(postId), {
-      content: payload.content,
-      images,
+    return await specClient.post('/post/{postId}/comment', {
+      path: { postId },
+      body: { content: payload.content, images },
     });
   },
 
-  createReply: async (commentId: string, payload: { content?: string; images?: File[] }) => {
+  createReply: async (
+    commentId: string,
+    payload: { content?: string; images?: File[] }
+  ): Promise<Comment> => {
     const images = await uploadCommentImages(payload.images);
-    return await apiClient.post<Comment>(API_ENDPOINTS.post.commentReply(commentId), {
-      content: payload.content,
-      images,
+    return await specClient.post('/comment/{commentId}/reply', {
+      path: { commentId },
+      body: { content: payload.content, images },
     });
   },
 
-  deleteComment: async (commentId: string) => {
-    await apiClient.delete(API_ENDPOINTS.post.comment(commentId));
+  deleteComment: async (commentId: string): Promise<void> => {
+    await specClient.delete('/comment/{commentId}', { path: { commentId } });
   },
 
   updateComment: async (
     commentId: string,
     payload: { content?: string; images?: File[]; existingImages?: string[] }
-  ) => {
+  ): Promise<Comment> => {
     const uploaded = await uploadCommentImages(payload.images);
     const images = [...(payload.existingImages ?? []), ...uploaded];
-    return await apiClient.patch<Comment>(API_ENDPOINTS.post.comment(commentId), {
-      content: payload.content,
-      images,
+    return await specClient.patch('/comment/{commentId}', {
+      path: { commentId },
+      body: { content: payload.content, images },
     });
   },
 };

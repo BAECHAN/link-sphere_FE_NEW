@@ -1,4 +1,4 @@
-import { apiClient } from '@/shared/api/client';
+import { specClient } from '@/shared/api/spec-client';
 import {
   Login,
   LoginResponse,
@@ -10,16 +10,14 @@ import {
   EmailVerificationConfirm,
 } from '@/entities/auth/model/auth.schema';
 import { Account } from '@/entities/account/@x/auth';
-import { API_ENDPOINTS } from '@/shared/config/api';
 
 export const authApi = {
   /**
    * Backend Auth API로 로그인 요청
    */
   login: async (payload: Login): Promise<LoginResponse> => {
-    const response = await apiClient.post<LoginResponse>(API_ENDPOINTS.auth.login, {
-      email: payload.email,
-      password: payload.password,
+    const response = await specClient.post('/auth/login', {
+      body: { email: payload.email, password: payload.password },
     });
 
     // Refresh Token은 벡엔드에서 쿠키로 설정하므로 클라이언트 저장 불필요
@@ -30,7 +28,7 @@ export const authApi = {
    * 로그아웃 요청
    */
   logout: async (): Promise<void> => {
-    await apiClient.post(API_ENDPOINTS.auth.logout);
+    await specClient.post('/auth/logout');
   },
 
   /**
@@ -38,42 +36,37 @@ export const authApi = {
    */
   refresh: async (): Promise<LoginResponse> => {
     // refreshToken은 쿠키에 있으므로 별도 전송 불필요
-    const response = await apiClient.post<LoginResponse>(API_ENDPOINTS.auth.refresh);
+    const response = await specClient.post('/auth/refresh');
 
     return response;
   },
 
   createAccount: async (payload: CreateAccount): Promise<Account> => {
     // confirmPassword는 클라이언트에서 일치 여부만 확인하는 필드라 서버로 보내지 않는다.
-    const response = await apiClient.post<Account>(API_ENDPOINTS.auth.signup, {
-      nickname: payload.nickname,
-      email: payload.email,
-      password: payload.password,
+    // 응답은 스펙의 AccountResponse보다 role·nickname을 좁힌 Account다(근거: account.dto.ts 주석).
+    const response = await specClient.post<'/auth/signup', Account>('/auth/signup', {
+      body: { nickname: payload.nickname, email: payload.email, password: payload.password },
     });
     return response;
   },
 
   /** 이메일 가용성 사전 조회. 가입 화면(비로그인) 전용 - fail-open 여부는 호출부에서 결정한다. */
   checkEmailAvailability: async (email: string): Promise<boolean> => {
-    const response = await apiClient.get<{ available: boolean }>(
-      API_ENDPOINTS.auth.emailAvailability,
-      { searchParams: { email } }
-    );
+    const response = await specClient.get('/auth/email-availability', { query: { email } });
     return response.available;
   },
 
   /** 계정 존재 여부와 무관하게 항상 같은 방식으로 끝난다(서버가 200을 고정 반환). */
   requestPasswordReset: async (payload: PasswordResetRequest): Promise<void> => {
-    await apiClient.post(API_ENDPOINTS.auth.passwordResetRequest, {
-      email: payload.email,
+    await specClient.post('/auth/password-reset/request', {
+      body: { email: payload.email },
     });
   },
 
   confirmPasswordReset: async (payload: PasswordResetConfirm): Promise<void> => {
     // confirmPassword는 클라이언트 전용 확인 필드라 서버로 보내지 않는다.
-    await apiClient.post(API_ENDPOINTS.auth.passwordResetConfirm, {
-      token: payload.token,
-      newPassword: payload.newPassword,
+    await specClient.post('/auth/password-reset/confirm', {
+      body: { token: payload.token, newPassword: payload.newPassword },
     });
   },
 
@@ -84,23 +77,22 @@ export const authApi = {
    */
   changePassword: async (payload: ChangePassword): Promise<LoginResponse> => {
     // confirmPassword는 클라이언트 전용 확인 필드라 서버로 보내지 않는다.
-    const response = await apiClient.patch<LoginResponse>(API_ENDPOINTS.auth.changePassword, {
-      currentPassword: payload.currentPassword,
-      newPassword: payload.newPassword,
+    const response = await specClient.patch('/auth/account/password', {
+      body: { currentPassword: payload.currentPassword, newPassword: payload.newPassword },
     });
     return response;
   },
 
   /** 계정 존재·인증 여부와 무관하게 항상 같은 방식으로 끝난다(서버가 200을 고정 반환). */
   requestEmailVerification: async (payload: EmailVerificationRequest): Promise<void> => {
-    await apiClient.post(API_ENDPOINTS.auth.emailVerificationRequest, {
-      email: payload.email,
+    await specClient.post('/auth/email-verification/request', {
+      body: { email: payload.email },
     });
   },
 
   confirmEmailVerification: async (payload: EmailVerificationConfirm): Promise<void> => {
-    await apiClient.post(API_ENDPOINTS.auth.emailVerificationConfirm, {
-      token: payload.token,
+    await specClient.post('/auth/email-verification/confirm', {
+      body: { token: payload.token },
     });
   },
 };

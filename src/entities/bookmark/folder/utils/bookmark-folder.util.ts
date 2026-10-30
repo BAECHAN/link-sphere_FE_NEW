@@ -24,7 +24,7 @@ function wouldDuplicateMyFoldersSection(
 }
 
 export class BookmarkFolderUtil {
-  // bookmarkFolderApi.fetchBookmarkFolderList는 apiClient.get<BookmarkFolderListResponse>()로
+  // bookmarkFolderApi.fetchBookmarkFolderList는 specClient.get('/bookmark/folders')로
   // 캐싱만 할 뿐 런타임 파싱을 하지 않는다 — lastUsedAt은 타입(string | null) 그대로 BE가 보낸
   // ISO 문자열이고, 정렬 비교는 dayjs(value)로 감싸서 한다.
   static pickRecentFolders(folderList: BookmarkFolder[]): BookmarkFolder[] {

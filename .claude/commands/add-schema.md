@@ -20,7 +20,7 @@ OpenAPI 스펙에서 `openapi-typescript`로 타입을 생성하고(`src/shared/
 엔티티별 `.dto.ts`가 거기에 도메인 이름만 붙인다 — 손으로 옮겨적다 BE와 어긋나는 사고를
 구조적으로 막기 위해서다(상세 배경: `docs/OPENAPI-CODEGEN.md`).
 
-Zod는 **응답 파싱에 쓰지 않는다** — `apiClient`가 이미 제네릭 `T`로 받은 값을 그대로
+Zod는 **응답 파싱에 쓰지 않는다** — `specClient`(내부는 `apiClient`)가 받은 값을 스펙 응답 타입으로 그대로
 반환하고, 어디서도 응답에 `.parse()`/`safeParse()`를 걸지 않는다. Zod는 오직
 **사용자 입력**(생성/수정 폼, 검색 필터 등) 검증에만 쓴다.
 

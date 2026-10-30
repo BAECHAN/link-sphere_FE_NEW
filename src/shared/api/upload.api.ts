@@ -1,16 +1,12 @@
-import { apiClient } from '@/shared/api/client';
-import { API_ENDPOINTS } from '@/shared/config/api';
+import type { components } from '@/shared/api/generated/openapi.gen';
+import { specClient } from '@/shared/api/spec-client';
 import {
   ImageUploadError,
   ImageUploadFailureReason,
   NetworkError,
 } from '@/shared/types/common.type';
 
-interface SignedUploadUrl {
-  uploadUrl: string;
-  token: string;
-  publicUrl: string;
-}
+type SignedUploadUrl = components['schemas']['UploadUrlResponse'];
 
 // Supabase Storage는 버킷 용량·형식 제한 위반도 HTTP 400으로 돌려주고 실제 원인은 본문 statusCode
 // ("413"·"415")에 담는다. 혼잡(429)·장애(5xx, DB 타임아웃 544)는 HTTP 상태로 온다(storage 서버 소스
@@ -45,7 +41,7 @@ async function resolveStorageFailureReason(response: Response): Promise<ImageUpl
 export const uploadApi = {
   /** 업로드할 파일 확장자로 서명된 업로드 URL을 발급받는다 */
   getSignedUploadUrl: async (fileExtension: string): Promise<SignedUploadUrl> => {
-    return await apiClient.post<SignedUploadUrl>(API_ENDPOINTS.upload.signedUrl, { fileExtension });
+    return await specClient.post('/upload/signed-url', { body: { fileExtension } });
   },
 
   /**

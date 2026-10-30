@@ -101,6 +101,7 @@ flowchart TD
 | `custom-query-rules/no-direct-query-import`                                                                    | `@tanstack/react-query` 직접 import — 허용목록(`app/**`·`**/api/*.queries.ts`·`**/hooks/**` 등) 밖에서는 금지                                                                                                                                                                                |
 | `custom-query-rules/no-entity-query-import-outside-hooks`                                                      | `features/**`·`pages/**`에서 entity 쿼리 훅(`*.queries`) import — 각 레이어의 `hooks/**` 밖에서는 금지 (2026-09-29 pages도 대상에 추가, widgets는 대상 아님, §8 참고)                                                                                                                        |
 | `custom-query-rules/no-query-client-singleton-import`                                                          | `queryClient` 싱글턴 직접 import — `QueryProvider.tsx`·`auth.util.ts` 두 곳만 예외                                                                                                                                                                                                           |
+| `custom-api-rules/no-raw-api-client-import`                                                                    | `apiClient` 값 import — BE 호출은 `specClient`(스펙 경로)로만, `spec-client.ts`·테스트만 예외(타입 import는 허용, §5 Layer 1)                                                                                                                                                                |
 | `custom-query-rules/scope-mutation-auth-epoch`                                                                 | `scope`·`mutationFn`을 함께 가진 객체에서 첫 줄의 `assertMutationAuthEpochUnchanged(context)` 누락 — §11 6번. 본체는 `scripts/lib/`, 옵션을 변수·스프레드로 넘기면 못 잡음                                                                                                                   |
 | `custom-i18n/no-hardcoded-hangul`                                                                              | 한글 UI 문자열 하드코딩 — `TEXTS`만 허용                                                                                                                                                                                                                                                     |
 | `custom-tailwind/no-raw-color`                                                                                 | black/white/명명 팔레트(gray-500 등) 리터럴 색상 클래스 금지 — `globals.css` 디자인 토큰 클래스만 허용                                                                                                                                                                                       |
@@ -285,12 +286,14 @@ src/
 └── shared/                       # 순수 유틸, UI 원자, API client, config
     ├── api/
     │   ├── client.ts             # HTTP 클라이언트 (apiClient) — fetch 기반, axios 아님
+    │   ├── spec-client.ts        # specClient — 스펙 경로가 요청·응답 타입을 정하는 apiClient 래퍼(*.api.ts는 이것만)
+    │   ├── spec-types.ts         # specClient가 쓰는 경로→요청·응답 타입 헬퍼(타입만)
     │   ├── upload.api.ts         # uploadApi — 서명 URL 발급 + PUT 요청 함수
     │   ├── fcm.api.ts             # fcmApi — FCM 토큰 등록
     │   └── generated/            # openapi.json(스펙 스냅샷) + openapi.gen.ts(생성 타입) — 커밋됨, 직접 편집 금지
     ├── config/
     │   ├── texts.ts               # 모든 UI 문자열 (TEXTS)
-    │   ├── api.ts                 # 모든 API 엔드포인트 (API_ENDPOINTS)
+    │   ├── api.ts                 # API 엔드포인트 상수 (API_ENDPOINTS — client.ts 인증 판별·테스트용, *.api.ts는 specClient)
     │   ├── route-paths.ts         # 라우트 경로 상수 (ROUTES_PATHS)
     │   ├── build-info.ts          # BUILD_INFO — 이 번들이 빌드된 커밋(빌드타임 주입)
     │   ├── image-format.ts        # UPLOAD_IMAGE_EXTENSION_BY_MIME — 업로드 허용 이미지 형식
@@ -399,23 +402,30 @@ BE의 nullable/enum이 스펙에 정확히 안 실리는 경우만 `Omit` + inte
 ### Layer 1 — `<entity>.api.ts` (순수 async, React 없음)
 
 ```typescript
-import { apiClient } from '@/shared/api/client';
-import { API_ENDPOINTS } from '@/shared/config/api';
+import { specClient } from '@/shared/api/spec-client';
 
 export const entityApi = {
   createEntity: async (payload: CreateEntity): Promise<Entity> =>
-    apiClient.post<Entity>(API_ENDPOINTS.domain.base, payload),
+    specClient.post('/entity', { body: payload }),
 
   fetchEntity: async (id: string): Promise<Entity> =>
-    apiClient.get<Entity>(`${API_ENDPOINTS.domain.base}/${id}`),
+    specClient.get('/entity/{id}', { path: { id } }),
 
   updateEntity: async (id: string, payload: UpdateEntity): Promise<Entity> =>
-    apiClient.patch<Entity>(`${API_ENDPOINTS.domain.base}/${id}`, payload),
+    specClient.patch('/entity/{id}', { path: { id }, body: payload }),
 
   deleteEntity: async (id: string): Promise<void> =>
-    apiClient.delete<void>(`${API_ENDPOINTS.domain.base}/${id}`),
+    specClient.delete('/entity/{id}', { path: { id } }),
 };
 ```
+
+BE 호출은 `specClient`(`src/shared/api/spec-client.ts`)로만 한다 — 첫 인자는 BE 스펙의 경로
+템플릿 그대로이고, 그 경로가 경로 변수(`path`)·쿼리(`query`)·본문(`body`)·응답 타입을 정한다.
+없는 경로·메서드, 빠뜨린 경로 변수, 스펙과 다른 본문은 `pnpm type-check`에서 막힌다.
+응답은 `apiClient`가 봉투를 벗긴 `data`이고, `ApiResponseUnit` 응답은 `void`다. 스펙보다 좁힌
+도메인 타입(`Account`의 `role` 등)은 두 번째 제네릭으로만 좁힌다
+(`specClient.get<'/auth/account', Account>('/auth/account')`) — 스펙 응답의 하위 타입이 아니면
+타입 오류다. 상세와 잡는 것·못 잡는 것은 `docs/OPENAPI-CODEGEN.md` §5-2.
 
 ### Layer 2 — `<entity>.keys.ts` (쿼리 키 + success handlers)
 
@@ -1231,6 +1241,7 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 | API 엔드포인트       | `src/shared/config/api.ts`                           | `API_ENDPOINTS`        |
 | 라우트 경로          | `src/shared/config/route-paths.ts`                   | `ROUTES_PATHS`         |
 | HTTP 클라이언트      | `src/shared/api/client.ts`                           | `apiClient`            |
+| 스펙 경로 클라이언트 | `src/shared/api/spec-client.ts`                      | `specClient`           |
 | QueryClient          | `src/shared/lib/react-query/config/queryClient.ts`   | `queryClient`          |
 | Toast 래퍼           | `src/shared/lib/toast/toast.ts`                      | `toast`                |
 | Alert/Confirm 모달   | `src/shared/ui/elements/dialog/alert/alert.store.ts` | `useAlert`             |
@@ -1453,7 +1464,7 @@ CLI로 이 컴포넌트를 다시 생성하면 `cursor-default`가 되돌아오�
 - [ ] `entities/<entity>/api/<entity>.keys.ts` — 쿼리 키, invalidation, success handler 추가
 - [ ] `entities/<entity>/api/<entity>.queries.ts` — React Query 훅 추가
 - [ ] `src/shared/config/texts.ts` — 새 TEXTS 키 추가 (success/error/warning 메시지)
-- [ ] `src/shared/config/api.ts` — 새 API_ENDPOINTS 추가
+- [ ] `src/shared/api/generated/` — 새 BE 경로가 `specClient`에 안 보이면 `pnpm codegen:fetch` → `pnpm codegen`으로 스펙을 갱신(`docs/OPENAPI-CODEGEN.md` §5-1)
 - [ ] `features/<도메인>/<액션>/hooks/use<FeatureName>.ts` — 비즈니스 로직
 - [ ] `features/<도메인>/<액션>/ui/<FeatureName>.tsx` — 얇은 UI
 - [ ] `src/pages/<page>/` 페이지에 연결
