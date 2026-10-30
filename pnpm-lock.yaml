@@ -221,6 +221,9 @@ importers:
       msw:
         specifier: 2.12.10
         version: 2.12.10(@types/node@22.19.5)(typescript@5.7.3)
+      openapi-msw:
+        specifier: 2.1.1
+        version: 2.1.1(msw@2.12.10(@types/node@22.19.5)(typescript@5.7.3))
       openapi-typescript:
         specifier: 7.13.0
         version: 7.13.0(typescript@5.7.3)
@@ -7541,6 +7544,14 @@ packages:
       }
     engines: { node: '>=12' }
 
+  openapi-msw@2.1.1:
+    resolution:
+      {
+        integrity: sha512-i1VM4ZbM5r0bS2w/sVv0MuUjfRw+ub68LKO+oqUeVC9QVTjghytDGy+GVEFrb3FUV7l5BwAVbpiqlWjZ9RIALw==,
+      }
+    peerDependencies:
+      msw: ^2.10.5 || ^3.0.0
+
   openapi-typescript@7.13.0:
     resolution:
       {
@@ -14544,6 +14555,10 @@ snapshots:
       define-lazy-prop: 2.0.0
       is-docker: 2.2.1
       is-wsl: 2.2.0
+
+  openapi-msw@2.1.1(msw@2.12.10(@types/node@22.19.5)(typescript@5.7.3)):
+    dependencies:
+      msw: 2.12.10(@types/node@22.19.5)(typescript@5.7.3)
 
   openapi-typescript@7.13.0(typescript@5.7.3):
     dependencies:

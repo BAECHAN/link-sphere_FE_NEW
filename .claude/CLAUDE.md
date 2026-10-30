@@ -408,7 +408,9 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
   2026-09-13부터는 ESLint `custom-tailwind/no-raw-color`(`eslint.config.js`)가 이 규칙을
   강제한다 — black/white/gray/zinc 등 명명 팔레트 리터럴 클래스를 pre-commit(lint-staged)과
   CI·배포의 `pnpm check`에서 차단하므로, 위 감사에서 발견된 것과 같은 유형의 회귀는 이제 자동으로 잡힌다
-- **Never** 인라인 API 경로 → 항상 `API_ENDPOINTS.*` 사용
+- **Never** 인라인 API 경로 → 앱 코드는 항상 `API_ENDPOINTS.*` 사용. 예외: 스펙 타입 MSW(`src/mocks/http.ts`)로
+  만드는 핸들러는 스펙 경로 템플릿(`'/post/{id}'`)을 그대로 쓴다 — 오타·없는 경로를 생성 스펙(`openapi.gen.ts`)이
+  컴파일 단계에서 막아 이 규칙의 목적(오타·흩어짐 방지)을 대신한다(2026-10-30, `docs/OPENAPI-CODEGEN.md` §5-5)
 - **Never** feature hook에서 직접 `queryClient.invalidateQueries` → 항상 `.keys.ts` success handlers 사용
 - **Never** 다른 엔티티의 raw 쿼리 키를 재구성해 `queryClient.invalidateQueries`를 직접 호출 → 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()` 래퍼만 사용. 크로스 엔티티 무효화가 필요하면 자기 엔티티의 `.keys.ts`에 `handle<Event>Success` 함수를 만들어 그 안에서 호출한다 (`docs/FE-ARCHITECTURE.md` §5의 "크로스 엔티티 무효화" 참고)
 - **Never** 하위 레이어에서 상위 레이어 import → ESLint 강제 (레이어 방향 위반)

@@ -1,88 +1,45 @@
-import { http, HttpResponse } from 'msw';
 import { mockComment, mockMyCommentListResponse } from '@/mocks/fixtures/comment.fixtures';
-import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-
-/** 핸들러 URL에 API_BASE_URL prefix를 붙여 실제 요청 URL과 일치시킵니다. */
-const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
+import { http } from '@/mocks/http';
+import { MockEnvelopeUtil } from '@/mocks/mock-envelope.util';
 
 export const commentHandlers = [
   // GET /comment/my (내 댓글 목록)
-  http.get(url(API_ENDPOINTS.post.myComments), () => {
-    return HttpResponse.json(
-      {
-        status: 200,
-        message: 'ok',
-        data: mockMyCommentListResponse,
-        timestamp: new Date().toISOString(),
-      },
-      { status: 200 }
-    );
+  http.get('/comment/my', () => {
+    return MockEnvelopeUtil.json(mockMyCommentListResponse);
   }),
 
-  // GET /post/:id/comment (댓글 목록)
-  http.get(url(API_ENDPOINTS.post.postComment(':id')), () => {
-    return HttpResponse.json(
-      {
-        status: 200,
-        message: 'ok',
-        data: [mockComment],
-        timestamp: new Date().toISOString(),
-      },
-      { status: 200 }
-    );
+  // GET /post/{postId}/comment (댓글 목록)
+  http.get('/post/{postId}/comment', () => {
+    return MockEnvelopeUtil.json([mockComment]);
   }),
 
-  // POST /post/:id/comment (댓글 생성)
-  http.post(url(API_ENDPOINTS.post.postComment(':id')), () => {
-    return HttpResponse.json(
-      {
-        status: 201,
-        message: 'ok',
-        data: mockComment,
-        timestamp: new Date().toISOString(),
-      },
-      { status: 201 }
-    );
+  // POST /post/{postId}/comment (댓글 생성)
+  http.post('/post/{postId}/comment', () => {
+    return MockEnvelopeUtil.json(mockComment, 201);
   }),
 
-  // PATCH /comment/:id (댓글 수정)
-  http.patch(url(API_ENDPOINTS.post.comment(':id')), ({ params }) => {
-    return HttpResponse.json(
-      {
-        status: 200,
-        message: 'ok',
-        data: { ...mockComment, id: String(params['id']) },
-        timestamp: new Date().toISOString(),
-      },
-      { status: 200 }
-    );
+  // PATCH /comment/{commentId} (댓글 수정)
+  http.patch('/comment/{commentId}', ({ params }) => {
+    return MockEnvelopeUtil.json({ ...mockComment, id: params.commentId });
   }),
 
-  // DELETE /comment/:id (댓글 삭제)
-  http.delete(url(API_ENDPOINTS.post.comment(':id')), () => {
-    return new HttpResponse(null, { status: 204 });
+  // DELETE /comment/{commentId} (댓글 삭제) — 실제 BE는 204가 아니라 200 + 봉투(ApiResponse<Unit>)
+  http.delete('/comment/{commentId}', () => {
+    return MockEnvelopeUtil.unit();
   }),
 
-  // PUT /comment/:id/like (댓글 좋아요)
-  http.put(url(API_ENDPOINTS.post.commentLike(':id')), () => {
-    return new HttpResponse(null, { status: 204 });
+  // PUT /comment/{commentId}/like (댓글 좋아요) — 실제 BE는 200 + CommentLikeResponse
+  http.put('/comment/{commentId}/like', () => {
+    return MockEnvelopeUtil.json({ isLiked: true });
   }),
 
-  // DELETE /comment/:id/like (댓글 좋아요 취소)
-  http.delete(url(API_ENDPOINTS.post.commentLike(':id')), () => {
-    return new HttpResponse(null, { status: 204 });
+  // DELETE /comment/{commentId}/like (댓글 좋아요 취소)
+  http.delete('/comment/{commentId}/like', () => {
+    return MockEnvelopeUtil.json({ isLiked: false });
   }),
 
-  // POST /comment/:id/reply (대댓글 생성)
-  http.post(url(API_ENDPOINTS.post.commentReply(':id')), () => {
-    return HttpResponse.json(
-      {
-        status: 201,
-        message: 'ok',
-        data: { ...mockComment, id: 'reply-uuid-1' },
-        timestamp: new Date().toISOString(),
-      },
-      { status: 201 }
-    );
+  // POST /comment/{commentId}/reply (대댓글 생성)
+  http.post('/comment/{commentId}/reply', () => {
+    return MockEnvelopeUtil.json({ ...mockComment, id: 'reply-uuid-1' }, 201);
   }),
 ];
