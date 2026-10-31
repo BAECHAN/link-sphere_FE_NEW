@@ -24,6 +24,7 @@ import {
   destructiveKind,
   hasOptionAfterDoubleDash,
   isWorktreePath,
+  parseGit,
   REPO_PATTERN,
   repoOf,
   resolveSegments,
@@ -36,6 +37,7 @@ const PROJECT_DIR_PREFIX = '-Users-baechan-project-link-sphere-link-sphere-';
 const RULE_DATES = {
   rmMemory: '2026-09-11',
   sharedWorktreeStash: '2026-09-27',
+  ghApiAsk: '2026-10-31',
 };
 
 // 발동 횟수(M12)를 셀 훅 스크립트. 트랜스크립트에는 훅이 막은 기록이 `[<실행 명령>]: <stderr>`
@@ -68,6 +70,56 @@ const PATHSPEC_FOLLOWUP_WINDOW = 4;
 const CONFLICT_WINDOW = 10;
 const CONFLICT_SIGNAL = /CONFLICT \(|Merge conflict|could not apply|fix conflicts/i;
 const DENIAL_PATTERN = /^Permission to use Bash with command [\s\S]* has been denied/;
+// M14: 머지하거나 머지 조건(필수 체크·브랜치 설정)을 바꾸는데 머지 확인 창(사용자 설정 permissions.ask)을
+// 비켜 간 실행. ask 규칙은 명령 문자열로만 맞춘다 — 래퍼(timeout 등)·앞의 환경변수 대입은 벗기고 맞추지만
+// 절대경로(`/opt/homebrew/bin/gh`)·`sh -c '…'`·`git -C . push`처럼 다르게 쓴 형태는 맞추지 않는다
+// (https://code.claude.com/docs/en/permissions "Wrappers"·"What a Bash rule doesn't match"). 그래서 하위 명령마다
+// ask 규칙을 같은 방식으로 맞춰 보고, 바꾸는 동작인데 안 걸린 것만 센다(조회는 세지 않는다).
+// 머지 규칙 4개는 2026-10-13에, gh api·gh repo edit 규칙 5개는 2026-10-31에 생겼다. 10-31 전은 머지 규칙 4개로
+// 맞춘다 — 10-13 전에는 확인 창 자체가 없었으니 그 구간은 "머지 규칙이 못 보는 형태"를 센 값이다
+// (claude-base docs/METRICS.md "머지 승인 흔적").
+const MERGE_ASK_RULES = [
+  'gh pr merge *',
+  'git push * main',
+  'git push * main *',
+  'git push *:main',
+];
+export const ASK_RULES_BY_PERIOD = {
+  before: MERGE_ASK_RULES,
+  after: [
+    ...MERGE_ASK_RULES,
+    'gh api *pulls/*/merge*',
+    'gh api *rulesets*',
+    'gh api *protection*',
+    'gh api graphql*',
+    'gh repo edit *',
+  ],
+};
+const GH_API_VALUE_FLAGS = new Set([
+  '-X',
+  '--method',
+  '-H',
+  '--header',
+  '-q',
+  '--jq',
+  '-t',
+  '--template',
+  '-p',
+  '--preview',
+  '--hostname',
+  '--cache',
+]);
+const GH_API_BODY_FLAGS = new Set(['-f', '-F', '--field', '--raw-field', '--input']);
+const GH_API_MERGE_PATH = /(^|\/)pulls\/\d+\/merge$/;
+const GH_API_RULES_PATH = /(^|\/)(rulesets|branches\/[^/]+\/protection)(\/|$)/;
+const GH_API_REPO_PATH = /^repos\/[^/]+\/[^/]+$/;
+const GRAPHQL_MERGE_MUTATION =
+  /\bmutation\b[\s\S]*\b(mergePullRequest|enablePullRequestAutoMerge|\w*Ruleset|\w*BranchProtectionRule)\b/;
+// `gh repo edit` 중 머지 방식·기본 브랜치를 바꾸는 플래그만 센다(--homepage 같은 설명 변경은 빼려고).
+const REPO_EDIT_MERGE_FLAG =
+  /^--(default-branch|delete-branch-on-merge|allow-update-branch|enable-(auto-merge|merge-commit|rebase-merge|squash-merge))(=|$)/;
+const SHELL_PROGRAMS = new Set(['sh', 'bash', 'zsh']);
+const MAIN_REF = /^\+?([^:]*:)?(refs\/heads\/)?main$/;
 
 function parseArgs(argv) {
   const options = { since: null, until: null, json: false };
@@ -277,6 +329,7 @@ function createMetrics() {
       sessions: new Map(),
     },
     m13: { finalBlocks: 0, strikethrough: 0, translationPair: 0 },
+    m14: {},
     m10: { attempts: 0, succeeded: 0, ignoredLocal: 0, byDirection: {}, sessions: new Set() },
     m12: Object.fromEntries(HOOK_SCRIPTS.map((name) => [name, 0])),
   };
@@ -399,6 +452,135 @@ function recordGitAndRm(metrics, command, cwd, isSub, day, inConflict) {
   }
 
   return categories;
+}
+
+/** ask 규칙 하나를 정규식으로 바꾼다. 끝의 ` *`가 유일한 와일드카드면 인자 없는 명령도 맞는다(권한 문서 "Wildcard patterns"). */
+function askRuleToRegExp(rule) {
+  const parts = rule.split('*').map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'));
+  const source =
+    parts.length === 2 && rule.endsWith(' *')
+      ? `${parts[0].slice(0, -1)}(?: [\\s\\S]*)?`
+      : parts.join('[\\s\\S]*');
+
+  return new RegExp(`^${source}$`);
+}
+
+/** `gh api` 인자를 보고 머지·머지 조건을 바꾸는 호출이면 종류를 돌려준다. 메서드가 없으면 gh처럼 본문 플래그가 있을 때 POST, 없으면 GET으로 본다. */
+function ghApiKind(args) {
+  let method = null;
+  let hasBody = false;
+  let endpoint = null;
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+
+    if (arg === '-X' || arg === '--method') {
+      method = args[i + 1] ?? null;
+      i += 1;
+    } else if (/^-X./.test(arg)) {
+      method = arg.slice(2);
+    } else if (arg.startsWith('--method=')) {
+      method = arg.slice('--method='.length);
+    } else if (GH_API_BODY_FLAGS.has(arg)) {
+      hasBody = true;
+      i += 1;
+    } else if (/^(-[fF].|--(field|raw-field|input)=)/.test(arg)) {
+      hasBody = true;
+    } else if (GH_API_VALUE_FLAGS.has(arg)) {
+      i += 1;
+    } else if (!arg.startsWith('-') && endpoint === null) {
+      endpoint = arg;
+    }
+  }
+
+  if (endpoint === 'graphql') {
+    return GRAPHQL_MERGE_MUTATION.test(args.join(' ')) ? 'api-graphql' : null;
+  }
+
+  if (endpoint === null || (method ?? (hasBody ? 'POST' : 'GET')).toUpperCase() === 'GET') {
+    return null;
+  }
+
+  // 변수·명령 치환으로 조립한 경로는 무엇을 바꾸는지 모르고 ask 규칙도 못 맞추므로 따로 센다.
+  if (/[$`]/.test(endpoint)) {
+    return 'api-unresolved';
+  }
+
+  const pathname = endpoint.replace(/^\//, '').split('?')[0];
+
+  if (GH_API_MERGE_PATH.test(pathname)) {
+    return 'api-merge';
+  }
+
+  if (GH_API_RULES_PATH.test(pathname)) {
+    return 'api-rules';
+  }
+
+  // 저장소 자체 PATCH는 `gh repo edit`처럼 머지 방식·기본 브랜치를 바꿀 수 있는데 ask 규칙에 없다.
+  return GH_API_REPO_PATH.test(pathname) ? 'api-repo-settings' : null;
+}
+
+/** 하위 명령 하나가 머지하거나 머지 조건을 바꾸는 동작이면 종류를 돌려준다. 프로그램은 절대경로로 불러도 이름으로 가린다. */
+function approvalKindOf({ words, git: parsedGit, dir }) {
+  const program = path.basename(words[0]);
+
+  if (program === 'gh' && words[1] === 'api') {
+    return ghApiKind(words.slice(2));
+  }
+
+  if (program === 'gh' && words[1] === 'pr' && words[2] === 'merge') {
+    return 'pr-merge';
+  }
+
+  if (program === 'gh' && words[1] === 'repo' && words[2] === 'edit') {
+    return words.some((word) => REPO_EDIT_MERGE_FLAG.test(word)) ? 'repo-edit' : null;
+  }
+
+  // resolveSegments는 `git`으로 시작할 때만 풀어 두므로 절대경로 git만 여기서 푼다. 이미 푼 것을 다시 풀면
+  // 상대 -C가 두 번 적용된다.
+  const git = parsedGit ?? (program === 'git' ? parseGit(['git', ...words.slice(1)], dir) : null);
+
+  // push는 M1·M3처럼 link-sphere 레포만 센다(스크래치패드의 실험용 레포 push는 빼려고).
+  if (
+    git?.sub === 'push' &&
+    repoOf(git.dir ?? dir) &&
+    git.args.some((arg) => !arg.startsWith('-') && MAIN_REF.test(arg))
+  ) {
+    return 'push-main';
+  }
+
+  return null;
+}
+
+/**
+ * M14: 명령 안에서 머지하거나 머지 조건을 바꾸는데 `askRules`(그날의 사용자 설정 ask 규칙)에 안 걸리는
+ * 하위 명령의 종류를 돌려준다. `sh -c '…'` 안쪽도 풀어 보지만, ask 규칙은 바깥 문자열만 맞추므로 걸린 것으로 치지 않는다.
+ */
+export function approvalBypassKinds(command, cwd, askRules = ASK_RULES_BY_PERIOD.after) {
+  const patterns = askRules.map(askRuleToRegExp);
+  const kinds = [];
+
+  for (const segment of resolveSegments(command, cwd)) {
+    const { words, dir } = segment;
+    const scriptIndex = words.findIndex((word, i) => i > 0 && /^-[a-z]*c[a-z]*$/.test(word));
+
+    if (
+      SHELL_PROGRAMS.has(path.basename(words[0])) &&
+      scriptIndex !== -1 &&
+      words[scriptIndex + 1]
+    ) {
+      kinds.push(...approvalBypassKinds(words[scriptIndex + 1], dir, []));
+      continue;
+    }
+
+    const kind = approvalKindOf(segment);
+
+    if (kind && !patterns.some((pattern) => pattern.test(words.join(' ')))) {
+      kinds.push(kind);
+    }
+  }
+
+  return kinds;
 }
 
 function hasRmSegment(command, cwd) {
@@ -558,6 +740,11 @@ function processFile(metrics, { file, isSub, sessionRepo }, options) {
             day,
             inConflict
           );
+          const period = day < RULE_DATES.ghApiAsk ? 'before' : 'after';
+          toolUses.get(block.id).approvalBypass = {
+            period,
+            kinds: approvalBypassKinds(block.input.command, event.cwd, ASK_RULES_BY_PERIOD[period]),
+          };
         }
 
         const filePath = block.input?.file_path ?? block.input?.notebook_path;
@@ -612,6 +799,15 @@ function processFile(metrics, { file, isSub, sessionRepo }, options) {
         for (const category of use.categories ?? []) {
           const target = blockedBeforeRun ? metrics.guard.blocked : metrics.guard.executed;
           target[category] = (target[category] ?? 0) + 1;
+        }
+
+        for (const kind of use.approvalBypass?.kinds ?? []) {
+          metrics.m14[kind] = metrics.m14[kind] ?? {
+            before: { executed: 0, blocked: 0 },
+            after: { executed: 0, blocked: 0 },
+          };
+          metrics.m14[kind][use.approvalBypass.period][blockedBeforeRun ? 'blocked' : 'executed'] +=
+            1;
         }
 
         if (CONFLICT_SIGNAL.test(text)) {
@@ -755,6 +951,7 @@ function summarize(metrics) {
     },
     m12_hookFires: metrics.m12,
     m13_finalReplyFormat: metrics.m13,
+    m14_approvalBypass: metrics.m14,
   };
 }
 
@@ -815,6 +1012,14 @@ function printMarkdown(summary, options) {
   const m13 = s.m13_finalReplyFormat;
   console.log(
     `| M13 최종 답변 형식(메인 스레드) | ${m13.finalBlocks}블록 중 취소선 ${m13.strikethrough}, 원문+번역 병기 ${m13.translationPair} |`
+  );
+  const m14Period = (period) =>
+    Object.entries(s.m14_approvalBypass)
+      .filter(([, n]) => n[period].executed + n[period].blocked > 0)
+      .map(([kind, n]) => `${kind} 실행 ${n[period].executed}·막힘 ${n[period].blocked}`)
+      .join(', ') || '없음';
+  console.log(
+    `| M14 머지 확인 창이 못 보는 형태의 실행(${RULE_DATES.ghApiAsk} 전은 머지 규칙 4개, 후는 gh api까지 넓힌 규칙 기준) | 전: ${m14Period('before')} / 후: ${m14Period('after')} |`
   );
 
   console.log('\n### M4 rm 거부가 있었던 턴(메인 스레드)\n');
