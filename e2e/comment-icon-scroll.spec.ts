@@ -181,7 +181,7 @@ test.describe('카드 댓글 아이콘 — 상세의 댓글 작성 폼으로 스
     expect(await page.evaluate(() => window.scrollY)).toBe(scrollYBeforeClose);
   });
 
-  test('#comment-<id>로 들어오면 기존처럼 그 댓글로 스크롤하고 링이 잠시 뒤 사라진다', async ({
+  test('#comment-<id>로 들어오면 기존처럼 그 댓글로 스크롤하고 배경 강조가 잠시 뒤 사라진다', async ({
     page,
   }) => {
     const target = commentId(HASHED_COMMENT_INDEX);
@@ -189,12 +189,14 @@ test.describe('카드 댓글 아이콘 — 상세의 댓글 작성 폼으로 스
 
     const comment = page.locator(`#comment-${target}`);
     await expect(comment).toBeInViewport();
-    await expect(comment).toHaveClass(/ring-2/);
+    await expect(comment).toHaveClass(/\bbg-accent\b/);
     await expect(page.getByPlaceholder(TEXTS.comment.form.commentPlaceholder)).not.toBeFocused();
 
     // e2e는 dev 서버(StrictMode)라 effect가 두 번 돈다 - 두 번째는 엔트리 가드가 건너뛰므로 첫
-    // 실행의 해제 타이머가 cleanup에 취소되면 링이 계속 남는다(CommentList.tsx 주석).
-    await expect(comment).not.toHaveClass(/ring-2/, { timeout: 3000 });
+    // 실행의 해제 타이머가 cleanup에 취소되면 강조가 계속 남는다(CommentList.tsx 주석). 배경은
+    // 1.6초에 빠지고, 페이드용 클래스(ring-8)는 600ms 더 지나 정리 타이머가 뗀다.
+    await expect(comment).not.toHaveClass(/\bbg-accent\b/, { timeout: 3000 });
+    await expect(comment).not.toHaveClass(/\bring-8\b/, { timeout: 3000 });
   });
 
   test('기기에서 동작 줄이기를 켰으면 미끄러지지 않고 바로 폼으로 간다', async ({ page }) => {

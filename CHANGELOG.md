@@ -18,6 +18,15 @@
 
   </details>
 
+### Changed
+
+- `comment` 원글로 이동한 댓글 강조를 검은 테두리에서 연한 배경 페이드로
+  <details><summary>배경·구현</summary>
+
+  "내 댓글" 카드에서 원글로 넘어오면 그 댓글에 `ring-2 ring-primary ring-offset-2`를 붙였다가 1.6초 뒤 트랜지션 없이 뗐다. 라이트 모드에서 `--primary`가 거의 검정이라 진한 테두리가 갑자기 나타났다 사라지는 게 거슬렸다. 이제 `bg-accent` 배경을 깔고 `ring-8 ring-accent`로 8px 넓혀 칠해(레이아웃은 그대로), 200ms에 나타났다가 1.6초 뒤 600ms 동안 흐려진다. 연한 링 + 페이드 안과 나란히 비교해 골랐다(2026-10-31 사용자 선택) — 링은 연해져도 포커스·드래그 표시처럼 "선택됨"으로 읽힌다. 근거는 `docs/COMMENT.md` "해시 이동"의 "강조 방식". (`src/widgets/comment/comment-list/ui/CommentList.tsx`, `e2e/comment-icon-scroll.spec.ts`, `docs/COMMENT.md`, [PR #463](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/463))
+
+  </details>
+
 ### Fixed
 
 - `auth` 로그인이 풀려도 쓰던 글이 사라지지 않게 그 화면에 두고 로그인 창을 띄움

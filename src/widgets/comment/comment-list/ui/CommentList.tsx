@@ -26,7 +26,7 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
   const commentFormRef = useRef<CommentFormHandle>(null);
 
   // "내 댓글" 목록 카드에서 원글로 넘어올 때(/post/:id#comment-:commentId) 그 댓글
-  // 위치로 스크롤하고 잠시 링으로 강조한다 - 댓글이 많으면 목록 맨 위로만 가서는
+  // 위치로 스크롤하고 잠시 배경으로 강조한다 - 댓글이 많으면 목록 맨 위로만 가서는
   // "내가 어디 달았지"를 다시 찾아야 하는 문제를 해결한다. 답글(depth 1)도 같은
   // 트리에 함께 렌더되므로 이 효과 하나로 처리된다. block은 'center'가 아니라
   // 'start'를 쓴다 - 댓글이 길면 중앙 정렬 시 시작부가 뷰포트 위로 잘려 나가 이어서
@@ -45,7 +45,7 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
   // 오버레이(이미지 뷰어·북마크 폴더 창 등, useHistoryOverlay)는 해시를 빼고 push하므로 닫는
   // 뒤로가기(POP)에서 해시가 되살아난다. 이미 이동한 엔트리(같은 location.key)로 돌아온
   // 것이라 다시 끌어오지 않는다. 같은 이유로 StrictMode의 effect 재실행도 건너뛰므로, 강조
-  // 해제 타이머는 cleanup에서 취소하지 않는다(취소하면 링이 남는다).
+  // 해제 타이머는 cleanup에서 취소하지 않는다(취소하면 강조가 남는다).
   const scrolledEntryKeyRef = useRef<string | null>(null);
 
   useEffect(
@@ -71,21 +71,24 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
         return;
       }
 
-      target.classList.add(
+      // 테두리 대신 연한 배경으로 강조한다 - ring-8로 배경을 8px 넓혀 칠해 레이아웃은 그대로다.
+      // 200ms에 나타나고, 1.6초 뒤 색만 투명으로 바꿔 크기 변화 없이 600ms 동안 흐려진다. 마지막
+      // 정리 타이머(600)는 duration-600과 같은 값이어야 페이드가 끝난 뒤에 클래스를 뗀다. 진한
+      // 링·연한 링과 비교한 근거는 docs/COMMENT.md "해시 이동".
+      const highlightClasses = [
         'rounded-lg',
-        'ring-2',
-        'ring-primary',
-        'ring-offset-2',
-        'ring-offset-background'
-      );
+        'ring-8',
+        'transition-[background-color,box-shadow]',
+        'ease-out',
+      ];
+      target.classList.add(...highlightClasses, 'duration-200', 'bg-accent', 'ring-accent');
       setTimeout(() => {
-        target.classList.remove(
-          'rounded-lg',
-          'ring-2',
-          'ring-primary',
-          'ring-offset-2',
-          'ring-offset-background'
-        );
+        target.classList.replace('duration-200', 'duration-600');
+        target.classList.replace('ring-accent', 'ring-transparent');
+        target.classList.remove('bg-accent');
+        setTimeout(() => {
+          target.classList.remove(...highlightClasses, 'duration-600', 'ring-transparent');
+        }, 600);
       }, 1600);
     },
     [location.hash, location.key]
