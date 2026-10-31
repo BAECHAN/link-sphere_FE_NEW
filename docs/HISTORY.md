@@ -1,3 +1,6 @@
+### 2026-10-31 (BE)
+- 북마크 목록 조회 기능의 데이터 정합성 보장을 위해 PostgreSQL 기반의 통합 테스트 환경 구축 및 검증 완료 ([#144](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/144))
+
 ### 2026-10-31 (FE)
 - 댓글 강조 UI 개선: 원글 이동 시 적용되던 배경 강조 효과를 부드러운 페이드인 애니메이션으로 변경하여 사용자 경험 최적화 ([#463](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/463))
 
