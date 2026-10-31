@@ -17,8 +17,7 @@ https://linksphere.click/post (구 도메인 https://dbw3brui6htwk.cloudfront.ne
 https://baechan.github.io/link-sphere_FE_NEW/storybook/
 
 `shared/ui` 중심의 컴포넌트 스토리(55개 파일, 192개 케이스 — 2026-10-27 기준)를 이 저장소의 GitHub Pages에 공개 배포한
-것입니다. 로컬에서 보려면 아래 "스토리북" 섹션을 참고하세요. 2026-10-30 전 주소(`https://linksphere.click/storybook/`)는
-없어졌습니다 — 운영 도메인에 앱이 아닌 코드를 두지 않으려고 옮겼습니다([`docs/DECISIONS.md`](docs/DECISIONS.md) 2026-10-30).
+것입니다. 로컬에서 보려면 아래 "스토리북" 섹션을 참고하세요.
 
 # API 문서 (Swagger UI)
 
