@@ -284,6 +284,64 @@ describe('NavbarSearch — 최근검색 드롭다운', () => {
     );
   });
 
+  it('검색 중인 검색어를 지운 뒤 같은 검색어를 다시 클릭하면 입력창이 그 검색어로 채워진다', async () => {
+    const user = userEvent.setup();
+    renderNavbarSearch(['/post', '/post?q=리액트'], { recentSearches: ['리액트'] });
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.postSearch);
+    await user.click(input);
+    await user.clear(input);
+    await user.click(screen.getByText('리액트'));
+
+    expect(input).toHaveValue('리액트');
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+  });
+
+  it('같은 검색어를 다시 골라도 방문 기록이 쌓이지 않는다(뒤로가기 한 번에 이전 주소)', async () => {
+    const user = userEvent.setup();
+    renderNavbarSearch(['/post', '/post?q=리액트'], { recentSearches: ['리액트'] });
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.postSearch);
+    await user.click(input);
+    await user.clear(input);
+    await user.click(screen.getByText('리액트'));
+    await user.click(screen.getByText('test-back'));
+
+    expect(screen.getByTestId('location-search')).toBeEmptyDOMElement();
+  });
+
+  it('닫힌 상태에서 ↓를 누르면 열리고 첫 검색어가 활성화된다', async () => {
+    const user = userEvent.setup();
+    renderNavbarSearch('/post', { recentSearches: ['리액트', '타입스크립트'] });
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.postSearch);
+    await user.click(input);
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+
+    await user.keyboard('{ArrowDown}');
+
+    expect(screen.getByRole('grid')).toBeInTheDocument();
+    expect(input).toHaveAttribute('aria-expanded', 'true');
+    expect(input).toHaveAttribute('aria-activedescendant', 'navbar-recent-search-cell-0-0');
+
+    await user.keyboard('{Enter}');
+
+    expect(screen.getByTestId('location-search')).toHaveTextContent(encodeURIComponent('리액트'));
+  });
+
+  it('최근검색 0개면 닫힌 상태에서 ↓를 눌러도 열리지 않는다', async () => {
+    const user = userEvent.setup();
+    renderNavbarSearch('/post', { recentSearches: [] });
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.postSearch);
+    await user.click(input);
+    await user.keyboard('{ArrowDown}');
+
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+    expect(input).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('바깥을 클릭하면 닫힌다', async () => {
     const user = userEvent.setup();
     renderNavbarSearch('/post', { recentSearches: ['리액트'] });

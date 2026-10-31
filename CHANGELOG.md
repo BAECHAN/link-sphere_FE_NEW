@@ -27,12 +27,26 @@
 
   </details>
 
+- `shared` 데스크톱 헤더 검색: 최근 검색어 목록이 닫혀 있어도 ↓로 열기
+  <details><summary>배경·구현</summary>
+
+  검색창에 포커스가 있는 채로 ESC를 누르거나 검색하면 최근 검색어 목록이 닫히고, 다시 클릭해도 `onFocus`가 불리지 않아 "다 지우기"나 다른 곳을 눌렀다 돌아오는 것 말고는 다시 열 방법이 없었다. 이제 닫힌 상태에서 ↓를 누르면 목록을 열면서 첫 검색어를 활성화한다(바로 Enter로 검색). 열림 조건은 포커스와 같다 — 입력값과 상관없이 최근 검색어가 1개 이상일 때. WAI-ARIA APG Combobox의 ↓ 정의, React Aria `useComboBox`의 `open('first')`와 같은 동작이다. 닫힌 상태의 ↑는 끝이 "모두 지우기"라 넣지 않았다. 근거는 `docs/SEARCH.md` §5. (`src/widgets/layout/navbar/ui/NavbarSearch.tsx`, `src/widgets/layout/navbar/ui/NavbarSearch.test.tsx`, `docs/SEARCH.md`, [PR #469](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/469))
+
+  </details>
+
 ### Fixed
 
 - `auth` 로그인이 풀려도 쓰던 글이 사라지지 않게 그 화면에 두고 로그인 창을 띄움
   <details><summary>배경·구현</summary>
 
   로그인이 만료되면 로그인 페이지로, 보호 화면(글 등록·수정)에서 다른 탭이 로그아웃하면 피드로 옮겨져 쓰던 글이 확인 없이 사라졌다. 이제 화면을 떠나지 않는다. refresh가 401로 거절되거나 토큰을 실은 요청이 `INVALID_TOKEN`을 받으면(로그인 만료) 그 화면 위에 "로그인이 만료됐어요" 로그인 창을 띄우고, 공개 화면에서 보기만 하던 중이면 닫을 때까지 남는 안내 토스트의 [로그인] 버튼으로 같은 창을 연다. 쓰는 중에 다른 탭이 로그아웃하면 "다른 탭에서 로그아웃했어요" 창을 띄운다(쓰지 않을 때는 전과 같다). 로그인이 풀린 채 그 화면에 남아 있는 동안 쓰던 폼에는 저장을 눌렀든 안 눌렀든 "로그인이 풀렸어요. 로그인한 뒤 저장해 주세요." 안내가 보이고, 같은 계정으로 다시 로그인하면 안내가 사라지고 그 자리에서 이어 쓴다. 로그인 창을 닫은 채 그 화면에서 저장·등록을 누르면 요청을 보내지 않고 같은 로그인 창을 다시 띄운다 — 다섯 폼 모두 댓글·답글 등록과 같은 방식이다(전에는 댓글·답글만 기본 문구 로그인 창, 나머지는 요청을 보내 실패 안내). 글 수정 폼은 다시 불러온 글 값으로 고치던 내용을 덮지 않는다. 로그인이 풀린 채 다른 화면으로 가려 하면 이탈 확인창이 뜬다(전에는 로그아웃 상태에서 검사하지 않았다). 그 자리에 둔 화면에서 다른 계정으로 바뀌면 쓰던 글을 묻지 않고 버린 채 피드로 간다 — 이전 계정의 글이 새 계정 화면에 남지 않게. 보호 화면은 쓰는 중이 아니어도 피드로 간다(남겨 둔 캐시가 이전 계정의 것이다). 평소대로 로그아웃한 뒤 비로그인으로 새로 쓴 글은 다른 계정으로 로그인해도 버리지 않는다. 다른 계정의 쿠키로 갱신이 거절돼(`SESSION_MISMATCH`) 이 탭만 로그아웃할 때도 공개 화면에서 쓰는 중이었으면 같은 처리를 한다. 계정 정보 저장이 로그인 만료로 실패하면 저장하지 못한 닉네임·사진을 이전 값으로 되돌린다. 쓰는 중에 직접 로그아웃하면 [로그아웃] [계속 작성] 확인창을 먼저 띄운다. refresh가 5xx·오프라인으로 실패하면 로그인을 유지한다(전에는 잠깐 끊긴 것만으로 로그아웃됐다). 쓰던 글을 보관했다가 되살리는 안(계획의 Phase 2)은 상황이 너무 많아져 진행하지 않았고, 그 대가로 "나중에 이어 쓰기"는 없고 공용 PC에서는 다른 탭에서 로그아웃해도 쓰던 탭에 글이 로그인 창 뒤로 남는다. 근거·기각한 대안은 `docs/DECISIONS.md` 2026-10-28, 동작은 `docs/AUTH.md` §8-I, 계획은 [`docs/plans/2026-10-28-session-expiry-draft-preservation.md`](docs/plans/2026-10-28-session-expiry-draft-preservation.md) Phase 3·[`docs/plans/2026-10-28-keep-writing-in-place.md`](docs/plans/2026-10-28-keep-writing-in-place.md). (`src/shared/store/auth.store.ts`, `src/shared/utils/auth.util.ts`, `src/shared/api/client.ts`, `src/shared/lib/react-query/config/error-toast.ts`, `src/app/routes/ProtectedRoute.tsx`, `src/app/providers/RouterProvider.tsx`, `src/app/hooks/useLeaveOnMemberChange.ts`(신규), `src/app/routes/layouts/RootLayout.tsx`, `src/shared/hooks/useUnsavedChangesGuard.ts`, `src/shared/store/unsavedChanges.store.ts`, `src/shared/store/loginDialog.store.ts`, `src/widgets/layout/login-dialog/ui/LoginDialog.tsx`·`hooks/useLoginDialog.ts`, `src/widgets/layout/navbar/hooks/useDelayedLogout.ts`, `src/entities/auth/hooks/useAuthEpochSync.ts`, `src/entities/auth/hooks/useAuthGuard.ts`, `src/entities/auth/hooks/useSignedOutNotice.ts`(신규), `src/entities/auth/api/auth.queries.ts`, `src/entities/account/api/account.queries.ts`, 폼 훅 4곳(`useCreatePost`·`useUpdatePost`·`useCreateComment`·`useUpdateComment`), `src/shared/config/texts.ts`, `e2e/session-expired.spec.ts`·`auth-tab-sync.spec.ts`·`logout.spec.ts`)
+
+  </details>
+
+- `shared` 헤더 검색에서 지운 뒤 같은 최근 검색어를 다시 고르면 검색창이 비어 있던 문제
+  <details><summary>배경·구현</summary>
+
+  최근 검색어로 검색한 뒤 검색창을 지우고 같은 검색어를 다시 누르면 목록만 닫히고 검색창은 빈 채였다. 검색창은 주소의 `q`가 바뀔 때만 따라 채워지는데 주소가 그대로였기 때문이다. 같은 클릭이 같은 주소를 방문 기록에 한 칸 더 쌓아 뒤로가기를 두 번 눌러야 했다. 이제 최근 검색어를 고르면 검색창을 그 값으로 직접 채우고, 주소가 그대로면 기록을 쌓지 않고 바꿔 쓴다(react-router `<Link>`가 같은 주소에서 하는 것과 같다). 다른 검색어로 바꿀 때는 지금처럼 기록을 쌓아 뒤로가기로 이전 검색어가 돌아온다. 경위는 `docs/SEARCH.md` §10. (`src/widgets/layout/navbar/ui/NavbarSearch.tsx`, `src/widgets/layout/navbar/ui/NavbarSearch.test.tsx`, `docs/SEARCH.md`, [PR #469](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/469))
 
   </details>
 
