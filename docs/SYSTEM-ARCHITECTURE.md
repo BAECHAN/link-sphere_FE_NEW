@@ -142,7 +142,7 @@ flowchart LR
   end
   subgraph be_deploy [BE Deploy]
     BE_Trigger["push main / paths"]
-    BE_Jar["./gradlew ktlintCheck test shadowJar"]
+    BE_Jar["./gradlew ktlintCheck test integrationTest shadowJar"]
     BE_S3["S3 업로드"]
     BE_Code["update-function-code"]
     BE_Ver["publish-version<br/>(SnapStart 스냅샷)"]
@@ -165,13 +165,13 @@ flowchart LR
 
 ### BE 배포 (Deploy to AWS Lambda)
 
-| 항목        | 내용                                                                                                                                                                                                                                                                                                                                                                               |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **파일**    | `.github/workflows/deploy.yml` (BE 저장소)                                                                                                                                                                                                                                                                                                                                         |
-| **트리거**  | `push` to `main`, paths: `src/**`, `build.gradle.kts`, `settings.gradle.kts`, `gradle/**`, `.github/workflows/deploy.yml`                                                                                                                                                                                                                                                          |
-| **단계**    | Checkout → JDK 17 → Firebase 서비스 계정 JSON 생성 → `./gradlew ktlintCheck test shadowJar` → JAR 검증 → Configure AWS → S3 업로드 → `update-function-code` → `publish-version`(SnapStart 스냅샷) → SnapStart 활성 대기 → 새 버전 5회 연속 호출 검증(하나라도 실패하면 워크플로 실패, `prod`는 이전 버전 유지) → `update-alias prod`(정본: BE 저장소 `docs/DEPLOY.md` "배포 흐름") |
-| **Secrets** | `AWS_ROLE_ARN`(OIDC 역할), `FIREBASE_SERVICE_ACCOUNT_JSON`                                                                                                                                                                                                                                                                                                                         |
-| **런타임**  | java17 / arm64 / 2048MB / SnapStart `PublishedVersions`, 리전 ap-northeast-1                                                                                                                                                                                                                                                                                                       |
+| 항목        | 내용                                                                                                                                                                                                                                                                                                                                                                                               |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **파일**    | `.github/workflows/deploy.yml` (BE 저장소)                                                                                                                                                                                                                                                                                                                                                         |
+| **트리거**  | `push` to `main`, paths: `src/**`, `build.gradle.kts`, `settings.gradle.kts`, `gradle/**`, `.github/workflows/deploy.yml`                                                                                                                                                                                                                                                                          |
+| **단계**    | Checkout → JDK 17 → Firebase 서비스 계정 JSON 생성 → `./gradlew ktlintCheck test integrationTest shadowJar` → JAR 검증 → Configure AWS → S3 업로드 → `update-function-code` → `publish-version`(SnapStart 스냅샷) → SnapStart 활성 대기 → 새 버전 5회 연속 호출 검증(하나라도 실패하면 워크플로 실패, `prod`는 이전 버전 유지) → `update-alias prod`(정본: BE 저장소 `docs/DEPLOY.md` "배포 흐름") |
+| **Secrets** | `AWS_ROLE_ARN`(OIDC 역할), `FIREBASE_SERVICE_ACCOUNT_JSON`                                                                                                                                                                                                                                                                                                                                         |
+| **런타임**  | java17 / arm64 / 2048MB / SnapStart `PublishedVersions`, 리전 ap-northeast-1                                                                                                                                                                                                                                                                                                                       |
 
 > **App Runner·ECR 방식은 더 이상 쓰지 않는다.** 컨테이너 이미지 배포는 SnapStart를 쓸 수 없어
 > Shadow JAR 직접 배포로 전환했다. 상세는 BE 저장소 `docs/DEPLOY.md` 참고.
