@@ -9,7 +9,7 @@
 > 실패했을 때 원인별로 무엇을 안내하는지, "내 댓글"에서 원글의 그 댓글로 이동하는 방식을
 > 이해하고, 상한·장수·캐시 무효화 범위·실패 문구를 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-28
+> **마지막 검토**: 2026-10-31
 
 게시글 상세(`/post/:id`) 하단의 댓글 섹션과, 내가 쓴 댓글을 모아보는 "내 댓글"
 화면(`/my/comments`)을 다룬다. 게시글 자체(목록·상세·작성)는
@@ -352,7 +352,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   가서 댓글 목록이 와야 스크롤할 수 있으므로, 게시글 카드 💬 hover와 같은 방식이다(아래 "기다림 줄이기").
 
 **해시 이동**: 상세의 `CommentList`가 `location.hash`로 대상을 찾아
-`scrollIntoView({ behavior: ScrollUtil.getBehavior(), block: 'start' })`하고 1.6초 동안 링으로 강조한다
+`scrollIntoView({ behavior: ScrollUtil.getBehavior(), block: 'start' })`하고 연한 배경으로 잠시 강조한다(아래 "강조 방식")
 (`src/widgets/comment/comment-list/ui/CommentList.tsx`의 `scrollToHashedComment` effect — `behavior: 'smooth'`
 리터럴은 ESLint가 막는다, 아래 "스크롤 방식"). 대상 요소는
 `CommentItem` 루트의 `id="comment-<id>"`이고, sticky navbar에 가리지 않도록
@@ -362,7 +362,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 - **카드 댓글 아이콘(`#comments`, 2026-10-14)** — 피드·북마크·상세 카드의 💬은
   `/post/:id#comments`로 간다(`PostCard.tsx:361`). 대상은 댓글 제목과 데스크톱 작성 폼을 감싼
-  컨테이너(`formContainerRef`)라 링 대신 플로팅 버튼처럼 부드럽게 스크롤한 뒤 입력창에 포커스한다.
+  컨테이너(`formContainerRef`)라 배경 강조 없이 플로팅 버튼처럼 부드럽게 스크롤한 뒤 입력창에 포커스한다.
   모바일은 인라인 폼이 없어 제목까지만 오고 하단 바는 접힌 채다.
 - **`#comments`는 DOM id가 아니라 신호다** — 같은 id의 요소가 있으면 react-router
   `ScrollRestoration`이 이 effect보다 먼저 그 요소로 즉시 점프해(캐시가 있는 재방문·상세 안 클릭)
@@ -417,7 +417,29 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   보던 자리에서 대상으로 끌려가므로(가드를 빼면 17px → 763px, `e2e/comment-icon-scroll.spec.ts`)
   처리한 `location.key`를 ref에 기억해 같은 엔트리면 건너뛴다. 새로고침·다른 화면에서 돌아오기는
   다시 마운트돼 ref가 비므로 예전처럼 다시 이동한다. 같은 가드가 StrictMode의 effect 재실행도
-  건너뛰므로 강조 해제 타이머는 cleanup에서 취소하지 않는다(취소하면 링이 남는다).
+  건너뛰므로 강조 해제 타이머는 cleanup에서 취소하지 않는다(취소하면 강조가 남는다).
+- **강조 방식(2026-10-31)** — 대상 댓글에 `bg-accent` 배경을 깔고 `ring-8 ring-accent`로 배경을
+  8px 넓혀 칠한다(그림자라 레이아웃은 그대로다). 200ms에 나타나고, 1.6초 뒤 링 색을 `ring-transparent`로
+  바꾸고 배경을 빼서 크기 변화 없이 600ms 동안 흐려진다. 마지막 타이머가 페이드용 클래스를 떼는데,
+  그 600ms는 `duration-600`과 같은 값이어야 한다(`motion-ux` skill "exit 애니메이션 동기화 함정").
+  "동작 줄이기"를 켜도 페이드는 남는다 — 전역 규칙이 배경색·그림자 트랜지션은 남기기 때문이다
+  (`src/app/globals.css`의 `prefers-reduced-motion` 블록). 전에는 `ring-2 ring-primary ring-offset-2`를
+  1.6초 뒤 트랜지션 없이 뗐다. 라이트 모드에서 `--primary`가 거의 검정(neutral-900)이라, 테두리가
+  진하게 나타났다가 갑자기 사라지는 게 거슬린다는 피드백을 받아 세 안을 나란히 재생해 비교했다
+  ([미리보기](https://claude.ai/artifact/R8GzQjRZT1qsfNMjSBwjyD)).
+
+  | 안                       | 모양                                    | 결과                                                                                                                         |
+  | ------------------------ | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+  | A 그대로                 | 진한 링, 바로 나타나고 바로 사라짐      | 기각 — 피드백의 대상                                                                                                         |
+  | B 연한 링 + 페이드       | `ring-primary/30`, 같은 시간으로 페이드 | 기각 — 연해져도 링 모양이라 포커스 링·댓글 폼 드래그 표시(`CommentForm.tsx`의 `ring-2 ring-primary`)처럼 "선택됨"으로 읽힌다 |
+  | **C 연한 배경 + 페이드** | `bg-accent` + `ring-8 ring-accent`      | 채택(2026-10-31 사용자 선택). 사라지는 시간은 300·600·1000ms를 비교해 600ms를 골랐다                                         |
+
+  배경을 칠했다가 흐리게 지우는 방식에는 37signals의 "Yellow Fade Technique"(Matthew Linderman, 2004)라는
+  선례가 있다. 이 글은 이 기법을 _"페이지에서 최근 바뀐 부분을 은근히 비추는 깔끔한 방법"_ (번역,
+  [원문](https://signalvnoise.com/archives/000558.php))으로 소개한다. 다만 이 글이 다루는 것은 수정 뒤
+  새로고침된 화면에서 바뀐 곳을 보여 주는 경우라, 링크로 특정 댓글에 도착하는 이 경우와 똑같지는 않다.
+  `motion-ux` skill은 UI 애니메이션을 300ms 이하로 권하지만, 그 기준은 클릭에 바로 반응하는 애니메이션에
+  대한 것이다. 이 강조는 사용자가 끝나기를 기다리는 동작이 아니라서 600ms로 정했다.
 
 ### 모바일 댓글 바 · 데스크톱 인라인 폼
 
@@ -538,6 +560,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 원본 파일 상한               | 30MB                    | `src/shared/lib/image/resizeImage.ts:13`                                                                                                     |
 | SVG·GIF(리사이즈 안 함) 상한 | 10MB(버킷과 같게)       | `src/shared/lib/image/resizeImage.ts:21`                                                                                                     |
 | 해시 이동 강조 시간          | 1600ms                  | `src/widgets/comment/comment-list/ui/CommentList.tsx`의 `scrollToHashedComment` 안 `setTimeout`                                              |
+| 해시 이동 강조 페이드        | 200ms / 600ms           | 나타남·사라짐. 같은 effect의 `duration-200`·`duration-600` 클래스. 사라짐 값은 안쪽 정리 `setTimeout(600)`과 함께 바꾼다                     |
 | 빈 제출 강조 시간            | 1300ms                  | `src/features/comment/create/ui/CommentForm.tsx`·`src/features/comment/update/ui/CommentEditForm.tsx`의 `highlightEmptyForm` 안 `setTimeout` |
 | 내 댓글 선반입 거리          | 아래 1200px             | `src/widgets/comment/my-comment-list/hooks/useMyCommentList.ts:19`                                                                           |
 | 해시 도착 여백               | navbar + 24px           | `src/widgets/comment/comment-list/ui/CommentItem.tsx:51`                                                                                     |
@@ -588,7 +611,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 답글 깊이 늘리기         | BE 변경이 먼저다 — BE `CommentService.kt`가 답글에 대한 답글을 "Max Depth 1"로 거절한다(답글 등록의 Depth Check). FE도 `CommentItem.tsx:40`의 `depth < 1`만으로는 안 되고, `useCreateReplyMutation`이 루트의 `replies`만 찾으므로(comment.queries.ts의 `useCreateReplyMutation` `onMutate`·`onSuccess`) 함께 고친다 |
 | 루트 정렬을 오래된순으로 | `useCommentList.ts:16-18`의 비교 순서를 뒤집는다. 낙관적 삽입 위치(맨 앞)도 함께 맞춘다                                                                                                                                                                                                                             |
 | 무효화 범위 조정         | `comment.keys.ts`의 `handleComment*Success`만 고친다(feature 훅에서 직접 무효화 금지)                                                                                                                                                                                                                               |
-| 해시 이동 정렬·강조 시간 | `CommentList.tsx`의 `scrollToHashedComment`(`block`·강조 `setTimeout` 시간), 도착 여백은 `CommentItem.tsx:51`                                                                                                                                                                                                       |
+| 해시 이동 정렬·강조 시간 | `CommentList.tsx`의 `scrollToHashedComment`(`block`·강조 `setTimeout` 시간·페이드 `duration-*`), 도착 여백은 `CommentItem.tsx:51`                                                                                                                                                                                   |
 | 실패 문구 바꾸기         | `texts.ts`의 `messages.error.commentSubmit`(본 요청)·`uploadSubmit`(업로드 단계, 등록·저장 두 벌). 새 원인을 나누려면 `CommentUtil.resolveSubmitError`에 분기를 더한다                                                                                                                                              |
 | 좋아요 실패 시 안내 추가 | `useLikeCommentMutation`의 `meta.manualErrorHandling`을 빼면 전역 토스트가 뜬다                                                                                                                                                                                                                                     |
 | 모바일 상세에도 맨 위로  | `AppLayout.tsx`에서 상세일 때 붙는 `max-md:hidden`을 뺀다. 버튼이 하단 댓글 바·댓글의 수정·삭제를 가리지 않는지 먼저 확인한다(§5 "맨 위로 버튼")                                                                                                                                                                    |
@@ -786,7 +809,7 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   새 첨부 가능 장수를 계산할 때 뺀다.
 - **`patchCommentRecursively`** — 트리에서 id가 같은 댓글을 찾아 일부 필드만 병합하는
   수정 성공 처리 함수.
-- **해시 이동** — `/post/:id#comment-:id`로 들어왔을 때 그 댓글로 스크롤하고 링으로
+- **해시 이동** — `/post/:id#comment-:id`로 들어왔을 때 그 댓글로 스크롤하고 연한 배경으로
   강조하는 동작(`scrollToHashedComment`). `#comments`(카드 💬, `COMMENT_SECTION_HASH`)면 작성
   폼 컨테이너를 ref로 찾아 스크롤하고 포커스한다 — DOM id가 아니라 이 effect가 해석하는 신호다.
 - **맨 위로 버튼(`ScrollToTop`)** — 300px 넘게 내리면 우하단에 뜨는 전역 플로팅 버튼
