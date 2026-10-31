@@ -7,20 +7,21 @@
 1. [스택 개요](#스택-개요)
 2. [빠른 시작](#빠른-시작)
 3. [테스트 파일 위치 규칙](#테스트-파일-위치-규칙)
-4. [무엇에 테스트를 쓰는가 (테스트 범위 기준)](#무엇에-테스트를-쓰는가-테스트-범위-기준)
-5. [패턴 A — 유틸 함수 테스트](#패턴-a--유틸-함수-테스트)
-6. [패턴 B — Zod 스키마 테스트](#패턴-b--zod-스키마-테스트)
-7. [패턴 C — 커스텀 훅 테스트](#패턴-c--커스텀-훅-테스트)
-8. [패턴 D — 컴포넌트 테스트](#패턴-d--컴포넌트-테스트)
-9. [MSW 핸들러 추가 및 오버라이드](#msw-핸들러-추가-및-오버라이드)
-10. [픽스처 추가](#픽스처-추가)
-11. [테스트 강제 실행 (pre-push / CI)](#테스트-강제-실행)
-12. [커버리지 리포트](#커버리지-리포트)
-13. [뮤테이션 테스트 (PR 비차단 보고)](#뮤테이션-테스트-pr-비차단-보고)
-14. [Playwright e2e 자동화 테스트](#playwright-e2e-자동화-테스트)
-15. [자주 발생하는 문제](#자주-발생하는-문제)
-16. [브라우저 수동 테스트 — DevTools 기기 에뮬레이션 주의사항](#브라우저-수동-테스트--devtools-기기-에뮬레이션-주의사항)
-17. [Playwright MCP로 로그인 필요 화면 시각 검증하기](#playwright-mcp로-로그인-필요-화면-시각-검증하기)
+4. [FE와 BE의 테스트 구성 (업계 기준과 비교)](#fe와-be의-테스트-구성-업계-기준과-비교)
+5. [무엇에 테스트를 쓰는가 (테스트 범위 기준)](#무엇에-테스트를-쓰는가-테스트-범위-기준)
+6. [패턴 A — 유틸 함수 테스트](#패턴-a--유틸-함수-테스트)
+7. [패턴 B — Zod 스키마 테스트](#패턴-b--zod-스키마-테스트)
+8. [패턴 C — 커스텀 훅 테스트](#패턴-c--커스텀-훅-테스트)
+9. [패턴 D — 컴포넌트 테스트](#패턴-d--컴포넌트-테스트)
+10. [MSW 핸들러 추가 및 오버라이드](#msw-핸들러-추가-및-오버라이드)
+11. [픽스처 추가](#픽스처-추가)
+12. [테스트 강제 실행 (pre-push / CI)](#테스트-강제-실행)
+13. [커버리지 리포트](#커버리지-리포트)
+14. [뮤테이션 테스트 (PR 비차단 보고)](#뮤테이션-테스트-pr-비차단-보고)
+15. [Playwright e2e 자동화 테스트](#playwright-e2e-자동화-테스트)
+16. [자주 발생하는 문제](#자주-발생하는-문제)
+17. [브라우저 수동 테스트 — DevTools 기기 에뮬레이션 주의사항](#브라우저-수동-테스트--devtools-기기-에뮬레이션-주의사항)
+18. [Playwright MCP로 로그인 필요 화면 시각 검증하기](#playwright-mcp로-로그인-필요-화면-시각-검증하기)
 
 ---
 
@@ -128,6 +129,64 @@ Claude 훅(`.claude/hooks/*.test.mjs`)과 git 훅(`.husky/scripts/*.test.mjs`)�
 `useCreatePost.test.tsx`는 `useNavigate`를 모듈 단위로 mock하는데, 이탈 가드와의 경합은 실제 데이터
 라우터가 있어야 보여서 `useCreatePost.guard.test.tsx`로 따로 둔다(2026-10-21). `.tsx`는 PascalCase,
 `use*` 파일은 camelCase 파일명 규칙(`eslint.config.js`)이 첫 점 앞부분만 보므로 이 형식은 통과한다.
+
+---
+
+## FE와 BE의 테스트 구성 (업계 기준과 비교)
+
+FE와 BE는 **같은 원칙**으로 테스트하고, **어느 층을 가장 두껍게 둘지와 층마다 쓰는 도구만 다르게** 가져간다.
+원칙은 두 레포가 이미 같은 문장으로 갖고 있다:
+
+- 버그 수정은 재현 테스트를 먼저 쓴다(`.claude/CLAUDE.md` §4, BE도 같은 절).
+- 커버리지는 목표가 아니라 테스트가 닿지 않은 곳을 찾는 데만 쓴다(아래 "무엇에 테스트를 쓰는가").
+- 상위 층 테스트는 하위 층으로 확인할 수 없는 것만 다룬다(아래 "무엇에 새 e2e 흐름을 추가하는가").
+
+| 층             | FE                                                                                                                     | BE                                                                                         |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| 정적 검사      | TypeScript, ESLint(커스텀 규칙 포함), Prettier, dependency-cruiser                                                     | Kotlin 컴파일러, ktlint, ArchUnit·리플렉션 규칙 테스트                                     |
+| 단위           | Vitest + jsdom — 유틸·스키마·훅                                                                                        | JUnit 5 + Mockito — Service·순수 함수                                                      |
+| 통합           | Vitest + Testing Library + MSW — 화면·훅·React Query를 가짜 서버와 함께 돌린다                                         | `@WebMvcTest` 컨트롤러 슬라이스, Testcontainers로 실제 Postgres를 띄우는 `integrationTest` |
+| E2E            | Playwright(API는 `page.route` 목), Storybook 스토리 접근성 검사                                                        | 배포 직후 새 버전 5회 호출(스모크 체크)                                                    |
+| FE·BE 계약     | PR: 생성 타입이 커밋된 스펙과 같은지. 매일: 운영 스펙과 커밋된 스펙 비교([`OPENAPI-CODEGEN.md`](./OPENAPI-CODEGEN.md)) | PR: `api-compat`(oasdiff)가 운영 스펙 대비 깨지는 변경을 막는다                            |
+| 가장 두꺼운 층 | 통합                                                                                                                   | 단위                                                                                       |
+
+**왜 가장 두꺼운 층이 다른가.** FE는 사용자가 보는 화면을 사용자처럼 묶어서 테스트할 때 얻는 게 크다. Kent C. Dodds는
+_"테스트를 써라. 너무 많이는 말고. 대부분은 통합 테스트로."_ 를 권하고(번역, [Write tests](https://kentcdodds.com/blog/write-tests)),
+Testing Library는 _"테스트가 소프트웨어가 실제로 쓰이는 방식을 닮을수록 더 큰 확신을 준다"_ 를 원칙으로 둔다(번역,
+[Guiding Principles](https://testing-library.com/docs/guiding-principles)). BE는 비즈니스 로직이 Service에 모여 있어 단위
+테스트로 가장 많이 덮는다. Google은 _"좁은 범위의 단위 테스트 약 80%, 중간 범위의 통합 테스트 15%, 전체 시스템을 검증하는
+E2E 테스트 5%"_ 정도를 목표로 한다고 쓴다(번역·생략, [Software Engineering at Google 11장](https://abseil.io/resources/swe-book/html/ch11.html)).
+
+**왜 원칙은 같게 두는가.** Microsoft는 테스트 분류를 조직 전체에 같게 적용하며 _"구체적인 규칙은 조직마다 다를 수 있지만,
+조직 안의 모든 팀에 같은 기대치를 적용하면 모두가 같은 품질 목표로 나아간다"_ 고 쓴다(번역,
+[Shift testing left](https://learn.microsoft.com/en-us/devops/develop/shift-left-make-testing-fast-reliable)). GitLab도 테스트
+단계 문서 한 곳에서 FE(Jest)와 BE(RSpec)를 같은 피라미드로 설명한다([Testing levels](https://docs.gitlab.com/development/testing_guide/testing_levels/)).
+
+### 코드가 운영까지 가는 동안 도는 테스트
+
+```mermaid
+flowchart LR
+  A["커밋 (내 PC)<br/>FE: type-check·ESLint<br/>BE: ktlint(켠 클론만)"] --> B["push (내 PC)<br/>FE: 문서 검사·단위<br/>BE: 없음"]
+  B --> C["PR CI (필수 체크)<br/>FE: check·e2e<br/>BE: check(단위·통합)·api-compat"]
+  C --> D{"병합<br/>(strict 꺼짐)"}
+  D --> E["배포 전 재검증<br/>FE: 정적·단위<br/>BE: 정적·단위·통합"]
+  E --> F["배포 직후<br/>FE: version.json sha 확인<br/>BE: 5회 호출 뒤 prod 승격"]
+```
+
+두 레포 main 룰셋은 모두 `strict_required_status_checks_policy: false`라, 뒤처진 브랜치에서 통과한 CI 결과로도 병합된다.
+GitHub 문서는 이 모드에서 _"기준 브랜치와 호환되지 않는 변경이 있으면 병합한 뒤 상태 검사가 실패할 수 있다"_ 고 쓴다(번역,
+[About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)).
+이 틈을 표준적으로 막는 merge queue는 _"조직이 소유한 공개 저장소, 또는 GitHub Enterprise Cloud를 쓰는 조직의 비공개
+저장소에서 쓸 수 있다"_ (번역, [Managing a merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue))
+— 개인 소유인 두 레포는 쓸 수 없다. 그래서 병합된 main으로 배포 전에 테스트를 다시 돌린다.
+
+- **BE는 2026-10-31부터 통합 테스트까지 다시 돈다.** 최근 병합 30개 중 2개(BE #117, #119)가 뒤처진 결과로 병합돼 통합
+  테스트 없이 배포됐다. 늘어난 시간은 PR CI 실측 24.7~40.8초다.
+- **FE는 정적 검사·단위만 다시 돈다.** 최근 병합 30개 중 4개가 뒤처진 결과로 병합됐지만, e2e(PR CI 실측 3분 27초)를
+  더하면 배포(최근 성공 6회 2분 58초~4분 13초)가 거의 두 배가 된다. 뒤처진 병합에서 e2e로 잡을 수 있었던 회귀가 운영에
+  한 번이라도 나가면 다시 검토한다.
+
+결정 과정과 근거 전체는 BE [`docs/plans/2026-10-31-test-process.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/plans/2026-10-31-test-process.md)에 있다.
 
 ---
 
