@@ -33,7 +33,7 @@ export const NavbarSearch = ({
   const { searchInput, setSearchInput, handleClear } = useNavbarSearch();
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { updateSearchParams } = useSearchParamsDraft();
+  const { searchParams, updateSearchParams } = useSearchParamsDraft();
 
   // 드롭다운 열림 상태는 오직 이벤트(포커스/입력/blur/키보드)에서만 바뀐다 - 입력값에서
   // 파생하거나 useEffect로 동기화하지 않는다. 파생시키면 ESC 2단계(입력 비우기)가 onChange를
@@ -57,19 +57,29 @@ export const NavbarSearch = ({
       onAddRecentSearch(trimmed);
     }
 
+    // 입력창은 URL q가 "바뀔 때만" 따라 채워진다(useNavbarSearch). 지운 뒤 지금 검색 중인
+    // 검색어를 다시 고르면 URL이 그대로라 입력창이 빈 채 남으므로 여기서 직접 채운다.
+    setSearchInput(trimmed);
     setIsOpen(false);
     setActiveRow(null);
 
     // /post에서는 현재 URL의 filter 등을 보존한 채 q만 갱신한다. setSearchParams는
     // pathname을 유지하므로 이 분기에서만 쓸 수 있다.
     if (pathname === ROUTES_PATHS.POST.ROOT) {
-      updateSearchParams((draft) => {
-        if (trimmed) {
-          draft.set('q', trimmed);
-        } else {
-          draft.delete('q');
-        }
-      });
+      // 주소가 그대로면 replace한다 - push하면 같은 주소가 기록에 한 칸 더 쌓여 뒤로가기를 두 번
+      // 눌러야 한다. react-router-dom <Link>도 같은 URL이면 replace한다(dist/index.js useLinkClickHandler).
+      const isSameQuery = (searchParams.get('q') ?? '') === trimmed;
+
+      updateSearchParams(
+        (draft) => {
+          if (trimmed) {
+            draft.set('q', trimmed);
+          } else {
+            draft.delete('q');
+          }
+        },
+        { replace: isSameQuery }
+      );
 
       return;
     }
@@ -166,6 +176,16 @@ export const NavbarSearch = ({
     }
 
     if (!isOpen) {
+      // 닫힌 상태의 ↓는 목록을 열면서 첫 검색어를 활성화한다 - WAI-ARIA APG Combobox의
+      // Down Arrow, React Aria useComboBox의 open('first')와 같다(docs/SEARCH.md §5).
+      // 열림 조건은 handleFocus와 같다(입력값 무관, 최근검색 1개 이상).
+      if (e.key === 'ArrowDown' && recentSearches.length > 0) {
+        e.preventDefault();
+        setIsOpen(true);
+        setActiveRow(0);
+        setActiveCol(0);
+      }
+
       return;
     }
 
