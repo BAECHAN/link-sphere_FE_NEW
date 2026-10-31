@@ -1,3 +1,6 @@
+### 2026-10-31 (FE)
+- 댓글 강조 UI 개선: 원글 이동 시 적용되던 배경 강조 효과를 부드러운 페이드인 애니메이션으로 변경하여 사용자 경험 최적화 ([#463](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/463))
+
 ### 2026-10-30 (BE)
 - Lambda 배포용 JAR 파일의 무결성 검증을 위한 verifyShadowJar 태스크 도입 ([#140](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/140))
 
