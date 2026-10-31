@@ -1,20 +1,240 @@
 <!doctype html>
 <!--
   이 저장소 GitHub Pages(https://baechan.github.io/link-sphere_FE_NEW/)의 첫 화면. 문서는 경로로 나눠 두고(지금은
-  storybook/ 하나), 여기서는 storybook/으로 넘긴다. 2026-10-30 처음 올렸을 때는 Storybook이 이 루트에 있었으므로
-  그때 만든 링크(?path=…)가 이어지도록 쿼리·해시를 붙여 넘긴다. 문서가 늘면 이 파일을 목록 페이지로 바꾼다.
-  배포는 deploy-storybook.yml, 배경은 docs/DEPLOY.md "Storybook 공개 배포".
+  storybook/ 하나), 여기서는 FE·BE 저장소 Pages의 문서를 카드로 함께 보여 준다. BE 저장소 pages-site/index.html도
+  같은 목록이라 문서를 더하거나 옮기면 두 파일을 같이 고친다 — 저장소를 넘는 링크는 pnpm check:docs가 검사하지 못한다.
+  2026-10-30 첫 배포 때 루트에 Storybook이 있던 시절의 링크(?path=…)는 넘기지 않고 이 화면을 보여 준다(2026-10-31 사용자 결정).
+  색은 앱 src/app/globals.css의 의미 토큰 값을 옮겼다. 배포는 deploy-storybook.yml, 배경은 docs/DEPLOY.md "Storybook 공개 배포".
 -->
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
     <title>Link Sphere FE 문서</title>
-    <script>
-      location.replace('storybook/' + location.search + location.hash);
-    </script>
-    <noscript><meta http-equiv="refresh" content="0; url=storybook/" /></noscript>
+    <meta
+      name="description"
+      content="Link Sphere 프론트엔드 저장소의 공개 문서 — Storybook 컴포넌트 카탈로그와 BE API 문서로 가는 길"
+    />
+    <style>
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --card: oklch(1 0 0);
+        --muted: oklch(0.97 0 0);
+        --muted-foreground: oklch(0.542 0 0);
+        --border: oklch(0.922 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --radius: 0.625rem;
+        --font-sans:
+          'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic',
+          sans-serif;
+        --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background: oklch(0.145 0 0);
+          --foreground: oklch(0.985 0 0);
+          --card: oklch(0.205 0 0);
+          --muted: oklch(0.269 0 0);
+          --muted-foreground: oklch(0.708 0 0);
+          --border: oklch(1 0 0 / 10%);
+          --primary: oklch(0.922 0 0);
+          --primary-foreground: oklch(0.205 0 0);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 48px 20px 56px;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: var(--font-sans);
+        font-size: 0.875rem;
+        /* 앱 globals.css body와 같다 - 한글 어절 안에서 줄이 바뀌지 않게 */
+        word-break: keep-all;
+        overflow-wrap: break-word;
+        line-height: 1.6;
+      }
+
+      main {
+        max-width: 40rem;
+        margin: 0 auto;
+        display: grid;
+        gap: 32px;
+      }
+
+      header {
+        display: grid;
+        gap: 8px;
+      }
+
+      section {
+        display: grid;
+        gap: 10px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        line-height: 2rem;
+        font-weight: 700;
+        text-wrap: balance;
+      }
+
+      p {
+        margin: 0;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      a:focus-visible {
+        outline: 2px solid var(--foreground);
+        outline-offset: 3px;
+        border-radius: 6px;
+      }
+
+      .address,
+      .path {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--muted-foreground);
+      }
+
+      .lead,
+      .label,
+      .card p,
+      footer {
+        color: var(--muted-foreground);
+      }
+
+      .label {
+        margin: 0;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .cards {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+      }
+
+      .card {
+        display: grid;
+        gap: 8px;
+        align-content: start;
+        padding: 16px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--card);
+        transition: border-color 150ms ease-out;
+      }
+
+      .card:hover {
+        border-color: var(--muted-foreground);
+      }
+
+      .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .name {
+        font-size: 1rem;
+        font-weight: 600;
+      }
+
+      .badge {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        padding: 1px 8px;
+        border-radius: 999px;
+        background: var(--muted);
+        color: var(--muted-foreground);
+        white-space: nowrap;
+      }
+
+      .badge.is-here {
+        background: var(--primary);
+        color: var(--primary-foreground);
+      }
+
+      .when {
+        font-size: 0.8125rem;
+      }
+
+      footer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 16px;
+        font-size: 0.8125rem;
+      }
+
+      footer a:hover {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .card {
+          transition: none;
+        }
+      }
+    </style>
   </head>
   <body>
-    <a href="storybook/">Storybook</a>
+    <main>
+      <header>
+        <span class="address">baechan.github.io/link-sphere_FE_NEW/</span>
+        <h1>Link Sphere FE 문서</h1>
+        <p class="lead">
+          Link Sphere 프론트엔드 저장소의 main 코드로 자동으로 만들어 올리는 문서예요.
+        </p>
+      </header>
+
+      <section aria-labelledby="docs-label">
+        <h2 class="label" id="docs-label">문서</h2>
+        <div class="cards">
+          <a class="card" href="storybook/">
+            <span class="card-top">
+              <span class="name">Storybook</span>
+              <span class="badge is-here">이 저장소</span>
+            </span>
+            <p>
+              버튼·다이얼로그·입력창 같은 공통 UI 컴포넌트와 디자인 토큰을 상태별로 보고, props를
+              바꿔 볼 수 있어요.
+            </p>
+            <p class="when">화면을 만들거나 고칠 때</p>
+            <span class="path">/storybook/</span>
+          </a>
+          <a class="card" href="https://baechan.github.io/link-sphere_BE_NEW/api-docs/">
+            <span class="card-top">
+              <span class="name">API 문서</span>
+              <span class="badge">BE 저장소</span>
+            </span>
+            <p>엔드포인트별 요청·응답 형식을 볼 수 있어요. 읽기 전용이에요.</p>
+            <p class="when">API 요청·응답 형식을 확인할 때</p>
+            <span class="path">/link-sphere_BE_NEW/api-docs/</span>
+          </a>
+        </div>
+      </section>
+
+      <footer aria-label="다른 곳">
+        <a href="https://linksphere.click/">Link Sphere 서비스</a>
+        <a href="https://github.com/BAECHAN/link-sphere_FE_NEW">GitHub 저장소</a>
+      </footer>
+    </main>
   </body>
 </html>

@@ -201,12 +201,15 @@ gh api repos/<owner>/<repo>/commits/<커밋 sha> --jq .sha   # 원 저장소에 
   `linksphere.click`과 다른 사이트다. 2026-10-30까지는 같은 S3 버킷의 `storybook/` 접두사 + 같은 CloudFront
   배포로 `/storybook/`에 올렸다 — 바꾼 이유와 비교한 대안은 [`DECISIONS.md`](DECISIONS.md) 2026-10-30 항목.
 - **주소 구조**: 저장소 하나에 Pages 사이트는 하나뿐이라, 문서마다 하위 경로(`storybook/`)를 쓰고 루트에는
-  첫 화면 [`pages-site/index.html`](../pages-site/index.html)을 둔다. 지금은 문서가 하나라 첫 화면이 `storybook/`으로
-  넘기고, 쿼리·해시를 그대로 붙여 루트에 Storybook이 있던 2026-10-30 첫 배포 때의 링크(`?path=…`)도 이어진다. Pages
+  첫 화면 [`pages-site/index.html`](../pages-site/index.html)을 둔다. 첫 화면은 FE·BE 저장소 Pages의 문서(Storybook,
+  BE API 문서)를 카드로 함께 보여 주고, BE 저장소 첫 화면도 같은 목록이다 — 그래서 문서를 더하거나 옮기면 두 저장소의
+  `pages-site/index.html`을 같이 고친다(저장소를 넘는 링크는 `pnpm check:docs`가 검사하지 못한다). 2026-10-31 전까지는
+  첫 화면이 `storybook/`으로 바로 넘겼다. 그때 루트에 Storybook이 있던 2026-10-30 첫 배포 때의 링크(`?path=…`)는 이제
+  넘기지 않고 첫 화면을 보여 준다(2026-10-31 사용자 결정). Pages
   배포는 사이트 전체를 바꾼다 — deploy-pages 기여자는 _"모든 콘텐츠를 배포 시점에 줘야 한다. 나중 배포가 모든 것을
   대체한다"_ 고 답했다(번역, [actions/deploy-pages#50 댓글](https://github.com/actions/deploy-pages/issues/50#issuecomment-1252593074)).
   그래서 문서를 더할 때는 다른 워크플로로 따로 올리지 않고 이 워크플로의 "사이트 조립" 단계에서 함께 만들어
-  `_site/<경로>/`에 넣고, 첫 화면을 목록 페이지로 바꾼다.
+  `_site/<경로>/`에 넣는다.
 - **왜 별도 워크플로우인가**: `paths` 필터는 워크플로우 단위로만 걸 수 있다.
   `deploy.yml`에 job으로 얹으면 `.storybook/**` 변경만으로도 앱 프로덕션 배포가 함께 돈다.
 - **권한**: AWS 역할을 쓰지 않는다. 워크플로가 `pages: write`·`id-token: write`로 Pages에 게시한다
