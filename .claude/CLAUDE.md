@@ -271,10 +271,15 @@ Plan mode로 계획을 세우고 구현한 작업은, PR을 열기 전에:
   plan mode를 거치지 않은 사소한 즉시 구현에는 적용하지 않는다(계획을 세울 만큼
   중요한 작업만 이 절차의 대상이다).
 - 구현한 세션 스스로 "계획대로 됐다"고 결론 내리지 않는다 — 방금 쓴 코드에 편향되기
-  쉽다. 대신 fresh subagent(general-purpose 타입 — 내장 Explore·Plan은 CLAUDE.md를 로드하지
-  않아 이 레포 규칙을 모른다, [sub-agents 문서](https://code.claude.com/docs/en/sub-agents))에게
+  쉽다. 대신 fresh subagent인 `plan-verifier`(`.claude/agents/plan-verifier.md`)에게
   커밋한 계획 파일과 실제 diff를 함께 주고 대조를 맡긴다: 계획의 각 항목이 실제로 구현됐는가, **계획에 없던 변경(과잉
-  구현 포함)이 섞였는가**, 계획과 다르게 구현된 부분이 있다면 왜인가.
+  구현 포함)이 섞였는가**, 계획과 다르게 구현된 부분이 있다면 왜인가. 이 에이전트는 도구가 Read·Grep·Glob뿐이라
+  `git diff origin/main...HEAD`를 스크래치패드 파일로 떨궈 그 경로를 넘긴다. 쓸 수 없으면(세션 시작 뒤에 생긴
+  에이전트 파일은 재시작 전까지 인식되지 않는다) general-purpose에 맡긴다 — 내장 Explore·Plan은 CLAUDE.md를
+  로드하지 않아 이 레포 규칙을 모른다([sub-agents 문서](https://code.claude.com/docs/en/sub-agents)). 2026-10-31
+  결함을 넣은 사례 8개로 직접 잰 결과 두 쪽 모두 결함 8/8·정상 사례 오탐 0이었고 plan-verifier가 목록가로 약 17%
+  적었다(검출·오탐 재현: `.claude/scripts/plan-eval-cases.mjs` → `.claude/workflows/plan-verifier-eval.js`.
+  비용은 워크플로 에이전트 기록을 1회용 스크립트로 쟀다).
 - 대조 결과를 계획 항목별로 "구현됨(파일:줄)/이탈(이유)/미구현" 형태로 정리해 PR
   본문에 `## 계획 대비 구현` 섹션으로 남기고, `docs/plans/`의 해당 파일을 링크한다
   (원문을 PR 본문에 다시 붙여넣지 않는다 — 커밋된 파일과 중복되면 SSOT가 깨진다).
