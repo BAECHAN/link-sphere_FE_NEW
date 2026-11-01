@@ -1,3 +1,6 @@
+// [메모] 이 훅은 FE 전용이라 FE에 남는다. 의존하는 ../lib/shell-parse.mjs를 claude-base 5라운드 2단계(2026-11-14
+// 뒤)에 지우므로, 그때 레포 판정을 이 파일 안의 함수로 바꾼다.
+//
 // PostToolUse(Write) 훅 — 새로 만든 .ts/.tsx 파일이 eslint.config.js의 unicorn/filename-case 규칙(atoms·
 // 컴포넌트·훅·utils·api·queries·types·schema·config 전부 커버)을 어기면 그 자리에서 알린다.
 //

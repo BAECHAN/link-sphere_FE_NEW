@@ -1,3 +1,6 @@
+// [동결] 머지 확인 창 측정(M14) 판정(2026-11-14)이 기록될 때까지 판정 로직을 고치지 않는다 — 기준선을 이 코드로
+// 셌다. 그 뒤 claude-base로 옮긴다(claude-base docs/ROADMAP.md 5라운드 2단계). 가드 훅은 이미 claude-base 사본을 쓴다.
+//
 // 셸 명령을 하위 명령 단위로 쪼개고 git 호출·link-sphere 경로를 해석하는 공용 모듈. 트랜스크립트
 // 측정기(.claude/scripts/rule-metrics.mjs)와 PreToolUse 가드(.claude/hooks/bash-guard.mjs,
 // edit-guard.mjs)가 함께 쓴다 — 측정기가 "위반"으로 세는 명령과 가드가 막는 명령의 판정이 어긋나지
