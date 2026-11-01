@@ -1,3 +1,7 @@
+// [동결] claude-base 5라운드(2026-11-01)에 ~/project/claude-base/hooks/bash-guard.mjs로 옮겼다 — 사용자 설정은
+// 그 사본을 부른다. 이 파일은 6라운드에 지우며 그때까지 고치지 않는다(고칠 일은 claude-base에서). 레포별 값은
+// .claude/repo-policy.json에 있다.
+//
 // PreToolUse(Bash) 가드 — link-sphere의 워크트리·커밋 규칙(.claude/CLAUDE.md) 중 명령 문자열만 보고
 // 판정할 수 있는 것을 실행 직전에 막는다. 문서 규칙만으로는 위반이 계속 나와 규칙을 "요청"에서
 // "강제"로 옮겼다(docs/plans/2026-09-29-rule-enforcement-hardening.md Phase 2). 직접 측정 —

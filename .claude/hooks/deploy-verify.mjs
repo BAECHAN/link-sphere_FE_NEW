@@ -1,3 +1,7 @@
+// [동결] claude-base 5라운드(2026-11-01)에 ~/project/claude-base/hooks/deploy-verify.mjs로 옮겼다 — 사용자 설정은
+// 그 사본을 부른다. 이 파일은 6라운드에 지우며 그때까지 고치지 않는다(고칠 일은 claude-base에서). 레포별 값은
+// .claude/repo-policy.json에 있다.
+//
 // PostToolUse·PostToolUseFailure(Bash) 훅 — link-sphere FE·BE에서 git push·gh pr create·gh pr merge가 끝나면
 // 그 커밋(SHA)의 GitHub Actions 워크플로를 백그라운드로 지켜보다, 실패·시한 초과면 세션을 깨운다.
 // 사용자 설정에 `asyncRewake: true`로 등록한다(등록 블록은 run-node.sh 머리말) — 도구 결과는 바로 돌아오고,

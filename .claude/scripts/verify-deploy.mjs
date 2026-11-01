@@ -1,3 +1,7 @@
+// [동결] claude-base 5라운드(2026-11-01)에 ~/project/claude-base/scripts/verify-deploy.mjs로 옮겼다 — 사용자 설정의
+// 훅은 그 사본을 부른다. 이 파일은 6라운드에 지우며 그때까지 고치지 않는다(고칠 일은 claude-base에서). 레포별 값은
+// .claude/repo-policy.json에 있다.
+//
 // 커밋(SHA) 하나의 GitHub Actions 워크플로 결과를 끝까지 지켜보고 실패를 알려 주는 감시기. 사용자 설정의
 // PostToolUse 훅(.claude/hooks/deploy-verify.mjs)이 push·PR 생성·병합 뒤 watchSha를 백그라운드로 돌리고,
 // 사람이나 Claude가 직접 돌릴 수도 있다:

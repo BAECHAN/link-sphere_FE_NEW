@@ -1,0 +1,18 @@
+{
+  "label": "link-sphere FE",
+  "worktreeRequired": true,
+  "rulesRef": ".claude/CLAUDE.md Critical Rules",
+  "deploy": {
+    "github": "BAECHAN/link-sphere_FE_NEW",
+    "defaultBranch": "main",
+    "workflows": ["Frontend Deploy (S3 + CloudFront)", "Storybook Deploy (GitHub Pages)"],
+    "liveSiteCheck": {
+      "steps": ["배포 반영 검증"],
+      "hint": [
+        "이 단계는 운영 사이트를 직접 받아 본다 — 배포가 아니라 사이트로 가는 길이 막혔을 수도 있으니, 배포 탓으로 단정하기 전에 지금 상태부터 본다:",
+        "curl -sS -o /dev/null -w '%{http_code}\\n' https://linksphere.click/version.json",
+        "403이면 WAF 차단(규칙별 차단 지표는 BE docs/TRAFFIC-MANAGEMENT.md 8장. 로컬에서도 403이면 운영 반복 측정 뒤 우리 IP가 IP당 요청 제한에 걸린 것일 수 있다), 이름을 못 찾으면 도메인 상태(whois·Route 53 연락처), 5xx면 CloudFront·S3"
+      ]
+    }
+  }
+}

@@ -1,3 +1,7 @@
+// [동결] claude-base 5라운드(2026-11-01)에 ~/project/claude-base/hooks/edit-guard.mjs로 옮겼다 — 사용자 설정은
+// 그 사본을 부른다. 이 파일은 6라운드에 지우며 그때까지 고치지 않는다(고칠 일은 claude-base에서). 레포별 값은
+// .claude/repo-policy.json에 있다.
+//
 // PreToolUse(Edit|Write|NotebookEdit) 가드 — link-sphere FE·BE의 메인 체크아웃 파일을 직접
 // 편집하지 못하게 막는다(CLAUDE.md "워크트리 없이 코드 수정 금지"). BE에서 시작한 세션이 FE 메인
 // 체크아웃 파일을 57번 Edit/Write하려 한 것이 계기다 — BE 세션에는 FE CLAUDE.md가 로드되지 않아 문서
