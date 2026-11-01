@@ -196,6 +196,7 @@ features/<도메인>/<액션>/
 - [`docs/CI-CHECK-GATE.md`](docs/CI-CHECK-GATE.md) — `pnpm check`가 실제로는 아무 데도 안 걸려 있던 문제와 PR·배포 게이트 정비
 - [`docs/COMMENT.md`](docs/COMMENT.md) — 댓글·답글: 낙관적 작성, 이미지 첨부, 바이트 상한(WAF 8KB), 댓글 좋아요, 내 댓글 해시 이동
 - [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md) — 디자인 토큰(색상·반경·z-index)·컴포넌트·ESLint 강제 규칙·Storybook 카탈로그
+- [`docs/E2E-FLAKY.md`](docs/E2E-FLAKY.md) — e2e 첫 시도 실패(flaky): 얼마나 잦은지, 공통 원인, CI가 잡는 방식, 흔들리면 고치는 순서
 - [`docs/FCM-PUSH-NOTIFICATION.md`](docs/FCM-PUSH-NOTIFICATION.md) — 댓글·답글 FCM 웹 푸시: 토큰 수명주기, 서비스워커, 알림 클릭 딥링크
 - [`docs/MYPAGE.md`](docs/MYPAGE.md) — 프로필 수정(계정 설정 화면 섹션): 닉네임·아바타 변경, 실패 시 입력값 유지
 - [`docs/NEW-VERSION-RELOAD.md`](docs/NEW-VERSION-RELOAD.md) — 배포 후 새 버전 감지 시 다음 라우트 이동에 맞춰 자동 새로고침

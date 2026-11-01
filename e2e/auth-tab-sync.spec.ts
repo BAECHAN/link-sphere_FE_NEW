@@ -331,6 +331,18 @@ test.describe('쓰는 중에 다른 탭에서 로그아웃', () => {
     await expect(confirm).toBeHidden();
   }
 
+  /**
+   * 창이 보여도 아직 ESC를 받지 못할 수 있다 - Radix는 렌더 때 계산한 자기 순서로 맨 위 창인지 보고 ESC를 받는데, 그 순서는
+   * 창을 그린 뒤 useEffect에서 등록돼 다음 렌더에서야 맞춰진다. 그 렌더가 붙이는 pointer-events: auto를 확인한 뒤 누른다
+   * (docs/AUTH.md §10 "로그아웃 안내 창이 ESC를 놓쳤다")
+   */
+  async function closeWithEscape(page: Page, dialog: Locator) {
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveAttribute('style', /pointer-events: auto/);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+  }
+
   test('글 등록 화면에서 쓰는 중이면 보호 화면이어도 옮기지 않고 그 자리에 로그인 창을 띄우며, 같은 계정으로 다시 로그인하면 이어서 등록한다', async ({
     context,
   }) => {
@@ -416,9 +428,7 @@ test.describe('쓰는 중에 다른 탭에서 로그아웃', () => {
     const dialog = writingTab.getByRole('dialog', {
       name: TEXTS.auth.guard.signedOutElsewhere.title,
     });
-    await expect(dialog).toBeVisible();
-    await writingTab.keyboard.press('Escape');
-    await expect(dialog).toBeHidden();
+    await closeWithEscape(writingTab, dialog);
 
     // 보호 화면은 로그인 없이 쓸 수 없어 피드로 보내려 하고, 쓰는 중이라 이탈 확인창이 막는다
     await answerLeaveConfirm(writingTab, TEXTS.unsavedChanges.cancel);
@@ -461,9 +471,7 @@ test.describe('쓰는 중에 다른 탭에서 로그아웃', () => {
     const dialog = writingTab.getByRole('dialog', {
       name: TEXTS.auth.guard.signedOutElsewhere.title,
     });
-    await expect(dialog).toBeVisible();
-    await writingTab.keyboard.press('Escape');
-    await expect(dialog).toBeHidden();
+    await closeWithEscape(writingTab, dialog);
     await answerLeaveConfirm(writingTab, TEXTS.unsavedChanges.cancel);
 
     // 댓글·답글 등록과 같은 가드(useAuthGuard) - 로그인이 풀렸을 때 뜬 그 창이 다시 뜬다
@@ -519,9 +527,7 @@ test.describe('쓰는 중에 다른 탭에서 로그아웃', () => {
     const dialog = writingTab.getByRole('dialog', {
       name: TEXTS.auth.guard.signedOutElsewhere.title,
     });
-    await expect(dialog).toBeVisible();
-    await writingTab.keyboard.press('Escape');
-    await expect(dialog).toBeHidden();
+    await closeWithEscape(writingTab, dialog);
 
     // 공개 화면이라 창을 닫아도 같은 주소에 남는다 - 이탈 확인창도 뜨지 않는다
     await expect(writingTab).toHaveURL(new RegExp(`/post/${mockPost.id}$`));

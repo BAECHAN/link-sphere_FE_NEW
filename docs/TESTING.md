@@ -1014,6 +1014,19 @@ CI에서는 실패한 테스트를 두 번까지 다시 돌린다(`retries: 2`).
 (`docs/UNSAVED-CHANGES-GUARD.md` §10). CI에서 flaky로 실패하면 리포트의 "flaky" 표시와 첫 시도의
 트레이스를 보고 원인을 고친다. 재시도 횟수를 늘리거나 skip으로 덮지 않는다.
 
+PR에서는 그 뒤에 **PR이 직접 추가·수정한 스펙만 재시도 없이 10번씩 다시 돌린다**(`ci.yml`의 "바뀐 e2e 스펙
+반복 실행" 단계, 2026-11-01). `failOnFlakyTests`는 한 번 돌 때 흔들린 것만 잡아서, 가끔만 실패하는 새 테스트는
+그대로 통과해 main에 들어온다. #450이 넣은 `auth-tab-sync.spec.ts`의 두 테스트가 병합 뒤 CI 25회 중 3회 실패했다
+(`docs/AUTH.md` §10 "로그아웃 안내 창이 ESC를 놓쳤다"). 비교 기준은 PR 병합 커밋의 첫 부모(`HEAD^1`)라 이 job의
+checkout은 `fetch-depth: 2`다. Playwright의 `--only-changed`는 쓰지 않는다 — 바뀐 파일을 import하는 스펙까지
+고르는데(설치본 1.64.0 `lib/common/index.js`의 `collectAffectedTestFiles`), 거의 모든 스펙이 `texts.ts`를 import해
+문구 하나만 바뀌어도 전체를 10번 반복하게 된다. 그래서 앱 코드만 바뀌어 기존 테스트가 흔들리게 된 경우는 이 단계가
+못 잡고, 병합 뒤 `failOnFlakyTests`가 드러낸다.
+
+흔들림을 로컬에서 재현할 때는 그 페이지의 CPU를 느리게 하고(`newCDPSession` →
+`Emulation.setCPUThrottlingRate`) `--repeat-each=20 --retries=0`으로 반복한다. 재현용 감속 코드는 커밋하지 않는다.
+흔들림이 얼마나 잦았는지, 지금까지의 원인과 고친 곳은 `docs/E2E-FLAKY.md`에 모아 둔다.
+
 ### 결과를 눈으로 확인하는 방법
 
 **HTML 리포트** (`pnpm test:e2e:report`)는 `playwright-report/`를 서빙하는

@@ -3,7 +3,7 @@
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
 > 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지, 그리고 로그인한 사람도 글을 못 쓸 때가 있는 이유를 설명할 수 있게 됩니다. 비밀번호를 새로 만드는 폼이 입력 중에 언제 무엇을 보여주는지(§8-G), 로그인이 만료되거나 다른 탭에서 로그아웃해도 쓰던 화면에 남는 방식(§8-I)도 여기서 다룹니다.
-> **마지막 검토**: 2026-10-29
+> **마지막 검토**: 2026-11-01
 
 ---
 
@@ -1273,6 +1273,70 @@ sequenceDiagram
   R->>R: 예약한 타이머 실행 → 확인 칸 포커스
   P->>P: ② insertText → 확인 칸에 입력됨
   Note over T,R: 수정 후에는 fill 전에 toBeFocused + setTimeout(0) 대기로 타이머를 먼저 흘려보낸다
+```
+
+### 별건 — 로그아웃 안내 창이 ESC를 놓쳤다 (2026-11-01, e2e)
+
+§8-I e2e의 흔들림 기록입니다. 이것도 앱 버그가 아니라 테스트의 타이밍 문제였습니다.
+
+- **증상**: #450이 넣은 `e2e/auth-tab-sync.spec.ts` "쓰는 중에 다른 탭에서 로그아웃"의 두 테스트("로그인 없이 창을 닫고
+  계속 쓰다 등록을 누르면…", "글 상세에서 댓글을 쓰다 로그인 없이 창을 닫으면…")가 병합 뒤 CI e2e 25회 중 3회 첫 시도에
+  실패했습니다([1](https://github.com/BAECHAN/link-sphere_FE_NEW/actions/runs/41204287399/job/124546182136),
+  [2](https://github.com/BAECHAN/link-sphere_FE_NEW/actions/runs/41207906659/job/124556674751),
+  [3](https://github.com/BAECHAN/link-sphere_FE_NEW/actions/runs/41275111549/job/124755671309) — 재시도로 통과해 flaky,
+  CI는 이것도 실패로 칩니다). 세 번 모두 ESC를 누른 직후 `await expect(dialog).toBeHidden()`에서 로그아웃 안내 창이 그대로
+  열려 있었습니다.
+- **원인**: Radix 창은 화면에 보인 뒤 렌더가 두 번 더 지나야 ESC를 받습니다(설치본 소스로 확인).
+  - `@radix-ui/react-dismissable-layer` 1.1.11은 ESC가 오면 렌더할 때 계산한 자기 순서(`index`)가 맨 위
+    (`context.layers.size - 1`)일 때만 창을 닫습니다(`dist/index.mjs:40`, `:59-60`). 자기를 그 목록에 넣는 일은 창 요소가
+    생겨 다시 렌더한 뒤의 `useEffect`가 하고(`:77`), 넣은 뒤 알림(`dispatchUpdate`, `:78`·`:94`)으로 한 번 더 렌더해야
+    `index`가 맞춰집니다.
+  - ESC 핸들러는 `useCallbackRef`로 감싸져 있어 그 렌더 뒤의 `useEffect`에서야 새 `index`를 봅니다
+    (`@radix-ui/react-use-callback-ref` 1.1.1 `dist/index.mjs:5-6`).
+  - 테스트는 창이 보이자마자 ESC를 눌러 이 틈에 걸리면 ESC가 무시됐습니다. 사람은 창을 보고 ESC를 누르기까지 이 틈보다
+    훨씬 오래 걸려 사용자 영향은 없습니다.
+- **재현(직접 측정)**: `openWritingAndFeedTabs`에서 쓰는 탭에 CDP `Emulation.setCPUThrottlingRate`(20배)를 걸고 세
+  테스트를 `--repeat-each=20 --retries=0`으로 돌렸습니다(로컬, 워커 6개, 한 번에 60회). 감속 때문에 시간 초과도 섞이므로
+  "ESC 뒤 창이 안 닫힘"을 따로 셉니다. 시간 초과 건수는 실행마다 기계 부하에 따라 크게 달랐습니다.
+
+  | ESC 전에 기다린 것                   | 실패(60회 중) | 그중 ESC 뒤 창이 안 닫힘 |
+  | ------------------------------------ | ------------- | ------------------------ |
+  | 창이 보임(수정 전)                   | 42            | 33                       |
+  | 창 안으로 포커스가 들어옴            | 24            | 1                        |
+  | 창의 `pointer-events: auto`(수정 후) | 1             | 0                        |
+  | 같은 조건으로 한 번 더(수정 후)      | 12            | 0                        |
+
+- **수정**: `closeWithEscape` 헬퍼가 창이 보인 뒤 `toHaveAttribute('style', /pointer-events: auto/)`를 기다렸다가 ESC를
+  누릅니다. 모달 Dialog에서는 `role="dialog"` 요소가 곧 DismissableLayer이고(`@radix-ui/react-dialog` 1.1.15
+  `dist/index.mjs:145`·`:221-223`), 이 인라인 스타일은 `index`가 맞춰진 그 렌더에서 처음 붙습니다(`dismissable-layer`
+  `:104`). 앱의 `DialogContent`와 `LoginDialog.tsx:27`은 인라인 스타일을 넘기지 않습니다.
+  - 처음 고른 신호인 "창 안으로 포커스가 들어옴"은 한 렌더 이릅니다. `FocusScope`의 자동 포커스는 목록 등록과 같은
+    `useEffect` 차례에 일어나고, 위 표의 1건이 그 틈입니다.
+  - 남는 틈: 스타일이 붙은 커밋과 그 뒤 `useEffect`(핸들러 갱신) 사이입니다. 측정으로는 잡히지 않았지만, 틈이 아예 없다는
+    것을 확인하지는 못했습니다.
+  - 택하지 않은 것: 닫힐 때까지 ESC를 되풀이(`toPass`)하면, 첫 ESC가 처리됐는데 닫힘 확인이 늦을 때 두 번째 ESC가 그다음에
+    뜬 이탈 확인창을 닫습니다. 앱 쪽 수정은 틈이 Radix 안에 있고 사람에게는 드러나지 않아 하지 않았습니다.
+- **같은 위험이 남은 곳**: Radix 창이 보이자마자 ESC를 누르는 곳이 `e2e/comment-icon-scroll.spec.ts:175`,
+  `e2e/post-detail-back-label.spec.ts:45`, `e2e/reduced-motion.spec.ts:63`에 있습니다. `e2e/dropdown-menu-scroll.spec.ts:96`은
+  메뉴 포커스만 기다리고, 그 주석의 "포커스가 있으면 리스너도 붙어 있다"는 맞지만 위와 같이 `index`는 아직일 수 있습니다.
+  2026-09-20~11-01 CI 집계에서 이 네 곳이 ESC 단계에서 실패한 적은 없어 이번에는 고치지 않았습니다.
+- **재발 방지**: 이 두 테스트는 병합 전 CI에서 한 번만 돌아 흔들림이 드러나지 않았습니다. PR이 직접 바꾼 e2e 스펙을 재시도
+  없이 10번 더 돌리는 단계를 넣었습니다(`docs/TESTING.md` "CI 연동").
+
+```mermaid
+sequenceDiagram
+  participant F as 피드 탭
+  participant W as 쓰는 탭 React
+  participant L as Radix DismissableLayer
+  participant T as e2e 테스트
+  F->>W: 로그아웃 알림(storage 이벤트)
+  W->>L: 렌더 ① 안내 창을 그림(아직 목록에 없음)
+  T->>T: toBeVisible 통과(수정 전에는 여기서 ESC)
+  L->>L: 렌더 ② 뒤 useEffect - 목록 등록, 창 안으로 포커스(포커스 확인은 여기서 ESC)
+  L->>L: 렌더 ③ index 맞춰짐, pointer-events auto 붙음
+  L->>L: 렌더 ③ 뒤 useEffect - ESC 핸들러가 새 index를 봄
+  T->>L: ESC(① 또는 ② 직후면 무시된다)
+  Note over T,L: 수정 후에는 ③의 pointer-events auto를 확인한 뒤 ESC를 누른다
 ```
 
 ---
