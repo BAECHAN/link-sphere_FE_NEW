@@ -1,3 +1,6 @@
+### 2026-11-01 (FE)
+- 최근 검색어 삭제 시 목록이 잔존하는 UI 오류 수정 ([#470](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/470))
+
 ### 2026-10-31 (BE)
 - 북마크 목록 조회 기능의 데이터 정합성 보장을 위해 PostgreSQL 기반의 통합 테스트 환경 구축 및 검증 완료 ([#144](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/144))
 
