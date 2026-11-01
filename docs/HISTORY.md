@@ -1,4 +1,7 @@
 ### 2026-11-01 (FE)
+- PR 템플릿에 본문 필수 절 검사 로직 및 "의도 대비 결과" 항목 추가 ([#474](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/474))
+
+### 2026-11-01 (FE)
 - 최근 검색어 삭제 시 목록이 잔존하는 UI 오류 수정 ([#470](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/470))
 
 ### 2026-10-31 (BE)
