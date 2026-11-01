@@ -40,6 +40,10 @@ export const NavbarSearch = ({
   // 안 거치므로 문제없지만, URL→input 미러(useNavbarSearch)가 /post→/bookmark 이동 시
   // 입력을 ''로 만들 때 포커스가 남아있으면 드롭다운이 저절로 열려버린다.
   const [isOpen, setIsOpen] = useState(false);
+  // 실제로 목록이 보이는지. 열린 채 마지막 검색어를 지우면(마우스 X·키보드·다른 탭) isOpen은
+  // true로 남지만 그릴 행이 없다 - 렌더링·aria-*·키 처리는 모두 이 값을 본다. isOpen 자체는
+  // 위 원칙대로 이벤트에서만 바뀌고, 여기서는 목록 개수와 합쳐 읽기만 한다.
+  const isListOpen = isOpen && recentSearches.length > 0;
   // row === recentSearches.length ⇒ "모두 지우기" 행. activeRow === null ⇒ 가상 포커스 없음
   // (실제 DOM 포커스는 항상 입력창에 머문다 - aria-activedescendant로만 가리킨다).
   const [activeRow, setActiveRow] = useState<number | null>(null);
@@ -148,7 +152,7 @@ export const NavbarSearch = ({
 
   const handleEscapeKey = () => {
     // 1단계: 드롭다운이 열려 있으면 닫기만 한다(입력값 보존).
-    if (isOpen) {
+    if (isListOpen) {
       setIsOpen(false);
       setActiveRow(null);
       return;
@@ -175,7 +179,7 @@ export const NavbarSearch = ({
       return;
     }
 
-    if (!isOpen) {
+    if (!isListOpen) {
       // 닫힌 상태의 ↓는 목록을 열면서 첫 검색어를 활성화한다 - WAI-ARIA APG Combobox의
       // Down Arrow, React Aria useComboBox의 open('first')와 같다(docs/SEARCH.md §5).
       // 열림 조건은 handleFocus와 같다(입력값 무관, 최근검색 1개 이상).
@@ -301,10 +305,13 @@ export const NavbarSearch = ({
         ref={inputRef}
         id="header-search-input"
         role="combobox"
-        aria-expanded={isOpen}
-        aria-controls={isOpen ? RECENT_SEARCH_GRID_ID : undefined}
+        // 팝업이 listbox(기본값)가 아니라 grid라 명시한다 - WAI-ARIA APG Combobox 패턴의
+        // aria-haspopup 규칙(https://www.w3.org/WAI/ARIA/apg/patterns/combobox/).
+        aria-haspopup="grid"
+        aria-expanded={isListOpen}
+        aria-controls={isListOpen ? RECENT_SEARCH_GRID_ID : undefined}
         aria-activedescendant={
-          isOpen && activeRow !== null ? getRecentSearchCellId(activeRow, activeCol) : undefined
+          isListOpen && activeRow !== null ? getRecentSearchCellId(activeRow, activeCol) : undefined
         }
         aria-autocomplete="none"
         autoComplete="off"
@@ -335,7 +342,7 @@ export const NavbarSearch = ({
           <span className="text-xs">/</span>
         </Kbd>
       )}
-      {isOpen && (
+      {isListOpen && (
         <RecentSearchDropdown
           recentSearches={recentSearches}
           activeRow={activeRow}

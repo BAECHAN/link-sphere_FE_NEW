@@ -48,12 +48,6 @@ export function RecentSearchDropdown({
     document.getElementById(id)?.scrollIntoView({ block: 'nearest' });
   }, [activeRow, activeCol]);
 
-  // NavbarSearch의 useEffect가 0개가 되면 isOpen을 닫지만 그 사이 한 프레임 동안 이
-  // 컴포넌트가 빈 배열로 렌더될 수 있다 - 그 프레임에 빈 그리드가 보이지 않게 가드한다.
-  if (recentSearches.length === 0) {
-    return null;
-  }
-
   const clearRow = recentSearches.length;
 
   return (
