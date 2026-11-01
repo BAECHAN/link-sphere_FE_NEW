@@ -203,6 +203,7 @@ features/<도메인>/<액션>/
 - [`docs/OPENAPI-CODEGEN.md`](docs/OPENAPI-CODEGEN.md) — BE OpenAPI 스펙에서 FE 응답 타입을 생성: 파이프라인, 드리프트 감지, override 패턴
 - [`docs/POST.md`](docs/POST.md) — 게시글: 피드·상세·작성·수정·삭제·공개 토글·좋아요와 mutation별 캐시 전략
 - [`docs/POST-DETAIL-BACK-NAVIGATION.md`](docs/POST-DETAIL-BACK-NAVIGATION.md) — 상세 페이지 돌아가기: 모바일 제거·데스크톱 비sticky, 유입 경로별 라벨
+- [`docs/PR-BODY-CHECK.md`](docs/PR-BODY-CHECK.md) — PR 본문 필수 절(요약·영향 범위·의도 대비 결과·검증) 검사: 무엇을 보고 안 보는지, 업계 사례 조사
 - [`docs/RUM.md`](docs/RUM.md) — 실사용자 모니터링(AWS CloudWatch RUM): 수집 구조, 운영 파라미터, 데이터 활용 루프
 - [`docs/SEARCH.md`](docs/SEARCH.md) — 게시글 검색: URL SSOT, 헤더 검색창 동기화, `@카테고리`·`#닉네임` 태그 분해
 - [`docs/UNSAVED-CHANGES-GUARD.md`](docs/UNSAVED-CHANGES-GUARD.md) — 저장하지 않은 입력이 있을 때 페이지 이탈을 막는 전역 가드

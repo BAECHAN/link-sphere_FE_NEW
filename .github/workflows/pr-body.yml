@@ -1,0 +1,38 @@
+name: PR Body Check
+
+# PR 본문에 필수 절(요약·영향 범위·의도 대비 결과 또는 계획 대비 구현·검증)이 있고 템플릿 안내문
+# 그대로가 아닌지만 본다. 절의 내용이 의도대로인지는 판단하지 않는다 - 병합을 승인하는 사람이 본다.
+# 판정 규칙은 scripts/lib/pr-body.js, 배경은 docs/PR-BODY-CHECK.md.
+#
+# ci.yml과 나눈 이유: 본문만 고친 edited 이벤트에 e2e까지 전체 CI를 다시 돌리지 않으려고. ci.yml은
+# 같은 브랜치의 새 실행이 이전 실행을 취소하므로(concurrency) 거기 edited를 더하면 본문을 고칠 때마다
+# 돌던 e2e가 취소되고 처음부터 다시 돈다. synchronize도 받는 건 새 커밋에도 이 체크 결과가 붙게 하려는 것이다.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+concurrency:
+  group: pr-body-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pr-body:
+    # dependabot PR은 본문 형식을 우리가 정하지 않는다
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: 필수 절 확인
+        # 본문은 PR 작성자가 쓰는 입력이라 run 안에 ${{ }}로 바로 넣지 않고 환경변수로 넘긴다
+        run: node scripts/check-pr-body.js
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
