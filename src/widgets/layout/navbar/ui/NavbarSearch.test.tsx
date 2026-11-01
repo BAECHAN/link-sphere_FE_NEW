@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { useState } from 'react';
 import { fireEvent, screen } from '@testing-library/react';
 import { renderWithProviders, userEvent } from '@/test/utils';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -461,6 +462,86 @@ describe('NavbarSearch — 최근검색 드롭다운', () => {
 
     expect(screen.getByRole('grid')).toBeInTheDocument();
     expect(input).toHaveValue('리액트');
+  });
+
+  it('팝업이 grid라 입력창에 aria-haspopup="grid"를 둔다', () => {
+    renderNavbarSearch('/post');
+
+    expect(screen.getByPlaceholderText(TEXTS.placeholders.postSearch)).toHaveAttribute(
+      'aria-haspopup',
+      'grid'
+    );
+  });
+});
+
+// 삭제하면 목록이 실제로 줄어야 하는 케이스용 - Navbar처럼 최근검색 상태를 들고 props로 내려준다.
+function StatefulNavbarSearch({
+  initialRecentSearches,
+  onAddRecentSearch = () => {},
+}: {
+  initialRecentSearches: string[];
+  onAddRecentSearch?: (query: string) => void;
+}) {
+  const [recentSearches, setRecentSearches] = useState(initialRecentSearches);
+
+  return (
+    <NavbarSearch
+      recentSearches={recentSearches}
+      onAddRecentSearch={onAddRecentSearch}
+      onRemoveRecentSearch={(query) => setRecentSearches((prev) => prev.filter((q) => q !== query))}
+      onClearRecentSearches={() => setRecentSearches([])}
+    />
+  );
+}
+
+describe('NavbarSearch — 최근검색을 마지막까지 지웠을 때', () => {
+  it('마우스로 마지막 검색어를 지우면 닫힌 상태(aria-expanded=false)가 된다', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<StatefulNavbarSearch initialRecentSearches={['리액트']} />, {
+      wrapperOptions: { initialEntries: ['/post'] },
+    });
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.postSearch);
+    await user.click(input);
+    await user.click(screen.getByLabelText(TEXTS.recentSearch.removeItem));
+
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+    expect(input).toHaveAttribute('aria-expanded', 'false');
+    expect(input).not.toHaveAttribute('aria-controls');
+  });
+
+  it('키보드로 마지막 검색어를 지워도 닫힌 상태가 된다', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<StatefulNavbarSearch initialRecentSearches={['리액트']} />, {
+      wrapperOptions: { initialEntries: ['/post'] },
+    });
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.postSearch);
+    await user.click(input);
+    await user.keyboard('{ArrowDown}{ArrowRight}{Enter}');
+
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+    expect(input).toHaveAttribute('aria-expanded', 'false');
+    expect(input).not.toHaveAttribute('aria-activedescendant');
+  });
+
+  it('마지막 검색어를 지운 뒤 ↓+Enter는 입력값으로 검색한다(제출이 막히지 않음)', async () => {
+    const user = userEvent.setup();
+    const onAddRecentSearch = vi.fn();
+    renderWithProviders(
+      <StatefulNavbarSearch
+        initialRecentSearches={['리액트']}
+        onAddRecentSearch={onAddRecentSearch}
+      />,
+      { wrapperOptions: { initialEntries: ['/post?q=리액트'] } }
+    );
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.postSearch);
+    await user.click(input);
+    await user.click(screen.getByLabelText(TEXTS.recentSearch.removeItem));
+    await user.keyboard('{ArrowDown}{Enter}');
+
+    expect(onAddRecentSearch).toHaveBeenCalledWith('리액트');
   });
 });
 

@@ -50,6 +50,13 @@
 
   </details>
 
+- `shared` 헤더 검색 최근 검색어를 마지막까지 지우면 목록이 열린 채로 남던 문제
+  <details><summary>배경·구현</summary>
+
+  드롭다운이 열린 채 마지막 검색어를 지우면(마우스 X, 키보드 모두) 목록은 사라지는데 화면 읽기 도구에는 여전히 "열림"(`aria-expanded=true`)으로 알렸고, 이 상태에서 ↓+Enter를 누르면 검색 제출까지 막혔다. 이제 목록이 실제로 보일 때(열림 상태이면서 최근 검색어가 1개 이상)만 열림으로 알리고, 그때만 목록을 그리고 키를 처리한다. 쓸모없어진 빈 목록 가드와 사실과 다른 주석을 지웠고, 팝업이 grid라는 것을 알리는 `aria-haspopup="grid"`도 입력창에 넣었다(WAI-ARIA APG Combobox 규칙). 경위는 `docs/SEARCH.md` §10. (`src/widgets/layout/navbar/ui/NavbarSearch.tsx`, `src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx`, `src/widgets/layout/navbar/ui/NavbarSearch.test.tsx`, `docs/SEARCH.md`, [PR #470](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/470))
+
+  </details>
+
 ### Security
 
 - `infra` Storybook을 운영 도메인에서 떼어 GitHub Pages로 옮기고 옛 주소는 404로

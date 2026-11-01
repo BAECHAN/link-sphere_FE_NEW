@@ -261,7 +261,7 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 봇 글 숨기기                                       | [`useHideBotsStore`](../src/shared/store/hideBots.store.ts) (zustand + localStorage)                           | 기기별 개인 설정이라 URL 대상 아님, "조건 N개" 카운트에서도 제외. 목록 조회는 `useDeferredValue`로 늦춘 값을 쓴다(§10)                                                                                                                                                                                                                                     |
 | 최근 검색어(모바일·데스크톱 공용)                  | [`useRecentSearches.ts`](../src/widgets/layout/navbar/hooks/useRecentSearches.ts) (localStorage)               | `Navbar`가 한 번만 구독해 양쪽에 props로 내려줌(바로 위 §5 문단 참고)                                                                                                                                                                                                                                                                                      |
 | 모바일 검색 패널 열림                              | `location.state.mobileSearchOpen`(React Router)                                                                | 구독자 4곳 — `Navbar`(패널 렌더, `useMobileSearchPanel` 경유), [`MobileCommentBar`](../src/features/comment/create/ui/MobileCommentBar.tsx)(같은 z층 겹침 숨김), [`CreatePostForm`](../src/features/post/create/ui/CreatePostForm.tsx)(등록 버튼 바, 같은 이유로 숨김), [`AppLayout`](../src/app/layouts/app-layout/AppLayout.tsx)(배경 `main` inert 차단) |
-| 데스크톱 드롭다운 열림(`isOpen`)                   | [`NavbarSearch.tsx`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx)의 로컬 `useState`                       | **이벤트(포커스/입력/blur/키보드)에서만 갱신 — 입력값에서 파생하거나 effect로 동기화하지 않는다.** ESC 2단계 재오픈 함정은 §10 참고                                                                                                                                                                                                                        |
+| 데스크톱 드롭다운 열림(`isOpen`)                   | [`NavbarSearch.tsx`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx)의 로컬 `useState`                       | **이벤트(포커스/입력/blur/키보드)에서만 갱신 — 입력값에서 파생하거나 effect로 동기화하지 않는다.** ESC 2단계 재오픈 함정은 §10 참고. 목록이 실제로 보이는지는 `isListOpen`(`isOpen && 최근검색 1개 이상`)으로 읽고, 렌더링·`aria-*`·키 처리는 모두 이 값을 본다(§10 "마지막 검색어를 지워도 열린 채")                                                      |
 | 데스크톱 드롭다운 활성 셀(`activeRow`/`activeCol`) | 같은 파일의 로컬 `useState`                                                                                    | `activeRow===recentSearches.length`는 "모두 지우기" 행. 실제 DOM 포커스는 항상 입력창에 머물고, 이 값은 `aria-activedescendant`로만 노출된다                                                                                                                                                                                                               |
 
 ## 7. 운영 파라미터
@@ -278,11 +278,11 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 하고 싶은 것                                                 | 파일:줄                                                                                                                                                                                                                                                                                                                                                             |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 헤더 입력값이 URL과 동기화되는 조건 바꾸기                   | [`useNavbarSearch.ts:19`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts#L19) — `isPostListPage` 판정                                                                                                                                                                                                                                                        |
-| 검색어 제출(경로·trim·filter 보존) 바꾸기 — 데스크톱         | [`NavbarSearch.tsx:53-90`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L53-L90) — `submitQuery`                                                                                                                                                                                                                                                                |
+| 검색어 제출(경로·trim·filter 보존) 바꾸기 — 데스크톱         | [`NavbarSearch.tsx:57-94`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L57-L94) — `submitQuery`                                                                                                                                                                                                                                                                |
 | 검색어 제출 바꾸기 — 모바일                                  | [`useMobileSearchPanel.ts:39-47`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L39-L47) — `handleSearchSubmit`(최근검색 기록 포함)                                                                                                                                                                                                                    |
 | X 버튼 동작 바꾸기                                           | 공통 [`useNavbarSearch.ts`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts)의 `handleClear`(입력 비움 + `/post`면 URL `q` 해제), 데스크톱 [`NavbarSearch.tsx`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx)의 `handleClearClick`, 모바일 [`MobileNavbarSearch.tsx`](../src/widgets/layout/navbar/ui/MobileNavbarSearch.tsx)의 `handleTrailingIconClick` |
-| 데스크톱 드롭다운 열림/닫힘 규칙(포커스·입력·blur) 바꾸기    | [`NavbarSearch.tsx:102-128`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L102-L128) — `handleChange`/`handleFocus`/`handleBlur`                                                                                                                                                                                                                                |
-| 데스크톱 드롭다운 키보드(ESC 2단계·화살표·Enter) 바꾸기      | [`NavbarSearch.tsx:165-295`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L165-L295) — `handleKeyDown`                                                                                                                                                                                                                                                          |
+| 데스크톱 드롭다운 열림/닫힘 규칙(포커스·입력·blur) 바꾸기    | [`NavbarSearch.tsx:106-132`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L106-L132) — `handleChange`/`handleFocus`/`handleBlur`                                                                                                                                                                                                                                |
+| 데스크톱 드롭다운 키보드(ESC 2단계·화살표·Enter) 바꾸기      | [`NavbarSearch.tsx:169-299`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L169-L299) — `handleKeyDown`                                                                                                                                                                                                                                                          |
 | 드롭다운 목록 마크업(헤더 고정·행·삭제 버튼) 바꾸기          | [`RecentSearchDropdown.tsx`](../src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx)                                                                                                                                                                                                                                                                              |
 | 카드의 카테고리 배지를 눌렀을 때 동작 바꾸기                 | [`usePostCard.ts`](../src/widgets/post/post-card/hooks/usePostCard.ts) — `handleCategoryClick`, 배지 마크업은 [`PostCard.tsx:308`](../src/widgets/post/post-card/ui/PostCard.tsx#L308) 이하                                                                                                                                                                         |
 | `@카테고리`/`#닉네임`/키워드 분해 규칙 바꾸기                | [`search-parser.ts`](../src/widgets/post/post-list/utils/search-parser.ts) — `parseSearchQuery`                                                                                                                                                                                                                                                                     |
@@ -357,6 +357,9 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
   - 녹화 전용 Playwright 스펙(API 모킹, 1280px)으로 두 흐름을 녹화했다. 목록을 1500px 내린 채 같은 검색어를 다시
     고르면 맨 위(0)로 간다 — replace를 빼고 push로 되돌린 코드에서도 0이라 스크롤 동작은 바뀌지 않았고, push
     쪽은 뒤로가기 뒤에도 같은 `?q=리액트`에 머물러 기록 중복이 재현됐다.
+- 마지막 검색어를 지워도 열린 채 남던 문제·`aria-haspopup`(2026-11-01, §10): `NavbarSearch.test.tsx`에 4케이스(마우스로
+  마지막 항목 삭제 → `aria-expanded=false`, 키보드로 삭제 → 같음, 삭제 뒤 ↓+Enter가 검색 제출, `aria-haspopup="grid"`)를
+  추가했고, 넷 다 수정 전 코드에서 실패했다.
 
 ## 10. 시행착오
 
@@ -678,6 +681,21 @@ LCP 전체 측정과 다른 개선 후보는 [`PERFORMANCE.md`](./PERFORMANCE.md
 - 검증: `NavbarSearch.test.tsx`에 재선택 케이스 2개(입력창이 채워지는지, 뒤로가기 한 번에 이전 주소로 가는지)를
   추가했고, 둘 다 수정 전 코드에서 실패하는 것을 확인했다.
 
+**마지막 검색어를 지워도 열린 채 남음(2026-11-01).** 위 수정 중에 발견해 바로 이어서 고쳤다.
+
+- 증상: 드롭다운이 열린 채 마지막 검색어를 지우면(마우스 X, 키보드 →+Enter 모두) 목록은 사라지는데 입력창은
+  `aria-expanded=true`로 남았다. 이때 ↓+Enter를 누르면 Enter가 "없는 행"을 고르려다 멈춰 폼 제출까지 막혔다.
+- 원인: `isOpen`은 이벤트에서만 바뀌는데 삭제 이벤트는 이를 닫지 않았다. `RecentSearchDropdown`은 0개면 `null`을
+  그려 빈 그리드만 숨겼고, 그 자리의 주석은 "`NavbarSearch`의 useEffect가 0개가 되면 닫는다"고 적었지만 그런
+  effect는 없었다.
+- 수정: `NavbarSearch`가 `isListOpen = isOpen && recentSearches.length > 0`을 두고 렌더링·`aria-expanded`·
+  `aria-controls`·`aria-activedescendant`·키 처리(ESC 1단계 포함)를 모두 이 값으로 판단한다. 삭제 핸들러마다 닫는
+  코드를 넣는 대신 한 줄로 마우스·키보드·다른 탭에서 비운 경우를 함께 덮는다. `isOpen`은 여전히 이벤트에서만
+  바뀐다. 이제 0개로 그려질 일이 없어 `RecentSearchDropdown`의 가드와 틀린 주석은 지웠다.
+- 같은 작업에서 입력창에 `aria-haspopup="grid"`를 넣었다. [APG Combobox](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/)는
+  _"팝업 역할이 listbox가 아니면, combobox 요소의 aria-haspopup을 팝업 종류에 맞는 값으로 지정한다"_ (번역)고 하고,
+  기본값이 listbox라 grid 팝업은 따로 밝혀야 한다.
+
 ## 11. 남은 것
 
 - **첫 방문이나 7일 넘게 지난 재방문에서 카테고리 응답이 게시글보다 늦으면 칩은 여전히 늦게 들어와 밀린다.**
@@ -710,11 +728,6 @@ LCP 전체 측정과 다른 개선 후보는 [`PERFORMANCE.md`](./PERFORMANCE.md
   의도적으로 유지하기로 한 것이다(뒤로가기 시 이전 검색어가 input에 복원되는 이점). 단 주소가 그대로인
   재제출(지금 검색 중인 검색어를 다시 고름)은 2026-11-01부터 replace한다 — 같은 주소의 칸은 같은 검색어만
   다시 보여줘 이 이점이 없다(§10).
-- 데스크톱 드롭다운에서 발견만 하고 고치지 않은 것(2026-11-01): ① 마우스로 X를 눌러 마지막 항목까지 지우면
-  `isOpen`이 `true`로 남아 `aria-expanded=true`인데 목록은 안 그려진다. 이때 ↓+Enter는 폼 제출까지 막힌다.
-  ② [`RecentSearchDropdown.tsx:51-52`](../src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx#L51-L52) 주석이
-  말하는 "0개가 되면 닫는 useEffect"가 지금 `NavbarSearch.tsx`에는 없다. ③ 입력창에 `aria-haspopup="grid"`가 없다 — APG는 팝업이
-  listbox가 아니면 지정하라고 한다.
 - 데스크톱 제출은 `URLSearchParams.toString()` 인코딩(공백→`+`)을 쓰고, 다른 페이지에서
   `/post`로 이동하는 분기는 여전히 `encodeURIComponent`(공백→`%20`)를 쓴다 — 디코딩
   결과는 같아 기능상 문제는 없지만 URL 문자열이 갈린다.
