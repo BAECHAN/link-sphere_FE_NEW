@@ -27,6 +27,13 @@
 
 ### Changed
 
+- `user` 프로필 메뉴에서 "계정 설정"을 "내 댓글" 위로
+  <details><summary>배경·구현</summary>
+
+  내비게이션 바 프로필(아바타)을 누르면 열리는 메뉴의 순서를 "내 댓글 → 계정 설정"에서 "계정 설정 → 내 댓글"로 바꿨다(2026-11-02 사용자 요청). 로그아웃은 그대로 구분선 아래 맨 끝이다. (`src/widgets/layout/navbar/ui/Navbar.tsx`, [PR #484](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/484))
+
+  </details>
+
 - `shared` 가입·글 등록·수정 요청 중 이탈 확인창을 "이미 요청했어요" 문구로
   <details><summary>배경·구현</summary>
 
