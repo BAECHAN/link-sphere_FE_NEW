@@ -2,9 +2,10 @@
  * Lighthouse CI의 puppeteerScript — 로그인 필요 페이지를 측정하기 전에 자동으로 로그인한다.
  * https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/configuration.md#puppeteerscript
  *
- * 테스트 계정은 `tester_new_999@example.com`을 쓴다. README `## 테스트 계정`의 계정은
- * 실사용자 데이터(폴더·북마크)가 쌓인 수동 QA용이라 2026-09-11 사고 이후 자동화에서
- * 배제됐다(docs/TESTING.md "로그인 계정" 절 참고).
+ * 테스트 계정은 `tester_new_999@example.com`을 쓴다. README `## 데모 계정`의 계정은
+ * 비밀번호가 공개된 공유 계정이라 쓰지 않는다(예전 README 계정은 실사용자 데이터가 쌓인
+ * 수동 QA용이라 2026-09-11 사고 이후 자동화에서 배제됐다 — browser-verification skill
+ * "로그인 계정" 절 참고).
  *
  * 비밀번호는 코드에 남기지 않고 환경변수(LH_TEST_PASSWORD)로만 받는다 — 로컬에서는
  * 실행 직전에 셸에서 export, CI에서는 GitHub Actions secret으로 주입한다.

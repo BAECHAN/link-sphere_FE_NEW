@@ -51,6 +51,10 @@ function resolveAccountUpdateErrorMessage(error: unknown): string {
     if (error.status === 429) {
       return TEXTS.messages.error.rateLimited;
     }
+    // 데모 계정처럼 프로필 수정 권한이 없는 역할(BE MemberRole)
+    if (error.code === SERVER_ERROR_CODE.ACCESS_DENIED) {
+      return TEXTS.messages.error.accessDenied;
+    }
     return TEXTS.messages.error.accountUpdateFailed;
   }
   if (error instanceof UserFacingError) {
@@ -154,6 +158,9 @@ export const useDeleteAccountMutation = () => {
 
       if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.INVALID_CREDENTIALS) {
         toast.error(TEXTS.messages.error.currentPasswordMismatch);
+      } else if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.ACCESS_DENIED) {
+        // 데모 계정처럼 탈퇴 권한이 없는 역할(BE MemberRole)
+        toast.error(TEXTS.messages.error.accessDenied);
       } else {
         toast.error(TEXTS.messages.error.accountDeleteFailed);
       }

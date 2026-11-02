@@ -18,7 +18,7 @@
 페이지를 크롤링하고 Gemini AI가 요약·태그를 붙인다. 다른 사용자는 그 글에 댓글·좋아요를 달고,
 마음에 드는 글을 북마크 폴더로 정리한다. RSS 봇이 외부 피드에서 글을 자동으로 올리기도 한다.
 
-- 배포 URL·테스트 계정·Storybook·API 문서(Swagger UI) 주소: [FE README](../README.md) 맨 위
+- 배포 URL·데모 계정·Storybook·API 문서(Swagger UI) 주소: [FE README](../README.md) 맨 위
 - 서비스 한 줄 소개와 AI·검색 방식: [BE README](https://github.com/BAECHAN/link-sphere_BE_NEW#readme) 맨 위
 
 ## 2. 전체 그림
@@ -66,7 +66,7 @@ flowchart LR
    Lambda Function URL을 직접 쓰면 403이다. 형식 근거는 `vite.config.ts`의 `server.proxy` 주석)
 3. FE `.env`는 `cp .env.example .env`로 만들고, 비어 있는 Firebase 값은 관리자에게 받는다. BE 비밀값(Supabase·Gemini 등
    `application-secret.yml`)은 레포에 없다 — 프로젝트 관리자에게 받는다.
-4. 브라우저에서 테스트 계정으로 로그인해 아래 기능 지도의 화면을 한 번씩 눌러 본다.
+4. 브라우저에서 README의 데모 계정으로 로그인해 아래 기능 지도의 화면을 한 번씩 눌러 본다. 계정 설정(닉네임·비밀번호 변경, 탈퇴)은 데모 계정이라 막혀 있다(BE `MemberRole`).
 
 ## 5. 기능 지도
 

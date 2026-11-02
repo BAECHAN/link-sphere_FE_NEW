@@ -273,6 +273,32 @@ describe('useChangePasswordMutation', () => {
     expect(reregisterFcmTokenIfGranted).toHaveBeenCalledTimes(1);
     expect(requestAndRegisterFcmToken).not.toHaveBeenCalled();
   });
+
+  // 데모 계정처럼 비밀번호 변경 권한이 없는 역할(BE MemberRole) - manualErrorHandling이라 전역 문구가 뜨지 않는다
+  it('권한이 없는 역할(ACCESS_DENIED)이면 접근 권한이 없다고 안내한다', async () => {
+    server.use(
+      http.patch(url(API_ENDPOINTS.auth.changePassword), () =>
+        HttpResponse.json(
+          { status: 403, code: 'ACCESS_DENIED', message: 'Access is denied' },
+          { status: 403 }
+        )
+      )
+    );
+    mockToastError.mockClear();
+
+    const { result } = renderHook(() => useChangePasswordMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({
+        currentPassword: 'demoPassword1!',
+        newPassword: 'newPassword1!',
+        confirmPassword: 'newPassword1!',
+      });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(mockToastError).toHaveBeenCalledWith(TEXTS.messages.error.accessDenied);
+  });
 });
 
 describe('useCreateAccountMutation', () => {

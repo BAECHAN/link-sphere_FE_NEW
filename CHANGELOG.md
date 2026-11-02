@@ -11,6 +11,13 @@
 
 ### Added
 
+- `auth` README 데모 계정과, 계정 설정이 막힌 역할이면 "접근 권한이 없어요." 안내
+  <details><summary>배경·구현</summary>
+
+  README에 공개한 테스트 계정은 비밀번호가 공개돼 누구나 비밀번호를 바꾸거나 탈퇴시켜 계정을 뺏을 수 있었다. BE가 역할·권한 체계를 넣어 데모 계정(`DEMO` 역할)은 계정 설정 4개 API가 403 `ACCESS_DENIED`가 됐고(BE PR #151), README는 그 데모 계정(`demo@linksphere.click`)으로 바꿨다. 비밀번호 변경·프로필 수정·탈퇴 mutation은 `manualErrorHandling`이라 전역 핸들러의 같은 문구가 뜨지 않아, 각 `onError`에서 `ACCESS_DENIED`면 기존 `TEXTS.messages.error.accessDenied`를 띄운다(이전에는 "비밀번호 변경에 실패했어요" 같은 일반 실패 문구였다). `Account.role` 타입에 `'DEMO'`를 더했고, OpenAPI 스냅샷은 BE 설명 변경(403 표기)만 반영됐다. 계획 `docs/plans/2026-11-02-safety-net-top3.md` Phase E. (`entities/auth/api/auth.queries.ts`, `entities/account/api/account.queries.ts`, `entities/account/model/account.dto.ts`, `shared/api/generated/openapi.*`, `README.md`, [PR #479](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/479))
+
+  </details>
+
 - `auth` 앱을 열 때 로그인이 이미 만료돼 있었으면 닫을 때까지 남는 안내 토스트
   <details><summary>배경·구현</summary>
 

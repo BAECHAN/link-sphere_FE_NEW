@@ -25,18 +25,22 @@ https://baechan.github.io/link-sphere_BE_NEW/api-docs/
 
 BE 저장소가 main 병합마다 OpenAPI 스펙을 만들어 GitHub Pages에 올리는 읽기 전용 문서입니다("Try it out" 없음).
 
-## 테스트 계정
+## 데모 계정
+
+누구나 써 볼 수 있는 공개 계정입니다. 링크 등록·댓글·북마크·좋아요는 그대로 해 볼 수 있고, 계정 설정(닉네임·사진
+변경, 비밀번호 변경, 탈퇴)은 막혀 있어 "접근 권한이 없어요." 안내가 뜹니다. 다른 방문자도 같은 계정을 쓰므로 글이
+바뀌어 있을 수 있습니다.
 
 ### ID
 
 ```
-test_account@linksphere.com
+demo@linksphere.click
 ```
 
 ### PW
 
 ```
-Gk8#pW2!vN9x
+zU@0%B96T+7L8Pqh
 ```
 
 ## 시작하기

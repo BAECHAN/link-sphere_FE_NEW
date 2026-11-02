@@ -54,8 +54,8 @@ SKIP_CSP_INJECTION=1 pnpm build
 pnpm perf:lh:auth
 ```
 
-- 테스트 계정은 `tester_new_999@example.com`을 쓴다. README `## 테스트 계정`의
-  계정(수동 QA용, 실사용자 데이터 있음)이 아니다 — 이유는
+- 테스트 계정은 `tester_new_999@example.com`을 쓴다. README `## 데모 계정`의
+  계정(비밀번호가 공개된 공유 계정)이 아니다 — 이유는
   `.claude/skills/browser-verification/SKILL.md`의 "로그인 계정" 절과 같다(정정,
   2026-09-29: `docs/TESTING.md`에는 자체 "로그인 계정" 절이 없고, 그 문서도 같은
   skill 파일의 절을 가리킨다).

@@ -1532,9 +1532,10 @@ await expect(page.getByRole('button', { name: TEXTS.post.detail.backToList })).t
 공식 [Authentication 가이드](https://playwright.dev/docs/auth)의 `storageState` 패턴을
 이 레포 사정에 맞게 적용했다).
 
-**계정 주의**: 아래 "테스트 계정으로 최초 로그인"은 README.md `## 테스트 계정` 섹션의
-계정을 가리키는 게 아니다 — 그 계정은 사람이 오래 써온 수동 QA용이라 운영 데이터처럼
-쌓인 폴더·북마크가 있다. 이 절차(에이전트 세션의 자동화된 시각 검증)에는 운영 데이터가
+**계정 주의**: 아래 "테스트 계정으로 최초 로그인"은 README.md `## 데모 계정` 섹션의
+계정을 가리키는 게 아니다 — 그 계정은 비밀번호가 공개된 공유 계정이라 방문자가 데이터를
+바꿔 둘 수 있고 계정 설정은 403이다(2026-11-02 전 README에 있던 수동 QA용 계정도 운영
+데이터처럼 쌓인 폴더·북마크가 있어 쓰지 않았다). 이 절차(에이전트 세션의 자동화된 시각 검증)에는 운영 데이터가
 없는 `tester_new_999@example.com`을 쓴다(2026-09-11, README 계정으로 검증하다 실제
 북마크가 삭제된 사고 이후 구분을 명시함 — 상세: `.claude/skills/browser-verification/SKILL.md`
 "로그인 계정" 절).
