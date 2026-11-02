@@ -1,3 +1,6 @@
+### 2026-11-02 (FE)
+- 회원가입 프로세스 개선: 가입 요청 중 이탈 방지 로직 적용 및 요청 중 상태를 명확히 알리는 확인창 문구 도입 ([#481](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/481))
+
 ### 2026-11-02 (BE)
 - 인증 및 비밀번호 재설정 메일 내 연결 경로를 FE 라우팅 경로(/auth/...)로 최적화하여 사용자 접근성 개선 ([#153](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/153))
 
