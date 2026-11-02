@@ -146,6 +146,12 @@ RootLayout
 명확한 의도이기 때문). `saveEmail` 체크박스의 초기 체크 여부는 이 값과 무관하게 `saved-email`
 존재 여부만 그대로 반영합니다.
 
+탈퇴를 신청해 유예 중인 이메일도 이 경로를 탑니다. BE가 유예 동안 원래 이메일을 남겨 두므로 가입 화면에는
+"이미 가입된 이메일"로 확인되고, 그 문구(`TEXTS.auth.signup.emailDuplicate`)가 로그인하면 탈퇴를 취소할 수
+있다고 함께 알립니다. 그 이메일이 탈퇴 중인지는 드러내지 않습니다. 로그인 링크가 이메일을 실어 보내므로 비밀번호만
+넣으면 복구됩니다(복구 토스트는 §8-E). 재가입 정책 전체는 BE
+[`docs/ACCOUNT-DELETION.md` §5-3](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/ACCOUNT-DELETION.md#5-3-재가입-정책-2026-11-02)에 있습니다.
+
 **절대 저장하지 않는 것**: 액세스 토큰(어떤 스토리지에도 없음, 메모리 전용), 리프레시 토큰(JS가 못 만짐), 계정 정보(React Query 캐시에만, `accountKeys.root`) — 게이트 D가 보는 `account.emailVerified`도 이 캐시 안에 있고 `useAuthStore`에는 없습니다.
 
 **비밀번호 변경 시 세션 회전**: `useChangePasswordMutation`(`auth.queries.ts`)의 `onSuccess`가 BE가 새로 발급한 세션으로 `setAuth(data.accessToken)`을 호출합니다 — BE가 비밀번호 변경 시 이 기기를 포함한 세션 회전 계열(familyId)을 새로 만들고 다른 기기의 세션은 전부 폐기하기 때문입니다. 로그인·refresh와 마찬가지로 `useAuthStore`의 `accessToken`을 갱신하는 세 번째 트리거입니다.

@@ -27,6 +27,13 @@
 
 ### Changed
 
+- `auth` 가입 중복 문구에 탈퇴 취소 방법, 탈퇴 안내에 재가입 정책 추가
+  <details><summary>배경·구현</summary>
+
+  탈퇴를 신청하면 유예 14일(정리 배치 대기로 최대 18일) 동안 같은 이메일로 가입할 수 없는데, 가입 화면에는 "이미 가입된 이메일이에요."만 떠서 로그인하면 탈퇴가 취소된다는 걸 알 수 없었다. 그 문구 뒤에 "탈퇴를 신청했다면 로그인해서 취소할 수 있어요."를 붙였다 — 그 이메일이 탈퇴 중인지는 드러내지 않는다. 계정 설정의 회원 탈퇴 안내에는 "탈퇴가 끝난 뒤 같은 이메일로 다시 가입하면 새 계정이 되고, 이전 글·댓글과는 연결되지 않아요."를 더했다. 재가입 정책(유예 동안만 막고 퍼지 뒤엔 바로 허용)과 업계 조사는 BE `docs/ACCOUNT-DELETION.md` §5-3([BE PR #156](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/156)), 계획은 [`docs/plans/2026-11-02-resignup-email-policy.md`](docs/plans/2026-11-02-resignup-email-policy.md). 힌트를 에러 줄에 이어 붙일지(A) 회색 보조 줄로 따로 둘지(B)는 미리보기로 비교해 A를 골랐다(2026-11-02 사용자 선택) — 공용 `FormField`를 바꾸지 않고, 에러가 모바일·데스크톱 모두 두 줄이 된다(실측). (`src/shared/config/texts.ts`, `docs/AUTH.md`, `docs/MYPAGE.md`, [PR #486](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/486))
+
+  </details>
+
 - `user` 프로필 메뉴에서 "계정 설정"을 "내 댓글" 위로
   <details><summary>배경·구현</summary>
 

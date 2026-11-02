@@ -106,7 +106,9 @@ export const TEXTS = {
       // 화면이라 키를 공유하지 않는다
       checking: '확인 중이에요...',
       emailAvailable: '사용 가능한 이메일이에요.',
-      emailDuplicate: '이미 가입된 이메일이에요.',
+      // 탈퇴 유예 중인 이메일도 가입이 막혀 이 문구가 뜬다 - 그 이메일이 탈퇴 중인지는 드러내지 않고
+      // 복구 방법만 함께 알린다(재가입 정책: link-sphere_BE_NEW docs/ACCOUNT-DELETION.md §5-3)
+      emailDuplicate: '이미 가입된 이메일이에요. 탈퇴를 신청했다면 로그인해서 취소할 수 있어요.',
       nicknameAvailable: '사용 가능한 닉네임이에요.',
       // 확인 문구가 없을 때 그 줄을 채우는 평소 안내 - 닉네임은 account.schema.ts의
       // nicknameValidationSchema 규칙과 맞춘다
@@ -204,8 +206,10 @@ export const TEXTS = {
     deleteSectionTitle: '회원 탈퇴',
     // 14는 BE AccountDeletionService.GRACE_PERIOD(link-sphere_BE_NEW)와 반드시 같은 값이어야
     // 한다 - 자동 동기화 장치는 없으므로 그쪽을 바꾸면 이 문구도 같이 바꾼다.
+    // 마지막 문장은 재가입 정책(BE docs/ACCOUNT-DELETION.md §5-3) - 정리 배치가 4일마다 돌아 실제로는
+    // 최대 18일까지 같은 이메일이 막히므로 "14일 뒤"라고 날짜를 약속하지 않는다.
     deleteSectionDescription:
-      '탈퇴를 신청하면 바로 로그아웃되고, 작성한 글과 댓글은 "탈퇴한 사용자"로 표시돼요. 14일 안에 다시 로그인하면 탈퇴가 취소돼요. 14일이 지나면 북마크·좋아요·조회 기록이 삭제되고 되돌릴 수 없어요.',
+      '탈퇴를 신청하면 바로 로그아웃되고, 작성한 글과 댓글은 "탈퇴한 사용자"로 표시돼요. 14일 안에 다시 로그인하면 탈퇴가 취소돼요. 14일이 지나면 북마크·좋아요·조회 기록이 삭제되고 되돌릴 수 없어요. 탈퇴가 끝난 뒤 같은 이메일로 다시 가입하면 새 계정이 되고, 이전 글·댓글과는 연결되지 않아요.',
     deleteSubmit: '회원 탈퇴',
     deleteSubmitting: '탈퇴 중...',
     deleteConfirmMessage: '정말 탈퇴하시겠어요? 14일 안에 다시 로그인하면 취소할 수 있어요.',
