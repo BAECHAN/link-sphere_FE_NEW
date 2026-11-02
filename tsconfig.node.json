@@ -27,6 +27,7 @@
     "vitest.config.ts",
     "vitest.unit.ts",
     "vitest.stryker.config.ts",
-    "dev-server.config.ts"
+    "dev-server.config.ts",
+    "orval.config.ts"
   ]
 }

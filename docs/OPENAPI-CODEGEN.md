@@ -6,9 +6,10 @@
 > 추가해야 하는 개발자.
 >
 > 읽고 나면: 응답 타입이 어디서 오는지, 새 엔티티를 추가할 때 무엇을 만들어야 하는지,
-> BE 스펙이 바뀌면 무슨 일이 일어나는지, BE nullable 정보가 왜 가끔 유실되는지 알게 된다.
+> BE 스펙이 바뀌면 무슨 일이 일어나는지, BE nullable 정보가 왜 가끔 유실되는지, BE 입력 제약 값(길이·개수·패턴)을
+> FE가 어떻게 맞추는지(§5-6) 알게 된다.
 >
-> 마지막 검토: 2026-10-30
+> 마지막 검토: 2026-11-02
 
 ## 1. 쉬운 설명
 
@@ -43,10 +44,13 @@ flowchart TD
     SCHEMA["entities/&lt;e&gt;/model/&lt;e&gt;.schema.ts<br/>(폼 검증 Zod + 응답 타입 재수출)"]
     CONSUMERS["소비 파일<br/>(*.api.ts 등, import 경로 불변)"]
     SPEC["shared/api/spec-client.ts<br/>(스펙 경로 → 요청·응답 타입, §5-2)"]
+    ZOD["openapi.zod.ts<br/>(orval, 요청 본문 제약 상수)"]
+    CT["entities/&lt;e&gt;/config/&lt;e&gt;.contract.test.ts<br/>(손으로 둔 상수 ≡ 생성 상수, §5-6)"]
 
     BE -->|fetch| FETCH -->|"servers 제거 + 키 정렬"| JSON
     JSON --> CODEGEN --> GEN --> DTO --> SCHEMA --> CONSUMERS
     GEN --> SPEC -->|"*.api.ts가 호출"| CONSUMERS
+    JSON -->|"orval (pnpm codegen 안)"| ZOD -->|"테스트에서만 import"| CT
 
     L1["CI 게이트(ci.yml)<br/>커밋된 json→ts 재생성 일치?<br/>네트워크 X, 결정론적"]
     L2["cron(openapi-drift-check.yml)<br/>커밋된 json = 운영 스펙?<br/>이슈로만 보고"]
@@ -85,6 +89,11 @@ flowchart TD
     MSW 기본 핸들러의 경로·응답을 검사한다(§5-5, 2026-10-30 추가)
   - `specClient`(`src/shared/api/spec-client.ts`) — 생성된 `paths`로 `*.api.ts`의 경로와 요청·응답
     타입을 묶는 자체 래퍼. 기존 `apiClient`를 그대로 호출한다(§5-2, 2026-10-30 추가)
+  - [`orval`](https://www.npmjs.com/package/orval) 8.46.0 — zod 모드로 요청 본문의 입력 제약 상수
+    (`signupBodyPasswordMin` 등)를 생성한다. 계약 테스트만 쓴다(§5-6, 2026-11-02 추가)
+  - BE `CommentLimits`·`BookmarkFolderLimits`·`PasswordPattern` — 서비스·DTO가 같이 참조하는 입력 제약 상수.
+    DTO의 문서 전용 어노테이션(`@field:Schema(maxLength)`·`@field:ArraySchema(maxItems)`·`x-max-bytes` 확장)이
+    그 값을 스펙에 싣는다(BE #152, BE `docs/BE-ARCHITECTURE.md` §7-12)
 - **구현·검증 과정에서 쓴 도구**: `jq`(스펙 구조 확인·대조), `curl`(운영 스펙·실제 API
   응답 직접 확인), 로컬 `./gradlew bootRun`(BE 컨버터 실측), Python(`json` 모듈로 스펙
   전후 구조적 diff 확인)
@@ -146,7 +155,9 @@ pnpm codegen         # 네트워크 X — openapi.json → openapi.gen.ts, CI가
 정규화·WAF 403 판별 같은 로직을 custom mutator로 다시 감싸야 해서 이점이 사라진다.
 `openapi-zod-client`도 검토했으나, 이 레포는 응답에 `.parse()`를 쓴 적이 없어(§9) 쓰지
 않는 런타임 코드가 번들에 들어가고, 기존 Zod에 섞인 FE 전용 검증(댓글 바이트 상한 등)은
-생성물이 재현 못 해 결국 Zod가 두 벌이 된다.
+생성물이 재현 못 해 결국 Zod가 두 벌이 된다. (정정(2026-11-02): 댓글 바이트 상한은 FE 전용 검증이 아니다 — BE도
+같은 값으로 검사한다(BE `CommentService`, 상수는 `CommentLimits.MAX_CONTENT_BYTES`). 지금은 스펙의 `x-max-bytes`로
+값이 실린다, §5-6.)
 
 **2026-10-30 추가 — 경로가 타입을 정하는 `specClient`**. 타입만 생성한다는 결정은 그대로지만, `*.api.ts`가
 생성 타입을 쓰는 방식을 바꿨다. 전에는 ``apiClient.get<Post>(`${API_ENDPOINTS.post.base}/${id}`)``처럼
@@ -181,6 +192,22 @@ URL 문자열과 응답 타입 `T`를 따로 적어서, 엉뚱한 경로에 엉�
 | BE가 실제로 스펙과 다르게 응답                                             | 통과 — 런타임 검증은 하지 않는다(위 결정) |
 | 오류 응답(`ErrorResponse`)의 모양                                          | 대상 아님 — 스펙에 없다(§11)              |
 
+**2026-11-02 추가 — orval zod로 제약 상수**. 응답 타입은 그대로 `openapi-typescript`가 만들고, 요청 본문의 입력 제약
+값(닉네임·비밀번호 길이와 패턴, 폴더 이름 15자, 댓글 이미지 5장)만 orval zod 모드로 상수를 생성한다. 그 전까지 FE는
+이 값들을 손으로 적고 "BE와 같은 값" 주석으로만 맞췄다. 위에서 기각한 orval은 react-query 훅 생성이었다. 이번에는 같은
+도구를 zod 모드, 요청 본문만으로 좁혀 쓴다(`orval.config.ts`의 `override.zod.generate`).
+
+| 안                                 | 판정                             | 근거                                                                                                                                                                                                                                                                            |
+| ---------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **orval zod, 요청 본문만**         | **채택**(2026-11-02 사용자 결정) | 상수 이름이 `<operationId>Body<필드><Min\|Max\|RegExp>`로 정해져 어느 요청의 어느 필드인지 바로 보인다                                                                                                                                                                          |
+| orval zod + react-query + MSW 생성 | 보류(§11 재검토 조건)            | 2026-11-02 실제로 생성해 보니 쿼리 키가 URL 문자열이라 `['post']` 묶음 무효화가 깨지고, 반환 타입이 봉투째(`res.data.data`)이고, 이미지 선업로드 두 단계 mutation에 맞지 않고, MSW 목이 faker 무작위 값이었다                                                                   |
+| typed-openapi                      | 기각                             | 주력이 API 클라이언트라 `openapi-typescript`·`specClient`와 겹친다. 2026-11-02 [npm 다운로드 API](https://api.npmjs.org/downloads/point/last-month/typed-openapi) 조회로 지난 한 달 약 32만(같은 날 [orval](https://api.npmjs.org/downloads/point/last-month/orval) 약 1,004만) |
+| openapi-zod-client                 | 기각                             | [README](https://github.com/astahmer/openapi-zod-client)가 deprecated라고 밝힌다(2026-11-02 확인)                                                                                                                                                                               |
+| 상수만 뽑는 자체 스크립트(약 50줄) | 기각(2026-11-02 사용자 결정)     | zod가 섞이지 않아 번들 걱정은 없지만 직접 만든 코드를 유지해야 하고, 나중에 orval의 다른 생성으로 넘어갈 길이 없다                                                                                                                                                              |
+
+생성 스키마(`zod.object(...)`)는 쓰지 않는다. 에러 문구가 영어 기본값이고, 부분 수정 API라 `nickname`이 `nullish`인데
+폼에서는 필수다. 생성 상수도 런타임에서는 쓰지 않는다 — 계약 테스트가 손으로 둔 상수와 대조하는 데만 쓴다. 이유는 §5-6.
+
 ### 5-3. 생성물 배치 — `shared/api/generated/`, 배럴 없음
 
 ```
@@ -189,8 +216,9 @@ src/shared/api/
 ├── spec-types.ts    (§5-2, 타입만)
 ├── spec-client.ts   (§5-2)
 └── generated/
-    ├── openapi.json  (커밋)
-    └── openapi.gen.ts (커밋)
+    ├── openapi.json   (커밋)
+    ├── openapi.gen.ts (커밋)
+    └── openapi.zod.ts (커밋, orval — 계약 테스트 전용, §5-6)
 ```
 
 처음에는 이름 없는 응답(`Map` 등)의 `data`를 꺼내는 수기 헬퍼 `api.type.ts`(`Unwrap`)도 있었다. 마지막 사용처였던
@@ -203,6 +231,7 @@ src/shared/api/
 
 생성 파일을 직접 import하는 곳은 엔티티 `.dto.ts`(§5-4), `src/shared/api/spec-types.ts`(§5-2),
 `src/mocks/http.ts`(§5-5), 그리고 `.dto.ts`가 없는 shared 레이어의 `upload.api.ts`(`UploadUrlResponse` 별칭)뿐이다.
+`openapi.zod.ts`는 `entities/*/config/*.contract.test.ts`만 import한다(§5-6, ESLint가 강제).
 
 ### 5-4. 엔티티별 `.dto.ts` — 정본을 가리키는 얇은 표지판
 
@@ -279,6 +308,70 @@ null 본문은 타입으로 막을 수 없어서 ESLint(`no-restricted-imports`,
 `skipLibCheck`(`.d.ts`만 건너뜀)이 적용되지 않는다. 시험해 보니 우리 strict 설정(`noUncheckedIndexedAccess` 등)에서도
 오류가 0건이어서 그대로 채택했다. 범위는 기본 핸들러만이다. 테스트 인라인 핸들러는 §11.
 
+### 5-6. 입력 제약 값 — 손으로 둔 계약 상수와 계약 테스트
+
+2026-11-02에 추가했다. BE가 검사하는 입력 제약 값을 FE 폼도 미리 검사한다. 그 값의 정본은 BE이고, 스펙이 값을 싣고,
+FE는 값을 손으로 적어 두되 테스트로 스펙과 대조한다.
+
+```mermaid
+flowchart TD
+    BE["BE Limits 상수<br/>(CommentLimits 등, 서비스가 검사)"]
+    DTO["BE DTO 어노테이션<br/>(@Size·@Pattern, 문서 전용 @Schema maxLength 등)"]
+    JSON["openapi.json<br/>(maxLength·maxItems·pattern·x-max-bytes)"]
+    ZOD["openapi.zod.ts<br/>(orval 생성 상수 + zod.object)"]
+    C["entities/&lt;e&gt;/config/&lt;e&gt;.contract.ts<br/>(손으로 둔 상수)"]
+    T["&lt;e&gt;.contract.test.ts<br/>(값 대조 + TEXTS 숫자 대조)"]
+    RT["*.schema.ts · util · UI<br/>(런타임에서 상수 사용)"]
+    BE --> DTO -->|"pnpm codegen:fetch"| JSON -->|"pnpm codegen"| ZOD
+    ZOD -->|"테스트에서만 import"| T
+    C --> T
+    C --> RT
+    JSON -.->|"x-max-bytes는 readFileSync"| T
+    ZOD -.->|"런타임 import 금지<br/>(ESLint no-generated-zod-import)"| RT
+```
+
+| 값                      | 런타임 상수(손으로 둠)                                                 | 대조하는 생성 상수                                                                                  | BE 정본                                |
+| ----------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| 닉네임 2~20자·허용 문자 | `entities/account/config/account.contract.ts` `NICKNAME_*`             | `signupBodyNickname*`·`updateAccountBodyNickname*`                                                  | DTO `@Size`·`@Pattern`                 |
+| 비밀번호 8~64자·패턴    | `entities/auth/config/auth.contract.ts` `PASSWORD_MIN/MAX_LENGTH`      | `signupBodyPassword*`·`changePasswordBodyNewPassword*`·`confirmPasswordResetBodyNewPassword*`       | DTO `@Size`, `PasswordPattern.REGEXP`  |
+| 폴더 이름 15자          | `entities/bookmark/folder/config/bookmark-folder.contract.ts`          | `createFolderBodyNameMax`·`updateFolderBodyNameMax`                                                 | `BookmarkFolderLimits.MAX_NAME_LENGTH` |
+| 댓글 이미지 5장         | `entities/comment/config/comment.contract.ts` `MAX_COMMENT_IMAGES`     | `createCommentBodyImagesMax`·`createReplyBodyImagesMax`·`updateCommentBodyImagesMax`                | `CommentLimits.MAX_IMAGES`             |
+| 댓글 본문 6,000바이트   | `entities/comment/config/comment.const.ts` `MAX_COMMENT_CONTENT_BYTES` | 없음 — orval이 `x-` 확장을 읽지 않아 테스트가 `openapi.json`의 `CreateCommentRequest`를 직접 읽는다 | `CommentLimits.MAX_CONTENT_BYTES`      |
+
+비밀번호 패턴은 상수로 옮기지 않았다. `auth.schema.ts`의 `passwordValidationSchema`는 안내 문구를 나누려고 정규식을
+둘로 나눠 두고, 최소 길이도 정규식 안(`.{8,}`)에 품는다. 그래서 `auth.contract.test.ts`가 표본 문자열마다 이 스키마와
+스펙 규칙(길이 범위 + `signupBodyPasswordRegExp`)의 통과 여부가 같은지 비교한다(차등 테스트).
+
+**왜 생성 상수를 런타임에서 import하지 않나**. 생성 파일은 상수와 `zod.object(...)` 스키마를 한 파일에 담는다. orval
+8.46.0에는 상수만 내보내는 옵션이 없다(설치본 `@orval/core`의 `ZodOptions` 확인). 런타임 모듈이 상수 하나만 import해도
+그 파일의 최상위 `zod.object(...)` 호출이 남아 zod 전체(`zod-vendor` 청크)를 끌어온다.
+
+- `vite.config.ts`의 `treeshake.moduleSideEffects: false`는 쓰이는 모듈 안의 최상위 호출을 지우지 않는다
+  (`docs/PERFORMANCE.md` "첫 로딩 JS", 2026-10-28 직접 측정).
+- Rollup `treeshake.manualPureFunctions: ['zod']`도 소용없었다. 설치본 Rollup 4.55.1은 이 옵션을 이름 경로로만 맞추고
+  (ES 빌드 `node-entry.js`의 `getPureFunctions` 2361-2371줄·`isPureFunction` 5397-5411줄), `zod.string().min(1)` 같은 체인 호출은
+  그대로 남았다(2026-11-02 빌드로 확인, 설정은 되돌림).
+- 실제로 계약 상수가 생성 상수를 다시 내보내게 해 봤더니 목록 페이지 청크가 zod-vendor를 끌어왔다(§10).
+
+그래서 런타임은 손으로 둔 상수만 쓰고, 생성 상수는 같은 폴더의 계약 테스트가 대조에만 쓴다. ESLint
+`custom-api-rules/no-generated-zod-import`(`eslint.config.js`)가 `src/entities/**/config/*.contract.test.ts` 밖의 import를
+막는다(타입 전용 import는 허용).
+
+**BE 값이 바뀌면**. BE 배포 뒤 매일 도는 드리프트 검사(§5-1)가 이슈를 연다. 담당자가 `pnpm codegen:fetch && pnpm codegen`을
+돌리면 계약 테스트가 실패해 고칠 상수를 가리키고, TEXTS 문구에 숫자가 박혀 있으면(예: "2~20자") 그 문구도 가리킨다.
+
+**잡는 것과 못 잡는 것**(2026-11-02 실측 — 상수·생성 파일·import를 잠깐 바꿔 각 장치가 실패하는지 확인):
+
+| 실수                                                                  | 잡는 곳                                                                                     |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| BE 값이 바뀌었는데 FE 상수를 안 고침                                  | 계약 테스트(`pnpm test`)                                                                    |
+| 상수만 고치고 TEXTS 문구의 숫자를 안 고침                             | 계약 테스트 — 테스트에 적어 둔 키만(`account`·`auth`·`comment` 계약 테스트)                 |
+| 비밀번호 스키마가 스펙 패턴과 다른 판정                               | 차등 테스트 — 표본 문자열 범위 안에서만                                                     |
+| 런타임 코드가 `openapi.zod`를 import                                  | ESLint `no-generated-zod-import`                                                            |
+| 첫 화면 경로의 모듈이 다른 이유로 zod를 import                        | CI "진입 청크에 zod 없음 확인"(`dist/index.html`에 `zod-vendor`가 있으면 실패)              |
+| 지연 청크(목록 페이지 등)가 생성 파일이 아닌 다른 이유로 zod를 import | **못 잡는다** — CI 검사는 `index.html`만 본다(§11)                                          |
+| BE가 서비스에서만 검사하고 스펙에 싣지 않은 제약                      | **못 잡는다** — BE DTO에 문서 전용 어노테이션이 있어야 스펙에 실린다(BE-ARCHITECTURE §7-12) |
+
 ## 6. 상태 모델
 
 이 기능은 새 스토어나 쿼리 키를 도입하지 않는다. 대신 "타입의 정본이 어디 있는가"가
@@ -306,6 +399,7 @@ override가 있는 타입(원본 대신 `Omit<...> & {...}`로 재정의한 것)
 | 드리프트 cron 주기         | `.github/workflows/openapi-drift-check.yml`의 `cron: '0 0 * * *'`       | 매일 1회(UTC 0시)                                                                                                             |
 | openapi-typescript 버전    | `package.json`의 devDependencies, `save-exact=true`(`.npmrc:23`)로 고정 | 7.13.0                                                                                                                        |
 | openapi-msw 버전           | `package.json`의 devDependencies(정확히 고정)                           | 2.1.1 — peer `msw ^2.10.5 \|\| ^3.0.0`(설치 msw 2.12.10)                                                                      |
+| orval 버전·생성 범위       | `package.json`의 devDependencies(정확히 고정), `orval.config.ts`        | 8.46.0, zod 3 문법(`override.zod.version: 3`, 설치 zod 3.25.76), 요청 본문만(`generate.body: true`, 나머지 false)             |
 | 스펙 규모(2026-09-24 기준) | —                                                                       | `paths` 29개, `components.schemas` 53개, `nullable` 프로퍼티 24개                                                             |
 | 스펙 규모(2026-10-27 기준) | `src/shared/api/generated/openapi.json`(OpenAPI 3.1.0)                  | `paths` 36개, `components.schemas` 63개, nullable 프로퍼티 27개(`type` 배열의 `"null"` 26개 + `oneOf`의 `{type: "null"}` 1개) |
 
@@ -324,6 +418,25 @@ override가 있는 타입(원본 대신 `Omit<...> & {...}`로 재정의한 것)
 | 경로 → 요청·응답 타입 계산              | `src/shared/api/spec-types.ts`                                                 |
 | 경로 치환·`apiClient` 호출              | `src/shared/api/spec-client.ts`                                                |
 | `apiClient` 직접 import 금지            | `eslint.config.js`의 `custom-api-rules/no-raw-api-client-import` 블록          |
+| 제약 상수 생성 설정                     | `orval.config.ts`(`codegen` 스크립트가 `openapi-typescript` 다음에 실행)       |
+| 생성 zod import 위치 제한               | `eslint.config.js`의 `custom-api-rules/no-generated-zod-import` 블록           |
+| 첫 로딩에 zod가 실리는지 확인           | `.github/workflows/ci.yml`의 "진입 청크에 zod 없음 확인" 스텝                  |
+
+### BE 입력 제약 값이 바뀌었다면
+
+1. `pnpm codegen:fetch && pnpm codegen` 뒤 `pnpm test`를 돌린다. 실패한 `*.contract.test.ts`가 고칠 값을 알려 준다
+2. 같은 폴더의 `<entity>.contract.ts` 상수를 고친다(댓글 바이트는 `comment.const.ts`의 `MAX_COMMENT_CONTENT_BYTES`)
+3. 테스트가 TEXTS 문구를 가리키면 `src/shared/config/texts.ts`의 숫자도 고친다
+4. 상수를 쓰는 화면 문서(`docs/BOOKMARK.md` "폴더 이름 길이", `docs/COMMENT.md` 등)에 값이 적혀 있으면 함께 고친다
+
+### 새 입력 제약을 FE와 맞추려면
+
+1. BE에서 그 값이 스펙에 실리는지 먼저 확인한다(`jq '.components.schemas.<요청>.properties.<필드>' src/shared/api/generated/openapi.json`).
+   서비스 코드에서만 검사하면 BE DTO에 문서 전용 어노테이션부터 단다(BE `docs/BE-ARCHITECTURE.md` §7-12)
+2. `pnpm codegen` 뒤 `openapi.zod.ts`에서 상수 이름을 찾는다(`<operationId>Body<필드><Min|Max|RegExp>`)
+3. `entities/<entity>/config/<entity>.contract.ts`에 값을 손으로 적고, 같은 폴더 `<entity>.contract.test.ts`에서 생성 상수와
+   `toBe`로 대조한다(`src/entities/bookmark/folder/config/bookmark-folder.contract.test.ts`가 가장 단순한 예). 안내 문구에
+   숫자가 있으면 그 문구도 테스트에 넣는다(`account.contract.test.ts` 참고)
 
 ### 새 API 함수를 추가하려면
 
@@ -410,6 +523,14 @@ override 없이 그대로 alias한다(스펙의 nullable이 곧 실제 런타임
   정확히 붙음, 200 응답 content 타입(스키마 참조) 완전히 동일(`@ApiResponses` 관련 회귀
   없음), 요청 DTO `required` 배열 불변, `nullable` 필드를 제외하면 전후 스펙이 완전히
   동일(Python으로 재귀 비교, diff 0)
+- **입력 제약 상수**(2026-11-02, §5-6):
+  - BE #152 전후 스펙을 `jq -S 'del(.servers)'`로 비교해 바뀐 곳이 정확히 여덟 군데(보안 스킴 `name` 삭제, 폴더 `name`
+    maxLength 2곳, 댓글 `images` maxItems, 댓글 `content` `x-max-bytes`, 비밀번호 pattern 3곳)이고 `"null"`이 하나도
+    사라지지 않았음을 확인. `openapi.gen.ts`는 바뀌지 않았다(제약 키는 타입으로 나오지 않는다)
+  - `pnpm build` 뒤 zod-vendor를 import하는 청크 목록이 운영(main 빌드)과 같고, `openapi.zod` 청크가 없음을 확인. 운영
+    목록은 진입 청크가 가리키는 청크를 하나씩 받아 `zod-vendor` 문자열을 찾아 만들었다
+  - 계약 테스트·차등 테스트·ESLint 규칙이 각각 잠깐 넣은 위반(상수 값 변경, 스키마 정규식 변경, contract 밖 import를 디스크
+    파일로)에서 실패하는 것을 확인
 
 ## 10. 시행착오
 
@@ -473,6 +594,21 @@ BE `PostDTO.kt`를 확인하니 `val categories: List<CategoryResponse>`(non-nul
 예전 방식과 다를 바가 없었다. 반환 타입을 `Promise<NoInfer<R>>`로 바꿔(TypeScript 5.4부터, 설치본 5.7.3) 그
 위치에서는 추론하지 않게 했다. 지금은 같은 줄이 `role` 타입 불일치로 실패하고, `R`은 호출부에 적을 때만 좁혀진다.
 
+### 계약 상수가 목록 페이지에 zod를 끌어왔다
+
+2026-11-02 처음 계획은 `<entity>.contract.ts`가 생성 상수를 받아 다시 내보내고, ESLint로
+contract 파일만 생성 파일을 import하게 하고, CI가 `dist/index.html`에 zod-vendor가 없는지 보는 것이었다. 첫 로딩 경로
+(`routes/index.tsx` → `comment.queries.ts` → `comment.const.ts`)만 생성 파일을 피하면 된다고 봤다.
+
+빌드는 CI 검사를 통과했다. 그런데 zod-vendor를 import하는 청크 목록을 운영과 비교하니, 목록 페이지 지연 청크가 새로
+zod-vendor(56,122바이트, gzip 12,989바이트)를 정적으로 import하고 있었다. 경로는 글 카드의 북마크 토글 →
+`bookmark-folder.util.ts` → `bookmark-folder.contract.ts` → `openapi.zod.ts`였다. 목록 페이지는 첫 화면이라 로그인하지 않은
+방문자도 zod를 받게 된다. `index.html`만 보는 CI 검사도, contract 파일을 허용하는 ESLint 규칙도 이 경로를 못 봤다.
+
+Rollup `manualPureFunctions`로 생성 스키마를 지우려 했지만 체인 호출이 남아 실패했다(§5-6). 그래서 사용자 결정(2026-11-02)으로
+런타임 상수를 전부 손으로 두고 생성 파일은 테스트에서만 쓰기로 바꿨다. ESLint 허용 대상도 contract 파일에서
+`*.contract.test.ts`로 좁혔다.
+
 ## 11. 남은 것
 
 - `bookmark-folder.dto.ts`의 `lastUsedAt` override는 BE `NullableAwareModelConverter`
@@ -503,6 +639,15 @@ BE `PostDTO.kt`를 확인하니 `val categories: List<CategoryResponse>`(non-nul
   (`SERVER_ERROR_CODE`)는 여전히 스펙과 연결되지 않았다
 - `API_ENDPOINTS`(`src/shared/config/api.ts`)는 `*.api.ts`에서는 빠졌지만 `client.ts`의 인증 경로 판별, 테스트
   인라인 핸들러, e2e 목(`e2e/mocks/endpoints.ts`)이 아직 쓴다
+- orval의 react-query·MSW 생성(§5-2 표의 보류 안)은 BE를 design-first(스펙을 먼저 쓰고 코드를 맞추는 방식)로 바꾸거나,
+  쿼리 키를 URL 기반으로 바꿔도 되는 때 다시 본다
+- 생성 본문 스키마로 MSW 핸들러가 받은 요청 본문을 검사하는 계약 테스트는 아직 없다 — 지금 생성 파일로 할 수 있는 다음 단계다
+- 응답 미디어 타입이 전부 `*/*`다(§5-5). orval로 응답 스키마까지 생성하려면 BE에서 먼저 정리해야 한다
+- CI "진입 청크에 zod 없음 확인"은 `index.html`만 본다. 지연 청크가 생성 파일이 아닌 다른 이유로 zod를 끌어오는 것은
+  잡지 못한다(§5-6 표)
+- TEXTS 문구의 숫자("2~20자", "64자 이하" 등)는 함수형 키로 바꾸지 않고 계약 테스트로만 대조한다. 테스트에 적지 않은 키는
+  확인되지 않는다
+- BE `@Operation` 설명에는 숫자(15자·5장)가 없다 — 값은 스펙 필드로만 싣는다
 
 ## 12. 용어 사전
 
@@ -521,6 +666,11 @@ BE `PostDTO.kt`를 확인하니 `val categories: List<CategoryResponse>`(non-nul
 - **봉투(envelope)**: BE 성공 응답의 공통 겉모양 `{ status, message, data, timestamp }`(스펙의 `ApiResponseX`).
   `apiClient`가 벗겨 `data`만 돌려준다
 - **`specClient`**: 스펙 경로 템플릿(`'/post/{id}'`)이 경로 변수·쿼리·본문·응답 타입을 정하는 `apiClient` 래퍼(§5-2)
+- **계약 상수**: BE와 같아야 하는 입력 제약 값을 FE가 손으로 적어 둔 상수. `entities/<entity>/config/<entity>.contract.ts`에
+  둔다(§5-6)
+- **계약 테스트**: 계약 상수가 스펙에서 생성한 상수(`openapi.zod.ts`)와 같은지 확인하는 테스트(`<entity>.contract.test.ts`).
+  §5-5의 MSW 스펙 타입 검사와는 다른 것이다
+- **차등 테스트**: 같은 입력을 두 구현(FE 비밀번호 스키마, 스펙 규칙)에 넣어 결과가 같은지 비교하는 테스트(§5-6)
 
 ## 13. 관련 문서
 

@@ -505,6 +505,7 @@
           "newPassword": {
             "maxLength": 64,
             "minLength": 8,
+            "pattern": "^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9])[\\x20-\\x7E]*$",
             "type": "string"
           }
         },
@@ -594,12 +595,14 @@
       "CreateCommentRequest": {
         "properties": {
           "content": {
-            "type": ["string", "null"]
+            "type": ["string", "null"],
+            "x-max-bytes": 6000
           },
           "images": {
             "items": {
               "type": "string"
             },
+            "maxItems": 5,
             "type": ["array", "null"]
           }
         },
@@ -608,6 +611,7 @@
       "CreateFolderRequest": {
         "properties": {
           "name": {
+            "maxLength": 15,
             "type": "string"
           }
         },
@@ -840,6 +844,7 @@
           "newPassword": {
             "maxLength": 64,
             "minLength": 8,
+            "pattern": "^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9])[\\x20-\\x7E]*$",
             "type": "string"
           },
           "token": {
@@ -1112,6 +1117,7 @@
           "password": {
             "maxLength": 64,
             "minLength": 8,
+            "pattern": "^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9])[\\x20-\\x7E]*$",
             "type": "string"
           }
         },
@@ -1149,6 +1155,7 @@
       "UpdateFolderRequest": {
         "properties": {
           "name": {
+            "maxLength": 15,
             "type": "string"
           }
         },
@@ -1198,7 +1205,6 @@
     },
     "securitySchemes": {
       "bearerAuth": {
-        "name": "bearerAuth",
         "scheme": "bearer",
         "type": "http"
       }

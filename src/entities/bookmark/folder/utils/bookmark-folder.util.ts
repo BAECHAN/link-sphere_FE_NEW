@@ -1,9 +1,7 @@
 import dayjs from 'dayjs';
 import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
-import {
-  BOOKMARK_FOLDER_NAME_MAX_LENGTH,
-  RECENT_BOOKMARK_FOLDER_COUNT,
-} from '@/entities/bookmark/folder/config/bookmark-folder.const';
+import { RECENT_BOOKMARK_FOLDER_COUNT } from '@/entities/bookmark/folder/config/bookmark-folder.const';
+import { BOOKMARK_FOLDER_NAME_MAX_LENGTH } from '@/entities/bookmark/folder/config/bookmark-folder.contract';
 import { TEXTS } from '@/shared/config/texts';
 
 // "최근 저장한 폴더"는 최대 RECENT_BOOKMARK_FOLDER_COUNT(3)개만 보여준다. 폴더

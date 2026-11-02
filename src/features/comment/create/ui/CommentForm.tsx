@@ -10,7 +10,7 @@ import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { DropTargetOverlay } from '@/shared/ui/elements/DropTargetOverlay';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 import { useCreateComment } from '@/features/comment/create/hooks/useCreateComment';
-import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/comment.const';
+import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/comment.contract';
 import { TEXTS } from '@/shared/config/texts';
 import { Kbd } from '@/shared/ui/atoms/kbd';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';

@@ -9,7 +9,7 @@
 > 실패했을 때 원인별로 무엇을 안내하는지, "내 댓글"에서 원글의 그 댓글로 이동하는 방식을
 > 이해하고, 상한·장수·캐시 무효화 범위·실패 문구를 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-31
+> **마지막 검토**: 2026-11-02
 
 게시글 상세(`/post/:id`) 하단의 댓글 섹션과, 내가 쓴 댓글을 모아보는 "내 댓글"
 화면(`/my/comments`)을 다룬다. 게시글 자체(목록·상세·작성)는
@@ -185,7 +185,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 이미지는 URL을 모르므로 200바이트 자리표시자로 채운다(`src/entities/comment/utils/comment.util.ts:113-123`).
 
 **왜 6,000B인가** — 이미지 URL 5개(약 650B)와 JSON 봉투를 더해도 8,192B 벽 안에 여유 있게 들어가도록
-잡은 값이다(`src/entities/comment/config/comment.const.ts:5-15` 주석). 7,500B는 그 벽 대비 약 700B 여유를 둔
+잡은 값이다(`src/entities/comment/config/comment.const.ts:4-14` 주석). 7,500B는 그 벽 대비 약 700B 여유를 둔
 전송 상한이다. 값이 지금으로 정해진 경위는 §10을 본다.
 
 그래도 WAF에 막히면 403이 HTML로 온다. `client.ts`는 JSON 파싱에 실패한 403을
@@ -367,7 +367,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 - **`#comments`는 DOM id가 아니라 신호다** — 같은 id의 요소가 있으면 react-router
   `ScrollRestoration`이 이 effect보다 먼저 그 요소로 즉시 점프해(캐시가 있는 재방문·상세 안 클릭)
   부드러운 스크롤이 안 보였다(시안 녹화로 확인). 그래서 `CommentList`가 해시(`COMMENT_SECTION_HASH`,
-  `src/entities/comment/config/comment.const.ts:41`)를 보고 ref로 찾는다. 상세 안 💬은 `replace`
+  `src/entities/comment/config/comment.const.ts:40`)를 보고 ref로 찾는다. 상세 안 💬은 `replace`
   (돌아가기가 같은 글로 가지 않게)와 `preventScrollReset`(ScrollRestoration이 맨 위로 올렸다
   내려오지 않게)을 함께 준다.
 - **스크롤 방식은 브라우저 기본 `smooth`(2026-10-14)** — 세 안을 같은 화면으로 녹화해 나란히
@@ -550,11 +550,11 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 
 | 파라미터                     | 값                      | 실제 위치                                                                                                                                    |
 | ---------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| 댓글당 최대 이미지           | 5장                     | `src/entities/comment/config/comment.const.ts:1`                                                                                             |
-| 내 댓글 페이지 크기          | 10                      | `src/entities/comment/config/comment.const.ts:4`                                                                                             |
-| 본문 상한                    | 6,000B(한글 약 2,000자) | `src/entities/comment/config/comment.const.ts:15`                                                                                            |
-| 전송 상한                    | 7,500B                  | `src/entities/comment/config/comment.const.ts:26`                                                                                            |
-| 업로드 전 이미지 URL 추정치  | 200B                    | `src/entities/comment/config/comment.const.ts:33`                                                                                            |
+| 댓글당 최대 이미지           | 5장                     | `src/entities/comment/config/comment.contract.ts:6`                                                                                          |
+| 내 댓글 페이지 크기          | 10                      | `src/entities/comment/config/comment.const.ts:2`                                                                                             |
+| 본문 상한                    | 6,000B(한글 약 2,000자) | `src/entities/comment/config/comment.const.ts:14`                                                                                            |
+| 전송 상한                    | 7,500B                  | `src/entities/comment/config/comment.const.ts:25`                                                                                            |
+| 업로드 전 이미지 URL 추정치  | 200B                    | `src/entities/comment/config/comment.const.ts:32`                                                                                            |
 | 이미지 동시 업로드 수        | 2                       | `src/entities/comment/api/comment.api.ts:14`                                                                                                 |
 | 리사이즈 최대 변 길이        | 1600px                  | `src/shared/lib/upload/uploadImageAndGetUrl.ts:50`                                                                                           |
 | 원본 파일 상한               | 30MB                    | `src/shared/lib/image/resizeImage.ts:13`                                                                                                     |
@@ -568,13 +568,13 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 
 **함께 바꿔야 하는 값**:
 
-- 본문 상한을 바꾸면 BE `MAX_COMMENT_CONTENT_BYTES = 6_000`(BE
-  [`CommentService.kt`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/src/main/kotlin/com/example/linksphere/domain/comment/CommentService.kt)
-  `companion object`, 등록·답글·수정에서 각각 검사)과 안내 문구
+- 본문 상한을 바꾸면 BE `CommentLimits.MAX_CONTENT_BYTES = 6_000`(BE
+  [`CommentLimits.kt`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/src/main/kotlin/com/example/linksphere/domain/comment/CommentLimits.kt), `CommentService`가 등록·답글·수정에서 각각 검사)과 안내 문구
   `TEXTS.validation.commentContentTooLong`("한글 2,000자", `src/shared/config/texts.ts`)도
-  함께 고친다 — 자동 동기화 장치는 없다.
-- 장수 상한은 BE `MAX_COMMENT_IMAGES = 5`(같은 파일 `companion object`, 등록·답글·수정에서 검사)와
-  같아야 한다.
+  함께 고친다. BE 값은 스펙에 `x-max-bytes`로 실리고, 어긋나면 `comment.contract.test.ts`가 FE 상수와 문구를
+  가리키며 실패한다(`docs/OPENAPI-CODEGEN.md` §5-6, 2026-11-02 전에는 자동 확인 장치가 없었다).
+- 장수 상한은 BE `CommentLimits.MAX_IMAGES = 5`(같은 파일, 등록·답글·수정에서 검사)와 같아야 한다. 스펙의
+  `maxItems`와 다르면 같은 테스트가 실패한다.
 - 7,500B는 WAF 8,192B 벽에서 약 700B 여유를 둔 값이다. 올리면 그 여유가 준다.
 
 ## 8. 코드 지도와 자주 하는 수정
@@ -606,7 +606,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 
 | 하고 싶은 것             | 방법                                                                                                                                                                                                                                                                                                                |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 이미지 장수 변경         | `MAX_COMMENT_IMAGES` + BE 검증 동시 변경. 늘리면 7,500B 전송 상한 안에 들어가는지 다시 계산                                                                                                                                                                                                                         |
+| 이미지 장수 변경         | BE `CommentLimits.MAX_IMAGES`를 먼저 바꿔 배포하고, FE codegen 뒤 `comment.contract.ts`의 `MAX_COMMENT_IMAGES`를 맞춘다. 늘리면 7,500B 전송 상한 안에 들어가는지 다시 계산                                                                                                                                          |
 | 본문 길이 상한 변경      | §7 "함께 바꿔야 하는 값" 세 곳을 한 커밋에서. WAF 8,192B를 넘기는 값은 불가(`.claude/CLAUDE.md` WAF 항목)                                                                                                                                                                                                           |
 | 답글 깊이 늘리기         | BE 변경이 먼저다 — BE `CommentService.kt`가 답글에 대한 답글을 "Max Depth 1"로 거절한다(답글 등록의 Depth Check). FE도 `CommentItem.tsx:40`의 `depth < 1`만으로는 안 되고, `useCreateReplyMutation`이 루트의 `replies`만 찾으므로(comment.queries.ts의 `useCreateReplyMutation` `onMutate`·`onSuccess`) 함께 고친다 |
 | 루트 정렬을 오래된순으로 | `useCommentList.ts:16-18`의 비교 순서를 뒤집는다. 낙관적 삽입 위치(맨 앞)도 함께 맞춘다                                                                                                                                                                                                                             |

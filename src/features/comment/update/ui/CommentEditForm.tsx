@@ -11,7 +11,7 @@ import { DropTargetOverlay } from '@/shared/ui/elements/DropTargetOverlay';
 import { LinkThumbnail } from '@/shared/ui/atoms/link-thumbnail';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
-import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/comment.const';
+import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/comment.contract';
 import { Comment } from '@/entities/comment/model/comment.schema';
 import { useUpdateComment } from '@/features/comment/update/hooks/useUpdateComment';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';

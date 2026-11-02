@@ -98,6 +98,10 @@ export type Create<Entity> = z.infer<typeof create<Entity>Schema>;
   표시할 때는 `dayjs(value)`나 `DateUtil`을 쓴다
 - Zod의 `.nullable()`/`.optional()` 구분은 **폼 필드에만** 적용한다 — 응답 필드의
   null/undefined 여부는 생성 타입이 이미 스펙대로 표현한다
+- BE와 같아야 하는 입력 제약 값(길이·개수·패턴)은 스키마에 숫자로 적지 않는다 —
+  `entities/<entity>/config/<entity>.contract.ts`에 상수로 두고, 같은 폴더 `<entity>.contract.test.ts`가
+  `openapi.zod.ts`의 생성 상수(`<operationId>Body<필드><Min|Max|RegExp>`)와 대조한다. 생성 파일은 런타임 코드에서
+  import하지 않는다(ESLint `custom-api-rules/no-generated-zod-import`, 이유는 `docs/OPENAPI-CODEGEN.md` §5-6)
 - override는 반드시 근거 주석(BE 파일·심볼, 실측 결과)을 남긴다 — 이유 없이 좁히지 않는다
 - 기존 엔티티에 필드를 추가하는 경우, `.schema.ts`가 이미
   `export type { <Entity> } from '@/entities/<entity>/model/<entity>.dto'`로 재수출하고
