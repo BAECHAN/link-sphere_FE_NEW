@@ -218,6 +218,10 @@ export const useChangePasswordMutation = () => {
       if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.INVALID_CREDENTIALS) {
         // useLoginMutation의 401 처리와 같은 이유로 서버 원문 메시지는 노출하지 않는다.
         toast.error(TEXTS.messages.error.currentPasswordMismatch);
+      } else if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.ACCESS_DENIED) {
+        // 데모 계정처럼 계정 설정 권한이 없는 역할(BE MemberRole) - manualErrorHandling이라
+        // 전역 핸들러의 같은 문구가 뜨지 않아 여기서 띄운다.
+        toast.error(TEXTS.messages.error.accessDenied);
       } else {
         toast.error(TEXTS.messages.error.passwordChangeFailed);
       }

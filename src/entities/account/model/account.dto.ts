@@ -6,7 +6,8 @@ import type { components } from '@/shared/api/generated/openapi.gen';
 //
 // role: BE가 role을 enum class가 아니라 String으로 선언해(AuthDTO.kt의 AccountResponse.role
 // `val role: String = "USER"`) 스펙에 enum이 실리지 않는다. BE를 enum class로 바꾸기
-// 전까지 FE에서 좁힌다. 이 근거 주석을 지우지 말 것.
+// 전까지 FE에서 좁힌다. 이 근거 주석을 지우지 말 것. 값은 BE `MemberRole`(member/MemberRole.kt)
+// 이름이 그대로 온다 - DEMO는 README에 공개한 데모 계정이다.
 //
 // nickname: 스펙은 optional + nullable이다(AuthDTO.kt의 AccountResponse.nickname
 // `val nickname: String? = null`). 그런데 계정을 만드는 유일한 경로인 SignupRequest.nickname은
@@ -16,6 +17,6 @@ import type { components } from '@/shared/api/generated/openapi.gen';
 // UserSummary 등)에 값을 전달하는 곳마다 무의미한 `?? ''` 폴백이 번진다(실제로 type-check가
 // 10곳 넘게 잡아냈다, 2026-09-20). role과 같은 이유로 좁힌다.
 export type Account = Omit<components['schemas']['AccountResponse'], 'role' | 'nickname'> & {
-  role: 'USER' | 'ADMIN';
+  role: 'USER' | 'ADMIN' | 'DEMO';
   nickname: string;
 };

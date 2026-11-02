@@ -9,7 +9,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { createElement, type ReactNode } from 'react';
 import { createTestQueryClient } from '@/test/utils';
-import { useUpdateAccountMutation } from '@/entities/account/api/account.queries';
+import {
+  useDeleteAccountMutation,
+  useUpdateAccountMutation,
+} from '@/entities/account/api/account.queries';
 import { accountKeys } from '@/entities/account/api/account.keys';
 import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 import type { Account } from '@/entities/account/model/account.schema';
@@ -247,6 +250,30 @@ describe('useUpdateAccountMutation', () => {
     );
   });
 
+  // 데모 계정처럼 프로필 수정 권한이 없는 역할(BE MemberRole) - 일반 실패 문구로 뭉개지 않는다
+  it('권한이 없는 역할(ACCESS_DENIED)이면 접근 권한이 없다고 안내한다', async () => {
+    server.use(
+      http.patch(url(API_ENDPOINTS.auth.updateAccount), () =>
+        HttpResponse.json(
+          { status: 403, code: SERVER_ERROR_CODE.ACCESS_DENIED, message: 'Access is denied' },
+          { status: 403 }
+        )
+      )
+    );
+
+    const { result } = renderHook(() => useUpdateAccountMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ nickname: 'demoNick' });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(mockToastError).toHaveBeenCalledWith(
+      TEXTS.messages.error.accessDenied,
+      expect.anything()
+    );
+  });
+
   it('사진 업로드 한도(429)에 걸리면 Retry-After로 기다릴 시간을 안내한다', async () => {
     server.use(
       http.post(url(API_ENDPOINTS.upload.signedUrl), () =>
@@ -269,5 +296,32 @@ describe('useUpdateAccountMutation', () => {
       TEXTS.messages.error.uploadSubmit.save.imageRateLimitedIn(23),
       expect.anything()
     );
+  });
+});
+
+describe('useDeleteAccountMutation', () => {
+  beforeEach(() => {
+    mockToastError.mockClear();
+  });
+
+  // 데모 계정처럼 탈퇴 권한이 없는 역할(BE MemberRole) - manualErrorHandling이라 전역 문구가 뜨지 않는다
+  it('권한이 없는 역할(ACCESS_DENIED)이면 접근 권한이 없다고 안내한다', async () => {
+    server.use(
+      http.delete(url(API_ENDPOINTS.auth.deleteAccount), () =>
+        HttpResponse.json(
+          { status: 403, code: SERVER_ERROR_CODE.ACCESS_DENIED, message: 'Access is denied' },
+          { status: 403 }
+        )
+      )
+    );
+
+    const { result } = renderHook(() => useDeleteAccountMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ password: 'demoPassword1!' });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(mockToastError).toHaveBeenCalledWith(TEXTS.messages.error.accessDenied);
   });
 });

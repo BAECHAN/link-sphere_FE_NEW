@@ -764,6 +764,18 @@ BE는 글 작성·수정 폼의 링크 미리보기(`PostService.previewLink`)�
 (`Navbar.tsx`의 계정 메뉴 버튼 — `aria-label` 분기와 빨간 점, 둘 다 `account?.emailVerified === false` 조건)로 상시 안내가 뜹니다. 재발송은
 `useResendEmailVerification.ts`(`useRequestEmailVerificationMutation` 호출)가 처리합니다.
 
+#### 계정 설정 권한 — 데모 계정 (2026-11-02)
+
+README에 비밀번호를 공개한 데모 계정(`demo@linksphere.click`)은 BE 역할이 `DEMO`라 계정 설정 4개 API(닉네임·사진 수정,
+비밀번호 변경, 탈퇴, 전체 로그아웃)가 403 `ACCESS_DENIED`입니다. 판정은 BE만 합니다 — 역할 → 권한 표와 `@PreAuthorize`는
+BE [`docs/BE-ARCHITECTURE.md` §5 "역할·권한"](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/BE-ARCHITECTURE.md)이
+정본이고, FE는 응답 `role`(`account.dto.ts`의 `'DEMO'`)로 버튼을 숨기지 않습니다. 글·댓글·북마크는 일반 회원과 같습니다.
+
+FE가 하는 일은 거절 안내뿐입니다. 세 mutation이 `manualErrorHandling`이라 전역 핸들러(`error-toast.ts`)의 같은 문구가 뜨지
+않으므로, 각자 `ACCESS_DENIED`면 `TEXTS.messages.error.accessDenied`("접근 권한이 없어요.")를 띄웁니다 —
+`useChangePasswordMutation`(`auth.queries.ts`), `useUpdateAccountMutation`의 `resolveAccountUpdateErrorMessage`와
+`useDeleteAccountMutation`(`account.queries.ts`). 전체 로그아웃은 FE에 호출하는 곳이 없습니다.
+
 ### 8-G. 비밀번호 입력 피드백 (가입·재설정·변경)
 
 게이트와는 별개로, 비밀번호를 **새로 만드는** 세 폼 — 회원가입(`SignUpForm.tsx`), 비밀번호
