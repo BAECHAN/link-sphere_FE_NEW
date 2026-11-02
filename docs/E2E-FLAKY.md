@@ -8,7 +8,7 @@
 > **읽고 나면**: e2e 흔들림이 얼마나 자주, 왜 생기는지, CI가 그것을 어떻게 잡는지, 흔들림이 나면 무엇부터 보고
 > 어디를 고치는지 안다. 이번 대응(#472)이 무엇을 기대하고 언제 다시 확인하는지도 안다.
 >
-> **마지막 검토**: 2026-11-01
+> **마지막 검토**: 2026-11-02
 
 ## 1. 쉬운 설명
 
@@ -127,10 +127,10 @@ run을 사람이 다시 돌리기 전의 **첫 실행**(run attempt 1)만 센 �
 | `failOnFlakyTests`(CI만)             | `playwright.config.ts:30`                                                                             | 재시도로만 통과해도 실패                                                   |
 | `trace`·`video: 'on-first-retry'`    | `playwright.config.ts:34-35`                                                                          | 첫 재시도의 트레이스·영상을 남긴다                                         |
 | `fullyParallel: true`, 워커 미지정   | `playwright.config.ts:22`, 기본값은 설치본 `node_modules/playwright/lib/common/index.js:534`(`"50%"`) | CI에서 워커 2개                                                            |
-| 반복 횟수 10, 재시도 0               | `.github/workflows/ci.yml:206`                                                                        | 바뀐 스펙을 재시도 없이 10번                                               |
-| 반복 대상                            | `.github/workflows/ci.yml:197`                                                                        | `e2e/*.spec.ts` 중 추가(A)·수정(M)·이름 변경(R)된 것                       |
-| PR 이벤트에서만                      | `.github/workflows/ci.yml:195`                                                                        | `workflow_dispatch`에서는 건너뛴다                                         |
-| 비교 기준 `HEAD^1`, `fetch-depth: 2` | `.github/workflows/ci.yml:146`                                                                        | PR 병합 커밋의 첫 부모(base)와 비교하려고 커밋 두 개를 받는다              |
+| 반복 횟수 10, 재시도 0               | `.github/workflows/ci.yml:222`                                                                        | 바뀐 스펙을 재시도 없이 10번                                               |
+| 반복 대상                            | `.github/workflows/ci.yml:213`                                                                        | `e2e/*.spec.ts` 중 추가(A)·수정(M)·이름 변경(R)된 것                       |
+| PR 이벤트에서만                      | `.github/workflows/ci.yml:211`                                                                        | `workflow_dispatch`에서는 건너뛴다                                         |
+| 비교 기준 `HEAD^1`, `fetch-depth: 2` | `.github/workflows/ci.yml:162`                                                                        | PR 병합 커밋의 첫 부모(base)와 비교하려고 커밋 두 개를 받는다              |
 
 ## 7. 코드 지도와 자주 하는 수정
 
@@ -138,7 +138,7 @@ run을 사람이 다시 돌리기 전의 **첫 실행**(run attempt 1)만 센 �
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | CI에서 flaky로 빨개진 원인 찾기 | ① 실패한 job의 Playwright 리포트 artifact에서 flaky 테스트와 재시도 트레이스를 본다. ② 첫 시도 로그가 필요하면 `gh api repos/BAECHAN/link-sphere_FE_NEW/actions/jobs/<job id>/logs`로 받는다(§9.3). ③ 로컬 재현은 [`TESTING.md`](./TESTING.md) "CI 연동"의 CPU 감속 방법. ④ §5.2 표로 고칠 곳을 정한다 |
 | 고친 흔들림 기록하기            | 원인·재현·수정은 그 기능 문서의 시행착오 절에 쓰고, 이 문서 §9.1 표에 한 줄을 더한다                                                                                                                                                                                                                   |
-| 반복 횟수 바꾸기                | `.github/workflows/ci.yml:206`의 `--repeat-each`. 실행당 12%로 흔들리는 테스트라면 원래 1회와 합쳐 10번이면 약 75%, 20번이면 약 93% 확률로 한 번 이상 실패해 드러난다(각 실행이 독립이라고 보고 1 − 0.88^(N+1)로 계산). 대신 그 스펙 실행 시간이 N배로 는다                                            |
+| 반복 횟수 바꾸기                | `.github/workflows/ci.yml:222`의 `--repeat-each`. 실행당 12%로 흔들리는 테스트라면 원래 1회와 합쳐 10번이면 약 75%, 20번이면 약 93% 확률로 한 번 이상 실패해 드러난다(각 실행이 독립이라고 보고 1 − 0.88^(N+1)로 계산). 대신 그 스펙 실행 시간이 N배로 는다                                            |
 | 반복 단계를 잠시 끄기           | `.github/workflows/ci.yml`의 "바뀐 e2e 스펙 반복 실행" 단계를 지우거나 `if`를 `false`로                                                                                                                                                                                                                |
 | Radix 창을 ESC로 닫는 e2e 쓰기  | 창이 보이자마자 누르지 말고 `pointer-events: auto`를 기다린다 — `e2e/auth-tab-sync.spec.ts:339`의 `closeWithEscape`. 근거는 [`AUTH.md`](./AUTH.md) §10 "로그아웃 안내 창이 ESC를 놓쳤다". 다른 스펙에서도 필요해지면 공용 헬퍼로 옮긴다                                                                |
 

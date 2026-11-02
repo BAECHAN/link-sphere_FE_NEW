@@ -102,6 +102,7 @@ flowchart TD
 | `custom-query-rules/no-entity-query-import-outside-hooks`                                                      | `features/**`·`pages/**`에서 entity 쿼리 훅(`*.queries`) import — 각 레이어의 `hooks/**` 밖에서는 금지 (2026-09-29 pages도 대상에 추가, widgets는 대상 아님, §8 참고)                                                                                                                        |
 | `custom-query-rules/no-query-client-singleton-import`                                                          | `queryClient` 싱글턴 직접 import — `QueryProvider.tsx`·`auth.util.ts` 두 곳만 예외                                                                                                                                                                                                           |
 | `custom-api-rules/no-raw-api-client-import`                                                                    | `apiClient` 값 import — BE 호출은 `specClient`(스펙 경로)로만, `spec-client.ts`·테스트만 예외(타입 import는 허용, §5 Layer 1)                                                                                                                                                                |
+| `custom-api-rules/no-generated-zod-import`                                                                     | orval 생성 파일(`openapi.zod`)의 import·재수출·동적 `import()` — `src/entities/**/config/*.contract.test.ts`만 예외(타입 전용은 허용, §9)                                                                                                                                                    |
 | `custom-query-rules/scope-mutation-auth-epoch`                                                                 | `scope`·`mutationFn`을 함께 가진 객체에서 첫 줄의 `assertMutationAuthEpochUnchanged(context)` 누락 — §11 6번. 본체는 `scripts/lib/`, 옵션을 변수·스프레드로 넘기면 못 잡음                                                                                                                   |
 | `custom-i18n/no-hardcoded-hangul`                                                                              | 한글 UI 문자열 하드코딩 — `TEXTS`만 허용                                                                                                                                                                                                                                                     |
 | `custom-tailwind/no-raw-color`                                                                                 | black/white/명명 팔레트(gray-500 등) 리터럴 색상 클래스 금지 — `globals.css` 디자인 토큰 클래스만 허용                                                                                                                                                                                       |
@@ -255,7 +256,7 @@ src/
 │   │       ├── @x/               # account·interaction·post에 공개하는 표면
 │   │       ├── api/              # bookmark-folder.api.ts, bookmark-folder.keys.ts, bookmark-folder.queries.ts
 │   │       ├── model/            # bookmark-folder.dto.ts(응답 타입) + bookmark-folder.schema.ts(폼 검증)
-│   │       ├── config/           # bookmark-folder.const.ts (RECENT_BOOKMARK_FOLDER_COUNT 외) + bookmark-folder.contract.ts (이름 길이)
+│   │       ├── config/           # bookmark-folder.const.ts (RECENT_BOOKMARK_FOLDER_COUNT) + bookmark-folder.contract.ts (이름 길이)
 │   │       ├── utils/            # bookmark-folder.util.ts (pickRecentFolders)
 │   │       └── hooks/            # useRecentBookmarkFolders.ts (순수 데이터 파생 훅이라 entities에 남는다 —
 │   │                             # 인터랙션 UI는 features/bookmark/select/로 이동. 2026-09-21 기준
@@ -725,7 +726,11 @@ export type { Entity } from '@/entities/<entity>/model/<entity>.dto';
 
 **BE와 같아야 하는 입력 제약 값(길이·개수·패턴)은 `config/<entity>.contract.ts`에 손으로 두고, 같은 폴더의
 `<entity>.contract.test.ts`가 스펙에서 생성한 상수(`shared/api/generated/openapi.zod.ts`)와 대조한다.** 스키마는
-숫자·정규식을 직접 적지 않고 이 상수를 쓴다(`account.schema.ts`의 `NICKNAME_*`). 생성 파일은 런타임 코드에서 import하지
+숫자·정규식을 직접 적지 않고 이 상수를 쓴다(`account.schema.ts`의 `NICKNAME_*`). 예외는 비밀번호 스키마
+(`auth.schema.ts`의 `passwordValidationSchema`)다 — 안내 문구를 나누려고 정규식을 둘로 직접 적고 최소 길이도 그 안(`.{8,}`)에
+품는다. 대신 `auth.contract.test.ts`가 표본 문자열마다 스펙 규칙과 판정이 같은지 비교한다. 댓글 본문 바이트 상한
+(`MAX_COMMENT_CONTENT_BYTES`)도 BE와 같아야 하지만 생성 상수가 없어(`x-max-bytes` 확장) 같은 WAF 대응 상수들과 함께
+`comment.const.ts`에 두고, 대조는 `comment.contract.test.ts`가 한다. 생성 파일은 런타임 코드에서 import하지
 않는다 — 그 안의 `zod.object(...)` 호출이 트리셰이킹으로 빠지지 않아, 목록 페이지 같은 첫 화면 청크가 zod-vendor를
 끌어온다(ESLint `custom-api-rules/no-generated-zod-import`가 막는다, 근거와 측정은 `docs/OPENAPI-CODEGEN.md` §5-6).
 BE 값이 바뀌면 FE codegen PR에서 계약 테스트가 실패해 고칠 상수와 TEXTS 문구를 가리킨다.
@@ -1278,7 +1283,7 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 | Zod 스키마 (요청/폼 검증만)   | `create<Entity>Schema`, `update<Entity>Schema`                                                                                                                                                                                                                                                                                                                                                               | `createPostSchema`, `updatePostSchema`        |
 | 응답 타입 파일 (Layer 0)      | `<entity>.dto.ts` — BE 생성 타입 alias                                                                                                                                                                                                                                                                                                                                                                       | `post.dto.ts`                                 |
 | TS 타입                       | 스키마와 동일 (PascalCase)                                                                                                                                                                                                                                                                                                                                                                                   | `Post`, `CreatePost`                          |
-| `config/` 파일                | `<entity>.const.ts`(FE 전용 값), `<entity>.contract.ts`(BE와 같아야 하는 입력 제약 값, §9) — `api/`·`model/`·`utils/`와 같은 `<entity>.<역할>.ts` 규칙(`const.ts` 단독 금지, `shared/config/const.ts`처럼 도메인이 없는 전역 설정은 예외). `<entity>`는 **엔티티명**이지 디렉터리 세그먼트명이 아니다 — 그룹 폴더(`entities/bookmark/folder/`) 아래에서도 파일 접두사는 엔티티명(`bookmark-folder`)을 따른다 | `bookmark-folder.const.ts`, `post.const.ts`   |
+| `config/` 파일                | `<entity>.const.ts`(그 밖의 값), `<entity>.contract.ts`(BE와 같아야 하는 입력 제약 값, §9) — `api/`·`model/`·`utils/`와 같은 `<entity>.<역할>.ts` 규칙(`const.ts` 단독 금지, `shared/config/const.ts`처럼 도메인이 없는 전역 설정은 예외). `<entity>`는 **엔티티명**이지 디렉터리 세그먼트명이 아니다 — 그룹 폴더(`entities/bookmark/folder/`) 아래에서도 파일 접두사는 엔티티명(`bookmark-folder`)을 따른다 | `bookmark-folder.const.ts`, `post.const.ts`   |
 | `<Entity>[]` 배열 변수/반환값 | `<entity>List` — 지역변수·훅 반환 필드·구조분해값이 실제로 배열일 때. 아래 각주의 예외 2가지는 대상 아님                                                                                                                                                                                                                                                                                                     | `folderList`                                  |
 | 창·오버레이 식별자            | 창 자체(컴포넌트·훅·스토어·타입·경로·히스토리 키)는 `Dialog`, 뒤를 조작 불가로 만드는 성질은 `modal`, alert/confirm 전용은 `Alert`. 식별자에만 적용하고 한국어 산문의 "모달"은 허용 — 아래 각주                                                                                                                                                                                                              | `LoginDialog`, `modal={false}`, `useAlert`    |
 
@@ -1379,7 +1384,7 @@ pnpm graph:focus <정규식>  # 그 모듈의 바로 이웃만 — 그 모듈을
                     # graph·graph:focus 뒤에 --text를 붙이면 브라우저 없이 목록만 출력(.claude/CLAUDE.md §5)
 pnpm graph:archi    # 슬라이스 단위 전체 구조(pages → entities, shared 제외)
 node scripts/dep-graph.js --affected <기준 커밋>  # 바뀐 src 파일과 거기 닿는 파일 그림(마크다운) — CI가 PR마다 Step Summary와 PR 댓글(하나를 계속 갱신)에 붙인다
-pnpm codegen        # openapi.json → openapi.gen.ts 타입 생성
+pnpm codegen        # openapi.json → openapi.gen.ts 타입 + openapi.zod.ts 입력 제약 상수 생성
 pnpm codegen:fetch  # BE에서 openapi.json 새로 받아오기
 pnpm test           # Vitest 테스트 실행 (CI)
 pnpm test:watch     # Vitest 테스트 감시 모드

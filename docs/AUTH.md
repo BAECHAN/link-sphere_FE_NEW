@@ -793,7 +793,8 @@ FE가 하는 일은 거절 안내뿐입니다. 세 mutation이 `manualErrorHandl
 
 비밀번호 정책 자체(조합 규칙·8~64자·출력 가능 ASCII만)는 바뀌지 않았습니다 —
 `auth.schema.ts:9-13`와 BE `member/MemberDTO.kt`(가입 `SignupRequest`)·`auth/AuthDTO.kt`(변경·재설정
-요청) 그대로입니다.
+요청) 그대로입니다. 조합 규칙 정규식·메시지 본체는 2026-11-02(BE #152)부터 BE `member/PasswordPattern.kt`에 있고, 두 DTO는
+그 상수를 참조합니다.
 
 **구조**: 폼은 그대로 `mode: 'onSubmit'` + zodResolver입니다. RHF 에러는 제출 차단·첫 에러
 포커스·빨간 테두리만 맡고, 화면 문구는 `usePasswordFieldsFeedback`이 입력값에서 직접 계산해

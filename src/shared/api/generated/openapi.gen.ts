@@ -360,7 +360,7 @@ export interface paths {
     put?: never;
     /**
      * 북마크 폴더 생성
-     * @description HTTP 상태와 본문 status 모두 201 이다. 실패: 400 INVALID_INPUT(이름 공백) · 409 DUPLICATE_FOLDER_NAME
+     * @description HTTP 상태와 본문 status 모두 201 이다. 실패: 400 INVALID_INPUT(이름 공백·15자 초과) · 409 DUPLICATE_FOLDER_NAME
      */
     post: operations['createFolder'];
     delete?: never;
@@ -388,7 +388,7 @@ export interface paths {
     head?: never;
     /**
      * 북마크 폴더 이름 수정
-     * @description 실패: 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 400 INVALID_INPUT(이름 공백) · 409 DUPLICATE_FOLDER_NAME
+     * @description 실패: 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 400 INVALID_INPUT(이름 공백·15자 초과) · 409 DUPLICATE_FOLDER_NAME
      */
     patch: operations['updateFolder'];
     trace?: never;

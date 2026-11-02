@@ -176,7 +176,7 @@ export const BatchRemoveBookmarksFromFolderBody = zod.object({
 });
 
 /**
- * HTTP 상태와 본문 status 모두 201 이다. 실패: 400 INVALID_INPUT(이름 공백) · 409 DUPLICATE_FOLDER_NAME
+ * HTTP 상태와 본문 status 모두 201 이다. 실패: 400 INVALID_INPUT(이름 공백·15자 초과) · 409 DUPLICATE_FOLDER_NAME
  * @summary 북마크 폴더 생성
  */
 export const createFolderBodyNameMax = 15;
@@ -186,7 +186,7 @@ export const CreateFolderBody = zod.object({
 });
 
 /**
- * 실패: 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 400 INVALID_INPUT(이름 공백) · 409 DUPLICATE_FOLDER_NAME
+ * 실패: 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 400 INVALID_INPUT(이름 공백·15자 초과) · 409 DUPLICATE_FOLDER_NAME
  * @summary 북마크 폴더 이름 수정
  */
 export const updateFolderBodyNameMax = 15;

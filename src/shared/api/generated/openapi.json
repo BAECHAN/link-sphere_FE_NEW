@@ -1798,7 +1798,7 @@
         "tags": ["북마크 폴더"]
       },
       "post": {
-        "description": "HTTP 상태와 본문 status 모두 201 이다. 실패: 400 INVALID_INPUT(이름 공백) · 409 DUPLICATE_FOLDER_NAME",
+        "description": "HTTP 상태와 본문 status 모두 201 이다. 실패: 400 INVALID_INPUT(이름 공백·15자 초과) · 409 DUPLICATE_FOLDER_NAME",
         "operationId": "createFolder",
         "requestBody": {
           "content": {
@@ -1857,7 +1857,7 @@
         "tags": ["북마크 폴더"]
       },
       "patch": {
-        "description": "실패: 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 400 INVALID_INPUT(이름 공백) · 409 DUPLICATE_FOLDER_NAME",
+        "description": "실패: 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 400 INVALID_INPUT(이름 공백·15자 초과) · 409 DUPLICATE_FOLDER_NAME",
         "operationId": "updateFolder",
         "parameters": [
           {

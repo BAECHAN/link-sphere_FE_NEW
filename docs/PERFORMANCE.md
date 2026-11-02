@@ -316,7 +316,7 @@ Resource Timing을 모았다. 모바일은 CDP `Network.emulateNetworkConditions
 
 - **zod(바꿈)**: `shared/types/common.type.ts`는 에러 클래스 때문에 진입 청크에 들어 있다. 거기 있던 쓰이지 않는
   스키마(최상위 `z.object()` 호출) 하나 때문에 진입 청크가 `zod-vendor`를 정적으로 import했고, `zod-vendor`가
-  modulepreload 목록에 올랐다. `vite.config.ts`의 `treeshake.moduleSideEffects: false`는 export를 하나도 쓰지 않는 모듈만
+  modulepreload 목록에 올랐다. `vite.config.ts`의 `treeshake.moduleSideEffects`(CSS·firebase 밖은 `false`)는 export를 하나도 쓰지 않는 모듈만
   빼므로, 쓰이는 모듈 안의 최상위 호출은 남았다. 스키마를 지우고 타입만 남겼다. 이제 zod는 폼 훅에서만 쓴다.
 - **로그인 창(그대로)**: `RootLayout`이 lazy `LoginDialog`를 항상 렌더해서, 열지 않아도 첫 렌더에서 청크 8개(brotli
   13.94KB)와 `zod-vendor`를 받는다. 처음 열 때 받게 바꾸는 안을 재 봤지만 LCP 이득이 없어 되돌렸다(아래).

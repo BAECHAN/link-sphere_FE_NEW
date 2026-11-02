@@ -5,7 +5,7 @@ import { mockNicknameAvailability } from './mocks/account.mock';
 import { TEXTS } from '@/shared/config/texts';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 
-// zod passwordValidationSchema(auth.schema.ts) — 영문+숫자+특수문자 8자 이상, 20자 이하.
+// zod passwordValidationSchema(auth.schema.ts) — 영문+숫자+특수문자 8자 이상, 64자 이하.
 const VALID_PASSWORD = 'TestPass1!';
 
 test.describe('회원가입', () => {

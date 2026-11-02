@@ -3,7 +3,7 @@
 // 그 안의 zod.object(...) 호출 때문에 zod-vendor가 첫 화면 청크에 실린다(docs/OPENAPI-CODEGEN.md §5-6). 이 상수는 목록
 // 카드의 북마크 토글(BookmarkFolderUtil)이 쓴다.
 //
-// 스펙의 maxLength는 값만 담는다 - BE와 FE(BookmarkFolderUtil)는 둘 다 앞뒤 공백을 뗀 뒤 코드포인트로 센다. 이름은 말줄임
-// 없이 어절 단위로 줄바꿈해 보여 주는데, 15자면 가장 좁은 자리(360px 폰의 폴더 카드, 108px)에서도 보통 2줄에 들어간다 —
-// 실측과 대안 비교는 docs/BOOKMARK.md "폴더 이름 길이" 참고.
+// 스펙의 maxLength는 값만 담는다 - BE와 FE(BookmarkFolderUtil)는 둘 다 앞뒤 공백을 뗀 뒤 코드포인트로 센다. 이름은 어절
+// 단위로 줄바꿈하고 사이드바·모바일 카드는 2줄에서 말줄임하는데, 15자면 가장 좁은 자리(360px 폰의 폴더 카드, 108px)에서도
+// 보통 2줄에 들어간다. 폴더 화면 제목은 자르지 않는다 — 실측과 대안 비교는 docs/BOOKMARK.md "폴더 이름 길이"·"폴더 이름 줄 수" 참고.
 export const BOOKMARK_FOLDER_NAME_MAX_LENGTH = 15;
