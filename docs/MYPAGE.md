@@ -7,7 +7,7 @@
 > **읽고 나면**: 저장 실패 시 입력값이 유지되는 방식과 닉네임 중복확인이 어떻게
 > 동작하는지 이해하고, 이 폼에 필드를 추가하거나 캐시 무효화 범위를 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-10-28
+> **마지막 검토**: 2026-11-02
 
 "계정 설정"(`/my/account`) 페이지 맨 위(이메일 미인증 계정이면 그 위에 이메일 인증
 안내 배너 `EmailVerificationBanner`가 먼저 뜬다), 비밀번호 변경 섹션 바로 위에 있는
@@ -210,7 +210,9 @@ const logout = () => {
 (`features/account/delete`) — 비밀번호 입력 후 탈퇴를 신청하는 폼이다. 탈퇴는
 즉시 삭제가 아니라 **14일 유예**다: 신청 즉시 로그아웃되고 작성한 글·댓글은
 "탈퇴한 사용자"로 표시되지만, 14일 안에 다시 로그인하면 탈퇴가 취소된다. 14일이
-지나면 북마크·좋아요·조회 기록이 삭제되고 되돌릴 수 없다(문구는
+지나면 북마크·좋아요·조회 기록이 삭제되고 되돌릴 수 없다. 그 뒤 같은 이메일로 다시
+가입하면 옛 글·댓글과 연결되지 않은 새 계정이 된다(재가입 정책과 업계 조사 근거는 BE
+[`docs/ACCOUNT-DELETION.md` §5-3](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/ACCOUNT-DELETION.md#5-3-재가입-정책-2026-11-02))(문구는
 `TEXTS.accountSettings.deleteSectionDescription`, `shared/config/texts.ts` — 이
 유예 기간 값은 BE `AccountDeletionService.GRACE_PERIOD`와 반드시 같아야 하고
 자동 동기화 장치가 없다고 그 파일 주석이 명시한다). 네 섹션은 각자 독립된 폼
