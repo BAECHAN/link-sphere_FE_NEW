@@ -1,3 +1,6 @@
+### 2026-11-02 (BE)
+- 인증 관련 DELETE 요청을 POST /.../deletion으로 변경하여 안정성 및 일관성 확보 ([#154](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/154))
+
 ### 2026-11-02 (FE)
 - 회원가입 프로세스 개선: 가입 요청 중 이탈 방지 로직 적용 및 요청 중 상태를 명확히 알리는 확인창 문구 도입 ([#481](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/481))
 
