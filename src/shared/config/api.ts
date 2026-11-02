@@ -25,7 +25,7 @@ const API_ENDPOINTS = {
     account: `${API_BASES.auth}/account`,
     updateAccount: `${API_BASES.auth}/account`,
     changePassword: `${API_BASES.auth}/account/password`,
-    deleteAccount: `${API_BASES.auth}/account`,
+    deleteAccount: `${API_BASES.auth}/account/deletion`,
     nicknameAvailability: `${API_BASES.auth}/account/nickname-availability`,
     emailAvailability: `${API_BASES.auth}/email-availability`,
     signup: `${API_BASES.auth}/signup`,

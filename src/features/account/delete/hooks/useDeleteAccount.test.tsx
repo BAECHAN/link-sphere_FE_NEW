@@ -41,7 +41,7 @@ describe('useDeleteAccount', () => {
   it('제출하면 확인 다이얼로그를 거쳐 입력한 비밀번호로 탈퇴를 요청한다', async () => {
     let requestBody: unknown;
     server.use(
-      http.delete(url(API_ENDPOINTS.auth.deleteAccount), async ({ request }) => {
+      http.post(url(API_ENDPOINTS.auth.deleteAccount), async ({ request }) => {
         requestBody = await request.json();
         return HttpResponse.json(
           { status: 200, message: 'ok', data: null, timestamp: new Date().toISOString() },

@@ -85,6 +85,13 @@
 
   </details>
 
+- `auth` 운영에서 회원 탈퇴가 실패하던 문제, 탈퇴 요청을 `POST /auth/account/deletion`으로
+  <details><summary>배경·구현</summary>
+
+  탈퇴 요청(`DELETE /auth/account`, 비밀번호 본문)이 CloudFront OAC가 Lambda Function URL에 보내는 서명 단계에서 403으로 막혀 앱에 닿지 못했고, 화면에는 일반 실패 토스트가 떴다. 2026-11-02 운영에서 확인한 결과, 본문 있는 DELETE만 막히고 본문 없는 DELETE와 본문 있는 POST·PATCH는 통과했다. BE가 탈퇴를 `POST /auth/account/deletion`으로 옮겨(본문·권한·응답은 그대로) FE도 호출을 바꾸고 생성 스펙을 다시 만들었다. 같은 이유로 BE의 FCM 토큰 해제도 `POST /fcm/token/deletion`으로 옮겼지만 FE는 그 API를 호출하지 않는다(로그아웃은 Firebase `deleteToken`). (`src/entities/account/api/account.api.ts`, `src/shared/config/api.ts`, `src/mocks/handlers/account.handlers.ts`, `src/shared/api/generated/openapi.*`, `docs/FCM-PUSH-NOTIFICATION.md`, [PR #482](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/482))
+
+  </details>
+
 ### Security
 
 - `infra` Storybook을 운영 도메인에서 떼어 GitHub Pages로 옮기고 옛 주소는 404로
@@ -93,6 +100,10 @@
   Storybook 정적 빌드가 `https://linksphere.click/storybook/`(같은 S3 버킷의 `storybook/` 접두사)에서 돌았다. 같은 출처에서 도는 스크립트는 refresh 쿠키(`__Host-refreshToken`, `Path=/`)를 붙여 `/api/auth/refresh`를 부르고 응답의 access token을 읽을 수 있어, Storybook이나 그 npm 의존성이 오염되면 방문자의 세션을 빼앗길 수 있었다. 이제 Storybook은 이 저장소의 GitHub Pages(https://baechan.github.io/link-sphere_FE_NEW/storybook/)에 올린다. 저장소 Pages 사이트는 하나라 문서마다 하위 경로를 쓰고, 루트 첫 화면(`pages-site/index.html`)은 FE·BE 저장소 Pages의 문서(Storybook, BE API 문서)를 카드로 함께 보여 준다 — 바로 넘기던 첫 화면을 시안 비교 후 바꿨고, 루트에 Storybook이 있던 10-30 첫 배포 때의 링크(`?path=…`)는 넘기지 않는다(2026-10-31 사용자 결정). `github.io`는 Public Suffix List에 있어 운영 도메인과 다른 사이트라 Lax 쿠키가 붙지 않는다. `deploy.yml`의 `storybook/` 제외를 지워 남은 S3 객체는 다음 배포의 `--delete`가 지우고, CloudFront Function `spa-fallback`의 `/storybook` 분기를 지워 옛 주소는 앱 404 페이지(상태 404)가 된다(사용자 결정). 배포 감시 훅의 워크플로 이름 목록도 새 이름(`Storybook Deploy (GitHub Pages)`, BE `API Docs Deploy (GitHub Pages)`)으로 맞췄다. 비교한 대안(서브도메인·302·안내 페이지)은 `docs/DECISIONS.md` 2026-10-30 항목, 계획은 [`docs/plans/2026-10-30-docs-to-github-pages.md`](docs/plans/2026-10-30-docs-to-github-pages.md). (`.github/workflows/deploy-storybook.yml`, `.github/workflows/deploy.yml`, `infra/cloudfront-functions/spa-fallback.js`, `infra/cloudfront/snapshot.json`, `src/app/routes/cloudfront-functions.test.ts`, `.claude/scripts/verify-deploy.mjs`, `.claude/hooks/deploy-verify.test.mjs`, `scripts/lib/prune-assets.js`, `docs/DEPLOY.md`, `docs/DECISIONS.md`, `docs/FCM-PUSH-NOTIFICATION.md`, `README.md`, `pages-site/index.html`, [PR #459](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/459), [PR #460](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/460), [PR #465](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/465))
 
   </details>
+
+### Notes
+
+- BE API 의존: `link-sphere_BE_NEW` [PR #154](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/154) 필요(회원 탈퇴 `DELETE /auth/account` → `POST /auth/account/deletion`). **배포 순서: BE 먼저** — 구버전 BE에는 새 경로가 없어 탈퇴가 실패한다. 운영에서는 옛 호출도 이미 CloudFront에서 403이라, BE를 먼저 배포하는 동안 새로 깨지는 것은 없다.
 
 ## [0.20.0] - 2026-10-28
 

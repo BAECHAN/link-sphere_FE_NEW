@@ -20,8 +20,8 @@ export const accountHandlers = [
     return MockEnvelopeUtil.json({ available: nickname !== 'taken' });
   }),
 
-  // DELETE /auth/account
-  http.delete('/auth/account', () => {
+  // POST /auth/account/deletion
+  http.post('/auth/account/deletion', () => {
     return MockEnvelopeUtil.unit();
   }),
 ];
