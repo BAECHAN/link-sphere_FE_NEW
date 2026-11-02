@@ -1,4 +1,9 @@
 ### 2026-11-02 (FE)
+- 요청 실패 시 토스트 메시지 유지 및 재시도 버튼 추가
+로그:
+- feat(shared): 요청 중 떠난 뒤 실패하면 닫을 때까지 남는 토스트와 돌아갈 버튼 ([#487](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/487))
+
+### 2026-11-02 (FE)
 - 토스트 메시지 줄바꿈 처리 및 폰트 설정 최적화 ([#489](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/489))
 
 ### 2026-11-02 (FE)
