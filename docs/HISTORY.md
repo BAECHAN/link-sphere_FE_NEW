@@ -1,3 +1,8 @@
+### 2026-11-02 (FE)
+- 데모 계정 도입 및 계정 설정 접근 제어 로직 구현
+  - 데모 계정 로그인 기능 추가
+  - 계정 설정 접근 시 권한 거부 안내 모달/메시지 처리 구현 ([#479](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/479))
+
 ### 2026-11-02 (BE)
 - OpenAPI 명세에 요청 입력 제한 사항을 반영하고, 비밀번호 유효성 검사 정규식을 통합하여 관리 효율성 및 유지보수성을 개선함 ([#152](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/152))
 
