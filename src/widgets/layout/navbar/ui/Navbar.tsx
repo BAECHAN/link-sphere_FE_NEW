@@ -168,11 +168,11 @@ export function Navbar() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate(ROUTES_PATHS.MY_COMMENTS)}>
-                    {TEXTS.buttons.myComments}
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate(ROUTES_PATHS.MY_ACCOUNT)}>
                     {TEXTS.buttons.accountSettings}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(ROUTES_PATHS.MY_COMMENTS)}>
+                    {TEXTS.buttons.myComments}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>{TEXTS.nav.logOut}</DropdownMenuItem>
