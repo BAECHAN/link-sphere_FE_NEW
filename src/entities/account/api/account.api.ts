@@ -44,6 +44,6 @@ export const accountApi = {
    * 실제 익명화는 14일 뒤 BE 예약 작업(AccountPurgeService)이 처리한다.
    */
   deleteAccount: async (payload: DeleteAccount): Promise<void> => {
-    await specClient.delete('/auth/account', { body: { password: payload.password } });
+    await specClient.post('/auth/account/deletion', { body: { password: payload.password } });
   },
 };

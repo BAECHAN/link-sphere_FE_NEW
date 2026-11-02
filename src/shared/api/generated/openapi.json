@@ -1218,34 +1218,6 @@
   "openapi": "3.1.0",
   "paths": {
     "/auth/account": {
-      "delete": {
-        "description": "비밀번호 재확인 후 탈퇴를 신청한다(즉시 삭제 아님) - 14일 유예기간에 들어간다. 모든 세션이 즉시 폐기되고 이 기기의 쿠키도 만료되며, FCM 토큰도 바로 삭제된다(유예 중 푸시 중단). 작성한 글·댓글은 이 시점부터 '탈퇴한 사용자'로 표시된다. 14일 안에 다시 로그인하면 신청이 자동 취소되고 닉네임 등이 그대로 복구된다(POST /auth/login 참고). 14일이 지나면 예약 작업이 계정을 익명화하고, 그때 북마크·좋아요·조회기록도 실제로 삭제된다. 실패: 401 INVALID_CREDENTIALS(비밀번호 불일치) · 403 ACCESS_DENIED(데모 계정처럼 이 권한이 없는 역할)",
-        "operationId": "deleteAccount",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeleteAccountRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseUnit"
-                }
-              }
-            },
-            "description": "OK"
-          }
-        },
-        "summary": "회원 탈퇴 신청",
-        "tags": ["인증"]
-      },
       "get": {
         "description": "인증된 세션이 가리키는 회원 ID로 조회한다.",
         "operationId": "getAccount",
@@ -1290,6 +1262,36 @@
           }
         },
         "summary": "내 계정 수정",
+        "tags": ["인증"]
+      }
+    },
+    "/auth/account/deletion": {
+      "post": {
+        "description": "비밀번호 재확인 후 탈퇴를 신청한다(즉시 삭제 아님) - 14일 유예기간에 들어간다. 모든 세션이 즉시 폐기되고 이 기기의 쿠키도 만료되며, FCM 토큰도 바로 삭제된다(유예 중 푸시 중단). 작성한 글·댓글은 이 시점부터 '탈퇴한 사용자'로 표시된다. 14일 안에 다시 로그인하면 신청이 자동 취소되고 닉네임 등이 그대로 복구된다(POST /auth/login 참고). 14일이 지나면 예약 작업이 계정을 익명화하고, 그때 북마크·좋아요·조회기록도 실제로 삭제된다. 실패: 401 INVALID_CREDENTIALS(비밀번호 불일치) · 403 ACCESS_DENIED(데모 계정처럼 이 권한이 없는 역할)",
+        "operationId": "deleteAccount",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUnit"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "회원 탈퇴 신청",
         "tags": ["인증"]
       }
     },
@@ -2403,34 +2405,6 @@
       }
     },
     "/fcm/token": {
-      "delete": {
-        "description": "data 는 비어 있다.",
-        "operationId": "deleteToken",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeleteFcmTokenRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseUnit"
-                }
-              }
-            },
-            "description": "OK"
-          }
-        },
-        "summary": "FCM 토큰 해제",
-        "tags": ["FCM 토큰"]
-      },
       "post": {
         "description": "로그인 후 브라우저·앱에서 호출한다. data 는 비어 있다.",
         "operationId": "registerToken",
@@ -2457,6 +2431,36 @@
           }
         },
         "summary": "FCM 토큰 등록",
+        "tags": ["FCM 토큰"]
+      }
+    },
+    "/fcm/token/deletion": {
+      "post": {
+        "description": "data 는 비어 있다.",
+        "operationId": "deleteToken",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteFcmTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUnit"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "FCM 토큰 해제",
         "tags": ["FCM 토큰"]
       }
     },

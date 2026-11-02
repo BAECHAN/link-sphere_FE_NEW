@@ -307,7 +307,7 @@ describe('useDeleteAccountMutation', () => {
   // 데모 계정처럼 탈퇴 권한이 없는 역할(BE MemberRole) - manualErrorHandling이라 전역 문구가 뜨지 않는다
   it('권한이 없는 역할(ACCESS_DENIED)이면 접근 권한이 없다고 안내한다', async () => {
     server.use(
-      http.delete(url(API_ENDPOINTS.auth.deleteAccount), () =>
+      http.post(url(API_ENDPOINTS.auth.deleteAccount), () =>
         HttpResponse.json(
           { status: 403, code: SERVER_ERROR_CODE.ACCESS_DENIED, message: 'Access is denied' },
           { status: 403 }

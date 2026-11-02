@@ -300,12 +300,12 @@ async function registerTokenToServer(token: string): Promise<void> {
 
 토큰 해제(`unregisterFcmToken`)는 로그아웃(`auth.queries.ts`의 `useLogoutMutation`)이
 auth 상태를 비운 **뒤** 백그라운드로 호출되고, Firebase SDK의 `deleteToken()`으로 이
-기기의 토큰만 무효화한다. 서버 `DELETE /fcm/token`은 보내지 않는다 — 이 시점엔
+기기의 토큰만 무효화한다. 서버 해제 API(`POST /fcm/token/deletion`)는 보내지 않는다 — 이 시점엔
 요청에 실을 accessToken이 이미 없고, 서버의 `fcm_tokens` 행은 로그아웃으로 폐기된
 세션 계열에 묶여 있어 발송 대상에서 빠진 뒤 다음 발송 직전에 BE가 지운다(§5
 "알림 발송 흐름"). 2026-10-05 전에는 서버 삭제 코드(`deleteTokenFromServer`)가 있었지만,
 accessToken이 없으면 조용히 return하는 구조라 같은 이유로 요청이 한 번도 나가지
-않아 지웠다(BE 엔드포인트 `DELETE /fcm/token`은 남아 있다).
+않아 지웠다(BE 엔드포인트는 남아 있다 — 2026-11-02 본문 있는 DELETE가 CloudFront OAC에서 403으로 막혀 `DELETE /fcm/token`에서 `POST /fcm/token/deletion`으로 옮겼다).
 
 **포그라운드 메시지 수신**(`useFcmForegroundMessage.ts`)
 
@@ -504,7 +504,7 @@ src/main/kotlin/com/example/linksphere/
 │   ├── FcmConfig.kt              # Firebase Admin SDK 초기화
 │   ├── FcmService.kt             # sendToUser() - stale 토큰 정리 + 실제 FCM 발송
 │   ├── FcmNotificationService.kt # 알림 타입별 메시지 조립(닉네임·본문 없는 일반 문구)
-│   ├── FcmTokenController.kt     # POST/DELETE /fcm/token
+│   ├── FcmTokenController.kt     # POST /fcm/token, POST /fcm/token/deletion
 │   ├── FcmTokenService.kt        # 토큰 CRUD 비즈니스 로직
 │   ├── FcmTokenRepository.kt     # upsertToken·deleteStaleTokensForUser 등
 │   ├── FcmTokenDTO.kt            # Request DTO

@@ -14,15 +14,6 @@
 import * as zod from 'zod';
 
 /**
- * 비밀번호 재확인 후 탈퇴를 신청한다(즉시 삭제 아님) - 14일 유예기간에 들어간다. 모든 세션이 즉시 폐기되고 이 기기의 쿠키도 만료되며, FCM 토큰도 바로 삭제된다(유예 중 푸시 중단). 작성한 글·댓글은 이 시점부터 '탈퇴한 사용자'로 표시된다. 14일 안에 다시 로그인하면 신청이 자동 취소되고 닉네임 등이 그대로 복구된다(POST /auth/login 참고). 14일이 지나면 예약 작업이 계정을 익명화하고, 그때 북마크·좋아요·조회기록도 실제로 삭제된다. 실패: 401 INVALID_CREDENTIALS(비밀번호 불일치) · 403 ACCESS_DENIED(데모 계정처럼 이 권한이 없는 역할)
- * @summary 회원 탈퇴 신청
- */
-
-export const DeleteAccountBody = zod.object({
-  password: zod.string().min(1),
-});
-
-/**
  * nickname·image 만 부분 수정한다(null 인 필드는 유지). 실패: 409 DUPLICATE_NICKNAME(닉네임 중복) · 403 ACCESS_DENIED(데모 계정처럼 이 권한이 없는 역할)
  * @summary 내 계정 수정
  */
@@ -42,6 +33,15 @@ export const UpdateAccountBody = zod.object({
     .max(updateAccountBodyNicknameMax)
     .regex(updateAccountBodyNicknameRegExp)
     .nullish(),
+});
+
+/**
+ * 비밀번호 재확인 후 탈퇴를 신청한다(즉시 삭제 아님) - 14일 유예기간에 들어간다. 모든 세션이 즉시 폐기되고 이 기기의 쿠키도 만료되며, FCM 토큰도 바로 삭제된다(유예 중 푸시 중단). 작성한 글·댓글은 이 시점부터 '탈퇴한 사용자'로 표시된다. 14일 안에 다시 로그인하면 신청이 자동 취소되고 닉네임 등이 그대로 복구된다(POST /auth/login 참고). 14일이 지나면 예약 작업이 계정을 익명화하고, 그때 북마크·좋아요·조회기록도 실제로 삭제된다. 실패: 401 INVALID_CREDENTIALS(비밀번호 불일치) · 403 ACCESS_DENIED(데모 계정처럼 이 권한이 없는 역할)
+ * @summary 회원 탈퇴 신청
+ */
+
+export const DeleteAccountBody = zod.object({
+  password: zod.string().min(1),
 });
 
 /**
@@ -218,21 +218,21 @@ export const CreateReplyBody = zod.object({
 });
 
 /**
- * data 는 비어 있다.
- * @summary FCM 토큰 해제
- */
-
-export const DeleteTokenBody = zod.object({
-  token: zod.string().min(1),
-});
-
-/**
  * 로그인 후 브라우저·앱에서 호출한다. data 는 비어 있다.
  * @summary FCM 토큰 등록
  */
 
 export const RegisterTokenBody = zod.object({
   platform: zod.string(),
+  token: zod.string().min(1),
+});
+
+/**
+ * data 는 비어 있다.
+ * @summary FCM 토큰 해제
+ */
+
+export const DeleteTokenBody = zod.object({
   token: zod.string().min(1),
 });
 

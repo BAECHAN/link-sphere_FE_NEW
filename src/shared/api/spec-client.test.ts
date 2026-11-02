@@ -112,19 +112,20 @@ describe('specClient', () => {
     expect(result).toEqual({ isLiked: true, likeCount: 3 });
   });
 
-  it('본문이 있는 DELETE는 본문을 JSON으로 보내고, Unit 응답은 빈 data를 그대로 넘긴다', async () => {
-    let body: unknown = null;
+  // 본문 있는 DELETE는 CloudFront OAC 서명에서 403이라 BE가 만들지 않는다(BE ControllerSignatureRulesTest, 2026-11-02)
+  it('DELETE는 본문을 싣지 않고, Unit 응답은 빈 data를 그대로 넘긴다', async () => {
+    let body: string | null = null;
     server.use(
-      http.delete('/auth/account', async ({ request }) => {
-        body = await request.json();
+      http.delete('/post/{id}', async ({ request }) => {
+        body = await request.text();
 
         return MockEnvelopeUtil.unit();
       })
     );
 
-    const result = await specClient.delete('/auth/account', { body: { password: 'pw' } });
+    const result = await specClient.delete('/post/{id}', { path: { id: 'p1' } });
 
-    expect(body).toEqual({ password: 'pw' });
+    expect(body).toBe('');
     // 타입은 void라 호출부가 값을 쓸 수 없다 — 런타임에는 운영과 같은 빈 data(`{}`)가 그대로 지나간다
     expect(result).toEqual({});
   });
