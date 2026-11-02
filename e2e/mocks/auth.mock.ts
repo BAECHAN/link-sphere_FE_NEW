@@ -58,7 +58,7 @@ export async function mockSignUpSuccess(page: Page): Promise<void> {
 
 /**
  * POST /auth/signup (실패, 500) — DUPLICATE_NICKNAME도 409도 아닌 일반 실패 경로를 태워
- * useCreateAccountMutation.onError의 else 분기(accountCreateFailed 토스트)를 탄다.
+ * SignUpUtil.resolveSubmitError의 'failed' 판정(머물러 있으면 useSignUp이 accountCreateFailed 토스트)을 탄다.
  */
 export async function mockSignUpFailure(page: Page): Promise<void> {
   await page.route(

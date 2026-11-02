@@ -70,6 +70,10 @@ export const TEXTS = {
     delete: '삭제',
     confirm: COMMON_TEXT.confirm,
     cancel: COMMON_TEXT.cancel,
+    // 떠난 뒤 실패 토스트의 버튼 - 그 폼으로 돌아가 입력을 되살린다(messages.error.leftPageFailure)
+    signUpAgain: '다시 가입하기',
+    createPostAgain: '다시 등록하기',
+    updatePostAgain: '다시 수정하기',
   },
   auth: {
     title: '로그인',
@@ -560,6 +564,16 @@ export const TEXTS = {
         notOwner: '내가 쓴 포스트만 수정할 수 있어요.',
         createFailed: '일시적인 문제로 등록하지 못했어요. 잠시 후 다시 시도해주세요.',
         updateFailed: '일시적인 문제로 수정하지 못했어요. 잠시 후 다시 시도해주세요.',
+      },
+      // 저장 요청 중 "나가기"로 떠난 뒤 실패했을 때 옮겨 간 화면에 남기는 토스트의 제목·설명 - 닫을 때까지
+      // 남는다(docs/UNSAVED-CHANGES-GUARD.md §5). 게시글의 설명은 위 postSubmit.*을, 가입 이메일 중복은 가입
+      // 화면 칸 아래 문구(auth.signup.emailDuplicate)를 그대로 쓴다
+      leftPageFailure: {
+        signUpTitle: '가입하지 못했어요',
+        signUpDuplicateNickname: '닉네임이 이미 쓰이고 있어요. 다른 닉네임으로 다시 가입해주세요.',
+        retryLater: '잠시 후 다시 시도해주세요.',
+        postCreateTitle: '포스트를 등록하지 못했어요',
+        postUpdateTitle: '포스트를 수정하지 못했어요',
       },
       fetchPosts: '포스트를 불러오는 중 오류가 발생했어요.',
       postDeleteFailed: '포스트 삭제에 실패했어요.',

@@ -1,24 +1,49 @@
 import { useCreatePostMutation } from '@/entities/post/api/post.queries';
-import { useForm } from 'react-hook-form';
+import { useForm, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CreatePost, createPostSchema } from '@/entities/post/model/post.schema';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { usePendingSubmit } from '@/shared/hooks/usePendingSubmit';
 import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
-import { toast } from '@/shared/lib/toast/toast';
+import { showLeftPageFailureToast } from '@/shared/lib/toast/LeftPageFailureToast';
+import { NavigationService } from '@/shared/lib/router/navigation';
 import { UrlUtil } from '@/shared/utils/url.util';
+import { ScrollUtil } from '@/shared/utils/scroll.util';
 import { useAccount } from '@/entities/account/hooks/useAccount';
 import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
 import { useSignedOutNotice } from '@/entities/auth/hooks/useSignedOutNotice';
 import { TEXTS } from '@/shared/config/texts';
 import { ErrorUtil } from '@/shared/utils/error.util';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PostUtil, PostSubmitErrorResolution } from '@/entities/post/utils/post.util';
 import { useLinkPreview } from '@/entities/post/hooks/useLinkPreview';
 
 type PostSubmitFormError = Extract<PostSubmitErrorResolution, { kind: 'form' }>;
+
+// 떠난 뒤 등록이 실패해 토스트의 [다시 등록하기]로 돌아올 때 실리는 입력과 실패 판정 - 돌아오면 머물렀을 때와
+// 같은 안내를 다시 띄운다(버튼을 누르면 토스트가 닫혀 이유가 함께 사라진다, docs/UNSAVED-CHANGES-GUARD.md §5)
+interface PostCreateLocationState {
+  restoredSubmission?: { values: CreatePost; resolution: PostSubmitErrorResolution };
+}
+
+/** 실패를 고칠 수 있는 입력칸 아래 또는 버튼 위 안내(FormAlert)에 남긴다 */
+function showSubmitError(
+  form: UseFormReturn<CreatePost>,
+  setSubmitError: (error: PostSubmitFormError) => void,
+  resolution: PostSubmitErrorResolution
+) {
+  if (resolution.kind === 'field') {
+    form.setError(
+      resolution.field,
+      { type: 'server', message: resolution.message },
+      { shouldFocus: true }
+    );
+  } else {
+    setSubmitError(resolution);
+  }
+}
 
 const DEFAULT_VALUES: CreatePost = {
   url: '',
@@ -83,6 +108,40 @@ export function useCreatePost() {
     [form]
   );
 
+  const location = useLocation();
+  const restoredSubmission = (location.state as PostCreateLocationState | null)?.restoredSubmission;
+
+  useEffect(
+    function restoreSubmissionAfterLeftPageFailure() {
+      // useSignUp.ts의 restoreInputAfterLeftPageFailure와 같은 이유 - 새로 입력 중이면 덮지 않고, 되살린 입력도
+      // 작성 중(dirty)으로 잡는다
+      if (!restoredSubmission || form.formState.isDirty) {
+        return;
+      }
+
+      form.reset(restoredSubmission.values, { keepDefaultValues: true });
+      showSubmitError(form, setSubmitError, restoredSubmission.resolution);
+    },
+    [restoredSubmission, form]
+  );
+
+  // 되살린 안내가 화면 밖이면 보이게 내릴 때 기준이 되는 제출 버튼 - 안내는 그 바로 위에 있다
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(
+    function revealRestoredSubmitError() {
+      // 돌아온 화면은 맨 위에서 시작해, 데스크톱에선 폼 맨 아래 버튼 위 안내가 화면 밖에 남는다 - 안내와 버튼이
+      // 보이게 내린다. 이미 보이면(모바일 하단 고정 바 등) 움직이지 않는다(block: 'nearest')
+      if (submitError && submitError === restoredSubmission?.resolution) {
+        submitButtonRef.current?.scrollIntoView({
+          block: 'nearest',
+          behavior: ScrollUtil.getBehavior(),
+        });
+      }
+    },
+    [submitError, restoredSubmission]
+  );
+
   async function submitPost(formData: CreatePost) {
     // BE도 같은 검사를 403 EMAIL_NOT_VERIFIED로 거절하지만(방어 계층 중복), 클릭 가능한
     // 채로 두고 안내만 보여준다(disabled 대신 - CLAUDE.md 폼 검증 실패 처리 규칙과 동일 패턴).
@@ -97,6 +156,8 @@ export function useCreatePost() {
     // 충분하다(근거: docs/DECISIONS.md 2026-10-03 항목). reject는 여기서 받아 원인별 안내로
     // 바꾸고 다시 던지지 않는다 - 던지면 handleSubmit 밖으로 처리되지 않은 rejection이 샌다.
     setSubmitError(null);
+    // 떠난 뒤 실패하면 되살릴 폼 값 - formData는 zod가 바꾼 값이라(categoryIds가 숫자) 폼 값과 모양이 다르다
+    const submittedValues = form.getValues();
 
     try {
       await createPost({ ...formData, url: UrlUtil.normalizeUrl(formData.url) });
@@ -114,22 +175,30 @@ export function useCreatePost() {
         hasFolders: (formData.folderIds?.length ?? 0) > 0,
       });
 
-      // 응답 전에 "나가기"로 떠났으면 안내를 띄울 폼이 없다 - 그때만 토스트로 대신 알린다
+      // 응답 전에 "나가기"로 떠났으면 안내를 띄울 폼이 없다 - 닫을 때까지 남는 토스트로 대신 알리고, 원인을
+      // 특정하지 못한 실패면 제목과 겹치는 "일시적인 문제로 등록하지 못했어요" 대신 할 일만 적는다
       if (hasLeftPage()) {
-        toast.error(resolution.message);
+        const restoredState: PostCreateLocationState = {
+          restoredSubmission: { values: submittedValues, resolution },
+        };
+
+        showLeftPageFailureToast({
+          key: 'post-create',
+          title: TEXTS.messages.error.leftPageFailure.postCreateTitle,
+          description:
+            resolution.kind === 'form' && resolution.unclassified
+              ? TEXTS.messages.error.leftPageFailure.retryLater
+              : resolution.message,
+          action: {
+            label: TEXTS.buttons.createPostAgain,
+            onClick: () =>
+              NavigationService.navigate(ROUTES_PATHS.POST.SUBMIT, { state: restoredState }),
+          },
+        });
         return;
       }
 
-      if (resolution.kind === 'field') {
-        form.setError(
-          resolution.field,
-          { type: 'server', message: resolution.message },
-          { shouldFocus: true }
-        );
-      } else {
-        setSubmitError(resolution);
-      }
-
+      showSubmitError(form, setSubmitError, resolution);
       return;
     }
 
@@ -172,5 +241,6 @@ export function useCreatePost() {
       : submitError,
     linkPreview,
     titleValue,
+    submitButtonRef,
   };
 }

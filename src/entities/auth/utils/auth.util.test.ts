@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { PasswordUtil } from '@/entities/auth/utils/auth.util';
+import { PasswordUtil, SignUpUtil } from '@/entities/auth/utils/auth.util';
 import { passwordValidationSchema } from '@/entities/auth/model/auth.schema';
+import { ApiError } from '@/shared/types/common.type';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { TEXTS } from '@/shared/config/texts';
 
 describe('PasswordUtil.checkRequirements', () => {
   it.each([
@@ -142,5 +145,39 @@ describe('PasswordUtil.resolveConfirmStatus', () => {
     ['자동완성이 두 칸을 채움(포커스 없음)', { ...base, confirm: PW, isFocused: false }, 'match'],
   ] as const)('%s', (_, input, expected) => {
     expect(PasswordUtil.resolveConfirmStatus(input)).toBe(expected);
+  });
+});
+
+describe('SignUpUtil.resolveSubmitError', () => {
+  // 실제 BE ErrorResponse는 status를 바디에도 담는다 - 바디에 status가 없으면 ApiError.status가 undefined가 되어
+  // 409 분기가 무력화된다(client.ts가 바디로 ApiError를 만든다)
+  const apiError = (status: number, code: string) =>
+    new ApiError({ status, code, message: 'internal english message', timestamp: '' });
+
+  it('닉네임 중복(DUPLICATE_NICKNAME)이면 이메일이 아닌 닉네임 전용 메시지다', () => {
+    expect(
+      SignUpUtil.resolveSubmitError(apiError(409, SERVER_ERROR_CODE.DUPLICATE_NICKNAME))
+    ).toEqual({
+      reason: 'duplicateNickname',
+      message: TEXTS.messages.error.nicknameDuplicate,
+    });
+  });
+
+  it('그 밖의 409(DUPLICATE_MEMBER)는 이메일 중복이다', () => {
+    expect(SignUpUtil.resolveSubmitError(apiError(409, 'DUPLICATE_MEMBER'))).toEqual({
+      reason: 'duplicateEmail',
+      message: TEXTS.messages.error.accountCreateFailedDuplicateAccount,
+    });
+  });
+
+  it.each([
+    ['서버 오류', apiError(500, SERVER_ERROR_CODE.INTERNAL_SERVER_ERROR)],
+    // ApiError가 아닌 실패(오프라인·CORS·DNS) - 이 분기가 없으면 버튼만 다시 활성화되고 아무 안내 없이 끝난다
+    ['네트워크 단절', new TypeError('Failed to fetch')],
+  ])('%s는 일반 실패다', (_, error) => {
+    expect(SignUpUtil.resolveSubmitError(error)).toEqual({
+      reason: 'failed',
+      message: TEXTS.messages.error.accountCreateFailed,
+    });
   });
 });

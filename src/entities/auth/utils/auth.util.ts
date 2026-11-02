@@ -1,5 +1,8 @@
 import { PASSWORD_REQUIREMENTS, type PasswordRequirement } from '@/entities/auth/config/auth.const';
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@/entities/auth/config/auth.contract';
+import { ApiError } from '@/shared/types/common.type';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { TEXTS } from '@/shared/config/texts';
 
 /** met: 충족(초록 ✓) / unmet: 못 채운 채로 칸을 벗어났거나 제출함(빨강 ✗) / pending: 아직 입력 중(회색 ○) */
 export type PasswordRequirementState = 'met' | 'unmet' | 'pending';
@@ -112,5 +115,36 @@ export class PasswordUtil {
     }
 
     return confirm === password ? 'match' : 'mismatch';
+  }
+}
+
+/** 가입 실패 원인 - 화면에 머물렀으면 message 토스트, 떠났으면 원인별 안내와 버튼(useSignUp) */
+export interface SignUpSubmitErrorResolution {
+  reason: 'duplicateNickname' | 'duplicateEmail' | 'failed';
+  message: string;
+}
+
+export class SignUpUtil {
+  /**
+   * 가입 요청 실패를 원인별로 나눈다. ApiError가 아닌 실패(오프라인·CORS·DNS 등 네트워크 자체 실패)도 반드시
+   * failed로 돌려준다 - 빠지면 버튼만 다시 활성화되고 아무 안내 없이 조용히 실패한다.
+   */
+  static resolveSubmitError(error: unknown): SignUpSubmitErrorResolution {
+    if (!(error instanceof ApiError)) {
+      return { reason: 'failed', message: TEXTS.messages.error.accountCreateFailed };
+    }
+
+    if (error.code === SERVER_ERROR_CODE.DUPLICATE_NICKNAME) {
+      return { reason: 'duplicateNickname', message: TEXTS.messages.error.nicknameDuplicate };
+    }
+
+    if (error.status === 409) {
+      return {
+        reason: 'duplicateEmail',
+        message: TEXTS.messages.error.accountCreateFailedDuplicateAccount,
+      };
+    }
+
+    return { reason: 'failed', message: TEXTS.messages.error.accountCreateFailed };
   }
 }

@@ -19,7 +19,7 @@ interface UpdatePostFormProps {
 }
 
 export function UpdatePostForm({ postId }: UpdatePostFormProps) {
-  const { form, post, isLoading, isUpdating, onSubmit, submitError, linkPreview } =
+  const { form, post, isLoading, isUpdating, onSubmit, submitError, linkPreview, submitButtonRef } =
     useUpdatePost(postId);
   const { categoryOptionList } = useCategoryOptions();
 
@@ -94,7 +94,11 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
                 disabled={!canSubmit}
                 className="w-full"
               >
-                <Button className="w-full h-11 text-base" disabled={!canSubmit}>
+                <Button
+                  ref={submitButtonRef}
+                  className="w-full h-11 text-base"
+                  disabled={!canSubmit}
+                >
                   {isUpdating ? TEXTS.common.updating : TEXTS.post.form.update.update}
                 </Button>
               </TooltipWrapper>

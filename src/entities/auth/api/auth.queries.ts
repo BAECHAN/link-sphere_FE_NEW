@@ -81,7 +81,7 @@ export const useLoginMutation = () => {
         }
       } else {
         // ApiError가 아닌 경우(오프라인·CORS·DNS 실패 등 네트워크 자체 실패)도 반드시 토스트를
-        // 띄운다 - useCreateAccountMutation과 동일한 이유(이 분기가 없으면 버튼만 다시
+        // 띄운다 - 가입 실패 판정(SignUpUtil.resolveSubmitError)과 동일한 이유(이 분기가 없으면 버튼만 다시
         // 활성화되고 아무 안내 없이 조용히 실패한다).
         toast.error(TEXTS.messages.error.loginFailed);
       }
@@ -124,6 +124,8 @@ export const useLogoutMutation = () => {
 // 처리한다 - BE가 가입 시 인증메일을 자동 발송하므로(AuthService.signup) 여기서
 // navigate도, 성공 토스트도 필요 없다(화면 자체가 성공을 보여준다, 가시성 원칙). 응답 전에
 // 화면을 떠났으면 그 화면을 볼 수 없으니 useSignUp이 그때만 성공 토스트로 대신 알린다.
+// 실패 토스트도 여기서 띄우지 않는다 - 화면에 머물렀는지에 따라 안내가 달라 useSignUp이 원인
+// (SignUpUtil.resolveSubmitError)을 받아 띄운다. 이 mutation을 다른 곳에서 쓰면 실패 안내를 직접 띄워야 한다.
 export const useCreateAccountMutation = () => {
   return useMutation({
     mutationFn: async (payload: CreateAccount) => {
@@ -131,21 +133,6 @@ export const useCreateAccountMutation = () => {
     },
     meta: {
       manualErrorHandling: true,
-    },
-    onError: (error) => {
-      // ApiError가 아닌 경우(오프라인·CORS·DNS 실패 등 네트워크 자체 실패)도 반드시 토스트를
-      // 띄운다 - 이 분기가 없으면 버튼만 다시 활성화되고 아무 안내 없이 조용히 실패한다.
-      if (error instanceof ApiError) {
-        if (error.code === SERVER_ERROR_CODE.DUPLICATE_NICKNAME) {
-          toast.error(TEXTS.messages.error.nicknameDuplicate);
-        } else if (error.status === 409) {
-          toast.error(TEXTS.messages.error.accountCreateFailedDuplicateAccount);
-        } else {
-          toast.error(TEXTS.messages.error.accountCreateFailed);
-        }
-      } else {
-        toast.error(TEXTS.messages.error.accountCreateFailed);
-      }
     },
   });
 };

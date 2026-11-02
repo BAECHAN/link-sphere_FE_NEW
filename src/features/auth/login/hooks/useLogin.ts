@@ -1,4 +1,4 @@
-import { useLayoutEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { useLocation } from 'react-router-dom';
@@ -67,6 +67,20 @@ export function useLogin({ onInputDirtyChange }: UseLoginOptions = {}): UseLogin
       onInputDirtyChange?.(hasUserInput);
     },
     [hasUserInput, onInputDirtyChange]
+  );
+
+  useEffect(
+    function fillEmailArrivedOnSamePage() {
+      // 이미 이 화면에 있는데 이메일이 다시 실려 오면(가입 화면에서 이 화면으로 떠난 뒤 가입이 이메일 중복으로
+      // 실패해 토스트의 [로그인]을 누른 경우) 폼이 다시 마운트되지 않아 위 defaultValues가 다시 읽히지 않는다.
+      // 입력 중이면 덮지 않는다(docs/UNSAVED-CHANGES-GUARD.md §5)
+      if (!emailFromState || hasUserInput) {
+        return;
+      }
+
+      form.resetField('email', { defaultValue: emailFromState });
+    },
+    [emailFromState, hasUserInput, form]
   );
 
   const onSubmit = async (data: LoginFormInput) => {

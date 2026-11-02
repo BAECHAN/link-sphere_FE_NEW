@@ -149,7 +149,8 @@ RootLayout
 탈퇴를 신청해 유예 중인 이메일도 이 경로를 탑니다. BE가 유예 동안 원래 이메일을 남겨 두므로 가입 화면에는
 "이미 가입된 이메일"로 확인되고, 그 문구(`TEXTS.auth.signup.emailDuplicate`)가 로그인하면 탈퇴를 취소할 수
 있다고 함께 알립니다. 그 이메일이 탈퇴 중인지는 드러내지 않습니다. 로그인 링크가 이메일을 실어 보내므로 비밀번호만
-넣으면 복구됩니다(복구 토스트는 §8-E). 재가입 정책 전체는 BE
+넣으면 복구됩니다(복구 토스트는 §8-E). 가입 요청 중 "나가기"로 떠난 뒤 이메일 중복으로 실패했을 때의 토스트도 같은
+문구와 [로그인] 버튼을 씁니다(`docs/UNSAVED-CHANGES-GUARD.md` §5 "떠난 뒤 실패 토스트"). 재가입 정책 전체는 BE
 [`docs/ACCOUNT-DELETION.md` §5-3](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/ACCOUNT-DELETION.md#5-3-재가입-정책-2026-11-02)에 있습니다.
 
 **절대 저장하지 않는 것**: 액세스 토큰(어떤 스토리지에도 없음, 메모리 전용), 리프레시 토큰(JS가 못 만짐), 계정 정보(React Query 캐시에만, `accountKeys.root`) — 게이트 D가 보는 `account.emailVerified`도 이 캐시 안에 있고 `useAuthStore`에는 없습니다.

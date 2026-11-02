@@ -31,7 +31,8 @@ interface CreatePostFormProps {
 }
 
 export function CreatePostForm({ renderFolderSelect }: CreatePostFormProps) {
-  const { form, onSubmit, isCreating, submitError, linkPreview, titleValue } = useCreatePost();
+  const { form, onSubmit, isCreating, submitError, linkPreview, titleValue, submitButtonRef } =
+    useCreatePost();
   const { categoryOptionList } = useCategoryOptions();
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -168,7 +169,11 @@ export function CreatePostForm({ renderFolderSelect }: CreatePostFormProps) {
                   disabled={!canSubmit}
                   className="w-full"
                 >
-                  <Button className="w-full h-11 text-base" disabled={!canSubmit}>
+                  <Button
+                    ref={submitButtonRef}
+                    className="w-full h-11 text-base"
+                    disabled={!canSubmit}
+                  >
                     {isCreating ? TEXTS.common.submitting : TEXTS.post.form.create.submit}
                   </Button>
                 </TooltipWrapper>

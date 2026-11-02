@@ -48,6 +48,13 @@
 
   </details>
 
+- `shared` 가입·글 등록·수정 중 떠난 뒤 실패하면 닫을 때까지 남는 토스트와 돌아갈 버튼
+  <details><summary>배경·구현</summary>
+
+  요청 중 "나가기"로 떠난 뒤 요청이 실패하면 옮겨 간 화면에 이유만 적힌 에러 토스트가 4초 뒤 사라졌다(sonner 기본값). 떠난 경우엔 이 토스트가 실패를 알 수 있는 유일한 곳인데, 무엇이 실패했는지도 말하지 않았고 입력은 떠날 때 사라져 처음부터 다시 쳐야 했다. 이제 이 토스트는 닫을 때까지 남고, 제목(가입하지 못했어요·포스트를 등록하지 못했어요·포스트를 수정하지 못했어요)과 설명(이유·할 일, 원인을 가려내지 못한 실패는 "잠시 후 다시 시도해주세요.")을 나눠 보여 준다. [다시 가입하기]·[다시 등록하기]·[다시 수정하기]를 누르면 그 폼으로 돌아가 입력을 되살리고(작성 중으로), 게시글은 머물렀을 때와 같은 칸 아래·버튼 위 안내도 다시 띄우며 그 안내가 보이는 데까지 내린다. 가입은 닉네임·이메일만 되살리고 비밀번호는 비운다(`location.state`가 방문 기록에 남기 때문). 이메일 중복이면 설명은 가입 화면 칸 아래 문구(탈퇴 취소 방법 포함)와 같고 [로그인]이 그 이메일을 채운 로그인 화면으로 보내며, 글이 삭제됐거나 남의 글이면 버튼을 달지 않는다. 그 폼에 새로 입력 중이면 덮지 않는다. 머문 채 실패하면 지금과 같다. 가입 실패 판정을 mutation `onError`에서 `SignUpUtil.resolveSubmitError`로 옮겨 훅이 머문 경우와 떠난 경우를 나눈다. 녹화로 찾아 함께 고친 것: 이미 로그인 화면에 있을 때 [로그인]이 이메일을 채우지 않던 문제(`useLogin`). 유지 시간 근거는 [WCAG 2.2.1 이해 문서](https://www.w3.org/WAI/WCAG22/Understanding/timing-adjustable.html)·[Primer](https://primer.style/accessibility/toasts/), 버튼 근거는 [NN/g](https://www.nngroup.com/articles/error-message-guidelines/)·[Atlassian Flag](https://atlassian.design/components/flag/usage)이고, 모양(버튼 설명 아래 오른쪽, 제목 빨강·소제목 굵기, 설명 본문색)과 비밀번호·안내까지 내림은 2026-11-02 사용자 선택이다. 동작은 `docs/UNSAVED-CHANGES-GUARD.md` §5 "떠난 뒤 실패 토스트", 계획은 [`docs/plans/2026-11-02-left-page-failure-toast.md`](docs/plans/2026-11-02-left-page-failure-toast.md). (`src/shared/lib/toast/LeftPageFailureToast.tsx`(신규), `src/shared/ui/atoms/sonner.stories.tsx`, `src/shared/config/texts.ts`, `src/entities/auth/utils/auth.util.ts`, `src/entities/auth/api/auth.queries.ts`, `src/entities/post/utils/post.util.ts`, `src/features/auth/signup/hooks/useSignUp.ts`, `src/features/auth/login/hooks/useLogin.ts`, `src/features/post/create/hooks/useCreatePost.ts`, `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/update/hooks/useUpdatePost.ts`, `src/features/post/update/ui/UpdatePostForm.tsx`, 가드 테스트 3곳, `e2e/signup-unsaved-changes.spec.ts`, `e2e/post-create.spec.ts`, `docs/UNSAVED-CHANGES-GUARD.md`, `docs/AUTH.md`, [PR #487](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/487))
+
+  </details>
+
 - `shared` 가입·글 등록·수정 요청 중 이탈 확인창을 "이미 요청했어요" 문구로
   <details><summary>배경·구현</summary>
 
