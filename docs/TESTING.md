@@ -147,7 +147,7 @@ FE와 BE는 **같은 원칙**으로 테스트하고, **어느 층을 가장 두�
 | 단위           | Vitest + jsdom — 유틸·스키마·훅                                                                                        | JUnit 5 + Mockito — Service·순수 함수                                                      |
 | 통합           | Vitest + Testing Library + MSW — 화면·훅·React Query를 가짜 서버와 함께 돌린다                                         | `@WebMvcTest` 컨트롤러 슬라이스, Testcontainers로 실제 Postgres를 띄우는 `integrationTest` |
 | E2E            | Playwright(API는 `page.route` 목), Storybook 스토리 접근성 검사                                                        | 배포 직후 새 버전 5회 호출(스모크 체크)                                                    |
-| FE·BE 계약     | PR: 생성 타입이 커밋된 스펙과 같은지. 매일: 운영 스펙과 커밋된 스펙 비교([`OPENAPI-CODEGEN.md`](./OPENAPI-CODEGEN.md)) | PR: `api-compat`(oasdiff)가 운영 스펙 대비 깨지는 변경을 막는다                            |
+| FE·BE 계약     | PR: 생성 파일과 계약 상수가 커밋된 스펙과 같은지. 매일: 운영 스펙과 비교([`OPENAPI-CODEGEN.md`](./OPENAPI-CODEGEN.md)) | PR: `api-compat`(oasdiff)가 운영 스펙 대비 깨지는 변경을 막는다                            |
 | 가장 두꺼운 층 | 통합                                                                                                                   | 단위                                                                                       |
 
 **왜 가장 두꺼운 층이 다른가.** FE는 사용자가 보는 화면을 사용자처럼 묶어서 테스트할 때 얻는 게 크다. Kent C. Dodds는

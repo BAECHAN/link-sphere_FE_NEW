@@ -7,8 +7,8 @@ import { mockPostList } from './mocks/post.mock';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 
-// zod passwordValidationSchema(auth.schema.ts:9-15) — 영문+숫자+특수문자 8자 이상,
-// 20자 이하. 이 정규식을 통과해야 클라이언트 검증을 넘어 실제로 요청이 나간다.
+// 로그인 비밀번호는 비어 있지만 않으면 클라이언트 검증을 넘어 실제로 요청이 나간다(loginPasswordSchema,
+// auth.schema.ts:17). 값은 가입 규칙(passwordValidationSchema, auth.schema.ts:9-13 — 영문+숫자+특수문자 8~64자)에도 맞춘다.
 const VALID_PASSWORD = 'TestPass1!';
 
 test.describe('로그인 폼 제출', () => {

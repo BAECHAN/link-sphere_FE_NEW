@@ -10,7 +10,7 @@ import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
-// zod passwordValidationSchema(auth.schema.ts) — 영문+숫자+특수문자 8자 이상, 20자 이하.
+// zod passwordValidationSchema(auth.schema.ts) — 영문+숫자+특수문자 8자 이상, 64자 이하.
 const VALID_PASSWORD = 'TestPass1!';
 
 // useUnsavedChangesGuard.ts — 회원가입(`/auth/sign-up`)은 GuestGuard 아래라 방문자가 항상

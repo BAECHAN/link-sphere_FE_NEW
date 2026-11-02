@@ -52,9 +52,10 @@ flowchart TD
     GEN --> SPEC -->|"*.api.ts가 호출"| CONSUMERS
     JSON -->|"orval (pnpm codegen 안)"| ZOD -->|"테스트에서만 import"| CT
 
-    L1["CI 게이트(ci.yml)<br/>커밋된 json→ts 재생성 일치?<br/>네트워크 X, 결정론적"]
+    L1["CI 게이트(ci.yml)<br/>커밋된 json으로 다시 만든 생성 파일 일치?<br/>네트워크 X, 결정론적"]
     L2["cron(openapi-drift-check.yml)<br/>커밋된 json = 운영 스펙?<br/>이슈로만 보고"]
     GEN -.검사.-> L1
+    ZOD -.검사.-> L1
     JSON -.검사.-> L2
     BE -.대조.-> L2
 ```
@@ -91,9 +92,10 @@ flowchart TD
     타입을 묶는 자체 래퍼. 기존 `apiClient`를 그대로 호출한다(§5-2, 2026-10-30 추가)
   - [`orval`](https://www.npmjs.com/package/orval) 8.46.0 — zod 모드로 요청 본문의 입력 제약 상수
     (`signupBodyPasswordMin` 등)를 생성한다. 계약 테스트만 쓴다(§5-6, 2026-11-02 추가)
-  - BE `CommentLimits`·`BookmarkFolderLimits`·`PasswordPattern` — 서비스·DTO가 같이 참조하는 입력 제약 상수.
+  - BE `CommentLimits`·`BookmarkFolderLimits` — 서비스가 검사하고 DTO가 같이 참조하는 입력 제약 상수.
     DTO의 문서 전용 어노테이션(`@field:Schema(maxLength)`·`@field:ArraySchema(maxItems)`·`x-max-bytes` 확장)이
-    그 값을 스펙에 싣는다(BE #152, BE `docs/BE-ARCHITECTURE.md` §7-12)
+    그 값을 스펙에 싣는다. BE `PasswordPattern`은 이와 달리 DTO의 `@field:Pattern`이 실제로 검사하는 정규식이고,
+    그 어노테이션이 그대로 스펙의 `pattern`이 된다(BE #152, BE `docs/BE-ARCHITECTURE.md` §7-12)
 - **구현·검증 과정에서 쓴 도구**: `jq`(스펙 구조 확인·대조), `curl`(운영 스펙·실제 API
   응답 직접 확인), 로컬 `./gradlew bootRun`(BE 컨버터 실측), Python(`json` 모듈로 스펙
   전후 구조적 diff 확인)
@@ -137,7 +139,7 @@ FE는 BE 응답 타입을 `entities/*/model/*.schema.ts`에 손으로 옮겨적�
 
 ```bash
 pnpm codegen:fetch   # 네트워크 O — 사람이 의도적으로 실행, openapi.json 갱신
-pnpm codegen         # 네트워크 X — openapi.json → openapi.gen.ts, CI가 이 단계만 재현
+pnpm codegen         # 네트워크 X — openapi.json → openapi.gen.ts·openapi.zod.ts, CI가 이 단계만 재현
 ```
 
 `scripts/fetch-openapi.js`는 `--from=local|prod`를 받는다(기본 `prod`). `servers` 필드를
@@ -229,9 +231,9 @@ src/shared/api/
 `/index`로 끝나는 import를 금지하므로 배럴을 만들면 아무도 import할 수 없다. 직접 경로
 (`@/shared/api/generated/openapi.gen`)로만 쓴다.
 
-생성 파일을 직접 import하는 곳은 엔티티 `.dto.ts`(§5-4), `src/shared/api/spec-types.ts`(§5-2),
-`src/mocks/http.ts`(§5-5), 그리고 `.dto.ts`가 없는 shared 레이어의 `upload.api.ts`(`UploadUrlResponse` 별칭)뿐이다.
-`openapi.zod.ts`는 `entities/*/config/*.contract.test.ts`만 import한다(§5-6, ESLint가 강제).
+생성 파일을 직접 import하는 곳은 엔티티 `.dto.ts`(§5-4), `src/shared/api/spec-types.ts`·`src/shared/api/spec-client.ts`(§5-2,
+테스트 `spec-client.test.ts` 포함), `src/mocks/http.ts`(§5-5), 그리고 `.dto.ts`가 없는 shared 레이어의 `upload.api.ts`
+(`UploadUrlResponse` 별칭)뿐이다. `openapi.zod.ts`는 `src/entities/**/config/*.contract.test.ts`만 import한다(§5-6, ESLint가 강제).
 
 ### 5-4. 엔티티별 `.dto.ts` — 정본을 가리키는 얇은 표지판
 
@@ -346,7 +348,7 @@ flowchart TD
 8.46.0에는 상수만 내보내는 옵션이 없다(설치본 `@orval/core`의 `ZodOptions` 확인). 런타임 모듈이 상수 하나만 import해도
 그 파일의 최상위 `zod.object(...)` 호출이 남아 zod 전체(`zod-vendor` 청크)를 끌어온다.
 
-- `vite.config.ts`의 `treeshake.moduleSideEffects: false`는 쓰이는 모듈 안의 최상위 호출을 지우지 않는다
+- `vite.config.ts`의 `treeshake.moduleSideEffects`(CSS·firebase 밖은 `false`를 돌려주는 함수)는 쓰이는 모듈 안의 최상위 호출을 지우지 않는다
   (`docs/PERFORMANCE.md` "첫 로딩 JS", 2026-10-28 직접 측정).
 - Rollup `treeshake.manualPureFunctions: ['zod']`도 소용없었다. 설치본 Rollup 4.55.1은 이 옵션을 이름 경로로만 맞추고
   (ES 빌드 `node-entry.js`의 `getPureFunctions` 2361-2371줄·`isPureFunction` 5397-5411줄), `zod.string().min(1)` 같은 체인 호출은
@@ -355,7 +357,8 @@ flowchart TD
 
 그래서 런타임은 손으로 둔 상수만 쓰고, 생성 상수는 같은 폴더의 계약 테스트가 대조에만 쓴다. ESLint
 `custom-api-rules/no-generated-zod-import`(`eslint.config.js`)가 `src/entities/**/config/*.contract.test.ts` 밖의 import를
-막는다(타입 전용 import는 허용).
+막는다. `import` 문뿐 아니라 재수출(`export { … } from`·`export * from`)과 동적 `import()`도 잡고, 타입 전용 import·재수출은
+허용한다. 검사 대상은 ESLint 적용 범위인 `src/**/*.{ts,tsx}`와 `e2e/**/*.ts`다.
 
 **BE 값이 바뀌면**. BE 배포 뒤 매일 도는 드리프트 검사(§5-1)가 이슈를 연다. 담당자가 `pnpm codegen:fetch && pnpm codegen`을
 돌리면 계약 테스트가 실패해 고칠 상수를 가리키고, TEXTS 문구에 숫자가 박혀 있으면(예: "2~20자") 그 문구도 가리킨다.
@@ -602,12 +605,22 @@ contract 파일만 생성 파일을 import하게 하고, CI가 `dist/index.html`
 
 빌드는 CI 검사를 통과했다. 그런데 zod-vendor를 import하는 청크 목록을 운영과 비교하니, 목록 페이지 지연 청크가 새로
 zod-vendor(56,122바이트, gzip 12,989바이트)를 정적으로 import하고 있었다. 경로는 글 카드의 북마크 토글 →
-`bookmark-folder.util.ts` → `bookmark-folder.contract.ts` → `openapi.zod.ts`였다. 목록 페이지는 첫 화면이라 로그인하지 않은
-방문자도 zod를 받게 된다. `index.html`만 보는 CI 검사도, contract 파일을 허용하는 ESLint 규칙도 이 경로를 못 봤다.
+`bookmark-folder.util.ts` → `bookmark-folder.contract.ts` → `openapi.zod.ts`였다. zod-vendor 자체는 비로그인 방문자도 원래
+로그인 창 지연 청크 때문에 첫 렌더 뒤 받는다(`docs/PERFORMANCE.md` "첫 로딩 JS"). 달라지는 점은 첫 화면인 목록 페이지
+청크가 zod-vendor와 생성 파일 청크를 다 받을 때까지 실행을 기다린다는 것이다(그 지연은 재지 않았다). `index.html`만 보는
+CI 검사도, contract 파일을 허용하는 ESLint 규칙도 이 경로를 못 봤다.
+
+크기는 직접 측정한 값이다. 시험 빌드의 `dist/assets/js/zod-vendor-*.js`를 `wc -c`와 `gzip -9 -c <파일> | wc -c`로 쟀다. 같은
+방법으로 2026-11-02 main 빌드를 다시 재면 56,102바이트, gzip 12,979바이트다.
 
 Rollup `manualPureFunctions`로 생성 스키마를 지우려 했지만 체인 호출이 남아 실패했다(§5-6). 그래서 사용자 결정(2026-11-02)으로
 런타임 상수를 전부 손으로 두고 생성 파일은 테스트에서만 쓰기로 바꿨다. ESLint 허용 대상도 contract 파일에서
 `*.contract.test.ts`로 좁혔다.
+
+같은 날 문서-코드 대조에서, 이 규칙이 `import` 문만 봐서 처음 실패한 설계 그대로의 재수출(`export { … } from`)과 동적
+`import()`를 통과시킨다는 걸 찾았다. 재수출·`export *`·동적 `import()`도 잡게 보강했다. 디스크에 위반 파일 여섯 개(일반
+import·재수출·`export *`·동적 import·타입 전용 재수출·타입 전용 import)를 잠깐 두고 `pnpm exec eslint`로 확인했다. 옛 규칙은
+일반 import 하나만 잡았고, 보강한 규칙은 위반 넷을 모두 잡고 타입 전용 둘은 통과시켰다.
 
 ## 11. 남은 것
 
