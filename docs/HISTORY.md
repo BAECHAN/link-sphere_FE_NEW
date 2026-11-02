@@ -1,4 +1,7 @@
 ### 2026-11-02 (FE)
+- Orval과 Zod를 활용하여 백엔드 입력 제약 상수를 자동 생성하고, 이를 기반으로 계약 테스트를 도입하여 데이터 정합성 검증 강화 ([#480](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/480))
+
+### 2026-11-02 (FE)
 - 데모 계정 도입 및 계정 설정 접근 제어 로직 구현
   - 데모 계정 로그인 기능 추가
   - 계정 설정 접근 시 권한 거부 안내 모달/메시지 처리 구현 ([#479](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/479))
