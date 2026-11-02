@@ -1,3 +1,6 @@
+### 2026-11-02 (BE)
+- 회원 탈퇴 후 동일 이메일 재가입 정책 수립 및 회귀 테스트 케이스 구현 ([#156](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/156))
+
 ### 2026-11-02 (FE)
 - API 계층의 Zod 스키마 재수출 및 동적 import를 최적화하고, API 입력 제한 설정을 코드 사양과 일치하도록 정비 ([#483](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/483))
 
