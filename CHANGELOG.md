@@ -34,6 +34,13 @@
 
   </details>
 
+- `auth` 비밀번호 변경 성공 안내에 다른 기기 재로그인 안내 추가
+  <details><summary>배경·구현</summary>
+
+  비밀번호를 바꾸면 BE가 이 기기를 포함한 모든 세션을 폐기하고 이 기기에만 새 세션을 발급한다(BE `AuthService.changePassword`). 그래서 다른 기기는 다음 요청에서 다시 로그인해야 하는데, 성공 토스트는 "비밀번호를 변경했어요."뿐이라 이 사실이 화면 어디에도 나오지 않았다. 토스트 문구를 "비밀번호를 변경했어요. 다른 기기에서는 다시 로그인해야 해요."로 바꿨다. 이 기기까지 로그아웃시키는 안도 검토했지만, 이 기기 사용자는 방금 현재 비밀번호로 본인임을 확인했고 보안상 얻을 것(다른 기기 차단)은 이미 BE가 하고 있어 로그인을 유지하기로 했다(2026-11-02 사용자 선택). 계획은 [`docs/plans/2026-11-02-password-change-other-devices-notice.md`](docs/plans/2026-11-02-password-change-other-devices-notice.md). (`src/shared/config/texts.ts`, [PR #478](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/478))
+
+  </details>
+
 ### Fixed
 
 - `auth` 로그인이 풀려도 쓰던 글이 사라지지 않게 그 화면에 두고 로그인 창을 띄움
