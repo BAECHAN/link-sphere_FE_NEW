@@ -36,7 +36,7 @@ test_account@linksphere.com
 ### PW
 
 ```
-Gk8#pW2!vN9x
+준비중
 ```
 
 ## 시작하기
