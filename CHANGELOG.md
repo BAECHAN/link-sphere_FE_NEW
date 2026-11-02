@@ -27,6 +27,13 @@
 
 ### Changed
 
+- `shared` 토스트 문구를 문장 끝에서만 줄바꿈하고 앱 글꼴(Pretendard)로 표시
+  <details><summary>배경·구현</summary>
+
+  토스트 폭이 sonner 기본 356px라 한 줄에 30자 남짓만 들어가, 두 문장 문구가 "로그인이 만료됐어요. 다시 로그인하면 이어서 이용할 / 수 있어요."처럼 뒷문장 중간에서 줄이 넘어갔다(어절이 쪼개진 건 아니다 — `word-break: keep-all`은 상속돼 있었다). 래퍼 `toast.ts`가 문자열 메시지의 문장 끝(한글 바로 뒤 `.` `?` `!`) 다음 공백을 줄바꿈으로 바꾸고, `sonner.tsx`의 제목에 `whitespace-pre-line`을 걸어 문장마다 한 줄로 보이게 했다. 한글 뒤로 좁혀 닉네임 안내의 `_ . -`·소수점·URL·영어 문장은 건드리지 않는다. 한 줄보다 긴 문장은 그 문장 안에서 다시 줄이 바뀐다. 줄 길이 균형(`text-wrap: balance`)과 데스크톱 폭 넓히기는 각각 문장 중간 줄바꿈이 남고 모바일에 효과가 없어 고르지 않았다(2026-11-02 미리보기 비교 뒤 사용자 선택). 같은 조사에서 토스트가 시스템 글꼴로 나오는 것도 찾아 함께 고쳤다 — sonner CSS가 layer 밖에서 `[data-sonner-toaster]`에 글꼴을 직접 지정해 body의 Pretendard 상속을 끊고 있어, Toaster에 `style={{ fontFamily: 'inherit' }}`를 줬다. 계획은 [`docs/plans/2026-11-02-toast-sentence-line-break.md`](docs/plans/2026-11-02-toast-sentence-line-break.md). (`src/shared/lib/toast/toast.ts`, `src/shared/lib/toast/toast.test.ts`(신규), `src/shared/ui/atoms/sonner.tsx`, `src/shared/ui/atoms/sonner.stories.tsx`, `docs/FE-ARCHITECTURE.md`, [PR #489](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/489))
+
+  </details>
+
 - `auth` 가입 중복 문구에 탈퇴 취소 방법, 탈퇴 안내에 재가입 정책 추가
   <details><summary>배경·구현</summary>
 

@@ -1184,6 +1184,12 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 막는다. 항상 래퍼 `@/shared/lib/toast/toast`의 `toast`를 사용한다 (성공/액션 확인은
 하단, 오류/경고는 상단으로 위치를 분리해서 정책을 캡슐화하고 있다).
 
+래퍼는 문자열 메시지의 문장 끝(한글 바로 뒤 `.` `?` `!`) 다음 공백을 줄바꿈으로 바꾸고, `Toaster`
+(`shared/ui/atoms/sonner.tsx`)의 제목 `whitespace-pre-line`이 그 줄바꿈을 보여준다 — 토스트 폭(356px)이
+좁아 두 문장 문구가 뒷문장 중간에서 줄이 넘어가던 것을 문장 끝에서만 바뀌게 한다. 그래서 문구에 `\n`을
+직접 넣지 않는다. `description`과 ReactNode 메시지는 변환하지 않는다. 같은 파일의 `style={{ fontFamily: 'inherit' }}`는
+sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를 물려받게 한다.
+
 - **에러**: 전역 에러 핸들러가 자동으로 트리거
 - **성공**: `meta.successMessage` 추가 시 자동 트리거
 
