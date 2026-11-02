@@ -452,7 +452,7 @@ describe('useSetBookmarkFolderPinMutation', () => {
     expect(readFolderA()?.pinnedAt).toBe(PINNED_AT);
   });
 
-  it('실패하면 되돌리고 목록을 다시 조회하도록 무효화하며 실패 토스트를 한 번 띄운다', async () => {
+  it('실패하면 되돌리고 목록을 다시 조회하도록 무효화하며 닫을 때까지 남는 실패 토스트를 한 번 띄운다', async () => {
     const errorSpy = vi.spyOn(toast, 'error');
     seedWithPinnedAt(null);
     respondPin('PUT', errorResponse);
@@ -468,10 +468,13 @@ describe('useSetBookmarkFolderPinMutation', () => {
     expect(readFolderA()?.pinnedAt).toBeNull();
     expect(queryClient.getQueryState(bookmarkFolderKeys.list)?.isInvalidated).toBe(true);
     expect(errorSpy).toHaveBeenCalledTimes(1);
-    expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.folderPinFailed);
+    expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.folderPinFailed, {
+      id: 'bookmark-folder-pin-error',
+      duration: Infinity,
+    });
   });
 
-  it('해제가 실패하면 해제 실패 문구를 띄운다', async () => {
+  it('해제가 실패하면 고정 실패와 같은 id로 해제 실패 문구를 띄운다', async () => {
     const errorSpy = vi.spyOn(toast, 'error');
     seedWithPinnedAt(PINNED_AT);
     respondPin('DELETE', errorResponse);
@@ -485,7 +488,10 @@ describe('useSetBookmarkFolderPinMutation', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(readFolderA()?.pinnedAt).toBe(PINNED_AT);
-    expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.folderUnpinFailed);
+    expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.folderUnpinFailed, {
+      id: 'bookmark-folder-pin-error',
+      duration: Infinity,
+    });
   });
 
   // 세 번 누른다(고정→해제→고정). 두 번만 누르면 "첫 클릭 전 상태"와 "두 번째 클릭 뒤 상태"가 같아져, 잘못

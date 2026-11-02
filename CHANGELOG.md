@@ -27,6 +27,13 @@
 
 ### Changed
 
+- `shared` 화면에 실패 흔적이 남지 않는 에러 토스트를 닫을 때까지 남김
+  <details><summary>배경·구현</summary>
+
+  에러 토스트는 sonner 기본값대로 4초 뒤 사라지는데, 사라진 뒤 화면에 실패 흔적(칸 아래 안내, 남은 입력 등)이 없는 곳에서는 토스트를 놓치면 실패한 줄 몰랐다. 곳마다 흔적이 남는지 조사해(조사 표와 곳마다 판정은 [#488](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/488)) 흔적이 없는 7곳을 닫을 때까지 남기고(`duration: Infinity`), 같은 실패가 반복돼도 쌓이지 않게 곳마다 고정 id를 단다. 댓글·답글 등록과 댓글 수정은 저장 중 폼을 닫거나 다른 화면으로 떠난 뒤 실패하면 #487의 떠난 뒤 실패 토스트 모양(제목 "댓글을 등록하지 못했어요"·"답글을 등록하지 못했어요"·"댓글을 수정하지 못했어요" + 이유, 버튼 없음)으로 알린다 — 제출 때 입력을 비워 다른 흔적이 없다. "떠났는가" 판정도 `isMountedRef`에서 `useHasLeftPage`로 바꿔, 다른 화면을 불러오는 동안(옛 화면이 아직 마운트된 구간) 실패해도 곧 사라질 폼 대신 토스트로 알린다. 화면이 실패를 보여 주지 않는 서버 요청 5곳(비밀번호 재설정 메일 요청 — 첫 제출 포함, 인증 메일 다시 보내기, 북마크 [되돌리기], 폴더 고정·해제, 게시글 공개 설정)은 문구 그대로 닫을 때까지 남긴다. 공개 설정은 전역 핸들러를 거치던 것이라 `manualErrorHandling`으로 빼고 `onError`에서 `resolveErrorToast` 판정을 그대로 써, 429·보안 차단 문구와 로그인 만료 무음을 유지한다. 클립보드·첨부 검증·조회 실패와 화면에 흔적이 남는 곳은 그대로 4초다(모두 2026-11-02 사용자 선택). 조사 중 찾은 토스트 밖 문제 6건은 [#491](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/491)로 남긴다. 기준은 `docs/FE-ARCHITECTURE.md` §14 "에러 토스트 유지 시간", 계획은 [`docs/plans/2026-11-02-error-toast-persistence.md`](docs/plans/2026-11-02-error-toast-persistence.md). (`src/shared/config/texts.ts`, `src/shared/lib/toast/LeftPageFailureToast.tsx`, `src/entities/comment/utils/comment.util.ts`, `src/features/comment/create/hooks/useCreateComment.ts`, `src/features/comment/update/hooks/useUpdateComment.ts`, `src/entities/auth/api/auth.queries.ts`, `src/features/bookmark/toggle/hooks/usePostCardBookmarkFolderDialog.ts`, `src/entities/bookmark/folder/api/bookmark-folder.queries.ts`, `src/entities/post/api/post.queries.ts`, 테스트 6곳, `docs/FE-ARCHITECTURE.md`, `docs/UNSAVED-CHANGES-GUARD.md`, `docs/COMMENT.md`, `docs/BOOKMARK.md`, `docs/AUTH.md`, [PR #492](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/492))
+
+  </details>
+
 - `shared` 토스트 문구를 문장 끝에서만 줄바꿈하고 앱 글꼴(Pretendard)로 표시
   <details><summary>배경·구현</summary>
 

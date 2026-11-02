@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -14,12 +14,14 @@ import {
 import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/comment.contract';
 import { useImageAttachments } from '@/shared/hooks/useImageAttachments';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
+import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
 import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
 import { useSignedOutNotice } from '@/entities/auth/hooks/useSignedOutNotice';
 import { useAccount } from '@/entities/account/hooks/useAccount';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
+import { showLeftPageFailureToast } from '@/shared/lib/toast/LeftPageFailureToast';
 import { ErrorUtil } from '@/shared/utils/error.util';
 
 type FormValues = { content: string };
@@ -76,17 +78,9 @@ export function useCreateComment({
   // 등록 실패 원인 안내 - 버튼 위 FormAlert에 남고, 입력·첨부를 고치거나 다시 제출하면 지운다
   const [failureMessage, setFailureMessage] = useState<string | null>(null);
 
-  // 요청이 도는 사이 폼이 닫히면(답글 취소·모바일 바 접기 등) 안내를 띄울 자리가 없다 - 그때만
-  // 토스트로 대신 알린다
-  const isMountedRef = useRef(false);
-
-  useEffect(function trackMounted() {
-    isMountedRef.current = true;
-
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
+  // 요청이 도는 사이 폼이 닫히거나(답글 취소·모바일 바 접기 등) 다른 화면으로 떠나면 안내를 띄울 자리가 없다 -
+  // 그때만 토스트로 대신 알린다. 떠나는 중 다음 화면을 불러오는 동안엔 폼이 아직 마운트돼 있어 경로까지 본다
+  const hasLeftPage = useHasLeftPage();
 
   useEffect(
     function clearFailureOnEdit() {
@@ -127,7 +121,9 @@ export function useCreateComment({
 
   const hasInput = contentValue.trim().length > 0 || images.length > 0;
 
-  useUnsavedChanges(`comment-create:${postId}:${parentId ?? 'root'}`, hasInput);
+  const unsavedChangesKey = `comment-create:${postId}:${parentId ?? 'root'}`;
+
+  useUnsavedChanges(unsavedChangesKey, hasInput);
   const signedOutNotice = useSignedOutNotice(hasInput);
 
   useEffect(() => {
@@ -157,13 +153,21 @@ export function useCreateComment({
       // 요청하는 사이 로그인이 만료됐다(ErrorUtil.isSessionExpired) - 풀린 뒤에 누르면 가드가 먼저 막아 여기 오지 않는다.
       // 다시 로그인하라는 안내는 로그인 창이, 폼 안 안내는 useSignedOutNotice가 맡는다(되돌린 입력이 있는 동안).
       // 여기서는 비웠던 입력만 되돌린다. 폼이 닫혔으면 조용히 끝낸다
+      const mode = isReply ? 'reply' : 'create';
       const message = ErrorUtil.isSessionExpired(error)
         ? null
-        : CommentUtil.resolveSubmitError(error, isReply ? 'reply' : 'create');
+        : CommentUtil.resolveSubmitError(error, mode);
 
-      if (!isMountedRef.current) {
+      // 제출 때 입력을 비워 떠난 화면에는 실패 흔적이 남지 않는다 - 닫을 때까지 남는 토스트가 유일한 안내다
+      if (hasLeftPage()) {
         if (message) {
-          toast.error(message);
+          showLeftPageFailureToast({
+            key: unsavedChangesKey,
+            title: isReply
+              ? TEXTS.messages.error.leftPageFailure.replyCreateTitle
+              : TEXTS.messages.error.leftPageFailure.commentCreateTitle,
+            description: CommentUtil.toLeftFormFailureDescription(message, mode),
+          });
         }
 
         return;

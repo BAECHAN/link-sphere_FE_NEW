@@ -12,6 +12,8 @@ import {
   useCreateAccountMutation,
   useLoginMutation,
   useLogoutMutation,
+  useRequestEmailVerificationMutation,
+  useRequestPasswordResetMutation,
 } from '@/entities/auth/api/auth.queries';
 import { TEXTS } from '@/shared/config/texts';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
@@ -323,5 +325,63 @@ describe('useCreateAccountMutation', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(mockToastError).not.toHaveBeenCalled();
+  });
+});
+
+// 실패해도 화면이 그대로라("메일함을 확인해주세요"·인증 배너) 토스트가 유일한 안내다 - 닫을 때까지 남고 같은 id로
+// 쌓이지 않아야 한다(docs/FE-ARCHITECTURE.md §14)
+describe('메일 다시 보내기 실패 토스트', () => {
+  beforeEach(() => {
+    mockToastError.mockClear();
+  });
+
+  it('비밀번호 재설정 메일 요청이 실패하면 닫을 때까지 남는 토스트를 띄운다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.auth.passwordResetRequest), () =>
+        HttpResponse.json(
+          { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'boom', timestamp: '' },
+          { status: 500 }
+        )
+      )
+    );
+
+    const { result } = renderHook(() => useRequestPasswordResetMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ email: 'user@example.com' });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(mockToastError).toHaveBeenCalledTimes(1);
+    expect(mockToastError).toHaveBeenCalledWith(TEXTS.messages.error.passwordResetRequestFailed, {
+      id: 'password-reset-request-error',
+      duration: Infinity,
+    });
+  });
+
+  it('인증 메일 다시 보내기가 실패하면 닫을 때까지 남는 토스트를 띄운다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.auth.emailVerificationRequest), () =>
+        HttpResponse.json(
+          { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'boom', timestamp: '' },
+          { status: 500 }
+        )
+      )
+    );
+
+    const { result } = renderHook(() => useRequestEmailVerificationMutation(), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.mutate({ email: 'user@example.com' });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(mockToastError).toHaveBeenCalledTimes(1);
+    expect(mockToastError).toHaveBeenCalledWith(
+      TEXTS.messages.error.emailVerificationRequestFailed,
+      { id: 'email-verification-request-error', duration: Infinity }
+    );
   });
 });

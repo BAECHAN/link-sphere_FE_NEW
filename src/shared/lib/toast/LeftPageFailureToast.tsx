@@ -25,8 +25,9 @@ interface LeftPageFailureToast {
 }
 
 /**
- * 저장 요청 중 "나가기"로 떠난 뒤 실패한 것을 옮겨 간 화면에 알린다. 실패를 알 수 있는 곳이 이 토스트뿐이라
- * 저절로 사라지지 않고 닫기 X나 버튼을 누를 때까지 남는다(WCAG 2.2.1 이해 문서 등, docs/UNSAVED-CHANGES-GUARD.md §5).
+ * 저장 요청 중 "나가기"로 떠난 뒤(댓글은 폼을 닫은 뒤도) 실패한 것을 옮겨 간 화면에 알린다. 실패를 알 수 있는 곳이
+ * 이 토스트뿐이라 저절로 사라지지 않고 닫기 X나 버튼을 누를 때까지 남는다(WCAG 2.2.1 이해 문서 등,
+ * docs/UNSAVED-CHANGES-GUARD.md §5).
  */
 export function showLeftPageFailureToast({
   key,

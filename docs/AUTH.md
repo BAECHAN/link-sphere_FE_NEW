@@ -769,7 +769,11 @@ BE는 글 작성·수정 폼의 링크 미리보기(`PostService.previewLink`)�
 
 미인증 사용자에게는 배너(`EmailVerificationBanner.tsx`, 계정 페이지)와 네비바 배지
 (`Navbar.tsx`의 계정 메뉴 버튼 — `aria-label` 분기와 빨간 점, 둘 다 `account?.emailVerified === false` 조건)로 상시 안내가 뜹니다. 재발송은
-`useResendEmailVerification.ts`(`useRequestEmailVerificationMutation` 호출)가 처리합니다.
+`useResendEmailVerification.ts`(`useRequestEmailVerificationMutation` 호출)가 처리합니다. 재발송이 실패해도 배너와
+버튼은 누르기 전과 같아서, 에러 토스트를 닫을 때까지 남깁니다. 비밀번호 재설정 메일 요청(`useRequestPasswordResetMutation`)도
+[다시 보내기]가 실패하면 "메일함을 확인해주세요" 화면이 그대로라 같은 이유로 닫을 때까지 남깁니다. 첫 제출과
+[다시 보내기]가 같은 mutation의 `onError`라 첫 제출 실패 토스트도 함께 남습니다(2026-11-02,
+[#488](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/488)).
 
 #### 계정 설정 권한 — 데모 계정 (2026-11-02)
 

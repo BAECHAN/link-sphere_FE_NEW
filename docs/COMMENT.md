@@ -287,8 +287,11 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   저장됐다면 다시 보이게 한다. 입력은 그대로 복원되니 목록을 보고 판단하면 된다.
 - **폼이 닫힌 뒤 실패하면 토스트로 대신 알린다** — `mutate` 콜백은 요청 도중 컴포넌트가
   언마운트되면 불리지 않는다. 전역 토스트를 끈 지금 그대로 두면 답글 폼을 취소하거나 모바일
-  바를 접은 뒤의 실패가 조용히 묻힌다. 그래서 `mutateAsync`를 기다리고, 그 시점에 폼이
-  언마운트됐으면(`isMountedRef`) 같은 문구를 토스트로 띄운다.
+  바를 접은 뒤의 실패가 조용히 묻힌다. 그래서 `mutateAsync`를 기다리고, 그 시점에 폼을
+  떠났으면(`useHasLeftPage` — 언마운트됐거나 라우터 경로가 바뀜) "댓글을 등록하지 못했어요" 같은 제목과
+  같은 이유를 담은 토스트를 닫을 때까지 남긴다. 제출 때 입력을 비워 다른 곳에 실패 흔적이 없기
+  때문이다. 경로까지 보는 이유와 토스트 모양은 [`UNSAVED-CHANGES-GUARD.md`](./UNSAVED-CHANGES-GUARD.md) §5
+  "떠난 뒤 실패 토스트"(2026-11-02, [#488](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/488)).
 - **연결 끊김 판별** — `client.ts`·`upload.api.ts`가 `fetch` 호출 자리의 reject만
   `NetworkError`로 바꾼다. 예전에는 Chrome 문구 `'Failed to fetch'`만 비교했다
   (`ErrorUtil.isServerError`는 두 방식을 모두 본다).
@@ -645,7 +648,8 @@ npx vitest run src/entities/comment src/features/comment \
 - 단위 테스트: 분류 표는 `src/entities/comment/utils/comment.util.test.ts`, 스토리지 응답 판정은
   `src/shared/api/upload.api.test.ts`, 안내가 버튼 위에 그려지고 입력을 고치면 사라지는 것은
   `src/features/comment/update/ui/CommentEditForm.test.tsx`가 본다. 첨부 이미지가 복원돼도 안내가 남는지,
-  폼이 닫힌 뒤 실패하면 토스트로 대신 알리는지는 `useCreateComment.test.tsx`가 본다.
+  폼이 닫힌 뒤(다른 화면을 불러오는 동안 포함) 실패하면 토스트로 대신 알리는지는 `useCreateComment.test.tsx`·
+  `useUpdateComment.test.tsx`가 본다.
 - 브라우저 녹화(모킹, 운영 데이터 미사용): 업로드 한도·10MB 초과·504 결과 모름·답글 대상 삭제·수정 대상
   삭제·답글 폼을 닫은 뒤 실패·모바일 바 연결 끊김·프로필 사진 업로드 한도의 8개 화면에서 문구와 위치를
   확인했다.

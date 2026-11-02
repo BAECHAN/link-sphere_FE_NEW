@@ -148,8 +148,13 @@ export const useRequestPasswordResetMutation = () => {
     meta: { manualErrorHandling: true },
     onError: () => {
       // ApiError든 네트워크 자체 실패든 항상 같은 메시지 - 이 콜백이 없으면 버튼만
-      // 다시 활성화되고 아무 안내 없이 조용히 실패한다.
-      toast.error(TEXTS.messages.error.passwordResetRequestFailed);
+      // 다시 활성화되고 아무 안내 없이 조용히 실패한다. "메일함을 확인해주세요" 화면의 [다시 보내기]가
+      // 실패해도 화면은 그대로라 이 토스트가 유일한 안내다 - 닫을 때까지 남기고, 같은 id로 쌓이지 않게 한다
+      // (첫 제출도 같은 mutation이라 함께, docs/FE-ARCHITECTURE.md §14)
+      toast.error(TEXTS.messages.error.passwordResetRequestFailed, {
+        id: 'password-reset-request-error',
+        duration: Infinity,
+      });
     },
   });
 };
@@ -234,7 +239,12 @@ export const useRequestEmailVerificationMutation = () => {
         return;
       }
 
-      toast.error(TEXTS.messages.error.emailVerificationRequestFailed);
+      // 성공해도 실패해도 배너가 그대로라 이 토스트가 유일한 안내다 - 닫을 때까지 남기고, 같은 id로 쌓이지 않게
+      // 한다(docs/FE-ARCHITECTURE.md §14)
+      toast.error(TEXTS.messages.error.emailVerificationRequestFailed, {
+        id: 'email-verification-request-error',
+        duration: Infinity,
+      });
     },
   });
 };

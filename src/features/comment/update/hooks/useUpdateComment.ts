@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
@@ -13,10 +13,12 @@ import {
 import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/comment.contract';
 import { useImageAttachments } from '@/shared/hooks/useImageAttachments';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
+import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
 import { splitContentImages } from '@/shared/lib/content/imageContent';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
+import { showLeftPageFailureToast } from '@/shared/lib/toast/LeftPageFailureToast';
 import { ErrorUtil } from '@/shared/utils/error.util';
 
 type FormValues = { content: string };
@@ -68,16 +70,9 @@ export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommen
   // 수정 실패 원인 안내 - 버튼 위 FormAlert에 남고, 입력·첨부를 고치거나 다시 제출하면 지운다
   const [failureMessage, setFailureMessage] = useState<string | null>(null);
 
-  // 요청이 도는 사이 수정 폼을 닫으면 안내를 띄울 자리가 없다 - 그때만 토스트로 대신 알린다
-  const isMountedRef = useRef(false);
-
-  useEffect(function trackMounted() {
-    isMountedRef.current = true;
-
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
+  // 요청이 도는 사이 수정 폼을 닫거나 다른 화면으로 떠나면 안내를 띄울 자리가 없다 - 그때만 토스트로 대신 알린다.
+  // 떠나는 중 다음 화면을 불러오는 동안엔 폼이 아직 마운트돼 있어 경로까지 본다
+  const hasLeftPage = useHasLeftPage();
 
   useEffect(
     function clearFailureOnEdit() {
@@ -128,7 +123,9 @@ export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommen
     editImages.length > 0 ||
     existingImageUrls.length !== initialSnapshot.imageUrls.length;
 
-  useUnsavedChanges(`comment-update:${comment.id}`, isDirty);
+  const unsavedChangesKey = `comment-update:${comment.id}`;
+
+  useUnsavedChanges(unsavedChangesKey, isDirty);
   const signedOutNotice = useSignedOutNotice(isDirty);
 
   async function submitUpdate(data: FormValues) {
@@ -161,10 +158,15 @@ export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommen
 
       const message = CommentUtil.resolveSubmitError(error, 'update');
 
-      if (isMountedRef.current) {
-        setFailureMessage(message);
+      // 떠난 화면에는 고친 내용이 남지 않는다 - 닫을 때까지 남는 토스트가 유일한 안내다
+      if (hasLeftPage()) {
+        showLeftPageFailureToast({
+          key: unsavedChangesKey,
+          title: TEXTS.messages.error.leftPageFailure.commentUpdateTitle,
+          description: CommentUtil.toLeftFormFailureDescription(message, 'update'),
+        });
       } else {
-        toast.error(message);
+        setFailureMessage(message);
       }
 
       return;

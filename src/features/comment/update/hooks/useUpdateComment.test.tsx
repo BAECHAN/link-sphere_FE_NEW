@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { render, renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { toast } from '@/shared/lib/toast/toast';
 import { createTestQueryClient } from '@/test/utils';
@@ -31,6 +31,23 @@ function createWrapper(queryClient: QueryClient) {
       </QueryClientProvider>
     );
   };
+}
+
+type ToastOptions = Parameters<typeof toast.error>[1];
+
+/** 폼을 떠난 뒤 실패 토스트(showLeftPageFailureToast) - 제목·고정 id·닫을 때까지·설명 문구를 본다 */
+function expectLeftFormFailureToast(
+  errorSpy: { mock: { calls: unknown[][] } },
+  { title, key, description }: { title: string; key: string; description: string }
+) {
+  const [message, options] = errorSpy.mock.calls.at(-1) as [string, ToastOptions];
+
+  expect(message).toBe(title);
+  expect(options).toMatchObject({ id: `left-page-failure:${key}`, duration: Infinity });
+
+  const { container } = render(<div>{options?.description as ReactNode}</div>);
+
+  expect(container).toHaveTextContent(description);
 }
 
 describe('useUpdateComment', () => {
@@ -216,6 +233,44 @@ describe('useUpdateComment', () => {
     });
 
     expect(result.current.failureMessage).toBeNull();
+  });
+
+  it('저장 도중 수정 폼이 닫히면 고친 내용이 남지 않으니 닫을 때까지 남는 토스트로 알린다', async () => {
+    let respond: (() => void) | null = null;
+    server.use(
+      http.patch(url(API_ENDPOINTS.post.comment(mockComment.id)), async () => {
+        await new Promise<void>((resolve) => {
+          respond = resolve;
+        });
+        return HttpResponse.json({}, { status: 500 });
+      })
+    );
+    const errorSpy = vi.spyOn(toast, 'error');
+    const { result, unmount } = renderHook(
+      () => useUpdateComment({ comment: mockComment, postId: mockPost.id }),
+      { wrapper: createWrapper(queryClient) }
+    );
+
+    act(() => {
+      result.current.form.setValue('content', '닫힌 뒤 실패할 수정', { shouldDirty: true });
+    });
+
+    act(() => {
+      void result.current.onSubmit();
+    });
+
+    // 요청이 서버(핸들러)에 닿은 뒤에 폼을 닫고 실패 응답을 돌려준다
+    await waitFor(() => expect(respond).not.toBeNull());
+    unmount();
+    respond!();
+
+    await waitFor(() => expect(errorSpy).toHaveBeenCalled());
+    // 원인을 가려내지 못한 실패라 제목과 겹치는 "일시적인 문제로 수정하지 못했어요" 대신 할 일만 남긴다
+    expectLeftFormFailureToast(errorSpy, {
+      title: TEXTS.messages.error.leftPageFailure.commentUpdateTitle,
+      key: `comment-update:${mockComment.id}`,
+      description: TEXTS.messages.error.leftPageFailure.retryLater,
+    });
   });
 
   it('로그인이 풀린 채 그 화면에 머물다 누르면 보내지 않고 그 이유의 로그인 창을 연다', async () => {

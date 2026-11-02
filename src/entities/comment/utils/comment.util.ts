@@ -102,6 +102,20 @@ export class CommentUtil {
   }
 
   /**
+   * 폼을 떠난 뒤(나가기·폼 닫기) 실패를 알리는 토스트(showLeftPageFailureToast)의 설명. 제목이 이미
+   * "댓글을 등록하지 못했어요"라서 원인을 가려내지 못한 실패의 "일시적인 문제로 등록하지 못했어요"는 겹친다 -
+   * 그때만 할 일을 남긴다(게시글 PostUtil의 unclassified와 같은 처리, docs/UNSAVED-CHANGES-GUARD.md §5).
+   */
+  static toLeftFormFailureDescription(message: string, mode: CommentSubmitMode): string {
+    const fallback =
+      mode === 'update'
+        ? TEXTS.messages.error.commentSubmit.updateFailed
+        : TEXTS.messages.error.commentSubmit.createFailed;
+
+    return message === fallback ? TEXTS.messages.error.leftPageFailure.retryLater : message;
+  }
+
+  /**
    * 댓글 등록/수정 요청이 실제로 전송할 JSON 바디와 같은 모양을 만들어 그 UTF-8 바이트를
    * 잰다. content만 보는 MAX_COMMENT_CONTENT_BYTES 체크와 달리, 줄바꿈 등 JSON 이스케이프
    * 오버헤드와 이미지 URL 기여분까지 포함한 실제 전송량에 가깝다 - 이걸 손으로 계산(개행 개수
