@@ -1,0 +1,137 @@
+name: Uptime Check
+
+# 운영 사이트와 API가 응답하는지 10분마다 확인해, 응답이 없으면 GitHub 이슈(라벨 uptime)를 열고 다시 응답하면 닫는다
+# (docs/DEPLOY.md "업타임 감시"). 2026-10-14 도메인 정지로 FE·BE가 4시간 끊겼을 때 자동으로 알아챈 장치가 없었다.
+# 형태는 cloudfront-drift-check.yml(검사 job + 이슈 권한만 가진 report job, 이슈 열고 닫기)을 따른다.
+# 이 워크플로는 레포에 쓰기 작업을 하지 않고 checkout도 하지 않는다.
+on:
+  schedule:
+    # 매시 정각은 예약 실행이 몰려 늦어지거나 버려질 수 있어(GitHub 문서) 7분부터 10분 간격으로 돈다.
+    - cron: '7-59/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      force_fail:
+        description: 'API 본문 기대값을 일부러 틀려 실패 경로(이슈 열기)를 시험한다'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# 앞 실행이 재시도로 길어져도 겹치지 않게 한다(대기하는 다음 실행은 하나만 남는다).
+concurrency:
+  group: uptime-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      down: ${{ steps.probe.outputs.down }}
+      detail: ${{ steps.probe.outputs.detail }}
+    steps:
+      - name: 사이트·API 응답 확인 (20초 간격 3회)
+        id: probe
+        env:
+          # /api/actuator/health는 CloudFront → Lambda를 거쳐 DB에 SELECT 1까지 한다(BE application.yml management.health.db).
+          HEALTH_EXPECT: ${{ inputs.force_fail && 'force-fail-never-matches' || '"UP"' }}
+        # 응답이 없어도 이 job은 성공으로 끝내고 결과만 넘긴다 - 이슈와 실패 알림은 report job이 맡는다.
+        run: |
+          down=false
+          detail=""
+
+          # $1=이름, $2=URL, $3=200 응답 본문에 있어야 할 문자열
+          probe() {
+            local code=""
+            local reason=""
+
+            for attempt in 1 2 3; do
+              code=$(curl --silent --show-error --max-time 20 --output body.txt --write-out '%{http_code}' "$2" 2> err.txt) || true
+
+              if [ "$code" = "200" ] && grep -qF -- "$3" body.txt; then
+                echo "$1: 정상 (시도 $attempt)"
+                return 0
+              fi
+
+              if [ "$code" = "200" ]; then
+                reason="HTTP 200이지만 본문에 $3 없음"
+              else
+                reason="HTTP $code $(head -c 200 err.txt | tr '\n' ' ')"
+              fi
+
+              echo "$1: 실패 (시도 $attempt) $reason"
+
+              if [ "$attempt" -lt 3 ]; then
+                sleep 20
+              fi
+            done
+
+            down=true
+            detail="$detail$1 $2 - $reason. "
+          }
+
+          probe "사이트" "https://linksphere.click/" 'id="root"'
+          probe "API" "https://linksphere.click/api/actuator/health" "$HEALTH_EXPECT"
+
+          echo "down=$down" >> "$GITHUB_OUTPUT"
+          echo "detail=$detail" >> "$GITHUB_OUTPUT"
+          {
+            echo '## 업타임 검사'
+            echo
+            if [ "$down" = "true" ]; then
+              echo "응답 없음: $detail"
+            else
+              echo '사이트·API 모두 정상'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # 이슈 쓰기 권한은 검사 job과 분리한다(cloudfront-drift-check.yml과 같은 형태).
+  report:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # checkout을 안 해서 gh CLI가 git remote로 레포를 추론할 수 없다 - 명시한다.
+      GH_REPO: ${{ github.repository }}
+      UPTIME_LABEL: uptime
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: 라벨 존재 보장 (멱등)
+        run: |
+          gh label create "$UPTIME_LABEL" --color d73a4a \
+            --description "운영 사이트나 API가 응답하지 않음" --force
+
+      - name: 응답이 없으면 이슈 열기 (이미 열려 있으면 생략)
+        if: needs.check.outputs.down == 'true'
+        env:
+          DETAIL: ${{ needs.check.outputs.detail }}
+        run: |
+          existing=$(gh issue list --label "$UPTIME_LABEL" --state open --json number -q '.[0].number')
+
+          if [ -n "$existing" ]; then
+            echo "이미 열린 이슈 #$existing 있음 - 생략"
+            exit 0
+          fi
+
+          gh issue create \
+            --title "운영 사이트나 API가 응답하지 않음" \
+            --label "$UPTIME_LABEL" \
+            --body "$(printf '응답하지 않은 대상: %s\n\n실행 기록: %s\n\n- 사이트와 API가 함께 실패하면 도메인·DNS·CloudFront부터 본다(docs/DEPLOY.md "업타임 감시").\n- API만 실패하면 BE Lambda·DB 쪽이다(BE docs/TRAFFIC-MANAGEMENT.md 8-2의 CloudWatch 알람과 함께 본다).\n\n다시 응답하면 다음 정기 검사(10분 간격)에서 자동으로 닫힌다.' "$DETAIL" "$RUN_URL")"
+
+          # 새 이슈를 연 실행만 실패로 끝내 GitHub 실패 알림을 한 번 받는다 - 이슈가 이미 열려 있으면 위에서
+          # 성공으로 끝나므로 장애가 이어지는 동안 10분마다 알림이 오지 않는다.
+          echo "::error::응답 없음 - $DETAIL"
+          exit 1
+
+      - name: 응답하면 열린 이슈 닫기
+        if: needs.check.outputs.down == 'false'
+        run: |
+          existing=$(gh issue list --label "$UPTIME_LABEL" --state open --json number -q '.[0].number')
+
+          if [ -n "$existing" ]; then
+            gh issue close "$existing" --comment "$(printf '사이트와 API가 다시 응답해 자동으로 닫는다: %s' "$RUN_URL")"
+          fi

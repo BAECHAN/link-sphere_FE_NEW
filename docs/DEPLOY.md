@@ -803,6 +803,53 @@ open https://linksphere.click/version
 §5·§9 참고 — 특히 `no-cache` 헤더가 빠지면(브라우저가 HTML을 재검증 없이 재사용하면)
 [NEW-VERSION-RELOAD.md](./NEW-VERSION-RELOAD.md)의 자동 리로드 기능 전체가 조용히 죽는다.
 
+## 업타임 감시
+
+[`uptime-check.yml`](../.github/workflows/uptime-check.yml)이 10분마다 운영 사이트와 API가 응답하는지 확인한다
+(2026-11-02 도입). 그 전에는 감시가 없어서 2026-10-14 도메인 정지(위 "커스텀 도메인" 절) 때 4시간 동안 자동으로
+알아챈 장치가 없었다 — 그때는 마침 돈 배포의 검증 스텝이 실패해서 알았다.
+
+```mermaid
+flowchart LR
+  T["10분마다<br/>(정각을 피해 7분부터)"] --> C["check job<br/>사이트·API를 각각 20초 간격 3회"]
+  C -->|둘 다 응답| U{"열린 uptime 이슈?"}
+  U -->|있음| CL["이슈 닫기"]
+  U -->|없음| N["할 일 없음"]
+  C -->|하나라도 응답 없음| D{"열린 uptime 이슈?"}
+  D -->|없음| OP["이슈 열기 + 실행 실패<br/>(GitHub 실패 알림 1회)"]
+  D -->|있음| SK["생략 (알림 없음)"]
+```
+
+| 대상                                           | 정상 조건                    | 실패하면 의심할 곳                                       |
+| ---------------------------------------------- | ---------------------------- | -------------------------------------------------------- |
+| `https://linksphere.click/`                    | HTTP 200, 본문에 `id="root"` | 도메인·DNS·CloudFront·S3                                 |
+| `https://linksphere.click/api/actuator/health` | HTTP 200, 본문에 `"UP"`      | 위에 더해 WAF·Lambda·DB(헬스가 DB에 `SELECT 1`까지 한다) |
+
+- **판정**: 대상마다 20초 간격으로 3번 시도해 세 번 다 실패해야 "응답 없음"이다. 콜드 스타트나 한 번의 네트워크
+  오류로 이슈가 열리지 않게 하려는 것이다.
+- **알림**: 응답이 없으면 라벨 `uptime`으로 이슈를 열고 그 실행만 실패로 끝난다. 그래서 GitHub 실패 알림은 장애마다
+  한 번만 온다 — 이슈가 이미 열려 있으면 생략하고 성공으로 끝나, 장애가 이어지는 동안 10분마다 알림이 오지 않는다.
+  다시 응답하면 다음 실행이 이슈를 닫는다. 실패 알림을 받는 사람은 GitHub 문서에 따르면 _"워크플로 파일의 cron
+  문법을 마지막으로 고친 사용자"_ 다(번역, [GitHub 문서](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)).
+- **BE 안쪽 실패는 여기서 못 본다**: 헬스가 200이어도 특정 API가 500을 내거나 백그라운드 잡이 실패할 수 있다. 그건
+  BE CloudWatch 알람이 맡는다(BE [`docs/TRAFFIC-MANAGEMENT.md` 8-2](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/TRAFFIC-MANAGEMENT.md#8-2-런북-cloudwatch-알람)).
+- **cron의 한계**: GitHub 문서는 예약 실행을 이렇게 설명한다.
+
+  > 예약 워크플로를 실행할 수 있는 가장 짧은 간격은 5분에 한 번이다. (...) `schedule` 이벤트는 GitHub Actions
+  > 워크플로 실행이 많이 몰리는 동안 지연될 수 있다. 매시 정각이 고부하 시간에 든다. 부하가 충분히 높으면 대기 중인
+  > 잡 일부가 버려질 수도 있다. (번역)
+  >
+  > — GitHub Docs, [Events that trigger workflows — schedule](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)
+
+  그래서 정각을 피해 7분부터 돌리고, 실제 간격은 10분보다 길어질 수 있다. 몇 분 안에 알아야 한다면 Route 53 헬스
+  체크 같은 전용 수단이 맞다 — 비용과 콘솔 수동 관리 때문에 쓰지 않았다(근거:
+  [`docs/plans/2026-11-02-safety-net-top3.md`](./plans/2026-11-02-safety-net-top3.md) "업타임 수단"). 위 GitHub 문서는
+  공개 레포에서 60일 동안 활동이 없으면 예약 워크플로가 자동으로 꺼진다고도 쓴다 — 오래 쉬었다면 Actions 탭에서
+  다시 켠다.
+
+- **수동 실행**: `gh workflow run "Uptime Check" --ref main`. `-f force_fail=true`를 붙이면 API 본문 기대값을 일부러
+  틀려 이슈 열기 경로를 시험한다. 시험 뒤 일반 실행을 한 번 더 돌리면 그 이슈가 닫힌다.
+
 ## 수동 배포 (참고)
 
 로컬 환경에서 수동으로 배포해야 할 경우 아래 절차를 따릅니다 (AWS CLI 설정 필요).
