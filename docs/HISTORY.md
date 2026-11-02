@@ -1,3 +1,6 @@
+### 2026-11-02 (BE)
+- 인증 및 비밀번호 재설정 메일 내 연결 경로를 FE 라우팅 경로(/auth/...)로 최적화하여 사용자 접근성 개선 ([#153](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/153))
+
 ### 2026-11-02 (FE)
 - Orval과 Zod를 활용하여 백엔드 입력 제약 상수를 자동 생성하고, 이를 기반으로 계약 테스트를 도입하여 데이터 정합성 검증 강화 ([#480](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/480))
 
