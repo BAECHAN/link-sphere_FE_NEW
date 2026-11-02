@@ -1,4 +1,5 @@
 import { useEffect, useState, type MouseEvent } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createAccountSchema, CreateAccount } from '@/entities/auth/model/auth.schema';
@@ -7,6 +8,7 @@ import {
   nicknameValidationSchema,
 } from '@/entities/account/model/account.schema';
 import { useCreateAccountMutation } from '@/entities/auth/api/auth.queries';
+import { SignUpUtil, type SignUpSubmitErrorResolution } from '@/entities/auth/utils/auth.util';
 import { usePasswordFieldsFeedback } from '@/entities/auth/hooks/usePasswordFieldsFeedback';
 import { authApi } from '@/entities/auth/api/auth.api';
 import { accountApi } from '@/entities/account/api/account.api';
@@ -15,6 +17,9 @@ import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { usePendingSubmit } from '@/shared/hooks/usePendingSubmit';
 import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
 import { toast } from '@/shared/lib/toast/toast';
+import { showLeftPageFailureToast } from '@/shared/lib/toast/LeftPageFailureToast';
+import { NavigationService } from '@/shared/lib/router/navigation';
+import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 
 const DEFAULT_VALUES = {
@@ -23,6 +28,49 @@ const DEFAULT_VALUES = {
   password: '',
   confirmPassword: '',
 };
+
+// 떠난 뒤 가입이 실패해 토스트의 [다시 가입하기]로 돌아올 때 실리는 입력. location.state는 브라우저 방문
+// 기록(history.state)에 남으므로 비밀번호는 싣지 않는다(docs/UNSAVED-CHANGES-GUARD.md §5)
+interface SignUpLocationState {
+  restoredInput?: { nickname: string; email: string };
+}
+
+/** 응답 전에 "나가기"로 떠난 뒤 실패했다 - 가입 폼이 없으니 닫을 때까지 남는 토스트로 알리고 돌아갈 버튼을 단다 */
+function showSignUpFailedAfterLeaving(
+  { reason }: SignUpSubmitErrorResolution,
+  { nickname, email }: { nickname: string; email: string }
+) {
+  const { leftPageFailure } = TEXTS.messages.error;
+
+  // 이미 계정이 있으니 로그인이 해결책이다 - 로그인 화면이 state.email을 채운다(useLogin.ts)
+  if (reason === 'duplicateEmail') {
+    showLeftPageFailureToast({
+      key: 'auth-signup',
+      title: leftPageFailure.signUpTitle,
+      description: TEXTS.auth.signup.emailDuplicate,
+      action: {
+        label: TEXTS.buttons.login,
+        onClick: () => NavigationService.navigate(ROUTES_PATHS.AUTH.LOGIN, { state: { email } }),
+      },
+    });
+    return;
+  }
+
+  const restoredState: SignUpLocationState = { restoredInput: { nickname, email } };
+
+  showLeftPageFailureToast({
+    key: 'auth-signup',
+    title: leftPageFailure.signUpTitle,
+    description:
+      reason === 'duplicateNickname'
+        ? leftPageFailure.signUpDuplicateNickname
+        : leftPageFailure.retryLater,
+    action: {
+      label: TEXTS.buttons.signUpAgain,
+      onClick: () => NavigationService.navigate(ROUTES_PATHS.AUTH.SIGNUP, { state: restoredState }),
+    },
+  });
+}
 
 export function useSignUp() {
   // 가입 성공 후 "메일함을 확인해주세요" 화면으로 전환한다(navigate 아님 -
@@ -50,6 +98,21 @@ export function useSignUp() {
   const { clearNow } = useUnsavedChanges('auth-signup', form.formState.isDirty && !isSubmitted);
   usePendingSubmit('auth-signup', isPending, TEXTS.unsavedChanges.pending.signup);
   const hasLeftPage = useHasLeftPage();
+  const location = useLocation();
+  const restoredInput = (location.state as SignUpLocationState | null)?.restoredInput;
+
+  useEffect(
+    function restoreInputAfterLeftPageFailure() {
+      // 같은 화면에 새로 입력 중이면 덮지 않는다 - 같은 경로 이동은 이탈 가드가 막지 않아 새 입력이 확인 없이
+      // 사라진다. 기본값은 그대로 두고 값만 넣어 되살린 입력도 작성 중(dirty)으로 잡는다
+      if (!restoredInput || form.formState.isDirty) {
+        return;
+      }
+
+      form.reset({ ...DEFAULT_VALUES, ...restoredInput }, { keepDefaultValues: true });
+    },
+    [restoredInput, form]
+  );
 
   const watchedEmail = form.watch('email');
   const watchedNickname = form.watch('nickname');
@@ -87,18 +150,26 @@ export function useSignUp() {
   }, [nicknameCheck.status, form]);
 
   const onSubmit = async (data: CreateAccount) => {
-    // reject는 여기서 받고 다시 던지지 않는다 - 실패 안내는 mutation의 onError 토스트가 맡는다. 던지면
-    // handleSubmit 밖으로 처리되지 않은 rejection이 샌다(react-hook-form 7.71.0은 onValid의 에러를 다시
-    // 던진다 - dist/index.esm.mjs:2194-2216, useCreatePost.ts와 같은 처리)
+    // reject는 여기서 받아 안내로 바꾸고 다시 던지지 않는다. 던지면 handleSubmit 밖으로 처리되지 않은
+    // rejection이 샌다(react-hook-form 7.71.0은 onValid의 에러를 다시 던진다 - dist/index.esm.mjs:2194-2216,
+    // useCreatePost.ts와 같은 처리)
     try {
       await createMember(data);
-    } catch {
+    } catch (error) {
+      const resolution = SignUpUtil.resolveSubmitError(error);
+
+      if (hasLeftPage()) {
+        showSignUpFailedAfterLeaving(resolution, data);
+        return;
+      }
+
+      // 화면에 머물렀으면 입력이 그대로 남아 바로 다시 시도할 수 있다
+      toast.error(resolution.message);
       return;
     }
 
-    // 응답 전에 "나가기"로 떠났으면 완료 화면을 볼 수 없다 - 그때만 토스트로 대신 알린다(실패 토스트는
-    // mutation의 onError가 어디서든 띄운다). clearNow보다 먼저 본다: 다시 들어와 새로 연 가입 폼의 키를
-    // 지우지 않게(useCreatePost.ts와 같은 순서)
+    // 응답 전에 "나가기"로 떠났으면 완료 화면을 볼 수 없다 - 그때만 토스트로 대신 알린다. clearNow보다
+    // 먼저 본다: 다시 들어와 새로 연 가입 폼의 키를 지우지 않게(useCreatePost.ts와 같은 순서)
     if (hasLeftPage()) {
       toast.success(TEXTS.messages.success.signUpCompleted);
       return;

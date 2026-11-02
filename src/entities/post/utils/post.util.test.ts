@@ -54,6 +54,7 @@ describe('PostUtil.resolveSubmitError', () => {
     expect(PostUtil.resolveSubmitError(forbidden, UPDATE)).toEqual({
       kind: 'form',
       message: MESSAGES.notOwner,
+      retryable: false,
     });
   });
 
@@ -93,7 +94,7 @@ describe('PostUtil.resolveSubmitError', () => {
         apiError({ status: 404, code: SERVER_ERROR_CODE.POST_NOT_FOUND }),
         UPDATE
       )
-    ).toEqual({ kind: 'form', message: MESSAGES.postDeleted });
+    ).toEqual({ kind: 'form', message: MESSAGES.postDeleted, retryable: false });
   });
 
   it('네트워크 단절은 연결 확인 안내를 한다', () => {
@@ -103,16 +104,26 @@ describe('PostUtil.resolveSubmitError', () => {
     });
   });
 
-  it('그 외 실패는 서버 메시지를 노출하지 않고 등록·수정별 일반 안내를 한다', () => {
+  it('그 외 실패는 서버 메시지를 노출하지 않고 등록·수정별 일반 안내를 하며, 원인을 특정하지 못했다고 표시한다', () => {
     const serverError = apiError({ status: 500, code: SERVER_ERROR_CODE.INTERNAL_SERVER_ERROR });
 
     expect(PostUtil.resolveSubmitError(serverError, CREATE)).toEqual({
       kind: 'form',
       message: MESSAGES.createFailed,
+      unclassified: true,
     });
     expect(PostUtil.resolveSubmitError(serverError, UPDATE)).toEqual({
       kind: 'form',
       message: MESSAGES.updateFailed,
+      unclassified: true,
+    });
+  });
+
+  it('ApiError도 네트워크 단절도 아닌 예외도 원인을 특정하지 못한 실패로 표시한다', () => {
+    expect(PostUtil.resolveSubmitError(new Error('unexpected'), CREATE)).toEqual({
+      kind: 'form',
+      message: MESSAGES.createFailed,
+      unclassified: true,
     });
   });
 });

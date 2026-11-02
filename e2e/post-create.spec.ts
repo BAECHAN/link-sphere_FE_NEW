@@ -8,6 +8,7 @@ import { wrapResponse } from './mocks/wrap-response';
 import { ENDPOINTS } from './mocks/endpoints';
 import { mockPost, mockPostListResponse } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
+import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 const NEW_URL = 'https://newlink.example.com/article';
 const NEW_TITLE = '새로 등록한 링크';
@@ -102,6 +103,66 @@ test.describe('게시글 등록', () => {
     await expect(page).toHaveURL(/\/post\/submit$/);
     await expect(page.getByLabel(/^URL/)).toHaveValue(NEW_URL);
     await expect(page.getByRole('button', { name: TEXTS.post.form.create.submit })).toBeEnabled();
+  });
+
+  test('등록 요청 중 "나가기"로 떠난 뒤 실패하면 무엇이 실패했는지 알리고, [다시 등록하기]를 누르면 입력과 안내를 되살린다', async ({
+    page,
+  }) => {
+    let release!: () => void;
+    const released = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.post.base),
+      async (route) => {
+        if (route.request().method() === 'POST') {
+          // 떠난 뒤에 실패하도록 테스트가 풀 때까지 응답을 붙잡는다
+          await released;
+          return route.fulfill({
+            status: 500,
+            json: { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'boom' },
+          });
+        }
+        return route.fulfill({ json: wrapResponse(mockPostListResponse) });
+      }
+    );
+
+    await page.goto('/post/submit');
+    await page.getByLabel(/^URL/).fill(NEW_URL);
+    await page.getByLabel(/^제목/).fill(NEW_TITLE);
+    await page.getByRole('button', { name: TEXTS.post.form.create.submit }).click();
+    await expect(page.getByRole('button', { name: TEXTS.common.submitting })).toBeDisabled();
+
+    const pendingTexts = TEXTS.unsavedChanges.pending.postCreate;
+    const pendingDialog = page.getByRole('alertdialog', { name: pendingTexts.title });
+
+    await page.getByRole('link', { name: TEXTS.nav.feed }).click();
+    await expect(pendingDialog).toBeVisible();
+    // alert-dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) - 클릭 자체를 삼킨다
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await pendingDialog.getByRole('button', { name: pendingTexts.confirm }).click();
+    await expect(page).toHaveURL(/\/post$/);
+
+    release();
+
+    // 원인을 특정하지 못한 실패(500)라 설명은 할 일만 적는다(PostUtil.resolveSubmitError의 unclassified)
+    const { leftPageFailure } = TEXTS.messages.error;
+    await expect(page.getByText(leftPageFailure.postCreateTitle)).toBeVisible();
+    await expect(page.getByText(leftPageFailure.retryLater)).toBeVisible();
+
+    await page.getByRole('button', { name: TEXTS.buttons.createPostAgain }).click();
+
+    await expect(page).toHaveURL(/\/post\/submit$/);
+    await expect(page.getByLabel(/^URL/)).toHaveValue(NEW_URL);
+    await expect(page.getByLabel(/^제목/)).toHaveValue(NEW_TITLE);
+    // 버튼을 누르면 토스트가 닫혀 이유가 사라지므로, 머물렀을 때와 같은 안내를 버튼 위에 다시 띄운다.
+    // 화면 맨 위에서 시작하면 폼 맨 아래의 이 안내가 화면 밖이라 보이게 내린다(revealRestoredSubmitError)
+    await expect(page.getByRole('alert')).toContainText(
+      TEXTS.messages.error.postSubmit.createFailed
+    );
+    await expect(page.getByRole('alert')).toBeInViewport();
+    await expect(page.getByText(leftPageFailure.postCreateTitle)).toHaveCount(0);
   });
 
   test('도메인을 찾을 수 없으면 URL 칸 아래에 고칠 수 있는 안내가 뜨고, URL을 고치면 사라진다', async ({

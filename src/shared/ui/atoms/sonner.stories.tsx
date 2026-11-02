@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Toaster } from '@/shared/ui/atoms/sonner';
 import { toast } from '@/shared/lib/toast/toast';
+import { showLeftPageFailureToast } from '@/shared/lib/toast/LeftPageFailureToast';
 import { Button } from '@/shared/ui/atoms/button';
 import { TEXTS } from '@/shared/config/texts';
 
@@ -71,6 +72,83 @@ export const SentenceLineBreak: Story = {
       <div className="flex flex-wrap gap-2">
         {SENTENCE_LINE_BREAKS.map(({ label, show }) => (
           <Button key={label} variant="outline" onClick={show}>
+            {label}
+          </Button>
+        ))}
+      </div>
+    </div>
+  ),
+};
+
+const { leftPageFailure, postSubmit } = TEXTS.messages.error;
+
+// 저장 요청 중 떠난 뒤 실패했을 때의 토스트(useSignUp·useCreatePost·useUpdatePost) - 닫을 때까지 남고,
+// 버튼은 그 폼으로 돌아가 입력을 되살린다. 글이 삭제돼 다시 수정할 수 없으면 버튼이 없다
+const LEFT_PAGE_FAILURES = [
+  {
+    label: '가입 - 닉네임 중복',
+    title: leftPageFailure.signUpTitle,
+    description: leftPageFailure.signUpDuplicateNickname,
+    actionLabel: TEXTS.buttons.signUpAgain,
+  },
+  {
+    label: '가입 - 이메일 중복',
+    title: leftPageFailure.signUpTitle,
+    description: TEXTS.auth.signup.emailDuplicate,
+    actionLabel: TEXTS.buttons.login,
+  },
+  {
+    label: '가입 - 그 밖',
+    title: leftPageFailure.signUpTitle,
+    description: leftPageFailure.retryLater,
+    actionLabel: TEXTS.buttons.signUpAgain,
+  },
+  {
+    label: '등록 - 폴더 없음',
+    title: leftPageFailure.postCreateTitle,
+    description: postSubmit.folderNotFound,
+    actionLabel: TEXTS.buttons.createPostAgain,
+  },
+  {
+    label: '등록 - 일시적 실패',
+    title: leftPageFailure.postCreateTitle,
+    description: leftPageFailure.retryLater,
+    actionLabel: TEXTS.buttons.createPostAgain,
+  },
+  {
+    label: '수정 - 주소 오류',
+    title: leftPageFailure.postUpdateTitle,
+    description: postSubmit.urlUnresolvable,
+    actionLabel: TEXTS.buttons.updatePostAgain,
+  },
+  {
+    label: '수정 - 글 삭제됨',
+    title: leftPageFailure.postUpdateTitle,
+    description: postSubmit.postDeleted,
+    actionLabel: null,
+  },
+];
+
+export const LeftPageFailure: Story = {
+  render: () => (
+    <div className="flex flex-col gap-2 pointer-events-auto">
+      <Toaster />
+      <div className="flex flex-wrap gap-2">
+        {LEFT_PAGE_FAILURES.map(({ label, title, description, actionLabel }) => (
+          <Button
+            key={label}
+            variant="outline"
+            onClick={() =>
+              showLeftPageFailureToast({
+                key: label,
+                title,
+                description,
+                ...(actionLabel && {
+                  action: { label: actionLabel, onClick: () => console.log(actionLabel) },
+                }),
+              })
+            }
+          >
             {label}
           </Button>
         ))}

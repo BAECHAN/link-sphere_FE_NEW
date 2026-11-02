@@ -53,7 +53,9 @@ test.describe('회원가입 폼 이탈 확인', () => {
    * POST /auth/signup 응답을 테스트가 release()할 때까지 붙잡는다 - 시간 지연 대신 직접 풀어
    * "요청 중"이 응답보다 먼저 끝나는 흔들림을 없앤다. requested는 요청이 라우트에 닿으면 풀린다.
    */
-  async function holdSignUp(page: Page, outcome: 'success' | 'failure') {
+  type SignUpOutcome = 'success' | 'failure' | 'duplicateEmail';
+
+  async function holdSignUp(page: Page, outcome: SignUpOutcome) {
     let markRequested!: () => void;
     let release!: () => void;
     const requested = new Promise<void>((resolve) => {
@@ -74,6 +76,14 @@ test.describe('회원가입 폼 이탈 확인', () => {
           return;
         }
 
+        if (outcome === 'duplicateEmail') {
+          await route.fulfill({
+            status: 409,
+            json: { status: 409, code: 'DUPLICATE_MEMBER', message: '이미 가입된 이메일이에요.' },
+          });
+          return;
+        }
+
         await route.fulfill({
           status: 500,
           json: { status: 500, code: 'INTERNAL_ERROR', message: '서버 오류가 발생했어요.' },
@@ -84,7 +94,7 @@ test.describe('회원가입 폼 이탈 확인', () => {
     return { requested, release };
   }
 
-  async function submitAndHold(page: Page, outcome: 'success' | 'failure' = 'success') {
+  async function submitAndHold(page: Page, outcome: SignUpOutcome = 'success') {
     await mockEmailAvailability(page, true);
     await mockNicknameAvailability(page, true);
     const signUp = await holdSignUp(page, outcome);
@@ -297,5 +307,65 @@ test.describe('회원가입 폼 이탈 확인', () => {
     // 이제 입력만 남았으니 다시 떠나려 하면 평소 확인창이 뜬다
     await loginLink(page).click();
     await expect(guardDialog(page)).toBeVisible();
+  });
+
+  test('가입 요청 중 "나가기"로 떠난 뒤 가입이 실패하면 무엇이 실패했는지 알리고, [다시 가입하기]를 누르면 닉네임·이메일만 되살린다', async ({
+    page,
+  }) => {
+    const signUp = await submitAndHold(page, 'failure');
+
+    await loginLink(page).click();
+    await expect(pendingDialog(page)).toBeVisible();
+    // alert-dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 위 테스트들과 같은 이유
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await pendingDialog(page).getByRole('button', { name: PENDING_TEXTS.confirm }).click();
+    await expect(page).toHaveURL(/\/auth\/login$/);
+
+    signUp.release();
+
+    // 원인을 특정하지 못한 실패(500)라 설명은 할 일만 적는다(useSignUp.ts showSignUpFailedAfterLeaving)
+    const { leftPageFailure } = TEXTS.messages.error;
+    await expect(page.getByText(leftPageFailure.signUpTitle)).toBeVisible();
+    await expect(page.getByText(leftPageFailure.retryLater)).toBeVisible();
+
+    await page.getByRole('button', { name: TEXTS.buttons.signUpAgain }).click();
+
+    await expect(page).toHaveURL(/\/auth\/sign-up$/);
+    await expect(page.getByPlaceholder(TEXTS.placeholders.nickname)).toHaveValue('newuser');
+    await expect(page.getByPlaceholder(TEXTS.placeholders.email)).toHaveValue('new@example.com');
+    // 비밀번호는 브라우저 방문 기록(history.state)에 남지 않게 싣지 않는다
+    await expect(page.getByPlaceholder(TEXTS.placeholders.password)).toHaveValue('');
+    await expect(page.getByPlaceholder(TEXTS.placeholders.confirmPassword)).toHaveValue('');
+    await expect(page.getByText(leftPageFailure.signUpTitle)).toHaveCount(0);
+
+    // 되살린 입력도 작성 중이라 떠나려 하면 평소 확인창이 뜬다
+    await loginLink(page).click();
+    await expect(guardDialog(page)).toBeVisible();
+  });
+
+  test('Sign In 링크로 떠난 뒤 이메일 중복으로 실패하면, 이미 열린 로그인 화면에서 [로그인]을 눌러도 이메일 칸이 채워진다', async ({
+    page,
+  }) => {
+    const signUp = await submitAndHold(page, 'duplicateEmail');
+
+    await loginLink(page).click();
+    await expect(pendingDialog(page)).toBeVisible();
+    // alert-dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 위 테스트들과 같은 이유
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await pendingDialog(page).getByRole('button', { name: PENDING_TEXTS.confirm }).click();
+    await expect(page).toHaveURL(/\/auth\/login$/);
+    await expect(page.getByPlaceholder(TEXTS.placeholders.email)).toHaveValue('');
+
+    signUp.release();
+
+    await expect(page.getByText(TEXTS.auth.signup.emailDuplicate.split('. ')[0]!)).toBeVisible();
+    // 로그인 화면의 제출 버튼도 "로그인"이라 토스트 안의 버튼으로 좁힌다
+    await page
+      .getByRole('region', { name: /Notifications/ })
+      .getByRole('button', { name: TEXTS.buttons.login })
+      .click();
+
+    // 같은 화면이라 폼이 다시 마운트되지 않는다 - useLogin의 fillEmailArrivedOnSamePage가 채운다
+    await expect(page.getByPlaceholder(TEXTS.placeholders.email)).toHaveValue('new@example.com');
   });
 });

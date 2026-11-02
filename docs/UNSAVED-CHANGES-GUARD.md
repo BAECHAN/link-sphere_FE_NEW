@@ -44,6 +44,9 @@ flowchart TD
   Page -->|아니오| BlockConfirm["차단 → '작성 중인 내용이 있어요' 확인 모달"]
   BlockConfirm -->|"모달이 떠 있는 동안 저장이 끝나<br/>이름표가 모두 떼어짐(댓글 수정 등)"| AutoClose["모달을 스스로 취소 · 막힌 이동은 버림<br/>→ 폼의 성공 동작이 그대로 통과"]
   BlockPending -->|"모달이 떠 있는 동안 응답이 옴<br/>(성공·실패 모두)"| AutoClosePending["모달을 스스로 취소 · 막힌 이동은 버림<br/>성공 → 폼의 성공 동작(피드·들어온 화면·가입 완료 화면)<br/>실패 → 화면에 머물러 실패 안내, 입력 유지"]
+  BlockPending -->|"'나가기'로 떠난 뒤 실패"| LeftFail["옮겨 간 화면에 닫을 때까지 남는 실패 토스트<br/>제목(무엇이 실패) · 설명(이유·할 일) · 돌아갈 버튼"]
+  LeftFail -->|"[다시 가입하기]·[다시 등록하기]·[다시 수정하기]"| Restore["그 폼으로 이동해 입력을 되살림(작성 중으로)<br/>게시글은 머물렀을 때의 안내도 다시 · 가입은 닉네임·이메일만<br/>그 폼에 새로 입력 중이면 덮지 않음"]
+  LeftFail -->|"가입 이메일 중복: [로그인]"| LoginFill["로그인 화면에 그 이메일을 채움"]
 ```
 
 ## 2. 전제 지식
@@ -202,7 +205,7 @@ _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 
 | 모달이 떠 있는 동안 성공  | 모달을 닫고 폼의 평소 성공 동작이 이긴다(가려던 곳이 아니라 피드·들어온 화면, 회원가입은 같은 화면의 가입 완료 화면)                                                                         | `useUnsavedChangesGuard.ts`의 `cancelOutdatedConfirm`                  |
 | 모달이 떠 있는 동안 실패  | 모달을 닫고 화면에 머문다 — 입력과 실패 안내(게시글은 칸 아래·버튼 위 안내, 회원가입은 에러 토스트)가 남는다. 다시 떠나려 하면 평소 모달이 뜬다                                              | 같은 곳 — 요청 중에 띄운 모달만(`openedWhilePendingRef`)               |
 | 응답 전에 "나가기" → 성공 | 떠난 화면을 덮어쓰지 않는다. 게시글은 mutation의 `meta.successMessage`가 성공 토스트를 띄운다. 회원가입은 mutation에 성공 토스트가 없어(머물면 완료 화면이 보여준다) 떠났을 때만 훅이 띄운다 | `useCreatePost.ts`·`useUpdatePost.ts`·`useSignUp.ts`의 `hasLeftPage()` |
-| 응답 전에 "나가기" → 실패 | 안내할 폼이 없으니 게시글은 `toast.error(resolution.message)`로 대신 알린다. 회원가입은 mutation의 `onError` 토스트가 원래 어디서든 뜬다                                                     | 같은 곳, 회원가입은 `auth.queries.ts`의 `useCreateAccountMutation`     |
+| 응답 전에 "나가기" → 실패 | 안내할 폼이 없으니 옮겨 간 화면에 닫을 때까지 남는 실패 토스트를 띄우고, 버튼으로 그 폼에 돌아가 입력을 되살린다(아래 "떠난 뒤 실패 토스트")                                                 | 같은 곳, 토스트 모양은 `shared/lib/toast/LeftPageFailureToast.tsx`     |
 
 - **"떠났는가"는 마운트 여부만으로 판단하지 않는다.** "나가기" 직후 라우터 위치는 바로 바뀌지만,
   `v7_startTransition` 때문에 다음 화면이 청크·데이터로 suspend하는 동안엔 이전 폼이 마운트된 채
@@ -236,6 +239,98 @@ _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 
 켠다 — 전체 규칙표는 [FE-ARCHITECTURE.md](./FE-ARCHITECTURE.md) §10 참고. 근거와 검토한 대안
 (Apple HIG의 destructive 빨강, 현행 유지 등)은 [DECISIONS.md](./DECISIONS.md) 2026-09-29
 항목(팔로업 포함) 참고.
+
+### 떠난 뒤 실패 토스트 (회원가입·게시글 등록·수정)
+
+응답 전에 "나가기"로 떠난 뒤 요청이 실패하면 실패 안내를 보여 줄 폼이 없다. 옮겨 간 화면의 토스트만 실패를 알려 줄
+수 있다. 그래서 이 토스트는 다른 에러 토스트처럼 4초 뒤 사라지지 않는다(sonner 2.0.7 기본값
+`TOAST_LIFETIME = 4000`, `node_modules/sonner/dist/index.mjs:417`). 닫을 때까지 남고, 무엇이 실패했는지와 그 폼으로
+돌아갈 버튼을 단다(2026-11-02). 나머지 에러 토스트는 그대로 4초다(§11).
+
+| 폼          | 제목                       | 설명                                                                                                                                                                                                                                        | 버튼                                                                                                |
+| ----------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 회원가입    | 가입하지 못했어요          | 닉네임 중복 "닉네임이 이미 쓰이고 있어요. 다른 닉네임으로 다시 가입해주세요." / 이메일 중복은 가입 화면 칸 아래 문구 그대로 "이미 가입된 이메일이에요. 탈퇴를 신청했다면 로그인해서 취소할 수 있어요." / 그 밖 "잠시 후 다시 시도해주세요." | 이메일 중복이면 [로그인](로그인 화면에 그 이메일을 채움), 그 밖엔 [다시 가입하기]                   |
+| 게시글 등록 | 포스트를 등록하지 못했어요 | 머물렀다면 칸 아래·버튼 위에 떴을 문구(`PostUtil.resolveSubmitError`의 `message`). 원인을 가려내지 못한 실패(`unclassified`)만 제목과 겹치는 "일시적인 문제로 등록하지 못했어요" 대신 "잠시 후 다시 시도해주세요."                          | [다시 등록하기]                                                                                     |
+| 게시글 수정 | 포스트를 수정하지 못했어요 | 등록과 같다                                                                                                                                                                                                                                 | [다시 수정하기]. 글이 삭제됐거나 남의 글이면(`retryable: false`) 버튼 없음 — 다시 수정해도 실패한다 |
+
+- **문구 위치**: `TEXTS.messages.error.leftPageFailure.*`(가입 이메일 중복은 칸 아래 문구
+  `TEXTS.auth.signup.emailDuplicate`를 같이 쓴다), 버튼은 `TEXTS.buttons.signUpAgain`·`createPostAgain`·
+  `updatePostAgain`. 설명은 문장마다 줄을 바꿔 한 문장이 두 줄로 쪼개지지 않게 한다(`showLeftPageFailureToast`).
+- **원인을 가려내지 못한 실패**: `PostUtil.resolveSubmitError`가 아는 원인(주소 오류·폴더 없음·요청 제한·응답 지연·
+  네트워크·로그인 필요·글 삭제됨·남의 글 등)에 들지 않은 것 — 504를 뺀 5xx, 모르는 오류 코드, 예상 못 한 예외. 이때만
+  "잠시 후 다시 시도해주세요."를 쓴다. 가입도 닉네임·이메일 중복이 아니면 같은 문구다.
+- **어떻게 돌아가나**: 버튼은 폼이 언마운트된 뒤 눌린다. 그래서 컴포넌트 밖 이동인 `NavigationService.navigate`로 그
+  폼 경로에 가고, 되살릴 입력은 `location.state`에 싣는다(선례: 가입 화면이 로그인 화면에 이메일을 넘기는
+  `useLogin.ts`). 되살릴 값은 `handleSubmit`이 주는 값이 아니라 제출 때 받아 둔 `form.getValues()`다
+  (`useCreatePost.ts:160`). zod가 `categoryIds`를 숫자로 바꿔(`post.schema.ts:21`) 폼 값과 모양이 다르기 때문이다.
+- **비밀번호는 되살리지 않는다**(사용자 결정): `location.state`는 브라우저 방문 기록(`history.state`)에 저장돼
+  새로고침·뒤로가기 뒤에도 남는다. 가입은 닉네임·이메일만 싣는다.
+- **폼이 비어 있을 때만 되살린다**: 같은 경로 이동은 이 가드가 막지 않는다(`useUnsavedChangesGuard.ts:33`). 그래서 새로
+  입력하던 걸 덮으면 확인 없이 사라진다. 비어 있지 않으면 버튼은 토스트만 닫는다(§11).
+- **되살린 입력은 작성 중(dirty)이다**: `reset(values, { keepDefaultValues: true })`로 기본값은 두고 값만 넣는다.
+  그래서 되살린 뒤 다시 떠나려 하면 평소 모달이 뜬다.
+- **머물렀을 때와 같은 안내를 다시 띄운다**: 버튼을 누르면 sonner가 토스트를 닫아 이유도 함께 사라진다(2.0.7
+  `index.mjs:818-821`). 그래서 게시글은 되살린 폼에 칸 아래 에러나 버튼 위 FormAlert를 다시 띄운다. FormAlert가 화면
+  아래에 있으면 제출 버튼이 보이는 데까지 내린다(`scrollIntoView({ block: 'nearest' })`, 이미 보이면 움직이지 않음,
+  2026-11-02 사용자 선택, §10). 가입은 머물러도 토스트만 띄우므로 다시 띄우지 않는다 — 닉네임·이메일 중복은 중복
+  확인이 다시 돌아 칸 아래에 뜬다.
+- **수정은 그 글일 때만 덮는다**: state에 `postId`를 함께 싣는다. 서버 글로 폼을 처음 채운 직후에 같은 글일 때만
+  덮는다(`useUpdatePost.ts`의 `resetFormWithFetchedPost`). URL을 바꿨던 입력이면 `wasUrlChangedRef`도 맞춘다
+  (`useUpdatePost.ts:100`). 맞추지 않으면 URL 변경 감지가 제목·관심 분야를 비운다.
+- **이미 로그인 화면에 있을 때**: 가입 화면에서 "로그인" 링크로 떠난 뒤 이메일 중복으로 실패하면, [로그인]을 누를 때
+  이미 로그인 화면이다. 폼이 다시 마운트되지 않아 `defaultValues`가 다시 읽히지 않으므로 `useLogin`의
+  `fillEmailArrivedOnSamePage`가 새로 실려 온 이메일을 칸에 넣는다(입력 중이면 덮지 않음, §10).
+- **쌓이지 않는다**: 토스트 id가 `left-page-failure:<이탈 가드 키>`다(가입 `auth-signup`, 등록 `post-create`, 수정
+  `post-update:<postId>`). 같은 폼에서 또 실패하면 이전 토스트를 바꾼다. 선례는 로그인 만료 토스트
+  (`showSessionExpiredToast`, `shared/utils/auth.util.ts:223`)로, 닫을 때까지 남고 버튼·닫기 X·고정 id를 쓴다.
+- **가입 실패 판정 위치**: 머물 때와 떠난 뒤를 나눠야 해서 `useCreateAccountMutation`의 `onError` 토스트를 없앴다.
+  판정은 `SignUpUtil.resolveSubmitError`(`entities/auth/utils/auth.util.ts:132`)가 하고, `useSignUp`의 `catch`가
+  머물렀으면 지금과 같은 4초 토스트를, 떠났으면 이 토스트를 띄운다(게시글 `PostUtil.resolveSubmitError` + 훅 `catch`
+  선례).
+
+**왜 닫을 때까지 남기나** — 사라지는 알림이 괜찮은 건 그 정보를 다른 곳에서도 알 수 있을 때다.
+
+- WCAG 2.2.1 이해 문서는 그런 경우로 _"받은편지함을 보는 등 다른 방법으로"_ (번역) 정보를 얻을 수 있을 때를 든다
+  ([Understanding 2.2.1](https://www.w3.org/WAI/WCAG22/Understanding/timing-adjustable.html)). 떠난 뒤 실패는 다른
+  방법이 없다.
+- Primer는 _"사용자가 직접 닫을 때까지 토스트를 계속 남겨 두는 장치가 있어야 한다"_ (번역)고 쓴다
+  ([Primer toasts](https://primer.style/accessibility/toasts/)).
+- Material 3는 버튼이 있는 스낵바를 자동으로 닫지 않는다 — Flutter 변경 공지에서 재인용
+  ([Flutter](https://docs.flutter.dev/release/breaking-changes/snackbar-with-action-behavior-update)). M3 원문은 확인하지
+  못했다.
+
+**왜 돌아갈 버튼을 다나** — NN/g는 _"문제를 말하는 것만으로는 부족하다. 해결책을 제시하라"_ (번역), _"처음부터
+다시 하게 하지 말고 원래 입력을 고쳐서 바로잡게 하라"_ (번역)고 쓴다
+([Error-Message Guidelines](https://www.nngroup.com/articles/error-message-guidelines/)). Atlassian Flag는 _"문제를
+설명하고 다음 단계나 대안을 제시하라"_ (번역)며 "Try again" 버튼을 예로 든다
+([Flag usage](https://atlassian.design/components/flag/usage)). 한계: "폼을 떠난 뒤의 실패"를 직접 다룬 자료는 찾지
+못했다. 가장 가까운 기준은 WCAG의 "다른 곳에서 알 수 있는가"다.
+
+**모양** — 실제 sonner 렌더를 라이트·다크, 모바일 375px·데스크톱으로 캡처해 나란히 비교했고, 사용자가 골랐다
+(2026-11-02). 모양은 `LeftPageFailureToast.tsx:6-14`의 `CLASS_NAMES`에 있고, 참고본은 스토리
+`sonner.stories.tsx`의 `LeftPageFailure`(경우 7개)다.
+
+| 항목           | 고른 것                                                                           | 버린 것                                                                                                                      |
+| -------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 문구 구성      | 제목(무엇이 실패) + 설명(이유·할 일)                                              | 한 문장 — 게시글 실패 이유마다 문구를 새로 써야 한다                                                                         |
+| 설명 줄바꿈    | 문장마다 줄을 바꾼다                                                              | 폭에 맡김 — 한 문장이 중간에서 줄이 바뀌어 읽기 어려웠다(사용자 지적)                                                        |
+| 버튼 위치      | 설명 아래 오른쪽, 닫기 X는 오른쪽 위, 아이콘은 제목 줄                            | 설명 옆 가운데(sonner 기본 — 여러 줄 토스트에서 어색했다), 설명 아래 왼쪽                                                    |
+| 제목·설명 구분 | 제목은 빨강 + `text-subsection-title`(14px·600), 설명은 본문색(`text-foreground`) | sonner 기본(둘 다 13px·빨강, 굵기 500/400로만 구분), 제목만 굵게(설명도 빨강), 둘 다 본문색(빨강은 아이콘에만 — Carbon 방식) |
+
+- Volvo Cars 디자인 시스템은 _"동작이 있으면 항상 메시지 아래 별도 줄에 둔다"_, _"동작 버튼이 있으면 자동으로 닫지
+  않는다. 이때는 항상 X 버튼을 보여 준다"_ (번역)고 쓴다
+  ([Toast message usage](https://designsystem.volvocars.com/web/components/toast-message/usage/)).
+- Firefox Acorn(안드로이드 스낵바)의 "Text & long action" 유형은 _"동작 라벨이 메시지 옆에 들어가기엔 길어서 자기 줄로
+  내려간다"_ (번역) ([Snackbar](https://acorn.firefox.com/latest/mobile/components/snackbar/android-pNOUdFi9)).
+- 오른쪽: Material 3 Compose 스낵바는 버튼을 새 줄에 둘 때 오른쪽 끝에 붙인다
+  ([Compose `material3` 폴더](https://github.com/androidx/androidx/tree/androidx-main/compose/material3/material3/src/commonMain/kotlin/androidx/compose/material3)의
+  `Snackbar.kt`, `Modifier.align(Alignment.End)`). 이 앱의 확인창도 데스크톱에서 버튼을 오른쪽에 모은다(`dialog.tsx`·
+  `alert-dialog.tsx`의 `sm:justify-end`). 반대로 Atlassian Flag와
+  [Carbon](https://carbondesignsystem.com/components/notification/usage/)은 동작을 설명 아래 왼쪽에 둔다 — 업계가
+  한쪽으로 정해진 건 아니다.
+- 제목 구분: Carbon 토스트는 제목 14px·굵기 600, 본문 14px·굵기 400이고 둘 다 기본 글자색이다. 상태색(빨강)은
+  테두리·아이콘·배경에만 쓴다([Notification style](https://carbondesignsystem.com/components/notification/style/)).
+  사용자는 그보다 제목을 빨강으로 두는 쪽을 골랐다.
 
 ### 의도적으로 막지 않는 경우
 
@@ -378,6 +473,11 @@ src/
 │       ├── useUnsavedChangesGuard.ts     # §5 — RootLayout에서 1회만 도는 전역 가드
 │       └── useHasLeftPage.ts             # §5 "저장 요청 중 이탈" — 응답 뒤 떠났는지 판정
 ├── shared/lib/router/router-events.ts    # useHasLeftPage가 읽는 라우터 최신 위치
+├── shared/lib/toast/LeftPageFailureToast.tsx # §5 "떠난 뒤 실패 토스트" — 닫을 때까지 남는 모양·고정 id
+├── shared/lib/router/navigation.ts       # NavigationService — 토스트 버튼이 컴포넌트 밖에서 폼으로 이동
+├── entities/auth/utils/auth.util.ts      # SignUpUtil.resolveSubmitError — 가입 실패 판정(머물 때·떠난 뒤 공통)
+├── entities/post/utils/post.util.ts      # PostUtil.resolveSubmitError — retryable·unclassified 표시
+├── features/auth/login/hooks/useLogin.ts # fillEmailArrivedOnSamePage — 이미 로그인 화면일 때 실려 온 이메일 채움
 ├── app/routes/layouts/RootLayout.tsx     # 가드 마운트 지점(앱 전체 1곳)
 ├── app/hooks/useLeaveOnMemberChange.ts   # 다른 회원으로 바뀌면 쓰는 중이거나 보호 화면일 때 clearAllUnsavedChanges → /post
 ├── widgets/layout/navbar/hooks/useDelayedLogout.ts # 쓰는 중 직접 로그아웃이면 먼저 확인(TEXTS.unsavedChanges.logout)
@@ -395,13 +495,16 @@ src/
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                    | 방법                                                                                                                                                                                                                                                          |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 새 폼에 이 가드를 붙이려면      | 폼 훅 안에서 `const { clearNow } = useUnsavedChanges('폼을-구분할-고유-키', isDirty)` 호출 + 제출 성공 직후 `clearNow()` 호출(§6 표의 키 네이밍 패턴을 따른다)                                                                                                |
-| 이탈 확인 모달 문구 변경        | `TEXTS.unsavedChanges.*`(`shared/config/texts.ts`)                                                                                                                                                                                                            |
-| 특정 상황을 검사에서 제외       | `useUnsavedChangesGuard.ts`의 `shouldBlockNavigation`에 §5 순서대로 분기 추가(순서가 중요 — 로그인 상태 검사보다 먼저 오면 안 됨)                                                                                                                             |
-| 저장 뒤 이동하는 새 폼          | 응답을 기다린 뒤 `useHasLeftPage()`의 반환 함수로 떠났는지 먼저 본다 — 떠났으면 이동하지 않고, 실패는 토스트로(§5 "저장 요청 중 이탈", `useCreatePost.ts` 참고). 요청 중 모달 문구는 `usePendingSubmit`에 `TEXTS.unsavedChanges.pending`의 새 키를 넘긴다(§6) |
-| 쓰던 글을 버리고 옮기는 새 경로 | 이동 전에 `clearAllUnsavedChanges()`를 부른다(§6, 선례 `useLeaveOnMemberChange.ts`·`useDelayedLogout.ts`·`AuthUtil.signOutForOtherAccount`) — 안 부르면 이 가드가 그 이동을 막는다                                                                            |
+| 하고 싶은 것                       | 방법                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 새 폼에 이 가드를 붙이려면         | 폼 훅 안에서 `const { clearNow } = useUnsavedChanges('폼을-구분할-고유-키', isDirty)` 호출 + 제출 성공 직후 `clearNow()` 호출(§6 표의 키 네이밍 패턴을 따른다)                                                                                                                                                             |
+| 이탈 확인 모달 문구 변경           | `TEXTS.unsavedChanges.*`(`shared/config/texts.ts`)                                                                                                                                                                                                                                                                         |
+| 특정 상황을 검사에서 제외          | `useUnsavedChangesGuard.ts`의 `shouldBlockNavigation`에 §5 순서대로 분기 추가(순서가 중요 — 로그인 상태 검사보다 먼저 오면 안 됨)                                                                                                                                                                                          |
+| 저장 뒤 이동하는 새 폼             | 응답을 기다린 뒤 `useHasLeftPage()`의 반환 함수로 떠났는지 먼저 본다 — 떠났으면 이동하지 않고, 실패는 토스트로(§5 "저장 요청 중 이탈", `useCreatePost.ts` 참고). 요청 중 모달 문구는 `usePendingSubmit`에 `TEXTS.unsavedChanges.pending`의 새 키를 넘긴다(§6)                                                              |
+| 쓰던 글을 버리고 옮기는 새 경로    | 이동 전에 `clearAllUnsavedChanges()`를 부른다(§6, 선례 `useLeaveOnMemberChange.ts`·`useDelayedLogout.ts`·`AuthUtil.signOutForOtherAccount`) — 안 부르면 이 가드가 그 이동을 막는다                                                                                                                                         |
+| 떠난 뒤 실패 토스트 문구 변경      | 제목·가입 설명은 `TEXTS.messages.error.leftPageFailure`(`texts.ts:570`), 버튼은 `TEXTS.buttons`의 `signUpAgain`·`createPostAgain`·`updatePostAgain`(`texts.ts:73-76`). 게시글 설명은 `TEXTS.messages.error.postSubmit.*` 그대로다                                                                                          |
+| 떠난 뒤 실패 토스트 모양 변경      | `LeftPageFailureToast.tsx:6-14`의 `CLASS_NAMES`. sonner 자체 CSS를 덮으려면 `!`가 필요하다. 스토리 `sonner.stories.tsx`의 `LeftPageFailure`로 경우 7개를 함께 본다                                                                                                                                                         |
+| 새 폼에 떠난 뒤 실패 토스트 붙이기 | 제출 전 `form.getValues()`를 받아 두고, `hasLeftPage()`면 `showLeftPageFailureToast`에 그 폼의 이탈 가드 키와 `NavigationService.navigate(폼 경로, { state })` 버튼을 넘긴다. 되살리기는 `useCreatePost.ts:115`의 `restoreSubmissionAfterLeftPageFailure`, 안내까지 내리기는 `:132`의 `revealRestoredSubmitError`를 본뜬다 |
 
 ## 9. 검증 결과
 
@@ -439,6 +542,25 @@ src/
 
 경계 확인: 구독 콜백의 `hasUnsavedChanges()` 조건을 잠시 빼면 가드 테스트의 중간 단언이, `useHasLeftPage`를
 마운트 여부만 보게 바꾸면 정지 구간 테스트가 실패하는 것을 확인했다.
+
+**떠난 뒤 실패 토스트(2026-11-02)** — 위 회원가입·등록·수정 가드 테스트에 더한 것:
+
+- 떠난 뒤 실패하면 제목·설명·버튼, `duration: Infinity`, 고정 id로 토스트가 뜬다(가입·등록은 원인별 `it.each`).
+- 버튼을 누르면 그 폼으로 가서 입력을 되살린다. 가입은 닉네임·이메일만 되살리고 비밀번호는 빈칸이며, 되살린 입력도
+  떠날 때 확인창이 뜬다. 게시글은 머물렀을 때의 안내도 다시 뜨고, 수정은 바꾼 URL과 제목을 그대로 둔다.
+- 이메일 중복이면 [로그인]이 그 이메일을 채운 로그인 화면으로 보낸다. 글이 삭제됐거나 남의 글이라 실패했으면 버튼이
+  없다.
+- 그 폼에 새로 입력 중이면 버튼이 입력을 덮지 않는다(가입·등록).
+
+`scrollIntoView` 호출을 잠시 빼면 "안내까지 내림"을 보는 테스트 2개(등록 429, 수정)만 실패하고, 되돌리면 통과한다(직접
+측정). 세 가드 파일은 10회 반복 실행에서 모두 통과했다. e2e는 `signup-unsaved-changes.spec.ts`에 2개(떠난 뒤 실패 →
+[다시 가입하기] → 닉네임·이메일만 되살림, "Sign In"으로 떠난 뒤 이메일 중복 → 이미 열린 로그인 화면에서 [로그인] → 이메일
+채움), `post-create.spec.ts`에 1개(떠난 뒤 500 → [다시 등록하기] → 입력과 버튼 위 안내가 화면 안에 보임)를 더했다.
+셋 모두 `--repeat-each=10`으로 30회 통과했다(직접 측정).
+
+브라우저 녹화 8개(가입 서버 오류·닉네임 중복·이메일 중복, 등록 429, 수정 500·글 삭제됨, 머문 채 가입·등록 실패)로
+화면도 확인했다. 토스트가 5초 넘게 남는지, 머문 채 실패하면 가입 토스트가 4초 뒤 사라지는지도 녹화로 봤다. 녹화 파일은
+gitignore된 `.claude/browser-artifacts/`에만 있다.
 
 **로그인이 풀린 상태(2026-10-28)** — `useUnsavedChangesGuard.test.tsx`의 "로그인이 풀린 상태" `describe`가
 `signedOutInPlace` 동안에는 로그아웃 상태여도 막고, 그 표시가 없는 로그아웃 상태면 지금처럼 막지 않는 것을 고정한다.
@@ -545,6 +667,22 @@ Cloudscape 인용도 그 전용 링크만 겨냥한 것이었다). 실사용 중
   없어 새로 만들어야 하고 화면이 깜빡임)은 버렸다. 가드가 요청 중인지 알아내는 방법으로 `queryClient.isMutating()`
   (`auth.util.ts`)도 검토했지만 그 화면의 모든 요청을 세고, 끝났는지 보려면 mutation 캐시를 따로 구독해야 해서 버렸다
 
+**2026-11-02, 떠난 뒤 실패 토스트를 녹화하다 찾은 두 가지.** 떠난 뒤 실패 토스트(§5)는 유닛 테스트를 모두 통과했지만,
+녹화로 화면을 보니 두 군데가 의도와 달랐다.
+
+- **이미 로그인 화면이면 [로그인]이 이메일을 채우지 않았다.** 가입 화면에서 "Sign In"으로 떠난 뒤 이메일 중복으로
+  실패하면, [로그인]을 누를 때 이미 로그인 화면에 있다. 같은 경로로 가는 이동이라 폼이 다시 마운트되지 않는다.
+  `useForm`의 `defaultValues`는 마운트 때만 읽히므로 새로 실려 온 `state.email`이 무시됐다. 가드 테스트는 가입 폼만
+  렌더해 이 경우를 볼 수 없었다. `useLogin`에 새로 실려 온 이메일을 칸에 넣는 effect(`fillEmailArrivedOnSamePage`)를
+  더하고, e2e로 이 경로를 고정했다(§9). 입력 중이면 덮지 않는다.
+- **데스크톱에서 되살린 안내가 화면 아래에 있었다.** [다시 등록하기]로 돌아오면 화면이 맨 위에서 시작한다. 버튼 위
+  FormAlert는 접힌 아래에 있고, 이유를 적은 토스트는 버튼을 누를 때 이미 닫혔다. 그래서 왜 돌아왔는지 보이지 않았다.
+  세 안을 그림으로 보여 주고 사용자가 골랐다. 고른 안은 안내가 보이는 데까지 자동으로 내리는 것이다. 버린 안은 두
+  가지다. 하나는 버튼을 눌러도 토스트를 닫지 않는 안이다(sonner에서 `event.preventDefault()`, `index.mjs:820`). 다른
+  하나는 그대로 두고 한계로만 적는 안이다. 내리는 기준은 제출 버튼이다. FormAlert가 버튼 바로 위라 버튼이 보이면
+  안내도 보인다. `block: 'nearest'`라 이미 보이면 움직이지 않는다. 동작은 `ScrollUtil.getBehavior()`를 따른다(선례
+  `CommentForm.tsx`).
+
 ## 11. 남은 것
 
 - 댓글 폼(`useCreateComment`·`useUpdateComment`)의 `isMountedRef`도 같은 정지 구간을 가진다 — 상세에서
@@ -562,6 +700,15 @@ Cloudscape 인용도 그 전용 링크만 겨냥한 것이었다). 실사용 중
 - 로그인이 풀린 채 그 화면에 둔 상태(§5의 1번)는 글을 보관하지 않는다 — 이 확인창에서 "나가기"를 고르면 그 글은
   사라지고, "나중에 이어 쓰기"는 없다([DECISIONS.md](./DECISIONS.md) 2026-10-28, 남은 한계 전체는
   [AUTH.md](./AUTH.md) §11 항목 11)
+- 떠난 뒤 실패 토스트(§5): 그 폼에 새로 입력 중이면 버튼을 눌러도 되살리지 않고 토스트만 닫힌다. 새 입력을 확인 없이
+  덮지 않으려는 것이다
+- 떠난 사이 다른 계정으로 로그인했다면 [다시 가입하기]를 눌러도 GuestGuard가 피드로 돌려보낸다
+- 수정 화면은 링크 미리보기 카드가 안내까지 내린 뒤에 늦게 뜨면 제출 버튼이 다시 화면 아래로 밀릴 수 있다. 버튼 위
+  안내는 보인다(녹화에서 확인, 1280×720)
+- 수정 화면에서 되살린 입력을 서버 값과 똑같이 되돌려 작성 중이 아니게 되면, 그 글을 다시 받아 올 때(3분 지난 뒤 창
+  포커스 등) `resetFormWithFetchedPost`가 되살린 값과 버튼 위 안내를 다시 넣는다. `location.state`가 그대로 남아 있기
+  때문이다. 되살린 입력을 고치고 있는 동안(작성 중)에는 덮지 않는다
+- 다른 에러 토스트는 그대로 4초 뒤 사라진다. 화면에 흔적이 남지 않는 곳이 더 있는지는 GitHub 이슈에서 조사한다
 
 **정정, 2026-09-29**(이 절에 남겨 둔 옛 기록): 이전 버전은 이 절에 "인증 강화
 계획 FE Phase 5가 배포되면 `navigate('/auth/login')`이 없어질 가능성이 있다"는 미래형
@@ -597,3 +744,11 @@ Cloudscape 인용도 그 전용 링크만 겨냥한 것이었다). 실사용 중
   아직 이전 화면을 보여주는 사이. 자세한 설명은 `shared/lib/router/router-events.ts` 머리말
 - **`useHasLeftPage`** — 응답을 기다린 뒤 그 사이 화면을 떠났는지(언마운트 또는 라우터 경로가 바뀜) 돌려주는
   함수를 주는 훅(§5 "저장 요청 중 이탈")
+- **떠난 뒤 실패 토스트(`showLeftPageFailureToast`)** — 저장 요청 중 "나가기"로 떠난 뒤 실패했을 때 옮겨 간 화면에
+  띄우는 토스트. 닫을 때까지 남고, 제목·설명·돌아갈 버튼을 갖는다(§5 "떠난 뒤 실패 토스트")
+- **되살리기(`restoredInput`·`restoredSubmission`)** — 그 토스트의 버튼이 `location.state`에 실어 보낸 입력을 폼이 다시
+  채우는 것. 가입은 `restoredInput`(닉네임·이메일), 게시글은 `restoredSubmission`(폼 값 + 실패 판정, 수정은 `postId`까지)
+- **`retryable: false`·`unclassified`** — `PostUtil.resolveSubmitError`가 form 갈래에 붙이는 표시. 앞은 "다시 해도
+  실패한다"(글 삭제됨·남의 글 → 버튼 없음), 뒤는 "아는 원인이 아니다"(→ 설명을 "잠시 후 다시 시도해주세요.")
+- **`NavigationService`** — 컴포넌트 밖에서 라우터 이동을 하는 모듈(`shared/lib/router/navigation.ts`). 폼이 언마운트된
+  뒤 눌리는 토스트 버튼이 이것으로 폼에 돌아간다

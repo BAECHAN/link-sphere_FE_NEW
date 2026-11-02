@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { Outlet, RouterProvider, createMemoryRouter, type RouteObject } from 'react-router-dom';
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, type ReactNode } from 'react';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
@@ -13,6 +13,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 import { toast } from '@/shared/lib/toast/toast';
 import { RouterEvents } from '@/shared/lib/router/router-events';
+import { NavigationService } from '@/shared/lib/router/navigation';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
 import { useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
@@ -52,12 +53,15 @@ function GuardLayout() {
 
 // 훅 결과를 바깥 변수에 담지 않고 화면에 그린다(useNewVersionReload.test.tsx와 같은 이유)
 function CreatePostProbe() {
-  const { form, onSubmit, submitError } = useCreatePost();
+  const { form, onSubmit, submitError, submitButtonRef } = useCreatePost();
 
   return (
     <form onSubmit={onSubmit}>
       <input aria-label="url" {...form.register('url')} />
-      <button type="submit">submit</button>
+      <button ref={submitButtonRef} type="submit">
+        submit
+      </button>
+      <p data-testid="url-error">{form.formState.errors.url?.message}</p>
       <p data-testid="submit-error">{submitError?.message}</p>
     </form>
   );
@@ -88,6 +92,21 @@ const createRateLimited = () =>
     { status: 429, code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests' },
     { status: 429 }
   );
+
+const createServerError = () =>
+  HttpResponse.json(
+    { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'Internal Server Error' },
+    { status: 500 }
+  );
+
+const createUrlUnresolvable = () =>
+  HttpResponse.json(
+    { status: 400, code: 'URL_UNRESOLVABLE', message: 'Unknown host' },
+    { status: 400 }
+  );
+
+const LEFT_PAGE_FAILURE = TEXTS.messages.error.leftPageFailure;
+const SUBMIT_MESSAGES = TEXTS.messages.error.postSubmit;
 
 interface RenderOptions {
   queryClient?: QueryClient;
@@ -189,6 +208,55 @@ function queryLeaveDialog() {
   return screen.queryByRole('alertdialog');
 }
 
+type ToastOptions = Parameters<typeof toast.error>[1];
+
+/** 떠난 뒤 실패 토스트(showLeftPageFailureToast)의 옵션 - 마지막 toast.error 호출에서 꺼낸다 */
+function lastToastOptions(errorSpy: { mock: { calls: unknown[][] } }) {
+  return errorSpy.mock.calls.at(-1)?.[1] as ToastOptions;
+}
+
+/** 설명은 문장마다 한 줄로 그린다 - 문장 하나하나가 자기 줄(요소)에 있는지 본다 */
+function expectDescriptionLines(options: ToastOptions, text: string) {
+  const { container } = render(<div>{options?.description as ReactNode}</div>);
+
+  for (const sentence of text.split(/(?<=\.)\s+/)) {
+    expect(within(container).getByText(sentence)).toBeInTheDocument();
+  }
+}
+
+/** scrollIntoView가 불린 요소들 - setup.ts가 Element.prototype.scrollIntoView를 vi.fn으로 바꿔 둔다 */
+function scrolledElements() {
+  return vi.mocked(Element.prototype.scrollIntoView).mock.contexts;
+}
+
+/** 토스트 버튼을 누른다 - 버튼의 이동은 컴포넌트 밖 이동(NavigationService)이라 테스트 라우터로 잇는다 */
+async function clickToastAction(
+  options: ToastOptions,
+  router: ReturnType<typeof createMemoryRouter>
+) {
+  vi.spyOn(NavigationService, 'navigate').mockImplementation((to, navigateOptions) => {
+    void router.navigate(to, navigateOptions);
+  });
+
+  await act(async () => {
+    (options?.action as unknown as { onClick: () => void }).onClick();
+  });
+}
+
+/** 저장 중 "나가기"로 탭 화면에 간 뒤 응답을 돌려준다 */
+async function leaveThenRespond(
+  gate: { release: (() => void) | null },
+  router: ReturnType<typeof createMemoryRouter>,
+  queryClient: QueryClient
+) {
+  await fillAndSubmit(gate);
+  await tryToLeave(router, 'tab');
+  clickConfirmButton(PENDING_TEXTS.confirm);
+  await screen.findByTestId('other-tab');
+  await release(gate);
+  await settle(queryClient);
+}
+
 describe('useCreatePost - 저장 중 이탈', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
@@ -285,7 +353,73 @@ describe('useCreatePost - 저장 중 이탈', () => {
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
-  it('응답 전에 "나가기"로 떠났으면 등록 실패를 토스트로 알린다', async () => {
+  it.each([
+    { cause: '요청 한도', respond: createRateLimited, description: SUBMIT_MESSAGES.rateLimited },
+    // 원인을 특정하지 못한 실패(PostUtil unclassified)는 제목과 겹치지 않게 할 일만 적는다
+    { cause: '서버 오류', respond: createServerError, description: LEFT_PAGE_FAILURE.retryLater },
+  ])(
+    '응답 전에 "나가기"로 떠난 뒤 $cause로 실패하면 닫을 때까지 남는 토스트로 알린다',
+    async ({ respond, description }) => {
+      const errorSpy = vi.spyOn(toast, 'error');
+      const gate = holdCreateResponse(respond);
+      const { router, queryClient } = renderCreatePost();
+
+      await leaveThenRespond(gate, router, queryClient);
+
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledWith(
+        LEFT_PAGE_FAILURE.postCreateTitle,
+        expect.objectContaining({
+          id: 'left-page-failure:post-create',
+          duration: Infinity,
+        })
+      );
+      expect(lastToastOptions(errorSpy)?.action).toMatchObject({
+        label: TEXTS.buttons.createPostAgain,
+      });
+      expectDescriptionLines(lastToastOptions(errorSpy), description);
+      expect(router.state.location.pathname).toBe(ROUTES_PATHS.BOOKMARK);
+    }
+  );
+
+  it.each([
+    {
+      cause: '요청 한도(버튼 위 안내)',
+      respond: createRateLimited,
+      testId: 'submit-error',
+      message: SUBMIT_MESSAGES.rateLimited,
+      revealsSubmitError: true,
+    },
+    {
+      cause: '주소 오류(URL 칸 안내)',
+      respond: createUrlUnresolvable,
+      testId: 'url-error',
+      message: SUBMIT_MESSAGES.urlUnresolvable,
+      revealsSubmitError: false,
+    },
+  ])(
+    '$cause로 실패한 토스트의 [다시 등록하기]를 누르면 입력과 머물렀을 때의 안내를 되살린다',
+    async ({ respond, testId, message, revealsSubmitError }) => {
+      const errorSpy = vi.spyOn(toast, 'error');
+      const gate = holdCreateResponse(respond);
+      const { router, queryClient } = renderCreatePost();
+
+      await leaveThenRespond(gate, router, queryClient);
+      await clickToastAction(lastToastOptions(errorSpy), router);
+
+      await waitFor(() => expect(screen.getByLabelText('url')).toHaveValue(SUBMITTED_URL));
+      expect(router.state.location.pathname).toBe(SUBMIT_PATH);
+      expect(screen.getByTestId(testId)).toHaveTextContent(message);
+      // 되살린 입력도 작성 중으로 잡아 떠날 때 확인창이 뜬다
+      expect(useUnsavedChangesStore.getState().dirtyKeys.has('post-create')).toBe(true);
+      // 버튼 위 안내는 화면 밖일 수 있어 제출 버튼까지 내린다 - URL 칸 안내는 그 칸으로 포커스가 간다
+      expect(scrolledElements().includes(screen.getByRole('button', { name: 'submit' }))).toBe(
+        revealsSubmitError
+      );
+    }
+  );
+
+  it('등록 화면에 다시 들어와 새로 입력 중이면 [다시 등록하기]가 그 입력을 덮지 않는다', async () => {
     const errorSpy = vi.spyOn(toast, 'error');
     const gate = holdCreateResponse(createRateLimited);
     const { router, queryClient } = renderCreatePost();
@@ -293,14 +427,22 @@ describe('useCreatePost - 저장 중 이탈', () => {
     await fillAndSubmit(gate);
     await tryToLeave(router, 'tab');
     clickConfirmButton(PENDING_TEXTS.confirm);
+    await screen.findByTestId('other-tab');
 
-    expect(await screen.findByTestId('other-tab')).toBeInTheDocument();
+    await act(async () => {
+      await router.navigate(SUBMIT_PATH);
+    });
+    fireEvent.change(await screen.findByLabelText('url'), {
+      target: { value: 'https://example.com/other' },
+    });
 
     await release(gate);
     await settle(queryClient);
+    await clickToastAction(lastToastOptions(errorSpy), router);
 
-    expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.postSubmit.rateLimited);
-    expect(router.state.location.pathname).toBe(ROUTES_PATHS.BOOKMARK);
+    // 같은 경로 이동은 이탈 가드가 막지 않으므로, 덮으면 새 입력이 확인 없이 사라진다
+    expect(screen.getByLabelText('url')).toHaveValue('https://example.com/other');
+    expect(screen.getByTestId('submit-error')).toBeEmptyDOMElement();
   });
 
   it('떠나려 하지 않았으면 등록 성공 뒤 확인창 없이 피드로 간다', async () => {

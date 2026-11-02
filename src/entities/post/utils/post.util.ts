@@ -14,10 +14,21 @@ export interface PostSubmitErrorContext {
  * 실패를 어디에 보여줄지의 판정 결과.
  * - field: 사용자가 그 입력칸을 고치면 해결된다 → 입력칸 아래 에러(form.setError)
  * - form: 입력칸과 무관하다 → 버튼 위 안내(FormAlert). checkFeed면 "피드에서 확인하기" 링크를 붙인다
+ *
+ * 저장 중 떠난 뒤 실패를 알리는 토스트(useCreatePost·useUpdatePost)가 쓰는 표시 두 가지:
+ * - retryable: false - 다시 수정해도 똑같이 실패한다(글 삭제됨·남의 글) → 폼으로 돌아가는 버튼을 달지 않는다
+ * - unclassified: 아래 원인 중 어디에도 해당하지 않았다(504를 뺀 5xx·모르는 코드·예상 못 한 예외) → 토스트 제목과 겹치는
+ *   "일시적인 문제로 ~하지 못했어요" 대신 할 일만 적는다
  */
 export type PostSubmitErrorResolution =
   | { kind: 'field'; field: 'url' | 'folderIds'; message: string }
-  | { kind: 'form'; message: string; action?: 'checkFeed' };
+  | {
+      kind: 'form';
+      message: string;
+      action?: 'checkFeed';
+      retryable?: false;
+      unclassified?: true;
+    };
 
 const URL_FIELD_MESSAGES: Partial<Record<string, string>> = {
   [SERVER_ERROR_CODE.URL_UNRESOLVABLE]: TEXTS.messages.error.postSubmit.urlUnresolvable,
@@ -43,12 +54,9 @@ export class PostUtil {
         : TEXTS.messages.error.postSubmit.updateFailed;
 
     if (!(error instanceof ApiError)) {
-      return {
-        kind: 'form',
-        message: ErrorUtil.isServerError(error)
-          ? TEXTS.messages.error.postSubmit.network
-          : fallback,
-      };
+      return ErrorUtil.isServerError(error)
+        ? { kind: 'form', message: TEXTS.messages.error.postSubmit.network }
+        : { kind: 'form', message: fallback, unclassified: true };
     }
 
     const urlMessage = URL_FIELD_MESSAGES[error.code];
@@ -108,13 +116,17 @@ export class PostUtil {
     }
 
     if (context.mode === 'update' && error.code === SERVER_ERROR_CODE.POST_NOT_FOUND) {
-      return { kind: 'form', message: TEXTS.messages.error.postSubmit.postDeleted };
+      return {
+        kind: 'form',
+        message: TEXTS.messages.error.postSubmit.postDeleted,
+        retryable: false,
+      };
     }
 
     if (context.mode === 'update' && error.code === SERVER_ERROR_CODE.FORBIDDEN) {
-      return { kind: 'form', message: TEXTS.messages.error.postSubmit.notOwner };
+      return { kind: 'form', message: TEXTS.messages.error.postSubmit.notOwner, retryable: false };
     }
 
-    return { kind: 'form', message: fallback };
+    return { kind: 'form', message: fallback, unclassified: true };
   }
 }

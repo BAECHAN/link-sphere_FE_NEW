@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { Outlet, RouterProvider, createMemoryRouter, type RouteObject } from 'react-router-dom';
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, type ReactNode } from 'react';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { mockAccount } from '@/mocks/fixtures/account.fixtures';
@@ -13,6 +13,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 import { toast } from '@/shared/lib/toast/toast';
 import { RouterEvents } from '@/shared/lib/router/router-events';
+import { NavigationService } from '@/shared/lib/router/navigation';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
 import { useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
@@ -71,6 +72,11 @@ const signupFailed = () =>
     { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'Internal Server Error' },
     { status: 500 }
   );
+
+const signupDuplicated = (code: string) => () =>
+  HttpResponse.json({ status: 409, code, message: 'Already exists' }, { status: 409 });
+
+const LEFT_PAGE_FAILURE = TEXTS.messages.error.leftPageFailure;
 
 interface RenderOptions {
   /** 로그인 화면 대신 쓸 라우트 요소 - 다음 화면이 suspend하는 구간을 재현할 때 넘긴다 */
@@ -182,6 +188,36 @@ function queryLeaveDialog() {
   return screen.queryByRole('alertdialog');
 }
 
+type ToastOptions = Parameters<typeof toast.error>[1];
+
+/** 떠난 뒤 실패 토스트(showLeftPageFailureToast)의 옵션 - 마지막 toast.error 호출에서 꺼낸다 */
+function lastToastOptions(errorSpy: { mock: { calls: unknown[][] } }) {
+  return errorSpy.mock.calls.at(-1)?.[1] as ToastOptions;
+}
+
+/** 설명은 문장마다 한 줄로 그린다 - 문장 하나하나가 자기 줄(요소)에 있는지 본다 */
+function expectDescriptionLines(options: ToastOptions, text: string) {
+  const { container } = render(<div>{options?.description as ReactNode}</div>);
+
+  for (const sentence of text.split(/(?<=\.)\s+/)) {
+    expect(within(container).getByText(sentence)).toBeInTheDocument();
+  }
+}
+
+/** 토스트 버튼을 누른다 - 버튼의 이동은 컴포넌트 밖 이동(NavigationService)이라 테스트 라우터로 잇는다 */
+async function clickToastAction(
+  options: ToastOptions,
+  router: ReturnType<typeof createMemoryRouter>
+) {
+  vi.spyOn(NavigationService, 'navigate').mockImplementation((to, navigateOptions) => {
+    void router.navigate(to, navigateOptions);
+  });
+
+  await act(async () => {
+    (options?.action as unknown as { onClick: () => void }).onClick();
+  });
+}
+
 describe('useSignUp - 가입 요청 중 이탈', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
@@ -263,8 +299,58 @@ describe('useSignUp - 가입 요청 중 이탈', () => {
     expect(router.state.location.pathname).toBe(LOGIN_PATH);
   });
 
-  it('응답 전에 "나가기"로 떠났으면 가입 실패를 토스트로 알린다', async () => {
-    const successSpy = vi.spyOn(toast, 'success');
+  it.each([
+    {
+      cause: '서버 오류',
+      respond: signupFailed,
+      description: LEFT_PAGE_FAILURE.retryLater,
+      actionLabel: TEXTS.buttons.signUpAgain,
+    },
+    {
+      cause: '닉네임 중복',
+      respond: signupDuplicated('DUPLICATE_NICKNAME'),
+      description: LEFT_PAGE_FAILURE.signUpDuplicateNickname,
+      actionLabel: TEXTS.buttons.signUpAgain,
+    },
+    {
+      cause: '이메일 중복',
+      respond: signupDuplicated('DUPLICATE_MEMBER'),
+      description: TEXTS.auth.signup.emailDuplicate,
+      actionLabel: TEXTS.buttons.login,
+    },
+  ])(
+    '응답 전에 "나가기"로 떠난 뒤 $cause로 실패하면 닫을 때까지 남는 토스트로 알린다',
+    async ({ respond, description, actionLabel }) => {
+      const successSpy = vi.spyOn(toast, 'success');
+      const errorSpy = vi.spyOn(toast, 'error');
+      const gate = holdSignupResponse(respond);
+      const { router, queryClient } = renderSignUp();
+
+      await fillAndSubmit(gate);
+      await tryToLeave(router, 'loginLink');
+      clickConfirmButton(PENDING_TEXTS.confirm);
+
+      expect(await screen.findByTestId('login-page')).toBeInTheDocument();
+
+      await release(gate);
+      await settle(queryClient);
+
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledWith(
+        LEFT_PAGE_FAILURE.signUpTitle,
+        expect.objectContaining({
+          id: 'left-page-failure:auth-signup',
+          duration: Infinity,
+        })
+      );
+      expect(lastToastOptions(errorSpy)?.action).toMatchObject({ label: actionLabel });
+      expectDescriptionLines(lastToastOptions(errorSpy), description);
+      expect(successSpy).not.toHaveBeenCalled();
+      expect(router.state.location.pathname).toBe(LOGIN_PATH);
+    }
+  );
+
+  it('떠난 뒤 실패 토스트의 [다시 가입하기]를 누르면 닉네임·이메일만 되살리고, 되살린 입력도 떠날 때 확인창이 뜬다', async () => {
     const errorSpy = vi.spyOn(toast, 'error');
     const gate = holdSignupResponse(signupFailed);
     const { router, queryClient } = renderSignUp();
@@ -272,15 +358,70 @@ describe('useSignUp - 가입 요청 중 이탈', () => {
     await fillAndSubmit(gate);
     await tryToLeave(router, 'loginLink');
     clickConfirmButton(PENDING_TEXTS.confirm);
+    await screen.findByTestId('login-page');
+    await release(gate);
+    await settle(queryClient);
+    await clickToastAction(lastToastOptions(errorSpy), router);
 
-    expect(await screen.findByTestId('login-page')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText(TEXTS.placeholders.email)).toHaveValue('new@example.com')
+    );
+    expect(router.state.location.pathname).toBe(SIGNUP_PATH);
+    expect(screen.getByPlaceholderText(TEXTS.placeholders.nickname)).toHaveValue('newNick');
+    expect(screen.getByPlaceholderText(TEXTS.placeholders.password)).toHaveValue('');
+    expect(screen.getByPlaceholderText(TEXTS.placeholders.confirmPassword)).toHaveValue('');
+    // 넘긴 값은 브라우저 방문 기록(history.state)에 남는다 - 비밀번호는 싣지 않는다
+    expect(JSON.stringify(router.state.location.state)).not.toContain(VALID_PASSWORD);
+
+    fireEvent.click(screen.getByRole('link', { name: TEXTS.auth.signup.signIn }));
+
+    expect(
+      await screen.findByRole('alertdialog', { name: TEXTS.unsavedChanges.signup.title })
+    ).toBeInTheDocument();
+  });
+
+  it('이메일 중복이면 토스트의 [로그인]이 그 이메일을 채운 로그인 화면으로 보낸다', async () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    const gate = holdSignupResponse(signupDuplicated('DUPLICATE_MEMBER'));
+    const { router, queryClient } = renderSignUp();
+
+    await fillAndSubmit(gate);
+    await tryToLeave(router, 'loginLink');
+    clickConfirmButton(PENDING_TEXTS.confirm);
+    await screen.findByTestId('login-page');
+    await release(gate);
+    await settle(queryClient);
+    await clickToastAction(lastToastOptions(errorSpy), router);
+
+    // useLogin이 location.state.email을 저장된 이메일보다 먼저 채운다
+    expect(router.state.location.pathname).toBe(LOGIN_PATH);
+    expect(router.state.location.state).toEqual({ email: 'new@example.com' });
+  });
+
+  it('가입 화면에 다시 들어와 새로 입력 중이면 [다시 가입하기]가 그 입력을 덮지 않는다', async () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    const gate = holdSignupResponse(signupFailed);
+    const { router, queryClient } = renderSignUp();
+
+    await fillAndSubmit(gate);
+    await tryToLeave(router, 'loginLink');
+    clickConfirmButton(PENDING_TEXTS.confirm);
+    await screen.findByTestId('login-page');
+
+    await act(async () => {
+      await router.navigate(SIGNUP_PATH);
+    });
+    fireEvent.change(await screen.findByPlaceholderText(TEXTS.placeholders.nickname), {
+      target: { value: 'otherNick' },
+    });
 
     await release(gate);
     await settle(queryClient);
+    await clickToastAction(lastToastOptions(errorSpy), router);
 
-    expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.accountCreateFailed);
-    expect(successSpy).not.toHaveBeenCalled();
-    expect(router.state.location.pathname).toBe(LOGIN_PATH);
+    // 같은 경로 이동은 이탈 가드가 막지 않으므로, 덮으면 새 입력이 확인 없이 사라진다
+    expect(screen.getByPlaceholderText(TEXTS.placeholders.nickname)).toHaveValue('otherNick');
+    expect(screen.getByPlaceholderText(TEXTS.placeholders.email)).toHaveValue('');
   });
 
   it('떠나려 하지 않았으면 가입 성공 뒤 확인창·토스트 없이 완료 화면이 보인다', async () => {

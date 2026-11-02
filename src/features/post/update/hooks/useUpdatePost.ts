@@ -6,9 +6,11 @@ import { useGoBack } from '@/shared/hooks/useGoBack';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { usePendingSubmit } from '@/shared/hooks/usePendingSubmit';
 import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
-import { toast } from '@/shared/lib/toast/toast';
+import { showLeftPageFailureToast } from '@/shared/lib/toast/LeftPageFailureToast';
+import { NavigationService } from '@/shared/lib/router/navigation';
 import { TEXTS } from '@/shared/config/texts';
 import { UrlUtil } from '@/shared/utils/url.util';
+import { ScrollUtil } from '@/shared/utils/scroll.util';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useRef, useState } from 'react';
 import { PostUtil, PostSubmitErrorResolution } from '@/entities/post/utils/post.util';
@@ -17,7 +19,33 @@ import { useAccount } from '@/entities/account/hooks/useAccount';
 import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
 import { useSignedOutNotice } from '@/entities/auth/hooks/useSignedOutNotice';
 import { ErrorUtil } from '@/shared/utils/error.util';
-import { useForm } from 'react-hook-form';
+import { useForm, type UseFormReturn } from 'react-hook-form';
+import { useLocation } from 'react-router-dom';
+
+type PostSubmitFormError = Extract<PostSubmitErrorResolution, { kind: 'form' }>;
+
+// 떠난 뒤 수정이 실패해 토스트의 [다시 수정하기]로 돌아올 때 실리는 입력과 실패 판정(useCreatePost.ts와 같은
+// 이유). 다른 글의 수정 화면에 되살리지 않게 글 id를 함께 싣는다
+interface PostUpdateLocationState {
+  restoredSubmission?: {
+    postId: string;
+    values: UpdatePost;
+    resolution: PostSubmitErrorResolution;
+  };
+}
+
+/** 수정 폼엔 북마크 폴더 칸이 없어 입력칸 에러는 URL 칸뿐이다(폴더 실패는 등록에서만 난다) */
+function showSubmitError(
+  form: UseFormReturn<UpdatePost>,
+  setSubmitError: (error: PostSubmitFormError) => void,
+  resolution: PostSubmitErrorResolution
+) {
+  if (resolution.kind === 'form') {
+    setSubmitError(resolution);
+  } else if (resolution.field === 'url') {
+    form.setError('url', { type: 'server', message: resolution.message }, { shouldFocus: true });
+  }
+}
 
 export function useUpdatePost(postId: string) {
   const goBack = useGoBack(ROUTES_PATHS.POST.ROOT);
@@ -34,6 +62,10 @@ export function useUpdatePost(postId: string) {
   const initializedUrlRef = useRef<string | null>(null);
   const initializedPostIdRef = useRef<string | null>(null);
   const wasUrlChangedRef = useRef(false);
+  // 입력칸과 무관한 실패(글 삭제됨·권한·네트워크 등)의 안내 - 버튼 위 FormAlert에 남는다
+  const [submitError, setSubmitError] = useState<PostSubmitFormError | null>(null);
+  const location = useLocation();
+  const restoredSubmission = (location.state as PostUpdateLocationState | null)?.restoredSubmission;
 
   useEffect(
     function resetFormWithFetchedPost() {
@@ -59,8 +91,17 @@ export function useUpdatePost(postId: string) {
       initializedUrlRef.current = post.url;
       initializedPostIdRef.current = post.id;
       wasUrlChangedRef.current = false;
+
+      // 떠난 뒤 실패해 [다시 수정하기]로 돌아왔다 - 서버 값을 기본값으로 둔 채 고친 값을 되살려 작성 중(dirty)으로
+      // 잡고, 머물렀을 때와 같은 안내를 띄운다. URL을 바꾼 채였으면 clearDerivedFieldsOnUrlChange가 되살린 제목·
+      // 관심 분야를 비우지 않게 이미 바꾼 것으로 둔다
+      if (restoredSubmission?.postId === post.id) {
+        form.reset(restoredSubmission.values, { keepDefaultValues: true });
+        wasUrlChangedRef.current = restoredSubmission.values.url !== post.url;
+        showSubmitError(form, setSubmitError, restoredSubmission.resolution);
+      }
     },
-    [post, form]
+    [post, restoredSubmission, form]
   );
 
   // URL을 바꾸는 순간 제목·관심 분야는 옛 링크 기준이 되므로 비운다.
@@ -90,11 +131,6 @@ export function useUpdatePost(postId: string) {
   const hasLeftPage = useHasLeftPage();
   const guard = useAuthGuard();
   const signedOutNotice = useSignedOutNotice(form.formState.isDirty);
-  // 입력칸과 무관한 실패(글 삭제됨·권한·네트워크 등)의 안내 - 버튼 위 FormAlert에 남는다
-  const [submitError, setSubmitError] = useState<Extract<
-    PostSubmitErrorResolution,
-    { kind: 'form' }
-  > | null>(null);
 
   useEffect(
     function clearSubmitErrorsOnEdit() {
@@ -110,6 +146,22 @@ export function useUpdatePost(postId: string) {
       return () => subscription.unsubscribe();
     },
     [form]
+  );
+
+  // useCreatePost.ts와 같은 이유 - 되살린 안내가 화면 밖이면 보이게 내릴 때 기준이 되는 제출 버튼
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(
+    function revealRestoredSubmitError() {
+      // useCreatePost.ts의 같은 이름 effect와 같은 이유
+      if (submitError && submitError === restoredSubmission?.resolution) {
+        submitButtonRef.current?.scrollIntoView({
+          block: 'nearest',
+          behavior: ScrollUtil.getBehavior(),
+        });
+      }
+    },
+    [submitError, restoredSubmission]
   );
 
   // 작성 중 링크 미리보기 - URL을 원래 값에서 바꿨을 때만 묻는다(그대로면 이미 등록된 글이다).
@@ -134,6 +186,8 @@ export function useUpdatePost(postId: string) {
   // 바꾼다(useCreatePost.ts와 같은 이유).
   async function submitPost(formData: UpdatePost) {
     setSubmitError(null);
+    // useCreatePost.ts와 같은 이유 - 떠난 뒤 실패하면 되살릴 폼 값
+    const submittedValues = form.getValues();
 
     try {
       await updatePost({ ...formData, url: UrlUtil.normalizeUrl(formData.url) });
@@ -145,23 +199,35 @@ export function useUpdatePost(postId: string) {
 
       const resolution = PostUtil.resolveSubmitError(error, { mode: 'update', hasFolders: false });
 
-      // useCreatePost.ts와 같은 이유 - 떠난 뒤의 실패는 토스트로 대신 알린다
+      // useCreatePost.ts와 같은 이유 - 떠난 뒤의 실패는 닫을 때까지 남는 토스트로 대신 알린다. 글이 삭제됐거나
+      // 남의 글이면 다시 수정해도 실패하므로 버튼을 달지 않는다
       if (hasLeftPage()) {
-        toast.error(resolution.message);
+        const isRetryable = !(resolution.kind === 'form' && resolution.retryable === false);
+        const restoredState: PostUpdateLocationState = {
+          restoredSubmission: { postId, values: submittedValues, resolution },
+        };
+
+        showLeftPageFailureToast({
+          key: `post-update:${postId}`,
+          title: TEXTS.messages.error.leftPageFailure.postUpdateTitle,
+          description:
+            resolution.kind === 'form' && resolution.unclassified
+              ? TEXTS.messages.error.leftPageFailure.retryLater
+              : resolution.message,
+          ...(isRetryable && {
+            action: {
+              label: TEXTS.buttons.updatePostAgain,
+              onClick: () =>
+                NavigationService.navigate(ROUTES_PATHS.POST.EDIT.replace(':id', postId), {
+                  state: restoredState,
+                }),
+            },
+          }),
+        });
         return;
       }
 
-      // 수정 폼엔 북마크 폴더 칸이 없어 입력칸 에러는 URL 칸뿐이다(폴더 실패는 등록에서만 난다)
-      if (resolution.kind === 'form') {
-        setSubmitError(resolution);
-      } else if (resolution.field === 'url') {
-        form.setError(
-          'url',
-          { type: 'server', message: resolution.message },
-          { shouldFocus: true }
-        );
-      }
-
+      showSubmitError(form, setSubmitError, resolution);
       return;
     }
 
@@ -198,5 +264,6 @@ export function useUpdatePost(postId: string) {
       ? { kind: 'form' as const, message: signedOutNotice }
       : submitError,
     linkPreview,
+    submitButtonRef,
   };
 }

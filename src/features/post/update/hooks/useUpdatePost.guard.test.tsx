@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { Outlet, RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
-import { Suspense } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
@@ -13,6 +13,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 import { toast } from '@/shared/lib/toast/toast';
 import { RouterEvents } from '@/shared/lib/router/router-events';
+import { NavigationService } from '@/shared/lib/router/navigation';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
 import { useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
@@ -43,12 +44,15 @@ function GuardLayout() {
 }
 
 function UpdatePostProbe() {
-  const { form, onSubmit, submitError } = useUpdatePost(mockPost.id);
+  const { form, onSubmit, submitError, submitButtonRef } = useUpdatePost(mockPost.id);
 
   return (
     <form onSubmit={onSubmit}>
+      <input aria-label="url" {...form.register('url')} />
       <input aria-label="title" {...form.register('title')} />
-      <button type="submit">submit</button>
+      <button ref={submitButtonRef} type="submit">
+        submit
+      </button>
       <p data-testid="submit-error">{submitError?.message}</p>
     </form>
   );
@@ -83,6 +87,16 @@ const updateFailed = () =>
     { status: 500, code: 'INTERNAL_SERVER_ERROR', message: 'boom' },
     { status: 500 }
   );
+
+const updatePostDeleted = () =>
+  HttpResponse.json({ status: 404, code: 'POST_NOT_FOUND', message: 'gone' }, { status: 404 });
+
+const updateNotOwner = () =>
+  HttpResponse.json({ status: 403, code: 'FORBIDDEN', message: 'nope' }, { status: 403 });
+
+const LEFT_PAGE_FAILURE = TEXTS.messages.error.leftPageFailure;
+const LEFT_PAGE_FAILURE_ID = `left-page-failure:post-update:${mockPost.id}`;
+const EDITED_URL = 'https://example.com/edited-article';
 
 // 목록에서 수정 화면으로 들어온 상태 - 첫 항목만 key가 'default'라 goBack이 navigate(-1)을 탄다
 function renderUpdatePost() {
@@ -172,6 +186,54 @@ async function settle(queryClient: QueryClient) {
   });
 }
 
+type ToastOptions = Parameters<typeof toast.error>[1];
+
+/** 떠난 뒤 실패 토스트(showLeftPageFailureToast)의 옵션 - 마지막 toast.error 호출에서 꺼낸다 */
+function lastToastOptions(errorSpy: { mock: { calls: unknown[][] } }) {
+  return errorSpy.mock.calls.at(-1)?.[1] as ToastOptions;
+}
+
+/** 설명은 문장마다 한 줄로 그린다 - 문장 하나하나가 자기 줄(요소)에 있는지 본다 */
+function expectDescriptionLines(options: ToastOptions, text: string) {
+  const { container } = render(<div>{options?.description as ReactNode}</div>);
+
+  for (const sentence of text.split(/(?<=\.)\s+/)) {
+    expect(within(container).getByText(sentence)).toBeInTheDocument();
+  }
+}
+
+/** scrollIntoView가 불린 요소들 - setup.ts가 Element.prototype.scrollIntoView를 vi.fn으로 바꿔 둔다 */
+function scrolledElements() {
+  return vi.mocked(Element.prototype.scrollIntoView).mock.contexts;
+}
+
+/** 토스트 버튼을 누른다 - 버튼의 이동은 컴포넌트 밖 이동(NavigationService)이라 테스트 라우터로 잇는다 */
+async function clickToastAction(
+  options: ToastOptions,
+  router: ReturnType<typeof createMemoryRouter>
+) {
+  vi.spyOn(NavigationService, 'navigate').mockImplementation((to, navigateOptions) => {
+    void router.navigate(to, navigateOptions);
+  });
+
+  await act(async () => {
+    (options?.action as unknown as { onClick: () => void }).onClick();
+  });
+}
+
+/** 저장 중 "나가기"로 탭 화면에 간 뒤 응답을 돌려준다 */
+async function leaveThenRespond(
+  gate: { release: (() => void) | null },
+  router: ReturnType<typeof createMemoryRouter>,
+  queryClient: QueryClient
+) {
+  await tryToLeave(router, 'tab');
+  clickConfirmButton(PENDING_TEXTS.confirm);
+  await screen.findByTestId('other-tab');
+  await release(gate);
+  await settle(queryClient);
+}
+
 describe('useUpdatePost - 저장 중 이탈', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
@@ -242,21 +304,89 @@ describe('useUpdatePost - 저장 중 이탈', () => {
     expect(router.state.location.pathname).toBe(ROUTES_PATHS.BOOKMARK);
   });
 
-  it('응답 전에 "나가기"로 떠났으면 수정 실패를 토스트로 알린다', async () => {
+  it('응답 전에 "나가기"로 떠난 뒤 실패하면 닫을 때까지 남는 토스트로 알린다', async () => {
     const errorSpy = vi.spyOn(toast, 'error');
     const gate = holdUpdateResponse(updateFailed);
     const { router, queryClient } = renderUpdatePost();
 
     await editAndSubmit(gate);
-    await tryToLeave(router, 'tab');
-    clickConfirmButton(PENDING_TEXTS.confirm);
+    await leaveThenRespond(gate, router, queryClient);
 
-    expect(await screen.findByTestId('other-tab')).toBeInTheDocument();
-
-    await release(gate);
-    await settle(queryClient);
-
-    expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.postSubmit.updateFailed);
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(
+      LEFT_PAGE_FAILURE.postUpdateTitle,
+      expect.objectContaining({
+        id: LEFT_PAGE_FAILURE_ID,
+        duration: Infinity,
+      })
+    );
+    expect(lastToastOptions(errorSpy)?.action).toMatchObject({
+      label: TEXTS.buttons.updatePostAgain,
+    });
+    // 서버 오류는 원인을 특정하지 못한 실패라 제목과 겹치지 않게 할 일만 적는다
+    expectDescriptionLines(lastToastOptions(errorSpy), LEFT_PAGE_FAILURE.retryLater);
     expect(router.state.location.pathname).toBe(ROUTES_PATHS.BOOKMARK);
+  });
+
+  it.each([
+    {
+      cause: '글이 삭제돼',
+      respond: updatePostDeleted,
+      description: TEXTS.messages.error.postSubmit.postDeleted,
+    },
+    {
+      cause: '남의 글이라',
+      respond: updateNotOwner,
+      description: TEXTS.messages.error.postSubmit.notOwner,
+    },
+  ])(
+    '$cause 실패했으면 다시 수정해도 소용없어 버튼 없이 안내만 남긴다',
+    async ({ respond, description }) => {
+      const errorSpy = vi.spyOn(toast, 'error');
+      const gate = holdUpdateResponse(respond);
+      const { router, queryClient } = renderUpdatePost();
+
+      await editAndSubmit(gate);
+      await leaveThenRespond(gate, router, queryClient);
+
+      const options = lastToastOptions(errorSpy);
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        LEFT_PAGE_FAILURE.postUpdateTitle,
+        expect.objectContaining({ id: LEFT_PAGE_FAILURE_ID, duration: Infinity })
+      );
+      expect(options).not.toHaveProperty('action');
+      expectDescriptionLines(options, description);
+    }
+  );
+
+  it('[다시 수정하기]를 누르면 바꾼 URL과 제목을 되살리고 버튼 위 안내도 다시 보인다', async () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    const gate = holdUpdateResponse(updateFailed);
+    const { router, queryClient } = renderUpdatePost();
+
+    await waitFor(() => expect(screen.getByLabelText('title')).toHaveValue(mockPost.title));
+    // URL을 바꾸면 제목이 비워지므로(clearDerivedFieldsOnUrlChange) 제목은 그 뒤에 다시 적는다
+    fireEvent.change(screen.getByLabelText('url'), { target: { value: EDITED_URL } });
+    await waitFor(() => expect(screen.getByLabelText('title')).toHaveValue(''));
+    fireEvent.change(screen.getByLabelText('title'), { target: { value: EDITED_TITLE } });
+    fireEvent.click(screen.getByRole('button', { name: 'submit' }));
+    await waitFor(() => expect(gate.release).not.toBeNull());
+
+    await leaveThenRespond(gate, router, queryClient);
+    await clickToastAction(lastToastOptions(errorSpy), router);
+
+    await waitFor(() => expect(screen.getByLabelText('url')).toHaveValue(EDITED_URL));
+    expect(router.state.location.pathname).toBe(EDIT_PATH);
+    // 되살린 URL이 원래와 달라도 되살린 제목을 다시 비우지 않는다
+    expect(screen.getByLabelText('title')).toHaveValue(EDITED_TITLE);
+    expect(screen.getByTestId('submit-error')).toHaveTextContent(
+      TEXTS.messages.error.postSubmit.updateFailed
+    );
+    expect(useUnsavedChangesStore.getState().dirtyKeys.has(`post-update:${mockPost.id}`)).toBe(
+      true
+    );
+    // 버튼 위 안내가 화면 밖이면 보이게 제출 버튼까지 내린다(useCreatePost.ts와 같은 이유)
+    expect(scrolledElements()).toContain(screen.getByRole('button', { name: 'submit' }));
   });
 });
