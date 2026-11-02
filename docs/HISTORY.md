@@ -1,4 +1,7 @@
 ### 2026-11-02 (FE)
+- API 계층의 Zod 스키마 재수출 및 동적 import를 최적화하고, API 입력 제한 설정을 코드 사양과 일치하도록 정비 ([#483](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/483))
+
+### 2026-11-02 (FE)
 - 회원 탈퇴 API 엔드포인트 변경 및 관련 로직 수정 ([#482](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/482))
 
 ### 2026-11-02 (BE)
