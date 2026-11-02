@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { TEXTS } from '@/shared/config/texts';
 import { nicknameValidationSchema, emailValidationSchema } from '@/entities/account/@x/auth';
+import { PASSWORD_MAX_LENGTH } from '@/entities/auth/config/auth.contract';
 
 // 서버(SignupRequest.password, docs/plans/2026-09-28-auth-hardening.md Phase 5)와 동일한
 // 규칙 - 조합 규칙은 유지하되 특수문자 화이트리스트를 없애고(영문·숫자가 아니면 전부 인정)
@@ -8,7 +9,7 @@ import { nicknameValidationSchema, emailValidationSchema } from '@/entities/acco
 export const passwordValidationSchema = z
   .string()
   .regex(/^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{8,}$/, TEXTS.validation.passwordRegex)
-  .max(64, TEXTS.validation.passwordMaxLength)
+  .max(PASSWORD_MAX_LENGTH, TEXTS.validation.passwordMaxLength)
   .regex(/^[\x20-\x7E]*$/, TEXTS.validation.passwordAsciiOnly);
 
 // 로그인 비밀번호는 회원가입 강도 규칙을 재검증하지 않는다 - 이미 가입된 계정의 비밀번호가

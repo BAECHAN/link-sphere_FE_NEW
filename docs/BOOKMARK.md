@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조·폴더 고정 순서를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-10-28
+> **마지막 검토**: 2026-11-02
 
 ## 1. 쉬운 설명
 
@@ -425,7 +425,8 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
 **동작.**
 
 - 상한은 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`(15) 하나다. 앞뒤 공백을 뺀 뒤 코드포인트로 센다. BE
-  `BookmarkFolderService.MAX_FOLDER_NAME_LENGTH`도 같은 값·같은 셈법(trim 뒤 `codePointCount`)이다. `string.length`는 이모지
+  [`BookmarkFolderLimits.MAX_NAME_LENGTH`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/src/main/kotlin/com/example/linksphere/domain/interaction/BookmarkFolderLimits.kt)도 같은 값·같은 셈법(`BookmarkFolderService`가 trim 뒤 `codePointCount`)이다.
+  값이 같은지는 `bookmark-folder.contract.test.ts`가 스펙의 `maxLength`와 대조한다(`docs/OPENAPI-CODEGEN.md` §5-6). `string.length`는 이모지
   하나를 2로 세므로 쓰지 않는다.
 - 입력 다섯 곳(사이드바·모바일 카드·폴더 선택 창의 새 폴더, 사이드바·모바일 카드의 이름 변경)이 모두
   `BookmarkFolderUtil.nameLengthError`로 검사한다. 넘치면 입력 바로 아래에 이유(`TEXTS.validation.folderNameTooLong`, 상한과 지금
@@ -699,7 +700,7 @@ BE 스펙도 `lastUsedAt`을 optional + null 허용으로 표기하고(`shared/a
 
 | 파라미터           | 값                                                                         | 실제 위치                                                                               |
 | ------------------ | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| 내 폴더 순서       | 고정한 폴더(`pinnedAt` 오름차순, 같으면 `sortOrder`) → 나머지(`sortOrder`) | `orderPinnedFirst`(`entities/bookmark/folder/utils/bookmark-folder.util.ts:65`)         |
+| 내 폴더 순서       | 고정한 폴더(`pinnedAt` 오름차순, 같으면 `sortOrder`) → 나머지(`sortOrder`) | `orderPinnedFirst`(`entities/bookmark/folder/utils/bookmark-folder.util.ts:63`)         |
 | 순서를 적용하는 곳 | 사이드바·모바일, 저장 다이얼로그                                           | `useFolderSections.ts:17`(사이드바·모바일), `useBookmarkFolderSelect.ts:41`(다이얼로그) |
 | 고정 개수 상한     | 없음                                                                       | —                                                                                       |
 
@@ -707,11 +708,11 @@ BE 스펙도 `lastUsedAt`을 optional + null 허용으로 표기하고(`shared/a
 
 | 파라미터                                     | 값    | 실제 위치                                                                                                                                                                                |
 | -------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 상단 구획 노출 최소 "저장 이력 있는" 폴더 수 | 3     | `entities/bookmark/folder/utils/bookmark-folder.util.ts:21`의 `wouldDuplicateMyFoldersSection`(`pickRecentFolders`가 호출) — 별도 상수 없이 `RECENT_BOOKMARK_FOLDER_COUNT`를 그대로 쓴다 |
+| 상단 구획 노출 최소 "저장 이력 있는" 폴더 수 | 3     | `entities/bookmark/folder/utils/bookmark-folder.util.ts:19`의 `wouldDuplicateMyFoldersSection`(`pickRecentFolders`가 호출) — 별도 상수 없이 `RECENT_BOOKMARK_FOLDER_COUNT`를 그대로 쓴다 |
 | 상단 구획 노출 제외 조건(완전 일치)          | —     | 전체 폴더 수가 `RECENT_BOOKMARK_FOLDER_COUNT`(3)와 같을 때만 예외로 숨김(아래 설명)                                                                                                      |
 | 상단 구획 고정 노출 개수                     | 3     | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`                                                                                              |
 | 열린 직후 클릭 무시 시간                     | 400ms | `shared/config/const.ts`의 `DOUBLE_CLICK_GUARD_MS`(위 "열린 직후 클릭 무시" 소절)                                                                                                        |
-| 폴더 이름 최대 길이(코드포인트)              | 15    | `entities/bookmark/folder/config/bookmark-folder.const.ts:8`의 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`(BE `BookmarkFolderService.MAX_FOLDER_NAME_LENGTH`와 같은 값)                            |
+| 폴더 이름 최대 길이(코드포인트)              | 15    | `entities/bookmark/folder/config/bookmark-folder.contract.ts:9`의 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`(BE `BookmarkFolderLimits.MAX_NAME_LENGTH`와 같은 값, 계약 테스트가 대조)             |
 
 둘 다 만족해야 상단 구획이 뜬다(0개 아니면 3개, 1~2개인 중간 상태는 없음) — 개수가
 흔들리면 아래 본 목록의 시작 위치도 흔들리기 때문이다.
@@ -854,7 +855,9 @@ src/
 │           │   └── bookmark-folder.dto.ts     # §6 BookmarkFolder 등 응답 타입 원본(BE OpenAPI
 │           │                                  # 생성 타입에 얇은 alias)
 │           ├── config/
-│           │   └── bookmark-folder.const.ts   # RECENT_BOOKMARK_FOLDER_COUNT + BOOKMARK_FOLDER_NAME_MAX_LENGTH
+│           │   ├── bookmark-folder.const.ts   # RECENT_BOOKMARK_FOLDER_COUNT
+│           │   ├── bookmark-folder.contract.ts # BOOKMARK_FOLDER_NAME_MAX_LENGTH(BE와 같은 값)
+│           │   └── bookmark-folder.contract.test.ts # 위 값 ≡ 스펙 maxLength
 │           ├── utils/
 │           │   ├── bookmark-folder.util.ts      # pickRecentFolders — "최근 저장한 폴더" 선정 로직(§7)
 │           │   │                                # + nameLengthError — 폴더 이름 길이 검사(§5)
@@ -888,22 +891,22 @@ src/
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                          | 방법                                                                                                                                                                                                                                                                                             |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| "최근 저장한 폴더" 노출 개수 조정     | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`(§7의 최소 저장 이력 폴더 수와 완전 일치 배제 조건도 이 값을 그대로 참조하므로 함께 검토)                                                                                                             |
-| 정렬 옵션 추가                        | `bookmark-folder.schema.ts`의 `bookmarkFolderSortEnum` + `useBookmarkPage.ts`의 `VALID_SORTS`(드롭다운·URL 파싱) + `BookmarkPage.tsx`의 `SORT_LABELS` + `TEXTS.bookmark.folder.sort.*`에 값 추가 + BE 대응 필요 — `VALID_SORTS`를 빠뜨리면 드롭다운에 안 뜨고 `?sort=새값`이 `latest`로 떨어진다 |
-| 폴더 내 검색 빈 상태 문구 변경        | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                                                                                                                                                                                  |
-| 모바일 감지 기준 변경                 | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                                                                                                                                                                                  |
-| 고정한 폴더끼리의 순서 변경           | `bookmark-folder.util.ts`의 `orderPinnedFirst` 정렬 — BE에는 고정 순서 필드가 없고 `pinnedAt`만 있으므로, 사용자가 직접 순서를 바꾸게 하려면 BE 컬럼·API부터 필요하다                                                                                                                            |
-| 고정·해제 뒤 따라가는 스크롤 변경     | `useFollowFocusOnReorder.ts`의 `scrollIntoView` 옵션. 끄려면 훅 호출과 함께 `FolderTree.tsx`·`MobileFolderList.tsx` 목록 컨테이너의 `[overflow-anchor:none]`도 뺀다 — 그러면 브라우저 스크롤 고정이 한 프레임 만에 따라간다(§5 A안)                                                              |
-| 고정 아이콘 모양·위치 변경            | `FolderTree.tsx`의 `FolderItem`, `MobileFolderList.tsx`의 `FolderCard`(둘 다 `useFolderActions`의 `isPinned`로 왼쪽 아이콘을 바꾼다), `BookmarkFolderSelectDialog.tsx`의 `renderFolderIcon`(`FolderRow`의 `icon` prop으로 넘긴다)                                                                |
-| 새 폴더 만들기 취소 동작 변경         | 세 곳 각각의 `handleCancel`/`handleCancelCreate` — `useBookmarkFolderSelect.ts`, `useFolderTree.ts`(`useInlineCreateFolderInput`), `useMobileFolderList.ts`(`useCreateFolderCard`)                                                                                                               |
-| 폴더 이름 최대 길이 변경              | FE `bookmark-folder.const.ts`의 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`와 BE `BookmarkFolderService.MAX_FOLDER_NAME_LENGTH`를 같이 바꾼다. 늘리면 가장 좁은 자리(360px 폰 카드)에서 줄 수가 늘어난다(§5 "폴더 이름 길이")                                                                              |
-| 폴더 이름 보이는 줄 수 변경           | 모바일 카드는 `MobileFolderList.tsx` `FolderCard`의 `line-clamp-2 min-h-[2lh]`와 `CreateFolderCard`의 `min-h-[2lh]`를 같은 숫자로, 사이드바는 `FolderTree.tsx` `FolderItem`의 `line-clamp-2`를 바꾼다(§5 "폴더 이름 줄 수")                                                                      |
-| 이름 바꾸기 동작 변경(Enter·Esc·검사) | `features/bookmark/rename/hooks/useRenameBookmarkFolder.ts` 한 곳 — 폴더 화면 제목과 사이드바·카드(`useFolderActions`)가 같이 바뀐다                                                                                                                                                             |
-| 폴더 화면 편집 입력 모양 변경         | `BookmarkFolderTitle.tsx`의 `Input` `className`. `cn()`이 역할 토큰을 글자 크기로 알아 Input 기본 크기(`md:text-sm`)를 같은 변형(`md:`)끼리 바꾼다(§5 "폴더 화면에서 이름 바꾸기")                                                                                                               |
-| 모바일 정렬 점 조건·위치 변경         | `BookmarkPage.tsx` 모바일 분기의 `sort !== 'latest'`와 점 `span`의 `top-[5px] right-[5px] size-[7px]`(10-28 승인 시안 값). 기본 정렬을 바꾸면 이 조건도 같이 바꾼다                                                                                                                              |
-| 테스트 실행                           | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-tree src/features/bookmark/toggle src/features/bookmark/rename src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`                                                                                      |
+| 하고 싶은 것                          | 방법                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "최근 저장한 폴더" 노출 개수 조정     | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`(§7의 최소 저장 이력 폴더 수와 완전 일치 배제 조건도 이 값을 그대로 참조하므로 함께 검토)                                                                                                                                     |
+| 정렬 옵션 추가                        | `bookmark-folder.schema.ts`의 `bookmarkFolderSortEnum` + `useBookmarkPage.ts`의 `VALID_SORTS`(드롭다운·URL 파싱) + `BookmarkPage.tsx`의 `SORT_LABELS` + `TEXTS.bookmark.folder.sort.*`에 값 추가 + BE 대응 필요 — `VALID_SORTS`를 빠뜨리면 드롭다운에 안 뜨고 `?sort=새값`이 `latest`로 떨어진다                         |
+| 폴더 내 검색 빈 상태 문구 변경        | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                                                                                                                                                                                                          |
+| 모바일 감지 기준 변경                 | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                                                                                                                                                                                                          |
+| 고정한 폴더끼리의 순서 변경           | `bookmark-folder.util.ts`의 `orderPinnedFirst` 정렬 — BE에는 고정 순서 필드가 없고 `pinnedAt`만 있으므로, 사용자가 직접 순서를 바꾸게 하려면 BE 컬럼·API부터 필요하다                                                                                                                                                    |
+| 고정·해제 뒤 따라가는 스크롤 변경     | `useFollowFocusOnReorder.ts`의 `scrollIntoView` 옵션. 끄려면 훅 호출과 함께 `FolderTree.tsx`·`MobileFolderList.tsx` 목록 컨테이너의 `[overflow-anchor:none]`도 뺀다 — 그러면 브라우저 스크롤 고정이 한 프레임 만에 따라간다(§5 A안)                                                                                      |
+| 고정 아이콘 모양·위치 변경            | `FolderTree.tsx`의 `FolderItem`, `MobileFolderList.tsx`의 `FolderCard`(둘 다 `useFolderActions`의 `isPinned`로 왼쪽 아이콘을 바꾼다), `BookmarkFolderSelectDialog.tsx`의 `renderFolderIcon`(`FolderRow`의 `icon` prop으로 넘긴다)                                                                                        |
+| 새 폴더 만들기 취소 동작 변경         | 세 곳 각각의 `handleCancel`/`handleCancelCreate` — `useBookmarkFolderSelect.ts`, `useFolderTree.ts`(`useInlineCreateFolderInput`), `useMobileFolderList.ts`(`useCreateFolderCard`)                                                                                                                                       |
+| 폴더 이름 최대 길이 변경              | BE `BookmarkFolderLimits.MAX_NAME_LENGTH`를 먼저 바꿔 배포하고, FE `pnpm codegen:fetch && pnpm codegen` 뒤 실패하는 `bookmark-folder.contract.test.ts`를 따라 `bookmark-folder.contract.ts`의 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`를 맞춘다. 늘리면 가장 좁은 자리(360px 폰 카드)에서 줄 수가 늘어난다(§5 "폴더 이름 길이") |
+| 폴더 이름 보이는 줄 수 변경           | 모바일 카드는 `MobileFolderList.tsx` `FolderCard`의 `line-clamp-2 min-h-[2lh]`와 `CreateFolderCard`의 `min-h-[2lh]`를 같은 숫자로, 사이드바는 `FolderTree.tsx` `FolderItem`의 `line-clamp-2`를 바꾼다(§5 "폴더 이름 줄 수")                                                                                              |
+| 이름 바꾸기 동작 변경(Enter·Esc·검사) | `features/bookmark/rename/hooks/useRenameBookmarkFolder.ts` 한 곳 — 폴더 화면 제목과 사이드바·카드(`useFolderActions`)가 같이 바뀐다                                                                                                                                                                                     |
+| 폴더 화면 편집 입력 모양 변경         | `BookmarkFolderTitle.tsx`의 `Input` `className`. `cn()`이 역할 토큰을 글자 크기로 알아 Input 기본 크기(`md:text-sm`)를 같은 변형(`md:`)끼리 바꾼다(§5 "폴더 화면에서 이름 바꾸기")                                                                                                                                       |
+| 모바일 정렬 점 조건·위치 변경         | `BookmarkPage.tsx` 모바일 분기의 `sort !== 'latest'`와 점 `span`의 `top-[5px] right-[5px] size-[7px]`(10-28 승인 시안 값). 기본 정렬을 바꾸면 이 조건도 같이 바꾼다                                                                                                                                                      |
+| 테스트 실행                           | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-tree src/features/bookmark/toggle src/features/bookmark/rename src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`                                                                                                              |
 
 ## 9. 검증 결과
 

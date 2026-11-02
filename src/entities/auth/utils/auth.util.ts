@@ -1,9 +1,5 @@
-import {
-  PASSWORD_MAX_LENGTH,
-  PASSWORD_MIN_LENGTH,
-  PASSWORD_REQUIREMENTS,
-  type PasswordRequirement,
-} from '@/entities/auth/config/auth.const';
+import { PASSWORD_REQUIREMENTS, type PasswordRequirement } from '@/entities/auth/config/auth.const';
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@/entities/auth/config/auth.contract';
 
 /** met: 충족(초록 ✓) / unmet: 못 채운 채로 칸을 벗어났거나 제출함(빨강 ✗) / pending: 아직 입력 중(회색 ○) */
 export type PasswordRequirementState = 'met' | 'unmet' | 'pending';

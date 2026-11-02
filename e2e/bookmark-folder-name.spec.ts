@@ -8,7 +8,7 @@ import { isApiPath } from './mocks/route-match';
 import { wrapResponse } from './mocks/wrap-response';
 import { ENDPOINTS } from './mocks/endpoints';
 import { mockBookmarkFolder } from '@/mocks/fixtures/bookmark-folder.fixtures';
-import { BOOKMARK_FOLDER_NAME_MAX_LENGTH } from '@/entities/bookmark/folder/config/bookmark-folder.const';
+import { BOOKMARK_FOLDER_NAME_MAX_LENGTH } from '@/entities/bookmark/folder/config/bookmark-folder.contract';
 import { TEXTS } from '@/shared/config/texts';
 
 // 14자 — 사이드바 이름 칸(126px)에 한 줄로는 안 들어가 예전에는 말줄임(…)으로 잘렸다

@@ -1,13 +1,18 @@
 import { z } from 'zod';
 import { TEXTS } from '@/shared/config/texts';
+import {
+  NICKNAME_MAX_LENGTH,
+  NICKNAME_MIN_LENGTH,
+  NICKNAME_PATTERN,
+} from '@/entities/account/config/account.contract';
 
 // 길이와 허용 문자를 하나의 정규식으로 합치면, 글자 수는 맞는데 허용되지 않는 문자가 섞였을 때도
 // (예: 완성되지 않은 낱자모 "ㅎㅍㅊ...") 길이 안내 메시지가 떠서 실제 원인과 다른 메시지를 보게 된다.
 export const nicknameValidationSchema = z
   .string()
-  .min(2, TEXTS.validation.nicknameLength)
-  .max(20, TEXTS.validation.nicknameLength)
-  .regex(/^[a-zA-Z0-9가-힣_.-]*$/, TEXTS.validation.nicknameCharset);
+  .min(NICKNAME_MIN_LENGTH, TEXTS.validation.nicknameLength)
+  .max(NICKNAME_MAX_LENGTH, TEXTS.validation.nicknameLength)
+  .regex(NICKNAME_PATTERN, TEXTS.validation.nicknameCharset);
 
 export const emailValidationSchema = z.string().email(TEXTS.validation.emailRegex);
 

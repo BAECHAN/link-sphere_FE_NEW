@@ -251,6 +251,35 @@ const customApiRulesPlugin = {
         };
       },
     },
+    // [금지] orval이 생성한 openapi.zod 직접 import (적용 블록의 주석 참고)
+    'no-generated-zod-import': {
+      meta: {
+        type: 'problem',
+        docs: { description: 'openapi.zod는 계약 테스트(*.contract.test.ts)에서만 import' },
+        messages: {
+          generatedZodImport:
+            '생성 파일 openapi.zod는 계약 테스트(entities/*/config/<entity>.contract.test.ts)에서만 import할 수 있습니다. 런타임 코드는 손으로 둔 <entity>.contract.ts 상수를 쓰세요 — 예: BOOKMARK_FOLDER_NAME_MAX_LENGTH(bookmark-folder.contract.ts).',
+        },
+      },
+      create(context) {
+        return {
+          ImportDeclaration(node) {
+            const source = node.source.value;
+
+            if (typeof source !== 'string' || !source.endsWith('/generated/openapi.zod')) {
+              return;
+            }
+
+            // 타입 전용 import는 런타임 코드(zod.object 호출)를 끌어오지 않으므로 허용한다
+            if (isTypeOnlyImport(node)) {
+              return;
+            }
+
+            context.report({ node, messageId: 'generatedZodImport' });
+          },
+        };
+      },
+    },
   },
 };
 
@@ -1271,6 +1300,24 @@ export default [
     plugins: { 'custom-api-rules': customApiRulesPlugin },
     rules: {
       'custom-api-rules/no-raw-api-client-import': 'error',
+    },
+  },
+
+  // ============================================================
+  // [금지] orval 생성 파일(openapi.zod) import — 계약 테스트(*.contract.test.ts)만 허용
+  // 이유: 생성 파일은 제약 상수와 zod.object(...) 스키마를 한 파일에 담는다. 쓰이는 모듈 안의 최상위 호출은
+  //       treeshake.moduleSideEffects: false로도 빠지지 않고, 체인 호출(zod.string().min(1))이라 Rollup
+  //       manualPureFunctions로도 안 빠진다. 런타임 코드가 import하면 그 모듈의 청크가 zod-vendor를 정적으로
+  //       끌어온다 - 2026-11-02 계약 상수를 import하게 해 보니 목록 페이지 청크(북마크 토글 → 폴더 이름 상수)가
+  //       zod-vendor를 import했다. 그래서 런타임은 손으로 둔 <entity>.contract.ts 상수를 쓰고, 생성 상수는 같은 폴더의
+  //       계약 테스트가 대조에만 쓴다(docs/OPENAPI-CODEGEN.md §5-6).
+  // ============================================================
+  {
+    files: ['src/**/*.{ts,tsx}', 'e2e/**/*.ts'],
+    ignores: ['src/entities/**/config/*.contract.test.ts'],
+    plugins: { 'custom-api-rules': customApiRulesPlugin },
+    rules: {
+      'custom-api-rules/no-generated-zod-import': 'error',
     },
   },
 

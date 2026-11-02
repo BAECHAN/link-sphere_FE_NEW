@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-10-30
+> **마지막 검토**: 2026-11-02
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -244,7 +244,7 @@ src/
 │   │   ├── api/                  # comment.api.ts, comment.keys.ts, comment.queries.ts
 │   │   ├── model/                # comment.dto.ts(응답 타입) + comment.schema.ts(폼 검증)
 │   │   ├── utils/                # comment.util.ts (estimateCommentPayloadBytes)
-│   │   └── config/                # comment.const.ts (MAX_COMMENT_CONTENT_BYTES 외)
+│   │   └── config/                # comment.const.ts (MAX_COMMENT_CONTENT_BYTES 외) + comment.contract.ts (MAX_COMMENT_IMAGES)
 │   ├── interaction/
 │   │   ├── api/                  # interaction.api.ts, interaction.keys.ts, interaction.queries.ts (keys.ts에는 mutationKey와
 │   │   │                         # 실패 시 무효화 handle*Failure만 있고 자체 쿼리 키는 없다 — 캐시 키는 post/comment/folder의 @x로 가져다 씀)
@@ -255,7 +255,7 @@ src/
 │   │       ├── @x/               # account·interaction·post에 공개하는 표면
 │   │       ├── api/              # bookmark-folder.api.ts, bookmark-folder.keys.ts, bookmark-folder.queries.ts
 │   │       ├── model/            # bookmark-folder.dto.ts(응답 타입) + bookmark-folder.schema.ts(폼 검증)
-│   │       ├── config/           # bookmark-folder.const.ts (RECENT_BOOKMARK_FOLDER_COUNT 외)
+│   │       ├── config/           # bookmark-folder.const.ts (RECENT_BOOKMARK_FOLDER_COUNT 외) + bookmark-folder.contract.ts (이름 길이)
 │   │       ├── utils/            # bookmark-folder.util.ts (pickRecentFolders)
 │   │       └── hooks/            # useRecentBookmarkFolders.ts (순수 데이터 파생 훅이라 entities에 남는다 —
 │   │                             # 인터랙션 UI는 features/bookmark/select/로 이동. 2026-09-21 기준
@@ -271,7 +271,7 @@ src/
 │   ├── auth/                     # 인증(로그인·로그아웃·회원가입·세션) 전용
 │   │   ├── api/                  # auth.api.ts, auth.keys.ts, auth.queries.ts
 │   │   ├── model/                # auth.dto.ts(응답 타입) + auth.schema.ts (loginSchema, createAccountSchema 등)
-│   │   ├── config/               # auth.const.ts (PASSWORD_MIN_LENGTH·PASSWORD_REQUIREMENTS 외)
+│   │   ├── config/               # auth.const.ts (PASSWORD_REQUIREMENTS) + auth.contract.ts (PASSWORD_MIN·MAX_LENGTH)
 │   │   ├── utils/                # auth.util.ts (PasswordUtil — 비밀번호 조건 판정)
 │   │   ├── ui/                   # PasswordRequirementList, PasswordConfirmMessage
 │   │   └── hooks/                 # useAuth, useAppInitialization, useAuthGuard, useAuthEpochSync, useProtectedNavigate, usePasswordFieldsFeedback
@@ -279,6 +279,7 @@ src/
 │   │   ├── @x/                   # auth에 공개하는 표면
 │   │   ├── api/                  # account.api.ts, account.keys.ts, account.queries.ts
 │   │   ├── model/                # account.dto.ts(응답 타입) + account.schema.ts (updateAccountSchema 등)
+│   │   ├── config/               # account.contract.ts (NICKNAME_MIN·MAX_LENGTH·PATTERN)
 │   │   └── hooks/                 # useAccount
 │   └── user/                     # 공개 사용자 표현 전용(게시글·댓글 작성자 등, 데이터 조회 없음)
 │       └── ui/                   # UserAvatar
@@ -290,7 +291,7 @@ src/
     │   ├── spec-types.ts         # specClient가 쓰는 경로→요청·응답 타입 헬퍼(타입만)
     │   ├── upload.api.ts         # uploadApi — 서명 URL 발급 + PUT 요청 함수
     │   ├── fcm.api.ts             # fcmApi — FCM 토큰 등록
-    │   └── generated/            # openapi.json(스펙 스냅샷) + openapi.gen.ts(생성 타입) — 커밋됨, 직접 편집 금지
+    │   └── generated/            # openapi.json(스펙 스냅샷) + openapi.gen.ts(생성 타입) + openapi.zod.ts(요청 제약 상수, 계약 테스트 전용) — 커밋됨, 직접 편집 금지
     ├── config/
     │   ├── texts.ts               # 모든 UI 문자열 (TEXTS)
     │   ├── api.ts                 # API 엔드포인트 상수 (API_ENDPOINTS — client.ts 인증 판별·테스트용, *.api.ts는 specClient)
@@ -721,6 +722,13 @@ export type { Entity } from '@/entities/<entity>/model/<entity>.dto';
 (그건 Layer 0의 생성 타입이 스펙대로 표현한다). 날짜를 다루는 폼 필드가 있다면(드묾)
 `z.coerce.date()`를 쓸 수 있지만, 응답의 날짜 필드(`createdAt` 등)는 항상 ISO 문자열이고
 `z.coerce.date()` 대상이 아니다 — 표시는 `dayjs`/`DateUtil`로 한다.
+
+**BE와 같아야 하는 입력 제약 값(길이·개수·패턴)은 `config/<entity>.contract.ts`에 손으로 두고, 같은 폴더의
+`<entity>.contract.test.ts`가 스펙에서 생성한 상수(`shared/api/generated/openapi.zod.ts`)와 대조한다.** 스키마는
+숫자·정규식을 직접 적지 않고 이 상수를 쓴다(`account.schema.ts`의 `NICKNAME_*`). 생성 파일은 런타임 코드에서 import하지
+않는다 — 그 안의 `zod.object(...)` 호출이 트리셰이킹으로 빠지지 않아, 목록 페이지 같은 첫 화면 청크가 zod-vendor를
+끌어온다(ESLint `custom-api-rules/no-generated-zod-import`가 막는다, 근거와 측정은 `docs/OPENAPI-CODEGEN.md` §5-6).
+BE 값이 바뀌면 FE codegen PR에서 계약 테스트가 실패해 고칠 상수와 TEXTS 문구를 가리킨다.
 
 ---
 
@@ -1253,26 +1261,26 @@ Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toas
 
 ## 18. 네이밍 컨벤션
 
-| 항목                          | 규칙                                                                                                                                                                                                                                                                                                                                  | 예시                                          |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| Feature 디렉토리              | `<도메인>/<액션>` kebab-case                                                                                                                                                                                                                                                                                                          | `post/create/`                                |
-| Widget 디렉토리               | `<도메인>/<슬라이스>` kebab-case                                                                                                                                                                                                                                                                                                      | `post/post-card/`                             |
-| Shared 디렉토리               | camelCase                                                                                                                                                                                                                                                                                                                             | `hooks/`, `utils/`                            |
-| 컴포넌트 파일                 | PascalCase.tsx                                                                                                                                                                                                                                                                                                                        | `CreatePostForm.tsx`                          |
-| Feature 훅                    | `use<FeatureName>.ts`                                                                                                                                                                                                                                                                                                                 | `useCreatePost.ts`                            |
-| Mutation 훅                   | `use<Action><Entity>Mutation`                                                                                                                                                                                                                                                                                                         | `useCreatePostMutation`                       |
-| Query 훅                      | `useFetch<Entity>Query` (표준). 기존 코드엔 `use<Entity>ListQuery`(`useBookmarkFolderListQuery`), `use<Entity>InfiniteQuery`(`useBookmarkFolderPostsInfiniteQuery`)도 있다(과거 `useComments`도 이 부류였으나 현재는 `useSuspenseComments`로 이름이 바뀌었다) — 새로 만들 땐 표준형을 쓴다                                            | `useFetchPostDetailQuery`                     |
-| 미리 받기(prefetch)           | 렌더 중에 요청을 시작만 하는 훅(`usePrefetchQuery`·`usePrefetchInfiniteQuery`)은 `usePrefetch<Entity>`, hover 등 이벤트에서 `queryClient`를 인자로 받아 부르는 함수는 `prefetch<Entity>` — 둘 다 같은 `.queries.ts`에 둔다                                                                                                            | `usePrefetchPostDetail`, `prefetchPostDetail` |
-| 쿼리 키 객체                  | `<entity>Keys`                                                                                                                                                                                                                                                                                                                        | `postKeys`                                    |
-| Invalidate 헬퍼               | `<entity>InvalidateQueries`                                                                                                                                                                                                                                                                                                           | `postInvalidateQueries`                       |
-| Success 핸들러                | `handle<Entity><Action>Success`                                                                                                                                                                                                                                                                                                       | `handlePostCreateSuccess`                     |
-| API 객체                      | `<entity>Api`                                                                                                                                                                                                                                                                                                                         | `postApi`                                     |
-| Zod 스키마 (요청/폼 검증만)   | `create<Entity>Schema`, `update<Entity>Schema`                                                                                                                                                                                                                                                                                        | `createPostSchema`, `updatePostSchema`        |
-| 응답 타입 파일 (Layer 0)      | `<entity>.dto.ts` — BE 생성 타입 alias                                                                                                                                                                                                                                                                                                | `post.dto.ts`                                 |
-| TS 타입                       | 스키마와 동일 (PascalCase)                                                                                                                                                                                                                                                                                                            | `Post`, `CreatePost`                          |
-| `config/` 파일                | `<entity>.const.ts` — `api/`·`model/`·`utils/`와 같은 `<entity>.<역할>.ts` 규칙(`const.ts` 단독 금지, `shared/config/const.ts`처럼 도메인이 없는 전역 설정은 예외). `<entity>`는 **엔티티명**이지 디렉터리 세그먼트명이 아니다 — 그룹 폴더(`entities/bookmark/folder/`) 아래에서도 파일 접두사는 엔티티명(`bookmark-folder`)을 따른다 | `bookmark-folder.const.ts`, `post.const.ts`   |
-| `<Entity>[]` 배열 변수/반환값 | `<entity>List` — 지역변수·훅 반환 필드·구조분해값이 실제로 배열일 때. 아래 각주의 예외 2가지는 대상 아님                                                                                                                                                                                                                              | `folderList`                                  |
-| 창·오버레이 식별자            | 창 자체(컴포넌트·훅·스토어·타입·경로·히스토리 키)는 `Dialog`, 뒤를 조작 불가로 만드는 성질은 `modal`, alert/confirm 전용은 `Alert`. 식별자에만 적용하고 한국어 산문의 "모달"은 허용 — 아래 각주                                                                                                                                       | `LoginDialog`, `modal={false}`, `useAlert`    |
+| 항목                          | 규칙                                                                                                                                                                                                                                                                                                                                                                                                         | 예시                                          |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
+| Feature 디렉토리              | `<도메인>/<액션>` kebab-case                                                                                                                                                                                                                                                                                                                                                                                 | `post/create/`                                |
+| Widget 디렉토리               | `<도메인>/<슬라이스>` kebab-case                                                                                                                                                                                                                                                                                                                                                                             | `post/post-card/`                             |
+| Shared 디렉토리               | camelCase                                                                                                                                                                                                                                                                                                                                                                                                    | `hooks/`, `utils/`                            |
+| 컴포넌트 파일                 | PascalCase.tsx                                                                                                                                                                                                                                                                                                                                                                                               | `CreatePostForm.tsx`                          |
+| Feature 훅                    | `use<FeatureName>.ts`                                                                                                                                                                                                                                                                                                                                                                                        | `useCreatePost.ts`                            |
+| Mutation 훅                   | `use<Action><Entity>Mutation`                                                                                                                                                                                                                                                                                                                                                                                | `useCreatePostMutation`                       |
+| Query 훅                      | `useFetch<Entity>Query` (표준). 기존 코드엔 `use<Entity>ListQuery`(`useBookmarkFolderListQuery`), `use<Entity>InfiniteQuery`(`useBookmarkFolderPostsInfiniteQuery`)도 있다(과거 `useComments`도 이 부류였으나 현재는 `useSuspenseComments`로 이름이 바뀌었다) — 새로 만들 땐 표준형을 쓴다                                                                                                                   | `useFetchPostDetailQuery`                     |
+| 미리 받기(prefetch)           | 렌더 중에 요청을 시작만 하는 훅(`usePrefetchQuery`·`usePrefetchInfiniteQuery`)은 `usePrefetch<Entity>`, hover 등 이벤트에서 `queryClient`를 인자로 받아 부르는 함수는 `prefetch<Entity>` — 둘 다 같은 `.queries.ts`에 둔다                                                                                                                                                                                   | `usePrefetchPostDetail`, `prefetchPostDetail` |
+| 쿼리 키 객체                  | `<entity>Keys`                                                                                                                                                                                                                                                                                                                                                                                               | `postKeys`                                    |
+| Invalidate 헬퍼               | `<entity>InvalidateQueries`                                                                                                                                                                                                                                                                                                                                                                                  | `postInvalidateQueries`                       |
+| Success 핸들러                | `handle<Entity><Action>Success`                                                                                                                                                                                                                                                                                                                                                                              | `handlePostCreateSuccess`                     |
+| API 객체                      | `<entity>Api`                                                                                                                                                                                                                                                                                                                                                                                                | `postApi`                                     |
+| Zod 스키마 (요청/폼 검증만)   | `create<Entity>Schema`, `update<Entity>Schema`                                                                                                                                                                                                                                                                                                                                                               | `createPostSchema`, `updatePostSchema`        |
+| 응답 타입 파일 (Layer 0)      | `<entity>.dto.ts` — BE 생성 타입 alias                                                                                                                                                                                                                                                                                                                                                                       | `post.dto.ts`                                 |
+| TS 타입                       | 스키마와 동일 (PascalCase)                                                                                                                                                                                                                                                                                                                                                                                   | `Post`, `CreatePost`                          |
+| `config/` 파일                | `<entity>.const.ts`(FE 전용 값), `<entity>.contract.ts`(BE와 같아야 하는 입력 제약 값, §9) — `api/`·`model/`·`utils/`와 같은 `<entity>.<역할>.ts` 규칙(`const.ts` 단독 금지, `shared/config/const.ts`처럼 도메인이 없는 전역 설정은 예외). `<entity>`는 **엔티티명**이지 디렉터리 세그먼트명이 아니다 — 그룹 폴더(`entities/bookmark/folder/`) 아래에서도 파일 접두사는 엔티티명(`bookmark-folder`)을 따른다 | `bookmark-folder.const.ts`, `post.const.ts`   |
+| `<Entity>[]` 배열 변수/반환값 | `<entity>List` — 지역변수·훅 반환 필드·구조분해값이 실제로 배열일 때. 아래 각주의 예외 2가지는 대상 아님                                                                                                                                                                                                                                                                                                     | `folderList`                                  |
+| 창·오버레이 식별자            | 창 자체(컴포넌트·훅·스토어·타입·경로·히스토리 키)는 `Dialog`, 뒤를 조작 불가로 만드는 성질은 `modal`, alert/confirm 전용은 `Alert`. 식별자에만 적용하고 한국어 산문의 "모달"은 허용 — 아래 각주                                                                                                                                                                                                              | `LoginDialog`, `modal={false}`, `useAlert`    |
 
 **`<entity>List` 각주** (2026-09-08) — "단수/복수"가 아니라 "배열인가 아닌가"로
 가른다. BE 응답 계약과 매핑된 이름(`BookmarkFolderListResponse`, `useBookmarkFolderListQuery`,

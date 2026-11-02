@@ -8,10 +8,10 @@ import {
 import { Comment, commentContentFormSchema } from '@/entities/comment/model/comment.schema';
 import { CommentUtil } from '@/entities/comment/utils/comment.util';
 import {
-  MAX_COMMENT_IMAGES,
   MAX_COMMENT_CONTENT_BYTES,
   MAX_COMMENT_PAYLOAD_BYTES,
 } from '@/entities/comment/config/comment.const';
+import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/comment.contract';
 import { useImageAttachments } from '@/shared/hooks/useImageAttachments';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
