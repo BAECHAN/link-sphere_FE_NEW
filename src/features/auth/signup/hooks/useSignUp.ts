@@ -12,6 +12,9 @@ import { authApi } from '@/entities/auth/api/auth.api';
 import { accountApi } from '@/entities/account/api/account.api';
 import { useAvailabilityCheck } from '@/features/auth/signup/hooks/useAvailabilityCheck';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
+import { usePendingSubmit } from '@/shared/hooks/usePendingSubmit';
+import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
+import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 
 const DEFAULT_VALUES = {
@@ -38,16 +41,15 @@ export function useSignUp() {
     confirm: 'confirmPassword',
   });
 
-  // 제출 요청 중(isPending)엔 dirty로 안 잡는다 - 실패하면 isPending이 false로 돌아오면서
-  // 이 조건이 다시 true가 돼 자동으로 재등록된다. isSubmitted도 함께 봐야 한다 - 이 훅은
-  // 렌더마다 반응형으로 다시 평가되므로, isSubmitted 없이 isDirty만 보면 제출 성공 뒤
-  // onSubmit의 clearNow()가 지운 걸 바로 다음 렌더의 이 effect가 form.formState.isDirty가
-  // 여전히 true라는 이유로 재등록해버린다(브라우저 beforeunload 경고가 살아있는 채로
-  // "메일함을 확인해주세요" 화면에 남는 버그로 실제 재현됨).
-  const { clearNow } = useUnsavedChanges(
-    'auth-signup',
-    form.formState.isDirty && !isPending && !isSubmitted
-  );
+  // 가입 요청 중에도 dirty로 잡는다 - 응답 전에 떠나면 완료 화면을 못 봐 결과를 모르게 되므로
+  // 게시글 폼처럼 확인창을 띄운다(docs/UNSAVED-CHANGES-GUARD.md §5 "저장 요청 중 이탈").
+  // isSubmitted는 함께 봐야 한다 - 이 훅은 렌더마다 반응형으로 다시 평가되므로, isSubmitted 없이
+  // isDirty만 보면 제출 성공 뒤 onSubmit의 clearNow()가 지운 걸 바로 다음 렌더의 이 effect가
+  // form.formState.isDirty가 여전히 true라는 이유로 재등록해버린다(브라우저 beforeunload 경고가
+  // 살아있는 채로 "메일함을 확인해주세요" 화면에 남는 버그로 실제 재현됨).
+  const { clearNow } = useUnsavedChanges('auth-signup', form.formState.isDirty && !isSubmitted);
+  usePendingSubmit('auth-signup', isPending, TEXTS.unsavedChanges.pending.signup);
+  const hasLeftPage = useHasLeftPage();
 
   const watchedEmail = form.watch('email');
   const watchedNickname = form.watch('nickname');
@@ -85,7 +87,23 @@ export function useSignUp() {
   }, [nicknameCheck.status, form]);
 
   const onSubmit = async (data: CreateAccount) => {
-    await createMember(data);
+    // reject는 여기서 받고 다시 던지지 않는다 - 실패 안내는 mutation의 onError 토스트가 맡는다. 던지면
+    // handleSubmit 밖으로 처리되지 않은 rejection이 샌다(react-hook-form 7.71.0은 onValid의 에러를 다시
+    // 던진다 - dist/index.esm.mjs:2194-2216, useCreatePost.ts와 같은 처리)
+    try {
+      await createMember(data);
+    } catch {
+      return;
+    }
+
+    // 응답 전에 "나가기"로 떠났으면 완료 화면을 볼 수 없다 - 그때만 토스트로 대신 알린다(실패 토스트는
+    // mutation의 onError가 어디서든 띄운다). clearNow보다 먼저 본다: 다시 들어와 새로 연 가입 폼의 키를
+    // 지우지 않게(useCreatePost.ts와 같은 순서)
+    if (hasLeftPage()) {
+      toast.success(TEXTS.messages.success.signUpCompleted);
+      return;
+    }
+
     // 폼이 여전히 dirty해도("로그인하러 가기" 클릭 시) 이탈 가드가 뜨지 않도록 성공한
     // 뒤에만 지운다 - 실패하면 이 줄에 도달하지 않아 폼에 그대로 남는다.
     clearNow();

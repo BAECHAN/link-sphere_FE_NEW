@@ -29,6 +29,8 @@ import { useCreatePost } from '@/features/post/create/hooks/useCreatePost';
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 const SUBMITTED_URL = 'https://example.com/new-article';
 const SUBMIT_PATH = ROUTES_PATHS.POST.SUBMIT;
+// 저장 중에 떠나려 하면 이미 요청했다는 문구로 확인창이 뜬다(usePendingSubmit)
+const PENDING_TEXTS = TEXTS.unsavedChanges.pending.postCreate;
 
 const newPost: Post = {
   ...mockPost,
@@ -160,7 +162,7 @@ async function tryToLeave(router: ReturnType<typeof createMemoryRouter>, way: Le
     await (way === 'tab' ? router.navigate(ROUTES_PATHS.BOOKMARK) : router.navigate(-1));
   });
 
-  await screen.findByRole('alertdialog', { name: TEXTS.unsavedChanges.title });
+  await screen.findByRole('alertdialog', { name: PENDING_TEXTS.title });
 }
 
 /** 확인창은 열린 직후 클릭을 무시한다(useOpenClickGuard) - 가드 시간을 흘려보낸 뒤 누른다. */
@@ -184,14 +186,14 @@ async function settle(queryClient: QueryClient) {
 }
 
 function queryLeaveDialog() {
-  return screen.queryByRole('alertdialog', { name: TEXTS.unsavedChanges.title });
+  return screen.queryByRole('alertdialog');
 }
 
 describe('useCreatePost - 저장 중 이탈', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     useAlertStore.setState({ alerts: [] });
-    useUnsavedChangesStore.setState({ dirtyKeys: new Set() });
+    useUnsavedChangesStore.setState({ dirtyKeys: new Set(), pendingSubmits: new Map() });
     useAuthStore.getState().setAuth('test-access-token');
   });
 
@@ -235,7 +237,7 @@ describe('useCreatePost - 저장 중 이탈', () => {
 
     await fillAndSubmit(gate);
     await tryToLeave(router, 'tab');
-    clickConfirmButton(TEXTS.unsavedChanges.cancel);
+    clickConfirmButton(PENDING_TEXTS.cancel);
 
     expect(queryLeaveDialog()).not.toBeInTheDocument();
     expect(router.state.location.pathname).toBe(SUBMIT_PATH);
@@ -247,7 +249,7 @@ describe('useCreatePost - 저장 중 이탈', () => {
     expect(cached?.pages[0]?.content.map((post) => post.id)).toEqual([newPost.id, mockPost.id]);
   });
 
-  it('확인창이 열린 채 등록이 실패하면 "계속 작성" 뒤에 입력과 실패 안내가 남는다', async () => {
+  it('확인창이 열린 채 등록이 실패하면 확인창이 닫히고 입력과 실패 안내가 남는다', async () => {
     const gate = holdCreateResponse(createRateLimited);
     const { router, queryClient } = renderCreatePost();
 
@@ -256,11 +258,8 @@ describe('useCreatePost - 저장 중 이탈', () => {
     await release(gate);
     await settle(queryClient);
 
-    // 실패하면 입력이 그대로라 "사라져요" 확인창의 전제도 그대로다
-    expect(queryLeaveDialog()).toBeInTheDocument();
-
-    clickConfirmButton(TEXTS.unsavedChanges.cancel);
-
+    // 응답이 왔으니 "등록은 취소되지 않아요" 확인창의 전제가 사라졌다 - 닫고 막혔던 이동도 취소한다
+    expect(queryLeaveDialog()).not.toBeInTheDocument();
     expect(router.state.location.pathname).toBe(SUBMIT_PATH);
     expect(screen.getByLabelText('url')).toHaveValue(SUBMITTED_URL);
     expect(screen.getByTestId('submit-error')).toHaveTextContent(
@@ -275,7 +274,7 @@ describe('useCreatePost - 저장 중 이탈', () => {
 
     await fillAndSubmit(gate);
     await tryToLeave(router, 'tab');
-    clickConfirmButton(TEXTS.unsavedChanges.confirm);
+    clickConfirmButton(PENDING_TEXTS.confirm);
 
     expect(await screen.findByTestId('other-tab')).toBeInTheDocument();
 
@@ -293,7 +292,7 @@ describe('useCreatePost - 저장 중 이탈', () => {
 
     await fillAndSubmit(gate);
     await tryToLeave(router, 'tab');
-    clickConfirmButton(TEXTS.unsavedChanges.confirm);
+    clickConfirmButton(PENDING_TEXTS.confirm);
 
     expect(await screen.findByTestId('other-tab')).toBeInTheDocument();
 
@@ -334,7 +333,7 @@ describe('useCreatePost - 저장 중 이탈', () => {
 
     await fillAndSubmit(gate);
     await tryToLeave(router, 'tab');
-    clickConfirmButton(TEXTS.unsavedChanges.confirm);
+    clickConfirmButton(PENDING_TEXTS.confirm);
 
     // 라우터는 이미 탭에 가 있지만 화면은 아직 폼이다(정지 구간)
     await waitFor(() => expect(router.state.location.pathname).toBe(ROUTES_PATHS.BOOKMARK));

@@ -3,6 +3,10 @@ import { test, expect } from '@playwright/test';
 import { installCatchAll } from './mocks/catch-all';
 import { mockEmailAvailability, mockSignUpFailure } from './mocks/auth.mock';
 import { mockNicknameAvailability } from './mocks/account.mock';
+import { ENDPOINTS } from './mocks/endpoints';
+import { isApiPath } from './mocks/route-match';
+import { wrapResponse } from './mocks/wrap-response';
+import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
@@ -36,6 +40,62 @@ test.describe('회원가입 폼 이탈 확인', () => {
 
   function loginLink(page: Page) {
     return page.getByRole('link', { name: TEXTS.auth.signup.signIn });
+  }
+
+  // 가입 요청 중에 떠나려 하면 이미 요청했다는 문구로 확인창이 뜬다(usePendingSubmit)
+  const PENDING_TEXTS = TEXTS.unsavedChanges.pending.signup;
+
+  function pendingDialog(page: Page) {
+    return page.getByRole('alertdialog', { name: PENDING_TEXTS.title });
+  }
+
+  /**
+   * POST /auth/signup 응답을 테스트가 release()할 때까지 붙잡는다 - 시간 지연 대신 직접 풀어
+   * "요청 중"이 응답보다 먼저 끝나는 흔들림을 없앤다. requested는 요청이 라우트에 닿으면 풀린다.
+   */
+  async function holdSignUp(page: Page, outcome: 'success' | 'failure') {
+    let markRequested!: () => void;
+    let release!: () => void;
+    const requested = new Promise<void>((resolve) => {
+      markRequested = resolve;
+    });
+    const released = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.auth.signup),
+      async (route) => {
+        markRequested();
+        await released;
+
+        if (outcome === 'success') {
+          await route.fulfill({ json: wrapResponse(mockAccount) });
+          return;
+        }
+
+        await route.fulfill({
+          status: 500,
+          json: { status: 500, code: 'INTERNAL_ERROR', message: '서버 오류가 발생했어요.' },
+        });
+      }
+    );
+
+    return { requested, release };
+  }
+
+  async function submitAndHold(page: Page, outcome: 'success' | 'failure' = 'success') {
+    await mockEmailAvailability(page, true);
+    await mockNicknameAvailability(page, true);
+    const signUp = await holdSignUp(page, outcome);
+
+    await page.goto('/auth/sign-up');
+    await fillSignupForm(page);
+    await page.getByRole('button', { name: TEXTS.auth.signup.signUp }).click();
+    await signUp.requested;
+    await expect(page.getByRole('button', { name: TEXTS.auth.signup.signingUp })).toBeDisabled();
+
+    return signUp;
   }
 
   test('이메일 중복이 아니면 입력 중 Sign In 링크를 눌러도 확인창이 뜨고, "계속 가입하기"를 누르면 입력값이 유지된다', async ({
@@ -175,9 +235,67 @@ test.describe('회원가입 폼 이탈 확인', () => {
     await expect(page.getByRole('button', { name: TEXTS.auth.signup.signUp })).toBeEnabled();
     await expect(page).toHaveURL(/\/auth\/sign-up$/);
 
-    // useSignUp.ts의 onSubmit이 요청 직전에 clearNow()로 지웠던 키가, 실패로 isPending이
-    // false로 돌아오면서(isDirty && !isPending) 다시 등록됐는지 확인한다.
+    // useSignUp.ts의 onSubmit은 성공한 뒤에만 clearNow()로 키를 지운다 - 실패하면 요청 중에도
+    // 유지되던 키(isDirty && !isSubmitted)가 그대로 남았는지 확인한다.
     await page.goBack();
+    await expect(guardDialog(page)).toBeVisible();
+  });
+
+  test('가입 요청 중 Sign In 링크를 누르면 이미 요청했다는 확인창이 뜨고, "나가기" 뒤 가입이 끝나면 로그인 화면에 성공 토스트가 뜬다', async ({
+    page,
+  }) => {
+    const signUp = await submitAndHold(page);
+
+    await loginLink(page).click();
+    await expect(pendingDialog(page)).toBeVisible();
+    await expect(page).toHaveURL(/\/auth\/sign-up$/);
+
+    // alert-dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 위 테스트들과 같은 이유
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await pendingDialog(page).getByRole('button', { name: PENDING_TEXTS.confirm }).click();
+    await expect(page).toHaveURL(/\/auth\/login$/);
+
+    signUp.release();
+
+    await expect(page.getByText(TEXTS.messages.success.signUpCompleted)).toBeVisible();
+    await expect(page).toHaveURL(/\/auth\/login$/);
+  });
+
+  test('가입 요청 중 Sign In 링크로 뜬 확인창이 열린 채 가입이 끝나면 확인창이 닫히고 완료 화면이 보인다', async ({
+    page,
+  }) => {
+    const signUp = await submitAndHold(page);
+
+    await loginLink(page).click();
+    await expect(pendingDialog(page)).toBeVisible();
+
+    signUp.release();
+
+    await expect(page.getByText(TEXTS.auth.signup.checkEmailTitle)).toBeVisible();
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/auth\/sign-up$/);
+    // 완료 화면이 결과를 보여주므로 토스트를 겹쳐 띄우지 않는다
+    await expect(page.getByText(TEXTS.messages.success.signUpCompleted)).toHaveCount(0);
+  });
+
+  test('가입 요청 중 Sign In 링크로 뜬 확인창이 열린 채 가입이 실패하면 확인창이 닫히고 입력이 남는다', async ({
+    page,
+  }) => {
+    const signUp = await submitAndHold(page, 'failure');
+
+    await loginLink(page).click();
+    await expect(pendingDialog(page)).toBeVisible();
+
+    signUp.release();
+
+    // 응답이 왔으니 "가입은 취소되지 않아요" 확인창의 전제가 사라졌다 - 닫고 이동도 취소한다
+    await expect(page.getByText(TEXTS.messages.error.accountCreateFailed)).toBeVisible();
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/auth\/sign-up$/);
+    await expect(page.getByPlaceholder(TEXTS.placeholders.email)).toHaveValue('new@example.com');
+
+    // 이제 입력만 남았으니 다시 떠나려 하면 평소 확인창이 뜬다
+    await loginLink(page).click();
     await expect(guardDialog(page)).toBeVisible();
   });
 });

@@ -477,6 +477,8 @@ export const TEXTS = {
       postSetToPublic: '이 게시물을 전체 공개로 전환했어요.',
       commentDeleted: '댓글을 삭제했어요.',
       folderDeleted: '폴더를 삭제했어요.',
+      // 가입 응답 전에 회원가입 화면을 떠났을 때만 띄운다 - 머물렀으면 완료 화면이 보여준다(useSignUp.ts)
+      signUpCompleted: '가입을 완료했어요. 메일함에서 인증 링크를 확인해주세요.',
       // 고정·해제하면 행이 내 폴더 맨 위로(또는 원래 자리로) 옮겨 가 화면 밖으로 사라질 수 있다(docs/BOOKMARK.md §5)
       folderPinned: (folderName: string) => `${folderName} 폴더를 고정했어요.`,
       folderUnpinned: (folderName: string) => `${folderName} 폴더 고정을 해제했어요.`,
@@ -641,6 +643,27 @@ export const TEXTS = {
       message: '지금 나가면 입력한 가입 정보가 사라져요.',
       confirm: '나가기',
       cancel: '계속 가입하기',
+    },
+    // 요청을 보내고 응답을 기다리는 동안 떠나려 할 때(usePendingSubmit) - 나가도 요청은 취소되지 않는다
+    pending: {
+      signup: {
+        title: '이미 가입을 요청했어요',
+        message: '지금 나가도 가입은 취소되지 않아요. 결과는 이동한 화면에서 알려드려요.',
+        confirm: '나가기',
+        cancel: '결과 기다리기',
+      },
+      postCreate: {
+        title: '이미 등록을 요청했어요',
+        message: '지금 나가도 등록은 취소되지 않아요. 결과는 이동한 화면에서 알려드려요.',
+        confirm: '나가기',
+        cancel: '결과 기다리기',
+      },
+      postUpdate: {
+        title: '이미 수정을 요청했어요',
+        message: '지금 나가도 수정은 취소되지 않아요. 결과는 이동한 화면에서 알려드려요.',
+        confirm: '나가기',
+        cancel: '결과 기다리기',
+      },
     },
     // 쓰는 중에 이 탭에서 직접 로그아웃할 때(useDelayedLogout)
     logout: {
