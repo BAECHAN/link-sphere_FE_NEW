@@ -71,11 +71,10 @@ test.describe('게시글 등록', () => {
     const createdRequestBody = (await created).request().postDataJSON();
     expect(createdRequestBody.url).toBe(NEW_URL);
 
-    // 응답 후: /post로 이동하고, clearNow()가 blocker를 풀어 미저장 변경 확인 모달이 뜨지 않는다.
+    // 응답 후: /post로 이동하고, clearNow()가 blocker를 풀어 이탈 확인창이 뜨지 않는다 - 제목으로
+    // 고르지 않는다: 요청 중 확인창(unsavedChanges.pending)은 제목이 달라 잘못 떠도 놓친다.
     await expect(page).toHaveURL(/\/post$/);
-    await expect(page.getByRole('alertdialog', { name: TEXTS.unsavedChanges.title })).toHaveCount(
-      0
-    );
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
   });
 
   test('등록이 실패하면 이동하지 않고 입력한 URL이 그대로 남는다', async ({ page }) => {

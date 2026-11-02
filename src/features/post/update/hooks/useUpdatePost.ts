@@ -4,8 +4,10 @@ import { UpdatePost, updatePostSchema } from '@/entities/post/model/post.schema'
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useGoBack } from '@/shared/hooks/useGoBack';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
+import { usePendingSubmit } from '@/shared/hooks/usePendingSubmit';
 import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
 import { toast } from '@/shared/lib/toast/toast';
+import { TEXTS } from '@/shared/config/texts';
 import { UrlUtil } from '@/shared/utils/url.util';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useRef, useState } from 'react';
@@ -84,6 +86,7 @@ export function useUpdatePost(postId: string) {
   );
 
   const { clearNow } = useUnsavedChanges(`post-update:${postId}`, form.formState.isDirty);
+  usePendingSubmit(`post-update:${postId}`, isUpdating, TEXTS.unsavedChanges.pending.postUpdate);
   const hasLeftPage = useHasLeftPage();
   const guard = useAuthGuard();
   const signedOutNotice = useSignedOutNotice(form.formState.isDirty);

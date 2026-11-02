@@ -28,6 +28,8 @@ import { useUpdatePost } from '@/features/post/update/hooks/useUpdatePost';
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 const EDIT_PATH = ROUTES_PATHS.POST.EDIT.replace(':id', mockPost.id);
 const EDITED_TITLE = '고친 제목';
+// 저장 중에 떠나려 하면 이미 요청했다는 문구로 확인창이 뜬다(usePendingSubmit)
+const PENDING_TEXTS = TEXTS.unsavedChanges.pending.postUpdate;
 
 function GuardLayout() {
   useUnsavedChangesGuard();
@@ -41,12 +43,13 @@ function GuardLayout() {
 }
 
 function UpdatePostProbe() {
-  const { form, onSubmit } = useUpdatePost(mockPost.id);
+  const { form, onSubmit, submitError } = useUpdatePost(mockPost.id);
 
   return (
     <form onSubmit={onSubmit}>
       <input aria-label="title" {...form.register('title')} />
       <button type="submit">submit</button>
+      <p data-testid="submit-error">{submitError?.message}</p>
     </form>
   );
 }
@@ -148,7 +151,7 @@ async function tryToLeave(router: ReturnType<typeof createMemoryRouter>, way: Le
     await (way === 'tab' ? router.navigate(ROUTES_PATHS.BOOKMARK) : router.navigate(-1));
   });
 
-  await screen.findByRole('alertdialog', { name: TEXTS.unsavedChanges.title });
+  await screen.findByRole('alertdialog', { name: PENDING_TEXTS.title });
 }
 
 function clickConfirmButton(name: string) {
@@ -173,7 +176,7 @@ describe('useUpdatePost - 저장 중 이탈', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     useAlertStore.setState({ alerts: [] });
-    useUnsavedChangesStore.setState({ dirtyKeys: new Set() });
+    useUnsavedChangesStore.setState({ dirtyKeys: new Set(), pendingSubmits: new Map() });
     useAuthStore.getState().setAuth('test-access-token');
   });
 
@@ -200,11 +203,27 @@ describe('useUpdatePost - 저장 중 이탈', () => {
 
       await waitFor(() => expect(router.state.location.pathname).toBe(ROUTES_PATHS.POST.ROOT));
       expect(await screen.findByTestId('feed')).toBeInTheDocument();
-      expect(
-        screen.queryByRole('alertdialog', { name: TEXTS.unsavedChanges.title })
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     }
   );
+
+  it('확인창이 열린 채 수정이 실패하면 확인창이 닫히고 입력과 실패 안내가 남는다', async () => {
+    const gate = holdUpdateResponse(updateFailed);
+    const { router, queryClient } = renderUpdatePost();
+
+    await editAndSubmit(gate);
+    await tryToLeave(router, 'tab');
+    await release(gate);
+    await settle(queryClient);
+
+    // 응답이 왔으니 "수정은 취소되지 않아요" 확인창의 전제가 사라졌다 - 닫고 막혔던 이동도 취소한다
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(router.state.location.pathname).toBe(EDIT_PATH);
+    expect(screen.getByLabelText('title')).toHaveValue(EDITED_TITLE);
+    expect(screen.getByTestId('submit-error')).toHaveTextContent(
+      TEXTS.messages.error.postSubmit.updateFailed
+    );
+  });
 
   it('응답 전에 "나가기"로 떠났으면 수정이 성공해도 떠난 화면에 머문다', async () => {
     const gate = holdUpdateResponse(updateSucceeded);
@@ -212,7 +231,7 @@ describe('useUpdatePost - 저장 중 이탈', () => {
 
     await editAndSubmit(gate);
     await tryToLeave(router, 'tab');
-    clickConfirmButton(TEXTS.unsavedChanges.confirm);
+    clickConfirmButton(PENDING_TEXTS.confirm);
 
     expect(await screen.findByTestId('other-tab')).toBeInTheDocument();
 
@@ -230,7 +249,7 @@ describe('useUpdatePost - 저장 중 이탈', () => {
 
     await editAndSubmit(gate);
     await tryToLeave(router, 'tab');
-    clickConfirmButton(TEXTS.unsavedChanges.confirm);
+    clickConfirmButton(PENDING_TEXTS.confirm);
 
     expect(await screen.findByTestId('other-tab')).toBeInTheDocument();
 

@@ -122,7 +122,8 @@ export const useLogoutMutation = () => {
 
 // 가입 성공 후 화면 전환("메일함을 확인해주세요" 상태)은 useSignUp.ts가 로컬 상태로
 // 처리한다 - BE가 가입 시 인증메일을 자동 발송하므로(AuthService.signup) 여기서
-// navigate도, 성공 토스트도 필요 없다(화면 자체가 성공을 보여준다, 가시성 원칙).
+// navigate도, 성공 토스트도 필요 없다(화면 자체가 성공을 보여준다, 가시성 원칙). 응답 전에
+// 화면을 떠났으면 그 화면을 볼 수 없으니 useSignUp이 그때만 성공 토스트로 대신 알린다.
 export const useCreateAccountMutation = () => {
   return useMutation({
     mutationFn: async (payload: CreateAccount) => {

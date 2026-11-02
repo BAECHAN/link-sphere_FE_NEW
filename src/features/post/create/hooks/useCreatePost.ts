@@ -5,6 +5,7 @@ import { CreatePost, createPostSchema } from '@/entities/post/model/post.schema'
 import { useNavigate } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
+import { usePendingSubmit } from '@/shared/hooks/usePendingSubmit';
 import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
 import { toast } from '@/shared/lib/toast/toast';
 import { UrlUtil } from '@/shared/utils/url.util';
@@ -41,6 +42,7 @@ export function useCreatePost() {
   });
 
   const { clearNow } = useUnsavedChanges('post-create', form.formState.isDirty);
+  usePendingSubmit('post-create', isCreating, TEXTS.unsavedChanges.pending.postCreate);
   const hasLeftPage = useHasLeftPage();
   const guard = useAuthGuard();
   const signedOutNotice = useSignedOutNotice(form.formState.isDirty);

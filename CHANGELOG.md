@@ -27,6 +27,13 @@
 
 ### Changed
 
+- `shared` 가입·글 등록·수정 요청 중 이탈 확인창을 "이미 요청했어요" 문구로
+  <details><summary>배경·구현</summary>
+
+  응답을 기다리는 동안 떠나려 하면 확인창이 "작성 중인 내용이 있어요 / 이 페이지를 벗어나면 입력한 내용이 사라져요"(회원가입은 "회원가입을 그만둘까요?")라고 했다. 요청은 이미 서버로 가서 떠나도 취소되지 않는데, 사실과 다른 결과를 알린 것이다. 이제 요청 중에는 "이미 가입을·등록을·수정을 요청했어요 / 지금 나가도 가입은(등록은·수정은) 취소되지 않아요. 결과는 이동한 화면에서 알려드려요."로 띄우고, 버튼은 "결과 기다리기"·"나가기"다. 이 확인창이 떠 있는 동안 응답이 오면 성공이든 실패든 확인창을 닫는다 — 실패하면 그 화면에 머물러 입력과 실패 안내를 보고, 다시 떠나려 하면 평소 확인창이 뜬다(전에는 실패해도 확인창이 남았다). 폼이 새 훅 `usePendingSubmit`으로 요청 중임과 문구를 함께 등록하고, 가드는 등록된 문구를 쓴다. 문구·범위·실패 시 동작은 2026-11-02 사용자 선택이고, 근거는 [NN/g 확인 대화상자 글](https://www.nngroup.com/articles/confirmation-dialog/)의 _"행동의 결과를 구체적으로 알려라"_ (번역)다. 동작은 `docs/UNSAVED-CHANGES-GUARD.md` §5 "저장 요청 중 이탈", 계획은 [`docs/plans/2026-11-02-signup-submit-leave-guard.md`](docs/plans/2026-11-02-signup-submit-leave-guard.md). (`src/shared/store/unsavedChanges.store.ts`, `src/shared/hooks/usePendingSubmit.ts`(신규), `src/shared/hooks/useUnsavedChangesGuard.ts`, `src/shared/config/texts.ts`, `src/features/auth/signup/hooks/useSignUp.ts`, `src/features/post/create/hooks/useCreatePost.ts`, `src/features/post/update/hooks/useUpdatePost.ts`, 가드 테스트 4곳, `e2e/signup-unsaved-changes.spec.ts`, `e2e/post-create.spec.ts`, `docs/UNSAVED-CHANGES-GUARD.md`)
+
+  </details>
+
 - `comment` 원글로 이동한 댓글 강조를 검은 테두리에서 연한 배경 페이드로
   <details><summary>배경·구현</summary>
 
@@ -49,6 +56,13 @@
   </details>
 
 ### Fixed
+
+- `auth` 가입 요청 중 화면을 떠나려 하면 확인창을 띄우고, 떠난 뒤 결과를 토스트로 알림
+  <details><summary>배경·구현</summary>
+
+  회원가입 제출 뒤 응답 전에 하단 "로그인" 링크를 누르면 확인 없이 로그인 화면으로 넘어가 가입이 됐는지 알 수 없었다. 회원가입만 요청 중에 이탈 가드를 일부러 끄고(`!isPending`, "그 사이의 이탈 시도는 거의 없다"는 전제) 가입 성공은 같은 화면의 완료 화면으로만 보여 줬기 때문이다. 이제 게시글 등록·수정과 같은 "저장 요청 중 이탈" 규칙을 따른다 — 요청 중에도 "로그인"·로고·뒤로가기에 확인창이 뜨고(문구는 위 `### Changed`의 "이미 가입을 요청했어요", 새로고침·탭 닫기는 브라우저 기본 경고), 확인창이 떠 있는 동안 가입이 끝나면 확인창이 닫히고 완료 화면이 보인다. "나가기"로 떠난 뒤 가입이 끝나면 옮겨 간 화면에 "가입을 완료했어요. 메일함에서 인증 링크를 확인해주세요." 토스트를 띄우고, 실패는 지금처럼 에러 토스트가 알린다(2026-11-02 사용자 선택). 함께 가입 실패 때 react-hook-form이 다시 던지던 처리되지 않은 rejection을 `onSubmit` 안에서 받게 했다. 동작은 `docs/UNSAVED-CHANGES-GUARD.md` §5 "저장 요청 중 이탈", 계획은 [`docs/plans/2026-11-02-signup-submit-leave-guard.md`](docs/plans/2026-11-02-signup-submit-leave-guard.md). (`src/features/auth/signup/hooks/useSignUp.ts`, `src/features/auth/signup/hooks/useSignUp.guard.test.tsx`(신규), `src/shared/config/texts.ts`, `src/entities/auth/api/auth.queries.ts`, `e2e/signup-unsaved-changes.spec.ts`, `docs/UNSAVED-CHANGES-GUARD.md`)
+
+  </details>
 
 - `auth` 로그인이 풀려도 쓰던 글이 사라지지 않게 그 화면에 두고 로그인 창을 띄움
   <details><summary>배경·구현</summary>

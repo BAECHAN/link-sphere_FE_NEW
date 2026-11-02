@@ -52,8 +52,80 @@ function renderGuard() {
 describe('useUnsavedChangesGuard', () => {
   beforeEach(() => {
     useAlertStore.setState({ alerts: [] });
-    useUnsavedChangesStore.setState({ dirtyKeys: new Set() });
+    useUnsavedChangesStore.setState({ dirtyKeys: new Set(), pendingSubmits: new Map() });
     useAuthStore.getState().setAuth('test-access-token');
+  });
+
+  const PENDING_TEXTS = TEXTS.unsavedChanges.pending.postCreate;
+
+  function markPending() {
+    act(() => {
+      useUnsavedChangesStore.getState().markPending('form-a', PENDING_TEXTS);
+    });
+  }
+
+  function markSettled() {
+    act(() => {
+      useUnsavedChangesStore.getState().markSettled('form-a');
+    });
+  }
+
+  it('응답을 기다리는 폼이 있으면 그 폼이 등록한 문구로 확인창을 띄운다', async () => {
+    const router = renderGuard();
+
+    markPending();
+
+    await act(async () => {
+      await router.navigate('/other');
+    });
+
+    expect(
+      await screen.findByRole('alertdialog', { name: PENDING_TEXTS.title })
+    ).toBeInTheDocument();
+    expect(screen.getByText(PENDING_TEXTS.message)).toBeInTheDocument();
+  });
+
+  it('응답을 기다리는 중에 띄운 확인창은 작성 중인 폼이 남아 있어도 응답이 오면 닫고 막혔던 이동은 취소한다', async () => {
+    const router = renderGuard();
+
+    markPending();
+
+    await act(async () => {
+      await router.navigate('/other');
+    });
+
+    await screen.findByRole('alertdialog', { name: PENDING_TEXTS.title });
+
+    // 실패한 경우처럼 입력(dirty)은 그대로인 채 응답만 왔다
+    markSettled();
+
+    expect(getOpenAlertId()).toBeNull();
+    expect(router.state.location.pathname).toBe('/form');
+
+    // 이제 응답을 기다리지 않으니 다시 떠나려 하면 평소 확인창이 뜬다
+    await act(async () => {
+      await router.navigate('/other');
+    });
+
+    expect(
+      await screen.findByRole('alertdialog', { name: TEXTS.unsavedChanges.title })
+    ).toBeInTheDocument();
+  });
+
+  it('응답을 기다리지 않을 때 띄운 확인창은 다른 요청이 시작·끝나도 닫지 않는다', async () => {
+    const router = renderGuard();
+
+    await act(async () => {
+      await router.navigate('/other');
+    });
+
+    await screen.findByRole('alertdialog', { name: TEXTS.unsavedChanges.title });
+
+    markPending();
+    markSettled();
+
+    expect(getOpenAlertId()).not.toBeNull();
+    expect(router.state.location.pathname).toBe('/form');
   });
 
   it('이탈 확인창이 떠 있는 동안 작성 중인 폼이 모두 해제되면 확인창을 닫고 막혔던 이동은 취소한다', async () => {
@@ -94,7 +166,7 @@ describe('useUnsavedChangesGuard', () => {
 describe('useUnsavedChangesGuard — 로그인이 풀린 상태', () => {
   beforeEach(() => {
     useAlertStore.setState({ alerts: [] });
-    useUnsavedChangesStore.setState({ dirtyKeys: new Set() });
+    useUnsavedChangesStore.setState({ dirtyKeys: new Set(), pendingSubmits: new Map() });
   });
 
   it('로그인이 풀린 채 쓰던 화면에 둔 동안(signedOutInPlace)에는 평소처럼 이탈을 막는다', async () => {
