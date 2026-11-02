@@ -491,7 +491,7 @@ export const TEXTS = {
       bookmarkRemovedWithLastFolderDescription: '마지막 폴더라서 북마크도 함께 제거했어요.',
       bookmarkRemoved: '북마크를 제거했어요.',
       passwordResetConfirmed: '비밀번호를 재설정했어요.',
-      passwordChanged: '비밀번호를 변경했어요.',
+      passwordChanged: '비밀번호를 변경했어요. 다른 기기에서는 다시 로그인해야 해요.',
       accountDeleted: '탈퇴를 신청했어요. 14일 안에 다시 로그인하면 취소돼요.',
       // 유예 중(탈퇴 신청 후 14일 이내) 로그인 성공 시 표시 - useLoginMutation의
       // onSuccess에서 로그인 응답의 deletionCancelled로 판단한다.
