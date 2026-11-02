@@ -278,8 +278,11 @@ export const useSetBookmarkFolderPinMutation = (folderId: string) => {
         return;
       }
 
+      // 롤백으로 행이 원래 자리로 돌아갈 뿐이고 그게 화면 밖일 수도 있어 이 토스트가 유일한 안내다 - 닫을 때까지
+      // 남기고, 고정·해제가 같은 id를 써 쌓이지 않게 한다(docs/FE-ARCHITECTURE.md §14)
       toast.error(
-        nextPinned ? TEXTS.messages.error.folderPinFailed : TEXTS.messages.error.folderUnpinFailed
+        nextPinned ? TEXTS.messages.error.folderPinFailed : TEXTS.messages.error.folderUnpinFailed,
+        { id: 'bookmark-folder-pin-error', duration: Infinity }
       );
     },
   });

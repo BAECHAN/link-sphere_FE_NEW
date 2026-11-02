@@ -1200,6 +1200,29 @@ sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를
 `onSuccess(data, variables)`에서 `toast.success`를 직접 부르고 `successMessage`는
 비워 둔다 — 둘 다 넣으면 두 번 뜬다.
 
+### 에러 토스트 유지 시간 (2026-11-02)
+
+에러 토스트는 sonner 2.0.7 기본값대로 4초 뒤 사라진다(`TOAST_LIFETIME = 4000`, `node_modules/sonner/dist/index.mjs:417`).
+마우스를 올려 두거나 탭이 숨겨진 동안에는 멈춘다(`index.mjs:605`). 다만 **토스트가 사라진 뒤 화면에 실패 흔적이 남지
+않는 곳은 닫을 때까지 남긴다.** 칸 아래 에러, 그대로 남은 입력, 되돌아간 상태 같은 흔적이 없으면 토스트를 놓친 사용자는
+성공한 줄 안다.
+
+- **근거**: WCAG 2.2.1 이해 문서는 사라지는 알림이 괜찮은 경우로 _"받은편지함을 보는 등 다른 방법으로"_ (번역) 그
+  정보를 얻을 수 있을 때를 든다([Understanding 2.2.1](https://www.w3.org/WAI/WCAG22/Understanding/timing-adjustable.html),
+  [UNSAVED-CHANGES-GUARD.md](./UNSAVED-CHANGES-GUARD.md) §5에서 재인용).
+- **방법**: `toast.error(message, { id: '<고정 id>', duration: Infinity })`. 닫기 X는 `Toaster`(`shared/ui/atoms/sonner.tsx`)의
+  `closeButton`이 모든 토스트에 단다. 고정 id는 쌓임을 막는다 — 한 번에 보이는 토스트가 3개(`VISIBLE_TOASTS_AMOUNT = 3`,
+  `index.mjs:411`)라 같은 실패가 반복돼 쌓이면 다른 안내가 가려진다. 같은 id면 한 장이 새 내용으로 바뀐다.
+- **폼을 떠난 뒤 실패**(가입·게시글·댓글)는 제목(무엇이 실패했나)·설명(이유) 모양의 `showLeftPageFailureToast`
+  (`shared/lib/toast/LeftPageFailureToast.tsx`)를 쓴다.
+- **전역 핸들러를 거치는 mutation**에 적용할 때는 `manualErrorHandling: true`로 빼고 `onError`에서
+  `resolveErrorToast(error, { errorMessage }, MUTATION_ERROR_POLICY)`의 판정을 그대로 띄운다 — 429·보안 차단 문구와
+  로그인 만료 무음이 전역과 같게 유지된다(선례 `useUpdatePostVisibilityMutation`, `entities/post/api/post.queries.ts`).
+- **지금 닫을 때까지 남는 에러 토스트**: 폼을 떠난 뒤 실패(가입·게시글 등록·수정·댓글 등록·수정), 비밀번호 재설정 메일
+  요청, 인증 메일 다시 보내기, 북마크 [되돌리기] 실패, 폴더 고정·해제 실패, 공개 설정 변경 실패. 곳마다 흔적이 남는지와
+  판정(바꿈/그대로)은 [#488](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/488)의 조사 표에 있다 — 파일 줄 번호가
+  든 표라 이 문서에 옮기지 않는다. 코드에서는 `duration: Infinity`로 찾는다.
+
 ---
 
 ## 15. Mutation/Query Meta 옵션

@@ -23,6 +23,9 @@ import {
   useUpdatePostVisibilityMutation,
 } from '@/entities/post/api/post.queries';
 import { shouldRetryQuery } from '@/shared/lib/react-query/config/retry-policy';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { useAuthStore } from '@/shared/store/auth.store';
+import { SessionExpiredError } from '@/shared/types/common.type';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
@@ -186,6 +189,78 @@ describe('useUpdatePostVisibilityMutation', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(successSpy).not.toHaveBeenCalled();
+  });
+
+  // 실패하면 🔒가 요청 전 그대로라 토스트가 유일한 안내다 - 닫을 때까지 남아야 한다(docs/FE-ARCHITECTURE.md §14).
+  // 전역 핸들러를 거치지 않으므로(manualErrorHandling) 두 번 뜨지 않는다 - error-toast.test.ts가 그 판정을 맡는다
+  it.each([
+    {
+      cause: '서버 오류',
+      status: 500,
+      code: 'INTERNAL_SERVER_ERROR',
+      message: TEXTS.messages.error.postVisibilityUpdateFailed,
+      id: 'post-visibility-error',
+    },
+    {
+      cause: '요청 한도 초과',
+      status: 429,
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: TEXTS.messages.error.rateLimited,
+      id: 'error-rate-limited',
+    },
+  ])(
+    '$cause로 실패하면 전역 핸들러와 같은 문구를 닫을 때까지 남는 토스트로 띄운다',
+    async ({ status, code, message, id }) => {
+      server.use(
+        http.patch(url(`${API_ENDPOINTS.post.base}/${POST_ID}/visibility`), () =>
+          HttpResponse.json({ status, code, message: 'boom', timestamp: '' }, { status })
+        )
+      );
+      const errorSpy = vi.spyOn(toast, 'error');
+
+      const { result } = renderHook(() => useUpdatePostVisibilityMutation(POST_ID), {
+        wrapper: Wrapper,
+      });
+
+      act(() => {
+        result.current.mutate({ postId: POST_ID, isPrivate: true });
+      });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledWith(message, { id, duration: Infinity });
+      expect(queryClient.getMutationCache().getAll()[0]?.meta).toEqual({
+        manualErrorHandling: true,
+      });
+    }
+  );
+
+  it('로그인 만료로 끝나면 공개 설정 실패 토스트를 띄우지 않는다(안내는 만료 정리가 맡는다)', async () => {
+    // 보호 경로의 만료는 무음 만료로 끝난다(account.queries.test.ts 선례)
+    useAuthStore.getState().expireSession(`/post/${POST_ID}`);
+    server.use(
+      http.patch(url(`${API_ENDPOINTS.post.base}/${POST_ID}/visibility`), () =>
+        HttpResponse.json(
+          { status: 401, code: SERVER_ERROR_CODE.NOT_LOGGED_IN, message: '' },
+          { status: 401 }
+        )
+      )
+    );
+    const errorSpy = vi.spyOn(toast, 'error');
+
+    const { result } = renderHook(() => useUpdatePostVisibilityMutation(POST_ID), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.mutate({ postId: POST_ID, isPrivate: true });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.error).toBeInstanceOf(SessionExpiredError);
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
   // 가상 스크롤(PostList.tsx, BookmarkPostList.tsx)로 카드가 언마운트될 수 있어

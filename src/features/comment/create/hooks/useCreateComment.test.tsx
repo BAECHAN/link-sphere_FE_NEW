@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { render, renderHook, screen, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { createTestQueryClient } from '@/test/utils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
-import { type ReactNode } from 'react';
+import { MemoryRouter, Outlet, RouterProvider, createMemoryRouter } from 'react-router-dom';
+import { Suspense, lazy, type ReactNode } from 'react';
 import { useCreateComment } from '@/features/comment/create/hooks/useCreateComment';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { accountKeys } from '@/entities/account/api/account.keys';
@@ -18,6 +18,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { RouterEvents } from '@/shared/lib/router/router-events';
 
 // 기본 commentHandlers는 API_BASE_URL 접두사(/api) 없이 등록돼 있어 테스트 환경 요청 경로와
 // 매칭되지 않는다(comment.queries.test.ts와 동일한 이유) - url()로 명시 등록.
@@ -43,6 +44,23 @@ async function renderLoggedIn(queryClient: QueryClient, options: { onSuccess?: (
   });
   await waitFor(() => expect(queryClient.getQueryData(accountKeys.root)).toEqual(mockAccount));
   return result;
+}
+
+type ToastOptions = Parameters<typeof toast.error>[1];
+
+/** 폼을 떠난 뒤 실패 토스트(showLeftPageFailureToast) - 제목·고정 id·닫을 때까지·설명 문구를 본다 */
+function expectLeftFormFailureToast(
+  errorSpy: { mock: { calls: unknown[][] } },
+  { title, key, description }: { title: string; key: string; description: string }
+) {
+  const [message, options] = errorSpy.mock.calls.at(-1) as [string, ToastOptions];
+
+  expect(message).toBe(title);
+  expect(options).toMatchObject({ id: `left-page-failure:${key}`, duration: Infinity });
+
+  const { container } = render(<div>{options?.description as ReactNode}</div>);
+
+  expect(container).toHaveTextContent(description);
 }
 
 describe('useCreateComment', () => {
@@ -368,7 +386,7 @@ describe('useCreateComment', () => {
     );
   });
 
-  it('요청 도중 폼이 닫히면 안내할 자리가 없으니 토스트로 대신 알린다', async () => {
+  it('요청 도중 폼이 닫히면 안내할 자리가 없으니 닫을 때까지 남는 토스트로 대신 알린다', async () => {
     let respond: (() => void) | null = null;
     server.use(
       http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), async () => {
@@ -399,8 +417,100 @@ describe('useCreateComment', () => {
     unmount();
     respond!();
 
-    await waitFor(() =>
-      expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.commentSubmit.createFailed)
+    await waitFor(() => expect(errorSpy).toHaveBeenCalled());
+    // 원인을 가려내지 못한 실패라 제목과 겹치는 "일시적인 문제로 등록하지 못했어요" 대신 할 일만 남긴다
+    expectLeftFormFailureToast(errorSpy, {
+      title: TEXTS.messages.error.leftPageFailure.commentCreateTitle,
+      key: `comment-create:${POST_ID}:root`,
+      description: TEXTS.messages.error.leftPageFailure.retryLater,
+    });
+  });
+
+  it('다른 화면으로 떠나는 중 그 화면을 불러오는 동안 실패해도 폼 대신 토스트로 알린다', async () => {
+    let respond: (() => void) | null = null;
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), async () => {
+        await new Promise<void>((resolve) => {
+          respond = resolve;
+        });
+        return HttpResponse.json({}, { status: 500 });
+      })
     );
+    const errorSpy = vi.spyOn(toast, 'error');
+    // 처음 가는 화면의 청크를 받는 동안을 붙잡아 둔다 - 그동안 이전 화면(댓글 폼)이 마운트된 채 남는다
+    const LazyBookmark = lazy(() => new Promise<{ default: () => JSX.Element }>(() => {}));
+    let hook!: ReturnType<typeof useCreateComment>;
+
+    function CommentFormHarness() {
+      hook = useCreateComment({ postId: POST_ID });
+
+      return <div data-testid="comment-form" />;
+    }
+
+    // 운영처럼 화면마다 같은 자리의 Suspense로 감싼다(app/routes/index.tsx의 withSuspense) - 그래야 다음 화면이
+    // suspend하는 동안 이전 화면이 남는다(useCreatePost.guard.test.tsx와 같은 구성)
+    const router = createMemoryRouter(
+      [
+        {
+          element: <Outlet />,
+          children: [
+            {
+              path: `${ROUTES_PATHS.POST.ROOT}/:id`,
+              element: (
+                <Suspense fallback={null}>
+                  <CommentFormHarness />
+                </Suspense>
+              ),
+            },
+            {
+              path: ROUTES_PATHS.BOOKMARK,
+              element: (
+                <Suspense fallback={null}>
+                  <LazyBookmark />
+                </Suspense>
+              ),
+            },
+          ],
+        },
+      ],
+      { initialEntries: [`${ROUTES_PATHS.POST.ROOT}/${POST_ID}`] }
+    );
+    RouterEvents.setSource(router);
+
+    useAuthStore.getState().setAuth('test-access-token');
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} future={{ v7_startTransition: true }} />
+      </QueryClientProvider>
+    );
+    await waitFor(() => expect(queryClient.getQueryData(accountKeys.root)).toEqual(mockAccount));
+
+    act(() => {
+      hook.form.setValue('content', '떠나는 중 실패할 댓글', { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await hook.onSubmit();
+    });
+
+    await waitFor(() => expect(respond).not.toBeNull());
+
+    act(() => {
+      void router.navigate(ROUTES_PATHS.BOOKMARK);
+    });
+
+    // 라우터는 이미 북마크에 가 있지만 화면은 아직 댓글 폼이다(정지 구간)
+    await waitFor(() => expect(router.state.location.pathname).toBe(ROUTES_PATHS.BOOKMARK));
+    expect(screen.getByTestId('comment-form')).toBeInTheDocument();
+
+    respond!();
+
+    await waitFor(() => expect(errorSpy).toHaveBeenCalled());
+    expectLeftFormFailureToast(errorSpy, {
+      title: TEXTS.messages.error.leftPageFailure.commentCreateTitle,
+      key: `comment-create:${POST_ID}:root`,
+      description: TEXTS.messages.error.leftPageFailure.retryLater,
+    });
+    expect(hook.failureMessage).toBeNull();
   });
 });

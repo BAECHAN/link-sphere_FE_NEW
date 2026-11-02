@@ -15,6 +15,10 @@ import {
 import { postApi } from '@/entities/post/api/post.api';
 import { toast } from '@/shared/lib/toast/toast';
 import {
+  MUTATION_ERROR_POLICY,
+  resolveErrorToast,
+} from '@/shared/lib/react-query/config/error-toast';
+import {
   CreatePost,
   Post,
   PostListRequest,
@@ -438,9 +442,7 @@ export const useUpdatePostVisibilityMutation = (postId: string) => {
     mutationFn: async ({ postId, isPrivate }: { postId: string; isPrivate: boolean }) => {
       return await postApi.updatePostVisibility(postId, isPrivate);
     },
-    meta: {
-      errorMessage: TEXTS.messages.error.postVisibilityUpdateFailed,
-    },
+    meta: { manualErrorHandling: true },
     onSuccess: (_data, variables) => {
       // 방향별 문구라 meta.successMessage(정적 문자열만 지원, queryClient.ts의
       // mutationSuccessHandler)로는 표현할 수 없어 여기서 직접 toast.success를 호출한다.
@@ -454,6 +456,25 @@ export const useUpdatePostVisibilityMutation = (postId: string) => {
       );
       handlePostUpdateSuccess(queryClient, postId);
       handlePostContentUpdateSuccess(queryClient);
+    },
+    onError: (error) => {
+      // 실패하면 🔒가 요청 전 그대로라 이 토스트가 유일한 안내다 - "나만 보기"로 바뀐 줄 알고 넘어가지 않게 닫을
+      // 때까지 남기고, 같은 id로 쌓이지 않게 한다(docs/FE-ARCHITECTURE.md §14). 문구는 전역 핸들러와 같은
+      // 판정(요청 한도·보안 차단·로그인 만료 무음 등)을 그대로 쓰고 유지 시간만 다르다
+      const decision = resolveErrorToast(
+        error,
+        { errorMessage: TEXTS.messages.error.postVisibilityUpdateFailed },
+        MUTATION_ERROR_POLICY
+      );
+
+      if (decision.silent) {
+        return;
+      }
+
+      toast.error(decision.message, {
+        id: decision.id ?? 'post-visibility-error',
+        duration: Infinity,
+      });
     },
   });
 };

@@ -124,6 +124,31 @@ describe('CommentUtil.resolveSubmitError', () => {
   });
 });
 
+describe('CommentUtil.toLeftFormFailureDescription', () => {
+  it('원인을 가려내지 못한 실패는 제목과 겹치는 문구 대신 할 일만 남긴다', () => {
+    const retryLater = TEXTS.messages.error.leftPageFailure.retryLater;
+
+    expect(CommentUtil.toLeftFormFailureDescription(MESSAGES.createFailed, 'create')).toBe(
+      retryLater
+    );
+    expect(CommentUtil.toLeftFormFailureDescription(MESSAGES.createFailed, 'reply')).toBe(
+      retryLater
+    );
+    expect(CommentUtil.toLeftFormFailureDescription(MESSAGES.updateFailed, 'update')).toBe(
+      retryLater
+    );
+  });
+
+  it('원인을 아는 실패는 머물렀을 때와 같은 문구를 쓴다', () => {
+    expect(CommentUtil.toLeftFormFailureDescription(MESSAGES.outcomeUnknown, 'create')).toBe(
+      MESSAGES.outcomeUnknown
+    );
+    expect(CommentUtil.toLeftFormFailureDescription(MESSAGES.commentDeleted, 'update')).toBe(
+      MESSAGES.commentDeleted
+    );
+  });
+});
+
 describe('CommentUtil.isOutcomeUnknown', () => {
   it('연결 끊김과 504만 결과를 모르는 실패로 본다', () => {
     expect(CommentUtil.isOutcomeUnknown(new NetworkError())).toBe(true);

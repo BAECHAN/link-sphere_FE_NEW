@@ -71,7 +71,12 @@ export function usePostCardBookmarkFolderDialog({
             return;
           }
 
-          toast.error(TEXTS.messages.error.bookmarkRestoreFailed);
+          // 되돌리기 토스트는 누르는 순간 닫히고 화면은 되돌리기 전과 같아진다 - 이 토스트가 유일한 안내라
+          // 닫을 때까지 남기고, 같은 id로 쌓이지 않게 한다(docs/FE-ARCHITECTURE.md §14)
+          toast.error(TEXTS.messages.error.bookmarkRestoreFailed, {
+            id: 'bookmark-restore-error',
+            duration: Infinity,
+          });
         });
       },
     },
