@@ -86,6 +86,20 @@ const RESTRICTED_SYNTAX_NO_NATIVE_DATE = [
   },
 ];
 
+// [금지] 정규식 lookbehind((?<=…)·(?<!…))
+// 이유: 빌드 타깃 safari14(vite.config.ts)는 lookbehind를 모른다(Safari 16.4부터,
+// https://caniuse.com/js-regexp-lookbehind). esbuild(0.25.12)는 정규식 문법을 낮추지 못해 경고 없이
+// 리터럴을 new RegExp(...)로만 바꿔 두므로, 빌드·Node 단위 테스트·Chromium e2e는 다 통과하고 옛 Safari에서만
+// 그 줄이 SyntaxError로 멈춘다(2026-11-02 #487 리뷰에서 발견). 테스트·mocks는 Node에서만 돌아 적용하지 않는다.
+const RESTRICTED_SYNTAX_NO_REGEXP_LOOKBEHIND = [
+  {
+    selector:
+      ':matches(Literal[regex.pattern=/\\(\\?<[=!]/], :matches(NewExpression, CallExpression)[callee.name="RegExp"] > Literal[value=/\\(\\?<[=!]/])',
+    message:
+      '정규식 lookbehind((?<=·(?<!)는 빌드 타깃 safari14가 지원하지 않아(Safari 16.4부터) 옛 Safari에서 SyntaxError가 납니다. 캡처 그룹으로 잡아 $1로 되돌려 넣거나(toast.ts), replace 뒤 split하세요(LeftPageFailureToast.tsx).',
+  },
+];
+
 // [금지] 창 폭(innerWidth·outerWidth) 직접 읽기 — 아래 no-restricted-properties·globals 블록이 쓴다
 const VIEWPORT_WIDTH_MESSAGE =
   '창 폭을 px로 읽어 판정하지 마세요. matchMedia에 @/shared/config/const의 MOBILE_MEDIA_QUERY·DESKTOP_MEDIA_QUERY를 쓰세요 — 브라우저 기본 글꼴 크기를 바꾼 사용자에게서 Tailwind(rem)와 갈립니다. 폭 판정이 아닌 측정이면 그 줄에 eslint-disable-next-line과 이유를 다세요.';
@@ -1213,6 +1227,7 @@ export default [
         'error',
         ...RESTRICTED_SYNTAX_COMMON,
         ...RESTRICTED_SYNTAX_NO_NATIVE_DATE,
+        ...RESTRICTED_SYNTAX_NO_REGEXP_LOOKBEHIND,
       ],
     },
   },
@@ -1220,9 +1235,19 @@ export default [
   // 아니라 테스트가 직접 통제하는 리터럴 날짜라 dayjs 안전성 문제가 없다)는 날짜 규칙만
   // 제외 — getState·클래스 컴포넌트 금지는 그대로 적용한다(ESLint flat config는 같은 rule
   // key가 겹치는 files에 다시 나오면 배열을 병합하지 않고 통째로 덮어쓰므로, 공통 규칙을
-  // 여기서도 명시해야 사라지지 않는다)
+  // 여기서도 명시해야 사라지지 않는다). date.util.ts는 배포되는 코드라 lookbehind 금지는 남긴다
   {
-    files: ['src/shared/utils/date.util.ts', '**/*.test.{ts,tsx}', 'src/mocks/**'],
+    files: ['src/shared/utils/date.util.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...RESTRICTED_SYNTAX_COMMON,
+        ...RESTRICTED_SYNTAX_NO_REGEXP_LOOKBEHIND,
+      ],
+    },
+  },
+  {
+    files: ['**/*.test.{ts,tsx}', 'src/mocks/**'],
     rules: {
       'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAX_COMMON],
     },
