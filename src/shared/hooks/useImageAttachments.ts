@@ -11,6 +11,11 @@ interface UseImageAttachmentsOptions {
   reservedCount?: number;
   /** 이미지가 추가될 때 호출되는 콜백 */
   onImageSet?: () => void;
+  /**
+   * 사용자가 넣은 파일이 검증을 통과해 실제로 들어갔을 때 호출되는 콜백. onImageSet과 달리 형식·크기·개수에
+   * 걸려 하나도 안 들어갔거나, 폼이 이미지를 되돌려 놓을 때는 부르지 않는다
+   */
+  onFilesAdded?: () => void;
 }
 
 /**
@@ -21,6 +26,7 @@ export function useImageAttachments({
   maxCount,
   reservedCount = 0,
   onImageSet,
+  onFilesAdded,
 }: UseImageAttachmentsOptions) {
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
@@ -79,6 +85,7 @@ export function useImageAttachments({
 
   // latest-ref 패턴: 재렌더마다 최신 콜백 유지 → effect deps에 포함 불필요
   const onImageSetRef = useRef(onImageSet);
+  const onFilesAddedRef = useRef(onFilesAdded);
 
   // 렌더 중이 아니라 레이아웃 effect에서 갱신한다 - 렌더 중 ref 쓰기는 React 규칙 위반이고
   // (https://react.dev/reference/eslint-plugin-react-hooks/lints/refs), 공식 대안인
@@ -87,6 +94,7 @@ export function useImageAttachments({
   // 읽는 쪽은 항상 최신 값을 본다
   useLayoutEffect(() => {
     onImageSetRef.current = onImageSet;
+    onFilesAddedRef.current = onFilesAdded;
   });
 
   useEffect(
@@ -136,6 +144,7 @@ export function useImageAttachments({
       }
 
       setImages((prev) => [...prev, ...toAdd]);
+      onFilesAddedRef.current?.();
     },
     [maxCount]
   );

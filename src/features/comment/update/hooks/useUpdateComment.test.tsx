@@ -235,6 +235,45 @@ describe('useUpdateComment', () => {
     expect(result.current.failureMessage).toBeNull();
   });
 
+  // 넣으려던 파일이 검증에 걸려 들어가지 않았으면 고친 게 없다(#491 6번)
+  it('실패 뒤 첨부가 검증에 걸려 들어가지 않으면 안내를 남기고, 실제로 들어가면 지운다', async () => {
+    server.use(
+      http.patch(url(API_ENDPOINTS.post.comment(mockComment.id)), () =>
+        HttpResponse.json(
+          { status: 409, code: 'COMMENT_DELETED', message: 'deleted', timestamp: '' },
+          { status: 409 }
+        )
+      )
+    );
+
+    const { result } = renderHook(
+      () => useUpdateComment({ comment: mockComment, postId: mockPost.id, onSuccess: vi.fn() }),
+      { wrapper: createWrapper(queryClient) }
+    );
+
+    act(() => {
+      result.current.form.setValue('content', '수정된 내용', { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(result.current.failureMessage).toBe(TEXTS.messages.error.commentSubmit.commentDeleted);
+
+    await act(async () => {
+      result.current.addFiles([new File(['img'], 'scan.bmp', { type: 'image/bmp' })]);
+    });
+
+    expect(result.current.failureMessage).toBe(TEXTS.messages.error.commentSubmit.commentDeleted);
+
+    act(() => {
+      result.current.addFiles([new File(['img'], 'photo.png', { type: 'image/png' })]);
+    });
+
+    await waitFor(() => expect(result.current.failureMessage).toBeNull());
+  });
+
   it('저장 도중 수정 폼이 닫히면 고친 내용이 남지 않으니 닫을 때까지 남는 토스트로 알린다', async () => {
     let respond: (() => void) | null = null;
     server.use(

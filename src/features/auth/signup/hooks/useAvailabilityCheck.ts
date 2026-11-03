@@ -81,11 +81,21 @@ export function useAvailabilityCheck({ value, schema, checkFn }: UseAvailability
     };
   }, [trimmed, isCheckable, checkFn]);
 
+  // 제출 때 서버가 중복으로 거절한 값을 실시간 확인에서 중복이 나온 것과 같게 만든다 - 확인과 제출 사이에 다른
+  // 사람이 같은 값으로 가입한 경우다. 디바운스가 아직 그 값을 따라오기 전이면 그동안 '확인 중'으로 보인다
+  const markDuplicate = (submittedValue: string) => {
+    const submitted = submittedValue.trim();
+
+    checkedRef.current = submitted;
+    setResult({ value: submitted, status: 'duplicate' });
+  };
+
   return {
     status,
     isChecking: status === 'checking',
     isAvailable: status === 'available',
     isDuplicate: status === 'duplicate',
     hasDebounceSettled,
+    markDuplicate,
   };
 }

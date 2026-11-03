@@ -3,6 +3,7 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { server } from '@/mocks/server';
 import { http, HttpResponse } from 'msw';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { createTestQueryClient } from '@/test/utils';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
@@ -72,4 +73,37 @@ describe('useConfirmPasswordReset', () => {
       expect(requestBody).toEqual({ token: 'raw-token-value', newPassword: 'newPassword1!' })
     );
   });
+
+  // 만료·사용된 링크(#491 4번) - 폼이 그대로면 다시 눌러도 같은 거절만 받는다
+  it.each([
+    { status: 400, code: SERVER_ERROR_CODE.INVALID_ACTION_TOKEN, rejected: true },
+    { status: 500, code: 'INTERNAL_SERVER_ERROR', rejected: false },
+  ])(
+    '$code로 실패하면 처리되지 않은 rejection 없이 끝나고, 토큰 거절 여부는 $rejected다',
+    async ({ status, code, rejected }) => {
+      server.use(
+        http.post(url(API_ENDPOINTS.auth.passwordResetConfirm), () =>
+          HttpResponse.json({ status, code, message: 'fail', timestamp: '' }, { status })
+        )
+      );
+
+      const { result } = renderHook(() => useConfirmPasswordReset(), {
+        wrapper: wrapperWithSearch('?token=raw-token-value'),
+      });
+
+      act(() => {
+        result.current.form.setValue('newPassword', 'newPassword1!', { shouldDirty: true });
+        result.current.form.setValue('confirmPassword', 'newPassword1!', { shouldDirty: true });
+      });
+
+      await act(async () => {
+        await expect(
+          result.current.onSubmit(result.current.form.getValues())
+        ).resolves.toBeUndefined();
+      });
+
+      expect(result.current.isTokenRejected).toBe(rejected);
+      expect(result.current.hasToken).toBe(true);
+    }
+  );
 });

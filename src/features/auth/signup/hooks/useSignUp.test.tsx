@@ -3,6 +3,7 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { server } from '@/mocks/server';
 import { http, HttpResponse } from 'msw';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { createTestQueryClient } from '@/test/utils';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
@@ -146,4 +147,43 @@ describe('useSignUp', () => {
 
     expect(result.current.isSubmitted).toBe(true);
   });
+
+  // 확인과 제출 사이에 다른 사람이 같은 값으로 가입한 경우(#491 5번) - 실시간 확인에서 중복이 나온 것과 같아야
+  // 한다. 확인 결과(초록 "사용 가능")가 그대로면 다시 눌러도 같은 409만 받는다
+  it.each([
+    { field: 'email', code: 'DUPLICATE_MEMBER', check: 'emailCheck' },
+    { field: 'nickname', code: SERVER_ERROR_CODE.DUPLICATE_NICKNAME, check: 'nicknameCheck' },
+  ] as const)(
+    '확인 때 사용 가능했던 $field가 제출 때 중복(409)이면 칸 오류를 띄우고 제출을 막는다',
+    async ({ field, code, check }) => {
+      server.use(
+        http.post(url(API_ENDPOINTS.auth.signup), () =>
+          HttpResponse.json(
+            { status: 409, code, message: 'duplicate', timestamp: '' },
+            { status: 409 }
+          )
+        )
+      );
+      const { result } = renderHook(() => useSignUp(), { wrapper: Wrapper });
+
+      act(() => {
+        result.current.form.setValue('nickname', 'newNick', { shouldDirty: true });
+        result.current.form.setValue('email', 'new@example.com', { shouldDirty: true });
+        result.current.form.setValue('password', 'Passw0rd!', { shouldDirty: true });
+        result.current.form.setValue('confirmPassword', 'Passw0rd!', { shouldDirty: true });
+      });
+
+      await waitFor(() => expect(result.current[check].isAvailable).toBe(true), {
+        timeout: 2000,
+      });
+
+      await act(async () => {
+        await result.current.onSubmit(result.current.form.getValues());
+      });
+
+      expect(result.current[check].isDuplicate).toBe(true);
+      expect(result.current.form.formState.errors[field]).toBeTruthy();
+      expect(result.current.isSubmitDisabled).toBe(true);
+    }
+  );
 });

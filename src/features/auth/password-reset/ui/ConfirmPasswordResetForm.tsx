@@ -19,22 +19,27 @@ import { PasswordConfirmMessage } from '@/entities/auth/ui/PasswordConfirmMessag
 import { TEXTS } from '@/shared/config/texts';
 
 export const ConfirmPasswordResetForm = () => {
-  const { form, onSubmit, isPending, hasToken, passwordFeedback } = useConfirmPasswordReset();
+  const { form, onSubmit, isPending, hasToken, isTokenRejected, passwordFeedback } =
+    useConfirmPasswordReset();
+  // 거절된 링크(만료·이미 사용)도 링크가 없을 때와 같은 카드로 새 링크를 요청하게 한다
+  const isFormShown = hasToken && !isTokenRejected;
 
   return (
     <div className="flex h-[calc(100vh-var(--navbar-height))] items-center justify-center px-4">
       <Card className="w-full max-w-md shadow-lg border-muted-foreground/10 gap-4">
         <CardHeader className="text-center space-y-3">
           <IconBadge
-            icon={hasToken ? Lock : Clock}
-            tone={hasToken ? 'info' : 'warning'}
+            icon={isFormShown ? Lock : Clock}
+            tone={isFormShown ? 'info' : 'warning'}
             className="mx-auto mb-1"
           />
           <CardTitle>
-            {hasToken ? TEXTS.auth.resetPassword.title : TEXTS.auth.resetPassword.invalidTokenTitle}
+            {isFormShown
+              ? TEXTS.auth.resetPassword.title
+              : TEXTS.auth.resetPassword.invalidTokenTitle}
           </CardTitle>
           <CardDescription>
-            {hasToken ? (
+            {isFormShown ? (
               TEXTS.auth.resetPassword.subtitle
             ) : (
               <>
@@ -46,7 +51,7 @@ export const ConfirmPasswordResetForm = () => {
             )}
           </CardDescription>
         </CardHeader>
-        {hasToken && (
+        {isFormShown && (
           <CardContent>
             <FormProvider {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
@@ -80,7 +85,7 @@ export const ConfirmPasswordResetForm = () => {
           </CardContent>
         )}
         <CardFooter className="flex flex-col items-stretch space-y-4">
-          {!hasToken && (
+          {!isFormShown && (
             <Button asChild className="w-full h-11 mt-1">
               <Link to={ROUTES_PATHS.AUTH.FORGOT_PASSWORD}>
                 {TEXTS.auth.resetPassword.requestNewLink}

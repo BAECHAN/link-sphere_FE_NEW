@@ -276,6 +276,42 @@ describe('useCreateComment', () => {
     expect(result.current.failureMessage).toBeNull();
   });
 
+  // 넣으려던 파일이 검증에 걸려 들어가지 않았으면 고친 게 없다(#491 6번)
+  it('실패 뒤 첨부가 검증에 걸려 들어가지 않으면 안내를 남기고, 실제로 들어가면 지운다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), () =>
+        HttpResponse.json({}, { status: 500 })
+      )
+    );
+
+    const result = await renderLoggedIn(queryClient);
+
+    act(() => {
+      result.current.form.setValue('content', '실패할 댓글', { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    await waitFor(() =>
+      expect(result.current.failureMessage).toBe(TEXTS.messages.error.commentSubmit.createFailed)
+    );
+
+    await act(async () => {
+      result.current.addFiles([new File(['img'], 'scan.bmp', { type: 'image/bmp' })]);
+    });
+
+    expect(result.current.failureMessage).toBe(TEXTS.messages.error.commentSubmit.createFailed);
+
+    act(() => {
+      result.current.addFiles([new File(['img'], 'photo.png', { type: 'image/png' })]);
+    });
+
+    await waitFor(() => expect(result.current.failureMessage).toBeNull());
+    expect(result.current.images).toHaveLength(1);
+  });
+
   it('첨부 이미지까지 복원돼도 안내는 남고, 이미지를 빼면 지운다', async () => {
     // 업로드 한도(429)에 걸린 경우 - 복원된 이미지가 미리보기를 다시 만들 때 안내가 지워지면 안 된다
     server.use(

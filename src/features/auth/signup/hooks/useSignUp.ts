@@ -163,6 +163,14 @@ export function useSignUp() {
         return;
       }
 
+      // 확인과 제출 사이에 다른 사람이 같은 값으로 가입했다 - 확인 결과("사용 가능")가 남아 있으면 다시 눌러도
+      // 같은 409만 받으니, 실시간 확인에서 중복이 나온 것처럼 칸 오류를 띄우고 제출을 막는다
+      if (resolution.reason === 'duplicateEmail') {
+        emailCheck.markDuplicate(data.email);
+      } else if (resolution.reason === 'duplicateNickname') {
+        nicknameCheck.markDuplicate(data.nickname);
+      }
+
       // 화면에 머물렀으면 입력이 그대로 남아 바로 다시 시도할 수 있다
       toast.error(resolution.message);
       return;
