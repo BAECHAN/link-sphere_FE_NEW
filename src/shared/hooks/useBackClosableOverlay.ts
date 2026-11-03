@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { create } from 'zustand';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { RouterEvents } from '@/shared/lib/router/router-events';
@@ -111,6 +111,48 @@ export function useBackClosableOverlayOpen(key: string) {
   const { open: openWithHistory } = useHistoryOverlay(key);
 
   return closesWithCloseWatcher ? () => openOverlay(key) : openWithHistory;
+}
+
+/**
+ * 열린 창이나 페이지 안에서 펼친 상태(창 안의 새 폴더 입력, 북마크 페이지의 이름 입력 등)를 뒤로가기로 먼저 접는다. 두 번째
+ * 오버레이가 아니라 그 안의 상태라 오버레이를 겹쳐 쌓지 않는다는 전제와 부딪히지 않는다. 뒤로가기가 닫기 요청으로 오는
+ * 기기(useBackClosableOverlay의 CloseWatcher 경로)에서만 동작하고, 그 밖의 기기에서는 아무것도 하지 않는다.
+ * - 호출한 컴포넌트가 마운트돼 있고 enabled인 동안 CloseWatcher를 하나 둔다. 펼치는 탭 뒤에 만들어져 바깥(창)의 watcher와
+ *   다른 그룹이 되므로 뒤로가기 한 번이 이것만 닫는다. 조작 없이 다시 만들면 바깥 그룹에 붙어 함께 닫히므로, 핸들러가
+ *   바뀌어도 다시 만들지 않는다(그룹 규칙과 근거는 docs/BOOKMARK.md §5).
+ * - 닫기 요청을 한 번 받으면 watcher는 끝난다. 핸들러가 요청을 무시해도 다음 뒤로가기는 바깥(창이나 히스토리)이 받는다.
+ *
+ * @param onCloseRequest 뒤로가기(닫기 요청)를 받았을 때 부른다. 늘 마지막 렌더의 함수를 부른다.
+ * @param enabled 펼친 상태가 훅을 부르는 쪽에 있을 때 그 상태를 넘긴다. false면 watcher를 두지 않는다.
+ */
+export function useBackCloseRequest(onCloseRequest: () => void, enabled = true) {
+  const onCloseRequestRef = useRef(onCloseRequest);
+
+  // 렌더 중이 아니라 레이아웃 effect에서 갱신한다 - 렌더 중 ref 쓰기는 React 규칙 위반이고
+  // (https://react.dev/reference/eslint-plugin-react-hooks/lints/refs), 공식 대안인
+  // useEffectEvent는 React 19.2부터(https://react.dev/blog/2025/10/01/react-19-2)라 React 18인
+  // 이 레포에선 쓸 수 없다(useIntersectionObserver.ts와 같은 방식)
+  useLayoutEffect(() => {
+    onCloseRequestRef.current = onCloseRequest;
+  });
+
+  useEffect(
+    function callOnCloseRequest() {
+      const CloseWatcher = window.CloseWatcher;
+
+      if (!enabled || !CloseWatcher || !canCloseWithCloseWatcher()) {
+        return;
+      }
+
+      const watcher = new CloseWatcher();
+      watcher.onclose = () => onCloseRequestRef.current();
+
+      return () => {
+        watcher.destroy();
+      };
+    },
+    [enabled]
+  );
 }
 
 /** 테스트 격리용 - 열린 키와 이동 구독을 비운다. useBackClosableOverlay.test.tsx의 afterEach에서 호출한다. */

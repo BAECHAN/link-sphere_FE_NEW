@@ -7,6 +7,7 @@ import {
   resetBackClosableOverlay,
   useBackClosableOverlay,
   useBackClosableOverlayOpen,
+  useBackCloseRequest,
 } from '@/shared/hooks/useBackClosableOverlay';
 
 const navigateSpy = vi.fn();
@@ -346,6 +347,68 @@ describe('useBackClosableOverlayOpen', () => {
       });
 
       expect(renderCount).toBe(1);
+    });
+  });
+});
+
+describe('useBackCloseRequest', () => {
+  afterEach(() => {
+    delete window.CloseWatcher;
+    watchers.length = 0;
+    vi.restoreAllMocks();
+  });
+
+  it('CloseWatcher가 있어도 터치가 주 입력이 아니면(데스크톱) 아무것도 만들지 않는다', () => {
+    setUpDevice({ closeWatcher: true, coarsePointer: false });
+
+    renderHook(() => useBackCloseRequest(vi.fn()));
+
+    expect(watchers).toHaveLength(0);
+  });
+
+  describe('뒤로가기가 닫기 요청인 기기(CloseWatcher + 터치)', () => {
+    beforeEach(() => {
+      setUpDevice({ closeWatcher: true, coarsePointer: true });
+    });
+
+    it('핸들러가 바뀌어도 CloseWatcher를 다시 만들지 않고, 닫기 요청엔 마지막 핸들러를 부른다', () => {
+      // 탭 없이 다시 만들면 창 그룹에 붙어 뒤로가기 한 번에 창까지 닫힌다(WHATWG close watcher 그룹 규칙)
+      const first = vi.fn();
+      const second = vi.fn();
+      const { rerender } = renderHook(({ onCloseRequest }) => useBackCloseRequest(onCloseRequest), {
+        initialProps: { onCloseRequest: first },
+      });
+
+      rerender({ onCloseRequest: second });
+      watchers[0]?.onclose?.();
+
+      expect(watchers).toHaveLength(1);
+      expect(first).not.toHaveBeenCalled();
+      expect(second).toHaveBeenCalledTimes(1);
+    });
+
+    it('언마운트하면 CloseWatcher를 정리한다', () => {
+      const { unmount } = renderHook(() => useBackCloseRequest(vi.fn()));
+
+      unmount();
+
+      expect(watchers[0]?.destroyed).toBe(true);
+    });
+
+    it('enabled가 켜질 때만 CloseWatcher를 두고, 꺼지면 정리한다', () => {
+      const { rerender } = renderHook(({ enabled }) => useBackCloseRequest(vi.fn(), enabled), {
+        initialProps: { enabled: false },
+      });
+
+      expect(watchers).toHaveLength(0);
+
+      rerender({ enabled: true });
+
+      expect(watchers).toHaveLength(1);
+
+      rerender({ enabled: false });
+
+      expect(watchers[0]?.destroyed).toBe(true);
     });
   });
 });
