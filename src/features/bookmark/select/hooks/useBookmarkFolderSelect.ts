@@ -1,11 +1,5 @@
-import { useRef, useState } from 'react';
-import { toast } from '@/shared/lib/toast/toast';
-import { TEXTS } from '@/shared/config/texts';
-import { ErrorUtil } from '@/shared/utils/error.util';
-import {
-  useCreateBookmarkFolderMutation,
-  useBookmarkFolderListQuery,
-} from '@/entities/bookmark/folder/api/bookmark-folder.queries';
+import { useState } from 'react';
+import { useBookmarkFolderListQuery } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import { useRecentBookmarkFolders } from '@/entities/bookmark/folder/hooks/useRecentBookmarkFolders';
 import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-folder.util';
@@ -23,8 +17,9 @@ interface UseBookmarkFolderSelectParams {
 }
 
 /**
- * 폴더 선택 모달(BookmarkFolderSelectDialog)의 로직 전부 — 폴더 목록 조회·생성·행별 pending
- * 상태를 소유한다. 저장 동작 자체(성공 토스트·닫기·라우팅)는 호출부가 콜백으로 넘긴다.
+ * 폴더 선택 모달(BookmarkFolderSelectDialog)의 로직 — 폴더 목록 조회·생성 입력 펼침·행별 pending
+ * 상태를 소유한다. 새 폴더 이름과 생성 요청은 입력 쪽(useNewFolderInput)이 갖는다. 저장 동작
+ * 자체(성공 토스트·닫기·라우팅)는 호출부가 콜백으로 넘긴다.
  */
 export function useBookmarkFolderSelect({
   open,
@@ -42,26 +37,22 @@ export function useBookmarkFolderSelect({
   const orderedFolderList = BookmarkFolderUtil.orderPinnedFirst(folderList);
   // 상단 "최근 저장한 폴더" 구획 — 열 때마다(open) 새로 스냅샷, 열려있는 동안은 고정
   const { recentFolderList } = useRecentBookmarkFolders(folderList, isFetching, open);
-  const { mutateAsync: createFolder, isPending: isCreating } = useCreateBookmarkFolderMutation();
 
   const [creatingMode, setCreatingMode] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-  const newFolderNameError = BookmarkFolderUtil.nameLengthError(newFolderName);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
-  const submittingRef = useRef(false);
 
   const [prevOpen, setPrevOpen] = useState(open);
 
-  // 다이얼로그가 닫히면 생성 입력 상태를 리셋한다 — 열려 있는 동안만 스스로 닫히는 즉시 저장
+  // 다이얼로그가 닫히면 생성 입력을 접는다 — 열려 있는 동안만 스스로 닫히는 즉시 저장
   // 경로(PostCardBookmarkFolderDialog)와 달리, 지연 선택(PostCreateBookmarkFolderField)은 확인 버튼으로 닫히므로
-  // 여기서 공통으로 처리해야 다음에 열 때 입력창이 남아있지 않는다. effect가 아니라 렌더 중에
+  // 여기서 공통으로 처리해야 다음에 열 때 입력창이 남아있지 않는다. 입력값은 접힐 때 입력 컴포넌트와 함께
+  // 사라진다. effect가 아니라 렌더 중에
   // 맞춘다 (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
   if (open !== prevOpen) {
     setPrevOpen(open);
 
     if (!open) {
       setCreatingMode(false);
-      setNewFolderName('');
     }
   }
 
@@ -99,38 +90,14 @@ export function useBookmarkFolderSelect({
     }
   };
 
-  const handleCreateAndSelect = async () => {
-    if (submittingRef.current || isCreating) {
-      return;
-    }
-
-    const name = newFolderName.trim();
-
-    if (!name || newFolderNameError) {
-      return;
-    }
-
-    submittingRef.current = true;
-
-    try {
-      const created = await createFolder({ name });
-      setNewFolderName('');
-      setCreatingMode(false);
-      await handleSelectFolder(created);
-    } catch (error) {
-      if (ErrorUtil.isSessionExpired(error)) {
-        return;
-      }
-
-      toast.error(TEXTS.messages.error.folderCreateFailedFull);
-    } finally {
-      submittingRef.current = false;
-    }
+  // 새 폴더를 만든 직후 — 입력을 접고 그 폴더를 고른다. 실패하면 입력 쪽(useNewFolderInput)이 토스트를 띄운다
+  const handleFolderCreated = async (folder: BookmarkFolder) => {
+    setCreatingMode(false);
+    await handleSelectFolder(folder);
   };
 
   const handleCancelCreate = () => {
     setCreatingMode(false);
-    setNewFolderName('');
   };
 
   return {
@@ -143,13 +110,9 @@ export function useBookmarkFolderSelect({
     isAnyPending,
     creatingMode,
     setCreatingMode,
-    newFolderName,
-    setNewFolderName,
-    newFolderNameError,
-    isCreating,
     handleSelectUncategorized,
     handleSelectFolder,
-    handleCreateAndSelect,
+    handleFolderCreated,
     handleCancelCreate,
   };
 }
