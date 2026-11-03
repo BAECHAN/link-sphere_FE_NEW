@@ -1,5 +1,5 @@
 import { FallbackProps } from 'react-error-boundary';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { usePostDetail } from '@/pages/post/hooks/usePostDetail';
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { CommentList } from '@/widgets/comment/comment-list/ui/CommentList';
@@ -88,9 +88,12 @@ function PostDetailErrorFallback({ error }: FallbackProps) {
 }
 
 export function PostDetailPage() {
+  // 알림 클릭처럼 상세에서 다른 상세로 가면 이 컴포넌트가 그대로 남는다 - 글이 바뀌면 앞 글의 에러 화면을 푼다
+  const { id } = useParams<{ id: string }>();
+
   // 게시글·댓글 요청은 페이지 청크 밖의 라우트(app/routes의 PostDetailRoute)가 미리 시작한다
   return (
-    <AsyncBoundary errorFallback={PostDetailErrorFallback}>
+    <AsyncBoundary errorFallback={PostDetailErrorFallback} resetKeys={[id]}>
       <PostDetailContent />
     </AsyncBoundary>
   );

@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { Post } from '@/entities/post/model/post.schema';
+import { isUnusedFailedQuery } from '@/shared/lib/react-query/unused-failed-query';
 
 const rootKey = ['post'] as const;
 
@@ -39,15 +40,24 @@ export const postRemoveQueries = {
   detail: (queryClient: QueryClient, postId: Post['id']) => {
     queryClient.removeQueries({ queryKey: postKeys.detail(postId), exact: true });
   },
+  /** 데이터 없이 실패한 상세. 상세 화면을 떠날 때 지운다(isUnusedFailedQuery 주석 참고). */
+  erroredDetail: (queryClient: QueryClient, postId: Post['id']) => {
+    queryClient.removeQueries({
+      queryKey: postKeys.detail(postId),
+      exact: true,
+      predicate: isUnusedFailedQuery,
+    });
+  },
   /**
-   * 조회에 실패한 목록. suspense 쿼리는 이미 마운트된 화면이 에러 상태인 키로 바뀌면 일부러 다시
+   * 데이터 없이 실패한 목록. suspense 쿼리는 이미 마운트된 화면이 에러 상태인 키로 바뀌면 일부러 다시
    * 요청하지 않는다(query-core queryObserver.ts의 shouldFetchOptionally - 에러 경계와의 무한 루프
-   * 방지). 남겨 두면 실패했던 검색 조건을 다시 골랐을 때 요청 없이 같은 에러가 바로 뜬다.
+   * 방지). 남겨 두면 실패했던 검색 조건을 다시 골랐을 때 요청 없이 같은 에러가 바로 뜬다. 피드를 떠날 때도
+   * 지운다. 1쪽이 있고 다음 쪽만 실패한 목록은 남긴다(isUnusedFailedQuery 주석 참고).
    */
   erroredLists: (queryClient: QueryClient) => {
     queryClient.removeQueries({
       queryKey: postKeys.listRoot,
-      predicate: (query) => query.state.status === 'error',
+      predicate: isUnusedFailedQuery,
     });
   },
 };

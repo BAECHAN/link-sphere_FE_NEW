@@ -187,7 +187,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   검색 조건(q·filter·봇 숨기기)이 바뀌면 에러 상태를 풀고 다시 조회한다(`resetKeys`,
   `usePostListErrorReset`, `usePostList.ts:106-116`). 풀 때 실패한 목록 쿼리를 캐시에서 지워,
   실패했던 조건을 나중에 다시 골라도 새로 요청한다. 경위는 [`SEARCH.md`](./SEARCH.md) §10
-  2026-10-14 항목.
+  2026-10-14 항목. 피드를 떠날 때도 같은 함수로 지운다 — 아래 "조회에 실패한 화면에 다시 들어오기"(2026-11-03).
+  둘 다 데이터 없이 실패한 목록만 지우고, 1쪽이 있고 다음 쪽만 실패한 목록은 남긴다.
 - **조건을 바꾼 뒤 응답 대기**: 목록은 새 응답이 올 때까지 이전 결과를 유지한다(스켈레톤 없음).
   0.5초가 지나도 응답이 없으면 `PostList.tsx`의 `isApplying` 덮개가 이전 목록을 흐리게 덮고 "결과를 불러오는
   중이에요."를 띄운다(`usePostListApplying`, `usePostList.ts:131-157`). 판정과 근거는
@@ -263,7 +264,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
     `meta` 조건을 빼면 지운 뒤 화면이 같은 요청을 한 번 더 보내 토스트가 두 번 뜬다(테스트로 확인:
     `post.queries.test.ts`의 "미리 받는 중에 상세 화면이 열린 뒤 실패하면", 조건을 빼면 요청 2회로 실패).
   - 라우트의 `usePrefetchPostDetail`·`usePrefetchComments`는 바꾸지 않았다 — 화면이 곧 붙어 그 화면이 실패를
-    처리한다(남은 한계는 [`COMMENT.md`](./COMMENT.md) "남은 것").
+    처리한다. 그 실패가 캐시에 남아 다시 들어와도 같은 에러가 뜨던 것은 2026-11-03 화면을 떠날 때 지우도록
+    고쳤다(아래 "조회에 실패한 화면에 다시 들어오기").
 - **소유자 액션**(`isOwner`일 때만): 비공개 글이면 자물쇠 버튼(누르면 공개 전환),
   그리고 ⋮(`HoverKebabMenu`) 안에 수정·공개/비공개 전환·삭제.
 - **AI 결과 표시**: `aiSummary`가 있을 때만 접이식 "AI 요약" 블록. 설명이 없고
@@ -283,7 +285,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   같은 렌더에서 게시글(`usePrefetchPostDetail`)과 댓글(`usePrefetchComments`)을 요청한다. 게시글은 상세 조회와
   같은 옵션 묶음(`postDetailQueryOptions`)을 써 `retry: false`까지 같다. 진행 중인 요청은 먼저 시작한 쪽 옵션으로
   돌기 때문이다. 카드·내 댓글 hover의 `prefetchPostDetail`도 같은 옵션 묶음을 쓴다(2026-10-27 전에는 `retry`가
-  빠져 있어, 지워진 글을 hover 직후 클릭하면 404 안내가 재시도만큼 늦었다).
+  빠져 있어, 지워진 글을 hover 직후 클릭하면 404 안내가 재시도만큼 늦었다). 미리 받기는 캐시에 상태가 있으면
+  건너뛰므로, 같은 라우트가 떠날 때 데이터 없이 실패한 게시글·댓글을 지운다(아래 "조회에 실패한 화면에 다시 들어오기").
 - **썸네일**: 상세 카드의 썸네일이 이 페이지의 LCP 요소라 `priorityThumbnail`로 `loading="eager"`·
   `fetchPriority="high"`를 준다(2026-10-26, 그 전에는 목록과 같은 `lazy`). 피드는 첫 행(최대 3장)만 같은 우선
   로딩을 받고 나머지 카드는 `lazy`다(`pages/post/index.tsx`의 `renderFeedPost`, #195).
@@ -304,6 +307,42 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   화면은 게시글을 받지 못해 기본 탭 제목(`Link Sphere`)이 그대로다. 카카오톡·슬랙 같은 링크 미리보기에는 이 제목이
   쓰이지 않는다(§11).
 - 상세 화면은 같은 `PostCard`(`isDetail`) 아래 `CommentList`를 붙인다.
+
+### 조회에 실패한 화면에 다시 들어오기 (2026-11-03, #491 3번)
+
+**문제**: 상세·댓글·피드 목록·내 댓글(앱의 suspense 쿼리 4개)이 데이터 없이 실패하면, 서버가 회복된 뒤 5분 안에
+다시 들어와도 요청 없이 같은 에러 화면이 떴다. 실패한 쿼리는 gc(5분) 전까지 캐시에 남는데, 에러 경계가 리셋되기
+전에는 화면이 마운트할 때 다시 요청하지 않고(`@tanstack/react-query` 5.90.16 `build/modern/errorBoundaryUtils.js:8-11`의
+`retryOnMount=false`, query-core `queryObserver.js:442-443`), 라우트의 미리 받기(`usePrefetchQuery`)도 상태가 있으면
+건너뛴다. 뒤로가기·알림·주소 직접 입력으로 돌아올 때 드러난다. 카드 클릭은 hover 미리 받기(`prefetchQuery`)가 실패한
+쿼리를 다시 받아 가려져 있었다. 직접 측정: `e2e/failed-query-reentry.spec.ts` 4건(진입 500 → 다른 화면 → 서버 회복 →
+뒤로가기)이 수정 전에는 4건 모두 다시 요청하지 않고 에러 화면에 머물러 실패했다.
+
+**고친 것**: 화면을 떠날 때 데이터 없는 실패 쿼리를 지운다. 다시 들어오면 새로 요청한다.
+
+| 화면    | 떠날 때 부르는 훅                                                              | 부르는 곳                                     |
+| ------- | ------------------------------------------------------------------------------ | --------------------------------------------- |
+| 상세    | `useRemoveErroredPostDetailOnLeave(id)` → `postRemoveQueries.erroredDetail`    | `PostDetailRoute`(`src/app/routes/index.tsx`) |
+| 댓글    | `useRemoveErroredCommentsOnLeave(postId)` → `commentRemoveQueries.erroredList` | 같은 곳                                       |
+| 피드    | `useRemoveErroredPostListsOnLeave()` → `postRemoveQueries.erroredLists`        | `PostList.tsx`의 `PostList`                   |
+| 내 댓글 | `useRemoveErroredMyCommentsOnLeave()` → `commentRemoveQueries.erroredMy`       | `MyCommentList.tsx`의 `MyCommentList`         |
+
+- **지우는 조건**: `isUnusedFailedQuery`(`src/shared/lib/react-query/unused-failed-query.ts`) — 실패했고, 데이터가 없고,
+  보고 있는 화면(관찰자)이 없을 때. 1쪽을 받고 다음 쪽만 실패한 목록은 남긴다 — 돌아오면 1쪽과 "더 불러오지 못했어요."
+  행이 그대로 보인다(지우면 1쪽부터 다시 받는다). 검색 조건을 바꿀 때 부르는 `erroredLists`(위 "조회 실패")도 이
+  조건으로 바꿨다. 그 전에는 `status === 'error'`만 봐서 1쪽이 있는 목록까지 지웠다(#491 6번).
+- **훅은 에러 경계 밖에서 부른다**: 경계 안쪽 컴포넌트는 렌더 중에 에러를 던져 effect가 붙지 않는다.
+- **상세에서 다른 상세로 갈 때**(알림 토스트 클릭, `useFcmForegroundMessage.ts:48`): 상세 컴포넌트가 그대로 남아 에러
+  경계가 리셋되지 않아, 앞 글의 에러 화면이 다음 글에도 남았다(`PostDetailPage.test.tsx` "조회 실패 뒤 다른 글로
+  이동" 2건으로 재현). `PostDetailPage`·`CommentList`의 `AsyncBoundary`에 `resetKeys`로 글 id를 넘긴다. 댓글 테스트는
+  운영 라우터처럼 이동을 transition으로 감싼다(`v7_startTransition`, `RouterProvider.tsx:27`). 감싸지 않으면 다음 글을
+  기다리는 동안 댓글 영역이 숨겨졌다 다시 보이며 `componentDidUpdate`가 불리지 않아(react-dom 18.3.1
+  `react-dom.development.js:23322-23323`) `resetKeys` 비교가 돌지 않는다. 운영에서는 이전 화면이 남아 그 경로를 타지
+  않는다.
+- **진 대안**(사용자 결정, 2026-11-03): 에러 화면에 [다시 시도] 버튼을 더하는 것 — 화면이 바뀌어 시안이 먼저
+  필요했고, 떠났다 돌아오는 경우는 지우기만으로 풀린다. 문서만 정정 / 그대로 — 서버가 회복돼도 5분간 막힌다.
+- 규칙(새 suspense 화면도 같은 훅을 둔다)은 [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §13 "suspense 화면은 떠날
+  때 데이터 없는 실패를 지운다". 계획: [`plans/2026-11-03-error-toast-followups-review.md`](./plans/2026-11-03-error-toast-followups-review.md).
 
 ### 작성
 
@@ -571,6 +610,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:164-236`, `src/widgets/post/post-list/ui/PostList.tsx`                                                                                                              |
 | 카드 UI / 카드 동작          | `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`                                                                                                                      |
 | 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:61-94`                                                                                                                                                                            |
+| 떠날 때 실패 정리            | 조건 `src/shared/lib/react-query/unused-failed-query.ts`, 지우는 함수 `post.keys.ts`의 `postRemoveQueries`, 훅 `src/entities/post/hooks/useRemoveErrored*OnLeave.ts`                                                 |
 | 작성 폼 / 제출               | `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/create/hooks/useCreatePost.ts`의 `onSubmit`                                                                                                     |
 | 수정 폼 / 제출               | `src/features/post/update/ui/UpdatePostForm.tsx`, `src/features/post/update/hooks/useUpdatePost.ts`의 `onSubmit`                                                                                                     |
 | 삭제 확인창                  | `src/features/post/delete/hooks/usePostDelete.ts:10-24`                                                                                                                                                              |
@@ -646,6 +686,12 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
   `comment.queries.test.ts`의 `prefetchComments`(2)가 앞의 둘을 같은 방식으로 본다
 - `src/shared/lib/react-query/prefetch-quietly.test.ts`(3, 2026-11-03) — 데이터가 있던 쿼리는 다시 받다 실패해도
   데이터를 두고, 진행 중에 같은 키로 다시 불러도 요청은 1회, 구독 중인 화면이 있으면 지우지 않음
+- 떠날 때 실패 정리(2026-11-03, "조회에 실패한 화면에 다시 들어오기", 직접 실행) —
+  `src/shared/lib/react-query/unused-failed-query.test.ts`(4: 데이터 없는 실패만 참, 데이터·관찰자가 있거나 성공이면
+  거짓), `src/entities/post/hooks/useRemoveErroredPostDetailOnLeave.test.tsx`(3: 떠나면 지움, 글이 바뀌면 앞 글을 지움,
+  성공한 상세는 남김), `useRemoveErroredPostListsOnLeave.test.tsx`(2: 실패한 목록은 지우고 1쪽이 있는 목록은 남김),
+  `PostDetailPage.test.tsx`의 "조회 실패 뒤 다른 글로 이동"(2: `resetKeys`를 빼면 실패). 댓글 쪽은
+  [`COMMENT.md`](./COMMENT.md) §9
 
 **e2e**(`e2e/`, Playwright) — 이 기능을 덮는 스펙. 이번 검토에서 실행하지는 않았다.
 
@@ -666,6 +712,9 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 - `list-fetch-failure.spec.ts`(2026-11-03, 직접 실행) — 피드 다음 페이지가 429면 3초 동안 1번만 요청하고 "더
   불러오지 못했어요." 행을 보여주며 [다시 시도]로 받는지, 북마크 폴더 글 첫 조회가 실패하면 빈 목록 대신 오류
   문구를 보여주는지. 수정 전에는 3초 동안 2,027번 요청했다
+- `failed-query-reentry.spec.ts`(2026-11-03, 직접 실행) — 상세·댓글·피드·내 댓글 조회가 500으로 실패한 뒤 다른 화면에
+  갔다가 서버가 회복되고 뒤로가기로 돌아오면 다시 요청해 내용을 보여주는지. 수정 전에는 4건 모두 실패했고, 수정 뒤
+  `--repeat-each 5`로 20/20 통과. 지우는 조건을 항상 거짓으로 바꾸면 다시 실패하는 것도 확인했다
 - `post-card-footer-layout.spec.ts`, `post-card-hover-menu.spec.ts`,
   `post-list-virtualization.spec.ts`, `post-list-scroll-restore.spec.ts`, `post-list.spec.ts`,
   `guest-guard.spec.ts`, `unsaved-changes.spec.ts`
@@ -774,6 +823,12 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
   태그를 바꿔야 한다. 반대로 Google은 _"JavaScript로 meta description과 `<title>` 요소를 설정하거나 바꿀 수 있다"_
   (번역, [JavaScript SEO 기본](https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics))고
   쓴다.
+- **요청이 끝나기 전에 떠났다가 그 뒤 실패하면 실패가 남는다**(2026-11-03). 떠날 때 지우는 조건은 "실패"인데, 그 순간
+  아직 요청 중이라 지우지 않는다. 그 화면에 5분 안에 다시 들어오면 요청 없이 같은 에러가 뜬다(gc 또는 새로고침까지).
+  "조회에 실패한 화면에 다시 들어오기" 참고.
+- **수정 페이지에서 실패한 상세는 상세에 들어갈 때 남아 있을 수 있다**(2026-11-03). 수정 폼은 suspense가 아닌
+  `useFetchPostDetailQuery`로 같은 키를 읽고, 수정 페이지에는 떠날 때 정리 훅이 없다. 수정 페이지에서 조회가 실패한
+  뒤 그 글의 상세로 가면 상세가 요청 없이 에러를 보여줄 수 있다.
 
 ## 12. 용어 사전
 
@@ -810,6 +865,9 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
   컴포넌트(소유자 메뉴).
 - **`AsyncBoundary` / `DelayedFallback`** — `src/shared/ui/elements/`. `AsyncBoundary`는
   Suspense + 에러 경계를 묶은 래퍼, `DelayedFallback`은 로딩 표시를 500ms 뒤에만 보여주는 래퍼.
+- **`isUnusedFailedQuery`** — `src/shared/lib/react-query/unused-failed-query.ts`. 실패했고 데이터가 없고 보고 있는
+  화면(관찰자)이 없는 쿼리인지 판정한다. 떠날 때 실패 정리와 `erroredLists`가 쓴다(§5 "조회에 실패한 화면에 다시
+  들어오기").
 - **`useProtectedNavigate`** — `src/entities/auth/hooks/useProtectedNavigate.ts`. 로그인 상태면
   바로 이동하고, 아니면 로그인 모달을 띄운 뒤 성공 시 원래 목적지로 이동한다("Submit Link" 버튼).
 - **`@x`** — 다른 엔티티에 공개하는 교차 참조 파일(`src/entities/post/@x/`). FSD 표기 —

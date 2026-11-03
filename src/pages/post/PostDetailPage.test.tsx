@@ -8,6 +8,7 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
+import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
 
 const DELETED_POST_PATH = '/post/deleted-post-id';
@@ -169,5 +170,104 @@ describe('PostDetailPage - 썸네일', () => {
 
     expect(thumbnail).toHaveAttribute('loading', 'eager');
     expect(thumbnail).toHaveAttribute('fetchpriority', 'high');
+  });
+});
+
+// 알림 클릭처럼 상세에서 다른 상세로 가면 같은 컴포넌트가 남아 있어, 앞 글의 에러 화면이 다음 글에 남으면 안 된다
+describe('PostDetailPage - 조회 실패 뒤 다른 글로 이동', () => {
+  it('앞 글 조회가 실패했어도 다른 글로 가면 그 글을 보여준다', async () => {
+    server.use(
+      http.get(`${API_BASE_URL}${API_ENDPOINTS.post.base}/:id`, ({ params }) => {
+        if (params['id'] === 'failed-post') {
+          return HttpResponse.json(
+            { status: 500, message: 'server error', timestamp: '' },
+            { status: 500 }
+          );
+        }
+
+        return HttpResponse.json({
+          status: 200,
+          message: 'ok',
+          data: {
+            ...mockPost,
+            id: String(params['id']),
+            title: `title of ${String(params['id'])}`,
+          },
+          timestamp: '',
+        });
+      })
+    );
+    const user = userEvent.setup();
+    renderWithProviders(
+      <TooltipProvider>
+        <Routes>
+          <Route path="/post/:id" element={<PostDetailPage />} />
+        </Routes>
+        <Link to="/post/next-post">next</Link>
+      </TooltipProvider>,
+      { wrapperOptions: { initialEntries: ['/post/failed-post'] } }
+    );
+
+    await screen.findByText(TEXTS.messages.error.fetchPosts);
+    await user.click(screen.getByRole('link', { name: 'next' }));
+
+    expect(await screen.findByText('title of next-post')).toBeInTheDocument();
+    expect(screen.queryByText(TEXTS.messages.error.fetchPosts)).not.toBeInTheDocument();
+  });
+
+  // 운영 라우터(RouterProvider.tsx)처럼 이동을 transition으로 감싼다 - 감싸지 않으면 다음 글을 기다리는 동안 댓글
+  // 영역이 숨겨졌다 다시 보이며 componentDidUpdate가 불리지 않아(react-dom 18.3.1 development.js:23322-23323) 에러
+  // 경계가 resetKeys를 비교하지 못한다. 운영에서는 이전 화면이 남아 그 경로를 타지 않는다
+  it('앞 글 댓글 조회가 실패했어도 다른 글로 가면 그 글의 댓글을 보여준다', async () => {
+    server.use(
+      http.get(`${API_BASE_URL}${API_ENDPOINTS.post.base}/:id`, ({ params }) =>
+        HttpResponse.json({
+          status: 200,
+          message: 'ok',
+          data: {
+            ...mockPost,
+            id: String(params['id']),
+            title: `title of ${String(params['id'])}`,
+          },
+          timestamp: '',
+        })
+      ),
+      http.get(`${API_BASE_URL}${API_ENDPOINTS.post.postComment(':id')}`, ({ params }) => {
+        if (params['id'] === 'first-post') {
+          return HttpResponse.json(
+            { status: 500, message: 'server error', timestamp: '' },
+            { status: 500 }
+          );
+        }
+
+        return HttpResponse.json({
+          status: 200,
+          message: 'ok',
+          data: [{ ...mockComment, content: `comment of ${String(params['id'])}` }],
+          timestamp: '',
+        });
+      })
+    );
+    const user = userEvent.setup();
+    renderWithProviders(
+      <TooltipProvider>
+        <Routes>
+          <Route path="/post/:id" element={<PostDetailPage />} />
+        </Routes>
+        <Link to="/post/next-post">next</Link>
+      </TooltipProvider>,
+      {
+        wrapperOptions: {
+          initialEntries: ['/post/first-post'],
+          future: { v7_startTransition: true },
+        },
+      }
+    );
+
+    await screen.findByText(TEXTS.errors.unexpected.title);
+    await user.click(screen.getByRole('link', { name: 'next' }));
+
+    expect(await screen.findByText('comment of next-post')).toBeInTheDocument();
+    expect(screen.queryByText(TEXTS.errors.unexpected.title)).not.toBeInTheDocument();
   });
 });

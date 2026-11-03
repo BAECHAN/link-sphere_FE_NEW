@@ -1177,6 +1177,27 @@ const { mutate } = useMutation({
 `entities/comment/utils/comment.util.ts`의 `CommentUtil.resolveSubmitError`, 입력칸 에러 없이 전부
 `FormAlert`, `docs/COMMENT.md` §5 "실패 안내").
 
+### suspense 화면은 떠날 때 데이터 없는 실패를 지운다 (2026-11-03)
+
+suspense 쿼리(`useSuspenseQuery`·`useSuspenseInfiniteQuery`)가 데이터 없이 실패하면 그 쿼리는 gc(5분) 전까지 캐시에
+남는다. 에러 경계가 리셋되기 전에는 화면이 이런 쿼리를 마운트할 때 다시 요청하지 않고 그 에러를 그대로 던지고
+(react-query 5.90.16 `errorBoundaryUtils.js:8-11`의 `retryOnMount=false`, query-core `queryObserver.js:442-443`), 라우트의
+미리 받기(`usePrefetchQuery`)도 상태가 있으면 건너뛴다. 그래서 실패한 화면을 떠났다가 5분 안에 돌아오면 서버가
+회복됐어도 요청 없이 같은 에러가 뜬다.
+
+- **규칙**: suspense 쿼리를 쓰는 화면은 떠날 때 그 쿼리가 "실패 + 데이터 없음 + 보는 화면 없음"이면 지운다. 판정은
+  `isUnusedFailedQuery`(`shared/lib/react-query/unused-failed-query.ts`) 하나만 쓴다 — 1쪽이 있고 다음 쪽만 실패한
+  목록처럼 데이터가 있으면 남긴다(지우면 돌아왔을 때 처음부터 다시 받는다).
+- **형태**: 지우는 함수는 `.keys.ts`의 `<entity>RemoveQueries.errored<대상>`(예: `postRemoveQueries.erroredDetail`), 떠날
+  때 부르는 훅은 `entities/<entity>/hooks/useRemoveErrored<대상>OnLeave.ts`(`useEffect` cleanup). 훅은 **에러 경계 밖**에서
+  부른다 — 경계 안쪽 컴포넌트는 에러를 던진 채라 cleanup 시점을 보장할 수 없다.
+- **지금 적용된 곳**: 상세·댓글(`PostDetailRoute`, `app/routes/index.tsx`), 피드 목록(`PostList.tsx`), 내 댓글
+  (`MyCommentList.tsx`) — 앱의 suspense 쿼리 4개 전부. 새 suspense 화면을 만들면 같은 훅을 둔다.
+- **같은 화면에서 대상이 바뀔 때**(알림으로 상세 → 다른 상세): 컴포넌트가 그대로 남아 에러 경계가 리셋되지 않는다.
+  경계에 `resetKeys`로 대상 id를 넘긴다(`PostDetailPage.tsx`·`CommentList.tsx`). 정리 훅과 같이 둬야 실패가 남은 글로
+  돌아갔을 때 다시 던지지 않는다.
+- 상세 경위: [`POST.md`](./POST.md) "조회에 실패한 화면에 다시 들어오기"
+
 ---
 
 ## 14. Toast 알림 (Sonner)
@@ -1340,6 +1361,8 @@ sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를
 | 미리 받기(prefetch)           | 렌더 중에 요청을 시작만 하는 훅(`usePrefetchQuery`·`usePrefetchInfiniteQuery`)은 `usePrefetch<Entity>`, hover 등 이벤트에서 `queryClient`를 인자로 받아 부르는 함수는 `prefetch<Entity>` — 둘 다 같은 `.queries.ts`에 둔다                                                                                                                                                                                   | `usePrefetchPostDetail`, `prefetchPostDetail` |
 | 쿼리 키 객체                  | `<entity>Keys`                                                                                                                                                                                                                                                                                                                                                                                               | `postKeys`                                    |
 | Invalidate 헬퍼               | `<entity>InvalidateQueries`                                                                                                                                                                                                                                                                                                                                                                                  | `postInvalidateQueries`                       |
+| Remove 헬퍼                   | `<entity>RemoveQueries` — 캐시에서 지우는 함수 묶음(`.keys.ts`). 실패 정리는 `errored<대상>`                                                                                                                                                                                                                                                                                                                 | `postRemoveQueries.erroredDetail`             |
+| 떠날 때 실패 정리 훅          | `useRemoveErrored<대상>OnLeave` — `entities/<entity>/hooks/`, `useEffect` cleanup에서 Remove 헬퍼를 부른다(§13)                                                                                                                                                                                                                                                                                              | `useRemoveErroredPostDetailOnLeave`           |
 | Success 핸들러                | `handle<Entity><Action>Success`                                                                                                                                                                                                                                                                                                                                                                              | `handlePostCreateSuccess`                     |
 | API 객체                      | `<entity>Api`                                                                                                                                                                                                                                                                                                                                                                                                | `postApi`                                     |
 | Zod 스키마 (요청/폼 검증만)   | `create<Entity>Schema`, `update<Entity>Schema`                                                                                                                                                                                                                                                                                                                                                               | `createPostSchema`, `updatePostSchema`        |

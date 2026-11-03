@@ -8,7 +8,9 @@ import { RootLayout } from '@/app/routes/layouts/RootLayout';
 import { RouteErrorBoundary } from '@/app/routes/RouteErrorBoundary';
 import { usePrefetchCategoryOptions } from '@/entities/category/api/category.queries';
 import { usePrefetchComments } from '@/entities/comment/api/comment.queries';
+import { useRemoveErroredCommentsOnLeave } from '@/entities/comment/hooks/useRemoveErroredCommentsOnLeave';
 import { usePrefetchPostDetail } from '@/entities/post/api/post.queries';
+import { useRemoveErroredPostDetailOnLeave } from '@/entities/post/hooks/useRemoveErroredPostDetailOnLeave';
 import { usePostFeedPrefetch } from '@/widgets/post/post-list/hooks/usePostFeedPrefetch';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
@@ -142,12 +144,15 @@ function PostFeedRoute() {
 /**
  * 게시글 상세 라우트 — 페이지 청크를 요청하는 같은 렌더에서 게시글과 댓글을 함께 요청한다. 페이지 안에서
  * 요청하면 청크 다운로드 → 게시글 요청 → 썸네일(LCP)이 차례로 이어진다. 댓글은 게시글을 기다리는 경계
- * 안쪽(CommentList)에서야 마운트되므로 게시글과 동시에 시작한다.
+ * 안쪽(CommentList)에서야 마운트되므로 게시글과 동시에 시작한다. 떠날 때는 실패한 게시글·댓글을 지워, 다시 들어오면
+ * 새로 요청하게 한다 - 남은 실패는 미리 받기가 건너뛰고 화면도 다시 요청하지 않는다(isUnusedFailedQuery 주석 참고).
  */
 function PostDetailRoute() {
   const { id } = useParams<{ id: string }>();
   usePrefetchPostDetail(id || '');
   usePrefetchComments(id || '');
+  useRemoveErroredPostDetailOnLeave(id || '');
+  useRemoveErroredCommentsOnLeave(id || '');
 
   return withSuspense(PostDetailPage);
 }

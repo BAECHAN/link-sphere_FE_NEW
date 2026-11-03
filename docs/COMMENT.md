@@ -349,6 +349,8 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   (2026-11-03, #491) — 전에는 감시가 다시 켜질 때마다 관찰자가 새로 생겨 감시 요소가 보이는 즉시 같은 요청을 또
   보냈다. 피드·북마크와 같은 규칙이라 판정과 근거는 [`POST.md`](./POST.md) "다음 페이지 실패 처리"가 정본이다
   (`useMyCommentList.test.tsx`).
+- 첫 조회가 실패하면 에러 화면(`TEXTS.comment.myList.loadError`)이다. 화면을 떠날 때 데이터 없이 실패한 목록을 지워
+  다시 들어오면 새로 요청한다(아래 "조회 실패 뒤 다시 들어오기").
 - 가상화하지 않는다 — 카드가 가볍고 Ctrl+F를 살리려는 판단(`docs/DECISIONS.md` 2026-09-19
   가상화 항목의 "범위 밖").
 - 카드(`src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx`)는 본문을 `splitContentImages`로
@@ -512,6 +514,20 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 쌓기                           | 💬 위, ↑ 아래  | —                 | 기각     | 11곳 중 선례 없음, M3의 "FAB 하나"와 어긋나고 포커스를 가릴 위험이 커진다                                                                                            |
 | 모바일에도 ↑(위로 스크롤할 때) | —              | 댓글 바 위에 잠깐 | 기각     | 블로그 방식 6곳 모두 없음. 실제 컴포넌트로 만든 미리보기에서 ↑가 마지막 댓글의 "삭제" 버튼을 가렸다. NN/g가 말하는 "위로 올리려 할 때만" 노출이지만 선례는 못 찾았다 |
 
+### 조회 실패 뒤 다시 들어오기(2026-11-03, #491 3번)
+
+댓글 목록(`useSuspenseComments`)과 내 댓글(`useSuspenseMyCommentsInfiniteQuery`)은 suspense 쿼리라, 데이터 없이 실패하면
+5분 안에 다시 들어와도 요청 없이 같은 에러 화면이 떴다. 지금은 화면을 떠날 때 지운다.
+
+- 댓글: `PostDetailRoute`(`src/app/routes/index.tsx`)가 `useRemoveErroredCommentsOnLeave(id)`를 부르고, 그 훅이
+  `commentRemoveQueries.erroredList`(`comment.keys.ts`)로 그 글의 댓글 목록만 지운다.
+- 내 댓글: `MyCommentList`가 에러 경계 밖에서 `useRemoveErroredMyCommentsOnLeave()`를 부르고,
+  `commentRemoveQueries.erroredMy`가 `commentKeys.myRoot`만 정확히 지운다(같은 `comments` 루트의 글별 목록은 그대로).
+- 지우는 조건은 실패 + 데이터 없음 + 보는 화면 없음(`isUnusedFailedQuery`). 1쪽을 받고 다음 쪽만 실패한 내 댓글은 남는다.
+- 알림 토스트로 상세에서 다른 상세로 가면 `CommentList`가 그대로 남아, `AsyncBoundary`에 `resetKeys={[postId]}`를 둬
+  앞 글의 에러 화면을 푼다.
+- 문제·원인·대안 비교는 [`POST.md`](./POST.md) "조회에 실패한 화면에 다시 들어오기"가 정본이다.
+
 ### 캐시 무효화 범위
 
 `src/entities/comment/api/comment.keys.ts`가 정본이다.
@@ -610,6 +626,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 업로드 단계 실패 분류           | `src/shared/lib/upload/uploadImageAndGetUrl.ts:13-39`, `src/shared/api/upload.api.ts:15-37`                                                    |
 | WAF 403 분류·문구               | `src/shared/api/client.ts:96-105`, `src/shared/lib/react-query/config/error-toast.ts`의 `resolveErrorToast`(`EDGE_BLOCKED` 분기)               |
 | 내 댓글 목록·카드               | `src/widgets/comment/my-comment-list/ui/MyCommentList.tsx:12-59`, `src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx`의 `MyCommentCard` |
+| 떠날 때 실패 정리               | `comment.keys.ts`의 `commentRemoveQueries`, `src/entities/comment/hooks/useRemoveErrored*OnLeave.ts`                                           |
 | UI 문구                         | `src/shared/config/texts.ts`의 `TEXTS.comment`                                                                                                 |
 
 ### 자주 하는 수정
@@ -686,6 +703,12 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 되돌리면 해당 테스트가 실패하는 것도 확인했다. 2026-10-26 댓글 미리 받기를 라우트(`PostDetailRoute`)로
 옮긴 뒤에는 `e2e/post-route-prefetch.spec.ts`가 페이지 청크를 붙잡아 둔 채 댓글이 요청되는지(총 1회)를
 확인하고, 라우트의 미리 받기를 빼면 실패하는 것도 확인했다.
+
+조회 실패 뒤 다시 들어오기(§5)는 2026-11-03 직접 실행했다. 단위 테스트
+`src/entities/comment/hooks/useRemoveErroredCommentsOnLeave.test.tsx`(2: 떠나면 그 글의 실패한 목록을 지우고 성공한
+목록은 남김)·`useRemoveErroredMyCommentsOnLeave.test.tsx`(2: 실패한 내 댓글은 지우고 글별 목록의 실패는 남김),
+`src/pages/post/PostDetailPage.test.tsx`의 "앞 글 댓글 조회가 실패했어도 다른 글로 가면 그 글의 댓글을 보여준다"
+(`resetKeys`를 빼면 실패), e2e `e2e/failed-query-reentry.spec.ts`의 댓글·내 댓글 2건(수정 전 실패, 수정 뒤 통과).
 
 **테스트 공백**: `useLikeCommentMutation`의 단위 테스트는 연타 1건뿐이다(`src/entities/interaction/api/interaction.queries.test.ts`의
 `describe('useLikeCommentMutation')` — 중간 요청 실패는 되돌리지 않고, 마지막 요청이 실패하면 되돌린 뒤 댓글 목록을 무효화). 응답 전
@@ -773,12 +796,16 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   보류했다. 문장 중간의 이미지 링크와 첨부 이미지를 줄 단위 규칙으로만 구분한다.
 - **`z-scrim` 공유 충돌 미해결** — 펼친 모바일 댓글 시트와 사이드바 백드롭이 같은 층이다
   (`docs/DECISIONS.md` 2026-09-13, [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md) §4).
-- **라우트 미리 받기 실패가 캐시에 남는다** — TanStack Query의 suspense 쿼리는 에러 경계가 리셋되기
-  전까지 실패 상태로 캐시된 쿼리를 마운트할 때 다시 요청하지 않는다(`retryOnMount`를 끈다,
+- **라우트 미리 받기가 실패하면 그 화면에서는 다시 요청하지 않는다** — TanStack Query의 suspense 쿼리는 에러 경계가
+  리셋되기 전까지 실패 상태로 캐시된 쿼리를 마운트할 때 다시 요청하지 않는다(`retryOnMount`를 끈다,
   `@tanstack/react-query`의 `errorBoundaryUtils.js` `ensurePreventErrorBoundaryRetry`). 상세 라우트의
   `usePrefetchComments`가 페이지 청크보다 먼저 실패하면 댓글 영역이 다시 요청하지 않고 바로 에러가 된다(실패는
   전역 토스트가 알린다). 💬·제목 hover의 미리 받기는 2026-11-03(#491)부터 실패하면 토스트 없이 쿼리를 지워
-  상세가 열릴 때 새로 요청한다([`POST.md`](./POST.md) "프리페치").
+  상세가 열릴 때 새로 요청한다([`POST.md`](./POST.md) "프리페치"). 정정: 이 항목은 처음에 "실패가 캐시에 남는다"로
+  적었고, 그래서 5분 안에 다시 들어와도 같은 에러가 떴다. 2026-11-03부터 상세를 떠날 때 데이터 없이 실패한 댓글
+  목록을 지워 다시 들어오면 새로 요청한다(§5 "조회 실패 뒤 다시 들어오기").
+- **요청이 끝나기 전에 떠났다가 그 뒤 실패하면 실패가 남는다**(2026-11-03) — 떠날 때 아직 요청 중이라 지우지
+  않는다. 상세·내 댓글 모두 해당하고, 원인과 범위는 [`POST.md`](./POST.md) §11과 같다.
 - **주소의 id 형식이 잘못되면 토스트가 두 개 뜬다** — 게시글과 동시에 요청한 댓글도 400
   (`INVALID_PATH_VARIABLE`)을 받아 각자 토스트를 띄운다(직접 측정: 동시 요청 전 1개 → 후 2개).
   미리 받기 실패를 조용히 하면 이 경우는 1개가 되지만, 위 성질 때문에 댓글 요청이 일시적으로
