@@ -1,5 +1,17 @@
 # 북마크 폴더 모달 UX 4건 수정
 
+<!-- plan-result:start — 이 블록만 병합 뒤에도 고칠 수 있다(CLAUDE.md §11). 아래는 승인된 계획 원문 -->
+
+## 구현 결과
+
+> 구현 결과 블록 규칙(2026-11-03) 전에 병합된 계획이라 대조 요약은 없다 — 대조 결과는 PR #262 본문 "계획 대비 구현"
+
+- 대체됨(일부): `docs/plans/2026-11-03-bookmark-dialog-close-watcher.md`(#504) — 4번(뒤로가기로 모달만 닫기)을
+  `CloseWatcher`가 있고 터치가 주 입력인 기기(사실상 Android)에서는 히스토리 엔트리 대신 `CloseWatcher`의 닫기 요청으로
+  받는다. 엔트리 push가 페이지 전체를 다시 그리게 해서다. 데스크톱·iOS는 이 계획대로 히스토리 엔트리다.
+
+<!-- plan-result:end -->
+
 ## Context
 
 게시글 카드·상세의 북마크 버튼을 누르면 뜨는 폴더 선택 모달(`BookmarkFolderSelectModal`)에서 사용자가 네 가지를 지적했다.

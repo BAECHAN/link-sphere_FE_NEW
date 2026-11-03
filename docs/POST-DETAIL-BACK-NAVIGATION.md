@@ -100,7 +100,8 @@ Navbar와 버튼 바 두 줄이 스크롤 내내 함께 고정돼 모바일 화�
 
 **오버레이가 열린 동안에는 라벨을 유지한다(2026-09-30).** 상세 페이지 위에 북마크 폴더 창·
 로그인 창·이미지 뷰어를 열면 `useHistoryOverlay`가 같은 경로에 새 엔트리를 PUSH하면서
-`location.state`를 오버레이 표시(`{ [key]: true }`)로 통째로 바꾼다. 그러면 `backSource`가
+`location.state`를 오버레이 표시(`{ [key]: true }`)로 통째로 바꾼다(북마크 폴더 창은 Android 터치
+기기에서는 PUSH하지 않아 라벨이 그대로다 — `docs/DECISIONS.md` 2026-11-03). 그러면 `backSource`가
 가려지고 `location.key`도 `'default'`가 아니게 돼, `resolveBackLabel`을 그대로 부르면 모달
 뒤쪽 버튼이 "목록으로"에서 "뒤로가기"로 바뀌었다. 유입 경로는 그대로이므로 `useBackLabel`이
 **같은 경로 + PUSH**일 때만 직전 라벨을 유지하고, 나머지는 지금처럼 다시 계산한다.
