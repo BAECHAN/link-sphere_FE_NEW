@@ -391,7 +391,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 - **기다림 줄이기(2026-10-14)** — 게시글을 기다리며 멈추는 `PostDetailContent` 안에 `CommentList`가
   있어, 게시글이 와야 댓글을 요청하는 순차 요청이었다. 두 가지로 줄였다.
   - 상세 진입: 상세 라우트(`PostDetailRoute`, `src/app/routes/index.tsx:147`)가
-    `usePrefetchComments`(`src/entities/comment/api/comment.queries.ts:101`)를 불러 댓글을
+    `usePrefetchComments`(`src/entities/comment/api/comment.queries.ts:105`)를 불러 댓글을
     게시글과 동시에 요청한다. 처음엔 `PostDetailPage`가 경계 바깥에서 불렀다. 2026-10-26부터는 lazy 페이지
     청크도 기다리지 않도록 라우트로 옮겼다([`PERFORMANCE.md`](./PERFORMANCE.md) "LCP 데이터 요청 시점").
     `CommentList`는 같은 키의 캐시를 읽어 다시 요청하지 않는다
@@ -768,11 +768,12 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   보류했다. 문장 중간의 이미지 링크와 첨부 이미지를 줄 단위 규칙으로만 구분한다.
 - **`z-scrim` 공유 충돌 미해결** — 펼친 모바일 댓글 시트와 사이드바 백드롭이 같은 층이다
   (`docs/DECISIONS.md` 2026-09-13, [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md) §4).
-- **미리 받기 실패가 캐시에 남는다** — TanStack Query의 suspense 쿼리는 에러 경계가 리셋되기
+- **라우트 미리 받기 실패가 캐시에 남는다** — TanStack Query의 suspense 쿼리는 에러 경계가 리셋되기
   전까지 실패 상태로 캐시된 쿼리를 마운트할 때 다시 요청하지 않는다(`retryOnMount`를 끈다,
-  `@tanstack/react-query`의 `errorBoundaryUtils.js` `ensurePreventErrorBoundaryRetry`). 💬 hover 미리
-  받기가 실패하면 5분(gcTime) 안에 들어간 상세의 댓글 영역이 다시 요청하지 않고 바로 에러가 된다.
-  제목 hover의 `prefetchPostDetail`도 같은 성질이다.
+  `@tanstack/react-query`의 `errorBoundaryUtils.js` `ensurePreventErrorBoundaryRetry`). 상세 라우트의
+  `usePrefetchComments`가 페이지 청크보다 먼저 실패하면 댓글 영역이 다시 요청하지 않고 바로 에러가 된다(실패는
+  전역 토스트가 알린다). 💬·제목 hover의 미리 받기는 2026-11-03(#491)부터 실패하면 토스트 없이 쿼리를 지워
+  상세가 열릴 때 새로 요청한다([`POST.md`](./POST.md) "프리페치").
 - **주소의 id 형식이 잘못되면 토스트가 두 개 뜬다** — 게시글과 동시에 요청한 댓글도 400
   (`INVALID_PATH_VARIABLE`)을 받아 각자 토스트를 띄운다(직접 측정: 동시 요청 전 1개 → 후 2개).
   미리 받기 실패를 조용히 하면 이 경우는 1개가 되지만, 위 성질 때문에 댓글 요청이 일시적으로

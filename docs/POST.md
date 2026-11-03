@@ -250,6 +250,20 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   (`usePostCard.ts`의 `handlePrefetchDetail`). 상세와 같은 키·`queryFn`이라 클릭 시 캐시가 바로 쓰인다.
   댓글 아이콘(💬)의 hover·focus는 게시글과 댓글을 함께 미리 받고(`handlePrefetchDetailWithComments`),
   상세 라우트는 들어올 때 페이지 청크와 함께 게시글과 댓글을 요청한다([`COMMENT.md`](./COMMENT.md) "해시 이동").
+  - **hover 미리 받기가 실패하면**(2026-11-03, #491 3번): 토스트 없이 실패한 쿼리를 캐시에서 지워, 상세가 열릴 때
+    새로 요청한다(`prefetchQueryQuietly`, `src/shared/lib/react-query/prefetch-quietly.ts`). 카드·내 댓글 카드의
+    `prefetchPostDetail`·`prefetchComments`가 쓴다. 그 전에는 `prefetchQuery`가 promise 실패만 삼켜 전역 에러
+    토스트가 떴다. 계획 단계 측정(설치본 query-core 5.90.16을 메모리에서 실행)으로는 같은 카드 제목 3번 hover에
+    3번, 카드 5장을 지나가면 5번이었다. 실패한 쿼리가 캐시에 남아 상세 화면도 다시 요청하지 않고 에러 화면이 됐다.
+    재현 절차는 [계획 문서](./plans/2026-11-03-error-toast-followups.md) "재현 절차"에 있다.
+  - **지우는 조건**: 실패 시점에 데이터가 없고, 구독자가 0이고, 쿼리 `meta`가 아직 미리 받기의
+    것(`manualErrorHandling`)일 때만 지운다. hover 직후 클릭해 상세 화면이 요청을 이어받았으면 화면의 관찰자가
+    렌더 중에 쿼리 옵션을 `meta`까지 자기 것으로 바꾼다(query-core 5.90.16 `queryObserver.js:26`·`:94`). 구독은
+    커밋 뒤라(`:48-50`) 그 사이 구독자 수는 0이다. 이때는 지우지 않고 지금처럼 화면이 토스트·에러 화면으로 처리한다.
+    `meta` 조건을 빼면 지운 뒤 화면이 같은 요청을 한 번 더 보내 토스트가 두 번 뜬다(테스트로 확인:
+    `post.queries.test.ts`의 "미리 받는 중에 상세 화면이 열린 뒤 실패하면", 조건을 빼면 요청 2회로 실패).
+  - 라우트의 `usePrefetchPostDetail`·`usePrefetchComments`는 바꾸지 않았다 — 화면이 곧 붙어 그 화면이 실패를
+    처리한다(남은 한계는 [`COMMENT.md`](./COMMENT.md) "남은 것").
 - **소유자 액션**(`isOwner`일 때만): 비공개 글이면 자물쇠 버튼(누르면 공개 전환),
   그리고 ⋮(`HoverKebabMenu`) 안에 수정·공개/비공개 전환·삭제.
 - **AI 결과 표시**: `aiSummary`가 있을 때만 접이식 "AI 요약" 블록. 설명이 없고
@@ -540,9 +554,9 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 조회 로딩 표시 지연                     | 500ms                | `src/shared/config/const.ts:11`                                   |
 | mutation 진행 표시 지연 / 최소 노출     | 500ms / 400ms        | `src/shared/config/const.ts:18-21`                                |
 | 쿼리 기본 staleTime / gcTime / retry    | 3분 / 5분 / 1회      | `src/shared/lib/react-query/config/queryClient.ts:72-75`          |
-| 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:228`                       |
+| 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:229`                       |
 | 미리보기 조회 디바운스                  | 500ms                | `src/entities/post/hooks/useLinkPreview.ts:9`                     |
-| 미리보기 staleTime / 재시도             | 10분 / 없음          | `src/entities/post/api/post.queries.ts:201-214`                   |
+| 미리보기 staleTime / 재시도             | 10분 / 없음          | `src/entities/post/api/post.queries.ts:206-221`                   |
 | 카테고리 옵션 staleTime                 | 24시간               | `src/entities/category/api/category.queries.ts:14`                |
 
 행 높이 추정치와 최소 카드 폭은 직접 측정한 값이다 — 측정 방법은 `post-card-grid.const.ts`의 주석과
@@ -625,6 +639,13 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
   실패하면 1초 동안 다시 보내지 않는지, 다시 시도로 받는지, 재조회 중에는 다음 페이지를 부르지 않다가 재조회가
   성공하면 부르는지("다음 페이지 실패 처리"). 수정 전에는 첫 두 개가 요청 33~34번으로 실패했다(직접 실행). 재조회
   대기 테스트는 조건을 `!isFetchingNextPage`로 되돌리면 실패하는 것을 확인했다
+- `src/entities/post/api/post.queries.test.ts`의 `prefetchPostDetail`(5, 2026-11-03) — hover 미리 받기가 실패하면
+  토스트 0·쿼리 지움, 그 뒤 상세가 열리면 새로 1회 요청, 미리 받는 중 상세가 열린 뒤 실패하면 지우지 않고 요청
+  1회·토스트 1회, 성공하면 캐시를 채움, 404는 재시도 없음("프리페치"). 토스트는 운영과 같은 판정
+  (`createQueryClientWithErrorToasts`)으로 센다. 수정 전에는 앞의 둘이 실패했다(직접 실행). 댓글은
+  `comment.queries.test.ts`의 `prefetchComments`(2)가 앞의 둘을 같은 방식으로 본다
+- `src/shared/lib/react-query/prefetch-quietly.test.ts`(3, 2026-11-03) — 데이터가 있던 쿼리는 다시 받다 실패해도
+  데이터를 두고, 진행 중에 같은 키로 다시 불러도 요청은 1회, 구독 중인 화면이 있으면 지우지 않음
 
 **e2e**(`e2e/`, Playwright) — 이 기능을 덮는 스펙. 이번 검토에서 실행하지는 않았다.
 

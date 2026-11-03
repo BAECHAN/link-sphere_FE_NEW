@@ -92,6 +92,13 @@
 
 ### Fixed
 
+- `post` 카드 hover 미리 받기가 실패해도 에러 토스트를 띄우지 않고 상세에서 다시 요청함
+  <details><summary>배경·구현</summary>
+
+  게시글 카드 제목·💬, 내 댓글 카드에 마우스를 올리거나 포커스하면 상세와 댓글을 미리 받는다. 이 요청이 실패하면 `prefetchQuery`가 promise 실패만 삼켜 전역 에러 토스트가 떴다 — 카드를 지나가기만 해도 실패 토스트가 쌓였다(계획 단계 측정: 같은 카드 제목 3번 hover에 3번, 카드 5장에 5번). 실패한 쿼리는 캐시에 남아, 5분 안에 상세로 들어가면 suspense 화면이 다시 요청하지 않고 바로 에러 화면이 됐다. 이제 hover 미리 받기는 `meta.manualErrorHandling`으로 조용히 하고, 실패하면 그 쿼리를 캐시에서 지워 상세가 열릴 때 새로 요청한다(`prefetchQueryQuietly`, 신규). 단, hover 직후 클릭해 상세 화면이 요청을 이어받았으면 지우지 않고 지금처럼 화면이 토스트·에러 화면으로 처리한다 — 지우면 같은 요청이 한 번 더 나가 토스트가 두 번 뜬다. 상세 라우트의 미리 받기는 화면이 곧 붙어 그대로 뒀다. 조용히 + 지우기는 사용자 선택(2026-11-03), 지우는 조건과 근거는 `docs/POST.md` "프리페치", 계획은 [`docs/plans/2026-11-03-error-toast-followups.md`](docs/plans/2026-11-03-error-toast-followups.md) Phase 2([#491](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/491) 3번). (`src/shared/lib/react-query/prefetch-quietly.ts`(신규), `src/entities/post/api/post.queries.ts`, `src/entities/comment/api/comment.queries.ts`, `src/test/utils.tsx`, 테스트 3곳, `docs/POST.md`, `docs/COMMENT.md`)
+
+  </details>
+
 - `shared` 목록 다음 페이지가 실패하면 같은 요청을 반복하지 않고 다시 시도 행을 보여줌
   <details><summary>배경·구현</summary>
 

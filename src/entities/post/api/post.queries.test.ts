@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, screen, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse, delay } from 'msw';
 import { createElement, Suspense, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ErrorBoundary } from 'react-error-boundary';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { createTestQueryClient } from '@/test/utils';
+import { createQueryClientWithErrorToasts, createTestQueryClient } from '@/test/utils';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { postKeys } from '@/entities/post/api/post.keys';
@@ -636,31 +637,111 @@ describe('usePrefetchPostDetail', () => {
 // 이 요청을 이어받으므로, 지워진 글의 안내가 재시도만큼 늦어진다.
 describe('prefetchPostDetail', () => {
   let detailRequests: number;
+  let errorToasts: string[];
 
   beforeEach(() => {
     detailRequests = 0;
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: shouldRetryQuery, retryDelay: 0, gcTime: Infinity } },
-    });
+    ({ queryClient, errorToasts } = createQueryClientWithErrorToasts());
   });
 
-  it('404면 운영 재시도 정책이 있어도 다시 요청하지 않는다', async () => {
+  /** 상세 조회가 status로 응답하다가 recover 뒤로는 성공한다. delayMs만큼 응답을 늦춘다 */
+  function mockPostDetail({ status = 500, delayMs = 0 } = {}) {
+    let currentStatus = status;
+
     server.use(
-      http.get(url(`${API_ENDPOINTS.post.base}/:id`), () => {
+      http.get(url(`${API_ENDPOINTS.post.base}/:id`), async () => {
         detailRequests += 1;
 
-        return HttpResponse.json(
-          { status: 404, code: 'POST_NOT_FOUND', message: 'not found', timestamp: '' },
-          { status: 404 }
-        );
+        if (delayMs > 0) {
+          await delay(delayMs);
+        }
+
+        if (currentStatus !== 200) {
+          return HttpResponse.json(
+            { status: currentStatus, message: 'fail', timestamp: '' },
+            { status: currentStatus }
+          );
+        }
+
+        return HttpResponse.json({ status: 200, message: 'ok', data: mockPost, timestamp: '' });
       })
     );
+
+    return {
+      recover: () => {
+        currentStatus = 200;
+      },
+    };
+  }
+
+  function SuspenseWrapper({ children }: { children: ReactNode }) {
+    return createElement(
+      Wrapper,
+      null,
+      createElement(
+        ErrorBoundary,
+        { fallback: createElement('div', null, 'detail-error') },
+        createElement(Suspense, { fallback: null }, children)
+      )
+    );
+  }
+
+  it('404면 운영 재시도 정책이 있어도 다시 요청하지 않는다', async () => {
+    mockPostDetail({ status: 404 });
+
+    prefetchPostDetail(queryClient, POST_ID);
+
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    expect(detailRequests).toBe(1);
+  });
+
+  it('실패해도 에러 토스트를 띄우지 않고, 실패한 쿼리를 캐시에서 지운다', async () => {
+    mockPostDetail();
+
+    prefetchPostDetail(queryClient, POST_ID);
+
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    expect(queryClient.getQueryState(postKeys.detail(POST_ID))).toBeUndefined();
+    expect(errorToasts).toEqual([]);
+  });
+
+  it('실패한 뒤 상세 화면이 열리면 새로 요청해 보여 준다', async () => {
+    const detail = mockPostDetail();
+
+    prefetchPostDetail(queryClient, POST_ID);
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    detail.recover();
+    const requestsBeforeScreen = detailRequests;
+
+    const { result } = renderHook(() => useSuspenseFetchPostDetailQuery(POST_ID), {
+      wrapper: SuspenseWrapper,
+    });
+
+    await waitFor(() => expect(result.current?.data).toEqual(mockPost));
+    expect(detailRequests - requestsBeforeScreen).toBe(1);
+  });
+
+  // 화면이 요청을 이어받았으면 지우지 않는다 - 지우면 화면이 같은 요청을 한 번 더 보내 토스트가 두 번 뜬다
+  it('미리 받는 중에 상세 화면이 열린 뒤 실패하면 화면이 처리한다(요청 1회·토스트 1회)', async () => {
+    mockPostDetail({ delayMs: 100 });
+
+    prefetchPostDetail(queryClient, POST_ID);
+    renderHook(() => useSuspenseFetchPostDetailQuery(POST_ID), { wrapper: SuspenseWrapper });
+
+    await screen.findByText('detail-error');
+    expect(detailRequests).toBe(1);
+    expect(errorToasts).toHaveLength(1);
+    expect(queryClient.getQueryState(postKeys.detail(POST_ID))?.status).toBe('error');
+  });
+
+  it('성공하면 지금처럼 캐시를 채운다', async () => {
+    mockPostDetail({ status: 200 });
 
     prefetchPostDetail(queryClient, POST_ID);
 
     await waitFor(() =>
-      expect(queryClient.getQueryState(postKeys.detail(POST_ID))?.status).toBe('error')
+      expect(queryClient.getQueryData(postKeys.detail(POST_ID))).toEqual(mockPost)
     );
-    expect(detailRequests).toBe(1);
+    expect(errorToasts).toEqual([]);
   });
 });

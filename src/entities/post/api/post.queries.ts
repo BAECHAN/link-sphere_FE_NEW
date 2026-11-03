@@ -18,6 +18,7 @@ import {
   MUTATION_ERROR_POLICY,
   resolveErrorToast,
 } from '@/shared/lib/react-query/config/error-toast';
+import { prefetchQueryQuietly } from '@/shared/lib/react-query/prefetch-quietly';
 import {
   CreatePost,
   Post,
@@ -244,9 +245,12 @@ export const usePrefetchPostDetail = (postId: string) => {
   usePrefetchQuery(postDetailQueryOptions(postId));
 };
 
-/** hover 시 게시글 상세 미리 로드 — useSuspenseFetchPostDetailQuery 와 같은 옵션(retry: false 포함) */
+/**
+ * hover 시 게시글 상세 미리 로드 — useSuspenseFetchPostDetailQuery 와 같은 옵션(retry: false 포함).
+ * 실패해도 토스트 없이 지워 상세 화면이 열리면 새로 요청한다
+ */
 export const prefetchPostDetail = (queryClient: QueryClient, postId: string) => {
-  queryClient.prefetchQuery(postDetailQueryOptions(postId));
+  prefetchQueryQuietly(queryClient, postDetailQueryOptions(postId));
 };
 
 /**
