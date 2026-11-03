@@ -1,4 +1,7 @@
 ### 2026-11-03 (FE)
+- 북마크 폴더 선택 UI 개선 및 레이아웃 최적화 ([#515](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/515))
+
+### 2026-11-03 (FE)
 - 북마크 폴더 삭제 로직 최적화 및 상태 처리 개선 ([#511](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/511))
 
 ### 2026-11-03 (FE)
