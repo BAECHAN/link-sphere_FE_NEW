@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조·폴더 고정 순서를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-11-02
+> **마지막 검토**: 2026-11-03
 
 ## 1. 쉬운 설명
 
@@ -595,6 +595,19 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
 - 정렬 아이콘에 "기본값 아님"을 점으로 표시하라는 지침은 찾지 못했다. 점은 "기본과 다르다"만 알려 주고, 무엇으로 정렬됐는지는
   목록을 열어야 보인다.
 
+### 폴더 글 목록 조회가 실패했을 때(2026-11-03, #491)
+
+- **첫 페이지 실패**: 빈 상태("아직 북마크가 없어요.") 대신 피드와 같은 오류 문구(`ErrorState` +
+  `TEXTS.messages.error.fetchPosts`)를 보여준다. 목록 쿼리(`useBookmarkFolderPostsInfiniteQuery`)가 suspense가 아니라
+  실패해도 에러 경계로 가지 않고 `data`만 비어, 전에는 `posts.length === 0` 빈 상태로 떨어졌다 — 전역 에러 토스트가
+  사라지면 북마크가 하나도 없는 것처럼 보였다. 판정은 `useBookmarkPostList.ts`의 `isFirstPageFailed`(실패했고 데이터가
+  없음), 분기는 `BookmarkPostList.tsx`의 빈 상태 분기 바로 앞이다. 피드처럼 다시 시도 버튼은 두지 않는다 — 창
+  포커스(`refetchOnWindowFocus`)·폴더 변경 때 다시 요청한다(사용자 선택, 2026-11-03).
+- **다음 페이지 실패**: 자동 요청을 멈추고 목록 끝에 "더 불러오지 못했어요. [다시 시도]" 행을 둔다. 피드·내 댓글과
+  같은 규칙이라 판정과 근거는 [`POST.md`](./POST.md) "다음 페이지 실패 처리"가 정본이다.
+- 검증: `useBookmarkPostList.test.tsx`(다음 페이지 실패 뒤 재요청 없음·다시 시도·재조회 대기·첫 페이지 실패 판정),
+  `e2e/list-fetch-failure.spec.ts`(폴더 글 500 → 오류 문구, 빈 상태 문구 없음).
+
 ### 링크 등록 폼의 폴더 선택(`PostCreateBookmarkFolderField`) — 이 페이지가 아닌 다른 화면
 
 `src/features/post/create/ui/PostCreateBookmarkFolderField.tsx`는 `/bookmark` 페이지가
@@ -757,7 +770,7 @@ src/
 │       │   ├── hooks/
 │       │   │   └── useBookmarkPostList.ts  # 무한스크롤 쿼리 + 그리드 가상화(useWindowGridVirtualizer)
 │       │   └── ui/
-│       │       └── BookmarkPostList.tsx    # search prop 소비 + 빈 상태 분기. 카드(renderPost)와 그
+│       │       └── BookmarkPostList.tsx    # search prop 소비 + 실패·빈 상태 분기(§5 "폴더 글 목록 조회가 실패했을 때"). 카드(renderPost)와 그
 │       │                                   # 치수(grid = POST_CARD_GRID)는 BookmarkPage가 넘긴다
 │       └── folder-tree/
 │           ├── hooks/

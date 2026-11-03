@@ -165,10 +165,18 @@ export const usePostList = (grid: CardGridSpec) => {
   const { category, nickname, search, currentFilter, ...params } = usePostListParams();
   const { deferredHideBots } = useDeferredHideBots();
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
-    useSuspenseFetchPostListQuery(
-      toPostListPayload({ category, nickname, search }, currentFilter, deferredHideBots)
-    );
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+    failureReason,
+    refetch,
+    isRefetching,
+  } = useSuspenseFetchPostListQuery(
+    toPostListPayload({ category, nickname, search }, currentFilter, deferredHideBots)
+  );
 
   const posts = data.posts;
   const correctedSearch = data.pages[0]?.correctedSearch;
@@ -192,24 +200,30 @@ export const usePostList = (grid: CardGridSpec) => {
   }, [correctedSearch, remeasureScrollMargin]);
 
   const lastVirtualRowIndex = virtualizer.getVirtualItems().at(-1)?.index;
+  // 실패하면 자동으로 다시 받지 않는다 - 끝에 머무는 동안 조건이 계속 참이라 응답마다 같은 요청을 다시 보냈다.
+  // 재조회 중에도 기다린다 - 다음 페이지 요청이 재조회를 취소한다(docs/POST.md 무한 스크롤)
+  const canFetchNextPage = hasNextPage && !isFetching && !failureReason;
+  const isNextPageFailed = hasNextPage && !isFetching && Boolean(failureReason);
 
   useEffect(() => {
     if (lastVirtualRowIndex === undefined) {
       return;
     }
-    if (
-      lastVirtualRowIndex >= rows.length - PREFETCH_ROW_LOOKAHEAD &&
-      hasNextPage &&
-      !isFetchingNextPage
-    ) {
+    if (lastVirtualRowIndex >= rows.length - PREFETCH_ROW_LOOKAHEAD && canFetchNextPage) {
       fetchNextPage();
     }
-  }, [lastVirtualRowIndex, rows.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [lastVirtualRowIndex, rows.length, canFetchNextPage, fetchNextPage]);
+
+  const retryNextPage = () => {
+    fetchNextPage();
+  };
 
   return {
     posts,
     correctedSearch,
     isFetchingNextPage,
+    isNextPageFailed,
+    retryNextPage,
     refetch,
     isRefetching,
     containerRef,

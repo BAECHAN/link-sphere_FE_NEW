@@ -10,6 +10,8 @@ import type { CardGridSpec } from '@/shared/hooks/useWindowGridVirtualizer';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import { EmptyState } from '@/shared/ui/elements/EmptyState';
+import { ErrorState } from '@/shared/ui/elements/ErrorState';
+import { LoadMoreError } from '@/shared/ui/elements/LoadMoreError';
 import { useBookmarkPostList } from '@/widgets/bookmark/bookmark-post-list/hooks/useBookmarkPostList';
 
 interface BookmarkPostListProps {
@@ -35,7 +37,10 @@ export function BookmarkPostList({
     posts,
     correctedSearch,
     isLoading,
+    isFirstPageFailed,
     isFetchingNextPage,
+    isNextPageFailed,
+    retryNextPage,
     containerRef,
     virtualizer,
     rows,
@@ -48,6 +53,10 @@ export function BookmarkPostList({
         <Loader2 className="size-8 animate-spin text-primary" />
       </DelayedFallback>
     );
+  }
+
+  if (isFirstPageFailed) {
+    return <ErrorState className={className}>{TEXTS.messages.error.fetchPosts}</ErrorState>;
   }
 
   if (posts.length === 0) {
@@ -112,6 +121,7 @@ export function BookmarkPostList({
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
       )}
+      {isNextPageFailed && <LoadMoreError onRetry={retryNextPage} />}
     </div>
   );
 }

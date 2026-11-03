@@ -28,8 +28,16 @@ export const useBookmarkPostList = (
   sort: BookmarkFolderSort,
   search?: string
 ) => {
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useBookmarkFolderPostsInfiniteQuery(folderKey, sort, search);
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+    failureReason,
+    isLoading,
+    isError,
+  } = useBookmarkFolderPostsInfiniteQuery(folderKey, sort, search);
 
   const posts = data?.posts ?? [];
   const correctedSearch = data?.correctedSearch;
@@ -52,25 +60,33 @@ export const useBookmarkPostList = (
   }, [correctedSearch, remeasureScrollMargin]);
 
   const lastVirtualRowIndex = virtualizer.getVirtualItems().at(-1)?.index;
+  // 실패하면 자동으로 다시 받지 않고, 재조회 중에도 기다린다 - usePostList와 같은 이유(docs/POST.md 무한 스크롤)
+  const canFetchNextPage = hasNextPage && !isFetching && !failureReason;
+  const isNextPageFailed = hasNextPage && !isFetching && Boolean(failureReason);
+  // 비 suspense 쿼리라 첫 조회가 실패해도 에러 경계로 가지 않고 data만 비어 있다 - 빈 목록과 가른다
+  const isFirstPageFailed = isError && !data;
 
   useEffect(() => {
     if (lastVirtualRowIndex === undefined) {
       return;
     }
-    if (
-      lastVirtualRowIndex >= rows.length - PREFETCH_ROW_LOOKAHEAD &&
-      hasNextPage &&
-      !isFetchingNextPage
-    ) {
+    if (lastVirtualRowIndex >= rows.length - PREFETCH_ROW_LOOKAHEAD && canFetchNextPage) {
       fetchNextPage();
     }
-  }, [lastVirtualRowIndex, rows.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [lastVirtualRowIndex, rows.length, canFetchNextPage, fetchNextPage]);
+
+  const retryNextPage = () => {
+    fetchNextPage();
+  };
 
   return {
     posts,
     correctedSearch,
     isLoading,
+    isFirstPageFailed,
     isFetchingNextPage,
+    isNextPageFailed,
+    retryNextPage,
     containerRef,
     virtualizer,
     rows,

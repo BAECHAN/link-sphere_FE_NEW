@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { render, type RenderOptions, type RenderResult } from '@testing-library/react';
+import { act, render, type RenderOptions, type RenderResult } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, type MemoryRouterProps } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
@@ -71,6 +71,19 @@ export function renderWithProviders(
   }
 
   return { ...render(ui, { wrapper: Wrapper, ...renderOptions }), queryClient };
+}
+
+/**
+ * 실제 시간으로 ms만큼 기다리되 step마다 act를 끝내 그 사이 생긴 렌더를 그린다. act는 안에서 생긴 렌더를 범위가
+ * 끝날 때까지 모아 두므로, 한 번에 길게 기다리면 요청이 도는 동안의 렌더('요청 중')를 건너뛰고 응답 뒤 상태만
+ * 그린다 - 그 변화에 반응하는 effect(무한 스크롤 등)를 브라우저처럼 재현하려면 step을 응답 지연보다 짧게 둔다.
+ */
+export async function waitRenderingEachStep(ms: number, step = 5): Promise<void> {
+  for (let elapsed = 0; elapsed < ms; elapsed += step) {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, step));
+    });
+  }
 }
 
 // @testing-library/react 전체 re-export → 테스트에서 이 파일 하나만 import
