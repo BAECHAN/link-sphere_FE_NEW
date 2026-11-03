@@ -1,12 +1,13 @@
 name: Uptime Check
 
-# 운영 사이트와 API가 응답하는지 10분마다 확인해, 응답이 없으면 GitHub 이슈(라벨 uptime)를 열고 다시 응답하면 닫는다
+# 운영 사이트와 API가 응답하는지 확인해, 응답이 없으면 GitHub 이슈(라벨 uptime)를 열고 다시 응답하면 닫는다
 # (docs/DEPLOY.md "업타임 감시"). 2026-10-14 도메인 정지로 FE·BE가 4시간 끊겼을 때 자동으로 알아챈 장치가 없었다.
 # 형태는 cloudfront-drift-check.yml(검사 job + 이슈 권한만 가진 report job, 이슈 열고 닫기)을 따른다.
 # 이 워크플로는 레포에 쓰기 작업을 하지 않고 checkout도 하지 않는다.
 on:
   schedule:
-    # 매시 정각은 예약 실행이 몰려 늦어지거나 버려질 수 있어(GitHub 문서) 7분부터 10분 간격으로 돈다.
+    # 매시 정각은 예약 실행이 몰려 늦어지거나 버려질 수 있어(GitHub 문서) 7분부터 10분 간격으로 예약한다.
+    # 실제로는 GitHub가 하루 몇 번만 돌린다(2026-11-02 측정 22.5시간에 2번, docs/DEPLOY.md "업타임 감시").
     - cron: '7-59/10 * * * *'
   workflow_dispatch:
     inputs:
@@ -120,10 +121,10 @@ jobs:
           gh issue create \
             --title "운영 사이트나 API가 응답하지 않음" \
             --label "$UPTIME_LABEL" \
-            --body "$(printf '응답하지 않은 대상: %s\n\n실행 기록: %s\n\n- 사이트와 API가 함께 실패하면 도메인·DNS·CloudFront부터 본다(docs/DEPLOY.md "업타임 감시").\n- API만 실패하면 BE Lambda·DB 쪽이다(BE docs/TRAFFIC-MANAGEMENT.md 8-2의 CloudWatch 알람과 함께 본다).\n\n다시 응답하면 다음 정기 검사(10분 간격)에서 자동으로 닫힌다.' "$DETAIL" "$RUN_URL")"
+            --body "$(printf '응답하지 않은 대상: %s\n\n실행 기록: %s\n\n- 사이트와 API가 함께 실패하면 도메인·DNS·CloudFront부터 본다(docs/DEPLOY.md "업타임 감시").\n- API만 실패하면 BE Lambda·DB 쪽이다(BE docs/TRAFFIC-MANAGEMENT.md 8-2의 CloudWatch 알람과 함께 본다).\n\n다시 응답하면 다음 정기 검사에서 자동으로 닫힌다. 정기 검사는 몇 시간 간격일 수 있어, 바로 닫으려면 Actions 탭에서 Uptime Check를 수동 실행한다.' "$DETAIL" "$RUN_URL")"
 
           # 새 이슈를 연 실행만 실패로 끝내 GitHub 실패 알림을 한 번 받는다 - 이슈가 이미 열려 있으면 위에서
-          # 성공으로 끝나므로 장애가 이어지는 동안 10분마다 알림이 오지 않는다.
+          # 성공으로 끝나므로 장애가 이어지는 동안 실행마다 알림이 오지 않는다.
           echo "::error::응답 없음 - $DETAIL"
           exit 1
 

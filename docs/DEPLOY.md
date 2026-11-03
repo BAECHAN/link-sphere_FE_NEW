@@ -805,13 +805,15 @@ open https://linksphere.click/version
 
 ## 업타임 감시
 
-[`uptime-check.yml`](../.github/workflows/uptime-check.yml)이 10분마다 운영 사이트와 API가 응답하는지 확인한다
-(2026-11-02 도입). 그 전에는 감시가 없어서 2026-10-14 도메인 정지(위 "커스텀 도메인" 절) 때 4시간 동안 자동으로
-알아챈 장치가 없었다 — 그때는 마침 돈 배포의 검증 스텝이 실패해서 알았다.
+[`uptime-check.yml`](../.github/workflows/uptime-check.yml)이 운영 사이트와 API가 응답하는지 확인한다(2026-11-02
+도입). 10분 간격으로 예약돼 있지만 GitHub 예약 실행이라 실제로는 하루 몇 번만 돈다(아래 "cron의 한계"). 그래서 몇 분
+단위 감시가 아니라, 저절로 풀리지 않는 장애(도메인 정지·인증서 만료·결제 문제·배포 사고)를 반나절 안에 알아채는
+용도다. 그 전에는 감시가 없어서 2026-10-14 도메인 정지(위 "커스텀 도메인" 절) 때 4시간 동안 자동으로 알아챈 장치가
+없었다 — 그때는 마침 돈 배포의 검증 스텝이 실패해서 알았다.
 
 ```mermaid
 flowchart LR
-  T["10분마다<br/>(정각을 피해 7분부터)"] --> C["check job<br/>사이트·API를 각각 20초 간격 3회"]
+  T["10분 간격 예약<br/>(실제로는 하루 몇 번)"] --> C["check job<br/>사이트·API를 각각 20초 간격 3회"]
   C -->|둘 다 응답| U{"열린 uptime 이슈?"}
   U -->|있음| CL["이슈 닫기"]
   U -->|없음| N["할 일 없음"]
@@ -828,7 +830,7 @@ flowchart LR
 - **판정**: 대상마다 20초 간격으로 3번 시도해 세 번 다 실패해야 "응답 없음"이다. 콜드 스타트나 한 번의 네트워크
   오류로 이슈가 열리지 않게 하려는 것이다.
 - **알림**: 응답이 없으면 라벨 `uptime`으로 이슈를 열고 그 실행만 실패로 끝난다. 그래서 GitHub 실패 알림은 장애마다
-  한 번만 온다 — 이슈가 이미 열려 있으면 생략하고 성공으로 끝나, 장애가 이어지는 동안 10분마다 알림이 오지 않는다.
+  한 번만 온다 — 이슈가 이미 열려 있으면 생략하고 성공으로 끝나, 장애가 이어지는 동안 실행마다 알림이 오지 않는다.
   다시 응답하면 다음 실행이 이슈를 닫는다. 실패 알림을 받는 사람은 GitHub 문서에 따르면 _"워크플로 파일의 cron
   문법을 마지막으로 고친 사용자"_ 다(번역, [GitHub 문서](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)).
 - **BE 안쪽 실패는 여기서 못 본다**: 헬스가 200이어도 특정 API가 500을 내거나 백그라운드 잡이 실패할 수 있다. 그건
@@ -841,11 +843,20 @@ flowchart LR
   >
   > — GitHub Docs, [Events that trigger workflows — schedule](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)
 
-  그래서 정각을 피해 7분부터 돌리고, 실제 간격은 10분보다 길어질 수 있다. 몇 분 안에 알아야 한다면 Route 53 헬스
-  체크 같은 전용 수단이 맞다 — 비용과 콘솔 수동 관리 때문에 쓰지 않았다(근거:
-  [`docs/plans/2026-11-02-safety-net-top3.md`](./plans/2026-11-02-safety-net-top3.md) "업타임 수단"). 위 GitHub 문서는
-  공개 레포에서 60일 동안 활동이 없으면 예약 워크플로가 자동으로 꺼진다고도 쓴다 — 오래 쉬었다면 Actions 탭에서
-  다시 켠다.
+  정각을 피해 7분부터 예약했지만 이 레포에서는 지연이 훨씬 컸다. 직접 측정한 방법은
+  `gh run list --workflow "Uptime Check" --event schedule`이다.
+  병합(2026-11-02 04:21 UTC) 뒤 22.5시간 동안 예약 실행은 2번(12:43·21:57 UTC)이었다 — 10분
+  간격이면 약 135번이다. 같은 레포의 하루 1번 잡(OpenAPI·CloudFront Drift Check)은 4~6시간 늦게라도 매일 돌았다. 운이
+  나쁘면 하루 종일 한 번도 안 돌 수도 있다. 사용자가 적은 개인·포트폴리오 서비스라 몇 분 안에 알 필요는 없다고 보고
+  이대로 두었다(2026-11-03 사용자 결정).
+
+  더 빨리 알아야 해지면 전용 수단을 붙인다. 외부 감시 서비스 [UptimeRobot](https://uptimerobot.com/pricing/)은 무료
+  플랜에 _"모니터 50개"_ 와 _"5분 간격 감시"_ 를 준다(번역, 2026-11-03 확인) — 가입하고 위 두 대상을 등록하면 되고
+  코드는 필요 없다. [Route 53 헬스 체크](https://aws.amazon.com/route53/pricing/)는 AWS 밖 엔드포인트 기준
+  _"월 $0.75"_ 에 HTTPS·문자열 매칭 같은 옵션 기능마다 _"월 $2.00"_ 이 붙는다(번역, 2026-11-03 확인). 처음 고를 때
+  비교한 근거는 [`docs/plans/2026-11-02-safety-net-top3.md`](./plans/2026-11-02-safety-net-top3.md) "업타임 수단".
+  위 GitHub 문서는 공개 레포에서 60일 동안 활동이 없으면 예약 워크플로가 자동으로 꺼진다고도 쓴다 — 오래 쉬었다면
+  Actions 탭에서 다시 켠다.
 
 - **수동 실행**: `gh workflow run "Uptime Check" --ref main`. `-f force_fail=true`를 붙이면 API 본문 기대값을 일부러
   틀려 이슈 열기 경로를 시험한다. 시험 뒤 일반 실행을 한 번 더 돌리면 그 이슈가 닫힌다.
