@@ -1,4 +1,7 @@
 ### 2026-11-03 (FE)
+- 모바일 폴더 시트 UI 개선 및 딤 영역 인터랙션 최적화 ([#509](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/509))
+
+### 2026-11-03 (FE)
 - 북마크 폴더 선택 시 데이터 로드 실패에 대한 예외 처리 및 재시도 기능 구현 ([#508](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/508))
 
 ### 2026-11-03 (FE)
