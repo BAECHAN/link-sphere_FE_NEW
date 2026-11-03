@@ -1,4 +1,7 @@
 ### 2026-11-03 (FE)
+- 북마크 폴더 선택 시 데이터 로드 실패에 대한 예외 처리 및 재시도 기능 구현 ([#508](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/508))
+
+### 2026-11-03 (FE)
 - 이메일 인증 화면의 로그인 상태 판별 로직을 로그인 플래그 기반에서 정상적인 인증 상태 확인 방식으로 개선 ([#503](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/503))
 
 ### 2026-11-03 (FE)
