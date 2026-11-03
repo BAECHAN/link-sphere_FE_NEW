@@ -13,7 +13,14 @@ import { useFollowFocusOnReorder } from '@/widgets/bookmark/folder-tree/hooks/us
 
 /** FolderTree(데스크탑 사이드바) 루트 */
 export const useFolderTree = (sort?: BookmarkFolderSort, search?: string) => {
-  const { folderList, uncategorizedCount, recentFolderList, isLoading } = useFolderSections();
+  const {
+    folderList,
+    uncategorizedCount,
+    recentFolderList,
+    isPending,
+    isFolderListFailed,
+    retryFolderList,
+  } = useFolderSections();
   const queryClient = useQueryClient();
   const folderListRef = useRef<HTMLDivElement>(null);
   useFollowFocusOnReorder(folderListRef, folderList?.map((folder) => folder.id) ?? []);
@@ -27,7 +34,9 @@ export const useFolderTree = (sort?: BookmarkFolderSort, search?: string) => {
     folderListRef,
     uncategorizedCount,
     recentFolderList,
-    isLoading,
+    isPending,
+    isFolderListFailed,
+    retryFolderList,
     prefetchFolder,
   };
 };
