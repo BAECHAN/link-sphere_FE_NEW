@@ -1,4 +1,7 @@
 ### 2026-11-03 (FE)
+- 북마크 폴더 삭제 로직 최적화 및 상태 처리 개선 ([#511](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/511))
+
+### 2026-11-03 (FE)
 - 북마크 페이지 내 폴더 목록 데이터 로드 실패 시 안내 문구 및 재시도 기능 구현 ([#510](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/510))
 
 ### 2026-11-03 (FE)
