@@ -1,5 +1,5 @@
 import { useId, useState } from 'react';
-import type { FieldValues, Path, UseFormReturn } from 'react-hook-form';
+import { useWatch, type FieldValues, type Path, type UseFormReturn } from 'react-hook-form';
 import { PasswordUtil, type PasswordViolation } from '@/entities/auth/utils/auth.util';
 import { TEXTS } from '@/shared/config/texts';
 
@@ -39,8 +39,8 @@ export function usePasswordFieldsFeedback<T extends FieldValues>(
   const [isConfirmFocused, setIsConfirmFocused] = useState(false);
   const [isConfirmLatched, setIsConfirmLatched] = useState(false);
 
-  const password = String(form.watch(fields.password) ?? '');
-  const confirm = String(form.watch(fields.confirm) ?? '');
+  const password = String(useWatch({ control: form.control, name: fields.password }) ?? '');
+  const confirm = String(useWatch({ control: form.control, name: fields.confirm }) ?? '');
   const { isTouched } = form.getFieldState(fields.password, form.formState);
   const { isSubmitted } = form.formState;
 

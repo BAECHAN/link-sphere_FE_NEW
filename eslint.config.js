@@ -69,6 +69,14 @@ const RESTRICTED_SYNTAX_COMMON = [
     message:
       'matchMedia에 px 경계를 쓰지 마세요. @/shared/config/const의 MOBILE_MEDIA_QUERY·DESKTOP_MEDIA_QUERY나 rem 단위를 쓰세요 — 브라우저 기본 글꼴 크기를 바꾼 사용자에게서 Tailwind(rem)와 갈립니다.',
   },
+  // [금지] react-hook-form watch() 호출 — react-hooks/incompatible-library는 useForm()의 반환값만 알아봐서,
+  // props로 받은 form의 watch()는 놓친다(2026-11-03 usePasswordFieldsFeedback·UpdatePostForm에서 확인).
+  // src에 다른 라이브러리의 watch() 호출은 없다. 기준과 근거는 docs/FE-ARCHITECTURE.md §16
+  {
+    selector: 'CallExpression:matches([callee.property.name="watch"], [callee.name="watch"])',
+    message:
+      'react-hook-form의 watch() 대신 값을 읽을 때는 useWatch({ control, name })를, 값이 바뀔 때 할 일은 form.subscribe()를 쓰세요(docs/FE-ARCHITECTURE.md §16).',
+  },
 ];
 
 // [금지] 날짜 처리에 new Date()/.getTime() 직접 사용
