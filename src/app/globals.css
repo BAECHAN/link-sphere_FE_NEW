@@ -529,6 +529,10 @@ font-family만 'Pretendard'로 맞춘 것)에서 한다 — 당근마켓·마켓
     --tw-exit-scale: 1;
     --tw-exit-rotate: 0;
     --tw-exit-blur: 0;
+    /* 빠진 이동 자리를 페이드가 대신한다 — 밀기만 하는 모바일 시트(SheetDialogContent)가 움직임 없이
+       툭 사라지지 않게. 다른 animate-in/out은 이미 fade-*-0·fade-in(0)이라 바뀌지 않는다 */
+    --tw-enter-opacity: 0;
+    --tw-exit-opacity: 0;
     /* transform·translate·scale·rotate·height는 빠져 애니메이션 없이 바로 바뀐다.
        !important는 transition-all 클래스와 인라인 style(NProgress 막대 등)까지 덮기 위해서다 */
     transition-property:

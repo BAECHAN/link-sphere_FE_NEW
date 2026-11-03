@@ -27,6 +27,13 @@
 
 ### Changed
 
+- `bookmark` 모바일 폴더 시트의 딤을 옅게 하고 딤과 시트가 함께 닫힘
+  <details><summary>배경·구현</summary>
+
+  "닫힐 때 깜빡이고 어두웠다 밝아지는 게 부담된다"는 피드백으로 녹화해 보니(직접 측정, Pixel 5 에뮬레이션 0.2배속), 모바일 폴더 시트(카드 북마크 버튼·글 등록 폼)의 딤이 80%라 흰 화면이 밝기 20%까지 내려갔다 돌아왔고, 딤(150ms)이 시트(200ms)보다 먼저 사라져 흐려진 시트만 잠깐 남았다. 시트에는 중앙 모달용 흐림·축소가 밀기와 함께 남아 있었다(`cn`이 `tw-animate-css` 클래스를 몰라 지우지 못함). 이제 딤은 32%(Material 3 바텀시트 딤 값)이고, 딤과 시트가 같은 300ms 곡선(vaul이 드로어와 딤에 쓰는 `cubic-bezier(0.32, 0.72, 0, 1)`)으로 함께 열리고 닫히며, 시트는 밀기만 한다. 값은 실제 앱 캡처 위에 네 안을 나란히 놓은 미리보기에서 사용자가 골랐다. 동작 줄이기에서는 고치기 전처럼 시트가 제자리에서 흐려지며 닫힌다 — 밀기만 남기면 이 설정에서 툭 사라지므로 `globals.css`가 투명도 시작·끝값도 0으로 둔다. 데스크톱 모달·로그인·확인창·이미지 뷰어는 그대로다 — 중앙 모달의 흐림·확대를 `DIALOG_CONTENT_MOTION`으로 떼어 `DialogContent`만 붙이고, 기존 클래스 집합은 단위 테스트가 고정한다. 새 e2e는 닫힘을 150ms에 멈춰 딤·시트의 끝 시각과 곡선, 시트 투명도·크기, 동작 줄이기의 페이드를 읽는다(각 수정을 빼면 실패하는 것을 확인). 북마크 페이지에서 카드와 함께 시트가 한 프레임에 사라지는 문제는 후속 작업이다. 근거와 기각한 값은 `docs/DECISIONS.md` 2026-11-03, 계획은 [`docs/plans/2026-11-03-bookmark-sheet-close-flicker.md`](docs/plans/2026-11-03-bookmark-sheet-close-flicker.md). (`src/shared/ui/atoms/dialog.tsx`, `src/shared/ui/atoms/dialog.test.tsx`, `src/shared/ui/elements/dialog/SheetDialogContent.tsx`, `src/shared/ui/elements/dialog/SheetDialogContent.test.tsx`(신규), `src/shared/ui/elements/dialog/SheetDialogContent.stories.tsx`, `src/app/globals.css`, `e2e/bookmark-sheet-motion.mobile.spec.ts`(신규), `.claude/skills/motion-ux/SKILL.md`, `docs/BOOKMARK.md`, `docs/DECISIONS.md`, [PR #509](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/509))
+
+  </details>
+
 - `bookmark` Android에서 폴더 선택 창을 여닫을 때 페이지 전체를 다시 그리지 않음
   <details><summary>배경·구현</summary>
 

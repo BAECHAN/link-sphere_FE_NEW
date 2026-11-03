@@ -43,11 +43,25 @@ type DialogContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.
   dismissOnOutsideClick?: boolean;
 };
 
+/**
+ * 중앙 모달의 등장·퇴장 — 흐림 + 확대·축소 200ms. 패널 기본 클래스에서 떼어 둔 이유는 하단 시트
+ * (SheetDialogContent)가 밀기만 쓰기 때문이다. 같이 두면 cn(tailwind-merge)이 tw-animate 클래스를 몰라
+ * 시트의 slide-out-to-bottom과 fade-out-0·zoom-out-95가 함께 남아 시트가 흐려지고 줄어들며 내려갔다
+ * (2026-11-03, docs/DECISIONS.md).
+ */
+const DIALOG_CONTENT_MOTION =
+  'duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95';
+
 // DialogPortal의 자식은 Radix Presence로 감싸져 열릴 때만 마운트된다. 가드 훅을 이 컴포넌트
 // 안에 두는 이유가 그것이다 — DialogContent 함수 본문은 닫혀 있어도 항상 실행되므로, 거기서
 // useOpenClickGuard(true)를 부르면 시계가 "열린 시점"이 아니라 페이지에 처음 렌더된 시점에
 // 한 번 찍히고 끝나 가드가 사실상 꺼진다(2026-09-30 발견, <Dialog open={false}>로 미리
 // 마운트해 두는 BookmarkFolderSelectDialog 등에서 열린 직후 바깥 클릭이 그대로 닫았다).
+/**
+ * 모달 패널 본체 — 등장·퇴장 애니메이션 클래스는 없다(DialogContent가 DIALOG_CONTENT_MOTION을 붙인다).
+ * 딤이나 움직임을 바꿔야 할 때만 DialogPortal·DialogOverlay와 직접 조립해 쓴다(SheetDialogContent).
+ * 위 주석의 열림 가드 시계 때문에 반드시 DialogPortal 안에 둔다.
+ */
 const DialogContentPanel = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
@@ -121,7 +135,7 @@ const DialogContentPanel = React.forwardRef<
           onClickCapture?.(e);
         }}
         className={cn(
-          'fixed left-[50%] top-[50%] z-modal grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg',
+          'fixed left-[50%] top-[50%] z-modal grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg sm:rounded-lg',
           className
         )}
         {...props}
@@ -142,10 +156,10 @@ DialogContentPanel.displayName = 'DialogContentPanel';
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
->((props, ref) => (
+>(({ className, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
-    <DialogContentPanel ref={ref} {...props} />
+    <DialogContentPanel ref={ref} className={cn(DIALOG_CONTENT_MOTION, className)} {...props} />
   </DialogPortal>
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
@@ -188,12 +202,14 @@ const DialogDescription = React.forwardRef<
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
 export {
+  DIALOG_CONTENT_MOTION,
   Dialog,
   DialogPortal,
   DialogOverlay,
   DialogClose,
   DialogTrigger,
   DialogContent,
+  DialogContentPanel,
   DialogHeader,
   DialogFooter,
   DialogTitle,
