@@ -6,6 +6,64 @@
 
 ---
 
+## 2026-11-03 — 모바일 시트: 딤 32%, 딤과 시트를 같은 300ms 곡선으로 함께 닫는다
+
+**배경**
+
+"모바일에서 북마크 목록 같은 창이 닫힐 때 깜빡이고, 화면이 어두웠다 밝아지는 것도 부담된다"는 피드백이었다. 직접
+재현한 방법과 결과는 다음과 같다. 모바일 시트는 카드 북마크 버튼과 글 등록 폼의 폴더 선택이 쓰는 `SheetDialogContent`의
+모바일 분기다.
+
+- 방법: Playwright Pixel 5 에뮬레이션, CDP `Animation.setPlaybackRate(0.2)`로 느리게 돌렸다. `MutationObserver`로 딤·시트의
+  `data-state`와 추가·제거 시각을, `getAnimations()`로 애니메이션 길이를 기록했다.
+- 딤은 `bg-scrim/80`이고 `--scrim`은 라이트·다크 공통 검정이다. 흰 화면이 밝기 20%까지 내려갔다가 돌아온다(알파 합성 계산).
+- 딤은 `tw-animate-css` 기본값 150ms `ease`, 시트는 `duration-200`이었다. Radix Dialog 1.1.15는 Overlay와 Content를 각자
+  Presence로 감싸 각자의 애니메이션이 끝날 때 내리므로, 딤이 먼저 사라지고 흐려진 시트가 잠깐 혼자 남았다.
+- 시트에는 중앙 모달용 `fade-out-0`·`zoom-out-95`가 `slide-out-to-bottom`과 함께 남아 있었다. `cn`(tailwind-merge)이
+  `tw-animate-css` 클래스를 몰라 앞의 것을 지우지 않았고, 세 효과가 `exit` 키프레임 하나로 합쳐졌다.
+
+**검토**
+
+값은 실제 앱 캡처(e2e 목 데이터) 위에 실제 클래스를 컴파일해 입힌 미리보기 페이지에서 네 안을 나란히 놓고 골랐다. 0.2배속,
+다크, 동작 줄이기 흉내까지 같이 봤다. 아래 근거는 모두 각 프로젝트의 소스 값이다.
+
+| 안                                    | 딤  | 시간(딤·시트 같음) | 곡선                          | 근거                                                                                                                                                                                                                                                                                                                    | 판정                                                                   |
+| ------------------------------------- | --- | ------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 지금                                  | 80% | 딤 150 · 시트 200  | `ease`                        | —                                                                                                                                                                                                                                                                                                                       | 기각 — 위 배경                                                         |
+| 1안                                   | 50% | 250ms              | `ease-out`                    | 이 레포 사이드바 드로어 `bg-scrim/50`, [shadcn v4 dialog](https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/new-york-v4/ui/dialog.tsx) `bg-black/50`                                                                                                                                                           | 기각 — 밝기 변화가 3안보다 크다                                        |
+| 2안                                   | 40% | 300ms              | `cubic-bezier(0.32,0.72,0,1)` | 1안과 3안의 중간값(외부 근거 없음)                                                                                                                                                                                                                                                                                      | 다크에서 시트 경계가 흐리면 고르려던 예비안                            |
+| **3안**                               | 32% | 300ms              | `cubic-bezier(0.32,0.72,0,1)` | Material 3 `ScrimTokens.ContainerOpacity = 0.32f`([androidx](https://github.com/androidx/androidx/tree/androidx-main/compose/material3/material3/src/commonMain/kotlin/androidx/compose/material3/tokens)), 곡선은 [vaul](https://github.com/emilkowalski/vaul/tree/main/src)(`style.css`)이 드로어와 딤에 함께 쓰는 값 | **채택(사용자 선택)** — 밝기 변화가 가장 작고 Android 앱들과 같은 농도 |
+| 닫힘만 200ms(어느 안에든 덧붙이는 안) | —   | 열림 그대로 · 200  | —                             | Material `MaterialFade`는 나갈 때를 들어올 때의 절반(150 / 75ms)으로 둔다([Motion.md](https://github.com/material-components/material-components-android/blob/master/docs/theming/Motion.md))                                                                                                                           | 기각(사용자 선택) — 상수 하나로 충분하고 미리보기에서 늘어지지 않았다  |
+
+모든 안이 motion-ux skill의 _"모달·드로어 200-500ms"_ 범위(emil-design-eng skill, motion-ux skill에서 재인용)에 들고, 곡선은
+감속형이라 "ease-in 금지"에 걸리지 않는다.
+
+구현 방법에서 기각한 안은 다음과 같다.
+
+- 전역 딤(`DialogOverlay`)을 바꾸기 — 이미지 뷰어(`ImageViewer.tsx`)는 본문이 투명해 80% 딤을 배경으로 쓴다. 사용자가 "모바일
+  시트만"을 골랐다.
+- `DialogContent`에 `overlayClassName` prop 추가 — 공용 atom의 시그니처가 바뀌고 Radix로 새는 DOM 속성을 따로 막아야 한다.
+- `extendTailwindMerge`로 `tw-animate-css` 클래스 충돌을 가르치기 — 모든 `cn()` 호출의 동작이 바뀐다.
+- `fade-out-100`·`zoom-out-100`으로 덮어쓰기 — 결과가 Tailwind가 클래스를 출력하는 순서에 기대 업그레이드 때 깨질 수 있다.
+
+**결정**
+
+- `dialog.tsx`가 중앙 모달의 흐림·확대를 `DIALOG_CONTENT_MOTION` 상수로 떼고, `DialogContent`만 그 상수를 붙인다.
+  `DialogContentPanel`을 export한다. 기존 `DialogContent` 사용처의 클래스 집합은 그대로다(`dialog.test.tsx`가 고정).
+- `SheetDialogContent.tsx`가 `DialogPortal`·`DialogOverlay`·`DialogContentPanel`을 직접 조립한다. 모바일은 딤 `bg-scrim/32`,
+  시트는 밀기만 하고, `SHEET_TIMING`(`duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]`)을 둘 다에 붙인다. 데스크톱 분기는
+  고치기 전과 같다.
+- 동작 줄이기(`globals.css`)에서 투명도 시작·끝값도 0으로 둔다. 이동이 빠지면 밀기만 하는 시트가 흐려지지도 않고 툭
+  사라지기 때문이다. 이 설정을 켠 사용자에게는 고치기 전처럼 흐려지며 닫힌다. 다른 `animate-in`/`animate-out` 12곳은
+  이미 투명도 0에서 시작·끝나 바뀌지 않는다.
+
+**남은 것**
+
+- 북마크 페이지에서 시트 안 "북마크 제거"·폴더 빼기를 누르면 카드와 함께 시트가 한 프레임에 사라지는 문제는 이 결정과
+  별개다. 시트를 카드 밖으로 옮기는 후속 작업에서 다룬다(`docs/plans/2026-11-03-bookmark-sheet-close-flicker.md`).
+
+---
+
 ## 2026-11-03 — 북마크 폴더 창: 뒤로가기가 "닫기 요청"으로 오는 기기에서만 히스토리를 뺀다
 
 **배경**

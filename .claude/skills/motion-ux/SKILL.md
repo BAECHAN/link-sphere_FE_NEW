@@ -12,8 +12,8 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 
 ## Duration 규약
 
-지금 레포엔 duration 토큰이 없고, 혼용 중인 값 3종(150/200/300ms)엔 선택
-근거가 없다(아래 실측 참고). 새 코드부터 아래 기준을 적용한다:
+지금 레포엔 duration 토큰이 없고, 혼용 중인 값(150/200/300/600ms)엔 모바일 시트를
+빼면 선택 근거가 없다(아래 실측 참고). 새 코드부터 아래 기준을 적용한다:
 
 > "Rule: UI animations should stay under 300ms." 같은 문서의 지속시간 표는
 > 용도별로 버튼 프레스 피드백 100-160ms, 툴팁·작은 팝오버 125-200ms,
@@ -29,8 +29,8 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 
 ## Easing 규약
 
-레포 전체에 `ease-*` 클래스 사용이 1건뿐이다(`select.tsx` 화살표의 `ease-in-out`, 나머지는 전부 브라우저 기본 easing에 의존).
-앞으로는:
+레포 전체에 `ease-*` 클래스 사용이 3건뿐이다(`select.tsx` 화살표의 `ease-in-out`, `CommentList.tsx`의 `ease-out`,
+모바일 시트의 곡선 — 나머지는 전부 브라우저 기본 easing에 의존). 앞으로는:
 
 > "Never use ease-in for UI animations. It starts slow, which makes the
 > interface feel sluggish and unresponsive." 진입/퇴장 요소는 `ease-out`
@@ -43,6 +43,9 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 - 화면 안 이동/변형: `ease-in-out`
 - hover/색상 전환: `ease`(Tailwind 기본값)
 - `ease-in`은 쓰지 않는다
+- 모바일 하단 시트와 그 딤: `SHEET_TIMING`(`SheetDialogContent.tsx`)의 `duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]`.
+  처음에 빠르고 끝에서 감속하는 곡선이라 `ease-out` 계열이다. [vaul](https://github.com/emilkowalski/vaul/tree/main/src)(`style.css`)이
+  드로어와 딤에 함께 쓰는 값이고, 값을 고른 근거와 기각한 값은 `docs/DECISIONS.md` 2026-11-03에 있다
 
 ## hover 트랜지션 컨테이너 안에 드롭다운·팝오버가 있을 때
 
@@ -53,10 +56,10 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 
 ## `transition-all` 지양
 
-`transition-all`이 12건 있다 — 레이아웃까지 포함한 모든 속성 변화를 감시해
+`transition-all`이 10건 있다 — 레이아웃까지 포함한 모든 속성 변화를 감시해
 불필요한 리페인트 비용이 든다. 새 코드는 실제로 바뀌는 속성만 지정한다
 (`transition-colors`/`transition-opacity`/`transition-transform` — 레포에
-이미 각각 10/5/4건 선례가 있다). 기존 12건은 이번 skill 도입만으로 일괄
+이미 각각 10/5/4건 선례가 있다). 기존 10건은 이번 skill 도입만으로 일괄
 리팩터링하지 않는다.
 
 ## `prefers-reduced-motion` — 전역 대응
@@ -74,6 +77,10 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
   표시에 붙였던 2곳을 2026-10-15에 걷어냈다).
   - `tw-animate-css`의 `animate-in`/`animate-out`(zoom·slide)은 이동·확대·회전·흐림 변수(`--tw-enter-*`·`--tw-exit-*`)를
     덮어 페이드만 남는다 — 다이얼로그·하단 시트·드롭다운·툴팁.
+  - 투명도 시작·끝값(`--tw-enter-opacity`·`--tw-exit-opacity`)도 0으로 둔다(2026-11-03). 모바일 시트를 밀기만 하게
+    바꾸면서, 이동이 빠지는 이 설정에서는 흐려지지도 않고 툭 사라지게 되기 때문이다 — 고치기 전처럼 흐려지며 닫히게
+    유지한다. 다른 `animate-in`/`animate-out`은 이미 `fade-*-0`·`fade-in`이라 바뀌지 않는다. 회귀는
+    `e2e/bookmark-sheet-motion.mobile.spec.ts`가 잡는다.
   - `transition-property`를 색·투명도·그림자로 고정해(`!important`, `transition-all`·인라인 style까지) `translate`·`scale`·`rotate`·높이
     변화는 애니메이션 없이 바로 바뀐다 — 사이드바 드로어, 카드 hover, 떠 있는 버튼.
   - `animate-spin`은 2초에 한 바퀴(기본 1초)로 느리게 돌고, `animate-pulse`(스켈레톤)는 그대로다.
@@ -108,23 +115,31 @@ CSS만으로 exit(사라짐) 애니메이션을 만들 때 "화면에서 사라�
 클래스를 `starting:`(CSS `@starting-style`)으로도 붙여, 처음 그려질 때 그 상태에서 출발시킨다
 (`ScrollToTop.tsx`). 회귀는 `e2e/reduced-motion.spec.ts`의 "맨 위로 버튼 등장 트랜지션"이 잡는다.
 
+**딤과 패널처럼 따로 사라지는 형제 요소에는 같은 시간·곡선을 둘 다 붙인다.** Radix Dialog는 Overlay와
+Content를 각자 Presence로 감싸 각자의 애니메이션이 끝날 때 내린다. 형제라서 한쪽에 붙인 `duration-*`는 다른
+쪽에 가지 않고, 안 붙인 쪽은 `tw-animate-css` 기본값(150ms `ease`)으로 먼저 사라진다. 모바일 북마크 시트가
+이 때문에 딤만 먼저 밝아졌다(2026-11-03, `SheetDialogContent.tsx`의 `SHEET_TIMING`이 둘에 같이 붙는다).
+그리고 `cn`(tailwind-merge)은 `tw-animate-css` 클래스를 몰라 `fade-out-0` 위에 `slide-out-to-bottom`을 더해도
+앞의 것을 지우지 않는다. 다른 움직임이 필요하면 기존 모션 클래스를 덮어쓰지 말고 처음부터 따로 조립한다
+(`dialog.tsx`의 `DIALOG_CONTENT_MOTION`).
+
 **Tailwind v4의 `translate-*`·`scale-*`·`rotate-*`는 `transform`이 아니라 같은 이름의 개별 속성이다.**
 `transition-[transform,...]`로는 움직이지 않으니 `transition-transform`(넷 다 포함)이나
 `transition-[translate,...]`를 쓴다. 게시글 카드 hover 들림이 이 문제로 처음부터 애니메이션 없이
 바로 바뀌었다(`PostCard.tsx`, 2026-10-15 수정).
 
-## 실측 현황 (직접 측정, 2026-10-15)
+## 실측 현황 (직접 측정, 2026-11-03)
 
-`src`의 `.ts`·`.tsx` 332개(테스트·스토리 제외)에서 앞뒤가 클래스 경계인 토큰만 셌다. 처음 잰
-2026-09-22 표는 본문과 `ease-*`·속성별 선례 수가 어긋나 있어 다시 쟀다.
+`src`의 `.ts`·`.tsx` 362개(테스트·스토리 제외)에서 앞뒤가 클래스 경계인 토큰만 셌다. 2026-10-15 표
+(332개)에서 모바일 시트 타이밍을 정하며 다시 쟀다.
 
 | 항목                     | 값                                                                                                                                              |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `duration-*`             | 150×1, 200×10, 300×3                                                                                                                            |
-| `ease-*`                 | 1건(`select.tsx`의 `ease-in-out`)                                                                                                               |
+| `duration-*`             | 150×1, 200×10, 300×4, 600×2                                                                                                                     |
+| `ease-*`                 | 3건(`select.tsx`의 `ease-in-out`, `CommentList.tsx`의 `ease-out`, `SheetDialogContent.tsx`의 `ease-[cubic-bezier(0.32,0.72,0,1)]`)              |
 | `prefers-reduced-motion` | `globals.css` 전역 블록 1곳, 코드 1곳(`scroll.util.ts`), 컴포넌트 `motion-reduce:` 0곳                                                          |
-| `transition-all`         | 12건(속성별 선례: `transition-colors` 10, `transition-shadow` 6, `transition-opacity` 5, `transition-transform` 4, 임의값 `transition-[...]` 5) |
-| `globals.css` 모션 토큰  | 0개(색상·반경·z-index·타이포그래피는 있음)                                                                                                      |
+| `transition-all`         | 10건(속성별 선례: `transition-colors` 10, `transition-shadow` 6, `transition-opacity` 5, `transition-transform` 4, 임의값 `transition-[...]` 6) |
+| `globals.css` 모션 토큰  | 0개(색상·반경·z-index·타이포그래피는 있음, 모바일 시트 타이밍은 컴포넌트 상수)                                                                  |
 
 ## 점검 항목
 

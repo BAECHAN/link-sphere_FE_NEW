@@ -208,3 +208,42 @@ describe('DialogContent — dismissOnOutsideClick', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });
+
+// 모션 클래스를 DIALOG_CONTENT_MOTION으로 떼어 낸 뒤에도(2026-11-03, 하단 시트만 밀기로 바꾸려고) 기존
+// DialogContent 사용처의 패널 클래스 집합이 그대로인지 고정한다. 기댓값은 고치기 전 dialog.tsx의 패널 기본
+// 클래스에 각 사용처의 className을 cn()으로 합친 결과다(기본·LoginDialog·ImageViewer)
+describe('DialogContent — 패널 클래스 집합', () => {
+  function panelClassSet(className?: string) {
+    renderWithProviders(
+      <Dialog open>
+        <DialogContent className={className}>
+          <DialogTitle>확인</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    );
+
+    return [...screen.getByRole('dialog').classList].sort().join(' ');
+  }
+
+  it('className이 없으면 흐림·확대 200ms가 붙은 중앙 모달 그대로다', () => {
+    expect(panelClassSet()).toBe(
+      'bg-background border data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-200 fixed gap-4 grid left-[50%] max-w-lg p-6 shadow-lg sm:rounded-lg top-[50%] translate-x-[-50%] translate-y-[-50%] w-full z-modal'
+    );
+  });
+
+  it('LoginDialog의 max-w-md는 기본 폭만 바꾼다', () => {
+    expect(panelClassSet('max-w-md')).toBe(
+      'bg-background border data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-200 fixed gap-4 grid left-[50%] max-w-md p-6 shadow-lg sm:rounded-lg top-[50%] translate-x-[-50%] translate-y-[-50%] w-full z-modal'
+    );
+  });
+
+  it('ImageViewer의 className도 같은 집합이 된다(닫힘 타이머 300ms가 기대는 duration-200 유지)', () => {
+    expect(
+      panelClassSet(
+        'flex h-[90vh] w-[90vw] max-w-none items-center justify-center gap-0 border-0 bg-transparent p-0 shadow-none sm:rounded-none'
+      )
+    ).toBe(
+      'bg-transparent border-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-200 fixed flex gap-0 h-[90vh] items-center justify-center left-[50%] max-w-none p-0 shadow-none sm:rounded-none top-[50%] translate-x-[-50%] translate-y-[-50%] w-[90vw] z-modal'
+    );
+  });
+});
