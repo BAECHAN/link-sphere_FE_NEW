@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { updateAccountSchema, UpdateAccount } from '@/entities/account/model/account.schema';
+import {
+  nicknameValidationSchema,
+  updateAccountSchema,
+  UpdateAccount,
+} from '@/entities/account/model/account.schema';
 import { useUpdateAccountMutation } from '@/entities/account/api/account.queries';
 import { accountApi } from '@/entities/account/api/account.api';
 import { useAccount } from '@/entities/account/hooks/useAccount';
@@ -12,6 +16,12 @@ import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 
 type NicknameStatus = 'idle' | 'checking' | 'available' | 'duplicate';
+
+/** 고른 아바타 파일과 그 미리보기 blob URL - 함께 생기고 함께 사라진다 */
+interface PendingAvatar {
+  file: File;
+  previewUrl: string;
+}
 
 export function useUpdateAccount() {
   const { account } = useAccount();
@@ -41,26 +51,25 @@ export function useUpdateAccount() {
     [account, reset]
   );
 
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(account?.image ?? null);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const objectUrlRef = useRef<string | null>(null);
-  // 제출과 함께 mutation에 넘긴 blob URL - 성공 시 mutation의 onSuccess가 해제하므로
-  // 언마운트 정리에서는 건너뛴다 (제출되지 않고 남은 blob만 여기서 정리)
-  const submittedObjectUrlRef = useRef<string | null>(null);
+  const [pendingAvatar, setPendingAvatar] = useState<PendingAvatar | null>(null);
+  // 서버 이미지를 state에 복사해 두지 않고 렌더 중에 고른다 - 고른 파일이 있으면 그 미리보기, 없으면
+  // 계정 이미지. 복사본을 effect로 따라가게 하면 계정이 늦게 올 때 낡은 값으로 한 번 더 그린다
+  // (https://react.dev/learn/choosing-the-state-structure#avoid-redundant-state)
+  const avatarPreview = pendingAvatar?.previewUrl ?? account?.image ?? null;
 
-  useEffect(() => {
-    if (account?.image && !pendingFile) {
-      setAvatarPreview(account.image);
-    }
-  }, [account?.image, pendingFile]);
-
-  useEffect(() => {
-    return () => {
-      if (objectUrlRef.current && objectUrlRef.current !== submittedObjectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
+  useEffect(
+    function revokeReplacedAvatarPreview() {
+      if (!pendingAvatar) {
+        return;
       }
-    };
-  }, []);
+
+      // 다른 파일로 바꾸거나 화면을 떠나면 해제한다. 저장에 성공하면 mutation의 onSuccess가 먼저
+      // 해제하고, 이미 해제된 URL을 다시 해제하면 조용히 아무 일도 하지 않는다
+      // (W3C File API revokeObjectURL 4단계, https://w3c.github.io/FileAPI/#dfn-revokeObjectURL)
+      return () => URL.revokeObjectURL(pendingAvatar.previewUrl);
+    },
+    [pendingAvatar]
+  );
 
   const handleAvatarChange = (file: File) => {
     // 형식도 고르는 즉시 본다 - 예전엔 검사가 없어 허용 목록 밖 형식이 제출 뒤 "프로필 업데이트에
@@ -79,13 +88,8 @@ export function useUpdateAccount() {
       return;
     }
 
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-    }
-    const objectUrl = URL.createObjectURL(file);
-    objectUrlRef.current = objectUrl;
-    setPendingFile(file);
-    setAvatarPreview(objectUrl);
+    // 앞서 고른 파일의 미리보기는 revokeReplacedAvatarPreview가 해제한다
+    setPendingAvatar({ file, previewUrl: URL.createObjectURL(file) });
   };
 
   // 닉네임 중복은 제출 후 409로 복구하기보다 타이핑을 멈춘 뒤(디바운스) 미리 막는다 - GitHub·X·
@@ -93,36 +97,50 @@ export function useUpdateAccount() {
   // 전에 제출되는" 레이스가 있었다. 디바운스는 상태 변화가 매 키 입력마다(클릭보다 훨씬 전에) 일어나
   // 저장 버튼이 렌더 시점에 이미 disabled로 그려져 있으므로 이 레이스가 구조적으로 생기지 않는다
   // (Bluesky StepHandle의 hasDebounceSettled/isNotReady 패턴).
-  const [nicknameStatus, setNicknameStatus] = useState<NicknameStatus>('idle');
+  // 마지막으로 조회를 마친 닉네임과 그 결과. 화면에 보이는 상태는 아래에서 렌더 중에 파생한다 - effect
+  // 안에서 'idle'/'checking'을 바로 넣으면 낡은 상태로 한 번 더 렌더된다(가입 화면 useAvailabilityCheck.ts와
+  // 같은 형태, https://react.dev/reference/eslint-plugin-react-hooks/lints/set-state-in-effect)
+  const [nicknameResult, setNicknameResult] = useState<{
+    value: string;
+    status: Exclude<NicknameStatus, 'checking'>;
+  } | null>(null);
   const checkedNicknameRef = useRef<string | null>(account?.nickname ?? null);
-  const watchedNickname = form.watch('nickname');
+  const watchedNickname = useWatch({ control: form.control, name: 'nickname' });
   const debouncedNickname = useDebounce(watchedNickname, 500);
   const hasDebounceSettled = watchedNickname === debouncedNickname;
 
+  const nickname = debouncedNickname.trim();
+  // 원래 자기 닉네임으로 되돌아온 경우 - 실제로 바뀐 게 없으니 검사도, 상태 메시지도 필요 없다.
+  // (예: A로 바꿔 확인까지 마친 뒤 다시 원래 값으로 되돌리면, checkedNicknameRef는 이미 A라서
+  // 이 분기 없이는 원래 값을 "새로 확인할 값"으로 오인해 불필요하게 재조회하고 "사용 가능한
+  // 닉네임입니다"라는 오해의 소지가 있는 메시지를 보여주게 된다)
+  const isOwnNickname = !nickname || nickname === account?.nickname;
+  // 형식 오류(zod 정규식)는 리졸버가 입력칸에 띄우니 서버까지 갈 필요 없음
+  const isCheckable = !isOwnNickname && nicknameValidationSchema.safeParse(nickname).success;
+
+  // 자기 닉네임으로 돌아오면 이전 결과를 버린다 - 다시 바꾸면 처음부터 확인한다
+  if (isOwnNickname && nicknameResult !== null) {
+    setNicknameResult(null);
+  }
+
+  const nicknameStatus: NicknameStatus = !isCheckable
+    ? 'idle'
+    : nicknameResult?.value === nickname
+      ? nicknameResult.status
+      : 'checking';
+
   useEffect(
     function checkNicknameAvailability() {
-      const nickname = debouncedNickname.trim();
-
-      // 원래 자기 닉네임으로 되돌아온 경우 - 실제로 바뀐 게 없으니 검사도, 상태 메시지도 필요 없다.
-      // (예: A로 바꿔 확인까지 마친 뒤 다시 원래 값으로 되돌리면, checkedNicknameRef는 이미 A라서
-      // 이 분기 없이는 원래 값을 "새로 확인할 값"으로 오인해 불필요하게 재조회하고 "사용 가능한
-      // 닉네임입니다"라는 오해의 소지가 있는 메시지를 보여주게 된다)
-      if (!nickname || nickname === account?.nickname) {
-        setNicknameStatus('idle');
+      if (isOwnNickname) {
         form.clearErrors('nickname');
         checkedNicknameRef.current = account?.nickname ?? null;
         return;
       }
-      if (nickname === checkedNicknameRef.current) {
-        return;
-      }
-      if (form.getFieldState('nickname').invalid) {
-        // 형식 오류(zod 정규식)가 이미 떠 있으면 서버까지 갈 필요 없음
+      if (!isCheckable || nickname === checkedNicknameRef.current) {
         return;
       }
 
       let cancelled = false;
-      setNicknameStatus('checking');
       void (async () => {
         let available: boolean;
         try {
@@ -133,7 +151,7 @@ export function useUpdateAccount() {
           // 비활성화되지 않으면서(hasNicknameError=false) 초록 확인 메시지도 안 뜬다 - 실제
           // 중복이면 저장 시점에 BE가 409로 다시 막아준다.
           if (!cancelled) {
-            setNicknameStatus('idle');
+            setNicknameResult({ value: nickname, status: 'idle' });
           }
           return;
         }
@@ -144,10 +162,10 @@ export function useUpdateAccount() {
 
         checkedNicknameRef.current = nickname;
         if (available) {
-          setNicknameStatus('available');
+          setNicknameResult({ value: nickname, status: 'available' });
           form.clearErrors('nickname');
         } else {
-          setNicknameStatus('duplicate');
+          setNicknameResult({ value: nickname, status: 'duplicate' });
           form.setError('nickname', {
             type: 'manual',
             message: TEXTS.messages.error.nicknameDuplicate,
@@ -159,27 +177,24 @@ export function useUpdateAccount() {
         cancelled = true;
       };
     },
-    [debouncedNickname, account?.nickname, form]
+    [nickname, isOwnNickname, isCheckable, account?.nickname, form]
   );
 
   const onSubmit = form.handleSubmit((formData) => {
-    const previewUrl = pendingFile ? (objectUrlRef.current ?? undefined) : undefined;
-
     updateAccount(
       {
         nickname: formData.nickname,
         image: formData.image ?? undefined,
-        file: pendingFile ?? undefined,
-        previewUrl,
+        file: pendingAvatar?.file,
+        previewUrl: pendingAvatar?.previewUrl,
       },
       {
         onSuccess: (data) => {
-          submittedObjectUrlRef.current = previewUrl ?? null; // mutation onSuccess가 revoke
-          setPendingFile(null);
+          setPendingAvatar(null);
           reset({ nickname: data.nickname ?? '', image: data.image });
         },
         onError: () => {
-          // 아무것도 안 건드린다 - 닉네임·pendingFile·avatarPreview 그대로 유지돼 바로 재시도 가능
+          // 아무것도 안 건드린다 - 닉네임·고른 파일·미리보기 그대로 유지돼 바로 재시도 가능
         },
       }
     );
@@ -195,7 +210,7 @@ export function useUpdateAccount() {
     isNicknameAvailable: nicknameStatus === 'available',
     hasNicknameError: nicknameStatus === 'duplicate',
     hasDebounceSettled,
-    isDirty: form.formState.isDirty || pendingFile !== null,
+    isDirty: form.formState.isDirty || pendingAvatar !== null,
     account,
   };
 }

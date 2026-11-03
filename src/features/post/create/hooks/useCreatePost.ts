@@ -1,5 +1,5 @@
 import { useCreatePostMutation } from '@/entities/post/api/post.queries';
-import { useForm, type UseFormReturn } from 'react-hook-form';
+import { useForm, useWatch, type Path, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CreatePost, createPostSchema } from '@/entities/post/model/post.schema';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -73,8 +73,8 @@ export function useCreatePost() {
   const signedOutNotice = useSignedOutNotice(form.formState.isDirty);
 
   // 작성 중 링크 미리보기 - 이메일 미인증이면 BE가 403으로 거절하므로 묻지 않는다
-  const urlValue = form.watch('url');
-  const titleValue = form.watch('title');
+  const urlValue = useWatch({ control: form.control, name: 'url' });
+  const titleValue = useWatch({ control: form.control, name: 'title' });
   const linkPreview = useLinkPreview(urlValue, account?.emailVerified === true);
   const previewUrlError = linkPreview.status === 'urlError' ? linkPreview.message : null;
 
@@ -95,15 +95,18 @@ export function useCreatePost() {
     function clearSubmitErrorsOnEdit() {
       // 사용자가 무엇이든 고치면 이전 실패 안내를 지운다. 서버가 붙인 입력칸 에러(type 'server')는
       // zod 검증으로 지워지지 않는 칸(북마크 폴더 등)이 있어 여기서 직접 지운다.
-      const subscription = form.watch((_, { name }) => {
-        setSubmitError(null);
+      // watch(콜백) 대신 subscribe를 쓴다 - watch()가 있으면 React 규칙 린트가 이 훅 전체를 건너뛴다
+      // (eslint.config.js의 react-hooks/incompatible-library 주석). 콜백의 name은 string으로 넘어온다.
+      return form.subscribe({
+        formState: { values: true },
+        callback: ({ name }) => {
+          setSubmitError(null);
 
-        if (name && form.getFieldState(name).error?.type === 'server') {
-          form.clearErrors(name);
-        }
+          if (name && form.getFieldState(name as Path<CreatePost>).error?.type === 'server') {
+            form.clearErrors(name as Path<CreatePost>);
+          }
+        },
       });
-
-      return () => subscription.unsubscribe();
     },
     [form]
   );

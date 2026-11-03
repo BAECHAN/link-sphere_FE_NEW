@@ -19,7 +19,7 @@ import { useAccount } from '@/entities/account/hooks/useAccount';
 import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
 import { useSignedOutNotice } from '@/entities/auth/hooks/useSignedOutNotice';
 import { ErrorUtil } from '@/shared/utils/error.util';
-import { useForm, type UseFormReturn } from 'react-hook-form';
+import { useForm, useWatch, type Path, type UseFormReturn } from 'react-hook-form';
 import { useLocation } from 'react-router-dom';
 
 type PostSubmitFormError = Extract<PostSubmitErrorResolution, { kind: 'form' }>;
@@ -106,7 +106,7 @@ export function useUpdatePost(postId: string) {
 
   // URL을 바꾸는 순간 제목·관심 분야는 옛 링크 기준이 되므로 비운다.
   // 제목을 비우고 저장하면(URL 변경 여부와 무관하게) 서버가 링크에서 제목을 다시 가져온다.
-  const urlValue = form.watch('url');
+  const urlValue = useWatch({ control: form.control, name: 'url' });
 
   useEffect(
     function clearDerivedFieldsOnUrlChange() {
@@ -135,15 +135,16 @@ export function useUpdatePost(postId: string) {
   useEffect(
     function clearSubmitErrorsOnEdit() {
       // useCreatePost.ts의 같은 이름 effect와 같은 이유 - 고치면 이전 실패 안내를 지운다
-      const subscription = form.watch((_, { name }) => {
-        setSubmitError(null);
+      return form.subscribe({
+        formState: { values: true },
+        callback: ({ name }) => {
+          setSubmitError(null);
 
-        if (name && form.getFieldState(name).error?.type === 'server') {
-          form.clearErrors(name);
-        }
+          if (name && form.getFieldState(name as Path<UpdatePost>).error?.type === 'server') {
+            form.clearErrors(name as Path<UpdatePost>);
+          }
+        },
       });
-
-      return () => subscription.unsubscribe();
     },
     [form]
   );

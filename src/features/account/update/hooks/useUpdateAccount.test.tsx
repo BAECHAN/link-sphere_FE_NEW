@@ -490,4 +490,46 @@ describe('useUpdateAccount', () => {
     await waitFor(() => expect(result.current.account?.nickname).toBe('changedElsewhere'));
     expect(result.current.form.getValues('nickname')).toBe('inProgress');
   });
+
+  it('account가 뒤늦게 도착하면 파일을 고르지 않은 미리보기는 계정 이미지를 보여준다', async () => {
+    queryClient.removeQueries({ queryKey: ['account'] });
+
+    const { result } = renderHook(() => useUpdateAccount(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    expect(result.current.avatarPreview).toBeNull();
+
+    act(() => {
+      queryClient.setQueryData(['account'], { ...mockAccount, image: 'https://cdn/avatar.png' });
+    });
+
+    await waitFor(() => expect(result.current.avatarPreview).toBe('https://cdn/avatar.png'));
+  });
+
+  it('다른 파일을 고르면 앞 미리보기를 해제하고, 화면을 떠나면 남은 미리보기도 해제한다', () => {
+    vi.mocked(URL.createObjectURL)
+      .mockReturnValueOnce('blob:first')
+      .mockReturnValueOnce('blob:second');
+    vi.mocked(URL.revokeObjectURL).mockClear();
+
+    const { result, unmount } = renderHook(() => useUpdateAccount(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    act(() => {
+      result.current.handleAvatarChange(new File(['a'], 'a.png', { type: 'image/png' }));
+    });
+    act(() => {
+      result.current.handleAvatarChange(new File(['b'], 'b.png', { type: 'image/png' }));
+    });
+
+    expect(result.current.avatarPreview).toBe('blob:second');
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:first');
+    expect(URL.revokeObjectURL).not.toHaveBeenCalledWith('blob:second');
+
+    unmount();
+
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:second');
+  });
 });

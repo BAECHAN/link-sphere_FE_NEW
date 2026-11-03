@@ -7,7 +7,7 @@
 > **읽고 나면**: 저장 실패 시 입력값이 유지되는 방식과 닉네임 중복확인이 어떻게
 > 동작하는지 이해하고, 이 폼에 필드를 추가하거나 캐시 무효화 범위를 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-11-02
+> **마지막 검토**: 2026-11-03
 
 "계정 설정"(`/my/account`) 페이지 맨 위(이메일 미인증 계정이면 그 위에 이메일 인증
 안내 배너 `EmailVerificationBanner`가 먼저 뜬다), 비밀번호 변경 섹션 바로 위에 있는
@@ -108,8 +108,9 @@ Navbar 드롭다운에서 여는 모달이었는데, 계정 설정(`/my/account`
    않고 고르는 즉시 먼저 `isAllowedImageType`(`shared/lib/image/imageFormat.ts`)으로
    형식을 확인해 허용 목록 밖이면 `TEXTS.validation.imageFileOnly` 토스트로 거부하고,
    이어서 `getImageFileSizeError`로 용량을 검사한다. 둘 다 통과하면
-   `objectURL`로 미리보기만 만들고(`pendingFile` 상태), 실제 업로드는 아직
-   하지 않는다.
+   `objectURL`로 미리보기만 만들고(`pendingAvatar` 상태 — 파일과 그 blob URL을 한
+   묶음으로 둔다), 실제 업로드는 아직 하지 않는다. 다른 파일을 고르거나 화면을 떠나면
+   effect 정리 함수(`revokeReplacedAvatarPreview`)가 앞 blob URL을 해제한다.
 2. **제출**(`onSubmit`) — `updateAccount({ nickname, image, file, previewUrl },
 { onSuccess, onError })`를 호출한다. 페이지를 떠나지 않으므로 콜백을
    `mutate()` 호출부에 직접 넘겨도 안전하다(컴포넌트가 언마운트되지 않는 한
@@ -120,14 +121,14 @@ Navbar 드롭다운에서 여는 모달이었는데, 계정 설정(`/my/account`
    "저장 중..."으로 바뀐다(Phase 1 버튼 컨벤션, `docs/FE-ARCHITECTURE.md` §10-A).
 4. **성공**(`useUpdateAccount`의 `onSubmit`에 넘긴 `onSuccess`) — 서버가 돌려준
    실제 값(실제 업로드 URL 포함)으로 폼을 `reset`해 dirty를 해제하고
-   `pendingFile`을 비운다. `useUpdateAccountMutation`의 `onSuccess`가 캐시를
+   `pendingAvatar`를 비운다. `useUpdateAccountMutation`의 `onSuccess`가 캐시를
    같은 값으로 교체하고 `handleAccountUpdateSuccess(queryClient)`(§6)로 연관
    캐시를 무효화하며, `meta.successMessage`로 전역 성공 토스트가 뜬다.
 5. **실패**(`onSubmit`에 넘긴 `onError`) — 아무것도 하지 않는다. 캐시는
    `useUpdateAccountMutation`의 `onError`가 낙관적 반영 이전 값으로 롤백하고
    에러 토스트를 띄우지만(문구는 원인별이다 — 닉네임 중복, 사진 업로드 한도의 대기
    시간, 저장소 장애, 연결 끊김 등. 사진 업로드 단계 문구는 댓글 폼과 같은 것을 쓴다,
-   [`COMMENT.md`](./COMMENT.md) §5 "실패 안내"), 폼의 닉네임 입력값·`pendingFile`·`avatarPreview`는
+   [`COMMENT.md`](./COMMENT.md) §5 "실패 안내"), 폼의 닉네임 입력값·`pendingAvatar`(미리보기 포함)는
    전부 그대로 남는다 — 페이지를 벗어나지 않았으므로 값을 고쳐 바로 다시
    저장 버튼을 누르면 된다. 로그인 만료로 끝났으면(`SessionExpiredError`) 에러
    토스트는 띄우지 않고 그 화면 위 로그인 창이 안내하며, 롤백은 계정 캐시가 남아
@@ -145,7 +146,9 @@ Navbar 드롭다운에서 여는 모달이었는데, 계정 설정(`/my/account`
 원래 자기 닉네임으로 되돌아온 경우, 형식 오류(Zod)가 이미 떠 있는 경우, 조회
 자체가 실패한 경우(네트워크 오류 등 — 이때는 "확인됨"이라고 속이지 않고
 `idle`로 두고 실제 중복이면 저장 시점에 BE가 409로 다시 막는다)는 각각 서버
-조회를 건너뛴다. 상태 값은 §6 `NicknameStatus`.
+조회를 건너뛴다. 상태 값은 §6 `NicknameStatus`. 화면에 보이는 상태는 effect가 넣지
+않고 렌더 중에 파생한다 — effect는 조회와 결과(`nicknameResult`: 마지막으로 조회한 값과
+그 결과) 저장만 한다. 가입 화면 `useAvailabilityCheck.ts`와 같은 형태다.
 
 ### 그 밖의 구현 세부사항
 
@@ -155,8 +158,15 @@ JSON `null`로 직렬화된다. `z.string().optional()`은 `null`을 거부하�
 
 **`isDirty` 감지**: React Hook Form의 `formState.isDirty`는 registered
 필드(nickname)만 감지한다. `image`는 폼에 등록되지 않으므로
-`pendingFile !== null` 조건을 OR로 결합한다
-(`isDirty: form.formState.isDirty || pendingFile !== null`).
+`pendingAvatar !== null` 조건을 OR로 결합한다
+(`isDirty: form.formState.isDirty || pendingAvatar !== null`).
+
+**미리보기는 서버 이미지를 복사하지 않는다(2026-11-03)**: `avatarPreview`는 state가 아니라
+렌더 중에 고른다 — 고른 파일이 있으면 그 blob URL, 없으면 `account.image`. 예전에는
+`account.image`를 state에 복사해 두고 effect로 따라가게 했는데, 계정이 늦게 오면 낡은
+값으로 한 번 더 그렸다. 린트(`react-hooks/set-state-in-effect`)가 이를 못 잡은 이유는
+`form.watch()` 때문에 React 규칙 검사가 이 훅 전체를 건너뛰었기 때문이다 — 지금은
+`useWatch`를 쓰고 `react-hooks/incompatible-library`가 `watch()`를 막는다(`eslint.config.js`).
 
 **아바타 깜빡임 방지(정정, 2026-09-29)**: 이 섹션의 아바타는 자체 마크업이 아니라
 공통 `UserAvatar`(`entities/user/ui/UserAvatar.tsx`)를 그대로 쓴다
@@ -242,7 +252,7 @@ const logout = () => {
 | `isPending`                                                       | `boolean`                      | mutation 진행 중                                                     |
 | `isCheckingNickname` / `isNicknameAvailable` / `hasNicknameError` | `boolean`                      | `NicknameStatus`(아래) 파생값                                        |
 | `hasDebounceSettled`                                              | `boolean`                      | 디바운스가 아직 안 끝났으면 `false` — 저장 버튼 비활성 조건에 쓰인다 |
-| `isDirty`                                                         | `boolean`                      | `form.formState.isDirty \|\| pendingFile !== null`                   |
+| `isDirty`                                                         | `boolean`                      | `form.formState.isDirty \|\| pendingAvatar !== null`                 |
 | `account`                                                         | `Account \| undefined`         | 현재 계정 정보                                                       |
 
 `NicknameStatus`는 `'idle' | 'checking' | 'available' | 'duplicate'`
@@ -333,6 +343,11 @@ src/
 추가돼, 지금 파일에는 16개 테스트가 있다(2026-10-27 파일 기준 개수 — 이 검토에서
 다시 실행하지는 않았다).
 
+2026-11-03 미리보기·닉네임 상태를 렌더 중 파생으로 바꾸면서 "account가 뒤늦게 도착하면
+미리보기가 계정 이미지를 보여준다"·"다른 파일을 고르거나 화면을 떠나면 앞 미리보기를
+해제한다" 2개를 추가했다. 18개 모두 바꾼 코드와 바꾸기 전 코드 양쪽에서 통과했다(직접
+실행 — 바꾸기 전 코드는 `git show HEAD:<파일>`로 잠시 되돌려 돌렸다).
+
 ## 9. 시행착오
 
 **e2e `getByLabel(..., { exact: true })`가 계속 실패했던 원인(2026-09-29)**:
@@ -359,9 +374,11 @@ src/
   `useRef<boolean>`(§6, `useUpdateAccount.ts`)
 - **`NicknameStatus`** — 닉네임 중복확인 상태(`'idle' | 'checking' |
 'available' | 'duplicate'`, `useUpdateAccount.ts` 로컬 타입)
-- **`pendingFile`** — 아직 업로드하지 않고 미리보기만 만든 선택된 파일
-  (`useState<File | null>`, `useUpdateAccount.ts`)
-- **`isDirty`** — React Hook Form의 `formState.isDirty`와 `pendingFile`
+- **`pendingAvatar`** — 아직 업로드하지 않고 미리보기만 만든 선택된 파일과 그 blob URL
+  (`useState<{ file, previewUrl } | null>`, `useUpdateAccount.ts`)
+- **`nicknameResult`** — 마지막으로 중복확인을 마친 닉네임과 그 결과(`useUpdateAccount.ts`).
+  화면의 `NicknameStatus`는 이 값과 지금 입력값으로 렌더 중에 파생한다
+- **`isDirty`** — React Hook Form의 `formState.isDirty`와 `pendingAvatar`
   존재 여부를 OR로 합친, 저장 버튼 활성화 조건(§5·§6)
 
 ## 12. 관련 문서
