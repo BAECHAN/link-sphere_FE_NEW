@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-11-02
+> **마지막 검토**: 2026-11-03
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -1246,6 +1246,38 @@ sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를
 | `FormInputPassword`    | 비밀번호 입력 필드 (토글 표시). `deps`(함께 재검증할 필드)·`hideErrorMessage`·`belowInput`(입력칸 아래 자체 안내)으로 비밀번호 조건 체크리스트를 붙인다 — [`AUTH.md`](AUTH.md) §8-G |
 | `FormCheckbox`         | 단일 체크박스                                                                                                                                                                       |
 | `FormCheckboxGroup`    | 체크박스 그룹                                                                                                                                                                       |
+
+### 입력칸을 폼에 연결하는 방식
+
+- **ref가 실제 입력(`input`·`select`·`textarea`)까지 닿으면 `register`**: `FormInput`·`FormInputPassword`.
+  값은 DOM이 들고 있어서, 입력할 때마다 컴포넌트가 다시 그려지지 않는다.
+- **값과 `onChange`로만 다루는 UI는 `useController`**: `FormCheckbox`·`FormCheckboxGroup`(Radix 체크박스는
+  `<button>`이라 DOM에 값이 없다), 게시글 북마크 폴더 칸(모달로 고른다, `usePostCreateBookmarkFolderField.ts`).
+- **에러만 필요하면 `useFormState({ name, exact: true })`**: `FormField`·`FormInput`처럼 에러 문구·테두리만 그리는
+  곳은 값까지 구독하는 `useController`를 쓰지 않는다.
+- **`register` 칸의 값을 화면에 써야 하면 `useWatch`의 `compute`**: 필요한 값만 계산해서 그 칸만 구독한다. 예를 들어
+  `FormInput`의 `enableClear`는 `Boolean(값)`만 구독해, 빈칸과 값 있음이 바뀔 때만 다시 그린다. 코드로 값을 비울
+  때는 `setValue` 대신 `register`의 `onChange`에 넘긴다. 그래야 글자를 지운 것과 같은 dirty·검증 시점·`deps` 처리를
+  받는다. [`setValue` 문서](https://react-hook-form.com/docs/useform/setvalue)에 따르면 `setValue`는 기본적으로
+  검증하지 않고 dirty도 다시 계산하지 않는다. 같은 문서는 지도 선택기처럼 입력 경로가 없는 위젯에 옵션 3개
+  (`shouldDirty`·`shouldTouch`·`shouldValidate`)를 권하지만, `shouldValidate`는 폼 `mode`와 상관없이 바로 검증해서
+  (react-hook-form 7.71.0 `setFieldValue`) `onSubmit` 폼에서는 제출 전에 에러가 뜬다. `useController`를 쓰던 때의
+  `field.onChange('')`도 안에서 같은 `register` onChange를 탔고, React Aria `useSearchField`·Ant Design `allowClear`도
+  지우기를 타이핑과 같은 onChange로 처리한다. `FormInput.test.tsx`의 "제출하기 전에 지우기 버튼으로 비우면…" 테스트가
+  이 선택을 지킨다 — `setValue`와 옵션 3개로 바꾸면 이 테스트만 실패하는 것을 2026-11-03 확인했다.
+- **폼 전체가 다시 그려지는지는 `watch`가 정한다**: 폼을 가진 훅이 render 중에 `form.watch('x')`를 부르면, 그 칸이
+  바뀔 때마다 폼 전체가 다시 그려진다(react-hook-form 7.71.0 `dist/index.esm.mjs`의 `onChange` → root 구독).
+  게시글 작성·가입처럼 입력값을 바로 화면에 쓰는 폼이 여기에 해당하고, 이런 칸은 `register`로 바꿔도 리렌더가
+  줄지 않는다.
+- **직접 측정(2026-11-03)**: `FormInput.test.tsx`·`FormInputPassword.test.tsx`의 Profiler 테스트로 쟀다.
+  `watch` 없는 폼에 세 글자를 입력하면 `useController`일 때는 3번 다시 커밋됐고, `register`로 바꾼 뒤에는 0번이다.
+  `enableClear`를 켠 칸은 1번(빈칸에서 값이 생길 때)이다.
+
+> 네이티브 입력과, DOM `ref`를 노출하는 커스텀 컴포넌트에는 `register`를 쓰세요. 가장 단순한 방법이고 대개 리렌더가
+> 가장 적습니다. 많은 컴포넌트 라이브러리의 셀렉트, 날짜 선택기, 자동완성처럼 `value`와 `onChange`로 제어되는
+> 컴포넌트에는 `Controller`나 `useController`를 쓰세요. (번역, 일부)
+>
+> — React Hook Form FAQ "Should I use register or Controller?", https://react-hook-form.com/faqs
 
 ### 필수/선택 표시 규칙
 

@@ -1,4 +1,4 @@
-import { useController, useFormContext, type FieldValues } from 'react-hook-form';
+import { get, useFormState, type FieldError } from 'react-hook-form';
 import { Label } from '@/shared/ui/atoms/label';
 import { RequiredMark } from '@/shared/ui/atoms/required-mark';
 import { PropsWithChildren } from 'react';
@@ -33,13 +33,11 @@ export const FormField = ({
   reserveDescriptionSpace,
   hideErrorMessage,
 }: FormFieldProps) => {
-  const { control } = useFormContext<FieldValues>();
-  const { fieldState } = useController<FieldValues>({
-    name,
-    control,
-  });
+  // 에러만 구독한다 - 값을 구독하면(useController) 입력할 때마다 다시 그려진다
+  const { errors } = useFormState({ name, exact: true });
+  const error = get(errors, name) as FieldError | undefined;
 
-  const visibleError = hideErrorMessage ? undefined : fieldState.error;
+  const visibleError = hideErrorMessage ? undefined : error;
   const message = visibleError?.message ?? description;
   const messageClassName = cn(
     'text-sm font-medium',

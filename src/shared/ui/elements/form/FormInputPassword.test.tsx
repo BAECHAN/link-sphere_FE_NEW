@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { Profiler, type ProfilerOnRenderCallback } from 'react';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -46,7 +47,31 @@ function Harness({
   );
 }
 
+// 폼이 값을 watch하지 않을 때 입력칸이 몇 번 다시 커밋되는지 센다 - 선례: FormInput.test.tsx의 ProfiledHarness
+function ProfiledHarness({ onRender }: { onRender: ProfilerOnRenderCallback }) {
+  const form = useForm({ defaultValues: { password: '' } });
+
+  return (
+    <FormProvider {...form}>
+      <Profiler id="form-input-password" onRender={onRender}>
+        <FormInputPassword name="password" label="pw" />
+      </Profiler>
+    </FormProvider>
+  );
+}
+
 describe('FormInputPassword', () => {
+  it('폼이 값을 watch하지 않으면 입력해도 다시 커밋되지 않는다', async () => {
+    const user = userEvent.setup();
+    const onRender = vi.fn();
+    renderWithProviders(<ProfiledHarness onRender={onRender} />);
+    const commitsAfterMount = onRender.mock.calls.length;
+
+    await user.type(screen.getByLabelText('pw'), 'abc');
+
+    expect(onRender.mock.calls.length - commitsAfterMount).toBe(0);
+  });
+
   it('deps로 이은 필드는 제출 후 이 칸이 바뀌면 함께 다시 검증된다(확인 칸 에러가 남지 않는다)', async () => {
     const user = userEvent.setup();
     renderWithProviders(<Harness />);

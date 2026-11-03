@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Input } from '@/shared/ui/atoms/input';
 // Label import removed as it was unused
 
@@ -82,4 +82,32 @@ function WithClearStory() {
 
 export const WithClear: Story = {
   render: () => <WithClearStory />,
+};
+
+// value를 받지 않는 비제어 입력(RHF register 등)은 값 유무를 hasValue로 따로 알려야 X가 보인다
+function UncontrolledWithClearStory() {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [hasValue, setHasValue] = useState(true);
+  return (
+    <div className="relative w-full max-w-sm">
+      <Input
+        ref={inputRef}
+        defaultValue="지울 수 있는 값"
+        hasValue={hasValue}
+        onChange={(e) => setHasValue(e.target.value !== '')}
+        onClear={() => {
+          if (inputRef.current) {
+            inputRef.current.value = '';
+          }
+
+          setHasValue(false);
+        }}
+        placeholder="입력 후 X 버튼으로 지울 수 있습니다."
+      />
+    </div>
+  );
+}
+
+export const UncontrolledWithClear: Story = {
+  render: () => <UncontrolledWithClearStory />,
 };
