@@ -18,6 +18,7 @@ import {
 import { Comment } from '@/entities/comment/model/comment.schema';
 import { COMMENT_PAGE_SIZE } from '@/entities/comment/config/comment.const';
 import { CommentUtil } from '@/entities/comment/utils/comment.util';
+import { prefetchQueryQuietly } from '@/shared/lib/react-query/prefetch-quietly';
 import { TEXTS } from '@/shared/config/texts';
 import { PaginationRequest } from '@/shared/types/common.type';
 
@@ -84,9 +85,12 @@ export const useSuspenseComments = (postId: string) => {
   });
 };
 
-/** hover 시 댓글 미리 로드 — useSuspenseComments 와 동일 키/queryFn */
+/**
+ * hover 시 댓글 미리 로드 — useSuspenseComments 와 동일 키/queryFn. 실패해도 토스트 없이 지워 댓글 목록이
+ * 열리면 새로 요청한다
+ */
 export const prefetchComments = (queryClient: QueryClient, postId: string) => {
-  queryClient.prefetchQuery({
+  prefetchQueryQuietly(queryClient, {
     queryKey: commentKeys.list(postId),
     queryFn: () => commentApi.getComments(postId),
   });

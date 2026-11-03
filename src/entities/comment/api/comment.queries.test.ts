@@ -1,17 +1,19 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse, delay } from 'msw';
-import { createElement, type ReactNode } from 'react';
+import { createElement, Suspense, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ErrorBoundary } from 'react-error-boundary';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { createTestQueryClient } from '@/test/utils';
+import { createQueryClientWithErrorToasts, createTestQueryClient } from '@/test/utils';
 import { commentKeys } from '@/entities/comment/api/comment.keys';
 import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { mockAccount, mockOtherAccount } from '@/mocks/fixtures/account.fixtures';
 import type { Comment } from '@/entities/comment/model/comment.schema';
 import {
+  prefetchComments,
   useCreateCommentMutation,
   useCreateReplyMutation,
   useSuspenseComments,
@@ -336,5 +338,83 @@ describe('useUpdateCommentMutation', () => {
     await waitFor(() => {
       expect(queryClient.getQueryState(commentKeys.list(POST_ID))?.isInvalidated).toBe(true);
     });
+  });
+});
+
+// 게시글 카드 💬·내 댓글 카드 hover의 미리 받기 - 화면이 없을 때 실패하면 조용히 지워, 상세 화면이 열릴 때
+// 새로 요청하게 한다(#491 3번)
+describe('prefetchComments', () => {
+  let commentRequests: number;
+  let errorToasts: string[];
+
+  beforeEach(() => {
+    commentRequests = 0;
+    ({ queryClient, errorToasts } = createQueryClientWithErrorToasts());
+  });
+
+  /** 댓글 목록이 500으로 실패하다가 recover 뒤로는 성공한다 */
+  function mockCommentList() {
+    let failing = true;
+
+    server.use(
+      http.get(url(API_ENDPOINTS.post.postComment(POST_ID)), () => {
+        commentRequests += 1;
+
+        if (failing) {
+          return HttpResponse.json(
+            { status: 500, message: 'fail', timestamp: '' },
+            { status: 500 }
+          );
+        }
+
+        return HttpResponse.json({
+          status: 200,
+          message: 'ok',
+          data: [mockComment],
+          timestamp: '',
+        });
+      })
+    );
+
+    return {
+      recover: () => {
+        failing = false;
+      },
+    };
+  }
+
+  it('실패해도 에러 토스트를 띄우지 않고, 실패한 쿼리를 캐시에서 지운다', async () => {
+    mockCommentList();
+
+    prefetchComments(queryClient, POST_ID);
+
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    expect(queryClient.getQueryState(commentKeys.list(POST_ID))).toBeUndefined();
+    expect(errorToasts).toEqual([]);
+  });
+
+  it('실패한 뒤 댓글 목록이 열리면 새로 요청해 보여 준다', async () => {
+    const comments = mockCommentList();
+
+    prefetchComments(queryClient, POST_ID);
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    comments.recover();
+    const requestsBeforeScreen = commentRequests;
+
+    const { result } = renderHook(() => useSuspenseComments(POST_ID), {
+      wrapper: ({ children }: { children: ReactNode }) =>
+        createElement(
+          Wrapper,
+          null,
+          createElement(
+            ErrorBoundary,
+            { fallback: createElement('div', null, 'comments-error') },
+            createElement(Suspense, { fallback: null }, children)
+          )
+        ),
+    });
+
+    await waitFor(() => expect(result.current?.data).toEqual([mockComment]));
+    expect(commentRequests - requestsBeforeScreen).toBe(1);
   });
 });

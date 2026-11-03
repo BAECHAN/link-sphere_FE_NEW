@@ -1,8 +1,10 @@
 import { type ReactNode } from 'react';
 import { act, render, type RenderOptions, type RenderResult } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, type MemoryRouterProps } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
+import { QUERY_ERROR_POLICY, resolveErrorToast } from '@/shared/lib/react-query/config/error-toast';
+import { shouldRetryQuery } from '@/shared/lib/react-query/config/retry-policy';
 
 /**
  * 테스트용 QueryClient 생성.
@@ -27,6 +29,28 @@ export function createTestQueryClient(overrides?: {
       mutations: { retry: 0 },
     },
   });
+}
+
+/**
+ * 운영 queryClient.ts와 같은 재시도 정책·조회 에러 토스트 판정을 쓰는 QueryClient. 토스트를 띄우는 대신
+ * 띄웠을 문구를 errorToasts에 모은다 - 조회 실패가 토스트로 이어지는지 셀 때 쓴다. 재시도는 기다리지 않는다.
+ */
+export function createQueryClientWithErrorToasts() {
+  const errorToasts: string[] = [];
+  const queryClient = new QueryClient({
+    queryCache: new QueryCache({
+      onError: (error, query) => {
+        const decision = resolveErrorToast(error, query.meta, QUERY_ERROR_POLICY);
+
+        if (!decision.silent) {
+          errorToasts.push(decision.message);
+        }
+      },
+    }),
+    defaultOptions: { queries: { retry: shouldRetryQuery, retryDelay: 0, gcTime: Infinity } },
+  });
+
+  return { queryClient, errorToasts };
 }
 
 interface WrapperOptions {
