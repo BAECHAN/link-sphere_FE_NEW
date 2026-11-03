@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   useCreateCommentMutation,
@@ -72,8 +72,8 @@ export function useCreateComment({
     defaultValues: { content: '' },
   });
 
-  const { reset, setFocus, watch, getValues } = form;
-  const contentValue = watch('content');
+  const { reset, setFocus, subscribe, getValues, control } = form;
+  const contentValue = useWatch({ control, name: 'content' });
 
   // 등록 실패 원인 안내 - 버튼 위 FormAlert에 남고, 입력·첨부를 고치거나 다시 제출하면 지운다
   const [failureMessage, setFailureMessage] = useState<string | null>(null);
@@ -84,11 +84,10 @@ export function useCreateComment({
 
   useEffect(
     function clearFailureOnEdit() {
-      const subscription = watch(() => setFailureMessage(null));
-
-      return () => subscription.unsubscribe();
+      // watch(콜백) 대신 subscribe를 쓴다 - useCreatePost.ts의 clearSubmitErrorsOnEdit 주석 참고
+      return subscribe({ formState: { values: true }, callback: () => setFailureMessage(null) });
     },
-    [watch]
+    [subscribe]
   );
 
   const {

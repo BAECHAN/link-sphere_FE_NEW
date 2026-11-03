@@ -714,8 +714,10 @@ export default [
       'react-hooks/unsupported-syntax': 'warn',
       'react-hooks/config': 'error',
       'react-hooks/gating': 'error',
-      // React Compiler를 쓸 때만 의미 있는 안내(react-hook-form watch() 등)라 끈다
-      'react-hooks/incompatible-library': 'off',
+      // useForm()의 watch() 같은 API를 만나면 컴파일러가 그 컴포넌트·훅 분석을 멈춰(throw), 위 규칙들도
+      // 그 함수 전체에서 돌지 않는다(eslint-plugin-react-hooks 7.1.1 development.js의 knownIncompatible 분기).
+      // 그래서 컴파일러를 안 써도 켠다 - 값은 useWatch, 변경 구독은 form.subscribe로 쓴다
+      'react-hooks/incompatible-library': 'error',
     },
   },
   // Import 규칙: 일반 파일은 절대 경로(@/) 사용 강제

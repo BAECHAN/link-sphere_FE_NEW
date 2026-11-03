@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, useWatch, FormProvider } from 'react-hook-form';
 import { renderWithProviders, userEvent } from '@/test/utils';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
@@ -66,8 +66,8 @@ const DEFAULT_VALUES: CreatePost = {
 // 등록 폼(useCreatePost)을 흉내 낸 최소 harness로 감싸고 현재 폼 값을 화면에 노출해 검증한다.
 function Harness() {
   const form = useForm<CreatePost>({ defaultValues: DEFAULT_VALUES });
-  const bookmark = form.watch('bookmark');
-  const folderIds = form.watch('folderIds');
+  const bookmark = useWatch({ control: form.control, name: 'bookmark' });
+  const folderIds = useWatch({ control: form.control, name: 'folderIds' });
 
   return (
     <FormProvider {...form}>

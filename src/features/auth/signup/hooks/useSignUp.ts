@@ -1,6 +1,6 @@
 import { useEffect, useState, type MouseEvent } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createAccountSchema, CreateAccount } from '@/entities/auth/model/auth.schema';
 import {
@@ -114,8 +114,8 @@ export function useSignUp() {
     [restoredInput, form]
   );
 
-  const watchedEmail = form.watch('email');
-  const watchedNickname = form.watch('nickname');
+  const watchedEmail = useWatch({ control: form.control, name: 'email' });
+  const watchedNickname = useWatch({ control: form.control, name: 'nickname' });
 
   const emailCheck = useAvailabilityCheck({
     value: watchedEmail,
