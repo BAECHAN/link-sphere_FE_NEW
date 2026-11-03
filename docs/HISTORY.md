@@ -1,4 +1,7 @@
 ### 2026-11-03 (FE)
+- 북마크 폴더 선택 UI 성능 최적화: 새 폴더명 입력 시 불필요한 목록 리렌더링 방지 ([#499](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/499))
+
+### 2026-11-03 (FE)
 - 카드 Hover 시 데이터 사전 로딩 실패 대응 개선
   - 카드 Hover 시 데이터 사전 로딩이 실패하더라도 에러 토스트를 노출하지 않도록 수정하여 사용자 경험을 개선하고, 상세 페이지 진입 시 데이터를 다시 요청하도록 로직을 변경함 ([#495](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/495))
 
