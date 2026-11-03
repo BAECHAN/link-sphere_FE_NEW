@@ -164,6 +164,30 @@ describe('useImageAttachments', () => {
     expect(errorSpy).toHaveBeenCalledWith(TEXTS.validation.imageFileOnly);
   });
 
+  // 댓글 폼이 실패 안내를 지우는 시점(#491 6번) - 검증에 걸려 아무것도 안 들어갔으면 안내가 남아야 한다
+  it('파일이 실제로 들어갔을 때만 onFilesAdded를 부른다', async () => {
+    const onFilesAdded = vi.fn();
+    const { result } = renderHook(() => useImageAttachments({ maxCount: 1, onFilesAdded }));
+
+    await act(async () => {
+      result.current.addFiles([new File([], 'scan.bmp', { type: 'image/bmp' })]);
+      result.current.addFiles([fakeFile('big.png', 31 * MB)]);
+    });
+    expect(onFilesAdded).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.addFiles([fakeFile('ok.png')]);
+    });
+    await waitFor(() => expect(result.current.images).toHaveLength(1));
+    expect(onFilesAdded).toHaveBeenCalledTimes(1);
+
+    // 슬롯이 꽉 차 넣지 못한 것도 들어간 게 아니다
+    act(() => {
+      result.current.addFiles([fakeFile('more.png')]);
+    });
+    expect(onFilesAdded).toHaveBeenCalledTimes(1);
+  });
+
   it('SVG는 허용 목록에 있어 첨부된다', async () => {
     const { result } = renderHook(() => useImageAttachments({ maxCount: 5 }));
     const svgFile = new File(

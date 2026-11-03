@@ -97,10 +97,12 @@ export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommen
   } = useImageAttachments({
     maxCount: MAX_COMMENT_IMAGES,
     reservedCount: existingImageUrls.length,
+    // 첨부를 바꾸면 이전 실패 안내를 지운다 - 파일이 검증에 걸려 들어가지 않았으면 고친 게 없으니 남긴다.
+    // onImageSet은 실패 뒤 이미지를 되돌릴 때도 불려 방금 남긴 안내까지 지우므로 쓰지 않는다
+    onFilesAdded: () => setFailureMessage(null),
   });
 
-  // 첨부를 바꾸면 이전 실패 안내를 지운다. useImageAttachments의 onImageSet은 실패 뒤 이미지를
-  // 되돌릴 때도 불려 방금 남긴 안내까지 지우므로, 사용자가 직접 부르는 첨부 핸들러만 감싼다.
+  // 이미지를 빼도 이전 실패 안내를 지운다(넣는 쪽은 위 onFilesAdded)
   function clearingFailure<Args extends unknown[], Result>(handler: (...args: Args) => Result) {
     return (...args: Args): Result => {
       setFailureMessage(null);
@@ -210,9 +212,9 @@ export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommen
     failureMessage: signedOutNotice ?? failureMessage,
     imagePreviewUrls,
     isDraggingOver,
-    addFiles: clearingFailure(addFiles),
-    handlePaste: clearingFailure(handlePaste),
-    handleDrop: clearingFailure(handleDrop),
+    addFiles,
+    handlePaste,
+    handleDrop,
     handleDragOver,
     handleDragEnter,
     handleDragLeave,

@@ -92,6 +92,13 @@
 
 ### Fixed
 
+- `auth` 재설정 링크 거절·가입 중복이면 폼이 실패를 보여주고, 첨부가 막히면 댓글 실패 안내를 남김
+  <details><summary>배경·구현</summary>
+
+  에러 토스트가 사라진 뒤 폼이 실패와 맞지 않는 상태로 남던 세 곳을 고쳤다. ① 비밀번호 재설정 링크가 만료·사용돼 거절되면(`INVALID_ACTION_TOKEN`) 폼이 그대로 남아 다시 눌러도 같은 거절만 받았고, `onSubmit`이 reject를 받지 않아 처리되지 않은 rejection이 샜다. 이제 거절된 토큰을 기억해 링크가 없을 때와 같은 "유효하지 않은 링크예요" 카드와 [새 링크 요청하기]로 바꾼다. ② 가입 때 실시간 확인에서 "사용 가능"이던 이메일·닉네임이 제출 때 중복(409)이면 — 확인과 제출 사이에 다른 사람이 같은 값으로 가입한 경우 — 토스트만 뜨고 초록 문구와 켜진 버튼이 남았다. 이제 `useAvailabilityCheck`의 새 `markDuplicate`로 실시간 확인에서 중복이 나온 것과 같게 칸 오류를 띄우고 가입을 막는다. ③ 댓글 등록·수정이 실패한 뒤 첨부 핸들러를 부르기만 해도 실패 안내를 지워, bmp처럼 검증에 걸려 들어가지 않은 파일에도 안내가 사라졌다. 이제 `useImageAttachments`의 새 `onFilesAdded`(파일이 실제로 들어갔을 때만)로 지운다. 방식은 사용자 선택(2026-11-03), 동작은 `docs/AUTH.md` §8-F·`docs/COMMENT.md` "실패 안내", 계획은 [`docs/plans/2026-11-03-error-toast-followups.md`](docs/plans/2026-11-03-error-toast-followups.md) Phase 3([#491](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/491) 4·5·6번). (`src/features/auth/password-reset/hooks/useConfirmPasswordReset.ts`, `src/features/auth/password-reset/ui/ConfirmPasswordResetForm.tsx`, `src/features/auth/signup/hooks/useAvailabilityCheck.ts`, `src/features/auth/signup/hooks/useSignUp.ts`, `src/shared/hooks/useImageAttachments.ts`, `src/features/comment/create/hooks/useCreateComment.ts`, `src/features/comment/update/hooks/useUpdateComment.ts`, 테스트 5곳, `e2e/auth-form-failure.spec.ts`(신규), `e2e/comment-failure-attachment.spec.ts`(신규), `docs/AUTH.md`, `docs/COMMENT.md`, `docs/UNSAVED-CHANGES-GUARD.md`)
+
+  </details>
+
 - `post` 카드 hover 미리 받기가 실패해도 에러 토스트를 띄우지 않고 상세에서 다시 요청함
   <details><summary>배경·구현</summary>
 

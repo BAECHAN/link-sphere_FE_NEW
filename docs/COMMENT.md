@@ -247,7 +247,10 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 (`src/entities/comment/utils/comment.util.ts:29-102`)가 원인을 판정하고, 폼 훅이 그 문구를
 `failureMessage`로 들고 있다가 첨부 썸네일과 버튼 사이의 `FormAlert`에 남긴다
 (`CommentForm.tsx`·`CommentEditForm.tsx`의 `{failureMessage && <FormAlert>…}`). 세 mutation은 `manualErrorHandling`이라
-전역 토스트는 뜨지 않는다. 안내는 입력을 고치거나 첨부를 바꾸거나 다시 제출하면 지워진다.
+전역 토스트는 뜨지 않는다. 안내는 입력을 고치거나 첨부를 바꾸거나 다시 제출하면 지워진다. 첨부는 파일이 형식·크기·개수
+검증을 통과해 실제로 들어갔을 때만 바뀐 것으로 본다(`useImageAttachments`의 `onFilesAdded`, 2026-11-03
+[#491](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/491) 6번). 전에는 첨부 핸들러를 부르기만 해도 지워, bmp처럼
+검증에 걸린 파일을 넣어도 고친 게 없는데 안내가 사라졌다. 이미지를 빼는 것은 지금처럼 바로 지운다.
 위치(버튼 바로 위)는 게시글 폼과 같은 자리로, 시안을 나란히 비교해 정했다
 (`docs/DECISIONS.md` 2026-10-06).
 
@@ -653,7 +656,9 @@ npx vitest run src/entities/comment src/features/comment \
   `src/shared/api/upload.api.test.ts`, 안내가 버튼 위에 그려지고 입력을 고치면 사라지는 것은
   `src/features/comment/update/ui/CommentEditForm.test.tsx`가 본다. 첨부 이미지가 복원돼도 안내가 남는지,
   폼이 닫힌 뒤(다른 화면을 불러오는 동안 포함) 실패하면 토스트로 대신 알리는지는 `useCreateComment.test.tsx`·
-  `useUpdateComment.test.tsx`가 본다.
+  `useUpdateComment.test.tsx`가 본다. 실패 뒤 첨부가 검증에 걸리면 안내가 남고 실제로 들어가면 지워지는지(2026-11-03)도
+  두 파일과 `useImageAttachments.test.ts`(`onFilesAdded`), e2e `comment-failure-attachment.spec.ts`가 본다 — 수정 전에는
+  셋 다 실패했다(직접 실행).
 - 브라우저 녹화(모킹, 운영 데이터 미사용): 업로드 한도·10MB 초과·504 결과 모름·답글 대상 삭제·수정 대상
   삭제·답글 폼을 닫은 뒤 실패·모바일 바 연결 끊김·프로필 사진 업로드 한도의 8개 화면에서 문구와 위치를
   확인했다.
