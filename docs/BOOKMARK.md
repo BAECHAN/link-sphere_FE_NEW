@@ -202,21 +202,43 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 전체로 보낸다(2026-10-14, `usePostCardBookmarkFolderDialog.ts`의 `handleSelectUncategorized`). 폴더 이름을
 넣지 않은 건 드문 경우라 폴더가 여럿일 때의 문구까지 둘 만큼은 아니라고 봐서다(사용자 선택).
 
-### 열림 상태는 히스토리로, 폴더 목록은 hover 때 미리(2026-09-30)
+### 뒤로가기로 닫히는 열림 상태, 폴더 목록은 hover 때 미리(2026-09-30, 기기별 경로 2026-11-03)
 
 `BookmarkPostButton`의 열림 상태와 목록 프리페치는 `features/bookmark/toggle/hooks/useBookmarkPostButton.ts`가
 소유한다(버튼 컴포넌트는 JSX만).
 
 - **뒤로가기 = 모달만 닫기**: 전에는 열림 상태가 컴포넌트 `useState`라 히스토리에 없어서,
-  모달을 연 채 뒤로가기를 누르면 모달이 아니라 페이지가 이전으로 넘어갔다. 지금은
-  `useHistoryOverlay`(`shared/hooks/useHistoryOverlay.ts`)로 열 때 같은 경로에 state 엔트리를
-  push하고, 닫을 때(폴더 탭·X·ESC·바깥 클릭) `navigate(-1)`로 되돌린다 — `docs/DECISIONS.md`
-  2026-08-07 "뒤로가기 정책"의 T1(화면을 덮는 오버레이)에 이 모달을 넣은 것이다. 피드에는
-  카드가 여러 장이라 state 키를 `bookmarkFolderDialogOpen:${postId}`로 **게시글마다 따로** 둔다
+  모달을 연 채 뒤로가기를 누르면 모달이 아니라 페이지가 이전으로 넘어갔다(2026-09-30에 고침).
+  지금은 `useBackClosableOverlay`(`shared/hooks/useBackClosableOverlay.ts`)가 기기마다 다른 방법으로
+  같은 동작을 낸다. 근거·실측·비교한 안은 `docs/DECISIONS.md` 2026-11-03 항목에 있다.
+
+  | 기기                                                        | 여는 방법                                                       | 뒤로가기                                         |
+  | ----------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------ |
+  | 데스크톱·iOS·구형 Android                                   | `useHistoryOverlay`로 같은 경로에 state 엔트리 push             | 엔트리가 pop되며 모달만 닫힘(2026-08-07 정책 T1) |
+  | `CloseWatcher`가 있고 터치가 주 입력인 기기(사실상 Android) | 히스토리 없이 열림 — location이 안 바뀌어 페이지 전체를 안 그림 | `CloseWatcher`의 닫기 요청으로 모달만 닫힘       |
+
+  데스크톱 브라우저 뒤로가기는 HTML 표준상 닫기 요청이 아니라서, 데스크톱은 엔트리가 있어야
+  모달만 닫힌다. 그래서 히스토리를 빼는 건 뒤로가기가 닫기 요청으로 오는 기기에서만 한다.
+  피드에는 카드가 여러 장이라 키를 `bookmarkFolderDialogOpen:${postId}`로 **게시글마다 따로** 둔다
   — 공용 키면 한 카드에서 열 때 모든 카드의 모달이 같이 열린다.
+
+- **히스토리 없는 경로의 열림 상태는 카드 밖에 둔다**: 피드 카드는 가상 목록 행 키(열 수·첫 카드 id)
+  때문에 화면 회전·목록 밀림에서 다시 마운트된다. 열림 상태를 훅 파일의 작은 스토어에 둬서, 다시
+  마운트돼도 모달이 유지된다(히스토리 경로가 엔트리로 유지하는 것과 같다). 다른 이유로 페이지가
+  바뀌면 `RouterEvents.onNavigate` 구독으로 닫혀, 그 화면으로 돌아왔을 때 모달만 다시 뜨지 않는다.
+  `CloseWatcher`는 카드가 열려 있는 동안만 만들고 카드가 사라지면 정리한다 — 남으면 보이지 않는
+  모달이 다음 뒤로가기를 삼킨다.
+- **Esc는 두 번 처리되지 않는다**: Chromium은 취소되지 않은 Esc도 닫기 요청으로 보낸다. Radix의 Esc
+  닫기(`@radix-ui/react-dismissable-layer` 1.1.11 `dist/index.mjs:63-65`)와 새 폴더 입력 접기
+  (`BookmarkFolderSelectDialog.tsx`의 `onEscapeKeyDown`)가 keydown을 `preventDefault()`해 닫기 요청은 따로 생기지 않는다 — 입력 중 Esc는
+  지금처럼 입력만 접는다(`e2e/bookmark-folder-dialog.mobile.spec.ts`).
 - **로그인 후 재개**: 비로그인으로 누르면 `useAuthGuard`가 로그인 모달을 띄우고 `open`을
   재개 액션으로 맡긴다. `useLoginDialog`가 로그인 모달의 `navigate(-1)`이 반영된 **뒤에** 재개
-  액션을 실행하므로 두 모달이 겹치지 않는다.
+  액션을 실행하므로 두 모달이 겹치지 않는다. 히스토리 없는 경로에서는 재개가 스토어에 키를 넣는
+  것이라, 그사이 카드가 다시 마운트됐어도 열린다.
+- **남은 한계(히스토리 없는 경로만)**: 모달이 열린 채 세션이 만료되면 제자리 로그인 창 push로
+  모달이 닫히고, 다시 로그인해도 다시 뜨지 않는다(히스토리 경로에서는 다시 뜬다). Firefox
+  Android가 뒤로 버튼을 닫기 요청으로 보내는지는 확인하지 못했다.
 - **hover 프리페치**: 전에는 모달이 열려야(`enabled: open`) `GET /bookmark/folders`를 시작해,
   작게 뜬 모달이 목록이 들어오며 늘어났다. 지금은 아이콘의 `onMouseEnter`·`onFocus`에서
   `prefetchBookmarkFolderList`(`bookmark-folder.queries.ts`, `useBookmarkFolderListQuery`와 같은
@@ -627,7 +649,7 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
 | 미분류 재탭             | 북마크 완전 삭제 + 되돌리기(2026-09-11)                                       | "북마크 안 함"으로 되돌림 — API 호출이 없어 되돌리기 불필요                         |
 | 최근 저장한 폴더 구획   | 있음                                                                          | 있음                                                                                |
 | 행별 pending 스피너     | 있음                                                                          | 없음(핸들러가 동기라 표시될 틈이 없음)                                              |
-| 열림 상태·뒤로가기      | `bookmarkFolderDialogOpen:${postId}` 히스토리 엔트리 — 뒤로가기는 모달만 닫음 | `postCreateBookmarkFolderOpen` 히스토리 엔트리 — 뒤로가기는 모달만 닫음(2026-09-30) |
+| 열림 상태·뒤로가기      | `bookmarkFolderDialogOpen:${postId}` — 뒤로가기는 모달만 닫음(§5 기기별 경로) | `postCreateBookmarkFolderOpen` — 뒤로가기는 모달만 닫음(2026-09-30, §5 기기별 경로) |
 | 폴더 목록 미리 불러오기 | 아이콘 hover/focus 때 — 로그인 상태일 때만                                    | 필드 hover/focus 때(2026-10-01) — 보호 라우트라 로그인 확인 없음                    |
 
 폼 스키마(`entities/post/model/post.schema.ts`의 `createPostSchema`)에
@@ -638,12 +660,13 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
 내 폴더가 아니라는 뜻이라, `onError`가 `handleBookmarkFolderDeleteSuccess`로 폴더 목록을 다시
 받게 한다(낡은 목록이면 다시 골라도 같은 폴더가 보이기 때문이다).
 
-등록 폼 모달의 열림 상태는 `usePostCreateBookmarkFolderField`가 `useHistoryOverlay`로
-같은 경로(`/post/submit`)의 히스토리 엔트리에 싣는다(2026-09-30). 경로가 바뀌지 않는
-이동이라 작성 중 이탈 확인(`useUnsavedChangesGuard`의 `shouldBlockNavigation`)이 막지 않는다.
-그래서 모달을 연 채 뒤로가기를 누르면 확인창 없이 모달만 닫히고, 입력과 폴더 선택은 그대로
-남는다. 선택은 탭하는 즉시 폼 값에 반영되기 때문이다. 모달을 닫은 뒤 한 번 더 누르면
-그때 이탈 확인이 평소대로 동작한다.
+등록 폼 모달의 열림 상태는 `usePostCreateBookmarkFolderField`가 `useBackClosableOverlay`로
+관리한다(2026-09-30, 기기별 경로 2026-11-03). 데스크톱·iOS에서는 같은 경로(`/post/submit`)의
+히스토리 엔트리라, 경로가 바뀌지 않는 이동이어서 작성 중 이탈 확인(`useUnsavedChangesGuard`의
+`shouldBlockNavigation`)이 막지 않는다. Android 터치 기기에서는 뒤로가기가 `CloseWatcher`의
+닫기 요청으로 와서 이동 자체가 없다. 어느 쪽이든 모달을 연 채 뒤로가기를 누르면 확인창 없이
+모달만 닫히고, 입력과 폴더 선택은 그대로 남는다. 선택은 탭하는 즉시 폼 값에 반영되기 때문이다.
+모달을 닫은 뒤 한 번 더 누르면 그때 이탈 확인이 평소대로 동작한다.
 
 폴더 목록은 카드 북마크 버튼과 같이 트리거에 hover하거나 focus가 갔을 때 미리 불러온다
 (2026-10-01, `usePostCreateBookmarkFolderField`의 `handlePrefetch`). 화면에 들어올 때 불러오지
@@ -835,7 +858,7 @@ src/
 │   │       │   │                                     # 마지막 폴더는 setBookmark({ lastFolderId })로
 │   │       │   │                                     # ?removeBookmarkIfEmpty=true 제거 — 서버에
 │   │       │   │                                     # 다른 소속이 남으면 북마크 유지, §5)
-│   │       │   ├── useBookmarkPostButton.ts          # 열림 상태(useHistoryOverlay, postId별 키)
+│   │       │   ├── useBookmarkPostButton.ts          # 열림 상태(useBackClosableOverlay, postId별 키)
 │   │       │   │                                     # + 인증 가드 + hover 프리페치(§5, 2026-09-30)
 │   │       │   └── usePostCardBookmarkFolderDialog.ts # 즉시 저장 동작 + 토스트 분기 + 닫힘
 │   │       │                                         # 애니메이션 중 버튼 깜빡임 방지 스냅샷
@@ -1600,8 +1623,16 @@ B의 대가는 바깥 줄이 `AppLayout`의 여백 값을 알아야 한다는 �
 - 폴더 화면에서는 이름만 바꿀 수 있다(§5 "폴더 화면에서 이름 바꾸기"). 삭제·고정은 여전히 사이드바·카드의 ⋮ 메뉴에서만
   된다 — 상세에서 삭제하면 목록으로 돌아가는 처리가 새로 필요해 범위 밖으로 뒀다. 편집을 닫은 뒤 포커스를 연필 버튼으로
   되돌리는 것도 하지 않는다(사이드바·카드도 지금 하지 않는다).
+- 폴더 선택 창의 히스토리 없는 경로(Android 터치, §5)는 Android 실기기에서 뒤로가기·회전을 확인하지 못했다. Playwright는
+  Android 뒤로가기를 보낼 수 없어, 같은 닫기 요청을 취소되지 않은 Esc로 만들어 터치 에뮬레이션(Pixel 5)에서만 확인했다.
 
 ## 12. 용어 사전
+
+- **`useBackClosableOverlay`** — `shared/hooks/useBackClosableOverlay.ts`. 뒤로가기로 닫히는 오버레이의 열림 상태
+  (`{ isOpen, open, close }`). 마운트 때 기기를 보고, `CloseWatcher`가 있고 터치가 주 입력이면 히스토리 없이, 아니면
+  `useHistoryOverlay`로 연다(§5)
+- **`CloseWatcher`** — 브라우저 API. Esc나 Android 뒤로가기 같은 "닫기 요청"이 오면 `onclose`를 부른다. 데스크톱 브라우저
+  뒤로가기는 닫기 요청이 아니다. Safari·iOS는 지원하지 않는다(§5, `docs/DECISIONS.md` 2026-11-03)
 
 - **`activeFolderKey`** — `useBookmarkPage.ts:47`(`pages/bookmark/hooks/`)의 로컬 변수
   (#227로 `BookmarkPage.tsx`에서 이동). URL의 `folder` 파라미터를

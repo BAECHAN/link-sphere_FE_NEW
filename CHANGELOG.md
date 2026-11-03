@@ -27,6 +27,13 @@
 
 ### Changed
 
+- `bookmark` Android에서 폴더 선택 창을 여닫을 때 페이지 전체를 다시 그리지 않음
+  <details><summary>배경·구현</summary>
+
+  폴더 선택 창(카드 버튼·글 등록 폼 필드)은 열 때 같은 경로에 히스토리 엔트리를 push해, 그때마다 `location`이 바뀌며 페이지 전체가 다시 그려졌다(직접 측정, 로컬 운영 빌드·카드 12장에서 열 때 컴포넌트 1,116개). 히스토리를 빼면 뒤로가기가 창을 닫지 못하는데, 데스크톱 브라우저 뒤로가기는 HTML 표준상 "닫기 요청"이 아니어서([WHATWG](https://html.spec.whatwg.org/multipage/interaction.html#close-requests-and-close-watchers)) 데스크톱에서는 엔트리가 있어야 창만 닫힌다. 그래서 새 훅 `useBackClosableOverlay`가 마운트 때 기기를 보고, `CloseWatcher`가 있고 터치가 주 입력인 기기(사실상 Android)에서만 히스토리 없이 열고 뒤로가기를 `CloseWatcher`로 받는다. 데스크톱·iOS는 지금처럼 `useHistoryOverlay`라 어느 기기에서도 뒤로가기 동작은 같다(2026-11-03 사용자 선택). 열림 상태는 훅 파일의 작은 스토어에 둬 화면 회전·목록 밀림으로 카드가 다시 마운트돼도 창이 유지되고, 다른 이유로 페이지가 바뀌면 `RouterEvents.onNavigate`로 닫는다. 같은 화면에서 터치만 켜 잰 값은 열 때 렌더 1,116 → 24, CPU 4x 열기 158 → 53ms, 닫기 53 → 14ms다. Android 실기기의 뒤로가기·회전은 확인하지 못했다(Playwright는 Android 뒤로가기를 보낼 수 없어, 같은 닫기 요청을 취소되지 않은 Esc로 만들어 터치 에뮬레이션에서만 확인했다). 근거와 비교한 안은 `docs/DECISIONS.md` 2026-11-03, 계획은 [`docs/plans/2026-11-03-bookmark-dialog-close-watcher.md`](docs/plans/2026-11-03-bookmark-dialog-close-watcher.md). (`src/shared/hooks/useBackClosableOverlay.ts`(신규), `src/shared/hooks/useBackClosableOverlay.test.tsx`(신규), `src/types/close-watcher.d.ts`(신규), `src/features/bookmark/toggle/hooks/useBookmarkPostButton.ts`, `src/features/post/create/hooks/usePostCreateBookmarkFolderField.ts`, `e2e/bookmark-folder-dialog.mobile.spec.ts`(신규), `docs/BOOKMARK.md`, `docs/DECISIONS.md`, [PR #504](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/504))
+
+  </details>
+
 - `bookmark` 폴더 선택 창에서 새 폴더 이름을 치는 동안 폴더 목록을 다시 그리지 않음
   <details><summary>배경·구현</summary>
 

@@ -23,7 +23,7 @@ interface BookmarkPostButtonProps {
  * - 클릭 → PostCardBookmarkFolderDialog 오픈 (YouTube Music 보관함 스타일)
  * - 폴더 선택은 PostCardBookmarkFolderDialog 안에서 처리
  * - 비로그인이면 로그인 모달을 띄우고, 로그인 성공 시 자동으로 이어서 열린다
- * - 열림 상태(히스토리)·hover 프리페치 로직은 useBookmarkPostButton이 소유한다
+ * - 열림 상태(뒤로가기로 닫힘)·hover 프리페치 로직은 useBookmarkPostButton이 소유한다
  */
 export function BookmarkPostButton({
   postId,

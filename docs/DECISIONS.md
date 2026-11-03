@@ -6,6 +6,93 @@
 
 ---
 
+## 2026-11-03 — 북마크 폴더 창: 뒤로가기가 "닫기 요청"으로 오는 기기에서만 히스토리를 뺀다
+
+**배경**
+
+북마크 폴더 선택 창(카드 버튼·글 등록 폼 필드)은 2026-09-30부터 아래 2026-08-07 정책의 T1처럼
+`useHistoryOverlay`로 열렸다. 열 때 같은 경로에 state 엔트리를 push하니 `location`이 바뀌고, 그때마다
+페이지 전체가 다시 렌더됐다. 아래는 직접 측정한 값이다.
+
+- 조건: 이 변경을 넣은 로컬 운영 빌드, 1280px 화면, 카드 12장·폴더 25개. 두 열은 같은 빌드에서 Playwright
+  `hasTouch`만 바꿔 쟀다.
+- 지표: 클릭부터 창 상태가 바뀐 다음 프레임까지의 시간(30회 중앙값), React 커밋 훅으로 센 페이지 쪽 렌더 컴포넌트 수.
+
+|                              | 히스토리 경로(마우스) | 히스토리 없는 경로(터치) |
+| ---------------------------- | --------------------- | ------------------------ |
+| CPU 1x 열기 / 닫기           | 37 / 15ms             | 16 / 15ms                |
+| CPU 4x 열기 / 닫기           | 158 / 53ms            | 53 / 14ms                |
+| 렌더된 컴포넌트(열기 / 닫기) | 1,116 / 1,151         | 24 / 20                  |
+
+**검토 — 근거**
+
+- **HTML 표준(close request)**: 닫기 요청의 예는 _"데스크톱 플랫폼의 Esc 키"_, _"Android 같은 일부 모바일
+  플랫폼의 뒤로 버튼·제스처"_ (번역, [WHATWG](https://html.spec.whatwg.org/multipage/interaction.html#close-requests-and-close-watchers))다.
+  **데스크톱 브라우저 뒤로가기는 닫기 요청이 아니다.** 히스토리 엔트리가 없으면 데스크톱 뒤로가기는 페이지를 떠난다.
+- **WICG(`CloseWatcher` 제안 문서)**: _"이 UI 상태는 내비게이션이 아니다. 즉 컴포넌트를 열 때 URL이 바뀌지 않으며
+  바뀌어서도 안 된다"_ (번역, [WICG close-watcher](https://github.com/WICG/close-watcher/blob/main/README.md)).
+- **Baymard(Christian Holst, 2020-07-20)**: "뒤로를 누르면 오버레이를 닫는다"는 기대를 _"데스크톱과 모바일
+  사이트 모두에서, 모든 종류의 오버레이에서"_ (번역) 관찰했다고 쓰고, 이렇게 권고한다.
+
+  > '뒤로'를 누르면 항상 오버레이에서 빠져나와, 이전 페이지가 아니라 오버레이 아래 페이지로 돌아가야 한다.
+  > (번역)
+  >
+  > — Baymard Institute, https://baymard.com/blog/back-button-expectations
+
+  같은 글은 사이트의 닫기(X) 버튼이 잘 보일수록 뒤로가기를 쓰는 사람이 줄어든다고도 쓴다.
+
+- **NN/g**: 오버레이를 새 화면으로 오인할 수 있으면 _"뒤로 버튼이 닫기 링크와 같은 효과를 내게 하라"_ (번역,
+  [NN/g](https://www.nngroup.com/articles/user-control-and-freedom/))고 조건을 붙여 권고한다.
+- **Android**: 대화상자 취소는 _"사용자가 뒤로 버튼을 탭하거나 대화상자 영역 밖을 탭하면 발생한다"_ (번역,
+  [Android Dialogs](https://developer.android.com/develop/ui/views/components/dialogs)). 백 스택 항목이 아니다.
+- **Ionic 메인테이너(liamdebeasi, 2020-05-13)**: _"ion-modal 같은 일시적인 컴포넌트를 라우터의 전역 상태와
+  연결하는 것이 옳다고 보지 않는다"_ (번역, [Ionic #16611](https://github.com/ionic-team/ionic-framework/issues/16611)).
+- **제품**: YouTube "재생목록에 저장"·Instagram "공유" 같은 작은 액션 창은 데스크톱에서 히스토리를 쓰지 않는다
+  (2026-11-03 조사 에이전트가 브라우저에서 확인, 모바일 웹은 미확인).
+- **지원 범위**: `CloseWatcher`는 Chrome·Edge 126+, Firefox 149+, Samsung Internet 28+에서 되고 Safari·iOS는 안 된다
+  ([MDN 호환성 표](https://developer.mozilla.org/en-US/docs/Web/API/CloseWatcher#browser_compatibility), 2026-11-03 조사
+  에이전트 확인 — 재인용).
+
+연구(Baymard)는 "뒤로 = 닫기"를 요구하고, 표준·플랫폼·제품 관행은 작은 창을 히스토리에 넣지 않는다. 둘은 서로 반대
+방향이다. 정정: 처음 비교할 때 Baymard 권고를 "새 페이지처럼 보이는 큰 오버레이 한정"으로 잘못 요약했고, 데스크톱
+뒤로가기가 닫기 요청이 아니라는 점도 빠뜨렸다. 원문을 다시 확인한 뒤 아래처럼 다시 골랐다.
+
+| 안                                                               | 데스크톱 뒤로        | Android 뒤로              | iOS 스와이프         | 여닫을 때 렌더             | 판정                                                                                                                                         |
+| ---------------------------------------------------------------- | -------------------- | ------------------------- | -------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| A. 그대로                                                        | 모달만 닫힘          | 모달만 닫힘               | 모달만 닫힘          | 전체                       | 기각 — 렌더 문제가 그대로                                                                                                                    |
+| B. 히스토리 유지 + 구독 줄이기                                   | 모달만 닫힘          | 모달만 닫힘               | 모달만 닫힘          | 레이아웃·사이드바는 그대로 | 기각 — react-router 6.30에 location 일부만 구독하는 API가 없어 비공개 `router.subscribe`에 기대야 하고, 오버레이 7종이 쓰는 공용 훅을 고친다 |
+| C. 모든 기기에서 히스토리 빼기                                   | **페이지가 뒤로 감** | 모달만 닫힘               | **페이지가 뒤로 감** | 모든 기기 ~20              | 기각 — 데스크톱 이득은 열 때 약 20ms(CPU 1x)인데 Baymard 기대를 저버린다                                                                     |
+| **D. 닫기 요청이 오는 기기(CloseWatcher + 터치 주 입력)만 빼기** | 모달만 닫힘          | 모달만 닫힘(CloseWatcher) | 모달만 닫힘          | Android ~20, 나머지 전체   | **채택(사용자 선택)** — 어느 기기에서도 뒤로가기 동작이 같고, 이득이 큰 느린 폰에서 렌더가 준다                                              |
+
+**결정**
+
+- `shared/hooks/useBackClosableOverlay.ts`가 마운트 때 한 번 `window.CloseWatcher` 지원과 `(pointer: coarse)`를 보고
+  경로를 정한다. 아니면 지금처럼 `useHistoryOverlay`, 맞으면 히스토리 없이 열고 Android 뒤로가기는 `CloseWatcher`로 받는다.
+- **열림 상태는 카드 밖 작은 스토어에 둔다(사용자 선택).** 피드 카드는 가상 목록 행 키(`${열 수}:${첫 카드 id}`) 때문에
+  화면 회전·목록 밀림에서 다시 마운트된다. 카드 안 `useState`면 그때 창이 닫히지만 히스토리 경로는 엔트리에 있어 유지된다.
+  근거는 다음과 같다.
+  - Android `DialogFragment`는 _"사용자가 뒤로 버튼을 탭하거나 화면을 회전할 때 같은 생명주기 이벤트를 올바르게
+    처리한다"_ (번역, [Android Dialogs](https://developer.android.com/develop/ui/views/components/dialogs)).
+  - react.dev는 _"React는 컴포넌트를 제거하면 그 state를 없앤다"_ 고 쓰고, 남겨야 하면 부모로 끌어올리는 것이
+    _"가장 흔한 해법"_ 이라고 쓴다(번역, [Preserving and Resetting State](https://react.dev/learn/preserving-and-resetting-state)).
+  - react-virtuoso 메인테이너(petyosi, 2021-01-26)는 _"항목 state는 원하는 상태 관리 도구로 바깥에 보존해야 한다"_
+    (번역, [react-virtuoso #141](https://github.com/petyosi/react-virtuoso/issues/141))고 답했다.
+  - 이 레포에서도 카드에서 여는 삭제 확인(`openConfirm`)·이미지 뷰어는 전역 스토어 + `RootLayout`에서 그린다.
+- 다른 이유로 페이지가 바뀌면 `RouterEvents.onNavigate` 구독으로 닫는다. 카드가 사라진 뒤에도 남는 구독이라, 그
+  화면으로 돌아왔을 때 창만 다시 뜨지 않는다.
+- 이미지 뷰어·사이드바 드로어·모바일 검색·로그인 창은 T1(히스토리) 그대로 둔다.
+
+**남은 것**
+
+- Android 실기기에서 뒤로가기·회전 동작은 확인하지 못했다. Playwright는 Android 뒤로가기를 보낼 수 없어
+  (`page.goBack()`은 닫기 요청이 아니다) 같은 닫기 요청을 취소되지 않은 Esc로 만들어 터치 에뮬레이션에서 확인했다.
+- Firefox Android가 뒤로 버튼을 닫기 요청으로 보내는지 확인하지 못했다. 보내지 않으면 그 브라우저에서는 뒤로가기에
+  페이지가 이동하고, 창은 이동 구독으로 닫힌다.
+- 창이 열린 채 세션이 만료되면 제자리 로그인 창 push로 닫히고, 재로그인 뒤 다시 뜨지 않는다(Android만, 히스토리
+  경로에서는 다시 뜬다).
+
+---
+
 ## 2026-10-30 — Storybook·Swagger UI 공개 호스팅을 운영 도메인에서 GitHub Pages로 옮김
 
 **배경**
