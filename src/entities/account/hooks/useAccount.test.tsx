@@ -38,19 +38,17 @@ describe('useAccount', () => {
     window.localStorage.clear();
   });
 
-  it('비로그인이면 계정 조회를 하지 않고 isLoggedIn이 false다', () => {
+  it('비로그인이면 계정 조회를 하지 않는다', () => {
     const { result } = renderHook(() => useAccount(), { wrapper: createWrapper(queryClient) });
 
     expect(result.current.account).toBeUndefined();
-    expect(result.current.isLoggedIn).toBe(false);
   });
 
-  it('로그인 상태면 계정을 반환하고 isLoggedIn이 true다', async () => {
+  it('로그인 상태면 계정을 반환한다', async () => {
     useAuthStore.getState().setAuth('token');
     const { result } = renderHook(() => useAccount(), { wrapper: createWrapper(queryClient) });
 
     await waitFor(() => expect(result.current.account).toEqual(mockAccount));
-    expect(result.current.isLoggedIn).toBe(true);
   });
 
   it('계정 이미지가 일반 URL이면 마지막 아바타로 저장한다', async () => {

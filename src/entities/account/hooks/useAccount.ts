@@ -23,7 +23,5 @@ export function useAccount() {
     isLoading,
     error,
     isError,
-    // 편의를 위한 파생 상태 (Selector 패턴)
-    isLoggedIn: !!account,
   };
 }

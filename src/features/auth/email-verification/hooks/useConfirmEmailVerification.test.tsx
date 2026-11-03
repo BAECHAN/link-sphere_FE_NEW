@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, StrictMode } from 'react';
 import { describe, it, expect } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { server } from '@/mocks/server';
@@ -38,6 +38,28 @@ describe('useConfirmEmailVerification', () => {
     expect(result.current.status).toBe('pending');
 
     await waitFor(() => expect(result.current.status).toBe('success'));
+  });
+
+  it('StrictMode(개발 모드)에서도 요청은 한 번만 나가고 결과가 화면 상태에 반영된다', async () => {
+    let requestCount = 0;
+    server.use(
+      http.post(url(API_ENDPOINTS.auth.emailVerificationConfirm), () => {
+        requestCount += 1;
+        return HttpResponse.json({ status: 200, message: 'ok', data: null, timestamp: '' });
+      })
+    );
+    const Wrapper = wrapperWithSearch('?token=valid-token');
+
+    const { result } = renderHook(() => useConfirmEmailVerification(), {
+      wrapper: ({ children }) => (
+        <StrictMode>
+          <Wrapper>{children}</Wrapper>
+        </StrictMode>
+      ),
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('success'));
+    expect(requestCount).toBe(1);
   });
 
   it('BE가 실패를 반환하면 error로 바뀐다', async () => {
