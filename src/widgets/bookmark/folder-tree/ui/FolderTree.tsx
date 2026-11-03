@@ -1,4 +1,4 @@
-import { Bookmark, Folder as FolderIcon, Inbox, Loader2, Pin, Plus } from 'lucide-react';
+import { Bookmark, Folder as FolderIcon, Inbox, Loader2, Pin, Plus, RotateCw } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { Divider } from '@/shared/ui/atoms/divider';
 import { Input } from '@/shared/ui/atoms/input';
@@ -35,7 +35,9 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
     folderListRef,
     uncategorizedCount,
     recentFolderList,
-    isLoading,
+    isPending,
+    isFolderListFailed,
+    retryFolderList,
     prefetchFolder,
   } = useFolderTree(sort, search);
 
@@ -114,7 +116,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
       <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
         {/* 고정·해제로 옮겨 간 행을 useFollowFocusOnReorder가 부드럽게 따라가도록 브라우저 스크롤 고정을 끈다 */}
         <div ref={folderListRef} className="flex flex-col gap-1 [overflow-anchor:none]">
-          {isLoading ? (
+          {isPending ? (
             <DelayedFallback className="flex items-center justify-center py-4">
               <Spinner />
             </DelayedFallback>
@@ -131,6 +133,19 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
             ))
           )}
         </div>
+
+        {/* 폴더 목록을 받지 못했을 때 — 폴더 자리에만 안내와 다시 시도를 둔다. 폴더 선택 창과 같은 모양이고,
+            "내 폴더" 라벨은 위 조건 그대로 감춘다(2026-11-03 사용자 선택, docs/BOOKMARK.md "사이드바·모바일 폴더
+            목록을 받지 못했을 때") */}
+        {isFolderListFailed && (
+          <div className="flex flex-col items-center gap-2 px-3 py-4 text-center">
+            <p className="text-sm text-muted-foreground">{TEXTS.bookmark.folder.listLoadFailed}</p>
+            <Button type="button" variant="outline" size="sm" onClick={retryFolderList}>
+              <RotateCw aria-hidden="true" />
+              {TEXTS.buttons.retry}
+            </Button>
+          </div>
+        )}
       </div>
     </aside>
   );

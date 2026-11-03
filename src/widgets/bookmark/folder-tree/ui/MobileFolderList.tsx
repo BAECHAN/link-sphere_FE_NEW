@@ -6,6 +6,7 @@ import {
   Loader2,
   Pin,
   Plus,
+  RotateCw,
 } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { Divider } from '@/shared/ui/atoms/divider';
@@ -33,8 +34,15 @@ interface MobileFolderListProps {
 
 /** 모바일 — 폴더 목록 페이지 (drill-down 패턴) */
 export function MobileFolderList({ onSelect, className }: MobileFolderListProps) {
-  const { folderList, folderListRef, uncategorizedCount, recentFolderList, isLoading } =
-    useMobileFolderList();
+  const {
+    folderList,
+    folderListRef,
+    uncategorizedCount,
+    recentFolderList,
+    isPending,
+    isFolderListFailed,
+    retryFolderList,
+  } = useMobileFolderList();
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -73,18 +81,34 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
         <h2 className="text-subsection-title text-muted-foreground px-1 select-none">
           {TEXTS.bookmark.folder.myFolders}
         </h2>
-        {isLoading ? (
+        {isPending ? (
           <DelayedFallback className="flex items-center justify-center py-12">
             <Spinner />
           </DelayedFallback>
         ) : (
-          // 고정·해제로 옮겨 간 카드를 useFollowFocusOnReorder가 부드럽게 따라가도록 브라우저 스크롤 고정을 끈다
-          <div ref={folderListRef} className="grid grid-cols-2 gap-3 [overflow-anchor:none]">
-            {folderList?.map((folder) => (
-              <FolderCard key={folder.id} folder={folder} onSelect={onSelect} />
-            ))}
-            <CreateFolderCard />
-          </div>
+          <>
+            {/* 폴더 목록을 받지 못했을 때 — "내 폴더" 아래에 안내와 다시 시도를 두고, 목록 없이도 만들 수 있는
+                새 폴더 카드는 그대로 둔다(2026-11-03 사용자 선택, docs/BOOKMARK.md "사이드바·모바일 폴더 목록을
+                받지 못했을 때") */}
+            {isFolderListFailed && (
+              <div className="flex flex-col items-center gap-2 py-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {TEXTS.bookmark.folder.listLoadFailed}
+                </p>
+                <Button type="button" variant="outline" size="sm" onClick={retryFolderList}>
+                  <RotateCw aria-hidden="true" />
+                  {TEXTS.buttons.retry}
+                </Button>
+              </div>
+            )}
+            {/* 고정·해제로 옮겨 간 카드를 useFollowFocusOnReorder가 부드럽게 따라가도록 브라우저 스크롤 고정을 끈다 */}
+            <div ref={folderListRef} className="grid grid-cols-2 gap-3 [overflow-anchor:none]">
+              {folderList?.map((folder) => (
+                <FolderCard key={folder.id} folder={folder} onSelect={onSelect} />
+              ))}
+              <CreateFolderCard />
+            </div>
+          </>
         )}
       </section>
     </div>

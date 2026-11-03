@@ -113,6 +113,13 @@
 
 ### Fixed
 
+- `bookmark` 북마크 페이지가 폴더 목록을 받지 못하면 폴더 자리에 안내와 다시 시도를 보임
+  <details><summary>배경·구현</summary>
+
+  북마크 페이지의 데스크톱 사이드바와 모바일 폴더 목록이 폴더 목록을 한 번도 받지 못하고 실패하면 "전체·미분류·새 폴더 만들기"만 남아(모바일은 "내 폴더" 제목과 "새 폴더" 카드) 폴더가 0개인 사람과 똑같아 보였다. 실패를 알리는 건 전역 토스트뿐이었고, 다시 받으려면 탭을 다시 보거나 새로고침해야 했다. 폴더 선택 창(#508)과 같은 원칙으로, 폴더가 나올 자리(데스크톱은 새 폴더 만들기 아래, 모바일은 "내 폴더" 제목 아래)에 "폴더 목록을 불러오지 못했어요." 안내와 [다시 시도]를 둔다. 전체·미분류 보기와 새 폴더 만들기는 그대로 쓸 수 있다. 데스크톱 "내 폴더" 라벨은 폴더가 있을 때만 보이는 조건 그대로 두었다 — 실패 때도 라벨을 보이는 안과 미리보기로 비교해 사용자가 골랐다(2026-11-03). 오프라인이라 요청이 멈춘 동안 빈칸이던 것도 스피너 조건을 `isLoading`에서 `isPending`으로 바꿔 첫 로딩과 같은 스피너를 보이고, 다시 연결되면 저절로 받는다. 동작은 `docs/BOOKMARK.md` "사이드바·모바일 폴더 목록을 받지 못했을 때". (`src/widgets/bookmark/folder-tree/hooks/useFolderSections.ts`, `src/widgets/bookmark/folder-tree/hooks/useFolderTree.ts`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`, `src/widgets/bookmark/folder-tree/ui/FolderTree.test.tsx`(신규), `src/widgets/bookmark/folder-tree/ui/MobileFolderList.test.tsx`(신규), `docs/BOOKMARK.md`, [PR #510](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/510))
+
+  </details>
+
 - `bookmark` 폴더 선택 창이 목록을 받지 못하면 그 자리에 안내와 다시 시도를 보임
   <details><summary>배경·구현</summary>
 
