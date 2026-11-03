@@ -19,8 +19,18 @@ interface UpdatePostFormProps {
 }
 
 export function UpdatePostForm({ postId }: UpdatePostFormProps) {
-  const { form, post, isLoading, isUpdating, onSubmit, submitError, linkPreview, submitButtonRef } =
-    useUpdatePost(postId);
+  const {
+    form,
+    isLoading,
+    isUpdating,
+    onSubmit,
+    submitError,
+    linkPreview,
+    titleValue,
+    showUrlChangedNotice,
+    showTitleClearedNotice,
+    submitButtonRef,
+  } = useUpdatePost(postId);
   const { categoryOptionList } = useCategoryOptions();
 
   const {
@@ -28,9 +38,6 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
   } = form;
 
   const canSubmit = isDirty && isValid && !isUpdating;
-  const isUrlChanged = Boolean(post) && form.watch('url') !== post?.url;
-  // URL이 바뀌면 urlChangedNotice가 이미 재수집을 예고하므로 중복 노출하지 않는다.
-  const isTitleCleared = !isUrlChanged && Boolean(post) && !form.watch('title')?.trim();
 
   if (isLoading) {
     return <SpinnerOverlay />;
@@ -50,17 +57,21 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
                 name="url"
                 label={TEXTS.post.form.update.urlLabel}
                 placeholder={TEXTS.post.form.update.urlPlaceholder}
-                description={isUrlChanged ? TEXTS.post.form.update.urlChangedNotice : undefined}
+                description={
+                  showUrlChangedNotice ? TEXTS.post.form.update.urlChangedNotice : undefined
+                }
                 autoComplete="off"
                 inputMode="url"
                 required
               />
-              <LinkPreviewCard state={linkPreview} titleOverride={form.watch('title')} />
+              <LinkPreviewCard state={linkPreview} titleOverride={titleValue} />
               <FormInput
                 name="title"
                 label={TEXTS.post.form.update.titleLabel}
                 placeholder={TEXTS.post.form.update.titlePlaceholder}
-                description={isTitleCleared ? TEXTS.post.form.update.titleClearedNotice : undefined}
+                description={
+                  showTitleClearedNotice ? TEXTS.post.form.update.titleClearedNotice : undefined
+                }
               />
               <FormCheckboxGroup
                 name="categoryIds"

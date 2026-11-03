@@ -117,6 +117,7 @@ flowchart TD
 | `custom-import/no-relative-import-except-styles`                                                               | 상대 경로 import(`../`) 금지, `.styles.ts` 파일만 예외                                                                                                                                                                                                                                                                                        |
 | `no-restricted-syntax` (Zustand·날짜·클래스 컴포넌트·빈 본문·smooth 스크롤)                                    | 스토어 `getState()` 직접 호출 금지(셀렉터 훅 강제), `new Date()`/`.getTime()` 직접 사용 금지(`dayjs` 강제), 클래스 컴포넌트 금지, `apiClient.post/put/patch/delete`에 빈 본문 `{}` 넘기기 금지, `behavior: 'smooth'` 직접 쓰기 금지(`ScrollUtil.getBehavior()` 강제 — 동작 줄이기 설정 존중)                                                  |
 | `no-restricted-syntax` (정규식 lookbehind)                                                                     | 정규식 lookbehind(`(?<=`·`(?<!`) 금지 — 빌드 타깃 safari14가 몰라(Safari 16.4부터) 옛 Safari에서 그 줄이 SyntaxError. 테스트·`src/mocks`는 Node에서만 돌아 제외                                                                                                                                                                               |
+| `no-restricted-syntax` (react-hook-form `watch()`)                                                             | props로 받은 `form`의 `watch()`까지 금지 — `incompatible-library`는 `useForm()`의 반환값만 알아봐 놓친다. 값은 `useWatch`, 변경 구독은 `form.subscribe`(§16)                                                                                                                                                                                  |
 | 파일명 규칙                                                                                                    | `*.api.ts`·`*.queries.ts`·`*.schema.ts`·`config/`·`utils/` 등 세그먼트별 파일명 패턴                                                                                                                                                                                                                                                          |
 | `custom-a11y/clickable-needs-interactive-element`                                                              | `div`/`span`에 `onClick`만 달기 — `role="button"` 없이는 금지                                                                                                                                                                                                                                                                                 |
 | `curly` (`['error', 'all']`)                                                                                   | 인라인 `if`문 (`if (x) return;`) — 항상 중괄호 블록 강제                                                                                                                                                                                                                                                                                      |
@@ -1286,13 +1287,34 @@ sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를
   `field.onChange('')`도 안에서 같은 `register` onChange를 탔고, React Aria `useSearchField`·Ant Design `allowClear`도
   지우기를 타이핑과 같은 onChange로 처리한다. `FormInput.test.tsx`의 "제출하기 전에 지우기 버튼으로 비우면…" 테스트가
   이 선택을 지킨다 — `setValue`와 옵션 3개로 바꾸면 이 테스트만 실패하는 것을 2026-11-03 확인했다.
-- **폼 전체가 다시 그려지는지는 `watch`가 정한다**: 폼을 가진 훅이 render 중에 `form.watch('x')`를 부르면, 그 칸이
-  바뀔 때마다 폼 전체가 다시 그려진다(react-hook-form 7.71.0 `dist/index.esm.mjs`의 `onChange` → root 구독).
-  게시글 작성·가입처럼 입력값을 바로 화면에 쓰는 폼이 여기에 해당하고, 이런 칸은 `register`로 바꿔도 리렌더가
-  줄지 않는다.
-- **직접 측정(2026-11-03)**: `FormInput.test.tsx`·`FormInputPassword.test.tsx`의 Profiler 테스트로 쟀다.
-  `watch` 없는 폼에 세 글자를 입력하면 `useController`일 때는 3번 다시 커밋됐고, `register`로 바꾼 뒤에는 0번이다.
-  `enableClear`를 켠 칸은 1번(빈칸에서 값이 생길 때)이다.
+- **값을 읽을 때는 `useWatch`, 값이 바뀔 때 할 일은 `form.subscribe`**: `watch()`는 쓰지 않는다. `useForm()`에서
+  바로 꺼낸 `watch()`는 `react-hooks/incompatible-library`가, props로 받은 `form`의 `watch()`는 `no-restricted-syntax`가
+  막는다(§2 표). `watch()`가 든 훅은 React 규칙 린트가 그 훅 분석을 통째로 건너뛴다. 또
+  [`watch` 문서](https://react-hook-form.com/docs/useform/watch)는 콜백 형태 `watch(callback)`을 Deprecated로 표시하고
+  `subscribe`로 옮기라고 한다(요약). 화면에 쓰는 값은 `useWatch`로 읽는다. 입력하면 실패 안내를 지우는 것처럼 다시
+  그릴 필요가 없는 일은 `subscribe`로 한다(다시 그리지 않는다). 예: `useCreatePost.ts`의 `titleValue`(`useWatch`)와
+  `clearSubmitErrorsOnEdit`(`subscribe`).
+- **폼 전체가 다시 그려지는지는 값을 어디서 구독하느냐가 정한다**: `useWatch`는 자기를 부른 컴포넌트를 다시 그린다.
+  그래서 폼을 가진 훅(`useCreatePost`·`useSignUp` 등)에서 부르면 그 칸이 바뀔 때마다 폼 전체가 다시 그려지고, 이런
+  칸은 `register`로 바꿔도 리렌더가 줄지 않는다. 값을 쓰는 부분을 자식 컴포넌트로 떼면 줄일 수 있다. 하지만 아래
+  측정에서 체감할 만한 비용이 아니어서 떼지 않는다. `watch` 문서도 작은 폼은 루트에서 구독해도 괜찮고, 폼이 커지면
+  값을 쓰는 부분을 자식으로 옮기라고 안내한다(요약).
+- **직접 측정(2026-11-03, `register` 전환)**: `FormInput.test.tsx`·`FormInputPassword.test.tsx`의 Profiler 테스트로
+  쟀다. `watch` 없는 폼에 세 글자를 입력하면 `useController`일 때는 3번 다시 커밋됐고, `register`로 바꾼 뒤에는
+  0번이다. `enableClear`를 켠 칸은 1번(빈칸에서 값이 생길 때)이다.
+- **직접 측정(2026-11-03, 폼 전체 리렌더 비용)**: 측정 방법은 다음과 같다.
+  - 운영 빌드(`vite build --mode test`, `VITE_API_BASE_URL=/api`)를 `vite preview`로 띄우고 e2e 목(`page.route`)을
+    붙였다.
+  - Playwright에서 CPU를 4배 감속했다(`Emulation.setCPUThrottlingRate`,
+    [Lighthouse 기본값](https://github.com/GoogleChrome/lighthouse/blob/main/docs/throttling.md)). 칸마다 약 63키를
+    150ms 간격으로 입력했다.
+  - 키를 누른 시각(`keydown`의 `timeStamp`)부터 다음 프레임 직후(`requestAnimationFrame` 뒤 `MessageChannel`
+    태스크)까지를 쟀다.
+  - 결과(중앙값/p95, ms): 로그인 email(값 구독 없음) 3.4/6.1, 게시글 작성 title 8.1/12.8, 댓글 7.5/11.4. 같은
+    칸에서 값 구독만 끊은 빌드는 4.6/6.5, 3.9/5.0이었다. 폼 전체 리렌더 몫은 키당 약 3ms이고, 모든 칸의 p95가 한
+    프레임(16.7ms) 안이었다.
+  - 측정 당시 코드는 `watch()`였다. `useWatch`로 바꿔도 같은 컴포넌트에서 구독하므로 다시 그리는 범위는 같다.
+  - 측정 스크립트는 커밋하지 않았다. 타이밍에 따라 값이 흔들려 CI에 맞지 않는다.
 
 > 네이티브 입력과, DOM `ref`를 노출하는 커스텀 컴포넌트에는 `register`를 쓰세요. 가장 단순한 방법이고 대개 리렌더가
 > 가장 적습니다. 많은 컴포넌트 라이브러리의 셀렉트, 날짜 선택기, 자동완성처럼 `value`와 `onChange`로 제어되는

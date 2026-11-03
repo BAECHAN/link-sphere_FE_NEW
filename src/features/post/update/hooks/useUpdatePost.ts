@@ -171,6 +171,12 @@ export function useUpdatePost(postId: string) {
   const linkPreview = useLinkPreview(urlValue, isUrlChanged && account?.emailVerified === true);
   const previewUrlError = linkPreview.status === 'urlError' ? linkPreview.message : null;
 
+  // 입력칸 아래 안내 - 위 미리보기 판정과 달리 공백을 다듬지 않고 비교한다(UpdatePostForm.tsx에서 옮겨 온 그대로)
+  const titleValue = useWatch({ control: form.control, name: 'title' });
+  const showUrlChangedNotice = Boolean(post) && urlValue !== post?.url;
+  // URL이 바뀌면 urlChangedNotice가 이미 재수집을 예고하므로 중복 노출하지 않는다.
+  const showTitleClearedNotice = !showUrlChangedNotice && Boolean(post) && !titleValue?.trim();
+
   useEffect(
     function showPreviewUrlErrorOnField() {
       // useCreatePost.ts의 같은 이름 effect와 같은 이유
@@ -265,6 +271,9 @@ export function useUpdatePost(postId: string) {
       ? { kind: 'form' as const, message: signedOutNotice }
       : submitError,
     linkPreview,
+    titleValue,
+    showUrlChangedNotice,
+    showTitleClearedNotice,
     submitButtonRef,
   };
 }
