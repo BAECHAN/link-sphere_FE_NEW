@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { QueryObserver } from '@tanstack/react-query';
 import { createQueryClientWithErrorToasts } from '@/test/utils';
-import { prefetchQueryQuietly } from '@/shared/lib/react-query/prefetch-quietly';
+import { ApiError } from '@/shared/types/common.type';
+import {
+  prefetchInfiniteQueryQuietly,
+  prefetchQueryQuietly,
+} from '@/shared/lib/react-query/prefetch-quietly';
 
 const KEY = ['prefetch-quietly'];
 
@@ -45,5 +49,40 @@ describe('prefetchQueryQuietly', () => {
 
     expect(queryClient.getQueryState(KEY)?.status).toBe('error');
     unsubscribe();
+  });
+});
+
+// 실패 갈래는 prefetchQueryQuietly와 같아 엔티티 테스트(bookmark-folder.queries.test.ts)가 폴더 글 hover로 본다
+describe('prefetchInfiniteQueryQuietly', () => {
+  it('성공하면 무한 쿼리 모양(pages·pageParams)으로 첫 쪽을 채운다', async () => {
+    const { queryClient, errorToasts } = createQueryClientWithErrorToasts();
+
+    await prefetchInfiniteQueryQuietly(queryClient, {
+      queryKey: KEY,
+      queryFn: ({ pageParam }) => Promise.resolve(`page-${pageParam}`),
+      initialPageParam: 0,
+      getNextPageParam: () => undefined,
+    });
+
+    expect(queryClient.getQueryData(KEY)).toEqual({ pages: ['page-0'], pageParams: [0] });
+    expect(errorToasts).toEqual([]);
+  });
+
+  it('실패하면 에러 토스트를 띄우지 않고, 실패한 쿼리를 지운다', async () => {
+    const { queryClient, errorToasts } = createQueryClientWithErrorToasts();
+
+    await prefetchInfiniteQueryQuietly(queryClient, {
+      queryKey: KEY,
+      queryFn: () =>
+        Promise.reject(
+          new ApiError({ status: 500, code: 'SERVER_ERROR', message: 'fail', timestamp: '' })
+        ),
+      initialPageParam: 0,
+      getNextPageParam: () => undefined,
+      retry: false,
+    });
+
+    expect(queryClient.getQueryState(KEY)).toBeUndefined();
+    expect(errorToasts).toEqual([]);
   });
 });

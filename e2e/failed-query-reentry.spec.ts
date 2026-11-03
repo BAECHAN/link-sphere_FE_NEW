@@ -105,6 +105,8 @@ test.describe('조회에 실패한 화면에 다시 들어오기', () => {
 
     await page.goBack();
 
+    // 피드 카드 제목도 h3라, 피드가 내려가기 전에는 아래 제목 단정이 피드 카드로 먼저 통과해 버린다
+    await expect(page.getByRole('heading', { level: 1, name: 'Recent Links' })).toHaveCount(0);
     await expect(page.getByRole('heading', { level: 3, name: mockPost.title })).toBeVisible();
     await expect(page.getByText(TEXTS.messages.error.fetchPosts)).toHaveCount(0);
     expect(detail.state.requests).toBeGreaterThan(requestsBeforeReturn);

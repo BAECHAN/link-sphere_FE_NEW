@@ -1,3 +1,4 @@
+import type { Query } from '@tanstack/react-query';
 import { ApiError, SessionChangedError, SessionExpiredError } from '@/shared/types/common.type';
 import { TEXTS } from '@/shared/config/texts';
 import { LogoutGraceUtil } from '@/shared/utils/logout-grace.util';
@@ -8,6 +9,8 @@ export interface CustomMutationMeta {
   successMessage?: string;
   errorMessage?: string;
   manualErrorHandling?: boolean;
+  /** 조회 전용 - 켜진(enabled) 구독자 없이 실패하면 알리지 않는다(isUnwatchedQueryFailure) */
+  silentWhenInactive?: boolean;
 }
 
 declare module '@tanstack/react-query' {
@@ -160,4 +163,16 @@ export function resolveErrorToast(
   }
 
   return { silent: false, message: policy.fallbackMessage };
+}
+
+/**
+ * meta.silentWhenInactive를 단 조회가 켜진(enabled) 구독자 없이 실패했는가 - 그 실패를 보여 줄 화면이 없어 토스트를
+ * 띄우지 않는다(닫힌 채 마운트된 폴더 선택 창, docs/BOOKMARK.md "hover 프리페치"). 쿼리 옵션은 쿼리당 한 벌이라
+ * 구독자가 다시 그려질 때마다 meta를 덮어쓴다(query-core 5.90.16 queryObserver.js:94) - 창마다 열림 여부로 meta를
+ * 바꾸면 마지막에 그려진 창이 이기므로, 실패 순간의 구독 상태(query.isActive(), query.js:86-90)로 판정한다.
+ */
+export function isUnwatchedQueryFailure(query: Query<unknown, unknown, unknown>): boolean {
+  const meta = query.meta as CustomMutationMeta | undefined;
+
+  return meta?.silentWhenInactive === true && !query.isActive();
 }

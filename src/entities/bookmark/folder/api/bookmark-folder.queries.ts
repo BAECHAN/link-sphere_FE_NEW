@@ -29,6 +29,10 @@ import {
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { assertMutationAuthEpochUnchanged } from '@/shared/lib/react-query/config/mutation-auth-epoch';
 import {
+  prefetchInfiniteQueryQuietly,
+  prefetchQueryQuietly,
+} from '@/shared/lib/react-query/prefetch-quietly';
+import {
   POST_PAGE_SIZE,
   postInvalidateQueries,
   postKeys,
@@ -46,19 +50,30 @@ function isFirstOccurrence(id: string, seen: Set<string>): boolean {
   return seen.has(id) ? false : seen.add(id) && true;
 }
 
+// 폴더 선택 창은 닫힌 채 마운트돼 꺼진 구독자로 목록을 지켜본다 - 창이 열려 있지 않을 때 난 실패(hover 미리 받기)는
+// 알리지 않는다(isUnwatchedQueryFailure). 이 목록을 쓰는 조회·미리 받기가 모두 같은 meta를 달아야 누가 마지막에
+// 덮어써도 남는다
+const BOOKMARK_FOLDER_LIST_META = { silentWhenInactive: true };
+
 export const useBookmarkFolderListQuery = (options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: bookmarkFolderKeys.list,
     queryFn: bookmarkFolderApi.fetchBookmarkFolderList,
     enabled: options?.enabled ?? true,
+    meta: BOOKMARK_FOLDER_LIST_META,
   });
 };
 
-/** hover 시 폴더 목록 미리 로드 — useBookmarkFolderListQuery 와 동일 키/queryFn */
+/**
+ * hover 시 폴더 목록 미리 로드 — useBookmarkFolderListQuery 와 동일 키/queryFn/meta. 창이 닫혀 있는 동안 실패하면
+ * 토스트 없이 끝나고, 창이 열리면 새로 요청한다(데이터 없는 실패라 stale). 지켜보는 창이 없으면 실패한 쿼리를
+ * 지운다(prefetchQueryQuietly)
+ */
 export const prefetchBookmarkFolderList = (queryClient: QueryClient) => {
-  queryClient.prefetchQuery({
+  prefetchQueryQuietly(queryClient, {
     queryKey: bookmarkFolderKeys.list,
     queryFn: bookmarkFolderApi.fetchBookmarkFolderList,
+    meta: BOOKMARK_FOLDER_LIST_META,
   });
 };
 
@@ -94,14 +109,17 @@ export const useBookmarkFolderPostsInfiniteQuery = (
   });
 };
 
-/** hover 시 폴더 게시글 첫 페이지 미리 로드 — useBookmarkFolderPostsInfiniteQuery 와 동일 키/queryFn */
+/**
+ * hover 시 폴더 게시글 첫 페이지 미리 로드 — useBookmarkFolderPostsInfiniteQuery 와 동일 키/queryFn. 실패해도
+ * 토스트 없이 지워 목록이 열리면 새로 요청한다(prefetchInfiniteQueryQuietly)
+ */
 export const prefetchBookmarkFolderPosts = (
   queryClient: QueryClient,
   folderKey: BookmarkFolderKey,
   sort?: BookmarkFolderSort,
   search?: string
 ) => {
-  queryClient.prefetchInfiniteQuery({
+  prefetchInfiniteQueryQuietly(queryClient, {
     queryKey: bookmarkFolderKeys.posts(folderKey, sort, search),
     queryFn: ({ pageParam }: { pageParam: PaginationRequest['page'] }) =>
       bookmarkFolderApi.fetchBookmarkFolderPosts(folderKey, {

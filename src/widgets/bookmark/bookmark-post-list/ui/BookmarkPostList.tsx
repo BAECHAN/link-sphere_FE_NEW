@@ -36,7 +36,7 @@ export function BookmarkPostList({
   const {
     posts,
     correctedSearch,
-    isLoading,
+    isPending,
     isFirstPageFailed,
     isFetchingNextPage,
     isNextPageFailed,
@@ -47,7 +47,7 @@ export function BookmarkPostList({
     columnCount,
   } = useBookmarkPostList(grid, folderKey, sort, search);
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <DelayedFallback className={cn('flex justify-center py-12', className)}>
         <Loader2 className="size-8 animate-spin text-primary" />

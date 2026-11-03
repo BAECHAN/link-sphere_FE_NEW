@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { onlineManager, QueryClientProvider } from '@tanstack/react-query';
 import { delay, http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL } from '@/shared/config/api';
@@ -87,7 +87,7 @@ function mockFolderPostPages(status: number) {
 }
 
 function BookmarkPostListProbe() {
-  const { posts, containerRef, isFirstPageFailed, isNextPageFailed, retryNextPage } =
+  const { posts, containerRef, isPending, isFirstPageFailed, isNextPageFailed, retryNextPage } =
     useBookmarkPostList(TEST_GRID, 'all', 'latest');
 
   return (
@@ -95,6 +95,7 @@ function BookmarkPostListProbe() {
       <div ref={containerRef} data-testid="post-count">
         {posts.length}
       </div>
+      <div data-testid="pending">{String(isPending)}</div>
       <div data-testid="first-page-failed">{String(isFirstPageFailed)}</div>
       {isNextPageFailed && (
         <button type="button" onClick={retryNextPage}>
@@ -188,5 +189,29 @@ describe('useBookmarkPostList — 첫 페이지 실패', () => {
 
     await waitFor(() => expect(screen.getByTestId('first-page-failed')).toHaveTextContent('true'));
     expect(screen.getByTestId('post-count')).toHaveTextContent('0');
+  });
+});
+
+// 오프라인이면 첫 조회가 보내지지 않고 멈춘다(fetchStatus paused) - 이때 isLoading은 false라 "저장한 글이 없어요"로
+// 보였다. 받기 전 상태(isPending)로 돌려줘 목록이 스피너를 그리게 한다.
+describe('useBookmarkPostList — 오프라인', () => {
+  it('오프라인이면 첫 쪽을 받기 전 상태로 돌려주고, 다시 연결되면 목록을 받는다', async () => {
+    mockFolderPostPages(500);
+    onlineManager.setOnline(false);
+
+    try {
+      renderBookmarkPostList();
+      await waitRenderingEachStep(100);
+
+      expect(screen.getByTestId('pending')).toHaveTextContent('true');
+      expect(screen.getByTestId('post-count')).toHaveTextContent('0');
+    } finally {
+      act(() => {
+        onlineManager.setOnline(true);
+      });
+    }
+
+    await waitFor(() => expect(screen.getByTestId('post-count')).toHaveTextContent('3'));
+    expect(screen.getByTestId('pending')).toHaveTextContent('false');
   });
 });

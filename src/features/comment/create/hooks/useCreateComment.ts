@@ -105,8 +105,7 @@ export function useCreateComment({
     clearAllImages,
   } = useImageAttachments({
     maxCount: MAX_COMMENT_IMAGES,
-    // 첨부를 바꾸면 이전 실패 안내를 지운다 - 파일이 검증에 걸려 들어가지 않았으면 고친 게 없으니 남긴다.
-    // onImageSet은 실패 뒤 이미지를 되돌릴 때도 불려 방금 남긴 안내까지 지우므로 쓰지 않는다
+    // 첨부를 바꾸면 이전 실패 안내를 지운다 - 파일이 검증에 걸려 들어가지 않았으면 고친 게 없으니 남긴다
     onFilesAdded: () => setFailureMessage(null),
   });
 
