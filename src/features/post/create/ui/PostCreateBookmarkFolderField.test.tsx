@@ -13,6 +13,7 @@ import {
 import { BookmarkFolderSelectDialog } from '@/features/bookmark/select/ui/BookmarkFolderSelectDialog';
 import type { CreatePost } from '@/entities/post/model/post.schema';
 import type { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
+import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-folder.util';
 
 // PostCreateBookmarkFolderField는 공통 프레젠테이션(features/bookmark/select/ui/BookmarkFolderSelectDialog)에 얇게
 // 위임하므로, 아래 케이스들은 BookmarkFolderSelectDialog의 행 렌더링·최근 구획도 함께 검증한다.
@@ -329,6 +330,25 @@ describe('PostCreateBookmarkFolderField', () => {
     await user.keyboard('{Escape}');
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  // 입력값이 모달 맨 위 훅에 있으면 한 글자마다 모달 본문과 폴더 행 전부가 다시 그려진다. 모달 훅
+  // (useBookmarkFolderSelect)이 렌더마다 부르는 orderPinnedFirst 호출 횟수로 본문이 다시 그려졌는지 본다.
+  it('새 폴더 이름을 입력하는 동안 폴더 목록은 다시 그리지 않는다', async () => {
+    const user = userEvent.setup();
+    renderField();
+
+    await user.click(screen.getByRole('button', { name: '북마크 안 함' }));
+    await waitFor(() => expect(screen.getByText('새 폴더 만들기')).toBeInTheDocument());
+    await user.click(screen.getByText('새 폴더 만들기'));
+
+    const orderPinnedFirstSpy = vi.spyOn(BookmarkFolderUtil, 'orderPinnedFirst');
+
+    await user.type(screen.getByPlaceholderText('새 폴더 이름'), '읽을거리');
+
+    expect(screen.getByPlaceholderText('새 폴더 이름')).toHaveValue('읽을거리');
+    expect(orderPinnedFirstSpy).not.toHaveBeenCalled();
+    orderPinnedFirstSpy.mockRestore();
   });
 
   it('임계값을 넘으면 등록 폼에서도 최근 저장한 폴더 구획이 뜬다', async () => {

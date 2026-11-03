@@ -27,6 +27,13 @@
 
 ### Changed
 
+- `bookmark` 폴더 선택 창에서 새 폴더 이름을 치는 동안 폴더 목록을 다시 그리지 않음
+  <details><summary>배경·구현</summary>
+
+  새 폴더 이름 입력값이 모달 맨 위 훅(`useBookmarkFolderSelect`)에 있어서, 한 글자 칠 때마다 모달 본문과 폴더 행 전부가 다시 그려졌다(직접 측정, 2026-11-03 dev 빌드에서 React 렌더 호출을 세어 봄 — 측정한 계정에서는 한 글자마다 폴더 행 25개). 입력값과 생성 요청을 새 훅 `useNewFolderInput`으로 옮기고, 그 훅을 쓰는 `NewFolderInput` 컴포넌트를 같은 Dialog 파일 안에 두어 다시 그려지는 범위를 입력 한 줄로 줄였다. react.dev가 권하는 대로 입력 같은 일시적 상태를 필요 이상으로 끌어올리지 않은 것이다([memo](https://react.dev/reference/react/memo)). 형태는 사이드바 `FolderTree`의 `InlineCreateFolderInput`·`useCreateFolderForm`을 따랐다. 화면과 동작(Enter로 만들기, 조합 중 Enter 무시, ESC로 입력 접기, 만든 폴더 바로 고르기, 실패 토스트)은 그대로다. 입력값은 입력을 접을 때 컴포넌트와 함께 사라지므로, 닫을 때·취소할 때 이름을 비우던 코드는 지웠다. 회귀 테스트는 입력하는 동안 모달 훅이 렌더마다 부르는 `orderPinnedFirst`가 한 번도 불리지 않는지 본다(고치기 전에는 4글자에 4번). (`src/features/bookmark/select/hooks/useNewFolderInput.ts`(신규), `src/features/bookmark/select/hooks/useBookmarkFolderSelect.ts`, `src/features/bookmark/select/ui/BookmarkFolderSelectDialog.tsx`, `src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`, `docs/BOOKMARK.md`, [PR #499](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/499))
+
+  </details>
+
 - `shared` 화면에 실패 흔적이 남지 않는 에러 토스트를 닫을 때까지 남김
   <details><summary>배경·구현</summary>
 

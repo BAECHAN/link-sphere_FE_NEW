@@ -718,7 +718,7 @@ BE 스펙도 `lastUsedAt`을 optional + null 허용으로 표기하고(`shared/a
 | 파라미터           | 값                                                                         | 실제 위치                                                                               |
 | ------------------ | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | 내 폴더 순서       | 고정한 폴더(`pinnedAt` 오름차순, 같으면 `sortOrder`) → 나머지(`sortOrder`) | `orderPinnedFirst`(`entities/bookmark/folder/utils/bookmark-folder.util.ts:63`)         |
-| 순서를 적용하는 곳 | 사이드바·모바일, 저장 다이얼로그                                           | `useFolderSections.ts:17`(사이드바·모바일), `useBookmarkFolderSelect.ts:41`(다이얼로그) |
+| 순서를 적용하는 곳 | 사이드바·모바일, 저장 다이얼로그                                           | `useFolderSections.ts:17`(사이드바·모바일), `useBookmarkFolderSelect.ts:37`(다이얼로그) |
 | 고정 개수 상한     | 없음                                                                       | —                                                                                       |
 
 "최근 저장한 폴더" 상단 구획 노출 기준. 고정 여부와 상관없이 전체 폴더로 고른다.
@@ -815,8 +815,11 @@ src/
 │   │   │                                    # 모바일 기본 입력, 데스크톱 제목 크기(§5 "폴더 화면에서 이름 바꾸기")
 │   │   ├── select/
 │   │   │   ├── hooks/
-│   │   │   │   └── useBookmarkFolderSelect.ts # BookmarkFolderSelectDialog의 로직 전부(조회·생성·
-│   │   │   │                                 # 행별 pending 상태 + handleCancelCreate로 취소, 2026-09-21)
+│   │   │   │   ├── useBookmarkFolderSelect.ts # BookmarkFolderSelectDialog의 로직(조회·생성 입력 펼침·
+│   │   │   │   │                             # 행별 pending 상태 + handleCancelCreate로 취소, 2026-09-21)
+│   │   │   │   └── useNewFolderInput.ts       # "새 폴더 만들기" 입력값·생성 요청. 아래 Dialog 파일의
+│   │   │   │                                 # NewFolderInput만 쓴다 — 모달 훅에 두면 한 글자마다 모달
+│   │   │   │                                 # 본문과 폴더 행 전부가 다시 그려졌다(2026-11-03)
 │   │   │   └── ui/
 │   │   │       └── BookmarkFolderSelectDialog.tsx # JSX만 — 폴더 선택 모달/바텀시트 공용
 │   │   │                                         # 프레젠테이션. PostCardBookmarkFolderDialog·
