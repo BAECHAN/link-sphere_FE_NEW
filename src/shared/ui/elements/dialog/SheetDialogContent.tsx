@@ -15,6 +15,15 @@ import { cn } from '@/shared/lib/tailwind/utils';
  */
 const SHEET_TIMING = 'duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]';
 
+/**
+ * 창 전체의 높이 상한 — 안쪽 목록에만 상한을 두면 위아래 고정 행(제목·확인 등)이 그 위에 더해져 화면을 넘는다.
+ * 창을 세로로 쌓고(flex-col) 여기서 막으면, 스크롤 영역(overflow-y-auto)만 남는 높이로 줄어든다. vh는 주소창이
+ * 숨은 높이(lvh) 기준이라 주소창이 보이는 폰에서 넘치므로 dvh를 쓴다. 가로로 돌린 폰은 폭이 넓어 중앙 모달
+ * 분기를 타므로 그쪽도 화면 높이 안에 둔다(값과 근거: docs/BOOKMARK.md §5 "창 높이").
+ */
+const SHEET_MAX_HEIGHT = 'max-h-[70dvh]';
+const MODAL_MAX_HEIGHT = 'max-h-[calc(100dvh-2rem)]';
+
 export interface SheetDialogContentProps extends React.ComponentPropsWithoutRef<
   typeof DialogContent
 > {
@@ -45,9 +54,10 @@ export const SheetDialogContent = React.forwardRef<
           ? [
               'bottom-0 top-auto left-0 right-0 translate-x-0 translate-y-0 max-w-full w-full rounded-t-2xl rounded-b-none border-b-0 p-0 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom',
               SHEET_TIMING,
+              SHEET_MAX_HEIGHT,
             ]
-          : [DIALOG_CONTENT_MOTION, 'max-w-sm p-0'],
-        'gap-0 overflow-hidden',
+          : [DIALOG_CONTENT_MOTION, 'max-w-sm p-0', MODAL_MAX_HEIGHT],
+        'flex flex-col gap-0 overflow-hidden',
         className
       )}
       {...props}

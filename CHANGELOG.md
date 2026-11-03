@@ -113,6 +113,13 @@
 
 ### Fixed
 
+- `bookmark` 폴더 선택 창이 폴더가 많아도 세로·가로 화면 안에 들어옴
+  <details><summary>배경·구현</summary>
+
+  Android에서 "글 등록 폼의 북마크 창이 화면 밖으로 벗어나는 것 같고 닫힐 때 글자가 움직여 보인다, 피드 창은 너무 높다, 가로로 보면 더 벗어난다"는 제보였다. 높이 상한이 폴더 목록에만(모바일 `max-h-[70vh]`, 데스크톱 `max-h-96`) 있고 제목·새 폴더 만들기·"북마크 안 함"·확인이 그 위에 더해져서, 폴더 12개로 잰 창 높이(직접 측정, Pixel 5 에뮬레이션)는 세로 피드 624/727px(86%), 세로 등록 폼 734/727px(위 7px 잘림)였다. 가로로 돌린 폰(851×393)은 폭이 768px 이상이라 중앙 모달이 뜨는데, 목록 하나가 384px라 피드 500px·등록 폼 610px가 되어 제목·닫기·확인이 화면 밖으로 나갔다. `vh`는 주소창이 숨은 높이 기준이라([MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/length)) 실제 폰은 더 넘친다. 이제 상한을 창 전체에 건다 — 세로 모바일 시트는 `max-h-[70dvh]`, 중앙 모달은 `max-h-[calc(100dvh-2rem)]`이고, 창을 `flex flex-col`로 쌓아 폴더 목록(`min-h-0 overflow-y-auto`)만 남는 높이로 줄어든다. 넓은 데스크톱 화면은 목록 384px 그대로다. 70%는 실제 화면에 60·70·80%를 입혀 나란히 비교하고 사용자가 골랐다(피드 창 86% → 70%, 등록 폼 목록 6행). 닫힐 때 글자가 움직여 보인 것은 0.2배속으로 기록해도 창 안 내용·페이지 스크롤이 그대로여서, 화면 위로 잘려 있던 제목이 미끄러져 들어오는 모습으로 추정한다(실기기 확인 대기). 새 e2e는 세로·가로에서 두 창이 화면 안에 있고 제목·닫기·확인이 보이는지 재며, 고치기 전 코드에서 4건 모두 실패했다. 근거와 비교한 값은 `docs/BOOKMARK.md` §5 "창 높이". (`src/shared/ui/elements/dialog/SheetDialogContent.tsx`, `src/shared/ui/elements/dialog/SheetDialogContent.test.tsx`, `src/shared/ui/elements/dialog/SheetDialogContent.stories.tsx`, `src/features/bookmark/select/ui/BookmarkFolderSelectDialog.tsx`, `e2e/bookmark-sheet-height.mobile.spec.ts`(신규), `docs/BOOKMARK.md`, [PR #515](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/515))
+
+  </details>
+
 - `bookmark` 북마크 페이지에서 폴더를 빼도 창이 끝까지 닫히고, 실패하면 열린 채 남음
   <details><summary>배경·구현</summary>
 

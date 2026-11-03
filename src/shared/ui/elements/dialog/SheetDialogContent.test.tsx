@@ -27,13 +27,22 @@ function renderSheet(isMobile: boolean) {
 }
 
 describe('SheetDialogContent', () => {
-  it('데스크톱 분기는 고치기 전과 같은 중앙 모달 클래스 집합이다', () => {
+  // 2026-11-03 창 높이 — 창을 세로로 쌓고(grid → flex flex-col) 창 전체에 화면 높이 상한을 더한 것 말고는
+  // 중앙 모달의 클래스가 그대로여야 한다(docs/BOOKMARK.md §5 "창 높이")
+  it('데스크톱 분기는 중앙 모달 클래스 집합에 세로 쌓기와 화면 높이 상한만 더한다', () => {
     const { panel, overlay } = renderSheet(false);
 
     expect(panel.sort().join(' ')).toBe(
-      'bg-background border data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-200 fixed gap-0 grid left-[50%] max-w-sm overflow-hidden p-0 shadow-lg sm:rounded-lg top-[50%] translate-x-[-50%] translate-y-[-50%] w-full z-modal'
+      'bg-background border data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-200 fixed flex flex-col gap-0 left-[50%] max-h-[calc(100dvh-2rem)] max-w-sm overflow-hidden p-0 shadow-lg sm:rounded-lg top-[50%] translate-x-[-50%] translate-y-[-50%] w-full z-modal'
     );
     expect(overlay).toContain('bg-scrim/80');
+  });
+
+  it('모바일 분기는 창 전체가 보이는 화면 높이의 70%를 넘지 않는다', () => {
+    const { panel } = renderSheet(true);
+
+    expect(panel).toEqual(expect.arrayContaining(['flex', 'flex-col', 'max-h-[70dvh]']));
+    expect(panel).not.toContain('grid');
   });
 
   it('모바일 분기는 딤 32%이고, 딤과 시트가 같은 시간·곡선을 쓰며 시트는 밀기만 한다', () => {

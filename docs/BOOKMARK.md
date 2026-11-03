@@ -388,6 +388,47 @@ JSX만, 호스트는 아래 "시트는 카드 밖 호스트가 그린다(2026-11
   사라지는지, 실패면 창 노드가 빠졌다 다시 들어오지 않는지 본다(고치기 전 코드에서 4건 모두 실패 확인).
   `GlobalPostBookmarkFolderDialog.test.tsx`가 열기·동기화·다른 카드 무시·카드 언마운트·새로고침·로그인 뒤 재개를 본다.
 
+### 창 높이 — 창 전체에 상한(2026-11-03)
+
+폴더 선택 창(카드 북마크 버튼, 링크 등록 폼)은 창 전체가 세로 모바일 화면에서 보이는 높이의 70%를 넘지 않는다.
+가로로 돌린 폰과 데스크톱의 중앙 모달은 화면 높이에서 위아래 16px씩 뺀 만큼을 넘지 않는다. 제목·"새 폴더 만들기"·
+"북마크 안 함"(또는 "북마크 제거")·확인 줄은 그대로 두고, 폴더 목록만 남는 높이로 줄어 스크롤한다.
+
+- **왜** — Android에서 "글 등록 폼의 창이 화면 밖으로 벗어나는 것 같고 닫힐 때 글자가 움직여 보인다, 피드 창은 너무
+  높다, 가로로 보면 더 벗어난다"는 제보였다. 높이 상한이 폴더 목록에만(모바일 `max-h-[70vh]`, 데스크톱 `max-h-96`)
+  있어서, 위아래 고정 줄이 그 위에 더해졌다. 직접 잰 값은 아래 표다(Playwright Pixel 5 에뮬레이션, 폴더 12개. 열린 뒤
+  창의 `getBoundingClientRect()`를 읽었다 — 회귀 검사 e2e도 같은 방식으로 잰다. 고친 뒤 값은 같은 클래스를 CSS로 입혀 쟀다).
+
+  | 화면                    | 고치기 전 창 높이 / 화면 | 고친 뒤                         |
+  | ----------------------- | ------------------------ | ------------------------------- |
+  | 세로 393×727, 피드 카드 | 624 / 727(86%)           | 509(70%), 목록 8행 보임         |
+  | 세로, 글 등록 폼        | 734 / 727, 위 7px 잘림   | 509(70%), 목록 6행 보임         |
+  | 가로 851×393, 피드 카드 | 500 / 393, 위아래 53px   | 361, 위아래 16px 여백, 목록 5행 |
+  | 가로, 글 등록 폼        | 610 / 393, 위아래 108px  | 361, 위아래 16px 여백, 목록 3행 |
+
+  등록 폼은 설명 한 줄·"북마크 안 함"·확인이 더 붙어 고정 줄이 224px(피드 카드는 114px)다. 가로로 돌린 폰은 폭이
+  768px 이상이라 `useIsMobile`이 false여서 바텀시트가 아니라 중앙 모달이 뜨는데, 목록 하나가 384px라 화면 높이(393px)와
+  거의 같았다 — 제목·닫기·확인이 화면 밖이라 뒤로가기나 딤 탭으로만 닫을 수 있었다. MDN은 _"`vh`는 `lvh`와 같으며, 큰
+  뷰포트 크기를 기준으로 한다"_ (번역, [MDN &lt;length&gt;](https://developer.mozilla.org/en-US/docs/Web/CSS/length))고 쓴다.
+  큰 뷰포트는 주소창이 숨은 높이라, 주소창이 보이는 실제 폰은 위 에뮬레이션보다 더 넘친다.
+
+- **닫힐 때 글자가 움직여 보인 것** — 닫힘을 0.2배속으로 프레임마다 기록해도 창은 통째로 내려가고 창 안 내용과 페이지
+  스크롤(0)은 그대로였다. 그래서 화면 위로 잘려 있던 제목이 닫힐 때 미끄러져 들어오는 모습으로 추정한다. 넘치지 않는
+  피드 창은 자연스럽다는 제보와도 맞는다. 주소창이 있는 실제 화면은 에뮬레이션으로 재현할 수 없어 실기기 확인을 기다린다.
+- **값** — 70%는 실제 화면에 60·70·80%를 입혀 나란히 놓고 사용자가 골랐다(2026-11-03). 60%는 등록 폼 목록이 4행뿐이고,
+  80%는 shadcn/ui Drawer가 아래쪽 시트에 쓰는 값(`max-h-[80vh]`, [drawer.tsx](https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/new-york-v4/ui/drawer.tsx))이지만
+  지금보다 6%p만 낮다. 참고한 다른 선례는 둘이다. Apple UIKit 시트의 중간 단계는 _"화면 높이의 대략 절반"_ (번역,
+  [medium()](<https://developer.apple.com/documentation/uikit/uisheetpresentationcontroller/detent/medium()>))이다.
+  Material Components Android 바텀시트는 기본이 내용에 맞춤(`fitToContents` true)이다([BottomSheet.md](https://github.com/material-components/material-components-android/blob/master/docs/components/BottomSheet.md)).
+- **가로 화면** — 바텀시트로 바꾸지 않고 중앙 모달을 화면 안에 넣었다. 바텀시트면 폭 851px를 다 덮고 높이는 더 줄어든다.
+  Apple UIKit도 중간 단계 시트를 _"세로 폭이 좁은 환경(compact height)에서는 쓰지 않는다"_ (번역, 위 medium() 문서)고 한다.
+- **어디서** — `SheetDialogContent.tsx`가 창을 `flex flex-col`로 쌓고 `SHEET_MAX_HEIGHT`(`max-h-[70dvh]`)·
+  `MODAL_MAX_HEIGHT`(`max-h-[calc(100dvh-2rem)]`)를 분기별로 붙인다. 목록(`BookmarkFolderSelectDialog.tsx`)은
+  `min-h-0 overflow-y-auto`로 남는 높이만 쓰고, 데스크톱만 `max-h-96`을 남겨 넓은 화면의 높이는 그대로다. `dvh`를 쓰는
+  이유는 지금 보이는 높이라서다. 창이 열린 동안에는 페이지 스크롤이 잠겨 주소창이 바뀌지 않는다.
+- **회귀 검사** — `e2e/bookmark-sheet-height.mobile.spec.ts`가 세로·가로에서 두 창이 화면 안에 있고(세로는 70% 이하),
+  제목·닫기·확인이 화면에 보이는지 잰다(고치기 전 코드에서 4건 모두 실패 확인). 클래스 집합은 `SheetDialogContent.test.tsx`가 본다.
+
 ### 새 폴더 만들기 인라인 폼의 취소(2026-09-21)
 
 "새 폴더 만들기"를 탭한 뒤 이름을 입력하면 폼에서 빠져나갈 방법이 없었다(Escape로도
@@ -907,6 +948,14 @@ _"사용자는 두 항목이 중복이라는 걸 모르기 때문에 결국 둘 
 정확히 폴더 3개인 경우에만 작동한다. 대안 비교는 `docs/DECISIONS.md`의 "2026-09-21"
 항목 참고.
 
+폴더 선택 창 높이(2026-11-03, §5 "창 높이 — 창 전체에 상한").
+
+| 파라미터                            | 값                                 | 실제 위치                                                                     |
+| ----------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------- |
+| 세로 모바일 시트 창 전체 상한       | 보이는 화면 높이의 70%(`70dvh`)    | `shared/ui/elements/dialog/SheetDialogContent.tsx:24`의 `SHEET_MAX_HEIGHT`    |
+| 중앙 모달(가로 폰·데스크톱) 창 상한 | 화면 높이 − 2rem(위아래 16px 여백) | `SheetDialogContent.tsx:25`의 `MODAL_MAX_HEIGHT`                              |
+| 데스크톱 폴더 목록 상한             | 384px(`max-h-96`)                  | `features/bookmark/select/ui/BookmarkFolderSelectDialog.tsx:152`·`:289`(로딩) |
+
 ## 8. 코드 지도와 자주 하는 수정
 
 ```
@@ -1098,6 +1147,7 @@ src/
 | 이름 바꾸기 동작 변경(Enter·Esc·검사) | `features/bookmark/rename/hooks/useRenameBookmarkFolder.ts` 한 곳 — 폴더 화면 제목과 사이드바·카드(`useFolderActions`)가 같이 바뀐다                                                                                                                                                                                     |
 | 폴더 화면 편집 입력 모양 변경         | `BookmarkFolderTitle.tsx`의 `Input` `className`. `cn()`이 역할 토큰을 글자 크기로 알아 Input 기본 크기(`md:text-sm`)를 같은 변형(`md:`)끼리 바꾼다(§5 "폴더 화면에서 이름 바꾸기")                                                                                                                                       |
 | 모바일 정렬 점 조건·위치 변경         | `BookmarkPage.tsx` 모바일 분기의 `sort !== 'latest'`와 점 `span`의 `top-[5px] right-[5px] size-[7px]`(10-28 승인 시안 값). 기본 정렬을 바꾸면 이 조건도 같이 바꾼다                                                                                                                                                      |
+| 폴더 선택 창 높이 변경                | `SheetDialogContent.tsx`의 `SHEET_MAX_HEIGHT`(세로 모바일)·`MODAL_MAX_HEIGHT`(중앙 모달). 목록에 상한을 다시 두지 않는다 — 위아래 고정 줄이 더해져 화면을 넘는다(§5 "창 높이"). 바꾸면 `e2e/bookmark-sheet-height.mobile.spec.ts`의 `maxRatio`도 맞춘다                                                                  |
 | 테스트 실행                           | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-tree src/features/bookmark/toggle src/features/bookmark/rename src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`                                                                                                              |
 
 ## 9. 검증 결과
@@ -1821,6 +1871,8 @@ B의 대가는 바깥 줄이 `AppLayout`의 여백 값을 알아야 한다는 �
   `GlobalImageViewer`)
 - **`PostFolderDialogHost`** — `widgets/bookmark/post-folder-dialog/ui/`. 위 호스트에 창 마크업(`BookmarkFolderSelectDialog`)을
   넘기는 조립 컴포넌트(§26). RootLayout이 `lazy`로 하나 둔다
+- **`dvh`·`lvh`** — CSS 길이 단위. `dvh`는 지금 보이는 화면 높이, `lvh`는 주소창이 숨은 큰 화면 높이의 1%다. `vh`는
+  `lvh`와 같아 주소창이 보이는 폰에서는 실제보다 크게 잡힌다 — 폴더 선택 창 상한이 `dvh`를 쓰는 이유(§5 "창 높이").
 - **`CloseWatcher`** — 브라우저 API. Esc나 Android 뒤로가기 같은 "닫기 요청"이 오면 `onclose`를 부른다. 데스크톱 브라우저
   뒤로가기는 닫기 요청이 아니다. Safari·iOS는 지원하지 않는다(§5, `docs/DECISIONS.md` 2026-11-03)
 
