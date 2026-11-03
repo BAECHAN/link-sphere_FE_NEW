@@ -48,8 +48,8 @@ function canCloseWithCloseWatcher() {
 function useCloseWatcherOverlay(key: string) {
   const isOpen = useOpenOverlayStore((state) => state.openKey === key);
 
-  // watcher는 카드와 수명을 같이한다 - 카드가 사라졌는데 watcher가 남으면 보이지 않는 모달이 다음
-  // 뒤로가기를 삼킨다. 다시 마운트된 카드는 열린 키를 보고 새로 만든다.
+  // watcher는 오버레이를 그리는 쪽과 수명을 같이한다 - 그리는 쪽이 사라졌는데 watcher가 남으면 보이지 않는
+  // 모달이 다음 뒤로가기를 삼킨다. 다시 마운트되면 열린 키를 보고 새로 만든다.
   // Esc는 Radix와 새 폴더 입력이 keydown을 preventDefault하므로 닫기 요청이 되지 않는다(HTML 표준 close
   // request 단계) - Esc 처리는 지금처럼 Dialog가 맡는다
   useEffect(
@@ -96,6 +96,21 @@ export function useBackClosableOverlay(key: string) {
   const closeWatcherOverlay = useCloseWatcherOverlay(key);
 
   return closesWithCloseWatcher ? closeWatcherOverlay : historyOverlay;
+}
+
+/**
+ * useBackClosableOverlay의 열기만 쓰는 쪽. CloseWatcher를 만들지 않고, CloseWatcher 경로에서는 열림 상태도
+ * 구독하지 않는다(히스토리 경로는 useHistoryOverlay가 location을 구독해 전처럼 다시 렌더된다).
+ * 여는 버튼이 여럿이고(피드 카드마다 북마크 버튼) 오버레이는 한 곳(호스트)이 그릴 때 쓴다 - 버튼마다
+ * useBackClosableOverlay를 쓰면 같은 키의 watcher가 버튼 수만큼 생기고, 열 때 모든 버튼이 다시 렌더된다.
+ *
+ * @param key 오버레이를 그리는 쪽이 useBackClosableOverlay에 넘기는 키와 같아야 한다.
+ */
+export function useBackClosableOverlayOpen(key: string) {
+  const [closesWithCloseWatcher] = useState(canCloseWithCloseWatcher);
+  const { open: openWithHistory } = useHistoryOverlay(key);
+
+  return closesWithCloseWatcher ? () => openOverlay(key) : openWithHistory;
 }
 
 /** 테스트 격리용 - 열린 키와 이동 구독을 비운다. useBackClosableOverlay.test.tsx의 afterEach에서 호출한다. */

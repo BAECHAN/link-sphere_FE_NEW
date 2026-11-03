@@ -13,7 +13,7 @@ import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
 const FOLDERS_PATH = '/api/bookmark/folders';
 
-// 북마크 폴더 선택 모달(BookmarkPostButton → PostCardBookmarkFolderDialog)의 열림·닫힘 동작.
+// 북마크 폴더 선택 모달(BookmarkPostButton이 열고 RootLayout 호스트가 그리는 PostCardBookmarkFolderDialog)의 열림·닫힘 동작.
 // 저장 흐름 자체는 bookmark.spec.ts가 다룬다.
 test.describe('로그인 상태 — 북마크 폴더 모달 열림·닫힘', () => {
   test.beforeEach(async ({ page }) => {

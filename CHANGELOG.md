@@ -113,6 +113,13 @@
 
 ### Fixed
 
+- `bookmark` 북마크 페이지에서 폴더를 빼도 창이 끝까지 닫히고, 실패하면 열린 채 남음
+  <details><summary>배경·구현</summary>
+
+  북마크 페이지(폴더 글 목록)에서 카드 북마크 창의 폴더 빼기·"북마크 제거"를 누르면 낙관적 갱신이 카드를 목록에서 바로 빼는데, 창이 카드 안에 있어 카드와 함께 언마운트됐다 — 딤·시트가 닫힘 애니메이션 없이 한 프레임에 사라졌고, 요청이 실패하면 카드가 돌아오며 창이 새로 마운트돼 다시 올라왔다. 이제 창은 RootLayout에 `lazy`로 하나 둔 호스트(`PostFolderDialogHost` → `GlobalPostBookmarkFolderDialog`)가 그린다. 카드 버튼은 열 대상(글·북마크 상태)을 스토어에 넣고 열기만 하며(`useBackClosableOverlayOpen` — watcher를 만들지 않고, Android 경로에서는 열림도 구독하지 않음), 열림·뒤로가기는 호스트가 고정 키 하나로 맡는다. 대상 카드가 마운트돼 있는 동안 최신 북마크 상태를 스토어에 넣고, 로그인 뒤 재개도 그 값으로 연다. 대안(창이 닫힐 때까지 카드를 남기기, 먼저 닫고 요청하기)과 공식 문서 근거(Motion·React·Android Compose·SwiftUI)를 비교해 사용자가 골랐고, 카드가 딤 너머로 먼저 빠지는 모습은 0.2배속 전후 녹화로 확인받았다. 창을 연 채 새로고침하면 이제 창이 다시 열리지 않는다(대상을 알 수 없어 호스트가 엔트리를 닫음). 새 e2e(데스크톱·모바일)는 성공이면 창이 `closed`를 거쳐 사라지는지, 실패면 창이 빠졌다 다시 들어오지 않는지 보며, 고치기 전 코드에서 4건 모두 실패했다. 근거는 `docs/DECISIONS.md` 2026-11-03, 계획은 [`docs/plans/2026-11-03-bookmark-sheet-close-flicker.md`](docs/plans/2026-11-03-bookmark-sheet-close-flicker.md) Phase 2. (`src/shared/hooks/useBackClosableOverlay.ts`, `src/features/bookmark/toggle/hooks/postBookmarkFolderDialog.store.ts`(신규), `src/features/bookmark/toggle/hooks/useBookmarkPostButton.ts`, `src/features/bookmark/toggle/hooks/useGlobalPostBookmarkFolderDialog.ts`(신규), `src/features/bookmark/toggle/ui/BookmarkPostButton.tsx`, `src/features/bookmark/toggle/ui/GlobalPostBookmarkFolderDialog.tsx`(신규), `src/widgets/bookmark/post-folder-dialog/ui/PostFolderDialogHost.tsx`(신규), `src/app/routes/layouts/RootLayout.tsx`, `src/widgets/post/post-card/ui/PostCard.tsx`, 테스트 2곳, `e2e/bookmark-folder-host*.spec.ts`(신규), `docs/BOOKMARK.md`, `docs/DECISIONS.md`, `docs/FE-ARCHITECTURE.md`, [PR #511](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/511))
+
+  </details>
+
 - `bookmark` 북마크 페이지가 폴더 목록을 받지 못하면 폴더 자리에 안내와 다시 시도를 보임
   <details><summary>배경·구현</summary>
 

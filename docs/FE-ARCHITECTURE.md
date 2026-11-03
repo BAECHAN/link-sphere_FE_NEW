@@ -188,6 +188,7 @@ src/
 │   ├── bookmark/
 │   │   ├── bookmark-post-list/{hooks,ui}  # useBookmarkPostList, BookmarkPostList
 │   │   ├── bookmark-search/{hooks,ui}     # useBookmarkSearch, BookmarkSearch
+│   │   ├── post-folder-dialog/ui/         # PostFolderDialogHost — 카드 북마크 창 호스트 조립(§26, RootLayout이 lazy로 하나 둔다)
 │   │   └── folder-tree/{hooks,ui}         # useFolderTree 외 4개, FolderTree, MobileFolderList
 │   └── layout/
 │       ├── navbar/
@@ -224,13 +225,14 @@ src/
 │   └── bookmark/                 # 2026-09-08 post/bookmark에서 승격 — entities/widgets/pages와
 │       │                         # bookmark 도메인 그룹을 통일(FSD nukeapp 사례 참고)
 │       ├── toggle/{hooks,ui}     # useBookmarkFolders, useBookmarkPostButton, usePostCardBookmarkFolderDialog, BookmarkPostButton,
+│       │                         # GlobalPostBookmarkFolderDialog(카드 밖 호스트, 2026-11-03), postBookmarkFolderDialog.store,
 │       │                         # PostCardBookmarkFolderDialog(2026-09-08, entities의
 │       │                         # BookmarkFolderSelectDialog와 이름이 겹쳐 호출 맥락(PostCard)
 │       │                         # 접두사를 붙여 개명. 2026-09-30 …Modal→…Dialog 재개명)
 │       └── select/{hooks,ui}     # useBookmarkFolderSelect, BookmarkFolderSelectDialog — toggle·
 │                                 # post/create 두 feature가 공유하는 폴더 선택 UI. entities/ui는
 │                                 # 시각적 표현만 담아야 하는데 CRUD 인터랙션이라 여기로 이동.
-│                                 # 두 feature는 이 창을 import하지 않고 위층(PostCard·PostSubmitPage)이
+│                                 # 두 feature는 이 창을 import하지 않고 위층(PostFolderDialogHost·PostSubmitPage)이
 │                                 # renderFolderSelect로 넘긴다(§26, 2026-10-03)
 │
 ├── entities/                     # 비즈니스 엔티티 — data layer + basic display
@@ -366,6 +368,7 @@ src/
 | `bookmark-post-list` | `widgets/bookmark/bookmark-post-list/` | 북마크 포스트 목록                              |
 | `bookmark-search`    | `widgets/bookmark/bookmark-search/`    | 북마크 내 검색                                  |
 | `folder-tree`        | `widgets/bookmark/folder-tree/`        | 폴더 트리 / 모바일 폴더 목록                    |
+| `post-folder-dialog` | `widgets/bookmark/post-folder-dialog/` | 카드 북마크 창 호스트 (RootLayout이 마운트)     |
 
 ---
 
@@ -1853,18 +1856,18 @@ render prop을 받는 걸 고려하라 … 더 명시적이라 `cloneElement`보
 
 **지금 쓰는 곳**
 
-| 받는 쪽                                                                          | prop                 | 넘기는 쪽                                                               |
-| -------------------------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------- |
-| `widgets/post/post-list` `PostList`                                              | `renderPost`         | `pages/post/index.tsx` (`renderFeedPost`)                               |
-| `widgets/bookmark/bookmark-post-list`                                            | `renderPost`         | `pages/bookmark/BookmarkPage.tsx` (`renderBookmarkPost`)                |
-| `features/bookmark/toggle` `BookmarkPostButton` → `PostCardBookmarkFolderDialog` | `renderFolderSelect` | `widgets/post/post-card/ui/PostCard.tsx` (`renderBookmarkFolderSelect`) |
-| `features/post/create` `CreatePostForm` → `PostCreateBookmarkFolderField`        | `renderFolderSelect` | `pages/post/PostSubmitPage.tsx` (`renderFolderSelect`)                  |
+| 받는 쪽                                                                                      | prop                 | 넘기는 쪽                                                                                        |
+| -------------------------------------------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------ |
+| `widgets/post/post-list` `PostList`                                                          | `renderPost`         | `pages/post/index.tsx` (`renderFeedPost`)                                                        |
+| `widgets/bookmark/bookmark-post-list`                                                        | `renderPost`         | `pages/bookmark/BookmarkPage.tsx` (`renderBookmarkPost`)                                         |
+| `features/bookmark/toggle` `GlobalPostBookmarkFolderDialog` → `PostCardBookmarkFolderDialog` | `renderFolderSelect` | `widgets/bookmark/post-folder-dialog/ui/PostFolderDialogHost.tsx` (`renderBookmarkFolderSelect`) |
+| `features/post/create` `CreatePostForm` → `PostCreateBookmarkFolderField`                    | `renderFolderSelect` | `pages/post/PostSubmitPage.tsx` (`renderFolderSelect`)                                           |
 
 카드 치수(`POST_CARD_GRID`, `widgets/post/post-card/config/post-card-grid.const.ts`)도 카드를 넘기는
 페이지가 `grid` prop으로 함께 넘긴다 — 목록은 카드를 모르므로 그 폭·높이도 모른다.
 
 폴더 선택 창(`features/bookmark/select`)은 두 feature가 직접 import하지 않는다. 북마크 버튼 쪽은 바로 위
-레이어인 PostCard(widgets)가, 글쓰기 폼 쪽은 페이지가 창을 넘긴다. 가이드 문장은 "pages/app"을 예로 들지만
+레이어인 `PostFolderDialogHost`(widgets, RootLayout이 마운트 — 2026-11-03 전에는 PostCard)가, 글쓰기 폼 쪽은 페이지가 창을 넘긴다. 가이드 문장은 "pages/app"을 예로 들지만
 바로 위 레이어에서 조립해도 같은 원리다(판단 근거는 DECISIONS 2026-10-03).
 
 **강제**: dependency-cruiser `features-widgets-no-cross-slice-import`(§2)가 같은 레이어 다른 슬라이스
