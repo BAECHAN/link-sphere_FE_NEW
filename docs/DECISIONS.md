@@ -6,6 +6,67 @@
 
 ---
 
+## 2026-11-03 — 카드 북마크 창: 카드 안이 아니라 RootLayout 호스트 하나가 그린다
+
+**배경**
+
+북마크 페이지(폴더 글 목록)에서 창 안의 폴더 빼기·"북마크 제거"를 누르면 낙관적 갱신이 카드를 목록에서 바로 뺀다
+(`bookmark-folder.queries.ts`의 `removePostFromFolderPostsCache`). 창이 카드 → `BookmarkPostButton` →
+`PostCardBookmarkFolderDialog` 경로로 카드 안에 있어, 카드와 함께 언마운트됐다. 직접 재현한 결과는 다음과 같다
+(Playwright 데스크톱·Pixel 5, 응답 500ms 지연, `MutationObserver`로 창의 `data-state`와 추가·제거를 기록).
+
+- 성공: 창이 `closed`를 거치지 않고 응답 전에 DOM에서 빠졌다 — 딤·시트가 한 프레임에 사라진다.
+- 실패(500): 롤백 재조회로 카드가 돌아오며 창이 `removed` 뒤 `added`로 새로 마운트돼 아래서 다시 올라왔다.
+
+**검토**
+
+사용자가 "업계 표준을 공식 문서로 확인해 달라"고 해 아래 문서를 읽었다. 처음에는 B를 추천했지만, 문서들이 화면이 소유한
+시트를 가리켜 A로 바꿨다.
+
+- Motion: _"`AnimatePresence`는 요소를 언마운트하는 코드의 바깥에 둬야 한다. `AnimatePresence` 자체가 언마운트되면 exit
+  애니메이션을 제어할 수 없다"_ (번역, [AnimatePresence](https://motion.dev/docs/react-animate-presence))
+- React: _"React는 컴포넌트를 제거할 때 그 state를 파괴한다"_ (번역, [Preserving and Resetting State](https://react.dev/learn/preserving-and-resetting-state))
+- Android Compose 공식 가이드는 시트를 화면 수준 state(`showBottomSheet`)로 띄우고, 닫을 때 `sheetState.hide()`의
+  `invokeOnCompletion`에서 그 state를 내린다. 같은 문서는 _"바텀 시트를 숨길 때 `ModalBottomSheet`를 컴포지션에서 제거해야
+  한다"_ (번역, [Bottom sheets](https://developer.android.com/develop/ui/compose/components/bottom-sheets))고 쓴다.
+- Apple SwiftUI `sheet(item:)`은 열린 대상을 state 하나로 들고 시트 하나를 띄운다([문서](<https://developer.apple.com/documentation/swiftui/view/sheet(item:ondismiss:content:)>)).
+  목록 행마다 시트를 두는 경우를 직접 다루지는 않는다.
+
+| 안                                     | 내용                                                         | 판정                                                                                     |
+| -------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| **A. 카드 밖 호스트**                  | 열 대상을 스토어에 두고 RootLayout의 호스트 하나가 창을 그림 | **채택(사용자 선택)** — 위 문서들이 가리키는 모양. 카드 수명과 창 수명이 갈린다          |
+| B. 창이 닫힐 때까지 카드를 목록에 남김 | 낙관적 제거를 창 닫힘 뒤로 미룸                              | 기각 — 이 레포에만 있는 장치가 되고, 목록 캐시·가상화가 창 상태를 알아야 한다            |
+| C. 먼저 닫고 요청                      | 행을 누르면 창을 닫고 요청은 뒤에서                          | 기각 — 피드·상세까지 모든 페이지의 UX가 바뀌고, 공식 예제의 "액션 뒤 닫기" 순서와 반대다 |
+
+A 안에서 함께 정한 것:
+
+- 열림 키는 고정 키(`bookmarkFolderDialogOpen`) 하나다. 호스트만 `useBackClosableOverlay`로 열림을 구독하고 `CloseWatcher`를
+  둔다. 카드 버튼은 열기 함수만 쓰는 `useBackClosableOverlayOpen`을 쓴다 — 고정 키를 카드마다 구독하면 열 때 모든 카드가
+  다시 렌더되고(#504가 줄인 것과 반대), 카드도 watcher를 만들면 같은 키의 watcher가 둘이 된다.
+- 창 내용은 스토어 스냅샷(`{ postId, isBookmarked, bookmarkFolderIds }`)으로 그리고 닫혀도 비우지 않는다(`imageViewer.store.ts`의
+  "닫힘 애니메이션 도중 깜빡임 방지"와 같은 이유). 대상 카드가 마운트돼 있는 동안 layout effect로 최신 값을 맞춘다 —
+  로그인 뒤 재개는 클릭 시점 값을 담은 함수를 실행하기 때문이다.
+- 호스트는 `LoginDialog`처럼 `lazy` + `<Suspense fallback={null}>`로 둔다. 정적 import면 창과 폴더 목록 코드가 진입 청크에 들어간다.
+
+**결정**
+
+- A로 바꿨다. 북마크 페이지에서 탭하면 32% 딤 너머로 카드가 먼저 빠지고 창은 응답 뒤 딤과 함께 닫힌다. 실패하면 카드가
+  빠졌다 돌아오고 창은 열린 채 남는다. 사용자가 0.2배속 전후 녹화를 보고 이 모습(낙관적 갱신 유지)을 확인했다.
+- 창을 연 채(히스토리 경로) 새로고침하면 스토어가 비어 있어 호스트가 그 엔트리를 닫는다. 전에는 같은 키를 가진 카드가 창을
+  다시 열었다(계획에 적고 승인받은 변화).
+- 직접 측정(dev 서버, Pixel 5, 카드 12개, 5회): 창을 열고 닫을 때 페이지 쪽(포털·창 서브트리 제외) 렌더 수는 같은 카드 열기
+  4→5, 다른 카드로 바꿔 열기 4→9, 닫기 4→1. 진입 청크는 144.26→144.73kB(`vite build`), 창 청크 18.95kB는 9.61kB와 호스트
+  4.07kB로 나뉘었다. 측정 방법은 `docs/BOOKMARK.md` §9.
+
+**남은 것**
+
+- 창을 연 버튼이 목록에서 빠지면 닫힌 뒤 포커스가 `body`로 간다. W3C APG는 _"연 요소가 더 이상 없으면 논리적 흐름을 잇는
+  다른 요소에 포커스를 둔다"_ (번역, [Dialog (Modal)](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/))고 한다. 정정: 대화에서
+  "A면 이것도 처리된다"고 했지만, A는 창이 정상적으로 닫히게만 하고 포커스 이동은 따로 해야 한다.
+- Android 실기기(뒤로가기·회전)는 #504와 마찬가지로 병합 뒤 사용자 폰으로 확인한다.
+
+---
+
 ## 2026-11-03 — 모바일 시트: 딤 32%, 딤과 시트를 같은 300ms 곡선으로 함께 닫는다
 
 **배경**

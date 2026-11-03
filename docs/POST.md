@@ -274,7 +274,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   한 줄(`TEXTS.post.card.metadataUnavailable`). **AI 처리 대기 중 표시나 폴링은 없다** — §11.
 - **수정 중 오버레이**: 같은 글의 수정 mutation이 진행 중이면(`useIsMutating`, 500ms 지연 +
   최소 400ms 유지, `usePostCard.ts`의 `isUpdating`) 내용을 흐리게 하고 "수정 중..." 오버레이로 클릭을
-  막는다(`PostCard.tsx:89`, `:103-108`). 2026-10-03부터 수정 폼이 응답을 기다리므로 평소엔 보일
+  막는다(`PostCard.tsx:80`, `:94-99`). 2026-10-03부터 수정 폼이 응답을 기다리므로 평소엔 보일
   일이 없고, 저장 중에 이탈 확인창에서 "나가기"를 골라 목록으로 먼저 돌아간 경우에만 뜬다.
 
 ### 상세

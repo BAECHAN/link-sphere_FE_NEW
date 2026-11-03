@@ -1,35 +1,59 @@
+import { useLayoutEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Post } from '@/entities/post/model/post.schema';
 import { prefetchBookmarkFolderList } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
 import { useAuthStore } from '@/shared/store/auth.store';
-import { useBackClosableOverlay } from '@/shared/hooks/useBackClosableOverlay';
+import { useBackClosableOverlayOpen } from '@/shared/hooks/useBackClosableOverlay';
+import {
+  POST_BOOKMARK_FOLDER_DIALOG_KEY,
+  usePostBookmarkFolderDialogStore,
+  type PostBookmarkFolderDialogTarget,
+} from '@/features/bookmark/toggle/hooks/postBookmarkFolderDialog.store';
 
 /**
- * 북마크 버튼 — 폴더 선택 모달의 열림 상태와 목록 프리페치.
- * - 열림 상태는 useBackClosableOverlay가 관리한다 — 모달이 열린 채 뒤로가기를 누르면 이전 페이지로
- *   가지 않고 모달만 닫힌다. 데스크톱·iOS는 히스토리 엔트리로, Android 터치 기기는 CloseWatcher로
- *   받는다(docs/DECISIONS.md 2026-11-03).
- *   피드에는 카드가 여러 장이라 키를 postId마다 따로 둔다 — 공용 키면 모든 카드의 모달이 같이 열린다.
+ * 북마크 버튼 — 폴더 선택 창 열기와 목록 프리페치.
+ * - 창은 카드 안이 아니라 RootLayout의 호스트(GlobalPostBookmarkFolderDialog) 하나가 그린다. 카드가 목록에서
+ *   빠져도(북마크 페이지에서 폴더 빼기) 창이 닫힘 애니메이션을 끝까지 하고, 요청이 실패하면 열린 채 남는다
+ *   (docs/BOOKMARK.md §5). 버튼은 열 대상을 스토어에 넣고 열기만 한다 - 열림 구독·뒤로가기 처리는 호스트가 맡는다.
+ * - 이 카드가 대상이면(닫혀도 대상은 남는다) 최신 북마크 상태를 스토어에 넣는다(칠하기 전에 반영되게 layout effect).
+ *   로그인 뒤 재개는 클릭 시점 값으로 열리므로, 대상이 되는 순간에도 한 번 맞춘다.
  * - hover/focus 시 폴더 목록을 미리 불러와, 모달이 작게 떴다가 목록이 들어오며 늘어나지 않게 한다.
  *   비로그인이면 401이 clearAll + 로그인 화면 이동으로 이어지므로(client.ts:440-443) 로그인 상태에서만 부른다.
  */
-export function useBookmarkPostButton(postId: Post['id']) {
+export function useBookmarkPostButton({
+  postId,
+  isBookmarked,
+  bookmarkFolderIds,
+}: PostBookmarkFolderDialogTarget) {
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const guard = useAuthGuard();
-  const { isOpen, open, close } = useBackClosableOverlay(`bookmarkFolderDialogOpen:${postId}`);
+  const openOverlay = useBackClosableOverlayOpen(POST_BOOKMARK_FOLDER_DIALOG_KEY);
+  const setTarget = usePostBookmarkFolderDialogStore((state) => state.setTarget);
+  const syncTarget = usePostBookmarkFolderDialogStore((state) => state.syncTarget);
+  const isTarget = usePostBookmarkFolderDialogStore((state) => state.target?.postId === postId);
+
+  useLayoutEffect(
+    function syncLatestStateToDialog() {
+      if (!isTarget) {
+        return;
+      }
+
+      syncTarget({ postId, isBookmarked, bookmarkFolderIds });
+    },
+    [isTarget, postId, isBookmarked, bookmarkFolderIds, syncTarget]
+  );
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    guard(open, { resumeAfterLogin: true });
-  };
-
-  const handleOpenChange = (next: boolean) => {
-    if (!next) {
-      close();
-    }
+    guard(
+      () => {
+        setTarget({ postId, isBookmarked, bookmarkFolderIds });
+        openOverlay();
+      },
+      { resumeAfterLogin: true }
+    );
   };
 
   const handlePrefetch = () => {
@@ -40,5 +64,5 @@ export function useBookmarkPostButton(postId: Post['id']) {
     prefetchBookmarkFolderList(queryClient);
   };
 
-  return { isOpen, handleClick, handleOpenChange, handlePrefetch };
+  return { handleClick, handlePrefetch };
 }

@@ -20,6 +20,14 @@ const LoginDialog = lazy(() =>
   }))
 );
 
+// 카드 북마크 버튼의 폴더 선택 창 - 카드 밖에 하나만 둬, 카드가 목록에서 빠져도 창이 끝까지 닫힌다
+// (docs/BOOKMARK.md §5). LoginDialog와 같은 이유로 진입 청크에서 빼고 자체 Suspense로 감싼다.
+const PostFolderDialogHost = lazy(() =>
+  import('@/widgets/bookmark/post-folder-dialog/ui/PostFolderDialogHost').then((module) => ({
+    default: module.PostFolderDialogHost,
+  }))
+);
+
 /**
  * Root Layout
  * Provides ScrollRestoration for the entire router
@@ -46,6 +54,9 @@ export function RootLayout() {
       <Outlet />
       <Suspense fallback={null}>
         <LoginDialog />
+      </Suspense>
+      <Suspense fallback={null}>
+        <PostFolderDialogHost />
       </Suspense>
       <GlobalImageViewer />
       <GlobalAlerts />

@@ -6,6 +6,7 @@ import { RouterEvents } from '@/shared/lib/router/router-events';
 import {
   resetBackClosableOverlay,
   useBackClosableOverlay,
+  useBackClosableOverlayOpen,
 } from '@/shared/hooks/useBackClosableOverlay';
 
 const navigateSpy = vi.fn();
@@ -274,6 +275,77 @@ describe('useBackClosableOverlay', () => {
       expect(second.result.current.isOpen).toBe(true);
       expect(watchers).toHaveLength(1);
       expect(watchers[0]?.destroyed).toBe(false);
+    });
+  });
+});
+
+describe('useBackClosableOverlayOpen', () => {
+  beforeEach(() => {
+    navigateSpy.mockClear();
+  });
+
+  afterEach(() => {
+    resetBackClosableOverlay();
+    delete window.CloseWatcher;
+    watchers.length = 0;
+    vi.restoreAllMocks();
+  });
+
+  it('CloseWatcher가 없으면 useBackClosableOverlay와 같은 히스토리 엔트리로 연다', () => {
+    const { result } = renderHook(() => useBackClosableOverlayOpen('bookmarkFolderDialogOpen'), {
+      wrapper: Wrapper,
+    });
+
+    result.current();
+
+    expect(navigateSpy).toHaveBeenCalledWith('/post/1', {
+      state: { bookmarkFolderDialogOpen: true },
+      preventScrollReset: true,
+    });
+  });
+
+  describe('뒤로가기가 닫기 요청인 기기(CloseWatcher + 터치)', () => {
+    beforeEach(() => {
+      setUpDevice({ closeWatcher: true, coarsePointer: true });
+    });
+
+    it('열기만 하고 CloseWatcher는 만들지 않는다 - 그리는 쪽이 열린 키를 보고 하나만 만든다', () => {
+      const opener = renderHook(() => useBackClosableOverlayOpen('bookmarkFolderDialogOpen'), {
+        wrapper: Wrapper,
+      });
+      const host = renderHook(() => useBackClosableOverlay('bookmarkFolderDialogOpen'), {
+        wrapper: Wrapper,
+      });
+
+      act(() => {
+        opener.result.current();
+      });
+
+      expect(host.result.current.isOpen).toBe(true);
+      expect(navigateSpy).not.toHaveBeenCalled();
+      expect(watchers).toHaveLength(1);
+    });
+
+    it('열림을 구독하지 않아 열고 닫아도 다시 렌더되지 않는다', () => {
+      // 피드 카드마다 이 훅을 쓰므로, 구독하면 열 때 모든 카드가 다시 렌더된다
+      let renderCount = 0;
+      const opener = renderHook(
+        () => {
+          renderCount += 1;
+
+          return useBackClosableOverlayOpen('bookmarkFolderDialogOpen');
+        },
+        { wrapper: Wrapper }
+      );
+
+      act(() => {
+        opener.result.current();
+      });
+      act(() => {
+        resetBackClosableOverlay();
+      });
+
+      expect(renderCount).toBe(1);
     });
   });
 });

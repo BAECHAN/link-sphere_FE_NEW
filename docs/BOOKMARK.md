@@ -204,8 +204,9 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 
 ### 뒤로가기로 닫히는 열림 상태, 폴더 목록은 hover 때 미리(2026-09-30, 기기별 경로 2026-11-03)
 
-`BookmarkPostButton`의 열림 상태와 목록 프리페치는 `features/bookmark/toggle/hooks/useBookmarkPostButton.ts`가
-소유한다(버튼 컴포넌트는 JSX만).
+`BookmarkPostButton`의 열기와 목록 프리페치는 `features/bookmark/toggle/hooks/useBookmarkPostButton.ts`가,
+창의 열림 상태와 뒤로가기는 RootLayout의 호스트(`useGlobalPostBookmarkFolderDialog.ts`)가 소유한다(버튼 컴포넌트는
+JSX만, 호스트는 아래 "시트는 카드 밖 호스트가 그린다(2026-11-03)").
 
 - **뒤로가기 = 모달만 닫기**: 전에는 열림 상태가 컴포넌트 `useState`라 히스토리에 없어서,
   모달을 연 채 뒤로가기를 누르면 모달이 아니라 페이지가 이전으로 넘어갔다(2026-09-30에 고침).
@@ -219,15 +220,15 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 
   데스크톱 브라우저 뒤로가기는 HTML 표준상 닫기 요청이 아니라서, 데스크톱은 엔트리가 있어야
   모달만 닫힌다. 그래서 히스토리를 빼는 건 뒤로가기가 닫기 요청으로 오는 기기에서만 한다.
-  피드에는 카드가 여러 장이라 키를 `bookmarkFolderDialogOpen:${postId}`로 **게시글마다 따로** 둔다
-  — 공용 키면 한 카드에서 열 때 모든 카드의 모달이 같이 열린다.
+  창은 화면에 하나라 키도 `bookmarkFolderDialogOpen` 하나다. 어느 글의 창인지는 버튼이 스토어에 넣은 대상이
+  정한다(2026-11-03 전에는 카드마다 창이 있어 키를 `bookmarkFolderDialogOpen:${postId}`로 게시글마다 따로 뒀다).
 
 - **히스토리 없는 경로의 열림 상태는 카드 밖에 둔다**: 피드 카드는 가상 목록 행 키(열 수·첫 카드 id)
   때문에 화면 회전·목록 밀림에서 다시 마운트된다. 열림 상태를 훅 파일의 작은 스토어에 둬서, 다시
   마운트돼도 모달이 유지된다(히스토리 경로가 엔트리로 유지하는 것과 같다). 다른 이유로 페이지가
   바뀌면 `RouterEvents.onNavigate` 구독으로 닫혀, 그 화면으로 돌아왔을 때 모달만 다시 뜨지 않는다.
-  `CloseWatcher`는 카드가 열려 있는 동안만 만들고 카드가 사라지면 정리한다 — 남으면 보이지 않는
-  모달이 다음 뒤로가기를 삼킨다.
+  `CloseWatcher`는 호스트가 창이 열려 있는 동안 하나만 만들고 닫히면 정리한다 — 남으면 보이지 않는
+  모달이 다음 뒤로가기를 삼킨다. 버튼은 `useBackClosableOverlayOpen`으로 열기만 해 watcher를 만들지 않고 열림도 구독하지 않는다.
 - **Esc는 두 번 처리되지 않는다**: Chromium은 취소되지 않은 Esc도 닫기 요청으로 보낸다. Radix의 Esc
   닫기(`@radix-ui/react-dismissable-layer` 1.1.11 `dist/index.mjs:63-65`)와 새 폴더 입력 접기
   (`BookmarkFolderSelectDialog.tsx`의 `onEscapeKeyDown`)가 keydown을 `preventDefault()`해 닫기 요청은 따로 생기지 않는다 — 입력 중 Esc는
@@ -235,7 +236,8 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 - **로그인 후 재개**: 비로그인으로 누르면 `useAuthGuard`가 로그인 모달을 띄우고 `open`을
   재개 액션으로 맡긴다. `useLoginDialog`가 로그인 모달의 `navigate(-1)`이 반영된 **뒤에** 재개
   액션을 실행하므로 두 모달이 겹치지 않는다. 히스토리 없는 경로에서는 재개가 스토어에 키를 넣는
-  것이라, 그사이 카드가 다시 마운트됐어도 열린다.
+  것이라, 그사이 카드가 다시 마운트됐어도 열린다. 재개 액션은 클릭 시점의 북마크 상태를 담고 있어, 카드가 열린 창의
+  대상이 되는 순간 로그인 뒤 다시 받은 상태를 스토어에 다시 넣는다(`useBookmarkPostButton.ts`의 layout effect).
 - **남은 한계(히스토리 없는 경로만)**: 모달이 열린 채 세션이 만료되면 제자리 로그인 창 push로
   모달이 닫히고, 다시 로그인해도 다시 뜨지 않는다(히스토리 경로에서는 다시 뜬다). Firefox
   Android가 뒤로 버튼을 닫기 요청으로 보내는지는 확인하지 못했다.
@@ -246,7 +248,7 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
   로그인 상태에서만 부른다. staleTime(3분) 안에서는 재요청하지 않는다. 미리 받기가 실패해도 창이 닫혀 있으면
   토스트를 띄우지 않고, 창이 열릴 때 목록 자리 골격부터 다시 요청해 그때 실패하면 토스트를 띄운다(2026-11-03
   [#491](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/491) 후속 — 전에는 hover마다 같은 실패 토스트가 한 장씩
-  쌓였다). 카드마다 이 창이 닫힌 채 마운트돼 꺼진 구독자(`enabled: false`)로 목록을 지켜보므로, 미리 받기가 단
+  쌓였다). 한 번 연 창은 닫힌 채 마운트돼(호스트가 남겨 둔다 — 2026-11-03 전에는 카드마다 처음부터) 꺼진 구독자(`enabled: false`)로 목록을 지켜보므로, 미리 받기가 단
   `manualErrorHandling`은 창이 다시 그려질 때 지워진다(query-core 5.90.16 `queryObserver.js:94`, 처음엔
   `prefetchQueryQuietly`만 썼다가 녹화에서 토스트가 그대로 떠 발견). 그래서 목록 조회와 미리 받기에 모두
   `meta.silentWhenInactive`를 달고, 전역 핸들러가 실패 순간 켜진 구독자가 없으면 조용히 끝낸다
@@ -356,7 +358,35 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
   `SheetDialogContent.test.tsx`가 본다.
 
 북마크 페이지에서 시트 안 "북마크 제거"·폴더 빼기를 누르면 카드와 함께 시트가 닫힘 애니메이션 없이 사라지는 문제는
-이 변경으로 고쳐지지 않는다(§11).
+이 변경으로 고쳐지지 않았다 — 바로 아래 소절에서 고쳤다.
+
+### 시트는 카드 밖 호스트가 그린다(2026-11-03)
+
+카드의 북마크 버튼이 여는 폴더 선택 창(데스크톱 모달·모바일 시트)은 카드 안이 아니라 RootLayout에 하나만 있는
+호스트가 그린다. 카드가 목록에서 빠져도 창은 닫힘 애니메이션을 끝까지 하고, 요청이 실패하면 열린 채 남는다.
+
+- **왜** — 북마크 페이지(폴더 글 목록)에서 폴더 빼기·"북마크 제거"를 누르면 낙관적 갱신이 카드를 목록에서 바로
+  뺀다(`bookmark-folder.queries.ts`의 `removePostFromFolderPostsCache`). 창이 카드 안에 있어 카드와 함께 언마운트됐고,
+  딤·시트가 한 프레임에 사라졌다. 요청이 실패하면 롤백 재조회로 카드가 돌아오며 창이 새로 마운트돼 아래서 다시
+  올라왔다. React는 _"컴포넌트를 제거할 때 그 state를 파괴한다"_ (번역,
+  [Preserving and Resetting State](https://react.dev/learn/preserving-and-resetting-state)) — 닫힘 애니메이션을 하려면
+  창이 카드보다 오래 살아야 한다. 대안 비교와 공식 문서 근거는 `docs/DECISIONS.md` 2026-11-03.
+- **구조** — 버튼(`useBookmarkPostButton.ts`)은 열 대상(`postId`·`isBookmarked`·`bookmarkFolderIds`)을 스토어
+  (`postBookmarkFolderDialog.store.ts`)에 넣고 `useBackClosableOverlayOpen`으로 열기만 한다. RootLayout이 lazy로 두는
+  `PostFolderDialogHost`(`widgets/bookmark/post-folder-dialog`)가 `GlobalPostBookmarkFolderDialog`에 창을 넘기고
+  (§26 위층 조립), 이 컴포넌트가 고정 키로 열림·뒤로가기를 맡아 스토어 대상으로 `PostCardBookmarkFolderDialog`를
+  그린다. 게시글마다 `key`로 새로 그려, 카드마다 창이 있던 때처럼 뮤테이션·스냅샷이 다른 글로 이어지지 않는다.
+- **최신 상태** — 대상 카드가 마운트돼 있는 동안 북마크 상태를 layout effect로 스토어에 넣는다(칠하기 전에 반영). 카드가
+  빠지면 마지막 값으로 그려진다. 대상은 닫혀도 비우지 않는다 — 닫힘 애니메이션 도중 내용이 사라지지 않게
+  (`imageViewer.store.ts`와 같은 이유).
+- **보이는 모습(사용자 확인)** — 북마크 페이지에서 탭하면 32% 딤 너머로 카드가 먼저 빠지고, 시트는 응답 뒤 딤과 함께
+  닫힌다. 실패하면 딤 뒤에서 카드가 빠졌다 돌아오고 시트는 그대로다. 낙관적 갱신은 그대로 두기로 했다(0.2배속 전후
+  녹화를 보고 2026-11-03 사용자 선택).
+- **새로고침** — 창을 연 채(히스토리 경로) 새로고침하면 스토어가 비어 어느 글의 창인지 모르므로, 호스트가 그 엔트리를
+  닫는다. 전에는 같은 키를 가진 카드가 창을 다시 열었다.
+- **회귀 검사** — `e2e/bookmark-folder-host.spec.ts`·`.mobile.spec.ts`가 폴더 빼기 성공이면 창이 `closed`를 거쳐
+  사라지는지, 실패면 창 노드가 빠졌다 다시 들어오지 않는지 본다(고치기 전 코드에서 4건 모두 실패 확인).
+  `GlobalPostBookmarkFolderDialog.test.tsx`가 열기·동기화·다른 카드 무시·카드 언마운트·새로고침·로그인 뒤 재개를 본다.
 
 ### 새 폴더 만들기 인라인 폼의 취소(2026-09-21)
 
@@ -730,22 +760,22 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
 `src/features/post/create/ui/PostCreateBookmarkFolderField.tsx`는 `/bookmark` 페이지가
 아니라 **링크 등록 폼**(`CreatePostForm`)에 있는 필드다. `PostCardBookmarkFolderDialog`와
 같은 `features/bookmark/select/ui/BookmarkFolderSelectDialog`를 쓰고 주입하는 콜백만 다르다(두 feature는
-창을 직접 import하지 않고 위층 — 각각 `PostCard`·`PostSubmitPage` — 이 `renderFolderSelect`로 넘긴다,
+창을 직접 import하지 않고 위층 — 각각 `PostFolderDialogHost`(RootLayout 호스트)·`PostSubmitPage` — 이 `renderFolderSelect`로 넘긴다,
 `docs/FE-ARCHITECTURE.md` §26) —
 저장 동작을 콜백으로 넘기는 쪽이 즉시 저장인지 지연 선택인지에 따라 핵심 동작이 갈린다.
 
-|                         | `PostCardBookmarkFolderDialog`(PostCard — 피드·상세·북마크 공용)              | `PostCreateBookmarkFolderField`(등록 폼)                                            |
-| ----------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| 대상                    | 이미 존재하는 북마크                                                          | 아직 만들어지지 않은 게시글                                                         |
-| 행 탭                   | 즉시 API 호출로 저장/제거 + 모달 닫힘                                         | 폼의 `bookmark`/`folderIds` 값만 변경, 모달 안 닫힘                                 |
-| 확정 시점               | 탭하는 순간                                                                   | 등록 제출(`POST /post`) 시 BE가 한 번에 처리                                        |
-| 확인 버튼               | 없음                                                                          | 있음(하단 고정, 지연 선택을 닫아 확정)                                              |
-| 하단 destructive 행     | `북마크 제거`(열 때 북마크였을 때만)                                          | `북마크 안 함`(항상 노출) — 탭하면 확인 없이 바로 모달을 닫음                       |
-| 미분류 재탭             | 북마크 완전 삭제 + 되돌리기(2026-09-11)                                       | "북마크 안 함"으로 되돌림 — API 호출이 없어 되돌리기 불필요                         |
-| 최근 저장한 폴더 구획   | 있음                                                                          | 있음                                                                                |
-| 행별 pending 스피너     | 있음                                                                          | 없음(핸들러가 동기라 표시될 틈이 없음)                                              |
-| 열림 상태·뒤로가기      | `bookmarkFolderDialogOpen:${postId}` — 뒤로가기는 모달만 닫음(§5 기기별 경로) | `postCreateBookmarkFolderOpen` — 뒤로가기는 모달만 닫음(2026-09-30, §5 기기별 경로) |
-| 폴더 목록 미리 불러오기 | 아이콘 hover/focus 때 — 로그인 상태일 때만                                    | 필드 hover/focus 때(2026-10-01) — 보호 라우트라 로그인 확인 없음                    |
+|                         | `PostCardBookmarkFolderDialog`(PostCard — 피드·상세·북마크 공용)     | `PostCreateBookmarkFolderField`(등록 폼)                                            |
+| ----------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 대상                    | 이미 존재하는 북마크                                                 | 아직 만들어지지 않은 게시글                                                         |
+| 행 탭                   | 즉시 API 호출로 저장/제거 + 모달 닫힘                                | 폼의 `bookmark`/`folderIds` 값만 변경, 모달 안 닫힘                                 |
+| 확정 시점               | 탭하는 순간                                                          | 등록 제출(`POST /post`) 시 BE가 한 번에 처리                                        |
+| 확인 버튼               | 없음                                                                 | 있음(하단 고정, 지연 선택을 닫아 확정)                                              |
+| 하단 destructive 행     | `북마크 제거`(열 때 북마크였을 때만)                                 | `북마크 안 함`(항상 노출) — 탭하면 확인 없이 바로 모달을 닫음                       |
+| 미분류 재탭             | 북마크 완전 삭제 + 되돌리기(2026-09-11)                              | "북마크 안 함"으로 되돌림 — API 호출이 없어 되돌리기 불필요                         |
+| 최근 저장한 폴더 구획   | 있음                                                                 | 있음                                                                                |
+| 행별 pending 스피너     | 있음                                                                 | 없음(핸들러가 동기라 표시될 틈이 없음)                                              |
+| 열림 상태·뒤로가기      | `bookmarkFolderDialogOpen`(호스트 하나) — 뒤로가기는 모달만 닫음(§5) | `postCreateBookmarkFolderOpen` — 뒤로가기는 모달만 닫음(2026-09-30, §5 기기별 경로) |
+| 폴더 목록 미리 불러오기 | 아이콘 hover/focus 때 — 로그인 상태일 때만                           | 필드 hover/focus 때(2026-10-01) — 보호 라우트라 로그인 확인 없음                    |
 
 폼 스키마(`entities/post/model/post.schema.ts`의 `createPostSchema`)에
 `bookmark: boolean`, `folderIds: string[]` 두 필드가 있고, 등록 성공 시
@@ -829,6 +859,17 @@ BE 스펙도 `lastUsedAt`을 optional + null 허용으로 표기하고(`shared/a
 `"type": ["string", "null"]`), 런타임은 Jackson `JsonInclude.ALWAYS`라 키가 항상 있고 값이
 `null`로 온다 — `bookmark-folder.dto.ts`의 타입 넓히기는 이제 생성 타입과 같은 모양이다(파일 상단 주석 참고).
 
+### 카드 북마크 시트 스토어 (`features/bookmark/toggle/hooks/postBookmarkFolderDialog.store.ts`, 2026-11-03)
+
+RootLayout 호스트가 어느 글의 창을 그릴지 담는 Zustand 스토어다(§5 "시트는 카드 밖 호스트가 그린다"). 열림 여부는
+여기 없다 — 고정 키 `POST_BOOKMARK_FOLDER_DIALOG_KEY`(`'bookmarkFolderDialogOpen'`)로 `useBackClosableOverlay`가 맡는다.
+
+| 상태·액션       | 모양                                                  | 비고                                                                                               |
+| --------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `target`        | `{ postId, isBookmarked, bookmarkFolderIds } \| null` | 처음엔 `null`. 닫혀도 비우지 않는다(닫힘 애니메이션 도중 내용 유지, `imageViewer.store.ts` 선례)   |
+| `setTarget(t)`  | 버튼 클릭 때 대상을 통째로 바꾼다                     | `useBookmarkPostButton`의 클릭(로그인 뒤 재개 포함)                                                |
+| `syncTarget(t)` | `t.postId`가 지금 대상이고 값이 다를 때만 덮는다      | 대상 카드의 layout effect가 부른다. 다른 글이거나 같은 값이면 아무것도 안 한다(구독자 재렌더 없음) |
+
 ## 7. 운영 파라미터
 
 폴더 고정(2026-10-26, §5 "고정 — 내 폴더 맨 위로").
@@ -890,6 +931,10 @@ src/
 │       │   └── ui/
 │       │       └── BookmarkPostList.tsx    # search prop 소비 + 실패·빈 상태 분기(§5 "폴더 글 목록 조회가 실패했을 때"). 카드(renderPost)와 그
 │       │                                   # 치수(grid = POST_CARD_GRID)는 BookmarkPage가 넘긴다
+│       ├── post-folder-dialog/
+│       │   └── ui/
+│       │       └── PostFolderDialogHost.tsx # 카드 북마크 시트 호스트 조립(§26) — RootLayout이 lazy로
+│       │                                    # 하나 둔다. 창 마크업 BookmarkFolderSelectDialog를 넘긴다(2026-11-03)
 │       └── folder-tree/
 │           ├── hooks/
 │           │   ├── useFolderSections.ts  # 폴더 목록 조회 + "최근 저장한 폴더" 계산 + 내 폴더를
@@ -954,21 +999,29 @@ src/
 │   │       │   │                                     # 마지막 폴더는 setBookmark({ lastFolderId })로
 │   │       │   │                                     # ?removeBookmarkIfEmpty=true 제거 — 서버에
 │   │       │   │                                     # 다른 소속이 남으면 북마크 유지, §5)
-│   │       │   ├── useBookmarkPostButton.ts          # 열림 상태(useBackClosableOverlay, postId별 키)
-│   │       │   │                                     # + 인증 가드 + hover 프리페치(§5, 2026-09-30)
+│   │       │   ├── postBookmarkFolderDialog.store.ts # 시트를 띄울 글 스냅샷(target) + 고정 열림 키
+│   │       │   │                                     # (닫혀도 비우지 않음, §5 "시트는 카드 밖 호스트가")
+│   │       │   ├── useBookmarkPostButton.ts          # target 설정 + 열기(useBackClosableOverlayOpen)
+│   │       │   │                                     # + 대상일 때 최신 상태 동기화 + 인증 가드
+│   │       │   │                                     # + hover 프리페치(§5, 2026-09-30)
+│   │       │   ├── useGlobalPostBookmarkFolderDialog.ts # 호스트의 열림 상태·뒤로가기
+│   │       │   │                                     # (useBackClosableOverlay 고정 키, 대상 없는
+│   │       │   │                                     # 열린 엔트리 정리)
 │   │       │   └── usePostCardBookmarkFolderDialog.ts # 즉시 저장 동작 + 토스트 분기 + 닫힘
 │   │       │                                         # 애니메이션 중 버튼 깜빡임 방지 스냅샷
 │   │       │                                         # (PostCardBookmarkFolderDialog 전용)
 │   │       └── ui/
 │   │           ├── BookmarkPostButton.tsx            # 카드의 북마크 버튼(JSX만) — 클릭 시
-│   │           │                                     # PostCardBookmarkFolderDialog 오픈
+│   │           │                                     # 호스트의 시트를 연다(창은 그리지 않음)
+│   │           ├── GlobalPostBookmarkFolderDialog.tsx # 호스트 — target으로 PostCardBookmarkFolderDialog를
+│   │           │                                     # 그린다(key=postId, 2026-11-03)
 │   │           └── PostCardBookmarkFolderDialog.tsx  # JSX만(2026-09-08, BookmarkFolderModal에서
 │   │                                                 # 개명 — 아래 BookmarkFolderSelectDialog와
 │   │                                                 # 이름이 겹쳐 호출 맥락(PostCard) 접두사를
 │   │                                                 # 붙임. 2026-09-30 …Modal→…Dialog 재개명)
 │   │                                                 # — 로직은 usePostCardBookmarkFolderDialog,
 │   │                                                 # 모달 마크업은 BookmarkFolderSelectDialog(아래)에 위임 —
-│   │                                                 # PostCard가 renderFolderSelect로 넘긴다(§26)
+│   │                                                 # PostFolderDialogHost가 renderFolderSelect로 넘긴다(§26)
 │   └── post/
 │       └── create/
 │           ├── hooks/
@@ -1232,6 +1285,26 @@ e2e 164개(`CI=1`, 재시도 0), `pnpm type-check`·`pnpm lint`·`pnpm check:dep
 **2026-11-03 갱신(2)** — 폴더 목록을 받지 못했을 때의 안내와 오프라인 골격(§5 "목록을 받지 못하면"). `PostCardBookmarkFolderDialog.test.tsx`(19→22)에 세 건을 더했다 — 목록이 500이면 폴더 자리에 안내와 다시 시도가 뜨고 미분류 저장·새 폴더 만들기·북마크 제거는 눌러진다, 다시 시도를 누르면 요청이 한 번 더 나가 목록이 그려진다, 오프라인이면 미분류가 비활성 골격으로 남고 다시 연결되면 목록이 그려진다. 세 건 모두 수정 전 코드에서 실패했다. 녹화 전용 Playwright 스펙(모킹, 응답 1.2초 지연)으로 피드 카드의 실패→다시 시도, 오프라인→다시 연결, 글 등록 폼의 실패 화면을 찍어 사용자가 확인했다. 전체 스위트 163개 파일 1918개 테스트와 `pnpm check`(type-check·lint·format·deps)·`pnpm check:docs`가 통과했다.
 
 **2026-11-03 갱신(3)** — 북마크 페이지 사이드바·모바일 폴더 목록의 실패 안내와 오프라인 스피너(§5 "사이드바·모바일 폴더 목록을 받지 못했을 때"). 새 `FolderTree.test.tsx`·`MobileFolderList.test.tsx`(각 3건) — 목록이 500이면 안내와 다시 시도가 뜨고 전체·미분류·새 폴더 만들기는 눌러진다(데스크톱은 "내 폴더" 라벨 없음, 모바일은 새 폴더 카드 유지), 다시 시도를 누르면 요청이 한 번 더 나가 목록이 그려진다, 오프라인이면 스피너가 돌고 다시 연결되면 목록이 그려진다. 6건 모두 수정 전 코드에서 실패했다. 고치기 전 화면과 고친 뒤 화면(데스크톱·Pixel 5 각각 실패→다시 시도, 오프라인→다시 연결)을 녹화 전용 Playwright 스펙(모킹, 응답 1.2초 지연)으로 찍어 사용자가 확인했다. 전체 스위트 165개 파일 1924개 테스트와 `pnpm type-check`·`pnpm lint`·`pnpm check:deps`·`pnpm check:docs`가 통과했다.
+
+**2026-11-03 갱신(4)** — 창을 카드 밖 호스트로 옮김(§5 "시트는 카드 밖 호스트가 그린다"). 새 테스트는 다음과 같다.
+
+- 단위: `GlobalPostBookmarkFolderDialog.test.tsx`(신규 6건)가 열기·열린 동안 동기화·다른 카드 무시·카드 언마운트 뒤 같은 창
+  노드 유지·대상 없는 열린 엔트리 닫기·로그인 뒤 재개의 최신 상태를 본다. 마지막 건은 버튼 훅의 `isTarget` 의존을 빼면
+  실패하는 것을 확인했다. `useBackClosableOverlay.test.tsx`(10→13)는 열기 전용 훅이 히스토리 경로에서 같은 엔트리를
+  push하는지, 터치 경로에서 watcher를 만들지 않는지(호스트만 1개), 열고 닫아도 다시 렌더되지 않는지 본다.
+- e2e: `bookmark-folder-host.spec.ts`·`.mobile.spec.ts`(신규 각 2건)가 북마크 페이지 폴더 빼기(응답 500ms 지연)에서
+  창 수명을 `MutationObserver`로 기록한다. 성공이면 카드가 빠진 뒤에도 창이 보이다가 `closed` → `removed` 순서로
+  사라지고, 실패(500)면 카드가 돌아오고 창 기록이 비어 있다. 고치기 전 코드에서 4건 모두 실패했다(성공은 `closed` 없이
+  `removed`, 실패는 `removed` → `added`).
+- 렌더 수(직접 측정): dev 서버, Pixel 5 에뮬레이션(터치 경로), 카드 12장, 5회. React DevTools 훅으로 커밋마다 파이버를
+  돌며 이번 커밋에서 일한 컴포넌트를 셌다. 포털과 창 서브트리를 뺀 페이지 쪽 값은 같은 카드 열기 4→5, 다른 카드로 바꿔
+  열기 4→9, 아래 카드로 스크롤해 열기 89→94(가상 목록이 스크롤로 다시 그림), 닫기 4→1이다. 창까지 넣은 합계는 열기
+  169~293 → 172~257, 닫기 169 → 166으로 비슷하다. #504의 24건은 로컬 운영 빌드에서 잰 값이라 직접 비교하지 않는다.
+- 번들(`vite build` 출력, 압축 전): 진입 청크 144.26→144.73kB. 창 청크 18.95kB가 `BookmarkFolderSelectDialog` 9.61kB와
+  `PostFolderDialogHost` 4.07kB로 나뉘었다.
+
+전체 단위 167개 파일 1938건(#510 위로 rebase한 뒤), e2e 212건(chromium·mobile-chrome), `pnpm check`·`pnpm check:docs`가 통과했다. 0.2배속 전후
+녹화(성공·실패, Pixel 5)로 사용자가 모습을 확인했다.
 
 ## 10. 시행착오
 
@@ -1732,15 +1805,22 @@ B의 대가는 바깥 줄이 `AppLayout`의 여백 값을 알아야 한다는 �
 - 폴더 화면에서는 이름만 바꿀 수 있다(§5 "폴더 화면에서 이름 바꾸기"). 삭제·고정은 여전히 사이드바·카드의 ⋮ 메뉴에서만
   된다 — 상세에서 삭제하면 목록으로 돌아가는 처리가 새로 필요해 범위 밖으로 뒀다. 편집을 닫은 뒤 포커스를 연필 버튼으로
   되돌리는 것도 하지 않는다(사이드바·카드도 지금 하지 않는다).
-- 북마크 페이지(폴더 글 목록)에서 시트 안 "북마크 제거"·폴더 빼기를 누르면 낙관적 갱신이 카드를 목록에서 바로 빼고,
-  시트가 카드 안에 있어 딤·시트가 한 프레임에 사라진다. 요청이 실패하면 카드가 돌아오며 시트가 다시 열린다. 시트를
-  카드 밖(화면 수준 호스트)으로 옮기는 후속 작업으로 고친다(2026-11-03 재현, `docs/plans/2026-11-03-bookmark-sheet-close-flicker.md`).
+- 창을 연 버튼이 목록에서 빠지면(북마크 페이지 폴더 빼기) 창이 닫힌 뒤 포커스가 `body`로 간다. W3C APG는 _"연 요소가
+  더 이상 없으면 논리적 흐름을 잇는 다른 요소에 포커스를 둔다"_ (번역, [Dialog (Modal)](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/))고
+  한다. 창을 호스트로 옮긴 2026-11-03 작업(§5) 범위 밖으로 뒀다.
 
 ## 12. 용어 사전
 
 - **`useBackClosableOverlay`** — `shared/hooks/useBackClosableOverlay.ts`. 뒤로가기로 닫히는 오버레이의 열림 상태
   (`{ isOpen, open, close }`). 마운트 때 기기를 보고, `CloseWatcher`가 있고 터치가 주 입력이면 히스토리 없이, 아니면
   `useHistoryOverlay`로 연다(§5)
+- **`useBackClosableOverlayOpen`** — 같은 파일. 열기 함수만 돌려준다 — `CloseWatcher`를 만들지 않고, 그 경로에서는 열림도
+  구독하지 않는다(히스토리 경로는 `useHistoryOverlay`가 location을 구독한다). 카드 버튼이 쓰고, 같은 키로 `useBackClosableOverlay`를 쓰는 호스트가 열림을 보고 watcher를 하나만 둔다(§5)
+- **`GlobalPostBookmarkFolderDialog`** — `features/bookmark/toggle/ui/`. 카드 북마크 창의 호스트. 스토어 대상(§6)으로
+  `PostCardBookmarkFolderDialog`를 그리고 열림·뒤로가기는 `useGlobalPostBookmarkFolderDialog`가 맡는다(이름 선례
+  `GlobalImageViewer`)
+- **`PostFolderDialogHost`** — `widgets/bookmark/post-folder-dialog/ui/`. 위 호스트에 창 마크업(`BookmarkFolderSelectDialog`)을
+  넘기는 조립 컴포넌트(§26). RootLayout이 `lazy`로 하나 둔다
 - **`CloseWatcher`** — 브라우저 API. Esc나 Android 뒤로가기 같은 "닫기 요청"이 오면 `onclose`를 부른다. 데스크톱 브라우저
   뒤로가기는 닫기 요청이 아니다. Safari·iOS는 지원하지 않는다(§5, `docs/DECISIONS.md` 2026-11-03)
 
