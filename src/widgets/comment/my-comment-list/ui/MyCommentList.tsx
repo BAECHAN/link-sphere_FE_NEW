@@ -6,6 +6,7 @@ import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import { EmptyState } from '@/shared/ui/elements/EmptyState';
 import { ErrorState } from '@/shared/ui/elements/ErrorState';
+import { LoadMoreError } from '@/shared/ui/elements/LoadMoreError';
 import { TEXTS } from '@/shared/config/texts';
 
 export function MyCommentList() {
@@ -24,7 +25,14 @@ export function MyCommentList() {
 }
 
 function MyCommentListContent() {
-  const { comments, hasNextPage, isFetchingNextPage, observerRef } = useMyCommentList();
+  const {
+    comments,
+    hasNextPage,
+    isFetchingNextPage,
+    isNextPageFailed,
+    retryNextPage,
+    observerRef,
+  } = useMyCommentList();
 
   if (comments.length === 0) {
     return (
@@ -40,7 +48,8 @@ function MyCommentListContent() {
         <MyCommentCard key={comment.id} comment={comment} />
       ))}
 
-      {hasNextPage && (
+      {isNextPageFailed && <LoadMoreError onRetry={retryNextPage} />}
+      {hasNextPage && !isNextPageFailed && (
         <div ref={observerRef} className="flex justify-center p-4">
           {isFetchingNextPage && <Loader2 className="size-6 animate-spin text-muted-foreground" />}
         </div>

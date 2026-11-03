@@ -92,6 +92,13 @@
 
 ### Fixed
 
+- `shared` 목록 다음 페이지가 실패하면 같은 요청을 반복하지 않고 다시 시도 행을 보여줌
+  <details><summary>배경·구현</summary>
+
+  피드·북마크·내 댓글 목록에서 다음 페이지 요청이 실패하면 끝에 머무는 동안 같은 요청을 끝없이 다시 보냈다 — 실패하면 `isFetchingNextPage`가 거짓으로 돌아와 트리거 조건이 다시 참이 되고, 데이터가 있으면 suspense 쿼리도 에러 경계로 던지지 않는다. 429·WAF 차단은 재시도하지 않아 응답이 오는 즉시 또 보냈다(직접 측정: e2e에서 3초 동안 2,027번, 단위 테스트 왕복 30ms에서 1초에 33~34번). 이제 직전 요청이 실패했으면(`failureReason`) 자동으로 받지 않고 스피너 자리에 "더 불러오지 못했어요. [다시 시도]" 행(`LoadMoreError`, 신규)을 둔다. 버튼을 누르거나 재조회가 성공하면 다시 자동으로 받는다. 재조회 중에는 다음 페이지를 기다린다(`!isFetching`) — 다음 페이지 요청이 재조회를 취소하기 때문이다. 북마크 폴더 글은 첫 페이지가 실패해도 "아직 북마크가 없어요."가 보였는데(비 suspense 쿼리라 `data`만 비었다), 피드와 같은 오류 문구로 바꿨다. 행 모양·문구·북마크 표시는 시안 비교 뒤 사용자가 골랐다(2026-11-03). 판정 신호·대안 비교·근거는 `docs/POST.md` "다음 페이지 실패 처리", 계획은 [`docs/plans/2026-11-03-error-toast-followups.md`](docs/plans/2026-11-03-error-toast-followups.md) Phase 1([#491](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/491) 1·2번). (`src/widgets/post/post-list/hooks/usePostList.ts`, `src/widgets/post/post-list/ui/PostList.tsx`, `src/widgets/bookmark/bookmark-post-list/hooks/useBookmarkPostList.ts`, `src/widgets/bookmark/bookmark-post-list/ui/BookmarkPostList.tsx`, `src/widgets/comment/my-comment-list/hooks/useMyCommentList.ts`, `src/widgets/comment/my-comment-list/ui/MyCommentList.tsx`, `src/shared/ui/elements/LoadMoreError.tsx`(신규), `src/shared/config/texts.ts`, `src/test/utils.tsx`, 테스트 3곳(신규), `e2e/list-fetch-failure.spec.ts`(신규), `docs/POST.md`, `docs/BOOKMARK.md`, `docs/COMMENT.md`)
+
+  </details>
+
 - `auth` 가입 요청 중 화면을 떠나려 하면 확인창을 띄우고, 떠난 뒤 결과를 토스트로 알림
   <details><summary>배경·구현</summary>
 

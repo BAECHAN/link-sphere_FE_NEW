@@ -8,7 +8,7 @@
 > 파일에서 어떤 API를 부르고 어느 캐시를 어떻게 바꾸는지 안다. "등록 직후 새 글이 안 보인다",
 > "좋아요가 목록에 반영 안 된다" 같은 증상을 받았을 때 어디부터 열어볼지 정할 수 있다.
 >
-> **마지막 검토**: 2026-10-27
+> **마지막 검토**: 2026-11-03
 
 이 앱의 중심 데이터다. 사용자가 링크(URL)를 등록하면 BE가 그 페이지를 크롤링해 제목·설명·
 썸네일을 채우고, 그 뒤 비동기로 AI 요약·태그를 붙인다. FE는 그 결과를 피드(`/post`)에 카드로
@@ -169,12 +169,16 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - **중복 제거**: 같은 쿼리의 `select`가 모든 페이지를 평탄화하면서 이미 본 `id`를 걸러
   `posts`를 만든다. 오프셋 페이지네이션 중 새 글이 끼어들면 다음 페이지에 같은 글이 또 오기
   때문이다.
-- **가상화**: `usePostList`(`src/widgets/post/post-list/hooks/usePostList.ts:176-185`)가
+- **가상화**: `usePostList`(`src/widgets/post/post-list/hooks/usePostList.ts:184-193`)가
   컨테이너 실측 폭으로 열 수(최대 3, 최소 카드 폭 292px)를 정하고, 게시글을 열 수만큼 묶은
   **행** 단위로 가상화한다. `PostList.tsx`의 `PostListContent`(`virtualizer.getVirtualItems().map` 행 렌더)가 보이는 행만 `translateY`로 배치한다.
-- **다음 페이지 트리거**: 마지막으로 렌더된 가상 행 번호가 `rows.length - 5` 이상이면
-  `fetchNextPage()`(`usePostList.ts:194-207`). IntersectionObserver 센티넬은 가상화 도입 때
-  이 방식으로 바뀌었다.
+- **다음 페이지 트리거**: 마지막으로 렌더된 가상 행 번호가 `rows.length - 5` 이상이고, 이 목록에 진행 중인
+  요청이 없고(`!isFetching`), 직전 요청이 실패하지 않았으면(`!failureReason`) `fetchNextPage()`
+  (`usePostList.ts:202-215`). IntersectionObserver 센티넬은 가상화 도입 때 이 방식으로 바뀌었다.
+- **다음 페이지 실패**: 자동으로 다시 받지 않고, 스피너 자리에 "더 불러오지 못했어요. [다시 시도]" 행
+  (`src/shared/ui/elements/LoadMoreError.tsx`)을 둔다. 버튼을 누르거나 재조회(창 포커스·당겨서 새로고침)가
+  성공하면 다시 자동으로 받는다. 요청이 도는 동안은 행 대신 스피너다. 북마크·내 댓글 목록도 같은 규칙이다
+  ([`BOOKMARK.md`](./BOOKMARK.md), [`COMMENT.md`](./COMMENT.md)). 판정과 근거는 아래 "다음 페이지 실패 처리".
 - **로딩·빈 상태**: `PostList.tsx`의 `PostList`가 감싼 `AsyncBoundary`가 Suspense 동안
   `DelayedFallback`(500ms 지연) 안의 스켈레톤 6장(`PostCardSkeleton.tsx:64`)을 보여준다.
   0건이면 `EmptyState`(`PostListContent`의 `posts.length === 0` 분기). 당겨서 새로고침(`usePullToRefresh`)이
@@ -191,6 +195,45 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - **봇 글 숨기기**: URL이 아니라 localStorage 설정(`useHideBotsStore`)을 `filter`에
   `excludeBots`로 합쳐 보낸다(`src/widgets/post/post-list/utils/post-list-payload.ts:7-18`). 칩·검색 파라미터 자체는
   [`SEARCH.md`](./SEARCH.md).
+
+#### 다음 페이지 실패 처리 (2026-11-03, #491)
+
+**문제**: 다음 페이지가 실패하면 같은 요청을 끝없이 다시 보냈다. 실패하면 `isFetchingNextPage`가 거짓으로 돌아와
+트리거 effect가 다시 돌고, 데이터·`hasNextPage`·마지막 행이 그대로라 조건이 또 참이다. 데이터가 이미 있으면 suspense
+쿼리도 에러 경계로 던지지 않는다(`@tanstack/react-query` 5.90.16 `build/modern/suspense.js:2`의
+`defaultThrowOnError`). 429·WAF 차단은 재시도 정책상 다시 시도하지 않아(`retry-policy.ts`) 응답이 오는 즉시 또
+보냈다. 직접 측정: 첫 페이지 성공·다음 페이지 429인 e2e(`e2e/list-fetch-failure.spec.ts`)에서 끝까지 내린 뒤
+3초 동안 2,027번, 단위 테스트(왕복 30ms)에서 1초에 33~34번. 화면 끝에는 아무 표시가 없었다.
+
+**판정 신호**
+
+| 신호              | 쓴 것                    | 이유                                                                                                                                                                                                                                                                                 |
+| ----------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 실패했는가        | `failureReason`          | `isFetchNextPageError`는 낙관적 갱신(좋아요 등의 `setQueriesData`)이 쿼리 상태를 `success`로 바꾸면 꺼진다. `failureReason`은 수동 갱신으로 지워지지 않고 다음 요청이 시작될 때만 지워진다(query-core 5.90.16 `query.js:347-351`·`391-401`)                                          |
+| 무엇을 기다리는가 | `!isFetching`(모든 요청) | `!isFetchingNextPage`만 보면 실패 뒤 재조회가 시작돼 실패 기록이 지워진 순간 다음 페이지를 불러, 그 요청이 재조회를 취소한다(`fetchNextPage`의 `cancelRefetch` 기본값 true, `queryObserver.js:171`, `query.js:171-172`). 대가: 재조회 중 끝까지 내리면 재조회가 끝날 때까지 기다린다 |
+
+**대안 비교**(사용자가 시안 Artifact를 보고 골랐다, 2026-11-03)
+
+| 항목         | 고른 것                                   | 진 것과 이유                                                                                                                                        |
+| ------------ | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 실패 뒤 동작 | 자동 요청을 멈추고 목록 끝에 다시 시도 행 | 멈추기만 — 다시 받을 방법이 새로고침뿐이다. 그대로 두기 — 위 반복 요청                                                                              |
+| 행 모양      | 문구 + 테두리 버튼(`outline`·`sm`)        | 버튼만 — 토스트가 사라지면 버튼이 왜 있는지 알려주는 말이 없다. 한 줄(문구 옆 `ghost` 버튼) — 테두리가 없어 눌리는 것으로 덜 보인다                 |
+| 문구         | 공통 "더 불러오지 못했어요."              | 목록별("다음 글을…"·"다음 댓글을…") — 위에 받은 카드가 그대로 있어 무엇을 못 받았는지는 화면이 알려주고, 공통 행 컴포넌트가 문구를 받지 않아도 된다 |
+
+**근거**: Android Jetpack Paging은 목록 끝(footer)에 불러오기 상태를 붙이는 어댑터(`LoadStateAdapter`)를 라이브러리가
+제공하고, 공식 예시가 _"LoadState.Error이면 오류 메시지와 다시 시도 버튼"_ 을 보여준다(번역, 코드 주석,
+[Android Developers — Manage and present loading states](https://developer.android.com/topic/libraries/architecture/views/paging/load-state-views)).
+자동으로 계속 다시 보내지 않는 이유는 AWS Builders' Library의 Marc Brooker가 짚는다:
+
+> 재시도는 "이기적"이다. 클라이언트가 재시도하면 성공 확률을 높이려고 서버의 시간을 더 쓴다. (...) 장애가 과부하
+> 때문이라면 부하를 늘리는 재시도는 상황을 훨씬 나쁘게 만들 수 있다. (번역)
+>
+> — Marc Brooker, AWS Builders' Library, https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backoff-with-jitter
+
+끝에 아무 표시도 없으면 목록이 끝난 것으로 오해한다는 점은 NN/g가 무한 스크롤 문제로 꼽는다 — _"대개 이 문제는
+콘텐츠를 더 불러오고 있다는 표시가 없을 때 생긴다"_ (번역, Tim Neusesser,
+[NN/g, 2022-09-04](https://www.nngroup.com/articles/infinite-scrolling-tips/)). 이 글은 로딩 표시를 다루고 실패
+표시를 직접 다루지는 않는다.
 
 ### 카드(`PostCard`)
 
@@ -511,7 +554,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 피드 페이지 배치             | `src/pages/post/index.tsx`                                                                                                                                                                                           |
 | 피드·상세 미리 받기          | `src/app/routes/index.tsx`의 `PostFeedRoute`·`PostDetailRoute`, `src/widgets/post/post-list/hooks/usePostFeedPrefetch.ts`, 조건 계산은 `src/widgets/post/post-list/utils/post-list-payload.ts`                       |
-| 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:164-222`, `src/widgets/post/post-list/ui/PostList.tsx`                                                                                                              |
+| 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:164-236`, `src/widgets/post/post-list/ui/PostList.tsx`                                                                                                              |
 | 카드 UI / 카드 동작          | `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`                                                                                                                      |
 | 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:61-94`                                                                                                                                                                            |
 | 작성 폼 / 제출               | `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/create/hooks/useCreatePost.ts`의 `onSubmit`                                                                                                     |
@@ -578,6 +621,10 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
   `src/pages/post/PostDetailPage.test.tsx`(404 안내·noindex·탭 제목·썸네일 우선 로딩),
   `src/widgets/post/post-list/ui/PostList.test.tsx`(조회 실패 복구·"불러오는 중" 표시),
   `src/widgets/post/post-list/hooks/usePostFeedPrefetch.test.tsx`(피드 미리 받기가 목록과 같은 키를 쓰는지)
+- `src/widgets/post/post-list/hooks/usePostList.next-page.test.tsx`(4, 2026-11-03) — 다음 페이지가 429·500으로
+  실패하면 1초 동안 다시 보내지 않는지, 다시 시도로 받는지, 재조회 중에는 다음 페이지를 부르지 않다가 재조회가
+  성공하면 부르는지("다음 페이지 실패 처리"). 수정 전에는 첫 두 개가 요청 33~34번으로 실패했다(직접 실행). 재조회
+  대기 테스트는 조건을 `!isFetchingNextPage`로 되돌리면 실패하는 것을 확인했다
 
 **e2e**(`e2e/`, Playwright) — 이 기능을 덮는 스펙. 이번 검토에서 실행하지는 않았다.
 
@@ -595,6 +642,9 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 - `post-route-prefetch.spec.ts` — 피드·상세 청크가 오기 전에 목록·게시글·댓글을 요청하고, 청크가 온 뒤에도
   한 번만 요청하는지
 - `post-detail-comment-prefetch.spec.ts` — 상세 진입 시 댓글 요청 시점, 카드 댓글 아이콘·제목 hover 프리페치
+- `list-fetch-failure.spec.ts`(2026-11-03, 직접 실행) — 피드 다음 페이지가 429면 3초 동안 1번만 요청하고 "더
+  불러오지 못했어요." 행을 보여주며 [다시 시도]로 받는지, 북마크 폴더 글 첫 조회가 실패하면 빈 목록 대신 오류
+  문구를 보여주는지. 수정 전에는 3초 동안 2,027번 요청했다
 - `post-card-footer-layout.spec.ts`, `post-card-hover-menu.spec.ts`,
   `post-list-virtualization.spec.ts`, `post-list-scroll-restore.spec.ts`, `post-list.spec.ts`,
   `guest-guard.spec.ts`, `unsaved-changes.spec.ts`

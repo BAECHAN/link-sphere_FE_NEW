@@ -580,6 +580,9 @@ export const TEXTS = {
         commentUpdateTitle: '댓글을 수정하지 못했어요',
       },
       fetchPosts: '포스트를 불러오는 중 오류가 발생했어요.',
+      // 무한 스크롤 목록(피드·북마크·내 댓글) 끝에서 다음 페이지를 받지 못했을 때 - 위에 받은 카드가 그대로 있어
+      // 무엇을 못 받았는지는 화면이 알려준다(LoadMoreError)
+      loadMoreFailed: '더 불러오지 못했어요.',
       postDeleteFailed: '포스트 삭제에 실패했어요.',
       postVisibilityUpdateFailed: '게시물 공개 설정 변경에 실패했어요.',
 
