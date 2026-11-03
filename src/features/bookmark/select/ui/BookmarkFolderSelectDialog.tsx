@@ -413,7 +413,7 @@ interface NewFolderInputProps {
 // (useNewFolderInput 참고, 선례: widgets/bookmark/folder-tree의 InlineCreateFolderInput)
 function NewFolderInput({ onCancel, onCreated }: NewFolderInputProps) {
   const { newFolderName, setNewFolderName, newFolderNameError, isCreating, handleCreateAndSelect } =
-    useNewFolderInput({ onCreated });
+    useNewFolderInput({ onCreated, onCancel });
 
   return (
     <li className="flex flex-col gap-1 px-4 py-2.5">

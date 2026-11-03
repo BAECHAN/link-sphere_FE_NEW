@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조·폴더 고정 순서를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-11-03
+> **마지막 검토**: 2026-11-04
 
 ## 1. 쉬운 설명
 
@@ -233,6 +233,47 @@ JSX만, 호스트는 아래 "시트는 카드 밖 호스트가 그린다(2026-11
   닫기(`@radix-ui/react-dismissable-layer` 1.1.11 `dist/index.mjs:63-65`)와 새 폴더 입력 접기
   (`BookmarkFolderSelectDialog.tsx`의 `onEscapeKeyDown`)가 keydown을 `preventDefault()`해 닫기 요청은 따로 생기지 않는다 — 입력 중 Esc는
   지금처럼 입력만 접는다(`e2e/bookmark-folder-dialog.mobile.spec.ts`).
+- **새 폴더·이름 입력 중 Android 뒤로가기는 입력만 접는다(2026-11-03)**: 창 안 새 폴더 입력이 열린 채 뒤로가기를 누르면 취소
+  버튼처럼 입력만 접히고(입력한 이름은 버린다) 창은 남는다. 한 번 더 누르면 창이 닫힌다. `useNewFolderInput`이 `useBackCloseRequest`
+  (`shared/hooks/useBackClosableOverlay.ts`)로 입력이 열려 있는 동안 `CloseWatcher`를 하나 더 둔다. 북마크 페이지의 인라인
+  입력도 같은 규칙을 따른다(아래 "북마크 페이지의 인라인 입력").
+  - **`CloseWatcher` 경로(사실상 Android)만 바꿨다(사용자 선택)**. 데스크톱·iOS는 지금처럼 뒤로가기에 창 전체가 닫힌다.
+    2026-09-21에 정한 "입력이 열려 있으면 Esc는 입력만 접는다"(아래 "새 폴더 만들기 인라인 폼의 취소")를, HTML 표준이
+    같은 닫기 요청으로 묶는 Android 뒤로가기로 넓힌 것이다.
+
+    | 출처                                                                                      | 내용                                                                                                                             | 이 결정에서                                        |
+    | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+    | [Android custom back](https://developer.android.com/guide/navigation/custom-back)         | _"여러 단계에 `BackHandler`가 켜져 있으면 가장 안쪽 것만 뒤로가기를 가로챈다"_ (번역). 기본 예제가 뒤로가기로 패널을 접는 코드다 | Android는 안쪽 상태부터 닫는 게 플랫폼 표준        |
+    | [WICG close-watcher](https://github.com/WICG/close-watcher/blob/main/README.md)           | _"`CloseWatcher`가 여러 개 활성이면 가장 최근에 만든 것만 이벤트를 받는다"_ (번역)                                               | 웹 표준도 같은 모델                                |
+    | [Apple HIG Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets)  | 시트 안 뒤로 버튼은 _"여러 단계 흐름의 이전 단계로 가는 것이며, 시트를 닫기 위한 것이 아니다"_ (번역). 시트는 아래로 쓸어 닫는다 | iOS에는 뒤로가기로 시트 안 상태를 접는 관행이 없다 |
+    | [Baymard(Christian Holst, 2020-07-20)](https://baymard.com/blog/back-button-expectations) | _"접힌 콘텐츠는 일반적으로 `history.pushState()`로 새 '페이지'처럼 구현해서는 안 된다"_ (번역)                                   | iOS·데스크톱에 히스토리 엔트리를 더 쌓지 않는다    |
+    | [NN/g(2022-09-18)](https://www.nngroup.com/articles/accidental-overlay-dismissal/)        | _"오버레이 위에 오버레이를 쌓지 말라"_ (번역). 창 안에서 입력이 펼쳐지는 경우는 다루지 않는다                                    | 입력은 두 번째 오버레이가 아니라 이 금지와 무관    |
+
+  - **입력용 watcher는 입력이 열려 있는 동안 한 번만 만든다**. [WHATWG close watcher](https://html.spec.whatwg.org/multipage/interaction.html#close-requests-and-close-watchers)는
+    watcher를 그룹으로 묶고, 닫기 요청은 _"groups의 마지막 항목"_ (번역)만 처리한다. watcher를 만든 뒤 사용자 조작이 있어야
+    다음 watcher가 새 그룹이 되고, 조작 없이 만들면 마지막 그룹에 합쳐져 한 번에 같이 닫힌다(악용 방지). 입력용 watcher는
+    "새 폴더 만들기" 탭 뒤에 만들어져 창 watcher와 다른 그룹이 된다. 핸들러가 렌더마다 바뀌어도 다시 만들지 않고 최신
+    핸들러를 ref로 읽는다(`useIntersectionObserver.ts`와 같은 방식). StrictMode(dev)는 effect를 지웠다 다시 만들지만 `destroy`가
+    허용 그룹 수를 줄이지 않아 새 그룹을 그대로 받는다 — Chromium `close_watcher.cc`는 계획을 검증한 서브에이전트가 읽은 것이고,
+    직접 확인한 근거는 dev 서버(StrictMode)에서 도는 아래 e2e가 통과한다는 것이다.
+  - **생성 요청 중의 뒤로가기는 받지 않는다(사용자 선택)** — 취소 버튼이 요청 중 비활성인 것과 같다. 접어도 요청은 계속 가서
+    성공하면 폴더가 만들어지고 선택된다(카드는 저장 후 창이 닫힘). 받지 않은 요청도 watcher를 끝내므로, 그 뒤 생성이 실패하면
+    다음 뒤로가기는 창 전체를 닫는다.
+  - **북마크 페이지의 인라인 입력도 같다(같은 날 사용자 요청)**. 폴더 목록의 새 폴더 카드(`useCreateFolderCard`)와 사이드바 새
+    폴더 입력(`useInlineCreateFolderInput`)은 취소 버튼처럼 접고, 이름 바꾸기(`useRenameBookmarkFolder` — 사이드바 행·모바일
+    카드·폴더 화면 제목이 같이 쓴다)는 Esc처럼 원래 이름으로 되돌린다(저장하지 않는다). 창과 달리 바깥에 watcher가 없어,
+    고치기 전에는 뒤로가기가 히스토리를 거슬러 지금 화면을 떠났다(폴더 목록이면 이전 페이지, 폴더 화면이면 폴더 목록). 이제
+    첫 뒤로가기는 입력만 접고, 다음 뒤로가기가 지금처럼 이전 화면으로 간다.
+    - 입력이 열렸는지가 훅 안의 상태(`creating`·`renaming`)라 `useBackCloseRequest(handler, enabled)`의 `enabled`로 그 상태를
+      넘겨, 열린 동안만 watcher를 둔다. 새 폴더 카드·이름 바꾸기 메뉴·연필을 누른 뒤에 켜지므로 창 안 입력과 같은 그룹 규칙을 받는다.
+    - 사이드바는 데스크톱 배치지만 터치가 주 입력인 Android 태블릿에서도 보여 같은 규칙을 따른다. 마우스가 주 입력인 기기에서는
+      아무것도 하지 않는다.
+    - 생성·저장 요청 중의 뒤로가기는 창과 같이 받지 않는다.
+  - e2e(`bookmark-folder-dialog.mobile.spec.ts`)는 입력 중 닫기 요청이 입력만 접고 한 번 더 오면 창을 닫는지, 생성 요청 중의
+    닫기 요청이 입력을 접지 않는지 본다. `bookmark-inline-input-back.mobile.spec.ts`는 북마크 페이지의 새 폴더 카드·카드 이름
+    바꾸기·제목 이름 바꾸기와 요청 중 두 장면을 본다. 둘 다 Android 뒤로가기 대신 위와 같은 취소되지 않은 Esc를 쓴다
+    (`e2e/mocks/close-request.ts`의 `sendCloseRequest`).
+
 - **로그인 후 재개**: 비로그인으로 누르면 `useAuthGuard`가 로그인 모달을 띄우고 `open`을
   재개 액션으로 맡긴다. `useLoginDialog`가 로그인 모달의 `navigate(-1)`이 반영된 **뒤에** 재개
   액션을 실행하므로 두 모달이 겹치지 않는다. 히스토리 없는 경로에서는 재개가 스토어에 키를 넣는
@@ -454,7 +495,8 @@ JSX만, 호스트는 아래 "시트는 카드 밖 호스트가 그린다(2026-11
   ESC를 가로채므로(`react-use-escape-keydown`), Input의 `onKeyDown`에서
   `stopPropagation()`을 해도 이미 늦어 모달 전체가 닫혔다. 생성 폼이 열려 있을
   때만 `preventDefault()`로 dismiss를 막고 폼을 접는다 — 폼이 닫혀 있을 때의
-  기존 "ESC로 모달 닫기"는 그대로 유지된다.
+  기존 "ESC로 모달 닫기"는 그대로 유지된다. Android 뒤로가기도 같은 규칙으로 폼만 접는다 — 세 곳 모두(2026-11-03, 위
+  "뒤로가기로 닫히는 열림 상태"의 "새 폴더·이름 입력 중 Android 뒤로가기").
 
 ### "최근 저장한 폴더" 상단 구획(split menu)
 
@@ -678,8 +720,9 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
 
 - 실제 폴더를 연 화면에서 제목 바로 뒤에 연필 버튼(`EditButton`, 32px)이 붙는다. 전체·미분류·아직 못 불러온 폴더(제목
   `'폴더'`)에는 없다 — 바꿀 대상이 없다.
-- 누르면 제목 자리에 지금 이름이 든 입력이 열린다. Enter나 바깥을 누르면 저장하고, Esc는 취소한다. 15자를 넘으면 입력 아래
-  이유를 보여 주고 닫지 않는다. 사이드바·카드와 같은 훅(`useRenameBookmarkFolder`)이라 동작이 갈리지 않는다.
+- 누르면 제목 자리에 지금 이름이 든 입력이 열린다. Enter나 바깥을 누르면 저장하고, Esc는 취소한다. Android 뒤로가기도 Esc처럼
+  취소한다(2026-11-03, "뒤로가기로 닫히는 열림 상태"). 15자를 넘으면 입력 아래 이유를 보여 주고 닫지 않는다. 사이드바·카드와
+  같은 훅(`useRenameBookmarkFolder`)이라 동작이 갈리지 않는다.
 - 저장은 기존 `useUpdateBookmarkFolderMutation`(낙관적 갱신)이라 사이드바·카드·제목이 함께 바뀐다. 실패하면 되돌리고
   "이름 변경에 실패했어요." 토스트가 뜬다.
 - 편집을 열 때(`startRename`) 입력값을 지금 이름으로 다시 맞춘다. 데스크톱에서는 사이드바와 제목이 같은 폴더를 동시에
@@ -1356,6 +1399,25 @@ e2e 164개(`CI=1`, 재시도 0), `pnpm type-check`·`pnpm lint`·`pnpm check:dep
 전체 단위 167개 파일 1938건(#510 위로 rebase한 뒤), e2e 212건(chromium·mobile-chrome), `pnpm check`·`pnpm check:docs`가 통과했다. 0.2배속 전후
 녹화(성공·실패, Pixel 5)로 사용자가 모습을 확인했다.
 
+**2026-11-03 갱신(5)** — 새 폴더·이름 입력 중 Android 뒤로가기는 입력만 접음(§5 "뒤로가기로 닫히는 열림 상태").
+
+- e2e: `bookmark-folder-dialog.mobile.spec.ts`(5→7)에 두 장면을 더했다 — 입력 중 닫기 요청이 입력만 접고(창 `data-state`
+  open, `history.length` 그대로) 한 번 더 오면 창을 닫는다, 생성 요청(POST를 붙잡아 둠) 중의 닫기 요청은 입력을 접지 않고
+  500 응답 뒤에도 입력이 남는다. 두 건 모두 고치기 전 코드에서 첫 닫기 요청에 창이 닫혀 실패했다. "새 폴더" 장면 세 건(새 두
+  건과 기존 Esc 한 건)을 10회씩 반복해 30회 모두 통과했고, 데스크톱·호스트·글 등록 폼 e2e(`bookmark-folder-dialog`·
+  `bookmark-folder-host`·`post-create-folder-picker`·`bookmark`)는 고치지 않고 통과했다.
+- e2e: `bookmark-inline-input-back.mobile.spec.ts`(신규 5건) — 폴더 목록 새 폴더 카드는 접히고 주소·`history.length` 그대로,
+  카드 이름 바꾸기와 폴더 화면 제목 이름 바꾸기는 원래 이름으로 돌아가고 PATCH를 보내지 않음(제목은 폴더 화면 주소 그대로),
+  생성·저장 요청(POST·PATCH를 붙잡아 둠) 중의 닫기 요청은 입력을 접지 않음. 동작을 보는 세 건(새 폴더 카드·카드 이름·제목
+  이름)은 고치기 전 코드에서 입력이 남아
+  실패했다(요청 중 두 건은 고치기 전에도 통과 — 무시 규칙이 깨지지 않는지 지키는 용도). 10회씩 반복해 50회 모두 통과했고,
+  북마크 e2e 전체(`e2e/bookmark*`, 데스크톱·모바일)와 `post-create-folder-picker`·`touch-targets.mobile` 55건이 통과했다.
+- 단위: `useBackClosableOverlay.test.tsx`(13→17)가 데스크톱(터치 아님)에선 watcher를 만들지 않는지, 핸들러가 바뀌어도
+  watcher가 하나이고 마지막 핸들러를 부르는지, 언마운트하면 정리하는지, `enabled`가 켜진 동안만 watcher를 두는지 본다.
+- 녹화 전용 Playwright 스펙(모킹, Pixel 5)으로 창의 두 장면과 북마크 페이지 세 입력을 찍어 사용자가 모습을 확인했다.
+
+전체 단위 167개 파일 1943건, `pnpm type-check`·`pnpm lint`·`pnpm check:deps`·`pnpm check:docs`가 통과했다.
+
 ## 10. 시행착오
 
 ### "최근 저장한 폴더"가 삭제 후 옛 값으로 굳어 있던 문제
@@ -1858,6 +1920,13 @@ B의 대가는 바깥 줄이 `AppLayout`의 여백 값을 알아야 한다는 �
 - 창을 연 버튼이 목록에서 빠지면(북마크 페이지 폴더 빼기) 창이 닫힌 뒤 포커스가 `body`로 간다. W3C APG는 _"연 요소가
   더 이상 없으면 논리적 흐름을 잇는 다른 요소에 포커스를 둔다"_ (번역, [Dialog (Modal)](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/))고
   한다. 창을 호스트로 옮긴 2026-11-03 작업(§5) 범위 밖으로 뒀다.
+- 새 폴더·이름 입력 중 Android 뒤로가기(2026-11-03, §5)에서 확인하지 못한 것과 남긴 것:
+  - 키보드가 떠 있을 때 첫 뒤로가기가 키보드만 내리는지 실기기로 보지 못했다. 그렇다면 창을 닫기까지 세 번 누른다.
+    이름 바꾸기 입력은 바깥을 누르면(blur) 저장하므로, 키보드를 내리며 포커스가 빠지면 되돌리기 전에 저장될 수 있다 — 역시
+    실기기로 보지 못했다.
+  - Firefox Android가 뒤로가기를 닫기 요청으로 보내는지 모른다(`docs/DECISIONS.md` 2026-11-03 창 항목과 같은 한계).
+  - 생성 요청 중 Esc는 입력을 접는다(`onEscapeKeyDown`에 요청 중 검사가 없다). 뒤로가기와 달리 요청을 막지 않는데,
+    이번 범위 밖으로 뒀다.
 
 ## 12. 용어 사전
 
@@ -1866,6 +1935,10 @@ B의 대가는 바깥 줄이 `AppLayout`의 여백 값을 알아야 한다는 �
   `useHistoryOverlay`로 연다(§5)
 - **`useBackClosableOverlayOpen`** — 같은 파일. 열기 함수만 돌려준다 — `CloseWatcher`를 만들지 않고, 그 경로에서는 열림도
   구독하지 않는다(히스토리 경로는 `useHistoryOverlay`가 location을 구독한다). 카드 버튼이 쓰고, 같은 키로 `useBackClosableOverlay`를 쓰는 호스트가 열림을 보고 watcher를 하나만 둔다(§5)
+- **`useBackCloseRequest`** — 같은 파일. 열린 창이나 페이지 안에서 펼친 상태를 뒤로가기로 먼저 접는다. `CloseWatcher` 경로
+  기기에서만 호출한 컴포넌트가 마운트돼 있고 `enabled`(기본 켜짐)인 동안 watcher를 하나 두고, 닫기 요청에 마지막 렌더의
+  핸들러를 부른다. 새 폴더 입력(`useNewFolderInput`·`useCreateFolderCard`·`useInlineCreateFolderInput`)과 이름 바꾸기
+  (`useRenameBookmarkFolder`)가 쓴다(§5)
 - **`GlobalPostBookmarkFolderDialog`** — `features/bookmark/toggle/ui/`. 카드 북마크 창의 호스트. 스토어 대상(§6)으로
   `PostCardBookmarkFolderDialog`를 그리고 열림·뒤로가기는 `useGlobalPostBookmarkFolderDialog`가 맡는다(이름 선례
   `GlobalImageViewer`)

@@ -113,6 +113,13 @@
 
 ### Fixed
 
+- `bookmark` Android에서 새 폴더·이름 입력 중 뒤로가기를 누르면 입력만 접힘
+  <details><summary>배경·구현</summary>
+
+  폴더 선택 창(카드 북마크 버튼·글 등록 폼)에서 "새 폴더 만들기"를 눌러 입력이 열린 채 뒤로가기를 누르면 입력만 접히지 않고 창 전체가 닫혔다. Esc는 이미 입력만 접었는데(2026-09-21), HTML 표준이 같은 "닫기 요청"으로 묶는 Android 뒤로가기만 달랐다. 이제 `CloseWatcher` 경로(Android)에서는 취소 버튼처럼 입력만 접고(입력한 이름은 버림) 한 번 더 누르면 창이 닫힌다. 데스크톱·iOS는 그대로다 — iOS 시트에는 뒤로가기로 안쪽 상태를 접는 관행이 없고([Apple HIG Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets)), 히스토리 엔트리를 더 쌓으면 X 닫기와 엇갈린다(2026-11-03 사용자 선택). 새 훅 `useBackCloseRequest`가 입력이 열려 있는 동안 `CloseWatcher`를 하나 더 둔다. "새 폴더 만들기" 탭 뒤에 만들어져 창의 watcher와 다른 그룹이 되므로([WHATWG](https://html.spec.whatwg.org/multipage/interaction.html#close-requests-and-close-watchers)) 뒤로가기 한 번이 이것만 닫는다. 생성 요청 중에는 취소 버튼처럼 받지 않는다(사용자 선택). 북마크 페이지의 인라인 입력도 같은 날 사용자 요청으로 같은 규칙을 따른다 — 폴더 목록의 새 폴더 카드·사이드바 새 폴더 입력은 접히고, 이름 바꾸기(사이드바 행·모바일 카드·폴더 화면 제목)는 Esc처럼 원래 이름으로 돌아간다. 고치기 전에는 뒤로가기가 그 화면을 떠났다(폴더 목록이면 이전 페이지, 폴더 화면이면 폴더 목록). 입력이 열렸는지가 훅 안의 상태라 `useBackCloseRequest`에 `enabled`를 더해 열린 동안만 감시한다. 창과 페이지의 새 e2e 중 동작을 보는 다섯 건은 고치기 전 코드에서 실패했다. 근거와 비교한 안은 `docs/BOOKMARK.md` §5 "새 폴더·이름 입력 중 Android 뒤로가기", 계획은 [`docs/plans/2026-11-03-bookmark-new-folder-back-cancel.md`](docs/plans/2026-11-03-bookmark-new-folder-back-cancel.md). (`src/shared/hooks/useBackClosableOverlay.ts`, `src/shared/hooks/useBackClosableOverlay.test.tsx`, `src/features/bookmark/select/hooks/useNewFolderInput.ts`, `src/features/bookmark/select/ui/BookmarkFolderSelectDialog.tsx`, `src/features/bookmark/rename/hooks/useRenameBookmarkFolder.ts`, `src/widgets/bookmark/folder-tree/hooks/useMobileFolderList.ts`, `src/widgets/bookmark/folder-tree/hooks/useFolderTree.ts`, `e2e/bookmark-folder-dialog.mobile.spec.ts`, `e2e/bookmark-inline-input-back.mobile.spec.ts`, `e2e/mocks/close-request.ts`, `docs/BOOKMARK.md`, `docs/TESTING.md`, [PR #517](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/517))
+
+  </details>
+
 - `bookmark` 폴더 선택 창이 폴더가 많아도 세로·가로 화면 안에 들어옴
   <details><summary>배경·구현</summary>
 

@@ -1,5 +1,8 @@
 import { test, expect } from './fixtures/auth.fixture';
 import { installCatchAll } from './mocks/catch-all';
+import { ENDPOINTS } from './mocks/endpoints';
+import { isApiPath } from './mocks/route-match';
+import { sendCloseRequest } from './mocks/close-request';
 import { mockAuthRefresh } from './mocks/auth.mock';
 import { mockAccountQuery } from './mocks/account.mock';
 import { mockCategoryOptions } from './mocks/common.mock';
@@ -89,8 +92,6 @@ test.describe('모바일(터치) — 북마크 폴더 모달은 히스토리 없
   });
 
   test('닫기 요청이 오면 창만 닫히고 히스토리와 주소는 그대로다', async ({ page }) => {
-    // Android 뒤로가기는 보낼 수 없어 같은 닫기 요청을 Esc로 만든다 — window 캡처 단계에서 전파만 끊어
-    // Radix(document 캡처)에 닿지 않게 하면, 취소되지 않은 Esc를 Chromium이 닫기 요청으로 CloseWatcher에 보낸다
     await mockPostList(page);
     await page.goto('/post');
     const historyLength = await page.evaluate(() => window.history.length);
@@ -99,13 +100,7 @@ test.describe('모바일(터치) — 북마크 폴더 모달은 히스토리 없
     const folderDialog = page.getByRole('dialog');
     await expect(folderDialog).toBeVisible();
 
-    await page.evaluate(() => {
-      window.addEventListener('keydown', (event) => event.stopImmediatePropagation(), {
-        capture: true,
-        once: true,
-      });
-    });
-    await page.keyboard.press('Escape');
+    await sendCloseRequest(page);
 
     await expect(folderDialog).not.toBeVisible();
     await expect(page).toHaveURL(/\/post$/);
@@ -138,5 +133,81 @@ test.describe('모바일(터치) — 북마크 폴더 모달은 히스토리 없
 
     await page.keyboard.press('Escape');
     await expect(folderDialog).not.toBeVisible();
+  });
+
+  test('새 폴더 입력 중 닫기 요청은 입력만 접고, 한 번 더 오면 창을 닫는다', async ({ page }) => {
+    // 입력용 CloseWatcher는 "새 폴더 만들기" 탭 뒤에 만들어져 창 watcher와 다른 그룹이 된다 — 닫기 요청 하나가
+    // 마지막 그룹(입력)만 닫는다(WHATWG close watcher, docs/BOOKMARK.md §5)
+    await mockPostList(page);
+    await page.goto('/post');
+    const historyLength = await page.evaluate(() => window.history.length);
+
+    await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).first().click();
+    const folderDialog = page.getByRole('dialog');
+    await expect(folderDialog).toBeVisible();
+
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await folderDialog.getByRole('button', { name: TEXTS.bookmark.folder.create }).click();
+    await folderDialog.getByPlaceholder(TEXTS.bookmark.folder.namePlaceholder).fill('읽을거리');
+    await sendCloseRequest(page);
+
+    await expect(folderDialog.getByPlaceholder(TEXTS.bookmark.folder.namePlaceholder)).toBeHidden();
+    // 창이 닫히는 중에도 닫힘 애니메이션 동안은 보이므로, 닫히기 시작하면 바로 바뀌는 data-state로 판별한다
+    await expect(folderDialog).toHaveAttribute('data-state', 'open');
+    await expect(
+      folderDialog.getByRole('button', { name: TEXTS.bookmark.folder.create })
+    ).toBeVisible();
+    expect(await page.evaluate(() => window.history.length)).toBe(historyLength);
+
+    await sendCloseRequest(page);
+
+    await expect(folderDialog).not.toBeVisible();
+    await expect(page).toHaveURL(/\/post$/);
+  });
+
+  test('새 폴더를 만드는 중에 온 닫기 요청은 입력을 접지 않는다', async ({ page }) => {
+    // 생성 요청 중엔 취소 버튼도 비활성이다 — 접어도 요청은 계속 가서 성공하면 폴더가 만들어지고 선택된다.
+    // 생성(POST)은 목록 조회(GET)와 경로가 같아 나중에 등록한 이 route가 먼저 받고, GET은 목록 목으로 넘긴다
+    let releaseCreate = () => {};
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.bookmark.folders),
+      async (route) => {
+        if (route.request().method() !== 'POST') {
+          return route.fallback();
+        }
+
+        await new Promise<void>((resolve) => {
+          releaseCreate = resolve;
+        });
+        await route.fulfill({
+          status: 500,
+          json: { status: 500, message: 'server error', data: null, timestamp: '' },
+        });
+      }
+    );
+    await mockPostList(page);
+    await page.goto('/post');
+
+    await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).first().click();
+    const folderDialog = page.getByRole('dialog');
+    await expect(folderDialog).toBeVisible();
+
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await folderDialog.getByRole('button', { name: TEXTS.bookmark.folder.create }).click();
+    const nameInput = folderDialog.getByPlaceholder(TEXTS.bookmark.folder.namePlaceholder);
+    await nameInput.fill('읽을거리');
+    await folderDialog.getByRole('button', { name: TEXTS.bookmark.folder.createSubmit }).click();
+    await expect(nameInput).toBeDisabled();
+
+    await sendCloseRequest(page);
+
+    await expect(folderDialog).toHaveAttribute('data-state', 'open');
+    await expect(nameInput).toBeVisible();
+
+    releaseCreate();
+
+    // 실패하면 입력이 그대로 남아 다시 쓸 수 있다 — 닫기 요청에 입력이 접혔거나 창이 닫혔으면 여기서 실패한다
+    await expect(nameInput).toBeEnabled();
+    await expect(folderDialog).toHaveAttribute('data-state', 'open');
   });
 });
