@@ -8,10 +8,13 @@ import { X } from 'lucide-react';
 
 export interface InputProps extends React.ComponentProps<'input'> {
   onClear?: () => void;
+  /** clear 버튼을 보일지 정하는 값 유무 - value를 받지 않는 비제어 입력(RHF register)이 넘긴다.
+   * 없으면 value prop으로 판단한다 */
+  hasValue?: boolean;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, onClear, ...props }, ref) => {
+  ({ className, type, onClear, hasValue, ...props }, ref) => {
     const inputRef = useRef<HTMLInputElement>(null);
     const mergedRef = useMergedRef(ref, inputRef);
 
@@ -23,6 +26,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       onClear?.();
       inputRef.current?.focus();
     };
+
+    const showClear = onClear && (hasValue ?? Boolean(props.value));
 
     return (
       <>
@@ -37,7 +42,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           {...props}
         />
-        {props.value && onClear && (
+        {showClear && (
           <Button
             type="button"
             variant="ghost"

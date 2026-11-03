@@ -832,7 +832,7 @@ FE가 하는 일은 거절 안내뿐입니다. 세 mutation이 `manualErrorHandl
 | 판정(순수 함수) | `src/entities/auth/utils/auth.util.ts`의 `PasswordUtil` — `checkRequirements`(`:25`), `findViolation`(`:35`), `resolveRequirementStates`(`:60`), `resolveConfirmStatus`(`:87`) |
 | 상태·연결(훅)   | `src/entities/auth/hooks/usePasswordFieldsFeedback.ts` — 확인 칸 포커스·latch(렌더 중 `setIsConfirmLatched` 조정), 비밀번호 칸의 `deps`(`passwordInputProps`)                  |
 | 표시            | `src/entities/auth/ui/PasswordRequirementList.tsx`, `src/entities/auth/ui/PasswordConfirmMessage.tsx`                                                                          |
-| shared 확장     | `src/shared/ui/elements/form/FormInputPassword.tsx`의 `useController`(`rules.deps`), `src/shared/ui/elements/form/_base/FormField.tsx:42`(`hideErrorMessage`)                  |
+| shared 확장     | `src/shared/ui/elements/form/FormInputPassword.tsx`의 `register` `deps` 옵션, `src/shared/ui/elements/form/_base/FormField.tsx:40`(`hideErrorMessage`)                         |
 | 길이 상수       | `src/entities/auth/config/auth.contract.ts`(BE와 같은 값, `auth.contract.test.ts`가 스펙과 대조)                                                                               |
 
 **확인 칸 판정**(`PasswordUtil.resolveConfirmStatus`, `auth.util.test.ts`의 표와 1:1):
