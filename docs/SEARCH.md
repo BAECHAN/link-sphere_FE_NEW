@@ -707,8 +707,12 @@ LCP 전체 측정과 다른 개선 후보는 [`PERFORMANCE.md`](./PERFORMANCE.md
   받는 동안 카테고리가 먼저 출발해(운영 측정 약 870ms 앞섬) 늦을 가능성이 낮다. 실제로 얼마나 생기는지는 모른다
   — BE 로그에 요청 경로가 없고 실사용 측정(RUM)도 없다. 다시 문제가 되면 CloudFront 엣지 캐시나 칩 자리
   확보(§10에서 고르지 않은 안)를 재검토한다.
-- **브라우저 캐시에 카테고리가 없을 때 429가 나면 요청이 2번 나간다**(토스트는 1개). 미리 받기가 실패한 뒤
-  필터 카드가 마운트하며 다시 요청하기 때문이다.
+- **브라우저 캐시에 카테고리가 없을 때 미리 받기가 실패하면 요청이 더 나간다**(429는 2번, 500은 미리 받기가 실패한
+  뒤 카드가 마운트하면 재시도까지 4번 — 계획 단계에 설치본 query-core를 메모리에서 돌려 잼,
+  [`plans/2026-11-03-error-toast-followups-review.md`](./plans/2026-11-03-error-toast-followups-review.md)). 미리
+  받기가 실패한 뒤 필터 카드가 마운트하며 다시 요청하기 때문이다. 토스트는 한 장이다 — 429는 고정 id, 그 밖의 조회
+  실패는 문구로 단 id(`queryClient.ts`의 `withQueryErrorToastId`)로 합친다. 500에서 2장 뜨던 것은 2026-11-03 #491
+  후속에서 고쳤다.
 - **카테고리를 DB에서 바꾸면 방문 한 번만큼 늦게 보인다**(BE #102의 캐시 헤더). 그사이 지운 카테고리를 골라
   등록하면 에러 없이 그 카테고리만 빠진 채 저장된다(BE `PostService`가 부르는 `CategoryService.getCategoriesByIds` →
   `CategoryRepository.findAllByIdIn`).

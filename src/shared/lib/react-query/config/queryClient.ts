@@ -1,10 +1,12 @@
 import { MutationCache, QueryCache, QueryClient, type Mutation } from '@tanstack/react-query';
 import { toast } from '@/shared/lib/toast/toast';
 import {
+  isUnwatchedQueryFailure,
   resolveErrorToast,
   MUTATION_ERROR_POLICY,
   QUERY_ERROR_POLICY,
   type CustomMutationMeta,
+  type ErrorToastDecision,
 } from '@/shared/lib/react-query/config/error-toast';
 import { shouldRetryQuery } from '@/shared/lib/react-query/config/retry-policy';
 import { rememberMutationAuthEpoch } from '@/shared/lib/react-query/config/mutation-auth-epoch';
@@ -20,6 +22,20 @@ const applyErrorToast = (decision: ReturnType<typeof resolveErrorToast>) => {
   }
 
   toast.error(decision.message, { id: decision.id });
+};
+
+/**
+ * 조회 실패 토스트는 문구가 같으면 한 장 - 미리 받기 뒤 화면이 다시 요청하거나 여러 조회가 함께 실패해도 같은
+ * 안내가 쌓이지 않게 문구로 id를 단다(sonner 2.0.7은 같은 id면 떠 있는 토스트를 그 자리에서 갱신한다,
+ * dist/index.mjs:142-176). 429·보안 차단처럼 판정이 이미 단 id는 그대로 둔다. mutation은 누른 동작마다 결과를
+ * 알려야 해 합치지 않는다.
+ */
+const withQueryErrorToastId = (decision: ErrorToastDecision): ErrorToastDecision => {
+  if (decision.silent || decision.id) {
+    return decision;
+  }
+
+  return { ...decision, id: `query-error:${decision.message}` };
 };
 
 /**
@@ -58,9 +74,13 @@ const mutationSuccessHandler = (
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error, query) => {
+      if (isUnwatchedQueryFailure(query)) {
+        return;
+      }
+
       const meta = query.meta as CustomMutationMeta | undefined;
 
-      applyErrorToast(resolveErrorToast(error, meta, QUERY_ERROR_POLICY));
+      applyErrorToast(withQueryErrorToastId(resolveErrorToast(error, meta, QUERY_ERROR_POLICY)));
     },
   }),
   mutationCache: new MutationCache({

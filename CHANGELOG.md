@@ -120,6 +120,13 @@
 
   </details>
 
+- `shared` 같은 조회 실패 토스트가 쌓이지 않고, 오프라인 북마크 목록은 빈 화면 대신 스피너를 보임
+  <details><summary>배경·구현</summary>
+
+  #491에서 범위 밖으로 둔 항목의 후속이다. 북마크 버튼·사이드바 폴더 행 hover가 폴더 목록·폴더 글을 미리 받다 실패하면 hover마다 같은 실패 토스트가 한 장씩 쌓였다(수정 전 단위 테스트에서 폴더 목록 hover 3번에 3장, 폴더 글 2번에 2장). 이제 카드 hover와 같은 `prefetchQueryQuietly`로 바꾸고, 무한 쿼리용 `prefetchInfiniteQueryQuietly`를 더해 폴더 글에 쓴다 — 실패하면 토스트 없이 실패한 쿼리를 지우고 창·목록이 열릴 때 새로 요청한다. 미리 받는 중에 창이 열리면 창이 요청을 이어받아 실패하면 토스트가 한 번 뜬다. 폴더 목록은 피드 카드·글 작성 폼마다 폴더 선택 창이 닫힌 채 목록을 지켜봐(`enabled: false`) 창이 다시 그려질 때 미리 받기의 meta를 덮어써서, 그것만으로는 토스트가 그대로 떴다(브라우저 확인 녹화에서 발견). 그래서 목록 조회와 미리 받기에 `meta.silentWhenInactive`를 달고, 전역 핸들러가 실패 순간 켜진 구독자가 없으면 알리지 않게 했다(`isUnwatchedQueryFailure`) — 창이 열려 있는 동안 실패하면 그대로 한 번 알리고, 열었다가 요청이 끝나기 전에 닫으면 알리지 않는다(2026-11-03 사용자 선택). 북마크 버튼의 로그인 가드는 그대로 두고, 이유를 "비로그인 401이 로그인 화면 이동으로 이어진다"(`client.ts`)로 고쳤다. 조회 실패 토스트는 문구가 같으면 한 장이다 — 판정이 id를 달지 않았으면 QueryCache `onError`가 문구로 id(`query-error:<문구>`)를 달아, 카테고리 미리 받기가 500으로 실패한 뒤 필터 카드가 다시 요청해 또 실패해도 토스트가 2장 뜨지 않는다. 429·보안 차단의 고정 id는 그대로고 mutation은 합치지 않는다(2026-11-03 사용자 선택). 북마크 글 목록은 오프라인이면 첫 조회가 멈춰(`fetchStatus` paused) `isLoading`이 거짓이라 "아직 북마크가 없어요."가 떴다 — 스피너 조건을 `isPending`으로 바꿨다. 호출처가 없던 `useImageAttachments`의 `onImageSet` 옵션을 지웠다. 비밀번호 재설정 링크 거절 때 카드와 같은 뜻의 토스트는 화면 읽기 프로그램에 알리는 유일한 수단이라 그대로 두고 이유를 `docs/AUTH.md`에 적었다. 계획은 [`docs/plans/2026-11-03-error-toast-followups-review.md`](docs/plans/2026-11-03-error-toast-followups-review.md) PR ②([#491](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/491) 후속 1·2·4·5번·카테고리). (`src/shared/lib/react-query/prefetch-quietly.ts`, `src/entities/bookmark/folder/api/bookmark-folder.queries.ts`, `src/features/bookmark/toggle/hooks/useBookmarkPostButton.ts`, `src/shared/lib/react-query/config/queryClient.ts`, `src/shared/lib/react-query/config/error-toast.ts`, `src/widgets/bookmark/bookmark-post-list/hooks/useBookmarkPostList.ts`, `src/widgets/bookmark/bookmark-post-list/ui/BookmarkPostList.tsx`, `src/shared/hooks/useImageAttachments.ts`, `src/features/comment/create/hooks/useCreateComment.ts`, `src/features/comment/update/hooks/useUpdateComment.ts`, 테스트 4곳(`query-client.test.ts` 신규)·`src/test/utils.tsx`, `docs/BOOKMARK.md`, `docs/FE-ARCHITECTURE.md`, `docs/SEARCH.md`, `docs/POST.md`, `docs/AUTH.md`, [PR #505](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/505))
+
+  </details>
+
 - `shared` 조회에 실패한 화면을 떠났다 돌아오면 같은 에러 대신 다시 요청함
   <details><summary>배경·구현</summary>
 

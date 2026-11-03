@@ -35,7 +35,7 @@ export const useBookmarkPostList = (
     isFetching,
     isFetchingNextPage,
     failureReason,
-    isLoading,
+    isPending,
     isError,
   } = useBookmarkFolderPostsInfiniteQuery(folderKey, sort, search);
 
@@ -82,7 +82,8 @@ export const useBookmarkPostList = (
   return {
     posts,
     correctedSearch,
-    isLoading,
+    // isLoading이 아니라 isPending - 오프라인이면 첫 조회가 멈춰(fetchStatus paused) isLoading은 false라 빈 목록으로 보였다
+    isPending,
     isFirstPageFailed,
     isFetchingNextPage,
     isNextPageFailed,

@@ -12,7 +12,7 @@ import { useBackClosableOverlay } from '@/shared/hooks/useBackClosableOverlay';
  *   받는다(docs/DECISIONS.md 2026-11-03).
  *   피드에는 카드가 여러 장이라 키를 postId마다 따로 둔다 — 공용 키면 모든 카드의 모달이 같이 열린다.
  * - hover/focus 시 폴더 목록을 미리 불러와, 모달이 작게 떴다가 목록이 들어오며 늘어나지 않게 한다.
- *   비로그인이면 401 → 전역 에러 토스트로 이어지므로 로그인 상태에서만 부른다.
+ *   비로그인이면 401이 clearAll + 로그인 화면 이동으로 이어지므로(client.ts:440-443) 로그인 상태에서만 부른다.
  */
 export function useBookmarkPostButton(postId: Post['id']) {
   const queryClient = useQueryClient();

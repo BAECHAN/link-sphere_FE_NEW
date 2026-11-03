@@ -9,11 +9,9 @@ interface UseImageAttachmentsOptions {
   maxCount: number;
   /** 이미 차지하고 있는 슬롯 수 (수정 폼의 기존 이미지 등) - 매 렌더 현재값을 넘겨야 한다 */
   reservedCount?: number;
-  /** 이미지가 추가될 때 호출되는 콜백 */
-  onImageSet?: () => void;
   /**
-   * 사용자가 넣은 파일이 검증을 통과해 실제로 들어갔을 때 호출되는 콜백. onImageSet과 달리 형식·크기·개수에
-   * 걸려 하나도 안 들어갔거나, 폼이 이미지를 되돌려 놓을 때는 부르지 않는다
+   * 사용자가 넣은 파일이 검증을 통과해 실제로 들어갔을 때 호출되는 콜백. 형식·크기·개수에 걸려 하나도 안
+   * 들어갔거나, 폼이 이미지를 되돌려 놓을 때는 부르지 않는다
    */
   onFilesAdded?: () => void;
 }
@@ -25,7 +23,6 @@ interface UseImageAttachmentsOptions {
 export function useImageAttachments({
   maxCount,
   reservedCount = 0,
-  onImageSet,
   onFilesAdded,
 }: UseImageAttachmentsOptions) {
   const [images, setImages] = useState<File[]>([]);
@@ -84,7 +81,6 @@ export function useImageAttachments({
   }, []);
 
   // latest-ref 패턴: 재렌더마다 최신 콜백 유지 → effect deps에 포함 불필요
-  const onImageSetRef = useRef(onImageSet);
   const onFilesAddedRef = useRef(onFilesAdded);
 
   // 렌더 중이 아니라 레이아웃 effect에서 갱신한다 - 렌더 중 ref 쓰기는 React 규칙 위반이고
@@ -93,7 +89,6 @@ export function useImageAttachments({
   // 이 레포에선 쓸 수 없다. 레이아웃 effect는 일반 effect·이벤트보다 먼저 돌아
   // 읽는 쪽은 항상 최신 값을 본다
   useLayoutEffect(() => {
-    onImageSetRef.current = onImageSet;
     onFilesAddedRef.current = onFilesAdded;
   });
 
@@ -104,7 +99,6 @@ export function useImageAttachments({
         return;
       }
 
-      onImageSetRef.current?.();
       const urls = images.map((file) => URL.createObjectURL(file));
       setImagePreviewUrls(urls);
 

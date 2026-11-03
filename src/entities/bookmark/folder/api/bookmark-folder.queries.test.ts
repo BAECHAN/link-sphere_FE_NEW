@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { createElement, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { createTestQueryClient } from '@/test/utils';
+import { createQueryClientWithErrorToasts, createTestQueryClient } from '@/test/utils';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { postKeys } from '@/entities/post/api/post.keys';
@@ -17,7 +17,11 @@ import type {
   BookmarkFolderListResponse,
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import {
+  prefetchBookmarkFolderList,
+  prefetchBookmarkFolderPosts,
   useAddBookmarkFolderMutation,
+  useBookmarkFolderListQuery,
+  useBookmarkFolderPostsInfiniteQuery,
   useClearBookmarkFoldersMutation,
   useRemoveBookmarkFolderMutation,
   useSetBookmarkFolderPinMutation,
@@ -538,5 +542,149 @@ describe('useSetBookmarkFolderPinMutation', () => {
     // 가운데 DELETE의 성공은 뒤에 PUT이 남아 있어 띄우지 않는다
     await waitFor(() => expect(successSpy).toHaveBeenCalledTimes(1));
     expect(successSpy).toHaveBeenCalledWith(TEXTS.messages.success.folderPinned('개발'));
+  });
+});
+
+// 북마크 버튼·폴더 행 hover의 미리 받기는 실패해도 토스트를 띄우지 않고 실패한 쿼리를 지운다 - hover마다 같은 실패
+// 토스트가 쌓이지 않게, 창·목록이 열리면 새로 요청하게(상세 카드 hover의 prefetchPostDetail과 같은 이유)
+describe('북마크 hover 미리 받기', () => {
+  const FOLDER_LIST_PATH = API_ENDPOINTS.bookmark.folders;
+  const FOLDER_POSTS_PATH = API_ENDPOINTS.bookmark.folderPosts(FOLDER_A);
+  let errorToasts: string[];
+
+  beforeEach(() => {
+    ({ queryClient, errorToasts } = createQueryClientWithErrorToasts());
+  });
+
+  function failWith500(path: string, { delayMs = 0 } = {}) {
+    server.use(
+      http.get(url(path), async () => {
+        if (delayMs > 0) {
+          await delay(delayMs);
+        }
+
+        return HttpResponse.json(
+          { status: 500, code: 'SERVER_ERROR', message: 'fail', timestamp: '' },
+          { status: 500 }
+        );
+      })
+    );
+  }
+
+  async function hoverAndSettle(prefetch: () => void) {
+    prefetch();
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+  }
+
+  it('폴더 목록 미리 받기가 hover마다 실패해도 토스트를 띄우지 않고, 실패한 쿼리를 지운다', async () => {
+    failWith500(FOLDER_LIST_PATH);
+    const hover = () => hoverAndSettle(() => prefetchBookmarkFolderList(queryClient));
+
+    await hover();
+    await hover();
+    await hover();
+
+    expect(errorToasts).toEqual([]);
+    expect(queryClient.getQueryState(bookmarkFolderKeys.list)).toBeUndefined();
+  });
+
+  // 피드 카드·글 작성 폼은 폴더 창을 닫힌 채 마운트해 꺼진 구독자(enabled: false)로 목록을 지켜본다. 요청 상태가
+  // 바뀌면 다시 그려지며 쿼리 meta를 자기 것으로 덮어써(query-core 5.90.16 queryObserver.js:94) 미리 받기가 단
+  // manualErrorHandling이 지워진다 - 그래서 실패 순간 켜진 구독자가 있는지로 판정한다
+  function renderFolderDialogObserver() {
+    return renderHook(
+      ({ open }) => {
+        const { isLoading, isFetching } = useBookmarkFolderListQuery({ enabled: open });
+
+        return { isLoading, isFetching };
+      },
+      { wrapper: Wrapper, initialProps: { open: false } }
+    );
+  }
+
+  it('닫힌 창이 목록을 지켜보는 동안 hover 미리 받기가 실패해도 토스트를 띄우지 않는다', async () => {
+    failWith500(FOLDER_LIST_PATH);
+    renderFolderDialogObserver();
+    const hover = () => hoverAndSettle(() => prefetchBookmarkFolderList(queryClient));
+
+    await hover();
+    await hover();
+    await hover();
+
+    expect(errorToasts).toEqual([]);
+  });
+
+  it('창을 열었다가 요청이 끝나기 전에 닫으면 알리지 않고, 다시 열면 스켈레톤부터 새로 요청해 알린다', async () => {
+    failWith500(FOLDER_LIST_PATH, { delayMs: 100 });
+    const { result, rerender } = renderFolderDialogObserver();
+
+    rerender({ open: true });
+    await waitFor(() => expect(result.current.isFetching).toBe(true));
+    rerender({ open: false });
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+
+    expect(errorToasts).toEqual([]);
+
+    rerender({ open: true });
+    await waitFor(() => expect(result.current.isLoading).toBe(true));
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+
+    expect(errorToasts).toHaveLength(1);
+  });
+
+  // 쿼리 옵션은 쿼리당 한 벌이라 마지막에 그려진 구독자의 meta가 남는다 - 열린 창 뒤에 닫힌 창이 그려져도 알린다
+  it('열린 창이 하나라도 있으면 실패를 알린다(토스트 1회)', async () => {
+    failWith500(FOLDER_LIST_PATH, { delayMs: 50 });
+    const { result } = renderHook(
+      () => {
+        const openDialog = useBookmarkFolderListQuery({ enabled: true });
+        const closedDialog = useBookmarkFolderListQuery({ enabled: false });
+
+        return { isError: openDialog.isError, isFetching: closedDialog.isFetching };
+      },
+      { wrapper: Wrapper }
+    );
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(errorToasts).toHaveLength(1);
+  });
+
+  // 창이 요청을 이어받았으면 창의 실패라 지우지 않고 토스트를 한 번 띄운다
+  it('폴더 목록을 미리 받는 중에 창이 열린 뒤 실패하면 창이 처리한다(토스트 1회)', async () => {
+    failWith500(FOLDER_LIST_PATH, { delayMs: 100 });
+
+    prefetchBookmarkFolderList(queryClient);
+    const { result } = renderHook(() => useBookmarkFolderListQuery(), { wrapper: Wrapper });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(errorToasts).toHaveLength(1);
+    expect(queryClient.getQueryState(bookmarkFolderKeys.list)?.status).toBe('error');
+  });
+
+  it('폴더 글 미리 받기가 hover마다 실패해도 토스트를 띄우지 않고, 실패한 쿼리를 지운다', async () => {
+    failWith500(FOLDER_POSTS_PATH);
+    const hover = () =>
+      hoverAndSettle(() => prefetchBookmarkFolderPosts(queryClient, FOLDER_A, 'latest'));
+
+    await hover();
+    await hover();
+
+    expect(errorToasts).toEqual([]);
+    expect(queryClient.getQueryState(bookmarkFolderKeys.posts(FOLDER_A, 'latest'))).toBeUndefined();
+  });
+
+  it('폴더 글을 미리 받는 중에 목록이 열린 뒤 실패하면 목록이 처리한다(토스트 1회)', async () => {
+    failWith500(FOLDER_POSTS_PATH, { delayMs: 100 });
+
+    prefetchBookmarkFolderPosts(queryClient, FOLDER_A, 'latest');
+    const { result } = renderHook(() => useBookmarkFolderPostsInfiniteQuery(FOLDER_A, 'latest'), {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(errorToasts).toHaveLength(1);
+    expect(queryClient.getQueryState(bookmarkFolderKeys.posts(FOLDER_A, 'latest'))?.status).toBe(
+      'error'
+    );
   });
 });

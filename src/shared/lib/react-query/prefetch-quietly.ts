@@ -1,5 +1,6 @@
 import type {
   DefaultError,
+  FetchInfiniteQueryOptions,
   FetchQueryOptions,
   Query,
   QueryClient,
@@ -20,6 +21,15 @@ function isLeftByPrefetchOnly(query: Query): boolean {
   );
 }
 
+function removeIfLeftByPrefetchOnly(queryClient: QueryClient, queryKey: QueryKey): void {
+  const queryCache = queryClient.getQueryCache();
+  const query = queryCache.find({ queryKey, exact: true });
+
+  if (query && isLeftByPrefetchOnly(query)) {
+    queryCache.remove(query);
+  }
+}
+
 /**
  * hover처럼 화면이 아직 없을 때 미리 받는다. 실패해도 전역 에러 토스트를 띄우지 않고 실패한 쿼리를 지워, 나중에
  * 화면이 열리면 새로 요청하게 한다 - prefetchQuery는 promise 실패만 삼켜 토스트가 뜨고, 남은 에러 쿼리는
@@ -38,13 +48,28 @@ export function prefetchQueryQuietly<
     .fetchQuery({ ...options, meta: { ...options.meta, manualErrorHandling: true } })
     .then(
       () => undefined,
-      () => {
-        const queryCache = queryClient.getQueryCache();
-        const query = queryCache.find({ queryKey: options.queryKey, exact: true });
+      () => removeIfLeftByPrefetchOnly(queryClient, options.queryKey)
+    );
+}
 
-        if (query && isLeftByPrefetchOnly(query)) {
-          queryCache.remove(query);
-        }
-      }
+/**
+ * prefetchQueryQuietly의 무한 쿼리판 - 첫 쪽만 미리 받는다. fetchInfiniteQuery는 넘긴 옵션 객체에 behavior를 써
+ * 넣으므로(query-core 5.90.16 queryClient.js:195-198) 호출부 옵션 대신 meta를 더한 복사본을 넘긴다.
+ */
+export function prefetchInfiniteQueryQuietly<
+  TQueryFnData = unknown,
+  TError = DefaultError,
+  TData = TQueryFnData,
+  TQueryKey extends QueryKey = QueryKey,
+  TPageParam = unknown,
+>(
+  queryClient: QueryClient,
+  options: FetchInfiniteQueryOptions<TQueryFnData, TError, TData, TQueryKey, TPageParam>
+): Promise<void> {
+  return queryClient
+    .fetchInfiniteQuery({ ...options, meta: { ...options.meta, manualErrorHandling: true } })
+    .then(
+      () => undefined,
+      () => removeIfLeftByPrefetchOnly(queryClient, options.queryKey)
     );
 }

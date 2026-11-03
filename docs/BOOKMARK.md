@@ -242,8 +242,17 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 - **hover 프리페치**: 전에는 모달이 열려야(`enabled: open`) `GET /bookmark/folders`를 시작해,
   작게 뜬 모달이 목록이 들어오며 늘어났다. 지금은 아이콘의 `onMouseEnter`·`onFocus`에서
   `prefetchBookmarkFolderList`(`bookmark-folder.queries.ts`, `useBookmarkFolderListQuery`와 같은
-  키·queryFn)를 부른다. 비로그인이면 401 → 전역 에러 토스트(`queryClient.ts`의 QueryCache
-  `onError`)로 이어지므로 로그인 상태에서만 부른다. staleTime(3분) 안에서는 재요청하지 않는다.
+  키·queryFn)를 부른다. 비로그인이면 401이 `clearAll` + 로그인 화면 이동(`client.ts`)으로 이어지므로
+  로그인 상태에서만 부른다. staleTime(3분) 안에서는 재요청하지 않는다. 미리 받기가 실패해도 창이 닫혀 있으면
+  토스트를 띄우지 않고, 창이 열릴 때 목록 자리 골격부터 다시 요청해 그때 실패하면 토스트를 띄운다(2026-11-03
+  [#491](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/491) 후속 — 전에는 hover마다 같은 실패 토스트가 한 장씩
+  쌓였다). 카드마다 이 창이 닫힌 채 마운트돼 꺼진 구독자(`enabled: false`)로 목록을 지켜보므로, 미리 받기가 단
+  `manualErrorHandling`은 창이 다시 그려질 때 지워진다(query-core 5.90.16 `queryObserver.js:94`, 처음엔
+  `prefetchQueryQuietly`만 썼다가 녹화에서 토스트가 그대로 떠 발견). 그래서 목록 조회와 미리 받기에 모두
+  `meta.silentWhenInactive`를 달고, 전역 핸들러가 실패 순간 켜진 구독자가 없으면 조용히 끝낸다
+  (`isUnwatchedQueryFailure`, [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §13). 창이 열려 있는 동안 실패하면(미리
+  받는 중에 열어 요청을 이어받은 경우 포함) 토스트가 한 번 뜨고, 열었다가 요청이 끝나기 전에 닫으면 알리지 않는다.
+  북마크 페이지 사이드바는 목록을 켜진 채 구독해 거기서의 실패는 그대로 알린다(2026-11-03 사용자 선택).
 - **로딩 중에도 목록 자리를 먼저 잡는다(2026-09-30)**: hover가 없는 모바일은 첫 탭에서
   여전히 목록을 기다린다. 그동안 모달이 헤더만 있는 작은 시트로 떴다가 목록이 오면
   늘어나던 것을, 실제 목록과 같은 자리를 먼저 그리는 방식으로 바꿨다(`BookmarkFolderSelectDialog.tsx`의
@@ -627,8 +636,17 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
   포커스(`refetchOnWindowFocus`)·폴더 변경 때 다시 요청한다(사용자 선택, 2026-11-03).
 - **다음 페이지 실패**: 자동 요청을 멈추고 목록 끝에 "더 불러오지 못했어요. [다시 시도]" 행을 둔다. 피드·내 댓글과
   같은 규칙이라 판정과 근거는 [`POST.md`](./POST.md) "다음 페이지 실패 처리"가 정본이다.
-- 검증: `useBookmarkPostList.test.tsx`(다음 페이지 실패 뒤 재요청 없음·다시 시도·재조회 대기·첫 페이지 실패 판정),
-  `e2e/list-fetch-failure.spec.ts`(폴더 글 500 → 오류 문구, 빈 상태 문구 없음).
+- **오프라인**: 첫 조회가 보내지지 않고 멈추면(`fetchStatus` paused) 빈 상태 대신 스피너를 보여주고, 다시 연결되면
+  받는다. 스피너 조건이 `isLoading`(받는 중이면서 데이터 없음)이라 멈춘 동안은 거짓이어서 "아직 북마크가 없어요."로
+  떨어졌다 — 지금은 `isPending`(데이터 없음)을 쓴다(`useBookmarkPostList.ts`, 2026-11-03 #491 후속).
+- **사이드바 폴더 행 hover 미리 받기 실패**: 토스트 없이 실패한 쿼리를 지우고, 폴더를 열 때 새로 요청한다
+  (`prefetchBookmarkFolderPosts` → `prefetchInfiniteQueryQuietly`, 상세 카드 hover와 같은 방식 — 폴더 글은 열기
+  전에 지켜보는 구독자가 없어 이것만으로 조용하다). 전에는 행을 지날 때마다 같은 실패 토스트가 쌓였다.
+- 검증: `useBookmarkPostList.test.tsx`(다음 페이지 실패 뒤 재요청 없음·다시 시도·재조회 대기·첫 페이지 실패 판정·
+  오프라인), `bookmark-folder.queries.test.ts` "북마크 hover 미리 받기"(폴더 목록·폴더 글 hover가 실패해도 토스트 0장·
+  쿼리 지움, 닫힌 창이 지켜보는 동안 hover 실패 0장, 열었다가 요청 중에 닫으면 0장·다시 열면 골격부터 1장, 미리 받는 중
+  창·목록이 열린 뒤 실패하면 토스트 1장), `query-client.test.ts` "꺼진 구독자만 있는 조회", `e2e/list-fetch-failure.spec.ts`
+  (폴더 글 500 → 오류 문구, 빈 상태 문구 없음).
 
 ### 링크 등록 폼의 폴더 선택(`PostCreateBookmarkFolderField`) — 이 페이지가 아닌 다른 화면
 

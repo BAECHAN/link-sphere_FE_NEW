@@ -3,7 +3,11 @@ import { act, render, type RenderOptions, type RenderResult } from '@testing-lib
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, type MemoryRouterProps } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
-import { QUERY_ERROR_POLICY, resolveErrorToast } from '@/shared/lib/react-query/config/error-toast';
+import {
+  QUERY_ERROR_POLICY,
+  isUnwatchedQueryFailure,
+  resolveErrorToast,
+} from '@/shared/lib/react-query/config/error-toast';
 import { shouldRetryQuery } from '@/shared/lib/react-query/config/retry-policy';
 
 /**
@@ -40,6 +44,10 @@ export function createQueryClientWithErrorToasts() {
   const queryClient = new QueryClient({
     queryCache: new QueryCache({
       onError: (error, query) => {
+        if (isUnwatchedQueryFailure(query)) {
+          return;
+        }
+
         const decision = resolveErrorToast(error, query.meta, QUERY_ERROR_POLICY);
 
         if (!decision.silent) {

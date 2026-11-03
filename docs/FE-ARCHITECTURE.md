@@ -1156,6 +1156,26 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
 - **알 수 없는 에러**: mutation은 콘솔 로깅 + 일반적인 에러 토스트, query는 조용히 종료
   (위 "`ApiError`가 아닌 에러" 참고)
 
+**조회 실패 토스트는 문구가 같으면 한 장이다**(2026-11-03). 위 판정이 id를 달지 않았으면 QueryCache `onError`가
+문구로 id(`query-error:<문구>`)를 단다(`queryClient.ts`의 `withQueryErrorToastId`). 미리 받기가 실패한 뒤 화면이 다시
+요청하거나 여러 조회가 함께 실패해도 같은 안내가 쌓이지 않게 하려는 것이다. 판정이 단 고정 id(`EDGE_BLOCKED`·429)는
+그대로 쓴다. mutation은 사용자가 누른 동작마다 결과를 알려야 해 id를 달지 않는다. 다른 토스트 라이브러리·디자인
+시스템의 같은 관행은 [`plans/2026-11-03-error-toast-followups-review.md`](./plans/2026-11-03-error-toast-followups-review.md)
+"업계 근거"에 있다. 테스트: `query-client.test.ts`. 한계: 토스트가 떠 있는 동안 같은 문구로 또 실패하면(목록의 "다시
+시도"가 곧바로 또 실패하는 등) 새 토스트가 따로 뜨지 않고, 떠 있던 토스트가 그 자리에서 사라질 때까지의 시간을 다시
+센다(sonner 2.0.7 `dist/index.mjs:581-614` — 토스트 객체가 바뀌면 타이머를 다시 시작한다). 실패는 화면의 오류 문구가
+계속 보여 준다.
+
+**꺼진 구독자만 지켜보는 조회는 실패를 알리지 않게 할 수 있다**(2026-11-03). `meta.silentWhenInactive`를 단 조회가
+켜진(enabled) 구독자 없이 실패하면 QueryCache `onError`가 위 판정 전에 조용히 끝낸다(`error-toast.ts`의
+`isUnwatchedQueryFailure`). 닫힌 채 마운트된 폴더 선택 창처럼 실패를 보여 줄 화면이 없는 조회용이다([`BOOKMARK.md`](./BOOKMARK.md)
+"hover 프리페치"). 창 쪽에서 열림 여부로 meta를 바꾸지 않는 이유: 쿼리 옵션은 쿼리당 한 벌이라 구독자가 다시 그려질
+때마다 meta를 덮어써(query-core 5.90.16 `queryObserver.js:94`) 마지막에 그려진 창이 이긴다. 그래서 실패 순간의
+`query.isActive()`(`query.js:86-90`)로 본다. 이 조회를 쓰는 훅·미리 받기가 모두 같은 meta를 달아야 덮어써도 남는다
+(`bookmark-folder.queries.ts`의 `BOOKMARK_FOLDER_LIST_META`). 구독자가 0명이어도 조용해지므로 suspense 조회에는 달지
+않는다 — suspense 첫 로딩은 화면이 구독하기 전에 요청한다(`queryObserver.js:163-167`). 테스트: `query-client.test.ts`
+"꺼진 구독자만 있는 조회".
+
 ### 수동 에러 핸들링 (`manualErrorHandling`)
 
 ```typescript
@@ -1249,11 +1269,12 @@ sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를
 
 ## 15. Mutation/Query Meta 옵션
 
-| 키                    | 타입      | 효과                                                                               |
-| --------------------- | --------- | ---------------------------------------------------------------------------------- |
-| `successMessage`      | `string`  | 자동으로 성공 토스트 표시 (정적 문자열만 — 분기 필요 시 위 §14 예외)               |
-| `errorMessage`        | `string`  | 기본 대신 커스텀 에러 토스트 표시                                                  |
-| `manualErrorHandling` | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용, mutation·query 둘 다 지원) |
+| 키                    | 타입      | 효과                                                                                          |
+| --------------------- | --------- | --------------------------------------------------------------------------------------------- |
+| `successMessage`      | `string`  | 자동으로 성공 토스트 표시 (정적 문자열만 — 분기 필요 시 위 §14 예외)                          |
+| `errorMessage`        | `string`  | 기본 대신 커스텀 에러 토스트 표시                                                             |
+| `manualErrorHandling` | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용, mutation·query 둘 다 지원)            |
+| `silentWhenInactive`  | `boolean` | query 전용 — 켜진 구독자 없이 실패하면 토스트 억제 (닫힌 채 마운트된 창이 지켜보는 조회, §13) |
 
 ---
 

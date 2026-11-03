@@ -253,7 +253,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   상세 라우트는 들어올 때 페이지 청크와 함께 게시글과 댓글을 요청한다([`COMMENT.md`](./COMMENT.md) "해시 이동").
   - **hover 미리 받기가 실패하면**(2026-11-03, #491 3번): 토스트 없이 실패한 쿼리를 캐시에서 지워, 상세가 열릴 때
     새로 요청한다(`prefetchQueryQuietly`, `src/shared/lib/react-query/prefetch-quietly.ts`). 카드·내 댓글 카드의
-    `prefetchPostDetail`·`prefetchComments`가 쓴다. 그 전에는 `prefetchQuery`가 promise 실패만 삼켜 전역 에러
+    `prefetchPostDetail`·`prefetchComments`가 쓴다(사이드바 폴더 행 hover도 같은 방식. 북마크 버튼은 닫힌 폴더 창이 목록을
+    지켜보고 있어 `meta.silentWhenInactive`를 더한다, [`BOOKMARK.md`](./BOOKMARK.md) "hover 프리페치"). 그 전에는 `prefetchQuery`가 promise 실패만 삼켜 전역 에러
     토스트가 떴다. 계획 단계 측정(설치본 query-core 5.90.16을 메모리에서 실행)으로는 같은 카드 제목 3번 hover에
     3번, 카드 5장을 지나가면 5번이었다. 실패한 쿼리가 캐시에 남아 상세 화면도 다시 요청하지 않고 에러 화면이 됐다.
     재현 절차는 [계획 문서](./plans/2026-11-03-error-toast-followups.md) "재현 절차"에 있다.
