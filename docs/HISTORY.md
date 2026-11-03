@@ -1,4 +1,8 @@
 ### 2026-11-03 (FE)
+- 폼 상태 관리 최적화 및 린트 안정성 확보
+  - `watch()`를 `useWatch`와 `subscribe` 방식으로 전환하여 React Hook 규칙 위반 가능성 제거 및 렌더링 성능 개선 ([#501](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/501))
+
+### 2026-11-03 (FE)
 - 에러 상태 관리 개선: 조회 실패 화면 이탈 후 재진입 시 이전 에러를 유지하지 않고 데이터를 다시 요청하도록 로직 수정 ([#500](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/500))
 
 ### 2026-11-03 (FE)
