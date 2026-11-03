@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, screen, waitFor } from '@testing-library/react';
 import { renderWithProviders, userEvent } from '@/test/utils';
+import { onlineManager } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
@@ -500,6 +501,81 @@ describe('PostCardBookmarkFolderDialog', () => {
     await user.click(screen.getByText('북마크 제거'));
 
     await waitFor(() => expect(unbookmarkCalled).toBe(true));
+  });
+
+  describe('폴더 목록을 받지 못했을 때', () => {
+    it('폴더 자리에 안내와 다시 시도를 두고, 목록 없이 되는 행은 그대로 쓸 수 있다', async () => {
+      server.use(
+        http.get(url(API_ENDPOINTS.bookmark.folders), () =>
+          HttpResponse.json(
+            { status: 500, message: 'server error', data: null, timestamp: '' },
+            { status: 500 }
+          )
+        )
+      );
+      renderDialog();
+
+      expect(await screen.findByText('폴더 목록을 불러오지 못했어요.')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '다시 시도' })).toBeEnabled();
+      // 개수를 모르니 0으로 보이지 않게 감춘다 - 이름이 정확히 '미분류'뿐이다
+      expect(screen.getByRole('button', { name: '미분류' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: '새 폴더 만들기' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: '북마크 제거' })).toBeEnabled();
+      expect(screen.queryByText('내 폴더')).not.toBeInTheDocument();
+    });
+
+    it('다시 시도를 누르면 목록을 다시 받아 보여 준다', async () => {
+      const user = userEvent.setup();
+      let requests = 0;
+      server.use(
+        http.get(url(API_ENDPOINTS.bookmark.folders), () => {
+          requests += 1;
+
+          if (requests === 1) {
+            return HttpResponse.json(
+              { status: 500, message: 'server error', data: null, timestamp: '' },
+              { status: 500 }
+            );
+          }
+
+          return HttpResponse.json(
+            { status: 200, message: 'ok', data: folderListResponse, timestamp: '' },
+            { status: 200 }
+          );
+        })
+      );
+      renderDialog();
+
+      await user.click(await screen.findByRole('button', { name: '다시 시도' }));
+
+      await waitFor(() => expect(screen.getByText('개발')).toBeInTheDocument());
+      expect(screen.queryByText('폴더 목록을 불러오지 못했어요.')).not.toBeInTheDocument();
+      // 이름은 행 글자를 이어 붙인 것이라 개수가 띄어쓰기 없이 붙는다
+      expect(screen.getByRole('button', { name: '미분류1' })).toBeEnabled();
+      expect(requests).toBe(2);
+    });
+
+    it('창을 연 순간 오프라인이면 목록 자리 골격을 보이고, 다시 연결되면 목록을 받는다', async () => {
+      onlineManager.setOnline(false);
+
+      try {
+        renderDialog();
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        });
+
+        // 요청이 멈춘 동안은 목록을 기다리는 화면(FolderListLoading)이다 - 빈 목록처럼 '미분류 0'을 보이지 않는다
+        expect(screen.getByRole('button', { name: '미분류' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: '새 폴더 만들기' })).toBeDisabled();
+      } finally {
+        act(() => {
+          onlineManager.setOnline(true);
+        });
+      }
+
+      await waitFor(() => expect(screen.getByText('개발')).toBeInTheDocument());
+      expect(screen.getByRole('button', { name: '미분류1' })).toBeEnabled();
+    });
   });
 
   describe('최근 저장한 폴더 (split menu 상단 구획)', () => {

@@ -28,7 +28,14 @@ export function useBookmarkFolderSelect({
   onSelectUncategorized,
   onSelectFolder,
 }: UseBookmarkFolderSelectParams) {
-  const { data, isLoading, isFetching } = useBookmarkFolderListQuery({ enabled: open });
+  // 기다리는 화면은 isLoading이 아니라 isPending(데이터 없음)으로 판단한다 - 오프라인이라 요청이 멈추면(fetchStatus
+  // paused) isLoading이 거짓이라 빈 목록처럼 '미분류 0'이 떴다. 다시 연결되면 저절로 받는다
+  const { data, isPending, isError, isFetching, refetch } = useBookmarkFolderListQuery({
+    enabled: open,
+  });
+  // 목록을 한 번도 받지 못하고 실패했다 - 폴더 자리에 안내와 다시 시도를 둔다. 받아 둔 목록이 있으면 다시 받기가
+  // 실패해도 그 목록을 그대로 보인다(실패 토스트는 전역 핸들러가 띄운다)
+  const isFolderListFailed = isError && data === undefined;
   // 잘못 라우팅된 응답(HTML 등) 방어 — 배열이 아니면 빈 목록으로 처리해 화면 전체 크래시 방지
   const folderList = Array.isArray(data?.folders) ? data.folders : [];
   const uncategorizedCount = data?.uncategorizedCount ?? 0;
@@ -100,8 +107,15 @@ export function useBookmarkFolderSelect({
     setCreatingMode(false);
   };
 
+  // 데이터 없이 다시 받으면 isPending으로 돌아가 기다리는 화면(골격)이 먼저 보인다
+  const retryFolderList = () => {
+    refetch();
+  };
+
   return {
-    isLoading,
+    isPending,
+    isFolderListFailed,
+    retryFolderList,
     folderList: orderedFolderList,
     uncategorizedCount,
     recentFolderList,

@@ -1,4 +1,14 @@
-import { Bookmark, BookmarkX, Check, FolderPlus, Loader2, Pin, Plus, X } from 'lucide-react';
+import {
+  Bookmark,
+  BookmarkX,
+  Check,
+  FolderPlus,
+  Loader2,
+  Pin,
+  Plus,
+  RotateCw,
+  X,
+} from 'lucide-react';
 import { Dialog, DialogTitle, DialogDescription } from '@/shared/ui/atoms/dialog';
 import { SheetDialogContent } from '@/shared/ui/elements/dialog/SheetDialogContent';
 import { Button } from '@/shared/ui/atoms/button';
@@ -53,7 +63,9 @@ export function BookmarkFolderSelectDialog({
 }: BookmarkFolderSelectDialogProps) {
   const isMobile = useIsMobile();
   const {
-    isLoading,
+    isPending,
+    isFolderListFailed,
+    retryFolderList,
     folderList,
     uncategorizedCount,
     recentFolderList,
@@ -111,7 +123,7 @@ export function BookmarkFolderSelectDialog({
           </Button>
         </div>
 
-        {isLoading ? (
+        {isPending ? (
           <FolderListLoading isMobile={isMobile} dangerActionLabel={dangerAction?.label} />
         ) : (
           <>
@@ -138,15 +150,29 @@ export function BookmarkFolderSelectDialog({
             {/* 본문 — 폴더 목록만 스크롤 */}
             <div className={cn('overflow-y-auto', isMobile ? 'max-h-[70vh]' : 'max-h-96')}>
               <ul className="py-1">
-                {/* 미분류 */}
+                {/* 미분류 — 목록 없이도 저장할 수 있다. 목록을 받지 못했으면 개수를 모르니 0으로 보이지 않게 감춘다 */}
                 <FolderRow
                   icon={<Bookmark className="h-4 w-4" />}
                   name={TEXTS.bookmark.folder.uncategorized}
-                  count={uncategorizedCount}
+                  count={isFolderListFailed ? undefined : uncategorizedCount}
                   isSelected={isUncategorizedSelected}
                   isPending={pendingKey === UNCATEGORIZED_PENDING_KEY}
                   onClick={handleSelectUncategorized}
                 />
+
+                {/* 폴더 목록을 받지 못했을 때 — 폴더 자리에만 안내와 다시 시도를 둔다(2026-11-03 사용자 선택,
+                    docs/BOOKMARK.md "목록을 받지 못하면"). 모양은 LoadMoreError와 같다 */}
+                {isFolderListFailed && (
+                  <li className="flex flex-col items-center gap-2 border-t p-4">
+                    <p className="text-sm text-muted-foreground">
+                      {TEXTS.bookmark.folder.listLoadFailed}
+                    </p>
+                    <Button type="button" variant="outline" size="sm" onClick={retryFolderList}>
+                      <RotateCw aria-hidden="true" />
+                      {TEXTS.buttons.retry}
+                    </Button>
+                  </li>
+                )}
 
                 {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 */}
                 {recentFolderList.length > 0 && (

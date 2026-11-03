@@ -15,7 +15,7 @@ import { wrapResponse } from './wrap-response';
 
 /**
  * GET /bookmark/folders — 폴더 선택 모달이 열릴 때만 조회한다
- * (open=true일 때만 enabled, useBookmarkFolderSelect.ts:33).
+ * (open=true일 때만 enabled, useBookmarkFolderSelect.ts:34).
  */
 export async function mockBookmarkFolderList(page: Page): Promise<void> {
   await page.route(

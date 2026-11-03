@@ -106,6 +106,13 @@
 
 ### Fixed
 
+- `bookmark` 폴더 선택 창이 목록을 받지 못하면 그 자리에 안내와 다시 시도를 보임
+  <details><summary>배경·구현</summary>
+
+  폴더 선택 창(카드 북마크 버튼·글 등록 폼)이 폴더 목록을 한 번도 받지 못하고 실패하면 평소 목록 화면으로 넘어가, 폴더가 하나도 없는 사람처럼 보이고 미분류 개수가 0으로 틀리게 떴다. 실패를 알리는 건 전역 토스트뿐이었고, 다시 받으려면 창을 닫았다 열어야 했다. 이제 "미분류" 아래 폴더 자리에 "폴더 목록을 불러오지 못했어요." 안내와 [다시 시도]를 두고, 미분류 개수는 감춘다. 목록 없이 되는 미분류 저장·새 폴더 만들기·북마크 제거는 그대로 쓸 수 있다 — 본문 전체를 안내로 바꾸는 안과 미리보기로 비교해 사용자가 골랐다(2026-11-03). 다시 시도를 누르면 기존 로딩 골격부터 보이고, 실패 토스트는 지금처럼 함께 뜬다. 창을 연 순간 오프라인이라 요청이 멈춘 경우도 같은 "미분류 0" 화면이 떴는데, 골격 조건을 `isLoading`에서 `isPending`으로 바꿔 멈춘 동안 골격을 보이고 다시 연결되면 저절로 받는다. 동작과 근거는 `docs/BOOKMARK.md` "목록을 받지 못하면". (`src/features/bookmark/select/hooks/useBookmarkFolderSelect.ts`, `src/features/bookmark/select/ui/BookmarkFolderSelectDialog.tsx`, `src/shared/config/texts.ts`, `src/features/bookmark/toggle/ui/PostCardBookmarkFolderDialog.test.tsx`, `docs/BOOKMARK.md`, [PR #508](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/508))
+
+  </details>
+
 - `auth` 개발 서버에서 이메일 인증 화면이 확인 중에 멈추던 것을 고침
   <details><summary>배경·구현</summary>
 
