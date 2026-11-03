@@ -145,8 +145,9 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
 }
 
 export function CommentList({ postId, postAuthorId }: CommentListProps) {
+  // 알림 클릭처럼 상세에서 다른 상세로 가면 이 컴포넌트가 그대로 남는다 - 글이 바뀌면 앞 글의 에러 화면을 푼다
   return (
-    <AsyncBoundary>
+    <AsyncBoundary resetKeys={[postId]}>
       <CommentListContent postId={postId} postAuthorId={postAuthorId} />
     </AsyncBoundary>
   );

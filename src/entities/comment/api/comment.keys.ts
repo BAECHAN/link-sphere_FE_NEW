@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { Post, postInvalidateQueries } from '@/entities/post/@x/comment';
+import { isUnusedFailedQuery } from '@/shared/lib/react-query/unused-failed-query';
 
 const rootKey = ['comments'] as const;
 
@@ -20,6 +21,24 @@ export const commentInvalidateQueries = {
   },
   my: (queryClient: QueryClient) => {
     queryClient.invalidateQueries({ queryKey: commentKeys.myRoot });
+  },
+};
+
+/** 데이터 없이 실패한 댓글 목록. 그 목록을 보여 주던 화면을 떠날 때 지운다(isUnusedFailedQuery 주석 참고). */
+export const commentRemoveQueries = {
+  erroredList: (queryClient: QueryClient, postId: Post['id']) => {
+    queryClient.removeQueries({
+      queryKey: commentKeys.list(postId),
+      exact: true,
+      predicate: isUnusedFailedQuery,
+    });
+  },
+  erroredMy: (queryClient: QueryClient) => {
+    queryClient.removeQueries({
+      queryKey: commentKeys.myRoot,
+      exact: true,
+      predicate: isUnusedFailedQuery,
+    });
   },
 };
 

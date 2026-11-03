@@ -7,6 +7,7 @@ import {
 } from '@/widgets/post/post-list/hooks/usePostList';
 import { PostListSkeleton } from '@/widgets/post/post-list/ui/PostCardSkeleton';
 import { Post } from '@/entities/post/model/post.schema';
+import { useRemoveErroredPostListsOnLeave } from '@/entities/post/hooks/useRemoveErroredPostListsOnLeave';
 
 import type { CardGridSpec } from '@/shared/hooks/useWindowGridVirtualizer';
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
@@ -32,6 +33,8 @@ interface PostListProps {
 export function PostList({ renderPost, grid }: PostListProps) {
   const { resetKeys, onReset } = usePostListErrorReset();
   const isApplying = usePostListApplying();
+  // 에러 경계 밖에서 불러야 목록이 에러를 던진 채로 떠나도 정리가 돈다
+  useRemoveErroredPostListsOnLeave();
 
   // 덮개는 absolute가 아니라 grid 같은 칸에 겹친다 - 이 래퍼를 relative로 두면 가상 스크롤이
   // 목록 위치를 재는 offsetTop(useWindowGridVirtualizer.ts의 useScrollMargin)의 기준이 이 래퍼로

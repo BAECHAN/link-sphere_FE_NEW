@@ -2,6 +2,7 @@ import { Loader2 } from 'lucide-react';
 import { useMyCommentList } from '@/widgets/comment/my-comment-list/hooks/useMyCommentList';
 import { MyCommentCard } from '@/widgets/comment/my-comment-list/ui/MyCommentCard';
 import { MyCommentListSkeleton } from '@/widgets/comment/my-comment-list/ui/MyCommentCardSkeleton';
+import { useRemoveErroredMyCommentsOnLeave } from '@/entities/comment/hooks/useRemoveErroredMyCommentsOnLeave';
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import { EmptyState } from '@/shared/ui/elements/EmptyState';
@@ -10,6 +11,9 @@ import { LoadMoreError } from '@/shared/ui/elements/LoadMoreError';
 import { TEXTS } from '@/shared/config/texts';
 
 export function MyCommentList() {
+  // 에러 경계 밖에서 불러야 목록이 에러를 던진 채로 떠나도 정리가 돈다
+  useRemoveErroredMyCommentsOnLeave();
+
   return (
     <AsyncBoundary
       loadingFallback={

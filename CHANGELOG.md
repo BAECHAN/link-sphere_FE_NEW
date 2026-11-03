@@ -99,6 +99,13 @@
 
 ### Fixed
 
+- `shared` 조회에 실패한 화면을 떠났다 돌아오면 같은 에러 대신 다시 요청함
+  <details><summary>배경·구현</summary>
+
+  상세·댓글·피드 목록·내 댓글(앱의 suspense 쿼리 4개)이 데이터 없이 실패하면, 서버가 회복된 뒤 5분 안에 뒤로가기·알림·주소로 다시 들어와도 요청 없이 같은 에러 화면이 떴다. 실패한 쿼리가 gc(5분)까지 캐시에 남고, 에러 경계가 리셋되기 전에는 화면이 마운트할 때 다시 요청하지 않기 때문이다(`@tanstack/react-query` 5.90.16 `errorBoundaryUtils.js:8-11`의 `retryOnMount=false`, query-core `queryObserver.js:442-443`). 이제 화면을 떠날 때 실패했고 데이터가 없고 보는 화면이 없는 쿼리(`isUnusedFailedQuery`)를 지운다 — 상세·댓글은 `PostDetailRoute`, 피드는 `PostList`, 내 댓글은 `MyCommentList`가 에러 경계 밖에서 `useRemoveErrored*OnLeave` 훅을 부른다. 검색 조건을 바꿀 때 실패한 목록을 지우던 `postRemoveQueries.erroredLists`도 같은 조건으로 바꿔, 1쪽을 받고 다음 쪽만 실패한 목록은 남긴다(#491 6번). 알림으로 상세에서 다른 상세로 가면 상세 컴포넌트가 그대로 남아 앞 글의 에러 화면이 다음 글에도 남던 것도, `PostDetailPage`·`CommentList`의 에러 경계에 `resetKeys`로 글 id를 넘겨 고쳤다. 에러 화면에 [다시 시도] 버튼을 더하는 안은 고르지 않았다(2026-11-03 사용자 선택). 요청 중에 떠났다가 그 뒤 실패한 경우와 수정 페이지에서 실패한 상세는 남는다. 규칙은 `docs/FE-ARCHITECTURE.md` §13, 동작은 `docs/POST.md` "조회에 실패한 화면에 다시 들어오기", 계획은 [`docs/plans/2026-11-03-error-toast-followups-review.md`](docs/plans/2026-11-03-error-toast-followups-review.md) PR ①([#491](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/491) 후속 3·6번). (`src/shared/lib/react-query/unused-failed-query.ts`(신규), `src/entities/post/api/post.keys.ts`, `src/entities/comment/api/comment.keys.ts`, `src/entities/post/hooks/useRemoveErroredPostDetailOnLeave.ts`(신규), `src/entities/post/hooks/useRemoveErroredPostListsOnLeave.ts`(신규), `src/entities/comment/hooks/useRemoveErroredCommentsOnLeave.ts`(신규), `src/entities/comment/hooks/useRemoveErroredMyCommentsOnLeave.ts`(신규), `src/app/routes/index.tsx`, `src/widgets/post/post-list/ui/PostList.tsx`, `src/widgets/comment/my-comment-list/ui/MyCommentList.tsx`, `src/pages/post/PostDetailPage.tsx`, `src/widgets/comment/comment-list/ui/CommentList.tsx`, 테스트 6곳, `e2e/failed-query-reentry.spec.ts`(신규), `docs/FE-ARCHITECTURE.md`, `docs/POST.md`, `docs/COMMENT.md`, `docs/SEARCH.md`, [PR #500](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/500))
+
+  </details>
+
 - `auth` 재설정 링크 거절·가입 중복이면 폼이 실패를 보여주고, 첨부가 막히면 댓글 실패 안내를 남김
   <details><summary>배경·구현</summary>
 
