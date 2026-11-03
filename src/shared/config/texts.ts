@@ -388,6 +388,7 @@ export const TEXTS = {
       selectorTitle: '북마크에 저장',
       selectorDescription: '폴더를 탭하면 바로 저장돼요.',
       recentSection: '최근 저장한 폴더',
+      listLoadFailed: '폴더 목록을 불러오지 못했어요.',
       pin: '고정',
       unpin: '고정 해제',
       removeBookmark: '북마크 제거',
