@@ -106,6 +106,13 @@
 
 ### Fixed
 
+- `auth` 개발 서버에서 이메일 인증 화면이 확인 중에 멈추던 것을 고침
+  <details><summary>배경·구현</summary>
+
+  `pnpm dev`(StrictMode)에서 이메일 인증 링크를 열면 확인 요청은 한 번 나가 응답도 받지만 화면이 "확인 중"에 멈췄다. StrictMode가 effect를 정리했다 다시 붙일 때 `useMutation`의 구독이 잠깐 풀리며 observer가 진행 중인 mutation에서 떨어지고(@tanstack/query-core 5.90.16 `mutationObserver.js:38-42`), 다시 구독해도 붙지 않는다(`subscribable.js:18-19`의 빈 `onSubscribe`). 1회용 토큰이라 ref로 재요청을 막아 두었으니 observer는 응답을 받지 못했다. 이제 결과를 `mutateAsync`의 promise로 받아 훅의 state에 담는다 — promise는 observer와 상관없이 끝나고, StrictMode 재실행은 state를 지우지 않는다(react-dom 18.3.1 `react-dom.development.js:27354-27374`). 배포본은 StrictMode 재실행이 없어 전에도 이 문제가 없었다. 함께 #503 뒤로 쓰는 곳이 없어진 `useAccount().isLoggedIn`을 뺐다. (`src/features/auth/email-verification/hooks/useConfirmEmailVerification.ts`, `useConfirmEmailVerification.test.tsx`, `src/entities/account/hooks/useAccount.ts`, `useAccount.test.tsx`, [PR #506](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/506))
+
+  </details>
+
 - `auth` 이메일 인증 화면이 로그인 사용자에게 로그인하러 가기 버튼을 띄우던 것을 고침
   <details><summary>배경·구현</summary>
 
