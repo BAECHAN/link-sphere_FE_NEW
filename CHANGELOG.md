@@ -99,6 +99,13 @@
 
 ### Fixed
 
+- `auth` 이메일 인증 화면이 로그인 사용자에게 로그인하러 가기 버튼을 띄우던 것을 고침
+  <details><summary>배경·구현</summary>
+
+  이메일 인증 링크 화면(`VerifyEmailStatus`)은 인증 게이트 밖이라 로그인 여부를 스스로 정하는데, 그 기준이 계정 프로필이 있는지(`useAccount().isLoggedIn` = `!!account`)였다. 프로필은 로그인한 뒤 `/auth/account`로 따로 받아 오므로, 인증 확인이 프로필보다 먼저 끝나거나 프로필 조회가 실패하면 로그인 사용자에게도 "로그인하러 가기"·인증 실패 때 로그인 버튼이 떴다. 이제 다른 화면(게이트 A·`Navbar`)과 같은 로그인 플래그(`useAuthStore.isAuthenticated`)로 정하고, 복원이 끝나기 전(`isAuthResolved` 전)에는 확인 요청이 먼저 끝나도 "확인 중" 화면을 유지해 버튼을 정하지 않는다 — 로그인 흔적이 있는 사용자는 결과 화면이 복원 응답만큼 늦게 뜬다. 이 화면은 이제 `/auth/account`를 요청하지 않는다. 동작은 `docs/AUTH.md` §5 "라우트 그룹 구성". (`src/features/auth/email-verification/ui/VerifyEmailStatus.tsx`, `VerifyEmailStatus.test.tsx`(신규), `docs/AUTH.md`, [PR #503](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/503))
+
+  </details>
+
 - `shared` 조회에 실패한 화면을 떠났다 돌아오면 같은 에러 대신 다시 요청함
   <details><summary>배경·구현</summary>
 
