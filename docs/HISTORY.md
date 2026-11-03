@@ -1,4 +1,7 @@
 ### 2026-11-03 (FE)
+- 에러 상태 관리 개선: 조회 실패 화면 이탈 후 재진입 시 이전 에러를 유지하지 않고 데이터를 다시 요청하도록 로직 수정 ([#500](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/500))
+
+### 2026-11-03 (FE)
 - 북마크 폴더 선택 UI 성능 최적화: 새 폴더명 입력 시 불필요한 목록 리렌더링 방지 ([#499](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/499))
 
 ### 2026-11-03 (FE)
