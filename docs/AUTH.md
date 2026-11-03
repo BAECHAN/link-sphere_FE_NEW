@@ -118,7 +118,9 @@ RootLayout
 
 `GuestGuard`(`routes/index.tsx`의 `GuestGuard` 함수, `:90-104`)는 반대 방향 가드입니다 — 로그인 상태로 `/auth/login`에 오면 이전 경로(`location.state.from.pathname`) 또는 `HOME`으로 돌려보냅니다.
 
-`/auth/verify-email`은 어느 가드에도 속하지 않고 `routes/index.tsx:237-240`에서 `AuthLayout`만 직접 씌워 별도 라우트로 둡니다 — 로그인·비로그인 양쪽 모두 접근 가능해야 하기 때문입니다(로그인 상태면 인증 완료만 안내, 비로그인이면 로그인 유도).
+`/auth/verify-email`은 어느 가드에도 속하지 않고 `routes/index.tsx:242-245`에서 `AuthLayout`만 직접 씌워 별도 라우트로 둡니다 — 로그인·비로그인 양쪽 모두 접근 가능해야 하기 때문입니다(로그인 상태면 인증 완료만 안내, 비로그인이면 로그인 유도).
+
+그래서 이 화면(`VerifyEmailStatus.tsx`)은 로그인 여부를 스스로 판단합니다. 기준은 게이트 A와 같은 `useAuthStore.isAuthenticated`이고, 계정 프로필(`useAccount()`의 `account`)은 쓰지 않습니다. 프로필은 로그인한 뒤 `/auth/account`로 따로 받아 오므로, 조회 전이나 조회 실패 때 로그인 사용자가 비로그인으로 보여 "로그인하러 가기" 버튼이 뜹니다(2026-11-03 수정 전 동작). 게이트 밖이라 복원 전에도 렌더되므로, `isAuthResolved`가 될 때까지는 확인 요청이 먼저 끝나도 "확인 중" 화면을 유지하고 버튼을 정하지 않습니다.
 
 ---
 
@@ -544,7 +546,7 @@ if (!accessToken && hasStoredSession()) {
 setAuthResolved(true); // :66 성공/실패/미시도 무관 항상
 ```
 
-비로그인 방문자(플래그 없음)는 네트워크 요청 0회로 즉시 끝납니다. `setAuthResolved(true)`가 `finally`에 있는 게 핵심입니다 — 이게 없으면 게이트 A가 영원히 스피너에 머뭅니다. 공개 그룹의 `AppShellLayout`도 has-session 플래그가 있으면 `isAuthResolved`가 될 때까지 스피너를 띄우므로(복원 전에 공개 목록 요청이 비로그인으로 먼저 나가 본인 비공개 글이 빠지는 레이스 방지) 같은 영향을 받습니다.
+비로그인 방문자(플래그 없음)는 네트워크 요청 0회로 즉시 끝납니다. `setAuthResolved(true)`가 `finally`에 있는 게 핵심입니다 — 이게 없으면 게이트 A가 영원히 스피너에 머뭅니다. 공개 그룹의 `AppShellLayout`도 has-session 플래그가 있으면 `isAuthResolved`가 될 때까지 스피너를 띄우므로(복원 전에 공개 목록 요청이 비로그인으로 먼저 나가 본인 비공개 글이 빠지는 레이스 방지) 같은 영향을 받습니다. 이메일 인증 확인 화면(`VerifyEmailStatus.tsx`)도 `isAuthResolved` 전에는 "확인 중"에 머뭅니다(§5 "라우트 그룹 구성").
 
 부트스트랩 refresh에는 `X-Access-Token`이 없습니다(토큰은 메모리에만 있어 새로고침하면 비어 있음). 그래서 BE의
 "쿠키 주인과 같은 회원인가" 확인(§8-B "쿠키 주인이 다른 회원이라 갱신이 거절될 때")을 거치지 않고 쿠키 주인

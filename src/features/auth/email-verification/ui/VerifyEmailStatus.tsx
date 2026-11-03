@@ -6,12 +6,16 @@ import { Link } from 'react-router-dom';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useConfirmEmailVerification } from '@/features/auth/email-verification/hooks/useConfirmEmailVerification';
-import { useAccount } from '@/entities/account/hooks/useAccount';
+import { useAuthStore } from '@/shared/store/auth.store';
 import { TEXTS } from '@/shared/config/texts';
 
 export const VerifyEmailStatus = () => {
-  const { status } = useConfirmEmailVerification();
-  const { isLoggedIn } = useAccount();
+  const { status: confirmStatus } = useConfirmEmailVerification();
+  // 로그인 여부는 계정 프로필(useAccount)이 아니라 로그인 플래그로 정한다 - 프로필은 로그인 뒤에 따로 받아 와
+  // 조회 전·실패 때 비로그인으로 보인다. 이 화면은 인증 게이트 밖이라, 복원이 끝날 때까지는 확인 중으로 둔다
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isAuthResolved = useAuthStore((state) => state.isAuthResolved);
+  const status = isAuthResolved ? confirmStatus : 'pending';
 
   return (
     <div className="flex h-[calc(100vh-var(--navbar-height))] items-center justify-center px-4">
@@ -43,12 +47,14 @@ export const VerifyEmailStatus = () => {
           <CardFooter>
             <Button asChild className="w-full h-11">
               {status === 'success' ? (
-                <Link to={isLoggedIn ? ROUTES_PATHS.POST.ROOT : ROUTES_PATHS.AUTH.LOGIN}>
-                  {isLoggedIn ? TEXTS.auth.verifyEmail.goToFeed : TEXTS.auth.verifyEmail.goToLogin}
+                <Link to={isAuthenticated ? ROUTES_PATHS.POST.ROOT : ROUTES_PATHS.AUTH.LOGIN}>
+                  {isAuthenticated
+                    ? TEXTS.auth.verifyEmail.goToFeed
+                    : TEXTS.auth.verifyEmail.goToLogin}
                 </Link>
               ) : (
-                <Link to={isLoggedIn ? ROUTES_PATHS.MY_ACCOUNT : ROUTES_PATHS.AUTH.LOGIN}>
-                  {isLoggedIn
+                <Link to={isAuthenticated ? ROUTES_PATHS.MY_ACCOUNT : ROUTES_PATHS.AUTH.LOGIN}>
+                  {isAuthenticated
                     ? TEXTS.auth.verifyEmail.goToAccountSettings
                     : TEXTS.auth.verifyEmail.goToLogin}
                 </Link>
