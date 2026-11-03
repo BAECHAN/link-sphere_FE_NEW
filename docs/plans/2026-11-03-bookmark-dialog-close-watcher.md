@@ -16,6 +16,8 @@
 - 계획에 없던 변경(문서 동기화): `docs/BOOKMARK.md` 용어 사전에 `useBackClosableOverlay`·`CloseWatcher`를, "남은
   것"에 Android 실기기 미확인을, §5에 Esc가 두 번 처리되지 않는 이유를 더함. Firefox Android·실기기 미확인은
   계획(PR에만 적기)과 달리 BOOKMARK·DECISIONS에도 적음
+- 병합 뒤 확인(#507): 검증 4(Android 실기기)는 사용자가 뒤로가기·회전·로그인 뒤 재개·글 등록 폼을 확인함 — 문제 없음.
+  BOOKMARK "남은 것"의 실기기 미확인 항목을 지우고 §9 검증 결과로 옮김. 검증 5(Firefox Android)는 여전히 확인 수단이 없다
 
 <!-- plan-result:end -->
 
