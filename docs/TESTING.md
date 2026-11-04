@@ -809,6 +809,16 @@ Playwright는 `fullyParallel` 워커마다 config 파일을 각자 다시 평가
 폴백), `--strictPort`로 그 사이 레이스가 나도 조용히 잘못된 서버에 붙는 대신 즉시
 실패하게 한다.
 
+**빈 포트를 루프백 주소마다 따로 보는 이유** — 2026-11-04까지 `pick-e2e-port.js`는 호스트 없이(모든 주소에) 묶어
+보고 성공하면 "비었다"고 판정했다. 그런데 e2e vite는 host를 주지 않아 `localhost`에만 묶인다(vite 6.4.1
+`resolveHostname`이 host가 없으면 `"localhost"`를 쓴다, `node_modules/vite/dist/node/chunks/dep-D4NMHUTW.js:7067`. macOS
+Node 24에서 `localhost`는 `::1`). 특정 주소에 묶인 포트에도 모든 주소로는 또 묶이므로, 다른 세션이 31120에서 e2e를
+돌리는 중이어도 31120을 골랐고 `reuseExistingServer`가 그 서버를 재사용했다 — 위 "대역인 이유"가 막으려던 실패가 로컬에서는
+그대로 일어나고 있었다. 직접 재현(2026-11-04, Node 24.22.1·macOS): 다른 서버가 `localhost`·`127.0.0.1`·`::1`에 묶여 있으면
+옛 판정은 모두 "비었다"였고, 모든 주소에 묶였을 때만 "사용 중"이었다. 같은 날 녹화 측정이 다른 워크트리의 옛 화면을 찍은
+것으로 드러났다. 지금은 모든 주소·`127.0.0.1`·`::1`에 각각 묶어 보고 하나라도 실패하면 사용 중으로 본다(`scripts/lib/e2e-port.js`,
+IPv6가 없는 환경의 `::1` 주소 없음 오류는 사용 중으로 치지 않는다). 회귀는 `src/test/scripts/e2e-port.test.ts`가 잡는다.
+
 ```bash
 pnpm test:e2e          # chromium·mobile-chrome 두 프로젝트를 헤드리스로 1회 실행
 pnpm test:e2e:report   # 마지막 실행의 HTML 리포트 열기(스텝별 스크린샷·트레이스)

@@ -10,30 +10,9 @@
 // 로컬 재현: `CI=true pnpm exec playwright test`). 포트 선택을 playwright 프로세스 트리
 // 바깥의 별도 스크립트에서 딱 한 번만 하고, 그 결과를 환경변수로 넘기면 모든 워커가 같은
 // 값을 상속받는다(Node 자식 프로세스 env 상속은 OS 레벨이라 신뢰할 수 있다).
-import { createServer } from 'net';
+// 빈 포트 판정 규칙은 lib/e2e-port.js.
 import { E2E_SERVER_PORT_RANGE_START, E2E_SERVER_PORT_RANGE_END } from '../dev-server.config.ts';
-
-function isPortFree(port) {
-  return new Promise((resolve) => {
-    const server = createServer();
-
-    server.once('error', () => resolve(false));
-    server.once('listening', () => {
-      server.close(() => resolve(true));
-    });
-    server.listen(port);
-  });
-}
-
-async function pickFreePort(start, end) {
-  for (let port = start; port <= end; port += 1) {
-    if (await isPortFree(port)) {
-      return port;
-    }
-  }
-
-  throw new Error(`e2e 전용 포트 대역(${start}-${end})에 빈 포트가 없습니다.`);
-}
+import { pickFreePort } from './lib/e2e-port.js';
 
 const port = await pickFreePort(E2E_SERVER_PORT_RANGE_START, E2E_SERVER_PORT_RANGE_END);
 process.stdout.write(String(port));
