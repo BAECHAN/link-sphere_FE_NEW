@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { Navigate, useLocation, useParams, type RouteObject } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { ProtectedLayout } from './layouts/ProtectedLayout';
@@ -13,6 +13,7 @@ import { usePrefetchPostDetail } from '@/entities/post/api/post.queries';
 import { useRemoveErroredPostDetailOnLeave } from '@/entities/post/hooks/useRemoveErroredPostDetailOnLeave';
 import { usePostFeedPrefetch } from '@/widgets/post/post-list/hooks/usePostFeedPrefetch';
 import { useAuthStore } from '@/shared/store/auth.store';
+import { ChunkReloadUtil } from '@/shared/utils/chunk-reload.util';
 import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
 import { AuthLayout } from '@/shared/ui/layouts/AuthLayout';
 
@@ -32,8 +33,9 @@ const Post = lazy(() => import('@/pages/post').then((module) => ({ default: modu
 const PostSubmitPage = lazy(() =>
   import('@/pages/post/PostSubmitPage').then((module) => ({ default: module.PostSubmitPage }))
 );
+const loadPostDetailPage = () => import('@/pages/post/PostDetailPage');
 const PostDetailPage = lazy(() =>
-  import('@/pages/post/PostDetailPage').then((module) => ({ default: module.PostDetailPage }))
+  loadPostDetailPage().then((module) => ({ default: module.PostDetailPage }))
 );
 const PostEditPage = lazy(() =>
   import('@/pages/post/PostEditPage').then((module) => ({ default: module.PostEditPage }))
@@ -123,6 +125,67 @@ function PostFeedPrefetch() {
   return null;
 }
 
+const TOUCH_POINTER_QUERY = '(pointer: coarse)';
+
+/**
+ * 데이터 절약 모드(Save-Data)를 켰는지. 이 값을 주는 Network Information API는 Chrome Android·삼성 인터넷에만 있어
+ * (caniuse-lite 1.0.30001764 netinfo) iOS Safari·Firefox에서는 늘 false다
+ */
+function isSaveDataOn(): boolean {
+  const { connection } = navigator as Navigator & { connection?: { saveData?: boolean } };
+
+  return connection?.saveData === true;
+}
+
+/** 실패해도 피드를 새로고침하지 않는다(ChunkReloadUtil.preloadQuietly) */
+function preloadPostDetailPage() {
+  void ChunkReloadUtil.preloadQuietly(loadPostDetailPage);
+}
+
+/**
+ * 터치 기기에서 피드 첫 화면을 다 받은 뒤(load) 브라우저가 한가할 때 상세 페이지 청크를 미리 받는다. 터치에는 hover가
+ * 없어 카드 hover로 미리 받을 틈이 없고, 느린 회선에서는 탭한 뒤에야 받는 청크가 게시글·댓글보다 늦게 와 빈 화면이
+ * 길어졌다(docs/PERFORMANCE.md "상세 첫 진입 빈 화면"). load 뒤로 미뤄 LCP 썸네일·폰트와 다투지 않게 하고, 데이터 절약
+ * 모드면 받지 않는다. Safari에는 requestIdleCallback이 없어(caniuse-lite 1.0.30001764) setTimeout으로 대신한다.
+ */
+function usePreloadPostDetailPageOnTouch() {
+  useEffect(() => {
+    if (!window.matchMedia(TOUCH_POINTER_QUERY).matches || isSaveDataOn()) {
+      return;
+    }
+
+    const hasIdleCallback = 'requestIdleCallback' in window;
+    let handle: number | undefined;
+    const scheduleWhenIdle = () => {
+      if (hasIdleCallback) {
+        handle = window.requestIdleCallback(preloadPostDetailPage);
+      } else {
+        handle = window.setTimeout(preloadPostDetailPage);
+      }
+    };
+
+    if (document.readyState === 'complete') {
+      scheduleWhenIdle();
+    } else {
+      window.addEventListener('load', scheduleWhenIdle, { once: true });
+    }
+
+    return () => {
+      window.removeEventListener('load', scheduleWhenIdle);
+
+      if (handle === undefined) {
+        return;
+      }
+
+      if (hasIdleCallback) {
+        window.cancelIdleCallback(handle);
+      } else {
+        window.clearTimeout(handle);
+      }
+    };
+  }, []);
+}
+
 /**
  * 게시글 목록(피드) 라우트 — 페이지 청크를 요청하는 같은 렌더에서 필터 카드의 카테고리와 목록 첫 페이지도
  * 요청한다. 필터 카드의 useQuery는 커밋 뒤에야 요청하므로, 페이지 첫 커밋이 게시글을 기다리거나(청크가 빨리
@@ -132,6 +195,7 @@ function PostFeedPrefetch() {
  */
 function PostFeedRoute() {
   usePrefetchCategoryOptions();
+  usePreloadPostDetailPageOnTouch();
 
   return (
     <>

@@ -391,6 +391,146 @@ Resource Timing을 모았다. 모바일은 CDP `Network.emulateNetworkConditions
 
 가상 스크롤은 `/post` 첫 화면 페이지 청크가 바로 쓰므로, 옮기면 그 페이지의 요청이 늘 수 있다. 다음 PR에서 재고 정한다.
 
+### 상세 첫 진입 빈 화면 (직접 측정, 2026-11-04)
+
+피드에서 카드를 눌러 상세로 처음 들어가면, 피드가 사라진 뒤 상세가 보이기까지 빈 화면이 있었다. 데스크톱은 카드 hover
+때 게시글만 미리 받고 댓글은 누른 뒤에 요청했다. 모바일은 hover가 없어서 상세 페이지 코드(청크)도 누른 뒤에 받았다.
+두 가지를 바꿨다(2026-11-04 사용자 결정).
+
+- **데스크톱 — 머물면 댓글도**: 카드에서 누르면 상세로 가는 곳(제목 링크의 `::after`가 덮는 카드 전체)에 100ms 머물면
+  댓글도 미리 받는다. 게시글은 전처럼 올라가자마자 받고, 100ms 전에 떠나면 댓글 요청을 취소한다
+  (`widgets/post/post-card/hooks/usePostCard.ts`의 `COMMENTS_PREFETCH_HOVER_DELAY_MS`).
+- **모바일 — 한가할 때 청크를**: 터치 기기(`(pointer: coarse)`)에서는 피드 `load` 뒤 브라우저가 한가할 때 상세 청크를
+  미리 받는다. 데이터 절약 모드(Save-Data)면 받지 않는다(`app/routes/index.tsx`의 `usePreloadPostDetailPageOnTouch`).
+  비로그인 첫 진입에서 이 청크로 새로 받는 파일은 8개, brotli 약 11.7KB다.
+
+**측정 방법**: 운영 `/post`를 비로그인 새 컨텍스트(캐시 없음)로 열고 첫 카드 제목을 눌렀다. 누른 순간부터
+`requestAnimationFrame`마다 피드 카드 제목(`h3.text-card-title`), 상세 제목(`h3.text-detail-title`), 스피너(`.animate-spin`)가
+있는지 기록했다. "빈 화면"은 피드 카드가 사라진 프레임부터 상세 제목이 처음 보인 프레임까지다.
+
+- 도구는 Playwright Chromium이고 RUM 전송은 막았다.
+- 데스크톱은 감속 없이 1350×940에서 hover하고 300ms 뒤에 눌렀다.
+- 모바일은 412×823에서 탭했다. 감속은 Lighthouse 12.6.1 mobileSlow4G의 DevTools 환산값이다(요청마다 지연 562.5ms,
+  1.44Mbps, CPU 4배 — `@paulirish/trace_engine` 0.0.53 `models/trace/lantern/simulation/Constants.js:4-17`).
+- 구현 전에 흉내 내서 쟀다. 청크 미리 받기는 Vite preload 헬퍼처럼 의존 파일을 modulepreload로 넣고 청크를 import했다.
+  댓글 미리 받기는 게시글과 댓글을 함께 받는 💬 링크에 hover한 뒤 제목을 눌렀다.
+- 조건마다 5회, 실행 사이에 20초를 쉬었다. 운영 응답이 평소의 몇 배로 느려졌던 약 6분 동안의 3회와 60초 타임아웃 5회는
+  빼고 다시 채웠다. WAF 차단이었다면 403이 왔을 텐데 그렇지 않았다.
+
+| 조건                       | 빈 화면 중앙값(범위) | 상세가 보인 시각(누른 뒤) | 스피너가 보인 실행 |
+| -------------------------- | -------------------- | ------------------------- | ------------------ |
+| 데스크톱 · 바꾸기 전       | 133ms(83~167)        | 164ms                     | 0/5                |
+| 데스크톱 · hover 때 청크만 | 150ms(70~183)        | 181ms                     | 0/5                |
+| 데스크톱 · hover 때 댓글도 | 19ms(17~20)          | 48ms                      | 0/5                |
+| 데스크톱 · 청크 + 댓글     | 0ms(3회)             | 38ms                      | 0/3                |
+| 모바일 · 바꾸기 전         | 716ms(703~750)       | 745ms                     | 5/5                |
+| 모바일 · 한가할 때 청크    | 600ms(599~612)       | 635ms                     | 0/5                |
+
+- 데스크톱은 청크가 누른 뒤 37~41ms에 도착해 병목이 아니었다. 댓글이 101~183ms에 와서 상세가 그때까지 기다렸다. 그래서
+  청크를 미리 받아도 줄지 않았고, 댓글을 미리 받으니 줄었다. "청크 + 댓글"은 나머지 2회가 위 느린 구간에 걸려 3회만 남았다.
+- 모바일은 게시글(약 584ms)과 댓글(약 593ms)보다 청크(701~727ms)가 늦게 왔다. 청크를 미리 받으니 데이터를 기다리는 시간만
+  남아 600ms가 됐고, 그동안 스피너가 깜빡이지 않았다. 운영에서 미리 받은 청크는 약 0.68초 만에 도착했다.
+
+**원인 — 상세가 댓글을 기다린다**: 누르는 순간 출발하는 요청은 [위 "LCP 데이터 요청 시점"](#lcp-데이터-요청-시점-직접-측정-2026-10-26)대로
+청크·게시글·댓글이 함께 나간다. 그런데 상세가 댓글 도착까지(최대 500ms) 첫 화면을 미룬다. react-dom 18.3.1 설치본에서
+따라간 경로다.
+
+1. 상세 lazy 페이지는 처음 마운트되는 Suspense 경계라, `v7_startTransition` 안이어도 fallback을 바로 커밋한다
+   (`react-dom.development.js:22353-22358`). 피드가 사라지는 때가 이때고, fallback을 커밋한 시각을 남긴다(`:24504-24520`).
+2. 청크가 와서 다시 렌더할 때 댓글 영역이 새 fallback을 보여야 하면, 이 재시도 렌더의 커밋을 "마지막 fallback + 500ms"까지
+   미룬다(`FALLBACK_THROTTLE_MS = 500`, `:25372`, `:25935-25970`). 그 사이 댓글이 오면 댓글까지 한 번에 그린다.
+3. 그래서 상세가 보이는 때는 "댓글 도착"과 "피드가 사라진 때 + 500ms" 중 이른 쪽이다. 데스크톱에서 청크를 hover 때 받고
+   댓글 응답만 1,500ms 늦췄더니 빈 화면이 500.3·499.6ms였다(2회).
+
+```mermaid
+sequenceDiagram
+  participant U as 사용자
+  participant R as react-dom 18.3.1
+  participant N as 네트워크
+  U->>R: 카드 클릭
+  R->>N: 청크·게시글·댓글 요청(라우트가 함께 보냄)
+  R->>U: 상세 lazy 경계 fallback 커밋<br/>= 피드 사라짐
+  N-->>R: 청크 도착
+  R->>R: 댓글 영역이 새 fallback을 보여야 함<br/>→ 커밋 보류(fallback + 500ms까지)
+  N-->>R: 댓글 도착
+  R->>U: 상세와 댓글을 한 번에 커밋(빈 화면 끝)
+  Note over U,N: hover 때 댓글을 미리 받으면 "댓글 도착"이 클릭 전으로 당겨져 보류가 사라진다
+```
+
+**업계는 어떻게 하나(재인용)**: 아래는 조사 에이전트가 2026-11-04에 각 문서와 설치본 소스에서 확인해 보고한 내용이다.
+이 문서 작성자가 원문을 다시 열지는 않았다.
+
+| 도구                                                                                        | 기본 트리거·지연                                    | 받는 것                      | Save-Data                |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------- | ---------------------------- | ------------------------ |
+| [React Router](https://reactrouter.com/api/components/Link) framework 모드                  | 기본 없음, `intent`는 hover·focus·touch 뒤 100ms    | 모듈 + 데이터                | Link에는 검사 없음       |
+| [TanStack Router](https://tanstack.com/router/latest/docs/framework/react/guide/preloading) | 기본 없음, `intent` 50ms(touch는 즉시)              | 코드 + loader(코드만도 가능) | 찾지 못함                |
+| [SvelteKit](https://svelte.dev/docs/kit/link-options)                                       | 템플릿 기본이 데이터 `hover`, 마우스가 멈춘 뒤 20ms | 코드·데이터를 따로 지정      | 켜면 전부 건너뜀         |
+| [Astro](https://docs.astro.build/en/guides/prefetch/)                                       | opt-in, 켜면 `hover` 80ms                           | HTML                         | `tap`으로 낮춤           |
+| [instant.page](https://instant.page/)                                                       | hover 65ms, 모바일은 touchstart                     | HTML                         | viewport 모드에서만 검사 |
+| [Chrome Speculation Rules](https://developer.chrome.com/docs/web-platform/prerender-pages)  | `moderate`는 데스크톱 hover 200ms                   | 문서(prefetch·prerender)     | 켜면 막힘                |
+| [Next.js](https://nextjs.org/docs/app/guides/prefetching) App Router                        | 뷰포트 진입(프로덕션만)                             | 라우트 + 데이터              | App Router는 확인 못 함  |
+| [Angular `PreloadAllModules`](https://angular.dev/api/router/PreloadAllModules)             | 첫 이동 직후 모든 lazy 모듈                         | 코드만                       | 언급 없음                |
+
+- hover로 미리 받는 도구들은 20~200ms를 기다리고, 데이터와 코드를 함께 받는다. 이 레포의 React Router 6.30.3 데이터 모드에는
+  미리 받기 기능이 없다(설치본 `react-router-dom/dist/index.js`에 `prefetch` 0건).
+- 뷰포트 진입이 기본인 Next.js는 요청이 불어난 사례가 있다. [next.js#85470](https://github.com/vercel/next.js/issues/85470)에서
+  React 팀 acdlite는 _"요청마다 비용을 내거나 페이지에 링크가 많은 사이트에는 실제 문제다"_ (번역)라고 답했다. Next.js
+  [Prefetching 가이드](https://nextjs.org/docs/app/guides/prefetching)도 무한 스크롤 같은 큰 목록에서는 hover 때로 미루라고 권한다.
+- 코드만 미리 받는 쪽은 Angular 문서가 `PreloadAllModules`를 _"중소형 앱에 잘 맞는다"_ (번역)고 쓴다. SvelteKit, Nuxt, Gatsby,
+  Astro, quicklink, Chrome Speculation Rules가 Save-Data를 보고 미리 받기를 건너뛰거나 줄인다.
+
+**고른 것과 버린 것**:
+
+| 안                                  | 결과                                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| 카드 전체에 머물면 댓글도(채택)     | 데스크톱 빈 화면 133 → 19ms. 지나가기만 한 카드는 댓글을 받지 않는다      |
+| 터치 기기 한가할 때 청크(채택)      | 모바일 716 → 600ms, 스피너 깜빡임 5/5 → 0/5. Save-Data면 건너뜀           |
+| 제목에 hover할 때만 댓글            | 버림 — 카드의 빈 곳도 같은 링크라 상세로 간다(사용자 지적)                |
+| hover 때 청크도                     | 버림 — 데스크톱에서는 청크가 병목이 아니라 줄지 않았다(위 표 133 → 150ms) |
+| 뷰포트에 보이는 카드를 미리 받기    | 버림 — 무한 스크롤 피드라 요청이 카드 수만큼 는다(위 Next.js 사례)        |
+| React 19.2 `<Activity>`로 미리 렌더 | 버림 — 이 레포는 React 18.3.1이라 업그레이드가 먼저다                     |
+
+- **100ms라는 값**: 위 도구들의 20~200ms 가운데 React Router `intent`와 같은 값이다. instant.page는 _"큰 클릭 영역이 많은
+  사이트에서는 65ms 규칙이 맞지 않아, 방문한 페이지마다 두 번 넘게 미리 받는다"_ (번역, 생략, [instant.page](https://instant.page/) — 위 조사 보고에서 재인용)고
+  쓴다. 이 피드는 카드 전체가 클릭 영역이라 그보다 긴 쪽을 골랐다. 우리 판단이고, 따로 재지는 않았다.
+- **`(pointer: coarse)`**: "모바일"을 주 입력이 터치인 기기로 읽었다. `usePullToRefresh.ts`·`useBackClosableOverlay.ts`가 같은
+  미디어 쿼리를 쓴다.
+
+**미리 받기 실패가 피드를 새로고침하지 않게**: `main.tsx`는 `vite:preloadError`마다 새로고침한다. Vite 6.4.1 preload 헬퍼는
+본 모듈 import가 실패해도 이 이벤트를 쏜다(`node_modules/vite/dist/node/chunks/dep-D4NMHUTW.js:45352-45367`). 누르지 않은
+미리 받기가 실패했다고 보던 피드가 새로고침되면 안 되므로, 미리 받기는 `ChunkReloadUtil.preloadQuietly`로 감싸고 그동안 리스너는
+건너뛴다.
+
+- 처음에는 `window`에 capture 리스너를 달아 `main.tsx` 리스너보다 먼저 가로채려 했다. 그런데 `window`에 쏜 이벤트는 capture
+  여부와 관계없이 등록 순서대로 리스너가 돌았다(Chromium 156 실측). capture가 먼저 도는 것은 요소가 대상일 때뿐이라 이 방식을 버렸다.
+- 실패한 동적 `import()`는 캐시되지 않아, 다시 부르면 새로 요청해 성공했다(Chromium 156 실측). 그래서 미리 받기가 실패해도
+  실제로 누를 때 다시 받고, 그때도 실패하면 에러 경계(`AppErrorFallback`)가 `reloadOnce`로 복구한다.
+- 빌드로 확인했다(로컬 `vite preview`, API는 운영으로 대신 보냄, 터치 기기). 탭 전까지 상세 청크 요청을 모두 실패시켰더니
+  최상위 문서가 1개로 유지됐고, 탭하면 청크를 다시 받아 상세가 열렸다. `preloadQuietly` 없이 같은 실패를 준 대조군은 문서가
+  2개였다(피드 새로고침). 성공할 때는 한 번만 받고 탭할 때 다시 받지 않았다.
+
+**피드 LCP에 주는 영향(노이즈 범위)**: 한가할 때 받는 청크가 피드 LCP 썸네일과 대역폭을 나눠 쓰는지 쟀다. 같은 빌드에서
+미리 받기를 켠 것과 끈 것(Save-Data 흉내)을 번갈아 5라운드 쟀고, 라운드마다 순서를 돌렸다. 로컬 `vite preview`(HTTP/1.1, gzip),
+Pixel 5, 위 모바일 감속이다.
+
+| 항목                       | 켬                          | 끔            |
+| -------------------------- | --------------------------- | ------------- |
+| LCP 중앙값                 | 6,068ms                     | 6,088ms       |
+| LCP 썸네일 요청 시작       | 4,976~5,163ms               | 4,984~5,012ms |
+| 상세 청크 요청 시작 → 도착 | 3,725~3,883 → 8,265~8,565ms | 받지 않음     |
+
+- 같은 라운드 안 차이(켬 − 끔)의 중앙값은 −40ms였고, 켠 쪽이 느렸던 라운드는 1/5(+364ms)였다.
+- 청크는 `load`(약 3.58초) 직후 출발해 썸네일과 같은 구간에 받았지만, 썸네일이 늦어지지는 않았다. 이 조건에서 청크가
+  8초대에 도착해서, 그 전에 누르면 이득이 줄어든다. 운영(HTTP/2, brotli)에서는 위처럼 약 0.68초였다.
+
+**남은 것**:
+
+- iOS Safari와 Firefox에는 Save-Data를 알려 주는 Network Information API가 없어(caniuse-lite 1.0.30001764 `netinfo`) 늘 미리 받는다.
+- WebKit에서 실패한 import를 다시 요청하는지는 재지 않았다.
+- 조용한 미리 받기가 진행되는 동안에는 다른 청크가 실패해도 `main.tsx` 리스너가 새로고침하지 않는다. 이벤트에 어느 import가
+  실패했는지가 없어서다. 그리던 화면의 청크라면 에러 경계가 복구한다.
+- 배포 뒤 운영에서 다시 잰다.
+
 ## Best Practices 77점 사례 (2026-10-26)
 
 사용자가 평소 쓰는 Chrome(로그인 상태)의 DevTools Lighthouse 13.4.1로 운영 `/post/:id`를 재자 Best

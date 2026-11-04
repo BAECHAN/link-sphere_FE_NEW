@@ -72,6 +72,7 @@ export const PostCard = memo(function PostCard({
     handleCopyOriginalUrl,
     handleNavigateToEdit,
     handlePrefetchDetail,
+    handleCancelPrefetchComments,
     handlePrefetchDetailWithComments,
     handleCategoryClick,
   } = usePostCard(post, isDetail);
@@ -187,7 +188,9 @@ export const PostCard = memo(function PostCard({
           state={backSource ? { backSource } : undefined}
           className={cn('col-span-2 hover:underline block', stretchedLinkClassName)}
           onMouseEnter={handlePrefetchDetail}
+          onMouseLeave={handleCancelPrefetchComments}
           onFocus={handlePrefetchDetail}
+          onBlur={handleCancelPrefetchComments}
         >
           <h3
             className={cn(

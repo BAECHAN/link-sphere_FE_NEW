@@ -70,4 +70,50 @@ describe('ChunkReloadUtil', () => {
 
     vi.restoreAllMocks();
   });
+
+  it('조용한 미리 받기는 끝날 때까지 진행 중으로 읽히고, 실패해도 던지지 않는다', async () => {
+    const ChunkReloadUtil = await loadChunkReloadUtil();
+    let failLoad!: (error: Error) => void;
+    const load = new Promise((_, reject) => {
+      failLoad = reject;
+    });
+
+    const preload = ChunkReloadUtil.preloadQuietly(() => load);
+
+    expect(ChunkReloadUtil.isPreloadingQuietly()).toBe(true);
+
+    failLoad(new Error('Failed to fetch dynamically imported module'));
+
+    await expect(preload).resolves.toBeUndefined();
+    expect(ChunkReloadUtil.isPreloadingQuietly()).toBe(false);
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('겹친 미리 받기는 마지막 것이 끝나야 진행 중이 풀린다', async () => {
+    const ChunkReloadUtil = await loadChunkReloadUtil();
+    let finishFirst!: () => void;
+    const first = ChunkReloadUtil.preloadQuietly(
+      () =>
+        new Promise<void>((resolve) => {
+          finishFirst = resolve;
+        })
+    );
+    let finishSecond!: () => void;
+    const second = ChunkReloadUtil.preloadQuietly(
+      () =>
+        new Promise<void>((resolve) => {
+          finishSecond = resolve;
+        })
+    );
+
+    finishFirst();
+    await first;
+
+    expect(ChunkReloadUtil.isPreloadingQuietly()).toBe(true);
+
+    finishSecond();
+    await second;
+
+    expect(ChunkReloadUtil.isPreloadingQuietly()).toBe(false);
+  });
 });
