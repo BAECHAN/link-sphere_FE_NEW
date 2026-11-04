@@ -1,4 +1,7 @@
 ### 2026-11-04 (FE)
+- 피드 상세 페이지 초기 로딩 시 레이아웃 빈 화면 현상 개선 및 렌더링 성능 최적화 ([#525](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/525))
+
+### 2026-11-04 (FE)
 - 댓글 및 답글 작성·수정 UI에 실시간 글자 수 표기 기능 추가 ([#521](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/521))
 
 ### 2026-11-03 (FE)
