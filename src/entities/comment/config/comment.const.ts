@@ -13,6 +13,16 @@ export const COMMENT_PAGE_SIZE = 10;
  */
 export const MAX_COMMENT_CONTENT_BYTES = 6_000;
 
+/** 한글 1자의 UTF-8 바이트 수 - 바이트 상한을 "한글 기준 글자 수"로 바꿔 보여줄 때 쓴다 */
+export const HANGUL_UTF8_BYTES = 3;
+
+/**
+ * 댓글 입력칸 글자 수의 상한(한글 기준 2,000자). 글자 수는 바이트 ÷ 3을 올림해 세므로
+ * (CommentUtil.countHangulEquivalentChars), 바이트 상한이 3의 배수일 때만 "글자 수가 이 값을 넘는다"와
+ * "바이트가 MAX_COMMENT_CONTENT_BYTES를 넘는다"가 정확히 같아진다 - 바이트 상한을 바꿀 때 3의 배수로 둔다.
+ */
+export const MAX_COMMENT_CONTENT_HANGUL_CHARS = MAX_COMMENT_CONTENT_BYTES / HANGUL_UTF8_BYTES;
+
 /**
  * 댓글 요청의 실제 전송 바이트(JSON.stringify({content, images}), UTF-8) 상한.
  * MAX_COMMENT_CONTENT_BYTES는 content 원본 글자수만 재기 때문에, 줄바꿈이 많은 글(JSON

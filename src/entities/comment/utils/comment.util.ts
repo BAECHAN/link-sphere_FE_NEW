@@ -1,5 +1,8 @@
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
-import { ESTIMATED_IMAGE_URL_BYTES } from '@/entities/comment/config/comment.const';
+import {
+  ESTIMATED_IMAGE_URL_BYTES,
+  HANGUL_UTF8_BYTES,
+} from '@/entities/comment/config/comment.const';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { TEXTS } from '@/shared/config/texts';
 import {
@@ -134,5 +137,14 @@ export class CommentUtil {
     );
     const images = [...existingImageUrls, ...placeholders];
     return getUtf8ByteLength(JSON.stringify({ content, images }));
+  }
+
+  /**
+   * 입력칸 글자 수로 보여줄 "한글 기준" 글자 수 - UTF-8 바이트 ÷ 3을 올림한다. 상한이 바이트라 실제 글자 수로
+   * 세면 영어(1바이트)·이모지(4바이트)에서 숫자와 막히는 시점이 어긋난다. 이렇게 세면 한글은 1자에 1씩, 영어는
+   * 3자에 1씩 오르고, MAX_COMMENT_CONTENT_HANGUL_CHARS를 넘는 순간이 바이트 상한을 넘는 순간과 같다.
+   */
+  static countHangulEquivalentChars(content: string): number {
+    return Math.ceil(getUtf8ByteLength(content) / HANGUL_UTF8_BYTES);
   }
 }

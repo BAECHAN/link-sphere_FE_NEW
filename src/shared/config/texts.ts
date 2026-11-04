@@ -351,6 +351,8 @@ export const TEXTS = {
       showPreview: '미리보기 펼치기',
       hidePreview: '미리보기 접기',
       mobileBarTrigger: '댓글을 작성하세요...',
+      // 글자 수(0 / 2,000) 뒤에 붙는다 - 상한이 UTF-8 바이트라 한글 1자 = 3바이트로 환산해 센다(CommentUtil.countHangulEquivalentChars)
+      contentCountSuffix: '자 · 한글 기준',
     },
     item: {
       authorBadge: '작성자',
