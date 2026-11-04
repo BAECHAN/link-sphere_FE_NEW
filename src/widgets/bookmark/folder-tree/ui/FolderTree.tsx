@@ -202,6 +202,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
     nameError,
     isUpdating,
     submitRename,
+    cancelRename,
     handleRenameKeyDown,
     handleDelete,
   } = useFolderItem(folder, selected, onDeleted);
@@ -228,6 +229,36 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
           />
         </div>
         {nameError && <p className="text-xs text-destructive">{nameError}</p>}
+        {/* 아래 새 폴더 입력과 같은 모양 — 같은 줄이면 입력이 103px로 줄어 14자 이름이 5자만 보이고, 아래 줄은 자리가
+            남아 글자로 쓴다(2026-11-04 사용자 선택, docs/BOOKMARK.md §5 "이름 바꾸기 취소·저장 버튼") */}
+        <div className="flex justify-end gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7"
+            // 누르는 순간 입력에서 포커스가 빠지면 blur 저장(submitRename)이 취소보다 먼저 나간다 —
+            // 포커스 이동을 막는다(docs/BOOKMARK.md §5 "이름 바꾸기 취소·저장 버튼")
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={cancelRename}
+            disabled={isUpdating}
+          >
+            {TEXTS.buttons.cancel}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            className="h-7"
+            onClick={submitRename}
+            disabled={!name.trim() || nameError !== null || isUpdating}
+          >
+            {isUpdating ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              TEXTS.bookmark.folder.renameSubmit
+            )}
+          </Button>
+        </div>
       </div>
     );
   }

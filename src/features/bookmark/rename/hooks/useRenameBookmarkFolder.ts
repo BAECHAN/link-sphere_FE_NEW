@@ -99,6 +99,7 @@ export const useRenameBookmarkFolder = ({ folder }: UseRenameBookmarkFolderParam
     nameError,
     isUpdating,
     submitRename,
+    cancelRename,
     handleRenameKeyDown,
   };
 };

@@ -60,7 +60,7 @@ export function BookmarkPage() {
   if (isMobile) {
     return (
       <div className="px-4 py-3">
-        <header className="flex items-center gap-2 mb-4">
+        <header className="group/header flex items-center gap-2 mb-4">
           <Button
             variant="ghost"
             size="icon"
@@ -80,10 +80,12 @@ export function BookmarkPage() {
           />
           <Select value={sort} onValueChange={(v) => setSort(v as BookmarkFolderSort)}>
             {/* 제목과 같은 줄에 두려고 글자 대신 ↕ 아이콘만 둔다. 기본(최신 북마크순)이 아니면 점을 찍고,
-                지금 정렬은 이름(aria-label)으로 알린다(docs/BOOKMARK.md §5 "모바일 정렬 아이콘") */}
+                지금 정렬은 이름(aria-label)으로 알린다(docs/BOOKMARK.md §5 "모바일 정렬 아이콘").
+                제목 이름을 바꾸는 동안(data-renaming)은 숨겨 입력 칸을 넓힌다 — 누르면 입력이 빠지며 편집이 먼저
+                끝나 그사이 쓸 일이 없다(docs/BOOKMARK.md §5 "이름 바꾸기 취소·저장 버튼") */}
             <SelectTrigger
               hideIcon
-              className="relative size-8 shrink-0 justify-center border-transparent bg-transparent px-0 shadow-none dark:bg-transparent"
+              className="relative size-8 shrink-0 justify-center border-transparent bg-transparent px-0 shadow-none group-has-[[data-renaming]]/header:hidden dark:bg-transparent"
               aria-label={TEXTS.ariaLabels.bookmarkSortSelectCurrent(SORT_LABELS[sort])}
             >
               <ArrowUpDown className="h-4 w-4 text-muted-foreground" />

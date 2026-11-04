@@ -721,8 +721,9 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
 - 실제 폴더를 연 화면에서 제목 바로 뒤에 연필 버튼(`EditButton`, 32px)이 붙는다. 전체·미분류·아직 못 불러온 폴더(제목
   `'폴더'`)에는 없다 — 바꿀 대상이 없다.
 - 누르면 제목 자리에 지금 이름이 든 입력이 열린다. Enter나 바깥을 누르면 저장하고, Esc는 취소한다. Android 뒤로가기도 Esc처럼
-  취소한다(2026-11-03, "뒤로가기로 닫히는 열림 상태"). 15자를 넘으면 입력 아래 이유를 보여 주고 닫지 않는다. 사이드바·카드와
-  같은 훅(`useRenameBookmarkFolder`)이라 동작이 갈리지 않는다.
+  취소한다(2026-11-03, "뒤로가기로 닫히는 열림 상태"). 입력 옆 취소·저장 버튼으로도 한다(2026-11-04, 아래 "이름 바꾸기
+  취소·저장 버튼"). 15자를 넘으면 입력 아래 이유를 보여 주고 닫지 않는다. 사이드바·카드와 같은 훅(`useRenameBookmarkFolder`)이라
+  동작이 갈리지 않는다.
 - 저장은 기존 `useUpdateBookmarkFolderMutation`(낙관적 갱신)이라 사이드바·카드·제목이 함께 바뀐다. 실패하면 되돌리고
   "이름 변경에 실패했어요." 토스트가 뜬다.
 - 편집을 열 때(`startRename`) 입력값을 지금 이름으로 다시 맞춘다. 데스크톱에서는 사이드바와 제목이 같은 폴더를 동시에
@@ -764,7 +765,8 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
 
 **터치 크기.** 연필·정렬 버튼 모두 32px로, 같은 줄 뒤로 버튼과 맞췄다. `responsive-ux` skill이 권하는 44px보다 작다. 같은
 줄 크기에 맞춰 줄인 선례는 모바일 칩을 28px로 되돌린 결정이다(`docs/DECISIONS.md` 2026-09-06 "모바일 칩 높이 되돌림").
-[WCAG 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)의 최소 24px는 넘는다.
+[WCAG 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)의 최소 24px는 넘는다. 페이지 전체를
+44px로 올리는 일은 #518에서 다룬다.
 
 ### 모바일 정렬 아이콘(2026-10-28)
 
@@ -793,6 +795,76 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
   분명히 하도록 아이콘 옆에 텍스트 라벨이 있어야 한다"_ 고 한다(번역).
 - 정렬 아이콘에 "기본값 아님"을 점으로 표시하라는 지침은 찾지 못했다. 점은 "기본과 다르다"만 알려 주고, 무엇으로 정렬됐는지는
   목록을 열어야 보인다.
+- 폴더 화면 제목 이름을 바꾸는 동안은 ↕를 숨긴다(2026-11-04, 아래 "이름 바꾸기 취소·저장 버튼").
+
+### 이름 바꾸기 취소·저장 버튼(2026-11-04)
+
+**문제.** 이름 바꾸기 입력에는 Enter·바깥 누르기(저장)와 Esc·Android 뒤로가기(취소)뿐이었다. iOS 터치에는 Esc도 뒤로가기
+닫기 요청도 없어, 바꾸던 이름을 버리려면 글자를 다 지우고 바깥을 눌러야 했다(빈 이름이면 요청 없이 원래 이름으로 돌아간다).
+사이드바·모바일 카드·폴더 화면 제목 세 곳에 취소·저장 버튼을 붙였다.
+
+**동작.**
+
+- 취소는 원래 이름으로 돌아가고 요청을 보내지 않는다(`cancelRename`, Esc와 같다).
+- 저장은 Enter와 같다(`submitRename`). 이름이 비었거나 15자를 넘으면 꺼진다. 넘었을 때는 입력 아래에 이유가 늘 보이므로
+  `disabled`로 막는다(`.claude/CLAUDE.md` "폼 검증 실패를 버튼 `disabled`만으로 처리하지 않는다"의 예외 조건 — 이유가 이미
+  상시 보인다).
+- 바깥을 누르면 저장하는 동작은 그대로다. 저장 중에는 두 버튼이 꺼지고 저장 버튼에 스피너가 돈다.
+
+**모양.** 자리마다 폭이 달라 모양이 다르다. 실제 화면을 찍어 나란히 보고 사용자가 골랐다(2026-11-04).
+
+| 자리                              | 모양                                                     | 이유                                                                                                                                                                                                     |
+| --------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 모바일 폴더 카드                  | 입력 아래 [취소][저장] 글자 버튼, 카드 폭을 반씩         | 새 폴더 카드와 같은 모양                                                                                                                                                                                 |
+| 사이드바(데스크톱·폰 가로·태블릿) | 입력 아래 줄 오른쪽에 취소 [저장] 글자 버튼              | 같은 줄이면 입력이 175px에서 103px로 줄어 14자 이름이 5자만 보였다(폭이 `w-60`으로 고정이라 늘 같다). 아래 줄은 자리가 남아 글자로 쓴다 — 새 폴더 입력과 같은 모양(위 "새 폴더 만들기 인라인 폼의 취소") |
+| 모바일 폴더 화면 제목             | 입력과 같은 줄 ✕ ✓ 아이콘, 편집하는 동안 ↕ 정렬을 숨긴다 | 헤더 높이를 바꾸지 않는다. ↕ 자리를 입력에 내준다(아래 비교)                                                                                                                                             |
+| 데스크톱 폴더 화면 제목           | 입력과 같은 줄 취소 [저장] 글자 버튼                     | 칸이 넓어 글자가 들어가고 헤더 높이도 그대로다                                                                                                                                                           |
+
+사이드바는 처음에 아래 줄 ✕ ✓ 아이콘이었다. 녹화를 본 사용자가 "버튼이 아래 줄로 내려가면 글자로, 같은 줄에 둬도 입력이
+넉넉하면 오른쪽 아이콘으로"로 정해 글자로 바꿨다(2026-11-04). 사이드바는 같은 줄이 넉넉한 폭이 없어 아래 줄 글자 하나만 쓴다.
+
+아이콘 버튼에는 화면 읽기 이름(`aria-label`)으로 "취소"·"저장"을 단다. 제목은 버튼 하나가 모바일에서 아이콘(`md:hidden`),
+데스크톱에서 글자(`max-md:hidden`)를 보인다 — Tailwind `md`가 페이지 분기(`useIsMobile`의 `MOBILE_MEDIA_QUERY`)와 같은 경계다.
+
+**모바일 제목 비교.** 처음에는 짧은 이름("읽을거리")으로 두 안(아래 줄 글자 버튼·같은 줄 아이콘)을 찍어 보여 드렸고 사용자가
+같은 줄 아이콘을 골랐다. 구현하자 기존 e2e "14자 이름이 입력에서 다 보인다"(위 "폴더 화면에서 이름 바꾸기"의 10-28 결정)가
+실패해, 긴 이름으로 다시 찍어 보여 드리고 다시 골랐다. 수치는 직접 측정(Playwright 모킹 화면에서 입력 `clientWidth`, 14자
+"자바스크립트 심화 학습 자료" — 다 보이려면 222px이 필요하다).
+
+| 안                              | 360px           | 393px(Pixel 5)  | 결과                                                                                            |
+| ------------------------------- | --------------- | --------------- | ----------------------------------------------------------------------------------------------- |
+| (버튼 없던 때)                  | 222px · 다 보임 | 255px · 다 보임 | —                                                                                               |
+| 아래 줄 글자 버튼               | 222px · 다 보임 | 255px · 다 보임 | 기각 — 편집하는 동안 헤더가 한 줄 커지고 ←·↕가 두 줄 가운데로 내려간다                          |
+| 같은 줄 ✕ ✓ ↕                   | 150px · 9자     | 183px · 11자    | 기각 — 커서가 끝에 있어 이름 앞부분이 가려진다                                                  |
+| **같은 줄 ✕ ✓, 편집 중 ↕ 숨김** | 190px · 12자    | 223px · 다 보임 | **채택**(사용자 선택) — 편집 중에 ↕를 누르면 입력이 빠지며 편집이 먼저 끝나 그사이 쓸 일이 없다 |
+
+위 수치는 macOS Chromium 값이다. CI(Linux)에서는 같은 이름이 2px 넓게 그려져 393px에서도 1px 넘쳤고, 지우기 버튼을 안 쓰는
+입력의 오른쪽 빈 여백을 줄여 고쳤다(§10 "제목 입력에 ✕ ✓를 붙이자 CI에서만…"). 지금은 360px 폰에서 14자 이름의 앞 1자
+남짓이 가려진다. 15자 이름은 버튼이 없던 때도 360px에서 잘렸다(251px 필요).
+
+**근거.**
+
+- [Atlassian Inline edit](https://atlassian.design/components/inline-edit/usage)는 _"마우스를 쓸 때 컨트롤은 늘 필드 끝에
+  보여야 한다. 예를 들어 왼쪽에서 오른쪽으로 읽는 언어에서는 오른쪽 아래다"_ 라고 쓴다(번역). 사이드바의 아래 줄 오른쪽이 이
+  자리다. 같은 글은 바깥 누르기 저장에 대해 _"요소를 벗어나면 필드 내용이 저장되지만, 그것만으로는 바로 알기 어렵다"_ 고 하고
+  _"동작 버튼은 가능한 한 늘 보이게 둔다"_ 고 권한다(번역).
+- [NN/g "Cancel vs Close"](https://www.nngroup.com/articles/cancel-vs-close/)는 _"저장하고 닫기만 하도록 강요하지 않고 빠져나갈
+  길을 주려면 따로 취소 버튼을 두는 것이 중요하다"_ 고 한다(번역).
+- 이 레포 선례: 새 폴더 입력 세 곳의 [취소][생성](위 "새 폴더 만들기 인라인 폼의 취소"), 댓글 수정 폼의 [✕ 취소][✓ 저장]
+  (`features/comment/update/ui/CommentEditForm.tsx`).
+
+**취소를 누르는 순간 저장이 먼저 나가지 않게.** 입력은 바깥으로 포커스가 빠지면 저장한다(`onBlur={submitRename}`). 버튼을
+누르면 mousedown에서 포커스가 버튼으로 옮겨 가며 blur가 click보다 먼저 와, 취소를 눌렀는데 저장된다. 취소 버튼의
+`onMouseDown`에서 `preventDefault()`로 포커스 이동을 막는다 — 새 폴더 취소와 같은 방법이다(`docs/DECISIONS.md` 2026-09-21).
+새 폴더에서는 놓쳐도 폼이 그냥 접혔지만, 여기서는 놓치면 바꾸던 이름이 저장된다. e2e가 마우스 클릭과 Chromium 터치
+에뮬레이션(`tap()`) 둘 다로 PATCH가 0건인지 본다. iOS Safari 실기기는 확인하지 못했다(§11).
+
+**↕를 숨기는 방법.** 편집 중인 제목이 `data-renaming`을 달고, 모바일 헤더(`group/header`)의 정렬 버튼이
+`group-has-[[data-renaming]]/header:hidden`으로 숨는다. 편집 상태를 페이지로 끌어올리지 않아 `BookmarkFolderTitle`의 props가
+그대로다. `:has()`는 `globals.css`의 `hover-or-open`과 `button.tsx`가 이미 쓴다.
+
+**터치 크기.** 이웃 버튼과 같은 크기(제목 32px, 카드·사이드바 28px)로 맞췄다(사용자 결정). 44px로 올리는 일은 ←·↕·연필·
+새 폴더 버튼까지 페이지 전체를 함께 다루려고 #518로 뒀다.
 
 ### 폴더 글 목록 조회가 실패했을 때(2026-11-03, #491)
 
@@ -1069,6 +1141,7 @@ src/
 │   │   │   └── ui/
 │   │   │       └── BookmarkFolderTitle.tsx  # 폴더 화면 제목 + 연필(EditButton). 편집 중에는 입력 —
 │   │   │                                    # 모바일 기본 입력, 데스크톱 제목 크기(§5 "폴더 화면에서 이름 바꾸기")
+│   │   │                                    # + 같은 줄 취소·저장(모바일 ✕ ✓, 데스크톱 글자), data-renaming 표시
 │   │   ├── select/
 │   │   │   ├── hooks/
 │   │   │   │   ├── useBookmarkFolderSelect.ts # BookmarkFolderSelectDialog의 로직(조회·생성 입력 펼침·
@@ -1189,6 +1262,7 @@ src/
 | 폴더 이름 보이는 줄 수 변경           | 모바일 카드는 `MobileFolderList.tsx` `FolderCard`의 `line-clamp-2 min-h-[2lh]`와 `CreateFolderCard`의 `min-h-[2lh]`를 같은 숫자로, 사이드바는 `FolderTree.tsx` `FolderItem`의 `line-clamp-2`를 바꾼다(§5 "폴더 이름 줄 수")                                                                                              |
 | 이름 바꾸기 동작 변경(Enter·Esc·검사) | `features/bookmark/rename/hooks/useRenameBookmarkFolder.ts` 한 곳 — 폴더 화면 제목과 사이드바·카드(`useFolderActions`)가 같이 바뀐다                                                                                                                                                                                     |
 | 폴더 화면 편집 입력 모양 변경         | `BookmarkFolderTitle.tsx`의 `Input` `className`. `cn()`이 역할 토큰을 글자 크기로 알아 Input 기본 크기(`md:text-sm`)를 같은 변형(`md:`)끼리 바꾼다(§5 "폴더 화면에서 이름 바꾸기")                                                                                                                                       |
+| 이름 바꾸기 취소·저장 버튼 위치 변경  | 사이드바 `FolderTree.tsx` `FolderItem`, 카드 `MobileFolderList.tsx` `FolderCard`, 제목 `BookmarkFolderTitle.tsx`. 취소의 `onMouseDown` `preventDefault()`를 빼면 취소가 저장이 된다. 모바일 제목 편집 중 ↕ 숨김은 `BookmarkPage.tsx`의 `group-has-[[data-renaming]]/header:hidden`(§5 "이름 바꾸기 취소·저장 버튼")      |
 | 모바일 정렬 점 조건·위치 변경         | `BookmarkPage.tsx` 모바일 분기의 `sort !== 'latest'`와 점 `span`의 `top-[5px] right-[5px] size-[7px]`(10-28 승인 시안 값). 기본 정렬을 바꾸면 이 조건도 같이 바꾼다                                                                                                                                                      |
 | 폴더 선택 창 높이 변경                | `SheetDialogContent.tsx`의 `SHEET_MAX_HEIGHT`(세로 모바일)·`MODAL_MAX_HEIGHT`(중앙 모달). 목록에 상한을 다시 두지 않는다 — 위아래 고정 줄이 더해져 화면을 넘는다(§5 "창 높이"). 바꾸면 `e2e/bookmark-sheet-height.mobile.spec.ts`의 `maxRatio`도 맞춘다                                                                  |
 | 테스트 실행                           | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-tree src/features/bookmark/toggle src/features/bookmark/rename src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`                                                                                                              |
@@ -1417,6 +1491,20 @@ e2e 164개(`CI=1`, 재시도 0), `pnpm type-check`·`pnpm lint`·`pnpm check:dep
 - 녹화 전용 Playwright 스펙(모킹, Pixel 5)으로 창의 두 장면과 북마크 페이지 세 입력을 찍어 사용자가 모습을 확인했다.
 
 전체 단위 167개 파일 1943건, `pnpm type-check`·`pnpm lint`·`pnpm check:deps`·`pnpm check:docs`가 통과했다.
+
+**2026-11-04 갱신** — 이름 바꾸기 취소·저장 버튼(§5).
+
+- e2e `bookmark-rename-buttons.spec.ts`(신규 5건, 데스크톱) — 사이드바·폴더 화면 제목의 취소는 원래 이름으로 돌아가고
+  PATCH 0건, 저장은 바꾼 이름으로 PATCH 1건, 빈 이름·16자에서 저장이 꺼지고 16자는 이유를 보여 준다.
+- e2e `bookmark-rename-buttons.mobile.spec.ts`(신규 5건, Pixel 5, `tap()`) — 카드 취소·제목 ✕는 PATCH 0건, 카드 저장·제목
+  ✓는 PATCH 1건, 제목을 바꾸는 동안 ↕가 숨고 끝나면 돌아온다.
+- 세 컴포넌트의 취소 `onMouseDown` `preventDefault()`를 잠깐 빼고 돌리면 취소 4건(사이드바·제목 데스크톱, 카드·제목 모바일)이
+  모두 "PATCH 1건"으로 실패했다 — 테스트가 blur 저장 경합을 잡는다.
+- 처음 같은 줄 ✕ ✓ ↕로 구현했을 때 기존 `bookmark-folder-title-rename.mobile.spec.ts`("14자 이름이 입력에서 다 보인다")가
+  실패했다. 편집 중 ↕를 숨긴 뒤 고치지 않고 통과한다.
+- 북마크 e2e 전체(`e2e/bookmark*`, 데스크톱·모바일 60건)가 통과했다.
+
+전체 단위 167개 파일 1943건, `pnpm type-check`·`pnpm lint`·`pnpm check:deps`가 통과했다.
 
 ## 10. 시행착오
 
@@ -1900,6 +1988,28 @@ B의 대가는 바깥 줄이 `AppLayout`의 여백 값을 알아야 한다는 �
 
 영향 파일: `pages/bookmark/BookmarkPage.tsx`, `e2e/bookmark-sidebar-sticky.spec.ts`(신규).
 
+### 제목 입력에 ✕ ✓를 붙이자 CI에서만 14자 이름이 1px 넘친 문제(2026-11-04)
+
+폴더 화면 제목에 같은 줄 ✕ ✓를 붙인 PR(#520)에서 기존 e2e "연필로 연 입력에 긴 이름이 잘리지 않고 다 보이고…"
+(`bookmark-folder-title-rename.mobile.spec.ts`)가 CI에서만 실패했다. 로컬(macOS)에서는 통과했다.
+
+**원인** — 393px(Pixel 5) 입력이 223px이 됐는데, `Input`은 지우기 버튼 자리로 오른쪽 여백을 늘 32px(`pr-8`) 둔다. 글자가
+들어갈 칸은 223 − 12 − 32 = 179px이었다. 같은 14자 이름("자바스크립트 심화 학습 자료")을 macOS Chromium은 178px, CI와 같은
+Linux Chromium은 180px로 그려 Linux에서만 1px 넘쳤다(직접 측정 — Playwright 1.64.0 공식 Docker 이미지
+`mcr.microsoft.com/playwright:v1.64.0-noble`에서 호스트 vite에 붙여 `clientWidth`·`scrollWidth`와 캔버스 `measureText`를 찍었다.
+글꼴은 둘 다 Pretendard가 불러와진 뒤였다). 커밋 전에 잰 "다 보이려면 222px"(§5 "모바일 제목 비교")은 macOS 값이라 여유가
+1px뿐이었다.
+
+**고친 방법** — 이 입력은 지우기 버튼(`onClear`)을 쓰지 않아 오른쪽 32px가 늘 비어 있었다. 오른쪽 여백을 왼쪽과 같은
+12px(`pr-3`)로 줄였다(`BookmarkFolderTitle.tsx`). 입력 상자 크기와 위치는 그대로고, 글자 칸만 199px로 넓어졌다. 같은 Docker
+환경에서 393px은 `scrollWidth` 223 = `clientWidth` 223으로 다 보이고, 360px은 입력 190px에 204px가 필요해 앞 1자 남짓이 가려진다
+(고치기 전은 2자 남짓). 데스크톱 제목 입력도 같은 `pr-3`를 받지만 칸이 넓어 보이는 차이는 없다.
+
+**재발 방지** — 기존 e2e가 CI에서 이 경우를 잡는다. 로컬 macOS에서는 1~2px 차이를 놓칠 수 있으니, 입력 폭을 줄이는 변경은
+여유를 몇 px 남겼는지 같이 본다.
+
+영향 파일: `features/bookmark/rename/ui/BookmarkFolderTitle.tsx`.
+
 ## 11. 남은 것
 
 - `북마크 제거` 행의 되돌리기는 삭제 전 소속이 0~1개일 때만 제공된다(§5). 소속이
@@ -1927,6 +2037,11 @@ B의 대가는 바깥 줄이 `AppLayout`의 여백 값을 알아야 한다는 �
   - Firefox Android가 뒤로가기를 닫기 요청으로 보내는지 모른다(`docs/DECISIONS.md` 2026-11-03 창 항목과 같은 한계).
   - 생성 요청 중 Esc는 입력을 접는다(`onEscapeKeyDown`에 요청 중 검사가 없다). 뒤로가기와 달리 요청을 막지 않는데,
     이번 범위 밖으로 뒀다.
+- 이름 바꾸기 취소·저장 버튼(2026-11-04, §5)에서 확인하지 못한 것과 남긴 것:
+  - iOS Safari 실기기에서 취소를 탭할 때 `onMouseDown` `preventDefault()`가 blur 저장을 막는지 보지 못했다. Chromium 터치
+    에뮬레이션(`tap()`)에서는 막는다. 막지 못하면 취소를 눌러도 바꾸던 이름이 저장된다.
+  - 360px 폰의 폴더 화면 제목 입력에서는 14자 이름의 앞 1자 남짓이 가려진다(§5 "모바일 제목 비교", §10).
+  - 버튼은 이웃과 같은 28·32px이다. 44px로 올리는 일은 #518.
 
 ## 12. 용어 사전
 
@@ -1998,8 +2113,10 @@ B의 대가는 바깥 줄이 `AppLayout`의 여백 값을 알아야 한다는 �
 - **`isLastPendingPin`** — 같은 훅 안의 지역 함수. 지금 끝나는 고정 요청이 그 폴더 줄의 마지막인지 판정한다
   (`isLastPendingBookmarkMutation`과 같은 역할)
 - **`useRenameBookmarkFolder`** — `features/bookmark/rename/hooks/useRenameBookmarkFolder.ts`. 폴더 하나의 이름 바꾸기 상태
-  (`renaming`·`name`·`nameError`)와 `startRename`·`submitRename`·`handleRenameKeyDown`을 돌려준다. 폴더 화면 제목과
-  `useFolderActions`(사이드바·카드)가 같이 쓴다(§5)
+  (`renaming`·`name`·`nameError`)와 `startRename`·`submitRename`·`cancelRename`·`handleRenameKeyDown`을 돌려준다. 폴더 화면
+  제목과 `useFolderActions`(사이드바·카드)가 같이 쓴다(§5)
+- **`data-renaming`** — 폴더 화면 제목이 이름 입력을 여는 동안 다는 표시. 모바일 헤더가 이것을 보고 정렬(↕)을 숨긴다(§5
+  "이름 바꾸기 취소·저장 버튼")
 - **`BookmarkFolderTitle`** — `features/bookmark/rename/ui/BookmarkFolderTitle.tsx`. 폴더 화면의 `h1` 제목. 실제 폴더면 연필
   버튼을 달고, 누르면 그 자리에서 이름 입력으로 바뀐다. 전체·미분류에서는 제목만 그린다(§5)
 - **`EditButton`** — `shared/ui/elements/EditButton.tsx`. 연필 아이콘만 있는 공용 버튼. `label`을 화면 읽기 이름(`aria-label`)과

@@ -157,6 +157,7 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
     nameError,
     isUpdating,
     submitRename,
+    cancelRename,
     handleRenameKeyDown,
     handleDelete,
   } = useFolderActions({ folder });
@@ -181,6 +182,33 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
           className="h-8"
         />
         {nameError && <p className="text-xs text-destructive">{nameError}</p>}
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 flex-1"
+            // 누르는 순간 입력에서 포커스가 빠지면 blur 저장(submitRename)이 취소보다 먼저 나간다 —
+            // 포커스 이동을 막는다(docs/BOOKMARK.md §5 "이름 바꾸기 취소·저장 버튼")
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={cancelRename}
+            disabled={isUpdating}
+          >
+            {TEXTS.buttons.cancel}
+          </Button>
+          <Button
+            size="sm"
+            onClick={submitRename}
+            disabled={!name.trim() || nameError !== null || isUpdating}
+            className="h-7 flex-1"
+          >
+            {isUpdating ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              TEXTS.bookmark.folder.renameSubmit
+            )}
+          </Button>
+        </div>
       </div>
     );
   }

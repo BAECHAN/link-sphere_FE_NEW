@@ -385,6 +385,7 @@ export const TEXTS = {
       create: '새 폴더 만들기',
       createSubmit: '생성',
       rename: '이름 수정',
+      renameSubmit: '저장',
       namePlaceholder: '새 폴더 이름',
       sortPlaceholder: '정렬',
       selectorTitle: '북마크에 저장',

@@ -11,6 +11,13 @@
 
 ### Added
 
+- `bookmark` 폴더 이름 바꾸기 입력에 취소·저장 버튼
+  <details><summary>배경·구현</summary>
+
+  이름 바꾸기 입력은 Enter·바깥 누르기(저장)와 Esc·Android 뒤로가기(취소)뿐이라, iOS 터치에서는 바꾸던 이름을 버리려면 글자를 다 지우고 바깥을 눌러야 했다. 사이드바·모바일 폴더 카드·폴더 화면 제목에 취소·저장 버튼을 붙였다. 취소는 원래 이름으로 돌아가고 요청을 보내지 않으며, 저장은 Enter와 같다(빈 이름·15자 초과면 꺼지고, 초과 이유는 입력 아래에 늘 보인다). 바깥을 누르면 저장하는 동작은 그대로다. 모양은 실제 화면을 나란히 찍어 사용자가 골랐다(2026-11-04) — 카드는 입력 아래 [취소][저장], 사이드바는 입력 아래 줄 오른쪽 취소 [저장](새 폴더 입력과 같은 모양, 처음 ✕ ✓ 아이콘에서 녹화를 보고 바꿈), 모바일 제목은 같은 줄 ✕ ✓에 편집하는 동안 정렬 ↕를 숨김, 데스크톱 제목은 같은 줄 취소 [저장]. 같은 줄에 버튼을 두면 입력이 좁아져 14자 이름이 잘렸다(사이드바 175→103px, 모바일 제목 393px에서 255→183px, 직접 측정) — 그래서 사이드바는 아래 줄로, 모바일 제목은 ↕ 자리를 입력에 내줬다. 모바일 제목 입력은 그래도 CI(Linux Chromium)에서 14자 이름이 1px 넘쳐, 쓰지 않는 지우기 버튼 자리(오른쪽 여백 32px)를 12px로 줄였다(`docs/BOOKMARK.md` §10). 입력이 blur에 저장하므로 취소 버튼은 `onMouseDown`에서 포커스 이동을 막는다(새 폴더 취소와 같은 방법). 이 한 줄을 빼면 새 e2e의 취소 4건이 "PATCH 1건"으로 실패했다. iOS Safari 실기기 확인(#519)과 페이지 전체 44px 터치 크기(#518)는 남았다. 근거([Atlassian Inline edit](https://atlassian.design/components/inline-edit/usage)·[NN/g](https://www.nngroup.com/articles/cancel-vs-close/))와 비교한 안은 `docs/BOOKMARK.md` §5 "이름 바꾸기 취소·저장 버튼". (`src/features/bookmark/rename/ui/BookmarkFolderTitle.tsx`, `src/features/bookmark/rename/hooks/useRenameBookmarkFolder.ts`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`, `src/widgets/bookmark/folder-tree/hooks/useFolderActions.ts`, `src/pages/bookmark/BookmarkPage.tsx`, `src/shared/config/texts.ts`, `e2e/bookmark-rename-buttons.spec.ts`(신규), `e2e/bookmark-rename-buttons.mobile.spec.ts`(신규), `docs/BOOKMARK.md`, `docs/TESTING.md`, [PR #520](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/520))
+
+  </details>
+
 - `comment` 댓글·답글·수정 입력칸 아래에 한글 기준 글자 수(0 / 2,000자)를 늘 보여 줌
   <details><summary>배경·구현</summary>
 
