@@ -18,6 +18,7 @@ import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 import type { Account } from '@/entities/account/model/account.schema';
 import { TEXTS } from '@/shared/config/texts';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { SessionExpiredError } from '@/shared/types/common.type';
 
@@ -302,6 +303,24 @@ describe('useUpdateAccountMutation', () => {
 describe('useDeleteAccountMutation', () => {
   beforeEach(() => {
     mockToastError.mockClear();
+  });
+
+  it('탈퇴하면 응답을 못 받은 등록의 키를 지운다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.auth.deleteAccount), () =>
+        HttpResponse.json({ status: 200, message: 'ok', data: null, timestamp: '' })
+      )
+    );
+    sessionStorage.setItem(STORAGE_KEYS.IDEMPOTENCY.PENDING, '[]');
+
+    const { result } = renderHook(() => useDeleteAccountMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ password: 'demoPassword1!' });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(sessionStorage.getItem(STORAGE_KEYS.IDEMPOTENCY.PENDING)).toBeNull();
   });
 
   // 데모 계정처럼 탈퇴 권한이 없는 역할(BE MemberRole) - manualErrorHandling이라 전역 문구가 뜨지 않는다

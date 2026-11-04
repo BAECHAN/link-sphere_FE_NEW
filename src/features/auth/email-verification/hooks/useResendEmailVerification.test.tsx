@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { server } from '@/mocks/server';
 import { http, HttpResponse } from 'msw';
-import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { API_BASE_URL, API_ENDPOINTS, IDEMPOTENCY_KEY_HEADER } from '@/shared/config/api';
 import { createTestQueryClient } from '@/test/utils';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useResendEmailVerification } from '@/features/auth/email-verification/hooks/useResendEmailVerification';
@@ -40,5 +40,37 @@ describe('useResendEmailVerification', () => {
     });
 
     await waitFor(() => expect(requestBody).toEqual({ email: 'user@example.com' }));
+  });
+
+  it('응답이 끊긴 뒤 다시 누르면 같은 키, 성공한 뒤 다시 누르면 새 키라 메일이 새로 간다', async () => {
+    const received: (string | null)[] = [];
+    server.use(
+      http.post(url(API_ENDPOINTS.auth.emailVerificationRequest), ({ request }) => {
+        received.push(request.headers.get(IDEMPOTENCY_KEY_HEADER));
+
+        if (received.length === 1) {
+          return HttpResponse.error();
+        }
+
+        return HttpResponse.json({ status: 200, message: 'ok', data: null, timestamp: '' });
+      })
+    );
+
+    const { result } = renderHook(() => useResendEmailVerification('user@example.com'), {
+      wrapper: Wrapper,
+    });
+
+    for (const expectedRequests of [1, 2, 3]) {
+      act(() => {
+        result.current.handleResend();
+      });
+
+      await waitFor(() => expect(received).toHaveLength(expectedRequests));
+      await waitFor(() => expect(result.current.isPending).toBe(false));
+    }
+
+    expect(received[0]).toBeTruthy();
+    expect(received[1]).toBe(received[0]);
+    expect(received[2]).not.toBe(received[1]);
   });
 });

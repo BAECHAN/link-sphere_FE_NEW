@@ -76,4 +76,7 @@ const API_ENDPOINTS = {
   },
 } as const;
 
-export { API_BASE_URL, API_ENDPOINTS };
+// 등록 요청 재전송을 서버가 알아보는 헤더(docs/FE-ARCHITECTURE.md §27)
+const IDEMPOTENCY_KEY_HEADER = 'Idempotency-Key';
+
+export { API_BASE_URL, API_ENDPOINTS, IDEMPOTENCY_KEY_HEADER };

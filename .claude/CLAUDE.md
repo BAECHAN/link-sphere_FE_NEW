@@ -676,6 +676,7 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 | 모바일 키보드 힌트 (`enterKeyHint`·`inputMode`)                                    | §24   | 뒤에 다른 필드 없는 단일 입력 지점에만 `enterKeyHint`(Android 회귀 위험), 자체 검증 있는 필드는 `type` 대신 `inputMode`, `type="search"`는 지양                                                                                        |
 | 스크롤 규칙 (URL이 바뀌면 맨 위로)                                                 | §25   | 전역 `<ScrollRestoration />`이 처리하므로 기능마다 `window.scrollTo`를 넣지 않는다. 스크롤을 유지해야 하는 state-only push(오버레이·모달·패널)와 지금 보는 화면 안의 해시 이동(상세의 댓글 링크)만 `preventScrollReset: true`로 빠진다 |
 | 위층 조립 (같은 레이어 슬라이스를 직접 import하지 않음)                            | §26   | 목록이 카드를 그리는 식이면 받는 쪽이 `render<대상>` 함수 prop을 받고 위층(페이지 등)이 넘긴다. 함수는 모듈 최상단에 선언, 인자 타입은 받는 쪽이 선언                                                                                  |
+| 등록 요청 멱등 키 (`IdempotencyKeyUtil`)                                           | §27   | 같은 요청이 두 번 오면 행·메일이 둘이 되는 등록은 `mutationFn`을 `IdempotencyKeyUtil.send`로 감싸 `Idempotency-Key`를 싣는다. 폼 훅은 키를 모른다                                                                                      |
 
 ---
 

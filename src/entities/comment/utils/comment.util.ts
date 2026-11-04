@@ -25,6 +25,11 @@ export class CommentUtil {
     return error instanceof NetworkError || (error instanceof ApiError && error.status === 504);
   }
 
+  /** 같은 내용을 방금 등록했다는 거절(409) - 다른 탭·기기에서 쓴 댓글이면 목록에 아직 없어 다시 불러온다 */
+  static isDuplicate(error: unknown): boolean {
+    return error instanceof ApiError && error.code === SERVER_ERROR_CODE.DUPLICATE_COMMENT;
+  }
+
   /**
    * 댓글·답글 등록과 댓글 수정 실패를 원인별 안내 문구로 바꾼다(PostUtil.resolveSubmitError와 같은
    * 형태). 서버 message는 노출하지 않고 에러 타입·code·status로만 판정한다.
@@ -58,6 +63,10 @@ export class CommentUtil {
 
     if (!(error instanceof ApiError)) {
       return fallback;
+    }
+
+    if (CommentUtil.isDuplicate(error)) {
+      return TEXTS.messages.error.commentSubmit.duplicate;
     }
 
     // 댓글 API에는 앱 레이트리밋이 없어 Lambda 동시 실행 포화 등이다 - 업로드 한도(429)는 위에서

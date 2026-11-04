@@ -27,6 +27,7 @@ import {
   UpdatePost,
 } from '@/entities/post/model/post.schema';
 import { TEXTS } from '@/shared/config/texts';
+import { IdempotencyKeyUtil } from '@/shared/utils/idempotency-key.util';
 import {
   handlePostCreateSuccess,
   handlePostUpdateSuccess,
@@ -82,7 +83,9 @@ export const useCreatePostMutation = () => {
   return useMutation({
     mutationKey: postMutationKeys.create,
     mutationFn: async (payload: CreatePost) => {
-      return await postApi.createPost(payload);
+      return await IdempotencyKeyUtil.send(`post:${JSON.stringify(payload)}`, (key) =>
+        postApi.createPost(payload, key)
+      );
     },
     // 실패 안내는 useCreatePost가 원인별로 입력칸·폼 안내에 직접 띄운다(PostUtil.resolveSubmitError) -
     // 전역 토스트까지 뜨면 같은 실패가 두 번 보인다.

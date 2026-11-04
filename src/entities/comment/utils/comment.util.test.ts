@@ -74,6 +74,13 @@ describe('CommentUtil.resolveSubmitError', () => {
     );
   });
 
+  it('같은 내용을 방금 등록했으면(DUPLICATE_COMMENT) 등록·답글 모두 같은 안내를 한다', () => {
+    const error = apiError({ status: 409, code: SERVER_ERROR_CODE.DUPLICATE_COMMENT });
+
+    expect(CommentUtil.resolveSubmitError(error, 'create')).toBe(MESSAGES.duplicate);
+    expect(CommentUtil.resolveSubmitError(error, 'reply')).toBe(MESSAGES.duplicate);
+  });
+
   it('글이 삭제됐으면(POST_NOT_FOUND) 댓글을 달 수 없다고 안내한다', () => {
     expect(
       CommentUtil.resolveSubmitError(

@@ -27,6 +27,10 @@ const STORAGE_KEYS = {
     // 같은 값으로 두 번 리로드하지 않기 위한 루프 가드(예: CloudFront 엣지가 잠시 옛 index.html을 돌려줄 때)
     LAST_DETECTED: `${STORAGE_PREFIX}:version:last-detected`,
   },
+  IDEMPOTENCY: {
+    // 응답을 못 받은 등록 요청의 키 - 같은 내용을 다시 보낼 때 재사용한다(idempotency-key.util.ts)
+    PENDING: `${STORAGE_PREFIX}:idempotency:pending`,
+  },
   THEME: `${STORAGE_PREFIX}:theme`,
 } as const;
 

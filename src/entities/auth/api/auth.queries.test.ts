@@ -241,6 +241,18 @@ describe('useLogoutMutation', () => {
     expect(LocalStorageUtil.getItem<string>(STORAGE_KEYS.AUTH.EPOCH)).toMatch(/^out:/);
     expect(AuthEpochUtil.isStale()).toBe(false);
   });
+
+  it('로그아웃하면 응답을 못 받은 등록의 키를 지운다', () => {
+    sessionStorage.setItem(STORAGE_KEYS.IDEMPOTENCY.PENDING, '[]');
+
+    const { result } = renderHook(() => useLogoutMutation(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate();
+    });
+
+    expect(sessionStorage.getItem(STORAGE_KEYS.IDEMPOTENCY.PENDING)).toBeNull();
+  });
 });
 
 describe('useChangePasswordMutation', () => {

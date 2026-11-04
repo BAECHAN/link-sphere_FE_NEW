@@ -28,6 +28,7 @@ import {
   isErroredCacheWithoutData,
 } from '@/entities/auth/api/auth.keys';
 import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
+import { IdempotencyKeyUtil } from '@/shared/utils/idempotency-key.util';
 
 export const useLoginMutation = () => {
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -108,6 +109,8 @@ export const useLogoutMutation = () => {
     // 3. 다른 탭·bfcache 페이지가 이 로그아웃을 알아채게 인증 세대를 바꾼다(useAuthEpochSync).
     //    세션 플래그를 지운 뒤라 그쪽은 세션 복원 없이 로그아웃 상태로 끝난다
     AuthEpochUtil.markLogout();
+    // 응답을 못 받은 등록 내용이 탭에 남지 않게 지운다(로그인 만료는 입력을 남겨 재시도하므로 지우지 않는다)
+    IdempotencyKeyUtil.clear();
 
     // 4. FCM 토큰 해제는 백그라운드로 처리
     unregisterFcmToken().catch((error) => {
@@ -143,7 +146,9 @@ export const useCreateAccountMutation = () => {
 export const useRequestPasswordResetMutation = () => {
   return useMutation({
     mutationFn: async (payload: PasswordResetRequest) => {
-      return await authApi.requestPasswordReset(payload);
+      return await IdempotencyKeyUtil.send(`password-reset:${payload.email}`, (key) =>
+        authApi.requestPasswordReset(payload, key)
+      );
     },
     meta: { manualErrorHandling: true },
     onError: () => {
@@ -228,7 +233,9 @@ export const useChangePasswordMutation = () => {
 export const useRequestEmailVerificationMutation = () => {
   return useMutation({
     mutationFn: async (payload: EmailVerificationRequest) => {
-      return await authApi.requestEmailVerification(payload);
+      return await IdempotencyKeyUtil.send(`email-verification:${payload.email}`, (key) =>
+        authApi.requestEmailVerification(payload, key)
+      );
     },
     meta: {
       successMessage: TEXTS.messages.success.emailVerificationResent,

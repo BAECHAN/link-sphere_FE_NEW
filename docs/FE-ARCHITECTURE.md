@@ -1892,3 +1892,62 @@ import를 `pnpm check:deps`에서 막는다. `import type`도 의존성으로 �
    고차 컴포넌트를 대체해, 컴포넌트 계층을 바꾸지 않고 상태 로직을 재사용하게 했다"_ (번역,
    [React Labs 2025-04](https://react.dev/blog/2025/04/23/react-labs-view-transitions-activity-and-more))고
    한 쪽이 이 용도다. 이 패턴은 "무엇을 그릴지"를 위임할 때만 쓴다.
+
+## 27. 등록 요청 멱등 키 패턴 — 같은 요청이 두 번 와도 하나만 만든다
+
+**언제 쓰나.** 서버에서 새 행을 만들어 같은 요청이 두 번 오면 결과가 둘이 되는 요청이다(글·댓글·답글 등록, 비밀번호
+재설정·인증 메일 요청). FE의 더블클릭 가드는 저장된 뒤 응답이 끊겨 사용자가 다시 누르는 경우를 막지 못한다. PK·유니크
+제약이나 덮어쓰기로 이미 안전한 요청에는 쓰지 않는다.
+
+**어떻게.** `mutationFn`에서 `IdempotencyKeyUtil.send`([`idempotency-key.util.ts`](../src/shared/utils/idempotency-key.util.ts))로
+감싸고, `*.api.ts`는 받은 키를 `IDEMPOTENCY_KEY_HEADER` 헤더로 싣는다. 폼 훅은 키를 모른다 — 그래서 폼을 떠난 뒤의
+[다시 등록하기]도 추가 코드 없이 같은 키가 된다.
+
+```ts
+mutationFn: async (payload: CreatePost) => {
+  return await IdempotencyKeyUtil.send(`post:${JSON.stringify(payload)}`, (key) =>
+    postApi.createPost(payload, key)
+  );
+},
+```
+
+```mermaid
+flowchart TD
+  A["mutationFn: 내용 문자열로 send 호출"] --> B{"sessionStorage에<br/>같은 내용의 키?"}
+  B -->|"있음"| C["그 키 재사용"]
+  B -->|"없음"| D["crypto.randomUUID()"]
+  C --> E["저장 후 POST + Idempotency-Key"]
+  D --> E
+  E -->|"성공(새 결과 또는 기존 결과)"| F["그 항목 삭제<br/>다음 제출은 새 키"]
+  E -->|"실패·끊김"| G["항목 유지<br/>같은 내용을 다시 보내면 같은 키"]
+```
+
+_"클라이언트가 만든 고유한 값"_ (번역,
+[IETF Idempotency-Key 초안](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/) §2, RFC 아님)이라 키는
+브라우저가 만든다. 재전송인지 일부러 또 쓴 건지는 보낸 쪽만 알기 때문이다. 키는 무작위 값이라 내용·회원 정보가 담기지
+않는다. 비교한 대안과 근거는 [`docs/plans/2026-11-04-idempotent-create.md`](./plans/2026-11-04-idempotent-create.md).
+
+**지금 쓰는 곳**
+
+| 요청            | 내용 문자열                                              | 위치                 |
+| --------------- | -------------------------------------------------------- | -------------------- |
+| 글 등록         | `post:` + 최종 payload JSON                              | `post.queries.ts`    |
+| 댓글 등록       | `comment:{postId}:` + 본문 + 파일 name·size·lastModified | `comment.queries.ts` |
+| 답글 등록       | `reply:{commentId}:` + 댓글과 같은 구성                  | `comment.queries.ts` |
+| 비밀번호 재설정 | `password-reset:{email}`                                 | `auth.queries.ts`    |
+| 인증 메일       | `email-verification:{email}`                             | `auth.queries.ts`    |
+
+**규칙**
+
+1. **새 요청을 더할 때는 BE가 키를 받는지 먼저 본다.** 헤더는 생성 스펙이 타입으로 강제하지 않는다 — api 함수의 필수
+   인자로 빠뜨리지 않게 한다.
+2. **내용 문자열에는 다시 보낼 때 달라지는 값을 넣지 않는다.** 이미지 URL은 재시도마다 바뀌어 파일 속성으로 비교한다.
+3. **성공 응답이 새 결과가 아닐 수 있다.** 재전송에는 서버가 기존 결과를 돌려준다 — 낙관적 항목을 응답으로 바꾸는 코드는
+   그 id가 이미 목록에 있는지 본다(`comment.queries.ts`의 `settleTempComment`).
+4. **쌓이지 않게 지운다.** 성공하면 그 항목, 저장할 때 1시간 지난 항목과 20개를 넘는 항목, 명시적 로그아웃·탈퇴 때 전부,
+   탭을 닫으면 브라우저가 전부. 로그인 만료는 입력을 남겨 재시도하므로 지우지 않는다.
+
+**지원 브라우저.** `crypto.randomUUID`에 폴백을 두지 않는다 — 지원 범위는
+[`VERSION-COMPATIBILITY.md`](./VERSION-COMPATIBILITY.md) "지원 브라우저". 없는 브라우저의 등록은 일반 실패 안내로 끝나고 입력은 남는다.
+
+**BE 쪽 상태.** 2026-11-04 FE를 먼저 내보냈다. BE가 헤더를 받기 전까지(계획 Phase 2) 이 헤더는 무시된다.

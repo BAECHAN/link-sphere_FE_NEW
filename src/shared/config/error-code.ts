@@ -29,10 +29,14 @@ export const SERVER_ERROR_CODE = {
   FOLDER_NOT_FOUND: 'FOLDER_NOT_FOUND',
   POST_NOT_FOUND: 'POST_NOT_FOUND',
   FORBIDDEN: 'FORBIDDEN',
+  // 키가 다른데 같은 회원이 1시간 안에 같은 URL을 또 등록(BE DuplicatePostException, 409)
+  DUPLICATE_POST: 'DUPLICATE_POST',
 
   // Comment 답글·수정 대상 없음, 삭제된 댓글 수정 시도(BE #68)
   COMMENT_NOT_FOUND: 'COMMENT_NOT_FOUND',
   COMMENT_DELETED: 'COMMENT_DELETED',
+  // 키가 다른데 같은 회원이 1분 안에 같은 대상에 같은 본문을 또 등록(BE DuplicateCommentException, 409)
+  DUPLICATE_COMMENT: 'DUPLICATE_COMMENT',
 
   // Upload - 서명 URL 발급 시 허용 목록 밖 확장자(BE #68)
   UNSUPPORTED_IMAGE_TYPE: 'UNSUPPORTED_IMAGE_TYPE',

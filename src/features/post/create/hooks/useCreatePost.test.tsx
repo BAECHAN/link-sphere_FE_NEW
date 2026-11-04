@@ -6,7 +6,7 @@ import { type ReactNode } from 'react';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { createTestQueryClient } from '@/test/utils';
-import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { API_BASE_URL, API_ENDPOINTS, IDEMPOTENCY_KEY_HEADER } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { useCreatePost } from '@/features/post/create/hooks/useCreatePost';
@@ -50,6 +50,57 @@ describe('useCreatePost', () => {
     navigateSpy.mockClear();
     // 제출은 로그인 상태에서만 보낸다(useAuthGuard) - 셋업이 테스트마다 로그인 상태를 지운다
     useAuthStore.getState().setAuth('test-access-token');
+  });
+
+  it('실패 뒤 그대로 다시 누르면 같은 키이고, 입력을 고치면 새 키다', async () => {
+    sessionStorage.clear();
+    const received: (string | null)[] = [];
+    server.use(
+      http.post(url(API_ENDPOINTS.post.base), ({ request }) => {
+        received.push(request.headers.get(IDEMPOTENCY_KEY_HEADER));
+
+        return HttpResponse.json({ status: 500, code: 'INTERNAL_SERVER_ERROR' }, { status: 500 });
+      })
+    );
+    const { result } = renderHook(() => useCreatePost(), {
+      wrapper: createWrapper(createTestQueryClient()),
+    });
+
+    await fillAndSubmit(result);
+    await fillAndSubmit(result);
+    act(() => {
+      result.current.form.setValue('title', '고친 제목', { shouldDirty: true });
+    });
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(received).toHaveLength(3);
+    expect(received[0]).toBeTruthy();
+    expect(received[1]).toBe(received[0]);
+    expect(received[2]).not.toBe(received[0]);
+  });
+
+  it('키가 다른데 같은 URL을 또 등록하면(DUPLICATE_POST) URL 칸에 안내한다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.post.base), () =>
+        HttpResponse.json(
+          { status: 409, code: SERVER_ERROR_CODE.DUPLICATE_POST, message: 'duplicate' },
+          { status: 409 }
+        )
+      )
+    );
+    const { result } = renderHook(() => useCreatePost(), {
+      wrapper: createWrapper(createTestQueryClient()),
+    });
+
+    await fillAndSubmit(result);
+
+    expect(navigateSpy).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('url').error?.message).toBe(
+      TEXTS.messages.error.postSubmit.urlDuplicate
+    );
+    expect(result.current.submitError).toBeNull();
   });
 
   it('등록이 성공한 뒤에만 폼을 비우고 목록으로 이동한다', async () => {

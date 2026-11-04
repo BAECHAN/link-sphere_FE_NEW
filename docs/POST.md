@@ -8,7 +8,7 @@
 > 파일에서 어떤 API를 부르고 어느 캐시를 어떻게 바꾸는지 안다. "등록 직후 새 글이 안 보인다",
 > "좋아요가 목록에 반영 안 된다" 같은 증상을 받았을 때 어디부터 열어볼지 정할 수 있다.
 >
-> **마지막 검토**: 2026-11-03
+> **마지막 검토**: 2026-11-04
 
 이 앱의 중심 데이터다. 사용자가 링크(URL)를 등록하면 BE가 그 페이지를 크롤링해 제목·설명·
 썸네일을 채우고, 그 뒤 비동기로 AI 요약·태그를 붙인다. FE는 그 결과를 피드(`/post`)에 카드로
@@ -45,7 +45,7 @@ flowchart TD
   Feed -->|"Submit Link"| Create["작성 /post/submit"]
   Create -->|"URL 입력, 0.5초 멈춤·형식 OK"| Preview["GET /link-preview?url=<br/>URL 칸 아래 카드 미리보기<br/>(BE가 10분 캐시)"]
   Preview -->|"도메인 없음 등"| PreviewErr["카드 대신 URL 칸 에러"]
-  Create -->|"제출 → 버튼 '등록 중...'(응답 대기)"| CreateReq["POST /post (keepalive)<br/>실패 시 폼 유지"]
+  Create -->|"제출 → 버튼 '등록 중...'(응답 대기)"| CreateReq["POST /post (keepalive, Idempotency-Key)<br/>실패 시 폼 유지"]
   CreateReq -->|"성공"| CreateOk["필터 없는 목록 cancelQueries<br/>→ page 0 맨 앞에 끼워 넣고 page 1+ 버림<br/>→ post.list 무효화"]
   CreateOk -->|"그다음 폼에서"| CreateNav["clearNow·reset<br/>navigate /post replace<br/>(응답 전에 떠났으면 이동 안 함)"]
 
@@ -376,6 +376,9 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
      가드가 그대로 남고, 실패 원인은 7번 방식으로 안내한다. BE가 크롤링을 동기로 하지만
      실측 중앙값 2.7초라 기다리게 한다(근거·이전 방식과의 비교는 [`DECISIONS.md`](./DECISIONS.md)
      2026-10-03). 탭을 닫아도 요청이 끝까지 가도록 `keepalive`(`post.api.ts`의 `createPost`).
+   - 요청에는 `Idempotency-Key`를 싣는다(`post.queries.ts`의 `mutationFn`). 실패·끊김 뒤 같은 내용을 다시 보내면 같은
+     키라, BE가 키를 받기 시작하면 글이 둘이 되지 않고 기존 글이 돌아온다. 내용을 고치면 새 키다
+     ([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §27).
    - 저장 중 떠나려 하면 이탈 확인창이 뜬다. 확인창이 떠 있는 동안 성공하면 확인창이 닫히고 그대로 `/post`로
      간다. 응답 전에 "나가기"로 떠났으면 `useHasLeftPage`로 알아보고 이동하지 않는다(실패 안내는 7번 참고) —
      [`UNSAVED-CHANGES-GUARD.md`](./UNSAVED-CHANGES-GUARD.md) §5 "저장 요청 중 이탈"(2026-10-21).
@@ -403,7 +406,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 7. **실패 원인 안내**(2026-10-03): `PostUtil.resolveSubmitError`(`entities/post/utils/post.util.ts`)가
    실패를 둘로 나눈다. 서버 message(영어·내부 문구)는 노출하지 않고 code·status로만 판정한다.
    - 입력칸을 고치면 해결되는 것 → 그 칸 아래 에러(`form.setError(..., { type: 'server' })` + 포커스):
-     도메인 없음(`URL_UNRESOLVABLE`), 내부망(`URL_NOT_ALLOWED`), 형식(`INVALID_URL`·`INVALID_INPUT`), 폴더 사라짐
+     도메인 없음(`URL_UNRESOLVABLE`), 내부망(`URL_NOT_ALLOWED`), 형식(`INVALID_URL`·`INVALID_INPUT`), 키가 다른데 1시간 안에
+     같은 URL을 또 등록(`DUPLICATE_POST`, 409 — BE 필수화 뒤 발생), 폴더 사라짐
      (`FOLDER_NOT_FOUND`, 폴더를 고른 등록의 `FORBIDDEN`).
    - 그 외 → 버튼 바로 위 `FormAlert`(`shared/ui/elements/FormAlert.tsx`, `role="alert"`): 요청 한도
      (429, `Retry-After`를 분으로 올림), 네트워크, 응답 지연(504 — 이미 저장됐을 수 있어 "피드에서

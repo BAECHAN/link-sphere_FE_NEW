@@ -1,11 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse, delay } from 'msw';
 import { createElement, Suspense, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from 'react-error-boundary';
 import { server } from '@/mocks/server';
-import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { API_BASE_URL, API_ENDPOINTS, IDEMPOTENCY_KEY_HEADER } from '@/shared/config/api';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { createQueryClientWithErrorToasts, createTestQueryClient } from '@/test/utils';
 import { commentKeys } from '@/entities/comment/api/comment.keys';
 import { mockComment } from '@/mocks/fixtures/comment.fixtures';
@@ -19,6 +20,11 @@ import {
   useSuspenseComments,
   useUpdateCommentMutation,
 } from '@/entities/comment/api/comment.queries';
+
+// 업로드 자체는 comment.api.test.ts가 본다 - 여기서는 키를 고르는 데 쓰는 파일 속성만 본다
+vi.mock('@/shared/lib/upload/uploadImageAndGetUrl', () => ({
+  uploadImageAndGetUrl: vi.fn(async (file: File) => `https://cdn.example.com/${file.name}`),
+}));
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
@@ -34,6 +40,7 @@ const POST_ID = mockPost.id;
 const AUTHOR = { id: mockAccount.id, nickname: mockAccount.nickname, image: null };
 
 beforeEach(() => {
+  sessionStorage.clear();
   queryClient = createTestQueryClient({ gcTime: Infinity });
   // 기본 commentHandlers는 API_BASE_URL 접두사(/api) 없이 등록돼 있어 테스트 환경
   // (VITE_API_BASE_URL) 요청 경로와 매칭되지 않는다 - url()로 명시 등록.
@@ -101,6 +108,103 @@ describe('useCreateCommentMutation', () => {
     expect(settled.some((c) => c.id.startsWith('temp-'))).toBe(false);
     expect(settled.find((c) => c.id === mockComment.id)).toBeTruthy();
     expect(settled[1]).toEqual(existing);
+  });
+
+  // 응답을 못 받아 목록을 다시 불러온 뒤 재시도하면, 서버가 돌려준 댓글이 이미 목록에 있다
+  it('돌려받은 댓글이 이미 목록에 있으면 임시 댓글만 걷어내 같은 댓글이 둘 보이지 않는다', async () => {
+    queryClient.setQueryData(commentKeys.list(POST_ID), [mockComment]);
+
+    const { result } = renderHook(() => useCreateCommentMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ content: mockComment.content, author: AUTHOR });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const settled = queryClient.getQueryData<Comment[]>(commentKeys.list(POST_ID)) ?? [];
+    expect(settled.map((comment) => comment.id)).toEqual([mockComment.id]);
+  });
+
+  it('응답을 못 받은 뒤 같은 내용을 다시 보내면 같은 키이고, 내용이 다르면 새 키다', async () => {
+    const received: (string | null)[] = [];
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), ({ request }) => {
+        received.push(request.headers.get(IDEMPOTENCY_KEY_HEADER));
+
+        return HttpResponse.json({}, { status: 504 });
+      })
+    );
+
+    const { result } = renderHook(() => useCreateCommentMutation(POST_ID), { wrapper: Wrapper });
+    const submit = async (content: string) => {
+      await act(async () => {
+        await result.current.mutateAsync({ content, author: AUTHOR }).catch(() => undefined);
+      });
+    };
+
+    await submit('같은 키 댓글');
+    await submit('같은 키 댓글');
+    await submit('고친 댓글');
+
+    expect(received[0]).toBeTruthy();
+    expect(received[1]).toBe(received[0]);
+    expect(received[2]).not.toBe(received[0]);
+  });
+
+  // 이미지는 다시 올릴 때마다 URL이 바뀌므로 파일 속성이 같아야 같은 시도다
+  it('같은 본문이라도 첨부 파일이 다르면 새 키다', async () => {
+    const received: (string | null)[] = [];
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), ({ request }) => {
+        received.push(request.headers.get(IDEMPOTENCY_KEY_HEADER));
+
+        return HttpResponse.json({}, { status: 504 });
+      })
+    );
+
+    const { result } = renderHook(() => useCreateCommentMutation(POST_ID), { wrapper: Wrapper });
+    const submit = async (images: File[]) => {
+      await act(async () => {
+        await result.current
+          .mutateAsync({ content: '첨부 댓글', images, author: AUTHOR })
+          .catch(() => undefined);
+      });
+    };
+    const first = new File(['aaa'], 'a.png', { type: 'image/png', lastModified: 1 });
+    const second = new File(['bbbb'], 'b.png', { type: 'image/png', lastModified: 2 });
+
+    await submit([first]);
+    await submit([first]);
+    await submit([second]);
+
+    expect(received).toHaveLength(3);
+    expect(received[1]).toBe(received[0]);
+    expect(received[2]).not.toBe(received[0]);
+  });
+
+  it('409 DUPLICATE_COMMENT면 롤백하고 목록을 다시 불러온다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), () =>
+        HttpResponse.json(
+          { status: 409, code: SERVER_ERROR_CODE.DUPLICATE_COMMENT, message: 'duplicate' },
+          { status: 409 }
+        )
+      )
+    );
+    const existing: Comment = { ...mockComment, id: 'comment-existing', content: '기존 댓글' };
+    queryClient.setQueryData(commentKeys.list(POST_ID), [existing]);
+
+    const { result } = renderHook(() => useCreateCommentMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ content: '방금 쓴 댓글', author: AUTHOR });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(queryClient.getQueryData<Comment[]>(commentKeys.list(POST_ID))).toEqual([existing]);
+    expect(queryClient.getQueryState(commentKeys.list(POST_ID))?.isInvalidated).toBe(true);
   });
 
   it('실패하면 임시 댓글을 걷어내고 이전 목록으로 롤백한다', async () => {
@@ -219,6 +323,49 @@ describe('useCreateReplyMutation', () => {
     const settled = (queryClient.getQueryData<Comment[]>(commentKeys.list(POST_ID)) ?? [])[0];
     expect(settled?.replies).toHaveLength(1);
     expect(settled?.replies[0]?.id).toBe('reply-uuid-1');
+  });
+
+  it('돌려받은 답글이 이미 목록에 있으면 임시 답글만 걷어낸다', async () => {
+    const reply: Comment = { ...mockComment, id: 'reply-uuid-1', content: '새 답글' };
+    const parent: Comment = { ...mockComment, id: 'parent-comment', replies: [reply] };
+    queryClient.setQueryData(commentKeys.list(POST_ID), [parent]);
+
+    const { result } = renderHook(() => useCreateReplyMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ commentId: 'parent-comment', content: '새 답글', author: AUTHOR });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const settled = (queryClient.getQueryData<Comment[]>(commentKeys.list(POST_ID)) ?? [])[0];
+    expect(settled?.replies.map((item) => item.id)).toEqual(['reply-uuid-1']);
+  });
+
+  it('응답을 못 받은 뒤 같은 답글을 다시 보내면 같은 키를 쓴다', async () => {
+    const received: (string | null)[] = [];
+    server.use(
+      http.post(url(API_ENDPOINTS.post.commentReply('parent-comment')), ({ request }) => {
+        received.push(request.headers.get(IDEMPOTENCY_KEY_HEADER));
+
+        return HttpResponse.json({}, { status: 504 });
+      })
+    );
+
+    const { result } = renderHook(() => useCreateReplyMutation(POST_ID), { wrapper: Wrapper });
+    const submit = async () => {
+      await act(async () => {
+        await result.current
+          .mutateAsync({ commentId: 'parent-comment', content: '다시 쓸 답글', author: AUTHOR })
+          .catch(() => undefined);
+      });
+    };
+
+    await submit();
+    await submit();
+
+    expect(received[0]).toBeTruthy();
+    expect(received[1]).toBe(received[0]);
   });
 });
 

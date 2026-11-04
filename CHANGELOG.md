@@ -11,6 +11,13 @@
 
 ### Added
 
+- `shared` 글·댓글·답글 등록과 메일 요청 2개에 Idempotency-Key를 실음
+  <details><summary>배경·구현</summary>
+
+  같은 요청이 두 번 오면 글·댓글이 2개 생기고 AI 분석·푸시도 2번 나가며, 재설정·인증 메일은 유효한 링크가 2통 간다. FE의 더블클릭 가드는 저장된 뒤 응답이 끊겨 다시 누르는 경우를 막지 못한다. 이번 PR은 브라우저 쪽만이다 — `mutationFn`이 내용별로 키를 구해 헤더로 싣고, 실패·끊김 뒤 같은 내용을 다시 보내면 같은 키를 쓴다(폼 훅은 변경 없음). 키는 `crypto.randomUUID()`로 만들어 `sessionStorage`에 두며(새로고침해도 `keepalive` 요청은 끝까지 가므로), 성공하면 지우고 1시간 지난 항목·20개 넘는 항목·명시적 로그아웃과 탈퇴 때 지운다. BE가 받기 전까지 이 헤더는 무시되고 동작은 지금과 같다. BE가 보낼 409(`DUPLICATE_POST`는 URL 칸 아래, `DUPLICATE_COMMENT`는 폼 안내·입력 복원·목록 재조회) 안내와, 재전송이 돌려준 댓글이 이미 목록에 있을 때 같은 댓글이 둘 보이지 않게 임시 댓글만 걷어내는 처리도 넣었다. 지원 브라우저를 문서로 밝혔다(Tailwind 4 기준 Chrome 111·Safari 16.4·Firefox 128). CloudFront 접근 로그를 켜는 절차도 함께 적었다. 계획과 비교한 안은 [`docs/plans/2026-11-04-idempotent-create.md`](docs/plans/2026-11-04-idempotent-create.md), 패턴은 `docs/FE-ARCHITECTURE.md` §27. (`src/shared/utils/idempotency-key.util.ts`(신규), `src/shared/config/api.ts`, `src/shared/config/storage-keys.ts`, `src/shared/config/error-code.ts`, `src/shared/config/texts.ts`, `src/entities/post/api/post.api.ts`, `src/entities/post/api/post.queries.ts`, `src/entities/post/utils/post.util.ts`, `src/entities/comment/api/comment.api.ts`, `src/entities/comment/api/comment.queries.ts`, `src/entities/comment/utils/comment.util.ts`, `src/entities/auth/api/auth.api.ts`, `src/entities/auth/api/auth.queries.ts`, `src/entities/account/api/account.queries.ts`, `e2e/post-create.spec.ts`, `docs/FE-ARCHITECTURE.md`, `docs/VERSION-COMPATIBILITY.md`, `docs/DEPLOY.md`, `docs/POST.md`, `docs/COMMENT.md`, `docs/AUTH.md`, `docs/TESTING.md`, `.claude/CLAUDE.md`, [PR #535](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/535))
+
+  </details>
+
 - `bookmark` 폴더 이름 입력 여섯 곳에 글자 수(0 / 15자)를 늘 보여 줌
   <details><summary>배경·구현</summary>
 
@@ -299,6 +306,7 @@
 
 ### Notes
 
+- BE API 예고: `link-sphere_BE_NEW`가 곧 글·댓글·답글 등록과 메일 요청 2개에 `Idempotency-Key`를 필수로 받는다. **배포 순서: 이 FE 먼저 → (약 하루 뒤) SQL → BE** — FE 배포 전에 열린 탭은 BE 필수화 뒤 등록이 400으로 실패하고 새로고침하면 회복한다.
 - BE API 의존: `link-sphere_BE_NEW` [PR #154](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/154) 필요(회원 탈퇴 `DELETE /auth/account` → `POST /auth/account/deletion`). **배포 순서: BE 먼저** — 구버전 BE에는 새 경로가 없어 탈퇴가 실패한다. 운영에서는 옛 호출도 이미 CloudFront에서 403이라, BE를 먼저 배포하는 동안 새로 깨지는 것은 없다.
 
 ## [0.20.0] - 2026-10-28

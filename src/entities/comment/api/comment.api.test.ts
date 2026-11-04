@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import { commentApi } from '@/entities/comment/api/comment.api';
+import { IDEMPOTENCY_KEY_HEADER } from '@/shared/config/api';
 import { uploadImageAndGetUrl } from '@/shared/lib/upload/uploadImageAndGetUrl';
 
 vi.mock('@/shared/lib/upload/uploadImageAndGetUrl', () => ({
@@ -41,7 +42,7 @@ describe('commentApi.createComment - 이미지 업로드 동시성·순서', () 
 
     const images = [1, 2, 3, 4, 5].map((n) => fakeImageFile(`img${n}.png`));
 
-    await commentApi.createComment('post-1', { content: '내용', images });
+    await commentApi.createComment('post-1', { content: '내용', images }, 'key-1');
 
     expect(maxActiveCount).toBeLessThanOrEqual(2);
     expect(uploadImageAndGetUrl).toHaveBeenCalledTimes(5);
@@ -71,7 +72,7 @@ describe('commentApi.createComment - 이미지 업로드 동시성·순서', () 
     );
 
     const images = [1, 2, 3, 4, 5].map((n) => fakeImageFile(`img${n}.png`));
-    await commentApi.createComment('post-1', { content: '내용', images });
+    await commentApi.createComment('post-1', { content: '내용', images }, 'key-1');
 
     expect(capturedImages).toEqual([
       'https://example.com/img1.png',
@@ -80,5 +81,26 @@ describe('commentApi.createComment - 이미지 업로드 동시성·순서', () 
       'https://example.com/img4.png',
       'https://example.com/img5.png',
     ]);
+  });
+});
+
+describe('commentApi - Idempotency-Key', () => {
+  it('댓글·답글 요청에 받은 키를 헤더로 싣는다', async () => {
+    const received: (string | null)[] = [];
+    const capture = ({ request }: { request: Request }) => {
+      received.push(request.headers.get(IDEMPOTENCY_KEY_HEADER));
+
+      return jsonComment();
+    };
+
+    server.use(
+      http.post('/api/post/:id/comment', capture),
+      http.post('/api/comment/:id/reply', capture)
+    );
+
+    await commentApi.createComment('post-1', { content: '내용' }, 'comment-key');
+    await commentApi.createReply('comment-1', { content: '내용' }, 'reply-key');
+
+    expect(received).toEqual(['comment-key', 'reply-key']);
   });
 });

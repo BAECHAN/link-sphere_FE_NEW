@@ -21,6 +21,7 @@ import { CommentUtil } from '@/entities/comment/utils/comment.util';
 import { prefetchQueryQuietly } from '@/shared/lib/react-query/prefetch-quietly';
 import { TEXTS } from '@/shared/config/texts';
 import { PaginationRequest } from '@/shared/types/common.type';
+import { IdempotencyKeyUtil } from '@/shared/utils/idempotency-key.util';
 
 // 서버 응답을 기다리는 동안 목록에 즉시 꽂아 넣는 임시 댓글을 만든다.
 // content 조립 규칙은 BE CommentService.buildFinalContent와 동일하게 맞춘다 - 텍스트 뒤에
@@ -53,6 +54,31 @@ function buildOptimisticComment({
     isLiked: false,
     linkMetadata: undefined,
   };
+}
+
+// 같은 시도인지 브라우저에서 알아보는 문자열(IdempotencyKeyUtil). 이미지는 다시 올릴 때마다 URL이 바뀌어 파일
+// 속성으로 비교한다.
+function buildCommentAttemptContent(
+  target: string,
+  { content, images = [] }: { content?: string; images?: File[] }
+): string {
+  const files = images.map((file) => [file.name, file.size, file.lastModified]);
+
+  return `${target}:${JSON.stringify([content ?? '', files])}`;
+}
+
+// 임시 댓글을 서버 응답으로 바꾼다. 응답을 못 받아 목록을 다시 불러온 뒤 재시도하면 서버가 돌려준 댓글이 이미
+// 목록에 있다 - 그때는 임시 댓글만 걷어내야 같은 댓글이 둘 보이지 않는다.
+function settleTempComment(
+  comments: Comment[],
+  tempId: string | undefined,
+  saved: Comment
+): Comment[] {
+  if (comments.some((comment) => comment.id === saved.id)) {
+    return comments.filter((comment) => comment.id !== tempId);
+  }
+
+  return comments.map((comment) => (comment.id === tempId ? saved : comment));
 }
 
 // 트리(루트+답글)에서 id가 일치하는 댓글에 patch를 병합한다. PATCH 응답(CommentResponse)은
@@ -135,8 +161,18 @@ export const useCreateCommentMutation = (postId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: { content?: string; images?: File[]; author: Comment['author'] }) =>
-      commentApi.createComment(postId, { content: payload.content, images: payload.images }),
+    mutationFn: ({
+      content,
+      images,
+    }: {
+      content?: string;
+      images?: File[];
+      author: Comment['author'];
+    }) =>
+      IdempotencyKeyUtil.send(
+        buildCommentAttemptContent(`comment:${postId}`, { content, images }),
+        (key) => commentApi.createComment(postId, { content, images }, key)
+      ),
     // 실패 원인은 폼이 버튼 위 FormAlert로 안내한다(useCreateComment) - 전역 토스트와 겹치지 않게 끈다
     meta: { manualErrorHandling: true },
     onMutate: async (variables) => {
@@ -159,7 +195,7 @@ export const useCreateCommentMutation = (postId: string) => {
     },
     onSuccess: (data, _variables, context) => {
       queryClient.setQueryData<Comment[]>(commentKeys.list(postId), (old = []) =>
-        old.map((comment) => (comment.id === context?.tempId ? data : comment))
+        settleTempComment(old, context?.tempId, data)
       );
       handleCommentCreateSuccess(queryClient, postId);
     },
@@ -168,7 +204,7 @@ export const useCreateCommentMutation = (postId: string) => {
         queryClient.setQueryData(commentKeys.list(postId), context.previousComments);
       }
 
-      if (CommentUtil.isOutcomeUnknown(error)) {
+      if (CommentUtil.isOutcomeUnknown(error) || CommentUtil.isDuplicate(error)) {
         handleCommentCreateOutcomeUnknown(queryClient, postId);
       }
     },
@@ -191,7 +227,11 @@ export const useCreateReplyMutation = (postId: string) => {
       content?: string;
       images?: File[];
       author: Comment['author'];
-    }) => commentApi.createReply(commentId, { content, images }),
+    }) =>
+      IdempotencyKeyUtil.send(
+        buildCommentAttemptContent(`reply:${commentId}`, { content, images }),
+        (key) => commentApi.createReply(commentId, { content, images }, key)
+      ),
     // 실패 원인은 폼이 버튼 위 FormAlert로 안내한다(useCreateComment) - 전역 토스트와 겹치지 않게 끈다
     meta: { manualErrorHandling: true },
     onMutate: async (variables) => {
@@ -224,9 +264,7 @@ export const useCreateReplyMutation = (postId: string) => {
           comment.id === variables.commentId
             ? {
                 ...comment,
-                replies: comment.replies.map((reply) =>
-                  reply.id === context?.tempId ? data : reply
-                ),
+                replies: settleTempComment(comment.replies, context?.tempId, data),
               }
             : comment
         )
@@ -238,7 +276,7 @@ export const useCreateReplyMutation = (postId: string) => {
         queryClient.setQueryData(commentKeys.list(postId), context.previousComments);
       }
 
-      if (CommentUtil.isOutcomeUnknown(error)) {
+      if (CommentUtil.isOutcomeUnknown(error) || CommentUtil.isDuplicate(error)) {
         handleCommentCreateOutcomeUnknown(queryClient, postId);
       }
     },
