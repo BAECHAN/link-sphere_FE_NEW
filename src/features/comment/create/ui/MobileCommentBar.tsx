@@ -13,6 +13,15 @@ interface MobileCommentBarProps {
 const TAB_BAR_RESERVE = 'calc(4rem + env(safe-area-inset-bottom))';
 const TOAST_GAP_PX = 8;
 
+/**
+ * 펼친 시트의 높이 상한 — 입력칸이 내용만큼 끝없이 커져(field-sizing-content) 긴 글이면 시트가 화면 위로 넘쳤다.
+ * 입력칸은 상한에서 멈추고 안에서 스크롤해 글자 수·등록 버튼이 늘 보이게 하고, 미리보기·첨부 이미지까지 길어지면
+ * 시트 자체가 상한에서 안쪽 스크롤로 받는다. 시트 상한은 북마크 시트(SheetDialogContent)와 같은 70dvh다
+ * (값과 근거: docs/COMMENT.md §5 "시트 높이"). 공용 CommentForm은 데스크톱 인라인·답글과 같이 쓰므로 여기서만 건다.
+ */
+const SHEET_MAX_HEIGHT = 'max-h-[70dvh] overflow-y-auto overscroll-contain';
+const SHEET_TEXTAREA_MAX_HEIGHT = '[&_textarea]:max-h-[40dvh]';
+
 export function MobileCommentBar({ postId }: MobileCommentBarProps) {
   const [expanded, setExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -69,6 +78,8 @@ export function MobileCommentBar({ postId }: MobileCommentBarProps) {
         ref={containerRef}
         className={cn(
           'md:hidden fixed inset-x-0 bottom-0 z-scrim border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-lg',
+          SHEET_MAX_HEIGHT,
+          SHEET_TEXTAREA_MAX_HEIGHT,
           isMobileSearchOpen && 'hidden'
         )}
       >
