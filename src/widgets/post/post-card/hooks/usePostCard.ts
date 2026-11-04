@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useIsMutating, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/lib/toast/toast';
@@ -22,6 +22,10 @@ import {
   LOADING_INDICATOR_MIN_DURATION_MS,
 } from '@/shared/config/const';
 
+// 카드에 이만큼 머물러야 댓글까지 미리 받는다 - 지나가기만 한 마우스를 거르는 값이다
+// (근거: docs/PERFORMANCE.md "상세 첫 진입 빈 화면")
+const COMMENTS_PREFETCH_HOVER_DELAY_MS = 100;
+
 function isShareCancelledByUser(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError';
 }
@@ -42,6 +46,15 @@ export function usePostCard(post: Post, isDetail = false) {
 
   const [isAiSummaryExpanded, setIsAiSummaryExpanded] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // 타이머 ID는 화면에 그리지 않는 값이라 ref에 둔다(https://react.dev/reference/react/useRef)
+  const commentsPrefetchTimerRef = useRef<number | undefined>(undefined);
+
+  // 머무는 중에 카드가 사라지면(클릭해 이동, 가상 스크롤로 빠짐) 걸어 둔 댓글 미리 받기를 취소한다
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(commentsPrefetchTimerRef.current);
+    };
+  }, []);
 
   // 이 게시글의 수정 요청이 진행 중인지 (수정 폼에서 이탈한 뒤에도 mutation은 계속 돌아간다)
   const isUpdatingMutation = useIsMutating({ mutationKey: postMutationKeys.update(post.id) }) > 0;
@@ -136,15 +149,31 @@ export function usePostCard(post: Post, isDetail = false) {
     navigate(ROUTES_PATHS.POST.EDIT.replace(':id', post.id));
   };
 
-  // 댓글 아이콘 hover·focus용 — 댓글을 보러 간다는 의도가 분명해 댓글까지 미리 받는다.
-  // 제목 링크는 ::after가 카드 전체를 덮어 카드 위를 지나가기만 해도 발동하므로 게시글만 받는다
+  // 댓글 아이콘 hover·focus용 — 댓글을 보러 간다는 의도가 분명해 댓글까지 바로 미리 받는다
   const handlePrefetchDetailWithComments = () => {
     prefetchPostDetail(queryClient, post.id);
     prefetchComments(queryClient, post.id);
   };
 
+  // 제목 링크 hover·focus용 — ::after가 카드 전체를 덮어 누르면 상세로 가는 곳 어디에 올라가도 발동한다.
+  // 게시글은 바로 받고, 댓글은 카드에 머물렀을 때만 받는다: 상세는 댓글을 기다리느라 첫 화면을 최대
+  // 500ms 미루므로(react-dom 18 FALLBACK_THROTTLE_MS) 댓글이 클릭 뒤에 출발하면 그만큼 빈 화면이 생기고,
+  // 지나가기만 한 카드까지 댓글을 받지는 않으려는 것이다. 상세 안에서는 라우트가 이미 댓글을 받았다
   const handlePrefetchDetail = () => {
     prefetchPostDetail(queryClient, post.id);
+
+    if (isDetail) {
+      return;
+    }
+
+    window.clearTimeout(commentsPrefetchTimerRef.current);
+    commentsPrefetchTimerRef.current = window.setTimeout(() => {
+      prefetchComments(queryClient, post.id);
+    }, COMMENTS_PREFETCH_HOVER_DELAY_MS);
+  };
+
+  const handleCancelPrefetchComments = () => {
+    window.clearTimeout(commentsPrefetchTimerRef.current);
   };
 
   // 카드에서 카테고리를 누르면 검색어를 그 카테고리(@이름) 하나로 바꾼다 - 칩처럼 토글하면 이미
@@ -179,6 +208,7 @@ export function usePostCard(post: Post, isDetail = false) {
     handleCopyOriginalUrl,
     handleNavigateToEdit,
     handlePrefetchDetail,
+    handleCancelPrefetchComments,
     handlePrefetchDetailWithComments,
     handleCategoryClick,
   };

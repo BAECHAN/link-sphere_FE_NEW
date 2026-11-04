@@ -12,7 +12,12 @@ import { ChunkReloadUtil } from '@/shared/utils/chunk-reload.util';
 // 이벤트 이름은 vite:preloadError(카멜케이스)다 - 2026-03부터 vite:preload-error로 듣고 있어
 // 이 리스너는 한 번도 실행되지 않았다(2026-10-14 발견, https://vite.dev/guide/build#load-error-handling).
 // 경로별로 세션당 1회만 새로고침한다 - 판단은 AppErrorFallback과 ChunkReloadUtil로 공유한다.
+// 사용자가 누르지 않은 미리 받기(ChunkReloadUtil.preloadQuietly)가 실패한 것으로는 보던 화면을 새로고침하지 않는다.
 window.addEventListener('vite:preloadError', () => {
+  if (ChunkReloadUtil.isPreloadingQuietly()) {
+    return;
+  }
+
   ChunkReloadUtil.reloadOnce();
 });
 

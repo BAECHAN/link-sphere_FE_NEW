@@ -394,7 +394,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 다룬다.
 
 - **카드 댓글 아이콘(`#comments`, 2026-10-14)** — 피드·북마크·상세 카드의 💬은
-  `/post/:id#comments`로 간다(`PostCard.tsx:352`). 대상은 댓글 제목과 데스크톱 작성 폼을 감싼
+  `/post/:id#comments`로 간다(`PostCard.tsx:355`). 대상은 댓글 제목과 데스크톱 작성 폼을 감싼
   컨테이너(`formContainerRef`)라 배경 강조 없이 플로팅 버튼처럼 부드럽게 스크롤한 뒤 입력창에 포커스한다.
   모바일은 인라인 폼이 없어 제목까지만 오고 하단 바는 접힌 채다.
 - **`#comments`는 DOM id가 아니라 신호다** — 같은 id의 요소가 있으면 react-router
@@ -416,15 +416,17 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 - **기다림 줄이기(2026-10-14)** — 게시글을 기다리며 멈추는 `PostDetailContent` 안에 `CommentList`가
   있어, 게시글이 와야 댓글을 요청하는 순차 요청이었다. 두 가지로 줄였다.
-  - 상세 진입: 상세 라우트(`PostDetailRoute`, `src/app/routes/index.tsx:147`)가
+  - 상세 진입: 상세 라우트(`PostDetailRoute`, `src/app/routes/index.tsx:211`)가
     `usePrefetchComments`(`src/entities/comment/api/comment.queries.ts:105`)를 불러 댓글을
     게시글과 동시에 요청한다. 처음엔 `PostDetailPage`가 경계 바깥에서 불렀다. 2026-10-26부터는 lazy 페이지
     청크도 기다리지 않도록 라우트로 옮겼다([`PERFORMANCE.md`](./PERFORMANCE.md) "LCP 데이터 요청 시점").
     `CommentList`는 같은 키의 캐시를 읽어 다시 요청하지 않는다
     ([TanStack Query 프리페치 가이드](https://github.com/tanstack/query/blob/main/docs/framework/react/guides/prefetching.md)의 "게시글 + 댓글" 예시와 같은 구조).
-  - 💬 hover·focus: `handlePrefetchDetailWithComments`(`src/widgets/post/post-card/hooks/usePostCard.ts:141`)가
+  - 💬 hover·focus: `handlePrefetchDetailWithComments`(`src/widgets/post/post-card/hooks/usePostCard.ts:153`)가
     게시글과 `prefetchComments`(`src/entities/comment/api/comment.queries.ts`)를 미리 받는다. 제목 링크는 `::after`가
-    카드 전체를 덮어 카드 위를 지나가기만 해도 발동하므로 지금처럼 게시글만 받는다.
+    카드 전체를 덮어 카드 위를 지나가기만 해도 발동하므로, 게시글은 바로 받고 댓글은 카드에 100ms 머물렀을 때만 받는다
+    (`COMMENTS_PREFETCH_HOVER_DELAY_MS`, 떠나면 취소). 2026-11-04 전에는 게시글만 받았는데, 상세가 댓글을 기다리느라
+    첫 화면을 최대 500ms 미뤄 데스크톱에서 빈 화면이 133ms 남았다(→ 19ms, [`PERFORMANCE.md`](./PERFORMANCE.md) "상세 첫 진입 빈 화면").
 
   클릭부터 도착까지(직접 측정, API당 300ms 목 응답, 3회 반복):
 
@@ -775,7 +777,9 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 `preventScrollReset`·포커스·타이머 cleanup·`usePostDetailPrefetch` 호출·💬 `onMouseEnter`를 하나씩
 되돌리면 해당 테스트가 실패하는 것도 확인했다. 2026-10-26 댓글 미리 받기를 라우트(`PostDetailRoute`)로
 옮긴 뒤에는 `e2e/post-route-prefetch.spec.ts`가 페이지 청크를 붙잡아 둔 채 댓글이 요청되는지(총 1회)를
-확인하고, 라우트의 미리 받기를 빼면 실패하는 것도 확인했다.
+확인하고, 라우트의 미리 받기를 빼면 실패하는 것도 확인했다. 2026-11-04 제목 hover도 머물면 댓글을 받게 바꾸면서
+`post-detail-comment-prefetch.spec.ts`는 5개가 됐다. 제목에 머물면 댓글까지 받고, 카드 빈 곳(설명)도 같은 링크라 미리
+받고, 지나가기만 하면 게시글만 받는다. 떠날 때 취소하는 코드나 댓글 미리 받기를 빼면 해당 테스트가 실패했다.
 
 입력칸 아래 글자 수(§5)는 2026-11-04 직접 실행했다.
 

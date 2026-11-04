@@ -118,7 +118,7 @@ RootLayout
 
 `GuestGuard`(`routes/index.tsx`의 `GuestGuard` 함수, `:90-104`)는 반대 방향 가드입니다 — 로그인 상태로 `/auth/login`에 오면 이전 경로(`location.state.from.pathname`) 또는 `HOME`으로 돌려보냅니다.
 
-`/auth/verify-email`은 어느 가드에도 속하지 않고 `routes/index.tsx:242-245`에서 `AuthLayout`만 직접 씌워 별도 라우트로 둡니다 — 로그인·비로그인 양쪽 모두 접근 가능해야 하기 때문입니다(로그인 상태면 인증 완료만 안내, 비로그인이면 로그인 유도).
+`/auth/verify-email`은 어느 가드에도 속하지 않고 `routes/index.tsx:306-309`에서 `AuthLayout`만 직접 씌워 별도 라우트로 둡니다 — 로그인·비로그인 양쪽 모두 접근 가능해야 하기 때문입니다(로그인 상태면 인증 완료만 안내, 비로그인이면 로그인 유도).
 
 그래서 이 화면(`VerifyEmailStatus.tsx`)은 로그인 여부를 스스로 판단합니다. 기준은 게이트 A와 같은 `useAuthStore.isAuthenticated`이고, 계정 프로필(`useAccount()`의 `account`)은 쓰지 않습니다. 프로필은 로그인한 뒤 `/auth/account`로 따로 받아 오므로, 조회 전이나 조회 실패 때 로그인 사용자가 비로그인으로 보여 "로그인하러 가기" 버튼이 뜹니다(2026-11-03 수정 전 동작). 게이트 밖이라 복원 전에도 렌더되므로, `isAuthResolved`가 될 때까지는 확인 요청이 먼저 끝나도 "확인 중" 화면을 유지하고 버튼을 정하지 않습니다.
 

@@ -41,6 +41,13 @@
 
 ### Changed
 
+- `post` 피드에서 상세로 처음 들어갈 때 피드가 사라진 뒤 비는 화면을 줄임
+  <details><summary>배경·구현</summary>
+
+  카드를 눌러 상세로 처음 들어가면 피드가 사라진 뒤 상세가 보이기까지 빈 화면이 있었다(직접 측정, 운영·비로그인·캐시 없음, 조건마다 5회 중앙값). 데스크톱은 133ms였다. 카드 hover 때 게시글만 미리 받고 댓글은 누른 뒤에 요청했는데, react-dom 18.3.1이 새 fallback을 보여야 하는 재시도 렌더를 "마지막 fallback + 500ms"까지 미뤄(`FALLBACK_THROTTLE_MS`) 상세가 댓글 도착을 기다렸기 때문이다. 모바일(Lighthouse mobileSlow4G 감속)은 716ms였고, 매번 스피너가 깜빡였다. 상세 페이지 코드(청크)가 게시글·댓글보다 늦게 왔기 때문이다. 이제 데스크톱에서는 카드에서 누르면 상세로 가는 곳(제목 링크의 `::after`가 덮는 카드 전체)에 100ms 머물면 댓글도 미리 받고, 그 전에 떠나면 취소한다(19ms). 제목만이 아니라 카드 전체를 대상으로 한 것은 카드의 빈 곳도 같은 링크라서다(2026-11-04 사용자 결정). 터치 기기(`(pointer: coarse)`)에서는 피드 `load` 뒤 브라우저가 한가할 때 상세 청크를 미리 받는다(600ms, 스피너 0/5). 데이터 절약 모드(Save-Data)면 받지 않지만, iOS Safari·Firefox는 이 값을 알 수 없어 늘 받는다. 미리 받기가 실패해도 보던 피드가 새로고침되지 않도록 `ChunkReloadUtil.preloadQuietly`로 감싸고 그동안 `vite:preloadError` 리스너는 건너뛴다. 실제로 누를 때 다시 받고, 그때도 실패하면 에러 경계가 복구한다. 같은 빌드에서 켜고 끄며 잰 피드 모바일 LCP는 6,068 / 6,088ms로 노이즈 범위였다. 100ms는 업계 hover 지연(20~200ms) 가운데 React Router `intent`와 같은 값이다. 측정·원인 추적·업계 비교·기각한 안은 `docs/PERFORMANCE.md` "상세 첫 진입 빈 화면". (`src/widgets/post/post-card/hooks/usePostCard.ts`, `src/widgets/post/post-card/ui/PostCard.tsx`, `src/app/routes/index.tsx`, `src/shared/utils/chunk-reload.util.ts`, `src/shared/utils/chunk-reload.util.test.ts`, `src/main.tsx`, `e2e/post-detail-comment-prefetch.spec.ts`, `e2e/post-detail-chunk-preload.spec.ts`(신규), `docs/PERFORMANCE.md`, `docs/COMMENT.md`, `docs/POST.md`, `docs/CACHE-STRATEGY.md`, `docs/TESTING.md`, [PR #525](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/525))
+
+  </details>
+
 - `bookmark` 모바일 폴더 시트의 딤을 옅게 하고 딤과 시트가 함께 닫힘
   <details><summary>배경·구현</summary>
 

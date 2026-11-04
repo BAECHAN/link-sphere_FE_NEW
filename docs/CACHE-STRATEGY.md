@@ -185,12 +185,16 @@ Threads 글의 네 군데에는 없지만 §5.3의 반대편이다 — HTML이 �
   실패한다. 이때 화면을 그대로 두면 사용자는 고장으로 본다.
 - **업계 표준**: Vite는 이때 `vite:preloadError` 이벤트를 보내고, 문서는 이 이벤트에서 새로고침하는
   예시를 든다([Vite Load Error Handling](https://vite.dev/guide/build#load-error-handling)).
-- **이 레포**: 그 리스너([main.tsx:15](../src/main.tsx#L15))와 에러 경계([AppErrorFallback.tsx](../src/shared/ui/elements/AppErrorFallback.tsx)의 `isReloadPending`,
+- **이 레포**: 그 리스너([main.tsx:16](../src/main.tsx#L16))와 에러 경계([AppErrorFallback.tsx](../src/shared/ui/elements/AppErrorFallback.tsx)의 `isReloadPending`,
   라우트에서는 [RouteErrorBoundary.tsx](../src/app/routes/RouteErrorBoundary.tsx)가 이것을 그린다)가 같은 판단
-  `ChunkReloadUtil`을 쓴다 — 경로별로 세션당 1회만 새로고침하고([chunk-reload.util.ts:23](../src/shared/utils/chunk-reload.util.ts#L23)),
+  `ChunkReloadUtil`을 쓴다 — 경로별로 세션당 1회만 새로고침하고([chunk-reload.util.ts:26](../src/shared/utils/chunk-reload.util.ts#L26)),
   새로고침하고도 또 실패하면 "문제가 발생했어요" 화면과 홈 버튼을 보여준다. 페이지 단위
   플래그([chunk-reload.util.ts:8](../src/shared/utils/chunk-reload.util.ts#L8))는 리스너가 새로고침을 건 직후
   렌더된 에러 경계가 "이미 시도함"으로 오판해 에러 화면을 깜빡이지 않게 한다.
+- **미리 받기 실패는 새로고침하지 않는다**(2026-11-04): 사용자가 누르지 않은 청크 미리 받기(터치 기기의 상세 페이지
+  청크)는 `ChunkReloadUtil.preloadQuietly`로 감싸고, 그것이 진행 중이면 리스너가 새로고침하지 않는다. 실패해도 실제로 그
+  화면에 갈 때 다시 받고, 그때도 실패하면 위 에러 경계가 복구한다. 이벤트에 어느 import가 실패했는지가 없어 그동안
+  실패한 다른 청크도 리스너에서는 건너뛴다. 근거와 빌드 확인은 [PERFORMANCE.md](./PERFORMANCE.md) "상세 첫 진입 빈 화면".
 - **판정**: 표준과 같고, 두 번째 실패 처리를 더했다.
 
 ### 5.7 Service Worker — 이 레포에선 해당 없음
@@ -259,19 +263,20 @@ Threads 글의 네 군데에는 없지만 §5.3의 반대편이다 — HTML이 �
 2종(청크 새로고침 기록은 2026-03-14, 감지 기록은 2026-09-09 #51에서 생겼다)과 모듈 변수 1개(2026-10-14
 #366)다.
 
-| 자리                                                  | 무엇이 남나                            | 얼마나                                | 비우는 방법                                                                                  |
-| ----------------------------------------------------- | -------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------- |
-| 브라우저 HTTP 캐시                                    | 해시 자산·폰트                         | 1년                                   | URL이 바뀌면 자동으로 안 씀                                                                  |
-| 브라우저 HTTP 캐시                                    | HTML(`index.html`·`404.html`)          | 저장하되 쓸 때마다 재검증(`no-cache`) | 서버 응답이 바뀌면 그 자리에서 새 것                                                         |
-| 브라우저 HTTP 캐시                                    | `version.json`·SW                      | 저장 안 함(`no-store`)                | —                                                                                            |
-| 브라우저 HTTP 캐시                                    | 그 외 public 파일(favicon·manifest 등) | 캐시 헤더가 없어 브라우저 판단        | 배포마다 덮어씀(바뀌어도 화면 영향 적음)                                                     |
-| bfcache                                               | 떠난 페이지 전체(JS 메모리 포함)       | 브라우저 판단(Chrome은 최대 수 분)    | 복원 때 인증 세대·새 배포를 다시 확인(§5.10)                                                 |
-| CloudFront 엣지                                       | 모든 파일                              | 정책 TTL(값은 §7)                     | 배포마다 `/*` 무효화                                                                         |
-| S3                                                    | 지금 빌드 + 옛 `assets/`·`fonts/`      | 마지막 배포 포함 후 7일               | 옛 자산 정리 스텝                                                                            |
-| 탭 메모리                                             | 실행 중인 JS 번들                      | 탭을 닫거나 새로고침할 때까지         | 감지 → 다음 이동 때 새로고침                                                                 |
-| `sessionStorage` `linksphere:version:last-detected`   | 마지막으로 감지한 entry                | 탭 세션                               | 같은 값 재감지 루프 가드([storage-keys.ts:28](../src/shared/config/storage-keys.ts#L28))     |
-| `sessionStorage` `linksphere:chunk-reload:<pathname>` | 그 경로에서 새로고침했음               | 탭 세션                               | 청크 실패 새로고침 루프 가드([storage-keys.ts:34](../src/shared/config/storage-keys.ts#L34)) |
-| 모듈 변수 `isReloadInFlight`                          | 이 페이지에서 새로고침을 걸었음        | 페이지 수명                           | 새로고침되면 초기화([chunk-reload.util.ts:8](../src/shared/utils/chunk-reload.util.ts#L8))   |
+| 자리                                                  | 무엇이 남나                            | 얼마나                                | 비우는 방법                                                                                        |
+| ----------------------------------------------------- | -------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 브라우저 HTTP 캐시                                    | 해시 자산·폰트                         | 1년                                   | URL이 바뀌면 자동으로 안 씀                                                                        |
+| 브라우저 HTTP 캐시                                    | HTML(`index.html`·`404.html`)          | 저장하되 쓸 때마다 재검증(`no-cache`) | 서버 응답이 바뀌면 그 자리에서 새 것                                                               |
+| 브라우저 HTTP 캐시                                    | `version.json`·SW                      | 저장 안 함(`no-store`)                | —                                                                                                  |
+| 브라우저 HTTP 캐시                                    | 그 외 public 파일(favicon·manifest 등) | 캐시 헤더가 없어 브라우저 판단        | 배포마다 덮어씀(바뀌어도 화면 영향 적음)                                                           |
+| bfcache                                               | 떠난 페이지 전체(JS 메모리 포함)       | 브라우저 판단(Chrome은 최대 수 분)    | 복원 때 인증 세대·새 배포를 다시 확인(§5.10)                                                       |
+| CloudFront 엣지                                       | 모든 파일                              | 정책 TTL(값은 §7)                     | 배포마다 `/*` 무효화                                                                               |
+| S3                                                    | 지금 빌드 + 옛 `assets/`·`fonts/`      | 마지막 배포 포함 후 7일               | 옛 자산 정리 스텝                                                                                  |
+| 탭 메모리                                             | 실행 중인 JS 번들                      | 탭을 닫거나 새로고침할 때까지         | 감지 → 다음 이동 때 새로고침                                                                       |
+| `sessionStorage` `linksphere:version:last-detected`   | 마지막으로 감지한 entry                | 탭 세션                               | 같은 값 재감지 루프 가드([storage-keys.ts:28](../src/shared/config/storage-keys.ts#L28))           |
+| `sessionStorage` `linksphere:chunk-reload:<pathname>` | 그 경로에서 새로고침했음               | 탭 세션                               | 청크 실패 새로고침 루프 가드([storage-keys.ts:34](../src/shared/config/storage-keys.ts#L34))       |
+| 모듈 변수 `isReloadInFlight`                          | 이 페이지에서 새로고침을 걸었음        | 페이지 수명                           | 새로고침되면 초기화([chunk-reload.util.ts:8](../src/shared/utils/chunk-reload.util.ts#L8))         |
+| 모듈 변수 `quietPreloadCount`                         | 진행 중인 조용한 미리 받기 수          | 페이지 수명                           | 미리 받기가 끝나면 줄어듦([chunk-reload.util.ts:11](../src/shared/utils/chunk-reload.util.ts#L11)) |
 
 `useAppVersionStore`(감지 결과)의 shape는 [NEW-VERSION-RELOAD.md](./NEW-VERSION-RELOAD.md) §6.
 
@@ -306,7 +311,7 @@ aws cloudfront get-cache-policy --id <정책 ID> \
 
 캐시부터 지우지 말고 옛 버전이 어느 자리에 남았는지 먼저 가린다(Threads 글의 결론과 같다).
 
-1. **문제가 된 그 탭이 어느 빌드인가** — 그 탭에서 F12 콘솔의 `[BUILD] <sha>` 줄([main.tsx:20](../src/main.tsx#L20))을
+1. **문제가 된 그 탭이 어느 빌드인가** — 그 탭에서 F12 콘솔의 `[BUILD] <sha>` 줄([main.tsx:25](../src/main.tsx#L25))을
    보고, `https://linksphere.click/version.json`의 sha와 비교한다. 다르면 ③ 열린 탭이다 — 탭으로
    돌아온 뒤(5분 간격) 다른 페이지로 이동하면 새로고침되고, 바로 고치려면 새로고침한다. 주의:
    그 탭에서 주소를 직접 입력해 `/version`을 열면 탭이 새로 로드돼 이 증거가 사라진다.
@@ -330,7 +335,7 @@ aws cloudfront get-cache-policy --id <정책 ID> \
 | 무효화·배포 반영 검증 | [deploy.yml:135](../.github/workflows/deploy.yml#L135), [:142](../.github/workflows/deploy.yml#L142)                                                                                            |
 | 옛 자산 정리          | [deploy.yml:200](../.github/workflows/deploy.yml#L200), [prune-old-assets.js](../scripts/prune-old-assets.js), [prune-assets.js](../scripts/lib/prune-assets.js)                                |
 | 새 배포 감지·적용     | [useAppVersionCheck.ts:94-96](../src/shared/hooks/useAppVersionCheck.ts#L94-L96), [useNewVersionReload.ts:28](../src/shared/hooks/useNewVersionReload.ts#L28)                                   |
-| 청크 실패 새로고침    | [main.tsx:15](../src/main.tsx#L15), [chunk-reload.util.ts](../src/shared/utils/chunk-reload.util.ts), [AppErrorFallback.tsx](../src/shared/ui/elements/AppErrorFallback.tsx)(`isReloadPending`) |
+| 청크 실패 새로고침    | [main.tsx:16](../src/main.tsx#L16), [chunk-reload.util.ts](../src/shared/utils/chunk-reload.util.ts), [AppErrorFallback.tsx](../src/shared/ui/elements/AppErrorFallback.tsx)(`isReloadPending`) |
 
 ### 자주 하는 수정
 
