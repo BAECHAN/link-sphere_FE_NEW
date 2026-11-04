@@ -6,7 +6,7 @@ import { useAuthStore } from '@/shared/store/auth.store';
 import { useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { AuthUtil } from '@/shared/utils/auth.util';
-import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { API_BASE_URL, API_ENDPOINTS, IDEMPOTENCY_KEY_HEADER } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
@@ -103,6 +103,37 @@ describe('ApiClient — 인증 오류 처리', () => {
   // Case 1: Access Token 만료 + Refresh 성공
   // ─────────────────────────────────────────────────────────────
   describe('Case 1: Access Token 만료 + Refresh Token 유효', () => {
+    it('토큰 갱신 뒤 재시도도 같은 Idempotency-Key를 싣는다', async () => {
+      const received: (string | null)[] = [];
+
+      server.use(
+        http.post(COMMENT_HANDLER_URL, ({ request }) => {
+          received.push(request.headers.get(IDEMPOTENCY_KEY_HEADER));
+
+          return received.length === 1 ? make401('TOKEN_EXPIRED') : makeCommentSuccess();
+        }),
+        http.post(REFRESH_HANDLER_URL, () =>
+          HttpResponse.json(
+            {
+              status: 200,
+              message: 'ok',
+              data: { accessToken: 'new-access-token' },
+              timestamp: new Date().toISOString(),
+            },
+            { status: 200 }
+          )
+        )
+      );
+
+      useAuthStore.getState().setAuth('expired-access-token');
+
+      await apiClient.post(COMMENT_PATH, makeCommentFormData(), {
+        headers: { [IDEMPOTENCY_KEY_HEADER]: 'retry-key' },
+      });
+
+      expect(received).toEqual(['retry-key', 'retry-key']);
+    });
+
     it('댓글 요청 → 401 TOKEN_EXPIRED → 토큰 갱신 → 원래 요청 재시도 성공', async () => {
       let commentCallCount = 0;
 
@@ -337,6 +368,22 @@ describe('ApiClient — 인증 오류 처리', () => {
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
       // 만료는 이 세션이 끝났다는 뜻이라 함께 쓰는 세션 플래그도 지운다(clearAll과 같음)
       expect(LocalStorageUtil.getItem(STORAGE_KEYS.AUTH.HAS_SESSION)).toBeNull();
+    });
+
+    // 입력을 남겨 다시 로그인한 뒤 재시도하므로, 응답을 못 받은 등록의 키도 함께 남아야 한다
+    it('로그인이 만료돼도 응답을 못 받은 등록의 키는 지우지 않는다', async () => {
+      server.use(
+        http.post(COMMENT_HANDLER_URL, () => make401('TOKEN_EXPIRED')),
+        http.post(REFRESH_HANDLER_URL, () => make401('INVALID_REFRESH_TOKEN'))
+      );
+      sessionStorage.setItem(STORAGE_KEYS.IDEMPOTENCY.PENDING, '[]');
+      useAuthStore.getState().setAuth('expired-access-token');
+
+      await expect(apiClient.post(COMMENT_PATH, makeCommentFormData())).rejects.toBeInstanceOf(
+        SessionExpiredError
+      );
+
+      expect(sessionStorage.getItem(STORAGE_KEYS.IDEMPOTENCY.PENDING)).toBe('[]');
     });
 
     it('보호 화면이면 그 주소 그대로 로그인 창을 연다 - 토스트는 띄우지 않는다', async () => {

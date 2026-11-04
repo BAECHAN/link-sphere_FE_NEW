@@ -20,6 +20,7 @@ import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { AuthUtil } from '@/shared/utils/auth.util';
 import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 import { ErrorUtil } from '@/shared/utils/error.util';
+import { IdempotencyKeyUtil } from '@/shared/utils/idempotency-key.util';
 
 interface UpdateAccountPayload extends UpdateAccount {
   file?: File;
@@ -150,6 +151,7 @@ export const useDeleteAccountMutation = () => {
       AuthUtil.clearAll();
       // 다른 탭·bfcache 페이지도 로그아웃 상태로 맞추게 한다(useAuthEpochSync)
       AuthEpochUtil.markLogout();
+      IdempotencyKeyUtil.clear();
     },
     onError: (error) => {
       if (ErrorUtil.isSessionExpired(error)) {

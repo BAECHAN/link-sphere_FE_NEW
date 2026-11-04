@@ -1,4 +1,5 @@
 import { specClient } from '@/shared/api/spec-client';
+import { IDEMPOTENCY_KEY_HEADER } from '@/shared/config/api';
 import { Comment, MyCommentListResponse } from '@/entities/comment/model/comment.schema';
 import { uploadImageAndGetUrl } from '@/shared/lib/upload/uploadImageAndGetUrl';
 import { PaginationRequest } from '@/shared/types/common.type';
@@ -32,24 +33,34 @@ export const commentApi = {
 
   createComment: async (
     postId: string,
-    payload: { content?: string; images?: File[] }
+    payload: { content?: string; images?: File[] },
+    idempotencyKey: string
   ): Promise<Comment> => {
     const images = await uploadCommentImages(payload.images);
-    return await specClient.post('/post/{postId}/comment', {
-      path: { postId },
-      body: { content: payload.content, images },
-    });
+    return await specClient.post(
+      '/post/{postId}/comment',
+      {
+        path: { postId },
+        body: { content: payload.content, images },
+      },
+      { headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey } }
+    );
   },
 
   createReply: async (
     commentId: string,
-    payload: { content?: string; images?: File[] }
+    payload: { content?: string; images?: File[] },
+    idempotencyKey: string
   ): Promise<Comment> => {
     const images = await uploadCommentImages(payload.images);
-    return await specClient.post('/comment/{commentId}/reply', {
-      path: { commentId },
-      body: { content: payload.content, images },
-    });
+    return await specClient.post(
+      '/comment/{commentId}/reply',
+      {
+        path: { commentId },
+        body: { content: payload.content, images },
+      },
+      { headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey } }
+    );
   },
 
   deleteComment: async (commentId: string): Promise<void> => {

@@ -1,4 +1,5 @@
 import { specClient } from '@/shared/api/spec-client';
+import { IDEMPOTENCY_KEY_HEADER } from '@/shared/config/api';
 import NProgress from 'nprogress';
 
 NProgress.configure({ showSpinner: false });
@@ -16,12 +17,17 @@ export const postApi = {
   /**
    * 포스트 등록
    * @param payload - 회원 생성 정보
+   * @param idempotencyKey - 재전송을 서버가 알아보는 키(IdempotencyKeyUtil)
    * @returns CreatePostResponse
    */
-  createPost: async (payload: CreatePost): Promise<CreatePostResponse> => {
+  createPost: async (payload: CreatePost, idempotencyKey: string): Promise<CreatePostResponse> => {
     // keepalive: 폼이 응답을 기다리는 동안 탭을 닫거나 새로고침해도
     // 브라우저가 이미 시작된 요청을 끝까지 전송하도록 보장한다.
-    return await specClient.post('/post', { body: payload }, { keepalive: true });
+    return await specClient.post(
+      '/post',
+      { body: payload },
+      { keepalive: true, headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey } }
+    );
   },
 
   /**

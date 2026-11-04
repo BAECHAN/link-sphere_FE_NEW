@@ -10,7 +10,7 @@ import { useAuthStore } from '@/shared/store/auth.store';
 import { accountKeys } from '@/entities/account/api/account.keys';
 import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 import { server } from '@/mocks/server';
-import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { API_BASE_URL, API_ENDPOINTS, IDEMPOTENCY_KEY_HEADER } from '@/shared/config/api';
 import {
   MAX_COMMENT_CONTENT_BYTES,
   MAX_COMMENT_CONTENT_HANGUL_CHARS,
@@ -113,6 +113,75 @@ describe('useCreateComment', () => {
 
     await waitFor(() => expect(result.current.form.getValues('content')).toBe('실패할 댓글'));
   });
+
+  it('키가 다른데 같은 댓글을 또 등록하면(DUPLICATE_COMMENT) 입력을 되돌리고 폼에 안내한다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), () =>
+        HttpResponse.json(
+          { status: 409, code: SERVER_ERROR_CODE.DUPLICATE_COMMENT, message: 'duplicate' },
+          { status: 409 }
+        )
+      )
+    );
+
+    const result = await renderLoggedIn(queryClient);
+
+    act(() => {
+      result.current.form.setValue('content', '방금 쓴 댓글', { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    await waitFor(() =>
+      expect(result.current.failureMessage).toBe(TEXTS.messages.error.commentSubmit.duplicate)
+    );
+    expect(result.current.form.getValues('content')).toBe('방금 쓴 댓글');
+  });
+
+  it.each([
+    { label: '댓글', parentId: undefined, endpoint: API_ENDPOINTS.post.postComment(POST_ID) },
+    {
+      label: '답글',
+      parentId: 'parent-comment',
+      endpoint: API_ENDPOINTS.post.commentReply('parent-comment'),
+    },
+  ])(
+    '실패로 복원된 $label을 그대로 다시 제출하면 같은 키를 쓴다',
+    async ({ parentId, endpoint }) => {
+      sessionStorage.clear();
+      useAuthStore.getState().setAuth('test-access-token');
+      const received: (string | null)[] = [];
+      server.use(
+        http.post(url(endpoint), ({ request }) => {
+          received.push(request.headers.get(IDEMPOTENCY_KEY_HEADER));
+
+          return HttpResponse.json({}, { status: 500 });
+        })
+      );
+      const { result } = renderHook(() => useCreateComment({ postId: POST_ID, parentId }), {
+        wrapper: createWrapper(queryClient),
+      });
+      await waitFor(() => expect(queryClient.getQueryData(accountKeys.root)).toEqual(mockAccount));
+
+      act(() => {
+        result.current.form.setValue('content', '다시 보낼 내용', { shouldDirty: true });
+      });
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+      await waitFor(() => expect(result.current.form.getValues('content')).toBe('다시 보낼 내용'));
+
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+      await waitFor(() => expect(received).toHaveLength(2));
+
+      expect(received[0]).toBeTruthy();
+      expect(received[1]).toBe(received[0]);
+    }
+  );
 
   it('복원되기 전에 사용자가 새로 입력을 시작했다면 덮어쓰지 않는다', async () => {
     server.use(

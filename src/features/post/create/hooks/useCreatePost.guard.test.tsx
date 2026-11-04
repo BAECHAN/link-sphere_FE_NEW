@@ -7,7 +7,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { createTestQueryClient } from '@/test/utils';
-import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { API_BASE_URL, API_ENDPOINTS, IDEMPOTENCY_KEY_HEADER } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
@@ -418,6 +418,40 @@ describe('useCreatePost - 저장 중 이탈', () => {
       );
     }
   );
+
+  it('[다시 등록하기]로 되살린 입력을 다시 제출하면 첫 요청과 같은 키를 쓴다', async () => {
+    sessionStorage.clear();
+    const errorSpy = vi.spyOn(toast, 'error');
+    const gate = holdCreateResponse(createServerError);
+    const { router, queryClient } = renderCreatePost();
+    const received: (string | null)[] = [];
+
+    server.events.on('request:start', function capture({ request }) {
+      if (
+        request.method === 'POST' &&
+        new URL(request.url).pathname === url(API_ENDPOINTS.post.base)
+      ) {
+        received.push(request.headers.get(IDEMPOTENCY_KEY_HEADER));
+      }
+    });
+
+    await leaveThenRespond(gate, router, queryClient);
+    await clickToastAction(lastToastOptions(errorSpy), router);
+    await waitFor(() => expect(screen.getByLabelText('url')).toHaveValue(SUBMITTED_URL));
+
+    server.use(http.post(url(API_ENDPOINTS.post.base), createSucceeded));
+    await act(async () => {
+      fireEvent.submit(
+        screen.getByRole('button', { name: 'submit' }).closest('form') as HTMLFormElement
+      );
+    });
+    await settle(queryClient);
+    server.events.removeAllListeners('request:start');
+
+    expect(received).toHaveLength(2);
+    expect(received[0]).toBeTruthy();
+    expect(received[1]).toBe(received[0]);
+  });
 
   it('등록 화면에 다시 들어와 새로 입력 중이면 [다시 등록하기]가 그 입력을 덮지 않는다', async () => {
     const errorSpy = vi.spyOn(toast, 'error');

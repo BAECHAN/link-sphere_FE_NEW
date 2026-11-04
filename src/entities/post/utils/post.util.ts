@@ -35,6 +35,7 @@ const URL_FIELD_MESSAGES: Partial<Record<string, string>> = {
   [SERVER_ERROR_CODE.URL_NOT_ALLOWED]: TEXTS.messages.error.postSubmit.urlNotAllowed,
   [SERVER_ERROR_CODE.INVALID_URL]: TEXTS.messages.error.postSubmit.urlInvalid,
   [SERVER_ERROR_CODE.INVALID_INPUT]: TEXTS.messages.error.postSubmit.urlInvalid,
+  [SERVER_ERROR_CODE.DUPLICATE_POST]: TEXTS.messages.error.postSubmit.urlDuplicate,
 };
 
 const SECONDS_PER_MINUTE = 60;

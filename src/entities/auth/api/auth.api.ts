@@ -1,4 +1,5 @@
 import { specClient } from '@/shared/api/spec-client';
+import { IDEMPOTENCY_KEY_HEADER } from '@/shared/config/api';
 import {
   Login,
   LoginResponse,
@@ -57,10 +58,15 @@ export const authApi = {
   },
 
   /** 계정 존재 여부와 무관하게 항상 같은 방식으로 끝난다(서버가 200을 고정 반환). */
-  requestPasswordReset: async (payload: PasswordResetRequest): Promise<void> => {
-    await specClient.post('/auth/password-reset/request', {
-      body: { email: payload.email },
-    });
+  requestPasswordReset: async (
+    payload: PasswordResetRequest,
+    idempotencyKey: string
+  ): Promise<void> => {
+    await specClient.post(
+      '/auth/password-reset/request',
+      { body: { email: payload.email } },
+      { headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey } }
+    );
   },
 
   confirmPasswordReset: async (payload: PasswordResetConfirm): Promise<void> => {
@@ -84,10 +90,15 @@ export const authApi = {
   },
 
   /** 계정 존재·인증 여부와 무관하게 항상 같은 방식으로 끝난다(서버가 200을 고정 반환). */
-  requestEmailVerification: async (payload: EmailVerificationRequest): Promise<void> => {
-    await specClient.post('/auth/email-verification/request', {
-      body: { email: payload.email },
-    });
+  requestEmailVerification: async (
+    payload: EmailVerificationRequest,
+    idempotencyKey: string
+  ): Promise<void> => {
+    await specClient.post(
+      '/auth/email-verification/request',
+      { body: { email: payload.email } },
+      { headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey } }
+    );
   },
 
   confirmEmailVerification: async (payload: EmailVerificationConfirm): Promise<void> => {

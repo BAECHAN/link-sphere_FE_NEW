@@ -380,6 +380,62 @@ aws iam list-role-policies --role-name "$ROLE"   # deploy와 cloudfront-drift-re
 
 추가한 뒤 Actions에서 "CloudFront Drift Check"를 수동 실행해 성공하는지 본다.
 
+## CloudFront 접근 로그 (수동 관리)
+
+504처럼 CloudFront가 직접 만드는 응답은 Lambda 로그에 남지 않아, 건수를 세려면 CloudFront 쪽 기록이 필요하다. standard
+logging v2로 S3에 쌓는 구성이다(근거는
+[`docs/plans/2026-11-04-idempotent-create.md`](./plans/2026-11-04-idempotent-create.md) Context·Phase 0). 로그 전달 추가 요금은 없고 S3
+저장 비용만 든다([AWS 문서](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/standard-logging.html)).
+
+**상태(2026-11-04).** 버킷은 만들었지만 delivery는 아직 없어 로그가 쌓이지 않는다. 아래 "켜기"를 실행한 뒤 "확인"의 명령으로 켜졌는지
+본다. 지금 켜져 있는지는 이 문단이 아니라 그 명령으로 판단한다.
+
+| 항목    | 값                                                                                                                                                                                         |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 위치    | `s3://link-sphere-cf-access-logs/cloudfront/{yyyy}/{MM}/{dd}/` (ap-northeast-1, 퍼블릭 차단, 30일 뒤 자동 삭제)                                                                            |
+| 필드    | `date` `time` `cs-method` `cs-uri-stem` `sc-status` `time-taken` `time-to-first-byte` `x-edge-result-type` `x-edge-detailed-result-type` `x-edge-request-id` `cache-behavior-path-pattern` |
+| 뺀 필드 | `cs-uri-query`·`cs(Referer)` — 재설정·인증 링크의 토큰이 담긴다. `c-ip`·`cs(Cookie)`·`x-forwarded-for`·`cs(User-Agent)` — 개인 정보, 항목 최소화(사용자 결정)                              |
+
+**켜기.** delivery를 만드는 권한은 로컬 IAM 사용자에게 없다(`logs:PutDeliverySource` 거부, 2026-11-04 확인). IAM 권한이 있는
+계정으로 콘솔 CloudShell에 붙여넣는다. API는 버킷 리전과 상관없이 us-east-1로 부른다. 버킷 정책은 AWS가 함께 넣는다.
+
+```bash
+ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+DIST_ID=$(aws cloudfront list-distributions \
+  --query "DistributionList.Items[?Aliases.Items && contains(Aliases.Items, 'linksphere.click')].Id | [0]" \
+  --output text)
+echo "account=$ACCOUNT distribution=$DIST_ID"   # 둘 다 None이 아닌지 확인
+
+aws logs put-delivery-source --region us-east-1 --name link-sphere-cf-access \
+  --resource-arn "arn:aws:cloudfront::$ACCOUNT:distribution/$DIST_ID" --log-type ACCESS_LOGS
+
+aws logs put-delivery-destination --region us-east-1 --name link-sphere-cf-access-s3 --output-format w3c \
+  --delivery-destination-configuration destinationResourceArn=arn:aws:s3:::link-sphere-cf-access-logs/cloudfront
+
+aws logs create-delivery --region us-east-1 --delivery-source-name link-sphere-cf-access \
+  --delivery-destination-arn "arn:aws:logs:us-east-1:$ACCOUNT:delivery-destination:link-sphere-cf-access-s3" \
+  --record-fields date time cs-method cs-uri-stem sc-status time-taken time-to-first-byte \
+    x-edge-result-type x-edge-detailed-result-type x-edge-request-id cache-behavior-path-pattern \
+  --s3-delivery-configuration '{"suffixPath":"{yyyy}/{MM}/{dd}/"}'
+```
+
+**확인.** 설정이 적용되기까지 최대 12시간 걸린다(같은 AWS 문서). 켜졌는지는 로컬 계정으로도 볼 수 있다.
+
+```bash
+aws logs describe-deliveries --region us-east-1 --query "deliveries[].{source:deliverySourceName,fields:recordFields}"
+```
+
+**504 세기.** 파일 첫머리의 `#Fields` 줄로 열 순서를 확인한 뒤 `sc-status` 열로 거른다. 아래는 위 순서대로 5번째 열인 경우다.
+
+```bash
+aws s3 sync s3://link-sphere-cf-access-logs/cloudfront/2026/11/18/ ./cf-logs/
+gzcat ./cf-logs/*.gz | awk -F'\t' '$5 == 504 { print $1, $2, $3, $4, $6 }'
+```
+
+**끄기.** `describe-deliveries`로 id를 찾아 `aws logs delete-delivery --region us-east-1 --id <id>`, 이어서
+`delete-delivery-destination`·`delete-delivery-source`를 부른다. standard logging v2는 배포 설정의 `Logging` 항목(레거시)을 바꾸지
+않는 것으로 안다(문서 근거, 켠 뒤 `pnpm check:cloudfront`로 확인).
+
 ## CloudFront Origin Access Control (OAC)
 
 S3 오리진과 `/api/*` Lambda 오리진 둘 다 CloudFront Origin Access Control(OAC,

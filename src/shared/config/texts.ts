@@ -558,6 +558,7 @@ export const TEXTS = {
         urlUnresolvable: '이 주소를 찾을 수 없어요. 도메인에 오타가 없는지 확인해주세요.',
         urlNotAllowed: '내부망 주소는 등록할 수 없어요.',
         urlInvalid: '올바른 URL이 아니에요. http:// 또는 https://로 시작하는지 확인해주세요.',
+        urlDuplicate: '최근 1시간 안에 같은 링크를 등록했어요. 피드에서 확인해주세요.',
         folderNotFound: '선택한 폴더를 찾을 수 없어요. 폴더를 다시 골라주세요.',
         rateLimitedIn: (minutes: number) =>
           `요청이 많아 잠시 막혔어요. 약 ${minutes}분 뒤 다시 시도해주세요.`,
@@ -627,6 +628,7 @@ export const TEXTS = {
       commentSubmit: {
         outcomeUnknown:
           '응답이 늦어 등록됐는지 확인하지 못했어요. 목록을 새로 불러왔으니 먼저 확인해주세요.',
+        duplicate: '같은 내용을 방금 등록했어요. 목록을 새로 불러왔으니 확인해주세요.',
         postDeleted: '이 글이 삭제돼 댓글을 달 수 없어요.',
         parentDeleted: '답글을 달 댓글이 삭제됐어요.',
         commentDeleted: '이 댓글은 삭제돼 수정할 수 없어요.',

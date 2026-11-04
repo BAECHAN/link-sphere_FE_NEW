@@ -105,6 +105,55 @@ test.describe('게시글 등록', () => {
     await expect(page.getByRole('button', { name: TEXTS.post.form.create.submit })).toBeEnabled();
   });
 
+  test('응답이 끊긴 뒤 다시 누르면 같은 Idempotency-Key, 입력을 고치면 새 키, 새로고침 뒤 처음 내용이면 처음 키다', async ({
+    page,
+  }) => {
+    const keys: (string | undefined)[] = [];
+
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.post.base),
+      async (route) => {
+        if (route.request().method() === 'POST') {
+          keys.push(route.request().headers()['idempotency-key']);
+
+          return route.abort('failed');
+        }
+        return route.fulfill({ json: wrapResponse(mockPostListResponse) });
+      }
+    );
+
+    const urlInput = page.getByLabel(/^URL/);
+    const submitButton = page.getByRole('button', { name: TEXTS.post.form.create.submit });
+    const submitAndFail = async (expectedCount: number) => {
+      await submitButton.click();
+      await expect.poll(() => keys.length).toBe(expectedCount);
+      await expect(page.getByRole('alert')).toContainText(TEXTS.messages.error.postSubmit.network);
+      await expect(submitButton).toBeEnabled();
+    };
+
+    await page.goto('/post/submit');
+    await urlInput.fill(NEW_URL);
+    await submitAndFail(1);
+    await submitAndFail(2);
+
+    expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(keys[1]).toBe(keys[0]);
+
+    await urlInput.fill(`${NEW_URL}?edited=1`);
+    await submitAndFail(3);
+
+    expect(keys[2]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(keys[2]).not.toBe(keys[0]);
+
+    // 작성 중이라 beforeunload 확인창이 뜰 수 있다 - 새로고침을 진행한다
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.reload();
+    await urlInput.fill(NEW_URL);
+    await submitAndFail(4);
+
+    expect(keys[3]).toBe(keys[0]);
+  });
+
   test('등록 요청 중 "나가기"로 떠난 뒤 실패하면 무엇이 실패했는지 알리고, [다시 등록하기]를 누르면 입력과 안내를 되살린다', async ({
     page,
   }) => {

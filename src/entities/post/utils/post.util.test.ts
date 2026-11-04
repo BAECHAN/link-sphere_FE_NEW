@@ -27,6 +27,7 @@ describe('PostUtil.resolveSubmitError', () => {
     [SERVER_ERROR_CODE.URL_NOT_ALLOWED, MESSAGES.urlNotAllowed],
     [SERVER_ERROR_CODE.INVALID_URL, MESSAGES.urlInvalid],
     [SERVER_ERROR_CODE.INVALID_INPUT, MESSAGES.urlInvalid],
+    [SERVER_ERROR_CODE.DUPLICATE_POST, MESSAGES.urlDuplicate],
   ])('URL 코드 %s는 URL 칸 에러로 분류한다', (code, message) => {
     expect(PostUtil.resolveSubmitError(apiError({ code }), CREATE)).toEqual({
       kind: 'field',

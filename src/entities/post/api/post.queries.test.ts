@@ -5,7 +5,7 @@ import { createElement, Suspense, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from 'react-error-boundary';
 import { server } from '@/mocks/server';
-import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { API_BASE_URL, API_ENDPOINTS, IDEMPOTENCY_KEY_HEADER } from '@/shared/config/api';
 import { createQueryClientWithErrorToasts, createTestQueryClient } from '@/test/utils';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
@@ -320,6 +320,30 @@ describe('useCreatePostMutation', () => {
         HttpResponse.json({ status: 201, message: 'ok', data: newPost, timestamp: '' })
       )
     );
+  });
+
+  it('등록 요청에 Idempotency-Key를 싣고, 성공하면 다음 등록은 새 키를 쓴다', async () => {
+    const received: (string | null)[] = [];
+    server.use(
+      http.post(url(API_ENDPOINTS.post.base), ({ request }) => {
+        received.push(request.headers.get(IDEMPOTENCY_KEY_HEADER));
+
+        return HttpResponse.json({ status: 201, message: 'ok', data: newPost, timestamp: '' });
+      })
+    );
+
+    const { result } = renderHook(() => useCreatePostMutation(), { wrapper: Wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync(createPayload);
+    });
+    await act(async () => {
+      await result.current.mutateAsync(createPayload);
+    });
+
+    expect(received[0]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(received[1]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(received[1]).not.toBe(received[0]);
   });
 
   // 등록 폼이 mutate 완료를 기다리지 않고 즉시 피드로 navigate하는 fire-and-forget 흐름이라
