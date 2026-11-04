@@ -45,7 +45,11 @@ function PostDetailContent() {
       </div>
 
       <Divider />
-      <CommentList postId={post.id} postAuthorId={post.author.id} />
+      <CommentList
+        postId={post.id}
+        postAuthorId={post.author.id}
+        commentCount={post.stats.commentCount}
+      />
     </div>
   );
 }

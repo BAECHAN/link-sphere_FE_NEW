@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { CommentForm, CommentFormHandle } from '@/features/comment/create/ui/CommentForm';
 import { MobileCommentBar } from '@/features/comment/create/ui/MobileCommentBar';
 import { CommentItem } from '@/widgets/comment/comment-list/ui/CommentItem';
+import { CommentListSkeleton } from '@/widgets/comment/comment-list/ui/CommentItemSkeleton';
 import { Comment as PostComment } from '@/entities/comment/model/comment.schema';
 import { COMMENT_SECTION_HASH } from '@/entities/comment/config/comment.const';
 import { useCommentList } from '@/widgets/comment/comment-list/hooks/useCommentList';
@@ -16,10 +17,18 @@ import { TEXTS } from '@/shared/config/texts';
 interface CommentListProps {
   postId: string;
   postAuthorId: string;
+  commentCount: number;
 }
 
-function CommentListContent({ postId, postAuthorId }: CommentListProps) {
-  const { comments: sorted, isEmpty, totalCount } = useCommentList(postId);
+function CommentListContent({ postId, postAuthorId, commentCount }: CommentListProps) {
+  const {
+    comments: sorted,
+    isEmpty,
+    totalCount,
+    headingCount,
+    isSeeded,
+    isAwaitingComments,
+  } = useCommentList(postId, commentCount);
   const isMobile = useIsMobile();
   const location = useLocation();
   const formContainerRef = useRef<HTMLDivElement>(null);
@@ -46,6 +55,10 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
   // 뒤로가기(POP)에서 해시가 되살아난다. 이미 이동한 엔트리(같은 location.key)로 돌아온
   // 것이라 다시 끌어오지 않는다. 같은 이유로 StrictMode의 effect 재실행도 건너뛰므로, 강조
   // 해제 타이머는 cleanup에서 취소하지 않는다(취소하면 강조가 남는다).
+  //
+  // hover가 심어 둔 빈 목록(seedEmptyComments)으로 먼저 그려지면 그 댓글이 아직 없어 찾지 못한다.
+  // 다시 받아 댓글이 도착할 때 다시 찾도록 totalCount를 의존성에 둔다(알림으로 들어온 경우). 찾은
+  // 뒤에는 위 scrolledEntryKeyRef가 걸러 댓글 수가 바뀌어도 다시 끌어오지 않는다.
   const scrolledEntryKeyRef = useRef<string | null>(null);
 
   useEffect(
@@ -91,7 +104,31 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
         }, 600);
       }, 1600);
     },
-    [location.hash, location.key]
+    [location.hash, location.key, totalCount]
+  );
+
+  // 상세 숫자가 있으면 뼈대가 자리를 잡아 위 스크롤이 한 번에 끝나므로 다시 맞추지 않는다 - 응답을 기다리는
+  // 사이 직접 스크롤했어도 끌어오지 않는다. 상세 숫자까지 옛값이면 자리를 못 잡아 문서가 모자라 제목을 navbar
+  // 아래까지 못 올리고 멈추므로, 다시 받은 댓글이 도착해 문서가 길어지면 한 번만 다시 맞춘다. 정말 빈 글이면
+  // 움직이지 않고, 그 뒤 내가 쓴 첫 댓글로 끌어오지도 않는다(docs/COMMENT.md "해시 이동").
+  const needsRealignRef = useRef(isSeeded && !isAwaitingComments);
+
+  useEffect(
+    function realignAfterSeedRefetch() {
+      if (isSeeded || !needsRealignRef.current) {
+        return;
+      }
+
+      needsRealignRef.current = false;
+
+      if (location.hash === COMMENT_SECTION_HASH && totalCount > 0) {
+        formContainerRef.current?.scrollIntoView({
+          behavior: ScrollUtil.getBehavior(),
+          block: 'start',
+        });
+      }
+    },
+    [isSeeded, location.hash, totalCount]
   );
 
   return (
@@ -100,7 +137,7 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
         <div className="scroll-mt-(--navbar-height)" ref={formContainerRef}>
           <h2 className="text-section-title">
             {TEXTS.comment.list.heading}
-            <span className="ml-1.5 text-muted-foreground">{totalCount}</span>
+            <span className="ml-1.5 text-muted-foreground">{headingCount}</span>
           </h2>
           {!isMobile && (
             <>
@@ -122,6 +159,8 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
                 postAuthorId={postAuthorId}
               />
             ))
+          ) : isAwaitingComments ? (
+            <CommentListSkeleton count={commentCount} />
           ) : (
             <EmptyState className="text-sm">{TEXTS.comment.list.empty}</EmptyState>
           )}
@@ -144,11 +183,11 @@ function CommentListContent({ postId, postAuthorId }: CommentListProps) {
   );
 }
 
-export function CommentList({ postId, postAuthorId }: CommentListProps) {
+export function CommentList({ postId, postAuthorId, commentCount }: CommentListProps) {
   // 알림 클릭처럼 상세에서 다른 상세로 가면 이 컴포넌트가 그대로 남는다 - 글이 바뀌면 앞 글의 에러 화면을 푼다
   return (
     <AsyncBoundary resetKeys={[postId]}>
-      <CommentListContent postId={postId} postAuthorId={postAuthorId} />
+      <CommentListContent postId={postId} postAuthorId={postAuthorId} commentCount={commentCount} />
     </AsyncBoundary>
   );
 }

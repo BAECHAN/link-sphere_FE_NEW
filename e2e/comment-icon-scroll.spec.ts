@@ -4,8 +4,8 @@ import { installCatchAll } from './mocks/catch-all';
 import { mockAuthRefresh } from './mocks/auth.mock';
 import { mockAccountQuery } from './mocks/account.mock';
 import { mockCategoryOptions } from './mocks/common.mock';
-import { mockPostList } from './mocks/post.mock';
-import { mockComments } from './mocks/comment.mock';
+import { mockPostListWithCommentCount } from './mocks/post.mock';
+import { holdComments, mockComments } from './mocks/comment.mock';
 import { mockBookmarkFolderList, mockBookmarkFolderPosts } from './mocks/bookmark-folder.mock';
 import { wrapResponse } from './mocks/wrap-response';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
@@ -23,22 +23,32 @@ function commentId(index: number): string {
   return `e2e-comment-${index}`;
 }
 
-async function mockTallPostDetail(page: Page): Promise<void> {
+function makeComments() {
+  return Array.from({ length: COMMENT_COUNT }, (_, index) => ({
+    ...mockComment,
+    id: commentId(index),
+    content: `Comment ${index}\n\n${'Long comment line. '.repeat(10)}`,
+  }));
+}
+
+/** 나중에 등록한 목이 먼저 쓰이므로 beforeEach의 상세 응답을 덮는다 */
+async function mockPostDetailWithCommentCount(page: Page, commentCount: number): Promise<void> {
   await page.route(
     (url) => /^\/api\/post\/[^/]+$/.test(url.pathname),
     (route) =>
       route.fulfill({
-        json: wrapResponse({ ...mockPost, description: `${mockPost.description} `.repeat(80) }),
+        json: wrapResponse({
+          ...mockPost,
+          description: `${mockPost.description} `.repeat(80),
+          stats: { ...mockPost.stats, commentCount },
+        }),
       })
   );
-  await mockComments(
-    page,
-    Array.from({ length: COMMENT_COUNT }, (_, index) => ({
-      ...mockComment,
-      id: commentId(index),
-      content: `Comment ${index}\n\n${'Long comment line. '.repeat(10)}`,
-    }))
-  );
+}
+
+async function mockTallPostDetail(page: Page): Promise<void> {
+  await mockPostDetailWithCommentCount(page, mockPost.stats.commentCount);
+  await mockComments(page, makeComments());
 }
 
 const commentIconLink = (page: Page) =>
@@ -82,7 +92,7 @@ test.describe('카드 댓글 아이콘 — 상세의 댓글 작성 폼으로 스
     await mockAuthRefresh(page);
     await mockAccountQuery(page);
     await mockCategoryOptions(page);
-    await mockPostList(page);
+    await mockPostListWithCommentCount(page, COMMENT_COUNT);
     await mockTallPostDetail(page);
   });
 
@@ -95,6 +105,52 @@ test.describe('카드 댓글 아이콘 — 상세의 댓글 작성 폼으로 스
     await expectArrivedAtCommentForm(page);
   });
 
+  // 숫자가 0이면 hover가 빈 목록을 심어 짧은 문서에서 먼저 스크롤한다 - 상세 숫자까지 옛값이면 자리를 잡을
+  // 수 없어, 댓글이 도착해 문서가 길어질 때 다시 맞춰야 제목이 navbar 아래까지 온다(CommentList.tsx realignAfterSeedRefetch)
+  test('피드·상세 숫자가 모두 옛값(0)이어도 댓글이 도착하면 작성 폼이 navbar 바로 아래로 온다', async ({
+    page,
+  }) => {
+    await mockPostListWithCommentCount(page, 0);
+    await page.goto('/post');
+    await commentIconLink(page).click();
+
+    await expectArrivedAtCommentForm(page);
+  });
+
+  // 피드를 보는 사이 댓글이 달린 글이다. 상세 응답의 최신 숫자로 댓글이 오는 중임을 알아, 빈 안내를 띄우지
+  // 않고 뼈대로 자리를 잡아 응답 전에 스크롤을 끝낸다(useCommentList.ts isAwaitingComments)
+  test('피드 숫자만 옛값(0)이면 응답 전에 최신 숫자가 보이고 빈 안내 없이 폼까지 오며, 늦으면 뼈대가 드러난다', async ({
+    page,
+  }) => {
+    const heading = page.locator('h2', { hasText: TEXTS.comment.list.heading });
+    const skeleton = page.locator('[aria-busy="true"]');
+
+    await mockPostListWithCommentCount(page, 0);
+    await mockPostDetailWithCommentCount(page, COMMENT_COUNT);
+    const releaseComments = await holdComments(page, makeComments());
+    await page.goto('/post');
+    await commentIconLink(page).click();
+
+    await expectArrivedAtCommentForm(page);
+    await expect(heading).toContainText(String(COMMENT_COUNT));
+    await expect(page.getByText(TEXTS.comment.list.empty)).toHaveCount(0);
+    await expect(skeleton).toBeVisible();
+
+    // 기다리는 사이 직접 더 내려 읽고 있었다면 댓글이 도착해도 끌려 올라가지 않는다
+    await page.evaluate(() => window.scrollBy({ top: 200, behavior: 'instant' }));
+    const scrolledY = await page.evaluate(() => window.scrollY);
+    releaseComments();
+
+    await expect(page.getByText('Comment 0', { exact: false }).first()).toBeVisible();
+    await expect(skeleton).toHaveCount(0);
+    await expect(heading).toContainText(String(COMMENT_COUNT));
+
+    // 부드러운 스크롤이 시작될 틈을 준 뒤 확인한다 - 회귀면 이 사이에 폼 쪽으로 올라간다
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(() => window.scrollY)).toBe(scrolledY);
+  });
+
+  // 북마크 픽스처는 숫자가 0이라 위 테스트처럼 옛값인 글을 지난다
   test('북마크 페이지에서 눌러도 같다', async ({ page }) => {
     await mockBookmarkFolderList(page);
     await mockBookmarkFolderPosts(page);

@@ -1434,7 +1434,7 @@ sequenceDiagram
     것을 확인하지는 못했습니다.
   - 택하지 않은 것: 닫힐 때까지 ESC를 되풀이(`toPass`)하면, 첫 ESC가 처리됐는데 닫힘 확인이 늦을 때 두 번째 ESC가 그다음에
     뜬 이탈 확인창을 닫습니다. 앱 쪽 수정은 틈이 Radix 안에 있고 사람에게는 드러나지 않아 하지 않았습니다.
-- **같은 위험이 남은 곳**: Radix 창이 보이자마자 ESC를 누르는 곳이 `e2e/comment-icon-scroll.spec.ts:175`,
+- **같은 위험이 남은 곳**: Radix 창이 보이자마자 ESC를 누르는 곳이 `e2e/comment-icon-scroll.spec.ts:231`,
   `e2e/post-detail-back-label.spec.ts:45`, `e2e/reduced-motion.spec.ts:63`에 있습니다. `e2e/dropdown-menu-scroll.spec.ts:96`은
   메뉴 포커스만 기다리고, 그 주석의 "포커스가 있으면 리스너도 붙어 있다"는 맞지만 위와 같이 `index`는 아직일 수 있습니다.
   2026-09-20~11-01 CI 집계에서 이 네 곳이 ESC 단계에서 실패한 적은 없어 이번에는 고치지 않았습니다.

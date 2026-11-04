@@ -55,6 +55,13 @@
 
 ### Changed
 
+- `comment` 댓글이 없는 글은 카드 hover 때 댓글을 요청하지 않음
+  <details><summary>배경·구현</summary>
+
+  #525는 상세 첫 진입 빈 화면을 줄이려고 카드에 머물면 댓글을 미리 받게 했다. 그런데 운영 공개 글 327개 중 288개(88.1%)가 댓글 0개라(2026-11-04 직접 조회) 대부분 빈 응답을 받고 있었다. 피드 응답의 `stats.commentCount`가 0이면 요청 대신 빈 목록을 캐시에 심는다. 그냥 건너뛰면 상세가 다시 댓글 응답을 기다려 빈 화면이 돌아갈 것으로 봐서 고르지 않았다. 심은 값은 오래된 값(`updatedAt: 0`)이라 상세가 바로 그린 뒤 한 번 다시 받는다. 다시 받기가 실패하면 에러 화면 대신 빈 안내와 토스트가 보인다(사용자 선택). 피드를 불러온 뒤 댓글이 달린 글은 상세 응답의 최신 숫자로 알아, 다시 받는 동안 제목에 그 숫자를 보여 주고 빈 안내 대신 뼈대로 자리를 잡는다. 뼈대는 처음부터 높이를 차지해 💬 이동이 응답 전에 끝나고, 0.5초 안에 응답이 오면 보이지 않는다. 빈 안내 뒤 댓글이 나타나는 첫 구현을 녹화로 본 사용자가 깜빡이는 느낌이 강하다고 해 네 안을 비교해 골랐다. 상세 숫자까지 옛값이면 빈 안내 뒤 댓글이 나타나고, 문서가 길어질 때 폼 위치를 한 번 더 맞춘다. 빈 목록으로 먼저 그려지면 알림의 `#comment-<id>` 스크롤을 놓치므로, 댓글이 도착할 때 다시 찾도록 `CommentList`의 effect 의존성에 `totalCount`를 넣었다. 근거는 `docs/PERFORMANCE.md` "상세 첫 진입 빈 화면", `docs/COMMENT.md` "해시 이동". (`src/entities/comment/api/comment.queries.ts`, `src/widgets/post/post-card/hooks/usePostCard.ts`, `src/widgets/comment/comment-list/hooks/useCommentList.ts`, `src/widgets/comment/comment-list/ui/CommentList.tsx`, `src/widgets/comment/comment-list/ui/CommentItemSkeleton.tsx`, `src/widgets/comment/comment-list/ui/CommentList.test.tsx`, `src/pages/post/PostDetailPage.tsx`, `e2e/mocks/post.mock.ts`, `e2e/mocks/comment.mock.ts`, `e2e/comment-icon-scroll.spec.ts`, `e2e/comment-icon-scroll.mobile.spec.ts`, `e2e/post-detail-comment-prefetch.spec.ts`, `e2e/post-detail-comment-prefetch.mobile.spec.ts`, `docs/AUTH.md`, `docs/COMMENT.md`, `docs/FE-ARCHITECTURE.md`, `docs/POST.md`, `docs/PERFORMANCE.md`, `docs/TESTING.md`, [PR #536](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/536))
+
+  </details>
+
 - `bookmark` 북마크 페이지 버튼을 터치 기기에서 44px로 키움
   <details><summary>배경·구현</summary>
 

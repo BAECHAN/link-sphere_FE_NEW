@@ -18,6 +18,22 @@ export async function mockPostList(page: Page): Promise<void> {
   );
 }
 
+/**
+ * GET /post (목록) — 카드의 commentCount만 지정한다. 이 값으로 hover 때 댓글을 요청할지 빈 목록을 심을지가
+ * 갈린다(usePostCard.ts). 픽스처 그대로(0)에 실제 댓글을 목으로 주면 "피드 숫자가 옛값인 글"이 된다.
+ */
+export async function mockPostListWithCommentCount(
+  page: Page,
+  commentCount: number
+): Promise<void> {
+  const post = { ...mockPost, stats: { ...mockPost.stats, commentCount } };
+
+  await page.route(
+    (url) => isApiPath(url, ENDPOINTS.post.base),
+    (route) => route.fulfill({ json: wrapResponse({ ...mockPostListResponse, content: [post] }) })
+  );
+}
+
 /** n번째 목 게시글의 제목. mockPostListPaged와 그걸 쓰는 스펙이 같은 함수로 카드를 찾는다. */
 export function pagedPostTitle(index: number): string {
   return `E2E Post ${String(index).padStart(3, '0')}`;

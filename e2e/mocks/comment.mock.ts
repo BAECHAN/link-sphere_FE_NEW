@@ -15,3 +15,21 @@ export async function mockComments(page: Page, comments: Comment[] = [mockCommen
     (route) => route.fulfill({ json: wrapResponse(comments) })
   );
 }
+
+/** 돌려받은 함수를 부를 때까지 댓글 응답을 붙잡아 둔다 */
+export async function holdComments(page: Page, comments: Comment[]): Promise<() => void> {
+  let release = () => {};
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  await page.route(
+    (url) => /^\/api\/post\/[^/]+\/comment$/.test(url.pathname),
+    async (route) => {
+      await released;
+      await route.fulfill({ json: wrapResponse(comments) });
+    }
+  );
+
+  return release;
+}

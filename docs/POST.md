@@ -251,8 +251,9 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   (`usePostCard.ts`의 `handlePrefetchDetail`). 상세와 같은 키·`queryFn`이라 클릭 시 캐시가 바로 쓰인다.
   제목 링크의 `::after`가 카드 전체를 덮어, 카드에서 누르면 상세로 가는 곳 어디에 올라가도 발동한다. 목록에서는 100ms
   머물면 댓글도 미리 받고, `onMouseLeave`·`onBlur`로 그 전에 떠나면 취소한다(2026-11-04, 데스크톱 빈 화면 133 → 19ms,
-  [`PERFORMANCE.md`](./PERFORMANCE.md) "상세 첫 진입 빈 화면").
-  댓글 아이콘(💬)의 hover·focus는 게시글과 댓글을 바로 함께 미리 받고(`handlePrefetchDetailWithComments`),
+  [`PERFORMANCE.md`](./PERFORMANCE.md) "상세 첫 진입 빈 화면"). 댓글이 0개인 글(`stats.commentCount`)은 요청 대신 빈 목록을
+  바로 심어, 상세가 댓글 응답을 기다리지 않고 그린 뒤 한 번 다시 받는다([`COMMENT.md`](./COMMENT.md) "해시 이동").
+  댓글 아이콘(💬)의 hover·focus는 게시글과 댓글을 바로 함께 미리 받고(`handlePrefetchDetailWithComments`, 0개면 같은 방식),
   상세 라우트는 들어올 때 페이지 청크와 함께 게시글과 댓글을 요청한다([`COMMENT.md`](./COMMENT.md) "해시 이동").
   hover가 없는 터치 기기는 피드 첫 썸네일이 그려진 뒤 한가할 때 상세 페이지 청크를 미리 받는다(데이터 절약 모드면 건너뜀,
   같은 절).
@@ -296,8 +297,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - **썸네일**: 상세 카드의 썸네일이 이 페이지의 LCP 요소라 `priorityThumbnail`로 `loading="eager"`·
   `fetchPriority="high"`를 준다(2026-10-26, 그 전에는 목록과 같은 `lazy`). 피드는 첫 행(최대 3장)만 같은 우선
   로딩을 받고 나머지 카드는 `lazy`다(`pages/post/index.tsx`의 `renderFeedPost`, #195).
-- **404 처리**: `PostDetailPage.tsx:82-88`의 에러 폴백이 `ApiError.status === 404`면 주소를 그대로 둔 채
-  그 자리에 안내 화면(`PostDetailPage.tsx:61-76`의 `PostNotFound`)을 그린다 — 아이콘·"삭제됐거나 볼 수 없는
+- **404 처리**: `PostDetailPage.tsx:86-92`의 에러 폴백이 `ApiError.status === 404`면 주소를 그대로 둔 채
+  그 자리에 안내 화면(`PostDetailPage.tsx:65-80`의 `PostNotFound`)을 그린다 — 아이콘·"삭제됐거나 볼 수 없는
   포스트예요"·"목록으로". BE가 삭제와 비공개를 같은 404로 응답하므로 문구도 둘을 함께 덮는다. "목록으로"는
   이동이라 버튼 모양의 링크(`Button asChild` + `Link`)로 `/post`에 간다. 화면이 떠 있는 동안 `useNoIndex`로
   `noindex` 메타를 단다(200으로 응답하는 에러 화면이 검색엔진에 색인되는 soft 404 방지). 메타는 화면이
@@ -619,7 +620,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 피드·상세 미리 받기          | `src/app/routes/index.tsx`의 `PostFeedRoute`·`PostDetailRoute`, `src/widgets/post/post-list/hooks/usePostFeedPrefetch.ts`, 조건 계산은 `src/widgets/post/post-list/utils/post-list-payload.ts`                       |
 | 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:164-236`, `src/widgets/post/post-list/ui/PostList.tsx`                                                                                                              |
 | 카드 UI / 카드 동작          | `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`                                                                                                                      |
-| 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:61-94`                                                                                                                                                                            |
+| 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:65-98`                                                                                                                                                                            |
 | 떠날 때 실패 정리            | 조건 `src/shared/lib/react-query/unused-failed-query.ts`, 지우는 함수 `post.keys.ts`의 `postRemoveQueries`, 훅 `src/entities/post/hooks/useRemoveErrored*OnLeave.ts`                                                 |
 | 작성 폼 / 제출               | `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/create/hooks/useCreatePost.ts`의 `onSubmit`                                                                                                     |
 | 수정 폼 / 제출               | `src/features/post/update/ui/UpdatePostForm.tsx`, `src/features/post/update/hooks/useUpdatePost.ts`의 `onSubmit`                                                                                                     |
@@ -719,7 +720,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 - `post-route-prefetch.spec.ts` — 피드·상세 청크가 오기 전에 목록·게시글·댓글을 요청하고, 청크가 온 뒤에도
   한 번만 요청하는지
 - `post-detail-comment-prefetch.spec.ts` — 상세 진입 시 댓글 요청 시점, 카드 댓글 아이콘·제목 hover 프리페치, 카드 빈 곳
-  hover, 지나가기만 하면 댓글은 받지 않음
+  hover, 지나가기만 하면 댓글은 받지 않음, 0개 글은 hover에 요청하지 않고 상세가 댓글 응답을 기다리지 않음(모바일 탭은 `.mobile.spec.ts`)
 - `post-detail-chunk-preload.spec.ts`(2026-11-04) — 터치 기기는 피드 첫 썸네일이 그려지기 전에는 받지 않다가 그려지면 상세
   페이지 청크를 미리 받고(썸네일이 없으면 잠시 뒤), 마우스 기기와 데이터 절약 모드는 받지 않는지
 - `list-fetch-failure.spec.ts`(2026-11-03, 직접 실행) — 피드 다음 페이지가 429면 3초 동안 1번만 요청하고 "더
