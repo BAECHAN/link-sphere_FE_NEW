@@ -126,7 +126,7 @@ Playwright e2e(`page.route()` 모킹) — §9 참고.
 
 ### 목록 — 트리 2단, 루트만 최신순
 
-- `useCommentList`(`src/widgets/comment/comment-list/hooks/useCommentList.ts:14-23`)가
+- `useCommentList`(`src/widgets/comment/comment-list/hooks/useCommentList.ts:14-30`)가
   루트 댓글만 `createdAt` 내림차순으로 다시 정렬한다. 답글은 서버가 준 순서 그대로다.
 - 상세에 들어가면 댓글은 게시글과 동시에 요청된다(§5 "내 댓글" 절의 해시 이동, 기다림 줄이기 항목).
 - 헤딩 옆 개수(`countComments`, 같은 파일 6-8줄)는 답글과 **삭제된 톰스톤까지** 센다 —
@@ -408,6 +408,32 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   `src/entities/comment/config/comment.const.ts:50`)를 보고 ref로 찾는다. 상세 안 💬은 `replace`
   (돌아가기가 같은 글로 가지 않게)와 `preventScrollReset`(ScrollRestoration이 맨 위로 올렸다
   내려오지 않게)을 함께 준다.
+- **피드 숫자가 옛값인 글은 상세 숫자로 가른다(2026-11-04)** — 피드를 보는 사이 댓글이 달리면 카드 숫자는 0인데 실제로는 댓글이
+  있다. hover가 심은 빈 목록(아래 "기다림 줄이기")을 그대로 그리면 "첫 번째 댓글을 남겨보세요!" 뒤에 댓글이 나타나고, 짧은 문서에서
+  스크롤이 멈춰 제목이 navbar보다 223px 아래에 남았다(직접 측정, 데스크톱 1280×720 e2e). 상세 응답에는 최신 숫자가 있으므로
+  (BE `PostResponseAssembler.kt`의 `countByPostId`), 심은 목록을 다시 받는 중에 상세 숫자가 0보다 크면 제목에 그 숫자를 보여 주고
+  빈 안내 대신 뼈대로 자리를 잡는다(`useCommentList.ts`의 `isAwaitingComments`, `CommentItemSkeleton.tsx`). 뼈대는 처음부터 높이를
+  차지해 스크롤이 응답 전에 끝나고, 0.5초 안에 응답이 오면 보이지 않는다. 상세 숫자가 0인 글은 지금처럼 빈 안내가 바로 보인다.
+
+  네 안을 같은 화면으로 녹화해 나란히 비교했고(응답 150ms·1500ms) 사용자가 D를 골랐다. 운영 댓글 응답은 75~283ms였다(직접 측정,
+  댓글 0개 글에 개발 PC에서 curl 6회).
+
+  | 안                   | 다시 받는 동안                               | 결과                                                                                                                                                                                                                                                                                                                           |
+  | -------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+  | A 빈 안내 뒤 재조정  | "댓글 0" + 빈 안내, 스크롤 2번               | 기각 — 사용자가 녹화를 보고 "나중에 올 거라는 믿음이 생겨야 될 것 같은데 깜빡이는 느낌이 더 강하다"고 했다. 상세 카드는 💬 15인데 제목은 "댓글 0"으로 어긋나기도 한다                                                                                                                                                          |
+  | B 스피너(0.5초 뒤)   | "댓글 15" + `SpinnerOverlay`, 응답 뒤 스크롤 | 기각 — 응답 전까지 글 맨 위에 머물러 긴 글은 스피너가 화면 밖이다. [NN/g](https://www.nngroup.com/articles/skeleton-screens/)는 스피너가 _"보통 단일 모듈에 가장 잘 맞는다"_, 뼈대는 _"전체 화면이 로딩될 때 더 낫다"_ (번역)고 써서 이 구분만 보면 스피너 쪽이다. 여기서 갈린 것은 자리를 잡아 스크롤을 먼저 끝낼 수 있느냐다 |
+  | C 뼈대(바로)         | "댓글 15" + 뼈대 즉시, 바로 스크롤           | 기각 — 실제 응답 속도에서는 뼈대가 스쳐 간다. 같은 글은 1초 미만이면 _"뼈대 화면이나 스피너가 필요 없다"_, _"빠르게 깜빡이는 페이지는 사용자가 따라가지 못한다고 느끼게 할 수 있다"_ (번역)고 쓴다                                                                                                                             |
+  | **D 뼈대(0.5초 뒤)** | "댓글 15" + 같은 자리를 비워 둠, 바로 스크롤 | 채택 — 0.5초는 이 레포의 로딩 표시 지연(`LOADING_INDICATOR_DELAY_MS`, 근거는 [`DECISIONS.md`](./DECISIONS.md) 2026-10-15 "피드 필터 정지 구간")과 같다                                                                                                                                                                         |
+
+  한계:
+  - 틀린 빈 안내를 직접 다룬 연구는 찾지 못했다. 위 NN/g 글은 로딩 표시 일반에 관한 것이다.
+  - 상세 캐시(3분) 안에 달린 댓글은 상세 숫자도 옛값이라 A처럼 보인다. 이때만 다시 받은 댓글이 도착해 문서가 길어지면 폼 컨테이너로 한 번
+    더 스크롤한다(`CommentList.tsx`의 `realignAfterSeedRefetch`). 정말 빈 글이면 움직이지 않고, 그 뒤 내가 쓴 첫 댓글로 끌어오지도 않는다.
+    이 경우에 응답이 늦고 그 사이 직접 스크롤했다면 한 번 되돌아갈 수 있고, 동작 줄이기를 켰으면 두 번 점프한다.
+  - 뼈대로 자리를 잡은 글은 다시 맞추지 않아 기다리는 사이 직접 스크롤해도 끌려가지 않는다. 대신 댓글이 1~2개이고 내용이 길면, 문서는 더
+    길어졌는데 제목이 107~150px 덜 올라간 채로 남는다(직접 측정, 데스크톱 1280×720 e2e). 입력창은 화면 안에 있고 포커스된다. 짧은 댓글이면
+    제목이 문서 끝까지 올라간 위치라 차이가 없고, 3개 이상이면 내용이 길어도 차이가 없다.
+
 - **스크롤 방식은 브라우저 기본 `smooth`(2026-10-14)** — 세 안을 같은 화면으로 녹화해 나란히
   비교했다(애니메이션 시간은 직접 측정, dev 서버·Playwright chromium). 기기에서 "동작 줄이기"를
   켠 사용자에게는 미끄러지지 않고 바로 이동한다(`ScrollUtil.getBehavior()`,
@@ -422,16 +448,20 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 - **기다림 줄이기(2026-10-14)** — 게시글을 기다리며 멈추는 `PostDetailContent` 안에 `CommentList`가
   있어, 게시글이 와야 댓글을 요청하는 순차 요청이었다. 두 가지로 줄였다.
   - 상세 진입: 상세 라우트(`PostDetailRoute`, `src/app/routes/index.tsx:246`)가
-    `usePrefetchComments`(`src/entities/comment/api/comment.queries.ts:105`)를 불러 댓글을
+    `usePrefetchComments`(`src/entities/comment/api/comment.queries.ts:145`)를 불러 댓글을
     게시글과 동시에 요청한다. 처음엔 `PostDetailPage`가 경계 바깥에서 불렀다. 2026-10-26부터는 lazy 페이지
     청크도 기다리지 않도록 라우트로 옮겼다([`PERFORMANCE.md`](./PERFORMANCE.md) "LCP 데이터 요청 시점").
     `CommentList`는 같은 키의 캐시를 읽어 다시 요청하지 않는다
     ([TanStack Query 프리페치 가이드](https://github.com/tanstack/query/blob/main/docs/framework/react/guides/prefetching.md)의 "게시글 + 댓글" 예시와 같은 구조).
-  - 💬 hover·focus: `handlePrefetchDetailWithComments`(`src/widgets/post/post-card/hooks/usePostCard.ts:153`)가
+  - 💬 hover·focus: `handlePrefetchDetailWithComments`(`src/widgets/post/post-card/hooks/usePostCard.ts:154`)가
     게시글과 `prefetchComments`(`src/entities/comment/api/comment.queries.ts`)를 미리 받는다. 제목 링크는 `::after`가
     카드 전체를 덮어 카드 위를 지나가기만 해도 발동하므로, 게시글은 바로 받고 댓글은 카드에 100ms 머물렀을 때만 받는다
     (`COMMENTS_PREFETCH_HOVER_DELAY_MS`, 떠나면 취소). 2026-11-04 전에는 게시글만 받았는데, 상세가 댓글을 기다리느라
     첫 화면을 최대 500ms 미뤄 데스크톱에서 빈 화면이 133ms 남았다(→ 19ms, [`PERFORMANCE.md`](./PERFORMANCE.md) "상세 첫 진입 빈 화면").
+  - 댓글이 0개인 글(2026-11-04): 받아도 빈 응답이라 💬·제목 모두 요청 대신 빈 목록을 캐시에 심는다(`seedEmptyComments`).
+    심은 값은 오래된 값(`updatedAt: 0`)이라 상세가 응답을 기다리지 않고 그린 뒤 한 번 다시 받는다. 피드를 불러온 뒤 달린
+    댓글은 상세 숫자로 알아 뼈대로 기다린다(위 "해시 이동"). 알림으로 `#comment-<id>`에 들어왔으면 댓글이 도착할 때 스크롤한다
+    (`CommentList.tsx`의 `totalCount` 의존성). 다시 받기가 실패하면 에러 화면 대신 빈 안내가 남고 서버 에러면 토스트가 뜬다. 근거는 [`PERFORMANCE.md`](./PERFORMANCE.md) 같은 절.
 
   클릭부터 도착까지(직접 측정, API당 300ms 목 응답, 3회 반복):
 
@@ -664,6 +694,8 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 빈 제출 강조 시간            | 1300ms               | `src/features/comment/create/ui/CommentForm.tsx`·`src/features/comment/update/ui/CommentEditForm.tsx`의 `highlightEmptyForm` 안 `setTimeout` |
 | 내 댓글 선반입 거리          | 아래 1200px          | `src/widgets/comment/my-comment-list/hooks/useMyCommentList.ts:24`                                                                           |
 | 해시 도착 여백               | navbar + 24px        | `src/widgets/comment/comment-list/ui/CommentItem.tsx:51`                                                                                     |
+| 댓글 뼈대 최대 개수          | 10                   | `src/widgets/comment/comment-list/ui/CommentItemSkeleton.tsx:7`                                                                              |
+| 댓글 뼈대 표시 지연          | 500ms                | `LOADING_INDICATOR_DELAY_MS`(`src/shared/config/const.ts:11`)                                                                                |
 | 모바일 바 ↔ 토스트 간격      | 8px                  | `src/features/comment/create/ui/MobileCommentBar.tsx:14`                                                                                     |
 | 모바일 시트 높이 상한        | 화면의 70%(`70dvh`)  | `src/features/comment/create/ui/MobileCommentBar.tsx:22`                                                                                     |
 | 모바일 시트 입력칸 높이 상한 | 화면의 40%(`40dvh`)  | `src/features/comment/create/ui/MobileCommentBar.tsx:23`                                                                                     |
@@ -685,9 +717,10 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 
 | 단계                            | 파일:줄                                                                                                                                        |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| 목록 정렬·개수                  | `src/widgets/comment/comment-list/hooks/useCommentList.ts:6-23`                                                                                |
+| 목록 정렬·개수                  | `src/widgets/comment/comment-list/hooks/useCommentList.ts:6-30`                                                                                |
 | 목록 렌더·해시 이동·진입점 배치 | `src/widgets/comment/comment-list/ui/CommentList.tsx`의 `CommentListContent`·`CommentList`                                                     |
 | 댓글 한 개(액션·답글 폼·재귀)   | `src/widgets/comment/comment-list/ui/CommentItem.tsx:26-183`                                                                                   |
+| 댓글이 오는 중인 자리(뼈대)     | `src/widgets/comment/comment-list/ui/CommentItemSkeleton.tsx`                                                                                  |
 | 작성 검증·제출·복원             | `src/features/comment/create/hooks/useCreateComment.ts`의 `getCommentSubmitError`·`useCreateComment`                                           |
 | 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx`의 `CommentForm`                                                                               |
 | 모바일 바                       | `src/features/comment/create/ui/MobileCommentBar.tsx:25-115`                                                                                   |
@@ -785,7 +818,15 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 옮긴 뒤에는 `e2e/post-route-prefetch.spec.ts`가 페이지 청크를 붙잡아 둔 채 댓글이 요청되는지(총 1회)를
 확인하고, 라우트의 미리 받기를 빼면 실패하는 것도 확인했다. 2026-11-04 제목 hover도 머물면 댓글을 받게 바꾸면서
 `post-detail-comment-prefetch.spec.ts`는 5개가 됐다. 제목에 머물면 댓글까지 받고, 카드 빈 곳(설명)도 같은 링크라 미리
-받고, 지나가기만 하면 게시글만 받는다. 떠날 때 취소하는 코드나 댓글 미리 받기를 빼면 해당 테스트가 실패했다.
+받고, 지나가기만 하면 게시글만 받는다. 떠날 때 취소하는 코드나 댓글 미리 받기를 빼면 해당 테스트가 실패했다. 같은 날
+0개 글은 빈 목록을 심게 바꾸면서 이 스펙은 7개가 됐고, 모바일 탭(`post-detail-comment-prefetch.mobile.spec.ts`)과
+`CommentList.test.tsx`(스크롤 6개, 대기 표시 5개), `comment.queries.test.ts`의 `seedEmptyComments`(5개)가 늘었다. `totalCount` 의존성,
+덮어쓰기 가드, `updatedAt: 0`을 하나씩 빼면 해당 테스트가 실패했다. 스크롤 스펙(`comment-icon-scroll` 데스크톱·모바일)은 목록 숫자를
+실제 댓글 수에 맞추고, 피드·상세 숫자가 모두 옛값(0)인 경우와 피드 숫자만 옛값인 경우를 따로 두었다. 다시 맞추기를 끄면 앞의 2개와
+북마크 테스트(픽스처 숫자가 0)가 실패했고, `totalCount > 0` 조건을 빼면 "정말 빈 글" 단위 테스트가 실패했다. 뼈대는 9가지 변경을
+하나씩 넣어 모두 실패를 확인했다: 해시 스크롤 의존성을 제목 숫자로 바꾸기, `isFetching`·`commentCount > 0` 조건 빼기, 제목에 상세 숫자를
+안 쓰기, 지연 없이 보이기, 개수 상한 빼기(이상 단위), 지연 동안 자리를 안 잡기, 대기 중에도 빈 안내 보이기(이상 e2e 데스크톱·모바일), 뼈대
+경로에서도 다시 맞추기(단위, e2e 데스크톱).
 
 입력칸 아래 글자 수(§5)는 2026-11-04 직접 실행했다.
 

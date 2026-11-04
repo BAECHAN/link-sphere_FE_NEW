@@ -15,6 +15,7 @@ import { mockAccount, mockOtherAccount } from '@/mocks/fixtures/account.fixtures
 import type { Comment } from '@/entities/comment/model/comment.schema';
 import {
   prefetchComments,
+  seedEmptyComments,
   useCreateCommentMutation,
   useCreateReplyMutation,
   useSuspenseComments,
@@ -563,5 +564,88 @@ describe('prefetchComments', () => {
 
     await waitFor(() => expect(result.current?.data).toEqual([mockComment]));
     expect(commentRequests - requestsBeforeScreen).toBe(1);
+  });
+});
+
+describe('seedEmptyComments', () => {
+  // 운영 staleTime - 심은 값이 이 시간 안에도 오래된 값으로 취급되는지 보려면 같은 값이어야 한다
+  const PRODUCTION_STALE_TIME_MS = 3 * 60 * 1000;
+  let commentRequests: number;
+  let serverComments: Comment[];
+
+  beforeEach(() => {
+    commentRequests = 0;
+    serverComments = [];
+    queryClient = createTestQueryClient({ gcTime: Infinity, staleTime: PRODUCTION_STALE_TIME_MS });
+    server.use(
+      http.get(url(API_ENDPOINTS.post.postComment(POST_ID)), () => {
+        commentRequests += 1;
+
+        return HttpResponse.json({
+          status: 200,
+          message: 'ok',
+          data: serverComments,
+          timestamp: '',
+        });
+      })
+    );
+  });
+
+  it('요청 없이 빈 목록을 오래된 값으로 심는다', () => {
+    seedEmptyComments(queryClient, POST_ID);
+
+    const state = queryClient.getQueryState(commentKeys.list(POST_ID));
+
+    expect(state?.data).toEqual([]);
+    expect(state?.dataUpdatedAt).toBe(0);
+    expect(commentRequests).toBe(0);
+  });
+
+  it('이미 받은 댓글을 덮어쓰지 않는다', () => {
+    queryClient.setQueryData(commentKeys.list(POST_ID), [mockComment]);
+
+    seedEmptyComments(queryClient, POST_ID);
+
+    expect(queryClient.getQueryData(commentKeys.list(POST_ID))).toEqual([mockComment]);
+  });
+
+  it('받는 중인 요청을 건드리지 않아 응답이 그대로 캐시에 들어간다', async () => {
+    serverComments = [mockComment];
+
+    prefetchComments(queryClient, POST_ID);
+    seedEmptyComments(queryClient, POST_ID);
+
+    expect(queryClient.getQueryData(commentKeys.list(POST_ID))).toBeUndefined();
+    await waitFor(() =>
+      expect(queryClient.getQueryData(commentKeys.list(POST_ID))).toEqual([mockComment])
+    );
+    expect(commentRequests).toBe(1);
+  });
+
+  it('댓글 목록은 멈추지 않고 빈 목록을 바로 그린 뒤, 한 번 다시 받아 그 사이 달린 댓글을 보여 준다', async () => {
+    serverComments = [mockComment];
+    seedEmptyComments(queryClient, POST_ID);
+
+    const { result } = renderHook(() => useSuspenseComments(POST_ID), { wrapper: Wrapper });
+
+    expect(result.current.data).toEqual([]);
+    await waitFor(() => expect(result.current.data).toEqual([mockComment]));
+    expect(commentRequests).toBe(1);
+  });
+
+  it('다시 받기가 실패하면 에러 화면 대신 빈 목록을 유지하고 토스트를 띄운다', async () => {
+    const { queryClient: toastQueryClient, errorToasts } = createQueryClientWithErrorToasts();
+    queryClient = toastQueryClient;
+    server.use(
+      http.get(url(API_ENDPOINTS.post.postComment(POST_ID)), () =>
+        HttpResponse.json({ status: 500, message: 'fail', timestamp: '' }, { status: 500 })
+      )
+    );
+    seedEmptyComments(queryClient, POST_ID);
+
+    const { result } = renderHook(() => useSuspenseComments(POST_ID), { wrapper: Wrapper });
+
+    await waitFor(() => expect(errorToasts).toHaveLength(1));
+    expect(result.current.data).toEqual([]);
   });
 });

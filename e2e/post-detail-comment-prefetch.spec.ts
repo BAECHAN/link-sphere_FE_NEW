@@ -4,7 +4,7 @@ import { installCatchAll } from './mocks/catch-all';
 import { mockAuthRefresh } from './mocks/auth.mock';
 import { mockAccountQuery } from './mocks/account.mock';
 import { mockCategoryOptions } from './mocks/common.mock';
-import { mockPostList } from './mocks/post.mock';
+import { mockPostListWithCommentCount } from './mocks/post.mock';
 import { wrapResponse } from './mocks/wrap-response';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { mockComment } from '@/mocks/fixtures/comment.fixtures';
@@ -15,7 +15,8 @@ import { TEXTS } from '@/shared/config/texts';
 // lazy 페이지 청크 밖에서 게시글과 함께 요청한다) - 안쪽 CommentList는 게시글이 와야 마운트돼 그때서야 요청하던 순차
 // 요청을 없앤 것이다. 카드의 댓글 아이콘은 hover·focus만으로 게시글과 댓글을 미리 받는다. 제목
 // 링크는 카드 전체를 덮어 지나가기만 해도 발동하므로 게시글은 바로 받고, 댓글은 카드에 머물렀을 때만 받는다
-// (usePostCard.ts COMMENTS_PREFETCH_HOVER_DELAY_MS).
+// (usePostCard.ts COMMENTS_PREFETCH_HOVER_DELAY_MS). 댓글이 0개인 글은 hover 때 요청하지 않고 빈 목록을 심어,
+// 상세가 응답을 기다리지 않고 그린 뒤 한 번 다시 받는다(seedEmptyComments).
 const POST_DETAIL_DELAY_MS = 1000;
 
 interface RequestLog {
@@ -55,7 +56,7 @@ test.describe('상세 댓글 요청 시점', () => {
     await mockAuthRefresh(page);
     await mockAccountQuery(page);
     await mockCategoryOptions(page);
-    await mockPostList(page);
+    await mockPostListWithCommentCount(page, 1);
     await mockDetailAndComments(page, log);
   });
 
@@ -122,5 +123,55 @@ test.describe('상세 댓글 요청 시점', () => {
     // 대기 시간(100ms)이 지나도 댓글 요청이 뒤따르지 않는지 잠시 지켜본다
     await page.waitForTimeout(500);
     expect(log.commentRequests).toBe(0);
+  });
+
+  test.describe('댓글이 0개인 글', () => {
+    test.beforeEach(async ({ page }) => {
+      // 나중에 등록한 목이 먼저 쓰여 바깥 describe의 값을 덮는다
+      await mockPostListWithCommentCount(page, 0);
+    });
+
+    test('제목에 머물러도, 댓글 아이콘에 올려도 댓글을 요청하지 않는다', async ({ page }) => {
+      await page.goto('/post');
+      await page.getByRole('link', { name: mockPost.title }).hover();
+      await expect.poll(() => log.postRequests).toBe(1);
+      await page.locator(`a[href="/post/${mockPost.id}${COMMENT_SECTION_HASH}"]`).hover();
+
+      // 대기 시간(100ms)이 지나도 댓글 요청이 뒤따르지 않는지 잠시 지켜본다
+      await page.waitForTimeout(500);
+      expect(log.commentRequests).toBe(0);
+    });
+
+    test('누르면 댓글 응답을 기다리지 않고 상세를 그린 뒤, 한 번 다시 받아 그 사이 달린 댓글을 보여 준다', async ({
+      page,
+    }) => {
+      let releaseComments = () => {};
+      const commentsReleased = new Promise<void>((resolve) => {
+        releaseComments = resolve;
+      });
+      await page.route(
+        (url) => /^\/api\/post\/[^/]+\/comment$/.test(url.pathname),
+        async (route) => {
+          log.commentRequests += 1;
+          await commentsReleased;
+          await route.fulfill({ json: wrapResponse([mockComment]) });
+        }
+      );
+
+      await page.goto('/post');
+      const title = page.getByRole('link', { name: mockPost.title });
+      await title.hover();
+      await expect.poll(() => log.postResponseAt).toBeDefined();
+      await title.click();
+
+      // 댓글 응답을 붙잡아 둔 채로 보인다 - 기다렸다면 여기서 시간이 초과된다
+      await expect(page.getByText(TEXTS.comment.list.empty)).toBeVisible();
+      await expect.poll(() => log.commentRequests).toBe(1);
+
+      releaseComments();
+
+      await expect(page.getByText(mockComment.content)).toBeVisible();
+      expect(log.commentRequests).toBe(1);
+    });
   });
 });

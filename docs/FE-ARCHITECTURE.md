@@ -181,7 +181,7 @@ src/
 │   ├── comment/
 │   │   ├── comment-list/
 │   │   │   ├── hooks/            # useCommentList
-│   │   │   └── ui/               # CommentList, CommentItem
+│   │   │   └── ui/               # CommentList, CommentItem, CommentItemSkeleton
 │   │   └── my-comment-list/
 │   │       ├── hooks/            # useMyCommentList, useMyCommentCard
 │   │       └── ui/               # MyCommentList, MyCommentCard, MyCommentCardSkeleton

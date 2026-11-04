@@ -4,7 +4,7 @@ import { useIsMutating, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/lib/toast/toast';
 import { Post } from '@/entities/post/model/post.schema';
 import { useFetchAccountQuery } from '@/entities/account/api/account.queries';
-import { prefetchComments } from '@/entities/comment/api/comment.queries';
+import { prefetchComments, seedEmptyComments } from '@/entities/comment/api/comment.queries';
 import {
   prefetchPostDetail,
   useUpdatePostVisibilityMutation,
@@ -149,20 +149,35 @@ export function usePostCard(post: Post, isDetail = false) {
     navigate(ROUTES_PATHS.POST.EDIT.replace(':id', post.id));
   };
 
-  // 댓글 아이콘 hover·focus용 — 댓글을 보러 간다는 의도가 분명해 댓글까지 바로 미리 받는다
+  // 댓글 아이콘 hover·focus용 — 댓글을 보러 간다는 의도가 분명해 댓글까지 바로 미리 받는다.
+  // 댓글이 0개인 글은 받아도 빈 응답이라 요청 대신 빈 목록을 심는다(seedEmptyComments)
   const handlePrefetchDetailWithComments = () => {
     prefetchPostDetail(queryClient, post.id);
+
+    if (post.stats.commentCount === 0) {
+      seedEmptyComments(queryClient, post.id);
+
+      return;
+    }
+
     prefetchComments(queryClient, post.id);
   };
 
   // 제목 링크 hover·focus용 — ::after가 카드 전체를 덮어 누르면 상세로 가는 곳 어디에 올라가도 발동한다.
   // 게시글은 바로 받고, 댓글은 카드에 머물렀을 때만 받는다: 상세는 댓글을 기다리느라 첫 화면을 최대
   // 500ms 미루므로(react-dom 18 FALLBACK_THROTTLE_MS) 댓글이 클릭 뒤에 출발하면 그만큼 빈 화면이 생기고,
-  // 지나가기만 한 카드까지 댓글을 받지는 않으려는 것이다. 상세 안에서는 라우트가 이미 댓글을 받았다
+  // 지나가기만 한 카드까지 댓글을 받지는 않으려는 것이다. 상세 안에서는 라우트가 이미 댓글을 받았다.
+  // 댓글이 0개인 글은 요청이 없어 머물기를 기다리지 않고 빈 목록을 바로 심는다(seedEmptyComments)
   const handlePrefetchDetail = () => {
     prefetchPostDetail(queryClient, post.id);
 
     if (isDetail) {
+      return;
+    }
+
+    if (post.stats.commentCount === 0) {
+      seedEmptyComments(queryClient, post.id);
+
       return;
     }
 

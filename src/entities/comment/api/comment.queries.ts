@@ -123,6 +123,20 @@ export const prefetchComments = (queryClient: QueryClient, postId: string) => {
 };
 
 /**
+ * 댓글이 0개인 글의 hover용 — 요청 대신 빈 목록을 캐시에 심어, 상세가 댓글 응답을 기다리지 않고 바로 그리게 한다.
+ * updatedAt: 0은 오래된 값이라는 표시라 화면이 마운트할 때 한 번 다시 받아 그 사이 달린 댓글을 보여 준다(query-core
+ * 5.90.16 query.js:405·:123, queryObserver.js:51·:445-452). 실제 댓글이나 진행 중인 요청을 지우지 않도록 캐시에 상태가
+ * 있으면 건드리지 않는다(docs/PERFORMANCE.md "상세 첫 진입 빈 화면").
+ */
+export const seedEmptyComments = (queryClient: QueryClient, postId: string) => {
+  if (queryClient.getQueryState(commentKeys.list(postId))) {
+    return;
+  }
+
+  queryClient.setQueryData<Comment[]>(commentKeys.list(postId), [], { updatedAt: 0 });
+};
+
+/**
  * 렌더 중에 댓글 요청을 시작만 하고 기다리지 않는다 — useSuspenseComments 와 동일 키/queryFn.
  * 게시글을 기다리는 suspense 경계 바깥에서 불러, 게시글이 온 뒤에야 CommentList가 마운트돼
  * 요청하던 순차 요청(워터폴)을 없앤다
