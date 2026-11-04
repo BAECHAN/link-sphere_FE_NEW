@@ -254,7 +254,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   [`PERFORMANCE.md`](./PERFORMANCE.md) "상세 첫 진입 빈 화면").
   댓글 아이콘(💬)의 hover·focus는 게시글과 댓글을 바로 함께 미리 받고(`handlePrefetchDetailWithComments`),
   상세 라우트는 들어올 때 페이지 청크와 함께 게시글과 댓글을 요청한다([`COMMENT.md`](./COMMENT.md) "해시 이동").
-  hover가 없는 터치 기기는 피드를 다 받은 뒤 한가할 때 상세 페이지 청크를 미리 받는다(데이터 절약 모드면 건너뜀, 같은 절).
+  hover가 없는 터치 기기는 피드 첫 썸네일이 그려진 뒤 한가할 때 상세 페이지 청크를 미리 받는다(데이터 절약 모드면 건너뜀,
+  같은 절).
   - **hover 미리 받기가 실패하면**(2026-11-03, #491 3번): 토스트 없이 실패한 쿼리를 캐시에서 지워, 상세가 열릴 때
     새로 요청한다(`prefetchQueryQuietly`, `src/shared/lib/react-query/prefetch-quietly.ts`). 카드·내 댓글 카드의
     `prefetchPostDetail`·`prefetchComments`가 쓴다(사이드바 폴더 행 hover도 같은 방식. 북마크 버튼은 닫힌 폴더 창이 목록을
@@ -286,7 +287,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - `usePostDetail`(`src/pages/post/hooks/usePostDetail.ts:76-109`)이
   `useSuspenseFetchPostDetailQuery`로 조회한다. 이 쿼리는 `retry: false`다(`post.queries.ts`)
   — 404는 재시도해도 같고 안내 화면만 늦어진다.
-- **미리 받기**: 상세 라우트(`PostDetailRoute`, `src/app/routes/index.tsx:211`)가 lazy 페이지 청크를 요청하는
+- **미리 받기**: 상세 라우트(`PostDetailRoute`, `src/app/routes/index.tsx:246`)가 lazy 페이지 청크를 요청하는
   같은 렌더에서 게시글(`usePrefetchPostDetail`)과 댓글(`usePrefetchComments`)을 요청한다. 게시글은 상세 조회와
   같은 옵션 묶음(`postDetailQueryOptions`)을 써 `retry: false`까지 같다. 진행 중인 요청은 먼저 시작한 쪽 옵션으로
   돌기 때문이다. 카드·내 댓글 hover의 `prefetchPostDetail`도 같은 옵션 묶음을 쓴다(2026-10-27 전에는 `retry`가
@@ -715,8 +716,8 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
   한 번만 요청하는지
 - `post-detail-comment-prefetch.spec.ts` — 상세 진입 시 댓글 요청 시점, 카드 댓글 아이콘·제목 hover 프리페치, 카드 빈 곳
   hover, 지나가기만 하면 댓글은 받지 않음
-- `post-detail-chunk-preload.spec.ts`(2026-11-04) — 터치 기기는 피드를 다 받으면 상세 페이지 청크를 미리 받고, 마우스 기기와
-  데이터 절약 모드는 받지 않는지
+- `post-detail-chunk-preload.spec.ts`(2026-11-04) — 터치 기기는 피드 첫 썸네일이 그려지기 전에는 받지 않다가 그려지면 상세
+  페이지 청크를 미리 받고(썸네일이 없으면 잠시 뒤), 마우스 기기와 데이터 절약 모드는 받지 않는지
 - `list-fetch-failure.spec.ts`(2026-11-03, 직접 실행) — 피드 다음 페이지가 429면 3초 동안 1번만 요청하고 "더
   불러오지 못했어요." 행을 보여주며 [다시 시도]로 받는지, 북마크 폴더 글 첫 조회가 실패하면 빈 목록 대신 오류
   문구를 보여주는지. 수정 전에는 3초 동안 2,027번 요청했다
