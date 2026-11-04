@@ -1,4 +1,7 @@
 ### 2026-11-04 (FE)
+- 북마크 폴더명 입력 시 현재 글자 수와 제한 글자 수(15자)를 실시간으로 표시하는 기능 구현 ([#526](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/526))
+
+### 2026-11-04 (FE)
 - 피드 상세 페이지 초기 로딩 시 레이아웃 빈 화면 현상 개선 및 렌더링 성능 최적화 ([#525](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/525))
 
 ### 2026-11-04 (FE)
