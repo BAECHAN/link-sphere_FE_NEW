@@ -11,7 +11,10 @@ import { accountKeys } from '@/entities/account/api/account.keys';
 import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/comment.const';
+import {
+  MAX_COMMENT_CONTENT_BYTES,
+  MAX_COMMENT_CONTENT_HANGUL_CHARS,
+} from '@/entities/comment/config/comment.const';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
@@ -165,6 +168,29 @@ describe('useCreateComment', () => {
 
     expect(requested).toBe(false);
     expect(errorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('글자 수는 한글 기준으로 세고, 상한을 넘는 순간이 isOverLimit과 같다', () => {
+    const { result } = renderHook(() => useCreateComment({ postId: POST_ID }), {
+      wrapper: createWrapper(queryClient),
+    });
+    const atLimit = '가'.repeat(MAX_COMMENT_CONTENT_HANGUL_CHARS);
+
+    expect(result.current.contentLength).toBe(0);
+
+    act(() => {
+      result.current.form.setValue('content', atLimit, { shouldDirty: true });
+    });
+
+    expect(result.current.contentLength).toBe(MAX_COMMENT_CONTENT_HANGUL_CHARS);
+    expect(result.current.isOverLimit).toBe(false);
+
+    act(() => {
+      result.current.form.setValue('content', `${atLimit}a`, { shouldDirty: true });
+    });
+
+    expect(result.current.contentLength).toBe(MAX_COMMENT_CONTENT_HANGUL_CHARS + 1);
+    expect(result.current.isOverLimit).toBe(true);
   });
 
   it('원본 바이트는 상한 밑이어도 줄바꿈이 많아 실제 전송량이 넘으면 요청을 보내지 않는다', async () => {

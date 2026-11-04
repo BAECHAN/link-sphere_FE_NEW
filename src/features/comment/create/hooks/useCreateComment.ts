@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -118,6 +118,10 @@ export function useCreateComment({
   }
 
   const isOverLimit = getUtf8ByteLength(contentValue) > MAX_COMMENT_CONTENT_BYTES;
+  // 입력칸 아래 글자 수 - 상한을 넘는 시점은 isOverLimit과 같다(comment.const.ts의 MAX_COMMENT_CONTENT_HANGUL_CHARS 주석).
+  // id는 입력칸 aria-describedby용이다(https://react.dev/reference/react/useId)
+  const contentLength = CommentUtil.countHangulEquivalentChars(contentValue);
+  const contentCountId = useId();
 
   const hasInput = contentValue.trim().length > 0 || images.length > 0;
 
@@ -236,6 +240,8 @@ export function useCreateComment({
     isReply,
     contentValue,
     isOverLimit,
+    contentLength,
+    contentCountId,
     // 로그인이 풀린 채 남아 있으면 그 안내가 먼저다(useCreatePost.ts와 같은 이유)
     failureMessage: signedOutNotice ?? failureMessage,
     images,

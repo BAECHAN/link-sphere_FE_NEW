@@ -8,10 +8,12 @@ import { ImageAttachmentField } from '@/shared/ui/elements/ImageAttachmentField'
 import { FormAlert } from '@/shared/ui/elements/FormAlert';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { DropTargetOverlay } from '@/shared/ui/elements/DropTargetOverlay';
+import { CharacterCount } from '@/shared/ui/elements/CharacterCount';
 import { LinkThumbnail } from '@/shared/ui/atoms/link-thumbnail';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/comment.contract';
+import { MAX_COMMENT_CONTENT_HANGUL_CHARS } from '@/entities/comment/config/comment.const';
 import { Comment } from '@/entities/comment/model/comment.schema';
 import { useUpdateComment } from '@/features/comment/update/hooks/useUpdateComment';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
@@ -33,6 +35,8 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
     isUpdating,
     canSubmit,
     isOverLimit,
+    contentLength,
+    contentCountId,
     failureMessage,
     imagePreviewUrls,
     isDraggingOver,
@@ -79,6 +83,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
         )}
         <Textarea
           aria-invalid={showValidationHighlight || isOverLimit}
+          aria-describedby={contentCountId}
           autoFocus
           className="min-h-[80px] text-sm"
           placeholder={TEXTS.comment.form.editPlaceholder}
@@ -95,9 +100,20 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
           }}
         />
       </div>
-      {isOverLimit && (
-        <p className="text-xs text-destructive">{TEXTS.validation.commentContentTooLong}</p>
-      )}
+      <div className="flex items-start gap-2">
+        {isOverLimit && (
+          <p className="min-w-0 flex-1 text-xs text-destructive">
+            {TEXTS.validation.commentContentTooLong}
+          </p>
+        )}
+        <CharacterCount
+          id={contentCountId}
+          current={contentLength}
+          max={MAX_COMMENT_CONTENT_HANGUL_CHARS}
+          suffix={TEXTS.comment.form.contentCountSuffix}
+          className="ml-auto shrink-0"
+        />
+      </div>
       {contentValue && (
         <div className="rounded-md border bg-muted/30 p-3 text-sm">
           <p className="text-xs text-muted-foreground mb-1.5">{TEXTS.comment.form.preview}</p>

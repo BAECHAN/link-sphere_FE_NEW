@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
@@ -193,6 +193,9 @@ export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommen
   );
 
   const isOverLimit = getUtf8ByteLength(contentValue) > MAX_COMMENT_CONTENT_BYTES;
+  // 입력칸 아래 글자 수 - useCreateComment.ts와 같다. 본문에서 이미지 줄을 뗀 텍스트만 센다(상한 규칙도 같다)
+  const contentLength = CommentUtil.countHangulEquivalentChars(contentValue);
+  const contentCountId = useId();
 
   // 길이 초과는 버튼을 막지 않는다 - 비활성 버튼은 클릭 이벤트 자체가 안 먹어서 onSubmit의
   // zod 검증(→ 초과 안내 토스트)이 실행될 기회조차 없어진다. 실제 제출은 zod가 막는다.
@@ -206,6 +209,8 @@ export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommen
     isUpdating,
     canSubmit,
     isOverLimit,
+    contentLength,
+    contentCountId,
     // 로그인이 풀린 채 남아 있으면 그 안내가 먼저다(useCreatePost.ts와 같은 이유)
     failureMessage: signedOutNotice ?? failureMessage,
     imagePreviewUrls,

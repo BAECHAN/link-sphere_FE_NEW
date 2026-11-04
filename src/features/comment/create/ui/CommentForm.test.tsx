@@ -38,6 +38,24 @@ describe('CommentForm', () => {
     expect(textarea).toHaveAttribute('aria-invalid', 'true');
   });
 
+  it('입력칸 아래 한글 기준 글자 수가 0부터 보이고, 입력칸의 설명으로 읽힌다', async () => {
+    const user = userEvent.setup();
+
+    renderCommentForm();
+
+    const textarea = screen.getByPlaceholderText(TEXTS.comment.form.commentPlaceholder);
+    expect(textarea).toHaveAccessibleDescription(
+      `0 / 2,000${TEXTS.comment.form.contentCountSuffix}`
+    );
+
+    // 영어는 3바이트가 한글 1자 몫이다
+    await user.type(textarea, 'abcd');
+
+    expect(textarea).toHaveAccessibleDescription(
+      `2 / 2,000${TEXTS.comment.form.contentCountSuffix}`
+    );
+  });
+
   it.each([
     ['Mac', TEXTS.shortcuts.commentSubmitMac, MAC_UA],
     ['Windows', TEXTS.shortcuts.commentSubmit, WINDOWS_UA],

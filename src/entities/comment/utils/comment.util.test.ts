@@ -9,6 +9,10 @@ import {
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { TEXTS } from '@/shared/config/texts';
 import { CommentUtil } from '@/entities/comment/utils/comment.util';
+import {
+  MAX_COMMENT_CONTENT_BYTES,
+  MAX_COMMENT_CONTENT_HANGUL_CHARS,
+} from '@/entities/comment/config/comment.const';
 
 const MESSAGES = TEXTS.messages.error.commentSubmit;
 const UPLOAD = TEXTS.messages.error.uploadSubmit;
@@ -155,5 +159,37 @@ describe('CommentUtil.isOutcomeUnknown', () => {
     expect(CommentUtil.isOutcomeUnknown(apiError({ status: 504 }))).toBe(true);
     expect(CommentUtil.isOutcomeUnknown(apiError({ status: 500 }))).toBe(false);
     expect(CommentUtil.isOutcomeUnknown(new ImageUploadError('network'))).toBe(false);
+  });
+});
+
+describe('CommentUtil.countHangulEquivalentChars', () => {
+  it.each([
+    ['', 0],
+    ['가', 1],
+    ['abc', 1],
+    ['abcd', 2],
+    ['가a', 2],
+    ['😀', 2],
+  ])('%j → %i자(UTF-8 바이트 ÷ 3 올림)', (content, expected) => {
+    expect(CommentUtil.countHangulEquivalentChars(content)).toBe(expected);
+  });
+
+  it.each([
+    [MAX_COMMENT_CONTENT_BYTES - 1, MAX_COMMENT_CONTENT_HANGUL_CHARS],
+    [MAX_COMMENT_CONTENT_BYTES, MAX_COMMENT_CONTENT_HANGUL_CHARS],
+    [MAX_COMMENT_CONTENT_BYTES + 1, MAX_COMMENT_CONTENT_HANGUL_CHARS + 1],
+  ])('%i바이트 → %i자', (bytes, expected) => {
+    expect(CommentUtil.countHangulEquivalentChars('a'.repeat(bytes))).toBe(expected);
+  });
+
+  // 바이트 상한이 3의 배수가 아니게 바뀌면 글자 수는 상한 안인데 제출이 막히는 구간이 생긴다
+  it.each([
+    MAX_COMMENT_CONTENT_BYTES - 1,
+    MAX_COMMENT_CONTENT_BYTES,
+    MAX_COMMENT_CONTENT_BYTES + 1,
+  ])('%i바이트에서 글자 수 초과 여부가 바이트 상한 초과 여부와 같다', (bytes) => {
+    const count = CommentUtil.countHangulEquivalentChars('a'.repeat(bytes));
+
+    expect(count > MAX_COMMENT_CONTENT_HANGUL_CHARS).toBe(bytes > MAX_COMMENT_CONTENT_BYTES);
   });
 });

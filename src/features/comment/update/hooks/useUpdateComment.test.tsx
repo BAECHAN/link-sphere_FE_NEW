@@ -11,7 +11,10 @@ import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/comment.const';
+import {
+  MAX_COMMENT_CONTENT_BYTES,
+  MAX_COMMENT_CONTENT_HANGUL_CHARS,
+} from '@/entities/comment/config/comment.const';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
 import { TEXTS } from '@/shared/config/texts';
 import { useAuthStore } from '@/shared/store/auth.store';
@@ -105,6 +108,41 @@ describe('useUpdateComment', () => {
 
     expect(result.current.isOverLimit).toBe(true);
     expect(result.current.canSubmit).toBe(true);
+  });
+
+  it('글자 수는 본문에서 이미지 줄을 뗀 텍스트로, 한글 기준으로 센다', () => {
+    const comment = {
+      ...mockComment,
+      content: `${mockComment.content}\nhttps://example.supabase.co/storage/v1/object/public/comments/a.png`,
+    };
+    const { result } = renderHook(() => useUpdateComment({ comment, postId: mockPost.id }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    // 'This is a test comment'는 22바이트 → 올림해 8자
+    expect(result.current.contentLength).toBe(8);
+  });
+
+  it('글자 수가 상한을 넘는 순간이 isOverLimit과 같다', () => {
+    const { result } = renderHook(
+      () => useUpdateComment({ comment: mockComment, postId: mockPost.id }),
+      { wrapper: createWrapper(queryClient) }
+    );
+    const atLimit = '가'.repeat(MAX_COMMENT_CONTENT_HANGUL_CHARS);
+
+    act(() => {
+      result.current.form.setValue('content', atLimit, { shouldDirty: true });
+    });
+
+    expect(result.current.contentLength).toBe(MAX_COMMENT_CONTENT_HANGUL_CHARS);
+    expect(result.current.isOverLimit).toBe(false);
+
+    act(() => {
+      result.current.form.setValue('content', `${atLimit}a`, { shouldDirty: true });
+    });
+
+    expect(result.current.contentLength).toBe(MAX_COMMENT_CONTENT_HANGUL_CHARS + 1);
+    expect(result.current.isOverLimit).toBe(true);
   });
 
   it('본문이 상한을 넘은 채 제출을 시도하면 요청을 보내지 않고 안내 토스트를 띄운다', async () => {

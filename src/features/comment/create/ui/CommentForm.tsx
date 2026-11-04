@@ -9,8 +9,10 @@ import { FormAlert } from '@/shared/ui/elements/FormAlert';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { DropTargetOverlay } from '@/shared/ui/elements/DropTargetOverlay';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
+import { CharacterCount } from '@/shared/ui/elements/CharacterCount';
 import { useCreateComment } from '@/features/comment/create/hooks/useCreateComment';
 import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/comment.contract';
+import { MAX_COMMENT_CONTENT_HANGUL_CHARS } from '@/entities/comment/config/comment.const';
 import { TEXTS } from '@/shared/config/texts';
 import { Kbd } from '@/shared/ui/atoms/kbd';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
@@ -40,6 +42,8 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
     isReply,
     contentValue,
     isOverLimit,
+    contentLength,
+    contentCountId,
     failureMessage,
     images,
     imagePreviewUrls,
@@ -111,6 +115,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
         )}
         <Textarea
           aria-invalid={showValidationHighlight || isOverLimit}
+          aria-describedby={contentCountId}
           placeholder={
             isReply ? TEXTS.comment.form.replyPlaceholder : TEXTS.comment.form.commentPlaceholder
           }
@@ -133,9 +138,20 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
         />
       </div>
 
-      {isOverLimit && (
-        <p className="text-xs text-destructive">{TEXTS.validation.commentContentTooLong}</p>
-      )}
+      <div className="flex items-start gap-2">
+        {isOverLimit && (
+          <p className="min-w-0 flex-1 text-xs text-destructive">
+            {TEXTS.validation.commentContentTooLong}
+          </p>
+        )}
+        <CharacterCount
+          id={contentCountId}
+          current={contentLength}
+          max={MAX_COMMENT_CONTENT_HANGUL_CHARS}
+          suffix={TEXTS.comment.form.contentCountSuffix}
+          className="ml-auto shrink-0"
+        />
+      </div>
 
       {contentValue && (
         <div className="rounded-md border bg-muted/30 p-3 text-sm">

@@ -5,11 +5,11 @@
 > **대상 독자**: 이 레포 FE를 처음 보거나 오랜만에 돌아온 개발자.
 >
 > **읽고 나면**: 댓글이 등록되기 전 화면에 먼저 뜨는 이유(낙관적 업데이트), 길이 상한이
-> 두 겹(6,000B·7,500B)인 이유, 이미지가 본문 끝에 URL로 붙는 저장 방식, 업로드·등록이
-> 실패했을 때 원인별로 무엇을 안내하는지, "내 댓글"에서 원글의 그 댓글로 이동하는 방식을
-> 이해하고, 상한·장수·캐시 무효화 범위·실패 문구를 어디서 바꾸는지 안다.
+> 두 겹(6,000B·7,500B)인 이유, 입력칸 아래 글자 수를 한글 기준으로 세는 이유, 이미지가 본문 끝에
+> URL로 붙는 저장 방식, 업로드·등록이 실패했을 때 원인별로 무엇을 안내하는지, "내 댓글"에서
+> 원글의 그 댓글로 이동하는 방식을 이해하고, 상한·장수·캐시 무효화 범위·실패 문구를 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-11-03
+> **마지막 검토**: 2026-11-04
 
 게시글 상세(`/post/:id`) 하단의 댓글 섹션과, 내가 쓴 댓글을 모아보는 "내 댓글"
 화면(`/my/comments`)을 다룬다. 게시글 자체(목록·상세·작성)는
@@ -26,7 +26,8 @@
 
 - **보내기 전에 크기를 잰다** — CloudFront 앞단의 WAF(웹 방화벽)가 8,192바이트를 넘는
   요청을 앱에 닿기도 전에 막는다. 그래서 FE가 미리 본문 바이트(6,000B)와 실제 전송
-  바이트(7,500B)를 두 번 잰다(§5 "길이 상한").
+  바이트(7,500B)를 두 번 잰다(§5 "길이 상한"). 본문 상한은 입력칸 아래에 `57 / 2,000자 · 한글 기준`처럼
+  늘 보인다.
 - **이미지는 본문의 일부다** — 첨부 이미지는 스토리지에 먼저 올리고, BE가 그 공개
   URL을 본문 끝에 한 줄씩 이어붙여 저장한다. 별도 이미지 테이블이 없다(§5 "이미지").
 
@@ -176,13 +177,33 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 | 검사                        | 무엇을 재나                                    | 언제                   | 위치                                                    |
 | --------------------------- | ---------------------------------------------- | ---------------------- | ------------------------------------------------------- |
-| 본문 상한 6,000B            | `content` 원본의 UTF-8 바이트(한글 약 2,000자) | 타이핑 중 + 제출 시    | `commentContentFormSchema`, `MAX_COMMENT_CONTENT_BYTES` |
+| 본문 상한 6,000B            | `content` 원본의 UTF-8 바이트(한글 2,000자)    | 타이핑 중 + 제출 시    | `commentContentFormSchema`, `MAX_COMMENT_CONTENT_BYTES` |
 | 전송 상한 7,500B            | `JSON.stringify({ content, images })`의 바이트 | 제출 직전              | `CommentUtil.estimateCommentPayloadBytes`               |
 | WAF `SizeRestrictions_BODY` | 요청 바디 전체 8,192B                          | CloudFront(앱 도달 전) | AWS 관리형 룰, 손대지 않음                              |
 
 본문 바이트만 재면 줄바꿈이 JSON에서 `\n`(2바이트)로 늘어나는 것과 이미지 URL 몫을
 놓친다. 그래서 실제 전송될 JSON과 같은 모양을 만들어 다시 잰다. 아직 업로드 전인
-이미지는 URL을 모르므로 200바이트 자리표시자로 채운다(`src/entities/comment/utils/comment.util.ts:113-123`).
+이미지는 URL을 모르므로 200바이트 자리표시자로 채운다(`src/entities/comment/utils/comment.util.ts:130-140`).
+
+**입력칸 아래 글자 수(2026-11-04)** — 작성·답글·수정 폼은 입력칸 바로 아래 오른쪽에 본문 상한까지 얼마나 썼는지를
+`57 / 2,000자 · 한글 기준`처럼 0부터 늘 보인다(모바일·데스크톱 같음). 전에는 넘었을 때만 안내 문구가 나왔다.
+
+- **한글 기준으로 센다** — 상한이 글자가 아니라 바이트라, 숫자는 `ceil(UTF-8 바이트 ÷ 3)`이다
+  (`CommentUtil.countHangulEquivalentChars`). 한글은 1자에 1씩, 영어·숫자·공백은 3자에 1씩, 이모지는 2씩 오른다.
+  "한글 기준" 표기가 이 차이를 설명한다. 실제 글자 수로 세면 영어 3,000자를 쓴 사람은 `3,000 / 2,000`에서도
+  등록이 되고, 반대로 상한을 2,000자로 바꾸면 영어·코드 댓글 한도가 1/3로 준다(운영의 가장 긴 댓글은 영어 로그
+  3,389자였다). 판단 근거는 `docs/DECISIONS.md` 2026-11-04.
+- **넘는 순간이 규칙과 같다** — `ceil(b ÷ 3) > 2,000`은 `b > 6,000`과 같다. 바이트 상한이 3의 배수일 때만
+  성립하므로 상한을 바꿀 때 3의 배수로 둔다(`comment.util.test.ts`의 경계 동치 테스트가 지킨다).
+- **넘으면 색만 바뀐다** — 숫자가 `text-muted-foreground`에서 `text-destructive`로 바뀌고, 이유는 왼쪽의 기존
+  문구(`TEXTS.validation.commentContentTooLong`)가 말한다. 색만으로 뜻을 전하지 않기 위해서다. 제출 차단·
+  `aria-invalid`·토스트는 그대로다.
+- **화면 읽기 프로그램** — 입력칸의 `aria-describedby`가 카운터를 가리켜(id는 `useId`), 포커스할 때 숫자를 읽는다.
+  키 입력마다 읽게 하는 live region은 두지 않았다.
+- **전송 상한은 반영하지 않는다** — 줄바꿈·이미지까지 더한 7,500B는 제출 때만 잰다. 그래서 카운터는 상한 안인데
+  제출이 `commentPayloadTooLarge`로 막히는 경우가 있다(§11).
+
+컴포넌트는 `src/shared/ui/elements/CharacterCount.tsx`(문구·색만 담당, 세는 방법은 부르는 쪽이 정한다)다.
 
 **왜 6,000B인가** — 이미지 URL 5개(약 650B)와 JSON 봉투를 더해도 8,192B 벽 안에 여유 있게 들어가도록
 잡은 값이다(`src/entities/comment/config/comment.const.ts:4-14` 주석). 7,500B는 그 벽 대비 약 700B 여유를 둔
@@ -244,7 +265,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 ### 실패 안내 — 원인과 할 일을 버튼 위에
 
 등록·답글·수정이 실패하면 `CommentUtil.resolveSubmitError`
-(`src/entities/comment/utils/comment.util.ts:29-102`)가 원인을 판정하고, 폼 훅이 그 문구를
+(`src/entities/comment/utils/comment.util.ts:32-105`)가 원인을 판정하고, 폼 훅이 그 문구를
 `failureMessage`로 들고 있다가 첨부 썸네일과 버튼 사이의 `FormAlert`에 남긴다
 (`CommentForm.tsx`·`CommentEditForm.tsx`의 `{failureMessage && <FormAlert>…}`). 세 mutation은 `manualErrorHandling`이라
 전역 토스트는 뜨지 않는다. 안내는 입력을 고치거나 첨부를 바꾸거나 다시 제출하면 지워진다. 첨부는 파일이 형식·크기·개수
@@ -379,7 +400,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 - **`#comments`는 DOM id가 아니라 신호다** — 같은 id의 요소가 있으면 react-router
   `ScrollRestoration`이 이 effect보다 먼저 그 요소로 즉시 점프해(캐시가 있는 재방문·상세 안 클릭)
   부드러운 스크롤이 안 보였다(시안 녹화로 확인). 그래서 `CommentList`가 해시(`COMMENT_SECTION_HASH`,
-  `src/entities/comment/config/comment.const.ts:40`)를 보고 ref로 찾는다. 상세 안 💬은 `replace`
+  `src/entities/comment/config/comment.const.ts:50`)를 보고 ref로 찾는다. 상세 안 💬은 `replace`
   (돌아가기가 같은 글로 가지 않게)와 `preventScrollReset`(ScrollRestoration이 맨 위로 올렸다
   내려오지 않게)을 함께 준다.
 - **스크롤 방식은 브라우저 기본 `smooth`(2026-10-14)** — 세 안을 같은 화면으로 녹화해 나란히
@@ -470,6 +491,9 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md) §4.
 - `MobileCommentBar`는 `space-y-6` 형제 목록 **밖**에 둔다(CommentList.tsx `CommentListContent`의 반환 JSX 끝, 이유를 적은 주석 아래). 안에 두면
   마운트·언마운트 때마다 24px 레이아웃이 흔들린다(§10).
+- 펼친 시트에도 입력칸 아래 글자 수 줄(§5 "입력칸 아래 글자 수")이 늘 있어 시트가 24px(글자 16px + 간격 8px) 높다.
+  토스트 자리는 `ResizeObserver`가 시트 높이를 따라 다시 잡는다(2026-11-04 직접 측정: 빈 시트 229px → 토스트 자리
+  237px, 입력 뒤 288px → 296px, 늘 시트 높이 + 8px).
 
 ### 맨 위로 버튼 — 데스크톱에만, 댓글 이동 버튼 대신(2026-10-27)
 
@@ -570,28 +594,30 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 ### 폼 훅 반환값
 
 `useCreateComment`·`useUpdateComment`는 `form`·`onSubmit`·`contentValue`·`isOverLimit`·
+`contentLength`(한글 기준 글자 수)·`contentCountId`(입력칸 `aria-describedby`와 카운터 `id`를 잇는 `useId` 값)·
 `failureMessage`(버튼 위 실패 안내, 없으면 `null`)와 첨부 핸들러 묶음을 돌려준다. `useUpdateComment`만 `canSubmit`(빈 입력·요청 중이면
 `false`)을 직접 계산해 준다. 원본 시그니처는 각 파일을 본다.
 
 ## 7. 운영 파라미터
 
-| 파라미터                     | 값                      | 실제 위치                                                                                                                                    |
-| ---------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| 댓글당 최대 이미지           | 5장                     | `src/entities/comment/config/comment.contract.ts:6`                                                                                          |
-| 내 댓글 페이지 크기          | 10                      | `src/entities/comment/config/comment.const.ts:2`                                                                                             |
-| 본문 상한                    | 6,000B(한글 약 2,000자) | `src/entities/comment/config/comment.const.ts:14`                                                                                            |
-| 전송 상한                    | 7,500B                  | `src/entities/comment/config/comment.const.ts:25`                                                                                            |
-| 업로드 전 이미지 URL 추정치  | 200B                    | `src/entities/comment/config/comment.const.ts:32`                                                                                            |
-| 이미지 동시 업로드 수        | 2                       | `src/entities/comment/api/comment.api.ts:14`                                                                                                 |
-| 리사이즈 최대 변 길이        | 1600px                  | `src/shared/lib/upload/uploadImageAndGetUrl.ts:50`                                                                                           |
-| 원본 파일 상한               | 30MB                    | `src/shared/lib/image/resizeImage.ts:13`                                                                                                     |
-| SVG·GIF(리사이즈 안 함) 상한 | 10MB(버킷과 같게)       | `src/shared/lib/image/resizeImage.ts:21`                                                                                                     |
-| 해시 이동 강조 시간          | 1600ms                  | `src/widgets/comment/comment-list/ui/CommentList.tsx`의 `scrollToHashedComment` 안 `setTimeout`                                              |
-| 해시 이동 강조 페이드        | 200ms / 600ms           | 나타남·사라짐. 같은 effect의 `duration-200`·`duration-600` 클래스. 사라짐 값은 안쪽 정리 `setTimeout(600)`과 함께 바꾼다                     |
-| 빈 제출 강조 시간            | 1300ms                  | `src/features/comment/create/ui/CommentForm.tsx`·`src/features/comment/update/ui/CommentEditForm.tsx`의 `highlightEmptyForm` 안 `setTimeout` |
-| 내 댓글 선반입 거리          | 아래 1200px             | `src/widgets/comment/my-comment-list/hooks/useMyCommentList.ts:24`                                                                           |
-| 해시 도착 여백               | navbar + 24px           | `src/widgets/comment/comment-list/ui/CommentItem.tsx:51`                                                                                     |
-| 모바일 바 ↔ 토스트 간격      | 8px                     | `src/features/comment/create/ui/MobileCommentBar.tsx:14`                                                                                     |
+| 파라미터                     | 값                   | 실제 위치                                                                                                                                    |
+| ---------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 댓글당 최대 이미지           | 5장                  | `src/entities/comment/config/comment.contract.ts:6`                                                                                          |
+| 내 댓글 페이지 크기          | 10                   | `src/entities/comment/config/comment.const.ts:2`                                                                                             |
+| 본문 상한                    | 6,000B(한글 2,000자) | `src/entities/comment/config/comment.const.ts:14`                                                                                            |
+| 글자 수 상한(표시용 파생값)  | 2,000자(6,000B ÷ 3)  | `src/entities/comment/config/comment.const.ts:24`                                                                                            |
+| 전송 상한                    | 7,500B               | `src/entities/comment/config/comment.const.ts:35`                                                                                            |
+| 업로드 전 이미지 URL 추정치  | 200B                 | `src/entities/comment/config/comment.const.ts:42`                                                                                            |
+| 이미지 동시 업로드 수        | 2                    | `src/entities/comment/api/comment.api.ts:14`                                                                                                 |
+| 리사이즈 최대 변 길이        | 1600px               | `src/shared/lib/upload/uploadImageAndGetUrl.ts:50`                                                                                           |
+| 원본 파일 상한               | 30MB                 | `src/shared/lib/image/resizeImage.ts:13`                                                                                                     |
+| SVG·GIF(리사이즈 안 함) 상한 | 10MB(버킷과 같게)    | `src/shared/lib/image/resizeImage.ts:21`                                                                                                     |
+| 해시 이동 강조 시간          | 1600ms               | `src/widgets/comment/comment-list/ui/CommentList.tsx`의 `scrollToHashedComment` 안 `setTimeout`                                              |
+| 해시 이동 강조 페이드        | 200ms / 600ms        | 나타남·사라짐. 같은 effect의 `duration-200`·`duration-600` 클래스. 사라짐 값은 안쪽 정리 `setTimeout(600)`과 함께 바꾼다                     |
+| 빈 제출 강조 시간            | 1300ms               | `src/features/comment/create/ui/CommentForm.tsx`·`src/features/comment/update/ui/CommentEditForm.tsx`의 `highlightEmptyForm` 안 `setTimeout` |
+| 내 댓글 선반입 거리          | 아래 1200px          | `src/widgets/comment/my-comment-list/hooks/useMyCommentList.ts:24`                                                                           |
+| 해시 도착 여백               | navbar + 24px        | `src/widgets/comment/comment-list/ui/CommentItem.tsx:51`                                                                                     |
+| 모바일 바 ↔ 토스트 간격      | 8px                  | `src/features/comment/create/ui/MobileCommentBar.tsx:14`                                                                                     |
 
 **함께 바꿔야 하는 값**:
 
@@ -599,7 +625,9 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
   [`CommentLimits.kt`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/src/main/kotlin/com/example/linksphere/domain/comment/CommentLimits.kt), `CommentService`가 등록·답글·수정에서 각각 검사)과 안내 문구
   `TEXTS.validation.commentContentTooLong`("한글 2,000자", `src/shared/config/texts.ts`)도
   함께 고친다. BE 값은 스펙에 `x-max-bytes`로 실리고, 어긋나면 `comment.contract.test.ts`가 FE 상수와 문구를
-  가리키며 실패한다(`docs/OPENAPI-CODEGEN.md` §5-6, 2026-11-02 전에는 자동 확인 장치가 없었다).
+  가리키며 실패한다(`docs/OPENAPI-CODEGEN.md` §5-6, 2026-11-02 전에는 자동 확인 장치가 없었다). 새 값은 3의 배수로
+  둔다 — 입력칸 글자 수(`MAX_COMMENT_CONTENT_HANGUL_CHARS`)가 이 값을 3으로 나눠 만들어져, 3의 배수가 아니면 글자 수는
+  상한 안인데 제출이 막히는 구간이 생긴다(§5 "입력칸 아래 글자 수").
 - 장수 상한은 BE `CommentLimits.MAX_IMAGES = 5`(같은 파일, 등록·답글·수정에서 검사)와 같아야 한다. 스펙의
   `maxItems`와 다르면 같은 테스트가 실패한다.
 - 7,500B는 WAF 8,192B 벽에서 약 700B 여유를 둔 값이다. 올리면 그 여유가 준다.
@@ -622,8 +650,9 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | API·이미지 업로드               | `src/entities/comment/api/comment.api.ts:10-67`                                                                                                |
 | 쿼리·낙관적 업데이트            | `src/entities/comment/api/comment.queries.ts`(파일 전체 — `buildOptimisticComment`부터 `useUpdateCommentMutation`까지)                         |
 | 키·무효화 핸들러                | `src/entities/comment/api/comment.keys.ts:4-54`                                                                                                |
-| 바이트 스키마·전송량 추정       | `src/entities/comment/model/comment.schema.ts:8-15`, `src/entities/comment/utils/comment.util.ts:113-123`                                      |
-| 실패 원인 판정                  | `src/entities/comment/utils/comment.util.ts:21-102`, `src/shared/utils/error.util.ts:62-91`                                                    |
+| 바이트 스키마·전송량 추정       | `src/entities/comment/model/comment.schema.ts:8-15`, `src/entities/comment/utils/comment.util.ts:130-140`                                      |
+| 실패 원인 판정                  | `src/entities/comment/utils/comment.util.ts:24-105`, `src/shared/utils/error.util.ts:62-91`                                                    |
+| 한글 기준 글자 수·카운터        | `src/entities/comment/utils/comment.util.ts:147-149`, `src/shared/ui/elements/CharacterCount.tsx`의 `CharacterCount`                           |
 | 업로드 단계 실패 분류           | `src/shared/lib/upload/uploadImageAndGetUrl.ts:13-39`, `src/shared/api/upload.api.ts:15-37`                                                    |
 | WAF 403 분류·문구               | `src/shared/api/client.ts:96-105`, `src/shared/lib/react-query/config/error-toast.ts`의 `resolveErrorToast`(`EDGE_BLOCKED` 분기)               |
 | 내 댓글 목록·카드               | `src/widgets/comment/my-comment-list/ui/MyCommentList.tsx:12-59`, `src/widgets/comment/my-comment-list/ui/MyCommentCard.tsx`의 `MyCommentCard` |
@@ -641,6 +670,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 무효화 범위 조정         | `comment.keys.ts`의 `handleComment*Success`만 고친다(feature 훅에서 직접 무효화 금지)                                                                                                                                                                                                                               |
 | 해시 이동 정렬·강조 시간 | `CommentList.tsx`의 `scrollToHashedComment`(`block`·강조 `setTimeout` 시간·페이드 `duration-*`), 도착 여백은 `CommentItem.tsx:51`                                                                                                                                                                                   |
 | 실패 문구 바꾸기         | `texts.ts`의 `messages.error.commentSubmit`(본 요청)·`uploadSubmit`(업로드 단계, 등록·저장 두 벌). 새 원인을 나누려면 `CommentUtil.resolveSubmitError`에 분기를 더한다                                                                                                                                              |
+| 글자 수 문구·자리 바꾸기 | 숫자 뒤 문구는 `TEXTS.comment.form.contentCountSuffix`, 자리는 `CommentForm.tsx`·`CommentEditForm.tsx`의 `<CharacterCount>`를 감싼 줄(두 폼을 함께 고친다). 세는 방법은 `CommentUtil.countHangulEquivalentChars`                                                                                                    |
 | 좋아요 실패 시 안내 추가 | `useLikeCommentMutation`의 `meta.manualErrorHandling`을 빼면 전역 토스트가 뜬다                                                                                                                                                                                                                                     |
 | 모바일 상세에도 맨 위로  | `AppLayout.tsx`에서 상세일 때 붙는 `max-md:hidden`을 뺀다. 버튼이 하단 댓글 바·댓글의 수정·삭제를 가리지 않는지 먼저 확인한다(§5 "맨 위로 버튼")                                                                                                                                                                    |
 | 테스트 실행              | `npx vitest run src/entities/comment src/features/comment`, e2e는 `pnpm test:e2e e2e/comment.spec.ts`                                                                                                                                                                                                               |
@@ -704,6 +734,18 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 되돌리면 해당 테스트가 실패하는 것도 확인했다. 2026-10-26 댓글 미리 받기를 라우트(`PostDetailRoute`)로
 옮긴 뒤에는 `e2e/post-route-prefetch.spec.ts`가 페이지 청크를 붙잡아 둔 채 댓글이 요청되는지(총 1회)를
 확인하고, 라우트의 미리 받기를 빼면 실패하는 것도 확인했다.
+
+입력칸 아래 글자 수(§5)는 2026-11-04 직접 실행했다.
+
+- 단위 테스트: `comment.util.test.ts`(빈 값 0·`abc` 1·`가` 1·이모지 2, 5,999/6,000/6,001B → 2,000/2,000/2,001,
+  경계 동치), `CharacterCount.test.tsx`(천 단위 쉼표, 15/15는 기본 색·16/15는 `text-destructive`, 입력칸 설명으로
+  읽힘), 두 폼 훅 테스트(한글 2,000자에서 초과 아님, 하나 더 쓰면 2,001·초과, 수정 폼은 이미지 줄을 뺀 본문 길이에서
+  시작), `CommentForm.test.tsx`(처음 `0 / 2,000…`, `abcd` 입력 뒤 `2 / 2,000…`). 스토리 6개는 `pnpm test:storybook`의
+  axe 검사를 통과했다.
+- 브라우저 녹화(모킹, 운영 데이터 미사용): 모바일 시트(0 → 한글 9 → ` abc` 붙여 10 → 2,001에서 빨간색·이유 문구·
+  등록 시 토스트), 데스크톱(2,000은 기본 색, `a` 하나 더 → 2,001), 답글(0 → 10), 수정(8 → 12), 다크 모드 모바일.
+  카운터 오른쪽 끝이 입력칸 오른쪽 끝과 맞는 것(모바일 377px, 데스크톱 1208px)과 시트 토스트 자리(§5 "모바일 댓글
+  바")를 `getBoundingClientRect`로 쟀다.
 
 조회 실패 뒤 다시 들어오기(§5)는 2026-11-03 직접 실행했다. 단위 테스트
 `src/entities/comment/hooks/useRemoveErroredCommentsOnLeave.test.tsx`(2: 떠나면 그 글의 실패한 목록을 지우고 성공한
@@ -820,6 +862,15 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   (BE `docs/plans/2026-10-05-image-upload-lifecycle.md`).
 - **수정의 504는 결과 모름으로 다루지 않는다** — 다시 보내면 같은 내용으로 덮어쓸 뿐이라 일반
   실패 안내를 쓴다. 실제로는 저장됐는데 "수정하지 못했어요"가 보일 수 있다.
+- **글자 수는 전송 상한(7,500B)을 모른다**(2026-11-04) — 카운터는 본문 상한만 센다. 계산상 이미지 5장에 본문
+  6,000B면 줄바꿈이 약 461개를 넘을 때 카운터는 상한 안인데 제출이 `commentPayloadTooLarge`로 막힌다(계산값,
+  실측 아님). 제출 때 이유는 토스트로 나온다.
+- **화면 읽기 프로그램이 한국어 문구를 어떻게 읽는지 확인하지 못했다**(2026-11-04) — 접근성 트리상 설명은
+  `0 / 2,000자 · 한글 기준`이다(테스트로 확인). VoiceOver·TalkBack이 `/`·`·`를 어떻게 읽는지는 실기기에서 보지 않았다.
+- **모바일 시트가 화면보다 커질 수 있다**(2026-11-04 발견) — 입력칸이 내용만큼 끝없이 커지고
+  (`src/shared/ui/atoms/textarea.tsx`의 `field-sizing-content`) 시트에 최대 높이가 없어, 한글 2,000자를 넣으면 시트가
+  2,770px(화면 727px)가 되고 글 앞부분이 화면 위로 잘린다(Chromium 모바일 에뮬레이션 직접 측정). 글자 수 표시 전부터
+  있던 문제라 별도 PR로 고친다.
 
 ## 12. 용어 사전
 
@@ -843,6 +894,10 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   `MAX_COMMENT_PAYLOAD_BYTES`(7,500B, 실제 전송 JSON).
 - **`estimateCommentPayloadBytes`** — 전송될 `{ content, images }` JSON을 실제로 만들어
   그 UTF-8 바이트를 재는 `CommentUtil`의 정적 메서드.
+- **한글 기준 글자 수** — 본문 UTF-8 바이트를 3으로 나눠 올린 값(`CommentUtil.countHangulEquivalentChars`). 한글만 쓰면
+  실제 글자 수와 같고, 상한(2,000자, `MAX_COMMENT_CONTENT_HANGUL_CHARS`)을 넘는 순간이 바이트 상한을 넘는 순간과 같다.
+- **`CharacterCount`** — `n / 상한` 문구와 넘었을 때의 색만 맡는 공용 카운터(`src/shared/ui/elements/CharacterCount.tsx`).
+  무엇을 세는지는 부르는 쪽이 정한다.
 - **`EDGE_BLOCKED`** — 앱이 아니라 CloudFront/WAF가 막은 403을 FE가 구분하려고 만든 에러
   코드. JSON이 아닌 403 응답이 그 신호다.
 - **`splitContentImages`** — 댓글 `content`를 텍스트와 "URL 하나만 있는 이미지 줄"로 나누는
@@ -880,6 +935,6 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   §11 낙관적 업데이트
 - [`DECISIONS.md`](./DECISIONS.md) — 2026-08-10(이미지 다중 첨부), 2026-09-06(403·WAF,
   `space-y` 흔들림), 2026-09-13(`z-scrim`), 2026-09-14(돌아가기 라벨·로그아웃 캐시),
-  2026-09-19(가상화 범위 밖), 2026-10-06(실패 안내 분류·위치)
+  2026-09-19(가상화 범위 밖), 2026-10-06(실패 안내 분류·위치), 2026-11-04(글자 수 상시 표시·한글 기준)
 - [`ONBOARDING.md`](./ONBOARDING.md) — FE·BE 전체 길잡이
 - `.claude/CLAUDE.md` Critical Rules — WAF 바디 크기 룰, `disabled` 버튼 검증 규칙

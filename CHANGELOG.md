@@ -11,6 +11,13 @@
 
 ### Added
 
+- `comment` 댓글·답글·수정 입력칸 아래에 한글 기준 글자 수(0 / 2,000자)를 늘 보여 줌
+  <details><summary>배경·구현</summary>
+
+  "모바일 댓글 입력에 몇 자까지 쓸 수 있는지 보여 달라"는 요청이었다. 모바일 시트와 데스크톱 인라인 폼이 같은 `CommentForm`이라 둘 다 숫자가 없었고, 상한 안내는 넘었을 때만 나왔다(2026-09-06 결정). 이제 작성·답글·수정 입력칸 바로 아래 오른쪽에 `57 / 2,000자 · 한글 기준`을 0부터 늘 보인다. 상한이 글자가 아니라 UTF-8 6,000바이트라 숫자는 `ceil(바이트 ÷ 3)`로 센다 — 한글은 1자에 1, 영어·숫자·공백은 3자에 1, 이모지는 2씩 오르고, 2,000을 넘는 순간이 바이트 상한을 넘는 순간과 같다(바이트 상한이 3의 배수일 때만 성립해 경계 동치 테스트로 지킨다). 상한 규칙·제출 차단·이유 문구는 그대로이고, 넘으면 숫자 색만 `text-destructive`로 바뀐다. 입력칸의 `aria-describedby`가 카운터를 가리킨다. 카운터 때문에 폼이 24px 높아진다(직접 측정). 줄바꿈·이미지까지 더한 전송 상한 7,500B는 카운터에 반영하지 않는다. 숫자 단위·자리·문구는 시안을 나란히 비교해 사용자가 골랐다. 근거는 `docs/DECISIONS.md` 2026-11-04, 계획은 [`docs/plans/2026-11-04-character-count.md`](docs/plans/2026-11-04-character-count.md). (`src/shared/ui/elements/CharacterCount.tsx`(신규), `src/shared/ui/elements/CharacterCount.stories.tsx`(신규), `src/shared/ui/elements/CharacterCount.test.tsx`(신규), `src/entities/comment/config/comment.const.ts`, `src/entities/comment/utils/comment.util.ts`, `src/features/comment/create/hooks/useCreateComment.ts`, `src/features/comment/update/hooks/useUpdateComment.ts`, `src/features/comment/create/ui/CommentForm.tsx`, `src/features/comment/update/ui/CommentEditForm.tsx`, `src/shared/config/texts.ts`, `docs/COMMENT.md`, `docs/DECISIONS.md`, [PR #521](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/521))
+
+  </details>
+
 - `auth` README 데모 계정과, 계정 설정이 막힌 역할이면 "접근 권한이 없어요." 안내
   <details><summary>배경·구현</summary>
 
