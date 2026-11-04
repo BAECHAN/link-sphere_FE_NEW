@@ -1,4 +1,7 @@
 ### 2026-11-04 (FE)
+- E2E 테스트 서버의 포트 할당 로직을 개선하여 세션 간 충돌 방지 및 안정성 확보 ([#532](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/532))
+
+### 2026-11-04 (FE)
 - 모바일 환경에서의 상세 페이지 리소스 로딩 최적화
   - 피드 내 첫 썸네일 이미지 렌더링 이후로 상세 페이지 청크 로딩 시점을 지연시켜 초기 로딩 성능 개선 ([#529](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/529))
 
