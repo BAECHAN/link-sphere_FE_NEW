@@ -143,10 +143,19 @@ function preloadPostDetailPage() {
 }
 
 /**
- * 터치 기기에서 피드 첫 화면을 다 받은 뒤(load) 브라우저가 한가할 때 상세 페이지 청크를 미리 받는다. 터치에는 hover가
+ * load 뒤 이 시간 안에 이미지 LCP가 그려지지 않으면(첫 카드에 썸네일이 없거나 받지 못함, 그 전에 스크롤해 LCP 기록이
+ * 멈춤, LCP 기록이 없는 브라우저) 그냥 받는다. 운영 감속 측정(Lighthouse mobileSlow4G 흉내)에서 썸네일 LCP는 load
+ * 약 3.4초 뒤였다(docs/PERFORMANCE.md "상세 첫 진입 빈 화면")
+ */
+const PRELOAD_FALLBACK_AFTER_LOAD_MS = 5000;
+
+/**
+ * 터치 기기에서 피드 첫 썸네일이 그려진 뒤 브라우저가 한가할 때 상세 페이지 청크를 미리 받는다. 터치에는 hover가
  * 없어 카드 hover로 미리 받을 틈이 없고, 느린 회선에서는 탭한 뒤에야 받는 청크가 게시글·댓글보다 늦게 와 빈 화면이
- * 길어졌다(docs/PERFORMANCE.md "상세 첫 진입 빈 화면"). load 뒤로 미뤄 LCP 썸네일·폰트와 다투지 않게 하고, 데이터 절약
- * 모드면 받지 않는다. Safari에는 requestIdleCallback이 없어(caniuse-lite 1.0.30001764) setTimeout으로 대신한다.
+ * 길어졌다(docs/PERFORMANCE.md "상세 첫 진입 빈 화면"). load 직후에 받으면 피드 목록 응답과 회선을 나눠 써 LCP가
+ * 늦어져서(운영 측정 +128ms) 이미지 LCP 기록(largest-contentful-paint, Safari는 26.2부터 — MDN browser-compat-data)을
+ * 기다린다. 데이터 절약 모드면 받지 않는다. Safari에는 requestIdleCallback이 없어(caniuse-lite 1.0.30001764)
+ * setTimeout으로 대신한다.
  */
 function usePreloadPostDetailPageOnTouch() {
   useEffect(() => {
@@ -156,22 +165,48 @@ function usePreloadPostDetailPageOnTouch() {
 
     const hasIdleCallback = 'requestIdleCallback' in window;
     let handle: number | undefined;
+    let fallbackTimer: number | undefined;
+    let lcpObserver: PerformanceObserver | undefined;
     const scheduleWhenIdle = () => {
+      if (handle !== undefined) {
+        return;
+      }
+
+      lcpObserver?.disconnect();
+      window.clearTimeout(fallbackTimer);
+
       if (hasIdleCallback) {
         handle = window.requestIdleCallback(preloadPostDetailPage);
       } else {
         handle = window.setTimeout(preloadPostDetailPage);
       }
     };
+    const waitForThumbnail = () => {
+      fallbackTimer = window.setTimeout(scheduleWhenIdle, PRELOAD_FALLBACK_AFTER_LOAD_MS);
+
+      if (!PerformanceObserver.supportedEntryTypes.includes('largest-contentful-paint')) {
+        return;
+      }
+
+      lcpObserver = new PerformanceObserver((list) => {
+        // 이미지 LCP만 url이 있다 — 글자 LCP는 피드 목록이 오기 전에도 그려진다
+        if (list.getEntries().some((entry) => (entry as LargestContentfulPaint).url)) {
+          scheduleWhenIdle();
+        }
+      });
+      lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+    };
 
     if (document.readyState === 'complete') {
-      scheduleWhenIdle();
+      waitForThumbnail();
     } else {
-      window.addEventListener('load', scheduleWhenIdle, { once: true });
+      window.addEventListener('load', waitForThumbnail, { once: true });
     }
 
     return () => {
-      window.removeEventListener('load', scheduleWhenIdle);
+      window.removeEventListener('load', waitForThumbnail);
+      window.clearTimeout(fallbackTimer);
+      lcpObserver?.disconnect();
 
       if (handle === undefined) {
         return;

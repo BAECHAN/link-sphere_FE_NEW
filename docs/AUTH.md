@@ -104,7 +104,7 @@ flowchart TD
 
 **왜 나뉘어 있나**: 게이트 A는 성능 결정([`docs/DECISIONS.md`](DECISIONS.md) 2026-07-25 항목)의 짝입니다 — `AuthProvider`가 라우터 렌더를 막지 않도록 바꾼 대가로, 복원이 끝나기 전 첫 페인트에서 로그인 사용자가 보호 페이지 새로고침 시 피드로 튕기는 걸 막는 화면 분기 장치로 도입됐습니다. 게이트 B는 "리프레시 토큰은 httpOnly라 JS가 존재·유효성을 전혀 모른다"는 사실에서 나옵니다 — 실제로 요청을 보내 401을 받아봐야 압니다. 게이트 C는 A·B 둘 다 못 막는 상황(비로그인 사용자가 공개 피드에 머문 채 좋아요를 누르는 것)을 막습니다: A는 페이지 단위라 이 상황에 개입 못 하고, B는 요청을 실제로 보내야 발동하는데 그러면 401 → `clearAll()` → 페이지 이탈로 사용자 문맥이 깨집니다. 게이트 D의 1차안은 "이메일 미인증이면 로그인 자체를 막는다"였지만, [GitHub 사례 조사](https://github.com/kamp-us/phoenix/issues/7485)에서 _"쓰기 권한(게시글·댓글)은 인증된 이메일에 게이팅되고, 마찰은 도착이 아니라 첫 '쓰기' 시점에 발생한다"_(번역)는 걸 확인하고 뒤집혔습니다 — 로그인·읽기까지 막으면 가입 직후 이탈이 너무 커진다는 판단입니다. 확정 경위는 `docs/plans/2026-09-28-auth-hardening.md`의 "확정된 결정들" 표를 참고하세요.
 
-### 라우트 그룹 구성 (`src/app/routes/index.tsx`의 `appRoutes`, `:159-263`)
+### 라우트 그룹 구성 (`src/app/routes/index.tsx`의 `appRoutes`, `:263-367`)
 
 ```
 RootLayout
@@ -118,7 +118,7 @@ RootLayout
 
 `GuestGuard`(`routes/index.tsx`의 `GuestGuard` 함수, `:90-104`)는 반대 방향 가드입니다 — 로그인 상태로 `/auth/login`에 오면 이전 경로(`location.state.from.pathname`) 또는 `HOME`으로 돌려보냅니다.
 
-`/auth/verify-email`은 어느 가드에도 속하지 않고 `routes/index.tsx:306-309`에서 `AuthLayout`만 직접 씌워 별도 라우트로 둡니다 — 로그인·비로그인 양쪽 모두 접근 가능해야 하기 때문입니다(로그인 상태면 인증 완료만 안내, 비로그인이면 로그인 유도).
+`/auth/verify-email`은 어느 가드에도 속하지 않고 `routes/index.tsx:341-344`에서 `AuthLayout`만 직접 씌워 별도 라우트로 둡니다 — 로그인·비로그인 양쪽 모두 접근 가능해야 하기 때문입니다(로그인 상태면 인증 완료만 안내, 비로그인이면 로그인 유도).
 
 그래서 이 화면(`VerifyEmailStatus.tsx`)은 로그인 여부를 스스로 판단합니다. 기준은 게이트 A와 같은 `useAuthStore.isAuthenticated`이고, 계정 프로필(`useAccount()`의 `account`)은 쓰지 않습니다. 프로필은 로그인한 뒤 `/auth/account`로 따로 받아 오므로, 조회 전이나 조회 실패 때 로그인 사용자가 비로그인으로 보여 "로그인하러 가기" 버튼이 뜹니다(2026-11-03 수정 전 동작). 게이트 밖이라 복원 전에도 렌더되므로, `isAuthResolved`가 될 때까지는 확인 요청이 먼저 끝나도 "확인 중" 화면을 유지하고 버튼을 정하지 않습니다.
 
