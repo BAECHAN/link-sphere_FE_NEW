@@ -119,4 +119,37 @@ test.describe('북마크 폴더 이름 — 줄바꿈 표시와 길이 제한', (
     await expect(submit).toBeEnabled();
     expect(createRequestCount).toBe(0);
   });
+
+  // 글자 수(n / 15자)는 입력의 설명(aria-describedby)으로 이어져 포커스할 때 읽힌다(docs/BOOKMARK.md §5 "폴더 이름 글자 수")
+  test('새 폴더 입력은 글자 수가 0부터 늘 보이고 상한을 넘는 순간 숫자도 넘는다', async ({
+    page,
+  }) => {
+    const countText = (length: number) =>
+      `${length} / ${BOOKMARK_FOLDER_NAME_MAX_LENGTH}${TEXTS.bookmark.folder.nameCountSuffix}`;
+
+    await page.goto('/bookmark');
+    await page.getByRole('button', { name: TEXTS.bookmark.folder.create }).click();
+
+    const input = page.getByPlaceholder(TEXTS.bookmark.folder.namePlaceholder);
+    await expect(input).toHaveAccessibleDescription(countText(0));
+    await expect(page.getByText(countText(0), { exact: true })).toBeVisible();
+
+    await input.fill(` ${'가'.repeat(BOOKMARK_FOLDER_NAME_MAX_LENGTH)} `);
+    await expect(input).toHaveAccessibleDescription(countText(BOOKMARK_FOLDER_NAME_MAX_LENGTH));
+    await expect(input).toHaveAttribute('aria-invalid', 'false');
+
+    await input.fill('가'.repeat(BOOKMARK_FOLDER_NAME_MAX_LENGTH + 1));
+    await expect(input).toHaveAccessibleDescription(countText(BOOKMARK_FOLDER_NAME_MAX_LENGTH + 1));
+    await expect(input).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  test('이름 바꾸기 입력은 글자 수가 지금 이름 길이에서 시작한다', async ({ page }) => {
+    await page.goto(`/bookmark?folder=${LONG_FOLDER.id}`);
+    await page.getByRole('button', { name: TEXTS.bookmark.folder.rename }).click();
+
+    const input = page.getByRole('textbox', { name: TEXTS.bookmark.folder.rename });
+    await expect(input).toHaveAccessibleDescription(
+      `${[...LONG_NAME].length} / ${BOOKMARK_FOLDER_NAME_MAX_LENGTH}${TEXTS.bookmark.folder.nameCountSuffix}`
+    );
+  });
 });

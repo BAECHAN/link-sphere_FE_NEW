@@ -16,9 +16,10 @@ export const useMobileFolderList = () => {
 /** CreateFolderCard — creating 토글 + 생성 폼 */
 export const useCreateFolderCard = () => {
   const [creating, setCreating] = useState(false);
-  const { name, setName, nameError, isPending, submit } = useCreateFolderForm({
-    onCreated: () => setCreating(false),
-  });
+  const { name, setName, nameError, nameLength, nameCountId, isPending, submit } =
+    useCreateFolderForm({
+      onCreated: () => setCreating(false),
+    });
 
   const handleCancel = () => {
     setCreating(false);
@@ -60,6 +61,8 @@ export const useCreateFolderCard = () => {
     name,
     setName,
     nameError,
+    nameLength,
+    nameCountId,
     isPending,
     submit,
     handleCancel,

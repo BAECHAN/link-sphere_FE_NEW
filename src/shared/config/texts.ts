@@ -387,6 +387,8 @@ export const TEXTS = {
       rename: '이름 수정',
       renameSubmit: '저장',
       namePlaceholder: '새 폴더 이름',
+      // 이름 글자 수(0 / 15) 뒤에 붙는다 - 앞뒤 공백을 뺀 코드포인트로 센다(BookmarkFolderUtil.nameLength)
+      nameCountSuffix: '자',
       sortPlaceholder: '정렬',
       selectorTitle: '북마크에 저장',
       selectorDescription: '폴더를 탭하면 바로 저장돼요.',

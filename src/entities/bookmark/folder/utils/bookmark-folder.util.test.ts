@@ -75,6 +75,24 @@ describe('BookmarkFolderUtil', () => {
     });
   });
 
+  describe('nameLength', () => {
+    it('빈 이름은 0이다', () => {
+      expect(BookmarkFolderUtil.nameLength('')).toBe(0);
+    });
+
+    it('앞뒤 공백은 세지 않는다 — 제출할 때 trim한다', () => {
+      expect(BookmarkFolderUtil.nameLength('  가  ')).toBe(1);
+    });
+
+    it('이모지는 BE codePointCount처럼 한 글자로 센다', () => {
+      expect(BookmarkFolderUtil.nameLength('😀'.repeat(15))).toBe(15);
+    });
+
+    it('가운데 공백은 센다', () => {
+      expect(BookmarkFolderUtil.nameLength('React 공부')).toBe(8);
+    });
+  });
+
   describe('nameLengthError', () => {
     it('15자까지는 문구를 돌려주지 않는다', () => {
       expect(BookmarkFolderUtil.nameLengthError('가'.repeat(15))).toBeNull();

@@ -3,8 +3,10 @@ import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { Button } from '@/shared/ui/atoms/button';
 import { Input } from '@/shared/ui/atoms/input';
+import { CharacterCount } from '@/shared/ui/elements/CharacterCount';
 import { EditButton } from '@/shared/ui/elements/EditButton';
 import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
+import { BOOKMARK_FOLDER_NAME_MAX_LENGTH } from '@/entities/bookmark/folder/config/bookmark-folder.contract';
 import { useRenameBookmarkFolder } from '@/features/bookmark/rename/hooks/useRenameBookmarkFolder';
 
 interface BookmarkFolderTitleProps {
@@ -42,6 +44,8 @@ function RenameableTitle({ folder, className, titleClassName }: RenameableTitleP
     name,
     setName,
     nameError,
+    nameLength,
+    nameCountId,
     isUpdating,
     submitRename,
     cancelRename,
@@ -65,6 +69,7 @@ function RenameableTitle({ folder, className, titleClassName }: RenameableTitleP
             disabled={isUpdating}
             aria-label={TEXTS.bookmark.folder.rename}
             aria-invalid={nameError !== null}
+            aria-describedby={nameCountId}
             // 모바일은 카드와 같은 기본 입력 — 칸이 좁아 제목 크기로는 긴 이름 앞이 잘린다(docs/BOOKMARK.md §5).
             // 데스크톱은 제목 크기 그대로 둔다(cn이 Input의 md:text-sm을 이 토큰으로 바꾼다).
             // pr-3 — 지우기 버튼을 안 쓰니 그 자리(pr-8)를 비워 두지 않는다. 비워 두면 ✕ ✓ 옆에서 14자 이름이 넘친다
@@ -103,7 +108,18 @@ function RenameableTitle({ folder, className, titleClassName }: RenameableTitleP
             )}
           </Button>
         </div>
-        {nameError && <p className="text-xs text-destructive">{nameError}</p>}
+        {/* 글자 수는 입력 아래 줄 오른쪽 — 같은 줄은 14자 이름이 가려져 자리가 없다. 편집하는 동안 헤더가 한 줄
+            커진다(2026-11-04 사용자 선택, docs/BOOKMARK.md §5 "폴더 이름 글자 수"). 넘친 이유는 왼쪽에 둔다 */}
+        <div className="flex items-start gap-2">
+          {nameError && <p className="min-w-0 flex-1 text-xs text-destructive">{nameError}</p>}
+          <CharacterCount
+            id={nameCountId}
+            current={nameLength}
+            max={BOOKMARK_FOLDER_NAME_MAX_LENGTH}
+            suffix={TEXTS.bookmark.folder.nameCountSuffix}
+            className="ml-auto shrink-0"
+          />
+        </div>
       </div>
     );
   }
