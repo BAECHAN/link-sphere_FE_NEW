@@ -1,5 +1,7 @@
+import { Check, Loader2, X } from 'lucide-react';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
+import { Button } from '@/shared/ui/atoms/button';
 import { Input } from '@/shared/ui/atoms/input';
 import { EditButton } from '@/shared/ui/elements/EditButton';
 import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
@@ -42,26 +44,65 @@ function RenameableTitle({ folder, className, titleClassName }: RenameableTitleP
     nameError,
     isUpdating,
     submitRename,
+    cancelRename,
     handleRenameKeyDown,
   } = useRenameBookmarkFolder({ folder });
 
   if (renaming) {
     return (
-      <div className={cn('flex min-w-0 flex-col gap-1', className)}>
-        <Input
-          autoFocus
-          enterKeyHint="done"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={submitRename}
-          onKeyDown={handleRenameKeyDown}
-          disabled={isUpdating}
-          aria-label={TEXTS.bookmark.folder.rename}
-          aria-invalid={nameError !== null}
-          // 모바일은 카드와 같은 기본 입력 — 칸이 좁아 제목 크기로는 긴 이름 앞이 잘린다(docs/BOOKMARK.md §5).
-          // 데스크톱은 제목 크기 그대로 둔다(cn이 Input의 md:text-sm을 이 토큰으로 바꾼다)
-          className="md:h-auto md:text-screen-title"
-        />
+      // data-renaming — 모바일 헤더가 이 표시를 보고 편집하는 동안 정렬(↕)을 숨겨 입력 칸을 넓힌다(BookmarkPage.tsx)
+      <div data-renaming className={cn('flex min-w-0 flex-col gap-1', className)}>
+        {/* 취소·저장은 입력과 같은 줄에 둬 헤더 높이를 바꾸지 않는다. 모바일은 [←][입력] 사이가 좁아 ✕·✓
+            아이콘만, 데스크톱은 글자로 보인다(2026-11-04 사용자 선택, docs/BOOKMARK.md §5) */}
+        <div className="flex min-w-0 items-center gap-1 md:gap-2">
+          <Input
+            autoFocus
+            enterKeyHint="done"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={submitRename}
+            onKeyDown={handleRenameKeyDown}
+            disabled={isUpdating}
+            aria-label={TEXTS.bookmark.folder.rename}
+            aria-invalid={nameError !== null}
+            // 모바일은 카드와 같은 기본 입력 — 칸이 좁아 제목 크기로는 긴 이름 앞이 잘린다(docs/BOOKMARK.md §5).
+            // 데스크톱은 제목 크기 그대로 둔다(cn이 Input의 md:text-sm을 이 토큰으로 바꾼다).
+            // pr-3 — 지우기 버튼을 안 쓰니 그 자리(pr-8)를 비워 두지 않는다. 비워 두면 ✕ ✓ 옆에서 14자 이름이 넘친다
+            className="min-w-0 flex-1 pr-3 md:h-auto md:text-screen-title"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 shrink-0 px-0 text-muted-foreground md:h-9 md:w-auto md:px-3 md:text-foreground"
+            aria-label={TEXTS.buttons.cancel}
+            // 누르는 순간 입력에서 포커스가 빠지면 blur 저장(submitRename)이 취소보다 먼저 나간다 —
+            // 포커스 이동을 막는다(docs/BOOKMARK.md §5 "이름 바꾸기 취소·저장 버튼")
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={cancelRename}
+            disabled={isUpdating}
+          >
+            <X className="h-4 w-4 md:hidden" />
+            <span className="max-md:hidden">{TEXTS.buttons.cancel}</span>
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 w-8 shrink-0 px-0 md:h-9 md:w-auto md:px-3"
+            aria-label={TEXTS.bookmark.folder.renameSubmit}
+            onClick={submitRename}
+            disabled={!name.trim() || nameError !== null || isUpdating}
+          >
+            {isUpdating ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <>
+                <Check className="h-4 w-4 md:hidden" />
+                <span className="max-md:hidden">{TEXTS.bookmark.folder.renameSubmit}</span>
+              </>
+            )}
+          </Button>
+        </div>
         {nameError && <p className="text-xs text-destructive">{nameError}</p>}
       </div>
     );

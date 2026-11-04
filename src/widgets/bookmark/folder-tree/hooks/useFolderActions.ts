@@ -31,6 +31,7 @@ export const useFolderActions = ({ folder, onBeforeDelete }: UseFolderActionsPar
     nameError,
     isUpdating,
     submitRename,
+    cancelRename,
     handleRenameKeyDown,
   } = useRenameBookmarkFolder({ folder });
   const { mutateAsync: deleteFolder } = useDeleteBookmarkFolderMutation(folder.id);
@@ -94,6 +95,7 @@ export const useFolderActions = ({ folder, onBeforeDelete }: UseFolderActionsPar
     nameError,
     isUpdating,
     submitRename,
+    cancelRename,
     handleRenameKeyDown,
     handleDelete,
   };
