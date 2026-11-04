@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { ErrorUtil } from '@/shared/utils/error.util';
@@ -22,6 +22,10 @@ interface UseNewFolderInputParams {
 export function useNewFolderInput({ onCreated, onCancel }: UseNewFolderInputParams) {
   const [newFolderName, setNewFolderName] = useState('');
   const newFolderNameError = BookmarkFolderUtil.nameLengthError(newFolderName);
+  // 입력 아래 글자 수(n / 15자) - newFolderNameError와 같은 셈법이라 넘는 시점이 같다.
+  // id는 입력 aria-describedby용이다(https://react.dev/reference/react/useId)
+  const newFolderNameLength = BookmarkFolderUtil.nameLength(newFolderName);
+  const newFolderNameCountId = useId();
   const { mutateAsync: createFolder, isPending: isCreating } = useCreateBookmarkFolderMutation();
   const submittingRef = useRef(false);
 
@@ -66,6 +70,8 @@ export function useNewFolderInput({ onCreated, onCancel }: UseNewFolderInputPara
     newFolderName,
     setNewFolderName,
     newFolderNameError,
+    newFolderNameLength,
+    newFolderNameCountId,
     isCreating,
     handleCreateAndSelect,
   };

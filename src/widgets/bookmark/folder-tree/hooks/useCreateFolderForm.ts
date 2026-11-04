@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { ErrorUtil } from '@/shared/utils/error.util';
@@ -20,6 +20,10 @@ export const useCreateFolderForm = ({ onCreated }: UseCreateFolderFormParams) =>
   const submittingRef = useRef(false);
   // 입력하는 동안 바로 아래에 이유를 띄우고(생성 버튼도 막는다), 제출도 막는다
   const nameError = BookmarkFolderUtil.nameLengthError(name);
+  // 입력 아래 글자 수(n / 15자) - nameError와 같은 셈법이라 넘는 시점이 같다.
+  // id는 입력 aria-describedby용이다(https://react.dev/reference/react/useId)
+  const nameLength = BookmarkFolderUtil.nameLength(name);
+  const nameCountId = useId();
 
   const submit = async () => {
     if (submittingRef.current || isPending) {
@@ -49,6 +53,8 @@ export const useCreateFolderForm = ({ onCreated }: UseCreateFolderFormParams) =>
     name,
     setName,
     nameError,
+    nameLength,
+    nameCountId,
     isPending,
     submit,
   };

@@ -51,6 +51,24 @@ describe('useCreateFolderForm', () => {
     expect(result.current.name).toBe('가'.repeat(16));
   });
 
+  it('글자 수는 0에서 시작하고, 상한을 넘는 순간이 nameError와 같다', () => {
+    const { result } = renderHook(() => useCreateFolderForm({ onCreated: vi.fn() }), {
+      wrapper: Wrapper,
+    });
+
+    expect(result.current.nameLength).toBe(0);
+
+    act(() => result.current.setName(` ${'가'.repeat(15)} `));
+
+    expect(result.current.nameLength).toBe(15);
+    expect(result.current.nameError).toBeNull();
+
+    act(() => result.current.setName('가'.repeat(16)));
+
+    expect(result.current.nameLength).toBe(16);
+    expect(result.current.nameError).not.toBeNull();
+  });
+
   it('이름을 넣고 제출하면 POST가 나가고 입력이 비워지며 onCreated가 호출된다', async () => {
     let requestedBody: unknown;
     server.use(
@@ -72,6 +90,7 @@ describe('useCreateFolderForm', () => {
 
     expect(requestedBody).toEqual({ name: '새 폴더' });
     expect(result.current.name).toBe('');
+    expect(result.current.nameLength).toBe(0);
     expect(onCreated).toHaveBeenCalledTimes(1);
   });
 

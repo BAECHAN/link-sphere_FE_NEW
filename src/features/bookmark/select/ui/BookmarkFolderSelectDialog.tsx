@@ -15,6 +15,7 @@ import { Button } from '@/shared/ui/atoms/button';
 import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import { Skeleton } from '@/shared/ui/atoms/skeleton';
+import { CharacterCount } from '@/shared/ui/elements/CharacterCount';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
@@ -26,6 +27,7 @@ import {
 import { useNewFolderInput } from '@/features/bookmark/select/hooks/useNewFolderInput';
 import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-folder.util';
+import { BOOKMARK_FOLDER_NAME_MAX_LENGTH } from '@/entities/bookmark/folder/config/bookmark-folder.contract';
 
 interface BookmarkFolderSelectDialogProps {
   open: boolean;
@@ -412,8 +414,15 @@ interface NewFolderInputProps {
 // 새 폴더 이름 입력 — 입력값을 이 컴포넌트에 둬서 한 글자마다 모달 본문과 폴더 행이 다시 그려지지 않게 한다
 // (useNewFolderInput 참고, 선례: widgets/bookmark/folder-tree의 InlineCreateFolderInput)
 function NewFolderInput({ onCancel, onCreated }: NewFolderInputProps) {
-  const { newFolderName, setNewFolderName, newFolderNameError, isCreating, handleCreateAndSelect } =
-    useNewFolderInput({ onCreated, onCancel });
+  const {
+    newFolderName,
+    setNewFolderName,
+    newFolderNameError,
+    newFolderNameLength,
+    newFolderNameCountId,
+    isCreating,
+    handleCreateAndSelect,
+  } = useNewFolderInput({ onCreated, onCancel });
 
   return (
     <li className="flex flex-col gap-1 px-4 py-2.5">
@@ -439,6 +448,7 @@ function NewFolderInput({ onCancel, onCreated }: NewFolderInputProps) {
           className="h-8 flex-1"
           disabled={isCreating}
           aria-invalid={newFolderNameError !== null}
+          aria-describedby={newFolderNameCountId}
         />
         <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isCreating}>
           {TEXTS.buttons.cancel}
@@ -455,7 +465,20 @@ function NewFolderInput({ onCancel, onCreated }: NewFolderInputProps) {
           )}
         </Button>
       </div>
-      {newFolderNameError && <p className="text-xs text-destructive">{newFolderNameError}</p>}
+      {/* 글자 수는 입력 아래 줄 오른쪽 — 입력·취소·생성이 한 줄이라 같은 줄에 두면 입력이 221px에서 170px로 준다
+          (393px 폰, 2026-11-04 사용자 선택, docs/BOOKMARK.md §5 "폴더 이름 글자 수"). 넘친 이유는 왼쪽에 둔다 */}
+      <div className="flex items-start gap-2">
+        {newFolderNameError && (
+          <p className="min-w-0 flex-1 text-xs text-destructive">{newFolderNameError}</p>
+        )}
+        <CharacterCount
+          id={newFolderNameCountId}
+          current={newFolderNameLength}
+          max={BOOKMARK_FOLDER_NAME_MAX_LENGTH}
+          suffix={TEXTS.bookmark.folder.nameCountSuffix}
+          className="ml-auto shrink-0"
+        />
+      </div>
     </li>
   );
 }

@@ -67,9 +67,10 @@ export const useCreateFolderInput = () => {
 
 /** InlineCreateFolderInput */
 export const useInlineCreateFolderInput = (onClose: () => void) => {
-  const { name, setName, nameError, isPending, submit } = useCreateFolderForm({
-    onCreated: onClose,
-  });
+  const { name, setName, nameError, nameLength, nameCountId, isPending, submit } =
+    useCreateFolderForm({
+      onCreated: onClose,
+    });
 
   const handleCancel = () => {
     setName('');
@@ -109,6 +110,8 @@ export const useInlineCreateFolderInput = (onClose: () => void) => {
     name,
     setName,
     nameError,
+    nameLength,
+    nameCountId,
     isPending,
     submit,
     handleCancel,

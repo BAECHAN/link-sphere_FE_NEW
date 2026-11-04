@@ -31,4 +31,24 @@ describe('useRenameBookmarkFolder', () => {
     expect(result.current.renaming).toBe(true);
     expect(result.current.name).toBe('사이드바에서 바꾼 이름');
   });
+
+  it('글자 수는 지금 이름 길이에서 시작하고, 취소하면 그 길이로 돌아간다', () => {
+    const { result } = renderHook(() => useRenameBookmarkFolder({ folder: mockBookmarkFolder }), {
+      wrapper: Wrapper,
+    });
+
+    act(() => result.current.startRename());
+
+    expect(result.current.nameLength).toBe([...mockBookmarkFolder.name].length);
+
+    act(() => result.current.setName('가'.repeat(16)));
+
+    expect(result.current.nameLength).toBe(16);
+    expect(result.current.nameError).not.toBeNull();
+
+    act(() => result.current.cancelRename());
+
+    expect(result.current.nameLength).toBe([...mockBookmarkFolder.name].length);
+    expect(result.current.nameError).toBeNull();
+  });
 });

@@ -5,6 +5,7 @@ import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';
 import { HoverKebabMenu } from '@/shared/ui/elements/HoverKebabMenu';
+import { CharacterCount } from '@/shared/ui/elements/CharacterCount';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
@@ -13,6 +14,7 @@ import {
   BookmarkFolderKey,
   BookmarkFolderSort,
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
+import { BOOKMARK_FOLDER_NAME_MAX_LENGTH } from '@/entities/bookmark/folder/config/bookmark-folder.contract';
 import {
   useCreateFolderInput,
   useFolderItem,
@@ -200,6 +202,8 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
     name,
     setName,
     nameError,
+    nameLength,
+    nameCountId,
     isUpdating,
     submitRename,
     cancelRename,
@@ -225,6 +229,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
             onKeyDown={handleRenameKeyDown}
             disabled={isUpdating}
             aria-invalid={nameError !== null}
+            aria-describedby={nameCountId}
             className="h-7 flex-1"
           />
         </div>
@@ -232,6 +237,15 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
         {/* 아래 새 폴더 입력과 같은 모양 — 같은 줄이면 입력이 103px로 줄어 14자 이름이 5자만 보이고, 아래 줄은 자리가
             남아 글자로 쓴다(2026-11-04 사용자 선택, docs/BOOKMARK.md §5 "이름 바꾸기 취소·저장 버튼") */}
         <div className="flex justify-end gap-1">
+          {/* 글자 수는 버튼 줄 왼쪽 빈자리 — 줄을 새로 만들지 않아 높이가 그대로다(2026-11-04 사용자 선택,
+              docs/BOOKMARK.md §5 "폴더 이름 글자 수") */}
+          <CharacterCount
+            id={nameCountId}
+            current={nameLength}
+            max={BOOKMARK_FOLDER_NAME_MAX_LENGTH}
+            suffix={TEXTS.bookmark.folder.nameCountSuffix}
+            className="mr-auto self-center"
+          />
           <Button
             type="button"
             variant="ghost"
@@ -346,8 +360,18 @@ interface InlineCreateFolderInputProps {
 }
 
 function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
-  const { name, setName, nameError, isPending, submit, handleCancel, handleKeyDown, handleBlur } =
-    useInlineCreateFolderInput(onClose);
+  const {
+    name,
+    setName,
+    nameError,
+    nameLength,
+    nameCountId,
+    isPending,
+    submit,
+    handleCancel,
+    handleKeyDown,
+    handleBlur,
+  } = useInlineCreateFolderInput(onClose);
 
   return (
     // 사이드바 폭(w-60 = 240px)에서 [입력][취소][생성] 한 줄은 입력 텍스트 영역이
@@ -363,10 +387,19 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
         placeholder={TEXTS.bookmark.folder.namePlaceholder}
         disabled={isPending}
         aria-invalid={nameError !== null}
+        aria-describedby={nameCountId}
         className="h-7 w-full"
       />
       {nameError && <p className="text-xs text-destructive">{nameError}</p>}
       <div className="flex justify-end gap-1">
+        {/* 글자 수는 버튼 줄 왼쪽 빈자리 — 위 이름 바꾸기와 같은 자리(docs/BOOKMARK.md §5 "폴더 이름 글자 수") */}
+        <CharacterCount
+          id={nameCountId}
+          current={nameLength}
+          max={BOOKMARK_FOLDER_NAME_MAX_LENGTH}
+          suffix={TEXTS.bookmark.folder.nameCountSuffix}
+          className="mr-auto self-center"
+        />
         <Button
           type="button"
           variant="ghost"

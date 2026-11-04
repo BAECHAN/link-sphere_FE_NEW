@@ -630,9 +630,10 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
   [`BookmarkFolderLimits.MAX_NAME_LENGTH`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/src/main/kotlin/com/example/linksphere/domain/interaction/BookmarkFolderLimits.kt)도 같은 값·같은 셈법(`BookmarkFolderService`가 trim 뒤 `codePointCount`)이다.
   값이 같은지는 `bookmark-folder.contract.test.ts`가 스펙의 `maxLength`와 대조한다(`docs/OPENAPI-CODEGEN.md` §5-6). `string.length`는 이모지
   하나를 2로 세므로 쓰지 않는다.
-- 입력 다섯 곳(사이드바·모바일 카드·폴더 선택 창의 새 폴더, 사이드바·모바일 카드의 이름 변경)이 모두
-  `BookmarkFolderUtil.nameLengthError`로 검사한다. 넘치면 입력 바로 아래에 이유(`TEXTS.validation.folderNameTooLong`, 상한과 지금
-  길이)를 띄우고 `aria-invalid`를 건다. 생성 버튼은 막는다 — 이유가 입력 아래에 늘 보이므로 CLAUDE.md의 "disabled만으로 처리하지
+- 입력 여섯 곳(사이드바·모바일 카드·폴더 선택 창의 새 폴더, 사이드바·모바일 카드·폴더 화면 제목의 이름 변경 — 제목은
+  2026-10-28에 더해졌다)이 모두 `BookmarkFolderUtil.nameLengthError`로 검사한다. 넘치면 입력 바로 아래에
+  이유(`TEXTS.validation.folderNameTooLong`, 상한과 지금 길이)를 띄우고 `aria-invalid`를 건다. 2026-11-04부터는 넘기 전에도
+  여섯 곳 모두 글자 수(`n / 15자`)를 늘 보인다(아래 "폴더 이름 글자 수"). 생성 버튼은 막는다 — 이유가 입력 아래에 늘 보이므로 CLAUDE.md의 "disabled만으로 처리하지
   않는다" 조건을 충족한다(선례: `CommentForm.tsx`의 댓글 길이 안내). Enter도 보내지 않는다.
 - 이름 변경은 넘친 채로 바깥을 눌러도(blur) 입력을 닫지 않는다. 쓰던 이름이 사라지지 않게 하려는 것이다. Escape는 지금처럼
   원래 이름으로 되돌린다. 이미 15자를 넘는 예전 이름은 고치지 않고 닫으면 요청 없이 그대로 닫힌다.
@@ -866,6 +867,38 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
 **터치 크기.** 이웃 버튼과 같은 크기(제목 32px, 카드·사이드바 28px)로 맞췄다(사용자 결정). 44px로 올리는 일은 ←·↕·연필·
 새 폴더 버튼까지 페이지 전체를 함께 다루려고 #518로 뒀다.
 
+### 폴더 이름 글자 수(2026-11-04)
+
+**문제.** 15자 상한(위 "폴더 이름 길이")은 넘었을 때만 "(지금 N자)"로 알렸다. 몇 자까지 쓸 수 있는지는 넘어 봐야 알았다.
+댓글 입력에 글자 수를 늘 보이게 한 같은 날 작업(`docs/COMMENT.md` §5 "입력칸 아래 글자 수")에서 같은 처리가 필요한 곳으로
+폴더 이름 입력 여섯 곳을 함께 골랐다. 상시 표시로 바꾼 근거와 기각한 안은 `docs/DECISIONS.md` 2026-11-04 항목이 정본이다.
+
+**동작.**
+
+- 여섯 곳 모두 `n / 15자`를 늘 보인다. 새 폴더는 0, 이름 바꾸기는 지금 이름 길이에서 시작한다. 컴포넌트는 댓글과 같은
+  `CharacterCount`(`shared/ui/elements/CharacterCount.tsx`), 뒤에 붙는 "자"는 `TEXTS.bookmark.folder.nameCountSuffix`다.
+- 세는 법은 검사와 같다. `BookmarkFolderUtil.nameLength`(앞뒤 공백을 뺀 코드포인트)를 `nameLengthError`도 쓰므로, 숫자가
+  16이 되는 순간 이유 문구가 뜬다. 앞뒤 공백은 세지 않는다(`" 가 "`는 1).
+- 넘으면 숫자 색만 `text-destructive`로 바뀐다. 이유 문구·`aria-invalid`·생성/저장 막기는 그대로다 — 색만으로는 정보를
+  전하지 않는다.
+- 입력의 `aria-describedby`가 숫자를 가리켜 포커스할 때 읽힌다. id는 훅이 `useId`로 만든 `nameCountId`다. 입력하는 동안
+  읽어 주는 live region은 두지 않았다(키마다 읽으면 소음이다).
+
+**자리.** 자리마다 버튼 배치(위 "이름 바꾸기 취소·저장 버튼")가 달라, 실제 화면에 숫자를 넣어 찍은 시안을 나란히 보고
+사용자가 골랐다(2026-11-04). A는 입력 아래 줄 오른쪽, B는 높이를 늘리지 않는 자리다. 수치는 직접 측정(Playwright 모킹
+화면, 모바일 393px·데스크톱 1280px, 입력·이유·버튼을 감싼 요소의 `getBoundingClientRect` 높이와 입력 `clientWidth`).
+
+| 자리                            | 고른 안                                        | 잰 값(입력 중)                                        | 이유                                                                                                                                 |
+| ------------------------------- | ---------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 사이드바 새 폴더·이름 바꾸기    | **B. 버튼 줄 왼쪽**                            | B 68px(지금과 같음) · A 88px                          | 입력 아래 버튼 줄의 빈 왼쪽을 쓴다. 입력 폭(207·175px)은 두 안이 같다                                                                |
+| 모바일 카드 새 폴더·이름 바꾸기 | **B. 폴더 아이콘 줄 오른쪽**                   | B 122px(같음) · A 146px, 넘칠 때 B 162px · A 194px    | 카드가 좁아(입력 131px) A는 넘침 이유가 숫자 옆으로 밀려 4줄로 접히고 같은 줄 이웃 카드까지 커졌다. 숫자가 입력 위에 오는 것이 단점  |
+| 폴더 선택 창 새 폴더            | **A. 아래 줄 오른쪽**(넘치면 이유 문구 오른쪽) | A 72px · B 52px(같음)                                 | 입력·취소·생성이 한 줄이라 같은 줄(B)에 두면 입력이 221px에서 170px(넘치면 163px)로 준다                                             |
+| 폴더 화면 제목(모바일·데스크톱) | **A. 아래 줄 오른쪽**                          | 모바일 36→56px, 데스크톱 37→57px. B는 데스크톱만 37px | 모바일은 같은 줄에 자리가 없다(입력 223px, 위 "모바일 제목 비교"). 데스크톱 같은 줄(B)은 입력이 446px에서 395px(넘치면 388px)로 준다 |
+
+**제목은 편집하는 동안 헤더가 20px 커진다.** 취소·저장 버튼은 헤더 높이를 지켰는데(위 "모바일 제목 비교"에서 아래 줄
+버튼을 기각한 이유), 글자 수 줄이 그만큼을 다시 쓴다. 헤더가 세로 가운데 맞춤(`items-center`)이라 ←(모바일)와 정렬
+선택(데스크톱)이 약 10px 내려갔다가 편집이 끝나면 돌아온다. 시안에 이 값을 적어 보여 드렸고 사용자가 A를 골랐다.
+
 ### 폴더 글 목록 조회가 실패했을 때(2026-11-03, #491)
 
 - **첫 페이지 실패**: 빈 상태("아직 북마크가 없어요.") 대신 피드와 같은 오류 문구(`ErrorState` +
@@ -1032,7 +1065,7 @@ RootLayout 호스트가 어느 글의 창을 그릴지 담는 Zustand 스토어�
 
 | 파라미터           | 값                                                                         | 실제 위치                                                                               |
 | ------------------ | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| 내 폴더 순서       | 고정한 폴더(`pinnedAt` 오름차순, 같으면 `sortOrder`) → 나머지(`sortOrder`) | `orderPinnedFirst`(`entities/bookmark/folder/utils/bookmark-folder.util.ts:63`)         |
+| 내 폴더 순서       | 고정한 폴더(`pinnedAt` 오름차순, 같으면 `sortOrder`) → 나머지(`sortOrder`) | `orderPinnedFirst`(`entities/bookmark/folder/utils/bookmark-folder.util.ts:68`)         |
 | 순서를 적용하는 곳 | 사이드바·모바일, 저장 다이얼로그                                           | `useFolderSections.ts:22`(사이드바·모바일), `useBookmarkFolderSelect.ts:44`(다이얼로그) |
 | 고정 개수 상한     | 없음                                                                       | —                                                                                       |
 
@@ -1069,7 +1102,7 @@ _"사용자는 두 항목이 중복이라는 걸 모르기 때문에 결국 둘 
 | ----------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------- |
 | 세로 모바일 시트 창 전체 상한       | 보이는 화면 높이의 70%(`70dvh`)    | `shared/ui/elements/dialog/SheetDialogContent.tsx:24`의 `SHEET_MAX_HEIGHT`    |
 | 중앙 모달(가로 폰·데스크톱) 창 상한 | 화면 높이 − 2rem(위아래 16px 여백) | `SheetDialogContent.tsx:25`의 `MODAL_MAX_HEIGHT`                              |
-| 데스크톱 폴더 목록 상한             | 384px(`max-h-96`)                  | `features/bookmark/select/ui/BookmarkFolderSelectDialog.tsx:152`·`:289`(로딩) |
+| 데스크톱 폴더 목록 상한             | 384px(`max-h-96`)                  | `features/bookmark/select/ui/BookmarkFolderSelectDialog.tsx:154`·`:291`(로딩) |
 
 ## 8. 코드 지도와 자주 하는 수정
 
@@ -1118,7 +1151,8 @@ src/
 │           │   │                         # (queuePinToggle → handleMenuCloseAutoFocus, §10). 삭제 확인창은 emphasis: 'confirm'
 │           │   │                         # (docs/DECISIONS.md 2026-09-29 항목). 삭제 성공 토스트
 │           │   │                         # "폴더를 삭제했어요."는 entity meta.successMessage(2026-10-21)
-│           │   └── useCreateFolderForm.ts # 폴더 생성 폼 코어 로직 — 사이드바·모바일 카드 공유
+│           │   └── useCreateFolderForm.ts # 폴더 생성 폼 코어 로직 — 사이드바·모바일 카드 공유. 글자 수
+│           │                              # (nameLength·nameCountId)도 여기서 돌려준다(§5 "폴더 이름 글자 수")
 │           └── ui/
 │               ├── FolderTree.tsx            # 데스크탑 사이드바 (폴더 트리, 전체 행은 숫자 없음).
 │               │                             # "내 폴더" 목록만 자체 스크롤(§10). 생성 폼은
@@ -1136,7 +1170,7 @@ src/
 │   │   │                             # pages와 bookmark 도메인 그룹을 통일
 │   │   ├── rename/
 │   │   │   ├── hooks/
-│   │   │   │   └── useRenameBookmarkFolder.ts # 이름 바꾸기 로직(15자 검사·Enter/Esc·저장 중복 방지) —
+│   │   │   │   └── useRenameBookmarkFolder.ts # 이름 바꾸기 로직(15자 검사·글자 수·Enter/Esc·저장 중복 방지) —
 │   │   │   │                                 # 폴더 화면 제목과 useFolderActions(사이드바·카드)가 같이 쓴다(§5)
 │   │   │   └── ui/
 │   │   │       └── BookmarkFolderTitle.tsx  # 폴더 화면 제목 + 연필(EditButton). 편집 중에는 입력 —
@@ -1146,7 +1180,7 @@ src/
 │   │   │   ├── hooks/
 │   │   │   │   ├── useBookmarkFolderSelect.ts # BookmarkFolderSelectDialog의 로직(조회·생성 입력 펼침·
 │   │   │   │   │                             # 행별 pending 상태 + handleCancelCreate로 취소, 2026-09-21)
-│   │   │   │   └── useNewFolderInput.ts       # "새 폴더 만들기" 입력값·생성 요청. 아래 Dialog 파일의
+│   │   │   │   └── useNewFolderInput.ts       # "새 폴더 만들기" 입력값·글자 수·생성 요청. 아래 Dialog 파일의
 │   │   │   │                                 # NewFolderInput만 쓴다 — 모달 훅에 두면 한 글자마다 모달
 │   │   │   │                                 # 본문과 폴더 행 전부가 다시 그려졌다(2026-11-03)
 │   │   │   └── ui/
@@ -1217,8 +1251,8 @@ src/
 │           │   └── bookmark-folder.contract.test.ts # 위 값 ≡ 스펙 maxLength
 │           ├── utils/
 │           │   ├── bookmark-folder.util.ts      # pickRecentFolders — "최근 저장한 폴더" 선정 로직(§7)
-│           │   │                                # + nameLengthError — 폴더 이름 길이 검사(§5)
-│           │   │                                # + isPinned(:58)·orderPinnedFirst(:65) — 내 폴더 고정 순서(§5, §7)
+│           │   │                                # + nameLength(:44)·nameLengthError(:49) — 폴더 이름 글자 수·길이 검사(§5)
+│           │   │                                # + isPinned(:61)·orderPinnedFirst(:68) — 내 폴더 고정 순서(§5, §7)
 │           │   └── bookmark-folder.util.test.ts # 임계값·완전 일치 배제·정렬·이름 길이·고정 순수 로직 테스트
 │           └── hooks/
 │               └── useRecentBookmarkFolders.ts # 모달(BookmarkFolderSelectDialog) 전용 스냅샷 로직
@@ -1229,6 +1263,7 @@ src/
     ├── ui/atoms/
     │   └── select.tsx                    # SelectTrigger hideIcon — 모바일 정렬 아이콘이 ▾를 숨길 때
     ├── ui/elements/
+    │   ├── CharacterCount.tsx            # 공용 글자 수(n / 15자) — 폴더 이름 입력 여섯 곳(§5, 댓글과 공용)
     │   ├── EditButton.tsx                # 공용 연필 버튼(label을 aria-label·title에 함께) — 폴더 화면 제목
     │   └── SearchInput.tsx               # 공통 검색 입력 (아이콘 + 단축키 Kbd)
     └── config/
@@ -1263,6 +1298,7 @@ src/
 | 이름 바꾸기 동작 변경(Enter·Esc·검사) | `features/bookmark/rename/hooks/useRenameBookmarkFolder.ts` 한 곳 — 폴더 화면 제목과 사이드바·카드(`useFolderActions`)가 같이 바뀐다                                                                                                                                                                                     |
 | 폴더 화면 편집 입력 모양 변경         | `BookmarkFolderTitle.tsx`의 `Input` `className`. `cn()`이 역할 토큰을 글자 크기로 알아 Input 기본 크기(`md:text-sm`)를 같은 변형(`md:`)끼리 바꾼다(§5 "폴더 화면에서 이름 바꾸기")                                                                                                                                       |
 | 이름 바꾸기 취소·저장 버튼 위치 변경  | 사이드바 `FolderTree.tsx` `FolderItem`, 카드 `MobileFolderList.tsx` `FolderCard`, 제목 `BookmarkFolderTitle.tsx`. 취소의 `onMouseDown` `preventDefault()`를 빼면 취소가 저장이 된다. 모바일 제목 편집 중 ↕ 숨김은 `BookmarkPage.tsx`의 `group-has-[[data-renaming]]/header:hidden`(§5 "이름 바꾸기 취소·저장 버튼")      |
+| 폴더 이름 글자 수 자리 변경           | `<CharacterCount>` 여섯 곳: 사이드바 `FolderTree.tsx:242`·`:396`, 카드 `MobileFolderList.tsx:180`·`:296`, 선택 창 `BookmarkFolderSelectDialog.tsx:474`, 제목 `BookmarkFolderTitle.tsx:115`. 세는 법(`nameLength`)을 바꾸면 이유 문구도 바뀐다(§5 "폴더 이름 글자 수")                                                    |
 | 모바일 정렬 점 조건·위치 변경         | `BookmarkPage.tsx` 모바일 분기의 `sort !== 'latest'`와 점 `span`의 `top-[5px] right-[5px] size-[7px]`(10-28 승인 시안 값). 기본 정렬을 바꾸면 이 조건도 같이 바꾼다                                                                                                                                                      |
 | 폴더 선택 창 높이 변경                | `SheetDialogContent.tsx`의 `SHEET_MAX_HEIGHT`(세로 모바일)·`MODAL_MAX_HEIGHT`(중앙 모달). 목록에 상한을 다시 두지 않는다 — 위아래 고정 줄이 더해져 화면을 넘는다(§5 "창 높이"). 바꾸면 `e2e/bookmark-sheet-height.mobile.spec.ts`의 `maxRatio`도 맞춘다                                                                  |
 | 테스트 실행                           | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-tree src/features/bookmark/toggle src/features/bookmark/rename src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`                                                                                                              |
@@ -1505,6 +1541,19 @@ e2e 164개(`CI=1`, 재시도 0), `pnpm type-check`·`pnpm lint`·`pnpm check:dep
 - 북마크 e2e 전체(`e2e/bookmark*`, 데스크톱·모바일 60건)가 통과했다.
 
 전체 단위 167개 파일 1943건, `pnpm type-check`·`pnpm lint`·`pnpm check:deps`가 통과했다.
+
+**2026-11-04 갱신** — 폴더 이름 글자 수(§5).
+
+- `bookmark-folder.util.test.ts`의 `nameLength` — 빈 이름 0, 앞뒤 공백 뺌(`'  가  '` 1), 이모지 15개 15, `'React 공부'` 8.
+- `useCreateFolderForm.test.ts` — 0에서 시작하고, 앞뒤 공백을 붙인 15자는 15·이유 없음, 16자는 16·이유 있음(숫자가 넘는
+  순간과 이유가 뜨는 순간이 같다). 제출하면 0으로 돌아간다.
+- `useRenameBookmarkFolder.test.ts` — 지금 이름 길이에서 시작하고, 고쳤다가 취소하면 그 길이로 돌아간다.
+- e2e `bookmark-folder-name.spec.ts`(2건 추가) — 새 폴더 입력의 설명(`aria-describedby`)이 `0 / 15자` → 공백 붙인 15자
+  `15 / 15자`(`aria-invalid` false) → 16자 `16 / 15자`(true), 폴더 화면 제목 이름 바꾸기가 14자 이름에서 `14 / 15자`로 시작.
+- 녹화 전용 Playwright 스펙(모킹, 데스크톱 1280px·Pixel 5)으로 여섯 곳에서 15자 → 16자(빨간 숫자와 이유) → 15자를 찍어
+  사용자가 모습을 확인했다.
+- 북마크 e2e 전체(`e2e/bookmark*`, 데스크톱·모바일 62건)가 통과했다. 기존 `bookmark-folder-title-rename.mobile.spec.ts`의
+  "14자 이름이 입력에서 다 보인다"도 고치지 않고 통과한다(숫자가 아래 줄이라 입력 폭이 그대로다).
 
 ## 10. 시행착오
 
@@ -2042,6 +2091,11 @@ Linux Chromium은 180px로 그려 Linux에서만 1px 넘쳤다(직접 측정 —
     에뮬레이션(`tap()`)에서는 막는다. 막지 못하면 취소를 눌러도 바꾸던 이름이 저장된다.
   - 360px 폰의 폴더 화면 제목 입력에서는 14자 이름의 앞 1자 남짓이 가려진다(§5 "모바일 제목 비교", §10).
   - 버튼은 이웃과 같은 28·32px이다. 44px로 올리는 일은 #518.
+- 폴더 이름 글자 수(2026-11-04, §5)에서 확인하지 못한 것과 남긴 것:
+  - 한국어 VoiceOver·TalkBack이 포커스할 때 `n / 15자` 설명을 어떻게 읽는지 실기기로 듣지 못했다. 자동 검사는
+    접근 가능한 설명(`toHaveAccessibleDescription`)까지만 본다.
+  - 모바일 카드는 숫자가 입력 위(아이콘 줄)에 있어, 입력 아래에 두라는 GOV.UK 권고(`docs/DECISIONS.md` 2026-11-04)와 다르다.
+    높이를 지키려고 사용자가 고른 자리다.
 
 ## 12. 용어 사전
 
@@ -2115,6 +2169,13 @@ Linux Chromium은 180px로 그려 Linux에서만 1px 넘쳤다(직접 측정 —
 - **`useRenameBookmarkFolder`** — `features/bookmark/rename/hooks/useRenameBookmarkFolder.ts`. 폴더 하나의 이름 바꾸기 상태
   (`renaming`·`name`·`nameError`)와 `startRename`·`submitRename`·`cancelRename`·`handleRenameKeyDown`을 돌려준다. 폴더 화면
   제목과 `useFolderActions`(사이드바·카드)가 같이 쓴다(§5)
+- **`BookmarkFolderUtil.nameLength`** — `entities/bookmark/folder/utils/bookmark-folder.util.ts`. 폴더 이름을 앞뒤 공백을 뺀
+  코드포인트로 센 길이. 입력 옆 글자 수와 `nameLengthError`(15자 초과 이유 문구)가 같이 쓴다(§5 "폴더 이름 글자 수")
+- **`nameLength` / `nameCountId`** — `useCreateFolderForm`·`useRenameBookmarkFolder`가 돌려주는 값(선택 창의
+  `useNewFolderInput`은 `newFolderNameLength`·`newFolderNameCountId`). 지금 이름의 글자 수와, 글자 수 요소에 붙이고 입력의
+  `aria-describedby`가 가리키는 id(`useId`)다
+- **`CharacterCount`** — `shared/ui/elements/CharacterCount.tsx`. `current / max` 뒤에 `suffix`를 붙여 보이고, 넘으면 색만
+  `text-destructive`로 바꾸는 공용 글자 수 요소. 댓글(`docs/COMMENT.md`)과 같이 쓴다
 - **`data-renaming`** — 폴더 화면 제목이 이름 입력을 여는 동안 다는 표시. 모바일 헤더가 이것을 보고 정렬(↕)을 숨긴다(§5
   "이름 바꾸기 취소·저장 버튼")
 - **`BookmarkFolderTitle`** — `features/bookmark/rename/ui/BookmarkFolderTitle.tsx`. 폴더 화면의 `h1` 제목. 실제 폴더면 연필

@@ -1,4 +1,4 @@
-import { KeyboardEvent, useRef, useState } from 'react';
+import { KeyboardEvent, useId, useRef, useState } from 'react';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { ErrorUtil } from '@/shared/utils/error.util';
@@ -23,6 +23,10 @@ export const useRenameBookmarkFolder = ({ folder }: UseRenameBookmarkFolderParam
   );
   const submittingRef = useRef(false);
   const nameError = BookmarkFolderUtil.nameLengthError(name);
+  // 입력 아래 글자 수(n / 15자) - nameError와 같은 셈법이라 넘는 시점이 같다.
+  // id는 입력 aria-describedby용이다(https://react.dev/reference/react/useId)
+  const nameLength = BookmarkFolderUtil.nameLength(name);
+  const nameCountId = useId();
 
   // 열 때마다 지금 이름으로 맞춘다 — 데스크톱은 사이드바와 제목이 같은 폴더를 함께 그려, 한쪽에서 바꾼 뒤
   // 다른 쪽을 열면 처음 그릴 때의 옛 이름이 들어 있었다
@@ -97,6 +101,8 @@ export const useRenameBookmarkFolder = ({ folder }: UseRenameBookmarkFolderParam
     name,
     setName,
     nameError,
+    nameLength,
+    nameCountId,
     isUpdating,
     submitRename,
     cancelRename,

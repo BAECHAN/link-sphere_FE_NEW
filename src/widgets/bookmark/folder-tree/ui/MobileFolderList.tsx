@@ -14,6 +14,7 @@ import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';
 import { HoverKebabMenu } from '@/shared/ui/elements/HoverKebabMenu';
+import { CharacterCount } from '@/shared/ui/elements/CharacterCount';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
@@ -21,6 +22,7 @@ import {
   BookmarkFolder,
   BookmarkFolderKey,
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
+import { BOOKMARK_FOLDER_NAME_MAX_LENGTH } from '@/entities/bookmark/folder/config/bookmark-folder.contract';
 import { useFolderActions } from '@/widgets/bookmark/folder-tree/hooks/useFolderActions';
 import {
   useCreateFolderCard,
@@ -155,6 +157,8 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
     name,
     setName,
     nameError,
+    nameLength,
+    nameCountId,
     isUpdating,
     submitRename,
     cancelRename,
@@ -165,11 +169,21 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
   if (renaming) {
     return (
       <div className="rounded-lg border bg-card p-3 flex flex-col gap-2">
-        {isPinned ? (
-          <Pin className="h-5 w-5 text-muted-foreground" />
-        ) : (
-          <Bookmark className="h-5 w-5 text-muted-foreground" />
-        )}
+        {/* 글자 수는 아이콘 줄 오른쪽 — 아래 줄에 두면 좁은 카드에서 넘침 이유가 숫자 옆으로 밀려 4줄로 접히고,
+            2열 격자라 옆 카드까지 커진다(2026-11-04 사용자 선택, docs/BOOKMARK.md §5 "폴더 이름 글자 수") */}
+        <div className="flex items-center justify-between gap-2">
+          {isPinned ? (
+            <Pin className="h-5 w-5 text-muted-foreground" />
+          ) : (
+            <Bookmark className="h-5 w-5 text-muted-foreground" />
+          )}
+          <CharacterCount
+            id={nameCountId}
+            current={nameLength}
+            max={BOOKMARK_FOLDER_NAME_MAX_LENGTH}
+            suffix={TEXTS.bookmark.folder.nameCountSuffix}
+          />
+        </div>
         <Input
           autoFocus
           enterKeyHint="done"
@@ -179,6 +193,7 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
           onKeyDown={handleRenameKeyDown}
           disabled={isUpdating}
           aria-invalid={nameError !== null}
+          aria-describedby={nameCountId}
           className="h-8"
         />
         {nameError && <p className="text-xs text-destructive">{nameError}</p>}
@@ -263,6 +278,8 @@ function CreateFolderCard() {
     name,
     setName,
     nameError,
+    nameLength,
+    nameCountId,
     isPending,
     submit,
     handleCancel,
@@ -273,7 +290,16 @@ function CreateFolderCard() {
   if (creating) {
     return (
       <div className="rounded-lg border bg-card p-3 flex flex-col gap-2">
-        <Plus className="h-5 w-5 text-muted-foreground" />
+        {/* 글자 수는 아이콘 줄 오른쪽 — 위 이름 바꾸기 카드와 같은 자리(docs/BOOKMARK.md §5 "폴더 이름 글자 수") */}
+        <div className="flex items-center justify-between gap-2">
+          <Plus className="h-5 w-5 text-muted-foreground" />
+          <CharacterCount
+            id={nameCountId}
+            current={nameLength}
+            max={BOOKMARK_FOLDER_NAME_MAX_LENGTH}
+            suffix={TEXTS.bookmark.folder.nameCountSuffix}
+          />
+        </div>
         <Input
           autoFocus
           enterKeyHint="done"
@@ -284,6 +310,7 @@ function CreateFolderCard() {
           placeholder={TEXTS.bookmark.folder.namePlaceholder}
           disabled={isPending}
           aria-invalid={nameError !== null}
+          aria-describedby={nameCountId}
           className="h-8"
         />
         {nameError && <p className="text-xs text-destructive">{nameError}</p>}

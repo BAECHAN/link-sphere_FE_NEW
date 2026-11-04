@@ -40,9 +40,14 @@ export class BookmarkFolderUtil {
   }
 
   // 앞뒤 공백을 뺀 이름을 코드포인트로 센다 — 제출할 때 trim하고, BE도 trim 뒤 codePointCount로
-  // 센다(string.length는 이모지 하나를 2로 센다). 상한을 넘으면 입력 아래에 띄울 문구를 돌려준다.
+  // 센다(string.length는 이모지 하나를 2로 센다). 입력 아래 글자 수(n / 15자)와 nameLengthError가 같이 쓴다.
+  static nameLength(name: string): number {
+    return [...name.trim()].length;
+  }
+
+  // 상한을 넘으면 입력 아래에 띄울 문구를 돌려준다.
   static nameLengthError(name: string): string | null {
-    const length = [...name.trim()].length;
+    const length = BookmarkFolderUtil.nameLength(name);
 
     if (length <= BOOKMARK_FOLDER_NAME_MAX_LENGTH) {
       return null;

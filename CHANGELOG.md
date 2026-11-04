@@ -11,6 +11,13 @@
 
 ### Added
 
+- `bookmark` 폴더 이름 입력 여섯 곳에 글자 수(0 / 15자)를 늘 보여 줌
+  <details><summary>배경·구현</summary>
+
+  댓글 글자 수(#521)와 함께 계획한 두 번째 PR이다. 폴더 이름 15자 상한은 넘었을 때만 "(지금 N자)"로 알렸다. 이제 사이드바·모바일 카드·폴더 선택 창의 새 폴더와 사이드바·모바일 카드·폴더 화면 제목의 이름 바꾸기, 여섯 곳 모두 `n / 15자`를 늘 보인다(새 폴더는 0, 이름 바꾸기는 지금 이름 길이부터). 세는 법은 검사와 같은 `BookmarkFolderUtil.nameLength`(앞뒤 공백을 뺀 코드포인트)라 숫자가 16이 되는 순간 이유 문구가 뜬다. 넘으면 숫자 색만 바뀌고 이유 문구·생성/저장 막기는 그대로다. 입력의 `aria-describedby`가 숫자를 가리킨다. 자리는 실제 화면에 넣어 찍은 시안을 나란히 보고 사용자가 골랐다(2026-11-04) — 사이드바는 버튼 줄 왼쪽, 모바일 카드는 폴더 아이콘 줄 오른쪽(둘 다 높이 그대로), 선택 창과 폴더 화면 제목은 입력 아래 줄 오른쪽(같은 줄이면 입력이 221→170px·446→395px로 준다, 직접 측정). 폴더 화면 제목은 편집하는 동안 헤더가 20px 커진다. 비교한 안과 잰 값은 `docs/BOOKMARK.md` §5 "폴더 이름 글자 수", 계획은 [`docs/plans/2026-11-04-character-count.md`](docs/plans/2026-11-04-character-count.md) Phase 2. (`src/entities/bookmark/folder/utils/bookmark-folder.util.ts`, `src/widgets/bookmark/folder-tree/hooks/useCreateFolderForm.ts`, `src/features/bookmark/rename/hooks/useRenameBookmarkFolder.ts`, `src/features/bookmark/select/hooks/useNewFolderInput.ts`, `src/widgets/bookmark/folder-tree/hooks/useFolderActions.ts`, `src/widgets/bookmark/folder-tree/hooks/useFolderTree.ts`, `src/widgets/bookmark/folder-tree/hooks/useMobileFolderList.ts`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`, `src/features/bookmark/select/ui/BookmarkFolderSelectDialog.tsx`, `src/features/bookmark/rename/ui/BookmarkFolderTitle.tsx`, `src/shared/config/texts.ts`, `e2e/bookmark-folder-name.spec.ts`, `docs/BOOKMARK.md`, [PR #526](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/526))
+
+  </details>
+
 - `bookmark` 폴더 이름 바꾸기 입력에 취소·저장 버튼
   <details><summary>배경·구현</summary>
 
