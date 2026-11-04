@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-11-03
+> **마지막 검토**: 2026-11-05
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -310,7 +310,7 @@ src/
     ├── hooks/                     # 재사용 훅 (useDebounce, useIntersectionObserver, usePullToRefresh 등)
     ├── lib/
     │   ├── react-query/
-    │   │   └── config/                 # queryClient.ts(중앙 QueryClient 인스턴스), error-toast.ts(resolveErrorToast), retry-policy.ts(shouldRetryQuery),
+    │   │   └── config/                 # queryClient.ts(중앙 QueryClient 인스턴스), error-toast.ts(resolveErrorToast), retry-policy.ts(shouldRetryQuery·shouldRetryIdempotentMutation),
     │   │                               # mutation-auth-epoch.ts(assertMutationAuthEpochUnchanged — §11 6번)
     │   ├── toast/toast.ts         # sonner 래퍼 (직접 import 금지, 이걸 통해서만 사용)
     │   ├── upload/uploadImageAndGetUrl.ts  # 리사이즈 + uploadApi 조합 편의 함수
@@ -1024,12 +1024,12 @@ export const isLastPendingBookmarkMutation = (queryClient: QueryClient, postId: 
 
 `src/shared/lib/react-query/config/queryClient.ts`
 
-| 설정       | 값                                                                                                                                          |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Stale Time | 3분 (`3 * 60 * 1000`)                                                                                                                       |
-| GC Time    | 5분 (`5 * 60 * 1000`)                                                                                                                       |
-| Retry      | 실패 시 1회 재시도 — `SessionChangedError`·`SessionExpiredError`·429·`EDGE_BLOCKED`는 재시도 안 함 (`retry-policy.ts`의 `shouldRetryQuery`) |
-| Refetch    | 탭이 다시 보일 때(`visibilitychange` — TanStack Query 5의 `focusManager` 기준) 및 마운트 시                                                 |
+| 설정       | 값                                                                                                                                                                                                                                                                                |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stale Time | 3분 (`3 * 60 * 1000`)                                                                                                                                                                                                                                                             |
+| GC Time    | 5분 (`5 * 60 * 1000`)                                                                                                                                                                                                                                                             |
+| Retry      | 실패 시 1회 재시도 — `SessionChangedError`·`SessionExpiredError`·429·`EDGE_BLOCKED`는 재시도 안 함 (`retry-policy.ts`의 `shouldRetryQuery`). mutation은 재시도 없음 — 글·댓글 삭제만 응답을 못 받았을 때 1회 (`shouldRetryIdempotentMutation`, `docs/POST.md` "응답을 못 받으면") |
+| Refetch    | 탭이 다시 보일 때(`visibilitychange` — TanStack Query 5의 `focusManager` 기준) 및 마운트 시                                                                                                                                                                                       |
 
 싱글턴 `queryClient`는 `QueryProvider`가 마운트 시 한 번 `QueryClientProvider`에 주입하고,
 그 아래 앱 코드는 전부 `useQueryClient()`로 그 인스턴스를 Context에서 꺼내 쓴다(같은
@@ -1148,6 +1148,8 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
   BE 레이트리밋뿐 아니라 앱 에러 코드 없이 오는 Lambda 동시 실행 포화 429도 같은 안내를 받는다.
   `EDGE_BLOCKED`와 429 토스트는 고정 id(`EDGE_BLOCKED_TOAST_ID`·`RATE_LIMITED_TOAST_ID`)를 달아,
   여러 요청이 함께 실패해도 하나만 보인다(id가 같으면 sonner가 새로 띄우지 않고 갱신한다).
+- **`meta.outcomeUnknownMessage`**: 있고 응답을 못 받은 실패(`ErrorUtil.isOutcomeUnknown`, 연결 끊김·504)면 그 메시지를
+  사용. 서버에서 처리됐을 수 있어 `errorMessage`의 "실패했어요"가 사실이 아닐 수 있는 mutation에 단다(글·댓글 삭제)
 - **`meta.errorMessage`**: 있으면 그 메시지를 사용
 - **401 (`NOT_LOGGED_IN` / `INVALID_TOKEN`)**: 로그인 필요 토스트만 표시한다. 세션 정리
   (`AuthUtil.clearAll()` → `/auth/login` 리다이렉트)는 `client.ts`의 fetch 인터셉터가 이미
@@ -1241,9 +1243,9 @@ sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를
 
 `meta.successMessage`는 **정적 문자열만** 받는다(`mutationSuccessHandler`,
 `queryClient.ts`). `variables`에 따라 문구가 갈리는 경우(예:
-`useUpdatePostVisibilityMutation`의 공개/비공개 방향)는 그 mutation의
-`onSuccess(data, variables)`에서 `toast.success`를 직접 부르고 `successMessage`는
-비워 둔다 — 둘 다 넣으면 두 번 뜬다.
+`useUpdatePostVisibilityMutation`의 공개/비공개 방향)나 응답 결과에 따라 갈리는 경우(예:
+`useDeletePostMutation`의 이미 없는 글)는 그 mutation의 `onSuccess(data, variables)`에서
+토스트를 직접 부르고 `successMessage`는 비워 둔다 — 둘 다 넣으면 두 번 뜬다.
 
 ### 에러 토스트 유지 시간 (2026-11-02)
 
@@ -1272,12 +1274,13 @@ sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를
 
 ## 15. Mutation/Query Meta 옵션
 
-| 키                    | 타입      | 효과                                                                                          |
-| --------------------- | --------- | --------------------------------------------------------------------------------------------- |
-| `successMessage`      | `string`  | 자동으로 성공 토스트 표시 (정적 문자열만 — 분기 필요 시 위 §14 예외)                          |
-| `errorMessage`        | `string`  | 기본 대신 커스텀 에러 토스트 표시                                                             |
-| `manualErrorHandling` | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용, mutation·query 둘 다 지원)            |
-| `silentWhenInactive`  | `boolean` | query 전용 — 켜진 구독자 없이 실패하면 토스트 억제 (닫힌 채 마운트된 창이 지켜보는 조회, §13) |
+| 키                      | 타입      | 효과                                                                                               |
+| ----------------------- | --------- | -------------------------------------------------------------------------------------------------- |
+| `successMessage`        | `string`  | 자동으로 성공 토스트 표시 (정적 문자열만 — 분기 필요 시 위 §14 예외)                               |
+| `errorMessage`          | `string`  | 기본 대신 커스텀 에러 토스트 표시                                                                  |
+| `outcomeUnknownMessage` | `string`  | 응답을 못 받았을 때(연결 끊김·504) `errorMessage` 대신 표시 — 결과를 모르는데 "실패"라고 하지 않게 |
+| `manualErrorHandling`   | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용, mutation·query 둘 다 지원)                 |
+| `silentWhenInactive`    | `boolean` | query 전용 — 켜진 구독자 없이 실패하면 토스트 억제 (닫힌 채 마운트된 창이 지켜보는 조회, §13)      |
 
 ---
 

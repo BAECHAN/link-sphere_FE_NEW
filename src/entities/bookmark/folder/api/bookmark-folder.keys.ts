@@ -106,6 +106,15 @@ export const handlePostDeleteSuccess = (queryClient: QueryClient) => {
 };
 
 /**
+ * 게시글 삭제가 실패로 끝났을 때 — 응답만 끊겼다면 서버에선 지워졌을 수 있어, 롤백으로 되살린
+ * post 목록과 폴더 캐시를 서버 기준으로 다시 불러온다.
+ */
+export const handlePostDeleteFailure = (queryClient: QueryClient) => {
+  postInvalidateQueries.list(queryClient);
+  handlePostDeleteSuccess(queryClient);
+};
+
+/**
  * 게시글 내용 수정 후 — 폴더별 게시글 목록 갱신 (제목·설명·이미지·카테고리·공개설정이 바뀜)
  * 북마크 개수는 변하지 않으므로 폴더 목록(list)은 건드리지 않는다.
  */

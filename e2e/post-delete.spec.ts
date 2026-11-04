@@ -5,7 +5,10 @@ import { mockAccountQuery } from './mocks/account.mock';
 import { mockCategoryOptions } from './mocks/common.mock';
 import { mockPostList, mockPostDetail, mockDeletePost } from './mocks/post.mock';
 import { mockComments } from './mocks/comment.mock';
-import { mockPost } from '@/mocks/fixtures/post.fixtures';
+import { isApiPath } from './mocks/route-match';
+import { wrapResponse } from './mocks/wrap-response';
+import { ENDPOINTS } from './mocks/endpoints';
+import { mockPost, mockPostListResponse } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
@@ -147,5 +150,129 @@ test.describe('게시글 삭제', () => {
     await expect(page.getByText(TEXTS.post.detail.notFound.title)).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`/post/${mockPost.id}$`));
     expect(detailGetCount).toBeGreaterThan(getsBeforeBack);
+  });
+
+  test('이미 지워진 글이면(404) 상세에서 목록으로 옮겨 가고 정보 안내만 뜬다', async ({ page }) => {
+    // LIFO라 beforeEach의 mockDeletePost보다 먼저 탄다
+    await page.route(
+      (url) => /^\/api\/post\/[^/]+$/.test(url.pathname),
+      (route) =>
+        route.request().method() === 'DELETE'
+          ? route.fulfill({
+              status: 404,
+              json: {
+                status: 404,
+                code: 'POST_NOT_FOUND',
+                message: '게시글을 찾을 수 없습니다.',
+                timestamp: new Date().toISOString(),
+              },
+            })
+          : route.fallback()
+    );
+
+    await page.goto(`/post/${mockPost.id}`);
+    await expect(page.getByRole('button', { name: TEXTS.post.detail.backToList })).toBeVisible();
+
+    await page.getByRole('button', { name: TEXTS.ariaLabels.postMenu }).click();
+    await page.getByRole('menuitem', { name: TEXTS.buttons.delete }).click();
+    const confirmDialog = page.getByRole('alertdialog');
+    await expect(confirmDialog).toBeVisible();
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await confirmDialog.getByRole('button', { name: TEXTS.buttons.delete }).click();
+
+    await expect(page).toHaveURL(/\/post$/);
+    await expect(page.getByText(TEXTS.messages.info.postAlreadyDeleted)).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.success.postDeleted)).toHaveCount(0);
+    await expect(page.getByText(TEXTS.messages.error.postDeleteFailed)).toHaveCount(0);
+  });
+
+  test('응답이 끊기면 한 번 더 보내고, 첫 요청이 지웠으면(404) 이미 삭제 안내만 뜬다', async ({
+    page,
+  }) => {
+    let deleteCount = 0;
+
+    // LIFO라 beforeEach의 mockDeletePost·mockPostList보다 먼저 탄다
+    await page.route(
+      (url) => /^\/api\/post\/[^/]+$/.test(url.pathname),
+      (route) => {
+        if (route.request().method() !== 'DELETE') {
+          return route.fallback();
+        }
+
+        deleteCount += 1;
+
+        return deleteCount === 1
+          ? route.abort('failed')
+          : route.fulfill({
+              status: 404,
+              json: {
+                status: 404,
+                code: 'POST_NOT_FOUND',
+                message: '게시글을 찾을 수 없습니다.',
+                timestamp: new Date().toISOString(),
+              },
+            });
+      }
+    );
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.post.base),
+      (route) =>
+        deleteCount > 0
+          ? route.fulfill({
+              json: wrapResponse({ ...mockPostListResponse, content: [], totalElements: 0 }),
+            })
+          : route.fallback()
+    );
+
+    await page.goto('/post');
+    await expect(page.getByRole('link', { name: mockPost.title })).toBeVisible();
+
+    await page.getByRole('button', { name: TEXTS.ariaLabels.postMenu }).click();
+    await page.getByRole('menuitem', { name: TEXTS.buttons.delete }).click();
+    const confirmDialog = page.getByRole('alertdialog');
+    await expect(confirmDialog).toBeVisible();
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await confirmDialog.getByRole('button', { name: TEXTS.buttons.delete }).click();
+
+    await expect(page.getByText(TEXTS.messages.info.postAlreadyDeleted)).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.info.noPosts)).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.error.postDeleteFailed)).toHaveCount(0);
+    await expect(page.getByText(TEXTS.messages.error.deleteOutcomeUnknown)).toHaveCount(0);
+    expect(deleteCount).toBe(2);
+  });
+
+  test('두 번 다 응답이 없으면 카드를 되살리고 삭제됐는지 확인하지 못했다고 안내한다', async ({
+    page,
+  }) => {
+    let deleteCount = 0;
+
+    // LIFO라 beforeEach의 mockDeletePost보다 먼저 탄다
+    await page.route(
+      (url) => /^\/api\/post\/[^/]+$/.test(url.pathname),
+      (route) => {
+        if (route.request().method() !== 'DELETE') {
+          return route.fallback();
+        }
+
+        deleteCount += 1;
+
+        return route.abort('failed');
+      }
+    );
+
+    await page.goto('/post');
+    await expect(page.getByRole('link', { name: mockPost.title })).toBeVisible();
+
+    await page.getByRole('button', { name: TEXTS.ariaLabels.postMenu }).click();
+    await page.getByRole('menuitem', { name: TEXTS.buttons.delete }).click();
+    const confirmDialog = page.getByRole('alertdialog');
+    await expect(confirmDialog).toBeVisible();
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await confirmDialog.getByRole('button', { name: TEXTS.buttons.delete }).click();
+
+    await expect(page.getByText(TEXTS.messages.error.deleteOutcomeUnknown)).toBeVisible();
+    await expect(page.getByRole('link', { name: mockPost.title })).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.error.postDeleteFailed)).toHaveCount(0);
+    expect(deleteCount).toBe(2);
   });
 });

@@ -67,6 +67,11 @@ export const handleCommentDeleteSuccess = (queryClient: QueryClient, postId: Pos
   postInvalidateQueries.list(queryClient);
 };
 
+// 삭제가 실패로 끝났을 때 - 응답만 끊겼다면 서버에선 지워졌을 수 있어, 성공 때와 같은 캐시를 서버 기준으로 다시 불러온다.
+export const handleCommentDeleteFailure = (queryClient: QueryClient, postId: Post['id']) => {
+  handleCommentDeleteSuccess(queryClient, postId);
+};
+
 export const handleCommentUpdateSuccess = (queryClient: QueryClient, postId: Post['id']) => {
   commentInvalidateQueries.list(queryClient, postId);
   commentInvalidateQueries.my(queryClient);

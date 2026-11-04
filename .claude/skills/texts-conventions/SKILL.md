@@ -41,10 +41,10 @@ TEXTS
 ├── errors.* (notFound/forbidden/unexpected — title+description, serverError — description만)
 ├── notification.* (defaultTitle, viewAction)
 ├── validation.urlFormat / urlRequired / titleRequired / passwordRegex / emailRegex / ...
-├── messages.info.noData / noPosts / signedOutForOtherAccount / switchedToOtherAccount
+├── messages.info.noData / noPosts / signedOutForOtherAccount / switchedToOtherAccount / postAlreadyDeleted / commentAlreadyDeleted
 ├── messages.warning.postDeleteConfirm / commentDeleteConfirm / memberDeleteConfirm
 ├── messages.success.postCreated / postUpdated / accountUpdated / linkCopied / accountDeleted / bookmarkSavedTo / ...
-├── messages.error.defaultError / loginFailed / postDeleteFailed / linkCopyFailed / ...
+├── messages.error.defaultError / loginFailed / postDeleteFailed / deleteOutcomeUnknown / linkCopyFailed / ...
 ├── messages.error.postSubmit.* (urlUnresolvable, rateLimitedIn(minutes), createFailed, updateFailed, ...) — 등록·수정 실패 원인 안내
 ├── messages.error.uploadSubmit.* (imageUnsupportedType, register.*, save.* — imageTooLarge, imageRateLimitedIn(minutes), storageUnavailable, network) — 이미지 업로드 단계 실패. 끝맺음을 폼 버튼(등록·저장)에 맞춰 두 벌
 ├── messages.error.commentSubmit.* (outcomeUnknown, postDeleted, parentDeleted, commentDeleted, createFailed, updateFailed) — 댓글 등록·수정 실패 원인 안내
@@ -118,7 +118,7 @@ pre-commit(lint-staged)과 CI·배포의 `pnpm check`에서 차단한다(`pnpm b
 | 필요 (예)                                                                                                                                                                        | 불필요 (예)                                                                         |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | `linkCopied` — 클립보드 복사는 화면 변화가 전혀 없음                                                                                                                             | 좋아요·좋아요 취소 — 낙관적 업데이트로 아이콘·개수가 즉시 바뀌고 다시 누르면 돌아감 |
-| `postDeleted`/`commentDeleted`/`folderDeleted` — 확인창을 거친 영구 삭제(판단축 4). `meta.successMessage`로 띄운다                                                               | 최근 검색어 삭제·첨부 이미지 빼기 — 확인창 없는 로컬 상태 제거, 그 자리에서 사라짐  |
+| `postDeleted`/`commentDeleted`/`folderDeleted` — 확인창을 거친 영구 삭제(판단축 4). 폴더는 `meta.successMessage`, 글·댓글은 이미 없을 때 문구가 갈려 `onSuccess`에서 직접 띄운다 | 최근 검색어 삭제·첨부 이미지 빼기 — 확인창 없는 로컬 상태 제거, 그 자리에서 사라짐  |
 | `bookmarkSavedTo(folderName)` — 아이콘만 봐선 "어느 폴더"인지 모름                                                                                                               | —                                                                                   |
 | `bookmarkRemoved` — 실행취소 동반(판단축 3). 소속 폴더 0~1개일 때 `undoOptions`로 되돌리기 제공(`usePostCardBookmarkFolderDialog.ts`)                                            | —                                                                                   |
 | `postUpdated`/`accountUpdated` — 본문 등 수정 내용이 스크롤 밖·다른 화면에 있어 바로 티가 안 날 수 있음                                                                          | —                                                                                   |

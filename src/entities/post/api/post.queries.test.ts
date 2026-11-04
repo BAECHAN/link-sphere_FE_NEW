@@ -6,6 +6,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from 'react-error-boundary';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS, IDEMPOTENCY_KEY_HEADER } from '@/shared/config/api';
+// 전역 핸들러(mutationCache)가 붙은 실제 싱글턴이어야 안내가 몇 개 뜨는지 드러난다
+// eslint-disable-next-line custom-query-rules/no-query-client-singleton-import
+import { queryClient as appQueryClient } from '@/shared/lib/react-query/config/queryClient';
 import { createQueryClientWithErrorToasts, createTestQueryClient } from '@/test/utils';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
@@ -27,6 +30,7 @@ import { shouldRetryQuery } from '@/shared/lib/react-query/config/retry-policy';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { SessionExpiredError } from '@/shared/types/common.type';
+import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
@@ -600,6 +604,253 @@ describe('useDeletePostMutation', () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
+  // 앱과 같은 전역 핸들러를 거쳐야 안내가 몇 개 뜨는지 알 수 있다(meta 토스트 + 직접 부른 토스트)
+  describe('삭제 결과별 안내', () => {
+    const seedList = () => {
+      queryClient.setQueryData(postKeys.list(), {
+        pages: [
+          { page: 0, size: 10, content: [mockPost], totalElements: 1, totalPages: 1, last: true },
+        ],
+        pageParams: [0],
+      });
+    };
+    const listContent = () =>
+      queryClient.getQueryData<{ pages: { content: Post[] }[] }>(postKeys.list())?.pages[0]
+        ?.content;
+    const respondDelete = (status: number, code: string) => {
+      server.use(
+        http.delete(url(`${API_ENDPOINTS.post.base}/${POST_ID}`), () =>
+          HttpResponse.json({ status, code, message: 'boom', timestamp: '' }, { status })
+        )
+      );
+    };
+    const spyToasts = () => ({
+      success: vi.spyOn(toast, 'success'),
+      info: vi.spyOn(toast, 'info'),
+      error: vi.spyOn(toast, 'error'),
+    });
+
+    beforeEach(() => {
+      vi.restoreAllMocks();
+      queryClient = appQueryClient;
+    });
+
+    afterEach(() => {
+      appQueryClient.clear();
+    });
+
+    it('서버가 지우면 성공 안내 1개만 띄운다', async () => {
+      const toasts = spyToasts();
+      const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync(POST_ID);
+      });
+
+      expect(toasts.success.mock.calls).toEqual([[TEXTS.messages.success.postDeleted]]);
+      expect(toasts.info).not.toHaveBeenCalled();
+      expect(toasts.error).not.toHaveBeenCalled();
+    });
+
+    // 응답이 끊긴 뒤 다시 눌렀거나 다른 탭에서 지운 경우 - 실패로 돌리면 지운 글이 목록에 되살아난다.
+    // mutateAsync가 끝까지 가야 상세에서 지웠을 때 목록으로 옮겨 간다(usePostCard.ts handleDelete)
+    it('이미 없는 글(404)이면 되살리지 않고 정보 안내 1개만 띄운다', async () => {
+      respondDelete(404, SERVER_ERROR_CODE.POST_NOT_FOUND);
+      seedList();
+      queryClient.setQueryData(postKeys.detail(POST_ID), mockPost);
+      const toasts = spyToasts();
+      const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync(POST_ID);
+      });
+
+      expect(listContent()).toEqual([]);
+      expect(queryClient.getQueryData(postKeys.detail(POST_ID))).toBeUndefined();
+      // 목록은 낙관적 제거 그대로 맞아서 다시 받지 않는다(성공과 같다)
+      expect(queryClient.getQueryState(postKeys.list())?.isInvalidated).toBe(false);
+      expect(toasts.info.mock.calls).toEqual([[TEXTS.messages.info.postAlreadyDeleted]]);
+      expect(toasts.success).not.toHaveBeenCalled();
+      expect(toasts.error).not.toHaveBeenCalled();
+    });
+
+    it('그 밖의 실패(500)면 되살리고 실패 안내 뒤 목록을 서버 기준으로 다시 받는다', async () => {
+      respondDelete(500, 'INTERNAL_SERVER_ERROR');
+      seedList();
+      queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList);
+      const toasts = spyToasts();
+      const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
+
+      act(() => {
+        result.current.mutate(POST_ID);
+      });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      expect(listContent()).toEqual([mockPost]);
+      expect(queryClient.getQueryState(postKeys.list())?.isInvalidated).toBe(true);
+      expect(queryClient.getQueryState(bookmarkFolderKeys.list)?.isInvalidated).toBe(true);
+      expect(toasts.error).toHaveBeenCalledTimes(1);
+      expect(toasts.error.mock.calls[0]?.[0]).toBe(TEXTS.messages.error.postDeleteFailed);
+      expect(toasts.info).not.toHaveBeenCalled();
+      expect(toasts.success).not.toHaveBeenCalled();
+    });
+
+    describe('응답을 못 받으면(연결 끊김·504) 한 번 더 보내 결과를 확인한다', () => {
+      const CUT = () => HttpResponse.error();
+      const GONE = () =>
+        HttpResponse.json(
+          { status: 404, code: SERVER_ERROR_CODE.POST_NOT_FOUND, message: 'gone', timestamp: '' },
+          { status: 404 }
+        );
+      const DELETED = () => new HttpResponse(null, { status: 204 });
+      /** 차례대로 응답하고, 온 요청 수를 센다 */
+      const respondInOrder = (responses: (() => Response)[]) => {
+        const calls = { count: 0 };
+
+        server.use(
+          http.delete(url(`${API_ENDPOINTS.post.base}/${POST_ID}`), () => {
+            calls.count += 1;
+
+            return responses[Math.min(calls.count, responses.length) - 1]!();
+          })
+        );
+
+        return calls;
+      };
+      const deleteAndSettle = async () => {
+        const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
+
+        await act(async () => {
+          await result.current.mutateAsync(POST_ID).catch(() => undefined);
+        });
+      };
+
+      it('첫 요청이 지운 경우(다시 보내니 404) 이미 삭제 안내만 띄우고 되살리지 않는다', async () => {
+        const calls = respondInOrder([CUT, GONE]);
+        seedList();
+        const toasts = spyToasts();
+
+        await deleteAndSettle();
+
+        expect(calls.count).toBe(2);
+        expect(listContent()).toEqual([]);
+        expect(toasts.info.mock.calls).toEqual([[TEXTS.messages.info.postAlreadyDeleted]]);
+        expect(toasts.success).not.toHaveBeenCalled();
+        expect(toasts.error).not.toHaveBeenCalled();
+      });
+
+      it('첫 요청이 서버에 못 간 경우(다시 보내니 204) 성공 안내만 띄운다', async () => {
+        const calls = respondInOrder([CUT, DELETED]);
+        seedList();
+        const toasts = spyToasts();
+
+        await deleteAndSettle();
+
+        expect(calls.count).toBe(2);
+        expect(listContent()).toEqual([]);
+        expect(toasts.success.mock.calls).toEqual([[TEXTS.messages.success.postDeleted]]);
+        expect(toasts.error).not.toHaveBeenCalled();
+      });
+
+      it('504도 같다 - CloudFront가 기다림을 끊은 것이라 서버는 지웠을 수 있다', async () => {
+        const calls = respondInOrder([() => HttpResponse.json({}, { status: 504 }), GONE]);
+        seedList();
+        const toasts = spyToasts();
+
+        await deleteAndSettle();
+
+        expect(calls.count).toBe(2);
+        expect(toasts.info.mock.calls).toEqual([[TEXTS.messages.info.postAlreadyDeleted]]);
+        expect(toasts.error).not.toHaveBeenCalled();
+      });
+
+      it('두 번 다 응답이 없으면 되살리고 확인하지 못했다고 안내한 뒤 목록을 다시 받는다', async () => {
+        const calls = respondInOrder([CUT]);
+        seedList();
+        const toasts = spyToasts();
+
+        await deleteAndSettle();
+
+        expect(calls.count).toBe(2);
+        expect(listContent()).toEqual([mockPost]);
+        expect(queryClient.getQueryState(postKeys.list())?.isInvalidated).toBe(true);
+        expect(toasts.error).toHaveBeenCalledTimes(1);
+        expect(toasts.error.mock.calls[0]?.[0]).toBe(TEXTS.messages.error.deleteOutcomeUnknown);
+        expect(toasts.success).not.toHaveBeenCalled();
+        expect(toasts.info).not.toHaveBeenCalled();
+      });
+
+      it('서버가 실패라고 답하면(500) 다시 보내지 않는다', async () => {
+        const calls = respondInOrder([
+          () =>
+            HttpResponse.json(
+              { status: 500, code: 'X', message: 'boom', timestamp: '' },
+              { status: 500 }
+            ),
+        ]);
+        seedList();
+
+        await deleteAndSettle();
+
+        expect(calls.count).toBe(1);
+      });
+
+      // 누른 계정의 동작이 바뀐 계정으로 실행되면 안 된다(mutation-auth-epoch.ts)
+      it('다시 보내기 전에 계정이 바뀌었으면 보내지 않는다', async () => {
+        const calls = { count: 0 };
+        server.use(
+          http.delete(url(`${API_ENDPOINTS.post.base}/${POST_ID}`), () => {
+            calls.count += 1;
+            AuthEpochUtil.markLogout();
+
+            return HttpResponse.error();
+          })
+        );
+        seedList();
+        const toasts = spyToasts();
+
+        await deleteAndSettle();
+
+        expect(calls.count).toBe(1);
+        expect(toasts.error).toHaveBeenCalledTimes(1);
+        expect(toasts.error.mock.calls[0]?.[0]).toBe(TEXTS.messages.error.sessionChanged);
+      });
+    });
+
+    // 글이 없다는 BE 응답만 믿는다 - CloudFront·S3가 낸 404는 지워졌다는 뜻이 아니다
+    it('POST_NOT_FOUND가 아닌 404는 실패로 둔다', async () => {
+      respondDelete(404, 'SOMETHING_ELSE');
+      seedList();
+      const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
+
+      act(() => {
+        result.current.mutate(POST_ID);
+      });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      expect(listContent()).toEqual([mockPost]);
+    });
+
+    it('로그인 만료로 끝나면 목록을 다시 받지 않는다(캐시는 만료 정리가 맡는다)', async () => {
+      // 보호 경로의 만료는 무음 만료로 끝난다(account.queries.test.ts 선례)
+      useAuthStore.getState().expireSession(`/post/${POST_ID}`);
+      respondDelete(401, SERVER_ERROR_CODE.NOT_LOGGED_IN);
+      seedList();
+      const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
+
+      act(() => {
+        result.current.mutate(POST_ID);
+      });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      expect(result.current.error).toBeInstanceOf(SessionExpiredError);
+      expect(queryClient.getQueryState(postKeys.list())?.isInvalidated).toBe(false);
+    });
   });
 });
 

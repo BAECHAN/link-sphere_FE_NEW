@@ -8,7 +8,7 @@
 > 파일에서 어떤 API를 부르고 어느 캐시를 어떻게 바꾸는지 안다. "등록 직후 새 글이 안 보인다",
 > "좋아요가 목록에 반영 안 된다" 같은 증상을 받았을 때 어디부터 열어볼지 정할 수 있다.
 >
-> **마지막 검토**: 2026-11-04
+> **마지막 검토**: 2026-11-05
 
 이 앱의 중심 데이터다. 사용자가 링크(URL)를 등록하면 BE가 그 페이지를 크롤링해 제목·설명·
 썸네일을 채우고, 그 뒤 비동기로 AI 요약·태그를 붙인다. FE는 그 결과를 피드(`/post`)에 카드로
@@ -54,8 +54,14 @@ flowchart TD
   EditReq -->|"성공"| EditOk["detail setQueryData<br/>목록 setQueriesData 직접 교체<br/>+ detail·list·북마크 폴더 게시글 무효화"]
 
   Feed -->|"⋮ 삭제 → 확인창"| Del["onMutate: 목록·폴더 캐시에서<br/>즉시 제거·카운트 -1"]
-  Del -->|"DELETE /post/{id} 실패"| DelRollback["스냅샷으로 전부 롤백 + 에러 토스트"]
+  Del -->|"DELETE /post/{id}<br/>서버가 실패로 답함(500 등)"| DelRollback["스냅샷으로 전부 롤백 + 에러 토스트<br/>피드·폴더 목록 다시 받기"]
   Del -->|"성공"| DelOk["북마크 폴더 list·posts 무효화<br/>그 글 detail 캐시 제거<br/>성공 토스트"]
+  Del -->|"404 POST_NOT_FOUND"| DelGone["되살리지 않음, 처리는 성공과 같음<br/>'이미 삭제된 포스트예요' 정보 토스트"]
+  Del -->|"응답 없음(연결 끊김·504)"| DelRetry["약 1초 뒤 같은 DELETE 1회 더"]
+  DelRetry -->|"성공"| DelOk
+  DelRetry -->|"404 POST_NOT_FOUND<br/>(첫 요청이 지움)"| DelGone
+  DelRetry -->|"서버가 실패로 답함"| DelRollback
+  DelRetry -->|"또 응답 없음"| DelUnknown["스냅샷으로 전부 롤백<br/>'삭제됐는지 확인하지 못했어요' 토스트<br/>피드·폴더 목록 다시 받기"]
 
   Feed -->|"좋아요(누를 때마다)"| Like["onMutate: detail·피드·폴더별 게시글 목록에서<br/>isLiked를 원하는 값으로·likeCount ±1"]
   Like -->|"PUT·DELETE /post/{id}/like<br/>같은 글은 한 줄로(scope)"| LikeLast{"마지막 요청인가"}
@@ -114,13 +120,13 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 ### mutation별 캐시 전략 한눈에 보기
 
-| 동작      | 화면을 먼저 바꾸나                 | 성공 시 캐시 처리                                                    | 실패 시                    |
-| --------- | ---------------------------------- | -------------------------------------------------------------------- | -------------------------- |
-| 작성      | 아니요(폼에서 응답 대기)           | 필터 없는 목록 page 0 맨 앞에 끼워 넣기 → 모든 목록 무효화           | 원인별 안내, 폼 유지       |
-| 수정      | 아니요(폼에서 응답 대기)           | 상세 `setQueryData` + 목록 직접 교체(direct patch) → 무효화          | 원인별 안내, 폼 유지       |
-| 삭제      | 예(목록·북마크 폴더 캐시에서 제거) | 북마크 폴더 목록·게시글 무효화 + 그 글 detail 캐시 제거, 성공 토스트 | 스냅샷 롤백 + 에러 토스트  |
-| 좋아요    | 예(상세·피드·폴더별 게시글 목록)   | 마지막 요청의 응답 값으로 교정                                       | 롤백 + 무효화, 토스트 없음 |
-| 공개 전환 | 아니요                             | 방향별 토스트 → 상세·목록·북마크 폴더 게시글 무효화                  | 전역 에러 토스트           |
+| 동작      | 화면을 먼저 바꾸나                 | 성공 시 캐시 처리                                                                                  | 실패 시                                                                           |
+| --------- | ---------------------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 작성      | 아니요(폼에서 응답 대기)           | 필터 없는 목록 page 0 맨 앞에 끼워 넣기 → 모든 목록 무효화                                         | 원인별 안내, 폼 유지                                                              |
+| 수정      | 아니요(폼에서 응답 대기)           | 상세 `setQueryData` + 목록 직접 교체(direct patch) → 무효화                                        | 원인별 안내, 폼 유지                                                              |
+| 삭제      | 예(목록·북마크 폴더 캐시에서 제거) | 북마크 폴더 목록·게시글 무효화 + 그 글 detail 캐시 제거, 성공 토스트(이미 없는 글이면 정보 토스트) | 스냅샷 롤백 + 에러 토스트 + 목록·폴더 재조회(응답을 못 받으면 먼저 1회 다시 보냄) |
+| 좋아요    | 예(상세·피드·폴더별 게시글 목록)   | 마지막 요청의 응답 값으로 교정                                                                     | 롤백 + 무효화, 토스트 없음                                                        |
+| 공개 전환 | 아니요                             | 방향별 토스트 → 상세·목록·북마크 폴더 게시글 무효화                                                | 전역 에러 토스트                                                                  |
 
 각 행의 상세와 근거 줄은 아래 하위 절에 있다.
 
@@ -483,17 +489,109 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   - 폴더별 게시글 캐시에서도 카드를 뺀다.
   - 그 글이 북마크돼 있었다면 소속 폴더의 `bookmarkCount`(소속이 없으면 `uncategorizedCount`)를
     1 줄인다. 북마크 여부는 detail → 피드 목록 → 폴더 게시글 캐시 순으로 찾는다(`findCachedPost`).
-- 실패 시 세 스냅샷을 전부 복원하고 전역 핸들러가 "포스트 삭제에 실패했어요." 토스트.
+- 서버가 실패라고 답하면(500 등) 세 스냅샷을 전부 복원하고 전역 핸들러가 "포스트 삭제에 실패했어요." 토스트. 이어서
+  `handlePostDeleteFailure`(`src/entities/bookmark/folder/api/bookmark-folder.keys.ts`)로 피드 목록과 폴더 캐시를
+  다시 받는다. 로그인 만료로 끝났으면 캐시는 만료 정리가 맡으므로 다시 받지 않는다.
+- 응답을 못 받으면(연결 끊김·504) 바로 실패로 치지 않고 같은 요청을 한 번 더 보낸다 — 아래
+  "응답을 못 받으면".
 - 성공 시 북마크 폴더 목록·게시글을 무효화하고, **그 글의 detail 캐시를 지운다**(`postRemoveQueries.detail`,
   `src/entities/post/api/post.keys.ts`). 상세에서 삭제하면 push로 피드에 가므로 히스토리에 지운 글의 상세가
   남는데, 캐시가 남아 있으면 뒤로가기 때 staleTime(3분) 안에서 삭제된 글이 재조회 없이 다시 그려졌다.
   지금은 다시 받아와 그 주소에서 "삭제됐거나 볼 수 없는 포스트예요" 안내를 띄운다(`e2e/post-delete.spec.ts`).
-  성공하면 `meta.successMessage`로 "포스트를 삭제했어요." 토스트가 뜬다. 카드가 사라지는 순간은 확인창이
-  닫히는 순간과 겹치고, 상세에서 지우면 사라지는 장면 자체가 없어서다(2026-10-21 복원, 판단 기준은
-  `.claude/skills/texts-conventions/SKILL.md` "성공 토스트 표시 기준" 축 4).
+  성공하면 `onSuccess`가 "포스트를 삭제했어요." 토스트를 직접 띄운다(아래 404와 문구가 갈려 `meta.successMessage`로는
+  표현할 수 없다). 카드가 사라지는 순간은 확인창이 닫히는 순간과 겹치고, 상세에서 지우면 사라지는 장면 자체가
+  없어서다(2026-10-21 복원, 판단 기준은 `.claude/skills/texts-conventions/SKILL.md` "성공 토스트 표시 기준" 축 4).
 - 성공 시 `handlePostDeleteSuccess`로 북마크 폴더 목록·폴더 게시글만 재검증한다(피드 목록은 이미
   낙관적으로 반영됨).
 - 상세에서 삭제하면 `navigate('/post')`로 이동한다 — **push**다(`usePostCard.ts`의 `handleDelete`). §11.
+
+#### 이미 없는 글·댓글을 지우면(404)
+
+서버가 `POST_NOT_FOUND`(댓글은 `COMMENT_NOT_FOUND`)로 답하면 실패로 치지 않는다. `mutationFn`이 정상 종료해
+카드를 되살리지 않고, "이미 삭제된 포스트예요." 정보 토스트 1개만 띄우며, 상세에서 지웠다면 성공 때처럼 목록으로 옮겨
+간다(2026-11-04 사용자 결정). 그 밖의 404(CloudFront·S3가 낸 응답 등)는 글이 지워졌다는 뜻이 아니라 실패로 둔다.
+서버 응답은 바꾸지 않았다.
+
+전에는 전부 실패로 처리해, 이미 지워진 글이 "포스트 삭제에 실패했어요."와 함께 목록에 되살아났다. 일어나는 경우는 셋이다.
+
+| 상황                                        | "삭제했어요"가 사실인가 | "이미 삭제됐어요"가 사실인가 |
+| ------------------------------------------- | ----------------------- | ---------------------------- |
+| 응답이 끊겨 다시 보내 보니 첫 요청이 지웠음 | 예                      | 예                           |
+| 다른 탭·기기에서 먼저 지움                  | 예                      | 예                           |
+| 글 작성자가 글을 지워 내 댓글이 함께 사라짐 | **아니요**              | 예                           |
+
+**이 문구를 고른 이유는 셋째 줄 하나다.** `comments.post_id` FK가 `ON DELETE CASCADE`라 글을 지우면 남의 댓글도
+함께 사라진다(2026-11-04 운영 DB `service=linksphere-ro`로 `fk_comments_post`의 `confdeltype`이 `c`임을 직접 조회, BE
+`PostService.deletePost`). 글·댓글이 같은 처리를 쓰도록 글에도 같은 문구 형태를 쓴다.
+
+**업계에 표준은 없다.** 성공으로 끝내는 곳, 이미 없다고 알리는 곳, 실패로 두는 곳이 모두 있다. 아래는 각 제품의 공개
+소스·문서를 직접 읽은 결과이며 실행해 보지는 않았다.
+
+| 제품                                                                                                                                                                                                 | 이미 없는 것을 지우면                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Bluesky                                                                                                                                                                                              | 렉시콘(`deleteRecord.json`)이 _"레코드를 삭제하거나 존재하지 않음을 보장한다"_ (번역)고 쓰고, [PDS `repo` 폴더의 `deleteRecord.ts`](https://github.com/bluesky-social/atproto/tree/main/packages/pds/src/api/com/atproto/repo)는 아무 일 없이 끝내며 [앱 `PostMenu` 폴더의 `PostMenuItems.tsx`](https://github.com/bluesky-social/social-app/tree/main/src/components/PostControls/PostMenu)는 삭제했다고 안내한다 |
+| WordPress 관리자                                                                                                                                                                                     | [`includes` 폴더의 `ajax-actions.php`](https://github.com/WordPress/wordpress-develop/tree/trunk/src/wp-admin/includes)는 없으면 바로 성공으로 응답한다(화면 JS는 확인하지 못함). 계기는 [티켓 #7264](https://lists.wordpress.org/pipermail/wp-trac/2008-July/028794.html)                                                                                                                                         |
+| Mattermost                                                                                                                                                                                           | [`actions` 폴더의 `posts.ts`](https://github.com/mattermost/mattermost/tree/master/webapp/channels/src/packages/mattermost-redux/src/actions)는 화면에서 먼저 지우고 실패는 로그만 남긴다. 안내는 없고, 주석이 미해결임을 인정한다                                                                                                                                                                                 |
+| NodeBB                                                                                                                                                                                               | [`posts` 폴더의 `tools.js`](https://github.com/NodeBB/NodeBB/tree/master/src/posts)가 [오류 알림](https://github.com/NodeBB/NodeBB/blob/master/public/language/en-GB/error.json#L176)으로 _"이 글은 이미 삭제됐습니다"_ (번역)라고 알린다. 숨김 처리된 글 기준이고, 완전히 없으면 _"글이 존재하지 않습니다"_ (번역)다                                                                                              |
+| [MediaWiki](https://github.com/wikimedia/mediawiki/blob/master/languages/i18n/en.json), [IBM Lotus](https://public.dhe.ibm.com/software/dw/lotus/portal/mpa/acc_doc/troubleshooting/cwmpp0010e.html) | 삭제할 수 없다는 실패 문구에 이유를 함께 준다. MediaWiki의 `cannotdelete`는 어떤 경로에서 뜨는지 확인하지 못했다                                                                                                                                                                                                                                                                                                   |
+| Mastodon                                                                                                                                                                                             | [`api/v1` 폴더의 `statuses_controller.rb`](https://github.com/mastodon/mastodon/tree/main/app/controllers/api/v1)가 404를 주면 [`actions` 폴더의 `alerts.ts`](https://github.com/mastodon/mastodon/tree/main/app/javascript/mastodon/actions)가 제목 `404`에 서버 문구를 띄운다. 실패 안내이고 글은 화면에 남는다                                                                                                  |
+| Discourse                                                                                                                                                                                            | [`controllers` 폴더의 `topic.js`](https://github.com/discourse/discourse/tree/main/frontend/discourse/app/controllers)가 [오류 문구](https://github.com/discourse/discourse/blob/main/config/locales/server.en.yml#L702) 팝업을 띄우고 `undoDeleteState`로 되돌린다                                                                                                                                                |
+| GitLab                                                                                                                                                                                               | [`components` 폴더의 `noteable_note.vue`](https://gitlab.com/gitlab-org/gitlab/-/tree/master/app/assets/javascripts/notes/components)가 일반 실패 안내를 띄운다                                                                                                                                                                                                                                                    |
+
+서버 응답도 갈린다. [Azure 가이드라인](https://raw.githubusercontent.com/microsoft/api-guidelines/vNext/azure/Guidelines.md)은 204,
+[Google AIP-135](https://google.aip.dev/135)는 기본 404에 `allow_missing` 옵션,
+[WordPress REST `endpoints` 폴더의 `class-wp-rest-posts-controller.php`](https://github.com/WordPress/wordpress-develop/tree/trunk/src/wp-includes/rest-api/endpoints)는
+410을 쓰고, [MDN](https://developer.mozilla.org/en-US/docs/Glossary/Idempotent)은 이후 호출이 404일 수 있다고 쓴다. 실패 뒤
+목록을 다시 받는 것은 [TanStack Query](https://tanstack.com/query/latest/docs/framework/react/guides/optimistic-updates)의
+_"오류든 성공이든 항상 다시 가져온다"_ (번역)를 실패 경로에 쓴 것이다.
+
+**확인하지 못한 것:** Gmail·X 등 소스가 없는 앱의 동작, 이 상황을 다룬 사용성 연구·디자인 시스템 지침은 찾지 못했다.
+
+| 대안                | 왜 지지 않았나                                                                                     |
+| ------------------- | -------------------------------------------------------------------------------------------------- |
+| 조용히 사라지게 둠  | 세 상황 모두 사실에 어긋나지는 않지만, 확인창까지 거친 삭제에 아무 반응이 없으면 결과를 알 수 없다 |
+| "삭제했어요"로 통일 | 셋째 줄에서 사실이 아니다                                                                          |
+| 실패로 둠           | 이미 지워진 글이 "실패"로 안내되고, 응답이 끊겼을 뿐인데 사용자는 안 지워진 줄 안다                |
+
+#### 응답을 못 받으면(연결 끊김·504)
+
+요청을 보냈는데 응답이 오지 않으면 서버가 지웠는지 알 수 없다. 그래서 약 1초 뒤 같은 DELETE를 자동으로 한 번 더 보내 그
+결과대로 안내한다(2026-11-05 사용자 결정, 글·댓글 공통). 판정은 `shouldRetryIdempotentMutation`
+(`src/shared/lib/react-query/config/retry-policy.ts`)이 하고, 응답을 못 받았는지는 `ErrorUtil.isOutcomeUnknown`이 본다.
+
+| 두 번째 요청의 결과 | 뜻                       | 안내                                                             | 화면                                        |
+| ------------------- | ------------------------ | ---------------------------------------------------------------- | ------------------------------------------- |
+| 204                 | 첫 요청이 서버에 못 갔다 | 포스트를 삭제했어요.                                             | 사라진 채                                   |
+| 404                 | 첫 요청이 지웠다         | 이미 삭제된 포스트예요.                                          | 사라진 채                                   |
+| 또 응답 없음        | 알 수 없다               | 삭제됐는지 확인하지 못했어요. 연결을 확인하고 다시 시도해주세요. | 되살린 뒤 목록을 다시 받아 서버 기준에 맞춤 |
+| 500 등              | 지우지 못했다            | 포스트 삭제에 실패했어요.                                        | 되살린 뒤 목록을 다시 받음                  |
+
+서버가 처음부터 실패라고 답한 경우(500 등)는 결과를 알고 있으므로 다시 보내지 않는다. "확인하지 못했어요" 문구는
+`meta.outcomeUnknownMessage`(`error-toast.ts`)로 띄운다 — 첫 요청이 지웠을 수 있는데 "실패했어요"라고 하면 사실이 아닐 수 있다.
+
+다시 보내도 안전한 근거는 HTTP 표준이다. DELETE는 멱등 메서드다.
+
+> 멱등 메서드는 클라이언트가 서버 응답을 읽기 전에 통신 장애가 나면 요청을 자동으로 반복할 수 있다는 점에서 구별된다.
+> (...) 원래 요청이 성공했더라도 요청을 반복하면 의도한 효과가 같다는 것을 알기 때문이다. 다만 응답은 다를 수 있다. (번역, 생략)
+>
+> — RFC 9110 §9.2.2, https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2
+
+이 출처는 다시 보내도 되는가만 다루고, 화면에 무엇을 띄울지는 정하지 않는다. 위 표의 문구와 재시도 횟수는 우리 판단이다.
+
+- **걸리는 시간:** 재시도 간격은 TanStack Query 기본값으로 첫 재시도가 1초다(`@tanstack/query-core` 5.90.16
+  `build/modern/retryer.js:6-8`의 `defaultRetryDelay`). 그동안 mutation은 pending이라 상세에서 지웠을 때 목록으로 옮겨
+  가는 것도 그만큼 늦는다. 카드는 이미 화면에서 빠져 있다.
+- **탭이 안 보이거나 브라우저가 오프라인을 알면** 재시도는 돌아올 때까지 미뤄진다(`retryer.js:41`의 `canContinue`,
+  `retryer.js:96`의 `pause`). 그동안 안내는 뜨지 않는다.
+- **계정이 바뀌면 보내지 않는다.** 다시 보내는 요청은 새 요청이라 그 순간의 로그인으로 나간다(`client.ts`의 `request()`).
+  그래서 `mutationFn`이 보내기 전에 `assertMutationAuthEpochUnchanged`로 누른 순간과 비교하고, 달라졌으면
+  "로그인 상태가 바뀌어서 처리되지 않았어요." 안내로 끝낸다.
+- **등록·수정에는 쓰지 않는다.** 등록은 다시 보내면 결과가 늘어나므로 `Idempotency-Key`로 따로 푼다(`FE-ARCHITECTURE.md` §27).
+
+| 대안                                | 왜 지지 않았나                                                                                        |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 실패 안내 유지 + 재조회             | 서버에선 지워졌는데 "실패했어요"가 뜬 뒤 카드가 사라져, 지워졌는지 알 수 없다(2026-11-05 사용자 지적) |
+| 다시 보내지 않고 "확인 못함" 안내만 | 사실이지만 한 번 더 보내면 알 수 있는 결과를 사용자에게 넘긴다                                        |
 
 ### 공개/비공개 전환
 
@@ -711,7 +809,8 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 - `post-create.mobile.spec.ts` — 모바일 하단 등록 바, Enter 제출
 - `post-update.spec.ts` — ⋮ → 수정 → 폼에서 "수정 중..." 대기 → 복귀 → 새 제목 반영, 직접
   교체가 재조회보다 먼저 보이는지
-- `post-delete.spec.ts` — 상세에서 삭제 후 `/post` 복귀, 재조회 없이 목록에서 사라짐
+- `post-delete.spec.ts` — 상세에서 삭제 후 `/post` 복귀, 재조회 없이 목록에서 사라짐, 이미 없는 글(404)의
+  정보 안내, 응답이 끊기면 1회 다시 보내 이미 삭제 안내(404), 두 번 다 끊기면 카드를 되살리고 확인하지 못했다고 안내
 - `post-visibility.spec.ts` — ⋮로 비공개 전환(재조회 반영·목록 전파), 자물쇠로 공개 복귀
 - `like.spec.ts` — 상세 좋아요가 재조회 없이 목록에 반영, 실패 시 상세·목록 모두 원복
 - `post-detail-not-found.spec.ts` — 삭제된 글 직접 진입 시 주소 유지 + 안내 화면 + "목록으로" 링크,

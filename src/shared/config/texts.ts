@@ -477,6 +477,10 @@ export const TEXTS = {
       switchedToOtherAccount: '다른 탭에서 로그인한 계정으로 바뀌었어요.',
       // 보기만 하던 공개 화면에서 로그인이 만료됐을 때 - 닫을 때까지 남는 토스트(AuthUtil.applySessionExpired)
       sessionExpired: '로그인이 만료됐어요. 다시 로그인하면 이어서 이용할 수 있어요.',
+      // 삭제 요청이 404로 끝났을 때 - 응답이 끊겨 다시 보내 보니 첫 요청이 지웠거나, 다른 탭에서 지웠거나, 글 작성자가
+      // 글을 지워 댓글이 함께 사라진 경우다. 마지막 경우엔 "삭제했어요"가 사실이 아니라 이 문구를 쓴다(docs/POST.md "삭제")
+      postAlreadyDeleted: '이미 삭제된 포스트예요.',
+      commentAlreadyDeleted: '이미 삭제된 댓글이에요.',
     },
     warning: {
       memberDeleteConfirm: '정말 이 회원을 삭제할까요? 삭제된 데이터는 복구할 수 없어요.',
@@ -591,6 +595,8 @@ export const TEXTS = {
       // 무엇을 못 받았는지는 화면이 알려준다(LoadMoreError)
       loadMoreFailed: '더 불러오지 못했어요.',
       postDeleteFailed: '포스트 삭제에 실패했어요.',
+      // 글·댓글 삭제를 두 번 보내도 응답을 못 받았을 때 - 첫 요청이 지웠을 수 있어 "실패"라고 하지 않는다
+      deleteOutcomeUnknown: '삭제됐는지 확인하지 못했어요. 연결을 확인하고 다시 시도해주세요.',
       postVisibilityUpdateFailed: '게시물 공개 설정 변경에 실패했어요.',
 
       // 이미지 업로드 관련

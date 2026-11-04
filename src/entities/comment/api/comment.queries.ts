@@ -12,15 +12,21 @@ import {
   commentKeys,
   handleCommentCreateOutcomeUnknown,
   handleCommentCreateSuccess,
+  handleCommentDeleteFailure,
   handleCommentDeleteSuccess,
   handleCommentUpdateSuccess,
 } from '@/entities/comment/api/comment.keys';
 import { Comment } from '@/entities/comment/model/comment.schema';
 import { COMMENT_PAGE_SIZE } from '@/entities/comment/config/comment.const';
 import { CommentUtil } from '@/entities/comment/utils/comment.util';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { assertMutationAuthEpochUnchanged } from '@/shared/lib/react-query/config/mutation-auth-epoch';
+import { shouldRetryIdempotentMutation } from '@/shared/lib/react-query/config/retry-policy';
 import { prefetchQueryQuietly } from '@/shared/lib/react-query/prefetch-quietly';
+import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
-import { PaginationRequest } from '@/shared/types/common.type';
+import { ApiError, PaginationRequest } from '@/shared/types/common.type';
+import { ErrorUtil } from '@/shared/utils/error.util';
 import { IdempotencyKeyUtil } from '@/shared/utils/idempotency-key.util';
 
 // 서버 응답을 기다리는 동안 목록에 즉시 꽂아 넣는 임시 댓글을 만든다.
@@ -98,6 +104,17 @@ function patchCommentRecursively(
     }
     return comment;
   });
+}
+
+// 트리(루트+답글)에서 id가 일치하는 댓글을 뺀다.
+function removeCommentRecursively(comments: Comment[], targetId: string): Comment[] {
+  return comments
+    .filter((comment) => comment.id !== targetId)
+    .map((comment) =>
+      comment.replies.length > 0
+        ? { ...comment, replies: removeCommentRecursively(comment.replies, targetId) }
+        : comment
+    );
 }
 
 function isFirstOccurrence(id: string, seen: Set<string>): boolean {
@@ -304,10 +321,48 @@ export const useDeleteCommentMutation = (postId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (commentId: string) => commentApi.deleteComment(commentId),
-    meta: { successMessage: TEXTS.messages.success.commentDeleted },
-    onSuccess: () => {
+    // 응답을 못 받으면 한 번 더 보내 결과를 확인한다 - 이미 없는 댓글(404)은 실패가 아니라 첫 요청이나 다른 탭이
+    // 지웠거나, 글 작성자가 글을 지워 함께 사라진 경우다(docs/COMMENT.md "삭제")
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: async (commentId: string, context) => {
+      // 다시 보내는 요청은 그 순간의 계정으로 나간다 - 누른 뒤 계정이 바뀌었으면 보내지 않는다
+      assertMutationAuthEpochUnchanged(context);
+
+      try {
+        await commentApi.deleteComment(commentId);
+
+        return { alreadyDeleted: false };
+      } catch (error) {
+        if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.COMMENT_NOT_FOUND) {
+          return { alreadyDeleted: true };
+        }
+
+        throw error;
+      }
+    },
+    meta: { outcomeUnknownMessage: TEXTS.messages.error.deleteOutcomeUnknown },
+    // 결과에 따라 문구가 갈려 meta.successMessage(정적 문자열, mutationSuccessHandler)로는 표현할 수 없다
+    onSuccess: ({ alreadyDeleted }, commentId) => {
+      if (alreadyDeleted) {
+        // 글이 함께 지워졌으면 아래 목록 재조회도 404라 캐시가 그대로 남는다(suspense 쿼리는 데이터가 있으면
+        // 오류를 던지지 않는다, @tanstack/react-query suspense.js defaultThrowOnError) - 직접 뺀다
+        queryClient.setQueryData<Comment[]>(commentKeys.list(postId), (old = []) =>
+          removeCommentRecursively(old, commentId)
+        );
+        toast.info(TEXTS.messages.info.commentAlreadyDeleted);
+      } else {
+        toast.success(TEXTS.messages.success.commentDeleted);
+      }
+
       handleCommentDeleteSuccess(queryClient, postId);
+    },
+    onError: (error) => {
+      // 로그인 만료로 끝났으면 캐시는 만료 정리가 맡는다(ErrorUtil.isSessionExpired)
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
+      handleCommentDeleteFailure(queryClient, postId);
     },
   });
 };

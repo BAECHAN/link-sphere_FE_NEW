@@ -18,6 +18,8 @@ import {
   MUTATION_ERROR_POLICY,
   resolveErrorToast,
 } from '@/shared/lib/react-query/config/error-toast';
+import { assertMutationAuthEpochUnchanged } from '@/shared/lib/react-query/config/mutation-auth-epoch';
+import { shouldRetryIdempotentMutation } from '@/shared/lib/react-query/config/retry-policy';
 import { prefetchQueryQuietly } from '@/shared/lib/react-query/prefetch-quietly';
 import {
   CreatePost,
@@ -41,11 +43,13 @@ import {
   handleBookmarkFolderDeleteSuccess,
   handleBookmarkToggleSuccess,
   handlePostContentUpdateSuccess,
+  handlePostDeleteFailure,
   handlePostDeleteSuccess,
   BookmarkFolderListResponse,
 } from '@/entities/bookmark/folder/@x/post';
 import { ApiError, PaginationRequest } from '@/shared/types/common.type';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { ErrorUtil } from '@/shared/utils/error.util';
 
 /**
  * 새 글 1개만큼 뒤 페이지들이 실제로는 한 칸씩 밀렸는데 여기서 그 재계산은 할 수
@@ -331,12 +335,28 @@ export const useDeletePostMutation = () => {
 
   return useMutation({
     mutationKey: postMutationKeys.delete,
-    mutationFn: async (postId: string) => {
-      return await postApi.deletePost(postId);
+    // 응답을 못 받으면 한 번 더 보내 결과를 확인한다 - 이미 없는 글(404)은 실패가 아니라 첫 요청이나 다른 탭이
+    // 지운 것으로, 실패로 돌리면 지운 글이 목록에 되살아난다(docs/POST.md "삭제")
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: async (postId: string, context) => {
+      // 다시 보내는 요청은 그 순간의 계정으로 나간다 - 누른 뒤 계정이 바뀌었으면 보내지 않는다
+      assertMutationAuthEpochUnchanged(context);
+
+      try {
+        await postApi.deletePost(postId);
+
+        return { alreadyDeleted: false };
+      } catch (error) {
+        if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.POST_NOT_FOUND) {
+          return { alreadyDeleted: true };
+        }
+
+        throw error;
+      }
     },
     meta: {
-      successMessage: TEXTS.messages.success.postDeleted,
       errorMessage: TEXTS.messages.error.postDeleteFailed,
+      outcomeUnknownMessage: TEXTS.messages.error.deleteOutcomeUnknown,
     },
     onMutate: async (postId: string) => {
       await queryClient.cancelQueries({ queryKey: postKeys.listRoot });
@@ -381,7 +401,7 @@ export const useDeletePostMutation = () => {
 
       return { previousData, previousFolderList, previousFolderPosts };
     },
-    onError: (_err, _postId, context) => {
+    onError: (error, _postId, context) => {
       if (context?.previousData) {
         context.previousData.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);
@@ -393,8 +413,22 @@ export const useDeletePostMutation = () => {
       context?.previousFolderPosts?.forEach(([queryKey, data]) => {
         queryClient.setQueryData(queryKey, data);
       });
+
+      // 로그인 만료로 끝났으면 캐시는 만료 정리가 맡는다(ErrorUtil.isSessionExpired)
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
+      handlePostDeleteFailure(queryClient);
     },
-    onSuccess: (_data, postId) => {
+    onSuccess: ({ alreadyDeleted }, postId) => {
+      // 결과에 따라 문구가 갈려 meta.successMessage(정적 문자열, mutationSuccessHandler)로는 표현할 수 없다
+      if (alreadyDeleted) {
+        toast.info(TEXTS.messages.info.postAlreadyDeleted);
+      } else {
+        toast.success(TEXTS.messages.success.postDeleted);
+      }
+
       // 북마크 폴더 페이지의 목록(folder posts) + 폴더별 bookmarkCount 재검증
       handlePostDeleteSuccess(queryClient);
       // 상세에서 삭제한 뒤 뒤로가기로 돌아오면 남아 있던 detail 캐시가 삭제된 글을 다시 그린다

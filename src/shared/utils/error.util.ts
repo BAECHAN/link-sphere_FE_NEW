@@ -33,6 +33,11 @@ export class ErrorUtil {
     return false;
   }
 
+  /** 요청을 보냈지만 응답을 못 받은 실패(연결 끊김·CloudFront 504) - 서버에서는 처리됐을 수 있다 */
+  static isOutcomeUnknown(error: unknown): boolean {
+    return error instanceof NetworkError || (error instanceof ApiError && error.status === 504);
+  }
+
   /**
    * BE가 refresh를 401로 거절했는지(쿠키 없음·만료·폐기) - 로그인 만료로 보는 유일한 refresh 실패다. 네트워크·5xx·429는
    * 세션이 아니라 연결·서버 문제다(client.ts handleTokenExpired, 앱 시작 복원 useAuth restoreAuthWithResult)

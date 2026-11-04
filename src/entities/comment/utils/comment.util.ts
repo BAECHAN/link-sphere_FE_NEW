@@ -22,7 +22,7 @@ export class CommentUtil {
    * 저장됐을 수 있다. 업로드 단계의 네트워크 실패는 ImageUploadError로 따로 오므로 여기 걸리지 않는다.
    */
   static isOutcomeUnknown(error: unknown): boolean {
-    return error instanceof NetworkError || (error instanceof ApiError && error.status === 504);
+    return ErrorUtil.isOutcomeUnknown(error);
   }
 
   /** 같은 내용을 방금 등록했다는 거절(409) - 다른 탭·기기에서 쓴 댓글이면 목록에 아직 없어 다시 불러온다 */
