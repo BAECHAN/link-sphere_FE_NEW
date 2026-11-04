@@ -1,3 +1,6 @@
+### 2026-11-04 (FE)
+- 댓글 및 답글 작성·수정 UI에 실시간 글자 수 표기 기능 추가 ([#521](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/521))
+
 ### 2026-11-03 (FE)
 - 북마크 폴더 선택 UI 개선 및 레이아웃 최적화 ([#515](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/515))
 
