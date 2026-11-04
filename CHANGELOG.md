@@ -155,6 +155,13 @@
 
 ### Fixed
 
+- `infra` 로컬 e2e가 다른 세션이 띄운 서버를 재사용하지 않게 빈 포트 판정을 고침
+  <details><summary>배경·구현</summary>
+
+  e2e 포트 대역(31120~31139)과 `pick-e2e-port.js`는 워크트리 두 곳이 동시에 e2e를 돌릴 때 나중 실행이 먼저 뜬 서버에 붙지 않게 하려고 만든 것인데, 로컬에서는 작동하지 않았다. 빈 포트를 호스트 없이(모든 주소에) 묶어 보고 판정했는데, e2e vite는 host를 주지 않아 `localhost`(macOS는 `::1`)에만 묶여(vite 6.4.1 `resolveHostname`) 모든 주소로는 같은 포트에 또 묶였다. 그래서 다른 세션이 31120을 쓰는 중에도 31120을 골랐고 `reuseExistingServer`가 그 서버를 재사용해 다른 워크트리 코드를 테스트했다(2026-11-04 #527 녹화 측정에서 옛 화면이 찍혀 발견, 직접 재현). 지금은 모든 주소·`127.0.0.1`·`::1`에 각각 묶어 보고 하나라도 실패하면 사용 중으로 본다. 판정을 `scripts/lib/e2e-port.js`로 떼어 단위 테스트로 고정했다(고치기 전 4건 실패 확인). 경위는 `docs/TESTING.md` "빈 포트를 루프백 주소마다 따로 보는 이유". (`scripts/pick-e2e-port.js`, `scripts/lib/e2e-port.js`(신규), `scripts/lib/e2e-port.d.ts`(신규), `src/test/scripts/e2e-port.test.ts`(신규), `docs/TESTING.md`, [PR #532](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/532))
+
+  </details>
+
 - `comment` 모바일 댓글 시트에 긴 글을 넣어도 화면 안에 들어오고 등록 버튼이 보임
   <details><summary>배경·구현</summary>
 
