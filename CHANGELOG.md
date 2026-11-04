@@ -127,6 +127,13 @@
 
 ### Fixed
 
+- `comment` 모바일 댓글 시트에 긴 글을 넣어도 화면 안에 들어오고 등록 버튼이 보임
+  <details><summary>배경·구현</summary>
+
+  글자 수 표시를 녹화하다 찾은 기존 문제다. 입력칸이 `field-sizing-content`로 내용만큼 끝없이 커지고 시트에도 최대 높이가 없어, 한글 기준 299자에서 시트가 754px(화면 727px), 2,001자에서 2,770px가 돼 글 앞부분과 상단 바가 화면 위로 잘렸다(직접 측정, Pixel 5 크기 모킹). 이제 시트는 화면의 70%(`max-h-[70dvh] overflow-y-auto overscroll-contain`, 북마크 시트와 같은 값), 그 안의 입력칸은 40%(`[&_textarea]:max-h-[40dvh]`)에서 멈추고 안에서 스크롤한다. 2,001자에서도 시트 499px에 글자 수·넘침 안내·등록 버튼이 다 보이고, 미리보기를 펼쳐 더 길어지면 시트 안쪽이 스크롤된다. 입력칸 상한은 시트에서 자식 선택자로만 걸어 데스크톱 인라인 폼·답글은 그대로다. 시트만 막는 안(캐럿을 따라 시트가 스크롤돼 글자 수·버튼이 가려짐)과 상단 바 아래까지 키우는 안(글 본문을 덮음)을 실제 화면 시안으로 나란히 비교해 사용자가 골랐다. 새 e2e는 고치기 전 코드에서 실패했다. 화면 키보드가 떴을 때는 실기기에서 확인해야 한다. 근거와 비교한 안은 `docs/COMMENT.md` §5 "모바일 시트 높이". (`src/features/comment/create/ui/MobileCommentBar.tsx`, `e2e/comment-sheet-height.mobile.spec.ts`(신규), `docs/COMMENT.md`, [PR #523](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/523))
+
+  </details>
+
 - `bookmark` Android에서 새 폴더·이름 입력 중 뒤로가기를 누르면 입력만 접힘
   <details><summary>배경·구현</summary>
 

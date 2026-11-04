@@ -494,6 +494,45 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 - 펼친 시트에도 입력칸 아래 글자 수 줄(§5 "입력칸 아래 글자 수")이 늘 있어 시트가 24px(글자 16px + 간격 8px) 높다.
   토스트 자리는 `ResizeObserver`가 시트 높이를 따라 다시 잡는다(2026-11-04 직접 측정: 빈 시트 229px → 토스트 자리
   237px, 입력 뒤 288px → 296px, 늘 시트 높이 + 8px).
+- 펼친 시트는 화면의 70%를 넘지 않고, 그 안의 입력칸은 40%에서 멈춘다(아래 "시트 높이").
+
+### 모바일 시트 높이 — 시트 70%, 입력칸 40%(2026-11-04)
+
+**긴 댓글을 넣어도 펼친 시트가 화면 안에 있고, 글자 수·넘침 안내·등록 버튼이 늘 보인다.** 입력칸은 화면 높이의 40%에서
+멈추고 그 안에서 스크롤한다. 미리보기를 펼치거나 이미지를 붙여 그래도 길어지면, 시트가 70%에서 멈추고 안쪽이 스크롤된다.
+
+- **전에는** 입력칸(`Textarea`)이 `field-sizing-content`로 내용만큼 커지는데 최대 높이가 없었고, 시트에도 없었다. 직접
+  측정(Pixel 5 크기 393×727, 모킹 데이터): 한글 기준 299에서 시트가 754px, 2,001에서 2,770px가 돼 글 앞부분이 화면
+  위로 잘렸다. 시트가 `z-scrim`이라 상단 바도 덮었다. 글자 수 표시(§5 "입력칸 아래 글자 수")를 녹화하다 찾았다.
+- **어디서 막나** — `MobileCommentBar.tsx`의 `SHEET_MAX_HEIGHT`(`max-h-[70dvh] overflow-y-auto overscroll-contain`)와
+  `SHEET_TEXTAREA_MAX_HEIGHT`(`[&_textarea]:max-h-[40dvh]`). `CommentForm`은 데스크톱 인라인 폼·답글도 같이 쓰므로
+  입력칸 상한은 시트에서 자식 선택자로만 건다. `overscroll-contain`은 시트를 끝까지 굴렸을 때 뒤의 글 화면이 따라
+  스크롤되지 않게 한다. 70%는 북마크 폴더 시트(`SheetDialogContent.tsx`의 `SHEET_MAX_HEIGHT`, [`BOOKMARK.md`](./BOOKMARK.md)
+  §5 "창 높이")와 같은 값이다. 40%는 이 화면에서 입력칸 아래 줄(글자 수·미리보기 접힘·이미지 첨부·버튼)이 다 보이도록 골랐다.
+- **입력칸만 막으면 안 된다** — 입력칸 밖에도 미리보기(펼치면 본문 전체)와 첨부 이미지가 시트를 키운다. 그래서 시트 상한도
+  같이 둔다. #515의 북마크 시트가 얻은 교훈과 같은 이유다(안쪽만 막으면 고정 줄이 더해져 넘친다).
+
+비교한 안(직접 측정, 시안은 실제 앱 화면에 각 안의 CSS를 넣어 찍었다):
+
+| 안                                                                   | 시트 높이(299 / 2,001) | 글자 수·등록 버튼       | 결과              | 이유                                                                                         |
+| -------------------------------------------------------------------- | ---------------------- | ----------------------- | ----------------- | -------------------------------------------------------------------------------------------- |
+| 지금(상한 없음)                                                      | 754 / 2,770px          | 보이지만 시트 위가 잘림 | —                 | 글 앞부분을 볼 방법이 없다                                                                   |
+| 시트만 70%                                                           | 509 / 509px            | 시트를 굴려야 보임      | 기각              | 캐럿을 따라 시트가 스크롤돼 입력칸 아래(글자 수·넘침 안내·버튼)가 가려진다. 299에서도 그렇다 |
+| 시트를 상단 바 아래까지(`max-h-[calc(100dvh-var(--navbar-height))]`) | 663 / 663px            | 등록 버튼은 굴려야 보임 | 기각              | 글 본문을 거의 다 덮고, 2,001에서는 글자 수도 가려진다                                       |
+| **시트 70% + 입력칸 40%**                                            | 499 / 499px            | 늘 보임                 | 채택(사용자 선택) | 입력칸 안에서 스크롤. 미리보기를 펼치면 시트 509px에 안쪽 2,204px로 시트가 스크롤된다        |
+| `<meta name="viewport">`에 `interactive-widget=resizes-content`      | —                      | —                       | 기각              | 앱 전체의 뷰포트 동작을 바꾸는 설정이라 이 시트 하나를 위해 쓰지 않았다                      |
+
+"커지다가 상한에서 멈추고 안에서 스크롤"은 브라우저와 다른 플랫폼이 이미 쓰는 동작이다. MDN은 `field-sizing: content`
+입력이 _"최대 크기 한도(포함 요소의 크기나 CSS로 정한 값)에 닿으면 더 커지지 않고, 그때부터 모든 내용을 보려면 스크롤해야
+한다"_ (번역, [MDN field-sizing](https://developer.mozilla.org/en-US/docs/Web/CSS/field-sizing))고 쓴다. Android Compose의
+여러 줄 입력도 _"한 줄을 넘으면 최대 줄 수 높이까지 커진 뒤 세로로 스크롤하기 시작한다"_ (번역,
+[androidx 소스](https://github.com/androidx/androidx/tree/androidx-main/compose/foundation/foundation/src/commonMain/kotlin/androidx/compose/foundation/text/input)의
+`TextFieldLineLimits.MultiLine`).
+
+**화면 키보드가 떴을 때는 확인하지 못했다**(§11). Chrome 블로그는 Chrome 108부터 Android 기본 동작에서 _"뷰포트 단위
+계산값은 그대로다"_, _"`position: fixed` 요소는 제자리에 남고 화면 키보드에 가려질 수 있다"_ (번역,
+[Chrome 블로그](https://developer.chrome.com/blog/viewport-resize-behavior))고 쓴다. 키보드가 떠도 `dvh`가 줄지 않으므로,
+실제 휴대폰에서 시트 위아래가 어디에 걸리는지는 봐야 안다. Playwright에는 화면 키보드가 없다.
 
 ### 맨 위로 버튼 — 데스크톱에만, 댓글 이동 버튼 대신(2026-10-27)
 
@@ -618,6 +657,8 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 내 댓글 선반입 거리          | 아래 1200px          | `src/widgets/comment/my-comment-list/hooks/useMyCommentList.ts:24`                                                                           |
 | 해시 도착 여백               | navbar + 24px        | `src/widgets/comment/comment-list/ui/CommentItem.tsx:51`                                                                                     |
 | 모바일 바 ↔ 토스트 간격      | 8px                  | `src/features/comment/create/ui/MobileCommentBar.tsx:14`                                                                                     |
+| 모바일 시트 높이 상한        | 화면의 70%(`70dvh`)  | `src/features/comment/create/ui/MobileCommentBar.tsx:22`                                                                                     |
+| 모바일 시트 입력칸 높이 상한 | 화면의 40%(`40dvh`)  | `src/features/comment/create/ui/MobileCommentBar.tsx:23`                                                                                     |
 
 **함께 바꿔야 하는 값**:
 
@@ -641,7 +682,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 댓글 한 개(액션·답글 폼·재귀)   | `src/widgets/comment/comment-list/ui/CommentItem.tsx:26-183`                                                                                   |
 | 작성 검증·제출·복원             | `src/features/comment/create/hooks/useCreateComment.ts`의 `getCommentSubmitError`·`useCreateComment`                                           |
 | 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx`의 `CommentForm`                                                                               |
-| 모바일 바                       | `src/features/comment/create/ui/MobileCommentBar.tsx:16-104`                                                                                   |
+| 모바일 바                       | `src/features/comment/create/ui/MobileCommentBar.tsx:25-115`                                                                                   |
 | 상세의 맨 위로 버튼 조건        | `src/app/layouts/app-layout/AppLayout.tsx`의 `showScrollToTop`·`isPostDetailPage`                                                              |
 | 수정 검증·제출                  | `src/features/comment/update/hooks/useUpdateComment.ts`의 `getCommentUpdateSubmitError`·`useUpdateComment`                                     |
 | 삭제 확인                       | `src/features/comment/delete/hooks/useDeleteComment.ts:9-31`                                                                                   |
@@ -671,6 +712,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 해시 이동 정렬·강조 시간 | `CommentList.tsx`의 `scrollToHashedComment`(`block`·강조 `setTimeout` 시간·페이드 `duration-*`), 도착 여백은 `CommentItem.tsx:51`                                                                                                                                                                                   |
 | 실패 문구 바꾸기         | `texts.ts`의 `messages.error.commentSubmit`(본 요청)·`uploadSubmit`(업로드 단계, 등록·저장 두 벌). 새 원인을 나누려면 `CommentUtil.resolveSubmitError`에 분기를 더한다                                                                                                                                              |
 | 글자 수 문구·자리 바꾸기 | 숫자 뒤 문구는 `TEXTS.comment.form.contentCountSuffix`, 자리는 `CommentForm.tsx`·`CommentEditForm.tsx`의 `<CharacterCount>`를 감싼 줄(두 폼을 함께 고친다). 세는 방법은 `CommentUtil.countHangulEquivalentChars`                                                                                                    |
+| 모바일 시트 높이 바꾸기  | `MobileCommentBar.tsx`의 `SHEET_MAX_HEIGHT`(시트)·`SHEET_TEXTAREA_MAX_HEIGHT`(입력칸). 입력칸 상한을 올리면 2,001자에서 글자 수·등록 버튼이 시트 밖으로 밀리는지 `e2e/comment-sheet-height.mobile.spec.ts`로 확인한다(§5 "시트 높이")                                                                               |
 | 좋아요 실패 시 안내 추가 | `useLikeCommentMutation`의 `meta.manualErrorHandling`을 빼면 전역 토스트가 뜬다                                                                                                                                                                                                                                     |
 | 모바일 상세에도 맨 위로  | `AppLayout.tsx`에서 상세일 때 붙는 `max-md:hidden`을 뺀다. 버튼이 하단 댓글 바·댓글의 수정·삭제를 가리지 않는지 먼저 확인한다(§5 "맨 위로 버튼")                                                                                                                                                                    |
 | 테스트 실행              | `npx vitest run src/entities/comment src/features/comment`, e2e는 `pnpm test:e2e e2e/comment.spec.ts`                                                                                                                                                                                                               |
@@ -746,6 +788,16 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   등록 시 토스트), 데스크톱(2,000은 기본 색, `a` 하나 더 → 2,001), 답글(0 → 10), 수정(8 → 12), 다크 모드 모바일.
   카운터 오른쪽 끝이 입력칸 오른쪽 끝과 맞는 것(모바일 377px, 데스크톱 1208px)과 시트 토스트 자리(§5 "모바일 댓글
   바")를 `getBoundingClientRect`로 쟀다.
+
+모바일 시트 높이(§5)는 2026-11-04 직접 실행했다.
+
+- e2e `e2e/comment-sheet-height.mobile.spec.ts` 2건: 한글 기준 2,001을 넣어도 시트가 화면 안(위 끝 ≥ 0, 아래 끝 ≤ 화면,
+  높이 ≤ 70%)이고 입력칸이 안에서 스크롤되며 넘침 안내·`2,001 / 2,000…`·등록 버튼이 화면에 다 보인다. 미리보기를
+  펼쳐도 시트는 화면 안이고, 시트를 굴리면 등록 버튼까지 간다. 고치기 전 코드에서는 둘 다 실패했다(시트 위 끝 −2,043px,
+  미리보기를 펼치면 −3,749px).
+- 브라우저 녹화(모킹): 짧은 글은 시트 288px 그대로, 2,001이면 시트 499px·입력칸 291px, 넘침 토스트는 화면 위
+  (`Toaster`가 `top-center`)에 떠서 시트와 겹치지 않는다(162px 떨어짐). 미리보기를 펼치면 시트 509px에 안쪽 2,204px,
+  시트를 끝까지 굴려도 뒤의 글 화면은 움직이지 않았다(`scrollY` 0 → 0).
 
 조회 실패 뒤 다시 들어오기(§5)는 2026-11-03 직접 실행했다. 단위 테스트
 `src/entities/comment/hooks/useRemoveErroredCommentsOnLeave.test.tsx`(2: 떠나면 그 글의 실패한 목록을 지우고 성공한
@@ -867,10 +919,10 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   실측 아님). 제출 때 이유는 토스트로 나온다.
 - **화면 읽기 프로그램이 한국어 문구를 어떻게 읽는지 확인하지 못했다**(2026-11-04) — 접근성 트리상 설명은
   `0 / 2,000자 · 한글 기준`이다(테스트로 확인). VoiceOver·TalkBack이 `/`·`·`를 어떻게 읽는지는 실기기에서 보지 않았다.
-- **모바일 시트가 화면보다 커질 수 있다**(2026-11-04 발견) — 입력칸이 내용만큼 끝없이 커지고
-  (`src/shared/ui/atoms/textarea.tsx`의 `field-sizing-content`) 시트에 최대 높이가 없어, 한글 2,000자를 넣으면 시트가
-  2,770px(화면 727px)가 되고 글 앞부분이 화면 위로 잘린다(Chromium 모바일 에뮬레이션 직접 측정). 글자 수 표시 전부터
-  있던 문제라 별도 PR로 고친다.
+- **화면 키보드가 떴을 때 모바일 시트를 실기기에서 보지 않았다**(2026-11-04) — 시트 70%·입력칸 40% 상한(§5 "시트
+  높이")은 키보드 없는 에뮬레이션에서만 쟀다. Chrome 108 이후 Android·iOS Safari는 키보드가 떠도 `dvh`가 줄지 않아,
+  시트 위아래가 키보드 위로 보이는 영역 밖에 걸릴 수 있다. 상한을 두기 전보다 시트가 작아져 나빠지지는 않을 것으로
+  보지만 추론이다.
 
 ## 12. 용어 사전
 
