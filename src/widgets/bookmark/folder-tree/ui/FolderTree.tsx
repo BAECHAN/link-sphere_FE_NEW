@@ -164,6 +164,8 @@ interface FixedItemProps {
   onPrefetch?: () => void;
 }
 
+// 사이드바의 행·버튼은 터치 태블릿·폰 가로에서 44px, 마우스에서는 원래 밀도다(md:pointer-fine:,
+// docs/BOOKMARK.md §5 "터치 기기 버튼 44px")
 function FixedItem({ icon, label, count, selected, onClick, onPrefetch }: FixedItemProps) {
   return (
     <Button
@@ -173,7 +175,7 @@ function FixedItem({ icon, label, count, selected, onClick, onPrefetch }: FixedI
       onMouseEnter={onPrefetch}
       onFocus={onPrefetch}
       className={cn(
-        'h-auto justify-start gap-3 px-3 py-2 text-sm',
+        'h-auto min-h-11 justify-start gap-3 px-3 py-2 text-sm md:pointer-fine:min-h-0',
         selected && 'bg-accent font-medium'
       )}
     >
@@ -250,7 +252,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
             type="button"
             variant="ghost"
             size="sm"
-            className="h-7"
+            className="h-11 md:pointer-fine:h-7"
             // 누르는 순간 입력에서 포커스가 빠지면 blur 저장(submitRename)이 취소보다 먼저 나간다 —
             // 포커스 이동을 막는다(docs/BOOKMARK.md §5 "이름 바꾸기 취소·저장 버튼")
             onMouseDown={(e) => e.preventDefault()}
@@ -262,7 +264,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
           <Button
             type="button"
             size="sm"
-            className="h-7"
+            className="h-11 md:pointer-fine:h-7"
             onClick={submitRename}
             disabled={!name.trim() || nameError !== null || isUpdating}
           >
@@ -282,7 +284,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
     // 걸리는데, 안쪽 버튼들 사이 여백만큼은 실제 클릭 영역(button)이 아니라 커서가
     // default로 풀리는 구멍이 생겨 마우스를 세로로 훑을 때 pointer가 깜빡였다(2026-09-11,
     // 좌표 스윕으로 실측). 대신 버튼들이 그 여백을 흡수해 행 전체를 채운다. ⋮ 메뉴는
-    // 카운트와 자리를 공유하지 않고 자기 폭(size-9)만큼 별도로 차지한다 — 겹쳐서
+    // 카운트와 자리를 공유하지 않고 자기 폭(마우스 size-9, 터치 size-11)만큼 별도로 차지한다 — 겹쳐서
     // hover 시 카운트를 숨기는 방식도 검토했으나 겹침 처리보다 이 편이 단순하다.
     <div
       className={cn(
@@ -296,7 +298,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
         onClick={onClick}
         onMouseEnter={onPrefetch}
         onFocus={onPrefetch}
-        className="h-auto min-w-0 flex-1 justify-start gap-3 px-3 py-2"
+        className="h-auto min-h-11 min-w-0 flex-1 justify-start gap-3 px-3 py-2 md:pointer-fine:min-h-0"
       >
         {/* 고정한 폴더는 북마크 아이콘 자리에 핀을 둔다 — 이름 칸을 줄이지 않는다(docs/BOOKMARK.md §5) */}
         {isPinned ? (
@@ -322,6 +324,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
       <HoverKebabMenu
         aria-label={TEXTS.ariaLabels.folderMenu}
         hoverReveal
+        triggerClassName="size-11 md:pointer-fine:size-9"
         onCloseAutoFocus={handleMenuCloseAutoFocus}
       >
         <DropdownMenuItem onClick={queuePinToggle}>
@@ -347,7 +350,7 @@ function CreateFolderInput() {
       type="button"
       variant="ghost"
       onClick={startCreating}
-      className="h-auto justify-start gap-2 px-3 py-2 text-sm text-muted-foreground"
+      className="h-auto min-h-11 justify-start gap-2 px-3 py-2 text-sm text-muted-foreground md:pointer-fine:min-h-0"
     >
       <Plus className="h-4 w-4" />
       {TEXTS.bookmark.folder.create}
@@ -404,7 +407,7 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7"
+          className="h-11 md:pointer-fine:h-7"
           // 입력이 빈 상태로 취소를 누르면 mousedown이 blur를 먼저 발생시켜 폼이
           // 언마운트되고 click이 유실된다(handleBlur가 !name일 때 onClose를 호출).
           // 포커스 이동 자체를 막아 이 경합을 없앤다.
@@ -416,7 +419,7 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
         </Button>
         <Button
           size="sm"
-          className="h-7"
+          className="h-11 md:pointer-fine:h-7"
           onClick={submit}
           disabled={!name.trim() || nameError !== null || isPending}
         >

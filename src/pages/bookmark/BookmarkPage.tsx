@@ -60,11 +60,14 @@ export function BookmarkPage() {
   if (isMobile) {
     return (
       <div className="px-4 py-3">
+        {/* 헤더 버튼은 손가락으로 누르는 크기(44px)다. 제목 이름을 바꾸는 동안(data-renaming)은 ←·↕를 숨겨 입력 칸을
+            넓힌다 — 누르면 입력이 빠지며 편집이 먼저 끝나 그사이 쓸 일이 없다(docs/BOOKMARK.md §5 "터치 기기 버튼 44px") */}
         <header className="group/header flex items-center gap-2 mb-4">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 -ml-2"
+            // -ml-3.5 — 44px 상자에서도 화살표가 전처럼 화면 가장자리에 붙어 보이게 한다
+            className="size-11 -ml-3.5 group-has-[[data-renaming]]/header:hidden"
             onClick={goToFolderList}
             aria-label={TEXTS.ariaLabels.backToFolderList}
           >
@@ -81,18 +84,18 @@ export function BookmarkPage() {
           <Select value={sort} onValueChange={(v) => setSort(v as BookmarkFolderSort)}>
             {/* 제목과 같은 줄에 두려고 글자 대신 ↕ 아이콘만 둔다. 기본(최신 북마크순)이 아니면 점을 찍고,
                 지금 정렬은 이름(aria-label)으로 알린다(docs/BOOKMARK.md §5 "모바일 정렬 아이콘").
-                제목 이름을 바꾸는 동안(data-renaming)은 숨겨 입력 칸을 넓힌다 — 누르면 입력이 빠지며 편집이 먼저
-                끝나 그사이 쓸 일이 없다(docs/BOOKMARK.md §5 "이름 바꾸기 취소·저장 버튼") */}
+                min-h-11 — SelectTrigger의 data-[size=default]:h-9가 높이를 36px로 묶어 최소 높이로 올린다.
+                -mr-1.5는 44px 상자에서도 아이콘이 전과 같은 자리에 보이게 한다 */}
             <SelectTrigger
               hideIcon
-              className="relative size-8 shrink-0 justify-center border-transparent bg-transparent px-0 shadow-none group-has-[[data-renaming]]/header:hidden dark:bg-transparent"
+              className="relative w-11 min-h-11 -mr-1.5 shrink-0 justify-center border-transparent bg-transparent px-0 shadow-none group-has-[[data-renaming]]/header:hidden dark:bg-transparent"
               aria-label={TEXTS.ariaLabels.bookmarkSortSelectCurrent(SORT_LABELS[sort])}
             >
               <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
               {sort !== 'latest' && (
                 <span
                   aria-hidden="true"
-                  className="absolute top-[5px] right-[5px] size-[7px] rounded-full bg-primary"
+                  className="absolute top-[9px] right-[11px] size-[7px] rounded-full bg-primary"
                 />
               )}
             </SelectTrigger>
@@ -139,7 +142,11 @@ export function BookmarkPage() {
             className="flex-1"
           />
           <Select value={sort} onValueChange={(v) => setSort(v as BookmarkFolderSort)}>
-            <SelectTrigger className="w-36" aria-label={TEXTS.ariaLabels.bookmarkSortSelect}>
+            {/* 터치 태블릿은 44px, 마우스는 원래 높이(responsive-ux skill "터치 타깃") */}
+            <SelectTrigger
+              className="w-36 min-h-11 md:pointer-fine:min-h-0"
+              aria-label={TEXTS.ariaLabels.bookmarkSortSelect}
+            >
               <SelectValue placeholder={TEXTS.bookmark.folder.sortPlaceholder} />
             </SelectTrigger>
             <SelectContent>

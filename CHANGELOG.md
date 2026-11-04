@@ -48,6 +48,13 @@
 
 ### Changed
 
+- `bookmark` 북마크 페이지 버튼을 터치 기기에서 44px로 키움
+  <details><summary>배경·구현</summary>
+
+  북마크 페이지 버튼은 이웃끼리 크기를 맞춰 28·32·36px였다. 이 레포 기준(`responsive-ux` skill "터치 타깃")과 [WCAG 2.2 SC 2.5.5](https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced)의 44px에 맞춰, 폰의 폴더 카드 ⋮·카드 새 폴더/이름 바꾸기 [취소][생성/저장]·폴더 화면 헤더 ←·연필·↕·제목 편집 ✕ ✓와, 태블릿·폰 가로 사이드바의 행·⋮·"+ 새 폴더 만들기"·폼 버튼, 폴더 화면 제목 연필·편집 버튼·정렬 선택을 44px로 키웠다(이슈 #518의 7곳에 태블릿에서 더 찾은 곳, 사용자 선택). 마우스 데스크톱은 `md:pointer-fine:`로 원래 크기 그대로다. 44px ←·✕·✓를 한 줄에 두면 393px에서 14자 이름이 잘려(입력 223→187px, 직접 측정), ↕처럼 ←도 제목을 바꾸는 동안 숨긴다(사용자 선택, 입력 231px). 폰 카드의 새 폴더·이름 바꾸기 폼은 아이콘·글자 수(#526) 줄 아래 44px 버튼이 붙어 폼을 열 때 아래 줄이 24px 밀린다(고치기 전 8px, 직접 측정). 아이콘만 빼면 20px, 글자 수를 버튼 줄에 넣을 폭은 없어 이 밀림을 받아들였고(사용자 선택), 길이 초과를 토스트로 알리는 안은 인라인 오류를 권하는 지침(NN/g·Material 3)에 따라 두지 않았다. 휴대폰에서 시트로 입력하는 구성은 #530에서 따로 본다. 입력칸, 피드와 같이 쓰는 게시글 카드·상단바 버튼은 범위 밖이다. e2e `touch-targets.mobile.spec.ts`가 태블릿·폰에서 44px 이상인지, `touch-targets.spec.ts`가 마우스에서 그대로인지 본다. 근거·측정 표는 `docs/BOOKMARK.md` §5 "터치 기기 버튼 44px". (`src/pages/bookmark/BookmarkPage.tsx`, `src/features/bookmark/rename/ui/BookmarkFolderTitle.tsx`, `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `src/widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`, `e2e/touch-targets.mobile.spec.ts`, `e2e/touch-targets.spec.ts`, `e2e/bookmark-rename-buttons.mobile.spec.ts`, `docs/BOOKMARK.md`, `docs/TESTING.md`, [PR #527](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/527))
+
+  </details>
+
 - `post` 모바일에서 상세 코드 미리 받기를 피드 첫 썸네일이 그려진 뒤로 미룸
   <details><summary>배경·구현</summary>
 

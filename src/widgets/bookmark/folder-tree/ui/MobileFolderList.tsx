@@ -202,7 +202,7 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
             type="button"
             variant="ghost"
             size="sm"
-            className="h-7 flex-1"
+            className="h-11 flex-1"
             // 누르는 순간 입력에서 포커스가 빠지면 blur 저장(submitRename)이 취소보다 먼저 나간다 —
             // 포커스 이동을 막는다(docs/BOOKMARK.md §5 "이름 바꾸기 취소·저장 버튼")
             onMouseDown={(e) => e.preventDefault()}
@@ -215,7 +215,7 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
             size="sm"
             onClick={submitRename}
             disabled={!name.trim() || nameError !== null || isUpdating}
-            className="h-7 flex-1"
+            className="h-11 flex-1"
           >
             {isUpdating ? (
               <Loader2 className="size-4 animate-spin" />
@@ -254,9 +254,11 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
         </div>
         <div className="text-xs text-muted-foreground">{folder.bookmarkCount}</div>
       </Button>
+      {/* 손가락으로 누르는 크기(44px). 카드 모서리에 붙여 아이콘이 전보다 4px만 안쪽으로 온다 — 누르는 자리는 이름
+          첫 줄 위 4px까지 덮는다(docs/BOOKMARK.md §5 "터치 기기 버튼 44px") */}
       <HoverKebabMenu
         aria-label={TEXTS.ariaLabels.folderMenu}
-        triggerClassName="absolute top-1 right-1 h-7 w-7"
+        triggerClassName="absolute top-0 right-0 size-11"
         onCloseAutoFocus={handleMenuCloseAutoFocus}
       >
         <DropdownMenuItem onClick={queuePinToggle}>
@@ -321,7 +323,7 @@ function CreateFolderCard() {
             type="button"
             variant="ghost"
             size="sm"
-            className="h-7 flex-1"
+            className="h-11 flex-1"
             // 입력이 빈 상태로 취소를 누르면 mousedown이 blur를 먼저 발생시켜 폼이
             // 언마운트되고 click이 유실된다(handleBlur가 !name && !isPending일 때
             // setCreating(false)를 호출). 포커스 이동 자체를 막아 이 경합을 없앤다.
@@ -335,7 +337,7 @@ function CreateFolderCard() {
             size="sm"
             onClick={submit}
             disabled={!name.trim() || nameError !== null || isPending}
-            className="h-7 flex-1"
+            className="h-11 flex-1"
           >
             {isPending ? (
               <Loader2 className="size-4 animate-spin" />

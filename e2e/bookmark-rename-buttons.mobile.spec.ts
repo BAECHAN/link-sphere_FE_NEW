@@ -94,20 +94,25 @@ test.describe('모바일 — 북마크 폴더 이름 바꾸기 취소·저장 �
     expect(patchBodies).toEqual([{ name: NEW_NAME }]);
   });
 
-  test('폴더 화면 제목을 바꾸는 동안 정렬(↕)이 숨고, 끝나면 돌아온다', async ({ page }) => {
+  test('폴더 화면 제목을 바꾸는 동안 ←·정렬(↕)이 숨고, 끝나면 돌아온다', async ({ page }) => {
     await page.goto(`/bookmark?folder=${mockBookmarkFolder.id}`);
+    const back = page.getByRole('button', { name: TEXTS.ariaLabels.backToFolderList });
     const sort = page.locator('main header').getByRole('combobox');
+    await expect(back).toBeVisible();
     await expect(sort).toBeVisible();
 
     await page.getByRole('button', { name: TEXTS.bookmark.folder.rename }).tap();
     const input = page.getByRole('textbox', { name: TEXTS.bookmark.folder.rename });
     await expect(input).toBeVisible();
-    // 같은 줄의 ✕ ✓에 자리를 내줘 입력 칸이 좁아지지 않게 한다(2026-11-04 사용자 선택)
+    // 같은 줄의 44px ✕ ✓에 자리를 내줘 입력 칸이 좁아지지 않게 한다(2026-11-04 사용자 선택,
+    // docs/BOOKMARK.md §5 "터치 기기 버튼 44px")
+    await expect(back).toBeHidden();
     await expect(sort).toBeHidden();
 
     await page.getByRole('button', { name: TEXTS.buttons.cancel }).tap();
 
     await expect(input).toBeHidden();
+    await expect(back).toBeVisible();
     await expect(sort).toBeVisible();
   });
 });

@@ -54,10 +54,11 @@ function RenameableTitle({ folder, className, titleClassName }: RenameableTitleP
 
   if (renaming) {
     return (
-      // data-renaming — 모바일 헤더가 이 표시를 보고 편집하는 동안 정렬(↕)을 숨겨 입력 칸을 넓힌다(BookmarkPage.tsx)
+      // data-renaming — 모바일 헤더가 이 표시를 보고 편집하는 동안 ←·정렬(↕)을 숨겨 입력 칸을 넓힌다(BookmarkPage.tsx)
       <div data-renaming className={cn('flex min-w-0 flex-col gap-1', className)}>
-        {/* 취소·저장은 입력과 같은 줄에 둬 헤더 높이를 바꾸지 않는다. 모바일은 [←][입력] 사이가 좁아 ✕·✓
-            아이콘만, 데스크톱은 글자로 보인다(2026-11-04 사용자 선택, docs/BOOKMARK.md §5) */}
+        {/* 취소·저장은 입력과 같은 줄에 둬 헤더 높이를 바꾸지 않는다. 모바일은 칸이 좁아 ✕·✓ 아이콘만, 데스크톱은
+            글자로 보인다(2026-11-04 사용자 선택, docs/BOOKMARK.md §5). 터치에서는 44px, 마우스 데스크톱은 36px다
+            (md:pointer-fine:h-9, docs/BOOKMARK.md §5 "터치 기기 버튼 44px") */}
         <div className="flex min-w-0 items-center gap-1 md:gap-2">
           <Input
             autoFocus
@@ -79,7 +80,7 @@ function RenameableTitle({ folder, className, titleClassName }: RenameableTitleP
             type="button"
             variant="ghost"
             size="sm"
-            className="h-8 w-8 shrink-0 px-0 text-muted-foreground md:h-9 md:w-auto md:px-3 md:text-foreground"
+            className="size-11 shrink-0 px-0 text-muted-foreground md:w-auto md:px-3 md:text-foreground md:pointer-fine:h-9"
             aria-label={TEXTS.buttons.cancel}
             // 누르는 순간 입력에서 포커스가 빠지면 blur 저장(submitRename)이 취소보다 먼저 나간다 —
             // 포커스 이동을 막는다(docs/BOOKMARK.md §5 "이름 바꾸기 취소·저장 버튼")
@@ -93,7 +94,7 @@ function RenameableTitle({ folder, className, titleClassName }: RenameableTitleP
           <Button
             type="button"
             size="sm"
-            className="h-8 w-8 shrink-0 px-0 md:h-9 md:w-auto md:px-3"
+            className="size-11 shrink-0 px-0 md:w-auto md:px-3 md:pointer-fine:h-9"
             aria-label={TEXTS.bookmark.folder.renameSubmit}
             onClick={submitRename}
             disabled={!name.trim() || nameError !== null || isUpdating}
@@ -127,7 +128,12 @@ function RenameableTitle({ folder, className, titleClassName }: RenameableTitleP
   return (
     <div className={cn('flex min-w-0 items-center gap-1', className)}>
       <h1 className={cn('text-screen-title min-w-0 select-none', titleClassName)}>{folder.name}</h1>
-      <EditButton label={TEXTS.bookmark.folder.rename} onClick={startRename} />
+      {/* 터치에서는 44px, 마우스 데스크톱은 원래 32px(docs/BOOKMARK.md §5 "터치 기기 버튼 44px") */}
+      <EditButton
+        label={TEXTS.bookmark.folder.rename}
+        onClick={startRename}
+        className="size-11 md:pointer-fine:size-8"
+      />
     </div>
   );
 }
