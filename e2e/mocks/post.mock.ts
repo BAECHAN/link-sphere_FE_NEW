@@ -99,6 +99,14 @@ export async function mockPostDetail(page: Page): Promise<void> {
   );
 }
 
+/** POST /post/:id/view (조회 기록) — 다른 글로 넘어가지 않는 기본 응답. 실패를 흉내 내려면 status를 넘긴다. */
+export async function mockRecordPostView(page: Page, status = 200): Promise<void> {
+  await page.route(
+    (url) => /^\/api\/post\/[^/]+\/view$/.test(url.pathname),
+    (route) => route.fulfill({ status, json: wrapResponse({}) })
+  );
+}
+
 /**
  * DELETE /post/:id — 204 no body(client.ts가 빈 객체로 처리).
  * ⚠️ mockPostDetail과 pathname 정규식이 완전히 같다 — 반드시 mockPostDetail 다음에

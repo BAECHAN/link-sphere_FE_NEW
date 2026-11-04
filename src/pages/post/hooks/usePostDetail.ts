@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavigationType, useLocation, useNavigationType, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSuspenseFetchPostDetailQuery } from '@/entities/post/api/post.queries';
-import { bookmarkFolderInvalidateQueries } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
+import { recordPostView, useSuspenseFetchPostDetailQuery } from '@/entities/post/api/post.queries';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { useGoBack } from '@/shared/hooks/useGoBack';
@@ -80,12 +79,16 @@ export function usePostDetail() {
   const backLabel = useBackLabel();
   const queryClient = useQueryClient();
 
-  // 상세 조회가 BE에서 post_views를 갱신한다(최근 열람순 정렬용) — 북마크 목록의
-  // sort=viewed 쿼리는 이 열람과 무관한 별도 캐시라 자동으로 알지 못한다. staleTime(3분)
-  // 안에서는 방금 본 글이 목록에 반영 안 되고 새로고침해야만 보이던 문제라 여기서 무효화한다.
+  // 상세 화면이 뜰 때만 조회를 기록한다 — hover 미리 받기·탭 복귀 재조회도 같은 GET을 보내 GET에서는 세지 않는다
+  // (docs/plans/2026-11-05-post-view-record.md). effect에서 POST로 기록하고 개발 때 보내지 않는 것은 React 문서를
+  // 따른다(https://react.dev/learn/synchronizing-with-effects#sending-analytics). 이 레포 개발 서버는 운영 API를 본다.
   useEffect(
-    function invalidateViewedSortOnPostView() {
-      bookmarkFolderInvalidateQueries.postsRoot(queryClient);
+    function recordPostViewOnEntry() {
+      if (import.meta.env.MODE === 'development') {
+        return;
+      }
+
+      void recordPostView(queryClient, post.id);
     },
     [post.id, queryClient]
   );

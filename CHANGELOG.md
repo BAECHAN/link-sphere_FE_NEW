@@ -55,6 +55,20 @@
 
 ### Changed
 
+- `post` 조회수·최근 열람 기록을 상세 화면이 뜰 때만 남김
+  <details><summary>배경·구현</summary>
+
+  `GET /post/{id}`가 조회수를 올리고 `post_views`를 갱신해, 같은 GET을 보내는 카드 hover 미리 받기·탭 복귀 재조회·댓글 뒤
+  재조회·수정 화면·CI Lighthouse까지 조회로 세졌다. 운영 조회수 1위 글은 Lighthouse 측정용 글이었다(1,829회, 전체의 28.6%,
+  CI가 원인이라는 건 규모로 본 추정). 상세 화면이 뜰 때 effect가 `POST /post/{id}/view`를 보내도록 나눴다. 진입마다 1회로
+  세고, 3분 안 재진입도 세며 최근 열람 시각도 갱신한다. 상세 숫자는 받은 값에 1을 더해 지금과 똑같이 보인다. 개발 서버는
+  운영 API를 봐서 보내지 않고 Lighthouse는 차단한다. 세션 만료 판단이 `isMutating()`을 봐서 `useMutation`을 쓰지 않았다.
+  계획 `docs/plans/2026-11-05-post-view-record.md`.
+  (`post.api.ts`, `post.queries.ts`, `bookmark-folder.keys.ts`, `usePostDetail.ts`, `PostCard.tsx`, `lighthouserc.cjs`,
+  `e2e/post-view-record.spec.ts`(신규), [PR #539](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/539))
+
+  </details>
+
 - `comment` 댓글이 없는 글은 카드 hover 때 댓글을 요청하지 않음
   <details><summary>배경·구현</summary>
 
@@ -313,6 +327,7 @@
 
 ### Notes
 
+- BE API 의존: `link-sphere_BE_NEW` [PR #159](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/159) 필요(`POST /post/{id}/view` 신규, `GET /post/{id}`는 조회수를 올리지 않음). **배포 순서: BE 먼저 → FE 바로** — 그 사이에는 조회가 안 세지고 에러는 없다.
 - BE API 예고: `link-sphere_BE_NEW`가 곧 글·댓글·답글 등록과 메일 요청 2개에 `Idempotency-Key`를 필수로 받는다. **배포 순서: 이 FE 먼저 → (약 하루 뒤) SQL → BE** — FE 배포 전에 열린 탭은 BE 필수화 뒤 등록이 400으로 실패하고 새로고침하면 회복한다.
 - BE API 의존: `link-sphere_BE_NEW` [PR #154](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/154) 필요(회원 탈퇴 `DELETE /auth/account` → `POST /auth/account/deletion`). **배포 순서: BE 먼저** — 구버전 BE에는 새 경로가 없어 탈퇴가 실패한다. 운영에서는 옛 호출도 이미 CloudFront에서 403이라, BE를 먼저 배포하는 동안 새로 깨지는 것은 없다.
 

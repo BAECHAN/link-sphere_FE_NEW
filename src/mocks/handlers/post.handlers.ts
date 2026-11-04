@@ -13,6 +13,11 @@ export const postHandlers = [
     return MockEnvelopeUtil.json({ ...mockPost, id: params.id });
   }),
 
+  // POST /post/{id}/view (조회 기록)
+  http.post('/post/{id}/view', () => {
+    return MockEnvelopeUtil.unit();
+  }),
+
   // GET /link-preview (작성 중 링크 미리보기)
   http.get('/link-preview', ({ query }) => {
     const target = query.get('url') ?? '';

@@ -699,7 +699,7 @@ export interface paths {
     };
     /**
      * 게시글 상세 조회
-     * @description 비공개 글을 작성자 본인이 아닌 사용자가 조회하면(비로그인 포함) 존재 자체를 숨기기 위해 403 이 아니라 404 로 응답한다. 실패: 404 POST_NOT_FOUND
+     * @description 비공개 글을 작성자 본인이 아닌 사용자가 조회하면(비로그인 포함) 존재 자체를 숨기기 위해 403 이 아니라 404 로 응답한다. 조회수와 열람 기록은 바꾸지 않는다(POST /post/{id}/view). 실패: 404 POST_NOT_FOUND
      */
     get: operations['getPostById'];
     put?: never;
@@ -716,6 +716,26 @@ export interface paths {
      * @description URL을 바꾸면 크롤링을 다시 한다(10분 안에 미리 본 URL이면 그 결과를 쓴다). 실패: 404 POST_NOT_FOUND · 403 FORBIDDEN(작성자 아님) · 400 INVALID_URL · 400 URL_UNRESOLVABLE · 400 URL_NOT_ALLOWED(URL을 바꾼 경우)
      */
     patch: operations['updatePost'];
+    trace?: never;
+  };
+  '/post/{id}/view': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * 게시글 조회 기록
+     * @description 상세 화면이 뜰 때 FE가 한 번 부른다. 조회수를 1 올리고, 로그인 상태면 최근 열람 시각도 갱신한다. 볼 수 없는 글은 상세 조회와 같은 기준으로 404. 실패: 404 POST_NOT_FOUND
+     */
+    post: operations['recordPostView'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   '/post/{id}/visibility': {
@@ -2271,6 +2291,28 @@ export interface operations {
         };
         content: {
           '*/*': components['schemas']['ApiResponsePostResponse'];
+        };
+      };
+    };
+  };
+  recordPostView: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ApiResponseUnit'];
         };
       };
     };
