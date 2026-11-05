@@ -25,7 +25,7 @@ import { shouldRetryIdempotentMutation } from '@/shared/lib/react-query/config/r
 import { prefetchQueryQuietly } from '@/shared/lib/react-query/prefetch-quietly';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
-import { ApiError, PaginationRequest } from '@/shared/types/common.type';
+import { ApiError } from '@/shared/types/common.type';
 import { ErrorUtil } from '@/shared/utils/error.util';
 import { IdempotencyKeyUtil } from '@/shared/utils/idempotency-key.util';
 
@@ -169,10 +169,10 @@ export const usePrefetchComments = (postId: string) => {
 export const useSuspenseMyCommentsInfiniteQuery = () => {
   return useSuspenseInfiniteQuery({
     queryKey: commentKeys.myRoot,
-    queryFn: ({ pageParam }: { pageParam: PaginationRequest['page'] }) =>
-      commentApi.getMyComments({ page: pageParam, size: COMMENT_PAGE_SIZE }),
-    initialPageParam: 0,
-    getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.page + 1),
+    queryFn: ({ pageParam }: { pageParam: string | null }) =>
+      commentApi.getMyComments({ cursor: pageParam ?? undefined, size: COMMENT_PAGE_SIZE }),
+    initialPageParam: null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     select: (data) => {
       const seen = new Set<string>();
       const comments = data.pages
@@ -182,7 +182,6 @@ export const useSuspenseMyCommentsInfiniteQuery = () => {
         pages: data.pages,
         pageParams: data.pageParams,
         comments,
-        totalElements: data.pages[0]?.totalElements ?? 0,
       };
     },
   });

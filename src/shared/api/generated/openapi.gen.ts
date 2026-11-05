@@ -426,7 +426,7 @@ export interface paths {
     };
     /**
      * 폴더별 북마크 게시글 조회
-     * @description folderKey 는 all(전체) · uncategorized(미분류) · 폴더 UUID 중 하나다. 실패: 400 INVALID_INPUT(잘못된 key) · 403 FORBIDDEN(남의 폴더) · 404 FOLDER_NOT_FOUND
+     * @description folderKey 는 all(전체) · uncategorized(미분류) · 폴더 UUID 중 하나다. cursor·size 로 이어 읽는다. 첫 쪽은 cursor 없이 요청하고, 다음 쪽은 응답의 nextCursor 를 그대로 보낸다. nextCursor 가 null 이면 마지막 쪽이다. sort 는 latest · oldest · title · viewed 다. page 는 아직 새로고침하지 않은 옛 번들용이고 곧 없어진다. page 를 보내면 cursor 는 무시하고 옛 응답 필드를 채운다. 실패: 400 INVALID_INPUT(잘못된 key, 잘못된 cursor, 정렬이 달라진 cursor) · 403 FORBIDDEN(남의 폴더) · 404 FOLDER_NOT_FOUND
      */
     get: operations['getBookmarkedPosts'];
     put?: never;
@@ -490,7 +490,7 @@ export interface paths {
     };
     /**
      * 내 댓글 목록 조회
-     * @description 로그인한 사용자가 작성한 댓글을 최신순으로 페이지네이션 조회한다. 삭제된(톰스톤) 댓글은 제외한다. 댓글을 단 뒤 원글이 비공개로 전환되면 본인 소유가 아닌 한 목록에서도 제외된다.
+     * @description 로그인한 사용자가 작성한 댓글을 최신순으로 cursor·size 로 이어 읽는다. 첫 쪽은 cursor 없이 요청하고, 다음 쪽은 응답의 nextCursor 를 그대로 보낸다. nextCursor 가 null 이면 마지막 쪽이다. 삭제된(톰스톤) 댓글은 제외한다. 댓글을 단 뒤 원글이 비공개로 전환되면 본인 소유가 아닌 한 목록에서도 제외된다. page 는 아직 새로고침하지 않은 옛 번들용이고 곧 없어진다. page 를 보내면 cursor 는 무시하고 옛 응답 필드를 채운다. 실패: 400 INVALID_INPUT(잘못된 cursor)
      */
     get: operations['getMyComments'];
     put?: never;
@@ -675,7 +675,7 @@ export interface paths {
     };
     /**
      * 게시글 목록 조회
-     * @description category·search·filter·nickname 으로 필터링, page·size 로 페이지네이션한다. 인증 토큰을 보내면 본인의 좋아요·북마크 여부가 응답에 반영된다. size 는 최대 50 으로 잘린다. 같은 IP의 검색이 몰리면 의미 검색을 건너뛰고 키워드 검색 결과만 돌려준다(에러 아님).
+     * @description category·search·filter·nickname 으로 필터링하고 cursor·size 로 이어 읽는다. 첫 쪽은 cursor 없이 요청하고, 다음 쪽은 응답의 nextCursor 를 그대로 보낸다. nextCursor 가 null 이면 마지막 쪽이다. 인증 토큰을 보내면 본인의 좋아요·북마크 여부가 응답에 반영된다. size 는 최대 50 으로 잘린다. 같은 IP의 검색이 몰리면 의미 검색을 건너뛰고 키워드 검색 결과만 돌려준다(에러 아님). page 는 아직 새로고침하지 않은 옛 번들용이고 곧 없어진다. page 를 보내면 cursor 는 무시하고 옛 응답 필드를 채운다. 실패: 400 INVALID_INPUT(잘못된 cursor, 검색어 유무가 달라진 cursor)
      */
     get: operations['getAllPosts'];
     put?: never;
@@ -1121,15 +1121,29 @@ export interface components {
     };
     MyCommentPageResponse: {
       content: components['schemas']['MyCommentResponse'][];
-      last: boolean;
-      /** Format: int32 */
-      page: number;
-      /** Format: int32 */
-      size: number;
-      /** Format: int64 */
-      totalElements: number;
-      /** Format: int32 */
-      totalPages: number;
+      /** @deprecated */
+      last?: boolean | null;
+      nextCursor?: string | null;
+      /**
+       * Format: int32
+       * @deprecated
+       */
+      page?: number | null;
+      /**
+       * Format: int32
+       * @deprecated
+       */
+      size?: number | null;
+      /**
+       * Format: int64
+       * @deprecated
+       */
+      totalElements?: number | null;
+      /**
+       * Format: int32
+       * @deprecated
+       */
+      totalPages?: number | null;
     };
     MyCommentResponse: {
       content: string;
@@ -1168,15 +1182,29 @@ export interface components {
     PostPageResponse: {
       content: components['schemas']['PostResponse'][];
       correctedSearch?: string | null;
-      last: boolean;
-      /** Format: int32 */
-      page: number;
-      /** Format: int32 */
-      size: number;
-      /** Format: int64 */
-      totalElements: number;
-      /** Format: int32 */
-      totalPages: number;
+      /** @deprecated */
+      last?: boolean | null;
+      nextCursor?: string | null;
+      /**
+       * Format: int32
+       * @deprecated
+       */
+      page?: number | null;
+      /**
+       * Format: int32
+       * @deprecated
+       */
+      size?: number | null;
+      /**
+       * Format: int64
+       * @deprecated
+       */
+      totalElements?: number | null;
+      /**
+       * Format: int32
+       * @deprecated
+       */
+      totalPages?: number | null;
     };
     PostResponse: {
       /** @enum {string} */
@@ -1833,6 +1861,8 @@ export interface operations {
       query?: {
         sort?: string;
         search?: string;
+        cursor?: string;
+        /** @deprecated */
         page?: number;
         size?: number;
       };
@@ -1928,6 +1958,8 @@ export interface operations {
   getMyComments: {
     parameters: {
       query?: {
+        cursor?: string;
+        /** @deprecated */
         page?: number;
         size?: number;
       };
@@ -2187,6 +2219,8 @@ export interface operations {
         search?: string;
         filter?: string;
         nickname?: string;
+        cursor?: string;
+        /** @deprecated */
         page?: number;
         size?: number;
       };

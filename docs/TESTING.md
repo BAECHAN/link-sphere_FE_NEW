@@ -1402,7 +1402,7 @@ ReferenceError: document is not defined
 `NProgress.remove()`를 체이닝하는데, `remove()`(nprogress 패키지 내부 `nprogress.js:255`)가
 `document.documentElement`를 가드 없이 참조한다. 이 ~400~600ms 타이머가 그 테스트 파일의
 jsdom 환경(Vitest가 파일마다 새로 만들고 정리한다)보다 오래 살아남으면, 이미 정리된
-`document`를 참조하다 터진다. `usePostList.test.tsx`가 `fetchPostList`(`page: 0`)를 타는
+`document`를 참조하다 터진다. `usePostList.test.tsx`가 `fetchPostList`(첫 쪽)를 타는
 유일한 테스트 파일이었다.
 
 **진단 시 유의점**: 이런 종류의 실패는 전체 스위트를 반복 실행해도 로컬에서 잘

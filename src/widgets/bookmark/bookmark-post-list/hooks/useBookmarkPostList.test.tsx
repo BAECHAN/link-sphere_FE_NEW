@@ -32,7 +32,7 @@ function mockFolderPostPages(status: number) {
 
   server.use(
     http.get(FOLDER_POSTS_URL, async ({ request }) => {
-      const page = Number(new URL(request.url).searchParams.get('page') ?? 0);
+      const page = new URL(request.url).searchParams.get('cursor') ? 1 : 0;
       requests.push(page);
       // 실제 네트워크처럼 왕복 시간을 둔다(waitRenderingEachStep 주석 참고)
       await delay(30);
@@ -53,12 +53,8 @@ function mockFolderPostPages(status: number) {
           status: 200,
           message: 'ok',
           data: {
-            page,
-            size: 3,
             content: [1, 2, 3].map((n) => ({ ...mockPost, id: `post-${page}-${n}` })),
-            totalElements: 6,
-            totalPages: 2,
-            last: page >= 1,
+            nextCursor: page >= 1 ? null : 'cursor-1',
           },
           timestamp: '',
         },

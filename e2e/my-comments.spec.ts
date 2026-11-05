@@ -46,12 +46,8 @@ async function mockMyCommentsPage(page: Page): Promise<void> {
     (route) =>
       route.fulfill({
         json: wrapResponse({
-          page: 0,
-          size: 10,
           content: myComments,
-          totalElements: myComments.length,
-          totalPages: 1,
-          last: true,
+          nextCursor: null,
         }),
       })
   );

@@ -98,27 +98,27 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 `src/entities/bookmark/folder/api/bookmark-folder.api.ts` 기준(`specClient`의 스펙 경로,
 `docs/OPENAPI-CODEGEN.md` §5-2).
 
-| 메서드   | 경로                                                  | 설명                                                                                                                                                                               |
-| -------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/bookmark/folders`                                   | 내 폴더 목록(`bookmarkCount`·`lastUsedAt`·`pinnedAt` 포함, `sortOrder` ASC)                                                                                                        |
-| `POST`   | `/bookmark/folders`                                   | 폴더 생성(`sort_order = max+1`)                                                                                                                                                    |
-| `PATCH`  | `/bookmark/folders/{id}`                              | 폴더 이름 수정                                                                                                                                                                     |
-| `DELETE` | `/bookmark/folders/{id}`                              | 폴더 삭제(**이 폴더에만 있던** 북마크만 미분류로 — 다른 폴더에도 있으면 유지)                                                                                                      |
-| `PUT`    | `/bookmark/folders/{id}/pin`                          | 폴더 고정(이미 고정이면 처음 고정한 시각 유지). 응답 `{ id, pinnedAt }`(`FolderPinResponse`, 2026-10-26)                                                                           |
-| `DELETE` | `/bookmark/folders/{id}/pin`                          | 고정 해제(이미 해제면 그대로). 응답은 위와 같고 `pinnedAt`이 `null`                                                                                                                |
-| `GET`    | `/bookmark/folders/{key}/posts?page&size&sort&search` | 폴더별 게시글 조회(검색 포함)                                                                                                                                                      |
-| `POST`   | `/bookmark/{postId}/folders/{folderId}`               | 폴더에 추가(북마크 없으면 자동 생성)                                                                                                                                               |
-| `DELETE` | `/bookmark/{postId}/folders/{folderId}`               | 그 폴더에서만 제거(북마크 자체는 유지). `?removeBookmarkIfEmpty=true`면 남은 소속이 없을 때만 북마크도 삭제 — 이 옵션 호출은 `interaction.api.ts`의 `unbookmarkPostFromLastFolder` |
-| `DELETE` | `/bookmark/{postId}/folders`                          | 폴더 소속 전부 해제 → 미분류                                                                                                                                                       |
-| `PUT`    | `/post/{postId}/bookmark`                             | 북마크 저장(없으면 미분류로 생성, **기존 폴더 소속은 유지**) — `interaction.api.ts`                                                                                                |
-| `DELETE` | `/post/{postId}/bookmark`                             | 북마크 해제(소속도 전부 삭제) — `interaction.api.ts`                                                                                                                               |
+| 메서드   | 경로                                                    | 설명                                                                                                                                                                               |
+| -------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/bookmark/folders`                                     | 내 폴더 목록(`bookmarkCount`·`lastUsedAt`·`pinnedAt` 포함, `sortOrder` ASC)                                                                                                        |
+| `POST`   | `/bookmark/folders`                                     | 폴더 생성(`sort_order = max+1`)                                                                                                                                                    |
+| `PATCH`  | `/bookmark/folders/{id}`                                | 폴더 이름 수정                                                                                                                                                                     |
+| `DELETE` | `/bookmark/folders/{id}`                                | 폴더 삭제(**이 폴더에만 있던** 북마크만 미분류로 — 다른 폴더에도 있으면 유지)                                                                                                      |
+| `PUT`    | `/bookmark/folders/{id}/pin`                            | 폴더 고정(이미 고정이면 처음 고정한 시각 유지). 응답 `{ id, pinnedAt }`(`FolderPinResponse`, 2026-10-26)                                                                           |
+| `DELETE` | `/bookmark/folders/{id}/pin`                            | 고정 해제(이미 해제면 그대로). 응답은 위와 같고 `pinnedAt`이 `null`                                                                                                                |
+| `GET`    | `/bookmark/folders/{key}/posts?cursor&size&sort&search` | 폴더별 게시글 조회(검색 포함). 첫 쪽은 `cursor` 없이, 다음 쪽은 응답의 `nextCursor`로                                                                                              |
+| `POST`   | `/bookmark/{postId}/folders/{folderId}`                 | 폴더에 추가(북마크 없으면 자동 생성)                                                                                                                                               |
+| `DELETE` | `/bookmark/{postId}/folders/{folderId}`                 | 그 폴더에서만 제거(북마크 자체는 유지). `?removeBookmarkIfEmpty=true`면 남은 소속이 없을 때만 북마크도 삭제 — 이 옵션 호출은 `interaction.api.ts`의 `unbookmarkPostFromLastFolder` |
+| `DELETE` | `/bookmark/{postId}/folders`                            | 폴더 소속 전부 해제 → 미분류                                                                                                                                                       |
+| `PUT`    | `/post/{postId}/bookmark`                               | 북마크 저장(없으면 미분류로 생성, **기존 폴더 소속은 유지**) — `interaction.api.ts`                                                                                                |
+| `DELETE` | `/post/{postId}/bookmark`                               | 북마크 해제(소속도 전부 삭제) — `interaction.api.ts`                                                                                                                               |
 
 - `folderKey`(경로의 `{key}`): `'all' | 'uncategorized' | UUID`
-- `sort`: `'latest' | 'oldest' | 'title' | 'views' | 'viewed'` — `viewed`(최근 열람순)는
+- `sort`: `'latest' | 'oldest' | 'title' | 'viewed'`(조회수순 `views`는 2026-11-05 제거, 옛 링크의 `?sort=views`는 `parseSort`가
+  최신순으로 돌린다 — `docs/DECISIONS.md` 2026-11-05) — `viewed`(최근 열람순)는
   개인별 열람 기록(BE `post_views` 테이블) 기준. 한 번도 안 연 글은 항상 맨 뒤. 기록은 상세 화면이 뜰 때만 남고
   카드 hover로는 바뀌지 않는다(`docs/POST.md` "조회 1회의 뜻")
-- `search`: 값이 있을 때만 쿼리에 붙는다(`bookmark-folder.api.ts`의
-  `if (search) searchParams.search = search`)
+- `search`: 값이 있을 때만 쿼리에 붙는다(`bookmark-folder.api.ts`의 `fetchBookmarkFolderPosts`)
 - 폴더 고정·해제(`PUT`/`DELETE …/pin`)는 "뒤집기"가 아니라 "그 상태로 만들기"라 멱등이다(BE #127,
   `docs/DECISIONS.md` 2026-10-13 좋아요·북마크 결정과 같은 형태). 고정해도 폴더의 `updatedAt`은 바뀌지 않는다
 - 폴더 소속 관련 3개 엔드포인트(추가/제거/전체해제)와 북마크 저장·해제(`PUT`/`DELETE`)는 모두

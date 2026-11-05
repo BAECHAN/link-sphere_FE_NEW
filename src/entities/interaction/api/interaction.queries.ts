@@ -250,7 +250,6 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
               pages: oldData.pages.map((page) => ({
                 ...page,
                 content: page.content.filter((post) => post.id !== postId),
-                totalElements: Math.max(0, page.totalElements - 1),
               })),
             };
           }

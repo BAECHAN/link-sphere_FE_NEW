@@ -89,7 +89,7 @@ export const handleBookmarkFolderDeleteSuccess = (queryClient: QueryClient) => {
 
 /**
  * 북마크가 생기거나 없어진 뒤(저장·해제 PUT/DELETE, 북마크와 함께 글 작성) — 폴더 목록(bookmarkCount) +
- * 모든 폴더별 게시글(totalElements) 재검증
+ * 모든 폴더별 게시글 재검증
  */
 export const handleBookmarkToggleSuccess = (queryClient: QueryClient) => {
   bookmarkFolderInvalidateQueries.list(queryClient);
@@ -123,7 +123,7 @@ export const handlePostContentUpdateSuccess = (queryClient: QueryClient) => {
 };
 
 /**
- * 조회 기록 후 — 폴더별 게시글 목록 갱신 (최근 열람순·조회수순이 바뀜). 이 목록은 상세와 별도 캐시라 자동으로 알지
+ * 조회 기록 후 — 폴더별 게시글 목록 갱신 (최근 열람순이 바뀜). 이 목록은 상세와 별도 캐시라 자동으로 알지
  * 못해, staleTime(3분) 안에서는 방금 본 글이 새로고침해야만 반영됐다.
  */
 export const handlePostViewRecordedSuccess = (queryClient: QueryClient) => {

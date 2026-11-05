@@ -36,9 +36,9 @@ describe('useRemoveErroredPostListsOnLeave', () => {
 
   // 지우면 돌아왔을 때 1쪽부터 다시 받는다 - 남기면 1쪽과 "다시 시도" 행이 그대로 보인다(#494)
   it('1쪽이 있고 다음 쪽만 실패한 목록은 남긴다', async () => {
-    const firstPage: InfiniteData<PostListResponse, number> = {
+    const firstPage: InfiniteData<PostListResponse, string | null> = {
       pages: [mockPostListResponse],
-      pageParams: [0],
+      pageParams: [null],
     };
     queryClient.setQueryData(NEXT_PAGE_FAILED_KEY, firstPage);
     await queryClient

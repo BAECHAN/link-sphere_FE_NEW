@@ -79,12 +79,8 @@ test.describe('조회에 실패한 화면에 다시 들어오기', () => {
     await page.route(isMyComments, (route) =>
       route.fulfill({
         json: wrapResponse({
-          page: 0,
-          size: 10,
           content: [myComment],
-          totalElements: 1,
-          totalPages: 1,
-          last: true,
+          nextCursor: null,
         }),
       })
     );

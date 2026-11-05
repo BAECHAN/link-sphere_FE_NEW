@@ -219,7 +219,7 @@ test.describe('게시글 삭제', () => {
       (route) =>
         deleteCount > 0
           ? route.fulfill({
-              json: wrapResponse({ ...mockPostListResponse, content: [], totalElements: 0 }),
+              json: wrapResponse({ ...mockPostListResponse, content: [] }),
             })
           : route.fallback()
     );

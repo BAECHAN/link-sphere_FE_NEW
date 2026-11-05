@@ -37,7 +37,7 @@
 
 ```mermaid
 flowchart TD
-  Feed["피드 /post<br/>useSuspenseInfiniteQuery<br/>GET /post?page=0&size=10"] -->|"마지막 렌더 행이<br/>끝에서 5행 이내"| Next["fetchNextPage<br/>GET /post?page=N"]
+  Feed["피드 /post<br/>useSuspenseInfiniteQuery<br/>GET /post?size=10"] -->|"마지막 렌더 행이<br/>끝에서 5행 이내"| Next["fetchNextPage<br/>GET /post?cursor=nextCursor&size=10"]
   Feed -->|"카드 hover·focus"| Prefetch["prefetchPostDetail<br/>GET /post/{id} 미리 캐시"]
   Feed -->|"카드 클릭"| Detail["상세 /post/:id<br/>useSuspenseQuery retry:false"]
   Detail -->|"404"| NotFound["그 자리 안내 화면(PostNotFound)<br/>주소 유지·noindex"]
@@ -46,7 +46,7 @@ flowchart TD
   Create -->|"URL 입력, 0.5초 멈춤·형식 OK"| Preview["GET /link-preview?url=<br/>URL 칸 아래 카드 미리보기<br/>(BE가 10분 캐시)"]
   Preview -->|"도메인 없음 등"| PreviewErr["카드 대신 URL 칸 에러"]
   Create -->|"제출 → 버튼 '등록 중...'(응답 대기)"| CreateReq["POST /post (keepalive, Idempotency-Key)<br/>응답 없으면 같은 키로 1번 더<br/>실패 시 폼 유지"]
-  CreateReq -->|"성공"| CreateOk["필터 없는 목록 cancelQueries<br/>→ page 0 맨 앞에 끼워 넣고 page 1+ 버림<br/>→ post.list 무효화"]
+  CreateReq -->|"성공"| CreateOk["필터 없는 목록 cancelQueries<br/>→ 첫 쪽 맨 앞에 끼워 넣고 뒤 쪽 버림<br/>→ post.list 무효화"]
   CreateOk -->|"그다음 폼에서"| CreateNav["clearNow·reset<br/>navigate /post replace<br/>(응답 전에 떠났으면 이동 안 함)"]
 
   Feed -->|"⋮ 수정"| Edit["수정 /post/edit/:id<br/>GET /post/{id}로 폼 reset"]
@@ -122,7 +122,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 | 동작      | 화면을 먼저 바꾸나                 | 성공 시 캐시 처리                                                                                  | 실패 시                                                                           |
 | --------- | ---------------------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| 작성      | 아니요(폼에서 응답 대기)           | 필터 없는 목록 page 0 맨 앞에 끼워 넣기 → 모든 목록 무효화                                         | 원인별 안내, 폼 유지(응답을 못 받으면 목록도 다시 받음)                           |
+| 작성      | 아니요(폼에서 응답 대기)           | 필터 없는 목록 첫 쪽 맨 앞에 끼워 넣기 → 모든 목록 무효화                                          | 원인별 안내, 폼 유지(응답을 못 받으면 목록도 다시 받음)                           |
 | 수정      | 아니요(폼에서 응답 대기)           | 상세 `setQueryData` + 목록 직접 교체(direct patch) → 무효화                                        | 원인별 안내, 폼 유지(응답을 못 받으면 먼저 1회 다시 보냄)                         |
 | 삭제      | 예(목록·북마크 폴더 캐시에서 제거) | 북마크 폴더 목록·게시글 무효화 + 그 글 detail 캐시 제거, 성공 토스트(이미 없는 글이면 정보 토스트) | 스냅샷 롤백 + 에러 토스트 + 목록·폴더 재조회(응답을 못 받으면 먼저 1회 다시 보냄) |
 | 좋아요    | 예(상세·피드·폴더별 게시글 목록)   | 마지막 요청의 응답 값으로 교정                                                                     | 롤백 + 무효화, 토스트 없음(응답을 못 받으면 먼저 1회 다시 보냄)                   |
@@ -135,17 +135,17 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 `src/entities/post/api/post.api.ts`와 `src/entities/interaction/api/interaction.api.ts` 기준
 (`specClient`의 스펙 경로, `docs/OPENAPI-CODEGEN.md` §5-2).
 
-| 메서드   | 경로                    | FE 함수                | 비고                                                                           |
-| -------- | ----------------------- | ---------------------- | ------------------------------------------------------------------------------ |
-| `GET`    | `/post`                 | `fetchPostList`        | `page`·`size` + 값이 있을 때만 `search`·`category`·`filter`·`nickname`         |
-| `GET`    | `/post/{id}`            | `fetchPostDetail`      | 비공개(남의 글)·삭제 글은 404                                                  |
-| `POST`   | `/post`                 | `createPost`           | `keepalive: true`, 응답은 `PostResponse` 그대로                                |
-| `PATCH`  | `/post/{id}`            | `updatePost`           | `keepalive: true`                                                              |
-| `GET`    | `/link-preview?url=`    | `fetchLinkPreview`     | 작성 중 미리보기. 로그인 전용이라 `/post` 밖에 있다. 회원당 시간 60회          |
-| `PATCH`  | `/post/{id}/visibility` | `updatePostVisibility` | body `{ isPrivate }`                                                           |
-| `DELETE` | `/post/{id}`            | `deletePost`           |                                                                                |
-| `PUT`    | `/post/{id}/like`       | `likePost`             | 좋아요(멱등). 응답 `{ isLiked, likeCount }`                                    |
-| `DELETE` | `/post/{id}/like`       | `unlikePost`           | 좋아요 취소(멱등). 응답은 PUT과 같다. 옛 `POST` 토글은 2026-10-14 제거(BE #92) |
+| 메서드   | 경로                    | FE 함수                | 비고                                                                                   |
+| -------- | ----------------------- | ---------------------- | -------------------------------------------------------------------------------------- |
+| `GET`    | `/post`                 | `fetchPostList`        | `size` + 다음 쪽이면 `cursor` + 값이 있을 때만 `search`·`category`·`filter`·`nickname` |
+| `GET`    | `/post/{id}`            | `fetchPostDetail`      | 비공개(남의 글)·삭제 글은 404                                                          |
+| `POST`   | `/post`                 | `createPost`           | `keepalive: true`, 응답은 `PostResponse` 그대로                                        |
+| `PATCH`  | `/post/{id}`            | `updatePost`           | `keepalive: true`                                                                      |
+| `GET`    | `/link-preview?url=`    | `fetchLinkPreview`     | 작성 중 미리보기. 로그인 전용이라 `/post` 밖에 있다. 회원당 시간 60회                  |
+| `PATCH`  | `/post/{id}/visibility` | `updatePostVisibility` | body `{ isPrivate }`                                                                   |
+| `DELETE` | `/post/{id}`            | `deletePost`           |                                                                                        |
+| `PUT`    | `/post/{id}/like`       | `likePost`             | 좋아요(멱등). 응답 `{ isLiked, likeCount }`                                            |
+| `DELETE` | `/post/{id}/like`       | `unlikePost`           | 좋아요 취소(멱등). 응답은 PUT과 같다. 옛 `POST` 토글은 2026-10-14 제거(BE #92)         |
 
 응답 타입은 BE OpenAPI 스펙에서 생성된 `PostResponse`·`PostPageResponse`의 별칭이다
 (`src/entities/post/model/post.dto.ts:8-13`). 생성 파이프라인은
@@ -163,8 +163,9 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 ### 피드 — 무한 스크롤 + 가상 그리드
 
 - **조회**: `useSuspenseFetchPostListQuery`(`src/entities/post/api/post.queries.ts`)가
-  `page` 0부터 `POST_PAGE_SIZE`(10)개씩 가져온다. 다음 페이지 번호는 응답의 `last`가 거짓이면
-  `page + 1`.
+  `POST_PAGE_SIZE`(10)개씩 가져온다. 첫 쪽은 `cursor` 없이 보내고, 다음 쪽은 직전 응답의 `nextCursor`를 해석하지 않고
+  그대로 보낸다. `nextCursor`가 `null`이면 끝이다. 쪽 사이에 글이 지워지거나 새로 올라와도 키 값으로 이어 읽어 누락·중복이
+  없다. 형식과 이렇게 바꾼 이유는 [BE `docs/PAGINATION.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/PAGINATION.md)와 [`DECISIONS.md`](./DECISIONS.md) 2026-11-05 항목에 있다.
 - **첫 페이지 미리 받기**: 피드 라우트(`src/app/routes/index.tsx`의 `PostFeedRoute`)가 lazy 페이지 청크를
   요청하는 같은 렌더에서 같은 조건으로 첫 페이지를 요청한다(`usePostFeedPrefetch` → `usePrefetchPostList`).
   호출은 `PostFeedRoute`가 함께 렌더하는 `PostFeedPrefetch` 컴포넌트가 한다 — URL·봇 숨기기 구독을 여기에 가둬,
@@ -173,8 +174,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   같은 조건 계산(`toPostListPayload`)을 써야 키가 같다. 청크를 기다린 뒤 요청하던 직렬 대기를 없앤 것이다
   (2026-10-26, [`PERFORMANCE.md`](./PERFORMANCE.md) "LCP 데이터 요청 시점").
 - **중복 제거**: 같은 쿼리의 `select`가 모든 페이지를 평탄화하면서 이미 본 `id`를 걸러
-  `posts`를 만든다. 오프셋 페이지네이션 중 새 글이 끼어들면 다음 페이지에 같은 글이 또 오기
-  때문이다.
+  `posts`를 만든다. cursor는 등록·삭제로 밀리지 않지만, 검색 점수처럼 정렬 값이 쪽 사이에 바뀌면 같은 글이 또 올 수 있어
+  남겼다.
 - **가상화**: `usePostList`(`src/widgets/post/post-list/hooks/usePostList.ts:184-193`)가
   컨테이너 실측 폭으로 열 수(최대 3, 최소 카드 폭 292px)를 정하고, 게시글을 열 수만큼 묶은
   **행** 단위로 가상화한다. `PostList.tsx`의 `PostListContent`(`virtualizer.getVirtualItems().map` 행 렌더)가 보이는 행만 `translateY`로 배치한다.
@@ -318,7 +319,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   막는다. 비교한 대안과 근거는 `docs/plans/2026-11-05-post-view-record.md`.
 - **조회수 표시**: 받은 값은 이번 조회가 기록되기 전 값이라 상세에서 1을 더해 보여 준다(`PostCard.tsx`). 기록이 실패하면
   그 화면만 1 많게 보이고 다음 조회에 맞는다. 실패는 토스트 없이 넘어간다.
-- **열람 기록 반영**: 기록에 성공하면 북마크의 "최근 열람순"·"조회수순"을 맞추려고 정렬·폴더와 상관없이 폴더별 게시글
+- **열람 기록 반영**: 기록에 성공하면 북마크의 "최근 열람순"을 맞추려고 정렬·폴더와 상관없이 폴더별 게시글
   캐시 전체를 무효화한다(`post.queries.ts`의 `recordPostView` → `handlePostViewRecordedSuccess`). `useMutation`을 쓰지 않는
   이유는 로그인 만료 정리가 `isMutating()`을 보기 때문이다(그 함수의 주석).
 - **브라우저 탭 제목**: 상세가 떠 있는 동안 탭 제목을 `{글 제목} - Link Sphere`(`TEXTS.post.detail.documentTitle`)로
@@ -400,9 +401,9 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
    - 필터 없는 목록 쿼리를 `cancelQueries` — 폼은 이 처리가 끝난 뒤에 이동하므로 평소엔 경쟁이 없지만,
      저장 중 "나가기"로 먼저 피드에 갔거나 배경 재조회가 돌던 중이면 등록 완료 전 상태의 목록 fetch가
      뒤늦게 응답해 끼워 넣은 값을 덮어쓸 수 있어 막는다.
-   - `prependCreatedPostToFirstPage`로 page 0 맨 앞에 새 글을 넣고 **page 1 이후는
-     버린다** — 서버 오프셋이 한 칸씩 밀려 옛 page 1과 겹치기 때문이다. 다음 페이지는 스크롤 시
-     다시 받는다.
+   - `prependCreatedPostToFirstPage`로 첫 쪽 맨 앞에 새 글을 넣고 **뒤 쪽은 버린다** — cursor라 밀리지는 않지만, 남겨
+     두면 바로 뒤따르는 무효화가 불러온 쪽을 전부 다시 받고 그동안 다음 쪽을 받지 못한다(`usePostList`의
+     `canFetchNextPage`). 다음 쪽은 스크롤 시 재조회한 첫 쪽의 `nextCursor`로 받는다.
    - 필터가 걸린 목록에는 끼워 넣지 않는다(새 글이 그 조건에 맞는지 모른다).
    - 그다음 `handlePostCreateSuccess`(`post.keys.ts`)가 필터와 무관하게 **모든 목록**
      (`listRoot`)을 무효화한다 — 필터 없는 목록은 끼워 넣은 덕에 재조회 전에도 이미 새 글을
@@ -492,7 +493,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   `openConfirm`(삭제 버튼 쪽 강조, `emphasis: 'confirm'`)을 띄우고 확인 시 `mutateAsync`를 기다린다.
 - 낙관적 반영(`post.queries.ts`의 `useDeletePostMutation` `onMutate`): 피드 목록·북마크 폴더 목록·폴더별 게시글 쿼리를
   `cancelQueries`하고 스냅샷을 뜬 뒤,
-  - 모든 피드 목록 캐시에서 그 글을 빼고 `totalElements`를 1 줄인다(`Math.max(0, …)`로 0 아래는 막는다).
+  - 모든 피드 목록 캐시에서 그 글을 뺀다.
   - 폴더별 게시글 캐시에서도 카드를 뺀다.
   - 그 글이 북마크돼 있었다면 소속 폴더의 `bookmarkCount`(소속이 없으면 `uncategorizedCount`)를
     1 줄인다. 북마크 여부는 detail → 피드 목록 → 폴더 게시글 캐시 순으로 찾는다(`findCachedPost`).
@@ -687,9 +688,9 @@ _"오류든 성공이든 항상 다시 가져온다"_ (번역)를 실패 경로�
 | `postMutationKeys.delete`               | `['post', 'delete']`                |                                            |
 | `postMutationKeys.updateVisibility(id)` | `['post', 'updateVisibility', id]`  |                                            |
 
-무한 목록 캐시의 원본 shape은 `InfiniteData<PostPageResponse>`(`pages[].content`·`totalElements`·
-`last`·`page`)이고, 컴포넌트는 `select`가 덧붙인 `posts`(중복 제거·평탄화)와 `totalElements`(page
-0 값)를 쓴다(`useSuspenseFetchPostListQuery`의 `select`). 좋아요 롤백은 이 원본 shape을 통째로 복원한다.
+무한 목록 캐시의 원본 shape은 `InfiniteData<PostPageResponse>`(`pages[].content`·`nextCursor`·`correctedSearch`)이고
+`pageParams`는 첫 쪽이 `null`, 그 뒤는 받은 `nextCursor`다. 컴포넌트는 `select`가 덧붙인 `posts`(중복 제거·평탄화)를
+쓴다(`useSuspenseFetchPostListQuery`의 `select`). 좋아요 롤백은 이 원본 shape을 통째로 복원한다.
 
 ### 다른 엔티티가 post 캐시를 무효화하는 지점
 
@@ -812,6 +813,8 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
   `src/pages/post/PostDetailPage.test.tsx`(404 안내·noindex·탭 제목·썸네일 우선 로딩),
   `src/widgets/post/post-list/ui/PostList.test.tsx`(조회 실패 복구·"불러오는 중" 표시),
   `src/widgets/post/post-list/hooks/usePostFeedPrefetch.test.tsx`(피드 미리 받기가 목록과 같은 키를 쓰는지)
+- `src/entities/post/api/post.api.test.ts`(2, 2026-11-05) — 첫 쪽은 `cursor` 없이 보내고 진행 표시를 켰다 끄는지, 다음 쪽은
+  받은 `cursor`를 그대로 보내고 진행 표시를 켜지 않는지, 어느 쪽도 `page`를 보내지 않는지
 - `src/widgets/post/post-list/hooks/usePostList.next-page.test.tsx`(4, 2026-11-03) — 다음 페이지가 429·500으로
   실패하면 1초 동안 다시 보내지 않는지, 다시 시도로 받는지, 재조회 중에는 다음 페이지를 부르지 않다가 재조회가
   성공하면 부르는지("다음 페이지 실패 처리"). 수정 전에는 첫 두 개가 요청 33~34번으로 실패했다(직접 실행). 재조회
@@ -936,9 +939,6 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
   뒤로가기 때 그 주소의 404 안내 화면에 머문다. 정정: 처음엔 이것만 문제로 봤으나 실제로는
   detail 캐시가 남아 삭제된 글이 그대로 다시 그려졌다 — 2026-10-02 삭제 성공 시 캐시를 지우도록
   고쳤다(§5 "삭제").
-- **낙관적 삭제가 그 글이 없는 목록의 `totalElements`까지 줄인다.** 모든 피드 목록 캐시에 일괄로
-  1을 빼서, 다른 필터의 목록은 실제보다 1 작아진다(0 아래는 2026-10-02부터 `Math.max`로 막는다).
-  지금 화면에서 피드 `totalElements`를 표시하지 않아 체감 영향은 없다.
 - **`useUpdatePost`의 카테고리 캐스팅**(`useUpdatePost.ts`의 `resetFormWithFetchedPost`): 폼 기본값에 카테고리 id를 문자열로
   넣고 `as unknown as number[]`로 타입을 속인다(체크박스 그룹이 문자열 값을 쓰고, 제출 시
   `z.coerce.number()`가 숫자로 돌린다). 타입이 실제 값과 다르다.
@@ -982,7 +982,7 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
   lazy 페이지 청크를 요청하는 같은 렌더에서 그 페이지가 쓸 데이터를 `usePrefetch*` 훅(`usePostFeedPrefetch` →
   `usePrefetchPostList`, `usePrefetchCategoryOptions`, `usePrefetchPostDetail`, `usePrefetchComments`)으로 먼저 요청하는 것.
   기다리지 않으므로 화면을 멈추지 않고, 청크 안의 suspense 쿼리가 같은 키의 진행 중 요청을 이어받는다.
-- **`prependCreatedPostToFirstPage`** — 새 글을 page 0 맨 앞에 넣고 page 1+을 버리는 함수
+- **`prependCreatedPostToFirstPage`** — 새 글을 첫 쪽 맨 앞에 넣고 뒤 쪽을 버리는 함수
   (`post.queries.ts`).
 - **`select`의 `posts`** — 무한 쿼리 페이지들을 평탄화하고 id 중복을 뺀 배열. 컴포넌트는 이것만
   쓴다.

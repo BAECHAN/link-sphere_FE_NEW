@@ -749,6 +749,86 @@ describe('북마크 hover 미리 받기', () => {
       'error'
     );
   });
+
+  describe('cursor 이어 읽기', () => {
+    /** 첫 쪽은 firstPageCursor를 다음 cursor로 돌려주고, 다음 쪽은 끝을 알린다. 요청의 cursor·page를 기록한다 */
+    function mockFolderPostPages() {
+      const requests: { cursor: string | null; page: string | null }[] = [];
+      let firstPageCursor = 'cursor-1';
+
+      server.use(
+        http.get(url(FOLDER_POSTS_PATH), ({ request }) => {
+          const { searchParams } = new URL(request.url);
+          const cursor = searchParams.get('cursor');
+          requests.push({ cursor, page: searchParams.get('page') });
+
+          return HttpResponse.json({
+            status: 200,
+            message: 'ok',
+            data: cursor
+              ? { content: [{ ...mockPost, id: 'post-2' }], nextCursor: null }
+              : { content: [{ ...mockPost, id: 'post-1' }], nextCursor: firstPageCursor },
+            timestamp: '',
+          });
+        })
+      );
+
+      return {
+        requests,
+        changeFirstPageCursor: (next: string) => {
+          firstPageCursor = next;
+        },
+      };
+    }
+
+    it('hover로 받은 첫 쪽을 목록이 같은 키로 읽고, 다음 쪽은 그 응답의 nextCursor로 받는다', async () => {
+      const { requests } = mockFolderPostPages();
+
+      await hoverAndSettle(() => prefetchBookmarkFolderPosts(queryClient, FOLDER_A, 'latest'));
+
+      expect(requests).toEqual([{ cursor: null, page: null }]);
+      expect(queryClient.getQueryData(bookmarkFolderKeys.posts(FOLDER_A, 'latest'))).toMatchObject({
+        pageParams: [null],
+      });
+
+      const { result } = renderHook(() => useBookmarkFolderPostsInfiniteQuery(FOLDER_A, 'latest'), {
+        wrapper: Wrapper,
+      });
+
+      await waitFor(() => expect(result.current.hasNextPage).toBe(true));
+      expect(result.current.data?.posts.map((post) => post.id)).toEqual(['post-1']);
+
+      await act(() => result.current.fetchNextPage());
+
+      await waitFor(() =>
+        expect(result.current.data?.posts.map((post) => post.id)).toEqual(['post-1', 'post-2'])
+      );
+      expect(result.current.hasNextPage).toBe(false);
+      expect(requests.at(-1)).toEqual({ cursor: 'cursor-1', page: null });
+    });
+
+    // 설치본 infiniteQueryBehavior.js:64-72(query-core 5.90.16) - 재조회는 첫 쪽만 옛 값을 쓰고 뒤쪽은 다시 계산한다
+    it('무효화로 재조회하면 다음 쪽은 다시 받은 첫 쪽의 nextCursor로 받는다', async () => {
+      const { requests, changeFirstPageCursor } = mockFolderPostPages();
+      const { result } = renderHook(() => useBookmarkFolderPostsInfiniteQuery(FOLDER_A, 'latest'), {
+        wrapper: Wrapper,
+      });
+
+      await waitFor(() => expect(result.current.hasNextPage).toBe(true));
+      await act(() => result.current.fetchNextPage());
+
+      changeFirstPageCursor('cursor-after-refetch');
+      requests.length = 0;
+      await act(() =>
+        queryClient.invalidateQueries({ queryKey: bookmarkFolderKeys.posts(FOLDER_A, 'latest') })
+      );
+
+      expect(requests).toEqual([
+        { cursor: null, page: null },
+        { cursor: 'cursor-after-refetch', page: null },
+      ]);
+    });
+  });
 });
 
 describe('useCreateBookmarkFolderMutation - 다시 보낸 요청의 이름 대조', () => {

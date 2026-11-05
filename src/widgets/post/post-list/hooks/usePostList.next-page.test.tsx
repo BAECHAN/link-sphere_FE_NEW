@@ -36,7 +36,7 @@ function mockPostListPages(status: number) {
 
   server.use(
     http.get(url(API_ENDPOINTS.post.base), async ({ request }) => {
-      const page = Number(new URL(request.url).searchParams.get('page') ?? 0);
+      const page = new URL(request.url).searchParams.get('cursor') ? 1 : 0;
       requests.push(page);
       // 실제 네트워크처럼 왕복 시간을 둔다 - 없으면 '요청 중'과 '실패'가 한 번의 알림으로 합쳐져 렌더가 그 사이를 못 본다
       await delay(30);
@@ -57,12 +57,8 @@ function mockPostListPages(status: number) {
           status: 200,
           message: 'ok',
           data: {
-            page,
-            size: 3,
             content: [1, 2, 3].map((n) => ({ ...mockPost, id: `post-${page}-${n}` })),
-            totalElements: 6,
-            totalPages: 2,
-            last: page >= 1,
+            nextCursor: page >= 1 ? null : 'cursor-1',
           },
           timestamp: '',
         },

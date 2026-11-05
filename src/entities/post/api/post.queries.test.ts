@@ -59,10 +59,8 @@ describe('useUpdatePostMutation', () => {
     queryClient = createTestQueryClient({ gcTime: Infinity });
     queryClient.setQueryData(postKeys.detail(POST_ID), mockPost);
     queryClient.setQueryData(FOLDER_POSTS_KEY, {
-      pages: [
-        { page: 0, size: 10, content: [mockPost], totalElements: 1, totalPages: 1, last: true },
-      ],
-      pageParams: [0],
+      pages: [{ content: [mockPost], nextCursor: null }],
+      pageParams: [null],
     });
   });
 
@@ -356,10 +354,8 @@ describe('useCreatePostMutation', () => {
   // invalidateQueries만으로는 새 글이 누락될 수 있다 — 그래서 캐시에 직접 꽂아 넣는다.
   it('등록 성공 시 필터 없는 목록 캐시 맨 앞에 새 글을 꽂아 넣는다', async () => {
     queryClient.setQueryData(postKeys.list(), {
-      pages: [
-        { page: 0, size: 10, content: [mockPost], totalElements: 1, totalPages: 1, last: true },
-      ],
-      pageParams: [0],
+      pages: [{ content: [mockPost], nextCursor: null }],
+      pageParams: [null],
     });
 
     const { result } = renderHook(() => useCreatePostMutation(), { wrapper: Wrapper });
@@ -371,19 +367,16 @@ describe('useCreatePostMutation', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     const cached = queryClient.getQueryData<{
-      pages: { content: Post[]; totalElements: number }[];
+      pages: { content: Post[] }[];
     }>(postKeys.list());
     expect(cached?.pages[0]?.content.map((post) => post.id)).toEqual([newPost.id, mockPost.id]);
-    expect(cached?.pages[0]?.totalElements).toBe(2);
   });
 
   it('필터가 걸린 목록 캐시는 건드리지 않는다', async () => {
     const filteredKey = postKeys.list({ search: 'keyword' });
     queryClient.setQueryData(filteredKey, {
-      pages: [
-        { page: 0, size: 10, content: [mockPost], totalElements: 1, totalPages: 1, last: true },
-      ],
-      pageParams: [0],
+      pages: [{ content: [mockPost], nextCursor: null }],
+      pageParams: [null],
     });
 
     const { result } = renderHook(() => useCreatePostMutation(), { wrapper: Wrapper });
@@ -482,18 +475,14 @@ describe('useDeletePostMutation', () => {
       userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [FOLDER_A] },
     };
     const folderPostsKey = bookmarkFolderKeys.posts(FOLDER_A);
-    const folderPostsCache: { pages: PostListResponse[]; pageParams: number[] } = {
+    const folderPostsCache: { pages: PostListResponse[]; pageParams: (string | null)[] } = {
       pages: [
         {
-          page: 0,
-          size: 10,
           content: [bookmarkedPost],
-          totalElements: 1,
-          totalPages: 1,
-          last: true,
+          nextCursor: null,
         },
       ],
-      pageParams: [0],
+      pageParams: [null],
     };
     queryClient.setQueryData(folderPostsKey, folderPostsCache);
     queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList);
@@ -507,7 +496,6 @@ describe('useDeletePostMutation', () => {
     await waitFor(() => {
       const cachedFolderPosts = queryClient.getQueryData<typeof folderPostsCache>(folderPostsKey);
       expect(cachedFolderPosts?.pages[0]?.content).toEqual([]);
-      expect(cachedFolderPosts?.pages[0]?.totalElements).toBe(0);
     });
 
     const folders = queryClient.getQueryData<BookmarkFolderListResponse>(bookmarkFolderKeys.list);
@@ -582,39 +570,12 @@ describe('useDeletePostMutation', () => {
     expect(queryClient.getQueryData(postKeys.detail(POST_ID))).toEqual(mockPost);
   });
 
-  it('목록의 totalElements는 0 아래로 내려가지 않는다', async () => {
-    queryClient.setQueryData(postKeys.list(), {
-      pages: [
-        { page: 0, size: 10, content: [mockPost], totalElements: 0, totalPages: 1, last: true },
-      ],
-      pageParams: [0],
-    });
-
-    const { result } = renderHook(() => useDeletePostMutation(), { wrapper: Wrapper });
-
-    act(() => {
-      result.current.mutate(POST_ID);
-    });
-
-    await waitFor(() => {
-      const cached = queryClient.getQueryData<{
-        pages: { content: Post[]; totalElements: number }[];
-      }>(postKeys.list());
-      expect(cached?.pages[0]?.content).toEqual([]);
-      expect(cached?.pages[0]?.totalElements).toBe(0);
-    });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-  });
-
   // 앱과 같은 전역 핸들러를 거쳐야 안내가 몇 개 뜨는지 알 수 있다(meta 토스트 + 직접 부른 토스트)
   describe('삭제 결과별 안내', () => {
     const seedList = () => {
       queryClient.setQueryData(postKeys.list(), {
-        pages: [
-          { page: 0, size: 10, content: [mockPost], totalElements: 1, totalPages: 1, last: true },
-        ],
-        pageParams: [0],
+        pages: [{ content: [mockPost], nextCursor: null }],
+        pageParams: [null],
       });
     };
     const listContent = () =>
@@ -1033,7 +994,7 @@ describe('recordPostView', () => {
     vi.restoreAllMocks();
   });
 
-  it('성공하면 폴더별 게시글 목록을 무효화해 최근 열람순·조회수순을 맞춘다', async () => {
+  it('성공하면 폴더별 게시글 목록을 무효화해 최근 열람순을 맞춘다', async () => {
     server.use(
       http.post(viewUrl, () => HttpResponse.json({ status: 200, message: 'ok', data: {} }))
     );

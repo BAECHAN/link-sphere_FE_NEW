@@ -179,12 +179,8 @@ test.describe('PostCard 카테고리 배지 — 피드 카테고리 필터(교�
 
         return route.fulfill({
           json: wrapResponse({
-            page: 0,
-            size: count,
             content,
-            totalElements: count,
-            totalPages: 1,
-            last: true,
+            nextCursor: null,
           }),
         });
       }

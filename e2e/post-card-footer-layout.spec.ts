@@ -31,12 +31,8 @@ async function mockWorstCasePosts(page: Page, total: number): Promise<void> {
   }));
 
   const body: PostListResponse = {
-    page: 0,
-    size: total,
     content,
-    totalElements: total,
-    totalPages: 1,
-    last: true,
+    nextCursor: null,
   };
 
   await page.route(

@@ -13,16 +13,12 @@ import { TEXTS } from '@/shared/config/texts';
 
 function postList(count: number): PostListResponse {
   return {
-    page: 0,
-    size: count,
     content: Array.from({ length: count }, (_, i) => ({
       ...mockPost,
       id: `post-uuid-${i}`,
       title: `Bookmarked post ${i}`,
     })),
-    totalElements: count,
-    totalPages: 1,
-    last: true,
+    nextCursor: null,
   };
 }
 

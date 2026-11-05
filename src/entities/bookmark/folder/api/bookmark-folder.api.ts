@@ -53,10 +53,10 @@ export const bookmarkFolderApi = {
     folderKey: BookmarkFolderKey,
     payload: PostListRequest & { sort?: BookmarkFolderSort; search?: string }
   ): Promise<PostListResponse> => {
-    const { page, size, sort, search } = payload;
+    const { cursor, size, sort, search } = payload;
     return await specClient.get('/bookmark/folders/{folderKey}/posts', {
       path: { folderKey },
-      query: { page, size, ...(sort && { sort }), ...(search && { search }) },
+      query: { size, ...(cursor && { cursor }), ...(sort && { sort }), ...(search && { search }) },
     });
   },
 
