@@ -131,27 +131,64 @@ test.describe('게시글 등록', () => {
       await expect(submitButton).toBeEnabled();
     };
 
+    // 누를 때마다 응답을 못 받아 1번 더 보내므로 2번씩 나간다
     await page.goto('/post/submit');
     await urlInput.fill(NEW_URL);
-    await submitAndFail(1);
     await submitAndFail(2);
+    await submitAndFail(4);
 
     expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
-    expect(keys[1]).toBe(keys[0]);
+    expect(new Set(keys).size).toBe(1);
 
     await urlInput.fill(`${NEW_URL}?edited=1`);
-    await submitAndFail(3);
+    await submitAndFail(6);
 
-    expect(keys[2]).toMatch(/^[0-9a-f-]{36}$/);
-    expect(keys[2]).not.toBe(keys[0]);
+    expect(keys[4]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(keys[4]).not.toBe(keys[0]);
+    expect(keys[5]).toBe(keys[4]);
 
     // 작성 중이라 beforeunload 확인창이 뜰 수 있다 - 새로고침을 진행한다
     page.on('dialog', (dialog) => dialog.accept());
     await page.reload();
     await urlInput.fill(NEW_URL);
-    await submitAndFail(4);
+    await submitAndFail(8);
 
-    expect(keys[3]).toBe(keys[0]);
+    expect(keys[6]).toBe(keys[0]);
+    expect(keys[7]).toBe(keys[0]);
+  });
+
+  test('응답이 끊기면 같은 Idempotency-Key로 한 번 더 보내고, 저장되면 실패 안내 없이 피드로 돌아간다', async ({
+    page,
+  }) => {
+    const keys: (string | undefined)[] = [];
+
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.post.base),
+      async (route) => {
+        if (route.request().method() !== 'POST') {
+          return route.fulfill({ json: wrapResponse(mockPostListResponse) });
+        }
+
+        keys.push(route.request().headers()['idempotency-key']);
+
+        if (keys.length === 1) {
+          return route.abort('failed');
+        }
+
+        return route.fulfill({ status: 201, json: wrapResponse(NEW_POST) });
+      }
+    );
+
+    await page.goto('/post/submit');
+    await page.getByLabel(/^URL/).fill(NEW_URL);
+    await page.getByRole('button', { name: TEXTS.post.form.create.submit }).click();
+
+    await expect(page).toHaveURL(/\/post$/);
+    await expect(page.getByText(TEXTS.messages.success.postCreated)).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.error.postSubmit.network)).toHaveCount(0);
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(keys[1]).toBe(keys[0]);
   });
 
   test('등록 요청 중 "나가기"로 떠난 뒤 실패하면 무엇이 실패했는지 알리고, [다시 등록하기]를 누르면 입력과 안내를 되살린다', async ({

@@ -55,6 +55,13 @@
 
 ### Changed
 
+- `shared` 글·댓글·답글 등록과 메일 요청도 응답이 없으면 같은 키로 한 번 더 보냄
+  <details><summary>배경·구현</summary>
+
+  이 5개는 다시 보내면 글·댓글이 2개 생기고 메일이 2통 가서 지금까지 한 번만 보내고 "확인하지 못했어요"로 끝냈다. BE #158 배포로 서버가 `Idempotency-Key`로 중복을 막으므로(같은 키면 처음 결과를 돌려준다) 나머지 쓰기 요청과 같이 약 1초 뒤 1번 더 보낸다. 실패하면 키가 남아 다시 보내도 같은 키다. 첫 요청이 저장됐어도 하나만 남고, 사용자는 실패 안내 대신 등록 완료를 본다. 또 응답이 없을 때의 안내와 화면 다시 받기는 그대로다. 대가로 첨부가 있는 댓글은 이미지를 다시 올리고(먼저 올린 파일은 BE 정리 작업이 지운다) 메일 요청은 시간당 한도를 1번 더 쓴다. 재설정 메일 `onError`에 로그인 만료 확인을 더했고, `pnpm codegen`으로 필수 헤더가 실린 운영 스펙을 받았다. 근거는 `docs/FE-ARCHITECTURE.md` §27·§28, 계획은 `docs/plans/2026-11-05-global-outcome-unknown.md`. (`src/entities/post/api/post.queries.ts`, `src/entities/comment/api/comment.queries.ts`, `src/entities/auth/api/auth.queries.ts`, `src/shared/api/generated/*`, [PR #546](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/546))
+
+  </details>
+
 - `post` 조회수·최근 열람 기록을 상세 화면이 뜰 때만 남김
   <details><summary>배경·구현</summary>
 
@@ -186,7 +193,7 @@
 - `shared` 쓰기 요청의 응답을 못 받으면 한 번 더 확인하고 모르면 사실대로 안내함
   <details><summary>배경·구현</summary>
 
-  브라우저가 응답을 못 받으면(연결 끊김·504) 서버가 처리했는지 알 수 없다. 글·댓글 삭제 말고는 한 번 보내고 끝나, 저장됐을 수 있는데 "~하지 못했어요"라고 안내했고 화면이 옛 값으로 남아 사용자가 새로고침으로 확인해야 했다. 이제 mutation 27개가 응답을 못 받았을 때 다시 보낼지 `retry`로 선언하고, 빠뜨리면 ESLint `custom-query-rules/mutation-retry-declared`가 막는다. 다시 보내도 결과가 같은 16개(좋아요·북마크·폴더·글 수정·공개 전환·댓글 수정·프로필 수정·삭제)는 약 1초 뒤 1번 더 보내 결과대로 처리한다. 폴더 만들기는 다시 보낸 요청이 409면 목록에서 같은 이름 폴더를 찾아 결과로 쓴다. 다시 보내면 안 되는 11개(등록, 메일 요청, 가입, 토큰 확정, 비밀번호 변경, 탈퇴, 로그인)는 그대로 1번이다. 끝내 모르면 "처리됐는지 확인하지 못했어요."로 안내하고 그 요청의 캐시를 다시 받는다. 다시 보내지 않는 요청은 다음 행동이 달라 요청별 문구를 쓰고, 이메일 인증 화면에는 `unknown` 상태를 더했다. 등록과 메일 요청 5개의 재전송은 BE가 키를 받은 뒤 켠다. 근거는 `docs/FE-ARCHITECTURE.md` §28, 계획은 `docs/plans/2026-11-05-global-outcome-unknown.md`. (`scripts/lib/mutation-retry-rule.js`(신규), `src/test/mutation-outcome-unknown.test.tsx`(신규), `src/shared/utils/error.util.ts`, `src/shared/lib/react-query/config/error-toast.ts`, `src/entities/**/*.queries.ts`, [PR #543](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/543))
+  브라우저가 응답을 못 받으면(연결 끊김·504) 서버가 처리했는지 알 수 없다. 글·댓글 삭제 말고는 한 번 보내고 끝나, 저장됐을 수 있는데 "~하지 못했어요"라고 안내했고 화면이 옛 값으로 남아 사용자가 새로고침으로 확인해야 했다. 이제 mutation 27개가 응답을 못 받았을 때 다시 보낼지 `retry`로 선언하고, 빠뜨리면 ESLint `custom-query-rules/mutation-retry-declared`가 막는다. 다시 보내도 결과가 같은 16개(좋아요·북마크·폴더·글 수정·공개 전환·댓글 수정·프로필 수정·삭제)는 약 1초 뒤 1번 더 보내 결과대로 처리한다. 폴더 만들기는 다시 보낸 요청이 409면 목록에서 같은 이름 폴더를 찾아 결과로 쓴다. 다시 보내면 안 되는 11개(등록, 메일 요청, 가입, 토큰 확정, 비밀번호 변경, 탈퇴, 로그인)는 그대로 1번이다. 끝내 모르면 "처리됐는지 확인하지 못했어요."로 안내하고 그 요청의 캐시를 다시 받는다. 다시 보내지 않는 요청은 다음 행동이 달라 요청별 문구를 쓰고, 이메일 인증 화면에는 `unknown` 상태를 더했다. 등록과 메일 요청 5개의 재전송은 BE가 키를 받은 뒤 켰다(`Changed`의 "같은 키로 한 번 더" 항목). 근거는 `docs/FE-ARCHITECTURE.md` §28, 계획은 `docs/plans/2026-11-05-global-outcome-unknown.md`. (`scripts/lib/mutation-retry-rule.js`(신규), `src/test/mutation-outcome-unknown.test.tsx`(신규), `src/shared/utils/error.util.ts`, `src/shared/lib/react-query/config/error-toast.ts`, `src/entities/**/*.queries.ts`, [PR #543](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/543))
 
   </details>
 
@@ -363,7 +370,7 @@
 ### Notes
 
 - BE API 의존: `link-sphere_BE_NEW` [PR #159](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/159) 필요(`POST /post/{id}/view` 신규, `GET /post/{id}`는 조회수를 올리지 않음). **배포 순서: BE 먼저 → FE 바로** — 그 사이에는 조회가 안 세지고 에러는 없다.
-- BE API 예고: `link-sphere_BE_NEW`가 곧 글·댓글·답글 등록과 메일 요청 2개에 `Idempotency-Key`를 필수로 받는다. **배포 순서: 이 FE 먼저 → (약 하루 뒤) SQL → BE** — FE 배포 전에 열린 탭은 BE 필수화 뒤 등록이 400으로 실패하고 새로고침하면 회복한다.
+- BE API 의존: `link-sphere_BE_NEW` [PR #158](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/158) 필요(글·댓글·답글 등록과 메일 요청 2개에 `Idempotency-Key` 필수, 같은 키면 처음 결과). **배포 순서: 헤더를 싣는 FE(#535) 먼저 → SQL → BE → 재전송을 켜는 FE** — 헤더 FE 배포 전에 열린 탭은 BE 필수화 뒤 등록이 400으로 실패하고 새로고침하면 회복한다. BE 전에 재전송을 켜면 글·댓글이 2개 생긴다.
 - BE API 의존: `link-sphere_BE_NEW` [PR #154](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/154) 필요(회원 탈퇴 `DELETE /auth/account` → `POST /auth/account/deletion`). **배포 순서: BE 먼저** — 구버전 BE에는 새 경로가 없어 탈퇴가 실패한다. 운영에서는 옛 호출도 이미 CloudFront에서 403이라, BE를 먼저 배포하는 동안 새로 깨지는 것은 없다.
 
 ## [0.20.0] - 2026-10-28

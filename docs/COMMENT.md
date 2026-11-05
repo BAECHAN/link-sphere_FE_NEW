@@ -46,7 +46,10 @@ flowchart TD
   Upload -->|"실패"| UploadFail["업로드 단계 실패(ImageUploadError)<br/>형식·용량·업로드 한도·저장소·네트워크"]
   Upload -->|"성공"| Post["POST /post/:id/comment<br/>(답글은 POST /comment/:id/reply)"]
   Post -->|"성공"| Replace["temp- 항목을 응답으로 치환<br/>handleCommentCreateSuccess:<br/>post 상세·목록, 내 댓글 무효화"]
-  Post -->|"504·연결 끊김"| Unknown["결과 모름: 롤백 뒤<br/>handleCommentCreateOutcomeUnknown:<br/>댓글 목록·개수 재조회"]
+  Post -->|"504·연결 끊김"| Resend["약 1초 뒤 같은 Idempotency-Key로 1번 더<br/>임시 댓글은 그대로, 첨부는 다시 업로드"]
+  Resend -->|"성공: 저장돼 있었으면 첫 댓글"| Replace
+  Resend -->|"그 외 실패"| Settled
+  Resend -->|"또 응답 없음"| Unknown["결과 모름: 롤백 뒤<br/>handleCommentCreateOutcomeUnknown:<br/>댓글 목록·개수 재조회"]
   Post -->|"그 외 실패"| Settled["확정 실패<br/>글·부모 삭제, 미인증, WAF 차단 등"]
   UploadFail --> Rollback["목록 롤백 + 입력·이미지 복원<br/>CommentUtil.resolveSubmitError로 원인 판정<br/>버튼 위 FormAlert(폼이 닫혔으면 토스트)"]
   Unknown --> Rollback
@@ -302,18 +305,18 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   벌이 있고, 수정 폼과 프로필 사진은 `save`를 쓴다. 수정은 결과를 몰라도 다시 보내면 같은
   내용으로 덮어쓸 뿐이라 결과 모름 안내 대신 일반 안내(`save.network`·`updateFailed`)를 쓴다.
 - **수정은 자동으로 1번 더 보낸다** — 응답을 못 받으면 약 1초 뒤 같은 PATCH를 1번 더 보내고(`FE-ARCHITECTURE.md` §28), 또 응답이
-  없으면 위 일반 안내와 함께 댓글 목록을 다시 받는다(`handleCommentUpdateSuccess`). 등록·답글은 BE #158이 키를 받기 전까지 자동으로
-  다시 보내지 않는다(`retry: false`) — 지금 다시 보내면 댓글이 둘이 된다.
+  없으면 위 일반 안내와 함께 댓글 목록을 다시 받는다(`handleCommentUpdateSuccess`). 등록·답글도 같은 키로 1번 더 보낸다(아래).
 - **스토리지 원인은 본문에 있다** — Supabase Storage는 500이 아닌 오류를 HTTP 400으로 보내고
   원래 상태 코드는 본문 `statusCode`에 남긴다([storage 서버 `http` 폴더의 `error-handler.ts`](https://github.com/supabase/storage/tree/master/src/http),
   413·415·544 정의는 [`internal/errors` 폴더의 `codes.ts`](https://github.com/supabase/storage/tree/master/src/internal/errors),
   2026-10-06 소스 확인). 그래서 `upload.api.ts`의 `resolveStorageFailureReason`이 본문을 먼저 읽고,
   없으면 HTTP 상태로 판정한다.
-- **같은 시도는 같은 키로 보낸다** — 등록·답글 요청에 `Idempotency-Key`를 싣는다(`comment.queries.ts`의 `mutationFn`). 실패해
-  복원된 입력을 그대로 다시 보내면 같은 키라, BE가 키를 받기 시작하면 첫 요청이 저장됐어도 댓글이 둘이 되지 않고 기존 댓글이
-  돌아온다. 그 댓글은 이미 재조회로 목록에 있을 수 있어 `settleTempComment`가 임시 댓글만 걷어낸다. 본문이나 첨부를 고치면 새
-  키다(`docs/FE-ARCHITECTURE.md` §27).
-- **결과 모름이면 목록을 다시 불러온다** — 504면 CloudFront가 기다림을 끊었을 뿐 서버는
+- **같은 시도는 같은 키로 보낸다** — 등록·답글 요청에 `Idempotency-Key`를 싣는다(`comment.queries.ts`의 `mutationFn`). 응답을 못
+  받으면 약 1초 뒤 같은 키로 자동으로 1번 더 보내고(그동안 임시 댓글은 화면에 그대로다), 실패해 복원된 입력을 그대로 다시 보내도
+  같은 키다. 그래서 첫 요청이 저장됐어도 댓글이 둘이 되지 않고 기존 댓글이 돌아온다. 그 댓글은 이미 재조회로 목록에 있을 수 있어
+  `settleTempComment`가 임시 댓글만 걷어낸다. 본문이나 첨부를 고치면 새 키다(`docs/FE-ARCHITECTURE.md` §27). 첨부가 있으면 시도마다
+  이미지를 다시 올리고, 먼저 올린 파일은 아래 "실패한 업로드의 파일" 절차대로 BE 정리 작업이 지운다.
+- **결과 모름이면 목록을 다시 불러온다** — 다시 보낸 요청까지 응답을 못 받은 경우다. 504면 CloudFront가 기다림을 끊었을 뿐 서버는
   저장을 마쳤을 수 있다. 낙관적 댓글을 롤백한 뒤 `handleCommentCreateOutcomeUnknown`
   (`src/entities/comment/api/comment.keys.ts:37-42`)이 목록과 댓글 수를 다시 불러와, 실제로
   저장됐다면 다시 보이게 한다. 입력은 그대로 복원되니 목록을 보고 판단하면 된다.

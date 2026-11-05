@@ -27,6 +27,8 @@ import {
   handleEmailVerificationConfirmSuccess,
   isErroredCacheWithoutData,
 } from '@/entities/auth/api/auth.keys';
+import { assertMutationAuthEpochUnchanged } from '@/shared/lib/react-query/config/mutation-auth-epoch';
+import { shouldRetryIdempotentMutation } from '@/shared/lib/react-query/config/retry-policy';
 import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 import { IdempotencyKeyUtil } from '@/shared/utils/idempotency-key.util';
 
@@ -149,15 +151,20 @@ export const useCreateAccountMutation = () => {
 // 불필요). 여기서 잡는 에러는 네트워크·429·500 등 그 자체가 실패한 경우뿐이다.
 export const useRequestPasswordResetMutation = () => {
   return useMutation({
-    // BE #158 배포 전에는 서버가 키를 무시해 다시 보내면 중복이 생긴다
-    retry: false,
-    mutationFn: async (payload: PasswordResetRequest) => {
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: async (payload: PasswordResetRequest, context) => {
+      assertMutationAuthEpochUnchanged(context);
+
       return await IdempotencyKeyUtil.send(`password-reset:${payload.email}`, (key) =>
         authApi.requestPasswordReset(payload, key)
       );
     },
     meta: { manualErrorHandling: true },
     onError: (error) => {
+      if (ErrorUtil.isSessionExpired(error)) {
+        return;
+      }
+
       // 이 콜백이 없으면 버튼만 다시 활성화되고 아무 안내 없이 조용히 실패한다. "메일함을 확인해주세요" 화면의
       // [다시 보내기]가 실패해도 화면은 그대로라 이 토스트가 유일한 안내다 - 닫을 때까지 남기고, 같은 id로 쌓이지 않게
       // 한다(첫 제출도 같은 mutation이라 함께, docs/FE-ARCHITECTURE.md §14). 응답을 못 받았으면 메일이 갔을 수 있다
@@ -256,9 +263,10 @@ export const useChangePasswordMutation = () => {
 // 없으므로(가시성 원칙) 토스트로 결과를 알린다.
 export const useRequestEmailVerificationMutation = () => {
   return useMutation({
-    // BE #158 배포 전에는 서버가 키를 무시해 다시 보내면 중복이 생긴다
-    retry: false,
-    mutationFn: async (payload: EmailVerificationRequest) => {
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: async (payload: EmailVerificationRequest, context) => {
+      assertMutationAuthEpochUnchanged(context);
+
       return await IdempotencyKeyUtil.send(`email-verification:${payload.email}`, (key) =>
         authApi.requestEmailVerification(payload, key)
       );

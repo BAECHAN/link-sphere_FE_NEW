@@ -382,9 +382,14 @@ describe('useCreatePost - 저장 중 이탈', () => {
     }
   );
 
-  it('응답 전에 "나가기"로 떠난 뒤 응답을 못 받으면 실패라고 단정하지 않는 제목으로 알린다', async () => {
+  it('응답 전에 "나가기"로 떠난 뒤 다시 보낸 요청까지 응답을 못 받으면 실패라고 단정하지 않는 제목으로 알린다', async () => {
     const errorSpy = vi.spyOn(toast, 'error');
-    const gate = holdCreateResponse(() => HttpResponse.error());
+    const gate = holdCreateResponse(() => {
+      // 다시 보낸 요청은 붙잡지 않고 바로 끊는다
+      server.use(http.post(url(API_ENDPOINTS.post.base), () => HttpResponse.error()));
+
+      return HttpResponse.error();
+    });
     const { router, queryClient } = renderCreatePost();
 
     await leaveThenRespond(gate, router, queryClient);
@@ -394,6 +399,20 @@ describe('useCreatePost - 저장 중 이탈', () => {
       LEFT_PAGE_FAILURE.outcomeUnknownTitle,
       expect.objectContaining({ id: 'left-page-failure:post-create', duration: Infinity })
     );
+  });
+
+  it('응답 전에 "나가기"로 떠난 뒤 첫 요청이 끊겨도 다시 보낸 요청이 저장되면 실패 안내가 없다', async () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    const gate = holdCreateResponse(() => {
+      server.use(http.post(url(API_ENDPOINTS.post.base), () => createSucceeded()));
+
+      return HttpResponse.error();
+    });
+    const { router, queryClient } = renderCreatePost();
+
+    await leaveThenRespond(gate, router, queryClient);
+
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
   it.each([

@@ -153,13 +153,16 @@ describe('useCreateCommentMutation', () => {
       });
     };
 
+    // 누를 때마다 응답을 못 받아 1번 더 보내므로 2번씩 나간다
     await submit('같은 키 댓글');
     await submit('같은 키 댓글');
     await submit('고친 댓글');
 
+    expect(received).toHaveLength(6);
     expect(received[0]).toBeTruthy();
-    expect(received[1]).toBe(received[0]);
-    expect(received[2]).not.toBe(received[0]);
+    expect(new Set(received.slice(0, 4)).size).toBe(1);
+    expect(received[4]).not.toBe(received[0]);
+    expect(received[5]).toBe(received[4]);
   });
 
   // 이미지는 다시 올릴 때마다 URL이 바뀌므로 파일 속성이 같아야 같은 시도다
@@ -184,13 +187,15 @@ describe('useCreateCommentMutation', () => {
     const first = new File(['aaa'], 'a.png', { type: 'image/png', lastModified: 1 });
     const second = new File(['bbbb'], 'b.png', { type: 'image/png', lastModified: 2 });
 
+    // 누를 때마다 응답을 못 받아 1번 더 보내므로 2번씩 나간다
     await submit([first]);
     await submit([first]);
     await submit([second]);
 
-    expect(received).toHaveLength(3);
-    expect(received[1]).toBe(received[0]);
-    expect(received[2]).not.toBe(received[0]);
+    expect(received).toHaveLength(6);
+    expect(new Set(received.slice(0, 4)).size).toBe(1);
+    expect(received[4]).not.toBe(received[0]);
+    expect(received[5]).toBe(received[4]);
   });
 
   it('409 DUPLICATE_COMMENT면 롤백하고 목록을 다시 불러온다', async () => {

@@ -91,8 +91,8 @@ export class PostUtil {
       };
     }
 
-    // 504는 CloudFront가 기다림을 끊은 것이라 서버에서는 저장이 끝났을 수 있다 - 그대로 다시 누르면
-    // 같은 글이 두 번 생긴다(posts.url에 중복 제약 없음). 피드부터 확인하게 한다.
+    // 504는 CloudFront가 기다림을 끊은 것이라 서버에서는 저장이 끝났을 수 있다 - 저장됐으면 다시 쓸 일이 없으니 피드부터
+    // 확인하게 한다. 같은 내용을 다시 눌러도 같은 키라 글이 둘이 되지는 않는다(docs/FE-ARCHITECTURE.md §27).
     if (error.status === 504) {
       return {
         kind: 'form',

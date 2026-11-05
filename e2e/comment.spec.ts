@@ -92,4 +92,47 @@ test.describe('댓글 작성 → 목록 카운트 반영', () => {
     const listResBody = await (await listRefetch).json();
     expect(listResBody.data.content[0].stats.commentCount).toBe(1);
   });
+
+  test('댓글 등록의 응답이 끊기면 같은 키로 한 번 더 보내고, 댓글은 하나만 남고 실패 안내가 없다', async ({
+    page,
+  }) => {
+    const keys: (string | undefined)[] = [];
+
+    await installCatchAll(page);
+    await mockAuthRefresh(page);
+    await mockAccountQuery(page);
+    await mockCategoryOptions(page);
+    await page.route(
+      (url) => /^\/api\/post\/[^/]+$/.test(url.pathname),
+      (route) => route.fulfill({ json: wrapResponse(mockPost) })
+    );
+    await page.route(
+      (url) => /^\/api\/post\/[^/]+\/comment$/.test(url.pathname),
+      (route) => {
+        if (route.request().method() !== 'POST') {
+          return route.fulfill({ json: wrapResponse(keys.length > 1 ? [mockComment] : []) });
+        }
+
+        keys.push(route.request().headers()['idempotency-key']);
+
+        if (keys.length === 1) {
+          return route.abort('failed');
+        }
+
+        return route.fulfill({ status: 201, json: wrapResponse(mockComment) });
+      }
+    );
+
+    await page.goto(`/post/${mockPost.id}`);
+    await page
+      .getByPlaceholder(TEXTS.comment.form.commentPlaceholder)
+      .fill('정말 유용한 글이네요!');
+    await page.getByRole('button', { name: TEXTS.comment.form.submitComment }).click();
+
+    await expect(page.getByText(mockComment.content)).toHaveCount(1);
+    await expect(page.getByText(TEXTS.messages.error.commentSubmit.outcomeUnknown)).toHaveCount(0);
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(keys[1]).toBe(keys[0]);
+  });
 });

@@ -42,13 +42,14 @@ describe('useResendEmailVerification', () => {
     await waitFor(() => expect(requestBody).toEqual({ email: 'user@example.com' }));
   });
 
-  it('응답이 끊긴 뒤 다시 누르면 같은 키, 성공한 뒤 다시 누르면 새 키라 메일이 새로 간다', async () => {
+  it('응답이 끊겨 다시 보내도, 그 뒤 다시 눌러도 같은 키이고, 성공한 뒤 다시 누르면 새 키라 메일이 새로 간다', async () => {
     const received: (string | null)[] = [];
     server.use(
       http.post(url(API_ENDPOINTS.auth.emailVerificationRequest), ({ request }) => {
         received.push(request.headers.get(IDEMPOTENCY_KEY_HEADER));
 
-        if (received.length === 1) {
+        // 첫 누름은 다시 보낸 요청까지 끊긴다
+        if (received.length <= 2) {
           return HttpResponse.error();
         }
 
@@ -60,7 +61,7 @@ describe('useResendEmailVerification', () => {
       wrapper: Wrapper,
     });
 
-    for (const expectedRequests of [1, 2, 3]) {
+    for (const expectedRequests of [2, 3, 4]) {
       act(() => {
         result.current.handleResend();
       });
@@ -71,6 +72,7 @@ describe('useResendEmailVerification', () => {
 
     expect(received[0]).toBeTruthy();
     expect(received[1]).toBe(received[0]);
-    expect(received[2]).not.toBe(received[1]);
+    expect(received[2]).toBe(received[0]);
+    expect(received[3]).not.toBe(received[0]);
   });
 });
