@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   ApiError,
+  NetworkError,
   SessionChangedError,
   SessionExpiredError,
   type ApiErrorResponse,
@@ -242,6 +243,28 @@ describe('resolveErrorToast', () => {
     const decision = resolveErrorToast('boom', undefined, QUERY_ERROR_POLICY);
 
     expect(decision).toEqual({ silent: true });
+  });
+
+  describe('meta.outcomeUnknownMessage (응답을 못 받아 결과를 모름)', () => {
+    const meta = { errorMessage: 'failed', outcomeUnknownMessage: 'unknown' };
+
+    it('연결 끊김·504면 errorMessage 대신 이 문구를 쓴다', () => {
+      expect(resolveErrorToast(new NetworkError(), meta, MUTATION_ERROR_POLICY)).toEqual({
+        silent: false,
+        message: 'unknown',
+      });
+      expect(resolveErrorToast(apiError({ status: 504 }), meta, MUTATION_ERROR_POLICY)).toEqual({
+        silent: false,
+        message: 'unknown',
+      });
+    });
+
+    it('서버가 실패라고 답했으면 errorMessage를 쓴다', () => {
+      expect(resolveErrorToast(apiError({ status: 500 }), meta, MUTATION_ERROR_POLICY)).toEqual({
+        silent: false,
+        message: 'failed',
+      });
+    });
   });
 
   describe('SessionChangedError (보낸 뒤 인증 세대가 바뀜)', () => {

@@ -1,6 +1,7 @@
 import type { Query } from '@tanstack/react-query';
 import { ApiError, SessionChangedError, SessionExpiredError } from '@/shared/types/common.type';
 import { TEXTS } from '@/shared/config/texts';
+import { ErrorUtil } from '@/shared/utils/error.util';
 import { LogoutGraceUtil } from '@/shared/utils/logout-grace.util';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { useAuthStore } from '@/shared/store/auth.store';
@@ -8,6 +9,8 @@ import { useAuthStore } from '@/shared/store/auth.store';
 export interface CustomMutationMeta {
   successMessage?: string;
   errorMessage?: string;
+  /** 응답을 못 받아 결과를 모를 때 errorMessage 대신 쓰는 문구 - "실패했어요"는 사실이 아닐 수 있다 */
+  outcomeUnknownMessage?: string;
   manualErrorHandling?: boolean;
   /** 조회 전용 - 켜진(enabled) 구독자 없이 실패하면 알리지 않는다(isUnwatchedQueryFailure) */
   silentWhenInactive?: boolean;
@@ -118,6 +121,10 @@ export function resolveErrorToast(
   // 포화 시 Function URL이 주는 429(앱 에러 코드 없음)도 같은 안내가 맞다.
   if (error instanceof ApiError && error.status === 429) {
     return { silent: false, message: TEXTS.messages.error.rateLimited, id: RATE_LIMITED_TOAST_ID };
+  }
+
+  if (meta?.outcomeUnknownMessage && ErrorUtil.isOutcomeUnknown(error)) {
+    return { silent: false, message: meta.outcomeUnknownMessage };
   }
 
   if (meta?.errorMessage) {

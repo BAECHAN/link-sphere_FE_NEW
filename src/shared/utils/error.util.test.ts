@@ -12,6 +12,19 @@ function makeApiError(status: number): ApiError {
   return new ApiError({ status, code: 'ERR', message: '서버 상세 메시지', timestamp: '' });
 }
 
+describe('ErrorUtil.isOutcomeUnknown', () => {
+  it('연결이 끊겼거나 CloudFront가 기다림을 끊으면(504) 결과를 모른다', () => {
+    expect(ErrorUtil.isOutcomeUnknown(new NetworkError())).toBe(true);
+    expect(ErrorUtil.isOutcomeUnknown(makeApiError(504))).toBe(true);
+  });
+
+  it('서버가 답한 실패는 결과를 안다', () => {
+    expect(ErrorUtil.isOutcomeUnknown(makeApiError(500))).toBe(false);
+    expect(ErrorUtil.isOutcomeUnknown(makeApiError(404))).toBe(false);
+    expect(ErrorUtil.isOutcomeUnknown(new TypeError('boom'))).toBe(false);
+  });
+});
+
 describe('ErrorUtil.isServerError', () => {
   it('500대 ApiError는 true다', () => {
     expect(ErrorUtil.isServerError(makeApiError(500))).toBe(true);

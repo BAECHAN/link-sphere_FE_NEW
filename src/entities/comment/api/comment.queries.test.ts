@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse, delay } from 'msw';
 import { createElement, Suspense, type ReactNode } from 'react';
@@ -7,6 +7,14 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS, IDEMPOTENCY_KEY_HEADER } from '@/shared/config/api';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { TEXTS } from '@/shared/config/texts';
+// 전역 핸들러(mutationCache)가 붙은 실제 싱글턴이어야 안내가 몇 개 뜨는지 드러난다
+// eslint-disable-next-line custom-query-rules/no-query-client-singleton-import
+import { queryClient as appQueryClient } from '@/shared/lib/react-query/config/queryClient';
+import { toast } from '@/shared/lib/toast/toast';
+import { useAuthStore } from '@/shared/store/auth.store';
+import { SessionExpiredError } from '@/shared/types/common.type';
+import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 import { createQueryClientWithErrorToasts, createTestQueryClient } from '@/test/utils';
 import { commentKeys } from '@/entities/comment/api/comment.keys';
 import { mockComment } from '@/mocks/fixtures/comment.fixtures';
@@ -18,6 +26,7 @@ import {
   seedEmptyComments,
   useCreateCommentMutation,
   useCreateReplyMutation,
+  useDeleteCommentMutation,
   useSuspenseComments,
   useUpdateCommentMutation,
 } from '@/entities/comment/api/comment.queries';
@@ -486,6 +495,247 @@ describe('useUpdateCommentMutation', () => {
     await waitFor(() => {
       expect(queryClient.getQueryState(commentKeys.list(POST_ID))?.isInvalidated).toBe(true);
     });
+  });
+});
+
+describe('useDeleteCommentMutation', () => {
+  const COMMENT_ID = mockComment.id;
+  const respondDelete = (status: number, code?: string) => {
+    server.use(
+      http.delete(url(API_ENDPOINTS.post.comment(COMMENT_ID)), () =>
+        status === 204
+          ? new HttpResponse(null, { status })
+          : HttpResponse.json({ status, code, message: 'boom', timestamp: '' }, { status })
+      )
+    );
+  };
+  const spyToasts = () => ({
+    success: vi.spyOn(toast, 'success'),
+    info: vi.spyOn(toast, 'info'),
+    error: vi.spyOn(toast, 'error'),
+  });
+  const cachedComments = () => queryClient.getQueryData<Comment[]>(commentKeys.list(POST_ID));
+  const isListInvalidated = () =>
+    queryClient.getQueryState(commentKeys.list(POST_ID))?.isInvalidated;
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    // 앱과 같은 전역 핸들러를 거쳐야 안내가 몇 개 뜨는지 알 수 있다(meta 토스트 + 직접 부른 토스트)
+    queryClient = appQueryClient;
+    queryClient.setQueryData(commentKeys.list(POST_ID), [mockComment]);
+  });
+
+  afterEach(() => {
+    appQueryClient.clear();
+  });
+
+  it('서버가 지우면 성공 안내 1개만 띄우고 목록을 다시 받는다', async () => {
+    respondDelete(204);
+    const toasts = spyToasts();
+    const { result } = renderHook(() => useDeleteCommentMutation(POST_ID), { wrapper: Wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync(COMMENT_ID);
+    });
+
+    expect(toasts.success.mock.calls).toEqual([[TEXTS.messages.success.commentDeleted]]);
+    expect(toasts.info).not.toHaveBeenCalled();
+    expect(toasts.error).not.toHaveBeenCalled();
+    expect(isListInvalidated()).toBe(true);
+  });
+
+  it('이미 없는 댓글(404)이면 목록에서 빼고 정보 안내 1개만 띄운다', async () => {
+    respondDelete(404, SERVER_ERROR_CODE.COMMENT_NOT_FOUND);
+    const toasts = spyToasts();
+    const { result } = renderHook(() => useDeleteCommentMutation(POST_ID), { wrapper: Wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync(COMMENT_ID);
+    });
+
+    expect(cachedComments()).toEqual([]);
+    expect(isListInvalidated()).toBe(true);
+    expect(toasts.info.mock.calls).toEqual([[TEXTS.messages.info.commentAlreadyDeleted]]);
+    expect(toasts.success).not.toHaveBeenCalled();
+    expect(toasts.error).not.toHaveBeenCalled();
+  });
+
+  it('이미 없는 답글이면 부모 안에서만 뺀다', async () => {
+    respondDelete(404, SERVER_ERROR_CODE.COMMENT_NOT_FOUND);
+    const parent = { ...mockComment, id: 'parent-comment', replies: [mockComment] };
+    queryClient.setQueryData(commentKeys.list(POST_ID), [parent]);
+    const { result } = renderHook(() => useDeleteCommentMutation(POST_ID), { wrapper: Wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync(COMMENT_ID);
+    });
+
+    expect(cachedComments()).toEqual([{ ...parent, replies: [] }]);
+  });
+
+  // 글 작성자가 글을 지우면 댓글도 함께 사라지고(FK cascade) 목록 재조회도 404다. 캐시가 있는 suspense 쿼리는
+  // 실패해도 이전 데이터를 그대로 그리므로(suspense.js defaultThrowOnError) 직접 빼지 않으면 지운 댓글이 남는다
+  it('글이 함께 지워져 목록 재조회도 404여도 그 댓글은 화면에서 빠진다', async () => {
+    queryClient = createTestQueryClient({ gcTime: Infinity });
+    queryClient.setQueryData(commentKeys.list(POST_ID), [mockComment]);
+    respondDelete(404, SERVER_ERROR_CODE.COMMENT_NOT_FOUND);
+    server.use(
+      http.get(url(API_ENDPOINTS.post.postComment(POST_ID)), () =>
+        HttpResponse.json(
+          { status: 404, code: SERVER_ERROR_CODE.POST_NOT_FOUND, message: 'gone', timestamp: '' },
+          { status: 404 }
+        )
+      )
+    );
+    const { result: comments } = renderHook(() => useSuspenseComments(POST_ID), {
+      wrapper: Wrapper,
+    });
+    const { result } = renderHook(() => useDeleteCommentMutation(POST_ID), { wrapper: Wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync(COMMENT_ID);
+    });
+
+    await waitFor(() =>
+      expect(queryClient.getQueryState(commentKeys.list(POST_ID))?.status).toBe('error')
+    );
+    expect(comments.current.data).toEqual([]);
+  });
+
+  it('그 밖의 실패(500)면 실패 안내 뒤 목록을 서버 기준으로 다시 받는다', async () => {
+    respondDelete(500, 'INTERNAL_SERVER_ERROR');
+    const toasts = spyToasts();
+    const { result } = renderHook(() => useDeleteCommentMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate(COMMENT_ID);
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(cachedComments()).toEqual([mockComment]);
+    expect(isListInvalidated()).toBe(true);
+    expect(toasts.error).toHaveBeenCalledTimes(1);
+    expect(toasts.error.mock.calls[0]?.[0]).toBe(TEXTS.messages.error.serverError);
+    expect(toasts.info).not.toHaveBeenCalled();
+    expect(toasts.success).not.toHaveBeenCalled();
+  });
+
+  describe('응답을 못 받으면(연결 끊김·504) 한 번 더 보내 결과를 확인한다', () => {
+    const CUT = () => HttpResponse.error();
+    const GONE = () =>
+      HttpResponse.json(
+        { status: 404, code: SERVER_ERROR_CODE.COMMENT_NOT_FOUND, message: 'gone', timestamp: '' },
+        { status: 404 }
+      );
+    const DELETED = () => new HttpResponse(null, { status: 204 });
+    /** 차례대로 응답하고, 온 요청 수를 센다 */
+    const respondInOrder = (responses: (() => Response)[]) => {
+      const calls = { count: 0 };
+
+      server.use(
+        http.delete(url(API_ENDPOINTS.post.comment(COMMENT_ID)), () => {
+          calls.count += 1;
+
+          return responses[Math.min(calls.count, responses.length) - 1]!();
+        })
+      );
+
+      return calls;
+    };
+    const deleteAndSettle = async () => {
+      const { result } = renderHook(() => useDeleteCommentMutation(POST_ID), { wrapper: Wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync(COMMENT_ID).catch(() => undefined);
+      });
+    };
+
+    it('첫 요청이 지운 경우(다시 보내니 404) 목록에서 빼고 이미 삭제 안내만 띄운다', async () => {
+      const calls = respondInOrder([CUT, GONE]);
+      const toasts = spyToasts();
+
+      await deleteAndSettle();
+
+      expect(calls.count).toBe(2);
+      expect(cachedComments()).toEqual([]);
+      expect(toasts.info.mock.calls).toEqual([[TEXTS.messages.info.commentAlreadyDeleted]]);
+      expect(toasts.success).not.toHaveBeenCalled();
+      expect(toasts.error).not.toHaveBeenCalled();
+    });
+
+    it('첫 요청이 서버에 못 간 경우(다시 보내니 204) 성공 안내만 띄운다', async () => {
+      const calls = respondInOrder([CUT, DELETED]);
+      const toasts = spyToasts();
+
+      await deleteAndSettle();
+
+      expect(calls.count).toBe(2);
+      expect(toasts.success.mock.calls).toEqual([[TEXTS.messages.success.commentDeleted]]);
+      expect(toasts.error).not.toHaveBeenCalled();
+    });
+
+    it('두 번 다 응답이 없으면 댓글을 두고 확인하지 못했다고 안내한 뒤 목록을 다시 받는다', async () => {
+      const calls = respondInOrder([CUT]);
+      const toasts = spyToasts();
+
+      await deleteAndSettle();
+
+      expect(calls.count).toBe(2);
+      expect(cachedComments()).toEqual([mockComment]);
+      expect(isListInvalidated()).toBe(true);
+      expect(toasts.error).toHaveBeenCalledTimes(1);
+      expect(toasts.error.mock.calls[0]?.[0]).toBe(TEXTS.messages.error.deleteOutcomeUnknown);
+      expect(toasts.success).not.toHaveBeenCalled();
+      expect(toasts.info).not.toHaveBeenCalled();
+    });
+
+    it('서버가 실패라고 답하면(500) 다시 보내지 않는다', async () => {
+      const calls = respondInOrder([
+        () =>
+          HttpResponse.json(
+            { status: 500, code: 'X', message: 'boom', timestamp: '' },
+            { status: 500 }
+          ),
+      ]);
+
+      await deleteAndSettle();
+
+      expect(calls.count).toBe(1);
+    });
+
+    // 누른 계정의 동작이 바뀐 계정으로 실행되면 안 된다(mutation-auth-epoch.ts)
+    it('다시 보내기 전에 계정이 바뀌었으면 보내지 않는다', async () => {
+      const calls = { count: 0 };
+      server.use(
+        http.delete(url(API_ENDPOINTS.post.comment(COMMENT_ID)), () => {
+          calls.count += 1;
+          AuthEpochUtil.markLogout();
+
+          return HttpResponse.error();
+        })
+      );
+
+      await deleteAndSettle();
+
+      expect(calls.count).toBe(1);
+    });
+  });
+
+  it('로그인 만료로 끝나면 목록을 다시 받지 않는다(캐시는 만료 정리가 맡는다)', async () => {
+    // 보호 경로의 만료는 무음 만료로 끝난다(account.queries.test.ts 선례)
+    useAuthStore.getState().expireSession(`/post/${POST_ID}`);
+    respondDelete(401, SERVER_ERROR_CODE.NOT_LOGGED_IN);
+    const { result } = renderHook(() => useDeleteCommentMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate(COMMENT_ID);
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.error).toBeInstanceOf(SessionExpiredError);
+    expect(isListInvalidated()).toBe(false);
   });
 });
 

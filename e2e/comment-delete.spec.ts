@@ -153,4 +153,128 @@ test.describe('댓글 삭제', () => {
     // 답글 본문은 그대로 남아있다.
     await expect(page.getByText('답글입니다')).toBeVisible();
   });
+
+  // 글 작성자가 글을 지우면 내 댓글도 함께 사라진다(comments.post_id FK cascade). 이때는 댓글 목록 재조회도
+  // 404라 캐시가 그대로 남으므로, 정보 안내와 함께 캐시에서 직접 빼야 그 댓글이 화면에서 사라진다.
+  test('글이 함께 지워져 이미 없는 댓글이면(404) 정보 안내만 뜨고 댓글이 빠진다', async ({
+    page,
+  }) => {
+    await setupRoutes(page, [mockComment], [], 1);
+
+    let goneOnServer = false;
+    const notFound = (code: string) => ({
+      status: 404,
+      json: { status: 404, code, message: 'gone', timestamp: new Date().toISOString() },
+    });
+
+    // LIFO라 setupRoutes의 핸들러보다 먼저 탄다
+    await page.route(
+      (url) => /^\/api\/comment\/[^/]+$/.test(url.pathname),
+      (route) => {
+        goneOnServer = true;
+
+        return route.fulfill(notFound('COMMENT_NOT_FOUND'));
+      }
+    );
+    await page.route(
+      (url) => /^\/api\/post\/[^/]+(\/comment)?$/.test(url.pathname),
+      (route) => (goneOnServer ? route.fulfill(notFound('POST_NOT_FOUND')) : route.fallback())
+    );
+
+    await page.goto(`/post/${mockPost.id}`);
+    await expect(page.getByRole('heading', { level: 3, name: mockPost.title })).toBeVisible();
+
+    await page.getByRole('button', { name: TEXTS.buttons.delete }).click();
+
+    const confirmDialog = page.getByRole('alertdialog');
+    await expect(confirmDialog).toBeVisible();
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await confirmDialog.getByRole('button', { name: TEXTS.buttons.delete }).click();
+
+    await expect(page.getByText(TEXTS.messages.info.commentAlreadyDeleted)).toBeVisible();
+    await expect(page.getByText(TEXTS.comment.list.empty)).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.success.commentDeleted)).toHaveCount(0);
+    await expect(page.getByText(TEXTS.messages.error.serverError)).toHaveCount(0);
+  });
+
+  test('응답이 끊기면 한 번 더 보내고, 첫 요청이 지웠으면(404) 이미 삭제 안내만 뜬다', async ({
+    page,
+  }) => {
+    await setupRoutes(page, [mockComment], [], 1);
+
+    let deleteCount = 0;
+
+    // LIFO라 setupRoutes의 핸들러보다 먼저 탄다
+    await page.route(
+      (url) => /^\/api\/comment\/[^/]+$/.test(url.pathname),
+      (route) => {
+        deleteCount += 1;
+
+        return deleteCount === 1
+          ? route.abort('failed')
+          : route.fulfill({
+              status: 404,
+              json: {
+                status: 404,
+                code: 'COMMENT_NOT_FOUND',
+                message: 'gone',
+                timestamp: new Date().toISOString(),
+              },
+            });
+      }
+    );
+    await page.route(
+      (url) => /^\/api\/post\/[^/]+\/comment$/.test(url.pathname),
+      (route) => (deleteCount > 0 ? route.fulfill({ json: wrapResponse([]) }) : route.fallback())
+    );
+
+    await page.goto(`/post/${mockPost.id}`);
+    await expect(page.getByRole('heading', { level: 3, name: mockPost.title })).toBeVisible();
+
+    await page.getByRole('button', { name: TEXTS.buttons.delete }).click();
+
+    const confirmDialog = page.getByRole('alertdialog');
+    await expect(confirmDialog).toBeVisible();
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await confirmDialog.getByRole('button', { name: TEXTS.buttons.delete }).click();
+
+    await expect(page.getByText(TEXTS.messages.info.commentAlreadyDeleted)).toBeVisible();
+    await expect(page.getByText(TEXTS.comment.list.empty)).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.error.serverError)).toHaveCount(0);
+    await expect(page.getByText(TEXTS.messages.error.deleteOutcomeUnknown)).toHaveCount(0);
+    expect(deleteCount).toBe(2);
+  });
+
+  test('두 번 다 응답이 없으면 댓글을 두고 삭제됐는지 확인하지 못했다고 안내한다', async ({
+    page,
+  }) => {
+    await setupRoutes(page, [mockComment], [], 1);
+
+    let deleteCount = 0;
+
+    // LIFO라 setupRoutes의 핸들러보다 먼저 탄다
+    await page.route(
+      (url) => /^\/api\/comment\/[^/]+$/.test(url.pathname),
+      (route) => {
+        deleteCount += 1;
+
+        return route.abort('failed');
+      }
+    );
+
+    await page.goto(`/post/${mockPost.id}`);
+    await expect(page.getByRole('heading', { level: 3, name: mockPost.title })).toBeVisible();
+
+    await page.getByRole('button', { name: TEXTS.buttons.delete }).click();
+
+    const confirmDialog = page.getByRole('alertdialog');
+    await expect(confirmDialog).toBeVisible();
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await confirmDialog.getByRole('button', { name: TEXTS.buttons.delete }).click();
+
+    await expect(page.getByText(TEXTS.messages.error.deleteOutcomeUnknown)).toBeVisible();
+    await expect(page.getByText(mockComment.content)).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.error.serverError)).toHaveCount(0);
+    expect(deleteCount).toBe(2);
+  });
 });
