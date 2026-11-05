@@ -1,3 +1,6 @@
+### 2026-11-05 (BE)
+- 게시글 목록 조회 성능 향상을 위한 커서 기반 페이징(Cursor-based Pagination) 도입 및 기존 페이지네이션 호환성 유지 ([#164](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/164))
+
 ### 2026-11-05 (FE)
 - 인증 이메일 보호 정책 문서 반영 및 API 스펙 최신화
 
