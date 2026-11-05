@@ -1,3 +1,6 @@
+### 2026-11-05 (BE)
+- 복원 후 초기 작업 발행 프로세스의 구간별 소요 시간 로깅 도입 ([#168](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/168))
+
 ### 2026-11-05 (FE)
 - 커서 기반 페이지네이션 도입 및 북마크 정렬 로직 최적화 ([#549](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/549))
 
