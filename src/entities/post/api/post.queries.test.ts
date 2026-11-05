@@ -19,6 +19,7 @@ import type { Post, PostListResponse } from '@/entities/post/model/post.schema';
 import type { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import {
   prefetchPostDetail,
+  recordPostView,
   useCreatePostMutation,
   useDeletePostMutation,
   usePrefetchPostDetail,
@@ -1018,5 +1019,64 @@ describe('prefetchPostDetail', () => {
       expect(queryClient.getQueryData(postKeys.detail(POST_ID))).toEqual(mockPost)
     );
     expect(errorToasts).toEqual([]);
+  });
+});
+
+describe('recordPostView', () => {
+  const viewUrl = url(`/post/${POST_ID}/view`);
+
+  beforeEach(() => {
+    queryClient = createTestQueryClient({ gcTime: Infinity });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('성공하면 폴더별 게시글 목록을 무효화해 최근 열람순·조회수순을 맞춘다', async () => {
+    server.use(
+      http.post(viewUrl, () => HttpResponse.json({ status: 200, message: 'ok', data: {} }))
+    );
+    queryClient.setQueryData(FOLDER_POSTS_KEY, { pages: [], pageParams: [] });
+
+    await recordPostView(queryClient, POST_ID);
+
+    expect(queryClient.getQueryState(FOLDER_POSTS_KEY)?.isInvalidated).toBe(true);
+  });
+
+  it('실패하면 토스트 없이 조용히 끝나고 목록을 무효화하지 않는다', async () => {
+    server.use(http.post(viewUrl, () => HttpResponse.json({ message: 'fail' }, { status: 500 })));
+    queryClient.setQueryData(FOLDER_POSTS_KEY, { pages: [], pageParams: [] });
+    const toastError = vi.spyOn(toast, 'error');
+
+    await expect(recordPostView(queryClient, POST_ID)).resolves.toBeUndefined();
+
+    expect(toastError).not.toHaveBeenCalled();
+    expect(queryClient.getQueryState(FOLDER_POSTS_KEY)?.isInvalidated).toBe(false);
+  });
+
+  it('진행 중에 isMutating이 0이다 — 만료 정리가 글만 보던 사용자에게 로그인 창을 열지 않는다', async () => {
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let requested = false;
+
+    server.use(
+      http.post(viewUrl, async () => {
+        requested = true;
+        await held;
+
+        return HttpResponse.json({ status: 200, message: 'ok', data: {} });
+      })
+    );
+
+    const pending = recordPostView(queryClient, POST_ID);
+
+    await waitFor(() => expect(requested).toBe(true));
+    expect(queryClient.isMutating()).toBe(0);
+
+    release();
+    await pending;
   });
 });

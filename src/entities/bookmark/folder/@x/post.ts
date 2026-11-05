@@ -6,5 +6,6 @@ export {
   handlePostContentUpdateSuccess,
   handlePostDeleteFailure,
   handlePostDeleteSuccess,
+  handlePostViewRecordedSuccess,
 } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
 export type { BookmarkFolderListResponse } from '@/entities/bookmark/folder/model/bookmark-folder.schema';

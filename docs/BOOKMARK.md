@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조·폴더 고정 순서를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-11-04
+> **마지막 검토**: 2026-11-05
 
 ## 1. 쉬운 설명
 
@@ -115,7 +115,8 @@ React Router의 URL 검색 파라미터(`useSearchParams`)와 TanStack Query의 
 
 - `folderKey`(경로의 `{key}`): `'all' | 'uncategorized' | UUID`
 - `sort`: `'latest' | 'oldest' | 'title' | 'views' | 'viewed'` — `viewed`(최근 열람순)는
-  개인별 열람 기록(BE `post_views` 테이블) 기준. 한 번도 안 연 글은 항상 맨 뒤
+  개인별 열람 기록(BE `post_views` 테이블) 기준. 한 번도 안 연 글은 항상 맨 뒤. 기록은 상세 화면이 뜰 때만 남고
+  카드 hover로는 바뀌지 않는다(`docs/POST.md` "조회 1회의 뜻")
 - `search`: 값이 있을 때만 쿼리에 붙는다(`bookmark-folder.api.ts`의
   `if (search) searchParams.search = search`)
 - 폴더 고정·해제(`PUT`/`DELETE …/pin`)는 "뒤집기"가 아니라 "그 상태로 만들기"라 멱등이다(BE #127,

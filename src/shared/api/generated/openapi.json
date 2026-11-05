@@ -2628,7 +2628,7 @@
         "tags": ["게시글"]
       },
       "get": {
-        "description": "비공개 글을 작성자 본인이 아닌 사용자가 조회하면(비로그인 포함) 존재 자체를 숨기기 위해 403 이 아니라 404 로 응답한다. 실패: 404 POST_NOT_FOUND",
+        "description": "비공개 글을 작성자 본인이 아닌 사용자가 조회하면(비로그인 포함) 존재 자체를 숨기기 위해 403 이 아니라 404 로 응답한다. 조회수와 열람 기록은 바꾸지 않는다(POST /post/{id}/view). 실패: 404 POST_NOT_FOUND",
         "operationId": "getPostById",
         "parameters": [
           {
@@ -2694,6 +2694,38 @@
           }
         },
         "summary": "게시글 수정",
+        "tags": ["게시글"]
+      }
+    },
+    "/post/{id}/view": {
+      "post": {
+        "description": "상세 화면이 뜰 때 FE가 한 번 부른다. 조회수를 1 올리고, 로그인 상태면 최근 열람 시각도 갱신한다. 볼 수 없는 글은 상세 조회와 같은 기준으로 404. 실패: 404 POST_NOT_FOUND",
+        "operationId": "recordPostView",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUnit"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "게시글 조회 기록",
         "tags": ["게시글"]
       }
     },

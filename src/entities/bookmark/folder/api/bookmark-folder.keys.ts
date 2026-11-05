@@ -123,6 +123,14 @@ export const handlePostContentUpdateSuccess = (queryClient: QueryClient) => {
 };
 
 /**
+ * 조회 기록 후 — 폴더별 게시글 목록 갱신 (최근 열람순·조회수순이 바뀜). 이 목록은 상세와 별도 캐시라 자동으로 알지
+ * 못해, staleTime(3분) 안에서는 방금 본 글이 새로고침해야만 반영됐다.
+ */
+export const handlePostViewRecordedSuccess = (queryClient: QueryClient) => {
+  bookmarkFolderInvalidateQueries.postsRoot(queryClient);
+};
+
+/**
  * 폴더 소속 변경(추가/제거/전체해제) 후 — 폴더 목록(bookmarkCount 변경) + 모든 폴더별 게시글 + post 목록/detail 갱신.
  * postsRoot 무효화가 새로 소속된 폴더 목록에 카드가 등장하는 걸 처리하므로, 낙관적 레이어는 삽입을 시도하지 않는다.
  */

@@ -291,7 +291,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 ### 상세
 
-- `usePostDetail`(`src/pages/post/hooks/usePostDetail.ts:76-109`)이
+- `usePostDetail`(`src/pages/post/hooks/usePostDetail.ts:75-112`)이
   `useSuspenseFetchPostDetailQuery`로 조회한다. 이 쿼리는 `retry: false`다(`post.queries.ts`)
   — 404는 재시도해도 같고 안내 화면만 늦어진다.
 - **미리 받기**: 상세 라우트(`PostDetailRoute`, `src/app/routes/index.tsx:246`)가 lazy 페이지 청크를 요청하는
@@ -311,11 +311,18 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   그려지기 전에(`useLayoutEffect`) 붙는다(§10 "noindex 메타가 안내 화면보다 늦게 붙던 문제"). 2026-10-05 이전에는
   토스트 후 `/post`로 replace했는데, 사라지는 토스트에만 기대고 주소까지 잃게 해 바꿨다(계획:
   `docs/plans/2026-10-05-url-error-responses.md`). 그 밖의 에러는 화면 안 `ErrorState`.
-- **열람 기록 반영**: 상세 조회가 BE `post_views`를 갱신하므로, 북마크의 "최근 열람순"을 맞추려고 정렬·폴더와
-  상관없이 폴더별 게시글 캐시 전체(`bookmarkFolderInvalidateQueries.postsRoot`)를 무효화한다(`usePostDetail.ts`의
-  `invalidateViewedSortOnPostView` effect).
+- **조회 1회의 뜻**: 상세 화면이 뜰 때마다 1회다. 같은 사람이 다시 들어와도 또 센다. `GET /post/{id}`는 글을 읽기만 하고,
+  화면이 뜬 뒤 `usePostDetail.ts`의 `recordPostViewOnEntry` effect가 `POST /post/{id}/view`를 보내야 조회수가 오르고 로그인
+  상태면 BE `post_views`도 갱신된다. 그래서 카드 hover 미리 받기·탭 복귀 재조회·댓글 뒤 재조회·수정 화면은 조회로 세지
+  않는다. `pnpm dev`(운영 API를 봄)에서는 보내지 않고, CI Lighthouse는 `lighthouserc.cjs`의 `blockedUrlPatterns`로
+  막는다. 비교한 대안과 근거는 `docs/plans/2026-11-05-post-view-record.md`.
+- **조회수 표시**: 받은 값은 이번 조회가 기록되기 전 값이라 상세에서 1을 더해 보여 준다(`PostCard.tsx`). 기록이 실패하면
+  그 화면만 1 많게 보이고 다음 조회에 맞는다. 실패는 토스트 없이 넘어간다.
+- **열람 기록 반영**: 기록에 성공하면 북마크의 "최근 열람순"·"조회수순"을 맞추려고 정렬·폴더와 상관없이 폴더별 게시글
+  캐시 전체를 무효화한다(`post.queries.ts`의 `recordPostView` → `handlePostViewRecordedSuccess`). `useMutation`을 쓰지 않는
+  이유는 로그인 만료 정리가 `isMutating()`을 보기 때문이다(그 함수의 주석).
 - **브라우저 탭 제목**: 상세가 떠 있는 동안 탭 제목을 `{글 제목} - Link Sphere`(`TEXTS.post.detail.documentTitle`)로
-  바꾸고, 상세를 떠나면 원래 제목으로 되돌린다(`usePostDetail.ts:93-106`, 2026-10-26). 설치본 react-dom 18.3.1은
+  바꾸고, 상세를 떠나면 원래 제목으로 되돌린다(`usePostDetail.ts:96-109`, 2026-10-26). 설치본 react-dom 18.3.1은
   컴포넌트에서 렌더한 `<title>`을 head로 올려 주지 않아(React 19부터) effect로 `document.title`을 바꾼다. 404 안내
   화면은 게시글을 받지 못해 기본 탭 제목(`Link Sphere`)이 그대로다. 카카오톡·슬랙 같은 링크 미리보기에는 이 제목이
   쓰이지 않는다(§11).
@@ -673,7 +680,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 댓글 작성·삭제(`commentCount` 변동)    | detail + list                      | `src/entities/comment/api/comment.keys.ts:26-49`                                                         |
 | 프로필 수정(작성자 닉네임·이미지)      | `post` 전체                        | `src/entities/account/api/account.keys.ts:29`                                                            |
 | 세션 복원 성공(비로그인으로 받은 목록) | list                               | `src/entities/auth/api/auth.keys.ts:15-17`                                                               |
-| 북마크 폴더 삭제·소속 변경             | list(+ 소속 변경 시 detail)        | `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:81-125`                                        |
+| 북마크 폴더 삭제·소속 변경             | list(+ 소속 변경 시 detail)        | `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:81-133`                                        |
 | 폴더 추가·제거·전체 해제 실패(롤백)    | list(detail은 스냅샷으로 복원)     | `src/entities/bookmark/folder/api/bookmark-folder.queries.ts`의 `rollbackBookmarkFolderMutation`         |
 | 좋아요·북마크 연타의 마지막 요청 실패  | detail + list                      | `src/entities/interaction/api/interaction.keys.ts`의 `handleLikePostFailure`·`handleBookmarkPostFailure` |
 | 다른 탭의 로그인을 이 탭이 받아들임    | 모든 쿼리(에러만 남은 캐시는 리셋) | `src/entities/auth/api/auth.keys.ts`의 `handleSessionAdoptedSuccess`                                     |
@@ -702,9 +709,9 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 조회 로딩 표시 지연                     | 500ms                | `src/shared/config/const.ts:11`                                   |
 | mutation 진행 표시 지연 / 최소 노출     | 500ms / 400ms        | `src/shared/config/const.ts:18-21`                                |
 | 쿼리 기본 staleTime / gcTime / retry    | 3분 / 5분 / 1회      | `src/shared/lib/react-query/config/queryClient.ts:72-75`          |
-| 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:229`                       |
+| 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:237`                       |
 | 미리보기 조회 디바운스                  | 500ms                | `src/entities/post/hooks/useLinkPreview.ts:9`                     |
-| 미리보기 staleTime / 재시도             | 10분 / 없음          | `src/entities/post/api/post.queries.ts:206-221`                   |
+| 미리보기 staleTime / 재시도             | 10분 / 없음          | `src/entities/post/api/post.queries.ts:210-225`                   |
 | 카테고리 옵션 staleTime                 | 24시간               | `src/entities/category/api/category.queries.ts:14`                |
 
 행 높이 추정치와 최소 카드 폭은 직접 측정한 값이다 — 측정 방법은 `post-card-grid.const.ts`의 주석과

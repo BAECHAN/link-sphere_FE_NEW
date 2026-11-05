@@ -73,6 +73,11 @@ export const postApi = {
     return await specClient.get('/post/{id}', { path: { id: postId } });
   },
 
+  /** 상세 화면이 뜰 때 조회를 기록한다 — 조회수 +1, 로그인 상태면 최근 열람 시각 갱신 */
+  recordPostView: async (postId: string): Promise<void> => {
+    return await specClient.post('/post/{id}/view', { path: { id: postId } });
+  },
+
   updatePostVisibility: async (postId: string, isPrivate: boolean): Promise<Post> => {
     return await specClient.patch('/post/{id}/visibility', {
       path: { id: postId },

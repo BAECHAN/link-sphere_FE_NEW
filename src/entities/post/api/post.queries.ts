@@ -45,6 +45,7 @@ import {
   handlePostContentUpdateSuccess,
   handlePostDeleteFailure,
   handlePostDeleteSuccess,
+  handlePostViewRecordedSuccess,
   BookmarkFolderListResponse,
 } from '@/entities/bookmark/folder/@x/post';
 import { ApiError, PaginationRequest } from '@/shared/types/common.type';
@@ -258,6 +259,20 @@ export const usePrefetchPostDetail = (postId: string) => {
  */
 export const prefetchPostDetail = (queryClient: QueryClient, postId: string) => {
   prefetchQueryQuietly(queryClient, postDetailQueryOptions(postId));
+};
+
+/**
+ * 상세 화면이 뜰 때 조회를 기록한다. useMutation을 쓰지 않는다 — 로그인 만료 정리(AuthUtil.applySessionExpired)가
+ * isMutating()으로 저장 중인지 보고 로그인 창을 열어, 글만 보던 사용자에게 토스트 대신 창이 뜨게 된다.
+ * 실패해도 사용자가 할 일이 없어 알리지 않는다.
+ */
+export const recordPostView = async (queryClient: QueryClient, postId: string): Promise<void> => {
+  try {
+    await postApi.recordPostView(postId);
+    handlePostViewRecordedSuccess(queryClient);
+  } catch {
+    // 이번 조회만 빠진다
+  }
 };
 
 /**
