@@ -1,4 +1,9 @@
 ### 2026-11-05 (BE)
+- 인프라 초기화 성능 개선 및 복원 후 서비스 가용성 최적화
+로그:
+- perf(infra): 복원 뒤 첫 작업 발행 지연을 줄이려 AWS SDK를 스냅샷 전에 데움 ([#166](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/166))
+
+### 2026-11-05 (BE)
 - 의미 검색 기능의 페이징 안정성 개선
 로그:
 - fix(post): 의미 검색 cursor의 점수 키를 정수로 바꿔 쪽 경계 중복을 없앰 ([#165](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/165))
