@@ -45,7 +45,7 @@ flowchart TD
   Feed -->|"Submit Link"| Create["작성 /post/submit"]
   Create -->|"URL 입력, 0.5초 멈춤·형식 OK"| Preview["GET /link-preview?url=<br/>URL 칸 아래 카드 미리보기<br/>(BE가 10분 캐시)"]
   Preview -->|"도메인 없음 등"| PreviewErr["카드 대신 URL 칸 에러"]
-  Create -->|"제출 → 버튼 '등록 중...'(응답 대기)"| CreateReq["POST /post (keepalive, Idempotency-Key)<br/>실패 시 폼 유지"]
+  Create -->|"제출 → 버튼 '등록 중...'(응답 대기)"| CreateReq["POST /post (keepalive, Idempotency-Key)<br/>응답 없으면 같은 키로 1번 더<br/>실패 시 폼 유지"]
   CreateReq -->|"성공"| CreateOk["필터 없는 목록 cancelQueries<br/>→ page 0 맨 앞에 끼워 넣고 page 1+ 버림<br/>→ post.list 무효화"]
   CreateOk -->|"그다음 폼에서"| CreateNav["clearNow·reset<br/>navigate /post replace<br/>(응답 전에 떠났으면 이동 안 함)"]
 
@@ -390,8 +390,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
      가드가 그대로 남고, 실패 원인은 7번 방식으로 안내한다. BE가 크롤링을 동기로 하지만
      실측 중앙값 2.7초라 기다리게 한다(근거·이전 방식과의 비교는 [`DECISIONS.md`](./DECISIONS.md)
      2026-10-03). 탭을 닫아도 요청이 끝까지 가도록 `keepalive`(`post.api.ts`의 `createPost`).
-   - 요청에는 `Idempotency-Key`를 싣는다(`post.queries.ts`의 `mutationFn`). 실패·끊김 뒤 같은 내용을 다시 보내면 같은
-     키라, BE가 키를 받기 시작하면 글이 둘이 되지 않고 기존 글이 돌아온다. 내용을 고치면 새 키다
+   - 요청에는 `Idempotency-Key`를 싣는다(`post.queries.ts`의 `mutationFn`). 응답을 못 받으면 약 1초 뒤 같은 키로 자동으로 1번 더
+     보내고, 그 뒤 사용자가 같은 내용을 다시 눌러도 같은 키라 글이 둘이 되지 않고 기존 글이 돌아온다. 내용을 고치면 새 키다
      ([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §27).
    - 저장 중 떠나려 하면 이탈 확인창이 뜬다. 확인창이 떠 있는 동안 성공하면 확인창이 닫히고 그대로 `/post`로
      간다. 응답 전에 "나가기"로 떠났으면 `useHasLeftPage`로 알아보고 이동하지 않는다(실패 안내는 7번 참고) —
@@ -611,8 +611,9 @@ _"오류든 성공이든 항상 다시 가져온다"_ (번역)를 실패 경로�
 - **수정·공개 전환·좋아요·북마크도 다시 보낸다**(2026-11-05, 요청별 결정은 `FE-ARCHITECTURE.md` §28). 수정은 같은 값을 다시 쓸 뿐이라
   결과가 같고, 그동안 버튼은 "수정 중..."이다. 제목을 비운 수정은 재수집·AI가 1회 더 돌지만 결과는 같다. 또 응답이 없으면 폼을 유지한
   채 실패 안내를 띄우고 글과 목록을 다시 받으며, 고치던 값은 `isDirty`라 덮이지 않는다.
-- **등록은 아직 다시 보내지 않는다.** 다시 보내면 결과가 늘어나므로 `Idempotency-Key`로 따로 푼다(`FE-ARCHITECTURE.md` §27). BE #158이
-  배포돼 서버가 키를 받기 전까지 `retry: false`이고, 응답을 못 받으면 안내와 함께 목록을 다시 받아 저장됐으면 보이게 한다.
+- **등록도 다시 보낸다**(2026-11-05, BE #158 배포 뒤). 같은 `Idempotency-Key`라 서버가 새 글을 만들지 않고 첫 글을 돌려준다(`FE-ARCHITECTURE.md`
+  §27). 그동안 버튼은 "등록 중..."이다. 또 응답이 없으면 버튼 위 안내(끊김은 `postSubmit.network`, 504는 `postSubmit.timeout`)와 함께 목록을 다시
+  받아 저장됐으면 보이게 한다. 키가 있어도 저장됐으면 다시 쓸 일이 없으니 "피드에서 먼저 확인" 안내는 그대로 둔다.
 - **화면을 떠난 뒤였으면** 등록·수정 모두 토스트 제목이 "처리됐는지 확인하지 못했어요"다(`leftPageFailure.outcomeUnknownTitle`).
 
 | 대안                                | 왜 지지 않았나                                                                                        |

@@ -25,7 +25,8 @@ export const shouldRetryQuery = (failureCount: number, error: unknown): boolean 
 
 /**
  * 삭제처럼 몇 번 보내도 결과가 같은 mutation의 재시도 정책 - 응답을 못 받았을 때만 1회 더 보내 결과를 확인한다.
- * 서버가 실패라고 답했으면 다시 보내지 않는다. 등록처럼 다시 보내면 결과가 늘어나는 요청에는 쓰지 않는다.
+ * 서버가 실패라고 답했으면 다시 보내지 않는다. 등록은 Idempotency-Key를 실어야 쓸 수 있다(서버가 같은 키의 기존
+ * 결과를 돌려준다, docs/FE-ARCHITECTURE.md §27). 키 없이 다시 보내면 결과가 늘어나는 요청에는 쓰지 않는다.
  * 근거는 RFC 9110 §9.2.2(멱등 메서드는 응답을 읽기 전에 끊기면 자동으로 반복할 수 있다, docs/POST.md "삭제").
  */
 export const shouldRetryIdempotentMutation = (failureCount: number, error: unknown): boolean => {

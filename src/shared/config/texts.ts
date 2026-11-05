@@ -536,7 +536,7 @@ export const TEXTS = {
       // 로그인이 만료됐거나 풀린 채 제출해 저장하지 못한 경우(SessionExpiredError) - 글·댓글 폼의 버튼 위 FormAlert
       signedOutBeforeSave: '로그인이 풀렸어요. 로그인한 뒤 저장해 주세요.',
       // 쓰기 요청의 응답을 못 받은 경우(ErrorUtil.isOutcomeUnknown) - 서버가 처리했을 수 있어 "실패"라고 하지 않는다.
-      // 다시 보내는 요청은 공용 문구, 다시 보내지 않는 요청은 다음 행동이 달라 요청별 문구를 쓴다
+      // 기본은 공용 문구이고, 다음 행동이 다른 요청(메일함 확인, 새 비밀번호로 로그인 등)은 요청별 문구를 쓴다
       // (docs/FE-ARCHITECTURE.md §28)
       outcomeUnknown: '처리됐는지 확인하지 못했어요. 연결을 확인하고 다시 시도해주세요.',
       accountCreateOutcomeUnknown:

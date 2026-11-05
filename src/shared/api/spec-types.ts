@@ -2,7 +2,8 @@ import type { paths } from '@/shared/api/generated/openapi.gen';
 
 // 생성된 스펙 타입(openapi.gen.ts의 paths)에서 경로·메서드별 요청·응답 타입을 꺼내는 타입 헬퍼다.
 // spec-client.ts가 쓴다. 런타임 코드는 없다. header·cookie 파라미터는 다루지 않는다 — 인증은
-// apiClient가 헤더·쿠키로 직접 붙이고, 스펙에도 header·cookie 파라미터를 받는 엔드포인트가 없다.
+// apiClient가 헤더·쿠키로 직접 붙이고, 스펙의 유일한 헤더 파라미터(Idempotency-Key)는 *.api.ts가 호출 옵션의 headers로
+// 싣는다(api 함수의 필수 인자라 빠뜨리면 컴파일이 막는다, docs/FE-ARCHITECTURE.md §27).
 
 export type SpecMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 

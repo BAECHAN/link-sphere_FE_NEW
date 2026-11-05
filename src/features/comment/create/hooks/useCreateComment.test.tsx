@@ -557,7 +557,7 @@ describe('useCreateComment', () => {
     });
   });
 
-  it('폼을 닫은 뒤 응답을 못 받으면 실패라고 단정하지 않는 제목으로 알린다', async () => {
+  it('폼을 닫은 뒤 다시 보낸 요청까지 응답을 못 받으면 실패라고 단정하지 않는 제목으로 알린다', async () => {
     const queryClient = createTestQueryClient({ gcTime: Infinity });
     let respond: (() => void) | null = null;
     server.use(
@@ -565,6 +565,11 @@ describe('useCreateComment', () => {
         await new Promise<void>((resolve) => {
           respond = resolve;
         });
+        // 다시 보낸 요청은 붙잡지 않고 바로 끊는다
+        server.use(
+          http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), () => HttpResponse.error())
+        );
+
         return HttpResponse.error();
       })
     );
@@ -588,7 +593,13 @@ describe('useCreateComment', () => {
     unmount();
     respond!();
 
-    await waitFor(() => expect(errorSpy).toHaveBeenCalled());
+    // 다시 보낸 요청이 끝난 뒤에 뜬다 - 앞선 테스트의 호출 기록이 남아 있어 제목까지 보고 기다린다
+    await waitFor(() =>
+      expect(errorSpy).toHaveBeenCalledWith(
+        TEXTS.messages.error.leftPageFailure.outcomeUnknownTitle,
+        expect.anything()
+      )
+    );
     expectLeftFormFailureToast(errorSpy, {
       title: TEXTS.messages.error.leftPageFailure.outcomeUnknownTitle,
       key: `comment-create:${POST_ID}:root`,

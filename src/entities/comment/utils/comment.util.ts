@@ -49,8 +49,8 @@ export class CommentUtil {
       return ErrorUtil.resolveImageUploadMessage(error, isUpdate ? 'save' : 'register') ?? fallback;
     }
 
-    // 등록은 그대로 다시 누르면 같은 댓글이 두 번 생길 수 있어 결과부터 확인하게 한다. 수정은 다시
-    // 보내도 같은 내용으로 덮어쓸 뿐이라 일반 안내로 충분하다.
+    // 등록은 저장됐을 수 있어 다시 받은 목록에서 결과부터 확인하게 한다(같은 내용을 다시 눌러도 같은 키라 둘이 되지는 않는다,
+    // docs/FE-ARCHITECTURE.md §27). 수정은 다시 보내도 같은 내용으로 덮어쓸 뿐이라 일반 안내로 충분하다.
     if (CommentUtil.isOutcomeUnknown(error)) {
       if (!isUpdate) {
         return TEXTS.messages.error.commentSubmit.outcomeUnknown;

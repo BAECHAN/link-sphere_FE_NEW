@@ -87,9 +87,10 @@ export const useCreatePostMutation = () => {
 
   return useMutation({
     mutationKey: postMutationKeys.create,
-    // BE #158 배포 전에는 서버가 키를 무시해 다시 보내면 중복이 생긴다
-    retry: false,
-    mutationFn: async (payload: CreatePost) => {
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: async (payload: CreatePost, context) => {
+      assertMutationAuthEpochUnchanged(context);
+
       return await IdempotencyKeyUtil.send(`post:${JSON.stringify(payload)}`, (key) =>
         postApi.createPost(payload, key)
       );

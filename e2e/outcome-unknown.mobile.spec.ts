@@ -9,12 +9,14 @@ import { isApiPath } from './mocks/route-match';
 import { wrapResponse } from './mocks/wrap-response';
 import { ENDPOINTS } from './mocks/endpoints';
 import { mockBookmarkFolder } from '@/mocks/fixtures/bookmark-folder.fixtures';
+import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import { mockPost, mockPostListResponse } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 
 const NEW_TITLE = '수정된 제목';
 const NEW_NICKNAME = '새로운닉';
 const NEW_FOLDER_NAME = '응답이 끊긴 폴더';
+const NEW_URL = 'https://newlink.example.com/article';
 
 // 응답을 못 받은 쓰기 요청(docs/FE-ARCHITECTURE.md §28)의 터치 기기 경로 - 데스크톱 스펙과 같은 장면을 본다.
 // 재전송은 mutation에서 돌아 화면과 무관하지만, 안내가 보이는지와 폼 입력·버튼이 남는지는 화면마다 따로 확인한다
@@ -72,6 +74,80 @@ test.describe('모바일 — 응답을 못 받은 쓰기 요청', () => {
     await expect(page.getByText(TEXTS.messages.success.postUpdated)).toBeVisible();
     await expect(page.getByText(TEXTS.messages.error.postSubmit.network)).toHaveCount(0);
     expect(patchCount).toBe(2);
+  });
+
+  test('글 등록의 응답이 끊기면 같은 키로 한 번 더 보내고, 저장되면 실패 안내 없이 피드로 돌아간다', async ({
+    page,
+  }) => {
+    const keys: (string | undefined)[] = [];
+
+    await mockCategoryOptions(page);
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.post.base),
+      (route) => {
+        if (route.request().method() !== 'POST') {
+          return route.fulfill({ json: wrapResponse(mockPostListResponse) });
+        }
+
+        keys.push(route.request().headers()['idempotency-key']);
+
+        if (keys.length === 1) {
+          return route.abort('failed');
+        }
+
+        return route.fulfill({ status: 201, json: wrapResponse({ ...mockPost, url: NEW_URL }) });
+      }
+    );
+
+    await page.goto('/post/submit');
+    await page.getByLabel(/^URL/).fill(NEW_URL);
+    await page.getByRole('button', { name: TEXTS.post.form.create.submit }).click();
+
+    await expect(page).toHaveURL(/\/post$/);
+    await expect(page.getByText(TEXTS.messages.success.postCreated)).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.error.postSubmit.network)).toHaveCount(0);
+    expect(keys).toHaveLength(2);
+    expect(keys[1]).toBe(keys[0]);
+  });
+
+  test('댓글 시트에서 등록의 응답이 끊기면 같은 키로 한 번 더 보내고, 댓글은 하나만 남는다', async ({
+    page,
+  }) => {
+    const keys: (string | undefined)[] = [];
+
+    await mockCategoryOptions(page);
+    await page.route(
+      (url) => /^\/api\/post\/[^/]+$/.test(url.pathname),
+      (route) => route.fulfill({ json: wrapResponse(mockPost) })
+    );
+    await page.route(
+      (url) => /^\/api\/post\/[^/]+\/comment$/.test(url.pathname),
+      (route) => {
+        if (route.request().method() !== 'POST') {
+          return route.fulfill({ json: wrapResponse(keys.length > 1 ? [mockComment] : []) });
+        }
+
+        keys.push(route.request().headers()['idempotency-key']);
+
+        if (keys.length === 1) {
+          return route.abort('failed');
+        }
+
+        return route.fulfill({ status: 201, json: wrapResponse(mockComment) });
+      }
+    );
+
+    await page.goto(`/post/${mockPost.id}`);
+    await page.getByRole('button', { name: TEXTS.ariaLabels.commentBarExpand }).click();
+    await page
+      .getByPlaceholder(TEXTS.comment.form.commentPlaceholder)
+      .fill('정말 유용한 글이네요!');
+    await page.getByRole('button', { name: new RegExp(TEXTS.comment.form.submitComment) }).click();
+
+    await expect(page.getByText(mockComment.content)).toHaveCount(1);
+    await expect(page.getByText(TEXTS.messages.error.commentSubmit.outcomeUnknown)).toHaveCount(0);
+    expect(keys).toHaveLength(2);
+    expect(keys[1]).toBe(keys[0]);
   });
 
   test('폴더를 만드는 응답이 끊긴 뒤 다시 보낸 요청이 이름 중복이면 첫 요청이 만든 폴더로 받아들인다', async ({
@@ -168,7 +244,7 @@ test.describe('모바일 — 응답을 못 받은 쓰기 요청', () => {
 
 // 재설정 메일은 로그인하지 않은 화면이라 로그인 흔적을 심는 auth.fixture를 쓰지 않는다
 guestTest(
-  '모바일 — 재설정 메일 요청의 응답이 끊기면 1번만 보내고, 메일함을 먼저 확인하라고 안내한다',
+  '모바일 — 재설정 메일 요청의 응답이 끊기면 1번 더 보내고, 그래도 없으면 메일함을 먼저 확인하라고 안내한다',
   async ({ page }) => {
     let requestCount = 0;
 
@@ -188,6 +264,6 @@ guestTest(
 
     await expect(page.getByText(TEXTS.messages.error.mailRequestOutcomeUnknown)).toBeVisible();
     await expect(page.getByText(TEXTS.messages.error.passwordResetRequestFailed)).toHaveCount(0);
-    expect(requestCount).toBe(1);
+    expect(requestCount).toBe(2);
   }
 );

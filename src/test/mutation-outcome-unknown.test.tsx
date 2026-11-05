@@ -242,9 +242,7 @@ const RESEND_CASES: MutationCase[] = [
       failed: TEXTS.messages.error.accountUpdateFailed,
     },
   },
-];
-
-const NO_RESEND_CASES: MutationCase[] = [
+  // 등록은 Idempotency-Key로 서버가 중복을 막아(docs/FE-ARCHITECTURE.md §27) 다시 보내도 하나만 생긴다
   {
     name: '글 등록',
     method: 'post',
@@ -300,6 +298,9 @@ const NO_RESEND_CASES: MutationCase[] = [
       failed: TEXTS.messages.error.emailVerificationRequestFailed,
     },
   },
+];
+
+const NO_RESEND_CASES: MutationCase[] = [
   {
     name: '로그인',
     method: 'post',
@@ -435,6 +436,36 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+/** 키를 실어 보내는 등록 요청 - 다시 보내도 같은 키여야 서버가 중복을 막는다 */
+const IDEMPOTENT_CREATE_CASES = RESEND_CASES.filter(({ name }) =>
+  ['글 등록', '댓글 등록', '답글 등록', '재설정 메일 요청', '인증 메일 요청'].includes(name)
+);
+
+describe('키를 실어 보내는 등록 요청', () => {
+  it.each(IDEMPOTENT_CREATE_CASES)(
+    '$name은 다시 보낼 때 같은 키를 싣는다',
+    async (mutationCase) => {
+      const keys: (string | null)[] = [];
+      let attempt = 0;
+      server.use(
+        http[mutationCase.method](`${API_BASE_URL}${mutationCase.path}`, ({ request }) => {
+          keys.push(request.headers.get('Idempotency-Key'));
+          attempt += 1;
+
+          return attempt === 1 ? CUT() : OK();
+        })
+      );
+
+      const outcome = await mutationCase.run();
+
+      expect(outcome.status).toBe('fulfilled');
+      expect(keys).toHaveLength(2);
+      expect(keys[0]).toBeTruthy();
+      expect(keys[1]).toBe(keys[0]);
+    }
+  );
 });
 
 describe('응답을 못 받으면 한 번 더 보내는 요청', () => {

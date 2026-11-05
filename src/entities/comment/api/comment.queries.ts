@@ -192,20 +192,25 @@ export const useCreateCommentMutation = (postId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    // BE #158 배포 전에는 서버가 키를 무시해 다시 보내면 중복이 생긴다
-    retry: false,
-    mutationFn: ({
-      content,
-      images,
-    }: {
-      content?: string;
-      images?: File[];
-      author: Comment['author'];
-    }) =>
-      IdempotencyKeyUtil.send(
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: (
+      {
+        content,
+        images,
+      }: {
+        content?: string;
+        images?: File[];
+        author: Comment['author'];
+      },
+      context
+    ) => {
+      assertMutationAuthEpochUnchanged(context);
+
+      return IdempotencyKeyUtil.send(
         buildCommentAttemptContent(`comment:${postId}`, { content, images }),
         (key) => commentApi.createComment(postId, { content, images }, key)
-      ),
+      );
+    },
     // 실패 원인은 폼이 버튼 위 FormAlert로 안내한다(useCreateComment) - 전역 토스트와 겹치지 않게 끈다
     meta: { manualErrorHandling: true },
     onMutate: async (variables) => {
@@ -251,22 +256,27 @@ export const useCreateReplyMutation = (postId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    // BE #158 배포 전에는 서버가 키를 무시해 다시 보내면 중복이 생긴다
-    retry: false,
-    mutationFn: ({
-      commentId,
-      content,
-      images,
-    }: {
-      commentId: string;
-      content?: string;
-      images?: File[];
-      author: Comment['author'];
-    }) =>
-      IdempotencyKeyUtil.send(
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: (
+      {
+        commentId,
+        content,
+        images,
+      }: {
+        commentId: string;
+        content?: string;
+        images?: File[];
+        author: Comment['author'];
+      },
+      context
+    ) => {
+      assertMutationAuthEpochUnchanged(context);
+
+      return IdempotencyKeyUtil.send(
         buildCommentAttemptContent(`reply:${commentId}`, { content, images }),
         (key) => commentApi.createReply(commentId, { content, images }, key)
-      ),
+      );
+    },
     // 실패 원인은 폼이 버튼 위 FormAlert로 안내한다(useCreateComment) - 전역 토스트와 겹치지 않게 끈다
     meta: { manualErrorHandling: true },
     onMutate: async (variables) => {

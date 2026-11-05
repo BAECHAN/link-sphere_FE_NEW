@@ -139,7 +139,7 @@ export interface paths {
     put?: never;
     /**
      * 이메일 인증 메일 발송/재발송
-     * @description 로그인 여부와 무관하게 이메일만으로 호출 가능하다. 존재하지 않는 계정·이미 인증된 계정이어도 항상 200을 반환한다(계정 상태 노출 방지). 실패: 429 RATE_LIMIT_EXCEEDED
+     * @description 로그인 여부와 무관하게 이메일만으로 호출 가능하다. 존재하지 않는 계정·이미 인증된 계정이어도 항상 200을 반환한다(계정 상태 노출 방지). Idempotency-Key 헤더(UUID)가 필수다. 같은 키의 링크가 아직 유효하면 메일을 다시 보내지 않고 200을 준다. 실패: 400 INVALID_INPUT(키 없음) · 400 INVALID_PATH_VARIABLE(키가 UUID 아님) · 429 RATE_LIMIT_EXCEEDED
      */
     post: operations['requestEmailVerification'];
     delete?: never;
@@ -239,7 +239,7 @@ export interface paths {
     put?: never;
     /**
      * 비밀번호 찾기 요청
-     * @description 이메일이 존재하지 않아도 항상 200을 반환한다(계정 존재 여부 노출 방지). 실제 회원이면 1시간짜리 재설정 링크를 메일로 보낸다. 실패: 429 RATE_LIMIT_EXCEEDED
+     * @description 이메일이 존재하지 않아도 항상 200을 반환한다(계정 존재 여부 노출 방지). 실제 회원이면 1시간짜리 재설정 링크를 메일로 보낸다. Idempotency-Key 헤더(UUID)가 필수다. 같은 키의 링크가 아직 유효하면 메일을 다시 보내지 않고 200을 준다. 실패: 400 INVALID_INPUT(키 없음) · 400 INVALID_PATH_VARIABLE(키가 UUID 아님) · 429 RATE_LIMIT_EXCEEDED
      */
     post: operations['requestPasswordReset'];
     delete?: never;
@@ -560,7 +560,7 @@ export interface paths {
     put?: never;
     /**
      * 답글 작성
-     * @description 답글의 답글은 허용하지 않는다(최대 depth 1). HTTP 상태와 본문 status 모두 201 이다. 실패: 404 COMMENT_NOT_FOUND(부모 댓글 없음) · 400 INVALID_INPUT(content·images 가 둘 다 비어 있음, depth 초과, 이미지 개수·본문 길이 초과)
+     * @description 답글의 답글은 허용하지 않는다(최대 depth 1). HTTP 상태와 본문 status 모두 201 이다. Idempotency-Key 헤더(UUID)가 필수다. 같은 회원이 같은 키로 다시 보내면 새로 만들지 않고 처음 답글을 201로 돌려준다. 실패: 404 COMMENT_NOT_FOUND(부모 댓글 없음) · 400 INVALID_INPUT(키 없음, content·images 가 둘 다 비어 있음, depth 초과, 이미지 개수·본문 길이 초과) · 400 INVALID_PATH_VARIABLE(키가 UUID 아님) · 409 DUPLICATE_COMMENT(다른 키로 1분 안에 같은 대상에 같은 본문을 등록함, 이미지 없는 답글만)
      */
     post: operations['createReply'];
     delete?: never;
@@ -681,7 +681,7 @@ export interface paths {
     put?: never;
     /**
      * 게시글 등록
-     * @description URL 을 크롤링해 메타데이터를 추출하고 AI 요약을 비동기로 채운다. 10분 안에 같은 URL을 GET /link-preview 로 미리 본 적이 있으면 크롤링 대신 그 결과를 쓴다. HTTP 상태와 본문 status 모두 201 이다. 실패: 400 INVALID_URL · 400 URL_UNRESOLVABLE(도메인 없음) · 400 URL_NOT_ALLOWED(내부망) · 403 EMAIL_NOT_VERIFIED · 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 429 RATE_LIMIT_EXCEEDED(회원당 시간당 등록 한도 초과)
+     * @description URL 을 크롤링해 메타데이터를 추출하고 AI 요약을 비동기로 채운다. 10분 안에 같은 URL을 GET /link-preview 로 미리 본 적이 있으면 크롤링 대신 그 결과를 쓴다. HTTP 상태와 본문 status 모두 201 이다. Idempotency-Key 헤더(UUID)가 필수다. 같은 회원이 같은 키로 다시 보내면 새로 만들지 않고 처음 글을 201로 돌려주며 한도도 쓰지 않는다. 실패: 400 INVALID_INPUT(키 없음) · 400 INVALID_PATH_VARIABLE(키가 UUID 아님) · 400 INVALID_URL · 400 URL_UNRESOLVABLE(도메인 없음) · 400 URL_NOT_ALLOWED(내부망) · 403 EMAIL_NOT_VERIFIED · 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 409 DUPLICATE_POST(다른 키로 1시간 안에 같은 URL을 등록함) · 429 RATE_LIMIT_EXCEEDED(회원당 시간당 등록 한도 초과)
      */
     post: operations['createPost'];
     delete?: never;
@@ -797,7 +797,7 @@ export interface paths {
     put?: never;
     /**
      * 댓글 작성
-     * @description HTTP 상태와 본문 status 모두 201 이다. 실패: 404 POST_NOT_FOUND · 400 INVALID_INPUT(content·images 가 둘 다 비어 있음, 이미지 개수·본문 길이 초과)
+     * @description HTTP 상태와 본문 status 모두 201 이다. Idempotency-Key 헤더(UUID)가 필수다. 같은 회원이 같은 키로 다시 보내면 새로 만들지 않고 처음 댓글을 201로 돌려준다. 실패: 404 POST_NOT_FOUND · 400 INVALID_INPUT(키 없음, content·images 가 둘 다 비어 있음, 이미지 개수·본문 길이 초과) · 400 INVALID_PATH_VARIABLE(키가 UUID 아님) · 409 DUPLICATE_COMMENT(다른 키로 1분 안에 같은 대상에 같은 본문을 등록함, 이미지 없는 댓글만)
      */
     post: operations['createComment'];
     delete?: never;
@@ -1429,7 +1429,9 @@ export interface operations {
   requestEmailVerification: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        'Idempotency-Key': string;
+      };
       path?: never;
       cookie?: never;
     };
@@ -1543,7 +1545,9 @@ export interface operations {
   requestPasswordReset: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        'Idempotency-Key': string;
+      };
       path?: never;
       cookie?: never;
     };
@@ -2039,7 +2043,9 @@ export interface operations {
   createReply: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        'Idempotency-Key': string;
+      };
       path: {
         commentId: string;
       };
@@ -2204,7 +2210,9 @@ export interface operations {
   createPost: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        'Idempotency-Key': string;
+      };
       path?: never;
       cookie?: never;
     };
@@ -2412,7 +2420,9 @@ export interface operations {
   createComment: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        'Idempotency-Key': string;
+      };
       path: {
         postId: string;
       };
