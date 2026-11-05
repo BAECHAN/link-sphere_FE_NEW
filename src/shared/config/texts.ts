@@ -478,11 +478,12 @@ export const TEXTS = {
       // 보기만 하던 공개 화면에서 로그인이 만료됐을 때 - 닫을 때까지 남는 토스트(AuthUtil.applySessionExpired)
       sessionExpired: '로그인이 만료됐어요. 다시 로그인하면 이어서 이용할 수 있어요.',
       // 삭제 요청이 404로 끝났을 때 - 응답이 끊겨 다시 보내 보니 첫 요청이 지웠거나, 다른 탭에서 지웠거나, 글 작성자가
-      // 글을 지워 댓글이 함께 사라진 경우다. 마지막 경우엔 "삭제했어요"가 사실이 아니라 이 문구를 쓴다(docs/POST.md "삭제")
-      postAlreadyDeleted: '이미 삭제된 포스트예요.',
-      commentAlreadyDeleted: '이미 삭제된 댓글이에요.',
+      // 글을 지워 댓글이 함께 사라진 경우다. 마지막 경우엔 "삭제했어요"가 사실이 아니라 이 문구를 쓴다. 항목이 사라지는 화면은
+      // 삭제 성공 때와 같아 내 요청이 지운 것처럼 보이므로 화면을 갱신했다고 함께 알린다(docs/POST.md "삭제")
+      postAlreadyDeleted: '이미 삭제된 포스트라 화면을 갱신했어요.',
+      commentAlreadyDeleted: '이미 삭제된 댓글이라 화면을 갱신했어요.',
       // 폴더 삭제가 404로 끝났을 때 - 다른 탭·기기에서 이미 지운 경우다(docs/BOOKMARK.md §5)
-      folderAlreadyDeleted: '이미 삭제된 폴더예요.',
+      folderAlreadyDeleted: '이미 삭제된 폴더라 화면을 갱신했어요.',
     },
     warning: {
       memberDeleteConfirm: '정말 이 회원을 삭제할까요? 삭제된 데이터는 복구할 수 없어요.',

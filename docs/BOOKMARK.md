@@ -979,9 +979,10 @@ _"수동적인 알림에는 적절하지만, 검증이든 다른 것이든 오�
 
 - **이미 지워진 폴더(404 `FOLDER_NOT_FOUND`)**: 다른 탭·기기에서 먼저 지운 폴더를 지우면 전에는 "폴더 삭제에 실패했어요."가
   떴다. 사용자가 원한 상태(폴더 없음)가 이미 이뤄진 것이라 실패가 아니다. 지금은 `useDeleteBookmarkFolderMutation`이 이를
-  `{ alreadyDeleted: true }`로 끝내 "이미 삭제된 폴더예요." 안내 1개를 띄우고, 성공과 같은 무효화로 목록에서 없앤다. 문구가
-  결과에 따라 갈려 성공 토스트도 `meta.successMessage`에서 `onSuccess`로 옮겼다(글·댓글 삭제와 같은 형태, `docs/POST.md`
-  "이미 없는 글·댓글을 지우면").
+  `{ alreadyDeleted: true }`로 끝내 "이미 삭제된 폴더라 화면을 갱신했어요." 안내 1개를 띄우고, 성공과 같은 무효화로 목록에서
+  없앤다. 문구가 결과에 따라 갈려 성공 토스트도 `meta.successMessage`에서 `onSuccess`로 옮겼다(글·댓글 삭제와 같은 형태,
+  `docs/POST.md` "이미 없는 글·댓글을 지우면"에 문구를 고른 이유가 있다). 글과 달리 폴더는 낙관적으로 먼저 빼지 않아 토스트가
+  뜨고 재조회가 끝나야 사라지며, 재조회까지 실패하면 폴더가 남은 채 이 문구가 보인다. 드문 경우라 그대로 둔다.
 - **같은 이름 폴더(409 `DUPLICATE_FOLDER_NAME`)**: 회원별로 폴더 이름은 유일하다(BE `uk_bookmark_folders_user_name`). 전에는
   이 이유를 알리지 않고 "폴더 생성에 실패했어요."·"이름 변경에 실패했어요."만 띄웠다. 지금은 폴더 만들기 2곳(사이드바, 폴더
   선택 창)과 이름 바꾸기가 `BookmarkFolderUtil.resolveNameSaveErrorMessage`로 "이미 같은 이름의 폴더가 있어요."를 띄운다.
@@ -1238,7 +1239,7 @@ src/
 │           │   │                         # useRenameBookmarkFolder를 그대로 돌려준다. 고정은 ⋮ 메뉴가 다 닫힌 뒤 보낸다
 │           │   │                         # (queuePinToggle → handleMenuCloseAutoFocus, §10). 삭제 확인창은 emphasis: 'confirm'
 │           │   │                         # (docs/DECISIONS.md 2026-09-29 항목). 삭제 성공 토스트
-│           │   │                         # "폴더를 삭제했어요."·"이미 삭제된 폴더예요."는 entity onSuccess(2026-11-05)
+│           │   │                         # "폴더를 삭제했어요."·"이미 삭제된 폴더라 화면을 갱신했어요."는 entity onSuccess(2026-11-05)
 │           │   └── useCreateFolderForm.ts # 폴더 생성 폼 코어 로직 — 사이드바·모바일 카드 공유. 글자 수
 │           │                              # (nameLength·nameCountId)도 여기서 돌려준다(§5 "폴더 이름 글자 수")
 │           └── ui/
