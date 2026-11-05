@@ -1,3 +1,6 @@
+### 2026-11-05 (BE)
+- 게시글, 댓글, 메일 요청 시 Idempotency-Key 헤더를 필수값으로 설정하여 중복 요청에 대한 처리 안정성 및 데이터 정합성 강화 ([#158](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/158))
+
 ### 2026-11-05 (FE)
 - 쓰기 요청 재시도 로직 도입 및 오류 상황에 대한 사용자 안내 고도화 ([#543](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/543))
 
