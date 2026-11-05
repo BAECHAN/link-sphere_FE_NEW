@@ -1360,7 +1360,7 @@
     },
     "/auth/email-availability": {
       "get": {
-        "description": "가입 화면에서 쓰는 중복 검사. 대소문자를 구분하지 않는다.",
+        "description": "가입 화면에서 쓰는 중복 검사. 대소문자를 구분하지 않는다. 실패: 429 RATE_LIMIT_EXCEEDED(IP당 시간당 한도)",
         "operationId": "checkEmailAvailability",
         "parameters": [
           {

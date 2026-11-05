@@ -8,7 +8,7 @@
 > **읽고 나면**: 서비스 전체 그림을 한 장으로 설명할 수 있고, 어떤 기능을 고쳐야 할 때 어느
 > 레포의 어느 문서·코드부터 보면 되는지 안다.
 >
-> **마지막 검토**: 2026-10-30
+> **마지막 검토**: 2026-11-05 (기능 지도 행만 추가. 전체 검토는 2026-10-30)
 
 ---
 
@@ -93,6 +93,7 @@ flowchart LR
 | 에러 페이지                                    | `/403`, `/500`, 그 외 404                                 | `pages/403/`, `pages/404/`, `pages/500/`                                                    | —                            | 없음(아래 요약)                                                                                                           | —                                                                                                                                                                                                                                            |
 | 배포 버전 확인·새 버전 자동 새로고침           | `/version`                                                | `pages/version/`                                                                            | —                            | [CACHE-STRATEGY](./CACHE-STRATEGY.md), [BUILD-VERSION](./BUILD-VERSION.md), [NEW-VERSION-RELOAD](./NEW-VERSION-RELOAD.md) | —                                                                                                                                                                                                                                            |
 | 실사용자 모니터링                              | (화면 없음)                                               | —                                                                                           | —                            | [RUM](./RUM.md)                                                                                                           | —                                                                                                                                                                                                                                            |
+| 개인정보 보호 정책(이메일 저장·로그·보관)      | (화면 없음)                                               | —                                                                                           | `auth`, `member`             | —                                                                                                                         | [DATA-PROTECTION](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/DATA-PROTECTION.md)                                                                                                                                           |
 
 경로 표기는 `src/` 아래 기준이다(`features/auth/*` = `src/features/auth/` 아래 슬라이스 전부).
 

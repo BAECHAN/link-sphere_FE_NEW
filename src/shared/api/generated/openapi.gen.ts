@@ -97,7 +97,7 @@ export interface paths {
     };
     /**
      * 이메일 사용 가능 여부 확인
-     * @description 가입 화면에서 쓰는 중복 검사. 대소문자를 구분하지 않는다.
+     * @description 가입 화면에서 쓰는 중복 검사. 대소문자를 구분하지 않는다. 실패: 429 RATE_LIMIT_EXCEEDED(IP당 시간당 한도)
      */
     get: operations['checkEmailAvailability'];
     put?: never;
