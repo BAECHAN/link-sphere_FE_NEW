@@ -43,12 +43,8 @@ async function mockVariedHeightPosts(page: Page): Promise<void> {
   }));
 
   const body: PostListResponse = {
-    page: 0,
-    size: POST_COUNT,
     content,
-    totalElements: POST_COUNT,
-    totalPages: 1,
-    last: true,
+    nextCursor: null,
   };
 
   await page.route('**/e2e-og/**', (route) => route.abort());

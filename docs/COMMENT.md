@@ -112,16 +112,16 @@ Playwright e2e(`page.route()` 모킹) — §9 참고.
 
 경로 정의는 `src/shared/config/api.ts:49-56`, 호출은 `src/entities/comment/api/comment.api.ts`.
 
-| 메서드   | 경로                         | 용도                                                         |
-| -------- | ---------------------------- | ------------------------------------------------------------ |
-| `GET`    | `/post/{postId}/comment`     | 게시글의 댓글 트리(루트 + `replies`) 전체, 페이지네이션 없음 |
-| `POST`   | `/post/{postId}/comment`     | 루트 댓글 등록 `{ content, images: string[] }`               |
-| `POST`   | `/comment/{commentId}/reply` | 답글 등록(바디 동일)                                         |
-| `PATCH`  | `/comment/{commentId}`       | 수정 `{ content, images: [...기존 URL, ...새 업로드 URL] }`  |
-| `DELETE` | `/comment/{commentId}`       | 삭제                                                         |
-| `PUT`    | `/comment/{commentId}/like`  | 좋아요(멱등, `entities/interaction`이 소유)                  |
-| `DELETE` | `/comment/{commentId}/like`  | 좋아요 취소(멱등). 옛 `POST` 토글은 2026-10-14 제거(BE #92)  |
-| `GET`    | `/comment/my?page&size`      | 내 댓글 페이지(`postId`·`postTitle` 포함, 0부터 시작)        |
+| 메서드   | 경로                         | 용도                                                                                       |
+| -------- | ---------------------------- | ------------------------------------------------------------------------------------------ |
+| `GET`    | `/post/{postId}/comment`     | 게시글의 댓글 트리(루트 + `replies`) 전체, 페이지네이션 없음                               |
+| `POST`   | `/post/{postId}/comment`     | 루트 댓글 등록 `{ content, images: string[] }`                                             |
+| `POST`   | `/comment/{commentId}/reply` | 답글 등록(바디 동일)                                                                       |
+| `PATCH`  | `/comment/{commentId}`       | 수정 `{ content, images: [...기존 URL, ...새 업로드 URL] }`                                |
+| `DELETE` | `/comment/{commentId}`       | 삭제                                                                                       |
+| `PUT`    | `/comment/{commentId}/like`  | 좋아요(멱등, `entities/interaction`이 소유)                                                |
+| `DELETE` | `/comment/{commentId}/like`  | 좋아요 취소(멱등). 옛 `POST` 토글은 2026-10-14 제거(BE #92)                                |
+| `GET`    | `/comment/my?cursor&size`    | 내 댓글(`postId`·`postTitle` 포함). 첫 쪽은 `cursor` 없이, 다음 쪽은 응답의 `nextCursor`로 |
 
 응답 타입은 BE OpenAPI 생성 타입의 alias다(`src/entities/comment/model/comment.dto.ts`).
 `Comment`는 `linkMetadata`의 nullable과 `replies` 재귀를 직접 override한다 — 이유는 그
@@ -392,8 +392,8 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 - `MyCommentPage`(`src/pages/mycomment/MyCommentPage.tsx`) → `MyCommentList` →
   `useMyCommentList`. 보호 경로다(`src/shared/config/route-paths.ts:45`).
-- `useSuspenseMyCommentsInfiniteQuery`(comment.queries.ts)가 0페이지부터 10개씩
-  가져오고, `select`에서 페이지 경계 중복 id를 걸러 낸다.
+- `useSuspenseMyCommentsInfiniteQuery`(comment.queries.ts)가 10개씩 가져온다. 첫 쪽은 `cursor` 없이, 다음 쪽은 직전 응답의
+  `nextCursor`로 받고([BE `docs/PAGINATION.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/PAGINATION.md)), `select`에서 쪽 경계 중복 id를 걸러 낸다.
 - 다음 페이지는 목록 끝 감시 요소가 화면 아래 1200px 안에 들어오면 미리 부른다
   (`src/widgets/comment/my-comment-list/hooks/useMyCommentList.ts:24`). 진행 중인 요청이 있거나 직전 요청이
   실패했으면 감시를 끈다. 다음 페이지가 실패하면 감시 요소 자리에 "더 불러오지 못했어요. [다시 시도]" 행을 둔다

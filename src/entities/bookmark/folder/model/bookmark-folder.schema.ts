@@ -7,7 +7,7 @@ export const createBookmarkFolderSchema = z.object({
 });
 
 // 폴더 페이지 조회용 sort
-export const bookmarkFolderSortEnum = z.enum(['latest', 'oldest', 'title', 'views', 'viewed']);
+export const bookmarkFolderSortEnum = z.enum(['latest', 'oldest', 'title', 'viewed']);
 
 // folderKey: 'all' | 'uncategorized' | UUID
 export type BookmarkFolderKey = 'all' | 'uncategorized' | (string & {});

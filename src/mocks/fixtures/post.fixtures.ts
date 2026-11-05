@@ -38,10 +38,6 @@ export const mockPost: Post = {
 };
 
 export const mockPostListResponse: PostListResponse = {
-  page: 0,
-  size: 10,
   content: [mockPost],
-  totalElements: 1,
-  totalPages: 1,
-  last: true,
+  nextCursor: null,
 };

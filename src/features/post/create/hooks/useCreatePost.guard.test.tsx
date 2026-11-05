@@ -295,10 +295,8 @@ describe('useCreatePost - 저장 중 이탈', () => {
   it('"계속 작성"으로 머문 뒤 등록이 성공하면 피드로 가고 새 글이 목록 맨 앞에 있다', async () => {
     const queryClient = createTestQueryClient({ gcTime: Infinity });
     queryClient.setQueryData(postKeys.list(), {
-      pages: [
-        { page: 0, size: 10, content: [mockPost], totalElements: 1, totalPages: 1, last: true },
-      ],
-      pageParams: [0],
+      pages: [{ content: [mockPost], nextCursor: null }],
+      pageParams: [null],
     });
     const gate = holdCreateResponse(createSucceeded);
     const { router } = renderCreatePost({ queryClient });

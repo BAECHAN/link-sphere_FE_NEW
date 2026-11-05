@@ -55,6 +55,13 @@
 
 ### Changed
 
+- `shared` 피드·북마크·내 댓글 목록을 쪽 번호 대신 cursor로 이어 읽음
+  <details><summary>배경·구현</summary>
+
+  쪽 번호 방식은 쪽 사이에 글이 지워지거나 올라오면 글을 건너뛰거나 다시 받는다. 세 목록 모두 `cursor`·`size`로 요청하고 응답의 `nextCursor`를 그대로 넘기도록 바꿨다. `totalElements`를 읽고 쓰던 코드를 없앴고, 북마크 hover 미리 받기는 목록과 같은 옵션을 쓰도록 합쳤다(따로 두면 첫 쪽에서 목록이 끝날 수 있다). 지금 규모에서 체감 차이는 없고 큰 규모의 판단 자료를 얻으려는 사용자 결정이다. 근거는 `docs/DECISIONS.md` 2026-11-05, 측정은 [BE `docs/PAGINATION.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/PAGINATION.md).
+
+  </details>
+
 - `shared` 글·댓글·답글 등록과 메일 요청도 응답이 없으면 같은 키로 한 번 더 보냄
   <details><summary>배경·구현</summary>
 
@@ -355,6 +362,15 @@
   <details><summary>배경·구현</summary>
 
   탈퇴 요청(`DELETE /auth/account`, 비밀번호 본문)이 CloudFront OAC가 Lambda Function URL에 보내는 서명 단계에서 403으로 막혀 앱에 닿지 못했고, 화면에는 일반 실패 토스트가 떴다. 2026-11-02 운영에서 확인한 결과, 본문 있는 DELETE만 막히고 본문 없는 DELETE와 본문 있는 POST·PATCH는 통과했다. BE가 탈퇴를 `POST /auth/account/deletion`으로 옮겨(본문·권한·응답은 그대로) FE도 호출을 바꾸고 생성 스펙을 다시 만들었다. 같은 이유로 BE의 FCM 토큰 해제도 `POST /fcm/token/deletion`으로 옮겼지만 FE는 그 API를 호출하지 않는다(로그아웃은 Firebase `deleteToken`). (`src/entities/account/api/account.api.ts`, `src/shared/config/api.ts`, `src/mocks/handlers/account.handlers.ts`, `src/shared/api/generated/openapi.*`, `docs/FCM-PUSH-NOTIFICATION.md`, [PR #482](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/482))
+
+  </details>
+
+### Removed
+
+- `bookmark` 북마크 정렬에서 조회수순을 없앰
+  <details><summary>배경·구현</summary>
+
+  사용자 결정이다(`docs/DECISIONS.md` 2026-11-05). 옛 링크의 `?sort=views`는 최신순으로 돌아간다.
 
   </details>
 

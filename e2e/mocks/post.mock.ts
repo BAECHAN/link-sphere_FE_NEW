@@ -61,9 +61,9 @@ function pagedPost(index: number): Post {
  * 나중에 등록한 쪽만 살아남는다(위 installCatchAll 관례와 동일한 이유). 스펙마다 둘 중
  * 하나만 쓴다.
  *
- * last는 `start + size >= total`로 정확히 계산한다 — post.queries.ts의 getNextPageParam이
+ * nextCursor는 `start + size >= total`이면 null이다 — post.queries.ts의 getNextPageParam이
  * 오직 이 값만 보고 다음 페이지 유무를 판단하므로, 틀리면 마지막 페이지 이후에도 요청이
- * 계속 나가거나(항상 false) 스크롤이 조기에 멈춘다(항상 true).
+ * 계속 나가거나(항상 값이 있음) 스크롤이 조기에 멈춘다(항상 null).
  */
 export async function mockPostListPaged(
   page: Page,
@@ -73,17 +73,13 @@ export async function mockPostListPaged(
     (url) => isApiPath(url, ENDPOINTS.post.base),
     (route) => {
       const params = new URL(route.request().url()).searchParams;
-      const pageParam = Number(params.get('page') ?? 0);
-      const start = pageParam * size;
+      // cursor는 앱이 해석하지 않는 값이다. 목은 다음 글의 위치를 담아 돌려준다
+      const start = Number(params.get('cursor') ?? 0);
       const length = Math.max(0, Math.min(size, total - start));
 
       const body: PostListResponse = {
-        page: pageParam,
-        size,
         content: Array.from({ length }, (_, offset) => pagedPost(start + offset)),
-        totalElements: total,
-        totalPages: Math.ceil(total / size),
-        last: start + size >= total,
+        nextCursor: start + size >= total ? null : String(start + size),
       };
 
       return route.fulfill({ json: wrapResponse(body) });

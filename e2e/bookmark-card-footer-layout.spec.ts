@@ -30,12 +30,8 @@ async function mockWorstCaseBookmarkPosts(page: Page, total: number): Promise<vo
   }));
 
   const body: PostListResponse = {
-    page: 0,
-    size: total,
     content,
-    totalElements: total,
-    totalPages: 1,
-    last: true,
+    nextCursor: null,
   };
 
   await page.route(

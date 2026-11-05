@@ -36,16 +36,16 @@ export const postApi = {
    * @returns PostListResponse
    */
   fetchPostList: async (payload: PostListRequest): Promise<PostListResponse> => {
-    const { page, size, search, category, filter, nickname } = payload;
+    const { cursor, size, search, category, filter, nickname } = payload;
 
-    if (page === 0) {
+    if (!cursor) {
       NProgress.start();
     }
 
     try {
       const searchParams: PostListRequest = {
-        page,
         size,
+        ...(cursor && { cursor }),
         ...(search && { search }),
         ...(category && { category }),
         ...(filter && { filter }),
@@ -54,7 +54,7 @@ export const postApi = {
 
       return await specClient.get('/post', { query: searchParams });
     } finally {
-      if (page === 0) {
+      if (!cursor) {
         NProgress.done();
       }
     }

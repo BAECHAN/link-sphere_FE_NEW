@@ -1,5 +1,6 @@
 import {
   InfiniteData,
+  infiniteQueryOptions,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -45,7 +46,7 @@ import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
 import { ErrorUtil } from '@/shared/utils/error.util';
-import { ApiError, PaginationRequest } from '@/shared/types/common.type';
+import { ApiError } from '@/shared/types/common.type';
 
 // ==================== Queries ====================
 
@@ -80,22 +81,35 @@ export const prefetchBookmarkFolderList = (queryClient: QueryClient) => {
   });
 };
 
+/**
+ * 폴더별 게시글의 키·queryFn·쪽 계산 — hover 미리 받기(prefetchBookmarkFolderPosts)가 채운 캐시를 목록 화면이 그대로
+ * 읽으므로 둘이 한곳의 옵션을 쓴다. 따로 적으면 쪽 계산이 어긋나도 같은 키라 조용히 섞여 그 폴더가 첫 쪽에서 끝난다.
+ */
+const bookmarkFolderPostsInfiniteOptions = (
+  folderKey: BookmarkFolderKey,
+  sort?: BookmarkFolderSort,
+  search?: string
+) =>
+  infiniteQueryOptions({
+    queryKey: bookmarkFolderKeys.posts(folderKey, sort, search),
+    queryFn: ({ pageParam }: { pageParam: string | null }) =>
+      bookmarkFolderApi.fetchBookmarkFolderPosts(folderKey, {
+        cursor: pageParam ?? undefined,
+        size: POST_PAGE_SIZE,
+        sort,
+        search,
+      }),
+    initialPageParam: null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+  });
+
 export const useBookmarkFolderPostsInfiniteQuery = (
   folderKey: BookmarkFolderKey,
   sort?: BookmarkFolderSort,
   search?: string
 ) => {
   return useInfiniteQuery({
-    queryKey: bookmarkFolderKeys.posts(folderKey, sort, search),
-    queryFn: ({ pageParam }: { pageParam: PaginationRequest['page'] }) =>
-      bookmarkFolderApi.fetchBookmarkFolderPosts(folderKey, {
-        page: pageParam,
-        size: POST_PAGE_SIZE,
-        sort,
-        search,
-      }),
-    initialPageParam: 0,
-    getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.page + 1),
+    ...bookmarkFolderPostsInfiniteOptions(folderKey, sort, search),
     select: (data) => {
       const seen = new Set<string>();
       const posts = data.pages
@@ -105,7 +119,6 @@ export const useBookmarkFolderPostsInfiniteQuery = (
         pages: data.pages,
         pageParams: data.pageParams,
         posts,
-        totalElements: data.pages[0]?.totalElements ?? 0,
         correctedSearch: data.pages[0]?.correctedSearch,
       };
     },
@@ -113,7 +126,7 @@ export const useBookmarkFolderPostsInfiniteQuery = (
 };
 
 /**
- * hover 시 폴더 게시글 첫 페이지 미리 로드 — useBookmarkFolderPostsInfiniteQuery 와 동일 키/queryFn. 실패해도
+ * hover 시 폴더 게시글 첫 페이지 미리 로드 — useBookmarkFolderPostsInfiniteQuery 와 같은 옵션. 실패해도
  * 토스트 없이 지워 목록이 열리면 새로 요청한다(prefetchInfiniteQueryQuietly)
  */
 export const prefetchBookmarkFolderPosts = (
@@ -122,19 +135,10 @@ export const prefetchBookmarkFolderPosts = (
   sort?: BookmarkFolderSort,
   search?: string
 ) => {
-  prefetchInfiniteQueryQuietly(queryClient, {
-    queryKey: bookmarkFolderKeys.posts(folderKey, sort, search),
-    queryFn: ({ pageParam }: { pageParam: PaginationRequest['page'] }) =>
-      bookmarkFolderApi.fetchBookmarkFolderPosts(folderKey, {
-        page: pageParam,
-        size: POST_PAGE_SIZE,
-        sort,
-        search,
-      }),
-    initialPageParam: 0,
-    getNextPageParam: (lastPage: PostListResponse) =>
-      lastPage.last ? undefined : lastPage.page + 1,
-  });
+  prefetchInfiniteQueryQuietly(
+    queryClient,
+    bookmarkFolderPostsInfiniteOptions(folderKey, sort, search)
+  );
 };
 
 // ==================== Mutations ====================
@@ -508,7 +512,6 @@ function removePostFromFolderPostsCache(
         pages: oldData.pages.map((page) => ({
           ...page,
           content: page.content.filter((post) => post.id !== postId),
-          totalElements: Math.max(0, page.totalElements - 1),
         })),
       };
     }
@@ -550,7 +553,7 @@ function rollbackBookmarkFolderMutation(
  * - post.detail/list: bookmarkFolderIds 에 folderId 추가, isBookmarked=true, 미북마크였다면 bookmarkCount +1
  * - folder.list: 그 폴더 bookmarkCount +1(신규 소속일 때만), 미분류를 떠나면 uncategorizedCount -1
  * - folder.posts: 미분류를 떠나는 경우에만 'uncategorized' 캐시에서 카드 제거. 새 폴더/전체 캐시엔 삽입하지
- *   않는다 — sort=title/views/관련도 정렬에서 위치를 알 수 없어서. 등장은 성공 후 postsRoot 무효화가 처리.
+ *   않는다 — sort=title/관련도 정렬에서 위치를 알 수 없어서. 등장은 성공 후 postsRoot 무효화가 처리.
  */
 export const useAddBookmarkFolderMutation = (postId: string) => {
   const queryClient = useQueryClient();

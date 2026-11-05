@@ -33,12 +33,8 @@ function fulfillPostList(route: Route, isFiltered: boolean): Promise<void> {
 
   return route.fulfill({
     json: wrapResponse({
-      page: 0,
-      size: count,
       content,
-      totalElements: count,
-      totalPages: 1,
-      last: true,
+      nextCursor: null,
     }),
   });
 }

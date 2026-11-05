@@ -61,12 +61,8 @@ export async function mockRemoveFromFolderScene(page: Page, { fail }: { fail: bo
 
       return route.fulfill({
         json: wrapResponse({
-          page: 0,
-          size: 10,
           content,
-          totalElements: content.length,
-          totalPages: 1,
-          last: true,
+          nextCursor: null,
         }),
       });
     }

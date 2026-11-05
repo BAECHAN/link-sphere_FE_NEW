@@ -31,7 +31,7 @@ test.describe('목록 조회 실패', () => {
     await page.route(
       (url) => isApiPath(url, ENDPOINTS.post.base),
       (route) => {
-        const pageParam = Number(new URL(route.request().url()).searchParams.get('page') ?? 0);
+        const pageParam = new URL(route.request().url()).searchParams.get('cursor') ? 1 : 0;
 
         if (pageParam > 0) {
           nextPageRequests.push(pageParam);
@@ -46,15 +46,11 @@ test.describe('목록 조회 실패', () => {
 
         return route.fulfill({
           json: wrapResponse({
-            page: pageParam,
-            size: POST_PAGE_SIZE,
             content: Array.from({ length: POST_PAGE_SIZE }, (_, offset) => {
               const index = pageParam * POST_PAGE_SIZE + offset;
               return { ...mockPost, id: `e2e-post-${index}`, title: `E2E Post ${index}` };
             }),
-            totalElements: POST_PAGE_SIZE * 2,
-            totalPages: 2,
-            last: pageParam >= 1,
+            nextCursor: pageParam >= 1 ? null : 'cursor-1',
           }),
         });
       }

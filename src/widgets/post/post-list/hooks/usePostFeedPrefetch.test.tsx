@@ -73,7 +73,7 @@ function mockPostList(requests: ListRequest[], hideBotsDelayMs = 0) {
         {
           status: 200,
           message: 'ok',
-          data: { ...mockPostListResponse, content: [], totalElements: 0 },
+          data: { ...mockPostListResponse, content: [] },
           timestamp: '',
         },
         { status: 200 }

@@ -48,15 +48,14 @@ import {
   handlePostViewRecordedSuccess,
   BookmarkFolderListResponse,
 } from '@/entities/bookmark/folder/@x/post';
-import { ApiError, PaginationRequest } from '@/shared/types/common.type';
+import { ApiError } from '@/shared/types/common.type';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { ErrorUtil } from '@/shared/utils/error.util';
 
 /**
- * 새 글 1개만큼 뒤 페이지들이 실제로는 한 칸씩 밀렸는데 여기서 그 재계산은 할 수
- * 없다. page 0만 남기고 이후 캐시된 페이지는 버려 — 서버 오프셋과 어긋난 옛
- * page 1+이 page 0과 겹쳐 카드가 중복 렌더링되는 걸 막는다. 스크롤해서 다음
- * 페이지가 필요해지면 그때 서버에서 올바른 오프셋으로 다시 받아온다.
+ * 새 글을 첫 쪽 맨 앞에 넣고 뒤 쪽은 버린다. cursor라 뒤 쪽이 밀리지는 않지만, 남겨 두면 바로 뒤따르는
+ * 무효화가 불러온 쪽을 전부 다시 받고 그동안 다음 쪽을 받지 못한다(usePostList의 canFetchNextPage). 스크롤해서
+ * 다음 쪽이 필요해지면 재조회한 첫 쪽의 nextCursor로 이어 받는다.
  */
 function prependCreatedPostToFirstPage(
   old: InfiniteData<PostListResponse> | undefined,
@@ -75,7 +74,6 @@ function prependCreatedPostToFirstPage(
       {
         ...firstPage,
         content: [created, ...firstPage.content],
-        totalElements: firstPage.totalElements + 1,
       },
     ],
     pageParams: old.pageParams.slice(0, 1),
@@ -162,9 +160,9 @@ type PostListPayload = Pick<PostListRequest, 'search' | 'category' | 'filter' | 
 const postListInfiniteOptions = (payload?: PostListPayload) =>
   infiniteQueryOptions({
     queryKey: postKeys.list(payload),
-    queryFn: ({ pageParam }: { pageParam: PaginationRequest['page'] }) => {
+    queryFn: ({ pageParam }: { pageParam: string | null }) => {
       return postApi.fetchPostList({
-        page: pageParam,
+        cursor: pageParam ?? undefined,
         size: POST_PAGE_SIZE,
         search: payload?.search,
         category: payload?.category,
@@ -172,13 +170,8 @@ const postListInfiniteOptions = (payload?: PostListPayload) =>
         filter: payload?.filter,
       });
     },
-    initialPageParam: 0,
-    getNextPageParam: (lastPage) => {
-      if (lastPage.last) {
-        return undefined;
-      }
-      return lastPage.page + 1;
-    },
+    initialPageParam: null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 
 export const useSuspenseFetchPostListQuery = (payload?: PostListPayload) => {
@@ -193,7 +186,6 @@ export const useSuspenseFetchPostListQuery = (payload?: PostListPayload) => {
         pages: data.pages,
         pageParams: data.pageParams,
         posts,
-        totalElements: data.pages[0]?.totalElements ?? 0,
       };
     },
   });
@@ -328,7 +320,6 @@ function removeDeletedPostFromBookmarkFolderCaches(
         pages: old.pages.map((page) => ({
           ...page,
           content: page.content.filter((post) => post.id !== postId),
-          totalElements: Math.max(0, page.totalElements - 1),
         })),
       };
     }
@@ -408,7 +399,6 @@ export const useDeletePostMutation = () => {
             pages: old.pages.map((page) => ({
               ...page,
               content: page.content.filter((post) => post.id !== postId),
-              totalElements: Math.max(0, page.totalElements - 1),
             })),
           };
         }

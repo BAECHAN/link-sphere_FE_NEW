@@ -180,10 +180,8 @@ describe('useBookmarkPostMutation', () => {
     queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList());
 
     const seededFolderPosts: InfiniteData<PostListResponse> = {
-      pages: [
-        { page: 0, size: 10, content: [seededPost], totalElements: 1, totalPages: 1, last: true },
-      ],
-      pageParams: [0],
+      pages: [{ content: [seededPost], nextCursor: null }],
+      pageParams: [null],
     };
     queryClient.setQueryData(bookmarkFolderKeys.posts('uncategorized'), seededFolderPosts);
 
@@ -198,7 +196,6 @@ describe('useBookmarkPostMutation', () => {
         bookmarkFolderKeys.posts('uncategorized')
       );
       expect(folderPosts?.pages[0]?.content).toHaveLength(0);
-      expect(folderPosts?.pages[0]?.totalElements).toBe(0);
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -251,15 +248,11 @@ describe('useBookmarkPostMutation', () => {
     const seededList: InfiniteData<PostListResponse> = {
       pages: [
         {
-          page: 0,
-          size: 10,
           content: [seededPost],
-          totalElements: 1,
-          totalPages: 1,
-          last: true,
+          nextCursor: null,
         },
       ],
-      pageParams: [0],
+      pageParams: [null],
     };
     queryClient.setQueryData(postKeys.list(), seededList);
 
@@ -292,10 +285,8 @@ describe('useBookmarkPostMutation', () => {
     // (resolveCurrentBookmarkState가 postKeys.listRoot를 후보에서 빠뜨렸던 버그).
     function seedList(post: Post) {
       const seededList: InfiniteData<PostListResponse> = {
-        pages: [
-          { page: 0, size: 10, content: [post], totalElements: 1, totalPages: 1, last: true },
-        ],
-        pageParams: [0],
+        pages: [{ content: [post], nextCursor: null }],
+        pageParams: [null],
       };
       queryClient.setQueryData(postKeys.list(), seededList);
     }
@@ -351,7 +342,7 @@ describe('useBookmarkPostMutation', () => {
     });
   });
 
-  it('해제하면 그 글이 든 폴더 캐시에서 그 카드만 빠지고 총개수가 1 줄며, 그 글이 없는 폴더 캐시는 그대로다', async () => {
+  it('해제하면 그 글이 든 폴더 캐시에서 그 카드만 빠지고, 그 글이 없는 폴더 캐시는 그대로다', async () => {
     const seededPost: Post = {
       ...mockPost,
       userInteractions: { isLiked: false, isBookmarked: true, bookmarkFolderIds: [FOLDER_A] },
@@ -363,27 +354,21 @@ describe('useBookmarkPostMutation', () => {
     queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
     queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList());
 
-    // 폴더 A: 그 글은 첫 페이지가 아닌 두 번째 페이지에 다른 글과 함께 있다(총 3개)
+    // 폴더 A: 그 글은 첫 페이지가 아닌 두 번째 페이지에 다른 글과 함께 있다
     const folderAPosts: InfiniteData<PostListResponse> = {
       pages: [
-        { page: 0, size: 2, content: [otherInA1], totalElements: 3, totalPages: 2, last: false },
+        { content: [otherInA1], nextCursor: 'cursor-1' },
         {
-          page: 1,
-          size: 2,
           content: [seededPost, otherInA2],
-          totalElements: 3,
-          totalPages: 2,
-          last: true,
+          nextCursor: null,
         },
       ],
-      pageParams: [0, 1],
+      pageParams: [null, 'cursor-1'],
     };
     // 폴더 B: 그 글이 들어 있지 않다
     const folderBPosts: InfiniteData<PostListResponse> = {
-      pages: [
-        { page: 0, size: 2, content: [otherInB], totalElements: 1, totalPages: 1, last: true },
-      ],
-      pageParams: [0],
+      pages: [{ content: [otherInB], nextCursor: null }],
+      pageParams: [null],
     };
     queryClient.setQueryData(bookmarkFolderKeys.posts(FOLDER_A), folderAPosts);
     queryClient.setQueryData(bookmarkFolderKeys.posts(FOLDER_B), folderBPosts);
@@ -405,7 +390,6 @@ describe('useBookmarkPostMutation', () => {
       bookmarkFolderKeys.posts(FOLDER_A)
     );
     expect(folderA?.pages[0]?.content.map((p) => p.id)).toEqual([otherInA1.id]);
-    expect(folderA?.pages.map((page) => page.totalElements)).toEqual([2, 2]);
 
     expect(queryClient.getQueryData(bookmarkFolderKeys.posts(FOLDER_B))).toEqual(folderBPosts);
 
@@ -419,8 +403,8 @@ describe('useBookmarkPostMutation', () => {
       stats: { ...mockPost.stats, bookmarkCount: 5 },
     };
     const uncategorizedPosts: InfiniteData<PostListResponse> = {
-      pages: [{ page: 0, size: 10, content: [], totalElements: 0, totalPages: 0, last: true }],
-      pageParams: [0],
+      pages: [{ content: [], nextCursor: null }],
+      pageParams: [null],
     };
     queryClient.setQueryData(postKeys.detail(POST_ID), seededPost);
     queryClient.setQueryData(bookmarkFolderKeys.list, seedFolderList());
@@ -452,10 +436,8 @@ describe('useBookmarkPostMutation', () => {
     function seedDetailAndList(post: Post) {
       queryClient.setQueryData(postKeys.detail(POST_ID), post);
       queryClient.setQueryData<InfiniteData<PostListResponse>>(postKeys.list(), {
-        pages: [
-          { page: 0, size: 10, content: [post], totalElements: 1, totalPages: 1, last: true },
-        ],
-        pageParams: [0],
+        pages: [{ content: [post], nextCursor: null }],
+        pageParams: [null],
       });
     }
 
@@ -622,8 +604,8 @@ describe('useBookmarkPostMutation', () => {
       queryClient.setQueryData<InfiniteData<PostListResponse>>(
         bookmarkFolderKeys.posts('uncategorized'),
         {
-          pages: [{ page: 0, size: 10, content: [], totalElements: 0, totalPages: 0, last: true }],
-          pageParams: [0],
+          pages: [{ content: [], nextCursor: null }],
+          pageParams: [null],
         }
       );
       const firstDelete = createResponseGate();
@@ -784,15 +766,11 @@ describe('useLikePostMutation', () => {
     const seededList: InfiniteData<PostListResponse> = {
       pages: [
         {
-          page: 0,
-          size: 10,
           content: posts,
-          totalElements: posts.length,
-          totalPages: 1,
-          last: true,
+          nextCursor: null,
         },
       ],
-      pageParams: [0],
+      pageParams: [null],
     };
     queryClient.setQueryData(postKeys.list(), seededList);
   }
@@ -1062,15 +1040,11 @@ describe('useLikePostMutation', () => {
     const folderPosts: InfiniteData<PostListResponse> = {
       pages: [
         {
-          page: 0,
-          size: 10,
           content: [seedPost(false), OTHER_POST],
-          totalElements: 2,
-          totalPages: 1,
-          last: true,
+          nextCursor: null,
         },
       ],
-      pageParams: [0],
+      pageParams: [null],
     };
     queryClient.setQueryData(bookmarkFolderKeys.posts('all'), folderPosts);
     const findFolderPost = (postId: Post['id']) =>
@@ -1239,15 +1213,11 @@ describe('useLikePostMutation', () => {
       queryClient.setQueryData<InfiniteData<PostListResponse>>(folderPostsKey, {
         pages: [
           {
-            page: 0,
-            size: 10,
             content: [seedPost(false)],
-            totalElements: 1,
-            totalPages: 1,
-            last: true,
+            nextCursor: null,
           },
         ],
-        pageParams: [0],
+        pageParams: [null],
       });
       const readFolderPost = () =>
         queryClient.getQueryData<InfiniteData<PostListResponse>>(folderPostsKey)?.pages[0]

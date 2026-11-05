@@ -58,7 +58,7 @@ function mockPostList(failingCategories: Set<string>, requestedCategories: strin
         {
           status: 200,
           message: 'ok',
-          data: { ...mockPostListResponse, content: [], totalElements: 0 },
+          data: { ...mockPostListResponse, content: [] },
           timestamp: '',
         },
         { status: 200 }
@@ -169,7 +169,7 @@ describe('PostList — 목록 조회 실패 후 복구', () => {
           {
             status: 200,
             message: 'ok',
-            data: { ...mockPostListResponse, content: [], totalElements: 0 },
+            data: { ...mockPostListResponse, content: [] },
             timestamp: '',
           },
           { status: 200 }
@@ -202,7 +202,7 @@ function mockSlowCategoryList(delayMs: number) {
         {
           status: 200,
           message: 'ok',
-          data: { ...mockPostListResponse, content: [], totalElements: 0 },
+          data: { ...mockPostListResponse, content: [] },
           timestamp: '',
         },
         { status: 200 }
@@ -294,7 +294,7 @@ function mockSlowHideBotsList(delayMs: number) {
         {
           status: 200,
           message: 'ok',
-          data: { ...mockPostListResponse, content: [], totalElements: 0 },
+          data: { ...mockPostListResponse, content: [] },
           timestamp: '',
         },
         { status: 200 }

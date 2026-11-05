@@ -23,7 +23,6 @@ const SORT_LABELS: Record<BookmarkFolderSort, string> = {
   latest: TEXTS.bookmark.folder.sort.latest,
   oldest: TEXTS.bookmark.folder.sort.oldest,
   title: TEXTS.bookmark.folder.sort.title,
-  views: TEXTS.bookmark.folder.sort.views,
   viewed: TEXTS.bookmark.folder.sort.viewed,
 };
 

@@ -15,13 +15,11 @@ export type CreatePostResponse = Post;
 // 작성 중 링크 미리보기(GET /link-preview). 결과는 BE가 10분 캐시해 같은 URL로 등록할 때 재사용한다.
 export type LinkPreview = Schemas['LinkPreviewResponse'];
 
-// GET /post 의 쿼리 파라미터. page·size는 BE에 기본값이 있어 스펙상 optional이지만
-// (PostController.kt `@RequestParam(defaultValue = "0")` 등), FE는 페이지네이션 상태를
-// 항상 명시적으로 관리하므로(post.api.ts의 `if (page === 0)` 등) 필수로 좁힌다.
+// GET /post 의 쿼리 파라미터. size는 BE에 기본값이 있어 스펙상 optional이지만 FE는 쪽 크기를 항상
+// 정해서 보내므로 필수로 좁힌다. page는 옛 번들을 위해 스펙에 남아 있는 옛 경로라 FE에서 쓰지 못하게 뺀다.
 export type PostListRequest = Omit<
   NonNullable<operations['getAllPosts']['parameters']['query']>,
   'page' | 'size'
 > & {
-  page: number;
   size: number;
 };

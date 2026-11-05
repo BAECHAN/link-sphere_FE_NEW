@@ -8,7 +8,7 @@ import {
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { useBookmarkFolderListQuery } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 
-export const VALID_SORTS: BookmarkFolderSort[] = ['latest', 'oldest', 'title', 'views', 'viewed'];
+export const VALID_SORTS: BookmarkFolderSort[] = ['latest', 'oldest', 'title', 'viewed'];
 
 function parseFolderKey(raw: string | null): BookmarkFolderKey | null {
   if (!raw) {

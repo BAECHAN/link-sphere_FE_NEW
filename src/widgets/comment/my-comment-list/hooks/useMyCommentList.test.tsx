@@ -42,7 +42,7 @@ function mockMyCommentPages(status: number) {
 
   server.use(
     http.get(`${API_BASE_URL}${API_ENDPOINTS.post.myComments}`, async ({ request }) => {
-      const page = Number(new URL(request.url).searchParams.get('page') ?? 0);
+      const page = new URL(request.url).searchParams.get('cursor') ? 1 : 0;
       requests.push(page);
       // 실제 네트워크처럼 왕복 시간을 둔다(waitRenderingEachStep 주석 참고)
       await delay(30);
@@ -63,8 +63,6 @@ function mockMyCommentPages(status: number) {
           status: 200,
           message: 'ok',
           data: {
-            page,
-            size: 3,
             content: [1, 2, 3].map((n) => ({
               id: `comment-${page}-${n}`,
               content: `댓글 ${n}`,
@@ -72,9 +70,7 @@ function mockMyCommentPages(status: number) {
               postId: 'post-1',
               postTitle: '글',
             })),
-            totalElements: 6,
-            totalPages: 2,
-            last: page >= 1,
+            nextCursor: page >= 1 ? null : 'cursor-1',
           },
           timestamp: '',
         },

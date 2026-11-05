@@ -29,10 +29,6 @@ const mockMyComment: MyComment = {
 };
 
 export const mockMyCommentListResponse: MyCommentListResponse = {
-  page: 0,
-  size: 10,
   content: [mockMyComment],
-  totalElements: 1,
-  totalPages: 1,
-  last: true,
+  nextCursor: null,
 };

@@ -27,8 +27,8 @@ export const commentApi = {
   },
 
   getMyComments: async (payload: PaginationRequest): Promise<MyCommentListResponse> => {
-    const { page, size } = payload;
-    return await specClient.get('/comment/my', { query: { page, size } });
+    const { cursor, size } = payload;
+    return await specClient.get('/comment/my', { query: { size, ...(cursor && { cursor }) } });
   },
 
   createComment: async (
