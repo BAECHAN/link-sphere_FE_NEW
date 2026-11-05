@@ -39,10 +39,11 @@ import {
   Post,
   PostListResponse,
 } from '@/entities/post/@x/bookmark';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
 import { ErrorUtil } from '@/shared/utils/error.util';
-import { PaginationRequest } from '@/shared/types/common.type';
+import { ApiError, PaginationRequest } from '@/shared/types/common.type';
 
 // ==================== Queries ====================
 
@@ -189,9 +190,28 @@ export const useDeleteBookmarkFolderMutation = (folderId: string) => {
 
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.delete(folderId),
-    mutationFn: () => bookmarkFolderApi.deleteBookmarkFolder(folderId),
-    meta: { manualErrorHandling: true, successMessage: TEXTS.messages.success.folderDeleted },
-    onSuccess: () => {
+    mutationFn: async () => {
+      try {
+        await bookmarkFolderApi.deleteBookmarkFolder(folderId);
+
+        return { alreadyDeleted: false };
+      } catch (error) {
+        if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.FOLDER_NOT_FOUND) {
+          return { alreadyDeleted: true };
+        }
+
+        throw error;
+      }
+    },
+    meta: { manualErrorHandling: true },
+    // 결과에 따라 문구가 갈려 meta.successMessage(정적 문자열)로는 표현할 수 없다
+    onSuccess: ({ alreadyDeleted }) => {
+      if (alreadyDeleted) {
+        toast.info(TEXTS.messages.info.folderAlreadyDeleted);
+      } else {
+        toast.success(TEXTS.messages.success.folderDeleted);
+      }
+
       handleBookmarkFolderDeleteSuccess(queryClient);
     },
   });

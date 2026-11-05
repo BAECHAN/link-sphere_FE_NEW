@@ -43,7 +43,12 @@ export const useCreateFolderForm = ({ onCreated }: UseCreateFolderFormParams) =>
         return;
       }
 
-      toast.error(TEXTS.messages.error.folderCreateFailed);
+      toast.error(
+        BookmarkFolderUtil.resolveNameSaveErrorMessage(
+          error,
+          TEXTS.messages.error.folderCreateFailed
+        )
+      );
     } finally {
       submittingRef.current = false;
     }

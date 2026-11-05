@@ -183,6 +183,13 @@
 
 ### Fixed
 
+- `bookmark` 이미 지워진 폴더와 같은 이름 폴더를 실패 대신 이유대로 안내함
+  <details><summary>배경·구현</summary>
+
+  다른 탭·기기에서 먼저 지운 폴더를 지우면 서버가 404를 주는데 "폴더 삭제에 실패했어요."가 떴고, 같은 이름의 폴더를 만들거나 그 이름으로 바꾸면 서버가 409를 주는데 "폴더 생성에 실패했어요."·"이름 변경에 실패했어요."만 떠 이유를 알 수 없었다. 지금은 `FOLDER_NOT_FOUND`면 "이미 삭제된 폴더예요." 안내 1개를 띄우고 목록을 다시 받으며, `DUPLICATE_FOLDER_NAME`이면 "이미 같은 이름의 폴더가 있어요."를 띄운다. 입력 처리는 그대로다(만들기는 입력을 남기고, 이름 바꾸기는 원래 이름으로 되돌린다). (`bookmark-folder.queries.ts`, `bookmark-folder.util.ts`, `useCreateFolderForm.ts`, `useNewFolderInput.ts`, `useRenameBookmarkFolder.ts`, `error-code.ts`, `texts.ts`, [PR #541](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/541))
+
+  </details>
+
 - `post` 삭제 응답이 끊기거나 이미 지워졌으면 실패 대신 실제 결과를 안내함
   <details><summary>배경·구현</summary>
 

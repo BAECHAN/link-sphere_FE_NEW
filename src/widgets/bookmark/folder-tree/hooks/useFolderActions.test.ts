@@ -6,10 +6,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTestQueryClient } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
-import { mockBookmarkFolder } from '@/mocks/fixtures/bookmark-folder.fixtures';
+import {
+  mockBookmarkFolder,
+  mockBookmarkFolderListResponse,
+} from '@/mocks/fixtures/bookmark-folder.fixtures';
+import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
 import { useFolderActions } from '@/widgets/bookmark/folder-tree/hooks/useFolderActions';
 
 let queryClient: QueryClient;
@@ -302,6 +307,38 @@ describe('useFolderActions — 이름 변경', () => {
     );
     expect(result.current.name).toBe(mockBookmarkFolder.name);
   });
+
+  it('다른 폴더와 이름이 같으면 중복 안내를 띄우고 입력값을 원래 이름으로 복원한다', async () => {
+    server.use(
+      http.patch(url(API_ENDPOINTS.bookmark.folder(mockBookmarkFolder.id)), () =>
+        HttpResponse.json(
+          {
+            status: 409,
+            code: SERVER_ERROR_CODE.DUPLICATE_FOLDER_NAME,
+            message: '',
+            timestamp: '',
+          },
+          { status: 409 }
+        )
+      )
+    );
+    const errorSpy = vi.spyOn(toast, 'error');
+    const { result } = renderHook(() => useFolderActions({ folder: mockBookmarkFolder }), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.startRename();
+      result.current.setName('이미 있는 이름');
+    });
+    await act(async () => result.current.submitRename());
+
+    await waitFor(() =>
+      expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.folderNameDuplicate)
+    );
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(result.current.name).toBe(mockBookmarkFolder.name);
+  });
 });
 
 describe('useFolderActions — 삭제', () => {
@@ -383,5 +420,58 @@ describe('useFolderActions — 삭제', () => {
     await waitFor(() =>
       expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.folderDeleteFailed)
     );
+  });
+
+  it('삭제에 성공하면 삭제 안내를 한 번 띄운다', async () => {
+    server.use(
+      http.delete(url(API_ENDPOINTS.bookmark.folder(mockBookmarkFolder.id)), () =>
+        HttpResponse.json({}, { status: 204 })
+      )
+    );
+    const successSpy = vi.spyOn(toast, 'success');
+    const { result } = renderHook(() => useFolderActions({ folder: mockBookmarkFolder }), {
+      wrapper: Wrapper,
+    });
+
+    act(() => result.current.handleDelete());
+    const confirmed = useAlertStore.getState().alerts[0]?.onConfirm;
+    await act(async () => confirmed?.());
+
+    await waitFor(() =>
+      expect(successSpy).toHaveBeenCalledWith(TEXTS.messages.success.folderDeleted)
+    );
+    expect(successSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('이미 지워진 폴더면 실패가 아니라 이미 삭제 안내를 띄우고 폴더 목록을 다시 받게 한다', async () => {
+    server.use(
+      http.delete(url(API_ENDPOINTS.bookmark.folder(mockBookmarkFolder.id)), () =>
+        HttpResponse.json(
+          { status: 404, code: SERVER_ERROR_CODE.FOLDER_NOT_FOUND, message: '', timestamp: '' },
+          { status: 404 }
+        )
+      )
+    );
+    // 구독자 없는 캐시가 바로 지워지지 않게 한다(기본 gcTime 0이면 무효화 여부를 볼 수 없다)
+    queryClient = createTestQueryClient({ gcTime: 60_000 });
+    queryClient.setQueryData(bookmarkFolderKeys.list, mockBookmarkFolderListResponse);
+    const errorSpy = vi.spyOn(toast, 'error');
+    const successSpy = vi.spyOn(toast, 'success');
+    const infoSpy = vi.spyOn(toast, 'info');
+    const { result } = renderHook(() => useFolderActions({ folder: mockBookmarkFolder }), {
+      wrapper: Wrapper,
+    });
+
+    act(() => result.current.handleDelete());
+    const confirmed = useAlertStore.getState().alerts[0]?.onConfirm;
+    await act(async () => confirmed?.());
+
+    await waitFor(() =>
+      expect(infoSpy).toHaveBeenCalledWith(TEXTS.messages.info.folderAlreadyDeleted)
+    );
+    expect(infoSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(successSpy).not.toHaveBeenCalled();
+    expect(queryClient.getQueryState(bookmarkFolderKeys.list)?.isInvalidated).toBe(true);
   });
 });

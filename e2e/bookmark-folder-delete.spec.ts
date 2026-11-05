@@ -118,4 +118,61 @@ test.describe('북마크 폴더 삭제', () => {
     // Alert가 location.key 변경으로 자동 취소됐는지도 확인한다.
     await expect(page.getByRole('dialog').or(page.getByRole('alertdialog'))).toHaveCount(0);
   });
+
+  test('다른 곳에서 이미 지운 폴더를 삭제하면 실패가 아니라 이미 삭제 안내가 뜨고 목록에서 사라진다', async ({
+    page,
+  }) => {
+    let goneFromServer = false;
+    // 위 beforeEach의 목보다 나중에 등록해 먼저 탄다(LIFO)
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.bookmark.folders),
+      (route) =>
+        route.fulfill({
+          json: wrapResponse(
+            goneFromServer ? { folders: [], uncategorizedCount: 1 } : mockBookmarkFolderListResponse
+          ),
+        })
+    );
+    await page.route(
+      (url) => /^\/api\/bookmark\/folders\/[^/]+$/.test(url.pathname),
+      (route) => {
+        if (route.request().method() !== 'DELETE') {
+          return route.fallback();
+        }
+
+        goneFromServer = true;
+
+        return route.fulfill({
+          status: 404,
+          json: {
+            status: 404,
+            code: 'FOLDER_NOT_FOUND',
+            message: '폴더를 찾을 수 없습니다.',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+    );
+
+    await page.goto('/bookmark');
+    await page.getByRole('button', { name: mockBookmarkFolder.name }).click();
+    await expect(page).toHaveURL(new RegExp(`folder=${mockBookmarkFolder.id}`));
+
+    await page.getByRole('button', { name: TEXTS.ariaLabels.folderMenu }).click();
+    await page.getByRole('menuitem', { name: TEXTS.buttons.delete }).click();
+    await expect(page.getByRole('menu')).toHaveCount(0);
+
+    const confirmDialog = page.getByRole('alertdialog', {
+      name: TEXTS.bookmark.folder.deleteConfirmTitle(mockBookmarkFolder.name),
+    });
+    await expect(confirmDialog).toBeVisible();
+    // alert-dialog.tsx의 열린 직후 클릭 가드 — 위 테스트와 같은 이유
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await confirmDialog.getByRole('button', { name: TEXTS.buttons.delete }).click();
+
+    await expect(page.getByText(TEXTS.messages.info.folderAlreadyDeleted)).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.error.folderDeleteFailed)).toHaveCount(0);
+    await expect(page.getByText(TEXTS.messages.success.folderDeleted)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: mockBookmarkFolder.name })).toHaveCount(0);
+  });
 });

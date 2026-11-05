@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTestQueryClient } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { useCreateFolderForm } from '@/widgets/bookmark/folder-tree/hooks/useCreateFolderForm';
@@ -178,6 +179,37 @@ describe('useCreateFolderForm', () => {
     await waitFor(() =>
       expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.folderCreateFailed)
     );
+    expect(onCreated).not.toHaveBeenCalled();
+    expect(result.current.name).toBe('폴더');
+  });
+
+  it('같은 이름의 폴더가 이미 있으면 중복 안내를 띄우고 입력을 지우지 않는다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.bookmark.folders), () =>
+        HttpResponse.json(
+          {
+            status: 409,
+            code: SERVER_ERROR_CODE.DUPLICATE_FOLDER_NAME,
+            message: '',
+            timestamp: '',
+          },
+          { status: 409 }
+        )
+      )
+    );
+    const errorSpy = vi.spyOn(toast, 'error');
+    const onCreated = vi.fn();
+    const { result } = renderHook(() => useCreateFolderForm({ onCreated }), {
+      wrapper: Wrapper,
+    });
+
+    act(() => result.current.setName('폴더'));
+    await act(async () => result.current.submit());
+
+    await waitFor(() =>
+      expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.folderNameDuplicate)
+    );
+    expect(errorSpy).toHaveBeenCalledTimes(1);
     expect(onCreated).not.toHaveBeenCalled();
     expect(result.current.name).toBe('폴더');
   });

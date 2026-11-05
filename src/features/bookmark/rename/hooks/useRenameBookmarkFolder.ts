@@ -61,7 +61,12 @@ export const useRenameBookmarkFolder = ({ folder }: UseRenameBookmarkFolderParam
         return;
       }
 
-      toast.error(TEXTS.messages.error.folderRenameFailed);
+      toast.error(
+        BookmarkFolderUtil.resolveNameSaveErrorMessage(
+          error,
+          TEXTS.messages.error.folderRenameFailed
+        )
+      );
       setName(folder.name);
     } finally {
       submittingRef.current = false;
