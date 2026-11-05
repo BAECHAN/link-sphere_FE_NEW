@@ -1,3 +1,6 @@
+### 2026-11-05 (FE)
+- 등록 및 메일 전송 요청 실패 시 동일 키를 사용하여 재요청하도록 로직 개선 ([#546](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/546))
+
 ### 2026-11-05 (BE)
 - 게시글, 댓글, 메일 요청 시 Idempotency-Key 헤더를 필수값으로 설정하여 중복 요청에 대한 처리 안정성 및 데이터 정합성 강화 ([#158](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/158))
 
