@@ -380,15 +380,74 @@ aws iam list-role-policies --role-name "$ROLE"   # deploy와 cloudfront-drift-re
 
 추가한 뒤 Actions에서 "CloudFront Drift Check"를 수동 실행해 성공하는지 본다.
 
-## CloudFront 접근 로그 (수동 관리)
+## CloudFront 5xx 세기와 접근 로그 (수동 관리)
 
-504처럼 CloudFront가 직접 만드는 응답은 Lambda 로그에 남지 않아, 건수를 세려면 CloudFront 쪽 기록이 필요하다. standard
-logging v2로 S3에 쌓는 구성이다(근거는
-[`docs/plans/2026-11-04-idempotent-create.md`](./plans/2026-11-04-idempotent-create.md) Context·Phase 0). 로그 전달 추가 요금은 없고 S3
-저장 비용만 든다([AWS 문서](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/standard-logging.html)).
+504처럼 CloudFront가 직접 만드는 응답은 Lambda 로그에 남지 않는다. 이 계정은 Free 플랜이라 접근 로그를 켤 수 없어, 추가 비용이 없는
+기본 지표로 센다(2026-11-05 사용자 결정, 이슈 [#534](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/534)).
 
-**상태(2026-11-04).** 버킷은 만들었지만 delivery는 아직 없어 로그가 쌓이지 않는다. 아래 "켜기"를 실행한 뒤 "확인"의 명령으로 켜졌는지
-본다. 지금 켜져 있는지는 이 문단이 아니라 그 명령으로 판단한다.
+### 기본 지표로 세기
+
+[AWS 문서](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/viewing-cloudfront-metrics.html)에 따르면 5xx 비율과
+요청 수는 모든 배포에 추가 비용 없이 들어 있다. 둘을 곱해 5xx 건수를 구하고, Lambda가 돌려준 5xx(`Url5xxCount`)와 시간대별로 맞춘다.
+로컬 계정으로 읽을 수 있다(`date -v`는 macOS 문법이다).
+
+```bash
+DIST_ID=$(aws cloudfront list-distributions \
+  --query "DistributionList.Items[?Aliases.Items && contains(Aliases.Items, 'linksphere.click')].Id | [0]" \
+  --output text)
+FROM=$(date -u -v-60d +%Y-%m-%dT%H:%M:00Z)
+TO=$(date -u +%Y-%m-%dT%H:%M:00Z)
+
+# CloudFront 5xx 건수(5분 단위)
+aws cloudwatch get-metric-data --region us-east-1 --start-time "$FROM" --end-time "$TO" --output json \
+  --metric-data-queries '[
+    {"Id":"rate","ReturnData":false,"MetricStat":{"Metric":{"Namespace":"AWS/CloudFront","MetricName":"5xxErrorRate","Dimensions":[{"Name":"DistributionId","Value":"'"$DIST_ID"'"},{"Name":"Region","Value":"Global"}]},"Period":300,"Stat":"Average"}},
+    {"Id":"req","ReturnData":false,"MetricStat":{"Metric":{"Namespace":"AWS/CloudFront","MetricName":"Requests","Dimensions":[{"Name":"DistributionId","Value":"'"$DIST_ID"'"},{"Name":"Region","Value":"Global"}]},"Period":300,"Stat":"Sum"}},
+    {"Id":"count5xx","Expression":"rate/100*req"}
+  ]' \
+  | jq -r '.MetricDataResults[0] | [.Timestamps, .Values] | transpose[] | select(.[1] > 0.5) | "\(.[0]) \(.[1] | round)"' | sort
+
+# Lambda가 돌려준 5xx 건수(같은 5분 단위)
+aws cloudwatch get-metric-data --region ap-northeast-1 --start-time "$FROM" --end-time "$TO" --output json \
+  --metric-data-queries '[{"Id":"url5xx","MetricStat":{"Metric":{"Namespace":"AWS/Lambda","MetricName":"Url5xxCount","Dimensions":[{"Name":"FunctionName","Value":"link-sphere-api"}]},"Period":300,"Stat":"Sum"}}]' \
+  | jq -r '.MetricDataResults[0] | [.Timestamps, .Values] | transpose[] | select(.[1] > 0) | "\(.[0]) \(.[1] | round)"' | sort
+```
+
+- **같은 시간대에 Lambda 5xx가 같은 수만큼 있으면** 서버가 답한 오류다.
+- **Lambda 5xx가 없는 시간대의 수**는 CloudFront가 직접 만든 5xx의 상한이다. 502·503·504를 나누지 못하고 경로도 모른다.
+
+**측정 결과(직접 측정, 2026-11-05, 위 명령).** 최근 60일 요청 187,396건 중 CloudFront 5xx는 25건이다.
+
+| 구분                         | 건수 | 내용                                                                                                                                          |
+| ---------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lambda 5xx와 같은 수         | 17   | 서버가 답한 오류다. 10-05의 5+1건은 `.claude/CLAUDE.md`에 적힌 운영 DB 세션 설정 사고의 500 6건과 일치해 계산이 맞는지 대조하는 근거가 된다   |
+| Lambda 5xx 없음              | 8    | 10-24 07:05~07:14 KST 7건은 공격성 트래픽 구간이다(요청 약 3,046건 중 WAF 차단 2,991건, Lambda 실행 2건). 09-30 00:10 KST 1건은 원인을 모른다 |
+| CloudFront에 없는 Lambda 5xx | 5    | 합계 25건에 들지 않는다. 전부 09-14다. OAC 잠금(09-29) 전이라 CloudFront를 거치지 않은 직접 호출로 보인다(추정)                               |
+
+앞서 잰 Lambda 실행 94,494건 중 60초(`OriginReadTimeout`)를 넘은 건도 0건이다(이슈 #534, 2026-03-07~11-04).
+
+**판단.** 상한이 60일에 8건이고 그중 7건은 공격성 트래픽 구간이라 돈을 들여 더 재지 않는다. 504가 나면 이미 다시 보내거나 "확인하지
+못했어요"로 안내해(`docs/FE-ARCHITECTURE.md` §28) 건수를 정확히 알아도 사용자가 겪는 동작은 달라지지 않는다. 5xx가 늘어 코드별로 나눠야
+하면 추가 지표를 켠다. 지표 8개가 [CloudWatch 요금](https://aws.amazon.com/cloudwatch/pricing/)의 지표당 $0.30(시간 단위 계산)이라 월 약
+$2.40이고, 켠 뒤부터 쌓인다. [플랜 문서](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/flat-rate-pricing-plan.html)는 이
+지표를 별도 과금 항목으로 적지만, Free 플랜에서 실제로 켜지는지는 실행해 보지 않았다.
+
+```bash
+aws cloudfront create-monitoring-subscription --distribution-id "$DIST_ID" \
+  --monitoring-subscription 'RealtimeMetricsSubscriptionConfig={RealtimeMetricsSubscriptionStatus=Enabled}'
+```
+
+### 접근 로그를 켜려면 (Pro 플랜 이상)
+
+**Free 플랜에서는 켜지지 않는다.** 2026-11-05 CloudShell에서 아래 "켜기"를 실행하니 `put-delivery-source`가 `ValidationException`으로
+거절했다 — _"Free 요금제 배포에는 표준 접근 로그 전달을 켤 수 없습니다. 유료 요금제로 올린 뒤 다시 시도하세요."_ (번역, AWS API 오류
+메시지). [AWS 요금표](https://aws.amazon.com/cloudfront/pricing/)도 로깅을 Pro(월 $15)부터 적는다. 계획을 세울 때 요금표를 확인하지 않아
+실행해서야 알았다. 요금제를 올리면 아래 절차를 그대로 실행한다. 로그 전달 추가 요금은 없고 S3 저장 비용만 든다는 설명은
+[AWS 문서](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/standard-logging.html) 기준이다(근거는
+[`docs/plans/2026-11-04-idempotent-create.md`](./plans/2026-11-04-idempotent-create.md) Context·Phase 0).
+
+**상태(2026-11-05).** 버킷과 빈 목적지(`link-sphere-cf-access-s3`)만 있고 delivery는 없어 로그가 쌓이지 않는다. 아래 절차가 그대로 쓰므로 남겨 뒀다.
+지금 켜져 있는지는 이 문단이 아니라 "확인"의 명령으로 판단한다.
 
 | 항목    | 값                                                                                                                                                                                         |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
