@@ -111,6 +111,8 @@ import {
   handle<Entity>DeleteSuccess,
 } from '@/entities/<entity>/api/<entity>.keys';
 import { TEXTS } from '@/shared/config/texts';
+import { assertMutationAuthEpochUnchanged } from '@/shared/lib/react-query/config/mutation-auth-epoch';
+import { shouldRetryIdempotentMutation } from '@/shared/lib/react-query/config/retry-policy';
 import { Create<Entity>, Update<Entity> } from '@/entities/<entity>/model/<entity>.schema';
 
 export const useCreate<Entity>Mutation = () => {
@@ -118,6 +120,8 @@ export const useCreate<Entity>Mutation = () => {
 
   return useMutation({
     mutationKey: <entity>MutationKeys.create,
+    // 응답을 못 받았을 때 다시 보낼지 선언한다(docs/FE-ARCHITECTURE.md §28). 다시 보내면 중복이 생기면 false + 이유
+    retry: false,
     mutationFn: (payload: Create<Entity>) => <entity>Api.create<Entity>(payload),
     meta: {
       successMessage: TEXTS.messages.success.<entity>Created,
@@ -145,7 +149,12 @@ export const useUpdate<Entity>Mutation = (id: string) => {
 
   return useMutation({
     mutationKey: <entity>MutationKeys.update(id),
-    mutationFn: (payload: Update<Entity>) => <entity>Api.update<Entity>(id, payload),
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: (payload: Update<Entity>, context) => {
+      assertMutationAuthEpochUnchanged(context);
+
+      return <entity>Api.update<Entity>(id, payload);
+    },
     meta: {
       successMessage: TEXTS.messages.success.<entity>Updated,
       errorMessage: TEXTS.messages.error.<entity>UpdateFailed,
@@ -159,7 +168,13 @@ export const useDelete<Entity>Mutation = () => {
 
   return useMutation({
     mutationKey: <entity>MutationKeys.delete,
-    mutationFn: (id: string) => <entity>Api.delete<Entity>(id),
+    // 다시 보낸 요청의 404는 첫 요청이 지운 것이다 - 실패로 안내하지 않게 처리한다(useDeleteCommentMutation 참고)
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: (id: string, context) => {
+      assertMutationAuthEpochUnchanged(context);
+
+      return <entity>Api.delete<Entity>(id);
+    },
     meta: {
       // 확인창(openConfirm)을 거친 영구 삭제는 결과가 화면에 보여도 성공 토스트를 띄운다
       // (texts-conventions skill "성공 토스트 표시 기준" 축 4 — useDeletePostMutation의

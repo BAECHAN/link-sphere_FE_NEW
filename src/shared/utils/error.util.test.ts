@@ -25,6 +25,28 @@ describe('ErrorUtil.isOutcomeUnknown', () => {
   });
 });
 
+describe('ErrorUtil.resolveFailureMessage', () => {
+  it('응답을 못 받았으면 실패라고 단정하지 않고 공용 문구를 쓴다', () => {
+    expect(ErrorUtil.resolveFailureMessage(new NetworkError(), 'failed')).toBe(
+      TEXTS.messages.error.outcomeUnknown
+    );
+    expect(ErrorUtil.resolveFailureMessage(makeApiError(504), 'failed')).toBe(
+      TEXTS.messages.error.outcomeUnknown
+    );
+  });
+
+  it('응답을 못 받았을 때의 문구를 정하면 그 문구를 쓴다', () => {
+    expect(ErrorUtil.resolveFailureMessage(new NetworkError(), 'failed', 'unknown')).toBe(
+      'unknown'
+    );
+  });
+
+  it('서버가 실패라고 답했으면 실패 문구를 쓴다', () => {
+    expect(ErrorUtil.resolveFailureMessage(makeApiError(500), 'failed', 'unknown')).toBe('failed');
+    expect(ErrorUtil.resolveFailureMessage(new TypeError('boom'), 'failed')).toBe('failed');
+  });
+});
+
 describe('ErrorUtil.isServerError', () => {
   it('500대 ApiError는 true다', () => {
     expect(ErrorUtil.isServerError(makeApiError(500))).toBe(true);

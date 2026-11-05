@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useConfirmEmailVerificationMutation } from '@/entities/auth/api/auth.queries';
+import { ErrorUtil } from '@/shared/utils/error.util';
 
-type ConfirmStatus = 'pending' | 'success' | 'error';
+// unknown: 응답을 못 받아 인증됐는지 모른다 - 토큰이 이미 쓰였을 수 있어 error와 구분한다
+type ConfirmStatus = 'pending' | 'success' | 'error' | 'unknown';
 
 /**
  * VerifyEmailPage 마운트 시 URL의 token으로 확인 요청을 한 번만 보낸다. React StrictMode는
@@ -35,7 +37,9 @@ export function useConfirmEmailVerification() {
 
     confirmEmailVerification({ token })
       .then(() => setStatus('success'))
-      .catch(() => setStatus('error'));
+      .catch((error: unknown) =>
+        setStatus(ErrorUtil.isOutcomeUnknown(error) ? 'unknown' : 'error')
+      );
   }, [token, confirmEmailVerification]);
 
   return { status: token ? status : 'error' };

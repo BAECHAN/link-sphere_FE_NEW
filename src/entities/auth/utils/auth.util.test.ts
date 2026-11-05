@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PasswordUtil, SignUpUtil } from '@/entities/auth/utils/auth.util';
 import { passwordValidationSchema } from '@/entities/auth/model/auth.schema';
-import { ApiError } from '@/shared/types/common.type';
+import { ApiError, NetworkError } from '@/shared/types/common.type';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { TEXTS } from '@/shared/config/texts';
 
@@ -171,9 +171,19 @@ describe('SignUpUtil.resolveSubmitError', () => {
   });
 
   it.each([
+    ['연결 끊김', new NetworkError()],
+    ['504', apiError(504, 'GATEWAY_TIMEOUT')],
+  ])('%s는 가입됐는지 모른다고 안내한다', (_, error) => {
+    expect(SignUpUtil.resolveSubmitError(error)).toEqual({
+      reason: 'outcomeUnknown',
+      message: TEXTS.messages.error.accountCreateOutcomeUnknown,
+    });
+  });
+
+  it.each([
     ['서버 오류', apiError(500, SERVER_ERROR_CODE.INTERNAL_SERVER_ERROR)],
-    // ApiError가 아닌 실패(오프라인·CORS·DNS) - 이 분기가 없으면 버튼만 다시 활성화되고 아무 안내 없이 끝난다
-    ['네트워크 단절', new TypeError('Failed to fetch')],
+    // ApiError·NetworkError가 아닌 실패 - 이 분기가 없으면 버튼만 다시 활성화되고 아무 안내 없이 끝난다
+    ['알 수 없는 오류', new TypeError('boom')],
   ])('%s는 일반 실패다', (_, error) => {
     expect(SignUpUtil.resolveSubmitError(error)).toEqual({
       reason: 'failed',

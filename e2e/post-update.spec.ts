@@ -97,6 +97,42 @@ test.describe('게시글 수정', () => {
     expect(listBody.data.content[0].title).toBe(NEW_TITLE);
   });
 
+  test('응답이 끊기면 한 번 더 보내고, 저장되면 실패 안내 없이 목록으로 돌아간다', async ({
+    page,
+  }) => {
+    let patchCount = 0;
+
+    // LIFO라 beforeEach의 핸들러보다 먼저 탄다
+    await page.route(
+      (url) => /^\/api\/post\/[^/]+$/.test(url.pathname),
+      (route) => {
+        if (route.request().method() !== 'PATCH') {
+          return route.fallback();
+        }
+
+        patchCount += 1;
+
+        return patchCount === 1
+          ? route.abort('failed')
+          : route.fulfill({ json: wrapResponse({ ...mockPost, title: NEW_TITLE }) });
+      }
+    );
+
+    await page.goto('/post');
+    await page.getByRole('button', { name: TEXTS.ariaLabels.postMenu }).click();
+    await page.getByRole('menuitem', { name: TEXTS.post.card.edit }).click();
+
+    const titleInput = page.getByLabel(TEXTS.post.form.update.titleLabel);
+    await expect(titleInput).toHaveValue(mockPost.title);
+    await titleInput.fill(NEW_TITLE);
+    await page.getByRole('button', { name: TEXTS.post.form.update.update }).click();
+
+    await expect(page).toHaveURL(/\/post$/);
+    await expect(page.getByText(TEXTS.messages.success.postUpdated)).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.error.postSubmit.network)).toHaveCount(0);
+    expect(patchCount).toBe(2);
+  });
+
   test('direct patch가 재조회 응답을 기다리지 않고 먼저 화면에 반영된다', async ({ page }) => {
     // 위 테스트는 "PATCH 응답 이후 최종적으로 새 제목이 보인다"만 증명한다 — direct
     // patch(onSuccess의 setQueriesData)와 그 직후 invalidate가 트리거하는 재조회가

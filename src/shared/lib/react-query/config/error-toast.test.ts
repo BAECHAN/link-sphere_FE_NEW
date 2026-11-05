@@ -265,6 +265,39 @@ describe('resolveErrorToast', () => {
         message: 'failed',
       });
     });
+
+    it('문구를 정하지 않은 mutation은 응답을 못 받으면 공용 문구를 쓴다', () => {
+      const outcomeUnknown = { silent: false, message: TEXTS.messages.error.outcomeUnknown };
+
+      expect(resolveErrorToast(new NetworkError(), undefined, MUTATION_ERROR_POLICY)).toEqual(
+        outcomeUnknown
+      );
+      expect(
+        resolveErrorToast(
+          apiError({ status: 504 }),
+          { errorMessage: 'failed' },
+          MUTATION_ERROR_POLICY
+        )
+      ).toEqual(outcomeUnknown);
+    });
+
+    it('조회는 응답을 못 받아도 공용 문구를 쓰지 않는다', () => {
+      expect(resolveErrorToast(new NetworkError(), undefined, QUERY_ERROR_POLICY)).toEqual({
+        silent: true,
+      });
+      expect(
+        resolveErrorToast(apiError({ status: 504 }), { errorMessage: 'failed' }, QUERY_ERROR_POLICY)
+      ).toEqual({ silent: false, message: 'failed' });
+    });
+
+    it('429·보안 차단과 manualErrorHandling은 그대로 먼저 판정한다', () => {
+      expect(
+        resolveErrorToast(apiError({ status: 429, code: '429' }), undefined, MUTATION_ERROR_POLICY)
+      ).toMatchObject({ message: TEXTS.messages.error.rateLimited });
+      expect(
+        resolveErrorToast(new NetworkError(), { manualErrorHandling: true }, MUTATION_ERROR_POLICY)
+      ).toEqual({ silent: true });
+    });
   });
 
   describe('SessionChangedError (보낸 뒤 인증 세대가 바뀜)', () => {

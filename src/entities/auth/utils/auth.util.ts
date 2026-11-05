@@ -3,6 +3,7 @@ import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@/entities/auth/config
 import { ApiError } from '@/shared/types/common.type';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { TEXTS } from '@/shared/config/texts';
+import { ErrorUtil } from '@/shared/utils/error.util';
 
 /** met: 충족(초록 ✓) / unmet: 못 채운 채로 칸을 벗어났거나 제출함(빨강 ✗) / pending: 아직 입력 중(회색 ○) */
 export type PasswordRequirementState = 'met' | 'unmet' | 'pending';
@@ -120,7 +121,7 @@ export class PasswordUtil {
 
 /** 가입 실패 원인 - 화면에 머물렀으면 message 토스트, 떠났으면 원인별 안내와 버튼(useSignUp) */
 export interface SignUpSubmitErrorResolution {
-  reason: 'duplicateNickname' | 'duplicateEmail' | 'failed';
+  reason: 'duplicateNickname' | 'duplicateEmail' | 'outcomeUnknown' | 'failed';
   message: string;
 }
 
@@ -130,6 +131,14 @@ export class SignUpUtil {
    * failed로 돌려준다 - 빠지면 버튼만 다시 활성화되고 아무 안내 없이 조용히 실패한다.
    */
   static resolveSubmitError(error: unknown): SignUpSubmitErrorResolution {
+    // 504는 ApiError라 아래보다 먼저 본다. 가입됐을 수 있어 실패라고 하지 않는다
+    if (ErrorUtil.isOutcomeUnknown(error)) {
+      return {
+        reason: 'outcomeUnknown',
+        message: TEXTS.messages.error.accountCreateOutcomeUnknown,
+      };
+    }
+
     if (!(error instanceof ApiError)) {
       return { reason: 'failed', message: TEXTS.messages.error.accountCreateFailed };
     }

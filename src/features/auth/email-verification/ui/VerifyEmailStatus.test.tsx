@@ -82,4 +82,25 @@ describe('VerifyEmailStatus', () => {
       await screen.findByRole('link', { name: TEXTS.auth.verifyEmail.goToAccountSettings })
     ).toBeVisible();
   });
+
+  it('응답을 못 받으면 실패라고 단정하지 않고 확인하지 못했다고 안내한다', async () => {
+    server.use(
+      http.post(url(API_ENDPOINTS.auth.emailVerificationConfirm), () => HttpResponse.error()),
+      http.get(url(API_ENDPOINTS.auth.account), async () => {
+        await delay('infinite');
+        return HttpResponse.json({});
+      })
+    );
+    useAuthStore.getState().setAuth('token');
+    useAuthStore.getState().setAuthResolved(true);
+
+    renderWithToken();
+
+    expect(await screen.findByText(TEXTS.auth.verifyEmail.unknownTitle)).toBeVisible();
+    expect(screen.getByText(TEXTS.auth.verifyEmail.unknownDescription)).toBeVisible();
+    expect(screen.queryByText(TEXTS.auth.verifyEmail.errorTitle)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: TEXTS.auth.verifyEmail.goToAccountSettings })
+    ).toBeVisible();
+  });
 });

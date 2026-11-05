@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
 import {
   PostCardBookmarkFolderDialog,
@@ -452,6 +453,160 @@ describe('PostCardBookmarkFolderDialog', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('북마크 제거에 실패했어요.'));
     expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });
+
+  it('체크된 미분류 삭제의 응답을 끝내 못 받으면 실패라고 단정하지 않고 모달이 닫히지 않는다', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.delete(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => HttpResponse.error())
+    );
+    const { onOpenChange } = renderDialog({ bookmarkFolderIds: [] });
+
+    await waitFor(() => expect(screen.getByRole('button', { name: /^미분류/ })).toBeEnabled());
+    await user.click(screen.getByText('미분류'));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(TEXTS.messages.error.outcomeUnknown)
+    );
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+  });
+
+  it.each([
+    {
+      name: '비소속 폴더에 저장',
+      props: { bookmarkFolderIds: [FOLDER_A] },
+      target: '나중에 읽기',
+      cut: () =>
+        http.post(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_B)), () =>
+          HttpResponse.error()
+        ),
+    },
+    {
+      name: '다른 폴더도 있는 소속 폴더에서 빼기',
+      props: { bookmarkFolderIds: [FOLDER_A, FOLDER_B] },
+      target: '개발',
+      cut: () =>
+        http.delete(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () =>
+          HttpResponse.error()
+        ),
+    },
+    {
+      name: '마지막 폴더에서 빼기',
+      props: { bookmarkFolderIds: [FOLDER_A] },
+      target: '개발',
+      cut: () =>
+        http.delete(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () =>
+          HttpResponse.error()
+        ),
+    },
+    {
+      name: '미분류로 저장',
+      props: { isBookmarked: false, bookmarkFolderIds: [] },
+      target: '미분류',
+      cut: () =>
+        http.put(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => HttpResponse.error()),
+    },
+    {
+      name: '미분류를 눌러 소속 폴더 전체 해제',
+      props: { bookmarkFolderIds: [FOLDER_A] },
+      target: '미분류',
+      cut: () =>
+        http.delete(url(API_ENDPOINTS.bookmark.postFolders(POST_ID)), () => HttpResponse.error()),
+    },
+    {
+      name: '북마크 제거 행',
+      props: { bookmarkFolderIds: [FOLDER_A] },
+      target: '북마크 제거',
+      cut: () =>
+        http.delete(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => HttpResponse.error()),
+    },
+  ])(
+    '$name의 응답을 끝내 못 받으면 실패라고 단정하지 않고 모달이 닫히지 않는다',
+    async ({ props, target, cut }) => {
+      const user = userEvent.setup();
+      server.use(cut());
+      const { onOpenChange } = renderDialog(props);
+
+      await waitFor(() => expect(screen.getByText('나중에 읽기')).toBeInTheDocument());
+      await user.click(screen.getByText(target));
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(TEXTS.messages.error.outcomeUnknown)
+      );
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(onOpenChange).not.toHaveBeenCalledWith(false);
+    }
+  );
+
+  it.each([
+    {
+      name: '미분류 북마크 복원',
+      folderIds: [],
+      target: '미분류',
+      remove: () =>
+        http.delete(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () =>
+          postBookmarkResponse(false)
+        ),
+      cutRestore: () =>
+        http.put(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () => HttpResponse.error()),
+    },
+    {
+      name: '소속 1개였던 북마크 복원',
+      folderIds: [FOLDER_A],
+      target: '북마크 제거',
+      remove: () =>
+        http.delete(url(API_ENDPOINTS.post.postBookmark(POST_ID)), () =>
+          postBookmarkResponse(false)
+        ),
+      cutRestore: () =>
+        http.post(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () =>
+          HttpResponse.error()
+        ),
+    },
+    {
+      name: '마지막 폴더 복원',
+      folderIds: [FOLDER_A],
+      target: '개발',
+      remove: () =>
+        http.delete(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () =>
+          HttpResponse.json(
+            {
+              status: 200,
+              message: 'ok',
+              data: { postId: POST_ID, isBookmarked: false, folderIds: [] },
+              timestamp: '',
+            },
+            { status: 200 }
+          )
+        ),
+      cutRestore: () =>
+        http.post(url(API_ENDPOINTS.bookmark.postFolder(POST_ID, FOLDER_A)), () =>
+          HttpResponse.error()
+        ),
+    },
+  ])(
+    '$name의 응답을 끝내 못 받으면 실패라고 단정하지 않고, 닫을 때까지 남긴다',
+    async ({ folderIds, target, remove, cutRestore }) => {
+      const user = userEvent.setup();
+      server.use(remove(), cutRestore());
+      renderDialog({ bookmarkFolderIds: folderIds });
+
+      await waitFor(() => expect(screen.getByText('나중에 읽기')).toBeInTheDocument());
+      await user.click(screen.getByText(target));
+      await waitFor(() => expect(toast.success).toHaveBeenCalled());
+
+      const [, options] = vi.mocked(toast.success).mock.calls[0]!;
+      const action = options?.action as unknown as { onClick: () => void };
+
+      action.onClick();
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(TEXTS.messages.error.outcomeUnknown, {
+          id: 'bookmark-restore-error',
+          duration: Infinity,
+        })
+      );
+    }
+  );
 
   it('폴더가 1개 이상이면 "내 폴더" 구획 헤더가 뜬다 (최근 구획 임계값 미달이어도)', async () => {
     renderDialog();

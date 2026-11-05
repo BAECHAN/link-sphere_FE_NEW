@@ -350,6 +350,48 @@ describe('useUpdateComment', () => {
     });
   });
 
+  it('폼을 닫은 뒤 응답을 끝내 못 받으면 실패라고 단정하지 않는 제목으로 알린다', async () => {
+    const queryClient = createTestQueryClient();
+    let respond: (() => void) | null = null;
+    server.use(
+      http.patch(url(API_ENDPOINTS.post.comment(mockComment.id)), async () => {
+        await new Promise<void>((resolve) => {
+          respond = resolve;
+        });
+        return HttpResponse.error();
+      })
+    );
+    const errorSpy = vi.spyOn(toast, 'error');
+    const { result, unmount } = renderHook(
+      () => useUpdateComment({ comment: mockComment, postId: mockPost.id }),
+      { wrapper: createWrapper(queryClient) }
+    );
+
+    act(() => {
+      result.current.form.setValue('content', '닫힌 뒤 끊길 수정', { shouldDirty: true });
+    });
+
+    act(() => {
+      void result.current.onSubmit();
+    });
+
+    await waitFor(() => expect(respond).not.toBeNull());
+    unmount();
+    respond!();
+    respond = null;
+
+    // 다시 보낸 요청도 끊긴다
+    await waitFor(() => expect(respond).not.toBeNull());
+    respond!();
+
+    await waitFor(() => expect(errorSpy).toHaveBeenCalled());
+    expectLeftFormFailureToast(errorSpy, {
+      title: TEXTS.messages.error.leftPageFailure.outcomeUnknownTitle,
+      key: `comment-update:${mockComment.id}`,
+      description: TEXTS.messages.error.uploadSubmit.save.network,
+    });
+  });
+
   it('로그인이 풀린 채 그 화면에 머물다 누르면 보내지 않고 그 이유의 로그인 창을 연다', async () => {
     // 로그인 창을 닫고 그대로 누른 경우 - 댓글·답글 등록과 같은 창이 다시 뜨고, 고친 내용은 그대로 남는다
     const dialogSpy = vi.spyOn(NavigationService, 'navigate').mockImplementation(() => {});

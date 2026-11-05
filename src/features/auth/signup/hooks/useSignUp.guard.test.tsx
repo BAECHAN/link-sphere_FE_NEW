@@ -350,6 +350,34 @@ describe('useSignUp - 가입 요청 중 이탈', () => {
     }
   );
 
+  it('응답 전에 "나가기"로 떠난 뒤 응답을 못 받으면 가입됐는지 모른다고 알린다', async () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    const gate = holdSignupResponse(() => HttpResponse.error());
+    const { router, queryClient } = renderSignUp();
+
+    await fillAndSubmit(gate);
+    await tryToLeave(router, 'loginLink');
+    clickConfirmButton(PENDING_TEXTS.confirm);
+
+    expect(await screen.findByTestId('login-page')).toBeInTheDocument();
+
+    await release(gate);
+    await settle(queryClient);
+
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(
+      LEFT_PAGE_FAILURE.outcomeUnknownTitle,
+      expect.objectContaining({ id: 'left-page-failure:auth-signup', duration: Infinity })
+    );
+    expect(lastToastOptions(errorSpy)?.action).toMatchObject({
+      label: TEXTS.buttons.signUpAgain,
+    });
+    expectDescriptionLines(
+      lastToastOptions(errorSpy),
+      TEXTS.messages.error.accountCreateOutcomeUnknown
+    );
+  });
+
   it('떠난 뒤 실패 토스트의 [다시 가입하기]를 누르면 닉네임·이메일만 되살리고, 되살린 입력도 떠날 때 확인창이 뜬다', async () => {
     const errorSpy = vi.spyOn(toast, 'error');
     const gate = holdSignupResponse(signupFailed);

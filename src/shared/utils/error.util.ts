@@ -38,6 +38,15 @@ export class ErrorUtil {
     return error instanceof NetworkError || (error instanceof ApiError && error.status === 504);
   }
 
+  /** 실패 문구를 고른다 - 응답을 못 받았으면 실패라고 단정하지 않는다 */
+  static resolveFailureMessage(
+    error: unknown,
+    failedMessage: string,
+    unknownMessage: string = TEXTS.messages.error.outcomeUnknown
+  ): string {
+    return ErrorUtil.isOutcomeUnknown(error) ? unknownMessage : failedMessage;
+  }
+
   /**
    * BE가 refresh를 401로 거절했는지(쿠키 없음·만료·폐기) - 로그인 만료로 보는 유일한 refresh 실패다. 네트워크·5xx·429는
    * 세션이 아니라 연결·서버 문제다(client.ts handleTokenExpired, 앱 시작 복원 useAuth restoreAuthWithResult)

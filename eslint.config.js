@@ -7,6 +7,7 @@ import prettierPlugin from 'eslint-plugin-prettier';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import vitestPlugin from '@vitest/eslint-plugin';
 import playwrightPlugin from 'eslint-plugin-playwright';
+import { mutationRetryRule } from './scripts/lib/mutation-retry-rule.js';
 import { scopeMutationAuthEpochRule } from './scripts/lib/scope-mutation-auth-epoch-rule.js';
 
 // 파일명 약어 허용 목록
@@ -232,6 +233,8 @@ const customQueryRulesPlugin = {
     // [필수] scope로 줄 서는 mutation은 mutationFn 첫 줄에서 인증 세대를 확인한다(적용 블록의 주석 참고).
     // 규칙 본체는 단위 테스트를 위해 scripts/lib에 따로 둔다 - 그 파일 머리말 참고
     'scope-mutation-auth-epoch': scopeMutationAuthEpochRule,
+    // [필수] mutation은 응답을 못 받았을 때 다시 보낼지 retry로 선언한다(적용 블록의 주석 참고). 본체 위치는 위와 같은 이유
+    'mutation-retry-declared': mutationRetryRule,
   },
 };
 
@@ -1454,6 +1457,22 @@ export default [
     plugins: { 'custom-query-rules': customQueryRulesPlugin },
     rules: {
       'custom-query-rules/scope-mutation-auth-epoch': 'error',
+    },
+  },
+
+  // ============================================================
+  // [필수] mutation은 retry를 false 또는 shouldRetryIdempotentMutation으로 선언한다
+  // 이유: 선언하지 않으면 기본값 0이라 응답을 못 받았을 때 어떻게 할지 아무도 정하지 않은 채로 넘어간다.
+  //       다시 보내면 안 되는 요청(등록)이 있어 전역 기본값으로 켤 수 없다(docs/FE-ARCHITECTURE.md §28).
+  //       다시 보내는 요청은 차례가 왔을 때의 계정이 다를 수 있어 첫 줄에서 인증 세대도 확인한다.
+  //       테스트는 mutation을 일부러 선언 없이 만들기도 해서 제외한다.
+  // ============================================================
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.{ts,tsx}', 'src/test/**', 'src/mocks/**'],
+    plugins: { 'custom-query-rules': customQueryRulesPlugin },
+    rules: {
+      'custom-query-rules/mutation-retry-declared': 'error',
     },
   },
 

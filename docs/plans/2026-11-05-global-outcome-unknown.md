@@ -5,12 +5,23 @@
 ## 구현 결과
 
 > #541 · 2026-11-05 Phase 1 대조 · 이탈 1 · 미구현 0 — 판정 근거(파일:줄)는 PR 본문 "계획 대비 구현"
+>
+> #543 · 2026-11-05 Phase 2 대조 · 이탈 0 · 미구현 0 — 판정 근거(파일:줄)는 PR 본문 "계획 대비 구현"
 
 - 이탈(세 곳 공용): 409 중복 문구 판정을 폼 훅 3곳에 각각 넣지 않고 `BookmarkFolderUtil.resolveNameSaveErrorMessage` 하나로 모아 세 훅이 부른다. 판정 조건과 문구는 계획과 같다. Phase 2의 `resolveFailureMessage`도 이 유틸 안에서 쓴다
 - 계획에 없던 변경: 문서 동기화(`docs/TESTING.md`, `texts-conventions` skill)
 - 계획 뒤에 달라진 전제: 이 계획을 세운 뒤 #539가 병합돼 `GET /post/{id}`는 조회수를 올리지 않는다. 영향 범위의 "활성 상세 재조회가 조회수 +1"과 "별도 계획: 조회수 중복"은 더 이상 해당하지 않는다
 - 계획 뒤에 달라진 문구: 이미 지워진 글·댓글·폴더의 안내를 사용자 제안으로 "이미 삭제된 폴더라 화면을 갱신했어요."(글·댓글도 같은 형태)로 바꿨다(#542). 계획의 "이미 삭제된 폴더예요."는 당시 문구이고 키 이름은 그대로다
-- 아직 대조 전: Phase 2·3(별도 PR)
+- Phase 2 보완함: 첫 대조에서 미구현 2건이 나와 PR 전에 고쳤다. 끊김 e2e 4장면이 chromium에서만 돌아 모바일 스펙(`e2e/outcome-unknown.mobile.spec.ts`)을 더했고, 프로필의 연결 끊김을 `save` 문구로 적은 `docs/COMMENT.md` 서술을 고쳤다
+- Phase 2 보완함: 단정이 없던 재전송 중 화면 유지, `scope` 뒤 요청 대기, 성공 처리 1번, 폴더 선택 창의 나머지 실패 경로 문구 테스트를 더했다
+- Phase 2 세부 차이: 재전송 중 화면 유지는 글 좋아요와 폴더 고정으로만 단정한다. 글 북마크·댓글 좋아요·폴더 소속은 같은 TanStack 재시도 기제라 끝난 뒤 결과만 본다
+- Phase 2 세부 차이: 폴더 삭제는 `meta.outcomeUnknownMessage`를 넣지 않고 `useFolderActions`가 `deleteOutcomeUnknown`을 직접 띄운다. `manualErrorHandling`이라 meta 문구가 쓰일 길이 없고 보이는 문구는 같다
+- Phase 2 세부 차이: 규칙 테스트는 지운 줄 수가 아니라 `mutationFn` 수만큼 실패를 기대한다. `post.queries.ts`에 조회용 `retry: false`가 있어서다. 가입의 이메일 중복 분기 제목은 응답을 받은 경우라 바꾸지 않았다. 재조회가 입력 중 폼을 덮지 않는지는 기존 테스트가 이미 봐 새로 넣지 않았다
+- Phase 2 계획과 다른 전제: 전역 기본 문구에 "지금 닿는 mutation은 없다"고 적었으나 글 공개 전환이 `resolveErrorToast`를 직접 불러 닿는다. 문구 표에 행이 없던 공개 전환·프로필 수정은 "재전송 요청은 공용 문구" 결정대로 공용 문구가 됐다
+- Phase 2 계획에 없던 변경: 닉네임 저장이 실패해 되돌려진 뒤 "확인 중"에 멈춰 저장 버튼이 잠기던 버그를 고쳤다(`useUpdateAccount`, 사용자 결정). "다시 시도해주세요"라고 안내하는데 값을 고치기 전에는 다시 누를 수 없었기 때문이다. 응답 없음과 500 모두 해당한다
+- Phase 2 계획에 없던 변경: 규칙 함수 공유를 위해 `scope-mutation-auth-epoch-rule.js`의 함수 2개를 export하고, scope 없는 재전송에도 확인 줄이 생겨 그 규칙 테스트의 기대 수를 scope 수로 바꿨다. 테스트 보조로 `createTestQueryClient`의 `retryDelay: 0`과 e2e 경로 상수를 더했다
+- Phase 2 문서 동기화: `.claude/commands` 템플릿 2개, CLAUDE.md 토스트 결정표, FE-ARCHITECTURE §2·§11·§15·§21, POST 동작 요약 표, `docs/MYPAGE.md`, `docs/UNSAVED-CHANGES-GUARD.md`, 밀린 줄 번호
+- 아직 대조 전: Phase 3(별도 PR)
 
 <!-- plan-result:end -->
 

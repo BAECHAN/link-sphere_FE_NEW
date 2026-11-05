@@ -19,8 +19,10 @@ const SCOPE_MUTATION_FILES = [
   'src/entities/bookmark/folder/api/bookmark-folder.queries.ts',
 ];
 const CHECK_LINE = /^[ \t]*assertMutationAuthEpochUnchanged\(\w+\);\n/gm;
+// scope 없이 재전송하는 mutation도 확인 줄이 있어(mutation-retry-rule) 지운 줄 수가 아니라 scope 수만큼 실패를 기대한다
+const SCOPE_LINE = /^[ \t]*scope: /gm;
 
-// 확인 줄을 지운 사본이 지운 수만큼 실패해야 규칙이 실제 코드 모양을 보고 있다(헛통과가 아니다)는 게 증명된다
+// 확인 줄을 지운 사본이 scope 수만큼 실패해야 규칙이 실제 코드 모양을 보고 있다(헛통과가 아니다)는 게 증명된다
 const realFiles = SCOPE_MUTATION_FILES.map((file) => {
   const code = readFileSync(join(process.cwd(), file), 'utf-8');
 
@@ -29,6 +31,7 @@ const realFiles = SCOPE_MUTATION_FILES.map((file) => {
     code,
     withoutCheck: code.replace(CHECK_LINE, ''),
     removedCount: code.match(CHECK_LINE)?.length ?? 0,
+    scopeCount: code.match(SCOPE_LINE)?.length ?? 0,
   };
 });
 
@@ -191,10 +194,10 @@ ruleTester.run('custom-query-rules/scope-mutation-auth-epoch', scopeMutationAuth
       `,
       errors: [{ messageId: 'missingCheck' }],
     },
-    ...realFiles.map(({ file, withoutCheck, removedCount }) => ({
+    ...realFiles.map(({ file, withoutCheck, scopeCount }) => ({
       name: `실제 파일에서 확인 줄을 지운 사본: ${file}`,
       code: withoutCheck,
-      errors: Array.from({ length: removedCount }, () => ({ messageId: 'missingCheck' })),
+      errors: Array.from({ length: scopeCount }, () => ({ messageId: 'missingCheck' })),
     })),
   ],
 });

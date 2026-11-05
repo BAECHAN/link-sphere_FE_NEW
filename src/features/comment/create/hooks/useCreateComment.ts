@@ -167,9 +167,13 @@ export function useCreateComment({
         if (message) {
           showLeftPageFailureToast({
             key: unsavedChangesKey,
-            title: isReply
-              ? TEXTS.messages.error.leftPageFailure.replyCreateTitle
-              : TEXTS.messages.error.leftPageFailure.commentCreateTitle,
+            title: ErrorUtil.resolveFailureMessage(
+              error,
+              isReply
+                ? TEXTS.messages.error.leftPageFailure.replyCreateTitle
+                : TEXTS.messages.error.leftPageFailure.commentCreateTitle,
+              TEXTS.messages.error.leftPageFailure.outcomeUnknownTitle
+            ),
             description: CommentUtil.toLeftFormFailureDescription(message, mode),
           });
         }

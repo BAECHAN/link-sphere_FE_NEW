@@ -123,8 +123,12 @@ export function resolveErrorToast(
     return { silent: false, message: TEXTS.messages.error.rateLimited, id: RATE_LIMITED_TOAST_ID };
   }
 
-  if (meta?.outcomeUnknownMessage && ErrorUtil.isOutcomeUnknown(error)) {
-    return { silent: false, message: meta.outcomeUnknownMessage };
+  // 쓰기 요청의 응답을 못 받았으면 실패라고 단정하지 않는다(docs/FE-ARCHITECTURE.md §28) - meta.errorMessage보다 먼저 본다
+  if (policy === MUTATION_ERROR_POLICY && ErrorUtil.isOutcomeUnknown(error)) {
+    return {
+      silent: false,
+      message: meta?.outcomeUnknownMessage ?? TEXTS.messages.error.outcomeUnknown,
+    };
   }
 
   if (meta?.errorMessage) {

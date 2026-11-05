@@ -988,6 +988,25 @@ _"수동적인 알림에는 적절하지만, 검증이든 다른 것이든 오�
   선택 창)과 이름 바꾸기가 `BookmarkFolderUtil.resolveNameSaveErrorMessage`로 "이미 같은 이름의 폴더가 있어요."를 띄운다.
   입력 처리는 그대로다 — 만들기는 입력을 남기고, 이름 바꾸기는 원래 이름으로 되돌린다.
 
+### 응답을 못 받으면(2026-11-05)
+
+폴더 쓰기 요청 7개는 응답을 못 받으면(연결 끊김·504) 약 1초 뒤 1번 더 보내 결과대로 처리한다. 판단 기준과 다른 요청의 결정은
+[`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §28이 정본이다.
+
+| 요청                               | 두 번째 응답                | 처리                                                       |
+| ---------------------------------- | --------------------------- | ---------------------------------------------------------- |
+| 폴더 만들기                        | 409 `DUPLICATE_FOLDER_NAME` | 목록에 같은 이름이 있으면 첫 요청이 만든 폴더로 받아들인다 |
+| 폴더 삭제                          | 404 `FOLDER_NOT_FOUND`      | 이미 삭제 안내                                             |
+| 이름 변경·고정·담기·빼기·전부 빼기 | 2xx                         | 같은 상태를 다시 만들 뿐이라 성공 처리                     |
+| 전부                               | 또 응답 없음                | 확인하지 못했다고 안내하고 폴더 목록을 다시 받는다         |
+
+- **안내 문구:** 공용 "처리됐는지 확인하지 못했어요. 연결을 확인하고 다시 시도해주세요."이고, 폴더 삭제만 "삭제됐는지 확인하지 못했어요."로
+  시작한다. 폼 3곳은 `BookmarkFolderUtil.resolveNameSaveErrorMessage`가, 폴더 선택 창은 `usePostCardBookmarkFolderDialog.ts`가 고른다.
+- **이름 대조는 재전송에서만 한다**(`bookmark-folder.queries.ts`의 `sentOnce`). 처음부터 난 409는 진짜 중복이라 목록을 조회하지 않고
+  "이미 같은 이름의 폴더가 있어요."를 띄운다. 회원별 이름이 유일해(BE `uk_bookmark_folders_user_name`) BE 변경 없이 대조할 수 있다.
+- **대조의 드문 경우:** 첫 요청이 못 갔는데 같은 이름 폴더가 원래 있었으면 기존 폴더를 만든 것처럼 쓴다. 데이터 손실은 없고, 사이드바
+  만들기에는 성공 토스트가 없으며 선택 창은 그 폴더를 고른다.
+
 ### 폴더 글 목록 조회가 실패했을 때(2026-11-03, #491)
 
 - **첫 페이지 실패**: 빈 상태("아직 북마크가 없어요.") 대신 피드와 같은 오류 문구(`ErrorState` +
@@ -1154,7 +1173,7 @@ RootLayout 호스트가 어느 글의 창을 그릴지 담는 Zustand 스토어�
 
 | 파라미터           | 값                                                                         | 실제 위치                                                                               |
 | ------------------ | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| 내 폴더 순서       | 고정한 폴더(`pinnedAt` 오름차순, 같으면 `sortOrder`) → 나머지(`sortOrder`) | `orderPinnedFirst`(`entities/bookmark/folder/utils/bookmark-folder.util.ts:68`)         |
+| 내 폴더 순서       | 고정한 폴더(`pinnedAt` 오름차순, 같으면 `sortOrder`) → 나머지(`sortOrder`) | `orderPinnedFirst`(`entities/bookmark/folder/utils/bookmark-folder.util.ts:80`)         |
 | 순서를 적용하는 곳 | 사이드바·모바일, 저장 다이얼로그                                           | `useFolderSections.ts:22`(사이드바·모바일), `useBookmarkFolderSelect.ts:44`(다이얼로그) |
 | 고정 개수 상한     | 없음                                                                       | —                                                                                       |
 
@@ -1162,7 +1181,7 @@ RootLayout 호스트가 어느 글의 창을 그릴지 담는 Zustand 스토어�
 
 | 파라미터                                     | 값    | 실제 위치                                                                                                                                                                                |
 | -------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 상단 구획 노출 최소 "저장 이력 있는" 폴더 수 | 3     | `entities/bookmark/folder/utils/bookmark-folder.util.ts:19`의 `wouldDuplicateMyFoldersSection`(`pickRecentFolders`가 호출) — 별도 상수 없이 `RECENT_BOOKMARK_FOLDER_COUNT`를 그대로 쓴다 |
+| 상단 구획 노출 최소 "저장 이력 있는" 폴더 수 | 3     | `entities/bookmark/folder/utils/bookmark-folder.util.ts:17`의 `wouldDuplicateMyFoldersSection`(`pickRecentFolders`가 호출) — 별도 상수 없이 `RECENT_BOOKMARK_FOLDER_COUNT`를 그대로 쓴다 |
 | 상단 구획 노출 제외 조건(완전 일치)          | —     | 전체 폴더 수가 `RECENT_BOOKMARK_FOLDER_COUNT`(3)와 같을 때만 예외로 숨김(아래 설명)                                                                                                      |
 | 상단 구획 고정 노출 개수                     | 3     | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`                                                                                              |
 | 열린 직후 클릭 무시 시간                     | 400ms | `shared/config/const.ts`의 `DOUBLE_CLICK_GUARD_MS`(위 "열린 직후 클릭 무시" 소절)                                                                                                        |

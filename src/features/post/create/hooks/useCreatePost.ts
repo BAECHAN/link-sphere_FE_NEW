@@ -187,7 +187,11 @@ export function useCreatePost() {
 
         showLeftPageFailureToast({
           key: 'post-create',
-          title: TEXTS.messages.error.leftPageFailure.postCreateTitle,
+          title: ErrorUtil.resolveFailureMessage(
+            error,
+            TEXTS.messages.error.leftPageFailure.postCreateTitle,
+            TEXTS.messages.error.leftPageFailure.outcomeUnknownTitle
+          ),
           description:
             resolution.kind === 'form' && resolution.unclassified
               ? TEXTS.messages.error.leftPageFailure.retryLater

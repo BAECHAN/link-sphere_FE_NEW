@@ -19,6 +19,7 @@ vi.mock('@/entities/account/api/account.keys', () => ({
   accountKeys: { root: ['account'] },
   accountMutationKeys: { update: ['account', 'update'] },
   handleAccountUpdateSuccess: vi.fn(),
+  handleAccountUpdateOutcomeUnknown: vi.fn(),
 }));
 
 // URL.createObjectURL 스텁 — URL 클래스 자체는 유지하고 메서드만 추가
@@ -303,6 +304,51 @@ describe('useUpdateAccount', () => {
     // 골랐던 이미지 미리보기는 사라지지 않는다 — 재시도하려고 처음부터 다시 입력할 필요가 없다.
     expect(result.current.form.getValues('nickname')).toBe('taken');
     expect(result.current.avatarPreview).toBe('blob:mock-url');
+  });
+
+  it('저장이 실패해 되돌린 뒤 "확인 중"에 멈추지 않고 다시 확인해 바로 재시도할 수 있다', async () => {
+    const checkCalled = vi.fn();
+    server.use(
+      // 낙관적으로 쓴 닉네임이 한 번 그려진 뒤 실패해야 실제 흐름과 같다
+      http.patch(url(API_ENDPOINTS.auth.updateAccount), async () => {
+        await delay(100);
+
+        return HttpResponse.json(
+          { status: 500, code: 'INTERNAL_SERVER_ERROR', message: '', timestamp: '' },
+          { status: 500 }
+        );
+      }),
+      http.get(url(API_ENDPOINTS.auth.nicknameAvailability), ({ request }) => {
+        checkCalled(new URL(request.url).searchParams.get('nickname'));
+        return HttpResponse.json(
+          { status: 200, message: 'ok', data: { available: true }, timestamp: '' },
+          { status: 200 }
+        );
+      })
+    );
+
+    const { result } = renderHook(() => useUpdateAccount(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.account?.nickname).toBe('testuser'));
+
+    act(() => {
+      result.current.form.setValue('nickname', 'newNick', { shouldDirty: true });
+    });
+    await waitFor(() => expect(result.current.isNicknameAvailable).toBe(true), { timeout: 2000 });
+
+    await act(async () => {
+      await result.current.onSubmit({ preventDefault: vi.fn() } as never);
+    });
+    await waitFor(() => expect(result.current.account?.nickname).toBe('newNick'));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(result.current.account?.nickname).toBe('testuser');
+
+    // 저장 버튼은 isCheckingNickname이면 잠긴다 - 다시 확인을 끝내야 같은 값으로 재시도할 수 있다
+    await waitFor(() => expect(result.current.isNicknameAvailable).toBe(true), { timeout: 2000 });
+    expect(result.current.isCheckingNickname).toBe(false);
+    expect(checkCalled).toHaveBeenCalledTimes(2);
   });
 
   it('타이핑을 멈추면 디바운스 후 가용성 검사가 실행되고, 사용 중인 닉네임이면 인라인 오류를 띄운다', async () => {

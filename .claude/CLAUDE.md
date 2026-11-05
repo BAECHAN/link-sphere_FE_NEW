@@ -677,6 +677,7 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 | 스크롤 규칙 (URL이 바뀌면 맨 위로)                                                 | §25   | 전역 `<ScrollRestoration />`이 처리하므로 기능마다 `window.scrollTo`를 넣지 않는다. 스크롤을 유지해야 하는 state-only push(오버레이·모달·패널)와 지금 보는 화면 안의 해시 이동(상세의 댓글 링크)만 `preventScrollReset: true`로 빠진다 |
 | 위층 조립 (같은 레이어 슬라이스를 직접 import하지 않음)                            | §26   | 목록이 카드를 그리는 식이면 받는 쪽이 `render<대상>` 함수 prop을 받고 위층(페이지 등)이 넘긴다. 함수는 모듈 최상단에 선언, 인자 타입은 받는 쪽이 선언                                                                                  |
 | 등록 요청 멱등 키 (`IdempotencyKeyUtil`)                                           | §27   | 같은 요청이 두 번 오면 행·메일이 둘이 되는 등록은 `mutationFn`을 `IdempotencyKeyUtil.send`로 감싸 `Idempotency-Key`를 싣는다. 폼 훅은 키를 모른다                                                                                      |
+| 응답을 못 받은 쓰기 요청 (`retry` 선언)                                            | §28   | 모든 mutation은 `retry`를 `false`(이유 주석) 또는 `shouldRetryIdempotentMutation`(첫 줄 세대 확인)으로 선언한다. 끝내 모르면 `ErrorUtil.resolveFailureMessage`로 사실대로 안내하고 `.keys.ts` 핸들러로 화면을 다시 받는다              |
 
 ---
 
@@ -700,12 +701,12 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 
 ### 새 mutation 만들 때 토스트 결정표
 
-| 원하는 동작                           | 설정                                  | 결과                                                       |
-| ------------------------------------- | ------------------------------------- | ---------------------------------------------------------- |
-| 일반 에러 토스트면 충분               | (없음)                                | 전역이 `serverError` 1개                                   |
-| 메시지만 커스텀                       | `meta: { errorMessage }`              | 전역이 그 메시지 1개 (단, 429·WAF 차단은 전용 문구가 우선) |
-| `onError`/컴포넌트에서 **직접** toast | `meta: { manualErrorHandling: true }` | 내 토스트만 1개                                            |
-| 옵티미스틱 토글(실패 시 롤백만)       | `meta: { manualErrorHandling: true }` | 토스트 없이 롤백                                           |
+| 원하는 동작                           | 설정                                  | 결과                                                        |
+| ------------------------------------- | ------------------------------------- | ----------------------------------------------------------- |
+| 일반 에러 토스트면 충분               | (없음)                                | 전역이 `serverError` 1개(응답을 못 받으면 `outcomeUnknown`) |
+| 메시지만 커스텀                       | `meta: { errorMessage }`              | 전역이 그 메시지 1개 (단, 429·WAF 차단은 전용 문구가 우선)  |
+| `onError`/컴포넌트에서 **직접** toast | `meta: { manualErrorHandling: true }` | 내 토스트만 1개                                             |
+| 옵티미스틱 토글(실패 시 롤백만)       | `meta: { manualErrorHandling: true }` | 토스트 없이 롤백                                            |
 
 전역 자동 처리 규칙 상세와 `manualErrorHandling` 코드 예제는
 [`docs/FE-ARCHITECTURE.md`](../docs/FE-ARCHITECTURE.md) §13을 먼저 읽는다.

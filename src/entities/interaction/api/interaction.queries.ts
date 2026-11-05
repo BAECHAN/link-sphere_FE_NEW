@@ -21,6 +21,7 @@ import {
   BookmarkFolderListResponse,
 } from '@/entities/bookmark/folder/@x/interaction';
 import { assertMutationAuthEpochUnchanged } from '@/shared/lib/react-query/config/mutation-auth-epoch';
+import { shouldRetryIdempotentMutation } from '@/shared/lib/react-query/config/retry-policy';
 
 // 좋아요는 "뒤집기"가 아니라 "이 상태로 만들기"다 — 이미 그 상태면 수도 그대로 둔다.
 function setLikeOnPost(post: Post, nextLiked: boolean): Post {
@@ -87,6 +88,7 @@ export const useLikePostMutation = (postId: Post['id']) => {
   return useMutation({
     mutationKey,
     scope: { id: mutationKey.join(':') },
+    retry: shouldRetryIdempotentMutation,
     mutationFn: (nextLiked: boolean, context) => {
       // 줄에서 기다리는 사이 다른 계정이 됐으면 보내지 않는다(이하 scope mutation 공통)
       assertMutationAuthEpochUnchanged(context);
@@ -186,6 +188,7 @@ export const useBookmarkPostMutation = (postId: Post['id']) => {
   return useMutation({
     mutationKey: interactionMutationKeys.bookmarkPost(postId),
     scope: bookmarkPostScope(postId),
+    retry: shouldRetryIdempotentMutation,
     mutationFn: (target: BookmarkPostTarget, context) => {
       assertMutationAuthEpochUnchanged(context);
 
@@ -325,6 +328,7 @@ export const useLikeCommentMutation = (commentId: Comment['id'], postId: Post['i
   return useMutation({
     mutationKey,
     scope: { id: mutationKey.join(':') },
+    retry: shouldRetryIdempotentMutation,
     mutationFn: (nextLiked: boolean, context) => {
       assertMutationAuthEpochUnchanged(context);
 

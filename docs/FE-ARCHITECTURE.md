@@ -104,6 +104,7 @@ flowchart TD
 | `custom-api-rules/no-raw-api-client-import`                                                                    | `apiClient` 값 import — BE 호출은 `specClient`(스펙 경로)로만, `spec-client.ts`·테스트만 예외(타입 import는 허용, §5 Layer 1)                                                                                                                                                                                                                 |
 | `custom-api-rules/no-generated-zod-import`                                                                     | orval 생성 파일(`openapi.zod`)의 import·재수출·동적 `import()` — `src/entities/**/config/*.contract.test.ts`만 예외(타입 전용은 허용, §9)                                                                                                                                                                                                     |
 | `custom-query-rules/scope-mutation-auth-epoch`                                                                 | `scope`·`mutationFn`을 함께 가진 객체에서 첫 줄의 `assertMutationAuthEpochUnchanged(context)` 누락 — §11 6번. 본체는 `scripts/lib/`, 옵션을 변수·스프레드로 넘기면 못 잡음                                                                                                                                                                    |
+| `custom-query-rules/mutation-retry-declared`                                                                   | `mutationFn`을 가진 객체에서 `retry` 누락, `false`·`shouldRetryIdempotentMutation` 외의 값, 재전송인데 첫 줄의 `assertMutationAuthEpochUnchanged(context)` 누락 — §28. 본체는 `scripts/lib/`, 옵션을 변수·스프레드로 넘기면 못 잡음                                                                                                           |
 | `custom-i18n/no-hardcoded-hangul`                                                                              | 한글 UI 문자열 하드코딩 — `TEXTS`만 허용                                                                                                                                                                                                                                                                                                      |
 | `custom-tailwind/no-raw-color`                                                                                 | black/white/명명 팔레트(gray-500 등) 리터럴 색상 클래스 금지 — `globals.css` 디자인 토큰 클래스만 허용                                                                                                                                                                                                                                        |
 | `custom-tailwind/no-raw-z-index`                                                                               | 숫자 그대로 쓰는 raw `z-*` 유틸리티 금지 — `globals.css`의 명명된 z-index 토큰만 허용                                                                                                                                                                                                                                                         |
@@ -547,6 +548,8 @@ export const useCreateEntityMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    // 응답을 못 받았을 때 다시 보낼지 요청마다 선언한다(§28) - 다시 보내면 중복이 생기는 등록은 false
+    retry: false,
     mutationFn: (payload: CreateEntity) => entityApi.createEntity(payload),
     meta: {
       successMessage: TEXTS.messages.success.entityCreated,
@@ -976,6 +979,7 @@ const isLastPending = () => queryClient.isMutating({ mutationKey }) === 1;
 useMutation({
   mutationKey,
   scope: { id: mutationKey.join(':') },
+  retry: shouldRetryIdempotentMutation, // 응답을 못 받으면 1번 더(§28)
   mutationFn: (nextLiked: boolean, context) => {
     assertMutationAuthEpochUnchanged(context);
 
@@ -1024,12 +1028,12 @@ export const isLastPendingBookmarkMutation = (queryClient: QueryClient, postId: 
 
 `src/shared/lib/react-query/config/queryClient.ts`
 
-| 설정       | 값                                                                                                                                                                                                                                                                                |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Stale Time | 3분 (`3 * 60 * 1000`)                                                                                                                                                                                                                                                             |
-| GC Time    | 5분 (`5 * 60 * 1000`)                                                                                                                                                                                                                                                             |
-| Retry      | 실패 시 1회 재시도 — `SessionChangedError`·`SessionExpiredError`·429·`EDGE_BLOCKED`는 재시도 안 함 (`retry-policy.ts`의 `shouldRetryQuery`). mutation은 재시도 없음 — 글·댓글 삭제만 응답을 못 받았을 때 1회 (`shouldRetryIdempotentMutation`, `docs/POST.md` "응답을 못 받으면") |
-| Refetch    | 탭이 다시 보일 때(`visibilitychange` — TanStack Query 5의 `focusManager` 기준) 및 마운트 시                                                                                                                                                                                       |
+| 설정       | 값                                                                                                                                                                                                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stale Time | 3분 (`3 * 60 * 1000`)                                                                                                                                                                                                                                               |
+| GC Time    | 5분 (`5 * 60 * 1000`)                                                                                                                                                                                                                                               |
+| Retry      | 실패 시 1회 재시도 — `SessionChangedError`·`SessionExpiredError`·429·`EDGE_BLOCKED`는 재시도 안 함 (`retry-policy.ts`의 `shouldRetryQuery`). mutation은 요청마다 `retry`로 선언한다 — `false`이거나 응답을 못 받았을 때만 1회(`shouldRetryIdempotentMutation`, §28) |
+| Refetch    | 탭이 다시 보일 때(`visibilitychange` — TanStack Query 5의 `focusManager` 기준) 및 마운트 시                                                                                                                                                                         |
 
 싱글턴 `queryClient`는 `QueryProvider`가 마운트 시 한 번 `QueryClientProvider`에 주입하고,
 그 아래 앱 코드는 전부 `useQueryClient()`로 그 인스턴스를 Context에서 꺼내 쓴다(같은
@@ -1148,8 +1152,9 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
   BE 레이트리밋뿐 아니라 앱 에러 코드 없이 오는 Lambda 동시 실행 포화 429도 같은 안내를 받는다.
   `EDGE_BLOCKED`와 429 토스트는 고정 id(`EDGE_BLOCKED_TOAST_ID`·`RATE_LIMITED_TOAST_ID`)를 달아,
   여러 요청이 함께 실패해도 하나만 보인다(id가 같으면 sonner가 새로 띄우지 않고 갱신한다).
-- **`meta.outcomeUnknownMessage`**: 있고 응답을 못 받은 실패(`ErrorUtil.isOutcomeUnknown`, 연결 끊김·504)면 그 메시지를
-  사용. 서버에서 처리됐을 수 있어 `errorMessage`의 "실패했어요"가 사실이 아닐 수 있는 mutation에 단다(글·댓글 삭제)
+- **응답을 못 받은 mutation 실패**(`ErrorUtil.isOutcomeUnknown`, 연결 끊김·504): `meta.outcomeUnknownMessage`, 없으면 공용
+  `TEXTS.messages.error.outcomeUnknown`을 사용. 서버에서 처리됐을 수 있어 `errorMessage`의 "실패했어요"가 사실이 아닐 수
+  있다(§28). query는 이 분기를 타지 않는다
 - **`meta.errorMessage`**: 있으면 그 메시지를 사용
 - **401 (`NOT_LOGGED_IN` / `INVALID_TOKEN`)**: 로그인 필요 토스트만 표시한다. 세션 정리
   (`AuthUtil.clearAll()` → `/auth/login` 리다이렉트)는 `client.ts`의 fetch 인터셉터가 이미
@@ -1185,6 +1190,7 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
 
 ```typescript
 const { mutate } = useMutation({
+  retry: false,
   mutationFn: someApiFunction,
   meta: { manualErrorHandling: true },
   onError: (error) => {
@@ -1274,13 +1280,13 @@ sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를
 
 ## 15. Mutation/Query Meta 옵션
 
-| 키                      | 타입      | 효과                                                                                               |
-| ----------------------- | --------- | -------------------------------------------------------------------------------------------------- |
-| `successMessage`        | `string`  | 자동으로 성공 토스트 표시 (정적 문자열만 — 분기 필요 시 위 §14 예외)                               |
-| `errorMessage`          | `string`  | 기본 대신 커스텀 에러 토스트 표시                                                                  |
-| `outcomeUnknownMessage` | `string`  | 응답을 못 받았을 때(연결 끊김·504) `errorMessage` 대신 표시 — 결과를 모르는데 "실패"라고 하지 않게 |
-| `manualErrorHandling`   | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용, mutation·query 둘 다 지원)                 |
-| `silentWhenInactive`    | `boolean` | query 전용 — 켜진 구독자 없이 실패하면 토스트 억제 (닫힌 채 마운트된 창이 지켜보는 조회, §13)      |
+| 키                      | 타입      | 효과                                                                                                 |
+| ----------------------- | --------- | ---------------------------------------------------------------------------------------------------- |
+| `successMessage`        | `string`  | 자동으로 성공 토스트 표시 (정적 문자열만 — 분기 필요 시 위 §14 예외)                                 |
+| `errorMessage`          | `string`  | 기본 대신 커스텀 에러 토스트 표시                                                                    |
+| `outcomeUnknownMessage` | `string`  | 응답을 못 받았을 때(연결 끊김·504) `errorMessage` 대신 표시 — 없으면 공용 `outcomeUnknown` 문구(§28) |
+| `manualErrorHandling`   | `boolean` | 전역 에러 토스트 억제 (form 필드에 에러 매핑할 때 사용, mutation·query 둘 다 지원)                   |
+| `silentWhenInactive`    | `boolean` | query 전용 — 켜진 구독자 없이 실패하면 토스트 억제 (닫힌 채 마운트된 창이 지켜보는 조회, §13)        |
 
 ---
 
@@ -1610,7 +1616,7 @@ CLI로 이 컴포넌트를 다시 생성하면 `cursor-default`가 되돌아오�
 - [ ] `entities/<entity>/model/<entity>.schema.ts` — 요청/폼 검증 Zod 스키마 추가/확인
 - [ ] `entities/<entity>/api/<entity>.api.ts` — API 함수 추가
 - [ ] `entities/<entity>/api/<entity>.keys.ts` — 쿼리 키, invalidation, success handler 추가
-- [ ] `entities/<entity>/api/<entity>.queries.ts` — React Query 훅 추가
+- [ ] `entities/<entity>/api/<entity>.queries.ts` — React Query 훅 추가. mutation은 `retry`를 선언한다(§28)
 - [ ] `src/shared/config/texts.ts` — 새 TEXTS 키 추가 (success/error/warning 메시지)
 - [ ] `src/shared/api/generated/` — 새 BE 경로가 `specClient`에 안 보이면 `pnpm codegen:fetch` → `pnpm codegen`으로 스펙을 갱신(`docs/OPENAPI-CODEGEN.md` §5-1)
 - [ ] `features/<도메인>/<액션>/hooks/use<FeatureName>.ts` — 비즈니스 로직
@@ -1954,3 +1960,113 @@ _"클라이언트가 만든 고유한 값"_ (번역,
 [`VERSION-COMPATIBILITY.md`](./VERSION-COMPATIBILITY.md) "지원 브라우저". 없는 브라우저의 등록은 일반 실패 안내로 끝나고 입력은 남는다.
 
 **BE 쪽 상태.** 2026-11-04 FE를 먼저 내보냈다. BE가 헤더를 받기 전까지(계획 Phase 2) 이 헤더는 무시된다.
+
+---
+
+## 28. 응답을 못 받은 쓰기 요청 패턴 — 실패와 "모름"을 나눈다
+
+**언제 쓰나.** 모든 mutation이다. 응답을 못 받으면(연결 끊김·504, `ErrorUtil.isOutcomeUnknown`) 서버가 처리했는지 알 수 없다.
+`retry`를 지정하지 않으면 기본값 0이라 한 번으로 끝나(`@tanstack/query-core` 5.90.16 `build/modern/mutation.js:83`), 저장됐을 수
+있는데 "~하지 못했어요"라고 안내하고 화면이 옛 값으로 남아 사용자가 새로고침으로 확인해야 했다. 서버가 답한 4xx·500은 결과를
+아는 실패라 다시 보내지 않는다. 비교한 대안은 [`docs/plans/2026-11-05-global-outcome-unknown.md`](./plans/2026-11-05-global-outcome-unknown.md).
+
+```mermaid
+flowchart TD
+  A["쓰기 요청 보냄"] --> B{"응답"}
+  B -->|"2xx"| OK["성공 처리"]
+  B -->|"4xx·500"| FAIL["실패 안내<br/>서버가 답한 그대로"]
+  B -->|"응답 없음<br/>끊김·504"| C{"이 요청의 retry 선언"}
+  C -->|"false"| U["요청별 '확인하지 못했어요' 안내<br/>화면 다시 받기"]
+  C -->|"shouldRetryIdempotentMutation"| D["약 1초 뒤 계정 확인<br/>같으면 1번 더"]
+  D -->|"계정이 바뀜"| S["보내지 않고 끝냄"]
+  D --> E{"두 번째 응답"}
+  E -->|"2xx"| OK
+  E -->|"404: 삭제류"| GONE["이미 삭제 안내"]
+  E -->|"409: 폴더 만들기"| NAME["목록에서 같은 이름 찾기"]
+  NAME -->|"있음"| OK
+  NAME -->|"없음"| FAIL
+  E -->|"그 밖의 4xx·500"| FAIL
+  E -->|"또 응답 없음"| U2["공용 '확인하지 못했어요' 안내<br/>화면 다시 받기"]
+```
+
+**어떻게.** 요청마다 `retry`를 둘 중 하나로 선언한다. 빠뜨리거나 다른 값을 쓰면 ESLint `custom-query-rules/mutation-retry-declared`
+(`scripts/lib/mutation-retry-rule.js`)가 pre-commit·CI에서 막는다.
+
+| 값                              | 언제                                                                        | 함께 넣는 것                                                                                                       |
+| ------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `shouldRetryIdempotentMutation` | 다시 보내도 결과가 같은 요청. 응답을 못 받았을 때만 약 1초 뒤 1번 더 보낸다 | 인라인 `mutationFn` 첫 줄의 `assertMutationAuthEpochUnchanged(context)` — 다시 보낼 때는 그 순간의 계정으로 나간다 |
+| `false`                         | 다시 보내면 결과가 늘거나, 처리됐어도 두 번째 응답이 실패로 보이는 요청     | 왜 다시 보내지 않는지 한 줄 주석                                                                                   |
+
+```ts
+// post.queries.ts의 useUpdatePostMutation - 재전송 + 화면 다시 받기
+return useMutation({
+  mutationKey: postMutationKeys.update(postId),
+  retry: shouldRetryIdempotentMutation,
+  mutationFn: async (payload: UpdatePost, context) => {
+    assertMutationAuthEpochUnchanged(context);
+
+    return await postApi.updatePost(postId, payload);
+  },
+  onError: (error) => {
+    if (ErrorUtil.isOutcomeUnknown(error)) {
+      handlePostUpdateSuccess(queryClient, postId);
+      handlePostContentUpdateSuccess(queryClient);
+    }
+  },
+});
+```
+
+**끝내 모르면 두 가지를 한다.**
+
+- **사실대로 안내한다.** 전역 토스트에 맡긴 mutation은 `resolveErrorToast`가 `meta.outcomeUnknownMessage ?? outcomeUnknown`을 고른다.
+  직접 띄우는 곳은 `ErrorUtil.resolveFailureMessage(error, <실패 문구>)`를 쓴다. 다시 보내는 요청은 재전송 뒤에도 모르면 할 말이 같아
+  공용 문구("처리됐는지 확인하지 못했어요. 연결을 확인하고 다시 시도해주세요.")이고, 다시 보내지 않는 요청은 다음 행동이 달라(메일함
+  확인, 새 비밀번호로 로그인) 요청별 문구를 셋째 인자로 넘긴다.
+- **화면을 서버 기준으로 다시 받는다.** `onError`에서 `isOutcomeUnknown`이면 그 요청의 `.keys.ts` 핸들러를 부른다. 재조회까지
+  실패해도 무효화해 둔 쿼리는 탭 복귀·재연결 때 다시 받는다(`queryObserver.js:64-68,448,458`, `query.js:120`). 전역
+  `invalidateQueries()`는 쓰지 않는다 — 줄 서 있는 뒤 요청의 낙관적 화면이 깜빡이고 지워진 글을 재조회해 404가 난다.
+
+**두 번째 응답이 실패처럼 보이는 경우.** 첫 요청이 이미 처리했으면 재전송은 4xx일 수 있다. 삭제류의 404는 원하는 상태가 이미 이뤄진
+것이라 `{ alreadyDeleted: true }`로 끝낸다(`useDeleteCommentMutation`). 폴더 만들기의 409 `DUPLICATE_FOLDER_NAME`은 회원별 이름이
+유일하므로 목록에서 같은 이름 폴더를 찾아 결과로 쓴다(`bookmark-folder.queries.ts`의 `sentOnce`). 처음부터 난 409는 진짜 중복이라
+대조하지 않는다. 재시도인지는 `context`로 안다 — 실행 한 번에 한 객체를 만들어 재시도마다 같은 것을 넘기므로(`mutation.js:64-75`)
+`WeakSet` 키가 된다.
+
+**요청 27개의 결정** (BE 코드까지 추적한 근거는 계획 문서 "요청 27개의 결정")
+
+| 결정                       | 요청                                                                                     | 이유                                                               |
+| -------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| 재전송                     | 글 좋아요, 글 북마크, 댓글 좋아요, 폴더 고정, 폴더에 담기, 폴더에서 빼기, 폴더 전부 빼기 | 같은 상태로 만드는 요청이다                                        |
+| 재전송                     | 폴더 이름 변경, 글 공개 전환, 글 수정, 댓글 수정, 프로필 수정                            | 같은 값을 다시 쓴다                                                |
+| 재전송 + 404 처리          | 글 삭제, 댓글 삭제, 폴더 삭제                                                            | 첫 요청이 지웠으면 404다                                           |
+| 재전송 + 이름 대조         | 폴더 만들기                                                                              | 첫 요청이 만들었으면 409다                                         |
+| `false`, BE #158 뒤 재전송 | 글 등록, 댓글 등록, 답글 등록, 재설정 메일 요청, 인증 메일 요청                          | 다시 보내면 중복이 생긴다. BE가 키를 받으면 안전해진다(§27)        |
+| `false` 유지               | 가입, 재설정 확정, 이메일 인증 확정, 비밀번호 변경, 탈퇴                                 | 처리됐으면 두 번째 응답이 실패로 보인다(409, 토큰 만료, 세션 폐기) |
+| `false` 유지               | 로그인                                                                                   | 응답을 못 받으면 이 탭은 로그인되지 않아 다시 누르면 된다          |
+
+**BE #158 배포 전에는 등록 5개에 재전송을 켜지 않는다.** BE가 아직 `Idempotency-Key`를 무시해 다시 보내면 글·댓글이 2개 생기고 메일이
+2통 간다. 각 `retry: false`의 주석이 이 이유를 적고 있다.
+
+**알아 둘 동작**
+
+- **늦어지는 시간:** 재전송 중에는 pending이라 약 1초 늦게 끝나고, `scope`로 줄 선 뒤 요청도 그만큼 기다린다. 504 뒤 재전송은 최악으로
+  60초 + 60초다.
+- **탭이 숨겨졌거나 브라우저가 오프라인을 알면** 재시도와 안내가 복귀까지 미뤄진다(`retryer.js:41,96`).
+- **토큰 갱신 재요청과는 다른 층이다.** 그쪽은 401에서 돌고(`client.ts`) 이쪽은 응답 없음에서 돈다. 겹치면 이론상 최대 4번 전송된다(코드
+  구조상 계산).
+- **502·503은 다시 보내지 않는다.** 이슈 [#534](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/534)의 접근 로그 확인 때 함께 세어
+  판단한다.
+- **테스트:** `src/test/mutation-outcome-unknown.test.tsx`가 요청별로 끊김·실패·계정 변경을 표로 돈다. 새 요청을 만들면 표에 더한다.
+  `createTestQueryClient`는 `mutations: { retry: 0, retryDelay: 0 }`이지만 mutation 옵션의 `retry`가 우선이라 재전송은 그대로 돈다.
+
+**업계 자료**
+
+- [RFC 9110 §9.2.2](https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2)는 멱등 메서드를 _"서버 응답을 읽기 전에 통신 장애가 나면 자동으로 반복할 수 있다"_ (번역)고 구분한다. 비멱등 요청은 멱등임을 알거나 적용되지 않았음을 감지할 수단이 없으면 자동 재시도하지 말라고 하고, _"실패한 자동 재시도를 다시 자동으로 재시도하지 말아야 한다"_ (번역)고 쓴다.
+- [Stripe 문서](https://docs.stripe.com/error-low-level)는 _"연결이 복구돼도 원래 요청이 성공했는지는 알 수 없다"_ (번역)고 쓴다. [stripe-node](https://github.com/stripe/stripe-node)는 안전한 요청을 기본 1번 재시도한다.
+- [AWS 멱등 API 글](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)은 재조회(reconciliation)를 큰 수고로 보고 _"그래도 불확실성이 남을 수 있다"_ (번역)고 쓴다. [AWS 재시도 글](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/)은 저비용 작업의 모범 사례로 _"스택의 한 지점에서 재시도하는 것"_ (번역)을 든다.
+- [Azure Retry 패턴](https://learn.microsoft.com/en-us/azure/architecture/patterns/retry)은 대화형 웹 앱이라면 _"적은 횟수와 짧은 간격으로 재시도한 뒤 실패하고 사용자에게 알맞은 메시지를 보여 주는 편이 낫다"_ (번역)고 쓴다. [Azure 일시 장애 지침](https://learn.microsoft.com/en-us/azure/architecture/best-practices/transient-faults)은 정책을 한곳에 두라고 한다.
+- [Google AIP-194](https://google.aip.dev/194)는 반복해도 의도치 않은 상태 변화가 없는 요청을 자동 재시도 대상으로 둔다. [ky](https://github.com/sindresorhus/ky)·[got](https://github.com/sindresorhus/got/blob/main/documentation/7-retry.md)·[axios-retry](https://github.com/softonic/axios-retry)도 POST를 기본 재시도에서 뺀다.
+- [TanStack Query 문서](https://tanstack.com/query/latest/docs/framework/react/guides/optimistic-updates)는 낙관적 업데이트가 실패하면 대개 _"재조회로 실제 서버 상태로 되돌리면 된다"_ (번역)고 쓴다.
+
+**자료의 한계.** 대부분 서버 간 API·SDK 자료이고 브라우저 화면 상황은 아니다. 사용성 연구와 Slack·Discord의 내부 동작은 찾지 못했다.
+횟수·문구·화면 처리는 위 자료를 참고한 우리 판단이다.

@@ -133,7 +133,9 @@ export function useUpdateAccount() {
     function checkNicknameAvailability() {
       if (isOwnNickname) {
         form.clearErrors('nickname');
-        checkedNicknameRef.current = account?.nickname ?? null;
+        // 결과를 버렸으니 확인한 값도 지운다. 낙관적으로 쓴 닉네임이 저장 실패로 되돌려지면 이 값이 다시 "확인할
+        // 닉네임"이 되는데, 지우지 않으면 이미 확인한 값으로 보고 요청하지 않아 '확인 중'에 멈춘다(저장 버튼도 잠긴다)
+        checkedNicknameRef.current = null;
         return;
       }
       if (!isCheckable || nickname === checkedNicknameRef.current) {
