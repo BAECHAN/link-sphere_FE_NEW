@@ -183,6 +183,13 @@
 
 ### Fixed
 
+- `shared` 이미 지워진 글·댓글·폴더를 지우면 화면을 갱신했다고 안내함
+  <details><summary>배경·구현</summary>
+
+  이미 지워진 항목을 지우면 "이미 삭제된 폴더예요."(글·댓글도 같은 형태)만 뜨고 항목이 사라졌다. 사라지는 화면이 삭제 성공 때와 같아 내 요청이 지운 것처럼 보였다. 지금은 "이미 삭제된 폴더라 화면을 갱신했어요."처럼 왜 사라졌는지도 함께 말한다. 누가 지웠는지는 말하지 않아 응답 끊김·다른 탭·글과 함께 삭제의 세 경우 모두 사실이다. 비교한 안은 `docs/POST.md`의 "이미 없는 글·댓글을 지우면". (`src/shared/config/texts.ts`, `docs/POST.md`, `docs/COMMENT.md`, `docs/BOOKMARK.md`, [PR #542](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/542))
+
+  </details>
+
 - `bookmark` 이미 지워진 폴더와 같은 이름 폴더를 실패 대신 이유대로 안내함
   <details><summary>배경·구현</summary>
 

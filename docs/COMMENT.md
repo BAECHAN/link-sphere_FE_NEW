@@ -337,7 +337,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 `.claude/skills/texts-conventions/SKILL.md` "성공 토스트 표시 기준" 축 4). 아래 404와 문구가 갈려
 `meta.successMessage`로는 표현할 수 없다.
 
-**이미 없는 댓글(404 `COMMENT_NOT_FOUND`)은 실패로 치지 않는다.** "이미 삭제된 댓글이에요." 정보 토스트 1개만 띄우고
+**이미 없는 댓글(404 `COMMENT_NOT_FOUND`)은 실패로 치지 않는다.** "이미 삭제된 댓글이라 화면을 갱신했어요." 정보 토스트 1개만 띄우고
 성공과 같은 캐시를 무효화한다(2026-11-04 사용자 결정, 비교한 제품·대안은 [`POST.md`](./POST.md)의
 "이미 없는 글·댓글을 지우면"). 글 작성자가 글을 지우면 내 댓글도 FK cascade로 함께 사라지는데, 이때는 "삭제했어요"가
 사실이 아니라 이 문구를 쓴다. 이 경우 댓글 목록 재조회도 404(`POST_NOT_FOUND`, BE `CommentService.getComments`)이고, 캐시가
