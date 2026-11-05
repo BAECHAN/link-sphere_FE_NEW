@@ -1,3 +1,6 @@
+### 2026-11-05 (BE)
+- 조회수 및 열람 기록 처리를 위한 POST /post/{id}/view 엔드포인트 분리 ([#159](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/159))
+
 ### 2026-11-04 (FE)
 - E2E 테스트 서버의 포트 할당 로직을 개선하여 세션 간 충돌 방지 및 안정성 확보 ([#532](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/532))
 
