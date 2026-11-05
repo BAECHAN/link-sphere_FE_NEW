@@ -65,6 +65,9 @@ Always`) Lambda Function URL이 CloudFront를 거치지 않은 직접 요청을 
 ACL)는 CloudFront 배포 전체(양쪽 비헤이비어 공통)에 붙어 요청을 필터링한다(수동 관리,
 `docs/DEPLOY.md`의 "CloudFront WAF" 절 참고).
 
+Lambda 설정, EventBridge 룰, 알람, IAM 역할, 배포·백업 버킷도 콘솔·CLI로 바꾸지만, 비공개 저장소 `link-sphere-infra`의 CDK 스택이 값을 기록하고
+매일 실제와 비교한다(`docs/DEPLOY.md` "AWS 설정 코드화(CDK)"). CloudFront·WAF는 그 대상이 아니다.
+
 ### `infra/` — AWS 인프라 직접 배포 코드
 
 저장소 루트의 `infra/`는 Vite 빌드에 포함되지 않고 **AWS 리소스에 직접 배포되는 코드**와 **콘솔에서만
@@ -326,11 +329,12 @@ flowchart TB
 
 장애를 알아채는 장치와 데이터를 되살리는 장치다. 각 항목의 정본은 오른쪽 문서다.
 
-| 무엇            | 어떻게                                                                                                                                 | 알림·결과                         | 정본                                                                                                                      |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| 사이트·API 응답 | FE `uptime-check.yml`이 하루 몇 번(10분 간격 예약, GitHub가 보장하지 않음) `https://linksphere.click/`와 `/api/actuator/health`를 확인 | 응답이 없으면 `uptime` 이슈       | [DEPLOY.md "업타임 감시"](./DEPLOY.md#업타임-감시)                                                                        |
-| BE 오류·제한    | CloudWatch 알람 3개 — 앱 500(`GlobalExceptionHandler` ERROR 로그), Lambda `Errors`, `Throttles`                                        | SNS `link-sphere-alerts` → 이메일 | BE [`docs/TRAFFIC-MANAGEMENT.md` 8-2](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/TRAFFIC-MANAGEMENT.md) |
-| DB·Storage 백업 | BE `db-backup.yml`이 매일 public 스키마를 덤프해 빈 컨테이너에 복원 검증 후 비공개 S3로, 이미지도 함께                                 | 실패하면 `db-backup` 이슈         | BE [`docs/DEPLOY.md` 13장](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/DEPLOY.md)                        |
+| 무엇            | 어떻게                                                                                                                                 | 알림·결과                              | 정본                                                                                                                      |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 사이트·API 응답 | FE `uptime-check.yml`이 하루 몇 번(10분 간격 예약, GitHub가 보장하지 않음) `https://linksphere.click/`와 `/api/actuator/health`를 확인 | 응답이 없으면 `uptime` 이슈            | [DEPLOY.md "업타임 감시"](./DEPLOY.md#업타임-감시)                                                                        |
+| BE 오류·제한    | CloudWatch 알람 3개 — 앱 500(`GlobalExceptionHandler` ERROR 로그), Lambda `Errors`, `Throttles`                                        | SNS `link-sphere-alerts` → 이메일      | BE [`docs/TRAFFIC-MANAGEMENT.md` 8-2](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/TRAFFIC-MANAGEMENT.md) |
+| DB·Storage 백업 | BE `db-backup.yml`이 매일 public 스키마를 덤프해 빈 컨테이너에 복원 검증 후 비공개 S3로, 이미지도 함께                                 | 실패하면 `db-backup` 이슈              | BE [`docs/DEPLOY.md` 13장](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/DEPLOY.md)                        |
+| AWS 설정 차이   | 비공개 저장소 `link-sphere-infra`의 `drift-check.yml`이 매일 CDK 코드·스택·실제를 비교                                                 | 다르면 `iac-drift` 이슈(비공개 저장소) | [DEPLOY.md "AWS 설정 코드화(CDK)"](./DEPLOY.md)                                                                           |
 
 ---
 
