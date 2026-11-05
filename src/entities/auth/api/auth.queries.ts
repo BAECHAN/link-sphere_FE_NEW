@@ -35,6 +35,8 @@ export const useLoginMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    // 응답을 못 받으면 이 탭은 로그인되지 않아 다시 누르면 된다 - 저절로 다시 보내지 않는다
+    retry: false,
     mutationFn: (payload: Login) => authApi.login(payload),
     meta: { manualErrorHandling: true },
     onSuccess: (data) => {
@@ -131,6 +133,8 @@ export const useLogoutMutation = () => {
 // (SignUpUtil.resolveSubmitError)을 받아 띄운다. 이 mutation을 다른 곳에서 쓰면 실패 안내를 직접 띄워야 한다.
 export const useCreateAccountMutation = () => {
   return useMutation({
+    // 처리됐으면 다시 보낸 요청은 409다 - 가입됐는데 실패로 보인다
+    retry: false,
     mutationFn: async (payload: CreateAccount) => {
       return await authApi.createAccount(payload);
     },
@@ -145,21 +149,29 @@ export const useCreateAccountMutation = () => {
 // 불필요). 여기서 잡는 에러는 네트워크·429·500 등 그 자체가 실패한 경우뿐이다.
 export const useRequestPasswordResetMutation = () => {
   return useMutation({
+    // BE #158 배포 전에는 서버가 키를 무시해 다시 보내면 중복이 생긴다
+    retry: false,
     mutationFn: async (payload: PasswordResetRequest) => {
       return await IdempotencyKeyUtil.send(`password-reset:${payload.email}`, (key) =>
         authApi.requestPasswordReset(payload, key)
       );
     },
     meta: { manualErrorHandling: true },
-    onError: () => {
-      // ApiError든 네트워크 자체 실패든 항상 같은 메시지 - 이 콜백이 없으면 버튼만
-      // 다시 활성화되고 아무 안내 없이 조용히 실패한다. "메일함을 확인해주세요" 화면의 [다시 보내기]가
-      // 실패해도 화면은 그대로라 이 토스트가 유일한 안내다 - 닫을 때까지 남기고, 같은 id로 쌓이지 않게 한다
-      // (첫 제출도 같은 mutation이라 함께, docs/FE-ARCHITECTURE.md §14)
-      toast.error(TEXTS.messages.error.passwordResetRequestFailed, {
-        id: 'password-reset-request-error',
-        duration: Infinity,
-      });
+    onError: (error) => {
+      // 이 콜백이 없으면 버튼만 다시 활성화되고 아무 안내 없이 조용히 실패한다. "메일함을 확인해주세요" 화면의
+      // [다시 보내기]가 실패해도 화면은 그대로라 이 토스트가 유일한 안내다 - 닫을 때까지 남기고, 같은 id로 쌓이지 않게
+      // 한다(첫 제출도 같은 mutation이라 함께, docs/FE-ARCHITECTURE.md §14). 응답을 못 받았으면 메일이 갔을 수 있다
+      toast.error(
+        ErrorUtil.resolveFailureMessage(
+          error,
+          TEXTS.messages.error.passwordResetRequestFailed,
+          TEXTS.messages.error.mailRequestOutcomeUnknown
+        ),
+        {
+          id: 'password-reset-request-error',
+          duration: Infinity,
+        }
+      );
     },
   });
 };
@@ -168,6 +180,8 @@ export const useConfirmPasswordResetMutation = () => {
   const navigate = useNavigate();
 
   return useMutation({
+    // 처리됐으면 토큰이 이미 쓰여 다시 보낸 요청은 만료로 실패한다 - 바뀌었는데 실패로 보인다
+    retry: false,
     mutationFn: async (payload: PasswordResetConfirm) => {
       return await authApi.confirmPasswordReset(payload);
     },
@@ -176,14 +190,16 @@ export const useConfirmPasswordResetMutation = () => {
       manualErrorHandling: true,
     },
     onError: (error) => {
-      if (error instanceof ApiError) {
-        if (error.code === SERVER_ERROR_CODE.INVALID_ACTION_TOKEN) {
-          toast.error(TEXTS.messages.error.passwordResetTokenInvalid);
-        } else {
-          toast.error(TEXTS.messages.error.passwordResetConfirmFailed);
-        }
+      if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.INVALID_ACTION_TOKEN) {
+        toast.error(TEXTS.messages.error.passwordResetTokenInvalid);
       } else {
-        toast.error(TEXTS.messages.error.passwordResetConfirmFailed);
+        toast.error(
+          ErrorUtil.resolveFailureMessage(
+            error,
+            TEXTS.messages.error.passwordResetConfirmFailed,
+            TEXTS.messages.error.passwordResetConfirmOutcomeUnknown
+          )
+        );
       }
     },
     onSuccess: () => {
@@ -198,6 +214,8 @@ export const useChangePasswordMutation = () => {
   const setAuth = useAuthStore((state) => state.setAuth);
 
   return useMutation({
+    // 처리됐으면 이 세션이 폐기돼 다시 보낸 요청은 실패한다 - 바뀌었는데 실패로 보인다
+    retry: false,
     mutationFn: (payload: ChangePassword) => authApi.changePassword(payload),
     meta: { manualErrorHandling: true, successMessage: TEXTS.messages.success.passwordChanged },
     onSuccess: (data) => {
@@ -221,7 +239,13 @@ export const useChangePasswordMutation = () => {
         // 전역 핸들러의 같은 문구가 뜨지 않아 여기서 띄운다.
         toast.error(TEXTS.messages.error.accessDenied);
       } else {
-        toast.error(TEXTS.messages.error.passwordChangeFailed);
+        toast.error(
+          ErrorUtil.resolveFailureMessage(
+            error,
+            TEXTS.messages.error.passwordChangeFailed,
+            TEXTS.messages.error.passwordChangeOutcomeUnknown
+          )
+        );
       }
     },
   });
@@ -232,6 +256,8 @@ export const useChangePasswordMutation = () => {
 // 없으므로(가시성 원칙) 토스트로 결과를 알린다.
 export const useRequestEmailVerificationMutation = () => {
   return useMutation({
+    // BE #158 배포 전에는 서버가 키를 무시해 다시 보내면 중복이 생긴다
+    retry: false,
     mutationFn: async (payload: EmailVerificationRequest) => {
       return await IdempotencyKeyUtil.send(`email-verification:${payload.email}`, (key) =>
         authApi.requestEmailVerification(payload, key)
@@ -248,10 +274,17 @@ export const useRequestEmailVerificationMutation = () => {
 
       // 성공해도 실패해도 배너가 그대로라 이 토스트가 유일한 안내다 - 닫을 때까지 남기고, 같은 id로 쌓이지 않게
       // 한다(docs/FE-ARCHITECTURE.md §14)
-      toast.error(TEXTS.messages.error.emailVerificationRequestFailed, {
-        id: 'email-verification-request-error',
-        duration: Infinity,
-      });
+      toast.error(
+        ErrorUtil.resolveFailureMessage(
+          error,
+          TEXTS.messages.error.emailVerificationRequestFailed,
+          TEXTS.messages.error.mailRequestOutcomeUnknown
+        ),
+        {
+          id: 'email-verification-request-error',
+          duration: Infinity,
+        }
+      );
     },
   });
 };
@@ -263,12 +296,19 @@ export const useConfirmEmailVerificationMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    // 처리됐으면 토큰이 이미 쓰여 다시 보낸 요청은 만료로 실패한다 - 인증됐는데 실패로 보인다
+    retry: false,
     mutationFn: async (payload: EmailVerificationConfirm) => {
       return await authApi.confirmEmailVerification(payload);
     },
     meta: { manualErrorHandling: true },
     onSuccess: () => {
       handleEmailVerificationConfirmSuccess(queryClient);
+    },
+    onError: (error) => {
+      if (ErrorUtil.isOutcomeUnknown(error)) {
+        handleEmailVerificationConfirmSuccess(queryClient);
+      }
     },
   });
 };

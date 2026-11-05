@@ -99,6 +99,40 @@ test.describe('프로필 수정(계정 설정 화면 섹션) 실패 경로', () 
     await expect(nickname).toHaveValue(NEW_NICKNAME);
   });
 
+  test('두 번 다 응답이 없으면 확인하지 못했다고 안내하고 계정을 다시 받으며, 입력값은 남는다', async ({
+    page,
+  }) => {
+    let patchCount = 0;
+    let accountFetchCount = 0;
+
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.auth.account),
+      (route) => {
+        if (route.request().method() !== 'PATCH') {
+          accountFetchCount += 1;
+
+          return route.fallback();
+        }
+
+        patchCount += 1;
+
+        return route.abort('failed');
+      }
+    );
+
+    const { nickname, save } = await openAccountSettingsAndFillNickname(page);
+    const fetchCountBeforeSave = accountFetchCount;
+
+    await save.click();
+
+    await expect(page.getByText(TEXTS.messages.error.outcomeUnknown)).toBeVisible();
+    expect(patchCount).toBe(2);
+    await expect.poll(() => accountFetchCount).toBeGreaterThan(fetchCountBeforeSave);
+    await expect(nickname).toHaveValue(NEW_NICKNAME);
+    // "다시 시도해주세요"라고 안내했으니 값을 고치지 않아도 다시 누를 수 있어야 한다
+    await expect(save).toBeEnabled();
+  });
+
   test('409 롤백 후 같은 화면에서 값을 고쳐 재시도하면 성공한다', async ({ page }) => {
     await mockAccountUpdateConflict(page);
 

@@ -14,6 +14,7 @@ export const ENDPOINTS = {
     nicknameAvailability: '/auth/account/nickname-availability',
     signup: '/auth/signup',
     emailAvailability: '/auth/email-availability',
+    passwordResetRequest: '/auth/password-reset/request',
     passwordResetConfirm: '/auth/password-reset/confirm',
   },
   common: {

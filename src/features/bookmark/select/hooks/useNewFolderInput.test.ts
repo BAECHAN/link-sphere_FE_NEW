@@ -59,6 +59,21 @@ describe('useNewFolderInput', () => {
     expect(result.current.newFolderName).toBe('폴더');
   });
 
+  it('응답을 끝내 못 받으면 실패라고 단정하지 않는다', async () => {
+    server.use(http.post(url(API_ENDPOINTS.bookmark.folders), () => HttpResponse.error()));
+    const errorSpy = vi.spyOn(toast, 'error');
+    const { result } = renderHook(
+      () => useNewFolderInput({ onCreated: vi.fn(), onCancel: vi.fn() }),
+      { wrapper: Wrapper }
+    );
+
+    act(() => result.current.setNewFolderName('폴더'));
+    await act(async () => result.current.handleCreateAndSelect());
+
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.outcomeUnknown));
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('그 밖의 실패는 지금처럼 생성 실패 안내를 띄운다', async () => {
     server.use(
       http.post(url(API_ENDPOINTS.bookmark.folders), () =>

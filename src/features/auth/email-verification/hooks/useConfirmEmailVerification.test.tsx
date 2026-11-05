@@ -78,4 +78,26 @@ describe('useConfirmEmailVerification', () => {
 
     await waitFor(() => expect(result.current.status).toBe('error'));
   });
+
+  it.each([
+    ['연결이 끊기면', () => HttpResponse.error()],
+    ['504면', () => HttpResponse.json({}, { status: 504 })],
+  ])('%s 실패로 단정하지 않고 unknown으로 바뀐다', async (_, response) => {
+    let requestCount = 0;
+
+    server.use(
+      http.post(url(API_ENDPOINTS.auth.emailVerificationConfirm), () => {
+        requestCount += 1;
+
+        return response();
+      })
+    );
+
+    const { result } = renderHook(() => useConfirmEmailVerification(), {
+      wrapper: wrapperWithSearch('?token=valid-token'),
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('unknown'));
+    expect(requestCount).toBe(1);
+  });
 });

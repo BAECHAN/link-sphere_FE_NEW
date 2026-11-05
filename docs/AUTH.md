@@ -3,7 +3,7 @@
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
 > 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지, 그리고 로그인한 사람도 글을 못 쓸 때가 있는 이유를 설명할 수 있게 됩니다. 비밀번호를 새로 만드는 폼이 입력 중에 언제 무엇을 보여주는지와 비밀번호 칸에서 붙여넣기를 막지 않는 이유(§8-G), 로그인이 만료되거나 다른 탭에서 로그아웃해도 쓰던 화면에 남는 방식(§8-I)도 여기서 다룹니다.
-> **마지막 검토**: 2026-11-04
+> **마지막 검토**: 2026-11-05
 
 ---
 
@@ -121,6 +121,8 @@ RootLayout
 `/auth/verify-email`은 어느 가드에도 속하지 않고 `routes/index.tsx:341-344`에서 `AuthLayout`만 직접 씌워 별도 라우트로 둡니다 — 로그인·비로그인 양쪽 모두 접근 가능해야 하기 때문입니다(로그인 상태면 인증 완료만 안내, 비로그인이면 로그인 유도).
 
 그래서 이 화면(`VerifyEmailStatus.tsx`)은 로그인 여부를 스스로 판단합니다. 기준은 게이트 A와 같은 `useAuthStore.isAuthenticated`이고, 계정 프로필(`useAccount()`의 `account`)은 쓰지 않습니다. 프로필은 로그인한 뒤 `/auth/account`로 따로 받아 오므로, 조회 전이나 조회 실패 때 로그인 사용자가 비로그인으로 보여 "로그인하러 가기" 버튼이 뜹니다(2026-11-03 수정 전 동작). 게이트 밖이라 복원 전에도 렌더되므로, `isAuthResolved`가 될 때까지는 확인 요청이 먼저 끝나도 "확인 중" 화면을 유지하고 버튼을 정하지 않습니다.
+
+확인 요청의 응답을 못 받으면(연결 끊김·504) 토큰이 이미 소비됐을 수 있어 "인증에 실패했어요"라고 하지 않습니다. 새 상태 `unknown`이 "인증됐는지 확인하지 못했어요" / "연결을 확인한 뒤 계정 설정에서 인증 상태를 확인해주세요."를 보여 주고, 아이콘과 버튼은 실패 화면과 같습니다(`useConfirmEmailVerification.ts`, §8-J).
 
 ---
 
@@ -335,7 +337,7 @@ refresh 쿠키는 브라우저에 한 장이라 모든 탭이 같이 씁니다. 
   누른 순간의 세대를 전역 `MutationCache` `onMutate`가 기록하고(`queryClient.ts`, 줄을 서도 `onMutate`는
   누른 순간에 돕니다), 그 mutation들의 `mutationFn`이 보내기 직전에 확인해 달라졌으면 보내지 않고
   `SessionChangedError`로 끝냅니다(`mutation-auth-epoch.ts`의 `assertMutationAuthEpochUnchanged`, scope
-  mutation 7곳 — 빠뜨리면 ESLint `custom-query-rules/scope-mutation-auth-epoch`가 막습니다). 기록의 키는 query-core가 한 mutation의 `onMutate`와 `mutationFn`에 함께 넘기는 context
+  mutation 7곳 — 빠뜨리면 ESLint `custom-query-rules/scope-mutation-auth-epoch`가 막습니다. 응답을 못 받아 다시 보내는 mutation도 같은 이유로 부릅니다, [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §28). 기록의 키는 query-core가 한 mutation의 `onMutate`와 `mutationFn`에 함께 넘기는 context
   객체입니다(5.90 `mutation.ts`의 `execute`). 실패로 끝나므로 `onError`(롤백)가 돌고, 결과를 기다리던 화면
   (북마크 폴더 대화상자의 행 잠금 등)도 풀립니다.
 - **감수한 것**: 다른 탭에서 같은 계정으로 다시 로그인한 순간 진행 중이던 요청도 실패로 끝납니다. 토큰이
@@ -780,6 +782,7 @@ BE는 글 작성·수정 폼의 링크 미리보기(`PostService.previewLink`)�
 두 메일 요청에는 `Idempotency-Key`를 싣는다(`auth.queries.ts`의 `mutationFn`, `docs/FE-ARCHITECTURE.md` §27). 응답이 끊겨 다시
 누르면 같은 키라, BE가 키를 받기 시작하면 메일이 두 통 가지 않는다. 성공하면 키를 버려 [다시 보내기]는 새 메일이다. 명시적
 로그아웃·탈퇴 때 남은 키를 지우고(`IdempotencyKeyUtil.clear`), 로그인 만료 때는 입력을 남겨 재시도하므로 지우지 않는다.
+응답을 못 받으면 보냈는지 알 수 없어 "메일을 보냈는지 확인하지 못했어요. 메일함을 먼저 확인해주세요."로 안내하고, BE가 키를 받기 전까지 자동으로 다시 보내지 않는다(§8-J).
 
 토스트가 사라진 뒤 폼이 실패와 맞지 않는 상태로 남던 두 곳은 화면을 바꿉니다(2026-11-03,
 [#491](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/491) 4·5번).
@@ -1168,6 +1171,25 @@ flowchart TD
 | 그 화면에 둘 상황 추가·변경           | 표시는 `auth.store.ts`의 `expireSession`·`clearLocalAuthInPlace`(같은 `set()`에서 토큰과 함께), 로그인 창 열기는 `auth.util.ts`의 `openSignInDialogInPlace`, 문구는 `TEXTS.auth.guard`와 `loginDialog.store.ts`의 `SIGNED_OUT_IN_PLACE_DIALOG_STATE`(§8-I)                                                                                                                                                                                                             |
 | 비밀번호 조건 추가·변경               | 정책(`auth.schema.ts`·`auth.contract.ts`의 길이, BE `PasswordPattern.kt`의 정규식과 `MemberDTO.kt`·`AuthDTO.kt`의 `@Size`)과 체크리스트(`auth.util.ts`의 `REQUIREMENT_TESTS`, `auth.const.ts`의 `PASSWORD_REQUIREMENTS`, `TEXTS.auth.password.requirements`)를 함께 — 한쪽만 바꾸면 `auth.util.test.ts`의 차등 비교가 실패한다(§8-G). BE를 먼저 바꿔 배포하면 FE `pnpm codegen` 뒤 `auth.contract.test.ts`가 스펙과 다른 값을 가리킨다(`docs/OPENAPI-CODEGEN.md` §5-6) |
 | 비밀번호를 새로 만드는 폼 추가        | `usePasswordFieldsFeedback(form, { password, confirm })`의 반환값을 `FormInputPassword` 두 개와 `PasswordRequirementList`·`PasswordConfirmMessage`에 펼친다(호출은 `useSignUp.ts`, 펼치는 곳은 `SignUpForm.tsx`의 `passwordFeedback` 참고, §8-G)                                                                                                                                                                                                                       |
+
+---
+
+### 8-J. 응답을 못 받은 인증 요청
+
+쓰기 요청은 응답을 못 받으면 1번 더 보내는 것이 기본인데([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §28), 인증 요청은 대부분 처리됐으면 두 번째 응답이 실패로 보여 `retry: false`입니다. 대신 "~하지 못했어요"라고 단정하지 않고 다음 행동을 알려 줍니다(`ErrorUtil.resolveFailureMessage`).
+
+| 요청                  | 다시 보내면                                                                           | `retry`                    | 응답을 못 받았을 때 안내                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------- |
+| 로그인                | 응답을 못 받으면 이 탭은 로그인되지 않아 다시 누르면 됩니다                           | `false`                    | 기존 문구 그대로                                                                         |
+| 가입                  | 첫 요청이 됐으면 409                                                                  | `false`                    | "가입됐는지 확인하지 못했어요. 메일함을 확인한 뒤 다시 시도해주세요."                    |
+| 재설정 메일·인증 메일 | 메일이 한 통 더 갑니다(BE #158 배포 전)                                               | `false`, BE 배포 뒤 재전송 | "메일을 보냈는지 확인하지 못했어요. 메일함을 먼저 확인해주세요."                         |
+| 재설정 확정           | 토큰이 이미 소비돼 만료로 보입니다(BE `consumeIfActive`)                              | `false`                    | "비밀번호가 바뀌었는지 확인하지 못했어요. 새 비밀번호로 로그인해 보세요."                |
+| 이메일 인증 확정      | 위와 같습니다                                                                         | `false`                    | 화면 상태 `unknown`(§5) + 계정 캐시 다시 받기                                            |
+| 비밀번호 변경         | 세션이 폐기돼 실패로 보입니다(BE `changePassword`)                                    | `false`                    | "비밀번호가 바뀌었는지 확인하지 못했어요. 로그인이 풀리면 새 비밀번호로 로그인해주세요." |
+| 탈퇴                  | 세션이 폐기돼 401입니다(BE `requestDeletion`, 코드 구조상 판단이고 실행 확인은 안 함) | `false`                    | "탈퇴 신청이 처리됐는지 확인하지 못했어요. 로그인이 풀리면 신청된 거예요."               |
+| 프로필 수정           | 같은 값을 다시 씁니다(닉네임은 자기 값 통과)                                          | 재전송                     | 공용 문구 + 계정 캐시 다시 받기(`handleAccountUpdateOutcomeUnknown`)                     |
+
+입력 중인 프로필 폼은 재조회로 덮이지 않습니다 — 폼은 `hydratedRef`로 한 번만 채웁니다(`useUpdateAccount.ts`). 저장이 실패해 낙관적으로 쓴 닉네임이 되돌려지면 그 값을 다시 중복 확인합니다. 2026-11-05 전에는 이미 확인한 값으로 보고 요청하지 않아 "확인 중..."에 멈췄고 저장 버튼이 잠겨, 값을 고치기 전에는 다시 누를 수 없었습니다(응답 없음·500 모두).
 
 ---
 
@@ -1611,7 +1633,7 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
     실패"를 풀 수도 있지만 하지 않았습니다 — 세대가 바뀐 뒤에도 갱신을 시도하려면 BE가 "확인했다"를 알리는 계약이
     더 필요하고(토큰이 없거나 행이 없으면 확인을 건너뛰므로 200이 "같은 회원"을 뜻하지 않음), 같은 탭의 받아들이기와
     refresh가 겹치며, 줄 선 요청은 보내기 전에 BE에 물을 수 없어 여전히 실패하고, Case 7을 다시 써야 합니다.
-    **새 `scope` mutation**: `mutationFn` 첫 줄에 같은 확인(`assertMutationAuthEpochUnchanged(context)`)을 넣어야
+    **새 `scope` mutation·재전송 mutation**: `mutationFn` 첫 줄에 같은 확인(`assertMutationAuthEpochUnchanged(context)`)을 넣어야
     합니다. 빠뜨리면 ESLint `custom-query-rules/scope-mutation-auth-epoch`(`scripts/lib/scope-mutation-auth-epoch-rule.js`,
     #397)가 error로 막습니다 — 옵션을 변수·스프레드로 넘기면 못 잡습니다([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md)
     §11 "같은 대상의 연속 mutation" 6번). BE 확인은 헤더를 보내야 작동하는 정합성 장치라 보안 경계가 아닙니다.

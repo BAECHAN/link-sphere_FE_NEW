@@ -73,10 +73,13 @@ export function usePostCardBookmarkFolderDialog({
 
           // 되돌리기 토스트는 누르는 순간 닫히고 화면은 되돌리기 전과 같아진다 - 이 토스트가 유일한 안내라
           // 닫을 때까지 남기고, 같은 id로 쌓이지 않게 한다(docs/FE-ARCHITECTURE.md §14)
-          toast.error(TEXTS.messages.error.bookmarkRestoreFailed, {
-            id: 'bookmark-restore-error',
-            duration: Infinity,
-          });
+          toast.error(
+            ErrorUtil.resolveFailureMessage(error, TEXTS.messages.error.bookmarkRestoreFailed),
+            {
+              id: 'bookmark-restore-error',
+              duration: Infinity,
+            }
+          );
         });
       },
     },
@@ -128,7 +131,7 @@ export function usePostCardBookmarkFolderDialog({
         return;
       }
 
-      toast.error(TEXTS.messages.error.bookmarkSaveFailed);
+      toast.error(ErrorUtil.resolveFailureMessage(error, TEXTS.messages.error.bookmarkSaveFailed));
     }
   };
 
@@ -166,12 +169,17 @@ export function usePostCardBookmarkFolderDialog({
       }
 
       if (isLastFolder) {
-        toast.error(TEXTS.messages.error.bookmarkRemoveFailed);
+        toast.error(
+          ErrorUtil.resolveFailureMessage(error, TEXTS.messages.error.bookmarkRemoveFailed)
+        );
       } else {
         toast.error(
-          wasSelected
-            ? TEXTS.messages.error.bookmarkRemoveFromFolderFailed
-            : TEXTS.messages.error.bookmarkSaveFailed
+          ErrorUtil.resolveFailureMessage(
+            error,
+            wasSelected
+              ? TEXTS.messages.error.bookmarkRemoveFromFolderFailed
+              : TEXTS.messages.error.bookmarkSaveFailed
+          )
         );
       }
     }
@@ -198,7 +206,9 @@ export function usePostCardBookmarkFolderDialog({
         return;
       }
 
-      toast.error(TEXTS.messages.error.bookmarkRemoveFailed);
+      toast.error(
+        ErrorUtil.resolveFailureMessage(error, TEXTS.messages.error.bookmarkRemoveFailed)
+      );
     }
   };
 

@@ -183,6 +183,20 @@
 
 ### Fixed
 
+- `shared` 쓰기 요청의 응답을 못 받으면 한 번 더 확인하고 모르면 사실대로 안내함
+  <details><summary>배경·구현</summary>
+
+  브라우저가 응답을 못 받으면(연결 끊김·504) 서버가 처리했는지 알 수 없다. 글·댓글 삭제 말고는 한 번 보내고 끝나, 저장됐을 수 있는데 "~하지 못했어요"라고 안내했고 화면이 옛 값으로 남아 사용자가 새로고침으로 확인해야 했다. 이제 mutation 27개가 응답을 못 받았을 때 다시 보낼지 `retry`로 선언하고, 빠뜨리면 ESLint `custom-query-rules/mutation-retry-declared`가 막는다. 다시 보내도 결과가 같은 16개(좋아요·북마크·폴더·글 수정·공개 전환·댓글 수정·프로필 수정·삭제)는 약 1초 뒤 1번 더 보내 결과대로 처리한다. 폴더 만들기는 다시 보낸 요청이 409면 목록에서 같은 이름 폴더를 찾아 결과로 쓴다. 다시 보내면 안 되는 11개(등록, 메일 요청, 가입, 토큰 확정, 비밀번호 변경, 탈퇴, 로그인)는 그대로 1번이다. 끝내 모르면 "처리됐는지 확인하지 못했어요."로 안내하고 그 요청의 캐시를 다시 받는다. 다시 보내지 않는 요청은 다음 행동이 달라 요청별 문구를 쓰고, 이메일 인증 화면에는 `unknown` 상태를 더했다. 등록과 메일 요청 5개의 재전송은 BE가 키를 받은 뒤 켠다. 근거는 `docs/FE-ARCHITECTURE.md` §28, 계획은 `docs/plans/2026-11-05-global-outcome-unknown.md`. (`scripts/lib/mutation-retry-rule.js`(신규), `src/test/mutation-outcome-unknown.test.tsx`(신규), `src/shared/utils/error.util.ts`, `src/shared/lib/react-query/config/error-toast.ts`, `src/entities/**/*.queries.ts`, [PR #543](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/543))
+
+  </details>
+
+- `user` 닉네임 저장이 실패한 뒤 "확인 중..."에 멈춰 다시 누를 수 없던 문제
+  <details><summary>배경·구현</summary>
+
+  저장을 누르면 계정 캐시에 새 닉네임을 먼저 써서 그 값이 "내 닉네임"이 되고, 실패로 되돌리면 다시 "확인할 닉네임"이 된다. 이때 이미 확인한 값으로 보고 요청하지 않아 상태가 "확인 중"에 멈추고 저장 버튼이 잠겼다. 응답 없음·500 모두 해당하고, 값을 고치기 전에는 재시도할 수 없었다. "내 닉네임"일 때 확인한 값을 지워 되돌린 뒤 1번 다시 확인한다. (`src/features/account/update/hooks/useUpdateAccount.ts`, [PR #543](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/543))
+
+  </details>
+
 - `shared` 이미 지워진 글·댓글·폴더를 지우면 화면을 갱신했다고 안내함
   <details><summary>배경·구현</summary>
 

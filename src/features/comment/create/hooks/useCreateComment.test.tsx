@@ -557,6 +557,46 @@ describe('useCreateComment', () => {
     });
   });
 
+  it('폼을 닫은 뒤 응답을 못 받으면 실패라고 단정하지 않는 제목으로 알린다', async () => {
+    const queryClient = createTestQueryClient({ gcTime: Infinity });
+    let respond: (() => void) | null = null;
+    server.use(
+      http.post(url(API_ENDPOINTS.post.postComment(POST_ID)), async () => {
+        await new Promise<void>((resolve) => {
+          respond = resolve;
+        });
+        return HttpResponse.error();
+      })
+    );
+    const errorSpy = vi.spyOn(toast, 'error');
+
+    useAuthStore.getState().setAuth('test-access-token');
+    const { result, unmount } = renderHook(() => useCreateComment({ postId: POST_ID }), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => expect(queryClient.getQueryData(accountKeys.root)).toEqual(mockAccount));
+
+    act(() => {
+      result.current.form.setValue('content', '닫힌 뒤 끊길 댓글', { shouldDirty: true });
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    await waitFor(() => expect(respond).not.toBeNull());
+    unmount();
+    respond!();
+
+    await waitFor(() => expect(errorSpy).toHaveBeenCalled());
+    expectLeftFormFailureToast(errorSpy, {
+      title: TEXTS.messages.error.leftPageFailure.outcomeUnknownTitle,
+      key: `comment-create:${POST_ID}:root`,
+      // 설명은 문장마다 줄을 나눠 그려 문장 사이 공백이 없다
+      description: TEXTS.messages.error.commentSubmit.outcomeUnknown.replace('. ', '.'),
+    });
+  });
+
   it('다른 화면으로 떠나는 중 그 화면을 불러오는 동안 실패해도 폼 대신 토스트로 알린다', async () => {
     let respond: (() => void) | null = null;
     server.use(

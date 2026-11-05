@@ -27,19 +27,20 @@ export const VerifyEmailStatus = () => {
           {status === 'success' && (
             <IconBadge icon={CheckCircle2} tone="success" className="mx-auto mb-1" />
           )}
-          {status === 'error' && (
+          {(status === 'error' || status === 'unknown') && (
             <IconBadge icon={XCircle} tone="destructive" className="mx-auto mb-1" />
           )}
           <CardTitle>
             {status === 'pending' && TEXTS.auth.verifyEmail.pendingTitle}
             {status === 'success' && TEXTS.auth.verifyEmail.successTitle}
             {status === 'error' && TEXTS.auth.verifyEmail.errorTitle}
+            {status === 'unknown' && TEXTS.auth.verifyEmail.unknownTitle}
           </CardTitle>
           {status !== 'pending' && (
             <CardDescription>
-              {status === 'success'
-                ? TEXTS.auth.verifyEmail.successDescription
-                : TEXTS.auth.verifyEmail.errorDescription}
+              {status === 'success' && TEXTS.auth.verifyEmail.successDescription}
+              {status === 'error' && TEXTS.auth.verifyEmail.errorDescription}
+              {status === 'unknown' && TEXTS.auth.verifyEmail.unknownDescription}
             </CardDescription>
           )}
         </CardHeader>

@@ -80,7 +80,13 @@ export const useFolderActions = ({ folder, onBeforeDelete }: UseFolderActionsPar
             return;
           }
 
-          toast.error(TEXTS.messages.error.folderDeleteFailed);
+          toast.error(
+            ErrorUtil.resolveFailureMessage(
+              error,
+              TEXTS.messages.error.folderDeleteFailed,
+              TEXTS.messages.error.deleteOutcomeUnknown
+            )
+          );
         }
       },
     });

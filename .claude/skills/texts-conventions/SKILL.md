@@ -44,7 +44,9 @@ TEXTS
 ├── messages.info.noData / noPosts / signedOutForOtherAccount / switchedToOtherAccount / postAlreadyDeleted / commentAlreadyDeleted / folderAlreadyDeleted
 ├── messages.warning.postDeleteConfirm / commentDeleteConfirm / memberDeleteConfirm
 ├── messages.success.postCreated / postUpdated / accountUpdated / linkCopied / accountDeleted / bookmarkSavedTo / ...
-├── messages.error.defaultError / loginFailed / postDeleteFailed / deleteOutcomeUnknown / linkCopyFailed / ...
+├── messages.error.defaultError / loginFailed / postDeleteFailed / linkCopyFailed / ...
+├── messages.error.outcomeUnknown / deleteOutcomeUnknown / mailRequestOutcomeUnknown / accountCreateOutcomeUnknown / ... — 응답을 못 받아 결과를 모를 때. "~하지 못했어요"라고 단정하지 않는다(docs/FE-ARCHITECTURE.md §28)
+├── messages.error.leftPageFailure.* (signUpTitle, outcomeUnknownTitle, ...) — 폼을 떠난 뒤의 실패 토스트
 ├── messages.error.postSubmit.* (urlUnresolvable, rateLimitedIn(minutes), createFailed, updateFailed, ...) — 등록·수정 실패 원인 안내
 ├── messages.error.uploadSubmit.* (imageUnsupportedType, register.*, save.* — imageTooLarge, imageRateLimitedIn(minutes), storageUnavailable, network) — 이미지 업로드 단계 실패. 끝맺음을 폼 버튼(등록·저장)에 맞춰 두 벌
 ├── messages.error.commentSubmit.* (outcomeUnknown, postDeleted, parentDeleted, commentDeleted, createFailed, updateFailed) — 댓글 등록·수정 실패 원인 안내

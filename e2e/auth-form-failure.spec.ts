@@ -37,6 +37,29 @@ test.describe('인증 폼 실패 뒤 상태', () => {
     await expect(page.getByLabel(`${TEXTS.labels.newPassword}*`, { exact: true })).toHaveCount(0);
   });
 
+  test('재설정 메일 요청의 응답이 끊기면 1번만 보내고, 메일함을 먼저 확인하라고 안내한다', async ({
+    page,
+  }) => {
+    let requestCount = 0;
+
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.auth.passwordResetRequest),
+      (route) => {
+        requestCount += 1;
+
+        return route.abort('failed');
+      }
+    );
+
+    await page.goto('/auth/forgot-password');
+    await page.getByLabel(TEXTS.labels.email).fill('user@example.com');
+    await page.getByRole('button', { name: TEXTS.auth.forgotPassword.submit }).click();
+
+    await expect(page.getByText(TEXTS.messages.error.mailRequestOutcomeUnknown)).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.error.passwordResetRequestFailed)).toHaveCount(0);
+    expect(requestCount).toBe(1);
+  });
+
   test('확인 때 사용 가능했던 이메일이 제출 때 중복이면 칸 오류를 띄우고 가입 버튼을 막는다', async ({
     page,
   }) => {

@@ -162,7 +162,11 @@ export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommen
       if (hasLeftPage()) {
         showLeftPageFailureToast({
           key: unsavedChangesKey,
-          title: TEXTS.messages.error.leftPageFailure.commentUpdateTitle,
+          title: ErrorUtil.resolveFailureMessage(
+            error,
+            TEXTS.messages.error.leftPageFailure.commentUpdateTitle,
+            TEXTS.messages.error.leftPageFailure.outcomeUnknownTitle
+          ),
           description: CommentUtil.toLeftFormFailureDescription(message, 'update'),
         });
       } else {

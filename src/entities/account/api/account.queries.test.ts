@@ -38,12 +38,16 @@ vi.mock('@/shared/lib/toast/toast', () => ({
 }));
 
 const mockHandleAccountUpdateSuccess = vi.fn();
+const mockHandleAccountUpdateOutcomeUnknown = vi.fn();
 
 vi.mock('@/entities/account/api/account.keys', () => ({
   accountKeys: { root: ['account'] },
   accountMutationKeys: { update: ['account', 'update'] },
   handleAccountUpdateSuccess: () => {
     mockHandleAccountUpdateSuccess();
+  },
+  handleAccountUpdateOutcomeUnknown: () => {
+    mockHandleAccountUpdateOutcomeUnknown();
   },
 }));
 
@@ -212,9 +216,17 @@ describe('useUpdateAccountMutation', () => {
     expect(result.current.data?.image).toBe('https://example.com/new-avatar.png');
   });
 
-  it('연결이 끊기면 날것 메시지 대신 인터넷 연결을 확인하라고 안내한다', async () => {
+  it('끝내 응답을 못 받으면 날것 메시지 대신 확인하지 못했다고 안내하고 화면을 다시 받는다', async () => {
     // MSW의 네트워크 레벨 에러 - fetch가 TypeError를 던지는 실제 오프라인 상황과 동일하게 재현
-    server.use(http.patch(url(API_ENDPOINTS.auth.updateAccount), () => HttpResponse.error()));
+    let requestCount = 0;
+
+    server.use(
+      http.patch(url(API_ENDPOINTS.auth.updateAccount), () => {
+        requestCount += 1;
+
+        return HttpResponse.error();
+      })
+    );
 
     const { result } = renderHook(() => useUpdateAccountMutation(), { wrapper: Wrapper });
 
@@ -223,8 +235,10 @@ describe('useUpdateAccountMutation', () => {
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(requestCount).toBe(2);
+    expect(mockHandleAccountUpdateOutcomeUnknown).toHaveBeenCalledTimes(1);
     expect(mockToastError).toHaveBeenCalledWith(
-      TEXTS.messages.error.uploadSubmit.save.network,
+      TEXTS.messages.error.outcomeUnknown,
       expect.anything()
     );
     // 브라우저의 날것 네트워크 에러 문구가 그대로 노출되지 않았는지 확인

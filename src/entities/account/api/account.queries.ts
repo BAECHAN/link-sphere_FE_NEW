@@ -3,18 +3,16 @@ import { accountApi } from '@/entities/account/api/account.api';
 import {
   accountMutationKeys,
   accountKeys,
+  handleAccountUpdateOutcomeUnknown,
   handleAccountUpdateSuccess,
 } from '@/entities/account/api/account.keys';
 import { useAuthStore } from '@/shared/store/auth.store';
-import {
-  ApiError,
-  ImageUploadError,
-  NetworkError,
-  UserFacingError,
-} from '@/shared/types/common.type';
+import { ApiError, ImageUploadError, UserFacingError } from '@/shared/types/common.type';
 import { Account, UpdateAccount, DeleteAccount } from '@/entities/account/model/account.schema';
 import { STALE_TIME_ONE_DAY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
+import { assertMutationAuthEpochUnchanged } from '@/shared/lib/react-query/config/mutation-auth-epoch';
+import { shouldRetryIdempotentMutation } from '@/shared/lib/react-query/config/retry-policy';
 import { toast } from '@/shared/lib/toast/toast';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { AuthUtil } from '@/shared/utils/auth.util';
@@ -33,17 +31,18 @@ interface UpdateAccountPayload extends UpdateAccount {
 // 우리가 직접 던진 UserFacingError(이미지 용량 초과 등)는 이미 TEXTS.*로 작성한 사용자용
 // 메시지이므로 뭉개지 않고 그대로 보여준다 - 안 그러면 원인이 뭐든 "프로필 업데이트에
 // 실패했습니다"로만 보여 사용자가 무엇이 문제인지 알 수 없다. 사진 업로드 단계 실패
-// (ImageUploadError)·요청 한도(429)·연결 끊김(NetworkError)도 같은 이유로 원인별로 안내한다
-// (댓글 폼과 같은 문구, docs/COMMENT.md "이미지 업로드 실패 안내"). 그 외 일반 Error는 여전히
-// 일반 메시지로 감싼다 - 브라우저의 날것 기술 에러 문구를 그대로 노출하지 않는다.
+// (ImageUploadError)·요청 한도(429)도 같은 이유로 원인별로 안내한다(댓글 폼과 같은 문구,
+// docs/COMMENT.md "이미지 업로드 실패 안내"). 다시 보내도 응답을 못 받았으면 저장됐을 수 있어 실패라고 하지
+// 않는다(docs/FE-ARCHITECTURE.md §28). 그 외 일반 Error는 여전히 일반 메시지로 감싼다 - 브라우저의 날것
+// 기술 에러 문구를 그대로 노출하지 않는다.
 function resolveAccountUpdateErrorMessage(error: unknown): string {
   if (error instanceof ImageUploadError) {
     return (
       ErrorUtil.resolveImageUploadMessage(error, 'save') ?? TEXTS.messages.error.accountUpdateFailed
     );
   }
-  if (error instanceof NetworkError) {
-    return TEXTS.messages.error.uploadSubmit.save.network;
+  if (ErrorUtil.isOutcomeUnknown(error)) {
+    return TEXTS.messages.error.outcomeUnknown;
   }
   if (error instanceof ApiError) {
     if (error.status === 409) {
@@ -83,12 +82,16 @@ export const useUpdateAccountMutation = () => {
 
   return useMutation({
     mutationKey: accountMutationKeys.update,
-    mutationFn: (payload: UpdateAccountPayload) =>
-      accountApi.updateAccount({
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: (payload: UpdateAccountPayload, context) => {
+      assertMutationAuthEpochUnchanged(context);
+
+      return accountApi.updateAccount({
         nickname: payload.nickname,
         image: payload.image,
         file: payload.file,
-      }),
+      });
+    },
     meta: { manualErrorHandling: true, successMessage: TEXTS.messages.success.accountUpdated },
     onMutate: async (payload) => {
       await queryClient.cancelQueries({ queryKey: accountKeys.root });
@@ -129,6 +132,10 @@ export const useUpdateAccountMutation = () => {
         return;
       }
 
+      if (ErrorUtil.isOutcomeUnknown(error)) {
+        handleAccountUpdateOutcomeUnknown(queryClient);
+      }
+
       const message = resolveAccountUpdateErrorMessage(error);
 
       // previewUrl은 여기서 해제하지 않는다 - useUpdateAccount.ts의 onSubmit이 실패 시
@@ -144,6 +151,8 @@ export const useUpdateAccountMutation = () => {
 // 비밀번호가 틀려 실패했는데 클라이언트만 먼저 로그아웃 상태로 만들면 안 된다).
 export const useDeleteAccountMutation = () => {
   return useMutation({
+    // 처리됐으면 세션이 폐기돼 다시 보낸 요청은 401이다 - 저장됐는데 실패로 보인다
+    retry: false,
     mutationFn: (payload: DeleteAccount) => accountApi.deleteAccount(payload),
     meta: { manualErrorHandling: true },
     onSuccess: () => {
@@ -164,7 +173,13 @@ export const useDeleteAccountMutation = () => {
         // 데모 계정처럼 탈퇴 권한이 없는 역할(BE MemberRole)
         toast.error(TEXTS.messages.error.accessDenied);
       } else {
-        toast.error(TEXTS.messages.error.accountDeleteFailed);
+        toast.error(
+          ErrorUtil.resolveFailureMessage(
+            error,
+            TEXTS.messages.error.accountDeleteFailed,
+            TEXTS.messages.error.accountDeleteOutcomeUnknown
+          )
+        );
       }
     },
   });

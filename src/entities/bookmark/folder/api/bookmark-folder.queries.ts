@@ -4,6 +4,7 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  type MutationFunctionContext,
   type QueryClient,
 } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -28,6 +29,7 @@ import {
   UpdateBookmarkFolderRequest,
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { assertMutationAuthEpochUnchanged } from '@/shared/lib/react-query/config/mutation-auth-epoch';
+import { shouldRetryIdempotentMutation } from '@/shared/lib/react-query/config/retry-policy';
 import {
   prefetchInfiniteQueryQuietly,
   prefetchQueryQuietly,
@@ -137,16 +139,51 @@ export const prefetchBookmarkFolderPosts = (
 
 // ==================== Mutations ====================
 
+// 재시도마다 같은 context 객체가 온다(query-core mutation.js:64-75) - 한 번 보낸 실행인지 여기서 안다
+const sentOnce = new WeakSet<MutationFunctionContext>();
+
 export const useCreateBookmarkFolderMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.create,
-    mutationFn: (payload: CreateBookmarkFolderRequest) =>
-      bookmarkFolderApi.createBookmarkFolder(payload),
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: async (payload: CreateBookmarkFolderRequest, context) => {
+      assertMutationAuthEpochUnchanged(context);
+
+      const isResend = sentOnce.has(context);
+
+      sentOnce.add(context);
+
+      try {
+        return await bookmarkFolderApi.createBookmarkFolder(payload);
+      } catch (error) {
+        // 첫 요청이 만든 폴더 때문에 다시 보낸 요청이 409일 수 있다 - 회원별 이름이 유일해 목록에서 찾아 결과로 쓴다.
+        // 처음부터 난 409는 진짜 중복이라 대조하지 않는다(docs/FE-ARCHITECTURE.md §28)
+        if (
+          isResend &&
+          error instanceof ApiError &&
+          error.code === SERVER_ERROR_CODE.DUPLICATE_FOLDER_NAME
+        ) {
+          const { folders } = await bookmarkFolderApi.fetchBookmarkFolderList();
+          const created = folders.find((folder) => folder.name === payload.name);
+
+          if (created) {
+            return created;
+          }
+        }
+
+        throw error;
+      }
+    },
     meta: { manualErrorHandling: true },
     onSuccess: () => {
       handleBookmarkFolderCreateSuccess(queryClient);
+    },
+    onError: (error) => {
+      if (ErrorUtil.isOutcomeUnknown(error)) {
+        handleBookmarkFolderCreateSuccess(queryClient);
+      }
     },
   });
 };
@@ -156,8 +193,12 @@ export const useUpdateBookmarkFolderMutation = (folderId: string) => {
 
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.update(folderId),
-    mutationFn: (payload: UpdateBookmarkFolderRequest) =>
-      bookmarkFolderApi.updateBookmarkFolder(folderId, payload),
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: (payload: UpdateBookmarkFolderRequest, context) => {
+      assertMutationAuthEpochUnchanged(context);
+
+      return bookmarkFolderApi.updateBookmarkFolder(folderId, payload);
+    },
     meta: { manualErrorHandling: true },
     onMutate: async (payload) => {
       await queryClient.cancelQueries({ queryKey: bookmarkFolderKeys.list });
@@ -174,9 +215,13 @@ export const useUpdateBookmarkFolderMutation = (folderId: string) => {
       }
       return { previous };
     },
-    onError: (_err, _payload, context) => {
+    onError: (error, _payload, context) => {
       if (context?.previous) {
         queryClient.setQueryData(bookmarkFolderKeys.list, context.previous);
+      }
+
+      if (ErrorUtil.isOutcomeUnknown(error)) {
+        handleBookmarkFolderUpdateSuccess(queryClient);
       }
     },
     onSuccess: () => {
@@ -190,7 +235,10 @@ export const useDeleteBookmarkFolderMutation = (folderId: string) => {
 
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.delete(folderId),
-    mutationFn: async () => {
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: async (_variables: void, context) => {
+      assertMutationAuthEpochUnchanged(context);
+
       try {
         await bookmarkFolderApi.deleteBookmarkFolder(folderId);
 
@@ -213,6 +261,11 @@ export const useDeleteBookmarkFolderMutation = (folderId: string) => {
       }
 
       handleBookmarkFolderDeleteSuccess(queryClient);
+    },
+    onError: (error) => {
+      if (ErrorUtil.isOutcomeUnknown(error)) {
+        handleBookmarkFolderDeleteSuccess(queryClient);
+      }
     },
   });
 };
@@ -256,6 +309,7 @@ export const useSetBookmarkFolderPinMutation = (folderId: string) => {
   return useMutation({
     mutationKey,
     scope: { id: mutationKey.join(':') },
+    retry: shouldRetryIdempotentMutation,
     mutationFn: (nextPinned: boolean, context) => {
       // 줄에서 기다리는 사이 다른 계정이 됐으면 보내지 않는다(이하 scope mutation 공통)
       assertMutationAuthEpochUnchanged(context);
@@ -319,7 +373,10 @@ export const useSetBookmarkFolderPinMutation = (folderId: string) => {
       // 롤백으로 행이 원래 자리로 돌아갈 뿐이고 그게 화면 밖일 수도 있어 이 토스트가 유일한 안내다 - 닫을 때까지
       // 남기고, 고정·해제가 같은 id를 써 쌓이지 않게 한다(docs/FE-ARCHITECTURE.md §14)
       toast.error(
-        nextPinned ? TEXTS.messages.error.folderPinFailed : TEXTS.messages.error.folderUnpinFailed,
+        ErrorUtil.resolveFailureMessage(
+          error,
+          nextPinned ? TEXTS.messages.error.folderPinFailed : TEXTS.messages.error.folderUnpinFailed
+        ),
         { id: 'bookmark-folder-pin-error', duration: Infinity }
       );
     },
@@ -502,6 +559,7 @@ export const useAddBookmarkFolderMutation = (postId: string) => {
     mutationKey: bookmarkFolderMutationKeys.addBookmarkFolder(postId),
     // 같은 글의 북마크 저장·해제와 한 줄로 선다 — 성공·실패 처리는 그 줄의 마지막 요청에서만
     scope: bookmarkPostScope(postId),
+    retry: shouldRetryIdempotentMutation,
     mutationFn: (folderId: string, context) => {
       // 줄에서 기다리는 사이 다른 계정이 됐으면 보내지 않는다(이하 scope mutation 공통)
       assertMutationAuthEpochUnchanged(context);
@@ -582,6 +640,7 @@ export const useRemoveBookmarkFolderMutation = (postId: string) => {
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.removeBookmarkFolder(postId),
     scope: bookmarkPostScope(postId),
+    retry: shouldRetryIdempotentMutation,
     mutationFn: (folderId: string, context) => {
       assertMutationAuthEpochUnchanged(context);
 
@@ -650,6 +709,7 @@ export const useClearBookmarkFoldersMutation = (postId: string) => {
   return useMutation({
     mutationKey: bookmarkFolderMutationKeys.clearBookmarkFolders(postId),
     scope: bookmarkPostScope(postId),
+    retry: shouldRetryIdempotentMutation,
     mutationFn: (_variables: void, context) => {
       assertMutationAuthEpochUnchanged(context);
 

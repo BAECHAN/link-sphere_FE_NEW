@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse, delay } from 'msw';
 import { createElement, type ReactNode } from 'react';
@@ -1305,6 +1305,80 @@ describe('useLikePostMutation', () => {
       expect(readDetail()?.userInteractions.isLiked).toBe(true);
       expect(readDetail()?.stats.likeCount).toBe(11);
       expect(queryClient.getQueryState(postKeys.detail(POST_ID))?.isInvalidated).toBe(true);
+    });
+
+    // 응답을 못 받으면 한 번 더 보낸다(docs/FE-ARCHITECTURE.md §28). 첫 요청은 끊고, 다시 보낸 요청은 붙잡아 둔다
+    function cutThenGateLike(respond: () => Response) {
+      const gate = createResponseGate();
+      let putCount = 0;
+
+      respondLike('PUT', async () => {
+        putCount += 1;
+
+        if (putCount === 1) {
+          return HttpResponse.error();
+        }
+
+        await gate.wait;
+
+        return respond();
+      });
+
+      return gate;
+    }
+
+    it('(f) 다시 보내는 동안에는 화면을 되돌리지 않고, 다시 보낸 요청도 응답이 없으면 그때 한 번만 되돌린다', async () => {
+      const onError = vi.fn();
+      queryClient = new QueryClient({
+        mutationCache: new MutationCache({ onError }),
+        defaultOptions: {
+          queries: { retry: 0, gcTime: Infinity },
+          mutations: { retryDelay: 0 },
+        },
+      });
+      const gate = cutThenGateLike(() => HttpResponse.error());
+      const { result } = renderWithPost(seedPost(false));
+
+      act(() => {
+        result.current.mutate(true);
+      });
+      await waitFor(() => expect(likeRequests).toEqual(['PUT', 'PUT']));
+
+      expect(readDetail()?.userInteractions.isLiked).toBe(true);
+      expect(readDetail()?.stats.likeCount).toBe(11);
+      expect(onError).not.toHaveBeenCalled();
+
+      gate.release();
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(readDetail()?.userInteractions.isLiked).toBe(false);
+      expect(readDetail()?.stats.likeCount).toBe(10);
+      expect(queryClient.getQueryState(postKeys.detail(POST_ID))?.isInvalidated).toBe(true);
+    });
+
+    it('(g) 다시 보낸 요청의 응답이 올 때까지 뒤 요청은 줄에서 기다린다', async () => {
+      const gate = cutThenGateLike(() => likeResponse(true, 11));
+      const { result } = renderWithPost(seedPost(false));
+
+      act(() => {
+        result.current.mutate(true);
+      });
+      act(() => {
+        result.current.mutate(false);
+      });
+      await waitFor(() => expect(likeRequests).toEqual(['PUT', 'PUT']));
+
+      // 뒤 요청이 먼저 나가면 곧 DELETE가 찍힌다 - 잠시 기다려도 그대로인지 본다
+      await act(() => delay(50));
+      expect(likeRequests).toEqual(['PUT', 'PUT']);
+      // 기다리는 동안에도 마지막으로 누른 상태를 보여 주고, 끝나지 않았다고 알린다
+      expect(readDetail()?.userInteractions.isLiked).toBe(false);
+      expect(result.current.isPending).toBe(true);
+
+      gate.release();
+
+      await waitFor(() => expect(likeRequests).toEqual(['PUT', 'PUT', 'DELETE']));
     });
   });
 });

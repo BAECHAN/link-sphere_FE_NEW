@@ -304,6 +304,26 @@ describe('useUpdatePost - 저장 중 이탈', () => {
     expect(router.state.location.pathname).toBe(ROUTES_PATHS.BOOKMARK);
   });
 
+  it('응답 전에 "나가기"로 떠난 뒤 응답을 끝내 못 받으면 실패라고 단정하지 않는 제목으로 알린다', async () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    const gate = holdUpdateResponse(() => {
+      // 다시 보낸 요청은 붙잡지 않는다
+      server.use(http.patch(url(`${API_ENDPOINTS.post.base}/:id`), () => HttpResponse.error()));
+
+      return HttpResponse.error();
+    });
+    const { router, queryClient } = renderUpdatePost();
+
+    await editAndSubmit(gate);
+    await leaveThenRespond(gate, router, queryClient);
+
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(
+      LEFT_PAGE_FAILURE.outcomeUnknownTitle,
+      expect.objectContaining({ id: LEFT_PAGE_FAILURE_ID, duration: Infinity })
+    );
+  });
+
   it('응답 전에 "나가기"로 떠난 뒤 실패하면 닫을 때까지 남는 토스트로 알린다', async () => {
     const errorSpy = vi.spyOn(toast, 'error');
     const gate = holdUpdateResponse(updateFailed);

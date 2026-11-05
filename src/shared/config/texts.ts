@@ -159,6 +159,9 @@ export const TEXTS = {
       successDescription: '이제 글쓰기와 댓글 작성을 자유롭게 이용할 수 있어요.',
       errorTitle: '인증에 실패했어요',
       errorDescription: '링크가 유효하지 않거나 이미 사용됐어요.',
+      // 응답을 못 받아 인증됐는지 모르는 경우 - 토큰이 이미 쓰였을 수 있어 "실패"라고 하지 않는다
+      unknownTitle: '인증됐는지 확인하지 못했어요',
+      unknownDescription: '연결을 확인한 뒤 계정 설정에서 인증 상태를 확인해주세요.',
       goToFeed: '피드로 이동',
       goToLogin: '로그인하러 가기',
       goToAccountSettings: '계정 설정으로 이동',
@@ -532,6 +535,19 @@ export const TEXTS = {
       sessionChanged: '로그인 상태가 바뀌어서 처리되지 않았어요. 다시 시도해 주세요.',
       // 로그인이 만료됐거나 풀린 채 제출해 저장하지 못한 경우(SessionExpiredError) - 글·댓글 폼의 버튼 위 FormAlert
       signedOutBeforeSave: '로그인이 풀렸어요. 로그인한 뒤 저장해 주세요.',
+      // 쓰기 요청의 응답을 못 받은 경우(ErrorUtil.isOutcomeUnknown) - 서버가 처리했을 수 있어 "실패"라고 하지 않는다.
+      // 다시 보내는 요청은 공용 문구, 다시 보내지 않는 요청은 다음 행동이 달라 요청별 문구를 쓴다
+      // (docs/FE-ARCHITECTURE.md §28)
+      outcomeUnknown: '처리됐는지 확인하지 못했어요. 연결을 확인하고 다시 시도해주세요.',
+      accountCreateOutcomeUnknown:
+        '가입됐는지 확인하지 못했어요. 메일함을 확인한 뒤 다시 시도해주세요.',
+      passwordChangeOutcomeUnknown:
+        '비밀번호가 바뀌었는지 확인하지 못했어요. 로그인이 풀리면 새 비밀번호로 로그인해주세요.',
+      passwordResetConfirmOutcomeUnknown:
+        '비밀번호가 바뀌었는지 확인하지 못했어요. 새 비밀번호로 로그인해 보세요.',
+      accountDeleteOutcomeUnknown:
+        '탈퇴 신청이 처리됐는지 확인하지 못했어요. 로그인이 풀리면 신청된 거예요.',
+      mailRequestOutcomeUnknown: '메일을 보냈는지 확인하지 못했어요. 메일함을 먼저 확인해주세요.',
 
       // 인증 관련
       unauthorizedAccessToken: '액세스 토큰이 유효하지 않아요.',
@@ -592,6 +608,8 @@ export const TEXTS = {
         commentCreateTitle: '댓글을 등록하지 못했어요',
         replyCreateTitle: '답글을 등록하지 못했어요',
         commentUpdateTitle: '댓글을 수정하지 못했어요',
+        // 응답을 못 받아 처리됐는지 모를 때의 제목 - 위 제목들은 실패로 단정한다
+        outcomeUnknownTitle: '처리됐는지 확인하지 못했어요',
       },
       fetchPosts: '포스트를 불러오는 중 오류가 발생했어요.',
       // 무한 스크롤 목록(피드·북마크·내 댓글) 끝에서 다음 페이지를 받지 못했을 때 - 위에 받은 카드가 그대로 있어

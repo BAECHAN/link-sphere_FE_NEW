@@ -37,7 +37,7 @@ interface SignUpLocationState {
 
 /** 응답 전에 "나가기"로 떠난 뒤 실패했다 - 가입 폼이 없으니 닫을 때까지 남는 토스트로 알리고 돌아갈 버튼을 단다 */
 function showSignUpFailedAfterLeaving(
-  { reason }: SignUpSubmitErrorResolution,
+  { reason, message }: SignUpSubmitErrorResolution,
   { nickname, email }: { nickname: string; email: string }
 ) {
   const { leftPageFailure } = TEXTS.messages.error;
@@ -57,14 +57,19 @@ function showSignUpFailedAfterLeaving(
   }
 
   const restoredState: SignUpLocationState = { restoredInput: { nickname, email } };
+  const descriptionByReason = {
+    duplicateNickname: leftPageFailure.signUpDuplicateNickname,
+    outcomeUnknown: message,
+    failed: leftPageFailure.retryLater,
+  };
 
   showLeftPageFailureToast({
     key: 'auth-signup',
-    title: leftPageFailure.signUpTitle,
-    description:
-      reason === 'duplicateNickname'
-        ? leftPageFailure.signUpDuplicateNickname
-        : leftPageFailure.retryLater,
+    title:
+      reason === 'outcomeUnknown'
+        ? leftPageFailure.outcomeUnknownTitle
+        : leftPageFailure.signUpTitle,
+    description: descriptionByReason[reason],
     action: {
       label: TEXTS.buttons.signUpAgain,
       onClick: () => NavigationService.navigate(ROUTES_PATHS.AUTH.SIGNUP, { state: restoredState }),

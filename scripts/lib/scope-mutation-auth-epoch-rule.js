@@ -19,7 +19,7 @@ function getKeyName(property) {
   return property.key.type === 'Literal' ? property.key.value : null;
 }
 
-function findProperty(objectExpression, name) {
+export function findProperty(objectExpression, name) {
   return objectExpression.properties.find((property) => getKeyName(property) === name);
 }
 
@@ -28,7 +28,7 @@ function findProperty(objectExpression, name) {
  * mutationFn이 받은 context 객체를 키로 기록돼 있어, 다른 값을 넘기면 기록이 없어 확인을 조용히 건너뛴다
  * (mutation-auth-epoch.ts).
  */
-function startsWithAuthEpochCheck(fn) {
+export function startsWithAuthEpochCheck(fn) {
   const contextParam = fn.params[1];
 
   if (fn.body.type !== 'BlockStatement' || contextParam?.type !== 'Identifier') {

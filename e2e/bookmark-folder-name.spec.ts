@@ -120,6 +120,50 @@ test.describe('북마크 폴더 이름 — 줄바꿈 표시와 길이 제한', (
     expect(createRequestCount).toBe(0);
   });
 
+  test('만드는 응답이 끊긴 뒤 다시 보낸 요청이 이름 중복이면 첫 요청이 만든 폴더로 받아들인다', async ({
+    page,
+  }) => {
+    const CREATED_NAME = '응답이 끊긴 폴더';
+    const createdFolder = { ...mockBookmarkFolder, id: 'folder-created', name: CREATED_NAME };
+    let postCount = 0;
+
+    // LIFO라 beforeEach의 핸들러보다 먼저 탄다
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.bookmark.folders),
+      (route) => {
+        if (route.request().method() !== 'POST') {
+          return route.fulfill({
+            json: wrapResponse({
+              folders: postCount > 0 ? [LONG_FOLDER, createdFolder] : [LONG_FOLDER],
+              uncategorizedCount: 0,
+            }),
+          });
+        }
+
+        postCount += 1;
+
+        return postCount === 1
+          ? route.abort('failed')
+          : route.fulfill({
+              status: 409,
+              json: { status: 409, code: 'DUPLICATE_FOLDER_NAME', message: '', timestamp: '' },
+            });
+      }
+    );
+
+    await page.goto('/bookmark');
+    await page.getByRole('button', { name: TEXTS.bookmark.folder.create }).click();
+
+    const input = page.getByPlaceholder(TEXTS.bookmark.folder.namePlaceholder);
+    await input.fill(CREATED_NAME);
+    await input.press('Enter');
+
+    await expect(page.getByRole('complementary').getByText(CREATED_NAME)).toBeVisible();
+    await expect(page.getByText(TEXTS.messages.error.folderNameDuplicate)).toHaveCount(0);
+    await expect(page.getByText(TEXTS.messages.error.outcomeUnknown)).toHaveCount(0);
+    expect(postCount).toBe(2);
+  });
+
   // 글자 수(n / 15자)는 입력의 설명(aria-describedby)으로 이어져 포커스할 때 읽힌다(docs/BOOKMARK.md §5 "폴더 이름 글자 수")
   test('새 폴더 입력은 글자 수가 0부터 늘 보이고 상한을 넘는 순간 숫자도 넘는다', async ({
     page,

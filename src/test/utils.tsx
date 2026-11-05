@@ -30,7 +30,8 @@ export function createTestQueryClient(overrides?: {
   return new QueryClient({
     defaultOptions: {
       queries: { retry: 0, staleTime: overrides?.staleTime ?? 0, gcTime: overrides?.gcTime ?? 0 },
-      mutations: { retry: 0 },
+      // retry는 mutation마다 선언하고(docs/FE-ARCHITECTURE.md §28) 재전송은 기다리지 않는다 - waitFor 기본 대기가 1초다
+      mutations: { retry: 0, retryDelay: 0 },
     },
   });
 }

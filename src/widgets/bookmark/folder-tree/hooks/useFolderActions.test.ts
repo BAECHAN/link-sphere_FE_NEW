@@ -339,6 +339,28 @@ describe('useFolderActions — 이름 변경', () => {
     expect(errorSpy).toHaveBeenCalledTimes(1);
     expect(result.current.name).toBe(mockBookmarkFolder.name);
   });
+
+  it('PATCH 응답을 끝내 못 받으면 실패라고 단정하지 않고 입력값을 원래 이름으로 복원한다', async () => {
+    server.use(
+      http.patch(url(API_ENDPOINTS.bookmark.folder(mockBookmarkFolder.id)), () =>
+        HttpResponse.error()
+      )
+    );
+    const errorSpy = vi.spyOn(toast, 'error');
+    const { result } = renderHook(() => useFolderActions({ folder: mockBookmarkFolder }), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      result.current.startRename();
+      result.current.setName('새 이름');
+    });
+    await act(async () => result.current.submitRename());
+
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.outcomeUnknown));
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(result.current.name).toBe(mockBookmarkFolder.name);
+  });
 });
 
 describe('useFolderActions — 삭제', () => {
@@ -420,6 +442,27 @@ describe('useFolderActions — 삭제', () => {
     await waitFor(() =>
       expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.folderDeleteFailed)
     );
+  });
+
+  it('DELETE 응답을 끝내 못 받으면 실패라고 단정하지 않는다', async () => {
+    server.use(
+      http.delete(url(API_ENDPOINTS.bookmark.folder(mockBookmarkFolder.id)), () =>
+        HttpResponse.error()
+      )
+    );
+    const errorSpy = vi.spyOn(toast, 'error');
+    const { result } = renderHook(() => useFolderActions({ folder: mockBookmarkFolder }), {
+      wrapper: Wrapper,
+    });
+
+    act(() => result.current.handleDelete());
+    const confirmed = useAlertStore.getState().alerts[0]?.onConfirm;
+    await act(async () => confirmed?.());
+
+    await waitFor(() =>
+      expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.deleteOutcomeUnknown)
+    );
+    expect(errorSpy).toHaveBeenCalledTimes(1);
   });
 
   it('삭제에 성공하면 삭제 안내를 한 번 띄운다', async () => {

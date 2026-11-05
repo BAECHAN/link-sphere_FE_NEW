@@ -87,6 +87,8 @@ export const useCreatePostMutation = () => {
 
   return useMutation({
     mutationKey: postMutationKeys.create,
+    // BE #158 배포 전에는 서버가 키를 무시해 다시 보내면 중복이 생긴다
+    retry: false,
     mutationFn: async (payload: CreatePost) => {
       return await IdempotencyKeyUtil.send(`post:${JSON.stringify(payload)}`, (key) =>
         postApi.createPost(payload, key)
@@ -108,6 +110,10 @@ export const useCreatePostMutation = () => {
 
       if (isFolderMissing) {
         handleBookmarkFolderDeleteSuccess(queryClient);
+      }
+
+      if (ErrorUtil.isOutcomeUnknown(error)) {
+        handlePostCreateSuccess(queryClient);
       }
     },
     onSuccess: async (created, variables) => {
@@ -457,7 +463,10 @@ export const useUpdatePostMutation = (postId: string) => {
 
   return useMutation({
     mutationKey: postMutationKeys.update(postId),
-    mutationFn: async (payload: UpdatePost) => {
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: async (payload: UpdatePost, context) => {
+      assertMutationAuthEpochUnchanged(context);
+
       return await postApi.updatePost(postId, payload);
     },
     // 실패 안내는 useUpdatePost가 원인별로 직접 띄운다(useCreatePostMutation과 같은 이유).
@@ -487,6 +496,12 @@ export const useUpdatePostMutation = (postId: string) => {
       // 북마크 폴더 페이지의 게시글 목록도 갱신 (post 키와 별도 캐시)
       handlePostContentUpdateSuccess(queryClient);
     },
+    onError: (error) => {
+      if (ErrorUtil.isOutcomeUnknown(error)) {
+        handlePostUpdateSuccess(queryClient, postId);
+        handlePostContentUpdateSuccess(queryClient);
+      }
+    },
   });
 };
 
@@ -495,7 +510,10 @@ export const useUpdatePostVisibilityMutation = (postId: string) => {
 
   return useMutation({
     mutationKey: postMutationKeys.updateVisibility(postId),
-    mutationFn: async ({ postId, isPrivate }: { postId: string; isPrivate: boolean }) => {
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: async ({ postId, isPrivate }: { postId: string; isPrivate: boolean }, context) => {
+      assertMutationAuthEpochUnchanged(context);
+
       return await postApi.updatePostVisibility(postId, isPrivate);
     },
     meta: { manualErrorHandling: true },
@@ -514,6 +532,11 @@ export const useUpdatePostVisibilityMutation = (postId: string) => {
       handlePostContentUpdateSuccess(queryClient);
     },
     onError: (error) => {
+      if (ErrorUtil.isOutcomeUnknown(error)) {
+        handlePostUpdateSuccess(queryClient, postId);
+        handlePostContentUpdateSuccess(queryClient);
+      }
+
       // 실패하면 🔒가 요청 전 그대로라 이 토스트가 유일한 안내다 - "나만 보기"로 바뀐 줄 알고 넘어가지 않게 닫을
       // 때까지 남기고, 같은 id로 쌓이지 않게 한다(docs/FE-ARCHITECTURE.md §14). 문구는 전역 핸들러와 같은
       // 판정(요청 한도·보안 차단·로그인 만료 무음 등)을 그대로 쓰고 유지 시간만 다르다

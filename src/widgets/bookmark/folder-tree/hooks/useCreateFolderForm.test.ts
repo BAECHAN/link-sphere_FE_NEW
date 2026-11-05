@@ -183,6 +183,23 @@ describe('useCreateFolderForm', () => {
     expect(result.current.name).toBe('폴더');
   });
 
+  it('응답을 끝내 못 받으면 실패라고 단정하지 않고 입력을 지우지 않는다', async () => {
+    server.use(http.post(url(API_ENDPOINTS.bookmark.folders), () => HttpResponse.error()));
+    const errorSpy = vi.spyOn(toast, 'error');
+    const onCreated = vi.fn();
+    const { result } = renderHook(() => useCreateFolderForm({ onCreated }), {
+      wrapper: Wrapper,
+    });
+
+    act(() => result.current.setName('폴더'));
+    await act(async () => result.current.submit());
+
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledWith(TEXTS.messages.error.outcomeUnknown));
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(onCreated).not.toHaveBeenCalled();
+    expect(result.current.name).toBe('폴더');
+  });
+
   it('같은 이름의 폴더가 이미 있으면 중복 안내를 띄우고 입력을 지우지 않는다', async () => {
     server.use(
       http.post(url(API_ENDPOINTS.bookmark.folders), () =>

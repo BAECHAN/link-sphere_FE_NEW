@@ -216,7 +216,11 @@ export function useUpdatePost(postId: string) {
 
         showLeftPageFailureToast({
           key: `post-update:${postId}`,
-          title: TEXTS.messages.error.leftPageFailure.postUpdateTitle,
+          title: ErrorUtil.resolveFailureMessage(
+            error,
+            TEXTS.messages.error.leftPageFailure.postUpdateTitle,
+            TEXTS.messages.error.leftPageFailure.outcomeUnknownTitle
+          ),
           description:
             resolution.kind === 'form' && resolution.unclassified
               ? TEXTS.messages.error.leftPageFailure.retryLater

@@ -192,6 +192,8 @@ export const useCreateCommentMutation = (postId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    // BE #158 배포 전에는 서버가 키를 무시해 다시 보내면 중복이 생긴다
+    retry: false,
     mutationFn: ({
       content,
       images,
@@ -249,6 +251,8 @@ export const useCreateReplyMutation = (postId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    // BE #158 배포 전에는 서버가 키를 무시해 다시 보내면 중복이 생긴다
+    retry: false,
     mutationFn: ({
       commentId,
       content,
@@ -371,17 +375,25 @@ export const useUpdateCommentMutation = (postId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      commentId,
-      content,
-      images,
-      existingImages,
-    }: {
-      commentId: string;
-      content?: string;
-      images?: File[];
-      existingImages?: string[];
-    }) => commentApi.updateComment(commentId, { content, images, existingImages }),
+    retry: shouldRetryIdempotentMutation,
+    mutationFn: (
+      {
+        commentId,
+        content,
+        images,
+        existingImages,
+      }: {
+        commentId: string;
+        content?: string;
+        images?: File[];
+        existingImages?: string[];
+      },
+      context
+    ) => {
+      assertMutationAuthEpochUnchanged(context);
+
+      return commentApi.updateComment(commentId, { content, images, existingImages });
+    },
     // 실패 원인은 폼이 버튼 위 FormAlert로 안내한다(useUpdateComment) - 전역 토스트와 겹치지 않게 끈다
     meta: { manualErrorHandling: true },
     onSuccess: (data) => {
@@ -394,6 +406,11 @@ export const useUpdateCommentMutation = (postId: string) => {
         })
       );
       handleCommentUpdateSuccess(queryClient, postId);
+    },
+    onError: (error) => {
+      if (ErrorUtil.isOutcomeUnknown(error)) {
+        handleCommentUpdateSuccess(queryClient, postId);
+      }
     },
   });
 };

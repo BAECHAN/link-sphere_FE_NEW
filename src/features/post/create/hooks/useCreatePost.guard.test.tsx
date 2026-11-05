@@ -382,6 +382,20 @@ describe('useCreatePost - 저장 중 이탈', () => {
     }
   );
 
+  it('응답 전에 "나가기"로 떠난 뒤 응답을 못 받으면 실패라고 단정하지 않는 제목으로 알린다', async () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    const gate = holdCreateResponse(() => HttpResponse.error());
+    const { router, queryClient } = renderCreatePost();
+
+    await leaveThenRespond(gate, router, queryClient);
+
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(
+      LEFT_PAGE_FAILURE.outcomeUnknownTitle,
+      expect.objectContaining({ id: 'left-page-failure:post-create', duration: Infinity })
+    );
+  });
+
   it.each([
     {
       cause: '요청 한도(버튼 위 안내)',

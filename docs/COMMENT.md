@@ -301,6 +301,9 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 - **수정 폼은 끝맺음이 "저장"이다** — 업로드 단계 문구는 `register`(등록)·`save`(저장) 두
   벌이 있고, 수정 폼과 프로필 사진은 `save`를 쓴다. 수정은 결과를 몰라도 다시 보내면 같은
   내용으로 덮어쓸 뿐이라 결과 모름 안내 대신 일반 안내(`save.network`·`updateFailed`)를 쓴다.
+- **수정은 자동으로 1번 더 보낸다** — 응답을 못 받으면 약 1초 뒤 같은 PATCH를 1번 더 보내고(`FE-ARCHITECTURE.md` §28), 또 응답이
+  없으면 위 일반 안내와 함께 댓글 목록을 다시 받는다(`handleCommentUpdateSuccess`). 등록·답글은 BE #158이 키를 받기 전까지 자동으로
+  다시 보내지 않는다(`retry: false`) — 지금 다시 보내면 댓글이 둘이 된다.
 - **스토리지 원인은 본문에 있다** — Supabase Storage는 500이 아닌 오류를 HTTP 400으로 보내고
   원래 상태 코드는 본문 `statusCode`에 남긴다([storage 서버 `http` 폴더의 `error-handler.ts`](https://github.com/supabase/storage/tree/master/src/http),
   413·415·544 정의는 [`internal/errors` 폴더의 `codes.ts`](https://github.com/supabase/storage/tree/master/src/internal/errors),
@@ -325,7 +328,8 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   `NetworkError`로 바꾼다. 예전에는 Chrome 문구 `'Failed to fetch'`만 비교했다
   (`ErrorUtil.isServerError`는 두 방식을 모두 본다).
 - **프로필 사진도 같은 문구를 쓴다** — `account.queries.ts`의 `resolveAccountUpdateErrorMessage`가
-  업로드 단계 실패·연결 끊김·429를 `save` 문구로 토스트한다([`MYPAGE.md`](./MYPAGE.md) §5).
+  업로드 단계의 연결 끊김·429를 `save` 문구로 토스트한다. 업로드 뒤 저장 요청의 응답을 끝내 못 받으면
+  공용 `outcomeUnknown` 문구다([`MYPAGE.md`](./MYPAGE.md) §5).
 
 ### 삭제 — 확인 후 서버 판단을 기다린다
 
@@ -466,7 +470,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 - **기다림 줄이기(2026-10-14)** — 게시글을 기다리며 멈추는 `PostDetailContent` 안에 `CommentList`가
   있어, 게시글이 와야 댓글을 요청하는 순차 요청이었다. 두 가지로 줄였다.
   - 상세 진입: 상세 라우트(`PostDetailRoute`, `src/app/routes/index.tsx:246`)가
-    `usePrefetchComments`(`src/entities/comment/api/comment.queries.ts:145`)를 불러 댓글을
+    `usePrefetchComments`(`src/entities/comment/api/comment.queries.ts:162`)를 불러 댓글을
     게시글과 동시에 요청한다. 처음엔 `PostDetailPage`가 경계 바깥에서 불렀다. 2026-10-26부터는 lazy 페이지
     청크도 기다리지 않도록 라우트로 옮겼다([`PERFORMANCE.md`](./PERFORMANCE.md) "LCP 데이터 요청 시점").
     `CommentList`는 같은 키의 캐시를 읽어 다시 요청하지 않는다
@@ -751,7 +755,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 쿼리·낙관적 업데이트            | `src/entities/comment/api/comment.queries.ts`(파일 전체 — `buildOptimisticComment`부터 `useUpdateCommentMutation`까지)                         |
 | 키·무효화 핸들러                | `src/entities/comment/api/comment.keys.ts:4-54`                                                                                                |
 | 바이트 스키마·전송량 추정       | `src/entities/comment/model/comment.schema.ts:8-15`, `src/entities/comment/utils/comment.util.ts:130-140`                                      |
-| 실패 원인 판정                  | `src/entities/comment/utils/comment.util.ts:24-105`, `src/shared/utils/error.util.ts:62-91`                                                    |
+| 실패 원인 판정                  | `src/entities/comment/utils/comment.util.ts:24-105`, `src/shared/utils/error.util.ts:71-105`                                                   |
 | 한글 기준 글자 수·카운터        | `src/entities/comment/utils/comment.util.ts:147-149`, `src/shared/ui/elements/CharacterCount.tsx`의 `CharacterCount`                           |
 | 업로드 단계 실패 분류           | `src/shared/lib/upload/uploadImageAndGetUrl.ts:13-39`, `src/shared/api/upload.api.ts:15-37`                                                    |
 | WAF 403 분류·문구               | `src/shared/api/client.ts:96-105`, `src/shared/lib/react-query/config/error-toast.ts`의 `resolveErrorToast`(`EDGE_BLOCKED` 분기)               |

@@ -30,3 +30,11 @@ export const handleAccountUpdateSuccess = (queryClient: QueryClient) => {
   commentInvalidateQueries.all(queryClient); // 모든 게시글의 댓글 author
   bookmarkFolderInvalidateQueries.postsRoot(queryClient); // 폴더별 게시글 카드의 author
 };
+
+/**
+ * 프로필 변경의 응답을 못 받았을 때 - 저장됐을 수 있는데 쓸 응답이 없으므로, 성공 때와 달리 계정 캐시도 다시 받는다.
+ */
+export const handleAccountUpdateOutcomeUnknown = (queryClient: QueryClient) => {
+  accountInvalidateQueries.root(queryClient);
+  handleAccountUpdateSuccess(queryClient);
+};
