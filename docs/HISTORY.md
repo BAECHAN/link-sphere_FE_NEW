@@ -1,3 +1,8 @@
+### 2026-11-05 (BE)
+- 이메일 평문 저장 정책 수립 및 데이터 유출 보안 강화
+로그:
+- feat(auth): 이메일 컬럼 평문 유지를 정하고 유출 지점을 막음 ([#161](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/161))
+
 ### 2026-11-05 (FE)
 - 등록 및 메일 전송 요청 실패 시 동일 키를 사용하여 재요청하도록 로직 개선 ([#546](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/546))
 
