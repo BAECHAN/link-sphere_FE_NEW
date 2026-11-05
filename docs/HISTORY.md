@@ -1,4 +1,9 @@
 ### 2026-11-05 (BE)
+- 의미 검색 기능의 페이징 안정성 개선
+로그:
+- fix(post): 의미 검색 cursor의 점수 키를 정수로 바꿔 쪽 경계 중복을 없앰 ([#165](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/165))
+
+### 2026-11-05 (BE)
 - 게시글 목록 조회 성능 향상을 위한 커서 기반 페이징(Cursor-based Pagination) 도입 및 기존 페이지네이션 호환성 유지 ([#164](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/164))
 
 ### 2026-11-05 (FE)
