@@ -1,4 +1,7 @@
 ### 2026-11-05 (FE)
+- 쓰기 요청 재시도 로직 도입 및 오류 상황에 대한 사용자 안내 고도화 ([#543](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/543))
+
+### 2026-11-05 (FE)
 - 삭제된 항목에 대한 중복 삭제 시도 시 사용자 알림 및 화면 갱신 처리 개선 ([#542](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/542))
 
 ### 2026-11-05 (FE)
