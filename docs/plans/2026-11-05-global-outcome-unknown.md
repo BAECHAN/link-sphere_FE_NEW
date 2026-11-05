@@ -21,6 +21,7 @@
 - Phase 2 계획에 없던 변경: 닉네임 저장이 실패해 되돌려진 뒤 "확인 중"에 멈춰 저장 버튼이 잠기던 버그를 고쳤다(`useUpdateAccount`, 사용자 결정). "다시 시도해주세요"라고 안내하는데 값을 고치기 전에는 다시 누를 수 없었기 때문이다. 응답 없음과 500 모두 해당한다
 - Phase 2 계획에 없던 변경: 규칙 함수 공유를 위해 `scope-mutation-auth-epoch-rule.js`의 함수 2개를 export하고, scope 없는 재전송에도 확인 줄이 생겨 그 규칙 테스트의 기대 수를 scope 수로 바꿨다. 테스트 보조로 `createTestQueryClient`의 `retryDelay: 0`과 e2e 경로 상수를 더했다
 - Phase 2 문서 동기화: `.claude/commands` 템플릿 2개, CLAUDE.md 토스트 결정표, FE-ARCHITECTURE §2·§11·§15·§21, POST 동작 요약 표, `docs/MYPAGE.md`, `docs/UNSAVED-CHANGES-GUARD.md`, 밀린 줄 번호
+- 계획 뒤에 달라진 전제: 접근 로그를 Free 플랜에서 켤 수 없어 사용자 결정으로 기본 지표로 대체했다(2026-11-05). "남은 것"의 접근 로그 delivery는 Phase 3의 선행 조건에서 빠지고 SQL 실행과 BE #158 배포만 남는다. 502·503도 접근 로그로 세지 않고 같은 측정으로 판단한다(CloudFront가 직접 만든 5xx 상한 60일 8건, `docs/DEPLOY.md`)
 - 아직 대조 전: Phase 3(별도 PR)
 
 <!-- plan-result:end -->

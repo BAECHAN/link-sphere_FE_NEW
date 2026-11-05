@@ -2054,8 +2054,8 @@ return useMutation({
 - **탭이 숨겨졌거나 브라우저가 오프라인을 알면** 재시도와 안내가 복귀까지 미뤄진다(`retryer.js:41,96`).
 - **토큰 갱신 재요청과는 다른 층이다.** 그쪽은 401에서 돌고(`client.ts`) 이쪽은 응답 없음에서 돈다. 겹치면 이론상 최대 4번 전송된다(코드
   구조상 계산).
-- **502·503은 다시 보내지 않는다.** 이슈 [#534](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/534)의 접근 로그 확인 때 함께 세어
-  판단한다.
+- **502·503은 다시 보내지 않는다.** CloudFront가 직접 만든 5xx의 상한이 최근 60일에 8건이라(직접 측정, 코드별로는 나누지 못한다,
+  `docs/DEPLOY.md` "CloudFront 5xx 세기와 접근 로그") 지금은 바꿀 근거가 없다.
 - **테스트:** `src/test/mutation-outcome-unknown.test.tsx`가 요청별로 끊김·실패·계정 변경을 표로 돈다. 새 요청을 만들면 표에 더한다.
   `createTestQueryClient`는 `mutations: { retry: 0, retryDelay: 0 }`이지만 mutation 옵션의 `retry`가 우선이라 재전송은 그대로 돈다.
 

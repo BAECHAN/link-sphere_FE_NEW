@@ -60,8 +60,8 @@ BE v0.11.0(2026-10-28)에 모두 들어갔다 — 각 계약과 배포 순서는
 [Tailwind 호환성 문서](https://tailwindcss.com/docs/compatibility)). 그 아래는 화면과 기능을 보장하지 않는다. 등록 요청의
 멱등 키(`crypto.randomUUID`)도 폴백 없이 이 범위에 기댄다 — 그 아래 브라우저의 글 등록·재설정 요청은 일반 실패 안내로
 끝나고 입력은 남는다(`docs/FE-ARCHITECTURE.md` §27, 2026-11-04 사용자 결정). `vite.config.ts`의 빌드 타깃은 Vite 6 기본값이라
-이보다 낮지만 범위를 넓히지 않는다. 우리 사용자의 실제 브라우저 비율은 재지 않는다(접근 로그에 User-Agent를 넣지 않는다,
-`docs/DEPLOY.md` "CloudFront 접근 로그").
+이보다 낮지만 범위를 넓히지 않는다. 우리 사용자의 실제 브라우저 비율은 재지 않는다(접근 로그는 Free 플랜이라 꺼져 있고, 켜더라도 User-Agent를 넣지 않는다,
+`docs/DEPLOY.md` "CloudFront 5xx 세기와 접근 로그").
 
 ## 앞으로 지켜야 할 규칙
 
