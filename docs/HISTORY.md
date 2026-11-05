@@ -1,3 +1,6 @@
+### 2026-11-05 (FE)
+- 게시물 삭제 시 응답 처리 로직 개선 및 예외 상황 대응 안내 로직 추가 ([#538](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/538))
+
 ### 2026-11-05 (BE)
 - 조회수 및 열람 기록 처리를 위한 POST /post/{id}/view 엔드포인트 분리 ([#159](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/159))
 
