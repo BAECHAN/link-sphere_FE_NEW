@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-folder.util';
 import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
+import { TEXTS } from '@/shared/config/texts';
+import { ApiError } from '@/shared/types/common.type';
 
 // lastUsedAt은 BE가 실제로 보내는 원시 ISO 문자열 그대로 다룬다 — apiClient는 이 필드를
 // Date로 파싱하지 않는다(bookmark-folder.util.ts 참고). 정렬은 dayjs가 하므로 문자열이면
@@ -173,6 +176,28 @@ describe('BookmarkFolderUtil', () => {
         'f3',
         'f1',
       ]);
+    });
+  });
+
+  describe('resolveNameSaveErrorMessage', () => {
+    it('같은 이름의 폴더가 있다는 응답이면 중복 안내를 돌려준다', () => {
+      const error = new ApiError({
+        status: 409,
+        code: SERVER_ERROR_CODE.DUPLICATE_FOLDER_NAME,
+        message: '',
+        timestamp: '',
+      });
+
+      expect(BookmarkFolderUtil.resolveNameSaveErrorMessage(error, '실패')).toBe(
+        TEXTS.messages.error.folderNameDuplicate
+      );
+    });
+
+    it('그 밖의 실패는 호출한 곳의 실패 문구를 돌려준다', () => {
+      const error = new ApiError({ status: 500, code: '500', message: '', timestamp: '' });
+
+      expect(BookmarkFolderUtil.resolveNameSaveErrorMessage(error, '실패')).toBe('실패');
+      expect(BookmarkFolderUtil.resolveNameSaveErrorMessage(new Error('x'), '실패')).toBe('실패');
     });
   });
 });

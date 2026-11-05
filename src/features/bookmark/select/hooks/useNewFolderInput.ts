@@ -60,7 +60,12 @@ export function useNewFolderInput({ onCreated, onCancel }: UseNewFolderInputPara
         return;
       }
 
-      toast.error(TEXTS.messages.error.folderCreateFailedFull);
+      toast.error(
+        BookmarkFolderUtil.resolveNameSaveErrorMessage(
+          error,
+          TEXTS.messages.error.folderCreateFailedFull
+        )
+      );
     } finally {
       submittingRef.current = false;
     }

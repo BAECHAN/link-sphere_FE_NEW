@@ -27,6 +27,8 @@ export const SERVER_ERROR_CODE = {
   // URL 코드 분리 이전 BE가 보내던 코드 - 배포 순서가 어긋난 경우에 대비해 같은 안내로 받는다
   INVALID_INPUT: 'INVALID_INPUT',
   FOLDER_NOT_FOUND: 'FOLDER_NOT_FOUND',
+  // 같은 회원에게 같은 이름의 폴더가 이미 있음(BE DuplicateFolderNameException, 409)
+  DUPLICATE_FOLDER_NAME: 'DUPLICATE_FOLDER_NAME',
   POST_NOT_FOUND: 'POST_NOT_FOUND',
   FORBIDDEN: 'FORBIDDEN',
   // 키가 다른데 같은 회원이 1시간 안에 같은 URL을 또 등록(BE DuplicatePostException, 409)

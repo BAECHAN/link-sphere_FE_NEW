@@ -481,6 +481,8 @@ export const TEXTS = {
       // 글을 지워 댓글이 함께 사라진 경우다. 마지막 경우엔 "삭제했어요"가 사실이 아니라 이 문구를 쓴다(docs/POST.md "삭제")
       postAlreadyDeleted: '이미 삭제된 포스트예요.',
       commentAlreadyDeleted: '이미 삭제된 댓글이에요.',
+      // 폴더 삭제가 404로 끝났을 때 - 다른 탭·기기에서 이미 지운 경우다(docs/BOOKMARK.md §5)
+      folderAlreadyDeleted: '이미 삭제된 폴더예요.',
     },
     warning: {
       memberDeleteConfirm: '정말 이 회원을 삭제할까요? 삭제된 데이터는 복구할 수 없어요.',
@@ -649,6 +651,7 @@ export const TEXTS = {
       folderUnpinFailed: '폴더 고정을 해제하지 못했어요.',
       folderCreateFailed: '폴더 생성에 실패했어요.',
       folderCreateFailedFull: '폴더 생성에 실패했어요.',
+      folderNameDuplicate: '이미 같은 이름의 폴더가 있어요.',
       bookmarkSaveFailed: '저장에 실패했어요.',
       bookmarkRemoveFailed: '북마크 제거에 실패했어요.',
       bookmarkRemoveFromFolderFailed: '폴더에서 제거하지 못했어요.',

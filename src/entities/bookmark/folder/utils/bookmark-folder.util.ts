@@ -2,7 +2,9 @@ import dayjs from 'dayjs';
 import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { RECENT_BOOKMARK_FOLDER_COUNT } from '@/entities/bookmark/folder/config/bookmark-folder.const';
 import { BOOKMARK_FOLDER_NAME_MAX_LENGTH } from '@/entities/bookmark/folder/config/bookmark-folder.contract';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { TEXTS } from '@/shared/config/texts';
+import { ApiError } from '@/shared/types/common.type';
 
 // "최근 저장한 폴더"는 최대 RECENT_BOOKMARK_FOLDER_COUNT(3)개만 보여준다. 폴더
 // 총수가 정확히 그 값과 같으면(= 저장 이력 있는 폴더가 전부 3개뿐) 최근 구획과
@@ -54,6 +56,15 @@ export class BookmarkFolderUtil {
     }
 
     return TEXTS.validation.folderNameTooLong(BOOKMARK_FOLDER_NAME_MAX_LENGTH, length);
+  }
+
+  // 이름 저장 실패 문구 — 같은 이름 폴더가 있으면(409) 그 이유를 알린다. 폴더 만들기 2곳과 이름 바꾸기가 같이 쓴다.
+  static resolveNameSaveErrorMessage(error: unknown, failedMessage: string): string {
+    if (error instanceof ApiError && error.code === SERVER_ERROR_CODE.DUPLICATE_FOLDER_NAME) {
+      return TEXTS.messages.error.folderNameDuplicate;
+    }
+
+    return failedMessage;
   }
 
   // pinnedAt은 lastUsedAt처럼 BE가 null로 보낸다(JsonInclude.ALWAYS). 옛 캐시·픽스처엔 키가 없을 수 있어
