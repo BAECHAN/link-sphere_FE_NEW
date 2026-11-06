@@ -102,9 +102,9 @@ test.describe('터치 기기', () => {
     const releaseThumbnail = await holdThumbnail(page);
     const detailModule = watchDetailModule(page);
 
-    await page.goto('/post');
+    // 붙잡아 둔 썸네일은 load 이벤트를 늦출 수 있어 문서 응답까지만 기다린다
+    await page.goto('/post', { waitUntil: 'commit' });
     await expect(feedTitleLink(page)).toBeVisible();
-    await page.waitForLoadState('load');
     await page.waitForTimeout(1500);
 
     expect(detailModule.requested).toBe(false);
