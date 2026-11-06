@@ -197,6 +197,13 @@
 
 ### Fixed
 
+- `shared` 닫힌 모바일 메뉴를 숨기고, 열면 포커스를 옮기며 Esc로 닫히게 함
+  <details><summary>배경·구현</summary>
+
+  닫힌 모바일 메뉴는 화면 밖으로 밀기만 해서 안 보이는 링크와 X가 키보드 이동·읽기 순서에 남았고, 열어도 포커스가 뒤쪽 햄버거에 머물렀으며 Esc로 닫히지 않았다. 닫힌 메뉴에 `invisible`을 주고 `visibility`를 닫힘 트랜지션에 넣어(`transition-[translate,visibility]`) 닫는 동안은 보이다 끝에 숨게 했다. 화면 모습과 여닫는 움직임은 그대로다. 열면 X로 포커스를 옮기고, 닫으면 연 버튼으로 되돌리며(`preventScroll`로 배경 스크롤 유지), Esc로 닫힌다. 메뉴 링크로 이동한 화면이 이미 포커스를 가져갔으면 뺏지 않는다 — 등록 화면 URL 칸의 `autoFocus`가 그 경우이고, 같은 레이아웃 안에서 코드를 이미 받은 화면으로 갈 때만 재현된다(조건을 빼고 e2e 실패를 확인했다). `Button`의 `transition-all`이 메뉴에서 물려받는 `visibility`까지 트랜지션해 열린 직후 X가 아직 hidden이라 `focus()`가 실패했다(`getAnimations()`로 직접 측정). 공용 `Button`은 그대로 두고 이 X만 실제로 바뀌는 속성으로 좁혔다. 한계: 메뉴 안에 Tab을 가두지 않아 메뉴 뒤로 나갈 수 있다(`Dialog` 전환이 필요해 범위 밖). 실제 화면 읽기 프로그램으로는 확인하지 않았다. 계획은 [`docs/plans/2026-11-06-a11y-button-names.md`](docs/plans/2026-11-06-a11y-button-names.md) Phase 1. (`src/widgets/layout/sidebar/ui/Sidebar.tsx`, `src/widgets/layout/sidebar/ui/Sidebar.test.tsx`, `e2e/sidebar-drawer-focus.mobile.spec.ts`(신규), `e2e/post-detail-back.mobile.spec.ts`, `docs/TESTING.md`, `docs/POST-DETAIL-BACK-NAVIGATION.md`, `.claude/skills/motion-ux/SKILL.md`, [PR #558](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/558))
+
+  </details>
+
 - `shared` 필터 칩의 켜짐 상태를 화면 읽기 프로그램에 전달함
   <details><summary>배경·구현</summary>
 

@@ -37,6 +37,51 @@ describe('Sidebar — 모바일 드로어 배경 스크롤 잠금', () => {
   });
 });
 
+// jsdom에는 CSS가 없어 실제 숨김·트랜지션은 e2e/sidebar-drawer-focus.mobile.spec.ts가 본다. 여기서는 클래스만 본다.
+describe('Sidebar — 모바일 드로어 숨김과 포커스', () => {
+  // 두 번째 aside가 모바일 드로어다
+  function getDrawer() {
+    return screen.getAllByRole('complementary', { hidden: true })[1]!;
+  }
+
+  function getDrawerClose() {
+    return within(getDrawer()).getByRole('button', { name: TEXTS.nav.toggleMenu, hidden: true });
+  }
+
+  it('닫혀 있으면 숨기고, 닫히는 동안 보이도록 visibility를 트랜지션에 넣는다', () => {
+    renderWithProviders(<Sidebar />, { wrapperOptions: { initialEntries: ['/post'] } });
+
+    expect(getDrawer()).toHaveClass(
+      '-translate-x-full',
+      'invisible',
+      'transition-[translate,visibility]'
+    );
+    expect(getDrawerClose()).not.toHaveFocus();
+  });
+
+  it('열리면 바로 보이도록 visibility를 트랜지션에서 빼고 X로 포커스를 옮긴다', () => {
+    renderWithProviders(<Sidebar />, {
+      wrapperOptions: { initialEntries: [{ pathname: '/post', state: { sidebarOpen: true } }] },
+    });
+
+    expect(getDrawer()).toHaveClass('translate-x-0', 'visible', 'transition-[translate]');
+    expect(getDrawerClose()).toHaveFocus();
+  });
+
+  it('Esc를 누르면 닫힌다', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Sidebar />, {
+      wrapperOptions: {
+        initialEntries: ['/post', { pathname: '/post', state: { sidebarOpen: true } }],
+      },
+    });
+
+    await user.keyboard('{Escape}');
+
+    expect(getDrawer()).toHaveClass('invisible');
+  });
+});
+
 describe('Sidebar — 데스크톱 햄버거 더블클릭', () => {
   beforeEach(() => {
     useSidebarStore.setState({ isOpen: false });

@@ -128,6 +128,12 @@ Content를 각자 Presence로 감싸 각자의 애니메이션이 끝날 때 내
 `transition-[translate,...]`를 쓴다. 게시글 카드 hover 들림이 이 문제로 처음부터 애니메이션 없이
 바로 바뀌었다(`PostCard.tsx`, 2026-10-15 수정).
 
+**부모의 `visibility`를 바꾸면 자식의 `transition-all`도 함께 돈다.** `visibility`는 상속되므로, 부모에 `invisible`을
+주고 빼면 `Button`처럼 `transition-all`을 가진 자식이 물려받은 값까지 자기 트랜지션으로 바꾼다. 진행률 0에서는 아직
+`hidden`이라 여는 순간 부른 `focus()`가 실패한다. 부모의 트랜지션에서 `visibility`를 빼도 소용없다 — 모바일 메뉴의 X가
+이 때문에 포커스를 못 받았다(2026-11-06, `getAnimations()`로 직접 측정). 그 자식의 트랜지션을 실제로 바뀌는 속성으로
+좁힌다(`Sidebar.tsx`). 회귀는 `e2e/sidebar-drawer-focus.mobile.spec.ts`가 잡는다.
+
 ## 실측 현황 (직접 측정, 2026-11-03)
 
 `src`의 `.ts`·`.tsx` 362개(테스트·스토리 제외)에서 앞뒤가 클래스 경계인 토큰만 셌다. 2026-10-15 표

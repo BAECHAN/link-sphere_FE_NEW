@@ -172,7 +172,8 @@ range가 하나 더 있었다 — `Sidebar`가 **모바일 슬라이드 드로�
 먼저 스코프를 좁힌 뒤 그 안에서 `getByRole`로 찾는 방식으로 고쳤다
 ([`e2e/post-detail-back.mobile.spec.ts`](../e2e/post-detail-back.mobile.spec.ts)).
 같은 함정은 `Sidebar`나 `BottomTabBar`가 겹치는 다른 e2e를 작성할 때도 재현될 수
-있다 — role/text만으로 유일성을 가정하지 말 것.
+있다 — role/text만으로 유일성을 가정하지 말 것. 2026-11-06부터 닫힌 드로어는 `invisible`이라
+`:visible`과 `getByRole`이 걸러 낸다(`docs/plans/2026-11-06-a11y-button-names.md`). 열린 드로어와는 여전히 겹친다.
 
 sticky를 걷어내는 과정 자체의 시행착오(0/12/16/24px 후보 비교, 원형 오버레이·자동
 숨김/표시 대안 검토)는 이 기능의 "왜"에 속해 `docs/DECISIONS.md`에 이미 남겨뒀다 —
