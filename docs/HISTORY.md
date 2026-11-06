@@ -1,3 +1,6 @@
+### 2026-11-06 (FE)
+- usePostCard 뮤테이션 커버리지 강화를 위한 테스트 코드 보완 ([#573](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/573))
+
 ### 2026-11-06 (BE)
 - 쿼리 파싱 로직 개선을 통한 검색 정확도 향상
 로그:
