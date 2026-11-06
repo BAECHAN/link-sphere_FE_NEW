@@ -116,6 +116,42 @@ describe('PostListSearch — 조건 N개 적용 중 카운트', () => {
   });
 });
 
+// 켜짐을 색으로만 보여 주면 화면 읽기 프로그램 사용자는 지금 무엇이 걸려 있는지 알 수 없다.
+describe('PostListSearch — 칩 켜짐 상태 전달', () => {
+  it('범위 칩을 켜면 눌림 상태가 된다', async () => {
+    const user = userEvent.setup();
+    renderSearch('/');
+
+    await user.click(screen.getByRole('button', { name: TEXTS.buttons.likedOnly, pressed: false }));
+
+    expect(
+      await screen.findByRole('button', { name: TEXTS.buttons.likedOnly, pressed: true })
+    ).toBeInTheDocument();
+  });
+
+  it('켜진 범위 칩을 끄면 눌림 상태가 풀린다', async () => {
+    const user = userEvent.setup();
+    renderSearch('/?filter=isLiked');
+
+    await user.click(screen.getByRole('button', { name: TEXTS.buttons.likedOnly, pressed: true }));
+
+    expect(
+      await screen.findByRole('button', { name: TEXTS.buttons.likedOnly, pressed: false })
+    ).toBeInTheDocument();
+  });
+
+  it('카테고리 칩도 눌림 상태를 전달한다', async () => {
+    const user = userEvent.setup();
+    renderSearch('/');
+
+    await user.click(await screen.findByRole('button', { name: '@백엔드', pressed: false }));
+
+    expect(
+      await screen.findByRole('button', { name: '@백엔드', pressed: true })
+    ).toBeInTheDocument();
+  });
+});
+
 describe('PostListSearch — 외부 변경 동기화', () => {
   it('뒤로가기로 URL의 범위 필터가 바뀌면 칩도 따라간다', async () => {
     const user = userEvent.setup();
