@@ -8,6 +8,12 @@
 
 - 계획에 없던 변경: 문서 동기화 — `docs/TESTING.md`의 e2e 표에 댓글 링크 새 단언 설명을 더함
 
+> #566 · 2026-11-06 대조(Phase 2) · 이탈 1 · 미구현 1 — 판정 근거(파일:줄)는 PR 본문 "계획 대비 구현"
+
+- 이탈(인용이 틀린 말이 됨): 코드 주석의 `피드`는 고치지 않기로 했지만 `post.util.ts` 주석 한 줄은 고쳤다. 화면 문구 `피드에서 확인하기`를 그대로 인용해 값이 바뀌면 틀린 말이 되고, "옛 문구 grep 0건"에도 걸린다. 일반 명사로 쓴 다른 주석의 `피드`는 그대로다
+- 미구현 → 보완함: "옛 문구 grep 0건" — 대조에서 찾은 옛 메뉴 이름 `Feed`와 옛 안내 문구 인용을 `docs/POST-DETAIL-BACK-NAVIGATION.md`, `docs/POST.md`, `docs/TESTING.md`, e2e 테스트 제목·주석, `PostDetailPage.tsx` 주석에서 고쳤다. 첫 grep이 따옴표로 감싼 형태만 찾아 놓쳤다
+- 계획에 없던 변경: 문서 동기화 — `docs/POST-DETAIL-BACK-NAVIGATION.md`의 `마지막 검토` 날짜, `texts-conventions` skill의 TEXTS 트리에 `post.list.*` 줄 추가
+
 <!-- plan-result:end -->
 
 > 숫자로만 읽히는 댓글 링크와 영어 `alt`를 고치고, 화면의 영어 글자를 한국어로 바꾼다. 같은 일이 다시 생기지 않게 린트도 넓힌다.

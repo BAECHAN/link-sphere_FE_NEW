@@ -8,7 +8,7 @@
 > 라벨("목록으로"/"뒤로가기")이 유입 경로에 따라 어떻게 정해지는지 알고, 새 유입 경로를
 > 추가하거나 버튼의 노출·동작을 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-10-27
+> **마지막 검토**: 2026-11-06
 
 게시글 상세(`/post/:id`)에서 돌아가는 수단은 화면 크기에 따라 아예 다릅니다 — 데스크톱은
 버튼이 있고, 모바일은 버튼이 없는 대신 하단 탭바를 씁니다. 버튼이 있을 때도 라벨은
@@ -31,7 +31,7 @@ sticky 고정 + 유입 경로별 라벨", "상세 돌아가기 버튼: 모바일
 표지판을 세우는 자리도 산 크기에 따라 다르다. 데스크톱(큰 산)은 표지판을 등산로 시작
 지점에 박아두고, 등산객이 위로 올라가면(스크롤하면) 표지판도 같이 시야에서 멀어진다
 (sticky 아님). 모바일(작은 동네 뒷산)은 표지판을 따로 세우지 않는다 — 어차피 산
-전체에 늘 켜져 있는 안내소(하단 탭바의 Feed)가 있어서, 거기로 가면 된다.
+전체에 늘 켜져 있는 안내소(하단 탭바의 홈)가 있어서, 거기로 가면 된다.
 
 ```mermaid
 flowchart TD
@@ -43,7 +43,7 @@ flowchart TD
   E -->|"아니오"| F[["라벨: 뒤로가기<br/>(북마크·내 댓글 등)"]]
   D --> G{"뷰포트 ≥ md(768px)?"}
   F --> G
-  G -->|"아니오(모바일)"| H["버튼 렌더링 안 함<br/>BottomTabBar의 Feed 탭이 대체"]
+  G -->|"아니오(모바일)"| H["버튼 렌더링 안 함<br/>BottomTabBar의 홈 탭이 대체"]
   G -->|"예(데스크톱)"| I["버튼 렌더링(비sticky)<br/>스크롤하면 함께 화면 밖으로"]
   I --> J["클릭 → useGoBack"]
   J --> K{"location.key === 'default'?"}
@@ -90,7 +90,7 @@ Navbar와 버튼 바 두 줄이 스크롤 내내 함께 고정돼 모바일 화�
 | [`shared/hooks/useGoBack.ts`](../src/shared/hooks/useGoBack.ts)                                                 | 실제 이동 동작(`navigate(-1)` vs `replace`) — 라벨과 완전히 분리                                                                                                   |
 | [`shared/config/texts.ts`](../src/shared/config/texts.ts)                                                       | 라벨 문자열 두 개(`post.detail.backToList`, 공용 `buttons.back`)                                                                                                   |
 | [`widgets/post/post-card/ui/PostCard.tsx`](../src/widgets/post/post-card/ui/PostCard.tsx)                       | `backSource` prop을 `<Link state>`로 실어 보내는 발신지                                                                                                            |
-| [`widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx`](../src/widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx) | 모바일에서 버튼을 대신하는 상시 노출 수단(Feed 탭)                                                                                                                 |
+| [`widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx`](../src/widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx) | 모바일에서 버튼을 대신하는 상시 노출 수단(홈 탭)                                                                                                                   |
 
 라벨(무엇이라 부를지)과 동작(어디로 갈지)은 의도적으로 분리돼 있다 —
 `resolveBackLabel`은 `location`만 읽고, `useGoBack`은 같은 `location.key` 조건을
@@ -146,7 +146,7 @@ Navbar와 버튼 바 두 줄이 스크롤 내내 함께 고정돼 모바일 화�
 | 새 유입 경로에 전용 라벨 추가        | [`PostCard.tsx:46`](../src/widgets/post/post-card/ui/PostCard.tsx#L46), [`usePostDetail.ts:9-35`](../src/pages/post/hooks/usePostDetail.ts#L9-L35) | `backSource` 유니온에 새 값 추가 → 그 목록을 렌더하는 페이지의 render 함수에서 `<PostCard backSource="새값" />` 지정 → `resolveBackLabel`에 분기·`texts.ts`에 라벨 키 추가 |
 | 돌아가기 동작(목적지) 자체를 바꾸기  | [`useGoBack.ts`](../src/shared/hooks/useGoBack.ts)                                                                                                 | 라벨 로직과 무관 — 이 훅만 수정하면 된다                                                                                                                                   |
 | 모바일에서도 버튼을 다시 보이게 하기 | [`PostDetailPage.tsx`](../src/pages/post/PostDetailPage.tsx)의 `PostDetailContent` 돌아가기 `Button`                                               | `hidden md:inline-flex`를 제거하기 전에 §4의 트레이드오프(124px 상시 고정 vs standalone PWA 위치 복원)를 먼저 재검토 — `docs/DECISIONS.md` 참고                            |
-| e2e에서 이 버튼/Feed 탭을 다시 찾기  | [`e2e/post-detail-back.spec.ts`](../e2e/post-detail-back.spec.ts), [`e2e/post-detail-back.mobile.spec.ts`](../e2e/post-detail-back.mobile.spec.ts) | §10 "시행착오" 참고 — `role`만으로 찾으면 Sidebar의 숨은 사본과 strict mode 위반이 난다                                                                                    |
+| e2e에서 이 버튼/홈 탭을 다시 찾기    | [`e2e/post-detail-back.spec.ts`](../e2e/post-detail-back.spec.ts), [`e2e/post-detail-back.mobile.spec.ts`](../e2e/post-detail-back.mobile.spec.ts) | §10 "시행착오" 참고 — `role`만으로 찾으면 Sidebar의 숨은 사본과 strict mode 위반이 난다                                                                                    |
 
 ## 9. 검증 결과
 
@@ -160,7 +160,7 @@ Navbar와 버튼 바 두 줄이 스크롤 내내 함께 고정돼 모바일 화�
 
 ## 10. 시행착오
 
-**e2e에서 "Feed" 링크를 role만으로 찾으면 strict mode 위반이 난다.** 모바일 뷰포트에서
+**e2e에서 "Feed" 링크를 role만으로 찾으면 strict mode 위반이 난다.** (`Feed`는 당시 메뉴 이름이고 2026-11-06부터 `홈`이다.) 모바일 뷰포트에서
 `page.getByRole('link', { name: 'Feed' })`를 호출하면 2개가 잡힌다 — 처음엔 "데스크톱
 `Sidebar`(`aside.hidden md:flex`)의 사본이 `display:none`이라 그렇겠지" 하고
 `a:visible`로 걸러봤지만 여전히 2개였다. 실제로 `getComputedStyle`로 하나씩 찍어보니
@@ -182,7 +182,7 @@ sticky를 걷어내는 과정 자체의 시행착오(0/12/16/24px 후보 비교,
 ## 11. 남은 것
 
 - **standalone PWA(홈 화면 추가) 모바일 사용자**는 정확한 위치 복귀 대신 `BottomTabBar`의
-  Feed 탭(목록 최상단)으로만 돌아간다 — 의도적으로 받아들인 트레이드오프지만, 이
+  홈 탭(목록 최상단)으로만 돌아간다 — 의도적으로 받아들인 트레이드오프지만, 이
   사용자층 비중이 커지면 재검토 대상이다.
 - `PostCard.tsx:187,345`(제목 링크·댓글 수 버튼)이 `isDetail`일 때도 자기 자신
   (`/post/{id}`)을 링크해 상세에서 제목을 눌러도 히스토리가 쌓이는 기존 버그는 이번

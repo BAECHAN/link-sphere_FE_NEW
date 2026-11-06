@@ -45,10 +45,10 @@ test.describe('저장하지 않은 변경 가드', () => {
     return page.getByRole('alertdialog', { name: TEXTS.unsavedChanges.title });
   }
 
-  test('PUSH 이동(사이드바 Feed) 시 모달이 뜨고 "계속 작성"이면 머문다', async ({ page }) => {
+  test('PUSH 이동(사이드바 홈) 시 모달이 뜨고 "계속 작성"이면 머문다', async ({ page }) => {
     await openDirtyDetail(page);
 
-    // Feed는 requiresAuth가 없어 순수 <Link>(PUSH)로 동작하고 pathname이 실제로 바뀐다 —
+    // 홈은 requiresAuth가 없어 순수 <Link>(PUSH)로 동작하고 pathname이 실제로 바뀐다 —
     // '목록으로' 버튼은 useGoBack이 navigate(-1)(POP)이라 test 3과 중복돼 못 쓴다.
     const feedLink = page.getByRole('link', { name: TEXTS.nav.feed });
     await expect(feedLink).toHaveCount(1);

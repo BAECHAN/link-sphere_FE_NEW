@@ -55,6 +55,13 @@
 
 ### Changed
 
+- `shared` 화면의 영어 글자를 한국어로 바꾸고 JSX에 직접 적은 글자를 린트로 막음
+  <details><summary>배경·구현</summary>
+
+  한국어 화면에서 메뉴(`Feed`·`Submit`·`Bookmark`)와 글 목록 머리(`Recent Links`·`Submit Link`)만 영어였다. 메뉴는 `홈`·`링크 공유`·`북마크`, 목록 제목은 `최근 링크`, 버튼은 `링크 공유`로 바꿨다. 글 목록을 가리키는 안내 문구 4곳(`피드로 이동`, `피드에서 확인하기` 등)도 `홈`으로 통일해 집 아이콘과 오류 화면의 `홈으로 이동`과 같은 말이 된다. 코드 이름(`nav.feed`, `goToFeed`, `checkFeed`, `backSource: 'feed'`)은 그대로다. `no-hardcoded-hangul`은 한글만 봐서 목록 머리의 영어가 첫 구현부터 통과했으므로, JSX 요소 사이에 직접 적은 글자를 언어와 상관없이 막는 `custom-i18n/no-literal-jsx-text`를 더했다. `texts.ts` 안의 값은 이 규칙이 못 잡는다. (`src/shared/config/texts.ts`, `src/pages/post/index.tsx`, `scripts/lib/no-literal-jsx-text-rule.js`(신규), `eslint.config.js`, `docs/POST.md`, `docs/POST-DETAIL-BACK-NAVIGATION.md`, `docs/TESTING.md`, `docs/FE-ARCHITECTURE.md`, `.claude/CLAUDE.md`, `.claude/skills/texts-conventions/SKILL.md`, [PR #566](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/566))
+
+  </details>
+
 - `shared` 피드·북마크·내 댓글 목록을 쪽 번호 대신 cursor로 이어 읽음
   <details><summary>배경·구현</summary>
 

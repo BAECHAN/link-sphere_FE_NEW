@@ -26,7 +26,7 @@ function PostDetailContent() {
       <div className="flex flex-col md:gap-4">
         {/* 모바일에서는 아예 렌더링하지 않는다 - sticky로 상시 고정해봤으나(PR #100)
             Navbar와 함께 124px를 영구 소비해 답답하다는 피드백을 받았다. 모바일은
-            BottomTabBar가 항상 떠 있어 Feed 탭으로 돌아갈 수단 자체는 있고, 일반
+            BottomTabBar가 항상 떠 있어 홈 탭으로 돌아갈 수단 자체는 있고, 일반
             브라우저 탭이면 OS/브라우저 뒤로가기가 navigate(-1)과 동등하게 동작한다
             (docs/DECISIONS.md 2026-09-14 "모바일 돌아가기 버튼 제거" 참고). 데스크톱은
             Navbar가 sticky라 이 버튼까지 겹쳐 쌓을 이유가 없어 sticky를 걷어냈다. */}
