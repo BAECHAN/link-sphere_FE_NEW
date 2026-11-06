@@ -25,6 +25,9 @@ export function FilterChip({
       id={id}
       name={name}
       onClick={onClick}
+      // 켜짐이 색으로만 보이면 화면 읽기 프로그램에 전달되지 않는다.
+      // https://www.w3.org/WAI/ARIA/apg/patterns/button/
+      aria-pressed={isActive}
       className={cn(
         // 2026-09-06, 사용자 확인 후 44px(모바일 터치 타깃) → 28px(데스크톱과 동일)로
         // 되돌림 — 시각적 일관성 우선 결정, docs/DECISIONS.md 참고

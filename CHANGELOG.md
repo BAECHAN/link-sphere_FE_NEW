@@ -197,6 +197,13 @@
 
 ### Fixed
 
+- `shared` 필터 칩의 켜짐 상태를 화면 읽기 프로그램에 전달함
+  <details><summary>배경·구현</summary>
+
+  피드 필터 카드의 칩은 켜짐을 배경색으로만 보여 줘, 화면 읽기 프로그램 사용자는 어떤 조건이 걸려 있는지 알 수 없었다(소스 전체에 `aria-pressed` 0건). 이제 `FilterChip`이 `aria-pressed`를 전달한다. [WAI APG Button 패턴](https://www.w3.org/WAI/ARIA/apg/patterns/button/)은 _"버튼이 토글 버튼임을 보조 기술에 알리려면 aria-pressed 값을 지정한다"_ (번역)고 안내한다. 화면은 그대로다. 계획은 `docs/plans/2026-11-06-ui-term-renames.md` Phase 2. (`src/shared/ui/elements/FilterChip.tsx`, `src/shared/ui/elements/FilterChip.stories.tsx`, `src/widgets/post/post-list/ui/PostListSearch.test.tsx`, [PR #553](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/553))
+
+  </details>
+
 - `shared` 쓰기 요청의 응답을 못 받으면 한 번 더 확인하고 모르면 사실대로 안내함
   <details><summary>배경·구현</summary>
 
