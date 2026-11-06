@@ -1,3 +1,8 @@
+### 2026-11-06 (BE)
+- 쿼리 파싱 로직 개선을 통한 검색 정확도 향상
+로그:
+- fix(lambda): 쿼리의 +를 공백으로 읽어 두 단어 검색 누락을 고침 ([#177](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/177))
+
 ### 2026-11-06 (FE)
 - useBookmarkPage 커밋 관련 예외 케이스 커버를 위한 테스트 코드 보강
 
