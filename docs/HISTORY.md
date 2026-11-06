@@ -1,3 +1,6 @@
+### 2026-11-06 (FE)
+- 코드 블록 내 이미지 요소를 이미지 뷰어 대상 및 인덱스 카운트에서 제외하여 뷰어 기능 최적화 ([#571](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/571))
+
 ### 2026-11-06 (BE)
 - 인프라 문서화: 스냅샷 워밍업의 대상 범위 및 3회 수행에 대한 기술적 근거 구체화 ([#175](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/175))
 
