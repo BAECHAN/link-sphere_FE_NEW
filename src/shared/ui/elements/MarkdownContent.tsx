@@ -88,6 +88,11 @@ function renderInlineLinks(
   const parts = text.split(URL_PATTERN);
   const nodes: React.ReactNode[] = [];
 
+  // 버튼 이름의 순번과 확대 창의 시작 위치를 맞춘다. 같은 주소가 두 번 있으면 첫 번째 자리를 쓴다
+  function imageIndexOf(part: string) {
+    return Math.max(imageUrls.indexOf(part), 0);
+  }
+
   // renderInlineLinks는 훅을 쓸 수 없는 일반 함수라 히스토리 오버레이를
   // NavigationService로 직접 연다
   function openImageViewerFor(part: string) {
@@ -95,8 +100,7 @@ function renderInlineLinks(
       src: url,
       alt: TEXTS.ariaLabels.attachmentImageAt(index + 1),
     }));
-    const startIndex = Math.max(imageUrls.indexOf(part), 0);
-    useImageViewerStore.getState().setImages(images, startIndex);
+    useImageViewerStore.getState().setImages(images, imageIndexOf(part));
     NavigationService.navigate(`${window.location.pathname}${window.location.search}`, {
       state: { imageViewerOpen: true },
       preventScrollReset: true,
@@ -123,7 +127,7 @@ function renderInlineLinks(
             type="button"
             onClick={() => openImageViewerFor(part)}
             className="block"
-            aria-label={TEXTS.ariaLabels.imageZoom}
+            aria-label={TEXTS.ariaLabels.imageZoomAt(imageIndexOf(part) + 1)}
           >
             {hasReservedSquare ? (
               <span className="my-2 flex aspect-square w-60 max-w-full items-center justify-center overflow-hidden rounded-md bg-muted">
