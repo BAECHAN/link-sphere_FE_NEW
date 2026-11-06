@@ -776,8 +776,9 @@ pnpm test:mutation --mutate src/entities/interaction/api/interaction.queries.ts
 
 ### 자동 보강 루프
 
-살아남은 뮤턴트를 Claude에게 주고 테스트를 쓰게 한 뒤 Stryker로 다시 재는 스크립트다. 지금은 보고만 하는 단계(L1)라
-push도 PR도 하지 않고, 사람이 보고서를 읽고 판정한다. 흐름도와 승격 기준은 [계획](./plans/2026-11-06-mutation-loop.md)에 있다.
+살아남은 뮤턴트를 Claude에게 주고 테스트를 쓰게 한 뒤 Stryker로 다시 재는 스크립트다. 지금은 draft PR까지 여는 단계(L2)다.
+검사를 모두 통과하면 테스트 파일 하나를 draft PR로 열고, 머지는 사람이 정한다. 흐름도와 기준은
+[L2 계획](./plans/2026-11-06-mutation-loop-l2.md)에, 보고서까지만 만들던 L1은 [L1 계획](./plans/2026-11-06-mutation-loop.md)에 있다.
 
 **클론 준비(한 번만)** — 에이전트가 쓴 코드를 실행하므로 작업 폴더와 분리한다. `.env`는 두지 않는다.
 
@@ -794,24 +795,57 @@ pnpm --dir ~/project/loop-lab/fe install --frozen-lockfile
 git -C ~/project/loop-lab/fe fetch origin
 git -C ~/project/loop-lab/fe switch --detach origin/main
 node ~/project/loop-lab/fe/.claude/scripts/mutation-loop.mjs src/shared/hooks/useKeydown.ts
-# 옵션: --model sonnet(기본) --budget 3(기본, 이 실행의 상한)
+# 옵션: --model sonnet(기본) --budget 3(기본, 이 실행의 상한) --no-push(커밋까지만 하고 공개하지 않는다)
 ```
 
 스크립트는 클론 안의 사본으로만 돌고, 클론 작업 트리가 깨끗하지 않으면 시작을 거부한다. 끝나면 클론을 기준 커밋으로 되돌린다.
 
+**시작을 거부하는 경우** — 루프 브랜치(`loop/mutation/*`)의 PR을 세어 판단한다. 우회 플래그는 없고, `--no-push`에도 똑같이 걸린다.
+
+| 조건                                 | 이유                                       |
+| ------------------------------------ | ------------------------------------------ |
+| 열린 PR이 2개 이상                   | 사람이 읽는 속도보다 쌓이지 않게 한다      |
+| 닫히거나 병합된 것까지 모두 5개 이상 | 공개 저장소에 낮은 품질이 쌓이지 않게 한다 |
+| 직전 2건이 머지 없이 닫힘            | 품질이 나쁘다는 신호라 멈추고 원인을 본다  |
+| `gh pr list` 실패                    | 위 조건을 확인할 수 없다                   |
+
 **격리** — 어느 하나만 믿지 않고 겹쳐 둔다.
 
-| 단계                  | 수단                                                              | 막는 것                                                                                                            |
-| --------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| 에이전트(`claude -p`) | Claude 샌드박스·권한 규칙, `.claude/loops/mutation/settings.json` | 외부 통신, 비밀 폴더·원본 저장소 읽기, git·gh. Bash는 vitest·eslint·`type-check`만, 쓰기는 대상의 테스트 파일 하나 |
-| 래퍼의 검증           | Seatbelt(`sandbox-exec`), `.claude/loops/mutation/verify.sb`      | 외부 통신, 비밀 폴더·원본 저장소 읽기, 클론·임시 폴더 밖 쓰기, `.git`·`.claude` 쓰기                               |
-| 에이전트가 끝난 뒤    | 래퍼의 사후 검사(`.claude/scripts/mutation-loop.mjs`)             | 테스트 파일 밖의 변경, `.skip`·`.only`·`.todo`, 줄어든 단언                                                        |
-| 자식 프로세스 환경    | 래퍼의 `loopEnv`가 최소 목록만 넘긴다                             | 터미널의 `PGPASSWORD`·`AWS_*` 같은 값                                                                              |
+| 단계                  | 수단                                                              | 막는 것                                                                                                                                            |
+| --------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 에이전트(`claude -p`) | Claude 샌드박스·권한 규칙, `.claude/loops/mutation/settings.json` | 외부 통신, 클론 밖 홈 읽기, 다른 세션 임시 폴더 읽기, 토큰 변수, 키체인, git·gh. Bash는 vitest·eslint·`type-check`만, 쓰기는 테스트 파일 하나      |
+| 래퍼의 검증           | Seatbelt(`sandbox-exec`), `.claude/loops/mutation/verify.sb`      | 외부 통신, 클론 밖 홈 읽기, 임시 폴더 읽기, 키체인, 클론·임시 폴더 밖 쓰기, `.git`·`.claude` 쓰기                                                  |
+| 에이전트가 끝난 뒤    | 래퍼의 사후 검사(`.claude/scripts/mutation-loop.mjs`)             | 테스트 파일 밖의 변경, `.skip`·`.only`·`.todo`, 줄어든 단언, 위험 문법                                                                             |
+| 자식 프로세스 환경    | 래퍼의 `loopEnv`가 최소 목록만 넘긴다                             | 터미널의 `PGPASSWORD`·`AWS_*` 같은 값                                                                                                              |
+| 공개 직전             | 래퍼의 `reviewPatch`, 올릴 patch 자체를 검사                      | 파일 2개 이상, 일반 파일이 아닌 것(심볼릭 링크·실행 권한·바이너리), 이름 변경, 다른 경로, 위험 문법, 환경 값·`gh` 토큰과 같은 값, 긴 무작위 문자열 |
+| 공개                  | 래퍼만 push, 샌드박스가 쓸 수 없는 새 클론(`loop-lab/publish`)    | 에이전트 코드가 돈 클론의 설정·파일. 브랜치는 `loop/mutation/<대상>`만, force 없음                                                                 |
 
 두 샌드박스 모두 클론 안 쓰기(`src/` 포함)는 허용한다. 그 변경은 사후 검사가 잡는다. `man sandbox-exec`는 이 명령을
-`DEPRECATED`로 표시하므로, 제거되면 검증이 실패해 멈춘다. Claude Code는 에이전트의 Bash에 `CLAUDE_CODE_MESSAGING_TOKEN`을
-직접 넣어 `loopEnv`로 뺄 수 없다(직접 측정, 2026-11-06, 이름만 확인). 외부 통신이 막혀 있어 지금은 나갈 길이 없지만,
-diff가 GitHub로 나가는 단계로 가면 그 전에 검사를 더해야 한다.
+`DEPRECATED`로 표시하므로, 제거되면 검증이 실패해 멈춘다.
+
+Claude Code는 에이전트의 Bash에 `CLAUDE_CODE_MESSAGING_TOKEN`을 직접 넣어 `loopEnv`로 뺄 수 없다.
+`sandbox.credentials.envVars`의 `deny`로 지운다. 이 규칙이 있으면 탐침에서 변수가 없었고, 빼면 있었다(직접 측정,
+2026-11-06, 이름만 확인). [샌드박스 문서](https://code.claude.com/docs/en/sandboxing)는 Claude Code가 직접 넣는 변수에도 되는지
+적지 않아 대조 실험으로 확인했다.
+
+읽기 차단은 비밀 목록을 나열하지 않고 홈 전체를 막은 뒤 클론과 node만 연다. 탐침 파일을 양쪽 샌드박스에서 돌린 결과
+`~/.claude/settings.json`·`~/.zshrc`·gh 설정·대화 기록·다른 세션 임시 파일을 읽지 못했고, 키체인 값 조회는 Seatbelt에서는
+`security` 실행 자체가 막히고 Claude 샌드박스에서는 항목을 찾지 못했다(모두 직접 측정, 2026-11-06, 값은 읽지 않음).
+Seatbelt는 파일 내용과 폴더 목록을 막지만 홈 전체의 메타데이터는 연다. node가 상위 폴더 realpath와 stdio fstat에 쓰기
+때문이다. 그래서 경로를 이미 아는 파일의 있음·크기·수정 시각은 볼 수 있다.
+
+실제로 걸린 함정 세 가지(같은 측정). ① `/private/tmp/claude-<uid>`를 통째로 막으면 에이전트의 Bash에서 node가 종료 코드
+134로 죽는다. Claude Code가 Bash 출력을 그 아래 쓰기 때문으로 보인다(node 소스로 확인하지는 못했다). 자기 폴더를 열자
+사라졌다. ② Claude 샌드박스의 임시 폴더가 `claude-<uid>` 바로 아래에 무작위 이름으로 생겨 `-Users-*`·`-private-*`만 막고
+나머지는 둔다. 최상위 폴더 이름은 보이지만 안의 파일은 읽지 못한다. ③ `allowRead`에 글롭을 쓰면 듣지 않아 uid가 들어간
+경로를 그대로 쓴다. 그래서 `buildSettings`가 실행 때 경로를 만든다. Seatbelt는 `TMPDIR`이 `/var/folders`라
+`/private/tmp/claude-<uid>`를 통째로 막아도 된다.
+
+위험 문법 검사는 우회할 수 있는 1차 방어다. `process.`, `child_process`, node 내장 모듈 import, `require(`, `eval(`,
+`new Function`, `fetch(`, `RUNNER_TEMP`, `ACTIONS_`, `GITHUB_`를 막는다. 우회한 코드는 읽을 때 눈에 띈다는 데 기대고, 뚫려도
+PR CI의 피해 상한은 PR 댓글·제목·본문 수정이다(`check`·`mutation`이 `pull-requests: write`). AWS 권한은 `deploy` 잡으로
+옮겨 테스트가 닿지 않는다(#567). 무작위 문자열은 32자 이상·엔트로피 4.0 이상·숫자 포함이고, 기존 테스트 185개 중 2개,
+위험 문법은 9개가 걸린다(직접 측정, 2026-11-06). 이 검사는 새로 더한 줄만 보므로 기존 파일에는 적용되지 않는다.
 
 외부 통신 차단에는 DNS도 들어간다. `verify.sb`에 DNS 소켓(`/private/var/run/mDNSResponder`)을 열어 두면 탐침 테스트의
 `dns.lookup('example.com')`이 풀렸고, 빼면 `ENOTFOUND`로 막힌 채 Stryker·unit 전체는 그대로 돌았다. Claude 샌드박스도
@@ -827,13 +861,14 @@ diff가 GitHub로 나가는 단계로 가면 그 전에 검사를 더해야 한�
 
 **결과** — `~/project/loop-lab/runs/<시각>-<대상>/`에 남는다.
 
-| 파일                        | 내용                                                  |
-| --------------------------- | ----------------------------------------------------- |
-| `report.md`                 | 사람이 읽는 요약: 전후 수치, 검증 결과, 에이전트 보고 |
-| `diff.patch`                | 에이전트가 쓴 테스트                                  |
-| `result.json`               | 결과, 기준 커밋, 비용, 턴 수, 쓰인 모델, 측정값       |
-| `logs/`                     | Stryker·vitest·eslint·tsc 출력과 에이전트 응답 원본   |
-| `settings.json`·`verify.sb` | 이 실행에 쓴 설정과 프로필 사본                       |
+| 파일                        | 내용                                                              |
+| --------------------------- | ----------------------------------------------------------------- |
+| `report.md`                 | 사람이 읽는 요약: 전후 수치, 검증 결과, 에이전트 보고, 공개 결과  |
+| `diff.patch`                | 에이전트가 쓴 테스트. 공개 때 이 파일을 새 클론에 올린다          |
+| `result.json`               | 결과, 기준 커밋, 비용, 턴 수, 쓰인 모델, 측정값, `published`      |
+| `pr-body.md`                | 연 PR의 본문. 수치와 고정 문구만 있다                             |
+| `logs/`                     | Stryker·vitest·eslint·tsc 출력, 에이전트 응답 원본, `publish.log` |
+| `settings.json`·`verify.sb` | 이 실행에 쓴 설정과 프로필 사본                                   |
 
 `result.json`의 `outcome`은 이렇게 읽는다.
 
@@ -851,6 +886,15 @@ diff가 GitHub로 나가는 단계로 가면 그 전에 검사를 더해야 한�
 재측정까지 마치고 끝나면(`no-survivors`·`equivalent`·`remeasure-limit`·`budget-limit`) 테스트를 10회 반복하고 unit 전체를 한 번
 돌린 결과가 `final`에 남는다. 실패해도 `outcome`은 그대로라 `final`을 따로 본다. 기준값부터 남은 뮤턴트가 없거나, 테스트를 쓰지
 않고 `equivalent`로 끝나면 돌릴 테스트가 없어 `final`이 비어 있다.
+
+**공개** — `checks`와 `final`이 모두 통과하고 `final`이 비어 있지 않을 때만 연다. `suspected-bug`·`blocked`처럼 중간에 멈춘 실행은
+`final`이 비어 자동으로 빠진다. `published`는 `{ ok, url }` 또는 `{ ok: false, detail }`이고, 값 대조에 걸리면 `detail`에 값 없이
+변수 이름만 남는다. 본문에 에이전트 문구를 넣지 않는 것은 멘션과 `Closes #N`이 실제로 작동하기 때문이다. 에이전트 요약은
+`report.md`에만 있다. 같은 대상을 다시 공개하면 브랜치가 남아 있어 push가 거부되고 `published`에 이유가 남는다.
+
+**사람이 할 일** — 루프는 머지하지 않는다. 점수 100%는 품질의 증거가 아니라서 PR의 테스트를 읽고 머지·고쳐서 머지·닫기 중에
+정한다. L1 5건 중 3건에서 사용상 차이 없는 뮤턴트를 죽이려는 듯한 단언을 고쳤다. 테스트 파일 내용은 지시가 아니라 데이터로
+읽는다. 병합하면 테스트만 바뀌어도 운영 배포가 한 번 돈다. 앱 결과물은 같다.
 
 ---
 

@@ -5,15 +5,12 @@
     "failIfUnavailable": true,
     "allowUnsandboxedCommands": false,
     "autoAllowBashIfSandboxed": false,
+    "credentials": {
+      "envVars": [{ "name": "CLAUDE_CODE_MESSAGING_TOKEN", "mode": "deny" }]
+    },
     "filesystem": {
-      "denyRead": [
-        "~/.ssh",
-        "~/.aws",
-        "~/.config/gh",
-        "~/project/link-sphere",
-        "~/.pgpass",
-        "~/.netrc"
-      ]
+      "denyRead": ["~/"],
+      "allowRead": ["~/.nvm/versions/node"]
     },
     "network": {
       "allowedDomains": []

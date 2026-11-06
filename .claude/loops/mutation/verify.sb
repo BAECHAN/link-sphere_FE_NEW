@@ -1,5 +1,5 @@
-; 뮤테이션 루프가 에이전트가 쓴 테스트를 실행할 때 쓰는 Seatbelt 프로필(docs/plans/2026-11-06-mutation-loop.md).
-; 실행: sandbox-exec -f verify.sb -D WORKDIR=<클론> -D HOME=<홈> <명령>
+; 뮤테이션 루프가 에이전트가 쓴 테스트를 실행할 때 쓰는 Seatbelt 프로필(docs/plans/2026-11-06-mutation-loop-l2.md).
+; 실행: sandbox-exec -f verify.sb -D WORKDIR=<클론> -D HOME=<홈> -D CLAUDE_TMP=<claude 임시 폴더> <명령>
 (version 1)
 (allow default)
 
@@ -8,14 +8,25 @@
 (deny network-outbound)
 (allow network-outbound (remote ip "localhost:*"))
 
-; 비밀 파일과 원본 레포(.env 등)를 읽지 못한다.
+; 홈 전체와 다른 세션의 임시 파일을 읽지 못한다. 클론과 node만 연다. 테스트 결과가 공개 저장소로 나가므로
+; 비밀 목록을 나열하지 않고 모두 막는다. 메타데이터는 node가 상위 폴더 realpath와 stdio fstat에 쓴다.
 (deny file-read*
-  (subpath (string-append (param "HOME") "/.ssh"))
-  (subpath (string-append (param "HOME") "/.aws"))
-  (subpath (string-append (param "HOME") "/.config/gh"))
-  (subpath (string-append (param "HOME") "/project/link-sphere"))
-  (literal (string-append (param "HOME") "/.pgpass"))
-  (literal (string-append (param "HOME") "/.netrc")))
+  (subpath (param "HOME"))
+  (subpath (param "CLAUDE_TMP"))
+  (subpath "/Library/Keychains"))
+(allow file-read-metadata
+  (subpath (param "HOME")))
+(allow file-read*
+  (subpath (param "WORKDIR"))
+  (subpath (string-append (param "HOME") "/.nvm/versions/node")))
+
+; 키체인을 못 읽는다. 이 줄이 없으면 security 명령이 항목을 찾았다(직접 측정 2026-11-06, 값은 읽지 않음).
+(deny process-exec
+  (literal "/usr/bin/security"))
+(deny mach-lookup
+  (global-name "com.apple.SecurityServer")
+  (global-name "com.apple.securityd")
+  (global-name "com.apple.securityd.xpc"))
 
 ; 쓰기는 클론과 임시 폴더만.
 (deny file-write*)
