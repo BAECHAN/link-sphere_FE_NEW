@@ -110,7 +110,7 @@ Cognito identity pool 없이 **리소스 기반 정책**(`aws rum put-resource-p
 | ---------------------------- | ------------------------------------ | -------------------------------------------------------------------------------- |
 | 표본 비율 조정(비용 절감 등) | `index.html:39`(`sessionSampleRate`) | `sessionSampleRate` 값을 0~1 사이로 조정                                         |
 | 새 이벤트 종류 추가          | `index.html:41`(`telemetries`)       | `telemetries` 배열에 추가(`aws-rum-web` 지원 목록 확인 필요)                     |
-| App Monitor 설정 변경        | AWS CLI                              | `aws rum update-app-monitor --name link-sphere-post --region ap-northeast-1 ...` |
+| App Monitor 설정 변경        | CloudShell의 AWS CLI                 | `aws rum update-app-monitor --name link-sphere-post --region ap-northeast-1 ...` |
 | 익명 수집 정책 변경          | AWS CLI                              | `aws rum put-resource-policy` — 정책 JSON은 "5. 구조" 참고                       |
 
 이 스니펫 외에 RUM을 직접 다루는 FE 코드는 없지만, `scripts/inject-csp.js`가 빌드

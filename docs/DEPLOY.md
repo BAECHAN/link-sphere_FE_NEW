@@ -307,9 +307,8 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
     아래 "CloudFront 설정 스냅샷과 차이 검사"에 있다.
 - **만든 방법**: 콘솔 CloudShell 스크립트로 OIDC 제공자와 역할을 만들었다(스크립트 원문:
   [`docs/plans/2026-10-13-github-oidc-aws.md`](./plans/2026-10-13-github-oidc-aws.md) 부록 A — 여러 번
-  실행해도 안전하니 권한을 바꿀 때 고쳐서 다시 돌린다). 역할 ARN은 레포 Secret `AWS_ROLE_ARN`.
-- **로컬 IAM 사용자로는 바꿀 수 없다**: 로컬 프로필(`link-sphere-user`)은 2026-11-05부터 역할과 인라인 정책을 읽을 수 있지만(정책
-  `link-sphere-iac-read`) IAM 쓰기 권한은 없다. 역할·정책을 바꿀 때는 콘솔에서 하고, 아래 "AWS 설정 코드화(CDK)"의 코드도 맞춘다.
+  실행해도 안전했다. 지금은 역할이 `link-sphere-infra` 스택 안에 있어 권한을 그 저장소 PR로 바꾼다). 역할 ARN은 레포 Secret `AWS_ROLE_ARN`.
+- **로컬 IAM 사용자로는 바꿀 수 없다**: 로컬 프로필(`link-sphere-user`)은 2026-11-06부터 조회 전용이다(아래 "AWS 설정 코드화(CDK)").
 - **전제 — 도쿄 리전 STS 활성화**: IAM → Account settings → Security Token Service (STS) → Endpoints에서
   Asia Pacific (Tokyo)가 Active여야 한다. 전환 첫 배포(#345 병합 직후)가 _"이 리전에서 STS가 활성화돼 있지
   않다"_ (번역)로 실패해 콘솔에서 켰다. AWS 문서는 _"기본으로 켜진 리전은 임시 자격증명이 만들어지는 계정에서
@@ -383,28 +382,33 @@ aws iam list-role-policies --role-name "$ROLE"   # deploy와 cloudfront-drift-re
 
 추가한 뒤 Actions에서 "CloudFront Drift Check"를 수동 실행해 성공하는지 본다.
 
-## AWS 설정 코드화(CDK) — 감지 전용 (2026-11-05)
+## AWS 설정 코드화(CDK) — 변경은 PR로 (2026-11-06)
 
-AWS 설정 일부를 비공개 저장소 `BAECHAN/link-sphere-infra`의 CDK 스택 `link-sphere-baseline`(도쿄, 리소스 21개)에 기록하고, 매일 코드와 실제를 비교한다.
-**이 저장소로 설정을 바꾸지는 않는다.** 값은 지금처럼 콘솔·CLI로 바꾸고 코드를 그 값에 맞춘다. 도구를 고른 근거는 [`DECISIONS.md`](./DECISIONS.md) 2026-11-05 항목, 전체 표와 명령은 그 저장소의 `README.md`다.
+AWS 설정 일부를 비공개 저장소 `BAECHAN/link-sphere-infra`의 CDK 스택 `link-sphere-baseline`(도쿄, 리소스 29개)으로 관리한다. **스택 안 리소스는 그 저장소의 PR로 바꾼다.** 병합하면 GitHub Actions가 같은 계정 서울 리전의 시험 단계를 거쳐 운영에 적용한다. 근거는 [`DECISIONS.md`](./DECISIONS.md) 2026-11-06 항목, 비상 절차와 명령 전체는 그 저장소의 `README.md`, 다른 프로젝트에 같은 구조를 만드는 순서는 `docs/PLAYBOOK.md`다.
 
 ```mermaid
 flowchart LR
-  A["CDK 코드(git)"] -->|cdk diff| B["스택 템플릿(CloudFormation)"]
-  B -->|cdk drift| C["실제 AWS"]
-  C -->|"다르면 매일 이슈(라벨 iac-drift)"| D["코드를 실제 값에 맞춘 PR"]
-  D -->|"cdk deploy --revert-drift<br/>실제는 안 바뀜"| B
+  A["코드 수정, PR<br/>운영과의 차이 표시"] --> B["main 병합"]
+  B --> C["시험 단계 배포(서울)"]
+  C -->|"성공"| D{"운영 실제 = 스택인가"}
+  D -->|"예"| E["운영 배포(도쿄)"]
+  D -->|"아니오: 콘솔 변경"| F["중단, 코드를 실제 값으로 고친 뒤 revert_drift"]
+  C -->|"실패"| G["자동 롤백, 운영으로 안 감, 실패 이슈"]
+  H["매일 검사"] -->|"다르면 이슈(라벨 iac-drift)"| F
 ```
 
-| 구분 | 리소스                                                                                                                                          |
-| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 편입 | Lambda 설정·URL·호출 권한, EventBridge 룰, 알람, SNS 토픽, 로그 그룹, IAM 역할 3개(Lambda 실행·FE 배포·BE 배포), OIDC 제공자, 배포·백업 S3 버킷 |
-| 제외 | Lambda 코드·별칭·버전·환경변수, SNS 구독, 버킷 정책, CloudFront·WAF·ACM·Route 53·FE 버킷, SES·RUM                                               |
+| 구분 | 리소스                                                                                                                                                                                 |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 편입 | Lambda 설정·URL·호출 권한, EventBridge 룰, 알람, SNS 토픽·구독, 로그 그룹, IAM 역할 6개(Lambda 실행·FE 배포·BE 배포·infra 3개)와 정책 3개, 로컬 사용자, OIDC 제공자, 배포·백업 S3 버킷 |
+| 제외 | Lambda 코드·별칭·버전·환경변수, CloudFront·WAF·ACM·Route 53·FE 버킷, SES·RUM                                                                                                           |
 
-- **설정을 콘솔·CLI로 바꿨다면**: 다음 매일 검사(01:30 UTC)가 이슈를 연다. 코드를 맞춰 병합하고 `cdk deploy --revert-drift`를 실행하면 닫힌다. 코드에 없던 속성을 새로 적을 때는 이 명령이 "변경 없음"으로 끝나므로, 리소스를 뺐다가 다시 import한다(그 저장소 `README.md` "의도한 변경").
-- **일반 배포는 영향이 없다**: 코드·별칭·버전·환경변수는 코드에 없어 배포로 차이가 생기지 않는다(리허설로 재현).
-- **쓸 수 있는 권한**: CloudFormation 실행 역할은 `ReadOnlyAccess`와 태그 전용 정책뿐이다. import 때 운영 리소스 10개에 시스템 태그 `aws:cloudformation:*` 3개씩이 붙었고 이 태그는 스택을 지워도 남는다. 알람은 import 동안만 `cloudwatch:PutMetricAlarm`을 더했다.
-- **못 잡는 것**: 코드 밖에 새로 만든 리소스, 코드에 적지 않은 속성, SnapStart(쓰기 전용 속성이라 비교되지 않는다).
+- **콘솔·CloudShell로 바꿨다면**: 다음 인프라 배포가 드리프트 확인에서 멈추고, 매일 검사(01:30 UTC)가 이슈를 연다. 코드를 실제 값으로 고쳐 병합한 뒤 그 저장소에서 `gh workflow run deploy.yml --ref main -f revert_drift=true`를 실행하면 닫힌다. 코드와 다른 채 실행하면 실제 값이 코드 값으로 되돌아간다.
+- **Lambda 메모리·타임아웃은 코드로만 바꾸지 못한다**: CloudFormation이 함수를 갱신하면 코드에 없는 환경변수가 `$LATEST`에서 지워져 다음 BE 배포가 호출 검증에서 멈춘다(서울 시험 함수로 측정). 가드 테스트가 값을 고정해 두었다. CloudShell로 바꾸고 코드를 맞춘 뒤 `revert_drift`를 실행하면 함수를 건드리지 않는다(같은 함수로 1회 측정). `prod`에는 다음 BE 배포로 적용된다.
+- **인프라 배포가 실패하면**: 그 저장소에 `배포 실패: <커밋>` 이슈가 열리고, 다음 배포가 성공하면 닫힌다.
+- **일반 FE·BE 배포는 영향이 없다**: 코드·별칭·버전·환경변수는 코드에 없어 배포로 차이가 생기지 않는다. 권한 경계를 단 뒤 FE·BE 배포로 확인했다.
+- **쓸 수 있는 권한**: CloudFormation 실행 역할은 `AdministratorAccess` + 권한 경계다. 로컬 키는 조회와 CDK lookup 역할 위임만 된다. 쓰기와 Lambda 호출은 PR이나 CloudShell이다. 이 문서의 CloudFront·RUM·로그 명령도 CloudShell에서 실행한다.
+- **못 잡는 것**: 코드 밖에 새로 만든 리소스, 코드에 적지 않은 속성, SnapStart(쓰기 전용 속성), SNS 구독(CloudFormation 드리프트 검사 미지원).
+- **콘솔 변경을 기술적으로 막지는 못한다**: 규칙과 매일 검사로 찾을 뿐이다. CloudTrail 90일 설정 변경 92건 중 40건(WAF·RUM·CloudFront·Route 53)은 코드 범위 밖이라 계속 손으로 한다(고른 이벤트 종류만 집계).
 - **CloudFront는 그대로**: 위 "CloudFront 설정 스냅샷과 차이 검사"가 계속 맡는다.
 
 ## CloudFront 5xx 세기와 접근 로그 (수동 관리)

@@ -65,8 +65,8 @@ Always`) Lambda Function URL이 CloudFront를 거치지 않은 직접 요청을 
 ACL)는 CloudFront 배포 전체(양쪽 비헤이비어 공통)에 붙어 요청을 필터링한다(수동 관리,
 `docs/DEPLOY.md`의 "CloudFront WAF" 절 참고).
 
-Lambda 설정, EventBridge 룰, 알람, IAM 역할, 배포·백업 버킷도 콘솔·CLI로 바꾸지만, 비공개 저장소 `link-sphere-infra`의 CDK 스택이 값을 기록하고
-매일 실제와 비교한다(`docs/DEPLOY.md` "AWS 설정 코드화(CDK)"). CloudFront·WAF는 그 대상이 아니다.
+Lambda 설정, EventBridge 룰, 알람, IAM 역할, 배포·백업 버킷은 비공개 저장소 `link-sphere-infra`의 CDK 스택으로 관리한다. PR을 병합하면 서울 시험 단계를
+거쳐 운영에 적용되고, 매일 실제와 비교한다(`docs/DEPLOY.md` "AWS 설정 코드화(CDK)"). CloudFront·WAF는 그 대상이 아니다.
 
 ### `infra/` — AWS 인프라 직접 배포 코드
 
