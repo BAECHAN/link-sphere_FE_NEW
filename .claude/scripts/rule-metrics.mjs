@@ -41,6 +41,7 @@ const RULE_DATES = {
   rmMemory: '2026-09-11',
   sharedWorktreeStash: '2026-09-27',
   ghApiAsk: '2026-10-31',
+  ghApiPatchAsk: '2026-11-06',
 };
 
 // 발동 횟수(M12)를 셀 훅 스크립트. 트랜스크립트에는 훅이 막은 기록이 `[<실행 명령>]: <stderr>`
@@ -80,24 +81,39 @@ const DENIAL_PATTERN = /^Permission to use Bash with command [\s\S]* has been de
 // ask 규칙을 같은 방식으로 맞춰 보고, 바꾸는 동작인데 안 걸린 것만 센다(조회는 세지 않는다).
 // 머지 규칙 4개는 2026-10-13에, gh api·gh repo edit 규칙 5개는 2026-10-31에 생겼다. 10-31 전은 머지 규칙 4개로
 // 맞춘다 — 10-13 전에는 확인 창 자체가 없었으니 그 구간은 "머지 규칙이 못 보는 형태"를 센 값이다
-// (claude-base docs/METRICS.md "머지 승인 흔적").
+// (claude-base docs/METRICS.md "머지 승인 흔적"). PATCH 규칙 2개는 2026-11-06에 더했다 — 11-05에 저장소 머지 방식을
+// 바꾼 PATCH 3건이 확인 창 없이 실행된 것을 M14가 찾았다(claude-base docs/METRICS.md "실험: 머지 확인 창 확장").
 const MERGE_ASK_RULES = [
   'gh pr merge *',
   'git push * main',
   'git push * main *',
   'git push *:main',
 ];
+const GH_API_ASK_RULES = [
+  ...MERGE_ASK_RULES,
+  'gh api *pulls/*/merge*',
+  'gh api *rulesets*',
+  'gh api *protection*',
+  'gh api graphql*',
+  'gh repo edit *',
+];
 export const ASK_RULES_BY_PERIOD = {
   before: MERGE_ASK_RULES,
-  after: [
-    ...MERGE_ASK_RULES,
-    'gh api *pulls/*/merge*',
-    'gh api *rulesets*',
-    'gh api *protection*',
-    'gh api graphql*',
-    'gh repo edit *',
-  ],
+  after: GH_API_ASK_RULES,
+  afterPatch: [...GH_API_ASK_RULES, 'gh api *-X PATCH*', 'gh api *--method PATCH*'],
 };
+
+/** 그날 사용자 설정에 있던 ask 규칙을 돌려준다. 규칙이 생기기 전의 실행을 소급해 "걸렸다"고 세지 않으려고 날짜로 고른다. */
+export function askRulesOn(day) {
+  if (day < RULE_DATES.ghApiAsk) {
+    return ASK_RULES_BY_PERIOD.before;
+  }
+
+  return day < RULE_DATES.ghApiPatchAsk
+    ? ASK_RULES_BY_PERIOD.after
+    : ASK_RULES_BY_PERIOD.afterPatch;
+}
+
 const GH_API_VALUE_FLAGS = new Set([
   '-X',
   '--method',
@@ -519,7 +535,7 @@ function ghApiKind(args) {
     return 'api-rules';
   }
 
-  // 저장소 자체 PATCH는 `gh repo edit`처럼 머지 방식·기본 브랜치를 바꿀 수 있는데 ask 규칙에 없다.
+  // 저장소 자체 PATCH는 `gh repo edit`처럼 머지 방식·기본 브랜치를 바꿀 수 있다. ask 규칙은 2026-11-06에 생겼다.
   return GH_API_REPO_PATH.test(pathname) ? 'api-repo-settings' : null;
 }
 
@@ -746,7 +762,7 @@ function processFile(metrics, { file, isSub, sessionRepo }, options) {
           const period = day < RULE_DATES.ghApiAsk ? 'before' : 'after';
           toolUses.get(block.id).approvalBypass = {
             period,
-            kinds: approvalBypassKinds(block.input.command, event.cwd, ASK_RULES_BY_PERIOD[period]),
+            kinds: approvalBypassKinds(block.input.command, event.cwd, askRulesOn(day)),
           };
         }
 
@@ -1022,7 +1038,7 @@ function printMarkdown(summary, options) {
       .map(([kind, n]) => `${kind} 실행 ${n[period].executed}·막힘 ${n[period].blocked}`)
       .join(', ') || '없음';
   console.log(
-    `| M14 머지 확인 창이 못 보는 형태의 실행(${RULE_DATES.ghApiAsk} 전은 머지 규칙 4개, 후는 gh api까지 넓힌 규칙 기준) | 전: ${m14Period('before')} / 후: ${m14Period('after')} |`
+    `| M14 머지 확인 창이 못 보는 형태의 실행(${RULE_DATES.ghApiAsk} 전은 머지 규칙 4개, 후는 gh api까지 넓힌 규칙, ${RULE_DATES.ghApiPatchAsk}부터 PATCH 규칙 2개 추가) | 전: ${m14Period('before')} / 후: ${m14Period('after')} |`
   );
 
   console.log('\n### M4 rm 거부가 있었던 턴(메인 스레드)\n');
