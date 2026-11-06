@@ -242,7 +242,7 @@
   --muted: var(--palette-neutral-100);
   /* 명도(L)만 0.556→0.542로 낮췄다(색상·채도는 그대로) - 원래 값은 --muted
      배경(oklch(0.97 0 0), #f5f5f5) 위에서 4.34:1로 WCAG AA(4.5:1) 미달이었다
-     (2026-09-16 Storybook a11y 게이트가 kbd/FilterChip/ScrollToTop 등에서 실측
+     (2026-09-16 Storybook a11y 게이트가 kbd/FilterChip/BackToTopButton 등에서 실측
      발견). OKLCH→sRGB 변환 후 WCAG 상대 휘도 공식으로 직접 계산해 4.60:1(여유
      포함)이 되는 최소 조정값을 찾았다 - 화면상 #737373→#6f6f6f로 육안 구분이
      거의 안 되는 수준이다. Artifact 미리보기로 사용자 승인(2026-09-16). 그래서

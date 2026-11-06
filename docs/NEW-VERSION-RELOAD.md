@@ -52,7 +52,7 @@ flowchart TD
   Mark --> WaitNav["사용자가 스스로<br/>다른 라우트로 이동할 때까지 대기"]
   WaitNav --> RouteChange{"pathname이<br/>실제로 바뀌었나?"}
   RouteChange -->|아니오<br/>(같은 페이지 내 이동)| Stay["리로드 안 함"]
-  RouteChange -->|예| Reload["SpinnerOverlay 렌더 +<br/>window.location.reload()"]
+  RouteChange -->|예| Reload["CenteredSpinner 렌더 +<br/>window.location.reload()"]
   Reload --> Fresh["새 index.html + 새 청크로<br/>목적지 페이지를 새로 연다"]
 ```
 
@@ -173,7 +173,7 @@ react-router가 history를 이미 목적지로 밀어둔 상태라, `reload()`�
 `location.pathname`이 그 값과 달라졌으면(=감지 이후 실제로 다른 페이지로
 이동했으면) `window.location.reload()`를 호출하고 `true`를 반환한다. 호출부
 (`RootLayout`)는 이 반환값이 `true`인 동안 `Outlet` 대신
-`SpinnerOverlay`(전체 화면)를 렌더한다 — 구 빌드가 목적지 페이지의 청크·쿼리를
+`CenteredSpinner`(전체 화면)를 렌더한다 — 구 빌드가 목적지 페이지의 청크·쿼리를
 그리기 시작하면 새로고침으로 어차피 버려질 작업이라, 애초에 시작시키지 않는다
 (`AppErrorFallback`의 청크 에러 처리와 같은 형태).
 
@@ -218,12 +218,12 @@ src/
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                          | 방법                                                                       |
-| ------------------------------------- | -------------------------------------------------------------------------- |
-| 재확인 주기 변경                      | `useAppVersionCheck.ts`의 `VERSION_CHECK_THROTTLE_MS`                      |
-| 탭 복귀 대신 폴링(setInterval)로 전환 | `useAppVersionCheck.ts`의 `checkDeployedVersionOnReturn`                   |
-| 리로드 시 보여줄 화면 변경            | `RootLayout.tsx`의 `isReloadingForNewVersion` 분기 — 현재 `SpinnerOverlay` |
-| entry script 판정 방식 변경           | `version.util.ts`의 `ENTRY_SCRIPT_SELECTOR`·`readEntryScriptSrc`           |
+| 하고 싶은 것                          | 방법                                                                        |
+| ------------------------------------- | --------------------------------------------------------------------------- |
+| 재확인 주기 변경                      | `useAppVersionCheck.ts`의 `VERSION_CHECK_THROTTLE_MS`                       |
+| 탭 복귀 대신 폴링(setInterval)로 전환 | `useAppVersionCheck.ts`의 `checkDeployedVersionOnReturn`                    |
+| 리로드 시 보여줄 화면 변경            | `RootLayout.tsx`의 `isReloadingForNewVersion` 분기 — 현재 `CenteredSpinner` |
+| entry script 판정 방식 변경           | `version.util.ts`의 `ENTRY_SCRIPT_SELECTOR`·`readEntryScriptSrc`            |
 
 ## 9. 검증 결과
 

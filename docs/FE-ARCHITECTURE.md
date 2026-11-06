@@ -1064,7 +1064,7 @@ export const isLastPendingBookmarkMutation = (queryClient: QueryClient, postId: 
 
 | 상수                                | 값    | 대상                                                     |
 | ----------------------------------- | ----- | -------------------------------------------------------- |
-| `LOADING_INDICATOR_DELAY_MS`        | 500ms | 조회 로딩 — `SpinnerOverlay`·`DelayedFallback` 기본값    |
+| `LOADING_INDICATOR_DELAY_MS`        | 500ms | 조회 로딩 — `CenteredSpinner`·`DelayedFallback` 기본값   |
 | `MUTATION_PROGRESS_DELAY_MS`        | 500ms | mutation 진행 표시 — 진행 토스트, 카드 오버레이 등       |
 | `LOADING_INDICATOR_MIN_DURATION_MS` | 400ms | mutation 진행 표시의 최소 노출 시간 (조회 로딩엔 미적용) |
 
@@ -1091,7 +1091,7 @@ Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback�
   — **조기 반환 가드를 그대로 유지한다.** 가드를 지연된 값으로 바꾸면 지연 구간(0~500ms)에
   가드를 통과해 바로 다음 줄의 빈 상태 분기("저장한 게 없어요" 등)에 걸린다 — 스피너
   깜빡임보다 나쁜 회귀다.
-- **스피너 하나만 필요하면**: `<SpinnerOverlay />`. `SpinnerOverlay`는 이미 자체 게이트를
+- **스피너 하나만 필요하면**: `<CenteredSpinner />`. `CenteredSpinner`는 이미 자체 게이트를
   갖고 있으므로 `DelayedFallback`으로 다시 감싸지 않는다(이중 게이트 금지).
 
 ### 이 규약을 적용하지 않는 것 (논외)

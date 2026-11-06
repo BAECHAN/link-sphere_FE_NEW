@@ -84,7 +84,7 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
   - `transition-property`를 색·투명도·그림자로 고정해(`!important`, `transition-all`·인라인 style까지) `translate`·`scale`·`rotate`·높이
     변화는 애니메이션 없이 바로 바뀐다 — 사이드바 드로어, 카드 hover, 떠 있는 버튼.
   - `animate-spin`은 2초에 한 바퀴(기본 1초)로 느리게 돌고, `animate-pulse`(스켈레톤)는 그대로다.
-  - 숨김 상태에 `scale`·`translate`를 함께 쓰는 버튼(`ScrollToTop`)은 사라질 때
+  - 숨김 상태에 `scale`·`translate`를 함께 쓰는 버튼(`BackToTopButton`)은 사라질 때
     크기·위치가 바로 바뀐 뒤 흐려진다. 2026-10-15 녹화로 보고 그대로 두기로 했다(사용자 결정).
   - 회귀는 `e2e/reduced-motion.spec.ts`가 잡는다.
 - **새 코드** — `tw-animate-css` 클래스나 Tailwind `translate-*`·`scale-*`·`rotate-*` + `transition-*`로 만들면
@@ -101,7 +101,7 @@ CSS만으로 exit(사라짐) 애니메이션을 만들 때 "화면에서 사라�
 
 | 값                     | 위치                                                                                                        |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `TRANSITION_MS = 200`  | `src/shared/ui/elements/ScrollToTop.tsx:11` — CSS `duration-200`과 수동 동기화                              |
+| `TRANSITION_MS = 200`  | `src/shared/ui/elements/BackToTopButton.tsx:11` — CSS `duration-200`과 수동 동기화                          |
 | `setTimeout(..., 300)` | `src/shared/ui/elements/dialog/alert/alert.store.ts:74`, `src/shared/ui/elements/dialog/alert/Alert.tsx:56` |
 
 같은 패턴(exit 애니메이션 + `shouldRender` 상태 + `setTimeout`)을 새로 만들
@@ -113,7 +113,7 @@ CSS만으로 exit(사라짐) 애니메이션을 만들 때 "화면에서 사라�
 바뀌지 않으면 트랜지션이 일어나지 않는다. framer-motion을 CSS로 옮긴 2026-09-21(`2c126c68`)에
 `initial`이 빠져, 맨 위로·댓글 폼 버튼의 등장 애니메이션이 2026-10-15까지 사라져 있었다. 숨김 상태
 클래스를 `starting:`(CSS `@starting-style`)으로도 붙여, 처음 그려질 때 그 상태에서 출발시킨다
-(`ScrollToTop.tsx`). 회귀는 `e2e/reduced-motion.spec.ts`의 "맨 위로 버튼 등장 트랜지션"이 잡는다.
+(`BackToTopButton.tsx`). 회귀는 `e2e/reduced-motion.spec.ts`의 "맨 위로 버튼 등장 트랜지션"이 잡는다.
 
 **딤과 패널처럼 따로 사라지는 형제 요소에는 같은 시간·곡선을 둘 다 붙인다.** Radix Dialog는 Overlay와
 Content를 각자 Presence로 감싸 각자의 애니메이션이 끝날 때 내린다. 형제라서 한쪽에 붙인 `duration-*`는 다른

@@ -3,7 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/entities/auth/hooks/useAuth';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
-import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
+import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
 import {
   useLoginDialogStore,
   type LoginDialogLocationState,
@@ -112,7 +112,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   );
 
   if (!isAuthResolved) {
-    return <SpinnerOverlay className="h-screen" />;
+    return <CenteredSpinner className="h-screen" />;
   }
 
   if (!isAuthenticated && !isSignedOutInPlace) {

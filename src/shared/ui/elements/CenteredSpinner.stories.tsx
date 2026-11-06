@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
+import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
 
 const meta = {
-  title: 'Shared/UI/Elements/SpinnerOverlay',
-  component: SpinnerOverlay,
+  title: 'Shared/UI/Elements/CenteredSpinner',
+  component: CenteredSpinner,
   tags: ['autodocs'],
   parameters: {
     docs: {
@@ -28,7 +28,7 @@ const meta = {
       </div>
     ),
   ],
-} satisfies Meta<typeof SpinnerOverlay>;
+} satisfies Meta<typeof CenteredSpinner>;
 
 /* eslint-disable import/no-default-export */
 export default meta;

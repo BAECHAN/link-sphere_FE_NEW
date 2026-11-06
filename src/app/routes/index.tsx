@@ -14,7 +14,7 @@ import { useRemoveErroredPostDetailOnLeave } from '@/entities/post/hooks/useRemo
 import { usePostFeedPrefetch } from '@/widgets/post/post-list/hooks/usePostFeedPrefetch';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { ChunkReloadUtil } from '@/shared/utils/chunk-reload.util';
-import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
+import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
 import { AuthLayout } from '@/shared/ui/layouts/AuthLayout';
 
 const NotFoundPage = lazy(() =>
@@ -73,11 +73,11 @@ const VerifyEmailPage = lazy(() =>
 /**
  * Lazy 컴포넌트를 Suspense로 감싸는 래퍼
  * 각 페이지별로 로딩 상태를 관리하여 깜빡임 방지
- * SpinnerOverlay의 기본 지연 게이트(LOADING_INDICATOR_DELAY_MS)를 그대로 쓴다
+ * CenteredSpinner의 기본 지연 게이트(LOADING_INDICATOR_DELAY_MS)를 그대로 쓴다
  */
 const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType<any>>) => {
   return (
-    <Suspense fallback={<SpinnerOverlay />}>
+    <Suspense fallback={<CenteredSpinner />}>
       <Component />
     </Suspense>
   );

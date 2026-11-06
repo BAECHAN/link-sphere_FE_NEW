@@ -10,7 +10,7 @@ import { ScrollUtil } from '@/shared/utils/scroll.util';
 // 애니메이션이 끝날 때까지 마운트를 유지하려면 CSS transition 시간과 정확히 맞아야 한다.
 const TRANSITION_MS = 200;
 
-export function ScrollToTop() {
+export function BackToTopButton() {
   const [isVisible, setIsVisible] = useState(false);
   // isVisible이 false가 된 뒤에도 exit 애니메이션이 끝날 때까지 DOM에 남겨둔다.
   const [shouldRender, setShouldRender] = useState(false);

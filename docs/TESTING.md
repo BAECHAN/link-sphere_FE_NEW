@@ -1273,7 +1273,7 @@ vi.mock('react-router-dom', async () => {
 
 ### 8. 지연 게이트가 걸린 로딩 UI는 렌더 직후엔 안 보인다
 
-**대상**: `useDelayedLoading`을 내부에 쓰는 모든 로딩 표시 — `SpinnerOverlay`,
+**대상**: `useDelayedLoading`을 내부에 쓰는 모든 로딩 표시 — `CenteredSpinner`,
 `DelayedFallback`(및 그걸로 감싼 스켈레톤·스피너). 로딩 UX 규약은
 `docs/FE-ARCHITECTURE.md` §12-A 참고.
 

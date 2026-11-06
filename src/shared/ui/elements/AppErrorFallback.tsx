@@ -4,7 +4,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { ChunkReloadUtil } from '@/shared/utils/chunk-reload.util';
 import { ErrorUtil } from '@/shared/utils/error.util';
 import { ErrorLayout } from '@/shared/ui/layouts/ErrorLayout';
-import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
+import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
 
 interface AppErrorFallbackProps {
   error: unknown;
@@ -46,7 +46,7 @@ export function AppErrorFallback({ error }: AppErrorFallbackProps) {
   );
 
   if (isReloadPending || isServerError) {
-    return <SpinnerOverlay />;
+    return <CenteredSpinner />;
   }
 
   return (

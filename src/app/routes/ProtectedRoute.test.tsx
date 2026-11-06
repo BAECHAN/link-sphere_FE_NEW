@@ -101,7 +101,7 @@ describe('ProtectedRoute', () => {
   });
 
   it('복원이 끝나기 전 상태가 길어지면 지연 후 전체화면 스피너를 띄운다', () => {
-    // SpinnerOverlay는 delay 기본값(LOADING_INDICATOR_DELAY_MS)만큼 기다렸다가 노출된다.
+    // CenteredSpinner는 delay 기본값(LOADING_INDICATOR_DELAY_MS)만큼 기다렸다가 노출된다.
     // 이 테스트는 네트워크를 타지 않으므로(더미 protected-content) fake timers를 켜도 안전하다.
     vi.useFakeTimers();
 

@@ -559,7 +559,7 @@ a11y 12건, e2e 3건).
 - **색상 토큰 4종 대비 부족 (7건)**: `--muted-foreground`/`--info`/`--category`/
   `--success`가 원인이던 `DesignTokens`(Colors)·`kbd`(Command, Complex
   Combination)·`FilterChip`(Default, Interactive, Active Variants)·
-  `ScrollToTop`·`MarkdownContent`·`FormField`(With Success Description) —
+  `BackToTopButton`·`MarkdownContent`·`FormField`(With Success Description) —
   Artifact 미리보기로 사용자 승인을 받아 `globals.css` 라이트 모드 값(명도만
   조정, 색상·채도 유지)을 전부 4.60:1 이상으로 올렸다(아래 §"색상 토큰 대비
   개선" 참고).
@@ -696,7 +696,7 @@ https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12). 나머지 15곳(브랜드
 | Search          | 찾는 기능. MDN은 search 역할을 _"페이지·사이트·사이트 모음을 검색하는 데 쓰는 페이지 영역"_ (번역)으로 쓴다                                                            | `NavbarSearch`, `BookmarkSearch`         | [MDN](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Roles/search_role)                                                                                  |
 | Kebab menu      | 세로 점 세 개(⋮) 버튼으로 여는 메뉴. 외부 정의는 찾지 못했다(출처 미상). NN/g는 이 아이콘을 세로 줄임표로 부른다                                                       | `KebabMenu`                              | [NN/g](https://www.nngroup.com/articles/contextual-menus/)                                                                                                                          |
 | Featured icon   | 색 배경 안에 아이콘을 크게 둔 표시. 표준 이름은 없고 Mantine은 ThemeIcon이라 부른다                                                                                    | `FeaturedIcon`                           | [Untitled UI](https://www.untitledui.com/react/components/featured-icons), [Mantine](https://mantine.dev/core/theme-icon/)                                                          |
-| Back to top     | 페이지 맨 위로 돌아가는 떠 있는 버튼                                                                                                                                   | `ScrollToTop`                            | [Ant Design](https://ant.design/components/float-button)                                                                                                                            |
+| Back to top     | 페이지 맨 위로 돌아가는 떠 있는 버튼                                                                                                                                   | `BackToTopButton`                        | [Ant Design](https://ant.design/components/float-button)                                                                                                                            |
 
 ## 13. 관련 문서
 

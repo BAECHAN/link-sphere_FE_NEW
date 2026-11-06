@@ -6,7 +6,7 @@ import { FormCheckboxGroup } from '@/shared/ui/elements/form/FormCheckboxGroup';
 import { FormCheckbox } from '@/shared/ui/elements/form/FormCheckbox';
 import { useCategoryOptions } from '@/entities/category/hooks/useCategoryOptions';
 import { useUpdatePost } from '@/features/post/update/hooks/useUpdatePost';
-import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
+import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
 import { FormAlert } from '@/shared/ui/elements/FormAlert';
@@ -40,7 +40,7 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
   const canSubmit = isDirty && isValid && !isUpdating;
 
   if (isLoading) {
-    return <SpinnerOverlay />;
+    return <CenteredSpinner />;
   }
 
   return (
