@@ -1,3 +1,6 @@
+### 2026-11-06 (FE)
+- ActionChip 컴포넌트 분리 및 UI 용어집 도입을 통한 코드 재사용성 및 유지보수성 향상 ([#552](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/552))
+
 ### 2026-11-05 (BE)
 - 복원 후 초기 작업 발행 프로세스의 구간별 소요 시간 로깅 도입 ([#168](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/168))
 
