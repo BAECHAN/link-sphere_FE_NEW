@@ -1,3 +1,6 @@
+### 2026-11-06 (BE)
+- 인프라 문서화: 스냅샷 워밍업의 대상 범위 및 3회 수행에 대한 기술적 근거 구체화 ([#175](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/175))
+
 ### 2026-11-06 (FE)
 - 이미지 다중 업로드 시 식별을 위해 확대 및 삭제 버튼에 순번 동적 할당 기능 구현 ([#569](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/569))
 
