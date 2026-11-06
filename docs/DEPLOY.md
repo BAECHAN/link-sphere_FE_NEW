@@ -32,9 +32,12 @@
     - Node.js 24 버전을 사용합니다 (`.nvmrc` 기준).
 3.  **Install Dependencies**:
     - `pnpm install --frozen-lockfile`로 의존성을 설치합니다.
-    - 이어서 `pnpm check`(타입 체크·린트·포맷·의존성 검사)와 `pnpm test`가 실행됩니다 —
+    - 먼저 `verify` job에서 `pnpm check`(타입 체크·린트·포맷·의존성 검사)와 `pnpm test`가 실행됩니다 —
       하나라도 실패하면 빌드·배포로 넘어가지 않습니다(게이트 상세는
-      [CI-CHECK-GATE.md](./CI-CHECK-GATE.md)).
+      [CI-CHECK-GATE.md](./CI-CHECK-GATE.md)). 아래 4번부터는 `deploy` job입니다.
+    - 두 job을 나눈 이유는 권한입니다. 테스트는 저장소의 코드를 그대로 실행하므로, AWS OIDC 토큰을 받을 수 있는
+      `deploy` job과 러너를 나눕니다. `verify` job의 권한은 `contents: read`뿐입니다
+      ([계획](./plans/2026-11-06-mutation-loop-l2.md)).
 4.  **Build**:
     - `pnpm build`(`package.json`: `tsc -b && vite build && node scripts/inject-csp.js`)로
       프로젝트를 빌드합니다 — 타입 체크 → Vite 빌드 → 마지막으로 `dist/index.html`에
@@ -106,7 +109,7 @@
       `|| echo "::warning::옛 자산 정리 실패 …"`로 끝나 경고 주석만 남고, 10번 이슈도 열리지 않습니다.
       버킷이 다시 커지면 run 로그에서 이 경고를 찾습니다([CACHE-STRATEGY.md](./CACHE-STRATEGY.md) §5.8).
 10. **실패 시 알림** (`notify-failure` job):
-    - 위 스텝 중 9번(옛 자산 정리)을 뺀 어느 스텝이든 실패하면 별도 job이 커밋 sha·run 링크를 담은
+    - `verify` job을 포함해 위 스텝 중 9번(옛 자산 정리)을 뺀 어느 스텝이든 실패하면 별도 job이 커밋 sha·run 링크를 담은
       GitHub 이슈를 자동 생성합니다. `deploy` job과 권한을 분리해뒀습니다(AWS 자격증명을 다루는
       job에 `issues: write`를 더하지 않기 위함).
 11. **성공 시 실패 이슈 자동 종료** (`close-resolved-failures` job):
