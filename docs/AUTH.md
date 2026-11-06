@@ -1645,8 +1645,8 @@ false` 케이스(요청 미전송, 안내 토스트)를 검증하지만, `useCre
       [`docs/DECISIONS.md`](DECISIONS.md) 2026-10-28).
     - **공용 PC**: 다른 탭에서 일부러 로그아웃해도, 쓰던 탭에는 로그인 창 뒤로 그 글이 보인 채 남습니다(쓰는 중일 때만).
       전에는 보호 화면이면 `/post`로 옮기며 사라졌습니다. 창을 닫아도 이탈 확인창을 거쳐야 화면을 떠납니다.
-    - **로그인이 풀린 순간 확인창(Alert)이 열려 있으면 로그인 창이 열리지 않습니다.** `openSignInDialogInPlace`의 같은 주소
-      push를 이탈 확인 가드가 "열린 Alert 때문에 막힌 이동"으로 보고 그 Alert를 취소한 뒤 이동을 되돌립니다
+    - **로그인이 풀린 순간 확인창이 열려 있으면 로그인 창이 열리지 않습니다.** `openSignInDialogInPlace`의 같은 주소
+      push를 이탈 확인 가드가 "열린 확인창 때문에 막힌 이동"으로 보고 그 확인창을 취소한 뒤 이동을 되돌립니다
       (`useUnsavedChangesGuard.ts`의 `confirmBlockedNavigation`). 표시(`signedOutInPlace`)는 세워져 있어 화면은 남고,
       다음에 저장·등록을 누르면 그 이유의 로그인 창이 뜹니다(`useAuthGuard`).
     - **로그인 창 엔트리 주소에는 해시가 빠집니다.** 같은 `pathname+search`를 push하므로 `#comment-<id>`로 들어온 화면이면

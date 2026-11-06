@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { toast } from '@/shared/lib/toast/toast';
-import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
+import { useAlertDialog } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
 import { TEXTS } from '@/shared/config/texts';
 import { ErrorUtil } from '@/shared/utils/error.util';
 import {
@@ -39,7 +39,7 @@ export const useFolderActions = ({ folder, onBeforeDelete }: UseFolderActionsPar
   const { mutateAsync: deleteFolder } = useDeleteBookmarkFolderMutation(folder.id);
   const { mutate: setPinned } = useSetBookmarkFolderPinMutation(folder.id);
   const isPinned = BookmarkFolderUtil.isPinned(folder);
-  const { openConfirm } = useAlert();
+  const { openConfirm } = useAlertDialog();
 
   const togglePin = () => {
     setPinned(!isPinned);

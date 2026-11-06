@@ -11,7 +11,7 @@ import {
 } from '@/entities/post/api/post.queries';
 import { postMutationKeys } from '@/entities/post/api/post.keys';
 import { usePostDelete } from '@/features/post/delete/hooks/usePostDelete';
-import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
+import { useAlertDialog } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
 import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
 import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
 import { useSearchParamsDraft } from '@/shared/hooks/useSearchParamsDraft';
@@ -42,7 +42,7 @@ export function usePostCard(post: Post, isDetail = false) {
   const { onDelete } = usePostDelete();
   const { mutateAsync: updateVisibility, isPending: isUpdatingVisibility } =
     useUpdatePostVisibilityMutation(post.id);
-  const { openConfirm } = useAlert();
+  const { openConfirm } = useAlertDialog();
 
   const [isAiSummaryExpanded, setIsAiSummaryExpanded] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -96,7 +96,7 @@ export function usePostCard(post: Post, isDetail = false) {
       cancelText: TEXTS.buttons.cancel,
       // 공개 설정 토글은 삭제·이탈과 달리 어느 방향으로도 데이터가 사라지지 않고 같은
       // 확인창으로 언제든 되돌릴 수 있다 - "안전한 쪽 강조"가 아니라 "원하는 쪽 강조"가
-      // 맞아 확인을 채움+오른쪽으로 켠다(Alert.tsx의 emphasis 옵션, docs/DECISIONS.md
+      // 맞아 확인을 채움+오른쪽으로 켠다(GlobalAlertDialogs.tsx의 emphasis 옵션, docs/DECISIONS.md
       // 2026-09-29 항목).
       emphasis: 'confirm',
       onConfirm: () => {

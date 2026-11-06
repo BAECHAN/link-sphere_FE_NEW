@@ -5,7 +5,7 @@ import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard';
 import { useAppVersionCheck } from '@/shared/hooks/useAppVersionCheck';
 import { useNewVersionReload } from '@/shared/hooks/useNewVersionReload';
 import { GlobalImageViewer } from '@/shared/ui/elements/dialog/image-viewer/ImageViewer';
-import { GlobalAlerts } from '@/shared/ui/elements/dialog/alert/Alert';
+import { GlobalAlertDialogs } from '@/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs';
 import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
 import { useLeaveOnMemberChange } from '@/app/hooks/useLeaveOnMemberChange';
 
@@ -59,7 +59,7 @@ export function RootLayout() {
         <PostFolderDialogHost />
       </Suspense>
       <GlobalImageViewer />
-      <GlobalAlerts />
+      <GlobalAlertDialogs />
     </>
   );
 }

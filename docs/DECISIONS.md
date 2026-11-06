@@ -1519,8 +1519,8 @@ outline·왼쪽으로 둔다 — 기본값 `'cancel'`이면 지금까지의 동�
 
 **상태**
 
-적용 완료. 관련 파일: `src/shared/ui/elements/dialog/alert/alert.store.ts`,
-`src/shared/ui/elements/dialog/alert/Alert.tsx`(2026-09-30 `elements/modal/`에서 개명), `src/widgets/post/post-card/hooks/usePostCard.ts`,
+적용 완료. 관련 파일: `src/shared/ui/elements/dialog/alert-dialog/alertDialog.store.ts`(2026-11-06 `dialog/alert/alert.store.ts`에서 개명),
+`src/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs.tsx`(2026-09-30 `elements/modal/`에서, 2026-11-06 `dialog/alert/Alert.tsx`에서 개명), `src/widgets/post/post-card/hooks/usePostCard.ts`,
 `e2e/post-visibility.spec.ts`, `docs/FE-ARCHITECTURE.md` §10. 같은 대화에서 폴더 생성
 인라인 폼(취소=ghost/왼쪽, 생성=채움/오른쪽)도 검토했지만 — 폴더 생성은 애초에 `Alert.tsx`를
 쓰지 않는 별개의 인라인 폼이고, "위험한 선택지가 없다"는 점에서 "원하는 쪽 강조"라는 같은
@@ -1568,7 +1568,7 @@ DOM 순서가 바뀌면서 Radix Dialog의 기본 오토포커스(첫 포커스 
 
 **상태**
 
-적용 완료. 관련 파일: `src/shared/ui/elements/dialog/alert/Alert.tsx`(2026-09-30 `elements/modal/`에서 개명). 비교에 쓴 Artifact:
+적용 완료. 관련 파일: `src/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs.tsx`(2026-09-30 `elements/modal/`에서, 2026-11-06 `dialog/alert/Alert.tsx`에서 개명). 비교에 쓴 Artifact:
 "삭제 확인창 재배치 시안"(세션 로컬, 링크는 대화 기록 참고) — 후보 C를 채택했다.
 
 ---
@@ -1627,7 +1627,7 @@ outline**으로 고정한다(alert 타입의 단일 버튼은 그대로 채움 �
 
 **상태**
 
-적용 완료. 관련 파일: `src/shared/ui/elements/dialog/alert/Alert.tsx`(2026-09-30 `elements/modal/`에서 개명),
+적용 완료. 관련 파일: `src/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs.tsx`(2026-09-30 `elements/modal/`에서, 2026-11-06 `dialog/alert/Alert.tsx`에서 개명),
 `docs/FE-ARCHITECTURE.md` §10, `docs/UNSAVED-CHANGES-GUARD.md`. 비교에 쓴 Artifact:
 "이탈 확인창 강조 시안"(세션 로컬, 링크는 대화 기록 참고) — 레이아웃 후보 A1(위치 유지)을
 채택했다.

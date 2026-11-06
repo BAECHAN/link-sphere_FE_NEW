@@ -68,7 +68,7 @@ Zustand 기본 개념은 안다고 가정한다.
 - **Zustand** — dirty 키를 전역으로 들고 있는 스토어(§6)
 - **React Router `useBlocker`** — 앱 내 네비게이션을 가로채는 유일한 지점
 - **`beforeunload` 이벤트** — 새로고침·탭 닫기용 브라우저 기본 경고
-- **`shared/ui/elements/dialog/alert`** — 확인 모달(Alert/Confirm) 공용 컴포넌트
+- **`shared/ui/elements/dialog/alert-dialog`** — 확인 모달(Alert/Confirm) 공용 컴포넌트
 - **`RouterEvents`**(`shared/lib/router/router-events.ts`) — 저장 중 떠났는지 판정(`useHasLeftPage`,
   §5 "저장 요청 중 이탈")이 React가 커밋하기 전의 라우터 위치를 읽는 곳
 
@@ -119,14 +119,14 @@ Zustand 기본 개념은 안다고 가정한다.
 
 차단됐을 때의 두 갈래(대화상자 취소 vs. 이탈 확인 모달)는 `useEffect`
 안에서 분기한다 — Alert/Confirm 때문에 막힌 경우엔 그 대화상자를
-`cancelAlert`로 취소 처리하고 이동 자체는 없었던 일로 되돌리며(`blocker.reset()`),
+`cancelAlertDialog`로 취소 처리하고 이동 자체는 없었던 일로 되돌리며(`blocker.reset()`),
 아니면 이탈 확인 모달을 새로 연다.
 
 세 번째 갈래는 판정이 아니라 **모달이 떠 있는 동안** 생긴다. 가드는 dirty 스토어를 구독하다가
 자기가 띄운 이탈 확인 모달이 열려 있는데 이름표가 모두 떼어지면(저장 성공 → `clearNow()`, 또는
-폼이 닫혀 언마운트) 그 모달을 `cancelAlert`로 스스로 취소한다 — "입력한 내용이 사라져요"라는
+폼이 닫혀 언마운트) 그 모달을 `cancelAlertDialog`로 스스로 취소한다 — "입력한 내용이 사라져요"라는
 모달의 전제가 사라졌기 때문이다. 막혔던 이동은 `blocker.reset()`으로 버려지고, 이어지는 폼의 성공
-이동은 평소 규칙대로 통과한다. 이 구독이 없으면 그 성공 이동이 "열린 Alert" 규칙(2번)에 다시
+이동은 평소 규칙대로 통과한다. 이 구독이 없으면 그 성공 이동이 "열린 확인창" 규칙(2번)에 다시
 막혀, "계속 작성"이 저장 뒤 이동을 버리는 버그가 있었다(§10 2026-10-21). 같은 구독이 **응답을 기다리는
 중에 띄운 모달**도 닫는다 — 응답이 오면(성공·실패 모두) "취소되지 않아요"라는 그 모달의 전제가 사라지기
 때문이다. 실패하면 입력이 남아 이름표가 그대로라 앞의 조건으로는 닫히지 않으므로, 모달을 띄울 때 요청
@@ -233,7 +233,7 @@ _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 
 
 **버튼 강조**: "계속 작성"이 채움(primary)이고 오른쪽에 있으며, "나가기"가 outline이고
 왼쪽에 있다(연 순간 포커스도 "계속 작성"에 간다. 요청 중 모달은 "결과 기다리기"가 그 자리다) — 반사적으로 눌러도
-안전한 쪽이 눌리게 하기 위해서다. 이건 [Alert.tsx](../src/shared/ui/elements/dialog/alert/Alert.tsx)의 `emphasis`
+안전한 쪽이 눌리게 하기 위해서다. 이건 [GlobalAlertDialogs.tsx](../src/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs.tsx)의 `emphasis`
 옵션 기본값(`'cancel'`, 생략 시 적용)을 이 가드가 그대로 쓰고 있는 것이다 — **모든 confirm
 공통 규칙이 아니다.** 삭제·탈퇴처럼 메뉴에서 직접 선택해야만 뜨는 확인창이나, 공개 설정
 토글처럼 어느 방향도 위험하지 않은 확인창은 `emphasis: 'confirm'`으로 반대(확인=채움·오른쪽)로
@@ -273,7 +273,7 @@ _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 
   (`useCreatePost.ts:162`). zod가 `categoryIds`를 숫자로 바꿔(`post.schema.ts:21`) 폼 값과 모양이 다르기 때문이다.
 - **비밀번호는 되살리지 않는다**(사용자 결정): `location.state`는 브라우저 방문 기록(`history.state`)에 저장돼
   새로고침·뒤로가기 뒤에도 남는다. 가입은 닉네임·이메일만 싣는다.
-- **폼이 비어 있을 때만 되살린다**: 같은 경로 이동은 이 가드가 막지 않는다(`useUnsavedChangesGuard.ts:33`). 그래서 새로
+- **폼이 비어 있을 때만 되살린다**: 같은 경로 이동은 이 가드가 막지 않는다(`useUnsavedChangesGuard.ts:36`). 그래서 새로
   입력하던 걸 덮으면 확인 없이 사라진다. 비어 있지 않으면 버튼은 토스트만 닫는다(§11).
 - **되살린 입력은 작성 중(dirty)이다**: `reset(values, { keepDefaultValues: true })`로 기본값은 두고 값만 넣는다.
   그래서 되살린 뒤 다시 떠나려 하면 평소 모달이 뜬다.
@@ -394,7 +394,7 @@ _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 
 
 **가드도 이 스토어를 구독한다** — `useUnsavedChangesGuard`가 `useUnsavedChangesStore.subscribe`로
 변경을 받아, 자기가 띄운 모달(`confirmIdRef`에 id를 둔다. `openConfirm`이 id를 돌려주지 않아 띄운
-직후 `getOpenAlertId()`로 읽는다)이 열려 있는데 `dirtyKeys`가 비면 그 모달을 취소한다(§5 세 번째
+직후 `getOpenAlertDialogId()`로 읽는다)이 열려 있는데 `dirtyKeys`가 비면 그 모달을 취소한다(§5 세 번째
 갈래). 모달을 요청 중에 띄웠으면(`openedWhilePendingRef`) `pendingSubmits`가 비어도 취소한다.
 선택자 구독이 아니라 `subscribe`인 이유: zustand는 `set` 안에서 리스너를 동기로 부르므로
 _"모든 변경마다 동기로 실행된다"_ (번역, [zustand README](https://github.com/pmndrs/zustand#readingwriting-state-and-reacting-to-changes-outside-components)),
@@ -490,8 +490,8 @@ src/
 ├── app/hooks/useLeaveOnMemberChange.ts   # 다른 회원으로 바뀌면 쓰는 중이거나 보호 화면일 때 clearAllUnsavedChanges → /post
 ├── widgets/layout/navbar/hooks/useDelayedLogout.ts # 쓰는 중 직접 로그아웃이면 먼저 확인(TEXTS.unsavedChanges.logout)
 ├── shared/store/auth.store.ts            # signedOutInPlace — §5의 1번 예외(로그인이 풀린 채 그 화면에 둠)
-├── shared/ui/elements/dialog/alert/alert.store.ts # §5의 Alert/Confirm 우선 차단 분기가
-│                                                    # 참조하는 getOpenAlertId 출처
+├── shared/ui/elements/dialog/alert-dialog/alertDialog.store.ts # §5의 Alert/Confirm 우선 차단 분기가
+│                                                    # 참조하는 getOpenAlertDialogId 출처
 ├── shared/config/texts.ts                # TEXTS.unsavedChanges.* — 확인 모달 문구(.signup은 회원가입 전용, .pending.*은 요청 중, .logout은 직접 로그아웃 확인)
 ├── shared/config/route-paths.ts          # PUBLIC_PATHS — §5의 "게스트 전용 페이지" 판정 출처
 ├── features/post/create/hooks/useCreatePost.ts
@@ -629,7 +629,7 @@ Cloudscape 인용도 그 전용 링크만 겨냥한 것이었다). 실사용 중
 "계속 작성"이 버린 것이었다(목록 캐시엔 새 글이 이미 있었다). 설치본 소스로 따라간 경로(react-router
 6.30.3, @remix-run/router 1.23.2):
 
-- 성공 처리는 `clearNow()` → `navigate('/post')`인데, `shouldBlockNavigation`은 "열린 Alert가 있으면
+- 성공 처리는 `clearNow()` → `navigate('/post')`인데, `shouldBlockNavigation`은 "열린 확인창이 있으면
   막는다"(§5 2번)를 dirty보다 먼저 본다 → 그 이동이 다시 막힌다
 - 이미 막힌 blocker를 또 막으면 새 목적지로 덮어쓴다(`router.js`의 `navigate` 1852-1879행, 상태 전이표
   3008행이 blocked→blocked 허용). `blocker.state`는 그대로 `'blocked'`라 모달을 띄우는 effect가 다시

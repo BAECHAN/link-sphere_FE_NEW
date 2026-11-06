@@ -1,11 +1,11 @@
 import { useDeletePostMutation } from '@/entities/post/api/post.queries';
 
 import { TEXTS } from '@/shared/config/texts';
-import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
+import { useAlertDialog } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
 
 export function usePostDelete() {
   const { mutateAsync: deletePost, isPending: isDeleting } = useDeletePostMutation();
-  const { openConfirm } = useAlert();
+  const { openConfirm } = useAlertDialog();
 
   const handleDeleteClick = (postId: string, options?: { onSuccess?: () => void }) => {
     openConfirm({

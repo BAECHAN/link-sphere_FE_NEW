@@ -1,14 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MemoryRouter } from 'react-router-dom';
-import { GlobalAlerts } from '@/shared/ui/elements/dialog/alert/Alert';
-import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
+import { GlobalAlertDialogs } from '@/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs';
+import { useAlertDialog } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
 import { Button } from '@/shared/ui/atoms/button';
 
 const meta = {
-  title: 'Shared/UI/Elements/Dialog/Alert',
-  component: GlobalAlerts,
+  title: 'Shared/UI/Elements/Dialog/AlertDialog/GlobalAlertDialogs',
+  component: GlobalAlertDialogs,
   tags: ['autodocs'],
-  // Alert가 마운트 즉시 useLocation()을 호출한다 - <Router> 조상 없이는 렌더 자체가
+  // AlertDialogItem이 마운트 즉시 useLocation()을 호출한다 - <Router> 조상 없이는 렌더 자체가
   // 크래시한다(ImageViewer.stories.tsx와 동일한 문제, 같은 해법).
   decorators: [
     (Story) => (
@@ -17,17 +17,17 @@ const meta = {
       </MemoryRouter>
     ),
   ],
-} satisfies Meta<typeof GlobalAlerts>;
+} satisfies Meta<typeof GlobalAlertDialogs>;
 
 /* eslint-disable import/no-default-export */
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 function AlertDemo() {
-  const { openAlert } = useAlert();
+  const { openAlert } = useAlertDialog();
   return (
     <div className="flex flex-col gap-3">
-      <GlobalAlerts />
+      <GlobalAlertDialogs />
       <Button
         variant="outline"
         onClick={() =>
@@ -61,10 +61,10 @@ export const Default: Story = {
 // 상태다. emphasis: 'confirm'으로 확인이 채움·오른쪽·초기 포커스를 받는다
 // (usePostDelete.ts 등 실사용례, docs/DECISIONS.md 2026-09-29 팔로업 3).
 function ConfirmDemo() {
-  const { openConfirm } = useAlert();
+  const { openConfirm } = useAlertDialog();
   return (
     <div className="flex flex-col gap-3">
-      <GlobalAlerts />
+      <GlobalAlertDialogs />
       <Button
         variant="outline"
         onClick={() =>
@@ -90,10 +90,10 @@ export const Confirm: Story = {
 // 기본값('cancel') 데모 — 사용자가 의도치 않은 동작(뒤로가기 등)에 끼어드는 확인창이라
 // 안전한 쪽(머무르기)이 채움·오른쪽·초기 포커스를 받는다(useUnsavedChangesGuard.ts 실사용례).
 function ConfirmDefaultEmphasisDemo() {
-  const { openConfirm } = useAlert();
+  const { openConfirm } = useAlertDialog();
   return (
     <div className="flex flex-col gap-3">
-      <GlobalAlerts />
+      <GlobalAlertDialogs />
       <Button
         variant="outline"
         onClick={() =>
@@ -115,11 +115,11 @@ export const ConfirmDefaultEmphasis: Story = {
   render: () => <ConfirmDefaultEmphasisDemo />,
 };
 
-function MultipleAlertsDemo() {
-  const { openAlert, openConfirm } = useAlert();
+function MultipleAlertDialogsDemo() {
+  const { openAlert, openConfirm } = useAlertDialog();
   return (
     <div className="flex flex-wrap gap-3">
-      <GlobalAlerts />
+      <GlobalAlertDialogs />
       <Button variant="outline" onClick={() => openAlert({ message: '첫 번째 알림' })}>
         Alert 1
       </Button>
@@ -141,6 +141,6 @@ function MultipleAlertsDemo() {
   );
 }
 
-export const MultipleAlerts: Story = {
-  render: () => <MultipleAlertsDemo />,
+export const MultipleAlertDialogs: Story = {
+  render: () => <MultipleAlertDialogsDemo />,
 };

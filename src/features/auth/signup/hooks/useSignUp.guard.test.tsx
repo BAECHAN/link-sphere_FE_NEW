@@ -16,8 +16,8 @@ import { RouterEvents } from '@/shared/lib/router/router-events';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
-import { useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
-import { GlobalAlerts } from '@/shared/ui/elements/dialog/alert/Alert';
+import { useAlertDialogStore } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
+import { GlobalAlertDialogs } from '@/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs';
 import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard';
 import { SignUpForm } from '@/features/auth/signup/ui/SignUpForm';
 
@@ -39,7 +39,7 @@ function GuardLayout() {
   return (
     <>
       <Outlet />
-      <GlobalAlerts />
+      <GlobalAlertDialogs />
     </>
   );
 }
@@ -221,7 +221,7 @@ async function clickToastAction(
 describe('useSignUp - 가입 요청 중 이탈', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
-    useAlertStore.setState({ alerts: [] });
+    useAlertDialogStore.setState({ dialogs: [] });
     useUnsavedChangesStore.setState({ dirtyKeys: new Set(), pendingSubmits: new Map() });
     // 회원가입은 비로그인 화면이다(GuestGuard)
     useAuthStore.getState().clearAuth();

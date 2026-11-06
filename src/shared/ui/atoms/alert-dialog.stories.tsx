@@ -22,7 +22,7 @@ type Story = StoryObj<typeof meta>;
 
 /**
  * role="alertdialog" — 응답이 필요한 확인창 전용. 바깥(오버레이) 클릭으로는 닫히지 않고
- * ESC·닫기 버튼으로 닫힌다. 앱에서는 전역 확인창(`Alert.tsx`)이 이 atom을 쓴다
+ * ESC·닫기 버튼으로 닫힌다. 앱에서는 전역 확인창(`GlobalAlertDialogs.tsx`)이 이 atom을 쓴다
  * (docs/DECISIONS.md 2026-09-30).
  */
 export const Default: Story = {

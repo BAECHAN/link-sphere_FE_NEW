@@ -16,8 +16,8 @@ import { RouterEvents } from '@/shared/lib/router/router-events';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
-import { useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
-import { GlobalAlerts } from '@/shared/ui/elements/dialog/alert/Alert';
+import { useAlertDialogStore } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
+import { GlobalAlertDialogs } from '@/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs';
 import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { useUpdatePost } from '@/features/post/update/hooks/useUpdatePost';
@@ -38,7 +38,7 @@ function GuardLayout() {
   return (
     <>
       <Outlet />
-      <GlobalAlerts />
+      <GlobalAlertDialogs />
     </>
   );
 }
@@ -237,7 +237,7 @@ async function leaveThenRespond(
 describe('useUpdatePost - 저장 중 이탈', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
-    useAlertStore.setState({ alerts: [] });
+    useAlertDialogStore.setState({ dialogs: [] });
     useUnsavedChangesStore.setState({ dirtyKeys: new Set(), pendingSubmits: new Map() });
     useAuthStore.getState().setAuth('test-access-token');
   });

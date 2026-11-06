@@ -93,12 +93,12 @@ export function use<FeatureName>() {
 
 ```typescript
 import { useDelete<Entity>Mutation } from '@/entities/<entity>/api/<entity>.queries';
-import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
+import { useAlertDialog } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
 import { TEXTS } from '@/shared/config/texts';
 
 export function use<FeatureName>() {
   const { mutateAsync: delete<Entity>, isPending: isDeleting } = useDelete<Entity>Mutation();
-  const { openConfirm } = useAlert();
+  const { openConfirm } = useAlertDialog();
 
   const onDelete = (id: string, options?: { onSuccess?: () => void }) => {
     openConfirm({

@@ -4,13 +4,16 @@ import { Outlet, RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { clearUnsavedChanges, useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
-import { getOpenAlertId, useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
-import { GlobalAlerts } from '@/shared/ui/elements/dialog/alert/Alert';
+import {
+  getOpenAlertDialogId,
+  useAlertDialogStore,
+} from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
+import { GlobalAlertDialogs } from '@/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { TEXTS } from '@/shared/config/texts';
 
 // useBlocker는 데이터 라우터에서만 동작한다 - renderWithProviders(MemoryRouter) 대신
-// createMemoryRouter로 앱(RootLayout)처럼 가드와 GlobalAlerts를 함께 띄운다.
+// createMemoryRouter로 앱(RootLayout)처럼 가드와 GlobalAlertDialogs를 함께 띄운다.
 
 function GuardLayout() {
   useUnsavedChangesGuard();
@@ -18,7 +21,7 @@ function GuardLayout() {
   return (
     <>
       <Outlet />
-      <GlobalAlerts />
+      <GlobalAlertDialogs />
     </>
   );
 }
@@ -51,7 +54,7 @@ function renderGuard() {
 
 describe('useUnsavedChangesGuard', () => {
   beforeEach(() => {
-    useAlertStore.setState({ alerts: [] });
+    useAlertDialogStore.setState({ dialogs: [] });
     useUnsavedChangesStore.setState({ dirtyKeys: new Set(), pendingSubmits: new Map() });
     useAuthStore.getState().setAuth('test-access-token');
   });
@@ -99,7 +102,7 @@ describe('useUnsavedChangesGuard', () => {
     // 실패한 경우처럼 입력(dirty)은 그대로인 채 응답만 왔다
     markSettled();
 
-    expect(getOpenAlertId()).toBeNull();
+    expect(getOpenAlertDialogId()).toBeNull();
     expect(router.state.location.pathname).toBe('/form');
 
     // 이제 응답을 기다리지 않으니 다시 떠나려 하면 평소 확인창이 뜬다
@@ -124,7 +127,7 @@ describe('useUnsavedChangesGuard', () => {
     markPending();
     markSettled();
 
-    expect(getOpenAlertId()).not.toBeNull();
+    expect(getOpenAlertDialogId()).not.toBeNull();
     expect(router.state.location.pathname).toBe('/form');
   });
 
@@ -144,13 +147,13 @@ describe('useUnsavedChangesGuard', () => {
       clearUnsavedChanges('form-a');
     });
 
-    expect(getOpenAlertId()).not.toBeNull();
+    expect(getOpenAlertDialogId()).not.toBeNull();
 
     act(() => {
       clearUnsavedChanges('form-b');
     });
 
-    expect(getOpenAlertId()).toBeNull();
+    expect(getOpenAlertDialogId()).toBeNull();
     expect(router.state.location.pathname).toBe('/form');
 
     // 막혔던 이동이 취소(reset)됐으니 다시 이동하면 그대로 통과한다
@@ -165,7 +168,7 @@ describe('useUnsavedChangesGuard', () => {
 
 describe('useUnsavedChangesGuard — 로그인이 풀린 상태', () => {
   beforeEach(() => {
-    useAlertStore.setState({ alerts: [] });
+    useAlertDialogStore.setState({ dialogs: [] });
     useUnsavedChangesStore.setState({ dirtyKeys: new Set(), pendingSubmits: new Map() });
   });
 
@@ -192,6 +195,6 @@ describe('useUnsavedChangesGuard — 로그인이 풀린 상태', () => {
     });
 
     expect(router.state.location.pathname).toBe('/other');
-    expect(getOpenAlertId()).toBeNull();
+    expect(getOpenAlertDialogId()).toBeNull();
   });
 });

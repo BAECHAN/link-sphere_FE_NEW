@@ -62,7 +62,7 @@ Rules for applying fixes:
 
 - **Minimal change**: fix only what is broken, do not refactor surrounding code
 - **Respect layers**: do NOT move API calls into hooks, do NOT put logic in UI components
-- **Never**: use native `confirm()` — always `useAlert` + `openConfirm`
+- **Never**: use native `confirm()` — always `useAlertDialog` + `openConfirm`
 - **Never**: add inline string literals — always use `TEXTS.*`
 - **Never**: add inline query keys — always use `<entity>Keys.*`
 - **Never**: add `any` types to satisfy TypeScript

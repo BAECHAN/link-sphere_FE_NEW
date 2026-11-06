@@ -132,7 +132,7 @@ describe('AlertDialogContent', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  // 실제 사용처(GlobalAlerts)는 알럿마다 새로 마운트하지만, dialog.tsx와 같은 구조로 가드
+  // 실제 사용처(GlobalAlertDialogs)는 확인창마다 새로 마운트하지만, dialog.tsx와 같은 구조로 가드
   // 시계가 "마운트"가 아니라 "열린 시점"에서 시작하는지 확인한다(dialog.test.tsx 선례).
   it('닫힌 채 마운트됐다가 나중에 열려도 열린 직후 내부 클릭은 무시한다', async () => {
     const onConfirm = vi.fn();

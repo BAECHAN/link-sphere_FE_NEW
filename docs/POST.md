@@ -83,7 +83,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - 이 레포의 3계층 API 규칙(`*.api.ts` → `*.keys.ts` → `*.queries.ts`)과 크로스 엔티티 무효화 →
   [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §5
 - 위젯 훅이 조회를 조합하는 방식 → 같은 문서 §8
-- 확인창 + 삭제(`useAlert().openConfirm`) → 같은 문서 §10
+- 확인창 + 삭제(`useAlertDialog().openConfirm`) → 같은 문서 §10
 - 낙관적 업데이트 순서(`onMutate` → `cancelQueries` → `setQueryData` → 롤백) → 같은 문서 §11
 - 비로그인 사용자의 좋아요를 로그인 유도로 바꾸는 `useAuthGuard`, 미인증 이메일의 글쓰기
   차단 → [`AUTH.md`](./AUTH.md) 게이트 C·D(§1에선 "문지기"라 부른다)

@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { AlertData, useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
+import {
+  AlertDialogData,
+  useAlertDialogStore,
+} from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
 import { useShallow } from 'zustand/react/shallow';
 import {
   AlertDialog,
@@ -14,16 +17,16 @@ import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 
-interface AlertProps {
-  alert: AlertData;
+interface AlertDialogItemProps {
+  dialog: AlertDialogData;
 }
 
-function Alert({ alert }: AlertProps) {
-  const { close, remove, cancelAlert } = useAlertStore(
+function AlertDialogItem({ dialog }: AlertDialogItemProps) {
+  const { close, remove, cancelAlertDialog } = useAlertDialogStore(
     useShallow((state) => ({
       close: state.close,
       remove: state.remove,
-      cancelAlert: state.cancelAlert,
+      cancelAlertDialog: state.cancelAlertDialog,
     }))
   );
 
@@ -42,23 +45,23 @@ function Alert({ alert }: AlertProps) {
     type,
     isOpen,
     emphasis = 'cancel',
-  } = alert;
+  } = dialog;
 
   const handleConfirm = () => {
     // close()를 onConfirm()보다 먼저 호출한다 - onConfirm이 동기적으로 같은 pathname
     // 네비게이션을 트리거하는 경우(예: 폴더 삭제의 onBeforeDelete), 순서가 반대면 그
-    // 네비게이션이 "아직 안 닫힌 이 알럿" 때문에 useUnsavedChangesGuard에 막혔다가,
-    // 막힌 걸 정리하는 이펙트가 실행되는 시점엔 이미 알럿이 닫혀 있어 "열린 알럿 때문에
+    // 네비게이션이 "아직 안 닫힌 이 확인창" 때문에 useUnsavedChangesGuard에 막혔다가,
+    // 막힌 걸 정리하는 이펙트가 실행되는 시점엔 이미 확인창이 닫혀 있어 "열린 확인창 때문에
     // 막혔다"는 분기를 못 타고 엉뚱한 "저장하지 않은 변경사항" 확인창을 새로 띄워버린다
     // (실측: 폴더 삭제 시 확인 버튼을 눌러도 즉시 반영되지 않고 이 확인창이 한 번 더 떴다).
     close(id);
-    alert.onConfirm?.();
+    dialog.onConfirm?.();
     setTimeout(() => remove(id), 300);
   };
 
   // 취소 버튼 클릭과 오버레이 바깥에서의 취소(뒤로가기 등)가 같은 동작이라 스토어 액션 하나로 합친다.
-  const handleCancel = () => cancelAlert(id);
-  const handleClose = () => cancelAlert(id);
+  const handleCancel = () => cancelAlertDialog(id);
+  const handleClose = () => cancelAlertDialog(id);
 
   // 강조되는 쪽(emphasis)이 채움 + emphasizedButtonRef(초기 포커스)를 갖고, 렌더 순서에서도
   // 항상 오른쪽(뒤)에 온다. 두 버튼을 미리 만들어두고 emphasis에 따라 순서만 바꿔 끼운다.
@@ -163,13 +166,13 @@ function Alert({ alert }: AlertProps) {
  * 전역 Alert/Confirm 모달 렌더러
  * App 최상위에 배치하여 사용합니다.
  */
-export function GlobalAlerts() {
-  const alerts = useAlertStore((state) => state.alerts);
+export function GlobalAlertDialogs() {
+  const dialogs = useAlertDialogStore((state) => state.dialogs);
 
   return (
     <>
-      {alerts.map((alert) => (
-        <Alert key={alert.id} alert={alert} />
+      {dialogs.map((dialog) => (
+        <AlertDialogItem key={dialog.id} dialog={dialog} />
       ))}
     </>
   );

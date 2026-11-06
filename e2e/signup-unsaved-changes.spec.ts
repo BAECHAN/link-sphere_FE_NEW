@@ -14,7 +14,7 @@ import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 const VALID_PASSWORD = 'TestPass1!';
 
 // useUnsavedChangesGuard.ts — 회원가입(`/auth/sign-up`)은 GuestGuard 아래라 방문자가 항상
-// 비로그인이다. useUnsavedChangesGuard.ts:8-12(isGuestOnlyPage)가 로그인·회원가입 페이지를
+// 비로그인이다. useUnsavedChangesGuard.ts:18-20(isGuestOnlyPage)가 로그인·회원가입 페이지를
 // 비로그인 예외에서 빼기 전에는 이 페이지에서 가드가 전혀 동작하지 않았다 — 이 파일은 그
 // 예외 처리를 검증한다. e2e/unsaved-changes.spec.ts(로그인 상태의 댓글/게시글 폼)와 별개로,
 // e2e/signup.spec.ts(회원가입 성공/실패 흐름 자체)와도 겹치지 않게 분리했다.

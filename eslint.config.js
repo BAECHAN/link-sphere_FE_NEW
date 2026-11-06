@@ -1007,7 +1007,7 @@ export default [
 
               // src/<layer>/<...dirs>/<Name>.stories.tsx → <Layer>/<...Dirs>/<Name>
               // - shared 밖의 ui 세그먼트와 _ 접두사(내부 전용) 폴더는 생략
-              // - 마지막 폴더명이 컴포넌트명과 같으면 중복이라 생략(dialog/alert/Alert → Dialog/Alert)
+              // - 마지막 폴더명이 컴포넌트명과 같으면 중복이라 생략(dialog/image-viewer/ImageViewer → Dialog/ImageViewer)
               function computeExpectedTitle(filename) {
                 const relative = filename.replace(/\\/g, '/').split('/src/').pop();
                 const parts = relative.split('/');
