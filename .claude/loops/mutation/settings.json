@@ -1,0 +1,26 @@
+{
+  "disableAllHooks": true,
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
+    "autoAllowBashIfSandboxed": false,
+    "filesystem": {
+      "denyRead": [
+        "~/.ssh",
+        "~/.aws",
+        "~/.config/gh",
+        "~/project/link-sphere",
+        "~/.pgpass",
+        "~/.netrc"
+      ]
+    },
+    "network": {
+      "allowedDomains": []
+    }
+  },
+  "permissions": {
+    "allow": ["Bash(pnpm exec vitest run *)", "Bash(pnpm exec eslint *)", "Bash(pnpm type-check)"],
+    "deny": ["WebFetch", "WebSearch", "Agent", "Bash(git *)", "Bash(gh *)"]
+  }
+}

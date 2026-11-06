@@ -1,0 +1,32 @@
+; 뮤테이션 루프가 에이전트가 쓴 테스트를 실행할 때 쓰는 Seatbelt 프로필(docs/plans/2026-11-06-mutation-loop.md).
+; 실행: sandbox-exec -f verify.sb -D WORKDIR=<클론> -D HOME=<홈> <명령>
+(version 1)
+(allow default)
+
+; 밖으로 못 나간다. 테스트 도구가 쓰는 localhost만 둔다. DNS 소켓(mDNSResponder)도 열지 않는다 —
+; 열어 두면 외부 이름이 풀려 질의에 값을 실어 내보낼 수 있다(직접 측정 2026-11-06, 문서 docs/TESTING.md).
+(deny network-outbound)
+(allow network-outbound (remote ip "localhost:*"))
+
+; 비밀 파일과 원본 레포(.env 등)를 읽지 못한다.
+(deny file-read*
+  (subpath (string-append (param "HOME") "/.ssh"))
+  (subpath (string-append (param "HOME") "/.aws"))
+  (subpath (string-append (param "HOME") "/.config/gh"))
+  (subpath (string-append (param "HOME") "/project/link-sphere"))
+  (literal (string-append (param "HOME") "/.pgpass"))
+  (literal (string-append (param "HOME") "/.netrc")))
+
+; 쓰기는 클론과 임시 폴더만.
+(deny file-write*)
+(allow file-write*
+  (subpath (param "WORKDIR"))
+  (subpath "/private/tmp")
+  (subpath "/private/var/folders")
+  (subpath "/dev"))
+
+; 클론 안이어도 .git·.claude는 막는다. 래퍼의 git과 claude가 이 프로필 밖에서 읽기 때문이다
+; (.git/config의 core.fsmonitor 같은 값은 git이 그대로 실행한다).
+(deny file-write*
+  (subpath (string-append (param "WORKDIR") "/.git"))
+  (subpath (string-append (param "WORKDIR") "/.claude")))
