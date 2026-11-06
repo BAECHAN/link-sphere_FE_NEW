@@ -7,7 +7,7 @@
 > **읽고 나면**: `pnpm check`가 실제로 어느 시점에 도는지, ignore 패턴을 추가하거나
 > PR 게이트에 스텝을 더할 때 어디를 고치면 되는지 안다.
 >
-> **마지막 검토**: 2026-11-02
+> **마지막 검토**: 2026-11-06
 
 ## 1. 쉬운 설명
 
@@ -424,7 +424,7 @@ install`/`npm run build`로 표기돼 있지만 실제는 pnpm, `package-lock.js
   재발 가능
 - ~~근본 해법(예: 배포 실패를 Slack/이슈로 알림)은 아직 없음~~ → 2026-09-20
   `notify-failure` job으로 해결. `if: failure()`라서 배포 반영 검증 스텝뿐 아니라
-  `deploy` job의 어느 스텝이든(type-check·lint·test·build·S3 업로드 등) 실패하면
+  `verify`·`deploy` job의 어느 스텝이든(type-check·lint·test·build·S3 업로드 등) 실패하면
   GitHub 이슈를 자동 생성한다. 반대로 배포가 성공하면 `close-resolved-failures` job(#342)이
   열려 있는 "배포 실패: " 이슈를 자동으로 닫는다. 자세한 배경은
   [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고
