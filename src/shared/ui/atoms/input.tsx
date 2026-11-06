@@ -1,6 +1,7 @@
 import { forwardRef, useRef } from 'react';
 
 import { cn } from '@/shared/lib/tailwind/utils';
+import { TEXTS } from '@/shared/config/texts';
 import { Button } from '@/shared/ui/atoms/button';
 import { useMergedRef } from '@/shared/hooks/useMergedRef';
 
@@ -51,7 +52,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full text-muted-foreground hover:text-foreground"
           >
             <X className="size-4" />
-            <span className="sr-only">Clear</span>
+            <span className="sr-only">{TEXTS.ariaLabels.inputClear}</span>
           </Button>
         )}
       </>

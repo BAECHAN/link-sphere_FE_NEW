@@ -123,7 +123,9 @@ function AlertDialogItem({ dialog }: AlertDialogItemProps) {
           {title ? (
             <AlertDialogTitle>{title}</AlertDialogTitle>
           ) : (
-            <AlertDialogTitle className="sr-only">Alert</AlertDialogTitle>
+            <AlertDialogTitle className="sr-only">
+              {TEXTS.ariaLabels.alertDialogFallbackTitle}
+            </AlertDialogTitle>
           )}
           <AlertDialogDescription
             className={cn('text-center text-foreground font-medium', !title && 'pt-4')}

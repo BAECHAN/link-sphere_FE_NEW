@@ -197,6 +197,13 @@
 
 ### Fixed
 
+- `shared` 영어로 읽히던 접근성 문구를 한국어로 바꾸고 린트로 막음
+  <details><summary>배경·구현</summary>
+
+  비밀번호 보기, 맨 위로, 로딩 표시, 창 닫기, 입력값 지우기, 공유, 제목 없는 확인창의 이름이 한국어 화면에서 영어로 읽혔다. `TEXTS` 키로 옮기고, `aria-label`이 우선해 읽히지 않던 북마크 버튼의 `Bookmark` 글자는 지웠다. 화면 모습은 그대로다. `no-hardcoded-hangul`은 한글만 봐서 영어 문구가 통과했으므로, 글자를 직접 적은 `aria-label`과 `sr-only` 요소 안 글자를 언어와 상관없이 막는 `custom-i18n/no-literal-a11y-name`을 더했다. (`src/shared/config/texts.ts`, `src/shared/ui/atoms/{spinner,input,dialog,alert-dialog}.tsx`, `src/shared/ui/elements/{PasswordInput,BackToTopButton}.tsx`, `src/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs.tsx`, `src/widgets/post/post-card/ui/PostCard.tsx`, `src/features/bookmark/toggle/ui/BookmarkPostButton.tsx`, `scripts/lib/no-literal-a11y-name-rule.js`(신규), `eslint.config.js`, `docs/FE-ARCHITECTURE.md`, `.claude/CLAUDE.md`, `.claude/skills/texts-conventions/SKILL.md`, [PR #561](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/561))
+
+  </details>
+
 - `shared` 버튼 이름을 실제 동작으로 바꿔 상태와 수까지 읽히게 함
   <details><summary>배경·구현</summary>
 

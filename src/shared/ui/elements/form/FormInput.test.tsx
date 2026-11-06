@@ -6,6 +6,7 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { renderWithProviders } from '@/test/utils';
+import { TEXTS } from '@/shared/config/texts';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
 
 // FormInput은 자체 useForm 없이 useFormContext로만 동작하므로, 실제 폼을 흉내 낸
@@ -132,16 +133,20 @@ describe('FormInput', () => {
       renderWithProviders(<SubmitHarness enableClear />);
       const input = screen.getByRole('textbox', { name: 'URL' });
 
-      expect(screen.queryByRole('button', { name: 'Clear' })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: TEXTS.ariaLabels.inputClear })
+      ).not.toBeInTheDocument();
 
       await user.type(input, 'abc');
       expect(screen.getByTestId('dirty')).toHaveTextContent('true');
 
-      await user.click(screen.getByRole('button', { name: 'Clear' }));
+      await user.click(screen.getByRole('button', { name: TEXTS.ariaLabels.inputClear }));
 
       expect(input).toHaveValue('');
       expect(screen.getByTestId('dirty')).toHaveTextContent('false');
-      expect(screen.queryByRole('button', { name: 'Clear' })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: TEXTS.ariaLabels.inputClear })
+      ).not.toBeInTheDocument();
     });
 
     it('여러 글자를 입력해도 빈칸에서 값이 생길 때 한 번만 다시 커밋된다', async () => {
@@ -162,7 +167,7 @@ describe('FormInput', () => {
       const input = screen.getByRole('textbox', { name: 'URL' });
 
       await user.type(input, 'abc');
-      await user.click(screen.getByRole('button', { name: 'Clear' }));
+      await user.click(screen.getByRole('button', { name: TEXTS.ariaLabels.inputClear }));
 
       expect(input).toHaveValue('');
       expect(screen.queryByText('required')).not.toBeInTheDocument();
@@ -176,7 +181,7 @@ describe('FormInput', () => {
       await user.click(screen.getByRole('button', { name: 'submit' }));
       expect(screen.queryByText('required')).not.toBeInTheDocument();
 
-      await user.click(screen.getByRole('button', { name: 'Clear' }));
+      await user.click(screen.getByRole('button', { name: TEXTS.ariaLabels.inputClear }));
 
       expect(await screen.findByText('required')).toBeInTheDocument();
     });
