@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Pencil, Trash } from 'lucide-react';
-import { HoverKebabMenu } from '@/shared/ui/elements/HoverKebabMenu';
+import { KebabMenu } from '@/shared/ui/elements/KebabMenu';
 import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';
 
 const meta = {
-  title: 'Shared/UI/Elements/HoverKebabMenu',
-  component: HoverKebabMenu,
+  title: 'Shared/UI/Elements/KebabMenu',
+  component: KebabMenu,
   tags: ['autodocs'],
   argTypes: {
     hoverReveal: { control: 'boolean' },
@@ -27,7 +27,7 @@ const meta = {
       </>
     ),
   },
-} satisfies Meta<typeof HoverKebabMenu>;
+} satisfies Meta<typeof KebabMenu>;
 
 /* eslint-disable import/no-default-export */
 export default meta;

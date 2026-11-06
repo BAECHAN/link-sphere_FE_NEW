@@ -4,7 +4,7 @@ import { Divider } from '@/shared/ui/atoms/divider';
 import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';
-import { HoverKebabMenu } from '@/shared/ui/elements/HoverKebabMenu';
+import { KebabMenu } from '@/shared/ui/elements/KebabMenu';
 import { CharacterCount } from '@/shared/ui/elements/CharacterCount';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
@@ -321,7 +321,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
         <span className="text-xs text-muted-foreground">{folder.bookmarkCount}</span>
       </Button>
 
-      <HoverKebabMenu
+      <KebabMenu
         aria-label={TEXTS.ariaLabels.folderMenu}
         hoverReveal
         triggerClassName="size-11 md:pointer-fine:size-9"
@@ -334,7 +334,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
         <DropdownMenuItem onClick={handleDelete} className="text-destructive">
           {TEXTS.buttons.delete}
         </DropdownMenuItem>
-      </HoverKebabMenu>
+      </KebabMenu>
     </div>
   );
 }

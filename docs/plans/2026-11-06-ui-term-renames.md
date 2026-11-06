@@ -17,6 +17,10 @@
 - 이탈·미구현·계획에 없던 변경 없음
 - 확인만 함: 나머지 `ToggleButton` 6곳 중 `LikeCommentButton`·`Sidebar` 햄버거·`Navbar` 테마 버튼은 상태를 보조 기술에 전달하지 않는다. 승인 범위가 `FilterChip`뿐이라 고치지 않았다
 
+> #554 · 2026-11-06 대조(Phase 3) · 이탈 0 · 미구현 0 — 판정 근거(파일:줄)는 PR 본문 "계획 대비 구현"
+
+- 계획에 없던 변경(문서 동기화): `DESIGN-SYSTEM.md` 용어집 Kebab menu 행의 코드 이름을 `KebabMenu`로 갱신, `FE-ARCHITECTURE.md` 트리 설명에서 새 이름과 맞지 않게 된 "이름과 달리" 문구 삭제, 고친 문서 2개의 마지막 검토 날짜 갱신
+
 <!-- plan-result:end -->
 
 > "누를 수 있으면 Chip, 못 누르면 Badge"를 규칙으로 정하고, 업계 뜻과 실제 동작이 다른 이름을 바꾼다.

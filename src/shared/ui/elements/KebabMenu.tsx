@@ -8,7 +8,7 @@ import {
 } from '@/shared/ui/atoms/dropdown-menu';
 import { cn } from '@/shared/lib/tailwind/utils';
 
-export interface HoverKebabMenuProps {
+export interface KebabMenuProps {
   'aria-label': string;
   children: ReactNode;
   /** 메뉴 항목 안 `DropdownMenuContent`에 붙는 클래스 */
@@ -31,7 +31,7 @@ export interface HoverKebabMenuProps {
  * DropdownMenu)을 통합했다(2026-09-29, docs/DECISIONS.md 참고). 메뉴 항목(수정·삭제·
  * 이름변경 등)은 도메인마다 달라 여기서 정의하지 않고 children으로 호출부가 채운다.
  */
-export function HoverKebabMenu({
+export function KebabMenu({
   'aria-label': ariaLabel,
   children,
   className,
@@ -40,7 +40,7 @@ export function HoverKebabMenu({
   open,
   onOpenChange,
   onCloseAutoFocus,
-}: HoverKebabMenuProps) {
+}: KebabMenuProps) {
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>

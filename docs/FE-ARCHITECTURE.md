@@ -152,9 +152,9 @@ src/
 │   │   └── layouts/              # AppShellLayout, ProtectedLayout, PublicLayout, RootLayout
 │   ├── layouts/
 │   │   └── app-layout/           # AppLayout — nav shell. app/routes/layouts/AppShellLayout.tsx가 감싸 렌더
-│   └── ui/                       # PostMutationLoadingToast — 계정 수정 뮤테이션 진행 상태
+│   └── ui/                       # AccountUpdateLoadingToast — 계정 수정 뮤테이션 진행 상태
 │                                 # 헤드리스 옵저버(App.tsx 최상단에 마운트. 2026-10-03부터 게시글
-│                                 # 등록·수정은 관찰하지 않아 이름과 달리 계정 수정만 본다)
+│                                 # 등록·수정은 관찰하지 않고 계정 수정만 본다)
 │
 ├── pages/                        # 라우팅 진입점 — widgets/features 조합. hooks/ 세그먼트만 허용
 │   ├── post/                     # index(Post), PostDetailPage, PostEditPage, PostSubmitPage
@@ -1070,10 +1070,10 @@ export const isLastPendingBookmarkMutation = (queryClient: QueryClient, postId: 
 
 ### 조회 로딩 vs mutation 진행 표시 — 비대칭 규약
 
-| 구분                                                               | 지연 게이트 | 최소 노출      | 하드 엣지 처리                                  |
-| ------------------------------------------------------------------ | ----------- | -------------- | ----------------------------------------------- |
-| **조회 로딩** (Suspense fallback, `isLoading` 분기)                | ✅          | ❌ 불가·불필요 | CSS 페이드인(`animate-in fade-in duration-200`) |
-| **mutation 진행 표시** (`usePostCard`, `PostMutationLoadingToast`) | ✅          | ✅             | — (표시 주체가 계속 마운트돼 있어 불필요)       |
+| 구분                                                                | 지연 게이트 | 최소 노출      | 하드 엣지 처리                                  |
+| ------------------------------------------------------------------- | ----------- | -------------- | ----------------------------------------------- |
+| **조회 로딩** (Suspense fallback, `isLoading` 분기)                 | ✅          | ❌ 불가·불필요 | CSS 페이드인(`animate-in fade-in duration-200`) |
+| **mutation 진행 표시** (`usePostCard`, `AccountUpdateLoadingToast`) | ✅          | ✅             | — (표시 주체가 계속 마운트돼 있어 불필요)       |
 
 **"Suspense fallback은 자기 노출을 연장할 수 없다"는 기술적 사실**: fallback의 수명은
 Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback이 스스로 노출을

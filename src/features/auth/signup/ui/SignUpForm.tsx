@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from '@/shared/ui/atoms/card';
 import { Button } from '@/shared/ui/atoms/button';
-import { IconBadge } from '@/shared/ui/atoms/icon-badge';
+import { FeaturedIcon } from '@/shared/ui/atoms/featured-icon';
 import { CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
@@ -56,7 +56,7 @@ export const SignUpForm = () => {
         <CardHeader className="text-center space-y-3">
           {isSubmitted ? (
             <>
-              <IconBadge icon={CheckCircle2} tone="success" className="mx-auto mb-1" />
+              <FeaturedIcon icon={CheckCircle2} tone="success" className="mx-auto mb-1" />
               <CardTitle>{TEXTS.auth.signup.checkEmailTitle}</CardTitle>
               <CardDescription>{TEXTS.auth.signup.checkEmailDescription}</CardDescription>
             </>
