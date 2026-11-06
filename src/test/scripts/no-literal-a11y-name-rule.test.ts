@@ -45,7 +45,17 @@ ruleTester.run('no-literal-a11y-name', noLiteralA11yNameRule, {
     // 이름이 아닌 속성
     '<span data-label="Loading" />',
     // 규칙 범위 밖임을 고정한다(규칙 머리 주석의 한계)
-    '<img alt="attachment" />',
+    '<button title="Close" />',
+    // alt는 값을 알 수 없거나 글자가 없으면 통과한다
+    '<img alt="" />',
+    '<img alt={post.title} />',
+    '<img alt={TEXTS.ariaLabels.attachmentImageAt(index + 1)} />',
+    "<img alt={nickname ?? ''} />",
+    // 객체의 alt: 도 마찬가지이고, 계산된 키·다른 키는 이미지 이름이 아니다
+    '({ src: url, alt: TEXTS.ariaLabels.attachmentImage });',
+    "({ src: url, alt: nickname ?? '' });",
+    "({ [alt]: 'attachment' });",
+    "({ src: 'attachment' });",
   ],
   invalid: [
     { code: '<span aria-label="Loading" />', errors: oneError },
@@ -70,5 +80,11 @@ ruleTester.run('no-literal-a11y-name', noLiteralA11yNameRule, {
     { code: '<span className="sr-only"><><b>{\'Close\'}</b></></span>', errors: oneError },
     { code: '<span className={`sr-only ${extra}`}>Close</span>', errors: oneError },
     { code: "<span className=\"sr-only\">{isOpen ? 'Hide' : 'Show'}</span>", errors: twoErrors },
+    { code: '<img alt="attachment" />', errors: oneError },
+    { code: '<img alt="첨부 이미지" />', errors: oneError },
+    { code: '<img alt={`Pasted preview ${index + 1}`} />', errors: oneError },
+    { code: "<img alt={isOpen ? 'Hide' : TEXTS.show} />", errors: oneError },
+    { code: "({ src: url, alt: 'attachment' });", errors: oneError },
+    { code: '({ src: url, alt: `Pasted preview ${index + 1}` });', errors: oneError },
   ],
 });

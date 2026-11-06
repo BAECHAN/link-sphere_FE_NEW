@@ -69,7 +69,7 @@ pre-commit(lint-staged)과 CI·배포의 `pnpm check`에서 차단한다(`pnpm b
 - `src/shared/utils/date.util.ts` — 날짜 로케일 포맷
 - `src/shared/utils/common.util.ts` — 숫자/통화 로케일 포맷
 
-`custom-i18n/no-literal-a11y-name`은 같은 예외 목록으로 화면 읽기 프로그램이 읽는 문구를 언어와 상관없이 막는다 — 글자를 직접 적은 `aria-label`과 `sr-only` 요소 안 글자(2026-11-06, 영어 문구 8곳이 `no-hardcoded-hangul`을 통과해 있었다). 새 문구는 `ariaLabels.*`에 키를 더한다. `empty:sr-only`처럼 어떤 때는 화면에 보이는 글자와 `alt`·`title`은 이 규칙이 보지 않는다.
+`custom-i18n/no-literal-a11y-name`은 같은 예외 목록으로 화면 읽기 프로그램이 읽는 문구를 언어와 상관없이 막는다 — 글자를 직접 적은 `aria-label`·`alt`(객체의 `alt:` 포함)와 `sr-only` 요소 안 글자(2026-11-06, 영어 문구 8곳과 `attachment`가 `no-hardcoded-hangul`을 통과해 있었다). 새 문구는 `ariaLabels.*`에 키를 더한다. `empty:sr-only`처럼 어떤 때는 화면에 보이는 글자와 `title`은 이 규칙이 보지 않는다.
 
 ### 톤 규칙
 

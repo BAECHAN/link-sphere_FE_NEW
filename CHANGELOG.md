@@ -197,6 +197,13 @@
 
 ### Fixed
 
+- `shared` 글 카드 댓글 링크와 첨부 이미지 이름을 바로잡음
+  <details><summary>배경·구현</summary>
+
+  글 카드의 댓글 수는 링크 안에 버튼이 있어 이름이 숫자뿐이었고(`link "15"`, `button "15"`) Tab이 두 번 멈췄다. HTML 표준은 `a` 안에 상호작용 요소를 금지한다. `Button asChild`로 합쳐 `댓글 15개`로 읽히고 Tab은 한 번만 멈춘다. 모바일에서는 링크의 줄 높이 여백이 사라져 좋아요·댓글 묶음이 31px에서 28px로 얇아지고 댓글 수가 좋아요 수와 같은 줄에 온다. 첨부 이미지의 영어 이름(확대 창의 `attachment`, 쓰기 칸의 `Pasted preview 1`)은 `첨부 이미지 1`로 바꿨고, 글자를 직접 적은 `alt`도 `custom-i18n/no-literal-a11y-name`이 막는다. 이미지 내용을 설명하지는 못한다 — 올린 사람이 쓴 설명이 없다. 실제 화면 읽기 프로그램으로는 확인하지 않았다. 계획은 [`docs/plans/2026-11-06-a11y-card-link-korean-labels.md`](docs/plans/2026-11-06-a11y-card-link-korean-labels.md) Phase 1. (`src/shared/config/texts.ts`, `src/widgets/post/post-card/ui/PostCard.tsx`, `src/shared/ui/elements/{MarkdownContent,ImageAttachmentField}.tsx`, `scripts/lib/no-literal-a11y-name-rule.js`, `docs/FE-ARCHITECTURE.md`, `docs/TESTING.md`, `.claude/CLAUDE.md`, `.claude/skills/texts-conventions/SKILL.md`, [PR #564](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/564))
+
+  </details>
+
 - `shared` 영어로 읽히던 접근성 문구를 한국어로 바꾸고 린트로 막음
   <details><summary>배경·구현</summary>
 

@@ -1,6 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { fireEvent } from '@testing-library/react';
 import { renderWithProviders } from '@/test/utils';
+import { TEXTS } from '@/shared/config/texts';
+import { NavigationService } from '@/shared/lib/router/navigation';
+import { useImageViewerStore } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 
 const STORAGE_URL = 'https://project.supabase.co/storage/v1/object/public/comments/a.png';
@@ -9,7 +12,7 @@ describe('MarkdownContent', () => {
   it('Supabase storage 이미지는 변환 URL로 렌더되고 정사각 자리가 예약된 래퍼 안에 있다', () => {
     const { getByRole } = renderWithProviders(<MarkdownContent content={STORAGE_URL} />);
 
-    const img = getByRole('img', { name: 'attachment' });
+    const img = getByRole('img', { name: TEXTS.ariaLabels.attachmentImage });
     expect(img.getAttribute('src')).toContain('/storage/v1/render/image/public/');
     expect(img.parentElement?.className).toContain('aspect-square');
   });
@@ -17,27 +20,30 @@ describe('MarkdownContent', () => {
   it('Supabase 이미지 변환이 실패하면 원본 주소로 다시 받는다', () => {
     const { getByRole } = renderWithProviders(<MarkdownContent content={STORAGE_URL} />);
 
-    fireEvent.error(getByRole('img', { name: 'attachment' }));
+    fireEvent.error(getByRole('img', { name: TEXTS.ariaLabels.attachmentImage }));
 
-    expect(getByRole('img', { name: 'attachment' })).toHaveAttribute('src', STORAGE_URL);
+    expect(getByRole('img', { name: TEXTS.ariaLabels.attachmentImage })).toHaveAttribute(
+      'src',
+      STORAGE_URL
+    );
   });
 
   it('변환이 실패한 뒤 본문의 이미지 주소가 바뀌면 새 주소는 다시 변환 주소부터 받는다', () => {
     const { getByRole, rerender } = renderWithProviders(<MarkdownContent content={STORAGE_URL} />);
-    fireEvent.error(getByRole('img', { name: 'attachment' }));
+    fireEvent.error(getByRole('img', { name: TEXTS.ariaLabels.attachmentImage }));
 
     rerender(<MarkdownContent content={STORAGE_URL.replace('a.png', 'b.png')} />);
 
-    expect(getByRole('img', { name: 'attachment' }).getAttribute('src')).toContain(
-      '/storage/v1/render/image/public/comments/b.png'
-    );
+    expect(
+      getByRole('img', { name: TEXTS.ariaLabels.attachmentImage }).getAttribute('src')
+    ).toContain('/storage/v1/render/image/public/comments/b.png');
   });
 
   it('blob: 미리보기는 원본 src 그대로, 자리 예약 래퍼 없이 렌더된다', () => {
     const blobUrl = 'blob:https://link-sphere.app/temp-preview';
     const { getByRole } = renderWithProviders(<MarkdownContent content={blobUrl} />);
 
-    const img = getByRole('img', { name: 'attachment' });
+    const img = getByRole('img', { name: TEXTS.ariaLabels.attachmentImage });
     expect(img).toHaveAttribute('src', blobUrl);
     expect(img.parentElement?.className).not.toContain('aspect-square');
     expect(img.className).toContain('max-h-60');
@@ -47,7 +53,7 @@ describe('MarkdownContent', () => {
     const externalUrl = 'https://example.com/photo.png';
     const { getByRole } = renderWithProviders(<MarkdownContent content={externalUrl} />);
 
-    const img = getByRole('img', { name: 'attachment' });
+    const img = getByRole('img', { name: TEXTS.ariaLabels.attachmentImage });
     expect(img).toHaveAttribute('src', externalUrl);
     expect(img.parentElement?.className).not.toContain('aspect-square');
     expect(img.className).toContain('max-h-60');
@@ -57,7 +63,24 @@ describe('MarkdownContent', () => {
     const svgUrl = 'https://project.supabase.co/storage/v1/object/public/comments/diagram.svg';
     const { getByRole } = renderWithProviders(<MarkdownContent content={svgUrl} />);
 
-    const img = getByRole('img', { name: 'attachment' });
+    const img = getByRole('img', { name: TEXTS.ariaLabels.attachmentImage });
     expect(img).toHaveAttribute('src', svgUrl);
+  });
+
+  it('확대 창에 넘기는 이미지는 이전·다음으로 넘겨도 구분되게 순번이 붙은 이름을 갖는다', () => {
+    const navigateSpy = vi.spyOn(NavigationService, 'navigate').mockImplementation(() => {});
+    const secondUrl = STORAGE_URL.replace('a.png', 'b.png');
+    const { getAllByRole } = renderWithProviders(
+      <MarkdownContent content={`${STORAGE_URL} ${secondUrl}`} />
+    );
+
+    fireEvent.click(getAllByRole('button', { name: TEXTS.ariaLabels.imageZoom })[1]!);
+
+    expect(useImageViewerStore.getState().images).toEqual([
+      { src: STORAGE_URL, alt: TEXTS.ariaLabels.attachmentImageAt(1) },
+      { src: secondUrl, alt: TEXTS.ariaLabels.attachmentImageAt(2) },
+    ]);
+    expect(useImageViewerStore.getState().currentIndex).toBe(1);
+    navigateSpy.mockRestore();
   });
 });

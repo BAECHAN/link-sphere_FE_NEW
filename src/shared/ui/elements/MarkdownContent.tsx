@@ -52,7 +52,7 @@ function AttachmentImage({ url, className }: { url: string; className: string })
   return (
     <img
       src={isTransformFailed ? url : transformedSrc}
-      alt="attachment"
+      alt={TEXTS.ariaLabels.attachmentImage}
       className={className}
       onError={() => {
         if (transformedSrc !== url) {
@@ -91,7 +91,10 @@ function renderInlineLinks(
   // renderInlineLinks는 훅을 쓸 수 없는 일반 함수라 히스토리 오버레이를
   // NavigationService로 직접 연다
   function openImageViewerFor(part: string) {
-    const images = imageUrls.map((url) => ({ src: url, alt: 'attachment' }));
+    const images = imageUrls.map((url, index) => ({
+      src: url,
+      alt: TEXTS.ariaLabels.attachmentImageAt(index + 1),
+    }));
     const startIndex = Math.max(imageUrls.indexOf(part), 0);
     useImageViewerStore.getState().setImages(images, startIndex);
     NavigationService.navigate(`${window.location.pathname}${window.location.search}`, {
