@@ -1,4 +1,7 @@
 ### 2026-11-06 (FE)
+- 필터 칩의 활성 상태 정보를 스크린 리더에서 인식할 수 있도록 접근성 개선 ([#553](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/553))
+
+### 2026-11-06 (FE)
 - ActionChip 컴포넌트 분리 및 UI 용어집 도입을 통한 코드 재사용성 및 유지보수성 향상 ([#552](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/552))
 
 ### 2026-11-05 (BE)
