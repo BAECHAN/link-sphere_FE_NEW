@@ -9,7 +9,7 @@
 > `#닉네임` 태그가 어떻게 분해되는지 이해하고, 검색 관련 동작(유지·초기화·오타 보정)을
 > 어느 파일에서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-11-03
+> **마지막 검토**: 2026-11-06
 
 ## 1. 쉬운 설명
 
@@ -17,7 +17,7 @@
 입력창은 그 원본을 보여주는 **거울**이다. 거울이 원본을 따라 움직이지, 거울을 직접 깨거나
 칠해도(타이핑·ESC로 비우기) 원본(주소)은 바뀌지 않는다. 단, 입력창의 X 버튼은 `/post`에서 거울과
 원본을 함께 지워 검색 자체를 해제한다(`useNavbarSearch`의 `handleClear`, #187).
-반대로 카테고리 칩을 클릭하거나 뒤로가기를 누르면 원본(주소)이 바뀌고, 거울(입력창)이 그
+반대로 필터 카드의 카테고리 칩을 클릭하거나 뒤로가기를 누르면 원본(주소)이 바뀌고, 거울(입력창)이 그
 변화를 뒤따라 비춘다. 최근 검색어를 고를 때는 거울도 그 값으로 직접 맞춘다 — 지운 뒤 지금 검색
 중인 검색어를 다시 고르면 원본이 그대로라 거울이 따라 움직이지 않기 때문이다(§10).
 
@@ -39,7 +39,7 @@ flowchart TD
 
   URL -->|"다른 페이지(예: /bookmark)"| Empty["헤더 입력창은 빈 값<br/>(북마크 자체 q와 혼동 방지)"]
 
-  ChipClick["카테고리 칩 클릭<br/>(PostListSearch.tsx)"] -->|"flushSync 낙관적 미러"| ChipUI["칩 즉시 활성화"]
+  ChipClick["필터 카드 카테고리 칩 클릭<br/>(PostListSearch.tsx)"] -->|"flushSync 낙관적 미러"| ChipUI["칩 즉시 활성화"]
   ChipClick --> Navigate2["toggleSearchTag(@라벨) → URL q 갱신<br/>(아직 반영 안 된 pending까지 포함해 계산)"]
   Navigate2 --> Mirror
   Navigate2 -->|"새 목록 응답이 0.5초 넘게 늦으면"| Applying["이전 목록을 흐리게 덮고<br/>'결과를 불러오는 중이에요.' 표시"]
@@ -107,7 +107,7 @@ flowchart LR
   Q -->|"렌더 중 동기화"| MobileNavbarSearch
   PostListSearch["PostListSearch<br/>(usePostListSearch)"] -->|"toggleSearchTag"| Q
   Q -->|"렌더 중 동기화"| PostListSearch
-  PostCard["PostCard 카테고리 배지<br/>(usePostCard.handleCategoryClick)"] -->|"q = @이름 (쓰기 전용)"| Q
+  PostCard["PostCard 카테고리 칩<br/>(usePostCard.handleCategoryClick)"] -->|"q = @이름 (쓰기 전용)"| Q
 ```
 
 **왜 헤더 입력창을 `PostListSearch`의 `flushSync` 낙관적 미러 경로에 끼워 넣지 않았나**:
@@ -160,7 +160,7 @@ history 항목의 `location.key`를 그대로 되돌려주므로, 커밋 전에 
 (`useSearchParamsDraft`) 칩 미러를 돌아간 URL로 맞춘다(`usePostListSearch`). raw `popstate`
 리스너는 [`docs/DECISIONS.md`](./DECISIONS.md) 뒤로가기 정책의 금지 사항이라 쓰지 않았다.
 
-**정지 구간이 길어지면 이전 목록을 흐리게 덮는다.** 칩·검색어·카드 배지로 조건을 바꾸면 주소는 바로
+**정지 구간이 길어지면 이전 목록을 흐리게 덮는다.** 필터 칩·검색어·카드 카테고리 칩으로 조건을 바꾸면 주소는 바로
 바뀌지만 목록은 응답이 올 때까지 이전 결과다. 그 사이를 사용자가 새 결과로 읽지 않도록,
 [`usePostListApplying`](../src/widgets/post/post-list/hooks/usePostList.ts)이 "적용 중"을 판정하고
 [`PostList.tsx`](../src/widgets/post/post-list/ui/PostList.tsx)가 덮개를 그린다.
@@ -181,13 +181,13 @@ history 항목의 `location.key`를 그대로 되돌려주므로, 커밋 전에 
 - 왜 목록 쪽(A2)을 골랐는지, 기각한 안(필터 카드 스피너 등)과 근거는
   [`docs/DECISIONS.md`](./DECISIONS.md) "2026-10-15" 항목.
 
-**게시글 카드의 카테고리 배지도 `q`에 쓰는 진입점이다(쓰기 전용).** 카드의 카테고리 배지를
+**게시글 카드의 카테고리 칩도 `q`에 쓰는 진입점이다(쓰기 전용).** 카드의 카테고리 칩을
 누르면 [`usePostCard.ts`](../src/widgets/post/post-card/hooks/usePostCard.ts)의
 `handleCategoryClick`이 검색어를 `@이름` 하나로 바꾼다. 경로 분기는 헤더의 `submitQuery`와
 같다 — `/post`에서는 `useSearchParamsDraft`로 `q`만 바꿔 범위 칩(`filter`)을 유지하고,
 북마크·상세 등 다른 페이지에서는 그 페이지의 파라미터를 옮기지 않고 `/post?q=@이름`으로
-이동한다. 배지는 URL을 읽지 않는다(선택 상태 표시 없음) — 적용 결과는 목록 필터 카드의
-칩이 URL에서 파생해 보여준다. 파서는 공백에서 태그를 끊으므로 공백이 든 카테고리 이름은 칩과
+이동한다. 카드 칩은 URL을 읽지 않는다(선택 상태 표시 없음) — 적용 결과는 목록 필터 카드의
+필터 칩이 URL에서 파생해 보여준다. 파서는 공백에서 태그를 끊으므로 공백이 든 카테고리 이름은 필터 칩과
 똑같이 깨지지만, 2026-09-30 운영 API(`GET /api/common/category-option`)로 확인한 8개(백엔드·
 프론트엔드·AI·디자인·DevOps·모바일·데이터·라이프스타일)에는 공백이 없다.
 
@@ -201,22 +201,23 @@ history 항목의 `location.key`를 그대로 되돌려주므로, 커밋 전에 
 `useWindowGridVirtualizer.ts`에 가드를 넣어 원인을 고치고 카드의 `scrollTo`는 지웠다
 ([`DECISIONS.md`](./DECISIONS.md) 2026-09-30 "URL이 바뀌면 맨 위로" 항목).
 
-카드의 배지는 칩처럼 **토글하지 않고 교체**한다(2026-09-30 사용자 결정):
+카드의 카테고리 칩은 필터 칩처럼 **토글하지 않고 교체**한다(2026-09-30 사용자 결정):
 
-| 안              | 피드에서 누르면                                                 | 채택 여부와 이유                                                                                                            |
-| --------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| 교체            | `q`를 `@이름` 하나로 바꿈(키워드·다른 태그 제거, `filter` 유지) | **채택.** 피드·북마크·상세 어디서 눌러도 "이 카테고리 글 보기" 한 가지 뜻이다                                               |
-| 칩과 동일(토글) | 기존 태그에 추가, 이미 있으면 해제                              | 기각. 이미 그 카테고리로 필터 중일 때 카드에서 누르면 필터가 **풀려**, 카드를 누르는 의도("이거 더 보기")와 반대로 동작한다 |
+| 안                   | 피드에서 누르면                                                 | 채택 여부와 이유                                                                                                            |
+| -------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 교체                 | `q`를 `@이름` 하나로 바꿈(키워드·다른 태그 제거, `filter` 유지) | **채택.** 피드·북마크·상세 어디서 눌러도 "이 카테고리 글 보기" 한 가지 뜻이다                                               |
+| 필터 칩과 동일(토글) | 기존 태그에 추가, 이미 있으면 해제                              | 기각. 이미 그 카테고리로 필터 중일 때 카드에서 누르면 필터가 **풀려**, 카드를 누르는 의도("이거 더 보기")와 반대로 동작한다 |
 
 태그 배지는 이 동작이 없다 — 누르면 카드 전체 클릭(stretched link)의 일부로 상세로 간다.
 자유 검색어는 BE에서 제목·설명·태그를 한꺼번에 부분 일치로 찾고 의미 검색까지 섞어서,
 태그를 검색으로 연결하면 "이 태그가 붙은 글"이 아닌 결과가 나오기 때문이다
 ([`docs/DECISIONS.md`](./DECISIONS.md) 2026-09-30 항목의 "후속으로 남긴 것").
 
-배지 모양(20px 높이)은 그대로 두고 버튼에 `py-0.5 -my-0.5`를 줘서 누르는 영역만 24px로
-넓혔다. [WCAG 2.2의 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)은
+칩 모양은 그대로 두고 버튼에 `py-0.5 -my-0.5`를 줘서 누르는 영역만 24px 이상으로 넓혔다(2026-11-06
+데스크톱 Chromium 직접 측정: 칩 높이 22px, 버튼 높이 26px).
+[WCAG 2.2의 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)은
 대상 크기를 _"최소 24×24 CSS 픽셀"_ (번역)로 요구하고, 겹치는 대상은 _"같은 동작을 하지 않으면
-겹친 영역을 측정에서 제외"_ (번역)한다 — 카드 전체가 상세 링크라서 배지는 간격 예외를 받을 수
+겹친 영역을 측정에서 제외"_ (번역)한다 — 카드 전체가 상세 링크라서 칩은 간격 예외를 받을 수
 없다. 음수 마진으로 레이아웃 기여분을 없애는 기법은 같은 파일의 소유자 액션 버튼에서 가져왔다.
 hover 표현은 제목과 같은 밑줄이다(3안 비교 후 사용자 선택:
 https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
@@ -284,7 +285,7 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 데스크톱 드롭다운 열림/닫힘 규칙(포커스·입력·blur) 바꾸기    | [`NavbarSearch.tsx:106-132`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L106-L132) — `handleChange`/`handleFocus`/`handleBlur`                                                                                                                                                                                                                                |
 | 데스크톱 드롭다운 키보드(ESC 2단계·화살표·Enter) 바꾸기      | [`NavbarSearch.tsx:169-299`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx#L169-L299) — `handleKeyDown`                                                                                                                                                                                                                                                          |
 | 드롭다운 목록 마크업(헤더 고정·행·삭제 버튼) 바꾸기          | [`RecentSearchDropdown.tsx`](../src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx)                                                                                                                                                                                                                                                                              |
-| 카드의 카테고리 배지를 눌렀을 때 동작 바꾸기                 | [`usePostCard.ts`](../src/widgets/post/post-card/hooks/usePostCard.ts) — `handleCategoryClick`, 배지 마크업은 [`PostCard.tsx:302`](../src/widgets/post/post-card/ui/PostCard.tsx#L302) 이하                                                                                                                                                                         |
+| 카드의 카테고리 칩을 눌렀을 때 동작 바꾸기                   | [`usePostCard.ts`](../src/widgets/post/post-card/hooks/usePostCard.ts) — `handleCategoryClick`, 칩 마크업은 [`ActionChip.tsx`](../src/shared/ui/elements/ActionChip.tsx), 쓰는 곳은 [`PostCard.tsx:303`](../src/widgets/post/post-card/ui/PostCard.tsx#L303) 이하                                                                                                   |
 | `@카테고리`/`#닉네임`/키워드 분해 규칙 바꾸기                | [`search-parser.ts`](../src/widgets/post/post-list/utils/search-parser.ts) — `parseSearchQuery`                                                                                                                                                                                                                                                                     |
 | 범위 칩(북마크한·좋아요한 등) 추가·순서·색 바꾸기            | [`PostListSearch.tsx:48-80`](../src/widgets/post/post-list/ui/PostListSearch.tsx#L48-L80) — 칩 마크업, 키는 [`usePostListSearch.ts:10`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L10) `SCOPE_FILTERS`에도 넣는다                                                                                                                                    |
 | "조건 N개 적용 중" 카운트 로직                               | [`usePostListSearch.ts:13-30`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L13-L30) — `computeAppliedFilterCount`                                                                                                                                                                                                                                      |
@@ -298,7 +299,7 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 모바일 검색 패널 열림 상태                                   | [`useMobileSearchPanel.ts:17-22`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L17-L22) — `location.state.mobileSearchOpen`                                                                                                                                                                                                                           |
 | 검색 중 하단 댓글바 숨김 동작 바꾸기                         | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useHistoryOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                                                                                                                                                                                     |
 | 검색 중 배경 클릭·포커스 차단 범위 바꾸기                    | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                                                                                                                                                                                   |
-| "검색어와 의미가 비슷한 글이에요" 배지 문구·표시 조건 바꾸기 | [`PostCard.tsx:207-215`](../src/widgets/post/post-card/ui/PostCard.tsx#L207-L215) — `post.isSemanticMatch`, 문구는 `TEXTS.post.card.semanticMatch`                                                                                                                                                                                                                  |
+| "검색어와 의미가 비슷한 글이에요" 안내 문구·표시 조건 바꾸기 | [`PostCard.tsx:208-216`](../src/widgets/post/post-card/ui/PostCard.tsx#L208-L216) — `post.isSemanticMatch`, 문구는 `TEXTS.post.card.semanticMatch`                                                                                                                                                                                                                  |
 | 필터 카드 카테고리 칩 미리 받기 바꾸기                       | [`src/app/routes/index.tsx:229`](../src/app/routes/index.tsx#L229) — `PostFeedRoute`(페이지 청크 요청과 같은 렌더에서 요청), 훅은 [`category.queries.ts:24`](../src/entities/category/api/category.queries.ts#L24) `usePrefetchCategoryOptions`                                                                                                                     |
 | 목록 첫 페이지 미리 받기 바꾸기                              | [`usePostFeedPrefetch.ts`](../src/widgets/post/post-list/hooks/usePostFeedPrefetch.ts)(라우트의 `PostFeedPrefetch`가 부른다). 조건 계산은 목록과 같은 [`post-list-payload.ts`](../src/widgets/post/post-list/utils/post-list-payload.ts)의 `toPostListPayload`를 써야 키가 같다                                                                                     |
 | 카테고리 응답 캐시 시간 바꾸기                               | BE `CategoryController.kt`의 `CATEGORY_LIST_CACHE_CONTROL`(BE #102)                                                                                                                                                                                                                                                                                                 |
@@ -327,10 +328,10 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 - 정지 구간 "불러오는 중" 표시(2026-10-15, §5):
   - 단위 테스트: `PostList.test.tsx` — 응답이 0.5초 안에 오면 표시가 없고, 늦으면 0.5초 뒤 떴다가
     응답 뒤 걷힌다. 덮개 렌더링을 꺼 두면 두 번째 테스트가 실패하는 것도 확인했다.
-  - 녹화 전용 Playwright 스펙(API 모킹)으로 빠른 응답, 느린 응답, 목록을 내려 본 상태에서 카드 배지
+  - 녹화 전용 Playwright 스펙(API 모킹)으로 빠른 응답, 느린 응답, 목록을 내려 본 상태에서 카드 카테고리 칩
     클릭, 모바일 네 경우를 녹화했다. 내려 본 상태에서도 알약이 navbar 아래 화면 안에 보였다.
 
-- 카테고리 칩 밀림(2026-10-16, §10): 운영에서 쓴 것과 같은 Playwright `layout-shift` 측정을 로컬
+- 필터 카드 카테고리 칩 밀림(2026-10-16, §10): 운영에서 쓴 것과 같은 Playwright `layout-shift` 측정을 로컬
   프로덕션 빌드(`vite build` + `vite preview`, `/api`는 운영으로 프록시)에서 고치기 전·후 빌드로 화면별 3회씩
   비교했다. 아래는 범위 필터 행을 움직인 시프트 점수다. 고치기 전 수치는 운영 측정과 같았다.
 
@@ -364,7 +365,7 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 ## 10. 시행착오
 
 **헤더 통합 시 로컬 미러 소실 → `optimisticCategoryTags` 도입.** 검색창이 필터 카드에서
-헤더로 옮겨가기 전에는 카테고리 칩의 `@`토큰 병합 로직이 필터 카드 로컬 `searchInput`을
+헤더로 옮겨가기 전에는 필터 카드 카테고리 칩의 `@`토큰 병합 로직이 같은 카드의 로컬 `searchInput`을
 기준으로 즉시 반영됐다. 헤더로 옮기며 그 로컬 상태가 사라지자 URL만 기준으로 삼아야 했는데,
 `setSearchParams`가 라우터 `startTransition`에 감싸여 있어 칩이 늦게 반응하는 것처럼
 보이는 문제가 생겼다. 범위 필터 칩이 이미 쓰던 `flushSync` 낙관적 미러 패턴을 카테고리
@@ -437,7 +438,7 @@ and warn when there is a problem with your filter."_
 `search-parser.ts`) `@a@b`를 `['@a', '@b']`로 올바르게 분해했다. 같은 규칙으로 기존에
 "알려진 동작(버그)"으로 테스트에 박제돼 있던 오탐 2건도 함께 풀렸다 — `hong@example.com`이
 더 이상 `category: 'example.com'`으로 잘못 잡히지 않고, 단어 중간의 `a#b`도 더 이상 `nickname:
-'b'`로 잡히지 않는다. 카테고리 칩 클릭 시 재조립하던 `PostListSearch.tsx`의 같은 정규식
+'b'`로 잡히지 않는다. 필터 카드 카테고리 칩 클릭 시 재조립하던 `PostListSearch.tsx`의 같은 정규식
 사본도 새 유틸(`extractSearchTags`)로 교체해 규칙을 한 곳에서만 관리하게 했다.
 
 조사 과정에서 BE `nickname` 필터의 별도 버그도 발견했다 — 아래 "남은 것" 참고.
@@ -546,7 +547,7 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
   15px인 macOS Chrome 1회).
   - 스크롤바 15px Chrome: 9ms 뒤 목록이 `display:none`, 문서 높이 7147→929(화면 높이), 스크롤바
     15→0px, 제목 x 528.5→536. 354ms 뒤(응답 도착) 모두 원래대로.
-  - 캐시가 있는 조건으로 다시 토글하면 숨김이 없었다. 카테고리 칩은 캐시가 없어도 숨김이 없었다.
+  - 캐시가 있는 조건으로 다시 토글하면 숨김이 없었다. 필터 카드 카테고리 칩은 캐시가 없어도 숨김이 없었다.
   - 1500px 내린 상태에서는 `scrollY`가 0으로 튀었다가 돌아왔다.
 - 원인:
   - 스위치는 store 갱신을 `startTransition`으로 감싸 "스켈레톤으로 떨어지지 않게" 했다고 적혀 있었다.
@@ -575,7 +576,7 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
   `useWindowGridVirtualizer.ts`의 창 폭 구독뿐인데, 이 값은 쿼리 키가 아니다.
 
 **필터 카드 카테고리 칩이 늦게 떠 그 아래가 밀림 → 피드 라우트에서 미리 받기(2026-10-16).** `/post`에 처음
-들어오면 카테고리 칩이 카드보다 늦게 그려져 범위 필터 행·하단 행·목록이 칩 줄 수만큼 밀렸다. 운영에서 직접
+들어오면 이 칩이 게시글 카드보다 늦게 그려져 범위 필터 행·하단 행·목록이 칩 줄 수만큼 밀렸다. 운영에서 직접
 측정했다(Playwright `layout-shift` 관찰, 비로그인, 화면별 3회): 390×844에서 CLS 0.0916(106px, 칩 3줄),
 1280×900에서 0.0141(30px).
 

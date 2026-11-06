@@ -10,7 +10,7 @@
 > 토큰 카탈로그를 어떻게 보는지, Storybook a11y 게이트가 CI에서 어떻게 도는지 안다.
 > spacing 토큰은 왜 없는지, 지금까지 찾은 a11y 위반을 어떻게 해소했는지도 안다.
 >
-> **마지막 검토**: 2026-10-29
+> **마지막 검토**: 2026-11-06
 
 ## 1. 쉬운 설명
 
@@ -121,7 +121,7 @@ flowchart LR
 **재사용성(이식 친화적 구조)**: `shared/ui/`는 FSD 레이어 규칙(ESLint
 `no-restricted-imports`)이 이미 `entities`/`features`/`widgets`/`pages`/`app`을
 import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있다. `globals.css`의 토큰 중
-`--category`(카테고리 배지)는 link-sphere 도메인 고유값이고, 나머지(z-index 스케일,
+`--category`(카테고리 칩)는 link-sphere 도메인 고유값이고, 나머지(z-index 스케일,
 반경, 딤 오버레이 등)는 범용이다 — 이번 라운드는 실제 레지스트리 인프라를 만들지
 않고, 이 구분만 이 문단에 남겨 다음 프로젝트를 시작할 때 그대로 추출할 수 있게 했다
 (2026-09-13 대화에서 확정, 레지스트리 자체 구축은 범위 밖으로 결정). `--category-1`~`8`
@@ -669,6 +669,34 @@ https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12). 나머지 15곳(브랜드
   `@theme`는 실제 사용되지 않는 토큰을 빌드 출력에서 제거하는데, `static`을 붙이면
   사용 여부와 무관하게 항상 CSS 변수로 출력된다. Storybook 카탈로그가
   `getComputedStyle`로 항상 읽을 수 있어야 하는 z-index 토큰에 이 옵션을 썼다.
+
+### UI 컴포넌트 용어
+
+업계에서 뜻이 갈리는 UI 이름을 이 레포에서 어떻게 쓰는지 정리한다. 이름을 정하는 규칙은
+[`FE-ARCHITECTURE.md` §18](./FE-ARCHITECTURE.md#18-네이밍-컨벤션)에 있다. 인용은 2026-11-06 서브에이전트가 원문에서 옮긴 문구를 번역한 것이다.
+
+| 용어            | 뜻                                                                                                                                                                     | 우리 코드                                | 출처                                                                                                                                                                                |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Badge           | 누를 수 없는 작은 라벨. 상태나 시스템이 붙인 분류를 보여 준다. Material 계열은 더 좁게, 다른 요소 위에 얹는 숫자·점을 뜻한다                                           | `Badge`(작성자, 자동 태그)               | [Polaris](https://shopify.dev/docs/api/app-home/web-components/feedback-and-status-indicators/badge), [Android](https://developer.android.com/develop/ui/compose/components/badges) |
+| Chip            | 누를 수 있는 작은 요소. Material은 Assist·Filter·Input·Suggestion 네 종류로 나눈다                                                                                     | `FilterChip`, `ActionChip`               | [Material Web](https://raw.githubusercontent.com/material-components/material-web/main/docs/components/chip.md)                                                                     |
+| Filter chip     | 켜고 끄며 목록을 거르는 칩. Android 문서는 _"선택하거나 해제할 수 있다"_ (번역)고 쓴다                                                                                 | `FilterChip`(필터 카드)                  | [Android](https://developer.android.com/develop/ui/compose/components/chip)                                                                                                         |
+| Action chip     | 누르면 동작을 실행하고 켜짐 상태가 없는 칩                                                                                                                             | `ActionChip`(카드 카테고리)              | [Flutter](https://api.flutter.dev/flutter/material/Chip-class.html)                                                                                                                 |
+| Input chip      | 사용자가 넣은 값을 보여 주는 칩. Material Web은 _"사용자가 입력한 개별 정보를 나타낸다"_ (번역)고 쓰고 Gmail 연락처를 예로 든다                                        | 없음                                     | [Material Web](https://raw.githubusercontent.com/material-components/material-web/main/docs/components/chip.md)                                                                     |
+| Suggestion chip | 고를 만한 값을 제안하는 칩. Material Web은 _"동적으로 생성한 제안을 보여 주어 사용자의 의도를 좁히도록 돕는다"_ (번역)고 쓴다                                          | 없음                                     | [Material Web](https://raw.githubusercontent.com/material-components/material-web/main/docs/components/chip.md)                                                                     |
+| Tag             | 시스템마다 뜻이 다르다. Carbon은 분류 라벨, Fluent 2는 사람이 고른 값이다                                                                                              | 컴포넌트 없음. `post.tags`는 데이터 이름 | [Carbon](https://carbondesignsystem.com/components/tag/usage/), [Fluent 2](https://fluent2.microsoft.design/components/web/react/core/tag/usage)                                    |
+| Pill            | 역할이 아니라 알약 모양을 가리키는 말이다                                                                                                                              | 없음                                     | [Smart Interface Design Patterns](https://smart-interface-design-patterns.com/articles/badges-chips-tags-pills/)                                                                    |
+| Lozenge         | Badge의 다른 이름. component.gallery가 Badge 사례로 Atlassian Design System의 Lozenge를 싣는다. Atlassian 문서 본문은 스크립트 렌더링이라 읽지 못해 뜻을 옮기지 않았다 | 없음                                     | [component.gallery](https://component.gallery/components/badge/)                                                                                                                    |
+| Alert           | _"작업을 끊지 않고 주의를 끄는"_ (번역) 안내                                                                                                                           | `FormAlert`                              | [W3C APG](https://www.w3.org/WAI/ARIA/apg/patterns/alert/)                                                                                                                          |
+| Alert Dialog    | _"사용자의 작업 흐름을 끊는 모달 다이얼로그"_ (번역). 확인창이 여기 속한다                                                                                             | `GlobalAlerts`, `useAlert`               | [W3C APG](https://www.w3.org/WAI/ARIA/apg/patterns/alertdialog/)                                                                                                                    |
+| Overlay         | 부모나 화면 위에 덮어 그리는 층                                                                                                                                        | `DropTargetOverlay`                      | [Mantine](https://mantine.dev/core/loading-overlay/)                                                                                                                                |
+| Scrim           | 모달·드로어 뒤 화면을 어둡게 가리는 층. Flutter 속성 설명은 _"드로어가 열린 동안 주요 콘텐츠를 가리는 스크림"_ (번역)이다(일반 정의는 아니다)                          | `--scrim` 토큰(`bg-scrim`)               | [Flutter](https://api.flutter.dev/flutter/material/Scaffold/drawerScrimColor.html)                                                                                                  |
+| Tree            | _"계층 목록"_ (번역). 부모·자식이 있고 펼치고 접는다                                                                                                                   | 없음                                     | [W3C APG](https://www.w3.org/WAI/ARIA/apg/patterns/treeview/)                                                                                                                       |
+| List            | 항목을 나열한 것. Tree와 달리 부모·자식을 전제하지 않는다. MDN은 list 역할을 _"항목 목록을 식별하는 데 쓴다"_ (번역)고 쓴다                                            | `PostList`                               | [MDN](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Roles/list_role)                                                                                    |
+| Filter          | _"콘텐츠 집합을 분석해 일부 항목을 제외하는 모든 것"_ (번역)                                                                                                           | `FilterChip`                             | [NN/g](https://www.nngroup.com/articles/filters-vs-facets/)                                                                                                                         |
+| Search          | 찾는 기능. MDN은 search 역할을 _"페이지·사이트·사이트 모음을 검색하는 데 쓰는 페이지 영역"_ (번역)으로 쓴다                                                            | `NavbarSearch`, `BookmarkSearch`         | [MDN](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Roles/search_role)                                                                                  |
+| Kebab menu      | 세로 점 세 개(⋮) 버튼으로 여는 메뉴. 외부 정의는 찾지 못했다(출처 미상). NN/g는 이 아이콘을 세로 줄임표로 부른다                                                       | `HoverKebabMenu`                         | [NN/g](https://www.nngroup.com/articles/contextual-menus/)                                                                                                                          |
+| Featured icon   | 색 배경 안에 아이콘을 크게 둔 표시. 표준 이름은 없고 Mantine은 ThemeIcon이라 부른다                                                                                    | `IconBadge`                              | [Untitled UI](https://www.untitledui.com/react/components/featured-icons), [Mantine](https://mantine.dev/core/theme-icon/)                                                          |
+| Back to top     | 페이지 맨 위로 돌아가는 떠 있는 버튼                                                                                                                                   | `ScrollToTop`                            | [Ant Design](https://ant.design/components/float-button)                                                                                                                            |
 
 ## 13. 관련 문서
 

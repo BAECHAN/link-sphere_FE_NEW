@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Post } from '@/entities/post/model/post.schema';
 import { Card, CardContent, CardFooter, CardHeader } from '@/shared/ui/atoms/card';
-import { Badge, badgeVariants } from '@/shared/ui/atoms/badge';
+import { Badge } from '@/shared/ui/atoms/badge';
 import { Button } from '@/shared/ui/atoms/button';
 import { LinkThumbnail } from '@/shared/ui/atoms/link-thumbnail';
 import {
@@ -20,6 +20,7 @@ import { UserAvatar } from '@/entities/user/ui/UserAvatar';
 import { DateUtil } from '@/shared/utils/date.util';
 import { NumberUtil } from '@/shared/utils/number.util';
 import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';
+import { ActionChip } from '@/shared/ui/elements/ActionChip';
 import { HoverKebabMenu } from '@/shared/ui/elements/HoverKebabMenu';
 import { Pencil, Trash } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -302,28 +303,17 @@ export const PostCard = memo(function PostCard({
         {post.categories && post.categories.length > 0 && (
           <div className="gap-2 flex-wrap mb-2 mt-3 flex">
             {post.categories?.map((category) => (
-              // 누르면 피드를 이 카테고리로 필터한다(usePostCard.handleCategoryClick). 모양은
-              // 기존 배지(badgeVariants) 그대로 두고, py-0.5 -my-0.5로 누르는 영역만 24px 이상으로
-              // 넓힌다 - 카드 전체가 링크라 WCAG 2.5.8 간격 예외를 받을 수 없어서다(docs/SEARCH.md).
-              // div(Badge)는 button 안에 둘 수 없어 같은 클래스의 span으로 그린다.
-              <Button
+              // 누르면 피드를 이 카테고리로 필터한다(usePostCard.handleCategoryClick).
+              <ActionChip
                 key={category?.id}
-                type="button"
-                variant="none"
-                className={cn('group h-auto px-0 py-0.5 -my-0.5 rounded-full', raisedClassName)}
+                label={category.name}
                 onClick={() => handleCategoryClick(category.name)}
                 aria-label={TEXTS.ariaLabels.postCategoryFilterBy(category.name)}
-              >
-                <span
-                  className={cn(
-                    badgeVariants({ variant: 'default' }),
-                    'text-xs group-hover:underline underline-offset-2',
-                    CATEGORY_COLOR_CLASSNAME[(category?.id ?? 0) % CATEGORY_COLOR_COUNT]
-                  )}
-                >
-                  {category?.name}
-                </span>
-              </Button>
+                className={raisedClassName}
+                labelClassName={
+                  CATEGORY_COLOR_CLASSNAME[(category?.id ?? 0) % CATEGORY_COLOR_COUNT]
+                }
+              />
             ))}
           </div>
         )}

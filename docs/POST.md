@@ -248,8 +248,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 `src/widgets/post/post-card/ui/PostCard.tsx`는 피드·상세·북마크 화면이 함께 쓴다(`isDetail`로 분기).
 
 - **카드 전체가 상세 링크**(목록만): 제목 `Link`의 `::after`를 카드 전체로 늘리고(`stretchedLinkClassName`),
-  아바타·소유자 액션·AI 요약·썸네일·카테고리 배지(`:307`)·푸터 버튼은 `relative z-raised`로 그
-  위에 올린다. 썸네일은 상세가 아니라 원문 새 탭이고, 카테고리 배지를 누르면 피드를 그
+  아바타·소유자 액션·AI 요약·썸네일·카테고리 칩(`:307`)·푸터 버튼은 `relative z-raised`로 그
+  위에 올린다. 썸네일은 상세가 아니라 원문 새 탭이고, 카테고리 칩을 누르면 피드를 그
   카테고리로 거른다([`SEARCH.md`](./SEARCH.md)). 근거는 `docs/DECISIONS.md` 2026-09-30 "게시글
   카드: 제목 확대 대신 카드 전체를 상세 진입 영역으로" 항목.
 - **제목**: 목록은 3줄 말줄임(`line-clamp-3`), 상세는 전문(제목 `h3`의 `isDetail` 분기). 근거는 `docs/DECISIONS.md`
@@ -287,7 +287,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   한 줄(`TEXTS.post.card.metadataUnavailable`). **AI 처리 대기 중 표시나 폴링은 없다** — §11.
 - **수정 중 오버레이**: 같은 글의 수정 mutation이 진행 중이면(`useIsMutating`, 500ms 지연 +
   최소 400ms 유지, `usePostCard.ts`의 `isUpdating`) 내용을 흐리게 하고 "수정 중..." 오버레이로 클릭을
-  막는다(`PostCard.tsx:81`, `:95-100`). 2026-10-03부터 수정 폼이 응답을 기다리므로 평소엔 보일
+  막는다(`PostCard.tsx:82`, `:96-101`). 2026-10-03부터 수정 폼이 응답을 기다리므로 평소엔 보일
   일이 없고, 저장 중에 이탈 확인창에서 "나가기"를 골라 목록으로 먼저 돌아간 경우에만 뜬다.
 
 ### 상세
@@ -846,7 +846,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 - `like.spec.ts` — 상세 좋아요가 재조회 없이 목록에 반영, 실패 시 상세·목록 모두 원복
 - `post-detail-not-found.spec.ts` — 삭제된 글 직접 진입 시 주소 유지 + 안내 화면 + "목록으로" 링크,
   카드 클릭 사이 삭제 시 안내 후 뒤로가기로 목록 복귀
-- `post-card-click-area.spec.ts` — 카드 전체 클릭 영역과 내부 버튼 분리, 카테고리 배지
+- `post-card-click-area.spec.ts` — 카드 전체 클릭 영역과 내부 버튼 분리, 카테고리 칩
 - `post-route-prefetch.spec.ts` — 피드·상세 청크가 오기 전에 목록·게시글·댓글을 요청하고, 청크가 온 뒤에도
   한 번만 요청하는지
 - `post-detail-comment-prefetch.spec.ts` — 상세 진입 시 댓글 요청 시점, 카드 댓글 아이콘·제목 hover 프리페치, 카드 빈 곳
