@@ -9,7 +9,7 @@ import { createTestQueryClient, userEvent } from '@/test/utils';
 import { mockPostListResponse } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 import { PostList } from '@/widgets/post/post-list/ui/PostList';
-import { PostListSearch } from '@/widgets/post/post-list/ui/PostListSearch';
+import { PostListFilter } from '@/widgets/post/post-list/ui/PostListFilter';
 import type { CardGridSpec } from '@/shared/hooks/useWindowGridVirtualizer';
 import { RouterEvents } from '@/shared/lib/router/router-events';
 import { LOADING_INDICATOR_DELAY_MS } from '@/shared/config/const';
@@ -73,7 +73,7 @@ function renderFeed() {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/']} future={{ v7_startTransition: true }}>
-        <PostListSearch />
+        <PostListFilter />
         <PostList renderPost={renderTestPost} grid={TEST_GRID} />
       </MemoryRouter>
     </QueryClientProvider>
@@ -222,7 +222,7 @@ function renderFeedWithDataRouter() {
         path: '/',
         element: (
           <>
-            <PostListSearch />
+            <PostListFilter />
             <PostList renderPost={renderTestPost} grid={TEST_GRID} />
           </>
         ),

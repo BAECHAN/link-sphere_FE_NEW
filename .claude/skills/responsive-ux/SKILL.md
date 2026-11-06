@@ -45,7 +45,7 @@ paths: src/**/*.tsx
   터치인지로 판정하고, 키보드를 붙인 태블릿에서도 숨는 것은 받아들였다(사용자 결정). 선례:
   `src/widgets/layout/navbar/ui/NavbarSearch.tsx`, `src/features/comment/create/ui/CommentForm.tsx`, 회귀는
   `e2e/tablet-input.mobile.spec.ts`가 잡는다.
-- **예외 — 카드 그리드 열 수는 뷰포트 브레이크포인트로 정하지 않는다.** 사이드바·폴더트리처럼
+- **예외 — 카드 그리드 열 수는 뷰포트 브레이크포인트로 정하지 않는다.** 앱 사이드바·폴더 사이드바처럼
   목록 옆에서 폭을 가져가는 레이아웃이 있으면 뷰포트 기준 `md:grid-cols-2 lg:grid-cols-3`는
   실제로 그리드가 받는 폭을 반영하지 못해 카드가 찌그러진다(2026-09-29, PostCard 푸터
   줄바꿈으로 실측). `PostList`·`BookmarkPostList`는 `useWindowGridVirtualizer`
@@ -125,11 +125,11 @@ flex h-16
   `hover-or-open:`(`globals.css`)을 쓴다.** `DropdownMenuContent`(`shared/ui/atoms/dropdown-menu.tsx`)
   등 팝업 콘텐츠는 Portal로 `<body>`에 렌더돼 커서가 메뉴로 들어가는 순간 컨테이너는 더 이상
   `:hover` 상태가 아니게 된다 — 메뉴를 열고 항목 위로 커서를 옮기면 카드가 원래대로 풀리는
-  버그가 이 때문에 생긴다(2026-09-24, `PostCard.tsx`·`FolderTree.tsx`에서 실제로 발견). `hover-or-open`은
+  버그가 이 때문에 생긴다(2026-09-24, `PostCard.tsx`·`FolderSidebar.tsx`에서 실제로 발견). `hover-or-open`은
   `:hover` 또는 `:has([aria-haspopup][aria-expanded="true"])`를 함께 보므로, 컨테이너 안의
   트리거가 열려 있는 동안에도 스타일이 유지된다. `hover:`처럼 `@media (hover: hover)` 안에서만
   적용되므로 모바일 동작은 바뀌지 않는다. 선례: `src/widgets/post/post-card/ui/PostCard.tsx`,
-  `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx` — 둘 다 ⋮ 트리거 + `DropdownMenu` 셸을
+  `src/widgets/bookmark/folder-nav/ui/FolderSidebar.tsx` — 둘 다 ⋮ 트리거 + `DropdownMenu` 셸을
   `src/shared/ui/elements/KebabMenu.tsx`(compound 컴포넌트, `hoverReveal` prop으로 부모
   `group` hover/열림 시에만 노출)로 통합해 쓴다.
 

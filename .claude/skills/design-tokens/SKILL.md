@@ -36,7 +36,7 @@ Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금
 | 팝오버                | `--popover`, `--popover-foreground` | `bg-popover`, `text-popover-foreground`                   | Popover/Dropdown 배경                                                                                                                                                                                                     |
 | 성공                  | `--success`, `--success-foreground` | `text-success`, `bg-success`, `text-success-foreground`   | 완료, 성공 상태                                                                                                                                                                                                           |
 | 경고                  | `--warning`, `--warning-foreground` | `text-warning`, `bg-warning`, `text-warning-foreground`   | 주의 상태                                                                                                                                                                                                                 |
-| 정보                  | `--info`, `--info-foreground`       | `text-info`, `bg-info`, `text-info-foreground`            | 안내, 정보 칩(`bg-info text-info-foreground` 조합 실사용: `PostListSearch.tsx`의 `FilterChip`)                                                                                                                            |
+| 정보                  | `--info`, `--info-foreground`       | `text-info`, `bg-info`, `text-info-foreground`            | 안내, 정보 칩(`bg-info text-info-foreground` 조합 실사용: `PostListFilter.tsx`의 `FilterChip`)                                                                                                                            |
 | 카테고리(공용)        | `--category`                        | `bg-category`, `text-category-foreground`                 | 글쓴이 배지(`CommentItem.tsx`), "나만 볼 수 있는" 필터 칩 — 특정 카테고리를 가리키지 않는 곳                                                                                                                              |
 | 카테고리별(1~8)       | `--category-1`~`--category-8`       | `bg-category-1`~`bg-category-8` + `-foreground`           | `PostCard.tsx` 카테고리 칩 전용. `category.id % 8`로 배정(`entities/category/config/category.const.ts`). 라이트는 틴트(색/12%+진한 글자), 다크는 솔리드(L 0.75)+어두운 글자 — 비대칭 설계, 이유는 `globals.css` 주석 참고 |
 | 테두리                | `--border`                          | `border-border`                                           | 구분선                                                                                                                                                                                                                    |
@@ -85,16 +85,16 @@ Storybook `Shared/UI/Tokens/DesignTokens` 스토리의 `ZIndex`에서 8단계를
 
 #### 역할 토큰 (우선 사용)
 
-| 토큰                    | 크기·줄높이·두께        | 용도                                                  | 대상 예시                                                                                                                |
-| ----------------------- | ----------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `text-screen-title`     | t7 (20/27) · semibold   | 페이지 최상위 제목 (h1)                               | `MyCommentPage.tsx`, `BookmarkPage.tsx`, `pages/post/index.tsx`, `VersionPage.tsx`(예시, 전수 아님)                      |
-| `text-section-title`    | t6 (18/24) · semibold   | 섹션 제목 (h2), Dialog 제목                           | `CommentList.tsx`, `dialog.tsx`(`DialogTitle`)                                                                           |
-| `text-subsection-title` | t4 (14/19) · semibold   | 소제목, 보통 `text-muted-foreground`와 함께           | `MobileFolderList.tsx`                                                                                                   |
-| `text-micro`            | t1 (11/15), 두께 미지정 | 배지·단축키·카운트 같은 최소 라벨                     | `NavbarSearch.tsx`(Kbd), `CommentItem.tsx`(배지), `LikePostButton.tsx`/`PostCard.tsx`(카운트)                            |
-| `text-card-title`       | t4 (14/19) · bold       | 포스트 카드 제목(반응형, `md:text-t6`과 조합)         | `PostCard.tsx`(`<h3>{post.title}</h3>`)                                                                                  |
-| `text-detail-title`     | t9 (24/32) · bold       | 상세 페이지 게시글 제목(반응형, `md:text-t11`과 조합) | `PostCard.tsx`(`isDetail`일 때)                                                                                          |
-| `text-group-label`      | t2 (12/16) · semibold   | 목록 섹션 라벨                                        | `FolderTree.tsx`, `BookmarkFolderSelectDialog.tsx`, `RecentSearchPanel.tsx`, `RecentSearchDropdown.tsx`(예시, 전수 아님) |
-| `text-display-title`    | 60/60 · bold            | 대형 에러 페이지 타이틀                               | `ErrorLayout.tsx`(404/403/500)                                                                                           |
+| 토큰                    | 크기·줄높이·두께        | 용도                                                  | 대상 예시                                                                                                                   |
+| ----------------------- | ----------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `text-screen-title`     | t7 (20/27) · semibold   | 페이지 최상위 제목 (h1)                               | `MyCommentPage.tsx`, `BookmarkPage.tsx`, `pages/post/index.tsx`, `VersionPage.tsx`(예시, 전수 아님)                         |
+| `text-section-title`    | t6 (18/24) · semibold   | 섹션 제목 (h2), Dialog 제목                           | `CommentList.tsx`, `dialog.tsx`(`DialogTitle`)                                                                              |
+| `text-subsection-title` | t4 (14/19) · semibold   | 소제목, 보통 `text-muted-foreground`와 함께           | `MobileFolderList.tsx`                                                                                                      |
+| `text-micro`            | t1 (11/15), 두께 미지정 | 배지·단축키·카운트 같은 최소 라벨                     | `NavbarSearch.tsx`(Kbd), `CommentItem.tsx`(배지), `LikePostButton.tsx`/`PostCard.tsx`(카운트)                               |
+| `text-card-title`       | t4 (14/19) · bold       | 포스트 카드 제목(반응형, `md:text-t6`과 조합)         | `PostCard.tsx`(`<h3>{post.title}</h3>`)                                                                                     |
+| `text-detail-title`     | t9 (24/32) · bold       | 상세 페이지 게시글 제목(반응형, `md:text-t11`과 조합) | `PostCard.tsx`(`isDetail`일 때)                                                                                             |
+| `text-group-label`      | t2 (12/16) · semibold   | 목록 섹션 라벨                                        | `FolderSidebar.tsx`, `BookmarkFolderSelectDialog.tsx`, `RecentSearchPanel.tsx`, `RecentSearchDropdown.tsx`(예시, 전수 아님) |
+| `text-display-title`    | 60/60 · bold            | 대형 에러 페이지 타이틀                               | `ErrorLayout.tsx`(404/403/500)                                                                                              |
 
 `text-micro`만 두께를 토큰에 묶지 않는다 — 호출부 4곳의 기존 두께가 제각각(Kbd는
 `font-medium`, 나머지는 미지정 상속)이라 하나로 합치면 그중 승인받지 않은 화면 변화가
@@ -119,7 +119,7 @@ semibold였고, `pages/post/index.tsx`만 유일하게 `font-bold` + 데스크�
 `text-card-title`은 반응형 제목이라 데스크톱 크기까지 역할 토큰에 묶지 않는다 —
 아래 "스케일 층" 절의 t11~t14와 같은 선례를 따라 호출부에서 `md:text-t6`처럼 스케일
 토큰을 직접 얹는다. `text-group-label`(12px/16px)은 Tailwind 기본 `text-xs`의
-계산값과 완전히 같아 2곳(`FolderTree.tsx`, `BookmarkFolderSelectDialog.tsx`)은
+계산값과 완전히 같아 2곳(`FolderSidebar.tsx`, `BookmarkFolderSelectDialog.tsx`)은
 이름만 붙인 순수 정리였고, `RecentSearchPanel.tsx`만 원래 14px라 12px로 줄어드는
 실제 화면 변화가 있었다(Artifact 미리보기로 사용자 승인, 2026-09-16,
 https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12). `text-display-title`(60px/60px)도

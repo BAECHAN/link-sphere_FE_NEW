@@ -74,7 +74,7 @@ test.describe('태블릿 세로 폭 — 터치 타깃과 hover 메뉴', () => {
     // 이 스펙의 전제 - 에뮬레이션이 터치를 주 입력으로 보고해야 아래 단언이 의미가 있다
     expect(await page.evaluate(() => window.matchMedia('(pointer: coarse)').matches)).toBe(true);
 
-    // 800은 md 이상이라 모바일 폴더 카드가 아니라 사이드바(FolderTree, <aside>)의 행이다
+    // 800은 md 이상이라 모바일 폴더 카드가 아니라 사이드바(FolderSidebar, <aside>)의 행이다
     const menuButton = page
       .locator('aside')
       .getByRole('button', { name: TEXTS.ariaLabels.folderMenu });
@@ -110,12 +110,12 @@ test.describe('태블릿 세로 폭 — 터치 타깃과 hover 메뉴', () => {
   test('북마크 사이드바 행·⋮·새 폴더 만들기와 제목 연필·정렬이 44px 이상이다', async ({ page }) => {
     await page.goto(`/bookmark?folder=${mockBookmarkFolder.id}`);
 
-    // 800은 md 이상이라 사이드바(FolderTree, <aside>) 배치다 — 전체·미분류·폴더 행·⋮·새 폴더 만들기.
+    // 800은 md 이상이라 사이드바(FolderSidebar, <aside>) 배치다 — 전체·미분류·폴더 행·⋮·새 폴더 만들기.
     // 앱 사이드바(Sidebar.tsx)도 <aside>라 본문(main) 안의 것만 고른다
-    const folderTree = page.locator('main aside');
-    await expectTouchTargets(folderTree.getByRole('button'));
+    const folderSidebar = page.locator('main aside');
+    await expectTouchTargets(folderSidebar.getByRole('button'));
     await expectIconTouchTargets(
-      folderTree.getByRole('button', { name: TEXTS.ariaLabels.folderMenu })
+      folderSidebar.getByRole('button', { name: TEXTS.ariaLabels.folderMenu })
     );
     await expectIconTouchTargets(
       page.locator('main').getByRole('button', { name: TEXTS.bookmark.folder.rename })

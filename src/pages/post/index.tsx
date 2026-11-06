@@ -2,7 +2,7 @@ import { Button } from '@/shared/ui/atoms/button';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useProtectedNavigate } from '@/entities/auth/hooks/useProtectedNavigate';
 import { PostList } from '@/widgets/post/post-list/ui/PostList';
-import { PostListSearch } from '@/widgets/post/post-list/ui/PostListSearch';
+import { PostListFilter } from '@/widgets/post/post-list/ui/PostListFilter';
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { POST_CARD_GRID } from '@/widgets/post/post-card/config/post-card-grid.const';
 import type { Post as PostItem } from '@/entities/post/model/post.schema';
@@ -36,7 +36,7 @@ export function Post() {
         </Button>
       </div>
 
-      <PostListSearch />
+      <PostListFilter />
       <PostList renderPost={renderFeedPost} grid={POST_CARD_GRID} />
     </div>
   );

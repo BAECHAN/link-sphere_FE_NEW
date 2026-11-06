@@ -23,11 +23,11 @@ import {
   BookmarkFolderKey,
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { BOOKMARK_FOLDER_NAME_MAX_LENGTH } from '@/entities/bookmark/folder/config/bookmark-folder.contract';
-import { useFolderActions } from '@/widgets/bookmark/folder-tree/hooks/useFolderActions';
+import { useFolderActions } from '@/widgets/bookmark/folder-nav/hooks/useFolderActions';
 import {
   useCreateFolderCard,
   useMobileFolderList,
-} from '@/widgets/bookmark/folder-tree/hooks/useMobileFolderList';
+} from '@/widgets/bookmark/folder-nav/hooks/useMobileFolderList';
 
 interface MobileFolderListProps {
   onSelect: (key: BookmarkFolderKey) => void;

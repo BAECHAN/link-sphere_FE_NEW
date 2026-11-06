@@ -306,7 +306,7 @@ PR #108·#110·#111 머지 후 신선한 `main` 기준):
     18px/24px/600 확인(이전 leading-none 18px/18px에서 줄간격만 넓어짐)
   - 포스트 카드 제목: `/post` 데스크톱(1280px)에서 18px/24px/700, 모바일(390px)
     에서 14px/19px/700 확인 — `md:text-t6` 반응형 전환이 실제로 동작함
-  - 폴더 그룹 라벨: `/bookmark` 사이드바(FolderTree)의 "내 폴더" 라벨에서
+  - 폴더 그룹 라벨: `/bookmark` 사이드바(FolderSidebar)의 "내 폴더" 라벨에서
     12px/16px/600 확인. `BookmarkFolderSelectDialog.tsx`는 같은
     `text-group-label` 토큰을 쓰므로 별도 실측 없이 동일 계산값으로 간주 —
     실제로 열어 확인하지는 않았다
@@ -347,7 +347,7 @@ PR #108·#110·#111·#112·#113·#114·#115·#116 머지 후 신선한 `main` �
 - `pnpm type-check`/`pnpm lint`/`pnpm test`(380개)/`pnpm format:check`/
   `pnpm check:docs`/`pnpm build` 전부 통과
 
-2026-09-17 실측 (`PostCard.tsx` 조회수 gap·`PostListSearch.tsx` 필터 카드
+2026-09-17 실측 (`PostCard.tsx` 조회수 gap·`PostListFilter.tsx` 필터 카드
 정리, 같은 워크트리 안 브랜치 `worktree-postcard-spacing-fixes`, PR #108~
 #119 머지 후 신선한 `main` 기준):
 
@@ -454,12 +454,12 @@ PR을 닫을 때 그 PR이 해소한 문제를 언급하는 다른 문서(§11 �
 (&:is(.dark *))`가 얹는 `:is(.dark *)` 한 단계 때문에 다크 쪽이 이겨서, 다크모드
 활성 칩이 호버 시 흰 배경(`--primary`)에서 회색(`accent/50`)으로 덮이고 글자
 (`--primary-foreground`, 검정)와 거의 구분이 안 됐다. 같은 구조의 버그가
-`variant="ghost"` + `className`으로 `hover:bg-*`를 덮는 다른 8곳(`FolderTree`
+`variant="ghost"` + `className`으로 `hover:bg-*`를 덮는 다른 8곳(`FolderSidebar`
 칩, `PostCard` AI 요약 토글·댓글 수 버튼, `BookmarkFolderSelectDialog` 삭제 행,
 `LikePostButton`, `CommentForm` 프리뷰 토글, `RecentSearchPanel`, `UserAvatar`)
 에도 있었다. 2026-09-21, 덮어쓰기로 지우는 대신 호버 스타일이 애초에 없는
 `none` variant를 `button.tsx`에 추가해 9곳 전부 해소했다 — `FilterChip`과
-`FolderTree`의 비활성/비선택 분기처럼 호버 배경의 출처가 ghost뿐이던 곳은
+`FolderSidebar`의 비활성/비선택 분기처럼 호버 배경의 출처가 ghost뿐이던 곳은
 같은 커밋에 `hover:bg-accent`/`hover:text-foreground`를 명시로 보완했다.
 
 **Storybook a11y CI 간헐 실패 — 원인은 아바타 스토리의 깨진 이미지 경로였다(2026-09-30).**
@@ -603,11 +603,11 @@ Storybook a11y 게이트가 실측한 4개 토큰의 라이트 모드 대비 미
   UI를 여러 곳이 각자 구현하며 서로 다른 숫자를 고른 것 — `EmptyState`(신규,
   `ErrorState`와 대칭 구조)로 빈 상태 문구 패턴 5곳을, 이어서 `PostCard.tsx`
   안 조회수 gap(`gap-1` → `gap-1 md:gap-1.5`, 같은 파일 안 다른 액션 버튼과
-  통일)과 `PostListSearch.tsx`의 필터 카드(공용 `Card` 재사용, raw div
+  통일)과 `PostListFilter.tsx`의 필터 카드(공용 `Card` 재사용, raw div
   재구현 정리)를 고쳤다.
   - **로딩 스피너 래퍼 패딩(재검토 결과 버그 아님으로 판단)**: `py-10`
     (`BookmarkFolderSelectDialog.tsx`, 모달 내부 — #275 이후 스켈레톤 행으로 바뀌어 지금은
-    없다)·`py-4`(`FolderTree.tsx`,
+    없다)·`py-4`(`FolderSidebar.tsx`,
     좁은 사이드바)는 `py-12`(`BookmarkPostList.tsx`/`MobileFolderList.tsx`,
     전체 화면 본문 영역)와 다르지만, 다시 읽어보니 **맥락(좁은 임베드 공간 vs
     본문 영역)이 실제로 달라 의도된 밀도 차이일 가능성이 높다** — 처음엔

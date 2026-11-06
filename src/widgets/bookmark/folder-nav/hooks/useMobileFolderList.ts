@@ -1,8 +1,8 @@
 import { KeyboardEvent, useRef, useState } from 'react';
 import { useBackCloseRequest } from '@/shared/hooks/useBackClosableOverlay';
-import { useFolderSections } from '@/widgets/bookmark/folder-tree/hooks/useFolderSections';
-import { useCreateFolderForm } from '@/widgets/bookmark/folder-tree/hooks/useCreateFolderForm';
-import { useFollowFocusOnReorder } from '@/widgets/bookmark/folder-tree/hooks/useFollowFocusOnReorder';
+import { useFolderSections } from '@/widgets/bookmark/folder-nav/hooks/useFolderSections';
+import { useCreateFolderForm } from '@/widgets/bookmark/folder-nav/hooks/useCreateFolderForm';
+import { useFollowFocusOnReorder } from '@/widgets/bookmark/folder-nav/hooks/useFollowFocusOnReorder';
 
 /** MobileFolderList 루트 */
 export const useMobileFolderList = () => {

@@ -7,13 +7,13 @@ import {
   BookmarkFolderKey,
   BookmarkFolderSort,
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
-import { useFolderSections } from '@/widgets/bookmark/folder-tree/hooks/useFolderSections';
-import { useFolderActions } from '@/widgets/bookmark/folder-tree/hooks/useFolderActions';
-import { useCreateFolderForm } from '@/widgets/bookmark/folder-tree/hooks/useCreateFolderForm';
-import { useFollowFocusOnReorder } from '@/widgets/bookmark/folder-tree/hooks/useFollowFocusOnReorder';
+import { useFolderSections } from '@/widgets/bookmark/folder-nav/hooks/useFolderSections';
+import { useFolderActions } from '@/widgets/bookmark/folder-nav/hooks/useFolderActions';
+import { useCreateFolderForm } from '@/widgets/bookmark/folder-nav/hooks/useCreateFolderForm';
+import { useFollowFocusOnReorder } from '@/widgets/bookmark/folder-nav/hooks/useFollowFocusOnReorder';
 
-/** FolderTree(데스크탑 사이드바) 루트 */
-export const useFolderTree = (sort?: BookmarkFolderSort, search?: string) => {
+/** FolderSidebar(데스크탑 사이드바) 루트 */
+export const useFolderSidebar = (sort?: BookmarkFolderSort, search?: string) => {
   const {
     folderList,
     uncategorizedCount,

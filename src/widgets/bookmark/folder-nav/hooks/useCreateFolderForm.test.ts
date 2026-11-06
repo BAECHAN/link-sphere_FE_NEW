@@ -9,7 +9,7 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
-import { useCreateFolderForm } from '@/widgets/bookmark/folder-tree/hooks/useCreateFolderForm';
+import { useCreateFolderForm } from '@/widgets/bookmark/folder-nav/hooks/useCreateFolderForm';
 
 let queryClient: QueryClient;
 

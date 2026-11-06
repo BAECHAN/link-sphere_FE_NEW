@@ -7,7 +7,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { NavbarSearch } from '@/widgets/layout/navbar/ui/NavbarSearch';
 
 // MemoryRouter 내부 URL은 화면에 안 보이므로, 제출 후 URL의 pathname·search가 어떻게
-// 됐는지 검증하기 위한 테스트 전용 프로브. PostListSearch.test.tsx의 패턴을 따른다.
+// 됐는지 검증하기 위한 테스트 전용 프로브. PostListFilter.test.tsx의 패턴을 따른다.
 function LocationProbe() {
   const location = useLocation();
   return (

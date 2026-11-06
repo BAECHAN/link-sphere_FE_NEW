@@ -3,7 +3,7 @@ import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-fo
 
 /**
  * 폴더 목록 조회 + "최근 저장한 폴더" 구획을 함께 제공하는 훅.
- * FolderTree(데스크탑)·MobileFolderList(모바일)가 공유한다. `folderList`("내 폴더")는 고정한 폴더를
+ * FolderSidebar(데스크탑)·MobileFolderList(모바일)가 공유한다. `folderList`("내 폴더")는 고정한 폴더를
  * 맨 위로 올린 순서다(BookmarkFolderUtil.orderPinnedFirst).
  *
  * 상단 구획은 스냅샷 없이 매 렌더 최신 `folderList`로 다시 계산한다 — 이 두 화면은

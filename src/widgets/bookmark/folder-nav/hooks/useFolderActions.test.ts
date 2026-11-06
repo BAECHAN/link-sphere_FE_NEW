@@ -15,7 +15,7 @@ import {
   mockBookmarkFolderListResponse,
 } from '@/mocks/fixtures/bookmark-folder.fixtures';
 import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
-import { useFolderActions } from '@/widgets/bookmark/folder-tree/hooks/useFolderActions';
+import { useFolderActions } from '@/widgets/bookmark/folder-nav/hooks/useFolderActions';
 
 let queryClient: QueryClient;
 

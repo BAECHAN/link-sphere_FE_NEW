@@ -90,7 +90,7 @@ test.describe('URL이 바뀌면 가상 스크롤 목록도 맨 위부터 보여�
     await expect(page.getByRole('link', { name: 'All 0' })).toBeVisible();
     await scrollDownPastOneScreen(page);
 
-    // 폴더 트리는 sticky 사이드바라 스크롤한 상태에서도 화면 안에 있다.
+    // 폴더 사이드바는 sticky라 스크롤한 상태에서도 화면 안에 있다.
     await page.getByRole('button', { name: mockBookmarkFolder.name }).click();
 
     await expect(page.getByRole('link', { name: 'Filtered 0' })).toBeAttached();

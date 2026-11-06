@@ -10,7 +10,7 @@ import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { mockBookmarkFolderListResponse } from '@/mocks/fixtures/bookmark-folder.fixtures';
 import type { Post, PostListResponse } from '@/entities/post/model/post.schema';
 
-// 북마크 페이지는 폴더트리(w-60 + gap-6)까지 폭을 가져가 피드보다 카드가 더 좁아진다
+// 북마크 페이지는 폴더 사이드바(w-60 + gap-6)까지 폭을 가져가 피드보다 카드가 더 좁아진다
 // (post-card-footer-layout.spec.ts와 같은 이유의 회귀 테스트, 근거는
 // docs/plans/2026-09-29-container-width-grid.md).
 const POST_COUNT = 12;
@@ -80,7 +80,7 @@ test.describe('PostCard 푸터 줄바꿈 방지 - 북마크', () => {
     await expectNoFooterWrap(page);
   });
 
-  test('1100px(폴더트리까지 폭을 가져가는 구간)에서도 푸터가 줄바꿈되지 않는다', async ({
+  test('1100px(폴더 사이드바까지 폭을 가져가는 구간)에서도 푸터가 줄바꿈되지 않는다', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1100, height: 800 });

@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTestQueryClient } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { useCreateFolderCard } from '@/widgets/bookmark/folder-tree/hooks/useMobileFolderList';
+import { useCreateFolderCard } from '@/widgets/bookmark/folder-nav/hooks/useMobileFolderList';
 
 // useMobileFolderList(루트)는 useFolderSections의 순수 별칭이라 여기서 다루지 않는다
 // (docs/plans/2026-09-08-selective-test-coverage.md 참고). useCreateFolderCard만 대상.

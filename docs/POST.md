@@ -155,7 +155,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 `src/app/routes/index.tsx`에서 피드·상세는 비로그인도 볼 수 있는 그룹(`:165-181`), 작성·수정은
 `ProtectedLayout` 그룹(`:183-207`)에 있다. 각 페이지 컴포넌트는 얇다 — `pages/post/index.tsx`는
-제목·"Submit Link" 버튼(`useProtectedNavigate`)·`PostListSearch`·`PostList`를 배치하고, `PostList`에 카드를
+제목·"Submit Link" 버튼(`useProtectedNavigate`)·`PostListFilter`·`PostList`를 배치하고, `PostList`에 카드를
 그리는 함수(`renderFeedPost` — `backSource="feed"`, 첫 행만 `priorityThumbnail`)와 카드 치수(`POST_CARD_GRID`)를
 넘긴다([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §26 위층 조립). `PostEditPage`는 수정 폼을 그대로 렌더하고,
 `PostSubmitPage`는 작성 폼에 폴더 선택 창(`renderFolderSelect` → `BookmarkFolderSelectDialog`)을 넘긴다.
@@ -791,7 +791,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
   `src/features/post/update/hooks/useUpdatePost.guard.test.tsx`(4) — 저장 중 이탈 확인창과 응답이 겹치는
   경우(2026-10-21 추가, 목록은 [`UNSAVED-CHANGES-GUARD.md`](./UNSAVED-CHANGES-GUARD.md) §9가 정본)
 - `src/widgets/post/post-list/hooks/usePostList.test.tsx`(5),
-  `src/widgets/post/post-list/ui/PostListSearch.test.tsx`(3),
+  `src/widgets/post/post-list/ui/PostListFilter.test.tsx`(3),
   `src/widgets/post/post-list/utils/search-parser.test.ts`(16) — 검색 동작은
   [`SEARCH.md`](./SEARCH.md)가 정본
 - `src/widgets/post/post-card/config/post-card-grid.const.test.ts`(1)

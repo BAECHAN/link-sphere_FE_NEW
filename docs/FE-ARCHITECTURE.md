@@ -172,8 +172,8 @@ src/
 ├── widgets/                      # 복합 UI 블록 — 도메인 그룹 → 슬라이스
 │   ├── post/
 │   │   ├── post-list/
-│   │   │   ├── hooks/            # usePostList, usePostListSearch, usePostFeedPrefetch
-│   │   │   ├── ui/               # PostList, PostListSearch, PostCardSkeleton
+│   │   │   ├── hooks/            # usePostList, usePostListFilter, usePostFeedPrefetch
+│   │   │   ├── ui/               # PostList, PostListFilter, PostCardSkeleton
 │   │   │   └── utils/            # search-parser, post-list-payload
 │   │   └── post-card/
 │   │       ├── config/           # post-card-grid.const.ts (POST_CARD_GRID — 목록에는 페이지가 넘김)
@@ -190,7 +190,7 @@ src/
 │   │   ├── bookmark-post-list/{hooks,ui}  # useBookmarkPostList, BookmarkPostList
 │   │   ├── bookmark-search/{hooks,ui}     # useBookmarkSearch, BookmarkSearch
 │   │   ├── post-folder-dialog/ui/         # PostFolderDialogHost — 카드 북마크 창 호스트 조립(§26, RootLayout이 lazy로 하나 둔다)
-│   │   └── folder-tree/{hooks,ui}         # useFolderTree 외 4개, FolderTree, MobileFolderList
+│   │   └── folder-nav/{hooks,ui}         # useFolderSidebar 외 4개, FolderSidebar, MobileFolderList
 │   └── layout/
 │       ├── navbar/
 │       │   ├── hooks/            # useRecentSearches, useNavbarSearch, useDelayedLogout, useMobileSearchPanel
@@ -267,7 +267,7 @@ src/
 │   │                             # 인터랙션 UI는 features/bookmark/select/로 이동. 2026-09-21 기준
 │   │                             # 소비처는 모달(BookmarkFolderSelectDialog) 1곳 — 상시 마운트 화면은
 │   │                             # 세션 경계가 없어 이 훅 대신
-│   │                             # widgets/bookmark/folder-tree/hooks/useFolderSections.ts가
+│   │                             # widgets/bookmark/folder-nav/hooks/useFolderSections.ts가
 │   │                             # bookmark-folder.util.ts를 직접 호출)
 │   ├── category/
 │   │   ├── api/                  # category.api.ts, category.keys.ts, category.queries.ts
@@ -368,7 +368,7 @@ src/
 | `login-dialog`       | `widgets/layout/login-dialog/`         | 로그인 모달 (RootLayout이 마운트하는 전역 모달) |
 | `bookmark-post-list` | `widgets/bookmark/bookmark-post-list/` | 북마크 포스트 목록                              |
 | `bookmark-search`    | `widgets/bookmark/bookmark-search/`    | 북마크 내 검색                                  |
-| `folder-tree`        | `widgets/bookmark/folder-tree/`        | 폴더 트리 / 모바일 폴더 목록                    |
+| `folder-nav`         | `widgets/bookmark/folder-nav/`         | 폴더 사이드바 / 모바일 폴더 목록                |
 | `post-folder-dialog` | `widgets/bookmark/post-folder-dialog/` | 카드 북마크 창 호스트 (RootLayout이 마운트)     |
 
 ---
@@ -1710,10 +1710,10 @@ CommentUtil.estimateCommentPayloadBytes(content, existingImageUrls, pendingImage
 Enter가 제출·확정으로 이어지는 필드 중 **뒤에 다른 입력칸이 없는 경우(단일 입력
 지점)** 에만 단다:
 
-| 상황                                  | 값         | 예시                                                                                                |
-| ------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------- |
-| 검색                                  | `"search"` | `NavbarSearch.tsx`, `MobileNavbarSearch.tsx`, `BookmarkSearch.tsx`                                  |
-| 이름 확정(폴더 생성·이름변경, 닉네임) | `"done"`   | `FolderTree.tsx`, `MobileFolderList.tsx`, `BookmarkFolderSelectDialog.tsx`, `UpdateAccountForm.tsx` |
+| 상황                                  | 값         | 예시                                                                                                   |
+| ------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------ |
+| 검색                                  | `"search"` | `NavbarSearch.tsx`, `MobileNavbarSearch.tsx`, `BookmarkSearch.tsx`                                     |
+| 이름 확정(폴더 생성·이름변경, 닉네임) | `"done"`   | `FolderSidebar.tsx`, `MobileFolderList.tsx`, `BookmarkFolderSelectDialog.tsx`, `UpdateAccountForm.tsx` |
 
 로그인·회원가입·글 등록/수정 제목처럼 **뒤에 다른 필드가 있는 다중 필드 폼에는 달지
 않는다** — 아래 Android 주의 참고. 댓글 textarea처럼 Enter가 실제로 줄바꿈인 곳도

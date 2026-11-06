@@ -30,18 +30,18 @@ drill-down 구조다. "웹에는 있는데 모바일엔 없다"처럼 보이는 
 ```mermaid
 flowchart TD
   Start["/bookmark 진입"] --> Check{"useIsMobile()"}
-  Check -->|"아니오(데스크탑)"| Desktop["FolderTree 사이드바 + 정렬 + 검색창<br/>+ 게시글 목록 · 항상 함께 노출"]
+  Check -->|"아니오(데스크탑)"| Desktop["FolderSidebar 사이드바 + 정렬 + 검색창<br/>+ 게시글 목록 · 항상 함께 노출"]
   Check -->|"예(모바일)"| FolderParam{"URL folder 파라미터?"}
   FolderParam -->|"없음"| MobileList["MobileFolderList<br/>폴더 그리드(전체·미분류·내 폴더)<br/>검색창 없음"]
   FolderParam -->|"있음"| MobileDetail["뒤로가기 헤더 + 정렬 + 검색창<br/>+ 게시글 목록"]
   MobileList -->|"폴더 탭"| MobileDetail
 ```
 
-| 조건                                                | 화면                                                    | 검색창(`BookmarkSearch`) |
-| --------------------------------------------------- | ------------------------------------------------------- | ------------------------ |
-| 모바일 + `folder` 파라미터 없음(`isMobileListMode`) | `MobileFolderList` — 폴더 그리드(전체·미분류·내 폴더)   | ❌ 없음                  |
-| 모바일 + `folder` 선택됨                            | 뒤로가기 헤더 + 정렬 + **검색창** + 게시글 목록         | ✅ 있음                  |
-| 데스크탑                                            | `FolderTree` 사이드바 + 정렬 + **검색창** + 게시글 목록 | ✅ 있음                  |
+| 조건                                                | 화면                                                       | 검색창(`BookmarkSearch`) |
+| --------------------------------------------------- | ---------------------------------------------------------- | ------------------------ |
+| 모바일 + `folder` 파라미터 없음(`isMobileListMode`) | `MobileFolderList` — 폴더 그리드(전체·미분류·내 폴더)      | ❌ 없음                  |
+| 모바일 + `folder` 선택됨                            | 뒤로가기 헤더 + 정렬 + **검색창** + 게시글 목록            | ✅ 있음                  |
+| 데스크탑                                            | `FolderSidebar` 사이드바 + 정렬 + **검색창** + 게시글 목록 | ✅ 있음                  |
 
 **핵심**: 모바일은 drill-down 구조라 **폴더(전체 폴더 포함)에 진입해야 검색창이
 보인다.** 데스크탑은 사이드바+게시글이 항상 함께 보이므로 검색창이 처음부터
@@ -481,7 +481,7 @@ JSX만, 호스트는 아래 "시트는 카드 밖 호스트가 그린다(2026-11
 버튼이 필요한 이유)와 [NN/g "Reset and Cancel Buttons"](https://www.nngroup.com/articles/reset-and-cancel-buttons/)
 (버튼을 늘릴 때의 위계 비용) — 상세 비교는 `docs/DECISIONS.md` 2026-09-21 항목 참고.
 
-- **데스크톱 사이드바(`FolderTree.tsx`)만 2줄로 바뀐다** — 사이드바 폭(`w-60`=240px)에서
+- **데스크톱 사이드바(`FolderSidebar.tsx`)만 2줄로 바뀐다** — 사이드바 폭(`w-60`=240px)에서
   `[입력][취소][생성]` 한 줄이면 입력 텍스트 영역이 66px만 남아 placeholder(`새 폴더
 이름`, ~77px)가 잘린다. 입력을 위, `[취소][생성]` 행을 아래로 나눴다.
 - **모바일 카드(`MobileFolderList.tsx`)의 버튼은 세로가 아니라 가로로 나열한다** —
@@ -510,7 +510,7 @@ Shneiderman(1994)](https://dl.acm.org/doi/10.1145/174630.174632)의 split menu
 
 **순서 고정은 모달에만 적용한다.** `BookmarkFolderSelectDialog`(열고 닫을 때마다 새
 세션)은 열려 있는 동안 순서를 고정해 공간기억을 지키지만, 상시 마운트 화면
-(`FolderTree`·`MobileFolderList`)은 페이지 방문 내내 떠 있어 "다시 열기" 같은 세션
+(`FolderSidebar`·`MobileFolderList`)은 페이지 방문 내내 떠 있어 "다시 열기" 같은 세션
 경계가 아예 없다 — 그 화면에서까지 순서를 얼리면 폴더에 저장해도 새로고침 전까지
 반영되지 않는 버그가 된다(2026-09-21, §10). 그래서 이 두 화면은 스냅샷 없이 매 렌더
 최신 `folderList`로 다시 계산한다. 모달의 스냅샷 로직은
@@ -530,7 +530,7 @@ Shneiderman(1994)](https://dl.acm.org/doi/10.1145/174630.174632)의 split menu
 
 | 무엇               | 동작                                                                                                                                                                                     |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 보이는 곳          | 데스크톱 사이드바(`FolderTree`), 모바일 그리드(`MobileFolderList`), 저장 다이얼로그(`BookmarkFolderSelectDialog` — 카드 저장·글 등록 모두)의 "내 폴더"                                   |
+| 보이는 곳          | 데스크톱 사이드바(`FolderSidebar`), 모바일 그리드(`MobileFolderList`), 저장 다이얼로그(`BookmarkFolderSelectDialog` — 카드 저장·글 등록 모두)의 "내 폴더"                                |
 | 내 폴더 안 순서    | 고정한 폴더가 먼저, 고정한 순서대로(`pinnedAt` 오름차순, 같으면 `sortOrder`). 새로 고정한 폴더는 고정 묶음 맨 아래에 붙는다. 나머지는 `sortOrder` 그대로라 해제하면 원래 자리로 돌아간다 |
 | 고정 묶음과 나머지 | 구분선·라벨 없음 — 핀 아이콘이 한 열에 모여 경계가 보인다(목업 비교 후 사용자 선택)                                                                                                      |
 | 최근 구획과의 관계 | 영향 없음. 고정한 폴더도 최근 구획에 나올 수 있다(위 split menu의 중복 표시와 같다)                                                                                                      |
@@ -574,7 +574,7 @@ A2는 앞쪽 목적만 남기고, A+B의 엇갈림은 뒤쪽에 가깝다고 판
 
 ### 사이드바 "새 폴더 만들기" 위치 — 상단 고정
 
-`FolderTree`(데스크톱 사이드바)에서 "새 폴더 만들기"는 상단 고정 블록의 마지막
+`FolderSidebar`(데스크톱 사이드바)에서 "새 폴더 만들기"는 상단 고정 블록의 마지막
 줄(전체·미분류·[최근 저장한 폴더]·**새 폴더 만들기**·"내 폴더" 라벨 순)에 있다 —
 폴더 개수와 무관하게 항상 한 번에 보이고, 스크롤해도 움직이지 않는다. 폴더 선택
 모달(`BookmarkFolderSelectDialog`)도 같은 이유로 헤더 바로 아래(상단)에 둔다 —
@@ -584,7 +584,7 @@ A2는 앞쪽 목적만 남기고, A+B의 엇갈림은 뒤쪽에 가깝다고 판
 
 ### 폴더 이름 길이 — 15자, 한 줄 말줄임 대신 줄바꿈(2026-10-27)
 
-**문제.** 폴더 이름은 다섯 자리에 나온다. 사이드바 행(`FolderTree`), 모바일 폴더 카드(`MobileFolderList`), 폴더 화면
+**문제.** 폴더 이름은 다섯 자리에 나온다. 사이드바 행(`FolderSidebar`), 모바일 폴더 카드(`MobileFolderList`), 폴더 화면
 제목(모바일·데스크톱, `BookmarkPage`), 폴더 선택 창 행(`BookmarkFolderSelectDialog`)이다. 전부 한 줄 + 말줄임(`truncate`)이었고,
 길이 제한은 BE의 100자(DB `varchar(100)`)뿐이었다. 그래서 "자바스크립트 심화 학습 자료"(14자)가 사이드바와 모바일 카드에서
 "자바스크립트 심화…"로 잘렸다. 한글·영문·공백은 글자 폭이 달라 "몇 자"만으로는 화면 폭을 맞출 수 없다.
@@ -709,7 +709,7 @@ PatternFly도 _"내비게이션 항목에는 쓰지 않는다"_ 고 하고, 잘�
 - 모바일 카드 이름: `line-clamp-2 min-h-[2lh]`(`MobileFolderList.tsx`의 `FolderCard`). `2lh`는 그 요소 줄 높이의 2배라 글꼴
   크기가 바뀌어도 2줄 자리를 지킨다. "새 폴더" 카드(`CreateFolderCard`)도 같은 `min-h-[2lh]`를 둬 마지막 줄에 혼자 남아도 높이가
   같다.
-- 사이드바 이름: `line-clamp-2`만(`FolderTree.tsx`의 `FolderItem`). 최근 구획도 같은 `FolderItem`이라 함께 적용된다.
+- 사이드바 이름: `line-clamp-2`만(`FolderSidebar.tsx`의 `FolderItem`). 최근 구획도 같은 `FolderItem`이라 함께 적용된다.
 - 바꾸지 않은 자리: 폴더 화면 제목(자르지 않음), 폴더 선택 창 행(위 "폴더 이름 길이" 표대로 한 줄에 22자가 들어가
   15자는 한 줄).
 
@@ -1031,7 +1031,7 @@ _"수동적인 알림에는 적절하지만, 검증이든 다른 것이든 오�
 
 ### 사이드바·모바일 폴더 목록을 받지 못했을 때(2026-11-03)
 
-데스크톱 사이드바(`FolderTree`)와 모바일 폴더 목록(`MobileFolderList`)은 같은 폴더 목록 쿼리를 `useFolderSections.ts`로
+데스크톱 사이드바(`FolderSidebar`)와 모바일 폴더 목록(`MobileFolderList`)은 같은 폴더 목록 쿼리를 `useFolderSections.ts`로
 나눠 쓴다. 폴더 선택 창(§5 "목록을 받지 못하면")과 같은 원칙으로 고쳤다 — 목록 없이 되는 일은 그대로 두고, 폴더가
 나올 자리에만 안내와 다시 시도를 둔다.
 
@@ -1049,7 +1049,7 @@ _"수동적인 알림에는 적절하지만, 검증이든 다른 것이든 오�
   "폴더 목록"이라 라벨과 뜻이 겹친다.
 - 그대로 둔 것: 폴더 URL(`?folder=<id>`)로 들어와 실패하면 제목이 "폴더"(`TEXTS.bookmark.folder.fallbackName`)로 보이고
   이름 바꾸기 연필이 없다(`useBookmarkPage.ts`) — 글 목록은 나오고, 목록을 다시 받으면 제목도 바뀐다.
-- 검증: `FolderTree.test.tsx`·`MobileFolderList.test.tsx`(각 3건 — 500이면 안내·다시 시도와 목록 없이 되는 항목, 다시
+- 검증: `FolderSidebar.test.tsx`·`MobileFolderList.test.tsx`(각 3건 — 500이면 안내·다시 시도와 목록 없이 되는 항목, 다시
   시도하면 요청이 한 번 더 나가 목록, 오프라인이면 스피너 → 다시 연결되면 목록). 6건 모두 수정 전 코드에서 실패했다.
 
 ### 링크 등록 폼의 폴더 선택(`PostCreateBookmarkFolderField`) — 이 페이지가 아닌 다른 화면
@@ -1240,19 +1240,19 @@ src/
 │       │   └── ui/
 │       │       └── PostFolderDialogHost.tsx # 카드 북마크 시트 호스트 조립(§26) — RootLayout이 lazy로
 │       │                                    # 하나 둔다. 창 마크업 BookmarkFolderSelectDialog를 넘긴다(2026-11-03)
-│       └── folder-tree/
+│       └── folder-nav/
 │           ├── hooks/
 │           │   ├── useFolderSections.ts  # 폴더 목록 조회 + "최근 저장한 폴더" 계산 + 내 폴더를
 │           │   │                         # 고정한 폴더 먼저로 정렬(§5) —
-│           │   │                         # useFolderTree(데스크탑)·useMobileFolderList가 위임.
+│           │   │                         # useFolderSidebar(데스크탑)·useMobileFolderList가 위임.
 │           │   │                         # 스냅샷 없이 매 렌더 최신으로 계산한다(2026-09-21).
 │           │   │                         # 목록 실패 판정·다시 시도(isFolderListFailed·retryFolderList, §5)
-│           │   ├── useFolderTree.ts      # FolderTree(데스크탑 사이드바) 루트 — useFolderSections
+│           │   ├── useFolderSidebar.ts      # FolderSidebar(데스크탑 사이드바) 루트 — useFolderSections
 │           │   │                         # 위임 + prefetchFolder
 │           │   ├── useMobileFolderList.ts # MobileFolderList 루트(useFolderSections 그대로) +
 │           │   │                          # CreateFolderCard(생성 토글) 훅
 │           │   ├── useFollowFocusOnReorder.ts # 고정·해제로 순서가 바뀌면 포커스가 든 폴더로
-│           │   │                          # 부드럽게 스크롤(§5) — useFolderTree·useMobileFolderList가 호출
+│           │   │                          # 부드럽게 스크롤(§5) — useFolderSidebar·useMobileFolderList가 호출
 │           │   ├── useFolderActions.ts   # 폴더 고정(pin)·이름변경(rename)·삭제(delete) — FolderItem·
 │           │   │                         # FolderCard 공유. 이름변경은 features/bookmark/rename의
 │           │   │                         # useRenameBookmarkFolder를 그대로 돌려준다. 고정은 ⋮ 메뉴가 다 닫힌 뒤 보낸다
@@ -1262,7 +1262,7 @@ src/
 │           │   └── useCreateFolderForm.ts # 폴더 생성 폼 코어 로직 — 사이드바·모바일 카드 공유. 글자 수
 │           │                              # (nameLength·nameCountId)도 여기서 돌려준다(§5 "폴더 이름 글자 수")
 │           └── ui/
-│               ├── FolderTree.tsx            # 데스크탑 사이드바 (폴더 트리, 전체 행은 숫자 없음).
+│               ├── FolderSidebar.tsx            # 데스크탑 사이드바 (전체 행은 숫자 없음).
 │               │                             # "내 폴더" 목록만 자체 스크롤(§10). 생성 폼은
 │               │                             # 2줄 + 취소 버튼(§5, 2026-09-21). ⋮ 메뉴는 공용
 │               │                             # KebabMenu(shared/ui/elements) 사용
@@ -1364,7 +1364,7 @@ src/
 │           │   └── bookmark-folder.util.test.ts # 임계값·완전 일치 배제·정렬·이름 길이·고정 순수 로직 테스트
 │           └── hooks/
 │               └── useRecentBookmarkFolders.ts # 모달(BookmarkFolderSelectDialog) 전용 스냅샷 로직
-│                                               # (§5, §10) — 상시 화면은 위 folder-tree/hooks/
+│                                               # (§5, §10) — 상시 화면은 위 folder-nav/hooks/
 │                                               # useFolderSections.ts가 대신 pickRecentFolders를 직접 호출
 └── shared/
     ├── api/client.ts                     # apiClient — 공통 HTTP 클라이언트
@@ -1398,19 +1398,19 @@ src/
 | 폴더 내 검색 빈 상태 문구 변경        | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                                                                                                                                                                                                          |
 | 모바일 감지 기준 변경                 | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                                                                                                                                                                                                          |
 | 고정한 폴더끼리의 순서 변경           | `bookmark-folder.util.ts`의 `orderPinnedFirst` 정렬 — BE에는 고정 순서 필드가 없고 `pinnedAt`만 있으므로, 사용자가 직접 순서를 바꾸게 하려면 BE 컬럼·API부터 필요하다                                                                                                                                                    |
-| 고정·해제 뒤 따라가는 스크롤 변경     | `useFollowFocusOnReorder.ts`의 `scrollIntoView` 옵션. 끄려면 훅 호출과 함께 `FolderTree.tsx`·`MobileFolderList.tsx` 목록 컨테이너의 `[overflow-anchor:none]`도 뺀다 — 그러면 브라우저 스크롤 고정이 한 프레임 만에 따라간다(§5 A안)                                                                                      |
-| 고정 아이콘 모양·위치 변경            | `FolderTree.tsx`의 `FolderItem`, `MobileFolderList.tsx`의 `FolderCard`(둘 다 `useFolderActions`의 `isPinned`로 왼쪽 아이콘을 바꾼다), `BookmarkFolderSelectDialog.tsx`의 `renderFolderIcon`(`FolderRow`의 `icon` prop으로 넘긴다)                                                                                        |
-| 새 폴더 만들기 취소 동작 변경         | 세 곳 각각의 `handleCancel`/`handleCancelCreate` — `useBookmarkFolderSelect.ts`, `useFolderTree.ts`(`useInlineCreateFolderInput`), `useMobileFolderList.ts`(`useCreateFolderCard`)                                                                                                                                       |
+| 고정·해제 뒤 따라가는 스크롤 변경     | `useFollowFocusOnReorder.ts`의 `scrollIntoView` 옵션. 끄려면 훅 호출과 함께 `FolderSidebar.tsx`·`MobileFolderList.tsx` 목록 컨테이너의 `[overflow-anchor:none]`도 뺀다 — 그러면 브라우저 스크롤 고정이 한 프레임 만에 따라간다(§5 A안)                                                                                   |
+| 고정 아이콘 모양·위치 변경            | `FolderSidebar.tsx`의 `FolderItem`, `MobileFolderList.tsx`의 `FolderCard`(둘 다 `useFolderActions`의 `isPinned`로 왼쪽 아이콘을 바꾼다), `BookmarkFolderSelectDialog.tsx`의 `renderFolderIcon`(`FolderRow`의 `icon` prop으로 넘긴다)                                                                                     |
+| 새 폴더 만들기 취소 동작 변경         | 세 곳 각각의 `handleCancel`/`handleCancelCreate` — `useBookmarkFolderSelect.ts`, `useFolderSidebar.ts`(`useInlineCreateFolderInput`), `useMobileFolderList.ts`(`useCreateFolderCard`)                                                                                                                                    |
 | 폴더 이름 최대 길이 변경              | BE `BookmarkFolderLimits.MAX_NAME_LENGTH`를 먼저 바꿔 배포하고, FE `pnpm codegen:fetch && pnpm codegen` 뒤 실패하는 `bookmark-folder.contract.test.ts`를 따라 `bookmark-folder.contract.ts`의 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`를 맞춘다. 늘리면 가장 좁은 자리(360px 폰 카드)에서 줄 수가 늘어난다(§5 "폴더 이름 길이") |
-| 폴더 이름 보이는 줄 수 변경           | 모바일 카드는 `MobileFolderList.tsx` `FolderCard`의 `line-clamp-2 min-h-[2lh]`와 `CreateFolderCard`의 `min-h-[2lh]`를 같은 숫자로, 사이드바는 `FolderTree.tsx` `FolderItem`의 `line-clamp-2`를 바꾼다(§5 "폴더 이름 줄 수")                                                                                              |
+| 폴더 이름 보이는 줄 수 변경           | 모바일 카드는 `MobileFolderList.tsx` `FolderCard`의 `line-clamp-2 min-h-[2lh]`와 `CreateFolderCard`의 `min-h-[2lh]`를 같은 숫자로, 사이드바는 `FolderSidebar.tsx` `FolderItem`의 `line-clamp-2`를 바꾼다(§5 "폴더 이름 줄 수")                                                                                           |
 | 이름 바꾸기 동작 변경(Enter·Esc·검사) | `features/bookmark/rename/hooks/useRenameBookmarkFolder.ts` 한 곳 — 폴더 화면 제목과 사이드바·카드(`useFolderActions`)가 같이 바뀐다                                                                                                                                                                                     |
 | 폴더 화면 편집 입력 모양 변경         | `BookmarkFolderTitle.tsx`의 `Input` `className`. `cn()`이 역할 토큰을 글자 크기로 알아 Input 기본 크기(`md:text-sm`)를 같은 변형(`md:`)끼리 바꾼다(§5 "폴더 화면에서 이름 바꾸기")                                                                                                                                       |
-| 이름 바꾸기 취소·저장 버튼 위치 변경  | 사이드바 `FolderTree.tsx` `FolderItem`, 카드 `MobileFolderList.tsx` `FolderCard`, 제목 `BookmarkFolderTitle.tsx`. 취소의 `onMouseDown` `preventDefault()`를 빼면 취소가 저장이 된다. 모바일 제목 편집 중 ←·↕ 숨김은 `BookmarkPage.tsx`의 `group-has-[[data-renaming]]/header:hidden`(§5 "이름 바꾸기 취소·저장 버튼")    |
-| 폴더 이름 글자 수 자리 변경           | `<CharacterCount>` 여섯 곳: 사이드바 `FolderTree.tsx:244`·`:399`, 카드 `MobileFolderList.tsx:180`·`:298`, 선택 창 `BookmarkFolderSelectDialog.tsx:474`, 제목 `BookmarkFolderTitle.tsx:116`. 세는 법(`nameLength`)을 바꾸면 이유 문구도 바뀐다(§5 "폴더 이름 글자 수")                                                    |
+| 이름 바꾸기 취소·저장 버튼 위치 변경  | 사이드바 `FolderSidebar.tsx` `FolderItem`, 카드 `MobileFolderList.tsx` `FolderCard`, 제목 `BookmarkFolderTitle.tsx`. 취소의 `onMouseDown` `preventDefault()`를 빼면 취소가 저장이 된다. 모바일 제목 편집 중 ←·↕ 숨김은 `BookmarkPage.tsx`의 `group-has-[[data-renaming]]/header:hidden`(§5 "이름 바꾸기 취소·저장 버튼") |
+| 폴더 이름 글자 수 자리 변경           | `<CharacterCount>` 여섯 곳: 사이드바 `FolderSidebar.tsx:250`·`:405`, 카드 `MobileFolderList.tsx:180`·`:298`, 선택 창 `BookmarkFolderSelectDialog.tsx:474`, 제목 `BookmarkFolderTitle.tsx:116`. 세는 법(`nameLength`)을 바꾸면 이유 문구도 바뀐다(§5 "폴더 이름 글자 수")                                                 |
 | 터치 버튼 크기 변경                   | 폰은 `BookmarkPage.tsx` 모바일 헤더·`MobileFolderList.tsx`의 `size-11`·`h-11`, 사이드바·태블릿은 `md:pointer-fine:`로 마우스에서 되돌린다. e2e `touch-targets*.spec.ts`도 같이(§5 "터치 기기 버튼 44px")                                                                                                                 |
 | 모바일 정렬 점 조건·위치 변경         | `BookmarkPage.tsx` 모바일 분기의 `sort !== 'latest'`와 점 `span`의 `top-[9px] right-[11px] size-[7px]`(10-28 승인 시안의 아이콘 기준 자리를 11-04 44px 상자에 옮긴 값). 기본 정렬을 바꾸면 이 조건도 같이 바꾼다                                                                                                         |
 | 폴더 선택 창 높이 변경                | `SheetDialogContent.tsx`의 `SHEET_MAX_HEIGHT`(세로 모바일)·`MODAL_MAX_HEIGHT`(중앙 모달). 목록에 상한을 다시 두지 않는다 — 위아래 고정 줄이 더해져 화면을 넘는다(§5 "창 높이"). 바꾸면 `e2e/bookmark-sheet-height.mobile.spec.ts`의 `maxRatio`도 맞춘다                                                                  |
-| 테스트 실행                           | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-tree src/features/bookmark/toggle src/features/bookmark/rename src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`                                                                                                              |
+| 테스트 실행                           | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-nav src/features/bookmark/toggle src/features/bookmark/rename src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`                                                                                                               |
 
 ## 9. 검증 결과
 
@@ -1433,7 +1433,8 @@ src/
 
 이 절의 기록은 당시 이름 그대로 둔다 — 2026-09-30 Dialog 명칭 통일
 (`docs/FE-ARCHITECTURE.md` §18)로 `PostCardBookmarkFolderModal`·`BookmarkFolderSelectModal`은
-각각 `PostCardBookmarkFolderDialog`·`BookmarkFolderSelectDialog`로 다시 개명됐다.
+각각 `PostCardBookmarkFolderDialog`·`BookmarkFolderSelectDialog`로 다시 개명됐다. 2026-11-06 용어
+정리(`docs/DESIGN-SYSTEM.md` §12)로 `FolderTree`·`useFolderTree`도 `FolderSidebar`·`useFolderSidebar`로 바뀌었다.
 
 **2026-09-11 갱신** — 마지막 폴더 완전 삭제 변경(§5, §10) 이후 관련 테스트 7개 파일,
 58개 테스트 통과: 위 5개 파일 중 `PostCardBookmarkFolderModal.test.tsx`(8→9, 마지막
@@ -1705,8 +1706,10 @@ mutation과 동일한 패턴으로 추가해, invalidate 응답을 기다리는 
 
 영향 파일(당시 경로): `entities/folder/model/`의 `useRecentFolders.ts`(현재
 `entities/bookmark/folder/hooks/useRecentBookmarkFolders.ts`),
-`widgets/bookmark/folder-tree/ui/FolderTree.tsx`,
-`widgets/bookmark/folder-tree/ui/MobileFolderList.tsx`,
+`widgets/bookmark/folder-tree/ui/`의 `FolderTree.tsx`(현재
+`widgets/bookmark/folder-nav/ui/FolderSidebar.tsx`),
+`widgets/bookmark/folder-tree/ui/`의 `MobileFolderList.tsx`(현재
+`widgets/bookmark/folder-nav/ui/MobileFolderList.tsx`),
 `features/post/bookmark/ui/`의 `FolderSelector.tsx`(현재
 `features/bookmark/toggle/ui/PostCardBookmarkFolderDialog.tsx`), `entities/post/api/post.queries.ts`.
 
@@ -1793,7 +1796,7 @@ URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 고쳐 썼다. �
 
 ### 상시 화면에서는 스냅샷이 영영 안 풀리던 문제
 
-폴더를 새로 만들고 미분류 글을 그 폴더로 옮겨도, 데스크톱 사이드바(`FolderTree`)와
+폴더를 새로 만들고 미분류 글을 그 폴더로 옮겨도, 데스크톱 사이드바(`FolderSidebar`)와
 모바일 폴더 그리드(`MobileFolderList`)의 "최근 저장한 폴더" 구획이 새로고침 전까지
 갱신되지 않았다. React Query 무효화는 정상이었다 —
 `handleBookmarkFolderChangeSuccess`(`bookmark-folder.keys.ts`)가 `['folder','list']`를
@@ -1804,7 +1807,7 @@ URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 고쳐 썼다. �
 대상이 과했던** 게 원인(객체 전체를 얼려 카운트까지 고정)이었고, 이번엔 **세션
 경계가 아예 없는 화면에 세션 개념을 적용한 것**이 원인이었다. `sessionKey`가 바뀔
 때만 순서를 재계산하는데, 사이드바·모바일 그리드를 담당하는 `useFolderSections`
-(`widgets/bookmark/folder-tree/hooks/useFolderSections.ts`)가 `sessionKey`를 넘기지
+(`widgets/bookmark/folder-nav/hooks/useFolderSections.ts`)가 `sessionKey`를 넘기지
 않아 `undefined`로 고정되고, `snapshottedForSessionRef.current === undefined`가
 영원히 참이 됐다. 모달(`useBookmarkFolderSelect.ts`)은 `open`을 넘겨 열 때마다 새
 세션이 되므로 정상이었다.
@@ -1819,7 +1822,7 @@ URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 고쳐 썼다. �
 트리거가 흔들려 막으려던 문제를 다른 형태로 재생산할
 뿐이었다. 대안 비교는 `docs/DECISIONS.md`의 "2026-09-21" 항목 참고.
 
-영향 파일: `widgets/bookmark/folder-tree/hooks/useFolderSections.ts`,
+영향 파일: `widgets/bookmark/folder-nav/hooks/useFolderSections.ts`,
 `entities/bookmark/folder/hooks/useRecentBookmarkFolders.ts`(JSDoc만).
 
 ### 노출 임계값 "6"이 출처 미상이었고 완전 일치 배제로 재정의한 경위
@@ -1850,7 +1853,7 @@ URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 고쳐 썼다. �
 ### 폴더가 많을 때 사이드바 아랫부분에 도달할 수 없던 문제
 
 데스크톱 사이드바에서 폴더가 많으면 "내 폴더" 아랫부분을 보려면 **페이지 전체**
-스크롤을 끝까지 내려야 했다. 원인은 `BookmarkPage.tsx`가 `FolderTree`에 넘기는
+스크롤을 끝까지 내려야 했다. 원인은 `BookmarkPage.tsx`가 `FolderSidebar`에 넘기는
 `sticky top-4 self-start` 클래스에 높이 상한과 자체 스크롤이 없었던 것이다 —
 `sticky`는 위치를 고정할 뿐 내부 스크롤을 만들지 않으므로, 폴더 목록이 뷰포트보다
 길면 아랫부분이 화면 밖에 남고 페이지 전체를 스크롤해야만 닿을 수 있었다.
@@ -1864,17 +1867,17 @@ URLSearchParams 인스턴스를 `.set()`/`.delete()`로 직접 고쳐 썼다. �
 Tailwind 클래스를 그대로 쓴 정적 목업을 만들어 "패널 전체 스크롤" 안과 나란히
 비교한 뒤 이 안으로 확정했다(§9 원칙, `docs/DECISIONS.md` "2026-09-21" 항목).
 
-구현 중 `FolderTree`의 `sticky top-4`가 `Navbar`(`sticky top-0 h-16`)와 44px 겹치는
+구현 중 `FolderSidebar`의 `sticky top-4`가 `Navbar`(`sticky top-0 h-16`)와 44px 겹치는
 기존 버그(이번 변경으로 만든 게 아니다)를 Playwright 실측으로 발견했다 — 스크롤
 중 패널이 고정될 때 상단 44px이 Navbar 뒤로 가려졌다. 목록 자체 스크롤을 구현하며
 `top`도 `top-[calc(var(--navbar-height)+1rem)]`로 함께 조정해 해소했다.
 
-수정(당시): `FolderTree.tsx`를 상단 고정 블록(`shrink-0`) + 내부 스크롤 블록
+수정(당시): `FolderSidebar.tsx`를 상단 고정 블록(`shrink-0`) + 내부 스크롤 블록
 (`min-h-0 flex-1 overflow-y-auto`) + 하단 고정 블록(`shrink-0`) 3단 구조로 바꾸고,
 `BookmarkPage.tsx`의 `className`에 `h-[calc(100vh-var(--navbar-height)-2rem)]`와
 새 `top` 값을 추가했다. **하단 고정 블록은 2026-09-22에 없어졌다** — 아래 항목 참고.
 
-영향 파일: `widgets/bookmark/folder-tree/ui/FolderTree.tsx`, `pages/bookmark/BookmarkPage.tsx`.
+영향 파일: `widgets/bookmark/folder-nav/ui/FolderSidebar.tsx`, `pages/bookmark/BookmarkPage.tsx`.
 
 ### "내 폴더" 라벨이 스크롤에 같이 밀리고 "새 폴더 만들기"가 하단이었던 문제
 
@@ -1903,13 +1906,13 @@ Tailwind 클래스를 그대로 쓴 정적 목업을 만들어 "패널 전체 �
 
 우리 사이드바는 방금 스크롤을 도입한 대상이라 정확히 후자 조건에 해당한다.
 
-수정: `FolderTree.tsx`의 상단 고정 블록 끝에 `<CreateFolderInput />`과 divider,
+수정: `FolderSidebar.tsx`의 상단 고정 블록 끝에 `<CreateFolderInput />`과 divider,
 "내 폴더" 라벨을 추가하고, 스크롤 영역 안쪽에서는 라벨을 제거해 폴더 행만 남겼다.
 기존 하단 고정 블록(`<div className="shrink-0"><CreateFolderInput /></div>`)은
 통째로 제거해 `<aside>`의 직속 자식이 [상단 고정 블록, 스크롤 영역] 2개로
 줄었다 — 별도 하단 블록은 더 이상 없다.
 
-영향 파일: `widgets/bookmark/folder-tree/ui/FolderTree.tsx`.
+영향 파일: `widgets/bookmark/folder-nav/ui/FolderSidebar.tsx`.
 
 ### ⋮ 메뉴를 누른 채 손이 밀리면 "이름 수정"이 오발동해 그냥 사라진 것처럼 보이던 문제
 
@@ -1987,7 +1990,7 @@ verification` skill)은 수행하지 못했다 — 대신 mock 네트워크 기�
 이 안은 스크롤이 없을 때도 사이드바 오른쪽에 ~15px 여백이 상시 생기는 대가가
 있다 — 미리보기로 확인한 뒤 감수하기로 했다.
 
-수정: `FolderTree.tsx`의 상단 고정 블록과 "내 폴더" 스크롤 영역 두 곳에
+수정: `FolderSidebar.tsx`의 상단 고정 블록과 "내 폴더" 스크롤 영역 두 곳에
 `[scrollbar-gutter:stable]`을 추가했다. 상단 블록에는 `overflow-hidden`도 함께
 추가했다 — 원래도 `aside` 자체가 `overflow-hidden`이고 상단 블록은 좌우 패딩 없이
 그 안쪽을 그대로 채우므로(`px-3`는 행 안쪽에만 있음) 새 경계가 기존 aside 경계보다
@@ -2013,10 +2016,10 @@ CSS 정렬 버그 하나에 들이기엔 과한 인프라라고 판단했다.
 (`FixedItem`)의 카운트는 폴더 행(`FolderItem`)의 카운트보다 이미 36px 오른쪽에
 있다. `FolderItem`의 카운트 오른쪽에 ⋮ 메뉴 버튼(`size-9`=36px)이 항상 자리를
 차지하기 때문이다 — 2026-09-11에 "⋮ 메뉴는 카운트와 자리를 공유하지 않는다"고
-의도적으로 정한 것(위 "⋮ 메뉴를 누른 채…" 항목 이전, `FolderTree.tsx`의 `FolderItem`
+의도적으로 정한 것(위 "⋮ 메뉴를 누른 채…" 항목 이전, `FolderSidebar.tsx`의 `FolderItem`
 주석 참고)이라 이번 수정 범위에 넣지 않았다.
 
-영향 파일: `widgets/bookmark/folder-tree/ui/FolderTree.tsx`.
+영향 파일: `widgets/bookmark/folder-nav/ui/FolderSidebar.tsx`.
 
 ### 공용화한 열림 가드가 미리 렌더된 모달에서 꺼져 있던 문제
 
@@ -2252,7 +2255,7 @@ Linux Chromium은 180px로 그려 Linux에서만 1px 넘쳤다(직접 측정 —
 - **`sessionKey`** — `useRecentBookmarkFolders`의 세 번째 매개변수(`unknown` 타입). 값이
   바뀔 때마다 "최근 저장한 폴더" 스냅샷을 새로 찍는다. 지금은 모달
   (`BookmarkFolderSelectDialog`)이 유일한 호출부고 열림 상태를 넘겨 열 때마다 새
-  세션으로 취급한다. 상시 마운트 화면(`FolderTree`·`MobileFolderList`)은 애초에 세션
+  세션으로 취급한다. 상시 마운트 화면(`FolderSidebar`·`MobileFolderList`)은 애초에 세션
   경계가 없어 이 훅을 쓰지 않고, `useFolderSections`가 `BookmarkFolderUtil.pickRecentFolders`를
   직접 호출해 매 렌더 최신으로 계산한다(2026-09-21, §10)
 - **`apiClient`** — `src/shared/api/client.ts`의 공통 HTTP 클라이언트
@@ -2288,7 +2291,7 @@ Linux Chromium은 180px로 그려 Linux에서만 1px 넘쳤다(직접 측정 —
   고정·해제 mutation. `mutate(true)`면 고정(`PUT`), `mutate(false)`면 해제(`DELETE`). 성공·실패 토스트까지 이 훅이 띄운다
 - **`queuePinToggle` / `handleMenuCloseAutoFocus`** — `useFolderActions.ts`. ⋮ 메뉴에서 "고정"/"고정 해제"를 고르면
   앞의 것이 표시만 해 두고, 메뉴가 다 닫힌 뒤 뒤의 것(`KebabMenu`의 `onCloseAutoFocus`)이 실제로 요청을 보낸다(§10)
-- **`useFollowFocusOnReorder`** — `widgets/bookmark/folder-tree/hooks/useFollowFocusOnReorder.ts`. 넘긴 순서가 바뀌면
+- **`useFollowFocusOnReorder`** — `widgets/bookmark/folder-nav/hooks/useFollowFocusOnReorder.ts`. 넘긴 순서가 바뀌면
   컨테이너의 직계 자식 중 포커스가 든 항목으로 부드럽게 스크롤한다(§5)
 - **스크롤 고정(scroll anchoring)** — 화면 위쪽 내용이 바뀌어도 보고 있던 내용이 밀리지 않게 브라우저가 스크롤 위치를
   알아서 고치는 기능. CSS `overflow-anchor: none`으로 끈다. 폴더 목록에서는 이 기능이 고정 직후 점프를 만들어 껐다(§10)

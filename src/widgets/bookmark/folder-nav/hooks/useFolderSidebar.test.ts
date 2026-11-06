@@ -6,10 +6,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTestQueryClient } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { useInlineCreateFolderInput } from '@/widgets/bookmark/folder-tree/hooks/useFolderTree';
+import { useInlineCreateFolderInput } from '@/widgets/bookmark/folder-nav/hooks/useFolderSidebar';
 
-// useFolderTree.ts의 다른 export(useFolderTree 루트·useFolderItem·useCreateFolderInput)는
-// 이 파일에서 다루지 않는다 - useFolderTree 루트는 useFolderSections 위임 1줄, useFolderItem은
+// useFolderSidebar.ts의 다른 export(useFolderSidebar 루트·useFolderItem·useCreateFolderInput)는
+// 이 파일에서 다루지 않는다 - useFolderSidebar 루트는 useFolderSections 위임 1줄, useFolderItem은
 // useFolderActions.test.ts가 이미 덮는 로직의 얇은 래퍼, useCreateFolderInput은 분기 없는
 // boolean 토글이라 각각 독립적인 테스트 가치가 낮다(docs/plans/2026-09-08-selective-test-coverage.md 참고).
 

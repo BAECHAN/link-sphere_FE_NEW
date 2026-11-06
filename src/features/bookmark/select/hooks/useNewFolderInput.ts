@@ -17,7 +17,7 @@ interface UseNewFolderInputParams {
 /**
  * 폴더 선택 모달의 "새 폴더 만들기" 입력 — 입력값과 생성 요청을 이 입력 안에 둔다. 모달 훅에 두면 한 글자마다
  * 모달 본문과 폴더 행 전부가 다시 그려진다(https://react.dev/reference/react/memo 의 "필요 이상으로 상태를
- * 끌어올리지 않는다"). 형태는 widgets/bookmark/folder-tree의 useCreateFolderForm을 따른다.
+ * 끌어올리지 않는다"). 형태는 widgets/bookmark/folder-nav의 useCreateFolderForm을 따른다.
  */
 export function useNewFolderInput({ onCreated, onCancel }: UseNewFolderInputParams) {
   const [newFolderName, setNewFolderName] = useState('');

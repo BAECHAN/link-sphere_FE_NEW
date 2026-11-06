@@ -7,7 +7,7 @@ import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
 import { TEXTS } from '@/shared/config/texts';
-import { PostListSearch } from '@/widgets/post/post-list/ui/PostListSearch';
+import { PostListFilter } from '@/widgets/post/post-list/ui/PostListFilter';
 
 // "조건 N개 적용 중" 카운트는 URL 파라미터·검색어 토큰을 조합해 파생되는 값이라,
 // 눈에 안 보이는 예외(레거시 필터·이중집계·localStorage 설정)가 조용히 회귀하기 쉽다.
@@ -34,7 +34,7 @@ function BackButton() {
 function renderSearch(...initialEntries: string[]) {
   return renderWithProviders(
     <>
-      <PostListSearch />
+      <PostListFilter />
       <LocationSearchProbe />
       <BackButton />
     </>,
@@ -61,7 +61,7 @@ beforeEach(() => {
   );
 });
 
-describe('PostListSearch — 조건 N개 적용 중 카운트', () => {
+describe('PostListFilter — 조건 N개 적용 중 카운트', () => {
   it('옛 공유 링크의 레거시 필터(?filter=excludeBots)는 카운트에 안 잡히고, 초기화를 눌러도 URL이 그대로다', async () => {
     const user = userEvent.setup();
     renderSearch('/?filter=excludeBots');
@@ -117,7 +117,7 @@ describe('PostListSearch — 조건 N개 적용 중 카운트', () => {
 });
 
 // 켜짐을 색으로만 보여 주면 화면 읽기 프로그램 사용자는 지금 무엇이 걸려 있는지 알 수 없다.
-describe('PostListSearch — 칩 켜짐 상태 전달', () => {
+describe('PostListFilter — 칩 켜짐 상태 전달', () => {
   it('범위 칩을 켜면 눌림 상태가 된다', async () => {
     const user = userEvent.setup();
     renderSearch('/');
@@ -152,7 +152,7 @@ describe('PostListSearch — 칩 켜짐 상태 전달', () => {
   });
 });
 
-describe('PostListSearch — 외부 변경 동기화', () => {
+describe('PostListFilter — 외부 변경 동기화', () => {
   it('뒤로가기로 URL의 범위 필터가 바뀌면 칩도 따라간다', async () => {
     const user = userEvent.setup();
     renderSearch('/?filter=isBookmarked', '/');

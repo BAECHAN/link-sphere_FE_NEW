@@ -10,8 +10,8 @@ import {
 import { TEXTS } from '@/shared/config/texts';
 import { BookmarkPostList } from '@/widgets/bookmark/bookmark-post-list/ui/BookmarkPostList';
 import { BookmarkSearch } from '@/widgets/bookmark/bookmark-search/ui/BookmarkSearch';
-import { FolderTree } from '@/widgets/bookmark/folder-tree/ui/FolderTree';
-import { MobileFolderList } from '@/widgets/bookmark/folder-tree/ui/MobileFolderList';
+import { FolderSidebar } from '@/widgets/bookmark/folder-nav/ui/FolderSidebar';
+import { MobileFolderList } from '@/widgets/bookmark/folder-nav/ui/MobileFolderList';
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { POST_CARD_GRID } from '@/widgets/post/post-card/config/post-card-grid.const';
 import { BookmarkFolderTitle } from '@/features/bookmark/rename/ui/BookmarkFolderTitle';
@@ -125,7 +125,7 @@ export function BookmarkPage() {
   // 48px 밀려 상단바 뒤로 들어갔다(docs/BOOKMARK.md §10). AppLayout 여백을 바꾸면 같이 바꾼다.
   return (
     <div className="flex gap-6 -mb-16">
-      <FolderTree
+      <FolderSidebar
         selectedKey={activeFolderKey}
         onSelect={setFolderKey}
         sort={sort}
