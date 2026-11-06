@@ -123,6 +123,35 @@ describe('useUpdateComment', () => {
     expect(result.current.contentLength).toBe(8);
   });
 
+  it('코드 블록 안 이미지 주소는 입력칸에 남고, 저장 요청의 images에는 실제 첨부만 담긴다', async () => {
+    const attachedUrl = 'https://example.supabase.co/storage/v1/object/public/comments/a.png';
+    const text = `설명\n\`\`\`\n${attachedUrl.replace('a.png', 'in-code.png')}\n\`\`\`\n끝`;
+    const comment = { ...mockComment, content: `${text}\n\n${attachedUrl}` };
+    let requestBody: unknown;
+    server.use(
+      http.patch(url(API_ENDPOINTS.post.comment(mockComment.id)), async ({ request }) => {
+        requestBody = await request.json();
+        return HttpResponse.json(
+          { status: 200, message: 'ok', data: mockComment, timestamp: new Date().toISOString() },
+          { status: 200 }
+        );
+      })
+    );
+
+    const { result } = renderHook(() => useUpdateComment({ comment, postId: mockPost.id }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    expect(result.current.form.getValues('content')).toBe(text);
+    expect(result.current.imagePreviewUrls).toEqual([attachedUrl]);
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(requestBody).toEqual({ content: text, images: [attachedUrl] });
+  });
+
   it('글자 수가 상한을 넘는 순간이 isOverLimit과 같다', () => {
     const { result } = renderHook(
       () => useUpdateComment({ comment: mockComment, postId: mockPost.id }),

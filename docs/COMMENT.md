@@ -9,7 +9,7 @@
 > URL로 붙는 저장 방식, 업로드·등록이 실패했을 때 원인별로 무엇을 안내하는지, "내 댓글"에서
 > 원글의 그 댓글로 이동하는 방식을 이해하고, 상한·장수·캐시 무효화 범위·실패 문구를 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-11-05
+> **마지막 검토**: 2026-11-06
 
 게시글 상세(`/post/:id`) 하단의 댓글 섹션과, 내가 쓴 댓글을 모아보는 "내 댓글"
 화면(`/my/comments`)을 다룬다. 게시글 자체(목록·상세·작성)는
@@ -238,8 +238,10 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   URL은 한 줄에 하나씩(BE [`CommentService.kt`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/src/main/kotlin/com/example/linksphere/domain/comment/CommentService.kt)
   `buildFinalContent`). FE는 낙관적 항목을 같은 규칙으로
   조립하고(comment.queries.ts의 `buildOptimisticComment`), 수정 폼은 역함수
-  `splitContentImages`(`src/shared/lib/content/imageContent.ts:13-27`)로 텍스트와 이미지
-  줄을 다시 나눈다. 테이블을 분리하지 않은 이유는 `docs/DECISIONS.md` 2026-08-10 항목.
+  `splitContentImages`(`src/shared/lib/content/imageContent.ts:17-41`)로 텍스트와 이미지
+  줄을 다시 나눈다. 닫힌 코드 블록 안의 주소는 화면에 글자로만 보이므로 이미지 줄로 치지 않고
+  본문으로 둔다(`src/shared/lib/content/codeBlock.ts`, `MarkdownContent`도 같은 규칙으로 그린다).
+  테이블을 분리하지 않은 이유는 `docs/DECISIONS.md` 2026-08-10 항목.
 - 렌더링은 `MarkdownContent`가 이미지 확장자 URL과 `blob:` URL을 이미지로 그린다.
   스토리지 이미지는 Supabase 변환 주소(`/render/image/`, 800px 정사각)로 받는다. 이 변환이
   실패하면 `AttachmentImage`가 원본 주소(`/object/`)로 한 번 더 받는다 — Supabase 공식 문서상
@@ -965,6 +967,22 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 자체를 줄인 후속 결정은 `docs/DECISIONS.md` 2026-09-14 "로그아웃 배경 재요청" 항목과
 [`AUTH.md`](./AUTH.md)에 있다.
 
+### 코드 블록 안 이미지 주소가 첨부로 잡히던 문제(2026-11-06)
+
+이미지 버튼에 순번을 붙이다(#569) 코드 블록 뒤 이미지의 번호가 건너뛰는 것을 발견했다. 이미지
+주소를 찾는 두 곳이 모두 코드 블록을 구분하지 않았다.
+
+- 화면의 이미지 목록(`MarkdownContent`의 `extractImageUrls`): 번호가 건너뛰고 확대 창에 화면에
+  없는 이미지가 끼어 들어갔다(#571).
+- `splitContentImages`: 수정 화면이 코드 블록을 비우고 주소를 첨부 썸네일로 옮겼다. 저장하면 그
+  주소가 본문 끝의 이미지가 됐다. 썸네일을 지우고 저장하면 BE `extractManagedImageUrls`의 수정
+  전후 비교로 우리 버킷 파일까지 지워질 수 있었다(코드로만 확인, 실행하지 않음)(#574).
+
+판정 규칙을 `src/shared/lib/content/codeBlock.ts`로 모았다. 닫히지 않은 코드 블록은 화면에 이미지로
+그려지므로 계속 이미지로 친다. 고칠 때 운영 댓글 145개 중 닫힌 코드 블록 안에 이미지 주소가 있는
+댓글은 0개였다(2026-11-06 읽기 전용 계정으로 개수만 조회, 코드 블록 안에 백틱이 더 있으면 놓치는
+근사치).
+
 ## 11. 남은 것
 
 기록만 하고 고치지 않은 것들이다.
@@ -1044,7 +1062,7 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 - **`EDGE_BLOCKED`** — 앱이 아니라 CloudFront/WAF가 막은 403을 FE가 구분하려고 만든 에러
   코드. JSON이 아닌 403 응답이 그 신호다.
 - **`splitContentImages`** — 댓글 `content`를 텍스트와 "URL 하나만 있는 이미지 줄"로 나누는
-  함수. BE `buildFinalContent`의 역함수.
+  함수. BE `buildFinalContent`의 역함수. 닫힌 코드 블록 안의 줄은 텍스트로 둔다.
 - **`reservedCount`** — 수정 폼에서 이미 붙어 있는 이미지 장수. `useImageAttachments`가
   새 첨부 가능 장수를 계산할 때 뺀다.
 - **`patchCommentRecursively`** — 트리에서 id가 같은 댓글을 찾아 일부 필드만 병합하는

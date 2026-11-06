@@ -4,6 +4,7 @@ import { useImageViewerStore } from '@/shared/ui/elements/dialog/image-viewer/im
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { TEXTS } from '@/shared/config/texts';
 import { getTransformedImageUrl, isTransformableImageUrl } from '@/shared/lib/image/supabaseImage';
+import { isClosedCodeBlock, splitCodeBlocks } from '@/shared/lib/content/codeBlock';
 
 interface MarkdownContentProps {
   content: string;
@@ -63,15 +64,6 @@ function AttachmentImage({ url, className }: { url: string; className: string })
       }}
     />
   );
-}
-
-// 닫힌 코드 블럭(``` ... ```)과 나머지 텍스트를 분리
-function splitCodeBlocks(text: string): string[] {
-  return text.split(/(```[\s\S]*?```)/g);
-}
-
-function isClosedCodeBlock(segment: string): boolean {
-  return segment.startsWith('```') && segment.endsWith('```') && segment.length > 6;
 }
 
 export function MarkdownContent({ content, isMobile = false, className }: MarkdownContentProps) {
