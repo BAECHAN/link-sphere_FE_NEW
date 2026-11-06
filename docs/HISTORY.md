@@ -1,4 +1,7 @@
 ### 2026-11-06 (FE)
+- 컴포넌트 명칭 최적화: 스피너 및 맨 위로(Scroll-to-top) 버튼의 컴포넌트 명칭을 실제 역할과 일치하도록 리팩토링 ([#555](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/555))
+
+### 2026-11-06 (FE)
 - 공유 UI 컴포넌트 명칭 최적화 ([#554](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/554))
 로그:
 - refactor(shared): 실제와 다른 작은 UI 이름 3개를 고침 ([#554](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/554))
