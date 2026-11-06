@@ -1,4 +1,7 @@
 ### 2026-11-06 (FE)
+- 피드 필터 및 폴더 사이드바 명칭 리팩토링 ([#556](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/556))
+
+### 2026-11-06 (FE)
 - 컴포넌트 명칭 최적화: 스피너 및 맨 위로(Scroll-to-top) 버튼의 컴포넌트 명칭을 실제 역할과 일치하도록 리팩토링 ([#555](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/555))
 
 ### 2026-11-06 (FE)
