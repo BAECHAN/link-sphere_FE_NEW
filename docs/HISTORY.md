@@ -1,4 +1,7 @@
 ### 2026-11-06 (FE)
+- 버튼 컴포넌트의 접근성 및 직관성 개선: 버튼 라벨을 실제 동작 기반으로 수정하여 상태와 수치 정보가 명확히 전달되도록 최적화 ([#560](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/560))
+
+### 2026-11-06 (FE)
 - 모바일 메뉴 접근성 및 UI 개선
   - 닫힌 모바일 메뉴의 가시성 처리 및 열린 상태에서의 포커스 제어와 Esc 키 종료 기능 구현 ([#558](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/558))
 
