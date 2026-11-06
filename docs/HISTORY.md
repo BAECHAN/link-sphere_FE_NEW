@@ -1,4 +1,7 @@
 ### 2026-11-06 (FE)
+- 공용 컴포넌트 명칭 수정 (Alert → AlertDialog)
+
+### 2026-11-06 (FE)
 - 피드 필터 및 폴더 사이드바 명칭 리팩토링 ([#556](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/556))
 
 ### 2026-11-06 (FE)
