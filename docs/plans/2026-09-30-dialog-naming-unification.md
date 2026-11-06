@@ -1,5 +1,13 @@
 # Dialog/Modal/Alert 명칭 통일 — 식별자·경로만 개명하는 refactor
 
+<!-- plan-result:start — 이 블록만 병합 뒤에도 고칠 수 있다(CLAUDE.md §11). 아래는 승인된 계획 원문 -->
+
+## 구현 결과
+
+- 대체됨: `docs/plans/2026-11-06-ui-term-renames.md`(#557) — 확인창을 `Alert`로 부르던 이름을 `AlertDialog` 계열로 바꿨다. 창 자체는 `Dialog`, 성질은 `modal`이라는 구분은 그대로다
+
+<!-- plan-result:end -->
+
 > 코드 식별자에서 창 자체는 `Dialog`, 성질은 `modal`, alert/confirm 전용은 `Alert`로 통일한다.
 > 동작 변경 없음(히스토리 키 문자열 변경에 따른 일회성 부작용 1건만 있음, 아래 참고). PR 1개.
 

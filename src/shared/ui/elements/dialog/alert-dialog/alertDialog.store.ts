@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { ReactNode } from 'react';
 import { devtools } from 'zustand/middleware';
 
-export interface AlertData {
+export interface AlertDialogData {
   id: string;
   title?: ReactNode;
   message: ReactNode | string;
@@ -16,65 +16,65 @@ export interface AlertData {
    * 채움(primary)·오른쪽·초기 포커스를 어느 버튼에 줄지. 기본값 'cancel' — 되돌리기 어려운
    * 동작(삭제·이탈 등)은 안전한 취소 쪽을 강조한다(docs/DECISIONS.md 2026-09-29 항목).
    * 양쪽 다 위험하지 않고 언제든 되돌릴 수 있는 선택(예: 공개 설정 토글)이면 'confirm'으로
-   * 넘겨 반대로 한다 — Alert.tsx 자체의 기본 방침을 흔들지 않고 호출부에서 예외만 켠다.
+   * 넘겨 반대로 한다 — GlobalAlertDialogs.tsx 자체의 기본 방침을 흔들지 않고 호출부에서 예외만 켠다.
    */
   emphasis?: 'cancel' | 'confirm';
 }
 
-type OpenAlertOptions = Pick<AlertData, 'title' | 'message' | 'confirmText' | 'onConfirm'>;
+type OpenAlertOptions = Pick<AlertDialogData, 'title' | 'message' | 'confirmText' | 'onConfirm'>;
 type OpenConfirmOptions = Pick<
-  AlertData,
+  AlertDialogData,
   'title' | 'message' | 'confirmText' | 'cancelText' | 'onConfirm' | 'onCancel' | 'emphasis'
 >;
 
-interface AlertStore {
-  alerts: AlertData[];
+interface AlertDialogStore {
+  dialogs: AlertDialogData[];
   openAlert: (data: OpenAlertOptions) => void;
   openConfirm: (data: OpenConfirmOptions) => void;
   close: (id: string) => void;
   remove: (id: string) => void;
-  cancelAlert: (id: string) => void;
+  cancelAlertDialog: (id: string) => void;
 }
 
-export const useAlertStore = create<AlertStore>()(
+export const useAlertDialogStore = create<AlertDialogStore>()(
   devtools(
     (set, get) => ({
-      alerts: [],
+      dialogs: [],
       openAlert: (data) =>
         set((state) => ({
-          alerts: [
-            ...state.alerts,
+          dialogs: [
+            ...state.dialogs,
             { ...data, id: Math.random().toString(36).slice(2), type: 'alert', isOpen: true },
           ],
         })),
       openConfirm: (data) =>
         set((state) => ({
-          alerts: [
-            ...state.alerts,
+          dialogs: [
+            ...state.dialogs,
             { ...data, id: Math.random().toString(36).slice(2), type: 'confirm', isOpen: true },
           ],
         })),
       close: (id) =>
         set((state) => ({
-          alerts: state.alerts.map((alert) =>
-            alert.id === id ? { ...alert, isOpen: false } : alert
+          dialogs: state.dialogs.map((dialog) =>
+            dialog.id === id ? { ...dialog, isOpen: false } : dialog
           ),
         })),
       remove: (id) =>
         set((state) => ({
-          alerts: state.alerts.filter((alert) => alert.id !== id),
+          dialogs: state.dialogs.filter((dialog) => dialog.id !== id),
         })),
-      // Alert.tsx의 취소 버튼과 동일한 동작을 컴포넌트 바깥(라우터 blocker)에서도 실행할 수 있게 노출한다.
-      cancelAlert: (id) => {
-        const alert = get().alerts.find((a) => a.id === id);
-        if (alert?.type === 'confirm') {
-          alert.onCancel?.();
+      // GlobalAlertDialogs.tsx의 취소 버튼과 동일한 동작을 컴포넌트 바깥(라우터 blocker)에서도 실행할 수 있게 노출한다.
+      cancelAlertDialog: (id) => {
+        const dialog = get().dialogs.find((a) => a.id === id);
+        if (dialog?.type === 'confirm') {
+          dialog.onCancel?.();
         }
         get().close(id);
         setTimeout(() => get().remove(id), 300);
       },
     }),
-    { name: 'alert-store' }
+    { name: 'alert-dialog-store' }
   )
 );
 
@@ -82,18 +82,18 @@ export const useAlertStore = create<AlertStore>()(
  * 현재 열려있는 Alert/Confirm의 id를 즉시 읽는다. 리액트 렌더를 구독하지 않는 시점
  * (라우터 blocker 판정 등)에서만 사용한다.
  */
-export function getOpenAlertId(): string | null {
-  return useAlertStore.getState().alerts.find((alert) => alert.isOpen)?.id ?? null;
+export function getOpenAlertDialogId(): string | null {
+  return useAlertDialogStore.getState().dialogs.find((dialog) => dialog.isOpen)?.id ?? null;
 }
 
 /**
  * Alert/Confirm을 호출하기 위한 Hook
  */
-export function useAlert() {
-  // 셀렉터로 액션만 구독한다 - 스토어 전체를 구독하면 알림이 열리고 닫힐 때마다(alerts 변경)
+export function useAlertDialog() {
+  // 셀렉터로 액션만 구독한다 - 스토어 전체를 구독하면 알림이 열리고 닫힐 때마다(dialogs 변경)
   // 이 훅을 쓰는 모든 컴포넌트가 다시 렌더된다.
-  const openAlert = useAlertStore((state) => state.openAlert);
-  const openConfirm = useAlertStore((state) => state.openConfirm);
+  const openAlert = useAlertDialogStore((state) => state.openAlert);
+  const openConfirm = useAlertDialogStore((state) => state.openConfirm);
 
   return {
     openAlert: (options: OpenAlertOptions) => openAlert(options),

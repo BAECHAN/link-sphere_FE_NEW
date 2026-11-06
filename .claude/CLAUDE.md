@@ -412,7 +412,7 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
   6543은 서버 커넥션을 앱과 돌려 써서 세션 설정이 앱 요청에 남는다 — 2026-10-05 이 레포 세션이 고아 이미지를
   대조하며 건 `SET default_transaction_read_only = on`이 1분간 Lambda 쓰기 6건을 500으로 만들었다. 쓰기는
   사용자가 직접 한다. 계정·접속 설정·사건 경위는 BE [`docs/DEPLOY.md` 12장](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/DEPLOY.md#12-운영-db-임시-조회-전용-읽기-계정-supabase--적용-완료-2026-10-20)
-- **Never** native `confirm()` → 항상 `useAlert` + `openConfirm` 사용
+- **Never** native `confirm()` → 항상 `useAlertDialog` + `openConfirm` 사용
 - **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만(2026-09-09 감사에서
   `shared/lib/firebase/fcm.ts`가 raw `fetch()`로 이 규칙을 어기고 있는 걸 발견해 같은 날
   `shared/api/fcm.api.ts`로 옮겨 고쳤다 — 지금은 BE API 호출에는 예외 없이 지켜지고 있다. transport(`shared/api/client.ts`)를
@@ -669,7 +669,7 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 | Feature Hook (`hooks/`에 로직 전부, `ui/`는 JSX만)                                 | §6    | UI 파일은 훅 호출 + 렌더링만                                                                                                                                                                                                           |
 | Widget Hook (entity query 조합 + 파생 상태, 원칙적으로 mutation 없음)              | §8    | query 1개 + trivial 파생만이면 컴포넌트에서 직접 사용 (widgets 한정, features는 §6 예외 없음). 단, 그 widget 전용이라 재사용되지 않는 CRUD는 widget hook에서 직접 mutation을 써도 된다 — `usePostCard.ts`(아래 레퍼런스)가 실제 예시   |
 | Zod Schema (`z.infer`로 타입 파생)                                                 | §9    | `nullable()`=null 허용, `optional()`=undefined 허용                                                                                                                                                                                    |
-| Delete with Confirm                                                                | §10   | native `confirm()` 금지, 항상 `useAlert` + `openConfirm`                                                                                                                                                                               |
+| Delete with Confirm                                                                | §10   | native `confirm()` 금지, 항상 `useAlertDialog` + `openConfirm`                                                                                                                                                                         |
 | 토글 버튼 (`ToggleButton`)                                                         | §10-A | 상태를 뒤집는 버튼은 `Button` 대신 `ToggleButton` — 더블클릭 가드(400ms) 내장. 닫기·지우기처럼 항상 같은 상태로 만드는 버튼은 대상 아님                                                                                                |
 | Optimistic Update (`onMutate` → `cancelQueries` → `setQueryData` → 롤백)           | §11   | 참조 구현: `entities/interaction/api/interaction.queries.ts`                                                                                                                                                                           |
 | Util Class (`*.util.ts`는 바레 함수 대신 `export class <Name>Util { static ... }`) | §23   | 함수 하나뿐이어도 클래스로 감싼다 — `shared/utils/`의 모든 `*.util.ts`가 이 형태                                                                                                                                                       |

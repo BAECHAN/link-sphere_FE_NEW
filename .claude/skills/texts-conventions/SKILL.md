@@ -137,7 +137,7 @@ pre-commit(lint-staged)과 CI·배포의 `pnpm check`에서 차단한다(`pnpm b
 > 근거로 `postDeleted`/`folderDeleted`를 제거했었다(댓글 삭제 토스트는 처음부터 없었다).
 > 실제로 써 보니 삭제 뒤 결과가 눈에 안 들어와 한 번 더 확인하게 된다는 사용자 관찰이
 > 있었고, 코드를 따라가 보면 "사라지는 걸 본다"는 전제가 세 경우 모두 약했다 — ① 확인
-> 버튼이 확인창 닫기와 삭제를 함께 시작해(`Alert.tsx`의 `handleConfirm`, `close(id)` 직후
+> 버튼이 확인창 닫기와 삭제를 함께 시작해(`GlobalAlertDialogs.tsx`의 `handleConfirm`, `close(id)` 직후
 > `onConfirm()`) 카드가 사라지는 순간이 확인창이 닫히는 순간과 겹친다(추론, 미측정) ②
 > 상세에서 지우면 피드로 이동해 사라지는 장면 자체가 없다(`usePostCard.ts`) ③ 댓글·폴더
 > 삭제는 낙관적 업데이트가 없어 확인창이 닫힌 뒤 재조회가 끝날 때까지 아무 변화가 없다.

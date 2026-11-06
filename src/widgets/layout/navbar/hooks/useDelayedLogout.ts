@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/entities/auth/hooks/useAuth';
-import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
+import { useAlertDialog } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
 import { clearAllUnsavedChanges, hasUnsavedChanges } from '@/shared/store/unsavedChanges.store';
 import { ROUTES_PATHS, isProtectedPath } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
@@ -16,7 +16,7 @@ import { TEXTS } from '@/shared/config/texts';
  */
 export function useDelayedLogout() {
   const { logout } = useAuth();
-  const { openConfirm } = useAlert();
+  const { openConfirm } = useAlertDialog();
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 

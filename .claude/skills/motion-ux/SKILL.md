@@ -99,10 +99,10 @@ CSS만으로 exit(사라짐) 애니메이션을 만들 때 "화면에서 사라�
 이 값이 지금 JS 상수와 CSS `duration-*`에 따로 적혀 있고, 300ms는 두 파일에 **매직넘버로
 중복**돼 있다 — 하나를 고치면 다른 쪽은 그대로 남는 함정이다.
 
-| 값                     | 위치                                                                                                        |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `TRANSITION_MS = 200`  | `src/shared/ui/elements/BackToTopButton.tsx:11` — CSS `duration-200`과 수동 동기화                          |
-| `setTimeout(..., 300)` | `src/shared/ui/elements/dialog/alert/alert.store.ts:74`, `src/shared/ui/elements/dialog/alert/Alert.tsx:56` |
+| 값                     | 위치                                                                                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TRANSITION_MS = 200`  | `src/shared/ui/elements/BackToTopButton.tsx:11` — CSS `duration-200`과 수동 동기화                                                           |
+| `setTimeout(..., 300)` | `src/shared/ui/elements/dialog/alert-dialog/alertDialog.store.ts:74`, `src/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs.tsx:59` |
 
 같은 패턴(exit 애니메이션 + `shouldRender` 상태 + `setTimeout`)을 새로 만들
 때는 이 값이 실제 CSS `duration-*` 클래스와 정확히 일치해야 한다는 걸 놓치지

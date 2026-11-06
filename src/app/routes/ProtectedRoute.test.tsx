@@ -21,8 +21,8 @@ import {
 import { useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard';
-import { useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
-import { GlobalAlerts } from '@/shared/ui/elements/dialog/alert/Alert';
+import { useAlertDialogStore } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
+import { GlobalAlertDialogs } from '@/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { createTestQueryClient } from '@/test/utils';
@@ -219,7 +219,7 @@ function InPlaceLayout() {
   return (
     <>
       <Outlet />
-      <GlobalAlerts />
+      <GlobalAlertDialogs />
     </>
   );
 }
@@ -296,7 +296,7 @@ function clickConfirmButton(name: string) {
 describe('ProtectedRoute - 로그인이 풀린 채 그 화면에 둠', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
-    useAlertStore.setState({ alerts: [] });
+    useAlertDialogStore.setState({ dialogs: [] });
     useUnsavedChangesStore.setState({ dirtyKeys: new Set() });
     useAuthStore.getState().setAuth(makeToken(3600));
     useAuthStore.getState().setAuthResolved(true);

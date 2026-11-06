@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { hasUnsavedChanges, useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
-import { useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
+import { useAlertDialogStore } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
 import { useDelayedLogout } from '@/widgets/layout/navbar/hooks/useDelayedLogout';
 
 const logoutSpy = vi.fn();
@@ -21,7 +21,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
 const LOGOUT_DELAY_MS = 700;
 
 function getOpenConfirm() {
-  return useAlertStore.getState().alerts.find((alert) => alert.isOpen);
+  return useAlertDialogStore.getState().dialogs.find((dialog) => dialog.isOpen);
 }
 
 describe('useDelayedLogout', () => {
@@ -29,7 +29,7 @@ describe('useDelayedLogout', () => {
     vi.useFakeTimers();
     logoutSpy.mockClear();
     navigateSpy.mockClear();
-    useAlertStore.setState({ alerts: [] });
+    useAlertDialogStore.setState({ dialogs: [] });
     useUnsavedChangesStore.setState({ dirtyKeys: new Set() });
     window.history.replaceState(null, '', '/post/post-1');
   });
@@ -79,7 +79,7 @@ describe('useDelayedLogout', () => {
     expect(confirm?.emphasis).toBeUndefined();
 
     act(() => {
-      useAlertStore.getState().cancelAlert(confirm!.id);
+      useAlertDialogStore.getState().cancelAlertDialog(confirm!.id);
     });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(LOGOUT_DELAY_MS);

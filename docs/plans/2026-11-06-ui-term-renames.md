@@ -31,6 +31,15 @@
 - 계획에 없던 변경: `NavbarSearch.test.tsx` 주석의 테스트 파일 이름 갱신, `touch-targets.mobile.spec.ts` 지역 변수 `folderTree` → `folderSidebar`
 - 그대로 둠: `BOOKMARK.md` §9의 기록과 §10의 "당시 경로"는 그 문서의 규칙대로 옛 이름을 유지하고, §9 안내문에 개명 사실을 덧붙였다
 
+> #557 · 2026-11-06 대조(Phase 6) · 이탈 1 · 미구현 0 — 판정 근거(파일:줄)는 PR 본문 "계획 대비 구현"
+
+- 이탈(`check:docs` 제약): `docs/DECISIONS.md`는 고치지 않기로 했지만 옛 `dialog/alert/` 경로를 가리키던 관련 파일 줄을 세 항목에서 새 경로로 바꾸고 개명 사실을 덧붙였다. 문서 검사가 이 파일의 `src/` 경로도 실재 여부를 보기 때문이고, Phase 5와 같은 방식이다. 결정 내용은 그대로다
+- 계획에 없던 변경: 스토리 제목 규칙의 예시(`eslint.config.js` 주석, `FE-ARCHITECTURE.md` §18)를 새 이름 대신 `ImageViewer`로 교체. 새 경로는 폴더명과 컴포넌트명이 달라 중복 생략 예시가 되지 않는다
+- 계획에 없던 변경: 표에 없던 이름도 함께 바꿈. 스토리 `MultipleAlerts` → `MultipleAlertDialogs`, `AlertProps` → `AlertDialogItemProps`, prop `alert` → `dialog`, 지역 변수 `openAlertId` → `openAlertDialogId`. 스토리 제목은 규칙대로 `Dialog/AlertDialog/GlobalAlertDialogs`가 됐다. 확인창을 가리키던 주석의 "Alert"·"알럿"은 "확인창"으로 고쳤다
+- 계획에 없던 변경(문서 동기화): `texts-conventions` skill, `DESIGN-SYSTEM.md` 용어집, `FE-ARCHITECTURE.md` §17 표, `alert-dialog.stories.tsx` 주석, e2e 주석의 이름 갱신, `AUTH.md`·`UNSAVED-CHANGES-GUARD.md` 산문의 "Alert" → "확인창", `UNSAVED-CHANGES-GUARD.md`·e2e 주석의 줄 번호 갱신(e2e는 이미 어긋나 있던 값 포함)
+- 이 PR 밖: `~/project/claude-base/docs/MAPPING.md`는 병합 뒤 그 저장소에서 따로 고친다
+- 계획의 "남은 것": VoiceOver 확인은 사용자 결정(2026-11-06)으로 하지 않았다. 필터 칩의 켜짐 상태는 코드와 테스트로만 확인했고 실제 화면 읽기 프로그램으로는 듣지 않았다
+
 <!-- plan-result:end -->
 
 > "누를 수 있으면 Chip, 못 누르면 Badge"를 규칙으로 정하고, 업계 뜻과 실제 동작이 다른 이름을 바꾼다.

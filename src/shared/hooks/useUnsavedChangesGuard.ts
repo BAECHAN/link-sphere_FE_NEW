@@ -6,7 +6,10 @@ import {
   useUnsavedChangesStore,
 } from '@/shared/store/unsavedChanges.store';
 import { useAuthStore } from '@/shared/store/auth.store';
-import { getOpenAlertId, useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
+import {
+  getOpenAlertDialogId,
+  useAlertDialogStore,
+} from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
 import { PUBLIC_PATHS, ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 
@@ -27,7 +30,7 @@ const shouldBlockNavigation: BlockerFunction = ({ currentLocation, nextLocation 
   }
   // Alert/Confirm은 히스토리에 묶여있지 않아(T0) 뒤로가기가 그대로 페이지를 이동시켜버린다 -
   // 북마크 페이지처럼 쿼리 파라미터만 바뀌는 이동도 잡아야 해서 pathname 비교보다 먼저 본다.
-  if (getOpenAlertId()) {
+  if (getOpenAlertDialogId()) {
     return true;
   }
   if (currentLocation.pathname === nextLocation.pathname) {
@@ -52,10 +55,10 @@ function handleBeforeUnload(e: BeforeUnloadEvent) {
  * data router(createBrowserRouter) 컨텍스트가 필요하며, 앱 전체에서 RootLayout 한 곳에서만 호출한다.
  */
 export function useUnsavedChangesGuard() {
-  // useAlert()는 호출할 때마다 openConfirm을 새 함수로 감싸 반환해 effect 의존성으로 쓰면
+  // useAlertDialog()는 호출할 때마다 openConfirm을 새 함수로 감싸 반환해 effect 의존성으로 쓰면
   // 재실행을 반복한다. store의 액션 자체는 참조가 안정적이므로 셀렉터로 직접 가져온다.
-  const openConfirm = useAlertStore((state) => state.openConfirm);
-  const cancelAlert = useAlertStore((state) => state.cancelAlert);
+  const openConfirm = useAlertDialogStore((state) => state.openConfirm);
+  const cancelAlertDialog = useAlertDialogStore((state) => state.cancelAlertDialog);
   const blocker = useBlocker(shouldBlockNavigation);
   const { pathname } = useLocation();
 
@@ -82,9 +85,9 @@ export function useUnsavedChangesGuard() {
 
       // 열려있는 Alert/Confirm 때문에 막힌 경우 - 그 대화상자를 취소 처리하고 이동은
       // 없었던 일로 한다. "저장하지 않은 변경사항" 확인창을 새로 띄우지 않는다.
-      const openAlertId = getOpenAlertId();
-      if (openAlertId) {
-        cancelAlert(openAlertId);
+      const openAlertDialogId = getOpenAlertDialogId();
+      if (openAlertDialogId) {
+        cancelAlertDialog(openAlertDialogId);
         blockerRef.current.reset?.();
         return;
       }
@@ -112,12 +115,12 @@ export function useUnsavedChangesGuard() {
           blockerRef.current.reset?.();
         },
       });
-      // openConfirm은 id를 돌려주지 않는다 - 바로 위에서 열린 Alert가 없음을 확인했으니
+      // openConfirm은 id를 돌려주지 않는다 - 바로 위에서 열린 확인창이 없음을 확인했으니
       // 지금 열려 있는 것이 방금 띄운 확인창이다
-      confirmIdRef.current = getOpenAlertId();
+      confirmIdRef.current = getOpenAlertDialogId();
       openedWhilePendingRef.current = pendingTexts !== null;
     },
-    [blocker.state, openConfirm, cancelAlert, pathname]
+    [blocker.state, openConfirm, cancelAlertDialog, pathname]
   );
 
   useEffect(
@@ -146,10 +149,10 @@ export function useUnsavedChangesGuard() {
           return;
         }
 
-        cancelAlert(confirmId);
+        cancelAlertDialog(confirmId);
       });
     },
-    [cancelAlert]
+    [cancelAlertDialog]
   );
 
   useEffect(function warnBeforeUnload() {

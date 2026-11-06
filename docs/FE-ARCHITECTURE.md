@@ -747,12 +747,12 @@ BE 값이 바뀌면 FE codegen PR에서 계약 테스트가 실패해 고칠 상
 
 ## 10. Delete with Confirm 패턴
 
-**절대로** native `confirm()` 사용 금지. 항상 `useAlert` + `openConfirm` 사용.
+**절대로** native `confirm()` 사용 금지. 항상 `useAlertDialog` + `openConfirm` 사용.
 
 ```typescript
-import { useAlert } from '@/shared/ui/elements/dialog/alert/alert.store';
+import { useAlertDialog } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
 
-const { openConfirm } = useAlert();
+const { openConfirm } = useAlertDialog();
 const onDelete = (id: string) => {
   openConfirm({
     message: TEXTS.messages.warning.entityDeleteConfirm,
@@ -767,7 +767,7 @@ const onDelete = (id: string) => {
 };
 ```
 
-**버튼 강조는 `Alert.tsx`의 `emphasis` 옵션(기본값 `'cancel'`)으로 정한다.** 채움(primary)·
+**버튼 강조는 `GlobalAlertDialogs.tsx`의 `emphasis` 옵션(기본값 `'cancel'`)으로 정한다.** 채움(primary)·
 오른쪽·초기 포커스를 어느 쪽에 줄지 고르는 기준은 "이 확인창에 도달한 것 자체가 이미
 그 행동을 결심했다는 뜻인가"다:
 
@@ -1386,47 +1386,47 @@ sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를
 
 ## 17. 핵심 설정 파일 위치
 
-| 목적                 | 파일                                                 | export                 |
-| -------------------- | ---------------------------------------------------- | ---------------------- |
-| 모든 UI 문자열       | `src/shared/config/texts.ts`                         | `TEXTS`                |
-| API 엔드포인트       | `src/shared/config/api.ts`                           | `API_ENDPOINTS`        |
-| 라우트 경로          | `src/shared/config/route-paths.ts`                   | `ROUTES_PATHS`         |
-| HTTP 클라이언트      | `src/shared/api/client.ts`                           | `apiClient`            |
-| 스펙 경로 클라이언트 | `src/shared/api/spec-client.ts`                      | `specClient`           |
-| QueryClient          | `src/shared/lib/react-query/config/queryClient.ts`   | `queryClient`          |
-| Toast 래퍼           | `src/shared/lib/toast/toast.ts`                      | `toast`                |
-| Alert/Confirm 모달   | `src/shared/ui/elements/dialog/alert/alert.store.ts` | `useAlert`             |
-| Auth 스토어          | `src/shared/store/auth.store.ts`                     | `useAuthStore`         |
-| 이미지 업로드 요청   | `src/shared/api/upload.api.ts`                       | `uploadApi`            |
-| 리사이즈+업로드 조합 | `src/shared/lib/upload/uploadImageAndGetUrl.ts`      | `uploadImageAndGetUrl` |
+| 목적                 | 파일                                                              | export                 |
+| -------------------- | ----------------------------------------------------------------- | ---------------------- |
+| 모든 UI 문자열       | `src/shared/config/texts.ts`                                      | `TEXTS`                |
+| API 엔드포인트       | `src/shared/config/api.ts`                                        | `API_ENDPOINTS`        |
+| 라우트 경로          | `src/shared/config/route-paths.ts`                                | `ROUTES_PATHS`         |
+| HTTP 클라이언트      | `src/shared/api/client.ts`                                        | `apiClient`            |
+| 스펙 경로 클라이언트 | `src/shared/api/spec-client.ts`                                   | `specClient`           |
+| QueryClient          | `src/shared/lib/react-query/config/queryClient.ts`                | `queryClient`          |
+| Toast 래퍼           | `src/shared/lib/toast/toast.ts`                                   | `toast`                |
+| Alert/Confirm 모달   | `src/shared/ui/elements/dialog/alert-dialog/alertDialog.store.ts` | `useAlertDialog`       |
+| Auth 스토어          | `src/shared/store/auth.store.ts`                                  | `useAuthStore`         |
+| 이미지 업로드 요청   | `src/shared/api/upload.api.ts`                                    | `uploadApi`            |
+| 리사이즈+업로드 조합 | `src/shared/lib/upload/uploadImageAndGetUrl.ts`                   | `uploadImageAndGetUrl` |
 
 ---
 
 ## 18. 네이밍 컨벤션
 
-| 항목                          | 규칙                                                                                                                                                                                                                                                                                                                                                                                                         | 예시                                          |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
-| Feature 디렉토리              | `<도메인>/<액션>` kebab-case                                                                                                                                                                                                                                                                                                                                                                                 | `post/create/`                                |
-| Widget 디렉토리               | `<도메인>/<슬라이스>` kebab-case                                                                                                                                                                                                                                                                                                                                                                             | `post/post-card/`                             |
-| Shared 디렉토리               | camelCase                                                                                                                                                                                                                                                                                                                                                                                                    | `hooks/`, `utils/`                            |
-| 컴포넌트 파일                 | PascalCase.tsx                                                                                                                                                                                                                                                                                                                                                                                               | `CreatePostForm.tsx`                          |
-| Feature 훅                    | `use<FeatureName>.ts`                                                                                                                                                                                                                                                                                                                                                                                        | `useCreatePost.ts`                            |
-| Mutation 훅                   | `use<Action><Entity>Mutation`                                                                                                                                                                                                                                                                                                                                                                                | `useCreatePostMutation`                       |
-| Query 훅                      | `useFetch<Entity>Query` (표준). 기존 코드엔 `use<Entity>ListQuery`(`useBookmarkFolderListQuery`), `use<Entity>InfiniteQuery`(`useBookmarkFolderPostsInfiniteQuery`)도 있다(과거 `useComments`도 이 부류였으나 현재는 `useSuspenseComments`로 이름이 바뀌었다) — 새로 만들 땐 표준형을 쓴다                                                                                                                   | `useFetchPostDetailQuery`                     |
-| 미리 받기(prefetch)           | 렌더 중에 요청을 시작만 하는 훅(`usePrefetchQuery`·`usePrefetchInfiniteQuery`)은 `usePrefetch<Entity>`, hover 등 이벤트에서 `queryClient`를 인자로 받아 부르는 함수는 `prefetch<Entity>` — 둘 다 같은 `.queries.ts`에 둔다                                                                                                                                                                                   | `usePrefetchPostDetail`, `prefetchPostDetail` |
-| 쿼리 키 객체                  | `<entity>Keys`                                                                                                                                                                                                                                                                                                                                                                                               | `postKeys`                                    |
-| Invalidate 헬퍼               | `<entity>InvalidateQueries`                                                                                                                                                                                                                                                                                                                                                                                  | `postInvalidateQueries`                       |
-| Remove 헬퍼                   | `<entity>RemoveQueries` — 캐시에서 지우는 함수 묶음(`.keys.ts`). 실패 정리는 `errored<대상>`                                                                                                                                                                                                                                                                                                                 | `postRemoveQueries.erroredDetail`             |
-| 떠날 때 실패 정리 훅          | `useRemoveErrored<대상>OnLeave` — `entities/<entity>/hooks/`, `useEffect` cleanup에서 Remove 헬퍼를 부른다(§13)                                                                                                                                                                                                                                                                                              | `useRemoveErroredPostDetailOnLeave`           |
-| Success 핸들러                | `handle<Entity><Action>Success`                                                                                                                                                                                                                                                                                                                                                                              | `handlePostCreateSuccess`                     |
-| API 객체                      | `<entity>Api`                                                                                                                                                                                                                                                                                                                                                                                                | `postApi`                                     |
-| Zod 스키마 (요청/폼 검증만)   | `create<Entity>Schema`, `update<Entity>Schema`                                                                                                                                                                                                                                                                                                                                                               | `createPostSchema`, `updatePostSchema`        |
-| 응답 타입 파일 (Layer 0)      | `<entity>.dto.ts` — BE 생성 타입 alias                                                                                                                                                                                                                                                                                                                                                                       | `post.dto.ts`                                 |
-| TS 타입                       | 스키마와 동일 (PascalCase)                                                                                                                                                                                                                                                                                                                                                                                   | `Post`, `CreatePost`                          |
-| `config/` 파일                | `<entity>.const.ts`(그 밖의 값), `<entity>.contract.ts`(BE와 같아야 하는 입력 제약 값, §9) — `api/`·`model/`·`utils/`와 같은 `<entity>.<역할>.ts` 규칙(`const.ts` 단독 금지, `shared/config/const.ts`처럼 도메인이 없는 전역 설정은 예외). `<entity>`는 **엔티티명**이지 디렉터리 세그먼트명이 아니다 — 그룹 폴더(`entities/bookmark/folder/`) 아래에서도 파일 접두사는 엔티티명(`bookmark-folder`)을 따른다 | `bookmark-folder.const.ts`, `post.const.ts`   |
-| `<Entity>[]` 배열 변수/반환값 | `<entity>List` — 지역변수·훅 반환 필드·구조분해값이 실제로 배열일 때. 아래 각주의 예외 2가지는 대상 아님                                                                                                                                                                                                                                                                                                     | `folderList`                                  |
-| 창·오버레이 식별자            | 창 자체(컴포넌트·훅·스토어·타입·경로·히스토리 키)는 `Dialog`, 뒤를 조작 불가로 만드는 성질은 `modal`, alert/confirm 전용은 `Alert`. 식별자에만 적용하고 한국어 산문의 "모달"은 허용 — 아래 각주                                                                                                                                                                                                              | `LoginDialog`, `modal={false}`, `useAlert`    |
-| 작은 라벨·칩 식별자           | 누를 수 없으면 `Badge`, 누를 수 있으면 `*Chip`(상태를 켜고 끄면 `FilterChip`, 동작을 실행하면 `ActionChip`). `Tag`는 컴포넌트 이름으로 쓰지 않는다 — 아래 각주                                                                                                                                                                                                                                               | `Badge`, `FilterChip`, `ActionChip`           |
+| 항목                          | 규칙                                                                                                                                                                                                                                                                                                                                                                                                         | 예시                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| Feature 디렉토리              | `<도메인>/<액션>` kebab-case                                                                                                                                                                                                                                                                                                                                                                                 | `post/create/`                                   |
+| Widget 디렉토리               | `<도메인>/<슬라이스>` kebab-case                                                                                                                                                                                                                                                                                                                                                                             | `post/post-card/`                                |
+| Shared 디렉토리               | camelCase                                                                                                                                                                                                                                                                                                                                                                                                    | `hooks/`, `utils/`                               |
+| 컴포넌트 파일                 | PascalCase.tsx                                                                                                                                                                                                                                                                                                                                                                                               | `CreatePostForm.tsx`                             |
+| Feature 훅                    | `use<FeatureName>.ts`                                                                                                                                                                                                                                                                                                                                                                                        | `useCreatePost.ts`                               |
+| Mutation 훅                   | `use<Action><Entity>Mutation`                                                                                                                                                                                                                                                                                                                                                                                | `useCreatePostMutation`                          |
+| Query 훅                      | `useFetch<Entity>Query` (표준). 기존 코드엔 `use<Entity>ListQuery`(`useBookmarkFolderListQuery`), `use<Entity>InfiniteQuery`(`useBookmarkFolderPostsInfiniteQuery`)도 있다(과거 `useComments`도 이 부류였으나 현재는 `useSuspenseComments`로 이름이 바뀌었다) — 새로 만들 땐 표준형을 쓴다                                                                                                                   | `useFetchPostDetailQuery`                        |
+| 미리 받기(prefetch)           | 렌더 중에 요청을 시작만 하는 훅(`usePrefetchQuery`·`usePrefetchInfiniteQuery`)은 `usePrefetch<Entity>`, hover 등 이벤트에서 `queryClient`를 인자로 받아 부르는 함수는 `prefetch<Entity>` — 둘 다 같은 `.queries.ts`에 둔다                                                                                                                                                                                   | `usePrefetchPostDetail`, `prefetchPostDetail`    |
+| 쿼리 키 객체                  | `<entity>Keys`                                                                                                                                                                                                                                                                                                                                                                                               | `postKeys`                                       |
+| Invalidate 헬퍼               | `<entity>InvalidateQueries`                                                                                                                                                                                                                                                                                                                                                                                  | `postInvalidateQueries`                          |
+| Remove 헬퍼                   | `<entity>RemoveQueries` — 캐시에서 지우는 함수 묶음(`.keys.ts`). 실패 정리는 `errored<대상>`                                                                                                                                                                                                                                                                                                                 | `postRemoveQueries.erroredDetail`                |
+| 떠날 때 실패 정리 훅          | `useRemoveErrored<대상>OnLeave` — `entities/<entity>/hooks/`, `useEffect` cleanup에서 Remove 헬퍼를 부른다(§13)                                                                                                                                                                                                                                                                                              | `useRemoveErroredPostDetailOnLeave`              |
+| Success 핸들러                | `handle<Entity><Action>Success`                                                                                                                                                                                                                                                                                                                                                                              | `handlePostCreateSuccess`                        |
+| API 객체                      | `<entity>Api`                                                                                                                                                                                                                                                                                                                                                                                                | `postApi`                                        |
+| Zod 스키마 (요청/폼 검증만)   | `create<Entity>Schema`, `update<Entity>Schema`                                                                                                                                                                                                                                                                                                                                                               | `createPostSchema`, `updatePostSchema`           |
+| 응답 타입 파일 (Layer 0)      | `<entity>.dto.ts` — BE 생성 타입 alias                                                                                                                                                                                                                                                                                                                                                                       | `post.dto.ts`                                    |
+| TS 타입                       | 스키마와 동일 (PascalCase)                                                                                                                                                                                                                                                                                                                                                                                   | `Post`, `CreatePost`                             |
+| `config/` 파일                | `<entity>.const.ts`(그 밖의 값), `<entity>.contract.ts`(BE와 같아야 하는 입력 제약 값, §9) — `api/`·`model/`·`utils/`와 같은 `<entity>.<역할>.ts` 규칙(`const.ts` 단독 금지, `shared/config/const.ts`처럼 도메인이 없는 전역 설정은 예외). `<entity>`는 **엔티티명**이지 디렉터리 세그먼트명이 아니다 — 그룹 폴더(`entities/bookmark/folder/`) 아래에서도 파일 접두사는 엔티티명(`bookmark-folder`)을 따른다 | `bookmark-folder.const.ts`, `post.const.ts`      |
+| `<Entity>[]` 배열 변수/반환값 | `<entity>List` — 지역변수·훅 반환 필드·구조분해값이 실제로 배열일 때. 아래 각주의 예외 2가지는 대상 아님                                                                                                                                                                                                                                                                                                     | `folderList`                                     |
+| 창·오버레이 식별자            | 창 자체(컴포넌트·훅·스토어·타입·경로·히스토리 키)는 `Dialog`, 뒤를 조작 불가로 만드는 성질은 `modal`, alert/confirm 확인창은 `AlertDialog`, 작업을 끊지 않는 안내는 `Alert`(`FormAlert`). 식별자에만 적용하고 한국어 산문의 "모달"은 허용 — 아래 각주                                                                                                                                                        | `LoginDialog`, `modal={false}`, `useAlertDialog` |
+| 작은 라벨·칩 식별자           | 누를 수 없으면 `Badge`, 누를 수 있으면 `*Chip`(상태를 켜고 끄면 `FilterChip`, 동작을 실행하면 `ActionChip`). `Tag`는 컴포넌트 이름으로 쓰지 않는다 — 아래 각주                                                                                                                                                                                                                                               | `Badge`, `FilterChip`, `ActionChip`              |
 
 **`<entity>List` 각주** (2026-09-08) — "단수/복수"가 아니라 "배열인가 아닌가"로
 가른다. BE 응답 계약과 매핑된 이름(`BookmarkFolderListResponse`, `useBookmarkFolderListQuery`,
@@ -1436,7 +1436,7 @@ sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를
 `useBookmarkFolders`, `wasInFolders`, `clearBookmarkFolders`, `postFolders`
 엔드포인트 등)은 이 규칙 대상이 아니다 — 그대로 복수형을 쓴다.
 
-**`Dialog`·`modal`·`Alert` 각주** (2026-09-30) — 세 단어는 동의어가 아니라 층위가 다르다.
+**`Dialog`·`modal`·`AlertDialog` 각주** (2026-09-30, `Alert` 계열 이름은 2026-11-06 정정) — 세 단어는 동의어가 아니라 층위가 다르다.
 Radix `Dialog` 기반 창을 코드에서 `*Modal`·`*Dialog`로 섞어 부르던 것을 이 기준으로
 통일했다(`LoginModal`→`LoginDialog`, `shared/ui/elements/modal/`→`dialog/` 등).
 
@@ -1448,11 +1448,17 @@ Radix `Dialog` 기반 창을 코드에서 `*Modal`·`*Dialog`로 섞어 부르�
   다이얼로그로 정의해 비모달 다이얼로그와 구분한다. 이 레포에서는 Radix `Dialog.Root`의
   `modal` prop(기본값 `true`), `DropdownMenu`의 `modal={false}`, z-index 토큰 `z-modal`이
   이 자리다.
-- **Alert = 특수한 다이얼로그** — [W3C APG Alert Dialog 패턴](https://www.w3.org/WAI/ARIA/apg/patterns/alertdialog/)은
+- **AlertDialog = 특수한 다이얼로그** — [W3C APG Alert Dialog 패턴](https://www.w3.org/WAI/ARIA/apg/patterns/alertdialog/)은
   _"중요한 메시지를 알리고 응답을 받기 위해 사용자의 작업 흐름을 끊는 모달 다이얼로그"_ (번역)로
-  정의한다. 이 레포의 `Alert`·`GlobalAlerts`·`useAlert`·`openConfirm`이 이 자리다 — `Alert.tsx`는
+  정의한다. 이 레포의 `GlobalAlertDialogs`·`useAlertDialog`·`openConfirm`이 이 자리다 — `GlobalAlertDialogs.tsx`는
   2026-09-30부터 `shared/ui/atoms/alert-dialog.tsx`(Radix `AlertDialog`)를 써서 `role="alertdialog"`로
   렌더된다(`docs/DECISIONS.md` 2026-09-30 "확인창을 Radix AlertDialog로 교체").
+- **Alert = 끊지 않는 안내** — [W3C APG Alert 패턴](https://www.w3.org/WAI/ARIA/apg/patterns/alert/)은
+  _"작업을 끊지 않고 주의를 끄는"_ (번역) 별도 패턴이고, [MUI Alert 문서](https://mui.com/material-ui/react-alert/)도
+  둘을 혼동하지 말라고 안내한다. 이 레포에서는 `FormAlert`(`shared/ui/elements/FormAlert.tsx`, `role="alert"`)가
+  이 자리다. 2026-09-30에는 확인창을 `Alert`로 불렀다가 2026-11-06에 `AlertDialog`로 고쳤다
+  (`docs/plans/2026-11-06-ui-term-renames.md`). `openAlert`·`openConfirm`은 창 종류(`type: 'alert' | 'confirm'`)를
+  여는 동작 이름이라 그대로 둔다.
 - **라이브러리도 같은 층위를 쓴다** — Radix는 컴포넌트 이름이 `Dialog`이고 모달 여부는 `modal`
   prop으로 받으며, alert dialog는 별도 패키지(`@radix-ui/react-alert-dialog`)다.
   [MUI Modal 문서](https://mui.com/material-ui/react-modal/)는 _"모달 다이얼로그를 만든다면
@@ -1508,7 +1514,7 @@ features·widgets에는 지금 스토리가 없다 — 하나뿐이던 `Widgets/
   `AlertDialog`), 슬라이스 안의 `ui` 세그먼트는 생략한다. shared만 슬라이스가 없어
   `UI/<세그먼트>`를 남긴다.
 - `_` 접두사 내부 폴더는 생략하고(`form/_base/FormField` → `Form/FormField`), 마지막 폴더명이
-  컴포넌트명과 같으면 한 번만 쓴다(`dialog/alert/Alert` → `Dialog/Alert`).
+  컴포넌트명과 같으면 한 번만 쓴다(`dialog/image-viewer/ImageViewer` → `Dialog/ImageViewer`).
 - `Temp`·`WIP`처럼 상태를 뜻하는 임시 루트 그룹을 만들지 않는다. 공개 Storybook
   (https://baechan.github.io/link-sphere_FE_NEW/storybook/)에 그대로 배포된다(2026-09-21 검증용
   `Temp/` 스토리가 이렇게 남았던 것이 이 규칙의 계기).

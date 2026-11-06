@@ -18,7 +18,7 @@ test.describe('저장하지 않은 변경 가드', () => {
   test.beforeEach(async ({ page }) => {
     await installCatchAll(page);
     await mockAuthRefresh(page);
-    // useUnsavedChangesGuard.ts:8-12 — 로그인·회원가입 페이지가 아닌 한 비인증이면
+    // useUnsavedChangesGuard.ts:28-30 — 로그인·회원가입 페이지가 아닌 한 비인증이면
     // 블로커가 무조건 통과시킨다(로그인·회원가입 페이지 자체의 이탈 확인은
     // signup-unsaved-changes.spec.ts). 여기(댓글 폼)는 로그인 상태가 필수다.
     await mockAccountQuery(page);
@@ -56,7 +56,7 @@ test.describe('저장하지 않은 변경 가드', () => {
 
     await expect(guardDialog(page)).toBeVisible();
     // 실수로 한 뒤로가기에도 안전한 선택지(계속 작성)가 눌리도록, 열리자마자 그 버튼에
-    // 포커스가 가 있어야 한다 — Alert.tsx의 강조 색 변경과 짝을 이루는 단언(§ 2026-09-29).
+    // 포커스가 가 있어야 한다 — GlobalAlertDialogs.tsx의 강조 색 변경과 짝을 이루는 단언(§ 2026-09-29).
     await expect(
       guardDialog(page).getByRole('button', { name: TEXTS.unsavedChanges.cancel })
     ).toBeFocused();

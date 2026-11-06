@@ -9,7 +9,7 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
-import { useAlertStore } from '@/shared/ui/elements/dialog/alert/alert.store';
+import { useAlertDialogStore } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
 import {
   mockBookmarkFolder,
   mockBookmarkFolderListResponse,
@@ -38,7 +38,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  useAlertStore.setState({ alerts: [] });
+  useAlertDialogStore.setState({ dialogs: [] });
   vi.restoreAllMocks();
 });
 
@@ -371,10 +371,10 @@ describe('useFolderActions — 삭제', () => {
 
     act(() => result.current.handleDelete());
 
-    const alerts = useAlertStore.getState().alerts;
-    expect(alerts).toHaveLength(1);
-    expect(alerts[0]?.type).toBe('confirm');
-    expect(alerts[0]?.title).toBe(
+    const dialogs = useAlertDialogStore.getState().dialogs;
+    expect(dialogs).toHaveLength(1);
+    expect(dialogs[0]?.type).toBe('confirm');
+    expect(dialogs[0]?.title).toBe(
       TEXTS.bookmark.folder.deleteConfirmTitle(mockBookmarkFolder.name)
     );
   });
@@ -396,7 +396,7 @@ describe('useFolderActions — 삭제', () => {
     );
 
     act(() => result.current.handleDelete());
-    const confirmed = useAlertStore.getState().alerts[0]?.onConfirm;
+    const confirmed = useAlertDialogStore.getState().dialogs[0]?.onConfirm;
     await act(async () => confirmed?.());
 
     expect(order).toEqual(['onBeforeDelete', 'request']);
@@ -415,7 +415,7 @@ describe('useFolderActions — 삭제', () => {
     });
 
     act(() => result.current.handleDelete());
-    const confirmed = useAlertStore.getState().alerts[0]?.onConfirm;
+    const confirmed = useAlertDialogStore.getState().dialogs[0]?.onConfirm;
     await act(async () => confirmed?.());
 
     expect(requested).toBe(true);
@@ -436,7 +436,7 @@ describe('useFolderActions — 삭제', () => {
     });
 
     act(() => result.current.handleDelete());
-    const confirmed = useAlertStore.getState().alerts[0]?.onConfirm;
+    const confirmed = useAlertDialogStore.getState().dialogs[0]?.onConfirm;
     await act(async () => confirmed?.());
 
     await waitFor(() =>
@@ -456,7 +456,7 @@ describe('useFolderActions — 삭제', () => {
     });
 
     act(() => result.current.handleDelete());
-    const confirmed = useAlertStore.getState().alerts[0]?.onConfirm;
+    const confirmed = useAlertDialogStore.getState().dialogs[0]?.onConfirm;
     await act(async () => confirmed?.());
 
     await waitFor(() =>
@@ -477,7 +477,7 @@ describe('useFolderActions — 삭제', () => {
     });
 
     act(() => result.current.handleDelete());
-    const confirmed = useAlertStore.getState().alerts[0]?.onConfirm;
+    const confirmed = useAlertDialogStore.getState().dialogs[0]?.onConfirm;
     await act(async () => confirmed?.());
 
     await waitFor(() =>
@@ -506,7 +506,7 @@ describe('useFolderActions — 삭제', () => {
     });
 
     act(() => result.current.handleDelete());
-    const confirmed = useAlertStore.getState().alerts[0]?.onConfirm;
+    const confirmed = useAlertDialogStore.getState().dialogs[0]?.onConfirm;
     await act(async () => confirmed?.());
 
     await waitFor(() =>
