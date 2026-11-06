@@ -9,7 +9,7 @@
  * 팝업 콘텐츠는 Portal로 <body>에 렌더돼 커서가 메뉴로 들어가면 부모의 :hover가 풀리기 때문이다.
  * hover:처럼 @media (hover: hover) 안에서만 적용돼 터치 기기 동작은 바뀌지 않는다.
  * (선례: responsive-ux skill "hover와 밀도" 절, src/widgets/post/post-card/ui/PostCard.tsx,
- * src/widgets/bookmark/folder-tree/ui/FolderTree.tsx)
+ * src/widgets/bookmark/folder-nav/ui/FolderSidebar.tsx)
  */
 @custom-variant hover-or-open {
   @media (hover: hover) {

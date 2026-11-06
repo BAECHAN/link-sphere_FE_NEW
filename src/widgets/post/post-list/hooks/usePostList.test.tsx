@@ -9,15 +9,15 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { createTestQueryClient, userEvent } from '@/test/utils';
 import { mockPostListResponse } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
-import { PostListSearch } from '@/widgets/post/post-list/ui/PostListSearch';
+import { PostListFilter } from '@/widgets/post/post-list/ui/PostListFilter';
 import { usePostList } from '@/widgets/post/post-list/hooks/usePostList';
 import type { CardGridSpec } from '@/shared/hooks/useWindowGridVirtualizer';
 import { RouterEvents } from '@/shared/lib/router/router-events';
 
-// PostListSearch.test.tsx는 usePostList()를 호출하지 않아(=목록 쿼리가 suspend하지 않아)
+// PostListFilter.test.tsx는 usePostList()를 호출하지 않아(=목록 쿼리가 suspend하지 않아)
 // 이 파일이 다루는 버그 클래스(RouterProvider.tsx의 v7_startTransition 때문에 필터 변경이
 // 커밋되기 전 "정지 구간"에서 또 조작하면 생기는 유실/되살아남)를 구조적으로 못 잡는다.
-// 그래서 PostListSearch + 실제로 suspend하는 usePostList() 소비자를 함께 렌더하고, MSW
+// 그래서 PostListFilter + 실제로 suspend하는 usePostList() 소비자를 함께 렌더하고, MSW
 // 핸들러를 수동 게이트로 감싸 그 정지 구간을 결정적으로 재현한다.
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
@@ -126,7 +126,7 @@ function renderPostList(initialEntry: string) {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[initialEntry]} future={{ v7_startTransition: true }}>
-        <PostListSearch />
+        <PostListFilter />
         <Suspense fallback={<div data-testid="loading" />}>
           <PostListProbe />
         </Suspense>
@@ -148,7 +148,7 @@ function renderPostListWithDataRouter(initialEntry: string) {
         path: '/',
         element: (
           <>
-            <PostListSearch />
+            <PostListFilter />
             <Suspense fallback={<div data-testid="loading" />}>
               <PostListProbe />
             </Suspense>

@@ -1476,7 +1476,7 @@ Explore 에이전트 3개로 ① 모든 확인창(Alert/Confirm) 버튼 ② 모�
 적용 완료. 관련 파일: `src/features/post/delete/hooks/usePostDelete.ts`,
 `src/features/comment/delete/hooks/useDeleteComment.ts`,
 `src/features/account/delete/hooks/useDeleteAccount.ts`,
-`src/widgets/bookmark/folder-tree/hooks/useFolderActions.ts`,
+`src/widgets/bookmark/folder-nav/hooks/useFolderActions.ts`(2026-11-06 `folder-tree/`에서 개명),
 `e2e/post-delete.spec.ts`, `e2e/comment-delete.spec.ts`, `e2e/bookmark-folder-delete.spec.ts`.
 
 ---

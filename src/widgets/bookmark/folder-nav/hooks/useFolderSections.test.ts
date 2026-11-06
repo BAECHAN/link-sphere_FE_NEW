@@ -7,10 +7,10 @@ import { createTestQueryClient } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { bookmarkFolderInvalidateQueries } from '@/entities/bookmark/folder/api/bookmark-folder.keys';
-import { useFolderSections } from '@/widgets/bookmark/folder-tree/hooks/useFolderSections';
+import { useFolderSections } from '@/widgets/bookmark/folder-nav/hooks/useFolderSections';
 import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 
-// FolderTree/MobileFolderList는 페이지 방문 내내 마운트돼 있어 "다시 열기" 같은 세션
+// FolderSidebar/MobileFolderList는 페이지 방문 내내 마운트돼 있어 "다시 열기" 같은 세션
 // 경계가 없다 — 스냅샷을 쓰면 새로고침 전까지 옛 순서가 남았다(2026-09-21 버그,
 // docs/BOOKMARK.md §10). 이 파일은 "언마운트 없이 목록이 갱신되면 구획도 따라 바뀐다"를
 // 고정한다. 순수 선정 로직(임계값·완전 일치 배제·정렬) 자체는

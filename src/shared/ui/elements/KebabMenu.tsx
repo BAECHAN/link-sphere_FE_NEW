@@ -17,7 +17,7 @@ export interface KebabMenuProps {
   triggerClassName?: string;
   /** true면 평소엔 숨겼다가 부모의 `group` hover·열림·키보드 포커스 때 보인다. 주 입력이
    * 터치(pointer: coarse)면 hover가 없어 항상 보인다. 부모 요소에 `group` 클래스가 있어야
-   * 동작한다(FolderTree.tsx의 `.group` 선례 참고) */
+   * 동작한다(FolderSidebar.tsx의 `.group` 선례 참고) */
   hoverReveal?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -26,7 +26,7 @@ export interface KebabMenuProps {
 }
 
 /**
- * ⋮ 트리거 + DropdownMenu 셸을 감싼 compound 컴포넌트. PostCard·FolderTree·
+ * ⋮ 트리거 + DropdownMenu 셸을 감싼 compound 컴포넌트. PostCard·FolderSidebar·
  * MobileFolderList가 각자 구현하던 거의 같은 마크업(ghost 아이콘 버튼 + MoreVertical +
  * DropdownMenu)을 통합했다(2026-09-29, docs/DECISIONS.md 참고). 메뉴 항목(수정·삭제·
  * 이름변경 등)은 도메인마다 달라 여기서 정의하지 않고 children으로 호출부가 채운다.

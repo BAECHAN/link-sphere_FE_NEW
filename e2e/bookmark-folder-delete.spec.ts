@@ -55,7 +55,7 @@ test.describe('북마크 폴더 삭제', () => {
       page.getByRole('heading', { level: 1, name: TEXTS.bookmark.folder.all })
     ).toBeVisible();
 
-    // 선택 상태를 먼저 만든다 — useFolderTree.ts의 onBeforeDelete는 selected일 때만
+    // 선택 상태를 먼저 만든다 — useFolderSidebar.ts의 onBeforeDelete는 selected일 때만
     // 동작한다. 이 클릭 없이는 검증 대상 분기를 안 타고도 테스트가 통과해버린다.
     await page.getByRole('button', { name: mockBookmarkFolder.name }).click();
     await expect(page).toHaveURL(new RegExp(`folder=${mockBookmarkFolder.id}`));
@@ -73,7 +73,7 @@ test.describe('북마크 폴더 삭제', () => {
 
     await page.getByRole('button', { name: TEXTS.ariaLabels.folderMenu }).click();
     await page.getByRole('menuitem', { name: TEXTS.buttons.delete }).click();
-    // FolderTree의 DropdownMenu는 기본 modal(PostCard는 modal={false})이라 PostCard와
+    // FolderSidebar의 DropdownMenu는 기본 modal(PostCard는 modal={false})이라 PostCard와
     // 달리, confirm dialog를 만지기 전에 드롭다운이 완전히 닫힌 걸 먼저 확인한다.
     await expect(page.getByRole('menu')).toHaveCount(0);
 

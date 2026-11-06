@@ -18,11 +18,11 @@ import { BOOKMARK_FOLDER_NAME_MAX_LENGTH } from '@/entities/bookmark/folder/conf
 import {
   useCreateFolderInput,
   useFolderItem,
-  useFolderTree,
+  useFolderSidebar,
   useInlineCreateFolderInput,
-} from '@/widgets/bookmark/folder-tree/hooks/useFolderTree';
+} from '@/widgets/bookmark/folder-nav/hooks/useFolderSidebar';
 
-interface FolderTreeProps {
+interface FolderSidebarProps {
   selectedKey: BookmarkFolderKey;
   onSelect: (key: BookmarkFolderKey) => void;
   sort?: BookmarkFolderSort;
@@ -30,8 +30,14 @@ interface FolderTreeProps {
   className?: string;
 }
 
-/** 데스크탑 — 좌측 사이드바 트리 */
-export function FolderTree({ selectedKey, onSelect, sort, search, className }: FolderTreeProps) {
+/** 데스크탑 — 좌측 폴더 사이드바 */
+export function FolderSidebar({
+  selectedKey,
+  onSelect,
+  sort,
+  search,
+  className,
+}: FolderSidebarProps) {
   const {
     folderList,
     folderListRef,
@@ -41,7 +47,7 @@ export function FolderTree({ selectedKey, onSelect, sort, search, className }: F
     isFolderListFailed,
     retryFolderList,
     prefetchFolder,
-  } = useFolderTree(sort, search);
+  } = useFolderSidebar(sort, search);
 
   return (
     <aside className={cn('flex flex-col gap-1 overflow-hidden py-2', className)}>

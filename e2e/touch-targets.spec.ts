@@ -45,7 +45,7 @@ test.describe('데스크톱 마우스 — 터치 타깃을 넓히지 않는다',
   test('북마크 사이드바 행·⋮·제목 연필·정렬은 44px로 넓어지지 않는다', async ({ page }) => {
     await page.goto(`/bookmark?folder=${mockBookmarkFolder.id}`);
 
-    // 앱 사이드바(Sidebar.tsx)도 <aside>라 본문(main) 안의 폴더 사이드바(FolderTree)만 고른다
+    // 앱 사이드바(Sidebar.tsx)도 <aside>라 본문(main) 안의 폴더 사이드바(FolderSidebar)만 고른다
     const targets = page
       .locator('main aside')
       .getByRole('button')

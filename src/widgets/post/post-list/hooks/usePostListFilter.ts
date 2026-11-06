@@ -34,7 +34,7 @@ function computeAppliedFilterCount(
  * URL 갱신은 라우터 startTransition에 감싸여 있어 칩 반응이 늦으므로,
  * flushSync로 즉시 반영하는 낙관적 미러를 따로 둔다(봇 숨기기 store는 갱신이 바로 반영돼 미러가 없다).
  */
-export const usePostListSearch = () => {
+export const usePostListFilter = () => {
   const { categoryOptionList } = useCategoryOptions();
   const { searchQuery, currentFilter, toggleSearchTag, toggleFilter, clearSearch } =
     usePostListParams();

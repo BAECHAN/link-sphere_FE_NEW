@@ -412,7 +412,7 @@ interface NewFolderInputProps {
 }
 
 // 새 폴더 이름 입력 — 입력값을 이 컴포넌트에 둬서 한 글자마다 모달 본문과 폴더 행이 다시 그려지지 않게 한다
-// (useNewFolderInput 참고, 선례: widgets/bookmark/folder-tree의 InlineCreateFolderInput)
+// (useNewFolderInput 참고, 선례: widgets/bookmark/folder-nav의 InlineCreateFolderInput)
 function NewFolderInput({ onCancel, onCreated }: NewFolderInputProps) {
   const {
     newFolderName,

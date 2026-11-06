@@ -27,7 +27,7 @@ function shouldSkipSnapshot(
  *   순간 값을 굳혀버리면 데이터가 도착해도 영원히 빈 채로 고정된다.
  * - `sessionKey`(선택): BookmarkFolderSelectDialog처럼 열고 닫을 때마다 새 스냅샷을 찍고
  *   싶은 호출부가 그 open 상태를 넘긴다. 지금은 모달(useBookmarkFolderSelect)이 유일한
- *   호출부다 — 상시 마운트 화면(FolderTree/MobileFolderList)은 세션 경계가 없어 스냅샷이
+ *   호출부다 — 상시 마운트 화면(FolderSidebar/MobileFolderList)은 세션 경계가 없어 스냅샷이
  *   영영 안 풀렸고(2026-09-21), 그래서 useFolderSections는 BookmarkFolderUtil.pickRecentFolders를
  *   직접 쓴다.
  * - 상단 구획에 뜬 폴더도 아래 본 목록에서 빼지 않는다(중복 표시) — 호출부에서 그대로 렌더한다.

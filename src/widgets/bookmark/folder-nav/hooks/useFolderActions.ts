@@ -18,7 +18,7 @@ interface UseFolderActionsParams {
 }
 
 /**
- * 폴더 고정(pin) + 이름변경(rename) + 삭제(delete) 로직 — FolderTree(FolderItem)·MobileFolderList(FolderCard)가 공유한다.
+ * 폴더 고정(pin) + 이름변경(rename) + 삭제(delete) 로직 — FolderSidebar(FolderItem)·MobileFolderList(FolderCard)가 공유한다.
  * 이름변경은 폴더 화면 제목과 함께 쓰는 features 훅(useRenameBookmarkFolder)을 그대로 돌려준다.
  * 고정 실패 토스트·롤백은 mutation이 소유한다(useSetBookmarkFolderPinMutation).
  */

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { ScrollUtil } from '@/shared/utils/scroll.util';
-import { useFollowFocusOnReorder } from '@/widgets/bookmark/folder-tree/hooks/useFollowFocusOnReorder';
+import { useFollowFocusOnReorder } from '@/widgets/bookmark/folder-nav/hooks/useFollowFocusOnReorder';
 
 let container: HTMLDivElement;
 let items: HTMLElement[];

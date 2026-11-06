@@ -3,10 +3,10 @@ import { Card } from '@/shared/ui/atoms/card';
 import { Switch } from '@/shared/ui/atoms/switch';
 import { FilterChip } from '@/shared/ui/elements/FilterChip';
 import { RotateCcw } from 'lucide-react';
-import { usePostListSearch } from '@/widgets/post/post-list/hooks/usePostListSearch';
+import { usePostListFilter } from '@/widgets/post/post-list/hooks/usePostListFilter';
 import { TEXTS } from '@/shared/config/texts';
 
-export function PostListSearch() {
+export function PostListFilter() {
   const {
     categoryOptionList,
     selectedCategories,
@@ -20,7 +20,7 @@ export function PostListSearch() {
     handleToggleHideBots,
     appliedCount,
     handleClearSearch,
-  } = usePostListSearch();
+  } = usePostListFilter();
 
   return (
     <Card className="gap-2 md:gap-3 p-4 rounded-2xl hover:shadow-md transition-shadow">

@@ -22,7 +22,7 @@ test.describe('모바일 — 북마크 폴더 drill-down', () => {
   }) => {
     await page.goto('/bookmark');
 
-    // ?folder가 없으면 MobileFolderList(폴더 목록) 모드 — 데스크톱 FolderTree와 달리
+    // ?folder가 없으면 MobileFolderList(폴더 목록) 모드 — 데스크톱 FolderSidebar와 달리
     // 페이지 제목이 "북마크"(pageTitle)다.
     await expect(
       page.getByRole('heading', { level: 1, name: TEXTS.bookmark.folder.pageTitle })

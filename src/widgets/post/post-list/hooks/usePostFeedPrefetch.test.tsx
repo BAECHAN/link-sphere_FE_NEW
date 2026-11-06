@@ -11,7 +11,7 @@ import { mockPostListResponse } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { PostList } from '@/widgets/post/post-list/ui/PostList';
-import { PostListSearch } from '@/widgets/post/post-list/ui/PostListSearch';
+import { PostListFilter } from '@/widgets/post/post-list/ui/PostListFilter';
 import { usePostFeedPrefetch } from '@/widgets/post/post-list/hooks/usePostFeedPrefetch';
 import type { CardGridSpec } from '@/shared/hooks/useWindowGridVirtualizer';
 import { RouterEvents } from '@/shared/lib/router/router-events';
@@ -99,7 +99,7 @@ function feedElement() {
   return (
     <>
       <FeedPrefetch />
-      <PostListSearch />
+      <PostListFilter />
       <PostList renderPost={renderTestPost} grid={TEST_GRID} />
     </>
   );

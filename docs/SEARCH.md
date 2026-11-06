@@ -39,7 +39,7 @@ flowchart TD
 
   URL -->|"다른 페이지(예: /bookmark)"| Empty["헤더 입력창은 빈 값<br/>(북마크 자체 q와 혼동 방지)"]
 
-  ChipClick["필터 카드 카테고리 칩 클릭<br/>(PostListSearch.tsx)"] -->|"flushSync 낙관적 미러"| ChipUI["칩 즉시 활성화"]
+  ChipClick["필터 카드 카테고리 칩 클릭<br/>(PostListFilter.tsx)"] -->|"flushSync 낙관적 미러"| ChipUI["칩 즉시 활성화"]
   ChipClick --> Navigate2["toggleSearchTag(@라벨) → URL q 갱신<br/>(아직 반영 안 된 pending까지 포함해 계산)"]
   Navigate2 --> Mirror
   Navigate2 -->|"새 목록 응답이 0.5초 넘게 늦으면"| Applying["이전 목록을 흐리게 덮고<br/>'결과를 불러오는 중이에요.' 표시"]
@@ -74,7 +74,7 @@ flowchart TD
 **구현·검증 과정에서 쓴 도구**
 
 - Vitest + Testing Library — `NavbarSearch.test.tsx`, `MobileNavbarSearch.test.tsx`, `RecentSearchPanel.test.tsx`,
-  `Navbar.test.tsx`, `PostListSearch.test.tsx`, `PostList.test.tsx`, `usePostList.test.tsx`, `search-parser.test.ts`,
+  `Navbar.test.tsx`, `PostListFilter.test.tsx`, `PostList.test.tsx`, `usePostList.test.tsx`, `search-parser.test.ts`,
   `useSearchParamsDraft.test.tsx`
 - 웹 리서치([Baymard #346](https://baymard.com/blog/persist-search-queries)) — 검색어 유지
   여부의 UX 근거 확보
@@ -92,7 +92,7 @@ flowchart TD
 핵심 설계 결정은 "URL `q`가 유일한 SSOT"라는 것이다. 헤더 검색창(데스크톱
 [`NavbarSearch.tsx`](../src/widgets/layout/navbar/ui/NavbarSearch.tsx), 모바일
 [`MobileNavbarSearch.tsx`](../src/widgets/layout/navbar/ui/MobileNavbarSearch.tsx))과 게시글
-목록 필터 카드([`PostListSearch.tsx`](../src/widgets/post/post-list/ui/PostListSearch.tsx))는
+목록 필터 카드([`PostListFilter.tsx`](../src/widgets/post/post-list/ui/PostListFilter.tsx))는
 둘 다 이 `q`를 각자 구독하는 **미러**일 뿐, 서로 상태를 공유하지 않는다. 두 미러가 값을
 주고받으려면 반드시 URL을 거쳐야 한다.
 
@@ -105,12 +105,12 @@ flowchart LR
   Q -->|"렌더 중 동기화"| NavbarSearch
   MobileNavbarSearch["MobileNavbarSearch<br/>(useNavbarSearch)"] -->|"onSubmit → navigate"| Q
   Q -->|"렌더 중 동기화"| MobileNavbarSearch
-  PostListSearch["PostListSearch<br/>(usePostListSearch)"] -->|"toggleSearchTag"| Q
-  Q -->|"렌더 중 동기화"| PostListSearch
+  PostListFilter["PostListFilter<br/>(usePostListFilter)"] -->|"toggleSearchTag"| Q
+  Q -->|"렌더 중 동기화"| PostListFilter
   PostCard["PostCard 카테고리 칩<br/>(usePostCard.handleCategoryClick)"] -->|"q = @이름 (쓰기 전용)"| Q
 ```
 
-**왜 헤더 입력창을 `PostListSearch`의 `flushSync` 낙관적 미러 경로에 끼워 넣지 않았나**:
+**왜 헤더 입력창을 `PostListFilter`의 `flushSync` 낙관적 미러 경로에 끼워 넣지 않았나**:
 두 컴포넌트의 공통 조상이 `RootLayout` 수준이라 상태를 공유하려면 새 스토어가 필요한데,
 그건 "SSOT는 URL"이라는 결정을 되돌리는 것이다. 대신 헤더 입력창은 URL 변화를 한 틱 늦게
 따라가는 것을 허용한다 — React Router의 `startTransition` 완료 후 반드시 수렴한다.
@@ -135,10 +135,10 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 
 **범위 칩은 "북마크한·좋아요한·내가 작성한·나만 볼 수 있는" 4개다.** 켜진 값은 URL `filter`에
 콤마로 이어 붙고(`?filter=isBookmarked,isLiked`), BE `GET /post`가 AND로 묶는다. 칩 키 목록은
-[`usePostListSearch.ts:10`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L10)의
+[`usePostListFilter.ts:10`](../src/widgets/post/post-list/hooks/usePostListFilter.ts#L10)의
 `SCOPE_FILTERS` 하나이고, "조건 N개" 카운트와 초기화가 이 배열을 본다. 새 칩을 추가하면서 여기
 빠뜨리면 그 칩만 켠 상태에서 카운트가 안 뜨고 초기화도 아무 일을 하지 않는다
-(`PostListSearch.test.tsx`가 "좋아요한"으로 이를 검증한다). BE는 모르는 `filter` 값을 조용히
+(`PostListFilter.test.tsx`가 "좋아요한"으로 이를 검증한다). BE는 모르는 `filter` 값을 조용히
 무시하므로, 새 값은 BE를 먼저 배포한다.
 
 "좋아요한"(2026-10-14)은 좋아요한 글을 다시 찾을 방법이 없던 빈 곳을 메운다. "내 댓글"을
@@ -157,7 +157,7 @@ history 항목의 `location.key`를 그대로 되돌려주므로, 커밋 전에 
 쪽에서는 커밋된 URL이 한 번도 안 바뀐 것으로 보인다 — 렌더 중 미러 동기화도, `location.key`
 기준의 pending 폐기도 돌지 않는다. 그래서 [`router-events.ts`](../src/shared/lib/router/router-events.ts)의
 `RouterEvents.onPop`이 라우터 자체의 구독(`router.subscribe`)으로 POP을 받아, pending을 비우고
-(`useSearchParamsDraft`) 칩 미러를 돌아간 URL로 맞춘다(`usePostListSearch`). raw `popstate`
+(`useSearchParamsDraft`) 칩 미러를 돌아간 URL로 맞춘다(`usePostListFilter`). raw `popstate`
 리스너는 [`docs/DECISIONS.md`](./DECISIONS.md) 뒤로가기 정책의 금지 사항이라 쓰지 않았다.
 
 **정지 구간이 길어지면 이전 목록을 흐리게 덮는다.** 필터 칩·검색어·카드 카테고리 칩으로 조건을 바꾸면 주소는 바로
@@ -256,7 +256,7 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 검색어 원본(`q`)                                   | URL `searchParams` (React Router)                                                                              | `@카테고리 #닉네임 키워드` 형태로 토큰이 섞여 들어간다                                                                                                                                                                                                                                                                                                     |
 | 헤더 입력값                                        | [`useNavbarSearch.ts`](../src/widgets/layout/navbar/hooks/useNavbarSearch.ts)의 로컬 `useState`                | `pathname === '/post'`일 때만 `q`를 초기값·동기화 대상으로 삼는다                                                                                                                                                                                                                                                                                          |
-| 필터 카드 낙관적 칩                                | [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts)의 `optimisticCategoryTags`  | `flushSync`로 URL 반영 전에 즉시 활성화 표시. 뒤로/앞으로 가기(POP)면 `RouterEvents.onPop`으로 돌아간 URL에 다시 맞춘다(§5)                                                                                                                                                                                                                                |
+| 필터 카드 낙관적 칩                                | [`usePostListFilter.ts`](../src/widgets/post/post-list/hooks/usePostListFilter.ts)의 `optimisticCategoryTags`  | `flushSync`로 URL 반영 전에 즉시 활성화 표시. 뒤로/앞으로 가기(POP)면 `RouterEvents.onPop`으로 돌아간 URL에 다시 맞춘다(§5)                                                                                                                                                                                                                                |
 | 커밋 전 URL 쓰기 의도(pending)                     | [`useSearchParamsDraft.ts`](../src/shared/hooks/useSearchParamsDraft.ts)의 모듈 스코프 `pendingIntent`         | 정지 구간 동안 `location.key` 기준으로 연속 조작을 이어붙임. 커밋되면(`location.key` 변경) 자동 폐기, 뒤로/앞으로 가기(POP)면 `RouterEvents.onPop`으로 폐기(§5)                                                                                                                                                                                            |
 | 라우터 최신 위치(정지 구간 판정용)                 | [`usePostList.ts`](../src/widgets/post/post-list/hooks/usePostList.ts)의 `usePostListApplying` 로컬 `useState` | `RouterEvents.onNavigate`로 갱신. 커밋된 위치와 쿼리가 다르면 "적용 중"(§5)                                                                                                                                                                                                                                                                                |
 | 봇 글 숨기기                                       | [`useHideBotsStore`](../src/shared/store/hideBots.store.ts) (zustand + localStorage)                           | 기기별 개인 설정이라 URL 대상 아님, "조건 N개" 카운트에서도 제외. 목록 조회는 `useDeferredValue`로 늦춘 값을 쓴다(§10)                                                                                                                                                                                                                                     |
@@ -287,14 +287,14 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 드롭다운 목록 마크업(헤더 고정·행·삭제 버튼) 바꾸기          | [`RecentSearchDropdown.tsx`](../src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx)                                                                                                                                                                                                                                                                              |
 | 카드의 카테고리 칩을 눌렀을 때 동작 바꾸기                   | [`usePostCard.ts`](../src/widgets/post/post-card/hooks/usePostCard.ts) — `handleCategoryClick`, 칩 마크업은 [`ActionChip.tsx`](../src/shared/ui/elements/ActionChip.tsx), 쓰는 곳은 [`PostCard.tsx:303`](../src/widgets/post/post-card/ui/PostCard.tsx#L303) 이하                                                                                                   |
 | `@카테고리`/`#닉네임`/키워드 분해 규칙 바꾸기                | [`search-parser.ts`](../src/widgets/post/post-list/utils/search-parser.ts) — `parseSearchQuery`                                                                                                                                                                                                                                                                     |
-| 범위 칩(북마크한·좋아요한 등) 추가·순서·색 바꾸기            | [`PostListSearch.tsx:48-80`](../src/widgets/post/post-list/ui/PostListSearch.tsx#L48-L80) — 칩 마크업, 키는 [`usePostListSearch.ts:10`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L10) `SCOPE_FILTERS`에도 넣는다                                                                                                                                    |
-| "조건 N개 적용 중" 카운트 로직                               | [`usePostListSearch.ts:13-30`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L13-L30) — `computeAppliedFilterCount`                                                                                                                                                                                                                                      |
-| 라벨(@카테고리) 칩을 눌렀을 때 새 검색어 계산 규칙 바꾸기    | [`usePostList.ts:46-62`](../src/widgets/post/post-list/hooks/usePostList.ts#L46-L62) — `toggleSearchTag`(pending 포함 draft 기준). 칩 미러 갱신은 [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts)의 `toggleCategoryTagInSearch`                                                                                                  |
-| 뒤로/앞으로 가기 때 칩·pending 정리 바꾸기                   | [`router-events.ts`](../src/shared/lib/router/router-events.ts)(POP 감지), [`usePostListSearch.ts:88-103`](../src/widgets/post/post-list/hooks/usePostListSearch.ts#L88-L103)(칩 미러), [`useSearchParamsDraft.ts:59-65`](../src/shared/hooks/useSearchParamsDraft.ts#L59-L65)(pending), 주입은 [`RouterProvider.tsx`](../src/app/providers/RouterProvider.tsx)     |
+| 범위 칩(북마크한·좋아요한 등) 추가·순서·색 바꾸기            | [`PostListFilter.tsx:48-80`](../src/widgets/post/post-list/ui/PostListFilter.tsx#L48-L80) — 칩 마크업, 키는 [`usePostListFilter.ts:10`](../src/widgets/post/post-list/hooks/usePostListFilter.ts#L10) `SCOPE_FILTERS`에도 넣는다                                                                                                                                    |
+| "조건 N개 적용 중" 카운트 로직                               | [`usePostListFilter.ts:13-30`](../src/widgets/post/post-list/hooks/usePostListFilter.ts#L13-L30) — `computeAppliedFilterCount`                                                                                                                                                                                                                                      |
+| 라벨(@카테고리) 칩을 눌렀을 때 새 검색어 계산 규칙 바꾸기    | [`usePostList.ts:46-62`](../src/widgets/post/post-list/hooks/usePostList.ts#L46-L62) — `toggleSearchTag`(pending 포함 draft 기준). 칩 미러 갱신은 [`usePostListFilter.ts`](../src/widgets/post/post-list/hooks/usePostListFilter.ts)의 `toggleCategoryTagInSearch`                                                                                                  |
+| 뒤로/앞으로 가기 때 칩·pending 정리 바꾸기                   | [`router-events.ts`](../src/shared/lib/router/router-events.ts)(POP 감지), [`usePostListFilter.ts:88-103`](../src/widgets/post/post-list/hooks/usePostListFilter.ts#L88-L103)(칩 미러), [`useSearchParamsDraft.ts:59-65`](../src/shared/hooks/useSearchParamsDraft.ts#L59-L65)(pending), 주입은 [`RouterProvider.tsx`](../src/app/providers/RouterProvider.tsx)     |
 | 목록 조회 실패 화면이 풀리는 조건 바꾸기                     | [`usePostList.ts:106-116`](../src/widgets/post/post-list/hooks/usePostList.ts#L106-L116) — `usePostListErrorReset`(리셋 키), 실패한 목록 캐시 삭제는 [`post.keys.ts`](../src/entities/post/api/post.keys.ts)의 `postRemoveQueries.erroredLists`                                                                                                                     |
 | 정지 구간 "불러오는 중" 표시 조건·지연 바꾸기                | [`usePostList.ts:131-157`](../src/widgets/post/post-list/hooks/usePostList.ts#L131-L157) — `usePostListApplying`(최신 위치와 커밋된 위치 비교, 봇 숨기기 늦춘 값 비교, 0.5초 지연)                                                                                                                                                                                  |
 | 정지 구간 "불러오는 중" 덮개 모양 바꾸기                     | [`PostList.tsx`](../src/widgets/post/post-list/ui/PostList.tsx)의 `isApplying` 분기 — 덮개·알약, 문구는 `TEXTS.post.search.applying`                                                                                                                                                                                                                                |
-| 초기화 버튼(필터+검색어 전체 리셋)                           | [`usePostListSearch.ts`](../src/widgets/post/post-list/hooks/usePostListSearch.ts) — `handleClearSearch`                                                                                                                                                                                                                                                            |
+| 초기화 버튼(필터+검색어 전체 리셋)                           | [`usePostListFilter.ts`](../src/widgets/post/post-list/hooks/usePostListFilter.ts) — `handleClearSearch`                                                                                                                                                                                                                                                            |
 | 오타 보정 문구                                               | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx`](../src/widgets/post/post-list/ui/PostList.tsx)의 `PostListContent`(`correctedSearch` 분기)                                                                                                                                                                                                                   |
 | 모바일 검색 패널 열림 상태                                   | [`useMobileSearchPanel.ts:17-22`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L17-L22) — `location.state.mobileSearchOpen`                                                                                                                                                                                                                           |
 | 검색 중 하단 댓글바 숨김 동작 바꾸기                         | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useHistoryOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                                                                                                                                                                                     |
@@ -369,7 +369,7 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 기준으로 즉시 반영됐다. 헤더로 옮기며 그 로컬 상태가 사라지자 URL만 기준으로 삼아야 했는데,
 `setSearchParams`가 라우터 `startTransition`에 감싸여 있어 칩이 늦게 반응하는 것처럼
 보이는 문제가 생겼다. 범위 필터 칩이 이미 쓰던 `flushSync` 낙관적 미러 패턴을 카테고리
-칩에도 그대로 적용해 해소했다(`optimisticCategoryTags`, `PostListSearch.tsx`). 자세한 경위는
+칩에도 그대로 적용해 해소했다(`optimisticCategoryTags`, `PostListFilter.tsx`). 자세한 경위는
 [`docs/DECISIONS.md`](./DECISIONS.md) "2026-09-06 — 검색창 헤더 통합" 참고.
 
 **검색어 유지 도입 시 X 버튼 처리를 웹 리서치로 검증.** 검색어를 입력창에 유지하기로 하면서
@@ -438,7 +438,7 @@ and warn when there is a problem with your filter."_
 `search-parser.ts`) `@a@b`를 `['@a', '@b']`로 올바르게 분해했다. 같은 규칙으로 기존에
 "알려진 동작(버그)"으로 테스트에 박제돼 있던 오탐 2건도 함께 풀렸다 — `hong@example.com`이
 더 이상 `category: 'example.com'`으로 잘못 잡히지 않고, 단어 중간의 `a#b`도 더 이상 `nickname:
-'b'`로 잡히지 않는다. 필터 카드 카테고리 칩 클릭 시 재조립하던 `PostListSearch.tsx`의 같은 정규식
+'b'`로 잡히지 않는다. 필터 카드 카테고리 칩 클릭 시 재조립하던 `PostListFilter.tsx`의 같은 정규식
 사본도 새 유틸(`extractSearchTags`)로 교체해 규칙을 한 곳에서만 관리하게 했다.
 
 조사 과정에서 BE `nickname` 필터의 별도 버그도 발견했다 — 아래 "남은 것" 참고.
