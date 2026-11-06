@@ -1,4 +1,7 @@
 ### 2026-11-06 (FE)
+- 뮤테이션을 사용하는 커스텀 훅 테스트 코드 리팩토링 및 안정성 강화 ([#565](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/565))
+
+### 2026-11-06 (FE)
 - 글 카드 내 댓글 링크 경로 및 첨부 이미지 파일명 출력 오류 수정 ([#564](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/564))
 
 ### 2026-11-06 (FE)
