@@ -1,3 +1,6 @@
+### 2026-11-06 (FE)
+- 이미지 다중 업로드 시 식별을 위해 확대 및 삭제 버튼에 순번 동적 할당 기능 구현 ([#569](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/569))
+
 ### 2026-11-06 (BE)
 - LambdaHandler의 MockMvc 테스트 환경 설정 및 문서 기술 내용 최적화
 로그:
