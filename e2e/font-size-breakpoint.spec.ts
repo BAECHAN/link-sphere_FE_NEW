@@ -26,7 +26,7 @@ test.describe('브라우저 기본 글꼴을 키운 사용자 — 폭 판정이 
   }) => {
     await page.goto('/post');
 
-    await page.getByRole('button', { name: TEXTS.nav.toggleSearch }).click();
+    await page.getByRole('button', { name: TEXTS.nav.openSearch }).click();
     await expect(page.getByText(TEXTS.recentSearch.empty)).toBeVisible();
 
     // inert인 main은 접근성 트리에서 빠져 getByRole로 찾을 수 없다

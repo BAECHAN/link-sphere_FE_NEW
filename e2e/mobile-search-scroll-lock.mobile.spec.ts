@@ -18,9 +18,9 @@ test.describe('모바일 — 검색 오버레이가 열린 동안 배경 스크�
   test('검색을 열면 배경 스크롤이 잠기고, 닫으면 풀린다', async ({ page }) => {
     await page.goto('/post');
 
-    const searchToggle = page.getByRole('button', { name: TEXTS.nav.toggleSearch });
-    await expect(searchToggle).toBeVisible();
-    await searchToggle.click();
+    const openSearchButton = page.getByRole('button', { name: TEXTS.nav.openSearch });
+    await expect(openSearchButton).toBeVisible();
+    await openSearchButton.click();
 
     await expect(page.getByText(TEXTS.recentSearch.empty)).toBeVisible();
 

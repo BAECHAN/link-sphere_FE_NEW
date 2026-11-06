@@ -33,6 +33,11 @@ export function LikeCommentButton({
         'flex items-center gap-1 min-h-11 px-2 md:pointer-fine:h-auto md:pointer-fine:min-h-0 hover:text-destructive transition-colors',
         isLiked && 'text-destructive font-medium'
       )}
+      aria-label={
+        isLiked
+          ? TEXTS.ariaLabels.unlikeWithCount(likeCount)
+          : TEXTS.ariaLabels.likeWithCount(likeCount)
+      }
     >
       <Heart className={cn('size-4', isLiked && 'fill-current')} />
       <span>{likeCount > 0 ? likeCount : TEXTS.comment.item.like}</span>

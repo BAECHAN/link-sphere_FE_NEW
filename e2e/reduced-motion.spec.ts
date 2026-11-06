@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { installCatchAll } from './mocks/catch-all';
 import { mockCategoryOptions } from './mocks/common.mock';
 import { mockPostListPaged } from './mocks/post.mock';
+import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 
 // globals.css 끝의 @media (prefers-reduced-motion: reduce) 블록 — 움직임(이동·확대·회전)만 빼고
@@ -23,9 +24,11 @@ const CASES = [
   },
 ] as const;
 
+const LIKE_NAME = TEXTS.ariaLabels.likeWithCount(mockPost.stats.likeCount);
+
 async function openLoginDialog(page: Page) {
   // 비로그인으로 좋아요를 누르면 로그인 모달이 뜬다(guest-guard.spec.ts)
-  await page.getByRole('button', { name: TEXTS.ariaLabels.postLike, exact: true }).first().click();
+  await page.getByRole('button', { name: LIKE_NAME }).first().click();
   const dialog = page.getByRole('dialog', { name: TEXTS.auth.guard.title });
   await expect(dialog).toBeVisible();
 
@@ -35,10 +38,7 @@ async function openLoginDialog(page: Page) {
 // 첫 게시글 카드 — PostCard와 그 목록 래퍼(PostList.tsx) 모두 aria-busy를 달아서, 카드 안의
 // 좋아요 버튼에서 가장 가까운 aria-busy 조상을 고른다
 const firstPostCard = (page: Page) =>
-  page
-    .getByRole('button', { name: TEXTS.ariaLabels.postLike, exact: true })
-    .first()
-    .locator('xpath=ancestor::*[@aria-busy][1]');
+  page.getByRole('button', { name: LIKE_NAME }).first().locator('xpath=ancestor::*[@aria-busy][1]');
 
 for (const c of CASES) {
   test.describe(`prefers-reduced-motion: ${c.reducedMotion}`, () => {

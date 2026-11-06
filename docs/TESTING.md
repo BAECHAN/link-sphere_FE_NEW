@@ -448,9 +448,9 @@ describe('PostCard', () => {
 
 > **좋아요·북마크처럼 아이콘형 액션 버튼은 `getByRole('button', { name: /.../i })`로 특정할 때
 > 상태별 라벨을 알아야 한다** — `LikePostButton`(`features/post/like/ui/LikePostButton.tsx`)은
-> `aria-label={isLiked ? TEXTS.ariaLabels.postUnlike : TEXTS.ariaLabels.postLike}`로
-> `aria-label`을 갖고 있지만, 그 값이 `isLiked` 상태에 따라 바뀐다 — 고정 텍스트가 아니라서
-> 쿼리를 짤 때 지금 상태가 좋아요/좋아요 취소 중 어느 쪽인지 먼저 알아야 한다. 이런 버튼의
+> `aria-label`이 `TEXTS.ariaLabels.likeWithCount(수)`·`unlikeWithCount(수)` 중 하나로,
+> `isLiked` 상태와 좋아요 수에 따라 바뀐다 — 고정 텍스트가 아니라서
+> 쿼리를 짤 때 지금 상태와 수를 먼저 알아야 한다. 이런 버튼의
 > 클릭 인터랙션은 `PostCard` 전체가 아니라 **그 버튼 컴포넌트를 단위로 분리해서** 테스트하면
 > props로 상태를 직접 주입할 수 있어 쿼리가 훨씬 단순해진다. 폼 제출·검색 입력처럼 상태와
 > 무관하게 고정된 접근 가능한 이름이 있는 인터랙션의 실전 예시는

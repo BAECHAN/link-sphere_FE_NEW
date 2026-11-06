@@ -20,11 +20,11 @@ function getDrawer(page: Page) {
 }
 
 function getDrawerClose(page: Page) {
-  return getDrawer(page).getByRole('button', { name: TEXTS.nav.toggleMenu });
+  return getDrawer(page).getByRole('button', { name: TEXTS.ariaLabels.close });
 }
 
 function getHamburger(page: Page) {
-  return page.locator('nav').getByRole('button', { name: TEXTS.nav.toggleMenu });
+  return page.getByRole('button', { name: TEXTS.nav.openMenu });
 }
 
 // 트랜지션을 멈춰 세운 지점의 실제 계산값을 읽는다(bookmark-sheet-motion.mobile.spec.ts와 같은 방식).
@@ -80,7 +80,7 @@ function sampleTransitionMidway(page: Page, trigger: 'close' | 'open') {
         left: drawer.getBoundingClientRect().left,
       };
     },
-    { selector: DRAWER_SELECTOR, trigger, hamburgerLabel: TEXTS.nav.toggleMenu }
+    { selector: DRAWER_SELECTOR, trigger, hamburgerLabel: TEXTS.nav.openMenu }
   );
 }
 

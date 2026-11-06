@@ -24,7 +24,7 @@ test.describe('모바일 — 검색 패널을 열어도 배경 피드 위치는 
     }).toPass();
     const scrollBefore = await page.evaluate(() => window.scrollY);
 
-    await page.getByRole('button', { name: TEXTS.nav.toggleSearch }).click();
+    await page.getByRole('button', { name: TEXTS.nav.openSearch }).click();
     await expect(page.getByText(TEXTS.recentSearch.empty)).toBeVisible();
 
     expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);

@@ -139,9 +139,8 @@ test.describe('탭 간 로그인·로그아웃 동기화', () => {
 
     await feedTab.goto('/post');
     await expect(feedTab.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })).toBeVisible();
-    // exact — 이름 부분 일치면 피드의 "좋아요한" 범위 칩이 먼저 걸린다
     await feedTab
-      .getByRole('button', { name: TEXTS.ariaLabels.postLike, exact: true })
+      .getByRole('button', { name: TEXTS.ariaLabels.likeWithCount(mockPost.stats.likeCount) })
       .first()
       .click();
     await expect.poll(() => likeRequests).toBe(1);
@@ -168,7 +167,11 @@ test.describe('탭 간 로그인·로그아웃 동기화', () => {
     expect(likeRequests).toBe(1);
     expect(refreshRequests).toBe(refreshBeforeSignIn + 1);
     // 서버 값으로 다시 맞춰진다(받아들이기의 재조회) - 재전송돼 성공했다면 좋아요 상태로 남는다
-    await expect(feedTab.getByRole('button', { name: TEXTS.ariaLabels.postUnlike })).toHaveCount(0);
+    await expect(
+      feedTab.getByRole('button', {
+        name: TEXTS.ariaLabels.unlikeWithCount(mockPost.stats.likeCount + 1),
+      })
+    ).toHaveCount(0);
     await expect(feedTab.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })).toBeVisible();
   });
 

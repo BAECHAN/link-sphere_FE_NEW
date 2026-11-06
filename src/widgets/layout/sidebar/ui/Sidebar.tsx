@@ -61,6 +61,15 @@ function NavItem({
   );
 }
 
+// 이름이 곧 동작이다 - 드로어의 X는 항상 닫고, 데스크톱 햄버거는 지금 상태의 반대로 만든다(docs/FE-ARCHITECTURE.md §10-A)
+function getToggleLabel(showCloseIcon: boolean, expanded: boolean) {
+  if (showCloseIcon) {
+    return TEXTS.ariaLabels.close;
+  }
+
+  return expanded ? TEXTS.nav.collapseMenu : TEXTS.nav.expandMenu;
+}
+
 interface SidebarHeaderProps {
   expanded: boolean;
   onToggle: () => void;
@@ -96,7 +105,7 @@ function SidebarHeader({
         onClick={onToggle}
       >
         <Icon className="size-6" />
-        <span className="sr-only">{TEXTS.nav.toggleMenu}</span>
+        <span className="sr-only">{getToggleLabel(showCloseIcon, expanded)}</span>
       </ToggleOrCloseButton>
       {expanded && (
         // eslint-disable-next-line custom-tailwind/no-raw-title -- 브랜드 워드마크, 제목 역할 토큰 대상 아님

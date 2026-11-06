@@ -44,7 +44,7 @@ describe('Navbar — 테마 토글', () => {
     const user = userEvent.setup();
     renderNavbar();
 
-    await user.click(screen.getByRole('button', { name: TEXTS.nav.toggleTheme }));
+    await user.click(screen.getByRole('button', { name: TEXTS.nav.switchToDark }));
 
     // 수정 전에는 null - classList만 만지고 next-themes를 거치지 않았다
     expect(window.localStorage.getItem(STORAGE_KEYS.THEME)).toBe('dark');
@@ -55,16 +55,26 @@ describe('Navbar — 테마 토글', () => {
     const user = userEvent.setup();
     renderNavbar();
 
-    await user.click(screen.getByRole('button', { name: TEXTS.nav.toggleTheme }));
+    await user.click(screen.getByRole('button', { name: TEXTS.nav.switchToDark }));
 
     // 수정 전에는 'system/light' - 토스트만 반대 테마로 뜨던 원인
     expect(screen.getByTestId('theme-probe')).toHaveTextContent('dark/dark');
   });
 
+  it('이름이 지금 테마의 반대 동작을 읽는다', async () => {
+    const user = userEvent.setup();
+    renderNavbar();
+
+    await user.click(screen.getByRole('button', { name: TEXTS.nav.switchToDark }));
+
+    expect(screen.getByRole('button', { name: TEXTS.nav.switchToLight })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: TEXTS.nav.switchToDark })).not.toBeInTheDocument();
+  });
+
   it('즉시 다시 누르면 무의식적 더블클릭으로 보고 무시한다', async () => {
     const user = userEvent.setup();
     renderNavbar();
-    const toggle = screen.getByRole('button', { name: TEXTS.nav.toggleTheme });
+    const toggle = screen.getByRole('button', { name: TEXTS.nav.switchToDark });
 
     await user.click(toggle);
     // useClickGuard(400ms, useClickGuard.ts) - 그보다 짧은 재클릭은 의식적으로
@@ -78,7 +88,7 @@ describe('Navbar — 테마 토글', () => {
   it('충분한 시간(400ms) 뒤 다시 누르면 라이트로 돌아간다', async () => {
     const user = userEvent.setup();
     renderNavbar();
-    const toggle = screen.getByRole('button', { name: TEXTS.nav.toggleTheme });
+    const toggle = screen.getByRole('button', { name: TEXTS.nav.switchToDark });
 
     await user.click(toggle);
     await new Promise((resolve) => setTimeout(resolve, 450));
@@ -106,7 +116,7 @@ describe('Navbar — 테마 토글', () => {
     const user = userEvent.setup();
     renderNavbar();
 
-    await user.click(screen.getByRole('button', { name: TEXTS.nav.toggleTheme }));
+    await user.click(screen.getByRole('button', { name: TEXTS.nav.switchToLight }));
 
     expect(window.localStorage.getItem(STORAGE_KEYS.THEME)).toBe('light');
   });

@@ -18,6 +18,7 @@ export function LikePostButton({ postId, isLiked, likeCount }: LikePostButtonPro
   // 처리(롤백)는 mutation 쪽에 있으니 결과를 기다리지 않는 mutate를 쓴다.
   const { mutate: likePost } = useLikePost(postId);
   const guard = useAuthGuard();
+  const displayCount = NumberUtil.formatCompact(likeCount);
 
   const handleLike = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -33,10 +34,14 @@ export function LikePostButton({ postId, isLiked, likeCount }: LikePostButtonPro
         isLiked && 'text-destructive hover:text-destructive/80'
       )}
       onClick={handleLike}
-      aria-label={isLiked ? TEXTS.ariaLabels.postUnlike : TEXTS.ariaLabels.postLike}
+      aria-label={
+        isLiked
+          ? TEXTS.ariaLabels.unlikeWithCount(displayCount)
+          : TEXTS.ariaLabels.likeWithCount(displayCount)
+      }
     >
       <ThumbsUp className={cn('size-4', isLiked && 'fill-current')} />
-      <span className="font-bold select-none">{NumberUtil.formatCompact(likeCount)}</span>
+      <span className="font-bold select-none">{displayCount}</span>
     </ToggleButton>
   );
 }
