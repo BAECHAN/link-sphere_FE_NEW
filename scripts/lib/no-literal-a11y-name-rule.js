@@ -59,7 +59,7 @@ function findLiteralTexts(node) {
 }
 
 /**
- * aria-label 값과 sr-only 요소 안 글자를 본다. alt·title은 보지 않는다.
+ * aria-label·alt 값, 객체의 alt: 값, sr-only 요소 안 글자를 본다. title은 보지 않는다.
  *
  * @type {import('eslint').Rule.RuleModule}
  */
@@ -68,7 +68,7 @@ export const noLiteralA11yNameRule = {
     type: 'problem',
     docs: {
       description:
-        '화면 읽기 프로그램이 읽는 문구(aria-label, sr-only 요소 안 글자) 직접 작성 금지',
+        '화면 읽기 프로그램이 읽는 문구(aria-label, alt, sr-only 요소 안 글자) 직접 작성 금지',
     },
     messages: {
       literalName:
@@ -84,7 +84,13 @@ export const noLiteralA11yNameRule = {
 
     return {
       JSXAttribute(node) {
-        if (node.name.name === 'aria-label' && node.value) {
+        if ((node.name.name === 'aria-label' || node.name.name === 'alt') && node.value) {
+          reportAll(findLiteralTexts(node.value));
+        }
+      },
+      // 확대 창에 넘기는 { src, alt: '...' }처럼 속성이 아닌 자리에 적은 이미지 이름
+      Property(node) {
+        if (!node.computed && node.key.type === 'Identifier' && node.key.name === 'alt') {
           reportAll(findLiteralTexts(node.value));
         }
       },

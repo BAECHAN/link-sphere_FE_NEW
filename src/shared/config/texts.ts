@@ -815,7 +815,10 @@ export const TEXTS = {
     // 게시글 상호작용
     likeWithCount: (count: number | string) => `좋아요 ${count}개`,
     unlikeWithCount: (count: number | string) => `좋아요 취소 ${count}개`,
+    commentWithCount: (count: number | string) => `댓글 ${count}개`,
     myCommentImageCount: (count: number) => `첨부 이미지 ${count}장`,
+    attachmentImage: '첨부 이미지',
+    attachmentImageAt: (order: number) => `첨부 이미지 ${order}`,
     postMenu: '게시글 메뉴',
 
     // 게시글 검색 필터

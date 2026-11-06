@@ -87,6 +87,7 @@ export const PostCard = memo(function PostCard({
   // 수정 중에는 dimmedClassName의 opacity가 각 영역을 별도 쌓임 맥락으로 묶어 오버레이 아래로 내린다.
   const stretchedLinkClassName = isDetail ? '' : 'after:absolute after:inset-0';
   const raisedClassName = isDetail ? '' : 'relative z-raised';
+  const commentCount = NumberUtil.formatCompact(post.stats.commentCount || 0);
 
   return (
     <Card
@@ -342,25 +343,25 @@ export const PostCard = memo(function PostCard({
           {/* 댓글 영역으로 스크롤한다(CommentList의 해시 이동). 상세 안에서는 replace로 같은 글
               엔트리를 하나 더 쌓지 않고(쌓이면 돌아가기 navigate(-1)가 같은 글로 돌아간다),
               preventScrollReset으로 ScrollRestoration이 맨 위로 올렸다 내려오지 않게 한다 */}
-          <Link
-            to={`/post/${post.id}${COMMENT_SECTION_HASH}`}
-            replace={isDetail}
-            preventScrollReset={isDetail}
-            state={backSource ? { backSource } : undefined}
-            onMouseEnter={handlePrefetchDetailWithComments}
-            onFocus={handlePrefetchDetailWithComments}
+          <Button
+            asChild
+            variant="none"
+            size="sm"
+            className="gap-1 md:gap-1.5 text-muted-foreground h-6 md:h-8 px-2 md:px-3 text-micro md:text-sm rounded-full hover:bg-background/80 hover:text-foreground"
           >
-            <Button
-              variant="none"
-              size="sm"
-              className="gap-1 md:gap-1.5 text-muted-foreground h-6 md:h-8 px-2 md:px-3 text-micro md:text-sm rounded-full hover:bg-background/80 hover:text-foreground"
+            <Link
+              to={`/post/${post.id}${COMMENT_SECTION_HASH}`}
+              replace={isDetail}
+              preventScrollReset={isDetail}
+              state={backSource ? { backSource } : undefined}
+              aria-label={TEXTS.ariaLabels.commentWithCount(commentCount)}
+              onMouseEnter={handlePrefetchDetailWithComments}
+              onFocus={handlePrefetchDetailWithComments}
             >
               <MessageSquare className={'h-3 w-3 md:h-4 md:w-4'} />
-              <span className={'sm:inline'}>
-                {NumberUtil.formatCompact(post.stats.commentCount || 0)}
-              </span>
-            </Button>
-          </Link>
+              <span className={'sm:inline'}>{commentCount}</span>
+            </Link>
+          </Button>
         </div>
 
         <div className={cn('flex items-center gap-1 md:gap-1.5 ml-auto', raisedClassName)}>

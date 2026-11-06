@@ -96,6 +96,23 @@ test.describe('카드 댓글 아이콘 — 상세의 댓글 작성 폼으로 스
     await mockTallPostDetail(page);
   });
 
+  // 링크 안에 버튼을 두면 이름이 숫자뿐이고 Tab이 두 번 멈췄다(HTML 표준은 a 안에 상호작용 요소를 금지한다)
+  test('댓글 링크는 개수를 담은 이름으로 읽히고 안에 버튼이 없어 Tab이 한 번만 멈춘다', async ({
+    page,
+  }) => {
+    await page.goto('/post');
+
+    const link = commentIconLink(page);
+
+    await expect(link).toHaveAccessibleName(TEXTS.ariaLabels.commentWithCount(COMMENT_COUNT));
+    await expect(link.locator('button')).toHaveCount(0);
+
+    await link.focus();
+    await page.keyboard.press('Tab');
+    await expect(link).not.toBeFocused();
+    await expect(page.locator('a[href$="#comments"] :focus')).toHaveCount(0);
+  });
+
   test('피드에서 누르면 작성 폼이 navbar 바로 아래로 오고 입력창에 포커스된다', async ({
     page,
   }) => {

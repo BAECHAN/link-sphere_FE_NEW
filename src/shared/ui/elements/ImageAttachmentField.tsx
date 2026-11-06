@@ -69,7 +69,7 @@ export function ImageAttachmentField({
             >
               <img
                 src={url}
-                alt={`Pasted preview ${index + 1}`}
+                alt={TEXTS.ariaLabels.attachmentImageAt(index + 1)}
                 className="max-h-32 max-w-full object-contain rounded-md"
               />
               <button
