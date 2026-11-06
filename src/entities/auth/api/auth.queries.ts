@@ -75,7 +75,6 @@ export const useLoginMutation = () => {
       }
     },
     onError: (error) => {
-      console.log(error);
       if (error instanceof ApiError) {
         if (error.status === 401) {
           // 서버 원문 메시지(error.data.message)는 노출하지 않는다 - error.util.ts의
