@@ -21,7 +21,7 @@ import { DateUtil } from '@/shared/utils/date.util';
 import { NumberUtil } from '@/shared/utils/number.util';
 import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';
 import { ActionChip } from '@/shared/ui/elements/ActionChip';
-import { HoverKebabMenu } from '@/shared/ui/elements/HoverKebabMenu';
+import { KebabMenu } from '@/shared/ui/elements/KebabMenu';
 import { Pencil, Trash } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LikePostButton } from '@/features/post/like/ui/LikePostButton';
@@ -145,7 +145,7 @@ export const PostCard = memo(function PostCard({
               </Button>
             )}
 
-            <HoverKebabMenu
+            <KebabMenu
               aria-label={TEXTS.ariaLabels.postMenu}
               triggerClassName="h-7 w-7 md:h-8 md:w-8"
               open={isMenuOpen}
@@ -180,7 +180,7 @@ export const PostCard = memo(function PostCard({
                 <Trash className="mr-2 h-4 w-4" />
                 {TEXTS.buttons.delete}
               </DropdownMenuItem>
-            </HoverKebabMenu>
+            </KebabMenu>
           </div>
         )}
 

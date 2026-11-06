@@ -148,7 +148,7 @@ import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있
 - 안 쓰는 단계(300·600·700)는 정의하지 않는다 — 필요해지면 그때 추가한다.
 
 **신규 shared/ui/atoms**: 위 재사용성 절 이후 `RequiredMark`(`required-mark.tsx`),
-`Divider`(`divider.tsx`), `IconBadge`(`icon-badge.tsx`), `LabeledDivider`(`labeled-divider.tsx`),
+`Divider`(`divider.tsx`), `FeaturedIcon`(`featured-icon.tsx`), `LabeledDivider`(`labeled-divider.tsx`),
 `AlertDialog`(`alert-dialog.tsx`) 등이 `src/shared/ui/atoms/`에 추가됐다 — 이들을 포함해
 `shared/ui/atoms`·`elements`의 모든 컴포넌트가 CLAUDE.md의 "스토리 없이 커밋 금지" 규칙에
 맞춰 같은 이름의 `.stories.tsx`를 함께 갖고 있다(2026-10-27 재확인, 목록 정본은 디렉터리 자체).
@@ -694,8 +694,8 @@ https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12). 나머지 15곳(브랜드
 | List            | 항목을 나열한 것. Tree와 달리 부모·자식을 전제하지 않는다. MDN은 list 역할을 _"항목 목록을 식별하는 데 쓴다"_ (번역)고 쓴다                                            | `PostList`                               | [MDN](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Roles/list_role)                                                                                    |
 | Filter          | _"콘텐츠 집합을 분석해 일부 항목을 제외하는 모든 것"_ (번역)                                                                                                           | `FilterChip`                             | [NN/g](https://www.nngroup.com/articles/filters-vs-facets/)                                                                                                                         |
 | Search          | 찾는 기능. MDN은 search 역할을 _"페이지·사이트·사이트 모음을 검색하는 데 쓰는 페이지 영역"_ (번역)으로 쓴다                                                            | `NavbarSearch`, `BookmarkSearch`         | [MDN](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Roles/search_role)                                                                                  |
-| Kebab menu      | 세로 점 세 개(⋮) 버튼으로 여는 메뉴. 외부 정의는 찾지 못했다(출처 미상). NN/g는 이 아이콘을 세로 줄임표로 부른다                                                       | `HoverKebabMenu`                         | [NN/g](https://www.nngroup.com/articles/contextual-menus/)                                                                                                                          |
-| Featured icon   | 색 배경 안에 아이콘을 크게 둔 표시. 표준 이름은 없고 Mantine은 ThemeIcon이라 부른다                                                                                    | `IconBadge`                              | [Untitled UI](https://www.untitledui.com/react/components/featured-icons), [Mantine](https://mantine.dev/core/theme-icon/)                                                          |
+| Kebab menu      | 세로 점 세 개(⋮) 버튼으로 여는 메뉴. 외부 정의는 찾지 못했다(출처 미상). NN/g는 이 아이콘을 세로 줄임표로 부른다                                                       | `KebabMenu`                              | [NN/g](https://www.nngroup.com/articles/contextual-menus/)                                                                                                                          |
+| Featured icon   | 색 배경 안에 아이콘을 크게 둔 표시. 표준 이름은 없고 Mantine은 ThemeIcon이라 부른다                                                                                    | `FeaturedIcon`                           | [Untitled UI](https://www.untitledui.com/react/components/featured-icons), [Mantine](https://mantine.dev/core/theme-icon/)                                                          |
 | Back to top     | 페이지 맨 위로 돌아가는 떠 있는 버튼                                                                                                                                   | `ScrollToTop`                            | [Ant Design](https://ant.design/components/float-button)                                                                                                                            |
 
 ## 13. 관련 문서

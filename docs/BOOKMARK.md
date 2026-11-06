@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조·폴더 고정 순서를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-11-05
+> **마지막 검토**: 2026-11-06
 
 ## 1. 쉬운 설명
 
@@ -1265,10 +1265,10 @@ src/
 │               ├── FolderTree.tsx            # 데스크탑 사이드바 (폴더 트리, 전체 행은 숫자 없음).
 │               │                             # "내 폴더" 목록만 자체 스크롤(§10). 생성 폼은
 │               │                             # 2줄 + 취소 버튼(§5, 2026-09-21). ⋮ 메뉴는 공용
-│               │                             # HoverKebabMenu(shared/ui/elements) 사용
+│               │                             # KebabMenu(shared/ui/elements) 사용
 │               └── MobileFolderList.tsx      # 모바일 폴더 그리드 (drill-down). 생성 카드는
 │                                              # 버튼 가로 행 + 취소(§5, 2026-09-21). ⋮ 메뉴도
-│                                              # 같은 HoverKebabMenu 사용
+│                                              # 같은 KebabMenu 사용
 │                                              # 위 둘 + BookmarkFolderSelectDialog(아래) 모두 "최근 저장한
 │                                              # 폴더" + "내 폴더" 두 구획 포함(§5). 고정한 폴더는 핀
 │                                              # 아이콘을 달고 내 폴더 맨 위에 온다. 행·카드의 ⋮ 메뉴
@@ -2113,7 +2113,7 @@ scope를 나눠 써서 `mutationKey` 대신 `scope.id`로 센다(`isLastPendingB
 **고친 방법** — 메뉴 항목은 고른 것만 표시하고(`queuePinToggle`), 요청은 메뉴가 다 닫힌 뒤 `onCloseAutoFocus`에서
 보낸다(`handleMenuCloseAutoFocus`). 이 콜백은 내용이 언마운트될 때(`@radix-ui/react-focus-scope` 1.1.7
 `dist/index.mjs:87-96`) `DropdownMenuContent`가 부른다(`@radix-ui/react-dropdown-menu` 2.1.16 `dist/index.mjs:113-117`).
-`HoverKebabMenu`에 이 콜백을 넘기는 `onCloseAutoFocus` prop을 더했다.
+`KebabMenu`에 이 콜백을 넘기는 `onCloseAutoFocus` prop을 더했다.
 
 **그다음 발견: 화면이 점프했다** — 메뉴가 닫히며 포커스가 ⋮ 버튼으로 돌아온 뒤 순서가 바뀌자, 화면이 한 프레임 만에
 옮겨 간 폴더로 점프했다. 녹화 브라우저에서 매 프레임 스크롤 위치를 기록해 원인을 좁혔다(직접 측정, 데스크톱 사이드바).
@@ -2287,7 +2287,7 @@ Linux Chromium은 180px로 그려 Linux에서만 1px 넘쳤다(직접 측정 —
 - **`useSetBookmarkFolderPinMutation`** — `entities/bookmark/folder/api/bookmark-folder.queries.ts`. 폴더 하나의
   고정·해제 mutation. `mutate(true)`면 고정(`PUT`), `mutate(false)`면 해제(`DELETE`). 성공·실패 토스트까지 이 훅이 띄운다
 - **`queuePinToggle` / `handleMenuCloseAutoFocus`** — `useFolderActions.ts`. ⋮ 메뉴에서 "고정"/"고정 해제"를 고르면
-  앞의 것이 표시만 해 두고, 메뉴가 다 닫힌 뒤 뒤의 것(`HoverKebabMenu`의 `onCloseAutoFocus`)이 실제로 요청을 보낸다(§10)
+  앞의 것이 표시만 해 두고, 메뉴가 다 닫힌 뒤 뒤의 것(`KebabMenu`의 `onCloseAutoFocus`)이 실제로 요청을 보낸다(§10)
 - **`useFollowFocusOnReorder`** — `widgets/bookmark/folder-tree/hooks/useFollowFocusOnReorder.ts`. 넘긴 순서가 바뀌면
   컨테이너의 직계 자식 중 포커스가 든 항목으로 부드럽게 스크롤한다(§5)
 - **스크롤 고정(scroll anchoring)** — 화면 위쪽 내용이 바뀌어도 보고 있던 내용이 밀리지 않게 브라우저가 스크롤 위치를

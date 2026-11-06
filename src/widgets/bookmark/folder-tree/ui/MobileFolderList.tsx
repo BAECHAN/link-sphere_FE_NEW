@@ -13,7 +13,7 @@ import { Divider } from '@/shared/ui/atoms/divider';
 import { Input } from '@/shared/ui/atoms/input';
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';
-import { HoverKebabMenu } from '@/shared/ui/elements/HoverKebabMenu';
+import { KebabMenu } from '@/shared/ui/elements/KebabMenu';
 import { CharacterCount } from '@/shared/ui/elements/CharacterCount';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
@@ -256,7 +256,7 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
       </Button>
       {/* 손가락으로 누르는 크기(44px). 카드 모서리에 붙여 아이콘이 전보다 4px만 안쪽으로 온다 — 누르는 자리는 이름
           첫 줄 위 4px까지 덮는다(docs/BOOKMARK.md §5 "터치 기기 버튼 44px") */}
-      <HoverKebabMenu
+      <KebabMenu
         aria-label={TEXTS.ariaLabels.folderMenu}
         triggerClassName="absolute top-0 right-0 size-11"
         onCloseAutoFocus={handleMenuCloseAutoFocus}
@@ -268,7 +268,7 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
         <DropdownMenuItem onClick={handleDelete} className="text-destructive">
           {TEXTS.buttons.delete}
         </DropdownMenuItem>
-      </HoverKebabMenu>
+      </KebabMenu>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { type LucideIcon } from 'lucide-react';
 
 import { cn } from '@/shared/lib/tailwind/utils';
 
-const iconBadgeVariants = cva(
+const featuredIconVariants = cva(
   'h-11 w-11 rounded-full flex items-center justify-center shrink-0 [&>svg]:size-5',
   {
     variants: {
@@ -20,17 +20,17 @@ const iconBadgeVariants = cva(
   }
 );
 
-export interface IconBadgeProps extends VariantProps<typeof iconBadgeVariants> {
+export interface FeaturedIconProps extends VariantProps<typeof featuredIconVariants> {
   icon: LucideIcon;
   className?: string;
 }
 
-function IconBadge({ icon: Icon, tone, className }: IconBadgeProps) {
+function FeaturedIcon({ icon: Icon, tone, className }: FeaturedIconProps) {
   return (
-    <div className={cn(iconBadgeVariants({ tone }), className)}>
+    <div className={cn(featuredIconVariants({ tone }), className)}>
       <Icon />
     </div>
   );
 }
 
-export { IconBadge, iconBadgeVariants };
+export { FeaturedIcon, featuredIconVariants };

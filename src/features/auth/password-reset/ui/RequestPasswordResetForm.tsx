@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from '@/shared/ui/atoms/card';
 import { Button } from '@/shared/ui/atoms/button';
-import { IconBadge } from '@/shared/ui/atoms/icon-badge';
+import { FeaturedIcon } from '@/shared/ui/atoms/featured-icon';
 import { LabeledDivider } from '@/shared/ui/atoms/labeled-divider';
 import { Link } from 'react-router-dom';
 import { Mail, CheckCircle2 } from 'lucide-react';
@@ -24,7 +24,7 @@ export const RequestPasswordResetForm = () => {
     <div className="flex h-[calc(100vh-var(--navbar-height))] items-center justify-center px-4">
       <Card className="w-full max-w-md shadow-lg border-muted-foreground/10 gap-4">
         <CardHeader className="text-center space-y-3">
-          <IconBadge
+          <FeaturedIcon
             icon={isSubmitted ? CheckCircle2 : Mail}
             tone={isSubmitted ? 'success' : 'info'}
             className="mx-auto mb-1"

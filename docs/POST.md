@@ -8,7 +8,7 @@
 > 파일에서 어떤 API를 부르고 어느 캐시를 어떻게 바꾸는지 안다. "등록 직후 새 글이 안 보인다",
 > "좋아요가 목록에 반영 안 된다" 같은 증상을 받았을 때 어디부터 열어볼지 정할 수 있다.
 >
-> **마지막 검토**: 2026-11-05
+> **마지막 검토**: 2026-11-06
 
 이 앱의 중심 데이터다. 사용자가 링크(URL)를 등록하면 BE가 그 페이지를 크롤링해 제목·설명·
 썸네일을 채우고, 그 뒤 비동기로 AI 요약·태그를 붙인다. FE는 그 결과를 피드(`/post`)에 카드로
@@ -281,7 +281,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
     처리한다. 그 실패가 캐시에 남아 다시 들어와도 같은 에러가 뜨던 것은 2026-11-03 화면을 떠날 때 지우도록
     고쳤다(아래 "조회에 실패한 화면에 다시 들어오기").
 - **소유자 액션**(`isOwner`일 때만): 비공개 글이면 자물쇠 버튼(누르면 공개 전환),
-  그리고 ⋮(`HoverKebabMenu`) 안에 수정·공개/비공개 전환·삭제.
+  그리고 ⋮(`KebabMenu`) 안에 수정·공개/비공개 전환·삭제.
 - **AI 결과 표시**: `aiSummary`가 있을 때만 접이식 "AI 요약" 블록. 설명이 없고
   `aiStatus === 'NONE'`(1차 크롤링이 본문을 못 얻음)이면 "이 링크의 정보를 가져오지 못했어요"
   한 줄(`TEXTS.post.card.metadataUnavailable`). **AI 처리 대기 중 표시나 폴링은 없다** — §11.
@@ -412,7 +412,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
    - 성공 토스트는 `meta.successMessage`로 전역 핸들러가 띄운다. 실패는 `manualErrorHandling`이라
      전역 토스트가 뜨지 않고 7번 방식으로 안내한다. 고른 폴더가 사라진 실패(`FOLDER_NOT_FOUND`)면
      폴더 목록을 무효화해 다시 고를 때 사라진 폴더가 안 보이게 한다.
-5. **진행 표시**: 제출 버튼의 "등록 중..." 라벨이 맡는다. `src/app/ui/PostMutationLoadingToast.tsx`
+5. **진행 표시**: 제출 버튼의 "등록 중..." 라벨이 맡는다. `src/app/ui/AccountUpdateLoadingToast.tsx`
    (하단 진행 토스트)는 2026-10-03부터 작성·수정을 관찰하지 않고 계정 수정만 남았다 — 폼이 화면에
    남아 있어 버튼 라벨과 겹치기 때문이다. 토스트 방식이 처음 생긴 근거는 `docs/DECISIONS.md`
    2026-08-13 항목.
@@ -770,7 +770,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 카드 최소 폭·최대 열 수 변경      | `post-card-grid.const.ts`의 `POST_CARD_GRID`(피드·북마크 목록과 스켈레톤이 페이지를 거쳐 같은 값을 받는다). 푸터 줄바꿈 회귀는 `e2e/post-card-footer-layout.spec.ts`가 잡는다                                                                      |
 | 폼 필드 추가                      | `post.schema.ts`의 `createPostSchema`/`updatePostSchema` + `useCreatePost`의 `DEFAULT_VALUES`·`useUpdatePost`의 `form.reset` + 폼 UI + BE 요청 DTO                                                                                                 |
 | 새 mutation 뒤에 post 캐시 갱신   | 자기 엔티티 `.keys.ts`에 `handle<Event>Success`를 만들고 그 안에서 `postInvalidateQueries.*`를 `@x/<엔티티>.ts` 경유로 호출(§6 표 참고)                                                                                                            |
-| 카드에 소유자 전용 메뉴 항목 추가 | `PostCard.tsx`의 `HoverKebabMenu` 안 + 동작은 `usePostCard.ts`                                                                                                                                                                                     |
+| 카드에 소유자 전용 메뉴 항목 추가 | `PostCard.tsx`의 `KebabMenu` 안 + 동작은 `usePostCard.ts`                                                                                                                                                                                          |
 | 등록·수정 성공/실패 문구 변경     | `TEXTS.messages.success.postCreated`·`postUpdated`, 실패 원인별 문구는 `TEXTS.messages.error.postSubmit.*`(`src/shared/config/texts.ts`, 이메일 미인증·WAF 차단·로그인 필요는 공용 `TEXTS.messages.error.*`), 분류는 `PostUtil.resolveSubmitError` |
 | 테스트 실행                       | `npx vitest run src/entities/post src/entities/interaction src/features/post src/widgets/post src/pages/post`. §9의 실행 기록(2026-10-02~14)은 `src/pages/post`를 넣기 전 명령 기준이다                                                            |
 
@@ -1002,7 +1002,7 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
 - **`postsRoot`** — 북마크 폴더별 게시글 목록 캐시의 접두사 키(`bookmarkFolderKeys.postsRoot`,
   `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:43`). 피드 목록(`listRoot`)과 별개
   캐시라 post 수정·삭제 때 따로 무효화한다.
-- **`HoverKebabMenu`** — `src/shared/ui/elements/HoverKebabMenu.tsx`. 카드의 ⋮ 드롭다운 공통
+- **`KebabMenu`** — `src/shared/ui/elements/KebabMenu.tsx`. 카드의 ⋮ 드롭다운 공통
   컴포넌트(소유자 메뉴).
 - **`AsyncBoundary` / `DelayedFallback`** — `src/shared/ui/elements/`. `AsyncBoundary`는
   Suspense + 에러 경계를 묶은 래퍼, `DelayedFallback`은 로딩 표시를 500ms 뒤에만 보여주는 래퍼.

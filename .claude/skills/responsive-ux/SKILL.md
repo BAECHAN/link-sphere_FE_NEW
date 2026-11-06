@@ -120,7 +120,7 @@ flex h-16
   유지한다(위 "터치 타깃" — 폭만 보면 터치 태블릿까지 줄어든다).
 - **hover로만 드러나는 요소(`opacity-0 group-hover:opacity-100`)에는 `focus-visible:opacity-100`과
   `pointer-coarse:opacity-100`을 함께 단다.** 터치 기기에는 hover가 없어 영영 안 보이고, 키보드로 포커스해도
-  투명한 채라 포커스 테두리까지 안 보였다(2026-10-28, 북마크 폴더 ⋮ — 선례 `HoverKebabMenu.tsx`의 `hoverReveal`).
+  투명한 채라 포커스 테두리까지 안 보였다(2026-10-28, 북마크 폴더 ⋮ — 선례 `KebabMenu.tsx`의 `hoverReveal`).
 - **hover 스타일이 있는 컨테이너 안에 드롭다운·셀렉트·팝오버 트리거를 두면 `hover:` 대신
   `hover-or-open:`(`globals.css`)을 쓴다.** `DropdownMenuContent`(`shared/ui/atoms/dropdown-menu.tsx`)
   등 팝업 콘텐츠는 Portal로 `<body>`에 렌더돼 커서가 메뉴로 들어가는 순간 컨테이너는 더 이상
@@ -130,7 +130,7 @@ flex h-16
   트리거가 열려 있는 동안에도 스타일이 유지된다. `hover:`처럼 `@media (hover: hover)` 안에서만
   적용되므로 모바일 동작은 바뀌지 않는다. 선례: `src/widgets/post/post-card/ui/PostCard.tsx`,
   `src/widgets/bookmark/folder-tree/ui/FolderTree.tsx` — 둘 다 ⋮ 트리거 + `DropdownMenu` 셸을
-  `src/shared/ui/elements/HoverKebabMenu.tsx`(compound 컴포넌트, `hoverReveal` prop으로 부모
+  `src/shared/ui/elements/KebabMenu.tsx`(compound 컴포넌트, `hoverReveal` prop으로 부모
   `group` hover/열림 시에만 노출)로 통합해 쓴다.
 
 ### sticky vs fixed

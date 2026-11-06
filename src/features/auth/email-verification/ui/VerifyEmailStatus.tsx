@@ -1,6 +1,6 @@
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/shared/ui/atoms/card';
 import { Button } from '@/shared/ui/atoms/button';
-import { IconBadge } from '@/shared/ui/atoms/icon-badge';
+import { FeaturedIcon } from '@/shared/ui/atoms/featured-icon';
 import { Spinner } from '@/shared/ui/atoms/spinner';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, XCircle } from 'lucide-react';
@@ -25,10 +25,10 @@ export const VerifyEmailStatus = () => {
             <Spinner className="mx-auto mb-1 size-11 text-muted-foreground" />
           )}
           {status === 'success' && (
-            <IconBadge icon={CheckCircle2} tone="success" className="mx-auto mb-1" />
+            <FeaturedIcon icon={CheckCircle2} tone="success" className="mx-auto mb-1" />
           )}
           {(status === 'error' || status === 'unknown') && (
-            <IconBadge icon={XCircle} tone="destructive" className="mx-auto mb-1" />
+            <FeaturedIcon icon={XCircle} tone="destructive" className="mx-auto mb-1" />
           )}
           <CardTitle>
             {status === 'pending' && TEXTS.auth.verifyEmail.pendingTitle}

@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from '@/shared/ui/atoms/card';
 import { Button } from '@/shared/ui/atoms/button';
-import { IconBadge } from '@/shared/ui/atoms/icon-badge';
+import { FeaturedIcon } from '@/shared/ui/atoms/featured-icon';
 import { Link } from 'react-router-dom';
 import { Lock, Clock } from 'lucide-react';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
@@ -28,7 +28,7 @@ export const ConfirmPasswordResetForm = () => {
     <div className="flex h-[calc(100vh-var(--navbar-height))] items-center justify-center px-4">
       <Card className="w-full max-w-md shadow-lg border-muted-foreground/10 gap-4">
         <CardHeader className="text-center space-y-3">
-          <IconBadge
+          <FeaturedIcon
             icon={isFormShown ? Lock : Clock}
             tone={isFormShown ? 'info' : 'warning'}
             className="mx-auto mb-1"
