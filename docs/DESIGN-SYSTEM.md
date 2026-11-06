@@ -310,7 +310,7 @@ PR #108·#110·#111 머지 후 신선한 `main` 기준):
     12px/16px/600 확인. `BookmarkFolderSelectDialog.tsx`는 같은
     `text-group-label` 토큰을 쓰므로 별도 실측 없이 동일 계산값으로 간주 —
     실제로 열어 확인하지는 않았다
-  - 최근 검색 라벨: `/post`에서 검색 토글 → "최근 검색" 라벨에서 12px/16px/600
+  - 최근 검색 라벨: `/post`에서 검색 열기 → "최근 검색" 라벨에서 12px/16px/600
     확인(원래 14px에서 실제로 줄어듦)
   - 녹화: `.claude/browser-artifacts/verify-2026-09-16-title-weight-tokens.webm`
 

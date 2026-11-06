@@ -45,7 +45,7 @@ describe('Sidebar — 모바일 드로어 숨김과 포커스', () => {
   }
 
   function getDrawerClose() {
-    return within(getDrawer()).getByRole('button', { name: TEXTS.nav.toggleMenu, hidden: true });
+    return within(getDrawer()).getByRole('button', { name: TEXTS.ariaLabels.close, hidden: true });
   }
 
   it('닫혀 있으면 숨기고, 닫히는 동안 보이도록 visibility를 트랜지션에 넣는다', () => {
@@ -87,12 +87,24 @@ describe('Sidebar — 데스크톱 햄버거 더블클릭', () => {
     useSidebarStore.setState({ isOpen: false });
   });
 
-  // 데스크톱 사이드바(첫 번째 aside)의 햄버거 버튼. 모바일 드로어 aside에도 같은 이름의
-  // 버튼이 있어 범위를 좁힌다.
+  // 접힌 상태에서 시작하는 데스크톱 햄버거. 누르면 이름이 바뀌니 다시 찾지 말고 변수에 잡아 쓴다
   function getDesktopToggle() {
-    const desktopAside = screen.getAllByRole('complementary', { hidden: true })[0]!;
-    return within(desktopAside).getByRole('button', { name: TEXTS.nav.toggleMenu, hidden: true });
+    return screen.getByRole('button', { name: TEXTS.nav.expandMenu, hidden: true });
   }
+
+  it('이름이 펼침 상태의 반대 동작을 읽는다', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Sidebar />, { wrapperOptions: { initialEntries: ['/post'] } });
+
+    await user.click(getDesktopToggle());
+
+    expect(
+      screen.getByRole('button', { name: TEXTS.nav.collapseMenu, hidden: true })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: TEXTS.nav.expandMenu, hidden: true })
+    ).not.toBeInTheDocument();
+  });
 
   it('즉시 다시 누르면 무의식적 더블클릭으로 보고 무시한다', async () => {
     const user = userEvent.setup();

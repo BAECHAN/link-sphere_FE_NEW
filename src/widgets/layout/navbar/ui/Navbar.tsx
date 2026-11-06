@@ -90,7 +90,7 @@ export function Navbar() {
                 onClick={openSidebar}
               >
                 <Menu className="size-6" />
-                <span className="sr-only">{TEXTS.nav.toggleMenu}</span>
+                <span className="sr-only">{TEXTS.nav.openMenu}</span>
               </Button>
               {/* eslint-disable-next-line custom-tailwind/no-raw-title -- 브랜드 워드마크, 제목 역할 토큰 대상 아님 */}
               <Link to={ROUTES_PATHS.POST.ROOT} className="font-bold text-xl tracking-tight">
@@ -122,7 +122,7 @@ export function Navbar() {
               onClick={openMobileSearch}
             >
               <Search className="h-5 w-5" />
-              <span className="sr-only">{TEXTS.nav.toggleSearch}</span>
+              <span className="sr-only">{TEXTS.nav.openSearch}</span>
             </Button>
 
             <ToggleButton
@@ -133,7 +133,9 @@ export function Navbar() {
             >
               <Sun className="h-4 w-4 md:h-5 md:w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-4 w-4 md:h-5 md:w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span className="sr-only">{TEXTS.nav.toggleTheme}</span>
+              <span className="sr-only">
+                {resolvedTheme === 'dark' ? TEXTS.nav.switchToLight : TEXTS.nav.switchToDark}
+              </span>
             </ToggleButton>
 
             {isLoggingOut ? (

@@ -186,9 +186,12 @@ export const TEXTS = {
     logIn: '로그인',
     logOut: '로그아웃',
     loggingOut: '로그아웃 중...',
-    toggleMenu: '메뉴 토글',
-    toggleSearch: '검색 토글',
-    toggleTheme: '테마 토글',
+    openMenu: '메뉴 열기',
+    collapseMenu: '메뉴 접기',
+    expandMenu: '메뉴 펼치기',
+    openSearch: '검색 열기',
+    switchToDark: '다크 모드로 전환',
+    switchToLight: '라이트 모드로 전환',
     saving: COMMON_TEXT.saving,
   },
   mypage: {
@@ -803,8 +806,8 @@ export const TEXTS = {
     bookmarkSortSelectCurrent: (label: string) => `북마크 정렬 기준 선택, 지금 ${label}`,
 
     // 게시글 상호작용
-    postLike: '좋아요',
-    postUnlike: '좋아요 취소',
+    likeWithCount: (count: number | string) => `좋아요 ${count}개`,
+    unlikeWithCount: (count: number | string) => `좋아요 취소 ${count}개`,
     myCommentImageCount: (count: number) => `첨부 이미지 ${count}장`,
     postMenu: '게시글 메뉴',
 

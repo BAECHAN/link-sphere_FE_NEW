@@ -197,6 +197,13 @@
 
 ### Fixed
 
+- `shared` 버튼 이름을 실제 동작으로 바꿔 상태와 수까지 읽히게 함
+  <details><summary>배경·구현</summary>
+
+  화면 읽기 프로그램이 읽는 이름(접근 이름)이 실제 동작과 달랐다. 댓글 좋아요는 `3`, 글 좋아요는 숫자 없이 `좋아요`, 햄버거·테마·모바일 검색은 `메뉴 토글`·`테마 토글`·`검색 토글`이었다. 아이콘 버튼은 이름이 곧 동작이므로 동작 이름으로 바꿨다: 글·댓글 좋아요는 `좋아요 3개`↔`좋아요 취소 3개`(글은 화면의 축약값 그대로, 예: `1.2천`), 데스크톱 햄버거는 `메뉴 접기`↔`메뉴 펼치기`, 테마는 `라이트 모드로 전환`↔`다크 모드로 전환`. 항상 같은 동작인 버튼은 고정 이름으로 뒀다: 모바일 햄버거 `메뉴 열기`, 드로어 X `닫기`, 모바일 검색 `검색 열기`. 글자가 보이는 `FilterChip`은 이름 고정 + `aria-pressed`를 유지한다. 규칙은 `docs/FE-ARCHITECTURE.md` §10-A에 적었다. 화면 모습은 그대로다. 실제 화면 읽기 프로그램으로는 확인하지 않았다. 계획은 [`docs/plans/2026-11-06-a11y-button-names.md`](docs/plans/2026-11-06-a11y-button-names.md) Phase 2. (`src/shared/config/texts.ts`, `src/features/post/like/ui/LikePostButton.tsx`, `src/features/comment/like/ui/LikeCommentButton.tsx`, `src/widgets/layout/sidebar/ui/Sidebar.tsx`, `src/widgets/layout/navbar/ui/Navbar.tsx`, e2e 스펙 11개, `docs/FE-ARCHITECTURE.md`, `docs/TESTING.md`, `docs/DESIGN-SYSTEM.md`, `.claude/skills/texts-conventions/SKILL.md`, [PR #560](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/560))
+
+  </details>
+
 - `shared` 닫힌 모바일 메뉴를 숨기고, 열면 포커스를 옮기며 Esc로 닫히게 함
   <details><summary>배경·구현</summary>
 

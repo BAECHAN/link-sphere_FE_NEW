@@ -32,7 +32,7 @@ test.describe('모바일 — 검색 오버레이가 열린 동안 댓글 작성�
     const textarea = page.getByPlaceholder(TEXTS.comment.form.commentPlaceholder);
     await textarea.fill('작성중');
 
-    await page.getByRole('button', { name: TEXTS.nav.toggleSearch }).click();
+    await page.getByRole('button', { name: TEXTS.nav.openSearch }).click();
 
     // 댓글 작성 시트 — 접힘이 아니라 펼침 상태(z-scrim)로 숨어야 한다.
     await expect(textarea).toBeHidden();

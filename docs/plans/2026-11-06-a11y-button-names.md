@@ -4,13 +4,15 @@
 
 ## 구현 결과
 
-> #558 · 2026-11-06 대조(Phase 1) · 이탈 1 · 미구현 0 — 판정 근거(파일:줄)는 PR 본문 "계획 대비 구현"
+> #558·#560 · 2026-11-06 대조(Phase 1·2) · 이탈 1 · 미구현 0 — 판정 근거(파일:줄)는 각 PR 본문 "계획 대비 구현"
 
 - 이탈(구현 중 발견): 메뉴가 닫힐 때 항상 연 버튼으로 되돌리지 않고, 포커스가 `body`나 메뉴 안에 남았을 때만 되돌림. 메뉴 링크로 이동한 화면이 이미 가져간 포커스(등록 화면 URL 칸의 `autoFocus`)를 뺏지 않기 위해서다
 - 계획에 없던 변경: 메뉴 X의 `Button` 트랜지션을 `transition-all`에서 실제로 바뀌는 속성으로 좁힘. 메뉴 열림 트랜지션에서 `visibility`를 빼는 것만으로는 X가 물려받은 `visibility`를 자기 트랜지션으로 바꿔 `focus()`가 실패했다
 - 계획에 없던 변경: 새 e2e에 표에 없던 테스트를 더함(터치·키보드 포커스 링, X로 닫을 때 복귀, 닫혔을 때 Esc, `autoFocus` 유지, 여는 동안 트랜지션, 동작 줄이기). 동작 줄이기는 이 스펙에서 확인한다(`e2e/reduced-motion.spec.ts`에는 메뉴 검사가 없다)
 - 계획에 없던 변경: `motion-ux` skill에 부모 `visibility`와 자식 `transition-all` 함정을 기록
 - 계획에 없던 변경(문서 동기화): `docs/POST-DETAIL-BACK-NAVIGATION.md`의 닫힌 드로어 설명 갱신
+- 계획에 없던 변경(Phase 2): Phase 1에서 만든 `e2e/sidebar-drawer-focus.mobile.spec.ts`의 버튼 찾기도 새 이름으로 바꿈. Phase 2 표에 빠져 있었지만 옛 키를 지워 함께 고쳐야 했다
+- 계획에 없던 변경(Phase 2): `docs/FE-ARCHITECTURE.md` §10-A에 그림에 없던 테스트 요령을 더함. 이름이 바뀌는 버튼은 다시 찾으면 옛 이름으로 못 찾으니 요소를 변수에 잡아 다시 누른다
 
 <!-- plan-result:end -->
 
