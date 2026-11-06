@@ -9,6 +9,7 @@ import vitestPlugin from '@vitest/eslint-plugin';
 import playwrightPlugin from 'eslint-plugin-playwright';
 import { mutationRetryRule } from './scripts/lib/mutation-retry-rule.js';
 import { noLiteralA11yNameRule } from './scripts/lib/no-literal-a11y-name-rule.js';
+import { noLiteralJsxTextRule } from './scripts/lib/no-literal-jsx-text-rule.js';
 import { scopeMutationAuthEpochRule } from './scripts/lib/scope-mutation-auth-epoch-rule.js';
 
 // 파일명 약어 허용 목록
@@ -1532,7 +1533,8 @@ export default [
   // 이유: 모든 사용자 노출 문자열은 src/shared/config/texts.ts의 TEXTS로
   //       중앙 관리해야 함. 직접 작성 시 다국어/문구 일관성 관리가 불가능해짐.
   //       texts.ts 자기 자신과 테스트/목 픽스처는 예외.
-  //       no-literal-a11y-name은 화면 읽기 프로그램이 읽는 문구를 영어까지 막는다(본체는 scripts/lib/).
+  //       no-literal-a11y-name은 화면 읽기 프로그램이 읽는 문구를, no-literal-jsx-text는 JSX에 직접 적은
+  //       글자를 영어까지 막는다(본체는 scripts/lib/).
   // ============================================================
   {
     files: ['src/**/*.{ts,tsx}'],
@@ -1549,6 +1551,7 @@ export default [
       'custom-i18n': {
         rules: {
           'no-literal-a11y-name': noLiteralA11yNameRule,
+          'no-literal-jsx-text': noLiteralJsxTextRule,
           'no-hardcoded-hangul': {
             meta: {
               type: 'problem',
@@ -1592,6 +1595,7 @@ export default [
     rules: {
       'custom-i18n/no-hardcoded-hangul': 'error',
       'custom-i18n/no-literal-a11y-name': 'error',
+      'custom-i18n/no-literal-jsx-text': 'error',
     },
   },
 

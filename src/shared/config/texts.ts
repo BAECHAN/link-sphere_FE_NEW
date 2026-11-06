@@ -162,7 +162,7 @@ export const TEXTS = {
       // 응답을 못 받아 인증됐는지 모르는 경우 - 토큰이 이미 쓰였을 수 있어 "실패"라고 하지 않는다
       unknownTitle: '인증됐는지 확인하지 못했어요',
       unknownDescription: '연결을 확인한 뒤 계정 설정에서 인증 상태를 확인해주세요.',
-      goToFeed: '피드로 이동',
+      goToFeed: '홈으로 이동',
       goToLogin: '로그인하러 가기',
       goToAccountSettings: '계정 설정으로 이동',
     },
@@ -180,9 +180,9 @@ export const TEXTS = {
   },
   nav: {
     brand: 'LinkSphere',
-    feed: 'Feed',
-    submit: 'Submit',
-    bookmark: 'Bookmark',
+    feed: '홈',
+    submit: '링크 공유',
+    bookmark: '북마크',
     logIn: '로그인',
     logOut: '로그아웃',
     loggingOut: '로그아웃 중...',
@@ -247,6 +247,10 @@ export const TEXTS = {
     removeItem: '검색어 삭제',
   },
   post: {
+    list: {
+      heading: '최근 링크',
+      submit: '링크 공유',
+    },
     form: {
       create: {
         title: '링크 공유하기',
@@ -584,15 +588,15 @@ export const TEXTS = {
         urlUnresolvable: '이 주소를 찾을 수 없어요. 도메인에 오타가 없는지 확인해주세요.',
         urlNotAllowed: '내부망 주소는 등록할 수 없어요.',
         urlInvalid: '올바른 URL이 아니에요. http:// 또는 https://로 시작하는지 확인해주세요.',
-        urlDuplicate: '최근 1시간 안에 같은 링크를 등록했어요. 피드에서 확인해주세요.',
+        urlDuplicate: '최근 1시간 안에 같은 링크를 등록했어요. 홈에서 확인해주세요.',
         folderNotFound: '선택한 폴더를 찾을 수 없어요. 폴더를 다시 골라주세요.',
         rateLimitedIn: (minutes: number) =>
           `요청이 많아 잠시 막혔어요. 약 ${minutes}분 뒤 다시 시도해주세요.`,
         rateLimited: '요청이 많아 잠시 막혔어요. 잠시 후 다시 시도해주세요.',
         network: '인터넷 연결을 확인하고 다시 시도해주세요.',
         timeout:
-          '응답이 늦어 처리됐는지 확인하지 못했어요. 피드에서 먼저 확인한 뒤 다시 시도해주세요.',
-        checkFeed: '피드에서 확인하기',
+          '응답이 늦어 처리됐는지 확인하지 못했어요. 홈에서 먼저 확인한 뒤 다시 시도해주세요.',
+        checkFeed: '홈에서 확인하기',
         postDeleted: '이 포스트는 삭제돼서 수정할 수 없어요.',
         notOwner: '내가 쓴 포스트만 수정할 수 있어요.',
         createFailed: '일시적인 문제로 등록하지 못했어요. 잠시 후 다시 시도해주세요.',

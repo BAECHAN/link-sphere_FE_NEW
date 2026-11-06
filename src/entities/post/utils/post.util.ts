@@ -13,7 +13,7 @@ export interface PostSubmitErrorContext {
 /**
  * 실패를 어디에 보여줄지의 판정 결과.
  * - field: 사용자가 그 입력칸을 고치면 해결된다 → 입력칸 아래 에러(form.setError)
- * - form: 입력칸과 무관하다 → 버튼 위 안내(FormAlert). checkFeed면 "피드에서 확인하기" 링크를 붙인다
+ * - form: 입력칸과 무관하다 → 버튼 위 안내(FormAlert). checkFeed면 "홈에서 확인하기" 링크를 붙인다
  *
  * 저장 중 떠난 뒤 실패를 알리는 토스트(useCreatePost·useUpdatePost)가 쓰는 표시 두 가지:
  * - retryable: false - 다시 수정해도 똑같이 실패한다(글 삭제됨·남의 글) → 폼으로 돌아가는 버튼을 달지 않는다

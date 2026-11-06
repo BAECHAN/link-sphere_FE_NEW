@@ -48,7 +48,9 @@ async function failUntilRecovered(page: Page, matcher: UrlMatcher) {
 // 이동은 transition이라(RouterProvider.tsx의 v7_startTransition) 주소가 먼저 바뀌고 화면은 청크가 온 뒤에 바뀐다.
 // 떠난 화면이 실제로 내려간 뒤에 돌아오도록 도착한 화면에만 있는 제목을 기다린다.
 async function expectFeedShown(page: Page) {
-  await expect(page.getByRole('heading', { level: 1, name: 'Recent Links' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: TEXTS.post.list.heading })
+  ).toBeVisible();
   await expect(page.getByRole('link', { name: mockPost.title })).toBeVisible();
 }
 
@@ -102,7 +104,9 @@ test.describe('조회에 실패한 화면에 다시 들어오기', () => {
     await page.goBack();
 
     // 피드 카드 제목도 h3라, 피드가 내려가기 전에는 아래 제목 단정이 피드 카드로 먼저 통과해 버린다
-    await expect(page.getByRole('heading', { level: 1, name: 'Recent Links' })).toHaveCount(0);
+    await expect(
+      page.getByRole('heading', { level: 1, name: TEXTS.post.list.heading })
+    ).toHaveCount(0);
     await expect(page.getByRole('heading', { level: 3, name: mockPost.title })).toBeVisible();
     await expect(page.getByText(TEXTS.messages.error.fetchPosts)).toHaveCount(0);
     expect(detail.state.requests).toBeGreaterThan(requestsBeforeReturn);

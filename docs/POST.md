@@ -42,7 +42,7 @@ flowchart TD
   Feed -->|"카드 클릭"| Detail["상세 /post/:id<br/>useSuspenseQuery retry:false"]
   Detail -->|"404"| NotFound["그 자리 안내 화면(PostNotFound)<br/>주소 유지·noindex"]
 
-  Feed -->|"Submit Link"| Create["작성 /post/submit"]
+  Feed -->|"링크 공유"| Create["작성 /post/submit"]
   Create -->|"URL 입력, 0.5초 멈춤·형식 OK"| Preview["GET /link-preview?url=<br/>URL 칸 아래 카드 미리보기<br/>(BE가 10분 캐시)"]
   Preview -->|"도메인 없음 등"| PreviewErr["카드 대신 URL 칸 에러"]
   Create -->|"제출 → 버튼 '등록 중...'(응답 대기)"| CreateReq["POST /post (keepalive, Idempotency-Key)<br/>응답 없으면 같은 키로 1번 더<br/>실패 시 폼 유지"]
@@ -155,7 +155,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 `src/app/routes/index.tsx`에서 피드·상세는 비로그인도 볼 수 있는 그룹(`:165-181`), 작성·수정은
 `ProtectedLayout` 그룹(`:183-207`)에 있다. 각 페이지 컴포넌트는 얇다 — `pages/post/index.tsx`는
-제목·"Submit Link" 버튼(`useProtectedNavigate`)·`PostListFilter`·`PostList`를 배치하고, `PostList`에 카드를
+제목·"링크 공유" 버튼(`useProtectedNavigate`)·`PostListFilter`·`PostList`를 배치하고, `PostList`에 카드를
 그리는 함수(`renderFeedPost` — `backSource="feed"`, 첫 행만 `priorityThumbnail`)와 카드 치수(`POST_CARD_GRID`)를
 넘긴다([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §26 위층 조립). `PostEditPage`는 수정 폼을 그대로 렌더하고,
 `PostSubmitPage`는 작성 폼에 폴더 선택 창(`renderFolderSelect` → `BookmarkFolderSelectDialog`)을 넘긴다.
@@ -425,7 +425,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
      같은 URL을 또 등록(`DUPLICATE_POST`, 409 — BE 필수화 뒤 발생), 폴더 사라짐
      (`FOLDER_NOT_FOUND`, 폴더를 고른 등록의 `FORBIDDEN`).
    - 그 외 → 버튼 바로 위 `FormAlert`(`shared/ui/elements/FormAlert.tsx`, `role="alert"`): 요청 한도
-     (429, `Retry-After`를 분으로 올림), 네트워크, 응답 지연(504 — 이미 저장됐을 수 있어 "피드에서
+     (429, `Retry-After`를 분으로 올림), 네트워크, 응답 지연(504 — 이미 저장됐을 수 있어 "홈에서
      확인하기" 링크), 이메일 미인증, WAF 차단, 로그인 필요(`NOT_LOGGED_IN`·`INVALID_TOKEN`), 수정할 때만 글이
      삭제됨(`POST_NOT_FOUND`)·남의 글(`FORBIDDEN`), 그 외. 모바일에선 하단 고정 바 안 버튼 위에 붙는다.
    - 로그인이 풀린 채 그 화면에 남아 있는 동안(저장하다 만료됐든, 쓰던 중 다른 탭에서 로그아웃했든) 같은
@@ -614,7 +614,7 @@ _"오류든 성공이든 항상 다시 가져온다"_ (번역)를 실패 경로�
   채 실패 안내를 띄우고 글과 목록을 다시 받으며, 고치던 값은 `isDirty`라 덮이지 않는다.
 - **등록도 다시 보낸다**(2026-11-05, BE #158 배포 뒤). 같은 `Idempotency-Key`라 서버가 새 글을 만들지 않고 첫 글을 돌려준다(`FE-ARCHITECTURE.md`
   §27). 그동안 버튼은 "등록 중..."이다. 또 응답이 없으면 버튼 위 안내(끊김은 `postSubmit.network`, 504는 `postSubmit.timeout`)와 함께 목록을 다시
-  받아 저장됐으면 보이게 한다. 키가 있어도 저장됐으면 다시 쓸 일이 없으니 "피드에서 먼저 확인" 안내는 그대로 둔다.
+  받아 저장됐으면 보이게 한다. 키가 있어도 저장됐으면 다시 쓸 일이 없으니 "홈에서 먼저 확인" 안내는 그대로 둔다.
 - **화면을 떠난 뒤였으면** 등록·수정 모두 토스트 제목이 "처리됐는지 확인하지 못했어요"다(`leftPageFailure.outcomeUnknownTitle`).
 
 | 대안                                | 왜 지지 않았나                                                                                        |
@@ -1010,7 +1010,7 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
   화면(관찰자)이 없는 쿼리인지 판정한다. 떠날 때 실패 정리와 `erroredLists`가 쓴다(§5 "조회에 실패한 화면에 다시
   들어오기").
 - **`useProtectedNavigate`** — `src/entities/auth/hooks/useProtectedNavigate.ts`. 로그인 상태면
-  바로 이동하고, 아니면 로그인 모달을 띄운 뒤 성공 시 원래 목적지로 이동한다("Submit Link" 버튼).
+  바로 이동하고, 아니면 로그인 모달을 띄운 뒤 성공 시 원래 목적지로 이동한다("링크 공유" 버튼).
 - **`@x`** — 다른 엔티티에 공개하는 교차 참조 파일(`src/entities/post/@x/`). FSD 표기 —
   [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §5.
 

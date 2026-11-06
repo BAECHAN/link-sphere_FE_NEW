@@ -19,7 +19,7 @@ test.describe('모바일 — 상세 돌아가기 버튼 없음', () => {
     await mockComments(page, []);
   });
 
-  test('돌아가기 버튼이 없고, 하단 탭바의 Feed로 목록으로 돌아갈 수 있다', async ({ page }) => {
+  test('돌아가기 버튼이 없고, 하단 탭바의 홈으로 목록에 돌아갈 수 있다', async ({ page }) => {
     await page.goto(`/post/${mockPost.id}`);
     await expect(page.getByRole('heading', { name: mockPost.title })).toBeVisible();
 
@@ -28,7 +28,7 @@ test.describe('모바일 — 상세 돌아가기 버튼 없음', () => {
 
     // BottomTabBar는 라우트와 무관하게 항상 떠 있다(md:hidden fixed bottom-0) — 버튼이
     // 없어도 갈 곳이 없는 게 아니라는 걸 증명한다. Sidebar도 데스크톱용(aside, hidden
-    // md:flex)과 모바일 드로어용 두 벌의 "Feed" 링크를 갖고 있어(닫힌 드로어는 invisible,
+    // md:flex)과 모바일 드로어용 두 벌의 "홈" 링크를 갖고 있어(닫힌 드로어는 invisible,
     // 2026-11-06부터) 탭바의 링크만 가리키도록 BottomTabBar의 고유 클래스(`fixed bottom-0`,
     // 이 조합을 쓰는 컴포넌트는 이거 하나뿐)로 직접 좁힌다.
     const bottomTabBar = page.locator('nav.fixed.bottom-0');

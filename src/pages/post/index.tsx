@@ -1,5 +1,6 @@
 import { Button } from '@/shared/ui/atoms/button';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { TEXTS } from '@/shared/config/texts';
 import { useProtectedNavigate } from '@/entities/auth/hooks/useProtectedNavigate';
 import { PostList } from '@/widgets/post/post-list/ui/PostList';
 import { PostListFilter } from '@/widgets/post/post-list/ui/PostListFilter';
@@ -26,13 +27,13 @@ export function Post() {
   return (
     <div className="w-full space-y-4 md:space-y-6">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-screen-title">Recent Links</h1>
+        <h1 className="text-screen-title">{TEXTS.post.list.heading}</h1>
         <Button
           size="sm"
           className="md:h-10"
           onClick={() => protectedNavigate(ROUTES_PATHS.POST.SUBMIT)}
         >
-          Submit Link
+          {TEXTS.post.list.submit}
         </Button>
       </div>
 

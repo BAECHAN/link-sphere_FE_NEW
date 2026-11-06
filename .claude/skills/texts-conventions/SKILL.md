@@ -27,6 +27,7 @@ TEXTS
 ├── accountSettings.* (title, emailVerificationNeeded, passwordSectionTitle, deleteSectionTitle, deleteConfirmMessage, ...)
 ├── version.* (title, description, loadedBuild, deployedBuild, bannerMatch, bannerMismatch, ...)
 ├── recentSearch.* (title, clearAll, empty, removeItem)
+├── post.list.* (heading, submit) — 글 목록 머리
 ├── post.form.create.* (title, description1/2, urlLabel, urlPlaceholder, titleLabel, ...)
 ├── post.form.update.* (title, description, titleLabel, titlePlaceholder, update, ...)
 ├── post.form.preview.* (placeholder, loading, failed, ariaLabel) — 등록·수정 폼 공용 링크 미리보기
@@ -70,6 +71,8 @@ pre-commit(lint-staged)과 CI·배포의 `pnpm check`에서 차단한다(`pnpm b
 - `src/shared/utils/common.util.ts` — 숫자/통화 로케일 포맷
 
 `custom-i18n/no-literal-a11y-name`은 같은 예외 목록으로 화면 읽기 프로그램이 읽는 문구를 언어와 상관없이 막는다 — 글자를 직접 적은 `aria-label`·`alt`(객체의 `alt:` 포함)와 `sr-only` 요소 안 글자(2026-11-06, 영어 문구 8곳과 `attachment`가 `no-hardcoded-hangul`을 통과해 있었다). 새 문구는 `ariaLabels.*`에 키를 더한다. `empty:sr-only`처럼 어떤 때는 화면에 보이는 글자와 `title`은 이 규칙이 보지 않는다.
+
+`custom-i18n/no-literal-jsx-text`도 같은 예외 목록으로 JSX 요소 사이에 직접 적은 글자를 언어와 상관없이 막는다(2026-11-06, `Recent Links`·`Submit Link`가 첫 구현부터 통과해 있었다). 화면 글자는 한국어로 쓴다. 영어로 두는 것은 서비스 이름 `LinkSphere`, 기술 약어 `URL`, 단축키(`Ctrl + Enter` 등)뿐이고 이것들도 `TEXTS`에 둔다. 이 규칙은 `texts.ts` 안의 값, 속성 값, `{'...'}` 안 문자열은 보지 않으니 `texts.ts`에 영어를 새로 넣는지는 리뷰로 본다.
 
 ### 톤 규칙
 
