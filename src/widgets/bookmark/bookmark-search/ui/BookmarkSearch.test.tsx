@@ -33,8 +33,8 @@ describe('BookmarkSearch — X 버튼', () => {
     renderBookmarkSearch('/bookmark?q=리액트');
 
     const input = screen.getByPlaceholderText(TEXTS.placeholders.bookmarkSearch);
-    // input.tsx의 X는 sr-only "Clear" 텍스트만 갖고 aria-label이 없다 — role로 찾는다.
-    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    // input.tsx의 X는 sr-only 글자만 갖고 aria-label이 없다 — role로 찾는다.
+    await user.click(screen.getByRole('button', { name: TEXTS.ariaLabels.inputClear }));
 
     expect(input).toHaveFocus();
   });
@@ -44,7 +44,7 @@ describe('BookmarkSearch — X 버튼', () => {
     renderBookmarkSearch('/bookmark?q=리액트');
 
     const input = screen.getByPlaceholderText(TEXTS.placeholders.bookmarkSearch);
-    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    await user.click(screen.getByRole('button', { name: TEXTS.ariaLabels.inputClear }));
 
     expect(input).toHaveValue('');
   });

@@ -80,9 +80,9 @@ for (const c of CASES) {
       // 버튼은 보이는 상태로 바로 마운트된다 — 처음 그려질 때(@starting-style) 시작한 트랜지션을
       // 마운트 순간에 모은다
       await expect(firstPostCard(page)).toBeVisible();
-      await page.evaluate(() => {
+      await page.evaluate((label) => {
         new MutationObserver((_, observer) => {
-          const wrapper = document.querySelector('[aria-label="Scroll to top"]')?.parentElement;
+          const wrapper = document.querySelector(`[aria-label="${label}"]`)?.parentElement;
 
           if (!wrapper) {
             return;
@@ -95,7 +95,7 @@ for (const c of CASES) {
             .map((animation) => (animation as CSSTransition).transitionProperty)
             .sort();
         }).observe(document.body, { childList: true, subtree: true });
-      });
+      }, TEXTS.ariaLabels.backToTop);
 
       await page.evaluate(() => window.scrollTo({ top: 600, behavior: 'instant' }));
 

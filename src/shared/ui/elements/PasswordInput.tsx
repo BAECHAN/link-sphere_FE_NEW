@@ -1,5 +1,6 @@
 import { Input, InputProps } from '@/shared/ui/atoms/input';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
+import { TEXTS } from '@/shared/config/texts';
 import { forwardRef, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -19,7 +20,9 @@ export const PasswordInput = forwardRef<HTMLInputElement, InputProps>(
           className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full text-muted-foreground hover:text-foreground"
         >
           {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-          <span className="sr-only">{showPassword ? 'Hide password' : 'Show password'}</span>
+          <span className="sr-only">
+            {showPassword ? TEXTS.ariaLabels.hidePassword : TEXTS.ariaLabels.showPassword}
+          </span>
         </ToggleButton>
       </div>
     );

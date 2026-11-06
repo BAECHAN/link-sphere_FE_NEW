@@ -376,7 +376,7 @@ export const PostCard = memo(function PostCard({
             onClick={handleCopyLink}
           >
             <Share2 className="size-4" />
-            <span className="sr-only">Share</span>
+            <span className="sr-only">{TEXTS.post.card.share}</span>
           </Button>
         </div>
 

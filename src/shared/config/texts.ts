@@ -303,6 +303,7 @@ export const TEXTS = {
       saving: COMMON_TEXT.saving,
       metadataUnavailable: '이 링크의 정보를 가져오지 못했어요.',
       copyOriginalLink: '원본 링크 복사',
+      share: '게시글 공유',
       visibilityConfirmTitle: '공개 설정 변경',
       visibilityToPublic: '전체 공개로',
       visibilityToPrivate: '나만 보기(비공개)로',
@@ -786,9 +787,15 @@ export const TEXTS = {
     imageViewerNext: '다음 이미지',
     profileImageZoom: '프로필 사진 확대',
     commentBarExpand: '댓글 작성창 펼치기',
+    backToTop: '맨 위로',
+    loading: '불러오는 중',
+    // 제목 없는 확인창의 접근 이름 - 화면에는 안 보인다(GlobalAlertDialogs.tsx)
+    alertDialogFallbackTitle: '알림',
 
     // 입력 필드
     inputClear: '입력값 지우기',
+    showPassword: '비밀번호 보기',
+    hidePassword: '비밀번호 숨기기',
     // 비밀번호 조건 체크리스트 항목 뒤에 붙는 스크린리더 전용 상태("8자 이상 충족")
     passwordRequirementMet: '충족',
     passwordRequirementUnmet: '미충족',

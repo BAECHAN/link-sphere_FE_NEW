@@ -5,6 +5,7 @@ import { ArrowUp } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { ScrollUtil } from '@/shared/utils/scroll.util';
+import { TEXTS } from '@/shared/config/texts';
 
 // framer-motion의 AnimatePresence와 같은 fade+scale+slide 지속시간(ms) - exit
 // 애니메이션이 끝날 때까지 마운트를 유지하려면 CSS transition 시간과 정확히 맞아야 한다.
@@ -65,7 +66,7 @@ export function BackToTopButton() {
         size="icon"
         onClick={scrollToTop}
         className="rounded-full h-12 w-12 shadow-lg bg-primary hover:bg-primary/90 transition-all active:scale-95"
-        aria-label="Scroll to top"
+        aria-label={TEXTS.ariaLabels.backToTop}
       >
         <ArrowUp className="h-6 w-6" />
       </Button>

@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWithProviders } from '@/test/utils';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
+import { TEXTS } from '@/shared/config/texts';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -127,7 +128,7 @@ describe('AlertDialogContent', () => {
     await waitForOpen();
 
     vi.advanceTimersByTime(DOUBLE_CLICK_GUARD_MS);
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    fireEvent.click(screen.getByRole('button', { name: TEXTS.ariaLabels.close }));
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });

@@ -8,6 +8,7 @@ import { mockComments } from './mocks/comment.mock';
 import { wrapResponse } from './mocks/wrap-response';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { mockComment } from '@/mocks/fixtures/comment.fixtures';
+import { TEXTS } from '@/shared/config/texts';
 
 // 데스크톱 상세의 오른쪽 아래는 맨 위로 버튼 하나다 - 모바일은 하단 댓글 바가 있어 두지
 // 않는다(scroll-to-top-detail.mobile.spec.ts, 근거는 docs/COMMENT.md "맨 위로 버튼").
@@ -40,7 +41,7 @@ test.describe('글 상세 맨 위로 버튼 — 데스크톱', () => {
     await page.getByText('Comment 14').waitFor();
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
 
-    const button = page.getByRole('button', { name: 'Scroll to top' });
+    const button = page.getByRole('button', { name: TEXTS.ariaLabels.backToTop });
 
     await expect(button).toBeVisible();
 

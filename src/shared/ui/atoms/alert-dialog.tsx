@@ -3,6 +3,7 @@ import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 import { X } from 'lucide-react';
 
 import { cn } from '@/shared/lib/tailwind/utils';
+import { TEXTS } from '@/shared/config/texts';
 import { useOpenClickGuard } from '@/shared/hooks/useOpenClickGuard';
 
 // 응답을 받아야 하는 확인창(삭제·이탈 등) 전용 — role="alertdialog"로 렌더돼 스크린리더가
@@ -81,7 +82,7 @@ const AlertDialogContentPanel = React.forwardRef<
         {showCloseButton && (
           <AlertDialogPrimitive.Cancel className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
             <X className="size-4" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{TEXTS.ariaLabels.close}</span>
           </AlertDialogPrimitive.Cancel>
         )}
       </AlertDialogPrimitive.Content>

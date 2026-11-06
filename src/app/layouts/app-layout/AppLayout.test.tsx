@@ -1,6 +1,7 @@
 import { act, fireEvent, screen } from '@testing-library/react';
 import { AppLayout } from '@/app/layouts/app-layout/AppLayout';
 import { renderWithProviders } from '@/test/utils';
+import { TEXTS } from '@/shared/config/texts';
 
 // 맨 위로 버튼 노출만 본다 - 내비게이션 위젯은 인증·쿼리 준비가 많아 비운다
 vi.mock('@/widgets/layout/navbar/ui/Navbar', () => ({ Navbar: () => null }));
@@ -27,7 +28,7 @@ describe('AppLayout 맨 위로 버튼', () => {
   it.each(['/post', '/bookmark', '/my/comments', '/my/account'])('%s에서는 보인다', (path) => {
     renderAt(path);
 
-    const button = screen.getByRole('button', { name: 'Scroll to top' });
+    const button = screen.getByRole('button', { name: TEXTS.ariaLabels.backToTop });
 
     expect(button.closest('.max-md\\:hidden')).toBeNull();
   });
@@ -36,7 +37,7 @@ describe('AppLayout 맨 위로 버튼', () => {
   it('글 상세에서는 모바일 폭에서 숨기는 감쌈 안에 둔다', () => {
     renderAt('/post/abc');
 
-    const button = screen.getByRole('button', { name: 'Scroll to top' });
+    const button = screen.getByRole('button', { name: TEXTS.ariaLabels.backToTop });
 
     expect(button.closest('.max-md\\:hidden')).not.toBeNull();
   });
@@ -45,6 +46,8 @@ describe('AppLayout 맨 위로 버튼', () => {
   it.each(['/post/submit', '/post/edit/abc'])('%s에서는 숨긴다', (path) => {
     renderAt(path);
 
-    expect(screen.queryByRole('button', { name: 'Scroll to top' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: TEXTS.ariaLabels.backToTop })
+    ).not.toBeInTheDocument();
   });
 });
