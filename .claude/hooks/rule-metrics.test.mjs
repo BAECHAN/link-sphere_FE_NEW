@@ -4,12 +4,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { approvalBypassKinds, ASK_RULES_BY_PERIOD } from '../scripts/rule-metrics.mjs';
+import { approvalBypassKinds, ASK_RULES_BY_PERIOD, askRulesOn } from '../scripts/rule-metrics.mjs';
 
 const CWD = '/w/link-sphere_FE_NEW/.claude/worktrees/x';
 const MERGE = 'repos/o/r/pulls/1/merge';
 const before = (command) => approvalBypassKinds(command, CWD, ASK_RULES_BY_PERIOD.before);
 const after = (command) => approvalBypassKinds(command, CWD, ASK_RULES_BY_PERIOD.after);
+const afterPatch = (command) => approvalBypassKinds(command, CWD, ASK_RULES_BY_PERIOD.afterPatch);
 
 test('ask 확장 전: gh api로 머지·규칙을 바꾸는 호출은 확인 창 없이 지나간다', () => {
   assert.deepEqual(before(`gh api -X PUT ${MERGE}`), ['api-merge']);
@@ -91,6 +92,27 @@ test('저장소 설정 PATCH는 ask 규칙에 없어 계속 센다', () => {
   ]);
   assert.deepEqual(after('gh api repos/o/r'), []);
   assert.deepEqual(after('gh api -X PATCH repos/o/r/issues/1 -f state=closed'), []);
+});
+
+test('PATCH 규칙을 더한 뒤에는 그대로 쓴 PATCH가 확인 창에 걸리고 붙여 쓴 형태만 남는다', () => {
+  for (const command of [
+    'gh api -X PATCH repos/o/r -F delete_branch_on_merge=true',
+    'gh api --method PATCH repos/o/r -f squash_merge_commit_title=PR_TITLE',
+    'gh api repos/o/r -X PATCH -F allow_rebase_merge=false',
+    `gh api -X PUT ${MERGE}`,
+  ]) {
+    assert.deepEqual(afterPatch(command), [], command);
+  }
+
+  assert.deepEqual(afterPatch('gh api -XPATCH repos/o/r'), ['api-repo-settings']);
+  assert.deepEqual(afterPatch('gh api --method=PATCH repos/o/r'), ['api-repo-settings']);
+});
+
+test('규칙은 그날 설정에 있던 것으로 고른다: PATCH 규칙 전날까지의 실행은 계속 센다', () => {
+  assert.equal(askRulesOn('2026-10-30'), ASK_RULES_BY_PERIOD.before);
+  assert.equal(askRulesOn('2026-10-31'), ASK_RULES_BY_PERIOD.after);
+  assert.equal(askRulesOn('2026-11-05'), ASK_RULES_BY_PERIOD.after);
+  assert.equal(askRulesOn('2026-11-06'), ASK_RULES_BY_PERIOD.afterPatch);
 });
 
 test('push는 link-sphere 레포만, 상대 -C는 한 번만 풀어 센다', () => {
