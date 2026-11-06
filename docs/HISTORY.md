@@ -1,4 +1,9 @@
 ### 2026-11-06 (FE)
+- 다국어 지원 대응 및 코드 품질 개선
+로그:
+- fix(shared): 화면의 영어 글자를 한국어로 바꾸고 린트로 막음 ([#566](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/566))
+
+### 2026-11-06 (FE)
 - 뮤테이션을 사용하는 커스텀 훅 테스트 코드 리팩토링 및 안정성 강화 ([#565](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/565))
 
 ### 2026-11-06 (FE)
