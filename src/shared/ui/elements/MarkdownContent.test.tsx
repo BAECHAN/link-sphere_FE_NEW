@@ -70,16 +70,33 @@ describe('MarkdownContent', () => {
   it('확대 창에 넘기는 이미지는 이전·다음으로 넘겨도 구분되게 순번이 붙은 이름을 갖는다', () => {
     const navigateSpy = vi.spyOn(NavigationService, 'navigate').mockImplementation(() => {});
     const secondUrl = STORAGE_URL.replace('a.png', 'b.png');
-    const { getAllByRole } = renderWithProviders(
+    const { getByRole } = renderWithProviders(
       <MarkdownContent content={`${STORAGE_URL} ${secondUrl}`} />
     );
 
-    fireEvent.click(getAllByRole('button', { name: TEXTS.ariaLabels.imageZoom })[1]!);
+    fireEvent.click(getByRole('button', { name: TEXTS.ariaLabels.imageZoomAt(2) }));
 
     expect(useImageViewerStore.getState().images).toEqual([
       { src: STORAGE_URL, alt: TEXTS.ariaLabels.attachmentImageAt(1) },
       { src: secondUrl, alt: TEXTS.ariaLabels.attachmentImageAt(2) },
     ]);
+    expect(useImageViewerStore.getState().currentIndex).toBe(1);
+    navigateSpy.mockRestore();
+  });
+
+  it('이미지가 여러 장이면 확대 버튼 이름이 순번으로 구분되고, 누르면 그 이미지부터 연다', () => {
+    const navigateSpy = vi.spyOn(NavigationService, 'navigate').mockImplementation(() => {});
+    const secondUrl = STORAGE_URL.replace('a.png', 'b.png');
+    const { getByRole } = renderWithProviders(
+      <MarkdownContent content={`${STORAGE_URL} ${secondUrl}`} />
+    );
+
+    fireEvent.click(getByRole('button', { name: TEXTS.ariaLabels.imageZoomAt(1) }));
+
+    expect(useImageViewerStore.getState().currentIndex).toBe(0);
+
+    fireEvent.click(getByRole('button', { name: TEXTS.ariaLabels.imageZoomAt(2) }));
+
     expect(useImageViewerStore.getState().currentIndex).toBe(1);
     navigateSpy.mockRestore();
   });

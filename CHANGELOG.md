@@ -204,6 +204,13 @@
 
 ### Fixed
 
+- `comment` 이미지가 여러 장일 때 확대·삭제 버튼 이름에 순번을 붙임
+  <details><summary>배경·구현</summary>
+
+  이미지가 여러 장이어도 버튼 이름이 모두 `이미지 확대`, `이미지 삭제`라 화면 읽기 프로그램으로는 몇 번째 이미지의 버튼인지 구분할 수 없었다. 삭제는 잘못 누르면 다른 이미지가 빠진다. 이제 `이미지 1 확대`, `이미지 2 삭제`처럼 읽히고, 확대 버튼의 순번은 확대 창의 `첨부 이미지 1`과 같은 순서다. 삭제 버튼은 `title`이 이름 역할을 해 마우스를 올렸을 때 뜨는 말풍선 글자도 같이 바뀐다. 번호는 댓글마다 1부터 시작하고, 같은 주소를 두 번 적으면 같은 번호가 된다(확대 창이 그 자리부터 여는 것과 같다). 실제 화면 읽기 프로그램으로는 확인하지 않았다. (`src/shared/config/texts.ts`, `src/shared/ui/elements/{MarkdownContent,ImageAttachmentField}.tsx`, [PR #569](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/569))
+
+  </details>
+
 - `shared` 글 카드 댓글 링크와 첨부 이미지 이름을 바로잡음
   <details><summary>배경·구현</summary>
 

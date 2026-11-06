@@ -75,7 +75,7 @@ export function ImageAttachmentField({
               <button
                 type="button"
                 onClick={() => onRemove(index)}
-                title={TEXTS.comment.form.removeImage}
+                title={TEXTS.comment.form.removeImageAt(index + 1)}
                 className={cn(
                   'absolute -top-2 -right-2 h-5 w-5 rounded-full',
                   'bg-scrim border border-scrim shadow-sm',
