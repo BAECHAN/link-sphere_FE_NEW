@@ -1,4 +1,7 @@
 ### 2026-11-06 (FE)
+- 접근성 문구 다국어 처리 및 린트 강제화를 통한 코드 품질 개선 ([#561](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/561))
+
+### 2026-11-06 (FE)
 - 버튼 컴포넌트의 접근성 및 직관성 개선: 버튼 라벨을 실제 동작 기반으로 수정하여 상태와 수치 정보가 명확히 전달되도록 최적화 ([#560](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/560))
 
 ### 2026-11-06 (FE)
