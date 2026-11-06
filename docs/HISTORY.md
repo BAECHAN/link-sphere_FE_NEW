@@ -1,3 +1,8 @@
+### 2026-11-06 (BE)
+- LambdaHandler의 MockMvc 테스트 환경 설정 및 문서 기술 내용 최적화
+로그:
+- docs(infra): LambdaHandler의 MockMvc 경위 주석과 문서의 낡은 값을 바로잡음 ([#173](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/173))
+
 ### 2026-11-06 (FE)
 - 다국어 지원 대응 및 코드 품질 개선
 로그:
