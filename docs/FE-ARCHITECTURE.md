@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-11-05
+> **마지막 검토**: 2026-11-06
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -1426,6 +1426,7 @@ sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를
 | `config/` 파일                | `<entity>.const.ts`(그 밖의 값), `<entity>.contract.ts`(BE와 같아야 하는 입력 제약 값, §9) — `api/`·`model/`·`utils/`와 같은 `<entity>.<역할>.ts` 규칙(`const.ts` 단독 금지, `shared/config/const.ts`처럼 도메인이 없는 전역 설정은 예외). `<entity>`는 **엔티티명**이지 디렉터리 세그먼트명이 아니다 — 그룹 폴더(`entities/bookmark/folder/`) 아래에서도 파일 접두사는 엔티티명(`bookmark-folder`)을 따른다 | `bookmark-folder.const.ts`, `post.const.ts`   |
 | `<Entity>[]` 배열 변수/반환값 | `<entity>List` — 지역변수·훅 반환 필드·구조분해값이 실제로 배열일 때. 아래 각주의 예외 2가지는 대상 아님                                                                                                                                                                                                                                                                                                     | `folderList`                                  |
 | 창·오버레이 식별자            | 창 자체(컴포넌트·훅·스토어·타입·경로·히스토리 키)는 `Dialog`, 뒤를 조작 불가로 만드는 성질은 `modal`, alert/confirm 전용은 `Alert`. 식별자에만 적용하고 한국어 산문의 "모달"은 허용 — 아래 각주                                                                                                                                                                                                              | `LoginDialog`, `modal={false}`, `useAlert`    |
+| 작은 라벨·칩 식별자           | 누를 수 없으면 `Badge`, 누를 수 있으면 `*Chip`(상태를 켜고 끄면 `FilterChip`, 동작을 실행하면 `ActionChip`). `Tag`는 컴포넌트 이름으로 쓰지 않는다 — 아래 각주                                                                                                                                                                                                                                               | `Badge`, `FilterChip`, `ActionChip`           |
 
 **`<entity>List` 각주** (2026-09-08) — "단수/복수"가 아니라 "배열인가 아닌가"로
 가른다. BE 응답 계약과 매핑된 이름(`BookmarkFolderListResponse`, `useBookmarkFolderListQuery`,
@@ -1463,6 +1464,27 @@ Radix `Dialog` 기반 창을 코드에서 `*Modal`·`*Dialog`로 섞어 부르�
 테스트 ID·스토리 제목)다. 주석·문서·테스트 제목의 한국어 "모달"은 그대로 쓴다 — 위 출처는
 영어 용어의 정의이지 한국어 표기를 정하지 않고, 사용자에게 보이는 문구(`texts.ts`)에는 애초에
 "모달"이 없다.
+
+**`Badge`·`Chip` 각주** (2026-11-06) — 누를 수 있는가로 가른다. 모양이 비슷한 작은 라벨을 업계가 한 이름으로
+부르지는 않는다. [component.gallery](https://component.gallery/components/badge/)의 사례 123개 중 원문으로 센 103개는
+Badge 36, Tag 26, Chip 7, Pill 5, Label 5, Status 2, Lozenge 1, 기타 21이다(사례 단위라 한 시스템이 두 번 잡히기도 한다).
+이름은 갈려도 나누는 기준은 겹친다.
+
+- **누를 수 없으면 Badge** — [Fluent 2](https://fluent2.microsoft.design/components/web/react/core/tag/usage)는
+  _"사람이 바꿀 수 없는 시스템 생성 데이터를 보여주려면 배지를 쓴다"_ (번역)고 쓰고,
+  [Polaris](https://shopify.dev/docs/api/app-home/web-components/feedback-and-status-indicators/badge)는 Badge를
+  _"시스템이 생성한 분류"_ (번역)에 쓴다. 우리 태그는 URL 메타데이터와 AI가 채우고(BE `PostAIService.kt`), 작성자 표시는
+  시스템이 붙인다. 그래서 둘 다 `Badge`다.
+- **누를 수 있으면 Chip** — Google [Compose 문서](https://developer.android.com/develop/ui/compose/components/chip)는 칩을
+  _"작고 상호작용하는 UI 요소"_ (번역)로 정의한다. 카드의 카테고리는 누르면 피드를 거르므로 칩이다.
+- **Material의 Badge는 더 좁다** — [Compose 문서](https://developer.android.com/develop/ui/compose/components/badges)의 배지는
+  _"다른 컴포저블 위에 상태나 숫자 값을 표시하는 작은 시각 요소"_ (번역)다. 우리 `Badge`는 shadcn/ui에서 온 이름이라 더 넓게
+  쓴다. 다른 요소 위에 얹는 숫자·점 표시가 필요해지면 이 차이를 다시 본다.
+- **칩 안의 구분** — 상태를 켜고 끄면 `FilterChip`, 동작을 실행하고 상태가 없으면 `ActionChip`이다. Flutter의
+  [ActionChip](https://api.flutter.dev/flutter/material/Chip-class.html)은 _"주요 콘텐츠와 관련된 동작을 나타낸다"_ (번역).
+
+전부 `Chip`으로 바꾸는 안은 작성자·자동 태그까지 눌리는 것처럼 보이게 해 기각했다. 비교 전체는
+[계획 문서](./plans/2026-11-06-ui-term-renames.md), 용어 뜻은 [`DESIGN-SYSTEM.md` §12](./DESIGN-SYSTEM.md#12-용어-사전)에 있다.
 
 ### Storybook 스토리 — 위치·제목·허용 범위 (2026-10-02)
 

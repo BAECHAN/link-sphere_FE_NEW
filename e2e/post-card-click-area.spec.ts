@@ -126,10 +126,10 @@ test.describe('PostCard 클릭 영역 — 카드 전체가 상세 진입, 내부
   });
 });
 
-// 카드의 카테고리 배지는 stretched link 위에 올라간 버튼이다 — 누르면 상세가 아니라 피드를 그
-// 카테고리로 필터한다(usePostCard.handleCategoryClick). 칩과 달리 토글이 아니라 "교체"라서,
+// 카드의 카테고리 칩은 stretched link 위에 올라간 버튼이다 — 누르면 상세가 아니라 피드를 그
+// 카테고리로 필터한다(usePostCard.handleCategoryClick). 필터 칩과 달리 토글이 아니라 "교체"라서,
 // 이미 다른 검색어가 있어도 q가 @카테고리 하나로 바뀐다(docs/SEARCH.md).
-test.describe('PostCard 카테고리 배지 — 피드 카테고리 필터(교체)', () => {
+test.describe('PostCard 카테고리 칩 — 피드 카테고리 필터(교체)', () => {
   const category = mockPost.categories![0]!;
   const categoryButtonName = TEXTS.ariaLabels.postCategoryFilterBy(category.name);
 

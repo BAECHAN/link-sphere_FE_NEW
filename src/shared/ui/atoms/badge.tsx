@@ -24,8 +24,12 @@ const badgeVariants = cva(
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
 
+/**
+ * 누를 수 없는 작은 라벨(작성자 표시, 자동 태그 등). 누르는 칩은 `ActionChip`·`FilterChip`을 쓴다
+ * (docs/FE-ARCHITECTURE.md §18).
+ */
 function Badge({ className, variant, ...props }: BadgeProps) {
   return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
 }
 
-export { Badge, badgeVariants };
+export { Badge };
