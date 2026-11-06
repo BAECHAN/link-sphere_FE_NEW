@@ -6,6 +6,49 @@
 
 ---
 
+## 2026-11-05 — AWS 설정을 CDK 코드로 기록하고 매일 차이를 감지한다(1단계)
+
+**배경**
+
+AWS 설정은 콘솔·CLI로만 바꾸고 기록은 문서에 손으로 남겼다. 그래서 문서와 실제가 어긋나도 알 수 없었다. BE `docs/DEPLOY.md` 9장은 "적용
+완료"인데 Lambda 역할에 `ses:SendEmail`이 없었고(2026-11-02 발견), 매일 검사는 CloudFront 설정과 Lambda 별칭만 봤다. 환경은 1개이고 1인
+운영이라 여러 환경을 찍어내는 IaC의 대표 이점은 필요 없다. 그래서 값을 바꾸는 도구가 아니라 어긋남을 찾는 도구로 도입했다.
+
+**결정**
+
+- **도구: AWS CDK. 사용자 결정이고 이유는 따로 남기지 않았다.** Claude 추천은 OpenTofu였다.
+- **코드 위치: 새 비공개 저장소 `link-sphere-infra`.** FE·BE는 공개라 Actions 로그를 누구나 볼 수 있다. 한 번 새면 이력에서 못 지운다(#301).
+- **범위: 1단계(감지 전용)만.** 코드로 값을 바꾸는 2단계와 CloudFront·WAF를 넣는 3단계는 4주 뒤 결과를 보고 다시 정한다.
+- **실행: 로컬 키에 CDK 역할을 위임한다.** CloudFormation 실행 역할은 기본값인 관리자 권한 대신 `ReadOnlyAccess`와 태그 전용 정책만 갖는다.
+
+**대안 비교**
+
+| 우리 조건                      | AWS CDK                                                                                                                                                        | OpenTofu                                                                                                                                                                        |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 기존 리소스 편입               | 직접 작성. `cdk import`는 _"지정한 속성이 올바르고 완전한지 확인하지 않는다"_ (번역, [문서](https://docs.aws.amazon.com/cdk/v2/guide/ref-cli-cmd-import.html)) | [`-generate-config-out`](https://opentofu.org/docs/language/import/generating-configuration/)이 초안을 만들고 plan에서 차이를 먼저 본다. 단 실험 기능                           |
+| 실제와 비교                    | drift 검사는 _"명시적으로 설정한 속성"_ (번역, [문서](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-stack-drift.html))만 본다       | plan이 _"원격 객체의 현재 상태를 읽는다"_ (번역, [문서](https://opentofu.org/docs/cli/commands/plan/))                                                                          |
+| Lambda 코드·별칭은 배포가 담당 | 해당 속성을 코드에 안 적는 것으로 해결                                                                                                                         | [`ignore_changes`](https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle)로 제외(Terraform 문서 기준)                                                     |
+| 편입이 실제 리소스에 쓰는 것   | 시스템 태그 3개(아래 "드러난 대가")                                                                                                                            | [상태 파일에만 기록](https://opentofu.org/docs/cli/import/)                                                                                                                     |
+| 상태 보관                      | **CDK 우세.** AWS가 보관해 관리할 파일이 없다                                                                                                                  | S3를 직접 운영하고 암호화한다. 상태 파일엔 _"민감한 값이 들어 있을 수 있다"_ (번역, [Terraform 문서](https://developer.hashicorp.com/terraform/language/manage-sensitive-data)) |
+| 언어                           | **CDK 우세.** FE와 같은 TypeScript                                                                                                                             | HCL을 새로 배운다                                                                                                                                                               |
+
+Claude가 OpenTofu를 추천한 이유는 편입 도구, 일부 속성 제외, 실제와의 비교였다. 함께 제시한 스크립트 확장은 재생성 기반이 생기지 않아, 보류는 검사
+공백이 그대로라 택하지 않았다.
+
+**드러난 대가(11-05 측정)**
+
+- import는 설정을 안 바꾸는 줄 알았지만 CloudFormation이 직후에 시스템 태그 3개를 쓴다. 운영 리소스 10개에 태그가 붙었고 스택을 지워도 남는다.
+- 알람 처리기는 태그 뒤 `cloudwatch:PutMetricAlarm`까지 호출한다. import 동안만 권한을 더하고 회수했다(사용자 결정). 설정·상태·수정 시각은 그대로였다.
+- SnapStart는 쓰기 전용 속성이라 비교되지 않고, 코드 밖에 새로 만든 리소스도 못 잡는다.
+- 반대로 편입하며 문서와 대조하다 백업 버킷에 버전 관리·수명 주기가 없는 것을 찾았다(BE `docs/DEPLOY.md` 13장, 그날 적용).
+
+**상태**
+
+적용됨(리소스 21개, 비공개 저장소). 2026-12-03 무렵 drift 건수·오탐·비용을 보고 2단계 진행, 유지, 철회 중 하나를 사용자에게 묻는다(`link-sphere-infra` 이슈 #11).
+계획과 실제 차이는 [`docs/plans/2026-11-05-aws-cdk-stage1.md`](./plans/2026-11-05-aws-cdk-stage1.md).
+
+---
+
 ## 2026-11-05 — 세 목록을 offset에서 cursor로 바꾸고 북마크 조회수순을 없앤다
 
 **배경**

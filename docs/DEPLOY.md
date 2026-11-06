@@ -305,8 +305,8 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
 - **만든 방법**: 콘솔 CloudShell 스크립트로 OIDC 제공자와 역할을 만들었다(스크립트 원문:
   [`docs/plans/2026-10-13-github-oidc-aws.md`](./plans/2026-10-13-github-oidc-aws.md) 부록 A — 여러 번
   실행해도 안전하니 권한을 바꿀 때 고쳐서 다시 돌린다). 역할 ARN은 레포 Secret `AWS_ROLE_ARN`.
-- **로컬 IAM 사용자로는 확인할 수 없다**: 로컬 프로필(`link-sphere-user` 등)에는 IAM 조회 권한이 없다.
-  역할·정책을 볼 때는 콘솔(IAM → 역할 → `link-sphere-fe-deploy`)에서 본다.
+- **로컬 IAM 사용자로는 바꿀 수 없다**: 로컬 프로필(`link-sphere-user`)은 2026-11-05부터 역할과 인라인 정책을 읽을 수 있지만(정책
+  `link-sphere-iac-read`) IAM 쓰기 권한은 없다. 역할·정책을 바꿀 때는 콘솔에서 하고, 아래 "AWS 설정 코드화(CDK)"의 코드도 맞춘다.
 - **전제 — 도쿄 리전 STS 활성화**: IAM → Account settings → Security Token Service (STS) → Endpoints에서
   Asia Pacific (Tokyo)가 Active여야 한다. 전환 첫 배포(#345 병합 직후)가 _"이 리전에서 STS가 활성화돼 있지
   않다"_ (번역)로 실패해 콘솔에서 켰다. AWS 문서는 _"기본으로 켜진 리전은 임시 자격증명이 만들어지는 계정에서
@@ -379,6 +379,30 @@ aws iam list-role-policies --role-name "$ROLE"   # deploy와 cloudfront-drift-re
 ```
 
 추가한 뒤 Actions에서 "CloudFront Drift Check"를 수동 실행해 성공하는지 본다.
+
+## AWS 설정 코드화(CDK) — 감지 전용 (2026-11-05)
+
+AWS 설정 일부를 비공개 저장소 `BAECHAN/link-sphere-infra`의 CDK 스택 `link-sphere-baseline`(도쿄, 리소스 21개)에 기록하고, 매일 코드와 실제를 비교한다.
+**이 저장소로 설정을 바꾸지는 않는다.** 값은 지금처럼 콘솔·CLI로 바꾸고 코드를 그 값에 맞춘다. 도구를 고른 근거는 [`DECISIONS.md`](./DECISIONS.md) 2026-11-05 항목, 전체 표와 명령은 그 저장소의 `README.md`다.
+
+```mermaid
+flowchart LR
+  A["CDK 코드(git)"] -->|cdk diff| B["스택 템플릿(CloudFormation)"]
+  B -->|cdk drift| C["실제 AWS"]
+  C -->|"다르면 매일 이슈(라벨 iac-drift)"| D["코드를 실제 값에 맞춘 PR"]
+  D -->|"cdk deploy --revert-drift<br/>실제는 안 바뀜"| B
+```
+
+| 구분 | 리소스                                                                                                                                          |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 편입 | Lambda 설정·URL·호출 권한, EventBridge 룰, 알람, SNS 토픽, 로그 그룹, IAM 역할 3개(Lambda 실행·FE 배포·BE 배포), OIDC 제공자, 배포·백업 S3 버킷 |
+| 제외 | Lambda 코드·별칭·버전·환경변수, SNS 구독, 버킷 정책, CloudFront·WAF·ACM·Route 53·FE 버킷, SES·RUM                                               |
+
+- **설정을 콘솔·CLI로 바꿨다면**: 다음 매일 검사(01:30 UTC)가 이슈를 연다. 코드를 맞춰 병합하고 `cdk deploy --revert-drift`를 실행하면 닫힌다. 코드에 없던 속성을 새로 적을 때는 이 명령이 "변경 없음"으로 끝나므로, 리소스를 뺐다가 다시 import한다(그 저장소 `README.md` "의도한 변경").
+- **일반 배포는 영향이 없다**: 코드·별칭·버전·환경변수는 코드에 없어 배포로 차이가 생기지 않는다(리허설로 재현).
+- **쓸 수 있는 권한**: CloudFormation 실행 역할은 `ReadOnlyAccess`와 태그 전용 정책뿐이다. import 때 운영 리소스 10개에 시스템 태그 `aws:cloudformation:*` 3개씩이 붙었고 이 태그는 스택을 지워도 남는다. 알람은 import 동안만 `cloudwatch:PutMetricAlarm`을 더했다.
+- **못 잡는 것**: 코드 밖에 새로 만든 리소스, 코드에 적지 않은 속성, SnapStart(쓰기 전용 속성이라 비교되지 않는다).
+- **CloudFront는 그대로**: 위 "CloudFront 설정 스냅샷과 차이 검사"가 계속 맡는다.
 
 ## CloudFront 5xx 세기와 접근 로그 (수동 관리)
 
