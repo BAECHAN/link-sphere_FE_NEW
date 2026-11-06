@@ -37,6 +37,16 @@ describe('MyCommentCard', () => {
     expect(screen.queryByText(/supabase\.co/)).not.toBeInTheDocument();
   });
 
+  it('코드 블록 안 이미지 주소는 글자로 두고 개수에 세지 않는다', () => {
+    renderWithProviders(
+      <MyCommentCard comment={buildComment(`\`\`\`\n${IMAGE_A}\n\`\`\`\n\n${IMAGE_B}`)} />
+    );
+
+    expect(screen.getByText(/a1b2\.webp/)).toBeInTheDocument();
+    expect(screen.queryByText(/c3d4\.png/)).not.toBeInTheDocument();
+    expect(screen.getByText(TEXTS.ariaLabels.myCommentImageCount(1))).toBeInTheDocument();
+  });
+
   it('이미지가 없으면 개수 표시를 두지 않는다', () => {
     renderWithProviders(<MyCommentCard comment={buildComment('텍스트만 있는 댓글')} />);
 

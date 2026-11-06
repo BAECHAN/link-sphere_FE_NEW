@@ -204,6 +204,13 @@
 
 ### Fixed
 
+- `comment` 댓글을 고칠 때 코드 블록 안 이미지 주소가 첨부로 옮겨지지 않음
+  <details><summary>배경·구현</summary>
+
+  수정 화면과 내 댓글 카드가 쓰는 `splitContentImages`가 코드 블록을 구분하지 않아, 코드 블록 안에 주소만 있는 줄을 첨부 이미지로 꺼냈다. 수정 화면에서는 코드 블록이 비고 주소가 썸네일로 나왔으며, 저장하면 그 주소가 본문 끝의 이미지가 됐다. 썸네일을 지우고 저장하면 BE의 수정 전후 비교로 우리 버킷 파일까지 지워질 수 있었다(코드로만 확인). 내 댓글 카드의 이미지 개수도 부풀었다. 이제 닫힌 코드 블록은 통째로 글자로 둔다. 판정 규칙은 `MarkdownContent`와 같은 `shared/lib/content/codeBlock.ts`로 모았다. 닫히지 않은 코드 블록은 화면에 이미지로 그려지므로 그대로 이미지로 친다. 고칠 때 운영 댓글 중 해당 건은 0개였다(`docs/COMMENT.md` §10). (`src/shared/lib/content/codeBlock.ts`(신규), `src/shared/lib/content/codeBlock.test.ts`(신규), `src/shared/lib/content/imageContent.ts`, `src/shared/lib/content/imageContent.test.ts`(신규), `src/shared/ui/elements/MarkdownContent.tsx`, `src/features/comment/update/hooks/useUpdateComment.test.tsx`, `src/widgets/comment/my-comment-list/ui/MyCommentCard.test.tsx`, `docs/COMMENT.md`, [PR #574](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/574))
+
+  </details>
+
 - `comment` 코드 블록 안 이미지 주소를 확대 창 목록과 버튼 번호에서 뺌
   <details><summary>배경·구현</summary>
 

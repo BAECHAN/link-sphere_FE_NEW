@@ -1,3 +1,5 @@
+import { isClosedCodeBlock, splitCodeBlocks } from '@/shared/lib/content/codeBlock';
+
 const URL_TOKEN_PATTERN = /^https?:\/\/[^\s]+$/;
 // MarkdownContent.tsx의 같은 이름 정규식과 같아야 한다(업로드 허용 확장자 config/image-format.ts 포함)
 const IMAGE_EXT_PATTERN = /\.(jpeg|jpg|gif|png|webp|avif|heic|heif|svg)(\?.*)?$/i;
@@ -10,19 +12,30 @@ function isImageUrlLine(trimmed: string): boolean {
  * 댓글 content 문자열을 "순수 텍스트"와 "이미지 전용 줄(기존 첨부 이미지)"로 분리한다.
  * 백엔드가 이미지를 항상 "한 줄에 URL 하나씩"으로 이어붙이므로(CommentService.buildFinalContent),
  * 줄 단위로 판단하는 것이 정확히 그 역변환이 된다. 문장 중간에 섞인 이미지 링크는 텍스트로 남긴다.
+ * 닫힌 코드 블럭은 화면에 글자로만 보이므로(MarkdownContent) 안에 이미지 주소가 있어도 통째로 텍스트다.
  */
 export function splitContentImages(content: string): { text: string; imageUrls: string[] } {
   const imageUrls: string[] = [];
-  const textLines: string[] = [];
 
-  content.split(/\r\n|\r|\n/).forEach((line) => {
-    const trimmed = line.trim();
-    if (isImageUrlLine(trimmed)) {
-      imageUrls.push(trimmed);
-    } else {
-      textLines.push(line);
+  const textParts = splitCodeBlocks(content.replace(/\r\n|\r/g, '\n')).map((segment) => {
+    if (isClosedCodeBlock(segment)) {
+      return segment;
     }
+
+    const textLines: string[] = [];
+
+    segment.split('\n').forEach((line) => {
+      const trimmed = line.trim();
+
+      if (isImageUrlLine(trimmed)) {
+        imageUrls.push(trimmed);
+      } else {
+        textLines.push(line);
+      }
+    });
+
+    return textLines.join('\n');
   });
 
-  return { text: textLines.join('\n').trimEnd(), imageUrls };
+  return { text: textParts.join('').trimEnd(), imageUrls };
 }
