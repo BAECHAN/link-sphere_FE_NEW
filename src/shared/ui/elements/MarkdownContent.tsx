@@ -24,11 +24,13 @@ function isImageUrl(url: string): boolean {
 /**
  * content 전체에서 이미지로 렌더링될 URL만 순서대로 뽑는다. 라이트박스에 "같은 댓글의 다른
  * 이미지들"을 함께 넘겨 이전/다음 네비게이션이 가능하게 하려면, 클릭 시점에 이 댓글에 이미지가
- * 총 몇 개인지 미리 알아야 한다.
+ * 총 몇 개인지 미리 알아야 한다. 닫힌 코드 블럭 안의 주소는 글자로만 보이므로 세지 않는다.
  */
 function extractImageUrls(content: string): string[] {
-  const matches = content.match(URL_PATTERN) ?? [];
-  return matches.filter(isImageUrl);
+  return splitCodeBlocks(content)
+    .filter((segment) => !isClosedCodeBlock(segment))
+    .flatMap((segment) => segment.match(URL_PATTERN) ?? [])
+    .filter(isImageUrl);
 }
 
 /**
@@ -61,6 +63,11 @@ function AttachmentImage({ url, className }: { url: string; className: string })
       }}
     />
   );
+}
+
+// 닫힌 코드 블럭(``` ... ```)과 나머지 텍스트를 분리
+function splitCodeBlocks(text: string): string[] {
+  return text.split(/(```[\s\S]*?```)/g);
 }
 
 function isClosedCodeBlock(segment: string): boolean {
@@ -169,10 +176,7 @@ function parseMarkdown(text: string, isMobile: boolean, imageUrls: string[]): Re
   }
   const elements: React.ReactNode[] = [];
 
-  // 닫힌 코드 블럭(``` ... ```)과 나머지 텍스트를 분리
-  const segments = text.split(/(```[\s\S]*?```)/g);
-
-  segments.forEach((segment, segIndex) => {
+  splitCodeBlocks(text).forEach((segment, segIndex) => {
     if (isClosedCodeBlock(segment)) {
       const inner = segment.slice(3, -3);
       const newlineIdx = inner.indexOf('\n');

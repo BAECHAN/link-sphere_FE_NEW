@@ -100,4 +100,36 @@ describe('MarkdownContent', () => {
     expect(useImageViewerStore.getState().currentIndex).toBe(1);
     navigateSpy.mockRestore();
   });
+
+  it('닫힌 코드 블록 안 이미지 주소는 글자로만 보이고 확대 창 목록과 번호에 들어가지 않는다', () => {
+    const navigateSpy = vi.spyOn(NavigationService, 'navigate').mockImplementation(() => {});
+    const codeBlockUrl = STORAGE_URL.replace('a.png', 'in-code.png');
+    const { getByRole, getByText } = renderWithProviders(
+      <MarkdownContent content={`\`\`\`\n${codeBlockUrl}\n\`\`\`\n${STORAGE_URL}`} />
+    );
+
+    expect(getByText(codeBlockUrl).tagName).toBe('CODE');
+
+    fireEvent.click(getByRole('button', { name: TEXTS.ariaLabels.imageZoomAt(1) }));
+
+    expect(useImageViewerStore.getState().images).toEqual([
+      { src: STORAGE_URL, alt: TEXTS.ariaLabels.attachmentImageAt(1) },
+    ]);
+    expect(useImageViewerStore.getState().currentIndex).toBe(0);
+    navigateSpy.mockRestore();
+  });
+
+  it('닫히지 않은 코드 블록의 이미지 주소는 버튼으로 그려지므로 그대로 센다', () => {
+    const navigateSpy = vi.spyOn(NavigationService, 'navigate').mockImplementation(() => {});
+    const { getByRole } = renderWithProviders(
+      <MarkdownContent content={`\`\`\`\n${STORAGE_URL}`} />
+    );
+
+    fireEvent.click(getByRole('button', { name: TEXTS.ariaLabels.imageZoomAt(1) }));
+
+    expect(useImageViewerStore.getState().images).toEqual([
+      { src: STORAGE_URL, alt: TEXTS.ariaLabels.attachmentImageAt(1) },
+    ]);
+    navigateSpy.mockRestore();
+  });
 });

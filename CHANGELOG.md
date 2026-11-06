@@ -204,6 +204,13 @@
 
 ### Fixed
 
+- `comment` 코드 블록 안 이미지 주소를 확대 창 목록과 버튼 번호에서 뺌
+  <details><summary>배경·구현</summary>
+
+  닫힌 코드 블록 안 이미지 주소는 글자로만 보이는데, 이미지 목록을 뽑는 `extractImageUrls`가 댓글 전체에서 주소를 찾아 함께 셌다. 그래서 코드 블록 뒤 첫 이미지의 버튼이 `이미지 2 확대`로 나오고, 확대 창에는 화면에 없는 이미지가 끼어 들어갔다. 화면을 그리는 쪽과 같은 분리 규칙(`splitCodeBlocks`·`isClosedCodeBlock`)으로 닫힌 코드 블록을 빼고 센다. 닫히지 않은 코드 블록은 지금처럼 일반 글로 그려져 이미지 버튼이 나오므로 그대로 센다. 저장된 댓글 내용은 바뀌지 않는다. (`src/shared/ui/elements/MarkdownContent.tsx`, `src/shared/ui/elements/MarkdownContent.test.tsx`, [PR #571](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/571))
+
+  </details>
+
 - `comment` 이미지가 여러 장일 때 확대·삭제 버튼 이름에 순번을 붙임
   <details><summary>배경·구현</summary>
 
