@@ -774,6 +774,84 @@ pnpm test:mutation --mutate src/entities/interaction/api/interaction.queries.ts
 - pnpm에서는 `plugins`를 명시해야 플러그인을 찾는다([공식 troubleshooting](https://stryker-mutator.io/docs/stryker-js/troubleshooting/)).
 - Stryker 버전은 Dependabot이 올리지 않는다(`.github/dependabot.yml`은 github-actions만 본다).
 
+### 자동 보강 루프
+
+살아남은 뮤턴트를 Claude에게 주고 테스트를 쓰게 한 뒤 Stryker로 다시 재는 스크립트다. 지금은 보고만 하는 단계(L1)라
+push도 PR도 하지 않고, 사람이 보고서를 읽고 판정한다. 흐름도와 승격 기준은 [계획](./plans/2026-11-06-mutation-loop.md)에 있다.
+
+**클론 준비(한 번만)** — 에이전트가 쓴 코드를 실행하므로 작업 폴더와 분리한다. `.env`는 두지 않는다.
+
+```bash
+git clone https://github.com/BAECHAN/link-sphere_FE_NEW.git ~/project/loop-lab/fe
+pnpm --dir ~/project/loop-lab/fe install --frozen-lockfile
+```
+
+단언·건너뛰기 패턴을 `~/project/claude-base/lib/test-patterns.mjs`에서 읽으므로 그 저장소도 있어야 한다.
+
+**실행** — 한 번에 한 건만 돌린다. Stryker가 프로세스를 여러 개 띄워 다른 세션이 느려진다.
+
+```bash
+git -C ~/project/loop-lab/fe fetch origin
+git -C ~/project/loop-lab/fe switch --detach origin/main
+node ~/project/loop-lab/fe/.claude/scripts/mutation-loop.mjs src/shared/hooks/useKeydown.ts
+# 옵션: --model sonnet(기본) --budget 3(기본, 이 실행의 상한)
+```
+
+스크립트는 클론 안의 사본으로만 돌고, 클론 작업 트리가 깨끗하지 않으면 시작을 거부한다. 끝나면 클론을 기준 커밋으로 되돌린다.
+
+**격리** — 어느 하나만 믿지 않고 겹쳐 둔다.
+
+| 단계                  | 수단                                                              | 막는 것                                                                                                            |
+| --------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 에이전트(`claude -p`) | Claude 샌드박스·권한 규칙, `.claude/loops/mutation/settings.json` | 외부 통신, 비밀 폴더·원본 저장소 읽기, git·gh. Bash는 vitest·eslint·`type-check`만, 쓰기는 대상의 테스트 파일 하나 |
+| 래퍼의 검증           | Seatbelt(`sandbox-exec`), `.claude/loops/mutation/verify.sb`      | 외부 통신, 비밀 폴더·원본 저장소 읽기, 클론·임시 폴더 밖 쓰기, `.git`·`.claude` 쓰기                               |
+| 에이전트가 끝난 뒤    | 래퍼의 사후 검사(`.claude/scripts/mutation-loop.mjs`)             | 테스트 파일 밖의 변경, `.skip`·`.only`·`.todo`, 줄어든 단언                                                        |
+| 자식 프로세스 환경    | 래퍼의 `loopEnv`가 최소 목록만 넘긴다                             | 터미널의 `PGPASSWORD`·`AWS_*` 같은 값                                                                              |
+
+두 샌드박스 모두 클론 안 쓰기(`src/` 포함)는 허용한다. 그 변경은 사후 검사가 잡는다. `man sandbox-exec`는 이 명령을
+`DEPRECATED`로 표시하므로, 제거되면 검증이 실패해 멈춘다. Claude Code는 에이전트의 Bash에 `CLAUDE_CODE_MESSAGING_TOKEN`을
+직접 넣어 `loopEnv`로 뺄 수 없다(직접 측정, 2026-11-06, 이름만 확인). 외부 통신이 막혀 있어 지금은 나갈 길이 없지만,
+diff가 GitHub로 나가는 단계로 가면 그 전에 검사를 더해야 한다.
+
+외부 통신 차단에는 DNS도 들어간다. `verify.sb`에 DNS 소켓(`/private/var/run/mDNSResponder`)을 열어 두면 탐침 테스트의
+`dns.lookup('example.com')`이 풀렸고, 빼면 `ENOTFOUND`로 막힌 채 Stryker·unit 전체는 그대로 돌았다. Claude 샌드박스도
+같은 탐침을 `ENOTFOUND`로 막았다(모두 직접 측정, 2026-11-06).
+
+**상한** — 호출당 30턴, 실행당 $3, 합계 $15다. 합계는 `runs/*/result.json`을 더해 새 실행 시작 때 확인한다. 달러는 구독
+로그인에서 청구액이 아니라 사용량을 목록가로 환산한 값이다. 상한은 응답 하나만큼 넘을 수 있다(직접 측정, 2026-11-06).
+시간 초과(호출당 30분) 등으로 응답을 못 받으면 쓴 양을 알 수 없어 그 호출의 상한을 다 쓴 것으로 친다.
+
+`claude -p`의 `total_cost_usd`는 `--resume`으로 이은 세션의 누적값이고, `--max-budget-usd`는 복원한 비용을 세지 않는다
+(직접 측정, 2026-11-06, Haiku: 첫 호출 비용의 절반을 상한으로 준 재개 호출이 멈추지 않았다). 그래서 래퍼가 남은 값을
+계산해 호출마다 넘긴다.
+
+**결과** — `~/project/loop-lab/runs/<시각>-<대상>/`에 남는다.
+
+| 파일                        | 내용                                                  |
+| --------------------------- | ----------------------------------------------------- |
+| `report.md`                 | 사람이 읽는 요약: 전후 수치, 검증 결과, 에이전트 보고 |
+| `diff.patch`                | 에이전트가 쓴 테스트                                  |
+| `result.json`               | 결과, 기준 커밋, 비용, 턴 수, 쓰인 모델, 측정값       |
+| `logs/`                     | Stryker·vitest·eslint·tsc 출력과 에이전트 응답 원본   |
+| `settings.json`·`verify.sb` | 이 실행에 쓴 설정과 프로필 사본                       |
+
+`result.json`의 `outcome`은 이렇게 읽는다.
+
+| 값                                             | 뜻                                                     |
+| ---------------------------------------------- | ------------------------------------------------------ |
+| `no-survivors`                                 | 남은 뮤턴트가 없다                                     |
+| `equivalent`                                   | 에이전트가 남은 뮤턴트를 모두 등가로 보고했다          |
+| `remeasure-limit`                              | 재측정 2회를 다 썼다. 남은 뮤턴트는 `report.md`에 있다 |
+| `suspected-bug`                                | 지금 동작이 틀려 보인다. 테스트로 고정하지 않고 멈췄다 |
+| `blocked`                                      | 테스트 파일 하나로는 진행할 수 없다                    |
+| `check-failed`                                 | 사후 검사가 실패했다. 어느 단계인지 `checks`에 있다    |
+| `turn-limit`·`budget-limit`                    | 턴이나 사용량 상한에 닿았다                            |
+| `stryker-failed`·`agent-error`·`wrapper-error` | 도구가 실패했다. `logs/`를 본다                        |
+
+재측정까지 마치고 끝나면(`no-survivors`·`equivalent`·`remeasure-limit`·`budget-limit`) 테스트를 10회 반복하고 unit 전체를 한 번
+돌린 결과가 `final`에 남는다. 실패해도 `outcome`은 그대로라 `final`을 따로 본다. 기준값부터 남은 뮤턴트가 없거나, 테스트를 쓰지
+않고 `equivalent`로 끝나면 돌릴 테스트가 없어 `final`이 비어 있다.
+
 ---
 
 ## Playwright e2e 자동화 테스트
