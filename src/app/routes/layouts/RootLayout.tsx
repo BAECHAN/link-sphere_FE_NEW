@@ -6,7 +6,7 @@ import { useAppVersionCheck } from '@/shared/hooks/useAppVersionCheck';
 import { useNewVersionReload } from '@/shared/hooks/useNewVersionReload';
 import { GlobalImageViewer } from '@/shared/ui/elements/dialog/image-viewer/ImageViewer';
 import { GlobalAlerts } from '@/shared/ui/elements/dialog/alert/Alert';
-import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
+import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
 import { useLeaveOnMemberChange } from '@/app/hooks/useLeaveOnMemberChange';
 
 // 비로그인 방문자 대다수는 한 번도 열지 않는 모달이라 초기 번들에서 뺀다(form-vendor
@@ -45,7 +45,7 @@ export function RootLayout() {
   // 그리기 시작하면(페이지 청크 다운로드 + 그 페이지의 쿼리) 전부 버려질 작업이므로
   // Outlet 자체를 렌더하지 않는다 - AppShellLayout의 인증 대기 게이트와 같은 형태.
   if (isReloadingForNewVersion) {
-    return <SpinnerOverlay className="h-screen" />;
+    return <CenteredSpinner className="h-screen" />;
   }
 
   return (

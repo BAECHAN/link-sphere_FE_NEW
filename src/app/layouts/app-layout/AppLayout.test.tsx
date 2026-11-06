@@ -12,7 +12,7 @@ function renderAt(path: string) {
     wrapperOptions: { initialEntries: [path] },
   });
 
-  // ScrollToTop은 300px 넘게 내려야 나타난다
+  // BackToTopButton은 300px 넘게 내려야 나타난다
   act(() => {
     window.scrollY = 301;
     fireEvent.scroll(window);

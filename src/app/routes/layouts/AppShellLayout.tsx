@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { AppLayout } from '@/app/layouts/app-layout/AppLayout';
 import { useAuthStore, hasStoredSession } from '@/shared/store/auth.store';
-import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
+import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
 
 /**
  * App Shell Layout
@@ -17,7 +17,7 @@ export function AppShellLayout() {
   const isAuthResolved = useAuthStore((state) => state.isAuthResolved);
 
   if (!isAuthResolved && hasStoredSession()) {
-    return <SpinnerOverlay className="h-screen" />;
+    return <CenteredSpinner className="h-screen" />;
   }
 
   return (

@@ -748,7 +748,7 @@ LCP 전체 측정과 다른 개선 후보는 [`PERFORMANCE.md`](./PERFORMANCE.md
 - `Navbar`가 쓰는 [`useMobileSearchPanel.ts`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts)가 `useHistoryOverlay`를 쓰지 않고
   `location.state.mobileSearchOpen`을 직접 push/pop한다 — `MobileCommentBar`·`AppLayout`·`CreatePostForm`은 같은 키를
   `useHistoryOverlay`로 구독하므로, 키 문자열이 두 코드 경로에 흩어진 상태다.
-- `/post` 목록에서 300px 이상 스크롤한 채 검색을 열면 `ScrollToTop` FAB(`z-nav`)이 같은
+- `/post` 목록에서 300px 이상 스크롤한 채 검색을 열면 `BackToTopButton` FAB(`z-nav`)이 같은
   이유(z층 공유)로 패널 위에 그대로 뜬다. `main` 밖이라 이번 `inert` 차단으로도 안 가려진다.
 
 ## 12. 용어 사전

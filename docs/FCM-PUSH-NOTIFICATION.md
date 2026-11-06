@@ -414,7 +414,7 @@ export function RootLayout() {
   const isReloadingForNewVersion = useNewVersionReload();
 
   if (isReloadingForNewVersion) {
-    return <SpinnerOverlay className="h-screen" />;
+    return <CenteredSpinner className="h-screen" />;
   }
 
   return (

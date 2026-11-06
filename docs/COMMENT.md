@@ -443,12 +443,12 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   네 안을 같은 화면으로 녹화해 나란히 비교했고(응답 150ms·1500ms) 사용자가 D를 골랐다. 운영 댓글 응답은 75~283ms였다(직접 측정,
   댓글 0개 글에 개발 PC에서 curl 6회).
 
-  | 안                   | 다시 받는 동안                               | 결과                                                                                                                                                                                                                                                                                                                           |
-  | -------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-  | A 빈 안내 뒤 재조정  | "댓글 0" + 빈 안내, 스크롤 2번               | 기각 — 사용자가 녹화를 보고 "나중에 올 거라는 믿음이 생겨야 될 것 같은데 깜빡이는 느낌이 더 강하다"고 했다. 상세 카드는 💬 15인데 제목은 "댓글 0"으로 어긋나기도 한다                                                                                                                                                          |
-  | B 스피너(0.5초 뒤)   | "댓글 15" + `SpinnerOverlay`, 응답 뒤 스크롤 | 기각 — 응답 전까지 글 맨 위에 머물러 긴 글은 스피너가 화면 밖이다. [NN/g](https://www.nngroup.com/articles/skeleton-screens/)는 스피너가 _"보통 단일 모듈에 가장 잘 맞는다"_, 뼈대는 _"전체 화면이 로딩될 때 더 낫다"_ (번역)고 써서 이 구분만 보면 스피너 쪽이다. 여기서 갈린 것은 자리를 잡아 스크롤을 먼저 끝낼 수 있느냐다 |
-  | C 뼈대(바로)         | "댓글 15" + 뼈대 즉시, 바로 스크롤           | 기각 — 실제 응답 속도에서는 뼈대가 스쳐 간다. 같은 글은 1초 미만이면 _"뼈대 화면이나 스피너가 필요 없다"_, _"빠르게 깜빡이는 페이지는 사용자가 따라가지 못한다고 느끼게 할 수 있다"_ (번역)고 쓴다                                                                                                                             |
-  | **D 뼈대(0.5초 뒤)** | "댓글 15" + 같은 자리를 비워 둠, 바로 스크롤 | 채택 — 0.5초는 이 레포의 로딩 표시 지연(`LOADING_INDICATOR_DELAY_MS`, 근거는 [`DECISIONS.md`](./DECISIONS.md) 2026-10-15 "피드 필터 정지 구간")과 같다                                                                                                                                                                         |
+  | 안                   | 다시 받는 동안                                | 결과                                                                                                                                                                                                                                                                                                                           |
+  | -------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+  | A 빈 안내 뒤 재조정  | "댓글 0" + 빈 안내, 스크롤 2번                | 기각 — 사용자가 녹화를 보고 "나중에 올 거라는 믿음이 생겨야 될 것 같은데 깜빡이는 느낌이 더 강하다"고 했다. 상세 카드는 💬 15인데 제목은 "댓글 0"으로 어긋나기도 한다                                                                                                                                                          |
+  | B 스피너(0.5초 뒤)   | "댓글 15" + `CenteredSpinner`, 응답 뒤 스크롤 | 기각 — 응답 전까지 글 맨 위에 머물러 긴 글은 스피너가 화면 밖이다. [NN/g](https://www.nngroup.com/articles/skeleton-screens/)는 스피너가 _"보통 단일 모듈에 가장 잘 맞는다"_, 뼈대는 _"전체 화면이 로딩될 때 더 낫다"_ (번역)고 써서 이 구분만 보면 스피너 쪽이다. 여기서 갈린 것은 자리를 잡아 스크롤을 먼저 끝낼 수 있느냐다 |
+  | C 뼈대(바로)         | "댓글 15" + 뼈대 즉시, 바로 스크롤            | 기각 — 실제 응답 속도에서는 뼈대가 스쳐 간다. 같은 글은 1초 미만이면 _"뼈대 화면이나 스피너가 필요 없다"_, _"빠르게 깜빡이는 페이지는 사용자가 따라가지 못한다고 느끼게 할 수 있다"_ (번역)고 쓴다                                                                                                                             |
+  | **D 뼈대(0.5초 뒤)** | "댓글 15" + 같은 자리를 비워 둠, 바로 스크롤  | 채택 — 0.5초는 이 레포의 로딩 표시 지연(`LOADING_INDICATOR_DELAY_MS`, 근거는 [`DECISIONS.md`](./DECISIONS.md) 2026-10-15 "피드 필터 정지 구간")과 같다                                                                                                                                                                         |
 
   한계:
   - 틀린 빈 안내를 직접 다룬 연구는 찾지 못했다. 위 NN/g 글은 로딩 표시 일반에 관한 것이다.
@@ -598,11 +598,11 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 ### 맨 위로 버튼 — 데스크톱에만, 댓글 이동 버튼 대신(2026-10-27)
 
-상세의 우하단 플로팅 자리는 **데스크톱에서만 맨 위로(`ScrollToTop`)가 쓴다. 모바일 상세에는 두지 않는다.**
+상세의 우하단 플로팅 자리는 **데스크톱에서만 맨 위로(`BackToTopButton`)가 쓴다. 모바일 상세에는 두지 않는다.**
 그 전까지 이 자리는 데스크톱 전용 "댓글 쓰기로 이동" 버튼(`ScrollToCommentFormButton`)이었고, 상세에는
 맨 위로가 없었다(등록 화면을 상세로 잘못 읽어 숨기던 조건까지 포함한 경위는 PR #429).
 
-- **조건** — `src/app/layouts/app-layout/AppLayout.tsx`의 `showScrollToTop`(글 등록·수정이 아니면 그린다)과,
+- **조건** — `src/app/layouts/app-layout/AppLayout.tsx`의 `showBackToTopButton`(글 등록·수정이 아니면 그린다)과,
   상세일 때(`isPostDetailPage`) 감싸는 `max-md:hidden`. 폭 경계를 JS가 아니라 Tailwind `md`(48rem)로 둔 것은
   버튼 자신의 세로 위치(`bottom-20 md:bottom-6`)가 같은 경계에서 바뀌기 때문이다.
 - **댓글로 가는 길** — 본문 아래 💬(댓글 수) 버튼이 맡는다(`PostCard.tsx`의 `COMMENT_SECTION_HASH` 링크). 데스크톱은
@@ -749,7 +749,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 작성 검증·제출·복원             | `src/features/comment/create/hooks/useCreateComment.ts`의 `getCommentSubmitError`·`useCreateComment`                                           |
 | 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx`의 `CommentForm`                                                                               |
 | 모바일 바                       | `src/features/comment/create/ui/MobileCommentBar.tsx:25-115`                                                                                   |
-| 상세의 맨 위로 버튼 조건        | `src/app/layouts/app-layout/AppLayout.tsx`의 `showScrollToTop`·`isPostDetailPage`                                                              |
+| 상세의 맨 위로 버튼 조건        | `src/app/layouts/app-layout/AppLayout.tsx`의 `showBackToTopButton`·`isPostDetailPage`                                                          |
 | 수정 검증·제출                  | `src/features/comment/update/hooks/useUpdateComment.ts`의 `getCommentUpdateSubmitError`·`useUpdateComment`                                     |
 | 삭제 확인                       | `src/features/comment/delete/hooks/useDeleteComment.ts:9-31`                                                                                   |
 | 좋아요 버튼·feature 훅          | `src/features/comment/like/ui/LikeCommentButton.tsx`, `src/features/comment/like/hooks/useLikeComment.ts`                                      |
@@ -1052,8 +1052,8 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 - **해시 이동** — `/post/:id#comment-:id`로 들어왔을 때 그 댓글로 스크롤하고 연한 배경으로
   강조하는 동작(`scrollToHashedComment`). `#comments`(카드 💬, `COMMENT_SECTION_HASH`)면 작성
   폼 컨테이너를 ref로 찾아 스크롤하고 포커스한다 — DOM id가 아니라 이 effect가 해석하는 신호다.
-- **맨 위로 버튼(`ScrollToTop`)** — 300px 넘게 내리면 우하단에 뜨는 전역 플로팅 버튼
-  (`src/shared/ui/elements/ScrollToTop.tsx`). 어느 화면에 그릴지는 `AppLayout.tsx`가 정한다.
+- **맨 위로 버튼(`BackToTopButton`)** — 300px 넘게 내리면 우하단에 뜨는 전역 플로팅 버튼
+  (`src/shared/ui/elements/BackToTopButton.tsx`). 어느 화면에 그릴지는 `AppLayout.tsx`가 정한다.
 - **`z-panel` / `z-scrim`** — `src/app/globals.css:103-105`의 z-index 토큰(40 / 55).
 - **`ImageUploadError`** — 이미지 업로드 단계(서명 URL 발급·스토리지 PUT)의 실패. `reason`
   (형식·용량·한도·저장소·네트워크·원인 불명)과 한도일 때 `retryAfterSeconds`를 담는다

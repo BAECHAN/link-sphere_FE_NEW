@@ -194,7 +194,7 @@ RootLayout
 ```ts
 // ProtectedRoute.tsx의 렌더 가드 전체
 if (!isAuthResolved) {
-  return <SpinnerOverlay className="h-screen" />;
+  return <CenteredSpinner className="h-screen" />;
 }
 
 if (!isAuthenticated && !isSignedOutInPlace) {
@@ -1328,7 +1328,7 @@ Case 9의 줄 선 mutation 쪽(같은 탭 계정 전환 뒤 차례가 온 mutati
   때만" 발동하는 게 아니라, 진입할 때마다 매번이었습니다.
 - `restoreAuth()`의 early return(`accessToken && isAuthenticated`) 덕분에 실제
   네트워크 요청은 여전히 0회였지만, `isVerifying → setIsVerifying(false)` 한 사이클이
-  React 렌더를 최소 한 틱 지연시켜 `SpinnerOverlay`가 매번 짧게 깜빡였습니다 — 순수
+  React 렌더를 최소 한 틱 지연시켜 `CenteredSpinner`가 매번 짧게 깜빡였습니다 — 순수
   UX 리그레션이고 보안·기능 영향은 없었습니다.
 
 2026-09-09의 결론을 뒤집는 게 아니라 그대로 밀어붙인 조치입니다: "이 게이트가

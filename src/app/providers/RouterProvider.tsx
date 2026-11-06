@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { createBrowserRouter, RouterProvider as RRRouterProvider } from 'react-router-dom';
 import { appRoutes } from '@/app/routes';
-import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
+import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { RouterEvents } from '@/shared/lib/router/router-events';
 import { AuthUtil } from '@/shared/utils/auth.util';
@@ -20,7 +20,7 @@ RouterEvents.onNavigate((location) => AuthUtil.leaveSignedOutInPlace(location.pa
 
 export function RouterProvider() {
   return (
-    <Suspense fallback={<SpinnerOverlay className="h-screen" />}>
+    <Suspense fallback={<CenteredSpinner className="h-screen" />}>
       <RRRouterProvider
         router={router}
         future={{

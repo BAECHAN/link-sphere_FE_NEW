@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { ScrollToTop } from '@/shared/ui/elements/ScrollToTop';
+import { BackToTopButton } from '@/shared/ui/elements/BackToTopButton';
 
 function scrollTo(y: number) {
   act(() => {
@@ -8,7 +8,7 @@ function scrollTo(y: number) {
   });
 }
 
-describe('ScrollToTop', () => {
+describe('BackToTopButton', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     window.scrollY = 0;
@@ -19,13 +19,13 @@ describe('ScrollToTop', () => {
   });
 
   it('처음엔 보이지 않는다', () => {
-    render(<ScrollToTop />);
+    render(<BackToTopButton />);
 
     expect(screen.queryByRole('button', { name: 'Scroll to top' })).not.toBeInTheDocument();
   });
 
   it('300px 넘게 스크롤하면 나타난다', () => {
-    render(<ScrollToTop />);
+    render(<BackToTopButton />);
 
     scrollTo(301);
 
@@ -33,7 +33,7 @@ describe('ScrollToTop', () => {
   });
 
   it('다시 위로 올라가면 exit 애니메이션(200ms)이 끝날 때까지 남아 있다가 사라진다', () => {
-    render(<ScrollToTop />);
+    render(<BackToTopButton />);
     scrollTo(301);
 
     scrollTo(0);
@@ -49,7 +49,7 @@ describe('ScrollToTop', () => {
   });
 
   it('사라지는 도중에 다시 내려가면 사라지지 않는다', () => {
-    render(<ScrollToTop />);
+    render(<BackToTopButton />);
     scrollTo(301);
     scrollTo(0);
 

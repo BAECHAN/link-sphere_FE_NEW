@@ -26,7 +26,7 @@ interface CommentListSkeletonProps {
 }
 
 /**
- * 댓글이 오는 중인 자리. 금방 오면 번쩍이지 않도록 지연 시간 동안은 보이지 않게 두되(SpinnerOverlay와 같은
+ * 댓글이 오는 중인 자리. 금방 오면 번쩍이지 않도록 지연 시간 동안은 보이지 않게 두되(CenteredSpinner와 같은
  * 지연), 스크롤이 제목까지 올라가도록 높이는 처음부터 차지한다(CommentList의 목록 클래스와 같은 간격).
  */
 export function CommentListSkeleton({ count }: CommentListSkeletonProps) {

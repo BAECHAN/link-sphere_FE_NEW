@@ -466,7 +466,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 - `useUpdatePost`(`src/features/post/update/hooks/useUpdatePost.ts`)는 비-Suspense
   `useFetchPostDetailQuery`로 원본을 받아 `form.reset`한다(`resetFormWithFetchedPost`). 로딩 중에는
-  `UpdatePostForm`이 `SpinnerOverlay`를 그린다. 처음 받을 때와 아직 고치지 않았을 때(`formState.isDirty`가 false)만
+  `UpdatePostForm`이 `CenteredSpinner`를 그린다. 처음 받을 때와 아직 고치지 않았을 때(`formState.isDirty`가 false)만
   다시 맞추고, 고치던 중에 글을 다시 불러오면(로그인이 풀린 채 이 화면에 남았다가 다시 로그인한 뒤의 재조회 등)
   고친 값을 덮지 않는다(2026-10-28, [`AUTH.md`](./AUTH.md) §8-I).
 - **URL을 바꾸면 제목·카테고리를 비운다**(`clearDerivedFieldsOnUrlChange`) — 둘 다 옛 링크 기준이기 때문이다. 초기

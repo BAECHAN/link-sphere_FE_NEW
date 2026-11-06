@@ -1,7 +1,7 @@
 import { Suspense, ReactNode, ErrorInfo } from 'react';
 import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
 import { TEXTS } from '@/shared/config/texts';
-import { SpinnerOverlay } from '@/shared/ui/elements/SpinnerOverlay';
+import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
 import { ErrorLayout } from '@/shared/ui/layouts/ErrorLayout';
 import { ErrorUtil } from '@/shared/utils/error.util';
 
@@ -9,7 +9,7 @@ export interface AsyncBoundaryProps {
   children: ReactNode;
   /**
    * 로딩 중 표시할 컴포넌트
-   * @default SpinnerOverlay
+   * @default CenteredSpinner
    */
   loadingFallback?: ReactNode;
   /**
@@ -61,7 +61,7 @@ function DefaultErrorFallback({ error }: FallbackProps) {
  */
 export function AsyncBoundary({
   children,
-  loadingFallback = <SpinnerOverlay />,
+  loadingFallback = <CenteredSpinner />,
   errorFallback,
   onError,
   onReset,

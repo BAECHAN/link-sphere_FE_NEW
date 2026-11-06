@@ -8,7 +8,7 @@ import { cn } from '@/shared/lib/tailwind/utils';
 import { Navbar } from '@/widgets/layout/navbar/ui/Navbar';
 import { Sidebar } from '@/widgets/layout/sidebar/ui/Sidebar';
 import { BottomTabBar } from '@/widgets/layout/bottom-tab-bar/ui/BottomTabBar';
-import { ScrollToTop } from '@/shared/ui/elements/ScrollToTop';
+import { BackToTopButton } from '@/shared/ui/elements/BackToTopButton';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 
 interface AppLayoutProps {
@@ -24,7 +24,7 @@ export function AppLayout({ children }: Readonly<AppLayoutProps>) {
   // 맨 위로 버튼 - 글 등록·수정은 폼 화면이라 두지 않는다(모바일 등록 화면에서는 하단 등록
   // 바를 가린다). 글 상세는 데스크톱에만 둔다 - 모바일은 하단 댓글 바가 아래쪽을 차지하고
   // 버튼이 댓글의 수정·삭제 버튼을 가린다(근거는 docs/COMMENT.md "맨 위로 버튼").
-  const showScrollToTop = !isPostSubmitPage && !isPostEditPage;
+  const showBackToTopButton = !isPostSubmitPage && !isPostEditPage;
   const mainRef = useRef<HTMLElement>(null);
 
   // 모바일 검색 패널(RecentSearchPanel)은 시각적으로만 배경을 덮고 스크림·포커스
@@ -74,10 +74,10 @@ export function AppLayout({ children }: Readonly<AppLayoutProps>) {
         </main>
       </div>
       <BottomTabBar />
-      {showScrollToTop && (
+      {showBackToTopButton && (
         // contents라 박스를 만들지 않는다. 상세의 모바일 경계는 Tailwind md와 같다
         <div className={cn('contents', isPostDetailPage && 'max-md:hidden')}>
-          <ScrollToTop />
+          <BackToTopButton />
         </div>
       )}
     </div>
