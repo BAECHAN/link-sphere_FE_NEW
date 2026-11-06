@@ -1,4 +1,8 @@
 ### 2026-11-06 (FE)
+- 모바일 메뉴 접근성 및 UI 개선
+  - 닫힌 모바일 메뉴의 가시성 처리 및 열린 상태에서의 포커스 제어와 Esc 키 종료 기능 구현 ([#558](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/558))
+
+### 2026-11-06 (FE)
 - 공용 컴포넌트 명칭 수정 (Alert → AlertDialog)
 
 ### 2026-11-06 (FE)
