@@ -1,4 +1,9 @@
 ### 2026-11-06 (FE)
+- 공유 UI 컴포넌트 명칭 최적화 ([#554](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/554))
+로그:
+- refactor(shared): 실제와 다른 작은 UI 이름 3개를 고침 ([#554](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/554))
+
+### 2026-11-06 (FE)
 - 필터 칩의 활성 상태 정보를 스크린 리더에서 인식할 수 있도록 접근성 개선 ([#553](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/553))
 
 ### 2026-11-06 (FE)
