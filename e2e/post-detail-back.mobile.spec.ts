@@ -27,11 +27,10 @@ test.describe('모바일 — 상세 돌아가기 버튼 없음', () => {
     await expect(page.getByRole('button', { name: TEXTS.buttons.back })).toHaveCount(0);
 
     // BottomTabBar는 라우트와 무관하게 항상 떠 있다(md:hidden fixed bottom-0) — 버튼이
-    // 없어도 갈 곳이 없는 게 아니라는 걸 증명한다. Sidebar가 데스크톱용(aside, hidden
-    // md:flex)과 모바일 드로어용 두 벌의 "Feed" 링크를 더 갖고 있어(드로어는 닫힌
-    // 상태에서도 translate로 화면 밖으로 밀 뿐 display/visibility는 그대로라 :visible로도
-    // 안 걸러진다, 직접 실측 확인) role만으로는 strict mode 위반이 난다 — BottomTabBar의
-    // 고유 클래스(`fixed bottom-0`, 이 조합을 쓰는 컴포넌트는 이거 하나뿐)로 직접 좁힌다.
+    // 없어도 갈 곳이 없는 게 아니라는 걸 증명한다. Sidebar도 데스크톱용(aside, hidden
+    // md:flex)과 모바일 드로어용 두 벌의 "Feed" 링크를 갖고 있어(닫힌 드로어는 invisible,
+    // 2026-11-06부터) 탭바의 링크만 가리키도록 BottomTabBar의 고유 클래스(`fixed bottom-0`,
+    // 이 조합을 쓰는 컴포넌트는 이거 하나뿐)로 직접 좁힌다.
     const bottomTabBar = page.locator('nav.fixed.bottom-0');
     const feedTab = bottomTabBar.getByRole('link', { name: TEXTS.nav.feed });
     await expect(feedTab).toBeVisible();

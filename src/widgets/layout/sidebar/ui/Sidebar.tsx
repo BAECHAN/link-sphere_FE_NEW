@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type Ref } from 'react';
 import { Menu, X } from 'lucide-react';
 import { RemoveScroll } from 'react-remove-scroll';
 import { Slot } from '@radix-ui/react-slot';
@@ -66,9 +66,16 @@ interface SidebarHeaderProps {
   onToggle: () => void;
   /** true 면 햄버거 대신 X 아이콘 표시 — 모바일 드로어가 열린 상태용 */
   showCloseIcon?: boolean;
+  /** 모바일 드로어가 열릴 때 포커스를 받을 X 버튼 */
+  toggleRef?: Ref<HTMLButtonElement>;
 }
 
-function SidebarHeader({ expanded, onToggle, showCloseIcon = false }: SidebarHeaderProps) {
+function SidebarHeader({
+  expanded,
+  onToggle,
+  showCloseIcon = false,
+  toggleRef,
+}: SidebarHeaderProps) {
   const Icon = showCloseIcon ? X : Menu;
   // 데스크톱 햄버거는 펼침/접힘을 뒤집으므로 더블클릭 가드가 있는 ToggleButton을 쓴다.
   // 모바일 드로어의 X는 항상 "닫기"라 토글이 아니므로 일반 Button으로 둔다.
@@ -77,7 +84,17 @@ function SidebarHeader({ expanded, onToggle, showCloseIcon = false }: SidebarHea
     <div
       className={cn('h-16 flex items-center shrink-0', expanded ? 'px-3 gap-3' : 'justify-center')}
     >
-      <ToggleOrCloseButton variant="ghost" size="icon" onClick={onToggle}>
+      <ToggleOrCloseButton
+        ref={toggleRef}
+        variant="ghost"
+        size="icon"
+        // Button의 transition-all은 드로어에서 물려받는 visibility까지 트랜지션한다. 그러면 드로어가 열린
+        // 직후 X는 아직 hidden이라 focus()가 실패하므로 X만 실제로 바뀌는 속성으로 좁힌다
+        className={
+          showCloseIcon ? 'transition-[color,background-color,border-color,box-shadow]' : undefined
+        }
+        onClick={onToggle}
+      >
         <Icon className="size-6" />
         <span className="sr-only">{TEXTS.nav.toggleMenu}</span>
       </ToggleOrCloseButton>
@@ -99,6 +116,7 @@ export function Sidebar() {
   // shards로 지정한다 - dialog.tsx의 DialogOverlayImpl이 shards: [context.contentRef]를
   // 쓰는 것과 같은 이유("Content가 Overlay 안에 안 살아도 스크롤 가능해야 한다").
   const drawerRef = useRef<HTMLElement>(null);
+  const drawerCloseRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -129,6 +147,42 @@ export function Sidebar() {
 
     return () => wide.removeEventListener('change', syncOpen);
   }, [open, collapse]);
+
+  // 열린 메뉴로 포커스를 옮기고 닫으면 연 버튼으로 돌려준다 - 안 옮기면 키보드와 읽기 위치가 메뉴 뒤쪽
+  // 햄버거에 머문다. 배경 스크롤 위치를 지키려고 preventScroll을 쓴다(docs/plans/2026-11-06-a11y-button-names.md).
+  // 정리 함수는 닫힐 때와 언마운트 때 돈다(https://react.dev/reference/react/useEffect)
+  useEffect(() => {
+    if (!isMobileOpen) {
+      return;
+    }
+
+    const drawer = drawerRef.current;
+    const opener = document.activeElement;
+
+    drawerCloseRef.current?.focus({ preventScroll: true });
+
+    return () => {
+      const focused = document.activeElement;
+      // 메뉴 링크로 이동한 새 화면이 이미 포커스를 가져갔으면 뺏지 않는다(등록 화면의 URL 칸 autoFocus)
+      const isFocusLeftBehind = focused === document.body || drawer?.contains(focused);
+
+      if (isFocusLeftBehind && opener instanceof HTMLElement) {
+        opener.focus({ preventScroll: true });
+      }
+    };
+  }, [isMobileOpen]);
+
+  // 포커스 effect와 나눈다 - close는 열림 상태가 바뀔 때 새로 만들어져, 합치면 포커스를 다시 옮길 수 있다.
+  // 닫혀 있으면 close가 아무것도 하지 않는다(useHistoryOverlay.ts)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        close();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [close]);
 
   return (
     <>
@@ -163,11 +217,15 @@ export function Sidebar() {
         ref={drawerRef}
         className={cn(
           'md:hidden fixed top-0 left-0 z-drawer h-full w-64 bg-background border-r flex flex-col',
-          'transition-transform duration-200',
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+          'duration-200',
+          // invisible이라야 닫힌 메뉴가 키보드 이동·읽기 순서에서 빠진다. visibility를 트랜지션에 넣으면 닫는
+          // 동안은 보이다 끝에 숨는다. 열 때는 트랜지션에서 빼야 바로 보여 위의 focus()가 통한다
+          isMobileOpen
+            ? 'translate-x-0 visible transition-[translate]'
+            : '-translate-x-full invisible transition-[translate,visibility]'
         )}
       >
-        <SidebarHeader expanded onToggle={close} showCloseIcon />
+        <SidebarHeader expanded onToggle={close} showCloseIcon toggleRef={drawerCloseRef} />
         <nav className="flex flex-col gap-1 py-4 px-2">
           {NAV_ITEMS.map((item) => (
             <NavItem key={item.to} {...item} expanded />
