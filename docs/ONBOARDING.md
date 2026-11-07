@@ -8,7 +8,7 @@
 > **읽고 나면**: 서비스 전체 그림을 한 장으로 설명할 수 있고, 어떤 기능을 고쳐야 할 때 어느
 > 레포의 어느 문서·코드부터 보면 되는지 안다.
 >
-> **마지막 검토**: 2026-11-05 (기능 지도 행만 추가. 전체 검토는 2026-10-30)
+> **마지막 검토**: 2026-11-07 (§7·§9에 서비스 용어 사전 연결만. 전체 검토는 2026-10-30)
 
 ---
 
@@ -131,17 +131,17 @@ flowchart TD
 
 여러 문서에 걸쳐 나오는 말만 모았다. 기능 고유 용어는 각 기능 문서 끝의 "용어 사전"을 본다.
 
-| 용어            | 뜻                                                                                                                                    | 정본                                                                                          |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| FSD             | FE 폴더를 `app → pages → widgets → features → entities → shared` 레이어로 나누고 위에서 아래로만 import하는 구조                      | [FE-ARCHITECTURE](./FE-ARCHITECTURE.md) §1                                                    |
-| 슬라이스        | 레이어 안의 기능 단위 폴더(예: `features/post/create/`)                                                                               | 같은 문서 §1·§3                                                                               |
-| `@x`            | 한 엔티티가 다른 엔티티에 공개하는 교차 참조 파일(`entities/<공개하는-쪽>/@x/<쓰는-쪽>.ts`). 엔티티끼리는 이 파일로만 서로 import한다 | 같은 문서 §5                                                                                  |
-| 3-Layer API     | entity마다 `*.api.ts`(HTTP) → `*.keys.ts`(쿼리 키·무효화) → `*.queries.ts`(React Query 훅) 세 파일로 나누는 패턴                      | 같은 문서 §5                                                                                  |
-| 낙관적 업데이트 | 서버 응답 전에 화면을 먼저 바꾸고 실패하면 되돌리는 방식                                                                              | 같은 문서 §11                                                                                 |
-| `TEXTS`         | 화면 문구를 모아 둔 상수(`src/shared/config/texts.ts`). 코드에 한글 문구를 직접 쓰지 않는다                                           | `texts-conventions` skill                                                                     |
-| SSOT            | 한 사실의 정본을 한 곳에만 두고 나머지는 그걸 가리키는 원칙. 이 문서가 사실을 복제하지 않는 이유                                      | —                                                                                             |
-| OAC             | CloudFront가 BE Lambda 요청에 서명을 붙여, CloudFront를 거치지 않은 직접 호출을 막는 장치                                             | [SYSTEM-ARCHITECTURE](./SYSTEM-ARCHITECTURE.md) §1, [AUTH](./AUTH.md)                         |
-| SnapStart       | Lambda 콜드스타트를 줄이려고 초기화가 끝난 상태를 스냅샷해 두는 기능                                                                  | [BE PERFORMANCE](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/PERFORMANCE.md) |
+| 용어            | 뜻                                                                                                                                    | 정본                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| FSD             | FE 폴더를 `app → pages → widgets → features → entities → shared` 레이어로 나누고 위에서 아래로만 import하는 구조                      | [FE-ARCHITECTURE](./FE-ARCHITECTURE.md) §1 |
+| 슬라이스        | 레이어 안의 기능 단위 폴더(예: `features/post/create/`)                                                                               | 같은 문서 §1·§3                            |
+| `@x`            | 한 엔티티가 다른 엔티티에 공개하는 교차 참조 파일(`entities/<공개하는-쪽>/@x/<쓰는-쪽>.ts`). 엔티티끼리는 이 파일로만 서로 import한다 | 같은 문서 §5                               |
+| 3-Layer API     | entity마다 `*.api.ts`(HTTP) → `*.keys.ts`(쿼리 키·무효화) → `*.queries.ts`(React Query 훅) 세 파일로 나누는 패턴                      | 같은 문서 §5                               |
+| 낙관적 업데이트 | 서버 응답 전에 화면을 먼저 바꾸고 실패하면 되돌리는 방식                                                                              | 같은 문서 §11                              |
+| `TEXTS`         | 화면 문구를 모아 둔 상수(`src/shared/config/texts.ts`). 코드에 한글 문구를 직접 쓰지 않는다                                           | `texts-conventions` skill                  |
+| SSOT            | 한 사실의 정본을 한 곳에만 두고 나머지는 그걸 가리키는 원칙. 이 문서가 사실을 복제하지 않는 이유                                      | —                                          |
+
+EventBridge, Function URL, OAC, SnapStart처럼 클라우드·외부 서비스 용어는 [`SERVICE-GLOSSARY.md`](./SERVICE-GLOSSARY.md)에 모았다.
 
 ## 8. 작업 규칙 요약
 
@@ -164,5 +164,6 @@ flowchart TD
 - [FE README `## 문서`](../README.md#문서) — FE 문서 전체 목록과 분류
 - [BE README `## 문서`](https://github.com/BAECHAN/link-sphere_BE_NEW#문서) — BE 문서 전체 목록
 - [`SYSTEM-ARCHITECTURE.md`](./SYSTEM-ARCHITECTURE.md) — 인프라·배포·FE/BE 구조 다이어그램
+- [`SERVICE-GLOSSARY.md`](./SERVICE-GLOSSARY.md) — 클라우드·외부 서비스 용어 사전
 - [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) — FE 구조와 재사용 패턴
 - [BE `docs/BE-ARCHITECTURE.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/BE-ARCHITECTURE.md) — BE 요청 파이프라인, 레이어 규칙, 에러 계약, 재사용 패턴
