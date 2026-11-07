@@ -1,3 +1,6 @@
+### 2026-11-07 (BE)
+- Lambda를 통한 비정상 주소 처리 로직을 이전 상태로 롤백 ([#182](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/182))
+
 ### 2026-11-07 (FE)
 - useLoginDialog 뮤테이션의 안정성 확보를 위한 테스트 케이스 추가 및 커버리지 강화 ([#578](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/578))
 
