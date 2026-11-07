@@ -1,5 +1,5 @@
 import { Suspense, type ReactNode } from 'react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
@@ -50,6 +50,12 @@ function trackViewRequests() {
   return viewedIds;
 }
 
+// 조회 기록을 세지 않는 테스트는 POST를 보내지 않게 한다. 언마운트해도 보낸 요청은 취소되지 않아, 앞 테스트의 요청이
+// 다음 테스트의 trackViewRequests에 잡혀 기록이 ['1', '1', '2']가 됐다(docs/TESTING.md "자주 발생하는 문제" 14번).
+function skipViewRecord() {
+  vi.stubEnv('MODE', 'development');
+}
+
 const FEED_ENTRY = { pathname: '/post/1', state: { backSource: 'feed' } };
 const BOOKMARK_ENTRY = { pathname: '/post/1', state: { backSource: 'bookmark' } };
 
@@ -59,6 +65,8 @@ describe('usePostDetail', () => {
   });
 
   describe('돌아가기 라벨', () => {
+    beforeEach(skipViewRecord);
+
     it('앱 안 이력 없이 들어온 경우(첫 진입 엔트리) "목록으로"를 보여 준다', async () => {
       const { result } = renderPostDetail(['/post/1']);
 
@@ -147,6 +155,8 @@ describe('usePostDetail', () => {
   });
 
   describe('탭 제목', () => {
+    beforeEach(skipViewRecord);
+
     it('글 제목으로 탭 제목을 바꾸고 상세를 떠나면 원래 제목으로 되돌린다', async () => {
       document.title = '원래 제목';
       const { result, unmount } = renderPostDetail(['/post/1']);
