@@ -1,3 +1,6 @@
+### 2026-11-07 (FE)
+- 모바일 메뉴의 상태 관리 로직을 개선하여 페이지 이동 후 복귀 시 메뉴가 비정상적으로 유지되던 문제 해결 ([#585](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/585))
+
 ### 2026-11-07 (BE)
 - 프론트엔드 Orval 제거에 따른 API 문서 및 관련 주석 현행화 ([#184](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/184))
 
