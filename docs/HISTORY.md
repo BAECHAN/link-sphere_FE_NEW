@@ -1,3 +1,6 @@
+### 2026-11-07 (FE)
+- usePostCardBookmarkFolderDialog 뮤테이션의 안정성 확보를 위한 테스트 케이스 추가 ([#575](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/575))
+
 ### 2026-11-06 (FE)
 - 댓글 수정 시 코드 블록 내 이미지 URL이 첨부 파일로 정상적으로 이전되지 않던 오류 수정 ([#574](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/574))
 
