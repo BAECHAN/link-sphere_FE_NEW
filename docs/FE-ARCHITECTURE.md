@@ -1826,6 +1826,11 @@ flowchart TD
 | 같은 URL에 `state`만 싣는 push(오버레이·모달·패널)                   | **스크롤 유지해야 함**              | `preventScrollReset: true`를 명시한다 — 선례: [`useHistoryOverlay.ts`](../src/shared/hooks/useHistoryOverlay.ts)(사이드바·로그인 모달·이미지뷰어), [`useMobileSearchPanel.ts`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts), [`MarkdownContent.tsx`](../src/shared/ui/elements/MarkdownContent.tsx) |
 | 지금 보는 화면 안의 해시 이동(상세의 댓글 링크 `/post/:id#comments`) | **맨 위로 올리지 않고 해시 위치로** | `replace`(같은 글 엔트리를 쌓지 않음) + `preventScrollReset`을 함께 준다 — 선례: [`PostCard.tsx`](../src/widgets/post/post-card/ui/PostCard.tsx)의 댓글 `Link`(`isDetail`일 때만), 해시 위치로의 스크롤은 `CommentList`가 맡는다                                                                                   |
 
+**오버레이 안의 링크로 다른 화면으로 떠날 때는 오버레이 엔트리를 `replace`로 교체한다(2026-11-07).** 엔트리를 남기면 뒤로
+왔을 때 오버레이가 다시 열린다. `close()`(`navigate(-1)`)와 다음 이동을 한 핸들러에서 같이 부르면 둘이 겹치므로 쓰지 않는다 —
+선례: [`Sidebar.tsx`](../src/widgets/layout/sidebar/ui/Sidebar.tsx)의 `useDrawerLink`,
+[`useMobileSearchPanel.ts`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts).
+
 **코드로 스크롤할 때는 `behavior: ScrollUtil.getBehavior()`(2026-10-14).** `scrollIntoView`·`scrollTo`에
 `behavior: 'smooth'`를 직접 쓰면 기기에서 "동작 줄이기"를 켠 사용자에게도 화면이 미끄러진다(WCAG 2.3.3).
 [`scroll.util.ts`](../src/shared/utils/scroll.util.ts)가 `prefers-reduced-motion: reduce`면 `'auto'`(즉시)를,

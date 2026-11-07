@@ -204,6 +204,13 @@
 
 ### Fixed
 
+- `shared` 모바일 메뉴에서 이동한 뒤 뒤로 오면 메뉴가 다시 열리던 문제
+  <details><summary>배경·구현</summary>
+
+  모바일 메뉴 열림은 히스토리 엔트리(`location.state.sidebarOpen`)인데, 2026-08-07에 메뉴 링크의 닫기 호출을 뺀 뒤로 링크를 누르면 그 엔트리가 기록에 남아 `[홈, 홈+메뉴, 북마크]`가 됐다. 그래서 뒤로 오면 메뉴가 다시 열렸다. 이제 메뉴의 링크·로고는 메뉴 엔트리를 새 화면으로 교체(`replace`)해 기록이 `[홈, 북마크]`가 된다. 메뉴를 연 채 뒤로가기를 누르면 메뉴만 닫히는 동작은 그대로다. 비로그인이면 로그인 창이 메뉴 엔트리를 대체해(`useHistoryOverlay.openReplacingCurrent`, `useProtectedNavigate`의 `replace` 옵션), 창을 취소하거나 로그인한 뒤 돌아와도 메뉴가 열리지 않는다. 메뉴에서 지금 화면을 가리키는 항목은 이제 메뉴만 닫아 빈 뒤로가기가 남지 않는다. 대신 메뉴의 "홈"을 눌러도 맨 위로 올라가지 않는다(하단 탭바의 "홈"은 그대로 맨 위로 간다). 파일: `src/shared/hooks/useHistoryOverlay.ts`, `src/entities/auth/hooks/useProtectedNavigate.ts`, `src/widgets/layout/sidebar/ui/Sidebar.tsx`, `e2e/sidebar-drawer-back.mobile.spec.ts`, [PR #585](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/585).
+
+  </details>
+
 - `comment` 댓글을 고칠 때 코드 블록 안 이미지 주소가 첨부로 옮겨지지 않음
   <details><summary>배경·구현</summary>
 

@@ -604,12 +604,16 @@ setLoginOnSuccess(undefined); // navigate형 채널은 쓰지 않는다
 setPendingAction(options?.resumeAfterLogin ? action : undefined); // opt-in한 액션만 재개
 openLoginDialog();
 
-// useProtectedNavigate.ts:18-30 요지 (이동형: 링크 클릭)
+// useProtectedNavigate.ts:20-38 요지 (이동형: 링크 클릭)
 if (isAuthenticated) {
-  navigate(to);
+  navigate(to, options);
   return;
 }
 setLoginOnSuccess(() => navigate(to, { replace: true })); // replace — push하면 orphan 히스토리
+if (options?.replace) {
+  openLoginDialogReplacingCurrent(); // 모바일 메뉴에서 눌렀을 때 — 메뉴 엔트리를 로그인 창이 대체
+  return;
+}
 openLoginDialog();
 ```
 

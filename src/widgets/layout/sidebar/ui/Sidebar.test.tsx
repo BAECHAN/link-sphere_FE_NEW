@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { renderWithProviders } from '@/test/utils';
 import { WIDE_MEDIA_QUERY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
+import { useAuthStore } from '@/shared/store/auth.store';
 import { useSidebarStore } from '@/shared/store/sidebar.store';
 import { Sidebar } from '@/widgets/layout/sidebar/ui/Sidebar';
 
@@ -79,6 +81,135 @@ describe('Sidebar — 모바일 드로어 숨김과 포커스', () => {
     await user.keyboard('{Escape}');
 
     expect(getDrawer()).toHaveClass('invisible');
+  });
+});
+
+// 실제 브라우저의 뒤로가기와 스크롤은 e2e/sidebar-drawer-back.mobile.spec.ts가 본다. 여기서는 히스토리 스택만 본다.
+describe('Sidebar — 모바일 드로어 링크로 떠나기', () => {
+  function LocationProbe() {
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    return (
+      <>
+        <div data-testid="pathname">{location.pathname}</div>
+        <button onClick={() => navigate(-1)}>back</button>
+      </>
+    );
+  }
+
+  // [아래 칸들, 메뉴를 연 칸] 순서의 스택을 만든다
+  function renderDrawerOpenAt(pathname: string, entriesBelow = [pathname]) {
+    return renderWithProviders(
+      <>
+        <Sidebar />
+        <LocationProbe />
+      </>,
+      {
+        wrapperOptions: {
+          initialEntries: [...entriesBelow, { pathname, state: { sidebarOpen: true } }],
+        },
+      }
+    );
+  }
+
+  function getAsides() {
+    return screen.getAllByRole('complementary', { hidden: true });
+  }
+
+  function getDesktopAside() {
+    return getAsides()[0]!;
+  }
+
+  function getDrawer() {
+    return getAsides()[1]!;
+  }
+
+  function getLink(container: HTMLElement, name: string) {
+    return within(container).getByRole('link', { name, hidden: true });
+  }
+
+  async function goBack(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByText('back'));
+  }
+
+  beforeEach(() => {
+    useAuthStore.getState().setAuth('token');
+  });
+
+  afterEach(() => {
+    useAuthStore.getState().clearAuth();
+  });
+
+  it('보호된 메뉴로 이동한 뒤 뒤로 오면 메뉴가 닫혀 있다', async () => {
+    const user = userEvent.setup();
+    renderDrawerOpenAt('/post');
+
+    await user.click(getLink(getDrawer(), TEXTS.nav.bookmark));
+    expect(screen.getByTestId('pathname')).toHaveTextContent('/bookmark');
+
+    await goBack(user);
+
+    expect(screen.getByTestId('pathname')).toHaveTextContent('/post');
+    expect(getDrawer()).toHaveClass('invisible');
+  });
+
+  it('일반 메뉴로 이동한 뒤 뒤로 오면 메뉴가 닫혀 있다', async () => {
+    const user = userEvent.setup();
+    renderDrawerOpenAt('/bookmark');
+
+    await user.click(getLink(getDrawer(), TEXTS.nav.feed));
+    expect(screen.getByTestId('pathname')).toHaveTextContent('/post');
+
+    await goBack(user);
+
+    expect(screen.getByTestId('pathname')).toHaveTextContent('/bookmark');
+    expect(getDrawer()).toHaveClass('invisible');
+  });
+
+  it('로고로 이동한 뒤 뒤로 오면 메뉴가 닫혀 있다', async () => {
+    const user = userEvent.setup();
+    renderDrawerOpenAt('/bookmark');
+
+    await user.click(getLink(getDrawer(), TEXTS.nav.brand));
+    expect(screen.getByTestId('pathname')).toHaveTextContent('/post');
+
+    await goBack(user);
+
+    expect(screen.getByTestId('pathname')).toHaveTextContent('/bookmark');
+    expect(getDrawer()).toHaveClass('invisible');
+  });
+
+  it.each([
+    ['메뉴 항목', TEXTS.nav.feed],
+    ['로고', TEXTS.nav.brand],
+  ])(
+    '지금 화면을 가리키는 %s는 메뉴만 닫아 다음 뒤로가기가 이전 화면으로 간다',
+    async (_name, label) => {
+      const user = userEvent.setup();
+      renderDrawerOpenAt('/post', ['/bookmark', '/post']);
+
+      await user.click(getLink(getDrawer(), label));
+
+      expect(getDrawer()).toHaveClass('invisible');
+      expect(screen.getByTestId('pathname')).toHaveTextContent('/post');
+
+      // 교체했다면 /post가 두 칸 남아 여기서 /post에 머문다
+      await goBack(user);
+
+      expect(screen.getByTestId('pathname')).toHaveTextContent('/bookmark');
+    }
+  );
+
+  it('데스크톱 사이드바의 링크는 교체하지 않고 쌓는다', async () => {
+    const user = userEvent.setup();
+    renderDrawerOpenAt('/post');
+
+    await user.click(getLink(getDesktopAside(), TEXTS.nav.bookmark));
+    await goBack(user);
+
+    expect(screen.getByTestId('pathname')).toHaveTextContent('/post');
+    expect(getDrawer()).toHaveClass('visible');
   });
 });
 
