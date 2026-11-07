@@ -1,4 +1,7 @@
 ### 2026-11-07 (FE)
+- useLoginDialog 뮤테이션의 안정성 확보를 위한 테스트 케이스 추가 및 커버리지 강화 ([#578](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/578))
+
+### 2026-11-07 (FE)
 - usePostDetail 뮤테이션 테스트 코드 보강을 통한 데이터 일관성 및 안정성 강화
 
 ### 2026-11-07 (FE)
