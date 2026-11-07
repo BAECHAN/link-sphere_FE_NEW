@@ -384,7 +384,7 @@ aws iam list-role-policies --role-name "$ROLE"   # deploy와 cloudfront-drift-re
 
 ## AWS 설정 코드화(CDK) — 변경은 PR로 (2026-11-06)
 
-AWS 설정 일부를 비공개 저장소 `BAECHAN/link-sphere-infra`의 CDK 스택 `link-sphere-baseline`(도쿄, 리소스 29개)으로 관리한다. **스택 안 리소스는 그 저장소의 PR로 바꾼다.** 병합하면 GitHub Actions가 같은 계정 서울 리전의 시험 단계를 거쳐 운영에 적용한다. 근거는 [`DECISIONS.md`](./DECISIONS.md) 2026-11-06 항목, 비상 절차와 명령 전체는 그 저장소의 `README.md`, 다른 프로젝트에 같은 구조를 만드는 순서는 `docs/PLAYBOOK.md`다.
+AWS 설정 일부를 비공개 저장소 `BAECHAN/link-sphere-infra`의 CDK 스택 `link-sphere-baseline`(도쿄, 리소스 30개)으로 관리한다. **스택 안 리소스는 그 저장소의 PR로 바꾼다.** 병합하면 GitHub Actions가 같은 계정 서울 리전의 시험 단계를 거쳐 운영에 적용한다. 근거는 [`DECISIONS.md`](./DECISIONS.md) 2026-11-06 항목, 비상 절차와 명령 전체는 그 저장소의 `README.md`, 다른 프로젝트에 같은 구조를 만드는 순서는 `docs/PLAYBOOK.md`다.
 
 ```mermaid
 flowchart LR
