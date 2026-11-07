@@ -233,14 +233,14 @@ Feature 훅은 `*.queries.ts`의 훅을 사용하고, UI는 Feature 훅만 호�
 
 ### FE 스택 요약
 
-| 항목         | 기술                                                                                |
-| ------------ | ----------------------------------------------------------------------------------- |
-| Framework    | React 18, TypeScript, Vite 6                                                        |
-| Server State | TanStack Query 5                                                                    |
-| Client State | Zustand 5                                                                           |
-| Form         | React Hook Form 7, Zod 3                                                            |
-| UI           | Shadcn/ui (Radix), TailwindCSS 4, CVA                                               |
-| 기타         | Sonner, Supabase client, dayjs, firebase(FCM), next-themes, @tanstack/react-virtual |
+| 항목         | 기술                                                               |
+| ------------ | ------------------------------------------------------------------ |
+| Framework    | React 18, TypeScript, Vite 6                                       |
+| Server State | TanStack Query 5                                                   |
+| Client State | Zustand 5                                                          |
+| Form         | React Hook Form 7, Zod 3                                           |
+| UI           | Shadcn/ui (Radix), TailwindCSS 4, CVA                              |
+| 기타         | Sonner, dayjs, firebase(FCM), next-themes, @tanstack/react-virtual |
 
 ---
 

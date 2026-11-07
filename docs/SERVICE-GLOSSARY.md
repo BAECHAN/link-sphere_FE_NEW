@@ -330,7 +330,7 @@ flowchart TD
 - **알아 둘 것**:
   - Free 요금제는 자동 백업이 없어 [직접 백업](#백업과-rpo)한다.
   - 공유 풀러만 쓸 수 있다([Supavisor](#supavisor)).
-  - FE는 Supabase SDK를 쓰지 않고, BE가 발급한 서명 URL로 `fetch` 업로드한다. `package.json`에 `@supabase/supabase-js`가 있지만 import하는 곳이 없다.
+  - FE는 Supabase SDK를 쓰지 않고, BE가 발급한 서명 URL로 `fetch` 업로드한다.
 - **정본**: [BE DEPLOY](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/DEPLOY.md) 4·12·13장
 
 ### Postgres
