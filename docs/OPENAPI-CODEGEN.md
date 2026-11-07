@@ -709,8 +709,11 @@ import·재수출·`export *`·동적 import·타입 전용 재수출·타입 �
 - `pnpm codegen` 안의 스펙 구조 검증은 orval과 함께 약해졌다. 2026-11-02에는 orval 검증이 BE의 HTTP 스킴 `name` 오류를 잡았는데,
   `openapi-typescript`는 같은 오류를 경고 없이 통과시킨다(§9). 스펙은 springdoc 자동 생성물이고 알려진 실제 오류는 그 1건이다.
   따로 구조 검사를 넣지는 않았다
-- BE가 제약을 완화·제거하거나 `x-max-bytes`를 바꾸는 변경을 BE `api-compat`(oasdiff)이 오류로 보는지 확인하지 않았다. 오류가
-  아니면 BE 병합 전에는 못 잡고 FE 동기화 때 드러난다. BE에 "제약이 스펙에 남아 있는지" 고정하는 테스트도 없다
+- BE `api-compat`(oasdiff)은 요청 제약을 조이는 변경만 막는다. 제약의 완화·제거, `pattern` 변경, `x-max-bytes` 변경은 BE 병합을
+  막지 못하고, 운영 배포 뒤 드리프트 이슈(매일)와 FE 스펙 갱신 때의 계약 테스트 실패로 드러난다(직접 측정 2026-11-07, 표는 BE
+  [`docs/CI-CHECK-GATE.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/CI-CHECK-GATE.md) §4.1). BE가
+  `pattern`을 바꾸거나 `x-max-bytes`를 내리면 그 사이 FE 폼을 통과한 입력을 BE가 거부할 수 있다. BE에 "제약이 스펙에 남아
+  있는지" 고정하는 테스트도 없다
 - TEXTS 문구의 숫자("2~20자", "64자 이하" 등)는 함수형 키로 바꾸지 않고 계약 테스트로만 대조한다. 테스트에 적지 않은 키는
   확인되지 않는다
 - BE `@Operation` 설명에는 숫자(15자·5장)가 없다 — 값은 스펙 필드로만 싣는다
