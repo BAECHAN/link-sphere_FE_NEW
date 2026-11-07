@@ -474,7 +474,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 - **기다림 줄이기(2026-10-14)** — 게시글을 기다리며 멈추는 `PostDetailContent` 안에 `CommentList`가
   있어, 게시글이 와야 댓글을 요청하는 순차 요청이었다. 두 가지로 줄였다.
-  - 상세 진입: 상세 라우트(`PostDetailRoute`, `src/app/routes/index.tsx:246`)가
+  - 상세 진입: 상세 라우트(`PostDetailRoute`, `src/app/routes/AppRoutes.tsx:251`)가
     `usePrefetchComments`(`src/entities/comment/api/comment.queries.ts:162`)를 불러 댓글을
     게시글과 동시에 요청한다. 처음엔 `PostDetailPage`가 경계 바깥에서 불렀다. 2026-10-26부터는 lazy 페이지
     청크도 기다리지 않도록 라우트로 옮겼다([`PERFORMANCE.md`](./PERFORMANCE.md) "LCP 데이터 요청 시점").
@@ -647,7 +647,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 댓글 목록(`useSuspenseComments`)과 내 댓글(`useSuspenseMyCommentsInfiniteQuery`)은 suspense 쿼리라, 데이터 없이 실패하면
 5분 안에 다시 들어와도 요청 없이 같은 에러 화면이 떴다. 지금은 화면을 떠날 때 지운다.
 
-- 댓글: `PostDetailRoute`(`src/app/routes/index.tsx`)가 `useRemoveErroredCommentsOnLeave(id)`를 부르고, 그 훅이
+- 댓글: `PostDetailRoute`(`src/app/routes/AppRoutes.tsx`)가 `useRemoveErroredCommentsOnLeave(id)`를 부르고, 그 훅이
   `commentRemoveQueries.erroredList`(`comment.keys.ts`)로 그 글의 댓글 목록만 지운다.
 - 내 댓글: `MyCommentList`가 에러 경계 밖에서 `useRemoveErroredMyCommentsOnLeave()`를 부르고,
   `commentRemoveQueries.erroredMy`가 `commentKeys.myRoot`만 정확히 지운다(같은 `comments` 루트의 글별 목록은 그대로).

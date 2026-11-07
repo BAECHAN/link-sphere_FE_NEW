@@ -1,0 +1,5 @@
+Test Files  3 failed | 189 passed (192)
+Tests  3 failed | 2598 passed (2601)
+FAIL  |unit| src/features/account/update/hooks/useUpdateAccount.test.tsx > useUpdateAccount > 닉네임을 바꿨다가 원래 값으로 되돌리면 재조회 없이 idle 상태로 돌아간다
+FAIL  |unit| src/features/auth/signup/hooks/useSignUp.test.tsx > useSignUp > 확인 때 사용 가능했던 'nickname'가 제출 때 중복(409)이면 칸 오류를 띄우고 제출을 막는다
+FAIL  |unit| src/widgets/post/post-list/ui/PostList.test.tsx > PostList — 조건을 바꾼 뒤 응답을 기다리는 동안 > 응답이 늦으면 0.5초 뒤 이전 목록 위에 표시를 띄우고, 응답이 오면 걷는다

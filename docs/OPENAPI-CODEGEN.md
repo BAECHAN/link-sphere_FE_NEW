@@ -239,8 +239,7 @@ src/shared/api/
 댓글 좋아요 응답이 BE에서 이름 있는 스키마(`CommentLikeResponse`)가 되면서 2026-10-26에 지웠다. BE는 이제
 `ApiResponse<Map>`을 검사(`ControllerSignatureRulesTest`)로 막는다.
 
-`generated/`에 `index.ts`를 두지 않는다 — `custom-barrel-rules/no-barrel-import`가
-`/index`로 끝나는 import를 금지하므로 배럴을 만들면 아무도 import할 수 없다. 직접 경로
+`generated/`에 `index.ts`를 두지 않는다 — `custom-barrel-rules/no-index-file`이 막는다. 직접 경로
 (`@/shared/api/generated/openapi.gen`)로만 쓴다.
 
 생성 파일을 직접 import하는 곳은 엔티티 `.dto.ts`(§5-4), `src/shared/api/spec-types.ts`·`src/shared/api/spec-client.ts`(§5-2,
@@ -634,7 +633,7 @@ BE `PostDTO.kt`를 확인하니 `val categories: List<CategoryResponse>`(non-nul
 
 2026-11-02 처음 계획은 `<entity>.contract.ts`가 생성 상수를 받아 다시 내보내고, ESLint로
 contract 파일만 생성 파일을 import하게 하고, CI가 `dist/index.html`에 zod-vendor가 없는지 보는 것이었다. 첫 로딩 경로
-(`routes/index.tsx` → `comment.queries.ts` → `comment.const.ts`)만 생성 파일을 피하면 된다고 봤다.
+(`routes/AppRoutes.tsx` → `comment.queries.ts` → `comment.const.ts`)만 생성 파일을 피하면 된다고 봤다.
 
 빌드는 CI 검사를 통과했다. 그런데 zod-vendor를 import하는 청크 목록을 운영과 비교하니, 목록 페이지 지연 청크가 새로
 zod-vendor(56,122바이트, gzip 12,989바이트)를 정적으로 import하고 있었다. 경로는 글 카드의 북마크 토글 →

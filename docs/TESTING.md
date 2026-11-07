@@ -519,20 +519,20 @@ export const notificationHandlers = [
 ];
 ```
 
-그리고 `src/mocks/handlers/index.ts`에 등록합니다.
+그리고 `src/mocks/server.ts`에 등록합니다.
 
 ```typescript
 import { notificationHandlers } from '@/mocks/handlers/notification.handlers'; // 추가
 
-export const handlers = [
+export const server = setupServer(
   ...authHandlers,
   ...accountHandlers,
   ...postHandlers,
   ...commentHandlers,
   ...bookmarkFolderHandlers,
   ...uploadHandlers,
-  ...notificationHandlers, // 추가
-];
+  ...notificationHandlers // 추가
+);
 ```
 
 ### 특정 테스트에서만 핸들러 오버라이드

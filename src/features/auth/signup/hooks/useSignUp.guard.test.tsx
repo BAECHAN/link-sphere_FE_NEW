@@ -83,7 +83,7 @@ interface RenderOptions {
   loginElement?: RouteObject['element'];
 }
 
-// 운영처럼 화면마다 Suspense로 감싼다(app/routes/index.tsx의 withSuspense) - 같은 자리의 Suspense가
+// 운영처럼 화면마다 Suspense로 감싼다(app/routes/AppRoutes.tsx의 withSuspense) - 같은 자리의 Suspense가
 // 재사용돼야 "다음 화면이 suspend하는 동안 이전 폼이 남는" 구간이 생긴다.
 function renderSignUp({ loginElement }: RenderOptions = {}) {
   const queryClient = createTestQueryClient();

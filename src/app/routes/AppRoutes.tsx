@@ -1,7 +1,7 @@
 import React, { lazy, Suspense, useEffect } from 'react';
 import { Navigate, useLocation, useParams, type RouteObject } from 'react-router-dom';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
-import { ProtectedLayout } from './layouts/ProtectedLayout';
+import { ProtectedLayout } from '@/app/routes/layouts/ProtectedLayout';
 import { AppShellLayout } from '@/app/routes/layouts/AppShellLayout';
 import { PublicLayout } from '@/app/routes/layouts/PublicLayout';
 import { RootLayout } from '@/app/routes/layouts/RootLayout';
@@ -29,7 +29,9 @@ const ServerErrorPage = lazy(() =>
 const VersionPage = lazy(() =>
   import('@/pages/version/VersionPage').then((module) => ({ default: module.VersionPage }))
 );
-const Post = lazy(() => import('@/pages/post').then((module) => ({ default: module.Post })));
+const PostFeedPage = lazy(() =>
+  import('@/pages/post/PostFeedPage').then((module) => ({ default: module.PostFeedPage }))
+);
 const PostSubmitPage = lazy(() =>
   import('@/pages/post/PostSubmitPage').then((module) => ({ default: module.PostSubmitPage }))
 );
@@ -235,7 +237,7 @@ function PostFeedRoute() {
   return (
     <>
       <PostFeedPrefetch />
-      {withSuspense(Post)}
+      {withSuspense(PostFeedPage)}
     </>
   );
 }

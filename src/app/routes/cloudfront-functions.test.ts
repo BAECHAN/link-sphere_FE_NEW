@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import type { RouteObject } from 'react-router-dom';
-import { appRoutes } from '@/app/routes';
+import { appRoutes } from '@/app/routes/AppRoutes';
 
 /**
  * infra/cloudfront-functions/*.js는 CloudFront 런타임용 평문 JS라 export가 없다.

@@ -1,0 +1,13 @@
+{
+  "variant": "c",
+  "dryRun": true,
+  "barrels": 45,
+  "rewrittenStatic": 1384,
+  "rewrittenDynamic": 2,
+  "keptDirectNames": 0,
+  "keptDirectForm": 0,
+  "collisions": [],
+  "changedFiles": 435,
+  "hash": "7454afb0b49fb45ff7fc9bed30f17f6827b7a065b9965228037e9ee95d17a6f8",
+  "mismatches": []
+}
