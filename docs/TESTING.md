@@ -809,6 +809,9 @@ node ~/project/loop-lab/fe/.claude/scripts/mutation-loop.mjs src/shared/hooks/us
 | 직전 2건이 머지 없이 닫힘            | 품질이 나쁘다는 신호라 멈추고 원인을 본다  |
 | `gh pr list` 실패                    | 위 조건을 확인할 수 없다                   |
 
+2026-11-07 PR 5개를 모두 써서(#572·#573·#575·#576·#578) 지금은 새 실행이 거부된다. 더 돌리려면 상한을 다시 승인받는다. 결과는
+[L2 계획](./plans/2026-11-06-mutation-loop-l2.md)의 구현 결과에 있다.
+
 **격리** — 어느 하나만 믿지 않고 겹쳐 둔다.
 
 | 단계                  | 수단                                                              | 막는 것                                                                                                                                            |
@@ -840,6 +843,10 @@ Seatbelt는 파일 내용과 폴더 목록을 막지만 홈 전체의 메타데�
 나머지는 둔다. 최상위 폴더 이름은 보이지만 안의 파일은 읽지 못한다. ③ `allowRead`에 글롭을 쓰면 듣지 않아 uid가 들어간
 경로를 그대로 쓴다. 그래서 `buildSettings`가 실행 때 경로를 만든다. Seatbelt는 `TMPDIR`이 `/var/folders`라
 `/private/tmp/claude-<uid>`를 통째로 막아도 된다.
+
+Seatbelt 안의 자식에게 막힌 경로의 파일을 stdio로 넘기면 node가 시작 때 `node::InitializeOncePerProcessInternal`에서 abort한다
+(Node 24.22.1, 종료 코드 `null`, 직접 측정, 2026-11-06). 래퍼 로그는 `~/project/loop-lab/runs` 아래라 괜찮지만, 손으로 탐침을 돌리며
+로그를 세션 임시 폴더에 두면 테스트가 돌기도 전에 죽는다.
 
 위험 문법 검사는 우회할 수 있는 1차 방어다. `process.`, `child_process`, node 내장 모듈 import, `require(`, `eval(`,
 `new Function`, `fetch(`, `RUNNER_TEMP`, `ACTIONS_`, `GITHUB_`를 막는다. 우회한 코드는 읽을 때 눈에 띈다는 데 기대고, 뚫려도
