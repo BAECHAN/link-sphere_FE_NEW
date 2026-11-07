@@ -204,7 +204,7 @@ features/<도메인>/<액션>/
 - [`docs/FCM-PUSH-NOTIFICATION.md`](docs/FCM-PUSH-NOTIFICATION.md) — 댓글·답글 FCM 웹 푸시: 토큰 수명주기, 서비스워커, 알림 클릭 딥링크
 - [`docs/MYPAGE.md`](docs/MYPAGE.md) — 프로필 수정(계정 설정 화면 섹션): 닉네임·아바타 변경, 실패 시 입력값 유지
 - [`docs/NEW-VERSION-RELOAD.md`](docs/NEW-VERSION-RELOAD.md) — 배포 후 새 버전 감지 시 다음 라우트 이동에 맞춰 자동 새로고침
-- [`docs/OPENAPI-CODEGEN.md`](docs/OPENAPI-CODEGEN.md) — BE OpenAPI 스펙에서 FE 응답 타입·입력 제약 상수를 생성: 파이프라인, 드리프트 감지, override 패턴, 계약 테스트
+- [`docs/OPENAPI-CODEGEN.md`](docs/OPENAPI-CODEGEN.md) — BE OpenAPI 스펙에서 FE 응답 타입을 생성하고 입력 제약 값을 스펙과 대조: 파이프라인, 드리프트 감지, override 패턴, 계약 테스트
 - [`docs/POST.md`](docs/POST.md) — 게시글: 피드·상세·작성·수정·삭제·공개 토글·좋아요와 mutation별 캐시 전략
 - [`docs/POST-DETAIL-BACK-NAVIGATION.md`](docs/POST-DETAIL-BACK-NAVIGATION.md) — 상세 페이지 돌아가기: 모바일 제거·데스크톱 비sticky, 유입 경로별 라벨
 - [`docs/PR-BODY-CHECK.md`](docs/PR-BODY-CHECK.md) — PR 본문 필수 절(요약·영향 범위·의도 대비 결과·검증) 검사: 무엇을 보고 안 보는지, 업계 사례 조사
