@@ -1,40 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@/entities/auth/config/auth.contract';
 import { passwordValidationSchema } from '@/entities/auth/model/auth.schema';
-import {
-  changePasswordBodyNewPasswordMax,
-  changePasswordBodyNewPasswordMin,
-  changePasswordBodyNewPasswordRegExp,
-  confirmPasswordResetBodyNewPasswordMax,
-  confirmPasswordResetBodyNewPasswordMin,
-  confirmPasswordResetBodyNewPasswordRegExp,
-  signupBodyPasswordMax,
-  signupBodyPasswordMin,
-  signupBodyPasswordRegExp,
-} from '@/shared/api/generated/openapi.zod';
 import { TEXTS } from '@/shared/config/texts';
+import { specNumber, specPattern } from '@/test/openapi-spec';
 
 // BE 값이 바뀌면 FE codegen PR에서 이 테스트가 실패해, 손으로 둔 상수·스키마·안내 문구를 고칠 자리를 알린다
 describe('비밀번호 계약 상수 ≡ 스펙', () => {
   it.each([
-    ['가입', signupBodyPasswordMin, signupBodyPasswordMax, signupBodyPasswordRegExp],
-    [
-      '비밀번호 변경',
-      changePasswordBodyNewPasswordMin,
-      changePasswordBodyNewPasswordMax,
-      changePasswordBodyNewPasswordRegExp,
-    ],
-    [
-      '비밀번호 재설정',
-      confirmPasswordResetBodyNewPasswordMin,
-      confirmPasswordResetBodyNewPasswordMax,
-      confirmPasswordResetBodyNewPasswordRegExp,
-    ],
-  ])('%s 요청과 같은 규칙이다', (_, min, max, pattern) => {
-    expect(PASSWORD_MIN_LENGTH).toBe(min);
-    expect(PASSWORD_MAX_LENGTH).toBe(max);
+    ['가입', 'signup', 'password'],
+    ['비밀번호 변경', 'changePassword', 'newPassword'],
+    ['비밀번호 재설정', 'confirmPasswordReset', 'newPassword'],
+  ] as const)('%s 요청과 같은 규칙이다', (_, operationId, field) => {
+    expect(PASSWORD_MIN_LENGTH).toBe(specNumber(operationId, field, 'minLength'));
+    expect(PASSWORD_MAX_LENGTH).toBe(specNumber(operationId, field, 'maxLength'));
     // 패턴은 FE 스키마가 둘로 나눠 갖고 있어 아래 차등 테스트가 가입 패턴으로 대조한다 - 여기선 세 요청이 같은지만 본다
-    expect(pattern.source).toBe(signupBodyPasswordRegExp.source);
+    expect(specPattern(operationId, field).source).toBe(specPattern('signup', 'password').source);
   });
 
   it('안내 문구의 숫자가 상수와 같다', () => {
@@ -67,10 +47,12 @@ describe('passwordValidationSchema ≡ 스펙 규칙', () => {
     CLASS_SUBSETS.flatMap((classes) => EXTRAS.map((extra) => build(length, classes) + extra))
   );
 
+  const minLength = specNumber('signup', 'password', 'minLength');
+  const maxLength = specNumber('signup', 'password', 'maxLength');
+  const pattern = specPattern('signup', 'password');
+
   const passesSpec = (value: string) =>
-    value.length >= signupBodyPasswordMin &&
-    value.length <= signupBodyPasswordMax &&
-    signupBodyPasswordRegExp.test(value);
+    value.length >= minLength && value.length <= maxLength && pattern.test(value);
 
   it('표본에 통과·실패가 둘 다 충분히 섞여 있다(비교가 한쪽으로 쏠리지 않았는지)', () => {
     const passed = cases.filter(passesSpec);
