@@ -1,3 +1,6 @@
+### 2026-11-07 (BE)
+- 프론트엔드 Orval 제거에 따른 API 문서 및 관련 주석 현행화 ([#184](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/184))
+
 ### 2026-11-07 (FE)
 - 불필요한 의존성 제거를 통한 번들 사이즈 최적화 ([#582](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/582))
 
