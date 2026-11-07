@@ -9,7 +9,7 @@ export const COMMENT_PAGE_SIZE = 10;
  * 목적이다. 6,000바이트는 이미지 URL 5개(~650B)·JSON 봉투를 더해도 8,192B 벽에 여유 있게
  * 들어가도록 잡은 값이다. 상수를 바꾸면 안내 문구(`TEXTS.validation.commentContentTooLong`)의
  * "한글 2,000자" 표기도 함께 고쳐야 한다. BE `CommentLimits.MAX_CONTENT_BYTES`와 같은 값 - 스펙에는
- * `x-max-bytes` 확장으로 실리고(orval이 읽지 않아 생성 상수가 없다) comment.contract.test.ts가 이 값과 대조한다.
+ * `x-max-bytes` 확장으로 실리고 comment.contract.test.ts가 이 값과 대조한다.
  */
 export const MAX_COMMENT_CONTENT_BYTES = 6_000;
 
