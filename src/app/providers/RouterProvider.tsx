@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { createBrowserRouter, RouterProvider as RRRouterProvider } from 'react-router-dom';
-import { appRoutes } from '@/app/routes';
+import { appRoutes } from '@/app/routes/AppRoutes';
 import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { RouterEvents } from '@/shared/lib/router/router-events';

@@ -69,7 +69,7 @@ test.describe('페이지 청크보다 먼저 시작하는 게시글 요청', () 
   test('피드 청크가 오기 전에 목록을 요청하고, 청크가 온 뒤에도 한 번만 요청한다', async ({
     page,
   }) => {
-    const feedModule = await holdModule(page, '/src/pages/post/index.tsx');
+    const feedModule = await holdModule(page, '/src/pages/post/PostFeedPage.tsx');
 
     // 붙잡아 둔 모듈은 load 이벤트를 늦출 수 있어 문서 응답까지만 기다린다
     await page.goto('/post', { waitUntil: 'commit' });

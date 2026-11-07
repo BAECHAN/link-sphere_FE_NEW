@@ -8,6 +8,7 @@ import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import vitestPlugin from '@vitest/eslint-plugin';
 import playwrightPlugin from 'eslint-plugin-playwright';
 import { mutationRetryRule } from './scripts/lib/mutation-retry-rule.js';
+import { noIndexFileRule, noValueReExportRule } from './scripts/lib/no-barrel-rules.js';
 import { noLiteralA11yNameRule } from './scripts/lib/no-literal-a11y-name-rule.js';
 import { noLiteralJsxTextRule } from './scripts/lib/no-literal-jsx-text-rule.js';
 import { scopeMutationAuthEpochRule } from './scripts/lib/scope-mutation-auth-epoch-rule.js';
@@ -674,7 +675,7 @@ export default [
   // Import 규칙: 일반 파일은 절대 경로(@/) 사용 강제
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['**/index.{ts,tsx}', 'src/main.tsx', 'src/app/App.tsx'],
+    ignores: ['src/main.tsx', 'src/app/App.tsx'],
     plugins: {
       'custom-import': {
         rules: {
@@ -868,7 +869,6 @@ export default [
   // 비-ASCII 문자 검사 (한글 등) - 커스텀 규칙
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['**/index.{ts,tsx}'],
     plugins: {
       'custom-filename': {
         rules: {
@@ -1048,7 +1048,6 @@ export default [
   // Atoms 폴더: kebab-case
   {
     files: ['src/shared/ui/atoms/**/*.{ts,tsx}'],
-    ignores: ['**/index.{ts,tsx}'],
     plugins: {
       unicorn: unicornPlugin,
     },
@@ -1062,7 +1061,6 @@ export default [
     ignores: [
       'src/main.tsx',
       'src/app/App.tsx',
-      '**/index.tsx',
       'src/test/**/*.{ts,tsx}',
       'src/shared/ui/atoms/**/*.tsx', // atoms 폴더는 위 규칙에서 처리
       // 약어로 시작하는 파일명 허용 (UI, URL 등)
@@ -1093,7 +1091,6 @@ export default [
   // 유틸리티 파일: kebab-case (common.util.ts, date.util.ts 등)
   {
     files: ['src/**/utils/**/*.{ts,tsx}'],
-    ignores: ['**/index.ts'],
     plugins: {
       unicorn: unicornPlugin,
     },
@@ -1124,7 +1121,6 @@ export default [
   // 타입 파일: kebab-case (shared/types 폴더)
   {
     files: ['src/**/types/**/*.ts'],
-    ignores: ['**/index.ts'],
     plugins: {
       unicorn: unicornPlugin,
     },
@@ -1150,22 +1146,12 @@ export default [
   // 상태로도 위반 0건임을 확인했다.
   {
     files: ['src/**/config/**/*.ts'],
-    ignores: ['**/index.ts', 'src/shared/lib/react-query/config/queryClient.ts'],
+    ignores: ['src/shared/lib/react-query/config/queryClient.ts'],
     plugins: {
       unicorn: unicornPlugin,
     },
     rules: {
       'unicorn/filename-case': ['error', { case: 'kebabCase' }],
-    },
-  },
-  // index.ts 파일은 예외 처리
-  {
-    files: ['**/index.{ts,tsx}'],
-    plugins: {
-      unicorn: unicornPlugin,
-    },
-    rules: {
-      'unicorn/filename-case': 'off',
     },
   },
 
@@ -1399,52 +1385,32 @@ export default [
   },
 
   // ============================================================
-  // [금지] 배럴 파일(index.ts) import
-  // 이유: 배럴 파일은 수천 개의 모듈을 한꺼번에 로드하여 dev server 부팅 15-70% 지연,
-  //       빌드 28% 지연, cold start 40% 지연을 유발함. 직접 파일 경로로 import해야
-  //       Tree Shaking이 정상 동작하고 번들 크기가 최적화됨
-  //       (수치 출처 미상 — 2026-09-08 확인, 이 레포에서 직접 측정하거나 외부
-  //       출처를 링크한 기록 없음. 재검증 전까지 참고용으로만 취급할 것)
+  // [금지] 배럴 파일(index 파일, 값 re-export)
+  // 이유: 2026-11-07 이 레포에서 직접 측정했다(docs/PERFORMANCE.md "배럴 비교 (직접 측정)"). shared까지
+  //       묶은 배럴은 문구 저장이 전체 새로고침으로 바뀌고 런타임 순환 54건·단위 테스트 138개 실패를 낳았다.
+  //       슬라이스별 배럴은 타입체크 +381ms·/post load +57ms로 작지만 그 대가로 얻는 이득을 확인하지 못해
+  //       함께 막는다. 예전 근거였던 부팅·빌드 지연(Vercel 글의 수치)은 이 레포에서 재현되지 않았다.
+  //       entities의 @x는 FSD 교차 참조 표기, test/utils.tsx는 testing-library를 함께 내보내는 테스트 도구라 제외한다.
   // ============================================================
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['**/index.{ts,tsx}'],
     plugins: {
       'custom-barrel-rules': {
         rules: {
-          'no-barrel-import': {
-            meta: {
-              type: 'problem',
-              docs: {
-                description: '배럴 파일(index.ts)에서 import 금지',
-              },
-              messages: {
-                barrelImport:
-                  '배럴 파일(index.ts)에서 import하지 마세요. 구체적인 파일 경로를 사용하세요. (예: @/shared/ui/atoms/button/Button) Tree Shaking 최적화를 위해 직접 import만 허용합니다.',
-              },
-            },
-            create(context) {
-              return {
-                ImportDeclaration(node) {
-                  const source = node.source.value;
-                  if (typeof source !== 'string') return;
-
-                  if (
-                    source.match(/\/index(['"]|$)/) ||
-                    source.endsWith('/index.ts') ||
-                    source.endsWith('/index.tsx')
-                  ) {
-                    context.report({ node, messageId: 'barrelImport' });
-                  }
-                },
-              };
-            },
-          },
+          'no-index-file': noIndexFileRule,
+          'no-value-reexport': noValueReExportRule,
         },
       },
     },
     rules: {
-      'custom-barrel-rules/no-barrel-import': 'error',
+      'custom-barrel-rules/no-index-file': 'error',
+      'custom-barrel-rules/no-value-reexport': 'error',
+    },
+  },
+  {
+    files: ['src/entities/**/@x/**', 'src/test/utils.tsx'],
+    rules: {
+      'custom-barrel-rules/no-value-reexport': 'off',
     },
   },
 

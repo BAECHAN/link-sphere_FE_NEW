@@ -1,0 +1,4 @@
+barrel-exp-a: setup.ts에서 닿는 모듈 24개
+  navigation.ts에 닿지 않음
+barrel-exp-c: setup.ts에서 닿는 모듈 163개
+  src/test/setup.ts -> src/shared/lib/index.ts -> src/shared/lib/router/navigation.ts

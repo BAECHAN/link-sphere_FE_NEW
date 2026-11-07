@@ -21,7 +21,7 @@ function renderFeedPost(post: PostItem, rowIndex: number) {
   );
 }
 
-export function Post() {
+export function PostFeedPage() {
   const protectedNavigate = useProtectedNavigate();
 
   return (

@@ -629,7 +629,7 @@ describe('useCreateComment', () => {
       return <div data-testid="comment-form" />;
     }
 
-    // 운영처럼 화면마다 같은 자리의 Suspense로 감싼다(app/routes/index.tsx의 withSuspense) - 그래야 다음 화면이
+    // 운영처럼 화면마다 같은 자리의 Suspense로 감싼다(app/routes/AppRoutes.tsx의 withSuspense) - 그래야 다음 화면이
     // suspend하는 동안 이전 화면이 남는다(useCreatePost.guard.test.tsx와 같은 구성)
     const router = createMemoryRouter(
       [

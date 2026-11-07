@@ -153,8 +153,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 ### 라우트
 
-`src/app/routes/index.tsx`에서 피드·상세는 비로그인도 볼 수 있는 그룹(`:165-181`), 작성·수정은
-`ProtectedLayout` 그룹(`:183-207`)에 있다. 각 페이지 컴포넌트는 얇다 — `pages/post/index.tsx`는
+`src/app/routes/AppRoutes.tsx`에서 피드·상세는 비로그인도 볼 수 있는 그룹(`:271-287`), 작성·수정은
+`ProtectedLayout` 그룹(`:289-313`)에 있다. 각 페이지 컴포넌트는 얇다 — `pages/post/PostFeedPage.tsx`는
 제목·"링크 공유" 버튼(`useProtectedNavigate`)·`PostListFilter`·`PostList`를 배치하고, `PostList`에 카드를
 그리는 함수(`renderFeedPost` — `backSource="feed"`, 첫 행만 `priorityThumbnail`)와 카드 치수(`POST_CARD_GRID`)를
 넘긴다([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §26 위층 조립). `PostEditPage`는 수정 폼을 그대로 렌더하고,
@@ -166,7 +166,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   `POST_PAGE_SIZE`(10)개씩 가져온다. 첫 쪽은 `cursor` 없이 보내고, 다음 쪽은 직전 응답의 `nextCursor`를 해석하지 않고
   그대로 보낸다. `nextCursor`가 `null`이면 끝이다. 쪽 사이에 글이 지워지거나 새로 올라와도 키 값으로 이어 읽어 누락·중복이
   없다. 형식과 이렇게 바꾼 이유는 [BE `docs/PAGINATION.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/PAGINATION.md)와 [`DECISIONS.md`](./DECISIONS.md) 2026-11-05 항목에 있다.
-- **첫 페이지 미리 받기**: 피드 라우트(`src/app/routes/index.tsx`의 `PostFeedRoute`)가 lazy 페이지 청크를
+- **첫 페이지 미리 받기**: 피드 라우트(`src/app/routes/AppRoutes.tsx`의 `PostFeedRoute`)가 lazy 페이지 청크를
   요청하는 같은 렌더에서 같은 조건으로 첫 페이지를 요청한다(`usePostFeedPrefetch` → `usePrefetchPostList`).
   호출은 `PostFeedRoute`가 함께 렌더하는 `PostFeedPrefetch` 컴포넌트가 한다 — URL·봇 숨기기 구독을 여기에 가둬,
   위치만 바뀌어도 라우트 전체가 다시 렌더되지 않게 한다.
@@ -295,7 +295,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - `usePostDetail`(`src/pages/post/hooks/usePostDetail.ts:75-112`)이
   `useSuspenseFetchPostDetailQuery`로 조회한다. 이 쿼리는 `retry: false`다(`post.queries.ts`)
   — 404는 재시도해도 같고 안내 화면만 늦어진다.
-- **미리 받기**: 상세 라우트(`PostDetailRoute`, `src/app/routes/index.tsx:246`)가 lazy 페이지 청크를 요청하는
+- **미리 받기**: 상세 라우트(`PostDetailRoute`, `src/app/routes/AppRoutes.tsx:251`)가 lazy 페이지 청크를 요청하는
   같은 렌더에서 게시글(`usePrefetchPostDetail`)과 댓글(`usePrefetchComments`)을 요청한다. 게시글은 상세 조회와
   같은 옵션 묶음(`postDetailQueryOptions`)을 써 `retry: false`까지 같다. 진행 중인 요청은 먼저 시작한 쪽 옵션으로
   돌기 때문이다. 카드·내 댓글 hover의 `prefetchPostDetail`도 같은 옵션 묶음을 쓴다(2026-10-27 전에는 `retry`가
@@ -303,7 +303,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   건너뛰므로, 같은 라우트가 떠날 때 데이터 없이 실패한 게시글·댓글을 지운다(아래 "조회에 실패한 화면에 다시 들어오기").
 - **썸네일**: 상세 카드의 썸네일이 이 페이지의 LCP 요소라 `priorityThumbnail`로 `loading="eager"`·
   `fetchPriority="high"`를 준다(2026-10-26, 그 전에는 목록과 같은 `lazy`). 피드는 첫 행(최대 3장)만 같은 우선
-  로딩을 받고 나머지 카드는 `lazy`다(`pages/post/index.tsx`의 `renderFeedPost`, #195).
+  로딩을 받고 나머지 카드는 `lazy`다(`pages/post/PostFeedPage.tsx`의 `renderFeedPost`, #195).
 - **404 처리**: `PostDetailPage.tsx:86-92`의 에러 폴백이 `ApiError.status === 404`면 주소를 그대로 둔 채
   그 자리에 안내 화면(`PostDetailPage.tsx:65-80`의 `PostNotFound`)을 그린다 — 아이콘·"삭제됐거나 볼 수 없는
   포스트예요"·"목록으로". BE가 삭제와 비공개를 같은 404로 응답하므로 문구도 둘을 함께 덮는다. "목록으로"는
@@ -341,12 +341,12 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 **고친 것**: 화면을 떠날 때 데이터 없는 실패 쿼리를 지운다. 다시 들어오면 새로 요청한다.
 
-| 화면    | 떠날 때 부르는 훅                                                              | 부르는 곳                                     |
-| ------- | ------------------------------------------------------------------------------ | --------------------------------------------- |
-| 상세    | `useRemoveErroredPostDetailOnLeave(id)` → `postRemoveQueries.erroredDetail`    | `PostDetailRoute`(`src/app/routes/index.tsx`) |
-| 댓글    | `useRemoveErroredCommentsOnLeave(postId)` → `commentRemoveQueries.erroredList` | 같은 곳                                       |
-| 피드    | `useRemoveErroredPostListsOnLeave()` → `postRemoveQueries.erroredLists`        | `PostList.tsx`의 `PostList`                   |
-| 내 댓글 | `useRemoveErroredMyCommentsOnLeave()` → `commentRemoveQueries.erroredMy`       | `MyCommentList.tsx`의 `MyCommentList`         |
+| 화면    | 떠날 때 부르는 훅                                                              | 부르는 곳                                         |
+| ------- | ------------------------------------------------------------------------------ | ------------------------------------------------- |
+| 상세    | `useRemoveErroredPostDetailOnLeave(id)` → `postRemoveQueries.erroredDetail`    | `PostDetailRoute`(`src/app/routes/AppRoutes.tsx`) |
+| 댓글    | `useRemoveErroredCommentsOnLeave(postId)` → `commentRemoveQueries.erroredList` | 같은 곳                                           |
+| 피드    | `useRemoveErroredPostListsOnLeave()` → `postRemoveQueries.erroredLists`        | `PostList.tsx`의 `PostList`                       |
+| 내 댓글 | `useRemoveErroredMyCommentsOnLeave()` → `commentRemoveQueries.erroredMy`       | `MyCommentList.tsx`의 `MyCommentList`             |
 
 - **지우는 조건**: `isUnusedFailedQuery`(`src/shared/lib/react-query/unused-failed-query.ts`) — 실패했고, 데이터가 없고,
   보고 있는 화면(관찰자)이 없을 때. 1쪽을 받고 다음 쪽만 실패한 목록은 남긴다 — 돌아오면 1쪽과 "더 불러오지 못했어요."
@@ -743,8 +743,8 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 
 | 단계                         | 파일                                                                                                                                                                                                                 |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 피드 페이지 배치             | `src/pages/post/index.tsx`                                                                                                                                                                                           |
-| 피드·상세 미리 받기          | `src/app/routes/index.tsx`의 `PostFeedRoute`·`PostDetailRoute`, `src/widgets/post/post-list/hooks/usePostFeedPrefetch.ts`, 조건 계산은 `src/widgets/post/post-list/utils/post-list-payload.ts`                       |
+| 피드 페이지 배치             | `src/pages/post/PostFeedPage.tsx`                                                                                                                                                                                    |
+| 피드·상세 미리 받기          | `src/app/routes/AppRoutes.tsx`의 `PostFeedRoute`·`PostDetailRoute`, `src/widgets/post/post-list/hooks/usePostFeedPrefetch.ts`, 조건 계산은 `src/widgets/post/post-list/utils/post-list-payload.ts`                   |
 | 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:164-236`, `src/widgets/post/post-list/ui/PostList.tsx`                                                                                                              |
 | 카드 UI / 카드 동작          | `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`                                                                                                                      |
 | 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:65-98`                                                                                                                                                                            |
@@ -978,7 +978,7 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
   전부 entity mutation 레벨(`useMutation({ onSuccess })`)에 있는 건 그 시절 구조가 남은 것이고,
   이탈 확인창에서 "나가기"로 폼이 먼저 언마운트되는 경우에도 결과가 반영되도록 그대로 둔다.
 - **`listRoot`** — `['post', 'list']`. 필터 조합마다 다른 목록 캐시를 한 번에 가리키는 접두사 키(§6).
-- **라우트 미리 받기** — 라우트 element(`PostFeedRoute`·`PostDetailRoute`, `src/app/routes/index.tsx`)가
+- **라우트 미리 받기** — 라우트 element(`PostFeedRoute`·`PostDetailRoute`, `src/app/routes/AppRoutes.tsx`)가
   lazy 페이지 청크를 요청하는 같은 렌더에서 그 페이지가 쓸 데이터를 `usePrefetch*` 훅(`usePostFeedPrefetch` →
   `usePrefetchPostList`, `usePrefetchCategoryOptions`, `usePrefetchPostDetail`, `usePrefetchComments`)으로 먼저 요청하는 것.
   기다리지 않으므로 화면을 멈추지 않고, 청크 안의 suspense 쿼리가 같은 키의 진행 중 요청을 이어받는다.

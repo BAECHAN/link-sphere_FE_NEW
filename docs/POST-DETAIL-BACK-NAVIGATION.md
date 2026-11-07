@@ -128,7 +128,7 @@ Navbar와 버튼 바 두 줄이 스크롤 내내 함께 고정돼 모바일 화�
 | `location.state.backSource` | `'feed' \| 'bookmark' \| undefined`    | `PostCard`가 `<Link state={{ backSource }}>`로 실어 보냄                                                                            | `resolveBackLabel`만                  |
 | `useBackLabel`의 스냅샷     | `{ key, pathname, label }`(`useState`) | `useBackLabel` — `location.key`가 바뀔 때 `useNavigationType()`이 PUSH이고 경로가 같으면(오버레이) 직전 라벨 유지, 아니면 다시 계산 | 돌아가기 버튼 라벨(§5 표)             |
 
-`backSource`는 피드 페이지의 `renderFeedPost`(`src/pages/post/index.tsx`, →`'feed'`)와 북마크 페이지의
+`backSource`는 피드 페이지의 `renderFeedPost`(`src/pages/post/PostFeedPage.tsx`, →`'feed'`)와 북마크 페이지의
 `renderBookmarkPost`(`src/pages/bookmark/BookmarkPage.tsx`, →`'bookmark'`)만 채운다 — 목록 위젯은 카드를
 직접 그리지 않고 페이지가 넘긴 함수로 그린다(`docs/FE-ARCHITECTURE.md` §26). "내 댓글" 카드나 상세 자신의 제목 링크·댓글 아이콘처럼 그 외 진입 경로는 `undefined`로
 남고, `resolveBackLabel`이 이를 중립 라벨("뒤로가기")로 처리한다.

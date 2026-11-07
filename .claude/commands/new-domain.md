@@ -267,7 +267,7 @@ After creating these files, tell the user:
 
 1. The TODO fields in the schema file need to be filled in with actual entity fields
 2. Add a route constant to `src/shared/config/route-paths.ts`
-3. Register the route in `src/app/routes/index.tsx`
+3. Register the route in `src/app/routes/AppRoutes.tsx`
    - Also add the path to `APP_ROUTES` (or `APP_ROUTE_PATTERNS` for dynamic segments) in
      `infra/cloudfront-functions/spa-fallback.js` and redeploy the Function by hand
      (`docs/DEPLOY.md` "CloudFront Function (수동 관리)") — otherwise

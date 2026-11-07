@@ -87,7 +87,7 @@ Storybook `Shared/UI/Tokens/DesignTokens` 스토리의 `ZIndex`에서 8단계를
 
 | 토큰                    | 크기·줄높이·두께        | 용도                                                  | 대상 예시                                                                                                                   |
 | ----------------------- | ----------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `text-screen-title`     | t7 (20/27) · semibold   | 페이지 최상위 제목 (h1)                               | `MyCommentPage.tsx`, `BookmarkPage.tsx`, `pages/post/index.tsx`, `VersionPage.tsx`(예시, 전수 아님)                         |
+| `text-screen-title`     | t7 (20/27) · semibold   | 페이지 최상위 제목 (h1)                               | `MyCommentPage.tsx`, `BookmarkPage.tsx`, `pages/post/PostFeedPage.tsx`, `VersionPage.tsx`(예시, 전수 아님)                  |
 | `text-section-title`    | t6 (18/24) · semibold   | 섹션 제목 (h2), Dialog 제목                           | `CommentList.tsx`, `dialog.tsx`(`DialogTitle`)                                                                              |
 | `text-subsection-title` | t4 (14/19) · semibold   | 소제목, 보통 `text-muted-foreground`와 함께           | `MobileFolderList.tsx`                                                                                                      |
 | `text-micro`            | t1 (11/15), 두께 미지정 | 배지·단축키·카운트 같은 최소 라벨                     | `NavbarSearch.tsx`(Kbd), `CommentItem.tsx`(배지), `LikePostButton.tsx`/`PostCard.tsx`(카운트)                               |
@@ -112,7 +112,7 @@ Storybook `Shared/UI/Tokens/DesignTokens` 스토리의 `ZIndex`에서 8단계를
 빠지니 두께를 함께 준다.
 
 `--text-screen-title`은 두께를 semibold로 통일했다 — 기존 5곳 중 4곳이 이미
-semibold였고, `pages/post/index.tsx`만 유일하게 `font-bold` + 데스크톱에서 더 커지는
+semibold였고, `pages/post/PostFeedPage.tsx`만 유일하게 `font-bold` + 데스크톱에서 더 커지는
 반응형(`md:text-2xl`)이었다. 이 한 곳만 다른 4곳과 같은 고정 크기·두께로 맞춰
 화면이 실제로 바뀌었다(Artifact 미리보기로 사용자 승인, 2026-09-16).
 

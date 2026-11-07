@@ -1,0 +1,363 @@
+
+  error no-circular: src/shared/ui/elements/ToggleButton.tsx → 
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/ToggleButton.tsx
+  error no-circular: src/shared/ui/elements/SearchInput.tsx → 
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/SearchInput.tsx
+  error no-circular: src/shared/ui/elements/PasswordInput.tsx → 
+      src/shared/ui/elements/ToggleButton.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/PasswordInput.tsx
+  error no-circular: src/shared/ui/elements/index.ts → 
+      src/shared/ui/elements/TooltipWrapper.tsx →
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts
+  error no-circular: src/shared/ui/elements/index.ts → 
+      src/shared/ui/elements/ToggleButton.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts
+  error no-circular: src/shared/ui/elements/index.ts → 
+      src/shared/ui/elements/SearchInput.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts
+  error no-circular: src/shared/ui/elements/index.ts → 
+      src/shared/ui/elements/PasswordInput.tsx →
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts
+  error no-circular: src/shared/ui/elements/index.ts → 
+      src/shared/ui/elements/MarkdownContent.tsx →
+      src/shared/ui/elements/dialog/image-viewer/imageViewer.store.ts →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts
+  error no-circular: src/shared/ui/elements/index.ts → 
+      src/shared/ui/elements/LoadMoreError.tsx →
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts
+  error no-circular: src/shared/ui/elements/index.ts → 
+      src/shared/ui/elements/KebabMenu.tsx →
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts
+  error no-circular: src/shared/ui/elements/ImageAttachmentField.tsx → 
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/ImageAttachmentField.tsx
+  error no-circular: src/shared/ui/elements/form/FormInputPassword.tsx → 
+      src/shared/ui/elements/PasswordInput.tsx →
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/form/FormInputPassword.tsx
+  error no-circular: src/shared/ui/elements/form/FormInputPassword.tsx → 
+      src/shared/ui/elements/form/_base/FormField.tsx →
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/form/FormInputPassword.tsx
+  error no-circular: src/shared/ui/elements/form/FormInput.tsx → 
+      src/shared/ui/elements/form/_base/FormField.tsx →
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/form/FormInput.tsx
+  error no-circular: src/shared/ui/elements/form/FormInput.tsx → 
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/form/FormInput.tsx
+  error no-circular: src/shared/ui/elements/form/FormCheckboxGroup.tsx → 
+      src/shared/ui/elements/form/_base/FormField.tsx →
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/form/FormCheckboxGroup.tsx
+  error no-circular: src/shared/ui/elements/form/FormCheckboxGroup.tsx → 
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/form/FormCheckboxGroup.tsx
+  error no-circular: src/shared/ui/elements/form/FormCheckbox.tsx → 
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/form/FormCheckbox.tsx
+  error no-circular: src/shared/ui/elements/form/_base/FormField.tsx → 
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/form/_base/FormField.tsx
+  error no-circular: src/shared/ui/elements/FilterChip.tsx → 
+      src/shared/ui/elements/ToggleButton.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/FilterChip.tsx
+  error no-circular: src/shared/ui/elements/EditButton.tsx → 
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/EditButton.tsx
+  error no-circular: src/shared/ui/elements/dialog/SheetDialogContent.tsx → 
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/dialog/SheetDialogContent.tsx
+  error no-circular: src/shared/ui/elements/dialog/image-viewer/ImageViewer.tsx → 
+      src/shared/ui/elements/dialog/image-viewer/imageViewer.store.ts →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/dialog/image-viewer/ImageViewer.tsx
+  error no-circular: src/shared/ui/elements/dialog/image-viewer/ImageViewer.tsx → 
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/dialog/image-viewer/ImageViewer.tsx
+  error no-circular: src/shared/ui/elements/dialog/image-viewer/ImageViewer.tsx → 
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/dialog/image-viewer/ImageViewer.tsx
+  error no-circular: src/shared/ui/elements/dialog/image-viewer/imageViewer.store.ts → 
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/dialog/image-viewer/imageViewer.store.ts
+  error no-circular: src/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs.tsx → 
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs.tsx
+  error no-circular: src/shared/ui/elements/DelayedFallback.tsx → 
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/DelayedFallback.tsx
+  error no-circular: src/shared/ui/elements/CenteredSpinner.tsx → 
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/CenteredSpinner.tsx
+  error no-circular: src/shared/ui/elements/CenteredSpinner.tsx → 
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/CenteredSpinner.tsx
+  error no-circular: src/shared/ui/elements/BackToTopButton.tsx → 
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/BackToTopButton.tsx
+  error no-circular: src/shared/ui/elements/AsyncBoundary.tsx → 
+      src/shared/ui/layouts/index.ts →
+      src/shared/ui/layouts/ErrorLayout.tsx →
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/AsyncBoundary.tsx
+  error no-circular: src/shared/ui/elements/AsyncBoundary.tsx → 
+      src/shared/ui/elements/CenteredSpinner.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/AsyncBoundary.tsx
+  error no-circular: src/shared/ui/elements/AppErrorFallback.tsx → 
+      src/shared/ui/layouts/index.ts →
+      src/shared/ui/layouts/ErrorLayout.tsx →
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/AppErrorFallback.tsx
+  error no-circular: src/shared/ui/elements/AppErrorFallback.tsx → 
+      src/shared/ui/elements/CenteredSpinner.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/AppErrorFallback.tsx
+  error no-circular: src/shared/ui/elements/ActionChip.tsx → 
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/ActionChip.tsx
+  error no-circular: src/shared/ui/atoms/index.ts → 
+      src/shared/ui/atoms/select.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/ActionButton.tsx →
+      src/shared/ui/atoms/index.ts
+  error no-circular: src/shared/ui/atoms/index.ts → 
+      src/shared/ui/atoms/input.tsx →
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/ActionButton.tsx →
+      src/shared/ui/atoms/index.ts
+  error no-circular: src/shared/ui/atoms/dialog.tsx → 
+      src/shared/hooks/index.ts →
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/ActionButton.tsx →
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/dialog.tsx
+  error no-circular: src/shared/store/auth.store.ts → 
+      src/shared/utils/index.ts →
+      src/shared/utils/auth.util.ts →
+      src/shared/store/auth.store.ts
+  error no-circular: src/shared/lib/react-query/config/queryClient.ts → 
+      src/shared/lib/react-query/config/retry-policy.ts →
+      src/shared/utils/index.ts →
+      src/shared/utils/auth.util.ts →
+      src/shared/lib/index.ts →
+      src/shared/lib/react-query/config/queryClient.ts
+  error no-circular: src/shared/lib/react-query/config/queryClient.ts → 
+      src/shared/lib/react-query/config/mutation-auth-epoch.ts →
+      src/shared/store/auth.store.ts →
+      src/shared/utils/index.ts →
+      src/shared/utils/auth.util.ts →
+      src/shared/lib/index.ts →
+      src/shared/lib/react-query/config/queryClient.ts
+  error no-circular: src/shared/lib/react-query/config/mutation-auth-epoch.ts → 
+      src/shared/utils/index.ts →
+      src/shared/utils/auth.util.ts →
+      src/shared/lib/index.ts →
+      src/shared/lib/react-query/config/mutation-auth-epoch.ts
+  error no-circular: src/shared/lib/react-query/config/error-toast.ts → 
+      src/shared/utils/index.ts →
+      src/shared/utils/auth.util.ts →
+      src/shared/lib/index.ts →
+      src/shared/lib/react-query/config/error-toast.ts
+  error no-circular: src/shared/lib/index.ts → 
+      src/shared/lib/react-query/config/retry-policy.ts →
+      src/shared/utils/index.ts →
+      src/shared/utils/auth.util.ts →
+      src/shared/lib/index.ts
+  error no-circular: src/shared/lib/index.ts → 
+      src/shared/lib/react-query/config/queryClient.ts →
+      src/shared/lib/react-query/config/error-toast.ts →
+      src/shared/store/auth.store.ts →
+      src/shared/utils/index.ts →
+      src/shared/utils/auth.util.ts →
+      src/shared/lib/index.ts
+  error no-circular: src/shared/lib/index.ts → 
+      src/shared/lib/react-query/config/mutation-auth-epoch.ts →
+      src/shared/store/auth.store.ts →
+      src/shared/utils/index.ts →
+      src/shared/utils/auth.util.ts →
+      src/shared/lib/index.ts
+  error no-circular: src/shared/lib/index.ts → 
+      src/shared/lib/react-query/config/error-toast.ts →
+      src/shared/store/auth.store.ts →
+      src/shared/utils/index.ts →
+      src/shared/utils/auth.util.ts →
+      src/shared/lib/index.ts
+  error no-circular: src/shared/lib/firebase/useFcmForegroundMessage.ts → 
+      src/shared/store/auth.store.ts →
+      src/shared/utils/index.ts →
+      src/shared/utils/auth.util.ts →
+      src/shared/lib/index.ts →
+      src/shared/lib/firebase/useFcmForegroundMessage.ts
+  error no-circular: src/shared/lib/firebase/fcm.ts → 
+      src/shared/store/auth.store.ts →
+      src/shared/utils/index.ts →
+      src/shared/utils/auth.util.ts →
+      src/shared/lib/index.ts →
+      src/shared/lib/firebase/fcm.ts
+  error no-circular: src/shared/hooks/index.ts → 
+      src/shared/hooks/useUnsavedChangesGuard.ts →
+      src/shared/ui/elements/index.ts →
+      src/shared/ui/elements/ActionButton.tsx →
+      src/shared/ui/atoms/index.ts →
+      src/shared/ui/atoms/alert-dialog.tsx →
+      src/shared/hooks/index.ts
+  error no-circular: src/shared/api/upload.api.ts → 
+      src/shared/api/spec-client.ts →
+      src/shared/api/client.ts →
+      src/shared/store/auth.store.ts →
+      src/shared/utils/index.ts →
+      src/shared/utils/auth.util.ts →
+      src/shared/lib/index.ts →
+      src/shared/lib/upload/uploadImageAndGetUrl.ts →
+      src/shared/api/upload.api.ts
+  error no-circular: src/shared/api/client.ts → 
+      src/shared/utils/index.ts →
+      src/shared/utils/auth.util.ts →
+      src/shared/lib/index.ts →
+      src/shared/lib/firebase/fcm.ts →
+      src/shared/api/fcm.api.ts →
+      src/shared/api/spec-client.ts →
+      src/shared/api/client.ts
+  error no-circular: src/shared/api/client.ts → 
+      src/shared/store/auth.store.ts →
+      src/shared/utils/index.ts →
+      src/shared/utils/auth.util.ts →
+      src/shared/lib/index.ts →
+      src/shared/lib/firebase/fcm.ts →
+      src/shared/api/fcm.api.ts →
+      src/shared/api/spec-client.ts →
+      src/shared/api/client.ts
+
+x 54 dependency violations (54 errors, 0 warnings). 441 modules, 1611 dependencies cruised.
+

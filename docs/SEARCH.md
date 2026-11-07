@@ -300,7 +300,7 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 검색 중 하단 댓글바 숨김 동작 바꾸기                         | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useHistoryOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                                                                                                                                                                                     |
 | 검색 중 배경 클릭·포커스 차단 범위 바꾸기                    | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                                                                                                                                                                                   |
 | "검색어와 의미가 비슷한 글이에요" 안내 문구·표시 조건 바꾸기 | [`PostCard.tsx:208-216`](../src/widgets/post/post-card/ui/PostCard.tsx#L208-L216) — `post.isSemanticMatch`, 문구는 `TEXTS.post.card.semanticMatch`                                                                                                                                                                                                                  |
-| 필터 카드 카테고리 칩 미리 받기 바꾸기                       | [`src/app/routes/index.tsx:229`](../src/app/routes/index.tsx#L229) — `PostFeedRoute`(페이지 청크 요청과 같은 렌더에서 요청), 훅은 [`category.queries.ts:24`](../src/entities/category/api/category.queries.ts#L24) `usePrefetchCategoryOptions`                                                                                                                     |
+| 필터 카드 카테고리 칩 미리 받기 바꾸기                       | [`src/app/routes/AppRoutes.tsx:234`](../src/app/routes/AppRoutes.tsx#L234) — `PostFeedRoute`(페이지 청크 요청과 같은 렌더에서 요청), 훅은 [`category.queries.ts:24`](../src/entities/category/api/category.queries.ts#L24) `usePrefetchCategoryOptions`                                                                                                             |
 | 목록 첫 페이지 미리 받기 바꾸기                              | [`usePostFeedPrefetch.ts`](../src/widgets/post/post-list/hooks/usePostFeedPrefetch.ts)(라우트의 `PostFeedPrefetch`가 부른다). 조건 계산은 목록과 같은 [`post-list-payload.ts`](../src/widgets/post/post-list/utils/post-list-payload.ts)의 `toPostListPayload`를 써야 키가 같다                                                                                     |
 | 카테고리 응답 캐시 시간 바꾸기                               | BE `CategoryController.kt`의 `CATEGORY_LIST_CACHE_CONTROL`(BE #102)                                                                                                                                                                                                                                                                                                 |
 
@@ -590,7 +590,7 @@ nav 안(뷰포트 상단 인근)에 있어 `nearest`가 찾는 가장 가까운 
      게시글 595→1036ms, 카드 등장 1086ms, 카테고리 요청 1084ms, 칩 1277ms.
   3. 청크가 늦게 오면(800ms 지연으로 재현) 커밋 대기가 이미 끝나 카드가 바로 그려진다. 카테고리는 게시글과
      동시에 요청되지만 칩은 그 뒤에 들어와 카드 안이 밀렸다(390px 0.0245).
-- 해결: [`src/app/routes/index.tsx`](../src/app/routes/index.tsx)의 `PostFeedRoute`가 `usePrefetchCategoryOptions`
+- 해결: [`src/app/routes/AppRoutes.tsx`](../src/app/routes/AppRoutes.tsx)의 `PostFeedRoute`가 `usePrefetchCategoryOptions`
   (`usePrefetchQuery`)로 페이지 청크를 요청하는 같은 렌더에서 카테고리를 요청하고, 필터 카드의 `useQuery`는
   같은 키의 캐시를 읽는다. [TanStack Query 프리페치 가이드](https://tanstack.com/query/latest/docs/framework/react/guides/prefetching)가
   권하는 "Suspense 경계 앞에서 `usePrefetchQuery`" 형태이고, 상세 댓글 워터폴([`COMMENT.md`](./COMMENT.md))과
@@ -770,7 +770,7 @@ LCP 전체 측정과 다른 개선 후보는 [`PERFORMANCE.md`](./PERFORMANCE.md
   18이 커밋을 스피너가 처음 보인 시각 + 500ms까지 미루는 동작(`FALLBACK_THROTTLE_MS`). 그 사이 데이터가 오면
   한 번에 커밋한다(§10).
 - **`PostFeedRoute`**: `/post` 라우트 element. 페이지 청크와 같은 렌더에서 필터 카드의 카테고리와 목록 첫
-  페이지를 미리 요청한다([`src/app/routes/index.tsx`](../src/app/routes/index.tsx)). 목록은 URL을 구독해야 해서
+  페이지를 미리 요청한다([`src/app/routes/AppRoutes.tsx`](../src/app/routes/AppRoutes.tsx)). 목록은 URL을 구독해야 해서
   형제 컴포넌트 `PostFeedPrefetch`가 맡는다(§10 2026-10-26).
 - **`correctedSearch`**: 한/영 자판 오타 보정 시 BE가 응답에 함께 내려주는, 실제로 검색에
   쓰인 보정된 검색어. 타입은 `post.dto.ts`(BE OpenAPI 생성 타입 alias).

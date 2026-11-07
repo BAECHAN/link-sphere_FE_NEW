@@ -410,7 +410,7 @@ Resource Timing을 모았다. 모바일은 CDP `Network.emulateNetworkConditions
     `queryObserver.js:51`·`:445-452`로 마운트 때 다시 받는 것을 확인했다. 그래서 상세를 열면 요청 1회는 그대로 나간다. 줄어드는 것은 머물렀지만
     누르지 않은 카드의 요청이고, 그 양은 재지 못했다.
 - **모바일 — 한가할 때 청크를**: 터치 기기(`(pointer: coarse)`)에서는 피드 첫 썸네일이 그려진 뒤 브라우저가 한가할 때
-  상세 청크를 미리 받는다. 데이터 절약 모드(Save-Data)면 받지 않는다(`app/routes/index.tsx`의 `usePreloadPostDetailPageOnTouch`).
+  상세 청크를 미리 받는다. 데이터 절약 모드(Save-Data)면 받지 않는다(`app/routes/AppRoutes.tsx`의 `usePreloadPostDetailPageOnTouch`).
   비로그인 첫 진입에서 이 청크로 새로 받는 파일은 8개, brotli 약 11.7KB다. 처음에는 `load` 뒤 바로 받았는데, 운영에서 피드
   목록 응답과 회선을 나눠 써 LCP가 늦어져 같은 날 썸네일 뒤로 미뤘다(아래 "배포 뒤 재측정").
 
@@ -562,7 +562,7 @@ hover한 뒤 300ms 뒤에 눌렀다. 14:07~14:12 KST, 조건마다 5회, 실행 
   맞춘 추정이다.
 
 피드 LCP는 위 로컬 측정과 같은 스크립트를 운영 배포본에 돌려, 미리 받기를 켠 것과 끈 것(Save-Data 흉내)을 번갈아 10라운드
-쟀다(14:17~14:30 KST, 실행 사이 25초, Pixel 5, 위 모바일 감속). Save-Data를 읽는 곳은 `app/routes/index.tsx` 한 곳뿐이라
+쟀다(14:17~14:30 KST, 실행 사이 25초, Pixel 5, 위 모바일 감속). Save-Data를 읽는 곳은 `app/routes/AppRoutes.tsx` 한 곳뿐이라
 차이는 미리 받기에서만 나온다. 뒤 5라운드는 피드 목록 API와 긴 작업(long task)도 기록했다.
 
 | 항목                               | 켬                          | 끔            |
@@ -644,6 +644,121 @@ JS에 이미지 LCP를 기다리는 코드가 들어 있는지 확인했다. 피
   실패했는지가 없어서다. 그리던 화면의 청크라면 에러 경계가 복구한다.
 - 댓글 있는 글은 댓글 요청이 BE의 새 실행 환경에 걸려 500ms 넘게 걸리면 미리 받아도 상한까지 빈다(위 배포 뒤 재측정 첫 회차). FE에서
   줄일 수 있는 몫이 아니라 따로 손대지 않았다.
+
+### 배럴 비교 (직접 측정, 2026-11-07)
+
+배럴 금지의 근거 수치가 이 레포에서 잰 값이 아니어서, 같은 코드에 배럴을 입혀 쟀다. 계획과 판단은
+[`docs/plans/2026-11-07-barrel-measurement.md`](plans/2026-11-07-barrel-measurement.md), 스크립트와 원본 값은
+[`scripts/barrel-experiment/`](../scripts/barrel-experiment/)에 있다. 결론은 금지 유지다(2026-11-07 사용자 결정).
+
+| 변형 | 형태                                                                                         | 배럴 수 | 바뀐 파일 |
+| ---- | -------------------------------------------------------------------------------------------- | ------- | --------- |
+| A    | 직접 import(현재)                                                                            | 0       | 0         |
+| B    | FSD 공식형. `entities`·`features`·`widgets` 슬라이스마다 `index.ts`, named re-export         | 38      | 156       |
+| C    | B + `shared/ui/{atoms,elements,layouts}`·`shared/{utils,config,hooks,lib}`에 `export *` 배럴 | 45      | 435       |
+
+`pages`는 lazy 페이지를 하나로 묶으면 코드 분할이 깨져 배럴을 만들지 않았다.
+
+**재는 법:** 커밋 5395f532(`src` 621개 파일), Apple M4 Pro 한 대, Vite 6.4.1, Vitest 4.1.12다. 라운드마다 변형 순서를 돌렸고,
+`/api`는 전부 Playwright로 모킹했으며 localhost 밖 요청은 막았다. [폰트 preload 비교](#폰트-preload-비교-직접-측정-2026-10-27)와
+같이 같은 라운드 안의 차이(B−A, C−A)를 모아 중앙값을 봤다. max(100ms, A의 5%)를 넘고 라운드의 80% 이상이 같은 방향일 때만
+차이로 치고 굵게 표시했다. 방향 조건은 이번에 더했다. 괄호는 그 방향으로 나온 횟수다.
+
+| 지표                                 | A 중앙값(범위)           | B−A              | C−A                | 라운드 |
+| ------------------------------------ | ------------------------ | ---------------- | ------------------ | ------ |
+| dev 부팅(캐시 없음)                  | 225ms (182~785)          | +4ms (6/10)      | +1ms (5/10)        | 10     |
+| dev 부팅(캐시 있음)                  | 129ms (117~172)          | −1ms (6/10)      | +2ms (6/10)        | 10     |
+| `/post` 첫 화면(캐시 없는 서버 직후) | 1,203ms (1,083~1,570)    | −6ms (5/10)      | +24ms (8/10)       | 10     |
+| `/post` load                         | 565ms (528~601)          | +57ms (10/10)    | **+118ms (10/10)** | 10     |
+| `/post` 첫 화면                      | 798ms (755~838)          | +41ms (8/10)     | +44ms (10/10)      | 10     |
+| 새 탭 첫 화면                        | 243ms (226~283)          | +16ms (10/10)    | +52ms (10/10)      | 10     |
+| 상세 첫 화면                         | 236ms (217~393)          | +18ms (9/10)     | +44ms (9/10)       | 10     |
+| HMR 컴포넌트(`PostCard`)             | 173ms (84~218)           | −2ms (5/10)      | +7ms (6/10)        | 10     |
+| HMR 쿼리 키(`post.keys`)             | 219ms (114~229)          | −8ms (6/10)      | +11ms (7/10)       | 10     |
+| HMR 문구(`texts`)                    | 176ms (116~308)          | +13ms (8/10)     | **+151ms (9/10)**  | 10     |
+| 운영 LCP(preview, CPU 4배 감속)      | 360ms (336~408)          | −12ms (6/10)     | −6ms (6/10)        | 10     |
+| `vite build`                         | 2,167ms (2,135~2,259)    | −5ms (3/5)       | −1ms (3/5)         | 5      |
+| 타입체크(`tsc -b --force --noEmit`)  | 5,241ms (5,223~5,271)    | **+381ms (5/5)** | +132ms (5/5)       | 5      |
+| 단위 테스트 전체                     | 25,569ms (24,859~25,657) | +659ms (3/5)     | **+2,887ms (5/5)** | 5      |
+
+시간 밖의 차이는 아래와 같다.
+
+| 항목                                                   | A              | B              | C                                 |
+| ------------------------------------------------------ | -------------- | -------------- | --------------------------------- |
+| `/post`·상세 모듈 요청 수                              | 225·244        | 260·295        | 296·314                           |
+| `texts.ts` 저장 시                                     | 모듈 44개 갱신 | 모듈 47개 갱신 | **전체 새로고침(10/10)**          |
+| 런타임 순환 의존(타입 import·테스트 제외)              | 0              | 0              | **54건**                          |
+| 단위 테스트 2,601개                                    | 전부 통과      | 전부 통과      | **138개 실패(18파일)**, 아래 참고 |
+| `tsconfig.e2e.json`                                    | 그대로         | 고쳐야 통과    | 고쳐야 통과                       |
+| 첫 로딩 JS(brotli)                                     | 180.65KB       | 180.74KB       | 180.46KB                          |
+| 전체 JS(brotli)                                        | 279.28KB       | 279.31KB       | 279.03KB                          |
+| 첫 로딩 JS, `moduleSideEffects`를 기본값으로 바꾼 경우 | 192.52KB       | 194.04KB       | **207.45KB**                      |
+
+`tsconfig.e2e.json`은 e2e 픽스처의 타입 import가 배럴을 지나면서 슬라이스 전체(`.tsx` 포함)가 e2e 타입 프로젝트로 끌려와 고쳐야 했다.
+`jsx` 설정과 `src/vite-env.d.ts`·`src/types/*.d.ts`를 더해야 타입체크가 통과했다(TS6142·TS2552·TS2339). 위 "바뀐 파일" 수에 들어 있다.
+
+**외부 주장과 비교**
+
+| 외부 주장                                                                                                                                            | 이 레포 실측                                  | 결과                     |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------ |
+| [Vercel 글](https://vercel.com/blog/how-we-optimized-package-imports-in-next-js)(Shu Ding, 2023-10-13): 로컬 개발 부팅 _"15%~70%"_ (번역)            | B +4ms, C +1ms                                | 재현 안 됨               |
+| 같은 글: `next build` _"약 28%"_ (번역)                                                                                                              | B −5ms, C −1ms                                | 재현 안 됨               |
+| 같은 글: 콜드 스타트 _"최대 40%"_ (번역)                                                                                                             | FE는 S3 정적 파일이라 서버 콜드 스타트가 없음 | 재지 않음                |
+| [Vite 문서](https://vite.dev/guide/performance.html#avoid-barrel-files): _"API 하나만 import해도 배럴 안의 파일을 전부 가져와 변환해야 한다"_ (번역) | `/post` 모듈 요청 225 → 260 → 296             | 재현됨, 시간 증가는 작음 |
+
+Vercel 수치는 유명 아이콘·컴포넌트 라이브러리와 Next.js 기준이라, 앱 안에 만든 배럴과는 상황이 다르다.
+
+**번들이 같은 이유:** `vite.config.ts`의 `treeshake.moduleSideEffects`가 CSS와 Firebase 밖의 모듈을 부수 효과 없음으로 보기
+때문이다. 이 설정만 Rollup 기본값으로 바꾸면 C의 첫 로딩이 A보다 14.93KB(+7.8%) 커진다. 계획에 없던 보조 측정이다.
+
+**C의 단위 테스트가 깨진 이유:** `src/test/setup.ts`가 불러오는 모듈이 배럴을 지나 늘어난다.
+
+```mermaid
+flowchart LR
+  S["src/test/setup.ts"] --> B["shared/lib 배럴(C에만 있음)"]
+  B --> N["진짜 navigation.ts가 먼저 로드됨"]
+  N --> F["테스트의 vi.mock이 먹히지 않음<br/>navigate is not a spy"]
+```
+
+`setup.ts`에서 닿는 모듈이 A는 24개, C는 163개다. 이 24개 파일 중 C에서 달라진 11개를 A 내용으로 되돌리자 138개 실패가 사라졌다.
+원인 범위는 이 실험으로 확인했고, Vitest 내부에서 왜 그렇게 되는지는 소스를 따라가지 않았다. 되돌린 뒤에도
+`usePostDetail.test.tsx`의 테스트 1개가 C에서만 5번 중 2번 실패했다(A·B는 5번씩 모두 통과, 원인 미확인). 재측정 전 단독 실행에서는 시간에
+민감한 다른 테스트 3개가 한 번 실패했고, 재측정에서는 다시 나오지 않았다.
+
+**한계**
+
+- 이 기기 한 대, 지금 코드 규모의 값이다. 배럴은 코드모드로 만들어 사람이 고른 형태와 다를 수 있다.
+- LCP는 썸네일 없는 목 데이터에 네트워크 감속이 없다.
+- 부하가 있는 상태에서 쟀다. 1분 부하 중앙값은 dev 5.4, LCP 4.3, 빌드·타입체크·테스트 14.8이다. 코어 수(12)를 넘은 라운드는 dev 0/10,
+  LCP 0/10, 빌드·타입체크·테스트 4/5다. 부하는 각 실행이 끝난 직후에 기록해서 빌드·타입체크·테스트 값에는 자기 자신이 쓴 CPU가 섞여 있고, 다른
+  작업과 겹쳤는지는 가려낼 수 없다. 가장 높았던 라운드(28.3)를 빼도(`report.mjs --max-load 20`) 판정은 같다.
+- 첫 측정 중 두 번을 버렸다. 다시 잴 때는 macOS면 `caffeinate -i`로 묶는다.
+  - 빌드·타입체크·테스트: 기기 잠듦과 부하(1분 평균 최대 125)로 오염됐다(`results/tool-discarded.jsonl`). 그때 C 타입체크가 +1,267ms였지만
+    재측정에서 +132ms였다.
+  - LCP: 5라운드째에 기기가 15분 잠들었다(`pmset -g log`, 16:11:02 Idle Sleep → 16:26:12 깨어남, `results/lcp-discarded.jsonl`). A가 480ms·1,100ms까지
+    튀었지만 차이의 중앙값은 B −6ms, C −10ms로 판정이 같았다. 두 측정의 A 중앙값이 290ms와 360ms로 달라, 절대값보다 같은 라운드 안의 차이를 본다.
+- 재측정의 C는 위 11개 파일을 되돌린 상태이고, dev·LCP·번들의 C는 되돌리기 전 상태다. B가 C보다 타입체크가 느린 이유는 찾지 못했다.
+- 이 실험은 비용만 쟀다. B가 주는 이득(슬라이스 공개 범위를 파일 하나로 관리)은 재지 않았다.
+
+**재현** (실험 워크트리 `barrel-exp-{a,b,c}`를 같은 커밋에 detached로 만든 뒤, 이 레포 워크트리에서)
+
+```bash
+node scripts/barrel-experiment/apply-barrels.mjs --root ../barrel-exp-b --variant b
+node scripts/barrel-experiment/apply-barrels.mjs --root ../barrel-exp-c --variant c
+caffeinate -i node scripts/barrel-experiment/measure.mjs --suite dev --rounds 10 --out dev.jsonl --exp ..
+caffeinate -i node scripts/barrel-experiment/measure.mjs --suite lcp --rounds 10 --out lcp.jsonl --exp ..
+caffeinate -i node scripts/barrel-experiment/measure.mjs --suite bundle --out bundle.jsonl --exp ..
+node scripts/barrel-experiment/setup-graph.mjs --exp .. --narrow # C의 테스트가 돌도록 11개 파일을 되돌린다
+caffeinate -i node scripts/barrel-experiment/measure.mjs --suite tool --rounds 5 --out tool.jsonl --exp ..
+node scripts/barrel-experiment/report.mjs dev.jsonl lcp.jsonl tool.jsonl bundle.jsonl
+```
+
+순환 의존은 `pnpm --dir ../barrel-exp-c exec depcruise src --config <이 레포>/scripts/barrel-experiment/circular.depcruise.cjs --output-type err`,
+`moduleSideEffects` 보조 측정은 `node scripts/barrel-experiment/default-side-effects.mjs --exp ..` 뒤에 bundle 스위트를 다시 돈다.
+
+**원본 값**(`scripts/barrel-experiment/results/`): 시간·번들은 `{dev,lcp,tool,bundle}.jsonl`, 순환 의존은 `circular-{a,b,c}.txt`, 배럴 수와 바뀐 파일은
+`codemod-{b,c}.json`, `setup.ts`에서 닿는 모듈과 되돌린 11개는 `setup-graph.txt`·`setup-graph-narrow.txt`, C의 테스트 실패 목록은
+`test-c-codemod-failures.txt`(138개)·`test-c-standalone-failures.txt`(재측정 전 단독 실행 3개)다.
 
 ## Best Practices 77점 사례 (2026-10-26)
 

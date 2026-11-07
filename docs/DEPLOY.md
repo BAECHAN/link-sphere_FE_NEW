@@ -661,7 +661,7 @@ Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 
 
 - **이 Function들은 위 `deploy.yml` 파이프라인이 배포하지 않는다** — 변경이 필요하면 아래 절차를 수동으로 실행한다.
 - **라우트를 추가하면 `spa-fallback.js`의 `APP_ROUTES`도 고치고 재배포한다.** Function은 앱 코드를 import할 수
-  없어 `src/app/routes/index.tsx`의 경로를 손으로 옮겨 뒀다. 빠뜨리면
+  없어 `src/app/routes/AppRoutes.tsx`의 경로를 손으로 옮겨 뒀다. 빠뜨리면
   [`src/app/routes/cloudfront-functions.test.ts`](../src/app/routes/cloudfront-functions.test.ts)가 실패한다. 재배포를
   잊으면 새 라우트에 직접 접속했을 때 화면은 정상이지만 HTTP 상태가 404가 된다(사용자는 모르고 검색엔진·링크
   미리보기만 영향을 받는다).
