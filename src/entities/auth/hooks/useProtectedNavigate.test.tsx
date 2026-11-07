@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { renderHook, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
+import { MemoryRouter, useLocation, useNavigate, type MemoryRouterProps } from 'react-router-dom';
 import { type ReactNode } from 'react';
 import { useProtectedNavigate } from '@/entities/auth/hooks/useProtectedNavigate';
 import { useAuthStore } from '@/shared/store/auth.store';
@@ -10,26 +10,30 @@ import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 function LocationProbe() {
   const location = useLocation();
   const navigate = useNavigate();
-  const state = location.state as { loginDialogOpen?: boolean } | null;
+  const state = location.state as { loginDialogOpen?: boolean; sidebarOpen?: boolean } | null;
   return (
     <div>
       <div data-testid="pathname">{location.pathname}</div>
       <div data-testid="login-dialog-open">{String(Boolean(state?.loginDialogOpen))}</div>
+      <div data-testid="sidebar-open">{String(Boolean(state?.sidebarOpen))}</div>
       <button onClick={() => navigate(-1)}>back</button>
     </div>
   );
 }
 
-function createWrapper() {
+function createWrapper(initialEntries: MemoryRouterProps['initialEntries'] = ['/from']) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <MemoryRouter initialEntries={['/from']}>
+      <MemoryRouter initialEntries={initialEntries}>
         {children}
         <LocationProbe />
       </MemoryRouter>
     );
   };
 }
+
+// 모바일 메뉴 엔트리에서 떠나는 상황: [/from, /from + 메뉴 열림]
+const DRAWER_ENTRIES = ['/from', { pathname: '/from', state: { sidebarOpen: true } }];
 
 describe('useProtectedNavigate', () => {
   afterEach(() => {
@@ -72,5 +76,53 @@ describe('useProtectedNavigate', () => {
     fireEvent.click(screen.getByText('back'));
     await waitFor(() => expect(screen.getByTestId('pathname')).toHaveTextContent('/from'));
     expect(screen.getByTestId('login-dialog-open')).toHaveTextContent('false');
+  });
+
+  describe('replace 옵션 (모바일 메뉴 엔트리에서 떠날 때)', () => {
+    function renderFromDrawerEntry() {
+      return renderHook(() => useProtectedNavigate(), {
+        wrapper: createWrapper(DRAWER_ENTRIES),
+      });
+    }
+
+    async function expectBackToEntryBelowDrawer() {
+      fireEvent.click(screen.getByText('back'));
+      await waitFor(() => expect(screen.getByTestId('sidebar-open')).toHaveTextContent('false'));
+      expect(screen.getByTestId('pathname')).toHaveTextContent('/from');
+      expect(screen.getByTestId('login-dialog-open')).toHaveTextContent('false');
+    }
+
+    it('로그인 상태면 메뉴 엔트리를 대상 경로로 교체해, 뒤로 와도 메뉴가 안 열린다', async () => {
+      useAuthStore.getState().setAuth('token');
+      const { result } = renderFromDrawerEntry();
+
+      act(() => result.current('/to', { replace: true }));
+
+      expect(screen.getByTestId('pathname')).toHaveTextContent('/to');
+      await expectBackToEntryBelowDrawer();
+    });
+
+    it('비로그인이면 로그인 창이 메뉴 엔트리를 대체해, 취소해도 메뉴가 안 열린다', async () => {
+      const { result } = renderFromDrawerEntry();
+
+      act(() => result.current('/to', { replace: true }));
+
+      expect(screen.getByTestId('pathname')).toHaveTextContent('/from');
+      expect(screen.getByTestId('login-dialog-open')).toHaveTextContent('true');
+      expect(screen.getByTestId('sidebar-open')).toHaveTextContent('false');
+      await expectBackToEntryBelowDrawer();
+    });
+
+    it('비로그인 후 로그인에 성공해 이동한 뒤 뒤로 와도 메뉴·로그인 창이 안 열린다', async () => {
+      const { result } = renderFromDrawerEntry();
+
+      act(() => result.current('/to', { replace: true }));
+      act(() => {
+        useLoginDialogStore.getState().onSuccess?.();
+      });
+      await waitFor(() => expect(screen.getByTestId('pathname')).toHaveTextContent('/to'));
+
+      await expectBackToEntryBelowDrawer();
+    });
   });
 });

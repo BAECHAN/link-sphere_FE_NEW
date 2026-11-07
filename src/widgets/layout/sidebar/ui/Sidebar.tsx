@@ -14,6 +14,28 @@ import { useSidebarStore } from '@/shared/store/sidebar.store';
 import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 import { useProtectedNavigate } from '@/entities/auth/hooks/useProtectedNavigate';
 
+// 모바일 드로어 안의 링크가 드로어 엔트리를 떠나는 방식. 드로어 엔트리를 남기면 뒤로 왔을 때 드로어가 다시 열리므로
+// 이동할 화면으로 교체하고(useMobileSearchPanel.ts와 같은 방식), 지금 화면을 가리키면 드로어만 닫는다 - 교체하면 같은
+// 화면이 두 칸 남아 다음 뒤로가기 한 번이 화면을 바꾸지 못한다(docs/plans/2026-11-07-sidebar-back-reopen.md).
+function useDrawerLink(to: string, inDrawer: boolean) {
+  const { pathname, search } = useLocation();
+  const { close } = useHistoryOverlay('sidebarOpen');
+
+  const closeIfCurrentScreen = (e: React.MouseEvent) => {
+    if (!inDrawer || to !== `${pathname}${search}`) {
+      return false;
+    }
+
+    e.preventDefault();
+    close();
+
+    return true;
+  };
+
+  // 드로어 밖에는 undefined를 넘긴다 - false면 Link가 같은 주소를 교체로 처리하는 기본 동작까지 꺼진다
+  return { replace: inDrawer || undefined, closeIfCurrentScreen };
+}
+
 function NavItem({
   to,
   icon: Icon,
@@ -21,25 +43,32 @@ function NavItem({
   isActive,
   requiresAuth,
   expanded,
-}: NavItemConfig & { expanded: boolean }) {
+  inDrawer = false,
+}: NavItemConfig & { expanded: boolean; inDrawer?: boolean }) {
   const { pathname } = useLocation();
   const protectedNavigate = useProtectedNavigate();
+  const { replace, closeIfCurrentScreen } = useDrawerLink(to, inDrawer);
   const active = isActive(pathname);
 
-  // 모바일 드로어를 별도로 닫지 않는다 - 아래 두 분기 모두 어차피 새 위치로 navigate하고,
+  // 이동할 때는 모바일 드로어를 별도로 닫지 않는다 - 아래 두 분기 모두 어차피 새 위치로 navigate하고,
   // 그 위치의 location.state엔 sidebarOpen이 없어 드로어는 자연히 사라진다. 여기서
   // navigate(-1)(드로어 close)까지 같이 호출하면 비동기 go(-1)이 뒤늦게 처리되면서
-  // 방금 push한(비로그인 시 로그인모달 open 등) 엔트리를 엉뚱하게 삼켜버리는 레이스가 생겼다.
+  // 방금 넣은(비로그인 시 로그인모달 open 등) 엔트리를 엉뚱하게 삼켜버리는 레이스가 생겼다.
   const handleClick = (e: React.MouseEvent) => {
+    if (closeIfCurrentScreen(e)) {
+      return;
+    }
+
     if (requiresAuth) {
       e.preventDefault();
-      protectedNavigate(to);
+      protectedNavigate(to, { replace });
     }
   };
 
   return (
     <Link
       to={to}
+      replace={replace}
       onClick={handleClick}
       className={cn(
         'flex items-center rounded-xl w-full select-none hover:bg-accent',
@@ -89,6 +118,7 @@ function SidebarHeader({
   // 데스크톱 햄버거는 펼침/접힘을 뒤집으므로 더블클릭 가드가 있는 ToggleButton을 쓴다.
   // 모바일 드로어의 X는 항상 "닫기"라 토글이 아니므로 일반 Button으로 둔다.
   const ToggleOrCloseButton = showCloseIcon ? Button : ToggleButton;
+  const { replace, closeIfCurrentScreen } = useDrawerLink(ROUTES_PATHS.POST.ROOT, showCloseIcon);
   return (
     <div
       className={cn('h-16 flex items-center shrink-0', expanded ? 'px-3 gap-3' : 'justify-center')}
@@ -108,8 +138,13 @@ function SidebarHeader({
         <span className="sr-only">{getToggleLabel(showCloseIcon, expanded)}</span>
       </ToggleOrCloseButton>
       {expanded && (
-        // eslint-disable-next-line custom-tailwind/no-raw-title -- 브랜드 워드마크, 제목 역할 토큰 대상 아님
-        <Link to={ROUTES_PATHS.POST.ROOT} className="font-bold text-xl tracking-tight truncate">
+        <Link
+          to={ROUTES_PATHS.POST.ROOT}
+          replace={replace}
+          onClick={closeIfCurrentScreen}
+          // eslint-disable-next-line custom-tailwind/no-raw-title -- 브랜드 워드마크, 제목 역할 토큰 대상 아님
+          className="font-bold text-xl tracking-tight truncate"
+        >
           {TEXTS.nav.brand}
         </Link>
       )}
@@ -237,7 +272,7 @@ export function Sidebar() {
         <SidebarHeader expanded onToggle={close} showCloseIcon toggleRef={drawerCloseRef} />
         <nav className="flex flex-col gap-1 py-4 px-2">
           {NAV_ITEMS.map((item) => (
-            <NavItem key={item.to} {...item} expanded />
+            <NavItem key={item.to} {...item} expanded inDrawer />
           ))}
         </nav>
       </aside>

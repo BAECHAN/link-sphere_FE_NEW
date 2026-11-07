@@ -9,7 +9,7 @@ import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
-// useProtectedNavigate(entities/auth/hooks/useProtectedNavigate.ts:18-30) — 좋아요·북마크·
+// useProtectedNavigate(entities/auth/hooks/useProtectedNavigate.ts:20-38) — 좋아요·북마크·
 // 댓글을 막는 useAuthGuard(guest-guard.spec.ts)와는 다른 메커니즘이다. 저건 "액션 자체를
 // 실행하지 않는다"이고 이건 "이동을 막고 로그인 성공 후 원래 목적지로 보낸다"라서 라우팅
 // 가드가 실제로 성립하는지는 이 스펙에서만 검증된다. 이 fixture는 의도적으로 auth.fixture를
@@ -75,7 +75,7 @@ test.describe('보호 라우트 네비게이션 가드', () => {
     );
     await dialog.getByRole('button', { name: TEXTS.auth.login.signIn }).click();
 
-    // useProtectedNavigate.ts:26 — replace 이동이라야 히스토리가 [/post, /bookmark] 2칸이다.
+    // useProtectedNavigate.ts:28 — replace 이동이라야 히스토리가 [/post, /bookmark] 2칸이다.
     // push였다면 로그인모달 엔트리가 그 사이에 orphan으로 남아 뒤로가기 1회로 모달이 재등장한다.
     await expect(page).toHaveURL(/\/bookmark$/);
     await folderPosts;

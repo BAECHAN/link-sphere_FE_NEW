@@ -51,6 +51,21 @@ describe('useHistoryOverlay', () => {
     expect(navigateSpy).not.toHaveBeenCalled();
   });
 
+  it('openReplacingCurrent는 preventScrollReset과 함께 지금 엔트리를 교체한다', () => {
+    // 모바일 메뉴에서 로그인 창을 이어 열 때 쓴다 - 메뉴 엔트리를 남기면 닫은 뒤 메뉴가 다시 열린다
+    const { result } = renderHook(() => useHistoryOverlay('loginDialogOpen'), {
+      wrapper: Wrapper,
+    });
+
+    result.current.openReplacingCurrent();
+
+    expect(navigateSpy).toHaveBeenCalledWith('/post/1', {
+      state: { loginDialogOpen: true },
+      preventScrollReset: true,
+      replace: true,
+    });
+  });
+
   it('닫혀 있을 때 close는 navigate(-1)을 호출하지 않는다', () => {
     const { result } = renderHook(() => useHistoryOverlay('imageViewerOpen'), {
       wrapper: Wrapper,
