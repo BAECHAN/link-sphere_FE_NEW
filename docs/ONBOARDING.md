@@ -37,7 +37,7 @@ flowchart LR
 
 - FE와 BE는 **같은 도메인(CloudFront)** 을 쓰고, 경로로 갈린다(`/api/*`만 BE).
 - **RSS 수집·탈퇴 만료 정리·고아 업로드 이미지 정리는 EventBridge 룰 하나를 공유한다** — 한쪽 주기를 바꾸면 나머지도 바뀐다
-  ([RSS-FEED-BOT](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/RSS-FEED-BOT.md), 룰 조작은 [BE DEPLOY](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/DEPLOY.md)). 이 인프라의 설정값은 이 레포에 없다. 비공개 저장소 `link-sphere-infra`의 CDK 코드가 기록하고 매일 실제와 비교한다([`DEPLOY.md`](./DEPLOY.md) "AWS 설정 코드화(CDK)").
+  ([RSS-FEED-BOT](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/RSS-FEED-BOT.md), 룰 조작은 [BE DEPLOY](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/DEPLOY.md)). 이 인프라의 설정값은 이 레포에 없다. 비공개 저장소 `link-sphere-infra`의 CDK 코드가 관리하고, 값은 그 저장소 PR로 바꾼다([`DEPLOY.md`](./DEPLOY.md) "AWS 설정 코드화(CDK)").
 - 인프라·배포 파이프라인 상세: [`SYSTEM-ARCHITECTURE.md`](./SYSTEM-ARCHITECTURE.md) §1(시스템), §2(배포), §3(FE), §4(BE)
 - FE 내부 코드 구조(FSD 레이어): [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §1·§3
 - FE 실제 import 구조를 그림으로 보기: `pnpm graph:archi`(슬라이스 단위), `pnpm graph "<경로>"`(특정 파일에 닿는 모든 파일)
