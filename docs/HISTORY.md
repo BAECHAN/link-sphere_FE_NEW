@@ -1,3 +1,6 @@
+### 2026-11-07 (FE)
+- 불필요한 의존성 제거를 통한 번들 사이즈 최적화 ([#582](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/582))
+
 ### 2026-11-07 (BE)
 - Lambda를 통한 비정상 주소 처리 로직을 이전 상태로 롤백 ([#182](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/182))
 
