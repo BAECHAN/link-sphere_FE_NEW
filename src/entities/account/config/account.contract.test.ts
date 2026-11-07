@@ -4,30 +4,18 @@ import {
   NICKNAME_MIN_LENGTH,
   NICKNAME_PATTERN,
 } from '@/entities/account/config/account.contract';
-import {
-  signupBodyNicknameMax,
-  signupBodyNicknameMin,
-  signupBodyNicknameRegExp,
-  updateAccountBodyNicknameMax,
-  updateAccountBodyNicknameMin,
-  updateAccountBodyNicknameRegExp,
-} from '@/shared/api/generated/openapi.zod';
 import { TEXTS } from '@/shared/config/texts';
+import { specNumber, specPattern } from '@/test/openapi-spec';
 
 // BE 값이 바뀌면 FE codegen PR에서 이 테스트가 실패해, 손으로 둔 상수와 안내 문구를 고칠 자리를 알린다
 describe('닉네임 계약 상수 ≡ 스펙', () => {
   it.each([
-    ['가입', signupBodyNicknameMin, signupBodyNicknameMax, signupBodyNicknameRegExp],
-    [
-      '계정 수정',
-      updateAccountBodyNicknameMin,
-      updateAccountBodyNicknameMax,
-      updateAccountBodyNicknameRegExp,
-    ],
-  ])('%s 요청과 같은 규칙이다', (_, min, max, pattern) => {
-    expect(NICKNAME_MIN_LENGTH).toBe(min);
-    expect(NICKNAME_MAX_LENGTH).toBe(max);
-    expect(NICKNAME_PATTERN.source).toBe(pattern.source);
+    ['가입', 'signup'],
+    ['계정 수정', 'updateAccount'],
+  ] as const)('%s 요청과 같은 규칙이다', (_, operationId) => {
+    expect(NICKNAME_MIN_LENGTH).toBe(specNumber(operationId, 'nickname', 'minLength'));
+    expect(NICKNAME_MAX_LENGTH).toBe(specNumber(operationId, 'nickname', 'maxLength'));
+    expect(NICKNAME_PATTERN.source).toBe(specPattern(operationId, 'nickname').source);
   });
 
   it('안내 문구의 숫자가 상수와 같다', () => {

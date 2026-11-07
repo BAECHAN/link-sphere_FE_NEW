@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-11-06
+> **마지막 검토**: 2026-11-07
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -102,7 +102,6 @@ flowchart TD
 | `custom-query-rules/no-entity-query-import-outside-hooks`                                                      | `features/**`·`pages/**`에서 entity 쿼리 훅(`*.queries`) import — 각 레이어의 `hooks/**` 밖에서는 금지 (2026-09-29 pages도 대상에 추가, widgets는 대상 아님, §8 참고)                                                                                                                                                                         |
 | `custom-query-rules/no-query-client-singleton-import`                                                          | `queryClient` 싱글턴 직접 import — `QueryProvider.tsx`·`auth.util.ts` 두 곳만 예외                                                                                                                                                                                                                                                            |
 | `custom-api-rules/no-raw-api-client-import`                                                                    | `apiClient` 값 import — BE 호출은 `specClient`(스펙 경로)로만, `spec-client.ts`·테스트만 예외(타입 import는 허용, §5 Layer 1)                                                                                                                                                                                                                 |
-| `custom-api-rules/no-generated-zod-import`                                                                     | orval 생성 파일(`openapi.zod`)의 import·재수출·동적 `import()` — `src/entities/**/config/*.contract.test.ts`만 예외(타입 전용은 허용, §9)                                                                                                                                                                                                     |
 | `custom-query-rules/scope-mutation-auth-epoch`                                                                 | `scope`·`mutationFn`을 함께 가진 객체에서 첫 줄의 `assertMutationAuthEpochUnchanged(context)` 누락 — §11 6번. 본체는 `scripts/lib/`, 옵션을 변수·스프레드로 넘기면 못 잡음                                                                                                                                                                    |
 | `custom-query-rules/mutation-retry-declared`                                                                   | `mutationFn`을 가진 객체에서 `retry` 누락, `false`·`shouldRetryIdempotentMutation` 외의 값, 재전송인데 첫 줄의 `assertMutationAuthEpochUnchanged(context)` 누락 — §28. 본체는 `scripts/lib/`, 옵션을 변수·스프레드로 넘기면 못 잡음                                                                                                           |
 | `custom-i18n/no-hardcoded-hangul`                                                                              | 한글 UI 문자열 하드코딩 — `TEXTS`만 허용                                                                                                                                                                                                                                                                                                      |
@@ -299,7 +298,7 @@ src/
     │   ├── spec-types.ts         # specClient가 쓰는 경로→요청·응답 타입 헬퍼(타입만)
     │   ├── upload.api.ts         # uploadApi — 서명 URL 발급 + PUT 요청 함수
     │   ├── fcm.api.ts             # fcmApi — FCM 토큰 등록
-    │   └── generated/            # openapi.json(스펙 스냅샷) + openapi.gen.ts(생성 타입) + openapi.zod.ts(요청 제약 상수, 계약 테스트 전용) — 커밋됨, 직접 편집 금지
+    │   └── generated/            # openapi.json(스펙 스냅샷) + openapi.gen.ts(생성 타입) — 커밋됨, 직접 편집 금지
     ├── config/
     │   ├── texts.ts               # 모든 UI 문자열 (TEXTS)
     │   ├── api.ts                 # API 엔드포인트 상수 (API_ENDPOINTS — client.ts 인증 판별·테스트용, *.api.ts는 specClient)
@@ -334,7 +333,7 @@ src/
 ```
 
 레이어에 속하지 않는 최상위 디렉터리도 있다 — `src/mocks/`(MSW `handlers/`·`fixtures/`),
-`src/test/`(Vitest `setup.ts`·`utils.tsx`), `src/types/`(전역 타입 선언), `src/main.tsx`(앱
+`src/test/`(Vitest `setup.ts`·`utils.tsx`, 계약 테스트 헬퍼 `openapi-spec.ts`), `src/types/`(전역 타입 선언), `src/main.tsx`(앱
 진입점). ESLint `no-restricted-imports`의 레이어 5블록(줄 번호는 §2 관례대로 생략 — `grep -n
 "no-restricted-imports" eslint.config.js`로 찾는다)은
 `shared`/`entities`/`features`/`widgets`/`pages` 5개 레이어 디렉터리만 `files`로 잡아 이
@@ -735,14 +734,13 @@ export type { Entity } from '@/entities/<entity>/model/<entity>.dto';
 `z.coerce.date()` 대상이 아니다 — 표시는 `dayjs`/`DateUtil`로 한다.
 
 **BE와 같아야 하는 입력 제약 값(길이·개수·패턴)은 `config/<entity>.contract.ts`에 손으로 두고, 같은 폴더의
-`<entity>.contract.test.ts`가 스펙에서 생성한 상수(`shared/api/generated/openapi.zod.ts`)와 대조한다.** 스키마는
+`<entity>.contract.test.ts`가 스펙(`shared/api/generated/openapi.json`)의 값과 대조한다.** 스키마는
 숫자·정규식을 직접 적지 않고 이 상수를 쓴다(`account.schema.ts`의 `NICKNAME_*`). 예외는 비밀번호 스키마
 (`auth.schema.ts`의 `passwordValidationSchema`)다 — 안내 문구를 나누려고 정규식을 둘로 직접 적고 최소 길이도 그 안(`.{8,}`)에
 품는다. 대신 `auth.contract.test.ts`가 표본 문자열마다 스펙 규칙과 판정이 같은지 비교한다. 댓글 본문 바이트 상한
-(`MAX_COMMENT_CONTENT_BYTES`)도 BE와 같아야 하지만 생성 상수가 없어(`x-max-bytes` 확장) 같은 WAF 대응 상수들과 함께
-`comment.const.ts`에 두고, 대조는 `comment.contract.test.ts`가 한다. 생성 파일은 런타임 코드에서 import하지
-않는다 — 그 안의 `zod.object(...)` 호출이 트리셰이킹으로 빠지지 않아, 목록 페이지 같은 첫 화면 청크가 zod-vendor를
-끌어온다(ESLint `custom-api-rules/no-generated-zod-import`가 막는다, 근거와 측정은 `docs/OPENAPI-CODEGEN.md` §5-6).
+(`MAX_COMMENT_CONTENT_BYTES`)도 BE와 같아야 하지만 같은 WAF 대응 상수들과 함께 `comment.const.ts`에 두고, 대조는
+`comment.contract.test.ts`가 한다(스펙에는 `x-max-bytes` 확장으로 실린다). 테스트는 `src/test/openapi-spec.ts`의
+`specNumber`·`specPattern`으로 값을 operationId에서 읽고, 못 찾으면 throw한다(근거와 측정은 `docs/OPENAPI-CODEGEN.md` §5-6).
 BE 값이 바뀌면 FE codegen PR에서 계약 테스트가 실패해 고칠 상수와 TEXTS 문구를 가리킨다.
 
 ---
@@ -1564,7 +1562,7 @@ pnpm graph:focus <정규식>  # 그 모듈의 바로 이웃만 — 그 모듈을
                     # graph·graph:focus 뒤에 --text를 붙이면 브라우저 없이 목록만 출력(.claude/CLAUDE.md §5)
 pnpm graph:archi    # 슬라이스 단위 전체 구조(pages → entities, shared 제외)
 node scripts/dep-graph.js --affected <기준 커밋>  # 바뀐 src 파일과 거기 닿는 파일 그림(마크다운) — CI가 PR마다 Step Summary와 PR 댓글(하나를 계속 갱신)에 붙인다
-pnpm codegen        # openapi.json → openapi.gen.ts 타입 + openapi.zod.ts 입력 제약 상수 생성
+pnpm codegen        # openapi.json → openapi.gen.ts 타입 생성
 pnpm codegen:fetch  # BE에서 openapi.json 새로 받아오기
 pnpm test           # Vitest 테스트 실행 (CI)
 pnpm test:watch     # Vitest 테스트 감시 모드

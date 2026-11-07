@@ -1,7 +1,7 @@
 // BE 요청 본문과 같아야 하는 폴더 이름 최대 길이(BE BookmarkFolderLimits.MAX_NAME_LENGTH). 값은 손으로 두고
-// bookmark-folder.contract.test.ts가 스펙에서 생성한 상수(openapi.zod.ts)와 대조한다 - 생성 파일을 런타임에 import하면
-// 그 안의 zod.object(...) 호출 때문에 zod-vendor가 첫 화면 청크에 실린다(docs/OPENAPI-CODEGEN.md §5-6). 이 상수는 목록
-// 카드의 북마크 토글(BookmarkFolderUtil)이 쓴다.
+// bookmark-folder.contract.test.ts가 스펙(openapi.json)의 값과 대조한다 - 런타임은 스펙을
+// 싣지 않고 이 상수만 쓴다(docs/OPENAPI-CODEGEN.md §5-6). 이 상수는 목록 카드의 북마크
+// 토글(BookmarkFolderUtil)이 쓴다.
 //
 // 스펙의 maxLength는 값만 담는다 - BE와 FE(BookmarkFolderUtil)는 둘 다 앞뒤 공백을 뗀 뒤 코드포인트로 센다. 이름은 어절
 // 단위로 줄바꿈하고 사이드바·모바일 카드는 2줄에서 말줄임하는데, 15자면 가장 좁은 자리(360px 폰의 폴더 카드, 108px)에서도
