@@ -222,6 +222,7 @@ features/<도메인>/<액션>/
 
 - [`docs/FE-ARCHITECTURE.md`](docs/FE-ARCHITECTURE.md) — FSD 변형 구조(정식 FSD와 다른 점 포함), 3-Layer API·Feature Hook 등 재사용 패턴, 네이밍 컨벤션
 - [`docs/SYSTEM-ARCHITECTURE.md`](docs/SYSTEM-ARCHITECTURE.md) — 시스템 컨텍스트·배포 파이프라인·FE/BE 구조 (Mermaid)
+- [`docs/SERVICE-GLOSSARY.md`](docs/SERVICE-GLOSSARY.md) — 프로젝트가 쓰는 클라우드·외부 서비스 용어 사전(EventBridge, Function URL 등)
 - [`docs/VERSION-COMPATIBILITY.md`](docs/VERSION-COMPATIBILITY.md) — BE·FE 버전 호환 매트릭스
 - [`docs/HISTORY.md`](docs/HISTORY.md) — 커밋 기반 변경 이력 (자동 생성, 직접 편집 금지)
 
