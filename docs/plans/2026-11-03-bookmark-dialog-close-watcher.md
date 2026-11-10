@@ -18,6 +18,10 @@
   계획(PR에만 적기)과 달리 BOOKMARK·DECISIONS에도 적음
 - 병합 뒤 확인(#507): 검증 4(Android 실기기)는 사용자가 뒤로가기·회전·로그인 뒤 재개·글 등록 폼을 확인함 — 문제 없음.
   BOOKMARK "남은 것"의 실기기 미확인 항목을 지우고 §9 검증 결과로 옮김. 검증 5(Firefox Android)는 여전히 확인 수단이 없다
+- 대체됨(일부): `docs/plans/2026-11-10-back-navigation-standard.md`(#592) — Android도 다시 히스토리 엔트리로 연다.
+  2026-11-10에 Android 폰에서 `CloseWatcher` 경로가 뒤로가기를 받지 못해 페이지가 뒤로 갔고 원인은 찾지 못했다.
+  `CloseWatcher`·기기 판정·열림 스토어(`openKey`)를 지웠고, 열림은 라우터가 이미 가 있는 위치에서 읽어 창이 페이지보다
+  먼저 뜬다. 창을 카드 밖 호스트 하나로 그리는 구조와 대상 스토어는 그대로다
 
 <!-- plan-result:end -->
 

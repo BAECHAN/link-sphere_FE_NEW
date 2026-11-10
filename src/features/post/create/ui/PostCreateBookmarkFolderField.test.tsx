@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { useForm, useWatch, FormProvider } from 'react-hook-form';
-import { renderWithProviders, userEvent } from '@/test/utils';
+import { renderWithDataRouter, userEvent } from '@/test/utils';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
@@ -79,7 +79,7 @@ function Harness() {
 }
 
 function renderField() {
-  return renderWithProviders(<Harness />);
+  return renderWithDataRouter(<Harness />);
 }
 
 // 트리거 버튼도 선택된 폴더/미분류와 같은 텍스트를 표시하므로, 다이얼로그 안의 행만 좁혀서 조회한다.

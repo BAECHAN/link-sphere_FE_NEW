@@ -83,6 +83,34 @@ const RESTRICTED_SYNTAX_COMMON = [
   },
 ];
 
+// [금지] 뒤로가기를 표준 훅 밖에서 직접 다루기
+// 이유: 뒤로가기로 닫히는 화면 요소는 useBackClosableOverlay 하나로 받는다 - 같은 주소의 히스토리 칸을 라우터로
+// 넣고, 열림은 라우터 구독으로 읽는다(docs/BACK-NAVIGATION.md). 그 밖의 길은 저마다 실제 뒤로가기 검사를 빠져나간다.
+// - CloseWatcher: e2e가 Android 뒤로 버튼을 못 눌러 Esc로 흉내만 냈고, 2026-11-10 실제 폰에서 창을 건너뛰고
+//   페이지가 뒤로 가는 것을 놓쳤다
+// - history.pushState·replaceState: 라우터가 모르는 칸이 생겨 라우터가 칸마다 싣는 번호·state와 어긋난다
+// - popstate 리스너: docs/DECISIONS.md 2026-08-07 "뒤로가기 정책"의 금지 사항이 문서에만 있었다. 뒤로가기를
+//   알아야 하면 RouterEvents.onPop을 쓴다
+// 테스트는 jsdom 주소를 replaceState로 맞추는 준비 코드가 있어 적용하지 않는다.
+const RESTRICTED_SYNTAX_NO_RAW_BACK_HANDLING = [
+  {
+    selector: 'Identifier[name="CloseWatcher"]',
+    message:
+      'CloseWatcher를 쓰지 마세요. 뒤로가기로 닫히는 화면 요소는 useBackClosableOverlay로 엽니다(docs/BACK-NAVIGATION.md).',
+  },
+  {
+    selector: 'CallExpression[callee.property.name=/^(pushState|replaceState)$/]',
+    message:
+      'history.pushState·replaceState를 직접 부르지 마세요. 라우터의 navigate를 쓰고, 뒤로가기로 닫히는 화면 요소는 useBackClosableOverlay로 엽니다(docs/BACK-NAVIGATION.md).',
+  },
+  {
+    selector:
+      ':matches(CallExpression[callee.property.name="addEventListener"][arguments.0.value="popstate"], AssignmentExpression[left.property.name="onpopstate"])',
+    message:
+      'popstate를 직접 듣지 마세요. 뒤로·앞으로 가기는 RouterEvents.onPop으로, 뒤로가기로 닫히는 화면 요소는 useBackClosableOverlay로 받습니다(docs/BACK-NAVIGATION.md).',
+  },
+];
+
 // [금지] 날짜 처리에 new Date()/.getTime() 직접 사용
 // 이유: dayjs(value)는 문자열·Date 어느 쪽이 와도 안전한데, new Date(value)는 BE가 문자열을
 // 보내는 경우 타입상 Date로 보여도 실제로 안전하지 않다(.claude/CLAUDE.md 날짜 처리 규칙).
@@ -1167,6 +1195,7 @@ export default [
         ...RESTRICTED_SYNTAX_COMMON,
         ...RESTRICTED_SYNTAX_NO_NATIVE_DATE,
         ...RESTRICTED_SYNTAX_NO_REGEXP_LOOKBEHIND,
+        ...RESTRICTED_SYNTAX_NO_RAW_BACK_HANDLING,
       ],
     },
   },
@@ -1174,7 +1203,7 @@ export default [
   // 아니라 테스트가 직접 통제하는 리터럴 날짜라 dayjs 안전성 문제가 없다)는 날짜 규칙만
   // 제외 — getState·클래스 컴포넌트 금지는 그대로 적용한다(ESLint flat config는 같은 rule
   // key가 겹치는 files에 다시 나오면 배열을 병합하지 않고 통째로 덮어쓰므로, 공통 규칙을
-  // 여기서도 명시해야 사라지지 않는다). date.util.ts는 배포되는 코드라 lookbehind 금지는 남긴다
+  // 여기서도 명시해야 사라지지 않는다). date.util.ts는 배포되는 코드라 lookbehind·뒤로가기 직접 처리 금지는 남긴다
   {
     files: ['src/shared/utils/date.util.ts'],
     rules: {
@@ -1182,6 +1211,7 @@ export default [
         'error',
         ...RESTRICTED_SYNTAX_COMMON,
         ...RESTRICTED_SYNTAX_NO_REGEXP_LOOKBEHIND,
+        ...RESTRICTED_SYNTAX_NO_RAW_BACK_HANDLING,
       ],
     },
   },

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { act, screen } from '@testing-library/react';
 import { useLocation } from 'react-router-dom';
-import { renderWithProviders, userEvent } from '@/test/utils';
+import { renderWithDataRouter, userEvent } from '@/test/utils';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { TEXTS } from '@/shared/config/texts';
@@ -77,7 +77,7 @@ describe('GlobalPostBookmarkFolderDialog', () => {
   });
 
   it('카드의 버튼을 누르면 호스트가 그 글의 상태로 창을 연다', async () => {
-    renderWithProviders(<Screen cards={[cardA, cardB]} />);
+    renderWithDataRouter(<Screen cards={[cardA, cardB]} />);
 
     await openCard(1);
 
@@ -87,7 +87,7 @@ describe('GlobalPostBookmarkFolderDialog', () => {
   });
 
   it('창이 열린 동안 그 카드의 북마크 상태가 바뀌면 창도 따라간다', async () => {
-    const { rerender } = renderWithProviders(<Screen cards={[cardA, cardB]} />);
+    const { rerender } = renderWithDataRouter(<Screen cards={[cardA, cardB]} />);
 
     await openCard(0);
     rerender(
@@ -99,7 +99,7 @@ describe('GlobalPostBookmarkFolderDialog', () => {
   });
 
   it('다른 카드의 상태가 바뀌어도 열린 창은 그대로다', async () => {
-    const { rerender } = renderWithProviders(<Screen cards={[cardA, cardB]} />);
+    const { rerender } = renderWithDataRouter(<Screen cards={[cardA, cardB]} />);
 
     await openCard(0);
     rerender(<Screen cards={[cardA, { ...cardB, bookmarkFolderIds: ['folder-9'] }]} />);
@@ -110,7 +110,7 @@ describe('GlobalPostBookmarkFolderDialog', () => {
 
   it('창을 연 카드가 목록에서 빠져도 창은 마지막 상태로 열려 있다', async () => {
     // 북마크 페이지에서 폴더를 빼면 낙관적 갱신이 카드를 바로 지운다 - 창은 요청 결과를 기다려야 한다
-    const { rerender } = renderWithProviders(<Screen cards={[cardA, cardB]} />);
+    const { rerender } = renderWithDataRouter(<Screen cards={[cardA, cardB]} />);
 
     await openCard(1);
     const dialog = screen.getByRole('dialog');
@@ -121,7 +121,7 @@ describe('GlobalPostBookmarkFolderDialog', () => {
   });
 
   it('열린 엔트리인데 대상이 없으면(창을 연 채 새로고침) 엔트리를 닫는다', () => {
-    renderWithProviders(<Screen cards={[cardA]} />, {
+    renderWithDataRouter(<Screen cards={[cardA]} />, {
       wrapperOptions: {
         initialEntries: [
           '/',
@@ -137,7 +137,7 @@ describe('GlobalPostBookmarkFolderDialog', () => {
   it('로그인 뒤 재개로 열면 로그인으로 바뀐 최신 상태로 연다', async () => {
     // 재개 액션은 클릭 시점 값을 담고 있다 - 로그인 뒤 다시 받은 북마크 상태를 카드가 넣어 줘야 한다
     useAuthStore.setState({ isAuthenticated: false });
-    const { rerender } = renderWithProviders(<Screen cards={[cardA]} />);
+    const { rerender } = renderWithDataRouter(<Screen cards={[cardA]} />);
 
     await openCard(0);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

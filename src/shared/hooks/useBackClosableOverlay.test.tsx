@@ -1,414 +1,223 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, renderHook } from '@testing-library/react';
-import { MemoryRouter, NavigationType, type Location } from 'react-router-dom';
-import type { ReactNode } from 'react';
-import { RouterEvents } from '@/shared/lib/router/router-events';
+import { describe, it, expect, vi } from 'vitest';
+import { lazy, Suspense, useEffect, type ComponentType } from 'react';
+import { useLocation } from 'react-router-dom';
+import { act, renderWithDataRouter, screen, userEvent } from '@/test/utils';
 import {
-  resetBackClosableOverlay,
   useBackClosableOverlay,
   useBackClosableOverlayOpen,
-  useBackCloseRequest,
 } from '@/shared/hooks/useBackClosableOverlay';
 
-const navigateSpy = vi.fn();
+const KEY = 'bookmarkFolderDialogOpen';
 
-vi.mock('react-router-dom', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('react-router-dom')>();
-  return { ...actual, useNavigate: () => navigateSpy };
-});
+// 앞에 다른 페이지를 한 칸 둔다 - 뒤로가 한 번 더 나가면 /feed로 넘어가 드러난다
+const ENTRIES_WITH_PREVIOUS_PAGE = ['/feed', '/post/1?tab=comments'];
 
-// jsdom에는 CloseWatcher가 없어 만든 것·정리한 것만 기록하는 가짜를 넣는다
-const watchers: FakeCloseWatcher[] = [];
+// navigate를 모킹하지 않고 실제 라우터(renderWithDataRouter)의 위치로 본다 - 열림이 라우터 위치에서 나오므로
+// 모킹하면 "열었더니 열렸다"를 확인할 수 없다
+function Host() {
+  const { isOpen, open, close } = useBackClosableOverlay(KEY);
 
-class FakeCloseWatcher {
-  onclose: (() => void) | null = null;
-  destroyed = false;
-
-  constructor() {
-    watchers.push(this);
-  }
-
-  destroy() {
-    this.destroyed = true;
-  }
+  return (
+    <>
+      <span data-testid="host">{isOpen ? 'open' : 'closed'}</span>
+      <button type="button" onClick={open}>
+        open
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          open();
+          open();
+        }}
+      >
+        open twice
+      </button>
+      <button type="button" onClick={close}>
+        close
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          close();
+          close();
+        }}
+      >
+        close twice
+      </button>
+    </>
+  );
 }
 
-function setUpDevice({
-  closeWatcher,
-  coarsePointer,
-}: {
-  closeWatcher: boolean;
-  coarsePointer: boolean;
-}) {
-  if (closeWatcher) {
-    window.CloseWatcher = FakeCloseWatcher;
-  }
+function Opener({ onCommit }: { onCommit: () => void }) {
+  const open = useBackClosableOverlayOpen(KEY);
 
-  vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
-    matches: coarsePointer && query === '(pointer: coarse)',
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  }));
-}
-
-function makeLocation(pathname: string, key: string): Location {
-  return { pathname, search: '', hash: '', state: null, key };
-}
-
-// 앱은 RouterProvider.tsx가 라우터를 주입한다 - 테스트는 구독자를 잡아 두고 이동을 직접 흘린다
-function injectRouter() {
-  let subscriber: ((state: { location: Location; historyAction: NavigationType }) => void) | null =
-    null;
-
-  RouterEvents.setSource({
-    state: { location: makeLocation('/post/1', 'initial') },
-    subscribe: (next) => {
-      subscriber = next;
-
-      return () => {};
-    },
+  // 의존성 없이 둬 이 컴포넌트가 커밋될 때마다 센다
+  useEffect(() => {
+    onCommit();
   });
 
-  return (pathname: string) => {
-    subscriber?.({
-      location: makeLocation(pathname, pathname),
-      historyAction: NavigationType.Push,
-    });
-  };
+  return (
+    <button type="button" onClick={open}>
+      open from card
+    </button>
+  );
 }
 
-function Wrapper({ children }: { children: ReactNode }) {
-  return <MemoryRouter initialEntries={['/post/1']}>{children}</MemoryRouter>;
+const NeverLoads = lazy(() => new Promise<{ default: ComponentType }>(() => {}));
+
+// 열림 키가 실린 위치를 그리려 하면 끝나지 않는 페이지 - 목록 응답을 기다리는 화면(정지 구간)을 흉내 낸다
+function PageSuspendingOnOverlayEntry() {
+  const location = useLocation();
+  const hasOverlayEntry = Boolean((location.state as Record<string, boolean> | null)?.[KEY]);
+
+  return (
+    <>
+      <span data-testid="committed">{hasOverlayEntry ? 'overlay entry' : 'page entry'}</span>
+      {hasOverlayEntry && <NeverLoads />}
+    </>
+  );
+}
+
+function ScreenWithSuspendingPage({ onOpenerCommit }: { onOpenerCommit: () => void }) {
+  return (
+    <>
+      <Suspense fallback={<span data-testid="fallback" />}>
+        <PageSuspendingOnOverlayEntry />
+      </Suspense>
+      <Opener onCommit={onOpenerCommit} />
+      <Host />
+    </>
+  );
+}
+
+async function click(name: string) {
+  await userEvent.click(screen.getByRole('button', { name }));
 }
 
 describe('useBackClosableOverlay', () => {
-  beforeEach(() => {
-    navigateSpy.mockClear();
+  it('열면 같은 주소에 열림 키를 실은 칸을 넣는다', async () => {
+    const { router } = renderWithDataRouter(<Host />, {
+      wrapperOptions: { initialEntries: ENTRIES_WITH_PREVIOUS_PAGE },
+    });
+
+    await click('open');
+
+    expect(screen.getByTestId('host')).toHaveTextContent('open');
+    expect(router.state.historyAction).toBe('PUSH');
+    expect(router.state.location).toMatchObject({
+      pathname: '/post/1',
+      search: '?tab=comments',
+      state: { [KEY]: true },
+    });
+    // 이게 없으면 <ScrollRestoration/>이 PUSH를 새 페이지로 보고 배경 스크롤을 맨 위로 올린다
+    expect(router.state.preventScrollReset).toBe(true);
   });
 
-  afterEach(() => {
-    resetBackClosableOverlay();
-    delete window.CloseWatcher;
-    watchers.length = 0;
-    vi.restoreAllMocks();
+  it('한 번에 두 번 열어도, 열린 뒤 다시 열어도 칸은 하나다', async () => {
+    // 칸이 둘이면 닫기를 두 번 눌러야 닫힌다. 첫 번째 열기가 화면에 반영되기 전의 두 번째 탭도 막아야 한다 -
+    // 커밋된 위치로 판정하면 그 탭이 지나간다
+    const { router } = renderWithDataRouter(<Host />, {
+      wrapperOptions: { initialEntries: ENTRIES_WITH_PREVIOUS_PAGE },
+    });
+
+    await click('open twice');
+    await click('open');
+    await act(() => router.navigate(-1));
+
+    expect(screen.getByTestId('host')).toHaveTextContent('closed');
+    expect(router.state.location).toMatchObject({ pathname: '/post/1', state: null });
   });
 
-  it('CloseWatcher가 없으면(iOS 등) 히스토리 엔트리로 연다', () => {
-    const { result } = renderHook(() => useBackClosableOverlay('bookmarkFolderDialogOpen:1'), {
-      wrapper: Wrapper,
+  it('닫으면 뒤로 한 번만 간다 - 한 번에 두 번 닫아도 페이지를 떠나지 않는다', async () => {
+    // navigate(-1)은 늦게 반영된다 - 그 사이 닫기가 또 불리면(Esc 조합 중 keydown 중복) 뒤로가 두 번 나간다
+    const { router } = renderWithDataRouter(<Host />, {
+      wrapperOptions: { initialEntries: ENTRIES_WITH_PREVIOUS_PAGE },
     });
 
-    result.current.open();
+    await click('open');
+    await click('close twice');
 
-    expect(navigateSpy).toHaveBeenCalledWith('/post/1', {
-      state: { 'bookmarkFolderDialogOpen:1': true },
-      preventScrollReset: true,
-    });
+    expect(screen.getByTestId('host')).toHaveTextContent('closed');
+    expect(router.state.location).toMatchObject({ pathname: '/post/1', state: null });
   });
 
-  it('CloseWatcher가 있어도 터치가 주 입력이 아니면(데스크톱) 히스토리 엔트리로 연다', () => {
-    // 데스크톱 브라우저 뒤로가기는 닫기 요청이 아니라 엔트리가 있어야 모달만 닫힌다
-    setUpDevice({ closeWatcher: true, coarsePointer: false });
-    const { result } = renderHook(() => useBackClosableOverlay('bookmarkFolderDialogOpen:1'), {
-      wrapper: Wrapper,
+  it('닫혀 있을 때 닫기는 아무것도 하지 않는다', async () => {
+    // 칸이 없는데 뒤로를 보내면 실제 페이지를 떠난다
+    const { router } = renderWithDataRouter(<Host />, {
+      wrapperOptions: { initialEntries: ENTRIES_WITH_PREVIOUS_PAGE },
     });
 
-    result.current.open();
+    await click('close');
 
-    expect(navigateSpy).toHaveBeenCalledTimes(1);
-    expect(watchers).toHaveLength(0);
+    expect(router.state.location.pathname).toBe('/post/1');
   });
 
-  describe('뒤로가기가 닫기 요청인 기기(CloseWatcher + 터치)', () => {
-    beforeEach(() => {
-      setUpDevice({ closeWatcher: true, coarsePointer: true });
+  it('뒤로가기로 칸이 빠지면 닫힌다', async () => {
+    const { router } = renderWithDataRouter(<Host />);
+
+    await click('open');
+    await act(() => router.navigate(-1));
+
+    expect(screen.getByTestId('host')).toHaveTextContent('closed');
+  });
+
+  it('닫은 뒤 앞으로 가기로 다시 열린 칸도 닫을 수 있다', async () => {
+    // 같은 칸이라 location.key가 같다 - 뒤로를 보낸 칸을 key로 기억하면 여기서 닫기가 먹지 않는다
+    const { router } = renderWithDataRouter(<Host />, {
+      wrapperOptions: { initialEntries: ENTRIES_WITH_PREVIOUS_PAGE },
     });
 
-    it('히스토리 없이 열고, 열려 있는 동안 CloseWatcher를 둔다', () => {
-      const { result } = renderHook(() => useBackClosableOverlay('bookmarkFolderDialogOpen:1'), {
-        wrapper: Wrapper,
-      });
+    await click('open');
+    await click('close');
+    await act(() => router.navigate(1));
 
-      act(() => {
-        result.current.open();
-      });
+    expect(screen.getByTestId('host')).toHaveTextContent('open');
 
-      expect(result.current.isOpen).toBe(true);
-      expect(navigateSpy).not.toHaveBeenCalled();
-      expect(watchers).toHaveLength(1);
-      expect(watchers[0]?.destroyed).toBe(false);
-    });
+    await click('close');
 
-    it('뒤로가기(닫기 요청)가 오면 닫고 CloseWatcher를 정리한다', () => {
-      const { result } = renderHook(() => useBackClosableOverlay('bookmarkFolderDialogOpen:1'), {
-        wrapper: Wrapper,
-      });
+    expect(screen.getByTestId('host')).toHaveTextContent('closed');
+    expect(router.state.location).toMatchObject({ pathname: '/post/1', state: null });
+  });
 
-      act(() => {
-        result.current.open();
-      });
-      act(() => {
-        watchers[0]?.onclose?.();
-      });
+  it('페이지를 다시 그리는 일이 끝나지 않아도 오버레이는 먼저 열린다', async () => {
+    // 칸을 넣으면 React Router가 페이지 전체를 transition으로 다시 그린다(v7_startTransition). 열림을 커밋된
+    // 위치(useLocation)에서 읽으면 그 렌더가 끝나야 열린다 - 라우터가 가 있는 위치에서 읽어 먼저 연다
+    const { router } = renderWithDataRouter(<ScreenWithSuspendingPage onOpenerCommit={vi.fn()} />);
 
-      expect(result.current.isOpen).toBe(false);
-      expect(watchers[0]?.destroyed).toBe(true);
-    });
+    await click('open');
 
-    it('X·폴더 선택으로 닫아도 CloseWatcher를 정리한다', () => {
-      // watcher가 남으면 보이지 않는 모달이 다음 뒤로가기를 삼킨다
-      const { result } = renderHook(() => useBackClosableOverlay('bookmarkFolderDialogOpen:1'), {
-        wrapper: Wrapper,
-      });
-
-      act(() => {
-        result.current.open();
-      });
-      act(() => {
-        result.current.close();
-      });
-
-      expect(result.current.isOpen).toBe(false);
-      expect(watchers[0]?.destroyed).toBe(true);
-    });
-
-    it('다른 카드(다른 키)의 모달은 같이 열리지 않는다', () => {
-      const { result } = renderHook(
-        () => ({
-          first: useBackClosableOverlay('bookmarkFolderDialogOpen:1'),
-          second: useBackClosableOverlay('bookmarkFolderDialogOpen:2'),
-        }),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.first.open();
-      });
-
-      expect(result.current.first.isOpen).toBe(true);
-      expect(result.current.second.isOpen).toBe(false);
-    });
-
-    it('카드가 다시 마운트돼도(화면 회전·목록 밀림) 열린 채로 남는다', () => {
-      const first = renderHook(() => useBackClosableOverlay('bookmarkFolderDialogOpen:1'), {
-        wrapper: Wrapper,
-      });
-
-      act(() => {
-        first.result.current.open();
-      });
-      first.unmount();
-
-      expect(watchers[0]?.destroyed).toBe(true);
-
-      const second = renderHook(() => useBackClosableOverlay('bookmarkFolderDialogOpen:1'), {
-        wrapper: Wrapper,
-      });
-
-      expect(second.result.current.isOpen).toBe(true);
-      expect(watchers).toHaveLength(2);
-      expect(watchers[1]?.destroyed).toBe(false);
-    });
-
-    it('다른 이유로 페이지가 바뀌면 닫는다 — 카드가 사라진 뒤에도', () => {
-      // 닫지 않으면 그 화면으로 돌아왔을 때 모달만 다시 뜬다
-      const navigateTo = injectRouter();
-      const first = renderHook(() => useBackClosableOverlay('bookmarkFolderDialogOpen:1'), {
-        wrapper: Wrapper,
-      });
-
-      act(() => {
-        first.result.current.open();
-      });
-      first.unmount();
-      navigateTo('/bookmark');
-
-      const second = renderHook(() => useBackClosableOverlay('bookmarkFolderDialogOpen:1'), {
-        wrapper: Wrapper,
-      });
-
-      expect(second.result.current.isOpen).toBe(false);
-    });
-
-    it('카드가 떠 있을 때 페이지가 바뀌어도 닫고 CloseWatcher를 정리한다', () => {
-      const navigateTo = injectRouter();
-      const { result } = renderHook(() => useBackClosableOverlay('bookmarkFolderDialogOpen:1'), {
-        wrapper: Wrapper,
-      });
-
-      act(() => {
-        result.current.open();
-      });
-      act(() => {
-        navigateTo('/bookmark');
-      });
-
-      expect(result.current.isOpen).toBe(false);
-      expect(watchers[0]?.destroyed).toBe(true);
-    });
-
-    it('로그인 창이 열렸다 닫힌 뒤 재개로 열면 그 이동들로 닫히지 않는다 — 카드가 다시 마운트됐어도', () => {
-      // useLoginDialog.ts는 로그인 창의 navigate(-1)이 커밋된 뒤(isOpen=false) 재개 액션을 부르고,
-      // RouterEvents는 커밋 전에 이동을 알린다 - 재개 때는 로그인 창의 push·pop이 이미 지나가 있다
-      const navigateTo = injectRouter();
-      const first = renderHook(() => useBackClosableOverlay('bookmarkFolderDialogOpen:1'), {
-        wrapper: Wrapper,
-      });
-      const resume = first.result.current.open;
-
-      navigateTo('/post/1');
-      navigateTo('/post/1');
-      first.unmount();
-
-      const second = renderHook(() => useBackClosableOverlay('bookmarkFolderDialogOpen:1'), {
-        wrapper: Wrapper,
-      });
-
-      act(() => {
-        resume();
-      });
-
-      expect(second.result.current.isOpen).toBe(true);
-      expect(watchers).toHaveLength(1);
-      expect(watchers[0]?.destroyed).toBe(false);
-    });
+    expect(screen.getByTestId('host')).toHaveTextContent('open');
+    expect(router.state.location.state).toEqual({ [KEY]: true });
+    // 페이지는 아직 이전 위치로 그려져 있고, 로딩 화면으로 바뀌지도 않았다
+    expect(screen.getByTestId('committed')).toHaveTextContent('page entry');
+    expect(screen.queryByTestId('fallback')).not.toBeInTheDocument();
   });
 });
 
 describe('useBackClosableOverlayOpen', () => {
-  beforeEach(() => {
-    navigateSpy.mockClear();
+  it('열기만 해도 그리는 쪽(useBackClosableOverlay)이 열린다', async () => {
+    renderWithDataRouter(
+      <>
+        <Opener onCommit={vi.fn()} />
+        <Host />
+      </>
+    );
+
+    await click('open from card');
+
+    expect(screen.getByTestId('host')).toHaveTextContent('open');
   });
 
-  afterEach(() => {
-    resetBackClosableOverlay();
-    delete window.CloseWatcher;
-    watchers.length = 0;
-    vi.restoreAllMocks();
-  });
+  it('열림을 구독하지 않아, 오버레이를 먼저 그리는 렌더에 끼지 않는다', async () => {
+    // 피드 카드마다 이 훅을 쓴다 - 구독하면 시트를 여는 그 렌더에 모든 카드가 함께 그려진다. 페이지를 다시 그리는
+    // transition에는 들어가므로(useNavigate가 읽는 RouteContext가 위치마다 새 값이다), 그 transition이 끝나지
+    // 않는 화면에서 커밋 수를 센다
+    const onOpenerCommit = vi.fn();
+    renderWithDataRouter(<ScreenWithSuspendingPage onOpenerCommit={onOpenerCommit} />);
 
-  it('CloseWatcher가 없으면 useBackClosableOverlay와 같은 히스토리 엔트리로 연다', () => {
-    const { result } = renderHook(() => useBackClosableOverlayOpen('bookmarkFolderDialogOpen'), {
-      wrapper: Wrapper,
-    });
+    await click('open from card');
 
-    result.current();
-
-    expect(navigateSpy).toHaveBeenCalledWith('/post/1', {
-      state: { bookmarkFolderDialogOpen: true },
-      preventScrollReset: true,
-    });
-  });
-
-  describe('뒤로가기가 닫기 요청인 기기(CloseWatcher + 터치)', () => {
-    beforeEach(() => {
-      setUpDevice({ closeWatcher: true, coarsePointer: true });
-    });
-
-    it('열기만 하고 CloseWatcher는 만들지 않는다 - 그리는 쪽이 열린 키를 보고 하나만 만든다', () => {
-      const opener = renderHook(() => useBackClosableOverlayOpen('bookmarkFolderDialogOpen'), {
-        wrapper: Wrapper,
-      });
-      const host = renderHook(() => useBackClosableOverlay('bookmarkFolderDialogOpen'), {
-        wrapper: Wrapper,
-      });
-
-      act(() => {
-        opener.result.current();
-      });
-
-      expect(host.result.current.isOpen).toBe(true);
-      expect(navigateSpy).not.toHaveBeenCalled();
-      expect(watchers).toHaveLength(1);
-    });
-
-    it('열림을 구독하지 않아 열고 닫아도 다시 렌더되지 않는다', () => {
-      // 피드 카드마다 이 훅을 쓰므로, 구독하면 열 때 모든 카드가 다시 렌더된다
-      let renderCount = 0;
-      const opener = renderHook(
-        () => {
-          renderCount += 1;
-
-          return useBackClosableOverlayOpen('bookmarkFolderDialogOpen');
-        },
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        opener.result.current();
-      });
-      act(() => {
-        resetBackClosableOverlay();
-      });
-
-      expect(renderCount).toBe(1);
-    });
-  });
-});
-
-describe('useBackCloseRequest', () => {
-  afterEach(() => {
-    delete window.CloseWatcher;
-    watchers.length = 0;
-    vi.restoreAllMocks();
-  });
-
-  it('CloseWatcher가 있어도 터치가 주 입력이 아니면(데스크톱) 아무것도 만들지 않는다', () => {
-    setUpDevice({ closeWatcher: true, coarsePointer: false });
-
-    renderHook(() => useBackCloseRequest(vi.fn()));
-
-    expect(watchers).toHaveLength(0);
-  });
-
-  describe('뒤로가기가 닫기 요청인 기기(CloseWatcher + 터치)', () => {
-    beforeEach(() => {
-      setUpDevice({ closeWatcher: true, coarsePointer: true });
-    });
-
-    it('핸들러가 바뀌어도 CloseWatcher를 다시 만들지 않고, 닫기 요청엔 마지막 핸들러를 부른다', () => {
-      // 탭 없이 다시 만들면 창 그룹에 붙어 뒤로가기 한 번에 창까지 닫힌다(WHATWG close watcher 그룹 규칙)
-      const first = vi.fn();
-      const second = vi.fn();
-      const { rerender } = renderHook(({ onCloseRequest }) => useBackCloseRequest(onCloseRequest), {
-        initialProps: { onCloseRequest: first },
-      });
-
-      rerender({ onCloseRequest: second });
-      watchers[0]?.onclose?.();
-
-      expect(watchers).toHaveLength(1);
-      expect(first).not.toHaveBeenCalled();
-      expect(second).toHaveBeenCalledTimes(1);
-    });
-
-    it('언마운트하면 CloseWatcher를 정리한다', () => {
-      const { unmount } = renderHook(() => useBackCloseRequest(vi.fn()));
-
-      unmount();
-
-      expect(watchers[0]?.destroyed).toBe(true);
-    });
-
-    it('enabled가 켜질 때만 CloseWatcher를 두고, 꺼지면 정리한다', () => {
-      const { rerender } = renderHook(({ enabled }) => useBackCloseRequest(vi.fn(), enabled), {
-        initialProps: { enabled: false },
-      });
-
-      expect(watchers).toHaveLength(0);
-
-      rerender({ enabled: true });
-
-      expect(watchers).toHaveLength(1);
-
-      rerender({ enabled: false });
-
-      expect(watchers[0]?.destroyed).toBe(true);
-    });
+    expect(screen.getByTestId('host')).toHaveTextContent('open');
+    expect(onOpenerCommit).toHaveBeenCalledTimes(1);
   });
 });

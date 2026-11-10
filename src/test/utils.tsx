@@ -1,8 +1,14 @@
-import { type ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import { act, render, type RenderOptions, type RenderResult } from '@testing-library/react';
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter, type MemoryRouterProps } from 'react-router-dom';
+import {
+  createMemoryRouter,
+  MemoryRouter,
+  RouterProvider,
+  type MemoryRouterProps,
+} from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
+import { RouterEvents } from '@/shared/lib/router/router-events';
 import {
   QUERY_ERROR_POLICY,
   isUnwatchedQueryFailure,
@@ -104,6 +110,56 @@ export function renderWithProviders(
   }
 
   return { ...render(ui, { wrapper: Wrapper, ...renderOptions }), queryClient };
+}
+
+// 라우트 element는 라우터를 만들 때 한 번 정해진다 - rerender로 바뀐 ui가 그 안에 그려지도록 context로 넘긴다
+const RouteContentContext = createContext<ReactNode>(null);
+
+function RouteContent() {
+  return useContext(RouteContentContext);
+}
+
+interface DataRouterWrapperOptions {
+  /** createMemoryRouter 초기 경로 - 마지막 항목에서 시작한다 */
+  initialEntries?: MemoryRouterProps['initialEntries'];
+  /** 외부에서 QueryClient 상태를 검사할 때 직접 주입 */
+  queryClient?: QueryClient;
+}
+
+interface DataRouterRenderOptions extends Omit<RenderOptions, 'wrapper'> {
+  wrapperOptions?: DataRouterWrapperOptions;
+}
+
+/**
+ * 앱과 같은 데이터 라우터(RouterProvider.tsx: createBrowserRouter + v7_startTransition + RouterEvents 주입)로
+ * 그리는 render 함수. 라우터가 이미 가 있는 위치를 읽는 코드(useBackClosableOverlay 등)는 MemoryRouter 아래에서
+ * RouterEvents가 비어 있어 동작하지 않는다 - 그런 컴포넌트를 그릴 때 쓴다. 돌려주는 router로 위치를 확인하거나
+ * 뒤로가기(router.navigate(-1))를 흉내 낸다.
+ *
+ * @example
+ * const { router } = renderWithDataRouter(<Screen />);
+ * await act(() => router.navigate(-1));
+ */
+export function renderWithDataRouter(
+  ui: ReactNode,
+  options: DataRouterRenderOptions = {}
+): RenderResult & { queryClient: QueryClient; router: ReturnType<typeof createMemoryRouter> } {
+  const { wrapperOptions = {}, ...renderOptions } = options;
+  const { initialEntries = ['/'], queryClient = createTestQueryClient() } = wrapperOptions;
+  const router = createMemoryRouter([{ path: '*', element: <RouteContent /> }], { initialEntries });
+  RouterEvents.setSource(router);
+
+  function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <RouteContentContext.Provider value={children}>
+          <RouterProvider router={router} future={{ v7_startTransition: true }} />
+        </RouteContentContext.Provider>
+      </QueryClientProvider>
+    );
+  }
+
+  return { ...render(ui, { wrapper: Wrapper, ...renderOptions }), queryClient, router };
 }
 
 /**

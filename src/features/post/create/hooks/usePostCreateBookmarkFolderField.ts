@@ -30,9 +30,8 @@ export function usePostCreateBookmarkFolderField() {
   const folderIds = folderIdsField.value;
 
   // 모달을 연 채 뒤로가기를 누르면 페이지가 아니라 모달만 닫힌다(카드 북마크 버튼의
-  // useBookmarkPostButton과 같은 방식, docs/DECISIONS.md 2026-11-03). 데스크톱·iOS는 같은 경로의
-  // 히스토리 엔트리라 이탈 확인(useUnsavedChangesGuard)이 뜨지 않고, Android 터치 기기는 뒤로가기가
-  // CloseWatcher의 닫기 요청으로 와서 페이지 이동 자체가 없다.
+  // useBookmarkPostButton과 같은 방식, docs/BACK-NAVIGATION.md). 같은 경로의 히스토리 엔트리라
+  // 이탈 확인(useUnsavedChangesGuard)이 뜨지 않는다.
   const {
     isOpen: open,
     open: openOverlay,

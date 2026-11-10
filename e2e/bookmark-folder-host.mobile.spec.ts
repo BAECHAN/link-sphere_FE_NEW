@@ -11,8 +11,8 @@ import {
 } from './mocks/bookmark-folder-remove-scene';
 import { TEXTS } from '@/shared/config/texts';
 
-// bookmark-folder-host.spec.ts와 같은 장면을 Pixel 5(히스토리 없이 열리는 경로, CloseWatcher)에서 본다.
-// 이 경로는 열림이 스토어에 있어, 카드 안에 창이 있던 때는 실패 뒤 돌아온 카드가 창을 새로 마운트했다.
+// bookmark-folder-host.spec.ts와 같은 장면을 Pixel 5(하단 시트)에서 본다. 카드 안에 창이 있던 때는 실패 뒤
+// 돌아온 카드가 창을 새로 마운트했다.
 test.describe('모바일 북마크 페이지 — 카드가 목록에서 빠져도 폴더 시트는 카드와 함께 사라지지 않는다', () => {
   test.beforeEach(async ({ page }) => {
     await installCatchAll(page);
