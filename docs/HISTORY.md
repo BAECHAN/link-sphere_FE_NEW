@@ -1,3 +1,6 @@
+### 2026-11-10 (FE)
+- 모바일 및 데스크톱 환경에서 북마크 폴더 선택 창이 뒤로가기 동작을 통해 정상적으로 닫히도록 개선 ([#592](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/592))
+
 ### 2026-11-10 (BE)
 - 운영 요청 처리 방식을 MockMvc에서 serverless-java-container로 마이그레이션하여 Lambda 환경 최적화 ([#192](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/192))
 
