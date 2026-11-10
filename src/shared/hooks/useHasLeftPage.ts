@@ -9,7 +9,7 @@ import { RouterEvents } from '@/shared/lib/router/router-events';
  * - 언마운트됐으면 떠난 것이다
  * - 아직 마운트돼 있어도 라우터가 이미 다른 경로에 가 있으면 떠난 것이다 - `v7_startTransition` 때문에
  *   다음 화면이 청크·데이터로 suspend하는 동안(정지 구간)엔 이전 화면이 마운트된 채 남는다(router-events.ts)
- * - 경로는 그대로이고 key만 바뀐 이동(같은 화면 위 오버레이, useHistoryOverlay)은 떠난 것이 아니다
+ * - 경로는 그대로이고 key만 바뀐 이동(같은 화면 위 오버레이, useBackClosableOverlay)은 떠난 것이 아니다
  *
  * 라우터를 주입하지 않은 환경(MemoryRouter 테스트)에서는 마운트 여부만 본다.
  */

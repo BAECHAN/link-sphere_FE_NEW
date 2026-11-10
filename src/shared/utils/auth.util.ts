@@ -12,6 +12,7 @@ import { queryClient } from '@/shared/lib/react-query/config/queryClient';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { RouterEvents } from '@/shared/lib/router/router-events';
 import { ROUTES_PATHS, isProtectedPath } from '@/shared/config/route-paths';
+import { createBackClosableOverlayState } from '@/shared/config/back-closable-overlay';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
 import { LogoutGraceUtil } from '@/shared/utils/logout-grace.util';
@@ -229,8 +230,8 @@ export class AuthUtil {
   }
 
   /**
-   * 지금 화면 위에 기본 로그인 창을 연다 - 내비게이션 바 [로그인]과 같은 창이다(useHistoryOverlay.open을 React 트리 밖에서
-   * 한 것). 이미 열려 있으면 엔트리를 더 쌓지 않는다 - 닫기를 두 번 눌러야 닫힌다(useHistoryOverlay.open과 같은 이유).
+   * 지금 화면 위에 기본 로그인 창을 연다 - 내비게이션 바 [로그인]과 같은 창이다(useBackClosableOverlay의 open을 React 트리
+   * 밖에서 한 것). 이미 열려 있으면 엔트리를 더 쌓지 않는다 - 닫기를 두 번 눌러야 닫힌다(그 open과 같은 이유).
    */
   private static openSignInDialog(): void {
     const currentState = RouterEvents.getLocation()?.state as LoginDialogLocationState | null;
@@ -242,13 +243,13 @@ export class AuthUtil {
     const { pathname, search } = window.location;
 
     NavigationService.navigate(`${pathname}${search}`, {
-      state: { loginDialogOpen: true },
+      state: createBackClosableOverlayState('loginDialogOpen'),
       preventScrollReset: true,
     });
   }
 
   /**
-   * 지금 화면 위에 로그인 창을 연다 - 로그인 창은 history state로 열린다(useHistoryOverlay). React 트리 밖이라
+   * 지금 화면 위에 로그인 창을 연다 - 로그인 창은 history state로 열린다(useBackClosableOverlay). React 트리 밖이라
    * NavigationService로 같은 주소를 push한다. 이미 열려 있으면 엔트리를 더 쌓지 않고 이유만 바꾼다.
    * 창을 닫은 뒤 제출·좋아요처럼 로그인이 필요한 동작을 누를 때도 이 창을 다시 연다(useAuthGuard).
    */
@@ -261,7 +262,7 @@ export class AuthUtil {
     const currentState = RouterEvents.getLocation()?.state as LoginDialogLocationState | null;
     const { pathname, search } = window.location;
 
-    // preventScrollReset: 같은 화면 위에 창만 여는 이동이다(useHistoryOverlay.open과 같은 이유)
+    // preventScrollReset: 같은 화면 위에 창만 여는 이동이다(useBackClosableOverlay의 open과 같은 이유)
     NavigationService.navigate(`${pathname}${search}`, {
       state: SIGNED_OUT_IN_PLACE_DIALOG_STATE[reason],
       replace: Boolean(currentState?.loginDialogOpen),

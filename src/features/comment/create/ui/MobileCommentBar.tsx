@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { CommentForm } from '@/features/comment/create/ui/CommentForm';
 import { Button } from '@/shared/ui/atoms/button';
 import { TEXTS } from '@/shared/config/texts';
-import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
+import { useBackClosableOverlay } from '@/shared/hooks/useBackClosableOverlay';
 import { cn } from '@/shared/lib/tailwind/utils';
 
 interface MobileCommentBarProps {
@@ -27,10 +27,10 @@ export function MobileCommentBar({ postId }: MobileCommentBarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 모바일 헤더 검색이 열리면 RecentSearchPanel(z-panel)이 화면을 덮는데 이 바도 같은
-  // z층이라 DOM 순서만으로 패널 위에 남는다. 키는 Navbar.tsx:65-71이 인라인으로
-  // push하는 것과 같아야 한다. 언마운트하지 않고 CSS로만 숨긴다 — 작성 중이던
+  // z층이라 DOM 순서만으로 패널 위에 남는다. 키는 검색창을 여는 쪽(useMobileSearchPanel.ts)과
+  // 같아야 한다. 언마운트하지 않고 CSS로만 숨긴다 — 작성 중이던
   // 본문·첨부 이미지와 펼침 상태를 보존해야 한다(이탈 가드가 같은 pathname은 통과시킨다).
-  const { isOpen: isMobileSearchOpen } = useHistoryOverlay('mobileSearchOpen');
+  const { isOpen: isMobileSearchOpen } = useBackClosableOverlay('mobileSearchOpen');
 
   // 이 바가 떠 있는 동안 토스트가 그 위로 뜨도록 --toast-offset-bottom을 바 높이만큼
   // 키운다. 접힘/펼침에 따라 높이가 크게 달라지므로 ResizeObserver로 추적하고,

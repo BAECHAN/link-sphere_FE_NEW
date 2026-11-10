@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { useImageViewerStore } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
 import { NavigationService } from '@/shared/lib/router/navigation';
+import { createBackClosableOverlayState } from '@/shared/config/back-closable-overlay';
 import { TEXTS } from '@/shared/config/texts';
 import { getTransformedImageUrl, isTransformableImageUrl } from '@/shared/lib/image/supabaseImage';
 import { isClosedCodeBlock, splitCodeBlocks } from '@/shared/lib/content/codeBlock';
@@ -101,7 +102,7 @@ function renderInlineLinks(
     }));
     useImageViewerStore.getState().setImages(images, imageIndexOf(part));
     NavigationService.navigate(`${window.location.pathname}${window.location.search}`, {
-      state: { imageViewerOpen: true },
+      state: createBackClosableOverlayState('imageViewerOpen'),
       preventScrollReset: true,
     });
   }

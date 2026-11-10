@@ -2,24 +2,27 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { renderWithProviders } from '@/test/utils';
+import { renderWithDataRouter, renderWithProviders } from '@/test/utils';
 import { WIDE_MEDIA_QUERY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useSidebarStore } from '@/shared/store/sidebar.store';
 import { Sidebar } from '@/widgets/layout/sidebar/ui/Sidebar';
 
+// 드로어 열림은 라우터가 가 있는 위치에서 읽는다(useBackClosableOverlay) - 드로어를 다루는 테스트는 앱과 같은
+// 데이터 라우터(renderWithDataRouter)로 그린다. MemoryRouter 아래에서는 드로어가 늘 닫혀 있어 "닫혔다"는 단언이 그냥 통과한다.
+//
 // 모바일 드로어 백드롭이 RemoveScroll(react-remove-scroll)로 배경 스크롤을 잠그는지
 // 검증한다 - jsdom에서 data-scroll-locked 속성으로 확인 가능함을 실측했다.
 describe('Sidebar — 모바일 드로어 배경 스크롤 잠금', () => {
   it('드로어가 닫혀 있으면 배경 스크롤이 잠기지 않는다', () => {
-    renderWithProviders(<Sidebar />, { wrapperOptions: { initialEntries: ['/post'] } });
+    renderWithDataRouter(<Sidebar />, { wrapperOptions: { initialEntries: ['/post'] } });
 
     expect(document.body.hasAttribute('data-scroll-locked')).toBe(false);
   });
 
   it('드로어가 열리면 배경 스크롤이 잠긴다', () => {
-    renderWithProviders(<Sidebar />, {
+    renderWithDataRouter(<Sidebar />, {
       wrapperOptions: { initialEntries: [{ pathname: '/post', state: { sidebarOpen: true } }] },
     });
 
@@ -27,7 +30,7 @@ describe('Sidebar — 모바일 드로어 배경 스크롤 잠금', () => {
   });
 
   it('드로어를 언마운트하면 배경 스크롤 잠금이 풀린다', () => {
-    const { unmount } = renderWithProviders(<Sidebar />, {
+    const { unmount } = renderWithDataRouter(<Sidebar />, {
       wrapperOptions: { initialEntries: [{ pathname: '/post', state: { sidebarOpen: true } }] },
     });
 
@@ -51,7 +54,7 @@ describe('Sidebar — 모바일 드로어 숨김과 포커스', () => {
   }
 
   it('닫혀 있으면 숨기고, 닫히는 동안 보이도록 visibility를 트랜지션에 넣는다', () => {
-    renderWithProviders(<Sidebar />, { wrapperOptions: { initialEntries: ['/post'] } });
+    renderWithDataRouter(<Sidebar />, { wrapperOptions: { initialEntries: ['/post'] } });
 
     expect(getDrawer()).toHaveClass(
       '-translate-x-full',
@@ -62,7 +65,7 @@ describe('Sidebar — 모바일 드로어 숨김과 포커스', () => {
   });
 
   it('열리면 바로 보이도록 visibility를 트랜지션에서 빼고 X로 포커스를 옮긴다', () => {
-    renderWithProviders(<Sidebar />, {
+    renderWithDataRouter(<Sidebar />, {
       wrapperOptions: { initialEntries: [{ pathname: '/post', state: { sidebarOpen: true } }] },
     });
 
@@ -72,7 +75,7 @@ describe('Sidebar — 모바일 드로어 숨김과 포커스', () => {
 
   it('Esc를 누르면 닫힌다', async () => {
     const user = userEvent.setup();
-    renderWithProviders(<Sidebar />, {
+    renderWithDataRouter(<Sidebar />, {
       wrapperOptions: {
         initialEntries: ['/post', { pathname: '/post', state: { sidebarOpen: true } }],
       },
@@ -100,7 +103,7 @@ describe('Sidebar — 모바일 드로어 링크로 떠나기', () => {
 
   // [아래 칸들, 메뉴를 연 칸] 순서의 스택을 만든다
   function renderDrawerOpenAt(pathname: string, entriesBelow = [pathname]) {
-    return renderWithProviders(
+    return renderWithDataRouter(
       <>
         <Sidebar />
         <LocationProbe />

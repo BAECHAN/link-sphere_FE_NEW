@@ -211,9 +211,9 @@ _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 
   `v7_startTransition` 때문에 다음 화면이 청크·데이터로 suspend하는 동안엔 이전 폼이 마운트된 채
   남는다(정지 구간). 그래서 `useHasLeftPage`(`shared/hooks/useHasLeftPage.ts`)는 언마운트 **또는**
   라우터의 최신 경로(`RouterEvents.getLocation()`)가 폼 경로와 다르면 떠난 것으로 본다. key가 아니라
-  경로를 비교하는 이유는 같은 화면 위 오버레이(`useHistoryOverlay`, 북마크 폴더 선택)가 같은 경로에
-  새 key를 push하기 때문이다(북마크 폴더 선택은 Android 터치 기기에서는 push하지 않는다 —
-  `docs/DECISIONS.md` 2026-11-03).
+  경로를 비교하는 이유는 같은 화면 위 오버레이(`useBackClosableOverlay`, 북마크 폴더 선택)가 같은 경로에
+  새 key를 push하기 때문이다(2026-11-10부터 모든 기기가 같은 방식으로 push한다 —
+  [BACK-NAVIGATION.md](./BACK-NAVIGATION.md)).
 - **댓글 수정에도 첫 줄 규칙이 적용된다** — 댓글 수정 저장 중 뜬 모달은 수정이 성공해 폼이 닫히면
   저절로 닫히고 상세 화면에 머문다(사용자가 받아들인 부수 효과).
 - **근거 수준**: 위 동작은 이 레포의 선례 — 이탈 없이 성공하면 모달 없이 피드로 간다는 e2e 계약

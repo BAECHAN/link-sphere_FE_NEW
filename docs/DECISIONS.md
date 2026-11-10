@@ -77,8 +77,10 @@
 
 **남은 것**
 
-- 2단계(나머지 오버레이를 같은 훅으로, `useHistoryOverlay` 삭제).
+- 2단계(나머지 오버레이를 같은 훅으로, `useHistoryOverlay` 삭제). → 끝남(2026-11-10). 메뉴·로그인 창·이미지 확대
+  창·폰의 검색창이 같은 훅으로 열리고, 결과는 [BACK-NAVIGATION.md](./BACK-NAVIGATION.md) 9장에 있다.
 - 실제 Android 폰 확인. 뒤로 버튼이 히스토리 칸을 뺀다는 근거는 같은 폰에서 메뉴가 닫힌다는 사용자 확인이다.
+  → 1단계 배포 뒤 사용자가 폰에서 확인했다(2026-11-10, [#593](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/593)).
 - 폰의 댓글 입력 시트는 뒤로가기로 접히지 않는다([#590](https://github.com/BAECHAN/link-sphere_FE_NEW/issues/590)).
 - Android에서 `CloseWatcher`가 뒤로 버튼을 받지 못한 원인은 찾지 않았다. 그 경로를 없앴다.
 - 사용자는 데스크톱 평소 화면에서도 재현된다고 했는데 운영에서 직접 해 본 클릭 → 뒤로가기는 창만 닫혔다. 이 차이는

@@ -1,7 +1,6 @@
-import { createElement, type ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { act, renderHookWithDataRouter } from '@/test/utils';
 import { useLoginDialog } from '@/widgets/layout/login-dialog/hooks/useLoginDialog';
 import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { useAuthStore } from '@/shared/store/auth.store';
@@ -11,17 +10,15 @@ type Entry = { pathname: string; state?: Record<string, unknown> };
 
 const OPEN_STATE = { loginDialogOpen: true };
 
-function setup(entries: Entry[], index = entries.length - 1) {
-  const wrapper = ({ children }: { children: ReactNode }) =>
-    createElement(MemoryRouter, { initialEntries: entries, initialIndex: index }, children);
-
-  return renderHook(
+// 열림을 라우터가 가 있는 위치에서 읽으므로(useBackClosableOverlay) 앱과 같은 데이터 라우터로 그린다
+function setup(entries: Entry[]) {
+  return renderHookWithDataRouter(
     () => ({
       dialog: useLoginDialog(),
       navigate: useNavigate(),
       location: useLocation(),
     }),
-    { wrapper }
+    { wrapperOptions: { initialEntries: entries } }
   );
 }
 
@@ -128,6 +125,24 @@ describe('useLoginDialog', () => {
       expect(result.current.dialog.isOpen).toBe(false);
       expect(useLoginDialogStore.getState().onSuccess).toBeUndefined();
       expect(onSuccess).not.toHaveBeenCalled();
+    });
+
+    it('회원가입 화면에서 뒤로 와 창이 열린 칸으로 돌아오면 창이 다시 열려 있다', () => {
+      // 창 안의 회원가입 링크는 창이 열린 칸 위에 회원가입 화면을 쌓는다. 뒤로 오는 순간 라우터는 이미 창이 열린
+      // 칸에 있고 화면은 아직 회원가입 화면이다 - 그 화면(커밋된 위치)으로 "auth 페이지에서 열렸다"를 판정하면
+      // 돌아온 창을 닫고 한 칸 더 뒤로 간다
+      const { result } = setup([
+        { pathname: '/' },
+        { pathname: '/', state: OPEN_STATE },
+        { pathname: ROUTES_PATHS.AUTH.SIGNUP },
+      ]);
+
+      act(() => {
+        result.current.navigate(-1);
+      });
+
+      expect(result.current.dialog.isOpen).toBe(true);
+      expect(result.current.location.state).toEqual(OPEN_STATE);
     });
 
     it('auth 페이지가 아니면 열린 채로 콜백도 유지한다', () => {

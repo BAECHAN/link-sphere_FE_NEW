@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/entities/auth/hooks/useAuth';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
+import { createBackClosableOverlayState } from '@/shared/config/back-closable-overlay';
+import { RouterEvents } from '@/shared/lib/router/router-events';
 import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
 import {
   useLoginDialogStore,
@@ -11,6 +13,12 @@ import {
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+}
+
+// subscribe는 컴포넌트 밖에 둔다 - 렌더마다 새 함수를 넘기면 React가 그때마다 다시 구독한다
+// (https://react.dev/reference/react/useSyncExternalStore#caveats)
+function subscribeToNavigation(onStoreChange: () => void) {
+  return RouterEvents.onNavigate(onStoreChange);
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
@@ -46,9 +54,24 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   const isSignedOutInPlace = !isAuthenticated && keptPathname === location.pathname;
-  const isLoginDialogOpen = Boolean(
-    (location.state as LoginDialogLocationState | null)?.loginDialogOpen
-  );
+  // 로그인 창이 이 화면 위에 열려 있는지는 창을 그리는 쪽(useLoginDialog)과 같은 곳, 라우터가 가 있는 위치에서 읽는다.
+  // 커밋된 위치(location.state)는 페이지를 다 그린 뒤에야 바뀌어(useBackClosableOverlay.ts) 창은 떴는데 여기서는 아직
+  // 안 열렸다고 보는 사이가 생긴다. 그 사이에 Esc·뒤로가기로 닫으면 열렸던 것을 못 봐 피드로 보내지 않았다
+  // (docs/BACK-NAVIGATION.md 10장 - CPU 4배 감속에서 60~70ms).
+  // - 'left': 라우터가 이미 다른 화면에 가 있다. 새 화면이 커밋되기 전에 이 화면이 한 번 더 그려지는 때라(위 keptPathname)
+  //   "닫혔다"로 읽으면 고른 화면 대신 피드로 보낸다
+  // getSnapshot은 렌더마다 다시 불려 지금 그리는 위치와 비교해도 된다(react-dom 18.3.1 react-dom.development.js:16041)
+  const signInDialogOnScreen = useSyncExternalStore(subscribeToNavigation, () => {
+    const routerLocation = RouterEvents.getLocation();
+
+    if (routerLocation?.pathname !== location.pathname) {
+      return 'left';
+    }
+
+    return (routerLocation.state as LoginDialogLocationState | null)?.loginDialogOpen
+      ? 'open'
+      : 'closed';
+  });
 
   // 이 마운트에서 한 번이라도 로그인 상태였는지 추적.
   // - 처음부터 비로그인 = 보호 페이지 "접근 시도" → 로그인 모달을 띄운다.
@@ -96,7 +119,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         return;
       }
 
-      if (isLoginDialogOpen) {
+      if (signInDialogOnScreen === 'left') {
+        return;
+      }
+
+      if (signInDialogOnScreen === 'open') {
         signInDialogShownRef.current = true;
         return;
       }
@@ -108,7 +135,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       leftForFeedRef.current = true;
       navigate(ROUTES_PATHS.POST.ROOT, { replace: true });
     },
-    [isAuthenticated, isSignedOutInPlace, isLoginDialogOpen, navigate]
+    [isAuthenticated, isSignedOutInPlace, signInDialogOnScreen, navigate]
   );
 
   if (!isAuthResolved) {
@@ -123,7 +150,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       <Navigate
         to={ROUTES_PATHS.POST.ROOT}
         replace
-        state={hasBeenAuthenticated ? undefined : { loginDialogOpen: true }}
+        state={hasBeenAuthenticated ? undefined : createBackClosableOverlayState('loginDialogOpen')}
       />
     );
   }

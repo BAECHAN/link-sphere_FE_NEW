@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import type { SignedOutInPlaceReason } from '@/shared/store/auth.store';
+import { createBackClosableOverlayState } from '@/shared/config/back-closable-overlay';
 
 /**
- * 로그인 창의 열림은 history state의 loginDialogOpen이 정한다(useHistoryOverlay). 로그인이 풀려 쓰던 화면에서 연
+ * 로그인 창의 열림은 history state의 loginDialogOpen이 정한다(useBackClosableOverlay). 로그인이 풀려 쓰던 화면에서 연
  * 창은 loginDialogReason도 함께 실어, 창이 왜 떴는지를 제목·설명으로 알린다(useLoginDialog).
  */
 export interface LoginDialogLocationState {
@@ -15,8 +16,11 @@ export const SIGNED_OUT_IN_PLACE_DIALOG_STATE: Record<
   SignedOutInPlaceReason,
   LoginDialogLocationState
 > = {
-  expired: { loginDialogOpen: true, loginDialogReason: 'expired' },
-  signedOutElsewhere: { loginDialogOpen: true, loginDialogReason: 'signedOutElsewhere' },
+  expired: { ...createBackClosableOverlayState('loginDialogOpen'), loginDialogReason: 'expired' },
+  signedOutElsewhere: {
+    ...createBackClosableOverlayState('loginDialogOpen'),
+    loginDialogReason: 'signedOutElsewhere',
+  },
 };
 
 interface LoginDialogState {

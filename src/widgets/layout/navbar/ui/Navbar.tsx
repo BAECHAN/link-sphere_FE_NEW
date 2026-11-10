@@ -23,7 +23,7 @@ import { useDelayedLogout } from '@/widgets/layout/navbar/hooks/useDelayedLogout
 import { useMobileSearchPanel } from '@/widgets/layout/navbar/hooks/useMobileSearchPanel';
 import { TEXTS } from '@/shared/config/texts';
 import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
-import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
+import { useBackClosableOverlayOpen } from '@/shared/hooks/useBackClosableOverlay';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 import { cn } from '@/shared/lib/tailwind/utils';
 
@@ -34,9 +34,9 @@ export function Navbar() {
   const { account } = useAccount();
 
   const { isLoggingOut, handleLogout } = useDelayedLogout();
-  const { open: openSidebar } = useHistoryOverlay('sidebarOpen');
+  const openSidebar = useBackClosableOverlayOpen('sidebarOpen');
   const setLoginOnSuccess = useLoginDialogStore((state) => state.setOnSuccess);
-  const { open: openLoginDialog } = useHistoryOverlay('loginDialogOpen');
+  const openLoginDialog = useBackClosableOverlayOpen('loginDialogOpen');
 
   const navigate = useNavigate();
 

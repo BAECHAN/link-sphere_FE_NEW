@@ -1,7 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen, act } from '@testing-library/react';
-import { useLocation } from 'react-router-dom';
-import { renderWithProviders, userEvent } from '@/test/utils';
+import { renderWithDataRouter, userEvent } from '@/test/utils';
 import { LoginDialog } from '@/widgets/layout/login-dialog/ui/LoginDialog';
 import { useAuthStore } from '@/shared/store/auth.store';
 import {
@@ -16,29 +15,28 @@ vi.mock('@/features/auth/login/ui/LoginForm', () => ({
   LoginForm: () => <div>login-form</div>,
 }));
 
-/** location.state.loginDialogOpen 여부를 화면에 노출해 확인한다 (useAuthGuard.test.tsx 선례). */
-function LoginDialogStateProbe() {
-  const location = useLocation();
-  const state = location.state as { loginDialogOpen?: boolean } | null;
-  return <div data-testid="login-dialog-open">{String(Boolean(state?.loginDialogOpen))}</div>;
+/**
+ * navigate(-1)이 갈 곳이 있도록 엔트리 2개로 렌더한다 - 마지막 엔트리가 모달이 열린 상태다.
+ * 열림을 라우터가 가 있는 위치에서 읽으므로(useBackClosableOverlay) 앱과 같은 데이터 라우터로 그린다.
+ */
+function renderOpenDialog() {
+  return renderWithDataRouter(<LoginDialog />, {
+    wrapperOptions: {
+      initialEntries: [
+        { pathname: '/post' },
+        { pathname: '/post', state: { loginDialogOpen: true } },
+      ],
+    },
+  });
 }
 
-/** navigate(-1)이 갈 곳이 있도록 엔트리 2개로 렌더한다 - 마지막 엔트리가 모달이 열린 상태다. */
-function renderOpenDialog() {
-  return renderWithProviders(
-    <>
-      <LoginDialog />
-      <LoginDialogStateProbe />
-    </>,
-    {
-      wrapperOptions: {
-        initialEntries: [
-          { pathname: '/post' },
-          { pathname: '/post', state: { loginDialogOpen: true } },
-        ],
-      },
-    }
-  );
+type Router = ReturnType<typeof renderOpenDialog>['router'];
+
+/** 라우터가 가 있는 칸이 로그인 창을 연 칸인지 - 창의 열림이 이 값을 따른다 */
+function isOnLoginDialogEntry(router: Router) {
+  const state = router.state.location.state as { loginDialogOpen?: boolean } | null;
+
+  return Boolean(state?.loginDialogOpen);
 }
 
 describe('LoginDialog', () => {
@@ -50,15 +48,15 @@ describe('LoginDialog', () => {
 
   it('pendingAction은 이 모달의 히스토리 엔트리가 실제로 닫힌 뒤에만 실행한다', () => {
     // 겹침 회귀 테스트: "몇 틱 뒤"라는 시간이 아니라, 실행되는 시점에 이 모달의 open
-    // 상태(location.state.loginDialogOpen)가 이미 false인지를 본다. Radix Dialog는
+    // 상태(라우터가 가 있는 칸의 state.loginDialogOpen)가 이미 false인지를 본다. Radix Dialog는
     // exit 애니메이션 때문에 data-state="closed"가 된 뒤에도 DOM 노드가 잠시 남아있어
     // "화면에서 사라짐"을 DOM 존재 여부로 판단하면 안 된다 - 이 코드가 실제로 보장하는
     // 것은 history 상태 기준의 닫힘이다.
     const pendingAction = vi.fn(() => {
-      expect(screen.getByTestId('login-dialog-open')).toHaveTextContent('false');
+      expect(isOnLoginDialogEntry(router)).toBe(false);
     });
     useLoginDialogStore.getState().setPendingAction(pendingAction);
-    renderOpenDialog();
+    const { router } = renderOpenDialog();
 
     act(() => {
       useAuthStore.getState().setAuth('token');
@@ -72,11 +70,11 @@ describe('LoginDialog', () => {
     const pendingAction = vi.fn();
     useLoginDialogStore.getState().setPendingAction(pendingAction);
     const user = userEvent.setup();
-    renderOpenDialog();
+    const { router } = renderOpenDialog();
 
     await user.keyboard('{Escape}');
 
-    expect(screen.getByTestId('login-dialog-open')).toHaveTextContent('false');
+    expect(isOnLoginDialogEntry(router)).toBe(false);
     expect(pendingAction).not.toHaveBeenCalled();
     expect(useLoginDialogStore.getState().pendingAction).toBeUndefined();
   });
@@ -106,7 +104,7 @@ describe('LoginDialog', () => {
   it.each(['expired', 'signedOutElsewhere'] as const)(
     '로그인이 풀린 화면에서 연 창(%s)은 그 이유를 제목·설명으로 알린다',
     (reason) => {
-      renderWithProviders(<LoginDialog />, {
+      renderWithDataRouter(<LoginDialog />, {
         wrapperOptions: {
           initialEntries: [
             { pathname: '/post/submit' },

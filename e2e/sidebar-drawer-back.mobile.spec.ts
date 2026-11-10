@@ -9,7 +9,7 @@ import { mockBookmarkFolderList, mockBookmarkFolderPosts } from './mocks/bookmar
 import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 
-// 메뉴 열림은 히스토리 엔트리(useHistoryOverlay)라, 메뉴 링크가 그 엔트리를 남기면 뒤로 왔을 때 메뉴가
+// 메뉴 열림은 히스토리 엔트리(useBackClosableOverlay)라, 메뉴 링크가 그 엔트리를 남기면 뒤로 왔을 때 메뉴가
 // 다시 열린다(docs/plans/2026-11-07-sidebar-back-reopen.md). 히스토리 스택은 실제 브라우저에서만 끝까지 볼 수 있다.
 const TOTAL_POSTS = 40;
 const TARGET_POST_INDEX = 15;

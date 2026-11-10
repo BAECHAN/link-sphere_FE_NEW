@@ -13,7 +13,7 @@ import {
 import { useCategoryOptions } from '@/entities/category/hooks/useCategoryOptions';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
-import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
+import { useBackClosableOverlay } from '@/shared/hooks/useBackClosableOverlay';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { FormAlert } from '@/shared/ui/elements/FormAlert';
 import { LinkPreviewCard } from '@/entities/post/ui/LinkPreviewCard';
@@ -44,7 +44,7 @@ export function CreatePostForm({ renderFolderSelect }: CreatePostFormProps) {
 
   // 모바일 헤더 검색이 열리면 RecentSearchPanel(z-panel)이 화면을 덮는데 이 바도 같은
   // z층이라 DOM 순서만으로 패널 위에 남는다 - MobileCommentBar.tsx와 동일한 이유로 숨긴다.
-  const { isOpen: isMobileSearchOpen } = useHistoryOverlay('mobileSearchOpen');
+  const { isOpen: isMobileSearchOpen } = useBackClosableOverlay('mobileSearchOpen');
 
   // 이 바가 탭바 위에 떠 있는 동안 토스트가 그 위로 뜨도록 --toast-offset-bottom을 바
   // 높이만큼 키운다(MobileCommentBar.tsx의 reserveToastSpaceAboveBar와 동일 패턴).

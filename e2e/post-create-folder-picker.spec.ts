@@ -13,7 +13,7 @@ const TYPED_URL = 'https://example.com/typed';
 const FOLDERS_PATH = '/api/bookmark/folders';
 
 // 등록 폼의 북마크 폴더 선택 모달(PostCreateBookmarkFolderField)은 열림 상태를 같은 경로의
-// 히스토리 엔트리로 둔다(useHistoryOverlay). 뒤로가기는 모달만 닫고, 같은 경로 안의 이동이라
+// 히스토리 엔트리로 둔다(useBackClosableOverlay). 뒤로가기는 모달만 닫고, 같은 경로 안의 이동이라
 // 이탈 확인(useUnsavedChangesGuard)도 뜨지 않는다.
 test.describe('등록 폼 — 북마크 폴더 선택 모달 뒤로가기', () => {
   test.beforeEach(async ({ page }) => {

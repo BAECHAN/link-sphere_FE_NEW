@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { renderWithProviders, userEvent } from '@/test/utils';
+import { renderWithDataRouter, userEvent } from '@/test/utils';
 import { MobileCommentBar } from '@/features/comment/create/ui/MobileCommentBar';
 import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
 import { TEXTS } from '@/shared/config/texts';
@@ -28,10 +28,11 @@ function SearchToggleProbe() {
   );
 }
 
-// renderWithProviders에는 TooltipProvider가 없다(TooltipWrapper.test.tsx와 동일한 이유) -
+// 테스트 render 함수에는 TooltipProvider가 없다(TooltipWrapper.test.tsx와 동일한 이유) -
 // 펼침 상태의 CommentForm이 TooltipWrapper(길이 초과 안내 등)를 렌더하므로 직접 감싼다.
+// 검색 열림을 라우터가 가 있는 위치에서 읽으므로(useBackClosableOverlay) 앱과 같은 데이터 라우터로 그린다.
 function renderMobileCommentBar() {
-  return renderWithProviders(
+  return renderWithDataRouter(
     <TooltipProvider>
       <MobileCommentBar postId="post-1" />
       <SearchToggleProbe />

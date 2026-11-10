@@ -1,24 +1,37 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { MemoryRouter } from 'react-router-dom';
+import { useEffect, useState, type ReactNode } from 'react';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { GlobalImageViewer } from '@/shared/ui/elements/dialog/image-viewer/ImageViewer';
 import { useImageViewer } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
 import { Button } from '@/shared/ui/atoms/button';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
+import { NavigationService } from '@/shared/lib/router/navigation';
+import { RouterEvents } from '@/shared/lib/router/router-events';
+
+// GlobalImageViewer가 마운트 즉시 useBackClosableOverlay(useNavigate)를 호출한다 - <Router> 조상 없이는 렌더
+// 자체가 크래시한다(addon-vitest가 스토리를 실제 컴포넌트 테스트로 실행하면서 2026-09-16 처음 발견). 그 훅은
+// 열림을 라우터가 가 있는 위치(RouterEvents)에서 읽어, MemoryRouter 아래에서는 눌러도 창이 열리지 않는다.
+// 그래서 앱의 RouterProvider.tsx와 같은 주입을 하되, 실제 브라우저 히스토리를 건드리지 않는 메모리 라우터를 쓴다.
+function AppLikeRouter({ children }: { children: ReactNode }) {
+  const [router] = useState(() => createMemoryRouter([{ path: '*', element: children }]));
+
+  useEffect(() => {
+    NavigationService.setNavigate(router.navigate.bind(router));
+    RouterEvents.setSource(router);
+  }, [router]);
+
+  return <RouterProvider router={router} future={{ v7_startTransition: true }} />;
+}
 
 const meta = {
   title: 'Shared/UI/Elements/Dialog/ImageViewer',
   component: GlobalImageViewer,
   tags: ['autodocs'],
-  // GlobalImageViewer가 마운트 즉시 useHistoryOverlay(useNavigate)를 호출한다 -
-  // <Router> 조상 없이는 렌더 자체가 크래시한다(addon-vitest가 스토리를 실제
-  // 컴포넌트 테스트로 실행하면서 2026-09-16 처음 발견). 실제 앱은 App.tsx의
-  // RouterProvider(createBrowserRouter)가 이 컨텍스트를 제공하므로, 스토리에서는
-  // 실제 브라우저 히스토리를 건드리지 않는 MemoryRouter로 동일한 컨텍스트만 준다.
   decorators: [
     (Story) => (
-      <MemoryRouter>
+      <AppLikeRouter>
         <Story />
-      </MemoryRouter>
+      </AppLikeRouter>
     ),
   ],
 } satisfies Meta<typeof GlobalImageViewer>;

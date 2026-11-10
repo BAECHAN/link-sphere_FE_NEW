@@ -373,7 +373,8 @@ Resource Timing을 모았다. 모바일은 CDP `Network.emulateNetworkConditions
 - 다시 시도하려면 운영과 같은 HTTP/2 조건으로 잴 방법부터 찾는다.
 
 **두 번 눌러 히스토리가 쌓이던 문제(고침)**: 로그인 창 청크는 첫 렌더에서 받기 시작하지만, 느린 회선에서는 도착하기 전에
-로그인 버튼을 누를 수 있다. 그때 화면에 창이 없어 한 번 더 누르면 `useHistoryOverlay`의 `open`이 히스토리 엔트리를 두 칸
+로그인 버튼을 누를 수 있다. 그때 화면에 창이 없어 한 번 더 누르면 `useHistoryOverlay`(2026-11-10부터
+`useBackClosableOverlay`)의 `open`이 히스토리 엔트리를 두 칸
 쌓아, 닫기를 한 번 눌러도 창이 남았다. 이미 열려 있으면 엔트리를 쌓지 않게 막았다. `LoginDialog` 청크를 4초 늦게 주고 두 번
 누른 뒤 닫기를 한 번 누르면 main은 창 1개가 남았고, 이 브랜치는 0개였다(로컬 `vite preview`, Playwright).
 
