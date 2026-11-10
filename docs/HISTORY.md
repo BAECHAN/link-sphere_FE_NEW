@@ -1,4 +1,7 @@
 ### 2026-11-10 (FE)
+- 폰 세로 모드에서 북마크 폴더 선택 시트의 높이를 폴더 개수와 관계없이 일관된 크기로 개선 ([#594](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/594))
+
+### 2026-11-10 (FE)
 - 모바일 및 데스크톱 환경에서 북마크 폴더 선택 창이 뒤로가기 동작을 통해 정상적으로 닫히도록 개선 ([#592](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/592))
 
 ### 2026-11-10 (BE)
