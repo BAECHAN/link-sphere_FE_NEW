@@ -45,6 +45,13 @@ interface BookmarkFolderSelectDialogProps {
 }
 
 /**
+ * 세로 모바일 시트는 폴더 수와 상관없이 같은 높이로 뜬다 — 폴더가 적어도 넓게 열리고, 새 폴더 입력을 열거나 폴더가
+ * 늘어도 높이가 변하지 않는다(2026-11-10 사용자 결정, docs/BOOKMARK.md §5 "창 높이"). 화면 높이를 다 달라고 하면
+ * SheetDialogContent의 상한(70dvh)이 잘라, 값을 여기 다시 적지 않아도 상한 높이가 된다.
+ */
+const MOBILE_SHEET_FILL_HEIGHT = 'h-dvh';
+
+/**
  * 북마크 폴더 선택 UI — 카드 북마크 버튼의 즉시 저장(PostCardBookmarkFolderDialog)과 등록 폼의 지연 선택
  * (PostCreateBookmarkFolderField)이 공유하는 프레젠테이션 컴포넌트. 저장 동작은 콜백으로 주입받는다.
  * 로직 전부는 useBookmarkFolderSelect가 소유하고, 여기는 JSX만 남긴다.
@@ -92,6 +99,7 @@ export function BookmarkFolderSelectDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <SheetDialogContent
         isMobile={isMobile}
+        className={isMobile ? MOBILE_SHEET_FILL_HEIGHT : undefined}
         onEscapeKeyDown={(e) => {
           // Radix는 document capture 단계에서 ESC를 먼저 가로채므로(react-use-escape-keydown),
           // 아래 Input의 onKeyDown에서 stopPropagation 해도 모달이 먼저 닫힌다. 생성 폼이
@@ -150,8 +158,9 @@ export function BookmarkFolderSelectDialog({
             </ul>
 
             {/* 본문 — 폴더 목록만 스크롤. 창 전체 높이 상한(SheetDialogContent) 안에서 위아래 고정 행을 뺀
-                만큼만 차지한다. 데스크톱은 넓은 화면에서도 384px를 넘지 않게 지금 높이를 둔다 */}
-            <div className={cn('min-h-0 overflow-y-auto', !isMobile && 'max-h-96')}>
+                만큼만 차지한다. 모바일 시트는 창 높이가 정해져 있어 남는 높이를 다 채운다 — 폴더가 적어도
+                아래 고정 행이 시트 바닥에 붙는다. 데스크톱은 넓은 화면에서도 384px를 넘지 않게 지금 높이를 둔다 */}
+            <div className={cn('min-h-0 overflow-y-auto', isMobile ? 'flex-1' : 'max-h-96')}>
               <ul className="py-1">
                 {/* 미분류 — 목록 없이도 저장할 수 있다. 목록을 받지 못했으면 개수를 모르니 0으로 보이지 않게 감춘다 */}
                 <FolderRow
@@ -288,7 +297,7 @@ function FolderListLoading({ isMobile, dangerActionLabel }: FolderListLoadingPro
         </li>
       </ul>
 
-      <div className={cn('min-h-0 overflow-y-auto', !isMobile && 'max-h-96')}>
+      <div className={cn('min-h-0 overflow-y-auto', isMobile ? 'flex-1' : 'max-h-96')}>
         <ul className="py-1" aria-busy="true">
           {/* 목록이 오기 전엔 눌러도 저장할 수 없으므로 "새 폴더 만들기"처럼 비활성으로 보인다 —
               평소 행과 똑같이 그리면 느린 네트워크에서 눌렀을 때 아무 반응이 없어 고장처럼 읽힌다 */}

@@ -5,6 +5,7 @@ import { mockAuthRefresh } from './mocks/auth.mock';
 import { mockAccountQuery } from './mocks/account.mock';
 import { mockCategoryOptions } from './mocks/common.mock';
 import { mockPostList } from './mocks/post.mock';
+import { mockBookmarkFolderList } from './mocks/bookmark-folder.mock';
 import { ENDPOINTS } from './mocks/endpoints';
 import { isApiPath } from './mocks/route-match';
 import { wrapResponse } from './mocks/wrap-response';
@@ -26,8 +27,11 @@ const folderList: BookmarkFolderListResponse = {
   uncategorizedCount: 2,
 };
 
+const PORTRAIT_VIEWPORT = { width: 393, height: 727 };
+const SHEET_HEIGHT_RATIO = 0.7;
+
 const SCREENS = [
-  { name: '세로', viewport: { width: 393, height: 727 }, maxRatio: 0.7 },
+  { name: '세로', viewport: PORTRAIT_VIEWPORT, maxRatio: SHEET_HEIGHT_RATIO },
   { name: '가로', viewport: { width: 851, height: 393 }, maxRatio: 1 },
 ];
 
@@ -104,3 +108,57 @@ for (const { name, viewport, maxRatio } of SCREENS) {
     });
   });
 }
+
+// 세로 모바일 시트는 폴더 수와 상관없이 상한 높이로 뜬다(2026-11-10, docs/BOOKMARK.md §5 "창 높이"). 내용 높이만큼만
+// 뜨던 때는 폴더 하나에 화면의 34%(글 등록 폼은 49%)였고, 새 폴더 입력을 열면 창이 32px 커졌다.
+test.describe('북마크 폴더 창 높이 — 세로, 폴더가 하나일 때', () => {
+  test.use({ viewport: PORTRAIT_VIEWPORT });
+
+  test.beforeEach(async ({ page }) => {
+    await installCatchAll(page);
+    await mockAuthRefresh(page);
+    await mockAccountQuery(page);
+    await mockCategoryOptions(page);
+    await mockPostList(page);
+    await mockBookmarkFolderList(page);
+  });
+
+  test('카드 북마크 버튼의 창이 상한 높이로 뜨고, 새 폴더 입력을 열어도 높이가 그대로다', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).first().click();
+
+    const dialog = page.getByRole('dialog');
+    const box = await measureDialog(page);
+
+    expect(Math.abs(box.height - box.viewport * SHEET_HEIGHT_RATIO)).toBeLessThanOrEqual(1);
+    expect(box.bottom).toBeLessThanOrEqual(box.viewport);
+
+    await dialog.getByRole('button', { name: TEXTS.bookmark.folder.create }).click();
+    await expect(dialog.getByPlaceholder(TEXTS.bookmark.folder.namePlaceholder)).toBeVisible();
+
+    const boxWithInput = await measureDialog(page);
+
+    expect(boxWithInput.height).toBe(box.height);
+    expect(boxWithInput.top).toBe(box.top);
+  });
+
+  test('글 등록 폼의 창이 상한 높이로 뜨고, 확인 줄이 창 바닥에 붙는다', async ({ page }) => {
+    await page.goto('/post/submit');
+    await page.getByRole('button', { name: TEXTS.post.form.create.bookmarkNone }).click();
+
+    const dialog = page.getByRole('dialog');
+    const box = await measureDialog(page);
+
+    expect(Math.abs(box.height - box.viewport * SHEET_HEIGHT_RATIO)).toBeLessThanOrEqual(1);
+
+    // 폴더 목록이 남는 높이를 채워야 확인 줄이 바닥에 닿는다 — 창 높이만 늘리면 확인 아래가 빈다
+    const confirmBottom = await dialog
+      .getByRole('button', { name: TEXTS.buttons.confirm })
+      .evaluate((button) => button.getBoundingClientRect().bottom);
+
+    expect(box.bottom - confirmBottom).toBeGreaterThanOrEqual(0);
+    expect(box.bottom - confirmBottom).toBeLessThanOrEqual(16);
+  });
+});
