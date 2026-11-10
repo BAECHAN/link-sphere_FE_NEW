@@ -44,7 +44,7 @@ describe('useNewFolderInput', () => {
     );
     const errorSpy = vi.spyOn(toast, 'error');
     const onCreated = vi.fn();
-    const { result } = renderHook(() => useNewFolderInput({ onCreated, onCancel: vi.fn() }), {
+    const { result } = renderHook(() => useNewFolderInput({ onCreated }), {
       wrapper: Wrapper,
     });
 
@@ -62,10 +62,9 @@ describe('useNewFolderInput', () => {
   it('응답을 끝내 못 받으면 실패라고 단정하지 않는다', async () => {
     server.use(http.post(url(API_ENDPOINTS.bookmark.folders), () => HttpResponse.error()));
     const errorSpy = vi.spyOn(toast, 'error');
-    const { result } = renderHook(
-      () => useNewFolderInput({ onCreated: vi.fn(), onCancel: vi.fn() }),
-      { wrapper: Wrapper }
-    );
+    const { result } = renderHook(() => useNewFolderInput({ onCreated: vi.fn() }), {
+      wrapper: Wrapper,
+    });
 
     act(() => result.current.setNewFolderName('폴더'));
     await act(async () => result.current.handleCreateAndSelect());
@@ -84,10 +83,9 @@ describe('useNewFolderInput', () => {
       )
     );
     const errorSpy = vi.spyOn(toast, 'error');
-    const { result } = renderHook(
-      () => useNewFolderInput({ onCreated: vi.fn(), onCancel: vi.fn() }),
-      { wrapper: Wrapper }
-    );
+    const { result } = renderHook(() => useNewFolderInput({ onCreated: vi.fn() }), {
+      wrapper: Wrapper,
+    });
 
     act(() => result.current.setNewFolderName('폴더'));
     await act(async () => result.current.handleCreateAndSelect());

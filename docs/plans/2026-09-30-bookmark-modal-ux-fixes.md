@@ -9,6 +9,8 @@
 - 대체됨(일부): `docs/plans/2026-11-03-bookmark-dialog-close-watcher.md`(#504) — 4번(뒤로가기로 모달만 닫기)을
   `CloseWatcher`가 있고 터치가 주 입력인 기기(사실상 Android)에서는 히스토리 엔트리 대신 `CloseWatcher`의 닫기 요청으로
   받는다. 엔트리 push가 페이지 전체를 다시 그리게 해서다. 데스크톱·iOS는 이 계획대로 히스토리 엔트리다.
+- 위 대체는 `docs/plans/2026-11-10-back-navigation-standard.md`(#592)에서 되돌려졌다 — Android를 포함한 모든 기기가
+  다시 4번대로 히스토리 엔트리로 연다. 열림을 읽는 자리만 `useLocation()`에서 라우터가 이미 가 있는 위치로 바뀌었다.
 
 <!-- plan-result:end -->
 

@@ -4,11 +4,13 @@ import { NavigationType, type Location } from 'react-router-dom';
  * 라우터가 위치를 바꾼 순간을, React가 그 위치를 커밋하기 전에 알려준다.
  *
  * `v7_startTransition: true` 때문에 목록 쿼리가 suspend하는 동안(정지 구간) React가 보는 위치는
- * 응답이 올 때까지 이전 그대로다. 그 사이의 "라우터가 이미 가 있는 위치"가 필요한 곳이 둘 있다.
+ * 응답이 올 때까지 이전 그대로다. 그 사이의 "라우터가 이미 가 있는 위치"가 필요한 곳이 셋 있다.
  * - 뒤로/앞으로 가기(POP): 같은 history 항목으로 돌아가면 `location.key`까지 같아져, React
  *   쪽에서는 커밋된 위치가 한 번도 안 바뀐 것으로 보인다(`onPop`)
  * - 목록 "적용 중" 표시: 칩을 누른 뒤 새 목록이 오기 전인지 알려면 최신 위치와 커밋된 위치를
  *   비교해야 한다(`onNavigate`, `getLocation`)
+ * - 뒤로가기로 닫히는 오버레이의 열림: 페이지 전체를 다시 그리기 전에 오버레이만 먼저 여닫으려면
+ *   최신 위치에서 읽어야 한다(`onNavigate`, `getLocation` - useBackClosableOverlay.ts)
  *
  * 그래서 라우터 자체의 구독(`router.subscribe`)을 쓴다. raw `popstate` 리스너는 docs/DECISIONS.md
  * 뒤로가기 정책의 금지 사항이라 쓰지 않는다.

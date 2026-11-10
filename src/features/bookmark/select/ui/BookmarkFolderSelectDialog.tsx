@@ -422,7 +422,7 @@ function NewFolderInput({ onCancel, onCreated }: NewFolderInputProps) {
     newFolderNameCountId,
     isCreating,
     handleCreateAndSelect,
-  } = useNewFolderInput({ onCreated, onCancel });
+  } = useNewFolderInput({ onCreated });
 
   return (
     <li className="flex flex-col gap-1 px-4 py-2.5">

@@ -7,7 +7,7 @@ import {
 
 /**
  * 화면 수준 북마크 폴더 선택 창의 열림 상태. 뒤로가기로 닫히는 열림(useBackClosableOverlay)은 이 훅 하나만
- * 쓴다 - CloseWatcher가 창마다 하나라 카드 수와 상관없다. 무엇을 보여 줄지는 버튼이 넣은 스토어 대상(target)이다.
+ * 구독한다 - 카드의 버튼은 열기만 한다. 무엇을 보여 줄지는 버튼이 넣은 스토어 대상(target)이다.
  */
 export function useGlobalPostBookmarkFolderDialog() {
   const target = usePostBookmarkFolderDialogStore((state) => state.target);

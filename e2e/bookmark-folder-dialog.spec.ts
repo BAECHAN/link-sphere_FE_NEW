@@ -1,12 +1,15 @@
 import { test, expect } from './fixtures/auth.fixture';
 import { installCatchAll } from './mocks/catch-all';
+import { ENDPOINTS } from './mocks/endpoints';
+import { isApiPath } from './mocks/route-match';
+import { wrapResponse } from './mocks/wrap-response';
 import { mockAuthRefresh } from './mocks/auth.mock';
 import { mockAccountQuery } from './mocks/account.mock';
 import { mockCategoryOptions } from './mocks/common.mock';
 import { mockPostList, mockPostDetail } from './mocks/post.mock';
 import { mockComments } from './mocks/comment.mock';
 import { mockBookmarkFolderList } from './mocks/bookmark-folder.mock';
-import { mockPost } from '@/mocks/fixtures/post.fixtures';
+import { mockPost, mockPostListResponse } from '@/mocks/fixtures/post.fixtures';
 import { mockBookmarkFolder } from '@/mocks/fixtures/bookmark-folder.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
@@ -93,6 +96,56 @@ test.describe('로그인 상태 — 북마크 폴더 모달 열림·닫힘', () 
 
     await page.goBack();
     await expect(page).toHaveURL(/\/post$/);
+  });
+
+  test('새 목록을 기다리는 동안 창을 열어도 보이던 카드가 그대로 남고, 창은 누른 필터의 주소 위에 열린다', async ({
+    page,
+  }) => {
+    // 창의 열림은 라우터가 가 있는 위치에서 동기 우선순위로 읽는다(useBackClosableOverlay). 필터를 바꾸고 새 목록을
+    // 기다리는 중(정지 구간)에 그 렌더가 끼어도, 보이던 목록이 로딩 골격으로 바뀌면 안 된다 - 같은 구독을
+    // usePostListApplying(usePostList.ts)이 useSyncExternalStore로 읽지 않는 이유가 이 위험이다
+    const isBookmarkedListRequest = (url: URL) =>
+      isApiPath(url, ENDPOINTS.post.base) && url.searchParams.get('filter') === 'isBookmarked';
+    let releaseList = () => {};
+    await page.route(isBookmarkedListRequest, async (route) => {
+      await new Promise<void>((resolve) => {
+        releaseList = resolve;
+      });
+      await route.fulfill({ json: wrapResponse(mockPostListResponse) });
+    });
+    await page.goto('/post');
+    const card = page.getByRole('link', { name: mockPost.title });
+    await expect(card).toBeVisible();
+
+    const listRequest = page.waitForRequest((req) => isBookmarkedListRequest(new URL(req.url())));
+    await page
+      .getByRole('group', { name: TEXTS.ariaLabels.postScopeFilters })
+      .getByRole('button', { name: TEXTS.buttons.bookmarkOnly })
+      .click();
+    await listRequest;
+
+    // 기다림이 길어지면 목록 위에 '적용 중' 덮개가 올라와 마우스로는 못 누른다 - 그 시간에 기대지 않도록 키보드로 연다
+    await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).focus();
+    await page.keyboard.press('Enter');
+
+    const folderDialog = page.getByRole('dialog');
+    await expect(folderDialog).toBeVisible();
+    // 아직 새 목록을 기다리는 중이고(덮개), 로딩 골격이 이전 카드를 가리지 않았다. 창이 열린 동안 배경은
+    // aria-hidden이라 역할로 찾을 때 숨은 요소까지 본다 - 화면에 보이는지는 toBeVisible이 따로 확인한다
+    await expect(page.getByText(TEXTS.post.search.applying)).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: mockPost.title, includeHidden: true })
+    ).toBeVisible();
+
+    releaseList();
+
+    await expect(page.getByText(TEXTS.post.search.applying)).toBeHidden();
+    await expect(folderDialog).toBeVisible();
+
+    // 창의 칸은 이전 주소가 아니라 누른 필터의 칸 위에 쌓였다 - 뒤로가기는 창만 닫고 필터는 남는다
+    await page.goBack();
+    await expect(folderDialog).not.toBeVisible();
+    await expect(page).toHaveURL(/filter=isBookmarked/);
   });
 
   test('북마크 버튼에 마우스를 올리면 폴더 목록을 미리 불러와, 열 때 추가 요청 없이 바로 보인다', async ({

@@ -1,6 +1,5 @@
 import { KeyboardEvent, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useBackCloseRequest } from '@/shared/hooks/useBackClosableOverlay';
 import { prefetchBookmarkFolderPosts } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import {
   BookmarkFolder,
@@ -76,16 +75,6 @@ export const useInlineCreateFolderInput = (onClose: () => void) => {
     setName('');
     onClose();
   };
-
-  // 터치가 주 입력인 Android 태블릿에서도 사이드바가 보인다 — 모바일 카드와 같이 뒤로가기는 입력만 접는다
-  // (docs/BOOKMARK.md §5). 생성 요청 중엔 받지 않는다
-  useBackCloseRequest(() => {
-    if (isPending) {
-      return;
-    }
-
-    handleCancel();
-  });
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     // IME(한글 등) 조합 중 엔터는 무시 — 조합 완료 + Enter 가 동시 발생해 submit 중복 호출되는 것을 방지

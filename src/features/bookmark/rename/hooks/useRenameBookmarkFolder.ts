@@ -2,7 +2,6 @@ import { KeyboardEvent, useId, useRef, useState } from 'react';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { ErrorUtil } from '@/shared/utils/error.util';
-import { useBackCloseRequest } from '@/shared/hooks/useBackClosableOverlay';
 import { useUpdateBookmarkFolderMutation } from '@/entities/bookmark/folder/api/bookmark-folder.queries';
 import { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { BookmarkFolderUtil } from '@/entities/bookmark/folder/utils/bookmark-folder.util';
@@ -13,7 +12,7 @@ interface UseRenameBookmarkFolderParams {
 
 /**
  * 폴더 이름 바꾸기 — 사이드바 행·모바일 카드(useFolderActions)와 폴더 화면 제목(BookmarkFolderTitle)이 공유한다.
- * Enter·blur는 저장, Escape와 Android 뒤로가기는 원래 이름으로 되돌린다(docs/BOOKMARK.md §5 "폴더 화면에서 이름 바꾸기").
+ * Enter·blur는 저장, Escape는 원래 이름으로 되돌린다(docs/BOOKMARK.md §5 "폴더 화면에서 이름 바꾸기").
  */
 export const useRenameBookmarkFolder = ({ folder }: UseRenameBookmarkFolderParams) => {
   const [renaming, setRenaming] = useState(false);
@@ -77,16 +76,6 @@ export const useRenameBookmarkFolder = ({ folder }: UseRenameBookmarkFolderParam
     setRenaming(false);
     setName(folder.name);
   };
-
-  // 입력이 열린 채 Android 뒤로가기를 누르면 페이지를 떠나지 않고 Escape처럼 되돌린다(docs/BOOKMARK.md §5).
-  // 저장 요청 중엔 받지 않는다 — 되돌려도 요청은 계속 가서 성공하면 이름이 바뀐다
-  useBackCloseRequest(() => {
-    if (submittingRef.current) {
-      return;
-    }
-
-    cancelRename();
-  }, renaming);
 
   const handleRenameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.nativeEvent.isComposing) {

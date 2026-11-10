@@ -194,6 +194,7 @@ features/<도메인>/<액션>/
 **독립 기능 문서(서사형)** — "지금 어떻게 동작하는가"
 
 - [`docs/AUTH.md`](docs/AUTH.md) — 인증·세션·토큰 갱신: 네 개의 독립된 인증 게이트(이메일 인증 쓰기 인가 포함), 상태 저장 위치, 401 자동 갱신
+- [`docs/BACK-NAVIGATION.md`](docs/BACK-NAVIGATION.md) — 뒤로가기: 화면 요소마다 무엇이 일어나야 하는지의 정본 표, 창·시트·메뉴를 히스토리 칸 하나로 닫는 방식과 새 오버레이를 더하는 절차
 - [`docs/BOOKMARK.md`](docs/BOOKMARK.md) — 북마크 페이지: 폴더 분류, 반응형 3분기, 폴더 내 검색
 - [`docs/BUILD-VERSION.md`](docs/BUILD-VERSION.md) — 배포 반영 확인: `/version` 화면과 CI 자동 검증으로 "지금 이 탭"과 "서버에 배포된 것"을 대조
 - [`docs/CACHE-STRATEGY.md`](docs/CACHE-STRATEGY.md) — 배포 후 옛 화면이 남는 네 군데(정적 파일·HTML·열린 탭·Service Worker)와 파일별 캐시 정책·배포 순서·옛 자산 정리, 옛 화면 신고 진단 순서
