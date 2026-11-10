@@ -307,15 +307,15 @@ flowchart TB
 
 ### BE 스택·설정 요약
 
-| 항목      | 기술                                                                                                                      |
-| --------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Runtime   | Kotlin 2.4, Java 17, Spring Boot 3.5.16                                                                                   |
-| 실행 형태 | AWS Lambda (Shadow JAR, SnapStart + CRaC). `LambdaHandler`가 MockMvc로 `DispatcherServlet` 직접 호출 — Tomcat 소켓 미사용 |
-| Web       | spring-boot-starter-web (서블릿 스택)                                                                                     |
-| Data      | JPA, Hibernate, PostgreSQL + pgvector(`hibernate-vector`) (Supabase pooler)                                               |
-| Security  | Spring Security, 서버 관리 세션(access/refresh), X-Access-Token 헤더 우선 — JWT(jjwt)는 PR #42로 폐지                     |
-| API 문서  | SpringDoc OpenAPI 2.10.0 — 공개 Swagger UI(읽기 전용): https://baechan.github.io/link-sphere_BE_NEW/api-docs/             |
-| 기타      | Jsoup, Actuator (health)                                                                                                  |
+| 항목      | 기술                                                                                                                                                                                 |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Runtime   | Kotlin 2.4, Java 17, Spring Boot 3.5.16                                                                                                                                              |
+| 실행 형태 | AWS Lambda (Shadow JAR, SnapStart + CRaC). `LambdaHandler`가 serverless-java-container로 서블릿 필터·`DispatcherServlet`을 호출 — Tomcat 소켓 미사용(2026-11-10부터, 전에는 MockMvc) |
+| Web       | spring-boot-starter-web (서블릿 스택)                                                                                                                                                |
+| Data      | JPA, Hibernate, PostgreSQL + pgvector(`hibernate-vector`) (Supabase pooler)                                                                                                          |
+| Security  | Spring Security, 서버 관리 세션(access/refresh), X-Access-Token 헤더 우선 — JWT(jjwt)는 PR #42로 폐지                                                                                |
+| API 문서  | SpringDoc OpenAPI 2.10.0 — 공개 Swagger UI(읽기 전용): https://baechan.github.io/link-sphere_BE_NEW/api-docs/                                                                        |
+| 기타      | Jsoup, Actuator (health)                                                                                                                                                             |
 
 | 설정         | 값                                                                                                                                                                                                                                                                                                      |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
