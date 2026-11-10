@@ -1,4 +1,7 @@
 ### 2026-11-10 (FE)
+- 표준 뒤로가기 훅을 도입하여 메뉴, 로그인, 이미지 확대, 폰 검색창의 네비게이션 로직 통합 및 리팩토링 ([#595](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/595))
+
+### 2026-11-10 (FE)
 - 폰 세로 모드에서 북마크 폴더 선택 시트의 높이를 폴더 개수와 관계없이 일관된 크기로 개선 ([#594](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/594))
 
 ### 2026-11-10 (FE)
