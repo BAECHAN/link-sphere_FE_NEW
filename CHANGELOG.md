@@ -55,6 +55,13 @@
 
 ### Changed
 
+- `shared` 메뉴·로그인 창·이미지 확대 창·폰 검색창이 페이지를 다시 그리기 전에 먼저 여닫힘
+  <details><summary>배경·구현</summary>
+
+  북마크 폴더 창에 먼저 쓴 방식(#592)을 뒤로가기로 닫히는 나머지 네 요소(폰의 왼쪽 메뉴, 로그인 창, 이미지 확대 창, 폰 검색창)로 넓히고 `useHistoryOverlay`를 지웠다. 뒤로가기로 닫히는 여섯 요소가 모두 `useBackClosableOverlay` 하나를 거친다 — 같은 주소의 히스토리 칸 하나로 열고, 열림은 React가 커밋한 위치가 아니라 라우터가 이미 가 있는 위치에서 읽는다. 뒤로가기에 일어나는 일은 그대로다(메뉴·창·검색창만 닫힌다). 달라지는 것은 두 가지다. 첫째, 네 요소가 페이지 전체를 다시 그리기 전에 먼저 뜨고 닫힌다. 같은 날 `origin/main` 빌드와 번갈아 직접 잰 값(로컬 운영 빌드, 30회 중앙값)으로 폰 메뉴 열기는 48.8ms에서 31.6ms, CPU 4배 감속에서 55.7ms에서 35.0ms, 로그인 창 열기는 33.0ms에서 15.5ms, 4배 감속에서 75.6ms에서 49.5ms가 됐고, 뜨기 전에 그리는 컴포넌트는 메뉴 339개에서 47개, 로그인 창 792개에서 179개로 줄었다. 이미지 확대 창과 폰 검색창은 재지 않았다. 둘째, 지금 보는 화면이 새 목록을 기다리는 이동(폰 검색 제출, 검색 결과 화면에서 메뉴의 [홈])에서 전에는 응답이 올 때까지 검색창·메뉴가 화면을 덮고 있었고, 지금은 누르자마자 닫혀 흐려진 이전 목록과 "결과를 불러오는 중이에요"가 보인다. 고치기 전 코드와 같은 장면을 나란히 녹화해 확인했고, 사용자가 전·후 영상을 보고 승인했다(2026-11-10). 새 화면의 코드를 받아 오는 이동(메뉴의 [북마크], 로그인 창의 [회원가입])과 로그인에 성공해 창이 닫히는 때는 전과 같았다. 폰 검색창은 따로 구현돼 있어 연타·중복 닫기 가드가 없었는데 같은 훅으로 옮기며 생겼다. 훅을 쓸 수 없는 자리(`auth.util.ts`, `ProtectedRoute.tsx`, `MarkdownContent.tsx`)는 `createBackClosableOverlayState(키)`로 칸을 만들고, `state`에 열림 키를 직접 적으면 린트가 막는다. 등록부의 키가 여섯으로 늘어 e2e 행렬이 키 6개 × 검사 4개 × 프로젝트 2개 = 48건을 실제 뒤로가기로 본다. 구현 중에 가입 화면에서 뒤로 왔을 때 로그인 창이 닫히는 회귀를 만들었다가 고쳤다 — 열림만 라우터 위치에서 읽고 "로그인·가입 화면인가"는 커밋된 위치에서 읽어 둘이 어긋났다. `useLoginDialog`는 이제 열림·창이 뜬 이유·화면 판정을 모두 라우터 위치에서 읽는다. `ProtectedRoute`도 로그인 창이 열려 있는지를 같은 곳에서 읽는다 — 커밋된 위치로 읽던 동안에는 로그인이 풀린 화면에 창이 뜬 직후 Esc·뒤로가기로 닫으면 창이 열렸던 것을 못 봐, 피드로 보내지도 이탈 확인을 묻지도 않았다. PR의 CI에서 e2e 한 건이 재시도로만 통과해 드러났고, CPU를 늦춰 재현한 뒤 고쳤다(사용자 선택, 2026-11-10). 로그인 뒤 이어서 하는 동작(카드 북마크 버튼)은 페이지를 다시 그리기 전에 실행될 수 있다. 실제 폰에서는 확인하지 못했다. 근거·측정 조건·확인하지 못한 것은 `docs/BACK-NAVIGATION.md` 5·9·10·11장. (`src/shared/hooks/useBackClosableOverlay.ts`, `src/shared/config/back-closable-overlay.ts`, `src/widgets/layout/login-dialog/hooks/useLoginDialog.ts`, `src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts`, `src/widgets/layout/sidebar/ui/Sidebar.tsx`, `src/shared/ui/elements/dialog/image-viewer/imageViewer.store.ts`, `src/shared/utils/auth.util.ts`, `src/app/routes/ProtectedRoute.tsx`, `src/shared/ui/elements/MarkdownContent.tsx`, `src/test/utils.tsx`, `e2e/back-closable-overlay.cases.ts`, `eslint.config.js`, `scripts/back-overlay-measure/measure.mjs`, `scripts/back-overlay-measure/results/2026-11-10-sidebar.json`(신규), `scripts/back-overlay-measure/results/2026-11-10-login.json`(신규), `docs/BACK-NAVIGATION.md`, `docs/SEARCH.md`, `docs/AUTH.md`, `docs/FE-ARCHITECTURE.md`, `docs/TESTING.md`, [PR #595](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/595))
+
+  </details>
+
 - `bookmark` 폰 세로 폴더 선택 시트가 폴더 수와 상관없이 같은 높이로 뜸
   <details><summary>배경·구현</summary>
 

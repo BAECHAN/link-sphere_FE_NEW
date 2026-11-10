@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
+import { useBackClosableOverlayOpen } from '@/shared/hooks/useBackClosableOverlay';
 
 export interface ImageViewerImage {
   src: string;
@@ -44,11 +44,11 @@ export const useImageViewerStore = create<ImageViewerStore>()(
 
 /**
  * 이미지 뷰어(라이트박스)를 열기 위한 Hook
- * 열림 상태는 히스토리 엔트리로 관리되어(useHistoryOverlay), 뒤로가기로 자연스럽게 닫힌다.
+ * 열림 상태는 히스토리 엔트리로 관리되어(useBackClosableOverlay), 뒤로가기로 자연스럽게 닫힌다.
  */
 export function useImageViewer() {
   const setImage = useImageViewerStore((state) => state.setImage);
-  const { open } = useHistoryOverlay('imageViewerOpen');
+  const open = useBackClosableOverlayOpen('imageViewerOpen');
 
   return {
     openImageViewer: (image: ImageViewerImage) => {

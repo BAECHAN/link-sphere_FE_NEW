@@ -509,9 +509,9 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   예전 순차 요청이었다면 같은 응답 시간으로 약 0.87초였을 것이다 — 이전 버전은 이미 내려가 직접 재지 못했고,
   잰 응답 시간을 이어 붙인 추정이다. RUM으로는 이런 화면 안 동작을 잴 수 없다(`docs/RUM.md` "남은 것").
 
-- **한 엔트리에 한 번만** — 오버레이(이미지 뷰어·북마크 폴더 창 등, `useHistoryOverlay`)는
-  해시를 빼고 push해서, 닫는 뒤로가기(POP)에서 해시가 되살아난다(북마크 폴더 창은 Android 터치
-  기기에서는 push하지 않아 해당 없다 — `docs/DECISIONS.md` 2026-11-03). 그때마다 다시 스크롤하면
+- **한 엔트리에 한 번만** — 오버레이(이미지 뷰어·북마크 폴더 창 등, `useBackClosableOverlay`)는
+  해시를 빼고 push해서, 닫는 뒤로가기(POP)에서 해시가 되살아난다(2026-11-10부터 모든 기기가 같은
+  방식으로 push한다 — [BACK-NAVIGATION.md](./BACK-NAVIGATION.md)). 그때마다 다시 스크롤하면
   보던 자리에서 대상으로 끌려가므로(가드를 빼면 17px → 763px, `e2e/comment-icon-scroll.spec.ts`)
   처리한 `location.key`를 ref에 기억해 같은 엔트리면 건너뛴다. 새로고침·다른 화면에서 돌아오기는
   다시 마운트돼 ref가 비므로 예전처럼 다시 이동한다. 같은 가드가 StrictMode의 effect 재실행도

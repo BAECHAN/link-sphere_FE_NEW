@@ -91,7 +91,11 @@ const RESTRICTED_SYNTAX_COMMON = [
 // - history.pushState·replaceState: 라우터가 모르는 칸이 생겨 라우터가 칸마다 싣는 번호·state와 어긋난다
 // - popstate 리스너: docs/DECISIONS.md 2026-08-07 "뒤로가기 정책"의 금지 사항이 문서에만 있었다. 뒤로가기를
 //   알아야 하면 RouterEvents.onPop을 쓴다
-// 테스트는 jsdom 주소를 replaceState로 맞추는 준비 코드가 있어 적용하지 않는다.
+// - state에 직접 적은 열림 키(`state: { fooOpen: true }`, `<Navigate state={{ fooOpen: true }} />`): 훅을 쓸 수
+//   없는 자리(React 트리 밖의 유틸, <Navigate>)는 칸을 직접 넣는데, 키를 리터럴로 적으면 등록부
+//   (shared/config/back-closable-overlay.ts)에 없는 키도 컴파일된다. 등록부에 없는 오버레이는 실제 뒤로가기
+//   검사(e2e/back-closable-overlay.cases.ts)를 거치지 않는다. createBackClosableOverlayState(키)는 등록부의 키만 받는다
+// 테스트는 jsdom 주소를 replaceState로 맞추는 준비 코드와 칸을 직접 만드는 준비 코드가 있어 적용하지 않는다.
 const RESTRICTED_SYNTAX_NO_RAW_BACK_HANDLING = [
   {
     selector: 'Identifier[name="CloseWatcher"]',
@@ -108,6 +112,12 @@ const RESTRICTED_SYNTAX_NO_RAW_BACK_HANDLING = [
       ':matches(CallExpression[callee.property.name="addEventListener"][arguments.0.value="popstate"], AssignmentExpression[left.property.name="onpopstate"])',
     message:
       'popstate를 직접 듣지 마세요. 뒤로·앞으로 가기는 RouterEvents.onPop으로, 뒤로가기로 닫히는 화면 요소는 useBackClosableOverlay로 받습니다(docs/BACK-NAVIGATION.md).',
+  },
+  {
+    selector:
+      ':matches(Property[key.name="state"], JSXAttribute[name.name="state"]) Property:matches([key.name=/Open$/], [key.value=/Open$/])',
+    message:
+      '오버레이 열림 키를 state에 직접 적지 마세요. useBackClosableOverlay로 열거나, 훅을 쓸 수 없는 자리면 createBackClosableOverlayState(키)로 만드세요(@/shared/config/back-closable-overlay, docs/BACK-NAVIGATION.md).',
   },
 ];
 

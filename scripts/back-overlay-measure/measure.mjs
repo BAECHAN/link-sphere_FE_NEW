@@ -1,12 +1,14 @@
-// 뒤로가기로 닫히는 오버레이(피드 카드의 북마크 폴더 창)를 여닫는 시간을 두 빌드에서 번갈아 잰다
-// (docs/BACK-NAVIGATION.md 9장, docs/plans/2026-11-10-back-navigation-standard.md 판단 11). 운영 API를 때리지
-// 않도록 /api는 전부 모킹하고 localhost 밖 요청은 막는다(scripts/barrel-experiment/measure.mjs와 같은 방식).
+// 뒤로가기로 닫히는 오버레이(피드 카드의 북마크 폴더 창, 폰의 왼쪽 메뉴, 로그인 창)를 여닫는 시간을 두 빌드에서
+// 번갈아 잰다(docs/BACK-NAVIGATION.md 9장, docs/plans/2026-11-10-back-navigation-standard.md 판단 11). 운영 API를
+// 때리지 않도록 /api는 전부 모킹하고 localhost 밖 요청은 막는다(scripts/barrel-experiment/measure.mjs와 같은 방식).
 //
 //   caffeinate -i node scripts/back-overlay-measure/measure.mjs \
-//     --baseline <기준 체크아웃> --target <대상 체크아웃> --out <결과 JSON> [--runs 10] [--quick 4]
+//     --baseline <기준 체크아웃> --target <대상 체크아웃> --out <결과 JSON> \
+//     [--overlay bookmark|sidebar|login] [--runs 10] [--quick 4]
 //
 // 두 체크아웃 모두 pnpm install이 끝나 있어야 한다. 운영 빌드(vite build --mode test)와 preview 서버는 이
 // 스크립트가 만들고 띄운다. --runs·--quick은 블록 하나의 횟수다(블록 3개, 빌드 순서를 블록마다 바꾼다).
+// --overlay를 안 주면 북마크 폴더 창을 잰다.
 
 import { spawn, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -16,7 +18,6 @@ import path from 'node:path';
 
 const VARIANTS = ['baseline', 'target'];
 const PORTS = { baseline: 31911, target: 31912 };
-const INPUTS = ['mouse', 'touch'];
 const CPU_RATES = [1, 4];
 const BLOCKS = 3;
 const WARMUP_RUNS = 3;
@@ -37,15 +38,47 @@ const BUILD_ENV = {
   VITE_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000000000',
   VITE_FIREBASE_VAPID_KEY: 'test-vapid-key',
 };
-// TEXTS.ariaLabels.bookmarkSave·close - 문구가 바뀌면 버튼을 못 찾아 바로 실패한다
-const LABEL_BOOKMARK_SAVE = '북마크 저장';
+// TEXTS.ariaLabels.close - 문구가 바뀌면 버튼을 못 찾아 바로 실패한다(아래 openerName도 같다)
 const LABEL_CLOSE = '닫기';
 const POST_COUNT = 12;
 const FOLDER_COUNT = 25;
 const HAS_SESSION_KEY = 'linksphere:auth:has-session';
+// 재는 오버레이마다 다른 것. surface는 열림을 DOM에서 읽는 방법이다 - dialog는 Radix Dialog, drawer는 늘 마운트된
+// 채 클래스로 여닫는 메뉴 패널(Sidebar.tsx)
+const OVERLAYS = {
+  // 피드 카드의 북마크 폴더 창. 기준 빌드가 입력 장치로 경로를 갈랐던 창이라 마우스·터치를 다 잰다
+  bookmark: {
+    viewport: { width: 1280, height: 800 },
+    inputs: ['mouse', 'touch'],
+    signedIn: true,
+    // TEXTS.ariaLabels.bookmarkSave
+    openerName: '북마크 저장',
+    surface: 'dialog',
+  },
+  // 폰의 왼쪽 메뉴. 폭이 좁을 때만 있다(Playwright Pixel 5의 화면 크기)
+  sidebar: {
+    viewport: { width: 393, height: 727 },
+    inputs: ['touch'],
+    signedIn: true,
+    // TEXTS.nav.openMenu
+    openerName: '메뉴 열기',
+    surface: 'drawer',
+  },
+  // 내비게이션 바 [로그인]의 로그인 창. 그 버튼은 로그인하지 않았을 때만 있다
+  login: {
+    viewport: { width: 1280, height: 800 },
+    inputs: ['mouse'],
+    signedIn: false,
+    // TEXTS.nav.logIn
+    openerName: '로그인',
+    surface: 'dialog',
+  },
+};
+// 닫힌 뒤 다음 회차로 가기 전에 기다리는 상태. 창은 닫힘 애니메이션 뒤 DOM에서 빠지고, 메뉴는 남아서 숨는다
+const GONE_STATE = { dialog: 'detached', drawer: 'hidden' };
 
 function parseArgs(argv) {
-  const args = { runs: 10, quick: 4 };
+  const args = { runs: 10, quick: 4, overlay: 'bookmark' };
 
   for (let i = 0; i < argv.length; i += 2) {
     args[argv[i].replace(/^--/, '')] = argv[i + 1];
@@ -56,6 +89,10 @@ function parseArgs(argv) {
 
   if (!args.baseline || !args.target || !args.out) {
     throw new Error('--baseline, --target, --out 이 필요하다');
+  }
+
+  if (!OVERLAYS[args.overlay]) {
+    throw new Error(`--overlay는 ${Object.keys(OVERLAYS).join(', ')} 중 하나여야 한다`);
   }
 
   return args;
@@ -219,7 +256,7 @@ function stopServer(child) {
  * 다시 그린 컴포넌트를 센다(React DevTools와 같은 판정: 이전 트리와 자식이 같은 가지는 건너뛰고, 다시 그린
  * 컴포넌트에는 PerformedWork 표시가 있다).
  */
-const PAGE_SCRIPT = (hasSessionKey) => {
+const PAGE_SCRIPT = ({ hasSessionKey, signedIn, surface }) => {
   const PERFORMED_WORK = 1;
   // FunctionComponent, ClassComponent, ForwardRef, MemoComponent, SimpleMemoComponent
   const COMPONENT_TAGS = new Set([0, 1, 11, 14, 15]);
@@ -227,7 +264,9 @@ const PAGE_SCRIPT = (hasSessionKey) => {
   const SETTLE_LIMIT_MS = 5_000;
   const commits = [];
 
-  window.localStorage.setItem(hasSessionKey, 'true');
+  if (signedIn) {
+    window.localStorage.setItem(hasSessionKey, 'true');
+  }
 
   function countRendered(rootFiber) {
     const stack = [rootFiber];
@@ -268,7 +307,11 @@ const PAGE_SCRIPT = (hasSessionKey) => {
     checkDCE() {},
   };
 
-  const isDialogOpen = () => document.querySelector('[role="dialog"][data-state="open"]') !== null;
+  // 메뉴 패널은 닫혀도 DOM에 남는다 - 열렸을 때만 붙는 클래스로 본다(Sidebar.tsx)
+  const isOverlayOpen =
+    surface === 'drawer'
+      ? () => document.querySelector('aside.z-drawer.translate-x-0') !== null
+      : () => document.querySelector('[role="dialog"][data-state="open"]') !== null;
 
   const sumCommits = (from, untilTime) => {
     const picked = commits.slice(from).filter((commit) => commit.time <= untilTime);
@@ -317,7 +360,7 @@ const PAGE_SCRIPT = (hasSessionKey) => {
         longestGap = Math.max(longestGap, now - lastFrameTime);
         lastFrameTime = now;
 
-        if (frameTime === null && isDialogOpen() === wantOpen) {
+        if (frameTime === null && isOverlayOpen() === wantOpen) {
           frameTime = now;
           resolveReached(frameTime - inputTime);
         }
@@ -365,16 +408,20 @@ const PAGE_SCRIPT = (hasSessionKey) => {
   };
 };
 
-async function openSession(browser, baseUrl, input, cpuRate) {
+async function openSession(browser, baseUrl, overlay, input, cpuRate) {
   const context = await browser.newContext({
-    viewport: { width: 1280, height: 800 },
+    viewport: overlay.viewport,
     hasTouch: input === 'touch',
     serviceWorkers: 'block',
   });
   const tracker = { externalBlocked: 0, unmockedApi: new Set() };
 
   await installMocks(context, tracker);
-  await context.addInitScript(PAGE_SCRIPT, HAS_SESSION_KEY);
+  await context.addInitScript(PAGE_SCRIPT, {
+    hasSessionKey: HAS_SESSION_KEY,
+    signedIn: overlay.signedIn,
+    surface: overlay.surface,
+  });
 
   const page = await context.newPage();
   const pageErrors = [];
@@ -382,8 +429,9 @@ async function openSession(browser, baseUrl, input, cpuRate) {
   page.on('pageerror', (error) => pageErrors.push(error.message.slice(0, 200)));
 
   await page.goto(`${baseUrl}/post`, { waitUntil: 'load', timeout: PAGE_TIMEOUT_MS });
+  // 첫 카드로 기다린다 - 폭이 좁으면 한 줄에 한 장이라 마지막 카드는 가상 스크롤 밖이어서 DOM에 없다
   await page
-    .getByText(POSTS[POST_COUNT - 1].title, { exact: true })
+    .getByText(POSTS[0].title, { exact: true })
     .first()
     .waitFor({ state: 'attached', timeout: PAGE_TIMEOUT_MS });
   await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
@@ -405,19 +453,27 @@ async function press(page, locator, input) {
   await locator.click();
 }
 
+function getOpener(page, overlay) {
+  return page.getByRole('button', { name: overlay.openerName }).first();
+}
+
+function getSurface(page, overlay) {
+  return overlay.surface === 'drawer' ? page.locator('aside.z-drawer') : page.getByRole('dialog');
+}
+
 /** 열기 → (가드 대기) → X로 닫기 한 번 */
-async function measureOpenClose(page, input) {
-  const bookmarkButton = page.getByRole('button', { name: LABEL_BOOKMARK_SAVE }).first();
+async function measureOpenClose(page, overlay, input) {
   const indexBefore = await page.evaluate(() => window.__measure.historyIndex());
 
   await page.evaluate(() => window.__measure.arm(true, 'click'));
-  await press(page, bookmarkButton, input);
+  await press(page, getOpener(page, overlay), input);
 
   const open = await page.evaluate(() => window.__measure.settled());
 
+  // 메뉴에는 그 가드가 없지만 오버레이끼리 조건을 같게 두려고 똑같이 기다린다
   await page.waitForTimeout(CLICK_GUARD_WAIT_MS);
   await page.evaluate(() => window.__measure.arm(false, 'click'));
-  await press(page, page.getByRole('dialog').getByRole('button', { name: LABEL_CLOSE }), input);
+  await press(page, getSurface(page, overlay).getByRole('button', { name: LABEL_CLOSE }), input);
 
   const close = await page.evaluate(() => window.__measure.settled());
 
@@ -434,12 +490,11 @@ async function measureOpenClose(page, input) {
 }
 
 /** 창이 뜬 첫 프레임에 바로 Esc - 열면서 시작한 페이지 다시 그리기가 도는 중에도 닫기가 먹는지 본다 */
-async function measureQuickClose(page, input) {
-  const bookmarkButton = page.getByRole('button', { name: LABEL_BOOKMARK_SAVE }).first();
+async function measureQuickClose(page, overlay, input) {
   const indexBefore = await page.evaluate(() => window.__measure.historyIndex());
 
   await page.evaluate(() => window.__measure.arm(true, 'click'));
-  await press(page, bookmarkButton, input);
+  await press(page, getOpener(page, overlay), input);
 
   if ((await page.evaluate(() => window.__measure.reached())) === null) {
     throw new Error('창이 열리지 않았다 - 측정을 멈춘다');
@@ -451,15 +506,16 @@ async function measureQuickClose(page, input) {
   const close = await page.evaluate(() => window.__measure.settled());
 
   // 닫힘 애니메이션이 끝나 창이 사라질 때까지 기다린 뒤 다음 회차로 간다
-  await page.getByRole('dialog').waitFor({ state: 'detached', timeout: 5_000 });
+  await getSurface(page, overlay).waitFor({ state: GONE_STATE[overlay.surface], timeout: 5_000 });
 
   return { ms: close.ms, indexRestored: close.historyIndex === indexBefore };
 }
 
-async function runSession(browser, baseUrl, session, args) {
+async function runSession(browser, baseUrl, overlay, session, args) {
   const { context, page, tracker, pageErrors } = await openSession(
     browser,
     baseUrl,
+    overlay,
     session.input,
     session.cpuRate
   );
@@ -468,18 +524,18 @@ async function runSession(browser, baseUrl, session, args) {
   const quickCloses = [];
 
   for (let run = 0; run < WARMUP_RUNS + args.runs; run += 1) {
-    const result = await measureOpenClose(page, session.input);
+    const result = await measureOpenClose(page, overlay, session.input);
 
     // 첫 회차들은 버린다 - 창 코드(lazy 청크)와 폴더 목록을 처음 받는 시간이 섞인다
     if (run >= WARMUP_RUNS) {
       runs.push(result);
     }
 
-    await page.getByRole('dialog').waitFor({ state: 'detached', timeout: 5_000 });
+    await getSurface(page, overlay).waitFor({ state: GONE_STATE[overlay.surface], timeout: 5_000 });
   }
 
   for (let run = 0; run < args.quick; run += 1) {
-    quickCloses.push(await measureQuickClose(page, session.input));
+    quickCloses.push(await measureQuickClose(page, overlay, session.input));
   }
 
   await context.close();
@@ -509,11 +565,11 @@ function median(values) {
 
 const round1 = (value) => (value === null ? null : Math.round(value * 10) / 10);
 
-function summarize(sessions) {
+function summarize(sessions, inputs) {
   const summary = [];
 
   for (const variant of VARIANTS) {
-    for (const input of INPUTS) {
+    for (const input of inputs) {
       for (const cpuRate of CPU_RATES) {
         const matched = sessions.filter(
           (session) =>
@@ -581,6 +637,7 @@ function describeCheckout(root) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  const overlay = OVERLAYS[args.overlay];
   const roots = { baseline: path.resolve(args.baseline), target: path.resolve(args.target) };
   const require = createRequire(path.join(roots.target, 'package.json'));
   const { chromium } = require('@playwright/test');
@@ -607,7 +664,7 @@ async function main() {
   const sessions = [];
 
   for (const cpuRate of CPU_RATES) {
-    for (const input of INPUTS) {
+    for (const input of overlay.inputs) {
       for (let block = 0; block < BLOCKS; block += 1) {
         // 블록마다 시작하는 빌드를 바꿔 예열·발열 편향을 줄인다
         const order = block % 2 === 0 ? VARIANTS : [...VARIANTS].reverse();
@@ -616,6 +673,7 @@ async function main() {
           const session = await runSession(
             browser,
             `http://localhost:${PORTS[variant]}`,
+            overlay,
             { variant, input, cpuRate, block },
             args
           );
@@ -641,7 +699,9 @@ async function main() {
   const result = {
     measuredAt: new Date().toISOString(),
     conditions: {
-      viewport: '1280x800',
+      overlay: args.overlay,
+      signedIn: overlay.signedIn,
+      viewport: `${overlay.viewport.width}x${overlay.viewport.height}`,
       posts: POST_COUNT,
       folders: FOLDER_COUNT,
       blocks: BLOCKS,
@@ -656,7 +716,7 @@ async function main() {
       baseline: describeCheckout(roots.baseline),
       target: describeCheckout(roots.target),
     },
-    summary: summarize(sessions),
+    summary: summarize(sessions, overlay.inputs),
     sessions: sessions.map(toColumns),
   };
 

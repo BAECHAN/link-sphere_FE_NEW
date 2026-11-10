@@ -234,7 +234,7 @@ test.describe('카드 댓글 아이콘 — 상세의 댓글 작성 폼으로 스
     await page.evaluate(() => window.scrollTo(0, 0));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 
-    // 북마크 폴더 창은 해시 없이 push하고(useHistoryOverlay) 닫을 때 뒤로가기(POP)로 #comments
+    // 북마크 폴더 창은 해시 없이 push하고(useBackClosableOverlay) 닫을 때 뒤로가기(POP)로 #comments
     // 엔트리에 돌아온다 - 해시가 되살아나도 이미 이동한 엔트리라 다시 스크롤하면 안 된다.
     // 버튼이 카드 푸터에 있어 click()이 먼저 조금 스크롤하므로, 기준은 0이 아니라 창을 연 시점이다.
     await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).click();

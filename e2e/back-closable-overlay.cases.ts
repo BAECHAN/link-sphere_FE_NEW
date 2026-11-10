@@ -1,12 +1,14 @@
-import type { Locator, Page } from '@playwright/test';
-import { test, expect } from './fixtures/auth.fixture';
+import { devices, test as signedOutTest, type Locator, type Page } from '@playwright/test';
+import { test as signedInTest, expect } from './fixtures/auth.fixture';
 import { installCatchAll } from './mocks/catch-all';
 import { mockAuthRefresh } from './mocks/auth.mock';
 import { mockAccountQuery } from './mocks/account.mock';
 import { mockCategoryOptions } from './mocks/common.mock';
-import { mockPostList } from './mocks/post.mock';
+import { mockPostDetail, mockPostList, mockRecordPostView } from './mocks/post.mock';
+import { mockComments } from './mocks/comment.mock';
 import { mockBookmarkFolderList } from './mocks/bookmark-folder.mock';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
+import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import type { BackClosableOverlayKey } from '@/shared/config/back-closable-overlay';
 import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
@@ -22,12 +24,37 @@ interface BackClosableOverlayCase {
   overlay: (page: Page) => Locator;
   /** 뒤로가기가 아니라 화면에서 닫는 조작(X·취소 등) */
   closeOnScreen: (page: Page) => Promise<void>;
+  /** 폭이 좁을 때만 있는 오버레이(폰 메뉴·폰 검색창). 데스크톱 프로젝트에서는 창을 폰 폭으로 줄여 본다 */
+  narrowScreenOnly?: true;
+  /** 로그인하지 않았을 때만 열 수 있는 오버레이(내비게이션 바 [로그인]의 로그인 창) */
+  signedOutOnly?: true;
 }
 
-// 폴더 선택 창(dialog.tsx)은 열린 직후의 클릭을 삼킨다 - 클릭 자체가 사라져 관측 가능한 이벤트로 기다릴 수 없다
-async function closeFolderDialogWithX(page: Page) {
+// 데스크톱 브라우저 창을 좁힌 경우를 본다 - 폰 배치는 폭으로 갈린다(Tailwind md, useIsMobile.ts)
+const NARROW_VIEWPORT = devices['Pixel 5'].viewport;
+
+// 댓글에 붙은 이미지 주소. 실제 요청이 밖으로 나가지 않게 아래에서 응답을 직접 준다
+const COMMENT_IMAGE_URL = 'https://images.example.test/attached.png';
+// 1×1 투명 PNG
+const ONE_PIXEL_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  'base64'
+);
+
+// dialog.tsx 기반 창은 열린 직후의 클릭을 삼킨다 - 클릭 자체가 사라져 관측 가능한 이벤트로 기다릴 수 없다
+async function closeDialogWithX(page: Page) {
   await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
   await page.getByRole('dialog').getByRole('button', { name: TEXTS.ariaLabels.close }).click();
+}
+
+function getDrawer(page: Page) {
+  return page.locator('aside.z-drawer');
+}
+
+async function goToFeed(page: Page) {
+  await mockPostList(page);
+  await page.goto('/post');
+  await expect(page.getByRole('link', { name: mockPost.title })).toBeVisible();
 }
 
 /**
@@ -47,7 +74,7 @@ const BACK_CLOSABLE_OVERLAY_CASES = {
     open: (page) =>
       page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).first().click(),
     overlay: (page) => page.getByRole('dialog'),
-    closeOnScreen: closeFolderDialogWithX,
+    closeOnScreen: closeDialogWithX,
   },
   postCreateBookmarkFolderOpen: {
     name: '글 등록 폼의 폴더 선택 창',
@@ -61,7 +88,52 @@ const BACK_CLOSABLE_OVERLAY_CASES = {
     },
     open: (page) => page.getByRole('button', { name: TEXTS.post.form.create.bookmarkNone }).click(),
     overlay: (page) => page.getByRole('dialog'),
-    closeOnScreen: closeFolderDialogWithX,
+    closeOnScreen: closeDialogWithX,
+  },
+  sidebarOpen: {
+    name: '폰의 왼쪽 메뉴',
+    narrowScreenOnly: true,
+    goToScreen: goToFeed,
+    open: (page) => page.getByRole('button', { name: TEXTS.nav.openMenu }).click(),
+    overlay: getDrawer,
+    closeOnScreen: (page) =>
+      getDrawer(page).getByRole('button', { name: TEXTS.ariaLabels.close }).click(),
+  },
+  loginDialogOpen: {
+    name: '로그인 창',
+    signedOutOnly: true,
+    goToScreen: goToFeed,
+    open: (page) => page.getByRole('button', { name: TEXTS.nav.logIn }).click(),
+    overlay: (page) => page.getByRole('dialog', { name: TEXTS.auth.guard.title }),
+    closeOnScreen: closeDialogWithX,
+  },
+  imageViewerOpen: {
+    name: '이미지 확대 창',
+    goToScreen: async (page) => {
+      await mockPostDetail(page);
+      await mockRecordPostView(page);
+      await mockComments(page, [{ ...mockComment, content: COMMENT_IMAGE_URL }]);
+      await page.route(COMMENT_IMAGE_URL, (route) =>
+        route.fulfill({ contentType: 'image/png', body: ONE_PIXEL_PNG })
+      );
+      await page.goto(`/post/${mockPost.id}`);
+      await expect(
+        page.getByRole('button', { name: TEXTS.ariaLabels.imageZoomAt(1) })
+      ).toBeVisible();
+    },
+    open: (page) => page.getByRole('button', { name: TEXTS.ariaLabels.imageZoomAt(1) }).click(),
+    overlay: (page) => page.getByRole('dialog', { name: TEXTS.ariaLabels.imageViewer }),
+    closeOnScreen: closeDialogWithX,
+  },
+  mobileSearchOpen: {
+    name: '폰의 검색창',
+    narrowScreenOnly: true,
+    goToScreen: goToFeed,
+    open: (page) => page.getByRole('button', { name: TEXTS.nav.openSearch }).click(),
+    overlay: (page) => page.locator('#mobile-search-input'),
+    // 입력이 비어 있으면 왼쪽 화살표와 오른쪽 X의 이름이 둘 다 '닫기'다 - 왼쪽 화살표를 누른다
+    closeOnScreen: (page) =>
+      page.getByRole('button', { name: TEXTS.ariaLabels.close }).first().click(),
   },
 } satisfies Record<BackClosableOverlayKey, BackClosableOverlayCase>;
 
@@ -98,11 +170,22 @@ export function describeBackClosableOverlays() {
   ][];
 
   for (const [key, overlayCase] of cases) {
+    // has-session 플래그가 있으면 로그인 상태가 돼 [로그인] 버튼이 없다 - 그 사례만 auth.fixture를 쓰지 않는다
+    const test = overlayCase.signedOutOnly ? signedOutTest : signedInTest;
+
     test.describe(`뒤로가기로 닫히는 오버레이 — ${overlayCase.name}`, () => {
       test.beforeEach(async ({ page }) => {
+        if (overlayCase.narrowScreenOnly) {
+          await page.setViewportSize(NARROW_VIEWPORT);
+        }
+
         await installCatchAll(page);
-        await mockAuthRefresh(page);
-        await mockAccountQuery(page);
+
+        if (!overlayCase.signedOutOnly) {
+          await mockAuthRefresh(page);
+          await mockAccountQuery(page);
+        }
+
         await mockCategoryOptions(page);
         await overlayCase.goToScreen(page);
       });

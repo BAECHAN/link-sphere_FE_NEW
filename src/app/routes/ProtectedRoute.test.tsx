@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { lazy, Suspense, type ComponentType } from 'react';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -230,10 +231,34 @@ function DirtyProtectedForm() {
   return <div data-testid="protected-content">content</div>;
 }
 
+const NeverLoads = lazy(() => new Promise<{ default: ComponentType }>(() => {}));
+
+// 로그인 창 칸이 실린 위치를 그리려 하면 끝나지 않는 페이지 - 창은 떴는데 페이지는 아직 다시 그려지지 않은 사이를 만든다
+// (useBackClosableOverlay.test.tsx의 PageSuspendingOnOverlayEntry와 같은 방식)
+function PageSuspendingOnSignInDialogEntry() {
+  const location = useLocation();
+  const hasSignInDialogEntry = Boolean(
+    (location.state as { loginDialogOpen?: boolean } | null)?.loginDialogOpen
+  );
+
+  return (
+    <>
+      <span data-testid="committed">{hasSignInDialogEntry ? 'dialog entry' : 'page entry'}</span>
+      {hasSignInDialogEntry && <NeverLoads />}
+    </>
+  );
+}
+
 /** 그 화면을 떠나는 다른 공개 화면 - 로그인 창 안의 "비밀번호를 잊으셨나요?"·"회원가입" 링크가 가는 곳 */
 const OTHER_PUBLIC_PATH = '/auth/forgot-password';
 
-function renderSignedOutInPlaceRoute({ isWriting }: { isWriting: boolean }) {
+function renderSignedOutInPlaceRoute({
+  isWriting,
+  pageSuspendsOnSignInDialogEntry = false,
+}: {
+  isWriting: boolean;
+  pageSuspendsOnSignInDialogEntry?: boolean;
+}) {
   const router = createMemoryRouter(
     [
       {
@@ -249,6 +274,11 @@ function renderSignedOutInPlaceRoute({ isWriting }: { isWriting: boolean }) {
                   <div data-testid="protected-content">content</div>
                 )}
                 <Link to={OTHER_PUBLIC_PATH}>other-public</Link>
+                {pageSuspendsOnSignInDialogEntry && (
+                  <Suspense fallback={null}>
+                    <PageSuspendingOnSignInDialogEntry />
+                  </Suspense>
+                )}
               </ProtectedRoute>
             ),
           },
@@ -280,7 +310,7 @@ async function expireInPlace(router: ReturnType<typeof createMemoryRouter>) {
   });
 }
 
-/** 로그인 없이 로그인 창을 닫는다(X·ESC·뒤로가기 - useHistoryOverlay.close는 navigate(-1)) */
+/** 로그인 없이 로그인 창을 닫는다(X·ESC·뒤로가기 - useBackClosableOverlay의 close는 navigate(-1)) */
 async function closeSignInDialog(router: ReturnType<typeof createMemoryRouter>) {
   await act(async () => {
     await router.navigate(-1);
@@ -344,6 +374,24 @@ describe('ProtectedRoute - 로그인이 풀린 채 그 화면에 둠', () => {
 
     await waitFor(() => expect(screen.getByTestId('post-root')).toBeInTheDocument());
     expect(screen.getByTestId('login-dialog-open')).toHaveTextContent('false');
+  });
+
+  it('페이지를 다시 그리기 전에 로그인 없이 창을 닫아도 피드로 보낸다', async () => {
+    // 로그인 창은 라우터가 가 있는 위치를 읽어 페이지보다 먼저 뜬다(useBackClosableOverlay). 열렸는지를 커밋된 위치로
+    // 보면 그 사이에 닫힌 창을 못 봐 피드로 보내지 않았다(docs/BACK-NAVIGATION.md 10장)
+    const router = renderSignedOutInPlaceRoute({
+      isWriting: false,
+      pageSuspendsOnSignInDialogEntry: true,
+    });
+    await expireInPlace(router);
+
+    // 라우터는 창 칸에 가 있지만 페이지는 아직 이전 위치로 그려져 있다
+    expect(router.state.location.state).toEqual(SIGNED_OUT_IN_PLACE_DIALOG_STATE.expired);
+    expect(screen.getByTestId('committed')).toHaveTextContent('page entry');
+
+    await closeSignInDialog(router);
+
+    await waitFor(() => expect(screen.getByTestId('post-root')).toBeInTheDocument());
   });
 
   it('쓰는 중이면 이탈 확인창이 막고, 계속 작성을 고르면 로그아웃 상태로 그 자리에 남는다 - 다시 묻거나 창을 다시 열지 않는다', async () => {

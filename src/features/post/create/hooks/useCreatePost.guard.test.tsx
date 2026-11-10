@@ -564,7 +564,7 @@ describe('useCreatePost - 저장 중 이탈', () => {
     const { router } = renderCreatePost();
 
     await fillAndSubmit(gate);
-    // useHistoryOverlay처럼 같은 경로에 state만 실어 push한다 - 경로가 같아 가드도 막지 않는다
+    // useBackClosableOverlay처럼 같은 경로에 state만 실어 push한다 - 경로가 같아 가드도 막지 않는다
     await act(async () => {
       await router.navigate(SUBMIT_PATH, { state: { postCreateBookmarkFolderOpen: true } });
     });

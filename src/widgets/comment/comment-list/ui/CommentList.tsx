@@ -51,7 +51,7 @@ function CommentListContent({ postId, postAuthorId, commentCount }: CommentListP
   // 있으면 ScrollRestoration이 먼저 즉시 점프해 부드러운 스크롤이 안 보인다. 즉시 이동·직접
   // 만든 250ms와 비교한 근거는 docs/COMMENT.md "해시 이동".
   //
-  // 오버레이(이미지 뷰어·북마크 폴더 창 등, useHistoryOverlay)는 해시를 빼고 push하므로 닫는
+  // 오버레이(이미지 뷰어·북마크 폴더 창 등, useBackClosableOverlay)는 해시를 빼고 push하므로 닫는
   // 뒤로가기(POP)에서 해시가 되살아난다. 이미 이동한 엔트리(같은 location.key)로 돌아온
   // 것이라 다시 끌어오지 않는다. 같은 이유로 StrictMode의 effect 재실행도 건너뛰므로, 강조
   // 해제 타이머는 cleanup에서 취소하지 않는다(취소하면 강조가 남는다).

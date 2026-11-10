@@ -1,6 +1,9 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import { useNavigate, type Location } from 'react-router-dom';
-import type { BackClosableOverlayKey } from '@/shared/config/back-closable-overlay';
+import {
+  createBackClosableOverlayState,
+  type BackClosableOverlayKey,
+} from '@/shared/config/back-closable-overlay';
 import { RouterEvents } from '@/shared/lib/router/router-events';
 
 // 뒤로를 보낸 위치. navigate(-1)은 popstate를 거쳐 늦게 반영된다 - 그 사이 닫기가 한 번 더 불리면(Esc 조합 중
@@ -36,8 +39,27 @@ function useOpenOverlay(key: BackClosableOverlayKey) {
     // preventScrollReset 없으면 <ScrollRestoration/>이 이 PUSH를 새 페이지로 보고
     // window.scrollTo(0, 0)을 실행해 배경 스크롤이 최상단으로 튄다.
     navigate(`${location.pathname}${location.search}`, {
-      state: { [key]: true },
+      state: createBackClosableOverlayState(key),
       preventScrollReset: true,
+    });
+  }, [navigate, key]);
+}
+
+function useOpenOverlayReplacingCurrent(key: BackClosableOverlayKey) {
+  const navigate = useNavigate();
+
+  return useCallback(() => {
+    const location = RouterEvents.getLocation();
+
+    if (!location) {
+      return;
+    }
+
+    // 두 번 불려도 같은 칸을 바꿀 뿐이라 열기의 "이미 열려 있으면" 가드가 필요 없다
+    navigate(`${location.pathname}${location.search}`, {
+      state: createBackClosableOverlayState(key),
+      preventScrollReset: true,
+      replace: true,
     });
   }, [navigate, key]);
 }
@@ -51,6 +73,8 @@ function useOpenOverlay(key: BackClosableOverlayKey) {
  *   (https://react.dev/reference/react/useSyncExternalStore). 읽는 값이 이 키 하나의 참·거짓이라 이 오버레이를
  *   여닫을 때만 바뀐다 - 위치 전체를 읽는 usePostListApplying(usePostList.ts)이 이 훅을 피한 경우와 다르다.
  * - 오버레이를 겹쳐 쌓지 않는 것을 전제로 한다(docs/DECISIONS.md 2026-08-07).
+ * - 오버레이 안의 링크로 다른 화면으로 떠날 때는 이 칸을 replace로 바꾼다 - 남겨 두면 뒤로 왔을 때 오버레이가
+ *   다시 열린다(useMobileSearchPanel.ts의 검색 제출, Sidebar.tsx의 메뉴 링크).
  * 근거와 측정은 docs/BACK-NAVIGATION.md, docs/DECISIONS.md 2026-11-10 항목.
  *
  * @param key 등록부(shared/config/back-closable-overlay.ts)의 키. location.state에 싣는다.
@@ -88,4 +112,15 @@ export function useBackClosableOverlay(key: BackClosableOverlayKey) {
  */
 export function useBackClosableOverlayOpen(key: BackClosableOverlayKey) {
   return useOpenOverlay(key);
+}
+
+/**
+ * 다른 오버레이의 칸에서 이어 열 때 쓰는 열기. 칸을 더 넣지 않고 지금 칸을 이 오버레이로 바꾼다 - 먼저 연
+ * 오버레이의 칸을 남기면, 닫거나 떠난 뒤 돌아왔을 때 그 오버레이가 다시 열린다(폰 메뉴에서 로그인이 필요한 링크를
+ * 누른 경우 - useProtectedNavigate.ts). useBackClosableOverlayOpen처럼 열림을 구독하지 않는다.
+ *
+ * @param key 오버레이를 그리는 쪽이 useBackClosableOverlay에 넘기는 키와 같아야 한다.
+ */
+export function useBackClosableOverlayOpenReplacingCurrent(key: BackClosableOverlayKey) {
+  return useOpenOverlayReplacingCurrent(key);
 }

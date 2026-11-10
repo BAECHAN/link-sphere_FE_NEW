@@ -1,5 +1,12 @@
 import { createContext, useContext, type ReactNode } from 'react';
-import { act, render, type RenderOptions, type RenderResult } from '@testing-library/react';
+import {
+  act,
+  render,
+  renderHook,
+  type RenderHookResult,
+  type RenderOptions,
+  type RenderResult,
+} from '@testing-library/react';
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   createMemoryRouter,
@@ -143,8 +150,34 @@ interface DataRouterRenderOptions extends Omit<RenderOptions, 'wrapper'> {
 export function renderWithDataRouter(
   ui: ReactNode,
   options: DataRouterRenderOptions = {}
-): RenderResult & { queryClient: QueryClient; router: ReturnType<typeof createMemoryRouter> } {
+): RenderResult & DataRouterHandles {
   const { wrapperOptions = {}, ...renderOptions } = options;
+  const { Wrapper, ...handles } = createDataRouterWrapper(wrapperOptions);
+
+  return { ...render(ui, { wrapper: Wrapper, ...renderOptions }), ...handles };
+}
+
+/**
+ * renderWithDataRouter의 훅 버전. 라우터가 이미 가 있는 위치를 읽는 훅(useLoginDialog 등)을 renderHook으로 볼 때 쓴다.
+ *
+ * @example
+ * const { result, router } = renderHookWithDataRouter(() => useLoginDialog());
+ */
+export function renderHookWithDataRouter<Result>(
+  callback: () => Result,
+  options: { wrapperOptions?: DataRouterWrapperOptions } = {}
+): RenderHookResult<Result, unknown> & DataRouterHandles {
+  const { Wrapper, ...handles } = createDataRouterWrapper(options.wrapperOptions ?? {});
+
+  return { ...renderHook(callback, { wrapper: Wrapper }), ...handles };
+}
+
+interface DataRouterHandles {
+  queryClient: QueryClient;
+  router: ReturnType<typeof createMemoryRouter>;
+}
+
+function createDataRouterWrapper(wrapperOptions: DataRouterWrapperOptions) {
   const { initialEntries = ['/'], queryClient = createTestQueryClient() } = wrapperOptions;
   const router = createMemoryRouter([{ path: '*', element: <RouteContent /> }], { initialEntries });
   RouterEvents.setSource(router);
@@ -159,7 +192,7 @@ export function renderWithDataRouter(
     );
   }
 
-  return { ...render(ui, { wrapper: Wrapper, ...renderOptions }), queryClient, router };
+  return { Wrapper, queryClient, router };
 }
 
 /**

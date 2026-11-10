@@ -5,6 +5,7 @@ import { act, renderWithDataRouter, screen, userEvent } from '@/test/utils';
 import {
   useBackClosableOverlay,
   useBackClosableOverlayOpen,
+  useBackClosableOverlayOpenReplacingCurrent,
 } from '@/shared/hooks/useBackClosableOverlay';
 
 const KEY = 'bookmarkFolderDialogOpen';
@@ -219,5 +220,61 @@ describe('useBackClosableOverlayOpen', () => {
 
     expect(screen.getByTestId('host')).toHaveTextContent('open');
     expect(onOpenerCommit).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useBackClosableOverlayOpenReplacingCurrent', () => {
+  function MenuWithSignInLink() {
+    const { isOpen: isMenuOpen } = useBackClosableOverlay('sidebarOpen');
+    const { isOpen: isSignInOpen } = useBackClosableOverlay('loginDialogOpen');
+    const openSignInReplacingMenu = useBackClosableOverlayOpenReplacingCurrent('loginDialogOpen');
+
+    return (
+      <>
+        <span data-testid="menu">{isMenuOpen ? 'open' : 'closed'}</span>
+        <span data-testid="sign-in">{isSignInOpen ? 'open' : 'closed'}</span>
+        <button
+          type="button"
+          onClick={() => {
+            openSignInReplacingMenu();
+            openSignInReplacingMenu();
+          }}
+        >
+          sign in from menu
+        </button>
+      </>
+    );
+  }
+
+  it('지금 칸을 이 오버레이의 칸으로 바꾼다 - 두 번 불려도 칸이 늘지 않는다', async () => {
+    // 폰 메뉴에서 로그인 창을 이어 열 때 쓴다 - 메뉴 칸을 남기면 창을 닫은 뒤 메뉴가 다시 열린다
+    const { router } = renderWithDataRouter(<MenuWithSignInLink />, {
+      wrapperOptions: {
+        initialEntries: [
+          '/feed',
+          { pathname: '/post/1', search: '?tab=comments', state: { sidebarOpen: true } },
+        ],
+      },
+    });
+
+    expect(screen.getByTestId('menu')).toHaveTextContent('open');
+
+    await click('sign in from menu');
+
+    expect(screen.getByTestId('menu')).toHaveTextContent('closed');
+    expect(screen.getByTestId('sign-in')).toHaveTextContent('open');
+    expect(router.state.historyAction).toBe('REPLACE');
+    expect(router.state.location).toMatchObject({
+      pathname: '/post/1',
+      search: '?tab=comments',
+      state: { loginDialogOpen: true },
+    });
+    // 이게 없으면 <ScrollRestoration/>이 이 이동을 새 페이지로 보고 배경 스크롤을 맨 위로 올린다
+    expect(router.state.preventScrollReset).toBe(true);
+
+    // 칸이 그대로 하나라, 뒤로 한 번에 메뉴를 거치지 않고 앞 페이지로 간다
+    await act(() => router.navigate(-1));
+
+    expect(router.state.location.pathname).toBe('/feed');
   });
 });

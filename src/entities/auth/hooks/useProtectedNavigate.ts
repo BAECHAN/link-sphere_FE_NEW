@@ -2,7 +2,10 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
-import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
+import {
+  useBackClosableOverlayOpen,
+  useBackClosableOverlayOpenReplacingCurrent,
+} from '@/shared/hooks/useBackClosableOverlay';
 
 /**
  * 보호 페이지로의 이동 가드.
@@ -13,8 +16,9 @@ import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
 export function useProtectedNavigate() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const setLoginOnSuccess = useLoginDialogStore((state) => state.setOnSuccess);
-  const { open: openLoginDialog, openReplacingCurrent: openLoginDialogReplacingCurrent } =
-    useHistoryOverlay('loginDialogOpen');
+  const openLoginDialog = useBackClosableOverlayOpen('loginDialogOpen');
+  const openLoginDialogReplacingCurrent =
+    useBackClosableOverlayOpenReplacingCurrent('loginDialogOpen');
   const navigate = useNavigate();
 
   return useCallback(

@@ -1,7 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { renderHook, screen, act } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
-import { type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
+import { act, renderHookWithDataRouter } from '@/test/utils';
 import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
 import { useAuthStore } from '@/shared/store/auth.store';
 import {
@@ -10,22 +9,14 @@ import {
 } from '@/shared/store/loginDialog.store';
 import { NavigationService } from '@/shared/lib/router/navigation';
 
-/** location.state.loginDialogOpen 여부를 화면에 노출해 확인한다 (NavbarSearch.test.tsx 선례). */
-function LoginDialogStateProbe() {
-  const location = useLocation();
-  const state = location.state as { loginDialogOpen?: boolean } | null;
-  return <div data-testid="login-dialog-open">{String(Boolean(state?.loginDialogOpen))}</div>;
+// 로그인 창을 여는 쪽이 라우터가 가 있는 위치를 읽으므로(useBackClosableOverlay) 앱과 같은 데이터 라우터로 그린다.
+// 화면에 반영된 위치(useLocation)를 함께 돌려받아 location.state.loginDialogOpen으로 창이 열렸는지 본다.
+function renderAuthGuard() {
+  return renderHookWithDataRouter(() => ({ guard: useAuthGuard(), location: useLocation() }));
 }
 
-function createWrapper() {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <MemoryRouter>
-        {children}
-        <LoginDialogStateProbe />
-      </MemoryRouter>
-    );
-  };
+function isLoginDialogOpen(location: ReturnType<typeof useLocation>) {
+  return Boolean((location.state as { loginDialogOpen?: boolean } | null)?.loginDialogOpen);
 }
 
 describe('useAuthGuard', () => {
@@ -39,39 +30,39 @@ describe('useAuthGuard', () => {
   it('로그인 상태면 action을 그대로 실행한다', () => {
     useAuthStore.getState().setAuth('token');
     const action = vi.fn();
-    const { result } = renderHook(() => useAuthGuard(), { wrapper: createWrapper() });
+    const { result } = renderAuthGuard();
 
-    act(() => result.current(action));
+    act(() => result.current.guard(action));
 
     expect(action).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId('login-dialog-open')).toHaveTextContent('false');
+    expect(isLoginDialogOpen(result.current.location)).toBe(false);
   });
 
   it('비로그인이면 action을 실행하지 않고 로그인 모달을 연다', () => {
     const action = vi.fn();
-    const { result } = renderHook(() => useAuthGuard(), { wrapper: createWrapper() });
+    const { result } = renderAuthGuard();
 
-    act(() => result.current(action));
+    act(() => result.current.guard(action));
 
     expect(action).not.toHaveBeenCalled();
-    expect(screen.getByTestId('login-dialog-open')).toHaveTextContent('true');
+    expect(isLoginDialogOpen(result.current.location)).toBe(true);
   });
 
   it('비로그인이면 이전에 남아있던 로그인 성공 콜백을 비운다', () => {
     const staleCallback = vi.fn();
     useLoginDialogStore.getState().setOnSuccess(staleCallback);
-    const { result } = renderHook(() => useAuthGuard(), { wrapper: createWrapper() });
+    const { result } = renderAuthGuard();
 
-    result.current(vi.fn());
+    act(() => result.current.guard(vi.fn()));
 
     expect(useLoginDialogStore.getState().onSuccess).toBeUndefined();
   });
 
   it('resumeAfterLogin이면 action을 pendingAction에 싣는다', () => {
     const action = vi.fn();
-    const { result } = renderHook(() => useAuthGuard(), { wrapper: createWrapper() });
+    const { result } = renderAuthGuard();
 
-    result.current(action, { resumeAfterLogin: true });
+    act(() => result.current.guard(action, { resumeAfterLogin: true }));
 
     expect(useLoginDialogStore.getState().pendingAction).toBe(action);
   });
@@ -79,9 +70,9 @@ describe('useAuthGuard', () => {
   it('resumeAfterLogin이 아니면 pendingAction을 싣지 않고, 남아있던 것도 비운다', () => {
     const staleAction = vi.fn();
     useLoginDialogStore.getState().setPendingAction(staleAction);
-    const { result } = renderHook(() => useAuthGuard(), { wrapper: createWrapper() });
+    const { result } = renderAuthGuard();
 
-    result.current(vi.fn());
+    act(() => result.current.guard(vi.fn()));
 
     expect(useLoginDialogStore.getState().pendingAction).toBeUndefined();
   });
@@ -93,9 +84,9 @@ describe('useAuthGuard', () => {
     useLoginDialogStore.getState().setOnSuccess(staleCallback);
     useAuthStore.getState().clearLocalAuthInPlace(window.location.pathname);
     const action = vi.fn();
-    const { result } = renderHook(() => useAuthGuard(), { wrapper: createWrapper() });
+    const { result } = renderAuthGuard();
 
-    act(() => result.current(action));
+    act(() => result.current.guard(action));
 
     expect(action).not.toHaveBeenCalled();
     expect(navigateSpy).toHaveBeenCalledWith(
@@ -109,9 +100,9 @@ describe('useAuthGuard', () => {
     vi.spyOn(NavigationService, 'navigate').mockImplementation(() => {});
     useAuthStore.getState().expireSession(window.location.pathname);
     const action = vi.fn();
-    const { result } = renderHook(() => useAuthGuard(), { wrapper: createWrapper() });
+    const { result } = renderAuthGuard();
 
-    act(() => result.current(action, { resumeAfterLogin: true }));
+    act(() => result.current.guard(action, { resumeAfterLogin: true }));
 
     expect(action).not.toHaveBeenCalled();
     expect(useLoginDialogStore.getState().pendingAction).toBe(action);

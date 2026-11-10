@@ -42,7 +42,7 @@ interface BackLabelSnapshot {
 
 /**
  * resolveBackLabel을 위치가 바뀔 때마다 다시 계산하되, 같은 경로 위에 오버레이(북마크 폴더
- * 창·로그인 창·이미지 뷰어 등, useHistoryOverlay)를 여는 PUSH일 때만 직전 라벨을 유지한다.
+ * 창·로그인 창·이미지 뷰어 등, useBackClosableOverlay)를 여는 PUSH일 때만 직전 라벨을 유지한다.
  * 그 PUSH는 location.state를 오버레이 표시로 통째로 바꿔 backSource가 가려지지만 유입 경로
  * 자체는 그대로이기 때문이다. 같은 경로 안에서 PUSH가 일어나는 건 오버레이뿐이다 — 같은 주소
  * 링크(상세 제목)는 react-router가 REPLACE로 바꾸고, 오버레이 닫기는 원래 엔트리로 가는 POP이라

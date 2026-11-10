@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
-import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
+import { useBackClosableOverlayOpen } from '@/shared/hooks/useBackClosableOverlay';
 import { AuthUtil } from '@/shared/utils/auth.util';
 
 interface AuthGuardOptions {
@@ -30,7 +30,7 @@ export function useAuthGuard() {
   const signedOutInPlaceReason = useAuthStore((state) => state.signedOutInPlace?.reason);
   const setLoginOnSuccess = useLoginDialogStore((state) => state.setOnSuccess);
   const setPendingAction = useLoginDialogStore((state) => state.setPendingAction);
-  const { open: openLoginDialog } = useHistoryOverlay('loginDialogOpen');
+  const openLoginDialog = useBackClosableOverlayOpen('loginDialogOpen');
 
   return useCallback(
     (action: () => void, options?: AuthGuardOptions) => {

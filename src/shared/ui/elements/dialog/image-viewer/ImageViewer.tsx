@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/shared/ui/atoms/dialog';
 import { useImageViewerStore } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
-import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
+import { useBackClosableOverlay } from '@/shared/hooks/useBackClosableOverlay';
 import { TEXTS } from '@/shared/config/texts';
 
 // 인스타그램이 실제 공개한 기준값 - 이 범위 밖의 비율만 캔버스를 클램프한다(자르지 않고 object-contain).
@@ -28,7 +28,7 @@ export function GlobalImageViewer() {
   const currentIndex = useImageViewerStore((state) => state.currentIndex);
   const next = useImageViewerStore((state) => state.next);
   const prev = useImageViewerStore((state) => state.prev);
-  const { isOpen, close } = useHistoryOverlay('imageViewerOpen');
+  const { isOpen, close } = useBackClosableOverlay('imageViewerOpen');
   const image = images[currentIndex] ?? null;
   const hasMultiple = images.length > 1;
   const hasNext = currentIndex < images.length - 1;

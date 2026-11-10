@@ -11,7 +11,7 @@ import { WIDE_MEDIA_QUERY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
 import { NAV_ITEMS, type NavItemConfig } from '@/shared/config/nav-items';
 import { useSidebarStore } from '@/shared/store/sidebar.store';
-import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
+import { useBackClosableOverlay } from '@/shared/hooks/useBackClosableOverlay';
 import { useProtectedNavigate } from '@/entities/auth/hooks/useProtectedNavigate';
 
 // 모바일 드로어 안의 링크가 드로어 엔트리를 떠나는 방식. 드로어 엔트리를 남기면 뒤로 왔을 때 드로어가 다시 열리므로
@@ -19,7 +19,7 @@ import { useProtectedNavigate } from '@/entities/auth/hooks/useProtectedNavigate
 // 화면이 두 칸 남아 다음 뒤로가기 한 번이 화면을 바꾸지 못한다(docs/plans/2026-11-07-sidebar-back-reopen.md).
 function useDrawerLink(to: string, inDrawer: boolean) {
   const { pathname, search } = useLocation();
-  const { close } = useHistoryOverlay('sidebarOpen');
+  const { close } = useBackClosableOverlay('sidebarOpen');
 
   const closeIfCurrentScreen = (e: React.MouseEvent) => {
     if (!inDrawer || to !== `${pathname}${search}`) {
@@ -155,7 +155,7 @@ function SidebarHeader({
 export function Sidebar() {
   const { isOpen, toggle, open, close: collapse } = useSidebarStore(); // 데스크톱 접힘/펼침 상태
   // 모바일 드로어는 뒤로가기로 닫혀야 하므로 히스토리 엔트리로 관리한다 (데스크톱 접힘 상태와는 별개)
-  const { isOpen: isMobileOpen, close } = useHistoryOverlay('sidebarOpen');
+  const { isOpen: isMobileOpen, close } = useBackClosableOverlay('sidebarOpen');
   // 백드롭에 건 배경 스크롤 잠금(RemoveScroll)이 드로어 패널 안쪽 스크롤은 허용하도록
   // shards로 지정한다 - dialog.tsx의 DialogOverlayImpl이 shards: [context.contentRef]를
   // 쓰는 것과 같은 이유("Content가 Overlay 안에 안 살아도 스크롤 가능해야 한다").
@@ -217,7 +217,7 @@ export function Sidebar() {
   }, [isMobileOpen]);
 
   // 포커스 effect와 나눈다 - close는 열림 상태가 바뀔 때 새로 만들어져, 합치면 포커스를 다시 옮길 수 있다.
-  // 닫혀 있으면 close가 아무것도 하지 않는다(useHistoryOverlay.ts)
+  // 닫혀 있으면 close가 아무것도 하지 않는다(useBackClosableOverlay.ts)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {

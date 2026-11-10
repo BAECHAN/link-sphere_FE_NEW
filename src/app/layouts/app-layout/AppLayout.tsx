@@ -9,7 +9,7 @@ import { Navbar } from '@/widgets/layout/navbar/ui/Navbar';
 import { Sidebar } from '@/widgets/layout/sidebar/ui/Sidebar';
 import { BottomTabBar } from '@/widgets/layout/bottom-tab-bar/ui/BottomTabBar';
 import { BackToTopButton } from '@/shared/ui/elements/BackToTopButton';
-import { useHistoryOverlay } from '@/shared/hooks/useHistoryOverlay';
+import { useBackClosableOverlay } from '@/shared/hooks/useBackClosableOverlay';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -31,7 +31,7 @@ export function AppLayout({ children }: Readonly<AppLayoutProps>) {
   // 트랩이 없다 - Tab 키로 배경 게시글·댓글에 그대로 포커스가 넘어간다. main만
   // inert로 막는다(Navbar·Sidebar·BottomTabBar는 main 밖 형제라 검색 중에도
   // 계속 조작 가능해야 한다 - Navbar.tsx:228 참고).
-  const { isOpen: isMobileSearchOpen } = useHistoryOverlay('mobileSearchOpen');
+  const { isOpen: isMobileSearchOpen } = useBackClosableOverlay('mobileSearchOpen');
 
   useLayoutEffect(
     function blockBackgroundDuringMobileSearch() {
