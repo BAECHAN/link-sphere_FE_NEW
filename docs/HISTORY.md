@@ -1,3 +1,6 @@
+### 2026-11-10 (BE)
+- 운영 요청 처리 방식을 MockMvc에서 serverless-java-container로 마이그레이션하여 Lambda 환경 최적화 ([#192](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/192))
+
 ### 2026-11-07 (FE)
 - 공유 테스트 스위트의 불안정성 해결 및 테스트 전제 조건 최적화 ([#587](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/587))
 
