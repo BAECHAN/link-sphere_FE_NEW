@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조·폴더 고정 순서를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-11-10 (§5 "뒤로가기로 닫히는 열림 상태"와 그 서술을 가리키는 곳만. 전체 검토는 2026-11-06)
+> **마지막 검토**: 2026-11-10 (§5 "뒤로가기로 닫히는 열림 상태"·"창 높이"와 그 서술을 가리키는 곳만. 전체 검토는 2026-11-06)
 
 ## 1. 쉬운 설명
 
@@ -387,11 +387,12 @@ JSX만, 호스트는 아래 "시트는 카드 밖 호스트가 그린다(2026-11
   사라지는지, 실패면 창 노드가 빠졌다 다시 들어오지 않는지 본다(고치기 전 코드에서 4건 모두 실패 확인).
   `GlobalPostBookmarkFolderDialog.test.tsx`가 열기·동기화·다른 카드 무시·카드 언마운트·새로고침·로그인 뒤 재개를 본다.
 
-### 창 높이 — 창 전체에 상한(2026-11-03)
+### 창 높이 — 창 전체에 상한(2026-11-03, 세로 모바일 시트는 늘 상한 높이 2026-11-10)
 
-폴더 선택 창(카드 북마크 버튼, 링크 등록 폼)은 창 전체가 세로 모바일 화면에서 보이는 높이의 70%를 넘지 않는다.
-가로로 돌린 폰과 데스크톱의 중앙 모달은 화면 높이에서 위아래 16px씩 뺀 만큼을 넘지 않는다. 제목·"새 폴더 만들기"·
-"북마크 안 함"(또는 "북마크 제거")·확인 줄은 그대로 두고, 폴더 목록만 남는 높이로 줄어 스크롤한다.
+폴더 선택 창(카드 북마크 버튼, 링크 등록 폼)은 세로 모바일 화면에서 폴더 수와 상관없이 보이는 높이의 70%로 뜬다
+(2026-11-10, 그 전에는 70%를 넘지 않는 선에서 내용 높이만큼 떴다). 가로로 돌린 폰과 데스크톱의 중앙 모달은 내용
+높이만큼 뜨되 화면 높이에서 위아래 16px씩 뺀 만큼을 넘지 않는다. 제목·"새 폴더 만들기"·"북마크 안 함"(또는 "북마크
+제거")·확인 줄은 그대로 두고, 폴더 목록만 남는 높이를 차지해 스크롤한다.
 
 - **왜** — Android에서 "글 등록 폼의 창이 화면 밖으로 벗어나는 것 같고 닫힐 때 글자가 움직여 보인다, 피드 창은 너무
   높다, 가로로 보면 더 벗어난다"는 제보였다. 높이 상한이 폴더 목록에만(모바일 `max-h-[70vh]`, 데스크톱 `max-h-96`)
@@ -425,8 +426,33 @@ JSX만, 호스트는 아래 "시트는 카드 밖 호스트가 그린다(2026-11
   `MODAL_MAX_HEIGHT`(`max-h-[calc(100dvh-2rem)]`)를 분기별로 붙인다. 목록(`BookmarkFolderSelectDialog.tsx`)은
   `min-h-0 overflow-y-auto`로 남는 높이만 쓰고, 데스크톱만 `max-h-96`을 남겨 넓은 화면의 높이는 그대로다. `dvh`를 쓰는
   이유는 지금 보이는 높이라서다. 창이 열린 동안에는 페이지 스크롤이 잠겨 주소창이 바뀌지 않는다.
+- **세로 모바일 시트는 늘 상한 높이(2026-11-10)** — 폴더가 적으면 시트가 화면 아래 3분의 1만 차지했고, "새 폴더
+  만들기"를 누르면 창이 커졌다. 사용자가 "폴더가 적어도 많을 때처럼 넓게 열려야 쓰기 편하고, 새 폴더 입력을 열어도
+  높이가 바뀌지 않아야 한다"고 정했다(고치기 전 화면과 상한 높이로 띄운 화면을 나란히 보고 승인). 직접 잰 값이다
+  (Playwright Pixel 5 화면 393×727, 열린 뒤 창의 `getBoundingClientRect()`).
+
+  | 장면                             | 내용 높이만큼(고치기 전) | 상한 높이(지금) |
+  | -------------------------------- | ------------------------ | --------------- |
+  | 피드 카드, 폴더 1개              | 244px(34%)               | 509px(70%)      |
+  | 같은 창에서 새 폴더 입력을 연 뒤 | 276px(38%), 32px 커짐    | 509px(70%)      |
+  | 글 등록 폼, 폴더 1개             | 354px(49%)               | 509px(70%)      |
+  | 피드 카드, 폴더 14개             | 509px(70%)               | 509px(70%)      |
+  - 구현: `BookmarkFolderSelectDialog.tsx`가 모바일일 때 창에 `MOBILE_SHEET_FILL_HEIGHT`(`h-dvh`)를 넘긴다. 화면 높이를 다
+    달라는 값을 위 `SHEET_MAX_HEIGHT`가 잘라 상한 높이가 되므로 70이라는 값은 한 곳에만 있다. 폴더 목록은 모바일에서
+    `flex-1`로 남는 높이를 채워, 폴더가 적어도 "북마크 안 함"·확인이 시트 바닥에 붙는다. 목록을 기다리는 골격
+    (`FolderListLoading`)도 같은 클래스라 목록이 도착해도 시트 높이가 변하지 않는다.
+  - 그대로인 것: 가로로 돌린 폰과 데스크톱의 중앙 모달(`useIsMobile`이 false인 분기)은 전처럼 내용 높이만큼 뜬다.
+    공용 `SheetDialogContent`도 고치지 않았다.
+  - 기각한 안: 내용 높이만큼 띄우기(고치기 전). 위 "값" 불릿의 Material Components Android 기본(`fitToContents`)이 이
+    방식이고, Apple UIKit의 중간 단계는 높이를 화면 높이의 대략 절반으로 둔다 — 두 선례 모두 2026-11-03에 인용한 것이고
+    이번에 원문을 다시 읽지는 않았다. 고른 이유는 선례가 아니라 위 사용자 판단이다.
+  - 확인하지 못한 것: 실제 폰에서 키보드가 올라올 때의 모습(§11).
+
 - **회귀 검사** — `e2e/bookmark-sheet-height.mobile.spec.ts`가 세로·가로에서 두 창이 화면 안에 있고(세로는 70% 이하),
   제목·닫기·확인이 화면에 보이는지 잰다(고치기 전 코드에서 4건 모두 실패 확인). 클래스 집합은 `SheetDialogContent.test.tsx`가 본다.
+  2026-11-10에 "세로, 폴더가 하나일 때" 두 건을 더했다 — 카드 창이 화면 높이의 70%(±1px)로 뜨고 새 폴더 입력을 열어도
+  높이·위치가 같다, 글 등록 폼 창이 70%로 뜨고 확인 줄이 창 바닥에서 16px 안에 있다(`MOBILE_SHEET_FILL_HEIGHT`를 비우면
+  두 건 모두 실패 확인 — 264.9px·154.9px 차이).
 
 ### 새 폴더 만들기 인라인 폼의 취소(2026-09-21)
 
@@ -1161,13 +1187,14 @@ _"사용자는 두 항목이 중복이라는 걸 모르기 때문에 결국 둘 
 정확히 폴더 3개인 경우에만 작동한다. 대안 비교는 `docs/DECISIONS.md`의 "2026-09-21"
 항목 참고.
 
-폴더 선택 창 높이(2026-11-03, §5 "창 높이 — 창 전체에 상한").
+폴더 선택 창 높이(2026-11-03·2026-11-10, §5 "창 높이 — 창 전체에 상한").
 
-| 파라미터                            | 값                                 | 실제 위치                                                                     |
-| ----------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------- |
-| 세로 모바일 시트 창 전체 상한       | 보이는 화면 높이의 70%(`70dvh`)    | `shared/ui/elements/dialog/SheetDialogContent.tsx:24`의 `SHEET_MAX_HEIGHT`    |
-| 중앙 모달(가로 폰·데스크톱) 창 상한 | 화면 높이 − 2rem(위아래 16px 여백) | `SheetDialogContent.tsx:25`의 `MODAL_MAX_HEIGHT`                              |
-| 데스크톱 폴더 목록 상한             | 384px(`max-h-96`)                  | `features/bookmark/select/ui/BookmarkFolderSelectDialog.tsx:154`·`:291`(로딩) |
+| 파라미터                            | 값                                                 | 실제 위치                                                                                    |
+| ----------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 세로 모바일 시트 창 전체 상한       | 보이는 화면 높이의 70%(`70dvh`)                    | `shared/ui/elements/dialog/SheetDialogContent.tsx:24`의 `SHEET_MAX_HEIGHT`                   |
+| 세로 모바일 시트 창 높이            | 위 상한과 같다(`h-dvh`로 다 달라고 해 상한이 자름) | `features/bookmark/select/ui/BookmarkFolderSelectDialog.tsx:52`의 `MOBILE_SHEET_FILL_HEIGHT` |
+| 중앙 모달(가로 폰·데스크톱) 창 상한 | 화면 높이 − 2rem(위아래 16px 여백)                 | `SheetDialogContent.tsx:25`의 `MODAL_MAX_HEIGHT`                                             |
+| 데스크톱 폴더 목록 상한             | 384px(`max-h-96`)                                  | `features/bookmark/select/ui/BookmarkFolderSelectDialog.tsx:163`·`:300`(로딩)                |
 
 ## 8. 코드 지도와 자주 하는 수정
 
@@ -1348,26 +1375,26 @@ src/
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                          | 방법                                                                                                                                                                                                                                                                                                                     |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| "최근 저장한 폴더" 노출 개수 조정     | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`(§7의 최소 저장 이력 폴더 수와 완전 일치 배제 조건도 이 값을 그대로 참조하므로 함께 검토)                                                                                                                                     |
-| 정렬 옵션 추가                        | `bookmark-folder.schema.ts`의 `bookmarkFolderSortEnum` + `useBookmarkPage.ts`의 `VALID_SORTS`(드롭다운·URL 파싱) + `BookmarkPage.tsx`의 `SORT_LABELS` + `TEXTS.bookmark.folder.sort.*`에 값 추가 + BE 대응 필요 — `VALID_SORTS`를 빠뜨리면 드롭다운에 안 뜨고 `?sort=새값`이 `latest`로 떨어진다                         |
-| 폴더 내 검색 빈 상태 문구 변경        | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                                                                                                                                                                                                          |
-| 모바일 감지 기준 변경                 | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                                                                                                                                                                                                          |
-| 고정한 폴더끼리의 순서 변경           | `bookmark-folder.util.ts`의 `orderPinnedFirst` 정렬 — BE에는 고정 순서 필드가 없고 `pinnedAt`만 있으므로, 사용자가 직접 순서를 바꾸게 하려면 BE 컬럼·API부터 필요하다                                                                                                                                                    |
-| 고정·해제 뒤 따라가는 스크롤 변경     | `useFollowFocusOnReorder.ts`의 `scrollIntoView` 옵션. 끄려면 훅 호출과 함께 `FolderSidebar.tsx`·`MobileFolderList.tsx` 목록 컨테이너의 `[overflow-anchor:none]`도 뺀다 — 그러면 브라우저 스크롤 고정이 한 프레임 만에 따라간다(§5 A안)                                                                                   |
-| 고정 아이콘 모양·위치 변경            | `FolderSidebar.tsx`의 `FolderItem`, `MobileFolderList.tsx`의 `FolderCard`(둘 다 `useFolderActions`의 `isPinned`로 왼쪽 아이콘을 바꾼다), `BookmarkFolderSelectDialog.tsx`의 `renderFolderIcon`(`FolderRow`의 `icon` prop으로 넘긴다)                                                                                     |
-| 새 폴더 만들기 취소 동작 변경         | 세 곳 각각의 `handleCancel`/`handleCancelCreate` — `useBookmarkFolderSelect.ts`, `useFolderSidebar.ts`(`useInlineCreateFolderInput`), `useMobileFolderList.ts`(`useCreateFolderCard`)                                                                                                                                    |
-| 폴더 이름 최대 길이 변경              | BE `BookmarkFolderLimits.MAX_NAME_LENGTH`를 먼저 바꿔 배포하고, FE `pnpm codegen:fetch && pnpm codegen` 뒤 실패하는 `bookmark-folder.contract.test.ts`를 따라 `bookmark-folder.contract.ts`의 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`를 맞춘다. 늘리면 가장 좁은 자리(360px 폰 카드)에서 줄 수가 늘어난다(§5 "폴더 이름 길이") |
-| 폴더 이름 보이는 줄 수 변경           | 모바일 카드는 `MobileFolderList.tsx` `FolderCard`의 `line-clamp-2 min-h-[2lh]`와 `CreateFolderCard`의 `min-h-[2lh]`를 같은 숫자로, 사이드바는 `FolderSidebar.tsx` `FolderItem`의 `line-clamp-2`를 바꾼다(§5 "폴더 이름 줄 수")                                                                                           |
-| 이름 바꾸기 동작 변경(Enter·Esc·검사) | `features/bookmark/rename/hooks/useRenameBookmarkFolder.ts` 한 곳 — 폴더 화면 제목과 사이드바·카드(`useFolderActions`)가 같이 바뀐다                                                                                                                                                                                     |
-| 폴더 화면 편집 입력 모양 변경         | `BookmarkFolderTitle.tsx`의 `Input` `className`. `cn()`이 역할 토큰을 글자 크기로 알아 Input 기본 크기(`md:text-sm`)를 같은 변형(`md:`)끼리 바꾼다(§5 "폴더 화면에서 이름 바꾸기")                                                                                                                                       |
-| 이름 바꾸기 취소·저장 버튼 위치 변경  | 사이드바 `FolderSidebar.tsx` `FolderItem`, 카드 `MobileFolderList.tsx` `FolderCard`, 제목 `BookmarkFolderTitle.tsx`. 취소의 `onMouseDown` `preventDefault()`를 빼면 취소가 저장이 된다. 모바일 제목 편집 중 ←·↕ 숨김은 `BookmarkPage.tsx`의 `group-has-[[data-renaming]]/header:hidden`(§5 "이름 바꾸기 취소·저장 버튼") |
-| 폴더 이름 글자 수 자리 변경           | `<CharacterCount>` 여섯 곳: 사이드바 `FolderSidebar.tsx:250`·`:405`, 카드 `MobileFolderList.tsx:180`·`:298`, 선택 창 `BookmarkFolderSelectDialog.tsx:474`, 제목 `BookmarkFolderTitle.tsx:116`. 세는 법(`nameLength`)을 바꾸면 이유 문구도 바뀐다(§5 "폴더 이름 글자 수")                                                 |
-| 터치 버튼 크기 변경                   | 폰은 `BookmarkPage.tsx` 모바일 헤더·`MobileFolderList.tsx`의 `size-11`·`h-11`, 사이드바·태블릿은 `md:pointer-fine:`로 마우스에서 되돌린다. e2e `touch-targets*.spec.ts`도 같이(§5 "터치 기기 버튼 44px")                                                                                                                 |
-| 모바일 정렬 점 조건·위치 변경         | `BookmarkPage.tsx` 모바일 분기의 `sort !== 'latest'`와 점 `span`의 `top-[9px] right-[11px] size-[7px]`(10-28 승인 시안의 아이콘 기준 자리를 11-04 44px 상자에 옮긴 값). 기본 정렬을 바꾸면 이 조건도 같이 바꾼다                                                                                                         |
-| 폴더 선택 창 높이 변경                | `SheetDialogContent.tsx`의 `SHEET_MAX_HEIGHT`(세로 모바일)·`MODAL_MAX_HEIGHT`(중앙 모달). 목록에 상한을 다시 두지 않는다 — 위아래 고정 줄이 더해져 화면을 넘는다(§5 "창 높이"). 바꾸면 `e2e/bookmark-sheet-height.mobile.spec.ts`의 `maxRatio`도 맞춘다                                                                  |
-| 테스트 실행                           | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-nav src/features/bookmark/toggle src/features/bookmark/rename src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`                                                                                                               |
+| 하고 싶은 것                          | 방법                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "최근 저장한 폴더" 노출 개수 조정     | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`(§7의 최소 저장 이력 폴더 수와 완전 일치 배제 조건도 이 값을 그대로 참조하므로 함께 검토)                                                                                                                                                                                                                     |
+| 정렬 옵션 추가                        | `bookmark-folder.schema.ts`의 `bookmarkFolderSortEnum` + `useBookmarkPage.ts`의 `VALID_SORTS`(드롭다운·URL 파싱) + `BookmarkPage.tsx`의 `SORT_LABELS` + `TEXTS.bookmark.folder.sort.*`에 값 추가 + BE 대응 필요 — `VALID_SORTS`를 빠뜨리면 드롭다운에 안 뜨고 `?sort=새값`이 `latest`로 떨어진다                                                                                                         |
+| 폴더 내 검색 빈 상태 문구 변경        | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                                                                                                                                                                                                                                                                                          |
+| 모바일 감지 기준 변경                 | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                                                                                                                                                                                                                                                                                          |
+| 고정한 폴더끼리의 순서 변경           | `bookmark-folder.util.ts`의 `orderPinnedFirst` 정렬 — BE에는 고정 순서 필드가 없고 `pinnedAt`만 있으므로, 사용자가 직접 순서를 바꾸게 하려면 BE 컬럼·API부터 필요하다                                                                                                                                                                                                                                    |
+| 고정·해제 뒤 따라가는 스크롤 변경     | `useFollowFocusOnReorder.ts`의 `scrollIntoView` 옵션. 끄려면 훅 호출과 함께 `FolderSidebar.tsx`·`MobileFolderList.tsx` 목록 컨테이너의 `[overflow-anchor:none]`도 뺀다 — 그러면 브라우저 스크롤 고정이 한 프레임 만에 따라간다(§5 A안)                                                                                                                                                                   |
+| 고정 아이콘 모양·위치 변경            | `FolderSidebar.tsx`의 `FolderItem`, `MobileFolderList.tsx`의 `FolderCard`(둘 다 `useFolderActions`의 `isPinned`로 왼쪽 아이콘을 바꾼다), `BookmarkFolderSelectDialog.tsx`의 `renderFolderIcon`(`FolderRow`의 `icon` prop으로 넘긴다)                                                                                                                                                                     |
+| 새 폴더 만들기 취소 동작 변경         | 세 곳 각각의 `handleCancel`/`handleCancelCreate` — `useBookmarkFolderSelect.ts`, `useFolderSidebar.ts`(`useInlineCreateFolderInput`), `useMobileFolderList.ts`(`useCreateFolderCard`)                                                                                                                                                                                                                    |
+| 폴더 이름 최대 길이 변경              | BE `BookmarkFolderLimits.MAX_NAME_LENGTH`를 먼저 바꿔 배포하고, FE `pnpm codegen:fetch && pnpm codegen` 뒤 실패하는 `bookmark-folder.contract.test.ts`를 따라 `bookmark-folder.contract.ts`의 `BOOKMARK_FOLDER_NAME_MAX_LENGTH`를 맞춘다. 늘리면 가장 좁은 자리(360px 폰 카드)에서 줄 수가 늘어난다(§5 "폴더 이름 길이")                                                                                 |
+| 폴더 이름 보이는 줄 수 변경           | 모바일 카드는 `MobileFolderList.tsx` `FolderCard`의 `line-clamp-2 min-h-[2lh]`와 `CreateFolderCard`의 `min-h-[2lh]`를 같은 숫자로, 사이드바는 `FolderSidebar.tsx` `FolderItem`의 `line-clamp-2`를 바꾼다(§5 "폴더 이름 줄 수")                                                                                                                                                                           |
+| 이름 바꾸기 동작 변경(Enter·Esc·검사) | `features/bookmark/rename/hooks/useRenameBookmarkFolder.ts` 한 곳 — 폴더 화면 제목과 사이드바·카드(`useFolderActions`)가 같이 바뀐다                                                                                                                                                                                                                                                                     |
+| 폴더 화면 편집 입력 모양 변경         | `BookmarkFolderTitle.tsx`의 `Input` `className`. `cn()`이 역할 토큰을 글자 크기로 알아 Input 기본 크기(`md:text-sm`)를 같은 변형(`md:`)끼리 바꾼다(§5 "폴더 화면에서 이름 바꾸기")                                                                                                                                                                                                                       |
+| 이름 바꾸기 취소·저장 버튼 위치 변경  | 사이드바 `FolderSidebar.tsx` `FolderItem`, 카드 `MobileFolderList.tsx` `FolderCard`, 제목 `BookmarkFolderTitle.tsx`. 취소의 `onMouseDown` `preventDefault()`를 빼면 취소가 저장이 된다. 모바일 제목 편집 중 ←·↕ 숨김은 `BookmarkPage.tsx`의 `group-has-[[data-renaming]]/header:hidden`(§5 "이름 바꾸기 취소·저장 버튼")                                                                                 |
+| 폴더 이름 글자 수 자리 변경           | `<CharacterCount>` 여섯 곳: 사이드바 `FolderSidebar.tsx:250`·`:405`, 카드 `MobileFolderList.tsx:180`·`:298`, 선택 창 `BookmarkFolderSelectDialog.tsx:474`, 제목 `BookmarkFolderTitle.tsx:116`. 세는 법(`nameLength`)을 바꾸면 이유 문구도 바뀐다(§5 "폴더 이름 글자 수")                                                                                                                                 |
+| 터치 버튼 크기 변경                   | 폰은 `BookmarkPage.tsx` 모바일 헤더·`MobileFolderList.tsx`의 `size-11`·`h-11`, 사이드바·태블릿은 `md:pointer-fine:`로 마우스에서 되돌린다. e2e `touch-targets*.spec.ts`도 같이(§5 "터치 기기 버튼 44px")                                                                                                                                                                                                 |
+| 모바일 정렬 점 조건·위치 변경         | `BookmarkPage.tsx` 모바일 분기의 `sort !== 'latest'`와 점 `span`의 `top-[9px] right-[11px] size-[7px]`(10-28 승인 시안의 아이콘 기준 자리를 11-04 44px 상자에 옮긴 값). 기본 정렬을 바꾸면 이 조건도 같이 바꾼다                                                                                                                                                                                         |
+| 폴더 선택 창 높이 변경                | `SheetDialogContent.tsx`의 `SHEET_MAX_HEIGHT`(세로 모바일)·`MODAL_MAX_HEIGHT`(중앙 모달). 목록에 상한을 다시 두지 않는다 — 위아래 고정 줄이 더해져 화면을 넘는다(§5 "창 높이"). 바꾸면 `e2e/bookmark-sheet-height.mobile.spec.ts`의 `SHEET_HEIGHT_RATIO`도 맞춘다. 세로 모바일 시트를 다시 내용 높이만큼 띄우려면 `BookmarkFolderSelectDialog.tsx`의 `MOBILE_SHEET_FILL_HEIGHT`와 목록의 `flex-1`을 뺀다 |
+| 테스트 실행                           | `npx vitest run src/entities/bookmark/folder src/widgets/bookmark/folder-nav src/features/bookmark/toggle src/features/bookmark/rename src/features/post/create/ui/PostCreateBookmarkFolderField.test.tsx`                                                                                                                                                                                               |
 
 ## 9. 검증 결과
 
@@ -1662,6 +1689,19 @@ e2e 164개(`CI=1`, 재시도 0), `pnpm type-check`·`pnpm lint`·`pnpm check:dep
 - 실제 Android 폰에서는 확인하지 않았다.
 
 전체 단위 195개 파일 2,638건, e2e 308건, `pnpm type-check`·`pnpm lint`·`pnpm check:deps`·`pnpm check:docs`가 통과했다.
+
+**2026-11-10 갱신(2)** — 세로 모바일 시트를 늘 상한 높이로(§5 "창 높이").
+
+- e2e `bookmark-sheet-height.mobile.spec.ts`(4→6, 393×727) — 폴더가 하나일 때 카드 창이 화면 높이의 70%(±1px)로 뜨고
+  새 폴더 입력을 열어도 높이·위치가 같다, 글 등록 폼 창이 70%로 뜨고 확인 줄이 창 바닥에서 16px 안에 있다.
+  `MOBILE_SHEET_FILL_HEIGHT`를 비우면 두 건 모두 실패했다(264.9px·154.9px 차이). 폴더 12개로 보는 기존 4건은 그대로 통과한다.
+- 녹화 전용 Playwright 스펙(모킹)으로 네 장면을 찍어 사용자가 확인했다 — Pixel 5 화면에서 폴더 1개인 카드 시트(새 폴더 입력을 열고
+  취소해도 높이 그대로), 폴더 1개인 글 등록 폼 시트("북마크 안 함"·확인이 바닥), 폴더 14개인 카드 시트(목록만 스크롤),
+  데스크톱 1280×720의 가운데 창(내용 높이만큼, 전과 같음).
+- 실제 폰에서는 확인하지 않았다. 키보드가 올라올 때의 모습도 보지 못했다(§11).
+
+전체 단위 195개 파일 2,638건, e2e 310건, `pnpm type-check`·`pnpm lint`·`pnpm check:deps`·`pnpm check:docs`·
+`pnpm format:check`가 통과했다.
 
 ## 10. 시행착오
 
@@ -2176,7 +2216,10 @@ Linux Chromium은 180px로 그려 Linux에서만 1px 넘쳤다(직접 측정 —
   필요해 범위 밖으로 미뤘다.
 - 모바일은 hover가 없어 첫 탭에서는 폴더 목록을 여전히 기다린다(이후 staleTime 3분 동안은
   캐시로 즉시 뜬다). 기다리는 동안 모달이 늘어나는 문제는 골격 화면으로 줄였지만(§5), 폴더
-  수가 3개와 다르면 도착할 때 조금 늘거나 준다.
+  수가 3개와 다르면 도착할 때 조금 늘거나 준다. 세로 모바일 시트는 2026-11-10부터 높이가 정해져 있어 늘거나 줄지
+  않는다(§5 "창 높이") — 가로로 돌린 폰·터치 태블릿의 중앙 모달에만 남았다.
+- 세로 모바일 시트를 늘 상한 높이로 띄운 뒤(2026-11-10, §5 "창 높이") 실제 폰에서 새 폴더 이름을 쓸 때 키보드가 올라온
+  모습은 보지 못했다. 에뮬레이션에는 화면 키보드가 없다. 입력 줄은 시트 위쪽(393×727 화면의 녹화에서 위에서 약 310px)에 있다.
 - 폴더 고정(2026-10-26)에서 이번 범위 밖으로 둔 것: 고정한 폴더끼리 순서를 직접 바꾸기(드래그), 저장 다이얼로그
   안에서 고정·해제.
 - 폴더 이름 변경이 실패하면 `useUpdateBookmarkFolderMutation`이 이름 변경 직전의 목록 전체로 되돌린다. 그 사이
