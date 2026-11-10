@@ -9,7 +9,7 @@
 > **읽고 나면**: 요청 하나가 어떤 서비스를 거치는지 설명할 수 있고, 어떤 용어를 만나도 뜻과 우리가 쓰는 자리, 더 볼 문서를
 > 바로 찾을 수 있다.
 >
-> **마지막 검토**: 2026-11-07
+> **마지막 검토**: 2026-11-10 (Lambda 항목의 요청 경로만 고침). 이전 2026-11-07
 
 코드 용어(FSD, 3-Layer API 등)는 [`ONBOARDING.md` §7](./ONBOARDING.md#7-공통-용어)을, 한 기능에만 나오는 말은 그 기능 문서 끝의
 "용어 사전"을 본다.
@@ -194,7 +194,7 @@ flowchart TD
 **요청이 올 때만 깨어나 일하는 서버다.** 서버를 켜 두고 관리하지 않아도 되고, 쓴 만큼만 낸다.
 
 - **무엇인가**: [AWS 문서](https://docs.aws.amazon.com/lambda/latest/dg/welcome.html)는 _"서버리스 컴퓨팅 서비스로, 서버를 프로비저닝하거나 관리하지 않고 코드를 실행할 수 있게 한다"_ (번역)고 쓴다. 프로비저닝은 서버나 리소스를 마련해 준비하는 일이다.
-- **우리는**: 함수 `link-sphere-api` 하나가 Spring Boot BE 전체를 돌린다. 요청은 `LambdaHandler`가 받아 MockMvc로 앱에 넘긴다. MockMvc는 원래 Spring 테스트 도구인데, init 워밍업이 Lambda Web Adapter와 충돌해 어댑터를 없앤 2026-07-25부터 운영 요청도 이 경로로 받는다.
+- **우리는**: 함수 `link-sphere-api` 하나가 Spring Boot BE 전체를 돌린다. 요청은 `LambdaHandler`가 받아 serverless-java-container 라이브러리로 앱에 넘긴다. 이 라이브러리가 Lambda 이벤트를 서블릿 요청으로 바꿔, Tomcat 없이 서블릿 필터와 `DispatcherServlet`을 돌린다. 2026-07-25부터 11-10까지는 Spring 테스트 도구인 MockMvc로 넘겼는데, 쿼리·헤더를 Tomcat과 다르게 읽은 일이 있어 옮겼다([BE #192](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/192)).
 - **없으면**: API 전체가 멈춘다.
 - **알아 둘 것**:
   - 응답을 돌려주면 실행 환경이 얼어붙어 뒤에 남은 작업이 멈춘다. 그래서 [self-invoke](#self-invoke)를 쓴다.
