@@ -249,7 +249,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 `src/widgets/post/post-card/ui/PostCard.tsx`는 피드·상세·북마크 화면이 함께 쓴다(`isDetail`로 분기).
 
 - **카드 전체가 상세 링크**(목록만): 제목 `Link`의 `::after`를 카드 전체로 늘리고(`stretchedLinkClassName`),
-  아바타·소유자 액션·AI 요약·썸네일·카테고리 칩(`:307`)·푸터 버튼은 `relative z-raised`로 그
+  아바타·소유자 액션·AI 요약·썸네일·카테고리 칩(`:308`)·푸터 버튼은 `relative z-raised`로 그
   위에 올린다. 썸네일은 상세가 아니라 원문 새 탭이고, 카테고리 칩을 누르면 피드를 그
   카테고리로 거른다([`SEARCH.md`](./SEARCH.md)). 근거는 `docs/DECISIONS.md` 2026-09-30 "게시글
   카드: 제목 확대 대신 카드 전체를 상세 진입 영역으로" 항목.
@@ -288,7 +288,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   한 줄(`TEXTS.post.card.metadataUnavailable`). **AI 처리 대기 중 표시나 폴링은 없다** — §11.
 - **수정 중 오버레이**: 같은 글의 수정 mutation이 진행 중이면(`useIsMutating`, 500ms 지연 +
   최소 400ms 유지, `usePostCard.ts`의 `isUpdating`) 내용을 흐리게 하고 "수정 중..." 오버레이로 클릭을
-  막는다(`PostCard.tsx:82`, `:96-101`). 2026-10-03부터 수정 폼이 응답을 기다리므로 평소엔 보일
+  막는다(`PostCard.tsx:82`, `:97-102`). 2026-10-03부터 수정 폼이 응답을 기다리므로 평소엔 보일
   일이 없고, 저장 중에 이탈 확인창에서 "나가기"를 골라 목록으로 먼저 돌아간 경우에만 뜬다.
 
 ### 상세
@@ -315,11 +315,12 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   `docs/plans/2026-10-05-url-error-responses.md`). 그 밖의 에러는 화면 안 `ErrorState`.
 - **조회 1회의 뜻**: 같은 사람이 같은 글을 하루에 한 번 본 것이다. `GET /post/{id}`는 글을 읽기만 하고, 화면이 뜬 뒤
   `usePostDetail.ts`의 `recordPostViewOnEntry` effect가 `POST /post/{id}/view`를 보낸다. BE가 조회자(로그인하면 회원,
-  아니면 IP)를 가려 그날 처음일 때만 조회수를 올리고, 로그인 상태면 `post_views`의 최근 열람 시각은 매번 갱신한다. 하루는
-  UTC 기준이라 한국 시각 오전 9시에 바뀐다. 그래서 새로고침·재진입으로는 조회수가 오르지 않고, 카드 hover 미리 받기·탭
-  복귀 재조회·댓글 뒤 재조회·수정 화면은 기록 요청을 보내지 않는다. `pnpm dev`(운영 API를 봄)에서도 보내지 않는다 —
-  가드가 보는 모드 이름은 `localhost`다(`package.json`의 `dev` 스크립트가 `vite --mode localhost`). 2026-11-11 전에는
-  `development`와 비교해 가드가 걸리지 않았다. CI Lighthouse는 `lighthouserc.cjs`의 `blockedUrlPatterns`로 막는다.
+  아니면 IP)를 가려 그날 처음일 때만 조회수를 올리고(IP도 모르는 요청은 매번 센다), 로그인 상태면 `post_views`의 최근 열람
+  시각은 매번 갱신한다. 하루는 UTC 기준이라 한국 시각 오전 9시에 바뀐다. 그래서 새로고침·재진입으로는 조회수가 오르지 않고,
+  카드 hover 미리 받기·탭 복귀 재조회·댓글 뒤 재조회·수정 화면은 기록 요청을 보내지 않는다. `pnpm dev`(운영 API를 봄)에서도
+  보내지 않는다 — 가드가 보는 모드 이름은 `localhost`다(`package.json`의 `dev` 스크립트가 `vite --mode localhost`).
+  2026-11-11 전에는 `development`와 비교해 가드가 걸리지 않았다. CI Lighthouse는 `lighthouserc.cjs`의
+  `blockedUrlPatterns`로 막는다.
   비교한 대안과 근거는 `docs/plans/2026-11-05-post-view-record.md`(읽기와 기록을 나눔)와
   `docs/plans/2026-11-11-post-view-dedupe.md`(같은 사람은 하루 한 번).
 - **조회수 표시**: 상세는 받은 값을 그대로 보여 주다가, 기록 응답이 오면 그 응답의 조회수(`viewCount`, BE가 이번 조회를
@@ -367,7 +368,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   이동" 2건으로 재현). `PostDetailPage`·`CommentList`의 `AsyncBoundary`에 `resetKeys`로 글 id를 넘긴다. 댓글 테스트는
   운영 라우터처럼 이동을 transition으로 감싼다(`v7_startTransition`, `RouterProvider.tsx:27`). 감싸지 않으면 다음 글을
   기다리는 동안 댓글 영역이 숨겨졌다 다시 보이며 `componentDidUpdate`가 불리지 않아(react-dom 18.3.1
-  `react-dom.development.js:23322-23323`) `resetKeys` 비교가 돌지 않는다. 운영에서는 이전 화면이 남아 그 경로를 타지
+  `react-dom.development.js:23323-23324`) `resetKeys` 비교가 돌지 않는다. 운영에서는 이전 화면이 남아 그 경로를 타지
   않는다.
 - **진 대안**(사용자 결정, 2026-11-03): 에러 화면에 [다시 시도] 버튼을 더하는 것 — 화면이 바뀌어 시안이 먼저
   필요했고, 떠났다 돌아오는 경우는 지우기만으로 풀린다. 문서만 정정 / 그대로 — 서버가 회복돼도 5분간 막힌다.
@@ -708,17 +709,17 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 
 | 사건                                   | 무효화                             | 위치                                                                                                     |
 | -------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| 댓글 작성·삭제(`commentCount` 변동)    | detail + list                      | `src/entities/comment/api/comment.keys.ts:26-49`                                                         |
+| 댓글 작성·삭제(`commentCount` 변동)    | detail + list                      | `src/entities/comment/api/comment.keys.ts:45-68`                                                         |
 | 프로필 수정(작성자 닉네임·이미지)      | `post` 전체                        | `src/entities/account/api/account.keys.ts:29`                                                            |
 | 세션 복원 성공(비로그인으로 받은 목록) | list                               | `src/entities/auth/api/auth.keys.ts:15-17`                                                               |
-| 북마크 폴더 삭제·소속 변경             | list(+ 소속 변경 시 detail)        | `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:81-133`                                        |
+| 북마크 폴더 삭제·소속 변경             | list(+ 소속 변경 시 detail)        | `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:81-142`                                        |
 | 폴더 추가·제거·전체 해제 실패(롤백)    | list(detail은 스냅샷으로 복원)     | `src/entities/bookmark/folder/api/bookmark-folder.queries.ts`의 `rollbackBookmarkFolderMutation`         |
 | 좋아요·북마크 연타의 마지막 요청 실패  | detail + list                      | `src/entities/interaction/api/interaction.keys.ts`의 `handleLikePostFailure`·`handleBookmarkPostFailure` |
 | 다른 탭의 로그인을 이 탭이 받아들임    | 모든 쿼리(에러만 남은 캐시는 리셋) | `src/entities/auth/api/auth.keys.ts`의 `handleSessionAdoptedSuccess`                                     |
 
-반대 방향으로 post mutation이 부르는 북마크 쪽 핸들러(`handlePostDeleteSuccess`,
-`handlePostContentUpdateSuccess`, `handleBookmarkToggleSuccess`)는
-`src/entities/bookmark/folder/api/bookmark-folder.keys.ts:94-114`에 있다.
+반대 방향으로 post의 mutation과 조회 기록이 부르는 북마크 쪽 핸들러(`handleBookmarkToggleSuccess`,
+`handlePostDeleteSuccess`, `handlePostDeleteFailure`, `handlePostContentUpdateSuccess`, `handlePostViewRecordedSuccess`)는
+`src/entities/bookmark/folder/api/bookmark-folder.keys.ts:94-131`에 있다.
 
 ### 폼 값
 
@@ -739,7 +740,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 스켈레톤 카드 수                        | 6                    | `src/widgets/post/post-list/ui/PostCardSkeleton.tsx:64`           |
 | 조회 로딩 표시 지연                     | 500ms                | `src/shared/config/const.ts:11`                                   |
 | mutation 진행 표시 지연 / 최소 노출     | 500ms / 400ms        | `src/shared/config/const.ts:18-21`                                |
-| 쿼리 기본 staleTime / gcTime / retry    | 3분 / 5분 / 1회      | `src/shared/lib/react-query/config/queryClient.ts:72-75`          |
+| 쿼리 기본 staleTime / gcTime / retry    | 3분 / 5분 / 1회      | `src/shared/lib/react-query/config/queryClient.ts:93-95`          |
 | 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:241`                       |
 | 미리보기 조회 디바운스                  | 500ms                | `src/entities/post/hooks/useLinkPreview.ts:9`                     |
 | 미리보기 staleTime / 재시도             | 10분 / 없음          | `src/entities/post/api/post.queries.ts:214-226`                   |
@@ -756,7 +757,8 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 피드·상세 미리 받기          | `src/app/routes/AppRoutes.tsx`의 `PostFeedRoute`·`PostDetailRoute`, `src/widgets/post/post-list/hooks/usePostFeedPrefetch.ts`, 조건 계산은 `src/widgets/post/post-list/utils/post-list-payload.ts`                   |
 | 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:164-236`, `src/widgets/post/post-list/ui/PostList.tsx`                                                                                                              |
 | 카드 UI / 카드 동작          | `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`                                                                                                                      |
-| 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:65-98`                                                                                                                                                                            |
+| 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:65-104`                                                                                                                                                                           |
+| 조회 기록·조회수 반영        | `src/pages/post/hooks/usePostDetail.ts:87-96`, `src/entities/post/api/post.queries.ts:274-316`의 `applyRecordedViewCount`·`recordPostView`, `src/entities/post/api/post.api.ts:82-84`                                |
 | 떠날 때 실패 정리            | 조건 `src/shared/lib/react-query/unused-failed-query.ts`, 지우는 함수 `post.keys.ts`의 `postRemoveQueries`, 훅 `src/entities/post/hooks/useRemoveErrored*OnLeave.ts`                                                 |
 | 작성 폼 / 제출               | `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/create/hooks/useCreatePost.ts`의 `onSubmit`                                                                                                     |
 | 수정 폼 / 제출               | `src/features/post/update/ui/UpdatePostForm.tsx`, `src/features/post/update/hooks/useUpdatePost.ts`의 `onSubmit`                                                                                                     |
@@ -841,6 +843,11 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
   성공한 상세는 남김), `useRemoveErroredPostListsOnLeave.test.tsx`(2: 실패한 목록은 지우고 1쪽이 있는 목록은 남김),
   `PostDetailPage.test.tsx`의 "조회 실패 뒤 다른 글로 이동"(2: `resetKeys`를 빼면 실패). 댓글 쪽은
   [`COMMENT.md`](./COMMENT.md) §9
+- 조회 기록(2026-11-11, "조회 1회의 뜻"·"조회수 표시", 직접 실행) — `src/entities/post/api/post.queries.test.ts`의
+  `recordPostView`(9: 폴더별 글 무효화, 응답 조회수를 상세 캐시에 씀, 서버가 세지 않은 조회는 숫자 그대로, 캐시가 없으면 만들지
+  않음, 받은 시각 유지, 화면을 떠난 뒤 남은 재조회가 덮지 못함, 보는 중 재조회는 다시 받음, 실패하면 캐시 그대로, 진행 중
+  `isMutating()` 0), `src/pages/post/hooks/usePostDetail.test.tsx`의 "조회 기록"(3: 상세가 뜨면 1회, 다른 글로 가면 새로 기록,
+  개발 서버에서는 기록하지 않음). 캐시 반영에서 `cancelQueries`를 빼면 "화면을 떠난 뒤" 사례가 실패하는 것을 확인했다
 
 **e2e**(`e2e/`, Playwright) — 이 기능을 덮는 스펙. 이번 검토에서 실행하지는 않았다.
 
@@ -868,6 +875,9 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 - `failed-query-reentry.spec.ts`(2026-11-03, 직접 실행) — 상세·댓글·피드·내 댓글 조회가 500으로 실패한 뒤 다른 화면에
   갔다가 서버가 회복되고 뒤로가기로 돌아오면 다시 요청해 내용을 보여주는지. 수정 전에는 4건 모두 실패했고, 수정 뒤
   `--repeat-each 5`로 20/20 통과. 지우는 조건을 항상 거짓으로 바꾸면 다시 실패하는 것도 확인했다
+- `post-view-record.spec.ts`(2026-11-11, 직접 실행) — 카드 hover와 수정 화면은 조회를 기록하지 않고 카드 클릭은 기록하는지,
+  상세 숫자가 기록 응답의 조회수로 바뀌는지(받은 값 41, 응답 42면 42), 서버가 이미 센 조회면 1을 더하지 않는지(응답 41이면 41),
+  기록이 실패하면 토스트 없이 받은 값 그대로인지. 재시도 없이 10회 반복해 60/60 통과
 - `post-card-footer-layout.spec.ts`, `post-card-hover-menu.spec.ts`,
   `post-list-virtualization.spec.ts`, `post-list-scroll-restore.spec.ts`, `post-list.spec.ts`,
   `guest-guard.spec.ts`, `unsaved-changes.spec.ts`
