@@ -8,7 +8,7 @@
 > 파일에서 어떤 API를 부르고 어느 캐시를 어떻게 바꾸는지 안다. "등록 직후 새 글이 안 보인다",
 > "좋아요가 목록에 반영 안 된다" 같은 증상을 받았을 때 어디부터 열어볼지 정할 수 있다.
 >
-> **마지막 검토**: 2026-11-06
+> **마지막 검토**: 2026-11-11
 
 이 앱의 중심 데이터다. 사용자가 링크(URL)를 등록하면 BE가 그 페이지를 크롤링해 제목·설명·
 썸네일을 채우고, 그 뒤 비동기로 AI 요약·태그를 붙인다. FE는 그 결과를 피드(`/post`)에 카드로
@@ -139,6 +139,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 | -------- | ----------------------- | ---------------------- | -------------------------------------------------------------------------------------- |
 | `GET`    | `/post`                 | `fetchPostList`        | `size` + 다음 쪽이면 `cursor` + 값이 있을 때만 `search`·`category`·`filter`·`nickname` |
 | `GET`    | `/post/{id}`            | `fetchPostDetail`      | 비공개(남의 글)·삭제 글은 404                                                          |
+| `POST`   | `/post/{id}/view`       | `recordPostView`       | 상세 화면이 뜰 때 조회 기록. 응답 `{ viewCount }`(BE가 셀지 판단한 뒤의 조회수)        |
 | `POST`   | `/post`                 | `createPost`           | `keepalive: true`, 응답은 `PostResponse` 그대로                                        |
 | `PATCH`  | `/post/{id}`            | `updatePost`           | `keepalive: true`                                                                      |
 | `GET`    | `/link-preview?url=`    | `fetchLinkPreview`     | 작성 중 미리보기. 로그인 전용이라 `/post` 밖에 있다. 회원당 시간 60회                  |
@@ -292,7 +293,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 ### 상세
 
-- `usePostDetail`(`src/pages/post/hooks/usePostDetail.ts:75-112`)이
+- `usePostDetail`(`src/pages/post/hooks/usePostDetail.ts:75-114`)이
   `useSuspenseFetchPostDetailQuery`로 조회한다. 이 쿼리는 `retry: false`다(`post.queries.ts`)
   — 404는 재시도해도 같고 안내 화면만 늦어진다.
 - **미리 받기**: 상세 라우트(`PostDetailRoute`, `src/app/routes/AppRoutes.tsx:251`)가 lazy 페이지 청크를 요청하는
@@ -312,18 +313,26 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   그려지기 전에(`useLayoutEffect`) 붙는다(§10 "noindex 메타가 안내 화면보다 늦게 붙던 문제"). 2026-10-05 이전에는
   토스트 후 `/post`로 replace했는데, 사라지는 토스트에만 기대고 주소까지 잃게 해 바꿨다(계획:
   `docs/plans/2026-10-05-url-error-responses.md`). 그 밖의 에러는 화면 안 `ErrorState`.
-- **조회 1회의 뜻**: 상세 화면이 뜰 때마다 1회다. 같은 사람이 다시 들어와도 또 센다. `GET /post/{id}`는 글을 읽기만 하고,
-  화면이 뜬 뒤 `usePostDetail.ts`의 `recordPostViewOnEntry` effect가 `POST /post/{id}/view`를 보내야 조회수가 오르고 로그인
-  상태면 BE `post_views`도 갱신된다. 그래서 카드 hover 미리 받기·탭 복귀 재조회·댓글 뒤 재조회·수정 화면은 조회로 세지
-  않는다. `pnpm dev`(운영 API를 봄)에서는 보내지 않고, CI Lighthouse는 `lighthouserc.cjs`의 `blockedUrlPatterns`로
-  막는다. 비교한 대안과 근거는 `docs/plans/2026-11-05-post-view-record.md`.
-- **조회수 표시**: 받은 값은 이번 조회가 기록되기 전 값이라 상세에서 1을 더해 보여 준다(`PostCard.tsx`). 기록이 실패하면
-  그 화면만 1 많게 보이고 다음 조회에 맞는다. 실패는 토스트 없이 넘어간다.
+- **조회 1회의 뜻**: 같은 사람이 같은 글을 하루에 한 번 본 것이다. `GET /post/{id}`는 글을 읽기만 하고, 화면이 뜬 뒤
+  `usePostDetail.ts`의 `recordPostViewOnEntry` effect가 `POST /post/{id}/view`를 보낸다. BE가 조회자(로그인하면 회원,
+  아니면 IP)를 가려 그날 처음일 때만 조회수를 올리고, 로그인 상태면 `post_views`의 최근 열람 시각은 매번 갱신한다. 하루는
+  UTC 기준이라 한국 시각 오전 9시에 바뀐다. 그래서 새로고침·재진입으로는 조회수가 오르지 않고, 카드 hover 미리 받기·탭
+  복귀 재조회·댓글 뒤 재조회·수정 화면은 기록 요청을 보내지 않는다. `pnpm dev`(운영 API를 봄)에서도 보내지 않는다 —
+  가드가 보는 모드 이름은 `localhost`다(`package.json`의 `dev` 스크립트가 `vite --mode localhost`). 2026-11-11 전에는
+  `development`와 비교해 가드가 걸리지 않았다. CI Lighthouse는 `lighthouserc.cjs`의 `blockedUrlPatterns`로 막는다.
+  비교한 대안과 근거는 `docs/plans/2026-11-05-post-view-record.md`(읽기와 기록을 나눔)와
+  `docs/plans/2026-11-11-post-view-dedupe.md`(같은 사람은 하루 한 번).
+- **조회수 표시**: 상세는 받은 값을 그대로 보여 주다가, 기록 응답이 오면 그 응답의 조회수(`viewCount`, BE가 이번 조회를
+  셀지 판단한 뒤의 값)로 바꾼다. 처음 본 글은 숫자가 한 번 오르고, 다시 본 글은 그대로다. FE는 1을 더하거나 빼지 않는다 —
+  세는 규칙이 BE `PostService.recordView` 한 곳에만 있어야 규칙이 바뀌어도 FE를 고치지 않는다. 반영은 `post.queries.ts`의
+  `applyRecordedViewCount`가 한다. 진행 중인 상세 재조회를 취소하고, 상세 캐시의 조회수만 바꿔 쓰고(받은 시각은 그대로),
+  재조회 중이었으면 무효화해 다시 받는다. 취소하지 않으면 기록 전에 읽은 값이 늦게 도착해 방금 쓴 숫자를 덮는다. 기록이
+  실패하면 받은 값 그대로 보이고 토스트 없이 넘어간다.
 - **열람 기록 반영**: 기록에 성공하면 북마크의 "최근 열람순"을 맞추려고 정렬·폴더와 상관없이 폴더별 게시글
   캐시 전체를 무효화한다(`post.queries.ts`의 `recordPostView` → `handlePostViewRecordedSuccess`). `useMutation`을 쓰지 않는
   이유는 로그인 만료 정리가 `isMutating()`을 보기 때문이다(그 함수의 주석).
 - **브라우저 탭 제목**: 상세가 떠 있는 동안 탭 제목을 `{글 제목} - Link Sphere`(`TEXTS.post.detail.documentTitle`)로
-  바꾸고, 상세를 떠나면 원래 제목으로 되돌린다(`usePostDetail.ts:96-109`, 2026-10-26). 설치본 react-dom 18.3.1은
+  바꾸고, 상세를 떠나면 원래 제목으로 되돌린다(`usePostDetail.ts:98-111`, 2026-10-26). 설치본 react-dom 18.3.1은
   컴포넌트에서 렌더한 `<title>`을 head로 올려 주지 않아(React 19부터) effect로 `document.title`을 바꾼다. 404 안내
   화면은 게시글을 받지 못해 기본 탭 제목(`Link Sphere`)이 그대로다. 카카오톡·슬랙 같은 링크 미리보기에는 이 제목이
   쓰이지 않는다(§11).
@@ -731,9 +740,9 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 조회 로딩 표시 지연                     | 500ms                | `src/shared/config/const.ts:11`                                   |
 | mutation 진행 표시 지연 / 최소 노출     | 500ms / 400ms        | `src/shared/config/const.ts:18-21`                                |
 | 쿼리 기본 staleTime / gcTime / retry    | 3분 / 5분 / 1회      | `src/shared/lib/react-query/config/queryClient.ts:72-75`          |
-| 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:247`                       |
+| 상세 조회 재시도                        | 없음(`retry: false`) | `src/entities/post/api/post.queries.ts:241`                       |
 | 미리보기 조회 디바운스                  | 500ms                | `src/entities/post/hooks/useLinkPreview.ts:9`                     |
-| 미리보기 staleTime / 재시도             | 10분 / 없음          | `src/entities/post/api/post.queries.ts:226-235`                   |
+| 미리보기 staleTime / 재시도             | 10분 / 없음          | `src/entities/post/api/post.queries.ts:214-226`                   |
 | 카테고리 옵션 staleTime                 | 24시간               | `src/entities/category/api/category.queries.ts:14`                |
 
 행 높이 추정치와 최소 카드 폭은 직접 측정한 값이다 — 측정 방법은 `post-card-grid.const.ts`의 주석과

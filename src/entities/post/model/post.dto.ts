@@ -15,6 +15,9 @@ export type CreatePostResponse = Post;
 // 작성 중 링크 미리보기(GET /link-preview). 결과는 BE가 10분 캐시해 같은 URL로 등록할 때 재사용한다.
 export type LinkPreview = Schemas['LinkPreviewResponse'];
 
+// 조회 기록(POST /post/{id}/view) 응답. viewCount는 BE가 이번 조회를 셀지 판단한 뒤의 조회수다.
+export type PostViewRecord = Schemas['PostViewRecordResponse'];
+
 // GET /post 의 쿼리 파라미터. size는 BE에 기본값이 있어 스펙상 optional이지만 FE는 쪽 크기를 항상
 // 정해서 보내므로 필수로 좁힌다. page는 옛 번들을 위해 스펙에 남아 있는 옛 경로라 FE에서 쓰지 못하게 뺀다.
 export type PostListRequest = Omit<

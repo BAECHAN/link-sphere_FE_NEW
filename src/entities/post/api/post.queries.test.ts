@@ -22,6 +22,7 @@ import {
   recordPostView,
   useCreatePostMutation,
   useDeletePostMutation,
+  useFetchPostDetailQuery,
   usePrefetchPostDetail,
   useSuspenseFetchPostDetailQuery,
   useUpdatePostMutation,
@@ -985,6 +986,18 @@ describe('prefetchPostDetail', () => {
 
 describe('recordPostView', () => {
   const viewUrl = url(`/post/${POST_ID}/view`);
+  const DETAIL_KEY = postKeys.detail(POST_ID);
+  /** 상세가 기록 전에 읽은 조회수와, 서버가 이번 조회를 센 뒤의 조회수 */
+  const RECEIVED_VIEW_COUNT = 41;
+  const COUNTED_VIEW_COUNT = 42;
+  const receivedPost: Post = {
+    ...mockPost,
+    stats: { ...mockPost.stats, viewCount: RECEIVED_VIEW_COUNT },
+  };
+  const countedPost: Post = {
+    ...mockPost,
+    stats: { ...mockPost.stats, viewCount: COUNTED_VIEW_COUNT },
+  };
 
   beforeEach(() => {
     queryClient = createTestQueryClient({ gcTime: Infinity });
@@ -994,10 +1007,63 @@ describe('recordPostView', () => {
     vi.restoreAllMocks();
   });
 
-  it('성공하면 폴더별 게시글 목록을 무효화해 최근 열람순을 맞춘다', async () => {
+  function mockViewRecord(viewCount = COUNTED_VIEW_COUNT) {
     server.use(
-      http.post(viewUrl, () => HttpResponse.json({ status: 200, message: 'ok', data: {} }))
+      http.post(viewUrl, () =>
+        HttpResponse.json({ status: 200, message: 'ok', data: { viewCount }, timestamp: '' })
+      )
     );
+  }
+
+  /**
+   * 상세 조회의 첫 요청을 release()까지 붙잡았다가 기록 전 값으로 응답한다 — 기록보다 먼저 떠난 재조회가 늦게
+   * 도착하는 상황. 그 뒤 요청은 센 뒤 값으로 바로 응답한다.
+   */
+  function holdFirstDetailRequest() {
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let requests = 0;
+    let firstResponded = false;
+
+    server.use(
+      http.get(url(`${API_ENDPOINTS.post.base}/${POST_ID}`), async () => {
+        requests += 1;
+
+        if (requests > 1) {
+          return HttpResponse.json({
+            status: 200,
+            message: 'ok',
+            data: countedPost,
+            timestamp: '',
+          });
+        }
+
+        await held;
+        firstResponded = true;
+
+        return HttpResponse.json({ status: 200, message: 'ok', data: receivedPost, timestamp: '' });
+      })
+    );
+
+    return {
+      requests: () => requests,
+      /** 붙잡은 응답을 보내고, 앱이 그 응답을 처리할 시간까지 기다린다 */
+      releaseAndSettle: async () => {
+        release();
+        await waitFor(() => expect(firstResponded).toBe(true));
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      },
+    };
+  }
+
+  function cachedViewCount(): number | undefined {
+    return queryClient.getQueryData<Post>(DETAIL_KEY)?.stats.viewCount;
+  }
+
+  it('성공하면 폴더별 게시글 목록을 무효화해 최근 열람순을 맞춘다', async () => {
+    mockViewRecord();
     queryClient.setQueryData(FOLDER_POSTS_KEY, { pages: [], pageParams: [] });
 
     await recordPostView(queryClient, POST_ID);
@@ -1005,14 +1071,91 @@ describe('recordPostView', () => {
     expect(queryClient.getQueryState(FOLDER_POSTS_KEY)?.isInvalidated).toBe(true);
   });
 
-  it('실패하면 토스트 없이 조용히 끝나고 목록을 무효화하지 않는다', async () => {
+  it('성공하면 응답의 조회수를 상세 캐시에 쓰고 다른 값은 그대로 둔다', async () => {
+    mockViewRecord();
+    queryClient.setQueryData(DETAIL_KEY, receivedPost);
+
+    await recordPostView(queryClient, POST_ID);
+
+    expect(queryClient.getQueryData(DETAIL_KEY)).toEqual(countedPost);
+  });
+
+  // 이번 조회를 셀지는 서버만 안다 — 같은 사람이 다시 열어 세지 않았으면 받은 숫자가 그대로 돌아온다
+  it('서버가 세지 않은 조회면 받은 숫자 그대로다(1을 더하지 않는다)', async () => {
+    mockViewRecord(RECEIVED_VIEW_COUNT);
+    queryClient.setQueryData(DETAIL_KEY, receivedPost);
+
+    await recordPostView(queryClient, POST_ID);
+
+    expect(cachedViewCount()).toBe(RECEIVED_VIEW_COUNT);
+  });
+
+  it('상세가 캐시에 없으면 만들지 않는다', async () => {
+    mockViewRecord();
+
+    await recordPostView(queryClient, POST_ID);
+
+    expect(queryClient.getQueryState(DETAIL_KEY)).toBeUndefined();
+  });
+
+  // 지금 시각이 찍히면 이 쓰기가 staleTime을 새로 시작해, 계속 다시 들어오는 글은 재조회되지 않는다
+  it('조회수를 써도 상세를 받은 시각은 그대로 둔다', async () => {
+    const receivedAt = 1_700_000_000_000;
+
+    mockViewRecord();
+    queryClient.setQueryData(DETAIL_KEY, receivedPost, { updatedAt: receivedAt });
+
+    await recordPostView(queryClient, POST_ID);
+
+    expect(cachedViewCount()).toBe(COUNTED_VIEW_COUNT);
+    expect(queryClient.getQueryState(DETAIL_KEY)?.dataUpdatedAt).toBe(receivedAt);
+  });
+
+  // 화면이 보고 있지 않은 쿼리는 무효화해도 다시 받지 않는다 — 진행 중인 요청을 직접 취소하지 않으면 그 응답이 이긴다
+  it('화면을 떠난 뒤 남은 상세 재조회가 기록 전 값으로 덮지 못하고, 다음에 열 때 다시 받게 둔다', async () => {
+    const detail = holdFirstDetailRequest();
+
+    mockViewRecord();
+    queryClient.setQueryData(DETAIL_KEY, receivedPost);
+    prefetchPostDetail(queryClient, POST_ID);
+    await waitFor(() => expect(detail.requests()).toBe(1));
+
+    await recordPostView(queryClient, POST_ID);
+    await detail.releaseAndSettle();
+
+    expect(cachedViewCount()).toBe(COUNTED_VIEW_COUNT);
+    expect(queryClient.getQueryState(DETAIL_KEY)?.isInvalidated).toBe(true);
+    expect(detail.requests()).toBe(1);
+  });
+
+  it('화면이 보는 중에 상세 재조회가 진행 중이면 그 응답을 버리고 다시 받는다', async () => {
+    const detail = holdFirstDetailRequest();
+
+    mockViewRecord();
+    queryClient.setQueryData(DETAIL_KEY, receivedPost);
+    renderHook(() => useFetchPostDetailQuery(POST_ID), { wrapper: Wrapper });
+    await waitFor(() => expect(detail.requests()).toBe(1));
+
+    await recordPostView(queryClient, POST_ID);
+
+    expect(cachedViewCount()).toBe(COUNTED_VIEW_COUNT);
+    await waitFor(() => expect(detail.requests()).toBe(2));
+    await detail.releaseAndSettle();
+
+    expect(queryClient.getQueryState(DETAIL_KEY)?.fetchStatus).toBe('idle');
+    expect(cachedViewCount()).toBe(COUNTED_VIEW_COUNT);
+  });
+
+  it('실패하면 토스트 없이 조용히 끝나고 상세 캐시와 목록을 그대로 둔다', async () => {
     server.use(http.post(viewUrl, () => HttpResponse.json({ message: 'fail' }, { status: 500 })));
+    queryClient.setQueryData(DETAIL_KEY, receivedPost);
     queryClient.setQueryData(FOLDER_POSTS_KEY, { pages: [], pageParams: [] });
     const toastError = vi.spyOn(toast, 'error');
 
     await expect(recordPostView(queryClient, POST_ID)).resolves.toBeUndefined();
 
     expect(toastError).not.toHaveBeenCalled();
+    expect(queryClient.getQueryData(DETAIL_KEY)).toBe(receivedPost);
     expect(queryClient.getQueryState(FOLDER_POSTS_KEY)?.isInvalidated).toBe(false);
   });
 
@@ -1028,7 +1171,12 @@ describe('recordPostView', () => {
         requested = true;
         await held;
 
-        return HttpResponse.json({ status: 200, message: 'ok', data: {} });
+        return HttpResponse.json({
+          status: 200,
+          message: 'ok',
+          data: { viewCount: COUNTED_VIEW_COUNT },
+          timestamp: '',
+        });
       })
     );
 

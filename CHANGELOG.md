@@ -55,6 +55,13 @@
 
 ### Changed
 
+- `post` 같은 사람이 다시 연 글은 조회수가 그대로고, 상세는 서버가 센 숫자만 보여 줌
+  <details><summary>배경·구현</summary>
+
+  지금까지는 상세 화면이 뜰 때마다 조회수가 1 올랐고(새로고침 10번이면 10), 상세는 받은 값에 1을 더해 보여 줬다. 이제 BE가 같은 회원(비로그인은 같은 IP)의 조회를 UTC 하루(한국 시간 오전 9시 경계)에 한 번만 세고, `POST /post/{id}/view`가 셀지 판단한 뒤의 조회수를 `{ viewCount }`로 돌려준다(BE [PR #194](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/194)). 상세는 그 숫자로 조회수를 바꿔 보여 주고 화면에서 1을 더하지 않는다 — 세는 규칙이 BE `recordView` 한 곳에만 있어 규칙이 바뀌어도 FE를 고치지 않는다(사용자 결정, 2026-11-11). 그래서 처음 여는 글은 숫자가 받은 값에서 응답 값으로 한 번 바뀌고, 다시 열거나 새로고침하면 그대로다. 기록이 실패하면 받은 값 그대로 보이고 안내는 없다. 최근 열람 시각은 전처럼 열 때마다 갱신된다. 응답을 상세 캐시에 쓸 때는 진행 중인 상세 재조회를 먼저 취소하고 받은 시각을 그대로 둔다 — 화면을 떠난 뒤 남은 재조회가 기록 전 값으로 덮지 못하게 하고, 이 쓰기가 다시 받는 주기(staleTime)를 새로 시작하지 않게 한다(설치본 `@tanstack/query-core` 5.90.16 소스 확인. 단위 테스트에서 취소를 빼면 "화면을 떠난 뒤" 사례가 실패한다). 오전 9시를 사이에 두고 다시 보면 한 번 더 세고, 같은 IP를 쓰는 비로그인 사용자는 글마다 하루 한 명으로 센다(사용자가 받아들인 한계). 기존 조회수 값은 고치지 않는다. 비교한 안과 다른 제품 사례는 [`docs/plans/2026-11-11-post-view-dedupe.md`](docs/plans/2026-11-11-post-view-dedupe.md), 동작 설명은 `docs/POST.md` "조회 1회의 뜻"·"조회수 표시". (`src/entities/post/api/post.api.ts`, `src/entities/post/api/post.queries.ts`, `src/entities/post/model/post.dto.ts`, `src/entities/post/model/post.schema.ts`, `src/widgets/post/post-card/ui/PostCard.tsx`, `src/shared/api/generated/openapi.json`, `src/shared/api/generated/openapi.gen.ts`, `src/mocks/handlers/post.handlers.ts`, `e2e/mocks/post.mock.ts`, `e2e/post-view-record.spec.ts`, `scripts/barrel-experiment/measure.mjs`, `docs/POST.md`, `docs/TESTING.md`, `docs/VERSION-COMPATIBILITY.md`, [PR #596](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/596))
+
+  </details>
+
 - `shared` 메뉴·로그인 창·이미지 확대 창·폰 검색창이 페이지를 다시 그리기 전에 먼저 여닫힘
   <details><summary>배경·구현</summary>
 
@@ -224,6 +231,13 @@
   </details>
 
 ### Fixed
+
+- `post` 개발 서버에서 상세를 열면 조회 기록 요청이 운영으로 나가던 문제
+  <details><summary>배경·구현</summary>
+
+  #539는 개발 서버에서 조회 기록을 보내지 않으려고 `import.meta.env.MODE === 'development'`로 막았는데, 이 레포의 `pnpm dev`는 `vite --mode localhost`라 `MODE`가 `localhost`여서 가드가 걸리지 않았다. 고치기 전 코드로 개발 서버를 띄워 상세를 한 번 열고 기록 요청을 브라우저에서 가로막아 세니 2건이었고(StrictMode가 effect를 두 번 실행한다), 가드를 `localhost`로 고친 뒤에는 0건이었다(직접 측정, 2026-11-11, Playwright로 `POST /api/post/*/view`를 막아 운영에 닿지 않게 함). 개발 서버는 `/api`를 운영으로 넘기므로, 2026-11-05부터 개발 중 연 글이 운영 조회수와 "최근 열람순"에 기록됐을 것으로 본다(운영 기록으로 가려낼 수 없어 추정이고, 그 값은 고치지 않는다). 단위 테스트가 `MODE`를 `development`로 바꿔서만 검사해 통과하고 있었으므로, 테스트도 `package.json`의 `dev` 스크립트가 넘기는 값(`localhost`)을 쓰게 고쳤다. e2e(`--mode test`)와 운영 빌드는 전처럼 기록한다. (`src/pages/post/hooks/usePostDetail.ts`, `src/pages/post/hooks/usePostDetail.test.tsx`, `docs/POST.md`, `docs/TESTING.md`, [PR #596](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/596))
+
+  </details>
 
 - `bookmark` Android에서 북마크 시트를 연 채 뒤로가기를 누르면 페이지가 뒤로 가던 문제
   <details><summary>배경·구현</summary>
@@ -490,6 +504,7 @@
 
 ### Notes
 
+- BE API 의존: `link-sphere_BE_NEW` [PR #194](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/194) 필요(`POST /post/{id}/view` 응답 `data`가 빈 객체에서 `{ viewCount }`로 바뀌고, 같은 회원·IP는 UTC 하루에 한 번만 센다). **배포 순서: BE 먼저 → FE** — FE를 먼저 올리면 상세 조회수가 0으로 보인다. 그 사이에는 다시 본 글만 화면에 1 많게 보이고 DB는 맞다. 되돌릴 때는 FE 먼저.
 - BE API 의존: `link-sphere_BE_NEW` [PR #159](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/159) 필요(`POST /post/{id}/view` 신규, `GET /post/{id}`는 조회수를 올리지 않음). **배포 순서: BE 먼저 → FE 바로** — 그 사이에는 조회가 안 세지고 에러는 없다.
 - BE API 의존: `link-sphere_BE_NEW` [PR #158](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/158) 필요(글·댓글·답글 등록과 메일 요청 2개에 `Idempotency-Key` 필수, 같은 키면 처음 결과). **배포 순서: 헤더를 싣는 FE(#535) 먼저 → SQL → BE → 재전송을 켜는 FE** — 헤더 FE 배포 전에 열린 탭은 BE 필수화 뒤 등록이 400으로 실패하고 새로고침하면 회복한다. BE 전에 재전송을 켜면 글·댓글이 2개 생긴다.
 - BE API 의존: `link-sphere_BE_NEW` [PR #154](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/154) 필요(회원 탈퇴 `DELETE /auth/account` → `POST /auth/account/deletion`). **배포 순서: BE 먼저** — 구버전 BE에는 새 경로가 없어 탈퇴가 실패한다. 운영에서는 옛 호출도 이미 CloudFront에서 403이라, BE를 먼저 배포하는 동안 새로 깨지는 것은 없다.

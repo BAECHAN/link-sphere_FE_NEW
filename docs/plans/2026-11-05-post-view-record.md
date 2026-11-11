@@ -9,6 +9,7 @@
 - 이탈(구현 중 판단): 타입 스냅샷을 BE 배포 뒤 운영 스펙에서 `pnpm codegen:fetch`로 받지 않고, BE 병합 전에 BE 워크트리의 `./gradlew openApiSpec` 결과로 만들었다. BE와 FE 배포 사이에 조회가 안 세지는 시간을 줄이려고 FE PR을 미리 준비했기 때문이다. 그래서 스냅샷 단계가 BE 배포를 강제하지 않아 BE 먼저 순서는 병합할 때 직접 지킨다. BE 배포 뒤 운영 스펙으로 다시 받아 차이 0줄을 확인하고 FE를 병합했다.
 - 대조 뒤 보완: e2e가 URL로 바로 들어가 조회 기록을 확인해 카드를 눌러 들어가는 경로가 빠져 있었다. 카드 클릭 테스트를 추가했다.
 - 계획에 없던 변경(문서 동기화): `docs/VERSION-COMPATIBILITY.md` 머리말의 미릴리즈 목록에 BE #159를 넣고, `docs/POST.md`에 조회수 표시(+1) 항목을 추가하고 열람 기록 반영 항목을 고쳤다. 이번 변경으로 밀렸거나 이미 어긋나 있던 `docs/POST.md`·`docs/POST-DETAIL-BACK-NAVIGATION.md`의 줄 번호 참조도 바로잡았다.
+- 대체됨: `docs/plans/2026-11-11-post-view-dedupe.md`(#596) — "상세 진입마다 1회"를 "같은 회원·IP는 UTC 하루에 한 번"으로 바꿨다. 조회 기록 응답이 조회수를 돌려주고 상세는 받은 값에 1을 더하지 않고 그 숫자를 보여 준다. 개발 서버에서 기록을 보내지 않는다는 항목은 가드가 `MODE === 'development'`라 `pnpm dev`(`--mode localhost`)에서 걸리지 않았고, 같은 PR에서 `localhost`로 고쳤다.
 
 <!-- plan-result:end -->
 

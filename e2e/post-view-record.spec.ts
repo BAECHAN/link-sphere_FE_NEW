@@ -11,18 +11,19 @@ import { mockPost } from '@/mocks/fixtures/post.fixtures';
 
 // 조회는 상세 화면이 뜰 때만 기록한다 - hover 미리 받기는 같은 GET을 보내도 세지 않는다
 // (docs/plans/2026-11-05-post-view-record.md). e2e는 StrictMode 개발 서버라 effect가 두 번 돌 수 있어 진입은 "1회 이상"으로 본다.
+// 이번 조회를 셀지는 서버가 정하고 화면은 기록 응답의 조회수만 보여 준다 - 1을 더하지 않는다
+// (docs/plans/2026-11-11-post-view-dedupe.md).
 
 const POST_TITLE = mockPost.title;
 const RECEIVED_VIEW_COUNT = 41;
+const COUNTED_VIEW_COUNT = RECEIVED_VIEW_COUNT + 1;
+const VIEW_PATH = /^\/api\/post\/[^/]+\/view$/;
 
 function countViewRequests(page: Page): { count: () => number } {
   let views = 0;
 
   page.on('request', (request) => {
-    if (
-      request.method() === 'POST' &&
-      /^\/api\/post\/[^/]+\/view$/.test(new URL(request.url()).pathname)
-    ) {
+    if (request.method() === 'POST' && VIEW_PATH.test(new URL(request.url()).pathname)) {
       views += 1;
     }
   });
@@ -30,7 +31,14 @@ function countViewRequests(page: Page): { count: () => number } {
   return { count: () => views };
 }
 
-async function setupRoutes(page: Page, viewStatus = 200): Promise<void> {
+function waitForViewResponse(page: Page) {
+  return page.waitForResponse((response) => VIEW_PATH.test(new URL(response.url()).pathname));
+}
+
+async function setupRoutes(
+  page: Page,
+  view: { status?: number; viewCount?: number } = {}
+): Promise<void> {
   await installCatchAll(page);
   await mockAuthRefresh(page);
   await mockAccountQuery(page);
@@ -47,7 +55,7 @@ async function setupRoutes(page: Page, viewStatus = 200): Promise<void> {
       })
   );
   await mockComments(page, []);
-  await mockRecordPostView(page, viewStatus);
+  await mockRecordPostView(page, { viewCount: COUNTED_VIEW_COUNT, ...view });
 }
 
 test.describe('조회 기록', () => {
@@ -77,26 +85,42 @@ test.describe('조회 기록', () => {
     await expect.poll(() => views.count()).toBeGreaterThanOrEqual(1);
   });
 
-  test('상세 화면이 뜨면 조회를 기록하고, 받은 값에 1을 더해 보여 준다', async ({ page }) => {
+  test('상세 화면이 뜨면 조회를 기록하고, 서버가 센 뒤의 조회수로 숫자를 바꾼다', async ({
+    page,
+  }) => {
     await setupRoutes(page);
     const views = countViewRequests(page);
 
     await page.goto(`/post/${mockPost.id}`);
 
-    await expect(page.getByText(String(RECEIVED_VIEW_COUNT + 1), { exact: true })).toBeVisible();
+    await expect(page.getByText(String(COUNTED_VIEW_COUNT), { exact: true })).toBeVisible();
     await expect.poll(() => views.count()).toBeGreaterThanOrEqual(1);
   });
 
-  test('조회 기록이 실패해도 토스트 없이 상세 화면을 유지한다', async ({ page }) => {
-    await setupRoutes(page, 500);
-    const failedView = page.waitForResponse((response) =>
-      /^\/api\/post\/[^/]+\/view$/.test(new URL(response.url()).pathname)
-    );
+  test('서버가 이미 센 조회면 받은 조회수를 그대로 보여 주고 1을 더하지 않는다', async ({
+    page,
+  }) => {
+    await setupRoutes(page, { viewCount: RECEIVED_VIEW_COUNT });
+    const recordedView = waitForViewResponse(page);
+
+    await page.goto(`/post/${mockPost.id}`);
+    await recordedView;
+
+    await expect(page.getByText(String(RECEIVED_VIEW_COUNT), { exact: true })).toBeVisible();
+    await expect(page.getByText(String(COUNTED_VIEW_COUNT), { exact: true })).toHaveCount(0);
+  });
+
+  test('조회 기록이 실패해도 토스트 없이 받은 조회수 그대로 상세 화면을 유지한다', async ({
+    page,
+  }) => {
+    await setupRoutes(page, { status: 500 });
+    const failedView = waitForViewResponse(page);
 
     await page.goto(`/post/${mockPost.id}`);
     await failedView;
 
     await expect(page.getByRole('heading', { name: POST_TITLE }).first()).toBeVisible();
+    await expect(page.getByText(String(RECEIVED_VIEW_COUNT), { exact: true })).toBeVisible();
     await expect(page.locator('[data-sonner-toast]')).toHaveCount(0);
   });
 

@@ -387,8 +387,7 @@ export const PostCard = memo(function PostCard({
         {isDetail && (
           <div className="items-center gap-1 md:gap-1.5 text-muted-foreground text-xs flex">
             <Eye className="h-3 w-3" />
-            {/* 받은 값은 지금 이 조회가 기록되기 전 값이라 1을 더해 보여 준다(usePostDetail.ts) */}
-            <span>{NumberUtil.formatCompact((post.stats.viewCount || 0) + 1)}</span>
+            <span>{NumberUtil.formatCompact(post.stats.viewCount || 0)}</span>
           </div>
         )}
       </CardFooter>

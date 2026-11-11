@@ -124,7 +124,7 @@ async function installMocks(context, tracker) {
       } else if (/^\/api\/post\/[^/]+\/comment$/.test(url.pathname)) {
         await route.fulfill({ json: envelope([COMMENT]) });
       } else if (/^\/api\/post\/[^/]+\/view$/.test(url.pathname)) {
-        await route.fulfill({ json: envelope(null) });
+        await route.fulfill({ json: envelope({ viewCount: POSTS[0].stats.viewCount }) });
       } else if (/^\/api\/post\/[^/]+$/.test(url.pathname)) {
         await route.fulfill({ json: envelope(POSTS[0]) });
       } else {
