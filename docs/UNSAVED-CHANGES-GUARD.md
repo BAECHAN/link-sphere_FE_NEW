@@ -290,7 +290,7 @@ _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 
   `fillEmailArrivedOnSamePage`가 새로 실려 온 이메일을 칸에 넣는다(입력 중이면 덮지 않음, §10).
 - **쌓이지 않는다**: 토스트 id가 `left-page-failure:<이탈 가드 키>`다(가입 `auth-signup`, 등록 `post-create`, 수정
   `post-update:<postId>`, 댓글 `comment-create:<postId>:<부모 댓글 id 또는 root>`·`comment-update:<commentId>`). 같은 폼에서 또 실패하면 이전 토스트를 바꾼다. 선례는 로그인 만료 토스트
-  (`showSessionExpiredToast`, `shared/utils/auth.util.ts:223`)로, 닫을 때까지 남고 버튼·닫기 X·고정 id를 쓴다.
+  (`showSessionExpiredToast`, `shared/utils/auth.util.ts:229`)로, 닫을 때까지 남고 버튼·닫기 X·고정 id를 쓴다.
 - **가입 실패 판정 위치**: 머물 때와 떠난 뒤를 나눠야 해서 `useCreateAccountMutation`의 `onError` 토스트를 없앴다.
   판정은 `SignUpUtil.resolveSubmitError`(`entities/auth/utils/auth.util.ts:133`)가 하고, `useSignUp`의 `catch`가
   머물렀으면 지금과 같은 4초 토스트를, 떠났으면 이 토스트를 띄운다(게시글 `PostUtil.resolveSubmitError` + 훅 `catch`

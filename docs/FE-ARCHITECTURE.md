@@ -1239,6 +1239,9 @@ suspense 쿼리(`useSuspenseQuery`·`useSuspenseInfiniteQuery`)가 데이터 없
 - **같은 화면에서 대상이 바뀔 때**(알림으로 상세 → 다른 상세): 컴포넌트가 그대로 남아 에러 경계가 리셋되지 않는다.
   경계에 `resetKeys`로 대상 id를 넘긴다(`PostDetailPage.tsx`·`CommentList.tsx`). 정리 훅과 같이 둬야 실패가 남은 글로
   돌아갔을 때 다시 던지지 않는다.
+- **같은 화면에서 인증이 바뀔 때**(다른 탭의 로그인·로그아웃을 이 탭에 반영, 이 탭 로그인): 호출부가 넘길 것은 없다. `AsyncBoundary`가
+  `useAuthStore`의 `authSyncedCount`를 `resetKeys` 끝에 더해 스스로 풀린다([`AUTH.md`](./AUTH.md) §8-H "인증이 바뀌는
+  사이 첫 로딩 중이던 조회").
 - 상세 경위: [`POST.md`](./POST.md) "조회에 실패한 화면에 다시 들어오기"
 
 ---

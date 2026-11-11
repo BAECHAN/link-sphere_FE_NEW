@@ -21,8 +21,14 @@ export const handleAuthRestoreSuccess = (queryClient: QueryClient) => {
  * onSuccess)과 같은 캐시 처리다. 앱 시작 복원(handleAuthRestoreSuccess)은 복원이 끝날 때까지 화면이
  * 스피너라 글 목록만 다시 불러도 되지만, 이 경로는 이미 그려진 화면에서 일어나 비로그인으로 받아 둔
  * 상세·댓글·좋아요 여부가 남는다. 에러만 남은 캐시는 리셋하고 나머지는 새 인증으로 다시 불러온다.
+ *
+ * 진행 중인 조회는 먼저 취소한다 - invalidateQueries는 데이터가 없는 진행 중 조회를 다시 부르지 않고 나가 있는
+ * 요청을 그대로 기다려(query-core 5.90.16 build/modern/query.js:166-177), 첫 로딩 중이던 화면이 옛 토큰으로 보낸
+ * 요청의 만료 응답으로 끝나 오류 화면이 남았다. 취소된 조회는 대기 상태로 돌아가 화면이 새 토큰으로 다시
+ * 요청한다(선례: AuthUtil.clearQueries).
  */
 export const handleSessionAdoptedSuccess = (queryClient: QueryClient) => {
+  void queryClient.cancelQueries();
   void queryClient.resetQueries({ predicate: isErroredCacheWithoutData });
   void queryClient.invalidateQueries();
 };

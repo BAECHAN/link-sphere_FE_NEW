@@ -38,6 +38,12 @@ interface AuthState {
   /** 앱 시작 시 인증 복원 시도가 끝났는지. ProtectedRoute가 이 값을 기다린다. */
   isAuthResolved: boolean;
   signedOutInPlace: SignedOutInPlace | null;
+  /**
+   * 화면을 떠나지 않고 인증이 바뀐 횟수 - 다른 탭의 로그인·로그아웃을 이 탭에 반영했거나(useAuthEpochSync의 받아들이기,
+   * AuthUtil의 로그아웃 반영) 이 탭에서 로그인했다(useLoginMutation).
+   * AsyncBoundary가 resetKeys에 더해, 바뀌기 전에 실패해 떠 있던 에러 화면을 풀고 바뀐 인증으로 다시 그린다.
+   */
+  authSyncedCount: number;
   setAuth: (token: string | null) => void;
   setAccessToken: (token: string | null) => void; // 하위 호환성 유지
   setAuthResolved: (resolved: boolean) => void;
@@ -54,6 +60,8 @@ interface AuthState {
   clearLocalAuthInPlace: (pathname: string) => void;
   /** 표시를 세운 화면과 다른 화면으로 옮겨 갔으면 내린다. 같은 화면 안의 이동(로그인 창 열고 닫기)은 그대로 둔다 */
   leaveSignedOutInPlace: (pathname: string) => void;
+  /** 캐시 처리(handleSessionAdoptedSuccess·AuthUtil.clearQueries·로그인의 에러 캐시 리셋)를 마친 뒤 부른다 - 먼저 부르면 에러 캐시가 남은 채 다시 그려진다 */
+  markAuthSynced: () => void;
 }
 
 /** 세션 플래그는 인증 상태 변경 지점에서만 갱신한다 (단일 소유) */
@@ -72,6 +80,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isAuthResolved: false,
       signedOutInPlace: null,
+      authSyncedCount: 0,
       // 토큰을 넣고 뺄 때마다 그 토큰이 속한 인증 세대를 맞춘다(client.ts가 요청 시작 때 기억해 401 때 비교).
       // 세대 "쓰기"는 여기서 하지 않는다 - 그건 명시적 로그인·로그아웃 호출부의 몫이다(auth-epoch.util.ts)
       setAuth: (token) => {
@@ -123,6 +132,7 @@ export const useAuthStore = create<AuthState>()(
 
         set({ signedOutInPlace: null });
       },
+      markAuthSynced: () => set((state) => ({ authSyncedCount: state.authSyncedCount + 1 })),
     }),
     { name: 'auth-store' }
   )

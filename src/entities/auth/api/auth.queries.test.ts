@@ -4,7 +4,7 @@ import { server } from '@/mocks/server';
 import { http, HttpResponse } from 'msw';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { createTestQueryClient } from '@/test/utils';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { createElement, type ReactNode } from 'react';
 import {
@@ -171,6 +171,63 @@ describe('useLoginMutation', () => {
 
     // predicate가 data === undefined도 요구하므로, 데이터를 들고 있는 이 쿼리는 리셋되지 않는다.
     expect(queryClient.getQueryData(postKeys.list())).toEqual(seeded);
+  });
+
+  it('로그인하는 순간 첫 로딩 중이던 조회는 취소하고 다시 요청한다 - 비로그인으로 보낸 요청의 응답이 화면에 남지 않게', async () => {
+    let respondToGuestRequest: (value: string) => void = () => {};
+    const queryFn = vi
+      .fn<() => Promise<string>>()
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            respondToGuestRequest = resolve;
+          })
+      )
+      .mockImplementation(() => Promise.resolve('signed-in response'));
+    const { result } = renderHook(
+      () => ({
+        login: useLoginMutation(),
+        query: useQuery({ queryKey: ['first-load'], queryFn }),
+      }),
+      { wrapper: LoginWrapper }
+    );
+    expect(queryFn).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      result.current.login.mutate({ email: 'user@example.com', password: 'password1!' });
+    });
+
+    await waitFor(() => expect(result.current.login.isSuccess).toBe(true));
+    // 비로그인으로 나가 있던 요청의 응답이 로그인 뒤에 도착한다
+    await act(async () => {
+      respondToGuestRequest('guest response');
+    });
+
+    // invalidate만으로는 데이터 없이 진행 중인 조회를 다시 부르지 않는다(query-core 5.90.16 query.js:166-177)
+    await waitFor(() => expect(result.current.query.data).toBe('signed-in response'));
+    expect(queryFn).toHaveBeenCalledTimes(2);
+  });
+
+  it('로그인하면 에러 캐시를 리셋한 뒤에 반영 횟수를 올린다 - 로그인 전부터 떠 있던 에러 화면(AsyncBoundary)을 푸는 신호', async () => {
+    await seedErrorQuery(commentKeys.myRoot);
+    const countBefore = useAuthStore.getState().authSyncedCount;
+    // 횟수가 먼저 오르면 에러 캐시가 남은 채 다시 그려져 같은 에러를 또 던진다 - 오르는 순간의 캐시 상태를 본다
+    let statusWhenMarked: string | undefined;
+    const unsubscribe = useAuthStore.subscribe((state, previous) => {
+      if (state.authSyncedCount !== previous.authSyncedCount) {
+        statusWhenMarked = queryClient.getQueryState(commentKeys.myRoot)?.status;
+      }
+    });
+    const { result } = renderHook(() => useLoginMutation(), { wrapper: LoginWrapper });
+
+    act(() => {
+      result.current.mutate({ email: 'user@example.com', password: 'password1!' });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(useAuthStore.getState().authSyncedCount).toBe(countBefore + 1);
+    expect(statusWhenMarked).toBe('pending');
+    unsubscribe();
   });
 
   it('401이 아닌 에러(네트워크 오류 등)도 무반응 대신 일반 실패 메시지 토스트를 띄운다', async () => {
