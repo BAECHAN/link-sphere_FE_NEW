@@ -13,9 +13,9 @@ export const postHandlers = [
     return MockEnvelopeUtil.json({ ...mockPost, id: params.id });
   }),
 
-  // POST /post/{id}/view (조회 기록)
+  // POST /post/{id}/view (조회 기록) — 판단 뒤 조회수를 돌려준다. 상세 목과 같은 값이라 화면 숫자는 그대로다
   http.post('/post/{id}/view', () => {
-    return MockEnvelopeUtil.unit();
+    return MockEnvelopeUtil.json({ viewCount: mockPost.stats.viewCount });
   }),
 
   // GET /link-preview (작성 중 링크 미리보기)

@@ -43,17 +43,20 @@ function trackViewRequests() {
   server.use(
     http.post('/post/{id}/view', ({ params }) => {
       viewedIds.push(String(params.id));
-      return MockEnvelopeUtil.unit();
+      return MockEnvelopeUtil.json({ viewCount: 0 });
     })
   );
 
   return viewedIds;
 }
 
+// 개발 서버(pnpm dev)의 모드 이름. vite --mode localhost라 'development'가 아니다(package.json의 dev 스크립트)
+const DEV_SERVER_MODE = 'localhost';
+
 // 조회 기록을 세지 않는 테스트는 POST를 보내지 않게 한다. 언마운트해도 보낸 요청은 취소되지 않아, 앞 테스트의 요청이
 // 다음 테스트의 trackViewRequests에 잡혀 기록이 ['1', '1', '2']가 됐다(docs/TESTING.md "자주 발생하는 문제" 14번).
 function skipViewRecord() {
-  vi.stubEnv('MODE', 'development');
+  vi.stubEnv('MODE', DEV_SERVER_MODE);
 }
 
 const FEED_ENTRY = { pathname: '/post/1', state: { backSource: 'feed' } };
@@ -202,8 +205,8 @@ describe('usePostDetail', () => {
       });
     });
 
-    it('개발 모드에서는 운영 API를 보지 않도록 조회를 기록하지 않는다', async () => {
-      vi.stubEnv('MODE', 'development');
+    it('개발 서버에서는 운영에 조회가 쌓이지 않도록 조회를 기록하지 않는다', async () => {
+      vi.stubEnv('MODE', DEV_SERVER_MODE);
       const viewedIds = trackViewRequests();
 
       const { result } = renderPostDetail(['/post/1']);

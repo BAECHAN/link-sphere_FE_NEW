@@ -10,6 +10,7 @@ import {
   PostListResponse,
   PostListRequest,
   Post,
+  PostViewRecord,
   UpdatePost,
 } from '@/entities/post/model/post.schema';
 
@@ -73,8 +74,12 @@ export const postApi = {
     return await specClient.get('/post/{id}', { path: { id: postId } });
   },
 
-  /** 상세 화면이 뜰 때 조회를 기록한다 — 조회수 +1, 로그인 상태면 최근 열람 시각 갱신 */
-  recordPostView: async (postId: string): Promise<void> => {
+  /**
+   * 상세 화면이 뜰 때 조회를 기록한다 — 같은 회원(비로그인은 같은 IP)은 하루에 한 번만 조회수가 오르고,
+   * 로그인 상태면 최근 열람 시각은 매번 갱신된다.
+   * @returns 서버가 이번 조회를 셀지 판단한 뒤의 조회수
+   */
+  recordPostView: async (postId: string): Promise<PostViewRecord> => {
     return await specClient.post('/post/{id}/view', { path: { id: postId } });
   },
 

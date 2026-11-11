@@ -95,11 +95,20 @@ export async function mockPostDetail(page: Page): Promise<void> {
   );
 }
 
-/** POST /post/:id/view (조회 기록) — 다른 글로 넘어가지 않는 기본 응답. 실패를 흉내 내려면 status를 넘긴다. */
-export async function mockRecordPostView(page: Page, status = 200): Promise<void> {
+/**
+ * POST /post/:id/view (조회 기록) — 서버가 이번 조회를 셀지 판단한 뒤의 조회수를 돌려준다. 기본값은 mockPostDetail과
+ * 같은 값이라 화면 숫자가 그대로다. 실패를 흉내 내려면 status를 넘긴다.
+ */
+export async function mockRecordPostView(
+  page: Page,
+  {
+    status = 200,
+    viewCount = mockPost.stats.viewCount,
+  }: { status?: number; viewCount?: number } = {}
+): Promise<void> {
   await page.route(
     (url) => /^\/api\/post\/[^/]+\/view$/.test(url.pathname),
-    (route) => route.fulfill({ status, json: wrapResponse({}) })
+    (route) => route.fulfill({ status, json: wrapResponse({ viewCount }) })
   );
 }
 

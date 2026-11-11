@@ -80,11 +80,13 @@ export function usePostDetail() {
   const queryClient = useQueryClient();
 
   // 상세 화면이 뜰 때만 조회를 기록한다 — hover 미리 받기·탭 복귀 재조회도 같은 GET을 보내 GET에서는 세지 않는다
-  // (docs/plans/2026-11-05-post-view-record.md). effect에서 POST로 기록하고 개발 때 보내지 않는 것은 React 문서를
-  // 따른다(https://react.dev/learn/synchronizing-with-effects#sending-analytics). 이 레포 개발 서버는 운영 API를 본다.
+  // (docs/plans/2026-11-05-post-view-record.md). 같은 사람이 다시 열었는지는 서버가 가려 하루에 한 번만 세고, 화면의
+  // 조회수는 이 기록의 응답으로 바뀐다(recordPostView). effect에서 POST로 기록하고 개발 때 보내지 않는 것은 React
+  // 문서를 따른다(https://react.dev/learn/synchronizing-with-effects#sending-analytics). 이 레포 개발 서버는 운영
+  // API를 보고, 모드 이름은 'development'가 아니라 'localhost'다(package.json의 dev 스크립트가 --mode localhost).
   useEffect(
     function recordPostViewOnEntry() {
-      if (import.meta.env.MODE === 'development') {
+      if (import.meta.env.MODE === 'localhost') {
         return;
       }
 

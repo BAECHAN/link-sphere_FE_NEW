@@ -33,6 +33,7 @@ import { IdempotencyKeyUtil } from '@/shared/utils/idempotency-key.util';
 import {
   handlePostCreateSuccess,
   handlePostUpdateSuccess,
+  postInvalidateQueries,
   postKeys,
   postMutationKeys,
   postRemoveQueries,
@@ -261,13 +262,53 @@ export const prefetchPostDetail = (queryClient: QueryClient, postId: string) => 
 };
 
 /**
- * 상세 화면이 뜰 때 조회를 기록한다. useMutation을 쓰지 않는다 — 로그인 만료 정리(AuthUtil.applySessionExpired)가
- * isMutating()으로 저장 중인지 보고 로그인 창을 열어, 글만 보던 사용자에게 토스트 대신 창이 뜨게 된다.
- * 실패해도 사용자가 할 일이 없어 알리지 않는다.
+ * 조회 기록 응답의 조회수를 상세 캐시에 쓴다. 상세가 캐시에 없으면(기록 중에 화면을 떠나 지워진 경우 등) 만들지 않는다.
+ *
+ * 쓰기 전에 진행 중인 상세 재조회를 취소한다 — setQueryData는 진행 중인 요청을 멈추지 않아, 기록 전에 읽은 값이
+ * 늦게 도착하면 방금 쓴 조회수를 덮는다. 화면이 보는 중이면 무효화의 재조회가 그 요청을 갈아 끼우지만, 기록 중에
+ * 화면을 떠났으면 무효화는 다시 받지 않고 떠난 요청은 그대로 남는다. 취소한 재조회는 무효화로 다시 받는다(화면을
+ * 떠났으면 다음에 열 때). 받은 시각(updatedAt)은 그대로 둔다 — 지금 시각이 찍히면 이 쓰기가 staleTime을 새로
+ * 시작해, 계속 다시 들어오는 글은 재조회되지 않는다
+ * (@tanstack/query-core 5.90.16 build/modern/query.js:60-68·:142-152·:342-354, queryClient.js:142-170).
+ */
+async function applyRecordedViewCount(
+  queryClient: QueryClient,
+  postId: string,
+  viewCount: number
+): Promise<void> {
+  const detailKey = postKeys.detail(postId);
+  const detailState = queryClient.getQueryState<Post>(detailKey);
+
+  if (!detailState?.data) {
+    return;
+  }
+
+  const wasRefetching = detailState.fetchStatus !== 'idle';
+
+  await queryClient.cancelQueries({ queryKey: detailKey, exact: true });
+
+  queryClient.setQueryData<Post>(
+    detailKey,
+    (post) => post && { ...post, stats: { ...post.stats, viewCount } },
+    { updatedAt: detailState.dataUpdatedAt }
+  );
+
+  if (wasRefetching) {
+    postInvalidateQueries.detail(queryClient, postId);
+  }
+}
+
+/**
+ * 상세 화면이 뜰 때 조회를 기록하고, 응답의 조회수를 상세에 반영한다. 이번 조회를 셀지는 서버가 정한다(같은 회원·IP는
+ * 하루 한 번) — 여기서 1을 더하거나 빼지 않고 받은 숫자만 쓴다(docs/plans/2026-11-11-post-view-dedupe.md).
+ *
+ * useMutation을 쓰지 않는다 — 로그인 만료 정리(AuthUtil.applySessionExpired)가 isMutating()으로 저장 중인지 보고
+ * 로그인 창을 열어, 글만 보던 사용자에게 토스트 대신 창이 뜨게 된다. 실패해도 사용자가 할 일이 없어 알리지 않는다.
  */
 export const recordPostView = async (queryClient: QueryClient, postId: string): Promise<void> => {
   try {
-    await postApi.recordPostView(postId);
+    const { viewCount } = await postApi.recordPostView(postId);
+    await applyRecordedViewCount(queryClient, postId, viewCount);
     handlePostViewRecordedSuccess(queryClient);
   } catch {
     // 이번 조회만 빠진다
