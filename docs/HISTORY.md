@@ -1,3 +1,8 @@
+### 2026-11-11 (BE)
+- 조회수 중복 집계 방지 로직 구현 ([#194](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/194))
+  - Redis를 활용하여 동일 회원 또는 동일 IP의 게시글 조회 요청을 일일 1회로 제한
+  - 조회수 카운트의 정확도 향상 및 어뷰징 방지 처리
+
 ### 2026-11-10 (FE)
 - 표준 뒤로가기 훅을 도입하여 메뉴, 로그인, 이미지 확대, 폰 검색창의 네비게이션 로직 통합 및 리팩토링 ([#595](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/595))
 
