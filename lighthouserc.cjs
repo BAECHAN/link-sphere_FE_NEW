@@ -50,8 +50,9 @@ module.exports = {
         // 차단된 요청의 메시지는 errors-in-console이 기본으로 무시한다(lighthouse 12.6.1
         // errors-in-console.js의 ERR_BLOCKED_BY_CLIENT.Inspector). 스크립트(cwr.js)는 막지 않는다 —
         // 실제 사용자도 받는 비용이라 막으면 성능 점수가 실제보다 좋게 나온다.
-        // 조회 기록도 막는다. 이 job은 운영 API를 보므로 그대로 두면 측정할 때마다 운영 조회수가 오른다(고정 글
-        // 06ec0958이 1,829회까지 올랐다, docs/plans/2026-11-05-post-view-record.md).
+        // 조회 기록도 막는다. 이 job은 운영 API를 보므로 그대로 두면 측정이 운영 조회수에 섞인다(고정 글 06ec0958이
+        // 1,829회까지 올랐다, docs/plans/2026-11-05-post-view-record.md). 2026-11-11부터 같은 IP는 UTC 하루에 한 번만
+        // 세지만(docs/plans/2026-11-11-post-view-dedupe.md) 측정이 조회로 세지는 것은 같다.
         blockedUrlPatterns: [
           '*://dataplane.rum.ap-northeast-1.amazonaws.com/*',
           '*://linksphere.click/api/post/*/view',
