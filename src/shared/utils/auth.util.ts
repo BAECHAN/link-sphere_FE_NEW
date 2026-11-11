@@ -102,6 +102,9 @@ export class AuthUtil {
     }
 
     this.clearQueries();
+    // 반영하기 전에 실패해 떠 있던 에러 화면을 푼다(AsyncBoundary) - 로그아웃한 탭이 세대를 바꾼 뒤 이 탭이 그 이벤트를
+    // 받기 전에 온 만료 응답은 SessionChangedError로 끝난다. 캐시를 비운 뒤여야 비로그인으로 다시 요청한다
+    useAuthStore.getState().markAuthSynced();
   }
 
   /**
@@ -125,6 +128,8 @@ export class AuthUtil {
       LogoutGraceUtil.markClearedAt();
     } else {
       this.clearQueries();
+      // applySignOutFromElsewhere와 같은 이유로 떠 있던 에러 화면을 푼다
+      useAuthStore.getState().markAuthSynced();
     }
 
     this.openSignInDialogInPlace('signedOutElsewhere');

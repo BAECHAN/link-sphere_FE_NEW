@@ -442,6 +442,64 @@ describe('AuthUtil.reflectSignOutFromElsewhere — 다른 탭의 로그아웃을
       preventScrollReset: true,
     });
   });
+
+  // 로그아웃한 탭이 세대를 바꾼 뒤 이 탭이 그 이벤트를 받기 전에 온 만료 응답은 SessionChangedError로 끝나 에러 화면이
+  // 뜬다 - 반영이 에러 캐시를 비운 뒤에 횟수를 올려야 AsyncBoundary가 풀리며 비로그인으로 다시 요청한다
+  async function seedFailedQuery() {
+    await queryClient
+      .fetchQuery({ queryKey: ['failed'], queryFn: () => Promise.reject(new Error('failed')) })
+      .catch(() => {});
+  }
+
+  /** 반영 횟수가 오르는 순간의 에러 캐시 상태를 모은다 */
+  function watchFailedQueryWhenSynced() {
+    const statuses: Array<string | undefined> = [];
+    const unsubscribe = useAuthStore.subscribe((state, previous) => {
+      if (state.authSyncedCount !== previous.authSyncedCount) {
+        statuses.push(queryClient.getQueryState(['failed'])?.status);
+      }
+    });
+
+    return { statuses, unsubscribe };
+  }
+
+  it('공개 경로면 에러 캐시를 비운 뒤에 반영 횟수를 올린다 - 떠 있던 에러 화면(AsyncBoundary)을 푸는 신호', async () => {
+    window.history.replaceState(null, '', '/post/post-1');
+    await seedFailedQuery();
+    const { statuses, unsubscribe } = watchFailedQueryWhenSynced();
+
+    AuthUtil.reflectSignOutFromElsewhere();
+
+    expect(statuses).toEqual(['pending']);
+    unsubscribe();
+  });
+
+  it('공개 경로에서 쓰는 중이어도 에러 캐시를 비운 뒤에 반영 횟수를 올린다', async () => {
+    window.history.replaceState(null, '', '/post/post-1');
+    useUnsavedChangesStore.getState().markDirty(DIRTY_KEY);
+    await seedFailedQuery();
+    const { statuses, unsubscribe } = watchFailedQueryWhenSynced();
+
+    AuthUtil.reflectSignOutFromElsewhere();
+
+    expect(statuses).toEqual(['pending']);
+    unsubscribe();
+  });
+
+  it('보호 경로면 반영 횟수를 올리지 않는다 - 화면을 떠나거나(이동) 캐시를 그대로 둔다(쓰는 중)', () => {
+    const { statuses, unsubscribe } = watchFailedQueryWhenSynced();
+
+    window.history.replaceState(null, '', ROUTES_PATHS.BOOKMARK);
+    AuthUtil.reflectSignOutFromElsewhere();
+
+    useAuthStore.getState().setAuth('token-a');
+    window.history.replaceState(null, '', ROUTES_PATHS.POST.SUBMIT);
+    useUnsavedChangesStore.getState().markDirty(DIRTY_KEY);
+    AuthUtil.reflectSignOutFromElsewhere();
+
+    expect(statuses).toEqual([]);
+    unsubscribe();
+  });
 });
 
 describe('useAuthStore.leaveSignedOutInPlace — 그 화면을 떠나면 제자리 표시를 내린다', () => {
@@ -540,5 +598,14 @@ describe('AuthUtil.applySessionMismatch — 다른 계정으로 바뀐 공유 �
     AuthUtil.applySessionMismatch();
 
     expect(NavigationService.navigate).not.toHaveBeenCalled();
+  });
+
+  it('공개 화면이면 반영 횟수를 올린다 - 다른 탭의 로그아웃 반영과 같은 정리를 거쳐 떠 있던 에러 화면(AsyncBoundary)이 풀린다', () => {
+    window.history.replaceState(null, '', '/post/post-1');
+    const countBefore = useAuthStore.getState().authSyncedCount;
+
+    AuthUtil.applySessionMismatch();
+
+    expect(useAuthStore.getState().authSyncedCount).toBe(countBefore + 1);
   });
 });

@@ -141,7 +141,7 @@ run을 사람이 다시 돌리기 전의 **첫 실행**(run attempt 1)만 센 �
 | 고친 흔들림 기록하기            | 원인·재현·수정은 그 기능 문서의 시행착오 절에 쓰고, 이 문서 §9.1 표에 한 줄을 더한다                                                                                                                                                                                                                   |
 | 반복 횟수 바꾸기                | `.github/workflows/ci.yml:222`의 `--repeat-each`. 실행당 12%로 흔들리는 테스트라면 원래 1회와 합쳐 10번이면 약 75%, 20번이면 약 93% 확률로 한 번 이상 실패해 드러난다(각 실행이 독립이라고 보고 1 − 0.88^(N+1)로 계산). 대신 그 스펙 실행 시간이 N배로 는다                                            |
 | 반복 단계를 잠시 끄기           | `.github/workflows/ci.yml`의 "바뀐 e2e 스펙 반복 실행" 단계를 지우거나 `if`를 `false`로                                                                                                                                                                                                                |
-| Radix 창을 ESC로 닫는 e2e 쓰기  | 창이 보이자마자 누르지 말고 `pointer-events: auto`를 기다린다 — `e2e/auth-tab-sync.spec.ts:339`의 `closeWithEscape`. 근거는 [`AUTH.md`](./AUTH.md) §10 "로그아웃 안내 창이 ESC를 놓쳤다". 다른 스펙에서도 필요해지면 공용 헬퍼로 옮긴다                                                                |
+| Radix 창을 ESC로 닫는 e2e 쓰기  | 창이 보이자마자 누르지 말고 `pointer-events: auto`를 기다린다 — `e2e/auth-tab-sync.spec.ts:343`의 `closeWithEscape`. 근거는 [`AUTH.md`](./AUTH.md) §10 "로그아웃 안내 창이 ESC를 놓쳤다". 다른 스펙에서도 필요해지면 공용 헬퍼로 옮긴다                                                                |
 
 ## 8. 검증 결과
 

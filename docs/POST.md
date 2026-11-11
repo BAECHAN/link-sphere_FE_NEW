@@ -312,7 +312,9 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   `noindex` 메타를 단다(200으로 응답하는 에러 화면이 검색엔진에 색인되는 soft 404 방지). 메타는 화면이
   그려지기 전에(`useLayoutEffect`) 붙는다(§10 "noindex 메타가 안내 화면보다 늦게 붙던 문제"). 2026-10-05 이전에는
   토스트 후 `/post`로 replace했는데, 사라지는 토스트에만 기대고 주소까지 잃게 해 바꿨다(계획:
-  `docs/plans/2026-10-05-url-error-responses.md`). 그 밖의 에러는 화면 안 `ErrorState`.
+  `docs/plans/2026-10-05-url-error-responses.md`). 그 밖의 에러는 화면 안 `ErrorState`. 안내가 떠 있을 때 그 자리에서
+  로그인하면 안내가 풀리고 로그인한 상태로 다시 조회한다 — 내 비공개 글이었다면 글이 보이고, 삭제된 글이면 같은 안내로
+  돌아온다(2026-11-11, [`AUTH.md`](./AUTH.md) §8-E `markAuthSynced()`).
 - **조회 1회의 뜻**: 같은 사람이 같은 글을 하루에 한 번 본 것이다. `GET /post/{id}`는 글을 읽기만 하고, 화면이 뜬 뒤
   `usePostDetail.ts`의 `recordPostViewOnEntry` effect가 `POST /post/{id}/view`를 보낸다. BE가 조회자(로그인하면 회원,
   아니면 IP)를 가려 그날 처음일 때만 조회수를 올리고(IP도 모르는 요청은 매번 센다), 로그인 상태면 `post_views`의 최근 열람
@@ -707,15 +709,15 @@ _"오류든 성공이든 항상 다시 가져온다"_ (번역)를 실패 경로�
 post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`), 다른 엔티티는 그 래퍼만 쓴다. 예외로
 다른 탭 로그인 수락(`handleSessionAdoptedSuccess`)은 래퍼를 거치지 않고 엔티티와 상관없이 모든 쿼리를 무효화한다.
 
-| 사건                                   | 무효화                             | 위치                                                                                                     |
-| -------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| 댓글 작성·삭제(`commentCount` 변동)    | detail + list                      | `src/entities/comment/api/comment.keys.ts:45-68`                                                         |
-| 프로필 수정(작성자 닉네임·이미지)      | `post` 전체                        | `src/entities/account/api/account.keys.ts:29`                                                            |
-| 세션 복원 성공(비로그인으로 받은 목록) | list                               | `src/entities/auth/api/auth.keys.ts:15-17`                                                               |
-| 북마크 폴더 삭제·소속 변경             | list(+ 소속 변경 시 detail)        | `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:81-142`                                        |
-| 폴더 추가·제거·전체 해제 실패(롤백)    | list(detail은 스냅샷으로 복원)     | `src/entities/bookmark/folder/api/bookmark-folder.queries.ts`의 `rollbackBookmarkFolderMutation`         |
-| 좋아요·북마크 연타의 마지막 요청 실패  | detail + list                      | `src/entities/interaction/api/interaction.keys.ts`의 `handleLikePostFailure`·`handleBookmarkPostFailure` |
-| 다른 탭의 로그인을 이 탭이 받아들임    | 모든 쿼리(에러만 남은 캐시는 리셋) | `src/entities/auth/api/auth.keys.ts`의 `handleSessionAdoptedSuccess`                                     |
+| 사건                                   | 무효화                                                                 | 위치                                                                                                     |
+| -------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| 댓글 작성·삭제(`commentCount` 변동)    | detail + list                                                          | `src/entities/comment/api/comment.keys.ts:45-68`                                                         |
+| 프로필 수정(작성자 닉네임·이미지)      | `post` 전체                                                            | `src/entities/account/api/account.keys.ts:29`                                                            |
+| 세션 복원 성공(비로그인으로 받은 목록) | list                                                                   | `src/entities/auth/api/auth.keys.ts:15-17`                                                               |
+| 북마크 폴더 삭제·소속 변경             | list(+ 소속 변경 시 detail)                                            | `src/entities/bookmark/folder/api/bookmark-folder.keys.ts:81-142`                                        |
+| 폴더 추가·제거·전체 해제 실패(롤백)    | list(detail은 스냅샷으로 복원)                                         | `src/entities/bookmark/folder/api/bookmark-folder.queries.ts`의 `rollbackBookmarkFolderMutation`         |
+| 좋아요·북마크 연타의 마지막 요청 실패  | detail + list                                                          | `src/entities/interaction/api/interaction.keys.ts`의 `handleLikePostFailure`·`handleBookmarkPostFailure` |
+| 다른 탭의 로그인을 이 탭이 받아들임    | 모든 쿼리(진행 중인 조회는 취소 후 다시 요청, 에러만 남은 캐시는 리셋) | `src/entities/auth/api/auth.keys.ts`의 `handleSessionAdoptedSuccess`                                     |
 
 반대 방향으로 post의 mutation과 조회 기록이 부르는 북마크 쪽 핸들러(`handleBookmarkToggleSuccess`,
 `handlePostDeleteSuccess`, `handlePostDeleteFailure`, `handlePostContentUpdateSuccess`, `handlePostViewRecordedSuccess`)는
@@ -861,7 +863,8 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 - `post-visibility.spec.ts` — ⋮로 비공개 전환(재조회 반영·목록 전파), 자물쇠로 공개 복귀
 - `like.spec.ts` — 상세 좋아요가 재조회 없이 목록에 반영, 실패 시 상세·목록 모두 원복
 - `post-detail-not-found.spec.ts` — 삭제된 글 직접 진입 시 주소 유지 + 안내 화면 + "목록으로" 링크,
-  카드 클릭 사이 삭제 시 안내 후 뒤로가기로 목록 복귀
+  카드 클릭 사이 삭제 시 안내 후 뒤로가기로 목록 복귀, 비로그인으로는 볼 수 없는 글의 안내가 떠 있을 때 그 자리에서
+  로그인하면 안내가 풀리고 글이 보임
 - `post-card-click-area.spec.ts` — 카드 전체 클릭 영역과 내부 버튼 분리, 카테고리 칩
 - `post-route-prefetch.spec.ts` — 피드·상세 청크가 오기 전에 목록·게시글·댓글을 요청하고, 청크가 온 뒤에도
   한 번만 요청하는지

@@ -3,7 +3,8 @@ import { installCatchAll } from './mocks/catch-all';
 import { mockAuthRefresh, mockLoginSuccess } from './mocks/auth.mock';
 import { mockAccountQuery } from './mocks/account.mock';
 import { mockCategoryOptions } from './mocks/common.mock';
-import { mockPostDetail, mockPostList } from './mocks/post.mock';
+import { mockComments } from './mocks/comment.mock';
+import { mockPostDetail, mockPostList, mockRecordPostView } from './mocks/post.mock';
 import { mockBookmarkFolderList, mockBookmarkFolderPosts } from './mocks/bookmark-folder.mock';
 import { ENDPOINTS } from './mocks/endpoints';
 import { isApiPath } from './mocks/route-match';
@@ -563,5 +564,260 @@ test.describe('쓰는 중에 다른 탭에서 로그아웃', () => {
       writingTab.getByRole('alertdialog', { name: TEXTS.unsavedChanges.title })
     ).toHaveCount(0);
     await expect(writingTab.getByText('이전 계정으로 쓴 댓글')).toHaveCount(0);
+  });
+});
+
+// 인증이 바뀌는 순간 첫 로딩 중이던 조회는 바뀌기 전 인증으로 나가 있다. invalidateQueries는 데이터가 없는 진행 중
+// 조회를 다시 부르지 않아(query-core 5.90.16 query.js:166-177), 그 조회가 옛 응답으로 끝나거나 오류 화면으로 남았다
+// (docs/AUTH.md §8-H "인증이 바뀌는 사이 첫 로딩 중이던 조회").
+test.describe('인증이 바뀌는 사이 첫 로딩 중이던 조회', () => {
+  const POST_DETAIL_PATH = /^\/api\/post\/[^/]+$/;
+  const ADOPTED_TOKEN = 'adopted-access-token';
+  const OTHER_TAB_PATH = '/other-tab.html';
+  const LIKED_POST = {
+    ...mockPost,
+    stats: { ...mockPost.stats, likeCount: 1 },
+    userInteractions: { ...mockPost.userInteractions, isLiked: true },
+  };
+
+  /** 돌려받은 open을 부를 때까지 응답을 붙잡아 둔다 */
+  function createGate() {
+    let open!: () => void;
+    const opened = new Promise<void>((resolve) => {
+      open = resolve;
+    });
+
+    return { opened, open };
+  }
+
+  /** 상세 화면이 부르는 댓글·조회 기록까지 건다. 댓글은 비운다 - 댓글 좋아요 버튼이 글 좋아요 버튼과 이름이 겹친다 */
+  async function installDetailMocks(page: Page) {
+    await installMocks(page);
+    await mockComments(page, []);
+    await mockRecordPostView(page);
+  }
+
+  /** 이전 로그인 흔적이 있는 상태로 탭을 연다 - 앱 시작 복원으로 로그인된다 */
+  async function openSignedInTab(context: BrowserContext) {
+    await context.addInitScript((key) => {
+      window.localStorage.setItem(key, 'true');
+    }, STORAGE_KEYS.AUTH.HAS_SESSION);
+    const workTab = await context.newPage();
+    await installDetailMocks(workTab);
+
+    return workTab;
+  }
+
+  /** 앱 시작 복원에는 기존 토큰을, 그 뒤(다른 탭 로그인 받아들이기)에는 새 토큰을 준다 */
+  async function mockRefreshThenAdoption(page: Page, { holdAdoption }: { holdAdoption: boolean }) {
+    const gate = createGate();
+    const counts = { requests: 0 };
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.auth.refresh),
+      async (route) => {
+        counts.requests += 1;
+
+        if (counts.requests === 1) {
+          return route.fulfill({ json: wrapResponse(mockLoginResponse) });
+        }
+
+        if (holdAdoption) {
+          await gate.opened;
+        }
+
+        return route.fulfill({
+          json: wrapResponse({ ...mockLoginResponse, accessToken: ADOPTED_TOKEN }),
+        });
+      }
+    );
+
+    return { counts, releaseAdoption: gate.open };
+  }
+
+  /** 상세 첫 요청만 서버에 머물다 만료로 돌아온다 - 다시 요청하면 바로 글을 준다. 요청마다 실린 토큰을 모은다 */
+  async function holdFirstDetailUntilExpired(page: Page) {
+    const gate = createGate();
+    const sentTokens: Array<string | null> = [];
+    await page.route(
+      (url) => POST_DETAIL_PATH.test(url.pathname),
+      async (route) => {
+        sentTokens.push(route.request().headers()['x-access-token'] ?? null);
+
+        if (sentTokens.length > 1) {
+          return route.fulfill({ json: wrapResponse(mockPost) });
+        }
+
+        await gate.opened;
+
+        return route.fulfill({
+          status: 401,
+          json: {
+            status: 401,
+            code: SERVER_ERROR_CODE.TOKEN_EXPIRED,
+            message: 'expired',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+    );
+
+    return { sentTokens, release: gate.open };
+  }
+
+  /** 세션을 잃었던 다른 탭에서 다시 로그인했다 - 토큰을 든 작업 탭은 쿠키로 새 세션을 받아들인다 */
+  async function signInFromOtherTab(context: BrowserContext) {
+    const otherTab = await context.newPage();
+    // 앱을 띄우지 않는 같은 출처의 빈 문서다 - storage 이벤트는 같은 출처의 다른 문서가 값을 쓰면 온다. 앱을 띄운 탭을
+    // 아래에서 닫으면, 그 탭이 보내던 요청이 모킹을 벗어나 dev 프록시까지 나갔다(반복 실행에서 관찰)
+    await otherTab.route(OTHER_TAB_PATH, (route) =>
+      route.fulfill({ contentType: 'text/html', body: '<!doctype html>' })
+    );
+    await otherTab.goto(OTHER_TAB_PATH);
+    await otherTab.evaluate(
+      ([key, value]) => window.localStorage.setItem(key, JSON.stringify(value)),
+      [STORAGE_KEYS.AUTH.EPOCH, 'in:other-tab'] as const
+    );
+    // 열어 두면 작업 탭이 뒤에 깔린 채 끝나, 테스트 종료 때 Playwright가 찍는 임시 스크린샷이 글꼴 로딩을 5초 기다린다
+    await otherTab.close();
+  }
+
+  /** 받아들이기가 끝나면 새 토큰으로 계정을 다시 조회한다(invalidateQueries) - 그 요청을 끝났다는 표식으로 삼는다 */
+  function waitForAdoption(page: Page) {
+    return page.waitForRequest(
+      (request) =>
+        isApiPath(new URL(request.url()), ENDPOINTS.auth.account) &&
+        request.headers()['x-access-token'] === ADOPTED_TOKEN
+    );
+  }
+
+  async function openDetailWhileFirstRequestIsHeld(page: Page, sentTokens: Array<string | null>) {
+    await page.goto(`/post/${mockPost.id}`);
+    await expect(page.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })).toBeVisible();
+    await expect.poll(() => sentTokens.length).toBe(1);
+  }
+
+  test('다른 탭 로그인을 받아들인 뒤에 만료 응답이 와도 새 세션으로 다시 불러 글을 보여 준다', async ({
+    context,
+  }) => {
+    const workTab = await openSignedInTab(context);
+    const refresh = await mockRefreshThenAdoption(workTab, { holdAdoption: false });
+    const detail = await holdFirstDetailUntilExpired(workTab);
+    await openDetailWhileFirstRequestIsHeld(workTab, detail.sentTokens);
+
+    const adopted = waitForAdoption(workTab);
+    await signInFromOtherTab(context);
+    await adopted;
+
+    const expiredResponse = workTab.waitForResponse(
+      (response) =>
+        POST_DETAIL_PATH.test(new URL(response.url()).pathname) && response.status() === 401
+    );
+    detail.release();
+    await expiredResponse;
+
+    await expect(workTab.getByRole('heading', { level: 3, name: mockPost.title })).toBeVisible();
+    await expect(workTab.getByText(TEXTS.messages.error.fetchPosts)).toHaveCount(0);
+    expect(detail.sentTokens).toEqual([mockLoginResponse.accessToken, ADOPTED_TOKEN]);
+    // 늦게 온 만료 응답이 갱신·재전송으로 이어지지 않는다
+    await workTab.waitForTimeout(NO_FOLLOW_UP_WAIT_MS);
+    expect(detail.sentTokens).toHaveLength(2);
+    expect(refresh.counts.requests).toBe(2);
+  });
+
+  test('다른 탭 로그인을 받아들이기 전에 만료 응답이 오면 오류 화면이 떴다가, 받아들이면 풀리고 글을 보여 준다', async ({
+    context,
+  }) => {
+    const workTab = await openSignedInTab(context);
+    const refresh = await mockRefreshThenAdoption(workTab, { holdAdoption: true });
+    const detail = await holdFirstDetailUntilExpired(workTab);
+    await openDetailWhileFirstRequestIsHeld(workTab, detail.sentTokens);
+
+    await signInFromOtherTab(context);
+    await expect.poll(() => refresh.counts.requests).toBe(2);
+
+    detail.release();
+    // 받아들이기가 아직 끝나지 않아 오류 화면이 뜬다 - 이 순서가 실제로 만들어졌다는 표식이다
+    await expect(workTab.getByText(TEXTS.messages.error.fetchPosts)).toBeVisible();
+
+    refresh.releaseAdoption();
+
+    await expect(workTab.getByRole('heading', { level: 3, name: mockPost.title })).toBeVisible();
+    await expect(workTab.getByText(TEXTS.messages.error.fetchPosts)).toHaveCount(0);
+    expect(detail.sentTokens).toEqual([mockLoginResponse.accessToken, ADOPTED_TOKEN]);
+  });
+
+  test('다른 탭의 로그아웃을 반영하기 전에 만료 응답이 오면 오류 화면이 떴다가, 반영하면 풀리고 비로그인으로 글을 보여 준다', async ({
+    context,
+  }) => {
+    const workTab = await openSignedInTab(context);
+    const detail = await holdFirstDetailUntilExpired(workTab);
+    await openDetailWhileFirstRequestIsHeld(workTab, detail.sentTokens);
+
+    // 다른 탭이 로그아웃했지만 storage 이벤트는 아직 이 탭에 오지 않았다 - 값을 쓴 탭에는 이벤트가 오지 않으므로,
+    // 이 탭에서 값만 바꿔 그 사이(실측 0.1~3.2ms)를 만든다
+    await workTab.evaluate(
+      ([flagKey, epochKey]) => {
+        window.localStorage.removeItem(flagKey);
+        window.localStorage.setItem(epochKey, JSON.stringify('out:other-tab'));
+      },
+      [STORAGE_KEYS.AUTH.HAS_SESSION, STORAGE_KEYS.AUTH.EPOCH] as const
+    );
+
+    detail.release();
+    // 로그아웃 반영이 아직 돌지 않아 오류 화면이 뜬다 - 이 순서가 실제로 만들어졌다는 표식이다
+    await expect(workTab.getByText(TEXTS.messages.error.fetchPosts)).toBeVisible();
+
+    await workTab.evaluate((epochKey) => {
+      window.dispatchEvent(new StorageEvent('storage', { key: epochKey }));
+    }, STORAGE_KEYS.AUTH.EPOCH);
+
+    await expect(workTab.getByRole('button', { name: TEXTS.nav.logIn })).toBeVisible();
+    await expect(workTab.getByRole('heading', { level: 3, name: mockPost.title })).toBeVisible();
+    await expect(workTab.getByText(TEXTS.messages.error.fetchPosts)).toHaveCount(0);
+    expect(detail.sentTokens).toEqual([mockLoginResponse.accessToken, null]);
+  });
+
+  test('비로그인으로 첫 로딩 중에 이 탭에서 로그인하면 로그인한 상태로 다시 불러온다', async ({
+    page,
+  }) => {
+    await installDetailMocks(page);
+    const gate = createGate();
+    const sentTokens: Array<string | null> = [];
+    await page.route(
+      (url) => POST_DETAIL_PATH.test(url.pathname),
+      async (route) => {
+        const token = route.request().headers()['x-access-token'] ?? null;
+        sentTokens.push(token);
+
+        // 토큰을 실은 요청에는 그 회원이 좋아요한 글을 준다
+        if (token) {
+          return route.fulfill({ json: wrapResponse(LIKED_POST) });
+        }
+
+        // 비로그인 요청은 서버에 머물다 로그인한 뒤에 돌아온다
+        await gate.opened;
+
+        return route.fulfill({ json: wrapResponse(mockPost) });
+      }
+    );
+
+    await page.goto(`/post/${mockPost.id}`);
+    await expect.poll(() => sentTokens.length).toBe(1);
+
+    await page.getByRole('button', { name: TEXTS.nav.logIn }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel(`${TEXTS.labels.email}*`, { exact: true }).fill('test@example.com');
+    await dialog.getByLabel(`${TEXTS.labels.password}*`, { exact: true }).fill(VALID_PASSWORD);
+    // dialog.tsx의 열린 직후 클릭 가드
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await dialog.getByRole('button', { name: TEXTS.auth.login.signIn, exact: true }).click();
+    await expect(page.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })).toBeVisible();
+
+    gate.open();
+
+    await expect(
+      page.getByRole('button', { name: TEXTS.ariaLabels.unlikeWithCount(1) })
+    ).toBeVisible();
+    expect(sentTokens).toEqual([null, mockLoginResponse.accessToken]);
   });
 });

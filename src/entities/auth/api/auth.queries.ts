@@ -34,6 +34,7 @@ import { IdempotencyKeyUtil } from '@/shared/utils/idempotency-key.util';
 
 export const useLoginMutation = () => {
   const setAuth = useAuthStore((state) => state.setAuth);
+  const markAuthSynced = useAuthStore((state) => state.markAuthSynced);
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -48,6 +49,9 @@ export const useLoginMutation = () => {
       AuthEpochUtil.markLogin();
       // 만료로 띄워 둔 안내(닫을 때까지 남는다)는 다시 로그인했으니 닫는다(AuthUtil.applySessionExpired)
       AuthUtil.dismissSessionExpiredToast();
+      // 진행 중인 조회를 취소한다 - 아래 3의 invalidate는 데이터가 없는 진행 중 조회를 다시 부르지 않아, 로그인하는
+      // 순간 첫 로딩 중이던 화면이 비로그인 때 보낸 요청의 응답으로 채워졌다(auth.keys.ts handleSessionAdoptedSuccess)
+      void queryClient.cancelQueries();
       // 2. 로그아웃이 남긴 에러 캐시만 초기화한다. clearQueries()의 resetQueries()가 토큰을
       //    지운 직후 화면에 남아있던 쿼리를 배경 재요청시켜 401로 error 상태를 만드는데,
       //    Suspense 쿼리는 캐시가 error면 재마운트해도 retryOnMount=false로 막혀 새 요청을
@@ -66,6 +70,9 @@ export const useLoginMutation = () => {
       //    옵저버가 깨져 이후 갱신이 화면에 반영되지 않는다. invalidate는 옵저버를 유지한 채
       //    새 인증 상태로 다시 불러온다(내 좋아요/북마크/계정 등).
       void queryClient.invalidateQueries();
+      // 로그인하기 전에 실패해 떠 있던 에러·안내 화면(AsyncBoundary)을 풀어 로그인한 상태로 다시 그린다 - 비로그인으로는
+      // 볼 수 없던 글의 안내 등. 위 2의 리셋 뒤에 올린다: 먼저 올리면 에러 캐시가 남은 채 다시 그려져 같은 에러를 또 던진다
+      markAuthSynced();
       // 4. FCM 토큰 등록 (브라우저 알림 권한 요청 + 서버 등록)
       void requestAndRegisterFcmToken();
       // 5. 탈퇴 유예(14일) 중이던 계정이 이번 로그인으로 복구됐으면 안내한다 - 정보량이

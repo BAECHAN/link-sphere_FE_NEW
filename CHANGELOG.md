@@ -233,6 +233,13 @@
 
 ### Fixed
 
+- `auth` 로그인·로그아웃이 바뀐 뒤에도 열던 글이 오류·안내 화면으로 남던 문제
+  <details><summary>배경·구현</summary>
+
+  글 상세를 여는 중(첫 요청이 서버에 가 있는 사이)에 다른 탭에서 다시 로그인하면, 이 탭에는 "포스트를 불러오는 중 오류가 발생했어요."만 남고 새로고침하거나 다른 화면에 다녀와야 풀렸다(2026-11-11 모킹 브라우저로 재현, 운영 BE로는 재현하지 않음). 원인은 둘이다. 다른 탭의 로그인을 받아들일 때의 `invalidateQueries()`는 데이터 없이 진행 중인 조회를 다시 부르지 않아(query-core 5.90.16 `build/modern/query.js:166-177`) 옛 토큰으로 보낸 요청의 늦은 만료 응답이 그대로 오류가 됐고, 만료 응답이 받아들이기보다 먼저 오면 에러 캐시는 리셋돼도 화면의 에러 경계가 풀리지 않았다(react-error-boundary 5.0.0은 `resetKeys`가 바뀔 때만 푼다). 이제 받아들일 때 진행 중인 조회를 취소해 새 토큰으로 다시 요청하게 하고, `AsyncBoundary`가 화면을 떠나지 않고 인증이 바뀐 횟수(`auth.store`의 `authSyncedCount`)를 `resetKeys`에 더해 떠 있던 오류 화면을 푼다. 원인이 같은 세 경우도 함께 고쳤다. 공개 화면에서 다른 탭의 로그아웃을 반영하기 직전에 만료 응답이 온 경우에는 반영하면 오류 화면이 풀리고 비로그인으로 다시 불러온다(그 사이는 헤드리스 Chromium에서 30회 재어 최대 3.2ms였다 — 직접 측정, 방법은 `docs/AUTH.md` §8-H). 비로그인으로 글을 여는 중에 이 탭에서 로그인한 경우에는 전에는 비로그인으로 받은 응답이 남아 좋아요 표시 등이 로그인 전 상태였는데, 이제 로그인한 상태로 다시 불러온다. 로그인하기 전에 이미 실패해 떠 있던 화면도 같은 신호로 푼다 — 비로그인으로 내 비공개 글 주소를 열어 "삭제됐거나 볼 수 없는 포스트예요"가 뜬 채 그 자리에서 로그인하면 전에는 안내가 그대로 남았는데(이번 변경 전부터 있던 동작, 같은 날 모킹 브라우저로 재현), 이제 풀리고 글이 보인다. 감수한 것: 만료 응답이 먼저 오는 순서에서는 오류 문구가 반영이 끝날 때까지 잠깐 보였다가 풀린다(같은 날 사용자 결정). 동작은 `docs/AUTH.md` §8-H "인증이 바뀌는 사이 첫 로딩 중이던 조회", 계획은 [`docs/plans/2026-11-11-session-adopt-first-load-recovery.md`](docs/plans/2026-11-11-session-adopt-first-load-recovery.md). (`src/entities/auth/api/auth.keys.ts`, `src/entities/auth/api/auth.queries.ts`, `src/entities/auth/hooks/useAuthEpochSync.ts`, `src/shared/store/auth.store.ts`, `src/shared/ui/elements/AsyncBoundary.tsx`, `src/shared/utils/auth.util.ts`, `src/shared/ui/elements/AsyncBoundary.test.tsx`(신규), `src/entities/auth/hooks/useAuthEpochSync.test.tsx`, `src/entities/auth/api/auth.queries.test.ts`, `src/shared/utils/auth.util.test.ts`, `e2e/auth-tab-sync.spec.ts`, `e2e/post-detail-not-found.spec.ts`, `docs/AUTH.md`, `docs/FE-ARCHITECTURE.md`, `docs/POST.md`, `docs/TESTING.md`, [PR #598](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/598))
+
+  </details>
+
 - `post` 개발 서버에서 상세를 열면 조회 기록 요청이 운영으로 나가던 문제
   <details><summary>배경·구현</summary>
 

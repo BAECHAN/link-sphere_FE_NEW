@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider, useQuery, type QueryClient } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
@@ -29,6 +29,13 @@ const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
 function Wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={createTestQueryClient()}>{children}</QueryClientProvider>;
+}
+
+/** 캐시를 직접 들여다보는 테스트용 - 넘긴 QueryClient로 감싼다 */
+function wrapperWith(queryClient: QueryClient) {
+  return function WrapperWithClient({ children }: { children: ReactNode }) {
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  };
 }
 
 /** 이 탭이 로그인한 상태(토큰 + 세션 플래그 + 이 탭이 쓴 세대) */
@@ -195,6 +202,70 @@ describe('useAuthEpochSync', () => {
     // 들고 있던 토큰을 실어 보내 BE가 같은 회원인지 확인한다
     expect(refresh).toHaveBeenCalledWith('token-a');
     expect(NavigationService.navigate).not.toHaveBeenCalled();
+  });
+
+  it('받아들이면 첫 로딩 중이던 조회를 취소하고 새 토큰으로 다시 요청한다', async () => {
+    signInThisTab('token-a');
+    mockRefresh('token-b');
+    const queryClient = createTestQueryClient();
+    // 첫 요청은 옛 토큰으로 나가 받아들이는 동안 끝나지 않는다
+    const queryFn = vi
+      .fn<() => Promise<string | null>>()
+      .mockImplementationOnce(() => new Promise(() => {}))
+      .mockImplementation(() => Promise.resolve(useAuthStore.getState().accessToken));
+    const { result } = renderHook(
+      () => {
+        useAuthEpochSync();
+        return useQuery({ queryKey: ['first-load'], queryFn });
+      },
+      { wrapper: wrapperWith(queryClient) }
+    );
+    expect(queryFn).toHaveBeenCalledTimes(1);
+
+    signInInOtherTab();
+
+    // invalidate만으로는 데이터 없이 진행 중인 조회를 다시 부르지 않는다(query-core 5.90.16 query.js:166-177)
+    await waitFor(() => expect(result.current.data).toBe('token-b'));
+    expect(queryFn).toHaveBeenCalledTimes(2);
+  });
+
+  it('받아들이기에 성공하면 에러 캐시를 리셋한 뒤에 반영 횟수를 올린다 - 떠 있던 에러 화면(AsyncBoundary)을 푸는 신호', async () => {
+    const failedKey = ['failed-before-adoption'];
+    signInThisTab('token-a');
+    mockRefresh('token-b');
+    const queryClient = createTestQueryClient({ gcTime: Infinity });
+    await queryClient
+      .fetchQuery({ queryKey: failedKey, queryFn: () => Promise.reject(new Error('failed')) })
+      .catch(() => {});
+    const countBefore = useAuthStore.getState().authSyncedCount;
+    // 횟수가 먼저 오르면 에러 캐시가 남은 채 다시 그려져 같은 에러를 또 던진다 - 오르는 순간의 캐시 상태를 본다
+    let statusWhenMarked: string | undefined;
+    const unsubscribe = useAuthStore.subscribe((state, previous) => {
+      if (state.authSyncedCount !== previous.authSyncedCount) {
+        statusWhenMarked = queryClient.getQueryState(failedKey)?.status;
+      }
+    });
+    renderHook(() => useAuthEpochSync(), { wrapper: wrapperWith(queryClient) });
+
+    signInInOtherTab();
+
+    await waitFor(() => expect(useAuthStore.getState().authSyncedCount).toBe(countBefore + 1));
+    expect(statusWhenMarked).toBe('pending');
+    unsubscribe();
+  });
+
+  it('받아들이기가 실패해 로그아웃 처리로 끝나도 공개 경로면 반영 횟수를 올린다 - 비로그인으로 다시 그린다', async () => {
+    signInThisTab('token-a');
+    const refresh = mockRefresh(null);
+    const countBefore = useAuthStore.getState().authSyncedCount;
+    renderHook(() => useAuthEpochSync(), { wrapper: Wrapper });
+
+    signInInOtherTab();
+
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(useAuthStore.getState().accessToken).toBeNull());
+    // 받아들이기 자체는 올리지 않는다 - 뒤따르는 로그아웃 반영(AuthUtil.applySignOutFromElsewhere)이 한 번 올린다
+    expect(useAuthStore.getState().authSyncedCount).toBe(countBefore + 1);
   });
 
   it('받아들이려던 세션이 다른 계정이면(SESSION_MISMATCH) 로그아웃 처리 뒤 그 계정으로 복원하고 알린다', async () => {

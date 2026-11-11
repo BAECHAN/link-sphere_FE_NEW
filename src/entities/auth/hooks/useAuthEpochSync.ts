@@ -41,6 +41,8 @@ async function adoptSessionFromCookie(
     // 만료로 띄워 둔 안내(닫을 때까지 남는다)는 다시 로그인했으니 닫는다(AuthUtil.applySessionExpired)
     AuthUtil.dismissSessionExpiredToast();
     handleSessionAdoptedSuccess(queryClient);
+    // 받아들이기 전에 실패해 떠 있던 에러 화면을 푼다(AsyncBoundary) - 위 캐시 처리 뒤여야 새 세션으로 다시 요청한다
+    useAuthStore.getState().markAuthSynced();
     onSuccess?.();
   } catch (error) {
     console.error('[AUTH] Failed to adopt session from another tab', error);
