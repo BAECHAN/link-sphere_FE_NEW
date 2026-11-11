@@ -1,4 +1,7 @@
 ### 2026-11-11 (FE)
+- 인증 상태 변경 시 기존 게시글 페이지가 오류 또는 안내 화면으로 고정되는 문제 해결 ([#598](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/598))
+
+### 2026-11-11 (FE)
 - 상세 페이지 조회수 기능을 서버 데이터 기반으로 동기화하고, 개발 환경에서의 불필요한 조회수 중복 증가 방지 처리 ([#596](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/596))
 
 ### 2026-11-11 (BE)
