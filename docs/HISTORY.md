@@ -1,3 +1,6 @@
+### 2026-11-11 (FE)
+- 상세 페이지 조회수 기능을 서버 데이터 기반으로 동기화하고, 개발 환경에서의 불필요한 조회수 중복 증가 방지 처리 ([#596](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/596))
+
 ### 2026-11-11 (BE)
 - 조회수 중복 집계 방지 로직 구현 ([#194](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/194))
   - Redis를 활용하여 동일 회원 또는 동일 IP의 게시글 조회 요청을 일일 1회로 제한
