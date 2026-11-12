@@ -150,6 +150,20 @@ const RESTRICTED_SYNTAX_NO_REGEXP_LOOKBEHIND = [
   },
 ];
 
+// [금지] HTML 문자열을 DOM에 직접 넣기(dangerouslySetInnerHTML·innerHTML·outerHTML 대입·insertAdjacentHTML)
+// 이유: 문자열 속 마크업이 해석돼 `<img src='x' onerror='…'>` 같은 이벤트 속성의 스크립트가 실행된다(XSS,
+// https://developer.mozilla.org/en-US/docs/Web/API/Element/innerHTML#security_considerations). JSX 텍스트는
+// React가 글자로 그려 이 위험이 없다. 2026-11-12 앱 코드에는 0건이라 새로 생기지 않게 막는다. 테스트는
+// document.head·body를 innerHTML로 준비하는 코드가 있고 src/mocks는 배포되지 않아 적용하지 않는다.
+const RESTRICTED_SYNTAX_NO_RAW_HTML = [
+  {
+    selector:
+      ':matches(JSXAttribute[name.name="dangerouslySetInnerHTML"], AssignmentExpression[left.property.name=/^(innerHTML|outerHTML)$/], CallExpression[callee.property.name="insertAdjacentHTML"])',
+    message:
+      'HTML 문자열을 DOM에 직접 넣지 마세요(dangerouslySetInnerHTML·innerHTML·outerHTML·insertAdjacentHTML) — 문자열 속 마크업이 해석돼 XSS가 됩니다. 값은 JSX 텍스트로 넘겨 React가 글자로 그리게 두고, 꼭 필요하면 그 줄에 eslint-disable-next-line no-restricted-syntax -- <이유>를 다세요.',
+  },
+];
+
 // [금지] 창 폭(innerWidth·outerWidth) 직접 읽기 — 아래 no-restricted-properties·globals 블록이 쓴다
 const VIEWPORT_WIDTH_MESSAGE =
   '창 폭을 px로 읽어 판정하지 마세요. matchMedia에 @/shared/config/const의 MOBILE_MEDIA_QUERY·DESKTOP_MEDIA_QUERY를 쓰세요 — 브라우저 기본 글꼴 크기를 바꾼 사용자에게서 Tailwind(rem)와 갈립니다. 폭 판정이 아닌 측정이면 그 줄에 eslint-disable-next-line과 이유를 다세요.';
@@ -1206,6 +1220,7 @@ export default [
         ...RESTRICTED_SYNTAX_NO_NATIVE_DATE,
         ...RESTRICTED_SYNTAX_NO_REGEXP_LOOKBEHIND,
         ...RESTRICTED_SYNTAX_NO_RAW_BACK_HANDLING,
+        ...RESTRICTED_SYNTAX_NO_RAW_HTML,
       ],
     },
   },
@@ -1213,7 +1228,7 @@ export default [
   // 아니라 테스트가 직접 통제하는 리터럴 날짜라 dayjs 안전성 문제가 없다)는 날짜 규칙만
   // 제외 — getState·클래스 컴포넌트 금지는 그대로 적용한다(ESLint flat config는 같은 rule
   // key가 겹치는 files에 다시 나오면 배열을 병합하지 않고 통째로 덮어쓰므로, 공통 규칙을
-  // 여기서도 명시해야 사라지지 않는다). date.util.ts는 배포되는 코드라 lookbehind·뒤로가기 직접 처리 금지는 남긴다
+  // 여기서도 명시해야 사라지지 않는다). date.util.ts는 배포되는 코드라 lookbehind·뒤로가기 직접 처리·HTML 직접 넣기 금지는 남긴다
   {
     files: ['src/shared/utils/date.util.ts'],
     rules: {
@@ -1222,6 +1237,7 @@ export default [
         ...RESTRICTED_SYNTAX_COMMON,
         ...RESTRICTED_SYNTAX_NO_REGEXP_LOOKBEHIND,
         ...RESTRICTED_SYNTAX_NO_RAW_BACK_HANDLING,
+        ...RESTRICTED_SYNTAX_NO_RAW_HTML,
       ],
     },
   },
