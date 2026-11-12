@@ -1,3 +1,8 @@
+### 2026-11-12 (BE)
+- 게시글 목록 조회 시 페이징 처리 방식 최적화 및 잘못된 페이지 요청에 대한 예외 처리 강화
+로그:
+- refactor(post): 세 목록의 옛 page 조회를 지우고 page 요청은 400으로 끝냄 ([#196](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/196))
+
 ### 2026-11-12 (FE)
 - 빌드 설정 최적화: vite.config.ts 내 불필요한 설정 제거를 통한 빌드 구성 간소화 ([#601](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/601))
 
