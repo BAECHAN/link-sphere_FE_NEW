@@ -1,4 +1,9 @@
 ### 2026-11-12 (FE)
+- 의존성 관리 정책 강화 및 Dependabot 자동화 적용
+  - 보안 취약점 예방을 위해 운영 의존성 내 High 등급 권고 발생 시 PR 병합을 차단하도록 CI 설정
+  - npm Dependabot을 통한 월간 의존성 자동 업데이트 주기 설정 ([#610](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/610))
+
+### 2026-11-12 (FE)
 - React Router 버전 업데이트를 통한 보안 취약점(Open Redirect) 해결 ([#607](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/607))
 
 ### 2026-11-12 (FE)
