@@ -949,6 +949,119 @@ open https://linksphere.click/version
 §5·§9 참고 — 특히 `no-cache` 헤더가 빠지면(브라우저가 HTML을 재검증 없이 재사용하면)
 [NEW-VERSION-RELOAD.md](./NEW-VERSION-RELOAD.md)의 자동 리로드 기능 전체가 조용히 죽는다.
 
+## 앱 배포 되돌리기 (롤백)
+
+운영 FE에 나쁜 변경이 배포됐을 때 앱(S3·CloudFront가 내보내는 화면)을 되돌리는 절차다. Storybook·CDK·CloudFront 설정은 각 절의
+"롤백"·"되돌리려면"을 따른다.
+
+**지난 커밋을 골라 다시 배포하는 방법은 없다 — main을 되돌린 커밋으로 앞으로 보낸다.** `deploy.yml`은 실행된 커밋을 그대로
+빌드한다(`Checkout` 스텝에 `ref`가 없다). 수동 실행(`workflow_dispatch`)이 빌드하는 커밋도 GitHub 문서 표현으로 _"`GITHUB_REF`
+브랜치나 태그의 마지막 커밋"_ 이다(번역, [Events that trigger workflows — workflow_dispatch](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)).
+배포 역할은 main 브랜치 job만 맡을 수 있어(위 "AWS IAM 권한 요구사항") 다른 브랜치·태그로 돌리면 AWS 인증에서 실패한다.
+
+### 1. revert PR 만들기
+
+main 규칙셋은 필수 체크 `check`·`e2e`·`pr-body`를 요구하고 사람에게 예외가 없다(`docs/CI-CHECK-GATE.md` §6 "main 규칙셋").
+그래서 main 직접 push는 `GH013`으로 거절되고(`.claude/skills/changelog-release/SKILL.md` 릴리즈 시점 3번), revert도 브랜치 → PR →
+CI → squash 병합으로 간다. 2026-11-12 기준 최근 성공 run 8개는 PR CI가 6~12분, 병합 뒤 배포가 4~6분 걸렸다(`gh run list`의
+생성·갱신 시각 차이, 직접 측정).
+
+```bash
+# 되돌릴 PR의 squash 커밋
+gh pr view <PR번호> --json mergeCommit --jq .mergeCommit.oid
+
+# origin/main 최신에서 갈라진 브랜치(이 레포의 Claude 세션이면 워크트리) 안에서
+git revert --no-commit <위 커밋>
+# 충돌하면 고친 파일만 git add -- <파일>. 계획 파일은 아래 "revert diff에서 볼 것"
+git commit -F <메시지 파일>   # .gitmessage 형식: revert(<scope>): <한글 요약>, 본문에 되돌리는 PR 번호
+git push -u origin HEAD
+
+pnpm check:pr-body <본문 파일>
+gh pr create --base main --body-file <본문 파일>
+gh pr checks <새 PR 번호> --watch
+gh pr merge <새 PR 번호> --squash
+```
+
+**PR 화면의 "Revert" 버튼 대신 `git revert`를 쓴다.**
+
+- GitHub 문서는 버튼이 하는 일을 _"병합된 PR을 되돌리면 원래 병합 커밋을 되돌리는 새 PR이 만들어진다"_ 고 쓰고, _"PR을 되돌릴 때
+  병합 충돌이 나면 커밋을 하나씩 되돌려야 할 수 있다"_ 고 덧붙인다(번역, [Reverting a pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/reverting-a-pull-request)).
+  이 레포는 PR마다 `CHANGELOG.md`·문서를 함께 고쳐 뒤 PR과 겹치기 쉽다. 2026-11-12 main(`bf0768c9`)에서 #596을
+  `git revert --no-commit`으로 되돌려 보니 `CHANGELOG.md`·`docs/POST.md`·`docs/VERSION-COMPATIBILITY.md`가 충돌했다(직접 측정,
+  커밋하지 않고 `git revert --abort`).
+- 버튼이 쓰는 커밋 메시지·PR 본문은 이 레포 형식이 아니다. squash 병합은 커밋 메시지를 병합 커밋 본문에 그대로 잇고(저장소 설정
+  `squash_merge_commit_message=COMMIT_MESSAGES`), 본문에 필수 절이 없으면 필수 체크 `pr-body`가 실패한다([PR-BODY-CHECK.md](./PR-BODY-CHECK.md)).
+
+**revert diff에서 볼 것**:
+
+- `docs/plans/`의 계획 파일은 지우거나 고치지 않는다 — 커밋된 계획은 append-only다(`.claude/CLAUDE.md` §11). revert는 그 PR이
+  더한 계획을 지우고 고친 계획을 되돌린다(위 #596 측정에서 하나 삭제·하나 수정). CI 불변성 검사는 고친 파일(`M`)만 보고 지운
+  파일은 보지 않는다(`.github/workflows/ci.yml:58`). 커밋 전에 `git restore --source=HEAD --staged --worktree -- <계획 파일>`로
+  되살린다(같은 측정에서 확인).
+- `CHANGELOG.md`는 정해 둔 처리가 없다. FE [#170](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/170)은 원래 항목을 두고
+  철회 항목을 새로 더했고, BE [#182](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/182)는 미릴리즈 항목을 지웠다.
+- `src/shared/api/generated/`(생성 스펙)가 바뀌면 아래 "5. BE와 계약이 걸린 변경"을 먼저 본다.
+
+### 2. 병합 뒤 배포가 도는 조건
+
+- squash 병합은 main push다. revert가 위 "워크플로우 상세 단계" 1번의 경로 필터(`deploy.yml`의 `on.push.paths`) 파일을 하나라도
+  바꾸면 배포가 자동으로 돈다. 앞 배포가 돌고 있으면 취소하지 않고 끝나길 기다린다(`.github/workflows/deploy.yml:31-33`의
+  `cancel-in-progress: false`).
+- 필터 밖 파일만 바뀌었으면 배포가 돌지 않는다. 예: `.nvmrc`는 배포 빌드의 Node 버전을 정하지만(`deploy.yml`의
+  `node-version-file`) 필터에 없다. 이때는 병합 뒤 직접 돌린다. 이 절 첫 문단대로 main 최신 커밋을 빌드한다.
+
+```bash
+gh workflow run "Frontend Deploy (S3 + CloudFront)" --ref main
+```
+
+### 3. 배포가 끝났는지 확인
+
+병합 성공과 배포 완료는 다른 사건이다. `.claude/CLAUDE.md` Critical Rules의 "`main`에 push한 뒤 워크플로우 결과를 확인하지 않고
+'배포됨'이라 보고" 항목대로 revert 병합 커밋 SHA의 배포 run이 success인지 보고, 직접 확인은 위 "배포 반영 검증하는 법"을 따른다.
+그 run의 "배포 반영 검증" 스텝이 `/version.json`의 sha가 이 커밋인지 이미 확인한다(위 "워크플로우 상세 단계" 8번). 실패하면 실패
+이슈가 열린다(같은 목록 10번).
+
+### 4. 열려 있던 탭
+
+- 배포는 `assets/`를 지우지 않고(`.github/workflows/deploy.yml:115-133`, `--delete`에서 제외), 옛 자산 정리는 지금 빌드에 없고
+  마지막 업로드가 7일 넘은 파일만 지운다(`scripts/lib/prune-assets.js:29-36`). 그래서 나쁜 버전을 연 탭은 그 버전의 청크를 계속
+  받는다 — 7일 안에 되돌리면 깨지지 않고, 나쁜 코드도 그대로 돈다.
+- 그 탭은 되돌린 배포를 다른 새 배포와 똑같이 알아챈다. 탭으로 돌아올 때(마지막 확인 뒤 5분이 지났으면) 감지하고, 다음 페이지
+  이동 때 새로고침한다. 지금 보는 화면은 건드리지 않는다([NEW-VERSION-RELOAD.md](./NEW-VERSION-RELOAD.md) 머리말·§5).
+
+### 5. BE와 계약이 걸린 변경
+
+- 되돌리기 전에 그 PR이 넣은 `CHANGELOG.md` `### Notes` 항목(BE API 의존·배포 순서 — changelog-release skill이 접지 않게 정한 칸,
+  `.claude/skills/changelog-release/SKILL.md`)과 [VERSION-COMPATIBILITY.md](./VERSION-COMPATIBILITY.md) "알려진 상호 의존 지점"에서
+  그 PR을 찾는다. 예: #596이 넣은 Notes는 BE PR #194에 기대며 "되돌릴 때는 FE 먼저."라고 적었다.
+- FE만 되돌리면 옛 FE 코드가 지금 BE와 맞는지 본다. BE가 옛 API·응답 필드를 지웠으면 옛 FE가 깨진다. 예: 같은 표의 BE PR #196
+  행은 세 목록 응답에서 `page`·`totalPages` 등을 지웠고, FE는 #549부터 `cursor`만 쓴다 — #549 전으로 가는 FE revert는 BE를
+  그대로 두면 목록이 깨질 것이다(표에서 추론, 실행해 보지 않음).
+- 생성 스펙(`src/shared/api/generated/openapi.json`)까지 되돌아가 운영 BE와 달라지면, 매일 도는 `openapi-drift-check.yml`이 이슈를
+  연다([OPENAPI-CODEGEN.md](./OPENAPI-CODEGEN.md)).
+
+### 전체 흐름
+
+```mermaid
+flowchart TD
+  A["나쁜 변경이 운영에 배포됨"] --> B{"BE 계약이 걸렸나<br/>(CHANGELOG Notes·VERSION-COMPATIBILITY)"}
+  B -->|"예"| B2["Notes의 순서대로<br/>BE를 함께 되돌릴지 정함"]
+  B -->|"아니오"| C
+  B2 --> C["origin/main에서 갈라진 브랜치<br/>git revert --no-commit"]
+  C --> D{"충돌·계획 파일 변경이 있나"}
+  D -->|"있음"| D2["충돌 해결<br/>계획 파일은 restore로 되살림"]
+  D -->|"없음"| E
+  D2 --> E["git commit -F: revert(scope)<br/>push, PR"]
+  E --> F["필수 체크 check·e2e·pr-body"]
+  F --> G["squash 병합 = main push"]
+  G --> H{"deploy.yml 경로 필터에<br/>걸리는 파일인가"}
+  H -->|"예"| I["배포 자동 실행"]
+  H -->|"아니오"| J["gh workflow run으로 수동 실행<br/>(main 최신 커밋)"]
+  I --> K["배포 run success 확인<br/>version.json sha = revert 커밋"]
+  J --> K
+  K --> L["열린 탭: 탭 복귀 때 감지<br/>다음 페이지 이동 때 새로고침"]
+```
+
 ## 업타임 감시
 
 [`uptime-check.yml`](../.github/workflows/uptime-check.yml)이 운영 사이트와 API가 응답하는지 확인한다(2026-11-02
