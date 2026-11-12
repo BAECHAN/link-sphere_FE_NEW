@@ -6,5 +6,8 @@ storybook-static
 .husky
 .claude/worktrees
 docs/HISTORY.md
+# pnpm이 쓰는 서식 그대로 둔다. Prettier 서식이면 pnpm·Dependabot이 lockfile을 다시 쓸 때마다 수천 줄이
+# 바뀌고 format:check가 실패한다(2026-11-12, docs/DEPLOY.md "npm 패키지 업데이트")
+pnpm-lock.yaml
 *.min.js
 *.min.css
