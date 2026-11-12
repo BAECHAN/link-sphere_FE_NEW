@@ -1,4 +1,7 @@
 ### 2026-11-12 (FE)
+- React Router 버전 업데이트를 통한 보안 취약점(Open Redirect) 해결 ([#607](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/607))
+
+### 2026-11-12 (FE)
 - 페이지네이션 API 스펙 변경 대응
 로그:
 - chore(shared): BE가 page를 무시하게 바뀐 생성 스펙을 다시 받음 ([#604](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/604))
