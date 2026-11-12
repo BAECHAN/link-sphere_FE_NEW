@@ -9,7 +9,7 @@
 > BE 스펙이 바뀌면 무슨 일이 일어나는지, BE nullable 정보가 왜 가끔 유실되는지, BE 입력 제약 값(길이·개수·패턴)을
 > FE가 어떻게 맞추는지(§5-6) 알게 된다.
 >
-> 마지막 검토: 2026-11-07
+> 마지막 검토: 2026-11-12
 
 ## 1. 쉬운 설명
 
@@ -492,13 +492,13 @@ swagger-core 소스로 따라가 확인하지 않았다). 3.0 시절에는 이 �
 통하지 않아(§10) `.dto.ts`에서 직접 override했다. 아래는 지금 `.dto.ts`에 남아 있는
 override 전부다 — 응답 쪽 4건과 요청 쪽 1건:
 
-| 엔티티.필드                          | 방향                                 | 파일:줄                                                       | 근거                                                                                                                                                                                                                          |
-| ------------------------------------ | ------------------------------------ | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bookmark-folder.lastUsedAt`         | 넓힘(`string?` → `string \| null?`)  | `entities/bookmark/folder/model/bookmark-folder.dto.ts:13-15` | `$ref` 아님(원시 타입)이지만 Phase 4 시점엔 BE 컨버터가 아직 없어서 override. 지금은 BE가 이미 처리하므로 이 override는 안전한 중복(제거해도 무방하지만 유지 — §11)                                                           |
-| `comment.linkMetadata`               | 넓힘(`X?` → `X \| null?`)            | `entities/comment/model/comment.dto.ts:18-21`                 | 3.0 시절엔 `$ref` 프로퍼티라 nullable이 유실돼 override. 3.1 전환 뒤로는 생성 타입이 이미 `LinkMetadata \| null`이라 안전한 중복(유지 — §11). `CommentDTO.kt`의 실제 타입은 `LinkMetadata? = null`                            |
-| `account.role`                       | 좁힘(`string` → `'USER' \| 'ADMIN'`) | `entities/account/model/account.dto.ts:18-21`                 | BE가 enum class가 아니라 String으로 선언해(`AuthDTO.kt`의 `AccountResponse.role`) 스펙에 enum이 안 실림                                                                                                                       |
-| `account.nickname`                   | 좁힘(`string \| null?` → `string`)   | `entities/account/model/account.dto.ts:18-21`                 | 스펙은 nullable이지만 계정 생성 경로(`SignupRequest.nickname`, BE `member/MemberDTO.kt`)가 필수라 실제로는 항상 존재. 실측(§9)으로 확인                                                                                       |
-| `post` 목록 요청 `size`, `page` 제외 | 좁힘(선택 → 필수, `page`는 뺌)       | `entities/post/model/post.dto.ts:20-25`(`PostListRequest`)    | 요청 쪽 override. `size`는 BE에 기본값이 있어 스펙상 선택이지만(`PostController.kt`의 `defaultValue`) FE가 쪽 크기를 항상 정해서 보낸다. `page`는 옛 번들을 위해 스펙에 남은 옛 경로라 새 코드가 쓰지 못하게 뺀다(2026-11-05) |
+| 엔티티.필드                  | 방향                                 | 파일:줄                                                       | 근거                                                                                                                                                                                                                                                |
+| ---------------------------- | ------------------------------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bookmark-folder.lastUsedAt` | 넓힘(`string?` → `string \| null?`)  | `entities/bookmark/folder/model/bookmark-folder.dto.ts:13-15` | `$ref` 아님(원시 타입)이지만 Phase 4 시점엔 BE 컨버터가 아직 없어서 override. 지금은 BE가 이미 처리하므로 이 override는 안전한 중복(제거해도 무방하지만 유지 — §11)                                                                                 |
+| `comment.linkMetadata`       | 넓힘(`X?` → `X \| null?`)            | `entities/comment/model/comment.dto.ts:18-21`                 | 3.0 시절엔 `$ref` 프로퍼티라 nullable이 유실돼 override. 3.1 전환 뒤로는 생성 타입이 이미 `LinkMetadata \| null`이라 안전한 중복(유지 — §11). `CommentDTO.kt`의 실제 타입은 `LinkMetadata? = null`                                                  |
+| `account.role`               | 좁힘(`string` → `'USER' \| 'ADMIN'`) | `entities/account/model/account.dto.ts:18-21`                 | BE가 enum class가 아니라 String으로 선언해(`AuthDTO.kt`의 `AccountResponse.role`) 스펙에 enum이 안 실림                                                                                                                                             |
+| `account.nickname`           | 좁힘(`string \| null?` → `string`)   | `entities/account/model/account.dto.ts:18-21`                 | 스펙은 nullable이지만 계정 생성 경로(`SignupRequest.nickname`, BE `member/MemberDTO.kt`)가 필수라 실제로는 항상 존재. 실측(§9)으로 확인                                                                                                             |
+| `post` 목록 요청 `size`      | 좁힘(선택 → 필수)                    | `entities/post/model/post.dto.ts:21-28`(`PostListRequest`)    | 요청 쪽 override. `size`는 BE에 기본값이 있어 스펙상 선택이지만(`PostController.kt`의 `defaultValue`) FE가 쪽 크기를 항상 정해서 보낸다. 2026-11-05~11-12에는 옛 번들용으로 스펙에 남은 `page`도 뺐다 — BE #196이 스펙에서 지워 지금은 뺄 것이 없다 |
 
 override 방향을 정하는 기준: **실제 런타임 데이터가 더 넓으면(값이 있을 수도, null일
 수도 있으면) 넓히고, 실제로 존재할 수 없는 상태면 좁힌다.** 좁히기 전에는 항상 실제

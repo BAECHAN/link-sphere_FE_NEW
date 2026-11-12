@@ -93,7 +93,7 @@
 - `shared` 피드·북마크·내 댓글 목록을 쪽 번호 대신 cursor로 이어 읽음
   <details><summary>배경·구현</summary>
 
-  쪽 번호 방식은 쪽 사이에 글이 지워지거나 올라오면 글을 건너뛰거나 다시 받는다. 세 목록 모두 `cursor`·`size`로 요청하고 응답의 `nextCursor`를 그대로 넘기도록 바꿨다. `totalElements`를 읽고 쓰던 코드를 없앴고, 북마크 hover 미리 받기는 목록과 같은 옵션을 쓰도록 합쳤다(따로 두면 첫 쪽에서 목록이 끝날 수 있다). 지금 규모에서 체감 차이는 없고 큰 규모의 판단 자료를 얻으려는 사용자 결정이다. 근거는 `docs/DECISIONS.md` 2026-11-05, 측정은 [BE `docs/PAGINATION.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/PAGINATION.md).
+  쪽 번호 방식은 쪽 사이에 글이 지워지거나 올라오면 글을 건너뛰거나 다시 받는다. 세 목록 모두 `cursor`·`size`로 요청하고 응답의 `nextCursor`를 그대로 넘기도록 바꿨다. `totalElements`를 읽고 쓰던 코드를 없앴고, 북마크 hover 미리 받기는 목록과 같은 옵션을 쓰도록 합쳤다(따로 두면 첫 쪽에서 목록이 끝날 수 있다). 지금 규모에서 체감 차이는 없고 큰 규모의 판단 자료를 얻으려는 사용자 결정이다. 근거는 `docs/DECISIONS.md` 2026-11-05, 측정은 [BE `docs/PAGINATION.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/PAGINATION.md). 7일 뒤 BE가 옛 `page` 경로를 지워(BE #196, 2026-11-12) 생성 스펙을 다시 받았다 — 이 뒤로 `page`를 보내면 400이라 FE만 이 변경 전으로 되돌릴 수 없다(`docs/VERSION-COMPATIBILITY.md`).
 
   </details>
 
