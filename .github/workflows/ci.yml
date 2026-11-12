@@ -44,6 +44,8 @@ jobs:
         # 이탈·미구현·계획에 없던 변경과 나중의 "대체됨"을 계획 파일 안에 남기려고 병합 뒤에도 고칠 수
         # 있게 했다(docs/plans/2026-11-03-plan-result-block.md). merge-base 판과 HEAD 판에서 블록과
         # 빈 줄을 지운 나머지가 같은지 본다. 빈 줄을 빼는 건 블록을 넣고 뺄 때 앞뒤 빈 줄이 남기 때문이다.
+        # 지우거나(D) 이름을 바꾼(R) 계획 파일도 막는다 - 2026-11-12 전에는 고친 파일(M)만 봐서, revert PR이
+        # 계획을 지워도 통과했다(docs/DEPLOY.md "앱 배포 되돌리기"의 #596 시험).
         # workflow_dispatch처럼 base_ref가 없으면 비교할 base가 없어 건너뛴다.
         run: |
           if [ -z "${{ github.base_ref }}" ]; then
@@ -54,17 +56,35 @@ jobs:
           base=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
           strip_result() { awk '/^<!-- plan-result:start/ { skip = 1 } !skip && NF { print } /^<!-- plan-result:end -->/ { skip = 0 }'; }
           changed=""
+          removed=""
 
-          for f in $(git diff --name-status "$base" HEAD -- docs/plans/ | awk '$1 == "M" { print $2 }'); do
-            if ! diff -q <(git show "$base:$f" | strip_result) <(git show "HEAD:$f" | strip_result) > /dev/null; then
-              changed="$changed$f"$'\n'
-            fi
-          done
+          # 이름 바꿈(R)은 옛 경로가 둘째 칸이라 그 경로를 지운 것으로 알린다
+          while IFS=$'\t' read -r status path _; do
+            case "$status" in
+              M)
+                if ! diff -q <(git show "$base:$path" | strip_result) <(git show "HEAD:$path" | strip_result) > /dev/null; then
+                  changed="$changed$path"$'\n'
+                fi
+                ;;
+              D | R*)
+                removed="$removed$path"$'\n'
+                ;;
+            esac
+          done < <(git diff --name-status "$base" HEAD -- docs/plans/)
 
           if [ -n "$changed" ]; then
             echo "docs/plans/ 계획 원문은 커밋된 뒤 수정하지 않습니다(append-only, ADR과 같은 규칙)."
             echo "고칠 수 있는 건 H1 아래 '구현 결과' 블록(<!-- plan-result:start --> ~ <!-- plan-result:end -->)뿐입니다."
             printf '%s' "$changed"
+          fi
+
+          if [ -n "$removed" ]; then
+            echo "docs/plans/ 계획 파일은 커밋된 뒤 지우거나 이름을 바꾸지 않습니다."
+            echo "되살리려면: git restore --source=$base --staged --worktree -- <파일>"
+            printf '%s' "$removed"
+          fi
+
+          if [ -n "$changed$removed" ]; then
             exit 1
           fi
 
