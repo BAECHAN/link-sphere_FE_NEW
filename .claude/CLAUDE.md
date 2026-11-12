@@ -955,6 +955,24 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
 | `browser-verification` | 커밋 전 UI 동작을 브라우저로 직접 확인해야 할 때                                                                        |
 | `plan-doc-structure`   | plan mode Final Plan 작성 시 섹션 구조를 정할 때                                                                        |
 
+### agent-skills 플러그인
+
+`.claude/settings.json`이 [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) 플러그인(`agent-skills:*`)을
+켠다(2026-11-12). skill 25개가 모두 목록에 오르지만, 상황에 연결하는 것은 작성자가 이미 운영 중인 프로젝트에 권하는
+1단계([adoption-guide](https://github.com/addyosmani/agent-skills/blob/main/docs/adoption-guide.md) "Path B" → "Phase 1")뿐이다.
+1단계 첫 항목인 `context-engineering`(규칙 파일 쓰기)은 이 CLAUDE.md가 대신한다. 플러그인 skill 파일은 고칠 수 없는
+캐시라서, 이 레포에 맞춘 예외는 아래 표에 둔다.
+
+**이 레포의 규칙·skill·훅·CI와 부딪히면 항상 이 레포 쪽을 따른다.** 연결하지 않은 skill이 설명만 보고 불렸을 때도
+같다. `using-agent-skills`는 길잡이로 쓰지 않는다 — Claude Code는 설명으로 skill을 고르므로 길잡이가 둘이 된다고
+작성자가 안내한다([getting-started](https://github.com/addyosmani/agent-skills/blob/main/docs/getting-started.md) "4. Use the meta-skill for discovery when needed").
+
+| 스킬                                        | 언제 읽는가                                                                                                                                                                                      | 이 레포에서는                                                                                                                                                                                                                                                                       |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent-skills:code-review-and-quality`      | PR을 열기 전, 의존성을 올리는 PR에서 변경을 정확성·보안·성능 쪽으로 검토할 때                                                                                                                    | 레이어·네이밍·패턴은 `/code-review`가 정본이다. 내 변경이 만든 고아만 지우고, 원래 있던 죽은 코드·주변 정리는 언급만 한다(§3). 수치는 재거나 출처를 단다(§10). 조건을 뒤집어 보는 실험은 워크트리에서 하고 사본으로 되돌린다                                                        |
+| `agent-skills:debugging-and-error-recovery` | 작업 중 테스트·빌드·린트·e2e가 예상 밖으로 실패하거나, 재현이 안 되는 버그를 조사할 때(사용자가 보고한 버그는 `/fix-bug`)                                                                        | "Safe Fallback Patterns" 절은 따르지 않는다(§2). 부하·동시 요청 재현은 운영 BE로 프록시되는 dev 서버나 운영에 하지 않고 MSW·e2e 모킹으로 한다. 실패한 테스트는 요구가 바뀌었을 때만 고친다. `git bisect`는 워크트리에서, 테스트 이름 필터는 vitest `-t`                             |
+| `agent-skills:doubt-driven-development`     | 되돌리기 어려운 판단(인증·세션, 데이터 계약과 배포 순서, 멱등성·동시 요청, 운영 데이터·인프라)을 확정하거나, 타입·테스트로 증명되지 않는 주장("중복이 안 생긴다")에 기대 다음 단계로 넘어가기 전 | 대상은 이 판단들뿐이다(skill의 "non-trivial" 정의는 쓰지 않는다). 외부 모델 검토는 추천할 때만 §13 형식으로 묻는다. 검토자는 general-purpose에 맡기고, 프롬프트에 워킹트리 전체를 바꾸는 git 명령·부하 실행·외부 연결 금지를 넣는다. plan-verifier·`/code-review`를 대신하지 않는다 |
+
 ---
 
 ## 프로젝트 공통 컨텍스트
