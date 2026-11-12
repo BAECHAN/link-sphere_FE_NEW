@@ -143,8 +143,6 @@ export default defineConfig(({ mode }) => {
               return 'vendor';
             }
           },
-          // 사용하지 않는 export 제거
-          exports: 'named',
         },
         treeshake: {
           moduleSideEffects: (id) => {
@@ -183,7 +181,6 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
-      __DEPLOY_ENV__: JSON.stringify(mode),
       __BUILD_INFO__: JSON.stringify(bundledBuildInfo),
     },
     server: {
@@ -199,7 +196,6 @@ export default defineConfig(({ mode }) => {
           target: API_URL,
           rewrite: (path) => path.replace(/^\/api/, ''),
           changeOrigin: true,
-          credentials: true,
           secure: false,
           cookieDomainRewrite: { '*': '' },
           // 리프레시 쿠키가 __Host- 접두사라 브라우저는 Path=/일 때만 받는다 - Path를 지우면('')
