@@ -18,7 +18,16 @@
     "playwright@claude-plugins-official": false,
     "pr-review-toolkit@claude-plugins-official": true,
     "aws-core@claude-plugins-official": true,
-    "context7@claude-plugins-official": true
+    "context7@claude-plugins-official": true,
+    "agent-skills@addy-agent-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "addy-agent-skills": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/addyosmani/agent-skills.git"
+      }
+    }
   },
   "permissions": {
     "allow": ["Bash(grep -rn *)"],
