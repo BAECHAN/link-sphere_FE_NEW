@@ -1,3 +1,8 @@
+### 2026-11-12 (FE)
+- 페이지네이션 API 스펙 변경 대응
+로그:
+- chore(shared): BE가 page를 무시하게 바뀐 생성 스펙을 다시 받음 ([#604](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/604))
+
 ### 2026-11-12 (BE)
 - 게시글 조회 시 페이지네이션 로직에서 불필요한 예외 처리 코드를 제거하여 페이지 파라미터 무시 처리 및 코드 간소화 ([#198](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/198))
 
