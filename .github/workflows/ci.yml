@@ -115,6 +115,14 @@ jobs:
       - name: Check docs
         run: pnpm check:docs
 
+      - name: 운영 의존성 보안 감사
+        # 운영 번들에 들어가는 의존성(dependencies)에 high 이상 권고가 있으면 막는다. 개발 도구
+        # (devDependencies)와 moderate 이하는 막지 않는다(2026-11-12 사용자 결정). 권고 DB가 바뀌면
+        # 코드와 무관한 PR도 실패할 수 있어 다른 검사 결과를 먼저 보도록 막는 검사 맨 뒤에 둔다.
+        # 지금 고칠 수 없어 빼 둔 권고와 그 이유는 pnpm-workspace.yaml의 auditConfig, 절차는
+        # docs/CI-CHECK-GATE.md §7 "자주 하는 수정".
+        run: pnpm audit --prod --audit-level=high
+
       - name: PR 영향 그래프 (정보용 — 실패해도 잡은 통과)
         # 이 PR이 바꾼 src 파일과, import를 따라 거기에 닿는 파일을 Mermaid 그림으로 실행 결과
         # 요약(Step Summary)과 PR 댓글에 붙인다. 리뷰 보조용이라 그림을 못 그려도 잡을 실패시키지

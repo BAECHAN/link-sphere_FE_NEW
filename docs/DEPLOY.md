@@ -189,6 +189,32 @@ gh api repos/<owner>/<repo>/git/ref/tags/<tag> --jq '.object.sha + " " + .object
 gh api repos/<owner>/<repo>/commits/<커밋 sha> --jq .sha   # 원 저장소에 있는 커밋인지 확인
 ```
 
+## npm 패키지 업데이트 (Dependabot)
+
+[`.github/dependabot.yml`](../.github/dependabot.yml)의 npm 항목이 한 달에 한 번 minor·patch 업데이트를
+PR 하나(`npm` 그룹)로 묶어 올린다(2026-11-12 도입). 위 절처럼 새 릴리스가 3일 지난 뒤에 연다.
+
+- **메이저는 올리지 않는다.** React 19·React Router 7·zod 4 같은 메이저는 코드를 고쳐야 하는
+  마이그레이션이라 계획을 세워 따로 한다. 도입한 날 메이저가 밀린 패키지가 28개였다(`pnpm outdated`로
+  직접 셈). 거르지 않으면 메이저마다 PR이 따로 열려 버전 업데이트 한도(5개)를 늘 채운다.
+- 메이저는 `ignore`가 아니라 `allow`의 `update-types`로 거른다. Dependabot 문서는 이 값이 _"버전 업데이트에만
+  영향을 주고 보안 업데이트에는 주지 않는다"_ (번역,
+  [options reference](https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference)
+  "`update-types` (`allow`)")고 쓴다. 반면 `ignore`는 같은 문서에서 보안 업데이트에도 걸리는 옵션으로
+  표시돼 있어, 메이저를 막으면 메이저로만 고칠 수 있는 보안 수정까지 막힌다.
+- `pnpm-lock.yaml`은 pnpm이 쓰는 서식 그대로 둔다(`.prettierignore`). 그 전에는 Prettier 서식이라 pnpm이나
+  Dependabot이 lockfile을 다시 쓰면 수천 줄이 바뀌고 `format:check`가 실패했다. 서식을 바꾼 날 두 파일을
+  YAML로 읽어 비교해 내용이 같은 것을 확인했다.
+- 취약점 알림과 보안 업데이트 PR은 이 파일이 아니라 저장소 설정을 따른다. 지금 상태는
+  `gh api repos/BAECHAN/link-sphere_FE_NEW --jq .security_and_analysis`(보안 업데이트)와
+  `gh api repos/BAECHAN/link-sphere_FE_NEW/vulnerability-alerts`(204면 알림 켜짐, 404면 꺼짐)로 본다.
+
+**Dependabot PR이 오면**:
+
+1. CI(`ci.yml`)가 통과했는지 본다. 운영 의존성 감사(`docs/CI-CHECK-GATE.md` §6)도 여기서 돈다.
+2. 0.x 패키지는 minor에도 깨지는 변경이 있을 수 있어 그 릴리스 노트만 훑는다.
+3. squash 병합하면 `pnpm-lock.yaml`이 바뀌어 배포가 돈다. 그 run이 성공했는지 본다(위 "Trigger").
+
 ## Storybook 공개 배포
 
 컴포넌트 스토리(2026-10-27 기준 55개 파일·192개 케이스 — `shared/ui` 52개 + Provider 없이 렌더되는 entities·widgets
