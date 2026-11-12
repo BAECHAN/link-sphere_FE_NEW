@@ -19,10 +19,10 @@ export type LinkPreview = Schemas['LinkPreviewResponse'];
 export type PostViewRecord = Schemas['PostViewRecordResponse'];
 
 // GET /post 의 쿼리 파라미터. size는 BE에 기본값이 있어 스펙상 optional이지만 FE는 쪽 크기를 항상
-// 정해서 보내므로 필수로 좁힌다. page는 옛 번들을 위해 스펙에 남아 있는 옛 경로라 FE에서 쓰지 못하게 뺀다.
+// 정해서 보내므로 필수로 좁힌다.
 export type PostListRequest = Omit<
   NonNullable<operations['getAllPosts']['parameters']['query']>,
-  'page' | 'size'
+  'size'
 > & {
   size: number;
 };

@@ -58,7 +58,7 @@ export const typeCases = async () => {
 
   // 통과해야 하는 기준 케이스
   const narrowed = await specClient.get<'/auth/account', NarrowedAccount>('/auth/account');
-  const posts = await specClient.get('/post', { query: { page: 0, size: 10 } });
+  const posts = await specClient.get('/post', { query: { cursor: 'c1', size: 10 } });
   const allPosts = await specClient.get('/post');
 
   return [account, narrowed.role, posts.content, allPosts.content];
@@ -91,9 +91,9 @@ describe('specClient', () => {
       })
     );
 
-    await specClient.get('/post', { query: { page: 1, size: 20, search: undefined } });
+    await specClient.get('/post', { query: { cursor: 'c1', size: 20, search: undefined } });
 
-    expect(search).toBe('?page=1&size=20');
+    expect(search).toBe('?cursor=c1&size=20');
   });
 
   it('본문이 없는 PUT은 본문 없이 보낸다', async () => {
