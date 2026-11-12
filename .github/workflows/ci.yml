@@ -164,6 +164,18 @@ jobs:
             exit 1
           fi
 
+      - name: 운영 번들에 dayjs 한국어 로케일 있음 확인
+        # date.util.ts의 import 'dayjs/locale/ko'는 값을 쓰지 않고 실행만 시키는 import다.
+        # vite.config.ts의 treeshake.moduleSideEffects가 이 모듈을 부작용 없음으로 보면 번들에서
+        # 통째로 빠지고 dayjs.locale('ko')가 조용히 영어로 남는다(2026-11-12 발견, 그때까지 운영
+        # 번들에 로케일이 없었다). 단위 테스트는 트리셰이킹을 하지 않고 e2e는 dev 서버를 써서
+        # 빌드 결과로만 볼 수 있다. '일요일_월요일'은 dayjs 로케일 파일의 요일 목록 형식이다.
+        run: |
+          if ! grep -rqF '일요일_월요일' dist/assets/js; then
+            echo "운영 번들에 dayjs 한국어 로케일이 없습니다. vite.config.ts의 treeshake.moduleSideEffects가 dayjs/locale 모듈에 true를 돌려주는지 확인하세요."
+            exit 1
+          fi
+
       - name: Build Storybook
         # e2e job의 pnpm test:storybook은 dev 서버를 띄워 스토리를 테스트하는
         # 것이라, 프로덕션 정적 빌드에서만 드러나는 실패(예: 자산 경로 문제)를
