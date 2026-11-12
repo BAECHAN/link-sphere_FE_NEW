@@ -1,3 +1,6 @@
+### 2026-11-12 (FE)
+- 빌드 설정 최적화: vite.config.ts 내 불필요한 설정 제거를 통한 빌드 구성 간소화 ([#601](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/601))
+
 ### 2026-11-11 (FE)
 - 인증 상태 변경 시 기존 게시글 페이지가 오류 또는 안내 화면으로 고정되는 문제 해결 ([#598](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/598))
 
