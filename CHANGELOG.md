@@ -517,6 +517,13 @@
 
 ### Security
 
+- `shared` React Router를 6.30.6으로 올려 열린 리다이렉트 권고 2건을 막음
+  <details><summary>배경·구현</summary>
+
+  `pnpm audit --prod`가 설치본 `react-router-dom`·`react-router` 6.30.3과 `@remix-run/router` 1.23.2에 열린 리다이렉트 권고를 보고했다 — "열린 리다이렉트로 이어지는 XSS"([GHSA-jjmj-jmhj-qwj2](https://github.com/advisories/GHSA-jjmj-jmhj-qwj2), 6.30.6에서 수정)와 "`//`로 시작하는 경로가 다른 출처로 해석되는 리다이렉트"([GHSA-2j2x-hqr9-3h42](https://github.com/advisories/GHSA-2j2x-hqr9-3h42), `react-router` 6.30.4·`@remix-run/router` 1.23.3에서 수정). 같은 6.x 패치라 `react-router-dom`을 `^6.30.6`으로 올렸다(`react-router` 6.30.6, `@remix-run/router` 1.23.4가 따라온다). `navigate`·`<Link to>`·`<Navigate to>`의 이동 대상은 대부분 `ROUTES_PATHS` 상수다. 변수인 곳은 지금 주소로 되돌아가는 경우(`ProtectedRoute`의 로그인 뒤 복귀, 오버레이 칸), 앱이 넣은 history state(`GuestGuard`), 서버가 보낸 알림의 글 id(`useFcmForegroundMessage`)뿐이다. 보호 경로는 모두 고정된 앞부분(`/post`·`/bookmark` 등)으로 시작해 `//`·`/\`로 시작하는 주소가 될 수 없다. 6.30.5가 경고한 "`navigate()`로 외부 도메인에 가는 경우"도 없었다. 운영 의존성 감사는 8건에서 5건이 됐다. 남은 React Router 권고 2건 중 백슬래시 경로 권고([GHSA-wrjc-x8rr-h8h6](https://github.com/advisories/GHSA-wrjc-x8rr-h8h6))는 7.18.0에서만 고쳐지고, 다른 하나([GHSA-337j-9hxr-rhxg](https://github.com/advisories/GHSA-337j-9hxr-rhxg))는 SSR 전용이다(이 앱은 SSR을 쓰지 않음). (`package.json`, `pnpm-lock.yaml`, [PR #607](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/607))
+
+  </details>
+
 - `infra` Storybook을 운영 도메인에서 떼어 GitHub Pages로 옮기고 옛 주소는 404로
   <details><summary>배경·구현</summary>
 
