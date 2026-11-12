@@ -152,6 +152,10 @@ export default defineConfig(({ mode }) => {
             if (id.includes('.css')) return true;
             // Firebase는 서비스 등록을 side effect에 의존하므로 반드시 유지
             if (id.includes('firebase') || id.includes('@firebase')) return true;
+            // dayjs 로케일은 import하면 dayjs에 자기를 등록하는 것이 전부인 모듈이다(date.util.ts의
+            // import 'dayjs/locale/ko'). 빠지면 dayjs.locale('ko')가 조용히 영어로 남는다 - 2026-11-12까지
+            // 운영 번들에 한국어 로케일이 없었다(ci.yml "운영 번들에 dayjs 한국어 로케일 있음 확인")
+            if (/[\\/]dayjs[\\/]locale[\\/]/.test(id)) return true;
             return false;
           },
           propertyReadSideEffects: false,
@@ -183,9 +187,9 @@ export default defineConfig(({ mode }) => {
       __BUILD_INFO__: JSON.stringify(bundledBuildInfo),
     },
     server: {
-      fs: {
-        deny: ['..'],
-      },
+      // fs.deny는 적지 않는다 - 적으면 Vite 기본 차단 목록(.env, .env.*, 인증서, .git)과 합쳐지지 않고 통째로
+      // 바뀐다. 2026-11-12까지 있던 deny: ['..']가 그렇게 /.env를 200으로 내줬다
+      // (e2e/dev-server-file-access.spec.ts). 프로젝트 밖 파일은 기본값인 fs.strict가 막는다.
       port: DEV_SERVER_PORT,
       proxy: {
         // VITE_API_BASE_URL은 context-path /api까지 포함한 기준 주소다(예: https://linksphere.click/api,

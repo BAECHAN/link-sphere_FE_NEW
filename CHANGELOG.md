@@ -233,6 +233,20 @@
 
 ### Fixed
 
+- `infra` dev 서버가 `.env`·`.git` 파일을 요청받는 대로 내주던 문제
+  <details><summary>배경·구현</summary>
+
+  `vite.config.ts`의 `server.fs.deny: ['..']`(2026-01-18 첫 커밋부터)가 Vite 기본 차단 목록(`.env`, `.env.*`, `*.{crt,pem}`, `**/.git/**`)을 지우고 있었다. Vite 6.4.1은 배열 설정을 기본값과 합치지 않고 통째로 바꾼다(`dist/node/chunks/dep-D4NMHUTW.js:7227-7243`). 그래서 dev 서버가 `/.env`를 200으로 내줬다. 2026-11-12 직접 측정(본문은 보지 않고 응답 코드만) — 수정 전 `/.env`·`/.env.test`·`/.env.example` 200, 수정 후 셋 다 403. `/`·`/src/main.tsx`는 전후 모두 200, 프로젝트 밖 파일은 전후 모두 403이다. `host` 설정이 없어 이 컴퓨터에서만 열리지만 `--host`로 띄우면 같은 네트워크에서 읽혔다. `fs` 블록을 지워 기본값으로 돌렸다 — `'..'` 패턴은 막는 대상이 사실상 없었고(`**/..`로 바뀐다, 같은 파일 `:49089-49095`) 프로젝트 밖 파일은 기본값인 `fs.strict`가 막는다. 누가 `fs.deny`를 다시 적으면 e2e 스펙이 잡는다(`/.env.test`·`/.env.example` 403). 운영은 S3 정적 배포라 해당 없다. 계획은 [`docs/plans/2026-11-12-vite-env-deny-dayjs-locale.md`](docs/plans/2026-11-12-vite-env-deny-dayjs-locale.md). (`vite.config.ts`, `e2e/dev-server-file-access.spec.ts`(신규), `docs/TESTING.md`, [PR #600](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/600))
+
+  </details>
+
+- `infra` 운영 번들에서 dayjs 한국어 로케일이 빠져 요일이 영어로 나올 수 있던 문제
+  <details><summary>배경·구현</summary>
+
+  `date.util.ts`는 `import 'dayjs/locale/ko'`로 로케일을 등록하고 `dayjs.locale('ko')`로 고르는데, 운영 번들에는 로케일이 없었다(2026-01-25 `50eea61e`부터, 2026-11-12 발견). `vite.config.ts`의 `treeshake.moduleSideEffects`가 CSS·firebase 밖의 모듈을 모두 부작용 없음으로 선언하는데, 이 import는 값을 쓰지 않고 실행만 시키는 import라 번들에서 통째로 빠졌다. dayjs는 `package.json`에 `sideEffects` 선언이 없어 Vite가 판단을 설정 함수에 넘기고(Vite 6.4.1 `dist/node/chunks/dep-D4NMHUTW.js:6356`, Rollup 4.55.1 `dist/es/shared/node-entry.js:21683`), CommonJS 변환이 결과를 안 쓰면 지워도 되는 호출로 표시한다(같은 Vite 파일 `:2709`). 로케일이 없으면 `dayjs.locale('ko')`는 조용히 `en`으로 남는다(dayjs 1.11.19 `esm/index.js:19-43`). 지금 화면에 쓰는 날짜 함수 3개(`formatRelativeShort`·`formatKoreanDateTime`·`formatISO`)는 한국어를 직접 조립해 보이는 변화는 없다. 요일(`dddd`)을 쓰는 `formatKoreanWithDay`·`formatKoreanDateTimeWithDay`·`formatBoard`는 호출하는 곳이 없는데, 쓰기 시작하면 운영에서만 영어 요일이 나왔을 것이다(단위 테스트와 dev 서버는 트리셰이킹을 하지 않아 한국어로 나온다). 허용 목록에 dayjs 로케일을 더했다. 같은 날 직접 측정 — 빌드본의 `util-vendor` 청크를 브라우저에서 불러 `locale('ko')` 뒤 `format('dddd')`를 보면 수정 전 `en`·`Thursday`, 수정 후 `ko`·`목요일`이다. 첫 로딩 JS(진입 + modulepreload 6개, `gzip -9`)는 216,919 → 217,395바이트(+476)이고 `index.html`에 `zod-vendor`는 여전히 없다. `treeshake` 설정을 통째로 빼는 안은 첫 로딩이 231,917바이트로 늘고 CI의 zod 검사에 걸려 고르지 않았다. 다시 빠지면 CI가 빌드 결과로 잡는다(`ci.yml` "운영 번들에 dayjs 한국어 로케일 있음 확인"). 계획은 [`docs/plans/2026-11-12-vite-env-deny-dayjs-locale.md`](docs/plans/2026-11-12-vite-env-deny-dayjs-locale.md). (`vite.config.ts`, `.github/workflows/ci.yml`, `docs/PERFORMANCE.md`, `docs/OPENAPI-CODEGEN.md`, [PR #600](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/600))
+
+  </details>
+
 - `auth` 로그인·로그아웃이 바뀐 뒤에도 열던 글이 오류·안내 화면으로 남던 문제
   <details><summary>배경·구현</summary>
 

@@ -316,7 +316,7 @@ Resource Timing을 모았다. 모바일은 CDP `Network.emulateNetworkConditions
 
 - **zod(바꿈)**: `shared/types/common.type.ts`는 에러 클래스 때문에 진입 청크에 들어 있다. 거기 있던 쓰이지 않는
   스키마(최상위 `z.object()` 호출) 하나 때문에 진입 청크가 `zod-vendor`를 정적으로 import했고, `zod-vendor`가
-  modulepreload 목록에 올랐다. `vite.config.ts`의 `treeshake.moduleSideEffects`(CSS·firebase 밖은 `false`)는 export를 하나도 쓰지 않는 모듈만
+  modulepreload 목록에 올랐다. `vite.config.ts`의 `treeshake.moduleSideEffects`(CSS·firebase·dayjs 로케일 밖은 `false`)는 export를 하나도 쓰지 않는 모듈만
   빼므로, 쓰이는 모듈 안의 최상위 호출은 남았다. 스키마를 지우고 타입만 남겼다. 이제 zod는 폼 훅에서만 쓴다.
 - **로그인 창(그대로)**: `RootLayout`이 lazy `LoginDialog`를 항상 렌더해서, 열지 않아도 첫 렌더에서 청크 8개(brotli
   13.94KB)와 `zod-vendor`를 받는다. 처음 열 때 받게 바꾸는 안을 재 봤지만 LCP 이득이 없어 되돌렸다(아래).
@@ -709,7 +709,7 @@ JS에 이미지 LCP를 기다리는 코드가 들어 있는지 확인했다. 피
 
 Vercel 수치는 유명 아이콘·컴포넌트 라이브러리와 Next.js 기준이라, 앱 안에 만든 배럴과는 상황이 다르다.
 
-**번들이 같은 이유:** `vite.config.ts`의 `treeshake.moduleSideEffects`가 CSS와 Firebase 밖의 모듈을 부수 효과 없음으로 보기
+**번들이 같은 이유:** `vite.config.ts`의 `treeshake.moduleSideEffects`가 CSS·Firebase·dayjs 로케일(2026-11-12 추가) 밖의 모듈을 부수 효과 없음으로 보기
 때문이다. 이 설정만 Rollup 기본값으로 바꾸면 C의 첫 로딩이 A보다 14.93KB(+7.8%) 커진다. 계획에 없던 보조 측정이다.
 
 **C의 단위 테스트가 깨진 이유:** `src/test/setup.ts`가 불러오는 모듈이 배럴을 지나 늘어난다.
