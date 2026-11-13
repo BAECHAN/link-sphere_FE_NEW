@@ -1,4 +1,7 @@
 ### 2026-11-13 (FE)
+- 의존성 그룹(npm) 일괄 업데이트 및 빌드 환경 최적화 ([#618](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/618))
+
+### 2026-11-13 (FE)
 - 빌드 최적화를 위해 moduleSideEffects 범위를 src 디렉토리로 한정하여 번들 효율 개선 ([#619](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/619))
 
 ### 2026-11-12 (FE)
