@@ -1,5 +1,5 @@
-// [메모] 이 훅은 FE 전용이라 FE에 남는다. 의존하는 ../lib/shell-parse.mjs를 claude-base 5라운드 2단계(2026-11-14
-// 뒤)에 지우므로, 그때 레포 판정을 이 파일 안의 함수로 바꾼다.
+// [메모] 이 훅은 FE 전용이라 FE에 남는다. 레포 판정(feRootOf)은 이 파일 안에서 한다 — 예전에 쓰던 ../lib/shell-parse.mjs는
+// 동결 사본 가드와 함께 6라운드에 지운다(claude-base docs/DECISIONS.md 2026-11-13 "5라운드 2단계").
 //
 // PostToolUse(Write) 훅 — 새로 만든 .ts/.tsx 파일이 eslint.config.js의 unicorn/filename-case 규칙(atoms·
 // 컴포넌트·훅·utils·api·queries·types·schema·config 전부 커버)을 어기면 그 자리에서 알린다.
@@ -21,9 +21,30 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { repoOf, worktreeRootOf } from '../lib/shell-parse.mjs';
-
 const ESLINT_BIN = path.join('node_modules', 'eslint', 'bin', 'eslint.js');
+// 레포·워크트리는 git을 부르지 않고 경로 문자열로 판정한다(Write마다 돈다). 2026-11-13까지 쓰던 shell-parse의
+// repoOf·worktreeRootOf와 같은 판정이다.
+const REPO_PATTERN = /\/link-sphere_(FE|BE)_NEW(\/|$)/;
+const WORKTREE_MARKER = '/.claude/worktrees/';
+
+/** 경로가 속한 FE 체크아웃 루트(워크트리 안이면 그 워크트리, 아니면 메인 체크아웃). FE 경로가 아니면 null. */
+function feRootOf(absPath) {
+  const match = absPath.match(REPO_PATTERN);
+
+  if (!match || match[1] !== 'FE') {
+    return null;
+  }
+
+  const markerIndex = absPath.indexOf(WORKTREE_MARKER);
+
+  if (markerIndex === -1) {
+    return `${absPath.slice(0, match.index)}/link-sphere_FE_NEW`;
+  }
+
+  const name = absPath.slice(markerIndex + WORKTREE_MARKER.length).split('/')[0];
+
+  return `${absPath.slice(0, markerIndex)}${WORKTREE_MARKER}${name}`;
+}
 
 /**
  * Write 대상 하나를 검사할지 정한다. 순수 함수라 테스트에 그대로 쓴다.
@@ -35,13 +56,12 @@ export function decideFilenameCheck({ filePath, cwd }, exists = fs.existsSync) {
   }
 
   const absPath = path.resolve(cwd || '/', filePath);
-  const repo = repoOf(absPath);
+  const root = feRootOf(absPath);
 
-  if (!repo || repo.repo !== 'FE') {
+  if (!root) {
     return null;
   }
 
-  const root = worktreeRootOf(absPath) ?? repo.mainRoot;
   const eslintBin = path.join(root, ESLINT_BIN);
 
   if (!absPath.startsWith(`${root}/src/`) || !exists(absPath) || !exists(eslintBin)) {

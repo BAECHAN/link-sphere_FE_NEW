@@ -6,8 +6,8 @@
 #   bash .claude/hooks/run-node.sh <같은 디렉터리의 .mjs 파일명>   (stdin으로 훅 payload)
 #
 # 가드를 bash가 아니라 Node로 쓴 이유: macOS 기본 bash 3.2로는 따옴표·heredoc·cd·git -C가 섞인
-# 명령을 안정적으로 파싱할 수 없고, 측정기(rule-metrics.mjs)와 같은 파서(.claude/lib/
-# shell-parse.mjs)를 써야 "측정이 세는 위반"과 "가드가 막는 위반"이 일치한다.
+# 명령을 안정적으로 파싱할 수 없고, 측정기와 같은 파서(.claude/lib/shell-parse.mjs)를 써야 "측정이 세는
+# 위반"과 "가드가 막는 위반"이 일치한다(2026-11-13 측정기는 claude-base scripts/rule-metrics.mjs로 옮겼다).
 #
 # 훅 프로세스는 에디터(Cursor/VS Code)가 띄운 Claude Code의 환경을 물려받아 nvm의 node가 PATH에
 # 없을 수 있다 — PATH → nvm → Homebrew 순으로 찾는다. 훅은 절대 작업을 막는 방향으로 실패하면
@@ -81,7 +81,7 @@
 # 응답 언어 실험(2026-10-01~10-14, docs/plans/2026-09-30-rule-enforcement-phase3.md)은 같은 파일 최상위의
 # "language": "korean" 한 줄이다.
 #
-# 발동 여부는 `node .claude/scripts/rule-metrics.mjs`의 M12(훅 발동)로 확인한다 — 등록 후 계속
+# 발동 여부는 `node ~/project/claude-base/scripts/rule-metrics.mjs`의 M12(훅 발동)로 확인한다 — 등록 후 계속
 # 0이면 경로 오타·node 미발견으로 조용히 꺼진 것이다(deploy-verify는 실패가 없으면 0이 정상이다).
 set -uo pipefail
 
