@@ -70,7 +70,7 @@ describe('DialogContent — 열린 직후 클릭 가드', () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
-  it('열린 직후 바깥 pointerdown으로는 닫히지 않는다', async () => {
+  it('열린 직후 바깥 클릭으로는 닫히지 않는다', async () => {
     const onConfirm = vi.fn();
     const onOpenChange = vi.fn();
     renderWithProviders(<ControlledDialog onConfirm={onConfirm} onOpenChange={onOpenChange} />);
@@ -79,13 +79,17 @@ describe('DialogContent — 열린 직후 클릭 가드', () => {
     // 붙인다 — 실제 타이머를 한 틱 흘려보내 리스너가 붙을 시간을 준다.
     await new Promise((resolve) => setTimeout(resolve, 0));
 
+    // react-dialog 1.3.x는 왼쪽 버튼 바깥 닫기를 뒤따르는 click 때 처리한다(deferPointerDownOutside,
+    // react-dismissable-layer 1.2.1). pointerdown만 보내면 가드와 상관없이 안 닫혀 테스트가 헛통과하므로
+    // 이 파일의 바깥 클릭은 모두 실제 순서대로 pointerdown 뒤 click을 보낸다(2026-11-13, #618).
     fireEvent.pointerDown(document.body);
+    fireEvent.click(document.body);
 
     expect(onOpenChange).not.toHaveBeenCalledWith(false);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('가드 시간이 지난 뒤의 바깥 pointerdown은 정상적으로 닫는다', async () => {
+  it('가드 시간이 지난 뒤의 바깥 클릭은 정상적으로 닫는다', async () => {
     const onConfirm = vi.fn();
     const onOpenChange = vi.fn();
     renderWithProviders(<ControlledDialog onConfirm={onConfirm} onOpenChange={onOpenChange} />);
@@ -94,6 +98,7 @@ describe('DialogContent — 열린 직후 클릭 가드', () => {
 
     vi.advanceTimersByTime(DOUBLE_CLICK_GUARD_MS);
     fireEvent.pointerDown(document.body);
+    fireEvent.click(document.body);
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
@@ -120,7 +125,7 @@ describe('DialogContent — 열린 직후 클릭 가드', () => {
   // 실제 사용처(BookmarkFolderSelectDialog 등)는 <Dialog open={false}>로 먼저 마운트해 두고
   // 나중에 open을 true로 바꾼다 — 이때 가드 시계가 "마운트"가 아니라 "열린 시점"에서
   // 시작해야 한다(2026-09-30, 페이지 로드 시점에 시계가 찍혀 가드가 한 번도 안 걸리던 회귀)
-  it('닫힌 채 마운트됐다가 나중에 열려도 열린 직후 바깥 pointerdown으로는 닫히지 않는다', async () => {
+  it('닫힌 채 마운트됐다가 나중에 열려도 열린 직후 바깥 클릭으로는 닫히지 않는다', async () => {
     const onOpenChange = vi.fn();
     const { rerender } = renderWithProviders(
       <Dialog open={false} onOpenChange={onOpenChange}>
@@ -143,6 +148,7 @@ describe('DialogContent — 열린 직후 클릭 가드', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     fireEvent.pointerDown(document.body);
+    fireEvent.click(document.body);
 
     expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });
@@ -179,12 +185,13 @@ describe('DialogContent — dismissOnOutsideClick', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
 
-  it('false면 가드 시간이 지난 뒤의 바깥 pointerdown에도 닫히지 않는다', async () => {
+  it('false면 가드 시간이 지난 뒤의 바깥 클릭에도 닫히지 않는다', async () => {
     const onOpenChange = renderDialog(false);
     await waitForOutsideListener();
 
     vi.advanceTimersByTime(DOUBLE_CLICK_GUARD_MS);
     fireEvent.pointerDown(document.body);
+    fireEvent.click(document.body);
 
     expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });
@@ -198,12 +205,13 @@ describe('DialogContent — dismissOnOutsideClick', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it('기본값(true)은 가드 시간이 지난 뒤의 바깥 pointerdown으로 닫힌다', async () => {
+  it('기본값(true)은 가드 시간이 지난 뒤의 바깥 클릭으로 닫힌다', async () => {
     const onOpenChange = renderDialog();
     await waitForOutsideListener();
 
     vi.advanceTimersByTime(DOUBLE_CLICK_GUARD_MS);
     fireEvent.pointerDown(document.body);
+    fireEvent.click(document.body);
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });

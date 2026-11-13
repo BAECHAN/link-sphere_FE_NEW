@@ -55,6 +55,7 @@ async function waitForOpen() {
   await waitFor(() => expect(screen.getByRole('alertdialog')).toBeInTheDocument());
   // Radix DismissableLayer는 바깥 pointerdown 리스너를 setTimeout(0) 뒤에야 document에
   // 붙인다 — 실제 타이머를 한 틱 흘려보내 리스너가 붙을 시간을 준다(dialog.test.tsx와 같다).
+  // 바깥 닫기는 pointerdown 뒤 click 때 처리되므로 바깥 클릭은 둘 다 보낸다(dialog.test.tsx 첫 바깥 클릭 테스트 주석).
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
@@ -94,12 +95,13 @@ describe('AlertDialogContent', () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
-  it('가드 시간이 지난 뒤에도 바깥 pointerdown으로는 닫히지 않는다', async () => {
+  it('가드 시간이 지난 뒤에도 바깥 클릭으로는 닫히지 않는다', async () => {
     const { onOpenChange } = renderAlertDialog();
     await waitForOpen();
 
     vi.advanceTimersByTime(DOUBLE_CLICK_GUARD_MS);
     fireEvent.pointerDown(document.body);
+    fireEvent.click(document.body);
 
     expect(onOpenChange).not.toHaveBeenCalledWith(false);
     expect(screen.getByRole('alertdialog')).toBeInTheDocument();
