@@ -1,3 +1,6 @@
+### 2026-11-13 (FE)
+- 빌드 최적화를 위해 moduleSideEffects 범위를 src 디렉토리로 한정하여 번들 효율 개선 ([#619](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/619))
+
 ### 2026-11-12 (FE)
 - 의존성 관리 정책 강화 및 Dependabot 자동화 적용
   - 보안 취약점 예방을 위해 운영 의존성 내 High 등급 권고 발생 시 PR 병합을 차단하도록 CI 설정
