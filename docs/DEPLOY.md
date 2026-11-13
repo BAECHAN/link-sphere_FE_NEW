@@ -209,6 +209,9 @@ PR 하나(`npm` 그룹)로 묶어 올린다(2026-11-12 도입). 위 절처럼 �
   직접 의존성 84개를 31분에 검사한 뒤 `package.json`에 없는 간접 의존성을 하나씩 검사했고(결과는 모두 "No update
   possible"), 149개째에서 55분 만에 취소돼 PR이 열리지 않았다(run 로그에서 직접 셈). 위 options reference 표는
   npm의 `all`을 직접 적은 의존성으로만 설명해, 이 검사 시간은 문서로는 드러나지 않는다.
+- 일부러 고정한 패키지는 `ignore`의 `versions`로 뺀다. 지금은 lint-staged `>=17.6.0` 하나다 — 17.6부터 스테이징 범위가
+  넓어져 17.5.1에 고정해 뒀다([CI-CHECK-GATE.md](CI-CHECK-GATE.md) §9.8). 2026-11-13 첫 묶음 PR(#615)에 17.6.0이 들어온 뒤
+  더했다. 커밋 훅에서만 쓰는 개발 도구라 `ignore`가 보안 업데이트까지 막아도 운영 영향이 없다.
 - `pnpm-lock.yaml`은 pnpm이 쓰는 서식 그대로 둔다(`.prettierignore`). 그 전에는 Prettier 서식이라 pnpm이나
   Dependabot이 lockfile을 다시 쓰면 수천 줄이 바뀌고 `format:check`가 실패했다. 서식을 바꾼 날 두 파일을
   YAML로 읽어 비교해 내용이 같은 것을 확인했다.
@@ -218,7 +221,9 @@ PR 하나(`npm` 그룹)로 묶어 올린다(2026-11-12 도입). 위 절처럼 �
 
 **Dependabot PR이 오면**:
 
-1. CI(`ci.yml`)가 통과했는지 본다. 운영 의존성 감사(`docs/CI-CHECK-GATE.md` §6)도 여기서 돈다.
+1. CI(`ci.yml`)가 통과했는지 본다. 운영 의존성 감사(`docs/CI-CHECK-GATE.md` §6)도 여기서 돈다. Prettier가 올라가면
+   서식 규칙이 바뀌어 `check`가 실패할 수 있다(#615, 3.5→3.9에서 유니언 타입 줄바꿈). 그 PR 브랜치에서
+   `prettier --write`로 맞춰 커밋한다 — main에 따로 넣으면 옛 Prettier 쪽이 실패한다.
 2. 0.x 패키지는 minor에도 깨지는 변경이 있을 수 있어 그 릴리스 노트만 훑는다.
 3. squash 병합하면 `pnpm-lock.yaml`이 바뀌어 배포가 돈다. 그 run이 성공했는지 본다(위 "Trigger").
 
