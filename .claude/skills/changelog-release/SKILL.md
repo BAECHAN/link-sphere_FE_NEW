@@ -19,6 +19,10 @@ paths: CHANGELOG.md
 - `feat` / `fix` / `perf` / 동작이 바뀌는 `refactor` 커밋 시 → **`CHANGELOG.md`의 `[Unreleased]` 섹션에 항목 추가**를 같은 커밋에 포함한다.
 - 섹션: `Added` / `Changed` / `Fixed` / `Removed`. BE API 의존 사항은 `Notes`, 테스트 추가는 `Tests` 섹션 활용. 인증·인가·토큰 등 보안에 직접 관련된 변경은 `Security` 섹션(Keep a Changelog 표준 섹션, 실사용 선례: `CHANGELOG.md`의 FCM 토큰 재등록 항목 — [PR #246](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/246)).
 - `docs` / `style` / `chore` 등 사용자 영향 없는 변경은 기록하지 않는다.
+- **되돌린(revert) PR의 항목은 원래 항목이 어느 섹션에 있느냐로 처리한다**(2026-11-12 사용자 결정). 그 전에는 FE [#170](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/170)이 원래 항목을 두고 철회 항목을 더했고, BE [#182](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/182)는 원래 항목을 지워 둘이 달랐다.
+  - 원래 항목이 아직 `[Unreleased]`에 있으면 revert PR에서 그 항목을 지운다(BE #182, `docs/DECISIONS.md` 2026-09-06 "필터 초기화 버튼" 항목과 같은 방식). 릴리즈된 적 없는 변경이라 다음 릴리즈 노트에 "더했다가 뺐다"를 남기면 독자가 받은 적 없는 변경을 읽게 된다.
+  - 원래 항목이 이미 `## [X.Y.Z]` 섹션에 있으면 그 섹션은 고치지 않는다. `.github/workflows/release.yml`은 그 버전의 태그가 없을 때 한 번만 섹션을 GitHub Release 본문으로 복사하고 태그가 있으면 건너뛰어서, 나중에 섹션을 고치면 Release 본문과 어긋난다. 대신 `[Unreleased]`에 새 항목을 더한다 — 기능이 없어지면 `Removed`, 동작이 예전으로 돌아가면 `Changed`(Keep a Changelog의 변경 유형에 "되돌림"은 따로 없다). 요약 줄은 `` `스코프` vX.Y.Z의 '<원래 요약>'을 되돌림 ``으로 쓰고(72자를 넘으면 원래 요약을 줄인다), 파일 목록 괄호 끝에 원래 PR과 revert PR 링크를 둘 다 단다.
+  - `[YANKED]`는 쓰지 않는다. [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)("삭제된 릴리즈(Yanked release)는 어떻게 하나요?")는 이 표시를 _"심각한 버그나 보안 이슈 때문에 소스에서 들어내 버린 버전"_ 에 붙이라고 하는데, 이 앱은 운영에 한 버전만 떠 있는 웹 앱이라 사용자가 골라 받을 옛 버전이 없다. 또 `release.yml:28`은 최신 버전 줄을 날짜로 끝나는 줄로만 찾아, 뒤에 `[YANKED]`를 붙인 줄은 건너뛴다.
 
 **항목 포맷** — 한 줄 요약 + 접힌 상세로 훑어볼 수 있게 쓴다.
 

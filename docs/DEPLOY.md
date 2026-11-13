@@ -1031,8 +1031,8 @@ gh pr merge <새 PR 번호> --squash
   더한 계획을 지우고 고친 계획을 되돌린다(위 #596 측정에서 하나 삭제·하나 수정). 2026-11-12부터 CI 불변성 검사(`.github/workflows/ci.yml`
   "docs/plans 불변성 확인")가 지운 파일·이름 바꾼 파일도 막고 되살리는 명령을 보여 준다. 커밋 전에 `git restore --source=HEAD --staged --worktree -- <계획 파일>`로
   되살린다(같은 측정에서 확인).
-- `CHANGELOG.md`는 정해 둔 처리가 없다. FE [#170](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/170)은 원래 항목을 두고
-  철회 항목을 새로 더했고, BE [#182](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/182)는 미릴리즈 항목을 지웠다.
+- `CHANGELOG.md`는 `changelog-release` skill(`.claude/skills/changelog-release/SKILL.md`) "규칙"의 되돌린 PR 항목을 따른다(2026-11-12) —
+  원래 항목이 아직 `[Unreleased]`에 있으면 지우고, 릴리즈된 섹션에 있으면 그 섹션은 두고 `[Unreleased]`에 되돌림 항목을 더한다.
 - `src/shared/api/generated/`(생성 스펙)가 바뀌면 아래 "5. BE와 계약이 걸린 변경"을 먼저 본다.
 
 ### 2. 병합 뒤 배포가 도는 조건
