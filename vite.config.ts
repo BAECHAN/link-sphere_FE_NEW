@@ -7,6 +7,9 @@ import mkcert from 'vite-plugin-mkcert';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { DEV_SERVER_PORT } from './dev-server.config';
 
+// treeshake.moduleSideEffects가 "부작용 없음"으로 보는 범위 - 우리 앱 코드(src)뿐이다
+const SRC_DIR = path.resolve(__dirname, 'src') + path.sep;
+
 /** CI가 아니면 로컬 git에서 커밋 SHA를 읽는다. git이 없거나 실패하면 판단 보류값('unknown'). */
 function readLocalGitSha(): string {
   try {
@@ -148,13 +151,13 @@ export default defineConfig(({ mode }) => {
           moduleSideEffects: (id) => {
             // CSS 파일은 side effect가 있음
             if (id.includes('.css')) return true;
-            // Firebase는 서비스 등록을 side effect에 의존하므로 반드시 유지
-            if (id.includes('firebase') || id.includes('@firebase')) return true;
-            // dayjs 로케일은 import하면 dayjs에 자기를 등록하는 것이 전부인 모듈이다(date.util.ts의
-            // import 'dayjs/locale/ko'). 빠지면 dayjs.locale('ko')가 조용히 영어로 남는다 - 2026-11-12까지
-            // 운영 번들에 한국어 로케일이 없었다(ci.yml "운영 번들에 dayjs 한국어 로케일 있음 확인")
-            if (/[\\/]dayjs[\\/]locale[\\/]/.test(id)) return true;
-            return false;
+            // 우리 src만 부작용 없음으로 본다 - export를 하나도 안 쓰는 모듈을 통째로 빼서, 안 쓰는 다시 내보내기가
+            // 무거운 의존성을 첫 로딩에 끌어오지 않게 한다. 이 규칙이 없으면 auth.keys.ts가 entities/account/@x/auth.ts를
+            // 거쳐 account.schema.ts의 zod를 첫 로딩에 끌어온다(2026-11-13 직접 측정 gzip +13,190바이트, ci.yml zod 검사 실패).
+            // 그래서 src에서 값을 안 쓰고 실행만 시키는 import는 운영 빌드에서 빠진다 - eslint.config.js가 막는다.
+            // 패키지는 package.json의 sideEffects 선언을 따르고, 선언이 없으면 지우지 않는다(Vite·Rollup 기본). 2026-11-12까지는
+            // 패키지도 부작용 없음으로 봐서 dayjs 로케일(date.util.ts의 import 'dayjs/locale/ko')이 운영 번들에서 빠졌다.
+            return !id.startsWith(SRC_DIR);
           },
           propertyReadSideEffects: false,
           tryCatchDeoptimization: false,

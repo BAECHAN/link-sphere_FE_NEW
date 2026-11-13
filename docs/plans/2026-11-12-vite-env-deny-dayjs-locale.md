@@ -14,6 +14,7 @@
 - Phase 1 배포 뒤 운영 확인(검증 8번, 2026-11-12): 병합 커밋 `38903545`의 배포가 성공했고, 운영 `index.html`에서 얻은 `util-vendor` 청크에 `일요일_월요일`이 1건 있었다(요청 2건). 이 확인 뒤에 Phase 2를 시작했다.
 - Phase 2 검증(직접 측정, 2026-11-12): 커밋 전 같은 HEAD(`38903545`)에서 수정 전·후를 `CI=1 pnpm exec vite build`로 빌드해 `version.json`을 뺀 164개 파일의 이름과 sha256이 모두 같았다. `pnpm check` 통과, `pnpm test` 195개 파일 2,655건 통과.
 - 계획보다 더 한 검증(코드 변경 아님): 계획은 `credentials` 삭제를 실기 확인 없이 소스 근거로 두기로 했다. 추가로 로컬 에코 서버를 dev 프록시 대상으로 세워 `credentials: true`가 있을 때와 없을 때를 비교했고, 대상이 받은 `Cookie` 헤더와 브라우저로 돌아온 `Set-Cookie`(`Path=/`로 바뀜, `Domain` 제거)가 같았다. 운영에는 요청을 보내지 않았고 실제 BE 로그인 유지는 보지 않았다.
+- 대체됨: `docs/plans/2026-11-13-module-side-effects-src-only.md`(#619) — 판단 표 "② 고치는 자리"의 dayjs 로케일 예외 한 줄 대신 `moduleSideEffects`를 우리 `src`에만 적용되게 좁혀 예외가 필요 없어졌다. 이 계획 "남은 것" 첫 항목을 11-13에 재고 바꾼 것이다(운영 번들 내용은 `query-vendor` import 순서 말고 같음).
 
 <!-- plan-result:end -->
 

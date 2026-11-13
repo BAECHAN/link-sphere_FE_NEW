@@ -164,6 +164,22 @@ const RESTRICTED_SYNTAX_NO_RAW_HTML = [
   },
 ];
 
+// [금지] 값을 받지 않고 실행만 시키는 로컬 import(import './x'·import '@/x', CSS 제외)
+// 이유: vite.config.ts의 treeshake.moduleSideEffects가 우리 src를 부작용 없음으로 봐서(안 쓰는 다시 내보내기가 zod를
+// 첫 로딩에 끌어오지 않게) 이런 import는 운영 빌드에서 통째로 빠진다. 단위 테스트·dev 서버·e2e는 트리셰이킹을 하지
+// 않아 운영에서만 드러난다 — 2026-11-12까지 dayjs 로케일이 같은 이유로 운영 번들에 없었다. 2026-11-13 앱 코드에는
+// 0건(src/main.tsx의 CSS뿐)이라 새로 생기지 않게 막는다. 패키지 import('dayjs/locale/ko')는 package.json의
+// sideEffects 선언을 따라 남아 대상이 아니다. `@\W`는 `@/`를 잡고 `@testing-library/…` 같은 패키지는 거른다.
+// 테스트·src/mocks는 배포되지 않아 적용하지 않는다.
+const RESTRICTED_SYNTAX_NO_LOCAL_SIDE_EFFECT_IMPORT = [
+  {
+    selector:
+      'ImportDeclaration[specifiers.length=0][source.value=/^(\\.|@\\W)/]:not([source.value=/\\.css$/])',
+    message:
+      '값을 받지 않고 실행만 시키는 로컬 import는 운영 빌드에서 빠집니다(vite.config.ts의 treeshake.moduleSideEffects가 src를 부작용 없음으로 봄). 쓰는 값을 import하거나, 정말 실행만 필요하면 vite.config.ts 규칙에 그 파일을 예외로 더하고 그 줄에 eslint-disable-next-line no-restricted-syntax -- <이유>를 다세요.',
+  },
+];
+
 // [금지] 창 폭(innerWidth·outerWidth) 직접 읽기 — 아래 no-restricted-properties·globals 블록이 쓴다
 const VIEWPORT_WIDTH_MESSAGE =
   '창 폭을 px로 읽어 판정하지 마세요. matchMedia에 @/shared/config/const의 MOBILE_MEDIA_QUERY·DESKTOP_MEDIA_QUERY를 쓰세요 — 브라우저 기본 글꼴 크기를 바꾼 사용자에게서 Tailwind(rem)와 갈립니다. 폭 판정이 아닌 측정이면 그 줄에 eslint-disable-next-line과 이유를 다세요.';
@@ -1221,6 +1237,7 @@ export default [
         ...RESTRICTED_SYNTAX_NO_REGEXP_LOOKBEHIND,
         ...RESTRICTED_SYNTAX_NO_RAW_BACK_HANDLING,
         ...RESTRICTED_SYNTAX_NO_RAW_HTML,
+        ...RESTRICTED_SYNTAX_NO_LOCAL_SIDE_EFFECT_IMPORT,
       ],
     },
   },
@@ -1228,7 +1245,7 @@ export default [
   // 아니라 테스트가 직접 통제하는 리터럴 날짜라 dayjs 안전성 문제가 없다)는 날짜 규칙만
   // 제외 — getState·클래스 컴포넌트 금지는 그대로 적용한다(ESLint flat config는 같은 rule
   // key가 겹치는 files에 다시 나오면 배열을 병합하지 않고 통째로 덮어쓰므로, 공통 규칙을
-  // 여기서도 명시해야 사라지지 않는다). date.util.ts는 배포되는 코드라 lookbehind·뒤로가기 직접 처리·HTML 직접 넣기 금지는 남긴다
+  // 여기서도 명시해야 사라지지 않는다). date.util.ts는 배포되는 코드라 lookbehind·뒤로가기 직접 처리·HTML 직접 넣기·실행만 시키는 로컬 import 금지는 남긴다
   {
     files: ['src/shared/utils/date.util.ts'],
     rules: {
@@ -1238,6 +1255,7 @@ export default [
         ...RESTRICTED_SYNTAX_NO_REGEXP_LOOKBEHIND,
         ...RESTRICTED_SYNTAX_NO_RAW_BACK_HANDLING,
         ...RESTRICTED_SYNTAX_NO_RAW_HTML,
+        ...RESTRICTED_SYNTAX_NO_LOCAL_SIDE_EFFECT_IMPORT,
       ],
     },
   },
