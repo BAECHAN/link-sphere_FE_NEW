@@ -648,7 +648,7 @@ CI 검사도, contract 파일을 허용하는 ESLint 규칙도 이 경로를 못
 생성 파일은 상수와 `zod.object(...)` 스키마를 한 파일에 담는다. orval 8.46.0에는 상수만 내보내는 옵션이 없었다(설치본
 `@orval/core`의 `ZodOptions` 확인). 런타임 모듈이 상수 하나만 import해도 그 파일의 최상위 `zod.object(...)` 호출이 남았다.
 
-- `vite.config.ts`의 `treeshake.moduleSideEffects`(CSS·firebase·dayjs 로케일 밖은 `false`를 돌려주는 함수)는 쓰이는 모듈 안의 최상위 호출을 지우지 않는다
+- `vite.config.ts`의 `treeshake.moduleSideEffects`(우리 `src` 모듈에 `false`를 돌려주는 함수, CSS 제외)는 쓰이는 모듈 안의 최상위 호출을 지우지 않는다
   (`docs/PERFORMANCE.md` "첫 로딩 JS", 2026-10-28 직접 측정).
 - Rollup `treeshake.manualPureFunctions: ['zod']`도 소용없었다. 설치본 Rollup 4.55.1은 이 옵션을 이름 경로로만 맞추고
   (ES 빌드 `node-entry.js`의 `getPureFunctions` 2361-2371줄·`isPureFunction` 5397-5411줄), `zod.string().min(1)` 같은 체인 호출은
