@@ -28,8 +28,7 @@ declare module '@tanstack/react-query' {
  * 토스트가 떠 있는 동안 새로 띄우지 않고 그 토스트를 갱신한다(sonner).
  */
 export type ErrorToastDecision =
-  | { silent: true }
-  | { silent: false; message: string; log?: readonly unknown[]; id?: string };
+  { silent: true } | { silent: false; message: string; log?: readonly unknown[]; id?: string };
 
 // 요청 한도 초과·보안 정책 차단은 요청 하나가 아니라 지금 앱 상태에 대한 안내라, 같은 순간 여러 요청이
 // 함께 실패해도 하나만 보이게 고정 id를 단다. 재시도하지 않는 실패라(retry-policy.ts) 미리 받기가 먼저

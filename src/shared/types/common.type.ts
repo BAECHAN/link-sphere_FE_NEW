@@ -107,12 +107,7 @@ export class SessionExpiredError extends Error {
  * - failed: 원인을 특정하지 못했다
  */
 export type ImageUploadFailureReason =
-  | 'unsupportedType'
-  | 'tooLarge'
-  | 'rateLimited'
-  | 'storageUnavailable'
-  | 'network'
-  | 'failed';
+  'unsupportedType' | 'tooLarge' | 'rateLimited' | 'storageUnavailable' | 'network' | 'failed';
 
 /**
  * 이미지 업로드 단계의 실패. 본 요청(댓글 등록 등)을 보내기 전이라 그 글은 저장되지 않았다 - 같은

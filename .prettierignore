@@ -6,6 +6,9 @@ storybook-static
 .husky
 .claude/worktrees
 docs/HISTORY.md
+# 커밋된 계획은 고치지 않는다(.claude/CLAUDE.md §11, CI "docs/plans 불변성 확인"). Prettier를 올리면 서식이 바뀌어
+# 계획 파일을 다시 써야 하는데 그럴 수 없다(2026-11-13 Prettier 3.9에서 3개, docs/DEPLOY.md "npm 패키지 업데이트")
+docs/plans/
 # pnpm이 쓰는 서식 그대로 둔다. Prettier 서식이면 pnpm·Dependabot이 lockfile을 다시 쓸 때마다 수천 줄이
 # 바뀌고 format:check가 실패한다(2026-11-12, docs/DEPLOY.md "npm 패키지 업데이트")
 pnpm-lock.yaml

@@ -223,7 +223,8 @@ PR 하나(`npm` 그룹)로 묶어 올린다(2026-11-12 도입). 위 절처럼 �
 
 1. CI(`ci.yml`)가 통과했는지 본다. 운영 의존성 감사(`docs/CI-CHECK-GATE.md` §6)도 여기서 돈다. Prettier가 올라가면
    서식 규칙이 바뀌어 `check`가 실패할 수 있다(#615, 3.5→3.9에서 유니언 타입 줄바꿈). 그 PR 브랜치에서
-   `prettier --write`로 맞춰 커밋한다 — main에 따로 넣으면 옛 Prettier 쪽이 실패한다.
+   `prettier --write`로 맞춰 커밋한다 — main에 따로 넣으면 옛 Prettier 쪽이 실패한다. 커밋된 계획(`docs/plans/`)은
+   고칠 수 없어 Prettier 대상에서 뺐다(`.prettierignore`, 같은 PR #618에서 계획 3개가 걸려 더함).
 2. 0.x 패키지는 minor에도 깨지는 변경이 있을 수 있어 그 릴리스 노트만 훑는다.
 3. squash 병합하면 `pnpm-lock.yaml`이 바뀌어 배포가 돈다. 그 run이 성공했는지 본다(위 "Trigger").
 
