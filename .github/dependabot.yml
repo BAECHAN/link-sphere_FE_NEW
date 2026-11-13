@@ -28,6 +28,11 @@ updates:
       - dependency-name: '*'
         dependency-type: direct
         update-types: ['version-update:semver-minor', 'version-update:semver-patch']
+    # lint-staged는 17.6부터 스테이징 범위가 넓어져 일부러 17.5.1에 고정해 뒀다(docs/CI-CHECK-GATE.md §9.8).
+    # 그 동작을 다시 검증하기 전에는 올리지 않는다. 커밋 훅에서만 쓰는 개발 도구라 보안 업데이트까지 막혀도 된다.
+    ignore:
+      - dependency-name: lint-staged
+        versions: ['>=17.6.0']
     groups:
       npm:
         patterns: ['*']
