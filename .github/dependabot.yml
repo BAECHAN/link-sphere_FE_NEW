@@ -22,8 +22,11 @@ updates:
       interval: monthly
     # allow의 update-types는 버전 업데이트에만 걸리고 보안 업데이트에는 걸리지 않는다(Dependabot
     # options reference "update-types (allow)"). ignore로 메이저를 막으면 보안 업데이트까지 막힌다.
+    # dependency-type을 비우면 Dependabot이 all로 읽어 간접 의존성까지 하나씩 검사한다. 2026-11-12 첫 run이
+    # 그러다 55분 만에 취소돼 PR이 열리지 않았다(docs/DEPLOY.md "npm 패키지 업데이트").
     allow:
       - dependency-name: '*'
+        dependency-type: direct
         update-types: ['version-update:semver-minor', 'version-update:semver-patch']
     groups:
       npm:

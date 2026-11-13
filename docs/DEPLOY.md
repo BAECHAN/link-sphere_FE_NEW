@@ -202,6 +202,13 @@ PR 하나(`npm` 그룹)로 묶어 올린다(2026-11-12 도입). 위 절처럼 �
   [options reference](https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference)
   "`update-types` (`allow`)")고 쓴다. 반면 `ignore`는 같은 문서에서 보안 업데이트에도 걸리는 옵션으로
   표시돼 있어, 메이저를 막으면 메이저로만 고칠 수 있는 보안 수정까지 막힌다.
+- `allow`에는 `dependency-type: direct`를 함께 적는다. 비워 두면 Dependabot 본체가 `all`로 읽고
+  ([dependabot-core `allowed_update.rb`](https://github.com/dependabot/dependabot-core/blob/fe4849492ce9f8b30213b718abaea99dfc581ded/updater/lib/dependabot/job/allowed_update.rb#L17)),
+  `direct`·`production`·`development`일 때만 간접 의존성을 거른다([`job.rb`](https://github.com/dependabot/dependabot-core/blob/fe4849492ce9f8b30213b718abaea99dfc581ded/updater/lib/dependabot/job.rb#L376-L380)).
+  `allow`를 쓰지 않으면 API가 `direct`를 넣어 준다고 같은 자리 주석이 적고 있다. 2026-11-12 첫 run은 이 값이 빠져
+  직접 의존성 84개를 31분에 검사한 뒤 `package.json`에 없는 간접 의존성을 하나씩 검사했고(결과는 모두 "No update
+  possible"), 149개째에서 55분 만에 취소돼 PR이 열리지 않았다(run 로그에서 직접 셈). 위 options reference 표는
+  npm의 `all`을 직접 적은 의존성으로만 설명해, 이 검사 시간은 문서로는 드러나지 않는다.
 - `pnpm-lock.yaml`은 pnpm이 쓰는 서식 그대로 둔다(`.prettierignore`). 그 전에는 Prettier 서식이라 pnpm이나
   Dependabot이 lockfile을 다시 쓰면 수천 줄이 바뀌고 `format:check`가 실패했다. 서식을 바꾼 날 두 파일을
   YAML로 읽어 비교해 내용이 같은 것을 확인했다.

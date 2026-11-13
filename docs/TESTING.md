@@ -783,7 +783,8 @@ pnpm test:mutation --mutate src/entities/interaction/api/interaction.queries.ts
 - `ignoreStatic`: 모듈을 불러올 때 한 번만 실행되는 코드(상수 초기화 등)의 뮤턴트는 건너뛴다. 그런 뮤턴트는
   매번 모듈을 다시 불러와야 해서 시간이 많이 든다.
 - pnpm에서는 `plugins`를 명시해야 플러그인을 찾는다([공식 troubleshooting](https://stryker-mutator.io/docs/stryker-js/troubleshooting/)).
-- Stryker 버전은 Dependabot이 올리지 않는다(`.github/dependabot.yml`은 github-actions만 본다).
+- Stryker 버전은 2026-11-12부터 Dependabot npm 묶음 PR이 minor·patch만 올린다(`docs/DEPLOY.md` "npm 패키지 업데이트").
+  메이저는 직접 올린다.
 
 ### 자동 보강 루프
 
