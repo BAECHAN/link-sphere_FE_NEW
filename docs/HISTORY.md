@@ -1,4 +1,9 @@
 ### 2026-11-15 (BE)
+- 회원 관리 기능 모듈화 및 API 리팩토링
+로그:
+- refactor(auth): 계정 조회·수정·닉네임 확인 API를 member로 옮김 ([#202](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/202))
+
+### 2026-11-15 (BE)
 - 레이트리밋(Rate Limit) 저장소 구조 개선을 통한 Auth 테이블 의존성 제거 ([#201](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/201))
 
 ### 2026-11-15 (FE)
