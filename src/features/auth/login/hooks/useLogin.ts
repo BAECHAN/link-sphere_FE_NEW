@@ -4,13 +4,13 @@ import { useForm, UseFormReturn } from 'react-hook-form';
 import { useLocation } from 'react-router-dom';
 import { useLoginMutation } from '@/entities/auth/api/auth.queries';
 import { loginSchema } from '@/entities/auth/model/auth.schema';
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { LocalStorageUtil } from '@/shared/utils/storage.util';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 
 const SAVED_ID_KEY = STORAGE_KEYS.AUTH.SAVED_EMAIL;
 
-const loginFormSchema = loginSchema.extend({
+const loginFormSchema = z.extend(loginSchema, {
   saveEmail: z.boolean(),
 });
 

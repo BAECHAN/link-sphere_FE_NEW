@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { TEXTS } from '@/shared/config/texts';
 import { UrlUtil } from '@/shared/utils/url.util';
 
@@ -7,9 +7,13 @@ import { UrlUtil } from '@/shared/utils/url.util';
 // BE SafeUrlValidator가 http/https 스킴만 크롤링 대상으로 허용해, file:// 등은 형식은
 // 유효해도 등록은 항상 실패한다 — 요청을 보내기 전에 클라이언트에서 먼저 걸러낸다.
 const postUrlSchema = z
-  .string()
   .url(TEXTS.validation.urlFormat)
-  .refine((value) => /^https?:\/\//.test(UrlUtil.normalizeUrl(value)), TEXTS.validation.urlFormat);
+  .check(
+    z.refine(
+      (value) => /^https?:\/\//.test(UrlUtil.normalizeUrl(value)),
+      TEXTS.validation.urlFormat
+    )
+  );
 
 /**
  * 포스트 등록(생성)을 위한 스키마
@@ -17,8 +21,9 @@ const postUrlSchema = z
  */
 export const createPostSchema = z.object({
   url: postUrlSchema,
-  title: z.string().optional(),
-  categoryIds: z.array(z.coerce.number()).optional(),
+  title: z.optional(z.string()),
+  // zod 4의 z.coerce 입력 타입은 기본 unknown이라 폼 타입이 어긋난다. <number>로 입력 타입을 되돌린다.
+  categoryIds: z.optional(z.array(z.coerce.number<number>())),
   isPrivate: z.boolean(),
   // 폴더 없이 북마크만(미분류)
   bookmark: z.boolean(),
@@ -29,8 +34,8 @@ export const createPostSchema = z.object({
 export const updatePostSchema = z.object({
   url: postUrlSchema,
   // 제목을 비우면 서버가 링크에서 제목을 다시 가져오므로 비워둘 수 있다.
-  title: z.string().optional(),
-  categoryIds: z.array(z.coerce.number()).optional(),
+  title: z.optional(z.string()),
+  categoryIds: z.optional(z.array(z.coerce.number<number>())),
   isPrivate: z.boolean(),
 });
 

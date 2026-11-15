@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { TEXTS } from '@/shared/config/texts';
 import { nicknameValidationSchema, emailValidationSchema } from '@/entities/account/@x/auth';
 import { PASSWORD_MAX_LENGTH } from '@/entities/auth/config/auth.contract';
@@ -8,13 +8,15 @@ import { PASSWORD_MAX_LENGTH } from '@/entities/auth/config/auth.contract';
 // 길이 상한을 64자로, 출력 가능 ASCII만 허용하도록 맞췄다.
 export const passwordValidationSchema = z
   .string()
-  .regex(/^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{8,}$/, TEXTS.validation.passwordRegex)
-  .max(PASSWORD_MAX_LENGTH, TEXTS.validation.passwordMaxLength)
-  .regex(/^[\x20-\x7E]*$/, TEXTS.validation.passwordAsciiOnly);
+  .check(
+    z.regex(/^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{8,}$/, TEXTS.validation.passwordRegex),
+    z.maxLength(PASSWORD_MAX_LENGTH, TEXTS.validation.passwordMaxLength),
+    z.regex(/^[\x20-\x7E]*$/, TEXTS.validation.passwordAsciiOnly)
+  );
 
 // 로그인 비밀번호는 회원가입 강도 규칙을 재검증하지 않는다 - 이미 가입된 계정의 비밀번호가
 // 그 사이 규칙이 바뀌어 더 이상 매칭 안 될 수 있고, 어차피 맞는지 틀린지는 서버가 판단한다.
-const loginPasswordSchema = z.string().min(1, TEXTS.validation.passwordRequired);
+const loginPasswordSchema = z.string().check(z.minLength(1, TEXTS.validation.passwordRequired));
 
 // ==================== 1. Domain Model Schema ====================
 
@@ -28,12 +30,14 @@ export const createAccountSchema = z
     nickname: nicknameValidationSchema,
     email: emailValidationSchema,
     password: passwordValidationSchema,
-    confirmPassword: z.string().min(1, TEXTS.validation.passwordRequired),
+    confirmPassword: z.string().check(z.minLength(1, TEXTS.validation.passwordRequired)),
   })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: TEXTS.validation.passwordMismatch,
-    path: ['confirmPassword'],
-  });
+  .check(
+    z.refine((data) => data.password === data.confirmPassword, {
+      message: TEXTS.validation.passwordMismatch,
+      path: ['confirmPassword'],
+    })
+  );
 
 export const passwordResetRequestSchema = z.object({
   email: emailValidationSchema,
@@ -41,14 +45,16 @@ export const passwordResetRequestSchema = z.object({
 
 export const passwordResetConfirmSchema = z
   .object({
-    token: z.string().min(1, TEXTS.validation.tokenRequired),
+    token: z.string().check(z.minLength(1, TEXTS.validation.tokenRequired)),
     newPassword: passwordValidationSchema,
-    confirmPassword: z.string().min(1, TEXTS.validation.passwordRequired),
+    confirmPassword: z.string().check(z.minLength(1, TEXTS.validation.passwordRequired)),
   })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: TEXTS.validation.passwordMismatch,
-    path: ['confirmPassword'],
-  });
+  .check(
+    z.refine((data) => data.newPassword === data.confirmPassword, {
+      message: TEXTS.validation.passwordMismatch,
+      path: ['confirmPassword'],
+    })
+  );
 
 // 현재 비밀번호는 로그인과 같은 이유로 강도 재검증하지 않는다(loginPasswordSchema 참고) -
 // 맞는지는 서버가 판단한다. 새 비밀번호만 가입 시 규칙을 그대로 적용한다.
@@ -56,12 +62,14 @@ export const changePasswordSchema = z
   .object({
     currentPassword: loginPasswordSchema,
     newPassword: passwordValidationSchema,
-    confirmPassword: z.string().min(1, TEXTS.validation.passwordRequired),
+    confirmPassword: z.string().check(z.minLength(1, TEXTS.validation.passwordRequired)),
   })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: TEXTS.validation.passwordMismatch,
-    path: ['confirmPassword'],
-  });
+  .check(
+    z.refine((data) => data.newPassword === data.confirmPassword, {
+      message: TEXTS.validation.passwordMismatch,
+      path: ['confirmPassword'],
+    })
+  );
 
 // 재발송(MyAccountPage)·확인(VerifyEmailPage) 양쪽에서 쓴다 - 재발송은 로그인 여부와
 // 무관하게 이메일만으로 호출한다(세션에서 유추하지 않음, BE AuthController 참고).
@@ -70,7 +78,7 @@ export const emailVerificationRequestSchema = z.object({
 });
 
 export const emailVerificationConfirmSchema = z.object({
-  token: z.string().min(1, TEXTS.validation.tokenRequired),
+  token: z.string().check(z.minLength(1, TEXTS.validation.tokenRequired)),
 });
 
 // ==================== 2. DTO ====================

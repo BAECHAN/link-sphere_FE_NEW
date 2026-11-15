@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { TEXTS } from '@/shared/config/texts';
 import {
   NICKNAME_MAX_LENGTH,
@@ -10,23 +10,25 @@ import {
 // (예: 완성되지 않은 낱자모 "ㅎㅍㅊ...") 길이 안내 메시지가 떠서 실제 원인과 다른 메시지를 보게 된다.
 export const nicknameValidationSchema = z
   .string()
-  .min(NICKNAME_MIN_LENGTH, TEXTS.validation.nicknameLength)
-  .max(NICKNAME_MAX_LENGTH, TEXTS.validation.nicknameLength)
-  .regex(NICKNAME_PATTERN, TEXTS.validation.nicknameCharset);
+  .check(
+    z.minLength(NICKNAME_MIN_LENGTH, TEXTS.validation.nicknameLength),
+    z.maxLength(NICKNAME_MAX_LENGTH, TEXTS.validation.nicknameLength),
+    z.regex(NICKNAME_PATTERN, TEXTS.validation.nicknameCharset)
+  );
 
-export const emailValidationSchema = z.string().email(TEXTS.validation.emailRegex);
+export const emailValidationSchema = z.email(TEXTS.validation.emailRegex);
 
 // ==================== 1. Domain Model Schema ====================
 
 // 수정 요청 — nickname 필수, image는 BE가 null로 반환할 수 있으므로 nullish
 export const updateAccountSchema = z.object({
   nickname: nicknameValidationSchema,
-  image: z.string().nullish(),
+  image: z.nullish(z.string()),
 });
 
 // 탈퇴 확인 — 비밀번호 재입력만 요구한다(강도 재검증 없음, 로그인과 같은 이유로 서버가 판단).
 export const deleteAccountSchema = z.object({
-  password: z.string().min(1, TEXTS.validation.passwordRequired),
+  password: z.string().check(z.minLength(1, TEXTS.validation.passwordRequired)),
 });
 
 // ==================== 2. DTO ====================
