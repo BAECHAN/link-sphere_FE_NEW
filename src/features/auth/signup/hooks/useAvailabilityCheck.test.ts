@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { useAvailabilityCheck } from '@/features/auth/signup/hooks/useAvailabilityCheck';
 
-const schema = z.string().email();
+const schema = z.email();
 
 interface Props {
   value: string;

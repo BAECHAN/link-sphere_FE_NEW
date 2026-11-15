@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { TEXTS } from '@/shared/config/texts';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
 import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/comment.const';
@@ -8,9 +8,11 @@ import { MAX_COMMENT_CONTENT_BYTES } from '@/entities/comment/config/comment.con
 export const commentContentFormSchema = z.object({
   content: z
     .string()
-    .refine(
-      (value) => getUtf8ByteLength(value) <= MAX_COMMENT_CONTENT_BYTES,
-      TEXTS.validation.commentContentTooLong
+    .check(
+      z.refine(
+        (value) => getUtf8ByteLength(value) <= MAX_COMMENT_CONTENT_BYTES,
+        TEXTS.validation.commentContentTooLong
+      )
     ),
 });
 

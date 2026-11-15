@@ -712,16 +712,21 @@ BE와 어긋나는 사고를 구조적으로 막기 위해 응답 쪽은 생성 
 참고). `apiClient`가 응답에 `.parse()`/`safeParse()`를 걸지 않으므로 Zod는 응답 경로에서
 실질적인 런타임 검증을 한 적이 없었다.
 
+스키마는 `zod`가 아니라 **`zod/mini`**로 쓴다 — 메서드 체인(`.min()`) 대신 함수(`z.minLength()`)를 `.check()`에 넘기는
+tree-shakable 형태라 `zod-vendor` 청크가 작다(classic은 gzip 약 25KB, mini는 약 7KB — 2026-11-15 직접 측정,
+`docs/plans/2026-11-15-zod-mini-migration.md`). `import { z } from 'zod'`는 쓰지 않는다. mini에는 기본 영어 오류
+문구가 없으므로 검증마다 `TEXTS` 문구를 단다.
+
 ```typescript
 // entities/<entity>/model/<entity>.schema.ts — 요청/폼 검증만
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { TEXTS } from '@/shared/config/texts';
 
 export const createEntitySchema = z.object({
   // 공용 nameRequired 키는 없다 — 필드마다 별도 키(선례: folderNameRequired, categoryNameRequired)
-  name: z.string().min(1, TEXTS.validation.entityNameRequired),
+  name: z.string().check(z.minLength(1, TEXTS.validation.entityNameRequired)),
 });
-export const updateEntitySchema = z.object({ name: z.string().min(1) });
+export const updateEntitySchema = z.object({ name: z.string().check(z.minLength(1)) });
 
 export type CreateEntity = z.infer<typeof createEntitySchema>;
 export type UpdateEntity = z.infer<typeof updateEntitySchema>;

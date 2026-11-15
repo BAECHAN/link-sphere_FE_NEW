@@ -1,9 +1,9 @@
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { TEXTS } from '@/shared/config/texts';
 
 // 생성 / 수정
 export const createBookmarkFolderSchema = z.object({
-  name: z.string().min(1, TEXTS.validation.folderNameRequired),
+  name: z.string().check(z.minLength(1, TEXTS.validation.folderNameRequired)),
 });
 
 // 폴더 페이지 조회용 sort

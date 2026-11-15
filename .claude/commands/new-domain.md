@@ -46,7 +46,7 @@ create/update 함수·훅과 `Create<Entity>`·`Update<Entity>` import를 빼고
 `@/entities/<entity>/model/<entity>.dto`에서 import한다.
 
 ```typescript
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
 export const create<Entity>Schema = z.object({
   // TODO: fields the user inputs to create

@@ -4,7 +4,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { renderWithProviders } from '@/test/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
@@ -41,7 +41,7 @@ function ProfiledHarness({
   );
 }
 
-const requiredUrlSchema = z.object({ url: z.string().min(1, 'required') });
+const requiredUrlSchema = z.object({ url: z.string().check(z.minLength(1, 'required')) });
 
 // 제출·reset·setValue·dirty를 함께 보는 harness - 루트가 isDirty를 읽어 리렌더되므로 커밋 수는 여기서 세지 않는다
 function SubmitHarness({ enableClear }: { enableClear?: boolean }) {

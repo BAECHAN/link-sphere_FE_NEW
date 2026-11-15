@@ -80,11 +80,11 @@ export type Account = Omit<components['schemas']['AccountResponse'], 'role'> & {
 ```
 
 ```typescript
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { TEXTS } from '@/shared/config/texts';
 
 export const create<Entity>Schema = z.object({
-  name: z.string().min(1, TEXTS.validation.<entity>NameRequired),
+  name: z.string().check(z.minLength(1, TEXTS.validation.<entity>NameRequired)),
 });
 
 export type Create<Entity> = z.infer<typeof create<Entity>Schema>;

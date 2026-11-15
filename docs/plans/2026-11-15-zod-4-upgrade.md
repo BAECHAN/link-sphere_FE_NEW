@@ -9,6 +9,7 @@
 - 미구현 → 대체함: 개발 서버로 글 등록 URL 검증을 직접 확인하는 대신, zod 3·4의 `.url()` 판정을 24개 표본으로 비교(차이 없음)하고 폼 e2e 24개를 통과시킴
 - 계획에 없던 변경: `docs/DEPLOY.md` 메이저 문장에 코드 수정이 `z.coerce.number<number>()` 두 곳뿐이었다는 설명을 더 적음(문서 동기화)
 - 계획에 없던 발견: `zod-vendor` 청크가 53,491 → 87,968바이트(gzip 12,186 → 25,226)로 커짐. 첫 로딩에는 여전히 실리지 않음. 병합 전 사용자 확인 대상
+- 후속: 위 청크 크기 때문에 스키마를 `zod/mini`로 전환(`docs/plans/2026-11-15-zod-mini-migration.md`). 전환 뒤 `zod-vendor` gzip 7,453
 - 병합 뒤 배포 success와 zod 알림 닫힘 확인은 아직 하지 않음
 
 <!-- plan-result:end -->

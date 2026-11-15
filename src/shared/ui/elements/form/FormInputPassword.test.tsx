@@ -4,13 +4,15 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { renderWithProviders } from '@/test/utils';
 import { FormInputPassword } from '@/shared/ui/elements/form/FormInputPassword';
 
 const schema = z
-  .object({ password: z.string().min(1, 'required'), confirm: z.string() })
-  .refine((data) => data.password === data.confirm, { message: 'mismatch', path: ['confirm'] });
+  .object({ password: z.string().check(z.minLength(1, 'required')), confirm: z.string() })
+  .check(
+    z.refine((data) => data.password === data.confirm, { message: 'mismatch', path: ['confirm'] })
+  );
 
 // 선례: FormInput.test.tsx의 Harness 패턴
 function Harness({

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { z } from 'zod';
+import type * as z from 'zod/mini';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 
 type AvailabilityStatus = 'idle' | 'checking' | 'available' | 'duplicate';
@@ -8,7 +8,7 @@ interface UseAvailabilityCheckOptions {
   /** 검사 대상 입력값 (RHF의 watch 값) */
   value: string;
   /** 형식이 유효할 때만 서버를 호출하기 위한 zod 스키마 - 잘못된 형식은 조회할 필요가 없다 */
-  schema: z.ZodType<string>;
+  schema: z.ZodMiniType<string>;
   checkFn: (value: string) => Promise<boolean>;
 }
 
