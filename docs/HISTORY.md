@@ -1,3 +1,8 @@
+### 2026-11-15 (FE)
+- Zod 의존성 버전 업데이트 및 스키마 경량화
+  - Zod 라이브러리 4.6.7 버전 업데이트
+  - 스키마 정의를 zod/mini로 이전하여 번들 사이즈 최적화 ([#624](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/624))
+
 ### 2026-11-13 (FE)
 - 의존성 그룹(npm) 일괄 업데이트 및 빌드 환경 최적화 ([#618](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/618))
 
