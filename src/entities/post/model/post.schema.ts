@@ -18,7 +18,8 @@ const postUrlSchema = z
 export const createPostSchema = z.object({
   url: postUrlSchema,
   title: z.string().optional(),
-  categoryIds: z.array(z.coerce.number()).optional(),
+  // zod 4의 z.coerce 입력 타입은 기본 unknown이라 폼 타입이 어긋난다. <number>로 입력 타입을 되돌린다.
+  categoryIds: z.array(z.coerce.number<number>()).optional(),
   isPrivate: z.boolean(),
   // 폴더 없이 북마크만(미분류)
   bookmark: z.boolean(),
@@ -30,7 +31,7 @@ export const updatePostSchema = z.object({
   url: postUrlSchema,
   // 제목을 비우면 서버가 링크에서 제목을 다시 가져오므로 비워둘 수 있다.
   title: z.string().optional(),
-  categoryIds: z.array(z.coerce.number()).optional(),
+  categoryIds: z.array(z.coerce.number<number>()).optional(),
   isPrivate: z.boolean(),
 });
 

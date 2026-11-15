@@ -8,12 +8,10 @@
 # 적는다. 절차는 docs/CI-CHECK-GATE.md §7 "자주 하는 수정".
 auditConfig:
   ignoreGhsas:
-    # zod <4.6.6 — 길이 제한 없는 배열 스키마에 큰 배열을 넣으면 검증 오류가 쌓여 메모리가 바닥난다.
-    # 3.x에는 고친 버전이 없다. 이 앱의 zod는 브라우저에서 사용자 자신의 폼 입력만 검사하고 서버 응답은
-    # 검사하지 않아, 이 경로로 다른 사용자를 멈출 수 없다. zod 4로 올릴 때 지운다.
-    - GHSA-mrhx-c7xc-m3w5
     # @grpc/grpc-js <1.13.6 — gRPC 서버가 클라이언트 인증서를 검사할 때 생기는 문제. 앱이 쓰지 않는
     # Firestore(@firebase/firestore가 ~1.9.0으로 묶음)를 따라 설치될 뿐이고, 앱은 firebase/app·
     # firebase/messaging만 import해 빌드 결과물에 grpc 코드가 없다(2026-11-12 dist 검색 0건).
-    # firebase를 올려 1.13.6 이상이 깔리면 지운다.
+    # firebase를 올려도 풀리지 않는다 — 최신 firebase 13.3.0이 쓰는 @firebase/firestore 4.20.0도
+    # @grpc/grpc-js ~1.9.0으로 묶는다(2026-11-15 `npm view`). @firebase/firestore가 그 핀을 풀어
+    # 1.13.6 이상이 깔리면 지운다.
     - GHSA-m9gg-hp2v-232j

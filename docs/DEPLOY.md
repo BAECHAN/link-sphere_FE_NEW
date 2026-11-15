@@ -194,8 +194,10 @@ gh api repos/<owner>/<repo>/commits/<커밋 sha> --jq .sha   # 원 저장소에 
 [`.github/dependabot.yml`](../.github/dependabot.yml)의 npm 항목이 한 달에 한 번 minor·patch 업데이트를
 PR 하나(`npm` 그룹)로 묶어 올린다(2026-11-12 도입). 위 절처럼 새 릴리스가 3일 지난 뒤에 연다.
 
-- **메이저는 올리지 않는다.** React 19·React Router 7·zod 4 같은 메이저는 코드를 고쳐야 하는
-  마이그레이션이라 계획을 세워 따로 한다. 도입한 날 메이저가 밀린 패키지가 28개였다(`pnpm outdated`로
+- **메이저는 올리지 않는다.** React 19·React Router 7 같은 메이저는 코드를 고쳐야 하는
+  마이그레이션이라 계획을 세워 따로 한다(zod 4는 2026-11-15에 그렇게 올렸다 — 코드 수정은
+  `post.schema.ts`의 `z.coerce.number()` 두 곳에 입력 타입 `<number>`를 지정한 것뿐이었다).
+  도입한 날 메이저가 밀린 패키지가 28개였다(`pnpm outdated`로
   직접 셈). 거르지 않으면 메이저마다 PR이 따로 열려 버전 업데이트 한도(5개)를 늘 채운다.
 - 메이저는 `ignore`가 아니라 `allow`의 `update-types`로 거른다. Dependabot 문서는 이 값이 _"버전 업데이트에만
   영향을 주고 보안 업데이트에는 주지 않는다"_ (번역,
