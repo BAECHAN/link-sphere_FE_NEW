@@ -1,3 +1,6 @@
+### 2026-11-15 (BE)
+- 레이트리밋(Rate Limit) 저장소 구조 개선을 통한 Auth 테이블 의존성 제거 ([#201](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/201))
+
 ### 2026-11-15 (FE)
 - Zod 의존성 버전 업데이트 및 스키마 경량화
   - Zod 라이브러리 4.6.7 버전 업데이트
