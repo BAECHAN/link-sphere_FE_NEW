@@ -7,7 +7,7 @@
 > **읽고 나면**: RUM이 어떻게 수집·전송되는지, 그 데이터를 실제 개선에 어떻게
 > 쓰는지 알고, App Monitor 설정을 바꾸거나 재부트스트랩할 수 있다.
 >
-> **마지막 검토**: 2026-10-27
+> **마지막 검토**: 2026-11-15
 
 AWS CloudWatch RUM으로 실사용자(방문자)의 페이지 로딩 성능·에러를 자동 수집합니다.
 Cognito 없이 리소스 기반 정책으로 익명 수집하며, FE 코드에는 `index.html`의
@@ -138,6 +138,27 @@ dataplane 전송 주소만 막는다 — App Monitor 허용 도메인에 `localh
   2026-09-26 직접 측정, 30분 구간): `SessionCount` 합계 3, `PageViewCount` 합계 15,
   `WebVitalsLargestContentfulPaint` 평균 1504ms/1812ms — 전부 검증 접속으로 발생한
   테스트 트래픽이다.
+- **LCP 줄이기 배포 전후**(2026-11-15 직접 측정, `GetMetricData`, `application_name=link-sphere-post`). 계획
+  [`plans/2026-10-26-lcp-prefetch-font-preload.md`](plans/2026-10-26-lcp-prefetch-font-preload.md) 검증 6번 "RUM 추이"다.
+  비교한 배포는 #421(10-26)·#425(10-27)·#442(10-28)이고, "뒤"는 마지막 배포 다음 날부터 잡았다.
+
+  | 구간(UTC)               | LCP p75 | LCP p90 | LCP 표본 | FCP p75 | FCP 표본 |
+  | ----------------------- | ------- | ------- | -------- | ------- | -------- |
+  | 전: 09-28 ~ 10-25(4주)  | 2.54s   | 4.58s   | 232      | 1.52s   | 403      |
+  | 뒤: 10-28 ~ 11-14(18일) | 2.13s   | 2.96s   | 130      | 1.44s   | 150      |
+
+  주별(월요일 시작) LCP p75는 전 2.17 → 3.42 → 2.24 → 2.66s, 뒤 2.25 → 1.72 → 2.24s다. 주별 p90은 전 4.65 → 6.01 → 4.07 →
+  4.50s, 뒤 2.97 → 2.43 → 3.15s로, 뒤의 세 주가 모두 전의 어느 주보다 낮다.
+  - p75는 전 구간 주별 값의 범위(2.17~3.42s) 안에 있어 개선이라고 말하기 어렵다. 차이가 뚜렷한 쪽은 느린 꼬리(p90)다.
+  - 표본이 주 35~94건으로 적다. 기기 구분이 없고(`list-metrics`로 본 LCP 지표의 차원은 `application_name` 하나), 운영 사이트를
+    직접 연 개발·검증 접속이 섞여 있을 수 있다(이벤트를 조회할 권한이 없어 가르지 못함, 아래 "10. 시행착오"). 같은
+    기간에 다른 성능 변경(상세 첫 진입 #525·#529, 11-04)도 배포돼 어느 PR의 효과인지는 가를 수 없다.
+  - 계획에 적힌 기준선(LCP p75 2.49s, 238건)을 같은 구간으로 다시 내면 2.54s, 232건이다. 계획을 쓸 때의 정확한 조회
+    구간이 남아 있지 않아 차이의 원인은 확인하지 못했다.
+  - 조회 방법: 로컬 키(`link-sphere-user`)는 2026-11-07 조회 전용으로 회수된 뒤 `cloudwatch:GetMetricData`·`ListMetrics`가
+    거부된다. CDK lookup 역할(`cdk-hnb659fds-lookup-role-<계정>-ap-northeast-1`)을 위임받아 읽는다. 위임 명령은 BE
+    `docs/DEPLOY.md`의 같은 방식(`aws sts assume-role … --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'`)을
+    따른다. 지표 이름은 `WebVitalsLargestContentfulPaint`·`WebVitalsFirstContentfulPaint`이고, 통계는 `p75`·`p90`·`SampleCount`다.
 
 ## 10. 시행착오
 
@@ -172,7 +193,8 @@ _"권한 부여 설정을 건너뛸 수 있다"_(번역)고 안내해 서로 엇
 (`iam:ListAttachedUserPolicies` 거부) 직접 권한을 추가하지도 못했다. 집계
 메트릭(세션 수·페이지뷰 등)은 `aws cloudwatch get-metric-statistics`로 볼 수
 있지만, 개별 이벤트(어떤 페이지·브라우저였는지 등)는 AWS 콘솔에서만 확인
-가능하다.
+가능하다. 2026-11-07 로컬 키를 조회 전용으로 회수한 뒤로는 집계 메트릭 조회도 로컬 키로는
+거부된다 — CDK lookup 역할을 위임받아 읽는다("9. 검증 결과"의 "LCP 줄이기 배포 전후").
 
 ## 11. 남은 것
 
