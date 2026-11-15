@@ -1,4 +1,7 @@
 ### 2026-11-15 (BE)
+- URL 검증, 메타데이터 추출, 미리보기 캐시 로직을 domain/linkpreview 패키지로 모듈화하여 도메인 응집도 향상 ([#203](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/203))
+
+### 2026-11-15 (BE)
 - 회원 관리 기능 모듈화 및 API 리팩토링
 로그:
 - refactor(auth): 계정 조회·수정·닉네임 확인 API를 member로 옮김 ([#202](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/202))
