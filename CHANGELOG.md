@@ -231,6 +231,13 @@
 
   </details>
 
+- `shared` 첫 로딩 JS를 11.8% 줄임(vendor 청크 정리, terser 압축)
+  <details><summary>배경·구현</summary>
+
+  `vite.config.ts`의 `manualChunks`가 이름을 붙이지 않은 패키지를 전부 `vendor` 한 청크에 넣어, 첫 화면이 쓰지 않는 Radix select·switch·checkbox와 가상 스크롤, `idb`까지 첫 로딩에 실렸다. 이 패키지들을 쓰는 쪽 청크로 보내고(`idb`는 `firebase-vendor`), 압축기를 esbuild에서 terser로 바꿨다. 첫 로딩 JS(진입 + modulepreload, brotli 11)가 192,902B에서 170,158B가 됐고 청크 수와 `/post` 요청 수는 그대로다(2026-11-16 직접 측정). 빌드는 1~2초 느려진다. 함께 재 본 `vendor` 규칙 제거·`target` 올리기·lightningcss는 기각했고, 표와 이유는 `docs/PERFORMANCE.md` "vendor 청크 정리와 압축기"에 있다. (`vite.config.ts`, `package.json`, `docs/PERFORMANCE.md`)
+
+  </details>
+
 ### Fixed
 
 - `bookmark` 응답 전에 다시 연 폴더 창을 늦게 온 응답이 닫던 문제
