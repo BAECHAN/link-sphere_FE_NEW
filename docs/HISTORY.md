@@ -1,3 +1,6 @@
+### 2026-11-16 (FE)
+- vendor 청크 최적화 및 terser 압축 적용을 통해 초기 로딩 자바스크립트 번들 사이즈 11.8% 감소 ([#628](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/628))
+
 ### 2026-11-16 (BE)
 - 아키텍처 리팩토링 2단계: 시스템 안정성 보장을 위한 안전망(Safeguard) 3종 추가 구현 ([#204](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/204))
 
