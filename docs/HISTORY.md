@@ -1,4 +1,9 @@
 ### 2026-11-16 (BE)
+- 회원 데이터 참조 구조 최적화 ([#215](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/215))
+로그:
+- refactor(member): 글·댓글·피드·알림이 회원 테이블을 직접 읽지 않고 member에 물음 ([#215](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/215))
+
+### 2026-11-16 (BE)
 - 인증 로직 최적화: 회원 테이블 조인을 제거하고 전용 객체 기반의 인증 확인 방식으로 개선 ([#214](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/214))
 
 ### 2026-11-16 (BE)
