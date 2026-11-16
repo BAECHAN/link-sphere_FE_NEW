@@ -1,4 +1,7 @@
 ### 2026-11-16 (BE)
+- 게시글 응답 데이터 구조 개선 및 북마크 저장 로직 포트 기반으로 리팩토링 ([#217](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/217))
+
+### 2026-11-16 (BE)
 - 댓글, 좋아요, 북마크 기능의 데이터 의존성을 개선하여 post 테이블을 직접 참조하지 않고 post 엔티티를 통해 처리하도록 리팩토링 ([#216](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/216))
 
 ### 2026-11-16 (BE)
