@@ -1,4 +1,7 @@
 ### 2026-11-16 (BE)
+- 댓글 좋아요 기능을 interaction 패키지에서 comment 패키지로 이관하여 순환 참조를 제거하고 도메인 간 결합도를 낮춤 ([#211](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/211))
+
+### 2026-11-16 (BE)
 - 게시글 엔티티 구조 최적화 및 연관 관계 설계 개선
 로그:
 - refactor(post): 글이 카테고리 엔티티 대신 id 집합만 들고 이름은 category에 묻게 함 ([#210](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/210))
