@@ -1,4 +1,9 @@
 ### 2026-11-16 (BE)
+- 에러 응답 객체 관리 체계 개선 및 보안 설정의 결합도 완화
+로그:
+- refactor(global): ErrorResponse를 exception으로 옮기고 SecurityConfig가 auth 필터의 구체 타입을 모르게 함 ([#207](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/207))
+
+### 2026-11-16 (BE)
 - 비동기 작업 처리 로직을 인터페이스와 구현체로 분리하여 개발 환경에서의 실행 호환성 확보 ([#206](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/206))
 
 ### 2026-11-16 (FE)
