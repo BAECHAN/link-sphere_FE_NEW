@@ -28,8 +28,12 @@ function loadHandler(fileName: string): CloudFrontHandler {
 const spaFallback = loadHandler('spa-fallback.js');
 const spaStatus = loadHandler('spa-status.js');
 
-function rewrite(uri: string): string | undefined {
-  return spaFallback({ request: { uri } }).uri;
+/** acceptEncoding을 주지 않으면 Accept-Encoding 헤더가 없는 요청이다 */
+function rewrite(uri: string, acceptEncoding?: string): string | undefined {
+  const headers =
+    acceptEncoding === undefined ? {} : { 'accept-encoding': { value: acceptEncoding } };
+
+  return spaFallback({ request: { uri, headers } }).uri;
 }
 
 /** appRoutes를 돌며 절대 경로를 모은다. `*`(404)는 제외, 동적 세그먼트는 샘플 값으로 채운다. */
@@ -80,14 +84,56 @@ describe('spa-fallback.js (viewer-request)', () => {
   ])('정적 파일은 그대로 통과: %s → %s', (uri, expected) => {
     expect(rewrite(uri)).toBe(expected);
   });
+
+  it.each([
+    ['/assets/js/index-abc.js', 'gzip, deflate, br, zstd'],
+    ['/assets/css/index-abc.css', 'br'],
+    ['/assets/js/index-abc.js', 'gzip, BR;q=0.9'],
+  ])('br을 받는 요청의 /assets/ .js·.css는 사전 압축 사본으로: %s (%s)', (uri, acceptEncoding) => {
+    expect(rewrite(uri, acceptEncoding)).toBe(`${uri}.br`);
+  });
+
+  it.each([
+    ['/assets/js/index-abc.js', undefined],
+    ['/assets/js/index-abc.js', 'gzip, deflate'],
+    ['/assets/js/index-abc.js', 'br;q=0, gzip'],
+    ['/assets/js/index-abc.js', 'br;q=0.0, gzip'],
+    ['/assets/js/index-abc.js', 'brotli'],
+    ['/assets/js/index-abc.js.br', 'gzip, deflate, br, zstd'],
+    ['/assets/img/logo-abc.svg', 'gzip, deflate, br, zstd'],
+    ['/fonts/pretendard-1.3.9/a.woff2', 'gzip, deflate, br, zstd'],
+    ['/firebase-messaging-sw.js', 'gzip, deflate, br, zstd'],
+  ])(
+    'br을 받지 않거나 사전 압축 범위 밖이면 주소를 그대로 둔다: %s (%s)',
+    (uri, acceptEncoding) => {
+      expect(rewrite(uri, acceptEncoding)).toBe(uri);
+    }
+  );
+
+  it('앱 라우트는 br을 받는 요청이어도 /index.html로 간다', () => {
+    expect(rewrite('/post/abc123', 'gzip, deflate, br, zstd')).toBe('/index.html');
+  });
 });
 
 describe('spa-status.js (viewer-response)', () => {
-  function respond(uri: string) {
-    const response = { statusCode: 200, statusDescription: 'OK', headers: {} };
+  function respond(uri: string, headers: Record<string, { value: string }> = {}) {
+    const response = { statusCode: 200, statusDescription: 'OK', headers };
 
     return spaStatus({ request: { uri }, response });
   }
+
+  it.each(['/assets/js/index-abc.js.br', '/assets/css/index-abc.css.br'])(
+    '사전 압축 사본 %s 응답에는 Vary: Accept-Encoding을 붙인다',
+    (uri) => {
+      expect(respond(uri).headers).toEqual({ vary: { value: 'Accept-Encoding' } });
+    }
+  );
+
+  it('오리진이 준 Vary가 있으면 지우지 않고 덧붙인다', () => {
+    expect(respond('/assets/js/index-abc.js.br', { vary: { value: 'Origin' } }).headers).toEqual({
+      vary: { value: 'Origin, Accept-Encoding' },
+    });
+  });
 
   it('/404.html 응답은 상태를 404로 바꾼다', () => {
     expect(respond('/404.html').statusCode).toBe(404);

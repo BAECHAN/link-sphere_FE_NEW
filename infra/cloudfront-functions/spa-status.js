@@ -15,8 +15,15 @@
 // 요청에서 쿠키를 빼고 응답 쿠키도 무시한다(https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Embedder-Policy).
 // 문서 응답에만 의미가 있는 헤더라 정적 파일(서비스 워커 스크립트 포함)·/storybook에는 붙이지 않는다.
 //
+// 사전 압축 사본(/assets/의 .js.br·.css.br, spa-fallback.js가 br을 받는 요청을 여기로 보낸다) 응답에는
+// Vary: Accept-Encoding을 붙인다. 브라우저가 보는 주소는 .br이 없는 원래 주소라, 이 헤더가 없으면 중간 캐시가
+// br 본문을 br을 못 받는 클라이언트에 줄 수 있다. CloudFront는 자신이 압축한 응답에만 이 헤더를 붙이고 S3에서
+// 이미 눌린 채 온 응답에는 붙이지 않았다(2026-11-16 직접 관찰, docs/PERFORMANCE.md "사전 brotli 압축").
+//
 // 배포는 GitHub Actions 파이프라인 대상이 아니다 — AWS CLI로 수동 배포된다.
 // 절차: docs/DEPLOY.md의 "CloudFront Function (수동 관리)" 참고.
+var PRECOMPRESSED_COPY = /^\/assets\/.+\.(js|css)\.br$/;
+
 function handler(event) {
   var response = event.response;
   var uri = event.request.uri;
@@ -28,6 +35,15 @@ function handler(event) {
 
   if (uri === '/index.html' || uri === '/404.html') {
     response.headers['cross-origin-embedder-policy'] = { value: 'credentialless' };
+  }
+
+  if (PRECOMPRESSED_COPY.test(uri)) {
+    var vary = response.headers['vary'];
+
+    // 오리진이 이미 Vary를 줬으면(S3 CORS의 Origin 등) 지우지 않고 덧붙인다
+    response.headers['vary'] = {
+      value: vary ? vary.value + ', Accept-Encoding' : 'Accept-Encoding',
+    };
   }
 
   return response;

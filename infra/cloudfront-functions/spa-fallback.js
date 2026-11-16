@@ -12,7 +12,13 @@
 // 응답까지 index.html(200)로 가려버리는 버그가 있었다. 이 Function이 비헤이비어 단위로 그 역할을
 // 대체하므로 CustomErrorResponses의 403/404 항목은 함께 제거했다.
 //
-// APP_ROUTES는 src/app/routes/index.tsx의 appRoutes를 손으로 옮긴 것이다(Function은 앱 코드를
+// 정적 파일 중 /assets/의 .js·.css는 br을 받는 요청에 한해 주소 끝에 .br을 붙인다. 배포가 brotli
+// 최고 단계로 미리 눌러 원본 옆에 올린 사본이다(scripts/precompress-assets.js, deploy.yml "Upload to S3").
+// br을 받지 않는 요청은 주소를 그대로 두어 원본을 CloudFront가 실시간 압축한다. 이 Function은 파일이
+// 있는지 모른다 - .br 짝 없이 배포된 빌드는 br 브라우저에서 403이 되므로, 이 분기를 켠 뒤에는 짝을
+// 올리지 않는 커밋을 배포하지 않는다(되돌릴 땐 Function 먼저, docs/DEPLOY.md "사전 brotli 압축").
+//
+// APP_ROUTES는 src/app/routes/AppRoutes.tsx의 appRoutes를 손으로 옮긴 것이다(Function은 앱 코드를
 // import할 수 없다). 라우트를 추가하면 여기도 고치고 Function을 다시 배포한다 - 빠뜨리면
 // src/app/routes/cloudfront-functions.test.ts가 실패한다.
 //
@@ -59,6 +65,32 @@ function isAppRoute(uri) {
   return false;
 }
 
+// 사전 압축 사본(.br)이 함께 올라가는 범위 - scripts/lib/precompress-assets.js의 isPrecompressTarget과 같아야 한다
+var PRECOMPRESSED_ASSET = /^\/assets\/.+\.(js|css)$/;
+
+function acceptsBrotli(request) {
+  var header = request.headers['accept-encoding'];
+
+  if (!header) {
+    return false;
+  }
+
+  var codings = header.value.toLowerCase().split(',');
+
+  for (var i = 0; i < codings.length; i++) {
+    var parts = codings[i].split(';');
+
+    if (parts[0].trim() !== 'br') {
+      continue;
+    }
+
+    // q=0은 그 방식을 받지 않겠다는 뜻이다(RFC 9110 12.5.3, https://www.rfc-editor.org/rfc/rfc9110.html#section-12.5.3)
+    return !/^\s*q=0(\.0{0,3})?\s*$/.test(parts[1] || '');
+  }
+
+  return false;
+}
+
 function handler(event) {
   var request = event.request;
   var uri = request.uri;
@@ -66,6 +98,10 @@ function handler(event) {
   var hasExtension = lastSegment.indexOf('.') !== -1;
 
   if (hasExtension) {
+    if (PRECOMPRESSED_ASSET.test(uri) && acceptsBrotli(request)) {
+      request.uri = uri + '.br';
+    }
+
     return request;
   }
 

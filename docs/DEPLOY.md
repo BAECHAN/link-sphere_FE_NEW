@@ -63,6 +63,9 @@
     - `assets/`와 `fonts/`는 업로드 때 **지우지 않습니다**(`--delete` 없이 동기화, ③의
       `--delete`도 이 두 접두사를 제외) — 이미 열려 있는 탭이 옛 lazy 청크를 계속 받을 수
       있게 하기 위해서입니다(2026-05-23 `46727dc`부터). 대신 7일 지난 것은 9번이 정리합니다.
+    - ①에서 `assets/`의 `.js`·`.css`는 원본과 함께 **사전 압축 사본(`<파일>.br`)**도 올립니다. Build 뒤 "사전 압축"
+      스텝(`scripts/precompress-assets.js`)이 brotli 품질 11로 만들고, 사본은 `Content-Encoding: br`과 원본과 같은
+      `Content-Type`으로 올립니다. 짝이 하나라도 빠지면 그 스텝에서 배포가 멈춥니다(아래 "사전 brotli 압축").
     - `fonts/`는 파일명에 해시가 없는 대신 **경로에 폰트 버전**이 들어갑니다
       (`public/fonts/pretendard-1.3.9/`). 1년 `immutable`로 캐시되므로, 폰트를 바꿀 땐 같은
       경로의 파일을 덮어쓰지 말고 디렉터리 버전을 올립니다(`index.html`의 preload·stylesheet
@@ -90,6 +93,9 @@
       ③라이브 entry 청크 해시가 방금 빌드한 것과 같은지 ④`/404.html`(없는 경로에 쓰는
       `index.html` 사본)의 entry 청크 해시도 같은지 확인합니다. 자세한 근거는
       [`docs/BUILD-VERSION.md`](./BUILD-VERSION.md) 참고.
+    - 이어서 entry 청크로 사전 압축을 확인합니다. ⑤`<entry>.br`을 직접 받아 `content-encoding: br`이 있고 본문이 올린
+      파일과 바이트까지 같은지 ⑥`Accept-Encoding` 없이 받은 본문이 빌드 파일과 같은지 ⑦`Accept-Encoding: br`로 받은
+      본문을 풀면 빌드 파일과 같은지 봅니다. ⑦은 Function이 `.br`로 보내든 CloudFront가 실시간으로 누르든 통과합니다.
 9.  **옛 자산 정리**:
     - 8번이 통과한 뒤 `scripts/prune-old-assets.js`가 **지금 빌드(`dist/`)에 없고 마지막
       업로드가 7일 넘은** `assets/`·`fonts/` 객체를 지웁니다(선별 규칙은
@@ -701,10 +707,10 @@ Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 
 기본(S3) 비헤이비어에 CloudFront Function 두 개가 붙는다. 소스는 이 저장소의
 [`infra/cloudfront-functions/`](../infra/cloudfront-functions/)에 있다.
 
-| Function                   | 이벤트          | 하는 일                                                                                                                                                                                                                                               | 소스                                                               |
-| -------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `link-sphere-spa-fallback` | viewer-request  | 앱 라우트 → `/index.html`, 앱 라우트가 아닌 확장자 없는 경로 → `/404.html`, 정적 파일은 통과                                                                                                                                                          | [`spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js) |
-| `link-sphere-spa-status`   | viewer-response | `/404.html` 응답의 상태를 404로 바꿈(본문은 그대로라 화면은 앱의 404 페이지). `/index.html`·`/404.html` 응답에 `Cross-Origin-Embedder-Policy: credentialless`를 붙여 외부 썸네일 요청에서 쿠키를 뺌(`docs/PERFORMANCE.md` "Best Practices 77점 사례") | [`spa-status.js`](../infra/cloudfront-functions/spa-status.js)     |
+| Function                   | 이벤트          | 하는 일                                                                                                                                                                                                                                                                                                              | 소스                                                               |
+| -------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `link-sphere-spa-fallback` | viewer-request  | 앱 라우트 → `/index.html`, 앱 라우트가 아닌 확장자 없는 경로 → `/404.html`, 정적 파일은 통과. 단 `/assets/`의 `.js`·`.css`는 br을 받는 요청이면 주소 끝에 `.br`을 붙임(아래 "사전 brotli 압축")                                                                                                                      | [`spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js) |
+| `link-sphere-spa-status`   | viewer-response | `/404.html` 응답의 상태를 404로 바꿈(본문은 그대로라 화면은 앱의 404 페이지). `/index.html`·`/404.html` 응답에 `Cross-Origin-Embedder-Policy: credentialless`를 붙여 외부 썸네일 요청에서 쿠키를 뺌(`docs/PERFORMANCE.md` "Best Practices 77점 사례"). `/assets/`의 `.br` 사본 응답에 `Vary: Accept-Encoding`을 붙임 | [`spa-status.js`](../infra/cloudfront-functions/spa-status.js)     |
 
 `/404.html`은 `deploy.yml`이 매 배포마다 `dist/index.html`을 복사해 올리는 사본이다. `index.html`과 같은
 `no-cache` 캐시 정책을 쓰고, 배포 검증 단계 4번이 entry 청크가 같은지 확인한다. 경로별 최종 응답은 아래
@@ -735,6 +741,17 @@ Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 
   | `/.git/config` | `/404.html`   |
   | `/storybook/`  | `/404.html`   |
   | `/favicon.ico` | 그대로        |
+
+  사전 압축 분기는 요청의 `accept-encoding` 헤더까지 넣어 본다.
+
+  | 입력 URI                  | `accept-encoding`         | 기대 결과                    |
+  | ------------------------- | ------------------------- | ---------------------------- |
+  | `/assets/js/index-abc.js` | `gzip, deflate, br, zstd` | `/assets/js/index-abc.js.br` |
+  | `/assets/js/index-abc.js` | `gzip`                    | 그대로                       |
+  | `/assets/js/index-abc.js` | `br;q=0, gzip`            | 그대로                       |
+  | `/assets/js/index-abc.js` | (헤더 없음)               | 그대로                       |
+  | `/assets/img/logo.svg`    | `gzip, deflate, br, zstd` | 그대로                       |
+  | `/post/abc123`            | `gzip, deflate, br, zstd` | `/index.html`                |
 
 ```bash
 # 1. 함수 코드 수정 후 업데이트 (ETag 필요). spa-status는 이름·파일만 바꿔 같은 절차
@@ -768,6 +785,32 @@ pnpm check:cloudfront
 **되돌리려면**: `spa-fallback.js`를 이전 커밋 버전으로 `update-function` → `publish-function`하면 확장자 없는
 경로가 전부 다시 `/index.html`(200)로 간다. `spa-status`는 연결을 빼지 않아도 무해하다(`/404.html` 요청이 없어진다).
 
+**로컬 키로는 이 절차를 실행할 수 없다.** `link-sphere-user`에는 CloudFront 권한이 없어 `describe-function`부터
+`AccessDenied`가 난다(2026-11-16 확인). 관리자 계정의 콘솔 CloudShell에서 실행하고, Function 파일은 CloudShell의
+Actions → Upload file로 올린다.
+
+### 사전 brotli 압축
+
+`/assets/`의 `.js`·`.css`는 원본과 brotli 품질 11로 미리 누른 사본(`<파일>.br`)이 함께 S3에 있다. `spa-fallback`이 br을
+받는 요청의 주소 끝에 `.br`을 붙이고, 그 밖의 요청은 원본을 CloudFront가 실시간 압축한다(2026-11-16 도입, 측정과 비교한 안은
+[`PERFORMANCE.md`](./PERFORMANCE.md) "사전 brotli 압축").
+
+- **Function은 파일이 있는지 모른다.** 주소만 바꾸므로 `.br` 짝 없이 올라간 `.js`·`.css`는 br 브라우저에서 S3 403이 된다.
+  `deploy.yml`의 "사전 압축" 스텝이 짝을 확인하고, 배포 반영 검증 ⑤~⑦이 운영 응답을 확인한다.
+- **br 판정은 "받는가"만 본다.** `Accept-Encoding`에 `br`이 있고 `q=0`이 아니면 `.br`로 보낸다. br과 gzip의 q값 크기는
+  비교하지 않는다(`gzip;q=1, br;q=0.1`도 br 사본을 받는다). 브라우저는 q값 없이 목록만 보내고, br 사본이 항상 더 작다.
+- **대상 범위는 세 곳이 같아야 한다.** `scripts/lib/precompress-assets.js`의 `isPrecompressTarget`, `spa-fallback.js`의
+  `PRECOMPRESSED_ASSET`, `spa-status.js`의 `PRECOMPRESSED_COPY`. 범위를 바꾸면 셋을 함께 고치고 두 Function을 다시 배포한다.
+- **켜는 순서**: `.br`을 올리는 배포가 끝난 뒤에 Function을 배포한다.
+- **되돌리는 순서**: Function을 먼저 이전 코드로 `publish-function`한 뒤 앱을 되돌린다. `.br`을 올리지 않는 커밋(이 변경
+  이전 커밋으로의 revert 포함)을 Function이 켜진 채 배포하면 그 빌드의 JS·CSS가 br 브라우저에서 전부 403이 된다. S3에 남은
+  `.br` 사본은 그대로 둬도 된다(아무도 요청하지 않고 7일 뒤 정리된다).
+- **이 변경 이전에 올라간 옛 청크에는 짝이 없다.** 그 청크를 아직 받지 않은 채 열려 있던 탭은 다음 이동 때 403을 받고 1회
+  새로고침된다(7일 지난 탭이 겪는 것과 같은 동작, 2026-11-16 사용자 결정으로 기다리지 않고 전환).
+- **잘못된 응답은 되돌려도 남는다.** 해시 자산은 1년 `immutable`이라, `Content-Encoding` 없이 눌린 본문이 한 번 나가면 그
+  브라우저에서는 파일 이름이 바뀌는 다음 배포까지 풀리지 않는다. Function이나 업로드 방식을 바꿀 때는 실제 자산과 겹치지 않는
+  경로(`assets/_precompress-test/`)에서 먼저 확인한다.
+
 ## URL별 에러 응답
 
 어떤 경로가 어떤 상태·화면을 받는지의 정본이다(2026-10-05 정리, 계획:
@@ -782,7 +825,9 @@ flowchart TD
     B -- 아니오 --> F{"spa-fallback.js<br/>(viewer-request)"}
     F -- "앱 라우트" --> I["/index.html → 200"]
     F -- "확장자 없음 + 앱 라우트 아님" --> N["/404.html → spa-status.js가 404로<br/>화면: 앱 NotFoundPage"]
-    F -- "확장자 있음" --> S{"S3에 파일이 있나"}
+    F -- "확장자 있음" --> P{"/assets/의 .js·.css이고<br/>br을 받는 요청인가"}
+    P -- "예: 주소 끝에 .br" --> S{"S3에 파일이 있나"}
+    P -- "아니오: 주소 그대로" --> S
     S -- 있음 --> OK["200"]
     S -- 없음 --> X["403 AccessDenied XML"]
 ```
@@ -1004,6 +1049,9 @@ open https://linksphere.click/version
 
 운영 FE에 나쁜 변경이 배포됐을 때 앱(S3·CloudFront가 내보내는 화면)을 되돌리는 절차다. Storybook·CDK·CloudFront 설정은 각 절의
 "롤백"·"되돌리려면"을 따른다.
+
+**사전 압축(2026-11-16)보다 앞선 커밋으로 되돌릴 때는 Function을 먼저 되돌린다.** 그 커밋들은 `.br` 사본을 올리지 않아,
+`spa-fallback`이 켜진 채 배포되면 JS·CSS가 br 브라우저에서 403이 된다(위 "사전 brotli 압축").
 
 **지난 커밋을 골라 다시 배포하는 방법은 없다 — main을 되돌린 커밋으로 앞으로 보낸다.** `deploy.yml`은 실행된 커밋을 그대로
 빌드한다(`Checkout` 스텝에 `ref`가 없다). 수동 실행(`workflow_dispatch`)이 빌드하는 커밋도 GitHub 문서 표현으로 _"`GITHUB_REF`

@@ -801,7 +801,73 @@ Vite 6.4.6). "첫 로딩 JS"는 위 절과 같은 정의다 — `dist/index.html
 **CloudFront 압축과의 차이(반영 안 함)**: 운영 `vendor` 청크(원본 362,819B로 로컬 기준 빌드와 같다)의 전송 크기는 105,525B였고
 (`curl -H 'Accept-Encoding: br'`, 2026-11-16), 같은 파일을 brotli 품질 11로 누르면 95,667B다. 첫 로딩 6개 합은 운영 212,815B, 로컬
 192,902B다(로컬은 `.env`가 없어 진입 청크 원본이 약 1.2KB 작다). CloudFront가 요청 때 하는 압축이 약 10% 덜 줄인다. 미리 압축해
-올리려면 S3 업로드와 캐시 헤더를 바꿔야 하고 brotli를 받지 못하는 클라이언트 처리가 필요해 따로 조사한다.
+올리려면 S3 업로드와 캐시 헤더를 바꿔야 하고 brotli를 받지 못하는 클라이언트 처리가 필요해 따로 조사한다. → 조사 뒤 아래
+"사전 brotli 압축"으로 반영했다.
+
+### 사전 brotli 압축 (직접 측정, 2026-11-16)
+
+배포 때 `/assets/`의 `.js`·`.css`를 brotli 품질 11로 미리 눌러 원본 옆에 `<파일>.br`로 올린다. br을 받는 요청은 CloudFront
+Function이 `.br` 주소로 보내고, 나머지 요청은 원본을 CloudFront가 전처럼 실시간 압축한다. 계획과 비교한 안은
+[`docs/plans/2026-11-16-precompressed-brotli-assets.md`](./plans/2026-11-16-precompressed-brotli-assets.md), 배포 절차와 되돌리는
+순서는 [`DEPLOY.md`](./DEPLOY.md) "사전 brotli 압축".
+
+```mermaid
+flowchart TD
+    R["GET /assets/js/x.js"] --> F{"spa-fallback.js<br/>Accept-Encoding에 br이 있나<br/>(q=0 제외)"}
+    F -- 예 --> B["주소를 /assets/js/x.js.br로 바꿈"] --> S1["S3의 .br 사본을 그대로 전달<br/>Content-Encoding: br<br/>spa-status.js가 Vary: Accept-Encoding 추가"]
+    F -- 아니오 --> O["주소 그대로"] --> S2["CloudFront가 원본을 실시간 압축<br/>gzip을 받으면 gzip, 아니면 무압축"]
+```
+
+**기대 크기**(운영 `bb8d49e0`, 첫 로딩 JS 6개 + CSS 1개. 운영 값은 `curl`로 받은 전송 크기, 사전 압축 값은 같은 커밋 로컬 빌드를
+brotli 품질 11로 누른 합):
+
+| 방식                    | 전송 크기                 |
+| ----------------------- | ------------------------- |
+| CloudFront gzip         | 217,244B                  |
+| CloudFront brotli(이전) | 203,311B                  |
+| 사전 brotli 11(이 변경) | 183,679B(−19,632B, −9.7%) |
+
+FCP·LCP가 얼마나 달라지는지는 재지 않았다. 모바일 LCP는 썸네일 다운로드가 대부분이라(위 "LCP 데이터 요청 시점") RUM에서는 보이지
+않을 수 있다.
+
+**비교한 안**
+
+| 안                                         | 판정 | 이유                                                                                              |
+| ------------------------------------------ | ---- | ------------------------------------------------------------------------------------------------- |
+| 그대로 둠(CloudFront 실시간 압축)          | 기각 | 약 10% 차이가 남는다                                                                              |
+| `.br`만 올리고 `Content-Encoding: br` 고정 | 기각 | br을 풀지 못하는 클라이언트는 JS가 깨진다. 접근 로그가 없어 그런 요청이 얼마나 되는지 모른다      |
+| 원본 + `.br`, Function이 요청마다 선택     | 채택 | br을 받지 않는 요청은 전과 같은 길로 간다                                                         |
+| 위에 `.gz` 사전 압축까지                   | 기각 | 지원 브라우저는 모두 br을 보낸다. gzip 요청은 CloudFront가 이미 압축한다. 이득 크기는 재지 않았다 |
+
+원본 옆에 사전 압축본을 두고 요청의 `Accept-Encoding`으로 고르는 형태는 nginx
+[`gzip_static`](https://nginx.org/en/docs/http/ngx_http_gzip_static_module.html)·[`brotli_static`](https://github.com/google/ngx_brotli),
+Caddy [`precompressed`](https://caddyserver.com/docs/caddyfile/directives/file_server)가 제공하는 방식과 같다(2026-11-16 웹 조회 도구로
+읽은 내용이고 문장을 옮기지는 않았다). CloudFront에는 이 기능이 없고
+[aws-samples/amazon-cloudfront-functions](https://github.com/aws-samples/amazon-cloudfront-functions)에도 예제가 없어 Function으로
+직접 만들었다. `Accept-Encoding`은 브라우저가 정하는 헤더라 앱 코드로는 바꿀 수 없다
+([MDN Forbidden request header](https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header), 같은 방법으로 읽음).
+
+**전환 전 시험**(운영 CloudFront, 실제 자산과 겹치지 않는 `assets/_precompress-test/`에 17,201B짜리 시험 JS 2개와 `.br` 사본을 올리고
+Function을 그 경로에만 적용해 요청 13회. 본문은 풀어서 원본의 SHA-256과 비교했다):
+
+| 요청의 `Accept-Encoding`  | 받은 `Content-Encoding` | 크기                      | 원본과 같은가 |
+| ------------------------- | ----------------------- | ------------------------- | ------------- |
+| `gzip, deflate, br, zstd` | br                      | 2,878B(올린 `.br` 그대로) | 같음          |
+| `br`                      | br                      | 2,877B(올린 `.br` 그대로) | 같음          |
+| `gzip`                    | gzip                    | 4,167B                    | 같음          |
+| `br;q=0, gzip`            | gzip                    | 4,167B                    | 같음          |
+| `zstd`                    | 없음                    | 17,201B                   | 같음          |
+| 헤더 없음                 | 없음                    | 17,201B                   | 같음          |
+
+- **CloudFront는 `.br` 사본을 다시 누르지 않았다.** 받은 크기가 올린 파일과 바이트까지 같다. `.js.br` 주소를 직접 요청해도
+  같았고, `content-type`은 13회 모두 올릴 때 준 `text/javascript`였다.
+- **br 요청과 그 외 요청의 캐시가 섞이지 않았다.** 한 파일은 br → gzip → br → gzip, 다른 파일은 gzip → br → gzip → br 순으로 보냈고
+  매번 요청한 방식대로 나왔다. Function이 주소를 바꾼 뒤에 캐시를 찾는다는 뜻이다. 그 전에는 gzip만 받는 요청이 먼저 오면 그 엣지가
+  br 브라우저에도 gzip본을 주는 일이 있었는데(같은 날 운영에서 관찰), br 요청이 다른 주소로 가므로 이 경로에서는 생기지 않는다.
+- **`.br` 응답에는 `Vary` 헤더가 없었다.** CloudFront가 직접 누른 gzip 응답에는 `vary: Accept-Encoding`이 붙었다. 그래서
+  `spa-status.js`가 `.br` 응답에 이 헤더를 붙인다.
+
+운영 전환 뒤의 전송 크기는 병합 뒤에 재서 이 절에 덧붙인다.
 
 ## Best Practices 77점 사례 (2026-10-26)
 
