@@ -1,88 +1,31 @@
 #!/usr/bin/env bash
 # .claude/hooks/run-node.sh
 #
-# Node로 쓴 훅 스크립트(bash-guard.mjs, edit-guard.mjs, deploy-verify.mjs, filename-case-check.mjs)를
-# 실행하는 래퍼. 사용법:
+# Node로 쓴 훅 스크립트(filename-case-check.mjs)를 실행하는 래퍼. 사용법:
 #   bash .claude/hooks/run-node.sh <같은 디렉터리의 .mjs 파일명>   (stdin으로 훅 payload)
 #
-# 가드를 bash가 아니라 Node로 쓴 이유: macOS 기본 bash 3.2로는 따옴표·heredoc·cd·git -C가 섞인
-# 명령을 안정적으로 파싱할 수 없고, 측정기와 같은 파서(.claude/lib/shell-parse.mjs)를 써야 "측정이 세는
-# 위반"과 "가드가 막는 위반"이 일치한다(2026-11-13 측정기는 claude-base scripts/rule-metrics.mjs로 옮겼다).
+# 2026-11-16까지는 bash-guard·edit-guard·deploy-verify도 이 래퍼로 돌았다. 세 훅의 정본은 2026-11-01에
+# ~/project/claude-base/hooks/로 옮겼고(그쪽에 같은 이름의 run-node.sh가 있다), 이 레포의 동결 사본은
+# 2026-11-16에 지웠다. 여기 남은 것은 FE 전용인 filename-case-check뿐이다.
 #
 # 훅 프로세스는 에디터(Cursor/VS Code)가 띄운 Claude Code의 환경을 물려받아 nvm의 node가 PATH에
 # 없을 수 있다 — PATH → nvm → Homebrew 순으로 찾는다. 훅은 절대 작업을 막는 방향으로 실패하면
-# 안 되므로(plan-diagram-reminder.sh와 같은 원칙) node나 대상 스크립트가 없으면 조용히 통과한다.
-# set -e를 쓰지 않는 이유도 같다.
+# 안 되므로 node나 대상 스크립트가 없으면 조용히 통과한다. set -e를 쓰지 않는 이유도 같다.
 #
-# 등록: 이 훅들은 FE 프로젝트 설정이 아니라 사용자 설정(~/.claude/settings.json)에 등록한다 —
-# BE 레포에서 시작한 세션도 FE 메인 체크아웃을 건드리고, FE 워크트리에 파일을 쓰고, push한다(프로젝트
-# 설정은 그 레포 세션에만 로드된다). Claude는 사용자 설정에 훅을 추가할 수 없으므로(auto mode 분류기가
-# Self-Modification으로 거부) 사용자가 아래 블록으로 "hooks" 키를 통째로 바꾼다. 경로는 FE 메인
-# 체크아웃이라, 이 파일이 바뀌면 메인 체크아웃을 `git pull --ff-only`해야 반영된다.
+# 등록: FE 프로젝트 설정이 아니라 사용자 설정(~/.claude/settings.json)의 hooks.PostToolUse에 등록한다 —
+# BE 레포에서 시작한 세션도 FE 워크트리에 파일을 쓴다(프로젝트 설정은 그 레포 세션에만 로드된다).
+# 경로는 FE 메인 체크아웃이라, 이 파일이 바뀌면 메인 체크아웃을 `git pull --ff-only`해야 반영된다.
 #
-#   - PreToolUse: bash-guard(git·rm), edit-guard(메인 체크아웃 편집)
-#   - PostToolUse·PostToolUseFailure: deploy-verify(push·PR 생성·병합한 커밋의 워크플로 감시) —
-#     `asyncRewake: true`라 백그라운드로 돌고, 실패·시한 초과일 때만 exit 2로 세션을 깨운다. timeout
-#     1800은 deploy-verify.mjs의 DEADLINE_MS(29분)와 짝이다. `git -C x push`는 `Bash(git push*)`에
-#     안 걸려서 `Bash(git -C *)`를 따로 둔다. 실패한 Bash에는 PostToolUse가 안 떠서, 원격 병합은 됐는데
-#     --delete-branch 정리만 실패한 병합을 잡으려고 PostToolUseFailure에도 건다.
-#   - PostToolUse(Write): filename-case-check(unicorn/filename-case)
-#
-#   "hooks": {
-#     "PreToolUse": [
-#       {
-#         "matcher": "Bash",
-#         "hooks": [
-#           { "type": "command", "if": "Bash(git *)", "timeout": 10,
-#             "command": "bash /Users/baechan/project/link-sphere/link-sphere_FE_NEW/.claude/hooks/run-node.sh bash-guard.mjs" },
-#           { "type": "command", "if": "Bash(rm *)", "timeout": 10,
-#             "command": "bash /Users/baechan/project/link-sphere/link-sphere_FE_NEW/.claude/hooks/run-node.sh bash-guard.mjs" }
-#         ]
-#       },
-#       {
-#         "matcher": "Edit|Write|NotebookEdit",
-#         "hooks": [
-#           { "type": "command", "timeout": 10,
-#             "command": "bash /Users/baechan/project/link-sphere/link-sphere_FE_NEW/.claude/hooks/run-node.sh edit-guard.mjs" }
-#         ]
-#       }
-#     ],
-#     "PostToolUse": [
-#       {
-#         "matcher": "Bash",
-#         "hooks": [
-#           { "type": "command", "if": "Bash(git push*)", "asyncRewake": true, "timeout": 1800,
-#             "command": "bash /Users/baechan/project/link-sphere/link-sphere_FE_NEW/.claude/hooks/run-node.sh deploy-verify.mjs" },
-#           { "type": "command", "if": "Bash(git -C *)", "asyncRewake": true, "timeout": 1800,
-#             "command": "bash /Users/baechan/project/link-sphere/link-sphere_FE_NEW/.claude/hooks/run-node.sh deploy-verify.mjs" },
-#           { "type": "command", "if": "Bash(gh pr *)", "asyncRewake": true, "timeout": 1800,
-#             "command": "bash /Users/baechan/project/link-sphere/link-sphere_FE_NEW/.claude/hooks/run-node.sh deploy-verify.mjs" }
-#         ]
-#       },
-#       {
-#         "matcher": "Write",
-#         "hooks": [
-#           { "type": "command", "timeout": 25,
-#             "command": "bash /Users/baechan/project/link-sphere/link-sphere_FE_NEW/.claude/hooks/run-node.sh filename-case-check.mjs" }
-#         ]
-#       }
-#     ],
-#     "PostToolUseFailure": [
-#       {
-#         "matcher": "Bash",
-#         "hooks": [
-#           { "type": "command", "if": "Bash(gh pr *)", "asyncRewake": true, "timeout": 1800,
-#             "command": "bash /Users/baechan/project/link-sphere/link-sphere_FE_NEW/.claude/hooks/run-node.sh deploy-verify.mjs" }
-#         ]
-#       }
+#   {
+#     "matcher": "Write",
+#     "hooks": [
+#       { "type": "command", "timeout": 25,
+#         "command": "bash /Users/baechan/project/link-sphere/link-sphere_FE_NEW/.claude/hooks/run-node.sh filename-case-check.mjs" }
 #     ]
 #   }
 #
-# 응답 언어 실험(2026-10-01~10-14, docs/plans/2026-09-30-rule-enforcement-phase3.md)은 같은 파일 최상위의
-# "language": "korean" 한 줄이다.
-#
 # 발동 여부는 `node ~/project/claude-base/scripts/rule-metrics.mjs`의 M12(훅 발동)로 확인한다 — 등록 후 계속
-# 0이면 경로 오타·node 미발견으로 조용히 꺼진 것이다(deploy-verify는 실패가 없으면 0이 정상이다).
+# 0이면 경로 오타·node 미발견으로 조용히 꺼진 것이다.
 set -uo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,7 +1,7 @@
 {
   "label": "link-sphere FE",
   "worktreeRequired": true,
-  "rulesRef": ".claude/CLAUDE.md Critical Rules",
+  "rulesRef": "규칙은 공통 지침 ~/project/claude-base/CLAUDE.md \"안전·권한\", 레포 사실은 .claude/CLAUDE.md \"워크트리\"",
   "deploy": {
     "github": "BAECHAN/link-sphere_FE_NEW",
     "defaultBranch": "main",

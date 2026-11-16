@@ -52,7 +52,7 @@ Identify which layer the bug is in:
 
 ## Step 3: Write a failing test that reproduces the bug
 
-`.claude/CLAUDE.md` §4 규칙: "버그 수정 → 버그를 재현하는 테스트를 작성하고, 통과시킨다."
+공통 지침 "테스트" 규칙: "동작을 바꾸는 버그 수정은 실패하는 테스트를 먼저 쓰고, 고치기 전의 실패 출력을 증거로 남긴다."
 수정하기 전에 먼저 이 버그를 재현하는 테스트를 쓰고 실패하는 걸 확인한다 — Step 5에서
 수정한 뒤 같은 테스트가 통과하는지로 고쳤는지 검증한다.
 

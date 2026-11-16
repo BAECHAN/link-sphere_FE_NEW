@@ -1,4 +1,4 @@
-// 계획 대조 에이전트(.claude/agents/plan-verifier.md)를 채점할 사례를 만든다. 2026-10-31, AI 루프·
+// 계획 대조 에이전트(~/project/claude-base/agents/plan-verifier.md)를 채점할 사례를 만든다. 2026-10-31, AI 루프·
 // 멀티에이전트 준비 Phase 1(docs/plans/2026-10-31-ai-loop-graph-readiness.md). 머지된 PR의 계획 파일과
 // squash 커밋 diff를 사례 폴더에 떨구고, 절반에는 결함 두 개를 고정 시드로 넣는다.
 //
@@ -16,7 +16,7 @@ import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-// 원래 PR의 §11 대조가 이미 이탈·계획 밖으로 적은 파일(PR 본문 "계획 대비 구현"에서 옮김). 정상 사례에서
+// 원래 PR의 계획 대조가 이미 이탈·계획 밖으로 적은 파일(PR 본문 "계획 대비 구현"에서 옮김). 정상 사례에서
 // 이 파일을 짚은 지적은 오탐으로 세지 않고, 빼기 대상에서도 제외한다. 사례로 쓰려면 먼저 여기 적는다.
 export const KNOWN_FINDINGS = {
   313: [

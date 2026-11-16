@@ -137,6 +137,14 @@ flowchart TD
 | `not-to-dev-dep` (dependency-cruiser)                                                                          | production 코드에서 devDependency import — 테스트·스토리·`src/test`·`src/mocks`·`.d.ts`와 `QueryProvider.tsx`(devtools)는 예외                                                                                                                                                                                                                |
 | `not-to-unresolvable` (dependency-cruiser)                                                                     | 디스크에서 찾을 수 없는 모듈 import — 해석에 실패한 import는 `no-non-package-json` 판정을 조용히 건너뛰기 때문에 함께 막는다                                                                                                                                                                                                                  |
 
+**문서 규칙에서 린트로 올린 경위**
+
+- **`dayjs` 강제(`no-restricted-syntax`)** — 2026-03-15에 "날짜는 `dayjs`" 규칙을 문서에만 적어 둔 뒤 5개월간 위반이 잡히지
+  않았다(2026-08-12에 쓴 `useRecentFolders.ts`, 지금의 `src/entities/bookmark/folder/hooks/useRecentBookmarkFolders.ts`).
+  2026-09-08에 ESLint로 올렸다.
+- **`react-hooks/*`** — 2026-10-04 외부에서 받은 "`memo`·`useCallback`을 붙이라"는 분석이 실제 코드(자식이 `memo`가 아니고
+  라우터를 구독)와 맞지 않았던 것을 계기로 공식 hooks 규칙을 error로 켜고, #315~#320에서 기존 위반 52건을 정리했다.
+
 ---
 
 ## 3. Directory Structure
@@ -1570,7 +1578,7 @@ pnpm check:cloudfront  # CloudFront 설정을 커밋된 스냅샷과 비교 (AWS
 pnpm validate       # .env 존재 확인(check:env) + check
 pnpm graph <정규식>  # 그 모듈에 import로 닿는 파일을 레이어별 색 그림으로 (scripts/dep-graph.js, 예: "useClickGuard[.]ts$")
 pnpm graph:focus <정규식>  # 그 모듈의 바로 이웃만 — 그 모듈을 import하는 파일(위)과 그 모듈이 import하는 파일(아래)
-                    # graph·graph:focus 뒤에 --text를 붙이면 브라우저 없이 목록만 출력(.claude/CLAUDE.md §5)
+                    # graph·graph:focus 뒤에 --text를 붙이면 브라우저 없이 목록만 출력(.claude/CLAUDE.md "공통 지침을 이 레포에서 따르는 법")
 pnpm graph:archi    # 슬라이스 단위 전체 구조(pages → entities, shared 제외)
 node scripts/dep-graph.js --affected <기준 커밋>  # 바뀐 src 파일과 거기 닿는 파일 그림(마크다운) — CI가 PR마다 Step Summary와 PR 댓글(하나를 계속 갱신)에 붙인다
 pnpm codegen        # openapi.json → openapi.gen.ts 타입 생성

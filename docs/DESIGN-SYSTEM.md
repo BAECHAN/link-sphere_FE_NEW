@@ -410,7 +410,7 @@ CSS에 그 클래스가 다시 나타났다. Tailwind v4는 JIT 스캐너가 프
 **같은 문제가 이번엔 고칠 수 없는 자리에서 재발했다.** 타이포그래피 역할 토큰 작업
 (2026-09-16) 계획 초안에 10px 임의값 클래스를 대상 목록으로 설명하며 그 형태 그대로
 적었는데, 그 초안이 `docs/plans/2026-09-16-typography-tokens-a11y-gate.md`로 커밋된
-뒤에야 발견했다. 이 파일은 `.claude/CLAUDE.md` §11 규칙상 커밋 후 수정하지 않는
+뒤에야 발견했다. 이 파일은 `.claude/CLAUDE.md` "계획과 PR 본문" 규칙상 커밋 후 수정하지 않는
 append-only 파일이라(CI가 수정 자체를 막는다) 고칠 수 없다 — `pnpm build` 산출물에
 그 유령 유틸리티 클래스가 실제로 생성됨을 확인했다(어떤 컴포넌트도 참조하지 않아
 화면 영향은 없음). 같은 문서 초안에서 발견한 `docs/DESIGN-SYSTEM.md`(이 문서, 아직
@@ -520,6 +520,12 @@ a11y 12건, e2e 3건).
 - **반대 방향 부작용**: 이제 역할 토큰 위에 기본 크기를 덮으면 `cn()`이 토큰을 통째로 지워 두께도 빠진다.
   `BookmarkFolderSelectDialog.tsx`의 `DialogTitle className="text-base"`가 그 자리라 `font-semibold`를 함께 줘 지금
   모습(16px·600)을 지켰다. 같은 이유로 #440의 important(`md:text-screen-title!`)는 뺐다.
+
+### raw 팔레트 클래스가 공용 UI에 남아 있었다 (2026-09-09)
+
+"하드코딩 색상 금지"가 문서 규칙뿐이던 때, 2026-09-09 감사에서 `src/shared/ui/elements/ImageAttachmentField.tsx`·`SearchInput.tsx`,
+`src/shared/ui/layouts/AuthLayout.tsx`·`ErrorLayout.tsx`에 raw gray/zinc 팔레트 클래스가 남아 있는 것을 찾아 같은 날 토큰 기반
+클래스로 고쳤다. 2026-09-13부터 ESLint `custom-tailwind/no-raw-color`가 같은 종류의 회귀를 pre-commit과 `pnpm check`에서 막는다.
 
 ## 11. 남은 것
 

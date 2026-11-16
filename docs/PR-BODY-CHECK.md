@@ -44,7 +44,7 @@ GitHub PR과 Actions 워크플로는 안다고 가정한다.
 
 가정하지 않는 것:
 
-- plan mode 작업의 계획 파일과 `## 계획 대비 구현` 대조 → [`.claude/CLAUDE.md`](../.claude/CLAUDE.md) §11
+- plan mode 작업의 계획 파일과 `## 계획 대비 구현` 대조 → [`.claude/CLAUDE.md`](../.claude/CLAUDE.md) "계획과 PR 본문"
 - 이 레포 CI 게이트 전체와 필수 체크(규칙셋) → [`CI-CHECK-GATE.md`](./CI-CHECK-GATE.md) §6
 - 이 검사를 만들게 된 작업 → [`E2E-FLAKY.md`](./E2E-FLAKY.md), PR #472
 
@@ -181,7 +181,7 @@ Kubernetes는 flaky 테스트마다 이슈를 하나 열고 _"변경이 병합�
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | PR을 열기 전에 미리 검사     | `pnpm check:pr-body <본문 파일>` — `gh pr create --body-file`에 넘길 파일 그대로                                                                                                                             |
 | 체크가 빨개졌다              | 체크 화면의 오류 주석에 빠진 절이 나온다. 본문을 고치면 `edited` 이벤트로 다시 돈다                                                                                                                          |
-| 필수 절을 더하거나 빼기      | `scripts/lib/pr-body.js:9`의 `REQUIRED_SECTIONS`, 템플릿 `.github/pull_request_template.md`, 이 문서 §5.3, `.claude/CLAUDE.md` §11을 함께 고친다. 테스트는 `src/test/scripts/pr-body.test.ts`                |
+| 필수 절을 더하거나 빼기      | `scripts/lib/pr-body.js:9`의 `REQUIRED_SECTIONS`, 템플릿 `.github/pull_request_template.md`, 이 문서 §5.3, `.claude/CLAUDE.md` "계획과 PR 본문"을 함께 고친다. 테스트는 `src/test/scripts/pr-body.test.ts`   |
 | 템플릿 안내문 바꾸기         | `.github/pull_request_template.md`만 고치면 된다 — 검사는 템플릿 파일을 읽어 "안내문 그대로인 줄"을 판정한다                                                                                                 |
 | 필수 체크에서 빼기(되돌리기) | 규칙셋 "Main Branch Protect"의 필수 체크에서 `pr-body`를 뺀다(`CI-CHECK-GATE.md` §6 "main 규칙셋" 행). 워크플로에 경로 필터를 넣지 않는다 — 워크플로째 건너뛰면 필수 체크가 "대기 중"으로 남아 병합이 막힌다 |
 
@@ -211,7 +211,7 @@ URL 안에서도 잡는다. 검사기를 고치지 않고 저장소 주소와 �
 - **대화의 마지막 보고**: 이 검사는 PR 본문만 본다. 대화 답변은 2026-11-13부터 claude-base 턴 끝 훅이 작업한 턴의 `끝났어요`
   답변에 요청·결과·증거 항목이 있는지 형식만 본다. 항목 내용이 맞는지는 보지 못한다. 14일 실험 뒤 2026-11-28에 판정한다
   (기준은 claude-base `docs/METRICS.md` "실험: 완료 보고 항목 검사"). 2026-11-16부터 같은 훅이 작업한 턴의 가정 줄(묻지 않고
-  정한 것을 판정 줄 위에 적는 줄, 없으면 "없음")이 있는지도 형식만 본다. 묻는 기준은 `.claude/CLAUDE.md` §1의 세 갈래 목록이고,
+  정한 것을 판정 줄 위에 적는 줄, 없으면 "없음")이 있는지도 형식만 본다. 묻는 기준은 `.claude/CLAUDE.md` "모르는 것은 세 갈래로 다룬다"의 세 갈래 목록이고,
   2026-12-01에 판정한다(같은 문서 "실험: 가정 줄 검사").
 - **BE 레포**: 같은 검사가 없다.
 - **내용의 질**: 판정 칸이 사실과 맞는지는 검사하지 못한다.
@@ -222,13 +222,13 @@ URL 안에서도 잡는다. 검사기를 고치지 않고 저장소 주소와 �
 - **의도 대비 결과** — plan mode를 거치지 않은 작업의 PR 본문 절. 원래 요청과, 사용자가 답하거나 승인한 시점의 의도를
   항목별로 적고 한 일·결과와 증거·판정을 단다.
 - **계획 대비 구현** — plan mode 작업의 같은 자리 절. 커밋한 계획 파일과 diff, 그리고 대화 요약(넘겼으면)을 대조한
-  결과(`.claude/CLAUDE.md` §11).
+  결과(`.claude/CLAUDE.md` "계획과 PR 본문").
 - **판정** — 의도 항목마다 붙이는 "됐음" / "이탈(이유)" / "아직 모름(언제 어떻게 확인하나)".
 - **템플릿 안내문** — `.github/pull_request_template.md`에 미리 들어 있는 줄. 그대로 남아 있으면 빈 칸으로 본다.
 - **필수 체크** — 통과해야 main에 병합할 수 있는 CI 결과. GitHub 규칙셋에서 정한다.
 
 ## 13. 관련 문서
 
-- [`.claude/CLAUDE.md`](../.claude/CLAUDE.md) §11 — 계획 대비 구현과 의도 대비 결과 규칙
+- [`.claude/CLAUDE.md`](../.claude/CLAUDE.md) "계획과 PR 본문" — 계획 대비 구현과 의도 대비 결과 규칙
 - [`CI-CHECK-GATE.md`](./CI-CHECK-GATE.md) — CI 게이트 전체와 필수 체크
 - [`E2E-FLAKY.md`](./E2E-FLAKY.md) — 이 검사를 만들게 된 작업의 경위

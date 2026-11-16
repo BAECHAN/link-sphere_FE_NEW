@@ -260,7 +260,7 @@ function writeHtmlAndOpen(name, html, countsLine) {
 
 /**
  * `--text`용 — 브라우저 없이 목록만 터미널에 찍는다. Claude 세션이 수정 전 영향 범위를 확인할 때
- * 쓴다(.claude/CLAUDE.md §5). 레이어 순서(pages → shared), 그 안에서는 경로순.
+ * 쓴다(.claude/CLAUDE.md "공통 지침을 이 레포에서 따르는 법"). 레이어 순서(pages → shared), 그 안에서는 경로순.
  */
 function printModuleList(title, modules) {
   const layerOrder = Object.keys(LAYER_STYLES);

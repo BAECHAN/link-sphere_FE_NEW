@@ -1,412 +1,68 @@
-# CLAUDE.md
+# Link-Sphere FE — Claude Code Guide
 
-흔한 LLM 코딩 실수를 줄이기 위한 행동 지침이다. 프로젝트별 지침과 병합해서 사용한다.
-
-**트레이드오프:** 이 지침은 속도보다 신중함을 우선한다. 사소한 작업에는 판단력을 발휘한다. 다만 §1의 "첫 수정 전에
-묻는다" 항목은 작업이 사소해도 묻는다.
-
-> 원문 출처: [multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills)의
-> `CLAUDE.md`. §1~7은 그 문서를 옮기고 이 레포 사정에 맞게 확장한 것이고, §8~13은 여기서 직접 추가했다.
-
-## 1. 코딩 전에 먼저 생각한다
-
-**추측하지 않는다. 혼란을 숨기지 않는다. 트레이드오프를 드러낸다.**
-
-구현하기 전에:
-
-- 모르는 것은 세 갈래로 다룬다. 조용히 하나를 고르지 않는다.
-  - **확인한다**: 코드·문서·설치본 소스로 알 수 있는 것, 선례가 하나인 이름·위치·스타일. 읽고 그대로 따른다.
-  - **첫 수정 전에 묻는다**: ① 요청이 둘 이상으로 읽히고 해석에 따라 건드리는 파일·동작이 달라질 때(해석을 모두 내놓는다)
-    ② 요청에 없는데 사용자가 체감하는 동작이 바뀔 때(§7) ③ 색·간격·문구 톤처럼 정답이 없는 선택(§9) ④ 요청 범위를 넘어
-    내 제안을 얹을 때 ⑤ 데이터 계약, 인증·세션, 운영 데이터, 배포 순서 ⑥ 키처럼 보이는 값 ⑦ 선례가 없거나 둘 이상인데
-    사용자에게 보이는 결과(화면·문구·API 응답·문서 구조)가 달라지는 선택. 무엇이 헷갈리는지 밝히고 §13대로 묻는다.
-  - **가정을 밝히고 진행한다**: 사용자에게 보이지 않고 그 변경 안에서 되돌릴 수 있는 구현 세부(지역 이름, 내부 함수 분리,
-    테스트 케이스 구성)와 승인된 계획 안의 절차뿐이다. 작업한 턴의 판정 줄 위 `**가정**` 줄에 적고, 없으면 "없음"이라 쓴다.
-    어느 갈래인지 모르겠으면 묻는다.
-- 더 단순한 접근이 있으면 그렇게 말한다. 타당하면 반대 의견을 낸다.
-- 기존 시스템이 지금 어떻게 동작하는지 주장할 때("우리는 X 패턴을 따른다", "이건 Y
-  프레임워크를 그대로 따른 것이다") 먼저 실제 코드 경로를 추적한다 — 비슷하게 생긴
-  유틸리티나 외부 프레임워크의 동작 방식으로부터 아키텍처를 추측하지 않는다. 그 주장이
-  추적한 사실인지 추측인지 명확히 밝힌다.
-- 서브에이전트(Explore·Plan 등)의 보고는 추적이 아니라 전해 들은 말이다. 보고에 담긴 "지금 이렇게
-  동작한다"를 사용자에게 사실로 옮기기 전에, 보고가 가리킨 `파일:줄`을 직접 읽어 사용자가 겪는
-  결과("무엇을 누르면 무엇이 보이는가")까지 따라간다. 읽지 않은 항목은 그 자리에 "에이전트 보고,
-  직접 확인 안 함"이라고 적는다. 동작을 표로 정리할 때는 행마다 확인 수준(직접 읽음·에이전트
-  보고·기기에서 확인)을 단다(2026-11-10, 뒤로가기 동작 표의 확인창 행을 에이전트 요약만 보고
-  "페이지가 바뀌면 취소로 닫힘"이라 썼다. 실제로는 `useUnsavedChangesGuard`가 이동을 막아 확인창만
-  닫히고, 보고에는 그 내용도 있었는데 표로 줄이며 빠졌다. 사용자가 직접 써 보고 지적했다).
-- 원인 진단이나 설계 판단이 외부 라이브러리·프레임워크의 내부 동작(언제 요청을 보내는지,
-  언제 커밋하는지 등)에 기대면, "추론"이라고 표시만 하고 넘어가지 않는다 — 설치된 버전의
-  소스를 직접 따라가 확인한 뒤에 말하고, 버전과 파일·줄을 함께 남긴다. 버전은 `package.json`의
-  범위가 아니라 설치본 `node_modules/<패키지>/package.json`으로 확인한다. 미니파이돼 읽기
-  어려우면 같은 패키지의 development 빌드(예: `react-dom/cjs/react-dom.development.js`)나
-  `build/modern/*.js`를 읽는다. 공식 문서·블로그·기억은 다른 버전 기준일 수 있어 대신하지
-  못한다 — react.dev는 Suspense가 콘텐츠를 _"마지막으로 드러낸 뒤 최대 300ms에 한 번"_ 드러낸다고
-  쓰지만(번역, [Suspense](https://react.dev/reference/react/Suspense)), 이 레포에 설치된
-  react-dom 18.3.1이 커밋을 미루는 상수는 `FALLBACK_THROTTLE_MS = 500`이었다. 끝내 따라갈 수
-  없으면(네이티브 바이너리 등) 확인하지 못했다고 밝히고, 그 가정에 기댄 결론을 확정처럼 쓰지
-  않는다(2026-10-16, 목록 카테고리 칩 레이아웃 시프트 진단에서 "`useQuery`는 커밋 뒤에야
-  요청한다"를 추론으로 둔 채 해결 범위를 물었다가, 사용자 지적으로 `useBaseQuery.js`·
-  `queryObserver.js`·`react-dom.development.js`를 따라가 확인한 사례 — 추적 경로는 `docs/SEARCH.md` §10).
-
-## 2. 단순함이 우선이다
-
-**문제를 해결하는 최소한의 코드. 추측성 코드는 없다.**
-
-- 요청받지 않은 기능은 넣지 않는다.
-- 한 번만 쓰이는 코드에 추상화를 두지 않는다.
-- 다만 이는 **재사용을 노린 일반화·설정 가능성**을 뜻한다 — 조건식이 한눈에 안 들어와 이름을 붙이면
-  의도가 분명해지는 경우, 재사용 목적이 아니어도 같은 파일 안에서 지역 함수로 추출하는 건 이 규칙
-  위반이 아니다. 공통 유틸로의 승격은 실제로 다른 곳에서도 필요해질 때 한다(근거·기존 선례:
-  `docs/DECISIONS.md` 2026-09-27 항목, `TooltipWrapper.tsx`의 `isHoverSuppressed()` 참고)
-- 요청받지 않은 "유연성"이나 "설정 가능성"을 넣지 않는다.
-- 일어날 수 없는 상황에 대한 에러 처리를 하지 않는다.
-- 200줄을 썼는데 50줄로 줄일 수 있다면 다시 쓴다.
-
-스스로에게 묻는다: "시니어 엔지니어가 보면 과하게 복잡하다고 할까?" 그렇다면 단순화한다.
-
-## 3. 최소 범위만 수정한다
-
-**꼭 필요한 것만 건드린다. 자신이 만든 것만 정리한다.**
-
-기존 코드를 수정할 때:
-
-- 인접한 코드·주석·포맷을 "개선"하지 않는다.
-- 고장 나지 않은 것을 리팩터링하지 않는다.
-- 자신의 취향과 다르더라도 기존 스타일을 그대로 따른다.
-- 무관한 죽은 코드를 발견하면 언급만 하고 지우지 않는다.
-
-내 변경으로 고아가 생기면:
-
-- 내 변경으로 인해 쓰이지 않게 된 import/변수/함수는 제거한다.
-- 원래 있던 죽은 코드는 요청이 없으면 지우지 않는다.
-
-기준: 변경한 모든 줄이 사용자의 요청으로 바로 설명돼야 한다.
-
-## 4. 목표 기반으로 실행한다
-
-**성공 기준을 정의한다. 검증될 때까지 반복한다.**
-
-작업을 검증 가능한 목표로 바꾼다:
-
-- "검증 추가" → "잘못된 입력에 대한 테스트를 작성하고, 통과시킨다"
-- "버그 수정" → "버그를 재현하는 테스트를 작성하고, 통과시킨다"
-- "X 리팩터링" → "리팩터링 전후로 테스트가 통과하는지 확인한다"
-
-여러 단계로 이뤄진 작업이면 짧은 계획을 먼저 밝힌다:
-
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-강한 성공 기준이 있으면 혼자서도 반복 작업이 가능하다. 약한 기준("일단 되게 만들기")은 계속 확인을 요구하게 만든다.
-
-Plan mode에서는 파일을 만들거나 바꾸는 명령(임시 디렉터리의 `git init` 실험 포함)으로 실측하지
-않는다 — 공식 문서와 기존 기록을 근거로 쓰고, 실측은 계획의 "검증 방법"으로 넘긴다.
-
-## 5. 수정 전에 영향 범위를 점검한다
-
-**코드를 쓰기 전에 무엇이 깨질 수 있는지 나열한다. 새로 만드는 것과 이미 동작하는 것, 양쪽 다.**
-
-구현하기 전에 다음을 점검하고 보고한다:
-
-- **CRUD 실패 지점** — 이 변경이 건드리는 데이터에 대해 등록(create) / 수정(update) /
-  읽기(read) / 삭제(delete)를 하나씩 짚는다. 각 단계에서 무엇이 깨지는지 명시한다:
-  누락된 행, 중복/멱등성, 소유권·가시성 체크, cascade 동작, count/페이지네이션 정확성,
-  동시 요청.
-- **기존 기능의 회귀** — 깨질 수 있는 모든 기존 동작을 그 동작을 소유한 파일과 함께
-  나열한다. 공유 쿼리와 캐시/무효화 경로, 파생 카운트, 이전 계약을 담고 있는 기존
-  테스트, 이전 동작을 단정하는 문서·사용자 노출 문구, 여전히 컴파일되는 죽은/미사용
-  코드 경로를 포함한다.
-- **여러 곳에서 import하는 파일**(공용 훅·컴포넌트, entity api 등)을 고칠 때는 사용처를
-  기억이나 부분 grep으로 짐작하지 않는다. `pnpm graph:focus "<경로>" --text`(바로 이웃)나
-  `pnpm graph "<경로>" --text`(거슬러 올라가 전체)로 실제 import 사용처를 뽑아 위 회귀 목록에
-  반영한다(`--text`는 브라우저 없이 목록만 출력). PR을 열면 CI가 같은 영향 그림을 PR 댓글로
-  붙이므로(`ci.yml` "PR 영향 그래프"), PR 본문에는 영향 범위를 한두 줄로 요약한다.
-
-두 목록 모두 첫 수정 전에 보고한다, 수정 후가 아니라. 변경이 데이터 계약(스키마, DTO,
-API 형태)을 바꾼다면 배포 순서와 그 사이에 무엇이 깨지는지 명시적으로 밝힌다.
-
-## 6. 새로 만들기 전에 선례를 찾는다
-
-**이 코드베이스가 이미 어떻게 풀었는지 찾는다. 그 형태를 그대로 따른다.**
-
-새로운 것을 설계하기 전에:
-
-- 같은 부류의 문제를 푼 기존 기능을 찾아 읽는다.
-- 코드를 쓰기 전에 그 선례를 파일 경로로 명시한다.
-- 그 형태를 따른다: 레이어링, 네이밍, 캐시/롤백 전략, 에러 소유권.
-- 명시한 이유가 있을 때만 벗어난다 — 그리고 그 이유를 밝힌다.
-
-이건 기존 함수를 확장하는 게 아니라 이미 자리 잡은 *형태*를 재사용하는 것이다.
-선례를 따르는 새 hook/util을 작성하는 것이 기대되는 결과다.
-
-기준: "어떤 기존 파일을 본떠 만들었는가?"에 항상 답할 수 있어야 한다.
-
-## 7. 사용자가 체감하는 트레이드오프는 승인을 받는다
-
-**기술적 제약의 부수 효과도 UX 결정일 수 있다. 조용히 떠안지 않는다.**
-
-어떤 결정은 순전히 기술적으로 보이지만("Y 때문에 X를 히스토리에 묶을 수 없다")
-사용자가 실제로 체감하는 결과를 낳는다("그래서 뒤로가기를 누르면 모달만 닫히는 게
-아니라 페이지가 이동한다"). 그 결과는 논리적으로 제약에서 나왔더라도 기술적으로
-불가피한 게 아니라 UX 결정이다. 확정된 것으로 취급하기 전에 드러내고 확인받는다.
-
-- 근거가 뒷받침하는 것보다 리서치/선례를 더 강하게 인용하지 않는다. 어떤 출처가
-  관련은 있지만 다른 상황을 다룬다면 그렇게 그대로 말한다("X 출처는 Y에 관한 것이지
-  정확히 이 케이스는 아니다") — 지금 결정을 뒷받침하는 것처럼 암시하지 않는다.
-- 과거 결정에 이의가 제기되면, 방어하기 전에 근거를 다시 검증한다. 더 확신에 찬
-  말투로 되풀이하기보다 원래 주장이 실제로 성립하는지 확인한다.
-- 사용자에게 묻고 동의를 받은 순간을 짚을 수 없다면, 대신 결정해버린 것이다 —
-  뒤늦게라도 그 사실을 알리고 확인받는다.
-
-기준: 내가 전달한 내용만 보고도 사용자가 "이건 내가 관여하지 못한 판단이었다"는 걸
-알아챌 수 있는가? 그렇지 않다면 사용자 대신 결정한 것이다.
-
-## 8. UI/UX 결정은 리서치와 선례에 근거한다
-
-**취향만으로 UI/UX를 설계하지 않는다. 근거를 인용한다.**
-
-작업이 UI/UX 판단(레이아웃, 순서, 인터랙션 패턴, 정보 구조 — 단순 시각적 다듬기가
-아닌)을 포함한다면, 직관이 아니라 근거가 필요한 다른 모든 엔지니어링 결정과 동일하게
-다룬다:
-
-- 관련 HCI/심리학 리서치를 찾아 실제로 무엇을 발견했는지 인용한다 — 기억에 그럴듯하게
-  남아있는 것에 의존하지 않는다.
-- 이미 자리 잡은 제품들이 같은 문제를 어떻게 풀었는지, 문서화된 실패 사례를 포함해서
-  살펴본다(출시했다가 없앤 기능이 성공 사례보다 더 강한 근거인 경우가 많다).
-- 대안을 명시적으로 비교하고(표가 잘 맞는다) 채택되지 않은 선택지가 왜 졌는지도
-  같이 기록한다 — 무엇이 이겼는지만 남기지 않는다.
-- 근거를 프로젝트의 설계 결정 기록(`docs/DECISIONS.md` 또는 해당 기능 문서, 예:
-  `docs/BOOKMARK.md`)에 남겨 이 대화가 끝난 뒤에도 그 근거가 남게 한다.
-
-기준: 나중에 이 결정에 이의가 제기되면, 구체적인 연구나 제품 선례를 짚을 수 있는가
-— 아니면 그냥 "이게 더 나아 보인다"고만 말했는가?
-
-## 9. 시각적 변경은 반영 전에 먼저 보여준다
-
-**간격, 정렬, 구분선, 색 — 화면을 보여준다, 설명하지 않는다.**
-
-어떤 변경은 기능적으로는 맞지만 시각적으로는 취향의 문제다: 간격 크기, 구분선이
-도움이 되는지 방해가 되는지, 정렬 방식. 이런 것에 대한 텍스트 설명은 양방향으로
-믿을 수 없다 — 읽는 사람은 설명만으로 실제 모습을 예측하기 어렵고, 쓰는 사람도 그
-설명이 어떻게 읽힐지 예측하기 어렵다. 코드부터 반영하고 배포 후에야 알아채는 것
-("이 간격 너무 넓다")이 이 규칙이 막으려는 실패 패턴이다(이 규칙을 만들게 된 사건은
-`docs/DECISIONS.md`, 2026-09-06 참고).
-
-- 실제 변경을 작성하기 전에, 정적 미리보기를 먼저 만든다 — 실제로 동작 중인
-  컴포넌트의 스크린샷이거나, 실제 Tailwind 클래스와 `globals.css` 색 토큰을 그대로
-  재사용한 가벼운 목업이어야 한다 — 근사치가 아니라 실물처럼 보여야 한다.
-- 합리적인 옵션이 둘 이상이면, 사용자가 설명만으로 각각을 상상하게 하지 말고 한
-  자리에 나란히 배치해서 만든다(Artifact 페이지 하나면 충분하다). 나란히 비교하면
-  하나씩 순서대로 보는 것보다 더 나은 선택이 나온다(parallel prototyping 리서치 —
-  `docs/DECISIONS.md`, 2026-09-06 참고).
-- 사용자가 미리보기를 보고 옵션을 고르거나 승인한 뒤에만 실제 컴포넌트에 반영한다.
-
-이건 시각/레이아웃 다듬기에 적용되는 것이지, 정답이 하나뿐인 기능적 변경에는
-적용하지 않는다 — 정답이 명백한 버그 수정에는 미리보기를 만들지 않는다.
-
-## 10. 외부에서 인용한 수치·주장은 원본을 남기고, 남의 말임을 표시한다
-
-**성능 수치든 업계 통계든, 검증 가능해 보이는 구체적인 숫자를 인용할 때는 그 자리에 원본을 함께 남긴다. 링크가 없으면 "출처 미상"이라고 명시한다. 링크를 달았어도 문장을 우리 주장처럼 쓰면 부족하다 — 어디부터 어디까지가 남의 말인지 눈에 보이게 한다.**
-
-§8(UI/UX 리서치 근거)이 UI/UX 판단에 국한되는 것과 달리, 이 규칙은 코드 주석·커밋
-메시지·문서를 가리지 않고 아키텍처·성능·라이브러리 선택 등 모든 종류의 외부 인용에
-적용된다. "배럴 파일은 dev 부팅 15-70%·빌드 28%·콜드스타트 40% 지연을 유발한다"처럼
-출처 없이 떠도는 구체적인 수치가 `eslint.config.js`와 `docs/FE-ARCHITECTURE.md`에
-그대로 박제된 채 몇 달간 아무도 그 근거를 확인할 수 없었던 사례(2026-09-08 발견)가
-이 규칙을 만들게 된 계기다. 2026-11-07 출처를 찾아 이 레포에서 직접 재 보니 부팅·빌드 지연은
-재현되지 않았다(`docs/PERFORMANCE.md` "배럴 비교").
-
-- 직접 측정한 값이면 "직접 측정"이라고 밝히고 측정 방법(스크립트, 재현 절차, 실행
-  결과)을 남긴다.
-- 외부 자료를 인용한 값이면 그 URL을 코드 주석·커밋 메시지·문서 중 인용이 등장하는
-  자리에 함께 적는다. 주석에 넣기엔 길면 짧은 근거만 남기고 `docs/DECISIONS.md`나
-  해당 기능 문서에 원본 링크와 함께 상세 근거를 적은 뒤 그 문서를 가리킨다.
-- 둘 다 아니면(기억에 의존한 값, 어디선가 본 것 같은 수치) "출처 미상, 재검증 필요"
-  라고 명시한다 — 검증된 값처럼 단정적으로 쓰지 않는다.
-- 레포에서 출처 없는 기존 인용을 발견하면, 새로 조사해 확정하기 전까지는 그 자리에
-  "출처 미상"이라고 표시해 둔다.
-
-**링크만으로는 부족하다 — 표시까지 한다.** 이 규칙 도입(2026-09-08) 이후에도 재발했다
-— 2026-09-10 전수 조사에서 큰따옴표 직접 인용 8건, 구체 수치 9건이 여전히 무출처였고,
-`docs/DECISIONS.md`에서 링크와 함께 태어난 인용이 `CHANGELOG.md`·기능 문서로 옮겨질
-때 링크만 탈락하는 패턴이 반복됐다. Wikipedia의 표절 지침이 이유를 정확히 짚는다 —
-"본문에서 저자를 밝히면 독자가 각주를 뒤지지 않고도 이 글이 남의 생각에 크게 기대고
-있다는 걸 알 수 있다"([Wikipedia:Plagiarism](https://en.wikipedia.org/wiki/Wikipedia:Plagiarism)).
-링크는 "어디서 확인하는가"만 답하고, "이 문장이 남의 말인가"는 따로 표시해야 한다.
-
-- 한 문장 이하는 인라인으로 쓴다: `_"원문"_`(이탤릭) + 마크다운 링크 + 누구의 말인지
-  문장 안에서 밝힌다. "선행 연구에 따르면"처럼 뭉뚱그리지 않는다 — 조직·문서 이름을
-  적는다.
-- 두 문장 이상은 blockquote로 떼어내고 바로 아래 `— 출처명, URL` 줄을 붙인다.
-- 번역했거나 생략했으면 그 사실을 적는다(`(번역)`, `(...)`, `(강조는 인용자)`).
-- 영어 등 외국어 원문은 **한국어로 번역해서 싣는다** — 대화 답변과 문서 모두 해당한다.
-  인용 표시(이탤릭·blockquote)와 `(번역)` 표기는 그대로 두고, 원문과의 대조는 링크로
-  한다. 원문을 그대로 붙이면 사용자가 인용마다 다시 해석해야 한다(2026-09-24 사용자 요청).
-  **원문 문장은 번역문과 나란히 싣지도 않는다** — "원문 + (번역: …)" 형태도 위반이다
-  (2026-09-27~29 커밋된 계획 파일과 대화에서 이 형태가 반복돼 명시함).
-- 원문을 직접 안 읽고 다른 문서의 인용을 옮겼으면 재인용임을 밝힌다 — "X(`docs/DECISIONS.md`
-  2026-09-06 항목에서 재인용)". 원문을 확인한 척하지 않는다.
-- 외부에 없는 문구에 권위를 씌우지 않는다 — 우리가 만든 기준을 `"..."` + "업계 ~
-  기준으로" 형태로 외부 표준처럼 포장하지 않는다.
-
-```
-❌ BAD
-Baymard 사용성 테스트에 따르면 적용 필터 개요를 상단에 두지 않는 사이트가 42%다.
-
-✅ GOOD — 한 문장, 인라인
-[Baymard #346](https://baymard.com/blog/persist-search-queries)의 사용성 테스트는
-적용 필터 개요를 상단에 명확히 두지 않는 사이트를 _"42%"_ 로 집계했다.
-
-✅ GOOD — 두 문장 이상, blockquote (아래는 인용 "형식"만 보여주는 예시용 가상 인용이다 —
-실제 NN/g 원문을 확인하고 옮긴 것이 아니다. 실제로 인용할 때는 원문을 직접 확인한 뒤
-그 글의 실제 URL을 단다)
-> 화면을 덮는 오버레이는 브라우저·폰 뒤로가기로 닫을 수 있어야 한다. 다만 오버레이가
-> 중첩되면 X 버튼 한 번에 스택 전체가 닫혀 사용자가 길을 잃는다. (번역, 예시용 가상 인용)
+> **행동 원칙은 공통 지침에 있다.** 확인하고 말하기·범위·사용자가 정할 것·전달, 개발 절차(계획·완료의 정의·사람 승인),
+> 테스트, 안전·권한, 기록은 `~/project/claude-base/CLAUDE.md`가 정본이고 `~/.claude/CLAUDE.md`가 import한다. 이 파일은
+> 이 레포의 사실·명령·컨벤션만 담는다. 공통 지침은 원격이 없는 로컬 저장소라 이 기계 밖 세션에는 로드되지 않는다.
 >
-> — NN/g 사용성 리서치(예시), https://www.nngroup.com
-```
-
-기준: 이 수치는 어디서 왔냐고 나중에 물었을 때, 클릭 가능한 링크나 "내가 이렇게
-측정했다"는 재현 절차로 바로 답할 수 있는가? 둘 다 안 되면 애초에 그 수치를 확정된
-사실처럼 쓰지 않는다. 그리고 이 문단을 스크롤만으로 훑어도 어디부터 어디까지가
-남의 말이고 어디부터가 우리 판단인지 구분되는가?
-
-## 11. 계획을 세웠으면 배포 전에 계획과 실제 구현을 대조한다
-
-**"계획대로 됐다"는 스스로 판단하지 않는다. fresh subagent에게 diff를 계획과 대조시켜
-증거로 보여준다.**
-
-Plan mode로 계획을 세우고 구현한 작업은, PR을 열기 전에:
-
-- 계획 파일을 `docs/plans/<YYYY-MM-DD>-<slug>.md`로 구현 코드와 같은 PR에 커밋한다.
-  plan mode를 거치지 않은 사소한 즉시 구현에는 적용하지 않는다(계획을 세울 만큼
-  중요한 작업만 이 절차의 대상이다).
-- 구현한 세션 스스로 "계획대로 됐다"고 결론 내리지 않는다 — 방금 쓴 코드에 편향되기
-  쉽다. 대신 fresh subagent인 `plan-verifier`(`.claude/agents/plan-verifier.md`)에게
-  커밋한 계획 파일과 실제 diff를 함께 주고 대조를 맡긴다: 계획의 각 항목이 실제로 구현됐는가, **계획에 없던 변경(과잉
-  구현 포함)이 섞였는가**, 계획과 다르게 구현된 부분이 있다면 왜인가. 이 에이전트는 도구가 Read·Grep·Glob뿐이라
-  `git diff origin/main...HEAD`를 스크래치패드 파일로 떨궈 그 경로를 넘긴다. 계획의 순서·보고 단계를 지켰는지도 보도록
-  대화 요약 파일도 함께 넘긴다 — `node ~/project/claude-base/scripts/session-digest.mjs --out <스크래치패드 파일>`(대화가
-  그대로 들어 있어 커밋하지 않는다). 쓸 수 없으면(세션 시작 뒤에 생긴
-  에이전트 파일은 재시작 전까지 인식되지 않는다) general-purpose에 맡긴다 — 내장 Explore·Plan은 CLAUDE.md를
-  로드하지 않아 이 레포 규칙을 모른다([sub-agents 문서](https://code.claude.com/docs/en/sub-agents)). 2026-10-31
-  결함을 넣은 사례 8개로 직접 잰 결과 두 쪽 모두 결함 8/8·정상 사례 오탐 0이었고 plan-verifier가 목록가로 약 17%
-  적었다(검출·오탐 재현: `.claude/scripts/plan-eval-cases.mjs` → `.claude/workflows/plan-verifier-eval.js`.
-  비용은 워크플로 에이전트 기록을 1회용 스크립트로 쟀다. 2026-11-12에 대화 요약 입력을 더하기 전 정의로 잰 값이다).
-- 대조 결과를 계획 항목별로 "구현됨(파일:줄)/이탈(이유)/미구현" 형태로 정리해 PR
-  본문에 `## 계획 대비 구현` 섹션으로 남기고, `docs/plans/`의 해당 파일을 링크한다
-  (원문을 PR 본문에 다시 붙여넣지 않는다 — 커밋된 파일과 중복되면 SSOT가 깨진다).
-  CI green만 보고 머지하는 게 아니라, 계획이 실제로 지켜졌는지 그 자리에서 확인할
-  수 있어야 한다.
-- 이 대조는 "올바른 모양인가"(→ `/code-review`가 이미 다룬다)가 아니라 "약속한 것을
-  만들었는가"만 본다. 포맷팅·린트 수정처럼 구현 중 자연스럽게 필요했던 세부 조정은
-  이탈로 꼽지 않는다 — 계획에 명시된 설계 결정(트레이드오프 선택, 트리거 조건 등)이
-  실제로 다르게 구현된 경우만 이탈로 표시한다.
-- `docs/plans/*.md`는 커밋된 뒤 원문을 고치지 않는다(append-only, ADR 컨벤션). 예외는 H1
-  바로 아래 `구현 결과` 블록 하나다 — plan-verifier가 낸 블록 초안을 같은 PR에서 계획 파일에
-  붙인다. 이탈·미구현·계획에 없던 변경을 이유와 함께 적고 `파일:줄` 근거는 PR 본문에만 둔다.
-  나중에 다른 계획이 이 계획을 뒤집으면 그 PR에서 이 블록에 `대체됨: <새 계획>(#PR)`을
-  덧붙인다(블록이 없던 옛 계획이면 블록을 새로 만든다). 그래서 계획 파일만 열어도 실제로
-  무엇을 했는지 알 수 있다. CI(`ci.yml`의 "docs/plans 불변성 확인" 스텝)는 블록과 빈 줄을 뺀
-  나머지가 바뀌거나 계획 파일을 지우거나 이름을 바꾸면 막는다. 블록 형식은 `plan-doc-structure` skill, 업계 근거는
-  `docs/plans/2026-11-03-plan-result-block.md`.
-
-**plan mode를 거치지 않은 작업**은 계획 파일 대신 PR 본문 `## 의도 대비 결과`에 원래 요청과 의도(사용자가 질문에
-답하거나 승인한 시점의 것)를 항목별로 적고, 한 일·결과와 증거·판정("됐음"/"이탈(이유)"/"아직 모름(언제 어떻게
-확인하나)")을 단다. 리뷰나 후속 요청으로 바뀌었으면 병합 전에 본문을 마지막 변경분이 아니라 PR 전체 기준으로 다시
-쓰고, 병합 뒤에 확인할 약속은 GitHub 이슈로 열어 링크한다. `pr-body.yml`은 필수 절(요약·영향 범위·의도 대비 결과
-또는 계획 대비 구현·검증)이 있는지만 막고 내용이 의도대로인지는 사람이 본다(2026-11-01 e2e flaky 작업(#472)의
-마지막 보고가 직전 변경만 담아 의도대로 됐는지 알 수 없었던 일로 도입, 근거·검사 규칙은 `docs/PR-BODY-CHECK.md`). `gh pr create --body-file`로 열기 전에
-`pnpm check:pr-body <본문 파일>`로 같은 검사를 돌린다.
-
-기준: PR을 읽는 사람이 코드를 한 줄도 안 읽고 이 섹션만 봐도 계획과 실제가 일치하는지
-판단할 수 있는가?
-
-## 12. 여러 단계를 거치는 흐름은 다이어그램으로도 보여준다
-
-**텍스트만으로 설명하지 않는다. 단계·분기·실패 지점이 여러 개면 그림을 곁들인다.**
-
-**Plan 모드로 Final Plan을 작성하는 시점에 이 규칙이 적용된다** — 파일 경로가 아니라
-이 행위 자체가 대상이다. Plan 모드 Phase 4("Final Plan 작성")는 Claude Code 하네스에
-내장된 고정 틀(Context 섹션·핵심 파일·검증 방법을 요구)이고, 이 틀 자체는 `.claude/`
-설정으로 편집할 수 없다 — **그 틀이 다이어그램을 요구하지 않는다고 이 규칙이 면제되지
-않는다.** 계획에 단계·분기·실패 지점이 여럿이면, 하네스가 요구하는 섹션들과 나란히
-전체 흐름을 보여주는 Mermaid 섹션을 넣는다.
-
-같은 기준이 계획 이외의 설명에도 적용된다: 여러 단계를 거치는 흐름(요청→처리→저장),
-실패 지점이 여러 곳인 진단, 분기가 있는 설계 대안, 작업 순서를 설명할 때는 산문만으로
-끝내지 않는다.
-
-- 파일(Plan 모드가 실제로 쓰는 `~/.claude/plans/<slug>.md`, 구현 후 커밋되는
-  `docs/plans/*.md`, 독립 기능 문서, PR 본문)에는 **Mermaid**를 쓴다 — GitHub과 대부분의
-  에디터가 도형으로 렌더한다.
-- 터미널 대화 답변에는 **ASCII 다이어그램**을 쓴다 — 터미널은 Mermaid 코드 펜스를 그림이
-  아니라 텍스트 그대로 보여주므로 목적을 이루지 못한다.
-- 단일 파일 한 줄 수정처럼 흐름이랄 게 없는 작업에는 적용하지 않는다.
-
-독립 기능 문서(`docs/<기능명>.md`)에 대한 "장 끝에 전체 흐름 Mermaid 순서도 필수" 규칙은
-이미 "독립 기능 문서 내부 순서" §1에 있다 — 이 절은 그 범위를 Plan 모드 계획 작성·PR
-본문·대화 답변까지 넓힌 것이다(2026-09-04 BE 세션에서 같은 요청이 있었는데 그때는 독립
-기능 문서 규칙으로만 반영돼, 2026-09-09 계획 설명 때 같은 지적을 다시 받았다 — 원인
-조사 결과 CLAUDE.md는 세션 시작 시 스냅샷되므로 이 규칙이 생긴 이후 시작된 세션에서만
-자동으로 적용된다).
-
-**안전망(2차 수단)**: `.claude/hooks/plan-diagram-reminder.sh`가 `PostToolUse` 훅으로
-등록돼 있다. 계획 파일(경로에 `/plans/`가 들어가는 `.md`)을 Write/Edit/MultiEdit한 직후,
-150줄(`wc -l` 기준, `PLAN_DIAGRAM_MIN_LINES` 환경변수로 조정 가능) 이상인데 Mermaid
-펜스가 없으면 이 규칙을 상기시키는 메시지를 그 자리에서 띄운다. 정말 흐름이 없는
-계획이면 파일 안에 `<!-- no-diagram: (이유) -->` 한 줄을 남기면 확인이 멈춘다. 이 훅은
-**한계가 있다**: `~/.claude/plans/` 저장 시점만 잡는다 — `docs/plans/`로의 스냅샷 복사는
-Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only 보호 때문에 훅이
-건드리지 않는다. 즉 이 훅은 Plan 모드 작성 시점에 이 규칙을 놓쳤을 때의 보완책이지,
-1차 수단은 여전히 Final Plan을 쓸 때 이 절을 직접 따르는 것이다.
-
-기준: 이 설명을 읽는 사람이 글을 한 줄도 안 읽고 그림만 봐도 전체 흐름을 따라올 수 있는가?
-
-## 13. 질문하기 전에 판단 재료를 먼저 준다
-
-**선택지만 내밀지 않는다. 그 질문이 나오게 된 조사 결과를 본문으로 먼저 공유한다.**
-
-§7이 "묻지 않고 혼자 결정하지 마라"라면, 이 절은 "물을 때 무엇을 함께 줘야 하는가"다.
-`AskUserQuestion`의 옵션 카드는 판단 재료를 담는 자리가 아니다 — label은 1~5단어이고
-옵션은 최대 4개다. 근거를 카드에 우겨넣으면 사용자는 선택지를 고를 이유를 스스로
-재구성할 수 없다(2026-09-09 직접 측정: 최근 8개 세션의 질문 18건 중 7건이 직전 본문
-설명 300자 미만, 옵션 설명 97개 중 30%가 150자 초과·최대 283자 — 근거가 본문 대신
-카드 안에 들어가 있었다. 측정 방법과 상세는 `docs/DECISIONS.md` 2026-09-09 항목).
-
-조사를 서브에이전트(Explore·Plan 등)에 위임했을 때 특히 위험하다 — **그 리포트는
-사용자 화면에 표시되지 않고 나에게만 온다.** 내가 옮겨적지 않으면 사용자가 보는
-근거는 0이 된다. Plan 모드가 정확히 이 경로다.
-
-질문을 던지기 전에 본문 텍스트로 아래를 먼저 낸다:
-
-- **확인한 사실** — `파일:줄`, 실측 수치, 인용 출처를 그대로(§10을 적용한다). 조사해서
-  새로 알게 된 것과 원래 알고 있던 것을 구분한다.
-- **그래서 왜 묻는가** — 내가 혼자 정하지 못하는 지점이 정확히 무엇인지, 답이 갈리면
-  무엇이 달라지는지.
-- **각 선택지가 실제로 바꾸는 것** — 영향 범위와 되돌리기 비용까지.
-- **내 추천과 그 이유** — 추천 없이 선택지만 나열하지 않는다.
-
-그 뒤에 `AskUserQuestion`을 호출한다. 옵션의 `description`은 본문에서 이미 설명한 것을
-가리키는 한 줄 요약이지, 근거를 처음 밝히는 자리가 아니다.
-
-대화에 이미 재료가 다 나와 있는 단순 확인("PR을 병합할까요?")에는 적용하지 않는다 —
-새로 조사한 사실 위에서 나온 질문에만 적용한다.
-
-기준: 사용자가 옵션 카드를 열어보지 않고 본문만 읽고도 각 선택지를 고를 이유를 스스로
-말할 수 있는가? 카드를 봐야만 근거를 알 수 있다면 순서가 뒤집힌 것이다.
+> **문서 형식 규칙은 [`.claude/rules/docs-format.md`](rules/docs-format.md)에 있다.** `docs/**/*.md`·`README.md`·
+> `CHANGELOG.md`를 읽거나 쓸 때 붙는다. 새 문서를 만들기 전에 같은 폴더의 문서를 하나 읽는다(그래야 첫 초안 전에 규칙이 보인다).
 
 ---
 
-**이 지침들이 잘 작동하고 있다는 신호:** diff에 불필요한 변경이 줄어들고, 과하게
-복잡하게 만들어 다시 쓰는 일이 줄어들고, 구현 후가 아니라 구현 전에 확인 질문이
-나온다.
+## 모르는 것은 세 갈래로 다룬다
 
-# Link-Sphere FE — Claude Code Guide
+조용히 하나를 고르지 않는다. "첫 수정 전에 묻는다" 항목은 작업이 사소해도 묻는다.
+
+- **확인한다**: 코드·문서·설치본 소스로 알 수 있는 것, 선례가 하나인 이름·위치·스타일. 읽고 그대로 따른다.
+- **첫 수정 전에 묻는다**: ① 요청이 둘 이상으로 읽히고 해석에 따라 건드리는 파일·동작이 달라질 때(해석을 모두 내놓는다)
+  ② 요청에 없는데 사용자가 체감하는 동작이 바뀔 때 ③ 색·간격·문구 톤처럼 정답이 없는 선택 ④ 요청 범위를 넘어
+  내 제안을 얹을 때 ⑤ 데이터 계약, 인증·세션, 운영 데이터, 배포 순서 ⑥ 키처럼 보이는 값 ⑦ 선례가 없거나 둘 이상인데
+  사용자에게 보이는 결과(화면·문구·API 응답·문서 구조)가 달라지는 선택. 무엇이 헷갈리는지 밝히고 공통 지침
+  "사용자가 정할 것"대로 묻는다.
+- **가정을 밝히고 진행한다**: 사용자에게 보이지 않고 그 변경 안에서 되돌릴 수 있는 구현 세부(지역 이름, 내부 함수 분리,
+  테스트 케이스 구성)와 승인된 계획 안의 절차뿐이다. 작업한 턴의 판정 줄 위 `**가정**` 줄에 적고, 없으면 "없음"이라 쓴다.
+  어느 갈래인지 모르겠으면 묻는다.
+
+## 공통 지침을 이 레포에서 따르는 법
+
+- **설치본 확인** — 라이브러리 버전은 `package.json`의 범위가 아니라 설치본 `node_modules/<패키지>/package.json`으로 확인한다.
+  미니파이돼 읽기 어려우면 같은 패키지의 development 빌드(예: `react-dom/cjs/react-dom.development.js`)나
+  `build/modern/*.js`를 읽는다(추적 사례: `docs/SEARCH.md` §10).
+- **지역 함수 추출은 추상화 금지의 예외다** — 조건식이 한눈에 안 들어와 이름을 붙이면 의도가 분명해지는 경우, 재사용
+  목적이 아니어도 같은 파일 안에서 지역 함수로 추출한다. 공통 유틸로의 승격은 실제로 다른 곳에서도 필요해질 때 한다(근거·선례:
+  `docs/DECISIONS.md` 2026-09-27 항목, `TooltipWrapper.tsx`의 `isHoverSuppressed()`).
+- **영향 범위** — 여러 곳에서 import하는 파일(공용 훅·컴포넌트, entity api 등)을 고칠 때는 사용처를 기억이나 부분 grep으로
+  짐작하지 않는다. `pnpm graph:focus "<경로>" --text`(바로 이웃)나 `pnpm graph "<경로>" --text`(거슬러 올라가 전체)로 실제
+  import 사용처를 뽑는다. PR을 열면 CI가 같은 영향 그림을 PR 댓글로 붙이므로(`ci.yml` "PR 영향 그래프"), PR 본문에는
+  영향 범위를 한두 줄로 요약한다.
+- **시각 변경 미리보기** — 실제로 동작 중인 컴포넌트의 스크린샷이거나, 실제 Tailwind 클래스와 `globals.css` 색 토큰을
+  그대로 쓴 목업으로 만든다(근거: `docs/DECISIONS.md` 2026-09-06 "화면 먼저, 그다음 반영").
+
+### 계획과 PR 본문
+
+- **계획 파일** — plan mode로 세운 계획은 `docs/plans/<YYYY-MM-DD>-<slug>.md`로 구현 코드와 같은 PR에 커밋한다. plan mode를
+  거치지 않은 사소한 즉시 구현에는 적용하지 않는다. 섹션 구조는 `plan-doc-structure` skill.
+- **대조** — PR을 열기 전에 `plan-verifier`(사용자 범위 에이전트, 정본은 `~/project/claude-base/agents/plan-verifier.md`)에
+  계획 파일·diff 파일·대화 요약 파일의 경로를 넘긴다. 이 에이전트는 도구가 Read·Grep·Glob뿐이라 `git diff origin/main...HEAD`를
+  스크래치패드 파일로 떨궈 넘기고, 대화 요약은 `node ~/project/claude-base/scripts/session-digest.mjs --out <스크래치패드 파일>`로
+  만든다(대화가 그대로 들어 있어 커밋하지 않는다). 쓸 수 없으면 general-purpose에 맡긴다 — 내장 Explore·Plan은 CLAUDE.md를
+  로드하지 않는다([sub-agents 문서](https://code.claude.com/docs/en/sub-agents)). 평가 방법과 결과는
+  `.claude/workflows/plan-verifier-eval.js`와 claude-base `docs/METRICS.md` "실험: 계획 대조 에이전트 평가".
+- **PR 본문 `## 계획 대비 구현`** — 대조 결과를 계획 항목별로 "구현됨(파일:줄)/이탈(이유)/미구현"으로 정리하고
+  `docs/plans/`의 해당 파일을 링크한다(원문을 PR 본문에 다시 붙이지 않는다). 포맷팅·린트 수정처럼 구현 중 필요했던 세부
+  조정은 이탈이 아니다. 계획에 명시된 설계 결정이 다르게 구현된 경우만 이탈이다.
+- **구현 결과 블록** — `docs/plans/*.md`는 커밋된 뒤 H1 바로 아래 `구현 결과` 블록(`plan-result:start`~`end`)만 고친다.
+  plan-verifier가 낸 초안을 같은 PR에서 붙이고, `파일:줄` 근거는 PR 본문에만 둔다. 다른 계획이 뒤집으면 그 PR에서 이 블록에
+  `대체됨: <새 계획>(#PR)`을 덧붙인다. CI(`ci.yml` "docs/plans 불변성 확인")가 블록과 빈 줄을 뺀 나머지의 수정, 계획 파일의
+  삭제·개명을 막는다. 블록 형식은 `plan-doc-structure` skill.
+- **PR 본문 `## 의도 대비 결과`** — plan mode를 거치지 않은 작업은 원래 요청과 의도를 항목별로 적고, 한 일·결과와 증거·판정
+  ("됐음"/"이탈(이유)"/"아직 모름(언제 어떻게 확인하나)")을 단다. 리뷰나 후속 요청으로 바뀌었으면 병합 전에 본문을 PR 전체
+  기준으로 다시 쓰고, 병합 뒤에 확인할 약속은 GitHub 이슈로 열어 링크한다. `gh pr create --body-file`로 열기 전에
+  `pnpm check:pr-body <본문 파일>`을 돌린다(검사 규칙·근거: `docs/PR-BODY-CHECK.md`).
+- **다이어그램 안전망** — 사용자 범위 훅 `~/project/claude-base/hooks/plan-diagram-reminder.sh`가 경로에 `/plans/`가 든 `.md`를
+  쓰거나 고친 직후, 150줄(`PLAN_DIAGRAM_MIN_LINES`로 조정) 이상인데 Mermaid 펜스가 없으면 알린다. 흐름이 없는 계획이면
+  파일에 `<!-- no-diagram: (이유) -->` 한 줄을 둔다. `docs/plans/`로의 `cp` 복사는 잡지 못하고, git이 추적하는 파일은
+  건드리지 않는다.
 
 ---
 
@@ -417,32 +73,23 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
   `engine-strict=true`(2026-09-10 추가)가 함께 있어 다른 버전이면 `pnpm install` 자체가
   에러로 막힌다 — 다만 이 세션은 워크트리 격리(`source` 명령 차단) 때문에 Node 20을 실제로
   깔아 재현 검증은 못 했다(engine-strict의 표준 동작 자체는 npm/pnpm 공식 문서 근거)
-- **Never** 키처럼 보이는 값(API 키·VAPID 키·Firebase 설정·토큰·접속 정보 등)을 "공개 값이라 괜찮다"고
-  스스로 판단해 파일에 넣거나 커밋 → 넣기 전에 **항상 사용자에게 묻는다**. 기술적으로 공개용이라는
-  근거는 질문의 판단 재료로만 붙인다. `.env.example` 같은 예시·템플릿 파일에는 빈 값만 둔다. 값을 다뤄야
-  할 때는 대화에 노출하지 않는다(`gh secret set` 프롬프트, 파일에서 stdin으로 파이프). 키를 교체할 때는
-  **새 값 반영(시크릿·`.env`) → 재배포 → 운영 확인 → 옛 값 삭제** 순서를 지킨다. 2026-10-02 #301에서
-  `.env.example`에 실제 Firebase·VAPID 값을 확인 없이 넣어 공개 레포에 병합했고, 이력은 지울 수 없어
-  VAPID·apiKey·웹 앱을 모두 교체했다(#302). 수습 중에도 이 순서가 어긋나 운영 알림이 두 번 깨졌다
-- **Never** 운영 DB 임시 조회에 BE 앱 계정(`application-secret.yml`)·트랜잭션 풀러 6543을 쓰거나 세션 수준
-  `SET`을 건다 → 항상 읽기 전용 계정으로 `/opt/homebrew/opt/libpq/bin/psql "service=linksphere-ro" -c "…"`.
-  6543은 서버 커넥션을 앱과 돌려 써서 세션 설정이 앱 요청에 남는다 — 2026-10-05 이 레포 세션이 고아 이미지를
-  대조하며 건 `SET default_transaction_read_only = on`이 1분간 Lambda 쓰기 6건을 500으로 만들었다. 쓰기는
-  사용자가 직접 한다. 계정·접속 설정·사건 경위는 BE [`docs/DEPLOY.md` 12장](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/DEPLOY.md#12-운영-db-임시-조회-전용-읽기-계정-supabase--적용-완료-2026-10-20)
+- **Never** 운영 DB 임시 조회에 BE 앱 계정·트랜잭션 풀러 6543을 쓰거나 세션 수준 `SET`을 건다 → 항상 읽기 전용 계정으로
+  `/opt/homebrew/opt/libpq/bin/psql "service=linksphere-ro" -c "…"`. 쓰기는 사용자가 직접 한다. 계정·접속 설정·사건 경위는 BE
+  [`docs/DEPLOY.md` 12장](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/DEPLOY.md#12-운영-db-임시-조회-전용-읽기-계정-supabase--적용-완료-2026-10-20)
+- **Never** 키처럼 보이는 값을 묻지 않고 파일에 넣는다(공통 지침 "안전·권한") → 이 레포에서는 `.env.example`에 빈 값만 두고,
+  값은 `gh secret set` 프롬프트나 파일에서 stdin으로 넘겨 대화에 노출하지 않는다(사고 경위: `docs/FCM-PUSH-NOTIFICATION.md` 시행착오)
 - **Never** native `confirm()` → 항상 `useAlertDialog` + `openConfirm` 사용
-- **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만(2026-09-09 감사에서
-  `shared/lib/firebase/fcm.ts`가 raw `fetch()`로 이 규칙을 어기고 있는 걸 발견해 같은 날
-  `shared/api/fcm.api.ts`로 옮겨 고쳤다 — 지금은 BE API 호출에는 예외 없이 지켜지고 있다. transport(`shared/api/client.ts`)를
-  빼면 `.api.ts` 밖의 `fetch`는 정적 파일을 읽는 `version.util.ts`(`/index.html`)·`build-info.util.ts`(`/version.json`) 2곳뿐이다)
+- **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만. transport(`shared/api/client.ts`)를 빼면 `.api.ts` 밖의
+  `fetch`는 정적 파일을 읽는 `version.util.ts`(`/index.html`)·`build-info.util.ts`(`/version.json`) 2곳뿐이다
 - **Never** 인라인 쿼리 키 → 항상 `<entity>Keys.*` 사용
-- **Never** 인라인 한글 UI 문자열 → 항상 `TEXTS.*` 사용 (ESLint `custom-i18n/no-hardcoded-hangul`가 pre-commit(lint-staged)과 CI·배포의 `pnpm check`에서 자동 차단 — `pnpm build` 자체는 ESLint를 돌리지 않는다. 보간은 `texts.ts`의 함수형 키 사용 예: `messages.success.bookmarkSavedTo(folderName)`. 예외 전체 목록은 `texts-conventions` skill(`.claude/skills/texts-conventions/SKILL.md`) 참고). 화면 읽기 프로그램이 읽는 문구(`aria-label`, `alt`, `sr-only` 요소 안 글자)는 영어도 직접 쓰지 않는다 — ESLint `custom-i18n/no-literal-a11y-name`이 같은 지점에서 차단한다(2026-11-06, `no-hardcoded-hangul`이 한글만 봐서 영어 문구 8곳이 통과해 있었다). JSX 요소 사이에 직접 적은 글자도 언어와 상관없이 `custom-i18n/no-literal-jsx-text`가 막는다(같은 날, `Recent Links`·`Submit Link`). 화면 글자는 한국어로 쓰고, 영어로 두는 예외(`LinkSphere`, `URL`, 단축키)는 `texts-conventions` skill을 본다
-- **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반
-  Tailwind 클래스 사용 (`text-destructive`, `bg-success`, `text-warning` 등). 2026-09-09 감사에서
-  `shared/ui/elements/ImageAttachmentField.tsx`·`SearchInput.tsx`, `shared/ui/layouts/AuthLayout.tsx`·
-  `ErrorLayout.tsx`에 raw gray/zinc 팔레트 잔존이 발견돼 같은 날 토큰 기반 클래스로 고쳤다.
-  2026-09-13부터는 ESLint `custom-tailwind/no-raw-color`(`eslint.config.js`)가 이 규칙을
-  강제한다 — black/white/gray/zinc 등 명명 팔레트 리터럴 클래스를 pre-commit(lint-staged)과
-  CI·배포의 `pnpm check`에서 차단하므로, 위 감사에서 발견된 것과 같은 유형의 회귀는 이제 자동으로 잡힌다
+- **Never** 인라인 한글 UI 문자열 → 항상 `TEXTS.*` 사용. ESLint `custom-i18n/no-hardcoded-hangul`가 pre-commit(lint-staged)과
+  CI·배포의 `pnpm check`에서 막는다(`pnpm build` 자체는 ESLint를 돌리지 않는다). 보간은 `texts.ts`의 함수형 키를 쓴다(예:
+  `messages.success.bookmarkSavedTo(folderName)`). 화면 읽기 프로그램이 읽는 문구(`aria-label`, `alt`, `sr-only` 요소 안 글자)는
+  영어도 직접 쓰지 않는다(`custom-i18n/no-literal-a11y-name`). JSX 요소 사이에 직접 적은 글자도 언어와 상관없이 막힌다
+  (`custom-i18n/no-literal-jsx-text`). 화면 글자는 한국어로 쓰고, 예외 목록(`LinkSphere`, `URL`, 단축키 등)은 `texts-conventions` skill을 본다
+- **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반 Tailwind 클래스 사용
+  (`text-destructive`, `bg-success`, `text-warning` 등). ESLint `custom-tailwind/no-raw-color`가 black/white/gray/zinc 등 명명 팔레트
+  리터럴 클래스를 pre-commit과 `pnpm check`에서 막는다(도입 경위: `docs/DESIGN-SYSTEM.md`)
 - **Never** 문자열을 이어 붙인 API 경로·손으로 적은 응답 타입(``apiClient.get<Post>(`${API_ENDPOINTS.post.base}/${id}`)``)
   → `*.api.ts`는 항상 `specClient`에 스펙 경로 템플릿을 쓴다(`specClient.get('/post/{id}', { path: { id } })`).
   없는 경로·메서드, 빠뜨린 경로 변수, 스펙과 다른 본문·응답 타입을 생성 스펙(`openapi.gen.ts`)이 컴파일 단계에서 막아
@@ -453,36 +100,44 @@ Write가 아니라 `cp`로 이뤄지고, git 추적 파일은 §11 append-only �
 - **Never** feature hook에서 직접 `queryClient.invalidateQueries` → 항상 `.keys.ts` success handlers 사용
 - **Never** 다른 엔티티의 raw 쿼리 키를 재구성해 `queryClient.invalidateQueries`를 직접 호출 → 그 엔티티가 공개한 `<entity>InvalidateQueries.xxx()` 래퍼만 사용. 크로스 엔티티 무효화가 필요하면 자기 엔티티의 `.keys.ts`에 `handle<Event>Success` 함수를 만들어 그 안에서 호출한다 (`docs/FE-ARCHITECTURE.md` §5의 "크로스 엔티티 무효화" 참고)
 - **Never** 하위 레이어에서 상위 레이어 import → ESLint 강제 (레이어 방향 위반)
-- **Never** 날짜 처리에 `new Date()` / `.getTime()` 직접 사용 → 항상 `dayjs` 사용 (`dayjs(value).valueOf()`, `dayjs().format()` 등). ESLint `no-restricted-syntax`로 강제된다(`eslint.config.js`) — 2026-03-15에 이 규칙이 추가된 뒤로도 문서 규칙에만 의존해 5개월간 위반이 안 잡혔던 사례(당시 경로 `entities/folder/model/`의 `useRecentFolders.ts` 파일, 2026-08-12 작성 — 이후 `entities/bookmark/folder/hooks/useRecentBookmarkFolders.ts`로 이동·개명)가 있어 2026-09-08 ESLint로 승격
-- **Never** `features/**`·`pages/**`의 `hooks/` 밖(주로 `ui/`)에서 entity 쿼리 훅(`*.queries`) 직접 import → 조회는 자기 슬라이스의 `hooks/` 커스텀 훅이나 `entities/<entity>/hooks/`의 공용 훅(예: `useCategoryOptions`)에서 한다. `custom-query-rules/no-direct-query-import`는 `@tanstack/react-query` 직접 import만 막아 entity가 감싼 `*.queries` 훅 호출까지는 못 잡았고, 그 사이 `CreatePostForm.tsx`·`UpdatePostForm.tsx`가 `useFetchCategoryOptionQuery()`를 UI에서 직접 호출하는 게 5개월 넘게(dayjs 규칙과 같은 패턴) 안 잡혔다 — 2026-09-09 `custom-query-rules/no-entity-query-import-outside-hooks`로 승격(2026-09-29부터 pages도 대상에 추가, widgets는 §8 예외라 대상 아님)
-- **Never** React API(`memo`·`useCallback`·`useMemo`·`useEffect`·ref 등)를 학습한 일반론만으로 넣거나 빼지 않는다 → 판단 전에 react.dev 해당 문서를 조회하고(context7 또는 WebFetch) 링크를 주석·PR에 남긴다. 성능 최적화를 넣는 근거는 실제 코드 추적(자식이 `memo`인가, context·라우터를 구독하는가)과 측정이다 — react.dev는 `memo`를 _"같은 props로 자주 리렌더되고 렌더가 무거울 때만 가치가 있다"_ (번역, [memo](https://react.dev/reference/react/memo))고 쓴다. 공식 hooks 규칙(`eslint-plugin-react-hooks` v7 recommended)이 `eslint.config.js`에서 error로 켜져 있다 — 새 위반을 `eslint-suppressions.json`에 넣지 않는다(`--suppress-all`·`--suppress-rule` 금지). 정당한 예외만 그 줄에 `eslint-disable-next-line <규칙> -- <이유>`를 단다(예: `useWindowGridVirtualizer.ts`의 인스턴스 속성 대입). 2026-10-04 외부에서 받은 "memo·useCallback을 붙이라"는 분석이 실제 코드(자식이 `memo`가 아니고 라우터를 구독)와 맞지 않았던 것을 계기로 #315~#320에서 기존 52건을 정리했다
-- **Never** 대상 파일 양식 무시하고 코드 생성 → 항상 붙여넣을 파일(및 인접 코드)을 **먼저 읽고** 들여쓰기·네이밍·import 순서·따옴표·주석 밀도·정렬을 그대로 맞춘다. 본인 스타일을 강요하거나 기존 코드를 재포맷하지 않는다
+- **Never** 날짜 처리에 `new Date()` / `.getTime()` 직접 사용 → 항상 `dayjs` 사용 (`dayjs(value).valueOf()`, `dayjs().format()` 등).
+  ESLint `no-restricted-syntax`가 막는다(`eslint.config.js`)
+- **Never** `features/**`·`pages/**`의 `hooks/` 밖(주로 `ui/`)에서 entity 쿼리 훅(`*.queries`) 직접 import → 조회는 자기 슬라이스의
+  `hooks/` 커스텀 훅이나 `entities/<entity>/hooks/`의 공용 훅(예: `useCategoryOptions`)에서 한다. ESLint
+  `custom-query-rules/no-entity-query-import-outside-hooks`가 막는다(widgets는 FE-ARCHITECTURE §8 예외라 대상 아님. 경위:
+  `docs/DECISIONS.md` 2026-09-09)
+- **Never** React API(`memo`·`useCallback`·`useMemo`·`useEffect`·ref 등)를 학습한 일반론만으로 넣거나 빼지 않는다 → 판단 전에
+  react.dev 해당 문서를 조회하고(context7 또는 WebFetch) 링크를 주석·PR에 남긴다. 성능 최적화를 넣는 근거는 실제 코드 추적(자식이
+  `memo`인가, context·라우터를 구독하는가)과 측정이다 — react.dev는 `memo`를 _"같은 props로 자주 리렌더되고 렌더가 무거울 때만
+  가치가 있다"_ (번역, [memo](https://react.dev/reference/react/memo))고 쓴다. 공식 hooks 규칙(`eslint-plugin-react-hooks` v7
+  recommended)이 error로 켜져 있다 — 새 위반을 `eslint-suppressions.json`에 넣지 않는다(`--suppress-all`·`--suppress-rule` 금지).
+  정당한 예외만 그 줄에 `eslint-disable-next-line <규칙> -- <이유>`를 단다(예: `useWindowGridVirtualizer.ts`의 인스턴스 속성 대입)
 - **Never** raw HTML 요소로 UI를 일회성 구현 → 항상 공통 컴포넌트(`shared/ui/atoms`·`elements`·`layouts`) 우선. 반복되는 UI는 공통 컴포넌트를 만들거나 기존 것을 사용해 디자인을 단일 관리한다 (예: 버튼은 raw `<button>` 대신 `Button` 컴포넌트). 신규 코드 기준
 - **Never** `shared/ui/atoms`·`elements`에 컴포넌트를 추가하거나 시각적으로 변경하고 스토리 없이 커밋 → 항상 같은 커밋에 `<Component>.stories.tsx`를 함께 만들거나 갱신한다. `.storybook/main.ts`의 글롭이 `src/**/*.stories.tsx`를 자동 인식하므로 파일만 만들면 된다 (예시: `checkbox.tsx`+`checkbox.stories.tsx`, `switch.tsx`+`switch.stories.tsx`). 스토리 `title`은 파일 경로에서 계산한 값이어야 한다(ESLint `custom-storybook/title-matches-path`가 차단). 형식과 다른 레이어에 스토리를 둘 수 있는 기준은 `docs/FE-ARCHITECTURE.md` §18 "Storybook 스토리"를 먼저 읽는다
 - **Never** `if`문을 인라인으로 작성 (`if (x) return;`) → 항상 중괄호 블록으로 감싼다 (`if (x) {\n  return;\n}`). 한 줄짜리 본문도 예외 없음 (ESLint `curly: ['error', 'all']` 규칙으로 강제 중)
 - **Never** 문장을 다닥다닥 붙여 논리 그룹을 뭉개지 않는다 → 가드절(`if (...) { return; }`) 뒤, 그리고 `if`/`try` 같은 제어 블록 **앞뒤**에 **빈 줄 1줄**을 넣어 논리 단위를 분리한다 (Prettier가 아닌 컨벤션 — 아래 예시 참고)
 - **Never** 클릭 가능한 요소에 `cursor-pointer`를 개별로 붙인다 → `globals.css`의 `@layer base` 규칙이 `button`/ARIA role 전체를 전역으로 처리한다(`design-tokens` skill의 "인터랙션 커서" 참고). `div`/`span`에 `onClick`만 다는 것도 금지 — `Button`/`<button>`을 쓰거나, 불가피하면 `role="button"`을 함께 지정한다 (ESLint `custom-a11y/clickable-needs-interactive-element`가 차단)
-- **Never** `main`에 push한 뒤 워크플로우 결과를 확인하지 않고 "배포됨"이라 보고 →
-  push 명령이 성공한 것과 배포가 실제로 완료된 것은 다른 사건이다. 항상
-  `gh run list --branch main --workflow "Frontend Deploy (S3 + CloudFront)"`
-  (또는 `gh run watch <id>`)로 그 push의 커밋 SHA가 실제로 success인지 확인한
-  뒤에만 사용자에게 결과를 보고한다. 실패했으면 원인을 고쳐 재검증하고, 후속
-  수정 커밋이 `docs/`나 `CHANGELOG.md`처럼 `deploy.yml`의 경로 필터에 안 걸리는
-  파일만 건드렸다면 `gh workflow run "Frontend Deploy (S3 + CloudFront)" --ref main`
-  으로 수동 트리거해야 한다(안 그러면 워크플로우 자체가 안 돌아 조용히
-  미배포로 남는다). 2026-09-06 실제로 이 순서를 건너뛰어 배포 실패를 놓친
-  사고 발생(`docs/CI-CHECK-GATE.md` §9.3, `docs/DEPLOY.md` "Trigger" 참고).
-  최종 성공을 확인했더라도 그 과정에 실패한 run이 있었다면(예: 첫 push가
-  실패하고 후속 커밋으로 고쳐 재푸시·수동 트리거로 성공한 경우) **최종 보고에
-  그 경위를 함께 밝힌다** — "배포 완료"만 말하면 사용자가 실패 run을 GitHub에서
-  직접 발견하고 나서야 전체 경위를 되묻게 된다(2026-09-06 실제 사례).
-  `.claude/hooks/deploy-verify.mjs`(사용자 설정 훅, 등록 블록은 `run-node.sh` 머리말)가
-  push·PR 생성·병합한 SHA의 워크플로를 백그라운드로 감시하다 실패하면 세션을 깨운다 — 성공을
-  확인하기 전에 "배포됨"이라 보고하지 않는 규칙은 그대로다
-- **Never** 코드/설정을 바꾼 뒤 그 동작을 서술하는 문서 갱신 누락 → 인프라·배포·아키텍처뿐 아니라 **기능 동작(상태 저장 방식, API 계약 등)을 바꿀 때도** 반대편 BE 레포의 문서(특히 `docs/*-BOT.md` 같은 서사형 문서)가 그 동작을 서술하고 있는지 확인한다(2026-09-06, FE 봇 글 숨기기 토글의 저장 방식을 URL→localStorage로 바꿨을 때 BE `docs/RSS-FEED-BOT.md`가 옛 URL 기반 서술로 남아있던 사례 — BE `.claude/CLAUDE.md`의 같은 규칙 참고). 고쳤으면 **최종 보고에 "문서 X를 Y로 갱신함"을 별도 항목으로 명시**한다
-- **Never** CloudFront WAF의 바디 크기 제한 룰(`SizeRestrictions_BODY` 등)을 "왜 있는지" 확인 없이 완화·비활성화하지 않는다 → 이런 룰은 WAF가 바디를 검사할 수 있는 한도(CloudFront 기본 16KB) 너머는 애초에 못 본다는 전제에서 온다 — 한도를 넘은 요청을 그냥 통과시키면 그 너머에 숨은 XSS·LFI·RFI·Log4j 페이로드가 무검사로 뚫린다("검사 못 할 바엔 막는다"는 논리). 2026-09-06 댓글 등록 403 조사 중 `SizeRestrictions_BODY`(8,192바이트 초과 차단)를 완화하려다가, 대체 크기 제한 룰(`SizeConstraintStatement`)이 **CloudFront Pro 플랜(월 $15 정액제) 전용**이라 이 계정(Free 플랜)에서는 만들 수 없다는 걸 확인했다. Count로만 오버라이드하면 WAF의 바디 크기 방어가 완전히 사라져(Lambda 자체 한도 6MB까지 통과, 300KB 페이로드로 실측) 비용·우회 위험이 새로 생기므로 **원복했다** — 이 룰은 지금도 8,192바이트 초과를 그대로 차단 중이다. 그 벽 안에서 동작하도록 앱이 자체 상한(BE `CommentLimits.MAX_CONTENT_BYTES`, 2026-11-02 전에는 `CommentService.MAX_COMMENT_CONTENT_BYTES`)을 두는 쪽으로 대신 풀었다. Pro 업그레이드 없이는 이 8KB 벽을 건드리지 말 것(`docs/DEPLOY.md`의 "CloudFront WAF (수동 관리)" 절, `docs/DECISIONS.md` 2026-09-06 항목 참고)
-- **Never** 폼 검증 실패를 버튼 `disabled`만으로 처리하지 않는다(사용자에게 이유를 알려야 하는 경우) → `disabled` 버튼은 클릭 이벤트 자체가 발생하지 않아 `handleSubmit`의 검증 실패 콜백(에러 토스트 등)이 실행될 기회조차 없어진다. 2026-09-06 댓글 길이 제한 UI에서 이 문제로 "왜 제출이 안 되는지" 사용자가 전혀 알 수 없었다(대체용 호버 툴팁도 데스크톱 한정이라 발견성이 낮았다). 진짜 "할 게 없음"(빈 입력) 상태만 `disabled`로 막고, 그 외 검증 실패(길이 초과 등)는 버튼을 눌러지게 둔 채 zod resolver + `onInvalid` 콜백으로 차단하면서 상시 보이는 인라인 안내 문구를 함께 둔다(`useCreateComment.ts`, `CommentForm.tsx` 참고). 이 규칙의 핵심 조건은 "사용자가 이유를 알 방법이 아예 없는가"다 — 이미 다른 경로로 이유가 상시(호버 없이) 노출되고 있다면(예: `mode: 'onChange'` 필드 검증이 타이핑 즉시 인풋 아래에 이유를 띄우는 경우) `disabled` + `TooltipWrapper`만으로도 이 조건을 충족한다. `CreatePostForm.tsx`의 URL 필드가 이 경우다 — `post.schema.ts`의 검증 실패 메시지가 `FormField`를 통해 인풋 아래 항상 노출되므로 버튼을 누르기 전에 이미 이유가 보인다. 이 조건이 성립하지 않는 경우(제출을 시도해야만 실패가 드러나는 경우, 위 댓글 사례)엔 여전히 클릭 가능 + `onInvalid` 콜백이 필요하다.
-- **Never** 멱등한 버튼(초기화·지우기·해제 등 "특정 상태로 만든다"는 뜻의 버튼)을 "할 게 없음"이라는 이유만으로 `disabled` 처리하지 않는다 → `disabled`는 탭 순서에서도 빠져 키보드만 쓰는 사용자는 버튼도 이유도 볼 수 없다(`TooltipWrapper`가 `tabIndex={-1}`로 호버·터치 전용인 것과 맞물린 구멍, 2026-09-06 필터 초기화 버튼에서 발견). 항상 활성 상태로 두고 클릭 핸들러에서 조용히 early return한다(`usePostListFilter.ts`의 `handleClearSearch` 참고, #233에서 컴포넌트에서 이 훅으로 이동). 단, **저장·등록처럼 "눌렀으면 반영됐다"는 피드백을 기대하는 버튼에는 이 패턴을 확장하지 않는다** — 무음 return이 고장으로 읽힌다. 기존 `disabled`와 이유 안내(`UpdatePostForm.tsx` 등) 방식을 그대로 유지한다(`docs/DECISIONS.md` 2026-09-06 항목 참고)
+- **Never** `main`에 push한 뒤 워크플로 결과를 확인하지 않고 "배포됨"이라 보고 → `gh run list --branch main --workflow
+"Frontend Deploy (S3 + CloudFront)"`(또는 `gh run watch <id>`)로 그 커밋 SHA가 success인지 확인한 뒤에 보고한다. 후속 커밋이
+  `docs/`나 `CHANGELOG.md`처럼 `deploy.yml`의 경로 필터에 안 걸리는 파일만 건드렸다면 워크플로가 돌지 않으므로
+  `gh workflow run "Frontend Deploy (S3 + CloudFront)" --ref main`으로 수동 실행한다. 사용자 설정 훅 `deploy-verify.mjs`
+  (claude-base `hooks/`)가 push·PR 생성·병합한 SHA의 워크플로를 감시하다 실패하면 세션을 깨운다(경위: `docs/CI-CHECK-GATE.md` §9.3,
+  `docs/DEPLOY.md` "Trigger")
+- **Never** CloudFront WAF의 바디 크기 제한 룰(`SizeRestrictions_BODY` 등)을 "왜 있는지" 확인 없이 완화·비활성화하지 않는다 →
+  이 룰은 지금 8,192바이트 초과 요청을 막고 있다. 대체 크기 제한 룰(`SizeConstraintStatement`)은 CloudFront Pro 플랜(월 $15 정액제)
+  전용이라 이 계정(Free 플랜)에서는 만들 수 없다. Pro 업그레이드 없이는 이 8KB 벽을 건드리지 않고, 앱이 자체 상한(BE
+  `CommentLimits.MAX_CONTENT_BYTES`)을 둔다(근거: `docs/DEPLOY.md` "CloudFront WAF (수동 관리)", `docs/DECISIONS.md` 2026-09-06 항목)
+- **Never** 폼 검증 실패를 버튼 `disabled`만으로 처리하지 않는다(사용자에게 이유를 알려야 하는 경우) → `disabled` 버튼은 클릭
+  이벤트가 발생하지 않아 `handleSubmit`의 검증 실패 콜백이 실행될 기회가 없다. 진짜 "할 게 없음"(빈 입력) 상태만 `disabled`로
+  막고, 그 외 검증 실패(길이 초과 등)는 버튼을 눌러지게 둔 채 zod resolver + `onInvalid` 콜백으로 차단하면서 상시 보이는 인라인
+  안내 문구를 함께 둔다(`useCreateComment.ts`, `CommentForm.tsx`). 조건은 "사용자가 이유를 알 방법이 아예 없는가"다 — 이유가 이미
+  호버 없이 상시 보이면(`mode: 'onChange'` 필드 검증이 인풋 아래에 이유를 띄우는 `CreatePostForm.tsx`의 URL 필드) `disabled` +
+  `TooltipWrapper`로 충분하다(경위: `docs/COMMENT.md` 시행착오)
+- **Never** 멱등한 버튼(초기화·지우기·해제 등 "특정 상태로 만든다"는 뜻의 버튼)을 "할 게 없음"이라는 이유만으로 `disabled`
+  처리하지 않는다 → `disabled`는 탭 순서에서도 빠져 키보드 사용자는 버튼도 이유도 볼 수 없다. 항상 활성 상태로 두고 클릭
+  핸들러에서 조용히 early return한다(`usePostListFilter.ts`의 `handleClearSearch`). 단, 저장·등록처럼 "눌렀으면 반영됐다"는
+  피드백을 기대하는 버튼에는 확장하지 않는다 — 기존 `disabled`와 이유 안내(`UpdatePostForm.tsx` 등)를 유지한다(근거:
+  `docs/DECISIONS.md` 2026-09-06 항목)
 
 ```typescript
 // ✅ 블록화 + 논리 그룹마다 빈 줄 (가드절 뒤, try 블록 앞)
@@ -522,25 +177,12 @@ const handleCreateAndSelect = async () => {
 };
 ```
 
-- **Never** 워크트리 없이 코드 수정 → 이 레포는 여러 Claude 세션이 동시에 돈다. 코드를 **수정하는**
-  작업(읽기 전용 조사·질문 답변은 예외)을 시작할 때는 항상 `EnterWorktree`로 워크트리를 만들고
-  그 안에서 작업한다. 워킹트리 파일과 `.git/index`(스테이징 영역)를 세션끼리 공유하면 서로
-  덮어쓰거나 무관한 커밋에 남의 변경이 딸려 들어간다 (`docs/DECISIONS.md` 참고). 메인 체크아웃
-  파일 편집은 `.claude/hooks/edit-guard.mjs`(사용자 설정에 등록하는 PreToolUse 훅, 등록 블록은
-  `.claude/hooks/run-node.sh` 머리말)가 막는다 — gitignore된 로컬 파일만 예외
-- **Never** 메인 체크아웃에서 `git add`/`git rm`으로 스테이징 → 메인 체크아웃의 `.git/index`는
-  세션끼리 공유돼 위와 같은 인덱스 오염이 재발한다. 커밋은 `git commit -m "<메시지>" -- <경로...>`로
-  대상 파일을 직접 지정하고, 옵션은 반드시 `--` **앞**에 둔다(`git commit -- a.ts -m x`는 `-m`을
-  경로로 읽어 실패한다). **워크트리 안에서는** index가 워크트리마다 따로라서
-  ([git-worktree 문서](https://git-scm.com/docs/git-worktree)) 다음 세 가지만 허용한다:
-  ① 한 번도 추적된 적 없는 새 파일은 `git add -- <새 파일>` 후 커밋 —
-  [git-commit 문서](https://git-scm.com/docs/git-commit)상 경로 지정 커밋은 Git이 이미 아는 파일만
-  대상으로 한다 ② rebase·merge 충돌 해결 중 해당 파일 add ③ 추적 파일 삭제는 처음부터
-  `git rm <경로>`(`rm`이 전역 차단이라 합법 경로는 이것뿐 — `rm`이 거부된 미추적 파일을 지우려는
-  우회로는 쓰지 않는다. 그때는 절대경로 `rm` 명령을 사용자에게 제시한다). `git add -A`·`git add .`·`-u`·`--all`·`git commit -a`는 어디서나
-  금지(2026-09-29 사용자 결정, 근거와 수치는 `docs/plans/2026-09-29-rule-enforcement-hardening.md`).
-  이 규칙과 stash·`reset --hard`·`rm` 처리는 `.claude/hooks/bash-guard.mjs`가 실행 직전에 강제한다 —
-  막히면 메시지가 안내하는 명령으로 바꾸고, 우회하지 않는다
+### 워크트리
+
+코드 수정은 워크트리에서만 하고 메인 체크아웃에서는 스테이징하지 않는다. 이 규칙은 공통 지침 "안전·권한"과 가드 훅
+(`~/project/claude-base/hooks/`의 edit-guard·bash-guard, 레포별 사실은 `.claude/repo-policy.json`)이 맡는다 — 막히면 안내하는
+명령으로 바꾸고 우회하지 않는다. 아래는 이 레포의 사실이다.
+
 - **Never** 워크트리 진입 후 부트스트랩 생략 → `EnterWorktree`로 만든 워크트리는 gitignore된
   `.env`가 없다. 진입 직후 반드시 실행:
   ```bash
@@ -550,32 +192,15 @@ const handleCreateAndSelect = async () => {
 - **Never** 여러 워크트리에서 동시에 `pnpm dev` → 포트(31119)는 `strictPort` 미설정이라 겹치면
   다음 빈 포트로 조용히 넘어가 헷갈리고, BE가 보는 DB(원격 Postgres)는 워크트리로 격리되지
   않는다. dev 서버는 한 번에 한 워크트리에서만 띄운다
-- **Never** `EnterWorktree` 기본값(`fresh` = `origin/main` 기준)을 확인 없이 사용 → 다른 세션이
-  로컬 main에만 커밋하고 아직 push하지 않았다면 그 커밋이 빠진 채로 새 워크트리가 갈라진다.
-  작업 시작 전 `git log origin/main..main`으로 미푸시 커밋이 있는지 먼저 확인한다
-- **Never** 병합·배포까지 확인된 워크트리를 남겨 두지 않는다 → PR을 병합하고 그 병합으로 도는
-  배포가 성공한 것까지 확인했으면(배포가 트리거되지 않는 변경이면 병합 확인까지) 그 세션이 바로
-  워크트리와 로컬 브랜치를 지운다 — `ExitWorktree(action: "remove")`. 원격 브랜치는 레포 설정
-  `delete_branch_on_merge`가 병합 때 자동으로 지운다. 배포가 실패하면 원인을 다 볼 때까지 남겨 두고,
-  병합 전에 세션을 떠날 때는 `ExitWorktree(action: "keep")`으로 나온다. 병합되지 않은 워크트리는
-  사용자 요청 없이 지우지 않는다(2026-10-14 사용자 결정 — 2026-09-14 "당분간은 냅두자"를 대체).
-  `ExitWorktree(remove)`가 거부되면(다른 세션이 만들었거나 아래 path 재진입 사례) 손으로 지우되,
-  squash 병합이라 로컬 브랜치가 main에 병합된 것으로 안 잡혀 `git branch -d`가 안 되므로 먼저
-  ① `gh pr view <번호> --json state,headRefOid`가 `MERGED`이고 ② `headRefOid`가
-  `git -C <경로> rev-parse HEAD`와 같고 ③ `git -C <경로> status --porcelain`이 비어 있는지 확인한 뒤
-  `git worktree remove <경로>`(`--force` 없이) + `git branch -D <브랜치>`. 새 워크트리를 만들기 전
-  `git worktree list`로 목록을 훑고, 디렉토리는 있는데 목록엔 없는 경우(비정상 종료로 등록이 깨진
-  경우)만 `git worktree prune`으로 정리한다
-- **Never** 같은 워크트리에서 여러 서브에이전트를 병렬로 돌릴 때 stash 경고 없이 프롬프트만
-  보낸다 → "공유 stash 스택" 경고(워크트리 진입 시 harness가 주는 환경 안내)는 대화형 세션에만
-  자동으로 뜨고, `Agent` 도구로 스폰한 서브에이전트에게는 전달되지 않는다. 프롬프트에 "git
-  stash 금지"라고만 적어도 무시될 수 있다(2026-09-27 실제 사례: 46건 지역 함수 추출 작업에서
-  4개 구현 에이전트를 같은 워크트리에 병렬로 띄웠는데, 그중 하나가 "타입 확인"을 이유로 `git
-stash`/`git stash pop`을 실행했다 — 다른 3개 에이전트가 동시에 같은 워크트리에서 파일을
-  편집 중이었고, 타이밍상 이번엔 데이터 유실 없이 넘어갔지만(`git status`로 직접 확인) 위험은
-  실재했다). 여러 에이전트를 한 워크트리에 병렬로 띄울 때는 각 프롬프트에 "이 워크트리는 다른
-  에이전트와 동시에 공유 중이니 `git stash`/`git reset --hard`/`git checkout -- .`처럼 워킹트리
-  전체에 영향을 주는 명령은 절대 쓰지 마라"를 명시적으로 포함한다
+- **Never** `EnterWorktree` 기본값(`fresh` = `origin/main` 기준)을 확인 없이 사용 → 작업 시작 전 `git log origin/main..main`으로
+  미푸시 커밋이 있는지 먼저 확인한다
+- **Never** 병합·배포까지 확인된 워크트리를 남겨 두지 않는다 → 병합과 그 병합으로 도는 배포 성공까지 확인했으면(배포가
+  트리거되지 않는 변경이면 병합 확인까지) `ExitWorktree(action: "remove")`로 워크트리와 로컬 브랜치를 지운다. 배포가 실패하면
+  원인을 다 볼 때까지 남기고, 병합 전에 세션을 떠날 때는 `ExitWorktree(action: "keep")`으로 나온다. `ExitWorktree(remove)`가
+  거부되면 손으로 지우되, squash 병합이라 `git branch -d`가 안 되므로 먼저 ① `gh pr view <번호> --json state,headRefOid`가
+  `MERGED`이고 ② `headRefOid`가 `git -C <경로> rev-parse HEAD`와 같고 ③ `git -C <경로> status --porcelain`이 비어 있는지 확인한 뒤
+  `git worktree remove <경로>`(`--force` 없이) + `git branch -D <브랜치>`. 새 워크트리를 만들기 전 `git worktree list`로 목록을 훑고,
+  디렉토리는 있는데 목록엔 없는 경우(비정상 종료로 등록이 깨진 경우)만 `git worktree prune`으로 정리한다
 - **Never** `EnterWorktree({ path })`로 재진입한 워크트리를 `ExitWorktree(remove)`가 지워줄
   거라 가정한다 → 한 세션 안에서 `EnterWorktree({ name })`으로 만든 뒤 `action: "keep"`으로
   나왔다가, 나중에 같은 세션에서 `EnterWorktree({ path })`로 그 워크트리에 다시 들어가면
@@ -616,10 +241,8 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 
 ## 변경 범위 원칙
 
-- **요청된 것만 수정** — 명시적으로 요청받지 않은 파일, 함수, 타입은 건드리지 않는다
 - **기존 함수 시그니처 변경 금지** — 인자 추가/제거/변경, 반환 타입 변경은 명시적 요청 없이 불가
 - **새 기능은 새 코드로** — 기존 함수/훅 확장보다 새 hook/util을 별도 작성
-- **수정 전 읽기** — 파일을 수정하기 전 반드시 현재 내용을 읽고 기존 동작 파악
 - **레이어 계약 유지** — entities 레이어 hook의 인터페이스를 features 요구에 맞춰 바꾸지 않는다
   → features 레이어에서 해결 방법을 찾는다
 
@@ -635,7 +258,7 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
    슬라이스 import·미선언 패키지·production 코드의 devDependency 위반 확인 (import 변경 시)
 4. `pnpm check:docs` — README/docs/CLAUDE.md/skill·커맨드가 가리키는 경로·줄 번호가 실제와
    맞는지, `<details>` 짝이 맞는지 확인 (`README.md`, `docs/*.md`, `.claude/CLAUDE.md`,
-   `.claude/skills/**`, `.claude/commands/**`, `CHANGELOG.md`를 수정한 경우 — push 때
+   `.claude/skills/**`, `.claude/commands/**`, `.claude/rules/**`, `CHANGELOG.md`를 수정한 경우 — push 때
    `pre-push` 훅도 같은 검사를 돈다)
 
 에러가 있으면 진행 전 반드시 수정.
@@ -893,12 +516,9 @@ pnpm test:e2e        # Playwright e2e (chromium + mobile-chrome)
 
 ## 브라우저 검증 녹화
 
-UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브라우저 확인 화면을
-녹화해 사용자에게 보여주는 절차는 `browser-verification` skill
-(`.claude/skills/browser-verification/SKILL.md`)에 있다 — 커밋 전 검증이 필요할 때
-그 skill을 먼저 읽는다(2026-09-10 도입). skill이 불리지 않아도 지켜지도록 한 가지만 여기 둔다 —
-녹화를 마치면 링크만 주지 말고, 같은 폴더에 짧은 이름으로 복사해 `open -a Cursor <절대경로...>`로
-바로 연다(2026-10-03, 링크만 줘 매번 다시 요청받았다. 상세는 skill "다 만든 뒤").
+UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브라우저 확인 화면을 녹화해 사용자에게 보여주는 절차는
+`browser-verification` skill(`.claude/skills/browser-verification/SKILL.md`)에 있다 — 커밋 전 검증이 필요할 때 그 skill을 먼저
+읽는다. 녹화를 마치면 같은 폴더에 짧은 이름으로 복사해 `open -a Cursor <절대경로...>`로 바로 연다(상세는 skill "다 만든 뒤").
 
 ---
 
@@ -974,11 +594,11 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
 같다. `using-agent-skills`는 길잡이로 쓰지 않는다 — Claude Code는 설명으로 skill을 고르므로 길잡이가 둘이 된다고
 작성자가 안내한다([getting-started](https://github.com/addyosmani/agent-skills/blob/main/docs/getting-started.md) "4. Use the meta-skill for discovery when needed").
 
-| 스킬                                        | 언제 읽는가                                                                                                                                                                                      | 이 레포에서는                                                                                                                                                                                                                                                                       |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `agent-skills:code-review-and-quality`      | PR을 열기 전, 의존성을 올리는 PR에서 변경을 정확성·보안·성능 쪽으로 검토할 때                                                                                                                    | 레이어·네이밍·패턴은 `/code-review`가 정본이다. 내 변경이 만든 고아만 지우고, 원래 있던 죽은 코드·주변 정리는 언급만 한다(§3). 수치는 재거나 출처를 단다(§10). 조건을 뒤집어 보는 실험은 워크트리에서 하고 사본으로 되돌린다                                                        |
-| `agent-skills:debugging-and-error-recovery` | 작업 중 테스트·빌드·린트·e2e가 예상 밖으로 실패하거나, 재현이 안 되는 버그를 조사할 때(사용자가 보고한 버그는 `/fix-bug`)                                                                        | "Safe Fallback Patterns" 절은 따르지 않는다(§2). 부하·동시 요청 재현은 운영 BE로 프록시되는 dev 서버나 운영에 하지 않고 MSW·e2e 모킹으로 한다. 실패한 테스트는 요구가 바뀌었을 때만 고친다. `git bisect`는 워크트리에서, 테스트 이름 필터는 vitest `-t`                             |
-| `agent-skills:doubt-driven-development`     | 되돌리기 어려운 판단(인증·세션, 데이터 계약과 배포 순서, 멱등성·동시 요청, 운영 데이터·인프라)을 확정하거나, 타입·테스트로 증명되지 않는 주장("중복이 안 생긴다")에 기대 다음 단계로 넘어가기 전 | 대상은 이 판단들뿐이다(skill의 "non-trivial" 정의는 쓰지 않는다). 외부 모델 검토는 추천할 때만 §13 형식으로 묻는다. 검토자는 general-purpose에 맡기고, 프롬프트에 워킹트리 전체를 바꾸는 git 명령·부하 실행·외부 연결 금지를 넣는다. plan-verifier·`/code-review`를 대신하지 않는다 |
+| 스킬                                        | 언제 읽는가                                                                                                                                                                                      | 이 레포에서는                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `agent-skills:code-review-and-quality`      | PR을 열기 전, 의존성을 올리는 PR에서 변경을 정확성·보안·성능 쪽으로 검토할 때                                                                                                                    | 레이어·네이밍·패턴은 `/code-review`가 정본이다. 내 변경이 만든 고아만 지우고, 원래 있던 죽은 코드·주변 정리는 언급만 한다(공통 지침 "범위"). 수치는 재거나 출처를 단다(공통 지침 "기록"). 조건을 뒤집어 보는 실험은 워크트리에서 하고 사본으로 되돌린다                                                      |
+| `agent-skills:debugging-and-error-recovery` | 작업 중 테스트·빌드·린트·e2e가 예상 밖으로 실패하거나, 재현이 안 되는 버그를 조사할 때(사용자가 보고한 버그는 `/fix-bug`)                                                                        | "Safe Fallback Patterns" 절은 따르지 않는다(공통 지침 "범위"). 부하·동시 요청 재현은 운영 BE로 프록시되는 dev 서버나 운영에 하지 않고 MSW·e2e 모킹으로 한다. 실패한 테스트는 요구가 바뀌었을 때만 고친다. `git bisect`는 워크트리에서, 테스트 이름 필터는 vitest `-t`                                        |
+| `agent-skills:doubt-driven-development`     | 되돌리기 어려운 판단(인증·세션, 데이터 계약과 배포 순서, 멱등성·동시 요청, 운영 데이터·인프라)을 확정하거나, 타입·테스트로 증명되지 않는 주장("중복이 안 생긴다")에 기대 다음 단계로 넘어가기 전 | 대상은 이 판단들뿐이다(skill의 "non-trivial" 정의는 쓰지 않는다). 외부 모델 검토는 추천할 때만 공통 지침 "사용자가 정할 것" 형식으로 묻는다. 검토자는 general-purpose에 맡기고, 프롬프트에 워킹트리 전체를 바꾸는 git 명령·부하 실행·외부 연결 금지를 넣는다. plan-verifier·`/code-review`를 대신하지 않는다 |
 
 ---
 
@@ -989,17 +609,9 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
 - **배포**: CloudFront → `/api/*` Lambda(BE), `/*` S3(FE)
 - **개발 프록시**: `vite.config.ts` — `/api/*` → `VITE_API_BASE_URL` 환경변수(`.env`) 값으로 프록시(하드코딩된 포트 아님). 이 값은 `/api`까지 포함한 기준 주소(`https://linksphere.click/api`, 로컬 BE면 `http://localhost:8080/api`)라 프록시가 요청 경로의 `/api`를 떼고 넘긴다(2026-10-02, Lambda Function URL은 OAC 잠금 이후 403)
 - **커밋**: 작업 전 `.gitmessage` 파일 먼저 읽고 형식 준수
-- **커밋 단위**: 대화 턴(요청)마다 나누지 않고, 논리적으로 완결된 기능·수정 단위로 나눈다.
-  같은 기능을 다듬는 과정에서 나온 후속 수정(버그 픽스 포함)은 원래 커밋에 합치고,
-  서로 무관한 변경끼리만 별도 커밋으로 분리한다.
-- **PR 머지는 항상 squash** — `gh pr merge <번호> --squash`. 저장소 설정(`allow_merge_commit`/
-  `allow_rebase_merge`)이 꺼져 있어 다른 방식은 API에서부터 막힌다(2026-09-22). 지금
-  이유는 `main`에 PR로 병합된 커밋의 제목이 전부 `type(scope): 요약 (#PR번호)` 한 줄이라
-  CHANGELOG·릴리즈 노트와 1:1로 대응한다는 것이다(자동 history·release 커밋은 PR 번호가 없다). 과거에는 두 번째 이유도 있었다 —
-  `doc-drift-check.yml`(`scripts/check-doc-drift.js`)이 병합 PR 수를 셀 때 당시
-  정규식(`\(#\d+\)$`)이 병합 커밋("Merge pull request #N from ...")을 못 읽어, 이 형식의
-  커밋을 한 번 썼더니 카운터가 조용히 어긋난 사례가 있었다(#171-173, 트래킹 이슈 #99
-  상태 불일치로 발견). 2026-09-25부터 이 정규식이 두 형식을 모두 인식하도록 넓어졌다.
+- **PR 머지는 항상 squash** — `gh pr merge <번호> --squash`. 저장소 설정(`allow_merge_commit`/`allow_rebase_merge`)이 꺼져 있어
+  다른 방식은 API에서부터 막힌다. `main`에 PR로 병합된 커밋의 제목이 전부 `type(scope): 요약 (#PR번호)` 한 줄이라
+  CHANGELOG·릴리즈 노트와 1:1로 대응한다(자동 history·release 커밋은 PR 번호가 없다. 경위: `docs/CI-CHECK-GATE.md`)
 - **병합된 PR의 원격 브랜치는 GitHub이 자동으로 지운다** — FE·BE 저장소 설정
   `delete_branch_on_merge=true`(2026-10-12 사용자 결정, 그 전까지 쌓인 병합 브랜치 57개도 같은 날 정리).
   로컬 브랜치와 워크트리는 남으므로, 위 워크트리 규칙대로 병합·배포를 확인한 세션이 `ExitWorktree(action: "remove")`로 정리한다. 지워진 브랜치는
@@ -1016,119 +628,8 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
 있다 — CHANGELOG를 쓰거나 버전을 릴리즈할 때 그 skill을 먼저 읽는다(2026-09-09, CLAUDE.md
 길이 감사 후 이 절을 분리했다).
 
-## 문서 파일 위치
+## 문서 형식
 
-루트에는 `README.md`·`CHANGELOG.md`만 둔다 — GitHub 생태계에서 관례적으로 루트에 두는
-특수 파일(LICENSE·CONTRIBUTING과 같은 급)이고, CHANGELOG는 Keep a Changelog 스펙 자체가
-루트 배치를 표준으로 규정한다. 그 외 모든 문서(아키텍처, 배포 가이드, 테스트 가이드,
-버전 호환 매트릭스 등)는 전부 `docs/`에 둔다.
-
-### docs/ 내부 분류
-
-새 문서를 쓰기 전에 아래 일곱 종류 중 어느 것인지 먼저 정하고, 한 문서에 여러 목적을
-섞지 않는다. [_Software Engineering at Google_ 10장](https://abseil.io/resources/swe-book/html/ch10.html)은
-_"문서는 대체로 하나의 목적만 갖고, 그 목적에 충실해야 한다"_ (번역)고 말한다. 전체 목록은 루트
-`README.md`의 `## 문서` 섹션이 정본이다 — 새 문서를 추가하면 거기에 등록한다.
-
-- **길잡이**(온보딩, `ONBOARDING.md`) — FE·BE 프로젝트 전체에 처음 온 개발자가 출발하는
-  문서. 사실을 새로 담지 않고 다른 문서·코드로 가는 길만 엮는다(값·구조·명령은 링크 대상이
-  정본). FE·BE 어느 쪽이든 기능 문서를 추가·삭제·개명하면 그 문서의 "기능 지도" 표도 같은
-  PR에서 갱신한다 — BE 쪽 링크는 `pnpm check:docs`가 검사하지 못한다.
-- **독립 기능 문서**(서사형, `docs/<기능명>.md`) — 자기 완결적인 동작 스펙을 가진 기능.
-  화면 유무와 무관, "지금 어떻게 동작하는가"를 항상 최신으로 유지하는 매뉴얼
-  역할이면서, **그 기능을 만들며 겪은 시행착오(버그를 발견하고 고친 과정)도
-  같은 문서 안에 둔다** — 별도 파일로 떼어내지 않는다. 참고:
-  `BOOKMARK.md`, `CI-CHECK-GATE.md`, `MYPAGE.md`, `FCM-PUSH-NOTIFICATION.md`(이미 이
-  형태로 "시행착오" 절을 포함하고 있음), `UNSAVED-CHANGES-GUARD.md`.
-- **절차**(how-to·런북) — 예: `DEPLOY.md`, `TESTING.md`.
-- **레퍼런스** — 예: `VERSION-COMPATIBILITY.md`, `SYSTEM-ARCHITECTURE.md`.
-  `FE-ARCHITECTURE.md`는 레퍼런스이면서 아래 "아키텍처 패턴" 섹션들을 담는 그릇이기도
-  하다. `HISTORY.md`는 `.github/workflows/history.yml`이 계속 갱신하는 **자동 생성
-  레퍼런스**다 — 직접 편집하지 않는다.
-- **설계 결정 기록**(ADR 경량판, `DECISIONS.md`) — **되돌리기 어렵고, 실제로
-  대안을 비교해 선택한** 결정만 담는다(예: 모바일 내비 스와이프 폐기 → 하단
-  탭바 채택). [Nygard(2011)](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)가
-  제안한 ADR 관행의 기준도 "되돌리기 어렵다·트레이드오프가 크다·같은 질문이
-  두 번 이상 논쟁됐다"이다. 이 기준으로 보면 한 엔지니어가 짧은 기간 안에
-  발견·수정한 것은 애초에 대상이 아니다 — 기능 하나를 구현하다 만난 버그·구현
-  함정은 대안 비교 없이 그 자리에서 고친 것이므로 그 기능 문서 안에 남긴다.
-  DECISIONS.md는 "이 기능을 이렇게 만들지 저렇게 만들지 검토했다" 수준의
-  결정에만 쓴다. append-only 로그라 아래 "독립 기능 문서 내부 순서"를 따르지 않는다.
-- **보관**(archive) — 더 이상 갱신하지 않는 과거 기록. 현재 해당 문서 없음.
-- **작업 계획**(`docs/plans/<YYYY-MM-DD>-<slug>.md`) — plan mode로 세운 계획의
-  스냅샷. 구현 코드와 같은 PR에서 커밋하고, 커밋된 뒤에는 원문을 고치지 않는다(append-only,
-  `DECISIONS.md`와 같은 성격 — "무엇을 의도했는지"의 기록. CI가 원문 수정을 막는다).
-  "무엇이 실제로 됐는지"는 H1 아래 `구현 결과` 블록(달라진 점 요약, 병합 뒤에도 고칠 수
-  있는 유일한 자리)과 PR 본문 `## 계획 대비 구현`(항목별 `파일:줄` 근거)이 나눠 맡는다(§11).
-  섹션 구조 표준은 `plan-doc-structure` skill(`.claude/skills/plan-doc-structure/SKILL.md`) 참고.
-
-아래에는 "아키텍처 패턴"이 별도 항목으로 있었으나, 이건 **문서 종류가 아니라
-`FE-ARCHITECTURE.md` 안의 섹션 단위**라 위 분류에서 제외했다 — 여러 기능이 재사용하는
-구현 방법(그 자체가 독립된 동작 단위는 아닌 것)이면 새 파일을 만들지 않고 기존 패턴
-목록(Delete with Confirm, Optimistic Update 등)에 섹션만 추가한다.
-
-feat 커밋 시 CHANGELOG.md 갱신과 같은 타이밍에, 해당하는 문서도 함께 반영한다.
-
-### 독립 기능 문서 내부 순서
-
-BE `.claude/CLAUDE.md`의 "서사형 작업 문서 형식"과 같은 이유로, 여기서도 절
-순서를 고정한다(2026-09-03, BE RSS 피드 봇 문서화에서 먼저 확정한 형식을
-FE의 기존 "how vs why 분리" 원칙에 맞게 조정 — 시행착오는 DECISIONS.md로
-보내지 않고 기능 문서 안에 남긴다는 점만 BE와 다르다. 2026-09-04, BE가 "문서만
-보고 고칠 수 있는가" 리뷰를 거쳐 자기완결성 요건을 추가한 것을 FE에도 이식).
-
-**원칙**: 좋은 문서 = _독자에게 필요한 지식 − 독자가 이미 가진 지식_ (Google 기술 문서
-가이드). 잘 아는 사람이 쓴 문서는 모르는 상태를 상상하지 못해 맥락을 건너뛰기 쉽다("지식의
-저주") — 그래서 아래 순서는 전제 지식 선언·용어 정의를 구조적으로 강제한다. 단, 이미 다른
-곳에 정본이 있는 사실(Zustand 스토어·Zod 스키마 원본, 파일 트리 등)은 옮겨적지 않고
-**링크로 가리킨다** — 복제하면 원본이 바뀔 때 문서가 조용히 거짓말하게 된다(SSOT).
-
-모든 독립 기능 문서는 제목 아래 인용구(`>`) 블록으로 아래 네 가지를 번호 없이 먼저
-밝힌다 — Google 기술 문서 가이드의 audience declaration(WHO/WHAT/WHY)에 해당:
-
-- **문서 성격** — 독립 기능 문서(서사형)임을 명시
-- **대상 독자** — 예: "이 레포 FE를 처음 보거나 오랜만에 돌아온 개발자"
-- **읽고 나면** — 이 문서만 보고 할 수 있게 되는 것
-- **마지막 검토**: `YYYY-MM-DD` — 문서를 고칠 때마다 갱신한다. 실제로 다시 읽고 고친
-  날짜만 적는다(검토하지 않은 문서에 오늘 날짜를 넣지 않는다)
-
-이어서 본문은 아래 순서를 따른다:
-
-1. **쉬운 설명** — 핵심 개념을 이 도메인을 모르는 독자도 이해할 수 있는 비유로. **장 끝에
-   전체 흐름을 보여주는 Mermaid 순서도를 반드시 넣는다** — 각 단계가 무엇을 하고 무엇을
-   주고받는지(API 호출·상태 변경·캐시 무효화 등)를 노드 라벨에 적어, 글을 안 읽고 그림만
-   봐도 흐름이 따라와야 한다. mermaid 코드 펜스(백틱 세 개 + `mermaid`)를 쓴다(GitHub이
-   도형으로 렌더한다). 한글 라벨에 `·`·`(`·`:`가 섞이면 노드 텍스트를 큰따옴표로 감싸고,
-   줄바꿈은 `<br/>`를 쓴다
-2. **전제 지식** — 이 문서가 가정하는 지식과 가정하지 않는 지식을 나누고, 가정하지 않는
-   부분은 어느 문서를 먼저 보면 되는지 링크한다(설계 배경이 `DECISIONS.md`에 있으면 여기서
-   연결)
-3. **사용한 도구·기술** — bullet point, "기능 자체" / "구현·검증 과정에서 쓴 도구" 구분
-4. **왜 만들었나** (문제)
-5. **구조** — 다이어그램·핵심 설계 결정과 그 근거. 1번 순서도와 성격이 다른 다이어그램
-   (컴포넌트 트리·시퀀스 다이어그램 등)이면 여기 둬도 되지만, 두 그림의 역할 차이를 한
-   줄로 밝힌다
-6. **상태 모델** — 이 기능이 새 Zustand 스토어·React Query 키 계층·Zod 스키마를 도입했다면
-   그 shape를 표로 설명한다. 원본 코드는 옮겨적지 않고 파일을 링크한다(복제 금지) — 이
-   문서 전체에서 반복 언급되는 상태 조각이 있는데 shape가 한 곳에도 정리돼 있지 않다면
-   이 절이 비어 있다는 신호다
-7. **운영 파라미터** — 있다면(주기·건수·타임아웃 등) 표로, 각 값의 실제 위치를
-   `파일:줄`까지 명시
-8. **코드 지도와 자주 하는 수정** — "이 단계는 어느 파일인가" 매핑과 "이렇게 고치려면"
-   레시피 표. 파일명만이 아니라 `파일:줄`까지 명시한다. `README.md`나 `FE-ARCHITECTURE.md`
-   에 이미 있는 디렉터리 트리는 복제하지 않는다
-9. **검증 결과** — 실제로 확인한 수치·화면
-10. **시행착오** — 겪은 버그와 디버깅 과정. **뒤쪽에 배치** — 결과를 다 본 사람을
-    위한 부록이지 첫 진입점이 아니다. 이 기능 하나에 국한된 이야기라면 여기 남기고,
-    더 큰 단위의 설계 재검토로 이어졌다면 그 부분만 `DECISIONS.md`에도 짧게 링크
-11. **남은 것**
-12. **용어 사전** — 이 문서에서 처음 나오는 고유 용어·식별자(스토어 이름, 훅 이름, 내부
-    개념 등)를 정의 없이 쓰지 않는다. 문서 전체에서 반복 등장하는데 한 번도 설명되지 않은
-    용어가 있다면 여기 모은다
-13. **관련 문서** 링크
-
-문서를 다 쓴 뒤에는 처음부터 훑어 다음을 확인한다 — 사람 리뷰어가 없는 1인 개발 레포에서
-Google이 말하는 "독자 리뷰"(도메인을 모르는 사람이 읽어 명확성을 검증하는 것)를 스스로
-대행하는 절차다: ① 정의 없이 등장하는 고유 용어가 있는가 ② 이 문서만 보고 값을 바꾸거나
-고칠 수 있는가 ③ 다른 곳의 정본과 중복해서 적은 사실이 있는가 ④ 문서의 코드 스니펫이
-실제 소스와 여전히 일치하는가(특히 오래 갱신되지 않은 문서일수록 노후화 위험이 크다).
+문서 위치, `docs/` 안 분류, 독립 기능 문서의 내부 순서, 인용 형식 예시는
+[`.claude/rules/docs-format.md`](rules/docs-format.md)에 있다. 문서를 읽거나 쓸 때 자동으로 붙고, 새 문서를 만들기 전에는
+같은 폴더의 문서를 하나 읽어 규칙이 먼저 보이게 한다.

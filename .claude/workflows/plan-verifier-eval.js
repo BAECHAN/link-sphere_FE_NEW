@@ -44,7 +44,7 @@ const OUTPUT_SCHEMA = {
 
 const promptFor = (c) =>
   [
-    'CLAUDE.md §11의 계획 대비 구현 대조를 해 줘.',
+    '.claude/CLAUDE.md "계획과 PR 본문"의 계획 대비 구현 대조를 해 줘.',
     `- 계획 파일: ${c.planPath}`,
     `- diff 파일: ${c.diffPath} (머지된 PR의 squash 커밋 diff에서 계획 파일만 뺐다)`,
     '이 두 파일만 읽어. 저장소의 지금 파일은 이 PR 뒤에 바뀌어서 근거가 되지 않는다.',

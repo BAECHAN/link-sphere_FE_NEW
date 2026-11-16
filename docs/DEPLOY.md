@@ -1093,7 +1093,7 @@ gh pr merge <새 PR 번호> --squash
 
 **revert diff에서 볼 것**:
 
-- `docs/plans/`의 계획 파일은 지우거나 고치지 않는다 — 커밋된 계획은 append-only다(`.claude/CLAUDE.md` §11). revert는 그 PR이
+- `docs/plans/`의 계획 파일은 지우거나 고치지 않는다 — 커밋된 계획은 append-only다(`.claude/CLAUDE.md` "계획과 PR 본문"). revert는 그 PR이
   더한 계획을 지우고 고친 계획을 되돌린다(위 #596 측정에서 하나 삭제·하나 수정). 2026-11-12부터 CI 불변성 검사(`.github/workflows/ci.yml`
   "docs/plans 불변성 확인")가 지운 파일·이름 바꾼 파일도 막고 되살리는 명령을 보여 준다. 커밋 전에 `git restore --source=HEAD --staged --worktree -- <계획 파일>`로
   되살린다(같은 측정에서 확인).

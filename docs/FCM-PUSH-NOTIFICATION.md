@@ -440,7 +440,7 @@ Service Worker가 `self.location`에서 읽어 초기화한다. 값이 하나라
 
 2026-10-03 전까지는 config를 이 파일에 평문으로 하드코딩해 공개 레포에 커밋했다
 (2026-03-02부터). 브라우저에 내려가는 값이라도 레포에 대놓고 올리는 것과는 다르다는 판단으로
-쿼리 주입으로 바꾸고, 교체 가능한 값은 새로 발급한다 — VAPID 키는 2026-10-02에 교체했고, apiKey·appId(웹 앱)도 교체를 마쳤다(#301 노출 수습, 교체 완료 근거는 [`.claude/CLAUDE.md`](../.claude/CLAUDE.md) Critical Rules의 키 교체 사고 서술).
+쿼리 주입으로 바꾸고, 교체 가능한 값은 새로 발급한다 — VAPID 키는 2026-10-02에 교체했고, apiKey·appId(웹 앱)도 교체를 마쳤다(#301 노출 수습, 경위는 §10.7).
 등록 URL이 바뀌면 브라우저가 Service Worker를 새로 설치하는데, 설치 직후엔 활성 워커가 없어
 구독이 실패하므로 `navigator.serviceWorker.ready`를 기다린 등록으로 `getToken`을 부른다.
 
@@ -628,14 +628,14 @@ FE 쪽에서 토큰 등록에 필요한 상태는 `useAuthStore`(Zustand)의 `ac
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                         | 방법                                                                                                                                                                                                                                                                                                                     |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 새 알림 타입 추가(예: 좋아요 알림)   | BE `FcmNotificationService`에 `send*Notification` 함수 추가 + `data.type` 값 추가, FE 앱은 `type`을 안 쓰므로 기본적으로 손댈 곳 없음(딥링크만 되면 됨, SW는 `type`을 알림 `tag`로만 씀 — 새 타입은 기존 타입 알림을 대체하지 않는다). 새 본문에도 닉네임·컨텐츠 내용을 넣지 않는다(§5 "왜 이렇게 바뀌었나")             |
-| 알림 클릭 시 이동 경로 변경          | FE `useFcmForegroundMessage.ts`(포그라운드)와 `public/firebase-messaging-sw.js`의 `notificationclick`(백그라운드) **둘 다** 고쳐야 한다 — 한쪽만 고치면 포그라운드/백그라운드 동작이 갈린다                                                                                                                              |
-| 알림 문구 변경                       | `TEXTS.notification.*`(`shared/config/texts.ts`), BE의 `title`/`body` 리터럴(`FcmNotificationService.kt`)                                                                                                                                                                                                                |
-| 세션 바인딩 기준(family_id) 조정     | BE `FcmTokenRepository.deleteStaleTokensForUser`의 EXISTS 서브쿼리 조건                                                                                                                                                                                                                                                  |
-| 새 로그인 이벤트에도 FCM 재등록 추가 | FE에서 그 이벤트의 성공 콜백에 추가한다. 로그인 직후처럼 알림 권한을 물어도 되는 시점이면 묻는 `void requestAndRegisterFcmToken()`(선례: 로그인), 그 외에는 묻지 않는 `void reregisterFcmTokenIfGranted()`(선례: 비밀번호 변경·세션 복원)                                                                                |
-| VAPID 키 로테이션                    | Firebase Console에서 재발급 → `VITE_FIREBASE_VAPID_KEY` GitHub Secret·로컬 `.env` 갱신 → 재배포(Secret만 바꾸면 `deploy.yml`이 돌지 않으므로 `gh workflow run "Frontend Deploy (S3 + CloudFront)" --ref main`) → 운영에서 알림 등록 확인. 키 교체 순서 전반은 `.claude/CLAUDE.md` Critical Rules의 키 교체 규칙을 따른다 |
+| 하고 싶은 것                         | 방법                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 새 알림 타입 추가(예: 좋아요 알림)   | BE `FcmNotificationService`에 `send*Notification` 함수 추가 + `data.type` 값 추가, FE 앱은 `type`을 안 쓰므로 기본적으로 손댈 곳 없음(딥링크만 되면 됨, SW는 `type`을 알림 `tag`로만 씀 — 새 타입은 기존 타입 알림을 대체하지 않는다). 새 본문에도 닉네임·컨텐츠 내용을 넣지 않는다(§5 "왜 이렇게 바뀌었나")                                          |
+| 알림 클릭 시 이동 경로 변경          | FE `useFcmForegroundMessage.ts`(포그라운드)와 `public/firebase-messaging-sw.js`의 `notificationclick`(백그라운드) **둘 다** 고쳐야 한다 — 한쪽만 고치면 포그라운드/백그라운드 동작이 갈린다                                                                                                                                                           |
+| 알림 문구 변경                       | `TEXTS.notification.*`(`shared/config/texts.ts`), BE의 `title`/`body` 리터럴(`FcmNotificationService.kt`)                                                                                                                                                                                                                                             |
+| 세션 바인딩 기준(family_id) 조정     | BE `FcmTokenRepository.deleteStaleTokensForUser`의 EXISTS 서브쿼리 조건                                                                                                                                                                                                                                                                               |
+| 새 로그인 이벤트에도 FCM 재등록 추가 | FE에서 그 이벤트의 성공 콜백에 추가한다. 로그인 직후처럼 알림 권한을 물어도 되는 시점이면 묻는 `void requestAndRegisterFcmToken()`(선례: 로그인), 그 외에는 묻지 않는 `void reregisterFcmTokenIfGranted()`(선례: 비밀번호 변경·세션 복원)                                                                                                             |
+| VAPID 키 로테이션                    | Firebase Console에서 재발급 → `VITE_FIREBASE_VAPID_KEY` GitHub Secret·로컬 `.env` 갱신 → 재배포(Secret만 바꾸면 `deploy.yml`이 돌지 않으므로 `gh workflow run "Frontend Deploy (S3 + CloudFront)" --ref main`) → 운영에서 알림 등록 확인. 키 교체 순서는 새 값 반영 → 재배포 → 운영 확인 → 옛 값 삭제다(공통 지침 "안전·권한", 어긋났던 사례는 §10.7) |
 
 ## 9. 검증 결과
 
@@ -768,6 +768,21 @@ onSuccess: (data) => {
   void requestAndRegisterFcmToken(); // 2. 그다음 토큰 등록
 },
 ```
+
+### 10.7. `.env.example`에 실제 키를 넣어 공개 레포에 병합 (2026-10-02)
+
+- **무슨 일**: #301에서 `.env.example`에 실제 Firebase 설정과 VAPID 키를 사용자에게 확인하지 않고 넣어 공개 레포에 병합했다.
+  "공개돼도 되는 값"이라고 작업자가 혼자 판단한 것이 원인이다.
+- **수습**: 커밋 이력은 지울 수 없어 VAPID 키·apiKey·웹 앱(appId)을 모두 교체했다(#302). 수습 중에도 교체 순서가 어긋나 운영
+  알림이 두 번 깨졌다.
+- **남긴 규칙**: 키처럼 보이는 값은 공개용이라도 넣기 전에 묻고, 예시 파일에는 빈 값만 둔다. 교체는 새 값 반영(시크릿·`.env`) →
+  재배포 → 운영 확인 → 옛 값 삭제 순서로 한다(공통 지침 `~/project/claude-base/CLAUDE.md` "안전·권한", 이 레포의 도구는
+  `.claude/CLAUDE.md` Critical Rules).
+
+### 10.8. FCM 토큰 등록이 API 레이어 밖에서 raw `fetch()`를 썼다 (2026-09-09)
+
+2026-09-09 감사에서 `src/shared/lib/firebase/fcm.ts`가 raw `fetch()`로 BE를 직접 호출해 "API 호출은 `.api.ts`에서만" 규칙을
+어기고 있는 것을 찾았다. 같은 날 `src/shared/api/fcm.api.ts`로 옮겼다. 지금 BE API 호출에는 예외가 없다.
 
 ## 11. 남은 것
 

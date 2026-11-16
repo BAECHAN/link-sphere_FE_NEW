@@ -1,4 +1,4 @@
-// 문서(README.md, docs/*.md, .claude/CLAUDE.md, .claude/commands/**, .claude/skills/**)가
+// 문서(README.md, docs/*.md, .claude/CLAUDE.md, .claude/commands/**, .claude/skills/**, .claude/rules/**)가
 // 가리키는 파일 경로·줄 번호가 실제 코드와 아직 맞는지 검사한다. 2026-09-07, 문서 구조
 // 감사에서 TESTING.md가 폐기된 src/domains/ 레이어를 한 달 넘게 정본처럼 서술하고 있던
 // 걸 발견한 뒤 만들었다 — 그 문제는 사람이 수시로 다시 읽지 않는 한 절대 스스로 안 잡힌다.
@@ -41,6 +41,7 @@ const TARGET_FILES = [
     .map((f) => `docs/${f}`),
   ...collectMarkdownFiles('.claude/commands'),
   ...collectMarkdownFiles('.claude/skills'),
+  ...collectMarkdownFiles('.claude/rules'),
 ];
 
 const STALE_REVIEW_DAYS = 30;
@@ -128,7 +129,7 @@ const PATH_TOKEN_RE = /\b(src|\.github|infra)\/[A-Za-z0-9/_.-]*\.[A-Za-z0-9]+\b/
 const BARE_LAYER_PATH_RE =
   /(?<!@\/)\b(app|pages|widgets|features|entities|shared)\/[A-Za-z0-9/_.-]*\.[A-Za-z0-9]+\b/g;
 
-// docs/DECISIONS.md는 append-only ADR 로그다(.claude/CLAUDE.md "docs/ 내부 분류" 참고) —
+// docs/DECISIONS.md는 append-only ADR 로그다(.claude/rules/docs-format.md "docs/ 내부 분류" 참고) —
 // "배경" 서술이 결정 당시의(지금은 존재하지 않을 수 있는) 경로를 정확히 가리키는 게
 // 오히려 맞는 동작이라, bare 경로 검사 대상에서 제외한다. src/ 리터럴 접두사가 붙은
 // 경로(PATH_TOKEN_RE)는 이 파일에서도 그대로 검사한다.
