@@ -78,8 +78,9 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       // 최신 브라우저 타겟 설정 (레거시 코드 제거)
       target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'],
-      // 압축 최적화 (esbuild가 더 빠름)
-      minify: 'esbuild',
+      // terser는 esbuild보다 빌드가 1~2초 느리지만 첫 로딩 JS가 brotli 3.9% 작다
+      // (2026-11-16 직접 측정, docs/PERFORMANCE.md "vendor 청크 정리와 압축기")
+      minify: 'terser',
       cssMinify: true,
       // 소스맵은 프로덕션에서는 비활성화 (보안 및 성능)
       sourcemap: false,
@@ -141,6 +142,20 @@ export default defineConfig(({ mode }) => {
               // 포함, docs/plans/2026-09-25-lighthouse-perf.md 참고).
               if (/[\\/]node_modules[\\/]@?firebase/.test(id)) {
                 return 'firebase-vendor';
+              }
+              // idb는 firebase만 쓴다 - 아래 vendor에 두면 비로그인 방문자도 받는다.
+              if (/[\\/]node_modules[\\/]idb[\\/]/.test(id)) {
+                return 'firebase-vendor';
+              }
+              // 진입 청크의 앱 모듈이 쓰지 않는 패키지 - 이름을 붙이지 않고 Rollup에 맡겨, 쓰는 페이지·컴포넌트
+              // 청크와 함께 받게 한다. vendor에 두면 첫 로딩에 실린다(2026-11-16 직접 측정, 첫 로딩 JS brotli
+              // -15.9KB, docs/PERFORMANCE.md "vendor 청크 정리와 압축기").
+              if (
+                /[\\/]node_modules[\\/](@radix-ui[\\/]react-(select|switch|checkbox)|@tanstack[\\/](virtual-core|react-virtual))[\\/]/.test(
+                  id
+                )
+              ) {
+                return undefined;
               }
               // 나머지 node_modules는 별도 청크로
               return 'vendor';

@@ -391,6 +391,7 @@ Resource Timing을 모았다. 모바일은 CDP `Network.emulateNetworkConditions
 | 그 밖의 3개                                          | 0.62KB  |
 
 가상 스크롤은 `/post` 첫 화면 페이지 청크가 바로 쓰므로, 옮기면 그 페이지의 요청이 늘 수 있다. 다음 PR에서 재고 정한다.
+2026-11-16에 재고 반영했다(아래 "vendor 청크 정리와 압축기").
 
 ### 상세 첫 진입 빈 화면 (직접 측정, 2026-11-04)
 
@@ -760,6 +761,47 @@ node scripts/barrel-experiment/report.mjs dev.jsonl lcp.jsonl tool.jsonl bundle.
 **원본 값**(`scripts/barrel-experiment/results/`): 시간·번들은 `{dev,lcp,tool,bundle}.jsonl`, 순환 의존은 `circular-{a,b,c}.txt`, 배럴 수와 바뀐 파일은
 `codemod-{b,c}.json`, `setup.ts`에서 닿는 모듈과 되돌린 11개는 `setup-graph.txt`·`setup-graph-narrow.txt`, C의 테스트 실패 목록은
 `test-c-codemod-failures.txt`(138개)·`test-c-standalone-failures.txt`(재측정 전 단독 실행 3개)다.
+
+### vendor 청크 정리와 압축기 (직접 측정, 2026-11-16)
+
+위 "첫 로딩 JS"의 "`vendor` 청크 점검(다음 PR)"을 마무리했다. `vite.config.ts`의 빌드 옵션을 하나씩 바꿔 빌드해 보고, 두 가지를
+반영했다.
+
+- **`vendor`에서 뺀 패키지**: `manualChunks`의 마지막 `return 'vendor'`는 이름을 붙이지 않은 패키지를 전부 한 청크에 넣는다. 진입
+  청크의 앱 모듈이 쓰지 않는 `@radix-ui/react-select`·`react-switch`·`react-checkbox`, `@tanstack/react-virtual`·`virtual-core`는 이름을
+  붙이지 않아 Rollup이 쓰는 쪽 청크에 넣게 했고, `idb`는 `firebase-vendor`로 옮겼다.
+- **압축기**: `build.minify`를 `'esbuild'`에서 `'terser'`로 바꿨다(devDependency `terser` 5.51.2).
+
+**측정 방법**: `origin/main`(dfe0924b)에서 옵션 하나만 바꿔 `CI=true pnpm exec vite build --mode production`으로 빌드했다(`.env` 없이,
+Vite 6.4.6). "첫 로딩 JS"는 위 절과 같은 정의다 — `dist/index.html`의 진입 스크립트와 modulepreload 파일을 brotli 품질 11로 압축한 합.
+기준 설정으로 3번 빌드한 크기는 바이트까지 같았다. 빌드 시간은 1~3회 값이라 참고만 한다.
+
+| 바꾼 것                                                   | 첫 로딩 JS       | 전체 JS            | `vite build` | 판정                |
+| --------------------------------------------------------- | ---------------- | ------------------ | ------------ | ------------------- |
+| 기준                                                      | 192,902B, 6개    | 294,346B, 61개     | 2.3~3.9초    |                     |
+| `return 'vendor'` 제거                                    | 172,839B(−10.4%) | 298,397B(+1.4%)    | 6.6초(1회)   | 기각                |
+| `idb` + Radix 3개만 분리                                  | 185,699B(−3.7%)  | 296,531B(+0.7%)    | 2.3초        | 아래 줄에 포함      |
+| 위 + 가상 스크롤 분리                                     | 176,953B(−8.3%)  | 297,047B(+0.9%)    | 2.3초        | 반영                |
+| `minify: 'terser'`                                        | 185,308B(−3.9%)  | 284,196B(−3.4%)    | 3.4~4.2초    | 반영                |
+| `target`을 es2022·chrome111·safari16.4로(`esnext`도 같음) | 190,120B(−1.4%)  | 290,519B(−1.3%)    | 2.3초        | 기각                |
+| `cssMinify: 'lightningcss'`                               | 변화 없음        | CSS 13,521→15,535B | 2.2초        | 기각(CSS +14.9%)    |
+| **반영한 조합**(`pnpm build`)                             | 170,158B(−11.8%) | 286,940B(−2.5%)    | 3.5초        | 청크 수 61개 그대로 |
+
+- **`return 'vendor'` 제거를 기각한 이유**: `vendor`가 진입 청크에 합쳐져 진입 청크 원본이 152,684B에서 344,757B가 된다. 진입 청크는
+  배포마다 해시가 바뀌므로 재방문자가 라이브러리 코드까지 다시 받는다. 재방문자가 실제로 더 받는 양은 재지 않았다.
+- **`target`을 기각한 이유**: 얻는 것이 2,782B인데 그보다 오래된 브라우저에서는 문법 오류로 화면이 뜨지 않는다.
+- **`lightningcss`가 커진 원인**은 조사하지 않았다.
+- **가상 스크롤이 간 곳**: `PostFeedPage`와 `BookmarkPage`가 함께 쓰던 기존 청크(`post-card-grid.const`)에 들어갔다. 새 청크가 생기지
+  않아 `/post`의 요청 수는 늘지 않는다(전체 청크 61개 그대로).
+
+**동작 확인**: 반영한 빌드를 `vite preview`로 띄워 Playwright Chromium으로 봤다(API는 운영으로 프록시, 비로그인). `/post` 카드 9개가
+그려졌고, 로그인 창(입력 3개, 뒤로가기로 닫힘)과 첫 카드 상세가 열렸다. 콘솔 에러는 로컬 출처라 거절된 RUM 전송(400)뿐이었다.
+`ci.yml`의 zod·dayjs 로케일 검사 명령도 통과했다. `Select`는 로그인이 필요한 북마크 화면에만 있어 운영 빌드로는 열어 보지 못했다.
+
+**CloudFront 압축과의 차이(반영 안 함)**: 운영 `vendor` 청크(원본 362,819B로 로컬 기준 빌드와 같다)의 전송 크기는 105,525B였고
+(`curl -H 'Accept-Encoding: br'`, 2026-11-16), 같은 파일을 brotli 품질 11로 누르면 95,667B다. 첫 로딩 6개 합은 운영 212,815B, 로컬
+192,902B다(로컬은 `.env`가 없어 진입 청크 원본이 약 1.2KB 작다). CloudFront가 요청 때 하는 압축이 약 10% 덜 줄인다. 미리 압축해
+올리려면 S3 업로드와 캐시 헤더를 바꿔야 하고 brotli를 받지 못하는 클라이언트 처리가 필요해 따로 조사한다.
 
 ## Best Practices 77점 사례 (2026-10-26)
 
