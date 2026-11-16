@@ -233,6 +233,13 @@
 
 ### Fixed
 
+- `bookmark` 응답 전에 다시 연 폴더 창을 늦게 온 응답이 닫던 문제
+  <details><summary>배경·구현</summary>
+
+  폴더 행·미분류·북마크 제거를 누르고 응답을 기다리는 동안 뒤로가기로 창을 닫고 다시 열면, 앞 요청의 응답이 새로 연 창을 닫았다. 핸들러가 요청을 보낼 때의 창인지 보지 않고 닫았기 때문이다. 이제 요청을 보낼 때 라우터 위치를 기억해 두고, 응답 뒤 아직 그 위치일 때만 닫는다. 이슈 #513이 의심한 "닫힌 창의 닫기가 페이지를 떠나게 함"은 2026-11-10 #592의 `close` 가드로 이미 생기지 않아 같은 e2e로 지킨다. 상세는 `docs/BOOKMARK.md` §5 "뒤로가기로 닫히는 열림 상태". (`src/features/bookmark/toggle/hooks/usePostCardBookmarkFolderDialog.ts`, `e2e/bookmark-folder-stale-response.spec.ts`(신규), `docs/BOOKMARK.md`)
+
+  </details>
+
 - `infra` dev 서버가 `.env`·`.git` 파일을 요청받는 대로 내주던 문제
   <details><summary>배경·구현</summary>
 

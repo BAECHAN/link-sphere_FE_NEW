@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, type Location } from 'react-router-dom';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { ErrorUtil } from '@/shared/utils/error.util';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { UNDO_TOAST_DURATION_MS } from '@/shared/config/const';
+import { RouterEvents } from '@/shared/lib/router/router-events';
 import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { useBookmarkFolders } from '@/features/bookmark/toggle/hooks/useBookmarkFolders';
 
@@ -87,6 +88,17 @@ export function usePostCardBookmarkFolderDialog({
     duration: UNDO_TOAST_DURATION_MS,
   });
 
+  // 응답 뒤에는 요청을 보낸 창이 아직 떠 있을 때만 닫는다. 기다리는 동안 뒤로가기로 닫고 다시 열면 히스토리 칸이
+  // 새로 생겨 위치 객체가 바뀐다 - 그 창은 이 응답과 무관하니 닫지 않는다(#513). 위치는 라우터가 가 있는 곳에서
+  // 읽는다(useBackClosableOverlay.ts와 같은 출처)
+  const closeIfStillOn = (requestEntry: Location | null) => {
+    if (RouterEvents.getLocation() !== requestEntry) {
+      return;
+    }
+
+    onOpenChange(false);
+  };
+
   const handleSelectUncategorized = async () => {
     // 이미 미분류(✓)면 폴더 행의 "마지막 폴더 탭"과 같은 파괴적 조작이다 — 북마크 자체를
     // 완전 삭제한다. handleRemove가 되돌리기 토스트·에러 처리·모달 닫기를 이미 갖고
@@ -101,6 +113,7 @@ export function usePostCardBookmarkFolderDialog({
     // 이미 1개 이상의 폴더에 소속돼 있었다면 이번 탭은 "전체 해제" — 폴더 하나가 아니라
     // 여러 폴더에서 한꺼번에 빠졌다는 걸 알려야 하므로 일반 저장 문구와 구분한다.
     const wasInFolders = isBookmarked && bookmarkFolderIds.length > 0;
+    const requestEntry = RouterEvents.getLocation();
 
     try {
       const saved = await selectUncategorized();
@@ -125,7 +138,7 @@ export function usePostCardBookmarkFolderDialog({
         );
       }
 
-      onOpenChange(false);
+      closeIfStillOn(requestEntry);
     } catch (error) {
       if (ErrorUtil.isSessionExpired(error)) {
         return;
@@ -142,6 +155,7 @@ export function usePostCardBookmarkFolderDialog({
     // 분기해뒀다). 되돌리기는 같은 폴더로 addBookmarkFolder를 다시 호출하는 것과
     // 정확히 같아서(멱등) 안전하게 원복된다.
     const isLastFolder = wasSelected && bookmarkFolderIds.length === 1;
+    const requestEntry = RouterEvents.getLocation();
 
     try {
       const result = await selectFolder(folder.id);
@@ -162,7 +176,7 @@ export function usePostCardBookmarkFolderDialog({
           viewSavedOptions(folder.id)
         );
       }
-      onOpenChange(false);
+      closeIfStillOn(requestEntry);
     } catch (error) {
       if (ErrorUtil.isSessionExpired(error)) {
         return;
@@ -190,6 +204,7 @@ export function usePostCardBookmarkFolderDialog({
     // 일괄 복원 UX(순서·부분 실패 처리)가 별도로 필요해 범위 밖으로 미루고, 0~1개일
     // 때만 되돌리기를 제공한다.
     const prevFolderIds = bookmarkFolderIds;
+    const requestEntry = RouterEvents.getLocation();
 
     try {
       await removeBookmark();
@@ -200,7 +215,7 @@ export function usePostCardBookmarkFolderDialog({
       } else {
         toast.success(TEXTS.messages.success.bookmarkRemoved);
       }
-      onOpenChange(false);
+      closeIfStillOn(requestEntry);
     } catch (error) {
       if (ErrorUtil.isSessionExpired(error)) {
         return;
