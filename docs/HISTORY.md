@@ -1,3 +1,8 @@
+### 2026-11-16 (BE)
+- 게시글 엔티티 구조 최적화 및 연관 관계 설계 개선
+로그:
+- refactor(post): 글이 카테고리 엔티티 대신 id 집합만 들고 이름은 category에 묻게 함 ([#210](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/210))
+
 ### 2026-11-16 (FE)
 - 정적 리소스(JS/CSS)에 Brotli 사전 압축 방식을 도입하여 서버 부하 감소 및 응답 최적화 ([#630](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/630))
 
