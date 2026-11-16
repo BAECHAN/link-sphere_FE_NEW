@@ -6,6 +6,59 @@
 
 ---
 
+## 2026-11-16 — AWS 변경을 나누는 기준: 설정은 infra 저장소, 앱과 함께 바뀌는 코드는 앱 저장소의 배포 워크플로
+
+**배경**
+
+- 사전 brotli 압축(#630)을 켜면서 CloudFront Function 두 개를 사용자가 CloudShell에서 배포했다. 로컬 키에는 CloudFront
+  권한이 없어 스크립트를 올려 실행했고, 누가 언제 배포했는지 git과 Actions에 남지 않았다.
+- Function 코드는 2026-09 이후 다섯 번 바뀌었고(#131·#324·#414·#459·#630) 매번 수동 배포였다.
+- AWS 설정은 2026-11-06부터 비공개 저장소 `link-sphere-infra`의 PR로 바꾸지만(아래 2026-11-06 항목), CloudFront는 그
+  범위 밖이다. 사용자 질문은 "Function도 infra 저장소로 옮기는 게 맞나, 원래 그렇게 하나"였다.
+
+**검토**
+
+| 안                                | Function을 바꿀 때                      | 기록                 | 판정                                                                                                                        |
+| --------------------------------- | --------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| A. 그대로(CloudShell 수동)        | PR + 사람이 CloudShell                  | 레포에 코드만        | 기각 — 배포 기록이 남지 않는다                                                                                              |
+| B. FE 저장소에 두고 배포만 자동화 | PR 하나                                 | git과 Actions에 모두 | 채택                                                                                                                        |
+| C. Function 코드도 infra 저장소로 | FE PR과 infra PR 둘, 순서는 사람이 맞춤 | git과 Actions에 모두 | 기각 — `.br` 업로드(`deploy.yml`)와 Function 분기처럼 함께 바뀌는 것이 두 저장소로 갈린다. CloudFront 편입 경로도 아직 없다 |
+
+**결정**
+
+- **설정(드물게 바뀜)은 `link-sphere-infra`의 PR로, 앱과 함께 바뀌는 코드는 그 앱 저장소의 배포 워크플로로 바꾼다**(사용자
+  결정). Lambda가 이미 이렇게 나뉘어 있다 - 메모리·권한은 infra PR, jar·버전·별칭은 BE 배포 워크플로. CloudFront Function
+  코드는 Lambda 코드와 같은 자리로 본다.
+- **앱 배포 역할에 필요한 권한은 infra 저장소의 PR로 준다.** 이번에는 `link-sphere-infra` #46이 FE 배포 역할에 두
+  Function의 업데이트·시험·게시 권한을 줬다.
+- **CloudFront 배포 설정·WAF·Route 53 편입은 따로 정한다**(`link-sphere-infra` 이슈 #11). 지금은 콘솔·CloudShell로
+  바꾸고 `cloudfront-drift-check.yml`이 차이를 알린다.
+
+**근거**
+
+- AWS CDK 모범 사례는 "인프라 코드와 런타임 코드는 같은 패키지에 둔다"는 절에서 _"그렇게 하는 것이 모범 사례다. 두 종류의
+  코드를 다른 저장소나 다른 패키지에 둘 필요가 없다"_ (번역)고 쓴다. 저장소를 나누는 기준으로는 _"패키지가 여러
+  애플리케이션에서 쓰이기 시작하면 자기 저장소로 옮긴다"_, _"다른 팀이 맡게 되면 자기 저장소로 옮긴다"_ (번역)를 든다
+  ([Best practices for developing and deploying cloud infrastructure with the AWS CDK](https://docs.aws.amazon.com/cdk/v2/guide/best-practices.html), 2026-11-16 원문 확인).
+  이 문서는 CDK construct를 두고 한 말이다. CDK 밖에서 배포하는 CloudFront Function을 직접 다룬 문장은 아니고, "함께
+  바뀌는 것은 함께 둔다"는 방향만 빌렸다.
+- 엣지 함수 코드를 어느 저장소에 두라는 공식 문장은 찾지 못했다(AWS·HashiCorp 문서 몇 개를 web-fetch 에이전트로 조회).
+
+**대가**
+
+- Function을 고칠 수 있는 범위가 "관리자 CloudShell"에서 "FE main에 병합된 코드"로 넓어진다. 역할은 FE main의 job만
+  맡고 main은 규칙셋으로 보호된다.
+- Function 파일만 고쳐도 사이트 배포가 한 번 돈다.
+- 게시는 S3 업로드 뒤에 돈다. Function이 전제하는 파일을 없애는 변경은 PR을 둘로 나눠야 한다(`docs/DEPLOY.md`
+  "CloudFront Function").
+- infra 저장소는 CDK인데 Function 배포는 AWS CLI 스크립트다. CloudFront를 CDK로 편입하면 그때 다시 정한다.
+
+**상태**
+
+적용됨(`link-sphere-infra` #46, FE 이 항목의 PR). 계획: [`docs/plans/2026-11-16-cloudfront-function-deploy.md`](./plans/2026-11-16-cloudfront-function-deploy.md).
+
+---
+
 ## 2026-11-10 — 뒤로가기로 닫히는 오버레이: 모든 기기에서 히스토리 칸, 열림은 라우터가 가 있는 위치에서 읽는다
 
 **배경**

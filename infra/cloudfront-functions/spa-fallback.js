@@ -19,11 +19,11 @@
 // 올리지 않는 커밋을 배포하지 않는다(되돌릴 땐 Function 먼저, docs/DEPLOY.md "사전 brotli 압축").
 //
 // APP_ROUTES는 src/app/routes/AppRoutes.tsx의 appRoutes를 손으로 옮긴 것이다(Function은 앱 코드를
-// import할 수 없다). 라우트를 추가하면 여기도 고치고 Function을 다시 배포한다 - 빠뜨리면
+// import할 수 없다). 라우트를 추가하면 여기도 고친다 - 빠뜨리면
 // src/app/routes/cloudfront-functions.test.ts가 실패한다.
 //
-// 배포는 GitHub Actions 파이프라인 대상이 아니다 — AWS CLI로 수동 배포된다.
-// 절차: docs/DEPLOY.md의 "CloudFront Function (수동 관리)" 참고.
+// 이 파일을 고친 PR이 병합되면 deploy.yml이 test-cases.json의 케이스를 실제 런타임에서 돌린 뒤 게시한다
+// (scripts/deploy-cloudfront-functions.js, docs/DEPLOY.md "CloudFront Function").
 var APP_ROUTES = {
   '/': true,
   '/post': true,

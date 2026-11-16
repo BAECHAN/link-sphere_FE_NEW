@@ -245,6 +245,13 @@
 
   </details>
 
+- `infra` CloudFront Function을 배포 워크플로가 시험하고 게시함(수동 배포 없앰)
+  <details><summary>배경·구현</summary>
+
+  CloudFront Function 두 개(`spa-fallback`·`spa-status`)는 코드가 이 레포에 있지만 배포는 사람이 CloudShell에서 했다. 누가 언제 배포했는지 git과 Actions에 남지 않았고, 2026-09 이후 다섯 번 바뀔 때마다 수동이었다. 이제 `infra/cloudfront-functions/`의 파일을 고친 PR이 병합되면 `deploy.yml`이 배포된 코드와 다른 Function만 개발 단계에 올려 `test-function`으로 시험하고(`infra/cloudfront-functions/test-cases.json`, vitest도 같은 파일을 돌린다), S3 업로드 뒤에 게시한다. 시험이 어긋나면 S3에 올리기 전에 멈춘다. 필요한 권한(두 Function의 업데이트·시험·게시)은 `link-sphere-infra` #46으로 배포 역할에 줬다. Function이 전제하는 S3 파일을 없애는 변경은 PR을 둘로 나눈다. 설정은 infra 저장소의 PR로, 앱과 함께 바뀌는 코드는 앱 저장소의 배포 워크플로로 바꾼다는 기준은 `docs/DECISIONS.md` 2026-11-16 항목, 절차는 `docs/DEPLOY.md` "CloudFront Function"
+
+  </details>
+
 ### Fixed
 
 - `bookmark` 응답 전에 다시 연 폴더 창을 늦게 온 응답이 닫던 문제

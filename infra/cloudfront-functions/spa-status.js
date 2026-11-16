@@ -20,8 +20,8 @@
 // br 본문을 br을 못 받는 클라이언트에 줄 수 있다. CloudFront는 자신이 압축한 응답에만 이 헤더를 붙이고 S3에서
 // 이미 눌린 채 온 응답에는 붙이지 않았다(2026-11-16 직접 관찰, docs/PERFORMANCE.md "사전 brotli 압축").
 //
-// 배포는 GitHub Actions 파이프라인 대상이 아니다 — AWS CLI로 수동 배포된다.
-// 절차: docs/DEPLOY.md의 "CloudFront Function (수동 관리)" 참고.
+// 이 파일을 고친 PR이 병합되면 deploy.yml이 test-cases.json의 케이스를 실제 런타임에서 돌린 뒤 게시한다
+// (scripts/deploy-cloudfront-functions.js, docs/DEPLOY.md "CloudFront Function").
 var PRECOMPRESSED_COPY = /^\/assets\/.+\.(js|css)\.br$/;
 
 function handler(event) {
