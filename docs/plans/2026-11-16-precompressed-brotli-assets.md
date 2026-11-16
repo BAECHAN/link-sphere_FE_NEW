@@ -14,7 +14,8 @@
 - 계획에 없던 변경: Phase 2 문서 PR에 두려던 Phase 0 시험 표와 관찰을 이 PR의 `docs/PERFORMANCE.md`에 먼저 적었다
 - 계획보다 강화: 배포 검증 5번이 `.br` 응답의 길이 대신 본문 전체를 올린 파일과 비교한다
 - 문서 동기화: `spa-fallback.js` 머리말의 옛 경로를 `AppRoutes.tsx`로 고침
-- 병합 뒤 남음: Function 두 개 수동 배포와 Phase 2(운영 재측정, 옛 청크 403 복구 확인, 결과 문서 PR)
+- 병합 뒤 한 것(2026-11-16): Function 두 개를 CloudShell에서 배포했고, 운영 첫 로딩 JS+CSS 전송이 203,311B에서 184,101B(−9.4%)가 됐다. 결과 표는 `docs/PERFORMANCE.md` "사전 brotli 압축"
+- 미구현: 옛 청크 403 뒤 앱의 새로고침 복구는 운영에서 재현하지 않았다(403 응답까지만 확인). `pnpm check:cloudfront`는 로컬 키 권한이 없어 `cloudfront-drift-check.yml` 수동 실행으로 대신했다
 
 <!-- plan-result:end -->
 

@@ -867,7 +867,30 @@ Function을 그 경로에만 적용해 요청 13회. 본문은 풀어서 원본�
 - **`.br` 응답에는 `Vary` 헤더가 없었다.** CloudFront가 직접 누른 gzip 응답에는 `vary: Accept-Encoding`이 붙었다. 그래서
   `spa-status.js`가 `.br` 응답에 이 헤더를 붙인다.
 
-운영 전환 뒤의 전송 크기는 병합 뒤에 재서 이 절에 덧붙인다.
+**운영 전환 결과**(2026-11-16, #630 배포 run 43807035636 뒤 Function 두 개를 CloudShell에서 배포. `Accept-Encoding: gzip, deflate, br,
+zstd`로 `curl` 1회씩 받은 전송 크기. "전"은 같은 날 `bb8d49e0`에서 CloudFront가 실시간으로 누른 값, "후"는 `e39392ce`의 사전 압축
+사본이다. 두 커밋 사이에 앱 소스는 바뀌지 않았다):
+
+| 파일            | 전       | 후                        |
+| --------------- | -------- | ------------------------- |
+| `vendor`        | 83,484B  | 75,584B                   |
+| `index`(진입)   | 43,199B  | 39,161B                   |
+| `react-vendor`  | 43,934B  | 39,654B                   |
+| `util-vendor`   | 10,337B  | 9,480B                    |
+| `router-vendor` | 5,781B   | 5,315B                    |
+| `query-vendor`  | 1,454B   | 1,386B                    |
+| CSS             | 15,122B  | 13,521B                   |
+| **합계**        | 203,311B | 184,101B(−19,210B, −9.4%) |
+
+- 7개 모두 `content-encoding: br`, `vary: Accept-Encoding`으로 나왔고, 풀어 본 본문은 요청 종류(br만, gzip만, `br;q=0, gzip`, 헤더 없음)에
+  상관없이 같았다. gzip만 받는 요청의 진입 청크는 47,292B(CloudFront 실시간 gzip), 헤더 없는 요청은 152,631B(무압축)였다.
+- 이 변경 이전 빌드의 진입 청크(`.br` 짝 없음)는 br을 받는 요청에 S3 403, gzip만 받는 요청에 200이었다. 예상한 동작이다
+  ([`DEPLOY.md`](./DEPLOY.md) "사전 brotli 압축"). 그 403을 받은 옛 탭이 실제로 새로고침되는지는 운영에서 재현하지 않았다(판단 코드는
+  `chunk-reload.util.test.ts`가 본다).
+- Playwright Chromium으로 운영 `/post`를 열어 글 링크 21개가 그려지고 콘솔 오류·경고가 0건인 것을 봤다. 받은 JS·CSS 32개 중 본문이
+  비어 있는 것은 없었다.
+- `cloudfront-drift-check.yml`을 수동으로 돌려 LIVE Function 코드가 레포 파일과 같은 것을 확인했다(run 43813379606).
+- FCP·LCP 변화는 재지 않았다.
 
 ## Best Practices 77점 사례 (2026-10-26)
 
