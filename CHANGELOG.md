@@ -238,6 +238,13 @@
 
   </details>
 
+- `shared` JS·CSS를 배포 때 brotli로 미리 눌러 br 브라우저에 약 10% 작게 보냄
+  <details><summary>배경·구현</summary>
+
+  CloudFront가 요청 때 하는 brotli 압축은 최고 단계보다 약 10% 덜 줄인다(첫 로딩 JS+CSS 203,311B, 미리 누르면 183,679B, 2026-11-16 직접 측정). 배포 단계가 `/assets/`의 `.js`·`.css`를 brotli 품질 11로 눌러 원본 옆에 `.br`로 올리고, CloudFront Function `spa-fallback`이 `Accept-Encoding`에 br이 있는 요청만 `.br` 주소로 보낸다. gzip만 받거나 압축을 받지 않는 요청은 전과 같이 원본을 CloudFront가 처리한다. `spa-status`는 `.br` 응답에 `Vary: Accept-Encoding`을 붙인다. 전환 전에 운영 CloudFront의 시험 경로에서 다시 압축하지 않는 것과 br·gzip 요청의 캐시가 섞이지 않는 것을 확인했다. Function 두 개는 병합 뒤 수동 배포하며, 그 전까지는 전과 같이 동작한다. 이 변경 이전에 올라간 옛 청크에는 `.br` 짝이 없어, 그 청크를 아직 받지 않은 채 열려 있던 탭은 다음 이동 때 1회 새로고침된다. 비교한 안과 시험 표는 `docs/PERFORMANCE.md` "사전 brotli 압축", 켜고 되돌리는 순서는 `docs/DEPLOY.md` "사전 brotli 압축". (`scripts/precompress-assets.js`(신규), `scripts/lib/precompress-assets.js`(신규), `.github/workflows/deploy.yml`, `infra/cloudfront-functions/spa-fallback.js`, `infra/cloudfront-functions/spa-status.js`, `src/app/routes/cloudfront-functions.test.ts`, `docs/DEPLOY.md`, `docs/PERFORMANCE.md`, `docs/CACHE-STRATEGY.md`)
+
+  </details>
+
 ### Fixed
 
 - `bookmark` 응답 전에 다시 연 폴더 창을 늦게 온 응답이 닫던 문제
