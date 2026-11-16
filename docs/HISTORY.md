@@ -1,3 +1,6 @@
+### 2026-11-16 (BE)
+- 비동기 작업 처리 로직을 인터페이스와 구현체로 분리하여 개발 환경에서의 실행 호환성 확보 ([#206](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/206))
+
 ### 2026-11-16 (FE)
 - vendor 청크 최적화 및 terser 압축 적용을 통해 초기 로딩 자바스크립트 번들 사이즈 11.8% 감소 ([#628](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/628))
 
