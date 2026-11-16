@@ -1,3 +1,6 @@
+### 2026-11-16 (FE)
+- CloudFront Function 배포 자동화 및 검증 워크플로 구축 ([#632](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/632))
+
 ### 2026-11-16 (BE)
 - 댓글 좋아요 기능을 interaction 패키지에서 comment 패키지로 이관하여 순환 참조를 제거하고 도메인 간 결합도를 낮춤 ([#211](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/211))
 
