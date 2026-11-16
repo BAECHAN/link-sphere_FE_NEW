@@ -1,3 +1,6 @@
+### 2026-11-16 (BE)
+- 아키텍처 리팩토링 2단계: 시스템 안정성 보장을 위한 안전망(Safeguard) 3종 추가 구현 ([#204](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/204))
+
 ### 2026-11-16 (FE)
 - 북마크 폴더 관리 시 비동기 응답 처리 로직을 개선하여, 폴더 창이 다시 열린 상태에서 이전 응답이 창을 강제로 닫던 경합 조건(Race Condition) 문제 해결 ([#627](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/627))
 
