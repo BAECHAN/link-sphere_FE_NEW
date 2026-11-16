@@ -142,7 +142,7 @@ flowchart TD
   - `link-sphere-spa-fallback`(요청 때): 앱 경로를 `/index.html`로, 앱 경로가 아닌 확장자 없는 경로를 `/404.html`로 바꾼다.
   - `link-sphere-spa-status`(응답 때): `/404.html` 응답의 상태를 404로 바꾸고, `/index.html`·`/404.html`에 `Cross-Origin-Embedder-Policy` 헤더를 붙여 외부 썸네일 요청에서 쿠키를 뺀다.
 - **없으면**: S3에는 `/post/123` 같은 파일이 없으므로 새로고침이나 링크로 들어온 화면이 깨진다.
-- **정본**: [DEPLOY "CloudFront Function"](./DEPLOY.md#cloudfront-function-수동-관리), 코드 [`infra/cloudfront-functions/`](../infra/cloudfront-functions/)
+- **정본**: [DEPLOY "CloudFront Function"](./DEPLOY.md#cloudfront-function), 코드 [`infra/cloudfront-functions/`](../infra/cloudfront-functions/)
 
 ### OAC
 

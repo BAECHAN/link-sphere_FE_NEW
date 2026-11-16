@@ -98,7 +98,7 @@ jobs:
           gh issue create \
             --title "CloudFront 설정이 커밋된 스냅샷과 다름" \
             --label "$DRIFT_LABEL" \
-            --body "$(printf '차이 내용: %s (Summary)\n\n- 의도한 콘솔 변경이면 로컬에서 `pnpm check:cloudfront --write`로 스냅샷을 갱신해 커밋한다.\n- 의도하지 않은 변경이면 콘솔에서 되돌린다.\n- Function 코드 차이는 스냅샷 갱신으로 사라지지 않는다 - docs/DEPLOY.md "CloudFront Function" 절차로 배포하거나 레포 파일을 고친다.\n\n차이가 없어지면 다음 정기 검사(매일)에서 자동으로 닫힌다.' "$RUN_URL")"
+            --body "$(printf '차이 내용: %s (Summary)\n\n- 의도한 콘솔 변경이면 로컬에서 `pnpm check:cloudfront --write`로 스냅샷을 갱신해 커밋한다.\n- 의도하지 않은 변경이면 콘솔에서 되돌린다.\n- Function 코드 차이는 스냅샷 갱신으로 사라지지 않는다 - 레포 파일을 고친 PR이 병합되면 deploy.yml이 게시한다. 배포 run이 실패했는지 먼저 본다(docs/DEPLOY.md "CloudFront Function").\n\n차이가 없어지면 다음 정기 검사(매일)에서 자동으로 닫힌다.' "$RUN_URL")"
 
       - name: 차이가 없으면 열린 이슈 닫기
         if: needs.check.outputs.drift == 'false'

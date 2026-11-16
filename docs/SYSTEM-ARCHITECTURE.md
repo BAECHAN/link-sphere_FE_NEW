@@ -72,9 +72,9 @@ Lambda 설정, EventBridge 룰, 알람, IAM 역할, 배포·백업 버킷은 비
 
 저장소 루트의 `infra/`는 Vite 빌드에 포함되지 않고 **AWS 리소스에 직접 배포되는 코드**와 **콘솔에서만
 바꾸는 CloudFront 설정의 스냅샷**을 모아두는 디렉토리다. `src/`(앱 코드)와 달리 브라우저에서 실행되지
-않고, GitHub Actions `deploy.yml`도 이 디렉토리를 배포 대상으로 보지 않는다(트리거 경로에 없음) — 여기
-있는 것들은 AWS CLI로 수동 배포·관리된다. 배포되는 코드는 아래 CloudFront Function 두 개
-(`spa-fallback.js`·`spa-status.js`)다.
+않는다. 배포되는 코드는 아래 CloudFront Function 두 개(`spa-fallback.js`·`spa-status.js`)이고, 고친 PR이 병합되면
+GitHub Actions `deploy.yml`이 실제 런타임에서 시험한 뒤 게시한다(2026-11-16, 그 전에는 AWS CLI로 수동 배포했다 —
+[`docs/DEPLOY.md`](./DEPLOY.md) "CloudFront Function").
 
 같은 CloudFront 배포에 WAF(Web ACL)도 콘솔 전용으로 붙어 있다. 소스 코드가 없는 설정값이라 배포할 파일은
 없지만, 지금 규칙은 배포 설정·캐시 정책·Function 설명과 함께 `infra/cloudfront/snapshot.json`에 식별자를
@@ -87,6 +87,7 @@ infra/
 ├── cloudfront/
 │   └── snapshot.json     # 콘솔 설정 스냅샷(배포 대상 아님) — pnpm check:cloudfront가 비교
 └── cloudfront-functions/
+    ├── test-cases.json   # 배포 전 test-function 케이스(vitest도 같은 파일을 돌린다)
     ├── spa-fallback.js   # viewer-request: 앱 라우트 → /index.html, 아닌 경로 → /404.html (아래 참고)
     └── spa-status.js     # viewer-response: /404.html 응답의 상태를 404로, 앱 HTML에 COEP credentialless
 ```

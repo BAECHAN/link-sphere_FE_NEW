@@ -269,8 +269,8 @@ After creating these files, tell the user:
 2. Add a route constant to `src/shared/config/route-paths.ts`
 3. Register the route in `src/app/routes/AppRoutes.tsx`
    - Also add the path to `APP_ROUTES` (or `APP_ROUTE_PATTERNS` for dynamic segments) in
-     `infra/cloudfront-functions/spa-fallback.js` and redeploy the Function by hand
-     (`docs/DEPLOY.md` "CloudFront Function (수동 관리)") — otherwise
+     `infra/cloudfront-functions/spa-fallback.js` (`deploy.yml` publishes the Function after merge,
+     `docs/DEPLOY.md` "CloudFront Function") — otherwise
      `src/app/routes/cloudfront-functions.test.ts` fails and production answers the new route
      with a 404 status
 4. Create the first feature with `/new-feature $ARGUMENTS <feature-name>`

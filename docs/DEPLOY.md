@@ -20,7 +20,10 @@
 1.  **Trigger**: `main` 브랜치에 푸시되면 워크플로우가 시작됩니다 — 단, 경로 필터가
     걸려 있어 `src/**`·`public/**`·`package.json`·`pnpm-lock.yaml`·`vite.config.ts`·
     `postcss.config.js`·`index.html`·`tsconfig*.json`·`scripts/inject-csp.js`·
+    `scripts/precompress-assets.js`·`scripts/lib/precompress-assets.js`·
     `scripts/prune-old-assets.js`·`scripts/lib/prune-assets.js`·
+    `infra/cloudfront-functions/**`·`scripts/deploy-cloudfront-functions.js`·
+    `scripts/lib/cloudfront-function-deploy.js`(CloudFront Function과 그 배포 스크립트)·
     `.github/workflows/deploy.yml`(자기 파일 — 아래 "액션 버전 관리" 참고) 중
     하나라도 바뀐 push에만 실행됩니다(`.github/workflows/deploy.yml`의 `on.push.paths`).
     즉 `CHANGELOG.md`나 `docs/` 아래 파일만 바뀐 push는 이 워크플로우를 **트리거하지
@@ -52,6 +55,8 @@
       동안만 쓰는 임시 자격증명을 받습니다(`role-to-assume: secrets.AWS_ROLE_ARN`, 기본 1시간
       뒤 만료). 역할의 신뢰 조건·권한은 아래 "AWS IAM 권한 요구사항" 참고(2026-10-13 전환).
     - 리전: `ap-northeast-1` (Tokyo)
+    - 이어서 **Function 준비** 스텝이 돕니다. `infra/cloudfront-functions/`의 코드가 배포된 코드와 다를 때만 개발
+      단계에 올려 `test-function`으로 시험하고, 어긋나면 S3에 아무것도 올리기 전에 멈춥니다(아래 "CloudFront Function").
 6.  **Deploy to S3**:
     - 빌드된 `dist/` 디렉토리의 내용을 S3 버킷에 올립니다. **순서가 곧 원자성**입니다 —
       HTML이 가리키는 파일이 HTML보다 먼저 S3에 있어야 하므로 ① `assets/`(해시 파일명,
@@ -86,6 +91,7 @@
 7.  **CloudFront Invalidation**:
     - 배포 후 즉시 변경 사항이 반영되도록 CloudFront 캐시를 무효화합니다.
     - 대상 경로: `/*`
+    - 이어서 **Function 게시** 스텝이 5번에서 시험한 Function을 LIVE로 게시합니다(바뀐 것이 없으면 지나갑니다).
 8.  **배포 반영 검증**:
     - invalidation 직후 실제 CloudFront URL(`vars.SITE_URL`, 미설정 시 하드코딩된
       도메인)을 직접 호출해 ①`/version.json`의 sha가 이번 커밋과 같은지(최대 2분
@@ -354,6 +360,9 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
 - **권한**(인라인 정책 `deploy`):
   - **S3**: `s3:ListBucket`(버킷), `s3:PutObject`·`s3:DeleteObject`(버킷 안 객체) — 동기화용
   - **CloudFront**: `cloudfront:CreateInvalidation`(이 배포 하나) — 캐시 무효화용
+  - **CloudFront Function**: `cloudfront:UpdateFunction`·`TestFunction`·`PublishFunction`(`link-sphere-spa-fallback`·
+    `link-sphere-spa-status` 두 개만, 2026-11-16 `link-sphere-infra` #46) — 아래 "CloudFront Function"의 자동 배포용.
+    배포 설정·Function 연결·WAF를 바꾸는 권한은 없다
 - **권한**(인라인 정책 `cloudfront-drift-read`, 2026-10-15 추가 — 아래 "CloudFront 설정 스냅샷과 차이 검사"의
   매일 검사용, 모두 읽기):
   - `cloudfront:ListDistributions`(`*` — 목록 API라 리소스를 지정할 수 없다), `cloudfront:GetDistributionConfig`(이 배포)
@@ -376,8 +385,9 @@ GitHub Repository의 **Settings > Secrets and variables > Actions** 메뉴에서
 
 ## CloudFront 설정 스냅샷과 차이 검사
 
-아래 절들(OAC·커스텀 도메인·CloudFront Function·WAF·응답 헤더 정책)은 콘솔·CLI로만 바꾸고 이 레포 파이프라인이
-배포하지 않는다. 그래서 무엇이 언제 바뀌었는지 git에 남지 않는다. 지금 설정을 가려서
+아래 절들(OAC·커스텀 도메인·Function 연결·WAF·응답 헤더 정책)은 콘솔·CLI로만 바꾸고 이 레포 파이프라인이
+배포하지 않는다. 그래서 무엇이 언제 바뀌었는지 git에 남지 않는다(Function **코드**만 2026-11-16부터 `deploy.yml`이
+배포한다 - 아래 "CloudFront Function"). 지금 설정을 가려서
 [`infra/cloudfront/snapshot.json`](../infra/cloudfront/snapshot.json)에 커밋해 두고 `pnpm check:cloudfront`로
 비교한다(2026-10-14 도입).
 
@@ -398,9 +408,9 @@ pnpm check:cloudfront --write    # 스냅샷을 지금 설정으로 갱신(콘�
   이슈 대신 워크플로 실패로 알린다. 배포 역할은 main 브랜치 job만 맡을 수 있어(위 "AWS IAM 권한 요구사항") PR
   CI에는 넣지 않았다. 형태는 `openapi-drift-check.yml`(매일, 이슈 열고 닫기)과 BE `prod-alias-drift-check.yml`
   (배포와 같은 역할에 조회 권한)을 따랐다.
-- **Function 코드 차이는 `--write`로 사라지지 않는다** — 아래 "CloudFront Function" 절차로 배포하거나 레포 파일을
-  고친다. `spa-fallback.js`를 고친 PR이 병합된 뒤 Function을 수동 배포하기 전까지는 매일 검사가 이 차이로 이슈를
-  연다 — 배포하라는 알림으로 쓰면 된다.
+- **Function 코드 차이는 `--write`로 사라지지 않는다** — 레포 파일을 고친 PR이 병합되면 `deploy.yml`이 게시해
+  맞춘다(아래 "CloudFront Function"). 병합부터 게시까지 몇 분 동안만 다르다. 그 밖에 차이가 보이면 배포 run이
+  실패했거나 누군가 콘솔·CloudShell로 Function을 바꾼 것이다.
 
 ### 읽기 권한 추가 스크립트
 
@@ -702,7 +712,7 @@ Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 
 
 **바꾼 뒤**: `pnpm check:cloudfront --write`로 스냅샷을 갱신해 같은 PR로 커밋한다(위 "CloudFront 설정 스냅샷과 차이 검사").
 
-## CloudFront Function (수동 관리)
+## CloudFront Function
 
 기본(S3) 비헤이비어에 CloudFront Function 두 개가 붙는다. 소스는 이 저장소의
 [`infra/cloudfront-functions/`](../infra/cloudfront-functions/)에 있다.
@@ -716,12 +726,37 @@ Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 
 `no-cache` 캐시 정책을 쓰고, 배포 검증 단계 4번이 entry 청크가 같은지 확인한다. 경로별 최종 응답은 아래
 "URL별 에러 응답" 절 참고.
 
-- **이 Function들은 위 `deploy.yml` 파이프라인이 배포하지 않는다** — 변경이 필요하면 아래 절차를 수동으로 실행한다.
-- **라우트를 추가하면 `spa-fallback.js`의 `APP_ROUTES`도 고치고 재배포한다.** Function은 앱 코드를 import할 수
+- **코드는 `deploy.yml`이 배포한다**(2026-11-16, 그 전에는 사람이 CloudShell에서 했다). `infra/cloudfront-functions/`의
+  파일을 고친 PR이 병합되면 아래 순서로 돈다. 배포된(LIVE) 코드가 레포 파일과 같으면 비교만 하고 지나간다.
+  스크립트는 [`scripts/deploy-cloudfront-functions.js`](../scripts/deploy-cloudfront-functions.js)다.
+
+  ```mermaid
+  flowchart TD
+      M["Function 파일을 고친 PR 병합"] --> C{"LIVE 코드 = 레포 파일?"}
+      C -- "같음" --> U["S3 업로드 → 무효화"]
+      C -- "다름" --> P["Function 준비<br/>개발 단계에 update-function<br/>→ test-function으로 케이스 전부"]
+      P -- "하나라도 어긋남" --> X["run 실패, 실패 이슈<br/>사이트와 LIVE는 그대로"]
+      P -- "통과" --> U
+      U --> G["Function 게시<br/>publish-function → LIVE = 레포 확인"]
+      G --> V["배포 반영 검증"]
+  ```
+
+- **시험 케이스는 [`infra/cloudfront-functions/test-cases.json`](../infra/cloudfront-functions/test-cases.json)에 있다.**
+  배포는 이 케이스를 실제 런타임(`cloudfront-js-1.0`)에서 `test-function`으로 돌리고,
+  [`cloudfront-functions.test.ts`](../src/app/routes/cloudfront-functions.test.ts)가 같은 파일을 Node에서도 돌린다.
+  Function의 동작을 바꾸면 케이스도 함께 고친다. 배열 순서가 게시 순서다(`spa-status` → `spa-fallback`).
+- **Function이 전제하는 것을 없애는 변경은 PR을 둘로 나눈다.** 게시는 S3 업로드 뒤에 돈다. Function이 S3의 파일
+  (`.br` 사본, `/404.html`)을 전제로 하기 때문이다. 그래서 그 파일을 더는 올리지 않는 변경과 Function 변경을 한 PR에
+  넣으면, 업로드부터 게시까지 새 사이트가 옛 Function으로 서비스된다. 먼저 Function만 바꾼 PR을 병합해 배포가 끝난
+  것을 확인하고, 그다음 업로드를 바꾼다(아래 "사전 brotli 압축"의 되돌리는 순서).
+- **Function 파일만 고쳐도 사이트 배포가 한 번 돈다.** `deploy.yml`의 트리거 경로에 `infra/cloudfront-functions/**`가
+  있다. 앱 코드는 같아도 번들에 커밋 sha가 들어가([`BUILD-VERSION.md`](./BUILD-VERSION.md)) 새 빌드가 되므로, 열려
+  있던 탭은 다른 배포와 똑같이 새 버전으로 인식한다.
+- **설명(Comment)·런타임·배포 연결은 배포하지 않는다.** 스크립트는 LIVE의 설명과 런타임을 그대로 다시 넣는다.
+  바꾸려면 CloudShell에서 바꾸고 `pnpm check:cloudfront --write`로 스냅샷을 갱신한다.
+- **라우트를 추가하면 `spa-fallback.js`의 `APP_ROUTES`도 고친다.** Function은 앱 코드를 import할 수
   없어 `src/app/routes/AppRoutes.tsx`의 경로를 손으로 옮겨 뒀다. 빠뜨리면
-  [`src/app/routes/cloudfront-functions.test.ts`](../src/app/routes/cloudfront-functions.test.ts)가 실패한다. 재배포를
-  잊으면 새 라우트에 직접 접속했을 때 화면은 정상이지만 HTTP 상태가 404가 된다(사용자는 모르고 검색엔진·링크
-  미리보기만 영향을 받는다).
+  [`src/app/routes/cloudfront-functions.test.ts`](../src/app/routes/cloudfront-functions.test.ts)가 실패한다.
 - **반드시 기본(S3) 비헤이비어에만 연결한다.** `/api/*` 비헤이비어에 연결하면 BE(Lambda)의 정상 403/404 응답까지
   가려버린다 — 실제로 2026-07-28에 이 문제(구 방식인 배포 레벨 `CustomErrorResponses`가 원인)를 발견하고 이
   Function으로 교체했다. `infra/` 디렉토리 자체의 역할과 자세한 배경은
@@ -729,65 +764,44 @@ Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 
 - **`/storybook`은 2026-10-30부터 다른 경로와 같이 `/404.html`이 된다.** 그 전에는 S3 `storybook/` 접두사에 올린
   Storybook을 내보내려고 이 경로를 SPA 폴백보다 먼저 통과시켰다. Storybook을 GitHub Pages로 옮기면서(위 "Storybook
   공개 배포") 분기를 지웠다.
-- **`spa-fallback.js`를 바꿀 때는 아래 케이스로 `test-function`을 검증한다.** 같은 케이스를
-  `cloudfront-functions.test.ts`가 레포에서도 돌린다.
 
-  | 입력 URI       | 기대 결과     |
-  | -------------- | ------------- |
-  | `/post/abc123` | `/index.html` |
-  | `/auth/login`  | `/index.html` |
-  | `/post/`       | `/index.html` |
-  | `/oops`        | `/404.html`   |
-  | `/.git/config` | `/404.html`   |
-  | `/storybook/`  | `/404.html`   |
-  | `/favicon.ico` | 그대로        |
+**되돌리려면**: 되돌리는 PR을 병합한다. 배포가 이전 코드를 같은 순서로 시험하고 게시한다. `spa-fallback.js`를
+`/404.html` 도입 전으로 되돌리면 확장자 없는 경로가 전부 다시 `/index.html`(200)로 간다. `spa-status`는 연결을 빼지
+않아도 무해하다(`/404.html` 요청이 없어진다).
 
-  사전 압축 분기는 요청의 `accept-encoding` 헤더까지 넣어 본다.
+**권한**: 배포 역할 `link-sphere-fe-deploy`가 두 Function의 업데이트·시험·게시만 할 수 있다(위 "AWS IAM 권한
+요구사항"). 권한은 `link-sphere-infra` 저장소의 PR로 바꾼다. 로컬 키 `link-sphere-user`에는 CloudFront 권한이 없어
+`describe-function`부터 `AccessDenied`가 난다(2026-11-16 확인).
 
-  | 입력 URI                  | `accept-encoding`         | 기대 결과                    |
-  | ------------------------- | ------------------------- | ---------------------------- |
-  | `/assets/js/index-abc.js` | `gzip, deflate, br, zstd` | `/assets/js/index-abc.js.br` |
-  | `/assets/js/index-abc.js` | `gzip`                    | 그대로                       |
-  | `/assets/js/index-abc.js` | `br;q=0, gzip`            | 그대로                       |
-  | `/assets/js/index-abc.js` | (헤더 없음)               | 그대로                       |
-  | `/assets/img/logo.svg`    | `gzip, deflate, br, zstd` | 그대로                       |
-  | `/post/abc123`            | `gzip, deflate, br, zstd` | `/index.html`                |
+**급할 때(배포 파이프라인이 고장 났을 때)만 손으로 한다.** 관리자 계정의 콘솔 CloudShell에서 실행하고, Function
+파일은 CloudShell의 Actions → Upload file로 올린다. 끝나면 레포 파일을 같은 내용으로 맞춘다 - 다르면 다음 배포가
+레포 코드로 다시 게시한다.
 
 ```bash
-# 1. 함수 코드 수정 후 업데이트 (ETag 필요). spa-status는 이름·파일만 바꿔 같은 절차
-#    Comment는 함수마다 다르다 - infra/cloudfront/snapshot.json에서 그 함수의 functions[].Comment(LIVE 값)를
-#    그대로 넣는다. 매일 차이 검사가 LIVE의 Comment도 비교하므로, 다른 문구를 넣으면 다음 날 drift 이슈가 열린다
-#    (설명을 일부러 바꿨다면 4번에서 --write로 스냅샷도 갱신한다)
+export AWS_PAGER=""
+# 1. 개발 단계에 올린다(ETag 필요). spa-status는 이름·파일만 바꿔 같은 절차.
+#    Comment는 infra/cloudfront/snapshot.json에서 그 함수의 functions[].Comment(LIVE 값)를 그대로 넣는다.
+#    매일 차이 검사가 LIVE의 Comment도 비교한다
 aws cloudfront describe-function --name link-sphere-spa-fallback --stage DEVELOPMENT
 aws cloudfront update-function --name link-sphere-spa-fallback \
   --if-match <위 ETag> \
   --function-config '{"Comment":"<snapshot.json의 이 함수 Comment>","Runtime":"cloudfront-js-1.0"}' \
-  --function-code fileb://infra/cloudfront-functions/spa-fallback.js
+  --function-code fileb://spa-fallback.js
 
-# 2. 테스트 (실배포 전 검증)
+# 2. 시험 (test-cases.json의 케이스를 이벤트 JSON으로 만들어 넣는다)
 aws cloudfront test-function --name link-sphere-spa-fallback \
   --if-match <update 응답의 ETag> --stage DEVELOPMENT \
   --event-object fileb://<테스트 이벤트 JSON>
 
-# 3. LIVE로 배포 (이미 비헤이비어에 연결돼 있다면 이걸로 자동 반영됨 — 배포 설정 재변경 불필요)
+# 3. LIVE로 게시 (비헤이비어에 이미 연결돼 있어 이것으로 반영된다)
 aws cloudfront publish-function --name link-sphere-spa-fallback --if-match <최신 ETag>
-
-# 4. 배포된 코드가 레포 파일과 같은지 확인 (설정을 바꿨으면 --write로 스냅샷도 갱신)
-pnpm check:cloudfront
 ```
 
 `link-sphere-spa-status`를 처음 만들 때(2026-10-05)는 `create-function` → `publish-function` 뒤, 배포 설정의
 `DefaultCacheBehavior.FunctionAssociations`에 `{"EventType":"viewer-response","FunctionARN":<LIVE ARN>}`을 추가해
 `update-distribution`했다(ETag → IfMatch 절차는 위 "커스텀 도메인" 절과 같다). **`spa-fallback`이 `/404.html`로
-보내기 시작하기 전에 S3에 `/404.html`이 있어야 한다** — 없으면 없는 경로가 S3 403 XML이 된다. 그래서 `deploy.yml`의
-`404.html` 업로드가 먼저 배포된 뒤에 Function을 바꾼다.
-
-**되돌리려면**: `spa-fallback.js`를 이전 커밋 버전으로 `update-function` → `publish-function`하면 확장자 없는
-경로가 전부 다시 `/index.html`(200)로 간다. `spa-status`는 연결을 빼지 않아도 무해하다(`/404.html` 요청이 없어진다).
-
-**로컬 키로는 이 절차를 실행할 수 없다.** `link-sphere-user`에는 CloudFront 권한이 없어 `describe-function`부터
-`AccessDenied`가 난다(2026-11-16 확인). 관리자 계정의 콘솔 CloudShell에서 실행하고, Function 파일은 CloudShell의
-Actions → Upload file로 올린다.
+보내기 시작하기 전에 S3에 `/404.html`이 있어야 한다** — 없으면 없는 경로가 S3 403 XML이 된다. Function을 새로
+만들고 연결하는 일은 지금도 CloudShell에서 한다(배포 역할에 권한이 없다).
 
 ### 사전 brotli 압축
 
@@ -800,9 +814,11 @@ Actions → Upload file로 올린다.
 - **br 판정은 "받는가"만 본다.** `Accept-Encoding`에 `br`이 있고 `q=0`이 아니면 `.br`로 보낸다. br과 gzip의 q값 크기는
   비교하지 않는다(`gzip;q=1, br;q=0.1`도 br 사본을 받는다). 브라우저는 q값 없이 목록만 보내고, br 사본이 항상 더 작다.
 - **대상 범위는 세 곳이 같아야 한다.** `scripts/lib/precompress-assets.js`의 `isPrecompressTarget`, `spa-fallback.js`의
-  `PRECOMPRESSED_ASSET`, `spa-status.js`의 `PRECOMPRESSED_COPY`. 범위를 바꾸면 셋을 함께 고치고 두 Function을 다시 배포한다.
-- **켜는 순서**: `.br`을 올리는 배포가 끝난 뒤에 Function을 배포한다.
-- **되돌리는 순서**: Function을 먼저 이전 코드로 `publish-function`한 뒤 앱을 되돌린다. `.br`을 올리지 않는 커밋(이 변경
+  `PRECOMPRESSED_ASSET`, `spa-status.js`의 `PRECOMPRESSED_COPY`. 범위를 바꾸면 셋을 함께 고친다(넓히는 변경은 한 PR,
+  좁히는 변경은 Function을 먼저 바꾼 PR과 업로드를 바꾼 PR로 나눈다).
+- **켜는 순서**: `.br`을 올린 뒤에 Function을 게시한다. `deploy.yml`의 단계 순서가 이렇게 돼 있다.
+- **되돌리는 순서**: Function에서 `.br` 분기를 뺀 PR을 먼저 병합해 배포가 끝난 것을 확인한 뒤, `.br` 업로드를 빼는
+  PR을 병합한다(위 "Function이 전제하는 것을 없애는 변경은 PR을 둘로 나눈다"). `.br`을 올리지 않는 커밋(이 변경
   이전 커밋으로의 revert 포함)을 Function이 켜진 채 배포하면 그 빌드의 JS·CSS가 br 브라우저에서 전부 403이 된다. S3에 남은
   `.br` 사본은 그대로 둬도 된다(아무도 요청하지 않고 7일 뒤 정리된다).
 - **이 변경 이전에 올라간 옛 청크에는 짝이 없다.** 그 청크를 아직 받지 않은 채 열려 있던 탭은 다음 이동 때 403을 받고 1회
@@ -1051,7 +1067,9 @@ open https://linksphere.click/version
 "롤백"·"되돌리려면"을 따른다.
 
 **사전 압축(2026-11-16)보다 앞선 커밋으로 되돌릴 때는 Function을 먼저 되돌린다.** 그 커밋들은 `.br` 사본을 올리지 않아,
-`spa-fallback`이 켜진 채 배포되면 JS·CSS가 br 브라우저에서 403이 된다(위 "사전 brotli 압축").
+`spa-fallback`이 켜진 채 배포되면 JS·CSS가 br 브라우저에서 403이 된다(위 "사전 brotli 압축"). `spa-fallback.js`만
+되돌린 PR을 먼저 병합해 배포가 끝난 것을 확인한 뒤 나머지를 되돌린다 - 한 PR에 넣으면 Function 게시가 S3 업로드
+뒤에 돌아 그 사이가 빈다.
 
 **지난 커밋을 골라 다시 배포하는 방법은 없다 — main을 되돌린 커밋으로 앞으로 보낸다.** `deploy.yml`은 실행된 커밋을 그대로
 빌드한다(`Checkout` 스텝에 `ref`가 없다). 수동 실행(`workflow_dispatch`)이 빌드하는 커밋도 GitHub 문서 표현으로 _"`GITHUB_REF`

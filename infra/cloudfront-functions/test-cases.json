@@ -1,0 +1,84 @@
+[
+  {
+    "file": "spa-status.js",
+    "eventType": "viewer-response",
+    "cases": [
+      {
+        "uri": "/404.html",
+        "expect": {
+          "statusCode": 404,
+          "headers": { "cross-origin-embedder-policy": "credentialless" },
+          "absentHeaders": ["vary"]
+        }
+      },
+      {
+        "uri": "/index.html",
+        "expect": {
+          "statusCode": 200,
+          "headers": { "cross-origin-embedder-policy": "credentialless" },
+          "absentHeaders": ["vary"]
+        }
+      },
+      {
+        "uri": "/assets/js/index-abc.js.br",
+        "expect": { "statusCode": 200, "headers": { "vary": "Accept-Encoding" } }
+      },
+      {
+        "uri": "/assets/css/index-abc.css.br",
+        "responseHeaders": { "vary": "Origin" },
+        "expect": { "statusCode": 200, "headers": { "vary": "Origin, Accept-Encoding" } }
+      },
+      {
+        "uri": "/assets/js/index-abc.js",
+        "expect": {
+          "statusCode": 200,
+          "absentHeaders": ["vary", "cross-origin-embedder-policy"]
+        }
+      }
+    ]
+  },
+  {
+    "file": "spa-fallback.js",
+    "eventType": "viewer-request",
+    "cases": [
+      { "uri": "/post/abc123", "expect": { "uri": "/index.html" } },
+      { "uri": "/auth/login", "expect": { "uri": "/index.html" } },
+      { "uri": "/post/", "expect": { "uri": "/index.html" } },
+      { "uri": "/oops", "expect": { "uri": "/404.html" } },
+      { "uri": "/.git/config", "expect": { "uri": "/404.html" } },
+      { "uri": "/storybook/", "expect": { "uri": "/404.html" } },
+      { "uri": "/favicon.ico", "expect": { "uri": "/favicon.ico" } },
+      {
+        "uri": "/assets/js/index-abc.js",
+        "acceptEncoding": "gzip, deflate, br, zstd",
+        "expect": { "uri": "/assets/js/index-abc.js.br" }
+      },
+      {
+        "uri": "/assets/css/index-abc.css",
+        "acceptEncoding": "br",
+        "expect": { "uri": "/assets/css/index-abc.css.br" }
+      },
+      {
+        "uri": "/assets/js/index-abc.js",
+        "acceptEncoding": "gzip",
+        "expect": { "uri": "/assets/js/index-abc.js" }
+      },
+      {
+        "uri": "/assets/js/index-abc.js",
+        "acceptEncoding": "br;q=0, gzip",
+        "expect": { "uri": "/assets/js/index-abc.js" }
+      },
+      { "uri": "/assets/js/index-abc.js", "expect": { "uri": "/assets/js/index-abc.js" } },
+      {
+        "uri": "/assets/img/logo.svg",
+        "acceptEncoding": "gzip, deflate, br, zstd",
+        "expect": { "uri": "/assets/img/logo.svg" }
+      },
+      {
+        "uri": "/post/abc123",
+        "acceptEncoding": "gzip, deflate, br, zstd",
+        "expect": { "uri": "/index.html" }
+      }
+    ]
+  }
+]

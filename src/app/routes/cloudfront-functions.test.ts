@@ -3,6 +3,13 @@ import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import type { RouteObject } from 'react-router-dom';
 import { appRoutes } from '@/app/routes/AppRoutes';
+// eslint-disable-next-line custom-import/no-relative-import-except-styles -- @/ 별칭은 src/만 가리켜 scripts/를 가리킬 수 없다
+import {
+  TEST_CASES_PATH,
+  buildTestEvent,
+  findMismatches,
+  type FunctionTestSuite,
+} from '../../../scripts/lib/cloudfront-function-deploy.js';
 
 /**
  * infra/cloudfront-functions/*.js는 CloudFront 런타임용 평문 JS라 export가 없다.
@@ -161,4 +168,28 @@ describe('spa-status.js (viewer-response)', () => {
       expect(result.headers).toEqual({});
     }
   );
+});
+
+// 배포 때 `aws cloudfront test-function`이 실제 런타임에서 돌리는 케이스다(scripts/deploy-cloudfront-functions.js).
+// 같은 파일을 여기서도 돌려, 케이스가 틀려서 배포가 멈추는 일을 PR 단계에서 잡는다.
+describe('test-cases.json (배포 전 test-function 케이스)', () => {
+  const suites = JSON.parse(
+    readFileSync(path.resolve(__dirname, '../../..', TEST_CASES_PATH), 'utf8')
+  ) as FunctionTestSuite[];
+
+  it('Function 파일마다 케이스가 있다', () => {
+    expect(suites.map(({ file }) => file).sort()).toEqual(['spa-fallback.js', 'spa-status.js']);
+
+    for (const { cases } of suites) {
+      expect(cases.length).toBeGreaterThan(0);
+    }
+  });
+
+  describe.each(suites)('$file', ({ file, eventType, cases }) => {
+    const handler = loadHandler(file);
+
+    it.each(cases)('$uri (accept-encoding: $acceptEncoding)', (testCase) => {
+      expect(findMismatches(testCase, handler(buildTestEvent(eventType, testCase)))).toEqual([]);
+    });
+  });
 });

@@ -198,7 +198,7 @@ function main() {
   for (const { Name, RepoFile } of mismatchedFunctions) {
     console.log(
       `  - Function ${Name}: 배포된 코드가 ${RepoFile ?? '(레포 파일 없음)'}와 다르다 - ` +
-        'docs/DEPLOY.md "CloudFront Function" 절차로 배포하거나 레포 파일을 고친다'
+        'deploy.yml이 게시하기 전이거나 배포가 실패했다(docs/DEPLOY.md "CloudFront Function")'
     );
   }
 
