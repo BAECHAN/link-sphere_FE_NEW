@@ -4,7 +4,7 @@
 
 /**
  * 필수 절. names 중 하나로 시작하는 `## ` 제목이 있으면 그 절로 본다 - plan mode를 거친 작업은
- * "의도 대비 결과" 대신 "계획 대비 구현"을 쓴다(.claude/CLAUDE.md §11).
+ * "의도 대비 결과" 대신 "계획 대비 구현"을 쓴다(.claude/CLAUDE.md "계획과 PR 본문").
  */
 export const REQUIRED_SECTIONS = [
   { names: ['요약'], hint: '무엇을 왜 바꿨는지' },

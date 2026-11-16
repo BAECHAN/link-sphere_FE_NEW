@@ -362,7 +362,7 @@ Rules에 규칙으로 명문화).
 
 ### 9.8 경로 지정 커밋 뒤 인덱스에 prettier 이전 내용이 남았다 (2026-10-16)
 
-새 파일을 `git add -- <파일>`한 뒤 `git commit -m "…" -- <경로>`로 커밋했다(`.claude/CLAUDE.md`가 정한 절차).
+새 파일을 `git add -- <파일>`한 뒤 `git commit -m "…" -- <경로>`로 커밋했다(가드 훅 bash-guard가 허용하는 절차).
 그러자 lint-staged의 `prettier --write`가 고친 결과는 커밋과 워킹트리에 들어갔는데, 실제 인덱스에는 고치기 전
 내용이 남아 `git status`가 `MM`이었다(2026-10-15 #398, 계획 대비 구현 대조 중 발견). 그대로 두면 워크트리 정리가
 막힌다. [git-worktree 문서](https://git-scm.com/docs/git-worktree)는 _"깨끗한 워크트리(미추적 파일도, 추적 파일
@@ -405,6 +405,13 @@ lint-staged 17.0.4([#1788](https://github.com/lint-staged/lint-staged/pull/1788)
 - 워크트리에서 추적 파일 add 허용: 같은 워크트리를 쓰는 에이전트끼리 인덱스가 섞인다.
 
 BE는 pre-commit이 `ktlintCheck`(검사만)라 파일을 고치지 않으므로 해당 없다.
+
+### 9.9 병합 커밋 하나가 문서 드리프트 카운터를 어긋나게 했다 (#171-173)
+
+`doc-drift-check.yml`(`scripts/check-doc-drift.js`)이 병합된 PR 수를 셀 때 쓰던 정규식(`\(#\d+\)$`)은 squash 커밋 제목만
+읽었다. 병합 커밋("Merge pull request #N from ...") 형식을 한 번 썼더니 그 PR이 세어지지 않아 카운터가 조용히 어긋났고,
+트래킹 이슈 #99의 상태가 맞지 않는 것으로 발견했다(#171-173). 2026-09-22에 저장소 설정에서 squash 외의 병합 방식을 껐고,
+2026-09-25부터 정규식이 두 형식을 모두 읽는다.
 
 ## 10. 남은 것
 
