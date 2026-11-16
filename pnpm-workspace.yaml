@@ -3,6 +3,17 @@
 # (https://pnpm.io/package_json). 2026-11-12 pnpm 10.20.0에서 `pnpm add`(-w 없이)·
 # `pnpm install --frozen-lockfile`이 그대로 되고 lockfile이 바뀌지 않는 것을 확인했다.
 
+# 부모가 버전 범위를 막아 락 갱신으로 안 풀리는 개발 의존성 알림을 올리는 자리. 항목마다 이유와 지울 때를
+# 적는다. 절차는 docs/DEPLOY.md "npm 패키지 업데이트"의 "간접 의존성 알림".
+overrides:
+  # Dependabot #132(GHSA-g3hv-75wg-m249) — minimatch 10.x는 고친 버전이 11.0.1부터다.
+  # typescript-estree·glob 13(`^10.2.2`)과 stryker(`~10.2.4`)가 10 계열에 묶여 있어 직접 올린다(2026-11-16).
+  # 11.0.0 회귀(GHSA-cf2h-pxjq-68xw)는 11.0.7에서 고쳐 `^11.0.7`로 건다. 위 세 부모가 11을 받으면 지운다.
+  'minimatch@>=10 <11': '^11.0.7'
+  # Dependabot #39(GHSA-q8mj-m7cp-5q26) — qs 6.15.1 이하. @stryker-mutator/core가 쓰는 typed-rest-client 2.3.1(npm 최신)이
+  # qs를 6.15.1로 정확히 고정한다(2026-11-16 `npm view`). typed-rest-client가 qs를 올리면 지운다.
+  'qs@<=6.15.1': '^6.16.2'
+
 # CI 운영 의존성 감사(`pnpm audit --prod --audit-level=high`, .github/workflows/ci.yml)에서 뺄 권고.
 # 고친 버전으로 지금 올릴 수 없고 운영 사용자에게 닿지 않는 것만 넣는다. 항목마다 이유와 지울 때를
 # 적는다. 절차는 docs/CI-CHECK-GATE.md §7 "자주 하는 수정".

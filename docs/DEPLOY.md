@@ -220,6 +220,16 @@ PR 하나(`npm` 그룹)로 묶어 올린다(2026-11-12 도입). 위 절처럼 �
 - 취약점 알림과 보안 업데이트 PR은 이 파일이 아니라 저장소 설정을 따른다. 지금 상태는
   `gh api repos/BAECHAN/link-sphere_FE_NEW --jq .security_and_analysis`(보안 업데이트)와
   `gh api repos/BAECHAN/link-sphere_FE_NEW/vulnerability-alerts`(204면 알림 켜짐, 404면 꺼짐)로 본다.
+- **간접 의존성 알림은 자동으로 안 고쳐진다.** 위 `direct` 제한 때문에 버전 업데이트가 안 건드리고, 보안 업데이트는
+  꺼 둔 채다(2026-11-16 사용자 결정). 알림이 쌓이면 `pnpm update --depth Infinity <패키지...>`로 락만 갱신한다
+  (`package.json`은 안 바뀐다). 부모가 범위를 막아 안 풀리는 것은 `pnpm-workspace.yaml`의 `overrides`에 이유와
+  지울 조건을 적어 올린다 — 2026-11-16에 minimatch 10.x(typescript-estree·glob 13·stryker가 10 계열에 묶음)와
+  qs(typed-rest-client 2.3.1이 6.15.1로 고정)가 그랬다.
+- **열어 둔 알림: basic-ftp 5.3.1.** 고친 버전이 6.x인데 get-uri 최신 8.0.1도 `basic-ftp ^5.3.1`이고
+  @lhci/cli 최신 0.16.1도 `proxy-agent ^6.5.0`이라 부모를 올려도 풀리지 않는다(2026-11-16 `npm view`). Lighthouse CI의
+  프록시 에이전트가 FTP를 쓰는 경로는 이 레포에서 쓰지 않아, get-uri가 5.x용인 채 6.x를 강제하지 않고 열어 둔다.
+  @lhci/cli나 get-uri가 `basic-ftp` 6을 받으면 락을 갱신한다. 같은 이유로 `pnpm audit`(개발 포함)에는
+  basic-ftp 권고가 더 보인다.
 
 **Dependabot PR이 오면**:
 
