@@ -1,3 +1,6 @@
+### 2026-11-16 (BE)
+- 회원 탈퇴 로직 리팩토링 및 이벤트 기반의 데이터 삭제 구조 도입 ([#213](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/213))
+
 ### 2026-11-16 (FE)
 - CloudFront Function 배포 자동화 및 검증 워크플로 구축 ([#632](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/632))
 
