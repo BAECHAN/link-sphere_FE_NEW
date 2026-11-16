@@ -1,4 +1,7 @@
 ### 2026-11-16 (BE)
+- 인증 로직 최적화: 회원 테이블 조인을 제거하고 전용 객체 기반의 인증 확인 방식으로 개선 ([#214](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/214))
+
+### 2026-11-16 (BE)
 - 회원 탈퇴 로직 리팩토링 및 이벤트 기반의 데이터 삭제 구조 도입 ([#213](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/213))
 
 ### 2026-11-16 (FE)
