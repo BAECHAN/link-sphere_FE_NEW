@@ -1,3 +1,6 @@
+### 2026-11-16 (FE)
+- 개발 의존성 패키지 보안 업데이트 및 버전 관리 최적화 ([#626](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/626))
+
 ### 2026-11-15 (BE)
 - URL 검증, 메타데이터 추출, 미리보기 캐시 로직을 domain/linkpreview 패키지로 모듈화하여 도메인 응집도 향상 ([#203](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/203))
 
