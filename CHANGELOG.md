@@ -261,6 +261,13 @@
 
 ### Fixed
 
+- `shared` 검색창 X를 누른 뒤 친 글자가 사라지던 문제, 모바일 X가 검색 화면을 닫던 문제
+  <details><summary>배경·구현</summary>
+
+  북마크 내 검색에서 고친 "다 지운 직후 친 글자가 사라짐"(#635)과 같은 구조가 X 버튼에 남아 있었다. X는 입력을 비우고 URL `q`를 빼는데, 그 주소 반영이 늦게 도착하면 "`q`가 바뀌면 입력창을 그 값으로 맞춘다"는 동기화가 그 사이 친 글자를 빈 값으로 덮었다. 헤더 검색은 새 목록 응답이 올 때까지 주소 반영이 멈춰 있어 더 쉽게 걸렸다 — 목록 응답을 1.5초 늦추면 X를 누르고 0.4초 뒤에 친 글자도 사라졌다(모킹한 로컬 브라우저, CPU 감속 없음). 북마크 X는 곧바로 치고 CPU를 6배 늦췄을 때만 사라졌다. 운영에서는 재지 않았다. 이제 헤더(데스크톱)와 북마크 모두 X로 뺀 `q`는 입력창에 되비추지 않는다. 뒤로가기·카테고리 칩·제출로 바뀐 `q`는 전처럼 따라간다. 이 작업 중에 모바일 검색 화면에서 X를 누르면 검색 화면이 닫히는 것을 찾았다(#187부터). 검색 화면의 열림이 히스토리 칸의 state에 실려 있는데 X가 `q`를 빼며 그 칸을 state 없이 바꿨기 때문이다. state를 실어 화면을 유지해 보니 닫을 때 아래 칸의 옛 검색이 되살아나, 모바일 X는 입력만 비우고 `q`를 두기로 했다(사용자 선택, 2026-11-18). 데스크톱 X(검색 해제)와 동작이 다르다. 경위는 `docs/SEARCH.md` §10, 계획은 [`docs/plans/2026-11-17-search-clear-typing-race.md`](docs/plans/2026-11-17-search-clear-typing-race.md). (`src/widgets/layout/navbar/hooks/useNavbarSearch.ts`, `src/widgets/layout/navbar/ui/MobileNavbarSearch.tsx`, `src/widgets/bookmark/bookmark-search/hooks/useBookmarkSearch.ts`, `src/widgets/layout/navbar/ui/NavbarSearch.test.tsx`, `src/widgets/layout/navbar/ui/MobileNavbarSearch.test.tsx`, `src/widgets/bookmark/bookmark-search/ui/BookmarkSearch.test.tsx`, `e2e/navbar-search-clear.spec.ts`(신규), `e2e/navbar-search-clear.mobile.spec.ts`(신규), `e2e/bookmark-search-clear.spec.ts`, `docs/SEARCH.md`, `docs/BOOKMARK.md`, `docs/TESTING.md`, [PR #637](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/637))
+
+  </details>
+
 - `shared` 모달·확인창·메뉴가 열려 있으면 토스트의 버튼과 닫기가 눌리지 않던 문제
   <details><summary>배경·구현</summary>
 

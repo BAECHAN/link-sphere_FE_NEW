@@ -43,4 +43,22 @@ test.describe('북마크 내 검색 — 다 지운 직후 입력', () => {
     await page.waitForTimeout(500);
     await expect(input).toHaveValue('vue');
   });
+
+  test('X 버튼을 누르고 바로 친 글자가 입력창에 남고 URL의 q는 빠진다', async ({ page }) => {
+    await page.goto('/bookmark?q=react');
+    await expect(page.getByRole('link', { name: mockPost.title }).first()).toBeVisible();
+
+    const client = await page.context().newCDPSession(page);
+    await client.send('Emulation.setCPUThrottlingRate', { rate: 6 });
+
+    const input = page.getByPlaceholder(TEXTS.placeholders.bookmarkSearch);
+    // X는 누른 뒤 포커스를 입력창으로 돌려주므로 곧바로 칠 수 있다
+    await page.getByRole('button', { name: TEXTS.ariaLabels.inputClear }).click();
+    await page.keyboard.type('vue');
+
+    await expect.poll(() => new URL(page.url()).searchParams.has('q')).toBe(false);
+    // URL 반영이 끝난 뒤에도 친 글자가 그대로여야 한다
+    await page.waitForTimeout(500);
+    await expect(input).toHaveValue('vue');
+  });
 });

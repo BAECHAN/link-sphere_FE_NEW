@@ -12,7 +12,7 @@ interface MobileNavbarSearchProps {
 
 export const MobileNavbarSearch = ({ onClose, onSubmit }: MobileNavbarSearchProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { searchInput, setSearchInput, handleClear } = useNavbarSearch();
+  const { searchInput, setSearchInput } = useNavbarSearch();
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -21,7 +21,10 @@ export const MobileNavbarSearch = ({ onClose, onSubmit }: MobileNavbarSearchProp
 
   const handleTrailingIconClick = () => {
     if (searchInput) {
-      handleClear();
+      // 입력만 비우고 URL의 q는 두어 검색을 해제하지 않는다(데스크톱 X와 다르다). 이 화면의 열림은 히스토리 칸의
+      // state에 실려 있어(useMobileSearchPanel) q를 빼려고 그 칸을 바꾸면 화면이 닫히고, state를 실어 유지해도
+      // 아래 칸의 q는 그대로라 닫을 때 지운 검색이 되살아난다(docs/SEARCH.md §10)
+      setSearchInput('');
       inputRef.current?.focus();
     } else {
       onClose();

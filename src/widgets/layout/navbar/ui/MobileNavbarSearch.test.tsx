@@ -35,7 +35,7 @@ describe('MobileNavbarSearch — 검색어 유지', () => {
     expect(screen.getByPlaceholderText(TEXTS.placeholders.postSearch)).toHaveValue('리액트');
   });
 
-  it('X를 누르면 input이 비워지고 패널은 닫히지 않으며 URL의 q는 삭제된다', async () => {
+  it('X를 누르면 input이 비워지고 패널은 닫히지 않으며 URL의 q는 그대로다', async () => {
     const user = userEvent.setup();
     const { onClose } = renderMobileSearch('/post?q=리액트');
 
@@ -44,7 +44,7 @@ describe('MobileNavbarSearch — 검색어 유지', () => {
 
     expect(input).toHaveValue('');
     expect(onClose).not.toHaveBeenCalled();
-    expect(screen.getByTestId('location-search')).not.toHaveTextContent('q=');
+    expect(screen.getByTestId('location-search')).toHaveTextContent('q=리액트');
   });
 
   it('X를 누르면 포커스가 input으로 돌아온다', async () => {
