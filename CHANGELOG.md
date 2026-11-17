@@ -55,6 +55,13 @@
 
 ### Changed
 
+- `bookmark` 북마크 내 검색에서 검색어를 다 지우면 Enter 없이 전체 목록으로 돌아감
+  <details><summary>배경·구현</summary>
+
+  검색한 뒤 입력값을 백스페이스로 다 지워도 목록은 검색 결과 그대로였고, Enter(모바일은 [검색] 버튼)를 눌러야 전체 목록이 돌아왔다. X 버튼은 이미 바로 해제했는데, 다 지우면 X도 함께 사라져 데스크톱에서는 Enter 말고 방법이 없었다. 이제 검색 중에 입력이 빈 칸이 되는 순간 URL `q`를 `replace`로 빼 전체 목록을 다시 보인다(뒤로가기 기록은 늘지 않는다). 글자를 입력하는 동안은 전처럼 Enter를 눌러야 검색한다. 공백만 남은 값은 해제하지 않고(X 버튼이 사라지는 순간과 맞춤), 검색하지 않은 상태에서 썼다 지울 때는 URL을 건드리지 않는다. 검색어를 바꾸려고 다 지우면 전체 목록을 한 번 받는다 — 헤더 검색 X 버튼에서 받아들인 것과 같은 비용이다. 헤더(피드) 검색은 바꾸지 않았다. 커밋 전 녹화(CPU 6배 감속)에서 다 지운 직후 친 글자가 사라지는 문제를 찾아 함께 고쳤다 — 라우터 갱신이 transition이라 입력보다 늦게 도착해, URL→입력 동기화가 새 글자를 빈 값으로 덮었다. 실제 한글 자판 조합으로는 확인하지 못했다. 비교한 안과 외부 선례는 [`docs/plans/2026-11-17-bookmark-search-restore-on-empty.md`](docs/plans/2026-11-17-bookmark-search-restore-on-empty.md), 동작 표는 `docs/BOOKMARK.md` §5 "폴더 내 검색". (`src/widgets/bookmark/bookmark-search/hooks/useBookmarkSearch.ts`, `src/widgets/bookmark/bookmark-search/ui/BookmarkSearch.tsx`, `src/widgets/bookmark/bookmark-search/ui/BookmarkSearch.test.tsx`, `e2e/bookmark-search-clear.spec.ts`(신규), `docs/BOOKMARK.md`, `docs/TESTING.md`, [PR #635](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/635))
+
+  </details>
+
 - `post` 같은 사람이 다시 연 글은 조회수가 그대로고, 상세는 서버가 센 숫자만 보여 줌
   <details><summary>배경·구현</summary>
 

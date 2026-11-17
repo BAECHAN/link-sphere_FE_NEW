@@ -7,7 +7,7 @@
 > **읽고 나면**: 북마크 페이지의 반응형 분기·다중 폴더 소속 모델·"최근 저장한 폴더"
 > 캐시 구조·폴더 고정 순서를 이해하고, 노출 개수나 정렬 옵션 같은 값을 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-11-16 (§5 "뒤로가기로 닫히는 열림 상태"의 "요청 중 뒤로가기"와 §9 갱신만. 그 전 2026-11-10은 같은 절·"창 높이". 전체 검토는 2026-11-06)
+> **마지막 검토**: 2026-11-17 (§5 "폴더 내 검색"과 §8·§9 갱신만. 그 전 2026-11-16은 §5 "뒤로가기로 닫히는 열림 상태"의 "요청 중 뒤로가기"와 §9 갱신만. 그 전 2026-11-10은 같은 절·"창 높이". 전체 검토는 2026-11-06)
 
 ## 1. 쉬운 설명
 
@@ -1043,6 +1043,28 @@ _"수동적인 알림에는 적절하지만, 검증이든 다른 것이든 오�
 - 검증: `FolderSidebar.test.tsx`·`MobileFolderList.test.tsx`(각 3건 — 500이면 안내·다시 시도와 목록 없이 되는 항목, 다시
   시도하면 요청이 한 번 더 나가 목록, 오프라인이면 스피너 → 다시 연결되면 목록). 6건 모두 수정 전 코드에서 실패했다.
 
+### 폴더 내 검색 — 다 지우면 바로 해제(2026-11-17)
+
+검색어는 URL `q`가 원본이고 입력창은 그 값을 비춘다. 글자를 치는 동안은 입력창만 바뀌고, 목록은 `q`가 바뀔 때만 다시 받는다.
+
+| 사용자 동작                         | URL `q`               | 목록                    |
+| ----------------------------------- | --------------------- | ----------------------- |
+| 글자를 입력·수정                    | 그대로                | 그대로                  |
+| Enter, 모바일 [검색] 버튼           | 입력값으로(`replace`) | 그 검색어로 다시 받는다 |
+| X 버튼                              | 삭제(`replace`)       | 전체 목록               |
+| 검색 중에 입력을 다 지워 빈 칸이 됨 | 삭제(`replace`)       | 전체 목록               |
+
+- **마지막 줄이 2026-11-17에 더한 동작이다.** 전에는 다 지워도 Enter를 눌러야 전체 목록이 돌아왔다. X 버튼은 값이 있을 때만
+  보여(`input.tsx`) 다 지우면 함께 사라지고, 데스크톱에는 [검색] 버튼이 없어 Enter 말고는 방법이 없었다.
+- "빈 칸"은 정확히 빈 문자열이다. 공백만 남은 값은 해제하지 않는다 — X 버튼이 사라지는 순간과 해제되는 순간을 맞췄다.
+- `q`가 없을 때(검색하지 않은 상태에서 썼다 지움)는 URL을 건드리지 않는다. 같은 주소로 이동하면 스크롤만 맨 위로 간다.
+- 한글 마지막 자모를 지우는 입력은 조합 중에 오므로 `isComposing`으로 거르지 않는다.
+- 받아들인 비용: 검색어를 바꾸려고 다 지우면 전체 목록을 한 번 받는다. 헤더 검색 X 버튼에서 받아들인 것과 같다
+  ([`plans/2026-09-21-search-clear-focus.md`](./plans/2026-09-21-search-clear-focus.md)).
+- 헤더(피드) 검색은 바꾸지 않았다. 그쪽은 입력을 비우면 최근 검색어가 열리는 설계다([`SEARCH.md`](./SEARCH.md) §1).
+- 비교한 안(입력 중 실시간 검색, 그대로 두기)과 외부 선례는
+  [`plans/2026-11-17-bookmark-search-restore-on-empty.md`](./plans/2026-11-17-bookmark-search-restore-on-empty.md).
+
 ### 링크 등록 폼의 폴더 선택(`PostCreateBookmarkFolderField`) — 이 페이지가 아닌 다른 화면
 
 `src/features/post/create/ui/PostCreateBookmarkFolderField.tsx`는 `/bookmark` 페이지가
@@ -1387,6 +1409,7 @@ src/
 | "최근 저장한 폴더" 노출 개수 조정     | `entities/bookmark/folder/config/bookmark-folder.const.ts`의 `RECENT_BOOKMARK_FOLDER_COUNT`(§7의 최소 저장 이력 폴더 수와 완전 일치 배제 조건도 이 값을 그대로 참조하므로 함께 검토)                                                                                                                                                                                                                     |
 | 정렬 옵션 추가                        | `bookmark-folder.schema.ts`의 `bookmarkFolderSortEnum` + `useBookmarkPage.ts`의 `VALID_SORTS`(드롭다운·URL 파싱) + `BookmarkPage.tsx`의 `SORT_LABELS` + `TEXTS.bookmark.folder.sort.*`에 값 추가 + BE 대응 필요 — `VALID_SORTS`를 빠뜨리면 드롭다운에 안 뜨고 `?sort=새값`이 `latest`로 떨어진다                                                                                                         |
 | 폴더 내 검색 빈 상태 문구 변경        | `TEXTS.bookmark.empty.searchNoResult`(`shared/config/texts.ts`)                                                                                                                                                                                                                                                                                                                                          |
+| 검색어를 비웠을 때 동작 변경          | `widgets/bookmark/bookmark-search/hooks/useBookmarkSearch.ts`의 `handleInputChange`(다 지움)·`handleClear`(X 버튼) — §5 "폴더 내 검색"                                                                                                                                                                                                                                                                   |
 | 모바일 감지 기준 변경                 | `src/shared/hooks/useIsMobile.ts`의 `matchMedia` 브레이크포인트                                                                                                                                                                                                                                                                                                                                          |
 | 고정한 폴더끼리의 순서 변경           | `bookmark-folder.util.ts`의 `orderPinnedFirst` 정렬 — BE에는 고정 순서 필드가 없고 `pinnedAt`만 있으므로, 사용자가 직접 순서를 바꾸게 하려면 BE 컬럼·API부터 필요하다                                                                                                                                                                                                                                    |
 | 고정·해제 뒤 따라가는 스크롤 변경     | `useFollowFocusOnReorder.ts`의 `scrollIntoView` 옵션. 끄려면 훅 호출과 함께 `FolderSidebar.tsx`·`MobileFolderList.tsx` 목록 컨테이너의 `[overflow-anchor:none]`도 뺀다 — 그러면 브라우저 스크롤 고정이 한 프레임 만에 따라간다(§5 A안)                                                                                                                                                                   |
@@ -1717,6 +1740,19 @@ e2e 164개(`CI=1`, 재시도 0), `pnpm type-check`·`pnpm lint`·`pnpm check:dep
   (창이 닫힘). 첫 번째는 `close` 가드와 `closeIfStillOn`을 둘 다 빼야 실패하고(이전 페이지로 감), 하나만 빼면 통과한다 —
   둘이 같은 결과를 겹쳐 지킨다.
 - 실제 기기·운영 응답 시간에서는 확인하지 않았다. 응답보다 먼저 뒤로가기와 다시 열기를 모두 해야 생기는 경우다.
+
+**2026-11-17 갱신** — 입력을 다 지우면 바로 검색 해제(§5 "폴더 내 검색").
+
+- 단위 `BookmarkSearch.test.tsx`(4→11건) — 다 지우면 Enter 없이 `q`가 빠진다, 한 글자씩 지워 빈 칸이 되는 순간에만 빠진다,
+  입력 중에는 `q`가 그대로다, 공백만 남으면 그대로다, 다 지운 직후 친 글자가 남는다, `folder`·`sort`는 남는다, 해제한
+  뒤에도 뒤로가기로 바뀐 `q`를 따라간다. `q`가 빠지는지 보는 4건(다 지우면·한 글자씩·직후 입력·`folder`와 `sort`)은 구현 전
+  코드에서 실패했고, 빈 값 판정을 느슨하게 바꾼 구현에서는 "한 글자씩"·"공백만" 2건이 실패했다.
+- e2e `bookmark-search-clear.spec.ts`(신규 1건, chromium, CPU 6배 감속) — 다 지우고 바로 친 글자가 URL 반영 뒤에도 남는다.
+  동기화를 고치기 전 코드에서 실패했고(입력이 빈 값), 고친 뒤 5회 반복 모두 통과했다(§10).
+- 녹화 전용 Playwright 스펙(모킹, 검색어에 따라 다른 목록을 돌려줌) 4장면 — 데스크톱에서 검색 뒤 백스페이스로 다 지우면
+  전체 목록이 돌아오고 뒤로가기 기록 수(`history.length`)가 그대로다, CPU 6배 감속에서 다 지운 직후 친 글자가 남는다,
+  393×727 모바일 폴더 화면에서도 같다, 헤더 검색은 다 지워도 `q`가 그대로다.
+- 실제 한글 자판(IME) 조합으로는 확인하지 않았다. 자동 브라우저는 조합 입력을 만들지 못한다(§11).
 
 ## 10. 시행착오
 
@@ -2224,6 +2260,26 @@ Linux Chromium은 180px로 그려 Linux에서만 1px 넘쳤다(직접 측정 —
 
 영향 파일: `features/bookmark/rename/ui/BookmarkFolderTitle.tsx`.
 
+### 검색어를 다 지우고 바로 친 글자가 사라지던 문제(2026-11-17)
+
+입력을 다 지우면 `q`를 바로 빼도록 바꾼 PR에서, 커밋 전 녹화(CPU 6배 감속)가 잡았다. 다 지운 직후 친 글자가 잠깐 보였다가
+빈 칸이 됐다. 단위 테스트는 통과했다.
+
+**원인** — `useBookmarkSearch`는 URL `q`가 바뀌면 입력값을 그 값으로 맞춘다(뒤로가기용). 그런데 라우터 갱신은
+transition이라(`RouterProvider.tsx`의 `v7_startTransition`, react-router 6.30.6) 동기로 반영되는 입력보다 늦게 도착한다.
+"`q`가 빠졌다"가 도착했을 때는 이미 새 글자를 친 뒤였고, 동기화가 그 글자를 빈 값으로 덮었다. 단위 테스트의
+`MemoryRouter`는 이 플래그 없이 즉시 반영해 재현되지 않았다.
+
+**고친 방법** — 입력을 지워서 뺀 `q`는 입력창에 되비추지 않는다(`isClearedByInput`). 그 밖의 `q` 변화(뒤로가기 등)는 전처럼
+따라간다.
+
+**재발 방지** — e2e `bookmark-search-clear.spec.ts`. 고치기 전 코드에서 실패했다.
+
+**그대로 둔 것** — X 버튼(`handleClear`)도 같은 순서로 `q`를 빼므로, X를 누른 직후 아주 빠르게 치면 같은 일이 생길 수
+있다. 재현해 보지 않았고 이번 변경 범위가 아니라 고치지 않았다(§11).
+
+영향 파일: `widgets/bookmark/bookmark-search/hooks/useBookmarkSearch.ts`, `e2e/bookmark-search-clear.spec.ts`(신규).
+
 ## 11. 남은 것
 
 - `북마크 제거` 행의 되돌리기는 삭제 전 소속이 0~1개일 때만 제공된다(§5). 소속이
@@ -2262,6 +2318,10 @@ Linux Chromium은 180px로 그려 Linux에서만 1px 넘쳤다(직접 측정 —
     접근 가능한 설명(`toHaveAccessibleDescription`)까지만 본다.
   - 모바일 카드는 숫자가 입력 위(아이콘 줄)에 있어, 입력 아래에 두라는 GOV.UK 권고(`docs/DECISIONS.md` 2026-11-04)와 다르다.
     높이를 지키려고 사용자가 고른 자리다.
+- 폴더 내 검색 "다 지우면 바로 해제"(2026-11-17, §5)에서 확인하지 못한 것과 남긴 것:
+  - 실제 한글 자판 조합(IME)으로 마지막 글자를 지울 때의 동작을 보지 못했다. 자동 브라우저는 조합 입력을 만들지 못한다.
+  - X 버튼을 누른 직후 아주 빠르게 치면 친 글자가 사라질 수 있다(§10 "검색어를 다 지우고 바로 친 글자가 사라지던 문제").
+    재현해 보지 않았다.
 
 ## 12. 용어 사전
 

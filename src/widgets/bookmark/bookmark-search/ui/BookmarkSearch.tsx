@@ -9,7 +9,7 @@ interface BookmarkSearchProps {
 }
 
 export function BookmarkSearch({ className }: BookmarkSearchProps) {
-  const { searchInput, setSearchInput, handleSubmit, handleClear } = useBookmarkSearch();
+  const { searchInput, handleInputChange, handleSubmit, handleClear } = useBookmarkSearch();
 
   return (
     <form onSubmit={handleSubmit} className={cn('flex gap-2', className)}>
@@ -19,7 +19,7 @@ export function BookmarkSearch({ className }: BookmarkSearchProps) {
         placeholder={TEXTS.placeholders.bookmarkSearch}
         enterKeyHint="search"
         value={searchInput}
-        onChange={(e) => setSearchInput(e.target.value)}
+        onChange={(e) => handleInputChange(e.target.value)}
         onClear={handleClear}
       />
       <Button type="submit" className="h-10 px-6 rounded-xl font-bold md:hidden">
