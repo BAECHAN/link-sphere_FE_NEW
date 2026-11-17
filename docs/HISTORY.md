@@ -1,3 +1,8 @@
+### 2026-11-17 (BE)
+- 북마크 및 좋아요 필터 조회 성능 최적화
+로그:
+- refactor(post): 북마크·좋아요 필터를 서브쿼리 대신 글 id 집합으로 거름 ([#218](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/218))
+
 ### 2026-11-16 (BE)
 - 게시글 응답 데이터 구조 개선 및 북마크 저장 로직 포트 기반으로 리팩토링 ([#217](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/217))
 
