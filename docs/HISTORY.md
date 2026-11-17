@@ -1,3 +1,6 @@
+### 2026-11-17 (FE)
+- 북마크 검색 기능 개선: 검색어 삭제 시 전체 목록 즉시 복원 로직 구현 ([#635](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/635))
+
 ### 2026-11-17 (BE)
 - @Query 내 엔티티 및 테이블 참조 경로 검증을 위한 아키텍처 테스트 도입 ([#220](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/220))
 
