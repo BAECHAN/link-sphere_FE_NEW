@@ -1,4 +1,8 @@
 ### 2026-11-17 (FE)
+- 모달 내 토스트 인터랙션 오류 해결
+  - 모달 레이어 위에서 토스트 메시지의 버튼 및 닫기 버튼이 클릭되지 않던 z-index 이슈를 수정하였습니다. ([#636](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/636))
+
+### 2026-11-17 (FE)
 - 북마크 검색 기능 개선: 검색어 삭제 시 전체 목록 즉시 복원 로직 구현 ([#635](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/635))
 
 ### 2026-11-17 (BE)
