@@ -3,6 +3,14 @@ import { Toaster } from '@/shared/ui/atoms/sonner';
 import { toast } from '@/shared/lib/toast/toast';
 import { showLeftPageFailureToast } from '@/shared/lib/toast/LeftPageFailureToast';
 import { Button } from '@/shared/ui/atoms/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/shared/ui/atoms/dialog';
 import { TEXTS } from '@/shared/config/texts';
 
 const meta = {
@@ -153,6 +161,48 @@ export const LeftPageFailure: Story = {
           </Button>
         ))}
       </div>
+    </div>
+  ),
+};
+
+const OVER_MODAL = {
+  open: '모달 열기',
+  title: '모달 위의 토스트',
+  description: '모달이 열린 채로도 토스트의 버튼과 닫기가 눌리고, 눌러도 모달은 닫히지 않아요.',
+  show: '되돌리기 토스트 띄우기',
+};
+
+// Radix 모달은 열려 있는 동안 body에 pointer-events: none을 건다 - 토스터가 Radix Branch라 그 위에서도 눌리고,
+// 토스트를 눌러도 "모달 바깥 클릭"으로 잡히지 않는다(sonner.tsx)
+export const OverModal: Story = {
+  render: () => (
+    <div className="flex flex-col gap-2">
+      <Toaster />
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button variant="outline">{OVER_MODAL.open}</Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{OVER_MODAL.title}</DialogTitle>
+            <DialogDescription>{OVER_MODAL.description}</DialogDescription>
+          </DialogHeader>
+          <Button
+            variant="outline"
+            onClick={() =>
+              toast.info(TEXTS.messages.info.sessionExpired, {
+                duration: Infinity,
+                action: {
+                  label: TEXTS.bookmark.folder.undoAction,
+                  onClick: () => console.log('undo'),
+                },
+              })
+            }
+          >
+            {OVER_MODAL.show}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   ),
 };

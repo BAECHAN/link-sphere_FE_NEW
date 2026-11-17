@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-11-07
+> **마지막 검토**: 2026-11-17
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -1281,6 +1281,20 @@ sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를
 `useUpdatePostVisibilityMutation`의 공개/비공개 방향)나 응답 결과에 따라 갈리는 경우(예:
 `useDeletePostMutation`의 이미 없는 글)는 그 mutation의 `onSuccess(data, variables)`에서
 토스트를 직접 부르고 `successMessage`는 비워 둔다 — 둘 다 넣으면 두 번 뜬다.
+
+### 모달 위의 토스트 (2026-11-17)
+
+Radix의 모달 Dialog·AlertDialog·드롭다운 메뉴·Select는 열려 있는 동안 `body`에 `pointer-events: none`을 건다
+(`@radix-ui/react-dismissable-layer` 1.2.1 `dist/index.mjs:112-113`). sonner는 Radix 밖이라 이 값을 그대로 물려받아,
+토스트가 모달 위에 보이면서도 버튼·X가 눌리지 않고 클릭이 뒤의 딤에 떨어졌다. `Toaster`(`shared/ui/atoms/sonner.tsx`)가
+두 가지로 막는다.
+
+- `className`의 `pointer-events-auto` — 토스트가 다시 클릭을 받는다.
+- `DismissableLayer.Branch`로 감싸기 — Branch 안의 클릭·포커스는 "모달 바깥"으로 치지 않는다(`index.mjs:70-73`, `:84-85`).
+  이것이 없으면 토스트를 누를 때 입력 없는 모달과 드롭다운 메뉴가 함께 닫힌다.
+
+토스트마다 따로 할 일은 없다. 모달 안에서 Tab으로 토스트에 가는 것은 여전히 안 된다(모달의 포커스 가두기). 비교한 안과
+업계 조사는 [`DECISIONS.md`](DECISIONS.md) 2026-11-17 항목, 회귀 테스트는 `e2e/toast-over-modal.spec.ts`.
 
 ### 에러 토스트 유지 시간 (2026-11-02)
 

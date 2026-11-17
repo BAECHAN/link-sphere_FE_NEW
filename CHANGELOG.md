@@ -261,6 +261,13 @@
 
 ### Fixed
 
+- `shared` 모달·확인창·메뉴가 열려 있으면 토스트의 버튼과 닫기가 눌리지 않던 문제
+  <details><summary>배경·구현</summary>
+
+  로그인 모달과 "로그인이 만료됐어요" 토스트가 함께 떠 있을 때 토스트의 [로그인]을 눌러도 아무 일이 없다는 보고였다. 운영에서 재현해 보니 이 토스트만이 아니었다 — Radix 모달·확인창·드롭다운 메뉴·Select는 열려 있는 동안 `body`에 `pointer-events: none`을 걸고, Radix 밖인 sonner 토스트는 그 값을 물려받아 모달 위에 보이면서도 클릭이 뒤의 딤에 떨어졌다(입력 없는 모달은 닫히고, 입력이 있는 로그인 모달은 아무 일도 없었다). 이제 토스터에 `pointer-events-auto`를 주고 Radix `DismissableLayer.Branch`로 감싸, 모달 위에서도 토스트의 버튼·닫기가 눌리고 눌러도 모달·메뉴가 "바깥 클릭"으로 닫히지 않는다(Radix 자체 Toast와 같은 장치). 만료 안내 토스트는 로그인 창이 열린 동안 숨기고 로그인하지 않고 닫으면 다시 띄운다 — 창이 떠 있으면 [로그인]이 같은 일을 하는 버튼이기 때문이다. 모달 안에서 키보드로 토스트에 가는 것은 여전히 안 된다. 비교한 안(Radix Toast 교체, 모달 동안 보류)과 업계 조사는 `docs/DECISIONS.md` 2026-11-17, 계획은 [`docs/plans/2026-11-17-toast-over-modal.md`](docs/plans/2026-11-17-toast-over-modal.md). (`src/shared/ui/atoms/sonner.tsx`, `src/shared/ui/atoms/sonner.stories.tsx`, `src/shared/utils/auth.util.ts`, `src/shared/utils/auth.util.test.ts`, `e2e/toast-over-modal.spec.ts`(신규), `package.json`, `docs/AUTH.md`, `docs/FE-ARCHITECTURE.md`, `docs/DECISIONS.md`)
+
+  </details>
+
 - `bookmark` 응답 전에 다시 연 폴더 창을 늦게 온 응답이 닫던 문제
   <details><summary>배경·구현</summary>
 
