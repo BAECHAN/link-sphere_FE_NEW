@@ -6,6 +6,66 @@
 
 ---
 
+## 2026-11-17 — 모달 위의 토스트: sonner를 유지하고 Radix Branch로 등록, 만료 안내는 로그인 창 동안 숨긴다
+
+**배경**
+
+- 사용자 보고: 로그인 모달과 "로그인이 만료됐어요" 토스트가 함께 떠 있을 때 토스트의 [로그인]을 눌러도 닫히지도 이동하지도
+  않았다.
+- 운영에서 재현했다(2026-11-17, Playwright). 모달이 열리면 `body`와 토스터·토스트·버튼의 계산된 `pointer-events`가 모두
+  `none`이고, 버튼 좌표의 `elementFromPoint`는 모달의 딤이었다. 입력이 없는 모달은 토스트 클릭에 닫혔고, 이메일을 입력한
+  로그인 모달은 아무 일도 없었다(바깥 클릭으로 닫지 않는 정책, 아래 2026-09-30 항목).
+- 이 토스트만의 문제가 아니다. Radix 모달 레이어가 `body`에 `pointer-events: none`을 걸고
+  (`@radix-ui/react-dismissable-layer` 1.2.1 `dist/index.mjs:112-113`) sonner 2.0.8은 이를 되살리지 않는다. 확인창·드롭다운
+  메뉴·Select가 열린 동안의 모든 토스트 버튼과 X가 해당한다.
+
+**검토**
+
+| 안                                            | 사용자에게 달라지는 것                                             | 판정                                                                                                                                     |
+| --------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| A. sonner 유지 + Radix Branch 등록            | 모달·확인창·메뉴 위에서 토스트가 눌리고, 눌러도 모달이 닫히지 않음 | 채택                                                                                                                                     |
+| B. Radix Toast로 교체                         | A와 같음                                                           | 기각 — Radix Toast에는 호출 함수가 없다. 호출 73곳과 래퍼, React 밖 호출처 7개 파일용 저장소, 스타일·스택·밀어 닫기를 다시 만들어야 한다 |
+| C. 모달이 열린 동안 모든 토스트 보류          | 모달 안에서 한 동작의 결과 토스트가 모달을 닫은 뒤에야 보임        | 기각 — sonner에 없는 대기열을 만들어야 하고, 로그인 실패처럼 모달 안에서 바로 알려야 하는 안내가 늦어진다                                |
+| D. 공용 Dialog의 바깥 클릭 가드에 토스트 예외 | A와 같음(Dialog만)                                                 | 기각 — AlertDialog·메뉴·Select마다 넣어야 하고 포커스 이탈 판정은 막지 못한다                                                            |
+| E. 만료 토스트만 처리                         | 북마크 [되돌리기] 등 다른 토스트는 계속 안 눌림                    | 기각                                                                                                                                     |
+
+**결정**
+
+- **`Toaster`를 `DismissableLayer.Branch`로 감싸고 `pointer-events-auto`를 준다**(사용자 결정). `@radix-ui/react-dismissable-layer`를
+  직접 의존성으로 선언했다 — Dialog가 쓰는 것과 같은 인스턴스여야 Branch가 연결된다(설치본 1개 확인).
+- **만료 안내 토스트는 로그인 창이 열린 동안 숨기고, 로그인하지 않고 닫으면 다시 띄운다**(사용자 결정). 구현은
+  [`AUTH.md`](AUTH.md) §8-I "로그인 창이 열린 동안".
+
+**근거** (아래 외부 문서는 web-fetch 에이전트가 읽어 온 것을 옮긴 재인용이다)
+
+- Radix 자체 Toast는 viewport를 `DismissableLayer.Branch`로 감싼다
+  ([Radix Toast 소스의 `ToastViewport`](https://github.com/radix-ui/primitives/tree/main/packages/react/toast)). A는 같은
+  장치를 sonner에 붙인 것이다. Branch가 바깥 클릭·포커스 판정에서 빠지는 것은 설치본에서 직접 읽었다(`index.mjs:70-73`, `:84-85`).
+- Radix 토론의 답변은 _"Radix Toast가 아닌 다른 라이브러리의 토스트라면 `pointer-events: auto`를 주면 된다"_ (번역,
+  [radix-ui/primitives #1720](https://github.com/radix-ui/primitives/discussions/1720), 답변자 benoitgrelard)고 한다.
+- sonner 이슈에는 `pointer-events-auto`만 주면 _"토스트가 눌리긴 하지만 바깥 클릭으로 인식돼 Dialog가 닫힌다"_ (번역,
+  [emilkowalski/sonner #357](https://github.com/emilkowalski/sonner/issues/357))는 보고가 있다. Branch가 이것을 막는다.
+  고치기 전 e2e에서 드롭다운 메뉴가 토스트 클릭에 닫히는 것으로 같은 현상을 확인했다.
+- 접근성 지침은 반대 방향이다. Chrome 개발자 지침은 _"모달 대화상자가 열려 있는 동안 배경에 토스트를 띄우지 마세요"_ (번역,
+  [persistent toast notifications](https://developer.chrome.com/docs/modern-web-guidance/guides/ui-components/persistent-toast-notifications.md.txt))라고
+  하고, W3C APG는 _"모달 아래의 창은 비활성이다"_ (번역, [Dialog (Modal) Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/))라고
+  쓴다. 만료 안내를 로그인 창 동안 숨기는 결정은 이 방향을 따랐다.
+- sonner·shadcn 공식 문서에는 이 상황에 대한 안내가 없었다.
+
+**대가**
+
+- 키보드·화면 읽기 프로그램 사용자는 모달이 열린 동안 토스트에 여전히 닿지 못한다(모달의 포커스 가두기, 고치기 전과 같다).
+  접근성 지침의 답은 안 C다.
+- 드롭다운 메뉴가 열린 채 토스트를 누르면 메뉴가 닫히지 않는다.
+- `@radix-ui/react-dismissable-layer`와 `@radix-ui/react-dialog` 등의 버전이 어긋나 인스턴스가 둘이 되면 Branch가 조용히
+  끊긴다. `e2e/toast-over-modal.spec.ts`가 잡는다.
+
+**상태**
+
+적용됨(이 항목의 PR). 계획: [`docs/plans/2026-11-17-toast-over-modal.md`](./plans/2026-11-17-toast-over-modal.md).
+
+---
+
 ## 2026-11-16 — AWS 변경을 나누는 기준: 설정은 infra 저장소, 앱과 함께 바뀌는 코드는 앱 저장소의 배포 워크플로
 
 **배경**

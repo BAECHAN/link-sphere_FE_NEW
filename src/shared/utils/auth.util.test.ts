@@ -9,7 +9,7 @@ import { toast } from '@/shared/lib/toast/toast';
 import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { clearUnsavedChanges, useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
 import { RouterEvents } from '@/shared/lib/router/router-events';
-import type { Location } from 'react-router-dom';
+import { NavigationType, type Location } from 'react-router-dom';
 
 // AuthUtil이 import하는 queryClient/NavigationService는 이 파일 안에서만 모킹한다 - 전역
 // setup.ts에서 AuthUtil을 import하면 이 두 모듈이 각 테스트 파일의 vi.mock보다 먼저 "실제"
@@ -344,12 +344,13 @@ describe('AuthUtil.notifySessionExpiredOnStart — 앱을 열 때 지난 로그�
 
   it('로그인 창이 이미 열려 있으면 버튼을 눌러도 엔트리를 더 쌓지 않는다', () => {
     window.history.replaceState(null, '', '/post');
+
+    // 로그인 창이 열린 동안에는 안내를 띄우지 않으므로(2026-11-17) 먼저 띄운 뒤에 창이 열린 상태로 바꾼다
+    AuthUtil.notifySessionExpiredOnStart();
+    const action = toastInfo.mock.calls[0]![1]?.action as { label: string; onClick: () => void };
     vi.spyOn(RouterEvents, 'getLocation').mockReturnValue({
       state: { loginDialogOpen: true },
     } as Location);
-
-    AuthUtil.notifySessionExpiredOnStart();
-    const action = toastInfo.mock.calls[0]![1]?.action as { label: string; onClick: () => void };
     action.onClick();
 
     expect(NavigationService.navigate).not.toHaveBeenCalled();
@@ -371,6 +372,118 @@ describe('AuthUtil.notifySessionExpiredOnStart — 앱을 열 때 지난 로그�
     AuthUtil.notifySessionExpiredOnStart();
 
     expect(toastInfo).not.toHaveBeenCalled();
+  });
+});
+
+describe('만료 안내 — 로그인 창이 열린 동안 숨기고, 로그인 없이 닫으면 다시 띄운다', () => {
+  const SIGN_IN_DIALOG_OPEN = { loginDialogOpen: true };
+  let toastInfo: MockInstance<typeof toast.info>;
+  let toastDismiss: MockInstance<typeof toast.dismiss>;
+  let navigateTo: (state: unknown) => void;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    toastInfo = vi.spyOn(toast, 'info');
+    toastDismiss = vi.spyOn(toast, 'dismiss');
+    window.history.replaceState(null, '', '/post');
+
+    // 라우터가 위치를 바꾸는 것을 흉내 낸다 - 로그인 창은 history state(loginDialogOpen)로 열린다
+    let notify: (state: { location: Location; historyAction: NavigationType }) => void = () => {};
+    RouterEvents.setSource({
+      state: { location: { pathname: '/post', state: null } as Location },
+      subscribe: (subscriber) => {
+        notify = subscriber;
+
+        return () => {};
+      },
+    });
+    navigateTo = (state) =>
+      notify({
+        location: { pathname: '/post', state } as Location,
+        historyAction: NavigationType.Push,
+      });
+  });
+
+  afterEach(() => {
+    // 모듈에 남은 안내를 비운다 - 다음 테스트의 이동이 이 안내를 되살리지 않게
+    AuthUtil.dismissSessionExpiredToast();
+    toastInfo.mockRestore();
+    toastDismiss.mockRestore();
+    window.history.replaceState(null, '', '/');
+  });
+
+  it('로그인 창이 열리면 토스트를 닫고, 로그인하지 않고 닫으면 같은 안내를 다시 띄운다', () => {
+    AuthUtil.notifySessionExpiredOnStart();
+    expect(toastInfo).toHaveBeenCalledTimes(1);
+
+    navigateTo(SIGN_IN_DIALOG_OPEN);
+
+    expect(toastDismiss).toHaveBeenCalledWith('session-expired');
+    expect(toastInfo).toHaveBeenCalledTimes(1);
+
+    navigateTo(null);
+
+    expect(toastInfo).toHaveBeenCalledTimes(2);
+    const [message, options] = toastInfo.mock.calls[1]!;
+    expect(message).toBe(TEXTS.messages.info.sessionExpired);
+    expect(options).toMatchObject({ id: 'session-expired', duration: Infinity });
+    expect((options?.action as { label: string }).label).toBe(TEXTS.buttons.login);
+  });
+
+  it('숨기느라 닫은 토스트의 onDismiss가 뒤늦게 불려도 창이 닫히면 다시 띄운다', () => {
+    AuthUtil.notifySessionExpiredOnStart();
+    const { onDismiss } = toastInfo.mock.calls[0]![1]!;
+
+    navigateTo(SIGN_IN_DIALOG_OPEN);
+    // sonner는 toast.dismiss로 닫아도 onDismiss를 부른다
+    onDismiss?.({ id: 'session-expired' });
+    navigateTo(null);
+
+    expect(toastInfo).toHaveBeenCalledTimes(2);
+  });
+
+  it('다시 로그인했으면 창이 닫혀도 다시 띄우지 않는다', () => {
+    AuthUtil.notifySessionExpiredOnStart();
+
+    navigateTo(SIGN_IN_DIALOG_OPEN);
+    AuthUtil.dismissSessionExpiredToast();
+    navigateTo(null);
+
+    expect(toastInfo).toHaveBeenCalledTimes(1);
+  });
+
+  it('사용자가 X로 닫았으면 그 뒤 로그인 창을 여닫아도 다시 띄우지 않는다', () => {
+    AuthUtil.notifySessionExpiredOnStart();
+    const { onDismiss } = toastInfo.mock.calls[0]![1]!;
+
+    onDismiss?.({ id: 'session-expired' });
+    navigateTo(SIGN_IN_DIALOG_OPEN);
+    navigateTo(null);
+
+    expect(toastInfo).toHaveBeenCalledTimes(1);
+  });
+
+  it('로그인 창이 열린 채 만료되면 바로 띄우지 않고, 로그인하지 않고 닫을 때 띄운다', () => {
+    navigateTo(SIGN_IN_DIALOG_OPEN);
+
+    AuthUtil.applySessionExpired();
+
+    expect(toastInfo).not.toHaveBeenCalled();
+
+    navigateTo(null);
+
+    expect(toastInfo).toHaveBeenCalledTimes(1);
+    expect(toastInfo.mock.calls[0]![0]).toBe(TEXTS.messages.info.sessionExpired);
+  });
+
+  it('로그인 창과 무관한 이동에는 토스트를 다시 띄우지 않는다', () => {
+    AuthUtil.notifySessionExpiredOnStart();
+
+    navigateTo(null);
+    navigateTo({ some: 'state' });
+
+    expect(toastInfo).toHaveBeenCalledTimes(1);
+    expect(toastDismiss).not.toHaveBeenCalled();
   });
 });
 

@@ -22,6 +22,25 @@ const SESSION_MISMATCH_TOAST_ID = 'session-mismatch';
 // 만료 안내는 닫을 때까지 남는다 - 다시 로그인하면 이 id로 닫는다(dismissSessionExpiredToast)
 const SESSION_EXPIRED_TOAST_ID = 'session-expired';
 
+/**
+ * 띄워 둔 만료 안내 - 로그인 창이 열린 동안에는 토스트를 숨기고(창이 같은 일을 한다), 로그인하지 않고 닫으면 다시 띄운다.
+ * 다시 로그인하거나 사용자가 X로 닫으면 비운다(docs/AUTH.md §8-I "로그인 창이 열린 동안").
+ */
+interface SessionExpiredNotice {
+  onSignIn: () => void;
+  /** 화면에 없는 상태인지(아직 안 띄웠거나 우리가 숨겼다) - sonner는 toast.dismiss로 닫아도 onDismiss를 부른다(sonner 2.0.8 index.mjs의 toast.delete effect) */
+  isHidden: boolean;
+  stopWatchingSignInDialog: () => void;
+}
+
+let sessionExpiredNotice: SessionExpiredNotice | null = null;
+
+function isSignInDialogOpen(): boolean {
+  return Boolean(
+    (RouterEvents.getLocation()?.state as LoginDialogLocationState | null)?.loginDialogOpen
+  );
+}
+
 export class AuthUtil {
   static clearAuth(): void {
     useAuthStore.getState().clearAuth();
@@ -222,16 +241,71 @@ export class AuthUtil {
 
   /** 다시 로그인했으면(로그인 창, 다른 탭의 로그인을 받아들임) 남아 있는 만료 안내를 닫는다 */
   static dismissSessionExpiredToast(): void {
+    this.forgetSessionExpiredNotice(sessionExpiredNotice);
     toast.dismiss(SESSION_EXPIRED_TOAST_ID);
   }
 
   /** 닫을 때까지 남는 만료 안내 - 기본 4초는 다른 창에 포커스한 사이 지나간다 */
   private static showSessionExpiredToast(onSignIn: () => void): void {
+    this.forgetSessionExpiredNotice(sessionExpiredNotice);
+
+    const notice: SessionExpiredNotice = {
+      onSignIn,
+      // 아직 띄우지 않았다 - 아래 첫 맞춤이 창이 닫혀 있으면 띄우고, 이미 열려 있으면 닫힐 때까지 미룬다
+      isHidden: true,
+      // 로그인 창은 history state로 열린다 - 라우터가 위치를 바꿀 때마다 창이 열렸는지 본다
+      stopWatchingSignInDialog: RouterEvents.onNavigate(() =>
+        this.syncSessionExpiredToastWithSignInDialog(notice)
+      ),
+    };
+    sessionExpiredNotice = notice;
+
+    this.syncSessionExpiredToastWithSignInDialog(notice);
+  }
+
+  /** 로그인 창이 열려 있으면 만료 안내를 숨기고, 닫혀 있으면 보인다 */
+  private static syncSessionExpiredToastWithSignInDialog(notice: SessionExpiredNotice): void {
+    if (sessionExpiredNotice !== notice) {
+      return;
+    }
+
+    if (isSignInDialogOpen()) {
+      if (!notice.isHidden) {
+        notice.isHidden = true;
+        toast.dismiss(SESSION_EXPIRED_TOAST_ID);
+      }
+
+      return;
+    }
+
+    // 창과 무관한 이동마다 다시 띄우지 않는다 - 숨겨 둔 것만 되살린다
+    if (!notice.isHidden) {
+      return;
+    }
+
+    notice.isHidden = false;
     toast.info(TEXTS.messages.info.sessionExpired, {
       id: SESSION_EXPIRED_TOAST_ID,
       duration: Infinity,
-      action: { label: TEXTS.buttons.login, onClick: onSignIn },
+      action: { label: TEXTS.buttons.login, onClick: notice.onSignIn },
+      onDismiss: () => {
+        // 우리가 숨긴 것이면 창이 닫힐 때 다시 띄워야 한다 - 사용자가 X·밀기로 닫았을 때만 비운다
+        if (notice.isHidden) {
+          return;
+        }
+
+        this.forgetSessionExpiredNotice(notice);
+      },
     });
+  }
+
+  private static forgetSessionExpiredNotice(notice: SessionExpiredNotice | null): void {
+    if (!notice || sessionExpiredNotice !== notice) {
+      return;
+    }
+
+    notice.stopWatchingSignInDialog();
+    sessionExpiredNotice = null;
   }
 
   /**
