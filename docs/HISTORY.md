@@ -1,4 +1,9 @@
 ### 2026-11-17 (BE)
+- 북마크 조회 성능 최적화를 위한 데이터 접근 로직 개선 ([#219](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/219))
+  - 북마크 목록 조회 시 Post 테이블과의 불필요한 JOIN 제거
+  - Post 도메인 직접 참조 방식을 통한 조회 쿼리 최적화
+
+### 2026-11-17 (BE)
 - 북마크 및 좋아요 필터 조회 성능 최적화
 로그:
 - refactor(post): 북마크·좋아요 필터를 서브쿼리 대신 글 id 집합으로 거름 ([#218](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/218))
