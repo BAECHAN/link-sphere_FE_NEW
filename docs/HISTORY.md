@@ -1,3 +1,6 @@
+### 2026-11-18 (FE)
+- Storybook 스토리 명명 규칙 강제화 린트 도입 ([#644](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/644))
+
 ### 2026-11-18 (BE)
 - 좋아요 필터 성능 최적화: 최근 좋아요 10,000건 이내로 검색 범위를 제한하여 조회 효율성 개선 ([#222](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/222))
 
