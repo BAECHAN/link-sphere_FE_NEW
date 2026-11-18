@@ -43,6 +43,10 @@ Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금
 | 입력                  | `--input`                           | `border-input`                                            | 입력 필드 테두리                                                                                                                                                                                                          |
 | 링                    | `--ring`                            | `ring-ring`                                               | 포커스 링                                                                                                                                                                                                                 |
 
+종류별 토스트(오류·경고·성공·안내)의 배경·테두리·글자색도 위 `--destructive`·`--warning`·`--success`·`--info`에서
+만들어진다(`src/shared/ui/atoms/sonner.tsx`의 `KIND_COLOR_VARS`). 이 토큰 값을 바꾸면 토스트 색과 글자 대비가 함께
+바뀌므로 `docs/DESIGN-SYSTEM.md` §8 "토스트 종류별 색 바꾸기"대로 다시 잰다.
+
 ### 반경 토큰
 
 | 토큰          | 클래스       | 값                          |

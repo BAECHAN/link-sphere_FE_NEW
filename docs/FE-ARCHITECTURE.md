@@ -1303,6 +1303,9 @@ sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를
 - **새 모양이 필요하면** `shared/lib/toast/` 안에 토스트 함수를 만들고(`showNoticeToast`가 선례) 스토리에 견본을
   더한다. 그 폴더 안에서만 `UNSAFE_classNames`로 배치 클래스 위에 클래스를 합칠 수 있고, 밖에서 쓰면 ESLint
   `custom-import/no-toast-unsafe-class-names`가 막는다.
+- **색**: 종류별(오류·경고·성공·안내) 배경·테두리·글자색은 sonner 고정 색이 아니라 디자인 토큰에서 만든다
+  (`shared/ui/atoms/sonner.tsx`의 `KIND_COLOR_VARS`). 호출부가 색을 넘기지 않는다. 바꾸는 법은
+  [`DESIGN-SYSTEM.md`](DESIGN-SYSTEM.md) §8, 비교한 안은 [`DECISIONS.md`](DECISIONS.md) 2026-11-18 "토스트 색".
 - **견본**: 스토리 `sonner.stories.tsx`의 `Kinds`·`InlineAction`·`StackedAction`·`Notice`·`NoticeLeftPageFailure`. 스토리에 없는 모양은
   운영에도 없다.
 - **좁은 화면의 같은 줄 배치**: 줄 수는 화면 폭을 재지 않고 호출 시점에 정하므로, 한 줄 문구도 좁은 화면에서는 버튼과

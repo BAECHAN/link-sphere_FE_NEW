@@ -319,7 +319,7 @@ _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 
 못했다. 가장 가까운 기준은 WCAG의 "다른 곳에서 알 수 있는가"다.
 
 **모양** — 실제 sonner 렌더를 라이트·다크, 모바일 375px·데스크톱으로 캡처해 나란히 비교했고, 사용자가 골랐다
-(2026-11-02). 버튼·X·아이콘 자리는 `toast-layout.ts:16-22`의 `STACKED_ACTION_CLASS_NAMES`(2026-11-18부터 버튼 달린 여러 줄
+(2026-11-02). 버튼·X·아이콘 자리는 `toast-layout.ts:17-23`의 `STACKED_ACTION_CLASS_NAMES`(2026-11-18부터 버튼 달린 여러 줄
 토스트 모두가 쓴다 — [`FE-ARCHITECTURE.md`](FE-ARCHITECTURE.md) §14 "버튼 배치"), 제목·설명 글자 모양은
 `NoticeToast.tsx:8-12`의 `CLASS_NAMES`에 있고, 참고본은 스토리
 `sonner.stories.tsx`의 `NoticeLeftPageFailure`(경우 7개)다.
@@ -517,7 +517,7 @@ src/
 | 저장 뒤 이동하는 새 폼             | 응답을 기다린 뒤 `useHasLeftPage()`의 반환 함수로 떠났는지 먼저 본다 — 떠났으면 이동하지 않고, 실패는 토스트로(§5 "저장 요청 중 이탈", `useCreatePost.ts` 참고). 요청 중 모달 문구는 `usePendingSubmit`에 `TEXTS.unsavedChanges.pending`의 새 키를 넘긴다(§6)                                                                                                  |
 | 쓰던 글을 버리고 옮기는 새 경로    | 이동 전에 `clearAllUnsavedChanges()`를 부른다(§6, 선례 `useLeaveOnMemberChange.ts`·`useDelayedLogout.ts`·`AuthUtil.signOutForOtherAccount`) — 안 부르면 이 가드가 그 이동을 막는다                                                                                                                                                                             |
 | 떠난 뒤 실패 토스트 문구 변경      | 제목·가입 설명은 `TEXTS.messages.error.leftPageFailure`(`texts.ts:602`), 버튼은 `TEXTS.buttons`의 `signUpAgain`·`createPostAgain`·`updatePostAgain`(`texts.ts:73-76`). 게시글 설명은 `TEXTS.messages.error.postSubmit.*` 그대로다                                                                                                                              |
-| 떠난 뒤 실패 토스트 모양 변경      | 글자 모양은 `NoticeToast.tsx:8-12`의 `CLASS_NAMES`, 버튼·X 자리는 `toast-layout.ts:16-22`(버튼 달린 여러 줄 토스트 모두가 함께 바뀐다). sonner 자체 CSS를 덮으려면 `!`가 필요하다. 스토리 `sonner.stories.tsx`의 `NoticeLeftPageFailure`로 경우 7개를 함께 본다                                                                                                |
+| 떠난 뒤 실패 토스트 모양 변경      | 글자 모양은 `NoticeToast.tsx:8-12`의 `CLASS_NAMES`, 버튼·X 자리는 `toast-layout.ts:17-23`(버튼 달린 여러 줄 토스트 모두가 함께 바뀐다). sonner 자체 CSS를 덮으려면 `!`가 필요하다. 스토리 `sonner.stories.tsx`의 `NoticeLeftPageFailure`로 경우 7개를 함께 본다                                                                                                |
 | 새 폼에 떠난 뒤 실패 토스트 붙이기 | 제출 전 `form.getValues()`를 받아 두고, `hasLeftPage()`면 `showNoticeToast`에 `variant: 'error'`, id `left-page-failure:<그 폼의 이탈 가드 키>`와 `NavigationService.navigate(폼 경로, { state })` 버튼을 넘긴다. 되살리기는 `useCreatePost.ts:118`의 `restoreSubmissionAfterLeftPageFailure`, 안내까지 내리기는 `:135`의 `revealRestoredSubmitError`를 본뜬다 |
 
 ## 9. 검증 결과
