@@ -7,7 +7,7 @@
 > **읽고 나면**: 이 아키텍처가 정식 FSD와 어디가 같고 다른지 알고, 실제 디렉터리 구조·API 3계층
 > 패턴·네이밍 컨벤션에 맞춰 코드를 작성할 수 있다.
 >
-> **마지막 검토**: 2026-11-17
+> **마지막 검토**: 2026-11-18
 
 시스템 전체 아키텍처(C4, 배포 파이프라인, FE/BE 구조)는 [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)를
 참고하세요. 기술 스택 목록은 루트 [`README.md`](../README.md#기술-스택)를 참고하세요.
@@ -1298,10 +1298,10 @@ sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를
   호출부가 `action`을 넘기면 다시 나왔다. 비교한 안은 [`DECISIONS.md`](DECISIONS.md) 2026-11-18 항목.
 - **호출부가 못 넘기는 옵션**: `classNames`·`className`·`style`·`closeButton`·`unstyled`. 공개 타입 `ToastOptions`에서 뺐고,
   변수·스프레드로 넘어와 타입이 못 막은 값은 래퍼가 버린다(`toast.test.ts` "toast 버튼 배치").
-- **새 모양이 필요하면** `shared/lib/toast/` 안에 토스트 함수를 만들고(`showLeftPageFailureToast`가 선례) 스토리에 견본을
+- **새 모양이 필요하면** `shared/lib/toast/` 안에 토스트 함수를 만들고(`showNoticeToast`가 선례) 스토리에 견본을
   더한다. 그 폴더 안에서만 `UNSAFE_classNames`로 배치 클래스 위에 클래스를 합칠 수 있고, 밖에서 쓰면 ESLint
   `custom-import/no-toast-unsafe-class-names`가 막는다.
-- **견본**: 스토리 `sonner.stories.tsx`의 `Kinds`·`InlineAction`·`StackedAction`·`LeftPageFailure`. 스토리에 없는 모양은
+- **견본**: 스토리 `sonner.stories.tsx`의 `Kinds`·`InlineAction`·`StackedAction`·`Notice`·`NoticeLeftPageFailure`. 스토리에 없는 모양은
   운영에도 없다.
 - **한계**: 줄 수는 화면 폭을 재지 않고 호출 시점에 정한다. 한 줄 문구가 좁은 화면에서 접히면 버튼이 접힌 문구 옆 세로
   가운데에 온다 — 가장 긴 "{15자 폴더 이름}에 저장했어요." + [보기]는 375px에서 한 줄, 360px에서 두 줄이다(2026-11-18,
@@ -1334,8 +1334,10 @@ Radix의 모달 Dialog·AlertDialog·드롭다운 메뉴·Select는 열려 있�
 - **방법**: `toast.error(message, { id: '<고정 id>', duration: Infinity })`. 닫기 X는 `Toaster`(`shared/ui/atoms/sonner.tsx`)의
   `closeButton`이 단다(한 줄 문구에 버튼이 달린 토스트만 빠진다 — 위 "버튼 배치"). 고정 id는 쌓임을 막는다 — 한 번에 보이는 토스트가 3개(`VISIBLE_TOASTS_AMOUNT = 3`,
   `index.mjs:411`)라 같은 실패가 반복돼 쌓이면 다른 안내가 가려진다. 같은 id면 한 장이 새 내용으로 바뀐다.
-- **폼을 떠난 뒤 실패**(가입·게시글·댓글)는 제목(무엇이 실패했나)·설명(이유) 모양의 `showLeftPageFailureToast`
-  (`shared/lib/toast/LeftPageFailureToast.tsx`)를 쓴다.
+- **폼을 떠난 뒤 실패**(가입·게시글·댓글)는 제목(무엇이 실패했나)·설명(이유) 모양의 안내 토스트 `showNoticeToast`
+  (`shared/lib/toast/NoticeToast.tsx`)에 `variant: 'error'`와 고정 id를 넘긴다. 이 함수에서 오류·경고는 지속 시간을 넘기지
+  않으면 닫을 때까지 남고, `variant`(오류·경고·성공·안내)와 `icon`으로 다른 용도에도 쓴다
+  ([`DECISIONS.md`](DECISIONS.md) 2026-11-18 "안내 토스트").
 - **전역 핸들러를 거치는 mutation**에 적용할 때는 `manualErrorHandling: true`로 빼고 `onError`에서
   `resolveErrorToast(error, { errorMessage }, MUTATION_ERROR_POLICY)`의 판정을 그대로 띄운다 — 429·보안 차단 문구와
   로그인 만료 무음이 전역과 같게 유지된다(선례 `useUpdatePostVisibilityMutation`, `entities/post/api/post.queries.ts`).

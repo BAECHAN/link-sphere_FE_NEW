@@ -188,7 +188,7 @@ async function settle(queryClient: QueryClient) {
 
 type ToastOptions = Parameters<typeof toast.error>[1];
 
-/** 떠난 뒤 실패 토스트(showLeftPageFailureToast)의 옵션 - 마지막 toast.error 호출에서 꺼낸다 */
+/** 떠난 뒤 실패 토스트(showNoticeToast)의 옵션 - 마지막 toast.error 호출에서 꺼낸다 */
 function lastToastOptions(errorSpy: { mock: { calls: unknown[][] } }) {
   return errorSpy.mock.calls.at(-1)?.[1] as ToastOptions;
 }

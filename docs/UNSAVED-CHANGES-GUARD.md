@@ -7,7 +7,7 @@
 > **읽고 나면**: "dirty"·"전역 레지스트리"가 정확히 무엇을 가리키는지 알고, 새 폼에
 > 이 가드를 붙이거나 이탈 판정 조건을 바꿀 수 있다.
 >
-> **마지막 검토**: 2026-11-05
+> **마지막 검토**: 2026-11-18
 
 게시글 등록/수정, 댓글·답글 작성, 댓글 수정, 회원가입 폼에서 저장하지 않은 입력이 있는
 상태로 페이지를 벗어나려 하면 한 번 막습니다. 앱 내 이동은 확인 모달, 새로고침·탭 닫기는
@@ -205,7 +205,7 @@ _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 
 | 모달이 떠 있는 동안 성공  | 모달을 닫고 폼의 평소 성공 동작이 이긴다(가려던 곳이 아니라 피드·들어온 화면, 회원가입은 같은 화면의 가입 완료 화면)                                                                         | `useUnsavedChangesGuard.ts`의 `cancelOutdatedConfirm`                  |
 | 모달이 떠 있는 동안 실패  | 모달을 닫고 화면에 머문다 — 입력과 실패 안내(게시글은 칸 아래·버튼 위 안내, 회원가입은 에러 토스트, 중복이면 그 칸 오류도)가 남는다. 다시 떠나려 하면 평소 모달이 뜬다                       | 같은 곳 — 요청 중에 띄운 모달만(`openedWhilePendingRef`)               |
 | 응답 전에 "나가기" → 성공 | 떠난 화면을 덮어쓰지 않는다. 게시글은 mutation의 `meta.successMessage`가 성공 토스트를 띄운다. 회원가입은 mutation에 성공 토스트가 없어(머물면 완료 화면이 보여준다) 떠났을 때만 훅이 띄운다 | `useCreatePost.ts`·`useUpdatePost.ts`·`useSignUp.ts`의 `hasLeftPage()` |
-| 응답 전에 "나가기" → 실패 | 안내할 폼이 없으니 옮겨 간 화면에 닫을 때까지 남는 실패 토스트를 띄우고, 버튼으로 그 폼에 돌아가 입력을 되살린다(아래 "떠난 뒤 실패 토스트")                                                 | 같은 곳, 토스트 모양은 `shared/lib/toast/LeftPageFailureToast.tsx`     |
+| 응답 전에 "나가기" → 실패 | 안내할 폼이 없으니 옮겨 간 화면에 닫을 때까지 남는 실패 토스트를 띄우고, 버튼으로 그 폼에 돌아가 입력을 되살린다(아래 "떠난 뒤 실패 토스트")                                                 | 같은 곳, 토스트 모양은 `shared/lib/toast/NoticeToast.tsx`              |
 
 - **"떠났는가"는 마운트 여부만으로 판단하지 않는다.** "나가기" 직후 라우터 위치는 바로 바뀌지만,
   `v7_startTransition` 때문에 다음 화면이 청크·데이터로 suspend하는 동안엔 이전 폼이 마운트된 채
@@ -260,7 +260,11 @@ _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 
 
 - **문구 위치**: `TEXTS.messages.error.leftPageFailure.*`(가입 이메일 중복은 칸 아래 문구
   `TEXTS.auth.signup.emailDuplicate`를 같이 쓴다), 버튼은 `TEXTS.buttons.signUpAgain`·`createPostAgain`·
-  `updatePostAgain`. 설명은 문장마다 줄을 바꿔 한 문장이 두 줄로 쪼개지지 않게 한다(`showLeftPageFailureToast`).
+  `updatePostAgain`. 설명은 문장마다 줄을 바꿔 한 문장이 두 줄로 쪼개지지 않게 한다(`showNoticeToast`).
+- **토스트 함수**: 이 토스트 전용 함수는 없다. 제목·설명·버튼 모양의 안내 토스트 `showNoticeToast`
+  (`shared/lib/toast/NoticeToast.tsx`)에 `variant: 'error'`와 아래 고정 id를 넘긴다. 이 함수에서 오류·경고는 지속 시간을
+  넘기지 않으면 닫을 때까지 남는다(성공·안내는 sonner 기본값대로 사라진다). 2026-11-18에 `showLeftPageFailureToast`를
+  일반화했다 — [`DECISIONS.md`](DECISIONS.md) 2026-11-18 "안내 토스트".
 - **응답을 못 받은 실패(연결 끊김·504)**: 저장됐을 수 있어 위 표의 "~하지 못했어요" 제목 대신 `leftPageFailure.outcomeUnknownTitle`
   "처리됐는지 확인하지 못했어요"를 쓴다(`ErrorUtil.resolveFailureMessage`, `FE-ARCHITECTURE.md` §28). 가입의 설명은
   `accountCreateOutcomeUnknown`이다.
@@ -317,8 +321,8 @@ _"페이지의 버튼·링크로 데이터가 사라지는 동작을 하려 할 
 **모양** — 실제 sonner 렌더를 라이트·다크, 모바일 375px·데스크톱으로 캡처해 나란히 비교했고, 사용자가 골랐다
 (2026-11-02). 버튼·X·아이콘 자리는 `toast-layout.ts:16-22`의 `STACKED_ACTION_CLASS_NAMES`(2026-11-18부터 버튼 달린 여러 줄
 토스트 모두가 쓴다 — [`FE-ARCHITECTURE.md`](FE-ARCHITECTURE.md) §14 "버튼 배치"), 제목·설명 글자 모양은
-`LeftPageFailureToast.tsx:7-11`의 `CLASS_NAMES`에 있고, 참고본은 스토리
-`sonner.stories.tsx`의 `LeftPageFailure`(경우 7개)다.
+`NoticeToast.tsx:8-12`의 `CLASS_NAMES`에 있고, 참고본은 스토리
+`sonner.stories.tsx`의 `NoticeLeftPageFailure`(경우 7개)다.
 
 | 항목           | 고른 것                                                                           | 버린 것                                                                                                                      |
 | -------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
@@ -483,7 +487,7 @@ src/
 │       ├── useUnsavedChangesGuard.ts     # §5 — RootLayout에서 1회만 도는 전역 가드
 │       └── useHasLeftPage.ts             # §5 "저장 요청 중 이탈" — 응답 뒤 떠났는지 판정
 ├── shared/lib/router/router-events.ts    # useHasLeftPage가 읽는 라우터 최신 위치
-├── shared/lib/toast/LeftPageFailureToast.tsx # §5 "떠난 뒤 실패 토스트" — 닫을 때까지 남는 모양·고정 id
+├── shared/lib/toast/NoticeToast.tsx      # §5 "떠난 뒤 실패 토스트" — 제목·설명·버튼 모양, 오류는 닫을 때까지 남는다
 ├── shared/lib/router/navigation.ts       # NavigationService — 토스트 버튼이 컴포넌트 밖에서 폼으로 이동
 ├── entities/auth/utils/auth.util.ts      # SignUpUtil.resolveSubmitError — 가입 실패 판정(머물 때·떠난 뒤 공통)
 ├── entities/post/utils/post.util.ts      # PostUtil.resolveSubmitError — retryable·unclassified 표시
@@ -505,16 +509,16 @@ src/
 
 ### 자주 하는 수정
 
-| 하고 싶은 것                       | 방법                                                                                                                                                                                                                                                                                                                       |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 새 폼에 이 가드를 붙이려면         | 폼 훅 안에서 `const { clearNow } = useUnsavedChanges('폼을-구분할-고유-키', isDirty)` 호출 + 제출 성공 직후 `clearNow()` 호출(§6 표의 키 네이밍 패턴을 따른다)                                                                                                                                                             |
-| 이탈 확인 모달 문구 변경           | `TEXTS.unsavedChanges.*`(`shared/config/texts.ts`)                                                                                                                                                                                                                                                                         |
-| 특정 상황을 검사에서 제외          | `useUnsavedChangesGuard.ts`의 `shouldBlockNavigation`에 §5 순서대로 분기 추가(순서가 중요 — 로그인 상태 검사보다 먼저 오면 안 됨)                                                                                                                                                                                          |
-| 저장 뒤 이동하는 새 폼             | 응답을 기다린 뒤 `useHasLeftPage()`의 반환 함수로 떠났는지 먼저 본다 — 떠났으면 이동하지 않고, 실패는 토스트로(§5 "저장 요청 중 이탈", `useCreatePost.ts` 참고). 요청 중 모달 문구는 `usePendingSubmit`에 `TEXTS.unsavedChanges.pending`의 새 키를 넘긴다(§6)                                                              |
-| 쓰던 글을 버리고 옮기는 새 경로    | 이동 전에 `clearAllUnsavedChanges()`를 부른다(§6, 선례 `useLeaveOnMemberChange.ts`·`useDelayedLogout.ts`·`AuthUtil.signOutForOtherAccount`) — 안 부르면 이 가드가 그 이동을 막는다                                                                                                                                         |
-| 떠난 뒤 실패 토스트 문구 변경      | 제목·가입 설명은 `TEXTS.messages.error.leftPageFailure`(`texts.ts:602`), 버튼은 `TEXTS.buttons`의 `signUpAgain`·`createPostAgain`·`updatePostAgain`(`texts.ts:73-76`). 게시글 설명은 `TEXTS.messages.error.postSubmit.*` 그대로다                                                                                          |
-| 떠난 뒤 실패 토스트 모양 변경      | 글자 모양은 `LeftPageFailureToast.tsx:7-11`의 `CLASS_NAMES`, 버튼·X 자리는 `toast-layout.ts:16-22`(버튼 달린 여러 줄 토스트 모두가 함께 바뀐다). sonner 자체 CSS를 덮으려면 `!`가 필요하다. 스토리 `sonner.stories.tsx`의 `LeftPageFailure`로 경우 7개를 함께 본다                                                         |
-| 새 폼에 떠난 뒤 실패 토스트 붙이기 | 제출 전 `form.getValues()`를 받아 두고, `hasLeftPage()`면 `showLeftPageFailureToast`에 그 폼의 이탈 가드 키와 `NavigationService.navigate(폼 경로, { state })` 버튼을 넘긴다. 되살리기는 `useCreatePost.ts:115`의 `restoreSubmissionAfterLeftPageFailure`, 안내까지 내리기는 `:132`의 `revealRestoredSubmitError`를 본뜬다 |
+| 하고 싶은 것                       | 방법                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 새 폼에 이 가드를 붙이려면         | 폼 훅 안에서 `const { clearNow } = useUnsavedChanges('폼을-구분할-고유-키', isDirty)` 호출 + 제출 성공 직후 `clearNow()` 호출(§6 표의 키 네이밍 패턴을 따른다)                                                                                                                                                                                                 |
+| 이탈 확인 모달 문구 변경           | `TEXTS.unsavedChanges.*`(`shared/config/texts.ts`)                                                                                                                                                                                                                                                                                                             |
+| 특정 상황을 검사에서 제외          | `useUnsavedChangesGuard.ts`의 `shouldBlockNavigation`에 §5 순서대로 분기 추가(순서가 중요 — 로그인 상태 검사보다 먼저 오면 안 됨)                                                                                                                                                                                                                              |
+| 저장 뒤 이동하는 새 폼             | 응답을 기다린 뒤 `useHasLeftPage()`의 반환 함수로 떠났는지 먼저 본다 — 떠났으면 이동하지 않고, 실패는 토스트로(§5 "저장 요청 중 이탈", `useCreatePost.ts` 참고). 요청 중 모달 문구는 `usePendingSubmit`에 `TEXTS.unsavedChanges.pending`의 새 키를 넘긴다(§6)                                                                                                  |
+| 쓰던 글을 버리고 옮기는 새 경로    | 이동 전에 `clearAllUnsavedChanges()`를 부른다(§6, 선례 `useLeaveOnMemberChange.ts`·`useDelayedLogout.ts`·`AuthUtil.signOutForOtherAccount`) — 안 부르면 이 가드가 그 이동을 막는다                                                                                                                                                                             |
+| 떠난 뒤 실패 토스트 문구 변경      | 제목·가입 설명은 `TEXTS.messages.error.leftPageFailure`(`texts.ts:602`), 버튼은 `TEXTS.buttons`의 `signUpAgain`·`createPostAgain`·`updatePostAgain`(`texts.ts:73-76`). 게시글 설명은 `TEXTS.messages.error.postSubmit.*` 그대로다                                                                                                                              |
+| 떠난 뒤 실패 토스트 모양 변경      | 글자 모양은 `NoticeToast.tsx:8-12`의 `CLASS_NAMES`, 버튼·X 자리는 `toast-layout.ts:16-22`(버튼 달린 여러 줄 토스트 모두가 함께 바뀐다). sonner 자체 CSS를 덮으려면 `!`가 필요하다. 스토리 `sonner.stories.tsx`의 `NoticeLeftPageFailure`로 경우 7개를 함께 본다                                                                                                |
+| 새 폼에 떠난 뒤 실패 토스트 붙이기 | 제출 전 `form.getValues()`를 받아 두고, `hasLeftPage()`면 `showNoticeToast`에 `variant: 'error'`, id `left-page-failure:<그 폼의 이탈 가드 키>`와 `NavigationService.navigate(폼 경로, { state })` 버튼을 넘긴다. 되살리기는 `useCreatePost.ts:118`의 `restoreSubmissionAfterLeftPageFailure`, 안내까지 내리기는 `:135`의 `revealRestoredSubmitError`를 본뜬다 |
 
 ## 9. 검증 결과
 
@@ -755,8 +759,10 @@ Cloudscape 인용도 그 전용 링크만 겨냥한 것이었다). 실사용 중
   아직 이전 화면을 보여주는 사이. 자세한 설명은 `shared/lib/router/router-events.ts` 머리말
 - **`useHasLeftPage`** — 응답을 기다린 뒤 그 사이 화면을 떠났는지(언마운트 또는 라우터 경로가 바뀜) 돌려주는
   함수를 주는 훅(§5 "저장 요청 중 이탈")
-- **떠난 뒤 실패 토스트(`showLeftPageFailureToast`)** — 저장 요청 중 "나가기"로 떠난 뒤 실패했을 때 옮겨 간 화면에
+- **떠난 뒤 실패 토스트** — 저장 요청 중 "나가기"로 떠난 뒤 실패했을 때 옮겨 간 화면에
   띄우는 토스트. 닫을 때까지 남고, 제목·설명·돌아갈 버튼을 갖는다(§5 "떠난 뒤 실패 토스트")
+- **안내 토스트(`showNoticeToast`)** — 제목(종류의 색)·설명(본문색)·버튼(설명 아래)으로 된 토스트 모양. 종류
+  (`variant`)·아이콘·지속 시간·id를 받는다. 떠난 뒤 실패 토스트가 이 모양을 쓴다
 - **되살리기(`restoredInput`·`restoredSubmission`)** — 그 토스트의 버튼이 `location.state`에 실어 보낸 입력을 폼이 다시
   채우는 것. 가입은 `restoredInput`(닉네임·이메일), 게시글은 `restoredSubmission`(폼 값 + 실패 판정, 수정은 `postId`까지)
 - **`retryable: false`·`unclassified`** — `PostUtil.resolveSubmitError`가 form 갈래에 붙이는 표시. 앞은 "다시 해도

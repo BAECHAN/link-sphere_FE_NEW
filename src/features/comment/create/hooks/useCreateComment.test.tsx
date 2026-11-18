@@ -51,7 +51,7 @@ async function renderLoggedIn(queryClient: QueryClient, options: { onSuccess?: (
 
 type ToastOptions = Parameters<typeof toast.error>[1];
 
-/** 폼을 떠난 뒤 실패 토스트(showLeftPageFailureToast) - 제목·고정 id·닫을 때까지·설명 문구를 본다 */
+/** 폼을 떠난 뒤 실패 토스트(showNoticeToast) - 제목·고정 id·닫을 때까지·설명 문구를 본다 */
 function expectLeftFormFailureToast(
   errorSpy: { mock: { calls: unknown[][] } },
   { title, key, description }: { title: string; key: string; description: string }

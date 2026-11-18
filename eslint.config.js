@@ -146,7 +146,7 @@ const RESTRICTED_SYNTAX_NO_REGEXP_LOOKBEHIND = [
     selector:
       ':matches(Literal[regex.pattern=/\\(\\?<[=!]/], :matches(NewExpression, CallExpression)[callee.name="RegExp"] > Literal[value=/\\(\\?<[=!]/])',
     message:
-      '정규식 lookbehind((?<=·(?<!)는 빌드 타깃 safari14가 지원하지 않아(Safari 16.4부터) 옛 Safari에서 SyntaxError가 납니다. 캡처 그룹으로 잡아 $1로 되돌려 넣거나(toast.ts), replace 뒤 split하세요(LeftPageFailureToast.tsx).',
+      '정규식 lookbehind((?<=·(?<!)는 빌드 타깃 safari14가 지원하지 않아(Safari 16.4부터) 옛 Safari에서 SyntaxError가 납니다. 캡처 그룹으로 잡아 $1로 되돌려 넣거나(toast.ts), replace 뒤 split하세요(NoticeToast.tsx).',
   },
 ];
 

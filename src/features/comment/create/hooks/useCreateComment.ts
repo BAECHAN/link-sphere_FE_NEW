@@ -21,7 +21,7 @@ import { useSignedOutNotice } from '@/entities/auth/hooks/useSignedOutNotice';
 import { useAccount } from '@/entities/account/hooks/useAccount';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
-import { showLeftPageFailureToast } from '@/shared/lib/toast/LeftPageFailureToast';
+import { showNoticeToast } from '@/shared/lib/toast/NoticeToast';
 import { ErrorUtil } from '@/shared/utils/error.util';
 
 type FormValues = { content: string };
@@ -165,8 +165,9 @@ export function useCreateComment({
       // 제출 때 입력을 비워 떠난 화면에는 실패 흔적이 남지 않는다 - 닫을 때까지 남는 토스트가 유일한 안내다
       if (hasLeftPage()) {
         if (message) {
-          showLeftPageFailureToast({
-            key: unsavedChangesKey,
+          showNoticeToast({
+            variant: 'error',
+            id: `left-page-failure:${unsavedChangesKey}`,
             title: ErrorUtil.resolveFailureMessage(
               error,
               isReply

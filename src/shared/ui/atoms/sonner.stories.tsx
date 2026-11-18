@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Sparkles } from 'lucide-react';
 import { Toaster } from '@/shared/ui/atoms/sonner';
 import { toast } from '@/shared/lib/toast/toast';
-import { showLeftPageFailureToast } from '@/shared/lib/toast/LeftPageFailureToast';
+import { showNoticeToast } from '@/shared/lib/toast/NoticeToast';
 import { Button } from '@/shared/ui/atoms/button';
 import {
   Dialog,
@@ -155,9 +156,87 @@ export const SentenceLineBreak: Story = {
   ),
 };
 
+const NOTICE = {
+  errorTitle: '저장하지 못했어요',
+  warningTitle: '저장 공간이 거의 찼어요',
+  successTitle: '저장했어요',
+  infoTitle: '새 버전이 있어요',
+  description: '무슨 일이 있었는지 설명하는 문장이에요. 다음에 할 일을 알려주는 문장이에요.',
+  action: '다시 시도',
+};
+
+// 안내 토스트(shared/lib/toast/NoticeToast.tsx) - 제목은 종류의 색, 설명은 본문색, 버튼은 설명 아래 오른쪽이다.
+// 오류·경고는 닫을 때까지 남고 성공·안내는 저절로 사라진다. 아이콘은 종류의 기본값 대신 다른 것을 넣을 수 있다
+const NOTICES: ToastSample[] = [
+  {
+    label: '오류',
+    show: () =>
+      showNoticeToast({
+        variant: 'error',
+        title: NOTICE.errorTitle,
+        description: NOTICE.description,
+        action: logAction(NOTICE.action),
+      }),
+  },
+  {
+    label: '경고',
+    show: () =>
+      showNoticeToast({
+        variant: 'warning',
+        title: NOTICE.warningTitle,
+        description: NOTICE.description,
+        action: logAction(NOTICE.action),
+      }),
+  },
+  {
+    label: '성공',
+    show: () =>
+      showNoticeToast({
+        variant: 'success',
+        title: NOTICE.successTitle,
+        description: NOTICE.description,
+        action: logAction(NOTICE.action),
+      }),
+  },
+  {
+    label: '안내',
+    show: () =>
+      showNoticeToast({
+        variant: 'info',
+        title: NOTICE.infoTitle,
+        description: NOTICE.description,
+        action: logAction(NOTICE.action),
+      }),
+  },
+  {
+    label: '아이콘 교체',
+    show: () =>
+      showNoticeToast({
+        variant: 'info',
+        title: NOTICE.infoTitle,
+        description: NOTICE.description,
+        icon: <Sparkles className="size-5" aria-hidden />,
+        action: logAction(NOTICE.action),
+      }),
+  },
+  {
+    label: '버튼 없음',
+    show: () =>
+      showNoticeToast({
+        variant: 'error',
+        title: NOTICE.errorTitle,
+        description: NOTICE.description,
+      }),
+  },
+];
+
+export const Notice: Story = {
+  render: () => <ToastSamples samples={NOTICES} />,
+};
+
 const { leftPageFailure, postSubmit } = TEXTS.messages.error;
 
-// 저장 요청 중 떠난 뒤 실패했을 때의 토스트(useSignUp·useCreatePost·useUpdatePost) - 닫을 때까지 남고,
+// 안내 토스트를 쓰는 실제 문구 - 저장 요청 중 떠난 뒤 실패했을 때(useSignUp·useCreatePost·useUpdatePost).
 // 버튼은 그 폼으로 돌아가 입력을 되살린다. 글이 삭제돼 다시 수정할 수 없으면 버튼이 없다
 const LEFT_PAGE_FAILURES = [
   {
@@ -204,7 +283,7 @@ const LEFT_PAGE_FAILURES = [
   },
 ];
 
-export const LeftPageFailure: Story = {
+export const NoticeLeftPageFailure: Story = {
   render: () => (
     <div className="flex flex-col gap-2 pointer-events-auto">
       <Toaster />
@@ -214,8 +293,9 @@ export const LeftPageFailure: Story = {
             key={label}
             variant="outline"
             onClick={() =>
-              showLeftPageFailureToast({
-                key: label,
+              showNoticeToast({
+                variant: 'error',
+                id: `left-page-failure:${label}`,
                 title,
                 description,
                 ...(actionLabel && {
