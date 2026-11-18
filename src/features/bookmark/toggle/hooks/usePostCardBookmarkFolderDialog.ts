@@ -2,12 +2,26 @@ import { useState } from 'react';
 import { useNavigate, type Location } from 'react-router-dom';
 import { toast } from '@/shared/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
+import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { ErrorUtil } from '@/shared/utils/error.util';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { UNDO_TOAST_DURATION_MS } from '@/shared/config/const';
 import { RouterEvents } from '@/shared/lib/router/router-events';
+import { ApiError } from '@/shared/types/common.type';
 import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { useBookmarkFolders } from '@/features/bookmark/toggle/hooks/useBookmarkFolders';
+import { POST_BOOKMARK_FOLDER_DIALOG_KEY } from '@/features/bookmark/toggle/hooks/postBookmarkFolderDialog.store';
+
+function isBookmarkLimitExceeded(error: unknown) {
+  return error instanceof ApiError && error.code === SERVER_ERROR_CODE.BOOKMARK_LIMIT_EXCEEDED;
+}
+
+// 지금 히스토리 칸이 이 창을 연 칸인지 - 라우터가 가 있는 위치로 본다(useBackClosableOverlay.ts와 같은 출처)
+function isOnDialogEntry(location: Location | null) {
+  return Boolean(
+    (location?.state as Record<string, boolean> | null)?.[POST_BOOKMARK_FOLDER_DIALOG_KEY]
+  );
+}
 
 interface UsePostCardBookmarkFolderDialogParams {
   postId: string;
@@ -58,6 +72,55 @@ export function usePostCardBookmarkFolderDialog({
     },
   });
 
+  // 한도 안내의 "북마크 보기" - 정리하러 북마크함 전체로 보낸다. 창이 열린 칸에서 떠날 때는 그 칸을 교체한다 -
+  // 남기면 뒤로 왔을 때 창이 다시 열린다(docs/BACK-NAVIGATION.md "새 오버레이를 만들 때" 5). 이미 북마크함
+  // 전체에 있으면 이동하지 않고 창만 닫는다 - 교체하면 같은 화면이 두 칸 남는다(Sidebar.tsx useDrawerLink와 같은 방식)
+  const goToBookmarks = () => {
+    const location = RouterEvents.getLocation();
+    const onDialogEntry = isOnDialogEntry(location);
+    const isAlreadyThere =
+      location !== null && `${location.pathname}${location.search}` === ROUTES_PATHS.BOOKMARK;
+
+    if (isAlreadyThere) {
+      if (onDialogEntry) {
+        onOpenChange(false);
+      }
+
+      return;
+    }
+
+    navigate(ROUTES_PATHS.BOOKMARK, { replace: onDialogEntry });
+  };
+
+  /**
+   * 북마크가 새로 생기는 요청(저장·폴더 담기·되돌리기)의 실패 토스트. 회원당 저장 한도(409 BOOKMARK_LIMIT_EXCEEDED)로
+   * 거절됐으면 일반 실패 문구 대신 한도와 해결 방법을 알리고 북마크함으로 가는 버튼을 단다 - 다시 눌러도 같은
+   * 결과라 이유와 갈 곳을 모르면 벗어날 방법이 없다. 그 밖의 실패는 지금까지와 같다. persistent는 닫을 때까지
+   * 남기는 토스트(되돌리기 실패)의 옵션이다 - 그때는 닫기 버튼을 끄지 않는다(끄면 닫을 방법이 버튼뿐이다).
+   */
+  const toastSaveFailure = (
+    error: unknown,
+    failedMessage: string,
+    persistent?: { id: string; duration: number }
+  ) => {
+    if (isBookmarkLimitExceeded(error)) {
+      const action = { label: TEXTS.bookmark.folder.viewBookmarksAction, onClick: goToBookmarks };
+
+      // 두 문장 문구라 래퍼가 버튼을 문구 아래 줄 오른쪽에, 닫기 X를 오른쪽 위에 둔다(shared/lib/toast/toast-layout.ts)
+      toast.error(TEXTS.messages.error.bookmarkLimitExceeded, { ...persistent, action });
+
+      return;
+    }
+
+    const message = ErrorUtil.resolveFailureMessage(error, failedMessage);
+
+    if (persistent) {
+      toast.error(message, persistent);
+    } else {
+      toast.error(message);
+    }
+  };
+
   // 파괴적 조작(북마크 완전 삭제) 뒤에 붙이는 되돌리기 액션 — mutateAsync를 직접 호출해
   // 컴포넌트 마운트 상태와 무관하게 동작하고, 실패는 별도 에러 토스트로만 알린다
   // (entities 레이어의 meta.manualErrorHandling과 같은 이유로 여기서 직접 처리).
@@ -73,13 +136,10 @@ export function usePostCardBookmarkFolderDialog({
 
           // 되돌리기 토스트는 누르는 순간 닫히고 화면은 되돌리기 전과 같아진다 - 이 토스트가 유일한 안내라
           // 닫을 때까지 남기고, 같은 id로 쌓이지 않게 한다(docs/FE-ARCHITECTURE.md §14)
-          toast.error(
-            ErrorUtil.resolveFailureMessage(error, TEXTS.messages.error.bookmarkRestoreFailed),
-            {
-              id: 'bookmark-restore-error',
-              duration: Infinity,
-            }
-          );
+          toastSaveFailure(error, TEXTS.messages.error.bookmarkRestoreFailed, {
+            id: 'bookmark-restore-error',
+            duration: Infinity,
+          });
         });
       },
     },
@@ -142,7 +202,7 @@ export function usePostCardBookmarkFolderDialog({
         return;
       }
 
-      toast.error(ErrorUtil.resolveFailureMessage(error, TEXTS.messages.error.bookmarkSaveFailed));
+      toastSaveFailure(error, TEXTS.messages.error.bookmarkSaveFailed);
     }
   };
 
@@ -185,14 +245,16 @@ export function usePostCardBookmarkFolderDialog({
           ErrorUtil.resolveFailureMessage(error, TEXTS.messages.error.bookmarkRemoveFailed)
         );
       } else {
-        toast.error(
-          ErrorUtil.resolveFailureMessage(
-            error,
-            wasSelected
-              ? TEXTS.messages.error.bookmarkRemoveFromFolderFailed
-              : TEXTS.messages.error.bookmarkSaveFailed
-          )
-        );
+        if (wasSelected) {
+          toast.error(
+            ErrorUtil.resolveFailureMessage(
+              error,
+              TEXTS.messages.error.bookmarkRemoveFromFolderFailed
+            )
+          );
+        } else {
+          toastSaveFailure(error, TEXTS.messages.error.bookmarkSaveFailed);
+        }
       }
     }
   };

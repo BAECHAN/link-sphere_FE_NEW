@@ -9,11 +9,12 @@ import { mockAccountQuery } from './mocks/account.mock';
 import { mockCategoryOptions } from './mocks/common.mock';
 import { mockPostList, mockPostDetail } from './mocks/post.mock';
 import { mockComments } from './mocks/comment.mock';
-import { mockBookmarkFolderList } from './mocks/bookmark-folder.mock';
+import { mockBookmarkFolderList, mockBookmarkFolderPosts } from './mocks/bookmark-folder.mock';
 import { mockPost, mockPostListResponse } from '@/mocks/fixtures/post.fixtures';
 import { mockBookmarkFolder } from '@/mocks/fixtures/bookmark-folder.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
+import { POST_BOOKMARK_FOLDER_DIALOG_KEY } from '@/features/bookmark/toggle/hooks/postBookmarkFolderDialog.store';
 
 const FOLDERS_PATH = '/api/bookmark/folders';
 
@@ -255,5 +256,139 @@ test.describe('로그인 상태 — 좁은 화면의 폴더 저장 토스트', (
     expect(layout.titleLines).toBe(1);
     expect(layout.buttonTop).toBeLessThan(layout.titleBottom);
     expect(layout.buttonBottom).toBeGreaterThan(layout.titleTop);
+  });
+});
+
+// sonner 토스트가 자리 잡는 애니메이션(400ms)보다 길게 - 확인용 스크린샷 직전에만 쓴다
+const TOAST_SETTLE_MS = 600;
+
+const BOOKMARK_LIMIT_EXCEEDED = {
+  status: 409,
+  json: { status: 409, code: 'BOOKMARK_LIMIT_EXCEEDED', message: 'limit', timestamp: '' },
+};
+
+// 회원당 북마크 저장 한도(BE 409 BOOKMARK_LIMIT_EXCEEDED)에 닿았을 때의 안내(docs/BOOKMARK.md §5 "북마크 저장 한도").
+// 토스트 문구·버튼은 단위 테스트가 보고, 여기서는 실제 브라우저에서만 보이는 것 - 창 위 토스트의 버튼이 눌리고,
+// 떠난 뒤 뒤로 와도 창이 다시 열리지 않는지 - 를 본다.
+test.describe('로그인 상태 — 북마크 저장 한도 안내', () => {
+  test.beforeEach(async ({ page }) => {
+    await installCatchAll(page);
+    await mockAuthRefresh(page);
+    await mockAccountQuery(page);
+    await mockCategoryOptions(page);
+    await mockPostList(page);
+    await mockBookmarkFolderList(page);
+    await mockBookmarkFolderPosts(page);
+  });
+
+  test('폴더 담기가 한도로 거절되면 안내 1개가 뜨고, "북마크 보기"로 떠난 뒤 뒤로 와도 창이 다시 열리지 않는다', async ({
+    page,
+  }) => {
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.bookmark.postFolder(mockPost.id, mockBookmarkFolder.id)),
+      (route) => route.fulfill(BOOKMARK_LIMIT_EXCEEDED)
+    );
+
+    await page.goto('/post');
+    await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).click();
+    const folderDialog = page.getByRole('dialog');
+    await expect(folderDialog).toBeVisible();
+    // 가드(DOUBLE_CLICK_GUARD_MS)는 클릭 자체를 삼키므로 관측 가능한 이벤트로 대체할 수 없다
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await folderDialog.getByRole('button', { name: mockBookmarkFolder.name }).click();
+
+    await expect(page.getByText(TEXTS.messages.error.bookmarkLimitExceeded)).toHaveCount(1);
+    await expect(page.getByText(TEXTS.messages.error.bookmarkSaveFailed)).toHaveCount(0);
+    // 실패라 창은 열린 채다
+    await expect(folderDialog).toBeVisible();
+    const viewBookmarks = page.getByRole('button', {
+      name: TEXTS.bookmark.folder.viewBookmarksAction,
+    });
+    // 토스트가 다 내려온 뒤의 화면을 남긴다(test-results, 커밋되지 않는다)
+    await expect(viewBookmarks).toBeInViewport({ ratio: 1 });
+    // 두 문장 문구라 버튼은 문구 아래 줄에 있고(문구 옆 세로 가운데에 끼지 않는다), 닫기 버튼도 있다
+    const limitToast = page
+      .locator('[data-sonner-toast]')
+      .filter({ hasText: TEXTS.messages.error.bookmarkLimitExceeded });
+    const layout = await limitToast.evaluate((toastElement) => ({
+      titleBottom: toastElement.querySelector('[data-title]')!.getBoundingClientRect().bottom,
+      buttonTop: toastElement.querySelector('[data-button]')!.getBoundingClientRect().top,
+    }));
+    expect(layout.buttonTop).toBeGreaterThanOrEqual(layout.titleBottom);
+    // 닫기 버튼 이름은 sonner 기본값이다
+    await expect(limitToast.getByRole('button', { name: 'Close toast' })).toBeVisible();
+    // 확인용 화면(test-results, 커밋되지 않는다) - 토스트가 내려오는 애니메이션이 끝난 뒤에 남긴다
+    await page.waitForTimeout(TOAST_SETTLE_MS);
+    await page.screenshot({ path: test.info().outputPath('limit-toast.png') });
+
+    await viewBookmarks.click();
+    await expect(page).toHaveURL(/\/bookmark$/);
+    await expect(folderDialog).not.toBeVisible();
+
+    // 창이 열려 있던 칸을 교체했으므로 뒤로 한 번이면 창 없는 목록이다. 창이 안 보이는 것만으로는 닫히는 중인지
+    // 구분되지 않아 히스토리 칸의 열림 표시도 본다
+    await page.goBack();
+    await expect(page).toHaveURL(/\/post$/);
+    await expect(folderDialog).not.toBeVisible();
+    const isDialogEntry = await page.evaluate(
+      (key) => Boolean(window.history.state?.usr?.[key]),
+      POST_BOOKMARK_FOLDER_DIALOG_KEY
+    );
+    expect(isDialogEntry).toBe(false);
+  });
+
+  test('삭제를 되돌리다 한도로 거절되면 닫을 때까지 남는 안내에 "북마크 보기"와 닫기 버튼이 함께 있다', async ({
+    page,
+  }) => {
+    const bookmarkedPost = {
+      ...mockPost,
+      userInteractions: {
+        ...mockPost.userInteractions,
+        isBookmarked: true,
+        bookmarkFolderIds: [mockBookmarkFolder.id],
+      },
+    };
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.post.base),
+      (route) =>
+        route.fulfill({
+          json: wrapResponse({ ...mockPostListResponse, content: [bookmarkedPost] }),
+        })
+    );
+    // 같은 주소다 - 마지막 폴더에서 빼기(DELETE, 북마크까지 삭제)는 성공, 되돌리기(POST 폴더 담기)는 한도로 거절
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.bookmark.postFolder(mockPost.id, mockBookmarkFolder.id)),
+      (route) => {
+        if (route.request().method() === 'DELETE') {
+          return route.fulfill({
+            json: wrapResponse({ postId: mockPost.id, isBookmarked: false, folderIds: [] }),
+          });
+        }
+
+        return route.fulfill(BOOKMARK_LIMIT_EXCEEDED);
+      }
+    );
+
+    await page.goto('/post');
+    await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkChange }).click();
+    const folderDialog = page.getByRole('dialog');
+    await expect(folderDialog).toBeVisible();
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await folderDialog.getByRole('button', { name: mockBookmarkFolder.name }).click();
+    await expect(folderDialog).not.toBeVisible();
+
+    await page.getByRole('button', { name: TEXTS.bookmark.folder.undoAction }).click();
+
+    const notice = page
+      .getByRole('listitem')
+      .filter({ hasText: TEXTS.messages.error.bookmarkLimitExceeded });
+    await expect(notice).toHaveCount(1);
+    await expect(
+      notice.getByRole('button', { name: TEXTS.bookmark.folder.viewBookmarksAction })
+    ).toBeVisible();
+    // 닫기 버튼 이름은 sonner 기본값이다
+    await expect(notice.getByRole('button', { name: 'Close toast' })).toBeVisible();
+    await page.waitForTimeout(TOAST_SETTLE_MS);
+    await page.screenshot({ path: test.info().outputPath('limit-undo-toast.png') });
   });
 });

@@ -80,6 +80,11 @@ export class PostUtil {
       };
     }
 
+    // 북마크와 함께 등록하는데 회원당 북마크 저장 한도에 닿았다 - 글도 등록되지 않는다(BE BookmarkLimitExceededException)
+    if (error.code === SERVER_ERROR_CODE.BOOKMARK_LIMIT_EXCEEDED) {
+      return { kind: 'form', message: TEXTS.messages.error.bookmarkLimitExceeded };
+    }
+
     if (error.status === 429) {
       return {
         kind: 'form',

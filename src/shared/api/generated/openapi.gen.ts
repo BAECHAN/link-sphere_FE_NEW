@@ -319,7 +319,7 @@ export interface paths {
     put?: never;
     /**
      * 여러 게시글을 폴더에 일괄 추가
-     * @description data.processedCount 는 요청에 담긴 postId 개수 그대로다 — 이미 저장돼 있던 postId 도 포함해서 센다(중복 여부를 걸러내지 않는다).
+     * @description data.processedCount 는 요청에 담긴 postId 개수 그대로다 — 이미 저장돼 있던 postId 도 포함해서 센다(중복 여부를 걸러내지 않는다). 실패: 409 BOOKMARK_LIMIT_EXCEEDED(새로 생길 북마크를 더하면 회원당 10,000개 한도를 넘음 - 묶음 전체가 반영되지 않는다)
      */
     post: operations['batchAddBookmarksToFolder'];
     delete?: never;
@@ -468,7 +468,7 @@ export interface paths {
     put?: never;
     /**
      * 북마크를 폴더에 추가
-     * @description 북마크가 안 돼 있었다면 함께 생성한다. 실패: 404 POST_NOT_FOUND · 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더)
+     * @description 북마크가 안 돼 있었다면 함께 생성한다. 실패: 404 POST_NOT_FOUND · 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 409 BOOKMARK_LIMIT_EXCEEDED(북마크가 새로 생기는데 회원당 10,000개 한도에 닿음)
      */
     post: operations['addBookmarkFolder'];
     /**
@@ -681,7 +681,7 @@ export interface paths {
     put?: never;
     /**
      * 게시글 등록
-     * @description URL 을 크롤링해 메타데이터를 추출하고 AI 요약을 비동기로 채운다. 10분 안에 같은 URL을 GET /link-preview 로 미리 본 적이 있으면 크롤링 대신 그 결과를 쓴다. HTTP 상태와 본문 status 모두 201 이다. Idempotency-Key 헤더(UUID)가 필수다. 같은 회원이 같은 키로 다시 보내면 새로 만들지 않고 처음 글을 201로 돌려주며 한도도 쓰지 않는다. 실패: 400 INVALID_INPUT(키 없음) · 400 INVALID_PATH_VARIABLE(키가 UUID 아님) · 400 INVALID_URL · 400 URL_UNRESOLVABLE(도메인 없음) · 400 URL_NOT_ALLOWED(내부망) · 403 EMAIL_NOT_VERIFIED · 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 409 DUPLICATE_POST(다른 키로 1시간 안에 같은 URL을 등록함) · 429 RATE_LIMIT_EXCEEDED(회원당 시간당 등록 한도 초과)
+     * @description URL 을 크롤링해 메타데이터를 추출하고 AI 요약을 비동기로 채운다. 10분 안에 같은 URL을 GET /link-preview 로 미리 본 적이 있으면 크롤링 대신 그 결과를 쓴다. HTTP 상태와 본문 status 모두 201 이다. Idempotency-Key 헤더(UUID)가 필수다. 같은 회원이 같은 키로 다시 보내면 새로 만들지 않고 처음 글을 201로 돌려주며 한도도 쓰지 않는다. 실패: 400 INVALID_INPUT(키 없음) · 400 INVALID_PATH_VARIABLE(키가 UUID 아님) · 400 INVALID_URL · 400 URL_UNRESOLVABLE(도메인 없음) · 400 URL_NOT_ALLOWED(내부망) · 403 EMAIL_NOT_VERIFIED · 404 FOLDER_NOT_FOUND · 403 FORBIDDEN(남의 폴더) · 409 DUPLICATE_POST(다른 키로 1시간 안에 같은 URL을 등록함) · 409 BOOKMARK_LIMIT_EXCEEDED(북마크와 함께 등록하는데 회원당 북마크 10,000개 한도에 닿음 - 글도 등록되지 않는다) · 429 RATE_LIMIT_EXCEEDED(회원당 시간당 등록 한도 초과)
      */
     post: operations['createPost'];
     delete?: never;
@@ -768,7 +768,7 @@ export interface paths {
     get?: never;
     /**
      * 게시글 북마크
-     * @description 이미 저장된 상태여도 200 이다(멱등). 북마크만 보장하고 기존 폴더 소속은 건드리지 않는다 — 응답 folderIds 는 서버의 실제 소속이다. 실패: 404 POST_NOT_FOUND
+     * @description 이미 저장된 상태여도 200 이다(멱등). 북마크만 보장하고 기존 폴더 소속은 건드리지 않는다 — 응답 folderIds 는 서버의 실제 소속이다. 실패: 404 POST_NOT_FOUND · 409 BOOKMARK_LIMIT_EXCEEDED(회원당 북마크 10,000개 한도 - 이미 저장한 글은 한도와 상관없이 200)
      */
     put: operations['putPostBookmark'];
     post?: never;
