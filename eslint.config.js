@@ -808,12 +808,45 @@ export default [
               };
             },
           },
+          'no-toast-unsafe-class-names': {
+            meta: {
+              type: 'problem',
+              docs: {
+                description:
+                  '토스트 래퍼의 UNSAFE_classNames는 src/shared/lib/toast/ 안에서만 쓴다. 버튼 배치는 래퍼가 정한다(docs/FE-ARCHITECTURE.md §14 "버튼 배치")',
+              },
+              messages: {
+                unsafeClassNames:
+                  'UNSAFE_classNames는 src/shared/lib/toast/ 안에서만 쓸 수 있습니다. 토스트의 버튼 자리·닫기 X는 래퍼가 정합니다. 새 모양이 필요하면 shared/lib/toast/에 토스트 함수를 만들고 스토리(sonner.stories.tsx)에 견본을 더해주세요.',
+              },
+            },
+            create(context) {
+              return {
+                Property(node) {
+                  const name = node.key.type === 'Identifier' ? node.key.name : node.key.value;
+
+                  if (name !== 'UNSAFE_classNames') {
+                    return;
+                  }
+
+                  const filename = context.getFilename().replace(/\\/g, '/');
+
+                  if (filename.includes('/src/shared/lib/toast/')) {
+                    return;
+                  }
+
+                  context.report({ node, messageId: 'unsafeClassNames' });
+                },
+              };
+            },
+          },
         },
       },
     },
     rules: {
       'custom-import/no-relative-import-except-styles': 'error',
       'custom-import/no-sonner-toast-direct-import': 'error',
+      'custom-import/no-toast-unsafe-class-names': 'error',
     },
   },
   // 클릭 가능한 요소는 인터랙티브 시맨틱(button/role)이 필요 - 커스텀 규칙

@@ -362,7 +362,6 @@ export function useFcmForegroundMessage() {
               label: TEXTS.notification.viewAction,
               onClick: () => navigate(`/post/${postId}${commentHash}`),
             },
-            closeButton: false,
           }),
         });
       });

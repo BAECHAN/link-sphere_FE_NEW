@@ -30,40 +30,102 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
-  render: () => (
+interface ToastSample {
+  label: string;
+  show: () => void;
+}
+
+// 견본 버튼 줄 - 토스터는 화면에 고정된 층이라 문서 모드에서는 다른 스토리 위에 겹쳐 보일 수 있다
+function ToastSamples({ samples }: { samples: ToastSample[] }) {
+  return (
     <div className="flex flex-col gap-2 pointer-events-auto">
       <Toaster />
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          onClick={() =>
-            toast('Event has been created', {
-              description: 'Sunday, December 03, 2023 at 9:00 AM',
-              action: {
-                label: 'Undo',
-                onClick: () => console.log('Undo'),
-              },
-            })
-          }
-        >
-          Show Toast
-        </Button>
-        <Button variant="outline" onClick={() => toast.success('Event has been created')}>
-          Success
-        </Button>
-        <Button variant="outline" onClick={() => toast.info('Event description message')}>
-          Info
-        </Button>
-        <Button variant="outline" onClick={() => toast.error('Event has not been created')}>
-          Error
-        </Button>
-        <Button variant="outline" onClick={() => toast.warning('Event has been warning')}>
-          Warning
-        </Button>
+        {samples.map(({ label, show }) => (
+          <Button key={label} variant="outline" onClick={show}>
+            {label}
+          </Button>
+        ))}
       </div>
     </div>
-  ),
+  );
+}
+
+// 버튼 없는 토스트 - 종류마다 색·아이콘이 다르고 닫기 X가 줄 끝에 있다
+const KINDS: ToastSample[] = [
+  { label: '성공', show: () => toast.success(TEXTS.messages.success.bookmarkRemoved) },
+  { label: '안내', show: () => toast.info(TEXTS.messages.info.switchedToOtherAccount) },
+  { label: '오류', show: () => toast.error(TEXTS.messages.error.bookmarkRestoreFailed) },
+  { label: '경고', show: () => toast.warning(TEXTS.messages.error.edgeBlocked) },
+];
+
+export const Kinds: Story = {
+  render: () => <ToastSamples samples={KINDS} />,
+};
+
+const logAction = (label: string) => ({ label, onClick: () => console.log(label) });
+
+// 버튼(action)의 자리는 호출부가 아니라 래퍼가 정한다(shared/lib/toast/toast-layout.ts). 문구가 한 줄이면
+// 같은 줄 오른쪽이고 닫기 X가 없다
+const INLINE_ACTIONS: ToastSample[] = [
+  {
+    label: '저장 + 보기',
+    show: () =>
+      toast.success(TEXTS.messages.success.bookmarkSavedTo('개발'), {
+        action: logAction(TEXTS.bookmark.folder.viewAction),
+      }),
+  },
+  {
+    // 한 줄 문구 중 가장 긴 경우(폴더 이름 최대 15자) - 좁은 화면에서 문구가 접히는지 보는 견본
+    label: '15자 폴더 + 보기',
+    show: () =>
+      toast.success(TEXTS.messages.success.bookmarkSavedTo('가나다라마바사아자차카타파하가'), {
+        action: logAction(TEXTS.bookmark.folder.viewAction),
+      }),
+  },
+  {
+    label: '삭제 + 되돌리기',
+    show: () =>
+      toast.success(TEXTS.messages.success.bookmarkRemoved, {
+        action: logAction(TEXTS.bookmark.folder.undoAction),
+      }),
+  },
+];
+
+export const InlineAction: Story = {
+  render: () => <ToastSamples samples={INLINE_ACTIONS} />,
+};
+
+// 문구가 여러 줄(문장이 둘 이상이거나 설명이 있다)이면 버튼은 문구 아래 줄 오른쪽, 닫기 X는 오른쪽 위다.
+// 버튼이 문구 옆 세로 가운데에 끼는 모양은 쓰지 않는다(docs/UNSAVED-CHANGES-GUARD.md §5)
+const STACKED_ACTIONS: ToastSample[] = [
+  {
+    label: '두 문장 + 버튼',
+    show: () =>
+      toast.info(TEXTS.messages.info.sessionExpired, {
+        action: logAction(TEXTS.buttons.login),
+      }),
+  },
+  {
+    label: '문구 + 설명 + 버튼',
+    show: () =>
+      toast.success(TEXTS.messages.success.bookmarkRemovedFromFolder('개발'), {
+        description: TEXTS.messages.success.bookmarkRemovedWithLastFolderDescription,
+        action: logAction(TEXTS.bookmark.folder.undoAction),
+      }),
+  },
+  {
+    label: '제목 + 본문 + 버튼 (푸시 알림)',
+    show: () =>
+      toast(TEXTS.notification.defaultTitle, {
+        description: TEXTS.messages.success.bookmarkRemovedWithLastFolderDescription,
+        action: logAction(TEXTS.notification.viewAction),
+      }),
+  },
+];
+
+export const StackedAction: Story = {
+  render: () => <ToastSamples samples={STACKED_ACTIONS} />,
 };
 
 // 래퍼(shared/lib/toast/toast.ts)가 문장 끝에서 줄을 바꾼다 - 두 문장은 문장마다 한 줄,

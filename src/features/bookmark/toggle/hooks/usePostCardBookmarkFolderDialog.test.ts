@@ -114,10 +114,9 @@ function lastSuccessToast() {
 }
 
 function expectViewAction(folderKey: string) {
-  const { options, action } = lastSuccessToast();
+  const { action } = lastSuccessToast();
 
   expect(action?.label).toBe(TEXTS.bookmark.folder.viewAction);
-  expect(options?.closeButton).toBe(false);
 
   action?.onClick();
 
@@ -386,7 +385,6 @@ describe('usePostCardBookmarkFolderDialog', () => {
       expect(options?.description).toBe(
         TEXTS.messages.success.bookmarkRemovedWithLastFolderDescription
       );
-      expect(options?.closeButton).toBe(false);
       expect(options?.duration).toBe(UNDO_TOAST_DURATION_MS);
       expect(action?.label).toBe(TEXTS.bookmark.folder.undoAction);
       expect(onOpenChange).toHaveBeenCalledTimes(1);
@@ -554,7 +552,6 @@ describe('usePostCardBookmarkFolderDialog', () => {
       const { message, options, action } = lastSuccessToast();
       expect(message).toBe(TEXTS.messages.success.bookmarkRemoved);
       expect(action?.label).toBe(TEXTS.bookmark.folder.undoAction);
-      expect(options?.closeButton).toBe(false);
       expect(options?.duration).toBe(UNDO_TOAST_DURATION_MS);
       expect(onOpenChange).toHaveBeenCalledTimes(1);
       expect(onOpenChange).toHaveBeenCalledWith(false);

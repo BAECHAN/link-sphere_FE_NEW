@@ -1,16 +1,13 @@
 import { toast } from '@/shared/lib/toast/toast';
+import { STACKED_ACTION_CLASS_NAMES } from '@/shared/lib/toast/toast-layout';
 
-// 설명이 여러 줄인 토스트라 버튼을 설명 아래 오른쪽으로 내리고 닫기 X는 오른쪽 위, 아이콘은 제목 줄에 맞춘다. 제목은
+// 버튼이 없을 때도(댓글) 같은 틀(닫기 X 오른쪽 위, 아이콘은 제목 줄)을 쓰려고 배치 클래스를 직접 넘긴다. 제목은
 // 빨강·소제목 굵기로, 설명은 본문색으로 구분한다(근거·미리보기 승인: docs/UNSAVED-CHANGES-GUARD.md §5). sonner는
-// 제목·설명·버튼에 자체 CSS(속성 선택자 3개)를 걸어 important로 덮는다 - node_modules/sonner/dist/styles.css:127-199
+// 제목·설명에 자체 CSS(속성 선택자)를 걸어 important로 덮는다 - node_modules/sonner/dist/styles.css:127-199
 const CLASS_NAMES = {
-  toast: '!grid grid-cols-[auto_minmax(0,1fr)_auto] !items-start gap-x-3 gap-y-3',
-  icon: 'col-start-1 row-start-1 mt-0.5',
-  content: 'col-start-2 row-start-1 min-w-0',
+  ...STACKED_ACTION_CLASS_NAMES,
   title: '!text-subsection-title',
   description: '!text-foreground',
-  actionButton: 'col-start-2 col-span-2 row-start-2 justify-self-end !ml-0',
-  closeButton: 'col-start-3 row-start-1 !ml-0',
 };
 
 interface LeftPageFailureToast {
@@ -48,7 +45,7 @@ export function showLeftPageFailureToast({
         </span>
       )),
     duration: Infinity,
-    classNames: CLASS_NAMES,
+    UNSAFE_classNames: CLASS_NAMES,
     ...(action && { action }),
   });
 }

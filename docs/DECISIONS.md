@@ -6,6 +6,58 @@
 
 ---
 
+## 2026-11-18 — 토스트 버튼 배치는 래퍼가 정한다: 여러 줄이면 아래 줄 오른쪽(stacked), 한 줄이면 같은 줄(inline)
+
+**배경**
+
+- 북마크 저장 한도 안내([#638](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/638))에 "북마크 보기" 버튼을 달자, 두 문장
+  문구 옆 세로 가운데에 버튼이 끼고 문구가 3~4줄로 눌렸다(사용자 지적).
+- 이 모양은 2026-11-02에 이미 버린 안이다([`UNSAVED-CHANGES-GUARD.md`](UNSAVED-CHANGES-GUARD.md) §5 "모양"). 그 결정이
+  `LeftPageFailureToast.tsx`의 클래스 한 곳에만 들어 있었고, 래퍼 `toast.ts`는 옵션을 그대로 통과시켜 다른 호출부가 `action`을
+  넘기면 sonner 기본 배치가 나왔다. 로그인 만료·푸시 알림·마지막 폴더 삭제 되돌리기 토스트가 이미 그 모양이었다.
+- 스토리북 `Default` 스토리가 영문 예시로 그 기본 배치를 견본처럼 보여 주고 있었다.
+
+**검토**
+
+| 항목              | 고른 것                                                                                    | 버린 것                                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| 한 줄 문구의 버튼 | 같은 줄 오른쪽 그대로, 여러 줄일 때만 아래 줄                                              | 항상 아래 줄 — 한 줄 저장 성공 토스트가 두 줄 높이가 되고 X가 생긴다                                          |
+| "여러 줄" 판정    | 호출 시점에 정한다(`description`이 있거나, 문장 줄바꿈 뒤 두 줄 이상이거나, 문자열이 아님) | 그린 뒤 높이를 재서 바꾸기 — 깜빡이고 테스트하기 어렵다                                                       |
+| 막는 방법         | 래퍼가 배치를 정하고 공개 옵션 타입에서 모양 옵션을 뺀다                                   | 문서 규칙만 — 이번 일이 문서로 못 막은 사례다. 호출부마다 배치 상수를 import — 빠뜨리면 다시 가운데 행이 된다 |
+| 이름              | 배치는 `stacked` / `inline`, `showLeftPageFailureToast`는 그대로                           | 함수 이름을 배치 이름으로 바꾸기 — 그 이름은 "언제 쓰는가"(화면을 떠난 뒤 실패)를 뜻한다                      |
+| `Default` 스토리  | 지우고 실제 문구 견본(`Kinds`·`InlineAction`·`StackedAction`)으로 교체                     | 그대로 두기 — 운영에 없는 모양이 견본으로 남는다                                                              |
+
+**결정** (모두 사용자 결정, 질문 2026-11-18)
+
+- 버튼 달린 토스트의 배치와 닫기 X 유무는 래퍼가 정한다. 규칙과 표는 [`FE-ARCHITECTURE.md`](FE-ARCHITECTURE.md) §14 "버튼 배치".
+- 호출부는 `classNames`·`className`·`style`·`closeButton`·`unstyled`를 넘길 수 없다. 새 모양은 `shared/lib/toast/` 안에 함수로
+  만들고 스토리에 견본을 더한다.
+- 다른 공용 컴포넌트의 "스토리북에 없는 모양" 조사는 이 결정에 넣지 않았다(따로 진행).
+
+**근거** (아래 외부 문서는 조사 에이전트가 읽어 온 것을 옮긴 재인용이다)
+
+- 이름: 버튼이 아래 줄이면 `stacked`, 같은 줄이면 `inline` —
+  [MDC Web](https://github.com/material-components/material-components-web/blob/master/packages/mdc-snackbar/README.md)
+  `mdc-snackbar--stacked`, Primer Banner의 `actionsLayout: 'inline' | 'stacked'`(원본 링크는
+  [계획](plans/2026-11-18-toast-stacked-action.md)의 "업계 조사" — 주소에 든 `src/` 경로를 `pnpm check:docs`가 이 레포 경로로
+  읽어 여기에는 옮기지 않았다).
+- 언제 내리나는 시스템마다 다르다. 항상 아래([Atlassian Flag](https://atlassian.design/components/flag/examples)), 문구가
+  접히기 전에 버튼부터([Adobe Spectrum](https://web.archive.org/web/20260218082344/https://spectrum.adobe.com/page/toast/)).
+- 스토리북에 없는 모양을 막는 방식: 컴포넌트 API를 좁히고([React Spectrum](https://react-spectrum.adobe.com/react-spectrum/styling.html)은
+  `className`·`style`을 받지 않고 탈출구에 `UNSAFE_` 접두어를 붙인다), lint로 덮어쓰기를 막고
+  ([Atlassian eslint 플러그인](https://www.npmjs.com/package/@atlaskit/eslint-plugin-design-system)), 스토리 시각 회귀를 건다
+  ([Chromatic](https://www.chromatic.com/docs/visual)). 시각 회귀는 스토리에 없는 사용을 잡지 못한다. 이 레포는 lint
+  (`no-sonner-toast-direct-import`)만 있고 API 좁히기가 비어 있었다.
+
+**대가**
+
+- 로그인 만료·푸시 알림·마지막 폴더 삭제 되돌리기 토스트의 모양이 바뀐다(버튼이 아래 줄로, 뒤 둘은 X가 생긴다).
+- 줄 수를 화면 폭으로 재지 않아, 한 줄 문구가 좁은 화면에서 접히면 버튼이 접힌 문구 옆 가운데에 온다(360px 이하에서
+  15자 폴더 이름 저장 토스트, 이 변경 전과 같다). 측정값은 `FE-ARCHITECTURE.md` §14 "버튼 배치"의 한계.
+- TypeScript는 객체 리터럴의 남는 속성만 막는다. 변수·스프레드로 넘어온 모양 옵션은 래퍼가 실행 중에 버린다.
+
+---
+
 ## 2026-11-17 — 모달 위의 토스트: sonner를 유지하고 Radix Branch로 등록, 만료 안내는 로그인 창 동안 숨긴다
 
 **배경**

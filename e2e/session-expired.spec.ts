@@ -103,6 +103,21 @@ test.describe('로그인 만료', () => {
     await expect(page.getByRole('button', { name: TEXTS.ariaLabels.accountMenu })).toHaveCount(0);
     await expectNoErrorToast(page);
 
+    // 두 문장 문구라 버튼은 문구 아래 줄에, 닫기 X는 버튼보다 위(오른쪽 위)에 있다 - 버튼이 문구 옆 세로 가운데에
+    // 끼지 않는다(shared/lib/toast/toast-layout.ts)
+    const layout = await expiredToast.evaluate((toastElement) => {
+      const edge = (selector: string) =>
+        toastElement.querySelector(selector)!.getBoundingClientRect();
+
+      return {
+        titleBottom: edge('[data-title]').bottom,
+        buttonTop: edge('[data-button]').top,
+        closeBottom: edge('[data-close-button]').bottom,
+      };
+    });
+    expect(layout.buttonTop).toBeGreaterThanOrEqual(layout.titleBottom);
+    expect(layout.closeBottom).toBeLessThanOrEqual(layout.buttonTop);
+
     await expiredToast.getByRole('button', { name: TEXTS.buttons.login }).click();
 
     const dialog = page.getByRole('dialog', { name: TEXTS.auth.guard.expired.title });
