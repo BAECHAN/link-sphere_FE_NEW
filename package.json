@@ -21,6 +21,7 @@
     "format:check": "prettier --check .",
     "check": "pnpm type-check && pnpm lint && pnpm format:check && pnpm check:deps",
     "check:docs": "node scripts/check-docs.js",
+    "docs:index": "node scripts/generate-doc-index.js",
     "check:deps": "node scripts/check-deps.js",
     "check:cloudfront": "node scripts/check-cloudfront-drift.js",
     "check:pr-body": "node scripts/check-pr-body.js",

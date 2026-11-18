@@ -230,9 +230,11 @@ features/<도메인>/<액션>/
 **설계 결정 기록(ADR 경량판)**
 
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — 되돌리기 어렵고 대안을 비교해 선택한 설계·UX 결정 (append-only)
+- [`docs/DECISIONS-INDEX.md`](docs/DECISIONS-INDEX.md) — 위 결정을 주제별·날짜순으로 찾는 색인 (`pnpm docs:index`로 생성, 직접 편집 금지)
 
 **작업 계획** — "무엇을 하기로 했는지"
 
 - [`docs/plans/`](docs/plans/) — plan mode로 세운 계획의 스냅샷 (원문 append-only — H1 아래 "구현 결과" 블록만 병합 뒤에도 고침, 파일마다 여기 개별 등록하지 않음)
+- [`docs/PLANS-INDEX.md`](docs/PLANS-INDEX.md) — 계획을 월별로 찾는 색인: 제목, PR 번호, 계획 대조의 이탈·미구현 건수 (`pnpm docs:index`로 생성, 직접 편집 금지)
 
 > 문서 분류 기준과 작성 규칙은 [`.claude/rules/docs-format.md`](.claude/rules/docs-format.md) 참고.
