@@ -49,14 +49,13 @@ export function usePostCardBookmarkFolderDialog({
     }
   }
 
-  // 저장 결과를 바로 확인할 수 있게 저장된 폴더로 데려간다. 액션과 닫기 버튼이 자리를 다투므로
-  // FCM 알림 토스트와 동일하게 액션이 있을 때는 닫기 버튼을 끈다.
+  // 저장 결과를 바로 확인할 수 있게 저장된 폴더로 데려간다. 버튼 자리와 닫기 X 유무는 래퍼가 정한다
+  // (shared/lib/toast/toast-layout.ts - 한 줄 문구라 버튼은 같은 줄 오른쪽, X는 없다)
   const viewSavedOptions = (folderKey: string) => ({
     action: {
       label: TEXTS.bookmark.folder.viewAction,
       onClick: () => navigate(`${ROUTES_PATHS.BOOKMARK}?folder=${folderKey}`),
     },
-    closeButton: false,
   });
 
   // 파괴적 조작(북마크 완전 삭제) 뒤에 붙이는 되돌리기 액션 — mutateAsync를 직접 호출해
@@ -84,7 +83,6 @@ export function usePostCardBookmarkFolderDialog({
         });
       },
     },
-    closeButton: false,
     duration: UNDO_TOAST_DURATION_MS,
   });
 

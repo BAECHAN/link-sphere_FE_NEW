@@ -1282,6 +1282,31 @@ sonner CSS가 layer 밖에서 지정한 시스템 글꼴을 덮어 Pretendard를
 `useDeletePostMutation`의 이미 없는 글)는 그 mutation의 `onSuccess(data, variables)`에서
 토스트를 직접 부르고 `successMessage`는 비워 둔다 — 둘 다 넣으면 두 번 뜬다.
 
+### 버튼 배치 (2026-11-18)
+
+버튼(`action`)이 달린 토스트의 버튼 자리와 닫기 X 유무는 호출부가 아니라 래퍼가 정한다(`shared/lib/toast/toast-layout.ts`의
+`resolveActionLayout`). 호출부는 문구와 `action`만 넘긴다.
+
+| 문구                                                               | 배치               | 버튼                | 닫기 X    |
+| ------------------------------------------------------------------ | ------------------ | ------------------- | --------- |
+| 버튼 없음                                                          | —                  | —                   | 줄 끝     |
+| 한 줄(문자열 한 문장, `description` 없음)                          | 같은 줄(`inline`)  | 문구 오른쪽         | 없음      |
+| 여러 줄(문장이 둘 이상이거나 `description`이 있거나 문자열이 아님) | 아래 줄(`stacked`) | 문구 아래 줄 오른쪽 | 오른쪽 위 |
+
+- **왜 래퍼가 정하나**: 여러 줄 문구 옆 세로 가운데에 버튼이 끼는 모양(sonner 기본)은 2026-11-02에 버린 안인데
+  ([`UNSAVED-CHANGES-GUARD.md`](UNSAVED-CHANGES-GUARD.md) §5 "모양"), 그 결정이 떠난 뒤 실패 토스트 한 곳에만 들어 있어 다른
+  호출부가 `action`을 넘기면 다시 나왔다. 비교한 안은 [`DECISIONS.md`](DECISIONS.md) 2026-11-18 항목.
+- **호출부가 못 넘기는 옵션**: `classNames`·`className`·`style`·`closeButton`·`unstyled`. 공개 타입 `ToastOptions`에서 뺐고,
+  변수·스프레드로 넘어와 타입이 못 막은 값은 래퍼가 버린다(`toast.test.ts` "toast 버튼 배치").
+- **새 모양이 필요하면** `shared/lib/toast/` 안에 토스트 함수를 만들고(`showLeftPageFailureToast`가 선례) 스토리에 견본을
+  더한다. 그 폴더 안에서만 `UNSAFE_classNames`로 배치 클래스 위에 클래스를 합칠 수 있고, 밖에서 쓰면 ESLint
+  `custom-import/no-toast-unsafe-class-names`가 막는다.
+- **견본**: 스토리 `sonner.stories.tsx`의 `Kinds`·`InlineAction`·`StackedAction`·`LeftPageFailure`. 스토리에 없는 모양은
+  운영에도 없다.
+- **한계**: 줄 수는 화면 폭을 재지 않고 호출 시점에 정한다. 한 줄 문구가 좁은 화면에서 접히면 버튼이 접힌 문구 옆 세로
+  가운데에 온다 — 가장 긴 "{15자 폴더 이름}에 저장했어요." + [보기]는 375px에서 한 줄, 360px에서 두 줄이다(2026-11-18,
+  스토리북 `InlineAction`의 "15자 폴더 + 보기"를 Playwright로 폭을 바꿔 가며 잰 값).
+
 ### 모달 위의 토스트 (2026-11-17)
 
 Radix의 모달 Dialog·AlertDialog·드롭다운 메뉴·Select는 열려 있는 동안 `body`에 `pointer-events: none`을 건다
@@ -1307,7 +1332,7 @@ Radix의 모달 Dialog·AlertDialog·드롭다운 메뉴·Select는 열려 있�
   정보를 얻을 수 있을 때를 든다([Understanding 2.2.1](https://www.w3.org/WAI/WCAG22/Understanding/timing-adjustable.html),
   [UNSAVED-CHANGES-GUARD.md](./UNSAVED-CHANGES-GUARD.md) §5에서 재인용).
 - **방법**: `toast.error(message, { id: '<고정 id>', duration: Infinity })`. 닫기 X는 `Toaster`(`shared/ui/atoms/sonner.tsx`)의
-  `closeButton`이 모든 토스트에 단다. 고정 id는 쌓임을 막는다 — 한 번에 보이는 토스트가 3개(`VISIBLE_TOASTS_AMOUNT = 3`,
+  `closeButton`이 단다(한 줄 문구에 버튼이 달린 토스트만 빠진다 — 위 "버튼 배치"). 고정 id는 쌓임을 막는다 — 한 번에 보이는 토스트가 3개(`VISIBLE_TOASTS_AMOUNT = 3`,
   `index.mjs:411`)라 같은 실패가 반복돼 쌓이면 다른 안내가 가려진다. 같은 id면 한 장이 새 내용으로 바뀐다.
 - **폼을 떠난 뒤 실패**(가입·게시글·댓글)는 제목(무엇이 실패했나)·설명(이유) 모양의 `showLeftPageFailureToast`
   (`shared/lib/toast/LeftPageFailureToast.tsx`)를 쓴다.

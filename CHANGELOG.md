@@ -55,6 +55,13 @@
 
 ### Changed
 
+- `shared` 버튼 달린 토스트는 문구가 여러 줄이면 버튼을 아래 줄 오른쪽에, 닫기 X를 오른쪽 위에 둠
+  <details><summary>배경·구현</summary>
+
+  두 문장 문구나 설명이 있는 토스트에 버튼을 달면 문구 옆 세로 가운데에 버튼이 끼고 문구가 눌렸다(로그인 만료 "로그인", 푸시 알림 "보러가기", 마지막 폴더 삭제 "되돌리기"). 2026-11-02에 떠난 뒤 실패 토스트에서 고른 모양(버튼은 아래 줄 오른쪽, X는 오른쪽 위)을 래퍼가 모든 여러 줄 버튼 토스트에 입힌다. 뒤 두 토스트는 닫기 X도 생긴다. 한 줄 문구의 버튼 토스트(저장 "보기", 삭제 "되돌리기")와 버튼 없는 토스트는 그대로다. 호출부는 배치 클래스·닫기 X 옵션을 넘길 수 없다 — 타입에서 빼고, 변수로 넘어온 값은 래퍼가 버리고, 탈출구 `UNSAFE_classNames`는 lint가 `shared/lib/toast/` 안으로 묶는다. 스토리북의 영문 `Default` 견본(가운데 행 버튼)은 실제 문구 견본 `Kinds`·`InlineAction`·`StackedAction`으로 바꿨다 (`shared/lib/toast/toast-layout.ts`(신규), `toast.ts`, `LeftPageFailureToast.tsx`, `shared/ui/atoms/sonner.stories.tsx`, `eslint.config.js`, `usePostCardBookmarkFolderDialog.ts`, `useFcmForegroundMessage.ts`, `docs/FE-ARCHITECTURE.md` §14 "버튼 배치", `docs/DECISIONS.md` 2026-11-18, [PR #641](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/641))
+
+  </details>
+
 - `bookmark` 북마크 내 검색에서 검색어를 다 지우면 Enter 없이 전체 목록으로 돌아감
   <details><summary>배경·구현</summary>
 
