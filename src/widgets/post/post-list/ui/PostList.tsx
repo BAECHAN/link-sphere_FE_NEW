@@ -84,6 +84,7 @@ function PostListContent({ renderPost, grid }: PostListProps) {
   const {
     posts,
     correctedSearch,
+    likedFilterLimit,
     isFetchingNextPage,
     isNextPageFailed,
     retryNextPage,
@@ -96,11 +97,22 @@ function PostListContent({ renderPost, grid }: PostListProps) {
   } = usePostList(grid);
   const { pullDistance, isPulling, isReady } = usePullToRefresh({ onRefresh: refetch });
 
+  // 좋아요가 많아 서버가 최근 것만 보고 걸렀을 때의 안내. 결과가 없을 때도 "왜 없는지"의 단서라 빈 목록 위에 함께 둔다
+  const likedFilterNotice = likedFilterLimit !== null && (
+    <div className="text-sm text-muted-foreground text-center mb-6">
+      {TEXTS.post.search.likedFilterLimited(likedFilterLimit)}
+    </div>
+  );
+
   if (posts.length === 0) {
     return (
-      <EmptyState className="border rounded-lg bg-muted/10">
-        {TEXTS.messages.info.noPosts}
-      </EmptyState>
+      <>
+        {likedFilterNotice}
+
+        <EmptyState className="border rounded-lg bg-muted/10">
+          {TEXTS.messages.info.noPosts}
+        </EmptyState>
+      </>
     );
   }
 
@@ -109,6 +121,8 @@ function PostListContent({ renderPost, grid }: PostListProps) {
 
   return (
     <div>
+      {likedFilterNotice}
+
       {correctedSearch && (
         <div className="text-sm text-muted-foreground text-center mb-6">
           {TEXTS.post.search.corrected(correctedSearch)}
