@@ -1,4 +1,7 @@
 ### 2026-11-18 (FE)
+- 좋아요 수 10,000개 초과 시 필터 상단에 범위 안내 UI 추가 ([#645](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/645))
+
+### 2026-11-18 (FE)
 - Storybook 스토리 명명 규칙 강제화 린트 도입 ([#644](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/644))
 
 ### 2026-11-18 (BE)
