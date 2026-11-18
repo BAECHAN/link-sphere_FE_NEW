@@ -1,4 +1,7 @@
 ### 2026-11-18 (FE)
+- 프로젝트 설계 결정 및 작업 계획을 체계적으로 관리하고 탐색할 수 있는 색인 생성기 구현 ([#639](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/639))
+
+### 2026-11-18 (FE)
 - Storybook 내 Sonner 토스트 컴포넌트 렌더링 범위 이슈 해결 ([#640](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/640))
 
 ### 2026-11-18 (FE)
