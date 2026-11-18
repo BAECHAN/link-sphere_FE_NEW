@@ -17,6 +17,13 @@ const meta = {
   title: 'Shared/UI/Atoms/Sonner',
   component: Toaster,
   tags: ['autodocs'],
+  parameters: {
+    // 문서 페이지는 스토리를 한 화면에 함께 그리는데, sonner 토스트 저장소는 페이지에 하나라 한 스토리에서 띄운 토스트가
+    // 모든 스토리의 Toaster에 떴다. 스토리마다 iframe으로 그려 저장소를 나눈다 - iframe에서는 컨트롤이 스토리를 갱신하지
+    // 못하지만(https://storybook.js.org/docs/api/doc-blocks/doc-block-story#inline) 이 스토리들은 args를 쓰지 않는다.
+    // 높이는 한 번에 보이는 토스트 최대 3개(sonner 기본값)를 펼쳐도 잘리지 않고 모달과 겹치지 않는 값이다
+    docs: { story: { inline: false, height: '480px' } },
+  },
 } satisfies Meta<typeof Toaster>;
 
 /* eslint-disable import/no-default-export */
@@ -26,8 +33,6 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   render: () => (
     <div className="flex flex-col gap-2 pointer-events-auto">
-      {/* Note here: Toaster renders a fixed overlay. In Storybook docs mode this might overlap other things.
-           But it's essential to see how it looks. */}
       <Toaster />
       <div className="flex flex-wrap gap-2">
         <Button
