@@ -1,3 +1,6 @@
+### 2026-11-18 (BE)
+- 좋아요 필터 성능 최적화: 최근 좋아요 10,000건 이내로 검색 범위를 제한하여 조회 효율성 개선 ([#222](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/222))
+
 ### 2026-11-18 (FE)
 - 공유 컴포넌트의 토스트 로직을 추상화하여 특정 상황에 국한되지 않는 범용 안내 토스트로 리팩토링 ([#643](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/643))
 
