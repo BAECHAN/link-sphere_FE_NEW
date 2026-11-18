@@ -1,4 +1,7 @@
 ### 2026-11-18 (FE)
+- 공유 컴포넌트의 토스트 로직을 추상화하여 특정 상황에 국한되지 않는 범용 안내 토스트로 리팩토링 ([#643](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/643))
+
+### 2026-11-18 (FE)
 - 북마크 저장 한도 초과 시 안내 및 해결 방안 가이드 로직 구현 ([#638](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/638))
 
 ### 2026-11-18 (FE)
