@@ -1,4 +1,7 @@
 ### 2026-11-18 (FE)
+- 북마크 저장 한도 초과 시 안내 및 해결 방안 가이드 로직 구현 ([#638](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/638))
+
+### 2026-11-18 (FE)
 - 모바일 환경에서의 토스트 UI 레이아웃 개선
 로그:
 - fix(shared): 좁은 화면에서 한 줄 토스트의 버튼이 접힌 문구 옆 가운데에 끼던 문제 수정 ([#642](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/642))
