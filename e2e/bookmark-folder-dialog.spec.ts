@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures/auth.fixture';
 import { installCatchAll } from './mocks/catch-all';
 import { ENDPOINTS } from './mocks/endpoints';
@@ -171,5 +172,88 @@ test.describe('로그인 상태 — 북마크 폴더 모달 열림·닫힘', () 
     ).toBeVisible();
 
     expect(folderRequests).toHaveLength(1);
+  });
+});
+
+// 한 줄 문구에 버튼이 달린 토스트(같은 줄 배치)는 좁은 화면에서 문구와 버튼이 한 줄에 안 들어가면 문구를 접지 않고
+// 버튼을 다음 줄로 내린다 - 접힌 문구 옆 세로 가운데에 버튼이 끼지 않는다(shared/lib/toast/toast-layout.ts)
+test.describe('로그인 상태 — 좁은 화면의 폴더 저장 토스트', () => {
+  const LONG_NAME_FOLDER = { ...mockBookmarkFolder, name: '가나다라마바사아자차카타파하가' };
+
+  test.beforeEach(async ({ page }) => {
+    await installCatchAll(page);
+    await mockAuthRefresh(page);
+    await mockAccountQuery(page);
+    await mockCategoryOptions(page);
+    await mockPostList(page);
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.bookmark.folders),
+      (route) =>
+        route.fulfill({
+          json: wrapResponse({ folders: [LONG_NAME_FOLDER], uncategorizedCount: 0 }),
+        })
+    );
+    await page.route(
+      (url) => isApiPath(url, ENDPOINTS.bookmark.postFolder(mockPost.id, LONG_NAME_FOLDER.id)),
+      (route) =>
+        route.fulfill({
+          json: wrapResponse({
+            postId: mockPost.id,
+            isBookmarked: true,
+            folderIds: [LONG_NAME_FOLDER.id],
+          }),
+        })
+    );
+  });
+
+  async function saveAndMeasureToast(page: Page) {
+    await page.goto('/post');
+    await page.getByRole('button', { name: TEXTS.ariaLabels.bookmarkSave }).click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('button', { name: LONG_NAME_FOLDER.name })).toBeVisible();
+    // 모달이 뜬 직후의 클릭은 더블클릭 관통으로 보고 무시한다(useOpenClickGuard)
+    await page.waitForTimeout(DOUBLE_CLICK_GUARD_MS);
+    await dialog.getByRole('button', { name: LONG_NAME_FOLDER.name }).click();
+
+    const savedToast = page
+      .locator('[data-sonner-toast]')
+      .filter({ hasText: TEXTS.messages.success.bookmarkSavedTo(LONG_NAME_FOLDER.name) });
+    await expect(savedToast).toBeVisible();
+
+    return savedToast.evaluate((toastElement) => {
+      const title = toastElement.querySelector('[data-title]')!;
+      const titleBox = title.getBoundingClientRect();
+      const buttonBox = toastElement.querySelector('[data-button]')!.getBoundingClientRect();
+
+      return {
+        titleLines: Math.round(titleBox.height / parseFloat(getComputedStyle(title).lineHeight)),
+        titleTop: titleBox.top,
+        titleBottom: titleBox.bottom,
+        buttonTop: buttonBox.top,
+        buttonBottom: buttonBox.bottom,
+      };
+    });
+  }
+
+  test('360px에서 15자 폴더 이름이면 문구는 한 줄로 두고 버튼이 문구 아래 줄로 내려간다', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+
+    const layout = await saveAndMeasureToast(page);
+
+    expect(layout.titleLines).toBe(1);
+    expect(layout.buttonTop).toBeGreaterThanOrEqual(layout.titleBottom);
+  });
+
+  test('한 줄에 들어가는 폭(375px)이면 버튼이 문구와 같은 줄에 있다', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 740 });
+
+    const layout = await saveAndMeasureToast(page);
+
+    expect(layout.titleLines).toBe(1);
+    expect(layout.buttonTop).toBeLessThan(layout.titleBottom);
+    expect(layout.buttonBottom).toBeGreaterThan(layout.titleTop);
   });
 });

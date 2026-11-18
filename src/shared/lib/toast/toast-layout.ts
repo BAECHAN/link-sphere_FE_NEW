@@ -4,6 +4,7 @@ import type { ExternalToast } from 'sonner';
  * 버튼(action)이 달린 토스트의 배치 - 호출부가 아니라 래퍼(toast.ts)가 정한다(docs/FE-ARCHITECTURE.md §14 "버튼 배치").
  * - `stacked`: 문구가 여러 줄이면 버튼을 문구 아래 줄 오른쪽에, 닫기 X를 오른쪽 위에 둔다
  * - `inline`: 문구가 한 줄이면 버튼을 같은 줄 오른쪽에 두고 닫기 X를 끈다(버튼과 X가 자리를 다툰다)
+ *   좁은 화면에서 한 줄에 안 들어가면 버튼만 다음 줄 오른쪽으로 내려간다
  * - `none`: 버튼이 없다
  *
  * 이름은 MDC Web `mdc-snackbar--stacked`, Primer `actionsLayout: 'inline' | 'stacked'`를 따랐다.
@@ -19,6 +20,16 @@ export const STACKED_ACTION_CLASS_NAMES = {
   content: 'col-start-2 row-start-1 min-w-0',
   actionButton: 'col-start-2 col-span-2 row-start-2 justify-self-end !ml-0',
   closeButton: 'col-start-3 row-start-1 !ml-0',
+};
+
+// 같은 줄 배치 - 문구와 버튼이 한 줄에 들어가면 Toaster 기본(같은 줄 오른쪽) 그대로다. 좁은 화면에서 안 들어가면
+// 문구를 접는 대신 버튼이 다음 줄 오른쪽으로 내려간다(flex-wrap은 줄을 나눌 때 문구의 접히기 전 폭으로 계산한다).
+// 문구가 접혀 버튼이 그 옆 세로 가운데에 끼는 모양을 막는다(docs/FE-ARCHITECTURE.md §14 "버튼 배치")
+export const INLINE_ACTION_CLASS_NAMES = {
+  toast: '!flex-wrap',
+  // 최대 폭은 아이콘(16px)과 간격(8px)을 뺀 값 - 없으면 더 좁은 화면에서 문구까지 아이콘 아래 줄로 내려간다
+  content: '!flex-initial max-w-[calc(100%-1.75rem)]',
+  actionButton: '!ml-auto',
 };
 
 /**

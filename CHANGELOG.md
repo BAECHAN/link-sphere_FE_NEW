@@ -268,6 +268,13 @@
 
 ### Fixed
 
+- `shared` 좁은 화면에서 한 줄 토스트의 문구가 접히며 버튼이 세로 가운데에 끼던 문제
+  <details><summary>배경·구현</summary>
+
+  "{15자 폴더 이름}에 저장했어요." + [보기]처럼 한 줄 문구에 버튼이 달린 토스트는 375px에서는 한 줄이지만 360px 이하(흔한 안드로이드 폭)에서는 문구가 두 줄로 접히고 버튼이 그 옆 세로 가운데에 왔다. #641에서 여러 줄 토스트의 버튼을 아래 줄로 내리며 없앤 모양이 이 경우에만 남아 있었다. 이제 문구와 버튼이 한 줄에 안 들어가면 문구를 접는 대신 버튼만 다음 줄 오른쪽으로 내려간다. 한 줄에 들어가는 폭·문구는 그대로다 (`shared/lib/toast/toast-layout.ts`의 `INLINE_ACTION_CLASS_NAMES`, `toast.ts`, `e2e/bookmark-folder-dialog.spec.ts`, `docs/FE-ARCHITECTURE.md` §14 "버튼 배치", [PR #642](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/642))
+
+  </details>
+
 - `shared` Storybook Sonner 문서에서 토스트가 모든 스토리 칸에 함께 뜨던 문제
   <details><summary>배경·구현</summary>
 

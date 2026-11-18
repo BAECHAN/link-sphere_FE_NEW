@@ -2,7 +2,10 @@ import { createElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { toast as sonnerToast } from 'sonner';
 import { toast } from '@/shared/lib/toast/toast';
-import { STACKED_ACTION_CLASS_NAMES } from '@/shared/lib/toast/toast-layout';
+import {
+  INLINE_ACTION_CLASS_NAMES,
+  STACKED_ACTION_CLASS_NAMES,
+} from '@/shared/lib/toast/toast-layout';
 import { TEXTS } from '@/shared/config/texts';
 
 // sonner는 src/test/setup.ts에서 모킹돼 있어, 래퍼가 sonner에 넘긴 인자를 그대로 확인할 수 있다
@@ -89,13 +92,14 @@ describe('toast 버튼 배치', () => {
     });
   });
 
-  it('버튼이 있고 문구가 한 줄이면 같은 줄 배치다 - 닫기 X를 끄고 배치 클래스는 입히지 않는다', () => {
+  it('버튼이 있고 문구가 한 줄이면 같은 줄 배치다 - 닫기 X를 끄고, 좁아서 안 들어가면 버튼만 내려가는 클래스를 입힌다', () => {
     toast.success(TEXTS.messages.success.bookmarkSavedTo('개발'), { action });
 
     expect(sonnerToast.success).toHaveBeenCalledWith(expect.anything(), {
       position: 'bottom-center',
       action,
       closeButton: false,
+      classNames: INLINE_ACTION_CLASS_NAMES,
     });
   });
 

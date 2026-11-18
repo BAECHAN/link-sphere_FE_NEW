@@ -76,7 +76,7 @@ const INLINE_ACTIONS: ToastSample[] = [
       }),
   },
   {
-    // 한 줄 문구 중 가장 긴 경우(폴더 이름 최대 15자) - 좁은 화면에서 문구가 접히는지 보는 견본
+    // 한 줄 문구 중 가장 긴 경우(폴더 이름 최대 15자) - 좁은 화면(360px 이하)에서는 버튼만 아래 줄로 내려간다
     label: '15자 폴더 + 보기',
     show: () =>
       toast.success(TEXTS.messages.success.bookmarkSavedTo('가나다라마바사아자차카타파하가'), {

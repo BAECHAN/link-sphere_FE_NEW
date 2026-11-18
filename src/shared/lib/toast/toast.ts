@@ -1,5 +1,9 @@
 import { toast as sonnerToast, type ExternalToast } from 'sonner';
-import { resolveActionLayout, STACKED_ACTION_CLASS_NAMES } from '@/shared/lib/toast/toast-layout';
+import {
+  INLINE_ACTION_CLASS_NAMES,
+  resolveActionLayout,
+  STACKED_ACTION_CLASS_NAMES,
+} from '@/shared/lib/toast/toast-layout';
 
 /**
  * 토스트 위치 정책 — 카테고리별로 위치를 다르게 둔다.
@@ -47,6 +51,7 @@ const at = (
   const layout = resolveActionLayout(message, rest);
   const classNames = {
     ...(layout === 'stacked' && STACKED_ACTION_CLASS_NAMES),
+    ...(layout === 'inline' && INLINE_ACTION_CLASS_NAMES),
     ...UNSAFE_classNames,
   };
 
