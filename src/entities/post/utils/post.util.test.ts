@@ -36,6 +36,19 @@ describe('PostUtil.resolveSubmitError', () => {
     });
   });
 
+  it('북마크 한도에 닿아 등록이 거절되면(BOOKMARK_LIMIT_EXCEEDED) 폼 안내로 한도와 해결 방법을 알린다', () => {
+    expect(
+      PostUtil.resolveSubmitError(
+        apiError({ status: 409, code: SERVER_ERROR_CODE.BOOKMARK_LIMIT_EXCEEDED }),
+        CREATE
+      )
+    ).toEqual({
+      kind: 'form',
+      message:
+        '북마크는 10,000개까지 저장할 수 있어요. 기존 북마크를 정리한 뒤 다시 시도해 주세요.',
+    });
+  });
+
   it('폴더가 사라졌으면(FOLDER_NOT_FOUND) 북마크 칸 에러로 분류한다', () => {
     expect(
       PostUtil.resolveSubmitError(

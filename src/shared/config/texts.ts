@@ -410,6 +410,8 @@ export const TEXTS = {
       removeBookmark: '북마크 제거',
       viewAction: '보기',
       undoAction: '되돌리기',
+      // 북마크 저장 한도 안내 토스트의 버튼 - 정리하러 북마크함 전체로 보낸다
+      viewBookmarksAction: '북마크 보기',
       deleteConfirmTitle: (name: string) => `"${name}" 폴더 삭제`,
       deleteConfirmMessage:
         '이 폴더를 삭제할까요? 이 폴더에만 있던 북마크는 미분류로 이동해요. (다른 폴더에도 있으면 그대로 유지돼요)',
@@ -538,6 +540,10 @@ export const TEXTS = {
       unknownError: '알 수 없는 오류가 발생했어요.',
       apiRequestFailed: 'API 요청 실패', // 콘솔 로그 전용 - 톤 규칙 대상 아님
       loginRequired: '로그인이 필요해요.',
+      // 회원당 북마크 저장 한도에 닿아 새 북마크를 만들지 못한 경우(409 BOOKMARK_LIMIT_EXCEEDED). 숫자는 BE
+      // BookmarkLimits.MAX_BOOKMARKS_PER_MEMBER와 같아야 한다 - 스펙에 실을 자리가 없어 손으로 맞춘다
+      bookmarkLimitExceeded:
+        '북마크는 10,000개까지 저장할 수 있어요. 기존 북마크를 정리한 뒤 다시 시도해 주세요.',
       // 요청을 보낸 뒤 다른 탭에서 로그인 상태가 바뀌어 처리하지 않고 끝낸 경우(SessionChangedError)
       sessionChanged: '로그인 상태가 바뀌어서 처리되지 않았어요. 다시 시도해 주세요.',
       // 로그인이 만료됐거나 풀린 채 제출해 저장하지 못한 경우(SessionExpiredError) - 글·댓글 폼의 버튼 위 FormAlert

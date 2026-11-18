@@ -82,6 +82,14 @@ function serverError() {
   );
 }
 
+// 회원당 북마크 저장 한도에 닿아 새 북마크를 만들지 못했다(BE BookmarkLimitExceededException)
+function bookmarkLimitExceeded() {
+  return HttpResponse.json(
+    { status: 409, code: 'BOOKMARK_LIMIT_EXCEEDED', message: 'limit', timestamp: '' },
+    { status: 409 }
+  );
+}
+
 function notLoggedIn() {
   return HttpResponse.json(
     { status: 401, code: 'NOT_LOGGED_IN', message: 'unauthorized', timestamp: '' },
@@ -103,6 +111,15 @@ const clearFolders = (response: () => Response) =>
 interface CapturedAction {
   label: string;
   onClick: () => void;
+}
+
+// 한도 안내 토스트의 인자 - 버튼(action)을 직접 눌러 본다
+function lastErrorToast() {
+  const call = vi.mocked(toast.error).mock.calls.at(-1);
+  const options = call?.[1] as
+    { action?: CapturedAction; id?: string; duration?: number } | undefined;
+
+  return { message: call?.[0], options };
 }
 
 function lastSuccessToast() {
@@ -289,6 +306,37 @@ describe('usePostCardBookmarkFolderDialog', () => {
       expect(onOpenChange).not.toHaveBeenCalled();
     });
 
+    it('북마크 한도로 거절되면 한도 안내 1개에 북마크함으로 가는 버튼을 달고 다시 보내지 않는다', async () => {
+      let requestCount = 0;
+      server.use(
+        putBookmark(() => {
+          requestCount += 1;
+          return bookmarkLimitExceeded();
+        })
+      );
+      const { result, onOpenChange } = renderDialogHook({
+        isBookmarked: false,
+        bookmarkFolderIds: [],
+      });
+
+      await act(async () => {
+        await result.current.handleSelectUncategorized();
+      });
+
+      const { message, options } = lastErrorToast();
+
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(message).toBe(TEXTS.messages.error.bookmarkLimitExceeded);
+      expect(options?.action?.label).toBe(TEXTS.bookmark.folder.viewBookmarksAction);
+      expect(toast.success).not.toHaveBeenCalled();
+      expect(onOpenChange).not.toHaveBeenCalled();
+      expect(requestCount).toBe(1);
+
+      options?.action?.onClick();
+
+      expect(navigateSpy).toHaveBeenCalledWith(ROUTES_PATHS.BOOKMARK, { replace: false });
+    });
+
     it('응답을 못 받았으면 실패라고 단정하지 않는다', async () => {
       server.use(putBookmark(() => HttpResponse.error()));
       const { result, onOpenChange } = renderDialogHook({
@@ -435,6 +483,26 @@ describe('usePostCardBookmarkFolderDialog', () => {
       );
     });
 
+    it('되돌리기가 북마크 한도로 거절되면 버튼 달린 한도 안내를 닫을 때까지 남긴다', async () => {
+      server.use(deleteFolder(FOLDER_A, () => envelope(foldersResponse(false, []))));
+      const { result } = renderDialogHook({ bookmarkFolderIds: [FOLDER_A] });
+
+      await act(async () => {
+        await result.current.handleSelectFolder(folderA);
+      });
+
+      server.use(postFolder(FOLDER_A, bookmarkLimitExceeded));
+      lastSuccessToast().action?.onClick();
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1));
+      const { message, options } = lastErrorToast();
+
+      expect(message).toBe(TEXTS.messages.error.bookmarkLimitExceeded);
+      expect(options?.id).toBe('bookmark-restore-error');
+      expect(options?.duration).toBe(Infinity);
+      expect(options?.action?.label).toBe(TEXTS.bookmark.folder.viewBookmarksAction);
+    });
+
     it('되돌리기 도중 로그인이 만료됐으면 에러 토스트를 띄우지 않는다', async () => {
       server.use(deleteFolder(FOLDER_A, () => envelope(foldersResponse(false, []))));
       const { result } = renderDialogHook({ bookmarkFolderIds: [FOLDER_A] });
@@ -473,6 +541,37 @@ describe('usePostCardBookmarkFolderDialog', () => {
       expect(toast.error).toHaveBeenCalledTimes(1);
       expect(toast.error).toHaveBeenCalledWith(TEXTS.messages.error.bookmarkSaveFailed);
       expect(onOpenChange).not.toHaveBeenCalled();
+    });
+
+    it('비소속 폴더 추가가 북마크 한도로 거절되면 한도 안내 1개에 북마크함으로 가는 버튼을 달고 다시 보내지 않는다', async () => {
+      let requestCount = 0;
+      server.use(
+        postFolder(FOLDER_B, () => {
+          requestCount += 1;
+          return bookmarkLimitExceeded();
+        })
+      );
+      const { result, onOpenChange } = renderDialogHook({
+        isBookmarked: false,
+        bookmarkFolderIds: [],
+      });
+
+      await act(async () => {
+        await result.current.handleSelectFolder(folderB);
+      });
+
+      const { message, options } = lastErrorToast();
+
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(message).toBe(TEXTS.messages.error.bookmarkLimitExceeded);
+      expect(options?.action?.label).toBe(TEXTS.bookmark.folder.viewBookmarksAction);
+      expect(toast.success).not.toHaveBeenCalled();
+      expect(onOpenChange).not.toHaveBeenCalled();
+      expect(requestCount).toBe(1);
+
+      options?.action?.onClick();
+
+      expect(navigateSpy).toHaveBeenCalledWith(ROUTES_PATHS.BOOKMARK, { replace: false });
     });
 
     it('다른 폴더도 있는 소속 폴더 제거가 실패하면 폴더 제거 실패 문구를 띄운다', async () => {

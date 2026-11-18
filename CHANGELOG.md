@@ -11,6 +11,13 @@
 
 ### Added
 
+- `bookmark` 북마크 저장 한도(10,000개)에 닿으면 이유와 해결 방법을 안내
+  <details><summary>배경·구현</summary>
+
+  BE가 회원당 북마크를 10,000개로 제한하면서(BE #221, 409 `BOOKMARK_LIMIT_EXCEEDED`) 그 거절을 화면이 "북마크 저장에 실패했어요."로만 알리면 다시 눌러도 같은 결과라 벗어날 방법이 없다. 이제 북마크가 새로 생기는 세 자리에서 "북마크는 10,000개까지 저장할 수 있어요. 기존 북마크를 정리한 뒤 다시 시도해 주세요."를 보인다 — 폴더 선택 창의 미분류 저장·폴더 담기는 기존 실패 토스트 자리(1개), 삭제 뒤 되돌리기는 닫을 때까지 남는 토스트, 북마크와 함께 하는 글 등록은 폼 안내 줄이다(글도 등록되지 않는다). 토스트에는 북마크함 전체로 가는 "북마크 보기" 버튼이 문구 아래 줄 오른쪽에 있다(배치는 토스트 래퍼가 정한다, #641) — 창이 열린 칸에서 누르면 그 칸을 교체해 뒤로 돌아와도 창이 다시 열리지 않는다. 글 등록 폼에는 버튼을 두지 않았다(누르면 작성 중인 폼을 떠나게 된다). 이미 북마크한 글의 재저장·폴더 이동과 해제는 한도와 상관없이 그대로 된다. 409는 다시 보내지 않는다. 문구의 숫자는 BE 상수와 손으로 맞춘다(스펙에 실을 자리가 없다). 운영에서 이 한도에 닿을 회원은 지금 없다(최대 95개, 2026-11-17 읽기 전용 조회). (`features/bookmark/toggle/hooks/usePostCardBookmarkFolderDialog.ts`, `entities/post/utils/post.util.ts`, `shared/config/error-code.ts`, `shared/config/texts.ts`, `shared/api/generated/openapi.json`·`openapi.gen.ts`(설명 문구만), `e2e/bookmark-folder-dialog.spec.ts`, `docs/BOOKMARK.md`, [PR #638](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/638))
+
+  </details>
+
 - `shared` 글·댓글·답글 등록과 메일 요청 2개에 Idempotency-Key를 실음
   <details><summary>배경·구현</summary>
 

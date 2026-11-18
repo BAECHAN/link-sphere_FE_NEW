@@ -29,6 +29,8 @@ export const SERVER_ERROR_CODE = {
   FOLDER_NOT_FOUND: 'FOLDER_NOT_FOUND',
   // 같은 회원에게 같은 이름의 폴더가 이미 있음(BE DuplicateFolderNameException, 409)
   DUPLICATE_FOLDER_NAME: 'DUPLICATE_FOLDER_NAME',
+  // 회원당 북마크 저장 한도(10,000개)에 닿음 - 북마크 저장·폴더 담기·북마크와 함께 글 등록(BE BookmarkLimitExceededException, 409)
+  BOOKMARK_LIMIT_EXCEEDED: 'BOOKMARK_LIMIT_EXCEEDED',
   POST_NOT_FOUND: 'POST_NOT_FOUND',
   FORBIDDEN: 'FORBIDDEN',
   // 키가 다른데 같은 회원이 1시간 안에 같은 URL을 또 등록(BE DuplicatePostException, 409)
