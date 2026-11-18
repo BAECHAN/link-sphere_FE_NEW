@@ -261,6 +261,13 @@
 
 ### Fixed
 
+- `shared` Storybook Sonner 문서에서 토스트가 모든 스토리 칸에 함께 뜨던 문제
+  <details><summary>배경·구현</summary>
+
+  Storybook의 Sonner 문서 페이지(Docs 탭)는 스토리 다섯 개를 한 화면에 그리는데, 스토리마다 `<Toaster />`를 두는 반면 sonner의 토스트 저장소는 페이지에 하나라 버튼 한 번에 토스트가 다섯 칸 모두에 떴다(로컬 Storybook에서 재현, 앱에는 `Toaster`가 `App.tsx` 하나뿐이라 해당 없음). 이제 이 파일의 스토리는 문서 페이지에서 칸마다 iframe으로 그려져 누른 칸에만 뜬다. 칸 높이는 sonner가 한 번에 보여 주는 최대 3개를 펼쳐도 잘리지 않는 480px로 정했다(240·360·480px 화면 비교 뒤 사용자 선택, 2026-11-18). Storybook 공식 문서는 이 상황에 iframe을 권하지 않고 "한 Docs 페이지에서 상태를 나누려면 스토리마다 따로 만든다"(TanStack React 문서)고만 하며, sonner에서 그 방식은 `Toaster` `id`와 `toasterId`라 앱 함수 `showLeftPageFailureToast`의 시그니처를 바꿔야 해 택하지 않았다(사용자 선택). iframe에서는 컨트롤이 스토리를 갱신하지 못하지만 이 스토리들은 args를 쓰지 않는다. (`src/shared/ui/atoms/sonner.stories.tsx`)
+
+  </details>
+
 - `shared` 검색창 X를 누른 뒤 친 글자가 사라지던 문제, 모바일 X가 검색 화면을 닫던 문제
   <details><summary>배경·구현</summary>
 
