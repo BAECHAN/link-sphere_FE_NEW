@@ -7,10 +7,12 @@ import prettierPlugin from 'eslint-plugin-prettier';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import vitestPlugin from '@vitest/eslint-plugin';
 import playwrightPlugin from 'eslint-plugin-playwright';
+import storybookPlugin from 'eslint-plugin-storybook';
 import { mutationRetryRule } from './scripts/lib/mutation-retry-rule.js';
 import { noIndexFileRule, noValueReExportRule } from './scripts/lib/no-barrel-rules.js';
 import { noLiteralA11yNameRule } from './scripts/lib/no-literal-a11y-name-rule.js';
 import { noLiteralJsxTextRule } from './scripts/lib/no-literal-jsx-text-rule.js';
+import { noStoryNameRule } from './scripts/lib/no-story-name-rule.js';
 import { scopeMutationAuthEpochRule } from './scripts/lib/scope-mutation-auth-epoch-rule.js';
 
 // 파일명 약어 허용 목록
@@ -1019,6 +1021,7 @@ export default [
   // 공개 배포된 사례). 변환 규칙은 docs/FE-ARCHITECTURE.md §18 "Storybook 스토리" 참고.
   // 자동 수정은 두지 않는다 - 스토리 URL이 title에서 나오므로 pre-commit의 --fix가
   // URL을 조용히 바꾸지 않게 기대값만 메시지로 보여준다.
+  // no-story-name: 사이드바 이름은 export 이름만 쓴다(scripts/lib/no-story-name-rule.js).
   {
     files: ['src/**/*.stories.tsx'],
     plugins: {
@@ -1139,11 +1142,25 @@ export default [
               };
             },
           },
+          'no-story-name': noStoryNameRule,
         },
       },
     },
     rules: {
       'custom-storybook/title-matches-path': 'error',
+      'custom-storybook/no-story-name': 'error',
+    },
+  },
+  // 공식 Storybook 규칙(export 형식·PascalCase·play 함수·.storybook/main의 addon 설치 여부 등).
+  // 파일 범위(*.stories.*, .storybook/main.*)는 설정이 스스로 정한다. 2026-11-18 도입 시 위반 0건.
+  ...storybookPlugin.configs['flat/recommended'],
+  // 위 묶음은 스토리 파일에서 react-hooks/rules-of-hooks를 끈다(설치본 dist/index.js의
+  // storybook:recommended:stories-rules). 이 레포 스토리는 훅을 PascalCase 컴포넌트 안에서만 써
+  // 켜진 채로 통과하므로, 도입 전처럼 다시 켠다(2026-11-18 사용자 결정).
+  {
+    files: ['src/**/*.stories.tsx'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
     },
   },
   // Atoms 폴더: kebab-case
