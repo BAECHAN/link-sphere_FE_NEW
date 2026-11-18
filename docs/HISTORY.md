@@ -1,4 +1,7 @@
 ### 2026-11-18 (FE)
+- 디자인 토큰 기반의 토스트 메시지 스타일 시스템 구축 및 접근성(명도 대비) 개선 ([#646](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/646))
+
+### 2026-11-18 (FE)
 - 좋아요 수 10,000개 초과 시 필터 상단에 범위 안내 UI 추가 ([#645](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/645))
 
 ### 2026-11-18 (FE)
