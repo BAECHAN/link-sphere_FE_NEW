@@ -10,17 +10,17 @@ export const useBookmarkSearch = () => {
 
   const [searchInput, setSearchInput] = useState(searchQuery);
   const [prevSearchQuery, setPrevSearchQuery] = useState(searchQuery);
-  const [isClearedByInput, setIsClearedByInput] = useState(false);
+  const [isClearedByUser, setIsClearedByUser] = useState(false);
 
   // URL이 변경되면 로컬 상태도 동기화 (예: 뒤로가기). effect가 아니라 렌더 중에 맞춘다
   // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
-  // 단, 입력을 다 지워서 q를 뺀 경우(handleInputChange)는 비추지 않는다. 라우터 갱신은 transition이라
-  // (RouterProvider의 v7_startTransition) 입력보다 늦게 도착하고, 그 사이 친 글자를 빈 값으로 덮는다.
+  // 단, 사용자가 지워서 q를 뺀 경우(handleInputChange·handleClear)는 비추지 않는다. 라우터 갱신은
+  // transition이라(RouterProvider의 v7_startTransition) 입력보다 늦게 도착하고, 그 사이 친 글자를 빈 값으로 덮는다.
   if (searchQuery !== prevSearchQuery) {
     setPrevSearchQuery(searchQuery);
-    setIsClearedByInput(false);
+    setIsClearedByUser(false);
 
-    if (!isClearedByInput || searchQuery !== '') {
+    if (!isClearedByUser || searchQuery !== '') {
       setSearchInput(searchQuery);
     }
   }
@@ -46,6 +46,7 @@ export const useBookmarkSearch = () => {
 
   const handleClear = () => {
     setSearchInput('');
+    setIsClearedByUser(true);
     applySearch('');
   };
 
@@ -59,7 +60,7 @@ export const useBookmarkSearch = () => {
       return;
     }
 
-    setIsClearedByInput(true);
+    setIsClearedByUser(true);
     applySearch('');
   };
 

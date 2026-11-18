@@ -172,4 +172,44 @@ describe('BookmarkSearch — URL 동기화', () => {
 
     expect(input).toHaveValue('이전');
   });
+
+  it('X로 검색을 해제하고 글자를 친 뒤에도 뒤로가기로 바뀐 q를 따라간다', async () => {
+    const user = userEvent.setup();
+    renderBookmarkSearch('/bookmark?q=이전', '/bookmark?q=지금');
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.bookmarkSearch);
+    await user.click(screen.getByRole('button', { name: TEXTS.ariaLabels.inputClear }));
+    await user.type(input, '새');
+    await user.click(screen.getByRole('button', { name: 'test-back' }));
+
+    expect(input).toHaveValue('이전');
+  });
+
+  it('q가 없을 때 X를 눌러도 뒤로가기로 바뀐 q를 따라간다', async () => {
+    const user = userEvent.setup();
+    renderBookmarkSearch('/bookmark?q=이전', '/bookmark');
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.bookmarkSearch);
+    await user.type(input, '임시');
+    await user.click(screen.getByRole('button', { name: TEXTS.ariaLabels.inputClear }));
+    await user.click(screen.getByRole('button', { name: 'test-back' }));
+
+    expect(input).toHaveValue('이전');
+  });
+
+  it('X로 해제한 뒤 다시 검색했다가 뒤로가기로 q가 없어지면 입력창도 비워진다', async () => {
+    const user = userEvent.setup();
+    renderBookmarkSearch('/bookmark', '/bookmark?q=지금');
+
+    const input = screen.getByPlaceholderText(TEXTS.placeholders.bookmarkSearch);
+    await user.click(screen.getByRole('button', { name: TEXTS.ariaLabels.inputClear }));
+    await user.type(input, '새{Enter}');
+    await user.type(input, '추가');
+
+    expect(input).toHaveValue('새추가');
+
+    await user.click(screen.getByRole('button', { name: 'test-back' }));
+
+    expect(input).toHaveValue('');
+  });
 });
