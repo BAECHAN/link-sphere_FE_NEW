@@ -1,4 +1,7 @@
 ### 2026-11-18 (FE)
+- Storybook 내 Sonner 토스트 컴포넌트 렌더링 범위 이슈 해결 ([#640](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/640))
+
+### 2026-11-18 (FE)
 - 검색창 UI 및 모바일 이벤트 처리 로직 최적화
   - 검색창 클리어 버튼 클릭 시 입력값 초기화 로직 수정
   - 모바일 환경에서의 검색 화면 닫기 이벤트 오작동 문제 해결 ([#637](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/637))
