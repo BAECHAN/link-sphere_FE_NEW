@@ -129,6 +129,8 @@ flowchart TD
 | `import/no-cycle`                                                                                              | 순환 참조(A→B→A) 금지 — 동작하려면 `eslint.config.js`의 리졸버 설정 3개가 함께 필요, 그 주석 참고                                                                                                                                                                                                                                             |
 | `custom-route/no-hardcoded-route-path`                                                                         | `navigate()`·`window.location.href`·JSX `to=`에 경로 문자열 직접 쓰기 금지 — `ROUTES_PATHS.*`만 허용. 문자열 리터럴만 검사하고 템플릿 리터럴(`` `/post/${id}` ``)은 잡지 못한다                                                                                                                                                               |
 | `custom-storybook/title-matches-path`                                                                          | 스토리 `title`이 파일 경로에서 계산한 값과 다르거나 없음 — 형식은 §18 "Storybook 스토리"                                                                                                                                                                                                                                                      |
+| `custom-storybook/no-story-name`                                                                               | 스토리 객체에 `name`을 씀 — 사이드바 이름은 export 이름만(§18 "Storybook 스토리")                                                                                                                                                                                                                                                             |
+| `storybook/*` (`eslint-plugin-storybook` `flat/recommended`)                                                   | 공식 Storybook 규칙 — export PascalCase, default export, play 함수, `.storybook/main.ts`의 미설치 addon 등                                                                                                                                                                                                                                    |
 | `react-hooks/*` (v7 recommended)                                                                               | React 공식 hooks 규칙 위반(`rules-of-hooks`·`refs`·`set-state-in-effect`·`purity` 등) — 기존 위반은 `eslint-suppressions.json`에 기록돼 새 코드만 막는다. `useForm()`의 `watch()`는 `incompatible-library`가 막는다 — 있으면 컴파일러가 그 훅 분석을 멈춰 위 규칙이 그 훅 전체에서 돌지 않는다(값은 `useWatch`, 변경 구독은 `form.subscribe`) |
 | `vitest/no-focused-tests`·`vitest/no-disabled-tests`·`playwright/no-focused-test`·`playwright/no-skipped-test` | 단위 테스트(`src/**/*.{test,spec}.{ts,tsx}`)·e2e(`e2e/**/*.ts`)에 `.only`·`.skip`(e2e는 `fixme`·본문 안 조건부 `test.skip`도) 남기기 금지 — 정당한 예외는 그 줄에 `eslint-disable-next-line <규칙> -- <이유>`. vitest의 `it.skipIf`·`runIf`는 못 잡는다                                                                                       |
 | `entities-cross-import-only-via-x` (dependency-cruiser)                                                        | entity가 다른 entity를 `@x/` 공개 표면 없이 직접 import — 테스트 파일은 예외(§5의 `@x` 표기 참고)                                                                                                                                                                                                                                             |
@@ -1593,6 +1595,24 @@ features·widgets에는 지금 스토리가 없다 — 하나뿐이던 `Widgets/
   위 규칙으로 계산한 값과 `title`이 다르거나 `title`이 없으면 에러를 내고 기대값을 메시지로
   보여준다. 자동 수정은 하지 않는다(스토리 URL이 `title`에서 나오므로 pre-commit의 `--fix`가
   URL을 조용히 바꾸지 않게 하려는 것). 파일을 옮기면 `title`도 함께 고쳐야 한다.
+
+**이름**: 사이드바의 스토리 이름은 export 이름(PascalCase, 예: `Uncontrolled`·`Controlled`)에서만 나온다.
+스토리 객체에 `name`을 쓰지 않는다. 스토리가 무엇을 확인하는지는 export 위 JSDoc에 적는다.
+
+- 공식 `eslint-plugin-storybook`은 export 이름과 같은 `name`만 잡는다(`no-redundant-story-name`).
+  그래서 `'비제어형 — click으로 열림'`처럼 설명을 붙인 `name`이 통과했다(2026-11-18 발견).
+  `name`을 아예 금지하는 것은 이 레포가 정한 더 엄격한 규칙이다.
+  공식 문서는 `name`을 더 설명적인 이름에 쓰라고 허용한다([Writing stories](https://storybook.js.org/docs/writing-stories) "Rename stories").
+- **ESLint `custom-storybook/no-story-name`(`scripts/lib/no-story-name-rule.js`)이 강제한다.**
+  내보낸 스토리 객체의 최상위 `name`만 보고, `args.name` 같은 컴포넌트 prop은 보지 않는다.
+  자동 수정은 없다(스토리 URL이 export 이름에서 나온다).
+- export 이름 형식은 공식 `flat/recommended`의 `storybook/prefer-pascal-case`가 본다.
+  이 규칙은 수정을 제안(suggest)만 하므로 `--fix`가 이름을 바꾸지 않는다.
+  같은 설정이 default export, play 함수, `.storybook/main.ts`의 addon 설치 여부도 검사한다.
+  다만 이 설정은 스토리 파일에서 `react-hooks/rules-of-hooks`를 끈다.
+  `eslint.config.js`가 그 바로 뒤에서 이 규칙을 다시 켠다.
+  그래서 스토리에서 훅을 쓸 때는 `render` 화살표 함수 안이 아니라 PascalCase 컴포넌트 안에서 쓴다(예: `dropdown-menu.stories.tsx`의 `ControlledComponent`).
+  계획과 업계 사례는 [`docs/plans/2026-11-18-storybook-story-name-lint.md`](plans/2026-11-18-storybook-story-name-lint.md)에 있다.
 
 **허용 범위**: 레이어가 아니라 "Provider 없이 렌더되는가"로 가른다. props만으로 그려지는
 컴포넌트(React Query·라우터·auth 컨텍스트가 필요 없는 것 — 전역 Zustand 스토어는 Provider가

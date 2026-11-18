@@ -200,8 +200,7 @@ export const RadioGroup: Story = {
  * 영역까지 이동했다가 떼도(press-drag-release) 항목이 오발동하지 않아야 한다 —
  * docs/DECISIONS.md 참고.
  */
-export const ClickToOpen: Story = {
-  name: '비제어형 — click으로 열림',
+export const Uncontrolled: Story = {
   render: () => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
