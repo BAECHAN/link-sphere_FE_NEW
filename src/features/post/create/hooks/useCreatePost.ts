@@ -7,7 +7,7 @@ import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { usePendingSubmit } from '@/shared/hooks/usePendingSubmit';
 import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
-import { showLeftPageFailureToast } from '@/shared/lib/toast/LeftPageFailureToast';
+import { showNoticeToast } from '@/shared/lib/toast/NoticeToast';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { UrlUtil } from '@/shared/utils/url.util';
 import { ScrollUtil } from '@/shared/utils/scroll.util';
@@ -185,8 +185,9 @@ export function useCreatePost() {
           restoredSubmission: { values: submittedValues, resolution },
         };
 
-        showLeftPageFailureToast({
-          key: 'post-create',
+        showNoticeToast({
+          variant: 'error',
+          id: 'left-page-failure:post-create',
           title: ErrorUtil.resolveFailureMessage(
             error,
             TEXTS.messages.error.leftPageFailure.postCreateTitle,

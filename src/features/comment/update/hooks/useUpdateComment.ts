@@ -18,7 +18,7 @@ import { splitContentImages } from '@/shared/lib/content/imageContent';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
 import { TEXTS } from '@/shared/config/texts';
 import { toast } from '@/shared/lib/toast/toast';
-import { showLeftPageFailureToast } from '@/shared/lib/toast/LeftPageFailureToast';
+import { showNoticeToast } from '@/shared/lib/toast/NoticeToast';
 import { ErrorUtil } from '@/shared/utils/error.util';
 
 type FormValues = { content: string };
@@ -160,8 +160,9 @@ export function useUpdateComment({ comment, postId, onSuccess }: UseUpdateCommen
 
       // 떠난 화면에는 고친 내용이 남지 않는다 - 닫을 때까지 남는 토스트가 유일한 안내다
       if (hasLeftPage()) {
-        showLeftPageFailureToast({
-          key: unsavedChangesKey,
+        showNoticeToast({
+          variant: 'error',
+          id: `left-page-failure:${unsavedChangesKey}`,
           title: ErrorUtil.resolveFailureMessage(
             error,
             TEXTS.messages.error.leftPageFailure.commentUpdateTitle,

@@ -6,7 +6,7 @@ import { useGoBack } from '@/shared/hooks/useGoBack';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { usePendingSubmit } from '@/shared/hooks/usePendingSubmit';
 import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
-import { showLeftPageFailureToast } from '@/shared/lib/toast/LeftPageFailureToast';
+import { showNoticeToast } from '@/shared/lib/toast/NoticeToast';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { TEXTS } from '@/shared/config/texts';
 import { UrlUtil } from '@/shared/utils/url.util';
@@ -214,8 +214,9 @@ export function useUpdatePost(postId: string) {
           restoredSubmission: { postId, values: submittedValues, resolution },
         };
 
-        showLeftPageFailureToast({
-          key: `post-update:${postId}`,
+        showNoticeToast({
+          variant: 'error',
+          id: `left-page-failure:post-update:${postId}`,
           title: ErrorUtil.resolveFailureMessage(
             error,
             TEXTS.messages.error.leftPageFailure.postUpdateTitle,

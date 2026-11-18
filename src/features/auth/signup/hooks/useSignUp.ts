@@ -17,7 +17,7 @@ import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { usePendingSubmit } from '@/shared/hooks/usePendingSubmit';
 import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
 import { toast } from '@/shared/lib/toast/toast';
-import { showLeftPageFailureToast } from '@/shared/lib/toast/LeftPageFailureToast';
+import { showNoticeToast } from '@/shared/lib/toast/NoticeToast';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
@@ -44,8 +44,9 @@ function showSignUpFailedAfterLeaving(
 
   // 이미 계정이 있으니 로그인이 해결책이다 - 로그인 화면이 state.email을 채운다(useLogin.ts)
   if (reason === 'duplicateEmail') {
-    showLeftPageFailureToast({
-      key: 'auth-signup',
+    showNoticeToast({
+      variant: 'error',
+      id: 'left-page-failure:auth-signup',
       title: leftPageFailure.signUpTitle,
       description: TEXTS.auth.signup.emailDuplicate,
       action: {
@@ -63,8 +64,9 @@ function showSignUpFailedAfterLeaving(
     failed: leftPageFailure.retryLater,
   };
 
-  showLeftPageFailureToast({
-    key: 'auth-signup',
+  showNoticeToast({
+    variant: 'error',
+    id: 'left-page-failure:auth-signup',
     title:
       reason === 'outcomeUnknown'
         ? leftPageFailure.outcomeUnknownTitle
