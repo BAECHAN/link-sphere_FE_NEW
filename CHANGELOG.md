@@ -11,6 +11,14 @@
 
 ### Added
 
+- `post` 좋아요가 10,000개를 넘으면 "좋아요한" 필터 목록 위에 범위를 안내
+  <details><summary>배경·구현</summary>
+
+  BE가 "좋아요한" 필터를 최근에 좋아요한 10,000개 안에서만 거르게 바꿨다(BE #222, 좋아요한 글 번호를 한 번에 넘기는 수에 한계가 있다). 말없이 자르면 오래전에 좋아요한 글이 왜 안 나오는지 알 수 없어, BE가 잘랐다고 알릴 때(목록 응답의 `likedFilterLimit`)만 목록 위에 "최근 좋아요 10,000개까지 보여요"를 적는다. 자리와 모양은 자판 보정 안내와 같고(사용자 선택, 필터 카드 안에 두는 안과 실제 화면으로 비교), 결과가 없을 때도 빈 목록 안내 위에 함께 보인다. 숫자는 서버 값을 쓴다. 좋아요가 10,000개 이하이면 화면은 그대로다. 근거는 `docs/SEARCH.md` §5.
+  (`PostList.tsx`, `usePostList.ts`, `texts.ts`, `openapi.gen.ts`, `e2e/liked-filter-limit.spec.ts`, `docs/SEARCH.md`, [PR #645](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/645))
+
+  </details>
+
 - `bookmark` 북마크 저장 한도(10,000개)에 닿으면 이유와 해결 방법을 안내
   <details><summary>배경·구현</summary>
 

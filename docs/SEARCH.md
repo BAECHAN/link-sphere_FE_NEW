@@ -9,7 +9,7 @@
 > `#닉네임` 태그가 어떻게 분해되는지 이해하고, 검색 관련 동작(유지·초기화·오타 보정)을
 > 어느 파일에서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-11-18 (§1·§8·§9·§10의 X 버튼 서술만. 그 전 검토는 2026-11-10)
+> **마지막 검토**: 2026-11-18 (§5 범위 칩의 좋아요 필터 범위 안내와 §8 코드 지도 한 행만. 같은 날 앞서 §1·§8·§9·§10의 X 버튼 서술만. 그 전 검토는 2026-11-10)
 
 ## 1. 쉬운 설명
 
@@ -151,6 +151,13 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 - 정렬은 좋아요한 순이 아니라 피드와 같은 글 작성순이다
 - 이 칩을 켠 목록에서 좋아요를 취소해도 카드가 좋아요 아이콘만 꺼진 채 남고, 다음 재조회 때 빠진다.
   "북마크한"과 같은 동작이고 좋아요 캐시 코드는 바꾸지 않았다([`POST.md`](./POST.md) §11)
+- 좋아요가 10,000개를 넘는 회원은 최근에 좋아요한 10,000개 안에서만 걸러진다(2026-11-18, BE #222). 좋아요한 글 번호를
+  한 번에 넘기는 수에 DB 연결 프로그램의 한계가 있어서다. 그때만 BE가 목록 응답에 `likedFilterLimit`(10000)을 싣고,
+  화면은 목록 위에 "최근 좋아요 10,000개까지 보여요"를 적는다. 결과가 없을 때도 빈 목록 안내 위에 함께 보인다.
+  - **자리는 목록 맨 위 가운데다**(자판 보정 안내와 같은 자리·모양, 사용자 선택). 실제 화면 미리보기 2안을 비교했다.
+  - **기각: 필터 카드 안, 칩 줄 바로 아래.** 켠 칩과 가까워 무엇에 대한 안내인지 읽기 쉽지만, 칩을 누른 뒤 응답이 오면
+    카드가 한 줄 늘어 "봇 글 숨기기·초기화" 줄과 목록이 아래로 밀리고, 같은 종류의 안내가 두 자리로 갈린다.
+  - 숫자는 서버 값을 그대로 쓴다. FE는 10,000이라는 상수를 따로 들지 않는다.
 - 자리는 "북마크한" 바로 뒤, 켜진 색은 좋아요 버튼과 같은 `destructive`다(위치 2안·색 2안 시안
   비교 후 사용자 선택: https://claude.ai/artifact/QLhkfEDkpYT6UdGZfRch2D)
 
@@ -298,6 +305,7 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 정지 구간 "불러오는 중" 덮개 모양 바꾸기                     | [`PostList.tsx`](../src/widgets/post/post-list/ui/PostList.tsx)의 `isApplying` 분기 — 덮개·알약, 문구는 `TEXTS.post.search.applying`                                                                                                                                                                                                                                                            |
 | 초기화 버튼(필터+검색어 전체 리셋)                           | [`usePostListFilter.ts`](../src/widgets/post/post-list/hooks/usePostListFilter.ts) — `handleClearSearch`                                                                                                                                                                                                                                                                                        |
 | 오타 보정 문구                                               | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx`](../src/widgets/post/post-list/ui/PostList.tsx)의 `PostListContent`(`correctedSearch` 분기)                                                                                                                                                                                                                                               |
+| 좋아요 필터 범위 안내 문구·자리                              | `TEXTS.post.search.likedFilterLimited`, 표시는 [`PostList.tsx`](../src/widgets/post/post-list/ui/PostList.tsx)의 `PostListContent`(`likedFilterNotice`). 숫자는 BE 응답의 `likedFilterLimit`                                                                                                                                                                                                    |
 | 모바일 검색 패널 열림 상태                                   | [`useMobileSearchPanel.ts:16-20`](../src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts#L16-L20) — `useBackClosableOverlay('mobileSearchOpen')`. 뒤로가기 동작의 정본은 [BACK-NAVIGATION.md](./BACK-NAVIGATION.md) 5장                                                                                                                                                                     |
 | 검색 중 하단 댓글바 숨김 동작 바꾸기                         | [`MobileCommentBar.tsx`](../src/features/comment/create/ui/MobileCommentBar.tsx) — `useBackClosableOverlay('mobileSearchOpen')` 구독부, 두 `return` 모두의 `cn(...)` 조건부 `hidden`                                                                                                                                                                                                            |
 | 검색 중 배경 클릭·포커스 차단 범위 바꾸기                    | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                                                                                                                                                                                                               |

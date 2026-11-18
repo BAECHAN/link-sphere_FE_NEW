@@ -180,6 +180,7 @@ export const usePostList = (grid: CardGridSpec) => {
 
   const posts = data.posts;
   const correctedSearch = data.pages[0]?.correctedSearch;
+  const likedFilterLimit = data.pages[0]?.likedFilterLimit ?? null;
 
   const { containerRef, virtualizer, rows, columnCount, remeasureScrollMargin } =
     useWindowGridVirtualizer({
@@ -192,12 +193,12 @@ export const usePostList = (grid: CardGridSpec) => {
       estimateRowHeight: (count) => grid.rowHeightEstimate[count] ?? DEFAULT_ROW_HEIGHT,
     });
 
-  // correctedSearch 안내 문구가 나타나거나 사라지면 컨테이너의 문서 상단 기준 위치가
+  // correctedSearch·likedFilterLimit 안내 문구가 나타나거나 사라지면 컨테이너의 문서 상단 기준 위치가
   // 바뀌므로 scrollMargin을 다시 잰다 (pull-to-refresh 인디케이터처럼 매 프레임 바뀌는
   // 값은 여기 deps에 넣지 않는다 - 훅 내부에서 마운트·리사이즈 시에만 자동 재측정한다)
   useLayoutEffect(() => {
     remeasureScrollMargin();
-  }, [correctedSearch, remeasureScrollMargin]);
+  }, [correctedSearch, likedFilterLimit, remeasureScrollMargin]);
 
   const lastVirtualRowIndex = virtualizer.getVirtualItems().at(-1)?.index;
   // 실패하면 자동으로 다시 받지 않는다 - 끝에 머무는 동안 조건이 계속 참이라 응답마다 같은 요청을 다시 보냈다.
@@ -221,6 +222,7 @@ export const usePostList = (grid: CardGridSpec) => {
   return {
     posts,
     correctedSearch,
+    likedFilterLimit,
     isFetchingNextPage,
     isNextPageFailed,
     retryNextPage,

@@ -348,3 +348,54 @@ describe('PostList — 봇 글 숨기기를 바꾼 뒤 응답을 기다리는 �
     );
   });
 });
+
+// 좋아요가 10,000개를 넘는 회원의 "좋아요한" 필터는 최근 10,000개 안에서만 거른다(BE #222). 서버가 잘랐다고 알릴 때만
+// 그 사실을 목록 위에 적는다 - 결과가 없을 때도 "왜 없는지"의 단서라 함께 보인다
+describe('PostList — 좋아요 필터가 최근 좋아요만 봤을 때의 안내', () => {
+  const notice = TEXTS.post.search.likedFilterLimited(10000);
+
+  function mockLikedLimit(content: typeof mockPostListResponse.content) {
+    server.use(
+      http.get(url(API_ENDPOINTS.post.base), ({ request }) => {
+        const isLiked = (new URL(request.url).searchParams.get('filter') ?? '').includes('isLiked');
+
+        return HttpResponse.json(
+          {
+            status: 200,
+            message: 'ok',
+            data: { ...mockPostListResponse, content, likedFilterLimit: isLiked ? 10000 : null },
+            timestamp: '',
+          },
+          { status: 200 }
+        );
+      })
+    );
+  }
+
+  it('서버가 likedFilterLimit을 주면 목록 위에 안내를 띄우고, 필터를 끄면 걷는다', async () => {
+    const user = userEvent.setup();
+    mockLikedLimit(mockPostListResponse.content);
+    renderFeed();
+
+    await screen.findByRole('button', { name: TEXTS.buttons.likedOnly });
+    expect(screen.queryByText(notice)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: TEXTS.buttons.likedOnly }));
+    expect(await screen.findByText(notice)).toBeInTheDocument();
+
+    await waitForClickGuard();
+    await user.click(screen.getByRole('button', { name: TEXTS.buttons.likedOnly }));
+    await waitFor(() => expect(screen.queryByText(notice)).not.toBeInTheDocument());
+  });
+
+  it('결과가 없을 때도 빈 목록 안내와 함께 띄운다', async () => {
+    const user = userEvent.setup();
+    mockLikedLimit([]);
+    renderFeed();
+
+    await user.click(await screen.findByRole('button', { name: TEXTS.buttons.likedOnly }));
+
+    expect(await screen.findByText(notice)).toBeInTheDocument();
+    expect(screen.getByText(TEXTS.messages.info.noPosts)).toBeInTheDocument();
+  });
+});
