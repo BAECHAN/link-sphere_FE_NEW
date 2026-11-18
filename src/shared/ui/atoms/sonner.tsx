@@ -6,6 +6,25 @@ import { Toaster as Sonner } from 'sonner';
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
+// 종류별 토스트 색(richColors)을 sonner 고정 색 대신 globals.css 토큰에서 만든다 - 토큰을 바꾸면 토스트도 따라 바뀐다.
+// 배경·테두리는 토큰을 바탕색에 옅게 섞고, 글자(제목·아이콘·닫기 X)는 토큰에 본문색을 섞어 옅은 배경 위에서도
+// 대비 4.5:1을 넘긴다. sonner가 문서화하지 않은 변수 이름이라 sonner를 올리면 색을 다시 확인한다
+// (docs/DESIGN-SYSTEM.md §8, docs/DECISIONS.md 2026-11-18 "토스트 색")
+const KIND_TOKENS = {
+  error: 'destructive',
+  success: 'success',
+  warning: 'warning',
+  info: 'info',
+} as const;
+
+const KIND_COLOR_VARS = Object.fromEntries(
+  Object.entries(KIND_TOKENS).flatMap(([kind, token]) => [
+    [`--${kind}-bg`, `color-mix(in oklab, var(--${token}) 8%, var(--background))`],
+    [`--${kind}-border`, `color-mix(in oklab, var(--${token}) 30%, var(--background))`],
+    [`--${kind}-text`, `color-mix(in oklab, var(--${token}) 60%, var(--foreground))`],
+  ])
+) as React.CSSProperties;
+
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = 'system' } = useTheme();
 
@@ -23,8 +42,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
         offset={{ bottom: 'var(--toast-offset-bottom)' }}
         mobileOffset={{ bottom: 'var(--toast-offset-bottom)' }}
         // sonner CSS가 layer 밖에서 [data-sonner-toaster]에 시스템 글꼴을 직접 지정해 body의 Pretendard 상속을
-        // 끊는다 — @layer utilities 안인 `font-sans` 클래스로는 못 이겨 인라인 스타일로 상속을 되살린다
-        style={{ fontFamily: 'inherit' }}
+        // 끊는다 — @layer utilities 안인 `font-sans` 클래스로는 못 이겨 인라인 스타일로 상속을 되살린다.
+        // 종류별 색 변수도 같은 이유로 여기서 덮는다
+        style={{ fontFamily: 'inherit', ...KIND_COLOR_VARS }}
         toastOptions={{
           classNames: {
             toast:
