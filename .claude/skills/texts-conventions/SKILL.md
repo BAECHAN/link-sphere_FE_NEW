@@ -60,9 +60,10 @@ TEXTS
 
 `custom-i18n/no-hardcoded-hangul`(`eslint.config.js`)이 한글 UI 문자열 하드코딩을
 pre-commit(lint-staged)과 CI·배포의 `pnpm check`에서 차단한다(`pnpm build` 자체는 ESLint를
-돌리지 않는다). 예외 7개(`eslint.config.js` ignores와 1:1):
+돌리지 않는다). 예외 8개(`eslint.config.js` ignores와 1:1):
 
 - `src/shared/config/texts.ts` — TEXTS 단일 소스 자기 자신
+- `src/shared/ui/texts/ko-ui-texts.ts` — 공용 UI 부품의 한국어 문구 묶음(아래 "공용 UI 부품이 스스로 보여 주는 글자")
 - `src/test/**/*.{ts,tsx}` — 테스트 인프라
 - `src/mocks/**/*.{ts,tsx}` — MSW 목/픽스처
 - `**/*.test.{ts,tsx}` — 콜로케이션 테스트
@@ -73,6 +74,26 @@ pre-commit(lint-staged)과 CI·배포의 `pnpm check`에서 차단한다(`pnpm b
 `custom-i18n/no-literal-a11y-name`은 같은 예외 목록으로 화면 읽기 프로그램이 읽는 문구를 언어와 상관없이 막는다 — 글자를 직접 적은 `aria-label`·`alt`(객체의 `alt:` 포함)와 `sr-only` 요소 안 글자(2026-11-06, 영어 문구 8곳과 `attachment`가 `no-hardcoded-hangul`을 통과해 있었다). 새 문구는 `ariaLabels.*`에 키를 더한다. `empty:sr-only`처럼 어떤 때는 화면에 보이는 글자와 `title`은 이 규칙이 보지 않는다.
 
 `custom-i18n/no-literal-jsx-text`도 같은 예외 목록으로 JSX 요소 사이에 직접 적은 글자를 언어와 상관없이 막는다(2026-11-06, `Recent Links`·`Submit Link`가 첫 구현부터 통과해 있었다). 화면 글자는 한국어로 쓴다. 영어로 두는 것은 서비스 이름 `LinkSphere`, 기술 약어 `URL`, 단축키(`Ctrl + Enter` 등)뿐이고 이것들도 `TEXTS`에 둔다. 이 규칙은 `texts.ts` 안의 값, 속성 값, `{'...'}` 안 문자열은 보지 않으니 `texts.ts`에 영어를 새로 넣는지는 리뷰로 본다.
+
+### 공용 UI 부품이 스스로 보여 주는 글자
+
+범용 공용 UI 부품(`src/shared/ui`에서 앱 전용 예외 목록 밖의 부품)은 `TEXTS`를 import하지 않는다 — ESLint
+`custom-design-system/no-app-import-in-generic-ui`가 막는다. 닫기 버튼 라벨처럼 부품이 스스로 넣는 글자는
+`useUiTexts()`로 읽고, 값은 앱이 문구 Provider로 넘긴다. 배경과 선례는 `docs/DESIGN-SYSTEM-PRINCIPLES.md` §1.1·§1.2.
+
+부품에 글자를 더하는 순서(하나라도 빠지면 타입 검사나 묶음 검사 테스트가 실패한다):
+
+1. `src/shared/ui/texts/ui-texts.ts` — `UiTexts` 타입에 키를 더한다. 모든 키가 필수다(넘기지 않으면 컴파일 오류).
+2. `src/shared/ui/texts/ko-ui-texts.ts` — 패키지가 내보내는 한국어 묶음 `KO_UI_TEXTS`에 값을 더한다. 자동으로 쓰이지
+   않고, 쓰려는 앱이 직접 가져와 Provider에 넘긴다.
+3. `src/app/providers/UiTextsProvider.tsx` — 이 앱이 넘기는 `APP_UI_TEXTS`에 `TEXTS.*`를 이어 준다. 맞는 키가 없으면
+   `texts.ts`에 먼저 더한다. 이 앱의 문구를 정하는 곳은 지금처럼 `texts.ts`다.
+4. 부품 — `const uiTexts = useUiTexts();` 뒤 `uiTexts.<묶음>.<키>`로 읽는다. 변수 이름은 `uiTexts`로 통일한다.
+
+묶는 규칙: 한 부품만 쓰는 글자는 그 부품 이름 아래(`spinner.label`, `passwordInput.show`), 둘 이상이 쓰는 글자는
+`common` 아래(`common.close`)에 둔다. `KO_UI_TEXTS`와 `APP_UI_TEXTS`의 값이 같은지는
+`src/app/providers/UiTextsProvider.test.tsx`가 모든 키를 돌며 본다 — `texts.ts`의 값을 바꾸면 `ko-ui-texts.ts`도 같이
+바꿔야 통과한다. 이 앱의 문구를 묶음과 일부러 다르게 두기로 하면 그 테스트를 지운다(테스트 머리 주석).
 
 ### 톤 규칙
 

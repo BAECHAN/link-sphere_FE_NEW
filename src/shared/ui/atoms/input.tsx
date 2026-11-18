@@ -1,9 +1,9 @@
 import { forwardRef, useRef } from 'react';
 
 import { cn } from '@/shared/lib/tailwind/utils';
-import { TEXTS } from '@/shared/config/texts';
 import { Button } from '@/shared/ui/atoms/button';
 import { useMergedRef } from '@/shared/hooks/useMergedRef';
+import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';
 
 import { X } from 'lucide-react';
 
@@ -16,6 +16,7 @@ export interface InputProps extends React.ComponentProps<'input'> {
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, onClear, hasValue, ...props }, ref) => {
+    const uiTexts = useUiTexts();
     const inputRef = useRef<HTMLInputElement>(null);
     const mergedRef = useMergedRef(ref, inputRef);
 
@@ -52,7 +53,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full text-muted-foreground hover:text-foreground"
           >
             <X className="size-4" />
-            <span className="sr-only">{TEXTS.ariaLabels.inputClear}</span>
+            <span className="sr-only">{uiTexts.input.clear}</span>
           </Button>
         )}
       </>

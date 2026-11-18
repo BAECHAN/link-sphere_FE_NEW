@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { MemoryRouter } from 'react-router-dom';
 import { GlobalAlertDialogs } from '@/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs';
 import { useAlertDialog } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
 import { Button } from '@/shared/ui/atoms/button';
@@ -8,15 +7,6 @@ const meta = {
   title: 'Shared/UI/Elements/Dialog/AlertDialog/GlobalAlertDialogs',
   component: GlobalAlertDialogs,
   tags: ['autodocs'],
-  // AlertDialogItem이 마운트 즉시 useLocation()을 호출한다 - <Router> 조상 없이는 렌더 자체가
-  // 크래시한다(ImageViewer.stories.tsx와 동일한 문제, 같은 해법).
-  decorators: [
-    (Story) => (
-      <MemoryRouter>
-        <Story />
-      </MemoryRouter>
-    ),
-  ],
 } satisfies Meta<typeof GlobalAlertDialogs>;
 
 /* eslint-disable import/no-default-export */

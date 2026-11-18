@@ -14,6 +14,7 @@ import { noLiteralA11yNameRule } from './scripts/lib/no-literal-a11y-name-rule.j
 import { noLiteralJsxTextRule } from './scripts/lib/no-literal-jsx-text-rule.js';
 import { noStoryNameRule } from './scripts/lib/no-story-name-rule.js';
 import { scopeMutationAuthEpochRule } from './scripts/lib/scope-mutation-auth-epoch-rule.js';
+import { noAppImportInGenericUiRule } from './scripts/lib/ui-boundary-rule.js';
 
 // 파일명 약어 허용 목록
 // PascalCase 규칙에서 예외로 처리할 약어들
@@ -1550,6 +1551,7 @@ export default [
     files: ['src/**/*.{ts,tsx}'],
     ignores: [
       'src/shared/config/texts.ts', // TEXTS 단일 소스
+      'src/shared/ui/texts/ko-ui-texts.ts', // 공용 UI 부품의 한국어 문구 묶음(앱 문구를 import할 수 없다)
       'src/test/**/*.{ts,tsx}', // 테스트 인프라
       'src/mocks/**/*.{ts,tsx}', // MSW 목/픽스처
       '**/*.test.{ts,tsx}', // 콜로케이션 테스트
@@ -1701,6 +1703,56 @@ export default [
     },
     rules: {
       'custom-route/no-hardcoded-route-path': 'error',
+    },
+  },
+
+  // ============================================================
+  // [금지] 범용 공용 UI 부품의 앱 결합 — 허용 목록 밖 import 금지
+  // 이유: 범용 부품이 앱 문구(TEXTS)·라우터·스토어를 import하면 패키지로 내든 파일을 복사해 가든 다른
+  //       프로젝트에서 쓸 수 없다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1). 허용 목록과 규칙 본체는
+  //       scripts/lib/ui-boundary-rule.js에 있다.
+  // 대상: 공용 UI 전체와, 부품이 함께 가져가는 보조 모듈 13개 파일(보조 모듈을 거쳐 다시 묶이는 길을 막는다).
+  // no-restricted-imports가 아니라 커스텀 룰인 이유는 queryClient 블록의 "주의"와 같다
+  // (아래 FSD 레이어 블록과 rule key가 겹친다).
+  // ============================================================
+  {
+    files: [
+      'src/shared/ui/**/*.{ts,tsx}',
+      // 보조 모듈 (docs/DESIGN-SYSTEM-PRINCIPLES.md §5.5)
+      'src/shared/lib/tailwind/utils.ts',
+      'src/shared/hooks/useClickGuard.ts',
+      'src/shared/hooks/useOpenClickGuard.ts',
+      'src/shared/hooks/useMergedRef.ts',
+      'src/shared/hooks/useDelayedLoading.ts',
+      'src/shared/hooks/useKeydown.ts',
+      'src/shared/lib/toast/toast.ts',
+      'src/shared/lib/toast/toast-layout.ts',
+      'src/shared/lib/image/failedImageCache.ts',
+      'src/shared/utils/scroll.util.ts',
+      'src/shared/config/const.ts',
+      'src/shared/types/common.type.ts',
+      'src/shared/utils/common.util.ts',
+    ],
+    ignores: [
+      // 스토리·테스트의 앱 문구·라우터 사용은 분리 리허설에서 다룬다
+      '**/*.stories.{ts,tsx}',
+      '**/*.test.{ts,tsx}',
+      // 앱 전용 부품 (docs/DESIGN-SYSTEM-PRINCIPLES.md §5) - 자리는 그대로 두고 여기에 적는다
+      'src/shared/ui/elements/AppErrorFallback.tsx',
+      'src/shared/ui/elements/AsyncBoundary.tsx',
+      'src/shared/ui/elements/MarkdownContent.tsx',
+      'src/shared/ui/elements/dialog/alert-dialog/RouteAlertDialogs.tsx',
+      'src/shared/ui/elements/dialog/image-viewer/imageViewer.store.ts',
+      // 그리는 부품과 앱 배선으로 나누기 전까지(다음 PR)
+      'src/shared/ui/elements/dialog/image-viewer/ImageViewer.tsx',
+    ],
+    plugins: {
+      'custom-design-system': {
+        rules: { 'no-app-import-in-generic-ui': noAppImportInGenericUiRule },
+      },
+    },
+    rules: {
+      'custom-design-system/no-app-import-in-generic-ui': 'error',
     },
   },
 

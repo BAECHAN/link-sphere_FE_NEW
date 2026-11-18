@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { MemoryRouter } from 'react-router-dom';
 import { fn } from 'storybook/test';
+import { Button } from '@/shared/ui/atoms/button';
 import { ErrorLayout } from '@/shared/ui/layouts/ErrorLayout';
 
 const meta = {
@@ -17,7 +17,7 @@ const meta = {
   args: {
     title: '404',
     description: '페이지를 찾을 수 없습니다.',
-    onHomeClick: fn(),
+    homeAction: <Button onClick={fn()}>홈으로</Button>,
   },
 } satisfies Meta<typeof ErrorLayout>;
 
@@ -60,20 +60,17 @@ export const WithChildren: Story = {
   },
 };
 
-// 라우터 안 화면(403/404/500 페이지)이 쓰는 형태 - 홈 버튼이 링크(<a href>)로 렌더된다
+// 이동하는 화면(403/404/500 페이지)이 쓰는 형태 - 홈 버튼을 링크(<a href>)로 넘긴다.
+// 앱은 Button asChild 안에 라우터의 Link를 넣는다(NotFoundPage.tsx)
 export const HomeLink: Story = {
-  decorators: [
-    (Story) => (
-      <MemoryRouter>
-        <Story />
-      </MemoryRouter>
-    ),
-  ],
   args: {
     title: '404',
     description: '요청하신 페이지를 찾을 수 없습니다.',
-    homeTo: '/',
-    onHomeClick: undefined,
+    homeAction: (
+      <Button asChild>
+        <a href="/">홈으로</a>
+      </Button>
+    ),
   },
 };
 
@@ -81,6 +78,6 @@ export const NoHomeButton: Story = {
   args: {
     title: '오류 발생',
     description: '잠시 후 다시 시도해주세요.',
-    onHomeClick: undefined,
+    homeAction: undefined,
   },
 };

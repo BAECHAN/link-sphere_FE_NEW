@@ -73,7 +73,7 @@ transition이 무엇인지는 안다고 가정한다.
 
 구현·검증 과정에서 쓴 도구:
 
-- Vitest + `renderWithDataRouter`·`renderHookWithDataRouter`(`src/test/utils.tsx:150`, `:166`) — 실제
+- Vitest + `renderWithDataRouter`·`renderHookWithDataRouter`(`src/test/utils.tsx:153`, `:169`) — 실제
   `createMemoryRouter`로 도는 단위 테스트
 - Playwright `page.goBack()`·`page.goForward()` — 실제 히스토리 이동으로 보는 e2e
 - ESLint `no-restricted-syntax` — 표준을 우회하는 코드를 막는다
@@ -221,7 +221,7 @@ sequenceDiagram
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------- |
 | 등록부 타입 | 훅의 인자가 `BackClosableOverlayKey`라 등록하지 않은 키는 컴파일되지 않는다                                                                                                                                       | `pnpm type-check`                           | `src/shared/config/back-closable-overlay.ts:7`  |
 | e2e 행렬    | 키를 더하고 사례를 안 적으면 컴파일되지 않는다. 사례를 적으면 데스크톱·폰 두 화면에서 검사 4개가 돈다                                                                                                             | `pnpm type-check`(`tsconfig.e2e.json`), e2e | `e2e/back-closable-overlay.cases.ts:65`, `:166` |
-| 금지 린트   | 운영 코드에서 `CloseWatcher`, `history.pushState`·`replaceState`, `popstate` 리스너를 직접 쓰는 것, `state`에 `…Open` 키를 리터럴로 적는 것(`state: { fooOpen: true }`, `<Navigate state={{ fooOpen: true }} />`) | `pnpm lint`(pre-commit, CI)                 | `eslint.config.js:99`                           |
+| 금지 린트   | 운영 코드에서 `CloseWatcher`, `history.pushState`·`replaceState`, `popstate` 리스너를 직접 쓰는 것, `state`에 `…Open` 키를 리터럴로 적는 것(`state: { fooOpen: true }`, `<Navigate state={{ fooOpen: true }} />`) | `pnpm lint`(pre-commit, CI)                 | `eslint.config.js:100`                          |
 
 행렬의 검사 4개는 이렇다 — ① 열면 칸이 하나 늘고 주소는 그대로다 ② 연 채 뒤로가기를 누르면 오버레이만 닫힌다
 ③ 화면에서 닫아도 칸이 빠진다(이어서 뒤로가기를 눌러도 한 번에 이전 화면으로 간다) ④ 닫은 뒤 앞으로 가기로 다시
@@ -298,8 +298,8 @@ React Router는 칸마다 `history.state`에 `{ usr, key, idx }`를 적는다. `
 | 폰의 검색창                   | `src/widgets/layout/navbar/hooks/useMobileSearchPanel.ts:20`(여닫기), `:29`(제출이 칸을 바꿈)                                                                                                                                  |
 | 검색창 열림만 읽는 곳         | `src/app/layouts/app-layout/AppLayout.tsx:34`, `src/features/post/create/ui/CreatePostForm.tsx:47`, `src/features/comment/create/ui/MobileCommentBar.tsx:33`                                                                   |
 | e2e 행렬(사례 표, 공통 검사)  | `e2e/back-closable-overlay.cases.ts:65`, `:166`                                                                                                                                                                                |
-| 금지 린트                     | `eslint.config.js:99`                                                                                                                                                                                                          |
-| 단위 테스트용 데이터 라우터   | `src/test/utils.tsx:150`(컴포넌트), `:166`(훅)                                                                                                                                                                                 |
+| 금지 린트                     | `eslint.config.js:100`                                                                                                                                                                                                         |
+| 단위 테스트용 데이터 라우터   | `src/test/utils.tsx:153`(컴포넌트), `:169`(훅)                                                                                                                                                                                 |
 | 측정                          | `scripts/back-overlay-measure/measure.mjs`                                                                                                                                                                                     |
 
 ### 자주 하는 수정
@@ -530,7 +530,7 @@ Pixel 5의 화면 크기와 터치를 흉내 낸 데스크톱 Chromium이고, �
     `ProtectedRoute`가 열림을 본 때까지, 글 등록 화면, 조건마다 4~5회)는 감속 없이 13~15ms, 4배 62~70ms, 6배
     103~133ms였다.
   - 창을 닫는 클릭은 열린 뒤 400ms 동안 무시되지만 Esc와 뒤로가기에는 그 가드가 없다
-    (`src/shared/ui/atoms/dialog.tsx:88`, `:114-123`).
+    (`src/shared/ui/atoms/dialog.tsx:88`, `:115-124`).
   - 창이 열려 있는지를 창과 같은 곳에서 읽게 고쳤다(5장). 고친 뒤 같은 임시 스펙은 1·4·6·20배 × 대기
     0·100·1000ms 12칸 모두 확인창이 떴다. 계획은 "`ProtectedRoute`의 판정은 그대로 둔다"였고, 원인과 두 안을 보고
     사용자가 이 수정을 골랐다(2026-11-10). 로그인 창만 커밋된 위치에서 읽게 되돌리는 안은 표준에 예외가 하나 남는다.

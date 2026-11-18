@@ -424,7 +424,7 @@ export function RootLayout() {
         <LoginDialog />
       </Suspense>
       <GlobalImageViewer />
-      <GlobalAlertDialogs />
+      <RouteAlertDialogs />
     </>
   );
 }

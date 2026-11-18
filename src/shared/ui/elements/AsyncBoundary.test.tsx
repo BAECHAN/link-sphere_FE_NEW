@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen } from '@/test/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';

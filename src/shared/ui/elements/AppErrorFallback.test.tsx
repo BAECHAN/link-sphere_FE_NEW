@@ -3,17 +3,28 @@ import { render, screen } from '@testing-library/react';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { chunkReloadKey } from '@/shared/config/storage-keys';
 import { TEXTS } from '@/shared/config/texts';
+import { KO_UI_TEXTS } from '@/shared/ui/texts/ko-ui-texts';
 
 const PATHNAME = '/post';
 const CHUNK_ERROR = new TypeError(
   'Failed to fetch dynamically imported module: https://linksphere.click/assets/js/PostPage-abc.js'
 );
 
-// ChunkReloadUtil의 "이 페이지에서 새로고침을 걸었다"는 모듈 변수라 테스트마다 모듈을 새로 불러 격리한다
+// ChunkReloadUtil의 "이 페이지에서 새로고침을 걸었다"는 모듈 변수라 테스트마다 모듈을 새로 불러 격리한다.
+// 문구 Provider도 같은 모듈 그래프에서 가져와 감싼다 - 새로 불린 부품은 새 컨텍스트 객체를 읽으므로
+// 먼저 불린 Provider(@/test/utils의 render)로는 문구가 닿지 않는다
 async function loadAppErrorFallback() {
   vi.resetModules();
   const { AppErrorFallback } = await import('@/shared/ui/elements/AppErrorFallback');
-  return AppErrorFallback;
+  const { UiTextsProvider } = await import('@/shared/ui/texts/UiTextsProvider');
+
+  return function AppErrorFallbackWithUiTexts(props: { error: unknown }) {
+    return (
+      <UiTextsProvider texts={KO_UI_TEXTS}>
+        <AppErrorFallback {...props} />
+      </UiTextsProvider>
+    );
+  };
 }
 
 describe('AppErrorFallback', () => {

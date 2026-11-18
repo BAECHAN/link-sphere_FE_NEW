@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
 import {
   AlertDialogData,
   useAlertDialogStore,
@@ -15,13 +14,15 @@ import {
 } from '@/shared/ui/atoms/alert-dialog';
 import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
-import { TEXTS } from '@/shared/config/texts';
+import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';
 
 interface AlertDialogItemProps {
   dialog: AlertDialogData;
+  dismissKey: string | undefined;
 }
 
-function AlertDialogItem({ dialog }: AlertDialogItemProps) {
+function AlertDialogItem({ dialog, dismissKey }: AlertDialogItemProps) {
+  const uiTexts = useUiTexts();
   const { close, remove, cancelAlertDialog } = useAlertDialogStore(
     useShallow((state) => ({
       close: state.close,
@@ -40,8 +41,8 @@ function AlertDialogItem({ dialog }: AlertDialogItemProps) {
     id,
     title,
     message,
-    confirmText = TEXTS.buttons.confirm,
-    cancelText = TEXTS.buttons.cancel,
+    confirmText = uiTexts.alertDialog.confirm,
+    cancelText = uiTexts.alertDialog.cancel,
     type,
     isOpen,
     emphasis = 'cancel',
@@ -90,16 +91,17 @@ function AlertDialogItem({ dialog }: AlertDialogItemProps) {
 
   // 히스토리에 묶이지 않은 대화상자라 뒤로가기가 라우트만 바꿔도 알아채지 못하고 배경만
   // 바뀐 채로 계속 떠 있는다 - 열려있던 위치를 벗어나면 취소로 간주해 닫는다.
-  // pathname이 아니라 key를 본다 - 북마크 페이지처럼 폴더 이동이 쿼리 파라미터로만
-  // 표현되는 경우 pathname은 안 바뀌지만 key는 navigate마다 항상 새로 발급된다.
-  const location = useLocation();
-  const openedKeyRef = useRef(location.key);
+  // 위치를 아는 것은 쓰는 쪽이다 - 이 부품은 라우터를 import하지 않고 "바뀌면 닫을 값"만 받는다.
+  // 이 앱은 RouteAlertDialogs가 location.key를 넘긴다. pathname이 아니라 key인 이유는 북마크
+  // 페이지처럼 폴더 이동이 쿼리 파라미터로만 표현되면 pathname은 안 바뀌지만 key는 navigate마다
+  // 항상 새로 발급되기 때문이다.
+  const openedKeyRef = useRef(dismissKey);
   useEffect(() => {
-    if (isOpen && location.key !== openedKeyRef.current) {
+    if (isOpen && dismissKey !== openedKeyRef.current) {
       handleClose();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.key]);
+  }, [dismissKey]);
 
   return (
     <AlertDialog
@@ -124,7 +126,7 @@ function AlertDialogItem({ dialog }: AlertDialogItemProps) {
             <AlertDialogTitle>{title}</AlertDialogTitle>
           ) : (
             <AlertDialogTitle className="sr-only">
-              {TEXTS.ariaLabels.alertDialogFallbackTitle}
+              {uiTexts.alertDialog.fallbackTitle}
             </AlertDialogTitle>
           )}
           <AlertDialogDescription
@@ -164,17 +166,26 @@ function AlertDialogItem({ dialog }: AlertDialogItemProps) {
   );
 }
 
+interface GlobalAlertDialogsProps {
+  /**
+   * 이 값이 바뀌면 열려 있던 확인창을 취소로 닫는다. 화면이 바뀌었는데 확인창만 남는 것을 막는 용도라
+   * 라우터를 쓰는 앱은 위치마다 달라지는 값(react-router의 `location.key` 등)을 넘긴다.
+   * 넘기지 않으면 이 이유로는 닫히지 않는다.
+   */
+  dismissKey?: string;
+}
+
 /**
  * 전역 Alert/Confirm 모달 렌더러
  * App 최상위에 배치하여 사용합니다.
  */
-export function GlobalAlertDialogs() {
+export function GlobalAlertDialogs({ dismissKey }: GlobalAlertDialogsProps) {
   const dialogs = useAlertDialogStore((state) => state.dialogs);
 
   return (
     <>
       {dialogs.map((dialog) => (
-        <AlertDialogItem key={dialog.id} dialog={dialog} />
+        <AlertDialogItem key={dialog.id} dialog={dialog} dismissKey={dismissKey} />
       ))}
     </>
   );

@@ -86,7 +86,14 @@
   CI·배포의 `pnpm check`에서 막는다(`pnpm build` 자체는 ESLint를 돌리지 않는다). 보간은 `texts.ts`의 함수형 키를 쓴다(예:
   `messages.success.bookmarkSavedTo(folderName)`). 화면 읽기 프로그램이 읽는 문구(`aria-label`, `alt`, `sr-only` 요소 안 글자)는
   영어도 직접 쓰지 않는다(`custom-i18n/no-literal-a11y-name`). JSX 요소 사이에 직접 적은 글자도 언어와 상관없이 막힌다
-  (`custom-i18n/no-literal-jsx-text`). 화면 글자는 한국어로 쓰고, 예외 목록(`LinkSphere`, `URL`, 단축키 등)은 `texts-conventions` skill을 본다
+  (`custom-i18n/no-literal-jsx-text`). 화면 글자는 한국어로 쓰고, 예외 목록(`LinkSphere`, `URL`, 단축키 등)은 `texts-conventions` skill을 본다.
+  범용 공용 UI 부품 안에서는 `TEXTS` 대신 `useUiTexts()`를 쓴다(다음 항목)
+- **Never** 범용 공용 UI 부품(`src/shared/ui`에서 앱 전용 예외 목록 밖의 파일)과 그 보조 모듈에서 앱 문구(`TEXTS`)·라우터
+  (`react-router-dom`)·앱 상태를 import → 부품이 스스로 넣는 글자는 `useUiTexts()`로 읽고(값은 `src/app/providers/UiTextsProvider.tsx`가
+  `TEXTS`에서 뽑아 넘긴다), 링크·이동은 쓰는 쪽이 속성으로 넘긴다(`ErrorLayout`의 `homeAction`, `GlobalAlertDialogs`의
+  `dismissKey`). ESLint `custom-design-system/no-app-import-in-generic-ui`가 허용 목록 밖 import를 막는다. 이 앱에서만 쓰는
+  부품이면 `eslint.config.js`의 그 규칙 블록 예외 목록에 더하고 `docs/DESIGN-SYSTEM-PRINCIPLES.md` §5 분류표에 "앱 전용"으로
+  적는다. 글자를 더하는 순서는 `texts-conventions` skill "공용 UI 부품이 스스로 보여 주는 글자", 배경은 같은 문서 §1.1·§1.2
 - **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반 Tailwind 클래스 사용
   (`text-destructive`, `bg-success`, `text-warning` 등). ESLint `custom-tailwind/no-raw-color`가 black/white/gray/zinc 등 명명 팔레트
   리터럴 클래스를 pre-commit과 `pnpm check`에서 막는다(도입 경위: `docs/DESIGN-SYSTEM.md`)
@@ -495,15 +502,15 @@ shared/
 
 ## 테스트 환경
 
-| 항목          | 내용                                                                                                     |
-| ------------- | -------------------------------------------------------------------------------------------------------- |
-| 테스트 러너   | Vitest 4.x + jsdom                                                                                       |
-| 글로벌 셋업   | `src/test/setup.ts` (MSW, jsdom stubs, toast mock)                                                       |
-| 커스텀 render | `src/test/utils.tsx` → `renderWithProviders()`, `createTestQueryClient()`                                |
-| MSW           | `src/mocks/server.ts` + `handlers/` + `fixtures/`                                                        |
-| API URL 전략  | Vitest는 `DEV`라 `/api` 고정 → MSW 인터셉트. `.env.test`는 e2e 전용(운영 API 차단)                       |
-| 강제 실행     | `.husky/scripts/pre-push` + GitHub Actions `ci.yml`·`deploy.yml`                                         |
-| e2e           | Playwright(`e2e/`), `page.route()` 모킹, 상세는 `docs/TESTING.md` "Playwright e2e 자동화 테스트" 절 참고 |
+| 항목          | 내용                                                                                                                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 테스트 러너   | Vitest 4.x + jsdom                                                                                                                                                                    |
+| 글로벌 셋업   | `src/test/setup.ts` (MSW, jsdom stubs, toast mock)                                                                                                                                    |
+| 커스텀 render | `src/test/utils.tsx` → `render()`(문구 Provider만), `renderWithProviders()`, `createTestQueryClient()` — 공용 UI 부품을 그리면 `render`도 여기서 가져온다(`docs/TESTING.md` "패턴 D") |
+| MSW           | `src/mocks/server.ts` + `handlers/` + `fixtures/`                                                                                                                                     |
+| API URL 전략  | Vitest는 `DEV`라 `/api` 고정 → MSW 인터셉트. `.env.test`는 e2e 전용(운영 API 차단)                                                                                                    |
+| 강제 실행     | `.husky/scripts/pre-push` + GitHub Actions `ci.yml`·`deploy.yml`                                                                                                                      |
+| e2e           | Playwright(`e2e/`), `page.route()` 모킹, 상세는 `docs/TESTING.md` "Playwright e2e 자동화 테스트" 절 참고                                                                              |
 
 ```bash
 pnpm test            # 1회 실행 (CI / pre-push)

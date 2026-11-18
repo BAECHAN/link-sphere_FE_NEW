@@ -1,11 +1,12 @@
 import { Input, InputProps } from '@/shared/ui/atoms/input';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
-import { TEXTS } from '@/shared/config/texts';
+import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';
 import { forwardRef, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
 export const PasswordInput = forwardRef<HTMLInputElement, InputProps>(
   ({ disabled, ...props }, ref) => {
+    const uiTexts = useUiTexts();
     const [showPassword, setShowPassword] = useState(false);
 
     return (
@@ -21,7 +22,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, InputProps>(
         >
           {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           <span className="sr-only">
-            {showPassword ? TEXTS.ariaLabels.hidePassword : TEXTS.ariaLabels.showPassword}
+            {showPassword ? uiTexts.passwordInput.hide : uiTexts.passwordInput.show}
           </span>
         </ToggleButton>
       </div>

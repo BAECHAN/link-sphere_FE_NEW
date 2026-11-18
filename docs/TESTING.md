@@ -446,6 +446,18 @@ describe('PostCard', () => {
 });
 ```
 
+> **공용 UI 부품을 그리는 테스트는 `render`를 `@testing-library/react`가 아니라 `@/test/utils`에서 가져온다** —
+> `Spinner`·`Dialog`·`Input` 같은 범용 부품은 스스로 넣는 글자(닫기 라벨 등)를 `useUiTexts()`로 읽고, 문구 Provider 밖에서
+> 그리면 `useUiTexts must be used within a UiTextsProvider.` 오류를 낸다. `@/test/utils`의 `render`·`renderWithProviders`·
+> `renderWithDataRouter`는 앱과 같은 문구 Provider(`src/app/providers/UiTextsProvider.tsx`)를 씌워 그린다. 이 파일은
+> `@testing-library/react`를 통째로 다시 내보내므로 `screen`·`waitFor`도 여기서 가져오면 된다(RTL 공식
+> [Custom Render](https://testing-library.com/docs/react-testing-library/setup#custom-render) 방식). 두 가지 예외가 있다.
+> ① Provider가 없는 상태 자체를 보는 테스트는 RTL `render`를 직접 쓴다
+> ([`UiTextsProvider.test.tsx`](../src/shared/ui/texts/UiTextsProvider.test.tsx)). ② `vi.resetModules()`로 부품을 새로
+> 불러오는 테스트는 Provider도 같은 자리에서 동적 import해 감싼다 — 먼저 불러 둔 Provider와 새로 불린 부품은 서로 다른
+> 컨텍스트 객체를 보기 때문이다([`AppErrorFallback.test.tsx`](../src/shared/ui/elements/AppErrorFallback.test.tsx)의
+> `loadAppErrorFallback`). 배경은 [DESIGN-SYSTEM-PRINCIPLES.md](./DESIGN-SYSTEM-PRINCIPLES.md) §1.2.
+
 > **뒤로가기로 닫히는 오버레이(`useBackClosableOverlay`)를 여닫는 컴포넌트는 `renderWithDataRouter`로 렌더한다** —
 > 열림을 라우터 구독(`RouterEvents`)에서 읽기 때문에, `renderWithProviders`의 `MemoryRouter`에서는 늘 닫힘으로 읽힌다.
 > `renderWithDataRouter`(`src/test/utils.tsx`)는 앱과 같은 데이터 라우터(`createMemoryRouter` + `v7_startTransition` +

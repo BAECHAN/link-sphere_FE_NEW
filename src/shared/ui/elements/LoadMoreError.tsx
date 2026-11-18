@@ -1,7 +1,7 @@
 import { RotateCw } from 'lucide-react';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { Button } from '@/shared/ui/atoms/button';
-import { TEXTS } from '@/shared/config/texts';
+import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';
 
 export interface LoadMoreErrorProps {
   onRetry: () => void;
@@ -18,12 +18,14 @@ export interface LoadMoreErrorProps {
  * ```
  */
 export function LoadMoreError({ onRetry, className }: LoadMoreErrorProps) {
+  const uiTexts = useUiTexts();
+
   return (
     <div className={cn('flex flex-col items-center gap-2 p-4', className)}>
-      <p className="text-sm text-muted-foreground">{TEXTS.messages.error.loadMoreFailed}</p>
+      <p className="text-sm text-muted-foreground">{uiTexts.loadMoreError.failed}</p>
       <Button type="button" variant="outline" size="sm" onClick={onRetry}>
         <RotateCw aria-hidden="true" />
-        {TEXTS.buttons.retry}
+        {uiTexts.loadMoreError.retry}
       </Button>
     </div>
   );

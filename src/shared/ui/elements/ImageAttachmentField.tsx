@@ -1,8 +1,8 @@
 import { useRef } from 'react';
 import { ImagePlus, X } from 'lucide-react';
 import { cn } from '@/shared/lib/tailwind/utils';
-import { TEXTS } from '@/shared/config/texts';
 import { Button } from '@/shared/ui/atoms/button';
+import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';
 
 interface ImageAttachmentFieldProps {
   previewUrls: string[];
@@ -24,6 +24,7 @@ export function ImageAttachmentField({
   onAttach,
   onRemove,
 }: ImageAttachmentFieldProps) {
+  const uiTexts = useUiTexts();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isFull = count >= maxCount;
 
@@ -35,15 +36,15 @@ export function ImageAttachmentField({
         size="sm"
         onClick={() => fileInputRef.current?.click()}
         disabled={isFull}
-        title={TEXTS.comment.form.attachImage}
+        title={uiTexts.imageAttachmentField.attach}
         className="h-11 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
       >
         <ImagePlus className="h-4 w-4" />
         <span className="sm:hidden">
-          {TEXTS.comment.form.attachImage} {count}/{maxCount}
+          {uiTexts.imageAttachmentField.attach} {count}/{maxCount}
         </span>
         <span className="hidden sm:inline">
-          {TEXTS.comment.form.attachHint} {count}/{maxCount}
+          {uiTexts.imageAttachmentField.hint} {count}/{maxCount}
         </span>
       </Button>
       <input
@@ -69,13 +70,13 @@ export function ImageAttachmentField({
             >
               <img
                 src={url}
-                alt={TEXTS.ariaLabels.attachmentImageAt(index + 1)}
+                alt={uiTexts.imageAttachmentField.imageAt(index + 1)}
                 className="max-h-32 max-w-full object-contain rounded-md"
               />
               <button
                 type="button"
                 onClick={() => onRemove(index)}
-                title={TEXTS.comment.form.removeImageAt(index + 1)}
+                title={uiTexts.imageAttachmentField.removeAt(index + 1)}
                 className={cn(
                   'absolute -top-2 -right-2 h-5 w-5 rounded-full',
                   'bg-scrim border border-scrim shadow-sm',

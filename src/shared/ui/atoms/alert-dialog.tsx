@@ -3,8 +3,8 @@ import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 import { X } from 'lucide-react';
 
 import { cn } from '@/shared/lib/tailwind/utils';
-import { TEXTS } from '@/shared/config/texts';
 import { useOpenClickGuard } from '@/shared/hooks/useOpenClickGuard';
+import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';
 
 // 응답을 받아야 하는 확인창(삭제·이탈 등) 전용 — role="alertdialog"로 렌더돼 스크린리더가
 // "경고 대화상자"로 안내한다(W3C APG Alert Dialog 패턴). 모양과 가드는 dialog.tsx를 그대로
@@ -52,6 +52,7 @@ const AlertDialogContentPanel = React.forwardRef<
     // 열린 직후(더블클릭/더블탭) 확인창 안의 취소·확인 버튼에 두 번째 클릭이 떨어져
     // 의도치 않게 확정되는 것을 막는다 — dialog.tsx의 onClickCapture 가드와 같다.
     const isOpenClickGuarded = useOpenClickGuard(true);
+    const uiTexts = useUiTexts();
 
     return (
       <AlertDialogPrimitive.Content
@@ -82,7 +83,7 @@ const AlertDialogContentPanel = React.forwardRef<
         {showCloseButton && (
           <AlertDialogPrimitive.Cancel className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
             <X className="size-4" />
-            <span className="sr-only">{TEXTS.ariaLabels.close}</span>
+            <span className="sr-only">{uiTexts.common.close}</span>
           </AlertDialogPrimitive.Cancel>
         )}
       </AlertDialogPrimitive.Content>

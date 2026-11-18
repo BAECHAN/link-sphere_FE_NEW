@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { lazy, Suspense, type ComponentType } from 'react';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent, createTestQueryClient } from '@/test/utils';
 import { http, HttpResponse } from 'msw';
 import { QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -23,10 +23,9 @@ import { useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard';
 import { useAlertDialogStore } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
-import { GlobalAlertDialogs } from '@/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs';
+import { RouteAlertDialogs } from '@/shared/ui/elements/dialog/alert-dialog/RouteAlertDialogs';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
-import { createTestQueryClient } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { DOUBLE_CLICK_GUARD_MS, LOADING_INDICATOR_DELAY_MS } from '@/shared/config/const';
@@ -220,7 +219,7 @@ function InPlaceLayout() {
   return (
     <>
       <Outlet />
-      <GlobalAlertDialogs />
+      <RouteAlertDialogs />
     </>
   );
 }

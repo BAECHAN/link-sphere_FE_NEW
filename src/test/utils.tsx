@@ -15,6 +15,7 @@ import {
   type MemoryRouterProps,
 } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
+import { UiTextsProvider } from '@/app/providers/UiTextsProvider';
 import { RouterEvents } from '@/shared/lib/router/router-events';
 import {
   QUERY_ERROR_POLICY,
@@ -108,11 +109,13 @@ export function renderWithProviders(
 
   function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={initialEntries} future={future}>
-          {children}
-        </MemoryRouter>
-      </QueryClientProvider>
+      <UiTextsProvider>
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={initialEntries} future={future}>
+            {children}
+          </MemoryRouter>
+        </QueryClientProvider>
+      </UiTextsProvider>
     );
   }
 
@@ -184,11 +187,13 @@ function createDataRouterWrapper(wrapperOptions: DataRouterWrapperOptions) {
 
   function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>
-        <RouteContentContext.Provider value={children}>
-          <RouterProvider router={router} future={{ v7_startTransition: true }} />
-        </RouteContentContext.Provider>
-      </QueryClientProvider>
+      <UiTextsProvider>
+        <QueryClientProvider client={queryClient}>
+          <RouteContentContext.Provider value={children}>
+            <RouterProvider router={router} future={{ v7_startTransition: true }} />
+          </RouteContentContext.Provider>
+        </QueryClientProvider>
+      </UiTextsProvider>
     );
   }
 
@@ -208,6 +213,15 @@ export async function waitRenderingEachStep(ms: number, step = 5): Promise<void>
   }
 }
 
-// @testing-library/react 전체 re-export → 테스트에서 이 파일 하나만 import
+/**
+ * RTL render에 이 앱의 문구 Provider를 씌운 것. 범용 공용 UI 부품은 문구 Provider 밖에서 그리면 오류를 내므로
+ * (useUiTexts), 라우터·QueryClient가 필요 없는 테스트도 이 render로 그린다. RTL 공식 안내의 custom render 방식이다
+ * (https://testing-library.com/docs/react-testing-library/setup#custom-render).
+ */
+function renderWithUiTexts(ui: ReactNode, options?: Omit<RenderOptions, 'wrapper'>): RenderResult {
+  return render(ui, { wrapper: UiTextsProvider, ...options });
+}
+
+// @testing-library/react 전체 re-export → 테스트에서 이 파일 하나만 import. render만 위 함수로 바꿔 내보낸다
 export * from '@testing-library/react';
-export { userEvent };
+export { renderWithUiTexts as render, userEvent };
