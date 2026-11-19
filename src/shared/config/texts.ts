@@ -713,7 +713,10 @@ export const TEXTS = {
     title: '작성 중인 내용이 있어요',
     message: '이 페이지를 벗어나면 입력한 내용이 사라져요. 그래도 나갈까요?',
     confirm: '나가기',
-    cancel: '계속 작성',
+    // "취소"가 한 가지로만 읽히는 창은 다른 확인창과 같은 "취소"를 쓴다. 회원가입("그만둘까요?")과
+    // 요청 중("취소되지 않아요")은 무엇을 취소하는지 갈려 결과를 말하는 문구를 쓴다
+    // (docs/FE-ARCHITECTURE.md §10)
+    cancel: COMMON_TEXT.cancel,
     signup: {
       title: '회원가입을 그만둘까요?',
       message: '지금 나가면 입력한 가입 정보가 사라져요.',
@@ -746,7 +749,7 @@ export const TEXTS = {
       title: '작성 중인 내용이 있어요',
       message: '로그아웃하면 작성 중인 내용이 사라져요. 그래도 로그아웃할까요?',
       confirm: '로그아웃',
-      cancel: '계속 작성',
+      cancel: COMMON_TEXT.cancel,
     },
   },
   shortcuts: {

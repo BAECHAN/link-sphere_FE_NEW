@@ -338,8 +338,8 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 
 ### 삭제 — 확인 후 서버 판단을 기다린다
 
-`useDeleteComment`(`src/features/comment/delete/hooks/useDeleteComment.ts:13-25`)가
-`openConfirm`(확정 강조 `emphasis: 'confirm'`)을 띄우고 확인 시 `mutateAsync`로 지운다.
+`useDeleteComment`(`src/features/comment/delete/hooks/useDeleteComment.ts:13-22`)가
+`openConfirm`을 띄우고 확인 시 `mutateAsync`로 지운다.
 낙관적 반영은 없고, 성공하면 `handleCommentDeleteSuccess`가 댓글 목록·내 댓글·게시글
 상세·게시글 목록을 무효화한다. 같은 때 `onSuccess`가 "댓글을 삭제했어요." 토스트를 직접 띄운다 — 확인창이 닫힌 뒤
 재조회가 끝날 때까지 화면이 그대로라서다(2026-10-21, 판단 기준은
@@ -480,7 +480,7 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
     청크도 기다리지 않도록 라우트로 옮겼다([`PERFORMANCE.md`](./PERFORMANCE.md) "LCP 데이터 요청 시점").
     `CommentList`는 같은 키의 캐시를 읽어 다시 요청하지 않는다
     ([TanStack Query 프리페치 가이드](https://github.com/tanstack/query/blob/main/docs/framework/react/guides/prefetching.md)의 "게시글 + 댓글" 예시와 같은 구조).
-  - 💬 hover·focus: `handlePrefetchDetailWithComments`(`src/widgets/post/post-card/hooks/usePostCard.ts:154`)가
+  - 💬 hover·focus: `handlePrefetchDetailWithComments`(`src/widgets/post/post-card/hooks/usePostCard.ts:149`)가
     게시글과 `prefetchComments`(`src/entities/comment/api/comment.queries.ts`)를 미리 받는다. 제목 링크는 `::after`가
     카드 전체를 덮어 카드 위를 지나가기만 해도 발동하므로, 게시글은 바로 받고 댓글은 카드에 100ms 머물렀을 때만 받는다
     (`COMMENTS_PREFETCH_HOVER_DELAY_MS`, 떠나면 취소). 2026-11-04 전에는 게시글만 받았는데, 상세가 댓글을 기다리느라
@@ -753,7 +753,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 모바일 바                       | `src/features/comment/create/ui/MobileCommentBar.tsx:25-115`                                                                                   |
 | 상세의 맨 위로 버튼 조건        | `src/app/layouts/app-layout/AppLayout.tsx`의 `showBackToTopButton`·`isPostDetailPage`                                                          |
 | 수정 검증·제출                  | `src/features/comment/update/hooks/useUpdateComment.ts`의 `getCommentUpdateSubmitError`·`useUpdateComment`                                     |
-| 삭제 확인                       | `src/features/comment/delete/hooks/useDeleteComment.ts:9-31`                                                                                   |
+| 삭제 확인                       | `src/features/comment/delete/hooks/useDeleteComment.ts:9-28`                                                                                   |
 | 좋아요 버튼·feature 훅          | `src/features/comment/like/ui/LikeCommentButton.tsx`, `src/features/comment/like/hooks/useLikeComment.ts`                                      |
 | 좋아요 낙관적 반영              | `src/entities/interaction/api/interaction.queries.ts`의 `useLikeCommentMutation`, 실패 무효화는 `interaction.keys.ts`                          |
 | API·이미지 업로드               | `src/entities/comment/api/comment.api.ts:10-67`                                                                                                |

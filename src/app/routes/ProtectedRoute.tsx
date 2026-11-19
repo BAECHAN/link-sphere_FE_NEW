@@ -105,7 +105,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   );
 
   // 로그인이 풀린 채 둔 화면에서 로그인 창이 열렸다가 로그인 없이 닫히면 피드로 보낸다 - 이 화면은 로그인해야 쓸 수
-  // 있다. 쓰는 중이면 이탈 확인창이 이 이동을 막고, "계속 작성"을 고르면 로그아웃 상태로 남는다. 한 번만 보낸다 -
+  // 있다. 쓰는 중이면 이탈 확인창이 이 이동을 막고, "취소"를 고르면 로그아웃 상태로 남는다. 한 번만 보낸다 -
   // 다시 보내거나 창을 다시 열면 계속 쓰기로 한 사용자가 같은 확인을 되풀이하게 된다.
   // 렌더에 쓰지 않는 값이라 ref로 들고 effect에서만 읽고 쓴다(https://react.dev/reference/react/useRef)
   const signInDialogShownRef = useRef(false);

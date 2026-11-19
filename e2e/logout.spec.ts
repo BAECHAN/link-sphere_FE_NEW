@@ -97,7 +97,7 @@ test.describe('쓰는 중에 로그아웃', () => {
     await expect(confirm).toBeHidden();
   }
 
-  test('댓글을 쓰는 중이면 먼저 묻고, 계속 작성을 고르면 그대로 두며, 로그아웃을 고르면 쓰던 댓글을 버리고 피드로 간다', async ({
+  test('댓글을 쓰는 중이면 먼저 묻고, 취소를 고르면 그대로 두며, 로그아웃을 고르면 쓰던 댓글을 버리고 피드로 간다', async ({
     page,
   }) => {
     await mockPostDetail(page);

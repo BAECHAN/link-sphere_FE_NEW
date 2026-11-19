@@ -393,7 +393,7 @@ describe('ProtectedRoute - 로그인이 풀린 채 그 화면에 둠', () => {
     await waitFor(() => expect(screen.getByTestId('post-root')).toBeInTheDocument());
   });
 
-  it('쓰는 중이면 이탈 확인창이 막고, 계속 작성을 고르면 로그아웃 상태로 그 자리에 남는다 - 다시 묻거나 창을 다시 열지 않는다', async () => {
+  it('쓰는 중이면 이탈 확인창이 막고, 취소를 고르면 로그아웃 상태로 그 자리에 남는다 - 다시 묻거나 창을 다시 열지 않는다', async () => {
     const router = renderSignedOutInPlaceRoute({ isWriting: true });
     await expireInPlace(router);
 

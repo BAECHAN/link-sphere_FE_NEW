@@ -31,11 +31,10 @@ function AlertDialogItem({ dialog, dismissKey }: AlertDialogItemProps) {
     }))
   );
 
-  // 강조되는 버튼을 오른쪽(DOM상 두 번째)에 두면서도 처음 포커스는 강조된 쪽이 받아야 한다
-  // (§ docs/DECISIONS.md 2026-09-29 팔로업 항목). Radix AlertDialog의 기본 오토포커스는
-  // 취소(Cancel) 부품이라 이 컴포넌트의 버튼에는 가지 않는다 — 단일 버튼(alert)도 여기서
-  // 확인 버튼에 직접 포커스를 준다.
-  const emphasizedButtonRef = useRef<HTMLButtonElement>(null);
+  // 열릴 때 포커스를 받을 버튼 - 확인창(confirm)은 취소 버튼, 버튼이 하나인 알림(alert)은 확인
+  // 버튼이다. Radix AlertDialog의 기본 오토포커스는 Cancel 부품(이 앱에서는 닫기 X)으로 가므로
+  // 여기서 직접 준다.
+  const initialFocusRef = useRef<HTMLButtonElement>(null);
 
   const {
     id,
@@ -45,7 +44,6 @@ function AlertDialogItem({ dialog, dismissKey }: AlertDialogItemProps) {
     cancelText = uiTexts.alertDialog.cancel,
     type,
     isOpen,
-    emphasis = 'cancel',
   } = dialog;
 
   const handleConfirm = () => {
@@ -63,31 +61,6 @@ function AlertDialogItem({ dialog, dismissKey }: AlertDialogItemProps) {
   // 취소 버튼 클릭과 오버레이 바깥에서의 취소(뒤로가기 등)가 같은 동작이라 스토어 액션 하나로 합친다.
   const handleCancel = () => cancelAlertDialog(id);
   const handleClose = () => cancelAlertDialog(id);
-
-  // 강조되는 쪽(emphasis)이 채움 + emphasizedButtonRef(초기 포커스)를 갖고, 렌더 순서에서도
-  // 항상 오른쪽(뒤)에 온다. 두 버튼을 미리 만들어두고 emphasis에 따라 순서만 바꿔 끼운다.
-  const cancelButton = type === 'confirm' && (
-    <Button
-      key="cancel"
-      variant={emphasis === 'confirm' ? 'outline' : 'default'}
-      onClick={handleCancel}
-      ref={emphasis === 'cancel' ? emphasizedButtonRef : undefined}
-      className="flex-1 sm:flex-none sm:min-w-[80px]"
-    >
-      {cancelText}
-    </Button>
-  );
-  const confirmButton = (
-    <Button
-      key="confirm"
-      variant={type === 'confirm' && emphasis === 'cancel' ? 'outline' : 'default'}
-      onClick={handleConfirm}
-      ref={type === 'alert' || emphasis === 'confirm' ? emphasizedButtonRef : undefined}
-      className="flex-1 sm:flex-none sm:min-w-[80px]"
-    >
-      {confirmText}
-    </Button>
-  );
 
   // 히스토리에 묶이지 않은 대화상자라 뒤로가기가 라우트만 바꿔도 알아채지 못하고 배경만
   // 바뀐 채로 계속 떠 있는다 - 열려있던 위치를 벗어나면 취소로 간주해 닫는다.
@@ -118,7 +91,7 @@ function AlertDialogItem({ dialog, dismissKey }: AlertDialogItemProps) {
         className="max-w-[calc(100%-2rem)] sm:max-w-[400px]"
         onOpenAutoFocus={(e) => {
           e.preventDefault();
-          emphasizedButtonRef.current?.focus();
+          initialFocusRef.current?.focus();
         }}
       >
         <AlertDialogHeader className="items-center text-center">
@@ -140,26 +113,29 @@ function AlertDialogItem({ dialog, dismissKey }: AlertDialogItemProps) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-row justify-center gap-2 sm:justify-center mt-2">
-          {/* 강조되는 쪽(기본은 취소)이 채움 + 오른쪽 + 초기 포커스, 반대쪽이 outline + 왼쪽이다.
-              채움으로 강조하는 원칙은 Nielsen(2008) "가장 자주 선택되는 버튼을 기본값으로 두고
-              강조하라(단, 위험하면 예외)"(번역, https://www.nngroup.com/articles/ok-cancel-or-cancel-ok/)를
-              따르고, 오른쪽(trailing)에 두는 배치는 Apple HIG "사람들이 가장 많이 고를 버튼을
-              trailing 쪽에 둔다"(번역, https://developer.apple.com/design/human-interface-guidelines/alerts)를
-              따른다. 되돌리기 어려운 동작(삭제·이탈 등)은 취소가 안전한 쪽이라 기본값으로
-              강조하지만, 언제든 되돌릴 수 있는 토글(공개 설정 등)처럼 어느 쪽도 위험하지 않으면
-              호출부가 emphasis: 'confirm'으로 반대로 켤 수 있다 — 이때는 확인이 채움+오른쪽으로
-              옮겨간다. 근거: docs/DECISIONS.md 2026-09-29 항목(팔로업 포함) */}
-          {emphasis === 'confirm' ? (
-            <>
-              {cancelButton}
-              {confirmButton}
-            </>
-          ) : (
-            <>
-              {confirmButton}
-              {cancelButton}
-            </>
+          {/* 모든 확인창이 같은 모양이다 - 취소 쪽이 흰색(outline)·왼쪽·초기 포커스, 창이 묻는
+              행동이 검은색(채움)·오른쪽이다. 그래서 열린 직후 Enter와 Esc·X·뒤로가기는 모두
+              취소다. 호출부는 이 모양을 바꿀 수 없고 문구만 넘긴다. 같은 부품에서 흰색·왼쪽
+              버튼의 뜻이 창마다 달라 "취소"로 알고 누른 버튼이 화면을 떠나게 한 실수가 계기다.
+              GlobalAlertDialogs.test.tsx "기본 규칙"과 스토리 Confirm의 play가 이 모양을 지킨다.
+              근거: docs/FE-ARCHITECTURE.md §10, docs/DECISIONS.md 2026-11-19 */}
+          {type === 'confirm' && (
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              ref={initialFocusRef}
+              className="flex-1 sm:flex-none sm:min-w-[80px]"
+            >
+              {cancelText}
+            </Button>
           )}
+          <Button
+            onClick={handleConfirm}
+            ref={type === 'alert' ? initialFocusRef : undefined}
+            className="flex-1 sm:flex-none sm:min-w-[80px]"
+          >
+            {confirmText}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

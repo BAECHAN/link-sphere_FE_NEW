@@ -299,7 +299,7 @@ describe('useCreatePost - 저장 중 이탈', () => {
     }
   );
 
-  it('"계속 작성"으로 머문 뒤 등록이 성공하면 피드로 가고 새 글이 목록 맨 앞에 있다', async () => {
+  it('"취소"로 머문 뒤 등록이 성공하면 피드로 가고 새 글이 목록 맨 앞에 있다', async () => {
     const queryClient = createTestQueryClient({ gcTime: Infinity });
     queryClient.setQueryData(postKeys.list(), {
       pages: [{ content: [mockPost], nextCursor: null }],

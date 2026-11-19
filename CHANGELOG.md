@@ -70,6 +70,14 @@
 
 ### Changed
 
+- `shared` 확인창 버튼을 취소는 흰색·왼쪽·초기 포커스, 행동은 검은색·오른쪽으로 통일
+  <details><summary>배경·구현</summary>
+
+  글 등록 화면을 벗어날 때 뜨는 이탈 확인창에서 흰색·왼쪽 버튼이 "나가기"여서, 취소로 알고 눌렀다가 화면을 떠나는 실수가 있었다(사용자 보고). 삭제·탈퇴·공개 설정 확인창은 흰색·왼쪽이 "취소"였는데 이탈·작성 중 로그아웃 확인창만 반대였다. 이제 모든 확인창에서 취소 쪽 버튼이 흰색·왼쪽이고 열릴 때 포커스를 받으며, 창이 묻는 행동(삭제·나가기·전환)이 검은색·오른쪽이다. 달라지는 것은 세 가지다. ① 이탈 확인창 4종(작성 중 이탈, 작성 중 로그아웃, 회원가입 이탈, 요청 중 이탈)의 버튼 색과 자리가 서로 바뀐다. ② 작성 중 이탈·작성 중 로그아웃의 머무는 쪽 버튼 이름이 "계속 작성"에서 "취소"로 바뀐다(회원가입 이탈 "계속 가입하기", 요청 중 이탈 "결과 기다리기"는 그대로). ③ 삭제·탈퇴·공개 설정 확인창은 모양은 그대로이고, 열린 직후 Enter가 삭제·전환이 아니라 취소가 된다(키보드로 확정하려면 Tab 뒤 Enter). 호출부가 색·자리·포커스를 뒤집던 `emphasis` 옵션은 없앴고, 단위 테스트(`GlobalAlertDialogs.test.tsx` "기본 규칙")와 스토리 `Confirm`의 `play`가 이 모양을 지킨다. 받아들인 약점은 가장 눈에 띄는 버튼이 "나가기"가 됐다는 것이다.
+  (`GlobalAlertDialogs.tsx`, `alertDialog.store.ts`, `texts.ts`, `usePostDelete.ts`, `useDeleteComment.ts`, `useDeleteAccount.ts`, `useFolderActions.ts`, `usePostCard.ts`, `GlobalAlertDialogs.test.tsx`, `GlobalAlertDialogs.stories.tsx`, `docs/FE-ARCHITECTURE.md` §10, `docs/DECISIONS.md` 2026-11-19, `docs/plans/2026-11-19-confirm-dialog-base-rule.md`, [PR #651](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/651))
+
+  </details>
+
 - `shared` 오류·경고·성공·안내 토스트의 색을 디자인 토큰에서 만들고 글자 대비를 높임
   <details><summary>배경·구현</summary>
 

@@ -1301,8 +1301,7 @@ src/
 │           │   ├── useFolderActions.ts   # 폴더 고정(pin)·이름변경(rename)·삭제(delete) — FolderItem·
 │           │   │                         # FolderCard 공유. 이름변경은 features/bookmark/rename의
 │           │   │                         # useRenameBookmarkFolder를 그대로 돌려준다. 고정은 ⋮ 메뉴가 다 닫힌 뒤 보낸다
-│           │   │                         # (queuePinToggle → handleMenuCloseAutoFocus, §10). 삭제 확인창은 emphasis: 'confirm'
-│           │   │                         # (docs/DECISIONS.md 2026-09-29 항목). 삭제 성공 토스트
+│           │   │                         # (queuePinToggle → handleMenuCloseAutoFocus, §10). 삭제 성공 토스트
 │           │   │                         # "폴더를 삭제했어요."·"이미 삭제된 폴더라 화면을 갱신했어요."는 entity onSuccess(2026-11-05)
 │           │   └── useCreateFolderForm.ts # 폴더 생성 폼 코어 로직 — 사이드바·모바일 카드 공유. 글자 수
 │           │                              # (nameLength·nameCountId)도 여기서 돌려준다(§5 "폴더 이름 글자 수")
