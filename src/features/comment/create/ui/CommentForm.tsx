@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef, useState, type ForwardedRef } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Link2 } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { Textarea } from '@/shared/ui/atoms/textarea';
@@ -11,6 +11,7 @@ import { DropTargetOverlay } from '@/shared/ui/elements/DropTargetOverlay';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 import { CharacterCount } from '@/shared/ui/elements/CharacterCount';
 import { useCreateComment } from '@/features/comment/create/hooks/useCreateComment';
+import { useCopiedPostLinkSuggestion } from '@/features/comment/create/hooks/useCopiedPostLinkSuggestion';
 import { MAX_COMMENT_IMAGES } from '@/entities/comment/config/comment.contract';
 import { MAX_COMMENT_CONTENT_HANGUL_CHARS } from '@/entities/comment/config/comment.const';
 import { TEXTS } from '@/shared/config/texts';
@@ -33,6 +34,8 @@ export interface CommentFormHandle {
 }
 
 interface CommentFormViewProps {
+  /** 댓글을 쓰는 글 - 복사한 글 링크 제안이 이 글 자신의 링크를 거른다 */
+  postId: string;
   /** useCreateComment가 돌려준 값 - 폼 상태의 주인(CommentForm 또는 CommentComposer)이 넘긴다 */
   draft: ReturnType<typeof useCreateComment>;
   onCancel?: () => void;
@@ -44,7 +47,7 @@ interface CommentFormViewProps {
  * 바깥(CommentComposer)에 둬야 자리가 바뀌어도 쓰던 글이 남는다(docs/COMMENT.md §5).
  */
 export const CommentFormView = forwardRef(function CommentFormView(
-  { draft, onCancel, className }: CommentFormViewProps,
+  { postId, draft, onCancel, className }: CommentFormViewProps,
   ref: ForwardedRef<CommentFormHandle>
 ) {
   const {
@@ -68,6 +71,8 @@ export const CommentFormView = forwardRef(function CommentFormView(
     clearImage,
     clearAllImages,
   } = draft;
+  const { suggestedLink, handleContentFocus, handleContentInput, insertSuggestedLink } =
+    useCopiedPostLinkSuggestion({ postId, form, contentValue });
 
   const { register } = form;
 
@@ -118,6 +123,12 @@ export const CommentFormView = forwardRef(function CommentFormView(
     clearAllImages();
   }
 
+  // 제안 버튼을 누르면 포커스가 버튼으로 옮겨 간다 - 링크를 넣은 뒤 바로 이어 쓸 수 있게 입력칸으로 돌려준다
+  function handleInsertSuggestedLink() {
+    insertSuggestedLink();
+    textareaRef.current?.focus({ preventScroll: true });
+  }
+
   const { ref: registerContentRef, ...contentRegister } = register('content');
 
   return (
@@ -150,6 +161,8 @@ export const CommentFormView = forwardRef(function CommentFormView(
             textareaRef.current = el;
           }}
           onPaste={handlePaste}
+          onFocus={handleContentFocus}
+          onInput={handleContentInput}
           onKeyDown={(e) => {
             // 예약은 바로 이어지는 조합 종료까지만 유효하다 - 조합이 이어져 다른 키가 오면 푼다
             submitAfterCompositionRef.current = false;
@@ -174,6 +187,25 @@ export const CommentFormView = forwardRef(function CommentFormView(
             submitByShortcut();
           }}
         />
+        {suggestedLink && (
+          // 입력칸 안 왼쪽 아래에 띄운다. 감싼 줄은 클릭을 받지 않아 버튼 밖을 누르면 입력칸에 커서가 들어간다
+          <div className="pointer-events-none absolute inset-x-3 bottom-2 flex">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="pointer-events-auto h-7 min-w-0 max-w-full shrink gap-1 border-info/60 px-2 text-xs text-info hover:bg-info/10 hover:text-info has-[>svg]:px-2 dark:border-info/60 dark:hover:bg-info/15"
+              onClick={handleInsertSuggestedLink}
+            >
+              <Link2 className="size-3.5" />
+              <span className="min-w-0 truncate">
+                {suggestedLink.title
+                  ? TEXTS.comment.form.insertCopiedLink(suggestedLink.title)
+                  : TEXTS.comment.form.insertCopiedLinkUntitled}
+              </span>
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="flex items-start gap-2">
@@ -267,7 +299,15 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
 ) {
   const draft = useCreateComment({ postId, parentId, onSuccess, autoFocus });
 
-  return <CommentFormView ref={ref} draft={draft} onCancel={onCancel} className={className} />;
+  return (
+    <CommentFormView
+      ref={ref}
+      postId={postId}
+      draft={draft}
+      onCancel={onCancel}
+      className={className}
+    />
+  );
 });
 
 CommentForm.displayName = 'CommentForm';

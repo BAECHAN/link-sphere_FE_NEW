@@ -11,6 +11,14 @@
 
 ### Added
 
+- `comment` 공유 버튼으로 복사한 글 링크를 다른 글의 댓글 입력칸에서 한 번 눌러 넣기
+  <details><summary>배경·구현</summary>
+
+  "LinkSphere 링크를 클립보드에 들고 있을 때 댓글 입력칸에 붙여넣기 버튼을 보여 주자"는 요청이었다. 웹 페이지는 클립보드를 읽어야만 내용을 알 수 있고, 읽으면 Safari·Firefox는 링크가 아닐 때도 매번 붙여넣기 확인이, Chrome은 권한 창이 뜬다. 그래서 읽지 않고, 데스크톱에서 글 카드의 공유 버튼이 클립보드에 직접 쓴 공개 글의 링크를 이 탭의 메모리에 기억한다. 다른 글의 빈 댓글 입력칸(인라인 폼·답글 폼·좁은 창의 하단 시트)에 포커스하면 입력칸 안 왼쪽 아래에 `링크 넣기 · <글 제목>` 버튼이 보이고, 누르면 주소와 공백 한 칸이 들어가며 포커스는 입력칸에 남는다. 글자를 입력하면 버튼이 내려가고 다시 포커스해야 돌아온다. Enter는 그대로 줄바꿈이다. 비공개 글은 기억하지 않고(복사하면 그 전 기억도 비운다), 모바일 공유 시트로 건넨 링크·원본 링크 복사·주소창에서 복사한 링크는 대상이 아니다. 새로고침하거나 새 탭으로 열면 기억이 없다. 방향·자리·문구·모양(파란 테두리 버튼)은 실제 스타일 시안을 나란히 보고 사용자가 골랐다. 근거와 기각한 안은 `docs/COMMENT.md` §5 "복사한 글 링크 넣기".
+  (`copiedPostLink.store.ts`(신규), `useCopiedPostLinkSuggestion.ts`(신규), `usePostCard.ts`, `CommentForm.tsx`, `CommentComposer.tsx`, `texts.ts`, `e2e/comment-copied-link.spec.ts`(신규), `docs/COMMENT.md`, [PR #659](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/659))
+
+  </details>
+
 - `post` 좋아요가 10,000개를 넘으면 "좋아요한" 필터 목록 위에 범위를 안내
   <details><summary>배경·구현</summary>
 

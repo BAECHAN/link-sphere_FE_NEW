@@ -56,6 +56,7 @@ const CommentComposerSession = forwardRef(function CommentComposerSession(
           {/* 바깥에서 주는 포커스(#comments)는 넓은 화면 인라인 폼만 받는다 - 좁은 화면은 전부터 받지 않았다 */}
           <CommentFormView
             ref={isMobile ? undefined : ref}
+            postId={postId}
             draft={draft}
             onCancel={isMobile ? onDiscard : undefined}
           />
