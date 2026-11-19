@@ -28,6 +28,7 @@
 - 계획과 달라진 서술: 타입이 `ref`를 받는다고 적혀 있던 부품은 넷이 아니라 `Spinner`를 더한 다섯이다. 고치기 전부터 맞았던 elements는 `SheetDialogContent`를 더한 넷이고, 대상 요소 정의에 "창을 그리는 부품은 창 패널"이 더해졌다. 계획 Context의 SEED `package.json`(`react >=18.0.0`)과 Radix Composition 인용은 구현 날 원문을 다시 대조하지 않아 원칙 문서에 싣지 않았다
 - 대조 뒤 보완: 조립 표에서 한 줄을 지워 표 검사가 실패하는 출력을 다시 남겼다. Storybook 속성 표의 "세 줄이 빠진다"는 공개 Storybook(고치기 전)과 고친 뒤 표를 직접 읽어 확인했다. 원칙 문서에 `RequiredMark`의 `aria-hidden`, 두 "16개"가 다른 묶음이라는 설명, "DOM 요소가 없는 atoms는 계약 밖 표에 적는다"를 더했다. 마지막 수정 뒤 `pnpm test`·`pnpm test:storybook`을 다시 돌렸다
 - 문서 동기화: 원칙 문서 머리말과 읽는 법, 로드맵 "API 규칙" 행의 줄 번호, 1단계 행의 PR 링크와 표 서식, 계획 색인
+- 병합 뒤 후속(#661, 사용자 결정): Storybook 자동 속성 표에서 빠진 세 줄(`ActionChip`의 `aria-label`, `FilterChip`의 `id`·`name`)은 인터페이스에 다시 적어 되살렸다. 나머지 속성으로 받는 것은 그대로다
 
 <!-- plan-result:end -->
 
