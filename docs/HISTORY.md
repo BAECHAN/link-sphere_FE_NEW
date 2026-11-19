@@ -1,4 +1,7 @@
 ### 2026-11-19 (FE)
+- 댓글 입력창 내 링크 클립보드 붙여넣기 기능 구현 ([#659](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/659))
+
+### 2026-11-19 (FE)
 - 댓글 목록 내 본문 링크 클릭 시 새 탭이 아닌 앱 내 웹뷰에서 직접 이동하도록 동작 개선 ([#660](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/660))
 
 ### 2026-11-19 (FE)
