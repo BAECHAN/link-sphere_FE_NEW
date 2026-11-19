@@ -51,7 +51,7 @@ async function expectCommentHeadingBelowNavbarAfterIconTap(page: Page): Promise<
   await expect(page.getByRole('button', { name: TEXTS.ariaLabels.commentBarExpand })).toBeVisible();
 }
 
-// 모바일에는 인라인 작성 폼이 없고 하단 고정 바(MobileCommentBar)뿐이라, 카드 댓글 아이콘은
+// 모바일에는 인라인 작성 폼이 없고 하단 고정 바(CommentComposer의 접힌 바)뿐이라, 카드 댓글 아이콘은
 // "댓글 N" 제목까지만 스크롤하고 바는 접힌 채로 둔다(데스크톱은 comment-icon-scroll.spec.ts).
 test.describe('카드 댓글 아이콘 — 모바일은 댓글 제목까지 스크롤', () => {
   test.beforeEach(async ({ page }) => {

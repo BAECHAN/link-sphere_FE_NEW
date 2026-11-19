@@ -59,20 +59,20 @@ Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금
 ### z-index 토큰
 
 `z-\d+` 리터럴을 직접 쓰지 않는다 — 8단계가 이름 없이 흩어져 있다가 `Sidebar.tsx`
-드로어 백드롭과 `MobileCommentBar.tsx` 확장 댓글 시트가 값(55)이 겹치는 잠재 충돌이
+드로어 백드롭과 `MobileCommentBar.tsx`(지금의 `CommentComposer.tsx`) 확장 댓글 시트가 값(55)이 겹치는 잠재 충돌이
 있었다(`docs/DECISIONS.md` 2026-09-13 참고). ESLint `custom-tailwind/no-raw-z-index`가
 새 리터럴 사용을 차단한다.
 
-| 토큰        | 값  | 용도                                    |
-| ----------- | --- | --------------------------------------- |
-| `z-raised`  | 10  | 카드/폼 내부 오버레이                   |
-| `z-hitbox`  | 20  | 드롭 히트박스                           |
-| `z-panel`   | 40  | 패널·바 기본                            |
-| `z-nav`     | 50  | Navbar / 하단탭바 / FAB                 |
-| `z-scrim`   | 55  | 전면 딤 (Sidebar·MobileCommentBar 공유) |
-| `z-drawer`  | 60  | 사이드바 패널                           |
-| `z-modal`   | 70  | Dialog                                  |
-| `z-popover` | 80  | Dropdown / Select / Tooltip             |
+| 토큰        | 값  | 용도                                   |
+| ----------- | --- | -------------------------------------- |
+| `z-raised`  | 10  | 카드/폼 내부 오버레이                  |
+| `z-hitbox`  | 20  | 드롭 히트박스                          |
+| `z-panel`   | 40  | 패널·바 기본                           |
+| `z-nav`     | 50  | Navbar / 하단탭바 / FAB                |
+| `z-scrim`   | 55  | 전면 딤 (Sidebar·CommentComposer 공유) |
+| `z-drawer`  | 60  | 사이드바 패널                          |
+| `z-modal`   | 70  | Dialog                                 |
+| `z-popover` | 80  | Dropdown / Select / Tooltip            |
 
 Storybook `Shared/UI/Tokens/DesignTokens` 스토리의 `ZIndex`에서 8단계를 시각적으로
 확인할 수 있다.

@@ -228,7 +228,7 @@ src/
 │   │   ├── delete/hooks          # usePostDelete
 │   │   └── like/{hooks,ui}       # useLikePost, LikePostButton
 │   ├── comment/
-│   │   ├── create/{hooks,ui}     # useCreateComment, CommentForm, MobileCommentBar
+│   │   ├── create/{hooks,ui}     # useCreateComment, useCommentComposer, CommentForm, CommentComposer
 │   │   ├── update/{hooks,ui}     # useUpdateComment, CommentEditForm
 │   │   ├── delete/hooks          # useDeleteComment
 │   │   └── like/{hooks,ui}       # useLikeComment, LikeCommentButton

@@ -167,9 +167,9 @@ const Z_INDEX_LAYERS: ZIndexLayer[] = [
   { token: 'popover', usage: 'Dropdown / Select / Tooltip' },
   { token: 'modal', usage: 'Dialog' },
   { token: 'drawer', usage: 'Sidebar 패널' },
-  { token: 'scrim', usage: 'Sidebar 백드롭 · MobileCommentBar 확장 시트 (같은 층 공유)' },
+  { token: 'scrim', usage: 'Sidebar 백드롭 · CommentComposer 펼친 시트 (같은 층 공유)' },
   { token: 'nav', usage: 'Navbar / BottomTabBar / FAB' },
-  { token: 'panel', usage: 'RecentSearchPanel · MobileCommentBar 기본' },
+  { token: 'panel', usage: 'RecentSearchPanel · CommentComposer 접힌 바' },
   { token: 'hitbox', usage: '댓글 첨부 드롭 히트박스' },
   { token: 'raised', usage: '카드/폼 내부 오버레이' },
 ];

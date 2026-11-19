@@ -69,7 +69,7 @@ flowchart TD
 2026-09-13 `rg` 실측 감사 결과:
 
 - z-index가 8단계(10/20/40/50/55/60/70/80)로 21곳에 흩어져 있었고, `Sidebar.tsx`
-  드로어 백드롭과 `MobileCommentBar.tsx` 확장 댓글 시트가 값(55)을 공유하는 잠재
+  드로어 백드롭과 `MobileCommentBar.tsx`(지금의 `CommentComposer.tsx`) 확장 댓글 시트가 값(55)을 공유하는 잠재
   충돌이 있었다.
 - `button.tsx`·`badge.tsx`가 `--destructive-foreground` 토큰 없이 흰색 글자를
   하드코딩하고 있었다 — 원인은 죽은 `tailwind.config.ts`가 이 토큰을 참조했지만
@@ -607,7 +607,7 @@ Storybook a11y 게이트가 실측한 4개 토큰의 라이트 모드 대비 미
   프로퍼티 + `no-raw-*` 룰" 해법이 안 맞는다 — `--spacing: initial`로 잠그면
   591개 className이 무너진다. 게다가 padding·margin·gap에 고정 숫자를 넣은 이스케이프
   (`p-[13px]`류)가 0건이라 "하드코딩 색상"에 해당하는 문제도 없다 — 남은 이스케이프 3건
-  (`MobileCommentBar.tsx`·`BottomTabBar.tsx`의 `pb-[…env(safe-area-inset-bottom)…]`,
+  (`CommentComposer.tsx`·`BottomTabBar.tsx`의 `pb-[…env(safe-area-inset-bottom)…]`,
   `CommentItem.tsx`의 `scroll-mt-[calc(var(--navbar-height)_+_24px)]`)은 safe-area·navbar
   높이처럼 배수 토큰으로 못 바꾸는 값을 계산한다(2026-10-27 재확인). 실제 문제는 같은 의미의
   UI를 여러 곳이 각자 구현하며 서로 다른 숫자를 고른 것 — `EmptyState`(신규,

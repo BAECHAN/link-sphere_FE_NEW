@@ -37,6 +37,10 @@ paths: src/**/*.tsx
   _"UA 스니핑(과 클라이언트 힌트)의 흔한 오용은 클라이언트가 모바일 기기인지 알아내는 것이다"_ (번역)라고
   쓰고, 레이아웃 변경은 _"대부분 미디어 쿼리가 맡아야 한다"_ (번역)고 권한다
   ([MDN, Browser detection using the user agent](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Browser_detection_using_the_user_agent)).
+- **입력 상태를 가진 화면은 `useIsMobile()`로 서로 다른 부품을 갈아 끼우지 않는다.** 폭이 경계를 넘는 순간(폰 회전,
+  창 크기 조절) 한쪽이 내려가며 쓰던 글이 사라진다. 상태를 위로 올려 같은 요소가 클래스만 바꾸게 하고, 반대편 폭에
+  자리가 없는 입력은 내리지 않고 숨긴 채 남긴다(2026-11-19, 선례: `src/features/comment/create/ui/CommentComposer.tsx`,
+  경위: `docs/COMMENT.md` §10 "창 폭이 경계를 넘으면", 회귀: `e2e/comment-draft-resize.spec.ts`).
 - 터치 제스처처럼 폭이 아니라 입력 장치가 기준인 분기는 `matchMedia('(pointer: coarse)')`로 따로 판정한다
   (선례: `src/shared/hooks/usePullToRefresh.ts` — 폭으로 정하면 넓은 터치 기기에서 당겨서 새로고침이 꺼진다).
 - **키보드 단축키 힌트(`Kbd`)는 `pointer-coarse:hidden`으로 숨긴다** — `md:` 같은 폭 조건만으로 띄우지 않는다.
@@ -99,14 +103,14 @@ flex h-16
 }
 ```
 
-하단에 탭바보다 높은 고정 UI(예: 확장형 입력바)를 추가하면, 그 UI가 떠 있는 동안만 이 변수를 늘리고 숨김/언마운트 시 되돌린다. 선례: `MobileCommentBar.tsx`(ResizeObserver로 실측 높이만큼 조정, CSS로 숨기는 동안엔 가드절로 기본값을 되돌림 — `offsetHeight`가 0이 되어 어긋나는 것을 막는다).
+하단에 탭바보다 높은 고정 UI(예: 확장형 입력바)를 추가하면, 그 UI가 떠 있는 동안만 이 변수를 늘리고 숨김/언마운트 시 되돌린다. 선례: `useCommentComposer.ts`(댓글 작성 바·시트. ResizeObserver로 실측 높이만큼 조정, CSS로 숨기는 동안엔 가드절로 기본값을 되돌림 — `offsetHeight`가 0이 되어 어긋나는 것을 막는다).
 
 ### 모바일 선례 파일
 
 | 패턴                                  | 파일                                                                                  |
 | ------------------------------------- | ------------------------------------------------------------------------------------- |
 | 하단 고정 + safe-area                 | `src/widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx`                               |
-| 접힘/펼침 하단 sticky 입력바          | `src/features/comment/create/ui/MobileCommentBar.tsx`                                 |
+| 접힘/펼침 하단 sticky 입력바          | `src/features/comment/create/ui/CommentComposer.tsx`                                  |
 | 모바일 전용 풀스크린 오버레이         | `src/widgets/layout/navbar/ui/RecentSearchPanel.tsx`                                  |
 | 터치 제스처(pull-to-refresh)          | `src/widgets/post/post-list/ui/PostList.tsx` + `src/shared/hooks/usePullToRefresh.ts` |
 | 모바일 링크 동작 분기(`target=_self`) | `src/shared/ui/elements/MarkdownContent.tsx`                                          |
@@ -168,9 +172,9 @@ ESLint 룰이 `z-50` 같은 raw 숫자 클래스를 pre-commit에서 차단한�
 | ----------- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `z-raised`  | 10  | 카드 내부 오버레이 (`DropTargetOverlay.tsx`, `PostCard.tsx`), 필터 응답 대기 중 목록 위 오버레이(`PostList.tsx`)                                        |
 | `z-hitbox`  | 20  | 드롭 히트박스 (`DropTargetOverlay.tsx`)                                                                                                                 |
-| `z-panel`   | 40  | `RecentSearchPanel`, `MobileCommentBar` 접힘 상태, `CreatePostForm` 모바일 제출 바                                                                      |
+| `z-panel`   | 40  | `RecentSearchPanel`, `CommentComposer` 접힌 바, `CreatePostForm` 모바일 제출 바                                                                         |
 | `z-nav`     | 50  | `Navbar`(sticky top), `BottomTabBar`, 플로팅 버튼(`BackToTopButton`)                                                                                    |
-| `z-scrim`   | 55  | `Sidebar` 모바일 오버레이, `MobileCommentBar` 확장 상태                                                                                                 |
+| `z-scrim`   | 55  | `Sidebar` 모바일 오버레이, `CommentComposer` 펼친 시트                                                                                                  |
 | `z-drawer`  | 60  | `Sidebar` 모바일 드로어                                                                                                                                 |
 | `z-modal`   | 70  | `Dialog` 오버레이·콘텐츠(`shared/ui/atoms/dialog.tsx`) — 로그인 모달, 이미지 뷰어 등, `AlertDialog`(`shared/ui/atoms/alert-dialog.tsx`) — Alert/Confirm |
 | `z-popover` | 80  | 팝오버 — `tooltip`/`dropdown-menu`/`select`(`shared/ui/atoms/`), `RecentSearchDropdown.tsx`(widgets, 포털 아님)                                         |

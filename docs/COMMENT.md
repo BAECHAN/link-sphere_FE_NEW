@@ -545,22 +545,70 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   `motion-ux` skill은 UI 애니메이션을 300ms 이하로 권하지만, 그 기준은 클릭에 바로 반응하는 애니메이션에
   대한 것이다. 이 강조는 사용자가 끝나기를 기다리는 동작이 아니라서 600ms로 정했다.
 
-### 모바일 댓글 바 · 데스크톱 인라인 폼
+### 작성 칸 하나, 배치 둘
 
-`CommentList`는 화면 폭에 따라 작성 진입점을 다르게 둔다.
+`CommentList`는 최상위 댓글 작성 칸(`CommentComposer`)을 화면 폭과 상관없이 "댓글 N" 제목 아래 한 자리에 그린다. 작성
+칸은 폭(`useIsMobile()`, 경계 768px)에 따라 배치만 바꾼다. 답글·수정 폼은 폭으로 자리가 바뀌지 않아 해당 없다.
 
-| 폭       | 진입점                                                        | 핵심 동작                                                                                                 |
-| -------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| 모바일   | `MobileCommentBar` — 탭바 위 고정 바, 탭하면 하단 시트로 펼침 | 접힘 `z-panel`, 펼침 `z-scrim`. 바 높이만큼 `--toast-offset-bottom`을 올려 토스트가 바 위에 뜨게 함       |
-| 데스크톱 | 목록 위 인라인 `CommentForm`                                  | 멀리 내려간 뒤 폼으로 돌아가려면 우하단 맨 위로(↑) → 본문 아래 💬(댓글 수) 버튼(아래 "맨 위로 버튼" 참고) |
+| 폭                    | 배치                                          | 핵심 동작                                                                                                 |
+| --------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 좁은 화면(768px 미만) | 탭바 위 고정 바(접힘), 누르면 하단 시트(펼침) | 접힘 `z-panel`, 펼침 `z-scrim`. 바 높이만큼 `--toast-offset-bottom`을 올려 토스트가 바 위에 뜨게 함       |
+| 넓은 화면             | 목록 위 인라인 폼                             | 멀리 내려간 뒤 폼으로 돌아가려면 우하단 맨 위로(↑) → 본문 아래 💬(댓글 수) 버튼(아래 "맨 위로 버튼" 참고) |
 
-- 모바일 헤더 검색이 열리면 바를 **언마운트하지 않고** `hidden`으로만 숨긴다
-  (`src/features/comment/create/ui/MobileCommentBar.tsx`의 `isMobileSearchOpen && 'hidden'`). 이탈 가드는 같은
+아래 그림은 1장의 순서도(등록 한 번의 흐름)와 달리 **작성 칸이 어느 배치로 그려지는가**만 본다.
+
+```mermaid
+flowchart TD
+  W["넓은 화면<br/>인라인 폼"] -->|"좁아짐 · 쓰던 글 있음"| S["좁은 화면<br/>펼친 시트(같은 입력 요소)"]
+  W -->|"좁아짐 · 쓰던 글 없음"| B["좁은 화면<br/>접힌 바"]
+  B -->|"바를 누름(입력칸에 포커스)"| S
+  S -->|"취소(글 버림) · 등록 성공"| B
+  S -->|"넓어짐"| W
+  B -->|"넓어짐"| W
+```
+
+- **폭이 경계를 넘어도 쓰던 글이 남는다(2026-11-19)** — 글·첨부·실패 안내·이탈 확인 등록은 `useCommentComposer`
+  (`src/features/comment/create/hooks/useCommentComposer.ts`)가 `useCreateComment`를 한 번 불러 갖고, 화면
+  (`CommentForm.tsx`의 `CommentFormView`)은 받은 것만 그린다. 폼을 감싸는 `div`는 두 배치에서 같은 자리의 같은 요소이고
+  클래스만 바뀐다(`CommentComposer.tsx`의 `CommentComposerSession`). 그래서 React가 폼을 새로 만들지 않아 입력칸의
+  글·커서·포커스·미리보기 펼침이 이어진다. react.dev는 _"제거되거나 같은 자리에 다른 컴포넌트가 그려지면 React는 그
+  state를 버린다"_ (번역, 가져오기 에이전트가 읽어 온 문장의 재인용,
+  [Preserving and Resetting State](https://react.dev/learn/preserving-and-resetting-state))고 쓴다. 저장소 안의 같은
+  방식은 `SheetDialogContent.tsx`다(두 폭의 트리 모양이 같아 클래스만 바뀐다). 전에는 폭마다 다른 폼을 그려 경계에서
+  글이 사라졌다(§10 "창 폭이 경계를 넘으면").
+- **쓰던 글이 있으면 좁은 화면 시트를 펼쳐 둔다** — 시트의 펼침은 세 값 가운데 하나다(`useCommentComposer.ts`의
+  `sheet`). `collapsed`는 접힘, `pressed`는 접힌 바를 눌러 펼침, `held`는 쓰던 글이 있어 펼쳐 둠이다. 좁은 화면에서
+  접혀 있는데 쓰던 글이나 첨부가 있으면 그 렌더에서 `held`로 바꾼다. 시트를 그리는 조건은
+  `isMobile && sheet !== 'collapsed'`(`isSheetOpen`)이고, 접히는 때는 위 그림대로 취소·등록 성공·폭 경계뿐이다. 여기서 네
+  가지가 나온다.
+  - 쓰던 글이나 첨부가 있는 채 좁아지면 시트가 펼쳐진 채 나오고, 없으면 접힌 바로 나온다.
+  - 넓은 화면에서 등록한 직후 좁혔다가 실패해 글이 되돌아오면, 그 글이 접힌 바 뒤에 숨지 않고 펼친 시트에 보인다.
+  - 등록 응답을 기다리며 새로 쓴 글은 등록이 성공해도 시트와 함께 남는다. 전에는 성공하면 시트가 접히며 그 글이 사라졌다.
+  - 이렇게 펼쳐 둔 시트는 글을 다 지워도, 등록을 눌러 입력칸이 비워져도 접히지 않는다. 눌러 펼친 시트와 같다. 글이
+    있는지를 그리는 조건에 바로 쓰면 그 순간 입력칸이 사라진다(§10 "창 폭이 경계를 넘으면").
+- **포커스는 눌러 펼칠 때만 준다** — 접힌 바를 누르면 입력칸에 포커스가 간다(`useCreateComment`의 `autoFocus`에
+  `sheet === 'pressed'`를 넘긴다). 폭이 바뀌어 시트가 된 경우에는 옮기지 않는다. 입력칸에 있던 포커스는 같은 요소라
+  그대로이고, 없던 포커스를 주면 폰을 돌리기만 해도 화면 키보드가 올라올 것으로 봤다(실기기에서 확인하지 않은 판단이다).
+- **바깥에서 주는 포커스(`#comments`)는 넓은 화면 인라인 폼만 받는다** — 카드의 💬로 들어오면 `CommentList`가 작성 칸의
+  `focus()`를 부른다. 좁은 화면에서는 시트가 펼쳐져 있어도 받지 않는다(`CommentComposer.tsx`가 `ref`를 넓은 화면에서만
+  넘긴다). 전에도 좁은 화면은 받지 않았고, 그 동작을 그대로 뒀다.
+- **좁은 화면의 "취소"는 쓰던 글을 버리고 접는다** — `CommentComposer`가 작성 세션을 새 `key`로 다시 시작해 글·첨부·실패
+  안내·펼침을 한꺼번에 비운다. 요청이 돌던 중이었다면 그 실패는 닫힌 폼의 것이라 토스트로 간다(위 "실패 안내"). 넓은
+  화면 인라인 폼의 "취소"는 전과 같이 쓰던 글과 첨부만 비운다(`CommentForm.tsx`의 `handleClearDraft`, 쓰던 것이 있을 때만
+  보인다). 뒤로가기로 시트를 접는 것과 접을 때 쓰던 글을 어떻게 다룰지는 이슈 #590이
+  다룬다([`BACK-NAVIGATION.md`](./BACK-NAVIGATION.md) "폰의 댓글 입력 시트" 행).
+- **시트는 CSS 폭 조건으로 숨기지 않는다** — 시트 클래스에는 `md:hidden`이 없고, 어느 배치로 그릴지는 `isMobile` 하나만
+  정한다. 창이 넓어진 것을 CSS는 바로 알고 React는 `matchMedia`의 `change` 알림을 받은 뒤에 안다. 그사이 시트가
+  CSS로 숨으면 브라우저가 입력칸의 포커스를 뺀다(§10 "창 폭이 경계를 넘으면"). 접힌 바에는 입력이 없어 `md:hidden`을
+  그대로 둔다.
+- 모바일 헤더 검색이 열리면 바·시트를 **언마운트하지 않고** `hidden`으로만 숨긴다
+  (`src/features/comment/create/ui/CommentComposer.tsx`의 `isMobileSearchOpen && 'hidden'`). 이탈 가드는 같은
   pathname 이동을 통과시키므로, 언마운트하면 쓰던 글이 경고 없이 사라진다.
 - 펼친 시트의 `z-scrim`은 사이드바 백드롭과 같은 층이다 — 미해결 충돌(§11), 근거는
   [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md) §4.
-- `MobileCommentBar`는 `space-y-6` 형제 목록 **밖**에 둔다(CommentList.tsx `CommentListContent`의 반환 JSX 끝, 이유를 적은 주석 아래). 안에 두면
-  마운트·언마운트 때마다 24px 레이아웃이 흔들린다(§10).
+- 작성 칸은 댓글 목록의 `space-y-6` 형제 목록 **밖**에 둔다(CommentList.tsx `CommentListContent`의 제목 칸 안, 이유를
+  적은 주석 아래). 좁은 화면의 바·시트는 `fixed`라 자리를 차지하지 않는데, 형제 목록 안에 두면 그려졌다 사라질 때마다
+  24px 레이아웃이 흔들린다(§10).
 - 펼친 시트에도 입력칸 아래 글자 수 줄(§5 "입력칸 아래 글자 수")이 늘 있어 시트가 24px(글자 16px + 간격 8px) 높다.
   토스트 자리는 `ResizeObserver`가 시트 높이를 따라 다시 잡는다(2026-11-04 직접 측정: 빈 시트 229px → 토스트 자리
   237px, 입력 뒤 288px → 296px, 늘 시트 높이 + 8px).
@@ -574,8 +622,8 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 - **전에는** 입력칸(`Textarea`)이 `field-sizing-content`로 내용만큼 커지는데 최대 높이가 없었고, 시트에도 없었다. 직접
   측정(Pixel 5 크기 393×727, 모킹 데이터): 한글 기준 299에서 시트가 754px, 2,001에서 2,770px가 돼 글 앞부분이 화면
   위로 잘렸다. 시트가 `z-scrim`이라 상단 바도 덮었다. 글자 수 표시(§5 "입력칸 아래 글자 수")를 녹화하다 찾았다.
-- **어디서 막나** — `MobileCommentBar.tsx`의 `SHEET_MAX_HEIGHT`(`max-h-[70dvh] overflow-y-auto overscroll-contain`)와
-  `SHEET_TEXTAREA_MAX_HEIGHT`(`[&_textarea]:max-h-[40dvh]`). `CommentForm`은 데스크톱 인라인 폼·답글도 같이 쓰므로
+- **어디서 막나** — `CommentComposer.tsx`의 `SHEET_MAX_HEIGHT`(`max-h-[70dvh] overflow-y-auto overscroll-contain`)와
+  `SHEET_TEXTAREA_MAX_HEIGHT`(`[&_textarea]:max-h-[40dvh]`). `CommentFormView`는 넓은 화면 인라인 폼·답글도 같이 쓰므로
   입력칸 상한은 시트에서 자식 선택자로만 건다. `overscroll-contain`은 시트를 끝까지 굴렸을 때 뒤의 글 화면이 따라
   스크롤되지 않게 한다. 70%는 북마크 폴더 시트(`SheetDialogContent.tsx`의 `SHEET_MAX_HEIGHT`, [`BOOKMARK.md`](./BOOKMARK.md)
   §5 "창 높이")와 같은 값이다. 40%는 이 화면에서 입력칸 아래 줄(글자 수·미리보기 접힘·이미지 첨부·버튼)이 다 보이도록 골랐다.
@@ -706,7 +754,14 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 `useCreateComment`·`useUpdateComment`는 `form`·`onSubmit`·`contentValue`·`isOverLimit`·
 `contentLength`(한글 기준 글자 수)·`contentCountId`(입력칸 `aria-describedby`와 카운터 `id`를 잇는 `useId` 값)·
 `failureMessage`(버튼 위 실패 안내, 없으면 `null`)와 첨부 핸들러 묶음을 돌려준다. `useUpdateComment`만 `canSubmit`(빈 입력·요청 중이면
-`false`)을 직접 계산해 준다. 원본 시그니처는 각 파일을 본다.
+`false`)을 직접 계산해 준다. `useCreateComment`만 `hasInput`(쓰던 글이나 첨부가 있는가)을 돌려준다 — 이탈 확인 등록에 쓰는
+값과 같고, `useCommentComposer`가 좁은 화면 시트를 펼쳐 둘지 볼 때 쓴다(§5 "작성 칸 하나, 배치 둘"). 원본 시그니처는 각
+파일을 본다.
+
+최상위 작성 칸의 상태는 `useCommentComposer`가 갖는다. `useCreateComment`를 한 번 불러 그 결과를 `draft`로 돌려주고, 안에
+`sheet`(좁은 화면 시트의 펼침 `collapsed`·`pressed`·`held`, 폭이 경계를 넘으면 `collapsed`) 상태를 둔다. 그 밖에 `isMobile`·`isSheetOpen`·
+`isMobileSearchOpen`·`floatingRef`(토스트 자리를 재는 바·시트 요소)·`expand`를 돌려준다. 답글 폼은 `CommentForm`이
+`useCreateComment`를 직접 불러 폼마다 상태를 따로 갖는다.
 
 ## 7. 운영 파라미터
 
@@ -729,9 +784,10 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 해시 도착 여백               | navbar + 24px        | `src/widgets/comment/comment-list/ui/CommentItem.tsx:51`                                                                                     |
 | 댓글 뼈대 최대 개수          | 10                   | `src/widgets/comment/comment-list/ui/CommentItemSkeleton.tsx:7`                                                                              |
 | 댓글 뼈대 표시 지연          | 500ms                | `LOADING_INDICATOR_DELAY_MS`(`src/shared/config/const.ts:11`)                                                                                |
-| 모바일 바 ↔ 토스트 간격      | 8px                  | `src/features/comment/create/ui/MobileCommentBar.tsx:14`                                                                                     |
-| 모바일 시트 높이 상한        | 화면의 70%(`70dvh`)  | `src/features/comment/create/ui/MobileCommentBar.tsx:22`                                                                                     |
-| 모바일 시트 입력칸 높이 상한 | 화면의 40%(`40dvh`)  | `src/features/comment/create/ui/MobileCommentBar.tsx:23`                                                                                     |
+| 모바일 바 ↔ 토스트 간격      | 8px                  | `src/features/comment/create/hooks/useCommentComposer.ts:8`                                                                                  |
+| 모바일 시트 높이 상한        | 화면의 70%(`70dvh`)  | `src/features/comment/create/ui/CommentComposer.tsx:22`                                                                                      |
+| 모바일 시트 입력칸 높이 상한 | 화면의 40%(`40dvh`)  | `src/features/comment/create/ui/CommentComposer.tsx:23`                                                                                      |
+| 작성 칸 배치가 바뀌는 폭     | 768px 미만이면 좁음  | `MOBILE_MEDIA_QUERY`(`src/shared/config/const.ts:44`) — 앱 전체가 같이 쓰는 값이다                                                           |
 
 **함께 바꿔야 하는 값**:
 
@@ -755,9 +811,9 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 댓글 한 개(액션·답글 폼·재귀)   | `src/widgets/comment/comment-list/ui/CommentItem.tsx:26-183`                                                                                   |
 | 댓글이 오는 중인 자리(뼈대)     | `src/widgets/comment/comment-list/ui/CommentItemSkeleton.tsx`                                                                                  |
 | 작성 검증·제출·복원             | `src/features/comment/create/hooks/useCreateComment.ts`의 `getCommentSubmitError`·`useCreateComment`                                           |
-| 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx`의 `CommentForm`                                                                               |
+| 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx`의 `CommentFormView`(화면)·`CommentForm`(답글용, 상태를 직접 가짐)                             |
 | 등록 단축키·조합 중 예약        | `src/features/comment/create/ui/CommentForm.tsx`의 `submitByShortcut`·`<Textarea>`의 `onKeyDown`·`onCompositionEnd`                            |
-| 모바일 바                       | `src/features/comment/create/ui/MobileCommentBar.tsx:25-115`                                                                                   |
+| 최상위 작성 칸(인라인·바·시트)  | `src/features/comment/create/ui/CommentComposer.tsx`의 `CommentComposerSession`·`CommentComposer`, 상태는 `hooks/useCommentComposer.ts`        |
 | 상세의 맨 위로 버튼 조건        | `src/app/layouts/app-layout/AppLayout.tsx`의 `showBackToTopButton`·`isPostDetailPage`                                                          |
 | 수정 검증·제출                  | `src/features/comment/update/hooks/useUpdateComment.ts`의 `getCommentUpdateSubmitError`·`useUpdateComment`                                     |
 | 삭제 확인                       | `src/features/comment/delete/hooks/useDeleteComment.ts:9-28`                                                                                   |
@@ -787,7 +843,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 해시 이동 정렬·강조 시간 | `CommentList.tsx`의 `scrollToHashedComment`(`block`·강조 `setTimeout` 시간·페이드 `duration-*`), 도착 여백은 `CommentItem.tsx:51`                                                                                                                                                                                   |
 | 실패 문구 바꾸기         | `texts.ts`의 `messages.error.commentSubmit`(본 요청)·`uploadSubmit`(업로드 단계, 등록·저장 두 벌). 새 원인을 나누려면 `CommentUtil.resolveSubmitError`에 분기를 더한다                                                                                                                                              |
 | 글자 수 문구·자리 바꾸기 | 숫자 뒤 문구는 `TEXTS.comment.form.contentCountSuffix`, 자리는 `CommentForm.tsx`·`CommentEditForm.tsx`의 `<CharacterCount>`를 감싼 줄(두 폼을 함께 고친다). 세는 방법은 `CommentUtil.countHangulEquivalentChars`                                                                                                    |
-| 모바일 시트 높이 바꾸기  | `MobileCommentBar.tsx`의 `SHEET_MAX_HEIGHT`(시트)·`SHEET_TEXTAREA_MAX_HEIGHT`(입력칸). 입력칸 상한을 올리면 2,001자에서 글자 수·등록 버튼이 시트 밖으로 밀리는지 `e2e/comment-sheet-height.mobile.spec.ts`로 확인한다(§5 "시트 높이")                                                                               |
+| 모바일 시트 높이 바꾸기  | `CommentComposer.tsx`의 `SHEET_MAX_HEIGHT`(시트)·`SHEET_TEXTAREA_MAX_HEIGHT`(입력칸). 입력칸 상한을 올리면 2,001자에서 글자 수·등록 버튼이 시트 밖으로 밀리는지 `e2e/comment-sheet-height.mobile.spec.ts`로 확인한다(§5 "시트 높이")                                                                                |
 | 좋아요 실패 시 안내 추가 | `useLikeCommentMutation`의 `meta.manualErrorHandling`을 빼면 전역 토스트가 뜬다                                                                                                                                                                                                                                     |
 | 모바일 상세에도 맨 위로  | `AppLayout.tsx`에서 상세일 때 붙는 `max-md:hidden`을 뺀다. 버튼이 하단 댓글 바·댓글의 수정·삭제를 가리지 않는지 먼저 확인한다(§5 "맨 위로 버튼")                                                                                                                                                                    |
 | 테스트 실행              | `npx vitest run src/entities/comment src/features/comment`, e2e는 `pnpm test:e2e e2e/comment.spec.ts`                                                                                                                                                                                                               |
@@ -810,7 +866,7 @@ npx vitest run src/entities/comment src/features/comment \
 | `src/entities/comment/api/comment.api.test.ts`                | 2    | 5장 업로드 시 동시 2개 제한, 순서 유지                                     |
 | `src/features/comment/create/hooks/useCreateComment.test.tsx` | 6    | 즉시 비움, 실패 복원, 새 입력 보호, 6,000B·7,500B 차단, 이메일 미인증 차단 |
 | `src/features/comment/update/hooks/useUpdateComment.test.tsx` | 6    | 원본 초기화, `canSubmit`, 초과 시 버튼 미차단·제출 차단, 전송량 차단, 성공 |
-| `src/features/comment/create/ui/MobileCommentBar.test.tsx`    | 4    | 검색 오버레이 중 숨김·상태 보존, 토스트 오프셋                             |
+| `src/features/comment/create/ui/CommentComposer.test.tsx`     | 18   | 2026-11-19 기준. 아래 "폭 경계" 문단 참고                                  |
 
 `EDGE_BLOCKED` 분류는 `src/shared/api/client.test.ts`와
 `src/shared/lib/react-query/config/error-toast.test.ts`가 다룬다.
@@ -872,8 +928,8 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   axe 검사를 통과했다.
 - 브라우저 녹화(모킹, 운영 데이터 미사용): 모바일 시트(0 → 한글 9 → ` abc` 붙여 10 → 2,001에서 빨간색·이유 문구·
   등록 시 토스트), 데스크톱(2,000은 기본 색, `a` 하나 더 → 2,001), 답글(0 → 10), 수정(8 → 12), 다크 모드 모바일.
-  카운터 오른쪽 끝이 입력칸 오른쪽 끝과 맞는 것(모바일 377px, 데스크톱 1208px)과 시트 토스트 자리(§5 "모바일 댓글
-  바")를 `getBoundingClientRect`로 쟀다.
+  카운터 오른쪽 끝이 입력칸 오른쪽 끝과 맞는 것(모바일 377px, 데스크톱 1208px)과 시트 토스트 자리(§5 "작성 칸 하나,
+  배치 둘")를 `getBoundingClientRect`로 쟀다.
 
 모바일 시트 높이(§5)는 2026-11-04 직접 실행했다.
 
@@ -884,6 +940,38 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 - 브라우저 녹화(모킹): 짧은 글은 시트 288px 그대로, 2,001이면 시트 499px·입력칸 291px, 넘침 토스트는 화면 위
   (`Toaster`가 `top-center`)에 떠서 시트와 겹치지 않는다(162px 떨어짐). 미리보기를 펼치면 시트 509px에 안쪽 2,204px,
   시트를 끝까지 굴려도 뒤의 글 화면은 움직이지 않았다(`scrollY` 0 → 0).
+
+폭 경계(§5 "작성 칸 하나, 배치 둘")는 2026-11-19 직접 실행했다.
+
+- e2e `e2e/comment-draft-resize.spec.ts` 6건: 넓은 화면에서 쓴 글이 좁혀도 펼친 시트에 남고 포커스도 그대로이며 다시
+  넓혀도 남는다. 쓰던 글이 없으면 좁힐 때 접힌 바만 보인다. 좁은 화면 시트에서 쓴 글이 넓혀도 남는다. React가 넓어진
+  것을 300ms 늦게 알아도 입력칸의 포커스가 남는다. 첨부 이미지도 남는다. 좁은 화면에서 취소한 글은 넓혔다 좁혀도
+  되살아나지 않는다. 창 폭은 `page.setViewportSize`로 1280px ↔ 700px를 오갔다. 고치기 전 코드에서는 그때 있던 5건 중
+  3건(넓음 → 좁음, 좁음 → 넓음, 첨부 이미지)이 실패했다.
+- 단위 테스트 `CommentComposer.test.tsx` 18건: `MobileCommentBar.test.tsx`에서 옮긴 4건(검색 오버레이 중 숨김·상태 보존,
+  토스트 자리 — 단언은 그대로 두고 준비 단계에 좁은 화면으로 바꾸는 줄만 더했다), 경계 5건(넓음 → 좁음과 좁음 →
+  넓음에서 같은 입력 노드·포커스, 이탈 확인 등록 유지, 쓰던 글이 없으면 접힌 바, 빈 시트를 넓혔다 좁히면 접힌 바),
+  바·시트 6건(눌러 펼치면 포커스, 취소는 글을 버림, 등록 직후 좁아졌다 실패하면 되돌아온 글이 펼친 시트에 보임, 등록에
+  성공하면 접히지만 응답을 기다리며 새로 쓴 글이 있으면 같은 입력칸이 포커스를 쥔 채 남음, 폭이 바뀌어 펼쳐진 시트는
+  글을 다 지워도 접히지 않음, 그 시트에서 등록하면 응답을 기다리는 동안 펼친 채이고 성공하면 접힘), `#comments` 포커스
+  3건(넓은 화면은 받음, 좁은 화면은 접혀 있든 펼쳐져 있든 받지 않음). 끝의 바·시트 2건은 시트 조건이
+  `expanded || draft.hasInput`이던 코드에서 실패했다(§10 "창 폭이 경계를 넘으면").
+- 구현을 일부러 깨 본 것: 쓰던 글이 있을 때 `held`로 바꾸는 줄을 끄면 단위 5건·e2e 3건이, 그 줄을 effect로 미루면 단위
+  2건이(입력칸이 새로 만들어진다), 폼을 감싸는 `div`에 폭마다 다른 `key`를 주면 단위 2건·e2e 2건이 실패했다(`key`
+  실험은 펼침을 세 값으로 바꾸기 전 코드에서 했다). 시트에 `md:hidden`이 있던 때에는 늦은 알림 e2e가 3번 중 3번
+  실패했고, 뺀 뒤에는 30번 중 30번 통과했다. 계획이 깨는 방법으로 들었던 "폭 경계에서 펼침 기록을 지우는 것을 effect로
+  미루기"는 실패하는 테스트가 없었다(단위 18건, e2e 6건을 3번씩 18회 통과). 지우는 시점만 한 렌더 늦을 뿐 화면 결과가
+  같은 변경이라서다.
+- 관련 e2e 묶음(댓글 작성·삭제, 시트 높이, 해시 이동, 댓글 미리 받기, 실패 뒤 첨부, 결과 모름, 검색 오버레이, 가로
+  화면, 이탈 확인과 위 새 스펙. 47건)을 재시도 없이 3번씩 돌려 141회 모두 통과했다. 바깥 포커스를 넓은 화면만 받게 한
+  수정 뒤에 2번씩(94회), 펼침을 세 값으로 바꾼 마지막 수정 뒤에 1번(47회) 다시 돌려 모두 통과했다. 기존 단언은 고치지
+  않았다.
+- 브라우저 녹화(모킹, 운영 데이터 미사용): 1280px에서 쓰던 글이 700px에서 펼친 시트에 남고 이어 쓴 뒤 다시 넓혀도 남는
+  것, 쓰던 글이 없으면 접힌 바가 되는 것, 좁은 화면 시트에서 쓴 글이 넓혀도 남는 것. 시트는 화면 아래 끝에(왼쪽 0, 폭
+  700px, 아래 끝 800px), 접힌 바는 탭바 바로 위에(아래 끝 736px = 800 − 64) 있는 것을 `boundingBox`로 단언했다. 폭이
+  바뀌어 펼쳐진 시트에서 글을 다 지우는 것과 등록 응답(2초 지연)을 기다리는 것은 고치기 전·후를 따로 찍었다. 전에는 둘
+  다 그 순간 접힌 바가 됐고, 뒤에는 시트가 펼친 채 남다가 등록이 성공하면 접힌다.
+- 실기기 회전과 브라우저 확대는 돌려 보지 않았다(§11).
 
 조회 실패 뒤 다시 들어오기(§5)는 2026-11-03 직접 실행했다. 단위 테스트
 `src/entities/comment/hooks/useRemoveErroredCommentsOnLeave.test.tsx`(2: 떠나면 그 글의 실패한 목록을 지우고 성공한
@@ -959,7 +1047,8 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 마운트·언마운트되며 `:not(:last-child)` 마진이 앞 요소에 붙었다 떨어지는 게 원인임을
 찾았다. 두 컴포넌트를 형제 목록 밖으로 뺐다(`docs/DECISIONS.md` 2026-09-06 "상세 화면
 스크롤 시 본문이 밀리던 문제"). `ScrollToCommentFormButton`은 2026-10-27 맨 위로 버튼으로 바뀌어 지금은
-`MobileCommentBar`만 남았다(§5 "맨 위로 버튼").
+`MobileCommentBar`만 남았다(§5 "맨 위로 버튼"). 그 `MobileCommentBar`는 2026-11-19 `CommentComposer`가 됐고, 같은 이유로
+형제 목록 밖(제목 칸 안)에 둔다(§5 "작성 칸 하나, 배치 둘").
 
 ### 낙관적 작성·수정의 깜빡임(2026-08-03)
 
@@ -1059,6 +1148,49 @@ Chrome 157, macOS, 사용자가 평소 쓰는 한글 입력기(종류는 기록�
 중 단축키 뒤에 `compositionend`가 오는 ①의 순서는 위 측정에서 옮겼다(코드가 보지 않는 `input`·`keyup`·keyCode는 보내지 않는다).
 단축키 뒤에 다른 키가 먼저 오는 ③의 순서는 잰 적이 없고, 재지 못한 환경을 가정해 만든 것이다.
 
+### 창 폭이 경계를 넘으면 쓰던 댓글이 사라지던 문제(2026-11-19)
+
+글 상세에서 댓글을 쓰다가 창을 768px 아래로 줄이면 인라인 폼이 사라지고 접힌 바만 남았다. 바를 눌러 펼치면 입력칸이
+비어 있었고, 다시 넓혀도 비어 있었다. 좁은 화면 시트에서 쓰다 넓혀도 같았다. 폭 판정(`useIsMobile`)이 창 폭만 보므로
+폰을 돌릴 때와 데스크톱 창 크기를 바꿀 때가 같은 경로다.
+
+- **원인**(코드 추적, 실패하는 e2e로 재현) — `CommentList`가 넓을 때는 `CommentForm`을, 좁을 때는 `MobileCommentBar` 안의
+  또 다른 `CommentForm`을 서로 다른 자리에 그렸다. 경계를 넘으면 한쪽이 내려가고 다른 쪽이 새로 올라오는데, 쓰던 글·첨부
+  이미지·실패 안내·이탈 확인 등록이 모두 그 폼 안의 상태라 함께 버려졌다.
+- **고친 방법** — 상태를 폼 화면 밖(`useCommentComposer`)으로 올리고, 폼을 감싸는 요소 하나가 폭에 따라 클래스만 바꾸게
+  했다(§5 "작성 칸 하나, 배치 둘"). 상태만 올리고 화면은 폭마다 따로 그리는 안은 입력 요소가 새로 만들어져 포커스와
+  커서가 사라져서, 초안을 저장소에 두는 안은 로그아웃·회원 전환 때 지울 시점을 따로 관리해야 하고 이미지 파일은 담을 수
+  없어서 고르지 않았다. 비교는 [계획](./plans/2026-11-19-keep-input-across-breakpoint.md) "판단이 필요했던 항목"에 있다.
+- **고치다 만난 것: 시트에 `md:hidden`을 남기면 포커스가 빠진다** — 옛 바의 시트 클래스에는 `md:hidden`이 있었다. 폼
+  상태를 올린 뒤에도 이 클래스를 그대로 뒀더니, e2e 46건을 함께 돌린 한 번의 실행에서 "넓힌 뒤에도 입력칸에 포커스가
+  있다"는 단언이 1회 실패했다. 같은 테스트를 60회 반복하고, CPU를 6배 늦춰 40회 돌리고, 처음 실패한 묶음(46건)을 4번씩
+  다시 돌려도(184회) 나오지 않았다.
+  - **확인한 것** — `matchMedia`의 `change` 알림을 300ms 늦추면 3번 중 3번 실패했다. 창이 넓어지면 CSS는 바로
+    `md:hidden`을 적용해 시트를 숨기고, React는 알림을 받은 뒤에야 인라인 배치로 바꾼다. 그사이 숨은 입력칸에서
+    Chromium이 포커스를 뺐다. 시트에서 `md:hidden`을 빼자 같은 테스트가 30번 중 30번 통과했다.
+  - **추측으로 남은 것** — 처음의 1회 실패가 바로 이 경로였는지는 증상이 같다는 것 말고 근거가 없다. 그 실행에서는
+    알림이 언제 왔는지 재지 않았다.
+  - 그래서 어느 배치로 그릴지는 JS 판정(`isMobile`) 하나만 정하고, 입력이 든 요소에는 같은 조건의 CSS 숨김을 겹쳐 두지
+    않는다. 회귀는 `e2e/comment-draft-resize.spec.ts`의 늦은 알림 테스트가 지킨다.
+- **고치다 만난 것: 글이 있는지를 시트 조건에 바로 쓰면 글을 지우는 순간 접힌다** — 처음에는 시트를 그리는 조건이
+  `isMobile && (expanded || draft.hasInput)`이었다. PR을 올린 뒤 코드를 다시 읽다 찾았고 단위 테스트로 재현했다. 넓은
+  화면에서 쓰다 좁아져 펼쳐진 시트는 `expanded`가 `false`라, 글을 다 지우면 그 자리에서 접힌 바가 돼 입력칸이
+  사라졌다. 등록을 누를 때도 같았다. 폼은 요청을 보내기 전에 입력칸을 비우므로 응답을 기다리는 동안 시트가 접혔다.
+  접힌 바를 눌러 펼친 시트는 두 경우 모두 펼친 채였으니 같은 시트가 펼쳐진 경위에 따라 다르게 움직인 셈이고, 계획의
+  그림(취소·등록 성공에만 접힌다)과도 달랐다.
+  - **고친 방법** — "쓰던 글이 있어 펼쳐 뒀다"를 값으로 남긴다(`sheet`의 `held`, §5). 좁은 화면에서 접혀 있는데 쓰던
+    글이 있으면 렌더 중에 `held`로 바꾸고, 그 뒤로는 글이 있는지와 상관없이 취소·등록 성공·폭 경계에만 접는다.
+  - **렌더 중에 바꾸는 이유** — effect로 미루면 접힌 화면이 한 번 그려져 입력칸이 새로 만들어지고 포커스가 빠진다.
+    실제로 미뤄 보니 단위 테스트 2건(넓음 → 좁음, 응답을 기다리며 쓰던 중 등록 성공)이 실패했다. react.dev는 이
+    방식을 _"이 패턴이 Effect보다 효율적이긴 하지만, 대부분의 컴포넌트에는 이것도 필요하지 않다"_ (번역, 가져오기
+    에이전트가 읽어 온 문장의 재인용,
+    [You Might Not Need an Effect](https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes))고
+    쓰고, `key`로 다시 시작하거나 렌더 중에 계산할 수 있는지 먼저 보라고 한다. 여기서는 "한 번 펼쳐 두면 글을 지워도
+    남는다"가 지난 일을 기억해야 하는 값이라 그때그때 계산할 수 없었다.
+
+교훈: 화면 폭으로 서로 다른 부품을 갈아 끼우면 그 안의 입력이 경계에서 사라진다. 구조가 같은 북마크 화면은 같은 계획의
+2단계에서 재현부터 한다.
+
 ## 11. 남은 것
 
 기록만 하고 고치지 않은 것들이다.
@@ -1104,6 +1236,10 @@ Chrome 157, macOS, 사용자가 평소 쓰는 한글 입력기(종류는 기록�
   실측 아님). 제출 때 이유는 토스트로 나온다.
 - **화면 읽기 프로그램이 한국어 문구를 어떻게 읽는지 확인하지 못했다**(2026-11-04) — 접근성 트리상 설명은
   `0 / 2,000자 · 한글 기준`이다(테스트로 확인). VoiceOver·TalkBack이 `/`·`·`를 어떻게 읽는지는 실기기에서 보지 않았다.
+- **폭 경계를 실기기 회전과 브라우저 확대로는 돌려 보지 않았다**(2026-11-19) — 쓰던 글이 남는 것은 창 폭을 바꾸는 e2e로
+  확인했다(§9 "폭 경계"). 회전과 확대도 같은 미디어 쿼리(`MOBILE_MEDIA_QUERY`)를 타므로 같은 경로일 것으로 보지만 추론이다.
+- **뒤로가기로 댓글 시트가 접히지 않는다** — 이슈 #590. 접을 때 쓰던 글을 어떻게 다룰지도 거기서 정한다
+  ([`BACK-NAVIGATION.md`](./BACK-NAVIGATION.md) 11장).
 - **화면 키보드가 떴을 때 모바일 시트를 실기기에서 보지 않았다**(2026-11-04) — 시트 70%·입력칸 40% 상한(§5 "시트
   높이")은 키보드 없는 에뮬레이션에서만 쟀다. Chrome 108 이후 Android·iOS Safari는 키보드가 떠도 `dvh`가 줄지 않아,
   시트 위아래가 키보드 위로 보이는 영역 밖에 걸릴 수 있다. 상한을 두기 전보다 시트가 작아져 나빠지지는 않을 것으로
@@ -1176,6 +1312,13 @@ Chrome 157, macOS, 사용자가 평소 쓰는 한글 입력기(종류는 기록�
   서버에는 저장됐을 수 있다(`CommentUtil.isOutcomeUnknown`).
 - **`FormAlert`** — 특정 입력칸과 무관한 제출 실패를 버튼 위에 남기는 안내 상자
   (`src/shared/ui/elements/FormAlert.tsx`). 토스트와 달리 다음 제출이나 입력 수정까지 남는다.
+- **작성 칸(`CommentComposer`)** — 글 상세의 최상위 댓글 작성 칸. 넓은 화면의 인라인 폼, 좁은 화면의 접힌 바와 하단 시트를
+  한 부품이 그리고 상태는 `useCommentComposer`가 갖는다(§5 "작성 칸 하나, 배치 둘").
+- **`CommentFormView` / `CommentForm`** — 앞의 것은 상태 없이 받은 것만 그리는 작성 폼 화면이고, 뒤의 것은 그 화면에
+  `useCreateComment`를 직접 붙여 폼마다 상태를 따로 갖는 답글용 폼이다.
+- **작성 세션** — 작성 칸이 한 번 올라와서 내려갈 때까지의 상태 한 벌(글·첨부·실패 안내·펼침). 좁은 화면의 "취소"는
+  `key`를 바꿔 세션을 새로 시작한다.
+- **내린다(언마운트)** — React가 부품을 화면 트리에서 빼는 것. 그 부품이 들고 있던 상태가 함께 버려진다.
 
 ## 13. 관련 문서
 
