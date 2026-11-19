@@ -1,11 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useBackClosableOverlayOpen } from '@/shared/hooks/useBackClosableOverlay';
-
-export interface ImageViewerImage {
-  src: string;
-  alt: string;
-}
+import type { ImageViewerImage } from '@/shared/ui/elements/dialog/image-viewer/ImageViewer';
 
 interface ImageViewerStore {
   images: ImageViewerImage[];

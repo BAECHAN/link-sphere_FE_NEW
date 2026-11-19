@@ -4,7 +4,7 @@ import { useFcmForegroundMessage } from '@/shared/lib/firebase/useFcmForegroundM
 import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard';
 import { useAppVersionCheck } from '@/shared/hooks/useAppVersionCheck';
 import { useNewVersionReload } from '@/shared/hooks/useNewVersionReload';
-import { GlobalImageViewer } from '@/shared/ui/elements/dialog/image-viewer/ImageViewer';
+import { GlobalImageViewer } from '@/shared/ui/elements/dialog/image-viewer/GlobalImageViewer';
 import { RouteAlertDialogs } from '@/shared/ui/elements/dialog/alert-dialog/RouteAlertDialogs';
 import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
 import { useLeaveOnMemberChange } from '@/app/hooks/useLeaveOnMemberChange';

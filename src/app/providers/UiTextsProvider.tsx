@@ -44,6 +44,12 @@ export const APP_UI_TEXTS: UiTexts = {
     failed: TEXTS.messages.error.loadMoreFailed,
     retry: TEXTS.buttons.retry,
   },
+  imageViewer: {
+    title: TEXTS.ariaLabels.imageViewer,
+    description: TEXTS.ariaLabels.imageViewerDescription,
+    prev: TEXTS.ariaLabels.imageViewerPrev,
+    next: TEXTS.ariaLabels.imageViewerNext,
+  },
   authLayout: {
     root: TEXTS.ariaLabels.authLayout,
     content: TEXTS.ariaLabels.authContent,

@@ -10,7 +10,7 @@
  */
 export interface UiTexts {
   common: {
-    // Dialog와 AlertDialog의 닫기 버튼
+    // Dialog, AlertDialog, ImageViewer의 닫기 버튼
     close: string;
   };
   alertDialog: {
@@ -45,6 +45,13 @@ export interface UiTexts {
   loadMoreError: {
     failed: string;
     retry: string;
+  };
+  imageViewer: {
+    // 확대 창의 접근 이름과 설명 - 화면에는 안 보인다
+    title: string;
+    description: string;
+    prev: string;
+    next: string;
   };
   // 레이아웃 영역의 접근 이름
   authLayout: {

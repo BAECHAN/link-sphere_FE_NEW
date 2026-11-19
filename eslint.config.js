@@ -1742,9 +1742,8 @@ export default [
       'src/shared/ui/elements/AsyncBoundary.tsx',
       'src/shared/ui/elements/MarkdownContent.tsx',
       'src/shared/ui/elements/dialog/alert-dialog/RouteAlertDialogs.tsx',
+      'src/shared/ui/elements/dialog/image-viewer/GlobalImageViewer.tsx',
       'src/shared/ui/elements/dialog/image-viewer/imageViewer.store.ts',
-      // 그리는 부품과 앱 배선으로 나누기 전까지(다음 PR)
-      'src/shared/ui/elements/dialog/image-viewer/ImageViewer.tsx',
     ],
     plugins: {
       'custom-design-system': {

@@ -1,7 +1,7 @@
 # 디자인 시스템 원칙과 부품 분류
 
 > **문서 성격**: 레퍼런스 — 공용 UI(`src/shared/ui`)를 패키지로 꺼낼 때 누구를 위해 어디까지 꺼내는지의 원칙과, 지금 있는 부품
-> 56개가 그 기준에서 어디에 속하는지를 모았다. [`DESIGN-SYSTEM-ROADMAP.md`](./DESIGN-SYSTEM-ROADMAP.md) 0단계의 결과에 1단계(앱
+> 57개가 그 기준에서 어디에 속하는지를 모았다. [`DESIGN-SYSTEM-ROADMAP.md`](./DESIGN-SYSTEM-ROADMAP.md) 0단계의 결과에 1단계(앱
 > 결합 분리)에서 정한 것을 더했다. 부품이 지금 어떻게 동작하는지는 [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md)가 정본이다.
 >
 > **대상 독자**: 로드맵의 다음 단계를 계획할 개발자와 AI 세션, 공용 UI에 부품을 더하거나 옮기는 개발자.
@@ -16,7 +16,7 @@
 - 따옴표 이탤릭은 원문을 옮긴 것이고 `(번역)`은 영어 원문을 옮겼다는 뜻이다. 외부 인용은 2026-11-18에 원문을 직접 받아 문장을
   대조했다([§1.3](#13-글자를-provider로-받기로-한-이유)의 react.dev "Passing Data Deeply with Context"와 Next.js 인용은
   2026-11-19).
-- 분류와 수치는 2026-11-18, 1단계 첫 PR(문구·라우터 분리와 경계 린트)을 반영한 상태다. 부품을 더하거나 옮기면
+- 분류와 수치는 2026-11-19, 1단계 둘째 PR(이미지 확대 창 나누기)까지 반영한 상태다. 부품을 더하거나 옮기면
   [§5](#5-부품-분류표) 표의 줄을 고치고 [§6](#6-측정-명령) 명령으로 개수를 다시 맞춘다.
 - **부품**은 `src/shared/ui` 안의 컴포넌트 파일이다. **앱 코드**는 그 폴더 밖의 이 저장소 코드다. **보조 모듈**은 앱 코드 가운데
   부품이 가져다 쓰지만 앱 문구·라우터·서비스 기능을 모르는 작은 모듈이다(`cn()`, 클릭 가드 훅 등).
@@ -39,20 +39,20 @@
 
 ### 1.1 1단계에서 정한 것
 
-1단계(앱 결합 분리)의 계획과 구현 중에 정했다. 부품 12개와 문구 파일 세 개를 고치면 되돌릴 수 있어 `DECISIONS.md`에는 적지
+1단계(앱 결합 분리)의 계획과 구현 중에 정했다. 부품 13개와 문구 파일 세 개를 고치면 되돌릴 수 있어 `DECISIONS.md`에는 적지
 않았다. 계획은 [`plans/2026-11-18-design-system-stage1-decoupling.md`](./plans/2026-11-18-design-system-stage1-decoupling.md)다.
 
 | 항목                                         | 결정                                                                                                                                                                         | 기각한 대안                                                                                                                                                                              | 정해진 경로                                           |
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | 부품이 스스로 보여 주는 글자를 넣는 방법     | 앱 맨 위에 `UiTextsProvider`를 한 번 두고 부품은 `useUiTexts()`로 읽는다([§1.2](#12-부품이-스스로-보여-주는-글자))                                                           | 부품 속성으로만(쓰는 자리마다 넘긴다), 코드에 고정(받는 쪽이 글자를 정할 수 없다), 부품이 문구 파일을 직접 import(패키지 안의 파일이면 받는 쪽이 정할 수 없고 앱의 파일이면 앱에 묶인다) | 사용자 답                                             |
 | 문구를 넘기지 않았을 때                      | 부품이 오류를 낸다. 패키지가 대신 넣어 주는 기본 문구는 없다                                                                                                                 | 기본 문구를 자동으로 쓴다 — 앱이 넘기지 않은 글자가 화면에 나오면 그 글자가 앱 것인지 패키지 것인지 코드로 알 수 없다                                                                    | 사용자 답(계획은 자동 기본 문구였고 구현 중에 바꿨다) |
-| 한국어 문구 묶음                             | 패키지가 `KO_UI_TEXTS`를 내보내되 자동으로 쓰지 않는다. 받는 쪽이 가져와 넘기거나 자기 문구를 넘긴다                                                                         | 묶음 없이 타입만 준다(처음 쓰는 프로젝트가 21개를 모두 적어야 컴파일된다)                                                                                                                | 사용자 답                                             |
+| 한국어 문구 묶음                             | 패키지가 `KO_UI_TEXTS`를 내보내되 자동으로 쓰지 않는다. 받는 쪽이 가져와 넘기거나 자기 문구를 넘긴다                                                                         | 묶음 없이 타입만 준다(처음 쓰는 프로젝트가 25개를 모두 적어야 컴파일된다)                                                                                                                | 사용자 답                                             |
 | 이 앱이 넘기는 문구                          | 묶음을 쓰지 않고 `TEXTS`에서 뽑은 `APP_UI_TEXTS`를 넘긴다. 문구를 정하는 곳은 지금처럼 `texts.ts` 한 곳이다                                                                  | `TEXTS`에서 키를 지우고 묶음을 쓴다(e2e 83개 파일이 `TEXTS`를 import하고, 말투 검사 `texts.test.ts`가 `texts.ts`를 본다)                                                                 | 계획 승인                                             |
 | 문구 키의 모양                               | 부품별로 묶는다. 한 부품만 쓰는 글자는 그 부품 이름 아래에, 둘 이상이 쓰면 `common`에 둔다                                                                                   | 한 층으로 늘어놓는다(`close`, `retry` — 어느 부품의 글자인지 이름으로 알 수 없다)                                                                                                        | 사용자 답                                             |
 | 부품 안의 변수 이름                          | `const uiTexts = useUiTexts()`                                                                                                                                               | `texts`(앱 문구 `TEXTS`와 헷갈린다)                                                                                                                                                      | 사용자 답                                             |
 | 라우터에 묶인 부품                           | 쓰는 쪽이 넣는다. `ErrorLayout`은 홈 버튼을 `homeAction` 속성으로, `GlobalAlertDialogs`는 위치가 바뀌었다는 신호를 `dismissKey` 속성으로 받는다                              | 맨 위 Provider에 링크 부품을 등록한다(링크를 그리는 범용 부품이 1개뿐이다), 두 부품을 범용에서 뺀다                                                                                      | 사용자 답                                             |
 | 앱 전용 부품의 자리                          | 옮기지 않고 경계 린트의 예외 목록에 적는다                                                                                                                                   | 지금 새 폴더로 옮긴다(3단계에서 범용 쪽이 한 번 더 옮겨진다)                                                                                                                             | 사용자 답                                             |
-| 이미지 확대 창                               | 그리는 부품(범용)과 앱 배선(앱 전용)으로 나눈다. 1단계 둘째 PR에서 한다                                                                                                      | 통째로 앱 전용, 뒤로가기 규약까지 패키지에 넣는다                                                                                                                                        | 사용자 답                                             |
+| 이미지 확대 창                               | 그리는 부품(범용)과 앱 배선(앱 전용)으로 나눴다. `ImageViewer`는 열림·이미지·순서를 속성으로 받고, `GlobalImageViewer`가 스토어와 뒤로가기 오버레이 훅을 잇는다              | 통째로 앱 전용, 뒤로가기 규약까지 패키지에 넣는다                                                                                                                                        | 사용자 답                                             |
 | 경계를 지키게 하는 방법                      | 허용 목록 방식의 린트 `custom-design-system/no-app-import-in-generic-ui`. 범용 부품과 보조 모듈 파일이 `@/shared/ui/**`와 허용 목록 밖의 앱 모듈, 라우터를 import하면 오류다 | 문구·라우터만 막는다(인증 스토어 같은 새 결합을 못 잡는다)                                                                                                                               | 계획 승인                                             |
 | 다른 프로젝트에서 쓸 수 있는지 확인하는 시점 | 1단계 뒤에 분리 리허설을 끼운다([로드맵 §5](./DESIGN-SYSTEM-ROADMAP.md#5-단계))                                                                                              | 3단계 끝 증거만 강화한다, 지금 순서 그대로 둔다                                                                                                                                          | 사용자 답                                             |
 | 0단계 분류의 열린 줄                         | `LinkThumbnail`·`TooltipWrapper`의 분류와 보조 모듈의 자리는 분리 리허설 뒤에 정한다                                                                                         | —                                                                                                                                                                                        | 사용자 답                                             |
@@ -62,12 +62,12 @@
 
 ### 1.2 부품이 스스로 보여 주는 글자
 
-닫기 버튼의 라벨처럼 **쓰는 쪽이 넘기지 않아도 부품이 스스로 넣는 글자**가 범용 부품 12개에 21개 있다. 화면마다 다른
+닫기 버튼의 라벨처럼 **쓰는 쪽이 넘기지 않아도 부품이 스스로 넣는 글자**가 범용 부품 13개에 25개 있다. 화면마다 다른
 글자(제목, 버튼 문구, 안내문)는 여기에 들지 않고 지금처럼 쓰는 쪽이 속성으로 넘긴다.
 
 ```mermaid
 flowchart LR
-    T["앱 문구 파일 TEXTS<br/>src/shared/config/texts.ts"] -->|"필요한 21개를 뽑는다"| A["APP_UI_TEXTS<br/>src/app/providers/UiTextsProvider.tsx"]
+    T["앱 문구 파일 TEXTS<br/>src/shared/config/texts.ts"] -->|"필요한 25개를 뽑는다"| A["APP_UI_TEXTS<br/>src/app/providers/UiTextsProvider.tsx"]
     A -->|"texts 속성"| P["UiTextsProvider<br/>src/main.tsx에서 한 번 감싼다"]
     K["한국어 묶음 KO_UI_TEXTS<br/>src/shared/ui/texts/ko-ui-texts.ts"] -.->|"다른 프로젝트가 골라서 넘긴다<br/>자동으로 쓰이지 않는다"| P
     P --> H["useUiTexts()"]
@@ -79,8 +79,8 @@ flowchart LR
 | ---------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | 타입 `UiTexts`                     | `src/shared/ui/texts/ui-texts.ts`            | 부품이 스스로 넣는 글자의 목록. 부품별 묶음이고 값이 모두 필수라, 넘기는 쪽이 하나라도 빠뜨리면 컴파일 오류가 난다 |
 | `UiTextsProvider`, `useUiTexts()`  | `src/shared/ui/texts/UiTextsProvider.tsx`    | 문구를 React 컨텍스트로 내려보내고 읽는다. Provider 밖에서 읽으면 오류를 낸다                                      |
-| 한국어 묶음 `KO_UI_TEXTS`          | `src/shared/ui/texts/ko-ui-texts.ts`         | 21개를 직접 적지 않으려는 프로젝트가 가져다 넘기는 양식. 이 앱은 쓰지 않는다                                       |
-| 이 앱의 문구 `APP_UI_TEXTS`와 래퍼 | `src/app/providers/UiTextsProvider.tsx`      | `TEXTS`에서 21개를 뽑아 넘긴다. `src/main.tsx`가 `<App />`을 이 래퍼로 감싼다                                      |
+| 한국어 묶음 `KO_UI_TEXTS`          | `src/shared/ui/texts/ko-ui-texts.ts`         | 25개를 직접 적지 않으려는 프로젝트가 가져다 넘기는 양식. 이 앱은 쓰지 않는다                                       |
+| 이 앱의 문구 `APP_UI_TEXTS`와 래퍼 | `src/app/providers/UiTextsProvider.tsx`      | `TEXTS`에서 25개를 뽑아 넘긴다. `src/main.tsx`가 `<App />`을 이 래퍼로 감싼다                                      |
 | 묶음 검사                          | `src/app/providers/UiTextsProvider.test.tsx` | `APP_UI_TEXTS`와 `KO_UI_TEXTS`의 키와 값이 같은지 본다. 일부러 다르게 둘 때 이 테스트를 지운다                     |
 
 - **테스트와 스토리도 Provider 안에서 그린다.** `src/test/utils.tsx`의 `render`·`renderWithProviders`·`renderWithDataRouter`와
@@ -95,6 +95,10 @@ flowchart LR
 
 [§1.1](#11-1단계에서-정한-것) 표에서 문구에 관한 여섯 줄이 어떤 요구와 비교에서 나왔는지 적는다. 나중에 이 결정을 고치려 할 때
 판단할 근거로 남긴다. 결정한 날은 2026-11-18이고, 이 절의 개수는 2026-11-19에 다시 센 값이다([§6](#6-측정-명령) 7·8번).
+
+이 절의 "21개"와 "12개"는 결정한 때(1단계 첫 PR)의 수다. 둘째 PR에서 이미지 확대 창(`ImageViewer`, 문구 4개)이 더해져 지금은
+25개와 13개다([§1.2](#12-부품이-스스로-보여-주는-글자), [§6](#6-측정-명령) 6번). `ImageViewer`는 상태·효과 훅과 이벤트
+핸들러를 써서, 아래 "치르는 값"의 "문구 훅 때문에만 클라이언트 컴포넌트가 되는 3개"에 들지 않는다.
 
 **결정** — 범용 부품이 스스로 넣는 글자 21개는 받는 앱이 맨 위 `UiTextsProvider`에 한 번 넘긴다. 넘기지 않으면 부품이 오류를
 낸다. 패키지는 한국어 묶음을 내보내되 자동으로 쓰지 않는다.
@@ -346,24 +350,26 @@ flowchart TD
 3. 스토리의 접근성 검사를 통과한다(`.storybook/preview.tsx:42`의 `a11y.test: 'error'`).
 4. 부품 문서가 있다(4단계의 산출물).
 
-**지금 56개에는 상태를 붙이지 않는다.** 지금 부품은 운영에서 쓰이고 있어 "개념 증명·작업 중"이 아니고, 넷째 조건은 4단계에야
+**지금 57개에는 상태를 붙이지 않는다.** 지금 부품은 운영에서 쓰이고 있어 "개념 증명·작업 중"이 아니고, 넷째 조건은 4단계에야
 채울 수 있어 `Ready`도 아니다. 패키지에 들어가는 3단계에서 붙이고, 어디에 표시할지(Storybook 태그, 문서 머리)도 그때 정한다.
 
 ## 5. 부품 분류표
 
-| 분류    | 뜻                                                | 개수   |
-| ------- | ------------------------------------------------- | ------ |
-| 범용    | 패키지 대상. 0단계의 39개와 1단계에서 고친 12개다 | 51     |
-| 앱 전용 | 앱에 남긴다                                       | 4      |
-| 보류    | 1단계 둘째 PR에서 둘로 나눈다                     | 1      |
-| **합**  |                                                   | **56** |
+| 분류    | 뜻                                                                                     | 개수   |
+| ------- | -------------------------------------------------------------------------------------- | ------ |
+| 범용    | 패키지 대상. 0단계의 39개, 1단계 첫 PR에서 고친 12개, 둘째 PR에서 나눈 `ImageViewer`다 | 52     |
+| 앱 전용 | 앱에 남긴다                                                                            | 5      |
+| 보류    | 지금은 없다                                                                            | 0      |
+| **합**  |                                                                                        | **57** |
 
 - 0단계에는 55개였고 "범용(1단계 수정)"이 12개 있었다. 1단계 첫 PR에서 12개를 모두 고쳐 범용이 됐고("1단계에서 할 일" 칸이
   "끝"인 줄), 라우터와 잇는 앱 전용 부품 `RouteAlertDialogs`가 하나 늘었다.
+- 둘째 PR에서 보류였던 이미지 확대 창을 그리는 부품 `ImageViewer`(범용)와 앱 배선 `GlobalImageViewer`(앱 전용)로 나눠 하나가
+  더 늘었다.
 - "묶인 것" 칸에는 `cn()`(`src/shared/lib/tailwind/utils.ts`, 43개 파일이 쓴다)과 다른 부품을 적지 않았다.
 - "문구"는 범용 부품이면 `src/shared/ui/texts/ui-texts.ts`의 `UiTexts` 키이고([§1.2](#12-부품이-스스로-보여-주는-글자)), 앱
-  전용·보류 부품이면 `src/shared/config/texts.ts`의 `TEXTS` 키다.
-- 앱 전용 부품은 자리를 옮기지 않았다. `eslint.config.js`의 경계 린트 예외 목록이 이 표의 앱 전용·보류 줄과 같아야 한다.
+  전용 부품이면 `src/shared/config/texts.ts`의 `TEXTS` 키다.
+- 앱 전용 부품은 자리를 옮기지 않았다. `eslint.config.js`의 경계 린트 예외 목록이 이 표의 앱 전용 줄과 같아야 한다.
 - `src/shared/ui/texts/`의 문구 Provider는 화면을 그리지 않아 부품으로 세지 않았다.
 
 ### 5.1 atoms (23개)
@@ -394,41 +400,42 @@ flowchart TD
 | `Textarea`       | `src/shared/ui/atoms/textarea.tsx`        | 범용 | —                                                                              | 없음                                                       |
 | `Tooltip`        | `src/shared/ui/atoms/tooltip.tsx`         | 범용 | —                                                                              | 없음                                                       |
 
-### 5.2 elements (31개)
+### 5.2 elements (32개)
 
-| 부품                   | 파일                                                                | 분류    | 묶인 것                                                                                                                                                                                       | 1단계에서 할 일                                                                                                                        |
-| ---------------------- | ------------------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `ActionButton`         | `src/shared/ui/elements/ActionButton.tsx`                           | 범용    | —                                                                                                                                                                                             | 없음                                                                                                                                   |
-| `ActionChip`           | `src/shared/ui/elements/ActionChip.tsx`                             | 범용    | —                                                                                                                                                                                             | 없음                                                                                                                                   |
-| `AppErrorFallback`     | `src/shared/ui/elements/AppErrorFallback.tsx`                       | 앱 전용 | 앱 경로(`ROUTES_PATHS`), 청크 재로딩(`ChunkReloadUtil`), 서버 오류 해석(`ErrorUtil`), 문구 1개                                                                                                | 앱에 남긴다                                                                                                                            |
-| `AsyncBoundary`        | `src/shared/ui/elements/AsyncBoundary.tsx`                          | 앱 전용 | 인증 스토어(`useAuthStore`), 서버 오류 해석(`ErrorUtil`), 문구 1개                                                                                                                            | 앱에 남긴다                                                                                                                            |
-| `BackToTopButton`      | `src/shared/ui/elements/BackToTopButton.tsx`                        | 범용    | 문구 1개(`backToTopButton.label`). 보조: `ScrollUtil`                                                                                                                                         | 끝 — 라벨을 `useUiTexts()`로 읽는다                                                                                                    |
-| `CenteredSpinner`      | `src/shared/ui/elements/CenteredSpinner.tsx`                        | 범용    | 보조: `useDelayedLoading`, 상수 `LOADING_INDICATOR_DELAY_MS`                                                                                                                                  | 보조 모듈과 함께 옮긴다                                                                                                                |
-| `CharacterCount`       | `src/shared/ui/elements/CharacterCount.tsx`                         | 범용    | 보조: `CommonUtil.commaizeNumber`                                                                                                                                                             | 보조 모듈과 함께 옮긴다                                                                                                                |
-| `DelayedFallback`      | `src/shared/ui/elements/DelayedFallback.tsx`                        | 범용    | 보조: `useDelayedLoading`, 상수 `LOADING_INDICATOR_DELAY_MS`                                                                                                                                  | 보조 모듈과 함께 옮긴다                                                                                                                |
-| `DropTargetOverlay`    | `src/shared/ui/elements/DropTargetOverlay.tsx`                      | 범용    | 문구 1개(`dropTargetOverlay.message`)                                                                                                                                                         | 끝 — 안내 문구를 `useUiTexts()`로 읽는다                                                                                               |
-| `EditButton`           | `src/shared/ui/elements/EditButton.tsx`                             | 범용    | —                                                                                                                                                                                             | 없음                                                                                                                                   |
-| `EmptyState`           | `src/shared/ui/elements/EmptyState.tsx`                             | 범용    | —                                                                                                                                                                                             | 없음                                                                                                                                   |
-| `ErrorState`           | `src/shared/ui/elements/ErrorState.tsx`                             | 범용    | —                                                                                                                                                                                             | 없음                                                                                                                                   |
-| `FilterChip`           | `src/shared/ui/elements/FilterChip.tsx`                             | 범용    | —                                                                                                                                                                                             | 없음                                                                                                                                   |
-| `FormAlert`            | `src/shared/ui/elements/FormAlert.tsx`                              | 범용    | —                                                                                                                                                                                             | 없음                                                                                                                                   |
-| `ImageAttachmentField` | `src/shared/ui/elements/ImageAttachmentField.tsx`                   | 범용    | 문구 4개(`imageAttachmentField.attach`, `imageAttachmentField.hint`, `imageAttachmentField.removeAt`, `imageAttachmentField.imageAt`)                                                         | 끝 — 문구를 `useUiTexts()`로 읽는다                                                                                                    |
-| `KebabMenu`            | `src/shared/ui/elements/KebabMenu.tsx`                              | 범용    | —                                                                                                                                                                                             | 없음                                                                                                                                   |
-| `LoadMoreError`        | `src/shared/ui/elements/LoadMoreError.tsx`                          | 범용    | 문구 2개(`loadMoreError.failed`, `loadMoreError.retry`)                                                                                                                                       | 끝 — 문구를 `useUiTexts()`로 읽는다                                                                                                    |
-| `MarkdownContent`      | `src/shared/ui/elements/MarkdownContent.tsx`                        | 앱 전용 | Supabase 이미지 주소 변환(`supabaseImage`), 라우터 이동(`NavigationService`), 뒤로가기 오버레이 등록부(`back-closable-overlay`), 코드 블록 분리(`codeBlock`), 이미지 확대 창 스토어, 문구 3개 | 앱에 남긴다                                                                                                                            |
-| `PasswordInput`        | `src/shared/ui/elements/PasswordInput.tsx`                          | 범용    | 문구 2개(`passwordInput.show`, `passwordInput.hide`)                                                                                                                                          | 끝 — 라벨을 `useUiTexts()`로 읽는다                                                                                                    |
-| `SearchInput`          | `src/shared/ui/elements/SearchInput.tsx`                            | 범용    | 보조: `useKeydown`, `useMergedRef`                                                                                                                                                            | 보조 모듈과 함께 옮긴다                                                                                                                |
-| `ToggleButton`         | `src/shared/ui/elements/ToggleButton.tsx`                           | 범용    | 보조: `useClickGuard`                                                                                                                                                                         | 보조 모듈과 함께 옮긴다                                                                                                                |
-| `TooltipWrapper`       | `src/shared/ui/elements/TooltipWrapper.tsx`                         | 범용    | 보조: 토스트 래퍼 `toast`. 터치에서는 툴팁 대신 토스트로 이유를 알린다 — 받는 쪽이 패키지의 토스트(`Toaster`)를 함께 장착해야 보인다                                                          | 보조 모듈과 함께 옮긴다. 분류는 분리 리허설 뒤에 다시 본다                                                                             |
-| `SheetDialogContent`   | `src/shared/ui/elements/dialog/SheetDialogContent.tsx`              | 범용    | —                                                                                                                                                                                             | 없음                                                                                                                                   |
-| `GlobalAlertDialogs`   | `src/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs.tsx` | 범용    | 문구 3개(`alertDialog.confirm`, `alertDialog.cancel`, `alertDialog.fallbackTitle`). 창을 닫을 신호는 `dismissKey` 속성으로 받는다                                                             | 끝 — 문구는 `useUiTexts()`로 읽고, 위치가 바뀌었다는 신호는 쓰는 쪽이 속성으로 넘긴다                                                  |
-| `RouteAlertDialogs`    | `src/shared/ui/elements/dialog/alert-dialog/RouteAlertDialogs.tsx`  | 앱 전용 | 라우터(`useLocation` — 위치 키를 `GlobalAlertDialogs`의 `dismissKey`로 넘긴다)                                                                                                                | 앱에 남긴다(1단계에서 만들었다)                                                                                                        |
-| `GlobalImageViewer`    | `src/shared/ui/elements/dialog/image-viewer/ImageViewer.tsx`        | 보류    | 뒤로가기 오버레이 훅(`useBackClosableOverlay` — `react-router-dom`의 `useNavigate`와 이 앱의 오버레이 등록부를 쓴다), 문구 5개                                                                | 그리는 부품(범용)과 앱 배선(앱 전용)으로 나눈다([§1.1](#11-1단계에서-정한-것)). 1단계 둘째 PR에서 하고, 그때까지 린트 예외 목록에 둔다 |
-| `FormCheckbox`         | `src/shared/ui/elements/form/FormCheckbox.tsx`                      | 범용    | —                                                                                                                                                                                             | 없음                                                                                                                                   |
-| `FormCheckboxGroup`    | `src/shared/ui/elements/form/FormCheckboxGroup.tsx`                 | 범용    | 보조: 타입 `SelectOptionType`                                                                                                                                                                 | 보조 모듈과 함께 옮긴다                                                                                                                |
-| `FormInput`            | `src/shared/ui/elements/form/FormInput.tsx`                         | 범용    | —                                                                                                                                                                                             | 없음                                                                                                                                   |
-| `FormInputPassword`    | `src/shared/ui/elements/form/FormInputPassword.tsx`                 | 범용    | —                                                                                                                                                                                             | 없음                                                                                                                                   |
-| `FormField`            | `src/shared/ui/elements/form/_base/FormField.tsx`                   | 범용    | —                                                                                                                                                                                             | 없음                                                                                                                                   |
+| 부품                   | 파일                                                                | 분류    | 묶인 것                                                                                                                                                                                       | 1단계에서 할 일                                                                       |
+| ---------------------- | ------------------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `ActionButton`         | `src/shared/ui/elements/ActionButton.tsx`                           | 범용    | —                                                                                                                                                                                             | 없음                                                                                  |
+| `ActionChip`           | `src/shared/ui/elements/ActionChip.tsx`                             | 범용    | —                                                                                                                                                                                             | 없음                                                                                  |
+| `AppErrorFallback`     | `src/shared/ui/elements/AppErrorFallback.tsx`                       | 앱 전용 | 앱 경로(`ROUTES_PATHS`), 청크 재로딩(`ChunkReloadUtil`), 서버 오류 해석(`ErrorUtil`), 문구 1개                                                                                                | 앱에 남긴다                                                                           |
+| `AsyncBoundary`        | `src/shared/ui/elements/AsyncBoundary.tsx`                          | 앱 전용 | 인증 스토어(`useAuthStore`), 서버 오류 해석(`ErrorUtil`), 문구 1개                                                                                                                            | 앱에 남긴다                                                                           |
+| `BackToTopButton`      | `src/shared/ui/elements/BackToTopButton.tsx`                        | 범용    | 문구 1개(`backToTopButton.label`). 보조: `ScrollUtil`                                                                                                                                         | 끝 — 라벨을 `useUiTexts()`로 읽는다                                                   |
+| `CenteredSpinner`      | `src/shared/ui/elements/CenteredSpinner.tsx`                        | 범용    | 보조: `useDelayedLoading`, 상수 `LOADING_INDICATOR_DELAY_MS`                                                                                                                                  | 보조 모듈과 함께 옮긴다                                                               |
+| `CharacterCount`       | `src/shared/ui/elements/CharacterCount.tsx`                         | 범용    | 보조: `CommonUtil.commaizeNumber`                                                                                                                                                             | 보조 모듈과 함께 옮긴다                                                               |
+| `DelayedFallback`      | `src/shared/ui/elements/DelayedFallback.tsx`                        | 범용    | 보조: `useDelayedLoading`, 상수 `LOADING_INDICATOR_DELAY_MS`                                                                                                                                  | 보조 모듈과 함께 옮긴다                                                               |
+| `DropTargetOverlay`    | `src/shared/ui/elements/DropTargetOverlay.tsx`                      | 범용    | 문구 1개(`dropTargetOverlay.message`)                                                                                                                                                         | 끝 — 안내 문구를 `useUiTexts()`로 읽는다                                              |
+| `EditButton`           | `src/shared/ui/elements/EditButton.tsx`                             | 범용    | —                                                                                                                                                                                             | 없음                                                                                  |
+| `EmptyState`           | `src/shared/ui/elements/EmptyState.tsx`                             | 범용    | —                                                                                                                                                                                             | 없음                                                                                  |
+| `ErrorState`           | `src/shared/ui/elements/ErrorState.tsx`                             | 범용    | —                                                                                                                                                                                             | 없음                                                                                  |
+| `FilterChip`           | `src/shared/ui/elements/FilterChip.tsx`                             | 범용    | —                                                                                                                                                                                             | 없음                                                                                  |
+| `FormAlert`            | `src/shared/ui/elements/FormAlert.tsx`                              | 범용    | —                                                                                                                                                                                             | 없음                                                                                  |
+| `ImageAttachmentField` | `src/shared/ui/elements/ImageAttachmentField.tsx`                   | 범용    | 문구 4개(`imageAttachmentField.attach`, `imageAttachmentField.hint`, `imageAttachmentField.removeAt`, `imageAttachmentField.imageAt`)                                                         | 끝 — 문구를 `useUiTexts()`로 읽는다                                                   |
+| `KebabMenu`            | `src/shared/ui/elements/KebabMenu.tsx`                              | 범용    | —                                                                                                                                                                                             | 없음                                                                                  |
+| `LoadMoreError`        | `src/shared/ui/elements/LoadMoreError.tsx`                          | 범용    | 문구 2개(`loadMoreError.failed`, `loadMoreError.retry`)                                                                                                                                       | 끝 — 문구를 `useUiTexts()`로 읽는다                                                   |
+| `MarkdownContent`      | `src/shared/ui/elements/MarkdownContent.tsx`                        | 앱 전용 | Supabase 이미지 주소 변환(`supabaseImage`), 라우터 이동(`NavigationService`), 뒤로가기 오버레이 등록부(`back-closable-overlay`), 코드 블록 분리(`codeBlock`), 이미지 확대 창 스토어, 문구 3개 | 앱에 남긴다                                                                           |
+| `PasswordInput`        | `src/shared/ui/elements/PasswordInput.tsx`                          | 범용    | 문구 2개(`passwordInput.show`, `passwordInput.hide`)                                                                                                                                          | 끝 — 라벨을 `useUiTexts()`로 읽는다                                                   |
+| `SearchInput`          | `src/shared/ui/elements/SearchInput.tsx`                            | 범용    | 보조: `useKeydown`, `useMergedRef`                                                                                                                                                            | 보조 모듈과 함께 옮긴다                                                               |
+| `ToggleButton`         | `src/shared/ui/elements/ToggleButton.tsx`                           | 범용    | 보조: `useClickGuard`                                                                                                                                                                         | 보조 모듈과 함께 옮긴다                                                               |
+| `TooltipWrapper`       | `src/shared/ui/elements/TooltipWrapper.tsx`                         | 범용    | 보조: 토스트 래퍼 `toast`. 터치에서는 툴팁 대신 토스트로 이유를 알린다 — 받는 쪽이 패키지의 토스트(`Toaster`)를 함께 장착해야 보인다                                                          | 보조 모듈과 함께 옮긴다. 분류는 분리 리허설 뒤에 다시 본다                            |
+| `SheetDialogContent`   | `src/shared/ui/elements/dialog/SheetDialogContent.tsx`              | 범용    | —                                                                                                                                                                                             | 없음                                                                                  |
+| `GlobalAlertDialogs`   | `src/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs.tsx` | 범용    | 문구 3개(`alertDialog.confirm`, `alertDialog.cancel`, `alertDialog.fallbackTitle`). 창을 닫을 신호는 `dismissKey` 속성으로 받는다                                                             | 끝 — 문구는 `useUiTexts()`로 읽고, 위치가 바뀌었다는 신호는 쓰는 쪽이 속성으로 넘긴다 |
+| `RouteAlertDialogs`    | `src/shared/ui/elements/dialog/alert-dialog/RouteAlertDialogs.tsx`  | 앱 전용 | 라우터(`useLocation` — 위치 키를 `GlobalAlertDialogs`의 `dismissKey`로 넘긴다)                                                                                                                | 앱에 남긴다(1단계에서 만들었다)                                                       |
+| `ImageViewer`          | `src/shared/ui/elements/dialog/image-viewer/ImageViewer.tsx`        | 범용    | 문구 5개(`imageViewer.title`, `imageViewer.description`, `imageViewer.prev`, `imageViewer.next`, `common.close`). 열림·이미지·순서는 속성으로 받는다                                          | 끝 — 문구는 `useUiTexts()`로 읽고, 열림과 순서는 쓰는 쪽이 속성으로 넘긴다            |
+| `GlobalImageViewer`    | `src/shared/ui/elements/dialog/image-viewer/GlobalImageViewer.tsx`  | 앱 전용 | 뒤로가기 오버레이 훅(`useBackClosableOverlay` — `react-router-dom`의 `useNavigate`와 이 앱의 오버레이 등록부를 쓴다), 이미지 확대 창 스토어                                                   | 앱에 남긴다(1단계 둘째 PR에서 `ImageViewer`와 나눴다)                                 |
+| `FormCheckbox`         | `src/shared/ui/elements/form/FormCheckbox.tsx`                      | 범용    | —                                                                                                                                                                                             | 없음                                                                                  |
+| `FormCheckboxGroup`    | `src/shared/ui/elements/form/FormCheckboxGroup.tsx`                 | 범용    | 보조: 타입 `SelectOptionType`                                                                                                                                                                 | 보조 모듈과 함께 옮긴다                                                               |
+| `FormInput`            | `src/shared/ui/elements/form/FormInput.tsx`                         | 범용    | —                                                                                                                                                                                             | 없음                                                                                  |
+| `FormInputPassword`    | `src/shared/ui/elements/form/FormInputPassword.tsx`                 | 범용    | —                                                                                                                                                                                             | 없음                                                                                  |
+| `FormField`            | `src/shared/ui/elements/form/_base/FormField.tsx`                   | 범용    | —                                                                                                                                                                                             | 없음                                                                                  |
 
 ### 5.3 layouts (2개)
 
@@ -437,7 +444,7 @@ flowchart TD
 | `AuthLayout`  | `src/shared/ui/layouts/AuthLayout.tsx`  | 범용 | 문구 2개(`authLayout.root`, `authLayout.content`)                                                                 | 끝 — 라벨을 `useUiTexts()`로 읽는다                                        |
 | `ErrorLayout` | `src/shared/ui/layouts/ErrorLayout.tsx` | 범용 | 문구 3개(`errorLayout.root`, `errorLayout.content`, `errorLayout.detail`). 홈 버튼은 `homeAction` 속성으로 받는다 | 끝 — 라벨은 `useUiTexts()`로 읽고, 홈 버튼(문구와 링크)은 쓰는 쪽이 넘긴다 |
 
-### 5.4 부품 폴더 안의 스토어 (2개, 56개에 들지 않는다)
+### 5.4 부품 폴더 안의 스토어 (2개, 57개에 들지 않는다)
 
 | 스토어                | 파일                                                              | 분류    | 묶인 것                                            | 1단계에서 할 일                    |
 | --------------------- | ----------------------------------------------------------------- | ------- | -------------------------------------------------- | ---------------------------------- |
@@ -475,34 +482,35 @@ flowchart TD
 
 저장소 루트에서 돌린다. 결과를 함께 적었고, 잰 날을 따로 적지 않은 것은 2026-11-18의 값이다.
 
-1. 부품 수:
-   `find src/shared/ui -name "*.tsx" -not -name "*.stories.tsx" -not -name "*.test.tsx"` → 57. 부품 56개(atoms 23, elements 31,
+1. 부품 수(2026-11-19):
+   `find src/shared/ui -name "*.tsx" -not -name "*.stories.tsx" -not -name "*.test.tsx"` → 58. 부품 57개(atoms 23, elements 32,
    layouts 2)와 문구 Provider 1개(`texts/UiTextsProvider.tsx`)다.
-2. 앱 문구·라우터·서비스 기능을 직접 가져다 쓰는 파일:
+2. 앱 문구·라우터·서비스 기능을 직접 가져다 쓰는 파일(2026-11-19):
    `grep -rlE "from '@/shared/config/texts'|from 'react-router-dom'|useAuthStore|NavigationService|ROUTES_PATHS|useBackClosableOverlay" src/shared/ui`에서
-   스토리·테스트 파일을 뺀 수 → 6. 부품 5개(앱 전용 4 + 보류 1)와 스토어 1개이고, 모두 경계 린트의 예외 목록에 있다. 0단계에는
-   17이었다.
+   스토리·테스트 파일을 뺀 수 → 6. 앱 전용 부품 5개와 스토어 1개이고, 모두 경계 린트의 예외 목록에 있다. 0단계에는 17이었다.
 3. 부품이 가져다 쓰는 부품 폴더 밖 모듈과 횟수:
    `grep -rhoE "from '@/shared/(lib|hooks|utils|config|types|store)/[^']+'" src/shared/ui --include="*.tsx" --include="*.ts" --exclude="*.stories.tsx" --exclude="*.test.tsx" --exclude="*.test.ts" | sort | uniq -c`
    → 22종. [§5.5](#55-함께-옮길-보조-모듈)의 12개(`toast-layout.ts`는 `toast.ts`를 거쳐 닿는다)와 나머지 10종이다. 10종 가운데
    9종은 앱 문구·라우터·이 앱의 기능(인증, 이미지 저장소, 오류 해석, 청크 재로딩, 오버레이 등록부)을 다루는 모듈이고(`texts`,
    `route-paths`, `back-closable-overlay`, `useBackClosableOverlay`, `supabaseImage`, `navigation`, `auth.store`,
    `chunk-reload.util`, `error.util`), `codeBlock`은 앱 전용 부품 `MarkdownContent`만 써서 보조 모듈 표에 넣지 않았다.
-4. 범용 부품이 앱 전용·보류 부품을 가져다 쓰지 않는지:
-   `grep -rlE "(AppErrorFallback|AsyncBoundary|MarkdownContent|RouteAlertDialogs|image-viewer/ImageViewer|imageViewer\.store)'" src/shared/ui`에서
-   스토리·테스트 파일을 뺀 것 → `MarkdownContent.tsx`, `ImageViewer.tsx` 둘뿐이다(둘 다 이미지 확대 창 스토어를 쓴다).
+4. 범용 부품이 앱 전용 부품과 스토어를 가져다 쓰지 않는지(2026-11-19):
+   `grep -rlE "(AppErrorFallback|AsyncBoundary|MarkdownContent|RouteAlertDialogs|GlobalImageViewer|imageViewer\.store)'" src/shared/ui`에서
+   스토리·테스트 파일을 뺀 것 → `MarkdownContent.tsx`, `GlobalImageViewer.tsx` 둘뿐이다(둘 다 앱 전용이고 이미지 확대 창
+   스토어를 쓴다).
 5. 경계 린트가 지금 코드에서 통과하는지: `pnpm lint` → 오류 없음. 규칙이 실제로 막는지는 범용 부품 파일에
    `import { TEXTS } from '@/shared/config/texts';`를 잠깐 넣고 `pnpm exec eslint <그 파일>`을 돌려 확인한다(2026-11-18에 앱
    문구, `react-router-dom`, `config/const`의 다른 상수, `CommonUtil`의 다른 멤버, 보조 모듈 파일 다섯 경우가 모두 오류로
    잡혔다).
-6. 문구를 `useUiTexts()`로 읽는 부품:
-   `grep -rlE "useUiTexts\(\)" src/shared/ui`에서 스토리·테스트 파일과 `texts/`를 뺀 수 → 12
-7. 6번의 12개를 직접 가져다 쓰는 파일(2026-11-19):
+6. 문구를 `useUiTexts()`로 읽는 부품(2026-11-19):
+   `grep -rlE "useUiTexts\(\)" src/shared/ui`에서 스토리·테스트 파일과 `texts/`를 뺀 수 → 13. 1단계 첫 PR의 12개에 둘째 PR의
+   `ImageViewer`가 더해졌다. 7·8번은 `ImageViewer`가 더해지기 전의 12개를 센 값이다.
+7. 첫 PR의 12개를 직접 가져다 쓰는 파일(2026-11-19):
    `grep -rlE "from '@/shared/ui/(atoms/(alert-dialog|dialog|input|spinner)|elements/(BackToTopButton|DropTargetOverlay|ImageAttachmentField|LoadMoreError|PasswordInput)|elements/dialog/alert-dialog/GlobalAlertDialogs|layouts/(AuthLayout|ErrorLayout))'" src`에서
    스토리·테스트 파일을 뺀 것 → `src/shared/ui` 밖 20, 안 11. 안의 11개는 범용 7개(`FormInput`, `FormInputPassword`,
    `PasswordInput`, `SearchInput`, `CenteredSpinner`, `SheetDialogContent`, `GlobalAlertDialogs`), 앱 전용
-   3개(`AppErrorFallback`, `AsyncBoundary`, `RouteAlertDialogs`), 보류 1개(`ImageViewer`)다.
-8. 6번의 12개 가운데 문구 훅 말고도 훅이나 이벤트 핸들러를 쓰는 부품(2026-11-19): 파일마다
+   3개(`AppErrorFallback`, `AsyncBoundary`, `RouteAlertDialogs`), 그때 보류였던 1개(나누기 전의 `ImageViewer.tsx`)다.
+8. 첫 PR의 12개 가운데 문구 훅 말고도 훅이나 이벤트 핸들러를 쓰는 부품(2026-11-19): 파일마다
    `grep -oE "\buse[A-Z][A-Za-z]*\(|\bon[A-Z][A-Za-z]*=" <파일>`의 결과에서 `useUiTexts(`를 빼고 남는 것이 있는 파일 → 9. 남는
    것이 없는 3개는 `Spinner`, `AuthLayout`, `ErrorLayout`이다.
 
@@ -512,7 +520,7 @@ flowchart TD
   것이다
 - [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md) — 지금 있는 토큰·컴포넌트·린트·카탈로그·접근성 게이트
 - [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §18 — Storybook 스토리 규칙
-- [`BACK-NAVIGATION.md`](./BACK-NAVIGATION.md) — 뒤로가기로 닫히는 오버레이 규약(`GlobalImageViewer` 보류의 배경)
+- [`BACK-NAVIGATION.md`](./BACK-NAVIGATION.md) — 뒤로가기로 닫히는 오버레이 규약(`GlobalImageViewer`를 앱 전용으로 둔 배경)
 - [`DECISIONS.md`](./DECISIONS.md) — "2026-11-18 — 공용 UI 재사용 방식: npm 패키지 (shadcn 레지스트리·혼합 기각)"
 - [`TESTING.md`](./TESTING.md) "패턴 D" — 범용 부품을 그리는 테스트가 문구 Provider를 받는 방법
 - 계획: [`plans/2026-11-18-design-system-stage0-principles.md`](./plans/2026-11-18-design-system-stage0-principles.md)(0단계),
