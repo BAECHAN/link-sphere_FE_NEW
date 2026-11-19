@@ -25,10 +25,10 @@ export const VerifyEmailStatus = () => {
             <Spinner className="mx-auto mb-1 size-11 text-muted-foreground" />
           )}
           {status === 'success' && (
-            <FeaturedIcon icon={CheckCircle2} tone="success" className="mx-auto mb-1" />
+            <FeaturedIcon icon={CheckCircle2} variant="success" className="mx-auto mb-1" />
           )}
           {(status === 'error' || status === 'unknown') && (
-            <FeaturedIcon icon={XCircle} tone="destructive" className="mx-auto mb-1" />
+            <FeaturedIcon icon={XCircle} variant="destructive" className="mx-auto mb-1" />
           )}
           <CardTitle>
             {status === 'pending' && TEXTS.auth.verifyEmail.pendingTitle}

@@ -7,14 +7,14 @@ const meta = {
   component: FeaturedIcon,
   tags: ['autodocs'],
   argTypes: {
-    tone: {
+    variant: {
       control: 'select',
       options: ['info', 'success', 'warning', 'destructive'],
     },
   },
   args: {
     icon: Mail,
-    tone: 'info',
+    variant: 'info',
   },
 } satisfies Meta<typeof FeaturedIcon>;
 
@@ -24,13 +24,13 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-export const AllTones: Story = {
+export const AllVariants: Story = {
   render: () => (
     <div className="flex gap-4">
-      <FeaturedIcon icon={Mail} tone="info" />
-      <FeaturedIcon icon={Mail} tone="success" />
-      <FeaturedIcon icon={Mail} tone="warning" />
-      <FeaturedIcon icon={Mail} tone="destructive" />
+      <FeaturedIcon icon={Mail} variant="info" />
+      <FeaturedIcon icon={Mail} variant="success" />
+      <FeaturedIcon icon={Mail} variant="warning" />
+      <FeaturedIcon icon={Mail} variant="destructive" />
     </div>
   ),
 };

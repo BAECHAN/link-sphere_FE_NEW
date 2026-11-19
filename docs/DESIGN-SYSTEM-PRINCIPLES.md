@@ -7,15 +7,15 @@
 > **대상 독자**: 로드맵의 다음 단계를 계획할 개발자와 AI 세션, 공용 UI에 부품을 더하거나 옮기는 개발자.
 >
 > **읽고 나면**: 새 부품이 범용인지 앱 전용인지 두 질문으로 가를 수 있고, 범용 부품이 글자와 링크를 어떻게 받는지와 그렇게 정한
-> 이유, 지금 부품이 어느 분류에 속하는지 안다.
+> 이유, 부품의 속성 이름과 `className`을 어떻게 맞추는지, 지금 부품이 어느 분류에 속하는지 안다.
 >
 > **마지막 검토**: 2026-11-19
 
 **읽는 법**
 
 - 따옴표 이탤릭은 원문을 옮긴 것이고 `(번역)`은 영어 원문을 옮겼다는 뜻이다. 외부 인용은 2026-11-18에 원문을 직접 받아 문장을
-  대조했다([§1.3](#13-글자를-provider로-받기로-한-이유)의 react.dev "Passing Data Deeply with Context"와 Next.js 인용은
-  2026-11-19).
+  대조했다([§1.3](#13-글자를-provider로-받기로-한-이유)의 react.dev "Passing Data Deeply with Context"와 Next.js 인용,
+  [§1.4](#14-api-규칙)의 선례는 2026-11-19).
 - 분류와 수치는 2026-11-19, 1단계 둘째 PR(이미지 확대 창 나누기)까지 반영한 상태다. 부품을 더하거나 옮기면
   [§5](#5-부품-분류표) 표의 줄을 고치고 [§6](#6-측정-명령) 명령으로 개수를 다시 맞춘다.
 - **부품**은 `src/shared/ui` 안의 컴포넌트 파일이다. **앱 코드**는 그 폴더 밖의 이 저장소 코드다. **보조 모듈**은 앱 코드 가운데
@@ -275,6 +275,104 @@ value" 절은 컨텍스트에 기본값을 두는 방식을 두고 _"이렇게 �
 없으면 `null`을 지정한다"_ (번역)를 따랐다. `<UiTextsContext.Provider>` 꼴로 쓴 것은 설치본이 React 18.3.1이기 때문이다 — 같은
 문서는 React 19부터 `<SomeContext>`를 바로 provider로 그릴 수 있고 그 전 버전에서는 `.Provider`를 쓰라고 안내한다.
 
+### 1.4 API 규칙
+
+부품마다 종류를 고르는 속성 이름과 `className`이 합쳐지는 자리가 달라, 쓰는 쪽이 부품별로 외워야 했다. 패키지를 낸 뒤에 속성
+이름을 바꾸면 쓰는 쪽 코드가 깨지므로 내기 전에 맞췄다. 결정한 날은 2026-11-19이고 계획은
+[`plans/2026-11-19-design-system-api-rules.md`](./plans/2026-11-19-design-system-api-rules.md)다. 패키지를 내기 전이라 부품
+파일과 사용처를 고치면 되돌릴 수 있어 `DECISIONS.md`에는 적지 않았다.
+
+이 절에서 **축**은 쓰는 쪽이 값 하나를 고르는 속성 하나다. **모양**은 채움·외곽선·글자만처럼 생김새를 가르는 값이고, **뜻**은
+정보·성공·경고·위험처럼 부품이 전하는 의미를 가르는 값이다.
+
+| 규칙                | 내용                                                                                                                                                              | 지키게 하는 검사                                                                                        |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| 종류·크기 속성 이름 | 종류를 고르는 속성은 `variant`, 크기는 `size`다. 모양과 뜻을 따로 골라야 하는 부품에서만 뜻 축을 `tone`으로 더한다                                                | 린트 `custom-design-system/cva-variant-keys`                                                            |
+| 클래스 병합         | `className`은 `cn(자기 클래스, className)`으로 맨 뒤에 합친다. cva로 만든 함수에는 `className`을 넘기지 않는다. 부분을 꾸미는 속성의 이름은 `<부분>ClassName`이다 | 린트 `custom-design-system/classname-last`(맨 뒤인지, cva 밖인지). `<부분>ClassName` 이름은 보지 않는다 |
+
+`ref`와 나머지 속성을 대상 요소로 넘기는 규칙도 같은 날 정했다(저수준 부품만, `forwardRef`로). 코드와 이 절에는 같은 계획의 둘째
+PR에서 더한다.
+
+#### 규칙을 쓰는 모습
+
+```tsx
+// 고르는 축이 하나면 그 값이 모양이든 뜻이든 variant다
+<Button variant="outline" size="sm" />
+<Button variant="destructive" />
+<FeaturedIcon icon={MailCheck} variant="success" />
+
+// 모양과 뜻을 따로 골라야 하는 부품이 생기면 뜻 축을 tone으로 더한다
+// (2026-11-19 기준 그런 부품은 0개다. Callout은 설명하려고 든 없는 부품이다)
+<Callout variant="outline" tone="warning" />
+```
+
+```tsx
+// 부품 안에서 클래스를 합치는 자리
+<div className={cn(badgeVariants({ variant }), className)} {...props} /> // 규칙
+<Comp className={cn(buttonVariants({ variant, size, className }))} /> // 린트 오류. 결과는 같지만 합치는 자리가 둘이 된다
+<div className={cn(className, 'rounded-full')} /> // 린트 오류. 부품의 클래스가 쓰는 쪽 클래스를 이긴다
+```
+
+- **맨 뒤에 두는 이유**: `cn()`은 `tailwind-merge`로 서로 부딪치는 클래스 가운데 뒤에 온 것을 남긴다. 설치본 3.7.0에서
+  `twMerge('rounded-full', 'rounded-md')`는 `rounded-md`를, 순서를 바꾸면 `rounded-full`을 돌려준다(2026-11-19 실행).
+  쓰는 쪽이 넘긴 클래스가 이기려면 `className`이 맨 뒤여야 한다.
+- **cva 안팎의 결과가 같은 이유**: 설치본 `class-variance-authority` 0.7.1은 넘겨받은 `className`을 자기 클래스 뒤에 붙여
+  돌려준다(`node_modules/class-variance-authority/dist/index.mjs`의 마지막 `return cx(base, …, props.class, props.className)`).
+  그래서 `cn()`에 들어가는 문자열이 두 꼴에서 같다. `Button`을 바꾸기 전후로 그린 `class` 문자열도 같았다([§6](#6-측정-명령)
+  11번).
+
+#### 이름과 병합 자리를 정한 이유
+
+| 항목                 | 결정                                                                                                                                                   | 기각한 대안                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 정해진 경로 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| 종류 속성 이름       | `variant` 하나. 고르는 축이 하나면 값이 모양인지 뜻인지 따질 일이 없고, 이름이 허용 목록 안에 있는지만 보면 되어 린트로 막을 수 있다                   | ① 모양은 `variant`, 뜻은 `tone`으로 나누고 코드는 그대로 둔다 — 뜻만 고르는 부품이 `tone` 하나만 갖는다(바꾸기 전의 `FeaturedIcon`). `Button`·`Badge`·`DropdownMenuItem`의 `variant="destructive"` 세 곳이 "뜻 값이 모양 축에 있는" 예외로 남고, 새 부품마다 값이 모양인지 뜻인지 사람이 판단한다. ② 뜻은 전부 `tone`으로 옮긴다 — 외곽선이면서 위험인 버튼처럼 지금 없는 조합의 생김새를 새로 정해야 하고, shadcn에서 부품을 들일 때마다 `variant="destructive"`를 풀어 옮긴다 | 사용자 답   |
+| 클래스를 합치는 자리 | `cn(자기 클래스, className)`                                                                                                                           | cva로 만든 함수 안에 넘긴다 — 결과는 같다. 두 꼴이 섞이면 `className`이 어디서 합쳐지는지 파일마다 읽어야 하고, cva를 쓰지 않는 부품에는 쓸 수 없는 꼴이다                                                                                                                                                                                                                                                                                                                      | 계획 승인   |
+| 지키게 하는 방법     | cva `variants`의 키를 허용 목록(`variant`·`size`·`tone`)으로 막는다. `tone`은 `variant`가 함께 있을 때만 통과한다. 경계 린트와 같은 허용 목록 방식이다 | 금지 이름 목록(`color`, `kind`처럼 새로 나올 이름을 미리 다 적어야 한다), 문서에만 적는다                                                                                                                                                                                                                                                                                                                                                                                       | 계획 승인   |
+
+바꾼 코드는 `FeaturedIcon`의 속성 이름(`tone` → `variant`, 사용처 5곳)과 `Button`의 병합 한 줄이다. 값 이름과 클래스는 그대로라
+화면은 바뀌지 않는다.
+
+#### 린트가 보는 것과 못 보는 것
+
+두 규칙의 본체는 `scripts/lib/ui-api-rule.js`이고 `src/shared/ui`의 스토리·테스트를 뺀 파일에 건다(앱 전용 부품 포함). 규칙
+자체는 `src/test/scripts/ui-api-rule.test.ts`가 통과 19개, 위반 10개 사례로 고정한다.
+
+| 규칙               | 보는 것                                                                                                                      | 못 보는 것                                                                                                                                                                                                                                                            |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cva-variant-keys` | `cva(…, { variants: { … } })`의 키 이름. 허용 목록 밖이면 오류, `tone`이 `variant` 없이 있으면 오류                          | cva 없이 속성을 직접 받는 부품의 속성 이름(`DropdownMenuItem`의 `variant`). 계산된 키와 펼쳐 넣은 축. 설정이나 `variants`를 객체 그대로 적지 않고 변수로 넘긴 경우(`cva('base', sharedConfig)`). `cva`를 다른 이름으로 가져오거나 멤버로 부른 경우                    |
+| `classname-last`   | `cn()`의 인자 가운데 이름이 `className`인 것이 맨 뒤인지, 같은 파일에서 `cva()`로 만든 함수에 `className`·`class`를 넘기는지 | `className`이라는 이름 그대로 인자 자리에 오지 않는 꼴(다른 이름으로 받은 경우, `props.className`, 조건식이나 배열 안). `cn()`이 아닌 함수(`twMerge`·`clsx` 직접 호출)나 문자열 잇기로 합친 경우. 다른 파일에서 가져온 cva 함수, cva 함수에 변수나 펼침으로 넘긴 경우 |
+
+#### 이 규칙으로 생기는 제약
+
+- **`variant` 값 목록에 모양과 뜻이 섞인다.** `Button`의 `variant`에는 `outline`·`ghost`(모양)와 `destructive`(뜻)가 함께
+  있어, 외곽선이면서 위험인 버튼은 속성으로 고를 수 없다. 이 조합이 필요해지는 때가 아래 "다시 볼 조건"이다.
+- **`variant`·`size`·`tone` 밖의 cva 축은 둘 수 없다.** 켜고 끄는 값(꽉 채우기 등)이나 배치를 cva 축으로 두려면 이 절과
+  `ui-api-rule.js`의 허용 목록을 함께 고친다.
+- **shadcn에서 부품을 새로 들일 때 한 줄을 고칠 수 있다.** shadcn 원본은 부품에 따라 두 꼴을 다 쓴다(아래 선례). `Button`
+  꼴이면 린트가 오류를 내고, `cn(xVariants({ … }), className)`으로 고치면 된다.
+
+#### API 규칙의 선례
+
+2026-11-19에 원문 파일을 받아 대조했다. 링크는 각 저장소의 기본 브랜치를 가리켜, 그 뒤에 바뀌었을 수 있다. SEED의 레시피는
+[`recipes`](https://github.com/daangn/seed-design/tree/dev/packages/qvism-preset/src/recipes) 폴더의 파일이다.
+
+| 방식                                    | 쓰는 곳                                     | 본 것                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 축 하나에 모양 값과 뜻 값을 함께 둔다   | shadcn, 당근 SEED의 버튼                    | shadcn [`button.tsx`](https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/new-york-v4/ui/button.tsx)의 `variant`에 `destructive`가 있다. SEED 레시피 `action-button.ts`의 `variant`에 `brandSolid`, `neutralWeak`, `criticalSolid`, `ghost`가 있다                                                                                                                                                                               |
+| 뜻만 고르는 부품에 `tone` 하나를 둔다   | 당근 SEED의 알림 상자                       | SEED 레시피 `callout.ts`의 `variants`가 `tone` 하나다                                                                                                                                                                                                                                                                                                                                                                                   |
+| 모양 축과 뜻 축을 따로 둔다             | 당근 SEED의 배지, Shopify Polaris, 토스 TDS | SEED 레시피 `badge.ts`에 `size`·`variant`·`tone`이 있다. Polaris [`components/Button`](https://github.com/Shopify/polaris/tree/main/polaris-react/src/components/Button) 폴더의 `Button.tsx`에 `variant`(`plain`, `primary` 등)와 `tone`(`critical`, `success`)이 있다. [TDS Mobile Button 문서](https://tossmini-docs.toss.im/tds-mobile/components/button/)의 예제가 `variant="fill"`·`variant="weak"`와 `color="danger"`를 함께 쓴다 |
+| `className`을 자기 클래스 뒤에서 합친다 | shadcn의 배지, 당근 SEED                    | shadcn [`badge.tsx`](https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/new-york-v4/ui/badge.tsx)의 `cn(badgeVariants({ variant }), className)`, SEED [`components/ActionButton`](https://github.com/daangn/seed-design/tree/dev/packages/react/src/components/ActionButton) 폴더에 있는 `ActionButton.tsx`의 `clsx(recipeClassName, scaleFeedbackClassName, className)`                                                        |
+| `className`을 cva 함수 안에 넘긴다      | shadcn의 버튼                               | 같은 `button.tsx`의 `cn(buttonVariants({ variant, size, className }))`                                                                                                                                                                                                                                                                                                                                                                  |
+
+이 프로젝트의 규칙은 축이 하나일 때 shadcn·SEED의 버튼과 같고, 축이 둘일 때 SEED의 배지·Polaris와 같다. 뜻만 고르는 부품에서는
+SEED의 알림 상자와 다르다 — `FeaturedIcon`은 `tone`이 아니라 `variant`를 받는다.
+
+#### API 규칙을 다시 볼 조건
+
+- **모양과 뜻을 따로 골라야 하는 부품이 처음 생길 때.** 그 부품에 `tone`을 더하고, 이미 `variant`에 뜻 값을 둔
+  부품(`Button`·`Badge`의 `destructive`)을 함께 옮길지 그때 정한다.
+- **허용 목록에 없는 축이 필요해질 때.** 위 "이 규칙으로 생기는 제약" 둘째 항목대로 이 절을 먼저 고친다.
+
 ## 2. 사용 대상과 전제
 
 - **받는 쪽은 React와 Tailwind v4를 쓴다.** 부품은 모양을 Tailwind 클래스로 적고, 그 클래스의 CSS는 받는 쪽 프로젝트의 Tailwind가
@@ -513,6 +611,23 @@ flowchart TD
 8. 첫 PR의 12개 가운데 문구 훅 말고도 훅이나 이벤트 핸들러를 쓰는 부품(2026-11-19): 파일마다
    `grep -oE "\buse[A-Z][A-Za-z]*\(|\bon[A-Z][A-Za-z]*=" <파일>`의 결과에서 `useUiTexts(`를 빼고 남는 것이 있는 파일 → 9. 남는
    것이 없는 3개는 `Spinner`, `AuthLayout`, `ErrorLayout`이다.
+9. cva `variants`의 축 이름(2026-11-19):
+   `grep -rnA1 "variants: {" src/shared/ui --include="*.tsx" --exclude="*.stories.tsx" --exclude="*.test.tsx"` → 세
+   파일(`badge.tsx`, `button.tsx`, `featured-icon.tsx`)의 첫 축이 모두 `variant`다. 나머지 축은
+   `grep -rnE "^\s+(size|tone): \{" src/shared/ui --include="*.tsx" --exclude="*.stories.tsx" --exclude="*.test.tsx"` →
+   `button.tsx`의 `size` 하나다. cva를 쓰는 파일은 `grep -rlE "\bcva\(" src/shared/ui --include="*.tsx"` → 4(`label.tsx`는
+   변형이 없다).
+10. API 규칙 린트가 실제 파일에서 막는지(2026-11-19): 부품 파일에 아래 네 가지를 잠깐 넣고 `pnpm exec eslint <그 파일>`을
+    돌린다 → 네 가지 모두 오류로 잡혔다. cva 키가 `tone`뿐인 경우(`featured-icon.tsx`), 키 `color`(`badge.tsx`),
+    `cn(className, …)`(`badge.tsx`), `buttonVariants({ …, className })`(`button.tsx`).
+11. `Button`의 병합 줄과 `FeaturedIcon`의 속성 이름을 바꾸기 전후의 `class` 문자열(2026-11-19): 임시 테스트로 `Button`을
+    `variant` 8가지(넘기지 않은 경우 포함) × `size` 7가지 × `className` 2가지로 112번, `FeaturedIcon`을 값 5가지 ×
+    `className` 2가지로 10번 그려 루트 요소의 `class`를 파일로 떠서 비교했다 → 122개가 모두 같다. 임시 테스트는 커밋하지
+    않았다.
+12. 부분을 꾸미는 속성(2026-11-19):
+    `grep -rnoE "\b[a-z][A-Za-z]*ClassName\??:" src/shared/ui --include="*.tsx" --exclude="*.stories.tsx" --exclude="*.test.tsx"`
+    → 5. `spinnerClassName`, `triggerClassName`, `iconClassName`, `labelClassName` 넷은 부분의 클래스이고, `FilterChip`의
+    `activeClassName`은 부분이 아니라 켜진 상태에서 붙는 클래스다.
 
 ## 7. 관련 문서
 
@@ -524,4 +639,5 @@ flowchart TD
 - [`DECISIONS.md`](./DECISIONS.md) — "2026-11-18 — 공용 UI 재사용 방식: npm 패키지 (shadcn 레지스트리·혼합 기각)"
 - [`TESTING.md`](./TESTING.md) "패턴 D" — 범용 부품을 그리는 테스트가 문구 Provider를 받는 방법
 - 계획: [`plans/2026-11-18-design-system-stage0-principles.md`](./plans/2026-11-18-design-system-stage0-principles.md)(0단계),
-  [`plans/2026-11-18-design-system-stage1-decoupling.md`](./plans/2026-11-18-design-system-stage1-decoupling.md)(1단계 결합 분리)
+  [`plans/2026-11-18-design-system-stage1-decoupling.md`](./plans/2026-11-18-design-system-stage1-decoupling.md)(1단계 결합 분리),
+  [`plans/2026-11-19-design-system-api-rules.md`](./plans/2026-11-19-design-system-api-rules.md)(1단계 API 규칙)

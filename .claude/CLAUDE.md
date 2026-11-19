@@ -94,6 +94,11 @@
   `dismissKey`). ESLint `custom-design-system/no-app-import-in-generic-ui`가 허용 목록 밖 import를 막는다. 이 앱에서만 쓰는
   부품이면 `eslint.config.js`의 그 규칙 블록 예외 목록에 더하고 `docs/DESIGN-SYSTEM-PRINCIPLES.md` §5 분류표에 "앱 전용"으로
   적는다. 글자를 더하는 순서는 `texts-conventions` skill "공용 UI 부품이 스스로 보여 주는 글자", 배경은 같은 문서 §1.1·§1.2
+- **Never** 공용 UI 부품(`src/shared/ui`)에서 종류를 고르는 속성에 `variant` 밖의 이름을 붙이거나, `className`을 `cn()`의 맨 뒤가
+  아닌 자리에서 합친다 → 종류는 `variant`, 크기는 `size`다. 모양과 뜻을 따로 골라야 하는 부품에서만 뜻 축을 `tone`으로 더한다.
+  `className`은 `cn(자기 클래스, className)`으로 합치고 cva로 만든 함수에는 넘기지 않는다. ESLint
+  `custom-design-system/cva-variant-keys`·`custom-design-system/classname-last`가 막는다(cva 없이 직접 받는 속성 이름은 못 잡는다).
+  정한 이유와 선례는 `docs/DESIGN-SYSTEM-PRINCIPLES.md` §1.4
 - **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반 Tailwind 클래스 사용
   (`text-destructive`, `bg-success`, `text-warning` 등). ESLint `custom-tailwind/no-raw-color`가 black/white/gray/zinc 등 명명 팔레트
   리터럴 클래스를 pre-commit과 `pnpm check`에서 막는다(도입 경위: `docs/DESIGN-SYSTEM.md`)

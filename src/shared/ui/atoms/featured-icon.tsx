@@ -7,7 +7,7 @@ const featuredIconVariants = cva(
   'h-11 w-11 rounded-full flex items-center justify-center shrink-0 [&>svg]:size-5',
   {
     variants: {
-      tone: {
+      variant: {
         info: 'bg-info/10 text-info',
         success: 'bg-success/10 text-success',
         warning: 'bg-warning/15 text-warning',
@@ -15,7 +15,7 @@ const featuredIconVariants = cva(
       },
     },
     defaultVariants: {
-      tone: 'info',
+      variant: 'info',
     },
   }
 );
@@ -25,9 +25,9 @@ export interface FeaturedIconProps extends VariantProps<typeof featuredIconVaria
   className?: string;
 }
 
-function FeaturedIcon({ icon: Icon, tone, className }: FeaturedIconProps) {
+function FeaturedIcon({ icon: Icon, variant, className }: FeaturedIconProps) {
   return (
-    <div className={cn(featuredIconVariants({ tone }), className)}>
+    <div className={cn(featuredIconVariants({ variant }), className)}>
       <Icon />
     </div>
   );

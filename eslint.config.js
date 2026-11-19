@@ -14,6 +14,7 @@ import { noLiteralA11yNameRule } from './scripts/lib/no-literal-a11y-name-rule.j
 import { noLiteralJsxTextRule } from './scripts/lib/no-literal-jsx-text-rule.js';
 import { noStoryNameRule } from './scripts/lib/no-story-name-rule.js';
 import { scopeMutationAuthEpochRule } from './scripts/lib/scope-mutation-auth-epoch-rule.js';
+import { classNameLastRule, cvaVariantKeysRule } from './scripts/lib/ui-api-rule.js';
 import { noAppImportInGenericUiRule } from './scripts/lib/ui-boundary-rule.js';
 
 // 파일명 약어 허용 목록
@@ -202,6 +203,16 @@ function isTypeOnlyImport(node) {
     node.specifiers.every((specifier) => specifier.importKind === 'type')
   );
 }
+
+// 공용 UI(디자인 시스템) 규칙 모음. 경계 블록과 API 규칙 블록이 같은 파일에 함께 걸리므로 플러그인 객체를
+// 하나로 둔다 - flat config는 같은 이름의 플러그인을 서로 다른 객체로 두 번 정의하면 오류를 낸다.
+const customDesignSystemPlugin = {
+  rules: {
+    'no-app-import-in-generic-ui': noAppImportInGenericUiRule,
+    'cva-variant-keys': cvaVariantKeysRule,
+    'classname-last': classNameLastRule,
+  },
+};
 
 const customQueryRulesPlugin = {
   rules: {
@@ -1745,13 +1756,26 @@ export default [
       'src/shared/ui/elements/dialog/image-viewer/GlobalImageViewer.tsx',
       'src/shared/ui/elements/dialog/image-viewer/imageViewer.store.ts',
     ],
-    plugins: {
-      'custom-design-system': {
-        rules: { 'no-app-import-in-generic-ui': noAppImportInGenericUiRule },
-      },
-    },
+    plugins: { 'custom-design-system': customDesignSystemPlugin },
     rules: {
       'custom-design-system/no-app-import-in-generic-ui': 'error',
+    },
+  },
+
+  // ============================================================
+  // [금지] 공용 UI 부품의 API 규칙 위반 — 종류 속성 이름, className을 합치는 자리
+  // 이유: 부품마다 종류를 고르는 속성 이름과 className이 통하는 방식이 다르면, 패키지로 쓰는 쪽이 부품마다
+  //       외워야 하고 낸 뒤에는 이름을 바꾸기 어렵다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.4). 규칙 본체는
+  //       scripts/lib/ui-api-rule.js에 있다.
+  // 대상: 공용 UI 전체. 앱 전용 부품도 같은 규칙을 따른다(경계 블록과 달리 예외 목록이 없다).
+  // ============================================================
+  {
+    files: ['src/shared/ui/**/*.{ts,tsx}'],
+    ignores: ['**/*.stories.{ts,tsx}', '**/*.test.{ts,tsx}'],
+    plugins: { 'custom-design-system': customDesignSystemPlugin },
+    rules: {
+      'custom-design-system/cva-variant-keys': 'error',
+      'custom-design-system/classname-last': 'error',
     },
   },
 
