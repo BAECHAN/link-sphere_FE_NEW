@@ -30,7 +30,7 @@ export const ConfirmPasswordResetForm = () => {
         <CardHeader className="text-center space-y-3">
           <FeaturedIcon
             icon={isFormShown ? Lock : Clock}
-            tone={isFormShown ? 'info' : 'warning'}
+            variant={isFormShown ? 'info' : 'warning'}
             className="mx-auto mb-1"
           />
           <CardTitle>

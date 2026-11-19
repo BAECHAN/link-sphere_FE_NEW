@@ -56,7 +56,7 @@ export const SignUpForm = () => {
         <CardHeader className="text-center space-y-3">
           {isSubmitted ? (
             <>
-              <FeaturedIcon icon={CheckCircle2} tone="success" className="mx-auto mb-1" />
+              <FeaturedIcon icon={CheckCircle2} variant="success" className="mx-auto mb-1" />
               <CardTitle>{TEXTS.auth.signup.checkEmailTitle}</CardTitle>
               <CardDescription>{TEXTS.auth.signup.checkEmailDescription}</CardDescription>
             </>

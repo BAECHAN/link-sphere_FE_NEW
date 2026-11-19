@@ -26,7 +26,7 @@ export const RequestPasswordResetForm = () => {
         <CardHeader className="text-center space-y-3">
           <FeaturedIcon
             icon={isSubmitted ? CheckCircle2 : Mail}
-            tone={isSubmitted ? 'success' : 'info'}
+            variant={isSubmitted ? 'success' : 'info'}
             className="mx-auto mb-1"
           />
           <CardTitle>
