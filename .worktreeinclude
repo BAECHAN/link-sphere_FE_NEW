@@ -1,0 +1,2 @@
+# Claude Code가 워크트리를 만들 때 메인 체크아웃에서 복사할 gitignore 파일 (.claude/CLAUDE.md "워크트리")
+.env
