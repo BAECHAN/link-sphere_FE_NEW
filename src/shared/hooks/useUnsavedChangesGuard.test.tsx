@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen } from '@/test/utils';
 import { Outlet, RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard';
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
@@ -8,12 +8,12 @@ import {
   getOpenAlertDialogId,
   useAlertDialogStore,
 } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
-import { GlobalAlertDialogs } from '@/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs';
+import { RouteAlertDialogs } from '@/shared/ui/elements/dialog/alert-dialog/RouteAlertDialogs';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { TEXTS } from '@/shared/config/texts';
 
 // useBlocker는 데이터 라우터에서만 동작한다 - renderWithProviders(MemoryRouter) 대신
-// createMemoryRouter로 앱(RootLayout)처럼 가드와 GlobalAlertDialogs를 함께 띄운다.
+// createMemoryRouter로 앱(RootLayout)처럼 가드와 RouteAlertDialogs를 함께 띄운다.
 
 function GuardLayout() {
   useUnsavedChangesGuard();
@@ -21,7 +21,7 @@ function GuardLayout() {
   return (
     <>
       <Outlet />
-      <GlobalAlertDialogs />
+      <RouteAlertDialogs />
     </>
   );
 }

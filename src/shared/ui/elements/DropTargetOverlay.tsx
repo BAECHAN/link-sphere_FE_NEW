@@ -1,5 +1,5 @@
 import { ImagePlus } from 'lucide-react';
-import { TEXTS } from '@/shared/config/texts';
+import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';
 
 type DragEventHandler = (e: React.DragEvent<HTMLElement>) => void;
 
@@ -36,6 +36,8 @@ export function DropTargetOverlay({
   onDragEnter,
   onDragLeave,
 }: DropTargetOverlayProps) {
+  const uiTexts = useUiTexts();
+
   return (
     <>
       <div
@@ -47,7 +49,9 @@ export function DropTargetOverlay({
       />
       <div className="pointer-events-none absolute inset-0 z-raised flex flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-primary bg-primary/10">
         <ImagePlus className="h-6 w-6 text-primary" />
-        <span className="text-sm font-medium text-primary">{TEXTS.comment.form.dropHere}</span>
+        <span className="text-sm font-medium text-primary">
+          {uiTexts.dropTargetOverlay.message}
+        </span>
       </div>
     </>
   );

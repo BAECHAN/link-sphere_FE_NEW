@@ -1,6 +1,7 @@
 import type { Preview } from '@storybook/react-vite';
 import { useEffect } from 'react';
 import '../src/app/globals.css';
+import { UiTextsProvider } from '../src/app/providers/UiTextsProvider';
 
 // 실제 앱의 다크모드 구현(src/main.tsx의 ThemeProvider attribute="class")과 동일하게
 // <html>에 'dark' 클래스를 토글한다 - globals.css의 @custom-variant dark (&:is(.dark *))
@@ -14,6 +15,16 @@ function withTheme(Story: () => React.ReactNode, context: { globals: { theme?: s
   }, [theme]);
 
   return <Story />;
+}
+
+// 범용 공용 UI 부품은 문구 Provider 밖에서 그리면 오류를 낸다(useUiTexts) - 실제 앱(src/main.tsx)과 같은
+// 문구 Provider로 모든 스토리를 감싼다.
+function withUiTexts(Story: () => React.ReactNode) {
+  return (
+    <UiTextsProvider>
+      <Story />
+    </UiTextsProvider>
+  );
 }
 
 const preview: Preview = {
@@ -53,7 +64,7 @@ const preview: Preview = {
       },
     },
   },
-  decorators: [withTheme],
+  decorators: [withTheme, withUiTexts],
 };
 
 export default preview;

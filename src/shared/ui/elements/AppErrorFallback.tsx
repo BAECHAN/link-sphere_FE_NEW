@@ -4,6 +4,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { ChunkReloadUtil } from '@/shared/utils/chunk-reload.util';
 import { ErrorUtil } from '@/shared/utils/error.util';
 import { ErrorLayout } from '@/shared/ui/layouts/ErrorLayout';
+import { Button } from '@/shared/ui/atoms/button';
 import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
 
 interface AppErrorFallbackProps {
@@ -53,7 +54,11 @@ export function AppErrorFallback({ error }: AppErrorFallbackProps) {
     <ErrorLayout
       title={TEXTS.errors.unexpected.title}
       description={ErrorUtil.resolveMessage(error)}
-      onHomeClick={() => window.location.assign(ROUTES_PATHS.HOME)}
+      homeAction={
+        <Button onClick={() => window.location.assign(ROUTES_PATHS.HOME)}>
+          {TEXTS.buttons.home}
+        </Button>
+      }
     />
   );
 }

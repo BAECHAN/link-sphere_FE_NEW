@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@/test/utils';
 import { BackToTopButton } from '@/shared/ui/elements/BackToTopButton';
 import { TEXTS } from '@/shared/config/texts';
 

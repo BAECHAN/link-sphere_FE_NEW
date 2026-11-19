@@ -185,7 +185,7 @@ Threads 글의 네 군데에는 없지만 §5.3의 반대편이다 — HTML이 �
   실패한다. 이때 화면을 그대로 두면 사용자는 고장으로 본다.
 - **업계 표준**: Vite는 이때 `vite:preloadError` 이벤트를 보내고, 문서는 이 이벤트에서 새로고침하는
   예시를 든다([Vite Load Error Handling](https://vite.dev/guide/build#load-error-handling)).
-- **이 레포**: 그 리스너([main.tsx:16](../src/main.tsx#L16))와 에러 경계([AppErrorFallback.tsx](../src/shared/ui/elements/AppErrorFallback.tsx)의 `isReloadPending`,
+- **이 레포**: 그 리스너([main.tsx:17](../src/main.tsx#L17))와 에러 경계([AppErrorFallback.tsx](../src/shared/ui/elements/AppErrorFallback.tsx)의 `isReloadPending`,
   라우트에서는 [RouteErrorBoundary.tsx](../src/app/routes/RouteErrorBoundary.tsx)가 이것을 그린다)가 같은 판단
   `ChunkReloadUtil`을 쓴다 — 경로별로 세션당 1회만 새로고침하고([chunk-reload.util.ts:26](../src/shared/utils/chunk-reload.util.ts#L26)),
   새로고침하고도 또 실패하면 "문제가 발생했어요" 화면과 홈 버튼을 보여준다. 페이지 단위
@@ -313,7 +313,7 @@ aws cloudfront get-cache-policy --id <정책 ID> \
 
 캐시부터 지우지 말고 옛 버전이 어느 자리에 남았는지 먼저 가린다(Threads 글의 결론과 같다).
 
-1. **문제가 된 그 탭이 어느 빌드인가** — 그 탭에서 F12 콘솔의 `[BUILD] <sha>` 줄([main.tsx:25](../src/main.tsx#L25))을
+1. **문제가 된 그 탭이 어느 빌드인가** — 그 탭에서 F12 콘솔의 `[BUILD] <sha>` 줄([main.tsx:26](../src/main.tsx#L26))을
    보고, `https://linksphere.click/version.json`의 sha와 비교한다. 다르면 ③ 열린 탭이다 — 탭으로
    돌아온 뒤(5분 간격) 다른 페이지로 이동하면 새로고침되고, 바로 고치려면 새로고침한다. 주의:
    그 탭에서 주소를 직접 입력해 `/version`을 열면 탭이 새로 로드돼 이 증거가 사라진다.
@@ -337,7 +337,7 @@ aws cloudfront get-cache-policy --id <정책 ID> \
 | 무효화·배포 반영 검증 | [deploy.yml:135](../.github/workflows/deploy.yml#L135), [:142](../.github/workflows/deploy.yml#L142)                                                                                            |
 | 옛 자산 정리          | [deploy.yml:200](../.github/workflows/deploy.yml#L200), [prune-old-assets.js](../scripts/prune-old-assets.js), [prune-assets.js](../scripts/lib/prune-assets.js)                                |
 | 새 배포 감지·적용     | [useAppVersionCheck.ts:94-96](../src/shared/hooks/useAppVersionCheck.ts#L94-L96), [useNewVersionReload.ts:28](../src/shared/hooks/useNewVersionReload.ts#L28)                                   |
-| 청크 실패 새로고침    | [main.tsx:16](../src/main.tsx#L16), [chunk-reload.util.ts](../src/shared/utils/chunk-reload.util.ts), [AppErrorFallback.tsx](../src/shared/ui/elements/AppErrorFallback.tsx)(`isReloadPending`) |
+| 청크 실패 새로고침    | [main.tsx:17](../src/main.tsx#L17), [chunk-reload.util.ts](../src/shared/utils/chunk-reload.util.ts), [AppErrorFallback.tsx](../src/shared/ui/elements/AppErrorFallback.tsx)(`isReloadPending`) |
 
 ### 자주 하는 수정
 

@@ -1,31 +1,39 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render } from '@testing-library/react';
-import { renderWithProviders, screen, userEvent } from '@/test/utils';
+import { render, screen, userEvent } from '@/test/utils';
 import { ErrorLayout } from '@/shared/ui/layouts/ErrorLayout';
-import { TEXTS } from '@/shared/config/texts';
 
-describe('ErrorLayout 홈 버튼', () => {
-  it('homeTo가 있으면 홈 버튼을 그 경로로 가는 링크로 렌더한다', () => {
-    renderWithProviders(<ErrorLayout title="404" homeTo="/" />);
+// 홈으로 가는 동작은 쓰는 쪽이 만들어 넘긴다 - 이 부품은 라우터를 모르므로 모두 라우터 없이 그린다.
+// 페이지가 넘기는 링크(경로)는 각 페이지 테스트(NotFoundPage.test.tsx 등)가 본다.
+describe('ErrorLayout 홈 동작', () => {
+  it('homeAction으로 넘긴 링크를 그대로 그린다', () => {
+    render(<ErrorLayout title="404" homeAction={<a href="/">홈으로</a>} />);
 
-    expect(screen.getByRole('link', { name: TEXTS.buttons.home })).toHaveAttribute('href', '/');
-    expect(screen.queryByRole('button', { name: TEXTS.buttons.home })).toBeNull();
+    expect(screen.getByRole('link', { name: '홈으로' })).toHaveAttribute('href', '/');
   });
 
-  it('라우터 밖에서는 onHomeClick으로 버튼을 렌더한다', async () => {
+  it('homeAction으로 넘긴 버튼의 동작이 그대로 실행된다', async () => {
     const onHomeClick = vi.fn();
     const user = userEvent.setup();
-    // AppErrorFallback처럼 라우터 없이 렌더해도 깨지지 않아야 한다
-    render(<ErrorLayout title="500" onHomeClick={onHomeClick} />);
+    render(
+      <ErrorLayout
+        title="500"
+        homeAction={
+          <button type="button" onClick={onHomeClick}>
+            홈으로
+          </button>
+        }
+      />
+    );
 
-    await user.click(screen.getByRole('button', { name: TEXTS.buttons.home }));
+    await user.click(screen.getByRole('button', { name: '홈으로' }));
 
     expect(onHomeClick).toHaveBeenCalledOnce();
   });
 
-  it('둘 다 없으면 홈 버튼을 렌더하지 않는다', () => {
+  it('homeAction이 없으면 링크도 버튼도 그리지 않는다', () => {
     render(<ErrorLayout title="오류" />);
 
-    expect(screen.queryByText(TEXTS.buttons.home)).toBeNull();
+    expect(screen.queryByRole('link')).toBeNull();
+    expect(screen.queryByRole('button')).toBeNull();
   });
 });
