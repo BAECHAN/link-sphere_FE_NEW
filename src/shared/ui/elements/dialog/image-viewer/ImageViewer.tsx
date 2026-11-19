@@ -7,9 +7,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/shared/ui/atoms/dialog';
-import { useImageViewerStore } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
-import { useBackClosableOverlay } from '@/shared/hooks/useBackClosableOverlay';
-import { TEXTS } from '@/shared/config/texts';
+import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';
 
 // 인스타그램이 실제 공개한 기준값 - 이 범위 밖의 비율만 캔버스를 클램프한다(자르지 않고 object-contain).
 const MIN_ASPECT_RATIO = 4 / 5; // 세로로 긴 한계
@@ -19,16 +17,33 @@ function isJustClosedTransition(wasOpen: boolean, isOpen: boolean): boolean {
   return wasOpen && !isOpen;
 }
 
+export interface ImageViewerImage {
+  src: string;
+  alt: string;
+}
+
+interface ImageViewerProps {
+  open: boolean;
+  onClose: () => void;
+  images: ImageViewerImage[];
+  currentIndex: number;
+  onNext: () => void;
+  onPrev: () => void;
+}
+
 /**
- * 전역 이미지 라이트박스(확대 뷰어)
- * RootLayout에 배치하여 사용합니다 (히스토리 훅이 라우터 컨텍스트를 필요로 함).
+ * 이미지 라이트박스(확대 뷰어). 열림과 지금 보는 이미지는 쓰는 쪽이 속성으로 넘긴다 - 스토어와 히스토리를
+ * 모른다. 이 앱은 GlobalImageViewer.tsx가 스토어와 뒤로가기 오버레이 규약을 이어 준다.
  */
-export function GlobalImageViewer() {
-  const images = useImageViewerStore((state) => state.images);
-  const currentIndex = useImageViewerStore((state) => state.currentIndex);
-  const next = useImageViewerStore((state) => state.next);
-  const prev = useImageViewerStore((state) => state.prev);
-  const { isOpen, close } = useBackClosableOverlay('imageViewerOpen');
+export function ImageViewer({
+  open,
+  onClose,
+  images,
+  currentIndex,
+  onNext,
+  onPrev,
+}: ImageViewerProps) {
+  const uiTexts = useUiTexts();
   const image = images[currentIndex] ?? null;
   const hasMultiple = images.length > 1;
   const hasNext = currentIndex < images.length - 1;
@@ -50,20 +65,20 @@ export function GlobalImageViewer() {
 
   useEffect(
     function keyboardNavigationEffect() {
-      if (!isOpen || !hasMultiple) {
+      if (!open || !hasMultiple) {
         return;
       }
       function handleKeyDown(e: KeyboardEvent) {
         if (e.key === 'ArrowRight') {
-          next();
+          onNext();
         } else if (e.key === 'ArrowLeft') {
-          prev();
+          onPrev();
         }
       }
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     },
-    [isOpen, hasMultiple, next, prev]
+    [open, hasMultiple, onNext, onPrev]
   );
 
   const wasOpenRef = useRef(false);
@@ -71,8 +86,8 @@ export function GlobalImageViewer() {
   useEffect(
     function fixStaleCursorAfterClose() {
       const wasOpen = wasOpenRef.current;
-      wasOpenRef.current = isOpen;
-      if (!isJustClosedTransition(wasOpen, isOpen)) {
+      wasOpenRef.current = open;
+      if (!isJustClosedTransition(wasOpen, open)) {
         return;
       }
       // Chromium 한정 버그: ESC처럼 마우스가 실제로 움직이지 않고 닫히면,
@@ -91,20 +106,18 @@ export function GlobalImageViewer() {
       }, 300);
       return () => window.clearTimeout(timeoutId);
     },
-    [isOpen]
+    [open]
   );
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && close()}>
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent
         showCloseButton={false}
-        onClick={close}
+        onClick={onClose}
         className="flex h-[90vh] w-[90vw] max-w-none items-center justify-center gap-0 border-0 bg-transparent p-0 shadow-none sm:rounded-none"
       >
-        <DialogTitle className="sr-only">{TEXTS.ariaLabels.imageViewer}</DialogTitle>
-        <DialogDescription className="sr-only">
-          {TEXTS.ariaLabels.imageViewerDescription}
-        </DialogDescription>
+        <DialogTitle className="sr-only">{uiTexts.imageViewer.title}</DialogTitle>
+        <DialogDescription className="sr-only">{uiTexts.imageViewer.description}</DialogDescription>
         {image && (
           <img
             src={image.src}
@@ -121,24 +134,24 @@ export function GlobalImageViewer() {
               disabled={!hasPrev}
               onClick={(e) => {
                 e.stopPropagation();
-                prev();
+                onPrev();
               }}
               className="fixed left-2 top-1/2 -translate-y-1/2 rounded-full bg-scrim/60 p-2 text-scrim-foreground transition-colors hover:bg-scrim/80 disabled:opacity-0"
             >
               <ChevronLeft className="size-5" />
-              <span className="sr-only">{TEXTS.ariaLabels.imageViewerPrev}</span>
+              <span className="sr-only">{uiTexts.imageViewer.prev}</span>
             </button>
             <button
               type="button"
               disabled={!hasNext}
               onClick={(e) => {
                 e.stopPropagation();
-                next();
+                onNext();
               }}
               className="fixed right-2 top-1/2 -translate-y-1/2 rounded-full bg-scrim/60 p-2 text-scrim-foreground transition-colors hover:bg-scrim/80 disabled:opacity-0"
             >
               <ChevronRight className="size-5" />
-              <span className="sr-only">{TEXTS.ariaLabels.imageViewerNext}</span>
+              <span className="sr-only">{uiTexts.imageViewer.next}</span>
             </button>
             <span className="fixed bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-scrim/60 px-3 py-1 text-xs text-scrim-foreground">
               {currentIndex + 1} / {images.length}
@@ -150,7 +163,7 @@ export function GlobalImageViewer() {
           onClick={(e) => e.stopPropagation()}
         >
           <X className="size-5" />
-          <span className="sr-only">{TEXTS.ariaLabels.close}</span>
+          <span className="sr-only">{uiTexts.common.close}</span>
         </DialogClose>
       </DialogContent>
     </Dialog>

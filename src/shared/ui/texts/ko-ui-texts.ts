@@ -42,6 +42,12 @@ export const KO_UI_TEXTS: UiTexts = {
     failed: '더 불러오지 못했어요.',
     retry: '다시 시도',
   },
+  imageViewer: {
+    title: '확대된 이미지',
+    description: '바깥 영역이나 닫기 버튼을 클릭하면 닫혀요.',
+    prev: '이전 이미지',
+    next: '다음 이미지',
+  },
   authLayout: {
     root: '인증 레이아웃',
     content: '인증 컨텐츠',
