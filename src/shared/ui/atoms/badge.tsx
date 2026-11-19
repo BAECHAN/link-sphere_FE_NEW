@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 import { cn } from '@/shared/lib/tailwind/utils';
@@ -28,8 +29,9 @@ export interface BadgeProps
  * 누를 수 없는 작은 라벨(작성자 표시, 자동 태그 등). 누르는 칩은 `ActionChip`·`FilterChip`을 쓴다
  * (docs/FE-ARCHITECTURE.md §18).
  */
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
-}
+const Badge = forwardRef<HTMLDivElement, BadgeProps>(({ className, variant, ...props }, ref) => (
+  <div ref={ref} className={cn(badgeVariants({ variant }), className)} {...props} />
+));
+Badge.displayName = 'Badge';
 
 export { Badge };

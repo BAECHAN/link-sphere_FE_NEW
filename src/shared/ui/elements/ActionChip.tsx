@@ -1,10 +1,14 @@
+import { forwardRef } from 'react';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { Button } from '@/shared/ui/atoms/button';
 
-export interface ActionChipProps {
+// type·children은 이 부품이 정한다 - 쓰는 쪽이 바꿀 수 없게 타입에서 뺀다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.4)
+export interface ActionChipProps extends Omit<
+  React.ComponentPropsWithoutRef<'button'>,
+  'type' | 'children'
+> {
   label: string;
   onClick: () => void;
-  'aria-label'?: string;
   /** 버튼에 붙는 클래스 — 쌓임 순서 등 위치 커스텀에 사용 */
   className?: string;
   /** 눈에 보이는 칩에 붙는 클래스 — 색상 커스텀에 사용 */
@@ -18,20 +22,15 @@ export interface ActionChipProps {
  * 칩 모양은 그대로 두고 버튼의 py-0.5 -my-0.5로 누르는 영역만 24px 이상으로 넓힌다 - 카드 전체가
  * 링크인 자리에서는 WCAG 2.5.8 간격 예외를 받을 수 없어서다(docs/SEARCH.md).
  */
-export function ActionChip({
-  label,
-  onClick,
-  'aria-label': ariaLabel,
-  className,
-  labelClassName,
-}: ActionChipProps) {
-  return (
+export const ActionChip = forwardRef<HTMLButtonElement, ActionChipProps>(
+  ({ label, onClick, className, labelClassName, ...props }, ref) => (
     <Button
+      ref={ref}
+      {...props}
       type="button"
       variant="none"
       className={cn('group h-auto px-0 py-0.5 -my-0.5 rounded-full', className)}
       onClick={onClick}
-      aria-label={ariaLabel}
     >
       <span
         className={cn(
@@ -42,5 +41,6 @@ export function ActionChip({
         {label}
       </span>
     </Button>
-  );
-}
+  )
+);
+ActionChip.displayName = 'ActionChip';

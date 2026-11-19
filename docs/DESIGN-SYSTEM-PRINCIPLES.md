@@ -7,7 +7,8 @@
 > **대상 독자**: 로드맵의 다음 단계를 계획할 개발자와 AI 세션, 공용 UI에 부품을 더하거나 옮기는 개발자.
 >
 > **읽고 나면**: 새 부품이 범용인지 앱 전용인지 두 질문으로 가를 수 있고, 범용 부품이 글자와 링크를 어떻게 받는지와 그렇게 정한
-> 이유, 부품의 속성 이름과 `className`을 어떻게 맞추는지, 지금 부품이 어느 분류에 속하는지 안다.
+> 이유, 부품의 속성 이름과 `className`을 어떻게 맞추는지, 어느 부품이 `ref`와 나머지 속성을 받는지, 지금 부품이 어느 분류에
+> 속하는지 안다.
 >
 > **마지막 검토**: 2026-11-19
 
@@ -15,7 +16,7 @@
 
 - 따옴표 이탤릭은 원문을 옮긴 것이고 `(번역)`은 영어 원문을 옮겼다는 뜻이다. 외부 인용은 2026-11-18에 원문을 직접 받아 문장을
   대조했다([§1.3](#13-글자를-provider로-받기로-한-이유)의 react.dev "Passing Data Deeply with Context"와 Next.js 인용,
-  [§1.4](#14-api-규칙)의 선례는 2026-11-19).
+  [§1.4](#14-api-규칙)의 선례와 react.dev `forwardRef` 인용은 2026-11-19).
 - 분류와 수치는 2026-11-19, 1단계 둘째 PR(이미지 확대 창 나누기)까지 반영한 상태다. 부품을 더하거나 옮기면
   [§5](#5-부품-분류표) 표의 줄을 고치고 [§6](#6-측정-명령) 명령으로 개수를 다시 맞춘다.
 - **부품**은 `src/shared/ui` 안의 컴포넌트 파일이다. **앱 코드**는 그 폴더 밖의 이 저장소 코드다. **보조 모듈**은 앱 코드 가운데
@@ -277,21 +278,29 @@ value" 절은 컨텍스트에 기본값을 두는 방식을 두고 _"이렇게 �
 
 ### 1.4 API 규칙
 
-부품마다 종류를 고르는 속성 이름과 `className`이 합쳐지는 자리가 달라, 쓰는 쪽이 부품별로 외워야 했다. 패키지를 낸 뒤에 속성
-이름을 바꾸면 쓰는 쪽 코드가 깨지므로 내기 전에 맞췄다. 결정한 날은 2026-11-19이고 계획은
+부품마다 종류를 고르는 속성 이름, `className`이 합쳐지는 자리, `ref`와 나머지 속성을 받는지가 달라 쓰는 쪽이 부품별로 외워야
+했다. 패키지를 낸 뒤에 속성 이름을 바꾸면 쓰는 쪽 코드가 깨지므로 내기 전에 맞췄다. 결정한 날은 2026-11-19이고 계획은
 [`plans/2026-11-19-design-system-api-rules.md`](./plans/2026-11-19-design-system-api-rules.md)다. 패키지를 내기 전이라 부품
 파일과 사용처를 고치면 되돌릴 수 있어 `DECISIONS.md`에는 적지 않았다.
 
 이 절에서 **축**은 쓰는 쪽이 값 하나를 고르는 속성 하나다. **모양**은 채움·외곽선·글자만처럼 생김새를 가르는 값이고, **뜻**은
 정보·성공·경고·위험처럼 부품이 전하는 의미를 가르는 값이다.
 
+**저수준 부품**은 atoms와, elements 가운데 버튼·입력처럼 DOM 요소 하나를 감싼 부품이다. **조립 부품**은 나머지 elements와
+layouts로, 부품 여럿을 엮어 한 덩어리를 그린다. **나머지 속성**은 부품이 이름을 붙여 따로 받지 않은 속성이다(`id`, `data-*`,
+`aria-*`, 이벤트 핸들러 등). **대상 요소**는 쓰는 쪽이 넘긴 `ref`·`className`·나머지 속성이 닿는 DOM 요소다. 보통 부품이
+그리는 맨 바깥 요소이고, 입력을 감싼 부품(`PasswordInput`·`SearchInput`)에서는 감싼 `div`가 아니라 `input`이며, 창을 그리는
+부품(`DialogContent`·`SheetDialogContent`)에서는 바탕 막이 아니라 창 패널이다.
+
 | 규칙                | 내용                                                                                                                                                              | 지키게 하는 검사                                                                                        |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | 종류·크기 속성 이름 | 종류를 고르는 속성은 `variant`, 크기는 `size`다. 모양과 뜻을 따로 골라야 하는 부품에서만 뜻 축을 `tone`으로 더한다                                                | 린트 `custom-design-system/cva-variant-keys`                                                            |
 | 클래스 병합         | `className`은 `cn(자기 클래스, className)`으로 맨 뒤에 합친다. cva로 만든 함수에는 `className`을 넘기지 않는다. 부분을 꾸미는 속성의 이름은 `<부분>ClassName`이다 | 린트 `custom-design-system/classname-last`(맨 뒤인지, cva 밖인지). `<부분>ClassName` 이름은 보지 않는다 |
+| `ref`·나머지 속성   | 저수준 부품은 `ref`·나머지 속성·`className`을 같은 대상 요소에 넘긴다. React 18을 지원하는 동안 `forwardRef`로 만든다                                             | 계약 테스트 `src/shared/ui/ApiContract.test.tsx`                                                        |
+| 조립 부품           | 계약 테스트의 표에 적힌 것만 약속한다. 새 조립 부품은 표에 한 줄을 더한다                                                                                         | 같은 테스트(표에 없는 부품이 있으면 실패)                                                               |
 
-`ref`와 나머지 속성을 대상 요소로 넘기는 규칙도 같은 날 정했다(저수준 부품만, `forwardRef`로). 코드와 이 절에는 같은 계획의 둘째
-PR에서 더한다.
+부품마다 무엇을 약속하는지는 계약 테스트 파일의 두 표가 정본이라 이 문서에 옮겨 적지 않는다. 계약 테스트는 부품을 실제로 그려
+`ref`·`className`·나머지 속성이 어느 요소에 닿는지 보는 단위 테스트다.
 
 #### 규칙을 쓰는 모습
 
@@ -321,6 +330,34 @@ PR에서 더한다.
   그래서 `cn()`에 들어가는 문자열이 두 꼴에서 같다. `Button`을 바꾸기 전후로 그린 `class` 문자열도 같았다([§6](#6-측정-명령)
   11번).
 
+```tsx
+// 저수준 부품을 만드는 꼴: ref·className·나머지 속성이 같은 요소에 닿는다
+const Badge = forwardRef<HTMLDivElement, BadgeProps>(({ className, variant, ...props }, ref) => (
+  <div ref={ref} className={cn(badgeVariants({ variant }), className)} {...props} />
+));
+Badge.displayName = 'Badge';
+
+// 쓰는 쪽
+<Badge ref={badgeRef} id="author-badge" className="ml-2" />
+<SearchInput ref={inputRef} /> // 입력을 감싼 부품은 감싼 div가 아니라 input에 닿는다
+
+// 버튼 하나를 감싼 부품: 나머지 속성을 먼저 펼치고, 부품이 정하는 속성을 그 뒤에 적는다
+<Button ref={ref} {...props} type="button" variant="ghost" aria-label={label} />
+<EditButton label={label} onClick={onEdit} type="submit" /> // 타입 오류. type은 EditButton이 정한다
+```
+
+- **React 18에서 `forwardRef`가 필요한 이유**: 일반 함수 컴포넌트에 `ref`를 넘기면 닿지 않는다. 부품을 고치기 전에 계약
+  테스트를 돌렸을 때 14개 atoms에서 `ref`가 비어 있었고 React가 "Function components cannot be given refs" 경고를
+  냈다([§6](#6-측정-명령) 13번). 그 가운데 `Divider`·`Kbd`·`KbdGroup`·`Spinner`·`DropdownMenuShortcut` 다섯은 타입이 `ref`를
+  받는다고 적혀 있었다(`React.ComponentProps<'div'>` 꼴과 `React.RefAttributes`).
+- **버튼을 감싼 부품에서 펼치는 순서가 중요한 이유**: JSX는 같은 속성을 두 번 적으면 뒤에 적은 값을 쓴다. `{...props}`를
+  먼저 펼치고 `type`·`variant`·`aria-label`을 그 뒤에 적어야 부품이 정한 값이 남는다. 타입에서 빼는 것만으로는 다 막지 못한다
+  — `type`·`title`은 넘기면 타입 오류가 나지만, `aria-label`처럼 하이픈이 든 속성은 타입에서 빼도 JSX에서 오류가 나지
+  않는다(`pnpm type-check`로 확인, [§6](#6-측정-명령) 16번).
+- **이 순서는 버튼을 감싼 elements 4개에만 걸었다.** `{...props}`를 맨 뒤에 둔 atoms에서는 부품이 기본으로 주는 속성을 쓰는
+  쪽이 바꿀 수 있다(`Skeleton`의 `aria-hidden`, `Spinner`의 `role`. 둘은 전부터 그랬다). 이번에 나머지 속성을 연
+  `RequiredMark`의 `aria-hidden`도 같은 자리라 이제 바꿀 수 있다.
+
 #### 이름과 병합 자리를 정한 이유
 
 | 항목                 | 결정                                                                                                                                                   | 기각한 대안                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 정해진 경로 |
@@ -332,6 +369,43 @@ PR에서 더한다.
 바꾼 코드는 `FeaturedIcon`의 속성 이름(`tone` → `variant`, 사용처 5곳)과 `Button`의 병합 한 줄이다. 값 이름과 클래스는 그대로라
 화면은 바뀌지 않는다.
 
+#### ref와 나머지 속성을 넘기기로 한 이유
+
+| 항목                    | 결정                                                                                                                                                                    | 기각한 대안                                                                                                                     | 정해진 경로                                                           |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `ref` 구현              | `forwardRef`. 이 앱의 React 18.3.1과, 다음 프로젝트에서 쓸 확률이 높은 React 19 둘 다에서 돈다                                                                          | 이 앱을 React 19로 먼저 올린다(별도 계획이 필요하다). `ref`는 손대지 않고 규칙만 적는다(이 앱의 테스트로 규칙을 확인할 수 없다) | 사용자 답                                                             |
+| 적용 범위               | 저수준 부품만                                                                                                                                                           | 범용 부품 전부 — 조립 부품의 맨 바깥 요소를 나중에 바꾸기 어려워진다(아래 react.dev 인용)                                       | 사용자 답                                                             |
+| 대상 요소               | 맨 바깥 요소, 입력을 감싼 부품은 입력 요소. 고치기 전 동작 그대로다                                                                                                     | 비교한 대안 없음                                                                                                                | 계획 승인                                                             |
+| 버튼을 감싼 부품의 속성 | 기본 `button` 속성을 받는다. 부품이 정하는 `type`·`children`과 `label`·`isActive`에서 만드는 `aria-label`·`title`·`aria-pressed`는 타입에서 빼고, 펼친 뒤에 다시 적는다 | 전부 열어 둔다 — 부품이 정한 모양과 이름이 쓰는 쪽 실수로 바뀐다                                                                | 계획 승인. `aria-*`·`title`까지 뺀 것과 펼치는 순서는 구현하며 정했다 |
+| 지키게 하는 방법        | 부품을 실제로 그려 보는 계약 테스트                                                                                                                                     | 소스 모양만 보는 린트(`className`과 속성이 실제로 닿는지 보지 못한다), 문서에만 적는다                                          | 계획 승인                                                             |
+
+적용 범위를 저수준 부품으로 좁힌 근거는 react.dev의 `forwardRef` 문서다.
+
+> 컴포넌트 안의 DOM 노드로 가는 ref를 노출하면 나중에 컴포넌트 내부를 바꾸기가 더 어려워진다는 점을 기억하세요. 보통 버튼이나
+> 텍스트 입력처럼 재사용하는 저수준 컴포넌트에서 DOM 노드를 노출하고, 아바타나 댓글 같은 애플리케이션 수준 컴포넌트에서는
+> 노출하지 않습니다. (번역)
+>
+> — react.dev "forwardRef", https://react.dev/reference/react/forwardRef
+
+같은 문서는 `forwardRef`가 React 19에서 필요 없어진다고 적는다. 이 앱은 React 18이라 지금은 `forwardRef`가 있어야 `ref`가
+닿고, 걷어 내는 때는 아래 "API 규칙을 다시 볼 조건"에 적었다.
+
+> React 19에서는 `forwardRef`가 더는 필요하지 않습니다. 대신 `ref`를 prop으로 넘기세요. `forwardRef`는 앞으로 나올 릴리스에서
+> 지원 중단(deprecated)됩니다. (번역)
+>
+> — react.dev "forwardRef", https://react.dev/reference/react/forwardRef
+
+고친 부품은 atoms 14개와 elements 4개다. `ref`를 넘기지 않는 한 동작은 같고 화면은 바뀌지 않는다.
+
+- **atoms 14개**: `Badge`, `Divider`, `Skeleton`, `Spinner`, `Kbd`, `KbdGroup`, `DialogHeader`, `DialogFooter`,
+  `AlertDialogHeader`, `AlertDialogFooter`, `DropdownMenuShortcut`은 `ref`만 더했다. `FeaturedIcon`, `LabeledDivider`,
+  `RequiredMark`는 나머지 속성도 함께 열었다.
+- **elements 4개**: `ActionButton`, `ActionChip`, `EditButton`, `FilterChip`. `FilterChip`은 `className`도 새로 받는다.
+  `ActionChip`의 `aria-label`과 `FilterChip`의 `id`·`name`은 따로 적은 속성이었다가 나머지 속성에 들어갔고, 쓰는 쪽 코드는
+  그대로다. Storybook의 자동 속성 표는 인터페이스에 직접 적은 속성만 보여 줘서 이 세 속성의 줄은 표에서
+  빠졌다([§6](#6-측정-명령) 17번).
+- **고치기 전부터 맞았던 elements**: `ToggleButton`, `PasswordInput`, `SearchInput`, `SheetDialogContent`.
+
 #### 린트가 보는 것과 못 보는 것
 
 두 규칙의 본체는 `scripts/lib/ui-api-rule.js`이고 `src/shared/ui`의 스토리·테스트를 뺀 파일에 건다(앱 전용 부품 포함). 규칙
@@ -342,6 +416,32 @@ PR에서 더한다.
 | `cva-variant-keys` | `cva(…, { variants: { … } })`의 키 이름. 허용 목록 밖이면 오류, `tone`이 `variant` 없이 있으면 오류                          | cva 없이 속성을 직접 받는 부품의 속성 이름(`DropdownMenuItem`의 `variant`). 계산된 키와 펼쳐 넣은 축. 설정이나 `variants`를 객체 그대로 적지 않고 변수로 넘긴 경우(`cva('base', sharedConfig)`). `cva`를 다른 이름으로 가져오거나 멤버로 부른 경우                    |
 | `classname-last`   | `cn()`의 인자 가운데 이름이 `className`인 것이 맨 뒤인지, 같은 파일에서 `cva()`로 만든 함수에 `className`·`class`를 넘기는지 | `className`이라는 이름 그대로 인자 자리에 오지 않는 꼴(다른 이름으로 받은 경우, `props.className`, 조건식이나 배열 안). `cn()`이 아닌 함수(`twMerge`·`clsx` 직접 호출)나 문자열 잇기로 합친 경우. 다른 파일에서 가져온 cva 함수, cva 함수에 변수나 펼침으로 넘긴 경우 |
 
+#### 계약 테스트가 보는 것과 못 보는 것
+
+`src/shared/ui/ApiContract.test.tsx` 하나이고 `pnpm test`에 들어 있어 push 전 훅과 CI에서 돈다. jsdom에서 부품을 실제로 그린
+뒤 `ref`, 표식 클래스, 표식 `data-*` 속성이 어느 요소에 붙었는지 본다.
+
+| 대상             | 보는 것                                                                                                                                                               | 못 보는 것                                                                                                                                             |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| atoms            | 폴더의 파일을 훑어 내보낸 부품 76개 가운데 60개를 그리고 `ref`·`className`·`data-*` 속성이 같은 요소에 닿는지 본다. 표에 적지 않은 새 부품도 단독으로 그려 검사한다   | 그 요소가 맨 바깥 요소인지(셋이 같은 요소인지만 본다). 계약 밖으로 뺀 16개. `data-*`가 아닌 속성이 중간에서 걸러지는지. 타입이 `ref`를 받는다고 적는지 |
+| elements·layouts | 내보낸 부품 34개가 모두 표에 있는지, 표에 "대상 요소로 간다"고 적은 칸(부품 21개)이 실제로 닿는지, 버튼을 감싼 4개가 스스로 정한 속성을 넘겨받은 값으로 바꾸지 않는지 | "받지 않는다"·"다른 요소로 간다"고 적은 칸 — 지금 동작을 적어 둔 것이고 고정하지 않는다. 타입에서 뺀 속성을 넘기면 타입 오류가 나는지                  |
+
+계약 밖으로 뺀 atoms 16개는 이렇게 나뉜다. 부품별 이유와 근거(설치본 `파일:줄`)는 테스트 파일의 `ATOMS_OUTSIDE_CONTRACT`에
+있다.
+
+- **자기 DOM 요소가 없는 10개** — `Dialog`·`Select`·`Tooltip`처럼 상태나 포털만 맡는 부품이다.
+- **jsdom에서 Radix가 그리지 않는 3개** — `AvatarImage`(이미지를 받아 오지 않는다), `SelectScrollUpButton`,
+  `SelectScrollDownButton`(스크롤 위치가 없다). 소스는 다른 부품처럼 `forwardRef`로 `ref`·`className`·나머지 속성을 넘기는
+  꼴이지만 그려서 확인하지는 못했다.
+- **`SelectValue`** — Radix 부품을 그대로 내보낸 것인데 Radix가 `className`을 받지 않는다.
+- **`LinkThumbnail`** — `className`이 맨 바깥 요소가 아니라 `img`로 간다. 범용·앱 전용 분류와 함께 분리 리허설 계획에서
+  정한다.
+- **`Toaster`** — 맨 바깥 요소를 sonner가 그린다.
+
+조립 부품 34개의 표는 다섯으로 나뉜다. 셋 다 대상 요소로 가는 저수준 elements 8개, `className`만 맨 바깥 요소로 가는 11개,
+`className`은 맨 바깥 요소로 가고 나머지 속성은 안쪽 입력으로 가는 `FormInput`·`FormInputPassword`, `className`이 열렸을 때만
+있는 메뉴로 가는 `KebabMenu`, 셋 다 받지 않는 12개다.
+
 #### 이 규칙으로 생기는 제약
 
 - **`variant` 값 목록에 모양과 뜻이 섞인다.** `Button`의 `variant`에는 `outline`·`ghost`(모양)와 `destructive`(뜻)가 함께
@@ -350,6 +450,13 @@ PR에서 더한다.
   `ui-api-rule.js`의 허용 목록을 함께 고친다.
 - **shadcn에서 부품을 새로 들일 때 한 줄을 고칠 수 있다.** shadcn 원본은 부품에 따라 두 꼴을 다 쓴다(아래 선례). `Button`
   꼴이면 린트가 오류를 내고, `cn(xVariants({ … }), className)`으로 고치면 된다.
+- **DOM 요소를 그리는 새 atoms는 `forwardRef`로 만든다.** 일반 함수 컴포넌트로 더하면 계약 테스트가 `ref`에서 실패한다.
+  shadcn의 지금 원본은 `forwardRef` 없는 함수 꼴이라(아래 선례) 들일 때 감싸야 한다. 상태나 포털만 맡아 자기 DOM 요소가
+  없는 부품은 테스트 파일의 `ATOMS_OUTSIDE_CONTRACT`에 이유와 함께 적는다.
+- **조립 부품의 DOM 요소는 `ref`로 잡을 수 없다.** 필요해지면 계약 표의 그 줄과 코드를 함께 바꾼다. 새 elements·layouts는
+  표에 줄을 더하지 않으면 테스트가 실패한다.
+- **버튼을 감싼 부품 4개는 `type`과 모양을 바꿀 수 없다.** `ActionButton`·`ActionChip`·`EditButton`·`FilterChip`은
+  `type="button"`과 `variant`를 스스로 정한다. 폼을 제출하는 버튼이 필요하면 `Button`을 쓴다.
 
 #### API 규칙의 선례
 
@@ -363,15 +470,24 @@ PR에서 더한다.
 | 모양 축과 뜻 축을 따로 둔다             | 당근 SEED의 배지, Shopify Polaris, 토스 TDS | SEED 레시피 `badge.ts`에 `size`·`variant`·`tone`이 있다. Polaris [`components/Button`](https://github.com/Shopify/polaris/tree/main/polaris-react/src/components/Button) 폴더의 `Button.tsx`에 `variant`(`plain`, `primary` 등)와 `tone`(`critical`, `success`)이 있다. [TDS Mobile Button 문서](https://tossmini-docs.toss.im/tds-mobile/components/button/)의 예제가 `variant="fill"`·`variant="weak"`와 `color="danger"`를 함께 쓴다 |
 | `className`을 자기 클래스 뒤에서 합친다 | shadcn의 배지, 당근 SEED                    | shadcn [`badge.tsx`](https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/new-york-v4/ui/badge.tsx)의 `cn(badgeVariants({ variant }), className)`, SEED [`components/ActionButton`](https://github.com/daangn/seed-design/tree/dev/packages/react/src/components/ActionButton) 폴더에 있는 `ActionButton.tsx`의 `clsx(recipeClassName, scaleFeedbackClassName, className)`                                                        |
 | `className`을 cva 함수 안에 넘긴다      | shadcn의 버튼                               | 같은 `button.tsx`의 `cn(buttonVariants({ variant, size, className }))`                                                                                                                                                                                                                                                                                                                                                                  |
+| `forwardRef`로 `ref`를 넘긴다           | 당근 SEED                                   | 같은 `ActionButton.tsx`가 `React.forwardRef<HTMLButtonElement, ActionButtonProps>`로 만들고 `{...restProps}`를 펼친다                                                                                                                                                                                                                                                                                                                   |
+| `forwardRef` 없이 함수로 만든다         | shadcn                                      | 같은 `button.tsx`·`badge.tsx`가 `function Button({ … }: React.ComponentProps<"button"> & …)` 꼴이고 `{...props}`를 펼친다                                                                                                                                                                                                                                                                                                               |
+| 버튼에 `ref` 처리가 없다                | Shopify Polaris                             | 같은 `Button.tsx`에 `forwardRef`와 `ref`가 없다                                                                                                                                                                                                                                                                                                                                                                                         |
 
 이 프로젝트의 규칙은 축이 하나일 때 shadcn·SEED의 버튼과 같고, 축이 둘일 때 SEED의 배지·Polaris와 같다. 뜻만 고르는 부품에서는
-SEED의 알림 상자와 다르다 — `FeaturedIcon`은 `tone`이 아니라 `variant`를 받는다.
+SEED의 알림 상자와 다르다 — `FeaturedIcon`은 `tone`이 아니라 `variant`를 받는다. `ref`는 SEED와 같은 `forwardRef`다. shadcn의
+함수 꼴은 위 react.dev 인용이 말하는 React 19 방식(`ref`를 속성으로 받는다)으로 읽었고, shadcn이 밝힌 이유를 확인한 것은
+아니다.
 
 #### API 규칙을 다시 볼 조건
 
 - **모양과 뜻을 따로 골라야 하는 부품이 처음 생길 때.** 그 부품에 `tone`을 더하고, 이미 `variant`에 뜻 값을 둔
   부품(`Button`·`Badge`의 `destructive`)을 함께 옮길지 그때 정한다.
 - **허용 목록에 없는 축이 필요해질 때.** 위 "이 규칙으로 생기는 제약" 둘째 항목대로 이 절을 먼저 고친다.
+- **이 앱이 React 19로 올라갈 때.** `forwardRef`를 걷어 내고 `ref`를 속성으로 받는 꼴로 바꾼 뒤, 규칙 표의 "React 18을
+  지원하는 동안" 문장을 고친다. 패키지가 React 18 프로젝트도 받쳐야 하면 그대로 둔다. 올릴 계획은 아직 없다.
+- **조립 부품에 `ref`나 `className`이 실제로 필요해질 때.** 계약 표의 그 줄과 코드를 함께 바꾼다.
+- **`LinkThumbnail`의 분류를 정할 때(분리 리허설 계획).** `className`을 맨 바깥 요소로 옮길지 그때 함께 정한다.
 
 ## 2. 사용 대상과 전제
 
@@ -628,6 +744,30 @@ flowchart TD
     `grep -rnoE "\b[a-z][A-Za-z]*ClassName\??:" src/shared/ui --include="*.tsx" --exclude="*.stories.tsx" --exclude="*.test.tsx"`
     → 5. `spinnerClassName`, `triggerClassName`, `iconClassName`, `labelClassName` 넷은 부분의 클래스이고, `FilterChip`의
     `activeClassName`은 부분이 아니라 켜진 상태에서 붙는 클래스다.
+13. 계약 테스트(2026-11-19): `pnpm exec vitest run --project unit src/shared/ui/ApiContract.test.tsx` → 87건 통과. atoms
+    60건, 조립 부품의 대상 요소 21건, 버튼을 감싼 부품의 고정 속성 4건, 표 검사 2건이다. 부품을 고치기 전에는 그때 있던 83건
+    가운데 18건이 실패했다. atoms 11개는 `ref`만, `FeaturedIcon`·`LabeledDivider`·`RequiredMark`와
+    `ActionButton`·`ActionChip`·`EditButton`은 `ref`와 나머지 속성이, `FilterChip`은 `className`까지 셋 다 닿지 않았다.
+14. atoms를 만드는 방식(2026-11-19): 내보낸 부품은 76개다(계약 테스트가 검사하는 60개와 계약 밖 16개).
+    `grep -hE "^(export )?const [A-Z][A-Za-z]* = (React\.)?forwardRef" src/shared/ui/atoms/*.tsx` → 57. 이 가운데
+    `AlertDialogContentPanel`은 내보내지 않는 안쪽 부품이라 내보낸 것은 56개다.
+    `grep -hE "^(export )?const [A-Z][A-Za-z]* = [A-Za-z]+Primitive\.[A-Za-z]+;" src/shared/ui/atoms/*.tsx` → 16(Radix 부품을
+    그대로 내보낸 것). 남은 4개는 일반 함수 컴포넌트 `DropdownMenu`, `Select`, `LinkThumbnail`, `Toaster`이고 모두 계약 밖
+    표에 있다. "Radix 그대로 16개"와 "계약 밖 16개"는 수만 같은 다른 묶음이다. Radix 그대로 16개 가운데 자기 DOM 요소가
+    있는 7개(`DialogTrigger`, `DialogClose`, `AlertDialogTrigger`, `TooltipTrigger`, `DropdownMenuGroup`,
+    `DropdownMenuRadioGroup`, `SelectGroup`)는 그려서 검사하고, 나머지 9개만 계약 밖이다.
+15. 계약 테스트가 실제로 막는지(2026-11-19): 코드를 잠깐 깨고 13번 명령을 돌린 뒤 되돌렸다. `Badge`에서 `ref` 전달을 지우면
+    `ref`가, `EditButton`에서 `{...props}`를 지우면 나머지 속성이, `EditButton`의 `{...props}`를 맨 뒤로 옮기면 고정 속성이,
+    조립 표에서 한 줄을 지우면 표 검사가 실패했다.
+16. 타입에서 뺀 속성(2026-11-19): `EditButton` 사용처에 속성을 잠깐 넣고 `pnpm type-check`를 돌렸다. `type="submit"`과
+    `title`은 오류(TS2322)가 났고 `aria-label`만 넣으면 통과했다. 하이픈이 든 속성은 펼치는 순서와 13번의 고정 속성 검사가
+    막는다.
+17. `forwardRef`로 바꾼 부품의 Storybook 자동 속성 표(2026-11-19): `pnpm exec storybook dev -p <빈 포트> --ci --no-open`으로
+    띄워 `/iframe.html?viewMode=docs&id=shared-ui-atoms-badge--docs`의 속성 표를 읽었다. `Badge`는 `forwardRef` 꼴과
+    `badge.tsx`를 잠깐 함수 꼴로 되돌린 상태에서 표가 같았다(`variant`, `children` 두 줄). `FilterChip`은 인터페이스에
+    `className`을 적기 전에는 표에 그 줄이 없었고 적은 뒤에 생겼다 — 표는 직접 적은 속성만 보여 준다. 같은 날
+    [공개 Storybook](https://baechan.github.io/link-sphere_FE_NEW/storybook/)(고치기 전 `main`)의 표에는 `FilterChip`의
+    `id`·`name`, `ActionChip`의 `aria-label` 줄이 있었고, 고친 뒤 표에는 없다.
 
 ## 7. 관련 문서
 

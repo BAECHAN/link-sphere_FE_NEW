@@ -6,7 +6,7 @@
 
 > #652 · 2026-11-19 대조 · 이탈 0 · 미구현 0 — Phase 1(PR 1). 판정 근거(파일:줄)는 PR 본문 "계획 대비 구현"
 
-- 범위: 이 대조는 Phase 1(PR 1, 속성 이름·클래스 병합·린트)만 본다. Phase 2(ref·나머지 속성 전달, 계약 테스트)는 아직 시작하지 않았고 다음 PR에서 대조해 덧붙인다
+- 범위: 이 대조는 Phase 1(PR 1, 속성 이름·클래스 병합·린트)만 본다. Phase 2(ref·나머지 속성 전달, 계약 테스트)는 아래 #657 줄에서 대조했다
 - 이탈·미구현 없음. `FeaturedIcon`의 `tone`은 `variant`가 됐고(사용처 5곳과 스토리), `Button`은 `cn(buttonVariants(…), className)`으로 합친다. 린트 2개는 계획대로 허용 목록 방식이고 규칙 테스트는 통과 19개, 위반 10개 사례다
 - 계획에 없던 변경(문서): 원칙 문서 §1.4에 "규칙을 쓰는 모습", "린트가 보는 것과 못 보는 것", "이 규칙으로 생기는 제약" 절과 다시 볼 조건 하나(허용 목록에 없는 축이 필요해질 때)를 더했다. §6에는 계획의 cva 키 세기 말고도 린트가 실제 파일에서 막는지, 전후 `class` 문자열 비교, 부분 클래스 속성 세기를 적었다
 - 계획에 없던 변경(문서): `FE-ARCHITECTURE.md` 린트 규칙 표에 새 규칙 두 줄을 더했다. 로드맵 §5의 1단계 상태 칸은 계획에서 Phase 2 때 "완료"로 바꾸기로 한 줄인데, 이번에 "속성 이름·클래스 병합은 끝남, ref·속성 전달이 남음"으로 먼저 고쳤다
@@ -15,6 +15,19 @@
 - 대조 뒤 보완: 원칙 문서 "린트가 못 보는 것" 표에 빠져 있던 경우(변수로 넘긴 cva 설정, `cn()`이 아닌 함수로 합친 경우 등)를 더했다. 로드맵 "API 규칙" 행에서 세는 방법이 문서에 없던 "14개"를 뺐다(세는 명령은 Phase 2에서 더한다)
 - 기록 안 된 약속 → 보완함: 전후 비교에 쓴 임시 테스트 파일은 사용자가 지웠고 이 PR의 커밋에 들어가지 않았다
 - 문서 동기화: 원칙 문서 머리말과 관련 문서 링크, `FE-ARCHITECTURE.md` 마지막 검토 날짜, 로드맵 §5 표 서식, 계획 색인
+
+> #657 · 2026-11-19 대조 · 이탈 1 · 미구현 0 — Phase 2(PR 2). 판정 근거(파일:줄)는 PR 본문 "계획 대비 구현"
+
+- 범위: 이 대조는 Phase 2(PR 2, ref·나머지 속성 전달과 계약 테스트)만 본다. 이 PR로 로드맵 1단계가 "완료"가 됐다
+- 이탈(범위, 구현 중 판단): 계획은 Radix 부품을 그대로 내보낸 16개를 모두 계약 대상에서 빼기로 했으나, 계약 테스트는 그 가운데 자기 DOM 요소가 있는 7개(`DialogTrigger`·`DialogClose`·`AlertDialogTrigger`·`TooltipTrigger`·`DropdownMenuGroup`·`DropdownMenuRadioGroup`·`SelectGroup`)를 그려 검사한다. 계획의 다른 결정("내보낸 부품을 모두 그린다")을 따른 것이다. 계약 밖은 수는 16개로 같지만 구성이 다르다: 자기 DOM 요소가 없는 10개, jsdom에서 Radix가 그리지 않는 3개, `SelectValue`, `LinkThumbnail`, `Toaster`
+- 계획에 없던 발견: Radix의 `SelectValue`는 `className`을 받지 않아 계약 밖에 뒀다(코드는 고치지 않았다). 하이픈이 든 속성(`aria-label` 등)은 타입에서 빼도 JSX에서 타입 오류가 나지 않는다. 그래서 버튼을 감싼 4개는 나머지 속성을 먼저 펼치고 부품이 정하는 속성을 그 뒤에 적으며, 이 순서를 테스트로 고정했다
+- 계획에 없던 변경(코드): `EditButton`은 `aria-label`·`title`, `FilterChip`은 `aria-pressed`도 타입에서 뺐다(계획은 `type`·모양·`children`). `RequiredMark`도 `children`을 받지 않고, 나머지 속성을 열면서 `aria-hidden`을 쓰는 쪽이 바꿀 수 있게 됐다. `FilterChipProps`를 내보낸다
+- 계획에 없던 변경(코드, 공개 Storybook에 드러남): `ActionChip`의 `aria-label`, `FilterChip`의 `id`·`name`을 따로 적은 속성에서 나머지 속성으로 옮겼다. 쓰는 쪽 코드는 그대로지만 Storybook 자동 속성 표에서 이 세 줄이 빠진다(표는 인터페이스에 직접 적은 속성만 보여 준다). `Badge`의 표는 그대로이고, `FilterChip`의 `className`은 인터페이스에 직접 적어 표에 나온다
+- 계획에 없던 변경(테스트): 버튼을 감싼 4개가 스스로 정한 속성을 넘겨받은 값으로 바꾸지 않는지 보는 검사 4건, 조립 표의 셋째 값 "받지만 다른 요소로 간다"(`FormInput`·`FormInputPassword`의 나머지 속성, `KebabMenu`의 `className`), 표에 적은 atoms 이름이 실제로 있는지 보는 검사를 더했다. 테스트 파일 이름은 `.tsx` 파일 이름 규칙(PascalCase)에 맞춰 `ApiContract.test.tsx`가 됐다
+- 계획에 없던 변경(문서): 원칙 문서 §1.4에 "계약 테스트가 보는 것과 못 보는 것" 소절, 코드 예시와 펼치는 순서 설명, 제약 3개, 선례 3줄(SEED·shadcn·Polaris의 `ref` 처리), 다시 볼 조건 하나(`LinkThumbnail` 분류)를 더했다. §6에는 측정 명령 말고도 일부러 깬 확인, 타입 확인, Storybook 속성 표 확인을 적었다. `.claude/CLAUDE.md`는 Phase 1 줄에 덧붙이지 않고 바로 아래 새 항목으로 적었다
+- 계획과 달라진 서술: 타입이 `ref`를 받는다고 적혀 있던 부품은 넷이 아니라 `Spinner`를 더한 다섯이다. 고치기 전부터 맞았던 elements는 `SheetDialogContent`를 더한 넷이고, 대상 요소 정의에 "창을 그리는 부품은 창 패널"이 더해졌다. 계획 Context의 SEED `package.json`(`react >=18.0.0`)과 Radix Composition 인용은 구현 날 원문을 다시 대조하지 않아 원칙 문서에 싣지 않았다
+- 대조 뒤 보완: 조립 표에서 한 줄을 지워 표 검사가 실패하는 출력을 다시 남겼다. Storybook 속성 표의 "세 줄이 빠진다"는 공개 Storybook(고치기 전)과 고친 뒤 표를 직접 읽어 확인했다. 원칙 문서에 `RequiredMark`의 `aria-hidden`, 두 "16개"가 다른 묶음이라는 설명, "DOM 요소가 없는 atoms는 계약 밖 표에 적는다"를 더했다. 마지막 수정 뒤 `pnpm test`·`pnpm test:storybook`을 다시 돌렸다
+- 문서 동기화: 원칙 문서 머리말과 읽는 법, 로드맵 "API 규칙" 행의 줄 번호, 1단계 행의 PR 링크와 표 서식, 계획 색인
 
 <!-- plan-result:end -->
 

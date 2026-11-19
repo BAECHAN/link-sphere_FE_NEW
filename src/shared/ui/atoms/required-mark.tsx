@@ -1,8 +1,8 @@
+import { forwardRef } from 'react';
+
 import { cn } from '@/shared/lib/tailwind/utils';
 
-interface RequiredMarkProps {
-  className?: string;
-}
+type RequiredMarkProps = Omit<React.ComponentPropsWithoutRef<'span'>, 'children'>;
 
 /**
  * 폼 라벨 옆에 붙는 필수 입력 표시(*).
@@ -15,10 +15,16 @@ interface RequiredMarkProps {
  * 충돌할 수 있다 - 그래서 호출부(`FormField`)가 라벨 텍스트와 이 마커를 하나의 span으로
  * 묶어 `Label`에는 항상 단일 자식만 전달한다.
  */
-export function RequiredMark({ className }: RequiredMarkProps) {
-  return (
-    <span aria-hidden="true" className={cn('ml-1 text-destructive', className)}>
+export const RequiredMark = forwardRef<HTMLSpanElement, RequiredMarkProps>(
+  ({ className, ...props }, ref) => (
+    <span
+      ref={ref}
+      aria-hidden="true"
+      className={cn('ml-1 text-destructive', className)}
+      {...props}
+    >
       *
     </span>
-  );
-}
+  )
+);
+RequiredMark.displayName = 'RequiredMark';
