@@ -9,7 +9,7 @@
 > URL로 붙는 저장 방식, 업로드·등록이 실패했을 때 원인별로 무엇을 안내하는지, "내 댓글"에서
 > 원글의 그 댓글로 이동하는 방식을 이해하고, 상한·장수·캐시 무효화 범위·실패 문구를 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-11-06
+> **마지막 검토**: 2026-11-19
 
 게시글 상세(`/post/:id`) 하단의 댓글 섹션과, 내가 쓴 댓글을 모아보는 "내 댓글"
 화면(`/my/comments`)을 다룬다. 게시글 자체(목록·상세·작성)는
@@ -172,6 +172,12 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
 `disabled`만으로 처리하지 않는다" 항목과 §10. 빈 상태에서 ⌘/Ctrl+Enter를 누르면 답글 폼이
 여러 개 열려 있을 수 있어 그 폼 자체를 화면 중앙으로 스크롤하고 1.3초 강조한다
 (`highlightEmptyForm`).
+
+등록 단축키(⌘/Ctrl+Enter)가 조합 중에 오면 그 자리에서 제출하지 않는다(조합·IME는 §12). `CommentForm`의 `onKeyDown`이
+`isComposing`을 보고 `submitAfterCompositionRef`에 예약만 해 두고, 조합이 끝났다고 브라우저가 알리는 `compositionend`
+(`onCompositionEnd`)에서 제출한다. 제출은 입력란을 바로 비우는데(위 3번), 조합 중에 비우면 브라우저가 뒤이어 확정하는 마지막
+글자가 빈 입력란에 다시 들어가기 때문이다(§10 "한글 조합 중 ⌘+Enter"). 예약은 바로 이어지는 조합 종료까지만 유효하다 — 그
+전에 다른 키가 오면 풀려, 나중의 글자 확정이 쓰다 만 댓글을 등록하지 않는다. 조합 중이 아닌 단축키는 누른 자리에서 제출한다.
 
 이탈 가드 키는 `comment-create:${postId}:${parentId ?? 'root'}`(useCreateComment.ts의
 `useUnsavedChanges` 호출)이다. 동작은 [`UNSAVED-CHANGES-GUARD.md`](./UNSAVED-CHANGES-GUARD.md) 참고.
@@ -750,6 +756,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 댓글이 오는 중인 자리(뼈대)     | `src/widgets/comment/comment-list/ui/CommentItemSkeleton.tsx`                                                                                  |
 | 작성 검증·제출·복원             | `src/features/comment/create/hooks/useCreateComment.ts`의 `getCommentSubmitError`·`useCreateComment`                                           |
 | 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx`의 `CommentForm`                                                                               |
+| 등록 단축키·조합 중 예약        | `src/features/comment/create/ui/CommentForm.tsx`의 `submitByShortcut`·`<Textarea>`의 `onKeyDown`·`onCompositionEnd`                            |
 | 모바일 바                       | `src/features/comment/create/ui/MobileCommentBar.tsx:25-115`                                                                                   |
 | 상세의 맨 위로 버튼 조건        | `src/app/layouts/app-layout/AppLayout.tsx`의 `showBackToTopButton`·`isPostDetailPage`                                                          |
 | 수정 검증·제출                  | `src/features/comment/update/hooks/useUpdateComment.ts`의 `getCommentUpdateSubmitError`·`useUpdateComment`                                     |
@@ -904,6 +911,21 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 - 재현: 로그인 → 키 하나로 `POST /post/{postId}/comment`를 `Promise.all`로 2건 → `DELETE /comment/{commentId}` → 로그아웃. 시각은 로그 그룹 `/aws/lambda/link-sphere-api`의 `START`와 `[Comment PostProcess] 이벤트 수신`을 비교한다. 운영 쓰기이므로 먼저 사용자에게 묻고, 비밀번호는 파일에 남기지 않는다.
 - 운영 끊김은 일부러 만들 수 없어 재전송 자체는 모킹한 브라우저(e2e)로만 확인했다.
 
+**한글 조합 중 등록 단축키**(2026-11-19 직접 실행, §5 "작성"·§10 "한글 조합 중 ⌘+Enter"). `src/features/comment/create/ui/CommentForm.test.tsx`의 `describe('한글 조합 중 등록 단축키')` 4건이 본다.
+
+| 테스트                       | 확인하는 것                                                                                | 고치기 전 |
+| ---------------------------- | ------------------------------------------------------------------------------------------ | --------- |
+| ① 조합 중 ⌘+Enter            | 조합이 끝날 때까지 요청이 없고 입력란이 그대로이며, `compositionend` 뒤 요청 1건·빈 입력란 | 실패      |
+| ② 조합 중이 아닌 ⌘+Enter     | 누른 자리에서 등록                                                                         | 통과      |
+| ③ 조합 중 ⌘+Enter 뒤 다른 키 | 조합이 끝나도 등록하지 않음                                                                | 실패      |
+| ④ 단축키 없이 조합만 끝남    | 등록하지 않음                                                                              | 통과      |
+
+- 고치기 전 ①·③은 둘 다 입력란이 `가나다`여야 하는 자리에서 빈 값을 받아 실패했다 — 조합 중 `keydown`에서 바로 제출해 입력란을 비웠다.
+- 고친 뒤 이 파일 8건, 전체 211개 파일 2,907건이 통과했다(`pnpm test`).
+- 구현을 일부러 깨서 테스트가 잡는지 봤다. 다른 키가 와도 예약을 풀지 않으면 ③이, 예약이 없어도 `compositionend`에서 제출하면 ③·④가, 조합 중이 아닌 단축키가 제출하지 않으면 ②와 "빈 폼에서 Ctrl+Enter"가 실패했다.
+- 이 테스트는 `fireEvent`로 이벤트를 직접 보낸다. 실제 입력기가 보내는 순서는 고치기 전 측정(§10)으로 확인했다.
+- 고친 코드는 사용자가 실제 한글 자판으로 확인했다(2026-11-19, macOS, 운영 API에 연결한 로컬 화면). 최상위 댓글과 답글에 한글을 치고 ⌘+Enter를 한 번 눌러, 댓글이 1개만 등록되고 입력란이 비며 빈 입력 안내가 뜨지 않는지를 봤다. macOS에서는 Ctrl+Enter의 Enter 키가 페이지에 오지 않아(§11 측정) Ctrl+Enter로는 확인할 수 없었다.
+
 ## 10. 시행착오
 
 ### 댓글 403 추적 — 크기 문제인 줄 알았는데 XSS 룰 오탐이었다(2026-09-06)
@@ -983,6 +1005,60 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 댓글은 0개였다(2026-11-06 읽기 전용 계정으로 개수만 조회, 코드 블록 안에 백틱이 더 있으면 놓치는
 근사치).
 
+### 한글 조합 중 ⌘+Enter — 마지막 글자가 입력란에 남던 문제(2026-11-19)
+
+한글을 치고 ⌘+Enter로 등록하면 댓글은 전체가 한 번 등록되는데, 조합 중이던 마지막 글자가 입력란에 다시 남았다(사용자 보고,
+Chrome). 남은 글자 때문에 글자 수와 미리보기가 뜨고, 등록이 실패해도 입력란이 비어 있지 않아 원래 글을 되돌리지 않았다
+(§5 "작성" 4번).
+
+**측정**(2026-11-19 직접). 자동 브라우저는 조합 입력을 만들지 못해([`BOOKMARK.md`](./BOOKMARK.md) §9) 사람이 직접 쳤다.
+Chrome 157, macOS, 사용자가 평소 쓰는 한글 입력기(종류는 기록하지 않았다). 앱이 아닌 `https://example.com` 탭에 `<form>` 안의
+`<textarea>` 세 칸을 넣고 `keydown`·`keyup`·`compositionend`·`input` 등 입력 이벤트를 시각과 함께 기록했다. 칸마다 `가나다`를
+치고 ⌘+Enter를 한 번 눌렀다.
+
+| 칸  | ⌘+Enter `keydown`에서 한 일                                         | 기록된 순서                                                                                                             | 끝 값    |
+| --- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------- |
+| ①   | 없음                                                                | `keydown`(Enter, keyCode 229, 조합 중) → 2ms → `input`(`insertCompositionText`) → `compositionend`("다") → `keyup`      | `가나다` |
+| ②   | `preventDefault`                                                    | ①과 같음(1ms)                                                                                                           | `가나다` |
+| ③   | `preventDefault` + 마이크로태스크 뒤 `form.reset()`(앱과 같은 순서) | `keydown`(Enter, 229, 조합 중) → 비움 → `input`(`insertText` "다", 조합 아님) → `keyup`. `compositionend`는 오지 않았다 | `다`     |
+
+- 세 칸 모두 ⌘+Enter `keydown`은 한 번만 왔다.
+- 칸 ③이 증상이다. 조합 중에 입력란을 비우면, 브라우저가 뒤이어 보내는 확정 글자가 빈 입력란에 새 글자로 들어간다. 입력란을
+  건드리지 않으면(①·②) 같은 글자가 제자리에서 확정되고 `compositionend`가 온다.
+- 앱에서 비우는 곳은 `useCreateComment`의 `reset()`이다(§5 "작성" 3번). 인자 없는 `reset()`은 입력란이 든 `<form>`의
+  `reset()`을 부른다(react-hook-form 7.91.0 설치본 `dist/index.esm.mjs`의 3564-3578줄).
+
+`keydown`이 한 번뿐인 까닭은 Chromium의 macOS 입력 코드에서 읽었다. 조합 중이면 `keydown`을 keyCode 229로 바꿔 먼저 보내고
+([1765-1775줄](https://github.com/chromium/chromium/blob/7e3211f5ea5419a61391751ed9f33dedbca1943d/content/app_shim_remote_cocoa/render_widget_host_view_cocoa.mm#L1765-L1775)),
+조합 결과는 그 뒤에 보낸다([1803줄](https://github.com/chromium/chromium/blob/7e3211f5ea5419a61391751ed9f33dedbca1943d/content/app_shim_remote_cocoa/render_widget_host_view_cocoa.mm#L1803)).
+실제 키의 `keydown`을 조합 뒤에 한 번 더 보내는 것은 입력기가 편집 명령을 냈을 때뿐이고
+([1783-1784줄](https://github.com/chromium/chromium/blob/7e3211f5ea5419a61391751ed9f33dedbca1943d/content/app_shim_remote_cocoa/render_widget_host_view_cocoa.mm#L1783-L1784)),
+`noop:`은 편집 명령으로 세지 않는다([2970-2971줄](https://github.com/chromium/chromium/blob/7e3211f5ea5419a61391751ed9f33dedbca1943d/content/app_shim_remote_cocoa/render_widget_host_view_cocoa.mm#L2970-L2971)).
+여기까지는 소스를 읽은 해석이다. ⌘+Enter에서 입력기가 어떤 명령을 내는지는 실행으로 가르지 않았고, "한 번뿐"이라는 사실은 위
+측정에서 나왔다.
+
+**고친 방법** — 조합 중에 온 단축키는 제출을 예약만 하고 `compositionend`에서 제출한다(§5 "작성"). 비교한 방법은 셋이다.
+
+- **조합 중 `keydown`을 무시한다(기각)** — MDN [keydown event](https://developer.mozilla.org/en-US/docs/Web/API/Element/keydown_event)가
+  _"조합의 일부인 keydown 이벤트를 모두 무시하려면 이렇게 한다"_ (번역)며 보여 주는 방식이고, 이 레포의 입력란 `keydown`
+  핸들러 다섯 곳(`src/features/bookmark/rename/hooks/useRenameBookmarkFolder.ts:81` 등)이 이미 쓴다(대화상자의 Escape 처리 두
+  곳은 따로 센다). 측정상 `keydown`이 한 번뿐이라, 이렇게 하면 ⌘+Enter를 두 번 눌러야 등록된다.
+- **비우기를 타이머로 늦춘다(기각)** — 확정 글자가 타이머보다 먼저 온다는 보장이 없다. 측정한 1~2ms는 한 환경의 값이다.
+- **조합을 강제로 끝내고 제출한다(기각, 시험하지 않음)** — 칸 ③에서 입력란을 비운 뒤에도 확정 글자가 들어왔다. `keydown`을
+  처리하는 중에 조합을 끊어도 같은 글자가 올 것으로 봤다(추론).
+
+조합 중인지는 `isComposing`만 본다. keyCode 229까지 보면 아래 순서의 브라우저에서 예약만 걸리고 `compositionend`가 다시 오지
+않아 등록되지 않는다. 그 순서에서는 `isComposing`이 false라 전처럼 그 자리에서 제출한다.
+
+> `compositionstart`는 IME를 여는 첫 글자를 칠 때 `keydown` 뒤에 올 수 있고, `compositionend`는 IME를 닫는 마지막 글자를 칠 때
+> `keydown` 앞에 올 수 있다. 이런 경우에는 그 이벤트가 조합의 일부여도 `isComposing`이 false다. (번역)
+>
+> — MDN keydown event, https://developer.mozilla.org/en-US/docs/Web/API/Element/keydown_event
+
+테스트는 jsdom이 조합을 만들지 못해 `fireEvent`로 `isComposing`이 true인 `keydown`과 `compositionend`를 직접 보낸다(§9). 조합
+중 단축키 뒤에 `compositionend`가 오는 ①의 순서는 위 측정에서 옮겼다(코드가 보지 않는 `input`·`keyup`·keyCode는 보내지 않는다).
+단축키 뒤에 다른 키가 먼저 오는 ③의 순서는 잰 적이 없고, 재지 못한 환경을 가정해 만든 것이다.
+
 ## 11. 남은 것
 
 기록만 하고 고치지 않은 것들이다.
@@ -1032,6 +1108,22 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   높이")은 키보드 없는 에뮬레이션에서만 쟀다. Chrome 108 이후 Android·iOS Safari는 키보드가 떠도 `dvh`가 줄지 않아,
   시트 위아래가 키보드 위로 보이는 영역 밖에 걸릴 수 있다. 상한을 두기 전보다 시트가 작아져 나빠지지는 않을 것으로
   보지만 추론이다.
+- **조합 중 등록 단축키는 Chrome(macOS)의 ⌘+Enter로만 쟀다**(2026-11-19) — Windows의 Ctrl+Enter, Safari·Firefox는 재지
+  않았다. 조합 중이 아닌 `keydown`은 전과 똑같이 처리한다. 조합 중 `keydown` 뒤에 ⌘/Ctrl+Enter `keydown`이 한 번 더 오는
+  환경이 있다면, 등록된 뒤 빈 입력란에서 단축키가 또 처리돼 빈 입력 안내가 뜰 수 있다(추론, §10 "한글 조합 중 ⌘+Enter").
+- **macOS에서는 Ctrl+Enter로 등록되지 않는다**(2026-11-19 측정) — 코드는 운영체제를 가리지 않고 ⌘와 Ctrl을 둘 다
+  받지만(`CommentForm.tsx`의 `onKeyDown`), Enter 키가 페이지에 오지 않는다. Chrome 157·macOS 26.5.2에서 §10과 같은 방법으로
+  쟀다(`https://example.com` 탭, 입력칸과 `window` 캡처 단계에서 기록, 사용자가 직접 입력). 영문 `abc` 뒤와 한글 `가나다`
+  조합 중에 Ctrl+Enter를 한 번씩 눌렀는데, 두 번 다 Control 키의 `keydown`·`keyup`만 오고 Enter는 0건이었다(`contextmenu`도
+  0건). 같은 페이지에서 ⌘+Enter의 Enter는 왔다. 원인은 추정이다 — 이 Mac에는 Control+Return을 쓰는 시스템 단축키가 켜져
+  있고(`defaults read com.apple.symbolichotkeys`의 159번: 키 코드 36 + Control), macOS 15로 올린 뒤 Control+Return이 두 손가락
+  클릭과 같은 메뉴를 띄운다는 사용자 글이
+  있다([Omni Group 사용자 포럼](https://discourse.omnigroup.com/t/control-return-does-not-split-row-at-cursor-after-sequoia-installation/70893),
+  2024-11-07, Apple 공식 문서에서는 찾지 못했다). 단축키를 끄고 다시 재 보지는 않았다. 키가 오지 않으니 앱에서 고칠 수
+  없고, Mac의 버튼 힌트는 ⌘+Enter만 보여 준다. Ctrl+Enter는 ⌘가 없는 Windows·안드로이드 키보드를 위해 받는
+  키다(CHANGELOG 0.20.0).
+- **댓글 수정 폼은 조합 중 단축키를 따로 다루지 않는다**(2026-11-19) — 같은 단축키를 받지만(`CommentEditForm.tsx`의
+  `onKeyDown`) 저장할 때 입력란을 비우지 않아 글자가 남는 경로가 없다. 작성 폼과 처리 방식이 다르다는 점만 남긴다.
 
 ## 12. 용어 사전
 
@@ -1061,6 +1153,9 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   무엇을 세는지는 부르는 쪽이 정한다.
 - **`EDGE_BLOCKED`** — 앱이 아니라 CloudFront/WAF가 막은 403을 FE가 구분하려고 만든 에러
   코드. JSON이 아닌 403 응답이 그 신호다.
+- **조합(composition)·IME** — 한글처럼 여러 키로 한 글자를 만드는 입력에서, 입력기(IME, Input Method Editor)가 글자를 아직
+  만드는 중인 상태가 조합이다. 그동안의 `keydown`은 `isComposing`이 true이고, 글자가 확정되면 브라우저가 `compositionend`를
+  보낸다(§5 "작성", §10).
 - **`splitContentImages`** — 댓글 `content`를 텍스트와 "URL 하나만 있는 이미지 줄"로 나누는
   함수. BE `buildFinalContent`의 역함수. 닫힌 코드 블록 안의 줄은 텍스트로 둔다.
 - **`reservedCount`** — 수정 폼에서 이미 붙어 있는 이미지 장수. `useImageAttachments`가
