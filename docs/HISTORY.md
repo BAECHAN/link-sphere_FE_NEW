@@ -1,3 +1,6 @@
+### 2026-11-19 (FE)
+- 댓글 입력 시 한글 조합 중 단축키로 등록할 때 마지막 글자가 유실되지 않도록 수정 ([#653](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/653))
+
 ### 2026-11-19 (BE)
 - 댓글 내 우리 글 링크 공유 시 제목, 설명, 썸네일을 포함하는 메타데이터 카드 기능 구현 ([#224](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/224))
 
