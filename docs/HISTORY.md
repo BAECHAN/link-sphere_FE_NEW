@@ -1,4 +1,7 @@
 ### 2026-11-19 (FE)
+- Chip 컴포넌트의 Storybook 속성 정의를 보완하여 문서화 가독성 개선
+
+### 2026-11-19 (FE)
 - 댓글 작성 중 창 크기 변경 시 입력 데이터 유지 기능 개선 ([#658](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/658))
 
 ### 2026-11-19 (FE)
