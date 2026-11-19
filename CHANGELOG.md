@@ -70,6 +70,13 @@
 
 ### Changed
 
+- `comment` 댓글 목록의 우리 글 링크(카드·본문 주소)를 새 탭 대신 앱 안에서 엶
+  <details><summary>배경·구현</summary>
+
+  BE #224로 댓글에 붙은 우리 글 주소의 카드가 그 글의 제목·썸네일을 보여 주게 됐지만, 누르면 새 탭(폰은 앱 전체를 다시 불러오는 같은 탭)으로 열렸다. 이제 댓글 목록에서 지금 사이트의 글 상세 주소(`/post/<UUID>`, 끝 `/`·쿼리·`#comment-…` 허용, 앞 `www.` 무시)를 누르면 React Router `Link`로 같은 탭에서 그 글로 간다. ⌘/Ctrl·가운데 클릭은 `Link`가 브라우저에 넘겨 새 탭으로 열린다. 쓰던 댓글이 있으면 기존 이탈 가드가 확인창을 띄운다(사용자 선택). 지금 보는 글의 `#comment-…`면 엔트리를 쌓지 않고(`replace`) 맨 위로 올리지 않은 채 그 댓글로 스크롤한다(FE-ARCHITECTURE §25). 다른 사이트 링크와 작성·수정 폼 미리보기의 링크·카드는 지금처럼 새 탭이다(사용자 선택, 고치는 도중이라). 판정은 `UrlUtil.toInAppPostPath`가 BE `PostLinkParser`와 같은 규칙으로 하고, 사이트 주소 상수가 없어 지금 페이지 호스트와 비교한다. 계획은 [`docs/plans/2026-11-19-post-link-in-app-and-og.md`](docs/plans/2026-11-19-post-link-in-app-and-og.md) Phase 1. (`src/shared/utils/url.util.ts`, `src/shared/ui/elements/MarkdownContent.tsx`, `src/widgets/comment/comment-list/ui/CommentItem.tsx`, `docs/COMMENT.md`, [PR #660](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/660))
+
+  </details>
+
 - `shared` 확인창 버튼을 취소는 흰색·왼쪽·초기 포커스, 행동은 검은색·오른쪽으로 통일
   <details><summary>배경·구현</summary>
 

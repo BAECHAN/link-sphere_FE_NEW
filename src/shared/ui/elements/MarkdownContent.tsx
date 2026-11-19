@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/shared/lib/tailwind/utils';
+import { UrlUtil } from '@/shared/utils/url.util';
 import { useImageViewerStore } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { createBackClosableOverlayState } from '@/shared/config/back-closable-overlay';
@@ -10,10 +12,13 @@ import { isClosedCodeBlock, splitCodeBlocks } from '@/shared/lib/content/codeBlo
 interface MarkdownContentProps {
   content: string;
   isMobile?: boolean;
+  /** 지금 사이트의 글 상세 주소를 새 탭 대신 앱 안에서 연다. 고치는 도중에 보는 폼 미리보기는 지금처럼 새 탭으로 둔다 */
+  inAppPostLinks?: boolean;
   className?: string;
 }
 
 const URL_PATTERN = /(blob:https?:\/\/[^\s]+|https?:\/\/[^\s]+)/g;
+const TEXT_LINK_CLASS = 'text-info hover:text-info/80 hover:underline transition-colors';
 // 업로드 허용 확장자(config/image-format.ts)를 모두 포함해야 한다 - 빠지면 올린 이미지가 링크로 보인다
 const IMAGE_EXT_PATTERN = /\.(jpeg|jpg|gif|png|webp|avif|heic|heif|svg)(\?.*)?$/i;
 
@@ -67,24 +72,57 @@ function AttachmentImage({ url, className }: { url: string; className: string })
   );
 }
 
-export function MarkdownContent({ content, isMobile = false, className }: MarkdownContentProps) {
+/**
+ * 우리 글 주소를 앱 안에서 여는 링크. 보조키·가운데 클릭은 Link가 브라우저에 넘겨 새 탭으로 열린다. 지금 보는 글의
+ * `#comment-…`면 같은 글 엔트리를 쌓지 않고 맨 위로 올리지도 않는다 - 그 댓글로의 스크롤은 CommentList가 맡는다
+ * (docs/FE-ARCHITECTURE.md §25 "지금 보는 화면 안의 해시 이동")
+ */
+function InAppPostLink({ to, children }: { to: string; children: React.ReactNode }) {
+  const location = useLocation();
+  const isSamePost = to.split(/[?#]/)[0] === location.pathname;
+
+  return (
+    <Link
+      to={to}
+      replace={isSamePost}
+      preventScrollReset={isSamePost}
+      className={TEXT_LINK_CLASS}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {children}
+    </Link>
+  );
+}
+
+export function MarkdownContent({
+  content,
+  isMobile = false,
+  inAppPostLinks = false,
+  className,
+}: MarkdownContentProps) {
   if (!content) {
     return null;
   }
   const imageUrls = extractImageUrls(content);
   return (
     <div className={cn('leading-relaxed break-all', className)}>
-      {parseMarkdown(content, isMobile, imageUrls)}
+      {parseMarkdown(content, { isMobile, inAppPostLinks }, imageUrls)}
     </div>
   );
+}
+
+interface LinkOptions {
+  isMobile: boolean;
+  inAppPostLinks: boolean;
 }
 
 function renderInlineLinks(
   text: string,
   keyPrefix: string,
-  isMobile: boolean,
+  linkOptions: LinkOptions,
   imageUrls: string[]
 ): React.ReactNode[] {
+  const { isMobile, inAppPostLinks } = linkOptions;
   const parts = text.split(URL_PATTERN);
   const nodes: React.ReactNode[] = [];
 
@@ -142,17 +180,25 @@ function renderInlineLinks(
           </button>
         );
       } else {
+        const inAppPath = inAppPostLinks ? UrlUtil.toInAppPostPath(part) : null;
+
         nodes.push(
-          <a
-            key={`${keyPrefix}-${i}`}
-            href={part}
-            target={isMobile ? '_self' : '_blank'}
-            rel={!isMobile ? 'noopener noreferrer' : undefined}
-            className="text-info hover:text-info/80 hover:underline transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {part}
-          </a>
+          inAppPath ? (
+            <InAppPostLink key={`${keyPrefix}-${i}`} to={inAppPath}>
+              {part}
+            </InAppPostLink>
+          ) : (
+            <a
+              key={`${keyPrefix}-${i}`}
+              href={part}
+              target={isMobile ? '_self' : '_blank'}
+              rel={!isMobile ? 'noopener noreferrer' : undefined}
+              className={TEXT_LINK_CLASS}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {part}
+            </a>
+          )
         );
       }
     } else {
@@ -163,7 +209,11 @@ function renderInlineLinks(
   return nodes;
 }
 
-function parseMarkdown(text: string, isMobile: boolean, imageUrls: string[]): React.ReactNode[] {
+function parseMarkdown(
+  text: string,
+  linkOptions: LinkOptions,
+  imageUrls: string[]
+): React.ReactNode[] {
   if (!text) {
     return [];
   }
@@ -195,28 +245,28 @@ function parseMarkdown(text: string, isMobile: boolean, imageUrls: string[]): Re
         elements.push(
           // eslint-disable-next-line custom-tailwind/no-raw-title -- 마크다운 렌더링 헤딩, 의도적으로 압축된 크기(역할 토큰과 무관)
           <h4 key={key} className="text-sm font-bold mt-1">
-            {renderInlineLinks(line.slice(5), key, isMobile, imageUrls)}
+            {renderInlineLinks(line.slice(5), key, linkOptions, imageUrls)}
           </h4>
         );
       } else if (line.startsWith('### ')) {
         elements.push(
           // eslint-disable-next-line custom-tailwind/no-raw-title -- 마크다운 렌더링 헤딩, 의도적으로 압축된 크기(역할 토큰과 무관)
           <h3 key={key} className="text-sm font-semibold mt-1">
-            {renderInlineLinks(line.slice(4), key, isMobile, imageUrls)}
+            {renderInlineLinks(line.slice(4), key, linkOptions, imageUrls)}
           </h3>
         );
       } else if (line.startsWith('## ')) {
         elements.push(
           // eslint-disable-next-line custom-tailwind/no-raw-title -- 마크다운 렌더링 헤딩, 의도적으로 압축된 크기(역할 토큰과 무관)
           <h2 key={key} className="text-base font-bold mt-1">
-            {renderInlineLinks(line.slice(3), key, isMobile, imageUrls)}
+            {renderInlineLinks(line.slice(3), key, linkOptions, imageUrls)}
           </h2>
         );
       } else if (line.startsWith('# ')) {
         elements.push(
           // eslint-disable-next-line custom-tailwind/no-raw-title -- 마크다운 렌더링 헤딩, 의도적으로 압축된 크기(역할 토큰과 무관)
           <h1 key={key} className="text-base font-bold mt-1">
-            {renderInlineLinks(line.slice(2), key, isMobile, imageUrls)}
+            {renderInlineLinks(line.slice(2), key, linkOptions, imageUrls)}
           </h1>
         );
       } else if (line === '') {
@@ -224,7 +274,7 @@ function parseMarkdown(text: string, isMobile: boolean, imageUrls: string[]): Re
       } else {
         elements.push(
           <span key={key} className="block">
-            {renderInlineLinks(line, key, isMobile, imageUrls)}
+            {renderInlineLinks(line, key, linkOptions, imageUrls)}
           </span>
         );
       }

@@ -164,6 +164,18 @@ describe('useUnsavedChangesGuard', () => {
     expect(router.state.location.pathname).toBe('/other');
     expect(screen.getByTestId('other')).toBeInTheDocument();
   });
+
+  it('작성 중이어도 같은 화면 안의 해시 이동은 막지 않는다 - 댓글의 우리 글 링크가 지금 글의 #comment-…를 가리킬 때', async () => {
+    const router = renderGuard();
+
+    await act(async () => {
+      await router.navigate('/form#comment-1', { replace: true, preventScrollReset: true });
+    });
+
+    expect(router.state.location.pathname).toBe('/form');
+    expect(router.state.location.hash).toBe('#comment-1');
+    expect(getOpenAlertDialogId()).toBeNull();
+  });
 });
 
 describe('useUnsavedChangesGuard — 로그인이 풀린 상태', () => {

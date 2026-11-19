@@ -3,6 +3,8 @@ import { UserAvatar } from '@/entities/user/ui/UserAvatar';
 import { Badge } from '@/shared/ui/atoms/badge';
 import { DateUtil } from '@/shared/utils/date.util';
 import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { UrlUtil } from '@/shared/utils/url.util';
 import { LikeCommentButton } from '@/features/comment/like/ui/LikeCommentButton';
 import { CommentForm } from '@/features/comment/create/ui/CommentForm';
 import { CommentEditForm } from '@/features/comment/update/ui/CommentEditForm';
@@ -15,6 +17,63 @@ import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { LinkThumbnail } from '@/shared/ui/atoms/link-thumbnail';
 import { useDeleteComment } from '@/features/comment/delete/hooks/useDeleteComment';
+
+const LINK_CARD_CLASS =
+  'block mt-2 border rounded-lg overflow-hidden hover:border-primary/50 transition-colors';
+const LINK_CARD_STYLE = { maxWidth: '400px' };
+
+/**
+ * 댓글의 링크 카드. 우리 글 주소면 새 탭 대신 앱 안에서 연다(보조키·가운데 클릭은 Link가 브라우저에 넘겨 새 탭).
+ * 지금 보는 글이면 같은 글 엔트리를 쌓지 않고 맨 위로 올리지도 않는다(docs/FE-ARCHITECTURE.md §25, MarkdownContent와 같다)
+ */
+function LinkCard({ linkMetadata }: { linkMetadata: NonNullable<Comment['linkMetadata']> }) {
+  const location = useLocation();
+  const inAppPath = UrlUtil.toInAppPostPath(linkMetadata.url);
+
+  const body = (
+    <>
+      <LinkThumbnail src={linkMetadata.ogImage} alt={linkMetadata.title} />
+      <div className="p-2 bg-muted/30">
+        {/* eslint-disable-next-line custom-tailwind/no-raw-title -- 외부 링크 메타데이터 제목, UI 제목 아님 */}
+        <p className="text-xs font-semibold truncate">{linkMetadata.title}</p>
+        {linkMetadata.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+            {linkMetadata.description}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground truncate mt-1">{linkMetadata.url}</p>
+      </div>
+    </>
+  );
+
+  if (inAppPath) {
+    const isSamePost = inAppPath.split(/[?#]/)[0] === location.pathname;
+
+    return (
+      <Link
+        to={inAppPath}
+        replace={isSamePost}
+        preventScrollReset={isSamePost}
+        className={LINK_CARD_CLASS}
+        style={LINK_CARD_STYLE}
+      >
+        {body}
+      </Link>
+    );
+  }
+
+  return (
+    <a
+      href={linkMetadata.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={LINK_CARD_CLASS}
+      style={LINK_CARD_STYLE}
+    >
+      {body}
+    </a>
+  );
+}
 
 interface CommentItemProps {
   comment: Comment;
@@ -85,34 +144,10 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
             <MarkdownContent
               content={comment.content}
               isMobile={isMobile}
+              inAppPostLinks
               className={cn('text-foreground', isDeleted && 'text-muted-foreground italic')}
             />
-            {!isDeleted && comment.linkMetadata && (
-              <a
-                href={comment.linkMetadata.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block mt-2 border rounded-lg overflow-hidden hover:border-primary/50 transition-colors"
-                style={{ maxWidth: '400px' }}
-              >
-                <LinkThumbnail
-                  src={comment.linkMetadata.ogImage}
-                  alt={comment.linkMetadata.title}
-                />
-                <div className="p-2 bg-muted/30">
-                  {/* eslint-disable-next-line custom-tailwind/no-raw-title -- 외부 링크 메타데이터 제목, UI 제목 아님 */}
-                  <p className="text-xs font-semibold truncate">{comment.linkMetadata.title}</p>
-                  {comment.linkMetadata.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                      {comment.linkMetadata.description}
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground truncate mt-1">
-                    {comment.linkMetadata.url}
-                  </p>
-                </div>
-              </a>
-            )}
+            {!isDeleted && comment.linkMetadata && <LinkCard linkMetadata={comment.linkMetadata} />}
           </>
         )}
 

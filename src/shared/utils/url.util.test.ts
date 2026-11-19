@@ -35,4 +35,45 @@ describe('UrlUtil', () => {
       expect(UrlUtil.normalizeUrl('')).toBe('');
     });
   });
+
+  describe('toInAppPostPath', () => {
+    const POST_ID = '3eedb318-1c2d-4e5f-8a9b-0c1d2e3f4a5b';
+    const { protocol, host } = window.location;
+    const sameSite = `${protocol}//${host}`;
+
+    it('지금 사이트의 글 상세 주소면 앱 안 경로를 준다', () => {
+      expect(UrlUtil.toInAppPostPath(`${sameSite}/post/${POST_ID}`)).toBe(`/post/${POST_ID}`);
+    });
+
+    it('끝 슬래시·쿼리·#댓글 조각이 붙어도 글 상세로 보고 쿼리와 조각은 그대로 둔다', () => {
+      expect(UrlUtil.toInAppPostPath(`${sameSite}/post/${POST_ID}/`)).toBe(`/post/${POST_ID}/`);
+      expect(UrlUtil.toInAppPostPath(`${sameSite}/post/${POST_ID}?from=feed#comment-1`)).toBe(
+        `/post/${POST_ID}?from=feed#comment-1`
+      );
+    });
+
+    it('www.가 붙거나 호스트 대소문자가 달라도 같은 사이트로 본다', () => {
+      expect(UrlUtil.toInAppPostPath(`${protocol}//www.${host}/post/${POST_ID}`)).toBe(
+        `/post/${POST_ID}`
+      );
+      expect(UrlUtil.toInAppPostPath(`${protocol}//${host.toUpperCase()}/post/${POST_ID}`)).toBe(
+        `/post/${POST_ID}`
+      );
+    });
+
+    it('다른 사이트의 주소는 같은 모양의 경로여도 null이다', () => {
+      expect(UrlUtil.toInAppPostPath(`https://example.com/post/${POST_ID}`)).toBeNull();
+    });
+
+    it('글 상세가 아닌 우리 사이트 주소는 null이다', () => {
+      expect(UrlUtil.toInAppPostPath(`${sameSite}/post/submit`)).toBeNull();
+      expect(UrlUtil.toInAppPostPath(`${sameSite}/post/edit/${POST_ID}`)).toBeNull();
+      expect(UrlUtil.toInAppPostPath(`${sameSite}/post/${POST_ID.slice(0, -1)}`)).toBeNull();
+      expect(UrlUtil.toInAppPostPath(`${sameSite}/`)).toBeNull();
+    });
+
+    it('주소로 읽을 수 없는 문자열은 null이다', () => {
+      expect(UrlUtil.toInAppPostPath('not a url')).toBeNull();
+    });
+  });
 });

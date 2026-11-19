@@ -282,6 +282,17 @@ flowchart LR
 - 판정 규칙·기각한 대안(저장할 때 복사, 브라우저가 글마다 조회)·테스트는 BE
   [`docs/plans/2026-11-19-comment-post-link-preview.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/plans/2026-11-19-comment-post-link-preview.md)(BE #224)가
   정본이다.
+- **누르면 어디로 가나(2026-11-19)**: 댓글 목록에서 지금 사이트의 글 상세 주소면 카드와 본문 링크 모두 같은 탭에서 앱 안으로
+  이동한다(`Link`). 판정은 `UrlUtil.toInAppPostPath`(`src/shared/utils/url.util.ts`)가 BE와 같은 규칙으로 하되, 사이트 주소
+  상수가 없어 지금 페이지의 호스트와 비교한다 — dev(localhost)에서는 운영 주소가 다른 사이트로 보여 새 탭으로 열린다.
+  - ⌘/Ctrl·가운데 클릭은 `Link`가 브라우저에 넘겨 새 탭으로 열린다.
+  - 쓰던 댓글이 있는데 다른 글로 가면 이탈 가드가 "작성 중인 내용이 있어요" 확인창을 띄운다(사용자 선택). 같은 글 안의
+    `#comment-…`는 막지 않고, `replace` + `preventScrollReset`으로 그 댓글까지 스크롤한다(아래 "해시 이동",
+    [`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §25).
+  - 다른 사이트 링크와 작성·수정 폼 미리보기의 링크·카드는 지금처럼 새 탭이다(폰 본문 링크는 같은 탭 새로 읽기). 고치는
+    도중이라 떠날 일이 드물고, 앱 안 이동이면 거의 매번 확인창이 뜬다(사용자 선택). 그래서 `MarkdownContent`의
+    `inAppPostLinks`는 기본값이 꺼져 있고 댓글 목록(`CommentItem`)만 켠다.
+  - 계획은 [`docs/plans/2026-11-19-post-link-in-app-and-og.md`](./plans/2026-11-19-post-link-in-app-and-og.md) Phase 1.
 
 ### 수정 — 기존 이미지는 URL로, 새 이미지는 파일로
 
@@ -835,8 +846,9 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | 목록 정렬·개수                  | `src/widgets/comment/comment-list/hooks/useCommentList.ts:6-30`                                                                                |
 | 목록 렌더·해시 이동·진입점 배치 | `src/widgets/comment/comment-list/ui/CommentList.tsx`의 `CommentListContent`·`CommentList`                                                     |
-| 댓글 한 개(액션·답글 폼·재귀)   | `src/widgets/comment/comment-list/ui/CommentItem.tsx:26-183`                                                                                   |
-| 링크 카드                       | `CommentItem.tsx:90-115`, `src/features/comment/update/ui/CommentEditForm.tsx:121-141`(수정 폼). 값은 BE가 고른다(§5)                          |
+| 댓글 한 개(액션·답글 폼·재귀)   | `src/widgets/comment/comment-list/ui/CommentItem.tsx:85-218`                                                                                   |
+| 링크 카드                       | `CommentItem.tsx:29-76`의 `LinkCard`, `src/features/comment/update/ui/CommentEditForm.tsx:121-141`(수정 폼). 값은 BE가 고른다(§5)              |
+| 우리 글 링크를 앱 안에서 열기   | `src/shared/utils/url.util.ts`의 `toInAppPostPath`, `src/shared/ui/elements/MarkdownContent.tsx`의 `InAppPostLink`·`inAppPostLinks`(§5)        |
 | 댓글이 오는 중인 자리(뼈대)     | `src/widgets/comment/comment-list/ui/CommentItemSkeleton.tsx`                                                                                  |
 | 작성 검증·제출·복원             | `src/features/comment/create/hooks/useCreateComment.ts`의 `getCommentSubmitError`·`useCreateComment`                                           |
 | 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx`의 `CommentFormView`(화면)·`CommentForm`(답글용, 상태를 직접 가짐)                             |
@@ -1366,4 +1378,6 @@ Chrome 157, macOS, 사용자가 평소 쓰는 한글 입력기(종류는 기록�
 - [`ONBOARDING.md`](./ONBOARDING.md) — FE·BE 전체 길잡이
 - BE [`docs/plans/2026-11-19-comment-post-link-preview.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/plans/2026-11-19-comment-post-link-preview.md) —
   우리 글 링크 카드를 글에서 읽게 한 계획(§5 "링크 카드")
+- [`docs/plans/2026-11-19-post-link-in-app-and-og.md`](./plans/2026-11-19-post-link-in-app-and-og.md) — 우리 글 링크를 앱 안에서
+  열고, 메신저 미리보기 봇에 글의 OG 태그를 주는 계획(§5 "링크 카드")
 - `.claude/CLAUDE.md` Critical Rules — WAF 바디 크기 룰, `disabled` 버튼 검증 규칙
