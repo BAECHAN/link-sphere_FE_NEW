@@ -1,3 +1,6 @@
+### 2026-11-19 (BE)
+- 댓글 내 우리 글 링크 공유 시 제목, 설명, 썸네일을 포함하는 메타데이터 카드 기능 구현 ([#224](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/224))
+
 ### 2026-11-19 (FE)
 - 공용 UI 컴포넌트의 속성 체계 및 클래스 병합 로직 리팩토링 ([#652](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/652))
 
