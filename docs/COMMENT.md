@@ -7,7 +7,8 @@
 > **읽고 나면**: 댓글이 등록되기 전 화면에 먼저 뜨는 이유(낙관적 업데이트), 길이 상한이
 > 두 겹(6,000B·7,500B)인 이유, 입력칸 아래 글자 수를 한글 기준으로 세는 이유, 이미지가 본문 끝에
 > URL로 붙는 저장 방식, 업로드·등록이 실패했을 때 원인별로 무엇을 안내하는지, "내 댓글"에서
-> 원글의 그 댓글로 이동하는 방식을 이해하고, 상한·장수·캐시 무효화 범위·실패 문구를 어디서 바꾸는지 안다.
+> 원글의 그 댓글로 이동하는 방식, 복사한 글 링크를 입력칸이 제안하는 조건을 이해하고, 상한·장수·캐시 무효화 범위·실패
+> 문구를 어디서 바꾸는지 안다.
 >
 > **마지막 검토**: 2026-11-19
 
@@ -86,6 +87,7 @@ React Hook Form + zod resolver의 기본 동작은 안다고 가정한다.
 - **스토리지 직접 업로드** — `uploadImageAndGetUrl`(리사이즈 → 서명 URL 발급 → PUT)
 - **`IntersectionObserver`** — 내 댓글 다음 페이지 선반입
 - **`ResizeObserver`** — 모바일 댓글 바 높이만큼 토스트 위치를 올림
+- **Zustand**(`useCopiedPostLinkStore`) — 공유 버튼으로 복사한 글 링크를 탭 메모리에 기억(§5 "복사한 글 링크 넣기")
 
 **구현·검증 과정에서 쓴 도구**: Vitest + MSW(`src/mocks/handlers/comment.handlers.ts`),
 Playwright e2e(`page.route()` 모킹) — §9 참고.
@@ -524,7 +526,7 @@ flowchart LR
     청크도 기다리지 않도록 라우트로 옮겼다([`PERFORMANCE.md`](./PERFORMANCE.md) "LCP 데이터 요청 시점").
     `CommentList`는 같은 키의 캐시를 읽어 다시 요청하지 않는다
     ([TanStack Query 프리페치 가이드](https://github.com/tanstack/query/blob/main/docs/framework/react/guides/prefetching.md)의 "게시글 + 댓글" 예시와 같은 구조).
-  - 💬 hover·focus: `handlePrefetchDetailWithComments`(`src/widgets/post/post-card/hooks/usePostCard.ts:149`)가
+  - 💬 hover·focus: `handlePrefetchDetailWithComments`(`src/widgets/post/post-card/hooks/usePostCard.ts:168`)가
     게시글과 `prefetchComments`(`src/entities/comment/api/comment.queries.ts`)를 미리 받는다. 제목 링크는 `::after`가
     카드 전체를 덮어 카드 위를 지나가기만 해도 발동하므로, 게시글은 바로 받고 댓글은 카드에 100ms 머물렀을 때만 받는다
     (`COMMENTS_PREFETCH_HOVER_DELAY_MS`, 떠나면 취소). 2026-11-04 전에는 게시글만 받았는데, 상세가 댓글을 기다리느라
@@ -690,6 +692,120 @@ flowchart TD
 [Chrome 블로그](https://developer.chrome.com/blog/viewport-resize-behavior))고 쓴다. 키보드가 떠도 `dvh`가 줄지 않으므로,
 실제 휴대폰에서 시트 위아래가 어디에 걸리는지는 봐야 안다. Playwright에는 화면 키보드가 없다.
 
+### 복사한 글 링크 넣기 — 클립보드를 읽지 않고 앱이 기억한다(2026-11-19)
+
+**데스크톱에서 글 카드의 공유 버튼으로 복사한 글의 링크를, 다른 글의 빈 댓글 입력칸에 포커스하면 `링크 넣기 · <글 제목>`
+버튼으로 제안한다.** 누르면 입력칸에 그 글의 주소가 들어가고 포커스는 입력칸에 남는다. 다른 글을 댓글에 걸 때 붙여넣기
+한 번을 줄이려는 것이다. 클립보드는 읽지 않는다. 앱이 복사해 줄 때 무엇을 복사했는지 기억해 둘 뿐이다.
+
+아래 그림은 등록 전에 입력칸을 채우는 흐름이다(§1 순서도는 등록 요청의 흐름이다).
+
+```mermaid
+flowchart TD
+    A["글 A 카드의 공유 버튼 클릭<br/>handleCopyLink"] --> B{"앱이 클립보드에<br/>직접 썼나"}
+    B -- "모바일 공유 시트" --> X["기억을 건드리지 않음"]
+    B -- "writeText 성공" --> P{"글 A가 비공개인가"}
+    P -- "예" --> Q["기억을 비움"]
+    P -- "아니오" --> C["스토어에 기억<br/>postId · url · title"]
+    C --> D["같은 탭에서 글 B 상세로 이동"]
+    D --> E["댓글 입력칸 포커스"]
+    E --> F{"입력칸이 비었고<br/>기억한 글이 B가 아닌가"}
+    F -- "아니오" --> Y["제안 없음"]
+    F -- "예" --> G["링크 넣기 버튼 표시"]
+    G -- "버튼 클릭" --> H["입력칸에 주소 + 공백 삽입<br/>포커스 복귀 · 기억 삭제"]
+    G -- "글자 입력" --> I["버튼 숨김<br/>다시 포커스할 때까지"]
+```
+
+| 단계 | 동작                                                                                                                     | 위치                                                                                                                 |
+| ---- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| 기억 | 공유 버튼이 `navigator.clipboard.writeText`에 성공하면 `{ postId, url, title }`을 넣는다. 비공개 글이면 기억을 비운다    | `src/widgets/post/post-card/hooks/usePostCard.ts`의 `rememberCopiedLink`, `src/shared/store/copiedPostLink.store.ts` |
+| 제안 | 입력칸에 포커스한 뒤 아직 글자를 입력하지 않았고, 입력칸이 비었고, 기억한 글이 지금 글이 아닐 때만 버튼을 그린다         | `src/features/comment/create/hooks/useCopiedPostLinkSuggestion.ts`의 `suggestedLink`                                 |
+| 넣기 | 입력칸 값을 `주소 + 공백 한 칸`으로 바꾸고, 제안을 내리고, 기억을 지우고, 포커스를 입력칸으로 돌린다(등록 버튼이 켜진다) | 같은 훅의 `insertSuggestedLink`, `src/features/comment/create/ui/CommentForm.tsx`의 `handleInsertSuggestedLink`      |
+
+- **기억하는 것은 앱이 직접 복사한 공개 글의 링크뿐이다** — 모바일(UA로 판정)의 공유 버튼은 OS 공유 시트를 여는데,
+  `navigator.share`는 값 없이 끝나는 Promise만 돌려줘([MDN](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share#return_value))
+  사용자가 "복사"를 골랐는지 알 수 없다. 원본 링크 복사(`handleCopyOriginalUrl`)는 외부 주소라 대상이 아니다. 비공개 글은
+  작성자 말고는 열 수 없어(BE `PostVisibility.kt`) 기억하지 않는다. 비공개 글을 복사하면 그 전에 기억한 링크도 비운다 —
+  "방금 복사한 링크"가 이미 그 글로 바뀌었기 때문이다.
+- **이 탭의 메모리에만 둔다** — `persist` 없는 zustand 스토어다(§6). 새로고침하거나 탭을 닫으면 사라지고, 새 탭으로 연 글에는
+  없다. 시간 제한은 없다. 제안을 쓰면 지워지고, 다른 글을 복사하면 그 글로 바뀐다. 로그아웃해도 남지만 담긴 것은 누구에게나
+  보이는 공개 글의 주소와 제목이다.
+- **글자를 입력하면 내린다** — 입력칸의 `onInput`에서 내리고, 입력칸을 벗어났다 다시 포커스해야 돌아온다. 다 지우거나 등록해
+  빈 칸이 돼도 바로 돌아오지 않는다(등록 뒤 `useCreateComment`는 입력칸에 다시 포커스하지 않는다). 한 번 지나친 제안을 등록
+  직후 다시 내밀지 않으려는 것이다.
+- **포커스를 잃어도 내리지 않는다** — 버튼을 누르면 입력칸이 먼저 포커스를 잃는다. 그때 내리면 클릭이 닿기 전에 버튼이
+  사라진다. 그래서 한 번 포커스한 입력칸에는 글자를 입력하기 전까지 제안이 남는다. 맨 위 폼에 포커스했다가 답글 폼을 열면
+  두 폼에 함께 보이고, 어느 쪽에서든 넣으면 기억이 지워져 둘 다 사라진다.
+- **Enter는 가로채지 않는다** — 이 입력칸의 Enter는 줄바꿈이다. [W3C APG 콤보박스 패턴](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/)은
+  Enter로 제안을 받아들이는 경우를 _"자동완성 제안이 팝업에서 선택된 상태"_ (번역)로 한정한다. 이 버튼은 목록에서 고르는
+  제안이 아니라 입력칸 옆의 버튼이라, 키보드로는 Tab으로 가서 누른다.
+- **주소 뒤에 공백을 둔다** — 링크 인식이 공백 전까지를 주소로 본다(`src/shared/ui/elements/MarkdownContent.tsx`의
+  `URL_PATTERN`). 공백이 없으면 이어 쓴 글자가 링크에 붙는다.
+- **자리** — 입력칸 안 왼쪽 아래다(`CommentForm.tsx`의 `{suggestedLink && …}` 블록). 폼 높이가 변하지 않는다. 감싼 줄은
+  `pointer-events-none`이라 버튼 밖을 누르면 입력칸에 커서가 들어가고, 버튼이 놓인 자리를 누르면 링크가 들어간다. 이미지를
+  끌어다 놓는 동안은 `DropTargetOverlay`가 그 위를 덮는다.
+- **모양·문구** — `Button variant="outline"`에 `--info` 색 테두리·글자와 링크 아이콘(`Link2`)을 얹었다. 제목이 길면 버튼이
+  입력칸 폭에서 멈추고 제목 뒤가 잘리므로 동작("링크 넣기")을 앞에 둔다. 제목이 빈 글은 `복사한 글 링크 넣기`다
+  (`TEXTS.comment.form.insertCopiedLink`·`insertCopiedLinkUntitled`).
+- **화면 읽기 프로그램** — 제안이 나타났다고 알리는 영역(live region)은 두지 않는다. 버튼은 입력칸 바로 다음 탭 순서다.
+  글자 수 표시(위 "입력칸 아래 글자 수")가 같은 이유로 알림 역할을 주지 않았다.
+- **쓰는 폼** — `CommentForm`을 쓰는 세 곳 모두다: 데스크톱 인라인 폼, 답글 폼, 좁은 창의 하단 시트. 답글 폼과 시트는
+  열리면서 입력칸에 포커스하므로 열자마자 제안이 보인다. 수정 폼(`CommentEditForm`)은 빈 칸으로 시작하지 않아 대상이 아니다.
+
+**왜 클립보드를 읽지 않나.** 처음 요청은 "LinkSphere 링크를 클립보드에 들고 있을 때 붙여넣기 버튼을 보여 주자"였다. 웹
+페이지가 클립보드 내용을 아는 방법은 `read()`·`readText()`로 읽는 것뿐이고, 읽는 순간 브라우저가 확인 절차를 띄운다
+(2026-11-19 문서 조사, 실기기로는 확인하지 않았다).
+
+| 브라우저                      | 포커스 때 읽으면                                               |
+| ----------------------------- | -------------------------------------------------------------- |
+| Chrome·Edge(데스크톱·Android) | 처음 한 번 `clipboard-read` 권한 창, 허용 뒤에는 조용히 읽힌다 |
+| Safari(iPhone·Mac)            | 읽을 때마다 "붙여넣기" 말풍선. 같은 출처가 쓴 내용이면 생략    |
+| Firefox(125부터)              | Safari와 같다                                                  |
+
+[MDN Clipboard API](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API#security_considerations)는 Firefox·Safari에
+대해 _"붙여넣기 확인은 같은 출처의 클립보드 내용을 읽을 때는 생략되지만, 다른 출처의 내용에는 생략되지 않는다"_ (번역)고 적는다.
+WebKit은 이렇게 설명한다.
+
+> 시스템 클립보드의 내용을 같은 보안 출처의 페이지가 썼다면 프로그램에 의한 클립보드 접근도 자동으로 허용된다. 둘 다
+> 아니면 WebKit은 사용자가 붙여넣기를 진행할 수 있는 플랫폼 전용 UI를 보여 준다. iOS에서는 붙여넣기 항목 하나만 있는
+> 말풍선 막대다. (번역)
+>
+> — WebKit 블로그 "Async Clipboard API", https://webkit.org/blog/10855/async-clipboard-api/
+
+즉 "클립보드에 LinkSphere 링크가 있을 때만 버튼을 보여 주기"는 읽기 전에는 할 수 없고, 읽으면 링크가 아닐 때도 확인 창이
+뜬다. 그래서 읽는 대신 앱이 써 준 것을 기억하는 쪽으로 갔다.
+
+| 안                                                        | 결과              | 이유                                                                                                                |
+| --------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------- |
+| 포커스 때 클립보드를 읽어 LinkSphere 링크면 버튼 표시     | 기각              | Safari·Firefox는 링크가 아니어도 포커스할 때마다 말풍선이 뜨고, Chrome은 권한 창부터 뜬다                           |
+| 붙여넣기 버튼을 늘 표시                                   | 기각              | LinkSphere 링크일 때만 보여 줄 수 없다                                                                              |
+| `#`을 입력하면 글 목록을 띄워 고르기(GitHub 방식)         | 기각              | 이미 복사해 둔 링크를 넣는 요청과 다른 필요를 푼다                                                                  |
+| 제안이 보일 때 Enter로 넣기                               | 기각(사용자 결정) | 위 "Enter는 가로채지 않는다"                                                                                        |
+| 모든 탭에서 기억(`localStorage`, 1시간 또는 10분)         | 기각(사용자 결정) | 이 탭 안에서만 기억하기로 했다                                                                                      |
+| 모바일 공유 시트로 건넨 링크도 기억                       | 기각(사용자 결정) | 시트에서 "복사"를 골랐는지 알 수 없어, 다른 앱으로 보낸 링크까지 제안하게 된다                                      |
+| **앱이 직접 복사한 공개 글 링크를 이 탭에서 기억해 제안** | 채택(사용자 결정) | 확인 창이 없고, 기억한 값이 LinkSphere 글이라는 것이 확실하다. 대신 주소창·다른 앱에서 복사한 링크는 못 돕는다(§11) |
+
+자리·문구·모양은 실제 클래스와 색 토큰으로 만든 시안(Storybook 목업, 라이트·다크·좁은 폭)을 나란히 보고 골랐다. 수치는 그
+시안에서 직접 쟀다. 글자 대비는 시안 화면의 배경색과 글자색을 캔버스에 겹쳐 RGB로 바꾼 뒤 WCAG 대비 식으로 계산했다.
+
+| 고른 것 | 후보                                        | 결과              | 이유                                                                                           |
+| ------- | ------------------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------- |
+| 자리    | 글자 수 줄 왼쪽                             | 기각              | 버튼이 뜰 때 폼이 6px 커지고, 좁은 폭에서 긴 제목이 219px에서 잘린다                           |
+| 자리    | **입력칸 안 왼쪽 아래**                     | 채택(사용자 선택) | 폼 높이가 그대로다. 대신 버튼이 놓인 자리를 누르면 커서가 아니라 링크가 들어간다               |
+| 자리    | 입력칸과 글자 수 줄 사이의 별도 줄          | 기각              | 제목이 가장 많이 보이지만 버튼이 뜰 때 폼이 30px 커진다                                        |
+| 문구    | `'<제목>' 링크 넣기`                        | 기각              | 제목이 길면 뒤의 "링크 넣기"가 잘린다                                                          |
+| 문구    | **`링크 넣기 · <제목>`**                    | 채택(사용자 선택) | 제목이 잘려도 동작이 남는다                                                                    |
+| 문구    | `복사한 글 링크 넣기`(제목 없음)            | 기각              | 길이는 일정하지만 어떤 글인지 보이지 않는다. 제목이 빈 글에만 쓴다                             |
+| 모양    | `ActionChip`(검정 채움, 낮춘 보조색)        | 기각              | 사용자 피드백: 눌러야 하는 것인지 모르겠다                                                     |
+| 모양    | 앱의 다른 버튼과 같은 무채색 테두리 버튼    | 기각              | 사용자가 파란색 테두리 버튼을 제안했다                                                         |
+| 모양    | 파란 배경 칩(`bg-info` + 흰 글자)           | 기각              | 다크 모드에서 글자 대비가 2.65:1이었다                                                         |
+| 모양    | 밑줄 글자                                   | 기각              | 밑줄은 보통 이동하는 링크의 표시다                                                             |
+| 모양    | **파란 테두리 + 파란 글자**                 | 채택(사용자 선택) | 속은 입력칸과 같은 색이고 올리면 옅은 파란 배경이 깔린다. 글자 대비 4.6:1(라이트)·6.16:1(다크) |
+| 모양    | 파란 테두리 버튼에 옅은 파란 배경을 늘 깔기 | 기각              | 라이트 모드 글자 대비가 4.03:1로 4.5:1에 못 미쳤다                                             |
+| 모양    | 파란색 채움                                 | 기각              | 대비는 4.6:1·7.48:1로 충분했지만 사용자가 테두리 쪽을 골랐다                                   |
+
+계획과 조사 원문은 [`plans/2026-11-19-comment-copied-link-chip.md`](./plans/2026-11-19-comment-copied-link-chip.md)에 있다.
+
 ### 맨 위로 버튼 — 데스크톱에만, 댓글 이동 버튼 대신(2026-10-27)
 
 상세의 우하단 플로팅 자리는 **데스크톱에서만 맨 위로(`BackToTopButton`)가 쓴다. 모바일 상세에는 두지 않는다.**
@@ -801,6 +917,17 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 `isMobileSearchOpen`·`floatingRef`(토스트 자리를 재는 바·시트 요소)·`expand`를 돌려준다. 답글 폼은 `CommentForm`이
 `useCreateComment`를 직접 불러 폼마다 상태를 따로 갖는다.
 
+### 복사한 글 링크(`src/shared/store/copiedPostLink.store.ts`)
+
+| 조각                           | 값                              | 누가 쓰나                                                                       |
+| ------------------------------ | ------------------------------- | ------------------------------------------------------------------------------- |
+| `copiedPostLink`               | `{ postId, url, title }`·`null` | `useCopiedPostLinkSuggestion`이 읽어 제안 여부를 정한다                         |
+| `rememberCopiedPostLink(link)` | 기억을 그 글로 바꾼다           | `usePostCard`(공개 글 복사 성공 뒤)                                             |
+| `clearCopiedPostLink()`        | 기억을 비운다                   | `usePostCard`(비공개 글 복사 뒤), `useCopiedPostLinkSuggestion`(링크를 넣은 뒤) |
+
+`persist`를 쓰지 않아 탭 메모리에만 있다. 쓰는 쪽(widgets)과 읽는 쪽(features)이 함께 가져올 수 있는 층이라 `shared/store`에
+뒀다. 제안을 보일지(`isOffering`)는 폼마다 따로인 `useState`라 스토어에 없다.
+
 ## 7. 운영 파라미터
 
 | 파라미터                     | 값                   | 실제 위치                                                                                                                                    |
@@ -854,6 +981,8 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx`의 `CommentFormView`(화면)·`CommentForm`(답글용, 상태를 직접 가짐)                             |
 | 등록 단축키·조합 중 예약        | `src/features/comment/create/ui/CommentForm.tsx`의 `submitByShortcut`·`<Textarea>`의 `onKeyDown`·`onCompositionEnd`                            |
 | 최상위 작성 칸(인라인·바·시트)  | `src/features/comment/create/ui/CommentComposer.tsx`의 `CommentComposerSession`·`CommentComposer`, 상태는 `hooks/useCommentComposer.ts`        |
+| 복사한 글 링크 기억             | `src/widgets/post/post-card/hooks/usePostCard.ts`의 `rememberCopiedLink`, `src/shared/store/copiedPostLink.store.ts`                           |
+| 복사한 글 링크 제안·넣기        | `src/features/comment/create/hooks/useCopiedPostLinkSuggestion.ts`, `CommentForm.tsx`의 `{suggestedLink && …}` 블록                            |
 | 상세의 맨 위로 버튼 조건        | `src/app/layouts/app-layout/AppLayout.tsx`의 `showBackToTopButton`·`isPostDetailPage`                                                          |
 | 수정 검증·제출                  | `src/features/comment/update/hooks/useUpdateComment.ts`의 `getCommentUpdateSubmitError`·`useUpdateComment`                                     |
 | 삭제 확인                       | `src/features/comment/delete/hooks/useDeleteComment.ts:9-28`                                                                                   |
@@ -884,6 +1013,9 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 실패 문구 바꾸기         | `texts.ts`의 `messages.error.commentSubmit`(본 요청)·`uploadSubmit`(업로드 단계, 등록·저장 두 벌). 새 원인을 나누려면 `CommentUtil.resolveSubmitError`에 분기를 더한다                                                                                                                                              |
 | 글자 수 문구·자리 바꾸기 | 숫자 뒤 문구는 `TEXTS.comment.form.contentCountSuffix`, 자리는 `CommentForm.tsx`·`CommentEditForm.tsx`의 `<CharacterCount>`를 감싼 줄(두 폼을 함께 고친다). 세는 방법은 `CommentUtil.countHangulEquivalentChars`                                                                                                    |
 | 모바일 시트 높이 바꾸기  | `CommentComposer.tsx`의 `SHEET_MAX_HEIGHT`(시트)·`SHEET_TEXTAREA_MAX_HEIGHT`(입력칸). 입력칸 상한을 올리면 2,001자에서 글자 수·등록 버튼이 시트 밖으로 밀리는지 `e2e/comment-sheet-height.mobile.spec.ts`로 확인한다(§5 "시트 높이")                                                                                |
+| 링크 넣기 문구·모양 변경 | 문구는 `TEXTS.comment.form.insertCopiedLink`·`insertCopiedLinkUntitled`, 색·크기·자리는 `CommentForm.tsx`의 `{suggestedLink && …}` 블록. 색을 바꾸면 라이트·다크 글자 대비를 다시 잰다(§5 "복사한 글 링크 넣기"의 시안 표)                                                                                          |
+| 링크 넣기 제안 조건 변경 | `useCopiedPostLinkSuggestion.ts`의 `suggestedLink` 식과 `handleContentFocus`·`handleContentInput`. 포커스를 잃을 때 내리게 바꾸면 버튼 클릭이 닿기 전에 사라지지 않는지 `e2e/comment-copied-link.spec.ts`로 확인한다                                                                                                |
+| 링크 기억 대상·범위 변경 | 무엇을 기억할지는 `usePostCard.ts`의 `rememberCopiedLink`, 어디에 둘지는 `copiedPostLink.store.ts`. 새로고침 뒤에도 남기려면 스토어에 `persist`가 필요한데, 탭 안에서만 기억하기로 한 사용자 결정(§5)을 먼저 다시 묻는다                                                                                            |
 | 좋아요 실패 시 안내 추가 | `useLikeCommentMutation`의 `meta.manualErrorHandling`을 빼면 전역 토스트가 뜬다                                                                                                                                                                                                                                     |
 | 모바일 상세에도 맨 위로  | `AppLayout.tsx`에서 상세일 때 붙는 `max-md:hidden`을 뺀다. 버튼이 하단 댓글 바·댓글의 수정·삭제를 가리지 않는지 먼저 확인한다(§5 "맨 위로 버튼")                                                                                                                                                                    |
 | 테스트 실행              | `npx vitest run src/entities/comment src/features/comment`, e2e는 `pnpm test:e2e e2e/comment.spec.ts`                                                                                                                                                                                                               |
@@ -1012,6 +1144,25 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   바뀌어 펼쳐진 시트에서 글을 다 지우는 것과 등록 응답(2초 지연)을 기다리는 것은 고치기 전·후를 따로 찍었다. 전에는 둘
   다 그 순간 접힌 바가 됐고, 뒤에는 시트가 펼친 채 남다가 등록이 성공하면 접힌다.
 - 실기기 회전과 브라우저 확대는 돌려 보지 않았다(§11).
+
+복사한 글 링크 넣기(§5)는 2026-11-19 직접 실행했다.
+
+- 단위 테스트: `usePostCard.test.ts`의 "복사한 글 링크 기억" 6개(공개 글을 복사하면 기억, 다른 글을 복사하면 그 글로 바뀜,
+  클립보드 실패·모바일 공유 시트·원본 링크 복사는 기억을 건드리지 않음, 비공개 글은 기억하지 않고 그 전 기억도 비움)와
+  `CommentForm.test.tsx`의 "복사한 글 링크 넣기 제안" 11개(기억이 없으면 없음, 포커스 전에는 없고 포커스하면 보임, 지금 글이면
+  없음, 제목이 빈 글의 문구, 입력하면 사라지고 지워도 안 돌아옴, 다시 포커스하면 돌아옴, 포커스를 잃어도 남음, Tab으로 감,
+  누르면 `주소 + 공백`·포커스 복귀·기억 삭제·등록 버튼 켜짐, Enter는 줄바꿈, 직접 써서 등록한 뒤에는 안 돌아옴).
+- 구현을 하나씩 깨서 실패하는지 봤다: 같은 글 검사를 빼면 1개, 넣은 뒤 기억을 지우는 줄을 빼면 1개, `onInput`에서 내리는
+  줄을 빼면 3개, 기억 호출을 복사 전·공유 시트·원본 링크 복사 자리에 두면 3개가 실패했다.
+- e2e `e2e/comment-copied-link.spec.ts`(chromium 1건): 피드에서 글 A의 공유 버튼 → 같은 탭에서 글 B 상세 → 입력칸을 누르면
+  버튼이 보임 → 누르면 입력칸 값이 글 A 주소 + 공백이고 포커스가 입력칸에 있고 버튼이 사라짐. 기억 호출을 빼면 실패했다.
+  헤드리스 Chromium은 `clipboard-write` 권한이 없으면 공유 버튼의 `writeText`가 실패해(권한 줄을 빼고 돌리면 복사 토스트가
+  뜨지 않았다) 스펙이 그 권한을 준다.
+- 브라우저 녹화(모킹, 운영 데이터 미사용) 7장면: ① 복사 → 다른 글 → 넣기 → 이어 쓰기(미리보기에서 주소만 링크가 됨)
+  ② 입력하면 내려가고 지워도 안 돌아오다가 다시 포커스하면 돌아옴, Enter는 줄바꿈 ③ 복사한 그 글에서는 없음 ④ 공개 글 뒤에
+  비공개 글을 복사하면 없음 ⑤ 다크 모드에서 긴 제목은 입력칸 폭 안에서 뒤가 잘림 ⑥ 393px 폭의 하단 시트에서 열자마자 보이고
+  넣어짐 ⑦ 맨 위 폼과 답글 폼에 함께 보이다가 한쪽에서 넣으면 둘 다 사라짐.
+- 실제 휴대폰과 Safari·Firefox에서는 보지 않았다(§11).
 
 조회 실패 뒤 다시 들어오기(§5)는 2026-11-03 직접 실행했다. 단위 테스트
 `src/entities/comment/hooks/useRemoveErroredCommentsOnLeave.test.tsx`(2: 떠나면 그 글의 실패한 목록을 지우고 성공한
@@ -1300,6 +1451,14 @@ Chrome 157, macOS, 사용자가 평소 쓰는 한글 입력기(종류는 기록�
   키다(CHANGELOG 0.20.0).
 - **댓글 수정 폼은 조합 중 단축키를 따로 다루지 않는다**(2026-11-19) — 같은 단축키를 받지만(`CommentEditForm.tsx`의
   `onKeyDown`) 저장할 때 입력란을 비우지 않아 글자가 남는 경로가 없다. 작성 폼과 처리 방식이 다르다는 점만 남긴다.
+- **주소창이나 다른 앱에서 복사한 LinkSphere 링크는 제안하지 않는다**(2026-11-19) — 앱이 직접 복사해 준 링크만 기억한다
+  (§5 "복사한 글 링크 넣기"). 그 밖의 링크는 지금처럼 직접 붙여넣는다. 휴대폰의 공유 버튼은 OS 공유 시트를 열어 기억하지
+  않으므로, 이 제안은 사실상 데스크톱 브라우저에서만 보인다.
+- **새 탭으로 연 글과 새로고침 뒤에는 제안이 없다**(2026-11-19) — 탭 메모리에만 기억하기로 한 결정이다. 댓글 속 LinkSphere
+  링크는 데스크톱에서 새 탭으로 열려(`MarkdownContent.tsx`의 링크 렌더) 그 탭에는 기억이 없다.
+- **링크 넣기 버튼을 Safari·Firefox와 실제 휴대폰에서 보지 않았다**(2026-11-19) — Chromium(Playwright)에서만 확인했다.
+  버튼을 누를 때 입력칸이 포커스를 잃는 순서는 브라우저마다 다를 수 있는데, 포커스를 잃어도 버튼을 내리지 않게 만들어
+  순서에 기대지 않는다. 확인하지 않은 것은 실제 동작이다.
 
 ## 12. 용어 사전
 
@@ -1359,6 +1518,10 @@ Chrome 157, macOS, 사용자가 평소 쓰는 한글 입력기(종류는 기록�
 - **작성 세션** — 작성 칸이 한 번 올라와서 내려갈 때까지의 상태 한 벌(글·첨부·실패 안내·펼침). 좁은 화면의 "취소"는
   `key`를 바꿔 세션을 새로 시작한다.
 - **내린다(언마운트)** — React가 부품을 화면 트리에서 빼는 것. 그 부품이 들고 있던 상태가 함께 버려진다.
+- **복사한 글 링크(`copiedPostLink`)** — 글 카드의 공유 버튼이 클립보드에 직접 쓴 공개 글의 `{ postId, url, title }`. 이 탭의
+  메모리(`useCopiedPostLinkStore`)에 하나만 기억한다.
+- **링크 넣기 제안** — 복사한 글 링크를 다른 글의 빈 댓글 입력칸에 한 번 눌러 넣는 버튼(`링크 넣기 · <글 제목>`). 조건은
+  `useCopiedPostLinkSuggestion`의 `suggestedLink`가 정한다.
 
 ## 13. 관련 문서
 

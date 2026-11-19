@@ -366,6 +366,10 @@ export const TEXTS = {
       mobileBarTrigger: '댓글을 작성하세요...',
       // 글자 수(0 / 2,000) 뒤에 붙는다 - 상한이 UTF-8 바이트라 한글 1자 = 3바이트로 환산해 센다(CommentUtil.countHangulEquivalentChars)
       contentCountSuffix: '자 · 한글 기준',
+      // 글 카드의 공유 버튼으로 복사해 둔 다른 글의 링크를 빈 입력칸에 넣는 버튼(docs/COMMENT.md §5).
+      // 제목이 길면 화면에서 뒤가 잘리므로 동작을 앞에 둔다. 제목이 빈 글은 제목 없는 문구를 쓴다
+      insertCopiedLink: (title: string) => `링크 넣기 · ${title}`,
+      insertCopiedLinkUntitled: '복사한 글 링크 넣기',
     },
     item: {
       authorBadge: '작성자',

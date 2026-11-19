@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { http } from 'msw';
 import {
   fireEvent,
@@ -11,6 +11,7 @@ import {
 import { TEXTS } from '@/shared/config/texts';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { useAuthStore } from '@/shared/store/auth.store';
+import { useCopiedPostLinkStore } from '@/shared/store/copiedPostLink.store';
 import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
 import { accountKeys } from '@/entities/account/api/account.keys';
 import { CommentForm } from '@/features/comment/create/ui/CommentForm';
@@ -185,5 +186,196 @@ describe('CommentForm', () => {
     expect(
       screen.getByRole('button', { name: new RegExp(TEXTS.comment.form.submitComment) })
     ).toHaveTextContent(hint);
+  });
+});
+
+// 글 카드의 공유 버튼으로 복사해 둔 다른 글의 링크를 빈 입력칸에 넣어 주는 제안(docs/COMMENT.md §5).
+// 폼은 POST_ID 글의 댓글 폼이다
+describe('CommentForm - 복사한 글 링크 넣기 제안', () => {
+  const OTHER_POST_LINK = {
+    postId: 'post-2',
+    url: `${window.location.origin}/post/post-2`,
+    title: '다른 글 제목',
+  };
+  const SUGGESTION_NAME = TEXTS.comment.form.insertCopiedLink(OTHER_POST_LINK.title);
+
+  function rememberLink(link = OTHER_POST_LINK) {
+    useCopiedPostLinkStore.setState({ copiedPostLink: link });
+  }
+
+  function getTextarea() {
+    return screen.getByPlaceholderText<HTMLTextAreaElement>(TEXTS.comment.form.commentPlaceholder);
+  }
+
+  function querySuggestion(name = SUGGESTION_NAME) {
+    return screen.queryByRole('button', { name });
+  }
+
+  beforeEach(() => {
+    useCopiedPostLinkStore.setState({ copiedPostLink: null });
+  });
+
+  afterEach(() => {
+    useCopiedPostLinkStore.setState({ copiedPostLink: null });
+  });
+
+  it('기억한 링크가 없으면 입력칸에 포커스해도 제안이 없다', async () => {
+    const user = userEvent.setup();
+
+    renderCommentForm();
+    await user.click(getTextarea());
+
+    expect(screen.queryByRole('button', { name: /링크 넣기/ })).not.toBeInTheDocument();
+  });
+
+  it('다른 글의 링크를 기억하고 있으면 포커스 전에는 없고 포커스하면 보인다', async () => {
+    const user = userEvent.setup();
+    rememberLink();
+
+    renderCommentForm();
+
+    expect(querySuggestion()).not.toBeInTheDocument();
+
+    await user.click(getTextarea());
+
+    expect(querySuggestion()).toBeInTheDocument();
+  });
+
+  it('지금 보고 있는 글의 링크면 포커스해도 제안이 없다', async () => {
+    const user = userEvent.setup();
+    const sameTitle = '지금 글 제목';
+    rememberLink({
+      postId: POST_ID,
+      url: `${window.location.origin}/post/${POST_ID}`,
+      title: sameTitle,
+    });
+
+    renderCommentForm();
+    await user.click(getTextarea());
+
+    expect(querySuggestion(TEXTS.comment.form.insertCopiedLink(sameTitle))).not.toBeInTheDocument();
+  });
+
+  it('제목이 빈 글은 제목 없는 문구로 제안한다', async () => {
+    const user = userEvent.setup();
+    rememberLink({ ...OTHER_POST_LINK, title: '' });
+
+    renderCommentForm();
+    await user.click(getTextarea());
+
+    expect(querySuggestion(TEXTS.comment.form.insertCopiedLinkUntitled)).toBeInTheDocument();
+  });
+
+  it('글자를 입력하면 제안이 사라지고, 모두 지워도 돌아오지 않는다', async () => {
+    const user = userEvent.setup();
+    rememberLink();
+
+    renderCommentForm();
+    const textarea = getTextarea();
+    await user.click(textarea);
+    await user.keyboard('a');
+
+    expect(querySuggestion()).not.toBeInTheDocument();
+
+    await user.keyboard('{Backspace}');
+
+    expect(textarea).toHaveValue('');
+    expect(querySuggestion()).not.toBeInTheDocument();
+  });
+
+  it('입력칸을 벗어났다 다시 포커스하면 제안이 돌아온다', async () => {
+    const user = userEvent.setup();
+    rememberLink();
+
+    renderCommentForm();
+    const textarea = getTextarea();
+    await user.click(textarea);
+    await user.keyboard('a{Backspace}');
+
+    expect(querySuggestion()).not.toBeInTheDocument();
+
+    await user.click(document.body);
+    await user.click(textarea);
+
+    expect(querySuggestion()).toBeInTheDocument();
+  });
+
+  it('입력칸이 포커스를 잃어도 제안이 남는다', async () => {
+    const user = userEvent.setup();
+    rememberLink();
+
+    renderCommentForm();
+    await user.click(getTextarea());
+    await user.click(document.body);
+
+    expect(getTextarea()).not.toHaveFocus();
+    expect(querySuggestion()).toBeInTheDocument();
+  });
+
+  it('입력칸에서 Tab을 누르면 제안으로 간다', async () => {
+    const user = userEvent.setup();
+    rememberLink();
+
+    renderCommentForm();
+    await user.click(getTextarea());
+    await user.tab();
+
+    expect(querySuggestion()).toHaveFocus();
+  });
+
+  it('제안을 누르면 주소와 공백 한 칸이 들어가고, 포커스가 입력칸으로 돌아오고, 기억과 제안이 사라진다', async () => {
+    const user = userEvent.setup();
+    rememberLink();
+
+    renderCommentForm();
+    const textarea = getTextarea();
+    const submitButton = screen.getByRole('button', {
+      name: new RegExp(TEXTS.comment.form.submitComment),
+    });
+    await user.click(textarea);
+
+    expect(submitButton).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: SUGGESTION_NAME }));
+
+    expect(textarea).toHaveValue(`${OTHER_POST_LINK.url} `);
+    expect(textarea).toHaveFocus();
+    expect(querySuggestion()).not.toBeInTheDocument();
+    expect(useCopiedPostLinkStore.getState().copiedPostLink).toBeNull();
+    expect(submitButton).toBeEnabled();
+  });
+
+  it('제안이 보여도 Enter는 줄바꿈으로 남는다', async () => {
+    const user = userEvent.setup();
+    rememberLink();
+
+    renderCommentForm();
+    const textarea = getTextarea();
+    await user.click(textarea);
+
+    expect(querySuggestion()).toBeInTheDocument();
+
+    await user.keyboard('{Enter}');
+
+    expect(textarea).toHaveValue('\n');
+    expect(useCopiedPostLinkStore.getState().copiedPostLink).toEqual(OTHER_POST_LINK);
+  });
+
+  it('제안을 쓰지 않고 직접 써서 등록하면, 입력칸이 비어도 제안이 바로 돌아오지 않는다', async () => {
+    const user = userEvent.setup();
+    const requests = captureCreateRequests();
+    rememberLink();
+
+    await renderLoggedInCommentForm();
+
+    const textarea = getTextarea();
+    await user.click(textarea);
+    await user.keyboard('직접 쓴 댓글');
+    await user.keyboard('{Control>}{Enter}{/Control}');
+
+    await waitFor(() => expect(requests).toEqual(['직접 쓴 댓글']));
+    expect(textarea).toHaveValue('');
+    expect(textarea).toHaveFocus();
+    expect(querySuggestion()).not.toBeInTheDocument();
   });
 });

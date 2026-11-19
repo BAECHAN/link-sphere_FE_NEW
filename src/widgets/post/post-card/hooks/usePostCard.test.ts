@@ -17,6 +17,7 @@ import { useUpdatePostMutation } from '@/entities/post/api/post.queries';
 import type { Account } from '@/entities/account/model/account.schema';
 import type { Post } from '@/entities/post/model/post.schema';
 import { useAlertDialogStore } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
+import { useCopiedPostLinkStore } from '@/shared/store/copiedPostLink.store';
 import { TEXTS } from '@/shared/config/texts';
 import { MUTATION_PROGRESS_DELAY_MS } from '@/shared/config/const';
 import { usePostCard } from '@/widgets/post/post-card/hooks/usePostCard';
@@ -461,6 +462,98 @@ describe('usePostCard - 링크 복사', () => {
 
     expect(toast.success).not.toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalledWith(TEXTS.messages.error.linkCopyFailed);
+  });
+
+  describe('복사한 글 링크 기억', () => {
+    const previousLink = {
+      postId: 'other-post-id',
+      url: `${window.location.origin}/post/other-post-id`,
+      title: '먼저 복사한 글',
+    };
+
+    beforeEach(() => {
+      useCopiedPostLinkStore.setState({ copiedPostLink: null });
+    });
+
+    afterEach(() => {
+      useCopiedPostLinkStore.setState({ copiedPostLink: null });
+    });
+
+    it('데스크톱에서 공개 글을 복사하면 그 글의 링크를 기억한다', async () => {
+      const { result } = setup();
+
+      await act(async () => {
+        await result.current.card.handleCopyLink();
+      });
+
+      expect(useCopiedPostLinkStore.getState().copiedPostLink).toEqual({
+        postId: POST_ID,
+        url: originalUrl,
+        title: mockPost.title,
+      });
+    });
+
+    it('다른 글을 복사하면 기억이 그 글로 바뀐다', async () => {
+      useCopiedPostLinkStore.setState({ copiedPostLink: previousLink });
+      const { result } = setup();
+
+      await act(async () => {
+        await result.current.card.handleCopyLink();
+      });
+
+      expect(useCopiedPostLinkStore.getState().copiedPostLink?.postId).toBe(POST_ID);
+    });
+
+    it('클립보드 복사가 실패하면 기억을 건드리지 않는다', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.mocked(navigator.clipboard.writeText).mockRejectedValueOnce(new Error('blocked'));
+      useCopiedPostLinkStore.setState({ copiedPostLink: previousLink });
+      const { result } = setup();
+
+      await act(async () => {
+        await result.current.card.handleCopyLink();
+      });
+
+      expect(useCopiedPostLinkStore.getState().copiedPostLink).toEqual(previousLink);
+    });
+
+    it('모바일 공유 시트로 넘기면 기억을 건드리지 않는다', async () => {
+      setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)');
+      setShare(vi.fn().mockResolvedValue(undefined));
+      useCopiedPostLinkStore.setState({ copiedPostLink: previousLink });
+      const { result } = setup();
+
+      await act(async () => {
+        await result.current.card.handleCopyLink();
+      });
+
+      expect(useCopiedPostLinkStore.getState().copiedPostLink).toEqual(previousLink);
+    });
+
+    it('비공개 글을 복사하면 기억하지 않고 그 전에 기억한 링크도 비운다', async () => {
+      useCopiedPostLinkStore.setState({ copiedPostLink: previousLink });
+      const { result } = setup({ post: { ...mockPost, isPrivate: true } });
+
+      await act(async () => {
+        await result.current.card.handleCopyLink();
+      });
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(originalUrl);
+      expect(useCopiedPostLinkStore.getState().copiedPostLink).toBeNull();
+    });
+
+    it('원본 링크 복사는 기억을 건드리지 않는다', async () => {
+      useCopiedPostLinkStore.setState({ copiedPostLink: previousLink });
+      const { result } = setup();
+      const { mouseEvent } = createEvent();
+
+      await act(async () => {
+        await result.current.card.handleCopyOriginalUrl(mouseEvent);
+      });
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(mockPost.url);
+      expect(useCopiedPostLinkStore.getState().copiedPostLink).toEqual(previousLink);
+    });
   });
 });
 

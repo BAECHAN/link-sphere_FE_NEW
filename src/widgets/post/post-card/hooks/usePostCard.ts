@@ -15,6 +15,7 @@ import { useAlertDialog } from '@/shared/ui/elements/dialog/alert-dialog/alertDi
 import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
 import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
 import { useSearchParamsDraft } from '@/shared/hooks/useSearchParamsDraft';
+import { useCopiedPostLinkStore } from '@/shared/store/copiedPostLink.store';
 import { TEXTS } from '@/shared/config/texts';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import {
@@ -43,6 +44,9 @@ export function usePostCard(post: Post, isDetail = false) {
   const { mutateAsync: updateVisibility, isPending: isUpdatingVisibility } =
     useUpdatePostVisibilityMutation(post.id);
   const { openConfirm } = useAlertDialog();
+  // 액션만 고른다 - 기억한 값이 바뀌어도 카드를 다시 그리지 않는다
+  const rememberCopiedPostLink = useCopiedPostLinkStore((state) => state.rememberCopiedPostLink);
+  const clearCopiedPostLink = useCopiedPostLinkStore((state) => state.clearCopiedPostLink);
 
   const [isAiSummaryExpanded, setIsAiSummaryExpanded] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -107,6 +111,19 @@ export function usePostCard(post: Post, isDetail = false) {
     });
   };
 
+  // 앱이 클립보드에 직접 쓴 글 링크를 이 탭에서 기억해, 다른 글의 댓글 입력칸이 "링크 넣기"로 제안한다.
+  // 비공개 글은 작성자 말고는 열 수 없어 기억하지 않고, 그 전에 기억한 링크도 더는 방금 복사한 링크가 아니라 비운다
+  // (docs/COMMENT.md §5)
+  const rememberCopiedLink = (url: string) => {
+    if (post.isPrivate) {
+      clearCopiedPostLink();
+
+      return;
+    }
+
+    rememberCopiedPostLink({ postId: post.id, url, title: post.title });
+  };
+
   const handleCopyLink = async () => {
     const url = `${window.location.origin}/post/${post.id}`;
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -115,6 +132,8 @@ export function usePostCard(post: Post, isDetail = false) {
         await navigator.share({ url });
       } else {
         await navigator.clipboard.writeText(url);
+        rememberCopiedLink(url);
+
         if (!isMobile) {
           toast.success(TEXTS.messages.success.linkCopied);
         }
