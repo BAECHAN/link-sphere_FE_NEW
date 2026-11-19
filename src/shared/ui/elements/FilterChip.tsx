@@ -14,6 +14,10 @@ export interface FilterChipProps extends Omit<
   onClick: () => void;
   activeClassName: string;
   className?: string;
+  // 기본 button 속성이라 나머지 속성으로도 받지만, Storybook 자동 속성 표는 여기 직접 적은 속성만 보여 줘서 다시
+  // 적는다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.4)
+  id?: string;
+  name?: string;
 }
 
 export const FilterChip = forwardRef<HTMLButtonElement, FilterChipProps>(

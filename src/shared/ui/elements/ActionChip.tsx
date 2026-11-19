@@ -9,6 +9,9 @@ export interface ActionChipProps extends Omit<
 > {
   label: string;
   onClick: () => void;
+  // 기본 button 속성이라 나머지 속성으로도 받지만, Storybook 자동 속성 표는 여기 직접 적은 속성만 보여 줘서 다시
+  // 적는다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.4)
+  'aria-label'?: string;
   /** 버튼에 붙는 클래스 — 쌓임 순서 등 위치 커스텀에 사용 */
   className?: string;
   /** 눈에 보이는 칩에 붙는 클래스 — 색상 커스텀에 사용 */

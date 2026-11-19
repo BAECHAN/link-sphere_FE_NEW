@@ -401,9 +401,9 @@ Badge.displayName = 'Badge';
   `AlertDialogHeader`, `AlertDialogFooter`, `DropdownMenuShortcut`은 `ref`만 더했다. `FeaturedIcon`, `LabeledDivider`,
   `RequiredMark`는 나머지 속성도 함께 열었다.
 - **elements 4개**: `ActionButton`, `ActionChip`, `EditButton`, `FilterChip`. `FilterChip`은 `className`도 새로 받는다.
-  `ActionChip`의 `aria-label`과 `FilterChip`의 `id`·`name`은 따로 적은 속성이었다가 나머지 속성에 들어갔고, 쓰는 쪽 코드는
-  그대로다. Storybook의 자동 속성 표는 인터페이스에 직접 적은 속성만 보여 줘서 이 세 속성의 줄은 표에서
-  빠졌다([§6](#6-측정-명령) 17번).
+  `ActionChip`의 `aria-label`과 `FilterChip`의 `id`·`name`은 나머지 속성으로도 받지만 인터페이스에 직접 적어 둔다.
+  Storybook의 자동 속성 표는 인터페이스에 직접 적은 속성만 보여 줘서, 빼면 표에서 줄이 빠진다(#657에서 빠졌다가 #661에서
+  되살렸다, [§6](#6-측정-명령) 17번).
 - **고치기 전부터 맞았던 elements**: `ToggleButton`, `PasswordInput`, `SearchInput`, `SheetDialogContent`.
 
 #### 린트가 보는 것과 못 보는 것
@@ -767,7 +767,9 @@ flowchart TD
     `badge.tsx`를 잠깐 함수 꼴로 되돌린 상태에서 표가 같았다(`variant`, `children` 두 줄). `FilterChip`은 인터페이스에
     `className`을 적기 전에는 표에 그 줄이 없었고 적은 뒤에 생겼다 — 표는 직접 적은 속성만 보여 준다. 같은 날
     [공개 Storybook](https://baechan.github.io/link-sphere_FE_NEW/storybook/)(고치기 전 `main`)의 표에는 `FilterChip`의
-    `id`·`name`, `ActionChip`의 `aria-label` 줄이 있었고, 고친 뒤 표에는 없다.
+    `id`·`name`, `ActionChip`의 `aria-label` 줄이 있었고, 고친 뒤 표에는 없다. 세 속성을 인터페이스에 다시 적은 뒤(#661)
+    같은 방법으로 `shared-ui-elements-actionchip--docs`와 `shared-ui-elements-filterchip--docs`의 표를 읽어 세 줄이 돌아온
+    것을 확인했다.
 
 ## 7. 관련 문서
 
