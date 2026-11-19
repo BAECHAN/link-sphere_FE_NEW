@@ -1,4 +1,7 @@
 ### 2026-11-19 (FE)
+- 공통 확인창(Confirm) UI 컴포넌트의 버튼 스타일 및 인터랙션 표준화 ([#651](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/651))
+
+### 2026-11-19 (FE)
 - 이미지 확대 모달 컴포넌트를 범용 컴포넌트와 앱 비즈니스 로직으로 분리하여 코드 재사용성 및 유지보수성 개선 ([#650](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/650))
 
 ### 2026-11-19 (FE)
