@@ -9,7 +9,7 @@
 > URL로 붙는 저장 방식, 업로드·등록이 실패했을 때 원인별로 무엇을 안내하는지, "내 댓글"에서
 > 원글의 그 댓글로 이동하는 방식을 이해하고, 상한·장수·캐시 무효화 범위·실패 문구를 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-11-06
+> **마지막 검토**: 2026-11-19
 
 게시글 상세(`/post/:id`) 하단의 댓글 섹션과, 내가 쓴 댓글을 모아보는 "내 댓글"
 화면(`/my/comments`)을 다룬다. 게시글 자체(목록·상세·작성)는
@@ -249,6 +249,33 @@ zod가 막는다 — 이유는 `.claude/CLAUDE.md` Critical Rules의 "폼 검증
   [Image Transformations](https://supabase.com/docs/guides/storage/serving/image-transformations)),
   지금은 동작해도(2026-10-28 직접 확인) 언제 막힐지 모른다. 아바타(`UserAvatar`)도 같은 순서로
   받고, 원본까지 실패하면 닉네임 첫 글자를 보여 준다.
+
+### 링크 카드 — 외부 링크는 크롤링값, 우리 글 링크는 그 글의 값(2026-11-19)
+
+본문에 이미지가 아닌 주소가 있으면 본문 아래에 링크 카드(썸네일·제목·설명·주소)가 붙는다. 카드는 응답의
+`linkMetadata`를 그대로 그리고, 값이 `null`이면 그리지 않는다(`CommentItem.tsx`의 `comment.linkMetadata` 조건,
+수정 폼은 `CommentEditForm.tsx`의 `linkMetadata` 조건). FE는 값을 어디서 왔는지 구분하지 않는다 — 두 경로는 BE가 나눈다.
+
+```mermaid
+flowchart LR
+  A["댓글 응답 조립(BE)"] --> B{"첫 주소가<br/>우리 글 상세 /post/&lt;id&gt;인가"}
+  B -- "아니오" --> C["등록 뒤 크롤링해 저장한 값<br/>(크롤링 전이면 제목 자리에 주소)"]
+  B -- "예" --> D{"보는 사람이<br/>그 글을 볼 수 있나"}
+  D -- "예" --> E["그 글의 제목·설명·썸네일<br/>(볼 때마다 글에서 읽음)"]
+  D -- "아니오(남의 비공개·없는 글)" --> F["linkMetadata = null<br/>카드 없음, 본문 링크만"]
+```
+
+- **외부 링크**: 댓글 등록·답글·수정 뒤 BE 후처리 잡이 주소를 크롤링해 저장하고, 응답은 그 저장값을 싣는다.
+  크롤링이 끝나기 전에 받은 응답은 제목 자리에 주소가 들어 있다.
+- **우리 글 링크**(`https://linksphere.click/post/<id>`, `www.`·끝 `/`·쿼리·`#comment-…` 포함): 우리 글 주소는 어떤 글이든 같은
+  SPA 껍데기 `index.html`(`<title>Link Sphere</title>`, og 태그 없음)을 돌려줘 크롤링하면 제목이 전부 "Link Sphere"였다.
+  그래서 BE가 크롤링하지 않고, 응답을 만들 때마다 글 테이블에서 보는 사람이 볼 수 있는 글의 제목·설명·썸네일을 읽는다.
+  글을 고치거나 비공개로 바꾸면 다음 조회부터 카드가 바뀐다. 남의 비공개 글·없는 글이면 `linkMetadata`가 `null`이라 카드가
+  없고, 비로그인은 공개 글만 본다. 등록·수정 응답에도 같은 값이 실려 목록을 다시 받지 않아도 카드가 바로 보인다.
+- 주소 끝에 마침표·쉼표·괄호나 조사가 붙어 글 id가 깨지면 우리 글로 보지 않아 크롤링 경로를 탄다("Link Sphere" 카드).
+- 판정 규칙·기각한 대안(저장할 때 복사, 브라우저가 글마다 조회)·테스트는 BE
+  [`docs/plans/2026-11-19-comment-post-link-preview.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/plans/2026-11-19-comment-post-link-preview.md)(BE #224)가
+  정본이다.
 
 ### 수정 — 기존 이미지는 URL로, 새 이미지는 파일로
 
@@ -747,6 +774,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 목록 정렬·개수                  | `src/widgets/comment/comment-list/hooks/useCommentList.ts:6-30`                                                                                |
 | 목록 렌더·해시 이동·진입점 배치 | `src/widgets/comment/comment-list/ui/CommentList.tsx`의 `CommentListContent`·`CommentList`                                                     |
 | 댓글 한 개(액션·답글 폼·재귀)   | `src/widgets/comment/comment-list/ui/CommentItem.tsx:26-183`                                                                                   |
+| 링크 카드                       | `CommentItem.tsx:90-115`, `src/features/comment/update/ui/CommentEditForm.tsx:121-141`(수정 폼). 값은 BE가 고른다(§5)                          |
 | 댓글이 오는 중인 자리(뼈대)     | `src/widgets/comment/comment-list/ui/CommentItemSkeleton.tsx`                                                                                  |
 | 작성 검증·제출·복원             | `src/features/comment/create/hooks/useCreateComment.ts`의 `getCommentSubmitError`·`useCreateComment`                                           |
 | 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx`의 `CommentForm`                                                                               |
@@ -1098,4 +1126,6 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   `space-y` 흔들림), 2026-09-13(`z-scrim`), 2026-09-14(돌아가기 라벨·로그아웃 캐시),
   2026-09-19(가상화 범위 밖), 2026-10-06(실패 안내 분류·위치), 2026-11-04(글자 수 상시 표시·한글 기준)
 - [`ONBOARDING.md`](./ONBOARDING.md) — FE·BE 전체 길잡이
+- BE [`docs/plans/2026-11-19-comment-post-link-preview.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/plans/2026-11-19-comment-post-link-preview.md) —
+  우리 글 링크 카드를 글에서 읽게 한 계획(§5 "링크 카드")
 - `.claude/CLAUDE.md` Critical Rules — WAF 바디 크기 룰, `disabled` 버튼 검증 규칙
