@@ -1,4 +1,7 @@
 ### 2026-11-19 (FE)
+- 공용 UI 컴포넌트의 속성 체계 및 클래스 병합 로직 리팩토링 ([#652](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/652))
+
+### 2026-11-19 (FE)
 - 공통 확인창(Confirm) UI 컴포넌트의 버튼 스타일 및 인터랙션 표준화 ([#651](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/651))
 
 ### 2026-11-19 (FE)
