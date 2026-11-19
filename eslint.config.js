@@ -372,7 +372,7 @@ const customTailwindRulesPlugin = {
   rules: {
     // [금지] 숫자 그대로 쓰는 raw z-index 유틸리티(예: z 뒤에 10을 붙인 클래스)
     // 이유: 이런 숫자 조합(10, 20, 40, 50, 55, 60, 70, 80)이 8개 파일에 이름 없이
-    //       흩어져 있었고, Sidebar.tsx(드로어 백드롭)와 MobileCommentBar.tsx(확장
+    //       흩어져 있었고, Sidebar.tsx(드로어 백드롭)와 CommentComposer.tsx(좁은 화면
     //       댓글 시트)가 같은 값(55)을 공유하는 잠재 충돌도 있었다(2026-09-13 조사,
     //       docs/DECISIONS.md 참고). globals.css의 @theme static 블록에 8단계를
     //       이름 붙여뒀으니 새 코드는 그 이름만 쓰게 한다.

@@ -298,6 +298,13 @@
 
 ### Fixed
 
+- `comment` 창 폭이 768px 경계를 넘으면 쓰던 댓글과 첨부 이미지가 사라지던 문제
+  <details><summary>배경·구현</summary>
+
+  글 상세에서 댓글을 쓰다 창을 768px 아래로 줄이거나 좁은 화면 시트에서 쓰다 넓히면 쓰던 글과 첨부 이미지가 사라졌다. 폭 판정이 창 폭만 봐서 폰을 돌릴 때와 데스크톱 창 크기를 바꿀 때가 같은 경로다. 넓은 화면의 인라인 폼과 좁은 화면의 하단 바가 서로 다른 폼을 그려, 경계를 넘으면 한쪽이 화면에서 내려가며 그 안의 상태가 버려진 것이 원인이다. 이제 작성 칸 하나(`CommentComposer`)가 상태를 갖고 같은 입력 요소가 배치만 바꿔, 글·첨부·커서·포커스·실패 안내·이탈 확인이 이어진다. 함께 달라진 동작이 둘 있다. 쓰던 글이 있는 채 좁아지면 시트가 펼쳐진 채 나온다(없으면 접힌 바). 이렇게 펼쳐진 시트도 눌러 펼친 시트처럼 취소하거나 등록이 성공할 때만 접힌다(글을 다 지워도 남는다). 좁은 화면에서 등록 응답을 기다리며 새로 쓴 글은 등록이 성공해도 시트에 남는다(전에는 시트가 접히며 사라졌다). 좁은 화면의 "취소"가 글을 버리는 것, 답글·수정 폼, 시트 높이와 토스트 자리는 그대로다. 고치는 중에 시트를 `md:hidden`으로도 숨기면 React가 폭 변화를 알기 전에 입력칸 포커스가 빠지는 것을 찾아 시트에서 그 클래스를 뺐다 (`features/comment/create/ui/CommentComposer.tsx`(신규, `MobileCommentBar.tsx`를 대신함), `features/comment/create/hooks/useCommentComposer.ts`(신규), `CommentForm.tsx`(`CommentFormView` 분리), `useCreateComment.ts`(`hasInput` 반환), `widgets/comment/comment-list/ui/CommentList.tsx`, `CommentComposer.test.tsx`, `e2e/comment-draft-resize.spec.ts`(신규), `docs/COMMENT.md` §5 "작성 칸 하나, 배치 둘"·§10, `.claude/skills/responsive-ux/SKILL.md`, `docs/plans/2026-11-19-keep-input-across-breakpoint.md`, [PR #658](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/658))
+
+  </details>
+
 - `comment` 한글을 치고 ⌘+Enter로 등록하면 마지막 글자가 입력란에 남던 문제
   <details><summary>배경·구현</summary>
 

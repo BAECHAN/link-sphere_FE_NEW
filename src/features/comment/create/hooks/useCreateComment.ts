@@ -247,6 +247,8 @@ export function useCreateComment({
     isOverLimit,
     contentLength,
     contentCountId,
+    // 쓰던 글이나 첨부가 있는가 - 좁은 화면에서 시트를 접어도 되는지 CommentComposer가 본다
+    hasInput,
     // 로그인이 풀린 채 남아 있으면 그 안내가 먼저다(useCreatePost.ts와 같은 이유)
     failureMessage: signedOutNotice ?? failureMessage,
     images,

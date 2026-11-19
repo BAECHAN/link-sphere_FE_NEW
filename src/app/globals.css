@@ -93,7 +93,7 @@
    `static`을 쓰는 이유: 기본(inline이 아닌) @theme는 미사용 시 출력에서 제거되는데,
    Storybook 토큰 카탈로그(DesignTokens.stories.tsx)가 getComputedStyle로 항상 읽을 수
    있어야 한다.
-   z-scrim: Sidebar.tsx(드로어 백드롭)와 MobileCommentBar.tsx(확장 댓글 시트)가 같은
+   z-scrim: Sidebar.tsx(드로어 백드롭)와 CommentComposer.tsx(좁은 화면 댓글 시트)가 같은
    값(55)을 공유한다 - 둘 다 모바일 전용 fixed 요소라 동시에 뜨면 DOM 순서로 우연히
    승자가 정해지는 잠재 충돌이 있다(docs/DECISIONS.md 2026-09-13 참고). 값을 그대로
    보존했으므로 이번 변경으로 새로 생기는 문제는 아니다. */

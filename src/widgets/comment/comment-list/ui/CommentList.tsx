@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { CommentForm, CommentFormHandle } from '@/features/comment/create/ui/CommentForm';
-import { MobileCommentBar } from '@/features/comment/create/ui/MobileCommentBar';
+import { CommentFormHandle } from '@/features/comment/create/ui/CommentForm';
+import { CommentComposer } from '@/features/comment/create/ui/CommentComposer';
 import { CommentItem } from '@/widgets/comment/comment-list/ui/CommentItem';
 import { CommentListSkeleton } from '@/widgets/comment/comment-list/ui/CommentItemSkeleton';
 import { Comment as PostComment } from '@/entities/comment/model/comment.schema';
@@ -46,8 +46,8 @@ function CommentListContent({ postId, postAuthorId, commentCount }: CommentListP
   // CommentForm 컨테이너의 scroll-mt-(--navbar-height)와 동일 패턴).
   //
   // 게시글 카드의 댓글 아이콘(#comments)은 댓글 하나가 아니라 작성 폼으로 보낸다 -
-  // 데스크톱은 부드럽게 스크롤한 뒤 입력창에 포커스하고, 모바일은 인라인 폼이 없어
-  // 제목까지만 온다(commentFormRef가 null). 이 해시는 DOM id가 아니라 ref로 찾는다 - id가
+  // 데스크톱은 부드럽게 스크롤한 뒤 입력창에 포커스하고, 모바일은 제목까지만 온다(좁은 화면의
+  // 작성 칸은 포커스 핸들을 받지 않아 commentFormRef가 null). 이 해시는 DOM id가 아니라 ref로 찾는다 - id가
   // 있으면 ScrollRestoration이 먼저 즉시 점프해 부드러운 스크롤이 안 보인다. 즉시 이동·직접
   // 만든 250ms와 비교한 근거는 docs/COMMENT.md "해시 이동".
   //
@@ -139,14 +139,14 @@ function CommentListContent({ postId, postAuthorId, commentCount }: CommentListP
             {TEXTS.comment.list.heading}
             <span className="ml-1.5 text-muted-foreground">{headingCount}</span>
           </h2>
-          {!isMobile && (
-            <>
-              <div className="mt-4">
-                <CommentForm ref={commentFormRef} postId={postId} />
-              </div>
-              <Divider className="mt-6" />
-            </>
-          )}
+          {/*
+           * 폭과 상관없이 이 한 자리에 그린다 - 넓으면 인라인 폼, 좁으면 화면 아래에 뜨는 바·시트다. 폭마다 다른
+           * 자리에 따로 그리면 경계를 넘을 때 쓰던 글이 사라진다(docs/COMMENT.md §5 "작성 칸 하나, 배치 둘").
+           * 좁은 화면의 바·시트는 position: fixed인데, 아래 space-y-6 목록의 형제로 두면 그려졌다 사라질 때마다
+           * 마지막 자식 판정이 바뀌어 댓글 목록에 24px 여백이 붙었다 떼어진다 - 이 제목 칸 안은 그 규칙 밖이다.
+           */}
+          <CommentComposer ref={commentFormRef} postId={postId} />
+          {!isMobile && <Divider className="mt-6" />}
         </div>
 
         <div className="space-y-6">
@@ -169,16 +169,6 @@ function CommentListContent({ postId, postAuthorId, commentCount }: CommentListP
         {/* 하단 sticky 입력바에 가려지지 않도록 목록 끝에 여백을 둔다 */}
         {isMobile && <div className="h-16" aria-hidden />}
       </div>
-
-      {/*
-       * MobileCommentBar는 position: fixed라 화면에 보이는 위치와 무관하지만, 위 space-y-6
-       * 형제로 두면 Tailwind의 :not(:last-child) 마진 규칙이 DOM 순서만으로 "마지막 자식"을
-       * 판단해 그 앞의 실제 콘텐츠(댓글 목록)에 24px 여백을 붙였다 뗐다 한다. 마운트/언마운트될
-       * 때마다 문서 전체 높이가 24px씩 흔들리고, 페이지 하단 근처에서는 브라우저가 스크롤
-       * 위치를 강제로 보정하면서 화면이 살짝 밀리는 것처럼 보였다 — space-y-6 형제 목록 밖으로
-       * 분리해 제거.
-       */}
-      {isMobile && <MobileCommentBar postId={postId} />}
     </>
   );
 }

@@ -21,7 +21,7 @@ const MAC_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)';
 const WINDOWS_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)';
 const POST_ID = 'post-1';
 
-// renderWithProviders에는 TooltipProvider가 없다(MobileCommentBar.test.tsx와 같은 이유) - 등록
+// renderWithProviders에는 TooltipProvider가 없다(CommentComposer.test.tsx와 같은 이유) - 등록
 // 버튼이 TooltipWrapper 안에 있어 직접 감싼다
 function renderCommentForm() {
   return renderWithProviders(

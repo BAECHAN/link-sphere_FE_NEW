@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useImperativeHandle, useRef, useState, type ForwardedRef } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
@@ -32,9 +32,20 @@ export interface CommentFormHandle {
   focus: () => void;
 }
 
-export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(function CommentForm(
-  { postId, parentId, onCancel, onSuccess, className, autoFocus },
-  ref
+interface CommentFormViewProps {
+  /** useCreateComment가 돌려준 값 - 폼 상태의 주인(CommentForm 또는 CommentComposer)이 넘긴다 */
+  draft: ReturnType<typeof useCreateComment>;
+  onCancel?: () => void;
+  className?: string;
+}
+
+/**
+ * 댓글 작성 폼의 화면. 상태는 갖지 않고 받은 것만 그린다 - 폭에 따라 자리가 바뀌는 최상위 작성 폼은 상태를
+ * 바깥(CommentComposer)에 둬야 자리가 바뀌어도 쓰던 글이 남는다(docs/COMMENT.md §5).
+ */
+export const CommentFormView = forwardRef(function CommentFormView(
+  { draft, onCancel, className }: CommentFormViewProps,
+  ref: ForwardedRef<CommentFormHandle>
 ) {
   const {
     form,
@@ -56,7 +67,7 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
     handleDragLeave,
     clearImage,
     clearAllImages,
-  } = useCreateComment({ postId, parentId, onSuccess, autoFocus });
+  } = draft;
 
   const { register } = form;
 
@@ -245,6 +256,18 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
       </div>
     </form>
   );
+});
+
+CommentFormView.displayName = 'CommentFormView';
+
+/** 폼이 상태를 직접 갖는 작성 폼 - 열렸다 닫히는 답글 폼이 쓴다 */
+export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(function CommentForm(
+  { postId, parentId, onCancel, onSuccess, className, autoFocus },
+  ref
+) {
+  const draft = useCreateComment({ postId, parentId, onSuccess, autoFocus });
+
+  return <CommentFormView ref={ref} draft={draft} onCancel={onCancel} className={className} />;
 });
 
 CommentForm.displayName = 'CommentForm';

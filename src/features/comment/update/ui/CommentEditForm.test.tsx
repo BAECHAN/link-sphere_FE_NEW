@@ -50,7 +50,7 @@ describe('CommentEditForm', () => {
     );
     const user = userEvent.setup();
 
-    // renderWithProviders에는 TooltipProvider가 없다(MobileCommentBar.test.tsx와 같은 이유) - 저장
+    // renderWithProviders에는 TooltipProvider가 없다(CommentComposer.test.tsx와 같은 이유) - 저장
     // 버튼이 TooltipWrapper 안에 있어 직접 감싼다
     renderWithProviders(
       <TooltipProvider>

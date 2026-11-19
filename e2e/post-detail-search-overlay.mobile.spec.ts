@@ -6,7 +6,7 @@ import { mockComments } from './mocks/comment.mock';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 
-// 모바일 헤더 검색을 열면 RecentSearchPanel(z-panel)이 화면을 덮는데, MobileCommentBar도
+// 모바일 헤더 검색을 열면 RecentSearchPanel(z-panel)이 화면을 덮는데, 댓글 바(CommentComposer)도
 // 같은 z층이라 DOM 순서만으로 패널 위에 남는 겹침 버그를 재현·회귀 방지한다. jsdom에서는
 // 실제 display:none/inert 반영 여부를 증명할 수 없어 브라우저에서만 검증 가능하다
 // (mobile-chrome 프로젝트 전용 — playwright.config.ts).

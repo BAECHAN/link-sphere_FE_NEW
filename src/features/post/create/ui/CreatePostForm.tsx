@@ -21,7 +21,7 @@ import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { DESKTOP_MEDIA_QUERY } from '@/shared/config/const';
 import { Link } from 'react-router-dom';
 
-// BottomTabBar(h-16 + safe-area)와 동일한 기준으로 그 위에 떠 있는다(MobileCommentBar.tsx 참고).
+// BottomTabBar(h-16 + safe-area)와 동일한 기준으로 그 위에 떠 있는다(useCommentComposer.ts 참고).
 const TAB_BAR_RESERVE = 'calc(4rem + env(safe-area-inset-bottom))';
 const TOAST_GAP_PX = 8;
 
@@ -43,11 +43,11 @@ export function CreatePostForm({ renderFolderSelect }: CreatePostFormProps) {
   const canSubmit = isDirty && isValid && !isCreating;
 
   // 모바일 헤더 검색이 열리면 RecentSearchPanel(z-panel)이 화면을 덮는데 이 바도 같은
-  // z층이라 DOM 순서만으로 패널 위에 남는다 - MobileCommentBar.tsx와 동일한 이유로 숨긴다.
+  // z층이라 DOM 순서만으로 패널 위에 남는다 - useCommentComposer.ts와 동일한 이유로 숨긴다.
   const { isOpen: isMobileSearchOpen } = useBackClosableOverlay('mobileSearchOpen');
 
   // 이 바가 탭바 위에 떠 있는 동안 토스트가 그 위로 뜨도록 --toast-offset-bottom을 바
-  // 높이만큼 키운다(MobileCommentBar.tsx의 reserveToastSpaceAboveBar와 동일 패턴).
+  // 높이만큼 키운다(useCommentComposer.ts의 reserveToastSpaceAboveBar와 동일 패턴).
   // 다만 이 바는 데스크톱에서 position:static인 일반 버튼으로 되돌아가 탭바 위에 뜨지
   // 않으므로, matchMedia로 모바일일 때만 오프셋을 올린다(AppLayout.tsx의
   // blockBackgroundDuringMobileSearch와 같은 md 경계 판정).

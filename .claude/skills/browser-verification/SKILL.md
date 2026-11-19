@@ -20,7 +20,7 @@ when_to_use: 커밋하기 전 UI 동작이 바뀐 것을 브라우저로 직접 
 별도 Chrome 창이 뜨지 않는다 — 대신 녹화가 끝난 뒤 파일을 열어서 보여준다("브라우저
 창이 따로 뜨면 정신없다"는 피드백에 따른 선택, 2026-09-10). `--ignore-https-errors`는
 dev 서버가 mkcert 자체서명 HTTPS(`https://localhost:31119`)라서 필요하다. **뷰포트는
-1280x800 데스크톱 고정이다** — 모바일 전용 UI(`BottomTabBar`, `MobileCommentBar` 등)를
+1280x800 데스크톱 고정이다** — 모바일 전용 UI(`BottomTabBar`, `CommentComposer`의 하단 바 등)를
 검증할 때는 녹화 전에 `browser_resize`로 먼저 모바일 크기로 바꾼다, 안 그러면 데스크톱
 화면으로 녹화해놓고 "검증 완료"로 오판하게 된다.
 
