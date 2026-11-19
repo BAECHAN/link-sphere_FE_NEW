@@ -87,6 +87,19 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
     setTimeout(() => setShowValidationHighlight(false), 1300);
   }
 
+  // 한글 등 IME 조합 중에 ⌘/Ctrl+Enter가 오면 조합이 끝난 뒤(onCompositionEnd)에 제출한다. 조합 중에 제출해 입력란을
+  // 비우면 브라우저가 뒤이어 확정하는 마지막 글자가 빈 입력란에 다시 들어간다(docs/COMMENT.md §10).
+  // 화면에 그리지 않는 값이라 ref로 둔다(https://react.dev/reference/react/useRef)
+  const submitAfterCompositionRef = useRef(false);
+
+  function submitByShortcut() {
+    if (!canSubmit) {
+      highlightEmptyForm();
+    }
+
+    onSubmit();
+  }
+
   // onCancel이 없는 최상위 작성 폼(답글처럼 닫히는 개념이 없음)에서는 취소 버튼이
   // 입력 중이던 내용을 지우는 역할을 한다.
   function handleClearDraft() {
@@ -127,13 +140,27 @@ export const CommentForm = forwardRef<CommentFormHandle, CommentFormProps>(funct
           }}
           onPaste={handlePaste}
           onKeyDown={(e) => {
+            // 예약은 바로 이어지는 조합 종료까지만 유효하다 - 조합이 이어져 다른 키가 오면 푼다
+            submitAfterCompositionRef.current = false;
+
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
-              if (!canSubmit) {
-                highlightEmptyForm();
+
+              if (e.nativeEvent.isComposing) {
+                submitAfterCompositionRef.current = true;
+                return;
               }
-              onSubmit(e as unknown as React.FormEvent);
+
+              submitByShortcut();
             }
+          }}
+          onCompositionEnd={() => {
+            if (!submitAfterCompositionRef.current) {
+              return;
+            }
+
+            submitAfterCompositionRef.current = false;
+            submitByShortcut();
           }}
         />
       </div>

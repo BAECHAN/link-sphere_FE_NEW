@@ -298,6 +298,13 @@
 
 ### Fixed
 
+- `comment` 한글을 치고 ⌘+Enter로 등록하면 마지막 글자가 입력란에 남던 문제
+  <details><summary>배경·구현</summary>
+
+  댓글 입력란에 한글을 치고 등록 단축키(⌘+Enter)를 누르면 댓글은 전체가 한 번 등록되는데 마지막 글자가 입력란에 다시 남았다(Chrome, 사용자 보고). 남은 글자 때문에 글자 수와 미리보기가 뜨고, 등록이 실패해도 입력란이 비어 있지 않아 원래 글을 되돌리지 않았다. 단축키가 한글 조합이 끝나기 전에 오는데 폼이 그 자리에서 입력란을 비웠고, 브라우저가 뒤이어 확정한 글자가 빈 입력란에 들어간 것이다(실제 한글 자판으로 이벤트 순서를 재서 재현, Chrome 157·macOS). 이제 조합 중에 온 단축키는 조합이 끝난 직후에 한 번 제출한다. 조합 중이 아닌 단축키, 등록 버튼, 줄바꿈 Enter는 그대로다. 최상위 작성·답글·모바일 댓글 시트가 같은 폼이라 함께 바뀐다. 조합 중인 키 입력을 무시하는 흔한 방식은 이 환경에서 단축키가 한 번만 전달돼 두 번 눌러야 등록되므로 쓰지 않았다. 잰 환경은 Chrome(macOS)의 ⌘+Enter뿐이다. (`features/comment/create/ui/CommentForm.tsx`, `CommentForm.test.tsx`, `docs/COMMENT.md` §5·§10, `docs/plans/2026-11-19-comment-shortcut-ime-leftover.md`, [PR #653](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/653))
+
+  </details>
+
 - `shared` 좁은 화면에서 한 줄 토스트의 문구가 접히며 버튼이 세로 가운데에 끼던 문제
   <details><summary>배경·구현</summary>
 
