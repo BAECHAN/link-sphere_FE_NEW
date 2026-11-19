@@ -313,6 +313,13 @@
 
 ### Fixed
 
+- `bookmark` 창 폭이 768px 경계를 넘으면 쓰던 폴더 이름·검색어가 사라지던 문제
+  <details><summary>배경·구현</summary>
+
+  북마크 화면에서 폴더 이름을 바꾸거나 새 폴더 이름·검색어를 쓰다가 창을 768px 아래로 줄이거나 넓히면 쓰던 글이 사라졌다. 화면이 폭과 폴더 선택 여부에 따라 서로 다른 화면 세 벌을 그려, 경계를 넘으면 그 아래 부품이 모두 새로 올라온 것이 원인이다. 이제 세 구역(사이드바·폴더 카드 목록·글 화면)을 한 트리의 같은 자리에 둔다. 두 폭 모두에 자리가 있는 입력(폴더 화면 제목의 이름 바꾸기, 검색창)은 같은 요소가 클래스만 바꾸고, 반대편 폭에 자리가 없는 사이드바·폴더 카드는 경계를 넘을 때만 숨긴 채 남겨 원래 폭으로 돌아오면 쓰던 글이 보인다. 숨긴 글 화면은 글 목록을 그리지 않는다. 사이드바·폴더 카드에서 이름을 바꾸던 중 그 구역이 숨으면 저장하지 않고(숨으며 빠지는 포커스가 저장으로 처리되던 것을 막음), 열린 ⋮ 메뉴는 닫는다(두 동작은 사용자 결정). 좁은 화면에서 폴더를 드나드는 평소 동작과 폭이 그대로인 화면은 그대로다. 넓은 화면의 글 화면을 감싸던 `<main>`은 `div`가 됐다(바깥 `AppLayout`의 `<main>`과 두 겹이었다) (`pages/bookmark/BookmarkPage.tsx`, `pages/bookmark/hooks/useHeldBookmarkRegions.ts`(신규), `widgets/bookmark/folder-nav/hooks/useFolderNavHiddenGuard.ts`(신규), `FolderSidebar.tsx`, `MobileFolderList.tsx`, `e2e/bookmark-resize-keeps-input.spec.ts`(신규), `docs/BOOKMARK.md` §5 "폭이 바뀌어도 입력이 남는다"·§10, `.claude/skills/responsive-ux/SKILL.md`, `docs/plans/2026-11-19-keep-input-across-breakpoint.md`, [PR #662](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/662))
+
+  </details>
+
 - `comment` 창 폭이 768px 경계를 넘으면 쓰던 댓글과 첨부 이미지가 사라지던 문제
   <details><summary>배경·구현</summary>
 

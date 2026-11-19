@@ -40,7 +40,10 @@ paths: src/**/*.tsx
 - **입력 상태를 가진 화면은 `useIsMobile()`로 서로 다른 부품을 갈아 끼우지 않는다.** 폭이 경계를 넘는 순간(폰 회전,
   창 크기 조절) 한쪽이 내려가며 쓰던 글이 사라진다. 상태를 위로 올려 같은 요소가 클래스만 바꾸게 하고, 반대편 폭에
   자리가 없는 입력은 내리지 않고 숨긴 채 남긴다(2026-11-19, 선례: `src/features/comment/create/ui/CommentComposer.tsx`,
-  경위: `docs/COMMENT.md` §10 "창 폭이 경계를 넘으면", 회귀: `e2e/comment-draft-resize.spec.ts`).
+  경위: `docs/COMMENT.md` §10 "창 폭이 경계를 넘으면", 회귀: `e2e/comment-draft-resize.spec.ts`). 숨긴 채 남기는 선례는
+  `src/pages/bookmark/hooks/useHeldBookmarkRegions.ts`다. 숨는 구역 안의 열린 메뉴와 "포커스가 빠지면 저장"하는 입력도
+  함께 막는다(`useFolderNavHiddenGuard.ts`, 경위: `docs/BOOKMARK.md` §10 "숨긴 입력이 포커스를 잃으며 저장되던 문제",
+  회귀: `e2e/bookmark-resize-keeps-input.spec.ts`).
 - 터치 제스처처럼 폭이 아니라 입력 장치가 기준인 분기는 `matchMedia('(pointer: coarse)')`로 따로 판정한다
   (선례: `src/shared/hooks/usePullToRefresh.ts` — 폭으로 정하면 넓은 터치 기기에서 당겨서 새로고침이 꺼진다).
 - **키보드 단축키 힌트(`Kbd`)는 `pointer-coarse:hidden`으로 숨긴다** — `md:` 같은 폭 조건만으로 띄우지 않는다.
@@ -111,6 +114,7 @@ flex h-16
 | ------------------------------------- | ------------------------------------------------------------------------------------- |
 | 하단 고정 + safe-area                 | `src/widgets/layout/bottom-tab-bar/ui/BottomTabBar.tsx`                               |
 | 접힘/펼침 하단 sticky 입력바          | `src/features/comment/create/ui/CommentComposer.tsx`                                  |
+| 폭 경계에서 안 보이게 된 구역 남기기  | `src/pages/bookmark/hooks/useHeldBookmarkRegions.ts`                                  |
 | 모바일 전용 풀스크린 오버레이         | `src/widgets/layout/navbar/ui/RecentSearchPanel.tsx`                                  |
 | 터치 제스처(pull-to-refresh)          | `src/widgets/post/post-list/ui/PostList.tsx` + `src/shared/hooks/usePullToRefresh.ts` |
 | 모바일 링크 동작 분기(`target=_self`) | `src/shared/ui/elements/MarkdownContent.tsx`                                          |

@@ -24,6 +24,7 @@ import {
 } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import { BOOKMARK_FOLDER_NAME_MAX_LENGTH } from '@/entities/bookmark/folder/config/bookmark-folder.contract';
 import { useFolderActions } from '@/widgets/bookmark/folder-nav/hooks/useFolderActions';
+import { useFolderNavHiddenGuard } from '@/widgets/bookmark/folder-nav/hooks/useFolderNavHiddenGuard';
 import {
   useCreateFolderCard,
   useMobileFolderList,
@@ -165,6 +166,10 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
     handleRenameKeyDown,
     handleDelete,
   } = useFolderActions({ folder });
+  const { menuOpen, setMenuOpen, handleRenameBlur } = useFolderNavHiddenGuard({
+    shownOn: 'narrow',
+    submitRename,
+  });
 
   if (renaming) {
     return (
@@ -189,7 +194,7 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
           enterKeyHint="done"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          onBlur={submitRename}
+          onBlur={handleRenameBlur}
           onKeyDown={handleRenameKeyDown}
           disabled={isUpdating}
           aria-invalid={nameError !== null}
@@ -259,6 +264,8 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
       <KebabMenu
         aria-label={TEXTS.ariaLabels.folderMenu}
         triggerClassName="absolute top-0 right-0 size-11"
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
         onCloseAutoFocus={handleMenuCloseAutoFocus}
       >
         <DropdownMenuItem onClick={queuePinToggle}>

@@ -17,7 +17,9 @@ import { POST_CARD_GRID } from '@/widgets/post/post-card/config/post-card-grid.c
 import { BookmarkFolderTitle } from '@/features/bookmark/rename/ui/BookmarkFolderTitle';
 import { BookmarkFolderSort } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import type { Post } from '@/entities/post/model/post.schema';
+import { cn } from '@/shared/lib/tailwind/utils';
 import { useBookmarkPage, VALID_SORTS } from '@/pages/bookmark/hooks/useBookmarkPage';
+import { useHeldBookmarkRegions } from '@/pages/bookmark/hooks/useHeldBookmarkRegions';
 
 const SORT_LABELS: Record<BookmarkFolderSort, string> = {
   latest: TEXTS.bookmark.folder.sort.latest,
@@ -44,128 +46,122 @@ export function BookmarkPage() {
     setSort,
     goToFolderList,
   } = useBookmarkPage();
+  const regions = useHeldBookmarkRegions({ isMobile, isMobileListMode });
 
-  // ============== 모바일 — 폴더 목록 모드 ==============
-  if (isMobileListMode) {
-    return (
-      <div className="px-4 py-4">
-        <h1 className="text-screen-title mb-4">{TEXTS.bookmark.folder.pageTitle}</h1>
-        <MobileFolderList onSelect={setFolderKey} />
-      </div>
-    );
-  }
-
-  // ============== 모바일 — 게시글 모드 ==============
-  if (isMobile) {
-    return (
-      <div className="px-4 py-3">
-        {/* 헤더 버튼은 손가락으로 누르는 크기(44px)다. 제목 이름을 바꾸는 동안(data-renaming)은 ←·↕를 숨겨 입력 칸을
-            넓힌다 — 누르면 입력이 빠지며 편집이 먼저 끝나 그사이 쓸 일이 없다(docs/BOOKMARK.md §5 "터치 기기 버튼 44px") */}
-        <header className="group/header flex items-center gap-2 mb-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            // -ml-3.5 — 44px 상자에서도 화살표가 전처럼 화면 가장자리에 붙어 보이게 한다
-            className="size-11 -ml-3.5 group-has-[[data-renaming]]/header:hidden"
-            onClick={goToFolderList}
-            aria-label={TEXTS.ariaLabels.backToFolderList}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          {/* 폴더가 바뀌면 이름 입력 상태를 새로 시작한다 */}
-          <BookmarkFolderTitle
-            key={activeFolderKey}
-            folder={currentFolder}
-            title={currentFolderName}
-            className="flex-1"
-            titleClassName="flex-1"
-          />
-          <Select value={sort} onValueChange={(v) => setSort(v as BookmarkFolderSort)}>
-            {/* 제목과 같은 줄에 두려고 글자 대신 ↕ 아이콘만 둔다. 기본(최신 북마크순)이 아니면 점을 찍고,
-                지금 정렬은 이름(aria-label)으로 알린다(docs/BOOKMARK.md §5 "모바일 정렬 아이콘").
-                min-h-11 — SelectTrigger의 data-[size=default]:h-9가 높이를 36px로 묶어 최소 높이로 올린다.
-                -mr-1.5는 44px 상자에서도 아이콘이 전과 같은 자리에 보이게 한다 */}
-            <SelectTrigger
-              hideIcon
-              className="relative w-11 min-h-11 -mr-1.5 shrink-0 justify-center border-transparent bg-transparent px-0 shadow-none group-has-[[data-renaming]]/header:hidden dark:bg-transparent"
-              aria-label={TEXTS.ariaLabels.bookmarkSortSelectCurrent(SORT_LABELS[sort])}
-            >
-              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-              {sort !== 'latest' && (
-                <span
-                  aria-hidden="true"
-                  className="absolute top-[9px] right-[11px] size-[7px] rounded-full bg-primary"
-                />
-              )}
-            </SelectTrigger>
-            <SelectContent align="end">
-              {VALID_SORTS.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {SORT_LABELS[s]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </header>
-        <BookmarkSearch className="mb-4" />
-        <BookmarkPostList
-          renderPost={renderBookmarkPost}
-          grid={POST_CARD_GRID}
-          folderKey={activeFolderKey}
-          sort={sort}
-          search={search}
-        />
-      </div>
-    );
-  }
-
-  // ============== 데스크탑 — 사이드바 + 게시글 ==============
-  // 바깥 줄을 AppLayout main의 아래 여백(md:pb-16)까지 늘리고, 그 여백은 게시글 칸이 갖는다.
+  // 세 구역(사이드바·폴더 목록·글 화면)을 폭과 상관없이 한 트리의 같은 자리에 둔다. 폭마다 다른 트리를 그리면 768px
+  // 경계를 넘을 때 구역이 모두 새로 올라와 쓰던 이름·검색어가 버려진다. 새 폭에서 자리가 없는 구역은 경계를 넘는 순간에만
+  // 숨긴 채 남긴다(useHeldBookmarkRegions, docs/BOOKMARK.md §5 "폭이 바뀌어도 입력이 남는다").
+  // 넓은 화면은 바깥 줄을 AppLayout main의 아래 여백(md:pb-16)까지 늘리고, 그 여백은 글 화면이 갖는다.
   // sticky 사이드바는 바깥 줄 안에서만 붙어 있어, 줄이 여백 위에서 끝나면 맨 아래까지 내렸을 때
   // 48px 밀려 상단바 뒤로 들어갔다(docs/BOOKMARK.md §10). AppLayout 여백을 바꾸면 같이 바꾼다.
   return (
-    <div className="flex gap-6 -mb-16">
-      <FolderSidebar
-        selectedKey={activeFolderKey}
-        onSelect={setFolderKey}
-        sort={sort}
-        search={search}
-        className="w-60 shrink-0 sticky top-[calc(var(--navbar-height)+1rem)] h-[calc(100vh-var(--navbar-height)-2rem)] self-start"
-      />
-      <main className="flex-1 min-w-0 pb-16">
-        <header className="flex items-center justify-between gap-4 mb-4">
-          <BookmarkFolderTitle
-            key={activeFolderKey}
-            folder={currentFolder}
-            title={currentFolderName}
-            className="flex-1"
-          />
-          <Select value={sort} onValueChange={(v) => setSort(v as BookmarkFolderSort)}>
-            {/* 터치 태블릿은 44px, 마우스는 원래 높이(responsive-ux skill "터치 타깃") */}
-            <SelectTrigger
-              className="w-36 min-h-11 md:pointer-fine:min-h-0"
-              aria-label={TEXTS.ariaLabels.bookmarkSortSelect}
-            >
-              <SelectValue placeholder={TEXTS.bookmark.folder.sortPlaceholder} />
-            </SelectTrigger>
-            <SelectContent>
-              {VALID_SORTS.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {SORT_LABELS[s]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </header>
-        <BookmarkSearch className="mb-4" />
-        <BookmarkPostList
-          renderPost={renderBookmarkPost}
-          grid={POST_CARD_GRID}
-          folderKey={activeFolderKey}
+    <div className={cn(!isMobile && 'flex gap-6 -mb-16')}>
+      {regions.sidebar.render && (
+        <FolderSidebar
+          selectedKey={activeFolderKey}
+          onSelect={setFolderKey}
           sort={sort}
           search={search}
+          className={cn(
+            'w-60 shrink-0 sticky top-[calc(var(--navbar-height)+1rem)] h-[calc(100vh-var(--navbar-height)-2rem)] self-start',
+            regions.sidebar.hidden && 'hidden'
+          )}
         />
-      </main>
+      )}
+      {regions.folderList.render && (
+        <div className={cn('px-4 py-4', regions.folderList.hidden && 'hidden')}>
+          <h1 className="text-screen-title mb-4">{TEXTS.bookmark.folder.pageTitle}</h1>
+          <MobileFolderList onSelect={setFolderKey} />
+        </div>
+      )}
+      {regions.posts.render && (
+        <div
+          className={cn(
+            isMobile ? 'px-4 py-3' : 'flex-1 min-w-0 pb-16',
+            regions.posts.hidden && 'hidden'
+          )}
+        >
+          {/* 좁은 화면의 헤더 버튼은 손가락으로 누르는 크기(44px)다. 제목 이름을 바꾸는 동안(data-renaming)은 ←·↕를
+              숨겨 입력 칸을 넓힌다 — 누르면 입력이 빠지며 편집이 먼저 끝나 그사이 쓸 일이 없다(docs/BOOKMARK.md §5
+              "터치 기기 버튼 44px") */}
+          <header
+            className={
+              isMobile
+                ? 'group/header flex items-center gap-2 mb-4'
+                : 'flex items-center justify-between gap-4 mb-4'
+            }
+          >
+            {isMobile && (
+              <Button
+                variant="ghost"
+                size="icon"
+                // -ml-3.5 — 44px 상자에서도 화살표가 전처럼 화면 가장자리에 붙어 보이게 한다
+                className="size-11 -ml-3.5 group-has-[[data-renaming]]/header:hidden"
+                onClick={goToFolderList}
+                aria-label={TEXTS.ariaLabels.backToFolderList}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            )}
+            {/* 폴더가 바뀌면 이름 입력 상태를 새로 시작한다 */}
+            <BookmarkFolderTitle
+              key={activeFolderKey}
+              folder={currentFolder}
+              title={currentFolderName}
+              className="flex-1"
+              titleClassName={isMobile ? 'flex-1' : undefined}
+            />
+            <Select value={sort} onValueChange={(v) => setSort(v as BookmarkFolderSort)}>
+              {isMobile ? (
+                // 제목과 같은 줄에 두려고 글자 대신 ↕ 아이콘만 둔다. 기본(최신 북마크순)이 아니면 점을 찍고,
+                // 지금 정렬은 이름(aria-label)으로 알린다(docs/BOOKMARK.md §5 "모바일 정렬 아이콘").
+                // min-h-11 — SelectTrigger의 data-[size=default]:h-9가 높이를 36px로 묶어 최소 높이로 올린다.
+                // -mr-1.5는 44px 상자에서도 아이콘이 전과 같은 자리에 보이게 한다
+                <SelectTrigger
+                  hideIcon
+                  className="relative w-11 min-h-11 -mr-1.5 shrink-0 justify-center border-transparent bg-transparent px-0 shadow-none group-has-[[data-renaming]]/header:hidden dark:bg-transparent"
+                  aria-label={TEXTS.ariaLabels.bookmarkSortSelectCurrent(SORT_LABELS[sort])}
+                >
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                  {sort !== 'latest' && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute top-[9px] right-[11px] size-[7px] rounded-full bg-primary"
+                    />
+                  )}
+                </SelectTrigger>
+              ) : (
+                // 터치 태블릿은 44px, 마우스는 원래 높이(responsive-ux skill "터치 타깃")
+                <SelectTrigger
+                  className="w-36 min-h-11 md:pointer-fine:min-h-0"
+                  aria-label={TEXTS.ariaLabels.bookmarkSortSelect}
+                >
+                  <SelectValue placeholder={TEXTS.bookmark.folder.sortPlaceholder} />
+                </SelectTrigger>
+              )}
+              <SelectContent align={isMobile ? 'end' : undefined}>
+                {VALID_SORTS.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {SORT_LABELS[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </header>
+          <BookmarkSearch className="mb-4" />
+          {/* 숨긴 동안은 글 목록을 그리지 않는다 — 창 스크롤은 하나라 숨겨도 위치를 못 지키고, 숨은 무한 목록이 다음
+              쪽을 불러오지 않게 한다 */}
+          {!regions.posts.hidden && (
+            <BookmarkPostList
+              renderPost={renderBookmarkPost}
+              grid={POST_CARD_GRID}
+              folderKey={activeFolderKey}
+              sort={sort}
+              search={search}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
