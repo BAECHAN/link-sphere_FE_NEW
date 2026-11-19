@@ -2,7 +2,16 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import type { QueryClient } from '@tanstack/react-query';
 import { server } from '@/mocks/server';
-import { renderWithProviders, createTestQueryClient, screen, waitFor, act } from '@/test/utils';
+import {
+  renderWithProviders,
+  renderWithDataRouter,
+  createTestQueryClient,
+  screen,
+  waitFor,
+  act,
+  fireEvent,
+} from '@/test/utils';
+import type { Comment } from '@/entities/comment/model/comment.dto';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { TEXTS } from '@/shared/config/texts';
 import { mockComment } from '@/mocks/fixtures/comment.fixtures';
@@ -247,5 +256,83 @@ describe('CommentList 심어 둔 빈 목록을 다시 받는 동안', () => {
 
     expect(await screen.findByText(TEXTS.comment.list.empty)).toBeInTheDocument();
     expect(findSkeleton()).not.toBeInTheDocument();
+  });
+});
+
+describe('CommentList 우리 글 링크', () => {
+  const LINKED_POST_ID = '3eedb318-1c2d-4e5f-8a9b-0c1d2e3f4a5b';
+  const OUR_POST_URL = `${window.location.origin}/post/${LINKED_POST_ID}`;
+  const EXTERNAL_URL = 'https://example.com/article';
+
+  function linkingComment(id: string, url: string, title: string): Comment {
+    return {
+      ...mockComment,
+      id,
+      content: `참고 ${url}`,
+      linkMetadata: { url, title, description: null, ogImage: null },
+    };
+  }
+
+  function renderWithComments(comments: Comment[], entry = `/post/${POST_ID}`) {
+    server.use(
+      http.get(`${API_BASE_URL}${API_ENDPOINTS.post.postComment(POST_ID)}`, () =>
+        HttpResponse.json({ status: 200, message: 'ok', data: comments, timestamp: '' })
+      )
+    );
+
+    return renderWithDataRouter(
+      <TooltipProvider>
+        <CommentList postId={POST_ID} postAuthorId={mockPost.author.id} commentCount={0} />
+      </TooltipProvider>,
+      { wrapperOptions: { initialEntries: [entry] } }
+    );
+  }
+
+  it('우리 글 카드는 새 탭 없이 앱 안에서 그 글로 이동한다', async () => {
+    const { router } = renderWithComments([
+      linkingComment('comment-uuid-2', OUR_POST_URL, '링크된 우리 글'),
+    ]);
+
+    const card = await screen.findByRole('link', { name: /링크된 우리 글/ });
+    expect(card).toHaveAttribute('href', `/post/${LINKED_POST_ID}`);
+    expect(card).not.toHaveAttribute('target');
+
+    fireEvent.click(card);
+
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/post/${LINKED_POST_ID}`));
+  });
+
+  it('본문의 우리 글 주소도 앱 안 경로로 그린다', async () => {
+    renderWithComments([linkingComment('comment-uuid-2', OUR_POST_URL, '링크된 우리 글')]);
+
+    const bodyLink = await screen.findByRole('link', { name: OUR_POST_URL });
+    expect(bodyLink).toHaveAttribute('href', `/post/${LINKED_POST_ID}`);
+    expect(bodyLink).not.toHaveAttribute('target');
+  });
+
+  it('다른 사이트 카드는 지금처럼 새 탭으로 연다', async () => {
+    renderWithComments([linkingComment('comment-uuid-2', EXTERNAL_URL, '외부 글')]);
+
+    const card = await screen.findByRole('link', { name: /외부 글/ });
+    expect(card).toHaveAttribute('href', EXTERNAL_URL);
+    expect(card).toHaveAttribute('target', '_blank');
+  });
+
+  it('지금 글의 #댓글 주소를 누르면 페이지를 떠나지 않고 그 댓글로 스크롤한다', async () => {
+    const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView);
+    scrollIntoView.mockClear();
+    const hashUrl = `${window.location.origin}/post/${LINKED_POST_ID}#comment-${mockComment.id}`;
+    const { router } = renderWithComments(
+      [mockComment, linkingComment('comment-uuid-2', hashUrl, '같은 글의 댓글')],
+      `/post/${LINKED_POST_ID}`
+    );
+
+    fireEvent.click(await screen.findByRole('link', { name: hashUrl }));
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+    expect(scrollIntoView.mock.contexts[0]).toBe(
+      document.getElementById(`comment-${mockComment.id}`)
+    );
+    expect(router.state.location.pathname).toBe(`/post/${LINKED_POST_ID}`);
   });
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent } from '@testing-library/react';
-import { renderWithProviders } from '@/test/utils';
+import { renderWithDataRouter, renderWithProviders, waitFor } from '@/test/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { useImageViewerStore } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
@@ -131,5 +131,50 @@ describe('MarkdownContent', () => {
       { src: STORAGE_URL, alt: TEXTS.ariaLabels.attachmentImageAt(1) },
     ]);
     navigateSpy.mockRestore();
+  });
+
+  describe('우리 글 링크', () => {
+    const POST_ID = '3eedb318-1c2d-4e5f-8a9b-0c1d2e3f4a5b';
+    const OUR_POST_URL = `${window.location.origin}/post/${POST_ID}#comment-1`;
+    const EXTERNAL_URL = 'https://example.com/article';
+
+    it('inAppPostLinks를 켜면 우리 글 주소는 새 탭 없이 앱 안 경로로 이동한다', async () => {
+      const { getByRole, router } = renderWithDataRouter(
+        <MarkdownContent content={`읽어 보세요 ${OUR_POST_URL}`} inAppPostLinks />,
+        { wrapperOptions: { initialEntries: ['/post/other'] } }
+      );
+
+      const link = getByRole('link', { name: OUR_POST_URL });
+      expect(link).toHaveAttribute('href', `/post/${POST_ID}#comment-1`);
+      expect(link).not.toHaveAttribute('target');
+
+      fireEvent.click(link);
+
+      await waitFor(() => expect(router.state.location.pathname).toBe(`/post/${POST_ID}`));
+      expect(router.state.location.hash).toBe('#comment-1');
+    });
+
+    it('inAppPostLinks를 켜도 다른 사이트 주소는 지금처럼 새 탭으로 연다', () => {
+      const { getByRole } = renderWithDataRouter(
+        <MarkdownContent content={EXTERNAL_URL} inAppPostLinks />
+      );
+
+      const link = getByRole('link', { name: EXTERNAL_URL });
+      expect(link).toHaveAttribute('href', EXTERNAL_URL);
+      expect(link).toHaveAttribute('target', '_blank');
+    });
+
+    it('inAppPostLinks를 켜지 않으면 우리 글 주소도 지금처럼 새 탭(폰은 같은 탭 새로 읽기)으로 연다', () => {
+      const { getByRole, rerender } = renderWithProviders(
+        <MarkdownContent content={OUR_POST_URL} />
+      );
+
+      expect(getByRole('link', { name: OUR_POST_URL })).toHaveAttribute('href', OUR_POST_URL);
+      expect(getByRole('link', { name: OUR_POST_URL })).toHaveAttribute('target', '_blank');
+
+      rerender(<MarkdownContent content={OUR_POST_URL} isMobile />);
+
+      expect(getByRole('link', { name: OUR_POST_URL })).toHaveAttribute('target', '_self');
+    });
   });
 });
