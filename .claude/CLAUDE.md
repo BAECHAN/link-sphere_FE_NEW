@@ -195,12 +195,14 @@ const handleCreateAndSelect = async () => {
 (`~/project/claude-base/hooks/`의 edit-guard·bash-guard, 레포별 사실은 `.claude/repo-policy.json`)이 맡는다 — 막히면 안내하는
 명령으로 바꾸고 우회하지 않는다. 아래는 이 레포의 사실이다.
 
-- **Never** 워크트리 진입 후 부트스트랩 생략 → `EnterWorktree`로 만든 워크트리는 gitignore된
-  `.env`가 없다. 진입 직후 반드시 실행:
+- **Never** 워크트리 진입 후 부트스트랩 생략 → gitignore된 `.env`는 루트의 `.worktreeinclude`가 맡는다. `EnterWorktree`가 워크트리를
+  만들 때 Claude Code가 메인 체크아웃의 `.env`를 복사한다([worktrees 문서](https://code.claude.com/docs/en/worktrees)). 진입 직후 반드시 실행:
   ```bash
-  cp ../../../.env .
+  test -s .env
   pnpm install
   ```
+  `.env`가 없으면 `cp`로 복사하지 않고 사용자에게 알린다 — 사용자 설정의 `.env` 읽기·편집 거부 규칙이 `cp ../../../.env .`를 막고
+  (2026-11-12부터, 허용 규칙으로 풀 수 없다), 메인 체크아웃이 `.worktreeinclude`가 들어오기 전 커밋이면 복사가 일어나지 않는다
 - **Never** 여러 워크트리에서 동시에 `pnpm dev` → 포트(31119)는 `strictPort` 미설정이라 겹치면
   다음 빈 포트로 조용히 넘어가 헷갈리고, BE가 보는 DB(원격 Postgres)는 워크트리로 격리되지
   않는다. dev 서버는 한 번에 한 워크트리에서만 띄운다
