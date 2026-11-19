@@ -277,7 +277,6 @@ describe('usePostCard - 공개 설정 전환', () => {
     );
     expect(dialog.confirmText).toBe(TEXTS.post.card.visibilityConfirmButtonToPrivate);
     expect(dialog.cancelText).toBe(TEXTS.buttons.cancel);
-    expect(dialog.emphasis).toBe('confirm');
   });
 
   it('비공개 글은 전체 공개로 바꾸는 확인창을 연다', () => {

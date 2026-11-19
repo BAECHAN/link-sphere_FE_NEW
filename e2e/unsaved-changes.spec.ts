@@ -45,7 +45,7 @@ test.describe('저장하지 않은 변경 가드', () => {
     return page.getByRole('alertdialog', { name: TEXTS.unsavedChanges.title });
   }
 
-  test('PUSH 이동(사이드바 홈) 시 모달이 뜨고 "계속 작성"이면 머문다', async ({ page }) => {
+  test('PUSH 이동(사이드바 홈) 시 모달이 뜨고 "취소"면 머문다', async ({ page }) => {
     await openDirtyDetail(page);
 
     // 홈은 requiresAuth가 없어 순수 <Link>(PUSH)로 동작하고 pathname이 실제로 바뀐다 —
@@ -55,8 +55,8 @@ test.describe('저장하지 않은 변경 가드', () => {
     await feedLink.click();
 
     await expect(guardDialog(page)).toBeVisible();
-    // 실수로 한 뒤로가기에도 안전한 선택지(계속 작성)가 눌리도록, 열리자마자 그 버튼에
-    // 포커스가 가 있어야 한다 — GlobalAlertDialogs.tsx의 강조 색 변경과 짝을 이루는 단언(§ 2026-09-29).
+    // 실수로 한 뒤로가기에도 안전한 선택지(취소)가 눌리도록, 열리자마자 그 버튼에 포커스가 가
+    // 있어야 한다 - 모든 확인창 공통이다(docs/FE-ARCHITECTURE.md §10, docs/DECISIONS.md 2026-11-19).
     await expect(
       guardDialog(page).getByRole('button', { name: TEXTS.unsavedChanges.cancel })
     ).toBeFocused();

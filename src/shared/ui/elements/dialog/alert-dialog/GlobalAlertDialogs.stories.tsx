@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect, waitFor, within } from 'storybook/test';
 import { GlobalAlertDialogs } from '@/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs';
 import { useAlertDialog } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
 import { Button } from '@/shared/ui/atoms/button';
@@ -47,9 +48,8 @@ export const Default: Story = {
   render: () => <AlertDemo />,
 };
 
-// 삭제류 확인창 데모 — 메뉴에서 "삭제"를 직접 눌러야만 뜨므로 이미 삭제를 결심한
-// 상태다. emphasis: 'confirm'으로 확인이 채움·오른쪽·초기 포커스를 받는다
-// (usePostDelete.ts 등 실사용례, docs/DECISIONS.md 2026-09-29 팔로업 3).
+// 확인창 데모 - 모든 확인창이 같은 모양이다. 취소 쪽이 흰색·왼쪽·초기 포커스, 창이 묻는 행동이
+// 검은색·오른쪽이고 호출부가 바꿀 수 없다(docs/FE-ARCHITECTURE.md §10, docs/DECISIONS.md 2026-11-19).
 function ConfirmDemo() {
   const { openConfirm } = useAlertDialog();
   return (
@@ -63,7 +63,6 @@ function ConfirmDemo() {
             message: '정말로 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
             confirmText: '삭제',
             cancelText: '취소',
-            emphasis: 'confirm',
           })
         }
       >
@@ -75,34 +74,31 @@ function ConfirmDemo() {
 
 export const Confirm: Story = {
   render: () => <ConfirmDemo />,
-};
+  // 실제 브라우저에서만 볼 수 있는 자리·색을 본다. DOM 순서·Enter·Esc·X는 단위 테스트
+  // (GlobalAlertDialogs.test.tsx "기본 규칙")가 본다.
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Confirm 열기' }));
 
-// 기본값('cancel') 데모 — 사용자가 의도치 않은 동작(뒤로가기 등)에 끼어드는 확인창이라
-// 안전한 쪽(머무르기)이 채움·오른쪽·초기 포커스를 받는다(useUnsavedChangesGuard.ts 실사용례).
-function ConfirmDefaultEmphasisDemo() {
-  const { openConfirm } = useAlertDialog();
-  return (
-    <div className="flex flex-col gap-3">
-      <GlobalAlertDialogs />
-      <Button
-        variant="outline"
-        onClick={() =>
-          openConfirm({
-            title: '작성 중인 내용이 있어요',
-            message: '이 페이지를 벗어나면 입력한 내용이 사라져요. 그래도 나갈까요?',
-            confirmText: '나가기',
-            cancelText: '계속 작성',
-          })
-        }
-      >
-        Confirm(기본값) 열기
-      </Button>
-    </div>
-  );
-}
+    // 확인창은 body로 포털돼 canvas 밖에 그려진다
+    const dialog = await within(document.body).findByRole('alertdialog');
+    const cancelButton = within(dialog).getByRole('button', { name: '취소' });
+    const confirmButton = within(dialog).getByRole('button', { name: '삭제' });
 
-export const ConfirmDefaultEmphasis: Story = {
-  render: () => <ConfirmDefaultEmphasisDemo />,
+    await expect(cancelButton.getBoundingClientRect().left).toBeLessThan(
+      confirmButton.getBoundingClientRect().left
+    );
+
+    // 채움 색은 값을 적지 않고 토큰(--primary)에서 읽는다 - 테마가 바뀌어도 "어느 쪽이 채움인가"만 본다
+    const probe = document.createElement('div');
+    probe.style.backgroundColor = 'var(--primary)';
+    document.body.append(probe);
+    const filledColor = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+
+    await expect(getComputedStyle(confirmButton).backgroundColor).toBe(filledColor);
+    await expect(getComputedStyle(cancelButton).backgroundColor).not.toBe(filledColor);
+    await waitFor(() => expect(cancelButton).toHaveFocus());
+  },
 };
 
 function MultipleAlertDialogsDemo() {

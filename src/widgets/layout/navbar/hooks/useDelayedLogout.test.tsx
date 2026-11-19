@@ -59,7 +59,7 @@ describe('useDelayedLogout', () => {
     expect(result.current.isLoggingOut).toBe(false);
   });
 
-  it('쓰는 중이면 먼저 확인하고, 취소(계속 작성)하면 아무것도 하지 않는다', async () => {
+  it('쓰는 중이면 먼저 확인하고, 취소하면 아무것도 하지 않는다', async () => {
     useUnsavedChangesStore.getState().markDirty('comment-create:post-1');
     const { result } = renderHook(() => useDelayedLogout());
 
@@ -75,8 +75,6 @@ describe('useDelayedLogout', () => {
       confirmText: TEXTS.unsavedChanges.logout.confirm,
       cancelText: TEXTS.unsavedChanges.logout.cancel,
     });
-    // 강조는 이탈 확인창과 같은 기본값(취소)이다
-    expect(confirm?.emphasis).toBeUndefined();
 
     act(() => {
       useAlertDialogStore.getState().cancelAlertDialog(confirm!.id);

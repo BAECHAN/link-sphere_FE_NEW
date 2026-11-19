@@ -63,7 +63,7 @@ export function useUnsavedChangesGuard() {
   const { pathname } = useLocation();
 
   const blockerRef = useRef(blocker);
-  // 가드가 띄운 이탈 확인창의 id. 답하면(나가기·계속 작성) 비운다
+  // 가드가 띄운 이탈 확인창의 id. 답하면(나가기·취소) 비운다
   const confirmIdRef = useRef<string | null>(null);
   // 그 확인창을 응답을 기다리는 중에 띄웠는지(usePendingSubmit) - 그랬다면 응답이 오면 닫는다
   const openedWhilePendingRef = useRef(false);
@@ -128,7 +128,7 @@ export function useUnsavedChangesGuard() {
       // 확인창이 떠 있는 동안 그 문구의 전제가 사라지면 확인창을 취소(막힌 이동은 reset)한다.
       // - 저장이 끝나 작성 중인 폼이 모두 해제됨: "입력한 내용이 사라져요"가 틀린다. 폼의 성공 이동이
       //   평소대로 통과해야 한다 - 그대로 두면 그 이동이 열린 확인창 때문에 다시 막히고(blocked→blocked)
-      //   "계속 작성"이 버린다(docs/UNSAVED-CHANGES-GUARD.md §10, 2026-10-21)
+      //   "취소"(당시 이름 "계속 작성")가 버린다(docs/UNSAVED-CHANGES-GUARD.md §10, 2026-10-21)
       // - 응답을 기다리는 중에 띄운 확인창인데 응답이 옴(성공·실패 모두): "취소되지 않아요"가 틀린다.
       //   실패하면 입력이 남아 위 조건으로는 닫히지 않으므로 따로 본다 - 화면에 머물러 실패 안내를 보게 한다
       //   (docs/UNSAVED-CHANGES-GUARD.md §5 "저장 요청 중 이탈", 2026-11-02 사용자 결정)

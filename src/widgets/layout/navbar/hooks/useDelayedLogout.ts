@@ -39,7 +39,7 @@ export function useDelayedLogout() {
       return;
     }
 
-    // 강조·초기 포커스는 기본값(취소 = 계속 작성)이다 - 이탈 확인창(useUnsavedChangesGuard)과 같다
+    // 버튼 모양·초기 포커스(취소)는 모든 확인창 공통이다 - 이탈 확인창(useUnsavedChangesGuard)과 같다
     openConfirm({
       title: TEXTS.unsavedChanges.logout.title,
       message: TEXTS.unsavedChanges.logout.message,

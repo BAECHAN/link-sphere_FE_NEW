@@ -501,8 +501,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 ### 삭제
 
-- 진입: 카드 ⋮ → "삭제" → `usePostDelete`(`src/features/post/delete/hooks/usePostDelete.ts:10-24`)가
-  `openConfirm`(삭제 버튼 쪽 강조, `emphasis: 'confirm'`)을 띄우고 확인 시 `mutateAsync`를 기다린다.
+- 진입: 카드 ⋮ → "삭제" → `usePostDelete`(`src/features/post/delete/hooks/usePostDelete.ts:10-19`)가
+  `openConfirm`을 띄우고 확인 시 `mutateAsync`를 기다린다.
 - 낙관적 반영(`post.queries.ts`의 `useDeletePostMutation` `onMutate`): 피드 목록·북마크 폴더 목록·폴더별 게시글 쿼리를
   `cancelQueries`하고 스냅샷을 뜬 뒤,
   - 모든 피드 목록 캐시에서 그 글을 뺀다.
@@ -764,7 +764,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | 떠날 때 실패 정리            | 조건 `src/shared/lib/react-query/unused-failed-query.ts`, 지우는 함수 `post.keys.ts`의 `postRemoveQueries`, 훅 `src/entities/post/hooks/useRemoveErrored*OnLeave.ts`                                                 |
 | 작성 폼 / 제출               | `src/features/post/create/ui/CreatePostForm.tsx`, `src/features/post/create/hooks/useCreatePost.ts`의 `onSubmit`                                                                                                     |
 | 수정 폼 / 제출               | `src/features/post/update/ui/UpdatePostForm.tsx`, `src/features/post/update/hooks/useUpdatePost.ts`의 `onSubmit`                                                                                                     |
-| 삭제 확인창                  | `src/features/post/delete/hooks/usePostDelete.ts:10-24`                                                                                                                                                              |
+| 삭제 확인창                  | `src/features/post/delete/hooks/usePostDelete.ts:10-19`                                                                                                                                                              |
 | 좋아요 버튼 / mutation       | `src/features/post/like/ui/LikePostButton.tsx`, `src/features/post/like/hooks/useLikePost.ts`, `src/entities/interaction/api/interaction.queries.ts`의 `useLikePostMutation`, 키·실패 무효화는 `interaction.keys.ts` |
 | 등록 성공 캐시 처리          | `src/entities/post/api/post.queries.ts`의 `useCreatePostMutation`                                                                                                                                                    |
 | 삭제 낙관적 처리             | `src/entities/post/api/post.queries.ts`의 `useDeletePostMutation`                                                                                                                                                    |

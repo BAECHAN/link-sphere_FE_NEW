@@ -72,12 +72,9 @@ test.describe('공개/비공개 전환', () => {
       name: TEXTS.post.card.visibilityConfirmTitle,
     });
     await expect(confirmDialog).toBeVisible();
-    // 공개 설정 토글은 삭제·이탈과 달리 어느 쪽도 위험하지 않아 emphasis: 'confirm'으로
-    // 켜져 있다 - "확인"이 채움+오른쪽이고 열리자마자 포커스도 거기로 가야 한다
-    // (usePostCard.ts, § 2026-09-29).
-    await expect(
-      confirmDialog.getByRole('button', { name: TEXTS.post.card.visibilityConfirmButtonToPrivate })
-    ).toBeFocused();
+    // 모든 확인창은 열리자마자 취소 버튼에 포커스가 가 있어야 한다 - 공개 설정도 예외가 아니다
+    // (docs/FE-ARCHITECTURE.md §10, docs/DECISIONS.md 2026-11-19).
+    await expect(confirmDialog.getByRole('button', { name: TEXTS.buttons.cancel })).toBeFocused();
 
     // alert-dialog.tsx의 열린 직후 클릭 가드(DOUBLE_CLICK_GUARD_MS) — 클릭 자체를 삼키므로
     // waitForResponse 같은 관측 가능한 이벤트로 대체할 수 없다(bookmark.spec.ts 선례).

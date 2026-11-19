@@ -104,10 +104,6 @@ export function use<FeatureName>() {
     openConfirm({
       message: TEXTS.messages.warning.<entity>DeleteConfirm,
       confirmText: TEXTS.buttons.delete,
-      // 메뉴에서 "삭제"를 직접 눌러야만 뜨는 다이얼로그라 이미 삭제를 결심한 상태다 —
-      // 확인이 채움+오른쪽을 받는다(usePostDelete.ts와 동일, docs/DECISIONS.md
-      // 2026-09-29 항목 참고).
-      emphasis: 'confirm',
       onConfirm: async () => {
         await delete<Entity>(id);
         options?.onSuccess?.();

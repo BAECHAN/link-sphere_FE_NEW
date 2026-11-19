@@ -421,7 +421,7 @@ test.describe('쓰는 중에 다른 탭에서 로그아웃', () => {
     expect(commentCreated).toBe(true);
   });
 
-  test('로그인 없이 창을 닫으면 이탈 확인창이 묻고, 계속 작성을 고르면 그 자리에 남으며, 다른 메뉴로 가려 하면 다시 묻고 나가기를 고르면 떠난다', async ({
+  test('로그인 없이 창을 닫으면 이탈 확인창이 묻고, 취소를 고르면 그 자리에 남으며, 다른 메뉴로 가려 하면 다시 묻고 나가기를 고르면 떠난다', async ({
     context,
   }) => {
     const { writingTab, feedTab } = await openWritingAndFeedTabs(context);
