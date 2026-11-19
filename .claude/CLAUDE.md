@@ -99,6 +99,12 @@
   `className`은 `cn(자기 클래스, className)`으로 합치고 cva로 만든 함수에는 넘기지 않는다. ESLint
   `custom-design-system/cva-variant-keys`·`custom-design-system/classname-last`가 막는다(cva 없이 직접 받는 속성 이름은 못 잡는다).
   정한 이유와 선례는 `docs/DESIGN-SYSTEM-PRINCIPLES.md` §1.4
+- **Never** `src/shared/ui/atoms`에 DOM 요소를 그리는 부품을 `forwardRef` 없이 더하거나, 새 elements·layouts 부품을 계약 표에
+  적지 않고 더한다 → 저수준 부품(atoms, 버튼·입력 하나를 감싼 elements)은 `forwardRef`로 `ref`·나머지 속성·`className`을 같은
+  대상 요소에 넘긴다(이 앱이 React 18인 동안). 조립 부품은 계약 테스트 `src/shared/ui/ApiContract.test.tsx`의 표에 무엇을
+  받는지 한 줄로 적고, 자기 DOM 요소가 없는 atoms는 같은 파일의 `ATOMS_OUTSIDE_CONTRACT`에 이유를 적는다. 어기면 그 테스트가
+  실패한다(`pnpm test`). 버튼을 감싼 부품은 `{...props}`를 먼저 펼치고 스스로 정하는 속성을 그 뒤에 적는다. 정한 이유와
+  테스트가 못 보는 것은 같은 문서 §1.4
 - **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반 Tailwind 클래스 사용
   (`text-destructive`, `bg-success`, `text-warning` 등). ESLint `custom-tailwind/no-raw-color`가 black/white/gray/zinc 등 명명 팔레트
   리터럴 클래스를 pre-commit과 `pnpm check`에서 막는다(도입 경위: `docs/DESIGN-SYSTEM.md`)

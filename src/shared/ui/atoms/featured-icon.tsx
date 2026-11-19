@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { type LucideIcon } from 'lucide-react';
 
@@ -20,17 +21,20 @@ const featuredIconVariants = cva(
   }
 );
 
-export interface FeaturedIconProps extends VariantProps<typeof featuredIconVariants> {
+export interface FeaturedIconProps
+  extends
+    Omit<React.ComponentPropsWithoutRef<'div'>, 'children'>,
+    VariantProps<typeof featuredIconVariants> {
   icon: LucideIcon;
-  className?: string;
 }
 
-function FeaturedIcon({ icon: Icon, variant, className }: FeaturedIconProps) {
-  return (
-    <div className={cn(featuredIconVariants({ variant }), className)}>
+const FeaturedIcon = forwardRef<HTMLDivElement, FeaturedIconProps>(
+  ({ icon: Icon, variant, className, ...props }, ref) => (
+    <div ref={ref} className={cn(featuredIconVariants({ variant }), className)} {...props}>
       <Icon />
     </div>
-  );
-}
+  )
+);
+FeaturedIcon.displayName = 'FeaturedIcon';
 
 export { FeaturedIcon, featuredIconVariants };

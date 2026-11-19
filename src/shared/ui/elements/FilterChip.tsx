@@ -1,29 +1,28 @@
+import { forwardRef } from 'react';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 
-interface FilterChipProps {
+// type·children과 isActive에서 만드는 aria-pressed는 이 부품이 정한다 - 타입에서 빼고, 아래에서 나머지 속성을 먼저
+// 펼친 뒤 다시 적어 넘겨받은 값이 이기지 못하게 한다. 하이픈이 든 aria-pressed는 타입에서 빼도 JSX에서 타입 오류가
+// 나지 않아 펼치는 순서가 막는다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.4)
+export interface FilterChipProps extends Omit<
+  React.ComponentPropsWithoutRef<'button'>,
+  'type' | 'children' | 'aria-pressed'
+> {
   label: string;
   isActive: boolean;
   onClick: () => void;
   activeClassName: string;
-  id?: string;
-  name?: string;
+  className?: string;
 }
 
-export function FilterChip({
-  label,
-  isActive,
-  onClick,
-  activeClassName,
-  id,
-  name,
-}: FilterChipProps) {
-  return (
+export const FilterChip = forwardRef<HTMLButtonElement, FilterChipProps>(
+  ({ label, isActive, onClick, activeClassName, className, ...props }, ref) => (
     <ToggleButton
+      ref={ref}
+      {...props}
       type="button"
       variant="none"
-      id={id}
-      name={name}
       onClick={onClick}
       // 켜짐이 색으로만 보이면 화면 읽기 프로그램에 전달되지 않는다.
       // https://www.w3.org/WAI/ARIA/apg/patterns/button/
@@ -35,10 +34,12 @@ export function FilterChip({
         'rounded-full px-3 py-1.5 h-auto text-xs font-bold transition-all transform active:scale-95',
         isActive
           ? cn(activeClassName, 'shadow-sm')
-          : 'bg-muted text-muted-foreground border border-transparent'
+          : 'bg-muted text-muted-foreground border border-transparent',
+        className
       )}
     >
       {label}
     </ToggleButton>
-  );
-}
+  )
+);
+FilterChip.displayName = 'FilterChip';
