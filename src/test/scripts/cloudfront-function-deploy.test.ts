@@ -21,6 +21,23 @@ describe('buildTestEvent', () => {
     expect(event).toMatchObject({ request: { headers: { 'accept-encoding': { value: 'br' } } } });
   });
 
+  it('userAgent를 주면 user-agent 헤더로 넣고, accept-encoding과 함께 줄 수 있다', () => {
+    const event = buildTestEvent('viewer-request', {
+      uri: '/post/abc',
+      acceptEncoding: 'br',
+      userAgent: 'Slackbot-LinkExpanding 1.0',
+    });
+
+    expect(event).toMatchObject({
+      request: {
+        headers: {
+          'accept-encoding': { value: 'br' },
+          'user-agent': { value: 'Slackbot-LinkExpanding 1.0' },
+        },
+      },
+    });
+  });
+
   it('viewer-response는 200 응답과 오리진 헤더를 함께 담는다', () => {
     const event = buildTestEvent('viewer-response', {
       uri: '/a.js.br',

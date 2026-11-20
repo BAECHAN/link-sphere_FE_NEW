@@ -88,7 +88,7 @@ infra/
 │   └── snapshot.json     # 콘솔 설정 스냅샷(배포 대상 아님) — pnpm check:cloudfront가 비교
 └── cloudfront-functions/
     ├── test-cases.json   # 배포 전 test-function 케이스(vitest도 같은 파일을 돌린다)
-    ├── spa-fallback.js   # viewer-request: 앱 라우트 → /index.html, 아닌 경로 → /404.html (아래 참고)
+    ├── spa-fallback.js   # viewer-request: 앱 라우트 → /index.html, 아닌 경로 → /404.html, 미리보기 봇의 글 상세 → BE OG HTML (아래 참고)
     └── spa-status.js     # viewer-response: /404.html 응답의 상태를 404로, 앱 HTML에 COEP credentialless
 ```
 
@@ -101,7 +101,9 @@ infra/
 `link-sphere-spa-status`가 `/404.html` 응답의 상태만 404로 바꿔, 화면은 앱의 404 페이지 그대로 두고
 HTTP 상태는 진짜 404가 된다(2026-10-05, SPA soft 404 해소). 같은 함수가 앱 HTML(`/index.html`·`/404.html`)
 응답에 `Cross-Origin-Embedder-Policy: credentialless`도 붙여, 외부 og 썸네일 요청에 사용자 쿠키가 실리지 않게
-한다(2026-10-26, [`docs/PERFORMANCE.md`](./PERFORMANCE.md) "Best Practices 77점 사례"). 소스:
+한다(2026-10-26, [`docs/PERFORMANCE.md`](./PERFORMANCE.md) "Best Practices 77점 사례"). 메신저 링크 미리보기 봇이 글 상세를 GET하면
+`spa-fallback`이 오리진을 BE(Lambda)로 바꿔 그 글의 OG 태그 HTML을 받게 한다 — 이 분기 때문에 `spa-fallback`만 런타임
+`cloudfront-js-2.0`이다(2026-11-20, [`docs/DEPLOY.md`](./DEPLOY.md) "메신저 미리보기 봇"). 소스:
 [`infra/cloudfront-functions/spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js),
 [`infra/cloudfront-functions/spa-status.js`](../infra/cloudfront-functions/spa-status.js). 경로별 응답 전체 표는
 [`docs/DEPLOY.md`](./DEPLOY.md)의 "URL별 에러 응답" 절.
@@ -111,8 +113,8 @@ HTTP 상태는 진짜 404가 된다(2026-10-05, SPA soft 404 해소). 같은 함
 `/index.html`(200)로 가려버리는 버그가 있었다(2026-07-28 발견·수정). CloudFront Function은
 비헤이비어 단위로 연결되므로 구조적으로 `/api/*`를 건드릴 수 없다 — **이 Function을 `/api/*`
 비헤이비어에 연결하거나 `CustomErrorResponses`에 403/404 항목을 다시 추가하지 말 것.**
-배포는 GitHub Actions가 아닌 AWS CLI로 수동 관리한다(코드 변경 트리거 경로가 아님). 다만 배포된 코드가
-레포 파일과 다르면 매일 도는 차이 검사(`cloudfront-drift-check.yml`)가 이슈를 연다.
+코드는 이 파일을 고친 PR이 병합되면 `deploy.yml`이 시험한 뒤 게시한다(위 "`infra/`" 절). 런타임·설명은 배포하지 않고
+CloudShell에서 바꾼다. 배포된 코드나 설정이 레포와 다르면 매일 도는 차이 검사(`cloudfront-drift-check.yml`)가 이슈를 연다.
 
 ### 환경별 동작
 

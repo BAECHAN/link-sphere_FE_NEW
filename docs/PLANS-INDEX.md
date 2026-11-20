@@ -7,81 +7,81 @@
 
 ## 2026-11 (73)
 
-| 날짜       | 계획                                                                                                                                                         | 대조                          | 대체         |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- | ------------ |
-| 2026-11-20 | [내 댓글의 수정·삭제를 이름 줄 ⋮ 메뉴로 옮겨 좁은 폰의 가로 넘침을 없앤다](./plans/2026-11-20-comment-owner-menu.md)                                         | #666 · 이탈 2 · 미구현 0      |              |
-| 2026-11-20 | [디자인 시스템 1.5단계: 분리 리허설(저장소 안 패키지와 Next.js 예제 앱)](./plans/2026-11-20-design-system-split-rehearsal.md)                                | #665 · 이탈 8 · 미구현 1      |              |
-| 2026-11-19 | [링크 넣기 제안: 입력칸 밖으로 포커스가 나가면 내리기](./plans/2026-11-19-comment-copied-link-blur-dismiss.md)                                               | #663 · 이탈 0 · 미구현 0      |              |
-| 2026-11-19 | [댓글 입력칸에 "방금 복사한 글 링크 넣기" 칩 추가](./plans/2026-11-19-comment-copied-link-chip.md)                                                           | #659 · 이탈 5 · 미구현 0      | 대체됨(일부) |
-| 2026-11-19 | [댓글 폼: 이미지 첨부와 취소·등록 버튼을 한 줄로](./plans/2026-11-19-comment-form-toolbar-row.md)                                                            | #664 · 이탈 3 · 미구현 0      |              |
-| 2026-11-19 | [댓글 등록 단축키 — 한글 조합 중 마지막 글자가 입력란에 남는 문제](./plans/2026-11-19-comment-shortcut-ime-leftover.md)                                      | #653 · 이탈 2 · 미구현 1      |              |
-| 2026-11-19 | [확인 창 기본 규칙: 취소는 흰색·왼쪽·초기 포커스, 행동은 검은색·오른쪽 (`emphasis` 옵션 삭제)](./plans/2026-11-19-confirm-dialog-base-rule.md)               | #651 · 이탈 4 · 미구현 0      |              |
-| 2026-11-19 | [디자인 시스템 1단계: 공용 UI 부품 API 규칙(속성 이름·ref·클래스 병합)](./plans/2026-11-19-design-system-api-rules.md)                                       | #652 #657 · 이탈 1 · 미구현 0 |              |
-| 2026-11-19 | [화면 폭이 바뀌어도 쓰던 입력을 지킨다 — 댓글 폼(1단계)·북마크 화면(2단계)](./plans/2026-11-19-keep-input-across-breakpoint.md)                              | #658 #662 · 이탈 6 · 미구현 2 |              |
-| 2026-11-19 | [우리 글 링크를 앱 안에서 열고, 글 주소를 메신저에 붙이면 썸네일이 나오게 하기](./plans/2026-11-19-post-link-in-app-and-og.md)                               | #660 · 이탈 3 · 미구현 1      |              |
-| 2026-11-19 | [워크트리의 `.env`를 `.worktreeinclude`로 넣기](./plans/2026-11-19-worktreeinclude-env.md)                                                                   | #655 · 이탈 0 · 미구현 0      |              |
-| 2026-11-18 | [디자인 시스템 로드맵 문서 만들기](./plans/2026-11-18-design-system-roadmap.md)                                                                              | #647 · 이탈 2 · 미구현 0      |              |
-| 2026-11-18 | [디자인 시스템 0단계: 원칙과 부품 분류표](./plans/2026-11-18-design-system-stage0-principles.md)                                                             | #648 · 이탈 1 · 미구현 0      |              |
-| 2026-11-18 | [디자인 시스템 1단계: 앱 문구·라우터 결합 분리와 경계 린트](./plans/2026-11-18-design-system-stage1-decoupling.md)                                           | #649 #650 · 이탈 5 · 미구현 0 |              |
-| 2026-11-18 | [문서 찾기 구조와 계획·변경 이력 무게 줄이기](./plans/2026-11-18-doc-index-plan-weight.md)                                                                   | #639 · 이탈 1 · 미구현 1      |              |
-| 2026-11-18 | [떠난 뒤 실패 토스트를 구조 이름의 안내 토스트(`showNoticeToast`)로 일반화](./plans/2026-11-18-notice-toast.md)                                              | #643 · 이탈 3 · 미구현 0      |              |
-| 2026-11-18 | [Storybook 스토리 이름 린트: 공식 recommended 도입 + `name` 금지](./plans/2026-11-18-storybook-story-name-lint.md)                                           | #644 · 이탈 2 · 미구현 0      |              |
-| 2026-11-18 | [토스트 종류별 색을 디자인 토큰에서 파생](./plans/2026-11-18-toast-design-tokens.md)                                                                         | #646 · 이탈 1 · 미구현 0      |              |
-| 2026-11-18 | [토스트 버튼 배치를 래퍼가 정하게 — 여러 줄이면 아래 줄 오른쪽(stackedAction)](./plans/2026-11-18-toast-stacked-action.md)                                   |                               |              |
-| 2026-11-17 | [북마크 내 검색: 입력을 다 지우면 엔터 없이 전체 목록 복원](./plans/2026-11-17-bookmark-search-restore-on-empty.md)                                          | #635 · 이탈 1 · 미구현 0      |              |
-| 2026-11-17 | [검색 X 버튼: 누른 직후 친 글자가 사라지지 않게](./plans/2026-11-17-search-clear-typing-race.md)                                                             | #637 · 이탈 3 · 미구현 1      |              |
-| 2026-11-17 | [모달이 떠 있을 때 토스트 버튼이 눌리지 않는 문제](./plans/2026-11-17-toast-over-modal.md)                                                                   | #636 · 이탈 2 · 미구현 1      |              |
-| 2026-11-16 | [묻기와 가정의 경계 — §1을 세 갈래 목록으로 바꾸고 턴 끝 가정 줄을 훅으로 강제한다](./plans/2026-11-16-ask-or-assume.md)                                     |                               |              |
-| 2026-11-16 | [CloudFront Function 배포를 FE 배포 워크플로로 자동화](./plans/2026-11-16-cloudfront-function-deploy.md)                                                     | #632 · 이탈 1 · 미구현 1      |              |
-| 2026-11-16 | [개발 의존성 Dependabot 알림 28건 정리](./plans/2026-11-16-dev-dependency-alerts.md)                                                                         |                               |              |
-| 2026-11-16 | [해시 자산 사전 brotli 압축 (원본 + `.br` 함께 올리고 CloudFront Function이 골라 주기)](./plans/2026-11-16-precompressed-brotli-assets.md)                   | #630 · 이탈 2 · 미구현 1      |              |
-| 2026-11-16 | [6라운드: 공통 지침 연결과 FE·BE 지침·메모리 축소](./plans/2026-11-16-round6-connect.md)                                                                     |                               |              |
-| 2026-11-15 | [zod 4 업그레이드와 의존성 무시 목록 정리](./plans/2026-11-15-zod-4-upgrade.md)                                                                              |                               |              |
-| 2026-11-15 | [zod 4 classic → zod/mini 전환 (PR #624 후속)](./plans/2026-11-15-zod-mini-migration.md)                                                                     |                               |              |
-| 2026-11-13 | [`moduleSideEffects`를 우리 `src`에만 적용되게 좁히기](./plans/2026-11-13-module-side-effects-src-only.md)                                                   |                               |              |
-| 2026-11-13 | [완료 보고 항목 검사 — 턴 끝 판정 훅에 요청·결과·증거 목록 검사를 더한다](./plans/2026-11-13-report-items-check.md)                                          |                               |              |
-| 2026-11-13 | [5라운드 2단계 — 규칙 위반 측정기를 claude-base로 옮기고 정책 기반으로 바꾼다](./plans/2026-11-13-round5-stage2.md)                                          |                               |              |
-| 2026-11-12 | [침묵 감지 훅과 계획 대조의 대화 요약 입력](./plans/2026-11-12-silence-guard-session-digest.md)                                                              |                               |              |
-| 2026-11-12 | [dev 서버 비밀 파일 노출과 운영 번들의 dayjs 한국어 로케일 누락 수정](./plans/2026-11-12-vite-env-deny-dayjs-locale.md)                                      |                               | 대체됨       |
-| 2026-11-11 | [같은 사람의 조회는 24시간에 한 번만 센다](./plans/2026-11-11-post-view-dedupe.md)                                                                           | #596 · 이탈 1 · 미구현 0      |              |
-| 2026-11-11 | [다른 탭 로그인을 받아들이는 사이 첫 로딩 중이던 조회가 오류 화면으로 남는 문제](./plans/2026-11-11-session-adopt-first-load-recovery.md)                    | #598 · 이탈 3 · 미구현 0      |              |
-| 2026-11-10 | [뒤로가기로 닫히는 화면 요소를 한 방식으로 맞춘다 — 북마크 시트부터](./plans/2026-11-10-back-navigation-standard.md)                                         | #592 · 이탈 4 · 미구현 1      |              |
-| 2026-11-07 | [배럴 파일 비용을 이 레포에서 직접 재고, 그 결과로 금지 규칙을 정하기](./plans/2026-11-07-barrel-measurement.md)                                             | #586 · 이탈 3 · 미구현 1      |              |
-| 2026-11-07 | [orval 제거: 계약 테스트가 openapi.json을 직접 읽는다](./plans/2026-11-07-remove-orval.md)                                                                   | #584 · 이탈 0 · 미구현 0      |              |
-| 2026-11-07 | [서비스 용어 사전 문서 만들기](./plans/2026-11-07-service-glossary.md)                                                                                       | #581 · 이탈 3 · 미구현 0      |              |
-| 2026-11-07 | [모바일 메뉴에서 이동한 뒤 뒤로 오면 메뉴가 다시 열리는 문제](./plans/2026-11-07-sidebar-back-reopen.md)                                                     | #585 · 이탈 1 · 미구현 0      |              |
-| 2026-11-06 | [접근성 후속 — 화면 읽기 프로그램이 듣는 버튼 이름과 모바일 메뉴를 바로잡기](./plans/2026-11-06-a11y-button-names.md)                                        |                               |              |
-| 2026-11-06 | [접근성 후속 2 — 글 카드 댓글 링크, 이미지 이름, 화면의 영어 글자를 바로잡기](./plans/2026-11-06-a11y-card-link-korean-labels.md)                            |                               |              |
-| 2026-11-06 | [AWS CDK 2단계 — AWS 설정 변경을 PR로 옮긴다](./plans/2026-11-06-aws-cdk-stage2.md)                                                                          | #577 · 이탈 7 · 미구현 2      |              |
-| 2026-11-06 | [뮤테이션 테스트 자동 보강 루프: L2(draft PR까지)](./plans/2026-11-06-mutation-loop-l2.md)                                                                   | #567 #570 · 이탈 2 · 미구현 0 |              |
-| 2026-11-06 | [뮤테이션 테스트 자동 보강 루프: L1(보고만)](./plans/2026-11-06-mutation-loop.md)                                                                            | #562 · 이탈 3 · 미구현 0      |              |
-| 2026-11-06 | [UI 컴포넌트 이름을 업계 용어에 맞추기 — Badge·Chip 구분과 어긋난 이름 8묶음 개명](./plans/2026-11-06-ui-term-renames.md)                                    |                               |              |
-| 2026-11-05 | [AWS CDK 도입 1단계 — 기존 AWS 설정을 코드로 기록하고 매일 차이를 감지한다](./plans/2026-11-05-aws-cdk-stage1.md)                                            | #551 · 이탈 16 · 미구현 3     | 대체됨       |
-| 2026-11-05 | [목록 페이지네이션을 offset에서 cursor로 전환](./plans/2026-11-05-cursor-pagination.md)                                                                      |                               |              |
-| 2026-11-05 | [이메일 보호 정책 확정과 유출 지점 보완 (2026-11-05)](./plans/2026-11-05-email-data-protection.md)                                                           | #547 · 이탈 0 · 미구현 0      |              |
-| 2026-11-05 | [응답을 못 받은 쓰기 요청의 전역 처리](./plans/2026-11-05-global-outcome-unknown.md)                                                                         |                               |              |
-| 2026-11-05 | [조회수와 열람 기록을 상세 진입 때만 남긴다](./plans/2026-11-05-post-view-record.md)                                                                         | #539 · 이탈 1 · 미구현 0      | 대체됨       |
-| 2026-11-04 | [길이 상한이 있는 입력에 글자 수(0 / N)를 늘 보인다](./plans/2026-11-04-character-count.md)                                                                  | #521 #526 · 이탈 0 · 미구현 1 |              |
-| 2026-11-04 | [댓글 없는 글은 카드 hover 때 댓글을 요청하지 않는다](./plans/2026-11-04-comment-hover-seed-empty.md)                                                        | #536 · 이탈 1 · 미구현 0      |              |
-| 2026-11-04 | [글·댓글·메일 요청 중복 방지: `Idempotency-Key` 필수화](./plans/2026-11-04-idempotent-create.md)                                                             |                               |              |
-| 2026-11-03 | [북마크 폴더 모달: 뒤로가기가 "닫기 요청"인 기기는 히스토리 없이 연다 (D안 + 카드 밖 스토어)](./plans/2026-11-03-bookmark-dialog-close-watcher.md)           | #504 · 이탈 1 · 미구현 0      | 대체됨(일부) |
-| 2026-11-03 | [북마크 폴더 창: Android 뒤로가기로 새 폴더 입력만 취소](./plans/2026-11-03-bookmark-new-folder-back-cancel.md)                                              | #517 · 이탈 2 · 미구현 0      | 대체됨       |
-| 2026-11-03 | [모바일 북마크 폴더 시트 닫힘 깜빡임: 딤·닫힘 맞추기(①②) + 시트를 카드 밖 호스트로(③)](./plans/2026-11-03-bookmark-sheet-close-flicker.md)                   | #509 #511 · 이탈 0 · 미구현 1 |              |
-| 2026-11-03 | [#491 후속: 일부러 남겨 둔 6건 처리](./plans/2026-11-03-error-toast-followups-review.md)                                                                     | #500 #505 · 이탈 4 · 미구현 0 |              |
-| 2026-11-03 | [에러 토스트 밖 문제 6건(#491) 고치기](./plans/2026-11-03-error-toast-followups.md)                                                                          |                               |              |
-| 2026-11-03 | [공용 입력칸(FormInput·FormInputPassword)을 register로 연결](./plans/2026-11-03-form-input-register.md)                                                      |                               |              |
-| 2026-11-03 | [계획 파일에 "구현 결과" 블록 허용 — 계획 문서만 보고도 실제로 한 일을 알 수 있게(FE·BE·claude-base)](./plans/2026-11-03-plan-result-block.md)               | #498 · 이탈 1 · 미구현 0      |              |
-| 2026-11-03 | [남은 `watch()`를 `useWatch`로 바꾸고, 다시 생기지 않게 린트로 막기](./plans/2026-11-03-usewatch-remaining.md)                                               | #502 · 이탈 0 · 미구현 0      |              |
-| 2026-11-02 | [#488 에러 토스트: 화면에 흔적이 남는가 조사 후 유지 시간 결정](./plans/2026-11-02-error-toast-persistence.md)                                               |                               |              |
-| 2026-11-02 | [떠난 뒤 실패 토스트 — 닫을 때까지 남기고, 무엇이 실패했는지와 돌아갈 버튼을 단다(회원가입·게시글 등록·수정)](./plans/2026-11-02-left-page-failure-toast.md) |                               |              |
-| 2026-11-02 | [orval zod로 BE 입력 제약 값 공유](./plans/2026-11-02-orval-zod-constraints.md)                                                                              |                               | 대체됨(일부) |
-| 2026-11-02 | [비밀번호 변경 성공 토스트에 "다른 기기 재로그인" 안내 추가](./plans/2026-11-02-password-change-other-devices-notice.md)                                     |                               |              |
-| 2026-11-02 | [비밀번호 칸 붙여넣기·표시 버튼 정책 — 지금 동작을 유지하는 근거를 AUTH.md에 기록](./plans/2026-11-02-password-paste-policy.md)                              |                               |              |
-| 2026-11-02 | [탈퇴 후 재가입 이메일 정책 명시 (2026-11-02)](./plans/2026-11-02-resignup-email-policy.md)                                                                  |                               |              |
-| 2026-11-02 | [운영 안전망 1순위 3종 — 장애 감지 · DB/Storage 백업 · 데모 계정](./plans/2026-11-02-safety-net-top3.md)                                                     |                               |              |
-| 2026-11-02 | [저장 요청 중 이탈 — 회원가입 가드 적용 + 요청 중 전용 확인창(회원가입·게시글 등록·수정)](./plans/2026-11-02-signup-submit-leave-guard.md)                   |                               |              |
-| 2026-11-02 | [토스트 문구를 문장 단위로 줄바꿈하고 글꼴을 Pretendard로 맞춘다](./plans/2026-11-02-toast-sentence-line-break.md)                                           |                               |              |
-| 2026-11-01 | [헤더 검색: 같은 최근 검색어 재선택 시 입력창 채우기 + 닫힌 목록을 ↓로 열기](./plans/2026-11-01-navbar-recent-search-reselect-arrowdown.md)                  |                               |              |
+| 날짜       | 계획                                                                                                                                                         | 대조                               | 대체         |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- | ------------ |
+| 2026-11-20 | [내 댓글의 수정·삭제를 이름 줄 ⋮ 메뉴로 옮겨 좁은 폰의 가로 넘침을 없앤다](./plans/2026-11-20-comment-owner-menu.md)                                         | #666 · 이탈 2 · 미구현 0           |              |
+| 2026-11-20 | [디자인 시스템 1.5단계: 분리 리허설(저장소 안 패키지와 Next.js 예제 앱)](./plans/2026-11-20-design-system-split-rehearsal.md)                                | #665 · 이탈 8 · 미구현 1           |              |
+| 2026-11-19 | [링크 넣기 제안: 입력칸 밖으로 포커스가 나가면 내리기](./plans/2026-11-19-comment-copied-link-blur-dismiss.md)                                               | #663 · 이탈 0 · 미구현 0           |              |
+| 2026-11-19 | [댓글 입력칸에 "방금 복사한 글 링크 넣기" 칩 추가](./plans/2026-11-19-comment-copied-link-chip.md)                                                           | #659 · 이탈 5 · 미구현 0           | 대체됨(일부) |
+| 2026-11-19 | [댓글 폼: 이미지 첨부와 취소·등록 버튼을 한 줄로](./plans/2026-11-19-comment-form-toolbar-row.md)                                                            | #664 · 이탈 3 · 미구현 0           |              |
+| 2026-11-19 | [댓글 등록 단축키 — 한글 조합 중 마지막 글자가 입력란에 남는 문제](./plans/2026-11-19-comment-shortcut-ime-leftover.md)                                      | #653 · 이탈 2 · 미구현 1           |              |
+| 2026-11-19 | [확인 창 기본 규칙: 취소는 흰색·왼쪽·초기 포커스, 행동은 검은색·오른쪽 (`emphasis` 옵션 삭제)](./plans/2026-11-19-confirm-dialog-base-rule.md)               | #651 · 이탈 4 · 미구현 0           |              |
+| 2026-11-19 | [디자인 시스템 1단계: 공용 UI 부품 API 규칙(속성 이름·ref·클래스 병합)](./plans/2026-11-19-design-system-api-rules.md)                                       | #652 #657 · 이탈 1 · 미구현 0      |              |
+| 2026-11-19 | [화면 폭이 바뀌어도 쓰던 입력을 지킨다 — 댓글 폼(1단계)·북마크 화면(2단계)](./plans/2026-11-19-keep-input-across-breakpoint.md)                              | #658 #662 · 이탈 6 · 미구현 2      |              |
+| 2026-11-19 | [우리 글 링크를 앱 안에서 열고, 글 주소를 메신저에 붙이면 썸네일이 나오게 하기](./plans/2026-11-19-post-link-in-app-and-og.md)                               | #660 #225 #669 · 이탈 8 · 미구현 2 |              |
+| 2026-11-19 | [워크트리의 `.env`를 `.worktreeinclude`로 넣기](./plans/2026-11-19-worktreeinclude-env.md)                                                                   | #655 · 이탈 0 · 미구현 0           |              |
+| 2026-11-18 | [디자인 시스템 로드맵 문서 만들기](./plans/2026-11-18-design-system-roadmap.md)                                                                              | #647 · 이탈 2 · 미구현 0           |              |
+| 2026-11-18 | [디자인 시스템 0단계: 원칙과 부품 분류표](./plans/2026-11-18-design-system-stage0-principles.md)                                                             | #648 · 이탈 1 · 미구현 0           |              |
+| 2026-11-18 | [디자인 시스템 1단계: 앱 문구·라우터 결합 분리와 경계 린트](./plans/2026-11-18-design-system-stage1-decoupling.md)                                           | #649 #650 · 이탈 5 · 미구현 0      |              |
+| 2026-11-18 | [문서 찾기 구조와 계획·변경 이력 무게 줄이기](./plans/2026-11-18-doc-index-plan-weight.md)                                                                   | #639 · 이탈 1 · 미구현 1           |              |
+| 2026-11-18 | [떠난 뒤 실패 토스트를 구조 이름의 안내 토스트(`showNoticeToast`)로 일반화](./plans/2026-11-18-notice-toast.md)                                              | #643 · 이탈 3 · 미구현 0           |              |
+| 2026-11-18 | [Storybook 스토리 이름 린트: 공식 recommended 도입 + `name` 금지](./plans/2026-11-18-storybook-story-name-lint.md)                                           | #644 · 이탈 2 · 미구현 0           |              |
+| 2026-11-18 | [토스트 종류별 색을 디자인 토큰에서 파생](./plans/2026-11-18-toast-design-tokens.md)                                                                         | #646 · 이탈 1 · 미구현 0           |              |
+| 2026-11-18 | [토스트 버튼 배치를 래퍼가 정하게 — 여러 줄이면 아래 줄 오른쪽(stackedAction)](./plans/2026-11-18-toast-stacked-action.md)                                   |                                    |              |
+| 2026-11-17 | [북마크 내 검색: 입력을 다 지우면 엔터 없이 전체 목록 복원](./plans/2026-11-17-bookmark-search-restore-on-empty.md)                                          | #635 · 이탈 1 · 미구현 0           |              |
+| 2026-11-17 | [검색 X 버튼: 누른 직후 친 글자가 사라지지 않게](./plans/2026-11-17-search-clear-typing-race.md)                                                             | #637 · 이탈 3 · 미구현 1           |              |
+| 2026-11-17 | [모달이 떠 있을 때 토스트 버튼이 눌리지 않는 문제](./plans/2026-11-17-toast-over-modal.md)                                                                   | #636 · 이탈 2 · 미구현 1           |              |
+| 2026-11-16 | [묻기와 가정의 경계 — §1을 세 갈래 목록으로 바꾸고 턴 끝 가정 줄을 훅으로 강제한다](./plans/2026-11-16-ask-or-assume.md)                                     |                                    |              |
+| 2026-11-16 | [CloudFront Function 배포를 FE 배포 워크플로로 자동화](./plans/2026-11-16-cloudfront-function-deploy.md)                                                     | #632 · 이탈 1 · 미구현 1           |              |
+| 2026-11-16 | [개발 의존성 Dependabot 알림 28건 정리](./plans/2026-11-16-dev-dependency-alerts.md)                                                                         |                                    |              |
+| 2026-11-16 | [해시 자산 사전 brotli 압축 (원본 + `.br` 함께 올리고 CloudFront Function이 골라 주기)](./plans/2026-11-16-precompressed-brotli-assets.md)                   | #630 · 이탈 2 · 미구현 1           |              |
+| 2026-11-16 | [6라운드: 공통 지침 연결과 FE·BE 지침·메모리 축소](./plans/2026-11-16-round6-connect.md)                                                                     |                                    |              |
+| 2026-11-15 | [zod 4 업그레이드와 의존성 무시 목록 정리](./plans/2026-11-15-zod-4-upgrade.md)                                                                              |                                    |              |
+| 2026-11-15 | [zod 4 classic → zod/mini 전환 (PR #624 후속)](./plans/2026-11-15-zod-mini-migration.md)                                                                     |                                    |              |
+| 2026-11-13 | [`moduleSideEffects`를 우리 `src`에만 적용되게 좁히기](./plans/2026-11-13-module-side-effects-src-only.md)                                                   |                                    |              |
+| 2026-11-13 | [완료 보고 항목 검사 — 턴 끝 판정 훅에 요청·결과·증거 목록 검사를 더한다](./plans/2026-11-13-report-items-check.md)                                          |                                    |              |
+| 2026-11-13 | [5라운드 2단계 — 규칙 위반 측정기를 claude-base로 옮기고 정책 기반으로 바꾼다](./plans/2026-11-13-round5-stage2.md)                                          |                                    |              |
+| 2026-11-12 | [침묵 감지 훅과 계획 대조의 대화 요약 입력](./plans/2026-11-12-silence-guard-session-digest.md)                                                              |                                    |              |
+| 2026-11-12 | [dev 서버 비밀 파일 노출과 운영 번들의 dayjs 한국어 로케일 누락 수정](./plans/2026-11-12-vite-env-deny-dayjs-locale.md)                                      |                                    | 대체됨       |
+| 2026-11-11 | [같은 사람의 조회는 24시간에 한 번만 센다](./plans/2026-11-11-post-view-dedupe.md)                                                                           | #596 · 이탈 1 · 미구현 0           |              |
+| 2026-11-11 | [다른 탭 로그인을 받아들이는 사이 첫 로딩 중이던 조회가 오류 화면으로 남는 문제](./plans/2026-11-11-session-adopt-first-load-recovery.md)                    | #598 · 이탈 3 · 미구현 0           |              |
+| 2026-11-10 | [뒤로가기로 닫히는 화면 요소를 한 방식으로 맞춘다 — 북마크 시트부터](./plans/2026-11-10-back-navigation-standard.md)                                         | #592 · 이탈 4 · 미구현 1           |              |
+| 2026-11-07 | [배럴 파일 비용을 이 레포에서 직접 재고, 그 결과로 금지 규칙을 정하기](./plans/2026-11-07-barrel-measurement.md)                                             | #586 · 이탈 3 · 미구현 1           |              |
+| 2026-11-07 | [orval 제거: 계약 테스트가 openapi.json을 직접 읽는다](./plans/2026-11-07-remove-orval.md)                                                                   | #584 · 이탈 0 · 미구현 0           |              |
+| 2026-11-07 | [서비스 용어 사전 문서 만들기](./plans/2026-11-07-service-glossary.md)                                                                                       | #581 · 이탈 3 · 미구현 0           |              |
+| 2026-11-07 | [모바일 메뉴에서 이동한 뒤 뒤로 오면 메뉴가 다시 열리는 문제](./plans/2026-11-07-sidebar-back-reopen.md)                                                     | #585 · 이탈 1 · 미구현 0           |              |
+| 2026-11-06 | [접근성 후속 — 화면 읽기 프로그램이 듣는 버튼 이름과 모바일 메뉴를 바로잡기](./plans/2026-11-06-a11y-button-names.md)                                        |                                    |              |
+| 2026-11-06 | [접근성 후속 2 — 글 카드 댓글 링크, 이미지 이름, 화면의 영어 글자를 바로잡기](./plans/2026-11-06-a11y-card-link-korean-labels.md)                            |                                    |              |
+| 2026-11-06 | [AWS CDK 2단계 — AWS 설정 변경을 PR로 옮긴다](./plans/2026-11-06-aws-cdk-stage2.md)                                                                          | #577 · 이탈 7 · 미구현 2           |              |
+| 2026-11-06 | [뮤테이션 테스트 자동 보강 루프: L2(draft PR까지)](./plans/2026-11-06-mutation-loop-l2.md)                                                                   | #567 #570 · 이탈 2 · 미구현 0      |              |
+| 2026-11-06 | [뮤테이션 테스트 자동 보강 루프: L1(보고만)](./plans/2026-11-06-mutation-loop.md)                                                                            | #562 · 이탈 3 · 미구현 0           |              |
+| 2026-11-06 | [UI 컴포넌트 이름을 업계 용어에 맞추기 — Badge·Chip 구분과 어긋난 이름 8묶음 개명](./plans/2026-11-06-ui-term-renames.md)                                    |                                    |              |
+| 2026-11-05 | [AWS CDK 도입 1단계 — 기존 AWS 설정을 코드로 기록하고 매일 차이를 감지한다](./plans/2026-11-05-aws-cdk-stage1.md)                                            | #551 · 이탈 16 · 미구현 3          | 대체됨       |
+| 2026-11-05 | [목록 페이지네이션을 offset에서 cursor로 전환](./plans/2026-11-05-cursor-pagination.md)                                                                      |                                    |              |
+| 2026-11-05 | [이메일 보호 정책 확정과 유출 지점 보완 (2026-11-05)](./plans/2026-11-05-email-data-protection.md)                                                           | #547 · 이탈 0 · 미구현 0           |              |
+| 2026-11-05 | [응답을 못 받은 쓰기 요청의 전역 처리](./plans/2026-11-05-global-outcome-unknown.md)                                                                         |                                    |              |
+| 2026-11-05 | [조회수와 열람 기록을 상세 진입 때만 남긴다](./plans/2026-11-05-post-view-record.md)                                                                         | #539 · 이탈 1 · 미구현 0           | 대체됨       |
+| 2026-11-04 | [길이 상한이 있는 입력에 글자 수(0 / N)를 늘 보인다](./plans/2026-11-04-character-count.md)                                                                  | #521 #526 · 이탈 0 · 미구현 1      |              |
+| 2026-11-04 | [댓글 없는 글은 카드 hover 때 댓글을 요청하지 않는다](./plans/2026-11-04-comment-hover-seed-empty.md)                                                        | #536 · 이탈 1 · 미구현 0           |              |
+| 2026-11-04 | [글·댓글·메일 요청 중복 방지: `Idempotency-Key` 필수화](./plans/2026-11-04-idempotent-create.md)                                                             |                                    |              |
+| 2026-11-03 | [북마크 폴더 모달: 뒤로가기가 "닫기 요청"인 기기는 히스토리 없이 연다 (D안 + 카드 밖 스토어)](./plans/2026-11-03-bookmark-dialog-close-watcher.md)           | #504 · 이탈 1 · 미구현 0           | 대체됨(일부) |
+| 2026-11-03 | [북마크 폴더 창: Android 뒤로가기로 새 폴더 입력만 취소](./plans/2026-11-03-bookmark-new-folder-back-cancel.md)                                              | #517 · 이탈 2 · 미구현 0           | 대체됨       |
+| 2026-11-03 | [모바일 북마크 폴더 시트 닫힘 깜빡임: 딤·닫힘 맞추기(①②) + 시트를 카드 밖 호스트로(③)](./plans/2026-11-03-bookmark-sheet-close-flicker.md)                   | #509 #511 · 이탈 0 · 미구현 1      |              |
+| 2026-11-03 | [#491 후속: 일부러 남겨 둔 6건 처리](./plans/2026-11-03-error-toast-followups-review.md)                                                                     | #500 #505 · 이탈 4 · 미구현 0      |              |
+| 2026-11-03 | [에러 토스트 밖 문제 6건(#491) 고치기](./plans/2026-11-03-error-toast-followups.md)                                                                          |                                    |              |
+| 2026-11-03 | [공용 입력칸(FormInput·FormInputPassword)을 register로 연결](./plans/2026-11-03-form-input-register.md)                                                      |                                    |              |
+| 2026-11-03 | [계획 파일에 "구현 결과" 블록 허용 — 계획 문서만 보고도 실제로 한 일을 알 수 있게(FE·BE·claude-base)](./plans/2026-11-03-plan-result-block.md)               | #498 · 이탈 1 · 미구현 0           |              |
+| 2026-11-03 | [남은 `watch()`를 `useWatch`로 바꾸고, 다시 생기지 않게 린트로 막기](./plans/2026-11-03-usewatch-remaining.md)                                               | #502 · 이탈 0 · 미구현 0           |              |
+| 2026-11-02 | [#488 에러 토스트: 화면에 흔적이 남는가 조사 후 유지 시간 결정](./plans/2026-11-02-error-toast-persistence.md)                                               |                                    |              |
+| 2026-11-02 | [떠난 뒤 실패 토스트 — 닫을 때까지 남기고, 무엇이 실패했는지와 돌아갈 버튼을 단다(회원가입·게시글 등록·수정)](./plans/2026-11-02-left-page-failure-toast.md) |                                    |              |
+| 2026-11-02 | [orval zod로 BE 입력 제약 값 공유](./plans/2026-11-02-orval-zod-constraints.md)                                                                              |                                    | 대체됨(일부) |
+| 2026-11-02 | [비밀번호 변경 성공 토스트에 "다른 기기 재로그인" 안내 추가](./plans/2026-11-02-password-change-other-devices-notice.md)                                     |                                    |              |
+| 2026-11-02 | [비밀번호 칸 붙여넣기·표시 버튼 정책 — 지금 동작을 유지하는 근거를 AUTH.md에 기록](./plans/2026-11-02-password-paste-policy.md)                              |                                    |              |
+| 2026-11-02 | [탈퇴 후 재가입 이메일 정책 명시 (2026-11-02)](./plans/2026-11-02-resignup-email-policy.md)                                                                  |                                    |              |
+| 2026-11-02 | [운영 안전망 1순위 3종 — 장애 감지 · DB/Storage 백업 · 데모 계정](./plans/2026-11-02-safety-net-top3.md)                                                     |                                    |              |
+| 2026-11-02 | [저장 요청 중 이탈 — 회원가입 가드 적용 + 요청 중 전용 확인창(회원가입·게시글 등록·수정)](./plans/2026-11-02-signup-submit-leave-guard.md)                   |                                    |              |
+| 2026-11-02 | [토스트 문구를 문장 단위로 줄바꿈하고 글꼴을 Pretendard로 맞춘다](./plans/2026-11-02-toast-sentence-line-break.md)                                           |                                    |              |
+| 2026-11-01 | [헤더 검색: 같은 최근 검색어 재선택 시 입력창 채우기 + 닫힌 목록을 ↓로 열기](./plans/2026-11-01-navbar-recent-search-reselect-arrowdown.md)                  |                                    |              |
 
 ## 2026-10 (59)
 

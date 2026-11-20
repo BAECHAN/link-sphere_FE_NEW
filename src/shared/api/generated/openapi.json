@@ -2522,6 +2522,37 @@
         "tags": ["게시글"]
       }
     },
+    "/og/post/{postId}": {
+      "get": {
+        "description": "CloudFront Function이 미리보기 봇의 `/post/{postId}` 요청만 이리로 보낸다. 항상 비로그인으로 보고, 볼 수 없는 글·없는 글·UUID가 아닌 id면 사이트 이름·소개만 싣는다(200).",
+        "operationId": "getPostOgHtml",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "postId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "글 주소의 OG 태그 HTML",
+        "tags": ["링크 미리보기 HTML"]
+      }
+    },
     "/post": {
       "get": {
         "description": "category·search·filter·nickname 으로 필터링하고 cursor·size 로 이어 읽는다. 첫 쪽은 cursor 없이 요청하고, 다음 쪽은 응답의 nextCursor 를 그대로 보낸다. nextCursor 가 null 이면 마지막 쪽이다. 인증 토큰을 보내면 본인의 좋아요·북마크 여부가 응답에 반영된다. size 는 최대 50 으로 잘린다. filter=isLiked 는 최근 좋아요 10,000개 안에서 거르고, 좋아요가 더 있어 잘랐을 때만 likedFilterLimit 이 10000 이다(평소 null). 같은 IP의 검색이 몰리면 의미 검색을 건너뛰고 키워드 검색 결과만 돌려준다(에러 아님). 실패: 400 INVALID_INPUT(잘못된 cursor, 검색어 유무가 달라진 cursor)",
@@ -3047,6 +3078,10 @@
     {
       "description": "게시글·댓글 좋아요, 게시글 북마크, 북마크-폴더 소속 관리",
       "name": "좋아요·북마크"
+    },
+    {
+      "description": "메신저 미리보기 봇이 읽는 글 주소의 OG 태그",
+      "name": "링크 미리보기 HTML"
     },
     {
       "description": "기기 푸시 토큰 등록·해제",

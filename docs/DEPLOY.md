@@ -717,10 +717,10 @@ Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 
 기본(S3) 비헤이비어에 CloudFront Function 두 개가 붙는다. 소스는 이 저장소의
 [`infra/cloudfront-functions/`](../infra/cloudfront-functions/)에 있다.
 
-| Function                   | 이벤트          | 하는 일                                                                                                                                                                                                                                                                                                              | 소스                                                               |
-| -------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `link-sphere-spa-fallback` | viewer-request  | 앱 라우트 → `/index.html`, 앱 라우트가 아닌 확장자 없는 경로 → `/404.html`, 정적 파일은 통과. 단 `/assets/`의 `.js`·`.css`는 br을 받는 요청이면 주소 끝에 `.br`을 붙임(아래 "사전 brotli 압축")                                                                                                                      | [`spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js) |
-| `link-sphere-spa-status`   | viewer-response | `/404.html` 응답의 상태를 404로 바꿈(본문은 그대로라 화면은 앱의 404 페이지). `/index.html`·`/404.html` 응답에 `Cross-Origin-Embedder-Policy: credentialless`를 붙여 외부 썸네일 요청에서 쿠키를 뺌(`docs/PERFORMANCE.md` "Best Practices 77점 사례"). `/assets/`의 `.br` 사본 응답에 `Vary: Accept-Encoding`을 붙임 | [`spa-status.js`](../infra/cloudfront-functions/spa-status.js)     |
+| Function                   | 이벤트          | 하는 일                                                                                                                                                                                                                                                                                                                       | 소스                                                               |
+| -------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `link-sphere-spa-fallback` | viewer-request  | 앱 라우트 → `/index.html`, 앱 라우트가 아닌 확장자 없는 경로 → `/404.html`, 정적 파일은 통과. 단 `/assets/`의 `.js`·`.css`는 br을 받는 요청이면 주소 끝에 `.br`을 붙임(아래 "사전 brotli 압축"). 링크 미리보기 봇이 글 상세(`/post/<UUID>`)를 GET하면 오리진을 BE로 바꾸고 `/api/og/post/<UUID>`로(아래 "메신저 미리보기 봇") | [`spa-fallback.js`](../infra/cloudfront-functions/spa-fallback.js) |
+| `link-sphere-spa-status`   | viewer-response | `/404.html` 응답의 상태를 404로 바꿈(본문은 그대로라 화면은 앱의 404 페이지). `/index.html`·`/404.html` 응답에 `Cross-Origin-Embedder-Policy: credentialless`를 붙여 외부 썸네일 요청에서 쿠키를 뺌(`docs/PERFORMANCE.md` "Best Practices 77점 사례"). `/assets/`의 `.br` 사본 응답에 `Vary: Accept-Encoding`을 붙임          | [`spa-status.js`](../infra/cloudfront-functions/spa-status.js)     |
 
 `/404.html`은 `deploy.yml`이 매 배포마다 `dist/index.html`을 복사해 올리는 사본이다. `index.html`과 같은
 `no-cache` 캐시 정책을 쓰고, 배포 검증 단계 4번이 entry 청크가 같은지 확인한다. 경로별 최종 응답은 아래
@@ -742,7 +742,7 @@ Route 53 레코드나 ACM 인증서는 그대로 둬도 무해하다(그냥 안 
   ```
 
 - **시험 케이스는 [`infra/cloudfront-functions/test-cases.json`](../infra/cloudfront-functions/test-cases.json)에 있다.**
-  배포는 이 케이스를 실제 런타임(`cloudfront-js-1.0`)에서 `test-function`으로 돌리고,
+  배포는 이 케이스를 실제 런타임(`spa-fallback`은 `cloudfront-js-2.0`, `spa-status`는 `cloudfront-js-1.0`)에서 `test-function`으로 돌리고,
   [`cloudfront-functions.test.ts`](../src/app/routes/cloudfront-functions.test.ts)가 같은 파일을 Node에서도 돌린다.
   Function의 동작을 바꾸면 케이스도 함께 고친다. 배열 순서가 게시 순서다(`spa-status` → `spa-fallback`).
 - **Function이 전제하는 것을 없애는 변경은 PR을 둘로 나눈다.** 게시는 S3 업로드 뒤에 돈다. Function이 S3의 파일
@@ -785,7 +785,7 @@ export AWS_PAGER=""
 aws cloudfront describe-function --name link-sphere-spa-fallback --stage DEVELOPMENT
 aws cloudfront update-function --name link-sphere-spa-fallback \
   --if-match <위 ETag> \
-  --function-config '{"Comment":"<snapshot.json의 이 함수 Comment>","Runtime":"cloudfront-js-1.0"}' \
+  --function-config '{"Comment":"<snapshot.json의 이 함수 Comment>","Runtime":"<snapshot.json의 이 함수 Runtime>"}' \
   --function-code fileb://spa-fallback.js
 
 # 2. 시험 (test-cases.json의 케이스를 이벤트 JSON으로 만들어 넣는다)
@@ -802,6 +802,27 @@ aws cloudfront publish-function --name link-sphere-spa-fallback --if-match <최�
 `update-distribution`했다(ETag → IfMatch 절차는 위 "커스텀 도메인" 절과 같다). **`spa-fallback`이 `/404.html`로
 보내기 시작하기 전에 S3에 `/404.html`이 있어야 한다** — 없으면 없는 경로가 S3 403 XML이 된다. Function을 새로
 만들고 연결하는 일은 지금도 CloudShell에서 한다(배포 역할에 권한이 없다).
+
+### 메신저 미리보기 봇
+
+카카오톡·Slack 같은 링크 미리보기 봇이 글 주소(`/post/<UUID>`)를 GET하면 `spa-fallback`이 오리진을 BE(`link-sphere-be`)로 바꾸고
+주소를 `/api/og/post/<UUID>`로 바꾼다. BE가 그 글의 제목·설명·썸네일을 담은 OG 태그 HTML을 준다(볼 수 없는 글이면 사이트 이름·소개만,
+BE `PostOgController`). 사람과 검색 봇은 지금처럼 `/index.html`을 받는다(2026-11-20 도입, 계획:
+[`docs/plans/2026-11-19-post-link-in-app-and-og.md`](./plans/2026-11-19-post-link-in-app-and-og.md)).
+
+- **런타임이 2.0이어야 한다.** 오리진 변경(`cf.selectRequestOriginById`)은 `cloudfront-js-2.0`의 viewer-request에서만 되고 코드 첫 줄에
+  `import cf from 'cloudfront';`가 있어야 한다([AWS 문서](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/helper-functions-origin-modification.html)).
+  런타임은 배포 대상이 아니라 2026-11-20 CloudShell에서 바꿨다. 1.0으로 되돌리려면 먼저 이 분기와 `import` 줄을 뺀 PR을 병합하고 배포가 끝난 뒤
+  CloudShell에서 런타임을 바꾼다(거꾸로 하면 지금 코드가 1.0에서 돌지 않는다).
+- **봇 목록은 `spa-fallback.js`의 `PREVIEW_BOT`이 정본이다.** 토큰마다 근거 문서를 주석에 적었다. 목록에 없는 서비스는 사이트 기본
+  미리보기가 나온다. 새 서비스를 더하면 `cloudfront-functions.test.ts`의 `PREVIEW_BOT_USER_AGENTS`에도 그 UA를 넣는다.
+- **GET만 보낸다.** BE는 `GET /og/post/*`만 로그인 없이 연다(HEAD는 401). 끝 `/`는 BE 주소에 붙이지 않는다.
+- **캐시는 바뀐 주소 기준이다.** 기본 비헤이비어의 `Managed-CachingOptimized`가 BE의 `Cache-Control: max-age=300, public`을 따라
+  `/api/og/post/<UUID>`를 5분 캐시한다. 사람이 받는 `/index.html` 캐시와 섞이지 않는다. 글을 고치거나 비공개로 바꾸면 미리보기에는 최대
+  5분 늦게 반영된다(봇 자체 캐시는 별도).
+- **배포 시험은 오리진 선택을 보지 않는다.** AWS 문서는 _"Test API(…)는 오리진 변경이 일어났는지는 시험하지 않는다. 다만 코드가 오류
+  없이 도는지는 확인한다"_ (번역, 위 AWS 문서, 조사 에이전트가 읽은 것을 재인용)고 쓴다. 바뀐 주소는 `test-cases.json`이, 오리진 선택은 `cloudfront-functions.test.ts`의
+  `cf` 대역이 확인한다. 배포 뒤에는 봇 UA로 글 주소를 요청해 OG HTML이 오는지 본다.
 
 ### 사전 brotli 압축
 
@@ -839,6 +860,7 @@ flowchart TD
     W -- 통과 --> B{"/api/* 인가"}
     B -- 예 --> L["Lambda(BE) JSON 그대로"]
     B -- 아니오 --> F{"spa-fallback.js<br/>(viewer-request)"}
+    F -- "미리보기 봇의 GET /post/UUID" --> OG["BE /api/og/post/UUID<br/>OG 태그 HTML → 200"]
     F -- "앱 라우트" --> I["/index.html → 200"]
     F -- "확장자 없음 + 앱 라우트 아님" --> N["/404.html → spa-status.js가 404로<br/>화면: 앱 NotFoundPage"]
     F -- "확장자 있음" --> P{"/assets/의 .js·.css이고<br/>br을 받는 요청인가"}
@@ -854,6 +876,7 @@ flowchart TD
 | 앱 라우트               | `/`, `/post/abc`, `/auth/login`      | 정상 페이지                       | 200                   |
 | 앱 라우트가 아닌 경로   | `/oops`, `/.git/config`, `/wp-admin` | 앱 404 페이지(`noindex` 포함)     | 404                   |
 | 앱 라우트 + 데이터 없음 | `/post/<삭제된 id>`                  | 그 자리 안내 화면(`noindex` 포함) | 200(엣지는 DB를 모름) |
+| 미리보기 봇의 글 상세   | `/post/<UUID>` (봇 UA, GET)          | BE의 OG 태그 HTML(화면 없음)      | 200                   |
 | 확장자 있는 없는 파일   | `/robots.txt`, `/.env.local`         | S3 XML                            | 403                   |
 | API                     | `/api/...`                           | BE JSON                           | BE가 정함             |
 

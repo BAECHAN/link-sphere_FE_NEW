@@ -105,7 +105,7 @@ function prepare({ name, repoPath, eventType, cases }, tempDir) {
       '--event-object',
       `fileb://${eventFile}`,
     ]);
-    const label = `${testCase.uri} (accept-encoding: ${testCase.acceptEncoding ?? '없음'})`;
+    const label = `${testCase.uri} (accept-encoding: ${testCase.acceptEncoding ?? '없음'}, user-agent: ${testCase.userAgent ?? '없음'})`;
 
     if (TestResult.FunctionErrorMessage) {
       failures.push(`${label}: 실행 오류 ${TestResult.FunctionErrorMessage}`);
